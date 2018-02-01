@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -82,14 +82,14 @@ static void convertEPIDToPsi( B_PlaybackIpPsiInfo *psi, EPID *pEpid, IP_PSI_Trac
 {
    if (type == IP_PSI_TrackType_eVideo) {
       psi->mpegType = NEXUS_TransportType_eTs;
-      /* coverity [mixed_enums] */
+      /* coverity[mixed_enums] */
       psi->videoCodec = pEpid->streamType;
       psi->videoPid = pEpid->pid;
       psi->psiValid = true;
    }
    else if (type == IP_PSI_TrackType_eAudio ) {
       psi->mpegType = NEXUS_TransportType_eTs;
-      /* coverity [mixed_enums] */
+      /* coverity[mixed_enums] */
       psi->audioCodec = pEpid->streamType;
       psi->audioPid = pEpid->pid;
       psi->psiValid = true;

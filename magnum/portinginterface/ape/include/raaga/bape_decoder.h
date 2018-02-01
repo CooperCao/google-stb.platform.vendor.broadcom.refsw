@@ -451,6 +451,7 @@ typedef struct BAPE_DecoderStatus
     unsigned dummyFrames;
     unsigned cdbUnderFlowCount;
     unsigned mode;
+    unsigned queuedOutput; /* in ms */
     bool running;
     bool halted;
     bool valid;

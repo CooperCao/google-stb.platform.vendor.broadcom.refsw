@@ -726,6 +726,7 @@ extern void wlc_bmac_handle_device_halt(wlc_hw_info_t *wlc_hw, bool TX, bool COR
 
 uint wlc_bmac_rxfifosz_get(wlc_hw_info_t *wlc_hw);
 extern void *wlc_bmac_dmatx_peeknexttxp(wlc_info_t *wlc, int fifo);
+extern void wlc_dma_map_pkts(wlc_hw_info_t *wlc_hw, map_pkts_cb_fn cb, void *ctx);
 
 #ifdef BCMDBG_SR
 extern int wlc_bmac_sr_verify(wlc_hw_info_t *wlc_hw, struct bcmstrbuf *b);

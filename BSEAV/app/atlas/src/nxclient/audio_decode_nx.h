@@ -71,8 +71,12 @@ public:
     virtual eRet             setAudioProcessing(eAudioProcessing audioProcessing);
     virtual eAudioProcessing getAudioProcessing(void) { return(_audioProcessing); }
     virtual eRet             updateConnectSettings(NxClient_ConnectSettings * pSettings);
-    virtual eRet             setAudioFade(unsigned level = 100, unsigned duration = 3);
+#if BDSP_MS12_SUPPORT
+    virtual int              getAudioFade(void);
+    virtual eRet             setAudioFade(unsigned level = 100, unsigned duration = 3, bool bWait = false);
+    virtual bool             isAudioFadePending(void);
     virtual eRet             waitAudioFadeComplete(void);
+#endif
 
 protected:
     unsigned _connectId;

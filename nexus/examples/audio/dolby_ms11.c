@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -116,6 +116,8 @@ static void capture_callback(void *pParam, int param)
     NEXUS_Error errCode;
     captureCallbackParameters *captureCBParams;
 
+    BSTD_UNUSED(param);
+
     captureCBParams = (captureCallbackParameters *) pParam ;
     capture = captureCBParams->capture ;
     pFile = captureCBParams->pFile ;
@@ -196,7 +198,7 @@ int main(int argc, char **argv)
     NEXUS_DolbyDigitalReencodeSettings ddreSettings;
     NEXUS_DolbyVolume258Handle dv258;
     NEXUS_DolbyVolume258Settings dv258Settings;
-    NEXUS_AudioInputHandle outputConnector;
+    NEXUS_AudioInputHandle outputConnector = NULL;
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_HdmiOutputSettings hdmiSettings;
@@ -1059,6 +1061,8 @@ static void hotplug_callback(void *pParam, int iParam)
     NEXUS_DisplaySettings displaySettings;
     NEXUS_HdmiOutputSettings hdmiSettings;
     hotplugCallbackParameters *hotPlugCbParams ;
+
+    BSTD_UNUSED(iParam);
 
     hotPlugCbParams = (hotplugCallbackParameters *) pParam ;
     hdmi = hotPlugCbParams->hdmiOutput ;

@@ -54,8 +54,7 @@ static Dataflow **buffer_dataflow(const Symbol *symbol, const int *ids) {
       for (unsigned i = 0; i < symbol->type->scalar_count; i++) {
          PrimitiveTypeIndex type_index = glsl_get_scalar_value_type_index(symbol->type, i);
          if (glsl_prim_is_prim_texture_type(&primitiveTypes[type_index]) ||
-             glsl_prim_is_prim_image_type(&primitiveTypes[type_index])   ||
-             glsl_prim_is_prim_comb_sampler_type(&primitiveTypes[type_index]))
+             glsl_prim_is_prim_image_type(&primitiveTypes[type_index]))
          {
             PrimSamplerInfo *psi = glsl_prim_get_image_info(type_index);
             PrimitiveTypeIndex ret_basic_type = primitiveScalarTypeIndices[psi->return_type];
@@ -69,19 +68,11 @@ static Dataflow **buffer_dataflow(const Symbol *symbol, const int *ids) {
             }
 
             df[i] = glsl_dataflow_construct_const_image(type, ids[i],
-                           /* Shadow lookups are always 16-bit */
-                           !glsl_prim_sampler_is_shadow(type_index) && (symbol->u.var_instance.prec_qual == PREC_HIGHP));
+                           (symbol->u.var_instance.prec_qual == PREC_HIGHP));
 
             df[i]->u.const_image.format_valid = symbol->u.var_instance.layout_format_specified;
             if (symbol->u.var_instance.layout_format_specified)
                df[i]->u.const_image.format = symbol->u.var_instance.layout_format;
-
-            if (glsl_prim_is_prim_comb_sampler_type(&primitiveTypes[type_index])) {
-               /* Sampled images must be paired up with their samplers */
-               assert(i+1 < symbol->type->scalar_count && type_index == glsl_get_scalar_value_type_index(symbol->type, i+1));
-               i++;
-               df[i] = glsl_dataflow_construct_linkable_value(DATAFLOW_CONST_SAMPLER, DF_SAMPLER, ids[i]);
-            }
          } else if (type_index == PRIM_SAMPLER) {
             df[i] = glsl_dataflow_construct_linkable_value(DATAFLOW_CONST_SAMPLER, DF_SAMPLER, ids[i]);
          } else if (type_index == PRIM_ATOMIC_UINT) {

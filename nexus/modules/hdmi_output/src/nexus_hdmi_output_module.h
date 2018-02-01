@@ -146,6 +146,8 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_EventCallbackHandle avRateChangeEventCallback;
     NEXUS_TimerHandle powerTimer;
 
+    bool pendingDisableAuthentication_isr;
+    bool forceSendRxIdList;
     bool hdcpRequiredPostFormatChange;
     bool formatChangeMute;
     bool avMuteSetting;
@@ -209,7 +211,7 @@ typedef struct NEXUS_HdmiOutput
     BHDM_Settings hdmSettings;
     bool edidProcDebugDisplayed ;
 
-    bool invalidEdid ;
+    BHDM_EDID_STATE edidState ;
     bool invalidEdidReported ;
     bool edidHdmiDevice ;
     BHDM_EDID_RxVendorSpecificDB edidVendorSpecificDB ;
@@ -319,7 +321,7 @@ extern NEXUS_HdmiOutputMemoryBlock g_hdcpTABlock;
 NEXUS_HdmiOutputState NEXUS_HdmiOutput_P_GetState(NEXUS_HdmiOutputHandle output);
 
 NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp(NEXUS_HdmiOutputHandle output);
-NEXUS_Error NEXUS_HdmiOutput_P_UninitHdcp(NEXUS_HdmiOutputHandle output);
+void NEXUS_HdmiOutput_P_UninitHdcp(NEXUS_HdmiOutputHandle output);
 void NEXUS_HdmiOutput_P_HdcpNotifyHotplug(NEXUS_HdmiOutputHandle output);
 
 void NEXUS_HdmiOutputModule_Print(void);

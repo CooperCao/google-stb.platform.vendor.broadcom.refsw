@@ -123,7 +123,7 @@ This function creates a callback.
 Description:
 After this function is used to create a callback, the BINT_EnableCallback()
 function must be used before the callback will actually be enabled.  When
-the specified interrupt triggers, the func specified will be called with the
+the specified interrupt triggers, the func_isr specified will be called with the
 pParm passed into this function.
 
 The first time an callback is created for a specific interrupt, the interrupt
@@ -133,7 +133,7 @@ BERR_Code BINT_CreateCallback(
 							  BINT_CallbackHandle *pCbHandle, /* [out] Returns handle */
 							  BINT_Handle handle, /* [in] InterruptInterface handle */
 							  BINT_Id intId, /* [in] Id of the interrupt to associate with callback function */
-							  BINT_CallbackFunc func, /* [in] Callback function that should be called when the specified interrupt triggers */
+							  BINT_CallbackFunc func_isr, /* [in] Callback function that should be called when the specified interrupt triggers */
 							  void * pParm1, /* [in] Parameter that is returned to callback function when interrupt triggers */
 							  int parm2 /* [in] Parameter that is returned to callback function when interrupt triggers */
 							  );
@@ -268,7 +268,7 @@ BERR_Code BINT_P_CreateCallback_Tag(
 							  BINT_CallbackHandle *pCbHandle,
 							  BINT_Handle handle,
 							  BINT_Id intId,
-							  BINT_CallbackFunc func,
+							  BINT_CallbackFunc func_isr,
 							  void * pParm1,
 							  int parm2,
 							  const char *callbackName

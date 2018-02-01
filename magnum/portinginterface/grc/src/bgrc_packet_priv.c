@@ -75,6 +75,7 @@ BDBG_FILE_MODULE(BGRC_PRINT_SWPKT);
 #define M2MC_FT_CompressedARGB8888              (10L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
 #define M2MC_FT_UIFARGB8888                     (11L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
 #define M2MC_FT_CompressedUIFARGB8888           (12L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
+#define M2MC_FT_YV12                            (13L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
 #define M2MC_FT_YCbCr420_10_Striped             (14L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
 #define M2MC_FT_YCbCr420_Striped                (15L << BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_SHIFT))
 
@@ -182,6 +183,7 @@ static const uint32_t s_BGRC_PACKET_P_DeviceGroupHeaderMasks[] =
     0,                                                              /* EndOfBuffer */
     BCHP_M2MC_LIST_PACKET_HEADER_1_SRC_FEEDER_GRP_CNTRL_MASK,       /* SourceFeeder */
     BCHP_M2MC_LIST_PACKET_HEADER_1_SRC_FEEDER_GRP_CNTRL_MASK,       /* SourceFeeders */
+    BCHP_M2MC_LIST_PACKET_HEADER_1_SRC_FEEDER_GRP_CNTRL_MASK,       /* ThreeSourceFeeders */
     BCHP_M2MC_LIST_PACKET_HEADER_1_SRC_FEEDER_GRP_CNTRL_MASK,       /* StripedSourceFeeders */
     BCHP_M2MC_LIST_PACKET_HEADER_1_SRC_FEEDER_GRP_CNTRL_MASK,       /* SourceColor */
     BCHP_M2MC_LIST_PACKET_HEADER_1_SRC_FEEDER_GRP_CNTRL_MASK,       /* SourceNone */
@@ -243,10 +245,10 @@ static const uint32_t s_BGRC_PACKET_P_DeviceGroupSizes[] =
     BGRC_M2MC(SRC_COLOR_KEY_HIGH) - BGRC_M2MC(ROP_OPERATION),
     BGRC_M2MC(ROP_OPERATION) - BGRC_M2MC(BLEND_COLOR_OP),
     BGRC_M2MC(BLEND_COLOR_OP) - BGRC_M2MC(SCALER_CTRL),
-#if ((BGRC_M2MC(SCALER_CTRL) - BGRC_M2MC(BLIT_CTRL)) == 8) && !defined(BCHP_M2MC_DCEG_CFG)
-    BGRC_M2MC(SCALER_CTRL) - 4 - BGRC_M2MC(BLIT_HEADER),
+#if defined(BCHP_M2MC_DCEG_CFG)
+    BGRC_M2MC(DCEG_CFG) - BGRC_M2MC(BLIT_HEADER)+sizeof (uint32_t),
 #else
-    BGRC_M2MC(SCALER_CTRL) - BGRC_M2MC(BLIT_HEADER),
+    BGRC_M2MC(BLIT_CTRL) - BGRC_M2MC(BLIT_HEADER)+sizeof (uint32_t),
 #endif
     BGRC_M2MC(BLIT_HEADER) - BGRC_M2MC(OUTPUT_FEEDER_ENABLE),
     BGRC_M2MC(OUTPUT_FEEDER_ENABLE) - BGRC_M2MC(DEST_FEEDER_ENABLE),
@@ -410,7 +412,7 @@ static const uint8_t s_BGRC_PACKET_P_RegAddrType[] =
 
 /***************************************************************************/
 #ifdef BDBG_DEBUG_BUILD
-static const char *s_BGRC_PACKET_P_DESCR_GRP_NAME[] =
+static const char *const s_BGRC_PACKET_P_DESCR_GRP_NAME[] =
 {
     "             DST_CLUT",
     "             SRC_CLUT_ENTRY_i_ARRAY_BASE",
@@ -1046,6 +1048,64 @@ static void BGRC_PACKET_P_ProcSwPktSourceFeeders( BGRC_PacketContext_Handle hCon
 #endif
 }
 
+/***************************************************************************/
+static void BGRC_PACKET_P_ProcSwPktThreeSourceFeeders( BGRC_PacketContext_Handle hContext, BM2MC_PACKET_Header *header )
+{
+#if (BGRC_P_VER >=4)
+    BM2MC_PACKET_PacketThreeSourceFeeders *packet = (BM2MC_PACKET_PacketThreeSourceFeeders *) header;
+    uint32_t format01 = s_BGRC_PACKET_P_DevicePixelFormats[packet->plane0.format][1];
+    uint32_t format02 = s_BGRC_PACKET_P_DevicePixelFormats[packet->plane0.format][2] | BGRC_PACKET_P_DEFAULT_SOURCE_SURFACE_FORMAT_DEF_3;
+    uint32_t format10 = s_BGRC_PACKET_P_DevicePixelFormats[packet->plane1.format][0];
+    uint32_t format11 = s_BGRC_PACKET_P_DevicePixelFormats[packet->plane1.format][1];
+    uint32_t format12 = s_BGRC_PACKET_P_DevicePixelFormats[packet->plane1.format][2] | BGRC_PACKET_P_DEFAULT_SOURCE_SURFACE_FORMAT_DEF_3;
+    hContext->src_format0 = s_BGRC_PACKET_P_DevicePixelFormats[packet->plane0.format][0];
+    hContext->b420Src = ((packet->plane1.format >= BM2MC_PACKET_PixelFormat_eCb8_Cr8) &&
+                         (packet->plane1.format <= BM2MC_PACKET_PixelFormat_eCr10_Cb10));
+    hContext->stSurInvalid.stBits.bSrc = 0;
+    hContext->stSurCompressed.stBits.bSrc = 0;
+    if (BM2MC_PACKET_PixelFormat_eCompressed_A8_R8_G8_B8 == packet->plane0.format)
+    {
+        hContext->stSurInvalid.stBits.bSrc = 1;
+        BDBG_ERR(("Bad compressed format with PacketSourceFeeders"));
+    }
+
+    BDBG_MODULE_MSG(BGRC_PRINT_SWPKT, ( "-- SrcFeeders         " ));
+    BGRC_PACKET_P_STORE_REG( SRC_FEEDER_ENABLE, packet->plane0.address ? 1 : 0 );
+
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0,     BGRC_P_GET_UINT64_HIGH(packet->plane0.address));
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_LSB, BGRC_P_GET_UINT64_LOW(packet->plane0.address));
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1,     BGRC_P_GET_UINT64_HIGH(packet->plane1.address));
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1_LSB, BGRC_P_GET_UINT64_LOW(packet->plane1.address));
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_2,     BGRC_P_GET_UINT64_HIGH(packet->plane2.address));
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_2_LSB, BGRC_P_GET_UINT64_LOW(packet->plane2.address));
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_STRIDE_0, packet->plane0.pitch );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_STRIDE_1, packet->plane1.pitch );
+
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_FORMAT_DEF_1, hContext->src_format0 );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_FORMAT_DEF_2, format01 );
+    BGRC_PACKET_P_STORE_REG_MASK( SRC_SURFACE_FORMAT_DEF_3, format02, BGRC_PACKET_P_SRC_SURFACE_FORMAT_DEF_3_MASK );
+
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_1_FORMAT_DEF_1, format10 );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_1_FORMAT_DEF_2, format11 );
+    BGRC_PACKET_P_STORE_REG_MASK( SRC_SURFACE_1_FORMAT_DEF_3, format12, BGRC_PACKET_P_SRC_SURFACE_FORMAT_DEF_3_MASK );
+
+    BGRC_PACKET_P_STORE_REG( SRC_W_ALPHA, (packet->color >> 24) | 0xFF0000 );
+    BGRC_PACKET_P_STORE_REG( SRC_CONSTANT_COLOR, packet->color );
+
+    BGRC_PACKET_P_STORE_REG_FIELD( BLIT_CTRL, READ_420_AS_FIELDS, DISABLE );
+
+    hContext->SRC_surface_width = packet->plane0.width;
+    hContext->SRC_surface_height = packet->plane0.height;
+
+#if BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE && BDBG_DEBUG_BUILD
+    hContext->SRC_surface_format = packet->plane0.format;
+    hContext->SRC_surface_pitch = packet->plane0.pitch;
+#endif
+#else
+	BSTD_UNUSED(hContext);
+	BSTD_UNUSED(header);
+#endif
+}
 /***************************************************************************/
 static void BGRC_PACKET_P_ProcSwPktStripedSourceFeeders( BGRC_PacketContext_Handle hContext, BM2MC_PACKET_Header *header )
 {
@@ -2156,7 +2216,7 @@ static void BGRC_PACKET_P_ProcSwPktFillBlit( BGRC_PacketContext_Handle hContext,
 
 
 
-#if (BGRC_P_VER >= BGRC_P_VER_2)
+#if (BGRC_P_UIF)
     uint32_t ulFormat;
     BPXL_Uif_Surface stMipmapSurface;
     bool  bSrcUif= false, bOutUif=false, bMipmap = (hContext->hGrc->eDeviceNum == BGRC_eMM_M2mc0);
@@ -2186,7 +2246,7 @@ static void BGRC_PACKET_P_ProcSwPktFillBlit( BGRC_PacketContext_Handle hContext,
     BDBG_MODULE_MSG(BGRC_PRINT_SWPKT, ( "-- FillBlit           " ));
     BGRC_PACKET_P_STORE_REG_FIELD( BLIT_HEADER, SRC_SCALER_ENABLE, DISABLE );
     BGRC_PACKET_P_STORE_RECT_REGS( pos, size, 0, 0, pos, size, pos, size );
-#if (BGRC_P_VER >= BGRC_P_VER_2)
+#if (BGRC_P_UIF)
     BGRC_PACKET_P_STORE_REG( BLIT_SRC_UIF_FULL_HEIGHT,    bSrcUif?stMipmapSurface.ulPadH :ulHeight);
     BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_UIF_FULL_HEIGHT, bOutUif?stMipmapSurface.ulPadH :ulHeight);
 #endif
@@ -2255,7 +2315,7 @@ static void BGRC_PACKET_P_SetScaler( BGRC_PacketContext_Handle hContext,
         return;
     }
 
-    BDBG_MODULE_MSG(BGRC_PRINT_SWPKT, ( "          .. SetScaler\n" ));
+    BDBG_MODULE_MSG(BGRC_PRINT_SWPKT, ( "          -- SetScaler" ));
 
     /* calculate scaler steps and initial phases */
     /* HW limit 1: abs(phase) < src_step */
@@ -2356,7 +2416,7 @@ static void BGRC_PACKET_P_SetScaler( BGRC_PacketContext_Handle hContext,
                     ulMaxScalingUpFraction = BGRC_P_SCALE_UP_2BSTC_MAX_FRAC >>bYuv420;
                 }
                 /*BSTC Max factor applies only to horizontal scaling. Vertical scaling has not upscale limitation and will have same downscale limitation of 8 which applies to earlier formats.*/
-                if(scaler->hor_step && (scaler->hor_step <ulMaxScalingUpFraction))
+                if(h_step <ulMaxScalingUpFraction)
                 {
                     scaler->stripe_overlap = 0;
                     BDBG_WRN(("m2mc[%d] scaling up factor width (%d->%d) or height (%d->%d) exceeding limit %d",
@@ -2413,7 +2473,7 @@ static void BGRC_PACKET_P_SetScaleFor420Src(BGRC_PacketContext_Handle hContext)
         return;
     }
 
-    BDBG_MODULE_MSG(BGRC_PRINT_SWPKT, ( "          .. SetScaleFor420Src\n" ));
+    BDBG_MODULE_MSG(BGRC_PRINT_SWPKT, ( "          -- SetScaleFor420Src" ));
 
     /* TODO: since scale ratio is not the same, 420 CbCr might affect the scaler stripe width? */
     if (0 == BGRC_PACKET_P_GET_REG_FIELD( BLIT_HEADER, SRC_SCALER_ENABLE ))
@@ -2474,7 +2534,7 @@ static void BGRC_PACKET_P_ProcSwPktCopyBlit( BGRC_PacketContext_Handle hContext,
     uint32_t src_pos = packet->src_rect.x | ((uint32_t) packet->src_rect.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
     uint32_t out_pos = packet->out_point.x | ((uint32_t) packet->out_point.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
     uint32_t size = packet->src_rect.height | ((uint32_t) packet->src_rect.width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
-#if (BGRC_P_VER >= BGRC_P_VER_2)
+#if (BGRC_P_UIF)
     BPXL_Uif_Surface stMipmapSurface;
     uint32_t ulFormat;
     bool  bSrcUif= false, bOutUif=false, bDstUif = false, bMipmap = (hContext->hGrc->eDeviceNum == BGRC_eMM_M2mc0);
@@ -2506,7 +2566,7 @@ static void BGRC_PACKET_P_ProcSwPktCopyBlit( BGRC_PacketContext_Handle hContext,
     BDBG_MODULE_MSG(BGRC_PRINT_SWPKT, ( "-- CopyBlit           " ));
     BGRC_PACKET_P_STORE_REG_FIELD( BLIT_HEADER, SRC_SCALER_ENABLE, DISABLE );
     BGRC_PACKET_P_STORE_RECT_REGS( src_pos, size, src_pos, size, out_pos, size, out_pos, size );
-#if (BGRC_P_VER >= BGRC_P_VER_2)
+#if (BGRC_P_UIF)
     BGRC_PACKET_P_STORE_REG( BLIT_SRC_UIF_FULL_HEIGHT,    bSrcUif?stMipmapSurface.ulPadH:ulHeight);
     if(!bMipmap)
         BGRC_PACKET_P_STORE_REG( BLIT_DEST_UIF_FULL_HEIGHT,   bDstUif?stMipmapSurface.ulPadH:ulHeight);
@@ -2546,7 +2606,7 @@ static void BGRC_PACKET_P_ProcSwPktBlendBlit( BGRC_PacketContext_Handle hContext
     uint32_t out_pos = packet->out_point.x | ((uint32_t) packet->out_point.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
     uint32_t dst_pos = packet->dst_point.x | ((uint32_t) packet->dst_point.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
     uint32_t size = packet->src_rect.height | ((uint32_t) packet->src_rect.width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
-#if (BGRC_P_VER >= BGRC_P_VER_2)
+#if (BGRC_P_UIF)
     BPXL_Uif_Surface stMipmapSurface;
     uint32_t ulFormat;
     bool  bSrcUif= false, bOutUif=false, bDstUif = false, bMipmap = (hContext->hGrc->eDeviceNum == BGRC_eMM_M2mc0);
@@ -2577,12 +2637,11 @@ static void BGRC_PACKET_P_ProcSwPktBlendBlit( BGRC_PacketContext_Handle hContext
     BDBG_MODULE_MSG(BGRC_PRINT_SWPKT, ( "-- BlendBlit          " ));
     BGRC_PACKET_P_STORE_REG_FIELD( BLIT_HEADER, SRC_SCALER_ENABLE, DISABLE );
     BGRC_PACKET_P_STORE_RECT_REGS( src_pos, size, src_pos, size, dst_pos, size, out_pos, size );
-#if (BGRC_P_VER >= BGRC_P_VER_2)
+#if (BGRC_P_UIF)
     BGRC_PACKET_P_STORE_REG( BLIT_SRC_UIF_FULL_HEIGHT,    bSrcUif?stMipmapSurface.ulPadH:ulHeight);
     if(!bMipmap)
         BGRC_PACKET_P_STORE_REG( BLIT_DEST_UIF_FULL_HEIGHT,   bDstUif?stMipmapSurface.ulPadH :ulHeight);
     BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_UIF_FULL_HEIGHT, bOutUif?stMipmapSurface.ulPadH :ulHeight);
-
 #endif
     BGRC_PACKET_P_STORE_REG_FIELD( BLIT_CTRL, STRIPE_ENABLE, DISABLE );
 
@@ -2712,7 +2771,7 @@ static void BGRC_PACKET_P_ProcSwPktScaleBlit( BGRC_PacketContext_Handle hContext
     uint32_t out_pos = packet->out_rect.x | ((uint32_t) packet->out_rect.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
     uint32_t out_size = packet->out_rect.height | ((uint32_t) packet->out_rect.width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
 
-#if (BGRC_P_VER >= BGRC_P_VER_2)
+#if (BGRC_P_UIF)
     uint32_t ulFormat, ulOutUifHeight;
     BPXL_Uif_Surface stMipmapSurface;
     bool  bSrcUif= false, bOutUif=false, bDstUif = false,bMipmap = (hContext->hGrc->eDeviceNum == BGRC_eMM_M2mc0);
@@ -2785,7 +2844,7 @@ static void BGRC_PACKET_P_ProcSwPktScaleBlit( BGRC_PacketContext_Handle hContext
     }
 
     BGRC_PACKET_P_STORE_RECT_REGS( src_pos, src_size, src_pos1, src_size1, out_pos, out_size, out_pos, out_size );
-#if (BGRC_P_VER >= BGRC_P_VER_2)
+#if (BGRC_P_UIF)
     BGRC_PACKET_P_STORE_REG( BLIT_SRC_UIF_FULL_HEIGHT,    ulSrcHeight);
     if(!bMipmap)
         BGRC_PACKET_P_STORE_REG( BLIT_DEST_UIF_FULL_HEIGHT,   bDstUif?ulOutUifHeight:ulOutHeight);
@@ -2917,7 +2976,7 @@ static void BGRC_PACKET_P_ProcHwPktStripeBlit( BGRC_PacketContext_Handle hContex
     }
 
     BGRC_PACKET_P_STORE_RECT_REGS( src_pos, src_size, src_pos1, src_size1, dst_pos, out_size, out_pos, out_size );
-#if (BGRC_P_VER >= BGRC_P_VER_2)
+#if (BGRC_P_UIF)
     BGRC_PACKET_P_STORE_REG( BLIT_SRC_UIF_FULL_HEIGHT,    ulSrcHeight);
     if(!bMipmap)
         BGRC_PACKET_P_STORE_REG( BLIT_DEST_UIF_FULL_HEIGHT,   bDstUif?ulOutUifHeight:ulOutHeight);
@@ -2973,7 +3032,7 @@ static void BGRC_PACKET_P_ProcSwPktStripeBlit( BGRC_PacketContext_Handle hContex
         uint32_t src_size = src_rect->height | ((uint32_t) stripe.src_width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
         uint32_t out_size = out_rect->height | ((uint32_t) stripe.out_width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
 
-#if (BGRC_P_VER >= BGRC_P_VER_2)
+#if (BGRC_P_UIF)
         uint32_t ulFormat, ulOutUifHeight;
         BPXL_Uif_Surface stMipmapSurface;
         bool  bSrcUif= false, bOutUif=false, bDstUif = false,bMipmap = (hContext->hGrc->eDeviceNum == BGRC_eMM_M2mc0);
@@ -3017,7 +3076,7 @@ static void BGRC_PACKET_P_ProcSwPktStripeBlit( BGRC_PacketContext_Handle hContex
         BDBG_MODULE_MSG(BGRC_PRINT_SWPKT, ( "-- StripeBlit         " ));
         BGRC_PACKET_P_STORE_REG_FIELD( BLIT_CTRL, STRIPE_ENABLE, DISABLE );
         BGRC_PACKET_P_STORE_RECT_REGS( src_pos, src_size, src_pos, src_size, dst_pos, out_size, out_pos, out_size );
-#if (BGRC_P_VER >= BGRC_P_VER_2)
+#if (BGRC_P_UIF)
         BGRC_PACKET_P_STORE_REG( BLIT_SRC_UIF_FULL_HEIGHT,    ulSrcHeight);
         if(!bMipmap)
             BGRC_PACKET_P_STORE_REG( BLIT_DEST_UIF_FULL_HEIGHT,   bDstUif?ulOutUifHeight:ulOutHeight);
@@ -3123,7 +3182,7 @@ static void BGRC_PACKET_P_ProcSwPktUpdateScaleBlit( BGRC_PacketContext_Handle hC
     uint32_t out_size = packet->update_rect.height | ((uint32_t) packet->update_rect.width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
 
     BM2MC_PACKET_Rectangle src_rect;
-#if (BGRC_P_VER >= BGRC_P_VER_2)
+#if (BGRC_P_UIF)
     uint32_t ulFormat, ulOutUifHeight;
     BPXL_Uif_Surface stMipmapSurface;
     bool  bSrcUif= false, bOutUif=false, bDstUif = false,bMipmap = (hContext->hGrc->eDeviceNum == BGRC_eMM_M2mc0);
@@ -3144,7 +3203,7 @@ static void BGRC_PACKET_P_ProcSwPktUpdateScaleBlit( BGRC_PacketContext_Handle hC
     hContext->scaler.input_stripe_width &= ~0x7FFF;
 
     BGRC_PACKET_P_BLOCK_SPLIT_FIFO_FIX_2_SRC( pad_x, pad_w, packet->update_rect.x, packet->update_rect.width );
-#if (BGRC_P_VER >= BGRC_P_VER_2)
+#if (BGRC_P_UIF)
     ulFormat = BGRC_PACKET_P_GET_REG_FIELD(SRC_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
     bSrcUif = BGRC_IS_UIF_FORMAT(ulFormat);
     ulFormat = BGRC_PACKET_P_GET_REG_FIELD(DEST_SURFACE_FORMAT_DEF_1, FORMAT_TYPE);
@@ -3457,6 +3516,9 @@ static uint32_t *BGRC_PACKET_P_ProcessSwPaket(
         break;
     case BM2MC_PACKET_PacketType_eSourceFeeders:
         BGRC_PACKET_P_ProcSwPktSourceFeeders( hContext, pHeader );
+        break;
+    case BM2MC_PACKET_PacketType_eThreeSourceFeeders:
+        BGRC_PACKET_P_ProcSwPktThreeSourceFeeders( hContext, pHeader );
         break;
     case BM2MC_PACKET_PacketType_eStripedSourceFeeders:
         BGRC_PACKET_P_ProcSwPktStripedSourceFeeders( hContext, pHeader );
@@ -4031,6 +4093,17 @@ void BGRC_PACKET_P_WriteHwPkt(
     BDBG_MODULE_MSG(BGRC_PRINT_SWPKT, ("Desc group header: 0x %x", ulGroupMask));
 
 
+    /* SWSTB-7916: no address holes between two group registers*/
+    BDBG_CASSERT((BGRC_M2MC(SRC_CM_C00_C01)-BGRC_M2MC(VERT_FIR_1_COEFF_PHASE1_2))==sizeof(uint32_t));
+    BDBG_CASSERT((BGRC_M2MC(HORIZ_FIR_0_COEFF_PHASE0_01)-BGRC_M2MC(DEST_COLOR_KEY_REPLACEMENT_MASK))==sizeof(uint32_t));
+    BDBG_CASSERT((BGRC_M2MC(DEST_COLOR_KEY_HIGH)-BGRC_M2MC(SRC_COLOR_KEY_REPLACEMENT_MASK))==sizeof(uint32_t));
+    BDBG_CASSERT((BGRC_M2MC(SRC_COLOR_KEY_HIGH)-BGRC_M2MC(ROP_PATTERN_COLOR_1))==sizeof(uint32_t));
+    BDBG_CASSERT((BGRC_M2MC(ROP_OPERATION)-BGRC_M2MC(BLEND_COLOR_KEY_ACTION))==sizeof(uint32_t));
+    BDBG_CASSERT((BGRC_M2MC(BLEND_COLOR_OP)-BGRC_M2MC(VERT_SCALER_1_STEP))==sizeof(uint32_t));
+    BDBG_CASSERT((BGRC_M2MC(BLIT_HEADER)-BGRC_M2MC(OUTPUT_SURFACE_FORMAT_DEF_3))==sizeof(uint32_t));
+    BDBG_CASSERT((BGRC_M2MC(OUTPUT_FEEDER_ENABLE)-BGRC_M2MC(DEST_CONSTANT_COLOR))==sizeof(uint32_t));
+
+
     /* write groups */
     for( ii = groups - 1; ii >= 0; --ii )
     {
@@ -4127,11 +4200,6 @@ static void BGRC_PACKET_P_SubmitHwPktsToHw(
     /* submit this hw pkt series to HW */
     if( hGrc->pHwPktSubmitLinkPtr )
     {
-#if BGRC_PACKET_P_BLIT_WORKAROUND
-        uint32_t ulListStatus;
-        bool     bListFinished;
-#endif
-
         /* append this hw pkt series to the tail of previously submitted */
         BDBG_MODULE_MSG(BGRC_PRINT_SWPKT, ( "** NEXT               " ));
 #if BGRC_P_64BITS_ADDR
@@ -4144,31 +4212,10 @@ static void BGRC_PACKET_P_SubmitHwPktsToHw(
         /* flush "next offset" from previous blits */
         BMMA_FlushCache(hGrc->pHwPktFifoBaseAlloc, hGrc->pHwPktSubmitLinkPtr, sizeof (BSTD_DeviceOffset) );
 
-#if BGRC_PACKET_P_BLIT_WORKAROUND
-        ulListStatus = BGRC_P_ReadReg32(hGrc, LIST_STATUS);
-        bListFinished = BCHP_GET_FIELD_DATA(ulListStatus, M2MC_LIST_STATUS, FINISHED);
-
-        if(bListFinished)
-        {
-            BGRC_P_WriteReg32( hGrc, LIST_CTRL,
-            BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |
-            BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |
-            BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromLast ));
-        }
-        else
-        {
-            BKNI_EnterCriticalSection();
-            hGrc->ulNumbersToRun ++;
-            BKNI_LeaveCriticalSection();
-        }
-        BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("ulListStatus %d bListFinished %d HW offset %x ulNumbersToRun %d",
-            ulListStatus, bListFinished, BGRC_P_GET_UINT64_LOW(ulStartHwPktOffset), hGrc->ulNumbersToRun));
-#else
         BGRC_P_WriteReg32( hGrc, LIST_CTRL,
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromLast ) );
-#endif
     }
     else
     {
@@ -4371,7 +4418,7 @@ BERR_Code BGRC_PACKET_P_ProcessSwPktFifo(
 #if defined(BCHP_M2MC_DCEG_CFG)
     if ((BGRC_PACKET_P_GET_REG_FIELD(DCEG_CFG, ENABLE)) && (NULL != pStartHwPkt))
     {
-        BDBG_MODULE_MSG(BGRC_PRINT_SWPKT, ( ".. compress -> " ));
+        BDBG_MODULE_MSG(BGRC_PRINT_SWPKT, ( "-- compress -> " ));
         BGRC_PACKET_P_InsertFlushBlit(hGrc, hGrc->hDummyCtx);
         if (hContext->ulSwPktSizeToProc > 0)
         {
@@ -4404,7 +4451,7 @@ void BGRC_PACKET_P_InsertFlushBlit(
     bool  bMipmap = hGrc->eDeviceNum==BGRC_eMM_M2mc0;
     uint32_t ulFlushBlitSize = bMipmap?BGRC_PACKET_P_FLUSH_MMPACKET_SIZE: BGRC_PACKET_P_FLUSH_PACKET_SIZE ;
 
-    BDBG_MODULE_MSG(BGRC_PRINT_SWPKT, ( ".. InsertFlushBlit" ));
+    BDBG_MODULE_MSG(BGRC_PRINT_SWPKT, ( "-- InsertFlushBlit" ));
 
     /* can't do flush blit in secure mode. */
     if (hGrc->secure)

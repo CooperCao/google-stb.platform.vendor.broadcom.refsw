@@ -155,7 +155,9 @@ void create_display(void)
 #endif
 #if NEXUS_NUM_RFM_OUTPUTS
     if (display1) {
-        NEXUS_Display_AddOutput(display1, NEXUS_Rfm_GetVideoConnector(platformConfig.outputs.rfm[0]));
+        if (platformConfig.outputs.rfm[0]) {
+            NEXUS_Display_AddOutput(display1, NEXUS_Rfm_GetVideoConnector(platformConfig.outputs.rfm[0]));
+        }
     }
 #endif
 #if NEXUS_NUM_HDMI_OUTPUTS

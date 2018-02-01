@@ -1,6 +1,14 @@
 /******************************************************************************
  *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
+
+// The 32bit ARM build requires 64bit mmap for the DRM driver to work
+// correctly in a mixed 32/64bit environment.
+#if !__aarch64__
+#define _LARGEFILE_SOURCE 1
+#define _FILE_OFFSET_BITS 64
+#endif
+
 #include "EGL/egl.h"
 #include "nexus_memory.h"
 #include "nexus_heap_selection.h"
@@ -291,7 +299,7 @@ static void ClearMemoryBlock(DRM_MemoryContext *ctx, DRM_MemoryBlock *block)
 
    ptr = mmap(NULL, block->real_size, PROT_READ | PROT_WRITE, MAP_SHARED, ctx->fd, block->mmap_offset);
 
-   BDBG_ASSERT(ptr != 0);
+   BDBG_ASSERT(ptr != MAP_FAILED);
 
    memset(ptr, 0, block->real_size);
 
@@ -541,6 +549,14 @@ static void *MemMapBlock(void *context, BEGL_MemHandle h, size_t offset, size_t 
    }
 
    ptr = mmap(NULL, block->real_size, (PROT_READ | PROT_WRITE), MAP_SHARED, ctx->fd, block->mmap_offset);
+
+   if (ptr == MAP_FAILED)
+   {
+      if (use_memory_log)
+         fprintf(sLogFile, "M %p (%u) %zu %zu = FAILED MMAP\n", block, block->handle, offset, length);
+
+      return NULL;
+   }
 
    if (use_memory_log)
       fprintf(sLogFile, "M %p (%u) %zu %zu = %p\n", block, block->handle, offset, length, ptr);

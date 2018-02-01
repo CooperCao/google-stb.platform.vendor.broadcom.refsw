@@ -932,6 +932,7 @@ void Platform::SetStereoscopic(bool on)
 
    if (on && (!sentOne || !m_stereo))
    {
+#ifdef BSG_VC5
 #ifdef SINGLE_PROCESS
       NEXUS_PlatformConfiguration platformConfig;
       NEXUS_Platform_GetConfiguration(&platformConfig);
@@ -944,12 +945,13 @@ void Platform::SetStereoscopic(bool on)
       vsi.hdmi3DStructure = NEXUS_HdmiVendorSpecificInfoFrame_3DStructure_eSidexSideHalf;
       NEXUS_HdmiOutput_SetVendorSpecificInfoFrame(hdmiOutput, &vsi);
 #endif
-      //NXPL_SetDisplayType(platform_data->m_platformHandle, NXPL_3D_LEFT_RIGHT);
-
+      NXPL_SetDisplayType(platform_data->m_platformHandle, NXPL_3D_LEFT_RIGHT);
+#endif
       sentOne = true;
    }
    else if (!on && (!sentOne || m_stereo))
    {
+#ifdef BSG_VC5
 #ifdef SINGLE_PROCESS
       NEXUS_PlatformConfiguration platformConfig;
       NEXUS_Platform_GetConfiguration(&platformConfig);
@@ -961,7 +963,8 @@ void Platform::SetStereoscopic(bool on)
       vsi.hdmiVideoFormat = NEXUS_HdmiVendorSpecificInfoFrame_HDMIVideoFormat_eNone;
       NEXUS_HdmiOutput_SetVendorSpecificInfoFrame(hdmiOutput, &vsi);
 #endif
-      //NXPL_SetDisplayType(platform_data->m_platformHandle, NXPL_2D);
+      NXPL_SetDisplayType(platform_data->m_platformHandle, NXPL_2D);
+#endif
 
       sentOne = true;
    }
@@ -1901,29 +1904,21 @@ NativePixmap::NativePixmap(uint32_t w, uint32_t h, ePixmapFormat format) :
    pixInfo.height = h;
    pixInfo.secure = Platform::Instance()->GetOptions().GetSecure();
 
-#ifdef BSG_VC5
-/* Legacy from VC4 */
-#define BEGL_BufferFormat_eYUV422_Texture BEGL_BufferFormat_eYUV422
-#define BEGL_BufferFormat_eYV12_Texture BEGL_BufferFormat_eYV12
-#endif
-
 #ifdef BIG_ENDIAN_CPU
    switch (format)
    {
    case RGB565_TEXTURE     : pixInfo.format = BEGL_BufferFormat_eR5G6B5; break;
-   default:
    case ABGR8888_TEXTURE   : pixInfo.format = BEGL_BufferFormat_eR8G8B8A8; break;
-   //case YUV422_TEXTURE     : pixInfo.format = BEGL_BufferFormat_eVUY224_Texture; break;
-   //case eYV12_TEXTURE      : pixInfo.format = BEGL_BufferFormat_eYV12_Texture; break;
+   default:
+      BSG_THROW("Format not supported");
    }
 #else
    switch (format)
    {
    case RGB565_TEXTURE     : pixInfo.format = BEGL_BufferFormat_eR5G6B5; break;
-   default:
    case ABGR8888_TEXTURE   : pixInfo.format = BEGL_BufferFormat_eA8B8G8R8; break;
-   //case YUV422_TEXTURE     : pixInfo.format = BEGL_BufferFormat_eYUV422_Texture; break;
-   //case eYV12_TEXTURE      : pixInfo.format = BEGL_BufferFormat_eYV12_Texture; break;
+   default:
+      BSG_THROW("Format not supported");
    }
 #endif
 

@@ -171,23 +171,6 @@ static void remove_head(khrn_timeline *tl, v3d_sched_deps_state deps_state)
    }
 }
 
-static bool point_passed_for_state(khrn_timeline *tl, uint64_t pt_val,
-      v3d_sched_deps_state deps_state)
-{
-   khrn_timeline_pt *pt = tl->head[deps_state];
-
-   while (pt && pt->id <= pt_val)
-   {
-      if (!khrn_fence_reached_state(pt->fence, deps_state))
-         return false;
-
-      remove_head(tl, deps_state);
-      pt = tl->head[deps_state];
-   }
-
-   return true;
-}
-
 static void flush_to_point(khrn_timeline *tl, uint64_t pt_val)
 {
    khrn_timeline_pt *pt;
@@ -204,24 +187,36 @@ static void flush_to_point(khrn_timeline *tl, uint64_t pt_val)
    }
 }
 
-bool khrn_timeline_check(khrn_timeline *tl, uint64_t pt_val,
+static bool point_passed_for_state(khrn_timeline *tl, uint64_t pt_val,
       v3d_sched_deps_state deps_state)
 {
 
-   if (point_passed_for_state(tl, pt_val, deps_state))
-      return true;
-   flush_to_point(tl, pt_val);
+   khrn_timeline_pt *pt = tl->head[deps_state];
+   while (pt && pt->id <= pt_val)
+   {
+      if (!khrn_fence_reached_state(pt->fence, deps_state))
+      {
+         flush_to_point(tl, pt_val);
+         return false;
+      }
+      remove_head(tl, deps_state);
+      pt = tl->head[deps_state];
+   }
 
-   return false;
+   return true;
+}
+
+bool khrn_timeline_check(khrn_timeline *tl, uint64_t pt_val,
+      v3d_sched_deps_state deps_state)
+{
+   return point_passed_for_state(tl, pt_val, deps_state);
 }
 
 void khrn_timeline_wait(khrn_timeline *tl, uint64_t pt_val,
       v3d_sched_deps_state deps_state)
 {
-
    if (point_passed_for_state(tl, pt_val, deps_state))
       return;
-   flush_to_point(tl, pt_val);
 
    khrn_timeline_pt *pt;
 

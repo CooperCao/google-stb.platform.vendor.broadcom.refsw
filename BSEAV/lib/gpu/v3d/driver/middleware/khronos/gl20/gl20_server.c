@@ -20,45 +20,33 @@
 #include "middleware/khronos/common/khrn_hw.h"
 #include "middleware/khronos/glxx/glxx_tweaker.h"
 
+#include "middleware/khronos/common/khrn_mem.h"
+
 #include <string.h>
 #include <math.h>
 #include <limits.h>
 
 static int get_uniform_internal(GLuint p, GLint location, const void *v, GLboolean is_float);
-static const char *lock_shader_info_log(GL20_SHADER_T *shader);
-static void unlock_shader_info_log(GL20_SHADER_T *shader);
 
-bool gl20_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, MEM_HANDLE_T shared)
+bool gl20_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared, bool secure)
 {
    state->type = OPENGL_ES_20;
 
+   state->secure = secure;
+
    //initialise common portions of state
-   if(!glxx_server_state_init(state, name, shared))
+   if(!glxx_server_state_init(state, shared))
       return false;
 
    //gl 2.0 specific parts
 
    glxx_tweaker_init(&state->tweak_state, true);
 
-   assert(state->mh_program == MEM_HANDLE_INVALID);
+   assert(state->program == NULL);
 
    state->point_size = 1.0f;
 
    return true;
-}
-
-void glPointSize_impl_20 (GLfloat size) // S
-{
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-
-   size = clean_float(size);
-
-   if (size > 0.0f)
-      state->point_size = size;
-   else
-      glxx_server_state_set_error(state, GL_INVALID_VALUE);
-
-   GL20_UNLOCK_SERVER_STATE();
 }
 
 /*
@@ -69,34 +57,22 @@ void glPointSize_impl_20 (GLfloat size) // S
    returns NULL in either case.
 */
 
-static GL20_PROGRAM_T *get_program(GLXX_SERVER_STATE_T *state, GLuint p, MEM_HANDLE_T *handle)
+static GL20_PROGRAM_T *get_program(GLXX_SERVER_STATE_T *state, GLuint p)
 {
-   GL20_PROGRAM_T *program;
-   MEM_HANDLE_T phandle = glxx_shared_get_pobject((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), p);
-   mem_unlock(state->mh_shared);
+   GL20_PROGRAM_T *program = glxx_shared_get_pobject(state->shared, p);
 
-   if (phandle == MEM_HANDLE_INVALID) {
+   if (program == NULL) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
-
       return NULL;
    }
-
-   program = (GL20_PROGRAM_T *)mem_lock(phandle, NULL);
 
    assert(program);
 
    if (!gl20_is_program(program)) {
       assert(gl20_is_shader((GL20_SHADER_T *)program));
-
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-
-      mem_unlock(phandle);
-
       return NULL;
    }
-
-   if (handle)
-      *handle = phandle;
 
    return program;
 }
@@ -109,34 +85,22 @@ static GL20_PROGRAM_T *get_program(GLXX_SERVER_STATE_T *state, GLuint p, MEM_HAN
    returns NULL in either case.
 */
 
-static GL20_SHADER_T *get_shader(GLXX_SERVER_STATE_T *state, GLuint s, MEM_HANDLE_T *handle)
+static GL20_SHADER_T *get_shader(GLXX_SERVER_STATE_T *state, GLuint s)
 {
-   GL20_SHADER_T *shader;
-   MEM_HANDLE_T shandle = glxx_shared_get_pobject((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), s);
-   mem_unlock(state->mh_shared);
+   GL20_SHADER_T *shader = glxx_shared_get_pobject(state->shared, s);
 
-   if (shandle == MEM_HANDLE_INVALID) {
+   if (shader == NULL) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
-
       return NULL;
    }
-
-   shader = (GL20_SHADER_T *)mem_lock(shandle, NULL);
 
    assert(shader);
 
    if (!gl20_is_shader(shader)) {
       assert(gl20_is_program((GL20_PROGRAM_T *)shader));
-
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-
-      mem_unlock(shandle);
-
       return NULL;
    }
-
-   if (handle)
-      *handle = shandle;
 
    return shader;
 }
@@ -155,70 +119,62 @@ static GL20_SHADER_T *get_shader(GLXX_SERVER_STATE_T *state, GLuint s, MEM_HANDL
    Error Checks: Done
 */
 
-void glAttachShader_impl_20 (GLuint p, GLuint s)
+GL_API void GL_APIENTRY glAttachShader(GLuint p, GLuint s)
 {
-   MEM_HANDLE_T phandle;
    GL20_PROGRAM_T *program;
 
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
-   assert(state);
-
-   program = get_program(state, p, &phandle);
+   program = get_program(state, p);
 
    if (program) {
-      MEM_HANDLE_T shandle;
-      GL20_SHADER_T *shader = get_shader(state, s, &shandle);
+      GL20_SHADER_T *shader = get_shader(state, s);
 
       if (shader) {
-         MEM_HANDLE_T *pmh_shader = NULL;
+         GL20_SHADER_T **pshader = NULL;
 
          switch (shader->type) {
          case GL_VERTEX_SHADER:
-            pmh_shader = &program->mh_vertex;
+            pshader = &program->vertex;
             break;
          case GL_FRAGMENT_SHADER:
-            pmh_shader = &program->mh_fragment;
+            pshader = &program->fragment;
             break;
          default:
             UNREACHABLE();
             break;
          }
 
-         if (*pmh_shader != MEM_HANDLE_INVALID)
+         if (*pshader != NULL)
             glxx_server_state_set_error(state, GL_INVALID_OPERATION);
          else {
             gl20_shader_acquire(shader);
 
-            MEM_ASSIGN(*pmh_shader, shandle);
+            KHRN_MEM_ASSIGN(*pshader, shader);
          }
-
-         mem_unlock(shandle);
       }
-
-      mem_unlock(phandle);
    }
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
-void glBindAttribLocation_impl_20 (GLuint p, GLuint index, const char *name)
+GL_API void GL_APIENTRY glBindAttribLocation(GLuint p, GLuint index, const char *name)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-   if (!state) return;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
    if (name)
    {
       if (index < GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
          if (strncmp(name, "gl_", 3)) {
-            MEM_HANDLE_T phandle;
-            GL20_PROGRAM_T *program = get_program(state, p, &phandle);
+            GL20_PROGRAM_T *program = get_program(state, p);
 
             if (program) {
                if (!gl20_program_bind_attrib(program, index, name))
                   glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
-
-               mem_unlock(phandle);
             }
          } else
             glxx_server_state_set_error(state, GL_INVALID_OPERATION);
@@ -226,12 +182,8 @@ void glBindAttribLocation_impl_20 (GLuint p, GLuint index, const char *name)
          glxx_server_state_set_error(state, GL_INVALID_VALUE);
    }
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
-
-
-
-
 
 /*
    glBlendColor()
@@ -243,23 +195,19 @@ void glBindAttribLocation_impl_20 (GLuint p, GLuint index, const char *name)
    Error Checks: Done
 */
 
-void glBlendColor_impl_20 (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) // S
+GL_API void GL_APIENTRY glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) // S
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
    state->blend_color[0] = clampf(red, 0.0f, 1.0f);
    state->blend_color[1] = clampf(green, 0.0f, 1.0f);
    state->blend_color[2] = clampf(blue, 0.0f, 1.0f);
    state->blend_color[3] = clampf(alpha, 0.0f, 1.0f);
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
-/*
-void glBlendEquation_impl_20 ( GLenum mode ) // S
-{
-   UNREACHABLE();
-}
-*/
 
 /*
    Check if 'mode' is a valid blend equation enum.
@@ -282,9 +230,11 @@ static GLboolean is_blend_equation(GLenum mode)
    Error Checks: Done
 */
 
-void glBlendEquationSeparate_impl_20 (GLenum modeRGB, GLenum modeAlpha) // S
+static void blend_equation_separate(GLenum modeRGB, GLenum modeAlpha) // S
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
    if (is_blend_equation(modeRGB) && is_blend_equation(modeAlpha)) {
       state->changed_backend = true;
@@ -293,7 +243,28 @@ void glBlendEquationSeparate_impl_20 (GLenum modeRGB, GLenum modeAlpha) // S
    } else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
+}
+
+GL_API void GL_APIENTRY glBlendEquation(GLenum mode) // S
+{
+   blend_equation_separate(mode, mode);
+}
+
+GL_API void GL_APIENTRY glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) // S
+{
+   blend_equation_separate(modeRGB, modeAlpha);
+}
+
+GL_API void GL_APIENTRY glBlendFuncSeparate(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
+
+   glxx_server_set_blend_func(state, srcRGB, dstRGB, srcAlpha, dstAlpha);
+
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
 /*
@@ -305,17 +276,18 @@ void glBlendEquationSeparate_impl_20 (GLenum modeRGB, GLenum modeAlpha) // S
    Error Checks: Done
 */
 
-GLuint glCreateProgram_impl_20 (void)
+GL_API GLuint GL_APIENTRY glCreateProgram(void)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return 0;
 
-   GLuint result = glxx_shared_create_program((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL));
-   mem_unlock(state->mh_shared);
+   GLuint result = glxx_shared_create_program(state->shared);
 
    if (result == 0)
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 
    return result;
 }
@@ -336,22 +308,22 @@ static bool is_shader_type(GLenum type)
           type == GL_FRAGMENT_SHADER;
 }
 
-GLuint glCreateShader_impl_20 (GLenum type)
+GL_API GLuint GL_APIENTRY glCreateShader(GLenum type)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return 0;
 
    GLuint result = 0;
 
    if (is_shader_type(type)) {
-      result = glxx_shared_create_shader((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), type);
-      mem_unlock(state->mh_shared);
-
+      result = glxx_shared_create_shader(state->shared, type);
       if (result == 0)
          glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
    } else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 
    return result;
 }
@@ -362,14 +334,11 @@ static void try_delete_shader(GLXX_SHARED_T *shared, GL20_SHADER_T *shader)
       glxx_shared_delete_pobject(shared, shader->name);
 }
 
-static void release_shader(GLXX_SHARED_T *shared, MEM_HANDLE_T handle)
+static void release_shader(GLXX_SHARED_T *shared, GL20_SHADER_T *shader)
 {
-   if (handle != MEM_HANDLE_INVALID) {
-      GL20_SHADER_T *shader;
+   if (shader != NULL) {
 
-      mem_acquire(handle);
-
-      shader = (GL20_SHADER_T *)mem_lock(handle, NULL);
+      khrn_mem_acquire(shader);
 
       assert(gl20_is_shader(shader));
 
@@ -377,29 +346,25 @@ static void release_shader(GLXX_SHARED_T *shared, MEM_HANDLE_T handle)
 
       try_delete_shader(shared, shader);
 
-      mem_unlock(handle);
-      mem_release(handle);
+      KHRN_MEM_ASSIGN(shader, NULL);
    }
 }
 
 static void try_delete_program(GLXX_SHARED_T *shared, GL20_PROGRAM_T *program)
 {
    if (program->refs == 0 && program->deleted) {
-      release_shader(shared, program->mh_vertex);
-      release_shader(shared, program->mh_fragment);
+      release_shader(shared, program->vertex);
+      release_shader(shared, program->fragment);
 
       glxx_shared_delete_pobject(shared, program->name);
    }
 }
 
-static void release_program(GLXX_SHARED_T *shared, MEM_HANDLE_T handle)
+static void release_program(GLXX_SHARED_T *shared, GL20_PROGRAM_T *program)
 {
-   if (handle != MEM_HANDLE_INVALID) {
-      GL20_PROGRAM_T *program;
+   if (program != NULL) {
 
-      mem_acquire(handle);
-
-      program = (GL20_PROGRAM_T *)mem_lock(handle, NULL);
+      khrn_mem_acquire(program);
 
       assert(gl20_is_program(program));
 
@@ -407,8 +372,7 @@ static void release_program(GLXX_SHARED_T *shared, MEM_HANDLE_T handle)
 
       try_delete_program(shared, program);
 
-      mem_unlock(handle);
-      mem_release(handle);
+      KHRN_MEM_ASSIGN(program, NULL);
    }
 }
 
@@ -424,24 +388,23 @@ static void release_program(GLXX_SHARED_T *shared, MEM_HANDLE_T handle)
    Error Checks: Done
 */
 
-void glDeleteProgram_impl_20 (GLuint p)
+GL_API void GL_APIENTRY glDeleteProgram(GLuint p)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
-   GLXX_SHARED_T *shared = (GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL);
+   GLXX_SHARED_T *shared = state->shared;
 
    if (p) {
-      MEM_HANDLE_T handle = glxx_shared_get_pobject(shared, p);
+      GL20_PROGRAM_T *program = glxx_shared_get_pobject(shared, p);
 
-      if (handle != MEM_HANDLE_INVALID) {
-         GL20_PROGRAM_T *program;
+      if (program != NULL) {
 
          /* wait to make sure noone is using the buffer */
          khrn_hw_common_wait();
 
-         mem_acquire(handle);
-
-         program = (GL20_PROGRAM_T *)mem_lock(handle, NULL);
+         khrn_mem_acquire(program);
 
          if (gl20_is_program(program)) {
             program->deleted = GL_TRUE;
@@ -450,15 +413,12 @@ void glDeleteProgram_impl_20 (GLuint p)
          } else
             glxx_server_state_set_error(state, GL_INVALID_OPERATION);
 
-         mem_unlock(handle);
-         mem_release(handle);
+         KHRN_MEM_ASSIGN(program, NULL);
       } else
          glxx_server_state_set_error(state, GL_INVALID_VALUE);
    }
 
-   mem_unlock(state->mh_shared);
-
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
 /*
@@ -473,21 +433,20 @@ void glDeleteProgram_impl_20 (GLuint p)
    Error Checks: Done
 */
 
-void glDeleteShader_impl_20 (GLuint s)
+GL_API void GL_APIENTRY glDeleteShader(GLuint s)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
-   GLXX_SHARED_T *shared = (GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL);
+   GLXX_SHARED_T *shared = state->shared;
 
    if (s) {
-      MEM_HANDLE_T handle = glxx_shared_get_pobject(shared, s);
+      GL20_SHADER_T *shader = glxx_shared_get_pobject(shared, s);
 
-      if (handle != MEM_HANDLE_INVALID) {
-         GL20_SHADER_T *shader;
+      if (shader != NULL) {
 
-         mem_acquire(handle);
-
-         shader = (GL20_SHADER_T *)mem_lock(handle, NULL);
+         khrn_mem_acquire(shader);
 
          if (gl20_is_shader(shader)) {
             shader->deleted = true;
@@ -496,15 +455,12 @@ void glDeleteShader_impl_20 (GLuint s)
          } else
             glxx_server_state_set_error(state, GL_INVALID_OPERATION);
 
-         mem_unlock(handle);
-         mem_release(handle);
+         KHRN_MEM_ASSIGN(shader, NULL);
       } else
          glxx_server_state_set_error(state, GL_INVALID_VALUE);
    }
 
-   mem_unlock(state->mh_shared);
-
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
 /*
@@ -520,75 +476,48 @@ void glDeleteShader_impl_20 (GLuint s)
    Error Checks: Done
 */
 
-void glDetachShader_impl_20 (GLuint p, GLuint s)
+GL_API void GL_APIENTRY glDetachShader(GLuint p, GLuint s)
 {
-   MEM_HANDLE_T phandle;
    GL20_PROGRAM_T *program;
 
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
-   assert(state);
-
-   program = get_program(state, p, &phandle);
+   program = get_program(state, p);
 
    if (program) {
-      MEM_HANDLE_T shandle;
-      GL20_SHADER_T *shader = get_shader(state, s, &shandle);
+      GL20_SHADER_T *shader = get_shader(state, s);
 
       if (shader) {
-         MEM_HANDLE_T *pmh_shader = NULL;
+         GL20_SHADER_T **pshader = NULL;
 
          switch (shader->type) {
          case GL_VERTEX_SHADER:
-            pmh_shader = &program->mh_vertex;
+            pshader = &program->vertex;
             break;
          case GL_FRAGMENT_SHADER:
-            pmh_shader = &program->mh_fragment;
+            pshader = &program->fragment;
             break;
          default:
             UNREACHABLE();
             break;
          }
 
-         if (*pmh_shader != shandle)
+         if (*pshader != shader)
             glxx_server_state_set_error(state, GL_INVALID_OPERATION);
          else {
             gl20_shader_release(shader);
 
-            try_delete_shader((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), shader);
-            mem_unlock(state->mh_shared);
+            try_delete_shader(state->shared, shader);
 
-            MEM_ASSIGN(*pmh_shader, MEM_HANDLE_INVALID);
+            KHRN_MEM_ASSIGN(*pshader, NULL);
          }
-
-         mem_unlock(shandle);
       }
-
-      mem_unlock(phandle);
    }
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
-
-
-
-/*
-void glDisableVertexAttribArray_impl_20 (GLuint index)
-{
-   UNREACHABLE();
-}
-*/
-
-
-
-
-
-/*
-void glEnableVertexAttribArray_impl_20 (GLuint index)
-{
-   UNREACHABLE();
-}
-*/
 
 
 /*
@@ -624,25 +553,23 @@ static size_t strzncpy(char *dst, const char *src, size_t len)
    Error Checks: Done
 */
 
-void glGetActiveAttrib_impl_20 (GLuint p, GLuint index, GLsizei buf_len, GLsizei *length, GLint *size, GLenum *type, char *buf_ptr)
+GL_APICALL void GL_APIENTRY glGetActiveAttrib(GLuint p, GLuint index, GLsizei buf_len, GLsizei *length, GLint *size, GLenum *type, char *buf_ptr)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-   if (!state) return;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
-   MEM_HANDLE_T phandle;
-   GL20_PROGRAM_T *program = get_program(state, p, &phandle);
+   GL20_PROGRAM_T *program = get_program(state, p);
 
    if (program == NULL) goto end;       /* get_shader will have set error */
 
    if (index >= program->num_attributes) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
-      mem_unlock(phandle);
       goto end;
    }
 
    if (buf_len < 0) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
-      mem_unlock(phandle);
       goto end;
    }
 
@@ -654,10 +581,8 @@ void glGetActiveAttrib_impl_20 (GLuint p, GLuint index, GLsizei buf_len, GLsizei
    if (size) *size = 1;        // no array or structure attributes
    if (type) *type = base[index].type;
 
-   mem_unlock(phandle);
-
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
 /*
@@ -673,19 +598,18 @@ end:
    Error Checks: Done
 */
 
-void glGetActiveUniform_impl_20 (GLuint p, GLuint index, GLsizei buf_len, GLsizei *length, GLint *size, GLenum *type, char *buf_ptr)
+GL_APICALL void GL_APIENTRY glGetActiveUniform(GLuint p, GLuint index, GLsizei buf_len, GLsizei *length, GLint *size, GLenum *type, char *buf_ptr)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-   if (!state) return;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
-   MEM_HANDLE_T phandle;
-   GL20_PROGRAM_T *program = get_program(state, p, &phandle);
+   GL20_PROGRAM_T *program = get_program(state, p);
 
    if (program == NULL) goto end;
 
    if (index >= program->num_uniforms) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
-      mem_unlock(phandle);
       goto end;
    }
 
@@ -705,9 +629,8 @@ void glGetActiveUniform_impl_20 (GLuint p, GLuint index, GLsizei buf_len, GLsize
    if (size) *size = base[index].size;
    if (type) *type = base[index].type;
 
-   mem_unlock(phandle);
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
 /*
@@ -722,73 +645,61 @@ end:
    Error Checks: Done
 */
 
-void glGetAttachedShaders_impl_20 (GLuint p, GLsizei maxcount, GLsizei *pcount, GLuint *shaders)
+GL_APICALL void GL_APIENTRY glGetAttachedShaders(GLuint p, GLsizei maxcount, GLsizei *pcount, GLuint *shaders)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-
-   assert(state);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
    if (maxcount >= 0) {
-      MEM_HANDLE_T phandle;
-      GL20_PROGRAM_T *program = get_program(state, p, &phandle);
+      GL20_PROGRAM_T *program = get_program(state, p);
 
       if (program) {
          int32_t count = 0;
 
          if (shaders) {
             if (maxcount > 0) {
-               if (program->mh_vertex != MEM_HANDLE_INVALID) {
-                  GL20_SHADER_T *vertex = (GL20_SHADER_T *)mem_lock(program->mh_vertex, NULL);
-
+               if (program->vertex != NULL) {
+                  GL20_SHADER_T *vertex = program->vertex;
                   shaders[count++] = vertex->name;
                   maxcount--;
-
-                  mem_unlock(program->mh_vertex);
                }
             }
 
             if (maxcount > 0) {
-               if (program->mh_fragment != MEM_HANDLE_INVALID) {
-                  GL20_SHADER_T *fragment = (GL20_SHADER_T *)mem_lock(program->mh_fragment, NULL);
-
+               if (program->fragment != NULL) {
+                  GL20_SHADER_T *fragment = program->fragment;
                   shaders[count++] = fragment->name;
                   maxcount--;
-
-                  mem_unlock(program->mh_fragment);
                }
             }
          }
 
          if (pcount)
             *pcount = count;
-
-         mem_unlock(phandle);
       }
    }
    else
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
-int glGetAttribLocation_impl_20 (GLuint p, const char *name)
+GL_APICALL int GL_APIENTRY glGetAttribLocation(GLuint p, const char *name)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-   if (!state) return 0;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return 0;
 
    int result = -1;
-   MEM_HANDLE_T phandle;
-   GL20_PROGRAM_T *program = get_program(state, p, &phandle);
+   GL20_PROGRAM_T *program = get_program(state, p);
    if (program == NULL) goto end;
 
-   if (name == NULL) {
-      mem_unlock(phandle);
+   if (name == NULL)
       goto end;
-   }
 
    if (!program->linked) {
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-      mem_unlock(phandle);
       goto end;
    }
 
@@ -802,10 +713,8 @@ int glGetAttribLocation_impl_20 (GLuint p, const char *name)
       }
    }
 
-   mem_unlock(phandle);
-
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
    return result;
 }
 
@@ -826,44 +735,36 @@ end:
    active attribute name, including a null terminator, is returned.
 */
 
-int glGetProgramiv_impl_20 (GLuint p, GLenum pname, GLint *params)
+GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
-   MEM_HANDLE_T phandle;
-
-   GL20_PROGRAM_T *program = get_program(state, p, &phandle);
-
-   int result;
+   GL20_PROGRAM_T *program = get_program(state, p);
 
    if (program) {
       switch (pname) {
       case GL_DELETE_STATUS:
          params[0] = program->deleted ? 1 : 0;
-         result = 1;
          break;
       case GL_LINK_STATUS:
          params[0] = program->linked ? 1 : 0;
-         result = 1;
          break;
       case GL_VALIDATE_STATUS:
          params[0] = program->validated ? 1 : 0;
-         result = 1;
          break;
       case GL_ATTACHED_SHADERS:
-         params[0] = (program->mh_vertex != MEM_HANDLE_INVALID) + (program->mh_fragment != MEM_HANDLE_INVALID);
-         result = 1;
+         params[0] = (program->vertex != NULL) + (program->fragment != NULL);
          break;
       case GL_INFO_LOG_LENGTH:
          if (program->info_log == NULL)
             params[0] = 0;
          else
             params[0] = strlen(program->info_log) + 1;
-         result = 1;
          break;
       case GL_ACTIVE_UNIFORMS:
          params[0] = program->num_uniforms;
-         result = 1;
          break;
       case GL_ACTIVE_UNIFORM_MAX_LENGTH:
       {
@@ -883,12 +784,10 @@ int glGetProgramiv_impl_20 (GLuint p, GLenum pname, GLint *params)
                max = size;
          }
          params[0] = max;
-         result = 1;
          break;
       }
       case GL_ACTIVE_ATTRIBUTES:
          params[0] = program->num_attributes;
-         result = 1;
          break;
       case GL_ACTIVE_ATTRIBUTE_MAX_LENGTH:
       {
@@ -903,36 +802,29 @@ int glGetProgramiv_impl_20 (GLuint p, GLenum pname, GLint *params)
                max = size;
          }
          params[0] = max;
-         result = 1;
          break;
       }
       default:
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
-         result = 0;
          break;
       }
+   }
 
-      mem_unlock(phandle);
-   } else
-      result = 0;
-
-   GL20_UNLOCK_SERVER_STATE();
-
-   return result;
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
-void glGetProgramInfoLog_impl_20 (GLuint p, GLsizei bufsize, GLsizei *length, char *infolog)
+GL_APICALL void GL_APIENTRY glGetProgramInfoLog(GLuint p, GLsizei bufsize, GLsizei *length, char *infolog)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-   if (!state) return;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
    if (bufsize < 0) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
       goto end;
    }
 
-   MEM_HANDLE_T phandle;
-   GL20_PROGRAM_T *program = get_program(state, p, &phandle);
+   GL20_PROGRAM_T *program = get_program(state, p);
 
    if (program == NULL) goto end;
 
@@ -943,20 +835,18 @@ void glGetProgramInfoLog_impl_20 (GLuint p, GLsizei bufsize, GLsizei *length, ch
    if (length)
       *length = _max(0, (GLsizei)chars);
 
-   mem_unlock(phandle);
-
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
-int glGetUniformfv_impl_20 (GLuint p, GLint location, GLfloat *params)
+GL_APICALL void GL_APIENTRY glGetUniformfv(GLuint p, GLint location, GLfloat *params)
 {
-   return get_uniform_internal(p, location, params, 1);
+   get_uniform_internal(p, location, params, 1);
 }
 
-int glGetUniformiv_impl_20 (GLuint p, GLint location, GLint *params)
+GL_APICALL void GL_APIENTRY glGetUniformiv(GLuint p, GLint location, GLint *params)
 {
-   return get_uniform_internal(p, location, params, 0);
+   get_uniform_internal(p, location, params, 0);
 }
 
 static int32_t get_uniform_length(const char *name)
@@ -1038,13 +928,13 @@ static void location_decode_index(GL20_UNIFORM_INFO_T *info, int32_t count, GLin
    *offset = location - info[i].offset;
 }
 
-int glGetUniformLocation_impl_20 (GLuint p, const char *name)
+GL_APICALL int GL_APIENTRY glGetUniformLocation(GLuint p, const char *name)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-   if (!state) return -1;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return -1;
 
-   MEM_HANDLE_T phandle;
-   GL20_PROGRAM_T *program = get_program(state, p, &phandle);
+   GL20_PROGRAM_T *program = get_program(state, p);
 
    int result = -1;
 
@@ -1052,7 +942,6 @@ int glGetUniformLocation_impl_20 (GLuint p, const char *name)
 
    if (!program->linked) {
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-      mem_unlock(phandle);
       goto end;
    }
 
@@ -1082,28 +971,10 @@ int glGetUniformLocation_impl_20 (GLuint p, const char *name)
       }
    }
 
-   mem_unlock(phandle);
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
    return result;
 }
-/*
-void glGetVertexAttribfv_impl_20 (GLuint index, GLenum pname, GLfloat *params)
-{
-   UNREACHABLE();
-}
-
-void glGetVertexAttribiv_impl_20 (GLuint index, GLenum pname, GLint *params)
-{
-   UNREACHABLE();
-}
-
-void glGetVertexAttribPointerv_impl_20 (GLuint index, GLenum pname, void **pointer)
-{
-   UNREACHABLE();
-}
-*/
-
 
 /*
    glIsProgram()
@@ -1116,22 +987,21 @@ void glGetVertexAttribPointerv_impl_20 (GLuint index, GLenum pname, void **point
    Error Checks: Done
 */
 
-GLboolean glIsProgram_impl_20 (GLuint p)
+GL_API GLboolean GL_APIENTRY glIsProgram(GLuint p)
 {
    GLboolean result;
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return GL_FALSE;
 
-   MEM_HANDLE_T handle = glxx_shared_get_pobject((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), p);
-   mem_unlock(state->mh_shared);
+   GL20_PROGRAM_T *program = glxx_shared_get_pobject(state->shared, p);
 
-   if (handle == MEM_HANDLE_INVALID)
+   if (program == NULL)
       result = GL_FALSE;
-   else {
-      result = gl20_is_program((GL20_PROGRAM_T *)mem_lock(handle, NULL));
-      mem_unlock(handle);
-   }
+   else
+      result = gl20_is_program(program);
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 
    return result;
 }
@@ -1147,36 +1017,32 @@ GLboolean glIsProgram_impl_20 (GLuint p)
    Error Checks: Done
 */
 
-GLboolean glIsShader_impl_20 (GLuint s)
+GL_API GLboolean GL_APIENTRY glIsShader(GLuint s)
 {
    GLboolean result;
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return GL_FALSE;
 
-   MEM_HANDLE_T handle = glxx_shared_get_pobject((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), s);
-   mem_unlock(state->mh_shared);
+   GL20_SHADER_T *shader = glxx_shared_get_pobject(state->shared, s);
 
-   if (handle == MEM_HANDLE_INVALID)
+   if (shader == NULL)
       result = GL_FALSE;
-   else {
-      result = gl20_is_shader((GL20_SHADER_T *)mem_lock(handle, NULL));
-      mem_unlock(handle);
-   }
+   else
+      result = gl20_is_shader(shader);
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 
    return result;
 }
 
-
-
-
-void glLinkProgram_impl_20 (GLuint p)
+GL_API void GL_APIENTRY glLinkProgram(GLuint p)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
-   MEM_HANDLE_T phandle;
-
-   GL20_PROGRAM_T *program = get_program(state, p, &phandle);
+   GL20_PROGRAM_T *program = get_program(state, p);
 
    if (program) {
       /* wait to make sure noone is using the buffer */
@@ -1189,10 +1055,9 @@ void glLinkProgram_impl_20 (GLuint p)
       glxx_schedule_during_link(state, program);
 #endif
 
-      mem_unlock(phandle);
    }
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
 #define COERCE_ID 0
@@ -1261,29 +1126,24 @@ static GLboolean is_compatible_uniform(GL20_UNIFORM_INFO_T *info, GLint stride, 
    return GL_FALSE;
 }
 
-static void uniformv_internal(GLint location, GLsizei num, const void *v, GLint stride, GLboolean is_float, GLboolean is_matrix)
+static void uniformv(GLXX_SERVER_STATE_T *state, GLint location, GLsizei num, const void *v, GLint stride, GLboolean is_float, GLboolean is_matrix)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-   if (!state) return;
-
    if (location == -1) {
       // check the program object
-      if (state->mh_program == MEM_HANDLE_INVALID) {
+      if (state->program == NULL)
          glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-      }
-      goto end;
+      return;
    }
 
-   if (state->mh_program == MEM_HANDLE_INVALID) {
+   if (state->program == NULL) {
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-      goto end;
+      return;
    }
 
-   GL20_PROGRAM_T *program = (GL20_PROGRAM_T *)mem_lock(state->mh_program, NULL);
+   GL20_PROGRAM_T *program = state->program;
 
    if (!program->linked) {
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-      mem_unlock(state->mh_program);
       goto end;
    }
 
@@ -1295,14 +1155,13 @@ static void uniformv_internal(GLint location, GLsizei num, const void *v, GLint 
    location_decode_index(info, count, location, &index, &offset);
 
    if ((index < 0) ||
-       (index >= count) ||
-       (offset < 0) ||
-       (offset >= info[index].size) ||
-       !((info[index].is_array) || (num == 1)) ||
+      (index >= count) ||
+      (offset < 0) ||
+      (offset >= info[index].size) ||
+      !((info[index].is_array) || (num == 1)) ||
       !is_compatible_uniform(&info[index], stride, is_float, is_matrix, &coercion))
    {
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-      mem_unlock(state->mh_program);
       goto end;
    }
 
@@ -1339,10 +1198,19 @@ static void uniformv_internal(GLint location, GLsizei num, const void *v, GLint 
       UNREACHABLE();
    }
 
-   mem_unlock(state->mh_program);
-
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   return;
+}
+
+static void uniformv_internal(GLint location, GLsizei num, const void *v, GLint stride, GLboolean is_float, GLboolean is_matrix)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
+
+   uniformv(state, location, num, v, stride, is_float, is_matrix);
+
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
 static void uniform_coercion_for_get(GL20_UNIFORM_INFO_T *info, GLboolean is_float, uint32_t *coercion, int *num_elements)
@@ -1405,20 +1273,16 @@ static void uniform_coercion_for_get(GL20_UNIFORM_INFO_T *info, GLboolean is_flo
    }
 }
 
-static int get_uniform_internal(GLuint p, GLint location, const void *v, GLboolean is_float)
+static int get_uniform(GLXX_SERVER_STATE_T *state, GLuint p, GLint location, const void *v, GLboolean is_float)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-   if (!state) return 0;
+   GL20_PROGRAM_T *program = get_program(state, p);
 
-   MEM_HANDLE_T phandle;
-   GL20_PROGRAM_T *program = get_program(state, p, &phandle);
+   if (program == NULL)
+      return 0;
 
    int num_elements = 0;
-   if (program == NULL) goto end;
-
    if (!program->linked) {
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-      mem_unlock(phandle);
       goto end;
    }
 
@@ -1436,7 +1300,6 @@ static int get_uniform_internal(GLuint p, GLint location, const void *v, GLboole
       (offset < 0) ||
       (offset >= info[index].size)) {
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-      mem_unlock(phandle);
       goto end;
    }
 
@@ -1467,19 +1330,27 @@ static int get_uniform_internal(GLuint p, GLint location, const void *v, GLboole
       UNREACHABLE();
    }
 
-   mem_unlock(phandle);
-
 end:
-   GL20_UNLOCK_SERVER_STATE();
    return num_elements;
 }
 
-void glUniform1i_impl_20 (GLint location, GLint x)
+static int get_uniform_internal(GLuint p, GLint location, const void *v, GLboolean is_float)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state) return 0;
+
+   int num_elements = get_uniform(state, p, location, v, is_float);
+
+   glxx_unlock_server_state(OPENGL_ES_20);
+   return num_elements;
+}
+
+GL_API void GL_APIENTRY glUniform1i(GLint location, GLint x)
 {
    uniformv_internal(location, 1, &x, 1, GL_FALSE, GL_FALSE);
 }
 
-void glUniform2i_impl_20 (GLint location, GLint x, GLint y)
+GL_API void GL_APIENTRY glUniform2i(GLint location, GLint x, GLint y)
 {
    GLint v[2];
 
@@ -1488,7 +1359,7 @@ void glUniform2i_impl_20 (GLint location, GLint x, GLint y)
    uniformv_internal(location, 1, v, 2, GL_FALSE, GL_FALSE);
 }
 
-void glUniform3i_impl_20 (GLint location, GLint x, GLint y, GLint z)
+GL_API void GL_APIENTRY glUniform3i(GLint location, GLint x, GLint y, GLint z)
 {
    GLint v[3];
 
@@ -1497,7 +1368,7 @@ void glUniform3i_impl_20 (GLint location, GLint x, GLint y, GLint z)
    uniformv_internal(location, 1, v, 3, GL_FALSE, GL_FALSE);
 }
 
-void glUniform4i_impl_20 (GLint location, GLint x, GLint y, GLint z, GLint w)
+GL_API void GL_APIENTRY glUniform4i(GLint location, GLint x, GLint y, GLint z, GLint w)
 {
    GLint v[4];
 
@@ -1506,12 +1377,12 @@ void glUniform4i_impl_20 (GLint location, GLint x, GLint y, GLint z, GLint w)
    uniformv_internal(location, 1, v, 4, GL_FALSE, GL_FALSE);
 }
 
-void glUniform1f_impl_20 (GLint location, GLfloat x)
+GL_API void GL_APIENTRY glUniform1f(GLint location, GLfloat x)
 {
    uniformv_internal(location, 1, &x, 1, GL_TRUE, GL_FALSE);
 }
 
-void glUniform2f_impl_20 (GLint location, GLfloat x, GLfloat y)
+GL_API void GL_APIENTRY glUniform2f(GLint location, GLfloat x, GLfloat y)
 {
    GLfloat v[2];
 
@@ -1520,7 +1391,7 @@ void glUniform2f_impl_20 (GLint location, GLfloat x, GLfloat y)
    uniformv_internal(location, 1, v, 2, GL_TRUE, GL_FALSE);
 }
 
-void glUniform3f_impl_20 (GLint location, GLfloat x, GLfloat y, GLfloat z)
+GL_API void GL_APIENTRY glUniform3f(GLint location, GLfloat x, GLfloat y, GLfloat z)
 {
    GLfloat v[3];
 
@@ -1529,7 +1400,7 @@ void glUniform3f_impl_20 (GLint location, GLfloat x, GLfloat y, GLfloat z)
    uniformv_internal(location, 1, v, 3, GL_TRUE, GL_FALSE);
 }
 
-void glUniform4f_impl_20 (GLint location, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
+GL_API void GL_APIENTRY glUniform4f(GLint location, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
 {
    GLfloat v[4];
 
@@ -1538,59 +1409,43 @@ void glUniform4f_impl_20 (GLint location, GLfloat x, GLfloat y, GLfloat z, GLflo
    uniformv_internal(location, 1, v, 4, GL_TRUE, GL_FALSE);
 }
 
-void glUniform1iv_impl_20 (GLint location, GLsizei num, int size, const GLint *v)
+GL_API void GL_APIENTRY glUniform1iv(GLint location, GLsizei num, const GLint *v)
 {
-   UNUSED(size);
-
    uniformv_internal(location, num, v, 1, GL_FALSE, GL_FALSE);
 }
 
-void glUniform2iv_impl_20 (GLint location, GLsizei num, int size, const GLint *v)
+GL_API void GL_APIENTRY glUniform2iv(GLint location, GLsizei num, const GLint *v)
 {
-   UNUSED(size);
-
    uniformv_internal(location, num, v, 2, GL_FALSE, GL_FALSE);
 }
 
-void glUniform3iv_impl_20 (GLint location, GLsizei num, int size, const GLint *v)
+GL_API void GL_APIENTRY glUniform3iv(GLint location, GLsizei num, const GLint *v)
 {
-   UNUSED(size);
-
    uniformv_internal(location, num, v, 3, GL_FALSE, GL_FALSE);
 }
 
-void glUniform4iv_impl_20 (GLint location, GLsizei num, int size, const GLint *v)
+GL_API void GL_APIENTRY glUniform4iv(GLint location, GLsizei num, const GLint *v)
 {
-   UNUSED(size);
-
    uniformv_internal(location, num, v, 4, GL_FALSE, GL_FALSE);
 }
 
-void glUniform1fv_impl_20 (GLint location, GLsizei num, int size, const GLfloat *v)
+GL_API void GL_APIENTRY glUniform1fv(GLint location, GLsizei num, const GLfloat *v)
 {
-   UNUSED(size);
-
    uniformv_internal(location, num, v, 1, GL_TRUE, GL_FALSE);
 }
 
-void glUniform2fv_impl_20 (GLint location, GLsizei num, int size, const GLfloat *v)
+GL_API void GL_APIENTRY glUniform2fv(GLint location, GLsizei num, const GLfloat *v)
 {
-   UNUSED(size);
-
    uniformv_internal(location, num, v, 2, GL_TRUE, GL_FALSE);
 }
 
-void glUniform3fv_impl_20 (GLint location, GLsizei num, int size, const GLfloat *v)
+GL_API void GL_APIENTRY glUniform3fv(GLint location, GLsizei num, const GLfloat *v)
 {
-   UNUSED(size);
-
    uniformv_internal(location, num, v, 3, GL_TRUE, GL_FALSE);
 }
 
-void glUniform4fv_impl_20 (GLint location, GLsizei num, int size, const GLfloat *v)
+GL_API void GL_APIENTRY glUniform4fv(GLint location, GLsizei num, const GLfloat *v)
 {
-   UNUSED(size);
-
    uniformv_internal(location, num, v, 4, GL_TRUE, GL_FALSE);
 }
 
@@ -1605,173 +1460,154 @@ void glUniform4fv_impl_20 (GLint location, GLsizei num, int size, const GLfloat 
    not FALSE.
 */
 
-void glUniformMatrix2fv_impl_20 (GLint location, GLsizei num, GLboolean transpose, int size, const GLfloat *v)
+GL_API void GL_APIENTRY glUniformMatrix2fv(GLint location, GLsizei num, GLboolean transpose, const GLfloat *v)
 {
-   UNUSED(size);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
    if (!transpose)
-      uniformv_internal(location, num, v, 4, GL_TRUE, GL_TRUE);
-   else {
-      GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-
+      uniformv(state, location, num, v, 4, GL_TRUE, GL_TRUE);
+   else
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
-      GL20_UNLOCK_SERVER_STATE();
-   }
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
-void glUniformMatrix3fv_impl_20 (GLint location, GLsizei num, GLboolean transpose, int size, const GLfloat *v)
+GL_API void GL_APIENTRY glUniformMatrix3fv(GLint location, GLsizei num, GLboolean transpose, const GLfloat *v)
 {
-   UNUSED(size);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
    if (!transpose)
-      uniformv_internal(location, num, v, 9, GL_TRUE, GL_TRUE);
-   else {
-      GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-
+      uniformv(state, location, num, v, 9, GL_TRUE, GL_TRUE);
+   else
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
-      GL20_UNLOCK_SERVER_STATE();
-   }
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
-void glUniformMatrix4fv_impl_20 (GLint location, GLsizei num, GLboolean transpose, int size, const GLfloat *v)
+GL_API void GL_APIENTRY glUniformMatrix4fv(GLint location, GLsizei num, GLboolean transpose, const GLfloat *v)
 {
-   UNUSED(size);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
    if (!transpose)
-      uniformv_internal(location, num, v, 16, GL_TRUE, GL_TRUE);
-   else {
-      GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-
+      uniformv(state, location, num, v, 16, GL_TRUE, GL_TRUE);
+   else
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
-      GL20_UNLOCK_SERVER_STATE();
-   }
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
-void glUseProgram_impl_20 (GLuint p) // S
+GL_API void GL_APIENTRY glUseProgram(GLuint p)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-
-   assert(state);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
    if (p) {
-      MEM_HANDLE_T phandle;
-
-      GL20_PROGRAM_T *program = get_program(state, p, &phandle);
+      GL20_PROGRAM_T *program = get_program(state, p);
 
       if (program) {
          if (program->linked) {
             gl20_program_acquire(program);
 
-            release_program((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), state->mh_program);
-            mem_unlock(state->mh_shared);
+            release_program(state->shared, state->program);
 
-            MEM_ASSIGN(state->mh_program, phandle);
+            KHRN_MEM_ASSIGN(state->program, program);
          } else {
             //TODO have I got the reference counts right? I'm new to all this.
             glxx_server_state_set_error(state, GL_INVALID_OPERATION);
          }
-         mem_unlock(phandle);
       }
    } else {
-      release_program((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), state->mh_program);
-      mem_unlock(state->mh_shared);
+      release_program(state->shared, state->program);
 
-      MEM_ASSIGN(state->mh_program, MEM_HANDLE_INVALID);
+      KHRN_MEM_ASSIGN(state->program, NULL);
    }
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
-void glValidateProgram_impl_20 (GLuint p)
+GL_API void GL_APIENTRY glValidateProgram(GLuint p)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
-   MEM_HANDLE_T phandle;
-
-   GL20_PROGRAM_T *program = get_program(state, p, &phandle);
+   GL20_PROGRAM_T *program = get_program(state, p);
 
    if (program) {
       program->validated = gl20_validate_program(state, program);
       free(program->info_log);
       program->info_log = NULL;
-      mem_unlock(phandle);
    }
 
-   GL20_UNLOCK_SERVER_STATE();
-}
-/*
-void glVertexAttrib1f_impl_20 (GLuint indx, GLfloat x)
-{
-  UNREACHABLE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
-void glVertexAttrib2f_impl_20 (GLuint indx, GLfloat x, GLfloat y)
+static GLboolean is_vertex_attrib_size(GLint size)
 {
-  UNREACHABLE();
+   return size >= 1 && size <= 4;
 }
 
-void glVertexAttrib3f_impl_20 (GLuint indx, GLfloat x, GLfloat y, GLfloat z)
+static GLboolean is_vertex_attrib_type(GLenum type)
 {
-  UNREACHABLE();
+   return type == GL_BYTE ||
+      type == GL_UNSIGNED_BYTE ||
+      type == GL_SHORT ||
+      type == GL_UNSIGNED_SHORT ||
+      type == GL_FLOAT ||
+      type == GL_FIXED;
 }
 
-void glVertexAttrib4f_impl_20 (GLuint indx, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
+GL_APICALL void GL_APIENTRY glVertexAttribPointer(GLuint indx, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer)
 {
-  UNREACHABLE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
+
+   if (indx >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS || !is_vertex_attrib_size(size) || stride < 0) {
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+      goto end;
+   }
+
+   if (is_vertex_attrib_type(type) || type == GL_HALF_FLOAT_OES) {
+      state->attrib[indx].size = size;
+      state->attrib[indx].type = type;
+      state->attrib[indx].normalized = normalized;
+      state->attrib[indx].stride = stride;
+      state->attrib[indx].pointer = pointer;
+      state->attrib[indx].offset = (uintptr_t)pointer;
+      state->attrib[indx].buffer = state->bound_buffer.array_name;
+
+      assert(indx < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
+      KHRN_MEM_ASSIGN(state->attrib[indx].attrib, state->bound_buffer.array_buffer);
+   }
+   else
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+
+end:
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
-void glVertexAttrib1fv_impl_20 (GLuint indx, const GLfloat *values)
+GL_APICALL void GL_APIENTRY glCompileShader(GLuint s)
 {
-  UNREACHABLE();
-}
-
-void glVertexAttrib2fv_impl_20 (GLuint indx, const GLfloat *values)
-{
-  UNREACHABLE();
-}
-
-void glVertexAttrib3fv_impl_20 (GLuint indx, const GLfloat *values)
-{
-  UNREACHABLE();
-}
-
-void glVertexAttrib4fv_impl_20 (GLuint indx, const GLfloat *values)
-{
-  UNREACHABLE();
-}
-*/
-void glVertexAttribPointer_impl_20 (GLuint indx)
-{
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-
-   assert(indx < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
-
-   MEM_ASSIGN(state->bound_buffer.mh_attrib_array[indx], state->bound_buffer.mh_array);
-
-   GL20_UNLOCK_SERVER_STATE();
-}
-
-void glCompileShader_impl_20 (GLuint s)
-{
-   MEM_HANDLE_T shandle;
    GL20_SHADER_T *shader;
 
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
-   assert(state);
+   shader = get_shader(state, s);
 
-   shader = get_shader(state, s, &shandle);
-
-   if (shader) {
+   if (shader)
       gl20_shader_compile(shader);
 
-      mem_unlock(shandle);
-   }
-
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
 /*
@@ -1789,26 +1625,24 @@ void glCompileShader_impl_20 (GLuint s)
    returned.
 */
 
-int glGetShaderiv_impl_20 (GLuint s, GLenum pname, GLint *params)
+GL_APICALL void GL_APIENTRY glGetShaderiv(GLuint s, GLenum pname, GLint *params)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-   MEM_HANDLE_T shandle;
-   GL20_SHADER_T *shader = get_shader(state, s, &shandle);
-   int result;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
+
+   GL20_SHADER_T *shader = get_shader(state, s);
 
    if (shader) {
       switch (pname) {
       case GL_SHADER_TYPE:
          params[0] = shader->type;
-         result = 1;
          break;
       case GL_DELETE_STATUS:
          params[0] = shader->deleted ? 1 : 0;
-         result = 1;
          break;
       case GL_COMPILE_STATUS:
          params[0] = shader->compiled ? 1 : 0;
-         result = 1;
          break;
       case GL_INFO_LOG_LENGTH:
       {
@@ -1816,7 +1650,6 @@ int glGetShaderiv_impl_20 (GLuint s, GLenum pname, GLint *params)
             params[0] = 0;
          else
             params[0] = strlen(shader->info_log) + 1;
-         result = 1;
          break;
       }
       case GL_SHADER_SOURCE_LENGTH:
@@ -1830,36 +1663,28 @@ int glGetShaderiv_impl_20 (GLuint s, GLenum pname, GLint *params)
          if (shader->sourcec > 0) total++;
 
          params[0] = total;
-         result = 1;
          break;
       }
       default:
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
-         result = 0;
          break;
       }
+   }
 
-      mem_unlock(shandle);
-   } else
-      result = 0;
-
-   GL20_UNLOCK_SERVER_STATE();
-
-   return result;
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
-void glGetShaderInfoLog_impl_20 (GLuint s, GLsizei bufsize, GLsizei *length, char *infolog)
+GL_APICALL void GL_APIENTRY glGetShaderInfoLog(GLuint s, GLsizei bufsize, GLsizei *length, char *infolog)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-   if (!state) return;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
-   MEM_HANDLE_T shandle;
-   GL20_SHADER_T *shader = get_shader(state, s, &shandle);
+   GL20_SHADER_T *shader = get_shader(state, s);
    if (shader == NULL) goto end;
 
    if (bufsize < 0) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
-      mem_unlock(shandle);
       goto end;
    }
 
@@ -1870,24 +1695,23 @@ void glGetShaderInfoLog_impl_20 (GLuint s, GLsizei bufsize, GLsizei *length, cha
    if (length)
       *length = _max(0, (GLsizei)chars);
 
-   mem_unlock(shandle);
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
-void glGetShaderSource_impl_20 (GLuint s, GLsizei bufsize, GLsizei *length, char *source)
+GL_APICALL void GL_APIENTRY glGetShaderSource(GLuint s, GLsizei bufsize, GLsizei *length, char *source)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-   MEM_HANDLE_T shandle;
-   uint32_t charswritten = 0;
-   if (!state) return;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
-   GL20_SHADER_T *shader = get_shader(state, s, &shandle);
+   uint32_t charswritten = 0;
+
+   GL20_SHADER_T *shader = get_shader(state, s);
    if (shader == NULL) goto end;       /* get_shader will have set error */
 
    if (bufsize < 0) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
-      mem_unlock(shandle);
       goto end;
    }
 
@@ -1913,7 +1737,6 @@ void glGetShaderSource_impl_20 (GLuint s, GLsizei bufsize, GLsizei *length, char
          }
       }
    }
-   mem_unlock(shandle);
 
    if (length) {
       *length = charswritten;
@@ -1924,35 +1747,54 @@ void glGetShaderSource_impl_20 (GLuint s, GLsizei bufsize, GLsizei *length, char
    }
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
-void glShaderSource_impl_20 (GLuint s, GLsizei count, const char **string, const GLint *length)
+GL_APICALL void GL_APIENTRY glShaderSource(GLuint s, GLsizei count, const char *const*string, const GLint *length)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
-   if (!state) return;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
    if (count < 0) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
       goto end;
    }
 
-   MEM_HANDLE_T shandle;
-   GL20_SHADER_T *shader = get_shader(state, s, &shandle);
+   GL20_SHADER_T *shader = get_shader(state, s);
    if (shader == NULL) goto end;       /* get_shader will have set error */
 
-   if (string == NULL) {
-      mem_unlock(shandle);
+   if (string == NULL)
       goto end;
-   }
 
    if (!gl20_shader_set_source(shader, count, string, length))
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
-   mem_unlock(shandle);
+   glxx_tweaker_setshadersource(&state->tweak_state, count, string, length);
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
+}
+
+GL_APICALL void GL_APIENTRY glReleaseShaderCompiler(void)
+{
+}
+
+GL_APICALL void GL_APIENTRY glShaderBinary(GLint n, const GLuint* shaders, GLenum binaryformat, const void* binary, GLint length)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
+
+   UNUSED(n);
+   UNUSED(shaders);
+   UNUSED(binaryformat);
+   UNUSED(binary);
+   UNUSED(length);
+
+   glxx_server_state_set_error(state, GL_INVALID_ENUM);
+
+   glxx_unlock_server_state(OPENGL_ES_20);
 }
 
 /* OES_shader_source + OES_shader_binary */
@@ -1978,23 +1820,265 @@ static bool is_float_type(GLenum type)
    TODO: is this right? very poorly specified
 */
 
-void glGetShaderPrecisionFormat_impl_20 (GLenum shadertype, GLenum precisiontype, GLint *result)
+GL_APICALL void GL_APIENTRY glGetShaderPrecisionFormat(GLenum shadertype, GLenum precisiontype, GLint *range, GLint *precision)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
 
    if (is_shader_type(shadertype) && is_precision_type(precisiontype)) {
       if (is_float_type(precisiontype)) {
-         result[0] = 127;
-         result[1] = 127;
-         result[2] = 23;
+         if (range) {
+            range[0] = 127;
+            range[1] = 127;
+         }
+         if (precision)
+            *precision = 23;
       }
       else {
-         result[0] = 31;
-         result[1] = 30;
-         result[2] = 0;
+         if (range) {
+            range[0] = 31;
+            range[1] = 30;
+         }
+         if (precision)
+            *precision = 0;
       }
    } else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_20);
+}
+
+static void enable_vertex_attrib_array(GLuint index, bool enabled)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
+
+   if (index < GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
+      state->attrib[index].enabled = enabled;
+   else
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+
+   glxx_unlock_server_state(OPENGL_ES_20);
+}
+
+GL_APICALL void GL_APIENTRY glEnableVertexAttribArray(GLuint index)
+{
+   enable_vertex_attrib_array(index, true);
+}
+
+GL_APICALL void GL_APIENTRY glDisableVertexAttribArray(GLuint index)
+{
+   enable_vertex_attrib_array(index, false);
+}
+
+GL_APICALL void GL_APIENTRY glGetVertexAttribfv(GLuint index, GLenum pname, GLfloat *params)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
+
+   if (index >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS) {
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+      goto end;
+   }
+
+   switch (pname) {
+   case GL_CURRENT_VERTEX_ATTRIB:
+      params[0] = state->attrib[index].value[0];
+      params[1] = state->attrib[index].value[1];
+      params[2] = state->attrib[index].value[2];
+      params[3] = state->attrib[index].value[3];
+      break;
+
+      //TODO: is this the best way to handle conversions? We duplicate
+      //the entire switch statement.
+   case GL_VERTEX_ATTRIB_ARRAY_ENABLED:
+      params[0] = state->attrib[index].enabled ? 1.0f : 0.0f;
+      break;
+   case GL_VERTEX_ATTRIB_ARRAY_SIZE:
+      params[0] = (GLfloat)state->attrib[index].size;
+      break;
+   case GL_VERTEX_ATTRIB_ARRAY_STRIDE:
+      params[0] = (GLfloat)state->attrib[index].stride;
+      break;
+   case GL_VERTEX_ATTRIB_ARRAY_TYPE:
+      params[0] = (GLfloat)state->attrib[index].type;
+      break;
+   case GL_VERTEX_ATTRIB_ARRAY_NORMALIZED:
+      params[0] = state->attrib[index].normalized ? 1.0f : 0.0f;
+      break;
+   case GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING:
+      params[0] = (GLfloat)state->attrib[index].buffer;
+      break;
+   default:
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      break;
+   }
+
+end:
+   glxx_unlock_server_state(OPENGL_ES_20);
+}
+
+GL_APICALL void GL_APIENTRY glGetVertexAttribiv(GLuint index, GLenum pname, GLint *params)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
+
+   if (index >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS) {
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+      goto end;
+   }
+
+   switch (pname) {
+   case GL_CURRENT_VERTEX_ATTRIB:
+      params[0] = (GLint)state->attrib[index].value[0];
+      params[1] = (GLint)state->attrib[index].value[1];
+      params[2] = (GLint)state->attrib[index].value[2];
+      params[3] = (GLint)state->attrib[index].value[3];
+      break;
+   case GL_VERTEX_ATTRIB_ARRAY_ENABLED:
+      params[0] = (GLint)state->attrib[index].enabled ? GL_TRUE : GL_FALSE;
+      break;
+   case GL_VERTEX_ATTRIB_ARRAY_SIZE:
+      params[0] = (GLint)state->attrib[index].size;
+      break;
+   case GL_VERTEX_ATTRIB_ARRAY_STRIDE:
+      params[0] = (GLint)state->attrib[index].stride;
+      break;
+   case GL_VERTEX_ATTRIB_ARRAY_TYPE:
+      params[0] = (GLint)state->attrib[index].type;
+      break;
+   case GL_VERTEX_ATTRIB_ARRAY_NORMALIZED:
+      params[0] = (GLint)state->attrib[index].normalized ? GL_TRUE : GL_FALSE;
+      break;
+   case GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING:
+      params[0] = (GLint)state->attrib[index].buffer;
+      break;
+   default:
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      break;
+   }
+
+end:
+   glxx_unlock_server_state(OPENGL_ES_20);
+}
+
+GL_APICALL void GL_APIENTRY glGetVertexAttribPointerv(GLuint index, GLenum pname, void **pointer)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
+
+   if (index >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS) {
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+      goto end;
+   }
+
+   switch (pname) {
+   case GL_VERTEX_ATTRIB_ARRAY_POINTER:
+      pointer[0] = (void *)state->attrib[index].pointer;
+      break;
+   default:
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      break;
+   }
+
+end:
+   glxx_unlock_server_state(OPENGL_ES_20);
+}
+
+static void vertex_attrib_4f(GLuint indx, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
+
+   if (indx >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS) {
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+      goto end;
+   }
+
+      state->attrib[indx].value[0] = clean_float(x);
+      state->attrib[indx].value[1] = clean_float(y);
+      state->attrib[indx].value[2] = clean_float(z);
+      state->attrib[indx].value[3] = clean_float(w);
+
+end:
+   glxx_unlock_server_state(OPENGL_ES_20);
+}
+
+GL_APICALL void GL_APIENTRY glVertexAttrib1f(GLuint indx, GLfloat x)
+{
+   vertex_attrib_4f(indx, x, 0.0f, 0.0f, 1.0f);
+}
+
+GL_APICALL void GL_APIENTRY glVertexAttrib2f(GLuint indx, GLfloat x, GLfloat y)
+{
+   vertex_attrib_4f(indx, x, y, 0.0f, 1.0f);
+}
+
+GL_APICALL void GL_APIENTRY glVertexAttrib3f(GLuint indx, GLfloat x, GLfloat y, GLfloat z)
+{
+   vertex_attrib_4f(indx, x, y, z, 1.0f);
+}
+
+GL_APICALL void GL_APIENTRY glVertexAttrib4f(GLuint indx, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
+{
+   vertex_attrib_4f(indx, x, y, z, w);
+}
+
+GL_APICALL void GL_APIENTRY glVertexAttrib1fv(GLuint indx, const GLfloat *values)
+{
+   vertex_attrib_4f(indx, values[0], 0.0f, 0.0f, 1.0f);
+}
+
+GL_APICALL void GL_APIENTRY glVertexAttrib2fv(GLuint indx, const GLfloat *values)
+{
+   vertex_attrib_4f(indx, values[0], values[1], 0.0f, 1.0f);
+}
+
+GL_APICALL void GL_APIENTRY glVertexAttrib3fv(GLuint indx, const GLfloat *values)
+{
+   vertex_attrib_4f(indx, values[0], values[1], values[2], 1.0f);
+}
+
+GL_APICALL void GL_APIENTRY glVertexAttrib4fv(GLuint indx, const GLfloat *values)
+{
+   vertex_attrib_4f(indx, values[0], values[1], values[2], values[3]);
+}
+
+GL_API void GL_APIENTRY glStencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask) // S
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
+
+   glxx_server_set_stencil_func(state, face, func, ref, mask);
+
+   glxx_unlock_server_state(OPENGL_ES_20);
+}
+
+GL_API void GL_APIENTRY glStencilMaskSeparate(GLenum face, GLuint mask) // S
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
+
+   glxx_server_set_stencil_mask(state, face, mask);
+
+   glxx_unlock_server_state(OPENGL_ES_20);
+}
+
+GL_API void GL_APIENTRY glStencilOpSeparate(GLenum face, GLenum fail, GLenum zfail, GLenum zpass)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_20);
+   if (!state)
+      return;
+
+   glxx_server_set_stencil_op(state, face, fail, zfail, zpass);
+
+   glxx_unlock_server_state(OPENGL_ES_20);
 }

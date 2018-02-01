@@ -71,6 +71,8 @@ typedef struct PlatformMediaPlayer
     int trickRate;
     unsigned index;
     PlatformMediaPlayerState state;
+    PlatformMediaPlayerSettings settings;
+    bool pipRequired;
     struct
     {
         NEXUS_VideoDecoderStreamInformation nx;

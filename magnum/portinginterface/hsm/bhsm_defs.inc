@@ -1,5 +1,5 @@
 ############################################################
-#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,9 +42,9 @@ include $(MAGNUM)/basemodules/chp/build/bchp_rdb.inc
 #
 # Determine the ZEUS version and CORETECH
 #
-SECURITY_CORE_LIST_ZEUS_51      := 7278b0
-SECURITY_CORE_LIST_ZEUS_50      := 7278a0
-SECURITY_CORE_LIST_ZEUS_421     := 7271b0 7268b0 7260a0 7260b0 7255a0
+SECURITY_CORE_LIST_ZEUS_51      := 7278b0 7278b1
+SECURITY_CORE_LIST_ZEUS_422     := 7255a0
+SECURITY_CORE_LIST_ZEUS_421     := 7271b0 7268b0 7260a0 7260b0
 SECURITY_CORE_LIST_ZEUS_42      := 7445e0 7445d0 7366b0 7145b0 7252d0 7399a0 7439b0 7459c0 7364a0 7250b0 7366c0 7586a0 7364b0 7271a0 7268a0 7364c0
 SECURITY_CORE_LIST_ZEUS_41      := 7366a0 7439a0 74371a0
 SECURITY_CORE_LIST_ZEUS_30      := 7584a0 7584a1 7435b0 75845a0
@@ -60,14 +60,13 @@ ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_51) ), $(BCH
     BHSM_ZEUS_VER_MAJOR:=5
     BHSM_ZEUS_VER_MINOR:=1
     BHSM_ZEUS_VER_SUBMINOR:=0
-    BHSM_ZEUS5_BFW110:=n
 else
-    ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_50) ), $(BCHP_CHIP_NAME_VERSION))
-        ZEUSVER  := Zeus50
+    ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_422) ), $(BCHP_CHIP_NAME_VERSION))
+        ZEUSVER  := Zeus42
         CORETECH := core28nm
-        BHSM_ZEUS_VER_MAJOR:=5
-        BHSM_ZEUS_VER_MINOR:=0
-        BHSM_ZEUS_VER_SUBMINOR:=0
+        BHSM_ZEUS_VER_MAJOR:=4
+        BHSM_ZEUS_VER_MINOR:=2
+        BHSM_ZEUS_VER_SUBMINOR:=2
     else
         ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_421) ), $(BCHP_CHIP_NAME_VERSION))
             ZEUSVER  := Zeus42
@@ -95,7 +94,7 @@ else
                         CORETECH := core40nm
                         BHSM_ZEUS_VER_MAJOR:=3
                         BHSM_ZEUS_VER_MINOR:=0
-                        BHSM_ZEUS_VER_SUBMINOR:=0
+                    BHSM_ZEUS_VER_SUBMINOR:=0
                     else
                         ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_22) ), $(BCHP_CHIP_NAME_VERSION))
                             ZEUSVER  := Zeus22

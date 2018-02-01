@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
-#ifndef GLSL_DATAFLOW_H
-#define GLSL_DATAFLOW_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "middleware/khronos/glsl/glsl_symbols.h"
 #include "middleware/khronos/glsl/glsl_ast.h"
@@ -418,7 +410,7 @@ struct _Dataflow
 };
 
 // Clears the list of dependents, iodependents and iodependencies
-static INLINE void glsl_dataflow_clear_chains(Dataflow* dataflow)
+static inline void glsl_dataflow_clear_chains(Dataflow* dataflow)
 {
 	glsl_dataflow_chain_init(&dataflow->dependents);
 	glsl_dataflow_chain_init(&dataflow->iodependents);
@@ -426,19 +418,19 @@ static INLINE void glsl_dataflow_clear_chains(Dataflow* dataflow)
 }
 
 // Adds consumer to the list of dependents in the supplier.
-static INLINE void glsl_dataflow_add_dependent(Dataflow* supplier, Dataflow* consumer)
+static inline void glsl_dataflow_add_dependent(Dataflow* supplier, Dataflow* consumer)
 {
 	glsl_dataflow_chain_append(&supplier->dependents, consumer);
 }
 
 // Adds consumer to the list of io dependents in the supplier.
-static INLINE void glsl_dataflow_add_iodependent(Dataflow* supplier, Dataflow* consumer)
+static inline void glsl_dataflow_add_iodependent(Dataflow* supplier, Dataflow* consumer)
 {
 	glsl_dataflow_chain_append(&supplier->iodependents, consumer);
 }
 
 // Adds consumer to the list of io dependencies in the consumer.
-static INLINE void glsl_dataflow_add_iodependency(Dataflow* consumer, Dataflow* supplier)
+static inline void glsl_dataflow_add_iodependency(Dataflow* consumer, Dataflow* supplier)
 {
 	glsl_dataflow_chain_append(&consumer->iodependencies, supplier);
 }
@@ -511,7 +503,7 @@ struct _DataflowSources
 	Map* varyings; // Map<const char*, DataflowSource>
 };
 
-static INLINE DataflowSources* glsl_dataflow_sources_new(void)
+static inline DataflowSources* glsl_dataflow_sources_new(void)
 {
    DataflowSources* ds = (DataflowSources *)malloc_fast(sizeof(DataflowSources));
 
@@ -534,8 +526,6 @@ extern void glsl_dataflow_priority_queue_heapify(DataflowPriorityQueue* queue);
 
 extern void glsl_dataflow_priority_queue_push(DataflowPriorityQueue* queue, Dataflow *node);
 extern Dataflow *glsl_dataflow_priority_queue_pop(DataflowPriorityQueue* queue);
-extern MEM_HANDLE_T glsl_dataflow_copy_to_relocatable(uint32_t count, Dataflow **dataflow_out, Dataflow **dataflow_in, void *in_offset);
+extern void *glsl_dataflow_copy_to_relocatable(uint32_t count, Dataflow **dataflow_out, Dataflow **dataflow_in, void *in_offset);
 extern void glsl_dataflow_copy(uint32_t count, Dataflow **dataflow_out, Dataflow **dataflow_in, void *in_offset, Dataflow **inputs, uint32_t num_inputs, DataflowFlavour input_flavour, bool *texture_rb_swap);
 extern void glsl_get_dependencies(DataflowChain *chain, Dataflow *dataflow);
-
-#endif // DATAFLOW_H

@@ -49,7 +49,12 @@ COMMON_CRYPTO_INCLUDES := ${BSEAV}/lib/security/common_crypto/include
 include ${NEXUS_TOP}/modules/security/security_defs.inc
 #$(info NEXUS_SECURITY_ZEUS_VERSION_MAJOR=$(NEXUS_SECURITY_ZEUS_VERSION_MAJOR) NEXUS_SECURITY_ZEUS_VERSION_MINOR=$(NEXUS_SECURITY_ZEUS_VERSION_MINOR))
 
-COMMON_CRYPTO_INCLUDES += ${NEXUS_TOP}/extensions/security/keyladder/include/40nm
+
+ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
+    COMMON_CRYPTO_INCLUDES += ${NEXUS_TOP}/modules/security/secv2/include
+else
+    COMMON_CRYPTO_INCLUDES += ${NEXUS_TOP}/extensions/security/keyladder/include
+endif
 
 ########################################
 # Core 40nm

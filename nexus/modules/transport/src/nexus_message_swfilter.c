@@ -65,6 +65,10 @@ BDBG_MODULE(nexus_message);
 /* if you use one recpump per PES filter, you can just do HW filtering. faster and no possible SW parsing bugs */
 #define B_USE_HW_PES_FILTERING 0
 
+#if BCHP_CHIP == 7255
+#define NO_PID2BUF 1 /* TODO evaluate */
+#endif
+
 /* this is the impl of NEXUS_MessageHandle */
 struct NEXUS_Message {
     NEXUS_OBJECT(NEXUS_Message);
@@ -190,10 +194,14 @@ NEXUS_MessageHandle NEXUS_Message_Open(const NEXUS_MessageSettings *pSettings)
         }
     }
 
+#ifdef NO_PID2BUF
+    BDBG_MSG(("Set maxContiguousMessageSize" ));
+#else
     if (pSettings->maxContiguousMessageSize) {
         rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto error;
     }
+#endif
 
     /* must keep track of Message handles in order to route interrupts back out to Message handles */
     for (i=0;i<NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES;i++) {
@@ -386,26 +394,37 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
         msg->isDss = true;
     }
 
+#ifdef NO_PID2BUF
+    BDBG_MSG(("No pid2buf support" ));
+#else
     if ( msg->settings.recpumpIndex == NEXUS_ANY_ID ) { /* only do search if ANY_ID */
-          unsigned findParser = hwPidChannel->parserBand->enumBand;
+          unsigned findParser;
           unsigned i,listParser;
           NEXUS_MessageHandle listMsg;
-          for (i=0;i<NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES;i++) {
-              if (pTransport->message.handle[i] ) {
-                  listMsg = pTransport->message.handle[i];
-                  if ( listMsg->startSettings.pidChannel == NULL ) {
-                      continue;
-                  }
-                  listParser = listMsg->startSettings.pidChannel->hwPidChannel->parserBand->enumBand;
-                  if( listParser == findParser && listMsg->settings.recpumpIndex != NEXUS_ANY_ID ) {
-                        msg->settings.recpumpIndex = listMsg->settings.recpumpIndex;
-                        BDBG_MSG(("Re Use parser with recpumpIdx=%d" , msg->settings.recpumpIndex  ));
-                        break;
-                    }
 
+          if ( hwPidChannel->parserBand && hwPidChannel->parserBand->enumBand ) {
+
+              findParser = hwPidChannel->parserBand->enumBand;
+              for (i=0;i<NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES;i++) {
+                  if (pTransport->message.handle[i] ) {
+                      listMsg = pTransport->message.handle[i];
+                      if ( listMsg->startSettings.pidChannel == NULL ) {
+                          continue;
+                      }
+                      listParser = listMsg->startSettings.pidChannel->hwPidChannel->parserBand->enumBand;
+                      if( listParser == findParser && listMsg->settings.recpumpIndex != NEXUS_ANY_ID ) {
+                            msg->settings.recpumpIndex = listMsg->settings.recpumpIndex;
+                            BDBG_MSG(("Re Use parser with recpumpIdx=%d" , msg->settings.recpumpIndex  ));
+                            break;
+                        }
+                  }
               }
-          }
+        }
+        else {
+            BDBG_MSG(("parserband not initialized " ));
+        }
       }
+#endif
     /* don't enforce HW restrictions in SW filtering. there may be a use-case for more flexibility. */
 
     msg->stream = NEXUS_SwFilter_P_Open(msg);

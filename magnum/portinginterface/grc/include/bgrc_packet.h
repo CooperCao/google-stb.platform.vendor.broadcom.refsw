@@ -106,8 +106,7 @@ BERR_Code BGRC_Packet_SetCallback(
 );
 
 /***************************************************************************/
-BERR_Code BGRC_Packet_GetDefaultCreateContextSettings(
-    BGRC_Handle hGrc,
+void BGRC_Packet_GetDefaultCreateContextSettings(
     BGRC_PacketContext_CreateSettings *pSettings
 );
 

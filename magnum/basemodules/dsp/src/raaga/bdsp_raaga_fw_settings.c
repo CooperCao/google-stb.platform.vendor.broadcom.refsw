@@ -864,12 +864,12 @@ const BDSP_Raaga_Audio_OpusDecConfigParams BDSP_sOpusDecDefaultUserConfig =
   {
     {
       2,
-      {0, 1, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF}
+      {0, 1, 2, 3, 4, 5, 6, 7}
     },
 
     {
-      1,
-      {0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF}
+      2,
+      {0, 1, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF}
     },
   },
 
@@ -1835,7 +1835,7 @@ const BDSP_Raaga_Audio_DDPEncConfigParams BDSP_sDefDDPEncConfigSettings =
     0,                  /* Send Audio Production Info Channel 2 */
     105,                /* Audio production mixing level */
     105,                /* Audio production mixing level Channel 2 */
-    1,                  /* Cpyright flag */
+    1,                  /* Copyright flag */
     1,                  /* Original Bitstream flag */
     0,                  /* Bitstream Mode */
     2,                  /* Audio production room type */
@@ -1845,7 +1845,8 @@ const BDSP_Raaga_Audio_DDPEncConfigParams BDSP_sDefDDPEncConfigSettings =
     0,                  /* Enable Low Complexity Encoding */
     33,                 /* Intelligent loudness payloads only passed through by default */
     1,                  /* SPDIF Packing */
-    {0}                 /* Additional Bitstream Information String */
+    {0},                /* Additional Bitstream Information String */
+	0                   /* Atmos lock flag */
 };
 const BDSP_Raaga_Audio_Brcm3DSurroundConfigParams   BDSP_sDefBrcm3DSurroundConfigSettings =
 {

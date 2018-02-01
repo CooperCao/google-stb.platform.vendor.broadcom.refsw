@@ -52,6 +52,7 @@
 
 BDBG_MODULE(BVDC_SCL);
 BDBG_FILE_MODULE(BVDC_SCL_VSTEP);
+BDBG_FILE_MODULE(BVDC_FIR_BYPASS);
 BDBG_OBJECT_ID(BVDC_SCL);
 
 /* SW7420-560, SW7420-721: use smoothen vertical coefficient to improve weaving */
@@ -870,8 +871,8 @@ void BVDC_P_Scaler_SetInfo_isr
     pSclCut = &pPicture->stSclCut;
     pSclOut = pPicture->pSclOut;
 
-    bPqNcl = (pPicture->astMosaicColorSpace[pPicture->ulPictureIdx].eColorTF == BAVC_P_ColorTF_eBt2100Pq &&
-              pPicture->astMosaicColorSpace[pPicture->ulPictureIdx].eColorFmt == BAVC_P_ColorFormat_eYCbCr) ? true : false;
+    bPqNcl = (pPicture->astMosaicColorSpace[pPicture->ulPictureIdx].eColorTF == BCFC_ColorTF_eBt2100Pq &&
+              pPicture->astMosaicColorSpace[pPicture->ulPictureIdx].eColorFmt == BCFC_ColorFormat_eYCbCr) ? true : false;
 
     /* any following info changed -> re-calculate SCL settings */
     /* TODO: This need optimization */
@@ -1082,6 +1083,7 @@ void BVDC_P_Scaler_SetInfo_isr
                     BCHP_MASK(SCL_0_HORIZ_CONTROL, FIR_ENABLE));
                 BVDC_P_SCL_GET_REG_DATA(SCL_0_HORIZ_CONTROL) |=  (
                     BCHP_FIELD_ENUM(SCL_0_HORIZ_CONTROL, FIR_ENABLE,  OFF));
+                BDBG_MODULE_MSG(BVDC_FIR_BYPASS, ("scl[%d] HFIR_ENABLE OFF", hScaler->eId));
             }
 
             ulFirHrzStepInit = ulFirHrzStep;
@@ -1190,12 +1192,33 @@ void BVDC_P_Scaler_SetInfo_isr
         ulFirVrtStep = ulVrtStep = (ulNrmVrtSrcStep + ulVertStepRoundoff) >>
             (BVDC_P_NRM_SRC_STEP_F_BITS - BVDC_P_SCL_V_RATIO_F_BITS);    /* U12.14 */
 
-        BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_CONTROL) &= ~(
-            BCHP_MASK(SCL_0_VERT_CONTROL, SEL_4TAP_IN_FIR8 ) |
-            BCHP_MASK(SCL_0_VERT_CONTROL, FIR_ENABLE       ));
-        BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_CONTROL) |=  (
-            BCHP_FIELD_ENUM(SCL_0_VERT_CONTROL, SEL_4TAP_IN_FIR8, DISABLE) |
-            BCHP_FIELD_ENUM(SCL_0_VERT_CONTROL, FIR_ENABLE,       ON    ));
+
+        if (((1<<BVDC_P_NRM_SRC_STEP_F_BITS) == ulNrmVrtSrcStep) &&
+                     (0 == ulPanScanTop) &&
+                     (ulSrcVSize == ulDstVSize) &&
+                     (!hScaler->stCtIndex.ulSclVertLuma) &&
+                     (!hScaler->stCtIndex.ulSclVertChroma))
+        {
+            /* unity scale and no phase shift, turn off FIR for accuracy */
+            BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_CONTROL) &= ~(
+                           BCHP_MASK(SCL_0_VERT_CONTROL, SEL_4TAP_IN_FIR8 ) |
+                           BCHP_MASK(SCL_0_VERT_CONTROL, FIR_ENABLE       ));
+            BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_CONTROL) |=  (
+                BCHP_FIELD_ENUM(SCL_0_VERT_CONTROL, SEL_4TAP_IN_FIR8, DISABLE) |
+                BCHP_FIELD_ENUM(SCL_0_VERT_CONTROL, FIR_ENABLE,       OFF    ));
+
+            BDBG_MODULE_MSG(BVDC_FIR_BYPASS, ("scl[%d] VFIR_ENABLE OFF", hScaler->eId));
+        }
+        else
+        {
+            BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_CONTROL) &= ~(
+                BCHP_MASK(SCL_0_VERT_CONTROL, SEL_4TAP_IN_FIR8 ) |
+                BCHP_MASK(SCL_0_VERT_CONTROL, FIR_ENABLE       ));
+            BVDC_P_SCL_GET_REG_DATA(SCL_0_VERT_CONTROL) |=  (
+                BCHP_FIELD_ENUM(SCL_0_VERT_CONTROL, SEL_4TAP_IN_FIR8, DISABLE) |
+                BCHP_FIELD_ENUM(SCL_0_VERT_CONTROL, FIR_ENABLE,       ON    ));
+        }
+
         {
 
             if(pPicture->eSrcPolarity != BAVC_Polarity_eFrame)

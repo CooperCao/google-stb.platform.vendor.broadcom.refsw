@@ -32,6 +32,10 @@ TEST=`lsmod|grep spi_drv >/dev/null && echo 1`
 if [ ! -z $TEST ]; then
     rmmod spi_drv || exit;
 fi
+TEST=`lsmod|grep bcm_astra >/dev/null && echo 1`
+if [ ! -z $TEST ]; then
+    rmmod bcm_astra || exit;
+fi
 
 # in 32bit kernel mode always rmmod wl
 TEST=`uname -m|grep aarch64 >/dev/null && echo 64`
@@ -40,6 +44,11 @@ if [ "$TEST" != "64" ]; then
     if [ ! -z $TEST ]; then
         rmmod wl || exit;
     fi
+fi
+
+# bcm_asta.ko has to be loaded before nexus.ko
+if [ -e bcm_astra.ko ]; then
+insmod bcm_astra.ko
 fi
 
 # brcmv3d.ko has to be first as nexus.ko resolves a weak symbol in it on load
@@ -68,9 +77,6 @@ insmod wakeup_drv.ko
 fi
 if [ ! -e /dev/wake0 ]; then
 mknod -m a=rw /dev/wake0 c 34 0
-fi
-if [ -e bcm_astra.ko ]; then
-insmod bcm_astra.ko
 fi
 
 # Start whatever application is requested

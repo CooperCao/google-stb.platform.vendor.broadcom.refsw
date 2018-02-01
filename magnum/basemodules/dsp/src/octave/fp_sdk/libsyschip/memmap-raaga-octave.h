@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -66,13 +66,13 @@ extern __absolute Misc_Block taddr_Misc_Block;
  * The base of FP0's CCS area, cast to a volatile uint8_t* (so pointer
  * arithmetic is just the same as it would be on the address)
  */
-#define FPMISC_CORE_BASE_0   ((volatile uint8_t *) & taddr_Misc_Block)
+#define FPMISC_CORE_BASE_0          ((volatile uint8_t *) & taddr_Misc_Block)
 
 /*
  * Spacing between sets of register for one core and the same ones for the next
  * core
  */
-#define FPMISC_CORE_SPACING  0x200
+#define FPMISC_CORE_SPACING         0x200
 
 /*
  * The misc block structure for the N'th core.
@@ -81,14 +81,19 @@ extern __absolute Misc_Block taddr_Misc_Block;
     ((Misc_Block*)(FPMISC_CORE_BASE_0 + (n) * FPMISC_CORE_SPACING))
 
 /*
+ * Macro for compatibility with other targets
+ */
+#define MISC_BLOCK                  (*FPMISC_BLOCK_FOR_CORE(FIREPATH_NUM))
+
+/*
  * L1 cache parameters.
  */
-#define L1_DCACHE_SIZE                  16384
+#define L1_DCACHE_SIZE              16384
 
 /*
  * L2 cache parameters.
  */
-#define L2_CACHE_LINE_SIZE_LOG2         9   /* 512 bytes/line */
+#define L2_CACHE_LINE_SIZE_LOG2     9   /* 512 bytes/line */
 
 /* Command queues allocation. Queues will be configured as follows:
  *  - queue 0: core 0, low prio
@@ -123,9 +128,6 @@ extern __absolute Misc_Block taddr_Misc_Block;
 __init
 extern void l2_init(void);
 #endif
-
-/* System element sizing values */
-#define NUM_MUTEXES_PER_CORE    12
 
 
 #if !defined(ASMCPP) && !defined(__LINKER_SCRIPT__)
@@ -198,26 +200,26 @@ typedef volatile uint32_t hw_mutex_t;
  * NUM_MUTEXES is the number available in the pool for core_mutex. The debug
  * agent uses 1 per core for its own purposes.
  */
-#define NUM_MUTEXES ((NUM_MUTEXES_PER_CORE - 1) * NUM_CORES)
+#define NUM_MUTEXES ((MISC_BLOCK_NUM_MUTEXES - 1) * NUM_CORES)
 
 static inline hw_mutex_t *
 get_mutex_addr (int idx)
 {
     /* Grab mutexes from cores in a round robin fashion */
     int core = idx % NUM_CORES;
-    volatile uint32_t *mutexes = &FPMISC_BLOCK_FOR_CORE(core)->corestate_sys_mtx0;
+    hw_mutex_t *mutexes = &FPMISC_BLOCK_FOR_CORE(core)->corestate_sys_mtx0;
     return & mutexes [idx / NUM_CORES];
 }
 #else /* POWER_MANAGEMENT_SUPPORT */
 /* Under power management, only provide mutexes from core 0. We don't support
  * mutex migration (yet), and other cores may be powered down.
  */
-#define NUM_MUTEXES (NUM_MUTEXES_PER_CORE - 1)
+#define NUM_MUTEXES (MISC_BLOCK_NUM_MUTEXES - 1)
 
 static inline hw_mutex_t *
 get_mutex_addr (int idx)
 {
-    volatile uint32_t *mutexes = &FPMISC_BLOCK_FOR_CORE(0)->corestate_sys_mtx0;
+    hw_mutex_t *mutexes = &FPMISC_BLOCK_FOR_CORE(0)->corestate_sys_mtx0;
     return & mutexes [idx];
 }
 #endif /* !POWER_MANAGEMENT_SUPPORT */

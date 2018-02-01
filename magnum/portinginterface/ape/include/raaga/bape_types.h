@@ -317,7 +317,6 @@ typedef struct BAPE_BufferDescriptor
     struct
     {
         BMMA_Block_Handle block;    /* BMMA block that this memory is tied to */
-        /*BMMA_DeviceOffset offset;*/   /* Physical offset of this block */
         void *pBuffer;              /* Buffer base address prior to wraparound */
         void *pWrapBuffer;          /* Buffer address after wraparound (NULL if no wrap has occurred) */
     } buffers[BAPE_Channel_eMax];

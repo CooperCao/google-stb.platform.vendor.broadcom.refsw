@@ -282,7 +282,7 @@ typedef struct {
 typedef struct
 {
    khrn_render_state_set_t blend_color;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    khrn_render_state_set_t blend_enables; // Per-RT enables
 #endif
    khrn_render_state_set_t blend_cfg;
@@ -373,7 +373,7 @@ struct GLXX_SERVER_STATE_T_
    glxx_compute_render_state *compute_render_state;
 
    struct {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       uint32_t             rt_enables; /* Bit i for RT i */
       glxx_blend_cfg       rt_cfgs[GLXX_MAX_RENDER_TARGETS];
 #else

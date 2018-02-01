@@ -36,18 +36,19 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "string_map_priv.h"
-#include "name_value_file_parser_priv.h"
-#include "util_priv.h"
+#include "name_value_file_parser.h"
+#include "util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
-static void string_map_p_handle_nvp(void * ctx, const char * name, const char * value)
+static int string_map_p_handle_nvp(void * ctx, const char * name, const char * value)
 {
     StringMapHandle map = ctx;
     assert(name && value);
     string_map_p_put(map, name, value);
+    return 0;
 }
 
 void string_map_print(StringMapHandle map)

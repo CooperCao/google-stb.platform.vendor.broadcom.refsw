@@ -2763,6 +2763,8 @@ wlc_phy_papd_set_rfpwrlut_tiny(phy_info_t *pi)
 				shift = 4-qQ;
 
 			if (scale_factor+shift-3 >= 0) {
+				/* The (scale_factor+shift-3) is >= 0 and (scale_factor+shift-2) is >= 1, so there is no negative_shift in this case. */
+				/* coverity[negative_shift] */
 				val = ((((idx*papd_rf_pwr_scale/32) << shift) + (5*temp) +
 					(1<<(scale_factor+shift-3)))>>(scale_factor+shift-2));
 			} else {

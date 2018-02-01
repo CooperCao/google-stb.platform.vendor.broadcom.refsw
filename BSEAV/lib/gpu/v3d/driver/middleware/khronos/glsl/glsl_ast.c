@@ -1813,7 +1813,7 @@ Expr* glsl_expr_construct_unary_op_logical(ExprFlavour flavour, Expr* operand)
 // Applies component_op(dst, src_left, src_right) n times.
 // dst is incremented by component_size.
 // src_left, src_right are incremented iff their locks are not set.
-static INLINE void apply_component_wise(
+static inline void apply_component_wise(
    void (*component_op)(void*, void*, void*),
    int n,
    int component_size,
@@ -2360,7 +2360,7 @@ Expr* glsl_expr_construct_binary_op_equality(ExprFlavour flavour, Expr* left, Ex
 
       if (left->compile_time_value && right->compile_time_value)
       {
-         const_bool equal;
+         const_bool equal = false;
          int left_index = left->type->u.primitive_type.index;
          int left_flags = primitiveTypeFlags[left_index];
          uint32_t *left_value = (uint32_t *)left->compile_time_value;
@@ -2850,7 +2850,7 @@ Statement* glsl_statement_construct_expr(Expr* expr)
    return statement;
 }
 
-static INLINE Statement* promote_to_statement_compound(Statement* statement)
+static inline Statement* promote_to_statement_compound(Statement* statement)
 {
    if (!statement)
    {

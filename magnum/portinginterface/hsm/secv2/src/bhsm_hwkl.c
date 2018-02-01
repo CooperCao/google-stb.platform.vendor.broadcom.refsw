@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 #include "bstd.h"
@@ -49,6 +50,7 @@
 #include "bhsm_hwkl.h"
 
 BDBG_MODULE(BHSM);
+
 /*
 Description:
     Route a key to the the keyslot from HW Keyladder
@@ -63,6 +65,8 @@ BERR_Code BHSM_Keyslot_RouteHWKlEntryKey ( BHSM_KeyslotHandle handle,
 
     BDBG_ENTER( BHSM_Keyslot_RouteHWKlEntryKey );
 
+    if (pKey == NULL) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
     BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );
 
     rc = BHSM_P_Keyslot_GetDetails( handle, entry, &details );
@@ -71,7 +75,7 @@ BERR_Code BHSM_Keyslot_RouteHWKlEntryKey ( BHSM_KeyslotHandle handle,
     bspConfig.in.blockType = details.blockType;
     bspConfig.in.entryType = details.polarity;
 
-    bspConfig.in.keySlotType = details.slotType;
+    bspConfig.in.keySlotType = BHSM_P_ConvertSlotType(details.slotType);
     bspConfig.in.keySlotNumber = details.number;
 
     bspConfig.in.keyMode = 0 /*Bsp_KeyMode_eRegular */;
@@ -100,9 +104,11 @@ BERR_Code  BHSM_Keyslot_GenerateHwKlRootKey( BHSM_KeyLadderHandle handle, const 
     BHSM_P_HwklRootConfig bspConfig;
     BHSM_KeyLadderSettings settings;
     BERR_Code rc = BERR_SUCCESS;
+    unsigned keyOffset = 0;
 
     BDBG_ENTER( BHSM_Keyslot_GenerateHwKlRootKey );
 
+    if (pKey == NULL) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if(! BHSM_P_KeyLadder_CheckConfigured(handle) ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BHSM_KeyLadder_GetSettings( handle, &settings );
@@ -111,29 +117,8 @@ BERR_Code  BHSM_Keyslot_GenerateHwKlRootKey( BHSM_KeyLadderHandle handle, const 
 
     bspConfig.in.moduleId =  settings.hwkl.moduleId;
     bspConfig.in.hwklLength =  settings.hwkl.numlevels;
-    switch( settings.hwkl.algorithm )
-    {
-        case BHSM_CryptographicAlgorithm_eDvbCsa2:   {  bspConfig.in.hwklDestinationAlg = 0x0; break; }
-        case BHSM_CryptographicAlgorithm_eMulti2:    { bspConfig.in.hwklDestinationAlg = 0x1; break; }
-        case BHSM_CryptographicAlgorithm_eDes:       { bspConfig.in.hwklDestinationAlg = 0x2; break; }
-        case BHSM_CryptographicAlgorithm_e3DesAba:   { bspConfig.in.hwklDestinationAlg = 0x3; break; }
-        case BHSM_CryptographicAlgorithm_e3DesAbc:   { bspConfig.in.hwklDestinationAlg = 0x4; break; }
-        case BHSM_CryptographicAlgorithm_eDvbCsa3:   { bspConfig.in.hwklDestinationAlg = 0x5; break; }
-        case BHSM_CryptographicAlgorithm_eAes128:    { bspConfig.in.hwklDestinationAlg = 0x6; break; }
-        case BHSM_CryptographicAlgorithm_eAes192:    { bspConfig.in.hwklDestinationAlg = 0x7; break; }
-        case BHSM_CryptographicAlgorithm_eC2:       { bspConfig.in.hwklDestinationAlg = 0x9; break; }
-        case BHSM_CryptographicAlgorithm_eCss:      { bspConfig.in.hwklDestinationAlg = 0xa; break; }
-        case BHSM_CryptographicAlgorithm_eM6Ke:     { bspConfig.in.hwklDestinationAlg = 0xb; break; }
-        case BHSM_CryptographicAlgorithm_eM6S:      { bspConfig.in.hwklDestinationAlg = 0xc; break; }
-        case BHSM_CryptographicAlgorithm_eRc4:      { bspConfig.in.hwklDestinationAlg = 0xd; break; }
-        case BHSM_CryptographicAlgorithm_eMsMultiSwapMac: { bspConfig.in.hwklDestinationAlg = 0xe; break; }
-        case BHSM_CryptographicAlgorithm_eWmDrmPd:  { bspConfig.in.hwklDestinationAlg = 0xf; break; }
-        case BHSM_CryptographicAlgorithm_eAes128G:  { bspConfig.in.hwklDestinationAlg = 0x10; break; }
-        case BHSM_CryptographicAlgorithm_eHdDvd:    { bspConfig.in.hwklDestinationAlg = 0x11; break; }
-        case BHSM_CryptographicAlgorithm_eBrDvd:    { bspConfig.in.hwklDestinationAlg = 0x12; break; }
-        case BHSM_CryptographicAlgorithm_eReserved19:{ bspConfig.in.hwklDestinationAlg = 0x13; break; }
-        default: {return BERR_TRACE( BERR_INVALID_PARAMETER );}
-    }
+    bspConfig.in.hwklDestinationAlg = BHSM_P_Map2KeySlotCryptoAlg( settings.hwkl.algorithm );
+
     switch( settings.root.type ) {
         case BHSM_KeyLadderRootType_eCustomerKey: {
             bspConfig.in.rootKeySrc = 0;  /*Bsp_RootKeySrc_eCusKey*/
@@ -185,7 +170,13 @@ BERR_Code  BHSM_Keyslot_GenerateHwKlRootKey( BHSM_KeyLadderHandle handle, const 
         }
     }
 
-    BHSM_Mem32cpy( bspConfig.in.procIn, pKey->ladderKey, sizeof(bspConfig.in.procIn) );
+    keyOffset = (sizeof(bspConfig.in.procIn)-(pKey->ladderKeySize/8))/sizeof(uint32_t);
+
+    if( keyOffset*4 >= sizeof(bspConfig.in.procIn) ||
+         keyOffset*4 + pKey->ladderKeySize/8 > sizeof(bspConfig.in.procIn) ) {
+         return BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+    BHSM_Mem32cpy( &bspConfig.in.procIn[keyOffset], pKey->ladderKey, pKey->ladderKeySize/8 );
 
     rc = BHSM_P_Hwkl_RootConfig( BHSM_P_KeyLadder_GetHsmHandle(handle), &bspConfig );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
@@ -199,9 +190,11 @@ BERR_Code  BHSM_Keyslot_GenerateHwKlLevelKey( BHSM_KeyLadderHandle handle, const
     BHSM_P_HwklLayerSet bspConfig;
     BHSM_KeyLadderSettings settings;
     BERR_Code rc = BERR_SUCCESS;
+    unsigned keyOffset = 0;
 
-    BDBG_ENTER( _GenerateLevelKey );
+    BDBG_ENTER( BHSM_Keyslot_GenerateHwKlLevelKey );
 
+    if (pKey == NULL) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if(! BHSM_P_KeyLadder_CheckConfigured(handle) ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BHSM_KeyLadder_GetSettings( handle, &settings );
@@ -216,11 +209,16 @@ BERR_Code  BHSM_Keyslot_GenerateHwKlLevelKey( BHSM_KeyLadderHandle handle, const
         default: { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     }
 
-    BHSM_Mem32cpy( bspConfig.in.procIn, pKey->ladderKey, BHSM_KEYLADDER_LADDER_KEY_SIZE );
+    keyOffset = (sizeof(bspConfig.in.procIn)-(pKey->ladderKeySize/8))/sizeof(uint32_t);
+    if( keyOffset*4 >= sizeof(bspConfig.in.procIn) ||
+             keyOffset*4 + pKey->ladderKeySize/8 > sizeof(bspConfig.in.procIn) ) {
+             return BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+    BHSM_Mem32cpy( &bspConfig.in.procIn[keyOffset], pKey->ladderKey, pKey->ladderKeySize/8 );
 
     rc = BHSM_P_Hwkl_LayerSet(  BHSM_P_KeyLadder_GetHsmHandle(handle), &bspConfig );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
 
-    BDBG_LEAVE( _GenerateLevelKey );
+    BDBG_LEAVE( BHSM_Keyslot_GenerateHwKlLevelKey );
     return BERR_SUCCESS;
 }

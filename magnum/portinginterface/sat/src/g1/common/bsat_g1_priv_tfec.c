@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -166,7 +166,7 @@ BERR_Code BSAT_g1_P_TfecAcquire_isr(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_TfecEnableLockInterrupts_isr(BSAT_ChannelHandle h, bool bEnable)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-#if BSAT_CHIP_FAMILY==45316
+#if (BSAT_CHIP_FAMILY==45316) || (BCHP_CHIP==45402)
    uint32_t oifctl00;
 
    oifctl00 = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00);
@@ -185,7 +185,7 @@ BERR_Code BSAT_g1_P_TfecEnableLockInterrupts_isr(BSAT_ChannelHandle h, bool bEna
       BINT_DisableCallback_isr(hChn->hTfecNotLockCb);
    }
 
-#if BSAT_CHIP_FAMILY==45316
+#if (BSAT_CHIP_FAMILY==45316) || (BCHP_CHIP==45402)
    if ((oifctl00 & BCHP_SDS_OI_0_OIFCTL00_tfec_afec_sel_MASK) == 0)
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00, oifctl00);
 #endif
@@ -200,7 +200,7 @@ BERR_Code BSAT_g1_P_TfecEnableSyncInterrupt_isr(BSAT_ChannelHandle h, bool bEnab
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
-#if BSAT_CHIP_FAMILY==45316
+#if (BSAT_CHIP_FAMILY==45316) || (BCHP_CHIP==45402)
    uint32_t oifctl00;
 
    oifctl00 = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00);
@@ -213,7 +213,7 @@ BERR_Code BSAT_g1_P_TfecEnableSyncInterrupt_isr(BSAT_ChannelHandle h, bool bEnab
    else
       retCode = BINT_DisableCallback_isr(hChn->hTfecSyncCb);
 
-#if BSAT_CHIP_FAMILY==45316
+#if (BSAT_CHIP_FAMILY==45316) || (BCHP_CHIP==45402)
    if ((oifctl00 & BCHP_SDS_OI_0_OIFCTL00_tfec_afec_sel_MASK) == 0)
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00, oifctl00);
 #endif
@@ -1295,7 +1295,7 @@ bool BSAT_g1_P_TfecIsOtherChannelBusy_isrsafe(BSAT_ChannelHandle h)
    hOtherChanImpl = (BSAT_g1_P_ChannelHandle *)(hOtherChan->pImpl);
    if (hOtherChanImpl->bAbortAcq == false)
    {
-#if BSAT_CHIP_FAMILY!=45316
+#if (BSAT_CHIP_FAMILY!=45316) && (BCHP_CHIP!=45402)
       if (hOtherChanImpl->acqType == BSAT_AcqType_eTurbo)
 #endif
          bOtherTfecBusy = true;
@@ -1311,7 +1311,6 @@ bool BSAT_g1_P_TfecIsOtherChannelBusy_isrsafe(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_TfecReacquire_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-   BSAT_g1_P_Handle *hDevImpl = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
 
    BSAT_DEBUG_TFEC(BDBG_ERR(("BSAT_g1_P_TfecReacquire_isr(%d)", h->channel)));
 

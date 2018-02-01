@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -80,6 +80,8 @@ extern const namevalue_t g_channelChangeMode[];
 extern const namevalue_t g_displayAspectRatioStrs[];
 extern const namevalue_t g_securityAlgoStrs[];
 extern const namevalue_t g_audioChannelModeStrs[];
+extern const namevalue_t g_audioAdvancedTsmModeStrs[];
+extern const namevalue_t g_audioPresentationStrs[];
 extern const namevalue_t g_dolbyDrcModeStrs[];
 extern const namevalue_t g_audioDdreCodecs[];
 extern const namevalue_t g_platformStandbyModeStrs[];

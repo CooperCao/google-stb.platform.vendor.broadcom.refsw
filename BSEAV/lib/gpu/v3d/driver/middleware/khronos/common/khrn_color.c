@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Color
-
-FILE DESCRIPTION
-Some handy functions for dealing with 32-bit RGBA colors.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 
 #include "interface/khronos/common/khrn_int_color.h"
@@ -324,7 +316,7 @@ uint32_t khrn_color_rgba_to_la_s(uint32_t rgba)
    return (l * 0x00010101) | (rgba & 0xff000000);
 }
 
-static INLINE uint32_t clamp(int x)
+static inline uint32_t clamp(int x)
 {
    return _min(255, _max(0, x));
 }

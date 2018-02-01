@@ -64,7 +64,7 @@ static void dpostv_init_backend_fields(Backflow *backend, void *data) {
    if (backend->type == SIG) {
 #if V3D_VER_AT_LEAST(4,1,34,0)
       v3d_qpu_sigbits_t sigbits = V3D_QPU_SIG_LDUNIF | V3D_QPU_SIG_LDUNIFA;
-#elif V3D_VER_AT_LEAST(4,0,2,0)
+#elif V3D_VER_AT_LEAST(4,1,34,0)
       v3d_qpu_sigbits_t sigbits = V3D_QPU_SIG_LDUNIF;
 #else
       v3d_qpu_sigbits_t sigbits = V3D_QPU_SIG_LDUNIF | V3D_QPU_SIG_LDVPM;
@@ -356,7 +356,7 @@ static uint32_t fix_texture_dependencies(SchedBlock *block,
          Backflow *cond_false = create_sig(V3D_QPU_SIG_LDUNIF);
          cond_false->unif_type = BACKEND_UNIFORM_LITERAL;
          cond_false->unif = 1;
-         Backflow *fake_tmu_lookup = create_node(BACKFLOW_MOV, UNPACK_NONE, COND_IFFLAG, cond_false, cond_false, NULL, NULL);
+         Backflow *fake_tmu_lookup = tr_uop_cond(V3D_QPU_OP_MOV, COND_IFFLAG, cond_false, cond_false);
          fake_tmu_lookup->magic_write = REG_MAGIC_TMUA;
          Backflow *fake_tmu_read = create_sig(V3D_QPU_SIG_LDTMU);
          Backflow *new_switch = glsl_backflow_thrsw();
@@ -385,7 +385,7 @@ static uint32_t fix_texture_dependencies(SchedBlock *block,
          /* Force any TLB writes after the last threadswitch */
          iodep_texture(sched_deps, block->first_tlb_write, last_thrsw);
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
          /* Force all vpm reads/writes into the first/last thread section */
          if (block->last_vpm_read != NULL)
             iodep_texture(sched_deps, first_thrsw, block->last_vpm_read);

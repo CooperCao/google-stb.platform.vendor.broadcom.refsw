@@ -1,5 +1,5 @@
 #############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -97,4 +97,5 @@ endif
 ifeq ($(SAGE_SUPPORT),y)
 BCHP_INCLUDES += $(MAGNUM)/syslib/sagelib/include
 BCHP_SOURCES += $(MAGNUM)/basemodules/chp/src/common/bchp_sage.c
+BCHP_DEFINES += BCHP_SAGE_SUPPORT
 endif

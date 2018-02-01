@@ -18,3 +18,4 @@
 #
 # src/wl/linux driver config file
 WET=1
+ACS=1

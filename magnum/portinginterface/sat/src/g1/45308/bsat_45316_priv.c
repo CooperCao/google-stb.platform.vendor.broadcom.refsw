@@ -571,7 +571,7 @@ BERR_Code BSAT_g1_P_InitHandleExt(BSAT_Handle h)
 
    hDev = (BSAT_g1_P_Handle *)(h->pImpl);
    hDev->xtalFreq = BSAT_G1_XTAL_FREQ;
-   hDev->afecRampSettings = 0x80008000;
+   hDev->afecRampSettings = 0x80011170;
    val = BREG_Read32(hDev->hRegister, BCHP_TM_FAMILY_ID);
    if ((val >> 8) == 0x45316)
       hDev->chipFamily = BSAT_CHIP_FAMILY_GYPSUM_A0;

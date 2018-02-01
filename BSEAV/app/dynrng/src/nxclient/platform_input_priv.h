@@ -43,19 +43,17 @@
 
 typedef struct PlatformInputEventHandler
 {
-    PlatformCallback callback;
+    PlatformInputEventCallback callback;
     void * context;
 } PlatformInputEventHandler;
 
 typedef struct PlatformInput
 {
     PlatformHandle platform;
-    PlatformInputMethod method;
-    PlatformInputEventHandler eventHandlers[PlatformInputEvent_eMax];
+    PlatformInputEventHandler eventHandler;
     binput_t nxInput;
 } PlatformInput;
 
-bool platform_input_p_get_console_input(PlatformInputHandle input, PlatformInputEvent * pEvent, int * pParam);
 bool platform_input_p_get_remote_input(PlatformInputHandle input, PlatformInputEvent * pEvent, int * pParam);
 PlatformInputEvent platform_input_p_event_from_key(b_remote_key key, int * pParam);
 

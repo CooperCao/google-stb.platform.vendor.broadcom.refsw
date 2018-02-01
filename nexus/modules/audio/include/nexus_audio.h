@@ -166,6 +166,22 @@ NEXUS_Error NEXUS_AudioOutputPll_SetSettings(
     NEXUS_AudioOutputPll pll,
     const NEXUS_AudioOutputPllSettings *pSettings
     );
+
+/***************************************************************************
+Summary:
+Get Loudness Equivalence Mode Settings
+***************************************************************************/
+void NEXUS_AudioModule_GetLoudnessSettings(
+    NEXUS_AudioLoudnessSettings *pSettings
+    );
+
+/***************************************************************************
+Summary:
+Set Loudness Equivalence Mode Settings
+***************************************************************************/
+NEXUS_Error NEXUS_AudioModule_SetLoudnessSettings(
+    const NEXUS_AudioLoudnessSettings *pSettings
+    );
     
 /***************************************************************************
 Summary:

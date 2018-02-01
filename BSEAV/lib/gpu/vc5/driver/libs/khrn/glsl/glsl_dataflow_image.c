@@ -6,6 +6,7 @@
 #include "glsl_primitive_types.auto.h"
 #include "glsl_tex_params.h"
 #include "glsl_imageunit_swizzling.h"
+#include "dflib.h"
 #include "libs/core/gfx_buffer/gfx_buffer_uif_config.h"
 #include "libs/core/lfmt/lfmt.h"
 #include "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"
@@ -76,7 +77,7 @@ GLenum glsl_fmt_qualifier_to_gl_enum(FormatQualifier fmt_qual)
    return internalformat;
 }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 
 typedef struct {
    Dataflow *lx_swizzling;
@@ -299,153 +300,6 @@ static Dataflow *calculate_store_cond(const PrimSamplerInfo *image_info,
 }
 #endif
 
-static Dataflow *pack_uint(Dataflow *data[4], unsigned n, unsigned m)
-{
-   /* Pack into 32 bits. The last channel may be smaller, but must be 1 bit left */
-   assert((n-1) * m < 32);
-
-   /* Since we know the channels are disjoint we can use 'add' instead of 'or' */
-   Dataflow *res = data[0];
-   for (unsigned i = 1; i < n; ++i) {
-      //data[i] = data [i] << (m*i);
-      data[i] = glsl_dataflow_construct_binary_op(DATAFLOW_SHL, data[i],
-            glsl_dataflow_construct_const_uint(i * m));
-      //res = res | data[i]
-      res = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, res, data[i]);
-   }
-   return res;
-}
-
-static Dataflow *clamp(Dataflow *x, Dataflow *min_val, Dataflow *max_val)
-{
-   //min(max(x, minVal), maxVal);\n"
-   return glsl_dataflow_construct_binary_op(DATAFLOW_MIN,
-             glsl_dataflow_construct_binary_op(DATAFLOW_MAX, x, min_val),
-             max_val);
-}
-
-static Dataflow *clamp_unorm(Dataflow *d, unsigned m) {
-   //d = uint(int(round(clamp(float_val, 0, +1) * (1 << m - 1))))
-   d = clamp(d, glsl_dataflow_construct_const_float(0),
-         glsl_dataflow_construct_const_float(1));
-   d = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, d,
-         glsl_dataflow_construct_const_float((float)gfx_mask(m)));
-   d = glsl_dataflow_construct_unary_op(DATAFLOW_NEAREST, d);
-   d = glsl_dataflow_convert_type(d, DF_INT);
-   return glsl_dataflow_convert_type(d, DF_UINT);
-}
-
-static Dataflow *clamp_snorm(Dataflow *d, unsigned m) {
-   //d = uint(uint(round(clamp(float_val, -1, +1) * 127))) & 0xFFu
-   d = clamp(d, glsl_dataflow_construct_const_float(-1),
-         glsl_dataflow_construct_const_float(1));
-   d = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, d,
-         glsl_dataflow_construct_const_float((float)gfx_mask(m-1)));
-   d = glsl_dataflow_construct_unary_op(DATAFLOW_NEAREST, d);
-   d = glsl_dataflow_convert_type(d, DF_INT);
-   d = glsl_dataflow_convert_type(d, DF_UINT);
-
-   return glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, d,
-               glsl_dataflow_construct_const_uint(gfx_mask(m)));
-}
-
-static Dataflow *clamp_int(Dataflow *d, unsigned m) {
-   // -1 * 2^(m-1) to 2^(m-1) - 1;
-   unsigned val = 1u << (m - 1);
-   d = clamp(d, glsl_dataflow_construct_const_int(-1 * val),
-                glsl_dataflow_construct_const_int(val - 1));
-   d = glsl_dataflow_construct_reinterp(d, DF_UINT);
-   return glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, d,
-               glsl_dataflow_construct_const_uint(gfx_mask(m)));
-}
-
-static Dataflow *clamp_uint(Dataflow *d, unsigned m) {
-   // 0 to 2^(m)-1;
-   return glsl_dataflow_construct_binary_op(DATAFLOW_MIN, d,
-            glsl_dataflow_construct_const_uint(gfx_mask(m)));
-}
-
-static Dataflow *pack(Dataflow *data[4], GFX_LFMT_TYPE_T f, unsigned n, unsigned m)
-{
-   for (unsigned i = 0; i < n; ++i) {
-      switch (f) {
-         case GFX_LFMT_TYPE_INT:   data[i] = clamp_int  (data[i], m); break;
-         case GFX_LFMT_TYPE_UINT:  data[i] = clamp_uint (data[i], m); break;
-         case GFX_LFMT_TYPE_UNORM: data[i] = clamp_unorm(data[i], m); break;
-         case GFX_LFMT_TYPE_SNORM: data[i] = clamp_snorm(data[i], m); break;
-         default: unreachable();
-      }
-   }
-
-   return pack_uint(data, n, m);
-}
-
-static Dataflow *pack_generic(FormatQualifier f, Dataflow *data[4]) {
-   GFX_LFMT_T fmt = fmt_qualifier_to_fmt(f);
-
-   /* we always have a red channel */
-   unsigned        channel_size = gfx_lfmt_red_bits(fmt);
-   unsigned        n_channels   = gfx_lfmt_num_slots_from_channels(fmt);
-   GFX_LFMT_TYPE_T fmt_type     = gfx_lfmt_get_type(&fmt);
-   assert(channel_size != 0);
-   assert(gfx_lfmt_num_slots_from_type(fmt) == 1);
-
-   Dataflow *v[4] = { NULL, };
-
-   if (channel_size == 32)
-   {
-      for (unsigned i = 0; i < n_channels; ++i)
-         v[i] = glsl_dataflow_construct_reinterp(data[i], DF_UINT);
-   }
-   else
-   {
-      if (fmt_type == GFX_LFMT_TYPE_FLOAT) {
-         assert(channel_size == 16);
-         if (n_channels == 1)
-            v[0] = glsl_dataflow_construct_binary_op(DATAFLOW_FPACK, data[0], glsl_dataflow_construct_const_value(DF_FLOAT, 0));
-         else {
-            v[0] = glsl_dataflow_construct_binary_op(DATAFLOW_FPACK, data[0], data[1]);
-            if (n_channels == 4)
-               v[1] = glsl_dataflow_construct_binary_op(DATAFLOW_FPACK, data[2], data[3]);
-         }
-      } else {
-         if (channel_size * n_channels <= 32)
-            v[0] = pack(data, fmt_type, n_channels, channel_size);
-         else {
-            assert(n_channels == 4 && channel_size == 16);
-            v[0] = pack( data,    fmt_type, 2, 16);
-            v[1] = pack(&data[2], fmt_type, 2, 16);
-         }
-      }
-   }
-
-   return glsl_dataflow_construct_vec4(v[0], v[1], v[2], v[3]);
-}
-
-static Dataflow *clamp_ufloat(Dataflow *d, unsigned m) {
-   Dataflow *zero = glsl_dataflow_construct_const_float(0);
-   d = glsl_dataflow_construct_binary_op(DATAFLOW_MAX,   d, zero);
-   d = glsl_dataflow_construct_binary_op(DATAFLOW_FPACK, d, glsl_dataflow_construct_const_float(0));
-   d = glsl_dataflow_construct_binary_op(DATAFLOW_SHR,   d, glsl_dataflow_construct_const_uint(15 - m));
-   return d;
-}
-
-Dataflow *glsl_dataflow_image_pack_data(FormatQualifier f, Dataflow *data[4]) {
-   if (f == FMT_R11G11B10F) {
-      for (int i=0; i<3; i++)
-         data[i] = clamp_ufloat(data[i], (i == 2 ? 10 : 11));
-
-      return glsl_dataflow_construct_vec4(pack_uint(data, 3, 11), NULL, NULL, NULL);
-   } else if (f == FMT_RGB10A2 || f == FMT_RGB10A2UI) {
-      for (int i=0; i<4; i++) {
-         if (f == FMT_RGB10A2) data[i] = clamp_unorm(data[i], i == 3 ? 2 : 10);
-         else                  data[i] = clamp_uint (data[i], i == 3 ? 2 : 10);
-      }
-      return glsl_dataflow_construct_vec4(pack_uint(data, 4, 10), NULL, NULL, NULL);
-   } else
-      return pack_generic(f, data);
-}
-
 static void get_x_y_z_elem_no(const PrimSamplerInfo *image_info, Dataflow *coord[3],
       Dataflow **x, Dataflow **y, Dataflow **z, Dataflow **elem_no)
 {
@@ -508,11 +362,11 @@ void glsl_calculate_dataflow_image_atomic(BasicBlock *ctx, Dataflow **scalar_val
 
    Dataflow *values;
    if (expr->u.intrinsic.flavour == INTRINSIC_IMAGE_STORE)
-      values = glsl_dataflow_image_pack_data(sampler->u.load.fmt, data);
+      values = dflib_pack_format(sampler->u.load.fmt, data);
    else
       values = glsl_dataflow_construct_vec4(data[0], cmp, NULL, NULL);
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    /* We use border wrap mode, which will cause the TMU to skip writes which
     * are outside of the image. So no need for an explicit condition. */
    Dataflow *cond = NULL;

@@ -115,6 +115,9 @@ CFLAGS += ${NEXUS_CFLAGS} $(addprefix -I,${NEXUS_APP_INCLUDE_PATHS})  $(addprefi
 
 #allow c++ style comments
 CFLAGS += -std=c99
+ifeq ($(ANDROID_BUILD),y)
+CFLAGS += -DANDROID
+endif
 
 ifeq ($(B_REFSW_OBJ_ROOT),)
 KEYMASTER_OBJDIR:= obj

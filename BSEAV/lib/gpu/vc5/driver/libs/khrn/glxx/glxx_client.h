@@ -34,9 +34,9 @@ static inline bool glxx_is_shader_type(GLenum type)
    return (type == GL_VERTEX_SHADER)   ||
           (type == GL_FRAGMENT_SHADER) ||
           (type == GL_COMPUTE_SHADER && V3D_VER_AT_LEAST(3,3,0,0)) ||
-          (type == GL_TESS_CONTROL_SHADER && (KHRN_GLES32_DRIVER || V3D_VER_AT_LEAST(4,0,2,0))) ||
-          (type == GL_TESS_EVALUATION_SHADER && (KHRN_GLES32_DRIVER || V3D_VER_AT_LEAST(4,0,2,0))) ||
-          (type == GL_GEOMETRY_SHADER && (KHRN_GLES32_DRIVER || V3D_VER_AT_LEAST(4,0,2,0)));
+          (type == GL_TESS_CONTROL_SHADER && (KHRN_GLES32_DRIVER || V3D_VER_AT_LEAST(4,1,34,0))) ||
+          (type == GL_TESS_EVALUATION_SHADER && (KHRN_GLES32_DRIVER || V3D_VER_AT_LEAST(4,1,34,0))) ||
+          (type == GL_GEOMETRY_SHADER && (KHRN_GLES32_DRIVER || V3D_VER_AT_LEAST(4,1,34,0)));
 }
 
 static inline bool glxx_is_alignment(GLint param)

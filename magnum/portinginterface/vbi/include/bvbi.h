@@ -2621,7 +2621,6 @@ BERR_Code BVBI_Encode_GetSCTE (
 #endif /** } (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) **/
 
 
-#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set ITU-R 656 closed caption output on the given handle
@@ -2646,10 +2645,8 @@ BERR_Code BVBI_Encode_656_SetCC(
     bool                   bEnabled     /* [in] Whether to enable or disable
                                                 encode                       */
 );
-#endif
 
 
-#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set ITU-R 656 teletext output on the given handle
@@ -2674,10 +2671,8 @@ BERR_Code BVBI_Encode_656_SetTeletext(
     bool                   bEnabled     /* [in] Whether to enable or disable
                                                 encode                       */
 );
-#endif
 
 
-#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set ITU-R 656 WSS output on the given handle
@@ -2702,10 +2697,8 @@ BERR_Code BVBI_Encode_656_SetWSS(
     bool                   bEnabled     /* [in] Whether to enable or disable
                                                 encode                       */
 );
-#endif
 
 
-#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set ITU-R 656 Gemstar output on the given handle
@@ -2730,10 +2723,8 @@ BERR_Code BVBI_Encode_656_SetGemstar(
     bool                   bEnabled     /* [in] Whether to enable or disable
                                                 encode                       */
 );
-#endif
 
 
-#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set ITU-R 656 AMOL output on the given handle
@@ -2756,10 +2747,8 @@ BERR_Code BVBI_Encode_656_SetAMOL (
     bool                   bEnabled     /* [in] Whether to enable or disable
                                                 encode                       */
 );
-#endif
 
 
-#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set ITU-R 656 multi-line closed caption output on the given handle
@@ -2782,11 +2771,9 @@ BERR_Code BVBI_Encode_656_SetMCC (
     bool                   bEnabled     /* [in] Whether to enable or disable
                                                 encode                       */
 );
-#endif
 
 
 #if (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) /** { **/
-#if !B_REFSW_MINIMAL
 /*****************************************************************************
   Summary:
     Set ITU-R 656 SCTE output on the given handle
@@ -2809,7 +2796,6 @@ BERR_Code BVBI_Encode_656_SetSCTE (
     bool                   bEnabled     /* [in] Whether to enable or disable
                                                 encode                       */
 );
-#endif
 #endif /** } (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) **/
 
 

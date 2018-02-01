@@ -51,6 +51,7 @@
 #include "nexus_audio_input.h"
 #include "nexus_audio_init.h"
 #include "priv/nexus_audio_decoder_priv.h"
+#include "priv/nexus_audio_mixer_priv.h"
 #include "priv/nexus_audio_output_priv.h"
 #endif
 #include "nexus_client_resources.h"
@@ -89,6 +90,7 @@ static const char * const g_selectorStr[NEXUS_SimpleAudioDecoderSelector_eMax] =
 static void NEXUS_SimpleAudioDecoder_P_Suspend(NEXUS_SimpleAudioDecoderHandle handle, unsigned whatToSuspend);
 
 #define CONNECTED(handle) ((handle)->serverSettings.primary || (handle)->serverSettings.secondary || (handle)->serverSettings.description)
+#define SIMPLEMASTER(server, handle) ((server)->masterServerSettings.masterHandle == (handle))
 
 /**
 server functions
@@ -424,6 +426,9 @@ static void NEXUS_SimpleAudioDecoder_P_Finalizer( NEXUS_SimpleAudioDecoderHandle
             }
         }
     }
+    if ( SIMPLEMASTER(handle->server, handle) ) {
+        handle->server->masterServerSettings.masterHandle = NULL;
+    }
 #endif
 
     NEXUS_OBJECT_DESTROY(NEXUS_SimpleAudioDecoder, handle);
@@ -438,6 +443,13 @@ void NEXUS_SimpleAudioDecoder_GetServerSettings( NEXUS_SimpleAudioDecoderServerH
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleAudioDecoder);
     if (handle->server != server) {BERR_TRACE(NEXUS_INVALID_PARAMETER); return;}
     *pSettings = handle->serverSettings;
+}
+
+static void NEXUS_SimpleAudioDecoder_P_GetServerSettings( NEXUS_SimpleAudioDecoderServerHandle server, NEXUS_SimpleAudioDecoderHandle handle, NEXUS_SimpleAudioDecoderServerSettings *pSettings )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleAudioDecoder);
+    if (handle->server != server) {BERR_TRACE(NEXUS_INVALID_PARAMETER); return;}
+    *pSettings = server->masterServerSettings;
 }
 
 #if NEXUS_HAS_AUDIO
@@ -472,6 +484,124 @@ static void NEXUS_SimpleAudioDecoder_P_RestoreDecoder(NEXUS_SimpleAudioDecoderHa
     }
 }
 
+/* Check if there is a primary decoder running AC4 */
+static bool nexus_p_check_for_ac4_master(NEXUS_SimpleAudioDecoderHandle handle)
+{
+    int i;
+
+    if (handle->startSettings.primary.codec == NEXUS_AudioCodec_eAc4)
+    {
+        if (handle->serverSettings.type == NEXUS_SimpleAudioDecoderType_eDynamic) {
+            return true;
+        }
+        else {
+            if (handle->startSettings.master) {
+                return true;
+            }
+        }
+    }
+
+    for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
+        if (handle->serverSettings.persistent[i].decoder != NULL) {
+            NEXUS_AudioDecoderStatus decoderStatus;
+            bool mixerMaster = false;
+            NEXUS_AudioDecoder_GetStatus(handle->serverSettings.persistent[i].decoder, &decoderStatus);
+            if (decoderStatus.codec == NEXUS_AudioCodec_eAc4) {
+                NEXUS_AudioInputHandle connector = NEXUS_AudioDecoder_GetConnector(handle->serverSettings.persistent[i].decoder, NEXUS_AudioDecoderConnectorType_eMultichannel);
+                NEXUS_Module_Lock(g_NEXUS_simpleDecoderModuleSettings.modules.audio);
+                mixerMaster = NEXUS_AudioMixer_IsInputMaster_priv(handle->serverSettings.mixers.multichannel, connector);
+                NEXUS_Module_Unlock(g_NEXUS_simpleDecoderModuleSettings.modules.audio);
+                if (mixerMaster) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+static bool nexus_p_check_for_presentation_reconfig(NEXUS_SimpleAudioDecoderHandle handle, bool alternatePresentationAvailable)
+{
+    bool mainConnection = false;
+
+    NEXUS_SimpleAudioDecoder_P_GetServerSettings(handle->server, handle, &handle->masterSettings);
+
+    if ( handle->masterSettings.dac.output && handle->masterSettings.dac.input) {
+        NEXUS_AudioInput_IsConnectedToOutput(handle->masterSettings.dac.input, NEXUS_AudioDac_GetConnector(handle->masterSettings.dac.output), &mainConnection);
+        if ( mainConnection && alternatePresentationAvailable && handle->masterSettings.dac.presentation == NEXUS_AudioPresentation_eAlternateStereo ) {
+            return true;
+        }
+        else if (!mainConnection && (!alternatePresentationAvailable || handle->masterSettings.dac.presentation == NEXUS_AudioPresentation_eMain)) {
+            return true;
+        }
+    }
+    if ( handle->masterSettings.i2s[0].output && handle->masterSettings.i2s[0].input) {
+        NEXUS_AudioInput_IsConnectedToOutput(handle->masterSettings.i2s[0].input, NEXUS_I2sOutput_GetConnector(handle->masterSettings.i2s[0].output), &mainConnection);
+        if ( mainConnection && alternatePresentationAvailable && handle->masterSettings.i2s[0].presentation == NEXUS_AudioPresentation_eAlternateStereo ) {
+            return true;
+        }
+        else if (!mainConnection && (!alternatePresentationAvailable || handle->masterSettings.i2s[0].presentation == NEXUS_AudioPresentation_eMain)) {
+            return true;
+        }
+    }
+    if ( handle->masterSettings.i2s[1].output && handle->masterSettings.i2s[1].input) {
+        NEXUS_AudioInput_IsConnectedToOutput(handle->masterSettings.i2s[1].input, NEXUS_I2sOutput_GetConnector(handle->masterSettings.i2s[1].output), &mainConnection);
+        if ( mainConnection && alternatePresentationAvailable && handle->masterSettings.i2s[1].presentation == NEXUS_AudioPresentation_eAlternateStereo ) {
+            return true;
+        }
+        else if (!mainConnection && (!alternatePresentationAvailable || handle->masterSettings.i2s[1].presentation == NEXUS_AudioPresentation_eMain)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void nexus_p_check_for_presentation_change(NEXUS_SimpleAudioDecoderHandle handle, bool *changed)
+{
+    bool alternatePresentationAvailable = false;
+    bool reconfigRequired = false;
+    alternatePresentationAvailable = nexus_p_check_for_ac4_master(handle);
+
+    reconfigRequired = nexus_p_check_for_presentation_reconfig(handle, alternatePresentationAvailable);
+
+    *changed = reconfigRequired;
+    return;
+}
+
+static NEXUS_AudioInputHandle nexus_p_get_alternate_presentation_input(NEXUS_SimpleAudioDecoderHandle handle)
+{
+    int i;
+    if (handle->startSettings.primary.codec == NEXUS_AudioCodec_eAc4)
+    {
+        if (handle->serverSettings.type == NEXUS_SimpleAudioDecoderType_eDynamic) {
+            return NEXUS_AudioDecoder_GetConnector(handle->serverSettings.primary, NEXUS_AudioConnectorType_eAlternateStereo);
+        }
+        else {
+            if (handle->startSettings.master) {
+                return NEXUS_AudioDecoder_GetConnector(handle->serverSettings.primary, NEXUS_AudioConnectorType_eAlternateStereo);
+            }
+        }
+    }
+
+    for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
+        if (handle->serverSettings.persistent[i].decoder != NULL) {
+            NEXUS_AudioDecoderStatus decoderStatus;
+            bool mixerMaster;
+            NEXUS_AudioDecoder_GetStatus(handle->serverSettings.persistent[i].decoder, &decoderStatus);
+            if (decoderStatus.codec == NEXUS_AudioCodec_eAc4) {
+                NEXUS_AudioInputHandle connector = NEXUS_AudioDecoder_GetConnector(handle->serverSettings.persistent[i].decoder, NEXUS_AudioDecoderConnectorType_eMultichannel);
+                NEXUS_Module_Lock(g_NEXUS_simpleDecoderModuleSettings.modules.audio);
+                mixerMaster = NEXUS_AudioMixer_IsInputMaster_priv(handle->serverSettings.mixers.multichannel, connector);
+                NEXUS_Module_Unlock(g_NEXUS_simpleDecoderModuleSettings.modules.audio);
+                if (mixerMaster) {
+                    return NEXUS_AudioDecoder_GetConnector(handle->serverSettings.persistent[i].decoder, NEXUS_AudioConnectorType_eAlternateStereo);
+                }
+            }
+        }
+    }
+    return NULL;
+}
+
 /* Check change in server settings and only suspend/resume and remove/re-add outputs if required.
 We need to avoid reconfig for change in enabled or stcIndex, or if setting input[] == NULL if disabled.
 All other changes require reconfig. */
@@ -498,9 +628,30 @@ static bool nexus_p_check_reconfig(NEXUS_SimpleAudioDecoderHandle handle, const 
 
     if (pNewSettings->capture.output != pCurrentSettings->capture.output) return true;
 
+    if (nexus_p_check_for_ac4_master(handle)) {
+        if (pCurrentSettings->dac.output) {
+            if (pNewSettings->dac.presentation != pCurrentSettings->dac.presentation) return true;
+        }
+        if (pCurrentSettings->i2s[0].output) {
+            if (pNewSettings->i2s[0].presentation != pCurrentSettings->i2s[0].presentation) return true;
+        }
+        if (pCurrentSettings->i2s[1].output) {
+            if (pNewSettings->i2s[1].presentation != pCurrentSettings->i2s[1].presentation) return true;
+        }
+    }
+
     return false;
 }
 #endif
+
+static void NEXUS_SimpleAudioDecoder_P_SetServerSettings(NEXUS_SimpleAudioDecoderServerHandle server, NEXUS_SimpleAudioDecoderHandle handle, const NEXUS_SimpleAudioDecoderServerSettings *pSettings )
+{
+    if ( server->masterServerSettings.masterHandle == NULL ||
+         handle->serverSettings.masterHandle == handle ) {
+        BKNI_Memcpy(&server->masterServerSettings, pSettings, sizeof(NEXUS_SimpleAudioDecoderServerSettings));
+    }
+    return;
+}
 
 NEXUS_Error NEXUS_SimpleAudioDecoder_SetServerSettings( NEXUS_SimpleAudioDecoderServerHandle server, NEXUS_SimpleAudioDecoderHandle handle, const NEXUS_SimpleAudioDecoderServerSettings *pSettings )
 {
@@ -600,6 +751,8 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SetServerSettings( NEXUS_SimpleAudioDecoder
         /* notify ssc that something may have changed */
         NEXUS_SimpleStcChannel_SetAudio_priv(handle->stcChannel, handle);
     }
+
+    NEXUS_SimpleAudioDecoder_P_SetServerSettings(server, handle, &handle->serverSettings);
 
     if (configOutputs) {
         rc = NEXUS_SimpleAudioDecoder_P_AddOutputs(handle);
@@ -709,6 +862,9 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SwapServerSettings( NEXUS_SimpleAudioDecode
         }
     }
 #endif
+    dest->serverSettings.masterHandle = dest;
+    NEXUS_SimpleAudioDecoder_P_SetServerSettings(server, dest, &dest->serverSettings);
+    src->serverSettings.masterHandle = NULL;
 
     if (CONNECTED(dest)) {
         if (dest->clientStarted) {
@@ -811,12 +967,107 @@ static bool nexus_p_is_compressed_output(NEXUS_SimpleAudioDecoderHandle handle, 
     return false;
 }
 
-static NEXUS_Error NEXUS_SimpleAudioDecoder_P_AddOutputs( NEXUS_SimpleAudioDecoderHandle handle)
+static NEXUS_Error nexus_p_update_static_outputs( NEXUS_SimpleAudioDecoderHandle handle )
+{
+    NEXUS_AudioPresentation presentation = NEXUS_AudioPresentation_eMain;
+    NEXUS_Error rc;
+    bool resume = false;
+    NEXUS_SimpleAudioDecoderHandle masterHandle = NULL;
+
+    NEXUS_SimpleAudioDecoder_P_GetServerSettings(handle->server, handle, &handle->masterSettings);
+
+    masterHandle = handle->masterSettings.masterHandle;
+
+    if (masterHandle && !masterHandle->mixers.suspended) {
+        rc = NEXUS_SimpleAudioDecoder_Suspend(masterHandle);
+        if (rc) {return BERR_TRACE(rc);}
+        resume = true;
+    }
+
+    if (nexus_p_check_for_ac4_master(handle)){
+        presentation = NEXUS_AudioPresentation_eAlternateStereo;
+    }
+
+    if ( handle->masterSettings.dac.output ) {
+        if ( handle->masterSettings.dac.presentation == NEXUS_AudioPresentation_eAlternateStereo &&
+             presentation == NEXUS_AudioPresentation_eAlternateStereo ) {
+            NEXUS_AudioInputHandle input;
+
+            NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(handle->masterSettings.dac.output));
+            input = nexus_p_get_alternate_presentation_input(handle);
+            if (input) {
+                rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(handle->masterSettings.dac.output), input);
+            }
+            else {
+                rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(handle->masterSettings.dac.output), handle->masterSettings.dac.input);
+            }
+            if (rc) { return BERR_TRACE(rc); }
+        }
+        else if (handle->masterSettings.dac.input) {
+            NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(handle->masterSettings.dac.output));
+            BDBG_MSG(("%p: add input %p -> dac", (void *)handle, (void *)handle->masterSettings.dac.input));
+            rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(handle->masterSettings.dac.output), handle->masterSettings.dac.input);
+            if (rc) { return BERR_TRACE(rc); }
+        }
+    }
+    if ( handle->masterSettings.i2s[0].output ) {
+        if (handle->masterSettings.i2s[0].presentation == NEXUS_AudioPresentation_eAlternateStereo &&
+            presentation == NEXUS_AudioPresentation_eAlternateStereo ) {
+            NEXUS_AudioInputHandle input;
+
+            NEXUS_AudioOutput_RemoveAllInputs(NEXUS_I2sOutput_GetConnector(handle->masterSettings.i2s[0].output));
+            input = nexus_p_get_alternate_presentation_input(handle);
+            if (input) {
+                rc = NEXUS_AudioOutput_AddInput(NEXUS_I2sOutput_GetConnector(handle->masterSettings.i2s[0].output), input);
+            }
+            else {
+                rc = NEXUS_AudioOutput_AddInput(NEXUS_I2sOutput_GetConnector(handle->masterSettings.i2s[0].output), handle->masterSettings.i2s[0].input);
+            }
+            if (rc) { return BERR_TRACE(rc); }
+        }
+        else if (handle->masterSettings.i2s[0].input) {
+            NEXUS_AudioOutput_RemoveAllInputs(NEXUS_I2sOutput_GetConnector(handle->masterSettings.i2s[0].output));
+            BDBG_MSG(("%p: add input %p -> i2s0", (void *)handle, (void *)handle->masterSettings.i2s[0].input));
+            rc = NEXUS_AudioOutput_AddInput(NEXUS_I2sOutput_GetConnector(handle->masterSettings.i2s[0].output), handle->masterSettings.i2s[0].input);
+            if (rc) { return BERR_TRACE(rc); }
+        }
+    }
+    if ( handle->masterSettings.i2s[1].output ) {
+        if (handle->masterSettings.i2s[1].presentation == NEXUS_AudioPresentation_eAlternateStereo &&
+            presentation == NEXUS_AudioPresentation_eAlternateStereo) {
+            NEXUS_AudioInputHandle input;
+
+            NEXUS_AudioOutput_RemoveAllInputs(NEXUS_I2sOutput_GetConnector(handle->masterSettings.i2s[1].output));
+            input = nexus_p_get_alternate_presentation_input(handle);
+            if (input) {
+                rc = NEXUS_AudioOutput_AddInput(NEXUS_I2sOutput_GetConnector(handle->masterSettings.i2s[1].output), input);
+            }
+            else {
+                rc = NEXUS_AudioOutput_AddInput(NEXUS_I2sOutput_GetConnector(handle->masterSettings.i2s[1].output), handle->masterSettings.i2s[1].input);
+            }
+            if (rc) { return BERR_TRACE(rc); }
+        }
+        else if (handle->masterSettings.i2s[1].input) {
+            NEXUS_AudioOutput_RemoveAllInputs(NEXUS_I2sOutput_GetConnector(handle->masterSettings.i2s[1].output));
+            BDBG_MSG(("%p: add input %p -> i2s0", (void *)handle, (void *)handle->masterSettings.i2s[1].input));
+            rc = NEXUS_AudioOutput_AddInput(NEXUS_I2sOutput_GetConnector(handle->masterSettings.i2s[1].output), handle->masterSettings.i2s[1].input);
+            if (rc) { return BERR_TRACE(rc); }
+        }
+    }
+    if (resume) {
+        rc = NEXUS_SimpleAudioDecoder_Resume(masterHandle);
+        if (rc) {return BERR_TRACE(rc);}
+    }
+    return BERR_SUCCESS;
+}
+
+static NEXUS_Error NEXUS_SimpleAudioDecoder_P_AddOutputs( NEXUS_SimpleAudioDecoderHandle handle )
 {
     NEXUS_AudioInputHandle spdifInput, hdmiInput, captureInput;
     unsigned i;
     NEXUS_Error rc;
     NEXUS_AudioCodec primaryCodec, secondaryCodec;
+    bool presentationChanged = false;
 
     NEXUS_GetAudioCapabilities(&handle->audioCapabilities);
 
@@ -835,6 +1086,8 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_AddOutputs( NEXUS_SimpleAudioDecod
     else {
         primaryCodec = secondaryCodec = NEXUS_AudioCodec_eUnknown;
     }
+
+    nexus_p_check_for_presentation_change(handle, &presentationChanged);
 
     /* determine inputs */
     spdifInput = NULL;
@@ -889,6 +1142,12 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_AddOutputs( NEXUS_SimpleAudioDecod
         handle->currentHdmiInput == hdmiInput &&
         handle->currentCaptureInput == captureInput &&
         !handle->suspended) {
+        /* Spdif, HDMI, capture may not have changed due to being a persisent decoder.
+           Need to look through all decoders.  Something may require it. */
+        if (presentationChanged) {
+            rc = nexus_p_update_static_outputs(handle);
+            if (rc) {return BERR_TRACE(rc);}
+        }
         return 0;
     }
 
@@ -925,6 +1184,9 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_AddOutputs( NEXUS_SimpleAudioDecod
             captureInput = NULL;
         }
     }
+
+    rc = nexus_p_update_static_outputs(handle);
+    if (rc) {rc = BERR_TRACE(rc);}
 
     rc = NEXUS_SimpleAudioDecoder_Resume(handle);
     if (rc) {rc = BERR_TRACE(rc);}
@@ -1004,7 +1266,7 @@ static void NEXUS_SimpleAudioDecoder_P_RemoveOutputs( NEXUS_SimpleAudioDecoderHa
     /* can't call NEXUS_AudioInput_Shutdown on handle->serverSettings.spdif/hdmi.input[] because it could be stereo connector */
 }
 
-static bool nexus_p_is_decoder_connected(NEXUS_AudioDecoderHandle audioDecoder)
+static bool nexus_p_simpleaudiodecoder_is_decoder_connected(NEXUS_AudioDecoderHandle audioDecoder)
 {
     NEXUS_AudioDecoderConnectorType i;
     for (i=0;i<NEXUS_AudioDecoderConnectorType_eMax;i++) {
@@ -1020,7 +1282,7 @@ static bool nexus_p_is_decoder_connected(NEXUS_AudioDecoderHandle audioDecoder)
     return false;
 }
 
-static bool nexus_p_is_playback_connected(NEXUS_AudioPlaybackHandle playback)
+static bool nexus_p_simpleaudiodecoder_is_playback_connected(NEXUS_AudioPlaybackHandle playback)
 {
     bool connected=false;
 
@@ -1635,7 +1897,7 @@ static int nexus_simpleaudiodecoder_change_state_pb(NEXUS_SimpleAudioDecoderHand
 
     /* adjust desired state */
     if (!playback ||
-        ((desired_state == state_started || desired_state == state_suspended) && !nexus_p_is_playback_connected(playback)))
+        ((desired_state == state_started || desired_state == state_suspended) && !nexus_p_simpleaudiodecoder_is_playback_connected(playback)))
     {
         desired_state = state_stopped;
     }
@@ -1737,7 +1999,7 @@ static int nexus_simpleaudiodecoder_change_state(NEXUS_SimpleAudioDecoderHandle 
     BDBG_MSG(("change state decoder %p, selector %d, orgstate %d, desired_state %d", (void*)decoder, selector, orgstate, desired_state));
     /* adjust desired state */
     if (!decoder ||
-        ((desired_state == state_started || desired_state == state_suspended) && !nexus_p_is_decoder_connected(decoder)))
+        ((desired_state == state_started || desired_state == state_suspended) && !nexus_p_simpleaudiodecoder_is_decoder_connected(decoder)))
     {
         BDBG_MSG(("  decoder %p selector %d has no outputs connected. demoting desired_state %d to stopped", (void*)decoder, selector, desired_state));
         desired_state = state_stopped;
@@ -2436,6 +2698,7 @@ void NEXUS_SimpleAudioDecoder_Stop( NEXUS_SimpleAudioDecoderHandle handle )
 #if NEXUS_HAS_AUDIO
 static void nexus_simpleaudiodecoder_p_stop( NEXUS_SimpleAudioDecoderHandle handle)
 {
+    bool presentationChanged = false;
     BDBG_MSG(("nexus_simpleaudiodecoder_p_stop %p", (void *)handle));
 #if NEXUS_HAS_HDMI_INPUT
     if (handle->hdmiInput.handle) {
@@ -2446,7 +2709,19 @@ static void nexus_simpleaudiodecoder_p_stop( NEXUS_SimpleAudioDecoderHandle hand
     }
 #endif
     if (handle->encoder.muxOutput) {
+        NEXUS_AudioMuxOutputSettings settings;
+        NEXUS_Error rc;
+
+        NEXUS_AudioMuxOutput_GetSettings(handle->encoder.muxOutput, &settings);
+        nexus_simpleencoder_p_beginProgramChange(handle->encoder.handle, &settings.sendEos);
+        rc = NEXUS_AudioMuxOutput_SetSettings(handle->encoder.muxOutput, &settings);
+        if (rc) BERR_TRACE(rc); /* keep going */
         NEXUS_AudioMuxOutput_Stop(handle->encoder.muxOutput);
+
+        /* !!settings.sendEos means programChange in progress */
+        if (handle->encoder.audioMixer && !settings.sendEos) {
+            NEXUS_AudioMixer_Stop(handle->encoder.audioMixer);
+        }
     }
 
     /* first, stop decode */
@@ -2455,7 +2730,9 @@ static void nexus_simpleaudiodecoder_p_stop( NEXUS_SimpleAudioDecoderHandle hand
     nexus_simpleaudiodecoder_change_state(handle, NEXUS_SimpleAudioDecoderSelector_eDescription, state_stopped);
     nexus_simpleaudiodecoder_change_state_pb(handle, state_stopped);
 
-    if ((handle->currentSpdifInput || handle->currentHdmiInput) && handle->acquired) {
+    nexus_p_check_for_presentation_change(handle, &presentationChanged);
+
+    if ((handle->currentSpdifInput || handle->currentHdmiInput || presentationChanged) && handle->acquired) {
         NEXUS_SimpleAudioDecoder_P_Suspend(handle, SUSPEND_DECODER);
         nexus_simpleaudiodecoder_disconnect_downstream(handle);
         (void)NEXUS_SimpleAudioDecoder_P_AddOutputs(handle);

@@ -22,55 +22,6 @@ static void BufferReleaseThread(TextureData *texture)
    }
 }
 
-void TextureData::InitializeColorMatrix(uint32_t w, uint32_t h)
-{
-   constexpr uint32_t shift = 10;
-
-   // Set the appropriate color conversion matrix for YCbCr to RGB
-   // ITU-R BT.601 for SD content, ITU-R BT.709 for HD.
-   float coeffs601[16] =
-   {
-      // Y      Cb       Cr      A
-      1.164f,  0.0f,    1.596f, 0.0f,
-      1.164f, -0.391f, -0.813f, 0.0f,
-      1.164f,  2.018f,  0.0f,   0.0f,
-      0.0f,    0.0f,    0.0f,   1.0f,
-   };
-
-   float coeffs709[16] =
-   {
-      // Y      Cb       Cr      A
-      1.164f,  0.0f,    1.793f, 0.0f,
-      1.164f, -0.213f, -0.533f, 0.0f,
-      1.164f,  2.112f,  0.0f,   0.0f,
-      0.0f,    0.0f,    0.0f,   1.0f,
-   };
-
-   //                      Y    Cb    Cr   A
-   int32_t offsets[4] = { -16, -128, -128, 0 };
-
-   // Choose 601 or 709
-   float *coeffs = coeffs601;
-   if (w >= 1280 || h >= 720)
-      coeffs = coeffs709;
-
-   uint32_t scale = 1 << shift;
-   m_colorMatrix.shift = shift;
-
-   for (uint32_t r = 0; r < 4; r++)
-   {
-      float offset = 0.0f;
-
-      for (uint32_t c = 0; c < 4; c++)
-      {
-         m_colorMatrix.coeffMatrix[r * 5 + c] = static_cast<int32_t>(coeffs[r * 4 + c] * scale);
-         offset += coeffs[r * 4 + c] * offsets[c]; // This multiplies out the row by the offset
-      }
-
-      m_colorMatrix.coeffMatrix[r * 5 + 4] = static_cast<int32_t>(offset * scale + 0.5f);
-   }
-}
-
 void TextureData::Create(NXPL_PlatformHandle platform, NEXUS_Graphics2DHandle gfx2d,
                          BKNI_EventHandle m2mcDone, uint32_t numBuffers,
                          uint32_t mediaW, uint32_t mediaH, uint32_t texW, uint32_t texH,
@@ -94,8 +45,6 @@ void TextureData::Create(NXPL_PlatformHandle platform, NEXUS_Graphics2DHandle gf
 #if VC5
    pixInfo.miplevels = numMiplevels;
 #endif
-
-   InitializeColorMatrix(mediaW, mediaH);
 
    // Make data for each buffer
    m_data.resize(numBuffers);
@@ -162,13 +111,66 @@ void TextureData::Destroy()
    m_bufferReleaseThread.join();
 
    // range based for not valid on GCC4.5
-   for (std::vector<PerBufferData>::const_iterator it = m_data.begin(); it != m_data.end(); ++it)
+   for (std::vector<PerBufferData>::iterator it = m_data.begin(); it != m_data.end(); ++it)
    {
+      it->fence.Destroy();
       glDeleteTextures(1, &it->textureID);
       m_eglDestroyImageKHRFunc(eglGetCurrentDisplay(), it->eglImage);
       NXPL_DestroyCompatiblePixmap(m_platform, it->eglPixmap);
    }
 }
+
+#ifdef VC5
+// This should only be called on YUV surface types
+static BEGL_Colorimetry NexusToBEGLColorPrimaries(NEXUS_MatrixCoefficients nmc)
+{
+   switch (nmc)
+   {
+   case NEXUS_MatrixCoefficients_eHdmi_RGB              : return BEGL_Colorimetry_RGB;
+   case NEXUS_MatrixCoefficients_eItu_R_BT_709          : return BEGL_Colorimetry_BT_709;
+   case NEXUS_MatrixCoefficients_eUnknown               : return BEGL_Colorimetry_Unknown;
+   case NEXUS_MatrixCoefficients_eDvi_Full_Range_RGB    : return BEGL_Colorimetry_Dvi_Full_Range_RGB;
+   case NEXUS_MatrixCoefficients_eFCC                   : return BEGL_Colorimetry_FCC;
+   case NEXUS_MatrixCoefficients_eItu_R_BT_470_2_BG     : return BEGL_Colorimetry_BT_470_2_BG;
+   case NEXUS_MatrixCoefficients_eSmpte_170M            : return BEGL_Colorimetry_Smpte_170M;
+   case NEXUS_MatrixCoefficients_eSmpte_240M            : return BEGL_Colorimetry_Smpte_240M;
+   case NEXUS_MatrixCoefficients_eXvYCC_709             : return BEGL_Colorimetry_XvYCC_709;
+   case NEXUS_MatrixCoefficients_eXvYCC_601             : return BEGL_Colorimetry_XvYCC_601;
+   case NEXUS_MatrixCoefficients_eItu_R_BT_2020_NCL     : return BEGL_Colorimetry_BT_2020_NCL;
+   case NEXUS_MatrixCoefficients_eItu_R_BT_2020_CL      : return BEGL_Colorimetry_BT_2020_CL;
+   case NEXUS_MatrixCoefficients_eHdmi_Full_Range_YCbCr : return BEGL_Colorimetry_Hdmi_Full_Range_YCbCr;
+   default                                              : return BEGL_Colorimetry_XvYCC_601;
+   }
+}
+
+void TextureData::DetermineColorimetry(NEXUS_MatrixCoefficients nmc)
+{
+   if (m_colorimetryValid)
+      return;
+
+   BEGL_Colorimetry colorimetry = NexusToBEGLColorPrimaries(nmc);
+   m_colorimetryValid = true;
+
+   printf("Surface reports ");
+   switch (colorimetry)
+   {
+   case BEGL_Colorimetry_RGB                   : printf("RGB"); break;
+   case BEGL_Colorimetry_BT_709                : printf("BT_709"); break;
+   case BEGL_Colorimetry_Unknown               : printf("Unknown"); break;
+   case BEGL_Colorimetry_Dvi_Full_Range_RGB    : printf("Dvi_Full_Range_RGB"); break;
+   case BEGL_Colorimetry_FCC                   : printf("FCC"); break;
+   case BEGL_Colorimetry_BT_470_2_BG           : printf("BT_470_2_BG"); break;
+   case BEGL_Colorimetry_Smpte_170M            : printf("Smpte_170M"); break;
+   case BEGL_Colorimetry_Smpte_240M            : printf("Smpte_240M"); break;
+   case BEGL_Colorimetry_XvYCC_709             : printf("XvYCC_709"); break;
+   case BEGL_Colorimetry_XvYCC_601             : printf("XvYCC_601"); break;
+   case BEGL_Colorimetry_BT_2020_NCL           : printf("BT_2020_NCL"); break;
+   case BEGL_Colorimetry_BT_2020_CL            : printf("BT_2020_CL"); break;
+   case BEGL_Colorimetry_Hdmi_Full_Range_YCbCr : printf("Hdmi_Full_Range_YCbCr"); break;
+   }
+   printf(" colorimetry\n");
+}
+#endif
 
 // Obtain ownership of a new video frame surface, if one was available.
 // Ownership must be released via ReleaseVideoFrame before the same buffer
@@ -200,6 +202,10 @@ bool TextureData::AcquireVideoFrame()
    if (num != 1)
       return false;
 
+#ifdef VC5
+   DetermineColorimetry(frameStatus.surfaceCreateSettings.matrixCoefficients);
+#endif
+
    // Ensure we get full frames
    frameStatus.surfaceCreateSettings.bufferType = NEXUS_VideoBufferType_eFrame;
 
@@ -217,8 +223,6 @@ bool TextureData::AcquireVideoFrame()
    NEXUS_Graphics2D_GetDefaultDestripeBlitSettings(&settings);
    settings.source.stripedSurface   = striped;
    settings.output.surface          = m_data[m_curIndex].nativePixmap;
-   settings.conversionMatrixEnabled = m_format != BEGL_BufferFormat_eYUV422;
-   settings.conversionMatrix        = m_colorMatrix;
    settings.horizontalFilter        = NEXUS_Graphics2DFilterCoeffs_eAnisotropic;
    settings.verticalFilter          = NEXUS_Graphics2DFilterCoeffs_eAnisotropic;
 

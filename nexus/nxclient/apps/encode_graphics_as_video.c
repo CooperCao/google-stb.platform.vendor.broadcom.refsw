@@ -109,7 +109,7 @@ int main(int argc, char **argv)
     unsigned connectId;
     NEXUS_Error rc;
     NEXUS_SurfaceCreateSettings surfaceCreateSettings;
-    NEXUS_SimpleVideoDecoderHandle videoDecoder;
+    NEXUS_SimpleVideoDecoderHandle videoDecoder=NULL;
     NEXUS_VideoImageInputHandle imageInput;
     NEXUS_Graphics2DHandle gfx;
     NEXUS_Graphics2DSettings gfxSettings;
@@ -122,7 +122,7 @@ int main(int argc, char **argv)
     int curarg = 1;
     NEXUS_SimpleVideoDecoderStartSettings startSettings;
     NEXUS_SimpleStcChannelHandle stcChannel;
-    NEXUS_SimpleEncoderHandle encoder;
+    NEXUS_SimpleEncoderHandle encoder=NULL;
     EncodeThreadContext threadContext;
     NEXUS_VideoImageInputSurfaceSettings surfaceSettings;
     NEXUS_SimpleEncoderStartSettings encStartSettings;
@@ -262,6 +262,7 @@ int main(int argc, char **argv)
     encStartSettings.output.video.settings.interlaced = false;
     encStartSettings.output.video.settings.bypassVideoProcessing = true;
     encStartSettings.output.transport.type = NEXUS_TransportType_eEs;
+    BDBG_ASSERT(encoder);
     rc = NEXUS_SimpleEncoder_Start(encoder, &encStartSettings);
     BDBG_ASSERT(!rc);
 
@@ -425,6 +426,7 @@ int main(int argc, char **argv)
     BDBG_WRN(("Displayed %u frames", frameCount));
 
 err_mfd_rts:
+    BDBG_ASSERT(videoDecoder);
     NEXUS_SimpleVideoDecoder_StopImageInput(videoDecoder);
     NEXUS_SimpleEncoder_Stop(encoder);
 

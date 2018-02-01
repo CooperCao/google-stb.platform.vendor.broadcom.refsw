@@ -25,18 +25,26 @@ public:
    void  Bind(GLint posLocation, GLint texCoordLocation);
    void  Draw();
    float GetModelYRotate() const { return m_modelYRotate; }
+   void  ToggleWireframe();
 
 private:
    void MakeFlatRect();
    void MakeIcosahedron();
    void MakeOctahedron();
    void MakeCube(Format360 format, uint32_t texW, uint32_t texH);
-   void FillBuffers(const std::vector<GLfloat> &vertexData, const std::vector<GLushort> &indices);
+   void MakeSphere(uint32_t divisions);
+   void FillBuffers(const std::vector<GLfloat> &vertexData, const std::vector<GLushort> &solidIndices,
+                    const std::vector<GLuint> &wfIndices);
+   void FillBuffers(const std::vector<GLfloat> &vertexData, const std::vector<GLushort> &solidIndices);
 
 private:
-   GLuint  m_vbos[2];  // 1 for vertexData, 1 for indices
-   GLsizei m_indexCount;
+   GLuint  m_vbos[3];  // 0 for vertexData, 1 for solid indices, 2 for wireframe indices
+   GLsizei m_solidIndexCount;
+   GLsizei m_wfIndexCount;
    float   m_modelYRotate;
+   GLenum  m_solidPrimitiveType;
+   GLenum  m_wfPrimitiveType;
+   bool    m_wireframe;
 };
 
 } // namespace

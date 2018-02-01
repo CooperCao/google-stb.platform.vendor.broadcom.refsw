@@ -41,7 +41,7 @@
 #include "bstd.h"
 #include "bkni.h"
 
-#if NEXUS_POWER_MANAGEMENT && NEXUS_CPU_ARM && !B_REFSW_SYSTEM_MODE_CLIENT
+#if NEXUS_POWER_MANAGEMENT && NEXUS_CPU_ARM && !B_REFSW_SYSTEM_MODE_CLIENT && NEXUS_THERMAL_SUPPORT
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -341,5 +341,14 @@ void NEXUS_Platform_P_UninitThermalMonitor(void)
     g_NEXUS_Platform_P_ThermalState.exit = true;
     if(g_NEXUS_Platform_P_ThermalState.thermalThread)
         pthread_join(g_NEXUS_Platform_P_ThermalState.thermalThread, NULL);
+}
+#else
+NEXUS_Error NEXUS_Platform_P_InitThermalMonitor(void)
+{
+    return NEXUS_SUCCESS;
+}
+void NEXUS_Platform_P_UninitThermalMonitor(void)
+{
+    return;
 }
 #endif

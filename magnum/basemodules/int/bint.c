@@ -120,7 +120,7 @@ typedef struct BINT_P_Callback
     BLST_S_ENTRY(BINT_P_Callback) link; /* linked list support */
     BLST_S_ENTRY(BINT_P_Callback) allCbLink; /* links all callbacks created for traversing */
     BINT_P_L2Int *L2Handle; /* L2 handle for this interrupt */
-    BINT_CallbackFunc func; /* function to call when the interrupt triggers */
+    BINT_CallbackFunc func_isr; /* function to call when the interrupt triggers */
     void * pParm1; /* returned when callback is executed */
     int parm2; /* returned when callback is executed */
     const char *callbackName; /* callback name saved for the debug builds */
@@ -641,7 +641,7 @@ static void BINT_P_ExecuteCallback_isr(BINT_Handle intHandle, BINT_P_Callback *c
         }
     }
 
-    (*cbHandle->func)( cbHandle->pParm1, cbHandle->parm2 );
+    (*cbHandle->func_isr)( cbHandle->pParm1, cbHandle->parm2 );
 
     if (bStatsEnable)
     {
@@ -655,7 +655,7 @@ static void BINT_P_ExecuteCallback_isr(BINT_Handle intHandle, BINT_P_Callback *c
     }
 #else
     BSTD_UNUSED (intHandle);
-    (*cbHandle->func)( cbHandle->pParm1, cbHandle->parm2 );
+    (*cbHandle->func_isr)( cbHandle->pParm1, cbHandle->parm2 );
 #endif /* BINT_STATS_ENABLE */
     cbHandle->count++;
 
@@ -854,18 +854,18 @@ BINT_P_FindL2Reg(const struct BINT_P_L2RegisterList *L2RegList, BINT_Id intId)
 
 #if BDBG_DEBUG_BUILD
 #undef BINT_CreateCallback
-BERR_Code BINT_CreateCallback( BINT_CallbackHandle *pCbHandle, BINT_Handle intHandle, BINT_Id intId, BINT_CallbackFunc func, void * pParm1, int parm2 )
+BERR_Code BINT_CreateCallback( BINT_CallbackHandle *pCbHandle, BINT_Handle intHandle, BINT_Id intId, BINT_CallbackFunc func_isr, void * pParm1, int parm2 )
 {
     BDBG_WRN(("BINT_CallbackFunc shall be never called in the debug builds"));
-    return BINT_P_CreateCallback_Tag(pCbHandle, intHandle, intId, func, pParm1, parm2, "");
+    return BINT_P_CreateCallback_Tag(pCbHandle, intHandle, intId, func_isr, pParm1, parm2, "");
 }
-BERR_Code BINT_P_CreateCallback_Tag( BINT_CallbackHandle *pCbHandle, BINT_Handle intHandle, BINT_Id intId, BINT_CallbackFunc func, void * pParm1, int parm2, const char *callbackName)
+BERR_Code BINT_P_CreateCallback_Tag( BINT_CallbackHandle *pCbHandle, BINT_Handle intHandle, BINT_Id intId, BINT_CallbackFunc func_isr, void * pParm1, int parm2, const char *callbackName)
 #else
-BERR_Code BINT_P_CreateCallback_Tag( BINT_CallbackHandle *pCbHandle, BINT_Handle intHandle, BINT_Id intId, BINT_CallbackFunc func, void * pParm1, int parm2)
+BERR_Code BINT_P_CreateCallback_Tag( BINT_CallbackHandle *pCbHandle, BINT_Handle intHandle, BINT_Id intId, BINT_CallbackFunc func_isr, void * pParm1, int parm2)
 {
-    return BINT_CreateCallback(pCbHandle, intHandle, intId, func, pParm1, parm2);
+    return BINT_CreateCallback(pCbHandle, intHandle, intId, func_isr, pParm1, parm2);
 }
-BERR_Code BINT_CreateCallback( BINT_CallbackHandle *pCbHandle, BINT_Handle intHandle, BINT_Id intId, BINT_CallbackFunc func, void * pParm1, int parm2 )
+BERR_Code BINT_CreateCallback( BINT_CallbackHandle *pCbHandle, BINT_Handle intHandle, BINT_Id intId, BINT_CallbackFunc func_isr, void * pParm1, int parm2 )
 #endif
 {
     uint32_t L2Shift = BCHP_INT_ID_GET_SHIFT(intId);
@@ -940,7 +940,7 @@ match_found:
     BKNI_Memset( cbHandle, 0, sizeof(*cbHandle) );
     BDBG_OBJECT_SET(cbHandle, BINT_Callback);
 
-    cbHandle->func = func;
+    cbHandle->func_isr = func_isr;
     cbHandle->pParm1 = pParm1;
     cbHandle->parm2 = parm2;
     cbHandle->L2Handle = L2Handle;
@@ -1768,10 +1768,10 @@ static void BINT_P_DumpInfo_L2RegList(BINT_Handle intHandle, const struct BINT_P
                     continue;
                 }
                 if (!l2_head) {
-                    BDBG_MSG(("   %#x:%u %s[%p]:(%p,%d) %u %s", BCHP_INT_ID_GET_REG(L2Handle->intId), BCHP_INT_ID_GET_SHIFT(L2Handle->intId), callback->callbackName, (void *)(unsigned long)callback->func, (void *)callback->pParm1, callback->parm2, callback->count, callback->enabled?"":"disabled"));
+                    BDBG_MSG(("   %#x:%u %s[%p]:(%p,%d) %u %s", BCHP_INT_ID_GET_REG(L2Handle->intId), BCHP_INT_ID_GET_SHIFT(L2Handle->intId), callback->callbackName, (void *)(unsigned long)callback->func_isr, (void *)callback->pParm1, callback->parm2, callback->count, callback->enabled?"":"disabled"));
                     l2_head=true;
                 } else {
-                    BDBG_MSG(("   >>> %s[%p]:(%p,%d) %u %s", callback->callbackName, (void *)(unsigned long)callback->func, callback->pParm1, callback->parm2, callback->count, callback->enabled?"":"disabled"));
+                    BDBG_MSG(("   >>> %s[%p]:(%p,%d) %u %s", callback->callbackName, (void *)(unsigned long)callback->func_isr, callback->pParm1, callback->parm2, callback->count, callback->enabled?"":"disabled"));
                 }
 #if 0
 #ifdef BINT_STATS_ENABLE

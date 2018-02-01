@@ -105,7 +105,7 @@ static glxx_get_type_count glxx_get_params_and_type_common(
    case GL_SAMPLE_COVERAGE_INVERT:
       booleans[0] = state->sample_coverage.invert;
       return glxx_get_bool_1;
-#if V3D_VER_AT_LEAST(4,0,2,0) || KHRN_GLES32_DRIVER
+#if V3D_VER_AT_LEAST(4,1,34,0) || KHRN_GLES32_DRIVER
    case GL_SAMPLE_SHADING:
       booleans[0] = state->caps.sample_shading;
       return glxx_get_bool_1;
@@ -143,7 +143,7 @@ static glxx_get_type_count glxx_get_params_and_type_common(
       booleans[0] = state->caps.depth_test;
       return glxx_get_bool_1;
    case GL_BLEND:
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       /* Non-indexed glGet functions query the blend enable for buffer 0 */
       booleans[0] = state->blend.rt_enables & 1;
 #else
@@ -401,7 +401,7 @@ static glxx_get_type_count glxx_get_params_and_type_common(
 /* Non-indexed glGet functions query the blend config of buffer 0 */
 static const glxx_blend_cfg *blend_cfg_0(const GLXX_SERVER_STATE_T *state)
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    return &state->blend.rt_cfgs[0];
 #else
    return &state->blend.cfg;
@@ -1297,7 +1297,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       return glxx_get_uint_1;
 #endif
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_TEXTURE_BINDING_1D_BRCM:
       uints[0] = glxx_server_get_active_texture(state, GL_TEXTURE_1D_BRCM)->name;
       return glxx_get_uint_1;
@@ -1653,7 +1653,7 @@ bool glxx_is_int_sampler_texparam(GLXX_SERVER_STATE_T *state, GLenum pname)
       case GL_TEXTURE_WRAP_R:
       case GL_TEXTURE_COMPARE_MODE:
       case GL_TEXTURE_COMPARE_FUNC:
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case GL_TEXTURE_BORDER_COLOR:
 #endif
       case GL_TEXTURE_SRGB_DECODE_EXT:
@@ -1743,7 +1743,7 @@ uint32_t glxx_get_texparameter_sampler_internal(GLXX_SERVER_STATE_T *state, GLXX
          params[0] = so->skip_srgb_decode ? GL_SKIP_DECODE_EXT : GL_DECODE_EXT;
          result = 1;
          break;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case GL_TEXTURE_BORDER_COLOR:
          for (uint32_t i = 0; i < 4; i++)
             params[i] = so->border_color[i];
@@ -1778,7 +1778,7 @@ uint32_t glxx_get_texparameter_internal(GLXX_SERVER_STATE_T *state, GLenum targe
       case GL_TEXTURE_WRAP_R:
       case GL_TEXTURE_COMPARE_MODE:
       case GL_TEXTURE_COMPARE_FUNC:
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case GL_TEXTURE_BORDER_COLOR:
 #endif
       case GL_TEXTURE_UNNORMALISED_COORDS_BRCM:
@@ -1931,7 +1931,7 @@ GL_API void GL_APIENTRY glGetTexParameterfv(GLenum target, GLenum pname, GLfloat
       if (count) {
          assert(count == 1 || count == 4);
          for (uint32_t i = 0; i < count; i++)
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
             if (pname == GL_TEXTURE_BORDER_COLOR)
                params[i] = gfx_float_from_bits(temp[i]);
             else
@@ -2424,7 +2424,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x_indexed(
       }
 #endif
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_BLEND:
    case GL_BLEND_EQUATION_RGB:
    case GL_BLEND_EQUATION_ALPHA:

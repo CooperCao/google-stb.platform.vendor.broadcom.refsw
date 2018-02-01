@@ -156,10 +156,6 @@ EGLConfig Context::ChooseConfigForDisplay(EGLDisplay dpy, const ApplicationOptio
 
    EGLint surfaceBits = EGL_WINDOW_BIT;
 
-#ifndef EMULATED
-   if (options.GetPreserve())
-      surfaceBits |= EGL_SWAP_BEHAVIOR_PRESERVED_BIT;
-#endif
    confAttribs.push_back(surfaceBits);
 
    confAttribs.push_back(EGL_RENDERABLE_TYPE);
@@ -266,11 +262,6 @@ void Context::InitializeFromNativeWindow(const ApplicationOptions &options, EGLC
       memory.
    */
    std::vector<EGLint>     ctxAttribList;
-   if (options.GetPreserve())
-   {
-      ctxAttribList.push_back(EGL_SWAP_BEHAVIOR);
-      ctxAttribList.push_back(EGL_BUFFER_PRESERVED);
-   }
    if (options.GetSecure())
    {
       ctxAttribList.push_back(EGL_PROTECTED_CONTENT_EXT);
@@ -279,9 +270,6 @@ void Context::InitializeFromNativeWindow(const ApplicationOptions &options, EGLC
    ctxAttribList.push_back(EGL_NONE);
 
    m_surface = eglCreateWindowSurface(m_display, config, nativeWindow, &ctxAttribList[0]);
-
-   if (options.GetPreserve())
-      eglSurfaceAttrib(m_display, m_surface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_PRESERVED);
 
    InitializeCreateContext(options, config);
 }

@@ -43,7 +43,7 @@
 
 #define BDSP_P_INVALID_TASK_ID            ((unsigned int)(-1))
 #define BDSP_MAX_INDEPENDENT_DELAY_IN_MS      500
-#define BDSP_EVENT_TIMEOUT_IN_MS              400
+#define BDSP_EVENT_TIMEOUT_IN_MS              500
 
 #define BDSP_MAX_DECODE_CTXT           4
 #define BDSP_MAX_PASSTHROUGH_CTXT      4

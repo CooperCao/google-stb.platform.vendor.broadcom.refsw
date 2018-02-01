@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if [ -z "$GPUMonitorIP" ]; then
+   echo >&2 "You must set GPUMonitorIP to the IP of the machine running GPUMonitor!"
+   exit 1
+fi
+
+export LD_PRELOAD=libgpumon_hook.so
+export GPUMonitorDriverDLL=libkhronos.so
+
+# Start whatever application is requested
+exec "$@"

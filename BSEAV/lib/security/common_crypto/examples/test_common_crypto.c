@@ -88,9 +88,9 @@ CommonCryptoKeyLadderSettings  custKeySettings = { 0x00,/* cust key*/
                                                      };
 
 /* ****************************************************************************
- * AES tests vectors 
+ * AES tests vectors
  ******************************************************************************/
-      
+
 CommonCryptoKeyIvSettings aes_ecb_key = {
                                                 {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c},
                                                 16,
@@ -130,7 +130,7 @@ CommonCryptoKeyIvSettings aes_ctr_key = {
                                             };
 
 /* aes_plaintext Buffer encrypted with user key */
-uint8_t aes_ctr_usr_cipher_text[] = {0x87, 0x4d, 0x61, 0x91, 0xb6, 0x20, 0xe3, 0x26, 
+uint8_t aes_ctr_usr_cipher_text[] = {0x87, 0x4d, 0x61, 0x91, 0xb6, 0x20, 0xe3, 0x26,
                                        0x1b, 0xef, 0x68, 0x64, 0x99, 0x0d, 0xb6, 0xce};
 
 uint8_t aes_ctr_cust_cipher_text[16]; /* Buffer encrypted with cust key */
@@ -153,7 +153,7 @@ typedef struct test_case_clear_key{
     uint8_t *pCiphered;
 }test_case_clear_key;
 
-test_case_clear_key tests_clear_key[] = { 
+test_case_clear_key tests_clear_key[] = {
 
     {&aes_ecb_key, false, NEXUS_SecurityOperation_eDecrypt, NEXUS_SecurityAlgorithm_eAes128, NEXUS_SecurityAlgorithmVariant_eEcb, NEXUS_SecurityKeyType_eOdd, NEXUS_SecurityTerminationMode_eClear, false, false, NEXUS_SecurityAesCounterSize_e128Bits, NEXUS_SecurityCounterMode_ePartialBlockInNextPacket, aes_plaintext, aes_ecb_usr_cipher_text},
     {&aes_ecb_key, false, NEXUS_SecurityOperation_eEncrypt, NEXUS_SecurityAlgorithm_eAes128, NEXUS_SecurityAlgorithmVariant_eEcb, NEXUS_SecurityKeyType_eOdd, NEXUS_SecurityTerminationMode_eClear, false, false, NEXUS_SecurityAesCounterSize_e128Bits, NEXUS_SecurityCounterMode_ePartialBlockInNextPacket, aes_plaintext, aes_ecb_usr_cipher_text},
@@ -216,7 +216,7 @@ typedef struct test_case_key_ladder{
 }test_case_key_ladder;
 
 
-test_case_key_ladder tests_key_ladder[] = { 
+test_case_key_ladder tests_key_ladder[] = {
 
 
     {NULL,         CommonCrypto_eCustKey, &custKeySettings, false, NEXUS_SecurityOperation_eDecrypt, NEXUS_SecurityAlgorithm_eAes128, NEXUS_SecurityAlgorithmVariant_eEcb, NEXUS_SecurityKeyType_eOdd, NEXUS_SecurityTerminationMode_eClear, false, false, NEXUS_SecurityAesCounterSize_e128Bits, NEXUS_SecurityCounterMode_ePartialBlockInNextPacket, aes_plaintext, aes_ecb_cust_cipher_text},
@@ -259,12 +259,12 @@ test_case_key_ladder tests_key_ladder[] = {
 
 
 void generate_test_data(
-    CommonCryptoHandle handle, 
-    NEXUS_SecurityAlgorithm algType, 
-    NEXUS_SecurityAlgorithmVariant algVariant, 
-    uint8_t *pClearText, 
-    uint32_t size, 
-    uint8_t *pCiphered, 
+    CommonCryptoHandle handle,
+    NEXUS_SecurityAlgorithm algType,
+    NEXUS_SecurityAlgorithmVariant algVariant,
+    uint8_t *pClearText,
+    uint32_t size,
+    uint8_t *pCiphered,
     CommonCryptoKeyLadderSettings *pCustKeySettings,
     CommonCryptoKeySrc keySrc,
     CommonCryptoKeyIvSettings *pIvSettings)
@@ -279,12 +279,12 @@ void generate_test_data(
     void *pBuf = NULL;
     NEXUS_DmaJobBlockSettings blk;
 
-    /* Alloacte a key slot for the test */
+    /* Allocate a key slot for the test */
     NEXUS_Security_GetDefaultKeySlotSettings(&keySlotSettings);
     keySlotSettings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
 
     keySlot = NEXUS_Security_AllocateKeySlot(&keySlotSettings);
-    if(!keySlot) 
+    if(!keySlot)
     {
         BDBG_ERR(("%s - NEXUS_Security_AllocateKeySlot failed\n", BSTD_FUNCTION));
         goto errorExit;
@@ -408,18 +408,18 @@ NEXUS_Error run_test_keyladder(CommonCryptoHandle handle, test_case_key_ladder *
     CommonCryptoJobSettings jobSettings;
     uint8_t *pExpectedResult;
     int ii;
-    
-    /* Alloacte a key slot for the test */
+
+    /* Allocate a key slot for the test */
     NEXUS_Security_GetDefaultKeySlotSettings(&keySlotSettings);
     keySlotSettings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
-    
+
     keySlot = NEXUS_Security_AllocateKeySlot(&keySlotSettings);
-    if(!keySlot) 
+    if(!keySlot)
     {
         BDBG_ERR(("%s - NEXUS_Security_AllocateKeySlot failed\n", BSTD_FUNCTION));
-        return NEXUS_NOT_AVAILABLE; 
+        return NEXUS_NOT_AVAILABLE;
     }
-    
+
     if(pTest->use_CommonCryptoSetupKey){
         CommonCryptoKeySettings keySettings;
 
@@ -502,7 +502,7 @@ NEXUS_Error run_test_keyladder(CommonCryptoHandle handle, test_case_key_ladder *
 
     blks[0].scatterGatherCryptoStart = true;
     blks[0].resetCrypto = true;
-    
+
     if(pTest->algVariant == NEXUS_SecurityAlgorithmVariant_eCbc
         || pTest->algVariant == NEXUS_SecurityAlgorithmVariant_eCounter)
     {
@@ -588,15 +588,15 @@ NEXUS_Error run_test_clear_key(CommonCryptoHandle handle, test_case_clear_key *p
     uint8_t *pExpectedResult;
     int ii;
 
-    /* Alloacte a key slot for the test */
+    /* Allocate a key slot for the test */
     NEXUS_Security_GetDefaultKeySlotSettings(&keySlotSettings);
     keySlotSettings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
 
     keySlot = NEXUS_Security_AllocateKeySlot(&keySlotSettings);
-    if(!keySlot) 
+    if(!keySlot)
     {
         BDBG_ERR(("%s - NEXUS_Security_AllocateKeySlot failed\n", BSTD_FUNCTION));
-        return NEXUS_NOT_AVAILABLE; 
+        return NEXUS_NOT_AVAILABLE;
     }
 
     if(pTest->use_CommonCryptoSetupKey){
@@ -800,7 +800,7 @@ int main(void)
     printf("\tBringing up all Nexus modules for platform using default settings\n\n");
 
     /* Platform init */
-    NEXUS_Platform_GetDefaultSettings(&platformSettings); 
+    NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
     rc = NEXUS_Platform_Init(&platformSettings);
     if(rc != NEXUS_SUCCESS)
@@ -820,14 +820,14 @@ int main(void)
     {
         global_error_count++;
         printf("%s - Failure to open Common Crypto.\n", BSTD_FUNCTION);
-        goto handle_error;        
+        goto handle_error;
     }
 
     init_test_vectors(handle);
 
     nb_tests = sizeof(tests_clear_key) / sizeof(tests_clear_key[0]);
     printf("\n%s - Running clear key tests\n", BSTD_FUNCTION);
-    for(ii = 0; ii < nb_tests; ii++) 
+    for(ii = 0; ii < nb_tests; ii++)
     {
         printf("Clear key test no %2d:", ii);
         rc = run_test_clear_key(handle, &tests_clear_key[ii]);
@@ -849,14 +849,14 @@ int main(void)
         rc = run_test_keyladder(handle, &tests_key_ladder[ii]);
         if(rc != NEXUS_SUCCESS)
         {
-        	printf("  key ladder test FAILED (%u)\n", global_error_count);
+            printf("  key ladder test FAILED (%u)\n", global_error_count);
             global_error_count++;
         }
         else{
             printf(" Succeeded\n");
         }
     }
-    
+
     printf("\n");
 
 handle_error:

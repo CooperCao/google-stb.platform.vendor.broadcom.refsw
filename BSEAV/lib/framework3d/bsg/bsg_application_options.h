@@ -148,10 +148,6 @@ public:
    void SetStretch(bool set)        { m_stretchToFit = set;             }
    bool GetStretch() const          { return m_stretchToFit;            }
 
-   //! Preserves the framebuffer during swap. This has a HUGE impact on performance, so use at your own risk!!
-   void SetPreserve(bool set)       { m_usePreservingSwap = set;        }
-   bool GetPreserve() const         { return m_usePreservingSwap;       }
-
    //! Sets logging to file on or off.
    void SetLog(bool set)            { m_log = set;                      }
    bool GetLog() const              { return m_log;                     }
@@ -294,7 +290,6 @@ private:
 private:
    bool           m_useMultisample;
    bool           m_stretchToFit;
-   bool           m_usePreservingSwap;
    bool           m_renderToPixmap;
    bool           m_showFps;
    bool           m_showDevHUD;

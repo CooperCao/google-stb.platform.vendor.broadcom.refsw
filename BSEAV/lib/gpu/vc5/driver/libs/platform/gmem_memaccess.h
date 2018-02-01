@@ -28,47 +28,83 @@ private:
    {
       // Find gmem buffer with largest addr <= read_addr.
       auto upper = m_buffers.upper_bound(read_addr);
-      gmem_handle_t handle = upper != m_buffers.begin() ? std::prev(upper)->second : NULL;
+      buffer *buf = upper != m_buffers.begin() ? &std::prev(upper)->second : NULL;
 
       // Check read_addr actually lies within this buffer.
-      if (!handle || read_addr >= gmem_get_addr(handle)+gmem_get_size(handle))
+      if (!buf || read_addr >= gmem_get_addr(buf->handle)+gmem_get_size(buf->handle))
       {
          // Obtain handle from gmem.
-         handle = gmem_find_handle_by_addr(read_addr);
+         gmem_handle_t handle = gmem_find_handle_by_addr(read_addr);
          demand(handle);
 
          // Record the buffer.
-         m_buffers[gmem_get_addr(handle)] = handle;
+         buf = &m_buffers[gmem_get_addr(handle)];
+         buf->handle = handle;
 
-         // Map and sync.
-         demand(gmem_map_and_get_ptr(handle));
-         gmem_invalidate_mapped_buffer(handle);
+         if (gmem_has_bidi_sync())
+         {
+            // Map and sync.
+            demand(gmem_map_and_get_ptr(handle));
+            gmem_bidi_sync_mapped_buffer(handle);
+         }
+         else
+         {
+            // No bidi sync. We want the data that V3D sees, but we can't just
+            // sync this to the host as doing so could lose unflushed host
+            // writes. Instead we use a special gmem API that allows us to see
+            // memory as V3D does without disturbing anything. Note that we
+            // need to malloc a buffer to store this data.
+            buf->data = std::unique_ptr<void, deleter>(
+               ::operator new(gmem_get_size(handle)));
+            gmem_read_buffer_as_v3d(buf->data.get(), handle);
+         }
       }
 
-      v3d_addr_t buf_addr = gmem_get_addr(handle);
+      v3d_addr_t buf_addr = gmem_get_addr(buf->handle);
 
       // Accesses spanning buffers are not allowed.
     #ifndef NDEBUG
       size_t read_end = read_addr + read_size;
-      size_t buf_end = buf_addr + gmem_get_size(handle);
+      size_t buf_end = buf_addr + gmem_get_size(buf->handle);
       assert(read_addr >= buf_addr);
       assert(read_end <= buf_end);
     #endif
 
       // Get CPU ptr for address and copy data.
       v3d_size_t offset = read_addr - buf_addr;
-      void* ptr = gmem_get_ptr(handle);
+      void* ptr = buf->data ? buf->data.get() : gmem_get_ptr(buf->handle);
       memcpy(dst, (char*)ptr + offset, read_size);
    }
 
    static void read_fn(void *dst, v3d_addr_t read_addr, size_t read_size,
          const char *file, uint32_t line, const char *func, void *p)
    {
-      ((gmem_memaccess_ro*)p)->read_fn(dst, read_addr, read_size);
+      try
+      {
+         ((gmem_memaccess_ro*)p)->read_fn(dst, read_addr, read_size);
+      }
+      catch (const std::exception &e)
+      {
+         demand_msg(0, "%s", e.what());
+      }
    }
 
 private:
-   std::map<v3d_addr_t, gmem_handle_t> m_buffers;
+   struct deleter
+   {
+      void operator()(void *p)
+      {
+         ::operator delete(p);
+      }
+   };
+
+   struct buffer
+   {
+      gmem_handle_t handle;
+      std::unique_ptr<void, deleter> data;
+   };
+
+   std::map<v3d_addr_t, buffer> m_buffers;
 };
 
 #endif

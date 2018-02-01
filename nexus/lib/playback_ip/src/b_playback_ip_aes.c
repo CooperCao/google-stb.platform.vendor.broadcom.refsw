@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -476,7 +476,7 @@ aes_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char *
 
         /* copy from temp_bytes back to original rbuf */
         rbuf = orig_rbuf;
-        memcpy(rbuf, temp_bytes, bytesRead);
+        if (rbuf) memcpy(rbuf, temp_bytes, bytesRead);
     }
     if (serverClosed) {
         /* server may have added some padding bytes to make the last block mod 16 aligned for AES, throw away those padding bytes */

@@ -4,6 +4,7 @@
 #include "sched_nexus.h"
 #include "platform_common.h"
 #include "gmem.h"
+#include "perf_event.h"
 #include "vcos.h"
 
 #include <stdlib.h>
@@ -57,11 +58,13 @@ CHECK_DEFINE(V3D_CACHE_FLUSH_L2T,        NEXUS_GRAPHICSV3D_CACHE_FLUSH_L2T);
 CHECK_DEFINE(V3D_CACHE_CLEAN_L1TD,       NEXUS_GRAPHICSV3D_CACHE_CLEAN_L1TD);
 #endif
 CHECK_DEFINE(V3D_CACHE_CLEAN_L2T,        NEXUS_GRAPHICSV3D_CACHE_CLEAN_L2T);
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 CHECK_DEFINE(V3D_CACHE_CLEAR_GCA,        NEXUS_GRAPHICSV3D_CACHE_CLEAR_GCA);
 #endif
+#if V3D_HAS_L3C
 CHECK_DEFINE(V3D_CACHE_FLUSH_L3C,        NEXUS_GRAPHICSV3D_CACHE_FLUSH_L3C);
 CHECK_DEFINE(V3D_CACHE_CLEAN_L3C,        NEXUS_GRAPHICSV3D_CACHE_CLEAN_L3C);
+#endif
 
 /* Static checks on enums */
 #define CHECK_ENUM(BCM_NAME, NEXUS_NAME) \
@@ -143,6 +146,8 @@ typedef struct
    int64_t                    unsecureBinTranslation;
    int64_t                    secureBinTranslation;
    uint64_t                   platformToken;
+   EventContext              *eventContext;
+   bool                       eventContextIsExternal;
 
    void  (*pfnUpdateOldestNFID)(uint64_t);
    sem_t throttle;
@@ -910,6 +915,7 @@ static void GetInfo(void *context, void *session, struct v3d_idents *info)
    }
 
    info->ddrMapVer = nInfo.uiDDRMapVer;
+   info->socQuirks = nInfo.uiSocQuirks;
 }
 
 static void RegisterUpdateOldestNFID(void *context, void *session, void (*update)(uint64_t))
@@ -999,64 +1005,129 @@ static uint32_t GetPerfCounterData(void *context, void *session, struct bcm_sche
 // Event timeline
 static void GetEventCounts(void *context, void *session, uint32_t *numTracks, uint32_t *numEvents)
 {
-   SchedContext   *ctx = (SchedContext *)context;
+   SchedContext *ctx = (SchedContext *)context;
 
    if (numTracks != NULL && numEvents != NULL)
+   {
+      *numTracks = *numEvents = 0;
+
       NEXUS_Graphicsv3d_GetEventCounts(ctx->session, numTracks, numEvents);
+
+      // We will need these at various points
+      ctx->eventContext->nexusTracks = *numTracks;
+      ctx->eventContext->nexusEvents = *numEvents;
+
+      // Append any tracks and events from this platform layer
+      PerfAdjustEventCounts(ctx->eventContext, numTracks, numEvents);
+   }
 }
 
 static BEGL_SchedStatus GetEventTrackInfo(void *context, void *session, uint32_t track,
                                           struct bcm_sched_event_track_desc *track_desc)
 {
-   SchedContext                     *ctx = (SchedContext *)context;
-   NEXUS_Error                      err;
+   SchedContext *ctx = (SchedContext *)context;
+   NEXUS_Error  err;
 
    BDBG_ASSERT(track_desc != NULL);
 
-   err = NEXUS_Graphicsv3d_GetEventTrackInfo(ctx->session, track, (NEXUS_Graphicsv3dEventTrackDesc *)track_desc);
+   if (track < ctx->eventContext->nexusTracks)
+   {
+      err = NEXUS_Graphicsv3d_GetEventTrackInfo(ctx->session, track,
+                                                (NEXUS_Graphicsv3dEventTrackDesc *)track_desc);
+      return err == NEXUS_SUCCESS ? BEGL_SchedSuccess : BEGL_SchedFail;
+   }
+   else
+   {
+      return PerfGetEventTrackInfo(ctx->eventContext, track, track_desc);
+   }
 
-   return err == NEXUS_SUCCESS ? BEGL_SchedSuccess : BEGL_SchedFail;
+   return BEGL_SchedFail;
 }
 
 static BEGL_SchedStatus GetEventInfo(void *context, void *session, uint32_t event,
                                      struct bcm_sched_event_desc *event_desc)
 {
-   SchedContext  *ctx = (SchedContext *)context;
-   NEXUS_Error    err;
+   SchedContext *ctx = (SchedContext *)context;
 
-   err = NEXUS_Graphicsv3d_GetEventInfo(ctx->session, event, (NEXUS_Graphicsv3dEventDesc *)event_desc);
+   if (event < ctx->eventContext->nexusEvents)
+   {
+       NEXUS_Error err = NEXUS_Graphicsv3d_GetEventInfo(ctx->session, event,
+                                                        (NEXUS_Graphicsv3dEventDesc *)event_desc);
+      return err == NEXUS_SUCCESS ? BEGL_SchedSuccess : BEGL_SchedFail;
+   }
+   else
+   {
+      return PerfGetEventInfo(ctx->eventContext, event, event_desc);
+   }
 
-   return err == NEXUS_SUCCESS ? BEGL_SchedSuccess : BEGL_SchedFail;
+   return BEGL_SchedFail;
 }
 
 static BEGL_SchedStatus GetEventDataFieldInfo(void *context, void *session, uint32_t event, uint32_t field,
                                               struct bcm_sched_event_field_desc *field_desc)
 {
-   SchedContext  *ctx = (SchedContext *)context;
-   NEXUS_Error    err;
+   SchedContext *ctx = (SchedContext *)context;
 
-   err = NEXUS_Graphicsv3d_GetEventDataFieldInfo(ctx->session, event, field, (NEXUS_Graphicsv3dEventFieldDesc *)field_desc);
+   if (event < ctx->eventContext->nexusEvents)
+   {
+      NEXUS_Error err = NEXUS_Graphicsv3d_GetEventDataFieldInfo(ctx->session, event, field,
+                                                    (NEXUS_Graphicsv3dEventFieldDesc *)field_desc);
+      return err == NEXUS_SUCCESS ? BEGL_SchedSuccess : BEGL_SchedFail;
+   }
+   else
+   {
+      return PerfGetEventDataFieldInfo(ctx->eventContext, event, field, field_desc);
+   }
 
-   return err == NEXUS_SUCCESS ? BEGL_SchedSuccess : BEGL_SchedFail;
+   return BEGL_SchedFail;
 }
 
 static BEGL_SchedStatus SetEventCollection(void *context, void *session, BEGL_SchedEventState state)
 {
    SchedContext  *ctx = (SchedContext *)context;
-   NEXUS_Error    err;
 
-   err = NEXUS_Graphicsv3d_SetEventCollection(ctx->session, (NEXUS_Graphicsv3dEventState)state);
+   BEGL_SchedStatus status;
 
-   return err == NEXUS_SUCCESS ? BEGL_SchedSuccess : BEGL_SchedFail;
+   NEXUS_Error err = NEXUS_Graphicsv3d_SetEventCollection(ctx->session, (NEXUS_Graphicsv3dEventState)state);
+   status = err == NEXUS_SUCCESS ? BEGL_SchedSuccess : BEGL_SchedFail;
+
+   if (status == BEGL_SchedSuccess)
+   {
+      if (state == BEGL_EventStart)
+      {
+         // Synchronize timestamps before we start
+         uint64_t timeNow;
+         uint32_t bytesCopied = 0, lostData = 0;
+         NEXUS_Graphicsv3d_GetEventData(ctx->session, 0, 0, &lostData, &timeNow, &bytesCopied);
+         ctx->eventContext->timeSync = timeNow;  // This will be used in PerfSetEventCollection below
+      }
+
+      status = PerfSetEventCollection(ctx->eventContext, state);
+   }
+
+   return status;
 }
 
-static uint32_t GetEventData(void *context, void *session, uint32_t event_buffer_bytes, void *event_buffer,
-                             uint32_t *lost_data, uint64_t *timestamp)
+static uint32_t GetEventData(void *context, void *session, uint32_t event_buffer_bytes,
+                             void *event_buffer, uint32_t *lost_data, uint64_t *timestamp)
 {
    SchedContext   *ctx = (SchedContext *)context;
    uint32_t       bytesCopied = 0;
 
-   NEXUS_Graphicsv3d_GetEventData(ctx->session, event_buffer_bytes, event_buffer, lost_data, timestamp, &bytesCopied);
+   NEXUS_Graphicsv3d_GetEventData(ctx->session, event_buffer_bytes, event_buffer, lost_data, timestamp,
+                                  &bytesCopied);
+
+   void *buffer = event_buffer;
+   if (event_buffer != NULL)
+      buffer = (void*)((uint8_t*)event_buffer + bytesCopied);
+
+   uint32_t display_lost_data = 0;
+   uint32_t displayBytes = PerfGetEventData(ctx->eventContext, event_buffer_bytes - bytesCopied,
+                                             buffer, &display_lost_data, timestamp);
+   if (display_lost_data)
+      *lost_data = 1;
+
+   bytesCopied += displayBytes;
 
    return bytesCopied;
 }
@@ -1118,7 +1189,7 @@ static bool QuerySchedEvent(void *context, bcm_sched_event_id event_id)
    return eventSet;
 }
 
-BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface)
+BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface, EventContext *eventContext)
 {
    SchedContext        *ctx   = NULL;
    BEGL_SchedInterface *iface = (BEGL_SchedInterface *)malloc(sizeof(BEGL_SchedInterface));
@@ -1135,8 +1206,21 @@ BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface)
 
    memset(ctx, 0, sizeof(SchedContext));
 
-   iface->context        = (void*)ctx;
-   iface->memIface       = memIface;
+   if (eventContext != NULL)
+   {
+      ctx->eventContext = eventContext;
+      ctx->eventContextIsExternal = true;
+   }
+   else
+   {
+      ctx->eventContext = (EventContext*)calloc(1, sizeof(EventContext));
+      ctx->eventContextIsExternal = false;
+   }
+
+   PerfInitialize(ctx->eventContext); /* Initialize any performance event data */
+
+   iface->context          = (void*)ctx;
+   iface->memIface         = memIface;
 
    iface->Open             = SchedOpen;
    iface->Close            = SchedClose;
@@ -1155,19 +1239,19 @@ BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface)
    iface->RegisterUpdateOldestNFID = RegisterUpdateOldestNFID;
 
    // Performance counters
-   iface->GetPerfNumCounterGroups   = GetPerfNumCounterGroups;
-   iface->GetPerfCounterGroupInfo   = GetPerfCounterGroupInfo;
-   iface->SetPerfCounting           = SetPerfCounting;
-   iface->ChoosePerfCounters        = ChoosePerfCounters;
-   iface->GetPerfCounterData        = GetPerfCounterData;
+   iface->perf_count_iface.GetPerfNumCounterGroups = GetPerfNumCounterGroups;
+   iface->perf_count_iface.GetPerfCounterGroupInfo = GetPerfCounterGroupInfo;
+   iface->perf_count_iface.SetPerfCounting         = SetPerfCounting;
+   iface->perf_count_iface.ChoosePerfCounters      = ChoosePerfCounters;
+   iface->perf_count_iface.GetPerfCounterData      = GetPerfCounterData;
 
    // Event timeline
-   iface->GetEventCounts            = GetEventCounts;
-   iface->GetEventTrackInfo         = GetEventTrackInfo;
-   iface->GetEventInfo              = GetEventInfo;
-   iface->GetEventDataFieldInfo     = GetEventDataFieldInfo;
-   iface->SetEventCollection        = SetEventCollection;
-   iface->GetEventData              = GetEventData;
+   iface->event_track_iface.GetEventCounts         = GetEventCounts;
+   iface->event_track_iface.GetEventTrackInfo      = GetEventTrackInfo;
+   iface->event_track_iface.GetEventInfo           = GetEventInfo;
+   iface->event_track_iface.GetEventDataFieldInfo  = GetEventDataFieldInfo;
+   iface->event_track_iface.SetEventCollection     = SetEventCollection;
+   iface->event_track_iface.GetEventData           = GetEventData;
 
    // MMU configuration
    iface->SetMMUContext             = SetMMUContext;
@@ -1199,6 +1283,12 @@ void DestroySchedInterface(BEGL_SchedInterface *iface)
    {
       if (iface->context != NULL)
       {
+         SchedContext *ctx = (SchedContext*)iface->context;
+
+         PerfTerminate(ctx->eventContext);
+         if (!ctx->eventContextIsExternal)
+            free(ctx->eventContext);
+
          memset(iface->context, 0, sizeof(SchedContext));
          free(iface->context);
       }

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -61,6 +61,7 @@ NEXUS_Error NEXUS_OtpMsp_Read( unsigned index, NEXUS_OtpMspRead *pResult )
     if ( !pResult ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
 
     NEXUS_Security_GetHsm_priv( &hHsm );
+    if( !hHsm ) { return BERR_TRACE( NEXUS_NOT_INITIALIZED ); }
 
     BKNI_Memset( &otpParam, 0, sizeof(otpParam) );
     otpParam.index = index;
@@ -91,6 +92,7 @@ NEXUS_Error NEXUS_OtpMsp_Write( unsigned index, NEXUS_OtpMspWrite *pConf )
     otpParam.mask = pConf->mask;
 
     NEXUS_Security_GetHsm_priv( &hHsm );
+    if( !hHsm ) { return BERR_TRACE( NEXUS_NOT_INITIALIZED ); }
 
     rc = BHSM_OtpMsp_Write( hHsm, &otpParam );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }

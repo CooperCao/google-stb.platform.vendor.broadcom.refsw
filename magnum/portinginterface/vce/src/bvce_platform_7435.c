@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -312,6 +312,14 @@ BVCE_Platform_P_GetConfig(
       pstPlatformConfig->stMailbox.uiBvn2ViceMailboxAddress = BCHP_VICE2_ARCSS_ESS_DCCM_0_0_DATAi_ARRAY_BASE + BVN2VICE_MBOX_OFFSET + iInstanceRegisterOffset;
       pstPlatformConfig->stMailbox.uiHost2ViceInterruptAddress = BCHP_VICE2_ARCSS_ESS_P1_INTR2_0_0_ARC_P0_SET + iInstanceRegisterOffset;
       pstPlatformConfig->stMailbox.uiHost2ViceInterruptMask = BCHP_VICE2_ARCSS_ESS_P1_INTR2_0_0_ARC_P0_SET_ARCESS_SOFT1_10_INTR_MASK;
+
+      pstPlatformConfig->stPictureMailbox[0].uiBufferAddress = BCHP_VICE2_ARCSS_ESS_DCCM_0_0_DATAi_ARRAY_BASE + BVN2VICE_MBOX_PAYLOAD_OFFSET + ( 0 * sizeof( BVCE_P_FW_PictureBufferMailbox ) ) + iInstanceRegisterOffset;
+      pstPlatformConfig->stPictureMailbox[0].uiInterruptAddress = BCHP_VICE2_ARCSS_ESS_P1_INTR2_0_0_ARC_P1_SET + iInstanceRegisterOffset;
+      pstPlatformConfig->stPictureMailbox[0].uiInterruptMask = BCHP_VICE2_ARCSS_ESS_P1_INTR2_0_0_ARC_P1_SET_ARCESS_SOFT0_00_INTR_MASK;
+
+      pstPlatformConfig->stPictureMailbox[1].uiBufferAddress = BCHP_VICE2_ARCSS_ESS_DCCM_0_0_DATAi_ARRAY_BASE + BVN2VICE_MBOX_PAYLOAD_OFFSET + ( 1 * sizeof( BVCE_P_FW_PictureBufferMailbox ) ) + iInstanceRegisterOffset;
+      pstPlatformConfig->stPictureMailbox[1].uiInterruptAddress = BCHP_VICE2_ARCSS_ESS_P1_INTR2_0_0_ARC_P1_SET + iInstanceRegisterOffset;
+      pstPlatformConfig->stPictureMailbox[1].uiInterruptMask = BCHP_VICE2_ARCSS_ESS_P1_INTR2_0_0_ARC_P1_SET_ARCESS_SOFT0_01_INTR_MASK;
 
 #ifdef BCHP_PWR_SUPPORT
       switch ( uiInstance )

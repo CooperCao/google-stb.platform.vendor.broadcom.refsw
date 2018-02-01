@@ -159,10 +159,18 @@ enum PHY_CCAMode_t {
     PHY_CCA__MODE_3_AND     = 3,    /*!< Mode 3-AND, carrier sense AND energy above threshold. */
 };
 SYS_DbgAssertStatic(sizeof(enum PHY_CCAMode_t) == 1);
+
+#ifdef _HOST_
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wenum-compare"
+#endif
 SYS_DbgAssertStatic(PHY_CCA__MODE_3_OR == HAL_RADIO_CCA__MODE_3_OR);
 SYS_DbgAssertStatic(PHY_CCA__MODE_1 == HAL_RADIO_CCA__MODE_1);
 SYS_DbgAssertStatic(PHY_CCA__MODE_2 == HAL_RADIO_CCA__MODE_2);
 SYS_DbgAssertStatic(PHY_CCA__MODE_3_AND == HAL_RADIO_CCA__MODE_3_AND);
+#ifdef _HOST_
+#pragma GCC diagnostic pop
+#endif
 
 /**//**
  * \brief   Data type for the PHY nominal transmit power.

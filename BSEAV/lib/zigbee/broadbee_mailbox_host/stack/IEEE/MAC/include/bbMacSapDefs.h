@@ -168,7 +168,9 @@ typedef enum _MAC_Enumerations_t {
 
     MAC_CHANNEL_ACCESS_FAILURE      = 0xE1,     /*!< A transmission could not take place due to activity on the channel,
                                                     i.e., the CSMA-CA mechanism has failed. */
-
+#if _COEX_PTA_
+    MAC_COEX_PTA_FAILURE = MAC_CHANNEL_ACCESS_FAILURE,   /*!< Borrow this for the COEX_PTA */
+#endif
     MAC_DENIED                      = 0xE2,     /*!< The GTS request has been denied by the PAN coordinator. */
 
     MAC_DISABLE_TRX_FAILURE         = 0xE3,     /*!< The attempt to disable the transceiver has failed. */

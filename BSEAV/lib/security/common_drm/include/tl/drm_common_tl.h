@@ -111,7 +111,8 @@ typedef enum
     ChipType_eZS = 0,
     ChipType_eZB,
     ChipType_eCustomer,
-    ChipType_eCustomer1
+    ChipType_eCustomer1,
+	ChipType_eMax
 } ChipType_e;
 
 

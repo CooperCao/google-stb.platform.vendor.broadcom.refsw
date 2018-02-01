@@ -54,6 +54,7 @@ LINUX_VER_GE_4 :=  $(shell test $(LINUX_VERSION) -ge 4 && echo y)
 ifeq ($(LINUX_VER_GE_4),y)
     LINUX_VER_GE_3_14 = y
     LINUX_VER_GE_3_14_28 = y
+    LINUX_VER_GE_4_9 := $(shell test $(LINUX_PATCHLEVEL) -ge 9 && echo 'y')
 endif
 LINUX_VER_GE_3 :=  $(shell test $(LINUX_VERSION) -ge 3 && echo y)
 ifeq ($(LINUX_VER_GE_3),y)
@@ -215,8 +216,10 @@ NEXUS_CFLAGS += -DBSTD_CPU_ENDIAN=$(NEXUS_ENDIAN)
 
 ifeq ($(B_REFSW_ANDROID),y)
 NEXUS_CFLAGS += -DB_REFSW_ANDROID
-NEXUS_KERNEL_CFLAGS += \
-        -I$(LINUX)/drivers/staging/android
+ifneq ($(LINUX_VER_GE_4_9),y)
+   NEXUS_KERNEL_CFLAGS += \
+      -I$(LINUX)/drivers/staging/android
+endif
 endif
 
 # Flag to generate dependencies

@@ -44,9 +44,6 @@
 #include "nexus_base_statistics.h"
 #include "bkni_metrics.h"
 #include "priv/nexus_core_preinit.h"
-#if NEXUS_HAS_SAGE
-#include "bchp_cmp_0.h"
-#endif
 #include "bchp_memc_gen_0.h"
 
 BDBG_MODULE(nexus_core);
@@ -256,7 +253,6 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
 #if !BMMA_USE_STUB
     BMMA_CreateSettings mmaSettings;
 #endif
-    bool skipInitialReset = false;
 
 #if NEXUS_NUM_MEMC
     /* verify API macros aren't below nexus_platform_features.h. NEXUS_NUM_MEMC is no longer used inside nexus. */
@@ -310,18 +306,6 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
     g_NexusCore.publicHandles.tee = pSettings->teeHandle;
     g_NexusCore.publicHandles.memoryLayout = pSettings->memoryLayout;
 
-#if NEXUS_HAS_SAGE
-    /* If SAGE is enabled but not started, then this is a fresh boot. */
-    if (!BCHP_SAGE_HasEverStarted(g_NexusCore.publicHandles.reg)) {
-        /* If GFD0 is enabled, it is splash. */
-        uint32_t val = BREG_Read32(g_NexusCore.publicHandles.reg, BCHP_CMP_0_G0_SURFACE_CTRL);
-        skipInitialReset = BCHP_GET_FIELD_DATA(val,CMP_0_G0_SURFACE_CTRL,ENABLE);
-        if (skipInitialReset) {
-            BDBG_LOG(("skipping initial reset to extend splash across SAGE boot"));
-        }
-    }
-#endif
-
 #if BCHP_UNIFIED_IMPL
     {
     BCHP_OpenSettings openSettings;
@@ -331,7 +315,6 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
     openSettings.memoryLayout = pSettings->memoryLayout;
     openSettings.pMapId = preInitState->pMapId;
     openSettings.pMapSettings = preInitState->pMapSettings;
-    openSettings.skipInitialReset = skipInitialReset;
     if (str) {
         openSettings.productId = NEXUS_hextoi(str);
     }
@@ -343,6 +326,12 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
     if(rc!=BERR_SUCCESS) {
         rc = BERR_TRACE(rc);
         goto err_chp;
+    }
+
+    rc = BCHP_GetMemoryInfo( g_NexusCore.publicHandles.chp, &g_NexusCore.publicHandles.memoryInfo );
+    if(rc!=BERR_SUCCESS) {
+        rc = BERR_TRACE(rc);
+        goto err_chpmeminfo;
     }
 
     g_NexusCore.publicHandles.boxConfig = &preInitState->boxConfig;
@@ -443,7 +432,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
                 NEXUS_Addr memcOffset;
                 uint64_t memcSize;
 
-                (void)BMRC_GetDefaultSettings(&mrcSettings);
+                BMRC_GetDefaultSettings(&mrcSettings);
                 mrcSettings.usMemcId = memStatus.memcIndex;
                 rc = BMRC_Open(&g_NexusCore.publicHandles.memc[memStatus.memcIndex].mrc, g_NexusCore.publicHandles.reg, g_NexusCore.publicHandles.bint, &mrcSettings);
                 if (rc!=BERR_SUCCESS) {
@@ -458,7 +447,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
                 BDBG_MSG(("MEMC%u " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT "", memStatus.memcIndex, BDBG_UINT64_ARG(memcOffset), BDBG_UINT64_ARG(memcSize)));
 
                 BDBG_ASSERT(memcOffset+memcSize >= memcOffset); /* check that addresses wouldn't wrap */
-                mrcMonitorSettings.startDisabled = skipInitialReset;
+                mrcMonitorSettings.startDisabled = BCHP_SkipInitialReset(g_NexusCore.publicHandles.chp);
                 rc = BMRC_Monitor_Open(&g_NexusCore.publicHandles.memc[memStatus.memcIndex].rmm, g_NexusCore.publicHandles.reg, g_NexusCore.publicHandles.bint, g_NexusCore.publicHandles.chp,
                         g_NexusCore.publicHandles.memc[memStatus.memcIndex].mrc, memcOffset, memcOffset+memcSize, &mrcMonitorSettings);
                 if (rc!=BERR_SUCCESS) {
@@ -467,11 +456,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
                 }
             }
 
-            rc = BMRC_Monitor_GetMemoryInterface(g_NexusCore.publicHandles.memc[memStatus.memcIndex].rmm, &g_NexusCore.publicHandles.memc[memStatus.memcIndex].mem_monitor);
-            if (rc!=BERR_SUCCESS) {
-                rc = BERR_TRACE(rc);
-                goto err_mrc;
-            }
+            BMRC_Monitor_GetMemoryInterface(g_NexusCore.publicHandles.memc[memStatus.memcIndex].rmm, &g_NexusCore.publicHandles.memc[memStatus.memcIndex].mem_monitor);
 
 #if BMMA_USE_STUB
             rc = BMEM_InstallMonitor(g_NexusCore.publicHandles.heap[i].mem, &g_NexusCore.publicHandles.memc[memStatus.memcIndex].mem_monitor);
@@ -551,16 +536,12 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
     NEXUS_PowerManagement_Init();
     BTRC_TRACE(500ms_tick, START);
 
-    rc = NEXUS_Watchdog_P_Init();
-    if (rc) {rc = BERR_TRACE(rc); goto err_watchdog;}
+    NEXUS_Watchdog_P_Init();
 
     NEXUS_UnlockModule();
     return g_NexusCore.module;
 
-err_watchdog:
-    NEXUS_PowerManagement_Uninit();
 #if NEXUS_AVS_MONITOR
-    NEXUS_CancelTimer(g_NexusCore.pvtTimer);
 err_pvttimer:
 #endif
     NEXUS_CancelTimer(g_NexusCore.timer);
@@ -600,6 +581,7 @@ err_mem_cfg:
 #endif
     BCHP_Close(g_NexusCore.publicHandles.chp);
 err_boxloadrts:
+err_chpmeminfo:
 err_chp:
     g_NexusCore.publicHandles.reg = NULL; /* reg handle is passed in */
     NEXUS_Memory_P_Uninit();
@@ -772,9 +754,9 @@ NEXUS_Core_DisableInterrupt_isr(unsigned irqNum)
 }
 
 BERR_Code
-NEXUS_Core_ConnectInterrupt(unsigned irqNum, NEXUS_Core_InterruptFunction pIsrFunc, void *pFuncParam, int iFuncParam)
+NEXUS_Core_ConnectInterrupt(unsigned irqNum, NEXUS_Core_InterruptFunction pIsrFunc_isr, void *pFuncParam, int iFuncParam)
 {
-    return g_NexusCore.cfg.interruptInterface.pConnectInterrupt(irqNum, pIsrFunc, pFuncParam, iFuncParam);
+    return g_NexusCore.cfg.interruptInterface.pConnectInterrupt(irqNum, pIsrFunc_isr, pFuncParam, iFuncParam);
 }
 
 void

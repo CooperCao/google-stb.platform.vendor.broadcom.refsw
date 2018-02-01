@@ -97,6 +97,9 @@ clean_apps:
 # This is the minimum needed to compile and link with Nexus
 CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
 
+# Enable warnings and optimization (optimization will let compiler to look for more warnings)
+CFLAGS += -Os -pedantic -Wstrict-prototypes -Wall -W
+
 # Always build with debug
 CFLAGS += -g
 

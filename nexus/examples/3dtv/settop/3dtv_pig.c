@@ -87,7 +87,6 @@ int main(int argc, char **argv)
     NEXUS_VideoDecoderStartSettings videoProgram;
     NEXUS_VideoDecoderOpenSettings videoDecoderOpenSettings;
     NEXUS_VideoDecoderSettings videoDecoderSettings;
-    NEXUS_VideoInput videoInput;
     NEXUS_ParserBand parserBand = NEXUS_ParserBand_e0;
     NEXUS_ParserBandSettings parserBandSettings;
     NEXUS_StcChannelSettings stcSettings;
@@ -221,7 +220,6 @@ int main(int argc, char **argv)
     }
     NEXUS_VideoDecoder_SetSettings(videoDecoder, &videoDecoderSettings);
     
-    videoInput = NEXUS_VideoDecoder_GetConnector(videoDecoder);
     rc = NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoder));
     BDBG_ASSERT(!rc);
     

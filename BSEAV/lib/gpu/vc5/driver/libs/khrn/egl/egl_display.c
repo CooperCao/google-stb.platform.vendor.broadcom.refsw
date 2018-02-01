@@ -542,7 +542,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglInitialize(EGLDisplay dpy,
    {
       bool plat_init = false;
       bool proc_init = false;
-      bool slock_init = false;
 
       plat_init = egl_display_refinc(dpy);
       if (!plat_init)
@@ -552,10 +551,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglInitialize(EGLDisplay dpy,
       egl_map_init(&egl_display.surfaces);
       egl_map_init(&egl_display.images);
       egl_map_init(&egl_display.syncs);
-
-      slock_init = egl_syncs_lock_init();
-      if (!slock_init)
-         goto end;
 
       proc_init = egl_process_init();
       if (!proc_init)
@@ -572,7 +567,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglInitialize(EGLDisplay dpy,
       if (!egl_display.initialized)
       {
          if (proc_init) egl_process_release();
-         if (slock_init) egl_syncs_lock_deinit();
          egl_map_destroy(&egl_display.surfaces);
          egl_map_destroy(&egl_display.contexts);
          egl_map_destroy(&egl_display.images);
@@ -620,7 +614,6 @@ void egl_terminate(void)
    egl_map_move(&surfaces, &egl_display.surfaces);
    egl_map_move(&images, &egl_display.images);
    egl_map_move(&syncs, &egl_display.syncs);
-   egl_syncs_lock_deinit();
    display = egl_display.display;
    egl_display.display = EGL_NO_DISPLAY;
    init_extension_string(egl_display.extension_string,

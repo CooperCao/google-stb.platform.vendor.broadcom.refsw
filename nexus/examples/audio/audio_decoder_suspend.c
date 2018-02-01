@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -116,6 +116,10 @@ int main (int argc, const char *argv[])
     NEXUS_AudioOutputHandle audioDummyHandle = NULL;
     NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
     NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
+#if NEXUS_NUM_HDMI_OUTPUTS
+    bool hdmiWasMuted = false;
+#endif
+    bool spdifWasMuted = false;
 
 
     const char *fname = FILE_NAME;
@@ -302,10 +306,6 @@ int main (int argc, const char *argv[])
 
     while (!done)
     {
-#if NEXUS_NUM_HDMI_OUTPUTS
-        bool hdmiWasMuted;
-#endif
-        bool spdifWasMuted;
         int tmp;
 
         /* Display Menu */

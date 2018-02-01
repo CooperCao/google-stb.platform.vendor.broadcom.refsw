@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,21 +51,28 @@ const char * platform_get_dynamic_range_name(PlatformDynamicRange dynrng);
 const char * platform_get_colorimetry_name(PlatformColorimetry colorimetry);
 const char * platform_get_color_space_name(PlatformColorSpace colorSpace);
 const char * platform_get_capability_name(PlatformCapability cap);
+const char * platform_get_aspect_ratio_type_name(PlatformAspectRatioType type);
+void platform_print_picture_info(const char * tag, const PlatformPictureInfo * pInfo, char * buf, size_t len);
 
 PlatformDisplayHandle platform_display_open(PlatformHandle platform);
 void platform_display_close(PlatformDisplayHandle display);
-const PlatformPictureInfo * platform_display_get_picture_info(PlatformDisplayHandle display);
+void platform_display_get_picture_info(PlatformDisplayHandle display, PlatformPictureInfo * pInfo);
+void platform_display_set_picture_info(PlatformDisplayHandle display, const PlatformPictureInfo * pInfo);
+void platform_display_get_picture_quality(PlatformDisplayHandle display, PlatformPictureCtrlSettings * pInfo);
+void platform_display_set_picture_quality(PlatformDisplayHandle display, const PlatformPictureCtrlSettings * pInfo);
 void platform_display_print_hdmi_drm_settings(PlatformDisplayHandle display, const char * tag);
 void platform_display_print_hdmi_status(PlatformDisplayHandle display);
 bool platform_display_hdmi_is_connected(PlatformDisplayHandle display);
-void platform_display_set_dynamic_range(PlatformDisplayHandle display, PlatformDynamicRange dynrng);
-void platform_display_set_colorimetry(PlatformDisplayHandle display, PlatformColorimetry colorimetry);
 void platform_display_get_video_dynamic_range_processing_capabilities(PlatformDisplayHandle display, unsigned windowId, PlatformDynamicRangeProcessingCapabilities * pCapabilities);
 void platform_display_get_video_dynamic_range_processing_settings(PlatformDisplayHandle display, unsigned windowId, PlatformDynamicRangeProcessingSettings * pSettings);
 void platform_display_set_video_dynamic_range_processing_settings(PlatformDisplayHandle display, unsigned windowId, const PlatformDynamicRangeProcessingSettings * pSettings);
+void platform_display_get_video_target_peak_brightness(PlatformDisplayHandle display, unsigned windowId, int *hdrPeak, int *sdrPeak);
+void platform_display_set_video_target_peak_brightness(PlatformDisplayHandle display, unsigned windowId, int hdrPeak, int sdrPeak);
 void platform_display_get_graphics_dynamic_range_processing_capabilities(PlatformDisplayHandle display, PlatformDynamicRangeProcessingCapabilities * pCapabilities);
 void platform_display_get_graphics_dynamic_range_processing_settings(PlatformDisplayHandle display, PlatformDynamicRangeProcessingSettings * pSettings);
 void platform_display_set_graphics_dynamic_range_processing_settings(PlatformDisplayHandle display, const PlatformDynamicRangeProcessingSettings * pSettings);
+void platform_display_set_gfx_luminance(PlatformDisplayHandle display, unsigned min, unsigned max);
+void platform_display_set_rendering_priority(PlatformDisplayHandle display, PlatformRenderingPriority renderingPriority);
 
 PlatformGraphicsHandle platform_graphics_open(PlatformHandle platform, const char * fontPath, unsigned fbWidth, unsigned fbHeight);
 void platform_graphics_close(PlatformGraphicsHandle gfx);
@@ -84,7 +91,8 @@ void platform_graphics_move_video(PlatformGraphicsHandle gfx, const PlatformRect
 void platform_graphics_render_video(PlatformGraphicsHandle gfx, const PlatformRect * pRect);
 unsigned platform_graphics_get_main_window_id(PlatformGraphicsHandle gfx);
 unsigned platform_graphics_get_pip_window_id(PlatformGraphicsHandle gfx);
-unsigned platform_graphics_get_mosaic_count(PlatformGraphicsHandle gfx);
+unsigned platform_graphics_get_max_mosaic_count(PlatformGraphicsHandle gfx);
+unsigned platform_graphics_get_decoder_window_count(PlatformGraphicsHandle gfx, unsigned decoderIndex);
 
 PlatformPictureHandle platform_picture_create(PlatformHandle platform, const char * picturePath);
 void platform_picture_destroy(PlatformPictureHandle pic);
@@ -96,10 +104,13 @@ const char * platform_picture_get_path(PlatformPictureHandle pic);
 extern const int PLATFORM_TRICK_RATE_1X;
 PlatformMediaPlayerHandle platform_media_player_create(PlatformHandle platform, PlatformCallback streamInfoCallback, void * streamInfoContext);
 void platform_media_player_destroy(PlatformMediaPlayerHandle player);
-int platform_media_player_start(PlatformMediaPlayerHandle player, const char * url, PlatformUsageMode usageMode);
+void platform_media_player_get_settings(PlatformMediaPlayerHandle player, PlatformMediaPlayerSettings * pSettings);
+int platform_media_player_set_settings(PlatformMediaPlayerHandle player, const PlatformMediaPlayerSettings * pSettings);
+void platform_media_player_get_default_start_settings(PlatformMediaPlayerStartSettings * pSettings);
+int platform_media_player_start(PlatformMediaPlayerHandle player, const PlatformMediaPlayerStartSettings * pSettings);
 void platform_media_player_stop(PlatformMediaPlayerHandle player);
 void platform_media_player_trick(PlatformMediaPlayerHandle player, int rate);
-void platform_media_player_frame_advance(PlatformMediaPlayerHandle player, PlatformUsageMode usageMode);
+void platform_media_player_frame_advance(PlatformMediaPlayerHandle player);
 void platform_media_player_get_picture_info(PlatformMediaPlayerHandle player, PlatformPictureInfo * pInfo);
 
 PlatformHdmiReceiverHandle platform_hdmi_receiver_open(PlatformHandle platform, PlatformCallback hotplugCallback, void * hotplugContext);
@@ -108,9 +119,9 @@ void platform_hdmi_receiver_start(PlatformHdmiReceiverHandle rx);
 const PlatformHdmiReceiverModel * platform_hdmi_receiver_supports_picture(PlatformHdmiReceiverHandle rx, const PlatformPictureInfo * pInfo);
 PlatformCapability platform_hdmi_receiver_supports_dynamic_range(PlatformHdmiReceiverHandle rx, PlatformDynamicRange dynrng);
 
-PlatformInputHandle platform_input_open(PlatformHandle platform, PlatformInputMethod method);
+PlatformInputHandle platform_input_open(PlatformHandle platform);
 void platform_input_close(PlatformInputHandle input);
-void platform_input_set_event_handler(PlatformInputHandle input, PlatformInputEvent event, PlatformCallback callback, void * callbackContext);
+void platform_input_set_event_handler(PlatformInputHandle input, PlatformInputEventCallback callback, void * callbackContext);
 bool platform_input_try(PlatformInputHandle input);
 
 PlatformSchedulerHandle platform_get_scheduler(PlatformHandle platform);

@@ -28,10 +28,6 @@ static const uint64_t cs_barrier_instrs[] = {
 0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
 0x3c003186bb800000ull, // [0x00000008] nop               ; nop
 0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_VER_AT_LEAST(4,0,2,0)
-0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
-0x3c003186bb800000ull, // [0x00000008] nop               ; nop
-0x3c003186bb800000ull, // [0x00000010] nop               ; nop
 #elif V3D_VER_AT_LEAST(3,3,0,0)
 0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
 0x3c003186bb800000ull, // [0x00000008] nop               ; nop
@@ -59,10 +55,6 @@ static const uint64_t cs_barrier_lthrsw_instrs[] = {
 0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
 0x3c003186bb800000ull, // [0x00000010] nop               ; nop
 #elif V3D_VER_AT_LEAST(4,1,34,0)
-0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
-0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
-0x3c003186bb800000ull, // [0x00000010] nop               ; nop
-#elif V3D_VER_AT_LEAST(4,0,2,0)
 0x3c203191bb80f000ull, // [0x00000000] ycd syncu         ; nop ; thrsw
 0x3c203186bb800000ull, // [0x00000008] nop               ; nop ; thrsw
 0x3c003186bb800000ull, // [0x00000010] nop               ; nop
@@ -95,14 +87,6 @@ static const uint64_t cs_barrier_preamble_instrs[] = {
 0x3de050c67df78001ull, // [0x00000010] shr.pushz -, r0, 1      ;  mov rf3, r5
 0x3dfc80c37de3e0d0ull, // [0x00000018] shr.ifna rf3, rf3, -16  ;  mov.ifnb rf3, r0
 0x3c003191b68360c0ull, // [0x00000020] mov syncu, rf3          ;  nop
-#elif V3D_VER_AT_LEAST(4,0,2,0)
-0x3d003186bb800000ull, // [0x00000000] nop                     ;  nop                   ; ldvary
-0x3de47040bbfcf000ull, // [0x00000008] ycd r0                  ;  mov.pushz r1, 0
-0x3c2e7306bbe42000ull, // [0x00000010] eidx.pushz -            ;  mov.ifna tmua, r1     ; thrsw
-0x3de050c67df78001ull, // [0x00000018] shr.pushz -, r0, 1      ;  mov rf3, r5
-0x3dfc80c37de3e0d0ull, // [0x00000020] shr.ifna rf3, rf3, -16  ;  mov.ifnb rf3, r0
-0x3c803186bb800000ull, // [0x00000028] nop                     ;  nop                   ; ldtmu
-0x3c003191b68360c0ull, // [0x00000030] mov syncu, rf3          ;  nop
 #elif V3D_VER_AT_LEAST(3,3,0,0)
 0x3dc47040bbfcf000ull, // [0x00000000] ycd r0                  ;  mov.pushz r1, 0       ; ldvary
 0x3d2e7306bbe42000ull, // [0x00000008] eidx.pushz -            ;  mov.ifna tmua, r1     ; ldvary; thrsw
@@ -131,10 +115,6 @@ static const uint64_t cs_pad_setmsf_after_barrier_preamble_instrs[] = {
 #elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
 #elif V3D_VER_AT_LEAST(4,1,34,0)
 0x3e30f186bb800000ull, // [0x00000000] nop                     ; nop             ; ldtlbu
-0x3de074467dfbb0cfull, // [0x00000008] shr.pushz -, r3, 15     ; mov syncu, rf3
-0x3dea3186ba837000ull, // [0x00000010] setmsf.ifna -, 0        ; nop
-#elif V3D_VER_AT_LEAST(4,0,2,0)
-0x3e203186bb800000ull, // [0x00000000] nop                     ; nop             ; ldtlbu
 0x3de074467dfbb0cfull, // [0x00000008] shr.pushz -, r3, 15     ; mov syncu, rf3
 0x3dea3186ba837000ull, // [0x00000010] setmsf.ifna -, 0        ; nop
 #elif V3D_VER_AT_LEAST(3,3,0,0)
@@ -167,14 +147,6 @@ static const uint64_t cs_pad_setmsf_threaded_instrs[] = {
 0x3e30f186bb800000ull, // [0x00000018] nop                        ; ldtlbu
 0x3de071867d83b00full, // [0x00000020] shr.pushz -, r3, 15
 0x3dea3186ba837000ull, // [0x00000028] setmsf.ifna -, 0
-#elif V3D_VER_AT_LEAST(4,0,2,0)
-0x3c207180b7836000ull, // [0x00000000] xor.pushz r0, rf0, rf0  ; thrsw
-0x3c0a318cb6800000ull, // [0x00000008] mov.ifna tmua, r0
-0x3c003186bb800000ull, // [0x00000010] nop
-0x3c803186bb800000ull, // [0x00000018] nop                     ; ldtmu
-0x3e203186bb800000ull, // [0x00000020] nop                        ; ldtlbu
-0x3de071867d83b00full, // [0x00000028] shr.pushz -, r3, 15
-0x3dea3186ba837000ull, // [0x00000030] setmsf.ifna -, 0
 #elif V3D_VER_AT_LEAST(3,3,0,0)
 0x3d207180b7836000ull, // [0x00000000] xor.pushz r0, rf0, rf0  ; ldvary; thrsw
 0x3c0a318cb6800000ull, // [0x00000008] mov.ifna tmua, r0
@@ -201,11 +173,6 @@ static const uint64_t cs_pad_setmsf_unthreaded_instrs[] = {
 #elif V3D_VER_AT_LEAST(4,2,13,0)
 #elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
 #elif V3D_VER_AT_LEAST(4,1,34,0)
-#elif V3D_VER_AT_LEAST(4,0,2,0)
-0x3c003186bb800000ull, // [0x00000000] nop
-0x3e203186bb800000ull, // [0x00000008] nop                  ; ldtlbu
-0x3de071867d83b00full, // [0x00000010] shr.pushz -, r3, 15
-0x3dea3186ba837000ull, // [0x00000018] setmsf.ifna -, 0
 #elif V3D_VER_AT_LEAST(3,3,0,0)
 0x3d003186bb800000ull, // [0x00000000] nop                  ; ldvary
 0x3e203186bb800000ull, // [0x00000008] nop                  ; ldtlbu
@@ -250,7 +217,6 @@ static const uint64_t fs_null_instrs[] = {
 0x3c203186bb800000ull, // [0x00000018] nop   ; thrsw
 0x3c003186bb800000ull, // [0x00000020] nop
 0x3c003186bb800000ull, // [0x00000028] nop
-#elif V3D_VER_AT_LEAST(4,0,2,0)
 #elif V3D_VER_AT_LEAST(3,3,0,0)
 #else
 #endif
@@ -272,10 +238,6 @@ static const uint64_t tcs_barrier_bin_instrs[] = {
 0x25e03046bbfd6010ull, // [0x00000008] vpmwt             ; smul24 r1, -16, -16
 0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
 #elif V3D_VER_AT_LEAST(4,1,34,0)
-0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; nop                   ; thrsw
-0x25e03046bbfd6010ull, // [0x00000008] vpmwt             ; smul24 r1, -16, -16
-0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
-#elif V3D_VER_AT_LEAST(4,0,2,0)
 0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; nop                   ; thrsw
 0x25e03046bbfd6010ull, // [0x00000008] vpmwt             ; smul24 r1, -16, -16
 0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
@@ -303,10 +265,6 @@ static const uint64_t tcs_barrier_lthrsw_bin_instrs[] = {
 0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; thrsw
 0x3c603186bb816000ull, // [0x00000008] vpmwt             ; thrsw ; ldunif
 0x3c00319138828000ull, // [0x00000010] add syncu, r0, r5
-#elif V3D_VER_AT_LEAST(4,0,2,0)
-0x3c203180bb814000ull, // [0x00000000] barrierid r0      ; thrsw
-0x3c603186bb816000ull, // [0x00000008] vpmwt             ; thrsw ; ldunif
-0x3c00319138828000ull, // [0x00000010] add syncu, r0, r5
 #elif V3D_VER_AT_LEAST(3,3,0,0)
 #else
 #endif
@@ -331,10 +289,6 @@ static const uint64_t tcs_barrier_lthrsw_rdr_instrs[] = {
 0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
 0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
 0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_VER_AT_LEAST(4,0,2,0)
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c203186bb816000ull, // [0x00000008] vpmwt             ; thrsw
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
 #elif V3D_VER_AT_LEAST(3,3,0,0)
 #else
 #endif
@@ -350,8 +304,6 @@ static const uint64_t tcs_barrier_mem_only_instrs[] = {
 #elif V3D_VER_AT_LEAST(4,1,34,0) && V3D_USE_CSD
 0x3c003186bb816000ull, // [0x00000000] vpmwt
 #elif V3D_VER_AT_LEAST(4,1,34,0)
-0x3c003186bb816000ull, // [0x00000000] vpmwt
-#elif V3D_VER_AT_LEAST(4,0,2,0)
 0x3c003186bb816000ull, // [0x00000000] vpmwt
 #elif V3D_VER_AT_LEAST(3,3,0,0)
 #else
@@ -371,10 +323,6 @@ static const uint64_t tcs_barrier_preamble_bin_instrs[] = {
 0x25e07046bbfc2010ull, // [0x00000000] eidx.pushz -      ; smul24 r1, -16, -16
 0x3dec3000bbfd4002ull, // [0x00000008] barrierid r0      ; mov.ifa r0, 2
 0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
-#elif V3D_VER_AT_LEAST(4,0,2,0)
-0x25e07046bbfc2010ull, // [0x00000000] eidx.pushz -      ; smul24 r1, -16, -16
-0x3dec3000bbfd4002ull, // [0x00000008] barrierid r0      ; mov.ifa r0, 2
-0x3c00319138808000ull, // [0x00000010] add syncu, r0, r1
 #elif V3D_VER_AT_LEAST(3,3,0,0)
 #else
 #endif
@@ -391,10 +339,6 @@ static const uint64_t tcs_barrier_preamble_rdr_instrs[] = {
 0x3dec300038fc8002ull, // [0x00000010] add r0, r0, r1    ; mov.ifa r0, 2
 0x3c003191b6800000ull, // [0x00000018] mov syncu, r0
 #elif V3D_VER_AT_LEAST(4,1,34,0)
-0x3c007186bb802000ull, // [0x00000000] eidx.pushz -
-0x3dec3000bbfd4002ull, // [0x00000008] barrierid r0      ; mov.ifa r0, 2
-0x3c003191b6800000ull, // [0x00000010] mov syncu, r0
-#elif V3D_VER_AT_LEAST(4,0,2,0)
 0x3c007186bb802000ull, // [0x00000000] eidx.pushz -
 0x3dec3000bbfd4002ull, // [0x00000008] barrierid r0      ; mov.ifa r0, 2
 0x3c003191b6800000ull, // [0x00000010] mov syncu, r0
@@ -422,10 +366,6 @@ static const uint64_t tcs_barrier_rdr_instrs[] = {
 0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
 0x3c003186bb816000ull, // [0x00000008] vpmwt
 0x3c003191bb814000ull, // [0x00000010] barrierid syncu
-#elif V3D_VER_AT_LEAST(4,0,2,0)
-0x3c203186bb800000ull, // [0x00000000] nop               ; thrsw
-0x3c003186bb816000ull, // [0x00000008] vpmwt
-0x3c003191bb814000ull, // [0x00000010] barrierid syncu
 #elif V3D_VER_AT_LEAST(3,3,0,0)
 #else
 #endif
@@ -434,7 +374,7 @@ static const uint64_t tcs_barrier_rdr_instrs[] = {
 const struct inline_qasm tcs_barrier_rdr = { tcs_barrier_rdr_instrs, countof(tcs_barrier_rdr_instrs)-1 };
 
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 #define gfxh1370_tsy_op(op) (op)
 #else
 /* Work around GFXH-1370 by setting the high 3 bits of TSY configs. */

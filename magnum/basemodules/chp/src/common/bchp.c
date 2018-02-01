@@ -1145,6 +1145,11 @@ BERR_Code BCHP_GetMemcClientConfig(
    return BERR_SUCCESS;
 }
 
+bool BCHP_SkipInitialReset(BCHP_Handle chp)
+{
+    return chp->skipInitialReset;
+}
+
 /* BP3 Do NOT Modify Start */
 #if defined(BCHP_SCPU_GLOBALRAM_REG_START)
 #include "bchp_scpu_globalram.h"
@@ -1164,18 +1169,34 @@ struct BCHP_P_LicenseNode {
 BERR_Code BCHP_HasLicensedFeature_isrsafe(BCHP_Handle chp, BCHP_LicensedFeature feature)
 {
 #if defined(BCHP_SCPU_GLOBALRAM_REG_START)
-    static const struct BCHP_P_LicenseLeaf BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs[] = {
+    static const struct BCHP_P_LicenseLeaf BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs23[] = {
         {BCHP_LicensedFeature_eMacrovision, 0},
         {BCHP_LicensedFeature_eDolbyVision, 1},
         {BCHP_LicensedFeature_eTchPrime, 2},
         {BCHP_LicensedFeature_eItm, 3}
     };
 
+    static const struct BCHP_P_LicenseLeaf BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs22[] = {
+        {BCHP_LicensedFeature_eDap, 0},
+        {BCHP_LicensedFeature_eDolbyDigital, 1},
+        {BCHP_LicensedFeature_eDolbyDigitalPlus, 2},
+        {BCHP_LicensedFeature_eDolbyAc4, 3},
+        {BCHP_LicensedFeature_eDolbyTrueHd, 4},
+        {BCHP_LicensedFeature_eDolbyMS10_11, 5},
+        {BCHP_LicensedFeature_eDolbyMS12v1, 6},
+        {BCHP_LicensedFeature_eDolbyMS12v2, 7}
+    };
+
     static const struct BCHP_P_LicenseNode BCHP_P_LicenseNodes[] = {
         {
             BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_BASE + 23*4,
-            sizeof(BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs)/sizeof(BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs[0]),
-            BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs
+            sizeof(BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs23)/sizeof(BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs23[0]),
+            BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs23
+        },
+        {
+            BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_BASE + 22*4,
+            sizeof(BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs22)/sizeof(BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs22[0]),
+            BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs22
         }
     };
     unsigned node;

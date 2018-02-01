@@ -939,8 +939,8 @@ int start_play(NEXUS_RecordHandle record, NEXUS_FifoRecordHandle fifofile, const
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
     NEXUS_FilePlayHandle file;
-    NEXUS_SimpleVideoDecoderHandle videoDecoder;
-    NEXUS_SimpleAudioDecoderHandle audioDecoder;
+    NEXUS_SimpleVideoDecoderHandle videoDecoder = NULL;
+    NEXUS_SimpleAudioDecoderHandle audioDecoder = NULL;
     NEXUS_SimpleVideoDecoderStartSettings videoProgram;
     NEXUS_SimpleAudioDecoderStartSettings audioProgram;
     NEXUS_SimpleStcChannelHandle stcChannel;

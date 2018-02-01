@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -454,7 +454,7 @@ int decrypt_sample(app_ctx_t app,
                 uint32_t num_enc = pSample->entries[ii].bytesOfEncData;
                 *bytes_processed += num_clear + num_enc;
                 pBuffer += num_clear;
- 
+
                 aesCtrInfo.qwBlockOffset = qwOffset / 16;
                 aesCtrInfo.bByteOffset = qwOffset % 16;
 
@@ -467,7 +467,7 @@ int decrypt_sample(app_ctx_t app,
                     BDBG_ERR(("Reader_Decrypt failed"));
                     rc = -1;
                     goto ErrorExit;
-                } 
+                }
 
                 pBuffer += num_enc;
                 qwOffset = num_enc;
@@ -489,7 +489,7 @@ int decrypt_sample(app_ctx_t app,
         }
     } /* switch */
 
-ErrorExit: 
+ErrorExit:
     if (encBuf != NULL) NEXUS_Memory_Free(encBuf);
     return rc;
 }
@@ -956,7 +956,7 @@ bool app_parse_traf(app_ctx_t app, batom_cursor *cursor, bmp4_box traf)
         bool skipThisFrg = false;
         /* printf("%s - BMP4_TRACK_FRAGMENT\n", __FUNCTION__); */
         for (ii = 0; ii < traf.size; ii += (box_hdr_size + box.size))
-        {    
+        {
             box_hdr_size = bmp4_parse_box(cursor, &box);
             if (box_hdr_size==0) {
                 BDBG_ERR(("%s - %d: box_hdr_size=0\n", __FUNCTION__, __LINE__));
@@ -1005,21 +1005,21 @@ bool app_parse_traf(app_ctx_t app, batom_cursor *cursor, bmp4_box traf)
                     break;
                 default :
                     /* Not the box we are looking for. Skip over it.*/
-                    batom_cursor_skip(cursor, box.size - box_hdr_size);  
+                    batom_cursor_skip(cursor, box.size - box_hdr_size);
                     break;
             }
 
             if (skipThisFrg) {
                BDBG_WRN(("not a video track, skip over to next moof box..."));
                rc = false;
-               break; 
+               break;
             }
         } /* for */
 
         if (rc && !senc_parsed)
         {
             BDBG_WRN(("no sample enc box is found, the media may be unprotected..."));
-        } 
+        }
     }
     else {
         /* Note a TRAF box */
@@ -1535,7 +1535,7 @@ void playback_piff(
     NEXUS_VideoDecoder_GetDefaultOpenSettings(&videoDecoderopenSettings);
 #ifdef SAGE_SUPPORT
     videoDecoderopenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
-    videoDecoderopenSettings.secureVideo = true;
+    videoDecoderopenSettings.secureVideo = NEXUS_VideoDecoderSecureType_eSecure;
 #endif
     /* videoDecoder0 - secure */
     videoDecoderPlayback = NEXUS_VideoDecoder_Open(0, &videoDecoderopenSettings);
@@ -1793,7 +1793,7 @@ int main(int argc, char* argv[])
     NEXUS_AudioDecoderHandle audioDecoder;
     NEXUS_PidChannelHandle audioPidChannel;
     NEXUS_AudioDecoderStartSettings audioProgram;
- 
+
     NEXUS_AudioMuxOutputHandle audioMuxOutput;
     NEXUS_AudioEncoderHandle audioEncoder;
 

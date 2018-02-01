@@ -95,8 +95,7 @@ public:
 
    void AddType(const NodeType *type)
    {
-      uint32_t id = m_types.size();
-      m_types.push_back(type);
+      uint32_t id = m_nTypes++;
       type->SetTypeId(id);
 
       m_globals.push_back(type);
@@ -154,10 +153,7 @@ public:
    bool     HasMemberDecoration(spv::Decoration decoType, const NodeTypeStruct *node, uint32_t memberIndex) const;
    bool     GetLiteralMemberDecoration(uint32_t *literal, spv::Decoration decoType,
                                        const NodeTypeStruct *node, uint32_t memberIndex) const;
-
-   void GetMatrixMemoryLayout(const NodeType *parent, uint32_t *matrixStride, bool *columnMajor) const;
-   void GetMatrixMemoryLayout(const NodeTypeStruct *node, uint32_t index, uint32_t *matrixStride,
-                              bool *columnMajor) const;
+   uint32_t RequireLiteralMemberDecoration(spv::Decoration decoType, const NodeTypeStruct *node, uint32_t memberIndex) const;
 
    // Equivalent to "new T(args)" but will use the arena allocator
    template <typename T, class... Types>
@@ -175,9 +171,9 @@ public:
    const NodeEntryPoint *GetEntryPoint(const char *name, spv::ExecutionModel model,
                                        uint32_t *index = nullptr) const;
 
-   uint32_t                         GetNumBlocks() const { return m_blockCount;   }
-   const spv::vector<const Node *> &GetNodes()     const { return m_allNodes;     }
-   uint32_t                         GetNumTypes()  const { return m_types.size(); }
+   uint32_t                         GetNumBlocks() const { return m_blockCount; }
+   const spv::vector<const Node *> &GetNodes()     const { return m_allNodes;   }
+   uint32_t                         GetNumTypes()  const { return m_nTypes;     }
 
 private:
    void AddNode(Node *node);
@@ -206,8 +202,9 @@ private:
    const NodeSource                      *m_source;
 
    spv::vector<const NodeVariable *>      m_variables;      // List of all variables local and global
-   spv::vector<const NodeType *>          m_types;          // List of all types (TODO only size is used, remove?)
    spv::vector<const Node *>              m_globals;        // List of global constants, types and variables
+
+   uint32_t                               m_nTypes = 0;
 
    spv::vector<const NodeFunction *>      m_functions;
    spv::vector<const NodeEntryPoint *>    m_entryPoints;    // List of entry points

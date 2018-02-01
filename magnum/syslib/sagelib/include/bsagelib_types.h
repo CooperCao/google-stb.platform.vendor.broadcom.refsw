@@ -176,7 +176,13 @@ Description:
 /* SAGE OS Binding Error */
 #define BSAGE_ERR_TA_BINDING                       BERR_MAKE_CODE(BERR_SAGElib_ID, 49)
 
+/* region misconfiguration error codes continued */
+#define BSAGE_ERR_CRRT_NOT_RESTRICTED              BERR_MAKE_CODE(BERR_SAGElib_ID, 50)
+
+#define BSAGE_ERR_ALPHA_SSF_SDL_MISMATCH           BERR_MAKE_CODE(BERR_SAGElib_ID, 51)
+
 #define BSAGE_INSUFFICIENT_HDCP_VERSION            BERR_MAKE_CODE(BERR_SAGElib_ID, 100)
+
 
 /* String definitions of return codes*/
 #define BSAGE_ERR_HSM_STRING                   "An error has occurred in HSM"
@@ -257,6 +263,11 @@ Description:
 
 /* SAGE OS Binding Error */
 #define BSAGE_ERR_TA_BINDING_STRING               "TA Load failure: Load Time Binding between TA & SSF failed"
+
+/* region misconfiguration error codes */
+#define BSAGE_ERR_CRRT_NOT_RESTRICTED_STRING      "CRRT is not restricted/configured"
+
+#define BSAGE_ERR_ALPHA_SSF_SDL_MISMATCH_STRING   "Alpha SSF/SDK version mismatch with SDL"
 
 /********  PLEASE REMEMBER TO ADD NEW ERR CODES TO BSAGElib_Tools_ReturnCodeToString *********/
 

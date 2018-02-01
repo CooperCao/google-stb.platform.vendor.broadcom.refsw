@@ -1,5 +1,5 @@
-/***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- ***************************************************************************/
+ ******************************************************************************/
 
 /* General includes */
 #include "nexus_frontend_7364_priv.h"
@@ -512,9 +512,6 @@ static NEXUS_Error NEXUS_Frontend_P_7364_GetSatelliteAgcStatus(void *handle, NEX
 
     return rc;
 }
-
-NEXUS_Error NEXUS_Frontend_P_Sat_TuneSatellite(void *handle, const NEXUS_FrontendSatelliteSettings *pSettings);
-void NEXUS_Frontend_P_Sat_Untune(void *handle);
 
 static NEXUS_Error NEXUS_Frontend_P_7364_TuneSatellite(void *handle, const NEXUS_FrontendSatelliteSettings *pSettings)
 {

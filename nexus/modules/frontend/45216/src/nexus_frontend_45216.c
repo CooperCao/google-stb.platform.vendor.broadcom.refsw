@@ -1383,9 +1383,6 @@ static NEXUS_Error NEXUS_Frontend_P_45216_GetSatelliteAgcStatus(void *handle, NE
     return rc;
 }
 
-NEXUS_Error NEXUS_Frontend_P_Sat_TuneSatellite(void *handle, const NEXUS_FrontendSatelliteSettings *pSettings);
-void NEXUS_Frontend_P_Sat_Untune(void *handle);
-
 static NEXUS_Error NEXUS_Frontend_P_45216_TuneSatellite(void *handle, const NEXUS_FrontendSatelliteSettings *pSettings)
 {
     NEXUS_SatChannel *pSatChannel = handle;

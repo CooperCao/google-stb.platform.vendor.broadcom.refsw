@@ -6,6 +6,7 @@
 #include "DflowScalars.h"
 #include "BasicBlock.h"
 #include "libs/util/demand.h"
+#include "libs/khrn/glsl/dflib.h"
 
 namespace bvk {
 
@@ -33,7 +34,7 @@ Dflow Dflow::Atomic(DataflowFlavour flavour, DataflowType type,
 
 Dflow Dflow::PackImageData(FormatQualifier f, const DflowScalars &data)
 {
-   return Dflow(glsl_dataflow_image_pack_data(f, data.GetDataflowArray()));
+   return Dflow(dflib_pack_format(f, data.Data()));
 }
 
 Dflow Dflow::CreateImageWriteAddress(const Dflow &image, const DflowScalars &coord)

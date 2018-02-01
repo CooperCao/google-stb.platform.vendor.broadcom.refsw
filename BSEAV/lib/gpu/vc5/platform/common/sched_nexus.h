@@ -13,7 +13,17 @@
 extern "C" {
 #endif
 
-BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *iface);
+/* Event context is accessible from both scheduler and display layers */
+typedef struct
+{
+   uint32_t nexusTracks;
+   uint32_t nexusEvents;
+   uint64_t timeSync;
+   void    *internals;
+} EventContext;
+
+BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *iface, EventContext *eventContext);
+
 void DestroySchedInterface(BEGL_SchedInterface *iface);
 
 /* Common code that can be used by other platforms */

@@ -461,7 +461,7 @@ void BVDC_P_Feeder_Init
         pPicture->stVnetMode.stBits.bInvalid  = BVDC_P_ON;
         pPicture->eFrameRateCode       = BAVC_FrameRateCode_e29_97;
 
-        BVDC_P_Cfc_InitAvcColorSpace(&pPicture->astMosaicColorSpace[0]);
+        BCFC_InitCfcColorSpace(&pPicture->astMosaicColorSpace[0]);
 
         pPicture->eDisplayPolarity     = BAVC_Polarity_eTopField;
         pPicture->eSrcPolarity         = BAVC_Polarity_eTopField;

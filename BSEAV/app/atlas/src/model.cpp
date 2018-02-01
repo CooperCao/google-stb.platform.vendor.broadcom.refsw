@@ -67,6 +67,7 @@ CModel::CModel(const char * strName) :
     _bPipEnabled(false),
     _bipTranscodeEnabled(false),
     _ipTranscodeProfile(0),
+    _pSimplePcmPlayback(NULL),
     _bPipSwapped(false),
     _bScanSaveOffer(false),
     _lastChannelPowerSave(NULL),
@@ -307,7 +308,7 @@ void CModel::swapSimpleAudioDecode()
 void CModel::setPipState(bool bPip)
 {
     _bPip = bPip;
-    notifyObservers(eNotify_PipStateChanged);
+    notifyObservers(eNotify_PipStateChanged, &_bPip);
 }
 
 void CModel::setMode(

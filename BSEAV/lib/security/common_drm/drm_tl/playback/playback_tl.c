@@ -143,8 +143,14 @@ DrmRC DRM_Playback_Stop(DrmPlaybackHandle_t pHandle)
     BERR_Code sage_rc = BERR_SUCCESS;
     BSAGElib_InOutContainer *container = NULL;
     DrmPlaybackContext_t *pCtx = (DrmPlaybackContext_t *)pHandle;
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityKeySlotSettings keySlotSettings;
     NEXUS_SecurityKeySlotInfo  keyslotInfo;
+#else
+    NEXUS_KeySlotAllocateSettings keySlotSettings;
+    NEXUS_KeySlotInformation keyslotInfo;
+#endif
+
     NEXUS_KeySlotHandle scrubbingKeyHandle = 0;
     uint8_t *pDmaMemoryPool = NULL;
     unsigned size = 4*1024;
@@ -162,10 +168,18 @@ DrmRC DRM_Playback_Stop(DrmPlaybackHandle_t pHandle)
         goto ErrorExit;
     }
 
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_Security_GetDefaultKeySlotSettings(&keySlotSettings);
     keySlotSettings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
     keySlotSettings.client = NEXUS_SecurityClientType_eSage;
     scrubbingKeyHandle = NEXUS_Security_AllocateKeySlot(&keySlotSettings);
+#else
+    NEXUS_KeySlot_GetDefaultAllocateSettings(&keySlotSettings);
+    keySlotSettings.useWithDma = true;
+    keySlotSettings.owner = NEXUS_SecurityClientType_eSage;
+    keySlotSettings.slotType   = NEXUS_KeySlotType_eIvPerBlock;
+    scrubbingKeyHandle =  NEXUS_KeySlot_Allocate(&keySlotSettings);
+#endif
     if(scrubbingKeyHandle == NULL)
     {
         rc = Drm_MemErr;
@@ -173,9 +187,15 @@ DrmRC DRM_Playback_Stop(DrmPlaybackHandle_t pHandle)
         goto ErrorExit;
     }
 
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_Security_GetKeySlotInfo(scrubbingKeyHandle, &keyslotInfo);
     container->basicIn[0] = (int32_t)keyslotInfo.keySlotNumber;
     BDBG_MSG(("%s - keyslotInfo.keySlotNumber %d\n", BSTD_FUNCTION, keyslotInfo.keySlotNumber));
+#else
+    NEXUS_KeySlot_GetInformation( scrubbingKeyHandle, &keyslotInfo);
+    container->basicIn[0] = keyslotInfo.slotNumber;
+    BDBG_MSG(("%s - keyslotInfo Keyslot number = '%u'", BSTD_FUNCTION, keyslotInfo.slotNumber));
+#endif
 
     /* Allocate enough memory for DMA descriptors */
     pDmaMemoryPool = SRAI_Memory_Allocate(size, SRAI_MemoryType_SagePrivate);
@@ -206,7 +226,13 @@ DrmRC DRM_Playback_Stop(DrmPlaybackHandle_t pHandle)
 
 ErrorExit:
     if(pDmaMemoryPool) SRAI_Memory_Free(pDmaMemoryPool);
+
+#if (NEXUS_SECURITY_API_VERSION==1)
     if(scrubbingKeyHandle) NEXUS_Security_FreeKeySlot(scrubbingKeyHandle);
+#else
+    if(scrubbingKeyHandle) NEXUS_KeySlot_Free(scrubbingKeyHandle);
+#endif
+
     if(container) SRAI_Container_Free(container);
     return rc;
 }

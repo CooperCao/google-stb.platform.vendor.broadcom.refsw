@@ -102,6 +102,16 @@
 #
 #endif
 
+/* Cast a const value to a non-const value.  i.e. cheat when we want
+   initialized variables to be placed in iCCM and also to be changeable */
+#define UNCONSTU32(x) *(uint32_t *)(x)
+#define UNCONSTU16(x) *(uint16_t *)(x)
+#define UNCONSTU8(x) *(uint8_t *)(x)
+
+#define UNCONSTI32(x) *(int32_t *)(x)
+#define UNCONSTI16(x) *(int16_t *)(x)
+#define UNCONSTI8(x) *(int8_t *)(x)
+
 
 /*
  * Cross-platform auxiliary macros.

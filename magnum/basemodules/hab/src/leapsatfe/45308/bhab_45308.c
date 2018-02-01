@@ -232,3 +232,93 @@ BERR_Code BHAB_45308_InitXp(BHAB_Handle h, uint8_t x)
    hab[1] = x;
    return BHAB_45308_P_SendCommand(h, hab, 3);
 }
+
+
+/******************************************************************************
+ BHAB_45308_GpioConfig()
+******************************************************************************/
+BERR_Code BHAB_45308_GpioConfig(BHAB_Handle h, uint32_t write_mask, uint32_t read_mask)
+{
+   uint32_t hab[4];
+
+   if ((write_mask & ~0xFFFFF) || (read_mask & ~0xFFFFF))
+      return BERR_INVALID_PARAMETER;
+
+   hab[0] = BHAB_45308_InitHeader(0x43, 0, 0, 0);
+   hab[1] = write_mask;
+   hab[2] = read_mask;
+   return BHAB_45308_P_SendCommand(h, hab, 4);
+}
+
+
+/******************************************************************************
+ BHAB_45308_GpioWrite()
+******************************************************************************/
+BERR_Code BHAB_45308_GpioWrite(BHAB_Handle h, uint32_t pin_mask, uint32_t state_mask)
+{
+   uint32_t hab[4];
+
+   if ((pin_mask & ~0xFFFFF) || (state_mask & ~0xFFFFF))
+      return BERR_INVALID_PARAMETER;
+
+   hab[0] = BHAB_45308_InitHeader(0x44, 0, 0, 0);
+   hab[1] = pin_mask;
+   hab[2] = state_mask;
+   return BHAB_45308_P_SendCommand(h, hab, 4);
+}
+
+
+/******************************************************************************
+ BHAB_45308_GpioRead()
+******************************************************************************/
+BERR_Code BHAB_45308_GpioRead(BHAB_Handle h, uint32_t pin_mask, uint32_t *pstate_mask)
+{
+   BERR_Code retCode;
+   uint32_t hab[4];
+
+   *pstate_mask = 0;
+   if ((pin_mask & ~0xFFFFF) || (pstate_mask == NULL))
+      return BERR_INVALID_PARAMETER;
+
+   hab[0] = BHAB_45308_InitHeader(0x45, 0, 0, 0);
+   hab[1] = pin_mask;
+   retCode = BHAB_45308_P_SendCommand(h, hab, 4);
+   if (retCode == BERR_SUCCESS)
+      *pstate_mask = hab[2];
+
+   return retCode;
+}
+
+
+/******************************************************************************
+ BHAB_45308_GpoConfig()
+******************************************************************************/
+BERR_Code BHAB_45308_GpoConfig(BHAB_Handle h, uint32_t write_mask, uint32_t ctl_mask)
+{
+   uint32_t hab[4];
+
+   if ((write_mask & ~0x7FFF) || (ctl_mask & ~0x7FFF))
+      return BERR_INVALID_PARAMETER;
+
+   hab[0] = BHAB_45308_InitHeader(0x46, 0, 0, 0);
+   hab[1] = write_mask;
+   hab[2] = ctl_mask;
+   return BHAB_45308_P_SendCommand(h, hab, 4);
+}
+
+
+/******************************************************************************
+ BHAB_45308_GpoWrite()
+******************************************************************************/
+BERR_Code BHAB_45308_GpoWrite(BHAB_Handle h, uint32_t pin_mask, uint32_t state_mask)
+{
+   uint32_t hab[4];
+
+   if ((pin_mask & ~0x7FFF) || (state_mask & ~0x7FFF))
+      return BERR_INVALID_PARAMETER;
+
+   hab[0] = BHAB_45308_InitHeader(0x47, 0, 0, 0);
+   hab[1] = pin_mask;
+   hab[2] = state_mask;
+   return BHAB_45308_P_SendCommand(h, hab, 4);
+}

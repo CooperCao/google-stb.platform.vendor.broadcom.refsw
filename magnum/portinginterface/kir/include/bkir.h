@@ -420,7 +420,7 @@ See Also:
     BKIR_RegisterCallback(), BKIR_UnregisterCallback()
 
 ****************************************************************************/
-typedef BERR_Code (*BKIR_Callback)(BKIR_ChannelHandle hChn, void *pData);
+typedef void (*BKIR_Callback)(BKIR_ChannelHandle hChn, void *pData);
 
 /***************************************************************************
 Summary:
@@ -1025,7 +1025,7 @@ See Also:
 ****************************************************************************/
 void BKIR_RegisterCallback (
     BKIR_ChannelHandle  hChn,       /* Device channel handle */
-    BKIR_Callback       callback,   /* Callback function to register */
+    BKIR_Callback       callback_isr,/* Callback function to register */
     void                *pData      /* Data passed to callback function */
 );
 

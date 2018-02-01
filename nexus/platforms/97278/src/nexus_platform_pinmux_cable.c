@@ -61,13 +61,7 @@ void NEXUS_Platform_P_EnableSageDebugPinmux(void)
     BREG_Handle hReg = g_pCoreHandles->reg;
     uint32_t reg;
 
-    const char *pinmux_env = NEXUS_GetEnv("sage_log");
-    if (pinmux_env) {
-        int pinmux_env_val = NEXUS_atoi(pinmux_env);
-        if (pinmux_env_val != 1) {
-            return; /* Only enable pin mux if this is set to 1 */
-        }
-    } else {
+    if (!NEXUS_Platform_P_EnableSageLog()) {
         return;
     }
 

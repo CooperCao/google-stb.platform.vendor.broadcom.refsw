@@ -72,6 +72,7 @@ typedef struct BDSP_Device
     BERR_Code (*getDebugBuffer)(void *pDeviceHandle, BDSP_DebugType debugType, uint32_t dspIndex, BDSP_MMA_Memory *pBuffer, size_t *pSize);
     BERR_Code (*consumeDebugData)(void *pDeviceHandle, BDSP_DebugType debugType, uint32_t dspIndex, size_t bytesConsumed);
     BDSP_FwStatus (*getCoreDumpStatus)(void *pDeviceHandle, uint32_t dspIndex);
+    BERR_Code (*runDebugService)(void *pDeviceHandle, uint32_t dspIndex);
 
     /* Default TSM and Datasync settings*/
     BERR_Code (*getDefaultTsmSettings)(void *pDeviceHandle, void *pSettingsBuffer, size_t settingsBufferSize);

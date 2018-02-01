@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2013 Broadcom Corporation
+ * Copyright (C) 2011-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 
 #if NEXUS_HAS_PICTURE_DECODER && NEXUS_HAS_GRAPHICS2D
@@ -321,7 +310,7 @@ static int decode_picture(NEXUS_PictureDecoderHandle pictureDecoder, unsigned bu
                     bytesRemain -= size;
                 }
                 else {
-                    BDBG_WRN(( "COULDN'T READ IN any more data !!! rc=%d bytesRemain=%d\n" , rc, bytesRemain  ));
+                    BDBG_WRN(( "COULDN'T READ IN any more data !!! rc=%d bytesRemain=%u" , rc, (unsigned)bytesRemain  ));
                     cnt = 999;
                 }
             }
@@ -394,7 +383,7 @@ static int decode_picture(NEXUS_PictureDecoderHandle pictureDecoder, unsigned bu
                     bytesRemain -= size;
                 }
                 else {
-                    fprintf( stderr, "rc=%d size=%d ..COULDN'T READ IN any more data !!! \n", rc, size );
+                    fprintf( stderr, "rc=%d size=%u ..COULDN'T READ IN any more data !!!\n", rc, (unsigned)size );
                     goto error;
                 }
             }

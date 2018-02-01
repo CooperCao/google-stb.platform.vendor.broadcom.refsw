@@ -88,7 +88,8 @@ NEXUS_Playback_GetDefaultSettings( NEXUS_PlaybackSettings *pSettings)
     pSettings->timeshiftingSettings.endOfStreamGap = 3000;
     /* milliseconds to gap between beginning of playback and truncating record which will not cause excess beginningOfStream events */
     pSettings->timeshiftingSettings.beginningOfStreamGap = 5000;
-
+    pSettings->minimumBlockSize = 4*B_IO_BLOCK_SIZE;
+    pSettings->endOfStreamTimeout = B_FRAME_DISPLAY_TIME * 6;
     return;
 }
 
@@ -120,7 +121,6 @@ NEXUS_Playback_Create( void )
     playback->actualTransportType = NEXUS_TransportType_eTs;
     NEXUS_CallbackHandler_Init(playback->dataCallbackHandler, b_play_playpump_read_callback_locked, playback);
     NEXUS_CallbackHandler_SetGuard(playback->dataCallbackHandler, b_play_playpump_read_callback_guard);
-    NEXUS_CallbackHandler_Init(playback->videoDecoderFirstPts, NEXUS_Playback_P_VideoDecoderFirstPts, playback);
     NEXUS_CallbackHandler_Init(playback->videoDecoderFirstPtsPassed, NEXUS_Playback_P_VideoDecoderFirstPtsPassed, playback);
 
     NEXUS_Thread_GetDefaultSettings(&playback->playpump_thread_settings);
@@ -189,12 +189,10 @@ NEXUS_Playback_ClosePidChannel(NEXUS_PlaybackHandle playback, NEXUS_PidChannelHa
             playbackSettings.firstPts.callback = NULL;
             playbackSettings.firstPtsPassed.callback = NULL;
             (void)NEXUS_P_Playback_VideoDecoder_SetPlaybackSettings(play_pid, &playbackSettings);
-            NEXUS_CallbackHandler_Stop(playback->videoDecoderFirstPts);
             NEXUS_CallbackHandler_Stop(playback->videoDecoderFirstPtsPassed);
         }
     }
 
-    NEXUS_CallbackHandler_Stop(playback->videoDecoderFirstPts);
     NEXUS_CallbackHandler_Stop(playback->videoDecoderFirstPtsPassed);
     BLST_S_DICT_REMOVE(&playback->pid_list, play_pid, pidChannel, NEXUS_Playback_P_PidChannel, pidChn, link);
     BDBG_ASSERT(play_pid);
@@ -373,7 +371,6 @@ NEXUS_Playback_Destroy( NEXUS_PlaybackHandle playback)
     }
     BKNI_DestroyEvent(playback->ack_event);
     NEXUS_CallbackHandler_Shutdown(playback->dataCallbackHandler);
-    NEXUS_CallbackHandler_Shutdown(playback->videoDecoderFirstPts);
     NEXUS_CallbackHandler_Shutdown(playback->videoDecoderFirstPtsPassed);
     NEXUS_TaskCallback_Destroy(playback->parsingErrorCallback);
     NEXUS_TaskCallback_Destroy(playback->errorCallback);
@@ -575,6 +572,21 @@ NEXUS_Playback_GetDefaultTrickModeSettings(NEXUS_PlaybackTrickModeSettings *tric
     return;
 }
 
+static void bplay_p_clear_accurate_seek(NEXUS_PlaybackHandle p)
+{
+    if(p->state.accurateSeek.state != b_accurate_seek_state_idle) {
+        b_trick_settings settings;
+        BDBG_WRN(("%p detected not incomplete accurate seek:%u target:%#x", (void *)p, p->state.accurateSeek.state, (unsigned)p->state.accurateSeek.videoPts));
+        p->state.accurateSeek.state = b_accurate_seek_state_idle;
+        b_play_trick_get(p, &settings);
+        if(settings.audio_only_pause) {
+            settings.audio_only_pause=false;
+            b_play_trick_set(p, &settings);
+        }
+    }
+    return;
+}
+
 static void bplay_p_apply_accurate_seek(NEXUS_PlaybackHandle p)
 {
     if(p->state.accurateSeek.state == b_accurate_seek_state_videoPtsQueued ) {
@@ -585,7 +597,12 @@ static void bplay_p_apply_accurate_seek(NEXUS_PlaybackHandle p)
                 /* tell decoder to discard until this pts */
                 NEXUS_Error rc = NEXUS_VideoDecoder_SetStartPts(decode, p->state.accurateSeek.videoPts);
                 if (rc==BERR_SUCCESS) {
-                    p->state.accurateSeek.state=b_accurate_seek_state_videoPtsQueued;
+                    b_trick_settings settings;
+                    p->state.accurateSeek.state=b_accurate_seek_state_videoPtsSet;
+                    BDBG_WRN(("%p:accurate seek: target pts:%#x, started", (void*)p, (unsigned)p->state.accurateSeek.videoPts));
+                    b_play_trick_get(p, &settings);
+                    settings.audio_only_pause = true;
+                    b_play_trick_set(p, &settings);
                     return;
                 }
             }
@@ -633,11 +650,7 @@ static NEXUS_Error bplay_p_accurate_seek(NEXUS_PlaybackHandle p, bmedia_player_p
         /* only applies to normal play mode */
         return NEXUS_SUCCESS;
     }
-
-    if(p->state.accurateSeek.state != b_accurate_seek_state_idle) {
-        BDBG_WRN(("bplay_p_accurate_seek:%p unexpected state:%u", (void *)p, p->state.accurateSeek.state));
-        p->state.accurateSeek.state = b_accurate_seek_state_idle;
-    }
+    bplay_p_clear_accurate_seek(p);
 
     if (!bmedia_player_lookup_pts(p->media_player, position, &pts)) {
 
@@ -850,6 +863,9 @@ bplay_p_pause(NEXUS_PlaybackHandle p)
     if (p->state.mode == NEXUS_PlaybackState_ePaused) {
         return NEXUS_SUCCESS;
     }
+
+    bplay_p_clear_accurate_seek(p);
+
     p->state.mode = NEXUS_PlaybackState_ePaused;
     p->state.loopedDuringPause = false;
     p->state.seekPositionValid = false;
@@ -1318,6 +1334,7 @@ NEXUS_Playback_Play(NEXUS_PlaybackHandle p)
         BDBG_WRN(("Already in the playback mode"));
         return NEXUS_SUCCESS;
     }
+    bplay_p_clear_accurate_seek(p);
 
     rc = bplay_sync_playback(p);
     if (rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc); goto done; }
@@ -1464,6 +1481,8 @@ NEXUS_Playback_TrickMode(NEXUS_PlaybackHandle p, const NEXUS_PlaybackTrickModeSe
         BDBG_WRN(("maxDecoderRate %d is greater than max of 4000.", params->maxDecoderRate));
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
+
+    bplay_p_clear_accurate_seek(p);
 
     if (params->skipControl == NEXUS_PlaybackSkipControl_eDecoder || params->rateControl == NEXUS_PlaybackRateControl_eDecoder) {
         if (!b_play_get_video_decoder(p) && !b_play_has_audio_decoder(p)) {
@@ -1623,10 +1642,7 @@ NEXUS_Playback_Seek(NEXUS_PlaybackHandle p, NEXUS_PlaybackPosition position)
     rc = bplay_sync_playback(p);
     if(rc!=NEXUS_SUCCESS) {rc = BERR_TRACE(rc); goto done;}
 
-    if(p->state.accurateSeek.state != b_accurate_seek_state_idle) {
-        BDBG_WRN(("NEXUS_Playback_Seek:%p unexpected state:%u", (void *)p, p->state.accurateSeek.state));
-        p->state.accurateSeek.state = b_accurate_seek_state_idle;
-    }
+    bplay_p_clear_accurate_seek(p);
 
     if (!b_play_get_video_decoder(p) && !b_play_has_audio_decoder(p)) {
         /* no-decoder playback is valid, so this is only a WRN */
@@ -1869,7 +1885,7 @@ NEXUS_Playback_Start(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, c
     rc = NEXUS_Playpump_GetStatus(playback->params.playpump, &playpump_status);
     if (rc) {rc = BERR_TRACE(rc); goto error_state;}
 
-    playback->buf_limit = (uint8_t*)playpump_status.bufferBase + playpump_status.fifoSize - B_IO_BLOCK_LIMIT;
+    playback->buf_limit = (uint8_t*)playpump_status.bufferBase + playpump_status.fifoSize - playback->params.minimumBlockSize;
     BDBG_MSG(("playback buffer %p(%u)",
         (void *)playpump_status.bufferBase, (unsigned)playpump_status.fifoSize));
 
@@ -1886,7 +1902,6 @@ NEXUS_Playback_Start(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, c
     rc = b_play_start_media(playback, file, &playpump_status, pSettings);
     if(rc!=NEXUS_SUCCESS) { rc = BERR_TRACE(rc); goto error_player;}
 
-    NEXUS_StartCallbacks(playback->params.playpump);
     /* assume that playback and decode will start in normal play */
     NEXUS_Playback_GetDefaultTrickModeSettings(&playback->state.trickmode_params);
 
@@ -2096,8 +2111,9 @@ NEXUS_Playback_Stop(NEXUS_PlaybackHandle playback)
 #endif
 
     BDBG_ASSERT(playback->params.playpump);
+    NEXUS_StopCallbacks(playback->params.playpump);
     NEXUS_Playpump_Stop(playback->params.playpump);
-
+    NEXUS_StartCallbacks(playback->params.playpump);
 
     b_play_stop_media(playback);
     b_play_trick_shutdown(playback);
@@ -2105,9 +2121,7 @@ NEXUS_Playback_Stop(NEXUS_PlaybackHandle playback)
     playback->state.accurateSeek.state = b_accurate_seek_state_idle;
     playback->state.state = eStopped;
 
-    NEXUS_StopCallbacks(playback->params.playpump);
     NEXUS_CallbackHandler_Stop(playback->dataCallbackHandler);
-    NEXUS_CallbackHandler_Stop(playback->videoDecoderFirstPts);
     NEXUS_CallbackHandler_Stop(playback->videoDecoderFirstPtsPassed);
 
     NEXUS_Module_Lock(g_NEXUS_PlaybackModulesSettings.modules.file);

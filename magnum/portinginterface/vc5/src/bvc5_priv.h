@@ -198,7 +198,7 @@ BMMA_Heap_Handle BVC5_P_GetMMAHeap(
 
 uint32_t BVC5_P_TranslateBinAddress(
    BVC5_Handle hVC5,
-   uint32_t    uiAddr,
+   uint64_t    uiAddr,
    bool        bSecure
 );
 
@@ -213,5 +213,10 @@ void BVC5_P_FreeTileState(
    BVC5_P_TileState *psTileState
 );
 #endif
+
+/* SoC hardware quirks that the userspace drivers need to know about, these
+ * must match the definitions in libs/platform/v3d_driver_api.h
+ */
+#define BVC5_P_SOC_QUIRK_HWBCM_7260_81 (1L << 0)
 
 #endif /* BVC5_PRIV_H__ */

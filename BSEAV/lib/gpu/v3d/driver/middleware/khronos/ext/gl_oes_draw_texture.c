@@ -124,27 +124,20 @@
 */
 
 static void try_slow_path(GLXX_SERVER_STATE_T *state,
-   GLfloat Xs, GLfloat Ys, GLfloat Zw, GLfloat Ws, GLfloat Hs, bool secure)
+   GLfloat Xs, GLfloat Ys, GLfloat Zw, GLfloat Ws, GLfloat Hs)
 {
-   uint32_t i;
-   GL11_TEXUNIT_T * texunit = NULL;
-   MEM_HANDLE_T thandle = MEM_HANDLE_INVALID;
-   GLXX_TEXTURE_T *texture = NULL;
    bool tex_ok = false;
 
    /* check textures are acceptable by V3D HW */
    /* all enabled textures are tformat or linear tile or 32bit, pot, 4k aligned raster */
 
-   for (i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
+   for (uint32_t i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
    {
-      texunit = &state->texunits[i];
+      GL11_TEXUNIT_T *texunit = &state->texunits[i];
+      GLXX_TEXTURE_T *texture = state->bound_texture[i].twod;
 
-      thandle = state->bound_texture[i].mh_twod;
-
-      if (texunit->target_enabled && thandle != MEM_HANDLE_INVALID) {
-         KHRN_IMAGE_FORMAT_T format;
-         texture = (GLXX_TEXTURE_T *)mem_lock(thandle, NULL);
-         format = texture->format;
+      if (texunit->target_enabled && texture != NULL) {
+         KHRN_IMAGE_FORMAT_T format = texture->format;
 
          if (ABGR_8888_RSO == texture->format &&
              texture->width == texture->height &&
@@ -153,26 +146,23 @@ static void try_slow_path(GLXX_SERVER_STATE_T *state,
          {
             unsigned buf = texture->target == GL_TEXTURE_2D ?
                  TEXTURE_BUFFER_TWOD : TEXTURE_BUFFER_EXTERNAL;
-            MEM_HANDLE_T himage = texture->mh_mipmaps[buf][0];
-            if(himage!=MEM_HANDLE_INVALID)
+            KHRN_IMAGE_T *image = texture->mipmaps[buf][0];
+            if (image != NULL)
             {
-               KHRN_IMAGE_T * image = (KHRN_IMAGE_T *)mem_lock(himage, NULL);
                MEM_HANDLE_T hstorage = image->mh_storage;
-               if(hstorage!=MEM_HANDLE_INVALID)
+               if (hstorage != MEM_HANDLE_INVALID)
                {
-                  uint32_t pixels = (uint32_t)mem_lock(hstorage, NULL);
-                  if(!(pixels & 0xfff))/* 4k aligned */
+                  void *pixels = mem_lock(hstorage, NULL);
+                  if(!((uintptr_t)pixels & 0xfff))/* 4k aligned */
                      tex_ok = true;
 
                   mem_unlock(hstorage);
                }
-               mem_unlock(himage);
             }
          }
          else if (khrn_image_is_tformat(texture->format) || khrn_image_is_lineartile(texture->format))
             tex_ok = true;
 
-         mem_unlock(thandle);
          if (!tex_ok) /*found an enabled but not supported texture */
          {
             if (texture->format == ABGR_8888_RSO || texture->format == BGR_888_RSO)
@@ -186,14 +176,14 @@ static void try_slow_path(GLXX_SERVER_STATE_T *state,
    }
 
    if (tex_ok)
-      glxx_hw_draw_tex(state, Xs, Ys, Zw, Ws, Hs, secure);
+      glxx_hw_draw_tex(state, Xs, Ys, Zw, Ws, Hs);
 }
 
-void glDrawTexfOES_impl_11(GLfloat Xs, GLfloat Ys, GLfloat Zs, GLfloat Ws, GLfloat Hs, bool secure)
+static void draw_texfOES(GLfloat Xs, GLfloat Ys, GLfloat Zs, GLfloat Ws, GLfloat Hs)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
-
-   assert(state);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
    if(Ws <=0.0f || Hs <= 0.0f)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
@@ -205,8 +195,48 @@ void glDrawTexfOES_impl_11(GLfloat Xs, GLfloat Ys, GLfloat Zs, GLfloat Ws, GLflo
       f = state->viewport.far;
       Zw = Zs <=0 ? n : Zs>=1 ? f : n + Zs * (f - n);
 
-      try_slow_path(state, Xs, Ys, Zw, Ws, Hs, secure);
+      try_slow_path(state, Xs, Ys, Zw, Ws, Hs);
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
+}
+
+GL_API void GL_APIENTRY glDrawTexsOES(GLshort x, GLshort y, GLshort z, GLshort width, GLshort height)
+{
+   draw_texfOES((GLfloat)x, (GLfloat)y, (GLfloat)z, (GLfloat)width, (GLfloat)height);
+}
+
+GL_API void GL_APIENTRY glDrawTexiOES(GLint x, GLint y, GLint z, GLint width, GLint height)
+{
+   draw_texfOES((GLfloat)x, (GLfloat)y, (GLfloat)z, (GLfloat)width, (GLfloat)height);
+}
+
+GL_API void GL_APIENTRY glDrawTexxOES(GLfixed x, GLfixed y, GLfixed z, GLfixed width, GLfixed height)
+{
+   draw_texfOES(fixed_to_float(x), fixed_to_float(y), fixed_to_float(z), fixed_to_float(width), fixed_to_float(height));
+}
+
+GL_API void GL_APIENTRY glDrawTexsvOES(const GLshort *coords)
+{
+   draw_texfOES((GLfloat)coords[0], (GLfloat)coords[1], (GLfloat)coords[2], (GLfloat)coords[3], (GLfloat)coords[4]);
+}
+
+GL_API void GL_APIENTRY glDrawTexivOES(const GLint *coords)
+{
+   draw_texfOES((GLfloat)coords[0], (GLfloat)coords[1], (GLfloat)coords[2], (GLfloat)coords[3], (GLfloat)coords[4]);
+}
+
+GL_API void GL_APIENTRY glDrawTexxvOES(const GLfixed *coords)
+{
+   draw_texfOES(fixed_to_float(coords[0]), fixed_to_float(coords[1]), fixed_to_float(coords[2]), fixed_to_float(coords[3]), fixed_to_float(coords[4]));
+}
+
+GL_API void GL_APIENTRY glDrawTexfOES(GLfloat x, GLfloat y, GLfloat z, GLfloat width, GLfloat height)
+{
+   draw_texfOES(x, y, z, width, height);
+}
+
+GL_API void GL_APIENTRY glDrawTexfvOES(const GLfloat *coords)
+{
+   draw_texfOES((GLfloat)coords[0], (GLfloat)coords[1], (GLfloat)coords[2], (GLfloat)coords[3], (GLfloat)coords[4]);
 }

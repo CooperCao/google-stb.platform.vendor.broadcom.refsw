@@ -32,12 +32,14 @@ public:
 private:
    LoadScalars(DflowBuilder &builder, BasicBlockHandle block, const NodeType *resultType);
 
+   DflowScalars SelectScalarsForChain(const DflowScalars &scalars, const NodeType *resType,
+                                      const NodeType *rootType) const;
+   const NodeType *GetEnclosingType(const NodeType *rootType);
+
    void LoadVariable(const DflowScalars &scalars, const NodeType *compositeType);
-   void LoadInputVariable(const DflowScalars &scalars, const NodeType *compositeType);
    void LoadFromMemory(const NodeVariable *var, const NodeType *compositeType);
    void LoadFromWorkgroup(const NodeVariable *var, const NodeType *compositeType);
    void LoadPushConstant(const NodeVariable *var, const NodeType *compositeType);
-   void LoadAccessChain(const Node *chain);
 
 private:
    DflowBuilder           &m_builder;
@@ -72,8 +74,6 @@ private:
    void StoreToMemory(const NodeVariable *var) const;
    void StoreToWorkgroup(const NodeVariable *var) const;
 
-   void StoreAccessChain(const Node *chain);
-
 private:
    DflowBuilder           &m_builder;
    BasicBlockHandle        m_block;
@@ -105,8 +105,6 @@ private:
    DflowScalars ReadWriteMemory(const NodeVariable *var) const;
    DflowScalars ReadWriteWorkgroup(const NodeVariable *var) const;
    DflowScalars ReadWriteTexel(const NodeImageTexelPointer *var) const;
-
-   void         StoreAccessChain(const Node *chain);
 
 private:
    DflowBuilder           &m_builder;

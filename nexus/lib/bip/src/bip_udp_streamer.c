@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -170,7 +170,7 @@ BIP_UdpStreamerHandle BIP_UdpStreamer_Create(
         BIP_CHECK_GOTO(( hUdpStreamer->pStreamer ), ( "BIP_Streamer_GetStreamerOjbect Failed " ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
     }
 
-    /* coverity [missing_lock] */
+    /* coverity[missing_lock] */
     hUdpStreamer->state = BIP_UdpStreamerState_eIdle;
     BDBG_MSG(( BIP_MSG_PRE_FMT "Created hUdpStreamer %p: state %d" BIP_MSG_PRE_ARG, (void *)hUdpStreamer, hUdpStreamer->state));
 

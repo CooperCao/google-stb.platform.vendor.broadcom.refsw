@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #ifndef NEXUS_DISPLAY_PRIV_H__
 #define NEXUS_DISPLAY_PRIV_H__
@@ -59,6 +58,15 @@ extern "C" {
 #if BCHP_CHIP == 7366 /* workaround CRBVN-496 */
 #define NEXUS_P_CRBVN_496_WORKAROUND    1
 #endif
+
+#if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT || NEXUS_DISPLAY_VIP_SUPPORT
+#define NEXUS_DISPLAY_USE_VIP 1
+#endif
+
+#if NEXUS_HAS_VIDEO_ENCODER && (NEXUS_NUM_DSP_VIDEO_ENCODERS || NEXUS_DISPLAY_VIP_SUPPORT)
+#define NEXUS_P_USE_PROLOGUE_BUFFER 1
+#endif
+
 
 NEXUS_Error NEXUS_DisplayModule_SetUpdateMode_priv(
     NEXUS_DisplayUpdateMode updateMode,
@@ -102,9 +110,11 @@ typedef struct NEXUS_DisplayCapturedImage {
     uint32_t             aspectRatioX;
     uint32_t             aspectRatioY;
 } NEXUS_DisplayCapturedImage;
+#endif
 
+#if NEXUS_P_USE_PROLOGUE_BUFFER
 typedef struct NEXUS_DisplayEncoderSettings {
-#if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
+#if NEXUS_DISPLAY_USE_VIP
     NEXUS_Error (*enqueueCb_isr)(void *context, BAVC_EncodePictureBuffer *picture);
     NEXUS_Error (*dequeueCb_isr)(void *context, BAVC_EncodePictureBuffer *picture);
 #else
@@ -115,7 +125,7 @@ typedef struct NEXUS_DisplayEncoderSettings {
 #endif
     void *context;
     NEXUS_VideoFrameRate encodeRate;
-#if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
+#if NEXUS_DISPLAY_USE_VIP
     uint32_t stcSnapshotLoAddr; /* for new soft transcoder STC snapshot */
     uint32_t stcSnapshotHiAddr;
     struct {
@@ -125,18 +135,19 @@ typedef struct NEXUS_DisplayEncoderSettings {
 #endif
 } NEXUS_DisplayEncoderSettings;
 
-#if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
+#if NEXUS_DISPLAY_USE_VIP
 unsigned NEXUS_Display_GetStgIndex_priv(NEXUS_DisplayHandle display);
 #endif
 NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, NEXUS_VideoWindowHandle window, NEXUS_DisplayEncoderSettings *pSettings);
 NEXUS_Error NEXUS_Display_EnableEncoderCallback_priv(NEXUS_DisplayHandle display);
 NEXUS_Error NEXUS_Display_DisableEncoderCallback_priv(NEXUS_DisplayHandle display);
-#else
+#endif /* NEXUS_P_USE_PROLOGUE_BUFFER */
+#ifndef NEXUS_NUM_DSP_VIDEO_ENCODERS
 NEXUS_Error NEXUS_DisplayModule_SetStgResolutionRamp_priv(
     NEXUS_DisplayHandle display,
     unsigned rampFrameCount
     );
-#endif /* NEXUS_NUM_DSP_VIDEO_ENCODERS */
+#endif /* !NEXUS_NUM_DSP_VIDEO_ENCODERS */
 #endif /* NEXUS_HAS_VIDEO_ENCODER  */
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_ComponentOutput);

@@ -132,7 +132,7 @@ static int wpa_get_rsn_cap(nas_t *nas, uint8 *cap);
 /* Set an iterval timer. */
 itimer_status_t
 wpa_set_itimer(bcm_timer_module_id module, bcm_timer_id *td,
-               bcm_timer_cb handler, int handler_param, int secs, int msecs)
+               bcm_timer_cb handler, void *handler_param, int secs, int msecs)
 {
 	struct itimerspec  timer;
 	itimer_status_t ret = ITIMER_OK;
@@ -465,7 +465,7 @@ wpa_set_gtk_timer(wpa_t *wpa)
 		/* Set up an interval timer to invoke the rekey function. */
 		ts = wpa_set_itimer(wpa->nas->timer, &wpa->gtk_rekey_timer,
 		                    (bcm_timer_cb)wpa_new_gtk_callback,
-		                    (int)wpa, wpa->gtk_rekey_secs, 0);
+		                    wpa, wpa->gtk_rekey_secs, 0);
 		if (ts != ITIMER_OK)
 			dbg(wpa->nas, "GTK interval timer set failed, code %d", ts);
 	}
@@ -498,7 +498,7 @@ wpa_send_rekey_frame(wpa_t *wpa, nas_sta_t *sta)
 	} else if (sta->suppl.state == WPA_REKEYNEGOTIATING) {
 		/* Set a timeout for retransmission */
 		ts = wpa_set_itimer(nas->timer, &sta->td, (bcm_timer_cb)wpa_retransmission,
-			(int)sta, sta->wpa_msg_timeout_s, sta->wpa_msg_timeout_ms);
+			sta, sta->wpa_msg_timeout_s, sta->wpa_msg_timeout_ms);
 		if (ts != ITIMER_OK)
 			dbg(nas, "set of GTK update retry interval timer failed, code %d",
 			    ts);
@@ -1246,7 +1246,7 @@ wpa_mic_error(wpa_t *wpa, nas_sta_t *msta, bool from_driver, bool pairwise)
 		nas_wl_tkip_countermeasures(nas, TRUE);
 		ts = wpa_set_itimer(wpa->nas->timer, &wpa->countermeasures_timer,
 		                    (bcm_timer_cb) wpa_countermeasures_cb,
-		                    (int) nas, WPA_TKIP_CM_BLOCK, 0);
+		                    nas, WPA_TKIP_CM_BLOCK, 0);
 		if (ts != ITIMER_OK)
 			dbg(nas, "Setting TKIP countermeasures interval timer failed, code %d", ts);
 
@@ -2803,7 +2803,7 @@ wpa_driver_assoc_msg(wpa_t *wpa, bcm_event_t *dpkt, nas_sta_t *sta)
 
 	/* set a timeout for retransmission */
 	ts = wpa_set_itimer(nas->timer, &sta->td, (bcm_timer_cb)wpa_retransmission,
-	                    (int) sta, sta->wpa_msg_timeout_s, sta->wpa_msg_timeout_ms);
+	                    sta, sta->wpa_msg_timeout_s, sta->wpa_msg_timeout_ms);
 	if (ts != ITIMER_OK)
 		dbg(nas, "Setting PTKINITNEGOTIATING interval timer failed, code %d", ts);
 
@@ -2848,7 +2848,7 @@ wpa_new_ptk_callback(bcm_timer_id td, nas_sta_t *sta)
 
 	/* set a timeout for retransmission */
 	ts = wpa_set_itimer(nas->timer, &sta->td, (bcm_timer_cb)wpa_retransmission,
-		(int) sta, sta->wpa_msg_timeout_s, sta->wpa_msg_timeout_ms);
+		sta, sta->wpa_msg_timeout_s, sta->wpa_msg_timeout_ms);
 	if (ts != ITIMER_OK)
 		dbg(nas, "Setting PTKINITNEGOTIATING interval timer failed, code %d", ts);
 
@@ -3000,7 +3000,7 @@ wpa_ptkstart(wpa_t *wpa, nas_sta_t *sta, eapol_header_t *eapol)
 
 	/* set a timeout for retransmission */
 	ts = wpa_set_itimer(wpa->nas->timer, &sta->td, (bcm_timer_cb)wpa_retransmission,
-	                    (int) sta, sta->wpa_msg_timeout_s, sta->wpa_msg_timeout_ms);
+	                    sta, sta->wpa_msg_timeout_s, sta->wpa_msg_timeout_ms);
 	if (ts != ITIMER_OK)
 		dbg(wpa->nas, "Setting PTKINITNEGOTIATING interval timer failed, code %d", ts);
 
@@ -3121,7 +3121,7 @@ wpa_ptkinitnegotiating(wpa_t *wpa, nas_sta_t *sta, eapol_header_t *eapol)
 		nas_send_brcm_event(wpa->nas, (uint8 *)&sta->ea, DOT11_RC_MIC_FAILURE);
 
 		ts = wpa_set_itimer(wpa->nas->timer, &sta->td, (bcm_timer_cb)wpa_retransmission,
-		                    (int) sta, sta->wpa_msg_timeout_s, sta->wpa_msg_timeout_ms);
+		                    sta, sta->wpa_msg_timeout_s, sta->wpa_msg_timeout_ms);
 		if (ts != ITIMER_OK)
 			dbg(wpa->nas, "Setting PTKSTART retry interval timer failed, code %d", ts);
 		return 0;
@@ -3144,7 +3144,7 @@ wpa_ptkinitnegotiating(wpa_t *wpa, nas_sta_t *sta, eapol_header_t *eapol)
 
 	/* set a timeout for retransmission */
 	ts = wpa_set_itimer(wpa->nas->timer, &sta->td, (bcm_timer_cb)wpa_retransmission,
-	                    (int) sta, sta->wpa_msg_timeout_s, sta->wpa_msg_timeout_ms);
+	                    sta, sta->wpa_msg_timeout_s, sta->wpa_msg_timeout_ms);
 	if (ts != ITIMER_OK)
 		dbg(wpa->nas, "Setting PTKINITDONE retry interval timer failed, code %d", ts);
 
@@ -3222,7 +3222,7 @@ static int wpa_create_ptk_rekey_timer(wpa_t *wpa, nas_sta_t *sta)
 	} else {
 		ts = wpa_set_itimer(wpa->nas->timer, &sta->ptk_rekey_timer,
 			(bcm_timer_cb)wpa_new_ptk_callback,
-			(int)sta, wpa->ptk_rekey_secs, 0);
+			sta, wpa->ptk_rekey_secs, 0);
 		if (ts != ITIMER_OK) {
 			dbg(wpa->nas, "PTK ReKey interval timer set failed, for STA "MACF". "
 				"code %d",
@@ -3309,7 +3309,7 @@ wpa_ptkinitdone2(wpa_t *wpa, nas_sta_t *sta)
 
 	/* set a timeout for retransmission */
 	ts = wpa_set_itimer(nas->timer, &sta->td, (bcm_timer_cb)wpa_retransmission,
-	                    (int) sta, sta->wpa_msg_timeout_s, sta->wpa_msg_timeout_ms);
+	                    sta, sta->wpa_msg_timeout_s, sta->wpa_msg_timeout_ms);
 	if (ts != ITIMER_OK)
 		dbg(nas, "Setting REKEYNEGOTIATING retry interval timer failed, code %d", ts);
 	return 0;
@@ -3399,6 +3399,15 @@ wpa_setkeysdone(wpa_t *wpa, nas_sta_t *sta, eapol_header_t *eapol)
 			    key_info);
 		}
 		return;
+	}
+	if ((key_info & WPA_KEY_REQ) || (key_info & WPA_KEY_ERROR)) {
+		/* Rekey request and MIC failure report must have MIC.
+		 * Check the MIC.
+		 */
+		if ((!(key_info & WPA_KEY_MIC)) || (wpa_check_mic(sta, eapol) == FALSE)) {
+			dbg(wpa->nas, "MIC check failed; ignoring message");
+			return;
+		}
 	}
 	/* The combination of REQ, ERROR, and MIC is the STA's way
 	 * of informing the authenticator of a MIC failure.
@@ -3603,7 +3612,7 @@ eapol_sup_process_key(wpa_t *wpa, eapol_header_t *eapol, nas_sta_t *sta)
 					 */
 					if (memcmp(sta->suppl.eapol_temp_ptk,
 						sta->suppl.temp_encr_key,
-						sta->suppl.ptk_len)) {
+						sta->suppl.tk_len)) {
 						UpdatePTK = TRUE;
 					}
 					else {
@@ -3679,7 +3688,7 @@ eapol_sup_process_key(wpa_t *wpa, eapol_header_t *eapol, nas_sta_t *sta)
 		else {
 			memset(sta->suppl.eapol_temp_ptk, 0, sizeof(sta->suppl.eapol_temp_ptk));
 			memcpy(sta->suppl.eapol_temp_ptk, sta->suppl.temp_encr_key,
-				sta->suppl.ptk_len);
+				sta->suppl.tk_len);
 			sta->suppl.pk_state = EAPOL_SUP_PK_DONE;
 		}
 	}
@@ -3978,7 +3987,7 @@ initialize_gmk(wpa_t *wpa)
 #ifdef BCMSUPPL
 /* build and send EAPOL key request message */
 static void
-request_pkinit(bcm_timer_id timer, int data)
+request_pkinit(bcm_timer_id timer, void *data)
 {
 	nas_sta_t *sta = (nas_sta_t *)data;
 	nas_t *nas = sta->nas;
@@ -4017,7 +4026,7 @@ request_pkinit(bcm_timer_id timer, int data)
 
 	/* set a timeout for retransmission */
 	if (wpa_set_itimer(nas->timer, &sta->td, (bcm_timer_cb)wpa_retransmission,
-	    (int)sta, sta->wpa_msg_timeout_s, sta->wpa_msg_timeout_ms) != ITIMER_OK)
+	    sta, sta->wpa_msg_timeout_s, sta->wpa_msg_timeout_ms) != ITIMER_OK)
 		dbg(nas, "Setting WPA_SUP_AUTHENTICATION interval timer failed");
 }
 
@@ -4043,7 +4052,7 @@ wpa_request(wpa_t *wpa, nas_sta_t *sta)
 	if (sta->suppl.pk_state == EAPOL_SUP_PK_UNKNOWN ||
 	    sta->suppl.pk_state == EAPOL_SUP_PK_DONE) {
 		/* kick off the negotiation */
-		request_pkinit(0, (int)sta);
+		request_pkinit(0, sta);
 	}
 	/* delay the next request(s) */
 	else {
@@ -4059,7 +4068,7 @@ wpa_request(wpa_t *wpa, nas_sta_t *sta)
 
 	if (bcm_timer_create(nas->timer, &sta->wds_td))
 		ret = ITIMER_CREATE_ERROR;
-	else if (bcm_timer_connect(sta->wds_td, request_pkinit, (int)sta))
+	else if (bcm_timer_connect(sta->wds_td, request_pkinit, sta))
 		ret = ITIMER_CONNECT_ERROR;
 	else if (bcm_timer_settime(sta->wds_td, &its))
 		ret = ITIMER_SET_ERROR;
@@ -4070,7 +4079,7 @@ wpa_request(wpa_t *wpa, nas_sta_t *sta)
 
 /* pretend to have received a assoc message from the driver. */
 static void
-start_pkinit(bcm_timer_id timer, int data)
+start_pkinit(bcm_timer_id timer, void *data)
 {
 
 
@@ -4156,7 +4165,7 @@ wpa_start(wpa_t *wpa, nas_sta_t *sta)
 		TIMER_DELETE(sta->wds_td);
 
 	/* kick off the negotiation */
-	start_pkinit(0, (int)sta);
+	start_pkinit(0, sta);
 
 	/* set up retry timer */
 	its.it_interval.tv_sec = wpa->wds_to ? : 60;
@@ -4166,7 +4175,7 @@ wpa_start(wpa_t *wpa, nas_sta_t *sta)
 
 	if (bcm_timer_create(nas->timer, &sta->wds_td))
 		ret = ITIMER_CREATE_ERROR;
-	else if (bcm_timer_connect(sta->wds_td, start_pkinit, (int)sta))
+	else if (bcm_timer_connect(sta->wds_td, start_pkinit, sta))
 		ret = ITIMER_CONNECT_ERROR;
 	else if (bcm_timer_settime(sta->wds_td, &its))
 		ret = ITIMER_SET_ERROR;

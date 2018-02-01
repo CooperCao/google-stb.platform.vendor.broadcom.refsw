@@ -40,10 +40,6 @@
 # Conditional Options for this Makefile
 #
 
-ifneq ($(filter $(BCHP_CHIP), 7278), $(BCHP_CHIP))  #disable sage for zeus4 for now
-    SAGE_SUPPORT := n
-endif
-
 ##################
 # Module Options #
 ##################
@@ -90,12 +86,32 @@ NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/secv2/src/nexus_regver.c
 NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/secv2/src/nexus_regver_rsa.c
 NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/secv2/src/nexus_regver_priv.c
 
+ifeq ($(NEXUS_POWAY_SUPPORT),)
+        NEXUS_POWAY_SUPPORT := $(shell test -e $(NEXUS_TOP)/extensions/security/secv2/poway/src/nexus_poway.c && echo y)
+endif
+ifeq ($(NEXUS_POWAY_SUPPORT),y)
+    include ${NEXUS_TOP}/extensions/security/secv2/poway/poway.inc
+endif
+
+ifeq ($(NEXUS_ENCINITAS_SUPPORT),)
+        NEXUS_ENCINITAS_SUPPORT := $(shell test -e $(NEXUS_TOP)/extensions/security/secv2/encinitas/src/nexus_encinitas.c && echo y)
+endif
+ifeq ($(NEXUS_ENCINITAS_SUPPORT),y)
+    include ${NEXUS_TOP}/extensions/security/secv2/encinitas/encinitas.inc
+endif
+
 ifeq ($(_NEXUS_SECURITY_DUMP_FIRMWARE),y)
 	ifeq ($(findstring $(B_REFSW_OS), linuxkernel),${B_REFSW_OS})
         NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/secv2/src/linuxkernel/nexus_security_regver_dump.c
     else
         NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/secv2/src/linuxuser/nexus_security_regver_dump.c
     endif
+endif
+
+ifeq ($(NEXUS_COMMON_CRYPTO_SUPPORT), y)
+    include $(BSEAV)/lib/security/common_crypto/common_crypto.inc
+    NEXUS_SECURITY_PRIVATE_INCLUDES += $(COMMON_CRYPTO_INCLUDES)
+    NEXUS_SECURITY_SOURCES += $(COMMON_CRYPTO_SOURCES)
 endif
 
 # thunk layer

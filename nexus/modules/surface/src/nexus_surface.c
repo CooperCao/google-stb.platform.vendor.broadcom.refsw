@@ -496,6 +496,7 @@ void NEXUS_StripedSurface_GetDefaultCreateSettings( NEXUS_StripedSurfaceCreateSe
     pSettings->bufferType   = NEXUS_VideoBufferType_eFrame;
     pSettings->lumaPixelFormat = NEXUS_PixelFormat_eY8;
     pSettings->chromaPixelFormat = NEXUS_PixelFormat_eCb8_Cr8;
+    pSettings->matrixCoefficients = NEXUS_MatrixCoefficients_eItu_R_BT_709;
 }
 
 #define MB_HEIGHT           16

@@ -42,14 +42,13 @@ EXTERN_C_BEGIN
 #define V3D_DRAW_INDIRECT_ALIGN  4
 
 #define V3D_ATTR_ALIGN           1
-#define V3D_ATTR_REC_ALIGN      16
 
 #define V3D_TILE_ALLOC_ALIGN         4096 /* See GFXH-1179 */
 #define V3D_TILE_ALLOC_GRANULARITY   4096 /* PTB consumes memory in chunks of this size */
 #define V3D_TILE_ALLOC_BLOCK_SIZE_MIN  64
 #define V3D_TILE_ALLOC_BLOCK_SIZE_MAX 256
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 #define V3D_TILE_STATE_ALIGN   256
 #define V3D_TILE_STATE_SIZE    256 /* Per tile */
 #else
@@ -60,7 +59,7 @@ EXTERN_C_BEGIN
 #define V3D_QPU_INSTR_ALIGN   8
 #define V3D_QPU_UNIFS_ALIGN   16 /* To workaround GFXH-1181 */
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 #define V3D_TMU_TEX_STATE_ALIGN           16
 #define V3D_TMU_EXTENDED_TEX_STATE_ALIGN  32
 #define V3D_TMU_SAMPLER_ALIGN              8
@@ -80,7 +79,7 @@ EXTERN_C_BEGIN
 /* This alignment should be fine for all image data */
 #define V3D_CONSERVATIVE_IMAGE_ALIGN 4096
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 #define V3D_TMU_CFG0_BASE_PTR_ALIGN 512
 #endif
 

@@ -53,7 +53,7 @@ struct GLXX_BUFFER_;
 struct GLXX_RENDERBUFFER_T_;
 
 extern bool glxx_shared_init(GLXX_SHARED_T *shared);
-extern void glxx_shared_term(void *v, size_t size);
+extern void glxx_shared_term(void *v);
 
 extern uint32_t glxx_shared_create_program(GLXX_SHARED_T *shared);
 extern uint32_t glxx_shared_create_shader(GLXX_SHARED_T *shared, uint32_t type);

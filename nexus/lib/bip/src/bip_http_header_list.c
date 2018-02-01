@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -914,7 +914,8 @@ BIP_Status BIP_HttpHeaderList_DeserializeFromAtom(
                         }
                         if (pCh < pEnd)
                         {
-                            BIP_String_Trim( hList->hValue, pCh, 0 ); /* Trim from pCh to end. */
+                            rc = BIP_String_Trim( hList->hValue, pCh, 0 ); /* Trim from pCh to end. */
+                            BIP_CHECK_GOTO(( rc==BIP_SUCCESS ), ( "BIP_String_Trim() Failed" ), error, rc, rc );
                         }
 
                         BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: Adding header: name=\"%s\" value=\"%s\""

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1188,6 +1188,7 @@ BDBG_FILE_MODULE(nexus_environment);
 static const char * const NEXUS_P_GetEnvVariables [] =
 {
     /* all entries MUST be sorted */
+    "BP3_PROVISIONING",
     "BVCE_Debug",
     "BVCE_GopRampFactor",
     "B_REFSW_BOARD_ID",
@@ -1228,6 +1229,7 @@ static const char * const NEXUS_P_GetEnvVariables [] =
     "audio_logs_enabled",
     "audio_max_delay",
     "audio_mixer_start_disabled",
+    "audio_mixer_zereos_disabled",
     "audio_processing_disabled",
     "audio_ramp_disabled",
     "audio_target_print_file",
@@ -1421,14 +1423,18 @@ void NEXUS_Base_ExportEnvVariables(void)
 
 void NEXUS_Module_RegisterProc(NEXUS_ModuleHandle module, const char *filename, const char *module_name, void (*dbgPrint)(void))
 {
+#if BDBG_DEBUG_BUILD
     if (NEXUS_P_Base_State.settings.procInit) {
         (NEXUS_P_Base_State.settings.procInit)(module, filename, module_name, dbgPrint);
     }
+#endif
 }
 
 void NEXUS_Module_UnregisterProc(NEXUS_ModuleHandle module, const char *filename)
 {
+#if BDBG_DEBUG_BUILD
     if (NEXUS_P_Base_State.settings.procUninit) {
         (NEXUS_P_Base_State.settings.procUninit)(module, filename);
     }
+#endif
 }

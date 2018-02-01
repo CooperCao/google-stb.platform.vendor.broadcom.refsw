@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,8 +55,13 @@ extern "C"
 {
 #endif
 
-#define BHSM_OTPMSP_MAX_READ_RANGE  (80)
-
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0)
+#define BHSM_OTPMSP_MAX_READ_GROUP (144)
+#define BHSM_OTPMSP_MAX_READ_RANGE (80)
+#else
+#define BHSM_OTPMSP_MAX_READ_GROUP (71)
+#define BHSM_OTPMSP_MAX_READ_RANGE (40)
+#endif
 
 /* parameters to BHSM_OtpMsp_ReadRange */
 typedef struct

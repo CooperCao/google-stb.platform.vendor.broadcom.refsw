@@ -66,17 +66,17 @@ static void BXVD_S_SetAspectRatio_isr(
    BXVD_StillPictureBuffers *pStillPicBuf
    )
 {
-   BXDM_Picture stXdmPicture;
+   BXDM_Picture_AspectRatio aspectRatio;
 
    BDBG_ENTER(BXVD_S_SetAspectRatio_isr);
 
-   BXVD_Decoder_P_ComputeAspectRatio_isr( pPPB, &stXdmPicture );
+   BXVD_Decoder_P_ComputeAspectRatio_isr( pPPB, &aspectRatio);
 
-   pStillPicBuf->eAspectRatio = stXdmPicture.stAspectRatio.eAspectRatio;
-   pStillPicBuf->uiSampleAspectRatioX = stXdmPicture.stAspectRatio.uiSampleAspectRatioX;
-   pStillPicBuf->uiSampleAspectRatioY = stXdmPicture.stAspectRatio.uiSampleAspectRatioY;
+   pStillPicBuf->eAspectRatio = aspectRatio.eAspectRatio;
+   pStillPicBuf->uiSampleAspectRatioX = aspectRatio.uiSampleAspectRatioX;
+   pStillPicBuf->uiSampleAspectRatioY = aspectRatio.uiSampleAspectRatioY;
 
-   if ( false == stXdmPicture.stAspectRatio.bValid )
+   if ( false == aspectRatio.bValid )
    {
       BDBG_MSG(("Unknown protocol/aspect ratio: %d/%#x", pPPB->protocol, pPPB->aspect_ratio));
    }

@@ -265,6 +265,12 @@ BERR_Code DtcpAppLib_VerifyRemoteCert(void * ctx, unsigned char *pRemoteCert, in
     return BERR_NOT_SUPPORTED;
 }
 
+BERR_Code DtcpAppLib_GetSinkAkeStreamAttribute(void *hStream, B_DTCP_SinkAkeStreamAttribute *pSinkAttribute)
+{
+    BSTD_UNUSED(hStream); BSTD_UNUSED(pSinkAttribute);
+    BDBG_WRN(("%s: This API is not implented for this version of software. If you are a DTLA licensee and intend to use this API, please contact appropriate SQA member to get the DTCP-IP sources\n", BSTD_FUNCTION));
+    return BERR_NOT_SUPPORTED;
+}
 #ifdef __cplusplus
 }
 #endif

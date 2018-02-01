@@ -34,10 +34,9 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
-*******************************************************************************/
+ *****************************************************************************/
+#ifndef NEXUS_HAS_SAGE
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -49,13 +48,11 @@
 #include "bdbg.h"
 #include "bkni.h"
 
-
 #include "nexus_platform.h"
 #include "nexus_memory.h"
 #include "drm_widevine_cenc.h"
+#include "drm_common.h"
 #include "drm_metadata.h"
-
-
 
 #if 0
 --------------------------------------------------
@@ -183,3 +180,16 @@ int main(int argc, char* argv[])
     printf("\n\tMAIN - exiting application\n");
     return 0;
 }
+
+#else /* ifndef NEXUS_HAS_SAGE */
+#include <stdio.h>
+#include "bstd.h"
+int main(int argc, char* argv[])
+{
+    BSTD_UNUSED(argc);
+    BSTD_UNUSED(argv);
+    printf("\n\nThis application is not supported on SAGE-based platforms.\n");
+    printf("Please use the DRM_WVOemCrypto API for Widevine support on SAGE-based platforms.\n\n");
+    return -1;
+}
+#endif

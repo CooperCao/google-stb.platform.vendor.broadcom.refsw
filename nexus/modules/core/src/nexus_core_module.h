@@ -96,7 +96,7 @@ void NEXUS_AudioOutput_P_Destroy(NEXUS_AudioOutputHandle audioOutput);
 
 void NEXUS_MemoryBlock_P_Print(void);
 
-NEXUS_Error NEXUS_Watchdog_P_Init(void);
+void NEXUS_Watchdog_P_Init(void);
 void NEXUS_Watchdog_P_Uninit(void);
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_WatchdogCallback);

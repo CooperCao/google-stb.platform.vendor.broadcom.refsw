@@ -6,10 +6,12 @@
 #include "middleware/khronos/glsl/glsl_backend.h"
 #include "middleware/khronos/glsl/2708/glsl_qdisasm_4.h"
 #include "middleware/khronos/glsl/2708/glsl_allocator_4.h"
-#include "middleware/khronos/common/khrn_mem.h"
+#include "vcfw/rtos/abstract/rtos_abstract_mem.h"
 #include "interface/khronos/include/GLES2/gl2ext.h"
 //#include "v3d/verification/sw/tools/v3d/simpenrose/simpenrose.h"
 #include "middleware/khronos/glxx/2708/glxx_shader_4.h"
+#include "middleware/khronos/common/khrn_mem.h"
+#include "middleware/khronos/common/2708/khrn_prod_4.h"
 
 //static functions
 
@@ -1248,45 +1250,44 @@ Dataflow *glxx_backend(GLXX_HW_BLEND_T blend, GLXX_VEC4_T *color, Dataflow *disc
    return result;
 }
 
-bool glxx_schedule(Dataflow *root, uint32_t type, MEM_HANDLE_T *mh_code, MEM_HANDLE_T *mh_uniform_map, bool *threaded, uint32_t *vary_map, uint32_t *vary_count)
+bool glxx_schedule(Dataflow *root, uint32_t type, MEM_HANDLE_T *mh_code, void **puniform_map, bool *threaded, uint32_t *vary_map, uint32_t *vary_count)
 {
    if (!khrn_options.old_glsl_sched)
    {
-      if (!glsl_bcg_backend_schedule(root, type, mh_code, mh_uniform_map, threaded, vary_map, vary_count))
+      if (!glsl_bcg_backend_schedule(root, type, mh_code, puniform_map, threaded, vary_map, vary_count))
          return false;
       return true;
    }
    else
    {
-      uint32_t code_size, uniform_map_size;
-      MEM_HANDLE_T hcode, huniform_map;
-
       if (!glsl_backend_schedule(root, type, threaded))
          return false;
 
-      code_size = glsl_allocator_get_shader_size();
-      hcode = mem_alloc_ex(code_size, 8, MEM_FLAG_DIRECT, "shader code", MEM_COMPACT_DISCARD);
+      uint32_t code_size = glsl_allocator_get_shader_size();
+      MEM_HANDLE_T hcode = mem_alloc_ex(code_size, 8, MEM_FLAG_DIRECT, "shader code", MEM_COMPACT_DISCARD);
 
-      uniform_map_size = 8 * glsl_allocator_get_unif_count();
-      huniform_map = mem_alloc_ex(uniform_map_size, 4, 0, "uniform map", MEM_COMPACT_DISCARD);
+      if (hcode == MEM_HANDLE_INVALID)
+         return false;
 
-      if (hcode == MEM_HANDLE_INVALID || huniform_map == MEM_HANDLE_INVALID)
+      uint32_t uniform_map_size = 8 * glsl_allocator_get_unif_count();
+      void *uniform_map = khrn_mem_alloc(uniform_map_size, "uniform map");
+
+      if (uniform_map == NULL)
       {
-         if (hcode != MEM_HANDLE_INVALID) mem_release(hcode);
-         if (huniform_map != MEM_HANDLE_INVALID) mem_release(huniform_map);
+         mem_release(hcode);
          return false;
       }
 
-      MEM_ASSIGN(*mh_code, hcode);
-      MEM_ASSIGN(*mh_uniform_map, huniform_map);
-
-      khrn_memcpy(mem_lock(hcode, NULL), glsl_allocator_get_shader_pointer(), code_size);
+      void *code = mem_lock(hcode, NULL);
+      khrn_memcpy(code, glsl_allocator_get_shader_pointer(), code_size);
+      khrn_hw_flush_dcache_range(code, code_size);
       mem_unlock(hcode);
+      MEM_ASSIGN(*mh_code, hcode);
       mem_release(hcode);
 
-      khrn_memcpy(mem_lock(huniform_map, NULL), glsl_allocator_get_unif_pointer(), uniform_map_size);
-      mem_unlock(huniform_map);
-      mem_release(huniform_map);
+      khrn_memcpy(uniform_map, glsl_allocator_get_unif_pointer(), uniform_map_size);
+      KHRN_MEM_ASSIGN(*puniform_map, uniform_map);
+      khrn_mem_release(uniform_map);
 
       if (type & GLSL_BACKEND_TYPE_FRAGMENT)
       {

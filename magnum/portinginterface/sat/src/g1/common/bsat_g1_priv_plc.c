@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -528,7 +528,6 @@ BERR_Code BSAT_g1_P_SetPlc_isr(BSAT_ChannelHandle h, uint32_t bw, uint32_t damp)
 BERR_Code BSAT_g1_P_GetAcqPlcDvbs2x(BSAT_ChannelHandle h, uint32_t *pBw, uint32_t *pDamp8)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-   BSAT_Mode mode = hChn->acqSettings.mode;
    uint32_t Fb = hChn->acqSettings.symbolRate;
    bool bPilot = BSAT_g1_P_AfecIsPilot_isr(h);
 

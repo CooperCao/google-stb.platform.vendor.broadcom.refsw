@@ -58,7 +58,15 @@
 #include "nexus_memory.h"
 #include "nexus_platform_client.h"
 #include "nexus_random_number.h"
+
+#if (NEXUS_SECURITY_API_VERSION==1)
 #include "nexus_otpmsp.h"
+#else
+#include "nexus_otp_msp.h"
+#include "nexus_otp_key.h"
+#include "nexus_otp_msp_indexes.h"
+#endif
+
 #include "nexus_base_os.h"
 
 #include "bsagelib_types.h"
@@ -961,14 +969,13 @@ ErrorExit:
 #define OTP_MSP0_VALUE_ZB (0x3E)
 #define OTP_MSP1_VALUE_ZB (0x3F)
 
-
 ChipType_e DRM_Common_GetChipType()
 {
-
+    NEXUS_Error rc =  NEXUS_SUCCESS;
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_ReadMspParms     readMspParms;
     NEXUS_ReadMspIO        readMsp0;
     NEXUS_ReadMspIO        readMsp1;
-    NEXUS_Error rc =  NEXUS_SUCCESS;
 
     readMspParms.readMspEnum = NEXUS_OtpCmdMsp_eReserved233;
     rc = NEXUS_Security_ReadMSP(&readMspParms,&readMsp0);
@@ -983,4 +990,45 @@ ChipType_e DRM_Common_GetChipType()
         return ChipType_eZS;
     }
     return ChipType_eZB;
+#else
+#if NEXUS_ZEUS_VERSION >= NEXUS_ZEUS_VERSION_CALC(5,1)
+    unsigned msp0Index = 224;
+    unsigned msp1Index = 225;
+#else
+    unsigned msp0Index = 233;
+    unsigned msp1Index = 234;
+#endif
+
+    NEXUS_OtpMspRead readMsp0;
+    NEXUS_OtpMspRead readMsp1;
+
+    rc = NEXUS_OtpMsp_Read( msp0Index, &readMsp0);
+    if(rc != NEXUS_SUCCESS)
+    {
+        BDBG_ERR(("%s - Error Reading MSP", BSTD_FUNCTION));
+        return ChipType_eMax;
+    }
+    BDBG_LOG(("%s: otp msp0 = 0x%x, valid= 0x%x", __FUNCTION__,readMsp0.data, readMsp0.valid));
+    readMsp0.data &= readMsp0.data & readMsp0.valid;
+    BDBG_LOG(("%s: otp msp0 = 0x%x", __FUNCTION__,readMsp0.data));
+    rc = NEXUS_OtpMsp_Read( msp1Index, &readMsp1);
+    if(rc != NEXUS_SUCCESS)
+    {
+        BDBG_ERR(("%s - Error Reading MSP", BSTD_FUNCTION));
+        return ChipType_eMax;
+    }
+    readMsp1.data &= readMsp1.data & readMsp1.valid;
+    BDBG_LOG(("%s: otp msp1 = 0x%x", __FUNCTION__,readMsp1.data));
+
+    if ((readMsp0.data  == OTP_MSP0_VALUE_ZS)
+        && (readMsp1.data  == OTP_MSP1_VALUE_ZS)) {
+        BDBG_LOG(("%s: chiptype is ZS",__FUNCTION__));
+        return ChipType_eZS;
+    }
+    else
+    {
+        BDBG_LOG(("%s: chiptype is ZB",__FUNCTION__));
+        return ChipType_eZB;
+    }
+#endif
 }

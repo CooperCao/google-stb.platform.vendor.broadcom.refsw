@@ -885,7 +885,7 @@ int  bmmt_parse_pl_table(batom_cursor *cursor, bmmt_pl_table *table)
         }
         break;
         default:
-            BDBG_WRN(("%s unknown location type",__FUNCTION__));
+            BDBG_WRN(("%s unknown location type", __extension__ __FUNCTION__));
         }
         table->ip_flow[i].descriptor_loop_length = batom_cursor_uint16_be(cursor);
         BDBG_ASSERT( sizeof(table->ip_flow[i].descriptor) >= table->ip_flow[i].descriptor_loop_length);
@@ -1089,7 +1089,7 @@ int bmmt_print_pl_table(bmmt_pl_table *table)
         }
         break;
         default:
-            BDBG_WRN(("%s unknown location type",__FUNCTION__));
+            BDBG_WRN(("%s unknown location type", __extension__ __FUNCTION__));
         }
         printf("\n\t descriptor %s",table->ip_flow[i].descriptor);
     }

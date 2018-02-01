@@ -317,7 +317,7 @@ int main(int argc, char **argv)
                     feed_file = false;
                     continue;
                 }
-                printf("read %d from file\n", size);
+                printf("read %u from file\n", (unsigned)size);
             }
             else if (!feed_file && feed_zeros) {
                 if (size > feed_zeros) size = feed_zeros;

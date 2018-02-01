@@ -125,24 +125,11 @@ public:
    uint32_t              ArrayLayers() const { return m_arrayLayers; }
    VkSampleCountFlagBits Samples()     const { return m_samples; }
    VkImageUsageFlags     Usage()       const { return m_usage; }
-   // This is for when the real Vulkan format is required, if you want the
-   // LFMT of the image use the NaturalLFMT() or HardwareLFMT() methods.
+   // This is for when the real Vulkan format is required. Most code should use LFMT().
    VkFormat              Format()      const { return m_format; }
 
-   GFX_LFMT_T      NaturalLFMT()  const { return m_mipDescs[0].planes[0].lfmt; }
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   GFX_LFMT_T      HardwareLFMT() const { return m_mipDescs[0].planes[0].lfmt; }
-#else
-   GFX_LFMT_T      HardwareLFMT() const { return m_hardwareLFMT; }
-#endif
+   GFX_LFMT_T      LFMT()         const { return m_mipDescs[0].planes[0].lfmt; }
    GFX_LFMT_DIMS_T GetImageDims() const { return gfx_lfmt_get_dims(&m_mipDescs[0].planes[0].lfmt); }
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   // Indicates that operations on this image must keep the Vulkan image
-   // component ordering in tact, when the hardware format is different from
-   // natural Vulkan format.
-   bool KeepVulkanComponentOrder() const { return m_keepVulkanComponentOrder; }
-#endif
 
 private:
    void InitGMemTarget(
@@ -185,12 +172,6 @@ private:
    bool                    m_autoDevMemBinding;
    bool                    m_transient = false;
    bool                    m_externalImage;
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   GFX_LFMT_T              m_hardwareLFMT;
-   bool                    m_keepVulkanComponentOrder;
-   bool                    m_needCopyConversions;
-#endif
 };
 
 } // namespace bvk

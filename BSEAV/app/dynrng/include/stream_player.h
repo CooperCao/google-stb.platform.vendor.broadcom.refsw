@@ -43,27 +43,29 @@
 
 typedef struct StreamPlayer * StreamPlayerHandle;
 
-typedef struct StreamPlayerCreateSettings
+typedef struct StreamPlayerPlaySettings
 {
-    PlatformHandle platform;
-    struct
-    {
-        PlatformCallback callback;
-        void * context;
-    } streamInfo;
-} StreamPlayerCreateSettings;
+    const char * streamUrl;
+    PlatformPlayMode playMode;
+    bool forceRestart;
+    bool startPaused;
+    bool stcTrick;
+} StreamPlayerPlaySettings;
 
 bool stream_player_file_filter(const char * path);
-void stream_player_get_default_create_settings(StreamPlayerCreateSettings * pSettings);
-StreamPlayerHandle stream_player_create(const StreamPlayerCreateSettings * pSettings);
+StreamPlayerHandle stream_player_create(PlatformMediaPlayerHandle platformPlayer);
 void stream_player_destroy(StreamPlayerHandle player);
 void stream_player_add_stream_source(StreamPlayerHandle player, FileManagerHandle filer);
 const PlatformPictureInfo * stream_player_get_picture_info(StreamPlayerHandle player);
-void stream_player_play_stream(StreamPlayerHandle player, const char * streamUrl, PlatformUsageMode usageMode, bool forceRestart);
+void stream_player_get_platform_settings(StreamPlayerHandle player, PlatformMediaPlayerSettings * pSettings);
+int stream_player_set_platform_settings(StreamPlayerHandle player, const PlatformMediaPlayerSettings * pSettings);
+void stream_player_get_default_play_settings(StreamPlayerPlaySettings * pSettings);
+void stream_player_play_stream(StreamPlayerHandle player, const StreamPlayerPlaySettings * pSettings);
 unsigned stream_player_get_count(StreamPlayerHandle player);
-void stream_player_start(StreamPlayerHandle player, PlatformUsageMode usageMode);
+void stream_player_start(StreamPlayerHandle player);
 void stream_player_stop(StreamPlayerHandle player);
 void stream_player_toggle_pause(StreamPlayerHandle player);
+void stream_player_frame_advance(StreamPlayerHandle player);
 void stream_player_print(StreamPlayerHandle player);
 
 #endif /* STREAM_PLAYER_H__ */

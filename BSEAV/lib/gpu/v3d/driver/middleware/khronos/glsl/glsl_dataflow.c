@@ -12,6 +12,7 @@
 #include "middleware/khronos/glsl/glsl_errors.h"
 #include "middleware/khronos/glsl/glsl_fastmem.h"
 #include "middleware/khronos/glsl/glsl_stack.h"
+#include "middleware/khronos/common/khrn_mem.h"
 
 #include "middleware/khronos/glsl/glsl_const_operators.h"
 
@@ -2735,7 +2736,7 @@ void glsl_calculate_dataflow(Statement* ast)
    dataflow_line_num = LINE_NUMBER_UNDEFINED;
 }
 
-static INLINE void expr_calculate_dataflow_instance(Dataflow** scalar_values, Expr* expr)
+static inline void expr_calculate_dataflow_instance(Dataflow** scalar_values, Expr* expr)
 {
    // Copy all dataflow pointers from the variable.
    switch (expr->u.instance.symbol->flavour) {
@@ -2812,7 +2813,7 @@ static Dataflow *build_uniform_offset(Expr *expr, Dataflow **linkable_value, boo
 
 static int num_tmu_lookups;     /* Number of tmu lookups used for uniform arrays */
 
-static INLINE void expr_calculate_dataflow_subscript(Dataflow** scalar_values, Expr* expr)
+static inline void expr_calculate_dataflow_subscript(Dataflow** scalar_values, Expr* expr)
 {
     Dataflow** aggregate_scalar_values;
     bool       cond = false;
@@ -2958,7 +2959,7 @@ static INLINE void expr_calculate_dataflow_subscript(Dataflow** scalar_values, E
    }
 }
 
-static INLINE void expr_calculate_dataflow_sequence(Dataflow** scalar_values, Expr* expr)
+static inline void expr_calculate_dataflow_sequence(Dataflow** scalar_values, Expr* expr)
 {
    Dataflow** all_these_scalar_values = stack_alloc_by_type(expr->u.sequence.all_these->type);
 
@@ -2968,7 +2969,7 @@ static INLINE void expr_calculate_dataflow_sequence(Dataflow** scalar_values, Ex
    stack_free();
 }
 
-static INLINE void expr_calculate_dataflow_prim_constructor_call(Dataflow** scalar_values, Expr* expr)
+static inline void expr_calculate_dataflow_prim_constructor_call(Dataflow** scalar_values, Expr* expr)
 {
    int d;
    ExprChain* args = expr->u.prim_constructor_call.args;
@@ -3120,7 +3121,7 @@ static INLINE void expr_calculate_dataflow_prim_constructor_call(Dataflow** scal
    }
 }
 
-static INLINE void expr_calculate_dataflow_type_constructor_call(Dataflow** scalar_values, Expr* expr)
+static inline void expr_calculate_dataflow_type_constructor_call(Dataflow** scalar_values, Expr* expr)
 {
    ExprChainNode* arg;
 
@@ -3139,7 +3140,7 @@ static INLINE void expr_calculate_dataflow_type_constructor_call(Dataflow** scal
    }
 }
 
-static INLINE void expr_calculate_dataflow_field_selector_swizzle(Dataflow** scalar_values, Expr* expr)
+static inline void expr_calculate_dataflow_field_selector_swizzle(Dataflow** scalar_values, Expr* expr)
 {
    int i;
    Dataflow** aggregate_scalar_values = stack_alloc_by_type(expr->u.field_selector_swizzle.aggregate->type);
@@ -3157,7 +3158,7 @@ static INLINE void expr_calculate_dataflow_field_selector_swizzle(Dataflow** sca
    stack_free();
 }
 
-static INLINE void expr_calculate_dataflow_field_selector_struct(Dataflow** scalar_values, Expr* expr)
+static inline void expr_calculate_dataflow_field_selector_struct(Dataflow** scalar_values, Expr* expr)
 {
    int i;
    Dataflow** aggregate_scalar_values = stack_alloc_by_type(expr->u.field_selector_struct.aggregate->type);
@@ -3283,7 +3284,7 @@ static void expr_calculate_dataflow_unary_op_common(Dataflow** scalar_values, Ex
    stack_free();
 }
 
-static INLINE void expr_calculate_dataflow_binary_op_arithmetic(Dataflow** scalar_values, Expr* expr)
+static inline void expr_calculate_dataflow_binary_op_arithmetic(Dataflow** scalar_values, Expr* expr)
 {
    Expr* left = expr->u.binary_op.left;
    Expr* right = expr->u.binary_op.right;
@@ -3558,7 +3559,7 @@ static Dataflow* construct_integer_rounder(Dataflow* operand)
       guess1);
 }
 
-static INLINE void expr_calculate_dataflow_binary_op_divide(Dataflow** scalar_values, Expr* expr)
+static inline void expr_calculate_dataflow_binary_op_divide(Dataflow** scalar_values, Expr* expr)
 {
    Expr* left = expr->u.binary_op.left;
    Expr* right = expr->u.binary_op.right;
@@ -3827,7 +3828,7 @@ static void expr_calculate_dataflow_binary_op_short_circuit(Dataflow** scalar_va
       right_scalar_value);
 }
 
-static INLINE void expr_calculate_dataflow_binary_op_equality(Dataflow** scalar_values, Expr* expr)
+static inline void expr_calculate_dataflow_binary_op_equality(Dataflow** scalar_values, Expr* expr)
 {
    Expr* left = expr->u.binary_op.left;
    Expr* right = expr->u.binary_op.right;
@@ -3888,7 +3889,7 @@ static INLINE void expr_calculate_dataflow_binary_op_equality(Dataflow** scalar_
    stack_free();
 }
 
-static INLINE void expr_calculate_dataflow_cond_op(Dataflow** scalar_values, Expr* expr)
+static inline void expr_calculate_dataflow_cond_op(Dataflow** scalar_values, Expr* expr)
 {
    int i;
    Dataflow* cond_scalar_value;
@@ -3935,7 +3936,7 @@ static bool is_lvalue_local(Expr *lvalue)
    return false;
 }
 
-static INLINE void expr_calculate_dataflow_assign_op(Dataflow** scalar_values, Expr* expr)
+static inline void expr_calculate_dataflow_assign_op(Dataflow** scalar_values, Expr* expr)
 {
    Dataflow*** lvalue_scalar_values = (Dataflow ***)malloc_fast(expr->type->scalar_count * sizeof(Dataflow**));
    int i;
@@ -3953,7 +3954,7 @@ static INLINE void expr_calculate_dataflow_assign_op(Dataflow** scalar_values, E
       *(lvalue_scalar_values[i]) = guard_scalar_assign(scalar_values[i], *(lvalue_scalar_values[i]), is_lvalue_local(expr->u.assign_op.lvalue));
 }
 
-static INLINE void expr_calculate_dataflow_affix(Dataflow** scalar_values, Expr* expr)
+static inline void expr_calculate_dataflow_affix(Dataflow** scalar_values, Expr* expr)
 {
    int i;
 
@@ -4029,7 +4030,7 @@ static INLINE void expr_calculate_dataflow_affix(Dataflow** scalar_values, Expr*
    stack_free();
 }
 
-static INLINE void expr_calculate_dataflow_function_call(Dataflow** scalar_values, Expr* expr)
+static inline void expr_calculate_dataflow_function_call(Dataflow** scalar_values, Expr* expr)
 {
    int size;
    int i;
@@ -4200,7 +4201,7 @@ Dataflow* glsl_dataflow_construct_threadswitch(Dataflow* operand)
    return dataflow;
 }
 
-static INLINE void expr_calculate_dataflow_texture_lookup(Dataflow** scalar_values, Expr* expr)
+static inline void expr_calculate_dataflow_texture_lookup(Dataflow** scalar_values, Expr* expr)
 {
    switch (g_ShaderFlavour)
    {
@@ -4596,7 +4597,7 @@ void glsl_dataflow_priority_queue_init(DataflowPriorityQueue* queue, int size)
    queue->nodes = (Dataflow **)malloc_fast(size * sizeof(Dataflow *));
 }
 
-static INLINE bool compare(const Dataflow *d0, const Dataflow *d1)
+static inline bool compare(const Dataflow *d0, const Dataflow *d1)
 {
    return d1->delay > d0->delay;
 }
@@ -4674,14 +4675,14 @@ Dataflow *glsl_dataflow_priority_queue_pop(DataflowPriorityQueue* queue)
    }
 }
 
-#include "middleware/khronos/common/khrn_mem.h"
+#include "vcfw/rtos/abstract/rtos_abstract_mem.h"
 
 typedef struct
 {
    Dataflow *dependent;
    Dataflow **inputs;
    uint32_t num_inputs;
-   MEM_HANDLE_T mh_out_blob;
+   void *out_blob;
    uint32_t alloc_amount;
    char *in_offset;
    bool revert;
@@ -4691,21 +4692,26 @@ typedef struct
 #endif
 } GLSL_COPY_CONTEXT_T;
 
+#define GLSL_COPY_CONTEXT_BLOCK_SIZE 4096
+
 static void *stuff_alloc(GLSL_COPY_CONTEXT_T *stuff, uint32_t size)
 {
-   if (stuff->mh_out_blob == MEM_HANDLE_INVALID)
-   {
+   if (stuff->out_blob == NULL)
       return malloc_fast(size);
-   }
    else
    {
       void *result;
-      if (stuff->alloc_amount + size > mem_get_size(stuff->mh_out_blob))
+      if (stuff->alloc_amount + size > khrn_mem_get_size(stuff->out_blob))
       {
-         verify(mem_resize(stuff->mh_out_blob, mem_get_size(stuff->mh_out_blob) + 1024));   /* TODO: out of memory */
+         size_t s = khrn_mem_get_size(stuff->out_blob);
+         void *t = khrn_mem_alloc(s + GLSL_COPY_CONTEXT_BLOCK_SIZE, "GLSL_COPY_CONTEXT_T.mh_blob");
+         vcos_demand(t != NULL);
+         memcpy(t, stuff->out_blob, s);
+         KHRN_MEM_ASSIGN(stuff->out_blob, t);
+         khrn_mem_release(t);
       }
-      assert(stuff->alloc_amount + size <= mem_get_size(stuff->mh_out_blob));
-      result = (void *)stuff->alloc_amount;
+      assert(stuff->alloc_amount + size <= khrn_mem_get_size(stuff->out_blob));
+      result = (void *)(uintptr_t)stuff->alloc_amount;
       stuff->alloc_amount += size;
       return result;
    }
@@ -4713,18 +4719,16 @@ static void *stuff_alloc(GLSL_COPY_CONTEXT_T *stuff, uint32_t size)
 
 static void *stuff_out_lock(GLSL_COPY_CONTEXT_T *stuff, void *handle)
 {
-   if (stuff->mh_out_blob == MEM_HANDLE_INVALID)
+   if (stuff->out_blob == NULL)
       return handle;
    else
-      return ((char *)mem_lock(stuff->mh_out_blob, NULL)) + (size_t)handle;
+      return (char *)stuff->out_blob + (size_t)handle;
 }
 
 static void stuff_out_unlock(GLSL_COPY_CONTEXT_T *stuff, void *handle)
 {
    UNUSED(handle);
-
-   if (stuff->mh_out_blob != MEM_HANDLE_INVALID)
-      mem_unlock(stuff->mh_out_blob);
+   UNUSED(stuff);
 }
 
 static void *stuff_in_translate(GLSL_COPY_CONTEXT_T *stuff, void *ptr)
@@ -4878,10 +4882,8 @@ static Dataflow *copy(GLSL_COPY_CONTEXT_T *stuff, Dataflow *dataflow_in)
          {
             stuff_chain_append(stuff, &df.iodependencies, out_iodep);
 
-            if (stuff->mh_out_blob == MEM_HANDLE_INVALID)
-            {
+            if (stuff->out_blob == NULL)
                glsl_dataflow_chain_append(&out_iodep->iodependents, result);
-            }
          }
 
          node = (DataflowChainNode *)stuff_in_translate(stuff, node->next);
@@ -4904,15 +4906,13 @@ static Dataflow *copy(GLSL_COPY_CONTEXT_T *stuff, Dataflow *dataflow_in)
       stuff->dependent = olddep;
    }
 
-   if (stuff->mh_out_blob == MEM_HANDLE_INVALID && stuff->dependent)
-   {
+   if (stuff->out_blob == NULL && stuff->dependent)
       glsl_dataflow_chain_append(&result->dependents, stuff->dependent);
-   }
 
    return result;
 }
 
-MEM_HANDLE_T glsl_dataflow_copy_to_relocatable(uint32_t count, Dataflow **dataflow_out, Dataflow **dataflow_in, void *in_offset)
+void *glsl_dataflow_copy_to_relocatable(uint32_t count, Dataflow **dataflow_out, Dataflow **dataflow_in, void *in_offset)
 {
    GLSL_COPY_CONTEXT_T stuff;
    uint32_t i;
@@ -4921,10 +4921,8 @@ MEM_HANDLE_T glsl_dataflow_copy_to_relocatable(uint32_t count, Dataflow **datafl
    stuff.inputs = NULL;
    stuff.num_inputs = 0;
    stuff.input_flavour = DATAFLOW_FLAVOUR_COUNT;
-   stuff.mh_out_blob = mem_alloc_ex(1024, 4, MEM_FLAG_RESIZEABLE|MEM_FLAG_HINT_GROW, "GLSL_COPY_CONTEXT_T.mh_blob", MEM_COMPACT_DISCARD);
-
-   if (stuff.mh_out_blob == MEM_HANDLE_INVALID)
-      return MEM_HANDLE_INVALID;
+   stuff.out_blob = khrn_mem_alloc(GLSL_COPY_CONTEXT_BLOCK_SIZE, "GLSL_COPY_CONTEXT_T.mh_blob");
+   vcos_demand(stuff.out_blob != NULL);
 
    stuff.alloc_amount = 4;    /* waste some memory to avoid NULL being returned */
    stuff.in_offset = in_offset;
@@ -4938,7 +4936,7 @@ MEM_HANDLE_T glsl_dataflow_copy_to_relocatable(uint32_t count, Dataflow **datafl
    for (i = 0; i < count; i++)
       copy(&stuff, dataflow_in[i]);
 
-   return stuff.mh_out_blob;
+   return stuff.out_blob;
 }
 
 void glsl_dataflow_copy(uint32_t count, Dataflow **dataflow_out, Dataflow **dataflow_in, void *in_offset, Dataflow **inputs, uint32_t num_inputs, DataflowFlavour input_flavour, bool *texture_rb_swap)
@@ -4950,7 +4948,7 @@ void glsl_dataflow_copy(uint32_t count, Dataflow **dataflow_out, Dataflow **data
    stuff.inputs = inputs;
    stuff.num_inputs = num_inputs;
    stuff.input_flavour = input_flavour;
-   stuff.mh_out_blob = MEM_HANDLE_INVALID;
+   stuff.out_blob = NULL;
    stuff.alloc_amount = 0;
    stuff.in_offset = in_offset;
    stuff.revert = false;

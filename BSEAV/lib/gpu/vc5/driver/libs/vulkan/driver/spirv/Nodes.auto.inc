@@ -1419,6 +1419,12 @@ public:
       return spv::Core::OpVariable;
    }
 
+   const NodeType *TypeOfTarget() const
+   {
+      auto  pointerType = m_resultType->As<const NodeTypePointer *>();
+      return pointerType->GetType()->As<const NodeType *>();
+   }
+
 private:
    spv::StorageClass      m_storageClass;
    Optional<NodeIndex>    m_initializer;

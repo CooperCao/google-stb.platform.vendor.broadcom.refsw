@@ -1103,9 +1103,8 @@ BERR_Code BHAB_3466_P_GetDemodChannels(
     BHAB_CHK_RETCODE(BHAB_3466_ReadRegister(handle, BCHP_TM_FAMILY_ID, &familyId));
     familyId = (familyId>>16);
     BHAB_CHK_RETCODE(BHAB_3466_ReadRegister(handle, BCHP_TM_PRODUCT_ID, &chipId));
-    if ((chipId & 0xFF000000) == 0x34000000) {
-        chipId = (chipId >> 16);
-    }
+    chipId = (chipId >> 16);
+
     if (chipId == 0) {
         chipId = familyId;
         BDBG_MSG(("Using Family ID for Chip ID: %X", chipId));
@@ -1118,10 +1117,12 @@ BERR_Code BHAB_3466_P_GetDemodChannels(
         case 0x3465 :
             *totalADSChannels = 1;
             break;
-        default :
+        default:
+            BDBG_WRN(("Unrecognized chipID 0x%x, familyID 0x%x, defaulting to 1 channel", chipId, familyId));
             *totalADSChannels = 1;
             break;
     }
+
 done:
     return retCode;
 }

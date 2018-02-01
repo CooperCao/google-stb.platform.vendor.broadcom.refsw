@@ -135,8 +135,9 @@ public:
     virtual CGraphics *          graphicsCreate(void);
     virtual CSimpleVideoDecode * videoDecodeCreate(eWindowType windowType);
     virtual CSimpleAudioDecode * audioDecodeCreate(eWindowType windowType);
+    virtual CSimplePcmPlayback * audioPcmPlaybackCreate(void);
     virtual COutputHdmi *        outputHdmiCreate(void);
-    virtual CVideoWindow *       videoWindowInitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, eWindowType windowType);
+    virtual eRet                 videoWindowInitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, CVideoWindow **ppVideoWindow, eWindowType windowType);
     virtual void                 videoWindowUninitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, CVideoWindow * pVideoWindow);
     virtual eRet                 mosaicInitialize(void);
     virtual void                 mosaicUninitialize(void);
@@ -183,8 +184,11 @@ public:
     void                 stcUninitialize(CStc ** pStc, eWindowType windowType);
     void                 videoDecodeDestroy(eWindowType windowType);
     void                 audioDecodeDestroy(eWindowType windowType);
+    void                 audioPcmPlaybackDestroy(void);
     CSimpleAudioDecode * audioDecodeInitialize(COutputHdmi * pOutputHdmi, COutputSpdif * pOutputSpdif, COutputAudioDac * pOutputAudioDac, COutputRFM * pOutputRFM, CStc * pStc, eWindowType winType);
     void                 audioDecodeUninitialize(CSimpleAudioDecode ** pAudioDecode, eWindowType winType);
+    CSimplePcmPlayback * audioPcmPlaybackInitialize(COutputHdmi * pOutputHdmi, COutputSpdif * pOutputSpdif);
+    void                 audioPcmPlaybackUninitialize(CSimplePcmPlayback ** pPcmPlayback);
     eRet                 guiInitialize(CConfig * pConfig, CGraphics * pGraphics);
     void                 guiUninitialize(void);
     void                 notificationsInitialize(void);

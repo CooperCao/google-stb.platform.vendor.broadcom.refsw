@@ -1,44 +1,40 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  ******************************************************************************/
-
 
 #include "bstd.h" /* also includes berr, bdbg, etc */
 #include "bkni.h"
@@ -55,6 +51,7 @@ BDBG_FILE_MODULE(BMUX_IVF_INPUT);      /* enables input diagnostics */
 BDBG_FILE_MODULE(BMUX_IVF_OUTPUT);     /* enables output diagnostics */
 BDBG_FILE_MODULE(BMUX_IVF_STATE);      /* enables state machine diagnostics */
 BDBG_FILE_MODULE(BMUX_IVF_FINISH);     /* enables finish diagnostics */
+BDBG_FILE_MODULE(BMUX_IVF_SUPERFRAME); /* enables superframe diagnostics */
 
 /****************************
      Static Prototypes
@@ -62,6 +59,7 @@ BDBG_FILE_MODULE(BMUX_IVF_FINISH);     /* enables finish diagnostics */
 static BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptorsWaiting(BMUXlib_File_IVF_Handle hIVFMux);
 static void BMUXlib_File_IVF_P_Output_InputDescriptorDone(void *pPrivateData, const BMUXlib_Output_Descriptor *pOutputDescriptor);
 static void BMUXlib_File_IVF_P_Output_FrameHeaderDone(void *pPrivateData, const BMUXlib_Output_Descriptor *pOutputDescriptor);
+static void BMUXlib_File_IVF_P_Output_SuperframeIndexDone(void *pPrivateData, const BMUXlib_Output_Descriptor *pOutputDescriptor);
 
 /*************************
 * P R I V A T E   A P I  *
@@ -315,6 +313,15 @@ static void BMUXlib_File_IVF_P_Output_FrameHeaderDone(
    hIVFMux->stFrameHeader.uiReadOffset %= BMUXlib_File_IVF_P_MAX_FRAMES;
 }
 
+static void BMUXlib_File_IVF_P_Output_SuperframeIndexDone(void *pPrivateData, const BMUXlib_Output_Descriptor *pOutputDescriptor)
+{
+   BMUXlib_File_IVF_P_SuperframeIndex *pIndex = pOutputDescriptor->stStorage.pBufferAddress;
+   BSTD_UNUSED(pPrivateData);
+
+   /* free the index entry */
+   pIndex->auiBytes[0] = 0;
+}
+
 /*
    Function:
       BMUXlib_File_IVF_P_ProcessInputDescriptors
@@ -359,6 +366,10 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
       BMUXlib_Input_Descriptor stInputDescriptor;
       bool bDescAvail;
 
+      /* peek at the next descriptor to process
+         NOTE: we dont actually consume the descriptor here, since a state may
+               be forced to wait due to lack of other resources; hence the descriptor
+               will be peeked at again next iteration */
       bDescAvail = BMUXlib_Input_PeekAtNextDescriptor(
          hIVFMux->hInput,
          &stInputDescriptor
@@ -380,6 +391,7 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
             hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eGenerateFileHeader;
          }
          break;
+
          case BMUXlib_File_IVF_P_InputState_eGenerateFileHeader:
          {
             if ( true == BMUXlib_Output_IsSpaceAvailable( hIVFMux->hOutput ) )
@@ -502,6 +514,7 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
 
                   if ( BERR_SUCCESS == rc )
                   {
+                     /* consume this descriptor (discards the descriptor peeked at previously) */
                      hIVFMux->uiPendingCount++;
 
                      BMUXlib_Input_GetNextDescriptor(
@@ -509,8 +522,8 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
                         &stInputDescriptor
                      );
 
-                     BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eGenerateFileHeader --> eGetNextDescriptor"));
-                     hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eGetNextDescriptor;
+                     BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eGenerateFileHeader --> eProcessNextDescriptor"));
+                     hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eProcessNextDescriptor;
                   }
                }
 
@@ -519,23 +532,89 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
          }
          break;
 
-         case BMUXlib_File_IVF_P_InputState_eGetNextDescriptor:
+         case BMUXlib_File_IVF_P_InputState_eProcessNextDescriptor:
          {
             /* Check if metadata, frame, or eos */
             if ( BMUXLIB_INPUT_DESCRIPTOR_IS_METADATA( &stInputDescriptor ) )
             {
-               BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eGetNextDescriptor --> eProcessMetadata"));
+               BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eProcessNextDescriptor --> eProcessMetadata"));
                hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eProcessMetadata;
             }
             else if ( BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART( &stInputDescriptor ) )
             {
-               BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eGetNextDescriptor --> eGenerateFrameHeader"));
-               hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eGenerateFrameHeader;
+               if (hIVFMux->stSuperframe.bEnd)
+               {
+                  /* output the superframe index before processing the current frame */
+                  BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eProcessNextDescriptor --> eGenerateSuperframeIndex"));
+                  hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eGenerateSuperframeIndex;
+                  break;
+               }
+
+               if (BMUXLIB_INPUT_DESCRIPTOR_VIDEO_IS_HIDDEN_FRAME(&stInputDescriptor))
+               {
+                  /* VP9 "hidden frame" */
+                  if (0 != hIVFMux->stSuperframe.uiFrameCount)
+                  {
+                     /* currently processing a superframe, so append this frame to the superframe */
+                     BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eProcessNextDescriptor --> eProcessFrameData (hidden frame)"));
+                     hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eProcessFrameData;
+                  }
+                  else
+                  {
+                     /* start a new superframe, and use the PTS of the current frame for the header */
+                     /* store the offset of the frame header for this superframe
+                        (current output write offset) */
+                     hIVFMux->stSuperframe.uiOffset = BMUXlib_Output_GetEndOffset(hIVFMux->hOutput);
+                     BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eProcessNextDescriptor --> eGenerateFrameHeader (start superframe)"));
+                     hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eGenerateFrameHeader;
+                  }
+                  hIVFMux->stSuperframe.uiFrameCount++;
+                  BDBG_ASSERT(hIVFMux->stSuperframe.uiFrameCount <= BMUXlib_File_IVF_P_MAX_FRAMES_IN_SUPERFRAME);
+                  break;
+               }
+               else
+               {
+                  /* normal frame */
+                  if (0 != hIVFMux->stSuperframe.uiFrameCount)
+                  {
+                     /* this frame marks the end of the superframe */
+                     BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID( &stInputDescriptor ) );
+
+                     /* simply store this frames PTS here, for later use when we output the superframe index */
+                     hIVFMux->stSuperframe.uiPTSms = BMUXLIB_INPUT_DESCRIPTOR_PTS( &stInputDescriptor )/90;
+                     hIVFMux->stSuperframe.uiFrameCount++;
+                     BDBG_ASSERT(hIVFMux->stSuperframe.uiFrameCount <= BMUXlib_File_IVF_P_MAX_FRAMES_IN_SUPERFRAME);
+
+                     /* indicate that we want to output the superframe index when we see the _next_ frame
+                        (i.e. at the end of the current frame) */
+                     hIVFMux->stSuperframe.bEnd = true;
+
+                     /* NOTE: We do NOT want to send a frame header for this non-hidden frame since it is a superframe
+                        (header was already sent - we just (possibly) need to update the PTS) */
+                     BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eProcessNextDescriptor --> eProcessFrameData (end superframe)"));
+                     hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eProcessFrameData;
+                  }
+                  else
+                  {
+                     if ( BMUXLIB_INPUT_DESCRIPTOR_IS_EOS( &stInputDescriptor ) )
+                     {
+                        BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eProcessNextDescriptor --> eProcessEOS"));
+                        hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eProcessEOS;
+                        break;
+                     }
+                     /* normal frame */
+                     BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eProcessNextDescriptor --> eGenerateFrameHeader"));
+                     hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eGenerateFrameHeader;
+                  }
+                  break;
+               }
             }
             else
             {
-               BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eGetNextDescriptor --> eProcessFrameData"));
+               /* generic chunk of frame */
+               BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eProcessNextDescriptor --> eProcessFrameData"));
                hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eProcessFrameData;
+               break;
             }
          }
          break;
@@ -556,7 +635,7 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
                BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
 
                stOutputDescriptor.stStorage.bWriteOperation = false;
-               stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eCurrent;
+               stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eEnd;
                stOutputDescriptor.stStorage.pBufferAddress = 0;
                stOutputDescriptor.stStorage.uiLength = 0;
                stOutputDescriptor.stStorage.uiOffset = 0;
@@ -572,6 +651,7 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
 
                if ( BERR_SUCCESS == rc )
                {
+                  /* consume this descriptor (discards the descriptor peeked at previously) */
                   hIVFMux->uiPendingCount++;
 
                   BMUXlib_Input_GetNextDescriptor(
@@ -579,8 +659,8 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
                      &stInputDescriptor
                   );
 
-                  BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eProcessMetadata --> eGetNextDescriptor"));
-                  hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eGetNextDescriptor;
+                  BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eProcessMetadata --> eProcessNextDescriptor"));
+                  hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eProcessNextDescriptor;
                }
             }
          }
@@ -598,46 +678,41 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
                  && ( uiWriteOffsetTemp != hIVFMux->stFrameHeader.uiReadOffset ) )
             {
                BMUXlib_File_IVF_P_FrameHeader *pstFrameHeader = &hIVFMux->stFrameHeader.astFrameHeader[hIVFMux->stFrameHeader.uiWriteOffset];
+               BMUXlib_Output_Descriptor stOutputDescriptor;
+               BMUXlib_Output_CompletedCallbackInfo stCompletedCallbackInfo;
 
                BKNI_Memset( pstFrameHeader, 0, BMUXlib_File_IVF_P_FRAME_HEADER_SIZE );
 
-               BMUXlib_File_IVF_P_Set32_LE( &pstFrameHeader->auiBytes, BMUXlib_File_IVF_P_FrameHeader_FrameSize_OFFSET, BMUXLIB_INPUT_DESCRIPTOR_FRAMESIZE( &stInputDescriptor ) );
+               BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID( &stInputDescriptor ));
 
-               if ( BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID( &stInputDescriptor ) )
+               BMUXlib_File_IVF_P_Set32_LE( &pstFrameHeader->auiBytes, BMUXlib_File_IVF_P_FrameHeader_FrameSize_OFFSET, BMUXLIB_INPUT_DESCRIPTOR_FRAMESIZE( &stInputDescriptor ));
+               BMUXlib_File_IVF_P_Set64_LE( &pstFrameHeader->auiBytes, BMUXlib_File_IVF_P_FrameHeader_PTS_OFFSET, BMUXLIB_INPUT_DESCRIPTOR_PTS( &stInputDescriptor )/90);
+
+               BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
+               BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
+
+               stOutputDescriptor.stStorage.bWriteOperation = true;
+               stOutputDescriptor.stStorage.pBufferAddress = pstFrameHeader->auiBytes;
+               stOutputDescriptor.stStorage.uiLength = BMUXlib_File_IVF_P_FRAME_HEADER_SIZE;
+               stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eEnd;
+               stOutputDescriptor.stStorage.uiOffset = 0;
+
+               stCompletedCallbackInfo.pCallbackData = hIVFMux;
+               stCompletedCallbackInfo.pCallback = BMUXlib_File_IVF_P_Output_FrameHeaderDone;
+
+               rc = BMUXlib_Output_AddNewDescriptor(
+                        hIVFMux->hOutput,
+                        &stOutputDescriptor,
+                        &stCompletedCallbackInfo
+                        );
+
+               if ( BERR_SUCCESS == rc )
                {
-                  BMUXlib_File_IVF_P_Set64_LE( &pstFrameHeader->auiBytes, BMUXlib_File_IVF_P_FrameHeader_PTS_OFFSET, BMUXLIB_INPUT_DESCRIPTOR_PTS( &stInputDescriptor )/90 );
-               }
+                  hIVFMux->stFrameHeader.uiWriteOffset = uiWriteOffsetTemp;
+                  hIVFMux->uiFrameCount++;
 
-               {
-                  BMUXlib_Output_Descriptor stOutputDescriptor;
-                  BMUXlib_Output_CompletedCallbackInfo stCompletedCallbackInfo;
-
-                  BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
-                  BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
-
-                  stOutputDescriptor.stStorage.bWriteOperation = true;
-                  stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eCurrent;
-                  stOutputDescriptor.stStorage.pBufferAddress = pstFrameHeader->auiBytes;
-                  stOutputDescriptor.stStorage.uiLength = BMUXlib_File_IVF_P_FRAME_HEADER_SIZE;
-                  stOutputDescriptor.stStorage.uiOffset = 0;
-
-                  stCompletedCallbackInfo.pCallbackData = hIVFMux;
-                  stCompletedCallbackInfo.pCallback = BMUXlib_File_IVF_P_Output_FrameHeaderDone;
-
-                  rc = BMUXlib_Output_AddNewDescriptor(
-                           hIVFMux->hOutput,
-                           &stOutputDescriptor,
-                           &stCompletedCallbackInfo
-                           );
-
-                  if ( BERR_SUCCESS == rc )
-                  {
-                     hIVFMux->stFrameHeader.uiWriteOffset = uiWriteOffsetTemp;
-                     hIVFMux->uiFrameCount++;
-
-                     BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eGenerateFrameHeader --> eProcessFrameData"));
-                     hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eProcessFrameData;
-                  }
+                  BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eGenerateFrameHeader --> eProcessFrameData"));
+                  hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eProcessFrameData;
                }
             }
          }
@@ -655,11 +730,17 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
                BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
 
                stOutputDescriptor.stStorage.bWriteOperation = true;
-               stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eCurrent;
+               stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eEnd;
                stOutputDescriptor.stStorage.hBlock = BMUXLIB_INPUT_DESCRIPTOR_BLOCK( &stInputDescriptor );
                stOutputDescriptor.stStorage.uiBlockOffset = BMUXLIB_INPUT_DESCRIPTOR_OFFSET( &stInputDescriptor );
                stOutputDescriptor.stStorage.uiLength = BMUXLIB_INPUT_DESCRIPTOR_LENGTH( &stInputDescriptor );
                stOutputDescriptor.stStorage.uiOffset = 0;
+
+               if (0 != hIVFMux->stSuperframe.uiFrameCount)
+               {
+                  /* if this is a superframe, account for this frame's data */
+                  hIVFMux->stSuperframe.auiFrameSizes[hIVFMux->stSuperframe.uiFrameCount] += BMUXLIB_INPUT_DESCRIPTOR_LENGTH( &stInputDescriptor );
+               }
 
                stCompletedCallbackInfo.pCallbackData = hIVFMux;
                stCompletedCallbackInfo.pCallback = BMUXlib_File_IVF_P_Output_InputDescriptorDone;
@@ -681,13 +762,14 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
                   }
                   else
                   {
+                     /* consume this descriptor (discards the descriptor peeked at previously) */
                      BMUXlib_Input_GetNextDescriptor(
                         hIVFMux->hInput,
                         &stInputDescriptor
                      );
 
-                     BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eProcessFrameData --> eGetNextDescriptor"));
-                     hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eGetNextDescriptor;
+                     BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eProcessFrameData --> eProcessNextDescriptor"));
+                     hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eProcessNextDescriptor;
                   }
                }
             }
@@ -722,6 +804,7 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
 
                if ( rc == BERR_SUCCESS )
                {
+                  /* consume this descriptor (discards the descriptor peeked at previously) */
                   BDBG_WRN(( "Wrote %d frames", hIVFMux->uiFrameCount ));
 
                   BMUXlib_Input_GetNextDescriptor(
@@ -736,11 +819,135 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
          }
          break;
 
-         case BMUXlib_File_IVF_P_InputState_eDone:
-         {
+         case BMUXlib_File_IVF_P_InputState_eGenerateSuperframeIndex:
+            if ( true == BMUXlib_Output_IsSpaceAvailable( hIVFMux->hOutput ) )
+            {
+               BMUXlib_File_IVF_P_SuperframeIndex *pIndexEntry = NULL;
+               unsigned i;
 
+               /* find an unused entry for the index */
+               for (i = 0; i < BMUXlib_File_IVF_P_MAX_FRAMES; i++)
+               {
+                  BMUXlib_File_IVF_P_SuperframeIndex *pIndexEntryTemp = &hIVFMux->stSuperframe.aIndexEntries[i];
+                  if (0 == pIndexEntryTemp->auiBytes[0])
+                  {
+                     pIndexEntry = pIndexEntryTemp;
+                     break;
+                  }
+               }
+               if (NULL != pIndexEntry)
+               {
+                  /* there is an available entry, so write the index using the collected frame sizes */
+                  BMUXlib_Output_Descriptor stOutputDescriptor;
+                  BMUXlib_Output_CompletedCallbackInfo stCompletedCallbackInfo;
+                  unsigned uiIdx = 0;
+
+                  pIndexEntry->auiBytes[uiIdx++] = BMUXlib_File_IVF_P_SUPERFRAME_INDEX_MARKER | (hIVFMux->stSuperframe.uiFrameCount-1);
+                  BDBG_ASSERT(hIVFMux->stSuperframe.uiFrameCount <= BMUXlib_File_IVF_P_MAX_FRAMES_IN_SUPERFRAME);
+                  hIVFMux->stSuperframe.uiSize = 0;
+                  BDBG_MODULE_MSG(BMUX_IVF_SUPERFRAME, ("Num frames = %d", hIVFMux->stSuperframe.uiFrameCount));
+                  for (i = 1; i <= hIVFMux->stSuperframe.uiFrameCount; i++, uiIdx += 4)
+                  {
+                     uint32_t uiFrameSize = hIVFMux->stSuperframe.auiFrameSizes[i];
+                     BMUXlib_File_IVF_P_Set32_LE(pIndexEntry->auiBytes, uiIdx, uiFrameSize);
+                     hIVFMux->stSuperframe.uiSize += uiFrameSize;
+                     BDBG_MODULE_MSG(BMUX_IVF_SUPERFRAME, ("Frame[%d]: %d bytes", i, uiFrameSize));
+                  }
+                  pIndexEntry->auiBytes[uiIdx++] = pIndexEntry->auiBytes[0];
+                  /* check sum of all frames in superframe matches bytes written so far */
+                  BDBG_MODULE_MSG(BMUX_IVF_SUPERFRAME, ("Current File offset = "BDBG_UINT64_FMT", Superframe offset = "BDBG_UINT64_FMT", Superframe size = %d bytes",
+                        BDBG_UINT64_ARG(BMUXlib_Output_GetEndOffset(hIVFMux->hOutput)),
+                        BDBG_UINT64_ARG(hIVFMux->stSuperframe.uiOffset),
+                        hIVFMux->stSuperframe.uiSize));
+                  BDBG_ASSERT((hIVFMux->stSuperframe.uiSize + BMUXlib_File_IVF_P_FRAME_HEADER_SIZE) == (BMUXlib_Output_GetEndOffset(hIVFMux->hOutput) - hIVFMux->stSuperframe.uiOffset));
+                  hIVFMux->stSuperframe.uiSize += uiIdx; /* total size of the superframe includes the index */
+
+                  BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
+
+                  stOutputDescriptor.stStorage.bWriteOperation = true;
+                  stOutputDescriptor.stStorage.pBufferAddress = pIndexEntry->auiBytes;
+                  stOutputDescriptor.stStorage.uiLength = uiIdx;
+                  stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eEnd;
+                  stOutputDescriptor.stStorage.uiOffset = 0;
+
+                  stCompletedCallbackInfo.pCallbackData = hIVFMux;
+                  stCompletedCallbackInfo.pCallback = BMUXlib_File_IVF_P_Output_SuperframeIndexDone;
+
+                  rc = BMUXlib_Output_AddNewDescriptor(hIVFMux->hOutput, &stOutputDescriptor, &stCompletedCallbackInfo);
+                  if ( BERR_SUCCESS == rc )
+                  {
+                     /* go generate a header "update" with the new superframe information */
+                     BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eGenerateSuperframeIndex --> eSuperframeHeaderUpdate"));
+                     hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eSuperframeHeaderUpdate;
+                  }
+                  else
+                  {
+                     /* need to free the index entry */
+                     pIndexEntry->auiBytes[0] = 0;
+                  }
+               } /* end: if available inex entry */
+            } /* end: if available output descriptor */
+            break;
+
+         case BMUXlib_File_IVF_P_InputState_eSuperframeHeaderUpdate:
+         {
+            unsigned uiWriteOffsetTemp = (hIVFMux->stFrameHeader.uiWriteOffset + 1) % BMUXlib_File_IVF_P_MAX_FRAMES;
+
+            BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART( &stInputDescriptor ) );
+            BDBG_ASSERT( sizeof( hIVFMux->stFrameHeader.astFrameHeader[0] ) == BMUXlib_File_IVF_P_FRAME_HEADER_SIZE );
+
+            /* Write Frame Header */
+            if ( ( true == BMUXlib_Output_IsSpaceAvailable( hIVFMux->hOutput ) )
+                 && ( uiWriteOffsetTemp != hIVFMux->stFrameHeader.uiReadOffset ) )
+            {
+               BMUXlib_File_IVF_P_FrameHeader *pstFrameHeader = &hIVFMux->stFrameHeader.astFrameHeader[hIVFMux->stFrameHeader.uiWriteOffset];
+               BMUXlib_Output_Descriptor stOutputDescriptor;
+               BMUXlib_Output_CompletedCallbackInfo stCompletedCallbackInfo;
+
+               BKNI_Memset( pstFrameHeader, 0, BMUXlib_File_IVF_P_FRAME_HEADER_SIZE );
+
+               BMUXlib_File_IVF_P_Set32_LE( &pstFrameHeader->auiBytes, BMUXlib_File_IVF_P_FrameHeader_FrameSize_OFFSET, hIVFMux->stSuperframe.uiSize);
+               BMUXlib_File_IVF_P_Set64_LE( &pstFrameHeader->auiBytes, BMUXlib_File_IVF_P_FrameHeader_PTS_OFFSET, hIVFMux->stSuperframe.uiPTSms);
+
+               BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
+               BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
+
+               stOutputDescriptor.stStorage.bWriteOperation = true;
+               stOutputDescriptor.stStorage.pBufferAddress = pstFrameHeader->auiBytes;
+               stOutputDescriptor.stStorage.uiLength = BMUXlib_File_IVF_P_FRAME_HEADER_SIZE;
+               /* perform a header update with new superframe PTS and size */
+               stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eStart;
+               stOutputDescriptor.stStorage.uiOffset = hIVFMux->stSuperframe.uiOffset;
+
+               stCompletedCallbackInfo.pCallbackData = hIVFMux;
+               stCompletedCallbackInfo.pCallback = BMUXlib_File_IVF_P_Output_FrameHeaderDone;
+
+               rc = BMUXlib_Output_AddNewDescriptor(
+                        hIVFMux->hOutput,
+                        &stOutputDescriptor,
+                        &stCompletedCallbackInfo
+                        );
+
+               if ( BERR_SUCCESS == rc )
+               {
+                  hIVFMux->stFrameHeader.uiWriteOffset = uiWriteOffsetTemp;
+                  /* Done with this superframe */
+                  hIVFMux->stSuperframe.bEnd = false;
+                  hIVFMux->stSuperframe.uiFrameCount = 0;
+                  BKNI_Memset(hIVFMux->stSuperframe.auiFrameSizes, 0, sizeof(hIVFMux->stSuperframe.auiFrameSizes));
+
+                  /* process the next frame normally */
+                  BDBG_MODULE_MSG(BMUX_IVF_STATE, ("eSuperframeHeaderUpdate --> eProcessNextDescriptor"));
+                  hIVFMux->eInputState = BMUXlib_File_IVF_P_InputState_eProcessNextDescriptor;
+               }
+            }  /* end: if space available and header available */
          }
          break;
+
+         case BMUXlib_File_IVF_P_InputState_eDone:
+            /* Do nothing; once we get here it will stay here until mux is stopped and restarted */
+            break;
+
          default:
             /* Unknown state! should not happen ... typically indicates memory overwrite
                this is also a catch-all if it somehow gets to "started" state without invoking Start() */

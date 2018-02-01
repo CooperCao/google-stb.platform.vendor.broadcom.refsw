@@ -45,7 +45,7 @@
 #include "bsagelib_rai.h"
 #include "bsagelib_client.h"
 #include "nexus_security_client.h"
-
+#include "breg_endian.h"
 #include "bsagelib_boot.h"
 #include "bkni.h"
 
@@ -79,9 +79,29 @@ struct sageSecureLogInfo {
         uint32_t indication_id;
         uint32_t value;
     } indicationData;
+    NEXUS_Sage_Secure_Log_TlBufferContext *pBuffContext;
+    uint8_t *pLogBuffAddr;
 };
 
-uint32_t secure_log_status,secure_log_captured,secure_log_saved,secure_log_capture_fail;
+struct secure_log_capture_count{
+    uint32_t empty;
+    uint32_t saved;
+    uint32_t fail;
+};
+struct secure_log_capture_info{
+    uint32_t status;
+    struct secure_log_capture_count total;
+    struct secure_log_capture_count brcmBuff;
+    struct secure_log_capture_count privBuff1;
+    struct secure_log_capture_count privBuff2;
+};
+typedef enum {
+    log_empty,
+    log_saved,
+    log_capture_fail
+}secure_log_capture_state_e;
+
+static struct secure_log_capture_info secure_log;
 static struct sageSecureLogInfo *lHandle;
 
 #define SAGERESPONSE_TIMEOUT 5000 /* in ms */
@@ -181,6 +201,18 @@ void NEXUS_Sage_P_SecureLog_Uninit(void)
         return;
     }
 
+    if(lHandle->pBuffContext != NULL)
+    {
+        BSAGElib_Rai_Memory_Free(lHandle->sagelibClientHandle, (uint8_t *)lHandle->pBuffContext);
+        lHandle->pBuffContext = NULL;
+    }
+
+    if(lHandle->pLogBuffAddr != NULL)
+    {
+        BSAGElib_Rai_Memory_Free(lHandle->sagelibClientHandle, lHandle->pLogBuffAddr);
+        lHandle->pLogBuffAddr = NULL;
+    }
+
     /* Close securelog module */
     if (lHandle->hSagelibRpcModuleHandle != NULL)
     {
@@ -252,6 +284,84 @@ void NEXUS_Sage_P_SecureLog_Uninit(void)
     lHandle=NULL;
 }
 
+NEXUS_Error NEXUS_Sage_P_SecureLog_ConfigureBuffer(const SAGE_IMAGE_FirmwareID imageId)
+{
+    BERR_Code rc;
+
+    /* Image Interface */
+    void * img_context = NULL;
+    BIMG_Interface img_interface;
+    NEXUS_SageImageHolder secureLogCertificateImg =
+        {"SecureLog Certificate", 0, NULL};
+
+    secureLogCertificateImg.id = imageId;
+
+    if(!lHandle)
+    {
+        BDBG_ERR(( "%s SecureLog not initialized !",BSTD_FUNCTION));
+        rc = NEXUS_NOT_INITIALIZED;
+        goto EXIT;
+    }
+
+    /* Initialize IMG interface; used to pull out an image on the file system from the kernel. */
+    rc = Nexus_SageModule_P_Img_Create(NEXUS_CORE_IMG_ID_SAGE, &img_context, &img_interface);
+    if (rc != NEXUS_SUCCESS) {
+        BDBG_ERR(("%s - Cannot Create IMG", BSTD_FUNCTION));
+        goto EXIT;
+    }
+
+    if(secure_log_certificate.buf != NULL)
+    {
+        NEXUS_Memory_Free(secure_log_certificate.buf);
+    }
+    secure_log_certificate.buf = NULL;
+    secure_log_certificate.len = 0;
+    secureLogCertificateImg.raw = &secure_log_certificate;
+
+    /* Load SecureLog TA into memory */
+    rc = NEXUS_SageModule_P_Load(&secureLogCertificateImg, &img_interface, img_context);
+    if(rc != NEXUS_SUCCESS) {
+        BDBG_WRN(("%s - Cannot Load IMG %s ", BSTD_FUNCTION, secureLogCertificateImg.name));
+    }
+
+    BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
+    lHandle->sageContainer->blocks[0].len = secure_log_certificate.len;
+    lHandle->sageContainer->blocks[0].data.ptr = (uint8_t* )secure_log_certificate.buf;
+
+    lHandle->sageContainer->basicIn[0] = SAGE_SECURE_LOG_BUFFER_SIZE;
+
+    rc = BSAGElib_Rai_Module_ProcessCommand(lHandle->hSagelibRpcModuleHandle,
+                                            Secure_Log_CommandId_eConfigureBuffer,
+                                            lHandle->sageContainer,&lHandle->uiLastAsyncId);
+    BDBG_MSG(("COnfig secureLog buffer: sageModuleHandle [%p], commandId [%d], assignedAsyncId [0x%x]",
+                      (void*)lHandle->hSagelibRpcModuleHandle, Secure_Log_CommandId_eConfigureBuffer, lHandle->uiLastAsyncId));
+    if (rc != BERR_SUCCESS)
+    {
+        rc=BERR_TRACE(rc);
+        goto EXIT;
+    }
+    rc = NEXUS_Sage_SecureLog_P_WaitForSage(SAGERESPONSE_TIMEOUT);
+    if (rc != BERR_SUCCESS)
+    {
+        rc=BERR_TRACE(rc);
+        goto EXIT;
+    }
+    BDBG_MSG(("Configured secureLog Buffer rc=%d", lHandle->sageContainer->basicOut[0]));
+
+    rc = lHandle->sageContainer->basicOut[0];
+    if (rc != BERR_SUCCESS)
+    {
+        rc=BERR_TRACE(rc);
+        goto EXIT;
+    }
+
+EXIT:
+    if (img_context) {
+        Nexus_SageModule_P_Img_Destroy(img_context);
+    }
+    return rc;
+}
+
 NEXUS_Error NEXUS_Sage_P_SecureLog_Init(const NEXUS_SageModuleSettings *pSettings)
 {
     BSAGElib_ClientSettings sagelibClientSettings;
@@ -263,9 +373,6 @@ NEXUS_Error NEXUS_Sage_P_SecureLog_Init(const NEXUS_SageModuleSettings *pSetting
 
     NEXUS_SageImageHolder secureLogTAImg =
         {"SecureLog TA", SAGE_IMAGE_FirmwareID_eSage_TA_SECURE_LOG, NULL};
-
-    NEXUS_SageImageHolder secureLogCertificateImg =
-        {"SecureLog Certificate", SAGE_IMAGE_FirmwareID_eSage_SECURE_LOG_Certificate, NULL};
 
     if(lHandle){
         NEXUS_Sage_P_SecureLog_Uninit();
@@ -307,15 +414,17 @@ NEXUS_Error NEXUS_Sage_P_SecureLog_Init(const NEXUS_SageModuleSettings *pSetting
         rc = NEXUS_NOT_AVAILABLE;
         goto EXIT;
     }
-    secure_log_status = nexus_sage_secure_log_TA_found;
+    secure_log.status = nexus_sage_secure_log_TA_found;
 
-    if(!pSettings->imageExists[secureLogCertificateImg.id])
+    if((!pSettings->imageExists[SAGE_IMAGE_FirmwareID_eSage_SECURE_LOG_Certificate])
+     &&(!pSettings->imageExists[SAGE_IMAGE_FirmwareID_eSage_SECURE_LOG_Certificate1])
+     &&(!pSettings->imageExists[SAGE_IMAGE_FirmwareID_eSage_SECURE_LOG_Certificate2]))
     {
-        BDBG_MSG(("%s - IMG %s Does not exist", BSTD_FUNCTION, secureLogCertificateImg.name));
+        BDBG_MSG(("%s - Securlog certificate 'certificate.bin' does not exist", BSTD_FUNCTION));
         rc = NEXUS_NOT_AVAILABLE;
         goto EXIT;
     }
-    secure_log_status = nexus_sage_secure_log_certificate_found;
+    secure_log.status = nexus_sage_secure_log_certificate_found;
 
     secure_log_ta.buf = NULL;
     secure_log_ta.len = 0;
@@ -443,53 +552,67 @@ NEXUS_Error NEXUS_Sage_P_SecureLog_Init(const NEXUS_SageModuleSettings *pSetting
         rc = BERR_TRACE(rc);
         goto EXIT;
     }
-    secure_log_status = nexus_sage_secure_log_module_inited;
+    secure_log.status = nexus_sage_secure_log_module_inited;
 
     BDBG_MSG(("Initialized SAGE SecureLog Module: receivedSageModuleHandle [%p], assignedAsyncId [0x%x]",
               (void*)lHandle->hSagelibRpcModuleHandle, lHandle->uiLastAsyncId));
 
-    secure_log_certificate.buf = NULL;
-    secure_log_certificate.len = 0;
-    secureLogCertificateImg.raw = &secure_log_certificate;
-
-    /* Load SecureLog TA into memory */
-    rc = NEXUS_SageModule_P_Load(&secureLogCertificateImg, &img_interface, img_context);
-    if(rc != NEXUS_SUCCESS) {
-        BDBG_WRN(("%s - Cannot Load IMG %s ", BSTD_FUNCTION, secureLogCertificateImg.name));
+    if(pSettings->imageExists[SAGE_IMAGE_FirmwareID_eSage_SECURE_LOG_Certificate])
+    {
+        rc = NEXUS_Sage_P_SecureLog_ConfigureBuffer(SAGE_IMAGE_FirmwareID_eSage_SECURE_LOG_Certificate);
+        if (rc != BERR_SUCCESS)
+        {
+            BDBG_ERR(("Error Configure SecureLog Buffer, error [0x%x]",rc));
+            BERR_TRACE(rc);
+            goto EXIT;
+        }
     }
 
-    BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
-    lHandle->sageContainer->blocks[0].len = secure_log_certificate.len;
-    lHandle->sageContainer->blocks[0].data.ptr = (uint8_t* )secure_log_certificate.buf;
-
-    lHandle->sageContainer->basicIn[0] = SAGE_SECURE_LOG_BUFFER_SIZE;
-
-    rc = BSAGElib_Rai_Module_ProcessCommand(lHandle->hSagelibRpcModuleHandle,
-                                            Secure_Log_CommandId_eConfigureBuffer,
-                                            lHandle->sageContainer,&lHandle->uiLastAsyncId);
-    BDBG_MSG(("COnfig secureLog buffer: sageModuleHandle [%p], commandId [%d], assignedAsyncId [0x%x]",
-                      (void*)lHandle->hSagelibRpcModuleHandle, Secure_Log_CommandId_eConfigureBuffer, lHandle->uiLastAsyncId));
-    if (rc != BERR_SUCCESS)
+    if(pSettings->imageExists[SAGE_IMAGE_FirmwareID_eSage_SECURE_LOG_Certificate1])
     {
-        rc=BERR_TRACE(rc);
+        rc = NEXUS_Sage_P_SecureLog_ConfigureBuffer(SAGE_IMAGE_FirmwareID_eSage_SECURE_LOG_Certificate1);
+        if (rc != BERR_SUCCESS)
+        {
+            BDBG_ERR(("Error Configure SecureLog Buffer 1, error [0x%x]",rc));
+            BERR_TRACE(rc);
+            goto EXIT;
+        }
+    }
+
+    if(pSettings->imageExists[SAGE_IMAGE_FirmwareID_eSage_SECURE_LOG_Certificate2])
+    {
+        rc = NEXUS_Sage_P_SecureLog_ConfigureBuffer(SAGE_IMAGE_FirmwareID_eSage_SECURE_LOG_Certificate2);
+        if (rc != BERR_SUCCESS)
+        {
+            BDBG_ERR(("Error Configure SecureLog Buffer 2, error [0x%x]",rc));
+            BERR_TRACE(rc);
+            goto EXIT;
+        }
+    }
+
+    lHandle->pBuffContext = (NEXUS_Sage_Secure_Log_TlBufferContext *)BSAGElib_Rai_Memory_Allocate(lHandle->sagelibClientHandle,
+                                                         sizeof(NEXUS_Sage_Secure_Log_TlBufferContext),
+                                                         BSAGElib_MemoryType_Global);
+    if(lHandle->pBuffContext == NULL)
+    {
+        rc = NEXUS_OUT_OF_DEVICE_MEMORY;
+        BDBG_ERR(("%s - Error Allocating pBuffContext", BSTD_FUNCTION));
+        BERR_TRACE(rc);
         goto EXIT;
     }
-    rc = NEXUS_Sage_SecureLog_P_WaitForSage(SAGERESPONSE_TIMEOUT);
-    if (rc != BERR_SUCCESS)
-    {
-        rc=BERR_TRACE(rc);
-        goto EXIT;
-    }
-    BDBG_MSG(("Configured secureLog Buffer rc=%d", lHandle->sageContainer->basicOut[0]));
 
-    rc = lHandle->sageContainer->basicOut[0];
-    if (rc != BERR_SUCCESS)
+    lHandle->pLogBuffAddr = BSAGElib_Rai_Memory_Allocate(lHandle->sagelibClientHandle,
+                                                         SAGE_SECURE_LOG_BUFFER_SIZE,
+                                                         BSAGElib_MemoryType_Global);
+    if(lHandle->pLogBuffAddr == NULL)
     {
-        rc=BERR_TRACE(rc);
+        rc = NEXUS_OUT_OF_DEVICE_MEMORY;
+        BDBG_ERR(("%s - Error Allocating pLogBuffAddr", BSTD_FUNCTION));
+        BERR_TRACE(rc);
         goto EXIT;
     }
 
-    secure_log_status = nexus_sage_secure_log_buffer_enabled;
+    secure_log.status = nexus_sage_secure_log_buffer_enabled;
 
     /* SSF(sage framework) is not a TA, do not have a TA_ID,use 0 as TA_ID in NEXUS_Sage_SecureLog_Attach()
      Attch(0) will attach SSF to sage secure log buffer. */
@@ -590,6 +713,56 @@ void NEXUS_Sage_SecureLog_Detach(uint32_t TA_Id)
 EXIT:
     return;
 }
+void NEXUS_Sage_SecureLog_Update_Capture_Info(
+    secure_log_capture_state_e      capture_state,
+    NEXUS_Sage_SecureLog_BufferId   bufferId
+    )
+{
+    struct secure_log_capture_count *pBuff = NULL;
+
+    switch(capture_state)
+    {
+    case log_empty:
+        secure_log.total.empty++;
+        break;
+    case log_saved:
+        secure_log.total.saved++;
+        break;
+    case log_capture_fail:
+        secure_log.total.fail++;
+        break;
+    }
+
+    switch(bufferId)
+    {
+    case NEXUS_Sage_SecureLog_BufferId_eBRCMBuff:
+        pBuff = &secure_log.brcmBuff;
+        break;
+    case NEXUS_Sage_SecureLog_BufferId_eTARangeBuff1:
+        pBuff = &secure_log.privBuff1;
+        break;
+    case NEXUS_Sage_SecureLog_BufferId_eTARangeBuff2:
+        pBuff = &secure_log.privBuff2;
+        break;
+    default:
+        break;
+    }
+    if(pBuff != NULL)
+    {
+        switch(capture_state)
+        {
+        case log_empty:
+            pBuff->empty++;
+            break;
+        case log_saved:
+            pBuff->saved++;
+            break;
+        case log_capture_fail:
+            pBuff->fail++;
+            break;
+        }
+    }
+}
 
 NEXUS_Error NEXUS_Sage_SecureLog_GetBuffer(
                         void       *pSecureLogBuffCtx0,/* attr{memory=cached;null_allowed=y} */
@@ -599,8 +772,10 @@ NEXUS_Error NEXUS_Sage_SecureLog_GetBuffer(
     NEXUS_Sage_SecureLog_BufferId  bufferId
                             )
 {
-    NEXUS_Sage_Secure_Log_TlBufferContext *pSecureLogBuffCtx = (NEXUS_Sage_Secure_Log_TlBufferContext *)pSecureLogBuffCtx0;
-    uint8_t *pLogBufferAddr = pLogBufferAddr0;
+    NEXUS_Sage_Secure_Log_TlBufferContext *pSecureLogBuffCtx;
+    uint8_t *pLogBufferAddr;
+    uint32_t loglen;
+
     NEXUS_Error rc = NEXUS_SUCCESS;
 
     if(!lHandle)
@@ -614,17 +789,35 @@ NEXUS_Error NEXUS_Sage_SecureLog_GetBuffer(
     {
         BDBG_ERR(( "%s logBuffCtxSize(0x%x) wrong, should be 0x%x !",BSTD_FUNCTION,
                logBuffCtxSize,(unsigned int)sizeof(NEXUS_Sage_Secure_Log_TlBufferContext)));
-        rc = BERR_TRACE(NEXUS_NOT_INITIALIZED);
-        return NEXUS_NOT_INITIALIZED;
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return NEXUS_INVALID_PARAMETER;
     }
 
     if(logBufferSize != SAGE_SECURE_LOG_BUFFER_SIZE)
     {
         BDBG_ERR(( "%s logBufferSize(0x%x) wrong, should be 0x%x !",BSTD_FUNCTION,
                 logBufferSize,SAGE_SECURE_LOG_BUFFER_SIZE));
-        rc = BERR_TRACE(NEXUS_NOT_INITIALIZED);
-        return NEXUS_NOT_INITIALIZED;
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return NEXUS_INVALID_PARAMETER;
     }
+
+    if(pSecureLogBuffCtx0 == NULL)
+    {
+        BDBG_ERR(( "%s pSecureLogBuffCtx0 is NULL !",BSTD_FUNCTION));
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return NEXUS_INVALID_PARAMETER;
+    }
+
+    if(pLogBufferAddr0 == NULL)
+    {
+        BDBG_ERR(( "%s pLogBufferAddr0 is NULL !",BSTD_FUNCTION));
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return NEXUS_INVALID_PARAMETER;
+    }
+
+    /* log buffer to be sent to SAGE */
+    pSecureLogBuffCtx = lHandle->pBuffContext;
+    pLogBufferAddr = lHandle->pLogBuffAddr;
 
     BKNI_ResetEvent(lHandle->response);
 
@@ -647,7 +840,7 @@ NEXUS_Error NEXUS_Sage_SecureLog_GetBuffer(
                                             lHandle->sageContainer, &lHandle->uiLastAsyncId);
     if (rc != BERR_SUCCESS)
     {
-        secure_log_capture_fail++;
+        NEXUS_Sage_SecureLog_Update_Capture_Info(log_capture_fail,bufferId);
         rc = BERR_TRACE(rc);
         goto EXIT;
     }
@@ -655,19 +848,39 @@ NEXUS_Error NEXUS_Sage_SecureLog_GetBuffer(
     rc = NEXUS_Sage_SecureLog_P_WaitForSage(SAGERESPONSE_TIMEOUT);
     if (rc != BERR_SUCCESS)
     {
-        secure_log_capture_fail++;
+        NEXUS_Sage_SecureLog_Update_Capture_Info(log_capture_fail,bufferId);
         rc = BERR_TRACE(rc);
         goto EXIT;
     }
 
+    rc = lHandle->sageContainer->basicOut[0];
+    if (rc != BERR_SUCCESS)
+    {
+        NEXUS_Sage_SecureLog_Update_Capture_Info(log_capture_fail,bufferId);
+        BDBG_MSG(("%s failed on bufferId %d",BSTD_FUNCTION,bufferId));
+        goto EXIT;
+    }
+
+    /* copy log data from SAGE to buffer from nexus_platform_sage_log */
+    BKNI_Memcpy(pSecureLogBuffCtx0, pSecureLogBuffCtx, logBuffCtxSize);
+    loglen = pSecureLogBuffCtx->secHead.secure_logtotal_cnt;
+    BREG_BE32(loglen);
+    if( loglen > 0)
+    {
+        loglen = RoundUpP2(loglen, 16);
+    }
+    BKNI_Memcpy(pLogBufferAddr0,    pLogBufferAddr,    loglen);
+
     if(pSecureLogBuffCtx->secHead.secure_logtotal_cnt > 0)
     {
         /* non-empty should be saved to secure_log.bin in nexus_platform_sage_secure_log.c*/
-        secure_log_saved++;
+        NEXUS_Sage_SecureLog_Update_Capture_Info(log_saved,bufferId);
+    }else{
+        NEXUS_Sage_SecureLog_Update_Capture_Info(log_empty,bufferId);
     }
+
 EXIT:
-    secure_log_status = nexus_sage_secure_log_capture_start;
-    secure_log_captured++;
+    secure_log.status = nexus_sage_secure_log_capture_start;
     return rc;
 }
 
@@ -679,17 +892,17 @@ NEXUS_Sage_SecureLog_StartCaptureOK(void)
         return NEXUS_NOT_INITIALIZED;
     }
 
-    if(secure_log_status < nexus_sage_secure_log_buffer_enabled)
+    if(secure_log.status < nexus_sage_secure_log_buffer_enabled)
     {
         return NEXUS_NOT_INITIALIZED;
     }
 
-    if(secure_log_status == nexus_sage_secure_log_buffer_enabled)
+    if(secure_log.status == nexus_sage_secure_log_buffer_enabled)
     {
         /* this call should be from NEXUS_Platform_P_SageSecureLog
          checking if secure log is enabled.
          so we can say NEXUS_Platform_P_SageSecureLog is up */
-         secure_log_status = nexus_sage_secure_log_thread_started;
+         secure_log.status = nexus_sage_secure_log_thread_started;
     }
 
     return NEXUS_SUCCESS;
@@ -755,12 +968,12 @@ EXIT:
 
 BDBG_FILE_MODULE(nexus_sage_module);
 
-void NEXUS_Sage_SecureLog_P_PrintAttachedTAs(void)
+void NEXUS_Sage_SecureLog_P_PrintBufferTA(NEXUS_Sage_SecureLog_BufferId  bufferId)
 {
 #define PRINT_SIZE 200
     NEXUS_Error rc = NEXUS_SUCCESS;
     uint32_t *pPlatFormId = NULL;
-    uint32_t platformIdSize = 100,platformIdCnt = 100, i;
+    uint32_t platformIdSize = 100,platformIdCnt, i;
     char output[PRINT_SIZE];
     int cnt;
 
@@ -782,19 +995,35 @@ void NEXUS_Sage_SecureLog_P_PrintAttachedTAs(void)
         goto EXIT;
     }
 
-    rc = NEXUS_Sage_SecureLog_P_GetAttachedTAs(pPlatFormId,&platformIdCnt,NEXUS_Sage_SecureLog_BufferId_eFirstAvailable);
+    platformIdCnt = platformIdSize;
+    rc = NEXUS_Sage_SecureLog_P_GetAttachedTAs(pPlatFormId,&platformIdCnt,bufferId);
     if (rc != BERR_SUCCESS)
     {
-        rc = BERR_TRACE(rc);
+        BDBG_MSG(("%s failed on bufferId %d",BSTD_FUNCTION,bufferId));
         goto EXIT;
     }
-
-    cnt = BKNI_Snprintf(output,PRINT_SIZE,"Attached %d TAs:",platformIdCnt);
+    switch(bufferId)
+    {
+    case NEXUS_Sage_SecureLog_BufferId_eBRCMBuff:
+        cnt = BKNI_Snprintf(output,PRINT_SIZE," BRCMBuff: (%d-%d-%d) ",secure_log.brcmBuff.saved,secure_log.brcmBuff.empty,secure_log.brcmBuff.fail);
+        break;
+    case NEXUS_Sage_SecureLog_BufferId_eTARangeBuff1:
+        cnt = BKNI_Snprintf(output,PRINT_SIZE,"PrivBuff1: (%d-%d-%d) ",secure_log.privBuff1.saved,secure_log.privBuff1.empty,secure_log.privBuff1.fail);
+        break;
+    case NEXUS_Sage_SecureLog_BufferId_eTARangeBuff2:
+        cnt = BKNI_Snprintf(output,PRINT_SIZE,"PrivBuff2: (%d-%d-%d) ",secure_log.privBuff2.saved,secure_log.privBuff2.empty,secure_log.privBuff2.fail);
+        break;
+    default:
+        BDBG_ERR(("Invalid bufferId %d",bufferId));
+        rc = NEXUS_NOT_AVAILABLE;
+        goto EXIT;
+    }
     for(i=0;i<platformIdSize && i < platformIdCnt;i++)
     {
         cnt += BKNI_Snprintf(output + cnt,PRINT_SIZE-cnt," 0x%x,",pPlatFormId[i]);
     }
     BDBG_MODULE_LOG(nexus_sage_module, ("%s",output));
+
 EXIT:
     if(pPlatFormId)
     {
@@ -805,7 +1034,7 @@ EXIT:
 
 void NEXUS_Sage_P_PrintSecureLog(void)
 {
-    switch(secure_log_status)
+    switch(secure_log.status)
     {
     case nexus_sage_secure_log_null:
         BDBG_MODULE_LOG(nexus_sage_module, ("SecureLog not initialized, to look for securelog TA!"));
@@ -826,15 +1055,17 @@ void NEXUS_Sage_P_PrintSecureLog(void)
         BDBG_MODULE_LOG(nexus_sage_module, ("SecureLog log thread started, to create log file!"));
         break;
     case nexus_sage_secure_log_capture_start:
-        BDBG_MODULE_LOG(nexus_sage_module, ("SecureLog captured started!, captured %d, saved %d failed %d",
-                secure_log_captured,secure_log_saved,secure_log_capture_fail));
-        NEXUS_Sage_SecureLog_P_PrintAttachedTAs();
+        BDBG_MODULE_LOG(nexus_sage_module, ("SecureLog captured started!, saved %d empty %d failed %d",
+                                  secure_log.total.saved,secure_log.total.empty,secure_log.total.fail));
+        NEXUS_Sage_SecureLog_P_PrintBufferTA(NEXUS_Sage_SecureLog_BufferId_eBRCMBuff);
+        NEXUS_Sage_SecureLog_P_PrintBufferTA(NEXUS_Sage_SecureLog_BufferId_eTARangeBuff1);
+        NEXUS_Sage_SecureLog_P_PrintBufferTA(NEXUS_Sage_SecureLog_BufferId_eTARangeBuff2);
         break;
     case nexus_sage_secure_log_terminated:
         BDBG_MODULE_LOG(nexus_sage_module, ("SecureLog log terminated!"));
         break;
     default:
-        BDBG_MODULE_LOG(nexus_sage_module, ("SecureLog log unknow status %d!",secure_log_status));
+        BDBG_MODULE_LOG(nexus_sage_module, ("SecureLog log unknow status %d!",secure_log.status));
         break;
     }
 }

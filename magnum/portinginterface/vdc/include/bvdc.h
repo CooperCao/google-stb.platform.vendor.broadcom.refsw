@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #ifndef BVDC_H__
 #define BVDC_H__
@@ -47,7 +46,6 @@
 #include "bint.h"          /* L2 Interrupt Manager */
 #include "bvdc_errors.h"   /* VDC error codes */
 #include "bavc.h"          /* bavc */
-#include "bavc_vee.h"      /* bavc soft encoder */
 #include "btmr.h"          /* Timestamps */
 #include "bvdc_tnt.h"
 #include "bavc_hdmi.h"
@@ -2054,7 +2052,9 @@ typedef struct BVDC_VipMemConfigSettings
     unsigned               ulMemcId;
     uint32_t               ulMaxWidth;
     uint32_t               ulMaxHeight;
-    bool                   bSupportInterlaced;
+    bool                   bSupportInterlaced; /* interlaced requires shifted chroma capture */
+    bool                   bSupportDecimatedLuma; /* requires decimated luma capture for CME */
+    bool                   bSupportBframes; /* B frame requires more allocation */
 } BVDC_VipMemConfigSettings;
 
 /***************************************************************************
@@ -2081,8 +2081,6 @@ Description:
     bPip - Defines picture in graphics or picture in picture, can be
         enabled by calling BVDC_Window_SetDstRect. Enable this flag
         will make buffer size 1/4 of full size.
-    bSmoothScaling - Defines smooth scaling, can be enabled by calling
-        BVDC_Window_SetBandwidthEquationParams
     bBoxDetect - Defines Letter box detection, can be enabled by calling
         BVDC_Window_EnableBoxDetect
     bArbitraryCropping - Defines arbitrary cropping mode, can be enabled
@@ -2090,6 +2088,8 @@ Description:
         BVDC_Window_SetSrcClip
     bIndependentCropping - Defines independent cropping on HD/SD mode,
         can be enabled by BVDC_Window_SetSrcClip.
+    eSclCapBias - Defines scaler/captuer bias, can be enabled by calling
+        BVDC_Window_SetBandwidthEquationParams
 
     Enable any one of the following flags will increase capture buffer
     count to 4:
@@ -2140,9 +2140,6 @@ typedef struct
     bool                   bPsfMode;
     bool                   bSideBySide;
     bool                   bPip;
-    /* DME: not needed. if stWindow[1] is used, we have PIP. or is this more like "max size"?
-    same with bSideBySide. */
-    bool                   bSmoothScaling;
     bool                   bBoxDetect;
     /* TODO: bool          bMfdTriggering  */
     bool                   bArbitraryCropping;
@@ -2154,6 +2151,7 @@ typedef struct
     bool                   b5060Convert;
     bool                   bSlave_24_25_30_Display;
 
+    BBOX_Vdc_SclCapBias    eSclCapBias;
     BVDC_DeinterlacerMode  eDeinterlacerMode;
 
     uint32_t               ulAdditionalBufCnt;
@@ -2189,7 +2187,7 @@ typedef struct
     /* Memory config settings for new soft transcoder VIP heap */
     struct {
         bool                      bUsed;
-        BCHP_MemoryInfo          *pstMemoryInfo; /* memory stripe parameters dependent */
+        const BCHP_MemoryInfo          *pstMemoryInfo; /* memory stripe parameters dependent */
         BVDC_VipMemConfigSettings stCfgSettings;
     } vip;
 
@@ -2561,6 +2559,66 @@ typedef struct
 
 }BVDC_Window_Settings;
 
+/* Window Class:
+    It defines set of limiting parameters to validate the window configurations for a supported window class.
+    The window class limiting parameters are mainly bounded by system bandwidth and intended usages of
+    a window class.
+
+    Limiting parameters:
+    - Five sets of bounding box (%width, %height) + in/out.
+    - Bandwidth equation used for single context RTS (eSclBeforeCap, eAuto, eAutoDisable)
+        Multi-context is always eSclBeforeCap
+    - For N=1 to 12 {
+        - De-interlacer limit (1080i, 576i, 480i, none)
+        - When all contexts are intended to be the same size (equal mosaics coverage):
+            Equal mosaic rectangle coverage limit (%A width, %A height)
+        - When we want one big context and the remaining are small (1 big + K small mosaics coverage):
+            Big size mosaic rectangle limit (%2B width, %2B height)
+            Small size mosaics rectangle limit (%B width, %B height)
+     }; if mosaics converage fit in either of equal or big+small case, it passes.
+ */
+#define BVDC_NUM_BOUNDING_BOXES      5
+typedef struct
+{
+    struct {
+        /* bounding box size is W% x H% of display; >=100 means no limit */
+        unsigned    ulPercentW;
+        unsigned    ulPercentH;
+        /* if true, window must be outside of bounding box (typically for live
+         * full screen window without capture) */
+        bool        bOutside;
+    } boundingBox[BVDC_NUM_BOUNDING_BOXES];
+
+    struct {
+        /* deinterlacer size limit (1080i, 576i, 480i, or none) */
+        BBOX_Vdc_PictureSizeLimits stDeinterlacer;
+        /* equal sized rect in percentage A, each must fit in A% x A%
+         * of display; >=100 means no limit */
+        unsigned                   ulPercentEqual;
+        /* big+small sized rects in percentage B, big must fit in 2B% x 2B%,
+         * and small must fit in B% x B% of display */
+        unsigned                   ulPercentBigSmall;
+
+    } mosaicRects[BAVC_MOSAIC_MAX];
+} BVDC_WindowClassLimits;
+
+/* Source Class:
+    It defines set of limiting parameters to validate the source configurations for a supported source class.
+    The source class limiting parameters are mainly bounded by system bandwidth and intended usages of
+    a source class.
+
+    Limiting parameters:
+    - For N=1 to 12 {
+        Max scan-out size (pixel width, pixel height) for two possible landscape and one portrait layouts.
+     }
+ */
+typedef struct
+{
+    BBOX_Vdc_PictureSizeLimits landscape1[BAVC_MOSAIC_MAX];
+    BBOX_Vdc_PictureSizeLimits landscape2[BAVC_MOSAIC_MAX];
+    BBOX_Vdc_PictureSizeLimits portrait[BAVC_MOSAIC_MAX];
+} BVDC_SourceClassLimits;
+
 /***************************************************************************
 Summary:
     This structure describes the default settings a source
@@ -2930,6 +2988,44 @@ typedef struct
 
 /***************************************************************************
 Summary:
+    Prototype for external modules to install callback with VDC.
+
+Description:
+    Upper level application install callback for a specific update event from
+    from VDC.  For example HDMI modules needed to be notified whenever VDC
+    display changes it rate manager or format, so that it (HDMI) could also
+    config its rate manager to run at the same rate.  This callback prototype
+    should be use for all the callback that register with VDC.
+
+Inpute:
+    pvParam1 - User defined data structure casted to void.
+    iParam2 - Additional user defined value.
+    pvVdcData - Data pass from VDC to application thru callback.  The
+    data structure must defined in bavc.h if data is being pass back and forth
+    between porting interface modules, or the data structure can be a VDC
+    public structure. The data in the struct might be invalid to application
+    after the callback fuction retruns. The application should make copy of
+    those data if they are needed later. If it's not a data structure, but
+    rather a primitive type then VDC will translate that accordingly.  This
+    data is provided by VDC.  The internal data of pvVdcData may contains
+    pointers (or place holder) that application can write to. In a sense passing
+    data back to VDC.
+
+Output:
+    None
+
+See Also:
+    BVDC_Display_InstallCallback,
+    BVDC_Display_UnInstallCallback,
+    BVDC_Window_InstallCallback
+**************************************************************************/
+typedef void (*BVDC_CallbackFunc_isr)
+    ( void                            *pvParam1,
+      int                              iParam2,
+      void                            *pvVdcData );
+
+/***************************************************************************
+Summary:
     This structure describes the mask settings for the display
     callback function.
 
@@ -2950,6 +3046,8 @@ Description:
 
     bCableDetect - User wants to be notified when DAC detect status changes
 
+    bHdrInfoFrame - notify when display HDR10 info frame parameters changes for HDR10 output
+
 See Also:
 ***************************************************************************/
 typedef struct
@@ -2959,6 +3057,7 @@ typedef struct
     uint32_t                       bPerVsync         : 1;
     uint32_t                       bStgPictureId     : 1;
     uint32_t                       bCableDetect      : 1;
+    uint32_t                       bHdrInfoFrame     : 1;
 
 } BVDC_Display_CallbackMask;
 
@@ -2988,6 +3087,8 @@ Description:
 
     aeDacConnectionState - state of cable connection per dac
 
+    stInfoFrame  - HDR10 info frame parameters for HDR10 output
+
 See Also:
 ***************************************************************************/
 typedef struct
@@ -3002,6 +3103,9 @@ typedef struct
     uint32_t                       ulStgPictureId;
     uint32_t                       ulDecodePictureId;
     BVDC_DacConnectionState        aeDacConnectionState[BVDC_MAX_DACS];
+    struct {
+       BAVC_HDMI_DRMInfoFrameType1 Type1;
+    } stInfoFrame;
 
 } BVDC_Display_CallbackData;
 
@@ -3013,11 +3117,17 @@ Description:
     BVDC_Display_CallbackSettings is a structure that used to describe the
     public settings of a display callback function.
 
+    If pfPrologueCb is set, this callback will be called in front of the display isr before
+    the next picture RUL is built. This callback could return the externally released
+    picture buffer back to the display, so that the buffer could be used right away in
+    the same display isr. Typically used for display/encoder buffer return path.
+
 See Also:
 ***************************************************************************/
 typedef struct
 {
     BVDC_Display_CallbackMask      stMask;
+    BVDC_CallbackFunc_isr          pfPrologueCb_isr;
 
 } BVDC_Display_CallbackSettings;
 
@@ -3171,44 +3281,29 @@ typedef struct
     } vip;
 } BVDC_Display_StgSettings;
 
-
 /***************************************************************************
 Summary:
-    Prototype for external modules to install callback with VDC.
+    This structure describes the maximum mosaic coverage
 
 Description:
-    Upper level application install callback for a specific update event from
-    from VDC.  For example HDMI modules needed to be notified whenever VDC
-    display changes it rate manager or format, so that it (HDMI) could also
-    config its rate manager to run at the same rate.  This callback prototype
-    should be use for all the callback that register with VDC.
+    This struct describes the maximum mosaic coverage on a display
 
-Inpute:
-    pvParam1 - User defined data structure casted to void.
-    iParam2 - Additional user defined value.
-    pvVdcData - Data pass from VDC to application thru callback.  The
-    data structure must defined in bavc.h if data is being pass back and forth
-    between porting interface modules, or the data structure can be a VDC
-    public structure. The data in the struct might be invalid to application
-    after the callback fuction retruns. The application should make copy of
-    those data if they are needed later. If it's not a data structure, but
-    rather a primitive type then VDC will translate that accordingly.  This
-    data is provided by VDC.  The internal data of pvVdcData may contains
-    pointers (or place holder) that application can write to. In a sense passing
-    data back to VDC.
+    ulMaxCoverageEqual - maximum area coverage in percentage for all equal sized
+                         mosaic rectangles.
 
-Output:
-    None
+    ulMaxCoverageBL - maximum area coverage in percentage for 1 big size mosaic
+                      rectangle plus (N-1) small equal sized mosaic rectangles.
+                      N is number of mosaic rectangles. The big size mosaic
+                      rectangle size = 4 * small mosaic rectangle.
 
 See Also:
-    BVDC_Display_InstallCallback,
-    BVDC_Display_UnInstallCallback,
-    BVDC_Window_InstallCallback
-**************************************************************************/
-typedef void (*BVDC_CallbackFunc_isr)
-    ( void                            *pvParam1,
-      int                              iParam2,
-      void                            *pvVdcData );
+BVDC_GetMaxMosaicCoverage
+***************************************************************************/
+typedef struct
+{
+    uint32_t           ulMaxCoverageEqual;
+    uint32_t           ulMaxCoverageBL;
+} BVDC_Display_MosaicCoverage;
 
 
 /***************************************************************************
@@ -4111,6 +4206,7 @@ Description:
                      to occupy an analog path even if no DACs or RFM connected
 
     b3DSupport - Indicates the 3D stereo Orientation Fmt support
+    b64BitSupport - BVN 64 bit support
 
 See Also:
     BVDC_GetCapabilities, BVDC_Display_SetDacConfiguration,
@@ -4144,6 +4240,7 @@ typedef struct BVDC_Capabilities
     bool                               bAlgStandAlone;
 
     bool                               b3DSupport;
+    bool                               b64BitSupport;
 } BVDC_Capabilities;
 
 /***************************************************************************
@@ -5271,6 +5368,52 @@ BERR_Code BVDC_GetMemoryConfiguration
 
 /***************************************************************************
 Summary:
+    Get the window class' capabilities.
+
+Description:
+
+Input:
+    hVdc - A valid VDC handle created earlier.
+    eDisplayId - display Id
+    eWinId - window Id
+
+Returns:
+    pointer to the source class capabilities structure.
+
+See Also:
+    BVDC_WindowClassLimits
+    BBOX_Vdc_WindowClass
+**************************************************************************/
+BERR_Code BVDC_GetWindowClassLimit
+    ( BVDC_Handle                      hVdc,
+      BVDC_DisplayId                   eDisplayId,
+      BVDC_WindowId                    eWinId,
+      BVDC_WindowClassLimits          *pClassLimit );
+
+/***************************************************************************
+Summary:
+    Get the source class' capabilities.
+
+Description:
+
+Input:
+    hVdc - A valid VDC handle created earlier.
+    eSrcId - source Id
+
+Returns:
+    pointer to the source class capabilities structure.
+
+See Also:
+    BVDC_SourceClassLimits
+    BBOX_Vdc_SourceClass
+**************************************************************************/
+BERR_Code BVDC_GetSourceClassLimit
+    ( BVDC_Handle                      hVdc,
+      BAVC_SourceId                    eSrcId,
+      BVDC_SourceClassLimits          *pClassLimit );
+
+/***************************************************************************
+Summary:
     Get the vdc's capabilities.
 
 Description:
@@ -5595,7 +5738,42 @@ BERR_Code BVDC_GetMaxMosaicCoverage
     ( BVDC_Handle                      hVdc,
       BVDC_DisplayId                   eDisplayId,
       uint32_t                         ulRectsCount,
-      uint32_t                        *pulCoverage );
+      BVDC_Display_MosaicCoverage     *pMaxCoverage );
+
+/***************************************************************************
+Summary:
+    This function gets the 4 x 5 matrix to convert a graphics surface with
+    YCbCr pixel format to RGB format.
+
+Description:
+    When a decoded video picture is used as graphics surface, it is typically
+    destripped and converted from YCbCr pixel format to RGB format. This
+    utility function gets the matrix to convert YCbCr to RGB. The matrix is
+    illustrated as following:
+
+    [R_out]   [M[0]  M[1]  M[2]  0          M[4] ]   [Y_in ]
+    [G_out]   [M[5]  M[6]  M[7]  0          M[9] ]   [Cb_in]
+    [B_out] = [M[10] M[11] M[12] 0          M[14]] * [Cr_in]
+    [A_out]   [0     0     0     1<<ulShift 0    ]   [A_in ]
+                                                     [  1  ]
+Input:
+    eMatrixCoeffs - The BAVC_MatrixCoefficients enum of the decoded video picture.
+        It is treated as BAVC_MatrixCoefficients_eItu_R_BT_709 if an invalid enum
+        is passed.
+    ulShift - The requested number of fractional bits for the matrix coefficients.
+
+Output:
+    *pulCoeffs - An int32_t array that holds the 4x5 matrix coeffs.
+
+Returns:
+    BERR_SUCCESS - Successfully gets the matrix
+
+See Also:
+**************************************************************************/
+BERR_Code BVDC_GetMatrixForGfxYCbCr2Rgb_isrsafe
+    ( BAVC_MatrixCoefficients          eMatrixCoeffs,
+      uint32_t                         ulShift,
+      int32_t                         *pulCoeffs);
 
 /***************************************************************************
  * Heap
@@ -7310,7 +7488,7 @@ See Also:
 **************************************************************************/
 BERR_Code BVDC_Window_EnableBoxDetect
     ( BVDC_Window_Handle                hWindow,
-      BVDC_Window_BoxDetectCallback_isr pfBoxDetectCallBack,
+      BVDC_Window_BoxDetectCallback_isr pfBoxDetectCallBack_isr,
       void                             *pvParm1,
       int                               iParm2,
       bool                              bAutoCutBlack );
@@ -7799,7 +7977,7 @@ See Also:
 **************************************************************************/
 BERR_Code BVDC_Window_InstallCallback
     ( BVDC_Window_Handle               hWindow,
-      const BVDC_CallbackFunc_isr      pfCallback,
+      const BVDC_CallbackFunc_isr      pfCallback_isr,
       void                            *pvParm1,
       int                              iParm2 );
 
@@ -10660,7 +10838,7 @@ See Also:
 ****************************************************************************/
 BERR_Code BVDC_Source_InstallPictureCallback
     ( BVDC_Source_Handle               hSource,
-      BVDC_Source_PictureCallback_isr  srcCallback,
+      BVDC_Source_PictureCallback_isr  srcCallback_isr,
       void                            *pvParm1,
       int                              iParm2 );
 
@@ -10699,7 +10877,7 @@ See Also:
 **************************************************************************/
 BERR_Code BVDC_Source_InstallCallback
     ( BVDC_Source_Handle               hSource,
-      const BVDC_CallbackFunc_isr      pfCallback,
+      const BVDC_CallbackFunc_isr      pfCallback_isr,
       void                            *pvParm1,
       int                              iParm2 );
 
@@ -13614,7 +13792,7 @@ See Also:
 **************************************************************************/
 BERR_Code BVDC_Display_InstallCallback
     ( BVDC_Display_Handle              hDisplay,
-      const BVDC_CallbackFunc_isr      pfCallback,
+      const BVDC_CallbackFunc_isr      pfCallback_isr,
       void                            *pvParm1,
       int                              iParm2 );
 

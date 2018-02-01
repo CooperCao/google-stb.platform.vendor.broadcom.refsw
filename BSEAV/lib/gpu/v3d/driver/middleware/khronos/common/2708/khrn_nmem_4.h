@@ -1,30 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Fixed-size non-relocatable block allocator
-
-FILE DESCRIPTION
-Used primarily for per-frame allocations:
-- control lists, uniforms, shader records and the like (via fmem)
-- tessellated vertices for vg
-- binning memory
-As such, total memory usage depends heavily on the number of frames in the
-pipeline. We attempt to limit memory usage by waiting before certain
-allocations. We split allocations into two categories: "throttling" (fmems) and
-non-throttling (everything else). We have a separate limit for throttling
-allocations that is adjusted dynamically: we try to maximise the limit while
-avoiding non-throttling allocation waits. If non-throttling allocations are
-being forced to wait (or exceed the desired limit, or fail), the limit is
-adjusted downwards. Otherwise, if the high water mark is low, the limit is
-adjusted upwards. This separate (lower) limit is an attempt to avoid the backend
-of the pipeline being choked by allocations occurring in the front of the
-pipeline.
-=============================================================================*/
-
-#ifndef KHRN_NMEM_4_H
-#define KHRN_NMEM_4_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "middleware/khronos/common/khrn_hw.h"
 
@@ -100,26 +77,14 @@ extern void khrn_nmem_group_init(KHRN_NMEM_GROUP_T *group, bool throttle);
 extern void *khrn_nmem_group_alloc(KHRN_NMEM_GROUP_T *group, bool *wait, uint32_t pos, MEM_LOCK_T *lbh); /* returned pointer is very aligned. probably ~4k aligned */
 extern void khrn_nmem_group_term(KHRN_NMEM_GROUP_T *group);
 extern void khrn_nmem_group_term_and_exit(KHRN_NMEM_GROUP_T *group, uint32_t pos);
+extern void khrn_nmem_group_flush(KHRN_NMEM_GROUP_T *group);
 
 /*
    allocations on the master can wait for anything in the pipeline (so we pass
    khrn_nmem_get_enter_pos() as pos)
 */
 
-static INLINE void *khrn_nmem_alloc_master(bool throttle, MEM_LOCK_T *lbh)
-{
-   void *p;
-   bool wait;
-   for (;;) {
-      p = khrn_nmem_alloc(throttle, &wait, khrn_nmem_get_enter_pos(), lbh);
-      if (p || !wait) {
-         break;
-      }
-   }
-   return p;
-}
-
-static INLINE void *khrn_nmem_group_alloc_master(KHRN_NMEM_GROUP_T *group, MEM_LOCK_T *lbh)
+static inline void *khrn_nmem_group_alloc_master(KHRN_NMEM_GROUP_T *group, MEM_LOCK_T *lbh)
 {
    void *p;
    bool wait;
@@ -131,5 +96,3 @@ static INLINE void *khrn_nmem_group_alloc_master(KHRN_NMEM_GROUP_T *group, MEM_L
    }
    return p;
 }
-
-#endif

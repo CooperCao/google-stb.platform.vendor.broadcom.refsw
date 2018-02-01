@@ -51,57 +51,30 @@ extern int passiveStandbyMode(void);
 extern int deepStandbyMode(void);
 extern int onMode(void);
 
-struct {
-    char *name; /* string for nexus enum */
-    NEXUS_VideoFormat value; /* nexus enum */
-} g_videoFormatStrs[] = {
-    {"480i",      NEXUS_VideoFormat_eNtsc},
-    {"576i",      NEXUS_VideoFormat_ePal},
-    {"1080i",     NEXUS_VideoFormat_e1080i},
-    {"1080i50",   NEXUS_VideoFormat_e1080i50hz},
-    {"720p",      NEXUS_VideoFormat_e720p},
-    {"720p24",    NEXUS_VideoFormat_e720p24hz},
-    {"720p25",    NEXUS_VideoFormat_e720p25hz},
-    {"720p30",    NEXUS_VideoFormat_e720p30hz},
-    {"480p",      NEXUS_VideoFormat_e480p},
-    {"576p",      NEXUS_VideoFormat_e576p},
-    {"1080p",     NEXUS_VideoFormat_e1080p},
-    {"1080p24",   NEXUS_VideoFormat_e1080p24hz},
-    {"1080p25",   NEXUS_VideoFormat_e1080p25hz},
-    {"1080p30",   NEXUS_VideoFormat_e1080p30hz},
-    {"1080p50",   NEXUS_VideoFormat_e1080p50hz},
-    {"3840x2160p24", NEXUS_VideoFormat_e3840x2160p24hz},
-    {"3840x2160p25", NEXUS_VideoFormat_e3840x2160p25hz},
-    {"3840x2160p30", NEXUS_VideoFormat_e3840x2160p30hz},
-    {"3840x2160p50", NEXUS_VideoFormat_e3840x2160p50hz},
-    {"3840x2160p60", NEXUS_VideoFormat_e3840x2160p60hz},
-    {"4096x2160p24", NEXUS_VideoFormat_e4096x2160p24hz},
-    {"4096x2160p25", NEXUS_VideoFormat_e4096x2160p25hz},
-    {"4096x2160p30", NEXUS_VideoFormat_e4096x2160p30hz},
-    {"4096x2160p50", NEXUS_VideoFormat_e4096x2160p50hz},
-    {"4096x2160p60", NEXUS_VideoFormat_e4096x2160p60hz},
-    {NULL, 0}
-};
-
 void *commands_thread(void *context)
 {
-    fd_set rfds;
+    int retval = 1;
 
     BSTD_UNUSED(context);
 
-    FD_ZERO(&rfds);
-    FD_SET(STDIN_FILENO, &rfds);
-
     for (g_DeviceState.exit_app=false;!g_DeviceState.exit_app;)
     {
+        fd_set rfds;
+        struct timeval timeout;
         char buffer[256];
         char *buf;
-        int retval;
         unsigned id;
 
-        fflush(stdout); printf("standby>"); fflush(stdout);
+        FD_ZERO(&rfds);
+        FD_SET(STDIN_FILENO, &rfds);
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 250000;
 
-        retval = select(1, &rfds, NULL, NULL, NULL);
+        if(retval) {
+            fflush(stdout); printf("standby>"); fflush(stdout);
+        }
+
+        retval = select(1, &rfds, NULL, NULL, &timeout);
         if(retval == -1) {
             printf("Stdin Error\n");
             return NULL;
@@ -143,23 +116,35 @@ void *commands_thread(void *context)
                 printf("  uhf on/off       :  Uhf Input On/Off\n");
                 printf("  wakeups          :  Set wakeup devices\n");
                 printf("  q                :  Quit\n");
-            } else if (!strcmp(buf, "s1")) {
+            } else if(!strncmp(buf, "s1", 2)) {
+                g_DeviceState.focused_button = 0;
                 g_DeviceState.power_mode = ePowerModeS1;
+                update_menu();
+                render_ui();
                 g_DeviceState.timer_wake=true;
                 BKNI_SetEvent(g_StandbyNexusHandles.event);
-            } else if (!strcmp(buf, "s2")) {
+            } else if (!strncmp(buf, "s2", 2)) {
+                g_DeviceState.focused_button = 1;
                 g_DeviceState.power_mode = ePowerModeS2;
+                update_menu();
+                render_ui();
                 g_DeviceState.timer_wake=true;
                 BKNI_SetEvent(g_StandbyNexusHandles.event);
-            } else if (!strcmp(buf, "s3")) {
+            } else if (!strncmp(buf, "s3", 2)) {
+                g_DeviceState.focused_button = 2;
                 g_DeviceState.power_mode = ePowerModeS3;
+                update_menu();
+                render_ui();
                 g_DeviceState.timer_wake=true;
                 BKNI_SetEvent(g_StandbyNexusHandles.event);
-            } else if (!strcmp(buf, "s5")) {
+            } else if (!strncmp(buf, "s5", 2)) {
+                g_DeviceState.focused_button = 3;
                 g_DeviceState.power_mode = ePowerModeS5;
+                update_menu();
+                render_ui();
                 g_DeviceState.timer_wake=true;
                 BKNI_SetEvent(g_StandbyNexusHandles.event);
-            } else if (!strcmp(buf, "sx")) {
+            } else if (!strncmp(buf, "sx", 2)) {
                 g_cmd_options._auto = true;
                 g_DeviceState.power_mode = ePowerModeS1;
                 g_DeviceState.timer_wake=true;
@@ -347,27 +332,25 @@ void *commands_thread(void *context)
                     g_DeviceState.picfile = filename;
                     picture_decoder_open();
                     picture_decode_start();
-                    graphics2d_open();
-                    picture_decode_display();
+                    render_ui();
                 } else if (!strcmp(buf, "stop")) {
                     picture_decode_stop();
                     picture_decoder_close();
+                    render_ui();
                 } else
                     printf("Unknown command\n");
             } else if (!strncmp(buf, "gfx", 3)) {
                 buf+=4;
                 if (!strcmp(buf, "start")) {
                     if(!g_DeviceState.graphics2d_started) {
-                        graphics2d_open();
-                        set_window_scale(true);
+                        graphics2d_create();
                         graphics2d_start();
                     } else
                         printf("Graphics already started\n");
                 } else if (!strcmp(buf, "stop")) {
                     if(g_DeviceState.graphics2d_started) {
                         graphics2d_stop();
-                        set_window_scale(false);
-                        graphics2d_close();
+                        graphics2d_destroy();
                     } else
                         printf("Graphics not started\n");
                 } else
@@ -392,7 +375,7 @@ void *commands_thread(void *context)
                     }
                 }
                 NEXUS_Display_SetSettings(g_StandbyNexusHandles.displayHD, &displaySettings);
-                set_window_scale(g_DeviceState.graphics2d_started);
+                render_ui();
             } else if (!strncmp(buf, "hdmi", 4)) {
                 buf+=5;
                 if(!strcmp(buf, "on"))
@@ -539,6 +522,7 @@ static void print_usage(void)
     printf("                       3 for S3 only\n");
     printf("  -flags             Standby Flags. Used for debug. e.g. -flags 0x1\n");
     printf("  -gpiopin #         AON GPIO pin number to open. Default is AON_GPIO_01\n");
+    printf("  -gui on|off        GUI on|off. Default is on.\n");
 }
 
 int parse_cmdline_args(int argc, char **argv)
@@ -645,6 +629,9 @@ int parse_cmdline_args(int argc, char **argv)
                     curarg++;
                 }
             }
+        }
+        else if (!strcmp(argv[curarg], "-gui") && curarg+1 < argc) {
+            g_DeviceState.gui = strcasecmp(argv[++curarg], "off");
         }
     }
 

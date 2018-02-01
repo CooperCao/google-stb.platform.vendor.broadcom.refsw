@@ -190,8 +190,32 @@ _P_IsSdlValid(
             goto end;
         }
     } else {
+        bool isAlphaSSF = (hSAGElib->frameworkInfo.version[2] == 0) && (hSAGElib->frameworkInfo.version[3] != 0);
+        bool isAlphaSDK = (pHeader->ucSsfVersion[2] == 0) && (pHeader->ucSsfVersion[3] != 0);
         BDBG_MSG(("%s: Trusted App THL signature indicates Load-Time-Resolution", BSTD_FUNCTION));
-        rc = true;
+        /* Check that any Alpha SSFs are matched with their SDLs and SDLs built from Alpha SDKs are matched with their SSF */
+        if (isAlphaSSF || isAlphaSDK) {
+            rc = (BKNI_Memcmp(pHeader->ucSsfVersion, hSAGElib->frameworkInfo.version, 4) == 0);
+            if (rc != true) {
+                if (isAlphaSSF) {
+                    BDBG_ERR(("%s: The SAGE Alpha Framework does not match the SDK version (%u.%u.%u.%u) of the TA",
+                              BSTD_FUNCTION, pHeader->ucSsfVersion[0],
+                              pHeader->ucSsfVersion[1],
+                              pHeader->ucSsfVersion[2],
+                              pHeader->ucSsfVersion[3]));
+                }
+                else {
+                    BDBG_ERR(("%s: The SAGE TA's Alpha SDK version (%u.%u.%u.%u) does not match the Framework",
+                              BSTD_FUNCTION, pHeader->ucSsfVersion[0],
+                              pHeader->ucSsfVersion[1],
+                              pHeader->ucSsfVersion[2],
+                              pHeader->ucSsfVersion[3]));
+                }
+                goto end;
+            }
+        } else {
+            rc = true;
+        }
     }
 
 end:
@@ -259,24 +283,24 @@ BSAGElib_Rai_Platform_Install(
     if(container == NULL)
         goto err;
 
-    BKNI_Snprintf(revstr, sizeof(revstr)-1, "%u", pHeader->ucSdlVersion[3]);
     if ((pHeader->ucSdlVersion[2] == 0) && (pHeader->ucSdlVersion[3] != 0)) {
         BKNI_Snprintf(revstr, sizeof(revstr)-1, "Alpha%u", pHeader->ucSdlVersion[3]);
+    } else {
+        BKNI_Snprintf(revstr, sizeof(revstr)-1, "%u.%u",
+                      pHeader->ucSdlVersion[2], pHeader->ucSdlVersion[3]);
     }
     if (platform_name == NULL) {
-        BDBG_LOG(("SAGE TA: [0x%X] [Version=%u.%u.%u.%s, Signing Tool=%u.%u.%u.%u]",
+        BDBG_LOG(("SAGE TA: [0x%X] [Version=%u.%u.%s, Signing Tool=%u.%u.%u.%u]",
                   platformId,
-                  pHeader->ucSdlVersion[0], pHeader->ucSdlVersion[1],
-                  pHeader->ucSdlVersion[2], revstr,
+                  pHeader->ucSdlVersion[0], pHeader->ucSdlVersion[1], revstr,
                   pHeader->ucSageSecureBootToolVersion[0], pHeader->ucSageSecureBootToolVersion[1],
                   pHeader->ucSageSecureBootToolVersion[2], pHeader->ucSageSecureBootToolVersion[3]
                   ));
     }
     else {
-        BDBG_LOG(("SAGE TA: %s [Version=%u.%u.%u.%s, Signing Tool=%u.%u.%u.%u]",
+        BDBG_LOG(("SAGE TA: %s [Version=%u.%u.%s, Signing Tool=%u.%u.%u.%u]",
                   platform_name,
-                  pHeader->ucSdlVersion[0], pHeader->ucSdlVersion[1],
-                  pHeader->ucSdlVersion[2], revstr,
+                  pHeader->ucSdlVersion[0], pHeader->ucSdlVersion[1], revstr,
                   pHeader->ucSageSecureBootToolVersion[0], pHeader->ucSageSecureBootToolVersion[1],
                   pHeader->ucSageSecureBootToolVersion[2], pHeader->ucSageSecureBootToolVersion[3]
                   ));
@@ -512,6 +536,23 @@ BSAGElib_Rai_Platform_Install(
     }
     BDBG_MSG(("%s Output Status %x",BSTD_FUNCTION,container->basicOut[0]));
 
+    /* If RPC layer had no errors, then pass on the LoadSDL command response error, if applicable */
+    if (rc == BERR_SUCCESS) {
+        switch (container->basicOut[0]) {
+        case BSAGE_ERR_SDL_ALREADY_LOADED:
+        case BERR_SUCCESS:
+            /* Leave rc as success */
+            break;
+        default:
+            BDBG_ERR(("%s: SAGE failed to Load TA, (rc=0x%08x, %s)", BSTD_FUNCTION, container->basicOut[0], BSAGElib_Tools_ReturnCodeToString(container->basicOut[0])));
+            rc = container->basicOut[0];
+            break;
+        }
+    }
+    if (rc != BERR_SUCCESS) {
+        goto err;
+    }
+
     if(hSAGElib->securelog_module != NULL
       && hSAGElib->securelogContainer != NULL
       && platformId != BSAGE_PLATFORM_ID_SYSTEM
@@ -535,12 +576,6 @@ BSAGElib_Rai_Platform_Install(
             goto end;
         }
     }
-
-    if((rc == BERR_SUCCESS) || (container->basicOut[0] == BSAGE_ERR_SDL_ALREADY_LOADED)){
-        rc = BERR_SUCCESS;
-        goto end;
-    }
-
 
 err:
 end:

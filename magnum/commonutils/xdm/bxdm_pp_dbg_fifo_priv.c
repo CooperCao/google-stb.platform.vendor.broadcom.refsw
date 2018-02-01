@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -585,6 +585,17 @@ BERR_Code BXDM_PPDFIFO_P_Fifo_Destroy(
    BDBG_MSG(("    bmmaOffset: %08x", (unsigned)pstDebugFifo->bmmaOffset ));
    BDBG_MSG(("    hBMMABlock: %08x", (unsigned)pstDebugFifo->hBMMABlock ));
 #endif
+
+   if ( NULL != pstDebugFifo->hDebugFifo )
+   {
+      BDBG_Fifo_Handle tempDebugFifo = pstDebugFifo->hDebugFifo;
+
+      /* SWSTB-8169: use tempDebugFifo to avoid race condition at shutdown. */
+      pstDebugFifo->hDebugFifo = NULL;
+
+      BDBG_Fifo_Destroy( tempDebugFifo );
+   }
+
    if ( 0 != pstDebugFifo->pBuffer )
    {
       BMMA_Unlock( pstDebugFifo->hBMMABlock, pstDebugFifo->pBuffer );
@@ -602,12 +613,6 @@ BERR_Code BXDM_PPDFIFO_P_Fifo_Destroy(
    {
       BMMA_Free( pstDebugFifo->hBMMABlock );
       pstDebugFifo->hBMMABlock = NULL;
-   }
-
-   if ( NULL != pstDebugFifo->hDebugFifo )
-   {
-      BDBG_Fifo_Destroy( pstDebugFifo->hDebugFifo );
-      pstDebugFifo->hDebugFifo = NULL;
    }
 
 error:

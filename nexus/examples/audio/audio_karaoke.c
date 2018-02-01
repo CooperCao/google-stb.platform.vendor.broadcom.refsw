@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -609,6 +609,8 @@ static void hotplug_callback(void *pParam, int iParam)
     NEXUS_DisplaySettings displaySettings;
     NEXUS_HdmiOutputSettings hdmiSettings;
     hotplugCallbackParameters *hotPlugCbParams ;
+
+    BSTD_UNUSED(iParam);
 
     hotPlugCbParams = (hotplugCallbackParameters *) pParam ;
     hdmi = hotPlugCbParams->hdmiOutput ;

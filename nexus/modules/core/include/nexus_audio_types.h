@@ -489,6 +489,10 @@ typedef enum NEXUS_AudioLoudnessEquivalenceMode
     NEXUS_AudioLoudnessEquivalenceMode_eMax
 } NEXUS_AudioLoudnessEquivalenceMode;
 
+typedef struct NEXUS_AudioLoudnessSettings
+{
+    NEXUS_AudioLoudnessEquivalenceMode loudnessMode;
+} NEXUS_AudioLoudnessSettings;
 
 /***************************************************************************
 Summary:
@@ -548,6 +552,18 @@ typedef enum NEXUS_AudioRunningState
     NEXUS_AudioRunningState_eSuspended,
     NEXUS_AudioRunningState_eMax
 } NEXUS_AudioRunningState;
+
+/***************************************************************************
+Summary:
+Audio Presentation
+**************************************************************************/
+typedef enum NEXUS_AudioPresentation
+{
+    NEXUS_AudioPresentation_eMain, /* Main Presentation of audio decoder, only AC4 has alternate presentation */
+    NEXUS_AudioPresentation_eAlternateStereo, /* Secondary presentation of decoder. Currently only applies to AC4,
+                                                    all other codecs get main presentation*/
+    NEXUS_AudioPresentation_eMax
+} NEXUS_AudioPresentation;
 
 /***************************************************************************
 Summary:

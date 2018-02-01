@@ -93,7 +93,7 @@
 
 typedef enum BDSP_ARM_P_eRdbVarIndices
 {
-    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_REGISTER_WIDTH = 0,
+    BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_RDB_VARS_ADDR = 0,
     BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_HOST2DSPCMD_FIFO_ID = 1,
     BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_HOST2DSPRESPONSE_FIFO_ID = 2,
     BDSP_ARM_P_eRdbVarIndices_DSP_FW_CFG_FIFO_0_BASE_ADDR = 3,
@@ -233,7 +233,50 @@ typedef struct BDSP_ArmStage
 	unsigned  stageID;
 
 	BDSP_P_StageConnectionInfo sStageConnectionInfo;
+
+    /* Capture information for the stage */
+    BLST_S_HEAD(BDSP_ArmCaptureList, BDSP_ArmCapture) captureList;
 }BDSP_ArmStage;
+
+/***************************************************************************
+Summary:
+Capture pointers structure
+***************************************************************************/
+typedef struct BDSP_ArmCapturePointerInfo
+{
+    BDSP_AF_P_sDRAM_CIRCULAR_BUFFER outputBufferPtr; /* Structure containing pointers to the output buffers
+                                                   from which the data has to be captured */
+    dramaddr_t ui32StartWriteAddr;
+    BDSP_P_BufferDescriptor captureBufferPtr; /* Structure containing the pointers to the intermediate
+                                                    buffer into which the captured data is written */
+    dramaddr_t shadowRead; /* The shadow read pointer for the output buffer */
+    dramaddr_t lastWrite; /* The last value of the write pointer; will be used for capture error detection*/
+    BDSP_MMA_Memory CaptureBufferMemory; /* Memory for Each channel  where captured Data is written into*/
+	BDSP_MMA_Memory OutputBufferMemory;  /* Memory provided by APE(FMM/RDB) which was allocated for the Port to read from*/
+} BDSP_ArmCapturePointerInfo;
+
+BDBG_OBJECT_ID_DECLARE(BDSP_ArmCapture);
+typedef struct BDSP_ArmCapture
+{
+    BDBG_OBJECT(BDSP_ArmCapture)
+    BDSP_AudioCapture    capture;
+    BDSP_ArmStage *pArmStage;
+    BDSP_ArmContext *pArmContext;
+
+    BMMA_Heap_Handle hHeap; /* Heap from which the capture buffers need to be allocated */
+    BDSP_MMA_Memory  captureBuffer;
+    uint8_t maxBuffers;             /* Maximum number of buffers */
+    bool enabled;                   /* Flag to indicate whether the capture is enabled or disabled */
+    bool updateRead;               /* If true then the read pointers of the output buffer are updated in the capture
+                                                                    thread. This can be set to true when there is not consumer for the output data */
+
+    BDSP_AF_P_BufferType eBuffType; /* The buffer type of the the output buffer (RAVE, FMM, DRAM etc ...) */
+    bool StartCapture;
+    uint8_t numBuffers;             /* Number of valid buffers */
+	bool stageDestroyed;
+    BDSP_ArmCapturePointerInfo CapturePointerInfo[BDSP_AF_P_MAX_CHANNELS]; /* Capture pointer info for all the output capture */
+    BLST_S_ENTRY(BDSP_ArmCapture) node;
+} BDSP_ArmCapture;
 
 BERR_Code BDSP_Arm_P_InitDeviceSettings(
     BDSP_Arm *pArm

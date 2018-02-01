@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -248,13 +248,37 @@ void SysCalls::doClockGetRes(TzTask *currTask) {
     timespec kernelTs;
     timespec *userTs = (timespec *)arg1;
 
+    clockid_t clockId = arg0;
+    TzTask *targetTask = currTask;
+
+    if (clockId < 0) { // find the target task
+        // http://man7.org/linux/man-pages/man3/clock_getcpuclockid.3.html
+
+        pid_t pid = -(((clockId - 2) / 8) + 1);
+
+        if (0 == pid) pid = currTask->id();
+
+        clockId = CLOCK_PROCESS_CPUTIME_ID;
+        targetTask = TzTask::taskFromId(pid);
+
+        if (nullptr == targetTask) {
+            currTask->writeUserReg(TzTask::UserRegs::r0, -ESRCH);
+            return;
+        }
+        // check permission to access target clock
+        if (currTask->pgid != targetTask->pgid) {
+            currTask->writeUserReg(TzTask::UserRegs::r0, -EPERM);
+            return;
+        }
+    }
+
     bool rc = copyFromUser(userTs, &kernelTs);
     if (!rc) {
         currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
         return;
     }
 
-    switch (arg0) {
+    switch (clockId) {
     case CLOCK_REALTIME:
     case CLOCK_REALTIME_COARSE:
         TzClock::RealTime::resolution(&kernelTs);
@@ -269,7 +293,7 @@ void SysCalls::doClockGetRes(TzTask *currTask) {
 
     case CLOCK_PROCESS_CPUTIME_ID:
     case CLOCK_THREAD_CPUTIME_ID: {
-        TzClock::TaskClock *tclk = currTask->getTaskClock();
+        TzClock::TaskClock *tclk = targetTask->getTaskClock();
         tclk->resolution(&kernelTs);
         break;
     }
@@ -290,13 +314,38 @@ void SysCalls::doClockGetTime(TzTask *currTask) {
 
     timespec kernelTs;
     timespec *userTs = (timespec *)arg1;
-    // bool rc = copyFromUser(userTs, &kernelTs);
-    // if (!rc) {
-    //  currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
-    //  return;
-    // }
 
-    switch (arg0) {
+    clockid_t clockId = arg0;
+    TzTask *targetTask = currTask;
+
+    if (clockId < 0) { // find the target task
+        // http://man7.org/linux/man-pages/man3/clock_getcpuclockid.3.html
+
+        pid_t pid = -(((clockId - 2) / 8) + 1);
+
+        if (0 == pid) pid = currTask->id();
+
+        clockId = CLOCK_PROCESS_CPUTIME_ID;
+        targetTask = TzTask::taskFromId(pid);
+
+        if (nullptr == targetTask) {
+            currTask->writeUserReg(TzTask::UserRegs::r0, -ESRCH);
+            return;
+        }
+        // check permission to access target clock
+        if (currTask->pgid != targetTask->pgid) {
+            currTask->writeUserReg(TzTask::UserRegs::r0, -EPERM);
+            return;
+        }
+    }
+
+    bool rc = copyFromUser(userTs, &kernelTs);
+    if (!rc) {
+        currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
+         return;
+    }
+
+    switch (clockId) {
     case CLOCK_REALTIME:
     case CLOCK_REALTIME_COARSE:
         TzClock::RealTime::time(&kernelTs);
@@ -314,7 +363,7 @@ void SysCalls::doClockGetTime(TzTask *currTask) {
 
     case CLOCK_PROCESS_CPUTIME_ID:
     case CLOCK_THREAD_CPUTIME_ID: {
-        TzClock::TaskClock *tclk = currTask->getTaskClock();
+        TzClock::TaskClock *tclk = targetTask->getTaskClock();
         tclk->time(&kernelTs);
         break;
     }

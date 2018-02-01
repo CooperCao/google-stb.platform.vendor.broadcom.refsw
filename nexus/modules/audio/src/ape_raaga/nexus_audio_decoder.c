@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,6 +49,10 @@
 /* Comment this line to disable debug logging */
 #define RAAGA_DEBUG_LOG_CHANGES 1
 
+#if NEXUS_AUDIO_RAVE_MONITOR_EXT
+#define NEXUS_AUDIO_RAVE_MONITOR_CONSUME    0
+#endif
+
 #if BAPE_DSP_SUPPORT
 #include "bdsp.h"
 #endif
@@ -86,9 +90,18 @@ static BERR_Code NEXUS_AudioDecoder_P_GetPcrOffset_isr(void *pContext, uint32_t 
 static void NEXUS_AudioDecoder_P_DialnormChanged_isr(void *pParam1, int param2);
 static NEXUS_Error NEXUS_AudioDecoder_P_SetCompressedMute(NEXUS_AudioDecoderHandle decoder, bool muted);
 static NEXUS_Error NEXUS_AudioDecoder_P_SetCompressedEncoderMute(NEXUS_AudioDecoderHandle decoder, bool muted);
+static NEXUS_Error NEXUS_AudioDecoder_P_EnableRaveContexts(NEXUS_AudioDecoderHandle handle);
+static void NEXUS_AudioDecoder_P_DisableRaveContexts(NEXUS_AudioDecoderHandle handle, bool flush);
 
 #define LOCK_TRANSPORT()    NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.transport)
 #define UNLOCK_TRANSPORT()  NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.transport)
+#if NEXUS_HAS_SAGE
+#define LOCK_SAGE()    NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.sage)
+#define UNLOCK_SAGE()  NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.sage)
+static NEXUS_Error NEXUS_AudioDecoder_P_StartSageAudio(NEXUS_AudioDecoderHandle handle, NEXUS_AudioDecoderStartSettings * program);
+static void NEXUS_AudioDecoder_P_StopSageAudio(NEXUS_AudioDecoderHandle handle, bool destroySage);
+#endif
+static bool NEXUS_AudioDecoder_P_CodecSupportsSageAudio(NEXUS_AudioCodec codec);
 
 #define NEXUS_AUDIO_DECODER_P_PULL_DISCARD_THRESHOLD_MPEG (0x7fffffff / 45) /* 47722 seconds (largest positive int we can represent in 45 KHz domain) */
 #define NEXUS_AUDIO_DECODER_P_PULL_DISCARD_THRESHOLD_DSS (0x7fffffff / 27000) /* 79.5 seconds (largest positive int we can represent in 27 MHz domain) */
@@ -240,11 +253,10 @@ NEXUS_Error NEXUS_AudioDecoder_P_ConfigureRave(NEXUS_RaveHandle rave, const NEXU
     errCode = NEXUS_Rave_ConfigureAudio_priv(rave, pProgram->codec, &raveSettings);
     if (errCode)
     {
-        UNLOCK_TRANSPORT();
-        return BERR_TRACE(errCode);
+        BERR_TRACE(errCode);
     }
     UNLOCK_TRANSPORT();
-    return 0;
+    return errCode;
 }
 
 static void NEXUS_AudioDecoder_P_VerifyTimebase(NEXUS_AudioDecoderHandle handle)
@@ -461,6 +473,28 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
     /* Open APE decoder */
     BAPE_Decoder_GetDefaultOpenSettings(&decoderOpenSettings);
     decoderOpenSettings.dspIndex = pSettings->dspIndex;
+    if ( g_NEXUS_audioModuleData.armHandle && !g_NEXUS_audioModuleData.dspHandle )
+    {
+        if ( decoderOpenSettings.dspIndex < BAPE_DEVICE_ARM_FIRST )
+        {
+            decoderOpenSettings.dspIndex += BAPE_DEVICE_ARM_FIRST;
+        }
+
+        if ( decoderOpenSettings.dspIndex >= (BAPE_DEVICE_ARM_FIRST+g_NEXUS_audioModuleData.capabilities.numSoftAudioCores) )
+        {
+            decoderOpenSettings.dspIndex = BAPE_DEVICE_ARM_FIRST;
+        }
+    }
+
+    if ( BAPE_DEVICE_ARM_VALID(decoderOpenSettings.dspIndex) )
+    {
+        #if NEXUS_HAS_SAGE && NEXUS_SAGE_SARM_TEST
+        handle->sageAudioCapable = true;
+        #else
+        BDBG_WRN(("WARNING: SAGE_SUPPORT disabled! Proceeding with un-secured Audio Support. If you see this message on a production chip, please report to the chip lead!!!"));
+        #endif
+    }
+
     decoderOpenSettings.ancillaryDataFifoSize = pSettings->ancillaryDataFifoSize;
     decoderOpenSettings.karaokeSupported = pSettings->karaokeSupported;
     decoderOpenSettings.multichannelFormat = pSettings->multichannelFormat==NEXUS_AudioMultichannelFormat_e7_1 ? BAPE_MultichannelFormat_e7_1 : BAPE_MultichannelFormat_e5_1;
@@ -565,13 +599,37 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
     raveSettings.heap = pSettings->cdbHeap;
 
     LOCK_TRANSPORT();
-    handle->raveContext = NEXUS_Rave_Open_priv(&raveSettings);
+    handle->dstRaveContext = NEXUS_Rave_Open_priv(&raveSettings);
+    if ( handle->sageAudioCapable )
+    {
+        handle->srcRaveContext = NEXUS_Rave_Open_priv(&raveSettings);
+    }
     UNLOCK_TRANSPORT();
-    if ( NULL == handle->raveContext )
+    if ( NULL == handle->dstRaveContext || (handle->sageAudioCapable && handle->srcRaveContext == NULL) )
     {
         BDBG_ERR(("Unable to allocate RAVE context"));
         goto err_rave;
     }
+
+    #if NEXUS_AUDIO_RAVE_MONITOR_EXT
+    {
+        NEXUS_AudioRaveMonitorCreateSettings createSettings;
+
+        NEXUS_AudioRaveMonitor_GetDefaultCreateSettings(&createSettings);
+        if ( handle->sageAudioCapable )
+        {
+            BKNI_Snprintf(createSettings.name, sizeof(createSettings.name), "RaveSrc%u", handle->index);
+            BKNI_Snprintf(createSettings.fileName, sizeof(createSettings.fileName), "audioCdbSrc%u.dat", handle->index);
+            handle->srcRaveMonitor.monitor = NEXUS_AudioRaveMonitor_Create(&createSettings);
+        }
+        BKNI_Snprintf(createSettings.name, sizeof(createSettings.name), "RaveDst%u", handle->index);
+        BKNI_Snprintf(createSettings.fileName, sizeof(createSettings.fileName), "audioCdbDst%u.dat", handle->index);
+        #if NEXUS_AUDIO_RAVE_MONITOR_CONSUME
+        createSettings.consume = true;
+        #endif
+        handle->dstRaveMonitor.monitor = NEXUS_AudioRaveMonitor_Create(&createSettings);
+    }
+    #endif
 
     handle->sourceChangeAppCallback = NEXUS_IsrCallback_Create(handle, NULL);
     if ( NULL == handle->sourceChangeAppCallback )
@@ -662,11 +720,20 @@ err_pts_error_callback:
 err_lock_callback:
     NEXUS_IsrCallback_Destroy(handle->sourceChangeAppCallback);
 err_app_callback:
-    LOCK_TRANSPORT();
-    NEXUS_Rave_Close_priv(handle->raveContext);
-    UNLOCK_TRANSPORT();
 err_rave:
     BAPE_Decoder_Close(handle->channel);
+    if ( handle->srcRaveContext )
+    {
+        LOCK_TRANSPORT();
+        NEXUS_Rave_Close_priv(handle->srcRaveContext);
+        UNLOCK_TRANSPORT();
+    }
+    if ( handle->dstRaveContext )
+    {
+        LOCK_TRANSPORT();
+        NEXUS_Rave_Close_priv(handle->dstRaveContext);
+        UNLOCK_TRANSPORT();
+    }
 err_channel:
     NEXUS_UnregisterEvent(handle->stc.statusChangeEventHandler);
 err_stc_status_change_event_handler:
@@ -756,8 +823,38 @@ static void NEXUS_AudioDecoder_P_Finalizer(
     NEXUS_IsrCallback_Destroy(handle->streamStatusCallback);
     NEXUS_IsrCallback_Destroy(handle->ancillaryDataCallback);
     NEXUS_IsrCallback_Destroy(handle->dialnormChangedCallback);
+    #if NEXUS_AUDIO_RAVE_MONITOR_EXT
+    if ( handle->srcRaveMonitor.monitor )
+    {
+        NEXUS_AudioRaveMonitor_Destroy(handle->srcRaveMonitor.monitor);
+        handle->srcRaveMonitor.monitor = NULL;
+    }
+    if ( handle->dstRaveMonitor.monitor )
+    {
+        NEXUS_AudioRaveMonitor_Destroy(handle->dstRaveMonitor.monitor);
+        handle->dstRaveMonitor.monitor = NULL;
+    }
+    #endif
+    #if NEXUS_HAS_SAGE
+    if ( handle->sageAudioHandle )
+    {
+        LOCK_SAGE();
+        NEXUS_SageAudio_Close_priv((NEXUS_SageAudioHandle)handle->sageAudioHandle);
+        UNLOCK_SAGE();
+        handle->sageAudioHandle = NULL;
+    }
+    #endif
     LOCK_TRANSPORT();
-    NEXUS_Rave_Close_priv(handle->raveContext);
+    if ( handle->srcRaveContext )
+    {
+        NEXUS_Rave_Close_priv(handle->srcRaveContext);
+        handle->srcRaveContext = NULL;
+    }
+    if ( handle->dstRaveContext )
+    {
+        NEXUS_Rave_Close_priv(handle->dstRaveContext);
+        handle->dstRaveContext = NULL;
+    }
     UNLOCK_TRANSPORT();
     NEXUS_UnregisterEvent(handle->stc.statusChangeEventHandler);
     BKNI_DestroyEvent(handle->stc.statusChangeEvent);
@@ -820,11 +917,13 @@ NEXUS_Error NEXUS_AudioDecoder_SetSettings(
             BERR_Code rc;
 
             LOCK_TRANSPORT();
-
-            rc = NEXUS_Rave_SetCdbThreshold_priv(handle->raveContext, pSettings->fifoThreshold);
-
+            rc = NEXUS_Rave_SetCdbThreshold_priv(handle->dstRaveContext, pSettings->fifoThreshold);
+            if ( !rc && handle->srcRaveContext )
+            {
+                BDBG_MSG(("Configure Source CDB Threshold"));
+                rc = NEXUS_Rave_SetCdbThreshold_priv(handle->srcRaveContext, pSettings->fifoThreshold);
+            }
             UNLOCK_TRANSPORT();
-
             if (rc) return BERR_TRACE(rc);
         }
 
@@ -877,6 +976,35 @@ void NEXUS_AudioDecoder_GetDefaultStartSettings(
     pSettings->targetSyncEnabled = true;
     pSettings->maxOutputRate = 48000;
 }
+
+#if BDBG_DEBUG_BUILD
+static void NEXUS_AudioDecoder_P_PrintRaveStatus(NEXUS_RaveHandle cxt, char * header)
+{
+    BERR_Code errCode;
+    NEXUS_RaveStatus raveStatus;
+
+    LOCK_TRANSPORT();
+    errCode = NEXUS_Rave_GetStatus_priv(cxt, &raveStatus);
+    UNLOCK_TRANSPORT();
+    if (errCode)
+    {
+        errCode = BERR_TRACE(errCode);
+        return;
+    }
+
+    BDBG_MSG(("Rave Context \"%s\":", header?header:"null"));
+    BDBG_MSG(("  CDB base %x", raveStatus.xptContextMap.CDB_Base));
+    BDBG_MSG(("  CDB end %x", raveStatus.xptContextMap.CDB_End));
+    BDBG_MSG(("  CDB read %x", raveStatus.xptContextMap.CDB_Read));
+    BDBG_MSG(("  CDB valid %x", raveStatus.xptContextMap.CDB_Valid));
+    BDBG_MSG(("  CDB wrap %x", raveStatus.xptContextMap.CDB_Wrap));
+    BDBG_MSG(("  ITB base %x", raveStatus.xptContextMap.ITB_Base));
+    BDBG_MSG(("  ITB end %x", raveStatus.xptContextMap.ITB_End));
+    BDBG_MSG(("  ITB read %x", raveStatus.xptContextMap.ITB_Read));
+    BDBG_MSG(("  ITB valid %x", raveStatus.xptContextMap.ITB_Valid));
+    BDBG_MSG(("  ITB wrap %x", raveStatus.xptContextMap.ITB_Wrap));
+}
+#endif
 
 /***************************************************************************
 Summary:
@@ -1103,7 +1231,19 @@ NEXUS_Error NEXUS_AudioDecoder_Start(
     if ( pProgram->pidChannel )
     {
         if (!handle->savedRaveContext) {
-            errCode = NEXUS_AudioDecoder_P_ConfigureRave(handle->raveContext, pProgram, &pidChannelStatus, handle->isPlayback);
+            if ( handle->srcRaveContext && NEXUS_AudioDecoder_P_CodecSupportsSageAudio(pProgram->codec) )
+            {
+                BDBG_MSG(("Configure Source RAVE"));
+                errCode = NEXUS_AudioDecoder_P_ConfigureRave(handle->srcRaveContext, pProgram, &pidChannelStatus, handle->isPlayback);
+                #if BDBG_DEBUG_BUILD
+                NEXUS_AudioDecoder_P_PrintRaveStatus(handle->srcRaveContext, "SOURCE");
+                #endif
+            }
+            else
+            {
+                BDBG_MSG(("Configure Dest RAVE"));
+                errCode = NEXUS_AudioDecoder_P_ConfigureRave(handle->dstRaveContext, pProgram, &pidChannelStatus, handle->isPlayback);
+            }
             if (errCode)
             {
                 errCode = BERR_TRACE(errCode);
@@ -1111,7 +1251,7 @@ NEXUS_Error NEXUS_AudioDecoder_Start(
             }
         }
         LOCK_TRANSPORT();
-        errCode = NEXUS_Rave_GetStatus_priv(handle->raveContext, &handle->raveStatus);
+        errCode = NEXUS_Rave_GetStatus_priv(handle->dstRaveContext, &handle->raveStatus);
         UNLOCK_TRANSPORT();
         if (errCode)
         {
@@ -1119,6 +1259,42 @@ NEXUS_Error NEXUS_AudioDecoder_Start(
             goto err_rave_status;
         }
         pStartSettings->pContextMap = &handle->raveStatus.xptContextMap;
+        #if 0
+        if ( handle->srcRaveContext && handle->dstRaveContext )
+        {
+            uint64_t base, wrap, end;
+            base = BREG_ReadAddr(g_pCoreHandles->reg, handle->raveStatus.xptContextMap.ITB_Base);
+            wrap = BREG_ReadAddr(g_pCoreHandles->reg, handle->raveStatus.xptContextMap.ITB_Wrap);
+            end = BREG_ReadAddr(g_pCoreHandles->reg, handle->raveStatus.xptContextMap.ITB_End);
+
+            BDBG_WRN(("ITB Wrap " BDBG_UINT64_FMT ", base " BDBG_UINT64_FMT ", end " BDBG_UINT64_FMT " ",
+                      BDBG_UINT64_ARG(wrap),
+                      BDBG_UINT64_ARG(base),
+                      BDBG_UINT64_ARG(end) ));
+            if ( wrap == base )
+            {
+                BDBG_WRN(("Correcting ITB Wrap offset for soft rave context"));
+                BREG_WriteAddr(g_pCoreHandles->reg, handle->raveStatus.xptContextMap.ITB_Wrap, end);
+            }
+            base = BREG_ReadAddr(g_pCoreHandles->reg, handle->raveStatus.xptContextMap.CDB_Base);
+            wrap = BREG_ReadAddr(g_pCoreHandles->reg, handle->raveStatus.xptContextMap.CDB_Wrap);
+            end = BREG_ReadAddr(g_pCoreHandles->reg, handle->raveStatus.xptContextMap.CDB_End);
+
+            BDBG_WRN(("CDB Wrap " BDBG_UINT64_FMT ", base " BDBG_UINT64_FMT ", end " BDBG_UINT64_FMT " ",
+                      BDBG_UINT64_ARG(wrap),
+                      BDBG_UINT64_ARG(base),
+                      BDBG_UINT64_ARG(end) ));
+            if ( wrap == base )
+            {
+                BDBG_WRN(("Correcting CDB Wrap offset for soft rave context"));
+                BREG_WriteAddr(g_pCoreHandles->reg, handle->raveStatus.xptContextMap.CDB_Wrap, end);
+            }
+        }
+        #endif
+
+        #if BDBG_DEBUG_BUILD
+        NEXUS_AudioDecoder_P_PrintRaveStatus(handle->dstRaveContext, "DEST");
+        #endif
     }
 
     BDBG_MSG(("%s input", (pProgram->input != NULL) ? "HAS" : "DOES NOT HAVE"));
@@ -1164,7 +1340,14 @@ err_rave_status:
     if ( pProgram->pidChannel )
     {
         LOCK_TRANSPORT();
-        NEXUS_Rave_RemovePidChannel_priv(handle->raveContext);
+        if ( handle->srcRaveContext )
+        {
+            NEXUS_Rave_RemovePidChannel_priv(handle->srcRaveContext);
+        }
+        else
+        {
+            NEXUS_Rave_RemovePidChannel_priv(handle->dstRaveContext);
+        }
         UNLOCK_TRANSPORT();
     }
 
@@ -1241,7 +1424,16 @@ void NEXUS_AudioDecoder_Stop(
     if ( handle->programSettings.pidChannel )
     {
         LOCK_TRANSPORT();
-        NEXUS_Rave_RemovePidChannel_priv(handle->raveContext);
+        if ( handle->srcRaveContext )
+        {
+            BDBG_MSG(("Remove Source Pid Channel from RAVE"));
+            NEXUS_Rave_RemovePidChannel_priv(handle->srcRaveContext);
+        }
+        else
+        {
+            BDBG_MSG(("Remove Dest Pid Channel from RAVE"));
+            NEXUS_Rave_RemovePidChannel_priv(handle->dstRaveContext);
+        }
         UNLOCK_TRANSPORT();
         NEXUS_OBJECT_RELEASE(handle, NEXUS_PidChannel, handle->programSettings.pidChannel);
     }
@@ -1393,6 +1585,142 @@ err_start:
     return errCode;
 }
 
+static bool NEXUS_AudioDecoder_P_CodecSupportsSageAudio(NEXUS_AudioCodec codec)
+{
+    switch ( codec )
+    {
+    case NEXUS_AudioCodec_eMpeg:
+    case NEXUS_AudioCodec_eAc3:
+    case NEXUS_AudioCodec_eMp3:
+    case NEXUS_AudioCodec_eAc3Plus:
+    case NEXUS_AudioCodec_eAacAdts:
+    case NEXUS_AudioCodec_eAacLoas:
+    case NEXUS_AudioCodec_eAacPlusLoas:
+    case NEXUS_AudioCodec_eAacPlusAdts:
+        return true;
+        break;
+    default:
+        break;
+    }
+
+    return false;
+}
+
+#if NEXUS_HAS_SAGE
+static NEXUS_Error NEXUS_AudioDecoder_P_StartSageAudio(NEXUS_AudioDecoderHandle handle, NEXUS_AudioDecoderStartSettings * program)
+{
+    NEXUS_Error rc;
+    NEXUS_AudioDecoderStartSettings * pProgram;
+    bool deriveSageSettings = false;
+
+    if ( !handle->sageAudioCapable )
+    {
+        return NEXUS_SUCCESS;
+    }
+
+    if ( program != NULL )
+    {
+        pProgram = program;
+        deriveSageSettings = true;
+    }
+    else
+    {
+        pProgram = &handle->programSettings;
+    }
+
+    if ( NEXUS_AudioDecoder_P_CodecSupportsSageAudio(pProgram->codec) )
+    {
+        NEXUS_SageAudioOpenSettings sageAudioOpenSettings;
+        NEXUS_SageAudioStartSettings sageAudioSettings;
+        NEXUS_SageAudioStartSettings * pSageSettings;
+
+        if ( !handle->sageAudioHandle )
+        {
+            LOCK_SAGE();
+            NEXUS_SageAudio_GetDefaultOpenSettings_priv(&sageAudioOpenSettings);
+            handle->sageAudioHandle = NEXUS_SageAudio_Open_priv(&sageAudioOpenSettings);
+            UNLOCK_SAGE();
+        }
+
+        if ( !handle->sageAudioHandle )
+        {
+            BDBG_ERR(("Unable to initialize SAGE Audio. Check configuration and verify SAGE Audio support."));
+            rc = BERR_TRACE(NEXUS_UNKNOWN); goto err_cleanup;
+        }
+
+        if ( deriveSageSettings )
+        {
+            BDBG_ASSERT(handle->srcRaveContext != NULL);
+
+            /* Derive Sage Audio Start settings */
+            sageAudioSettings.codec = pProgram->codec;
+            sageAudioSettings.routingOnly = false;
+            sageAudioSettings.inContext = handle->srcRaveContext;
+            sageAudioSettings.outContext = handle->dstRaveContext;
+            pSageSettings = &sageAudioSettings;
+        }
+        else
+        {
+            pSageSettings = &handle->sageAudioSettings;
+        }
+
+        BDBG_MSG(("Starting SAGE Audio rave src %p, dst %p", (void*)pSageSettings->inContext, (void*)pSageSettings->outContext));
+        LOCK_SAGE();
+        rc = NEXUS_SageAudio_Start_priv((NEXUS_SageAudioHandle)handle->sageAudioHandle, pSageSettings);
+        UNLOCK_SAGE();
+        if ( rc )
+        {
+            BDBG_ERR(("Unable to start Sage Audio"));
+            (void)BERR_TRACE(rc); goto err_cleanup;
+        }
+
+        if ( deriveSageSettings )
+        {
+            handle->sageAudioSettings = sageAudioSettings;
+        }
+
+        handle->sageAudioEnabled = true;
+    }
+    else if ( handle->sageAudioHandle )
+    {
+        rc = NEXUS_SUCCESS; goto err_cleanup;
+    }
+
+    return NEXUS_SUCCESS;
+
+err_cleanup:
+    if ( handle->sageAudioHandle )
+    {
+        #if NEXUS_HAS_SAGE
+        LOCK_SAGE();
+        NEXUS_SageAudio_Close_priv((NEXUS_SageAudioHandle)handle->sageAudioHandle);
+        UNLOCK_SAGE();
+        #endif
+        handle->sageAudioHandle = NULL;
+    }
+    return rc;
+}
+
+static void NEXUS_AudioDecoder_P_StopSageAudio(NEXUS_AudioDecoderHandle handle, bool destroySage)
+{
+    if ( !handle->sageAudioEnabled )
+    {
+        return;
+    }
+
+    LOCK_SAGE();
+    (void)NEXUS_SageAudio_Stop_priv((NEXUS_SageAudioHandle)handle->sageAudioHandle);
+    if ( destroySage )
+    {
+        NEXUS_SageAudio_Close_priv((NEXUS_SageAudioHandle)handle->sageAudioHandle);
+        handle->sageAudioHandle = NULL;
+    }
+    UNLOCK_SAGE();
+
+    handle->sageAudioEnabled = false;
+}
+#endif
+
 /***************************************************************************
 Summary:
 Discards all data accumulated in the decoder buffer
@@ -1409,29 +1737,43 @@ NEXUS_Error NEXUS_AudioDecoder_Flush(
         return BERR_SUCCESS;
     }
 
+    #if NEXUS_HAS_SAGE
+    NEXUS_AudioDecoder_P_StopSageAudio(handle, false);
+    #endif
+
     BAPE_Decoder_DisableForFlush(handle->channel);
 
-    BDBG_ASSERT(handle->raveContext);
+    BDBG_ASSERT(handle->dstRaveContext);
 
     if ( handle->programSettings.pidChannel )
     {
-        LOCK_TRANSPORT();
-        NEXUS_Rave_Disable_priv(handle->raveContext);
-        NEXUS_Rave_Flush_priv(handle->raveContext);
-        UNLOCK_TRANSPORT();
+        NEXUS_AudioDecoder_P_DisableRaveContexts(handle, true);
     }
 
     rc = BAPE_Decoder_Flush(handle->channel);
     if ( rc )
     {
+        BDBG_ERR(("WARNING: Unable to Audio Decoder."));
         (void)BERR_TRACE(rc);
     }
 
     if ( handle->programSettings.pidChannel )
     {
-        LOCK_TRANSPORT();
-        NEXUS_Rave_Enable_priv(handle->raveContext);
-        UNLOCK_TRANSPORT();
+        rc = NEXUS_AudioDecoder_P_EnableRaveContexts(handle);
+        if ( rc )
+        {
+            BDBG_ERR(("ERROR: Unable to re-start SAGE Audio context."));
+            return BERR_TRACE(rc);
+        }
+
+        #if NEXUS_HAS_SAGE
+        rc = NEXUS_AudioDecoder_P_StartSageAudio(handle, NULL);
+        if ( rc )
+        {
+            BDBG_ERR(("WARNING: Unable to re-start SAGE Audio context."));
+            return BERR_TRACE(rc);
+        }
+        #endif
     }
 
     return rc;
@@ -2006,7 +2348,7 @@ NEXUS_Error NEXUS_AudioDecoder_GetStatus(
     BKNI_EnterCriticalSection();
     if ( handle->programSettings.pidChannel )
     {
-        NEXUS_Rave_GetCdbBufferInfo_isr(handle->raveContext, &depth, &size);
+        NEXUS_Rave_GetCdbBufferInfo_isr(handle->dstRaveContext, &depth, &size);
     }
     BKNI_LeaveCriticalSection();
 
@@ -2024,8 +2366,8 @@ NEXUS_Error NEXUS_AudioDecoder_GetStatus(
         NEXUS_RaveStatus raveStatus;
         NEXUS_Error errCode;
         LOCK_TRANSPORT();
-        NEXUS_Rave_GetAudioFrameCount_priv(handle->raveContext, &pStatus->queuedFrames);
-        errCode = NEXUS_Rave_GetStatus_priv(handle->raveContext, &raveStatus);
+        NEXUS_Rave_GetAudioFrameCount_priv(handle->dstRaveContext, &pStatus->queuedFrames);
+        errCode = NEXUS_Rave_GetStatus_priv(handle->dstRaveContext, &raveStatus);
         UNLOCK_TRANSPORT();
         if ( NEXUS_SUCCESS == errCode )
         {
@@ -2051,6 +2393,7 @@ NEXUS_Error NEXUS_AudioDecoder_GetStatus(
         pStatus->framesDecoded = decoderStatus.framesDecoded;
         pStatus->frameErrors = decoderStatus.frameErrors;
         pStatus->dummyFrames = decoderStatus.dummyFrames;
+        pStatus->queuedOutput = decoderStatus.queuedOutput;
 
         /* Convert codec to nexus type */
         pStatus->codec = NEXUS_Audio_P_MagnumToCodec(decoderStatus.codec);
@@ -2155,6 +2498,7 @@ NEXUS_Error NEXUS_AudioDecoder_GetStatus(
             pStatus->codecStatus.ac3.dependentFrameChannelMap = (NEXUS_AudioAc3DependentFrameChannelMap)decoderStatus.codecStatus.ac3.dependentFrameChannelMap;
             pStatus->codecStatus.ac3.dialnorm = decoderStatus.codecStatus.ac3.dialnorm;
             pStatus->codecStatus.ac3.previousDialnorm = decoderStatus.codecStatus.ac3.previousDialnorm;
+            pStatus->codecStatus.ac3.atmosDetected = decoderStatus.codecStatus.ac3.atmosDetected;
             break;
         case BAVC_AudioCompressionStd_eAc4:
             BDBG_CASSERT((int)NEXUS_AudioAc4Acmod_eMax==(int)BAPE_Ac4Acmod_eMax);
@@ -2167,6 +2511,7 @@ NEXUS_Error NEXUS_AudioDecoder_GetStatus(
             pStatus->codecStatus.ac4.streamInfoVersion = decoderStatus.codecStatus.ac4.streamInfoVersion;
             pStatus->codecStatus.ac4.numPresentations = decoderStatus.codecStatus.ac4.numPresentations;
             pStatus->codecStatus.ac4.currentPresentationIndex = decoderStatus.codecStatus.ac4.currentPresentationIndex;
+            pStatus->codecStatus.ac4.currentAlternateStereoPresentationIndex = decoderStatus.codecStatus.ac4.currentAlternateStereoPresentationIndex;
             pStatus->codecStatus.ac4.dialogEnhanceMax = decoderStatus.codecStatus.ac4.dialogEnhanceMax;
             break;
         case BAVC_AudioCompressionStd_eDts:
@@ -2926,16 +3271,16 @@ void NEXUS_AudioDecoder_P_Reset(void)
     /* Process watchdog STOP */
     BAPE_ProcessWatchdogInterruptStop(NEXUS_AUDIO_DEVICE_HANDLE);
 
-    LOCK_TRANSPORT();
     for ( i = 0; i < audioCapabilities.numDecoders; i++ )
     {
         if ( g_decoders[i] && g_decoders[i]->running && NULL == g_decoders[i]->programSettings.input )
         {
-            NEXUS_Rave_Disable_priv(g_decoders[i]->raveContext);
-            NEXUS_Rave_Flush_priv(g_decoders[i]->raveContext);
+            #if NEXUS_HAS_SAGE
+            NEXUS_AudioDecoder_P_StopSageAudio(g_decoders[i], false);
+            #endif
+            NEXUS_AudioDecoder_P_DisableRaveContexts(g_decoders[i], true);
         }
     }
-    UNLOCK_TRANSPORT();
 
     /* Reset AudioMuxOutput objects before restarting the decoders */
     NEXUS_AudioMuxOutput_P_WatchdogReset();
@@ -2944,15 +3289,30 @@ void NEXUS_AudioDecoder_P_Reset(void)
     BAPE_ProcessWatchdogInterruptResume(NEXUS_AUDIO_DEVICE_HANDLE);
 
     /* Restart RAVE contexts */
-    LOCK_TRANSPORT();
     for ( i = 0; i < audioCapabilities.numDecoders; i++ )
     {
         if ( g_decoders[i] && g_decoders[i]->running && NULL == g_decoders[i]->programSettings.input )
         {
-            NEXUS_Rave_Enable_priv(g_decoders[i]->raveContext);
+            NEXUS_Error rc;
+            rc = NEXUS_AudioDecoder_P_EnableRaveContexts(g_decoders[i]);
+            if ( rc )
+            {
+                BDBG_ERR(("Unable to re-start Audio Rave contexts."));
+                BERR_TRACE(rc);
+            }
+
+            #if NEXUS_HAS_SAGE
+            {
+                rc = NEXUS_AudioDecoder_P_StartSageAudio(g_decoders[i], NULL);
+                if ( rc )
+                {
+                    BDBG_ERR(("Unable to re-start SAGE Audio context."));
+                    BERR_TRACE(rc);
+                }
+            }
+            #endif
         }
     }
-    UNLOCK_TRANSPORT();
 
 #if NEXUS_HAS_ASTM
     for ( i = 0; i < audioCapabilities.numDecoders; i++ )
@@ -3415,6 +3775,90 @@ static void NEXUS_AudioDecoder_P_SetDefaultVolume(NEXUS_AudioDecoderHandle handl
     }
 }
 
+static NEXUS_Error NEXUS_AudioDecoder_P_EnableRaveContexts(NEXUS_AudioDecoderHandle handle)
+{
+    bool sarmModeRequired = false;
+
+    if ( handle->sageAudioCapable &&
+         NEXUS_AudioDecoder_P_CodecSupportsSageAudio(handle->programSettings.codec) )
+    {
+        sarmModeRequired = true;
+
+        if ( !handle->srcRaveContext )
+        {
+            BDBG_ERR(("INVALID State. No SRC Rave Context created, but SARM mode is required. Cannot start transport."));
+            return BERR_TRACE(NEXUS_UNKNOWN);
+        }
+    }
+
+    LOCK_TRANSPORT();
+    if ( sarmModeRequired )
+    {
+        BDBG_MSG(("Flush Dest RAVE"));
+        NEXUS_Rave_Flush_priv(handle->dstRaveContext);/* always flush the destination context */
+        BDBG_MSG(("Enable Source RAVE"));
+        NEXUS_Rave_Enable_priv(handle->srcRaveContext);
+    }
+    else
+    {
+        BDBG_MSG(("Enable Dest RAVE"));
+        NEXUS_Rave_Enable_priv(handle->dstRaveContext);
+    }
+    UNLOCK_TRANSPORT();
+
+    #if NEXUS_AUDIO_RAVE_MONITOR_EXT
+    handle->srcRaveMonitor.startSettings.rave = handle->srcRaveContext;
+    handle->dstRaveMonitor.startSettings.rave = handle->dstRaveContext;
+
+    if ( handle->srcRaveMonitor.monitor && sarmModeRequired )
+    {
+        NEXUS_AudioRaveMonitor_Start(handle->srcRaveMonitor.monitor, &handle->srcRaveMonitor.startSettings);
+    }
+    if ( handle->dstRaveMonitor.monitor )
+    {
+        NEXUS_AudioRaveMonitor_Start(handle->dstRaveMonitor.monitor, &handle->dstRaveMonitor.startSettings);
+    }
+    #endif
+
+    return NEXUS_SUCCESS;
+}
+
+static void NEXUS_AudioDecoder_P_DisableRaveContexts(NEXUS_AudioDecoderHandle handle, bool flush)
+{
+
+    #if NEXUS_AUDIO_RAVE_MONITOR_EXT
+    if ( handle->srcRaveMonitor.monitor && NEXUS_AudioDecoder_P_CodecSupportsSageAudio(handle->programSettings.codec) )
+    {
+        NEXUS_AudioRaveMonitor_Stop(handle->srcRaveMonitor.monitor);
+    }
+    if ( handle->dstRaveMonitor.monitor )
+    {
+        NEXUS_AudioRaveMonitor_Stop(handle->dstRaveMonitor.monitor);
+    }
+    #endif
+
+    LOCK_TRANSPORT();
+    if ( handle->srcRaveContext && NEXUS_AudioDecoder_P_CodecSupportsSageAudio(handle->programSettings.codec) )
+    {
+        BDBG_MSG(("Disable / Flush Source RAVE"));
+        NEXUS_Rave_Disable_priv(handle->srcRaveContext);
+        if ( flush )
+        {
+            NEXUS_Rave_Flush_priv(handle->srcRaveContext);
+        }
+    }
+    else
+    {
+        BDBG_MSG(("Disable / Flush Dest RAVE"));
+        NEXUS_Rave_Disable_priv(handle->dstRaveContext);
+        if ( flush )
+        {
+            NEXUS_Rave_Flush_priv(handle->dstRaveContext);
+        }
+    }
+    UNLOCK_TRANSPORT();
+}
+
 NEXUS_Error NEXUS_AudioDecoder_P_Start(NEXUS_AudioDecoderHandle handle)
 {
     NEXUS_Error errCode;
@@ -3575,14 +4019,31 @@ NEXUS_Error NEXUS_AudioDecoder_P_Start(NEXUS_AudioDecoderHandle handle)
 
     handle->locked = false;
     handle->numFifoOverflows = handle->numFifoUnderflows = 0;
+    #if !NEXUS_AUDIO_RAVE_MONITOR_EXT || !NEXUS_AUDIO_RAVE_MONITOR_CONSUME
     errCode = BAPE_Decoder_Start(handle->channel, &handle->apeStartSettings);
     if ( errCode && !handle->started ) { errCode = BERR_TRACE(errCode); goto err_dec_start; }
+    #endif
 
     if ( handle->programSettings.pidChannel )
     {
-        LOCK_TRANSPORT();
-        NEXUS_Rave_Enable_priv(handle->raveContext);
-        UNLOCK_TRANSPORT();
+        NEXUS_Error rc;
+        rc = NEXUS_AudioDecoder_P_EnableRaveContexts(handle);
+        if ( rc )
+        {
+            BDBG_ERR(("Unable to start Audio Rave context(s)."));
+            BERR_TRACE(rc); goto err_rave;
+        }
+
+        #if NEXUS_HAS_SAGE
+        {
+            rc = NEXUS_AudioDecoder_P_StartSageAudio(handle, &handle->programSettings);
+            if ( rc )
+            {
+                BDBG_ERR(("Unable to start SAGE Audio context."));
+                BERR_TRACE(rc); goto err_sage;
+            }
+        }
+        #endif
     }
     handle->running = true;
 
@@ -3607,6 +4068,12 @@ NEXUS_Error NEXUS_AudioDecoder_P_Start(NEXUS_AudioDecoderHandle handle)
 
     return BERR_SUCCESS;
 
+#if NEXUS_HAS_SAGE
+err_sage:
+    NEXUS_AudioDecoder_P_DisableRaveContexts(handle, false);
+#endif
+err_rave:
+    BAPE_Decoder_Stop(handle->channel);
 err_dec_start:
     if (handle->primer) {
         /* decode will stop and primer will not restart. just disconnect. */
@@ -3641,22 +4108,24 @@ NEXUS_Error NEXUS_AudioDecoder_P_Stop(NEXUS_AudioDecoderHandle handle, bool flus
         }
 
         handle->locked = false;
+        #if !NEXUS_AUDIO_RAVE_MONITOR_EXT || !NEXUS_AUDIO_RAVE_MONITOR_CONSUME
         BAPE_Decoder_Stop(handle->channel);
+        #endif
     }
 
     if ( handle->programSettings.pidChannel && flush )
     {
-        LOCK_TRANSPORT();
-        NEXUS_Rave_Disable_priv(handle->raveContext);
-        NEXUS_Rave_Flush_priv(handle->raveContext);
-        UNLOCK_TRANSPORT();
+        #if NEXUS_HAS_SAGE
+        NEXUS_AudioDecoder_P_StopSageAudio(handle, true);
+        BKNI_Memset(&handle->sageAudioSettings, 0, sizeof(handle->sageAudioSettings));
+        #endif
+
+        NEXUS_AudioDecoder_P_DisableRaveContexts(handle, true);
     }
 
     if ( handle->running )
     {
-
         handle->running = false;
-
         if (handle->programSettings.stcChannel)
         {
             NEXUS_AudioDecoder_P_StopStcChannel(handle);
@@ -3719,7 +4188,7 @@ static BERR_Code NEXUS_AudioDecoder_P_GetCdbLevelCallback_isr(void *pContext, un
     BDBG_OBJECT_ASSERT(audioDecoder, NEXUS_AudioDecoder);
     if ( audioDecoder->programSettings.pidChannel )
     {
-        NEXUS_Rave_GetCdbBufferInfo_isr(audioDecoder->raveContext, &depth, &size);
+        NEXUS_Rave_GetCdbBufferInfo_isr(audioDecoder->dstRaveContext, &depth, &size);
     }
     BDBG_MSG_TRACE(("GetCdbLevel - returned %d", depth));
     *pCdbLevel = depth;
@@ -3751,8 +4220,8 @@ static void NEXUS_AudioDecoder_P_FifoWatchdog(void *context)
         BAPE_DecoderTsmStatus tsmStatus;
 
         BKNI_EnterCriticalSection();
-        NEXUS_Rave_GetCdbPointers_isr(audioDecoder->raveContext, &cdbValidPointer, &cdbReadPointer);
-        NEXUS_Rave_GetCdbBufferInfo_isr(audioDecoder->raveContext, &depth, &size);
+        NEXUS_Rave_GetCdbPointers_isr(audioDecoder->dstRaveContext, &cdbValidPointer, &cdbReadPointer);
+        NEXUS_Rave_GetCdbBufferInfo_isr(audioDecoder->dstRaveContext, &depth, &size);
         BAPE_Decoder_GetTsmStatus_isr(audioDecoder->channel, &tsmStatus);
         BKNI_LeaveCriticalSection();
 
@@ -3970,18 +4439,18 @@ NEXUS_Error NEXUS_AudioDecoder_GetExtendedStatus(
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioDecoder);
     BDBG_ASSERT(NULL != pStatus);
-    LOCK_TRANSPORT();
-    if ( handle->raveContext )
+    if ( handle->dstRaveContext )
     {
         NEXUS_RaveStatus raveStatus;
 
-        errCode = NEXUS_Rave_GetStatus_priv(handle->raveContext, &raveStatus);
+        LOCK_TRANSPORT();
+        errCode = NEXUS_Rave_GetStatus_priv(handle->dstRaveContext, &raveStatus);
+        UNLOCK_TRANSPORT();
         if ( errCode == BERR_SUCCESS )
         {
             pStatus->raveIndex = raveStatus.index;
         }
     }
-    UNLOCK_TRANSPORT();
 
     return errCode;
 }

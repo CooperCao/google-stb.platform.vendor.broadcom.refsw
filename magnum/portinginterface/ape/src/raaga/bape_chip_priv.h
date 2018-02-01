@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -236,6 +236,8 @@
 /* SFIFO Details */
 #define BAPE_CHIP_MAX_SFIFOS (BCHP_AUD_FMM_BF_CTRL_SOURCECH_CFGi_ARRAY_END+1)
 
+#define BAPE_CHIP_SFIFO_PADDING 1024
+
 /* DFIFO Details */
 #ifdef BCHP_AUD_FMM_BF_CTRL_DESTCH_CFG0
 #define BAPE_CHIP_MAX_DFIFOS (1)  /* Required because the RDB defs change with only one channel */
@@ -346,6 +348,8 @@
 #define BAPE_CHIP_MAX_EXT_MCLKS (BCHP_AUD_FMM_OP_CTRL_MCLK_CFG_EXTi_ARRAY_END+1)
 #elif defined BCHP_AUD_FMM_IOP_MISC_MCLK_CFG_i_ARRAY_END
 #define BAPE_CHIP_MAX_EXT_MCLKS (BCHP_AUD_FMM_IOP_MISC_MCLK_CFG_i_ARRAY_END+1)
+#else
+#define BAPE_CHIP_MAX_EXT_MCLKS (0)
 #endif
 
 #define BAPE_CHIP_MAX_OUTPUT_PORTS (BCHP_SHIFT(AUD_FMM_OP_CTRL_ENABLE_STATUS, reserved0))    /* Total output ports  */

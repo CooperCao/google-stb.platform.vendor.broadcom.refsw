@@ -2072,7 +2072,7 @@ BERR_Code BKIR_OpenChannel(
 
                 /* Enable KIR interrupt */
                 BKNI_EnterCriticalSection();
-                BKIR_P_EnableInt (hChnDev);
+                BKIR_P_EnableInt_isr (hChnDev);
                 BKNI_LeaveCriticalSection();
             }
             else
@@ -2081,7 +2081,7 @@ BERR_Code BKIR_OpenChannel(
 
                 /* Disable KIR interrupt */
                 BKNI_EnterCriticalSection();
-                BKIR_P_DisableInt (hChnDev);
+                BKIR_P_DisableInt_isr (hChnDev);
                 BKNI_LeaveCriticalSection();
             }
 
@@ -2124,7 +2124,7 @@ BERR_Code BKIR_CloseChannel(
 
     /* Disable interrupt for this channel */
     BKNI_EnterCriticalSection();
-    BKIR_P_DisableInt (hChn);
+    BKIR_P_DisableInt_isr (hChn);
     BKNI_LeaveCriticalSection();
 
     if (hChn->hChnCallback) {
@@ -2178,7 +2178,7 @@ BERR_Code BKIR_Set_PM_AON_CONFIG(
     lval = BREG_Read32( hDev->hRegister, BCHP_PM_AON_CONFIG );
 
     if (input_device >= BKIR_INPUT_MAX) {
-        BDBG_ERR(("BKIR_Set_PM_AON_CONFIG: Invalid input_device\n"));
+        BDBG_ERR(("BKIR_Set_PM_AON_CONFIG: Invalid input_device"));
         return BERR_INVALID_PARAMETER;
     }
 #ifndef BKIR_HAS_ZERO_BASE
@@ -2200,8 +2200,8 @@ BERR_Code BKIR_Set_PM_AON_CONFIG(
             /* fall through */
         case BKIR_INPUT_IR_IN0:     field_value = BCHP_PM_AON_CONFIG_irr0_in_IR_IN0 ; break;
         }
-        lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr1_in);
-        lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr1_in, field_value);
+        lval &= ~ BCHP_MASK(PM_AON_CONFIG, irr0_in);
+        lval |= BCHP_FIELD_DATA(PM_AON_CONFIG, irr0_in, field_value);
         break;
         break;
 #endif
@@ -2762,14 +2762,14 @@ void BKIR_SetCustomCir (
 
 void BKIR_RegisterCallback (
     BKIR_ChannelHandle  hChn,       /* Device channel handle */
-    BKIR_Callback       callback,   /* Callback function to register */
+    BKIR_Callback       callback_isr,/* Callback function to register */
     void                *pData      /* Data passed to callback function */
 )
 {
     BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     BKNI_EnterCriticalSection();
-    hChn->kirCb = callback;
+    hChn->kirCb = callback_isr;
     hChn->cbData = pData;
     BKNI_LeaveCriticalSection();
 }
@@ -2791,7 +2791,7 @@ void BKIR_UnregisterCallback (
 *   Private Module Functions
 *
 *******************************************************************************/
-void BKIR_P_EnableInt(
+void BKIR_P_EnableInt_isr(
     BKIR_ChannelHandle  hChn            /* Device channel handle */
     )
 {
@@ -2805,7 +2805,7 @@ void BKIR_P_EnableInt(
     BREG_Write32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_CMD, lval);
 }
 
-void BKIR_P_DisableInt(
+void BKIR_P_DisableInt_isr(
     BKIR_ChannelHandle  hChn            /* Device channel handle */
     )
 {

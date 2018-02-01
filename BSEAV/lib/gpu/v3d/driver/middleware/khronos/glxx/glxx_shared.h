@@ -1,21 +1,14 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES shared state object.
-=============================================================================*/
-
-#ifndef GLXX_SHARED_H
-#define GLXX_SHARED_H
-#ifdef __cplusplus
-extern "C" {
-#endif
 #include "middleware/khronos/common/khrn_map.h"
 #include "interface/khronos/include/GLES/gl.h"
+#include "middleware/khronos/glxx/glxx_buffer.h"
+#include "middleware/khronos/glxx/glxx_texture.h"
+#include "middleware/khronos/glxx/glxx_renderbuffer.h"
+#include "middleware/khronos/glxx/glxx_framebuffer.h"
 
 typedef struct {
    uint32_t next_pobject;
@@ -24,7 +17,7 @@ typedef struct {
    uint32_t next_renderbuffer;
    uint32_t next_framebuffer;
 
-   KHRN_MAP_T pobjects;
+   khrn_map pobjects;
 
    /*
       Map of texture identifier to texture object
@@ -38,7 +31,7 @@ typedef struct {
       textures is a valid map and the elements are valid TEXTURE_Ts
    */
 
-   KHRN_MAP_T textures;
+   khrn_map textures;
 
    /*
       Map of buffer identifier to buffer object
@@ -52,30 +45,27 @@ typedef struct {
       buffers is a valid map and the elements are valid BUFFER_Ts
    */
 
-   KHRN_MAP_T buffers;
-   KHRN_MAP_T renderbuffers;
-   KHRN_MAP_T framebuffers;
+   khrn_map buffers;
+   khrn_map renderbuffers;
+   khrn_map framebuffers;
 } GLXX_SHARED_T;
 
 extern bool glxx_shared_init(GLXX_SHARED_T *shared);
-extern void glxx_shared_term(MEM_HANDLE_T handle);
+extern void glxx_shared_term(void *p);
 
 extern uint32_t glxx_shared_create_program(GLXX_SHARED_T *shared);
 extern uint32_t glxx_shared_create_shader(GLXX_SHARED_T *shared, uint32_t type);
 
-extern MEM_HANDLE_T glxx_shared_get_pobject(GLXX_SHARED_T *shared, uint32_t pobject);
-extern MEM_HANDLE_T glxx_shared_get_buffer(GLXX_SHARED_T *shared, uint32_t buffer, bool create);
-extern MEM_HANDLE_T glxx_shared_get_texture(GLXX_SHARED_T *shared, uint32_t texture);
-extern MEM_HANDLE_T glxx_shared_get_or_create_texture(GLXX_SHARED_T *shared, uint32_t texture, GLenum target, GLenum *error, bool *has_color, bool *has_alpha, bool *complete);
-extern MEM_HANDLE_T glxx_shared_get_renderbuffer(GLXX_SHARED_T *shared, uint32_t renderbuffer, bool create);
-extern MEM_HANDLE_T glxx_shared_get_framebuffer(GLXX_SHARED_T *shared, uint32_t framebuffer, bool create);
+extern void *glxx_shared_get_pobject(GLXX_SHARED_T *shared, uint32_t pobject);
+extern GLXX_BUFFER_T *glxx_shared_create_buffer(uint32_t buffer);
+extern GLXX_BUFFER_T *glxx_shared_get_buffer(GLXX_SHARED_T *shared, uint32_t buffer, bool create);
+extern GLXX_TEXTURE_T *glxx_shared_get_texture(GLXX_SHARED_T *shared, uint32_t texture);
+extern GLXX_TEXTURE_T *glxx_shared_get_or_create_texture(GLXX_SHARED_T *shared, uint32_t texture, GLenum target, GLenum *error, bool *has_color, bool *has_alpha, bool *complete);
+extern GLXX_RENDERBUFFER_T *glxx_shared_get_renderbuffer(GLXX_SHARED_T *shared, uint32_t renderbuffer, bool create);
+extern GLXX_FRAMEBUFFER_T *glxx_shared_get_framebuffer(GLXX_SHARED_T *shared, uint32_t framebuffer, bool create);
 
 extern void glxx_shared_delete_pobject(GLXX_SHARED_T *shared, uint32_t pobject);
 extern void glxx_shared_delete_buffer(GLXX_SHARED_T *shared, uint32_t buffer);
 extern void glxx_shared_delete_texture(GLXX_SHARED_T *shared, uint32_t texture);
 extern void glxx_shared_delete_renderbuffer(GLXX_SHARED_T *shared, uint32_t renderbuffer);
 extern void glxx_shared_delete_framebuffer(GLXX_SHARED_T *shared, uint32_t framebuffer);
-#ifdef __cplusplus
- }
-#endif
-#endif

@@ -1455,6 +1455,11 @@ NEXUS_Error NEXUS_Sage_SecureLog_StartCaptureOK()
     return rc;
 }
 
+void NEXUS_Sage_P_SecureLog_Uninit()
+{
+    return;
+}
+
 void NEXUS_SageAudio_GetDefaultOpenSettings_priv(
     NEXUS_SageAudioOpenSettings *pSettings /* out */
     )

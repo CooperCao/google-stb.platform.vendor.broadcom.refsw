@@ -361,6 +361,9 @@ struct encoder_resource *video_encoder_create(bool video_only, struct b_session 
     encoderOpenSettings.memoryConfig.maxWidth = session->server->settings.memConfigSettings.videoEncoder[index].maxWidth;
     encoderOpenSettings.memoryConfig.maxHeight = session->server->settings.memConfigSettings.videoEncoder[index].maxHeight;
     encoderOpenSettings.memoryConfig.interlaced = session->server->settings.memConfigSettings.videoEncoder[index].interlaced;
+    if (connect->settings.simpleEncoder[0].encoderCapabilities.lowDelay) {
+        encoderOpenSettings.type = NEXUS_VideoEncoderType_eSingle;
+    }
     r->settings.videoEncoder = NEXUS_VideoEncoder_Open(index, &encoderOpenSettings);
     if (!r->settings.videoEncoder) {
         BERR_TRACE(NEXUS_NOT_AVAILABLE);

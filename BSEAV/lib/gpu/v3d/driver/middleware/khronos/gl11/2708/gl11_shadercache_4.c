@@ -7,6 +7,8 @@
 #include "middleware/khronos/glxx/2708/glxx_shader_4.h"
 #include "middleware/khronos/glxx/2708/glxx_attr_sort_4.h"
 #include "middleware/khronos/gl11/2708/gl11_support_4.h"
+#include "middleware/khronos/common/khrn_mem.h"
+
 #define vclib_memcmp khrn_memcmp
 /*///////////////////// */
 /* Vertex shader */
@@ -23,9 +25,9 @@ static void clear_entry(uint32_t hash)
    MEM_ASSIGN(cache[hash].data.mh_fcode, MEM_HANDLE_INVALID);
    MEM_ASSIGN(cache[hash].data.mh_vcode, MEM_HANDLE_INVALID);
    MEM_ASSIGN(cache[hash].data.mh_ccode, MEM_HANDLE_INVALID);
-   MEM_ASSIGN(cache[hash].data.mh_cuniform_map, MEM_HANDLE_INVALID);
-   MEM_ASSIGN(cache[hash].data.mh_vuniform_map, MEM_HANDLE_INVALID);
-   MEM_ASSIGN(cache[hash].data.mh_funiform_map, MEM_HANDLE_INVALID);
+   KHRN_MEM_ASSIGN(cache[hash].data.cuniform_map, NULL);
+   KHRN_MEM_ASSIGN(cache[hash].data.vuniform_map, NULL);
+   KHRN_MEM_ASSIGN(cache[hash].data.funiform_map, NULL);
 }
 
 /* Restore cache to its initial empty state */
@@ -40,9 +42,9 @@ void gl11_hw_shader_cache_reset()
       cache[i].data.mh_vcode = MEM_HANDLE_INVALID;   //naughty
       cache[i].data.mh_ccode = MEM_HANDLE_INVALID;   //naughty
       cache[i].data.mh_fcode = MEM_HANDLE_INVALID;   //naughty
-      cache[i].data.mh_vuniform_map = MEM_HANDLE_INVALID;   //naughty
-      cache[i].data.mh_cuniform_map = MEM_HANDLE_INVALID;   //naughty
-      cache[i].data.mh_funiform_map = MEM_HANDLE_INVALID;   //naughty
+      cache[i].data.vuniform_map = NULL;   //naughty
+      cache[i].data.cuniform_map = NULL;   //naughty
+      cache[i].data.funiform_map = NULL;   //naughty
    }
 }
 
@@ -159,16 +161,16 @@ static uint32_t bump(uint32_t hash)
 }
 
 bool gl11_hw_get_shaders(
-    GLXX_HW_SHADER_RECORD_T *shader_out,
-    MEM_HANDLE_T *cunifmap_out,
-    MEM_HANDLE_T *vunifmap_out,
-    MEM_HANDLE_T *funifmap_out,
-    uint32_t *color_varyings_out,
-    GLXX_SERVER_STATE_T *state,
-    GLXX_ATTRIB_T *attrib,
-    uint32_t *mergeable_attribs,
-    uint32_t * cattribs_order,
-    uint32_t * vattribs_order)
+   GLXX_HW_SHADER_RECORD_T *shader_out,
+   void **cunifmap_out,
+   void **vunifmap_out,
+   void **funifmap_out,
+   uint32_t *color_varyings_out,
+   GLXX_SERVER_STATE_T *state,
+   GLXX_ATTRIB_T *attrib,
+   uint32_t *mergeable_attribs,
+   uint32_t * cattribs_order,
+   uint32_t * vattribs_order)
 {
    uint32_t hash, hash_word, original_hash_word;
    GL11_CACHE_KEY_T *key;
@@ -240,9 +242,9 @@ bool gl11_hw_get_shaders(
    if (!glxx_big_mem_insert(&shader_out->vshader, cache[hash].data.mh_vcode, 0)) return false;
    if (!glxx_big_mem_insert(&shader_out->cshader, cache[hash].data.mh_ccode, 0)) return false;
 
-   *cunifmap_out = cache[hash].data.mh_cuniform_map;
-   *vunifmap_out = cache[hash].data.mh_vuniform_map;
-   *funifmap_out = cache[hash].data.mh_funiform_map;
+   *cunifmap_out = cache[hash].data.cuniform_map;
+   *vunifmap_out = cache[hash].data.vuniform_map;
+   *funifmap_out = cache[hash].data.funiform_map;
 
    /* check big_mem_insert didn't change our handle copies */
    assert(shader_out->fshader == cache[hash].data.mh_fcode);

@@ -1,18 +1,9 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
-#ifndef __GLSL_DFLOW_CONTAINERS_H__
-#define __GLSL_DFLOW_CONTAINERS_H__
-
-#include "stdint.h"
+#include <stdint.h>
 #include "middleware/khronos/glsl/glsl_fastmem.h"
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_forward.h"
 #include "middleware/khronos/glsl/glsl_common.h"
@@ -21,12 +12,12 @@ FILE DESCRIPTION
 // Memory Management
 ///////////////////////////////////////////////////////////////////////////////
 
-static INLINE void *bcg_glsl_malloc(uint32_t sz)
+static inline void *bcg_glsl_malloc(uint32_t sz)
 {
    return glsl_fastmem_malloc(sz, true);
 }
 
-static INLINE void bcg_glsl_free(void *ptr)
+static inline void bcg_glsl_free(void *ptr)
 {
    UNUSED(ptr);
 }
@@ -66,7 +57,7 @@ void NodeVector_Constr(NodeVector *self, uint32_t capacity);
 void NodeVector_push_back(NodeVector *self, DFlowNode *node);
 
 // Inline functions
-static INLINE NodeVector *NodeVector_new(uint32_t capacity)
+static inline NodeVector *NodeVector_new(uint32_t capacity)
 {
    NodeVector  *vec = (NodeVector *)bcg_glsl_malloc(sizeof(NodeVector));
 
@@ -76,12 +67,12 @@ static INLINE NodeVector *NodeVector_new(uint32_t capacity)
    return vec;
 }
 
-static INLINE void NodeVector_Destr(NodeVector *self)
+static inline void NodeVector_Destr(NodeVector *self)
 {
    VectorBase_Destr(&self->m_vector);
 }
 
-static INLINE void NodeVector_delete(NodeVector *self)
+static inline void NodeVector_delete(NodeVector *self)
 {
    if (self != NULL)
    {
@@ -90,13 +81,13 @@ static INLINE void NodeVector_delete(NodeVector *self)
    }
 }
 
-static INLINE void NodeVector_clear(NodeVector *self)
+static inline void NodeVector_clear(NodeVector *self)
 {
    self->m_end = 0;
    VectorBase_Clear(&self->m_vector);
 }
 
-static INLINE DFlowNode **NodeVector_lindex(NodeVector *self, uint32_t i)
+static inline DFlowNode **NodeVector_lindex(NodeVector *self, uint32_t i)
 {
    NodeVector_iterator resultList;
 
@@ -108,7 +99,7 @@ static INLINE DFlowNode **NodeVector_lindex(NodeVector *self, uint32_t i)
    return &resultList[i];
 }
 
-static INLINE const DFlowNode **NodeVector_const_lindex(const NodeVector *self, uint32_t i)
+static inline const DFlowNode **NodeVector_const_lindex(const NodeVector *self, uint32_t i)
 {
    NodeVector_const_iterator resultList;
 
@@ -120,7 +111,7 @@ static INLINE const DFlowNode **NodeVector_const_lindex(const NodeVector *self, 
    return &resultList[i];
 }
 
-static INLINE DFlowNode *NodeVector_index(NodeVector *self, uint32_t i)
+static inline DFlowNode *NodeVector_index(NodeVector *self, uint32_t i)
 {
    NodeVector_iterator resultList;
 
@@ -132,7 +123,7 @@ static INLINE DFlowNode *NodeVector_index(NodeVector *self, uint32_t i)
    return resultList[i];
 }
 
-static INLINE const DFlowNode *NodeVector_const_index(const NodeVector *self, uint32_t i)
+static inline const DFlowNode *NodeVector_const_index(const NodeVector *self, uint32_t i)
 {
    NodeVector_const_iterator resultList;
 
@@ -144,57 +135,57 @@ static INLINE const DFlowNode *NodeVector_const_index(const NodeVector *self, ui
    return resultList[i];
 }
 
-static INLINE uint32_t NodeVector_size(const NodeVector *self)
+static inline uint32_t NodeVector_size(const NodeVector *self)
 {
    return self->m_end;
 }
 
 // Iterator
-static INLINE NodeVector_iterator NodeVector_begin(NodeVector *self)
+static inline NodeVector_iterator NodeVector_begin(NodeVector *self)
 {
    NodeVector_iterator   data  = (NodeVector_iterator)self->m_vector.data;
 
    return &data[0];
 }
 
-static INLINE NodeVector_const_iterator NodeVector_const_begin(const NodeVector *self)
+static inline NodeVector_const_iterator NodeVector_const_begin(const NodeVector *self)
 {
    NodeVector_const_iterator   data  = (NodeVector_const_iterator)self->m_vector.data;
 
    return &data[0];
 }
 
-static INLINE NodeVector_iterator NodeVector_end(NodeVector *self)
+static inline NodeVector_iterator NodeVector_end(NodeVector *self)
 {
    NodeVector_iterator   data  = (NodeVector_iterator)self->m_vector.data;
 
    return &data[self->m_end];
 }
 
-static INLINE NodeVector_const_iterator NodeVector_const_end(const NodeVector *self)
+static inline NodeVector_const_iterator NodeVector_const_end(const NodeVector *self)
 {
    NodeVector_const_iterator   data  = (NodeVector_const_iterator)self->m_vector.data;
 
    return &data[self->m_end];
 }
 
-static INLINE void NodeVector_next(NodeVector_iterator *iter)
+static inline void NodeVector_next(NodeVector_iterator *iter)
 {
    (*iter)++;
 }
 
-static INLINE void NodeVector_const_next(NodeVector_const_iterator *iter)
+static inline void NodeVector_const_next(NodeVector_const_iterator *iter)
 {
    (*iter)++;
 }
 
 // Iterator methods
-static INLINE DFlowNode *NodeVector_star(NodeVector_iterator self)
+static inline DFlowNode *NodeVector_star(NodeVector_iterator self)
 {
    return *self;
 }
 
-static INLINE const DFlowNode *NodeVector_const_star(NodeVector_const_iterator self)
+static inline const DFlowNode *NodeVector_const_star(NodeVector_const_iterator self)
 {
    return *self;
 }
@@ -217,18 +208,18 @@ void DataflowVector_Constr(DataflowVector *self, uint32_t capacity);
 void DataflowVector_push_back(DataflowVector *self, Dataflow *node);
 
 // Inline functions
-static INLINE void DataflowVector_Destr(DataflowVector *self)
+static inline void DataflowVector_Destr(DataflowVector *self)
 {
    VectorBase_Destr(&self->m_vector);
 }
 
-static INLINE void DataflowVector_clear(DataflowVector *self)
+static inline void DataflowVector_clear(DataflowVector *self)
 {
    self->m_end = 0;
    VectorBase_Clear(&self->m_vector);
 }
 
-static INLINE Dataflow **DataflowVector_lindex(DataflowVector *self, uint32_t i)
+static inline Dataflow **DataflowVector_lindex(DataflowVector *self, uint32_t i)
 {
    DataflowVector_iterator resultList;
 
@@ -240,7 +231,7 @@ static INLINE Dataflow **DataflowVector_lindex(DataflowVector *self, uint32_t i)
    return &resultList[i];
 }
 
-static INLINE const Dataflow **DataflowVector_const_lindex(const DataflowVector *self, uint32_t i)
+static inline const Dataflow **DataflowVector_const_lindex(const DataflowVector *self, uint32_t i)
 {
    DataflowVector_const_iterator resultList;
 
@@ -252,7 +243,7 @@ static INLINE const Dataflow **DataflowVector_const_lindex(const DataflowVector 
    return &resultList[i];
 }
 
-static INLINE Dataflow *DataflowVector_index(DataflowVector *self, uint32_t i)
+static inline Dataflow *DataflowVector_index(DataflowVector *self, uint32_t i)
 {
    DataflowVector_iterator resultList;
 
@@ -264,7 +255,7 @@ static INLINE Dataflow *DataflowVector_index(DataflowVector *self, uint32_t i)
    return resultList[i];
 }
 
-static INLINE const Dataflow *DataflowVector_const_index(const DataflowVector *self, uint32_t i)
+static inline const Dataflow *DataflowVector_const_index(const DataflowVector *self, uint32_t i)
 {
    DataflowVector_const_iterator resultList;
 
@@ -276,57 +267,57 @@ static INLINE const Dataflow *DataflowVector_const_index(const DataflowVector *s
    return resultList[i];
 }
 
-static INLINE uint32_t DataflowVector_size(const DataflowVector *self)
+static inline uint32_t DataflowVector_size(const DataflowVector *self)
 {
    return self->m_end;
 }
 
 // Iterator
-static INLINE DataflowVector_iterator DataflowVector_begin(DataflowVector *self)
+static inline DataflowVector_iterator DataflowVector_begin(DataflowVector *self)
 {
    DataflowVector_iterator   data  = (DataflowVector_iterator)self->m_vector.data;
 
    return &data[0];
 }
 
-static INLINE DataflowVector_const_iterator DataflowVector_const_begin(const DataflowVector *self)
+static inline DataflowVector_const_iterator DataflowVector_const_begin(const DataflowVector *self)
 {
    DataflowVector_const_iterator   data  = (DataflowVector_const_iterator)self->m_vector.data;
 
    return &data[0];
 }
 
-static INLINE DataflowVector_iterator DataflowVector_end(DataflowVector *self)
+static inline DataflowVector_iterator DataflowVector_end(DataflowVector *self)
 {
    DataflowVector_iterator   data  = (DataflowVector_iterator)self->m_vector.data;
 
    return &data[self->m_end];
 }
 
-static INLINE DataflowVector_const_iterator DataflowVector_const_end(const DataflowVector *self)
+static inline DataflowVector_const_iterator DataflowVector_const_end(const DataflowVector *self)
 {
    DataflowVector_const_iterator   data  = (DataflowVector_const_iterator)self->m_vector.data;
 
    return &data[self->m_end];
 }
 
-static INLINE void DataflowVector_next(DataflowVector_iterator *iter)
+static inline void DataflowVector_next(DataflowVector_iterator *iter)
 {
    (*iter)++;
 }
 
-static INLINE void DataflowVector_const_next(DataflowVector_const_iterator *iter)
+static inline void DataflowVector_const_next(DataflowVector_const_iterator *iter)
 {
    (*iter)++;
 }
 
 // Iterator methods
-static INLINE Dataflow *DataflowVector_star(DataflowVector_iterator self)
+static inline Dataflow *DataflowVector_star(DataflowVector_iterator self)
 {
    return *self;
 }
 
-static INLINE const Dataflow *DataflowVector_const_star(DataflowVector_const_iterator self)
+static inline const Dataflow *DataflowVector_const_star(DataflowVector_const_iterator self)
 {
    return *self;
 }
@@ -359,29 +350,29 @@ void     NodeList_sort(NodeList *self, NodeList_Pred cmp);
 void     NodeList_insert(NodeList *self, DFlowNode *node, NodeList_Pred cmp);
 
 // Inline functions
-static INLINE void NodeList_Constr(NodeList *self)
+static inline void NodeList_Constr(NodeList *self)
 {
    self->m_head = NULL;
    self->m_tail = NULL;
    self->m_size = 0;
 }
 
-static INLINE uint32_t NodeList_size(const NodeList *self)
+static inline uint32_t NodeList_size(const NodeList *self)
 {
    return self->m_size;
 }
 
-static INLINE DFlowNode *NodeList_star(NodeList_iterator self)
+static inline DFlowNode *NodeList_star(NodeList_iterator self)
 {
    return self->m_node;
 }
 
-static INLINE DFlowNode *NodeList_const_star(NodeList_const_iterator self)
+static inline DFlowNode *NodeList_const_star(NodeList_const_iterator self)
 {
    return self->m_node;
 }
 
-static INLINE void NodeList_push_back(NodeList *self, DFlowNode *node)
+static inline void NodeList_push_back(NodeList *self, DFlowNode *node)
 {
    NodeLink *link = (NodeLink *)bcg_glsl_malloc(sizeof(NodeLink));
 
@@ -398,39 +389,39 @@ static INLINE void NodeList_push_back(NodeList *self, DFlowNode *node)
    self->m_size++;
 }
 
-static INLINE NodeList_iterator NodeList_begin(NodeList *self)
+static inline NodeList_iterator NodeList_begin(NodeList *self)
 {
    return self->m_head;
 }
 
-static INLINE NodeList_const_iterator NodeList_const_begin(const NodeList *self)
+static inline NodeList_const_iterator NodeList_const_begin(const NodeList *self)
 {
    return self->m_head;
 }
 
-static INLINE NodeList_iterator NodeList_end(NodeList *self)
+static inline NodeList_iterator NodeList_end(NodeList *self)
 {
    UNUSED(self);
    return NULL;
 }
 
-static INLINE NodeList_const_iterator NodeList_const_end(const NodeList *self)
+static inline NodeList_const_iterator NodeList_const_end(const NodeList *self)
 {
    UNUSED(self);
    return NULL;
 }
 
-static INLINE void NodeList_next(NodeList_iterator *iter)
+static inline void NodeList_next(NodeList_iterator *iter)
 {
    *iter = (*iter)->m_next;
 }
 
-static INLINE void NodeList_const_next(NodeList_const_iterator *iter)
+static inline void NodeList_const_next(NodeList_const_iterator *iter)
 {
    *iter = (*iter)->m_next;
 }
 
-static INLINE DFlowNode *NodeList_front(const NodeList *self)
+static inline DFlowNode *NodeList_front(const NodeList *self)
 {
    if (self->m_size == 0)
       return NULL;
@@ -438,7 +429,7 @@ static INLINE DFlowNode *NodeList_front(const NodeList *self)
    return self->m_head->m_node;
 }
 
-static INLINE void NodeList_pop(NodeList *self)
+static inline void NodeList_pop(NodeList *self)
 {
    NodeLink *head;
 
@@ -479,18 +470,18 @@ void NodeSet_erase(NodeSet *self, DFlowNode *node);
 void NodeSet_clear(NodeSet *self);
 void NodeSet_Flatten(NodeSet *self, NodeVector *result);
 
-static INLINE void NodeSet_Constr(NodeSet *self)
+static inline void NodeSet_Constr(NodeSet *self)
 {
    self->m_size = 0;
    self->m_tree = NULL;
 }
 
-static INLINE void NodeSet_Destr(NodeSet *self)
+static inline void NodeSet_Destr(NodeSet *self)
 {
    NodeSet_clear(self);
 }
 
-static INLINE uint32_t NodeSet_size(NodeSet *self)
+static inline uint32_t NodeSet_size(NodeSet *self)
 {
    return self->m_size;
 }
@@ -503,14 +494,12 @@ static INLINE uint32_t NodeSet_size(NodeSet *self)
 
 typedef NodeVectorMap_T NodeVectorMap;
 
-static INLINE void NodeVectorMap_Constr(NodeVectorMap *self, uint32_t capacity)
+static inline void NodeVectorMap_Constr(NodeVectorMap *self, uint32_t capacity)
 {
    NodeVectorMap_init(self, capacity);
 }
 
-static INLINE void NodeVectorMap_Destr(NodeVectorMap *self)
+static inline void NodeVectorMap_Destr(NodeVectorMap *self)
 {
    NodeVectorMap_term(self);
 }
-
-#endif

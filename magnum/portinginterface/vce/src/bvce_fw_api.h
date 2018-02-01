@@ -67,7 +67,7 @@ extern "C"
  * API Version  MM.mm.pp.bb
  */
 
-#define VICE_API_VERSION                  0x07000003
+#define VICE_API_VERSION                  0x08000000
 
 /*
  * Size of the command buffer between host (PI) and FW in bytes
@@ -202,6 +202,10 @@ extern "C"
 #define VICE_CMD_RETURN_ERR_VARIABLE_BITRATE_UNSUPPORTED           (53)    /* VBR unsupported in this mode */
 #define VICE_CMD_RETURN_ERR_UNSUPPORTED_INTERLACED_TYPE_VP9        (54)    /* Interlaced mode is not supported for VP9 encoding standard */
 #define VICE_CMD_RETURN_ERR_WRONG_MEMORY_SETTINGS                  (55)    /* Memory settings are wrong / not supported */
+#define VICE_CMD_RETURN_ERR_UNSUPPORTED_B_REF_IN_STANDARD          (56)    /* Using B pictures as references is not supported for this standard */
+#define VICE_CMD_RETURN_ERR_GOP_STRUCTURE_GREATER_THAN_MAX         (57)    /* The requested GOP structure is greater than the maximal gop structure */
+#define VICE_CMD_RETURN_ERR_GOP_STR_NOT_SUPPORTED_FOR_INTERLACE    (58)    /* The requested GOP structure is not supported for interlace input */
+#define VICE_CMD_RETURN_ERR_MAXGOP_STR_NOT_SUPPORTED_FOR_INTERLACE (59)    /* The requested MAX GOP structure is not supported for interlace input */
 
 /*
  * VICE Commands
@@ -411,7 +415,9 @@ typedef enum
     VICE_WDOG_TRACE_MB_WAIT_MBARC_FROM_PICARC_DINO              = 0x4A0,
     VICE_WDOG_TRACE_MB_WAIT_MBARC_FROM_PICARC_DINO_AFTER        = 0x4A1,
     VICE_WDOG_TRACE_MB_WAIT_CABAC_STAT_TO_MBARC_DINO            = 0x4B0,
-    VICE_WDOG_TRACE_MB_WAIT_CABAC_STAT_TO_MBARC_DINO_AFTER      = 0x4B1
+    VICE_WDOG_TRACE_MB_WAIT_CABAC_STAT_TO_MBARC_DINO_AFTER      = 0x4B1,
+    VICE_WDOG_TRACE_MB_WAIT_CABAC_READ_PROB_TO_BE_DONE          = 0x4C0,
+    VICE_WDOG_TRACE_MB_WAIT_CABAC_READ_PROB_TO_BE_DONE_AFTER    = 0x4C1
 
 } WdogTraceCode_e;
 
@@ -779,7 +785,7 @@ typedef enum
 #define BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_VALID_SHIFT 7
 #define BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_PHASE_MASK 0x00000070
 #define BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_PHASE_SHIFT 4
-#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_TYPE_MASK 0x0000000C0
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_TYPE_MASK 0x0000000C
 #define BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_TYPE_SHIFT 2
 #define BVCE_P_FW_PictureBufferMailbox_FormatInfo_POLARITY_MASK 0x00000003
 #define BVCE_P_FW_PictureBufferMailbox_FormatInfo_POLARITY_SHIFT 0
@@ -1087,11 +1093,13 @@ typedef enum
 /* GOP struct defines ordered from lowest delay (no B pictures) to highest delay (most consecutive B pictures) with track_input and infinite_IP always last */
 #define ENCODING_GOP_STRUCT_I               0               /* [I][I][I][I], Gop Length ignored */
 #define ENCODING_GOP_STRUCT_IP              1               /* [IPPPP][IPPPP]                   */
-#define ENCODING_GOP_STRUCT_IBP             2               /* [IBPBP][IBPBP]                   */
-#define ENCODING_GOP_STRUCT_IBBP            3               /* [IBBPBB][IBBPBB]                 */
-#define ENCODING_GOP_STRUCT_IBBBP           4               /* [IBBBPBBBP][IBBBPBBBP]           */
-#define ENCODING_GOP_STRUCT_TRACK_INPUT     5               /* Uses  the same GOP structure as the input stream. */
-#define ENCODING_GOP_STRUCT_INFINITE_IP     6               /* [IPPPPPPPPPPPPP] until host send RAP         */
+#define ENCODING_GOP_STRUCT_INFINITE_IP     2               /* [IPPPPPPPPPPPPP] until host send RAP         */
+#define ENCODING_GOP_STRUCT_IBP             3               /* [IBPBP][IBPBP]                   */
+#define ENCODING_GOP_STRUCT_IBBP            4               /* [IBBPBB][IBBPBB] B pictures are not used as a reference                */
+#define ENCODING_GOP_STRUCT_IBBP_B_REF      5               /* [IBBPBB][IBBPBB] 1st B picture in a sub GOP is used as a reference     */
+#define ENCODING_GOP_STRUCT_IBBBP           6               /* [IBBBPBBBP][IBBBPBBBP]           */
+#define ENCODING_GOP_STRUCT_IBBBBBP         7               /* [IBBBBBPBBBBBP][IBBBBBPBBBBBP]               */
+#define ENCODING_GOP_STRUCT_IBBBBBBBP       8               /* [IBBBBBBBPBBBBBBBP][IBBBBBBBPBBBBBBBP]       */
 
 /* Mode of Operation */
 #define ENCODER_MODE_HIGH_DELAY             0               /* high delay mode (picture by picture) */
@@ -1330,6 +1338,7 @@ typedef struct BVCE_FW_P_NonSecureMemSettings_t
     uint32_t    DcxvEnable;
     uint32_t    NewBvnMailboxEnable;
     uint32_t    PageSize;
+    uint32_t    MaxGopStructure;
 } BVCE_FW_P_NonSecureMemSettings_t;
 
 
@@ -1490,6 +1499,12 @@ typedef union
          build process
  */
 
+#define PREPROCESSOR_MAX_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE           12
+#define PREPROCESSOR_MAX_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE                      14
+
+#define PREPROCESSOR_MAX_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE                 (8)*2
+#define PREPROCESSOR_MAX_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE              (8)
+#define PREPROCESSOR_MAX_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE                            (10)*2
 
 /* ==========================================================*/
 /* ------------------  BUILD TIME CHECKS ------------------- */

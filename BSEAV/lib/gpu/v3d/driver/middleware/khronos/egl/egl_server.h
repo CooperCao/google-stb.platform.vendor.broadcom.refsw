@@ -9,94 +9,73 @@
 #include "middleware/khronos/common/khrn_hw.h"
 #include "interface/khronos/include/EGL/egl.h"
 #include "interface/khronos/include/EGL/eglext.h"
+#include "interface/khronos/common/khrn_client_pointermap.h"
 
-// Must be enough for triple-buffering (windows) and mipmaps (pbuffers)
-#define EGL_MAX_BUFFERS       12
+#include "vcfw/rtos/abstract/rtos_abstract_mem.h"
+#include <stdint.h>
 
 // There is a single global instance of this
 typedef struct
 {
-   KHRN_MAP_T surfaces;
-   KHRN_MAP_T glcontexts;
-   KHRN_MAP_T vgcontexts;
-   KHRN_MAP_T eglimages;
-#if EGL_KHR_sync
-   KHRN_MAP_T syncs;
-#endif
+   khrn_map contexts;
+   khrn_map surfaces;
+   khrn_map eglimages;
+   khrn_map syncs;
 
    uint32_t next_surface;
-   uint32_t next_context;
    uint32_t next_eglimage;
-#if EGL_KHR_sync
+   uint32_t next_context;
    uint32_t next_sync;
-#endif
-
-   uint32_t glversion;             //EGL_SERVER_GL11 or EGL_SERVER_GL20. (0 if invalid)
-   MEM_HANDLE_T glcontext;
-   MEM_HANDLE_T gldrawsurface;     //EGL_SERVER_SURFACE_T
-   MEM_HANDLE_T glreadsurface;     //EGL_SERVER_SURFACE_T
-   MEM_HANDLE_T vgcontext;
-   MEM_HANDLE_T vgsurface;         //EGL_SERVER_SURFACE_T
-
-   /*
-      locked_glcontext
-
-      Invariants:
-
-      (EGL_SERVER_STATE_LOCKED_GLCONTEXT)
-      locked_glcontext == NULL or locked_glcontext is the locked version of glcontext (and we own the lock)
-   */
-   void *locked_glcontext;
-   /*
-      locked_vgcontext
-
-      Invariants:
-
-      (EGL_SERVER_STATE_LOCKED_VGCONTEXT)
-      locked_vgcontext == NULL or locked_vgcontext is the locked version of vgcontext (and we own the lock)
-   */
-   void *locked_vgcontext;
 
 #if EGL_BRCM_driver_monitor
    uint32_t driver_monitor_refcount;
    KHRN_DRIVER_COUNTERS_T driver_monitor_counters;
 #endif
-} EGL_SERVER_STATE_T;
 
-typedef struct
-{
-   uint32_t name;
-
-   bool mipmap;
-   uint32_t buffers;
-   uint32_t back_buffer_index;
    /*
-      mh_color
-
-      Invariant:
-
-      For 0 <= i < buffers
-         mh_color[i] is a handle to a valid KHRN_IMAGE_T
+   * EGL display this state belongs to
    */
-   MEM_HANDLE_T mh_color[EGL_MAX_BUFFERS];
-   MEM_HANDLE_T mh_depth;          //floating KHRN_IMAGE_T
-   MEM_HANDLE_T mh_ds_multi;       //floating KHRN_IMAGE_T; depth multisample
-   MEM_HANDLE_T mh_color_multi;    //floating KHRN_IMAGE_T; colour multisample
+   EGLDisplay display;
 
-   uint8_t config_depth_bits;   // How many depth bits were requested in config. May not match actual buffer.
-   uint8_t config_stencil_bits; // How many stencil bits were requested in config. May not match actual buffer.
+   /*
+   number of current contexts across all threads in this process. this is valid
+   even if !inited
+   */
+   uint32_t context_current_count;
 
-   MEM_HANDLE_T mh_bound_texture;
-   uint32_t swap_interval;
+   /*
+   inited
 
-   /* Get the buffer to draw to */
-   MEM_HANDLE_T      (*get_back_buffer)(void *p);
-   MEM_HANDLE_T      mh_active_image;
+   Specifies whether the structure has been initialised and all of the other members are valid.
+   inited is true between eglInitialise/eglTerminate. threads can still have
+   things current when !inited
 
-   BEGL_WindowState *native_window_state;
-   KHRN_IMAGE_FORMAT_T colorformat;
+   Invariants:
+   (CLIENT_PROCESS_STATE_INITED_SANITY)
+   Only client_process_state_init/client_process_state_term modify this value
+   */
+   bool inited;
 
-} EGL_SERVER_SURFACE_T;
+   /*
+   platform_inited
+
+   It specifies whether BEGL display platform has been initialised.
+   Initialisation happens in eglInitialise() but termination may be deferred
+   past the eglTerminate() if any thread still holds a current context.
+   Platform termination can happen in eglTerminate(), eglMakeCurrent(),
+   eglReleaseThread() or in the thread-local storage destructor.
+   */
+   bool platform_inited;
+
+#if EGL_BRCM_driver_monitor
+   /*
+   driver_monitor_inited
+
+   Validity: inited is true
+   */
+   bool driver_monitor_inited_;
+#endif
+} EGL_SERVER_STATE_T;
 
 typedef struct
 {
@@ -106,8 +85,6 @@ typedef struct
 
    VCOS_SEMAPHORE_T sem;
 } EGL_SERVER_SYNC_T;
-
-extern void egl_server_shutdown(void);
 
 extern EGL_SERVER_STATE_T egl_server_state;
 
@@ -129,11 +106,12 @@ extern EGL_SERVER_STATE_T egl_server_state;
    Return value is a valid pointer
 */
 
-static INLINE EGL_SERVER_STATE_T *EGL_GET_SERVER_STATE(void)
+static inline EGL_SERVER_STATE_T *EGL_GET_SERVER_STATE(void)
 {
    return &egl_server_state;
 }
 
-extern void egl_server_unlock(void);
+extern bool server_process_state_init(void);
+extern void server_process_state_term(void);
 
 #include "interface/khronos/egl/egl_int_impl.h"

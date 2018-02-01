@@ -306,6 +306,36 @@ typedef struct
 
 } BXVD_P_PPB_AVS;
 
+/*------------------------------------------------------*
+ *    AVS2 Extension to the PPB                         *
+ *------------------------------------------------------*/
+#define  BXVD_P_PPB_AVS2_VALID_PANSCAN             (1)
+#define  BXVD_P_PPB_AV2S_VALID_USER_DATA           (2)
+
+#define  BXVD_P_PPB_AVS2_USER_DATA_TYPE_SEQ        (1)
+#define  BXVD_P_PPB_AVS2_USER_DATA_TYPE_FRM        (2)
+#define  BXVD_P_PPB_AVS2_USER_DATA_OVERFLOW        (4)
+
+typedef struct
+{
+
+   unsigned int     frame_width;     /* intended decoded frame width, use it as crop windows in picture buffer  */
+   unsigned int     frame_height;    /* intended decoded frame height, used it as corp windows in pictue buffer */
+
+   /* Always valid,  defaults to picture size if no
+      sequence display extension in the stream. */
+   unsigned int      display_horizontal_size;
+   unsigned int      display_vertical_size;
+
+   /* AVS_VALID_PANSCAN
+      Offsets are a copy values from the AVS stream. */
+   unsigned int      offset_count;
+   int               horizontal_offset[3];
+   int               vertical_offset[3];
+
+} BXVD_P_PPB_AVS2;
+
+
 /* can these MAX_FGT_xxx constants be deleted? 12/13/12 */
 /**
  * @brief Film grain SEI message.
@@ -796,6 +826,7 @@ typedef enum BXVD_P_PPB_Protocol
    BXVD_P_PPB_Protocol_eSPARK,          /* Sorenson Spark */
    BXVD_P_PPB_Protocol_eH265,           /* HEVC */
    BXVD_P_PPB_Protocol_eVP9,            /* VP9 */
+   BXVD_P_PPB_Protocol_eAVS2,           /* AVS2 */
 
    BXVD_P_PPB_Protocol_eMax
 } BXVD_P_PPB_Protocol;
@@ -975,6 +1006,7 @@ typedef struct
       BXVD_P_PPB_MPEG        mpeg;
       BXVD_P_PPB_VC1         vc1;
       BXVD_P_PPB_AVS         avs;
+      BXVD_P_PPB_AVS2        avs2;
       BXVD_P_PPB_MP4         mp4;
       BXVD_P_PPB_VP8         vp8;
       BXVD_P_PPB_RV9         rv9;

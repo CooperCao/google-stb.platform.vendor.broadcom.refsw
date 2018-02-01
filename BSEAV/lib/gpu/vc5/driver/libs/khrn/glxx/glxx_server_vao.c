@@ -16,10 +16,9 @@
 // Functions which alter server state update this structure, and switching the current structure (by binding a different
 // VAO) alter the relevant server state.
 
-static void glxx_vao_term(void *v, size_t size)
+static void glxx_vao_term(void *v)
 {
    GLXX_VAO_T *vao = v;
-   unused(size);
 
    KHRN_MEM_ASSIGN(vao->element_array_binding.obj, NULL);
    for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIB_BINDINGS; i++)

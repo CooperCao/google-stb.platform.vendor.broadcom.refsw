@@ -299,9 +299,9 @@ static void print_status(NEXUS_PlaypumpHandle playpump, NEXUS_StcChannelHandle s
     NEXUS_StcChannel_GetStc(stcChannel, &stc);
     printf("\t[%10u] state playpump=%d%%, video=%d%%/pts=%#x/pics=%d, stc=%#x %d:%d\n",
         (unsigned)status.bytesPlayed,
-        status.fifoSize?status.fifoDepth*100/status.fifoSize:0,
-        vstatus.fifoSize?vstatus.fifoDepth*100/vstatus.fifoSize:0, vstatus.pts, vstatus.queueDepth,
-        stc, stc-last_stc, vstatus.pts-last_pts);
+        (unsigned)(status.fifoSize?status.fifoDepth*100/status.fifoSize:0),
+        (unsigned)(vstatus.fifoSize?vstatus.fifoDepth*100/vstatus.fifoSize:0), (unsigned)vstatus.pts, vstatus.queueDepth,
+        (unsigned)stc, (int)(stc-last_stc), (int)(vstatus.pts-last_pts));
     last_stc = stc;
     last_pts = vstatus.pts;
 }
@@ -446,7 +446,7 @@ int main(int argc, const char *argv[])
                 size_t converted_size;
                 int off;
                 if(read_size==0) {
-                    fprintf(stderr, "recycled %u bytes\n",  buffer_size);
+                    fprintf(stderr, "recycled %u bytes\n",  (unsigned)buffer_size);
                     rc = NEXUS_Playpump_WriteComplete(playpump, buffer_size, 0); /* buffer to small, discard it */
                     BDBG_ASSERT(!rc);
                     continue;

@@ -35,6 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  **************************************************************************/
+
 #include "bmmt.h"
 #include "btlv_parser.h"
 #include "bmmt_parser.h"
@@ -45,6 +46,7 @@
 #include "bioatom.h"
 #include "bpool.h"
 #include "barena.h"
+#include "inttypes.h"
 
 BDBG_MODULE(bmmt);
 
@@ -277,7 +279,7 @@ static int bmmt_p_process_tlv_packet(bmmt_t mmt, batom_cursor *cursor)
                         batom_cursor_copy(&mmt_si_payload,msg->buf[msg->write_index].data,msg->buf[msg->write_index].offset);
                         msg->valid[msg->write_index] = true;
                         BDBG_MSG(("%s msg->write_index %u msg->buf[msg->write_index].offset %u",
-                                  __FUNCTION__,msg->write_index, msg->buf[msg->write_index].offset));
+                                   __extension__ __FUNCTION__,msg->write_index, msg->buf[msg->write_index].offset));
                         msg->write_index += 1;
                         msg->write_index = ( msg->write_index % BMMT_MAX_MSG_BUFFERS);
                         rc = bmmt_demux_process_signaling_message(mmt->demux, &payload, &signalling_header);
@@ -303,7 +305,7 @@ static int bmmt_p_process_tlv_packet(bmmt_t mmt, batom_cursor *cursor)
                             batom_cursor_from_vec(&signal_payload,&signal_vec,1);
                             rc = bmmt_demux_process_signaling_message(mmt->demux, &signal_payload, &signalling_header);
                             BDBG_MSG(("%s msg->write_index %u msg->buf[msg->write_index].offset %u",
-                                  __FUNCTION__,msg->write_index, msg->buf[msg->write_index].offset));
+                                   __extension__ __FUNCTION__,msg->write_index, msg->buf[msg->write_index].offset));
                             msg->write_index += 1;
                             msg->write_index = ( msg->write_index % BMMT_MAX_MSG_BUFFERS);
                         }
@@ -361,7 +363,7 @@ static void * bmmt_p_io_live_thread(void *context)
 
                     if(mmt->open_settings.input_format == ebmmt_input_format_tlv)
                     {
-                        rc = btlv_parser_process_tlv(&mmt->parser, (uint8_t *)buf + offset,rc, &packets);
+                        rc = btlv_parser_process_tlv(&mmt->parser, (uint8_t *)buf + offset, mmt->io_buffer_size, &packets);
                     }
                     else
                     {
@@ -437,7 +439,7 @@ static void * bmmt_p_io_live_thread(void *context)
         }
         #endif
         skip = data_buffer_size[0] + data_buffer_size[1] - recycled;
-        BDBG_MSG(("%s skip %u size 0:%u 1:%u recycled %u ",__FUNCTION__,skip,data_buffer_size[0],data_buffer_size[1] ,recycled));
+        BDBG_MSG(("%s skip %u size 0:%lu 1:%lu recycled %u ", __extension__ __FUNCTION__,skip,(unsigned long)data_buffer_size[0],(unsigned long)data_buffer_size[1] ,recycled));
     }
     return NULL;
 }
@@ -528,7 +530,7 @@ static int bmmt_p_copy_payload(void *context, batom_accum_t accum, batom_cursor 
     batom_t atom;
     batom_factory_t factory = context;
     size_t copied_bytes;
-    BDBG_MSG(("%s >>>",__FUNCTION__));
+    BDBG_MSG(("%s >>>", __extension__ __FUNCTION__));
     data = BKNI_Malloc(bytes);
     if(data==NULL) {
         goto err_alloc;
@@ -544,7 +546,7 @@ static int bmmt_p_copy_payload(void *context, batom_accum_t accum, batom_cursor 
     }
     batom_accum_add_atom(accum, atom);
     batom_release(atom);
-    BDBG_MSG(("%s <<<",__FUNCTION__));
+    BDBG_MSG(("%s <<<", __extension__ __FUNCTION__));
     return 0;
 
 err_atom:
@@ -560,7 +562,7 @@ static int bmmt_p_stream_copy_payload(void *context, batom_accum_t accum, batom_
     bmmt_t mmt = stream->mmt;
     BDBG_OBJECT_ASSERT(mmt,bmmt);
     BDBG_OBJECT_ASSERT(stream,bmmt_stream);
-    BDBG_MSG(("%s >>>",__FUNCTION__));
+    BDBG_MSG(("%s >>>", __extension__ __FUNCTION__));
     if(stream->buffer.offset + bytes < stream->buffer.length) {
         void *data = (uint8_t *)stream->buffer.data + stream->buffer.offset;
         size_t copied_bytes;
@@ -572,7 +574,7 @@ static int bmmt_p_stream_copy_payload(void *context, batom_accum_t accum, batom_
         stream->buffer.offset += bytes;
         return 0;
     }
-    BDBG_MSG(("%s <<<<",__FUNCTION__));
+    BDBG_MSG(("%s <<<<", __extension__ __FUNCTION__));
     return bmmt_p_copy_payload(mmt->factory, accum, cursor, bytes);
 }
 
@@ -695,7 +697,7 @@ bmmt_t bmmt_open(bmmt_open_settings *open_settings)
     NEXUS_PlaypumpOpenSettings playpumpOpenSettings;
     #endif
     unsigned i;
-    BDBG_WRN(("%s >>>",__FUNCTION__));
+    BDBG_WRN(("%s >>>", __extension__ __FUNCTION__));
     mmt = BKNI_Malloc(sizeof(*mmt));
     BKNI_Memset(mmt,0,sizeof(*mmt));
     BDBG_ASSERT(mmt);
@@ -704,14 +706,14 @@ bmmt_t bmmt_open(bmmt_open_settings *open_settings)
     {
         if (open_settings->tlv_pid)
         {
-            BDBG_WRN(("%s MPEG2TS PID %x",__FUNCTION__,open_settings->tlv_pid));
+            BDBG_WRN(("%s MPEG2TS PID %x", __extension__ __FUNCTION__,open_settings->tlv_pid));
             btlv_parser_init(&mmt->parser, open_settings->tlv_pid);
             mmt->num_io_buffers = BMMT_MAX_TS_BUFFERS;
             mmt->io_buffer_size = BMPEG2TS_PKT_LEN;
         }
         else
         {
-            BDBG_ERR(("%s: invalid tlv_pid %x",__FUNCTION__,open_settings->tlv_pid));
+            BDBG_ERR(("%s: invalid tlv_pid %x", __extension__ __FUNCTION__,open_settings->tlv_pid));
             BKNI_Free(mmt);
             goto error;
         }
@@ -726,17 +728,17 @@ bmmt_t bmmt_open(bmmt_open_settings *open_settings)
         }
         else
         {
-            BDBG_ERR(("%s: invalid input format %d",__FUNCTION__,open_settings->input_format));
+            BDBG_ERR(("%s: invalid input format %d", __extension__ __FUNCTION__,open_settings->input_format));
             BKNI_Free(mmt);
             goto error;
         }
     }
     btlv_ip_parser_init(&mmt->ip_parser);
-    BDBG_WRN(("%s: input format %d",__FUNCTION__,open_settings->input_format));
-    BDBG_WRN(("%s: playback %s",__FUNCTION__,open_settings->playback?"true":"false"));
+    BDBG_WRN(("%s: input format %d", __extension__ __FUNCTION__,open_settings->input_format));
+    BDBG_WRN(("%s: playback %s", __extension__ __FUNCTION__,open_settings->playback?"true":"false"));
     if (open_settings->playback)
     {
-        BDBG_WRN(("%s: fileName %s",__FUNCTION__,open_settings->fileName));
+        BDBG_WRN(("%s: fileName %s", __extension__ __FUNCTION__,open_settings->fileName));
         mmt->fin = fopen(open_settings->fileName,"rb");
         BDBG_ASSERT(mmt->fin);
     }
@@ -746,11 +748,18 @@ bmmt_t bmmt_open(bmmt_open_settings *open_settings)
          NEXUS_RecpumpOpenSettings recpumpOpenSettings;
          NEXUS_PidChannelSettings pidCfg;
 
-         BDBG_WRN(("%s parserBand %d",__FUNCTION__,(int)open_settings->parserBand));
+         BDBG_WRN(("%s parserBand %d", __extension__ __FUNCTION__,(int)open_settings->parserBand));
 
          NEXUS_PidChannel_GetDefaultSettings(&pidCfg);
          NEXUS_ParserBand_GetAllPassPidChannelIndex(open_settings->parserBand, &pidCfg.pidChannelIndex);
-         mmt->allPassPidChannel = NEXUS_PidChannel_Open(open_settings->parserBand, 0, &pidCfg);
+         if (open_settings->input_format == ebmmt_input_format_tlv)
+         {
+            mmt->allPassPidChannel = NEXUS_PidChannel_Open(open_settings->parserBand, 0, &pidCfg);
+         }
+         else
+         {
+             mmt->allPassPidChannel = NEXUS_PidChannel_Open(open_settings->parserBand,open_settings->tlv_pid, &pidCfg);
+         }
          BDBG_ASSERT(mmt->allPassPidChannel);
 
          BKNI_CreateEvent(&mmt->rec_event);
@@ -812,11 +821,11 @@ bmmt_t bmmt_open(bmmt_open_settings *open_settings)
     {
         mmt->fout = NULL;
     }
-    BDBG_WRN(("%s <<<",__FUNCTION__));
+    BDBG_WRN(("%s <<<", __extension__ __FUNCTION__));
     return mmt;
 
 error:
-    BDBG_WRN(("%s <<<",__FUNCTION__));
+    BDBG_WRN(("%s <<<", __extension__ __FUNCTION__));
     return NULL;
 }
 
@@ -826,7 +835,7 @@ int bmmt_close(bmmt_t mmt)
     unsigned i;
     bmmt_stream_t stream,prev_stream;
     bmmt_msg_t msg,prev_msg;
-    BDBG_WRN(("%s >>>",__FUNCTION__));
+    BDBG_WRN(("%s >>>", __extension__ __FUNCTION__));
     BDBG_OBJECT_ASSERT(mmt,bmmt);
     stream = BLST_Q_FIRST(&mmt->streams);
     while (stream)
@@ -898,7 +907,7 @@ int bmmt_close(bmmt_t mmt)
     BKNI_DestroyMutex(mmt->mutex);
     BDBG_OBJECT_DESTROY(mmt, bmmt);
     BKNI_Free(mmt);
-    BDBG_WRN(("%s <<<",__FUNCTION__));
+    BDBG_WRN(("%s <<<", __extension__ __FUNCTION__));
     return 0;
 }
 
@@ -1079,7 +1088,7 @@ size_t bmmt_msg_get_buffer(bmmt_msg_t msg, void *buf, size_t buf_len)
             len = msg->buf[msg->read_index].offset;
             msg->valid[msg->read_index] = false;
             msg->buf[msg->read_index].offset = 0;
-            BDBG_MSG(("%s mmt->mmt_msg_r %u len %u",__FUNCTION__,msg->read_index,len));
+            BDBG_MSG(("%s mmt->mmt_msg_r %u len %lu", __extension__ __FUNCTION__,msg->read_index,(unsigned long)len));
             msg->read_index +=1;
             msg->read_index = (msg->read_index % BMMT_MAX_MSG_BUFFERS);
     }
@@ -1213,4 +1222,103 @@ void bmmt_set_ip_filter(bmmt_t mmt, btlv_ip_address *addr)
     }
     BKNI_ReleaseMutex(mmt->mutex);
     return;
+}
+
+#define TLV_HDR_SIZE 4
+bool bmmt_p_check_tlv_packet(uint8_t *buf, size_t len, uint32_t offset,uint8_t bitShift, uint8_t count)
+{
+    uint64_t bits_64 = 0,tmp=0;
+    uint16_t byte0=0, byte1=0;
+    uint32_t tmpOffset = offset;
+    uint8_t i=0;
+    uint16_t tlv_packet_length=0;
+    bool found = false;
+    while (count)
+    {
+        if ((tmpOffset + 8) > len)
+        {
+            break;
+        }
+        else
+        {
+            bits_64 = 0;
+            for (i=0;i<8;i++)
+            {
+                tmp = 0;
+                tmp = ((uint64_t)(buf[tmpOffset+i]) & 0xff);
+                tmp = (tmp << (8*(7-i)));
+                bits_64 |= tmp;
+            }
+            tmp = bits_64 << bitShift;
+            if (((tmp >> 56) & 0xff) == 0x7f)
+            {
+                byte0 = ((uint16_t)(tmp>>32) & 0xff);
+                byte1 = ((uint16_t)(tmp>>40) & 0xff);
+                tlv_packet_length = (byte0 | byte1 << 8);
+                BDBG_MSG(("tlv_pkt_len %#x",tlv_packet_length));
+                BDBG_MSG(("tmpOffset %u",tmpOffset));
+                tmpOffset = tmpOffset + tlv_packet_length + TLV_HDR_SIZE;
+                count -= 1;
+            }
+            else
+            {
+               break;
+            }
+        }
+    }
+
+    found = (count==0)?true:false;
+    return found;
+}
+
+uint8_t bmmt_get_tlv_sync_byte_bitshift(uint8_t *buf, size_t len)
+{
+    uint8_t bitShift=0;
+    uint32_t offset = 0;
+    uint64_t bits_64 = 0;
+    uint64_t tmp;
+    uint8_t i=0;
+    bool found = false;
+    BDBG_ASSERT((len > 8));
+
+    for (bitShift=0; bitShift<8;bitShift++)
+    {
+        BDBG_WRN(("bitShift try %u",bitShift));
+        for (offset=0;offset+8 < len;offset++)
+        {
+           bits_64 = 0x0;
+           for (i=0;i<8;i++) {
+               tmp = 0;
+               tmp = ((uint64_t)(buf[offset+i]) & 0xff);
+               tmp = (tmp << (8*(7-i)));
+               bits_64 |= tmp;
+           }
+          /* BDBG_WRN(("++bits_64 %16"PRIx64"",bits_64));*/
+
+           tmp = bits_64 << bitShift;
+         /*  BDBG_WRN((">>bits_64 %16"PRIx64"",tmp));*/
+           if (((tmp >> 56) & 0xff) == 0x7f)
+           {
+               found = bmmt_p_check_tlv_packet(buf,len,offset,bitShift, 8);
+               if (found) {
+                   break;
+               }
+
+           }
+        }
+        if (found) {
+            break;
+        }
+
+    }
+    if (!found)
+    {
+       bitShift = 0xff;
+    }
+    else
+    {
+       /* bitShift = bitShift==0?bitShift:8-bitShift;*/
+        BDBG_WRN(("bitShift %u",bitShift));
+    }
+    return bitShift;
 }

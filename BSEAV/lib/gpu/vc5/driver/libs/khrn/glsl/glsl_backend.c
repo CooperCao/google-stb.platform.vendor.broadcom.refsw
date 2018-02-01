@@ -29,8 +29,7 @@ typedef struct {
 
    REG_T    reg[REG_MAX];
 
-   jmp_buf     error_abort;
-   ArenaAlloc *alti_arena;
+   jmp_buf  error_abort;
 
    uint64_t register_blackout;
 
@@ -41,6 +40,11 @@ typedef struct {
 
    Map *backend_states;
 } GLSL_SCHEDULER_STATE_T;
+
+typedef enum {
+   PIPE_ADD = 0,
+   PIPE_MUL = 1,
+} AluPipe;
 
 static void backend_error(jmp_buf error_abort, const char *description) {
    longjmp(error_abort, 1);
@@ -54,9 +58,9 @@ static void translate_write(uint32_t *waddr_out, bool *is_magic, backend_reg reg
 
    *is_magic = !IS_RF(reg);
 
-   if (IS_RF(reg))             *waddr_out = reg - REG_RF0;
-   else if (IS_R(reg))         *waddr_out = reg - REG_R0;
-   else                        *waddr_out = reg - REG_MAGIC_BASE;
+   if (IS_RF(reg))     *waddr_out = reg - REG_RF0;
+   else if (IS_R(reg)) *waddr_out = reg - REG_R0;
+   else                *waddr_out = reg - REG_MAGIC_BASE;
 }
 
 static v3d_qpu_in_source_t translate_mux(backend_reg reg, const backend_reg *reads) {
@@ -67,97 +71,6 @@ static v3d_qpu_in_source_t translate_mux(backend_reg reg, const backend_reg *rea
    if (IS_R(reg))            return reg - REG_R0;
    else if (reg == reads[0]) return V3D_QPU_IN_SOURCE_A;
    else                      return V3D_QPU_IN_SOURCE_B;
-}
-
-struct opcode_s {
-   BackflowFlavour flavour;
-   v3d_qpu_opcode_t opcode;
-};
-
-static const struct opcode_s opcodes[] = {
-   { BACKFLOW_ADD,        V3D_QPU_OP_FADD    },
-   { BACKFLOW_VFPACK,     V3D_QPU_OP_VFPACK  },
-   { BACKFLOW_IADD,       V3D_QPU_OP_ADD     },
-   { BACKFLOW_ISUB,       V3D_QPU_OP_SUB     },
-   { BACKFLOW_SUB,        V3D_QPU_OP_FSUB    },
-   { BACKFLOW_IMIN,       V3D_QPU_OP_MIN     },
-   { BACKFLOW_IMAX,       V3D_QPU_OP_MAX     },
-   { BACKFLOW_UMIN,       V3D_QPU_OP_UMIN    },
-   { BACKFLOW_UMAX,       V3D_QPU_OP_UMAX    },
-   { BACKFLOW_SHL,        V3D_QPU_OP_SHL     },
-   { BACKFLOW_SHR,        V3D_QPU_OP_SHR     },
-   { BACKFLOW_ASHR,       V3D_QPU_OP_ASR     },
-   { BACKFLOW_ROR,        V3D_QPU_OP_ROR     },
-   { BACKFLOW_MIN,        V3D_QPU_OP_FMIN    },
-   { BACKFLOW_MAX,        V3D_QPU_OP_FMAX    },
-   { BACKFLOW_AND,        V3D_QPU_OP_AND     },
-   { BACKFLOW_OR,         V3D_QPU_OP_OR      },
-   { BACKFLOW_XOR,        V3D_QPU_OP_XOR     },
-   { BACKFLOW_NOT,        V3D_QPU_OP_NOT     },
-   { BACKFLOW_INEG,       V3D_QPU_OP_NEG     },
-   { BACKFLOW_SETMSF,     V3D_QPU_OP_SETMSF  },
-   { BACKFLOW_SETREVF,    V3D_QPU_OP_SETREVF },
-   { BACKFLOW_TIDX,       V3D_QPU_OP_TIDX    },
-   { BACKFLOW_EIDX,       V3D_QPU_OP_EIDX    },
-   { BACKFLOW_FL,         V3D_QPU_OP_INVALID },
-   { BACKFLOW_FLN,        V3D_QPU_OP_INVALID },
-   { BACKFLOW_FXCD,       V3D_QPU_OP_FXCD    },
-   { BACKFLOW_XCD,        V3D_QPU_OP_XCD     },
-   { BACKFLOW_FYCD,       V3D_QPU_OP_FYCD    },
-   { BACKFLOW_YCD,        V3D_QPU_OP_YCD     },
-   { BACKFLOW_MSF,        V3D_QPU_OP_MSF     },
-   { BACKFLOW_REVF,       V3D_QPU_OP_REVF    },
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   { BACKFLOW_IID,        V3D_QPU_OP_IID     },
-   { BACKFLOW_SAMPID,     V3D_QPU_OP_SAMPID  },
-   { BACKFLOW_BARRIERID,  V3D_QPU_OP_BARRIERID },
-#endif
-   { BACKFLOW_TMUWT,      V3D_QPU_OP_TMUWT   },
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   { BACKFLOW_VPMWT,      V3D_QPU_OP_VPMWT   },
-   { BACKFLOW_LDVPMV_IN,  V3D_QPU_OP_LDVPMV_IN  },
-   { BACKFLOW_LDVPMV_OUT, V3D_QPU_OP_LDVPMV_OUT },
-   { BACKFLOW_LDVPMD_IN,  V3D_QPU_OP_LDVPMD_IN  },
-   { BACKFLOW_LDVPMD_OUT, V3D_QPU_OP_LDVPMD_OUT },
-   { BACKFLOW_LDVPMP,     V3D_QPU_OP_LDVPMP     },
-   { BACKFLOW_LDVPMG_IN,  V3D_QPU_OP_LDVPMG_IN  },
-   { BACKFLOW_LDVPMG_OUT, V3D_QPU_OP_LDVPMG_OUT },
-   { BACKFLOW_STVPMV,     V3D_QPU_OP_STVPMV     },
-   { BACKFLOW_STVPMD,     V3D_QPU_OP_STVPMD     },
-   { BACKFLOW_STVPMP,     V3D_QPU_OP_STVPMP     },
-#else
-   { BACKFLOW_VPMSETUP,   V3D_QPU_OP_VPMSETUP },
-#endif
-   { BACKFLOW_NEG,        V3D_QPU_OP_VFNEGMOV },
-   { BACKFLOW_FCMP,       V3D_QPU_OP_FCMP     },
-   { BACKFLOW_ROUND,      V3D_QPU_OP_FROUND   },
-   { BACKFLOW_FTOIN,      V3D_QPU_OP_FTOIN    },
-   { BACKFLOW_TRUNC,      V3D_QPU_OP_FTRUNC   },
-   { BACKFLOW_FTOIZ,      V3D_QPU_OP_FTOIZ    },
-   { BACKFLOW_FLOOR,      V3D_QPU_OP_FFLOOR   },
-   { BACKFLOW_FTOUZ,      V3D_QPU_OP_FTOUZ    },
-   { BACKFLOW_CEIL,       V3D_QPU_OP_FCEIL    },
-   { BACKFLOW_FTOC,       V3D_QPU_OP_FTOC     },
-   { BACKFLOW_FDX,        V3D_QPU_OP_FDX      },
-   { BACKFLOW_FDY,        V3D_QPU_OP_FDY      },
-   { BACKFLOW_ITOF,       V3D_QPU_OP_ITOF     },
-   { BACKFLOW_CLZ,        V3D_QPU_OP_CLZ      },
-   { BACKFLOW_UTOF,       V3D_QPU_OP_UTOF     },
-
-   { BACKFLOW_IADD_M,     V3D_QPU_OP_ADD    },
-   { BACKFLOW_ISUB_M,     V3D_QPU_OP_SUB    },
-   { BACKFLOW_UMUL,       V3D_QPU_OP_UMUL24 },
-   { BACKFLOW_SMUL,       V3D_QPU_OP_SMUL24 },
-   { BACKFLOW_MULTOP,     V3D_QPU_OP_MULTOP },
-   { BACKFLOW_FMOV,       V3D_QPU_OP_FMOV   },
-   { BACKFLOW_MOV,        V3D_QPU_OP_MOV    },
-   { BACKFLOW_MUL,        V3D_QPU_OP_FMUL   },
-
-};
-
-static inline v3d_qpu_opcode_t get_opcode(BackflowFlavour f) {
-   assert(opcodes[f].flavour == f);
-   return opcodes[f].opcode;
 }
 
 static v3d_qpu_setf_t convert_setf(uint32_t cond_setf) {
@@ -198,10 +111,10 @@ static inline void add_read(backend_reg *read, backend_reg reg) {
 
 static void instr_get_reads(const INSTR_T *ci, backend_reg *read) {
    read[0] = read[1] = REG_UNDECIDED;
-   if (ci->a.used && IS_RF(ci->a.input_a)) add_read(read, ci->a.input_a);
-   if (ci->a.used && IS_RF(ci->a.input_b)) add_read(read, ci->a.input_b);
-   if (ci->m.used && IS_RF(ci->m.input_a)) add_read(read, ci->m.input_a);
-   if (ci->m.used && IS_RF(ci->m.input_b)) add_read(read, ci->m.input_b);
+   for (int p=0; p<2; p++) {
+      if (ci->op[p].used && IS_RF(ci->op[p].input_a)) add_read(read, ci->op[p].input_a);
+      if (ci->op[p].used && IS_RF(ci->op[p].input_b)) add_read(read, ci->op[p].input_b);
+   }
 }
 
 static v3d_qpu_unpack_t get_v3d_unpack(SchedNodeUnpack u) {
@@ -214,7 +127,7 @@ static v3d_qpu_unpack_t get_v3d_unpack(SchedNodeUnpack u) {
    }
 }
 
-static void gen_op(struct v3d_qpu_op *out, const GLSL_OP_T *op_struct, const backend_reg *instr_reads) {
+static void gen_op(struct v3d_qpu_op *out, const GLSL_OP_T *op_struct, bool add, const backend_reg *instr_reads) {
    const static struct v3d_qpu_op op_nop =
          { .a = { .unpack = V3D_QPU_UNPACK_NONE }, .b = { .unpack = V3D_QPU_UNPACK_NONE },
            .opcode = V3D_QPU_OP_NOP, .pack = V3D_QPU_PACK_NONE };
@@ -222,23 +135,34 @@ static void gen_op(struct v3d_qpu_op *out, const GLSL_OP_T *op_struct, const bac
                                                    { V3D_QPU_OP_VFLNA, V3D_QPU_OP_VFLNB } };
 
    if (!op_struct->used) *out = op_nop;
-   else if (op_struct->op == BACKFLOW_FL || op_struct->op == BACKFLOW_FLN) {
-      assert(op_struct->input_a == REG_FLAG_A || op_struct->input_a == REG_FLAG_B);
-      out->opcode = flag_op[ (op_struct->op == BACKFLOW_FLN) ][ (op_struct->input_a == REG_FLAG_B) ];
-      out->a.unpack = V3D_QPU_UNPACK_NONE;
-      out->b.unpack = V3D_QPU_UNPACK_NONE;
-      out->pack = V3D_QPU_PACK_NONE;
-   } else {
-      out->a.source = translate_mux(op_struct->input_a, instr_reads);
-      out->b.source = translate_mux(op_struct->input_b, instr_reads);
-      out->a.unpack = get_v3d_unpack(op_struct->unpack[0]);
-      out->b.unpack = get_v3d_unpack(op_struct->unpack[1]);
-      out->opcode = get_opcode(op_struct->op);
-      out->pack = V3D_QPU_PACK_NONE;
+   else {
+      if (op_struct->op == V3D_QPU_OP_VFLA || op_struct->op == V3D_QPU_OP_VFLNA) {
+         assert(op_struct->input_a == REG_FLAG_A || op_struct->input_a == REG_FLAG_B);
+         out->opcode = flag_op[ (op_struct->op == V3D_QPU_OP_VFLNA) ][ (op_struct->input_a == REG_FLAG_B) ];
+         out->a.unpack = V3D_QPU_UNPACK_NONE;
+         out->b.unpack = V3D_QPU_UNPACK_NONE;
+         out->pack = V3D_QPU_PACK_NONE;
+      } else {
+         out->a.source = translate_mux(op_struct->input_a, instr_reads);
+         out->b.source = translate_mux(op_struct->input_b, instr_reads);
+         out->a.unpack = get_v3d_unpack(op_struct->unpack[0]);
+         out->b.unpack = get_v3d_unpack(op_struct->unpack[1]);
+         out->opcode = op_struct->op;
+         out->pack = V3D_QPU_PACK_NONE;
+
+         if (add && (out->opcode == V3D_QPU_OP_MOV || out->opcode == V3D_QPU_OP_FMOV)) {
+            out->b = out->a;
+            out->opcode = (out->opcode == V3D_QPU_OP_MOV) ? V3D_QPU_OP_OR : V3D_QPU_OP_FMIN;
+         }
+      }
    }
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+static bool sig_requires_read_b(v3d_qpu_sigbits_t sigbits) {
+   return sigbits & (V3D_QPU_SIG_SMALL_IMM | V3D_QPU_SIG_ROTATE);
+}
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static void gen_sig(struct v3d_qpu_sig *sig, v3d_qpu_sigbits_t sigbits, backend_reg sig_waddr) {
    sig->sigbits = sigbits;
 
@@ -266,11 +190,21 @@ static uint64_t pack_instr(const struct v3d_qpu_instr *in) {
 static uint64_t generate(const INSTR_T *ci) {
    struct v3d_qpu_instr in = { .type = V3D_QPU_INSTR_TYPE_ALU };
 
-   gen_wr(&in.add_wr, &ci->a);
-   gen_wr(&in.mul_wr, &ci->m);
+   gen_wr(&in.add_wr, &ci->op[PIPE_ADD]);
+   gen_wr(&in.mul_wr, &ci->op[PIPE_MUL]);
 
    backend_reg read[2];
    instr_get_reads(ci, read);
+
+   /* Certain instructions must use the first read slot */
+   if (ci->op[PIPE_ADD].used && v3d_qpu_op_requires_read_a(ci->op[PIPE_ADD].op)) {
+      if (ci->op[PIPE_ADD].input_a == read[1]) {
+         uint32_t r = read[0];
+         read[0] = read[1];
+         read[1] = r;
+      }
+      assert(ci->op[PIPE_ADD].input_a == read[0]);
+   }
 
    uint32_t raddr[2] = {0, 0};
    for (int i=0; i<2; i++) {
@@ -282,10 +216,15 @@ static uint64_t generate(const INSTR_T *ci) {
    in.u.alu.raddr_a = raddr[0];
    in.u.alu.raddr_b = raddr[1];
 
-   gen_op(&in.u.alu.add, &ci->a, read);
-   gen_op(&in.u.alu.mul, &ci->m, read);
+   if (sig_requires_read_b(ci->sigbits)) {
+      assert(in.u.alu.raddr_b == REG_UNDECIDED);
+      in.u.alu.raddr_b = ci->rotate_or_small_imm;
+   }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+   gen_op(&in.u.alu.add, &ci->op[PIPE_ADD], true,  read);
+   gen_op(&in.u.alu.mul, &ci->op[PIPE_MUL], false, read);
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
    gen_sig(&in.u.alu.sig, ci->sigbits, ci->sig_waddr);
 #else
    in.u.alu.sig.sigbits = ci->sigbits;
@@ -337,11 +276,11 @@ static bool conflicts_ok(QBEConflict conflicts_a, QBEConflict conflicts_b) {
 
    static const QBEConflict peripherals = CONFLICT_TMU_W | CONFLICT_TMU_C | CONFLICT_TMU_R | CONFLICT_TMUWT |
                                           CONFLICT_TLB_R | CONFLICT_TLB_W | CONFLICT_VPM |
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
                                           CONFLICT_VPMWT |
 #endif
                                           CONFLICT_SFU;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    static const QBEConflict cond_reg_conflict = CONFLICT_TLB_R   | CONFLICT_TMU_R   | CONFLICT_VARY | CONFLICT_UNIFRF |
                                                 CONFLICT_ADDFLAG | CONFLICT_MULFLAG | CONFLICT_SETFLAG;
 #else
@@ -372,6 +311,9 @@ static bool conflicts_ok(QBEConflict conflicts_a, QBEConflict conflicts_b) {
    static const QBEConflict thrsw_conflict = CONFLICT_UNIFA_W | CONFLICT_THRSW_SIGNAL | CONFLICT_THRSW_DELAY_1 | CONFLICT_THRSW_DELAY_2;
    if (conflicts_a & thrsw_conflict) bad_accesses |= thrsw_conflict;
 
+   static const QBEConflict sfu_conflict = CONFLICT_SFU | CONFLICT_THRSW_DELAY_2;
+   if (conflicts_a & sfu_conflict) bad_accesses |= sfu_conflict;
+
 #if V3D_VER_AT_LEAST(4,1,34,0)
    // Uniform stream and unifa reads conflict.
    static const QBEConflict unif_conflict = CONFLICT_UNIF | CONFLICT_UNIFA;
@@ -389,7 +331,7 @@ static bool can_add_sigbits(v3d_qpu_sigbits_t a, v3d_qpu_sigbits_t b) {
 static QBEConflict sig_conflicts(v3d_qpu_sigbits_t sigbits) {
    switch (sigbits)
    {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_QPU_SIG_WRTMUC: return CONFLICT_TMU_C | CONFLICT_UNIF;
 #else
    case V3D_QPU_SIG_LDVPM:  return CONFLICT_VPM;
@@ -421,7 +363,7 @@ static QBEConflict get_output_conflicts(uint32_t output)
       case REG_MAGIC_TMUAU:
       case REG_MAGIC_TMUD:
          return CONFLICT_TMU_W;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case REG_MAGIC_TMUC:
          return CONFLICT_TMU_W | CONFLICT_TMU_C;
       case REG_MAGIC_TMUT:
@@ -492,7 +434,7 @@ static void add_unif_read_conflicts(GLSL_SCHEDULER_STATE_T *sched, uint32_t time
 #endif
 
 static uint32_t fit_sig(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, v3d_qpu_sigbits_t sigbits, uint64_t unif
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       , backend_reg sig_waddr
 #endif
       )
@@ -524,7 +466,7 @@ static uint32_t fit_sig(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, v3d_qpu_si
    ci->sigbits   |= sigbits;
    ci->conflicts |= conflicts;
    if (unif != UNIF_NONE) ci->unif = unif;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (v3d_qpu_sig_has_result_write(sigbits)) {
       assert(ci->sig_waddr == REG_UNDECIDED);
       ci->sig_waddr = sig_waddr;
@@ -538,7 +480,7 @@ static uint32_t fit_sig(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, v3d_qpu_si
    return time;
 }
 
-static inline bool IS_SFU(uint32_t output) {
+static inline bool reg_is_sfu(uint32_t output) {
    return output == REG_MAGIC_RECIP  ||
           output == REG_MAGIC_RSQRT  ||
           output == REG_MAGIC_RSQRT2 ||
@@ -548,53 +490,57 @@ static inline bool IS_SFU(uint32_t output) {
 }
 
 static uint32_t get_output_delay(uint32_t output) {
-   if (IS_SFU(output)) return 2;
+   if (reg_is_sfu(output)) return 2;
    else return 1;
 }
 
-static QBEConflict get_cond_setf_conflicts(uint32_t cond_setf, SchedNodeType alu_type)
+static QBEConflict get_cond_setf_conflicts(uint32_t cond_setf, AluPipe pipe)
 {
    QBEConflict conflict = CONFLICT_NONE;
    assert(is_cond_setf(cond_setf));
    if (cs_is_none(cond_setf)) return CONFLICT_NONE;
 
-   switch (alu_type)
+   switch (pipe)
    {
-   case ALU_A: conflict |= CONFLICT_ADDFLAG; break;
-   case ALU_M: conflict |= CONFLICT_MULFLAG; break;
+   case PIPE_ADD: conflict |= CONFLICT_ADDFLAG; break;
+   case PIPE_MUL: conflict |= CONFLICT_MULFLAG; break;
    default: unreachable();
    }
 
    if (cs_is_setf(cond_setf)) conflict |= CONFLICT_SETFLAG;
 
    /* Special Case: there isn't encoding space for muf + an add thing */
-   if (cs_is_updt(cond_setf) && alu_type == ALU_M) conflict |= CONFLICT_ADDFLAG;
+   if (cs_is_updt(cond_setf) && pipe == PIPE_MUL) conflict |= CONFLICT_ADDFLAG;
 
    return conflict;
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
-static bool is_vpm_load(BackflowFlavour f) {
-   return f == BACKFLOW_LDVPMV_IN  || f == BACKFLOW_LDVPMD_IN  ||
-          f == BACKFLOW_LDVPMV_OUT || f == BACKFLOW_LDVPMD_OUT ||
-          f == BACKFLOW_LDVPMG_IN  || f == BACKFLOW_LDVPMG_OUT ||
-          f == BACKFLOW_LDVPMP;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+static bool is_vpm_load(v3d_qpu_opcode_t op) {
+   return op == V3D_QPU_OP_LDVPMV_IN  || op == V3D_QPU_OP_LDVPMD_IN  ||
+          op == V3D_QPU_OP_LDVPMV_OUT || op == V3D_QPU_OP_LDVPMD_OUT ||
+          op == V3D_QPU_OP_LDVPMG_IN  || op == V3D_QPU_OP_LDVPMG_OUT ||
+          op == V3D_QPU_OP_LDVPMP;
 }
-static bool is_vpm_store(BackflowFlavour f) {
-   return f == BACKFLOW_STVPMV || f == BACKFLOW_STVPMD || f == BACKFLOW_STVPMP;
+static bool is_vpm_store(v3d_qpu_opcode_t op) {
+   return op == V3D_QPU_OP_STVPMV || op == V3D_QPU_OP_STVPMD || op == V3D_QPU_OP_STVPMP;
 }
 #endif
 
-static QBEConflict get_special_instruction_conflicts(BackflowFlavour op) {
-   if (op == BACKFLOW_SETMSF || op == BACKFLOW_SETREVF) return CONFLICT_MSF;
+static QBEConflict get_special_instruction_conflicts(v3d_qpu_opcode_t op) {
+   if (op == V3D_QPU_OP_SETMSF || op == V3D_QPU_OP_SETREVF) return CONFLICT_MSF;
 
-   if (op == BACKFLOW_TMUWT) return CONFLICT_TMUWT;
+   if (op == V3D_QPU_OP_TMUWT) return CONFLICT_TMUWT;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   if (op == BACKFLOW_VPMWT) return CONFLICT_VPMWT;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   if (v3d_qpu_op_is_sfu(op)) return CONFLICT_SFU;
+#endif
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   if (op == V3D_QPU_OP_VPMWT) return CONFLICT_VPMWT;
    if (is_vpm_load(op) || is_vpm_store(op))  return CONFLICT_VPM;
 #else
-   if (op == BACKFLOW_VPMSETUP) return CONFLICT_VPM;
+   if (op == V3D_QPU_OP_VPMSETUP) return CONFLICT_VPM;
 #endif
    return 0;
 }
@@ -639,50 +585,36 @@ static void write_register(GLSL_SCHEDULER_STATE_T *sched, BackendNodeState *node
    sched->reg[reg].available = time;
 }
 
-static inline bool no_read_clashes(const backend_reg *old_read, const backend_reg *new_read)
+static inline bool no_read_clashes(unsigned reads_allowed, const backend_reg *old_read, const backend_reg *new_read)
 {
    unsigned n_reads = (old_read[0] != REG_UNDECIDED) + (old_read[1] != REG_UNDECIDED);
    for (int i=0; i<2; i++)
       if (new_read[i] != REG_UNDECIDED && new_read[i] != old_read[0] && new_read[i] != old_read[1])
          n_reads++;
 
-   return n_reads < 3;
+   return n_reads <= reads_allowed;
 }
 
-static inline bool can_place_alu(const INSTR_T *ci, SchedNodeType alu_type, QBEConflict conflicts, const backend_reg *read)
+static inline bool can_place_alu(const INSTR_T *ci, AluPipe pipe, bool rot, QBEConflict conflicts, const backend_reg *read)
 {
-   bool can_place = true;
    backend_reg instr_read[2];
    instr_get_reads(ci, instr_read);
 
-   can_place &= ((alu_type == ALU_M) ? (!ci->m.used) : (!ci->a.used));
+   unsigned max_reads = (sig_requires_read_b(ci->sigbits) || rot) ? 1 : 2;
+   bool can_place = !rot || can_add_sigbits(ci->sigbits, V3D_QPU_SIG_ROTATE);
+   can_place &= !ci->op[pipe].used;
    can_place &= conflicts_ok(ci->conflicts, conflicts);
-   can_place &= no_read_clashes(instr_read, read);
+   can_place &= no_read_clashes(max_reads, instr_read, read);
 
    return can_place;
 }
 
-static inline void set_alu(GLSL_OP_T *alu, BackflowFlavour op, SchedNodeUnpack ul, SchedNodeUnpack ur, backend_reg output, backend_reg input_a, backend_reg input_b, uint32_t cond_setf, MOV_EXCUSE mov_excuse)
-{
-   assert(!alu->used);
-
-   alu->used = true;
-   alu->op = op;
-   alu->unpack[0] = ul;
-   alu->unpack[1] = ur;
-   alu->output = output;
-   alu->input_a = input_a;
-   alu->input_b = input_b;
-   alu->cond_setf = cond_setf;
-   alu->mov_excuse = mov_excuse;
-}
-
-QBEConflict get_conflicts(backend_reg output, uint32_t cond_setf, SchedNodeType alu_type,
-                       BackflowFlavour op, uint64_t unif)
+QBEConflict get_conflicts(backend_reg output, uint32_t cond_setf, AluPipe pipe,
+                          v3d_qpu_opcode_t op, uint64_t unif)
 {
    QBEConflict conflicts[4];
    conflicts[0] = get_output_conflicts(output);
-   conflicts[1] = get_cond_setf_conflicts(cond_setf, alu_type);
+   conflicts[1] = get_cond_setf_conflicts(cond_setf, pipe);
    conflicts[2] = get_special_instruction_conflicts(op);
    conflicts[3] = (unif != UNIF_NONE ? CONFLICT_UNIF : CONFLICT_NONE);
    for (int i=1; i<4; i++) {
@@ -693,15 +625,14 @@ QBEConflict get_conflicts(backend_reg output, uint32_t cond_setf, SchedNodeType 
    return conflicts[0];
 }
 
-static uint32_t fit_alu(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, SchedNodeType alu_type,
-                        BackflowFlavour op, SchedNodeUnpack ul, SchedNodeUnpack ur, backend_reg output,
-                        backend_reg input_a, backend_reg input_b, uint64_t unif, uint32_t cond_setf, MOV_EXCUSE mov_excuse)
+static uint32_t time_alu(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, AluPipe pipe, bool rot,
+                         v3d_qpu_opcode_t op, backend_reg output,
+                         backend_reg input_a, backend_reg input_b, uint64_t unif, uint32_t cond_setf)
 {
-   bool mul = (alu_type == ALU_M);
-   bool add = !mul;
+   assert(!rot || pipe == PIPE_MUL);
 
    /* Determine conflicts */
-   QBEConflict conflicts = get_conflicts(output, cond_setf, alu_type, op, unif);
+   QBEConflict conflicts = get_conflicts(output, cond_setf, pipe, op, unif);
 
    /* See which regfiles we're reading from */
    backend_reg read[2] = { REG_UNDECIDED, REG_UNDECIDED };
@@ -714,149 +645,100 @@ static uint32_t fit_alu(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, SchedNodeT
       ensure_instructions(sched, time);
 
       ci = &sched->instructions[time];
-      if ( can_place_alu(ci, alu_type, conflicts, read) ) break;
-
-      if(ci->alt_mov_i) {
-         /* Or in the conflicts on the instruction, which may have been updated
-          * since the alt_mov_i was created. This can still lead to invalid code
-          * because we don't know whether the alt_mov_i conflicts with those
-          * updates. That information is now lost.
-          */
-         ci->alt_mov_i->conflicts |= ci->conflicts;
-
-         bool suitable = can_place_alu(ci->alt_mov_i, alu_type, conflicts, read);
-
-         if(suitable && add && ci->a.used && !ci->m.used && ci->alt_mov_i->m.used) {
-            set_alu(&ci->m, ci->alt_mov_i->m.op, ci->alt_mov_i->m.unpack[0], ci->alt_mov_i->m.unpack[1],
-                            ci->alt_mov_i->m.output, ci->alt_mov_i->m.input_a, ci->alt_mov_i->m.input_b,
-                            ci->alt_mov_i->m.cond_setf, ci->alt_mov_i->m.mov_excuse);
-            ci->a.used = false;
-            ci->alt_mov_i = NULL;
-            break;
-         } else if(suitable && mul && ci->m.used && !ci->a.used && ci->alt_mov_i && ci->alt_mov_i->a.used) {
-            set_alu(&ci->a, ci->alt_mov_i->a.op, ci->alt_mov_i->a.unpack[0], ci->alt_mov_i->a.unpack[1],
-                            ci->alt_mov_i->a.output, ci->alt_mov_i->a.input_a, ci->alt_mov_i->a.input_b,
-                            ci->alt_mov_i->a.cond_setf, ci->alt_mov_i->a.mov_excuse);
-            ci->m.used = false;
-            ci->alt_mov_i = NULL;
-            break;
-         }
-      }
+      if (can_place_alu(ci, pipe, rot, conflicts, read))
+         return time;
 
       time++;
    }
+}
 
-   /* Fill in instruction */
-   assert( add || mul );
-   if (add) set_alu(&ci->a, op, ul, ur, output, input_a, input_b, cond_setf, mov_excuse);
-   else set_alu(&ci->m, op, ul, ur, output, input_a, input_b, cond_setf, mov_excuse);
+static void place_alu(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, AluPipe pipe,
+                      v3d_qpu_opcode_t op, SchedNodeUnpack ul, SchedNodeUnpack ur,
+                      backend_reg output, backend_reg input_a, backend_reg input_b,
+                      uint64_t unif, uint32_t cond_setf, MOV_EXCUSE mov_excuse)
+{
+   INSTR_T *ci = &sched->instructions[time];
 
    if (unif != UNIF_NONE) {
       assert(ci->unif == UNIF_NONE);
       ci->unif = unif;
    }
+
+   /* Fill in instruction */
+   assert(!ci->op[pipe].used);
+   ci->op[pipe].used       = true;
+   ci->op[pipe].op         = op;
+   ci->op[pipe].unpack[0]  = ul;
+   ci->op[pipe].unpack[1]  = ur;
+   ci->op[pipe].output     = output;
+   ci->op[pipe].input_a    = input_a;
+   ci->op[pipe].input_b    = input_b;
+   ci->op[pipe].cond_setf  = cond_setf;
+   ci->op[pipe].mov_excuse = mov_excuse;
+
+   QBEConflict conflicts = get_conflicts(output, cond_setf, pipe, op, unif);
    assert(conflicts_ok(ci->conflicts, conflicts));
    ci->conflicts |= conflicts;
+
 #if V3D_VER_AT_LEAST(4,1,34,0) && !V3D_VER_AT_LEAST(4,2,13,0)
    add_unif_read_conflicts(sched, time, conflicts);
 #endif
-
-   return time;
 }
 
-static uint32_t fit_multi(GLSL_SCHEDULER_STATE_T *sched, uint32_t time,
-                          BackflowFlavour op_a, BackflowFlavour op_m,
-                          SchedNodeUnpack ul, SchedNodeUnpack ur,
-                          backend_reg output, backend_reg input_a, backend_reg input_b, uint64_t unif, uint32_t cond_setf, MOV_EXCUSE mov_excuse)
+static bool pipe_valid_for_op(AluPipe p, v3d_qpu_opcode_t op) {
+   bool mul_only = (op == V3D_QPU_OP_FMUL || op == V3D_QPU_OP_VFMUL || op == V3D_QPU_OP_SMUL24 || op == V3D_QPU_OP_UMUL24 || op == V3D_QPU_OP_MULTOP);
+   bool both     = (op == V3D_QPU_OP_ADD  || op == V3D_QPU_OP_SUB   || op == V3D_QPU_OP_FMOV || op == V3D_QPU_OP_MOV);
+
+   return p == PIPE_MUL ? (mul_only || both) : (!mul_only);
+}
+
+static uint32_t fit_alu(GLSL_SCHEDULER_STATE_T *sched, uint32_t time,
+                        v3d_qpu_opcode_t op, SchedNodeUnpack ul, SchedNodeUnpack ur,
+                        backend_reg output, backend_reg input_a, backend_reg input_b,
+                        uint64_t unif, uint32_t cond_setf, MOV_EXCUSE mov_excuse)
 {
-   bool add = false, mul = false;
-   bool add_rep = (op_m == BACKFLOW_MOV || op_m == BACKFLOW_FMOV);
+   uint32_t add_time = ~0u;
+   uint32_t mul_time = ~0u;
+   if (pipe_valid_for_op(PIPE_ADD, op))
+      add_time = time_alu(sched, time, PIPE_ADD, false, op, output, input_a, input_b, unif, cond_setf);
+   if (pipe_valid_for_op(PIPE_MUL, op))
+      mul_time = time_alu(sched, time, PIPE_MUL, false, op, output, input_a, input_b, unif, cond_setf);
 
-   /* Determine conflicts for each lane */
-   QBEConflict conflicts_a = get_conflicts(output, cond_setf, ALU_A, op_a, unif);
-   QBEConflict conflicts_m = get_conflicts(output, cond_setf, ALU_M, op_m, unif);
-
-   /* See which regfiles we're reading from */
-   backend_reg read[2] = { REG_UNDECIDED, REG_UNDECIDED };
-   if (IS_RF(input_a)) add_read(read, input_a);
-   if (IS_RF(input_b)) add_read(read, input_b);
-
-   /* Advance current instruction until we find one which doesn't conflict */
-   INSTR_T *ci;
-   while (true) {
-      ensure_instructions(sched, time);
-
-      ci = &sched->instructions[time];
-      if(can_place_alu(ci, ALU_M, conflicts_m, read)) mul = true;
-      if(can_place_alu(ci, ALU_A, conflicts_a, read)) add = true;
-
-      if( add || mul) break;
-
-      time++;
-   }
-
-   if (unif != UNIF_NONE) {
-      assert(ci->unif == UNIF_NONE);
-      ci->unif = unif;
-   }
-
-   /* Fill in instruction */
-   assert(add || mul);
-   if (mul) {
-      set_alu(&ci->m, op_m, ul, ur, output, input_a, input_b, cond_setf, mov_excuse);
-
-      assert(conflicts_ok(ci->conflicts, conflicts_m));
-      ci->conflicts |= conflicts_m;
-      ci->alt_mov_i = NULL;
-
-      if(add) {
-         INSTR_T *alti = glsl_arena_calloc(sched->alti_arena, 1, sizeof(INSTR_T));
-
-         ci->alt_mov_i = alti;
-         set_alu(&alti->a, op_a, ul, add_rep ? ul : ur, output, input_a, add_rep ? input_a : input_b, cond_setf, mov_excuse);
-
-         assert(alti->conflicts == CONFLICT_NONE);
-         alti->conflicts = conflicts_a;
-      }
+   if (mul_time <= add_time) {
+      place_alu(sched, mul_time, PIPE_MUL, op, ul, ur, output, input_a, input_b, unif, cond_setf, mov_excuse);
+      return mul_time;
    } else {
-      set_alu(&ci->a, op_a, ul, add_rep ? ul : ur, output, input_a, add_rep ? input_a : input_b, cond_setf, mov_excuse);
-
-      assert(conflicts_ok(ci->conflicts, conflicts_a));
-      ci->conflicts |= conflicts_a;
-      ci->alt_mov_i = NULL;
+      place_alu(sched, add_time, PIPE_ADD, op, ul, ur, output, input_a, input_b, unif, cond_setf, mov_excuse);
+      return add_time;
    }
-#if V3D_VER_AT_LEAST(4,1,35,0) && !V3D_VER_AT_LEAST(4,2,13,0)
-   add_unif_read_conflicts(sched, time, conflicts_m | conflicts_a);
-#endif
-
-   return time;
 }
 
 static uint32_t fit_mov(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, backend_reg output, backend_reg input, uint64_t unif, uint32_t cond_setf, MOV_EXCUSE mov_excuse)
 {
-   if (IS_FLAG(input))
-      return fit_alu(sched, time, ALU_A, BACKFLOW_FLN, UNPACK_NONE, UNPACK_NONE, output, input, REG_UNDECIDED, unif, cond_setf, mov_excuse);
-   else {
-      assert(IS_RRF(input));
-      return fit_multi(sched, time, BACKFLOW_OR, BACKFLOW_MOV, UNPACK_NONE, UNPACK_NONE, output, input, REG_UNDECIDED, unif, cond_setf, mov_excuse);
-   }
+   assert(IS_FLAG(input) || IS_RRF(input));
+   v3d_qpu_opcode_t op = (IS_FLAG(input) ? V3D_QPU_OP_VFLNA : V3D_QPU_OP_MOV);
+   return fit_alu(sched, time, op, UNPACK_NONE, UNPACK_NONE, output, input, REG_UNDECIDED, unif, cond_setf, mov_excuse);
 }
 
 /* No op may write rf* or read rf[0,2] on or after thrend */
 static bool op_valid_for_thrend(const GLSL_OP_T *op) {
    if (!op->used) return true;
 
+#if V3D_HAS_GFXH1678_FIX
+   if (IS_RF(op->output) && v3d_qpu_res_type_from_opcode(op->op) != V3D_QPU_RES_TYPE_DIRECT_RF_WRITE) return false;
+#else
    if (IS_RF(op->output)) return false;
+#endif
    if (op->input_a == REG_RF0 || op->input_a == REG_RF1 || op->input_a == REG_RF2) return false;
    if (op->input_b == REG_RF0 || op->input_b == REG_RF1 || op->input_b == REG_RF2) return false;
    return true;
 }
 
 static bool instr_valid_for_thrend(const INSTR_T *i) {
-   QBEConflict conflicts = V3D_VER_AT_LEAST(4,0,2,0) ? CONFLICT_NONE : (CONFLICT_MSF | CONFLICT_VPM);
-   return op_valid_for_thrend(&i->a)  && op_valid_for_thrend(&i->m)    &&
+   QBEConflict conflicts = V3D_VER_AT_LEAST(4,1,34,0) ? CONFLICT_NONE : (CONFLICT_MSF | CONFLICT_VPM);
+   return op_valid_for_thrend(&i->op[PIPE_ADD]) && op_valid_for_thrend(&i->op[PIPE_MUL]) &&
           !(i->conflicts & conflicts) && !(i->sigbits & V3D_QPU_SIG_LDVARY)
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
           && !IS_RF(i->sig_waddr)
 #endif
           ;
@@ -884,10 +766,14 @@ static bool can_add_thrsw(const GLSL_SCHEDULER_STATE_T *sched, uint32_t time, bo
    }
 
    if (thrend) {
+#if !V3D_HAS_GFXH1678_FIX
+      if (time > 3 && i[-1].op[PIPE_ADD].used && v3d_qpu_op_is_sfu(i[-1].op[PIPE_ADD].op)) return false;
+#endif
+
       for (int j=0; j<3; j++)
          if (!instr_valid_for_thrend(&i[j])) return false;
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 #  if !V3D_VER_AT_LEAST(3,3,0,0)
       if (i[0].conflicts & CONFLICT_UNIF) return false;
 #  endif
@@ -900,17 +786,17 @@ static bool can_add_thrsw(const GLSL_SCHEDULER_STATE_T *sched, uint32_t time, bo
        * config on that instruction. (This is very likely to be the case because
        * z-writes have to come before other writes anyway). If this weren't
        * the case then we'd have to determine the config here more cleverly */
-      if ( (i[2].a.used && i[2].a.output == REG_MAGIC_TLBU) ||
-           (i[2].m.used && i[2].m.output == REG_MAGIC_TLBU) )
-      {
-         uint8_t cfg = (i[2].unif >> 32) & 0xFF;
-         if ((cfg & 0xF0) == 0x80) return false;
+      for (int pipe = 0; pipe < 2; pipe++) {
+         if (i[2].op[pipe].used && i[2].op[pipe].output == REG_MAGIC_TLBU) {
+            uint8_t cfg = (i[2].unif >> 32) & 0xFF;
+            if ((cfg & 0xF0) == 0x80) return false;
+         }
       }
 
       // GFXH-1625
-      if (i[2].a.used && ((i[2].a.op == BACKFLOW_TMUWT)
-#if V3D_VER_AT_LEAST(4,0,2,0)
-            || (i[2].a.op == BACKFLOW_VPMWT)
+      if (i[2].op[PIPE_ADD].used && ((i[2].op[PIPE_ADD].op == V3D_QPU_OP_TMUWT)
+#if V3D_VER_AT_LEAST(4,1,34,0)
+            || (i[2].op[PIPE_ADD].op == V3D_QPU_OP_VPMWT)
 #endif
             ))
          return false;
@@ -964,141 +850,83 @@ static uint32_t fit_varying(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, backen
    assert((varying_type == VARYING_FLAT                             ) ||
           (varying_type == VARYING_NOPERSP && w_reg == REG_UNDECIDED) ||
           (varying_type == VARYING_DEFAULT && w_reg != REG_UNDECIDED)    );
+   assert(varying_type != VARYING_FLAT || temp_reg == REG_UNDECIDED);
 
    GLSL_OP_T v_ops[3][2] = {
       /* Default */
-      { { true, BACKFLOW_MUL, { UNPACK_NONE, UNPACK_NONE }, temp_reg, REG_R3,    w_reg, SETF_NONE},
-        { true, BACKFLOW_ADD, { UNPACK_NONE, UNPACK_NONE }, output,   temp_reg, REG_R5, SETF_NONE} },
+      { { true, V3D_QPU_OP_FMUL, { UNPACK_NONE, UNPACK_NONE }, temp_reg, REG_R3,   w_reg,  SETF_NONE},
+        { true, V3D_QPU_OP_FADD, { UNPACK_NONE, UNPACK_NONE }, output,   temp_reg, REG_R5, SETF_NONE} },
       /* Line Coord */
-      { { true, BACKFLOW_MOV, { UNPACK_NONE, UNPACK_NONE }, temp_reg, REG_R3,   0,      SETF_NONE},
-        { true, BACKFLOW_ADD, { UNPACK_NONE, UNPACK_NONE }, output,   temp_reg, REG_R5, SETF_NONE} },
+      { { true, V3D_QPU_OP_MOV,  { UNPACK_NONE, UNPACK_NONE }, temp_reg, REG_R3,   0,      SETF_NONE},
+        { true, V3D_QPU_OP_FADD, { UNPACK_NONE, UNPACK_NONE }, output,   temp_reg, REG_R5, SETF_NONE} },
       /* Flat */
       { { false, 0,                                                                              },
-        { true,  BACKFLOW_OR, { UNPACK_NONE, UNPACK_NONE }, output, REG_R5, REG_R5, SETF_NONE} } };
+        { true,  V3D_QPU_OP_OR, { UNPACK_NONE, UNPACK_NONE }, output, REG_R5, REG_R5, SETF_NONE} } };
    GLSL_OP_T *v = v_ops[varying_type-1];
 
-   QBEConflict sig_conflict = sig_conflicts(V3D_QPU_SIG_LDVARY);
-   QBEConflict conflicts[2] = { CONFLICT_NONE, CONFLICT_NONE };
-   backend_reg read[2][2] = { { REG_UNDECIDED, REG_UNDECIDED }, { REG_UNDECIDED, REG_UNDECIDED} };
-   for (int i=0; i<2; i++) {
-      if (v[i].used) {
-         conflicts[i] = get_output_conflicts(v[i].output);
-         if (IS_RF(v[i].input_a)) add_read(read[i], v[i].input_a);
-         if (IS_RF(v[i].input_b)) add_read(read[i], v[i].input_b);
-      }
-   }
-   if (unif != UNIF_NONE)
-      conflicts[1] |= CONFLICT_UNIF;
-
-   INSTR_T *ci;
-   while (true) {
-      ensure_instructions(sched, time + 2);
-
-      ci = &sched->instructions[time];
-
-      bool suitable = can_add_sigbits(ci[0].sigbits, V3D_QPU_SIG_LDVARY) &&
-                      conflicts_ok(ci[0].conflicts, sig_conflict);
-      if (v[0].used) suitable &= can_place_alu(&ci[1], ALU_M, conflicts[0], read[0]);
-      if (v[1].used) suitable &= can_place_alu(&ci[2], ALU_A, conflicts[1], read[1]);
-      if (suitable) break;
-
-      time++;
-   }
-
-   ci[0].sigbits |= V3D_QPU_SIG_LDVARY;
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   ci[0].sig_waddr = REG_R3;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   time = fit_sig(sched, time, V3D_QPU_SIG_LDVARY, UNIF_NONE, REG_R3);
+#else
+   time = fit_sig(sched, time, V3D_QPU_SIG_LDVARY, UNIF_NONE);
 #endif
-   ci[0].varying = varying_id;
-   ci[0].conflicts |= sig_conflict;
 
-   if (unif != UNIF_NONE) {
-      assert(ci[2].unif == UNIF_NONE);
-      ci[2].unif = unif;
-   }
+   sched->instructions[time].varying = varying_id;
 
+   uint32_t t[2] = { 0, 0 };
    for (int i=0; i<2; i++) {
+      AluPipe  p[2] = { PIPE_MUL,  PIPE_ADD };
+      uint64_t u[2] = { UNIF_NONE, unif };
       if (v[i].used) {
-         GLSL_OP_T *dest = (i == 0) ? &ci[i+1].m : &ci[i+1].a;
-         set_alu(dest, v[i].op, v[i].unpack[0], v[i].unpack[1], v[i].output, v[i].input_a, v[i].input_b,
-                       v[i].cond_setf, v[i].mov_excuse);
+         t[i] = time_alu(sched, gfx_umax(time+i+1, t[0]+1), p[i], false, v[i].op, v[i].output,
+                                                                  v[i].input_a, v[i].input_b, u[i], v[i].cond_setf);
 
-         ci[i+1].conflicts |= conflicts[i];
+         place_alu(sched, t[i], p[i], v[i].op, v[i].unpack[0], v[i].unpack[1], v[i].output,
+                                      v[i].input_a, v[i].input_b, u[i], v[i].cond_setf, v[i].mov_excuse);
       }
    }
 
    /* Update our temporary registers. Main code updates inputs/outputs */
    assert(sched->reg[REG_R3].user == NULL);
    assert(sched->reg[REG_R5].user == NULL);
-   assert(sched->reg[temp_reg].user == NULL);
    write_register(sched, NULL, REG_R3, time + 1);
    write_register(sched, NULL, REG_R5, time + 2);
-   write_register(sched, NULL, temp_reg, time + 2);
-   read_register(sched, REG_R3, time + 1);
-   read_register(sched, REG_R5, time + 2);
-   read_register(sched, temp_reg, time + 2);
+   if (varying_type != VARYING_FLAT) {
+      assert(sched->reg[temp_reg].user == NULL);
+      write_register(sched, NULL, temp_reg, t[0] + 1);
+      read_register(sched, REG_R3,   t[0]);
+      read_register(sched, temp_reg, t[1]);
+   }
+   read_register(sched, REG_R5, t[1]);
 
-   return time + 2;
+   return t[1];
 }
 
 static uint32_t fit_imul32(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, backend_reg output,
                            backend_reg left, backend_reg right, uint64_t unif)
 {
-   GLSL_OP_T v[2] = {
-        { true, BACKFLOW_MULTOP, { UNPACK_NONE, UNPACK_NONE }, REG_MAGIC_NOP, left, right, SETF_NONE},
-        { true, BACKFLOW_UMUL,   { UNPACK_NONE, UNPACK_NONE }, output,        left, right, SETF_NONE} };
+   uint32_t multop_time = time_alu(sched, time, PIPE_MUL, false, V3D_QPU_OP_MULTOP, REG_MAGIC_NOP,
+                                                                 left, right, UNIF_NONE, SETF_NONE);
+   place_alu(sched, multop_time, PIPE_MUL, V3D_QPU_OP_MULTOP, UNPACK_NONE, UNPACK_NONE, REG_MAGIC_NOP,
+                                           left, right, UNIF_NONE, SETF_NONE, MOV_EXCUSE_NONE);
 
-   //conflicts = get_conflicts(output, cond_setf, alu_type, op, op1, op2, unif);
-   QBEConflict conflicts[2] = { CONFLICT_NONE, CONFLICT_NONE };
-   backend_reg read[2][2] = { { REG_UNDECIDED, REG_UNDECIDED }, { REG_UNDECIDED, REG_UNDECIDED} };
-   for (int i=0; i<2; i++) {
-      if (v[i].used) {
-         conflicts[i] = get_output_conflicts(v[i].output);
-         if (IS_RF(v[i].input_a)) add_read(read[i], v[i].input_a);
-         if (IS_RF(v[i].input_b)) add_read(read[i], v[i].input_b);
-      }
-   }
-   if (unif != UNIF_NONE)
-      conflicts[1] |= CONFLICT_UNIF;
-
-   INSTR_T *ci;
-   while (true) {
-      ensure_instructions(sched, time + 1);
-
-      ci = &sched->instructions[time];
-      bool suitable = true;
-      for (int i=0; i<2; i++)
-         suitable &= can_place_alu(&ci[i], ALU_M, conflicts[i], read[i]);
-
-      if (suitable) break;
-
-      time++;
-   }
-
-   for (int i=0; i<2; i++) {
-      if (v[i].used) {
-         set_alu(&ci[i].m, v[i].op, v[i].unpack[0], v[i].unpack[1], v[i].output, v[i].input_a, v[i].input_b,
-                           v[i].cond_setf, v[i].mov_excuse);
-
-         ci[i].conflicts |= conflicts[i];
-      }
-   }
-
-   if (unif != UNIF_NONE) {
-      assert(ci[1].unif == UNIF_NONE);
-      ci[1].unif = unif;
-   }
+   time = time_alu(sched, multop_time+1, PIPE_MUL, false, V3D_QPU_OP_UMUL24, output, left, right, unif, SETF_NONE);
+   place_alu(sched, time, PIPE_MUL, V3D_QPU_OP_UMUL24, UNPACK_NONE, UNPACK_NONE, output, left, right, unif, SETF_NONE, MOV_EXCUSE_NONE);
 
    /* Update our temporary registers. Main code updates inputs/outputs */
-   read_register(sched, left,  time);
-   read_register(sched, right, time);
+   read_register(sched, REG_RTOP, time);
+   return time;
+}
 
-   read_register(sched, left,     time + 1);
-   read_register(sched, right,    time + 1);
-   read_register(sched, REG_RTOP, time + 1);
-   /* The final write of the output is taken care of below */
+static uint32_t fit_rotate(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, backend_reg output,
+                           backend_reg input_a, uint32_t amount)
+{
+   time = time_alu(sched, time, PIPE_MUL, true, V3D_QPU_OP_MOV, output, input_a, REG_UNDECIDED, UNIF_NONE, SETF_NONE);
 
-   return time + 1;
+   sched->instructions[time].sigbits |= V3D_QPU_SIG_ROTATE;
+   sched->instructions[time].rotate_or_small_imm = amount;
+   place_alu(sched, time, PIPE_MUL, V3D_QPU_OP_MOV, UNPACK_NONE, UNPACK_NONE, output, input_a, REG_UNDECIDED,
+                                    UNIF_NONE, SETF_NONE, MOV_EXCUSE_NONE);
+   return time;
 }
 
 /* May or may not choose a register in r0-r4.
@@ -1204,7 +1032,7 @@ static uint64_t node_get_unif(const Backflow *node)
 static backend_reg find_output_reg_sig(v3d_qpu_sigbits_t sigbit) {
    switch (sigbit) {
       case V3D_QPU_SIG_LDUNIF: return REG_R5;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       case V3D_QPU_SIG_LDTMU:  return REG_R4;
       case V3D_QPU_SIG_LDTLB:  return REG_R3;
       case V3D_QPU_SIG_LDTLBU: return REG_R3;
@@ -1242,7 +1070,7 @@ static backend_reg find_output_reg_magic(backend_reg waddr) {
       case REG_MAGIC_TMUA:
       case REG_MAGIC_TMUAU:
       case REG_MAGIC_TMUD:
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case REG_MAGIC_TMUC:
       case REG_MAGIC_TMUT:
       case REG_MAGIC_TMUR:
@@ -1333,22 +1161,6 @@ static uint32_t specialise_cond(uint32_t cond_setf, uint32_t reg) {
    return cond_setf; /* Other conditions don't need specialising */
 }
 
-static bool can_use_both_lanes(SchedNodeType type, BackflowFlavour op) {
-   return (type == ALU_A && (op == BACKFLOW_IADD   || op == BACKFLOW_ISUB))   ||
-          (type == ALU_M && (op == BACKFLOW_IADD_M || op == BACKFLOW_ISUB_M)) ||
-          (type == ALU_M && op == BACKFLOW_FMOV);
-}
-
-static const BackflowFlavour valid[3][2] = { { BACKFLOW_MIN,  BACKFLOW_FMOV   },
-                                             { BACKFLOW_IADD, BACKFLOW_IADD_M },
-                                             { BACKFLOW_ISUB, BACKFLOW_ISUB_M } };
-
-static const BackflowFlavour *multi_get_ops(SchedNodeType t, BackflowFlavour op) {
-   for (int i=0; i<3; i++)
-      if (valid[i][ (t == ALU_M) ] == op) return valid[i];
-   unreachable();
-}
-
 static BackendNodeState *get_state(Map *map, const Backflow *node) {
    if (node == NULL) return NULL;
    return glsl_map_get(map, node);
@@ -1356,7 +1168,6 @@ static BackendNodeState *get_state(Map *map, const Backflow *node) {
 
 static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, BackendNodeState *node_state)
 {
-   backend_reg temp_reg = REG_UNDECIDED;
    backend_reg input_a  = REG_UNDECIDED;
    backend_reg input_b  = REG_UNDECIDED;
    backend_reg flag_reg = REG_UNDECIDED;
@@ -1390,18 +1201,25 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
    /* If we need flags as inputs(/outputs) sort them out first */
    uint32_t cond_setf = node->cond_setf;
    if (flag_dep != NULL) {
-      bool writes_flag_a = cs_is_updt(node->cond_setf);
-      flagify(sched, flag_dep, writes_flag_a);
+      bool requires_a = cs_is_updt(node->cond_setf)
+#if V3D_VER_AT_LEAST(4,1,34,0)
+               || (node->type == ALU && node->u.alu.op == V3D_QPU_OP_FLAFIRST)
+#endif
+#if V3D_HAS_FLNAFIRST
+               || (node->type == ALU && node->u.alu.op == V3D_QPU_OP_FLNAFIRST)
+#endif
+               ;
+      flagify(sched, flag_dep, requires_a);
       flag_reg = dereference(sched, flag_dep);
 
-      if (flag_dep->remaining_dependents != 0 && writes_flag_a) {
+      if (flag_dep->remaining_dependents != 0 && cs_is_updt(node->cond_setf)) {
          move_result(sched, flag_reg, MOV_EXCUSE_COPY_ON_WRITE);
       }
       /* XXX We only do a copy on write above, not a move out of the way */
 
       /* If we need to specialise based on which flag, do that now */
       cond_setf = specialise_cond(node->cond_setf, flag_reg);
-      assert(!writes_flag_a || flag_reg == REG_FLAG_A);
+      assert(!requires_a || flag_reg == REG_FLAG_A);
    }
 
    /* Now sort out the dependencies of our outputs, starting with flags */
@@ -1420,9 +1238,36 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
       if (cur_reg == REG_R5) move_result(sched, cur_reg, MOV_EXCUSE_R5_WRITE);
       if (IS_RF(cur_reg) && ((1ull << (cur_reg - REG_RF0)) & sched->register_blackout) != 0)
          move_result(sched, cur_reg, MOV_EXCUSE_COPY_ON_WRITE);
+   }
 
-      node_state->reg = dereference(sched, output_dep);
+   if (node->type == SPECIAL_ROTATE) {
+      if (node->u.rotate.amount == 0 && input_dep[1]->reg != REG_R5) {
+         move_result(sched, REG_R5, MOV_EXCUSE_OUT_OF_THE_WAY);
+         move_to_register(sched, input_dep[1]->reg, REG_R5, MOV_EXCUSE_R_RF_INPUT);
+      }
 
+      if (!node->u.rotate.quad && !IS_R(input_dep[0]->reg)) {
+         backend_reg r = choose_acc(sched, true, 0);
+         move_to_register(sched, input_dep[0]->reg, r, MOV_EXCUSE_R_RF_INPUT);
+      }
+      if (node->u.rotate.quad && !IS_RF(input_dep[0]->reg)) {
+         move_result(sched, input_dep[0]->reg, MOV_EXCUSE_R_RF_INPUT);
+      }
+   }
+
+   if (node->type == ALU && v3d_qpu_op_requires_read_a(node->u.alu.op) &&
+       !IS_RF(input_dep[0]->reg) )
+   {
+      move_result(sched, input_dep[0]->reg, MOV_EXCUSE_R_RF_INPUT);
+   }
+
+   /* Decrement reference counts. Don't retire them, lest we overwrite the
+      register with a move later.  */
+   if (output_dep != NULL) node_state->reg = dereference(sched, output_dep);
+   if (input_dep[0] != NULL) input_a = dereference(sched, input_dep[0]);
+   if (input_dep[1] != NULL) input_b = dereference(sched, input_dep[1]);
+
+   if (output_dep != NULL) {
       if (output_dep->remaining_dependents != 0)
          move_result(sched, node_state->reg, MOV_EXCUSE_COPY_ON_WRITE);
 
@@ -1438,14 +1283,7 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
       waddr = REG_MAGIC_NOP;
    }
 
-   /*
-   Decrement reference count for these inputs. Don't retire them, lest we
-   overwrite the register with a move later.
-   */
-   if (input_dep[0] != NULL) input_a = dereference(sched, input_dep[0]);
-   if (input_dep[1] != NULL) input_b = dereference(sched, input_dep[1]);
-
-   if (node->type == ALU_A && (node->u.alu.op == BACKFLOW_FL || node->u.alu.op == BACKFLOW_FLN)) {
+   if (node->type == ALU && (node->u.alu.op == V3D_QPU_OP_VFLA || node->u.alu.op == V3D_QPU_OP_VFLNA)) {
       assert(input_a == REG_UNDECIDED && IS_FLAG(flag_reg));
       input_a = flag_reg;
       flag_reg = REG_UNDECIDED;
@@ -1460,11 +1298,14 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
    So we're sloppy about making sure the same thing doesn't get allocated for two different
    purposes, but it won't actually break anything.
    */
+   backend_reg temp_reg = REG_UNDECIDED;
    if (node->type == SPECIAL_VARYING) {
       move_result(sched, REG_R5, MOV_EXCUSE_OUT_OF_THE_WAY);
       move_result(sched, REG_R3, MOV_EXCUSE_OUT_OF_THE_WAY);
-      temp_reg = choose_acc(sched, true, 0);   /* Insist on acc. Not sure why. Time doesn't matter when insisting */
-      move_result(sched, temp_reg, MOV_EXCUSE_OUT_OF_THE_WAY);
+      if (node->u.varying.type != VARYING_FLAT) {
+         temp_reg = choose_acc(sched, true, 0);   /* Insist on acc. Not sure why. Time doesn't matter when insisting */
+         move_result(sched, temp_reg, MOV_EXCUSE_OUT_OF_THE_WAY);
+      }
    }
 
    /* Accumulators aren't preserved over a thrsw */
@@ -1476,13 +1317,21 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
 
    if (node->type == SPECIAL_VARYING) {
       timestamp = gfx_umax(timestamp, sched->reg[REG_R3].available);
-      timestamp = gfx_smax(timestamp, sched->reg[temp_reg].available-1);
       timestamp = gfx_smax(timestamp, sched->reg[REG_R5].available-1);
+      if (node->u.varying.type != VARYING_FLAT)
+         timestamp = gfx_smax(timestamp, sched->reg[temp_reg].available-1);
    }
    if (node->type == SPECIAL_THRSW) {
       /* offset==1 because timestamp wants to be *after* the mov, not on the same line. */
       for (int i=0; i<6; i++) timestamp = gfx_umax(timestamp, sched->reg[REG_R(i)].available+1);
       timestamp = gfx_umax(timestamp, sched->reg[REG_RTOP].available + 1);
+   }
+
+   if (node->type == SPECIAL_ROTATE) {
+      if (node->u.rotate.amount == 0)
+         timestamp = gfx_umax(timestamp, sched->reg[REG_R5].written + 1);
+      if (!node->u.rotate.quad)
+         timestamp = gfx_umax(timestamp, sched->reg[input_a].written + 1);
    }
 
    if (node->type == SPECIAL_IMUL32)
@@ -1492,8 +1341,7 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
    if (flag_reg  != REG_UNDECIDED) timestamp = gfx_umax(timestamp, sched->reg[flag_reg ].written);
    if (input_a   != REG_UNDECIDED) timestamp = gfx_umax(timestamp, sched->reg[input_a  ].written);
    if (input_b   != REG_UNDECIDED) timestamp = gfx_umax(timestamp, sched->reg[input_b  ].written);
-   /* Wait until any register we'll write to has been read for the last time */
-   if (node_state->reg != REG_MAGIC_NOP) timestamp = gfx_umax(timestamp, sched->reg[node_state->reg].available);
+   /* If we'll update flags then wait for the last read of the previous flag value */
    if (cs_is_push(cond_setf)) timestamp = gfx_umax(timestamp, sched->reg[REG_FLAG_B].available);
 
    /* Wait for our iodependencies */
@@ -1534,7 +1382,7 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
    {
    case SIG:
       timestamp = fit_sig(sched, timestamp, sigbits, unif
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
                            , waddr
 #endif
                           );
@@ -1553,27 +1401,24 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
       timestamp = fit_imul32(sched, timestamp, waddr, input_a, input_b, unif);
       delay = get_output_delay(waddr);
       break;
-   case ALU_A:
-   case ALU_M:
-      if (node->type == ALU_M && node->u.alu.op == BACKFLOW_MOV) {
+   case ALU:
+      if (node->u.alu.op == V3D_QPU_OP_MOV) {
          timestamp = fit_mov(sched, timestamp, waddr, input_a, unif, cond_setf, MOV_EXCUSE_IR);
-      } else if (can_use_both_lanes(node->type, node->u.alu.op)) {
-         uint32_t mov_excuse = (node->type == ALU_M && node->u.alu.op == BACKFLOW_FMOV) ? MOV_EXCUSE_IR : MOV_EXCUSE_NONE;
-         const BackflowFlavour *ops = multi_get_ops(node->type, node->u.alu.op);
-         timestamp = fit_multi(sched, timestamp, ops[0], ops[1],
-                               node->u.alu.unpack[0], node->u.alu.unpack[1],
-                               waddr, input_a, input_b, unif, cond_setf, mov_excuse);
       } else {
-         timestamp = fit_alu(sched, timestamp, node->type,
-                             node->u.alu.op, node->u.alu.unpack[0], node->u.alu.unpack[1],
-                             waddr,
-                             input_a, input_b, unif, cond_setf, MOV_EXCUSE_NONE);
+         uint32_t mov_excuse = node->u.alu.op == V3D_QPU_OP_FMOV ? MOV_EXCUSE_IR : MOV_EXCUSE_NONE;
+         timestamp = fit_alu(sched, timestamp, node->u.alu.op,
+                             node->u.alu.unpack[0], node->u.alu.unpack[1],
+                             waddr, input_a, input_b, unif, cond_setf, mov_excuse);
       }
-      delay = get_output_delay(waddr);
+      delay = (v3d_qpu_op_is_sfu(node->u.alu.op) ? 1 : 0) + get_output_delay(waddr);
       break;
    case SPECIAL_VOID:
       /* timestamp = timestamp; */
       delay = 0;
+      break;
+   case SPECIAL_ROTATE:
+      timestamp = fit_rotate(sched, timestamp, waddr, input_a, node->u.rotate.amount);
+      delay = get_output_delay(waddr);
       break;
    default:
       unreachable();
@@ -1626,34 +1471,32 @@ const char *mov_excuse_strings[] = {
    "   # copy on write         ",
    "   # can't write to r5     ",
    "   # flagify               ",
+   "   # r/rf input required   ",
 };
 
 static void print_shader_stats(const GLSL_SCHEDULER_STATE_T *sched, int n_instrs, int n_threads, ShaderFlavour flavour, bool bin_mode) {
-   int a_valid = 0, a_nop = 0, a_mov = 0, m_valid = 0, m_nop = 0, m_mov = 0;
+   int valid[2] = { 0, 0 }, nop[2] = { 0, 0 }, mov[2] = { 0, 0 };
    int unifs = 0;
    bool tmu = false;
    int n_mov_excuses[MOV_EXCUSE_COUNT] = { 0,  };
 
    for (int i=0; i<n_instrs; i++) {
-      if (sched->instructions[i].a.used) a_valid++;
-      else a_nop++;
-      if (sched->instructions[i].m.used) m_valid++;
-      else m_nop++;
+      for (int p = 0; p < 2; p++) {
+         if (sched->instructions[i].op[p].used) valid[p]++;
+         else nop[p]++;
 
-      if (sched->instructions[i].a.mov_excuse != MOV_EXCUSE_NONE) {
-         n_mov_excuses[sched->instructions[i].a.mov_excuse] ++;
-         a_mov++;
-      }
-      if (sched->instructions[i].m.mov_excuse != MOV_EXCUSE_NONE) {
-         n_mov_excuses[sched->instructions[i].m.mov_excuse] ++;
-         m_mov++;
+         if (sched->instructions[i].op[p].mov_excuse != MOV_EXCUSE_NONE) {
+            n_mov_excuses[sched->instructions[i].op[p].mov_excuse]++;
+            mov[p]++;
+         }
       }
 
       if (sched->instructions[i].unif != UNIF_NONE) unifs++;
       if (sched->instructions[i].sigbits & V3D_QPU_SIG_LDTMU) tmu = true;
    }
-   a_valid -= a_mov;
-   m_valid -= m_mov;
+
+   for (int p=0; p<2; p++) valid[p] -= mov[p];
+
    int reg_used = sched->regfile_max;
    for (int i=sched->regfile_max-1; i>=0; i--) {
       if (sched->reg[REG_RF(i)].available != 0) break;
@@ -1671,10 +1514,10 @@ static void print_shader_stats(const GLSL_SCHEDULER_STATE_T *sched, int n_instrs
    printf("   Uniform reads:      %d\n", unifs);
    printf("   Registers used:     %d\n", reg_used);
    printf("                         a    m\n");
-   printf("   Valid Instructions: %3d  %3d\n", a_valid, m_valid);
-   printf("   Movs:               %3d  %3d\n", a_mov, m_mov);
-   printf("   Nops:               %3d  %3d\n", a_nop, m_nop);
-   printf("   Utilisation (%%):    %3d  %3d\n", (int)((100.0f*a_valid)/n_instrs), (int)((100.0f*m_valid)/n_instrs));
+   printf("   Valid Instructions: %3d  %3d\n", valid[PIPE_ADD], valid[PIPE_MUL]);
+   printf("   Movs:               %3d  %3d\n", mov[PIPE_ADD], mov[PIPE_MUL]);
+   printf("   Nops:               %3d  %3d\n", nop[PIPE_ADD], nop[PIPE_MUL]);
+   printf("   Utilisation (%%):    %3d  %3d\n", (int)((100.0f*valid[PIPE_ADD])/n_instrs), (int)((100.0f*valid[PIPE_MUL])/n_instrs));
    printf("\n");
    printf("   Mov excuses:\n");
    for (int i=1; i<MOV_EXCUSE_COUNT; i++) {
@@ -1823,7 +1666,7 @@ static void prescheduled(GLSL_SCHEDULER_STATE_T *sched, Backflow *node, uint32_t
    }
 }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 static void break_alias(GLSL_SCHEDULER_STATE_T *sched) {
    if (sched->reg[REG_RF0].user != NULL && sched->reg[REG_RF1].user != NULL)
    {
@@ -1858,10 +1701,7 @@ GENERATED_SHADER_T *glsl_backend(BackflowChain  *iodeps,
    sched->instructions   = glsl_safemem_calloc(1000, sizeof(INSTR_T));
    sched->n_instructions = 1000;
 
-   sched->alti_arena = glsl_arena_create(64 * 1024);
-
    if(setjmp(sched->error_abort) != 0) {
-      glsl_arena_free(sched->alti_arena);
       glsl_safemem_free(stack);
       glsl_safemem_free(sched->instructions);
       glsl_safemem_free(sched);
@@ -1892,7 +1732,7 @@ GENERATED_SHADER_T *glsl_backend(BackflowChain  *iodeps,
       sched->regfile_usable += 1;
    }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    /* Break any potential aliasing between w and w_c immediately */
    break_alias(sched);
 #endif
@@ -1985,8 +1825,6 @@ GENERATED_SHADER_T *glsl_backend(BackflowChain  *iodeps,
 
    assert(!last || !outputs);
    assert(instr_count <= sched->n_instructions);
-
-   glsl_arena_free(sched->alti_arena);
 
 #ifndef NDEBUG
    /* Ensure that all registers are free at the end, otherwise we've leaked */

@@ -58,10 +58,8 @@ NEXUS_Error NEXUS_Platform_P_DropPrivilege(const NEXUS_PlatformSettings *pSettin
 NEXUS_Error NEXUS_Platform_P_InitWakeupDriver(void);
 void NEXUS_Platform_P_UninitWakeupDriver(void);
 #endif
-#if NEXUS_POWER_MANAGEMENT && NEXUS_CPU_ARM && !B_REFSW_SYSTEM_MODE_CLIENT
 NEXUS_Error NEXUS_Platform_P_InitThermalMonitor(void);
 void NEXUS_Platform_P_UninitThermalMonitor(void);
-#endif
 
 #if NEXUS_POWER_MANAGEMENT
 typedef struct NEXUS_Platform_P_SchedulersSet {

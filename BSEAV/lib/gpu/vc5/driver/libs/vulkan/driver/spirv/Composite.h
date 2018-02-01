@@ -29,43 +29,57 @@ public:
    // Fills in rows and columns and sets "in matrix" flag
    void CaptureMatrixDetail(const NodeTypeMatrix *mat);
 
-   bool StrideIsSpecified() const
-   {
-      return m_matrixStride != UNSPECIFIED;
-   }
-
    uint32_t ColumnStride() const
    {
       assert(m_inMatrix);
-
-      if (m_columnMajor)
-         return StrideIsSpecified() ? m_matrixStride : m_rows * sizeof(float);
-
-      return sizeof(float);
+      return m_columnMajor ? m_matrixStride : sizeof(float);
    }
 
    uint32_t RowStride() const
    {
-      if (!m_inMatrix || m_columnMajor)
+      if (!m_inMatrix)
          return sizeof(float);
 
-      return StrideIsSpecified() ? m_matrixStride : m_columns * sizeof(float);
+      return m_columnMajor ? sizeof(float) : m_matrixStride;
    }
 
    uint32_t GetNumColumns() const { return m_columns; }
-   uint32_t GetNumRows()   const  { return m_rows;    }
-
-   enum
-   {
-      UNSPECIFIED = ~0u
-   };
+   uint32_t GetNumRows()    const { return m_rows;    }
 
 private:
    bool     m_inMatrix     = false;
-   bool     m_columnMajor  = true;
-   uint32_t m_matrixStride = UNSPECIFIED;
-   uint32_t m_columns      = 0;
-   uint32_t m_rows         = 0;
+   // Since matrices must be properly decorated, these are valid whenever m_inMatrix
+   bool     m_columnMajor;
+   uint32_t m_matrixStride;
+   uint32_t m_columns;
+   uint32_t m_rows;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// TypeFind
+//
+// Applies an access chain to find the result type
+///////////////////////////////////////////////////////////////////////////////
+class TypeFind : public NodeTypeVisitorAssert
+{
+public:
+   static const NodeType *FindType(DflowBuilder &builder, const NodeType *type,
+                                   const spv::vector<const Node *> &indices);
+
+   void Visit(const NodeTypeVector       *node) override;
+   void Visit(const NodeTypeMatrix       *node) override;
+   void Visit(const NodeTypeArray        *node) override;
+   void Visit(const NodeTypeRuntimeArray *node) override;
+   void Visit(const NodeTypeStruct       *node) override;
+
+private:
+   TypeFind(DflowBuilder &builder, const NodeType *elem);
+
+   void AcceptElement(const Node *indexNode);
+
+   DflowBuilder    &m_builder;
+   const NodeType *m_elem;         // Current element
+   const Node     *m_index;        // Current index node
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -90,20 +104,19 @@ public:
 private:
    MemoryOffset(DflowBuilder &builder, const NodeType *elem);
 
+   void ApplyIndex(uint32_t stride);
    void VisitArray(const Node *array);
    void AcceptElement(const Node *index);
    Dflow Result() const;
 
 private:
-   DflowBuilder    &m_builder;          // The SPIRV module
+   DflowBuilder    &m_builder;
    LayoutInfo      m_layoutInfo;
-   const NodeType *m_elem;             // Current element
-   const Node     *m_indexNode;        // Current index node
-   bool            m_indexIsConstant;  // True if the index is a constant
-   uint32_t        m_constantIndex;    // If index is constant this is the value
+   const NodeType *m_elem;         // Current element
+   const Node     *m_index;        // Current index node
 
-   Dflow           m_dynOffset;        // Accumulated dynamic offset (result)
-   uint32_t        m_constOffset;      // Accumulated constant offset (result)
+   Dflow           m_dynOffset;    // Accumulated dynamic offset (result)
+   uint32_t        m_constOffset;  // Accumulated constant offset (result)
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -330,7 +343,7 @@ private:
 class IsSSBO : public NodeTypeVisitorEmpty
 {
 public:
-   static bool Test(const Module &m, const NodeType *type);
+   static bool Test(const Module &m, const NodeVariable *v);
 
    void Visit(const NodeTypeArray  *type) override;
    void Visit(const NodeTypeStruct *type) override;

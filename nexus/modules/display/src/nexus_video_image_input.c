@@ -1185,6 +1185,8 @@ NEXUS_VideoImageInput_P_Connect(NEXUS_VideoInput_P_Link *link)
 
     imageInput->pLink = link;
     imageInput->source = link->sourceVdc;
+    link->secureVideo = imageInput->settings.secureVideo;
+
     if ( imageInput->settings.lowDelayMode )
     {
         rc = BVDC_Source_InstallPictureCallback( imageInput->source , NEXUS_Display_P_ImageInputNext_isr, imageInput , 0);
@@ -1996,8 +1998,8 @@ static void NEXUS_VideoImageInput_P_ApplyDisplayInformation(NEXUS_VideoImageInpu
     BXDM_PictureProvider_MonitorRefreshRate refreshRate;
     unsigned dispRefreshRate;
 
-    rc = NEXUS_Display_P_GetWindows_priv(NEXUS_VideoImageInput_GetConnector(imageInput), &window, 1, &n);
-    if (!rc && n == 1) {
+    NEXUS_Display_P_GetWindows_priv(NEXUS_VideoImageInput_GetConnector(imageInput), &window, 1, &n);
+    if (n == 1) {
         display = window->display;
         BDBG_ASSERT(NULL != display);
         nrt = display->stgSettings.nonRealTime;

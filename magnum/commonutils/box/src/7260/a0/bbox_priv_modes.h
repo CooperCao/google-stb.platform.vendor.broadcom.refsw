@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -47,7 +47,7 @@
 /***************************************************************************
     Number of supported box modes for this chip
 */
-#define BBOX_MODES_SUPPORTED        6
+#define BBOX_MODES_SUPPORTED        7
 
 #endif /* BBOX_PRIV_MODES_H__ */
 /* end of file */

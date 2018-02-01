@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2011 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,34 +34,22 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: pmc_core.h $
- * $brcm_Revision: 2 $
- * $brcm_Date: 5/31/12 5:38p $
- *
- * Module Description:
- *
- * Revision History:
- *
  *****************************************************************************/
 #ifndef PMC_CORE_H_
 #define PMC_CORE_H_
 
 #include "drm_types.h"
-#include "drm_metadata.h"
-#include "bdbg.h"
-
 
 typedef enum pmc_type_e
 {
-    PMC_PANDORA     = 0,
-    PMC_NAPSTER     = 1,
-    PMC_NETFLIX     = 2,
-    PMC_VUDU        = 3,
+    PMC_RESERVED_0  = 0,
+    PMC_RESERVED_1  = 1,
+    PMC_RESERVED_2  = 2,
+    PMC_RESERVED_3  = 3,
     PMC_GENERIC     = 4,
-    PMC_BBC         = 5,
-    PMC_RHAPSODY    = 6,
-    PMC_AMAZON      = 7,
+    PMC_RESERVED_5  = 5,
+    PMC_RESERVED_6  = 6,
+    PMC_RESERVED_7  = 7,
     PMC_ADOBE       = 8,
     PMC_INVALID     = 9
 }pmc_type_e;
@@ -76,18 +64,61 @@ typedef struct pmc_entry_header_t
     uint8_t encrypted_hash[32];
 }pmc_entry_header_t;
 
-
-
-
+/******************************************************************************
+ ** FUNCTION
+ **   DRM_Pmc_CoreInit
+ **
+ ** DESCRIPTION:
+ **   Initializes the PMC core module with the pmc.bin file and if specified the
+ **   DRM bin file as well.  If the 'pmc_bin_filepath' is NULL, the pmc_core module
+ **   will look for /mnt/pmc.bin at runtime.
+ **
+ ** PARAMETERS:
+ **   pmc_bin_filepath[in] - Pointer to the pmc.bin file path in the root filesystem
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error.
+ **
+ ******************************************************************************/
 DrmRC DRM_Pmc_CoreInit(char * pmc_bin_file_path);
 
+/******************************************************************************
+ ** FUNCTION
+ **   DRM_Pmc_CoreUninit
+ **
+ ** DESCRIPTION:
+ **   Closes pmc_core module
+ **
+ ** PARAMETERS:
+ **   N/A
+ **
+ ** RETURNS:
+ **   N/A
+ **
+ ******************************************************************************/
 void DRM_Pmc_CoreUninit(void);
 
+/******************************************************************************
+ ** FUNCTION:
+ **   DRM_Pmc_CoreFetchData
+ **
+ ** DESCRIPTION:
+ **   Extract data from pmc credential
+ **
+ **   NOTE: Be sure to free pData in calling function after done with the data
+ **
+ ** PARAMETERS:
+ **   pmc_type[in] - Type of data to fetch
+ **   pData[out]   - Pointer to destination buffer to copy to
+ **   size[out]    - Pointer to uint32_t to return data size
+ **
+ ** RETURNS:
+ **   Success -- Drm_Success
+ **   Failure -- an error code
+ **
+ ******************************************************************************/
 DrmRC DRM_Pmc_CoreFetchData(  pmc_type_e pmc_type,
-                            uint8_t **pData,
-                            uint32_t *size);
-
-
-
+                              uint8_t **pData,
+                              uint32_t *size);
 
 #endif /*PMC_CORE_H_*/

@@ -516,6 +516,11 @@ typedef struct BXPT_InputBandConfig
     bool LsbFirst;              /* Controls whether each byte is received MSB or LSB first */
     bool ParallelInputSel;      /* Select parallel data input for this port instead of serial. Not available on all input bands. */
     unsigned int IbPktLength;   /* Transport packet length value used for this input band. */
+    struct
+    {
+        unsigned Length;        /* Number of bits/bytes between syncs after initial sync. */
+        bool Enable;            /* Internal sync generation is enabled when true. */
+    } SyncGen;
 }
 BXPT_InputBandConfig;
 
@@ -2725,6 +2730,12 @@ bool BXPT_IsMtsifDecryptionEnabled(
     unsigned channelNo
     );
 #endif
+
+BERR_Code BXPT_ArmSyncGeneration(
+    BXPT_Handle hXpt,
+    unsigned BandNum,
+    unsigned Offset
+    );
 
 #ifdef __cplusplus
 }

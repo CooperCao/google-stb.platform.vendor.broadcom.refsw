@@ -44,7 +44,8 @@ static int v3d_file_client_info(struct seq_file *m, void *data)
 	struct task_struct *task;
 	struct drm_gem_object *obj;
 	struct v3d_alloc_block *itr;
-	int id, num_objs = 0, total_obj_size = 0, cma_blocks = 0, ret;
+	int id, num_objs = 0, total_obj_size = 0, cma_blocks = 0, ret, i;
+	bool obj_size_mb = false;
 
 	ret = mutex_lock_interruptible(&dev->struct_mutex);
 	if (ret)
@@ -57,32 +58,69 @@ static int v3d_file_client_info(struct seq_file *m, void *data)
 	}
 	spin_unlock(&file->table_lock);
 
-	if (!list_empty(&fp->alloc_blocks)) {
-		list_for_each_entry(itr, &fp->alloc_blocks, node)
-			cma_blocks++;
+	total_obj_size = total_obj_size / 1024;
+	if (total_obj_size > 2 * 1024) {
+		total_obj_size = total_obj_size / 1024;
+		obj_size_mb = true;
+	}
+
+	for (i = 0; i < MAX_CMA_AREAS; i++) {
+		if (!list_empty(&fp->alloc_blocks[i])) {
+			list_for_each_entry(itr, &fp->alloc_blocks[i], node)
+				cma_blocks++;
+		}
 	}
 
 	seq_printf(m,
-		   "%20s %10s %7s %10s %10s\n",
+		   "%20s %18s %7s %13s %10s\n",
 		   "command",
-		   "pagetable",
+		   "pagetable phys",
 		   "objects",
-		   "obj mem",
+		   "virtual mem",
 		   "CMA mem");
 
 	rcu_read_lock(); /* locks pid_task()->comm */
 	task = pid_task(file->pid, PIDTYPE_PID);
-	seq_printf(m, "%20s 0x%08x %7d %8dKB %8luMB\n",
+	seq_printf(m, "%20s %pa %7d %11d%2s %8luMB\n",
 		   task ? task->comm : "<unknown>",
-		   (uint32_t)fp->hw_vmem.pt_phys,
+		   &fp->hw_vmem.pt_phys,
 		   num_objs,
-		   total_obj_size / 1024,
+		   total_obj_size,
+		   obj_size_mb ? "MB" : "KB",
 		   cma_blocks * V3D_CMA_ALLOC_BLOCK_SIZE / (1024 * 1024));
 	rcu_read_unlock();
 
 	mutex_unlock(&dev->struct_mutex);
 
 	return 0;
+}
+
+#define BITS_PER_MAP_ENTRY (V3D_CMA_ALLOC_MAP_SIZE / 32)
+
+static void v3d_file_cma_block_map(struct seq_file *m,
+				   struct v3d_alloc_block *block)
+{
+	int i, c = 0;
+	char mapbuf[33];
+
+	for (i = 0; i < V3D_CMA_ALLOC_MAP_SIZE; i += BITS_PER_MAP_ENTRY) {
+		int nset = 0, b;
+
+		for (b = 0; b < BITS_PER_MAP_ENTRY; b++)
+			nset += test_bit(i + b, block->alloc_map);
+
+		switch (nset) {
+		case 0:
+			 mapbuf[c++] = '-'; break;
+		case BITS_PER_MAP_ENTRY:
+			 mapbuf[c++] = '*'; break;
+		default:
+			 mapbuf[c++] = '+'; break;
+		}
+	}
+
+	mapbuf[32] = '\0';
+	seq_printf(m, "%pa: %32s\n", &block->phys_addr, mapbuf);
 }
 
 static int v3d_file_cma_info(struct seq_file *m, void *data)
@@ -93,31 +131,24 @@ static int v3d_file_cma_info(struct seq_file *m, void *data)
 	struct drm_file *file = root->d_fsdata;
 	struct v3d_drm_file_private *fp = file->driver_priv;
 	struct v3d_alloc_block *itr;
-	int ret;
+	int ret, d;
 
 	ret = mutex_lock_interruptible(&dev->struct_mutex);
 	if (ret)
 		return ret;
 
 	seq_printf(m,
-		   "%18s: %32s\n",
+		   "%18s:	 %2dK %s\n",
 		   "CMA Block Physcal",
-		   "64K Page Allocation Mask");
+		   (int)V3D_HW_PAGE_SIZE / 1024,
+		   "Page Allocation Mask");
 
 	seq_puts(m, "====================================================\n");
 
-	if (!list_empty(&fp->alloc_blocks)) {
-		list_for_each_entry(itr, &fp->alloc_blocks, node) {
-			uint32_t map = itr->alloc_map;
-			char mapbuf[33];
-			int i;
-
-			for (i = 0; i < 32; i++) {
-				mapbuf[i] = (map & BIT(0)) ? '*' : '-';
-				map >>= 1;
-			}
-			mapbuf[32] = '\0';
-			seq_printf(m, "%pa: %32s\n", &itr->phys_addr, mapbuf);
+	for (d = 0; d < MAX_CMA_AREAS; d++) {
+		if (!list_empty(&fp->alloc_blocks[d])) {
+			list_for_each_entry(itr, &fp->alloc_blocks[d], node)
+				v3d_file_cma_block_map(m, itr);
 		}
 	}
 
@@ -249,19 +280,19 @@ static int v3d_file_pagetable_cooked_info(struct seq_file *m, void *data)
 		   "Physical");
 
 	for (i = 0; i < V3D_HW_PAGE_TABLE_ENTRIES; i += stride) {
-		uint32_t entry = fp->hw_vmem.pt_kaddr[i];
-		uint32_t phys = (entry & ~V3D_PAGE_FLAG_MASK) <<
+		u32 entry = fp->hw_vmem.pt_kaddr[i];
+		phys_addr_t phys = (phys_addr_t)(entry & ~V3D_PAGE_FLAG_MASK) <<
 				V3D_HW_SMALLEST_PAGE_SHIFT;
 		bool valid = entry & V3D_PAGE_FLAG_VALID;
 		bool write = entry & V3D_PAGE_FLAG_WRITE;
 
 		seq_printf(m,
-			   "0x%.8x 0x%.8x %5c %5s 0x%.8x\n",
+			   "0x%.8x 0x%.8x %5c %5s %pa\n",
 			   i * V3D_HW_PAGE_TABLE_ENTRY_SIZE,
 			   i << V3D_HW_SMALLEST_PAGE_SHIFT,
 			   valid ? 'y' : 'n',
 			   valid ? (write ? "rw" : "ro") : "--",
-			   phys);
+			   &phys);
 	}
 
 	mutex_unlock(&dev->struct_mutex);

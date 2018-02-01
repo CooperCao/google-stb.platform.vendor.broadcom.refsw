@@ -13,8 +13,8 @@
 
 #include <stdlib.h>
 
-#define GRAPHVIZ_GRAPH_NAME			"Dataflow"
-#define GRAPHVIZ_CLUSTER_PREFIX		"line_num"
+#define GRAPHVIZ_GRAPH_NAME         "Dataflow"
+#define GRAPHVIZ_CLUSTER_PREFIX     "line_num"
 
 static void dpostv_gather_by_line_num(Dataflow* dataflow, void* data)
 {
@@ -23,7 +23,7 @@ static void dpostv_gather_by_line_num(Dataflow* dataflow, void* data)
    // See whether dataflow->line_num is in the map.
    DataflowChain* chain;
    if (dataflow->line_num == 0) dataflow->line_num = -1;     /* Because map thinks line_num is a pointer, 0 isn't valid */
-   chain = (DataflowChain *)glsl_map_get(map, (void *)dataflow->line_num, true);
+   chain = (DataflowChain *)glsl_map_get(map, (void *)(uintptr_t)dataflow->line_num, true);
 
    // If it's not in the map, insert it.
    if (!chain)
@@ -34,7 +34,7 @@ static void dpostv_gather_by_line_num(Dataflow* dataflow, void* data)
       glsl_dataflow_chain_init(chain);
 
       // Insert.
-      glsl_map_put(map, (void *)dataflow->line_num, chain);
+      glsl_map_put(map, (void *)(uintptr_t)dataflow->line_num, chain);
    }
 
    // Add this node to the chain.
@@ -52,7 +52,7 @@ typedef enum
 
 static void print_edge(FILE* f, EdgeStyle style, Dataflow* supplier, Dataflow* consumer)
 {
-   fprintf(f, "\tn%x -> n%x", (size_t)consumer, (size_t)supplier);
+   fprintf(f, "\tn%p -> n%p", consumer, supplier);
 
    switch (style) {
    case EDGE_SOLID:
@@ -109,7 +109,7 @@ static void print_edges(FILE* f, Dataflow* dataflow, bool cross)
 static void print_node(FILE* f, Dataflow* dataflow)
 {
    // Print node reference and open label string.
-   fprintf(f, "\tn%x [label=\"", (size_t)dataflow);
+   fprintf(f, "\tn%p [label=\"", dataflow);
 
    // Print contents of label string.
    switch (dataflow->flavour)

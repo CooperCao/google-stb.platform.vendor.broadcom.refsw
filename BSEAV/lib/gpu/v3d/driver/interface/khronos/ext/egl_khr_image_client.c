@@ -1,10 +1,8 @@
 /******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-
 #define EGL_EGLEXT_PROTOTYPES /* we want the prototypes so the compiler will check that the signatures match */
 
-#include "interface/khronos/common/khrn_client_mangle.h"
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_client.h"
 #include "interface/khronos/egl/egl_int_impl.h"
@@ -22,6 +20,8 @@
 #include "middleware/khronos/common/2708/khrn_prod_4.h"
 #endif
 
+#include "middleware/khronos/egl/egl_server.h"
+
 #ifdef KHRONOS_CLIENT_LOGGING
 #include <stdio.h>
 extern FILE *xxx_vclog;
@@ -32,19 +32,22 @@ EGLAPI EGLImageKHR EGLAPIENTRY eglCreateImageKHR (EGLDisplay dpy, EGLContext ctx
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    EGLImageKHR result = EGL_NO_IMAGE_KHR;
 
+   if (!egl_ensure_init_once())
+      return EGL_NO_IMAGE_KHR;
+
    CLIENT_LOCK();
 
-   CLIENT_PROCESS_STATE_T *process = client_egl_get_process_state(thread, dpy, EGL_TRUE);
+   EGL_SERVER_STATE_T *state = egl_get_process_state(thread, dpy, EGL_TRUE);
 
-   if (process) {
+   if (state) {
       EGL_CONTEXT_T *context;
       bool ctx_error;
       if (target == EGL_NATIVE_PIXMAP_KHR || target == EGL_IMAGE_WRAP_BRCM_BCG || target == EGL_NATIVE_BUFFER_ANDROID || target == EGL_WAYLAND_BUFFER_WL) {
          context = NULL;
          ctx_error = ctx != EGL_NO_CONTEXT;
       } else {
-         context = client_egl_get_context(thread, process, ctx);
-         ctx_error = !context;
+         context = egl_get_context(thread, state, ctx);
+         ctx_error = (context == NULL);
       }
       if (ctx_error)
          thread->error = EGL_BAD_PARAMETER;
@@ -82,16 +85,12 @@ EGLAPI EGLImageKHR EGLAPIENTRY eglCreateImageKHR (EGLDisplay dpy, EGLContext ctx
          if (attr_error)
             thread->error = EGL_BAD_PARAMETER;
          else {
-            EGLint results[2];
-            eglCreateImageKHR_impl(context ? (context->type == OPENGL_ES_20 ? 2 : 1) : 0,
-                                    context ? context->servercontext : 0,
-                                    target,
+            EGLint error;
+            result = eglCreateImageKHR_impl(target,
                                     buffer,
                                     texture_level,
-                                    results);
-
-            result = (EGLImageKHR)(intptr_t)results[0];
-            thread->error = results[1];
+                                    &error);
+            thread->error = error;
          }
       }
    }
@@ -106,11 +105,14 @@ EGLAPI EGLBoolean EGLAPIENTRY eglDestroyImageKHR (EGLDisplay dpy, EGLImageKHR im
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    EGLBoolean result;
 
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
+
    CLIENT_LOCK();
 
-   CLIENT_PROCESS_STATE_T *process = client_egl_get_process_state(thread, dpy, EGL_TRUE);
+   EGL_SERVER_STATE_T *state = egl_get_process_state(thread, dpy, EGL_TRUE);
 
-   if (!process)
+   if (!state)
       result = EGL_FALSE;
    else {
       result = eglDestroyImageKHR_impl(image);

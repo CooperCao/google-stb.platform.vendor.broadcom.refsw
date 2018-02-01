@@ -13,7 +13,7 @@ typedef struct khrn_fmem khrn_fmem;
 
 typedef struct khrn_fmem_tmu_cfg_alloc
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    v3d_addr_t addr;
    void* ptr;
    uint64_t spare_8;    // Mask of spare 8-byte aligned, 8-byte chunks backwards from spare_32;
@@ -27,7 +27,7 @@ typedef struct khrn_fmem_tmu_cfg_alloc
 #endif
 } khrn_fmem_tmu_cfg_alloc;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 // Reserve a contiguous block of 32-byte tmu tex-state/sampler configs.
 // Subsequent calls to add_tmu_tex_state/add_tmu_sampler with the reserved32

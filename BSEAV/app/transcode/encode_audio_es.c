@@ -115,7 +115,7 @@ int main(void)  {
     NEXUS_AudioEncoderHandle audioEncoder;
 #endif
     void *pDataBuffer;
-    size_t bytes;
+    size_t bytes = 0;
     FILE *fout, *fdesc;
     InputSettings stInput;
     EncodeSettings stEncode;

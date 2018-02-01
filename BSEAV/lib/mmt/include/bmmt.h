@@ -59,8 +59,8 @@ extern "C"
 
 #define BMMT_FILE_NAME_LENGTH 256
 #define BMMT_MAX_STREAMS 256;
-#define BMMT_TLV_PKT_READ_SIZE 16*1024
-#define BMMT_MAX_TLV_BUFFERS 8
+#define BMMT_TLV_PKT_READ_SIZE 188 /*16*1024*/
+#define BMMT_MAX_TLV_BUFFERS 360 /*8*/
 #define BMMT_MAX_TS_BUFFERS 360
 #define BMMT_MAX_MSG_BUFFERS 8
 #define BMMT_MAX_MMT_SI_BUFFER_SIZE 4096*2
@@ -120,7 +120,7 @@ Summary:
 typedef struct bmmt_buffer {
     void *data;      /* buffer pointer */
     unsigned offset; /* current data size */
-    unsigned length; /* buffer size */
+    size_t length; /* buffer size */
 }bmmt_buffer;
 
 /**
@@ -287,6 +287,14 @@ bmmt_get_am_table parses buf and populates the TLV address
 mapping table. Returns true if am_table is populated else false.
 */
 bool bmmt_get_am_table(void *buf, size_t len, btlv_am_table *am_table);
+
+/**
+Summary:
+bmmt_get_tlv_sync_byte_bitshift returns a number between 1 and 8 if
+the passed buffer has detected sync byte for 2 tlv packets.
+if not sync byte is found, then returned number would be 255
+**/
+uint8_t bmmt_get_tlv_sync_byte_bitshift(uint8_t *buf, size_t len);
 
 #ifdef __cplusplus
 }

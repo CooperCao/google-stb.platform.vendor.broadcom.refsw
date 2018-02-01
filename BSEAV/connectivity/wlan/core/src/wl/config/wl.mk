@@ -771,6 +771,7 @@ endif
 #ifdef WLLX
 ifeq ($(WLLX),1)
         WLFILES_SRC += src/wl/sys/wl_linux.c
+        WLFILES_SRC += src/wl/sys/wl_linux_vendor.c
 endif
 #endif
 
@@ -893,6 +894,7 @@ ifeq ($(GTKOE),1)
 	endif
 endif
 
+WLFLAGS += -DWAR_USE_MPC2_UNASSOCIATED_S2
 
 ## wl features
 # D11CONF, D11CONF2, D11CONF3, D11CONF4, and D11CONF5 --  bit mask of supported d11 core revs
@@ -1047,6 +1049,12 @@ endif
 ifeq ($(WET),1)
 	WLFLAGS += -DWET
 	WLFILES_SRC += src/wl/sys/wlc_wet.c
+endif
+#endif
+
+#ifdef ACS
+ifeq ($(ACS),1)
+	WLFLAGS += -DWL_SUPPORT_ACS
 endif
 #endif
 
@@ -3015,6 +3023,10 @@ ifeq ($(STB_SOC_WIFI),1)
 	WLFILES_SRC += src/wl/sys/wl_stbsoc.c
 endif
 
+ifeq ($(STBAP_BISON), 1)
+	WLFLAGS += -DSTBAP_BISON
+endif
+
 ifeq ($(STBLINUX),1)
 	WLFLAGS += -DSTBLINUX
 endif
@@ -3110,6 +3122,10 @@ ifeq ($(WL_DTS),1)
 	WLFLAGS += -DWL_DTS
 endif
 
+#2G Chain locking
+ifeq ($(WL_2G2X2LOCK),1)
+	WLFLAGS += -DWL_2G2X2LOCK
+endif
 
 # Sorting has two benefits: it uniqifies the list, which may have
 # gotten some double entries above, and it makes for prettier and

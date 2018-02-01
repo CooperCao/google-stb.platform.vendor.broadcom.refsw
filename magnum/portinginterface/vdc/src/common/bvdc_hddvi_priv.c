@@ -2754,7 +2754,6 @@ static void BVDC_P_HdDvi_UpdateFramerate_isr
     BVDC_P_Source_UpdateFrameRate_isr(pCurInfo->pFmtInfo,
         hHdDvi->stStatus.ulNrmlClkPerVsync, hHdDvi->ulNrmlClkPerVsyncDelta, peFrameRate);
 
-
     return;
 }
 

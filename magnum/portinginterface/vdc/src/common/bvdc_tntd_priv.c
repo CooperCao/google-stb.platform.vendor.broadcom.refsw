@@ -146,6 +146,31 @@ void BVDC_P_Tntd_Destroy
     return;
 }
 
+/***************************************************************************
+ * {private}
+ *
+ */
+static void BVDC_P_Tntd_SetEnable_isr
+    ( BVDC_P_Tntd_Handle            hTntd,
+      bool                          bEnable )
+{
+    BDBG_OBJECT_ASSERT(hTntd, BVDC_TNTD);
+
+    if(!BVDC_P_TNTD_COMPARE_FIELD_DATA(TNTD_0_TOP_CONTROL, TNTD_ENABLE, bEnable))
+    {
+        hTntd->ulUpdateAll = BVDC_P_RUL_UPDATE_THRESHOLD;
+    }
+
+    /* Turn on/off the scaler. */
+    BVDC_P_TNTD_GET_REG_DATA(TNTD_0_TOP_CONTROL) &= ~(
+        BCHP_MASK(TNTD_0_TOP_CONTROL, TNTD_ENABLE));
+
+    BVDC_P_TNTD_GET_REG_DATA(TNTD_0_TOP_CONTROL) |=  (bEnable
+        ? BCHP_FIELD_ENUM(TNTD_0_TOP_CONTROL, TNTD_ENABLE, ENABLE)
+        : BCHP_FIELD_ENUM(TNTD_0_TOP_CONTROL, TNTD_ENABLE, DISABLE));
+
+    return;
+}
 
 /***************************************************************************
  * {private}
@@ -271,7 +296,7 @@ static void BVDC_P_Tntd_Init_isr
  * {private}
  *
  */
-void BVDC_P_Tntd_BuildRul_SetEnable_isr
+static void BVDC_P_Tntd_BuildRul_SetEnable_isr
     ( BVDC_P_Tntd_Handle            hTntd,
       BVDC_P_ListInfo              *pList )
 {
@@ -564,8 +589,8 @@ void BVDC_P_Tntd_SetInfo_isr
             (pSclOut->ulHeight) / BVDC_P_FIELD_PER_FRAME;
     }
 
-    bPqNcl = (pPicture->astMosaicColorSpace[pPicture->ulPictureIdx].eColorTF == BAVC_P_ColorTF_eBt2100Pq &&
-              pPicture->astMosaicColorSpace[pPicture->ulPictureIdx].eColorFmt == BAVC_P_ColorFormat_eYCbCr) ? true : false;
+    bPqNcl = (pPicture->astMosaicColorSpace[pPicture->ulPictureIdx].eColorTF == BCFC_ColorTF_eBt2100Pq &&
+              pPicture->astMosaicColorSpace[pPicture->ulPictureIdx].eColorFmt == BCFC_ColorFormat_eYCbCr) ? true : false;
 
     if((hTntd->hWindow->stCurInfo.bSharpnessEnable != hTntd->bSharpnessEnable) ||
        (hTntd->hWindow->stCurInfo.sSharpness != hTntd->sSharpness) ||
@@ -764,121 +789,6 @@ void BVDC_P_Tntd_SetInfo_isr
     BDBG_LEAVE(BVDC_P_Tntd_SetInfo_isr);
     return;
 }
-
-/***************************************************************************
- * {private}
- *
- */
-void BVDC_P_Tntd_SetEnable_isr
-    ( BVDC_P_Tntd_Handle            hTntd,
-      bool                          bEnable )
-{
-    BDBG_OBJECT_ASSERT(hTntd, BVDC_TNTD);
-
-    if(!BVDC_P_TNTD_COMPARE_FIELD_DATA(TNTD_0_TOP_CONTROL, TNTD_ENABLE, bEnable))
-    {
-        hTntd->ulUpdateAll = BVDC_P_RUL_UPDATE_THRESHOLD;
-    }
-
-    /* Turn on/off the scaler. */
-    BVDC_P_TNTD_GET_REG_DATA(TNTD_0_TOP_CONTROL) &= ~(
-        BCHP_MASK(TNTD_0_TOP_CONTROL, TNTD_ENABLE));
-
-    BVDC_P_TNTD_GET_REG_DATA(TNTD_0_TOP_CONTROL) |=  (bEnable
-        ? BCHP_FIELD_ENUM(TNTD_0_TOP_CONTROL, TNTD_ENABLE, ENABLE)
-        : BCHP_FIELD_ENUM(TNTD_0_TOP_CONTROL, TNTD_ENABLE, DISABLE));
-
-    return;
-}
-#else
-BERR_Code BVDC_P_Tntd_Create
-    ( BVDC_P_Tntd_Handle           *phTntd,
-      BVDC_P_TntdId                 eTntdId,
-      BVDC_P_Resource_Handle        hResource,
-      BREG_Handle                   hReg )
-{
-    BSTD_UNUSED(phTntd);
-    BSTD_UNUSED(eTntdId);
-    BSTD_UNUSED(hResource);
-    BSTD_UNUSED(hReg);
-    return BERR_SUCCESS;
-}
-
-void BVDC_P_Tntd_Destroy
-    ( BVDC_P_Tntd_Handle            hTntd )
-{
-    BSTD_UNUSED(hTntd);
-    return;
-}
-
-void BVDC_P_Tntd_BuildRul_SetEnable_isr
-    ( BVDC_P_Tntd_Handle            hTntd,
-      BVDC_P_ListInfo              *pList )
-{
-    BSTD_UNUSED(hTntd);
-    BSTD_UNUSED(pList);
-}
-
-BERR_Code BVDC_P_Tntd_AcquireConnect_isr
-    ( BVDC_P_Tntd_Handle            hTntd,
-      BVDC_Window_Handle            hWindow )
-{
-    BSTD_UNUSED(hTntd);
-    BSTD_UNUSED(hWindow);
-    return BERR_SUCCESS;
-}
-
-BERR_Code BVDC_P_Tntd_ReleaseConnect_isr
-    ( BVDC_P_Tntd_Handle           *phTntd )
-{
-    BSTD_UNUSED(phTntd);
-    return BERR_SUCCESS;
-}
-
-void BVDC_P_Tntd_BuildRul_isr
-    ( const BVDC_P_Tntd_Handle      hTntd,
-      BVDC_P_ListInfo              *pList,
-      BVDC_P_State                  eVnetState,
-      BVDC_P_PicComRulInfo         *pPicComRulInfo )
-{
-    BSTD_UNUSED(hTntd);
-    BSTD_UNUSED(pList);
-    BSTD_UNUSED(eVnetState);
-    BSTD_UNUSED(pPicComRulInfo);
-    return;
-}
-
-uint32_t BVDC_P_Tntd_CalcVertSclRatio_isr
-    ( uint32_t                      ulInV,
-      bool                          bInInterlaced,
-      uint32_t                      ulOutV,
-      bool                          bOutInterlaced )
-{
-    BSTD_UNUSED(ulInV);
-    BSTD_UNUSED(bInInterlaced);
-    BSTD_UNUSED(ulOutV);
-    BSTD_UNUSED(bOutInterlaced);
-    return 0;
-}
-
-void BVDC_P_Tntd_SetInfo_isr
-    ( BVDC_P_Tntd_Handle            hTntd,
-      const BVDC_P_PictureNodePtr   pPicture )
-{
-    BSTD_UNUSED(hTntd);
-    BSTD_UNUSED(pPicture);
-    return;
-}
-
-void BVDC_P_Tntd_SetEnable_isr
-    ( BVDC_P_Tntd_Handle            hTntd,
-      bool                          bEnable )
-{
-    BSTD_UNUSED(hTntd);
-    BSTD_UNUSED(bEnable);
-    return;
-}
-
 #endif /* #if !(BVDC_P_SUPPORT_TNTD) */
 
 /* End of file. */

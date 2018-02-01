@@ -559,7 +559,6 @@ NEXUS_FrontendHandle NEXUS_Docsis_OpenChannel(
     const NEXUS_DocsisOpenChannelSettings *pOpenSettings
     )
 {
-    BERR_Code retCode = BERR_SUCCESS;
     NEXUS_FrontendHandle hFrontend=NULL;
     NEXUS_DocsisChannelHandle hChannel=NULL;
     NEXUS_DocsisDeviceHandle hDevice=NULL;
@@ -574,7 +573,7 @@ NEXUS_FrontendHandle NEXUS_Docsis_OpenChannel(
     hChannel = (NEXUS_DocsisChannelHandle)BKNI_Malloc(sizeof(NEXUS_DocsisChannel));
     if (!hChannel)
     {
-        retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         goto errorAlloc;
     }
     BKNI_Memset((void *)hChannel,0,sizeof(NEXUS_DocsisChannel));
@@ -599,7 +598,7 @@ NEXUS_FrontendHandle NEXUS_Docsis_OpenChannel(
         hFrontend = NEXUS_Frontend_P_Create(hChannel);
         if(!hFrontend)
         {
-            retCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+            BERR_TRACE(BERR_NOT_SUPPORTED);
             goto error;
         }
 
@@ -701,7 +700,7 @@ NEXUS_FrontendHandle NEXUS_Docsis_OpenChannel(
             hFrontend = NEXUS_Frontend_P_Create(hChannel);
             if(!hFrontend)
             {
-              retCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+              BERR_TRACE(BERR_NOT_SUPPORTED);
               goto error;
             }
             BDCM_Tnr_GetDefaultSettings(&tnrSettings);
@@ -770,7 +769,7 @@ NEXUS_FrontendHandle NEXUS_Docsis_OpenChannel(
                 hFrontend = NEXUS_Frontend_P_Create(hChannel);
                 if(!hFrontend)
                 {
-                    retCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+                    BERR_TRACE(BERR_NOT_SUPPORTED);
                     goto error;
                 }
 
@@ -816,7 +815,7 @@ NEXUS_FrontendHandle NEXUS_Docsis_OpenChannel(
                 hFrontend = NEXUS_Frontend_P_Create(hChannel);
                 if(!hFrontend)
                 {
-                    retCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+                    BERR_TRACE(BERR_NOT_SUPPORTED);
                     goto error;
                 }
                 hFrontend->capabilities.docsis = true;

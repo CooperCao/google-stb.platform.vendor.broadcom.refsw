@@ -41,7 +41,7 @@ typedef struct {
          bool tlb_wait_first_thrsw;
          bool per_sample;
          bool reads_prim_id;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
          bool reads_implicit_varys;
 #endif
 #if !V3D_HAS_SRS_CENTROID_FIX

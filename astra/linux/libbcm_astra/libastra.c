@@ -558,7 +558,7 @@ int _astra_file_read(
     int err = 0;
 
     /* read from kernel file */
-    err = _astra_ioctl_file_write(
+    err = _astra_ioctl_file_read(
         (astra_kfile_handle)pFile,
         paddr,
         &bytes);

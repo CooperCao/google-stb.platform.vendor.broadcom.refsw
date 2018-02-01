@@ -1,43 +1,42 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
+
 #include "bstd.h"
 #include "bchp_45308_leap_host_l2.h"
 #include "bchp_45308_tm.h"
@@ -53,7 +52,7 @@ BDBG_MODULE(bwfe_45308_priv);
 /* local functions */
 static BERR_Code BWFE_45308_P_EnableSaDoneInterrupt(BWFE_Handle h, bool bEnable);
 static BERR_Code BWFE_45308_P_EnableReadyInterrupt(BWFE_ChannelHandle h, bool bEnable);
-static BERR_Code BWFE_45308_P_InterruptCallback(void *pParm1, int parm2);
+static BERR_Code BWFE_45308_P_InterruptCallback_isr(void *pParm1, int parm2);
 static BERR_Code BWFE_45308_P_SendCommand(BHAB_Handle h, uint32_t *pBuf, uint32_t n);
 
 
@@ -70,7 +69,7 @@ BERR_Code BWFE_45308_P_Open(
 {
    BERR_Code retCode = BERR_SUCCESS;
    BWFE_Handle hDev;
-   BWFE_45308_P_Handle *hImplDev;
+   BWFE_45308_P_Handle *pDevImpl;
    BWFE_ChannelInfo chInfo;
    uint8_t i;
    BHAB_Handle hHab;
@@ -85,10 +84,10 @@ BERR_Code BWFE_45308_P_Open(
    hDev = (BWFE_Handle)BKNI_Malloc(sizeof(BWFE_P_Handle));
    BDBG_ASSERT(hDev);
    BKNI_Memset((void*)hDev, 0, sizeof(BWFE_P_Handle));
-   hImplDev = (BWFE_45308_P_Handle *)BKNI_Malloc(sizeof(BWFE_45308_P_Handle));
-   BDBG_ASSERT(hImplDev);
-   BKNI_Memset((void*)hImplDev, 0, sizeof(BWFE_45308_P_Handle));
-   hDev->pImpl = (void*)hImplDev;
+   pDevImpl = (BWFE_45308_P_Handle *)BKNI_Malloc(sizeof(BWFE_45308_P_Handle));
+   BDBG_ASSERT(pDevImpl);
+   BKNI_Memset((void*)pDevImpl, 0, sizeof(BWFE_45308_P_Handle));
+   hDev->pImpl = (void*)pDevImpl;
 
    /* allocate heap memory for channel handle pointer */
    hDev->pChannels = (BWFE_P_ChannelHandle **)BKNI_Malloc(BWFE_45308_MAX_CHANNELS * sizeof(BWFE_P_ChannelHandle *));
@@ -100,8 +99,8 @@ BERR_Code BWFE_45308_P_Open(
 
    /* initialize device handle */
    BKNI_Memcpy((void*)(&(hDev->settings)), (void*)pDefSettings, sizeof(BWFE_Settings));
-   hImplDev->hHab = (BHAB_Handle)pReg;
-   hImplDev->numSamples = 0;
+   pDevImpl->hHab = (BHAB_Handle)pReg;
+   pDevImpl->numSamples = 0;
 
    if (BWFE_45308_P_GetTotalChannels(hDev, &chInfo) == BERR_SUCCESS)
       hDev->totalChannels = chInfo.maxChannels;
@@ -111,11 +110,11 @@ BERR_Code BWFE_45308_P_Open(
       hDev->pChannels[i] = NULL;
 
    /* create events */
-   retCode = BKNI_CreateEvent(&(hImplDev->hSaDoneEvent));
+   retCode = BKNI_CreateEvent(&(pDevImpl->hSaDoneEvent));
    if (retCode != BERR_SUCCESS)
    {
       BKNI_Free((void*)hDev->pChannels);
-      BKNI_Free((void*)hImplDev);
+      BKNI_Free((void*)pDevImpl);
       BKNI_Free((void*)hDev);
 
       *h = NULL;
@@ -123,7 +122,7 @@ BERR_Code BWFE_45308_P_Open(
    }
 
    /* install callback */
-   BHAB_InstallInterruptCallback(hHab, BHAB_DevId_eWFE, BWFE_45308_P_InterruptCallback, (void*)hDev, 0);
+   BHAB_InstallInterruptCallback(hHab, BHAB_DevId_eWFE, BWFE_45308_P_InterruptCallback_isr, (void*)hDev, 0);
 
    *h = hDev;
    return retCode;
@@ -135,11 +134,12 @@ BERR_Code BWFE_45308_P_Open(
 ******************************************************************************/
 BERR_Code BWFE_45308_P_Close(BWFE_Handle h)
 {
-   BWFE_45308_P_Handle *pDevImpl = (BWFE_45308_P_Handle *)(h->pImpl);
+   BWFE_45308_P_Handle *pDevImpl;
    uint32_t mask;
    BERR_Code retCode;
 
    BDBG_ASSERT(h);
+   pDevImpl  = (BWFE_45308_P_Handle *)(h->pImpl);
 
    /* disable wfe host interrupts */
    mask = BHAB_45308_HIRQ0_WFE_MASK;
@@ -507,9 +507,9 @@ static BERR_Code BWFE_45308_P_EnableReadyInterrupt(
 
 
 /******************************************************************************
- BWFE_45308_P_InterruptCallback()
+ BWFE_45308_P_InterruptCallback_isr()
 ******************************************************************************/
-static BERR_Code BWFE_45308_P_InterruptCallback(void *pParm1, int parm2)
+static BERR_Code BWFE_45308_P_InterruptCallback_isr(void *pParm1, int parm2)
 {
    BHAB_45308_IrqStatus *pParams = (BHAB_45308_IrqStatus *)pParm1;
    BWFE_Handle h = (BWFE_Handle)(pParams->pParm1);

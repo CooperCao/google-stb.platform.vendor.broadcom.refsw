@@ -2,11 +2,13 @@
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
+#include "interface/khronos/ext/egl_khr_sync_client.h"
 #include "middleware/khronos/common/khrn_image.h"
 #include "middleware/khronos/common/2708/khrn_fmem_4.h"
 #include "middleware/khronos/common/2708/khrn_interlock_priv_4.h"
 #include "middleware/khronos/egl/egl_server.h"
 #include "interface/vcos/vcos.h"
+#include "middleware/khronos/common/khrn_mem.h"
 #include <stddef.h> /* for offsetof */
 
 #define GAP 5
@@ -79,6 +81,11 @@ void khrn_fmem_discard(KHRN_FMEM_T *fmem)
 
    do_specials_discard(fmem);
    khrn_nmem_group_term(&fmem->nmem_group);
+}
+
+void khrn_fmem_flush(KHRN_FMEM_T *fmem)
+{
+   khrn_nmem_group_flush(&fmem->nmem_group);
 }
 
 static uint32_t *alloc_junk(KHRN_FMEM_T *fmem, int size, int align, MEM_LOCK_T *lbh)
@@ -183,15 +190,15 @@ bool khrn_fmem_add_special(KHRN_FMEM_T *fmem, uint8_t **p, uint32_t special_i, u
    return true;
 }
 
-bool khrn_fmem_interlock(KHRN_FMEM_T *fmem, MEM_HANDLE_T handle, uint32_t offset)
+bool khrn_fmem_interlock(KHRN_FMEM_T *fmem, void *p, uint32_t offset)
 {
    KHRN_FMEM_TWEAK_T *tw = tweak_next(&fmem->interlock);
    if (!tw) return false;
 
-   tw->interlock.mh_handle = handle;
+   tw->interlock.p = p;
    tw->interlock.offset = offset;
 
-   mem_acquire(handle);
+   khrn_mem_acquire(p);
 
    return true;
 }
@@ -244,6 +251,7 @@ void khrn_fmem_prep_for_render_only_job(KHRN_FMEM_T *fmem)
    tweak_close(&fmem->sync);
 
    do_interlock_transfer(fmem);
+   do_specials_discard(fmem);
 
    fmem->nmem_entered = true;
    fmem->nmem_pos = khrn_nmem_enter();
@@ -390,10 +398,9 @@ static void do_interlock_transfer(KHRN_FMEM_T *fmem)
       next = h->next;
       for (uint32_t i = 0; i < h->count; i++)
       {
-         KHRN_INTERLOCK_T *interlock = (KHRN_INTERLOCK_T *)((uint8_t *)mem_lock(h[i].interlock.mh_handle, NULL) + h[i].interlock.offset);
+         KHRN_INTERLOCK_T *interlock = (KHRN_INTERLOCK_T *)((uint8_t *)h[i].interlock.p + h[i].interlock.offset);
          khrn_interlock_transfer(interlock, fmem->interlock_user, KHRN_INTERLOCK_FIFO_HW_RENDER);
-         mem_unlock(h[i].interlock.mh_handle);
-         mem_release(h[i].interlock.mh_handle);
+         KHRN_MEM_ASSIGN(h[i].interlock.p, NULL);
       }
       free(h);
    }
@@ -407,10 +414,9 @@ static void do_interlock_release(KHRN_FMEM_T *fmem)
       next = h->next;
       for (uint32_t i = 0; i < h->count; i++)
       {
-         KHRN_INTERLOCK_T *interlock = (KHRN_INTERLOCK_T *)((uint8_t *)mem_lock(h[i].interlock.mh_handle, NULL) + h[i].interlock.offset);
+         KHRN_INTERLOCK_T *interlock = (KHRN_INTERLOCK_T *)((uint8_t *)h[i].interlock.p + h[i].interlock.offset);
          khrn_interlock_release(interlock, fmem->interlock_user);
-         mem_unlock(h[i].interlock.mh_handle);
-         mem_release(h[i].interlock.mh_handle);
+         KHRN_MEM_ASSIGN(h[i].interlock.p, NULL);
       }
       free(h);
    }
@@ -427,14 +433,14 @@ bool khrn_fmem_is_here(KHRN_FMEM_T *fmem, uint8_t *p)
    return fmem->last_cle_pos == p;
 }
 
-bool khrn_fmem_sync(KHRN_FMEM_T *fmem, MEM_HANDLE_T handle)
+bool khrn_fmem_sync(KHRN_FMEM_T *fmem, void *sync)
 {
    KHRN_FMEM_TWEAK_T *tw = tweak_next(&fmem->sync);
    if (!tw) return false;
 
-   mem_acquire_retain(handle);
+   khrn_mem_acquire(sync);
 
-   tw->sync = handle;
+   tw->sync = sync;
 
    return true;
 }
@@ -447,11 +453,10 @@ void do_sync_release(KHRN_FMEM_T *fmem)
       next = h->next;
       for (uint32_t i = 0; i < h->count; i++)
       {
-         EGL_SERVER_SYNC_T *sync = (EGL_SERVER_SYNC_T *)mem_lock(h->sync, NULL);
+         EGL_SYNC_T *sync = h->sync;
          vcos_semaphore_post(&sync->sem);
          sync->status = EGL_SIGNALED_KHR;
-         mem_unlock(h->sync);
-         mem_release(h->sync);
+         KHRN_MEM_ASSIGN(sync, NULL);
       }
       free(h);
    }

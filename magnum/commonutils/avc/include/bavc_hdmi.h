@@ -1276,6 +1276,31 @@ typedef enum BAVC_HDMI_DRM_DescriptorId
 
 /***************************************************************************
 Summary:
+Structure containing the contents of DRM info frame type 1 (HDR10).
+****************************************************************************/
+typedef struct BAVC_HDMI_DRMInfoFrameType1
+{
+    struct {
+        uint16_t X ;
+        uint16_t Y ;
+    } DisplayPrimaries[3] ;
+
+    struct {
+        uint16_t X ;
+        uint16_t Y ;
+    } WhitePoint ;
+
+    struct {
+        uint16_t Max ; /* in 1 nits unit */
+        uint16_t Min ; /* in 0.0001 nits unit */
+    } DisplayMasteringLuminance ;
+
+    uint16_t MaxContentLightLevel ;
+    uint16_t MaxFrameAverageLightLevel ;
+} BAVC_HDMI_DRMInfoFrameType1;
+
+/***************************************************************************
+Summary:
 Structure containing the contents of DRM Packet.
 ****************************************************************************/
 typedef struct BAVC_HDMI_DRMInfoFrame
@@ -1285,25 +1310,7 @@ typedef struct BAVC_HDMI_DRMInfoFrame
     /* fields from DRM Packet */
     BAVC_HDMI_DRM_EOTF eEOTF ;  /* Electro-Optical Transfer Function */
     BAVC_HDMI_DRM_DescriptorId eDescriptorId ;
-    struct {
-        struct {
-            uint16_t X ;
-            uint16_t Y ;
-        } DisplayPrimaries[3] ;
-
-        struct {
-            uint16_t X ;
-            uint16_t Y ;
-        } WhitePoint ;
-
-        struct {
-            uint16_t Max ;
-            uint16_t Min ;
-        } DisplayMasteringLuminance ;
-
-        uint16_t MaxContentLightLevel ;
-        uint16_t MaxFrameAverageLightLevel ;
-    } Type1 ;
+    BAVC_HDMI_DRMInfoFrameType1 Type1 ;
 
 #if BAVC_HDMI_RECEIVER
         BAVC_HDMI_PacketStatus ePacketStatus ;

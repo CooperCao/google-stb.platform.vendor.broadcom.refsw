@@ -287,6 +287,36 @@ err_map:
     goto done;
 }
 
+NEXUS_Error
+nexus_driver_verify_callbacks(struct nexus_driver_module_header *header, void *handle, const unsigned *ids, const struct b_objdb_client *client)
+{
+    unsigned i;
+    struct nexus_driver_callback_map *map;
+    struct nexus_driver_callback_entry *entry;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+
+    map = header->callback_map;
+    if(map==NULL) {
+        goto done; /* if map was not created there are no active binding exist */
+    }
+
+    for(i=0;;i++) {
+        unsigned id = ids[i];
+        if(id==0) {
+            break;
+        }
+        entry = nexus_driver_p_callback_find_entry_locked(map, handle, id);
+        if(entry) {
+            if(client != entry->client) {
+                BDBG_ERR(("client:%p can't set callback id:%#x that was already set by client:%p", (void *)client, id, (void *)entry->client));
+                rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto done;
+            }
+        }
+    }
+done:
+    return rc;
+}
+
 void
 nexus_driver_callback_to_user(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *handle, unsigned id)
 {
@@ -389,10 +419,12 @@ nexus_driver_callback_to_driver_commit(struct nexus_driver_module_header *header
 
 /* called from objdb callback with module lock already acquired */
 void
-nexus_driver_deactivate_callbacks(void *context, void *object, const struct b_objdb_client *client)
+nexus_driver_deactivate_callbacks(void *context, void *object, const struct b_objdb_client *client, enum b_objdb_cancel_callbacks_action action)
 {
     struct nexus_driver_module_header *header = context;
     struct nexus_driver_callback_map *map;
+
+    if (action == b_objdb_cancel_callbacks_action_clear) return;
 
     map = header->callback_map;
     if(map) {

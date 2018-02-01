@@ -41,6 +41,7 @@
 #include "nexus_graphics2d_module.h"
 #include "nexus_graphics2d_impl.h"
 #include "priv/nexus_surface_priv.h"
+#include "bvdc.h"
 
 BDBG_MODULE(nexus_graphics2d_destripe);
 
@@ -126,6 +127,7 @@ NEXUS_Error NEXUS_Graphics2D_DestripeBlit(
     NEXUS_StripedSurfaceCreateSettings stripedSurfaceCreateSettings;
     const int32_t *pMatrix=NULL;
     uint32_t matrixShift=10;
+    int32_t coeffs[NEXUS_GRAPHICS2D_COLOR_MATRIX_COEFF_COUNT];
 
     if ( NULL == pSettings || NULL == pSettings->source.stripedSurface || NULL == pSettings->output.surface ) {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -202,7 +204,8 @@ NEXUS_Error NEXUS_Graphics2D_DestripeBlit(
         pMatrix = (const int32_t *)pSettings->conversionMatrix.coeffMatrix;
         matrixShift = pSettings->conversionMatrix.shift;
     } else if ( !NEXUS_PIXEL_FORMAT_IS_YCRCB(targetSettings.pixelFormat) ) {
-        pMatrix = g_NEXUS_ai32_Matrix_YCbCrtoRGB;
+        BVDC_GetMatrixForGfxYCbCr2Rgb_isrsafe(NEXUS_P_MatrixCoefficients_ToMagnum_isrsafe(stripedSurfaceCreateSettings.matrixCoefficients), matrixShift, coeffs);
+        pMatrix = (const int32_t *) coeffs;
     }
     destripeBlitParams.matrixParams.conversionMatrix = pMatrix;
     destripeBlitParams.matrixParams.matrixShift = matrixShift;

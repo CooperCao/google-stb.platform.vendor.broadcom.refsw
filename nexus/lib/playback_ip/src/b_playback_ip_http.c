@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -3312,6 +3312,7 @@ B_PlaybackIp_HttpNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
             playback_ip->indexCacheDepth -= HTTP_INDEX_CACHE_CHUNK_SIZE;
             playback_ip->indexCacheStartOffset += HTTP_INDEX_CACHE_CHUNK_SIZE;
             playback_ip->indexCacheReadIndex += HTTP_INDEX_CACHE_CHUNK_SIZE;
+            /* coverity[divide_by_zero] */
             playback_ip->indexCacheReadIndex %= playback_ip->indexCacheSize;
             BDBG_MSG(("%s: icache wrap: depth %d, size %d, rd idx %d, offset start %"PRId64 ", end %"PRId64 "\n",
                         BSTD_FUNCTION, playback_ip->indexCacheDepth, playback_ip->indexCacheSize, playback_ip->indexCacheReadIndex,
@@ -3834,16 +3835,22 @@ B_PlaybackIp_HttpParseRespHeaderForPsi(
             p_psi += strlen("Video-Type: ");
             end_str = strstr(p_psi, "\r\n");
             if (end_str) {
-                int videoCodec;
-                end_str[0] = '\0';
-                videoCodec = (NEXUS_VideoCodec)strtol(p_psi, (char **)NULL, 10);
-                end_str[0] = '\r';
                 if (strstr(http_hdr,"SDK/1.0"))
+                {
                     /* older streamer "httpstreamer" (SDK/1.0) uses Settop API types, so we need to convert it to Nexus types */
+                    bvideo_codec videoCodec;
+
+                    end_str[0] = '\0';
+                    videoCodec = strtol(p_psi, (char **)NULL, 10);
+                    end_str[0] = '\r';
                     psi->videoCodec = B_PlaybackIp_UtilsVideoCodec2Nexus(videoCodec);
+                }
                 else
-                    /* new streamer "ip_streamer" SDK/2.0 uses Nexus types, so we dont any conversion */
-                    psi->videoCodec = videoCodec;
+                {
+                    end_str[0] = '\0';
+                    psi->videoCodec = strtol(p_psi, (char **)NULL, 10);
+                    end_str[0] = '\r';
+                }
                 BDBG_MSG(("video-Type: %d\n",psi->videoCodec));
                 psi->psiValid = true;
             }
@@ -3903,19 +3910,24 @@ B_PlaybackIp_HttpParseRespHeaderForPsi(
             p_psi += strlen("Extra-Video-Type: ");
             end_str = strstr(p_psi, "\r\n");
             if (end_str) {
-                int videoCodec;
-                end_str[0] = '\0';
-                videoCodec = (NEXUS_VideoCodec)strtol(p_psi, (char **)NULL, 10);
-                end_str[0] = '\r';
                 if (strstr(http_hdr,"SDK/1.0"))
+                {
                     /* older streamer "httpstreamer" (SDK/1.0) uses Settop API types, so we need to convert it to Nexus types */
-                    /* coverity[mixed_enums] */
+                    bvideo_codec videoCodec;
+
+                    end_str[0] = '\0';
+                    videoCodec = strtol(p_psi, (char **)NULL, 10);
+                    end_str[0] = '\r';
                     psi->extraVideoCodec = B_PlaybackIp_UtilsVideoCodec2Nexus(videoCodec);
+                }
                 else
-                    /* new streamer "ip_streamer" SDK/2.0 uses Nexus types, so we dont any conversion */
-                    /* coverity[mixed_enums] */
-                    psi->extraVideoCodec = videoCodec;
+                {
+                    end_str[0] = '\0';
+                    psi->extraVideoCodec = strtol(p_psi, (char **)NULL, 10);
+                    end_str[0] = '\r';
+                }
                 BDBG_MSG(("extra-video-Type: %d\n",psi->extraVideoCodec));
+                psi->psiValid = true;
             }
         }
 
@@ -3951,18 +3963,22 @@ B_PlaybackIp_HttpParseRespHeaderForPsi(
             p_psi += strlen("Audio-Type: ");
             end_str = strstr(p_psi, "\r\n");
             if (end_str) {
-                int audioCodec;
-                end_str[0] = '\0';
-                audioCodec = (NEXUS_AudioCodec)strtol(p_psi, (char **)NULL, 10);
-                end_str[0] = '\r';
                 if (strstr(http_hdr,"SDK/1.0"))
+                {
                     /* older streamer "httpstreamer" (SDK/1.0) uses Settop API types, so we need to convert it to Nexus types */
-                    /* coverity[mixed_enums] */
+                    baudio_format audioCodec;
+
+                    end_str[0] = '\0';
+                    audioCodec = strtol(p_psi, (char **)NULL, 10);
+                    end_str[0] = '\r';
                     psi->audioCodec = B_PlaybackIp_UtilsAudioCodec2Nexus(audioCodec);
+                }
                 else
-                    /* new streamer "ip_streamer" SDK/2.0 uses Nexus types, so we dont any conversion */
-                    /* coverity[mixed_enums] */
-                    psi->audioCodec = audioCodec;
+                {
+                    end_str[0] = '\0';
+                    psi->audioCodec = strtol(p_psi, (char **)NULL, 10);
+                    end_str[0] = '\r';
+                }
                 BDBG_MSG(("audio-Type: %d\n",psi->audioCodec));
                 psi->psiValid = true;
             }
@@ -5011,7 +5027,7 @@ B_PlaybackIp_HttpSessionOpen(
         if (playback_ip->ipVerboseLog)
             BDBG_WRN(("%s: Non blocking session open operation started: playback_ip %p\n", BSTD_FUNCTION, (void *)playback_ip));
 #endif
-        errorCode = B_ERROR_IN_PROGRESS;
+        playback_ip->sessionOpenStatus = B_ERROR_IN_PROGRESS;
     }
     else {
         httpSessionOpenThread(playback_ip);
@@ -5544,6 +5560,7 @@ void B_PlaybackIp_HttpPlaybackThread(
             if (playback_ip->dataCache[cacheIndex].depth >= playback_ip->dataCache[cacheIndex].size || playback_ip->serverClosed) {
                 BDBG_MSG(("%s: Pre-Charge buffer is full (size %d, depth %d) or eof (%d), waiting for app to stop pre-charging, till then sleeping...\n",
                             BSTD_FUNCTION, playback_ip->dataCache[cacheIndex].size, playback_ip->dataCache[cacheIndex].depth, playback_ip->serverClosed));
+                /* coverity[sleep: FALSE] */
                 BKNI_Sleep(500);
                 continue;
             }
@@ -5582,6 +5599,7 @@ void B_PlaybackIp_HttpPlaybackThread(
                    BDBG_ERR(("%s: Network Read Error, rc %d, playback ip state %d", BSTD_FUNCTION, rc, playback_ip->playback_state));
 #endif
                 /* we wait until we recover from n/w error (e.g. select timeout due to temporary n/w loss) or app turns off the pre-charging */
+                /* coverity[sleep: FALSE] */
                 BKNI_Sleep(100);
                 continue;
             }
@@ -5735,7 +5753,7 @@ void B_PlaybackIp_HttpPlaypumpThread(
                 readBufSize = 1000*20; /* Lower the read size for live cases to not add delay while collecting this much data. */
             }
             else {
-                readBufSize = 1024*60;
+                readBufSize = 1024*240;
             }
         }
 

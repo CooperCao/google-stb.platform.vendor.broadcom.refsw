@@ -134,9 +134,8 @@ public:
       m_buffer(buffer)
    {}
 
-   virtual void Attach(GLsizei samples = 0) const
+   virtual void Attach(GLsizei /* samples */) const
    {
-      samples = 0; // Unused: set to remove warning
       m_buffer->FramebufferRenderbuffer(GetAttachment());
    }
 
@@ -352,12 +351,12 @@ public:
 
 #ifndef EMULATED
 #ifdef BSG_USE_ES3
-      glInvalidateFramebuffer(GL_FRAMEBUFFER, m_discardableBuffers.size(), &m_discardableBuffers[0]);
+      glInvalidateFramebuffer(GL_FRAMEBUFFER, static_cast<GLsizei>(m_discardableBuffers.size()), &m_discardableBuffers[0]);
 #else
       if (DiscardSupported())
       {
          if (m_discardableBuffers.size() > 0)
-            s_discardFrameBuffer(GL_FRAMEBUFFER, m_discardableBuffers.size(), &m_discardableBuffers[0]);
+            s_discardFrameBuffer(GL_FRAMEBUFFER, static_cast<GLsizei>(m_discardableBuffers.size()), &m_discardableBuffers[0]);
       }
 #endif
 #endif

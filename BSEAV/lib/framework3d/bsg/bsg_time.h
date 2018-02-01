@@ -116,13 +116,13 @@ public:
    //! Multiply the time by a scalar
    Time operator*(float scale) const
    {
-      return Time((int64_t)(m_ms * (double)scale));
+      return Time(static_cast<int64_t>(static_cast<double>(m_ms) * static_cast<double>(scale)));
    }
 
    //! Multiply the time by a scalar
    Time operator*(double scale) const
    {
-      return Time((int64_t)(m_ms * scale));
+      return Time(static_cast<int64_t>(static_cast<double>(m_ms) * scale));
    }
 
    //! Add two times

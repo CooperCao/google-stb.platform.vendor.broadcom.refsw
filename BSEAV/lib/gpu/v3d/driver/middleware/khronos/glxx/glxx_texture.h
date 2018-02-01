@@ -124,7 +124,7 @@ typedef struct {
 
    bool generate_mipmap;
 
-   MEM_HANDLE_T mh_mipmaps[TEXTURE_BUFFER_COUNT][LOG2_MAX_TEXTURE_SIZE + 1];   /* floating KHRN_IMAGE_T */
+   KHRN_IMAGE_T *mipmaps[TEXTURE_BUFFER_COUNT][LOG2_MAX_TEXTURE_SIZE + 1];
    uint32_t explicit_mipmaps;   /* how many mh_mipmaps are not equal to MEM_HANDLE_INVALID (saves checking when it's 0) */
 
    uint32_t width;
@@ -139,7 +139,7 @@ typedef struct {
    MEM_HANDLE_T mh_depaletted_blob;
 
    /* Handle to an EGL_IMAGE_T for external textures */
-   MEM_HANDLE_T external_image;
+   void *external_image;
 
    uint32_t mip0_offset;
 
@@ -193,7 +193,7 @@ typedef struct {
       GLint Hcr;
    } crop_rect;
 
-   MEM_HANDLE_T      mh_ms_image;   // This used for multisample FBO
+   KHRN_IMAGE_T *ms_image;   // This used for multisample FBO
 
    KHRN_INTERLOCK_T interlock;
 
@@ -207,7 +207,7 @@ typedef enum {
 
 /* Operations on incomplete textures */
 extern void glxx_texture_init(GLXX_TEXTURE_T *texture, int32_t name, GLenum target);
-extern void glxx_texture_term(MEM_HANDLE_T handle);
+extern void glxx_texture_term(void *p);
 
 extern bool glxx_texture_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t level,
    uint32_t width, uint32_t height, GLenum fmt,
@@ -227,7 +227,7 @@ extern bool glxx_texture_is_cube_complete(GLXX_TEXTURE_T *texture);
 extern GLXX_TEXTURE_COMPLETENESS_T glxx_texture_check_complete(GLXX_TEXTURE_T *texture);
 extern GLXX_TEXTURE_COMPLETENESS_T glxx_texture_check_complete_levels(GLXX_TEXTURE_T *texture, bool base_complete);
 
-extern void glxx_texture_bind_images(GLXX_TEXTURE_T *texture, uint32_t levels, MEM_HANDLE_T *images, uint32_t binding_type, MEM_HANDLE_T bound_data, int mipmap_level);
+extern void glxx_texture_bind_images(GLXX_TEXTURE_T *texture, uint32_t levels, KHRN_IMAGE_T **images, uint32_t binding_type, int mipmap_level);
 extern void glxx_texture_release_teximage(GLXX_TEXTURE_T *texture);
 
 extern bool glxx_texture_includes(GLXX_TEXTURE_T *texture, GLenum target, int level, int x, int y);
@@ -247,7 +247,7 @@ extern uint32_t glxx_texture_get_interlock_offset(GLXX_TEXTURE_T *texture);
 extern MEM_HANDLE_T glxx_texture_get_storage_handle(GLXX_TEXTURE_T *texture);
 
 /* Sharing */
-extern MEM_HANDLE_T glxx_texture_share_mipmap(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level);
+extern KHRN_IMAGE_T *glxx_texture_share_mipmap(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level);
 
 /* GLES1.1 annoyingness */
 extern void glxx_texture_has_color_alpha(GLXX_TEXTURE_T *texture, bool *has_color, bool *has_alpha, bool *complete);

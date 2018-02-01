@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,16 +36,21 @@
  *  ANY LIMITED REMEDY.
  ******************************************************************************/
 #include <stdlib.h>
-#include <stdio.h>
 
+#ifdef __cplusplus
 static void dump_hex(const char* name, const char* data, uint32_t length, bool force=false)
+#else
+static void dump_hex(const char* name, const char* data, uint32_t length, bool force)
+#endif
 {
-    if (!force && (getenv("DUMP_HEX") == NULL)) return;
     size_t i;
     size_t buf_len = length * 2 + length / 32 + 1;
     char *buf, *ptr;
+    char int_to_hexcar[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
+        '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+    if (!force && (getenv("DUMP_HEX") == NULL)) return;
     if (force)
-        BDBG_ERR(("%s (len=%d): %p", name, length, data));
+        BDBG_LOG(("%s (len=%d): %p", name, length, data));
     else
         BDBG_MSG(("%s (len=%d): %p", name, length, data));
     if (data == NULL || length == 0)
@@ -53,20 +58,22 @@ static void dump_hex(const char* name, const char* data, uint32_t length, bool f
         return;
     }
 
-   ptr = buf = (char*)malloc(buf_len);
-   for (i = 0; i < length; i++)
-   {
+    ptr = buf = (char*)malloc(buf_len);
+    for (i = 0; i < length; i++) {
         if (i % 32 == 0 && i != 0)
         {
-            sprintf(ptr++, "\n");
+            *ptr = '\n';
+            ptr++;
         }
-        sprintf(ptr, "%02X", data[i]);
-        ptr += 2;
+        *ptr = int_to_hexcar[(data[i] >> 4) & 0xF];
+        ptr++;
+        *ptr = int_to_hexcar[data[i] & 0xF];
+        ptr++;
     }
     *ptr = '\0';
 
     if (force)
-        BDBG_ERR(("%s", buf));
+        BDBG_LOG(("%s", buf));
     else
         BDBG_MSG(("%s", buf));
 

@@ -23,10 +23,7 @@ public:
    ~BufferView() noexcept;
 
    // Implementation specific from this point on
-   uint32_t GetSize() const   { return m_size;   }
-   VkFormat GetFormat() const { return m_format; }
-
-   v3d_addr_t CalculateBufferOffsetAddr() const { return m_physAddr; }
+   uint32_t GetNumElems() const { return m_nElems;   }
 
    void WriteTextureStateRecord(uint8_t *ptr) const
    {
@@ -34,15 +31,11 @@ public:
    }
 
 private:
-   void CreateTSR(const VkBufferViewCreateInfo *info);
+   void CreateTSR(v3d_addr_t addr, GFX_LFMT_T fmt, uint32_t size);
 
 private:
-   v3d_addr_t                                         m_physAddr;
-   uint32_t                                           m_size;
-   uint32_t                                           m_offset;
-   VkFormat                                           m_format;
+   uint32_t                                           m_nElems;
    std::array<uint8_t, V3D_TMU_TEX_STATE_PACKED_SIZE> m_texState;
-   std::array<uint8_t, V3D_TMU_SAMPLER_PACKED_SIZE>   m_sampState;
 };
 
 } // namespace bvk

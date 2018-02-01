@@ -2203,7 +2203,7 @@ BMUXlib_TS_P_ProcessSystemData(
          /* determine how many packets we can fit between PCRs ...
             (-1 to account for the PCR packet itself) */
          hMuxTS->status.stSystemDataInfo.uiPacketsUntilNextPCR =
-                  ((hMuxTS->status.stPCRInfo.uiNextESCR - hMuxTS->status.stPCRInfo.uiESCR) / uiPacket2PacketTimestampDelta) - 1;
+                  (((uint32_t)hMuxTS->status.stPCRInfo.uiNextESCR - (uint32_t)hMuxTS->status.stPCRInfo.uiESCR) / uiPacket2PacketTimestampDelta) - 1;
          if ((0 == hMuxTS->status.stSystemDataInfo.uiPacketsUntilNextPCR) &&
              (false == BMUXLIB_LIST_ISEMPTY(&hMuxTS->stSystemDataPendingList)))
             BDBG_WRN(("Insufficient System Data bitrate to insert system data packets"));

@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -213,8 +213,7 @@ $(DTCP_IP_APPLIB_TEST_ODIR) :
 install: all
 
 ifeq ($(DTCP_IP_SAGE_SUPPORT),y)
-	@cp -f $(BSEAV)/lib/security/common_drm/lib/$(CMNDRM_DIR)/libcmndrm.so $(NEXUS_BIN_DIR)
-	@cp -f $(BSEAV)/lib/security/common_drm/lib/$(CMNDRM_DIR)/libcmndrm_tl.so $(NEXUS_BIN_DIR)
+	@cp -f ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/lib/$(CMNDRM_DIR)/libcmndrm*.so $(NEXUS_BIN_DIR)
 endif #DTCP_IP_SAGE_SUPPORT
 
 ifeq ($(SSL_SUPPORT),y)

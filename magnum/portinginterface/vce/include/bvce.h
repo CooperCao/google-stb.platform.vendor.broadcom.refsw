@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1325,6 +1325,40 @@ BVCE_Channel_UserData_GetStatus_isr(
       BAVC_VideoUserDataStatus *pstUserDataStatus
 );
 
+/***********/
+/* Picture */
+/***********/
+/* BVCE_Channel_Picture_Enqueue_isr - add a picture buffer to the encode queue
+ *  If the encode queue is full, returns BERR_NOT_AVAILABLE
+ * */
+BERR_Code
+BVCE_Channel_Picture_Enqueue_isr(
+         BVCE_Channel_Handle hVceCh,
+         const BAVC_EncodePictureBuffer *pstPicture /* Pointer to picture info descriptor */
+         );
+
+/* BVCE_Channel_Picture_Dequeue_isr - removes picture buffers that are no longer needed
+ *
+ * Only the following fields are valid in the BAVC_EncodePictureBuffer:
+ *    - hLumaBlock
+ *    - ulLumaOffset
+ *    - hChromaBlock
+ *    - ulChromaOffset
+ *    - h2H1VLumaBlock
+ *    - ul2H1VLumaOffset
+ *    - h2H2VLumaBlock
+ *    - ul2H2VLumaOffset
+ *    - hShiftedChromaBlock
+ *    - ulShiftedChromaOffset
+ *
+ *    This function should be called repeatedly until the return code is BERR_NOT_AVAILABLE
+ * */
+BERR_Code
+BVCE_Channel_Picture_Dequeue_isr(
+      BVCE_Channel_Handle hVceCh,
+      BAVC_EncodePictureBuffer *pstPicture
+      );
+
 /********************/
 /* Helper Functions */
 /********************/
@@ -1384,16 +1418,17 @@ typedef struct BVCE_Channel_MemoryBoundsSettings
    {
       BVCE_BitRate stLargest; /* The largest bitrate intended to be used during the transcode. The default of 0 means the initial bitrate is the max */
    } stBitRate;
-} BVCE_Channel_MemoryBoundsSettings;
 
-/* BVCE_GetDefaultMemoryBoundsSettings - populates the memory bounds settings
- * with the worst case encoder parameters
- */
-void
-BVCE_Channel_GetDefaultMemoryBoundsSettings(
-         const BBOX_Handle hBox,
-         BVCE_Channel_MemoryBoundsSettings *pstChMemoryBoundsSettings
-         );
+   struct
+   {
+      unsigned uiNumberOfPFrames; /* number of P frames between I frames. 0xFFFFFFFF indicated IP infinite mode
+                                   * Note: This field is ignored if uiDuration != 0
+                                   */
+
+      /* The following are only relevant if uiNumberOfPFrames != 0 and uiNumberOfPFrames != 0xFFFFFFFF */
+      unsigned uiNumberOfBFrames; /* number of B frames between I or P frames */
+   } stGOPStructure;
+} BVCE_Channel_MemoryBoundsSettings;
 
 typedef struct BVCE_Channel_MemorySettings
 {
@@ -1405,8 +1440,18 @@ typedef struct BVCE_Channel_MemorySettings
       unsigned uiSecure;
    } memcIndex; /* Indicates which memory controllers are used for which memory types.  The indexes refer to BCHP_MemoryInfo.memc[] */
 
-   BCHP_MemoryInfo *pstMemoryInfo;
+   const BCHP_MemoryInfo *pstMemoryInfo;
 } BVCE_Channel_MemorySettings;
+
+/* BVCE_GetDefaultMemoryBoundsSettings - populates the memory bounds settings
+ * with the worst case encoder parameters
+ */
+void
+BVCE_Channel_GetDefaultMemoryBoundsSettings(
+         const BBOX_Handle hBox,
+         const BVCE_Channel_MemorySettings *pstChMemorySettings,
+         BVCE_Channel_MemoryBoundsSettings *pstChMemoryBoundsSettings
+         );
 
 /* BVCE_GetMemoryConfig - populates the memory config with
  * the memory required for the particular encode specified.

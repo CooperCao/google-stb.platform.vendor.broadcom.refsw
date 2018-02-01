@@ -52,7 +52,7 @@ v3d_qpu_magic_waddr_class_t v3d_qpu_classify_magic_waddr(uint32_t addr)
    case V3D_QPU_MAGIC_WADDR_TMUD:
    case V3D_QPU_MAGIC_WADDR_TMUA:
    case V3D_QPU_MAGIC_WADDR_TMUAU:
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_QPU_MAGIC_WADDR_TMUC:
    case V3D_QPU_MAGIC_WADDR_TMUS:
    case V3D_QPU_MAGIC_WADDR_TMUT:
@@ -73,7 +73,7 @@ v3d_qpu_magic_waddr_class_t v3d_qpu_classify_magic_waddr(uint32_t addr)
    case V3D_QPU_MAGIC_WADDR_TMUL:
 #endif
       return V3D_QPU_MAGIC_WADDR_CLASS_TMU;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_QPU_MAGIC_WADDR_VPM:
    case V3D_QPU_MAGIC_WADDR_VPMU:
       return V3D_QPU_MAGIC_WADDR_CLASS_VPM;
@@ -100,6 +100,36 @@ v3d_qpu_magic_waddr_class_t v3d_qpu_classify_magic_waddr(uint32_t addr)
    default:
       unreachable();
       return V3D_QPU_MAGIC_WADDR_CLASS_INVALID;
+   }
+}
+
+v3d_qpu_res_flag_t v3d_qpu_required_res_flag(v3d_qpu_setf_t setf)
+{
+   switch (setf)
+   {
+   case V3D_QPU_SETF_NONE:
+      return V3D_QPU_RES_FLAG_INVALID;
+   case V3D_QPU_SETF_PUSHZ:
+   case V3D_QPU_SETF_ANDZ:
+   case V3D_QPU_SETF_ANDNZ:
+   case V3D_QPU_SETF_NORNZ:
+   case V3D_QPU_SETF_NORZ:
+      return V3D_QPU_RES_FLAG_Z;
+   case V3D_QPU_SETF_PUSHN:
+   case V3D_QPU_SETF_ANDN:
+   case V3D_QPU_SETF_ANDNN:
+   case V3D_QPU_SETF_NORNN:
+   case V3D_QPU_SETF_NORN:
+      return V3D_QPU_RES_FLAG_N;
+   case V3D_QPU_SETF_PUSHC:
+   case V3D_QPU_SETF_ANDC:
+   case V3D_QPU_SETF_ANDNC:
+   case V3D_QPU_SETF_NORNC:
+   case V3D_QPU_SETF_NORC:
+      return V3D_QPU_RES_FLAG_C;
+   default:
+      unreachable();
+      return V3D_QPU_RES_FLAG_INVALID;
    }
 }
 
@@ -144,10 +174,6 @@ uint32_t v3d_qpu_sig_default_reg(v3d_qpu_sigbits_t sigbits) {
       case V3D_QPU_SIG_LDTLB:  return 3;
       case V3D_QPU_SIG_LDTLBU: return 3;
       case V3D_QPU_SIG_LDTMU:  return 4;
-#if V3D_VER_AT_LEAST(4,1,34,0)
-      case V3D_QPU_SIG_LDUNIFRF:  return 5;
-      case V3D_QPU_SIG_LDUNIFARF: return 5;
-#endif
       default: unreachable();  return 0;
    }
 }
@@ -162,12 +188,6 @@ uint64_t v3d_qpu_instr_unused_mask(const struct v3d_qpu_instr *in)
          {
             return gfx_mask64(2) << 4;
          }
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,1,34,0)
-         else if (v3d_qpu_sig_has_result_write(in->u.alu.sig.sigbits) && !in->u.alu.sig.sig_reg)
-         {
-            return gfx_mask64(6) << 46;
-         }
-#endif
          else
          {
             return 0;
@@ -367,6 +387,9 @@ static bool decode_add_op(struct v3d_qpu_op *op, uint32_t op_add, uint32_t add_a
       case 2:  op->opcode = V3D_QPU_OP_FLAPUSH; break;
       case 3:  op->opcode = V3D_QPU_OP_FLBPUSH; break;
       case 4:  op->opcode = V3D_QPU_OP_FLPOP; break;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      case 5:  op->opcode = V3D_QPU_OP_RECIP; break;
+#endif
       case 6:  op->opcode = V3D_QPU_OP_SETMSF; break;
       case 7:  op->opcode = V3D_QPU_OP_SETREVF; break;
       default: return false;
@@ -404,22 +427,29 @@ static bool decode_add_op(struct v3d_qpu_op *op, uint32_t op_add, uint32_t add_a
          {
          case 0:  op->opcode = V3D_QPU_OP_MSF; break;
          case 1:  op->opcode = V3D_QPU_OP_REVF; break;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
          case 2:  op->opcode = V3D_QPU_OP_IID; break;
          case 3:  op->opcode = V3D_QPU_OP_SAMPID; break;
          case 4:  op->opcode = V3D_QPU_OP_BARRIERID; break;
 #endif
          case 5:  op->opcode = V3D_QPU_OP_TMUWT; break;
-#if V3D_VER_AT_LEAST(4,0,2,0)
-         case 6:  op->opcode = V3D_QPU_OP_VPMWT; break;
-#endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
+         case 6:  op->opcode = V3D_QPU_OP_VPMWT; break;
          case 7: op->opcode = V3D_QPU_OP_FLAFIRST; break;
 #endif
          default: return false;
          }
          break;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_HAS_FLNAFIRST
+      case 3:
+         switch (add_a)
+         {
+            case 0: op->opcode = V3D_QPU_OP_FLNAFIRST; break;
+            default: return false;
+         }
+         break;
+#endif
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       case 3:
          op->opcode = V3D_QPU_OP_VPMSETUP;
          break;
@@ -428,7 +458,7 @@ static bool decode_add_op(struct v3d_qpu_op *op, uint32_t op_add, uint32_t add_a
 #if V3D_VER_AT_LEAST(3,3,0,0)
       case 4: op->opcode = V3D_QPU_OP_TMUWRCFG; break;
       case 5: op->opcode = V3D_QPU_OP_TLBWRCFG; break;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       case 6: op->opcode = V3D_QPU_OP_VPMWRCFG; break;
 #endif
 #endif
@@ -436,7 +466,7 @@ static bool decode_add_op(struct v3d_qpu_op *op, uint32_t op_add, uint32_t add_a
          return false;
       }
       break;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case 188:
       switch(add_b)
       {
@@ -447,6 +477,11 @@ static bool decode_add_op(struct v3d_qpu_op *op, uint32_t op_add, uint32_t add_a
             if(magic_add) return false;
             op->opcode = V3D_QPU_OP_LDVPMP;
             break;
+         case 3: op->opcode = V3D_QPU_OP_RSQRT; break;
+         case 4: op->opcode = V3D_QPU_OP_EXP; break;
+         case 5: op->opcode = V3D_QPU_OP_LOG; break;
+         case 6: op->opcode = V3D_QPU_OP_SIN; break;
+         case 7: op->opcode = V3D_QPU_OP_RSQRT2; break;
          default: return false;
       }
       break;
@@ -496,7 +531,7 @@ static bool decode_add_op(struct v3d_qpu_op *op, uint32_t op_add, uint32_t add_a
       default:                return false;
       }
       break;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case 248:
       /* We don't allow the ma flag to be set in stvpm instructions. */
       if(magic_add) return false;
@@ -740,6 +775,9 @@ static bool encode_add_op(struct v3d_qpu_op const* op, uint32_t* op_add, uint32_
       case V3D_QPU_OP_FLAPUSH: *op_add = 186; *add_b = 2; return true;
       case V3D_QPU_OP_FLBPUSH: *op_add = 186; *add_b = 3; return true;
       case V3D_QPU_OP_FLPOP: *op_add = 186; *add_b = 4; return true;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      case V3D_QPU_OP_RECIP: *op_add = 186; *add_b = 5; return true;
+#endif
       case V3D_QPU_OP_SETMSF: *op_add = 186; *add_b = 6; return true;
       case V3D_QPU_OP_SETREVF: *op_add = 186; *add_b = 7; return true;
 
@@ -757,7 +795,7 @@ static bool encode_add_op(struct v3d_qpu_op const* op, uint32_t* op_add, uint32_
 
       case V3D_QPU_OP_MSF: *op_add = 187; *add_b = 2; *add_a = 0; return true;
       case V3D_QPU_OP_REVF: *op_add = 187; *add_b = 2; *add_a = 1; return true;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case V3D_QPU_OP_IID: *op_add = 187; *add_b = 2; *add_a = 2; return true;
       case V3D_QPU_OP_SAMPID: *op_add = 187; *add_b = 2; *add_a = 3; return true;
 #endif
@@ -766,7 +804,7 @@ static bool encode_add_op(struct v3d_qpu_op const* op, uint32_t* op_add, uint32_
 #if V3D_VER_AT_LEAST(3,3,0,0)
       case V3D_QPU_OP_TMUWRCFG: *op_add = 187; *add_b = 4; return true;
       case V3D_QPU_OP_TLBWRCFG: *op_add = 187; *add_b = 5; return true;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       case V3D_QPU_OP_VPMWRCFG: *op_add = 187; *add_b = 6; return true;
 #endif
 #endif
@@ -791,7 +829,7 @@ static bool encode_add_op(struct v3d_qpu_op const* op, uint32_t* op_add, uint32_
 
       case V3D_QPU_OP_CLZ: *op_add = 252; *add_b = 3; return true;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       /* Note: ldvpm* can only load to register file */
       case V3D_QPU_OP_LDVPMV_IN: *op_add = 188; *add_b = 0; *magic_a = false; return true;
       case V3D_QPU_OP_LDVPMD_IN: *op_add = 188; *add_b = 1; *magic_a = false; return true;
@@ -810,6 +848,15 @@ static bool encode_add_op(struct v3d_qpu_op const* op, uint32_t* op_add, uint32_
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
       case V3D_QPU_OP_FLAFIRST: *op_add = 187; *add_b = 2; *add_a = 7; return true;
+# if V3D_HAS_FLNAFIRST
+      case V3D_QPU_OP_FLNAFIRST: *op_add = 187; *add_b = 3; *add_a = 0; return true;
+# endif
+
+      case V3D_QPU_OP_RSQRT: *op_add = 188; *add_b = 3; return true;
+      case V3D_QPU_OP_EXP: *op_add = 188; *add_b = 4; return true;
+      case V3D_QPU_OP_LOG: *op_add = 188; *add_b = 5; return true;
+      case V3D_QPU_OP_SIN: *op_add = 188; *add_b = 6; return true;
+      case V3D_QPU_OP_RSQRT2: *op_add = 188; *add_b = 7; return true;
 #endif
 
       default: return false;
@@ -956,18 +1003,15 @@ static const v3d_qpu_sigbits_t valid_sigs[] = {
 #if V3D_VER_AT_LEAST(4,1,34,0)
 /* 12 */                                             S(LDUNIFRF),
 /* 13 */   S(THRSW) |                                S(LDUNIFRF),
-#elif !V3D_VER_AT_LEAST(4,0,2,0)
+#else
 /* 12 */                   S(LDVARY) |  S(LDTMU),
 /* 13 */   S(THRSW) |      S(LDVARY) |  S(LDTMU),
-#else
-/* 12 */   ~0u,
-/* 13 */   ~0u,
 #endif
 /* 14 */   S(SMALL_IMM) |  S(LDVARY),
 /* 15 */   S(SMALL_IMM),
 /* 16 */                   S(LDTLB),
 /* 17 */                   S(LDTLBU),
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 /* 18 */                                             S(WRTMUC),
 /* 19 */   S(THRSW) |                                S(WRTMUC),
 /* 20 */                   S(LDVARY) |               S(WRTMUC),
@@ -988,7 +1032,7 @@ static const v3d_qpu_sigbits_t valid_sigs[] = {
 /* 28 */   ~0u,
 /* 29 */   ~0u,
 /* 30 */   ~0u,
-#elif !V3D_VER_AT_LEAST(4,0,2,0)
+#else
 /* 24 */                  S(LDVPM),
 /* 25 */   S(THRSW) |     S(LDVPM),
 /* 26 */                  S(LDVPM) |                 S(LDUNIF),
@@ -996,14 +1040,6 @@ static const v3d_qpu_sigbits_t valid_sigs[] = {
 /* 28 */                  S(LDVPM) |    S(LDTMU),
 /* 29 */   S(THRSW) |     S(LDVPM) |    S(LDTMU),
 /* 30 */   S(SMALL_IMM) | S(LDVPM),
-#else
-/* 24 */   ~0u,
-/* 25 */   ~0u,
-/* 26 */   ~0u,
-/* 27 */   ~0u,
-/* 28 */   ~0u,
-/* 29 */   ~0u,
-/* 30 */   ~0u,
 #endif
 /* 31 */   S(SMALL_IMM) |               S(LDTMU),
 #undef S
@@ -1126,7 +1162,7 @@ bool v3d_qpu_op_requires_read_a(v3d_qpu_opcode_t op)
        * consume regfile read A */
       case V3D_QPU_OP_TLBWRCFG:
       case V3D_QPU_OP_TMUWRCFG:
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       case V3D_QPU_OP_VPMWRCFG:
 #endif
          return true;
@@ -1197,15 +1233,6 @@ bool v3d_qpu_instr_try_unpack(struct v3d_qpu_instr *in, uint64_t bits,
             set_err(err, "Unrecognised magic write addr %u (sig pipe)",
                          in->u.alu.sig.waddr);
             return false;
-         }
-      }
-#elif V3D_VER_AT_LEAST(4,0,2,0)
-      in->u.alu.sig.sig_reg = false;
-      if(v3d_qpu_sig_has_result_write(in->u.alu.sig.sigbits)) {
-         uint32_t cond = (i1 >> 14) & 0x7f;
-         if (cond & 0x40) {
-            in->u.alu.sig.sig_reg = true;
-            in->u.alu.sig.waddr = cond & 0x3f;
          }
       }
 #endif
@@ -1303,7 +1330,7 @@ bool v3d_qpu_instr_try_unpack(struct v3d_qpu_instr *in, uint64_t bits,
       }
 
       uint32_t cond = (i1 >> 14) & 0x7f;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       if(in->type == V3D_QPU_INSTR_TYPE_ALU && v3d_qpu_sig_has_result_write(in->u.alu.sig.sigbits) )
       {
          cond = 0;
@@ -1477,19 +1504,14 @@ bool v3d_qpu_instr_try_pack(struct v3d_qpu_instr const* in, uint64_t* bits)
             return false;
          }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
          if(v3d_qpu_sig_has_result_write(in->u.alu.sig.sigbits))
          {
             if (cond != 0)
             {
                return false;
             }
-# if V3D_VER_AT_LEAST(4,1,34,0)
             cond = (in->u.alu.sig.magic ? 0x40 : 0) | in->u.alu.sig.waddr;
-# else
-            if (in->u.alu.sig.sig_reg)
-               cond = 0x40 | in->u.alu.sig.waddr;
-# endif
          }
 #endif
 
@@ -1653,12 +1675,13 @@ v3d_qpu_res_type_t v3d_qpu_res_type_from_opcode(v3d_qpu_opcode_t opcode)
    case V3D_QPU_OP_SMUL24:
    case V3D_QPU_OP_MULTOP:
    case V3D_QPU_OP_SAMPID:
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_QPU_OP_VPMWT:
    case V3D_QPU_OP_BARRIERID:
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_QPU_OP_FLAFIRST:
+#endif
+#if V3D_HAS_FLNAFIRST
+   case V3D_QPU_OP_FLNAFIRST:
 #endif
       return V3D_QPU_RES_TYPE_32I;
    case V3D_QPU_OP_FADD:
@@ -1713,6 +1736,14 @@ v3d_qpu_res_type_t v3d_qpu_res_type_from_opcode(v3d_qpu_opcode_t opcode)
    case V3D_QPU_OP_STVPMD:
    case V3D_QPU_OP_STVPMP:
       return V3D_QPU_RES_TYPE_NOP;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_QPU_OP_RECIP:
+   case V3D_QPU_OP_EXP:
+   case V3D_QPU_OP_LOG:
+   case V3D_QPU_OP_SIN:
+   case V3D_QPU_OP_RSQRT:
+   case V3D_QPU_OP_RSQRT2:
+#endif
    case V3D_QPU_OP_LDVPMV_IN:
    case V3D_QPU_OP_LDVPMD_IN:
    case V3D_QPU_OP_LDVPMV_OUT:

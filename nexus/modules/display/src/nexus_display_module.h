@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -270,9 +270,13 @@ struct NEXUS_DisplayGraphics {
 
 typedef struct NEXUS_Display_P_Image {
     BLST_SQ_ENTRY(NEXUS_Display_P_Image) link;
+#if NEXUS_DISPLAY_USE_VIP
+    BAVC_EncodePictureBuffer picture;
+#else
     BMMA_Block_Handle hImage;
     unsigned offset;
     unsigned picId;
+#endif
 } NEXUS_Display_P_Image;
 BLST_SQ_HEAD(NEXUS_Display_P_ImageQueue, NEXUS_Display_P_Image );
 
@@ -338,9 +342,22 @@ struct NEXUS_Display {
         bool rateInfoValid;
         uint32_t vdcIndex;
         bool forceFormatChange;
+        struct {
+            BKNI_EventHandle event;
+            NEXUS_EventCallbackHandle handler;
+            NEXUS_HdmiDynamicRangeMasteringInfoFrame infoFrame;
+            bool smdValid;
+        } hdrInfoChange;
 #endif
         NEXUS_VideoFormat outputFormat;
     } hdmi;
+
+    struct
+    {
+        NEXUS_DisplayPrivateSettings settings;
+        NEXUS_DisplayPrivateStatus status;
+        NEXUS_TaskCallbackHandle hdrInfoChangedCallback;
+    } private;
 
 #if NEXUS_NUM_HDMI_DVO
     struct
@@ -374,9 +391,9 @@ struct NEXUS_Display {
     bool encodeUserData;
     NEXUS_VideoInputHandle xudSource;
     BXUDlib_Settings userDataEncodeSettings;
-#if NEXUS_NUM_DSP_VIDEO_ENCODERS
+#if NEXUS_P_USE_PROLOGUE_BUFFER
     struct {
-#if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
+#if NEXUS_DISPLAY_USE_VIP
         NEXUS_Error (*enqueueCb_isr)(void * context, BAVC_EncodePictureBuffer *picture);
         NEXUS_Error (*dequeueCb_isr)(void * context, BAVC_EncodePictureBuffer *picture);
 #else
@@ -387,8 +404,16 @@ struct NEXUS_Display {
         unsigned framesEnqueued;
         unsigned dropRate;
         uint32_t *buf;
+        unsigned numOrigBufs;
         struct NEXUS_Display_P_ImageQueue free;
         struct NEXUS_Display_P_ImageQueue queued;
+#if NEXUS_DISPLAY_USE_VIP
+        struct NEXUS_Display_P_ImageQueue captured; /* to hold buffer in case encoder back pressure */
+        /* separate queues for associated buffers as they may be returned by encoder at different timing from orignal luma buffers */
+        unsigned numDecimBufs, numShiftedBufs; /* associated buffers counts might be different from original luma buffers */
+        struct NEXUS_Display_P_ImageQueue freeDecim1v, freeDecim2v, freeChroma, freeShifted;
+        struct NEXUS_Display_P_ImageQueue queuedDecim1v, queuedDecim2v, queuedChroma, queuedShifted;
+#endif
         bool callbackEnabled;
         NEXUS_VideoWindowHandle window;
     } encoder;

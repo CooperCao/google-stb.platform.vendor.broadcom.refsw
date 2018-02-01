@@ -269,12 +269,15 @@ void CRemote::submitCode(CRemoteEvent * pEvent)
     BDBG_MSG(("Remote event code:%#x repeat:%d", pEvent->getCode(), pEvent->isRepeat()));
     berror = bwidget_enter_key(pWidgetEngine->getWidgetEngine(), eKey2bwidgets[pEvent->getCode()], pEvent->isRepeat() ? false : true);
 
+    ret = notifyObservers(eNotify_KeyClick, pEvent);
+    CHECK_ERROR("unable to notify observers - key click", ret);
+
     if ((-1 == berror) && (false == pEvent->isRepeat()))
     {
         BDBG_MSG(("bwidgets did not consume key event so pass on to registered observers"));
         /* bwidgets did not consume key so pass on to registered observers */
         ret = notifyObservers(eNotify_KeyDown, pEvent);
-        CHECK_ERROR("unable to notify observers", ret);
+        CHECK_ERROR("unable to notify observers - key down", ret);
     }
 } /* submitCode */
 
@@ -478,6 +481,10 @@ struct g_IrRemoteCodes
     { eKey_JumpFwd,     0x0000203B, 0xE718FF00, 0x0000083B, "eKey_JumpFwd"     },
     { eKey_JumpRev,     0x0000303A, 0xA758FF00, 0x0000081B, "eKey_JumpRev"     },
     { eKey_Power,       0x0000600A, 0xF50AFF00, 0x00000010, "eKey_Power"       },
+    { eKey_Fav1,        0x00000000, 0xFD02FF00, 0x00000000, "eKey_Fav1"        },
+    { eKey_Fav2,        0x00000000, 0xFC03FF00, 0x00000000, "eKey_Fav2"        },
+    { eKey_Fav3,        0x00000000, 0xBD42FF00, 0x00000000, "eKey_Fav3"        },
+    { eKey_Fav4,        0x00000000, 0xBC43FF00, 0x00000000, "eKey_Fav4"        },
     /* ascii codes */
     { eKey_0,           0x00000000, 0xAD52FF00, 0x00000022, "eKey_0"           },
     { eKey_1,           0x0000F001, 0xE01FFF00, 0x00000008, "eKey_1"           },
@@ -1266,6 +1273,10 @@ struct g_Rf4ceRemoteCodes
     { eKey_JumpFwd,     INVALID, "eKey_JumpFwd"     },
     { eKey_JumpRev,     INVALID, "eKey_JumpRev"     },
     { eKey_Power,       INVALID, "eKey_Power"       },
+    { eKey_Fav1,        INVALID, "eKey_Fav1"        },
+    { eKey_Fav2,        INVALID, "eKey_Fav2"        },
+    { eKey_Fav3,        INVALID, "eKey_Fav3"        },
+    { eKey_Fav4,        INVALID, "eKey_Fav4"        },
     /* ascii codes */
     { eKey_0,           0x20,    "eKey_0"           },
     { eKey_1,           0x21,    "eKey_1"           },
@@ -1681,6 +1692,10 @@ struct g_BluetoothRemoteCodes
     { eKey_JumpFwd,     INVALID,            "eKey_JumpFwd"     },
     { eKey_JumpRev,     INVALID,            "eKey_JumpRev"     },
     { eKey_Power,       KEY_POWER,          "eKey_Power"       },
+    { eKey_Fav1,        INVALID,            "eKey_Fav1"        },
+    { eKey_Fav2,        INVALID,            "eKey_Fav2"        },
+    { eKey_Fav3,        INVALID,            "eKey_Fav3"        },
+    { eKey_Fav4,        INVALID,            "eKey_Fav4"        },
     /* ascii codes */
     { eKey_0,           KEY_0,              "eKey_0"           },
     { eKey_1,           KEY_1,              "eKey_1"           },
@@ -2087,6 +2102,10 @@ struct g_UhfRemoteCodes
     { eKey_JumpFwd,     0x037241b4, 0xbd79a37d, "eKey_JumpFwd"     },
     { eKey_JumpRev,     0x03624143, 0xbd79a36c, "eKey_JumpRev"     },
     { eKey_Power,       0x00220373, 0xbd79a104, "eKey_Power"       },
+    { eKey_Fav1,        INVALID,    INVALID,    "eKey_Fav1"        },
+    { eKey_Fav2,        INVALID,    INVALID,    "eKey_Fav2"        },
+    { eKey_Fav3,        INVALID,    INVALID,    "eKey_Fav3"        },
+    { eKey_Fav4,        INVALID,    INVALID,    "eKey_Fav4"        },
     /* ascii codes */
     { eKey_0,           0x011203c8, 0xbd79a115, "eKey_0"           },
     { eKey_1,           0x00420141, 0xbd79a014, "eKey_1"           },

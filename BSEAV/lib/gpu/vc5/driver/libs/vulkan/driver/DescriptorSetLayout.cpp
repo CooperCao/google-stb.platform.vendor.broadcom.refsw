@@ -27,13 +27,11 @@ DescriptorSetLayoutState::DescriptorSetLayoutState(
    for (uint32_t i = 0; i < pCreateInfo->bindingCount; i++)
       maxBinding = std::max(maxBinding, pCreateInfo->pBindings[i].binding);
 
-   m_numBindings = maxBinding + 1;
-
    // Create non-sparse storage
-   m_bindings.resize(m_numBindings);
+   m_bindings.resize(maxBinding + 1);
 
    // Clear every entry
-   for (uint32_t i = 0; i < m_numBindings; i++)
+   for (uint32_t i = 0; i < maxBinding + 1; i++)
       m_bindings[i] = {};
 
    size_t offset    = 0;
@@ -80,13 +78,13 @@ bool DescriptorSetLayoutState::WriteImmutableSamplerRecords(uint8_t *sysPtr, siz
 {
    bool flush = false;
 
-   for (uint32_t b = 0; b < m_numBindings; b++)
+   for (uint32_t b = 0; b < m_bindings.size(); b++)
    {
       VkDescriptorType descType = m_bindings[b].descriptorType;
 
-      for (uint32_t e = 0; e < static_cast<uint32_t>(m_bindings[b].immutableSamplers.size()); e++)
+      for (size_t e = 0; e < m_bindings[b].immutableSamplers.size(); e++)
       {
-         Sampler *samp = GetImmutableSampler(b, e);
+         Sampler *samp = m_bindings[b].immutableSamplers[e];
          assert(samp != nullptr);
 
          assert(descType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||

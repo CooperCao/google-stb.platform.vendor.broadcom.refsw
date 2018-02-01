@@ -119,6 +119,37 @@ typedef enum eDolbyDRC
     eDolbyDRC_Max
 } eDolbyDRC;
 
+typedef enum
+{
+    ePriority_Language,
+    ePriority_Associate,
+    ePriority_Max
+} ePriority;
+
+class CAudioDecodeAc4Data
+{
+public:
+    CAudioDecodeAc4Data(
+            NEXUS_AudioDecoderAc4Program program           = NEXUS_AudioDecoderAc4Program_eMain,
+            eLanguage                    language          = eLanguage_English,
+            NEXUS_AudioAc4AssociateType  associate         = NEXUS_AudioAc4AssociateType_eNotSpecified,
+            int32_t                      presentationIndex = 0,
+            ePriority                    priority          = ePriority_Associate
+            ) :
+        _program(program),
+        _language(language),
+        _associate(associate),
+        _presentationIndex(presentationIndex),
+        _priority(priority) {}
+
+public:
+    NEXUS_AudioDecoderAc4Program _program;
+    eLanguage                    _language;
+    NEXUS_AudioAc4AssociateType  _associate;
+    int32_t                      _presentationIndex;
+    ePriority                    _priority;
+};
+
 class CAudioDecode : public CResource
 {
 public:
@@ -192,8 +223,14 @@ public:
     virtual eRet             setMute(bool bMute);
     virtual uint32_t         getVolume(void);
     virtual eRet             setVolume(uint32_t level);
-    virtual eRet             setAudioFade(unsigned level = 100, unsigned duration = 3);
+#if BDSP_MS12_SUPPORT
+    virtual void             setAudioFadeStartLevel(int32_t level) { _fadeStartLevel = level; }
+    virtual int32_t          getAudioFadeStartLevel(void) { return(_fadeStartLevel); }
+    virtual int              getAudioFade(void) { return(100); }
+    virtual eRet             setAudioFade(unsigned level = 100, unsigned duration = 3, bool bWait = false) { BSTD_UNUSED(level); BSTD_UNUSED(duration); BSTD_UNUSED(bWait); }
+    virtual bool             isAudioFadePending(void) { return(false); }
     virtual eRet             waitAudioFadeComplete(void) { return(eRet_Ok); }
+#endif
     virtual bool             isMaster(void) { return(_bMaster); }
     virtual void             setMaster(bool bMaster) { _bMaster = bMaster; }
     virtual NEXUS_AudioDecoderMixingMode getMixingMode(void) { return(_mixingMode); }
@@ -221,7 +258,23 @@ public:
     /* SW7445-1016 : should return NULL for 14.3*/
     virtual NEXUS_AudioDecoderHandle       getDecoder(void)       { return(_pDecoders[0]->getDecoder()); }
     virtual NEXUS_SimpleAudioDecoderHandle getSimpleDecoder(void) { return(_simpleDecoder); }
-
+#if BDSP_MS12_SUPPORT
+    virtual unsigned                       numPresentations(void);
+    virtual eRet                           getPresentationStatus(unsigned nIndex, NEXUS_AudioDecoderPresentationStatus * pStatus);
+    virtual unsigned                       getPresentation(NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
+    virtual unsigned                       getPresentationCurrent(NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
+    virtual eRet                           setPresentation(unsigned nIndex, NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
+    virtual eRet                           setPresentation(NEXUS_AudioDecoderPresentationStatus * pStatus);
+    virtual eLanguage                      getLanguage(NEXUS_AudioDecoderAc4Program program);
+    virtual eRet                           setLanguage(eLanguage language, NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
+    virtual NEXUS_AudioAc4AssociateType    getAssociate(NEXUS_AudioDecoderAc4Program program);
+    virtual eRet                           setAssociate(NEXUS_AudioAc4AssociateType associate, NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
+    virtual ePriority                      getPriority(NEXUS_AudioDecoderAc4Program program);
+    virtual eRet                           setPriority(ePriority priority, NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
+    virtual void                           dumpPresentation(unsigned nIndex = 0, bool bForce = false);
+    virtual int                            getDialogEnhancement(void);
+    virtual eRet                           setDialogEnhancement(int nDb);
+#endif
     void                                    setResources(void * id, CBoardResources * pResources);
     void                                    setOutputHdmi(COutputHdmi * pHdmi)         { _pHdmi = pHdmi; }
     void                                    setOutputSpdif(COutputSpdif * pSpdif)      { _pSpdif = pSpdif; }
@@ -279,6 +332,9 @@ protected:
     bool                _bPrimer;
     bool                                  _bMaster;
     NEXUS_AudioDecoderMixingMode          _mixingMode;
+#if BDSP_MS12_SUPPORT
+    int32_t             _fadeStartLevel;
+#endif
     eWindowType         _windowType;
     CModel *            _pModel;
 };

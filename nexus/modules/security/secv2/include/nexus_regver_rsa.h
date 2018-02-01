@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -52,7 +52,7 @@ extern "C"
 {
 #endif
 
-#define NEXUS_REGVER_RSA_KEY_SIZE 532
+#define NEXUS_REGVER_RSA_KEY_SIZE 556
 
 typedef struct NEXUS_RegVerRsa* NEXUS_RegVerRsaHandle;
 

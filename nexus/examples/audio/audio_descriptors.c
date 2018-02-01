@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
     NEXUS_ParserBandSettings parserBandSettings;
     NEXUS_StcChannelHandle stcChannel;
     NEXUS_StcChannelSettings stcSettings;
-    NEXUS_PidChannelHandle videoPidChannel, audioPidChannel, descriptionPidChannel;
+    NEXUS_PidChannelHandle videoPidChannel, audioPidChannel, descriptionPidChannel = NULL;
     NEXUS_DisplayHandle display;
     NEXUS_DisplaySettings displaySettings;
     NEXUS_VideoWindowHandle window;
@@ -128,9 +128,9 @@ int main(int argc, char **argv)
     NEXUS_Error rc;
 #endif
 #if NEXUS_HAS_PLAYBACK
-    NEXUS_FilePlayHandle file;
-    NEXUS_PlaypumpHandle playpump;
-    NEXUS_PlaybackHandle playback;
+    NEXUS_FilePlayHandle file = NULL;
+    NEXUS_PlaypumpHandle playpump = NULL;
+    NEXUS_PlaybackHandle playback = NULL;
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
 #endif
@@ -537,11 +537,22 @@ int main(int argc, char **argv)
     NEXUS_VideoWindow_RemoveAllInputs(window);
     if(fileName != NULL)
     {
-        NEXUS_Playback_Stop(playback);
-        NEXUS_Playback_CloseAllPidChannels(playback);
-        NEXUS_FilePlay_Close(file);
-        NEXUS_Playback_Destroy(playback);
-        NEXUS_Playpump_Close(playpump);
+        if (playback) {
+            NEXUS_Playback_Stop(playback);
+            NEXUS_Playback_CloseAllPidChannels(playback);
+        }
+        if (file) {
+            NEXUS_FilePlay_Close(file);
+            file = NULL;
+        }
+        if (playback) {
+            NEXUS_Playback_Destroy(playback);
+            playback = NULL;
+        }
+        if (playpump) {
+            NEXUS_Playpump_Close(playpump);
+            playpump = NULL;
+        }
     }
     else
     {

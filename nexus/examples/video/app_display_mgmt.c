@@ -81,7 +81,6 @@ int main(void)
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_DisplaySettings displaySettings;
 #if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_Error rc;
 #endif
     NEXUS_VideoDecoderReturnFrameSettings returnFrame;

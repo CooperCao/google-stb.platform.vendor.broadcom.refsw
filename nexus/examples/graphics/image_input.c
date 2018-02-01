@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 {
     NEXUS_Error rc;
     bool mainHeapFound = false, chromaHeapFound = false;
-    NEXUS_HeapHandle chromaHeap;
+    NEXUS_HeapHandle chromaHeap=NULL;
     NEXUS_DisplayHandle display;
     NEXUS_VideoWindowHandle window;
     NEXUS_VideoWindowSettings windowCfg;
@@ -306,6 +306,7 @@ int main(int argc, char **argv)
         if(stripe) {
             NEXUS_StripedSurface_GetDefaultCreateSettings(&stripeSettings);
             stripeSettings.lumaHeap = surfaceCfg.heap;
+            BDBG_ASSERT(chromaHeap);
             stripeSettings.chromaHeap = chromaHeap;
             stripeSettings.imageWidth  = surfaceCfg.width;
             stripeSettings.imageHeight = surfaceCfg.height;

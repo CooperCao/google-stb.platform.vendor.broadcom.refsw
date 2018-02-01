@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- * 
  *****************************************************************************/
 #include <stdlib.h>
 #include <stdint.h>
@@ -146,13 +143,14 @@ int main(int argc, char *argv[])
     /* RSA */
     test_rsa();
 
-
     printf("\n\n\t%s - Number of test cases that failed = '%u'\n", BSTD_FUNCTION, error_count);
-    printf("\t%s - Number of test cases that failed = '%u'\n", BSTD_FUNCTION, error_count);
-    printf("\t%s - Number of test cases that failed = '%u'\n", BSTD_FUNCTION, error_count);
-    printf("\t%s - Number of test cases that failed = '%u'\n", BSTD_FUNCTION, error_count);
     printf("\t%s - Exiting\n", BSTD_FUNCTION);
-    return 0;
+
+    /* Clean up test environment */
+    DRM_Common_Finalize();
+    NEXUS_Platform_Uninit();
+
+    return error_count;
 }
 
 void test_sha1()
@@ -390,6 +388,7 @@ void test_ecdsa_sign()
 	}
 	else{
 		printf("\t%s - ECDSA signature FAILED\n", BSTD_FUNCTION);
+		error_count++;
 	}
 	return;
 }
@@ -423,6 +422,7 @@ void test_ecdsa_multiply()
 	if (DRM_Common_SwEcdsaMultiply(&ecdsaSwIO) != Drm_Success)
 	{
 		printf("\t%s - Error calling Ecdsa multiply\n", BSTD_FUNCTION);
+		error_count++;
 		goto ErrorExit;
 	}
 	else
@@ -476,6 +476,9 @@ void test_aes_ecb()
 	if(DRM_Common_SwAesEcb(&SwAesCtrl) != Drm_Success)
 	{
 		printf("\t%s - bcrypt error\n", BSTD_FUNCTION);
+        printf("\t%s - TEST FAILED\n", BSTD_FUNCTION);
+		error_count++;
+        goto ErrorExit;
 	}
 
 
@@ -494,7 +497,7 @@ void test_aes_ecb()
 	   printf("\t%s - TEST FAILED\n\n", BSTD_FUNCTION);
 	   error_count++;
    }
-
+ErrorExit:
    return;
 }
 
@@ -528,6 +531,9 @@ void test_aes_cbc()
 	if(DRM_Common_SwAesCbc(&SwAesCtrl) != Drm_Success)
 	{
 		printf("\t%s - bcrypt error\n", BSTD_FUNCTION);
+        printf("\t%s - TEST FAILED\n", BSTD_FUNCTION);
+        error_count++;
+        goto ErrorExit;
 	}
 
 
@@ -546,7 +552,7 @@ void test_aes_cbc()
 	   printf("\t%s - TEST FAILED\n\n", BSTD_FUNCTION);
 	   error_count++;
    }
-
+ErrorExit:
    return;
 }
 
@@ -949,6 +955,8 @@ void test_rsa()
 	if (*rsaSwIO.cbDataOut != 128)
 	{
 		printf("\t%s - Length '%lu' != expected length of '128'\n", BSTD_FUNCTION, (*rsaSwIO.cbDataOut));
+        printf("\t%s - TEST FAILED\n", BSTD_FUNCTION);
+        error_count++;
 		goto ErrorExit;
 	}
 
@@ -979,6 +987,9 @@ void test_rsa()
 	if (outDataLen != sizeof (ptext1_1))
 	{
 		printf("\t%s - Decrypted size is wrong!! expected %d\n", BSTD_FUNCTION, sizeof (ptext1_1));
+        error_count++;
+        printf("\t%s - TEST FAILED\n", BSTD_FUNCTION);
+        goto ErrorExit;
 	}
 
 	printf("\t%s - Output Data (decrypted) =\n\t\t", BSTD_FUNCTION);
@@ -1000,4 +1011,3 @@ void test_rsa()
 ErrorExit:
 	return;
 }
-

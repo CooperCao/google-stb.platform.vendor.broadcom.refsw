@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -85,10 +85,6 @@
 #include "nexus_audio_dummy_output.h"
 #include "nexus_auto_volume_level.h"
 #include "nexus_3d_surround.h"
-#if NEXUS_AUDIO_BUFFER_CAPTURE_EXT
-#include "nexus_audio_buffer_capture.h"
-#include "nexus_audio_buffer_capture_priv.h"
-#endif
 #include "nexus_audio_equalizer.h"
 #include "nexus_audio_return_channel.h"
 #include "nexus_rf_audio_encoder.h"
@@ -96,6 +92,12 @@
 #include "nexus_audio_dsp.h"
 #if NEXUS_CVOICE
 #include "nexus_custom_voice.h"
+#endif
+#if NEXUS_AUDIO_BUFFER_CAPTURE_EXT
+#include "nexus_audio_buffer_capture.h"
+#endif
+#if NEXUS_AUDIO_RAVE_MONITOR_EXT
+#include "nexus_audio_rave_monitor.h"
 #endif
 #if NEXUS_NUM_DSP_VIDEO_DECODERS
 #include "nexus_audio_dsp_video_decoder_module.h"
@@ -105,6 +107,9 @@
 #endif
 #include "nexus_audio_crc.h"
 #include "nexus_audio_processor.h"
+#if NEXUS_HAS_SAGE
+#include "priv/nexus_sage_audio.h"
+#endif
 #include "blst_queue.h"
 
 /***************************************************************************
@@ -176,6 +181,9 @@ typedef struct NEXUS_AudioInputPortStatus
     unsigned sampleRate;        /* Sample Rate in Hz */
 } NEXUS_AudioInputPortStatus;
 
+typedef struct {
+    NEXUS_RaveHandle source, destination;
+} NEXUS_AudioDecoder_RaveConfig;
 /***************************************************************************
 Summary:
     Audio decoder object
@@ -200,8 +208,14 @@ typedef struct NEXUS_AudioDecoder
     bool suspended;
     BAPE_DecoderHandle channel;
     BAPE_DecoderStartSettings apeStartSettings;
+    void* sageAudioHandle;
+    bool sageAudioCapable;
+    bool sageAudioEnabled;
+    #if NEXUS_HAS_SAGE
+    NEXUS_SageAudioStartSettings sageAudioSettings;
+    #endif
     NEXUS_RaveStatus raveStatus;
-    NEXUS_RaveHandle raveContext;
+    NEXUS_RaveHandle srcRaveContext, dstRaveContext;
     NEXUS_RaveHandle savedRaveContext;
     NEXUS_AudioDecoderPrimerHandle primer;
     BKNI_EventHandle sampleRateEvent;
@@ -279,6 +293,12 @@ typedef struct NEXUS_AudioDecoder
         BAPE_MixerInputVolume current;
         BAPE_MixerInputVolume next;
     } volume;
+    #if NEXUS_AUDIO_RAVE_MONITOR_EXT
+    struct {
+        NEXUS_AudioRaveMonitorHandle monitor;
+        NEXUS_AudioRaveMonitorStartSettings startSettings;
+    } srcRaveMonitor, dstRaveMonitor;
+    #endif
 } NEXUS_AudioDecoder;
 
 /***************************************************************************
@@ -1105,6 +1125,12 @@ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SpdifInput);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_TruVolume);
 #if NEXUS_CVOICE
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_CustomVoice);
+#endif
+#if NEXUS_AUDIO_BUFFER_CAPTURE_EXT
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_AudioBufferCapture);
+#endif
+#if NEXUS_AUDIO_RAVE_MONITOR_EXT
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_AudioRaveMonitor);
 #endif
 
 #endif /* #ifndef NEXUS_AUDIO_MODULE_H_ */

@@ -200,6 +200,16 @@ typedef enum BBOX_XVD_DecodeResolution
       _bitDepth, BBOX_XVD_DecodeResolution_eHD, 25, _mfdIndex2, _nexusIndex2) \
 }
 
+#define BBOX_XVD_DECODER_INFO_Triple1080p30_V1( _memIndex, _secondaryMemcIndex, _bitDepth, _mfdIndex0, _nexusIndex0, \
+                                                _mfdIndex1, _nexusIndex1,  _mfdIndex2, _nexusIndex2) \
+{ \
+   BBOX_XVD_DECODER_INFO_V1( \
+      _memIndex, _secondaryMemcIndex, 3, \
+      _bitDepth, BBOX_XVD_DecodeResolution_eHD, 30, _mfdIndex0, _nexusIndex0, \
+      _bitDepth, BBOX_XVD_DecodeResolution_eHD, 30, _mfdIndex1, _nexusIndex1, \
+      _bitDepth, BBOX_XVD_DecodeResolution_eHD, 30, _mfdIndex2, _nexusIndex2) \
+}
+
 #define BBOX_XVD_DECODER_INFO_Triple1080p60_V1( _memIndex, _secondaryMemcIndex, _bitDepth, _mfdIndex0, _nexusIndex0, \
                                                 _mfdIndex1, _nexusIndex1,  _mfdIndex2, _nexusIndex2) \
 { \

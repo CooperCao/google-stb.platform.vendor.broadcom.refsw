@@ -52,10 +52,6 @@ BTRC_MODULE_DECLARE(ChnChange_TuneLock);
 static void NEXUS_Frontend_P_Sat_Close(NEXUS_FrontendHandle handle);
 static void NEXUS_Frontend_P_Sat_UninstallCallbacks(void *handle);
 
-/* Tuning */
-NEXUS_Error NEXUS_Frontend_P_Sat_TuneSatellite(void *handle, const NEXUS_FrontendSatelliteSettings *pSettings);
-void NEXUS_Frontend_P_Sat_Untune(void *handle);
-
 /* Status */
 static NEXUS_Error NEXUS_Frontend_P_Sat_GetSatelliteStatus(void *handle, NEXUS_FrontendSatelliteStatus *pStatus);
 static void NEXUS_Frontend_P_Sat_ResetStatus(void *handle);

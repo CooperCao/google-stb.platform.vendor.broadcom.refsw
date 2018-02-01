@@ -1,51 +1,40 @@
 /******************************************************************************
-*    (c)2008-2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-*****************************************************************************/
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "nexus_platform.h"
 #include "nexus_platform_features.h"
 
@@ -101,8 +90,8 @@ typedef struct EncodeSettings {
 /* Input stream parameters */
 typedef struct InputSettings {
 	char                 fname[256];
-	NEXUS_TransportType  eStreamType;          
-	NEXUS_AudioCodec     eAudioCodec;    
+	NEXUS_TransportType  eStreamType;
+	NEXUS_AudioCodec     eAudioCodec;
 	int                  iAudioPid;
 	int                  iPcrPid;
 } InputSettings;
@@ -126,7 +115,7 @@ void print_usage(void) {
 int main(int argc, char **argv) {
 	NEXUS_StcChannelHandle stcChannel, stcChannelTranscode;
 	NEXUS_StcChannelSettings stcSettings;
-	NEXUS_PidChannelHandle audioPidChannel, pcrPidChannel;
+	NEXUS_PidChannelHandle audioPidChannel;
 	NEXUS_AudioDecoderHandle audioDecoder;
 	NEXUS_AudioDecoderStartSettings audioProgram;
 	NEXUS_FilePlayHandle file;
@@ -141,13 +130,13 @@ int main(int argc, char **argv) {
     NEXUS_AudioMixerSettings audioMixerSettings;*/
     NEXUS_AudioDummyOutputHandle audioDummyOutput;
     NEXUS_AudioDacHandle audioDac;
-#if BTST_ENABLE_TRANSCODE 
+#if BTST_ENABLE_TRANSCODE
 	NEXUS_AudioEncoderSettings encoderSettings;
     NEXUS_AudioEncoderCodecSettings encCodecSettings;
 	NEXUS_AudioEncoderHandle audioEncoder;
 #endif
     bool monoDecOutputRequired;
-	size_t bytes;
+	size_t bytes = 0;
 	FILE *fout, *fdesc;
 	InputSettings stInput;
 	EncodeSettings stEncode;
@@ -253,7 +242,7 @@ int main(int argc, char **argv) {
 	printf("\n****************************************************************\n");
 
 #if defined(NEXUS_MODE_client)
-    NEXUS_Platform_Join(); 
+    NEXUS_Platform_Join();
 #else
     {
         NEXUS_PlatformSettings platformSettings;
@@ -294,7 +283,7 @@ int main(int argc, char **argv) {
 	    stcSettings.pcrBits = NEXUS_StcChannel_PcrBits_eFull42;/* ViCE2 requires 42-bit STC broadcast */
     	stcChannelTranscode = NEXUS_StcChannel_Open(1, &stcSettings);
     }
-    else 
+    else
     {
         stcChannelTranscode = stcChannel;
     }
@@ -316,7 +305,6 @@ int main(int argc, char **argv) {
 
 	audioPidChannel = NEXUS_Playback_OpenPidChannel(playback, stInput.iAudioPid, &playbackPidSettings);
 	playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eOther;
-	pcrPidChannel = NEXUS_Playback_OpenPidChannel(playback, stInput.iPcrPid, &playbackPidSettings);
 
 	/* Set up decoder Start structures now. We need to know the audio codec to properly set up the audio outputs. */
 	NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
@@ -345,7 +333,7 @@ int main(int argc, char **argv) {
 	audioMuxOutput = NEXUS_AudioMuxOutput_Create(NULL);
 	assert(audioMuxOutput);
 
-#if BTST_ENABLE_TRANSCODE 
+#if BTST_ENABLE_TRANSCODE
 	/* Open audio encoder */
 	NEXUS_AudioEncoder_GetDefaultSettings(&encoderSettings);
 	encoderSettings.codec = stEncode.eAudioCodec;
@@ -398,7 +386,7 @@ int main(int argc, char **argv) {
 	/* Connect mux to encoder */
 	NEXUS_AudioOutput_AddInput(
 		NEXUS_AudioMuxOutput_GetConnector(audioMuxOutput), NEXUS_AudioEncoder_GetConnector(audioEncoder));
-#else    
+#else
 	/* Connect mux to encoder */
 	NEXUS_AudioOutput_AddInput(
 		NEXUS_AudioMuxOutput_GetConnector(audioMuxOutput),

@@ -58,7 +58,7 @@ BDSP_INCLUDES += $(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_V
 BDSP_IMG_SOURCES += \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/bdsp_raaga_img.c \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_rdbvars_${BCHP_CHIP}.c \
-	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_fpos_kernel_$(BCHP_VER).c \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_fpos_kernel.c \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_init_romfs.c\
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_system_code.c\
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_system_lib.c\
@@ -76,6 +76,7 @@ BDSP_DOLBY_AACHE_SUPPORT = y
 BDSP_MIXERDAPV2_SUPPORT = y
 BDSP_DPCMR_SUPPORT = y
 BDSP_DDPENC_SUPPORT = y
+BDSP_AC4_SUPPORT = y
 
 #Legacy codecs to be disabled when MS12 is enabled
 BDSP_AACSBR_SUPPORT = n
@@ -245,6 +246,8 @@ endif
 ifeq ($(BDSP_DDP_SUPPORT),y)
 # Enable passthru also unless explicitly disabled by user
 BDSP_DDP_PASSTHRU_SUPPORT ?= y
+# Disbale AC3 support
+override BDSP_AC3_SUPPORT = n
 BDSP_DEFINES += BDSP_DDP_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_DDP_SOURCES)
 BDSP_IMG_SOURCES += $(BDSP_DDP_IDS_SOURCES)
@@ -403,6 +406,45 @@ BDSP_IMG_SOURCES += $(BDSP_AACSBR_PASSTHRU_SOURCES)
 BDSP_IMG_SOURCES += $(BDSP_AACSBR_PASSTHRU_IDS_SOURCES)
 endif
 
+#
+#OPUS DECODE
+#
+ifneq ($(BDSP_OPUSDEC_SUPPORT),n)
+BDSP_OPUSDEC_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_opus.c
+
+ifneq ($(wildcard $(BDSP_OPUSDEC_SOURCES)),)
+BDSP_OPUSDEC_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+
+ifeq ($(BDSP_OPUSDEC_SUPPORT),y)
+BDSP_DEFINES += BDSP_OPUSDEC_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_OPUSDEC_SOURCES)
+endif
+
+#
+#AC4 DECODE
+#
+ifneq ($(BDSP_AC4_SUPPORT),n)
+BDSP_AC4_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_ac4.c
+BDSP_AC4_IDS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_ac4.c
+
+ifneq ($(wildcard $(BDSP_AC4_SOURCES)),)
+ifneq ($(wildcard $(BDSP_AC4_IDS_SOURCES)),)
+BDSP_AC4_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+endif
+
+ifeq ($(BDSP_AC4_SUPPORT),y)
+BDSP_DEFINES += BDSP_AC4_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_AC4_SOURCES)
+BDSP_IMG_SOURCES += $(BDSP_AC4_IDS_SOURCES)
+endif
+
 ##########################################
 #		POST PROCESS             #
 ##########################################
@@ -556,6 +598,40 @@ endif
 ifeq ($(BDSP_DSOLA_SUPPORT),y)
 BDSP_DEFINES += BDSP_DSOLA_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_DSOLA_SOURCES)
+endif
+
+#
+#LPCM Encoder
+#
+ifneq ($(BDSP_LPCMENC_SUPPORT),n)
+BDSP_LPCMENC_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aenc_lpcm.c
+
+ifneq ($(wildcard $(BDSP_LPCMENC_SOURCES)),)
+BDSP_LPCMENC_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+
+ifeq ($(BDSP_LPCMENC_SUPPORT),y)
+BDSP_DEFINES += BDSP_LPCMENC_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_LPCMENC_SOURCES)
+endif
+
+#
+#MP3 Encoder
+#
+ifneq ($(BDSP_MP3ENC_SUPPORT),n)
+BDSP_MP3ENC_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aenc_mp3.c
+
+ifneq ($(wildcard $(BDSP_MP3ENC_SOURCES)),)
+BDSP_MP3ENC_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+
+ifeq ($(BDSP_MP3ENC_SUPPORT),y)
+BDSP_DEFINES += BDSP_MP3ENC_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_MP3ENC_SOURCES)
 endif
 
 ifneq ($(BDSP_IMG_EXTERNAL),y)

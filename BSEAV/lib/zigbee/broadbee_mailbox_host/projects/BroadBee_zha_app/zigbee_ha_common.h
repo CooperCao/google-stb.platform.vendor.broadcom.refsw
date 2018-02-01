@@ -62,8 +62,10 @@ static BroadBee_ZHA_Status BroadBee_ZHA_Set_Attribute_zdoPermitJoinDuration(ZBPR
 static BroadBee_ZHA_Status BroadBee_ZHA_Set_Attribute_zdoZdpResponseTimeout(SYS_Time_t attrValue);
 static BroadBee_ZHA_Status BroadBee_ZHA_Set_Attribute_nwkSequenceNumber(ZBPRO_NWK_NIB_SequenceNumber_t attrValue);
 static BroadBee_ZHA_Status BroadBee_ZHA_Set_Attribute_nwkFrameCounter(ZbProSspFrameCnt_t attrValue);
+static BroadBee_ZHA_Status BroadBee_ZHA_Set_Attribute_phyCoExFlag(bool attrValue);
 
 static BroadBee_ZHA_Status BroadBee_ZHA_Get_MyMacExtendedAddress(MAC_ExtendedAddress_t *attrValue);
+static BroadBee_ZHA_Status BroadBee_ZHA_Get_Attribute_nwkPanId(ZBPRO_NWK_NIB_PanId_t *attrValue);
 
 static BroadBee_ZHA_Status BroadBee_ZHA_Set_NWK_Key(ZbProSspKey_t *key, ZbProSspNwkKeySeqNum_t keyCounter);
 static BroadBee_ZHA_Status BroadBee_ZHA_StartNetwork();
@@ -129,6 +131,27 @@ static BroadBee_ZHA_Status BroadBee_ZHA_Set_Attribute_##ATTR_NAME(ATTR_TYPE attr
     return status ? (BroadBee_ZHA_Status)(ZBPRO_APS_MODULE_ID | status) : BROADBEE_ZHA_STATUS_SUCCESS;   \
 }
 
+#define ZIGBEE_HA_GET_ATTRIBUTE(ATTR_ID, ATTR_TYPE, ATTR_NAME)                              \
+static BroadBee_ZHA_Status BroadBee_ZHA_Get_Attribute_##ATTR_NAME(ATTR_TYPE *attrValue)     \
+{                                                                                           \
+    ZBPRO_APS_Status_t status = (ZBPRO_APS_Status_t)0xff;                                   \
+    void zigbee_HA_Get_##ATTR_NAME##_Callback(ZBPRO_APS_GetReqDescr_t   *const reqDescr,    \
+        ZBPRO_APS_GetConfParams_t *const confParams)                                        \
+    {                                                                                       \
+        status = confParams->status;                                                        \
+        *attrValue = confParams->value.ATTR_NAME;                                           \
+    }                                                                                       \
+    ZBPRO_APS_GetReqDescr_t  *reqDescr = malloc(sizeof(ZBPRO_APS_GetReqDescr_t));           \
+    memset(reqDescr, 0, sizeof(ZBPRO_APS_GetReqDescr_t));                                   \
+    ZBPRO_APS_GetReqParams_t *params = &reqDescr->params;                                   \
+    params->id = ATTR_ID;                                                                   \
+    reqDescr->callback = zigbee_HA_Get_##ATTR_NAME##_Callback;                              \
+    ZBPRO_APS_GetReq(reqDescr);                                                             \
+    while(status == 0xff);                                                                  \
+    free(reqDescr);                                                                         \
+    return status ? (BroadBee_ZHA_Status)(ZBPRO_APS_MODULE_ID | status) : BROADBEE_ZHA_STATUS_SUCCESS;   \
+}
+
 ZIGBEE_HA_SET_ATTRIBUTE(MAC_EXTENDED_ADDRESS, MAC_ExtendedAddress_t, macExtendedAddress)
 ZIGBEE_HA_SET_ATTRIBUTE(MAC_TRANSACTION_PERSISTENCE_TIME, MAC_TransactionPersistenceTime_t, macTransactionPersistenceTime)
 ZIGBEE_HA_SET_ATTRIBUTE(ZBPRO_NWK_NIB_DEVICE_TYPE, ZBPRO_NWK_NIB_DeviceType_t, nwkDeviceType)
@@ -140,6 +163,8 @@ ZIGBEE_HA_SET_ATTRIBUTE(ZBPRO_APS_IB_CHANNEL_MASK_ID, PHY_ChannelMask_t, apsChan
 ZIGBEE_HA_SET_ATTRIBUTE(ZBPRO_APS_IB_ZDP_RESPONSE_TIMEOUT_ID, SYS_Time_t, zdoZdpResponseTimeout)
 ZIGBEE_HA_SET_ATTRIBUTE(ZBPRO_NWK_NIB_SEQUENCE_NUMBER, ZBPRO_NWK_NIB_SequenceNumber_t, nwkSequenceNumber)
 //ZIGBEE_HA_SET_ATTRIBUTE(ZBPRO_NWK_NIB_FRAME_COUNTER, ZbProSspFrameCnt_t, nwkFrameCounter)
+ZIGBEE_HA_SET_ATTRIBUTE(PHY_COEX_FLAG, bool, phyCoExFlag)
+ZIGBEE_HA_GET_ATTRIBUTE(ZBPRO_NWK_NIB_PAN_ID, ZBPRO_NWK_NIB_PanId_t, nwkPanId)
 
 static BroadBee_ZHA_Status BroadBee_ZHA_Get_MyMacExtendedAddress(MAC_ExtendedAddress_t *attrValue)
 {
@@ -377,6 +402,45 @@ static BroadBee_ZHA_Status BroadBee_ZHA_EndpointRegister(ZBPRO_APS_SimpleDescrip
     while(status == 0xff);
     free(reqDescr);  /* TODO: potential bug */
     return status ? (BroadBee_ZHA_Status)(ZBPRO_ZDO_MODULE_ID | status) : BROADBEE_ZHA_STATUS_SUCCESS;
+}
+
+static BroadBee_ZHA_Status BroadBee_ZHA_SendAPSData_DirectByNwk(ZBPRO_APS_EndpointId_t srcEndpoint,
+                                                            ZBPRO_APS_EndpointId_t dstEndpoint,
+                                                            ZBPRO_APS_ShortAddr_t dstNwkAddr,
+                                                            ZBPRO_ZCL_ClusterId_t  clusterId,
+                                                            int      payloadSize,
+                                                            uint8_t *payload)
+{
+
+//ZBPRO_APS_DataReq, ZBPRO_APS_DataReqDescr_t, ZBPRO_APS_DataConfParams_t
+    ZBPRO_ZDO_Status_t status = (ZBPRO_ZDO_Status_t)0xff;
+    void zigbee_ZHA_SendAPSData_DirectByNwk_Callback(ZBPRO_APS_DataReqDescr_t *const reqDescr,
+        ZBPRO_APS_DataConfParams_t *const confParams)
+    {
+        SYS_FreePayload(&reqDescr->params.payload);
+        status = BROADBEE_ZHA_STATUS_SUCCESS;
+    }
+
+    ZBPRO_APS_DataReqDescr_t  *reqDescr = malloc(sizeof(ZBPRO_APS_DataReqDescr_t));
+    memset(reqDescr, 0, sizeof(ZBPRO_APS_DataReqDescr_t));
+
+    ZBPRO_APS_DataReqParams_t *params = &reqDescr->params;
+
+    params->dstAddress.addrMode = APS_SHORT_ADDRESS_MODE;
+    params->dstAddress.shortAddr = dstNwkAddr;
+    params->profileId = ZBPRO_APS_PROFILE_ID_TEST;
+    params->srcEndpoint = srcEndpoint;
+    params->dstEndpoint = dstEndpoint;
+    params->clusterId = clusterId;
+    SYS_MemAlloc(&params->payload, payloadSize);
+    SYS_CopyToPayload(&params->payload, 0, payload, payloadSize);
+    reqDescr->callback = zigbee_ZHA_SendAPSData_DirectByNwk_Callback;
+
+    ZBPRO_APS_DataReq(reqDescr);
+    while(status == 0xff);
+    free(reqDescr);  /* TODO: potential bug */
+    return status ? (BroadBee_ZHA_Status)(ZBPRO_ZHA_MODULE_ID | status) : BROADBEE_ZHA_STATUS_SUCCESS;
+
 }
 
 #define INIT_BIND_PARAMS(PARAMS, SRCEXTADDR, DSTEXTADDR, CLUSTERID, SRCENDP, DSTENDP)  \
@@ -764,7 +828,8 @@ static BroadBee_ZHA_Status BroadBee_ZHA_Read_Attributes_Indirect(ZBPRO_APS_Endpo
     params->zclObligatoryPart.clusterId = clusterId;
     params->zclObligatoryPart.respWaitTimeout = timeout;
     params->zclObligatoryPart.disableDefaultResp = ZBPRO_ZCL_FRAME_DEFAULT_RESPONSE_ENABLED;
-    params->attributeId = attributeID;
+    params->attributeNumber = 1;
+    params->attributeId[0] = attributeID;
     reqDescr->callback = zigbee_HA_Read_Attributes_Indirect_Callback;
 
     ZBPRO_ZCL_ProfileWideCmdReadAttributesReq(reqDescr);
@@ -806,7 +871,8 @@ static BroadBee_ZHA_Status BroadBee_ZHA_Read_Attributes_Direct(ZBPRO_APS_Endpoin
     params->zclObligatoryPart.clusterId = clusterId;
     params->zclObligatoryPart.respWaitTimeout = timeout;
     params->zclObligatoryPart.disableDefaultResp = ZBPRO_ZCL_FRAME_DEFAULT_RESPONSE_ENABLED;
-    params->attributeId = attributeID;
+    params->attributeNumber = 1;
+    params->attributeId[0] = attributeID;
     reqDescr->callback = zigbee_HA_Read_Attributes_Direct_Callback;
 
     ZBPRO_ZCL_ProfileWideCmdReadAttributesReq(reqDescr);
@@ -820,7 +886,8 @@ static BroadBee_ZHA_Status BroadBee_ZHA_Read_Attributes_DirectByNwk(ZBPRO_APS_En
                                                             ZBPRO_APS_EndpointId_t dstEndpoint,
                                                             ZBPRO_APS_ShortAddr_t dstNwkAddr,
                                                             ZBPRO_ZCL_ClusterId_t  clusterId,
-                                                            ZBPRO_ZCL_AttributeId_t attributeID,
+                                                            uint16_t  attributeNumber,
+                                                            ZBPRO_ZCL_AttributeId_t *attributeID,
                                                             int      *attributeSize,
                                                             uint8_t **attributeData,
                                                             SYS_Time_t timeout)
@@ -848,7 +915,8 @@ static BroadBee_ZHA_Status BroadBee_ZHA_Read_Attributes_DirectByNwk(ZBPRO_APS_En
     params->zclObligatoryPart.clusterId = clusterId;
     params->zclObligatoryPart.respWaitTimeout = timeout;
     params->zclObligatoryPart.disableDefaultResp = ZBPRO_ZCL_FRAME_DEFAULT_RESPONSE_ENABLED;
-    params->attributeId = attributeID;
+    params->attributeNumber = attributeNumber;
+    memcpy(params->attributeId, attributeID, attributeNumber * sizeof(ZBPRO_ZCL_AttributeId_t));
     reqDescr->callback = zigbee_HA_Read_Attributes_DirectByNwk_Callback;
 
     ZBPRO_ZCL_ProfileWideCmdReadAttributesReq(reqDescr);
@@ -963,10 +1031,10 @@ void zbPro_HA_Init_Ias_Ace_SimpleDescriptor(uint8_t endpoint, ZBPRO_APS_SimpleDe
                                 outClusters, outClusterAmount * sizeof(ZBPRO_ZCL_ClusterId_t));
 }
 
-#define ZBPRO_INIT_COMBINDED_IN_CLUSTER_LIST  ZBPRO_ZCL_CLUSTER_ID_BASIC, ZBPRO_ZCL_CLUSTER_ID_IDENTIFY, ZBPRO_ZCL_CLUSTER_ID_IAS_ACE
+#define ZBPRO_INIT_COMBINDED_IN_CLUSTER_LIST  ZBPRO_ZCL_CLUSTER_ID_BASIC, ZBPRO_ZCL_CLUSTER_ID_IDENTIFY, ZBPRO_ZCL_CLUSTER_ID_IAS_ACE, ZBPRO_ZCL_CLUSTER_ID_DIAGNOSTICS
 #define ZBPRO_INIT_COMBINDED_OUT_CLUSTER_LIST ZBPRO_ZCL_CLUSTER_ID_IDENTIFY, ZBPRO_ZCL_CLUSTER_ID_ONOFF, ZBPRO_ZCL_CLUSTER_ID_DOOR_LOCK, \
                                               ZBPRO_ZCL_CLUSTER_ID_IAS_ACE, ZBPRO_ZCL_CLUSTER_ID_IAS_ZONE, ZBPRO_ZCL_CLUSTER_ID_TEMPERATURE_MEASUREMENT, \
-                                              ZBPRO_ZCL_CLUSTER_ID_RELATIVE_HUMIDITY_MEASUREMENT
+                                              ZBPRO_ZCL_CLUSTER_ID_RELATIVE_HUMIDITY_MEASUREMENT, ZBPRO_ZCL_CLUSTER_ID_DIAGNOSTICS
 
 void zbPro_HA_Init_Combinded_SimpleDescriptor(uint8_t endpoint, ZBPRO_APS_SimpleDescriptor_t *descr)
 {
@@ -1046,6 +1114,29 @@ static void Sys_DbgPrint(const char *format, ...)
 
     printf(message);
 #endif
+}
+
+void BroadBee_SYS_Get_Fw_Rev()
+{
+    uint8_t status = 0;
+    Get_FW_Rev_ConfParams_t rev;
+
+    void BroadBee_SYS_Get_Fw_Rev_Callback(Get_FW_Rev_ReqDescr_t *request, Get_FW_Rev_ConfParams_t *conf)
+    {
+        memcpy(&rev, conf, sizeof(Get_FW_Rev_ConfParams_t));
+        status = 1;
+    }
+
+    Get_FW_Rev_ReqDescr_t req = {0};
+    req.callback = BroadBee_SYS_Get_Fw_Rev_Callback;
+
+    Get_FW_Rev_Req(&req);
+    while(!status);
+
+    printf("\n====================================\n");
+    printf("Get FW revision successfully\r\n");
+    printf("Major:%d  Minor:%d\n", rev.FwRevMajor, rev.FwRevMinor);
+    printf("====================================\n\n");
 }
 
 #endif

@@ -52,7 +52,7 @@ void gfx_buffer_translate_tlb_ldst(struct v3d_tlb_ldst_params *ls,
 #if V3D_VER_AT_LEAST(4,1,34,0)
    gfx_lfmt_translate_pixel_format(p->lfmt, &ls->pixel_format, &ls->chan_reverse, &ls->rb_swap);
    ls->load_alpha_to_one = !gfx_lfmt_has_alpha(p->lfmt);
-#elif V3D_VER_AT_LEAST(4,0,2,0)
+#elif V3D_VER_AT_LEAST(4,1,34,0)
    ls->pixel_format = gfx_lfmt_translate_pixel_format(p->lfmt);
 #else
    if (color)
@@ -68,7 +68,7 @@ void gfx_buffer_translate_tlb_ldst(struct v3d_tlb_ldst_params *ls,
       assert(tlb_ms);
       ls->decimate = V3D_DECIMATE_ALL_SAMPLES;
    }
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    else if (tlb_ms && color && v3d_pixel_format_supports_4x_decimate(ls->pixel_format))
 #else
    else if (tlb_ms && color && v3d_pixel_format_supports_4x_decimate(ls->output_format.pixel))
@@ -79,7 +79,7 @@ void gfx_buffer_translate_tlb_ldst(struct v3d_tlb_ldst_params *ls,
    ls->dither = dither;
 
    ls->stride = gfx_lfmt_is_rso(p->lfmt) ?
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       p->pitch
 #else
       gfx_buffer_rso_padded_width(desc, plane_i)

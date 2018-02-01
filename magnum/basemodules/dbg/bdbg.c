@@ -1397,7 +1397,7 @@ static void BDBG_P_StrBuf_Printf( BDBG_P_StrBuf *buf, const char *fmt, ...)
     size_t size = buf->size - buf->len;
     va_list ap;
     va_start(ap, fmt);
-    rc = BKNI_Vsnprintf(buf->str, size, fmt, ap);
+    rc = BKNI_Vsnprintf(buf->str+buf->len, size, fmt, ap);
     va_end( ap );
     if(rc>0) {
         buf->len = (unsigned)rc<size  ? buf->len + rc : buf->size - 1;

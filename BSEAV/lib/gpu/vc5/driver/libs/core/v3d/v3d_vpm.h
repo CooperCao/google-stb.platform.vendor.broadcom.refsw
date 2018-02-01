@@ -13,7 +13,7 @@
 
 EXTERN_C_BEGIN
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 typedef struct v3d_vpm_cfg_v
 {

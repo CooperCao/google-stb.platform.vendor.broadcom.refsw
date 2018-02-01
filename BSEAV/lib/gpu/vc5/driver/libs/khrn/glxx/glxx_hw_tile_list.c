@@ -46,7 +46,7 @@ static bool prep_tlb_ldst(struct v3d_tlb_ldst_params *ls, uint32_t *layer_stride
          desc, img_plane->plane_idx, img->start_slice, color,
          tlb_ms, img_ms, dither);
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (khrn_options.use_rgba5551_am && (ls->pixel_format == V3D_PIXEL_FORMAT_A1_BGR5))
       ls->pixel_format = V3D_PIXEL_FORMAT_A1_BGR5_AM;
 #else
@@ -163,7 +163,7 @@ bool glxx_hw_prep_tile_list_fb_ops(struct glxx_hw_tile_list_fb_ops *fb_ops,
    return true;
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 static void write_load(uint8_t **instr,
       v3d_ldst_buf_t buf, const struct v3d_tlb_ldst_params *ls, uint32_t layer_offset)
@@ -738,7 +738,7 @@ static v3d_empty_tile_mode calc_et_mode(const GLXX_HW_RENDER_STATE_T *rs,
 static bool write_tile_list_branches(GLXX_HW_RENDER_STATE_T *rs)
 {
    uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem,
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
          V3D_CL_SET_INSTANCE_ID_SIZE +
 #endif
 #if !V3D_VER_AT_LEAST(3,3,0,0)
@@ -754,7 +754,7 @@ static bool write_tile_list_branches(GLXX_HW_RENDER_STATE_T *rs)
    if (!instr)
       return false;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    /* Must set base instance to 0 at start of tile; PTB assumes this! */
    v3d_cl_set_instance_id(&instr, 0);
 #endif

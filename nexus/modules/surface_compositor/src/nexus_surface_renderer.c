@@ -53,12 +53,14 @@ static bool nexus_surface_compositor_p_try_submitframebuffer(struct NEXUS_Surfac
 static void nexus_surface_compositor_p_submitframebuffer(struct NEXUS_SurfaceCompositorDisplay *display, struct NEXUS_SurfaceCompositorFramebuffer *framebuffer)
 {
     NEXUS_Error rc;
+    bool enabled;
 
     BDBG_OBJECT_ASSERT(display->server, NEXUS_SurfaceCompositor);
     BDBG_ASSERT(display->display);
     BDBG_MSG_TRACE(("setfb display[%u] fb[%p->%p]", display->index, (void *)display->displaying, (void *)framebuffer));
     framebuffer->state = NEXUS_SurfaceCompositorFramebufferState_eSubmitted;
     display->submitted = framebuffer;
+    enabled = display->server->settings.display[display->index].enabled;
     if(!display->formatInfo.native3D) {
         NEXUS_SurfaceHandle surface;
 
@@ -86,9 +88,11 @@ static void nexus_surface_compositor_p_submitframebuffer(struct NEXUS_SurfaceCom
         else {
             surface = framebuffer->surface;
         }
-        rc = NEXUS_Display_SetGraphicsFramebuffer(display->display, surface);
-        if (rc) BERR_TRACE(rc); /* fall through */
-    } else {
+        if(enabled) {
+            rc = NEXUS_Display_SetGraphicsFramebuffer(display->display, surface);
+            if (rc) BERR_TRACE(rc); /* fall through */
+        }
+    } else if(enabled) {
         NEXUS_GraphicsFramebuffer3D  framebuffer3D;
         BDBG_ASSERT(framebuffer->view3D.left);
         BDBG_ASSERT(framebuffer->view3D.right);
@@ -99,6 +103,9 @@ static void nexus_surface_compositor_p_submitframebuffer(struct NEXUS_SurfaceCom
         BDBG_MSG_TRACE(("setfb display[%u] fb[%p->%p] left:%p right:%p orientation:%u", display->index, (void *)display->displaying, (void *)framebuffer, (void *)framebuffer3D.main, (void *)framebuffer3D.right, framebuffer3D.orientation));
         rc = NEXUS_Display_SetGraphicsFramebuffer3D(display->display, &framebuffer3D);
         if (rc) BERR_TRACE(rc); /* fall through */
+    }
+    if(!enabled) {
+        nexus_surface_compositor_p_schedule_inactive_timer(display->server);
     }
     display->stats.compose++;
 
@@ -599,10 +606,9 @@ static void nexus_surface_compositor_p_master_framebuffer_applied(struct NEXUS_S
     return;
 }
 
-void nexus_surface_compositor_p_framebuffer(void *context)
+void nexus_surface_compositor_p_framebuffer_applied(struct NEXUS_SurfaceCompositorDisplay *display)
 {
-    struct NEXUS_SurfaceCompositorDisplay *display = context;
-    BDBG_MSG_TRACE(("framebuffer_callback:%p %p[%u] new:%p old:%p", (void *)display->server, (void *)display, display->index, (void *)display->submitted, (void *)display->displaying));
+    BDBG_MSG_TRACE(("framebuffer_applied:%p %p[%u] new:%p old:%p", (void *)display->server, (void *)display, display->index, (void *)display->submitted, (void *)display->displaying));
 
     if (!display->server->settings.enabled) {
         display->submitted = NULL;

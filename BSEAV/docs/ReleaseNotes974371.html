@@ -3,8 +3,8 @@
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=us-ascii">
 <meta name=Generator content="Microsoft Word 14 (filtered)">
-<title>Broadcom 97439 Phase 17.4 Set-Top Unified Reference Software Release
-2017/11/17 Release Notes</title>
+<title>Broadcom 97439 Phase 18.1 Set-Top Unified Reference Software Release
+2018/01/23 Release Notes</title>
 <style>
 <!--
  /* Font Definitions */
@@ -132,14 +132,14 @@ Release</a></p>
 <div>
 
 <p><a name=top><strong><span style='font-size:18.0pt'>Broadcom 74371/7437 A0
-Phase 17.4 Release </span></strong></a></p>
+Phase 18.1 Release </span></strong></a></p>
 
 <p><strong>Release Date: </strong></p>
 
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;November 17, 2017</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;January 23, 2018</p>
 
 <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Phase
-17.4</p>
+18.1</p>
 
 <p><strong>Platforms Supported: </strong></p>
 
@@ -160,8 +160,8 @@ installing Brutus as part of the Reference Software. </p>
 <p><strong>Quick Build Instructions to create your own Linux Images</strong></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar -xvjf rootfs-4.1-1.14.tar.bz2 </li>
- <li class=MsoNormal># tar -xvjf stblinux-4.1-1.14.tar.bz2 </li>
+ <li class=MsoNormal># tar -xvjf rootfs-4.1-1.15.tar.bz2 </li>
+ <li class=MsoNormal># tar -xvjf stblinux-4.1-1.15.tar.bz2 </li>
  <li class=MsoNormal># cd rootfs </li>
  <li class=MsoNormal># make vmlinuz-initrd-arm </li>
  <li class=MsoNormal># cd ../linux </li>
@@ -175,7 +175,7 @@ installing Brutus as part of the Reference Software. </p>
 
 <p><strong>Quick Build Instruction</strong></p>
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar -xvjf stblinux-4.1-1.14.tar.bz2</li>
+ <li class=MsoNormal># tar -xvjf stblinux-4.1-1.15.tar.bz2</li>
  <li class=MsoNormal># cd linux</li>
  <li class=MsoNormal># export LINUX=`pwd`</li>
  <li class=MsoNormal>tar -C /opt/toolchains -xvjf stbgcc-6.3-1.1.tar.bz2 </li>
@@ -276,7 +276,7 @@ software. </p>
   </td>
   <td width="17%" style='width:17.7%;padding:.75pt .75pt .75pt .75pt;
   height:44.95pt'>
-  <p class=MsoNormal><span style='font-size:10.0pt'>Bolt v1.33</span></p>
+  <p class=MsoNormal><span style='font-size:10.0pt'>Bolt v1.36</span></p>
   </td>
   <td width="23%" style='width:23.98%;padding:.75pt .75pt .75pt .75pt;
   height:44.95pt'>
@@ -305,7 +305,7 @@ software. </p>
   </td>
   <td width="17%" style='width:17.7%;padding:.75pt .75pt .75pt .75pt;
   height:32.8pt'>
-  <p class=MsoNormal><span style='font-size:10.0pt'>&nbsp;Bolt v1.33</span></p>
+  <p class=MsoNormal><span style='font-size:10.0pt'>&nbsp;Bolt v1.36</span></p>
   </td>
   <td width="23%" style='width:23.98%;padding:.75pt .75pt .75pt .75pt;
   height:32.8pt'>
@@ -322,7 +322,7 @@ feature can be exercised using nexus playback or atlas application. </p>
 <p class=MsoNormal>&nbsp;</p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar xvfz refsw_release_unified_20171117_docsis3.src.tgz</li>
+ <li class=MsoNormal># tar xvfz refsw_release_unified_20180123_docsis3.src.tgz</li>
  <li class=MsoNormal>#cd BSEAV/app/atlas/build </li>
  <li class=MsoNormal>#make install </li>
 </ul>
@@ -339,14 +339,14 @@ feature can be exercised using nexus playback or atlas application. </p>
 <p><strong>Boot instructions</strong> </p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>BOLT&gt; boot &nbsp;<tftp-server-ipaddress>server:4.1-1.14/vmlinuz-initrd-arm:
+ <li class=MsoNormal>BOLT&gt; boot &nbsp;<tftp-server-ipaddress>server:4.1-1.15/vmlinuz-initrd-arm:
      </li>
 </ul>
 
 <p class=MsoNormal><strong>Set the kernel to autoboot</strong> </p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>BOLT&gt; flash -noheader <tftp-server-ipaddress>:4.1-1.14/vmlinuz-initrd-arm
+ <li class=MsoNormal>BOLT&gt; flash -noheader <tftp-server-ipaddress>:4.1-1.15/vmlinuz-initrd-arm
      flash1.rootfs0</li>
  <li class=MsoNormal>BOLT&gt; setenv -p STARTUP &quot;boot flash1.rootfs0&quot;
      </li>

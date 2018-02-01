@@ -433,9 +433,7 @@ BERR_Code BVDC_P_MemConfig_GetDefaultWindowSettings
         bStg, false,
         &bForceCapture, &eSclCapBias, NULL);
 
-    pWindow->bSmoothScaling = (eSclCapBias != BVDC_SclCapBias_eAuto)
-        ? true : false;
-
+    pWindow->eSclCapBias = eSclCapBias;
     pWindow->bPsfMode = bForceCapture;
     pWindow->bSideBySide = bForceCapture;
     pWindow->bBoxDetect = bForceCapture;
@@ -505,22 +503,17 @@ BERR_Code BVDC_P_MemConfig_GetBufSize
 
     BVDC_P_BufferHeap_GetHeapOrder(pHeapSettings, pHeapSizeInfo, &stBufferHeap);
 
-    BDBG_MSG(("4HD bufSize    : %d",
-        pHeapSizeInfo->aulBufSize[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e4HD]]));
-    BDBG_MSG(("4HD_Pip bufSize: %d",
-        pHeapSizeInfo->aulBufSize[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e4HD_Pip]]));
-    BDBG_MSG(("2HD bufSize    : %d",
-        pHeapSizeInfo->aulBufSize[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e2HD]]));
-    BDBG_MSG(("2HD_Pip bufSize: %d",
-        pHeapSizeInfo->aulBufSize[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e2HD_Pip]]));
-    BDBG_MSG(("HD bufSize     : %d",
-        pHeapSizeInfo->aulBufSize[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eHD]]));
-    BDBG_MSG(("HD_Pip bufSize : %d",
-        pHeapSizeInfo->aulBufSize[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eHD_Pip]]));
-    BDBG_MSG(("SD bufSize     : %d",
-        pHeapSizeInfo->aulBufSize[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eSD]]));
-    BDBG_MSG(("SD_Pip bufSize : %d",
+    BDBG_MSG(("Buffer:         4HD    4HD_Pip    2HD    2HD_Pip     HD    HD_Pip    SD    SD_Pip"));
+    BDBG_MSG(("Buffer Size: %8d %8d %8d %8d %8d %7d %7d %7d",
+        pHeapSizeInfo->aulBufSize[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e4HD]],
+        pHeapSizeInfo->aulBufSize[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e4HD_Pip]],
+        pHeapSizeInfo->aulBufSize[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e2HD]],
+        pHeapSizeInfo->aulBufSize[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e2HD_Pip]],
+        pHeapSizeInfo->aulBufSize[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eHD]],
+        pHeapSizeInfo->aulBufSize[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eHD_Pip]],
+        pHeapSizeInfo->aulBufSize[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eSD]],
         pHeapSizeInfo->aulBufSize[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eSD_Pip]]));
+
 
     return BERR_SUCCESS;
 }
@@ -549,6 +542,9 @@ BERR_Code BVDC_P_MemConfig_Validate
 
         pDisplay = (BVDC_DispMemConfigSettings  *)(&pMemConfigSettings->stDisplay[ulDispIndex]);
         BDBG_ASSERT(pDisplay);
+
+        if(!pDisplay->bUsed)
+            continue;
 
         pDispFmtInfo = BFMT_GetVideoFormatInfoPtr(pDisplay->eMaxDisplayFormat);
         BDBG_MSG(("Disp[%d]: Used(%d) %s", ulDispIndex, pDisplay->bUsed,
@@ -589,12 +585,12 @@ BERR_Code BVDC_P_MemConfig_Validate
                 BDBG_MSG(("    Win[%d]: Used(%d) CapMemc[%d] MadMemc[%d] %s",
                     ulWinIndex, pWindow->bUsed, pWindow->ulMemcIndex,
                     pWindow->ulMadMemcIndex, pSrcFmtInfo->pchFormatStr));
-                BDBG_MSG(("    Win[%d]: NotMfd Slip Pip Lip Mos Mad Smoo 3D Psf Side Box ACrop ICrop 5060 Slave AddBuf",
+                BDBG_MSG(("    Win[%d]: NotMfd Slip Pip Lip Mos Mad Bias 3D Psf Side Box ACrop ICrop 5060 Slave AddBuf",
                     ulWinIndex));
                 BDBG_MSG(("    Win[%d]: %4d %5d %3d %3d %3d %3d %4d %3d %2d %4d %3d %4d %5d %5d %4d %5d",
                     ulWinIndex, pWindow->bNonMfdSource, pWindow->bSyncSlip,
                     pWindow->bPip, pWindow->bLipsync, pWindow->bMosaicMode,
-                    pWindow->eDeinterlacerMode, pWindow->bSmoothScaling,
+                    pWindow->eDeinterlacerMode, pWindow->eSclCapBias,
                     pWindow->b3DMode, pWindow->bPsfMode, pWindow->bSideBySide,
                     pWindow->bBoxDetect, pWindow->bArbitraryCropping,
                     pWindow->bIndependentCropping, pWindow->b5060Convert,
@@ -669,7 +665,7 @@ BERR_Code BVDC_P_MemConfig_GetWindowInfo
         pWindow->bPsfMode ||
         pWindow->bSideBySide ||
         pWindow->bPip ||
-        pWindow->bSmoothScaling ||
+        (pWindow->eSclCapBias != BBOX_Vdc_SclCapBias_eAutoDisable) ||
         pWindow->bBoxDetect ||
         pWindow->bArbitraryCropping ||
         pWindow->bIndependentCropping ||
@@ -718,15 +714,23 @@ BERR_Code BVDC_P_MemConfig_GetWindowInfo
         BFMT_GetVideoFormatInfoPtr(eDispFormat),
         BVDC_P_CAP_PIXEL_FORMAT_8BIT422, false, NULL, NULL, NULL);
 
-    if(pWindow->bSmoothScaling && (ulDispIndex == 0))
+    switch(pWindow->eSclCapBias)
     {
-        pWinConfigInfo->eFormat = (ulSrcSize > ulDispSize)
-            ? eSrcFormat : eDispFormat;
-    }
-    else
-    {
-        pWinConfigInfo->eFormat = (ulSrcSize > ulDispSize)
-            ? eDispFormat : eSrcFormat;
+        case BBOX_Vdc_SclCapBias_eSclBeforeCap:
+            pWinConfigInfo->eFormat = eDispFormat;
+            break;
+        case BBOX_Vdc_SclCapBias_eSclAfterCap:
+            pWinConfigInfo->eFormat = eSrcFormat;
+            break;
+        case BBOX_Vdc_SclCapBias_eAutoDisable1080p:
+            pWinConfigInfo->eFormat = BFMT_VideoFmt_e1080p;
+            break;
+        case BBOX_Vdc_SclCapBias_eAuto:
+        case BBOX_Vdc_SclCapBias_eAutoDisable:
+        default:
+            pWinConfigInfo->eFormat = (ulSrcSize > ulDispSize)
+                ? eDispFormat : eSrcFormat;
+            break;
     }
 
     return BERR_SUCCESS;

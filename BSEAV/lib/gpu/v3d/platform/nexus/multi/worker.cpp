@@ -68,20 +68,23 @@ void Worker::RecycleHandler()
 
    auto nw = static_cast<nxpl::NativeWindowInfo*>(windowState->GetWindowHandle());
 
-   NEXUS_SurfaceHandle surface = NULL;
+   const size_t numSurfaces = windowState->GetMaxSwapBuffers();
+   NEXUS_SurfaceHandle surfaces[numSurfaces];
+   memset(surfaces, 0, sizeof(surfaces));
    size_t n = 0;
-   NEXUS_SurfaceClient_RecycleSurface(nw->GetSurfaceClient(), &surface, 1, &n);
-   if (!n)
-      return;
+   NEXUS_SurfaceClient_RecycleSurface(nw->GetSurfaceClient(), surfaces, numSurfaces, &n);
 
-   for (auto i = m_withNexus.begin(); i != m_withNexus.end();)
+   for (size_t i = 0; i < n; i++)
    {
-      if ((*i)->GetSurface() == surface)
+      for (auto j = m_withNexus.begin(); j != m_withNexus.end(); ++j)
       {
-         std::unique_ptr<nxpl::Bitmap> bitmap = std::move(*i);
-         m_withNexus.erase(i);
-         windowState->PushFreeQ(std::move(bitmap));
-         break;
+         if ((*j)->GetSurface() == surfaces[i])
+         {
+            std::unique_ptr<nxpl::Bitmap> bitmap = std::move(*j);
+            m_withNexus.erase(j);
+            windowState->PushFreeQ(std::move(bitmap));
+            break;
+         }
       }
    }
 }
@@ -151,7 +154,9 @@ void Worker::mainThread(void)
          }
 
          // buffer is ready when mutex is triggered (replace with fence in final solution)
-         dispItem->m_fence->wait();
+         // if this is NULL, then its already signalled, so OK to display
+         if (dispItem->m_fence)
+            dispItem->m_fence->wait();
 
          {
             std::lock_guard<std::mutex> lock(m_displayMutex);

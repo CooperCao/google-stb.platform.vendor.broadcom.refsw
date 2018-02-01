@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -96,7 +96,6 @@ BERR_Code BVDC_Display_Create
 
     BDBG_ENTER(BVDC_Display_Create);
     BDBG_ASSERT(phDisplay);
-    BSTD_UNUSED(pDefSettings);
 
     /* Check internally if we created. */
     BDBG_OBJECT_ASSERT(hCompositor, BVDC_CMP);
@@ -302,6 +301,11 @@ BERR_Code BVDC_Display_Create
         BDBG_MSG(("STG master mode: Acquire BCHP_PWR_RESOURCE_VDC_STG %d", hDisplay->stStgChan.ulStg));
         BVDC_P_AcquireStgPwr(hDisplay);
 #endif
+
+#if BVDC_P_SUPPORT_VIP /* put VIP in drop mode in case it's uninit */
+        BREG_Write32(hDisplay->hVdc->hRegister, BVDC_P_VIP_RDB(CONFIG) + hDisplay->hVdc->ahVip[hDisplay->stStgChan.ulStg]->ulRegOffset, 0);
+        BREG_Write32(hDisplay->hVdc->hRegister, BVDC_P_VIP_RDB(FW_CONTROL) + hDisplay->hVdc->ahVip[hDisplay->stStgChan.ulStg]->ulRegOffset, 3);
+#endif
     }
 #endif
 
@@ -309,7 +313,7 @@ BERR_Code BVDC_Display_Create
     {
         BDBG_MSG(("BVDC_Display_Create Display[%d] allocates resource for AnlgChan_0", hDisplay->eId));
         BKNI_EnterCriticalSection();
-        err = BVDC_P_AllocITResources(hCompositor->hVdc->hResource, hDisplay, eId * 2, &hDisplay->stAnlgChan_0, BVDC_P_HW_ID_INVALID);
+        err = BVDC_P_AllocITResources_isr(hCompositor->hVdc->hResource, hDisplay, eId * 2, &hDisplay->stAnlgChan_0, BVDC_P_HW_ID_INVALID);
         BKNI_LeaveCriticalSection();
 
         if(err)
@@ -415,10 +419,21 @@ BERR_Code BVDC_Display_GetVbiPath
     BDBG_ENTER(BVDC_Display_GetVbiPath);
     BDBG_OBJECT_ASSERT(hDisplay, BVDC_DSP);
 
-    if(peVbiPath)
+    if (BVDC_P_HW_ID_INVALID != hDisplay->stAnlgChan_0.ulIt)
     {
-        *peVbiPath = (BVDC_P_HW_ID_INVALID != hDisplay->stAnlgChan_0.ulIt)
-            ? hDisplay->stAnlgChan_0.ulIt : BAVC_VbiPath_eUnknown;
+        *peVbiPath =  hDisplay->stAnlgChan_0.ulIt;
+    }
+    else if (BVDC_P_HW_ID_INVALID != hDisplay->stAnlgChan_1.ulIt)
+    {
+        *peVbiPath = hDisplay->stAnlgChan_1.ulIt;
+    }
+    else if (BVDC_P_HW_ID_INVALID != hDisplay->st656Chan.ul656)
+    {
+        *peVbiPath = BAVC_VbiPath_eBypass0;
+    }
+    else
+    {
+        *peVbiPath = BAVC_VbiPath_eUnknown;
     }
 
     BDBG_LEAVE(BVDC_Display_GetVbiPath);
@@ -910,6 +925,7 @@ BERR_Code BVDC_Display_GetDacConfiguration
 }
 #endif
 
+#if !B_REFSW_MINIMAL
 /*************************************************************************
  *  BVDC_Display_SetHdmiConfiguration
  *************************************************************************/
@@ -941,6 +957,7 @@ BERR_Code BVDC_Display_SetHdmiConfiguration
     BDBG_LEAVE(BVDC_Display_SetHdmiConfiguration);
     return err;
 }
+#endif
 
 #if !B_REFSW_MINIMAL
 /*************************************************************************
@@ -1717,6 +1734,7 @@ BERR_Code BVDC_Display_SetStgConfiguration
         }
 
 #if BVDC_P_SUPPORT_VIP
+    #define ROUNDUP_MB_SIZE(x)    (((x) + 0xF) & (~0xF))
     if(pStgSettings->vip.hHeap)
     {
         if(hDisplay->stNewInfo.pFmtInfo->ulDigitalWidth > pStgSettings->vip.stMemSettings.ulMaxWidth ||
@@ -1733,7 +1751,7 @@ BERR_Code BVDC_Display_SetStgConfiguration
             BDBG_MSG(("box mode %u, display[%u] max fmt = %p[%u]", hDisplay->hVdc->stBoxConfig.stBox.ulBoxId, hDisplay->eId,
             (void*)pMaxFmt, hDisplay->hVdc->stBoxConfig.stVdc.astDisplay[hDisplay->eId].eMaxVideoFmt));
             if(pMaxFmt &&
-               ((pMaxFmt->ulDigitalWidth < pStgSettings->vip.stMemSettings.ulMaxWidth) || (pMaxFmt->ulDigitalHeight < pStgSettings->vip.stMemSettings.ulMaxHeight)))
+               ((ROUNDUP_MB_SIZE(pMaxFmt->ulDigitalWidth) < pStgSettings->vip.stMemSettings.ulMaxWidth) || (ROUNDUP_MB_SIZE(pMaxFmt->ulDigitalHeight) < pStgSettings->vip.stMemSettings.ulMaxHeight)))
             {
                 BDBG_ERR(("VIP memory allocation[%ux%u] is greater than VIP box mode max format[%ux%u]!",
                     pStgSettings->vip.stMemSettings.ulMaxWidth, pStgSettings->vip.stMemSettings.ulMaxHeight,
@@ -2297,11 +2315,13 @@ BERR_Code BVDC_Display_SetCallbackSettings
     }
 
     hDisplay->stNewInfo.stCallbackSettings.stMask = pSettings->stMask;
+    hDisplay->stNewInfo.stCallbackSettings.pfPrologueCb_isr = pSettings->pfPrologueCb_isr;
     if((hDisplay->stCurInfo.stCallbackSettings.stMask.bCrc        != pSettings->stMask.bCrc) ||
        (hDisplay->stCurInfo.stCallbackSettings.stMask.bRateChange != pSettings->stMask.bRateChange) ||
        (hDisplay->stCurInfo.stCallbackSettings.stMask.bPerVsync   != pSettings->stMask.bPerVsync) ||
        (hDisplay->stCurInfo.stCallbackSettings.stMask.bStgPictureId!= pSettings->stMask.bStgPictureId) ||
        (hDisplay->stCurInfo.stCallbackSettings.stMask.bCableDetect!= pSettings->stMask.bCableDetect) ||
+       (hDisplay->stCurInfo.stCallbackSettings.pfPrologueCb_isr    != pSettings->pfPrologueCb_isr) ||
        (hDisplay->stNewInfo.bErrorLastSetting))
     {
         hDisplay->stNewInfo.stDirty.stBits.bCallback = BVDC_P_DIRTY;
@@ -2335,7 +2355,7 @@ BERR_Code BVDC_Display_GetCallbackSettings
  *************************************************************************/
 BERR_Code BVDC_Display_InstallCallback
     ( BVDC_Display_Handle              hDisplay,
-      const BVDC_CallbackFunc_isr      pfCallback,
+      const BVDC_CallbackFunc_isr      pfCallback_isr,
       void                            *pvParm1,
       int                              iParm2 )
 {
@@ -2343,10 +2363,10 @@ BERR_Code BVDC_Display_InstallCallback
     BDBG_OBJECT_ASSERT(hDisplay, BVDC_DSP);
 
     /* Store the new infos */
-    hDisplay->stNewInfo.pfGenericCallback = pfCallback;
+    hDisplay->stNewInfo.pfGenericCallback = pfCallback_isr;
     hDisplay->stNewInfo.pvGenericParm1    = pvParm1;
     hDisplay->stNewInfo.iGenericParm2     = iParm2;
-    if((hDisplay->stCurInfo.pfGenericCallback != pfCallback) ||
+    if((hDisplay->stCurInfo.pfGenericCallback != pfCallback_isr) ||
        (hDisplay->stCurInfo.pvGenericParm1    != pvParm1)    ||
        (hDisplay->stCurInfo.iGenericParm2     != iParm2)     ||
        (hDisplay->stNewInfo.bErrorLastSetting))
@@ -3072,7 +3092,9 @@ BERR_Code BVDC_Display_GetVfFilter
     }
     else
     {
+        BKNI_EnterCriticalSection();
         BVDC_P_Display_GetAnlgChanByOutput_isr(hDisplay, &hDisplay->stNewInfo, eDisplayOutput, &pAnlgChan);
+        BKNI_LeaveCriticalSection();
 
         if(!pAnlgChan)
         {

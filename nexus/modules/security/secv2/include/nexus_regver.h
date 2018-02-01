@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,7 +55,7 @@ extern "C"
 ******************************************************************************/
 
 #define NEXUS_REGION_VERIFY_SIGNATURE_SIZE (256)
-#define NEXUS_REGION_VERIFY_SIGNATURE_PLUS_HEADER_SIZE (NEXUS_REGION_VERIFY_SIGNATURE_SIZE+20)
+#define NEXUS_REGION_VERIFY_SIGNATURE_PLUS_HEADER_SIZE (NEXUS_REGION_VERIFY_SIGNATURE_SIZE+44)
 
 typedef struct  NEXUS_RegionVerify *NEXUS_RegionVerifyHandle;
 

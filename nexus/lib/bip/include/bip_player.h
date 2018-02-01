@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -958,6 +958,7 @@ typedef struct BIP_PlayerStartSettings
 
     NEXUS_SimpleAudioDecoderStartSettings   simpleAudioStartSettings;
     NEXUS_SimpleVideoDecoderStartSettings   simpleVideoStartSettings;
+    bool                                    enableHwOffload;        /* Optional: enables offload to h/w like ASP if available on a platform & doable for a particular mediaInput stream format */
 
     BIP_SETTINGS(BIP_PlayerStartSettings)                           /*!< Internal use... for init verification. */
 } BIP_PlayerStartSettings;
@@ -1425,6 +1426,7 @@ typedef enum BIP_PlayerSubState
     /* Substates for BIP_PlayerState_eStarting. */
     BIP_PlayerSubState_eStartingNew,                        /* Player is in the process of starting. */
     BIP_PlayerSubState_eStartingWaitForPbipStart,           /* Player is waiting for some internal tasks to finish before completing. */
+    BIP_PlayerSubState_eStartingWaitForHttpResponse,        /* Player has sent HTTP Request & is waiting for HTTP Response before completing starting state. */
     BIP_PlayerSubState_eStartingDone,                       /* Player is started. */
 
     /* Substates for BIP_PlayerState_eStarted. */

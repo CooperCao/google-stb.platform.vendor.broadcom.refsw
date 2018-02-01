@@ -282,7 +282,7 @@ void glxx_compressed_paletted_teximageX(GLenum target, GLint level,
       convert_paletted(conv, mapped_ptr, pixels, d);
       ok = glxx_texture_image(texture, face, i, conv->base_internal_format, d->width, d->height,
          depth, conv->base_internal_format, conv->packed_type, &(state->pixel_store_state),
-         NULL, pixels, &state->fences, &error, false);
+         NULL, pixels, &state->fences, &error);
    }
 
    if (!ok)

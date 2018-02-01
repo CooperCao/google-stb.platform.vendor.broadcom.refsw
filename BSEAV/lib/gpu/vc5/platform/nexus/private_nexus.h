@@ -28,6 +28,7 @@ typedef struct
    /* Main thread data */
    NXPL_NativeWindowInfoEXT   windowInfo;
    unsigned int               numSurfaces;
+   uint32_t                   ageOfLastDequeuedSurface;
 
    bool                       initialized;
 
@@ -73,6 +74,8 @@ typedef struct
    NXPL_DisplayContext     *displayContext;
    NEXUS_DISPLAYHANDLE     defaultDisplay;
    NEXUS_DISPLAYHANDLE     currentDisplay;
+   EventContext            eventContext;
+
 } NXPL_InternalPlatformHandle;
 
 #endif /* __PRIVATE_NEXUS_H__ */

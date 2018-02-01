@@ -817,23 +817,23 @@ bool glsl_backend_schedule(Dataflow *root, uint32_t type, bool *allow_thread)
    return result;
 }
 
-static bool bcg_schedule_pass(bool *threaded, Dataflow *root, uint32_t type, MEM_HANDLE_T *mh_code, MEM_HANDLE_T *mh_uniform_map,
+static bool bcg_schedule_pass(bool *threaded, Dataflow *root, uint32_t type, MEM_HANDLE_T *mh_code, void **puniform_map,
                               uint32_t *vary_map, uint32_t *vary_count, void **resetHelper)
 {
    bool ok;
 
-   ok = bcg_schedule(root, type, threaded, Scheduler_DEFAULT,   mh_code, mh_uniform_map, vary_map, vary_count, resetHelper);
+   ok = bcg_schedule(root, type, threaded, Scheduler_DEFAULT,   mh_code, puniform_map, vary_map, vary_count, resetHelper);
 
    if (!ok)
-      ok = bcg_schedule(root, type, threaded, Scheduler_ALT_SORT,  mh_code, mh_uniform_map, vary_map, vary_count, resetHelper);
+      ok = bcg_schedule(root, type, threaded, Scheduler_ALT_SORT,  mh_code, puniform_map, vary_map, vary_count, resetHelper);
 
    if (!ok)
-      ok = bcg_schedule(root, type, threaded, Scheduler_LAST_GASP, mh_code, mh_uniform_map, vary_map, vary_count, resetHelper);
+      ok = bcg_schedule(root, type, threaded, Scheduler_LAST_GASP, mh_code, puniform_map, vary_map, vary_count, resetHelper);
 
    return ok;
 }
 
-bool glsl_bcg_backend_schedule(Dataflow *root, uint32_t type, MEM_HANDLE_T *mh_code, MEM_HANDLE_T *mh_uniform_map, bool *allow_thread,
+bool glsl_bcg_backend_schedule(Dataflow *root, uint32_t type, MEM_HANDLE_T *mh_code, void **puniform_map, bool *allow_thread,
                                uint32_t *vary_map, uint32_t *vary_count)
 {
    bool  ok;
@@ -846,14 +846,14 @@ bool glsl_bcg_backend_schedule(Dataflow *root, uint32_t type, MEM_HANDLE_T *mh_c
    if (type == GLSL_BACKEND_TYPE_FRAGMENT)
    {
       threaded = true;
-      ok       = bcg_schedule_pass(&threaded, root, type, mh_code, mh_uniform_map, vary_map, vary_count, &resetHelper);
+      ok       = bcg_schedule_pass(&threaded, root, type, mh_code, puniform_map, vary_map, vary_count, &resetHelper);
    }
 
    // If fragment failed to schdule try unthreaded, or if this is a vertex/coord shader
    if (!ok)
    {
       threaded = false;
-      ok = bcg_schedule_pass(&threaded, root, type, mh_code, mh_uniform_map, vary_map, vary_count, &resetHelper);
+      ok = bcg_schedule_pass(&threaded, root, type, mh_code, puniform_map, vary_map, vary_count, &resetHelper);
    }
 
    bcg_schedule_cleanup(&resetHelper);
@@ -893,7 +893,6 @@ bool glsl_backend_create_shaders(
    GL20_LINK_RESULT_T *result;
    uint32_t i;
    Dataflow *nodes[GL20_LINK_RESULT_NODE_COUNT];
-   MEM_HANDLE_T hblob;
 
    result = program->result;
 
@@ -920,9 +919,9 @@ bool glsl_backend_create_shaders(
    nodes[9] = vertex_point_size;
    for (i = 0; i < vary_count; i++)
       nodes[10+i] = vertex_vary[i];
-   hblob = glsl_dataflow_copy_to_relocatable(10+vary_count, (Dataflow **)result->nodes, nodes, 0);
+   void *blob = glsl_dataflow_copy_to_relocatable(10+vary_count, (Dataflow **)result->nodes, nodes, 0);
    result->vary_count = vary_count;
-   result->mh_blob = hblob;     /* TODO naughty */
+   result->blob = blob;     /* TODO naughty */
 
-   return result->mh_blob != MEM_HANDLE_INVALID;
+   return result->blob != NULL;
 }

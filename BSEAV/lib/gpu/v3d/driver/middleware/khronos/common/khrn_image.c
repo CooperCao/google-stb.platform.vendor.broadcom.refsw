@@ -13,8 +13,12 @@
 #include "middleware/khronos/egl/egl_server.h"
 #include "middleware/khronos/egl/egl_platform.h"
 
+#include "middleware/khronos/common/khrn_mem.h"
+#include "middleware/khronos/common/2708/khrn_prod_4.h"
+
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 
 #ifdef __ARM_NEON__
 #include <arm_neon.h>
@@ -103,25 +107,20 @@ uint32_t khrn_image_get_space(const KHRN_IMAGE_T *image)
    return mem_get_size(image->mh_storage) - image->offset;
 }
 
-void khrn_image_term(MEM_HANDLE_T handle)
+static void khrn_image_term(void *p)
 {
-   KHRN_IMAGE_T *image = (KHRN_IMAGE_T *)mem_lock(handle, NULL);
-
+   KHRN_IMAGE_T *image = p;
    khrn_interlock_term(&image->interlock);
-
    MEM_ASSIGN(image->mh_storage, MEM_HANDLE_INVALID);
    MEM_ASSIGN(image->mh_palette, MEM_HANDLE_INVALID);
-
-   mem_unlock(handle);
 }
 
-MEM_HANDLE_T khrn_image_create_from_storage(KHRN_IMAGE_FORMAT_T format,
+KHRN_IMAGE_T *khrn_image_create_from_storage(KHRN_IMAGE_FORMAT_T format,
    uint32_t width, uint32_t height, int32_t stride,
    MEM_HANDLE_T palette_handle, MEM_HANDLE_T storage_handle, uint32_t offset,
    KHRN_IMAGE_CREATE_FLAG_T flags, bool secure)
 {
-   MEM_HANDLE_T handle;
-   KHRN_IMAGE_T *image;
+
 
    assert(format != IMAGE_FORMAT_INVALID);
 
@@ -129,16 +128,14 @@ MEM_HANDLE_T khrn_image_create_from_storage(KHRN_IMAGE_FORMAT_T format,
       alloc struct
    */
 
-   handle = MEM_ALLOC_STRUCT_EX(KHRN_IMAGE_T, MEM_COMPACT_DISCARD);
-   if (handle == MEM_HANDLE_INVALID) {
-      return MEM_HANDLE_INVALID;
-   }
+   KHRN_IMAGE_T *image = KHRN_MEM_ALLOC_STRUCT(KHRN_IMAGE_T);
+   if (image == NULL)
+      return NULL;
 
    /*
       fill in the struct
    */
 
-   image = (KHRN_IMAGE_T *)mem_lock(handle, NULL);
    image->format = format;
    image->width = (uint16_t)width;
    image->height = (uint16_t)height;
@@ -162,27 +159,25 @@ MEM_HANDLE_T khrn_image_create_from_storage(KHRN_IMAGE_FORMAT_T format,
    if (flags & IMAGE_CREATE_FLAG_INVALID) {
       khrn_interlock_invalidate(&image->interlock);
    }
-   image->v3dfence = NULL;
+   image->v3dfence = 0;
    image->platform_pixmap = NULL;
-
-   mem_unlock(handle);
 
    /*
       set the terminator
    */
 
-   mem_set_term(handle, khrn_image_term, NULL);
+   khrn_mem_set_term(image, khrn_image_term);
 
-   return handle;
+   return image;
 }
 
-MEM_HANDLE_T khrn_image_create(KHRN_IMAGE_FORMAT_T format,
+KHRN_IMAGE_T *khrn_image_create(KHRN_IMAGE_FORMAT_T format,
    uint32_t width, uint32_t height,
    KHRN_IMAGE_CREATE_FLAG_T flags,
    bool secure)
 {
    uint32_t padded_width = width, padded_height = height, align = DEFAULT_ALIGN, storage_size;
-   MEM_HANDLE_T palette_handle, storage_handle, handle;
+   MEM_HANDLE_T palette_handle, storage_handle;
 
    assert(format != IMAGE_FORMAT_INVALID);
 
@@ -197,9 +192,8 @@ MEM_HANDLE_T khrn_image_create(KHRN_IMAGE_FORMAT_T format,
    if (khrn_image_is_paletted(format)) {
       palette_handle = mem_alloc_ex((1 << khrn_image_get_bpp(format)) * sizeof(uint32_t),
          alignof(uint32_t), MEM_FLAG_NONE, "KHRN_IMAGE_T.palette", MEM_COMPACT_DISCARD);      // check, no term
-      if (palette_handle == MEM_HANDLE_INVALID) {
-         return MEM_HANDLE_INVALID;
-      }
+      if (palette_handle == MEM_HANDLE_INVALID)
+         return NULL;
    }
 
    /*
@@ -229,10 +223,12 @@ MEM_HANDLE_T khrn_image_create(KHRN_IMAGE_FORMAT_T format,
       if (storage_handle == MEM_HANDLE_INVALID) {
          if (palette_handle != MEM_HANDLE_INVALID)
             mem_release(palette_handle);
-         return MEM_HANDLE_INVALID;
+         return NULL;
       }
       if ((flags & IMAGE_CREATE_FLAG_INIT_MASK) == IMAGE_CREATE_FLAG_ONE) {
-         khrn_memset(mem_lock(storage_handle, NULL), -1, storage_size);
+         void *storage = mem_lock(storage_handle, NULL);
+         khrn_memset(storage, -1, storage_size);
+         khrn_hw_flush_dcache_range(storage, storage_size);
          mem_unlock(storage_handle);
       }
    }
@@ -241,24 +237,22 @@ MEM_HANDLE_T khrn_image_create(KHRN_IMAGE_FORMAT_T format,
       alloc and fill in struct
    */
 
-   handle = khrn_image_create_from_storage(format,
+   KHRN_IMAGE_T *image = khrn_image_create_from_storage(format,
       width, height, khrn_image_get_stride(format, padded_width),
       palette_handle, storage_handle, 0, flags, secure);
-   if (palette_handle != MEM_HANDLE_INVALID) {
-      mem_release(palette_handle);
-   }
-   if (storage_handle != MEM_HANDLE_INVALID) {
-      mem_release(storage_handle);
-   }
 
-   return handle;
+   if (palette_handle != MEM_HANDLE_INVALID)
+      mem_release(palette_handle);
+
+   if (storage_handle != MEM_HANDLE_INVALID)
+      mem_release(storage_handle);
+
+   return image;
 }
 
-MEM_HANDLE_T khrn_image_create_dup(const KHRN_IMAGE_T *src,
+KHRN_IMAGE_T *khrn_image_create_dup(const KHRN_IMAGE_T *src,
    KHRN_IMAGE_CREATE_FLAG_T flags)
 {
-   MEM_HANDLE_T handle;
-
    /*
       alloc new image
    */
@@ -269,29 +263,29 @@ MEM_HANDLE_T khrn_image_create_dup(const KHRN_IMAGE_T *src,
       ((src->flags & IMAGE_FLAG_RENDER_TARGET) ? IMAGE_CREATE_FLAG_RENDER_TARGET : 0) |
       ((src->flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0);
 
-   handle = khrn_image_create(src->format, src->width, src->height,
+   KHRN_IMAGE_T *dst = khrn_image_create(src->format, src->width, src->height,
       /* todo: preserve rotate padding? */
       flags | image_create_flags, false);
-   if (handle == MEM_HANDLE_INVALID) {
-      return MEM_HANDLE_INVALID;
-   }
+   if (dst == NULL)
+      return NULL;
 
    /*
       copy
    */
 
-   KHRN_IMAGE_T *dst = (KHRN_IMAGE_T *)mem_lock(handle, NULL);
    assert((src->mh_palette == MEM_HANDLE_INVALID) == (dst->mh_palette == MEM_HANDLE_INVALID));
    if (src->mh_palette != MEM_HANDLE_INVALID) {
-      assert(mem_get_size(src->mh_palette) == mem_get_size(dst->mh_palette));
-      khrn_memcpy(mem_lock(dst->mh_palette, NULL), mem_lock(src->mh_palette, NULL), mem_get_size(src->mh_palette));
+      size_t dst_size = mem_get_size(dst->mh_palette);
+      assert(mem_get_size(src->mh_palette) == dst_size);
+      void *dst_palette = mem_lock(dst->mh_palette, NULL);
+      khrn_memcpy(dst_palette, mem_lock(src->mh_palette, NULL), dst_size);
+      khrn_hw_flush_dcache_range(dst_palette, dst_size);
       mem_unlock(dst->mh_palette);
       mem_unlock(src->mh_palette);
    }
    khrn_image_convert(dst, src, IMAGE_CONV_GL);
-   mem_unlock(handle);
 
-   return handle;
+   return dst;
 }
 
 bool khrn_image_resize(KHRN_IMAGE_T *image, uint32_t width, uint32_t height)
@@ -347,14 +341,14 @@ void khrn_image_unlock_wrap(const KHRN_IMAGE_T *image)
 blitting etc
 ******************************************************************************/
 
-static INLINE uint32_t get_bit(const uint8_t *addr, uint32_t bit)
+static inline uint32_t get_bit(const uint8_t *addr, uint32_t bit)
 {
    assert(bit < 8);
 
    return *addr >> bit & 1;
 }
 
-static INLINE uint32_t get_nibble(const uint8_t *addr, uint32_t nibble)
+static inline uint32_t get_nibble(const uint8_t *addr, uint32_t nibble)
 {
    assert(nibble < 2);
 
@@ -382,9 +376,9 @@ uint32_t khrn_image_wrap_get_pixel(const KHRN_IMAGE_WRAP_T *wrap, uint32_t x, ui
    case IMAGE_FORMAT_RSO:
    {
       /* either the start or end of the image (depending on whether its marked as IMAGE_FLAG_DISPLAY or not.  Pixmaps and Window surfaces should be */
-      void *row = (uint8_t *)wrap->storage + (((wrap->flags & IMAGE_FLAG_DISPLAY) ? 1 : 0) * (wrap->stride * (wrap->height - 1)));
+      void *row = (char *)wrap->storage + (((wrap->flags & IMAGE_FLAG_DISPLAY) ? 1 : 0) * (wrap->stride * (wrap->height - 1)));
       /* egl images traverse down the image, with first pixel in memory being GL's last row */
-      row = (uint8_t *)row + (y * (((wrap->flags & IMAGE_FLAG_DISPLAY) ? -1 : 1) * wrap->stride));
+      row = (char *)row + (int)(y * (((wrap->flags & IMAGE_FLAG_DISPLAY) ? -1 : 1) * wrap->stride));
 
       switch (wrap->format & IMAGE_FORMAT_PIXEL_SIZE_MASK) {
       case IMAGE_FORMAT_1:  pixel = get_bit((uint8_t *)row + (x >> 3), x & 0x7); break;
@@ -474,7 +468,7 @@ static uint32_t get_packed_mask_pixel(const KHRN_IMAGE_WRAP_T *wrap, uint32_t x,
    return ((uint8_t *)ut_base)[((y & 3) * 16) + ((x & 3) * 4) + channel];
 }
 
-static INLINE void put_bit(uint8_t *addr, uint32_t bit, uint32_t value)
+static inline void put_bit(uint8_t *addr, uint32_t bit, uint32_t value)
 {
    assert(bit < 8);
    assert(value < 2);
@@ -482,7 +476,7 @@ static INLINE void put_bit(uint8_t *addr, uint32_t bit, uint32_t value)
    *addr = (uint8_t)((*addr & ~(1 << bit)) | (value << bit));
 }
 
-static INLINE void put_nibble(uint8_t *addr, uint32_t nibble, uint32_t value)
+static inline void put_nibble(uint8_t *addr, uint32_t nibble, uint32_t value)
 {
    assert(nibble < 2);
    assert(value < 16);
@@ -734,24 +728,24 @@ uint32_t khrn_image_pixel_to_rgba(KHRN_IMAGE_FORMAT_T format, uint32_t pixel, KH
    return rgba;
 }
 
-static INLINE uint32_t to_1(uint32_t x)
+static inline uint32_t to_1(uint32_t x)
 {
    return x >> 7;
 }
 
-static INLINE uint32_t to_4(uint32_t x)
+static inline uint32_t to_4(uint32_t x)
 {
    return ((x * 0xf) + 0x87) >> 8;
 }
 
-static INLINE uint32_t to_5(uint32_t x)
+static inline uint32_t to_5(uint32_t x)
 {
    if (x >= 128) { ++x; }
    x += 3 - (x >> 5);
    return x >> 3;
 }
 
-static INLINE uint32_t to_6(uint32_t x)
+static inline uint32_t to_6(uint32_t x)
 {
    if (x <= 84) { ++x; }
    if (x >= 171) { --x; }
@@ -929,6 +923,7 @@ void khrn_image_wrap_clear_region(
          khrn_image_wrap_put_pixel(wrap, x + i, y + j, pixel);
       }
    }
+   khrn_hw_flush_dcache_range(wrap->storage, khrn_image_get_size(wrap->format, wrap->width, wrap->height));
 }
 
 static void copy_region_from_packed_mask_tf(
@@ -1122,8 +1117,8 @@ static void par_copy_scissor_regions(
    bool parallel = true;
 
    /* the src and destination overlap, then its not appropriate to use a parallel copy */
-   if (((uint32_t)src->storage >= (uint32_t)dst->storage) &&
-       ((uint32_t)src->storage <= ((uint32_t)dst->storage + khrn_image_get_size(dst->format, width, height))))
+   if (((char *)src->storage >= (char *)dst->storage) &&
+       ((char *)src->storage <= ((char *)dst->storage + khrn_image_get_size(dst->format, width, height))))
    {
       parallel = false;
    }
@@ -3420,7 +3415,7 @@ static bool khrn_fast_copy_to_tf(
 #endif
 
    /* Check for alignment */
-   if (((uint32_t)src->storage & 0x3) == 0 && is_stride_valid(src->format, src->stride))
+   if (((uintptr_t)src->storage & 0x3) == 0 && is_stride_valid(src->format, src->stride))
    {
       if (src->format == YUV_422)
       {
@@ -3562,7 +3557,7 @@ static bool khrn_par_fast_copy_to_tf(
 #else
 #define DST_FORMAT XBGR_8888_TF
 #endif
-            if (((uint32_t)src->storage & 0x3) == 0 && is_stride_valid(src->format, src->stride))
+            if (((uintptr_t)src->storage & 0x3) == 0 && is_stride_valid(src->format, src->stride))
             {
                if (src->format == YUV_422 || src->format == YUV_422_REV)
                {
@@ -3685,9 +3680,9 @@ void khrn_image_wrap_copy_region(
 
    par_copy_scissor_regions(dst, dst_x, dst_y, width, height, src, src_x, src_y, conv, NULL, 0);
 done:
+   khrn_hw_flush_dcache_range(dst->storage, khrn_image_get_size(dst->format, dst->width, dst->height));
    INCR_DRIVER_COUNTER(tex_submissions);
 }
-
 
 void khrn_image_wrap_copy_scissor_regions(
    KHRN_IMAGE_WRAP_T *dst, uint32_t dst_x, uint32_t dst_y,
@@ -3749,6 +3744,8 @@ void khrn_image_wrap_copy_stencil_channel(KHRN_IMAGE_WRAP_T *dst, const KHRN_IMA
          khrn_image_wrap_put_pixel(dst, x, y, (pixel0 & 0x00ffffff) | (pixel1 & 0xff000000));
       }
    }
+   khrn_hw_flush_dcache_range(dst->storage, khrn_image_get_size(dst->format, dst->width, dst->height));
+
 }
 
 static uint32_t blend(KHRN_IMAGE_FORMAT_T format, uint32_t x, uint32_t y)
@@ -4420,6 +4417,7 @@ void khrn_image_wrap_subsample(KHRN_IMAGE_WRAP_T *dst, const KHRN_IMAGE_WRAP_T *
       }
    }
 done:
+   khrn_hw_flush_dcache_range(dst->storage, khrn_image_get_size(dst->format, dst->width, dst->height));
    INCR_DRIVER_COUNTER(mipmap_gens);
 }
 

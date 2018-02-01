@@ -179,7 +179,6 @@ BDBG_OBJECT_ID(BRDC_LST);
     (BRDC_P_NULL_BINTID),                                           \
     BRDC_P_TRACK_REG_ADDR(BRDC_P_SCRATCH_REG_START+(slot_id))       \
 }
-
 #define BRDC_P_MAKE_SLOT_WORD_1_INFO(slot_id)                       \
 {                                                                   \
     (BRDC_P_NULL_BINTID),                                           \
@@ -2277,8 +2276,8 @@ static const BRDC_TrigInfo s_aRdcTrigInfo[] =
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(ePx3d0Trig0,  -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eCmp_0Trig0,  24, vec_source_0_trig_0),
     BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eCmp_0Trig1,  25, vec_source_0_trig_1),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_1Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_1Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eCmp_1Trig0,  26, vec_source_1_trig_0),
+    BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eCmp_1Trig1,  27, vec_source_1_trig_1),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig0,  -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig1,  -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig0,  -1, UNKNOWN        ),
@@ -2430,11 +2429,27 @@ BERR_Code BRDC_Open
 #endif
 
 #ifdef BCHP_RDC_hw_configuration_max_descriptor_number_MASK
-    hRdc->ulMaxAvailableSlot =
-        BCHP_RDC_hw_configuration_max_trigger_number_DEFAULT ? 64 : 32;
-    /* TODO: Support 64+.
-    hRdc->ulMaxAvailableSlot =
-        32 * (BCHP_RDC_hw_configuration_max_trigger_number_DEFAULT + 1); */
+    switch(BCHP_RDC_hw_configuration_max_descriptor_number_DEFAULT)
+    {
+#ifdef BCHP_RDC_hw_configuration_max_descriptor_number_MAX16
+    case BCHP_RDC_hw_configuration_max_descriptor_number_MAX16:
+        hRdc->ulMaxAvailableSlot = 16;
+        break;
+#endif
+
+    case BCHP_RDC_hw_configuration_max_descriptor_number_MAX32:
+        hRdc->ulMaxAvailableSlot = 32;
+        break;
+
+    case BCHP_RDC_hw_configuration_max_descriptor_number_MAX64:
+        hRdc->ulMaxAvailableSlot = 64;
+        break;
+
+    default:
+        hRdc->ulMaxAvailableSlot = 32;
+        BDBG_WRN(("Unknown setting default descriptors to: %d", hRdc->ulMaxAvailableSlot));
+    }
+
 #else
     hRdc->ulMaxAvailableSlot = 32;
 #endif

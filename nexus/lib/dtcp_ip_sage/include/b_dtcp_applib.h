@@ -75,7 +75,9 @@ typedef enum B_DeviceMode
     B_DeviceMode_eAudioFCSink = 9,      /* Audio-format-cognizant sink function.*/
     B_DeviceMode_eAudioFCRecord = 11 ,  /* Audio-format-cognizant recording function.*/
     /* Audio-format-non-cognizant sink/record function only available for bridge.*/
-    B_DeviceMode_eBridge
+    B_DeviceMode_eBridge,
+    B_DeviceMode_eSourceWithAsp,        /* Format-non-cognizant source function with Encryption offload to a ASP. */
+    B_DeviceMode_eSinkWithAsp           /* Format-non-cognizant source function with Decryption offload to a ASP. */
 }B_DeviceMode_T;
 
 #define IS_SINK(mode)   ( mode & B_DeviceMode_eSink)
@@ -295,6 +297,7 @@ int DtcpAppLib_GetNewExchKey(void * ctx, void *aAkeHandle);
  *  try to retrive AKE handle for this sink, if AKE handle is NULL< streaming request should be rejected.
  */
 void DtcpAppLib_GetSinkAkeSession(void * ctx, const char *aRemoteIp, void **aAkeHandle);
+
 /*! \brief Initialize a DTCP-IP source stream
  *  \param[in] aAkehandle AKE session handle.
  *  \param[in] TransportType stream transport type.
@@ -346,6 +349,27 @@ int DtcpAppLib_GetSinkStreamEmi(void *hStreamHandle);
  * \param[in] length length of the buffer.
  */
 BERR_Code DtcpAppLib_GetDescriptor(void *hStreamHandle, unsigned char *buf, int length);
+
+/*! \brief Retrive active sink device's AKE & Stream related attributes.
+ *  \param[in] ctx DTCP-IP context pointer.
+ *  \param[in] stream stream handle.
+ *  \param[out] pSinkAttribute filled-in with AKE & Stream related attributes defined in the B_DTCP_SinkAkeAttribute below.
+ *
+ *  This function is used by source device to retrive AKE & Stream related attributes such as Exchange Key,
+ *  Exchange Key Label, initial Nonce, EMI modes. Caller can use these values to offload the
+ *  encryption logic to a hardware assist (which will generate the content keys & directly encrypt the stream).
+ *  This API must be called after DtcpAppLib_OpenSourceStream.
+ */
+typedef struct B_DTCP_SinkAkeStreamAttribute
+{
+#define B_DTCP_IP_EXCH_KEY_IN_BYTES 12
+    unsigned char               exchKey[B_DTCP_IP_EXCH_KEY_IN_BYTES];
+    unsigned char               exchKeyLabel;
+    unsigned                    emiModes;
+#define B_DTCP_IP_NONCE_IN_BYTES 8
+    unsigned char               initialNonce[B_DTCP_IP_NONCE_IN_BYTES];
+} B_DTCP_SinkAkeStreamAttribute;
+BERR_Code DtcpAppLib_GetSinkAkeStreamAttribute(void *hStreamHandle, B_DTCP_SinkAkeStreamAttribute *pSinkAttribute);
 
 /*! \brief Initialize a DTCP-IP sink stream.
  *  \param[in] aAkeHandle AKE session handle.

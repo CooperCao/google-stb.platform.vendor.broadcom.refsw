@@ -4,8 +4,9 @@
 
 #include "v3d_platform.h"
 #include "v3d_imgconv_internal.h"
+#include "v3d_driver_api.h"
 
-#if EMBEDDED_SETTOP_BOX
+#if V3D_PLATFORM_ABSTRACT
 
 LOG_DEFAULT_CAT("v3d_imgconv_m2mc")
 
@@ -100,6 +101,20 @@ static bool claim_m2mc_conversion(
    /* Both src & dst must be in contiguous memory to use the M2MC */
    if (!info->contiguous_src || !info->contiguous_dst)
       return false;
+
+   GFX_LFMT_T dst_lfmt = dst->desc.planes[0].lfmt;
+   if (!gfx_lfmt_is_uif(dst_lfmt) && !gfx_lfmt_is_rso(dst_lfmt))
+      return false;
+
+   /* We can only use the 7260A0 M2MC with UIF images that are an even
+    * number of UBs in height.
+    */
+   if (gfx_lfmt_is_uif(dst_lfmt) &&
+       (v3d_scheduler_get_soc_quirks() & V3D_SOC_QUIRK_HWBCM7260_81) &&
+       (gfx_buffer_uif_height_in_ub(&dst->desc, 0) & 0x1))
+   {
+      return false;
+   }
 
    /* only from/to origin */
    if (dst->x != 0 || dst->y != 0 || dst->z != 0 || src->x != 0 || src->y != 0 || src->z != 0)
@@ -204,11 +219,11 @@ bool v3d_imgconv_m2mc_convert_surface(const v3d_imgconv_gmem_tgt *src, uint32_t 
    return false;
 }
 
-#endif // EMBEDDED_SETTOP_BOX
+#endif // V3D_PLATFORM_ABSTRACT
 
 const v3d_imgconv_methods *get_m2mc_path(void)
 {
-#if EMBEDDED_SETTOP_BOX
+#if V3D_PLATFORM_ABSTRACT
    return &m2mc_path;
 #else
    return NULL;

@@ -48,13 +48,7 @@ extern "C" {
 
 #if (BCHP_VER < BCHP_VER_B0)
 /* 7278 Ax */
-#define BVCE_P_CORE_MAJOR     3
-#define BVCE_P_CORE_MINOR     0
-#define BVCE_P_CORE_SUBMINOR  0
-#define BVCE_P_CORE_REVISION  2
-
-#define BVCE_PLATFORM_P_NUM_ENCODE_INSTANCES 1
-#define BVCE_PLATFORM_P_BOX_MODE_SUPPORT 1
+#error Unsupported chip
 #elif (BCHP_VER < BCHP_VER_C0)
 /* 7278 Bx */
 #define BVCE_P_CORE_MAJOR     3

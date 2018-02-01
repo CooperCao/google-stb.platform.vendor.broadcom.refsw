@@ -56,18 +56,18 @@
 
 BDBG_MODULE(bmxt_fe);
 
+#define BMXT_R(reg) (handle->platform.regoffsets[reg] + handle->platform.regbase)
+#define BMXT_STEP(res) (handle->platform.stepsize[res])
+#define BMXT_EXIST(reg) (handle->platform.regoffsets[reg] != BMXT_NOREG)
+
 #define BMXT_IS_3128_FAMILY() ((handle->settings.chip==BMXT_Chip_e3128) || (handle->settings.chip==BMXT_Chip_e3383) || (handle->settings.chip==BMXT_Chip_e4528) || (handle->settings.chip==BMXT_Chip_e4517) || (handle->settings.chip==BMXT_Chip_e3472))
 #define BMXT_IS_4538_FAMILY() ((handle->settings.chip==BMXT_Chip_e4538) || (handle->settings.chip==BMXT_Chip_e3384) || (handle->settings.chip==BMXT_Chip_e4548) || (handle->settings.chip==BMXT_Chip_e7364) || (handle->settings.chip==BMXT_Chip_e7366) || (handle->settings.chip==BMXT_Chip_e7145) || (handle->settings.chip==BMXT_Chip_e45216))
-#define BMXT_IS_45308_FAMILY() (EXIST(BCHP_DEMOD_XPT_FE_INBUF_MEM0_MEM31_PWR_DN_STATUS))
+#define BMXT_IS_45308_FAMILY() (BMXT_EXIST(BCHP_DEMOD_XPT_FE_INBUF_MEM0_MEM31_PWR_DN_STATUS))
 
 #define PARSER_OUTPUT_PIPE_SEL_TO_INDEX(pops)    (BMXT_IS_3128_FAMILY() ? pops-1 : pops)
 #define PARSER_OUTPUT_PIPE_SEL_FROM_INDEX(index) (BMXT_IS_3128_FAMILY() ? index+1 : index)
 
 #define BMXT_P_LEGACY_PARSER_BAND_ID_MAX 16 /* on pre-4538, MINI_PID_PARSER?_TO_PARSER?_BAND_ID.PARSER?_BAND_ID is a 4-bit number */
-
-#define R(reg) (handle->platform.regoffsets[reg] + handle->platform.regbase)
-#define STEP(res) (handle->platform.stepsize[res])
-#define EXIST(reg) (handle->platform.regoffsets[reg] != BMXT_NOREG)
 
 const char* const BMXT_CHIP_STR[] = {"3128", "3158", "3383", "3384", "3390", "3466", "3472", "4517", "4528", "4538", "4548", "45216", "45308", "45316", "7145", "7366", "7364"};
 const char* const BMXT_PLATFORM_TYPE_STR[] = {"HAB", "RPC", "REG"};
@@ -81,8 +81,8 @@ static uint32_t BMXT_RegRead32(BMXT_Handle handle, uint32_t addr)
     }
 
     BDBG_ASSERT(addr%4==0);
-    BDBG_ASSERT(addr>=R(0));
-    BDBG_ASSERT(addr<=R(BCHP_DEMOD_XPT_FE_SPID_TABLE_i_ARRAY_BASE)+4*512);
+    BDBG_ASSERT(addr>=BMXT_R(0));
+    BDBG_ASSERT(addr<=BMXT_R(BCHP_DEMOD_XPT_FE_SPID_TABLE_i_ARRAY_BASE)+4*512);
 
     return BMXT_RegRead32_common(handle, addr);
 }
@@ -95,8 +95,8 @@ static void BMXT_RegWrite32(BMXT_Handle handle, uint32_t addr, uint32_t data)
     }
 
     BDBG_ASSERT(addr%4==0);
-    BDBG_ASSERT(addr>=R(0));
-    BDBG_ASSERT(addr<=R(BCHP_DEMOD_XPT_FE_SPID_TABLE_i_ARRAY_BASE)+4*512);
+    BDBG_ASSERT(addr>=BMXT_R(0));
+    BDBG_ASSERT(addr<=BMXT_R(BCHP_DEMOD_XPT_FE_SPID_TABLE_i_ARRAY_BASE)+4*512);
 
     BMXT_RegWrite32_common(handle, addr, data);
     return;
@@ -241,21 +241,21 @@ static void BMXT_Open_PostOpen(BMXT_Handle mxt)
 #endif
 
     /* SW7425-1655 */
-    reg = BMXT_RegRead32(mxt, R(BCHP_DEMOD_XPT_FE_ATS_COUNTER_CTRL));
+    reg = BMXT_RegRead32(mxt, BMXT_R(BCHP_DEMOD_XPT_FE_ATS_COUNTER_CTRL));
     BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_ATS_COUNTER_CTRL, INC_MUX_SEL, 1);
     BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_ATS_COUNTER_CTRL, EXT_RESET_ENABLE, 1);
-    BMXT_RegWrite32(mxt, R(BCHP_DEMOD_XPT_FE_ATS_COUNTER_CTRL), reg);
+    BMXT_RegWrite32(mxt, BMXT_R(BCHP_DEMOD_XPT_FE_ATS_COUNTER_CTRL), reg);
 
     /* clear interrupt status regs */
-    if (EXIST(BCHP_DEMOD_XPT_FE_INTR_STATUS0_REG)) { /* pre-45308 */
-        BMXT_RegWrite32(mxt, R(BCHP_DEMOD_XPT_FE_INTR_STATUS0_REG), 0);
-        BMXT_RegWrite32(mxt, R(BCHP_DEMOD_XPT_FE_INTR_STATUS1_REG), 0);
+    if (BMXT_EXIST(BCHP_DEMOD_XPT_FE_INTR_STATUS0_REG)) { /* pre-45308 */
+        BMXT_RegWrite32(mxt, BMXT_R(BCHP_DEMOD_XPT_FE_INTR_STATUS0_REG), 0);
+        BMXT_RegWrite32(mxt, BMXT_R(BCHP_DEMOD_XPT_FE_INTR_STATUS1_REG), 0);
     }
 
     for (i=0; i<mxt->platform.num[BMXT_RESOURCE_MTSIF_TX0_CTRL1]; i++) {
         BDBG_ASSERT(pSettings->MtsifTxCfg[i].TxInterfaceWidth==8);
 
-        addr = R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_CTRL1) + (i*STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1));
+        addr = BMXT_R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_CTRL1) + (i*BMXT_STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1));
 
         reg = BMXT_RegRead32(mxt, addr);
         BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_MTSIF_TX0_CTRL1, MTSIF_TX_IF_WIDTH, 3); /* 8-bit wide */
@@ -263,21 +263,21 @@ static void BMXT_Open_PostOpen(BMXT_Handle mxt)
         BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_MTSIF_TX0_CTRL1, TX_ENABLE, pSettings->MtsifTxCfg[i].Enable==true ? 1 : 0);
         BMXT_RegWrite32(mxt, addr, reg);
 
-        addr = R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_SECRET_WORD) + (i*STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1));
+        addr = BMXT_R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_SECRET_WORD) + (i*BMXT_STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1));
         BMXT_RegWrite32(mxt, addr, pSettings->MtsifTxCfg[i].Encrypt ? 0:0x829eecde);
     }
 
     for (i=0; i<mxt->platform.num[BMXT_RESOURCE_MTSIF_RX0_CTRL1]; i++) {
         BDBG_ASSERT(pSettings->MtsifRxCfg[i].RxInterfaceWidth==8);
 
-        addr = R(BCHP_DEMOD_XPT_FE_MTSIF_RX0_CTRL1)+ (i*STEP(BMXT_RESOURCE_MTSIF_RX0_CTRL1));
+        addr = BMXT_R(BCHP_DEMOD_XPT_FE_MTSIF_RX0_CTRL1)+ (i*BMXT_STEP(BMXT_RESOURCE_MTSIF_RX0_CTRL1));
         reg = BMXT_RegRead32(mxt, addr);
         BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_MTSIF_RX0_CTRL1, MTSIF_RX_IF_WIDTH, 3); /* 8-bit wide */
         BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_MTSIF_RX0_CTRL1, MTSIF_RX_CLOCK_POL_SEL, pSettings->MtsifRxCfg[i].RxClockPolarity);
         BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_MTSIF_RX0_CTRL1, PARSER_ENABLE, pSettings->MtsifRxCfg[i].Enable==true ? 1 : 0);
         BMXT_RegWrite32(mxt, addr, reg);
 
-        addr = R(BCHP_DEMOD_XPT_FE_MTSIF_RX0_SECRET_WORD) + (i*STEP(BMXT_RESOURCE_MTSIF_RX0_CTRL1));
+        addr = BMXT_R(BCHP_DEMOD_XPT_FE_MTSIF_RX0_SECRET_WORD) + (i*BMXT_STEP(BMXT_RESOURCE_MTSIF_RX0_CTRL1));
         BMXT_RegWrite32(mxt, addr, pSettings->MtsifRxCfg[i].Decrypt ? 0:0x829eecde);
     }
 
@@ -292,7 +292,7 @@ static void BMXT_Open_PostOpen(BMXT_Handle mxt)
 
 #if 0
     for (i=0; i<256; i++) {
-        BKNI_Printf("PID_TABLE %3u: %#x\n", i, BMXT_RegRead32(mxt, R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + 4*i));
+        BKNI_Printf("PID_TABLE %3u: %#x\n", i, BMXT_RegRead32(mxt, BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + 4*i));
     }
 #endif
 
@@ -301,7 +301,7 @@ static void BMXT_Open_PostOpen(BMXT_Handle mxt)
             uint32_t val = 0;
             unsigned pipeSel = PARSER_OUTPUT_PIPE_SEL_FROM_INDEX(0); /* default to TX0 */
 
-            addr = R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*i);
+            addr = BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*i);
             reg = BMXT_RegRead32(mxt, addr);
             #if 0
             BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, SECURITY_OUTPUT_PIPE_SEL, 0);
@@ -326,7 +326,7 @@ static void BMXT_Open_PostOpen(BMXT_Handle mxt)
                 uint32_t val = 0;
                 unsigned pipeSel = PARSER_OUTPUT_PIPE_SEL_FROM_INDEX(0); /* default to TX0 */
 
-                addr = R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*i);
+                addr = BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*i);
                 reg = BMXT_RegRead32(mxt, addr);
                 BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, PARSER_OUTPUT_PIPE_SEL, pipeSel);
                 BMXT_RegWrite32(mxt, addr, val);
@@ -382,8 +382,8 @@ void BMXT_P_Inbuf_Pwr_Ctrl(BMXT_Handle handle, bool powerUp)
 {
     static const unsigned BMXT_P_INPUF_MEM0_ONLY = 0xFFFFFFFE;
     uint32_t val;
-    BMXT_RegWrite32(handle, R(BCHP_DEMOD_XPT_FE_INBUF_MEM0_MEM31_PWR_DN_CTRL), powerUp ? 0 : BMXT_P_INPUF_MEM0_ONLY);
-    val = BMXT_RegRead32(handle, R(BCHP_DEMOD_XPT_FE_INBUF_MEM0_MEM31_PWR_DN_STATUS));
+    BMXT_RegWrite32(handle, BMXT_R(BCHP_DEMOD_XPT_FE_INBUF_MEM0_MEM31_PWR_DN_CTRL), powerUp ? 0 : BMXT_P_INPUF_MEM0_ONLY);
+    val = BMXT_RegRead32(handle, BMXT_R(BCHP_DEMOD_XPT_FE_INBUF_MEM0_MEM31_PWR_DN_STATUS));
     BDBG_MSG(("INBUF powerup %u, STATUS %08x", (unsigned)powerUp, val));
 }
 
@@ -408,13 +408,13 @@ BERR_Code BMXT_Open(BMXT_Handle *pHandle, BCHP_Handle hChp, BREG_Handle hReg, co
     }
 
     if (BMXT_IS_45308_FAMILY()) {
-        reg = BMXT_RegRead32(mxt, R(BCHP_DEMOD_XPT_FE_INBUF_MEM0_MEM31_PWR_DN_STATUS));
+        reg = BMXT_RegRead32(mxt, BMXT_R(BCHP_DEMOD_XPT_FE_INBUF_MEM0_MEM31_PWR_DN_STATUS));
         BDBG_MSG(("45308_Open: PWR_DN_STATUS: %08x", reg));
 
         /* CRXPT-1195: disable dynamic power down and manually enable single instance of INBUF */
-        reg = BMXT_RegRead32(mxt, R(BCHP_DEMOD_XPT_FE_INBUF_MEM_PWR_DN_GLOBAL_CTRL));
+        reg = BMXT_RegRead32(mxt, BMXT_R(BCHP_DEMOD_XPT_FE_INBUF_MEM_PWR_DN_GLOBAL_CTRL));
         BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_INBUF_MEM_PWR_DN_GLOBAL_CTRL, INBUF_MEM_DYNAMIC_PWR_DN_EN, 0);
-        BMXT_RegWrite32(mxt, R(BCHP_DEMOD_XPT_FE_INBUF_MEM_PWR_DN_GLOBAL_CTRL), reg);
+        BMXT_RegWrite32(mxt, BMXT_R(BCHP_DEMOD_XPT_FE_INBUF_MEM_PWR_DN_GLOBAL_CTRL), reg);
         BMXT_P_Inbuf_Pwr_Ctrl(mxt, false);
     }
 
@@ -438,7 +438,7 @@ void BMXT_Close(BMXT_Handle handle)
     }
 
     for (i=0; i<handle->platform.num[BMXT_RESOURCE_MTSIF_TX0_CTRL1]; i++) {
-        addr = R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_CTRL1) + (i*STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1));
+        addr = BMXT_R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_CTRL1) + (i*BMXT_STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1));
         reg = BMXT_RegRead32(handle, addr);
         BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_MTSIF_TX0_CTRL1, TX_ENABLE, 0);
         BMXT_RegWrite32(handle, addr, reg);
@@ -447,7 +447,7 @@ void BMXT_Close(BMXT_Handle handle)
 #if 0 /* prints unnecessary warnings on s3 standby */
     if (handle->settings.enablePidFiltering) {
         for (i=0; i<BMXT_MAX_NUM_PIDCHANNELS; i++) {
-            addr = R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*i);
+            addr = BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*i);
             reg = BMXT_RegRead32(handle, addr);
             if (BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, PID_CHANNEL_ENABLE)) {
                 BDBG_WRN(("BMXT_Close: pidchannel %u left enabled", i));
@@ -476,25 +476,25 @@ BERR_Code BMXT_GetMtsifStatus(BMXT_Handle handle, BMXT_MtsifStatus *pStatus)
     BKNI_Memset(pStatus, 0, sizeof(BMXT_MtsifStatus));
 
     for (i=0; i<handle->platform.num[BMXT_RESOURCE_MTSIF_TX0_CTRL1]; i++) {
-        addr = R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_CTRL1) + (i*STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1));
+        addr = BMXT_R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_CTRL1) + (i*BMXT_STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1));
         val = BMXT_RegRead32(handle, addr);
         pStatus->tx[i].interfaceWidth = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_CTRL1, MTSIF_TX_IF_WIDTH);
         pStatus->tx[i].clockPolarity = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_CTRL1, MTSIF_TX_CLOCK_POL_SEL);
         pStatus->tx[i].enabled = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_CTRL1, TX_ENABLE);
         if (!(BMXT_IS_3128_FAMILY() || BMXT_IS_4538_FAMILY())) {
-            addr = R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_STATUS) + (i*STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1));
+            addr = BMXT_R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_STATUS) + (i*BMXT_STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1));
             val = BMXT_RegRead32(handle, addr);
             pStatus->tx[i].encrypted = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_STATUS, MTSIF_TX_ENCRYPTION_ENABLE_STATUS);
         }
         else {
             /* the bit field doesn't exist, so take a best guess */
-            addr = R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_SECRET_WORD) + (i*STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1));
+            addr = BMXT_R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_SECRET_WORD) + (i*BMXT_STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1));
             val = BMXT_RegRead32(handle, addr);
             pStatus->tx[i].encrypted = (val!=SECRET_WORD);
         }
     }
     for (i=0; i<handle->platform.num[BMXT_RESOURCE_MTSIF_RX0_CTRL1]; i++) {
-        addr = R(BCHP_DEMOD_XPT_FE_MTSIF_RX0_CTRL1) + (i*STEP(BMXT_RESOURCE_MTSIF_RX0_CTRL1));
+        addr = BMXT_R(BCHP_DEMOD_XPT_FE_MTSIF_RX0_CTRL1) + (i*BMXT_STEP(BMXT_RESOURCE_MTSIF_RX0_CTRL1));
         val = BMXT_RegRead32(handle, addr);
         pStatus->rx[i].interfaceWidth = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_RX0_CTRL1, MTSIF_RX_IF_WIDTH);
         pStatus->rx[i].clockPolarity = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_RX0_CTRL1, MTSIF_RX_CLOCK_POL_SEL);
@@ -504,7 +504,7 @@ BERR_Code BMXT_GetMtsifStatus(BMXT_Handle handle, BMXT_MtsifStatus *pStatus)
         }
         else {
             /* the bit field doesn't exist, so take a best guess */
-            addr = R(BCHP_DEMOD_XPT_FE_MTSIF_RX0_SECRET_WORD) + (i*STEP(BMXT_RESOURCE_MTSIF_RX0_CTRL1));
+            addr = BMXT_R(BCHP_DEMOD_XPT_FE_MTSIF_RX0_SECRET_WORD) + (i*BMXT_STEP(BMXT_RESOURCE_MTSIF_RX0_CTRL1));
             val = BMXT_RegRead32(handle, addr);
             pStatus->rx[i].encrypted = (val!=SECRET_WORD);
         }
@@ -523,7 +523,7 @@ BERR_Code BMXT_GetInputBandStatus(BMXT_Handle handle, BMXT_InputBandStatus *pSta
     BKNI_Memset(pStatus, 0, sizeof(BMXT_InputBandStatus));
 
     for (i=0; i<handle->platform.num[BMXT_RESOURCE_IB0_CTRL]; i++) {
-        addr = R(BCHP_DEMOD_XPT_FE_IB0_SYNC_COUNT) + (i*STEP(BMXT_RESOURCE_IB0_CTRL));
+        addr = BMXT_R(BCHP_DEMOD_XPT_FE_IB0_SYNC_COUNT) + (i*BMXT_STEP(BMXT_RESOURCE_IB0_CTRL));
         pStatus->syncCount[i] = BMXT_RegRead32(handle, addr);
     }
 
@@ -533,7 +533,7 @@ BERR_Code BMXT_GetInputBandStatus(BMXT_Handle handle, BMXT_InputBandStatus *pSta
 static BERR_Code BMXT_P_GetMtsifTxSelect(BMXT_Handle handle, unsigned parserNum, unsigned *mtsifTxNum)
 {
     uint32_t reg, addr;
-    addr = R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*parserNum);
+    addr = BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*parserNum);
     reg = BMXT_RegRead32(handle, addr);
     if (BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, INPUT_BAND_PARSER_PID_CHANNEL_INPUT_SELECT)!=parserNum) {
         BDBG_ERR(("Unable to get MTSIF_TX selection (PID_TABLE[%u])", parserNum));
@@ -551,7 +551,7 @@ static BERR_Code BMXT_P_GetMtsifTxSelect(BMXT_Handle handle, unsigned parserNum,
 static BERR_Code BMXT_P_SetMtsifTxSelect(BMXT_Handle handle, unsigned parserNum, unsigned mtsifTxNum)
 {
     uint32_t reg, addr;
-    addr = R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*parserNum);
+    addr = BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*parserNum);
     reg = BMXT_RegRead32(handle, addr);
     if (BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, INPUT_BAND_PARSER_PID_CHANNEL_INPUT_SELECT)!=parserNum) {
         /* assume that pid channel x and parser x have the same number. if not, we could traverse through
@@ -570,7 +570,7 @@ unsigned BMXT_P_GetVirtualParserNum(BMXT_Handle handle, unsigned mtsifTxSelect, 
     unsigned virtualParserNum;
     BDBG_ASSERT(handle->platform.regoffsets[BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID] != BMXT_NOREG);
 
-    addr = R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID) + 4*(parserNum/4) + (STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1)*mtsifTxSelect);
+    addr = BMXT_R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID) + 4*(parserNum/4) + (BMXT_STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1)*mtsifTxSelect);
     val = BMXT_RegRead32(handle, addr);
 
     switch (parserNum%4) {
@@ -588,7 +588,7 @@ void BMXT_P_SetVirtualParserNum(BMXT_Handle handle, unsigned mtsifTxSelect, unsi
 
     BDBG_ASSERT(handle->platform.regoffsets[BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID] != BMXT_NOREG);
 
-    addr = R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID) + 4*(parserNum/4) + (STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1)*mtsifTxSelect);
+    addr = BMXT_R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID) + 4*(parserNum/4) + (BMXT_STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1)*mtsifTxSelect);
     val = BMXT_RegRead32(handle, addr);
     switch (parserNum%4) {
         case 0: BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND0_BAND_ID, virtualParserNum); break;
@@ -607,7 +607,7 @@ void BMXT_P_ParserVersion(BMXT_Handle handle, unsigned parserNum)
     uint32_t addr, val;
     unsigned version;
     if (BMXT_USE_PARSER_VERSION && BMXT_IS_45308_FAMILY()) {
-        addr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2) + (parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
+        addr = BMXT_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2) + (parserNum * BMXT_STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
         val = BMXT_RegRead32(handle, addr);
         version = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2, PARSER_VERSION);
         BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2, PARSER_VERSION, ++version);
@@ -624,7 +624,7 @@ void BMXT_P_ParserVersion(BMXT_Handle handle, unsigned parserNum)
 void BMXT_P_SetParserEnable(BMXT_Handle handle, unsigned parserNum, bool enable)
 {
     uint32_t addr, val;
-    addr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + (parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
+    addr = BMXT_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + (parserNum * BMXT_STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
     val = BMXT_RegRead32(handle, addr);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ENABLE, enable ? 1 : 0);
 
@@ -653,7 +653,7 @@ BERR_Code BMXT_GetParserConfig(BMXT_Handle handle, unsigned parserNum, BMXT_Pars
 
     BKNI_Memset(pConfig, 0, sizeof(BMXT_ParserConfig));
 
-    RegAddr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + (parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
+    RegAddr = BMXT_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + (parserNum * BMXT_STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
     Reg = BMXT_RegRead32(handle, RegAddr);
 
     pConfig->ErrorInputIgnore = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ERROR_INPUT_TEI_IGNORE);
@@ -675,7 +675,7 @@ BERR_Code BMXT_GetParserConfig(BMXT_Handle handle, unsigned parserNum, BMXT_Pars
 #endif
 
     if (BMXT_IS_45308_FAMILY()) {
-        RegAddr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2) + (parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
+        RegAddr = BMXT_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2) + (parserNum * BMXT_STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
         Reg = BMXT_RegRead32(handle, RegAddr);
         pConfig->streamIdFilterEn = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2, STREAM_ID_FILT_EN);
         pConfig->streamId = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2, STREAM_ID);
@@ -705,7 +705,7 @@ BERR_Code BMXT_GetParserConfig(BMXT_Handle handle, unsigned parserNum, BMXT_Pars
         }
         else
         {
-            RegAddr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID) + 4*(parserNum/4);
+            RegAddr = BMXT_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID) + 4*(parserNum/4);
             Reg = BMXT_RegRead32(handle, RegAddr);
             switch (parserNum%4) {
                 case 0: pConfig->virtualParserNum = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER0_BAND_ID); break;
@@ -759,7 +759,7 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
         goto done;
     }
 
-    RegAddr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + (parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
+    RegAddr = BMXT_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + (parserNum * BMXT_STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
     Reg = BMXT_RegRead32(handle, RegAddr);
     wasEnabled = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ENABLE);
     BMXT_P_SetParserEnable(handle, parserNum, false); /* disable parser before changing any settings */
@@ -775,7 +775,7 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
     BMXT_RegWrite32(handle, RegAddr, Reg);
 
     if (BMXT_IS_45308_FAMILY()) {
-        RegAddr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2) + (parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
+        RegAddr = BMXT_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2) + (parserNum * BMXT_STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
         Reg = BMXT_RegRead32(handle, RegAddr);
         BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2, STREAM_ID_FILT_EN, pConfig->streamIdFilterEn);
         BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2, STREAM_ID, pConfig->streamId);
@@ -837,7 +837,7 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
             goto post_map;
         }
 
-        RegAddr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID) + 4*(parserNum/4);
+        RegAddr = BMXT_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID) + 4*(parserNum/4);
         Reg = BMXT_RegRead32(handle, RegAddr);
         switch (parserNum%4) {
             case 0: BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER0_BAND_ID, pConfig->virtualParserNum); break;
@@ -867,7 +867,7 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
 {
     unsigned i;
     for (i=0; i<handle->num.pb; i++) {
-        Reg = BMXT_RegRead32(handle, R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*i));
+        Reg = BMXT_RegRead32(handle, BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*i));
         BDBG_MSG(("PID_TABLE[%2u] %08x, MTSIF_TX%u, PB%2u, EN%u", i, Reg,
             PARSER_OUTPUT_PIPE_SEL_TO_INDEX(BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_PID_TABLE_i, PARSER_OUTPUT_PIPE_SEL)),
             BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_PID_TABLE_i, INPUT_BAND_PARSER_PID_CHANNEL_INPUT_SELECT),
@@ -887,7 +887,7 @@ post_map:
     if (!pConfig->Enable) {
         /* disable TB-functionality */
         if (parserNum < handle->platform.num[BMXT_RESOURCE_MINI_PID_PARSER0_TB_CTRL1]) {
-            RegAddr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1) + parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_TB_CTRL1);
+            RegAddr = BMXT_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1) + parserNum * BMXT_STEP(BMXT_RESOURCE_MINI_PID_PARSER0_TB_CTRL1);
             Reg = BMXT_RegRead32(handle, RegAddr);
             BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, TB_ENABLE, 0);
             BMXT_RegWrite32(handle, RegAddr, Reg);
@@ -929,7 +929,7 @@ BERR_Code BMXT_GetInputBandConfig(BMXT_Handle handle, unsigned bandNum, BMXT_Inp
     }
 
     BKNI_Memset(pConfig, 0, sizeof(BMXT_InputBandConfig));
-    RegAddr = R(BCHP_DEMOD_XPT_FE_IB0_CTRL) + (bandNum * STEP(BMXT_RESOURCE_IB0_CTRL));
+    RegAddr = BMXT_R(BCHP_DEMOD_XPT_FE_IB0_CTRL) + (bandNum * BMXT_STEP(BMXT_RESOURCE_IB0_CTRL));
     Reg = BMXT_RegRead32(handle, RegAddr);
     pConfig->DssMode = (BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_IB0_CTRL, IB_PKT_LENGTH) == 130);
     pConfig->ParallelInputSel = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_IB0_CTRL, IB_PARALLEL_INPUT_SEL);
@@ -951,7 +951,7 @@ BERR_Code BMXT_SetInputBandConfig(BMXT_Handle handle, unsigned bandNum, const BM
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    RegAddr = R(BCHP_DEMOD_XPT_FE_IB0_CTRL) + (bandNum * STEP(BMXT_RESOURCE_IB0_CTRL));
+    RegAddr = BMXT_R(BCHP_DEMOD_XPT_FE_IB0_CTRL) + (bandNum * BMXT_STEP(BMXT_RESOURCE_IB0_CTRL));
     Reg = BMXT_RegRead32(handle, RegAddr);
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_IB0_CTRL, IB_PKT_LENGTH, pConfig->DssMode ? 130 : 188);
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_IB0_CTRL, IB_PARALLEL_INPUT_SEL, pConfig->ParallelInputSel ? 1 : 0);
@@ -983,17 +983,17 @@ uint32_t BMXT_ReadIntStatusRegister(BMXT_Handle handle, BMXT_IntReg intReg)
 
     switch (intReg) {
         case BMXT_IntReg_eFE_INTR_STATUS0:
-            reg = R(BCHP_DEMOD_XPT_FE_INTR_STATUS0_REG);
+            reg = BMXT_R(BCHP_DEMOD_XPT_FE_INTR_STATUS0_REG);
             break;
         case BMXT_IntReg_eFE_INTR_STATUS1:
-            reg = R(BCHP_DEMOD_XPT_FE_INTR_STATUS1_REG);
+            reg = BMXT_R(BCHP_DEMOD_XPT_FE_INTR_STATUS1_REG);
             break;
         default:
             return BERR_TRACE(BERR_INVALID_PARAMETER);
             break;
     }
 
-    if (EXIST(BCHP_DEMOD_XPT_FE_INTR_STATUS0_REG)) {
+    if (BMXT_EXIST(BCHP_DEMOD_XPT_FE_INTR_STATUS0_REG)) {
         val = BMXT_RegRead32(handle, reg);
         BMXT_RegWrite32(handle, reg, 0);
     }
@@ -1015,7 +1015,7 @@ void BMXT_ConfigPidChannel(BMXT_Handle handle, unsigned index, const BMXT_PidCha
         return;
     }
 
-    addr = R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*index);
+    addr = BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*index);
     reg = BMXT_RegRead32(handle, addr);
     BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, SECURITY_OUTPUT_PIPE_SEL, 0);
     BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, IGNORE_PID_VERSION, 1); /* hard-coded for now */
@@ -1043,7 +1043,7 @@ BERR_Code BMXT_TSMF_GetFldVerifyConfig(BMXT_Handle handle, unsigned tsmfNum, BMX
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    RegAddr = R(BCHP_DEMOD_XPT_FE_TSMF0_CTRL) + tsmfNum * STEP(BMXT_RESOURCE_TSMF0_CTRL);
+    RegAddr = BMXT_R(BCHP_DEMOD_XPT_FE_TSMF0_CTRL) + tsmfNum * BMXT_STEP(BMXT_RESOURCE_TSMF0_CTRL);
     Reg = BMXT_RegRead32(handle, RegAddr);
     pConfig->CrcChkDis = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_TSMF0_CTRL, TSMF_CRC_CK_DIS);
     pConfig->RelTsStatusChkDis = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_TSMF0_CTRL, TSMF_REL_TS_STATUS_CK_DIS);
@@ -1071,7 +1071,7 @@ BERR_Code BMXT_TSMF_SetFldVerifyConfig(BMXT_Handle handle, unsigned tsmfNum, con
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    RegAddr = R(BCHP_DEMOD_XPT_FE_TSMF0_CTRL) + tsmfNum * STEP(BMXT_RESOURCE_TSMF0_CTRL);
+    RegAddr = BMXT_R(BCHP_DEMOD_XPT_FE_TSMF0_CTRL) + tsmfNum * BMXT_STEP(BMXT_RESOURCE_TSMF0_CTRL);
     Reg = BMXT_RegRead32(handle, RegAddr);
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_TSMF0_CTRL, TSMF_CRC_CK_DIS, pConfig->CrcChkDis);
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_TSMF0_CTRL, TSMF_REL_TS_STATUS_CK_DIS, pConfig->RelTsStatusChkDis);
@@ -1100,7 +1100,7 @@ BERR_Code BMXT_TSMF_EnableAutoMode(BMXT_Handle handle, BMXT_TSMFInputSel input, 
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    RegAddr = R(BCHP_DEMOD_XPT_FE_TSMF0_CTRL) + tsmfNum * STEP(BMXT_RESOURCE_TSMF0_CTRL);
+    RegAddr = BMXT_R(BCHP_DEMOD_XPT_FE_TSMF0_CTRL) + tsmfNum * BMXT_STEP(BMXT_RESOURCE_TSMF0_CTRL);
     Reg = BMXT_RegRead32(handle, RegAddr);
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_TSMF0_CTRL, TSMF_REL_TS_NO, relativeTsNum);
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_TSMF0_CTRL, TSMF_INPUT_SEL, input);
@@ -1120,12 +1120,12 @@ BERR_Code BMXT_TSMF_EnableSemiAutoMode(BMXT_Handle handle, BMXT_TSMFInputSel inp
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     BDBG_MSG(("TSMF_EnableSemiAutoMode: IB%u -> TSMF%u, slot%u:%u, rel%u", input, tsmfNum, slotMapLo, slotMapHi, relativeTsNum));
-    RegOffset = tsmfNum * STEP(BMXT_RESOURCE_TSMF0_CTRL);
+    RegOffset = tsmfNum * BMXT_STEP(BMXT_RESOURCE_TSMF0_CTRL);
 
-    BMXT_RegWrite32(handle, R(BCHP_DEMOD_XPT_FE_TSMF0_SLOT_MAP_LO) + RegOffset, slotMapLo);
-    BMXT_RegWrite32(handle, R(BCHP_DEMOD_XPT_FE_TSMF0_SLOT_MAP_HI) + RegOffset, slotMapHi);
+    BMXT_RegWrite32(handle, BMXT_R(BCHP_DEMOD_XPT_FE_TSMF0_SLOT_MAP_LO) + RegOffset, slotMapLo);
+    BMXT_RegWrite32(handle, BMXT_R(BCHP_DEMOD_XPT_FE_TSMF0_SLOT_MAP_HI) + RegOffset, slotMapHi);
 
-    RegAddr = R(BCHP_DEMOD_XPT_FE_TSMF0_CTRL) + RegOffset;
+    RegAddr = BMXT_R(BCHP_DEMOD_XPT_FE_TSMF0_CTRL) + RegOffset;
     Reg = BMXT_RegRead32(handle, RegAddr);
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_TSMF0_CTRL, TSMF_INPUT_SEL, input);
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_TSMF0_CTRL, TSMF_AUTO_EN, 0);
@@ -1146,7 +1146,7 @@ BERR_Code BMXT_TSMF_DisableTsmf(BMXT_Handle handle, unsigned tsmfNum)
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    RegAddr = R(BCHP_DEMOD_XPT_FE_TSMF0_CTRL) + tsmfNum * STEP(BMXT_RESOURCE_TSMF0_CTRL);
+    RegAddr = BMXT_R(BCHP_DEMOD_XPT_FE_TSMF0_CTRL) + tsmfNum * BMXT_STEP(BMXT_RESOURCE_TSMF0_CTRL);
     Reg = BMXT_RegRead32(handle, RegAddr);
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_TSMF0_CTRL, TSMF_ENABLE, 0);
     BMXT_RegWrite32(handle, RegAddr, Reg);
@@ -1165,7 +1165,7 @@ BERR_Code BMXT_TSMF_SetParserConfig(BMXT_Handle handle, unsigned parserNum, unsi
         return rc;
     }
 
-    RegAddr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1);
+    RegAddr = BMXT_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + parserNum * BMXT_STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1);
     Reg = BMXT_RegRead32(handle, RegAddr);
 
     if (BMXT_IS_3128_FAMILY()) { /* 3128, 3383, 4528, 4517, 3472 */
@@ -1244,7 +1244,7 @@ BERR_Code BMXT_Tbg_GetParserConfig(BMXT_Handle handle, unsigned parserNum, BMXT_
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    addr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1) + parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_TB_CTRL1);
+    addr = BMXT_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1) + parserNum * BMXT_STEP(BMXT_RESOURCE_MINI_PID_PARSER0_TB_CTRL1);
     reg = BMXT_RegRead32(handle, addr);
     pConfig->latchSyncCount = BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, LATCH_SYNC_COUNT_INTO_TIMESTAMP);
     pConfig->primaryBandNum = BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, TBG_PRI_BAND_NUM);
@@ -1267,7 +1267,7 @@ BERR_Code BMXT_Tbg_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    addr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1) + parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_TB_CTRL1);
+    addr = BMXT_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1) + parserNum * BMXT_STEP(BMXT_RESOURCE_MINI_PID_PARSER0_TB_CTRL1);
     BDBG_MSG(("TBG: PB%u: latch %u, priBand %u, enable %u ", parserNum, pConfig->latchSyncCount, pConfig->primaryBandNum, pConfig->enable));
     reg = BMXT_RegRead32(handle, addr);
     BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TB_CTRL1, LATCH_SYNC_COUNT_INTO_TIMESTAMP, pConfig->latchSyncCount);
@@ -1298,10 +1298,10 @@ BERR_Code BMXT_Tbg_GetGlobalConfig(BMXT_Handle handle, BMXT_Tbg_GlobalConfig *pC
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    reg = BMXT_RegRead32(handle, R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL1));
+    reg = BMXT_RegRead32(handle, BMXT_R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL1));
     pConfig->markerTag = BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_TB_GLOBAL_CTRL1, TB_MARKER_TAG);
 
-    reg = BMXT_RegRead32(handle, R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL2));
+    reg = BMXT_RegRead32(handle, BMXT_R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL2));
     pConfig->markerPidValue = BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_TB_GLOBAL_CTRL2, MARKER_PID_VALUE);
 
     pConfig->markerFeedId = 0;
@@ -1376,13 +1376,13 @@ BERR_Code BMXT_Tbg_SetGlobalConfig(BMXT_Handle handle, const BMXT_Tbg_GlobalConf
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    reg = BMXT_RegRead32(handle, R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL1));
+    reg = BMXT_RegRead32(handle, BMXT_R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL1));
     BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_TB_GLOBAL_CTRL1, TB_MARKER_TAG, pConfig->markerTag);
-    BMXT_RegWrite32(handle, R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL1), reg);
+    BMXT_RegWrite32(handle, BMXT_R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL1), reg);
 
-    reg = BMXT_RegRead32(handle, R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL2));
+    reg = BMXT_RegRead32(handle, BMXT_R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL2));
     BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_TB_GLOBAL_CTRL2, MARKER_PID_VALUE, pConfig->markerPidValue);
-    BMXT_RegWrite32(handle, R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL2), reg);
+    BMXT_RegWrite32(handle, BMXT_R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL2), reg);
 
     return BERR_SUCCESS;
 }
@@ -1391,7 +1391,7 @@ BERR_Code BMXT_Tbg_SetGlobalConfig(BMXT_Handle handle, const BMXT_Tbg_GlobalConf
 unsigned BMXT_P_GetParserInputBand(BMXT_Handle handle, unsigned parserNum)
 {
     uint32_t val, addr, rc;
-    addr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + (parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
+    addr = BMXT_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + (parserNum * BMXT_STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
     val = BMXT_RegRead32(handle, addr);
 #if USE_PARSER_ENABLE_WORKAROUND
     if ((handle->settings.chip==BMXT_Chip_e45308) && (handle->settings.chipRev<BMXT_ChipRev_eC0)) {
@@ -1409,7 +1409,7 @@ unsigned BMXT_P_GetParserInputBand(BMXT_Handle handle, unsigned parserNum)
 void BMXT_P_SetParserAcceptNull(BMXT_Handle handle, unsigned parserNum, bool enable)
 {
     uint32_t val, addr;
-    addr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + (parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
+    addr = BMXT_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + (parserNum * BMXT_STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
     val = BMXT_RegRead32(handle, addr);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ACCEPT_NULL_PKT_PRE_MPOD, enable ? 1 : 0);
     BMXT_RegWrite32(handle, addr, val);
@@ -1420,8 +1420,8 @@ void BMXT_P_RegDump(BMXT_Handle handle)
 {
 #if 0 /* generic, simple for-loop */
     uint32_t i;
-    uint32_t start = R(BCHP_DEMOD_XPT_FE_FE_CTRL);
-    uint32_t end = R(BCHP_DEMOD_XPT_FE_SPID_TABLE_i_ARRAY_BASE); /* print upto, but not including SPID table */
+    uint32_t start = BMXT_R(BCHP_DEMOD_XPT_FE_FE_CTRL);
+    uint32_t end = BMXT_R(BCHP_DEMOD_XPT_FE_SPID_TABLE_i_ARRAY_BASE); /* print upto, but not including SPID table */
 
     for (i=start; i<end; i+=4) {
         BKNI_Printf("%08x = %08x\n", i, BMXT_RegRead32(handle, i));
@@ -1440,7 +1440,7 @@ void BMXT_P_RegDump(BMXT_Handle handle)
 void BMXT_P_Debug(BMXT_Handle handle)
 {
     uint32_t val;
-    val = BMXT_RegRead32(handle, R(BCHP_DEMOD_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT));
+    val = BMXT_RegRead32(handle, BMXT_R(BCHP_DEMOD_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT));
     BDBG_WRN(("DEBUG: %08x", val));
 }
 #endif

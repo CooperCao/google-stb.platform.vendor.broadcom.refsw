@@ -145,7 +145,7 @@ const PlatformPictureFormat * platform_picture_get_format(PlatformPictureHandle 
     return &pic->info.format;
 }
 
-unsigned platform_picture_p_color_depth_from_pixel_format(NEXUS_PixelFormat format)
+unsigned platform_picture_p_depth_from_pixel_format(NEXUS_PixelFormat format)
 {
     unsigned depth = 0;
 
@@ -219,6 +219,7 @@ unsigned platform_picture_p_color_depth_from_pixel_format(NEXUS_PixelFormat form
         case NEXUS_PixelFormat_eL8_A8:
         case NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8:
         case NEXUS_PixelFormat_eR8_G8_B8:
+        case NEXUS_PixelFormat_eUIF_R8_G8_B8_A8:
             depth = 8;
             break;
         case NEXUS_PixelFormat_eY10:
@@ -280,6 +281,7 @@ PlatformColorSpace platform_picture_p_color_space_from_pixel_format(NEXUS_PixelF
         case NEXUS_PixelFormat_eB8_G8_R8_X8:
         case NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8:
         case NEXUS_PixelFormat_eR8_G8_B8:
+        case NEXUS_PixelFormat_eUIF_R8_G8_B8_A8:
             space = PlatformColorSpace_eRgb;
             break;
         case NEXUS_PixelFormat_eA8_Y8:
@@ -296,8 +298,6 @@ PlatformColorSpace platform_picture_p_color_space_from_pixel_format(NEXUS_PixelF
         case NEXUS_PixelFormat_eA8_Cr8_Cb8_Y8:
         case NEXUS_PixelFormat_eCr8_Cb8_Y8_A8:
         case NEXUS_PixelFormat_eY8_Cb8_Cr8_A8:
-            space = PlatformColorSpace_eYCbCr444;
-            break;
         case NEXUS_PixelFormat_eY08_Cb8_Y18_Cr8:
         case NEXUS_PixelFormat_eY08_Cr8_Y18_Cb8:
         case NEXUS_PixelFormat_eY18_Cb8_Y08_Cr8:
@@ -315,7 +315,7 @@ PlatformColorSpace platform_picture_p_color_space_from_pixel_format(NEXUS_PixelF
         case NEXUS_PixelFormat_eCr10_Y110_Cb10_Y010:
         case NEXUS_PixelFormat_eCr10_Y010_Cb10_Y110:
         case NEXUS_PixelFormat_eYCbCr422_10bit:
-            space = PlatformColorSpace_eYCbCr422;
+            space = PlatformColorSpace_eYCbCr;
             break;
         case NEXUS_PixelFormat_eA8_Palette8:
         case NEXUS_PixelFormat_ePalette8:
@@ -338,8 +338,109 @@ PlatformColorSpace platform_picture_p_color_space_from_pixel_format(NEXUS_PixelF
         case NEXUS_PixelFormat_eMax:
             space = PlatformColorSpace_eInvalid;
             break;
+        default:
+            BDBG_WRN(("Unhandled pixel format: %u", format));
+            space = PlatformColorSpace_eUnknown;
+            break;
     }
     return space;
+}
+
+unsigned platform_picture_p_color_sampling_from_pixel_format(NEXUS_PixelFormat format)
+{
+    unsigned sampling;
+
+    switch(format)
+    {
+        case NEXUS_PixelFormat_eR5_G6_B5:
+        case NEXUS_PixelFormat_eB5_G6_R5:
+        case NEXUS_PixelFormat_eA1_R5_G5_B5:
+        case NEXUS_PixelFormat_eX1_R5_G5_B5:
+        case NEXUS_PixelFormat_eA1_B5_G5_R5:
+        case NEXUS_PixelFormat_eX1_B5_G5_R5:
+        case NEXUS_PixelFormat_eR5_G5_B5_A1:
+        case NEXUS_PixelFormat_eR5_G5_B5_X1:
+        case NEXUS_PixelFormat_eB5_G5_R5_A1:
+        case NEXUS_PixelFormat_eB5_G5_R5_X1:
+        case NEXUS_PixelFormat_eA4_R4_G4_B4:
+        case NEXUS_PixelFormat_eX4_R4_G4_B4:
+        case NEXUS_PixelFormat_eA4_B4_G4_R4:
+        case NEXUS_PixelFormat_eX4_B4_G4_R4:
+        case NEXUS_PixelFormat_eR4_G4_B4_A4:
+        case NEXUS_PixelFormat_eR4_G4_B4_X4:
+        case NEXUS_PixelFormat_eB4_G4_R4_A4:
+        case NEXUS_PixelFormat_eB4_G4_R4_X4:
+        case NEXUS_PixelFormat_eA8_R8_G8_B8:
+        case NEXUS_PixelFormat_eX8_R8_G8_B8:
+        case NEXUS_PixelFormat_eA8_B8_G8_R8:
+        case NEXUS_PixelFormat_eX8_B8_G8_R8:
+        case NEXUS_PixelFormat_eR8_G8_B8_A8:
+        case NEXUS_PixelFormat_eR8_G8_B8_X8:
+        case NEXUS_PixelFormat_eB8_G8_R8_A8:
+        case NEXUS_PixelFormat_eB8_G8_R8_X8:
+        case NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8:
+        case NEXUS_PixelFormat_eR8_G8_B8:
+        case NEXUS_PixelFormat_eUIF_R8_G8_B8_A8:
+        case NEXUS_PixelFormat_eA8_Y8:
+        case NEXUS_PixelFormat_eCb8:
+        case NEXUS_PixelFormat_eCr8:
+        case NEXUS_PixelFormat_eY8:
+        case NEXUS_PixelFormat_eCb8_Cr8:
+        case NEXUS_PixelFormat_eCr8_Cb8:
+        case NEXUS_PixelFormat_eY10:
+        case NEXUS_PixelFormat_eCb10_Cr10:
+        case NEXUS_PixelFormat_eCr10_Cb10:
+        case NEXUS_PixelFormat_eX2_Cr10_Y10_Cb10:
+        case NEXUS_PixelFormat_eA8_Y8_Cb8_Cr8:
+        case NEXUS_PixelFormat_eA8_Cr8_Cb8_Y8:
+        case NEXUS_PixelFormat_eCr8_Cb8_Y8_A8:
+        case NEXUS_PixelFormat_eY8_Cb8_Cr8_A8:
+            sampling = 444;
+            break;
+        case NEXUS_PixelFormat_eY08_Cb8_Y18_Cr8:
+        case NEXUS_PixelFormat_eY08_Cr8_Y18_Cb8:
+        case NEXUS_PixelFormat_eY18_Cb8_Y08_Cr8:
+        case NEXUS_PixelFormat_eY18_Cr8_Y08_Cb8:
+        case NEXUS_PixelFormat_eCb8_Y08_Cr8_Y18:
+        case NEXUS_PixelFormat_eCb8_Y18_Cr8_Y08:
+        case NEXUS_PixelFormat_eCr8_Y18_Cb8_Y08:
+        case NEXUS_PixelFormat_eCr8_Y08_Cb8_Y18:
+        case NEXUS_PixelFormat_eY010_Cb10_Y110_Cr10:
+        case NEXUS_PixelFormat_eY010_Cr10_Y110_Cb10:
+        case NEXUS_PixelFormat_eY110_Cb10_Y010_Cr10:
+        case NEXUS_PixelFormat_eY110_Cr10_Y010_Cb10:
+        case NEXUS_PixelFormat_eCb10_Y010_Cr10_Y110:
+        case NEXUS_PixelFormat_eCb10_Y110_Cr10_Y010:
+        case NEXUS_PixelFormat_eCr10_Y110_Cb10_Y010:
+        case NEXUS_PixelFormat_eCr10_Y010_Cb10_Y110:
+        case NEXUS_PixelFormat_eYCbCr422_10bit:
+            sampling = 422;
+            break;
+        case NEXUS_PixelFormat_eA8_Palette8:
+        case NEXUS_PixelFormat_ePalette8:
+        case NEXUS_PixelFormat_ePalette4:
+        case NEXUS_PixelFormat_ePalette2:
+        case NEXUS_PixelFormat_ePalette1:
+        case NEXUS_PixelFormat_eY8_Palette8:
+        case NEXUS_PixelFormat_eL8:
+        case NEXUS_PixelFormat_eL4_A4:
+        case NEXUS_PixelFormat_eL8_A8:
+        case NEXUS_PixelFormat_eL15_L05_A6:
+        case NEXUS_PixelFormat_eA8:
+        case NEXUS_PixelFormat_eA4:
+        case NEXUS_PixelFormat_eA2:
+        case NEXUS_PixelFormat_eA1:
+        case NEXUS_PixelFormat_eW1:
+        case NEXUS_PixelFormat_eUnknown:
+        case NEXUS_PixelFormat_eMax:
+            sampling = 0;
+            break;
+        default:
+            BDBG_WRN(("Unhandled pixel format: %u", format));
+            sampling = 0;
+            break;
+    }
+    return sampling;
 }
 
 #if NEXUS_HAS_PICTURE_DECODER
@@ -355,8 +456,9 @@ void platform_picture_p_info_from_nexus(PlatformPictureInfo * pInfo, NEXUS_Pictu
         pInfo->format.height = pStatus->header.height;
         pInfo->format.width = pStatus->header.width;
         pInfo->format.interlaced = pStatus->header.multiscan;
-        pInfo->depth = platform_picture_p_color_depth_from_pixel_format(pStatus->header.format);
+        pInfo->depth = platform_picture_p_depth_from_pixel_format(pStatus->header.format);
         pInfo->space = platform_picture_p_color_space_from_pixel_format(pStatus->header.format);
+        pInfo->sampling = platform_picture_p_color_sampling_from_pixel_format(pStatus->header.format);
     }
 }
 #endif

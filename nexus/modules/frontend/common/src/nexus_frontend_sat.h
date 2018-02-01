@@ -355,5 +355,9 @@ NEXUS_SatDevice *NEXUS_Frontend_P_GetSatDeviceByChip( NEXUS_FrontendHandle handl
 NEXUS_Error NEXUS_Frontend_P_Sat_RegisterEvents(NEXUS_SatChannel *pChannel);
 NEXUS_Error NEXUS_Frontend_P_Sat_UnregisterEvents(NEXUS_SatChannel *pChannel);
 
+/* Tuning */
+NEXUS_Error NEXUS_Frontend_P_Sat_TuneSatellite(void *handle, const NEXUS_FrontendSatelliteSettings *pSettings);
+void NEXUS_Frontend_P_Sat_Untune(void *handle);
+
 #endif /* #ifndef NEXUS_FRONTEND_SAT_H__ */
 

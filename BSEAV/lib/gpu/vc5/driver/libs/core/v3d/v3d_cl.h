@@ -105,7 +105,7 @@ static inline bool v3d_pixel_format_supports_4x_decimate(v3d_pixel_format_t pixe
    return v3d_rt_type_supports_4x_decimate(v3d_pixel_format_to_rt_type(pixel_format));
 }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 extern v3d_pixel_format_t v3d_raw_mode_pixel_format(v3d_rt_type_t type, v3d_rt_bpp_t bpp);
 
 static inline v3d_pixel_format_t v3d_pixel_format_raw_mode(v3d_pixel_format_t pixel_format)
@@ -138,7 +138,7 @@ static inline bool v3d_memory_and_pixel_formats_compatible(
    case V3D_PIXEL_FORMAT_RGB8:
       /* 24-bit formats only compatible with raster */
       return memory_format == V3D_MEMORY_FORMAT_RASTER;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_PIXEL_FORMAT_D32F:
    case V3D_PIXEL_FORMAT_D24:
    case V3D_PIXEL_FORMAT_D16:
@@ -160,7 +160,7 @@ static inline uint32_t v3d_cl_rcfg_clear_colors_size(v3d_rt_bpp_t bpp)
 {
    switch (bpp)
    {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_RT_BPP_32:  return V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;
    case V3D_RT_BPP_64:  return 2 * V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;
 #else
@@ -176,7 +176,7 @@ static inline uint32_t v3d_cl_rcfg_clear_colors_size(v3d_rt_bpp_t bpp)
 void v3d_cl_rcfg_clear_colors(uint8_t **cl, uint32_t rt,
    const uint32_t col[4],
    const V3D_RT_FORMAT_T *rt_format
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    , uint32_t raster_padded_width_or_nonraster_height,
    uint32_t uif_height_in_ub
 #endif
@@ -300,7 +300,7 @@ static inline bool v3d_memory_format_is_uif(v3d_memory_format_t memory_format)
           (memory_format == V3D_MEMORY_FORMAT_UIF_XOR);
 }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 static inline v3d_memory_format_t v3d_memory_format_from_ldst(
    v3d_ldst_memory_format_t ldst_memory_format)
 {
@@ -351,7 +351,7 @@ struct v3d_tlb_ldst_params
 {
    v3d_addr_t addr;
    v3d_memory_format_t memory_format;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    v3d_pixel_format_t pixel_format;
 # if V3D_VER_AT_LEAST(4,1,34,0)
    bool load_alpha_to_one;
@@ -363,7 +363,7 @@ struct v3d_tlb_ldst_params
 #endif
    v3d_decimate_t decimate;
    v3d_dither_t dither; /* Only used for stores */
-   uint32_t stride; /* UIF: height in UIF-blocks. Raster: stride in V3D_VER_AT_LEAST(4,0,2,0) ? bytes : pixels. */
+   uint32_t stride; /* UIF: height in UIF-blocks. Raster: stride in V3D_VER_AT_LEAST(4,1,34,0) ? bytes : pixels. */
    bool flipy;
    uint32_t flipy_height_px; /* Used only for y-flip */
 };
@@ -371,7 +371,7 @@ struct v3d_tlb_ldst_params
 #define V3D_DECIMATE_MAX_X_SCALE 2
 #define V3D_DECIMATE_MAX_Y_SCALE 2
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 static inline v3d_prim_mode_t v3d_prim_mode_remove_tf(bool *tf, v3d_prim_mode_t mode)
 {
    bool dummy;
@@ -475,7 +475,7 @@ extern size_t v3d_cl_sprint_plist_fmt(char *buf, size_t buf_size, size_t offset,
 #define V3D_CL_SPRINT_PLIST_FMT(BUF_NAME, PLIST_FMT) \
    VCOS_SAFE_STRFUNC_TO_LOCAL_BUF(BUF_NAME, 256, v3d_cl_sprint_plist_fmt, PLIST_FMT)
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static inline uint32_t v3d_cl_vpm_pack_to_width(v3d_cl_vpm_pack_t pack)
 {
    switch(pack)

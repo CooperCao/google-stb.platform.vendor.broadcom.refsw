@@ -135,11 +135,9 @@ static void destroy_pobject_callback(khrn_map *map, uint32_t key, void *pobject,
    }
 }
 
-void glxx_shared_term(void *v, size_t size)
+void glxx_shared_term(void *v)
 {
    GLXX_SHARED_T *shared = (GLXX_SHARED_T *)v;
-
-   unused(size);
 
    khrn_map_iterate(&shared->pobjects, destroy_pobject_callback, shared);
    khrn_map_term(&shared->pobjects);

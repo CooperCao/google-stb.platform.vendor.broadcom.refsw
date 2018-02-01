@@ -66,7 +66,7 @@ static bool is_target_3d(GLenum target)
    case GL_TEXTURE_2D_ARRAY:
    case GL_TEXTURE_3D:
       return true;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_TEXTURE_CUBE_MAP_ARRAY:
       return (V3D_VER_AT_LEAST(3,3,0,0) ? true : false);
 #endif
@@ -128,7 +128,7 @@ static bool is_supported_teximage_target(const GLXX_SERVER_STATE_T *state, GLenu
 
    switch(target)
    {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case GL_TEXTURE_1D_BRCM:
       case GL_TEXTURE_1D_ARRAY_BRCM:
 #endif
@@ -142,7 +142,7 @@ static bool is_supported_teximage_target(const GLXX_SERVER_STATE_T *state, GLenu
       case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
       case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
          return true;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case GL_TEXTURE_CUBE_MAP_ARRAY:
          return  (V3D_VER_AT_LEAST(3,3,0,0) ? true : false);
 #endif
@@ -474,11 +474,11 @@ static void texImageX(GLenum target, GLint level, GLint
       goto end;
 
    unsigned face = glxx_texture_get_face(target);
-   bool secure = egl_context_gl_secure(state->context);
+
    glxx_texture_image(texture, face, level, internalformat, width, height,
          depth, format, type, &(state->pixel_store_state),
          state->bound_buffer[GLXX_BUFTGT_PIXEL_UNPACK].obj, pixels,
-         &state->fences, &error, secure);
+         &state->fences, &error);
 
 end:
 
@@ -487,7 +487,7 @@ end:
    glxx_unlock_server_state();
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 GL_APICALL void GL_APIENTRY glTexImage1DBRCM(GLenum target, GLint level, GLint internalformat,
             GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels)
 {
@@ -629,7 +629,7 @@ end:
    glxx_unlock_server_state();
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 GL_API void GL_APIENTRY glTexStorage1DBRCM(GLenum target, GLsizei levels,
       GLenum internalformat, GLsizei width)
 {
@@ -1353,10 +1353,10 @@ static bool is_wrap(GLenum target, int i)
          return true;
       break;
    case GL_CLAMP_TO_EDGE:
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_CLAMP_TO_BORDER:
 #endif
-   case GL_MIRROR_CLAMP_TO_EDGE_BRCM:
+   case GL_MIRROR_CLAMP_TO_EDGE_EXT:
       return true;
    }
    return false;
@@ -1386,7 +1386,7 @@ bool glxx_is_float_texparam(GLenum pname)
 bool glxx_is_vector_texparam(GLenum pname)
 {
    return
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       (pname == GL_TEXTURE_BORDER_COLOR) ||
 #endif
       (pname == GL_TEXTURE_CROP_RECT_OES);
@@ -1526,7 +1526,7 @@ void glxx_texparameter_sampler_internal(GLXX_SERVER_STATE_T *state,
       else
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_TEXTURE_BORDER_COLOR:
       if (!IS_GL_11(state))
       {
@@ -1576,7 +1576,7 @@ static bool is_texparam(GLenum pname) {
    case GL_TEXTURE_SWIZZLE_A:
    case GL_TEXTURE_BASE_LEVEL:
    case GL_TEXTURE_MAX_LEVEL:
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_TEXTURE_BORDER_COLOR:
 #endif
    case GL_TEXTURE_UNNORMALISED_COORDS_BRCM:
@@ -1623,7 +1623,7 @@ void glxx_texparameter_internal(GLXX_SERVER_STATE_T *state, GLenum target, GLenu
    case GL_TEXTURE_WRAP_R:
    case GL_TEXTURE_COMPARE_MODE:
    case GL_TEXTURE_COMPARE_FUNC:
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_TEXTURE_BORDER_COLOR:
 #endif
    case GL_TEXTURE_UNNORMALISED_COORDS_BRCM:
@@ -1755,7 +1755,7 @@ GL_API void GL_APIENTRY glTexParameterfv(GLenum target, GLenum pname, const GLfl
    {
       int iparams[4];
       for (int i=0; i < (glxx_is_vector_texparam(pname) ? 4 : 1); i++) {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
          /* XXX: Border colour is weirdly either float or int */
          if (pname == GL_TEXTURE_BORDER_COLOR)
             iparams[i] = gfx_float_to_bits(params[i]);
@@ -1868,7 +1868,7 @@ end:
    glxx_unlock_server_state();
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 GL_API void GL_APIENTRY glTexSubImage1DBRCM(GLenum target, GLint level, GLint xoffset,
       GLsizei width, GLenum format, GLenum type, const GLvoid* orig_pixels)
 {

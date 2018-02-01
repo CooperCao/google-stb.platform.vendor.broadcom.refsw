@@ -522,20 +522,24 @@ void CAtlas::uhfRemoteUninitialize()
 
 #endif /* if NEXUS_HAS_UHF_INPUT */
 
-CVideoWindow * CAtlas::videoWindowInitialize(
+eRet CAtlas::videoWindowInitialize(
         CDisplay *           pDisplay,
         CSimpleVideoDecode * pVideoDecode,
+        CVideoWindow **      ppVideoWindow,
         eWindowType          windowType
         )
 {
     eRet           ret          = eRet_Ok;
     CVideoWindow * pVideoWindow = NULL;
 
+    BDBG_ASSERT(NULL != ppVideoWindow);
+
     ATLAS_MEMLEAK_TRACE("BEGIN");
 
     if ((NULL == pDisplay) || (NULL == pVideoDecode))
     {
-        return(pVideoWindow);
+        *ppVideoWindow = NULL;
+        return(eRet_NotAvailable);
     }
 
     /* connect decoder to display */
@@ -555,7 +559,11 @@ error:
     pVideoWindow = NULL;
 done:
     ATLAS_MEMLEAK_TRACE("END");
-    return(pVideoWindow);
+
+    /* save video window pointer in return parameter */
+    *ppVideoWindow = pVideoWindow;
+
+    return(ret);
 } /* videoWindowInitialize */
 
 void CAtlas::videoWindowUninitialize(
@@ -744,6 +752,35 @@ void CAtlas::audioDecodeDestroy(eWindowType windowType)
     }
 }
 
+CSimplePcmPlayback * CAtlas::audioPcmPlaybackCreate()
+{
+    eRet                 ret            = eRet_Ok;
+    CSimplePcmPlayback * pAudioPlayback = NULL;
+
+    /* TTTTTTTTTTTTT disabled for nexus mode atlas until mixer can be added */
+    goto error;
+
+    pAudioPlayback = (CSimplePcmPlayback *)_pBoardResources->checkoutResource(this, eBoardResource_simplePcmPlayback);
+    CHECK_PTR_ERROR_GOTO("unable to checkout simple pcm playback", pAudioPlayback, ret, eRet_NotAvailable, error);
+
+    /* add audio playback to model for main */
+    _model.addSimplePcmPlayback(pAudioPlayback);
+error:
+    return(pAudioPlayback);
+}
+
+void CAtlas::audioPcmPlaybackDestroy()
+{
+    CSimplePcmPlayback * pAudioPlayback = NULL;
+
+    pAudioPlayback = _model.getSimplePcmPlayback();
+    if (NULL != pAudioPlayback)
+    {
+        _model.removeSimplePcmPlayback();
+        _pBoardResources->checkinResource(pAudioPlayback);
+    }
+}
+
 CSimpleAudioDecode * CAtlas::audioDecodeInitialize(
         COutputHdmi *     pOutputHdmi,
         COutputSpdif *    pOutputSpdif,
@@ -798,7 +835,7 @@ CSimpleAudioDecode * CAtlas::audioDecodeInitializePip(
         )
 {
     CSimpleAudioDecode * pAudioDecodePip = NULL;
-    eRet ret = eRet_Ok;
+    eRet                 ret             = eRet_Ok;
 
     pAudioDecodePip = audioDecodeInitialize(NULL, NULL, NULL, NULL, pStc, eWindowType_Pip);
     CHECK_PTR_MSG("unable to initialize Pip audio decode - disabled", pAudioDecodePip, ret, eRet_Ok);
@@ -813,6 +850,34 @@ CSimpleAudioDecode * CAtlas::audioDecodeInitializePip(
     }
 
     return(pAudioDecodePip);
+}
+
+CSimplePcmPlayback * CAtlas::audioPcmPlaybackInitialize(
+        COutputHdmi * pOutputHdmi,
+        COutputSpdif * pOutputSpdif
+        )
+{
+    CSimplePcmPlayback * pPcmPlayback = NULL;
+    eRet                 ret          = eRet_Ok;
+
+    pPcmPlayback = audioPcmPlaybackCreate();
+    CHECK_PTR_WARN_GOTO("unable to create simple pcm playback", pPcmPlayback, ret, eRet_NotAvailable, error);
+    CHECK_PTR_ERROR_GOTO("unable to create simple pcm playback", pPcmPlayback, ret, eRet_NotAvailable, error);
+
+    pPcmPlayback->setResources(this, _pBoardResources);
+    pPcmPlayback->setModel(&_model);
+
+    if (NULL != pOutputHdmi)  { pPcmPlayback->setOutputHdmi(pOutputHdmi); }
+    if (NULL != pOutputSpdif) { pPcmPlayback->setOutputSpdif(pOutputSpdif); }
+
+    ret = pPcmPlayback->open(_pWidgetEngine);
+    CHECK_ERROR_GOTO("audio pcm playback failed to open", ret, error);
+
+    goto done;
+error:
+    if (NULL != pPcmPlayback) { audioPcmPlaybackUninitialize(&pPcmPlayback); }
+done:
+    return(pPcmPlayback);
 }
 
 void CAtlas::audioDecodeUninitialize(
@@ -833,6 +898,23 @@ void CAtlas::audioDecodeUninitialize(
 
     audioDecodeDestroy(winType);
     *pAudioDecode = NULL;
+}
+
+void CAtlas::audioPcmPlaybackUninitialize(
+        CSimplePcmPlayback ** pPcmPlayback
+        )
+{
+    if ((NULL == pPcmPlayback) || (NULL == *pPcmPlayback))
+    {
+        return;
+    }
+
+    (*pPcmPlayback)->close();
+    (*pPcmPlayback)->setOutputHdmi(NULL);
+    (*pPcmPlayback)->setOutputSpdif(NULL);
+
+    audioPcmPlaybackDestroy();
+    *pPcmPlayback = NULL;
 }
 
 #ifdef WPA_SUPPLICANT_SUPPORT
@@ -2412,6 +2494,7 @@ eRet CAtlas::initialize(CConfig * pConfig)
     CStillDecode *       pVideoDecodeStill = NULL;
     CSimpleAudioDecode * pAudioDecodeMain  = NULL;
     CSimpleAudioDecode * pAudioDecodePip   = NULL;
+    CSimplePcmPlayback * pAudioPcmPlayback = NULL;
     CStc *               pStcMain          = NULL;
     CStc *               pStcPip           = NULL;
     CPlaybackList *      pPlaybackList     = NULL;
@@ -2497,11 +2580,14 @@ eRet CAtlas::initialize(CConfig * pConfig)
         pVideoDecodeMain = videoDecodeInitialize(pStcMain, eWindowType_Main);
         CHECK_PTR_MSG_GOTO("unable to initialize main video decode", pVideoDecodeMain, ret, eRet_NotAvailable, errorDecodeMain);
 
-        pVideoWindowHD = videoWindowInitialize(pDisplayHD, pVideoDecodeMain, eWindowType_Main);
-        CHECK_PTR_MSG("unable to initialize video window for HD display (main)", pVideoWindowHD, ret, eRet_Ok);
+        ret = videoWindowInitialize(pDisplayHD, pVideoDecodeMain, &pVideoWindowHD, eWindowType_Main);
+        CHECK_ERROR_GOTO("unable to initialize video window for HD display (main)", ret, errorDecodeMain);
 
-        pVideoWindowSD = videoWindowInitialize(pDisplaySD, pVideoDecodeMain, eWindowType_Main);
-        CHECK_PTR_MSG("unable to initialize video window for SD display (main)", pVideoWindowSD, ret, eRet_Ok);
+        {
+            eRet retVideoWindow = eRet_Ok;
+            retVideoWindow = videoWindowInitialize(pDisplaySD, pVideoDecodeMain, &pVideoWindowSD, eWindowType_Main);
+            CHECK_WARN("unable to initialize video window for SD display (main)", retVideoWindow);
+        }
 
         goto doneDecodeMain;
 errorDecodeMain: /* we can continue even if main decode cannot be initialized (headless) */
@@ -2540,11 +2626,14 @@ doneDecodeMain:
         pVideoDecodePip = videoDecodeInitialize(pStcPip, eWindowType_Pip);
         CHECK_PTR_MSG_GOTO("unable to initialize pip video decode", pVideoDecodePip, ret, eRet_NotAvailable, errorDecodePip);
 
-        pVideoWindowHD = videoWindowInitialize(pDisplayHD, pVideoDecodePip, eWindowType_Pip);
-        CHECK_PTR_MSG("unable to initialize video window for HD display (pip)", pVideoWindowHD, ret, eRet_Ok);
+        ret = videoWindowInitialize(pDisplayHD, pVideoDecodePip, &pVideoWindowHD, eWindowType_Pip);
+        CHECK_ERROR_GOTO("unable to initialize video window for HD display (pip)", ret, errorDecodePip);
 
-        pVideoWindowSD = videoWindowInitialize(pDisplaySD, pVideoDecodePip, eWindowType_Pip);
-        CHECK_PTR_MSG("unable to initialize video window for SD display (pip)", pVideoWindowSD, ret, eRet_Ok);
+        {
+            eRet retVideoWindow = eRet_Ok;
+            retVideoWindow = videoWindowInitialize(pDisplaySD, pVideoDecodePip, &pVideoWindowSD, eWindowType_Pip);
+            CHECK_WARN("unable to initialize video window for SD display (pip)", retVideoWindow);
+        }
 
         _model.setPipEnabled(true);
 
@@ -2613,6 +2702,9 @@ doneDecodePip:
     CHECK_PTR_MSG("unable to initialize Main audio decode - disabled", pAudioDecodeMain, ret, eRet_Ok);
     /* initialize Pip audio decoder */
     pAudioDecodePip = audioDecodeInitializePip(pOutputHdmi, pOutputSpdif, pOutputAudioDac, pOutputRFM, pStcPip, eWindowType_Pip);
+    /* initialize PCM playback for sound effects */
+    pAudioPcmPlayback = audioPcmPlaybackInitialize(pOutputHdmi, pOutputSpdif);
+    CHECK_PTR_MSG("unable to initialize audio PCM playback - disabled", pAudioPcmPlayback, ret, eRet_Ok);
 
     pPlaybackList = new CPlaybackList(_pCfg);
     CHECK_PTR_ERROR_GOTO("unable to allocate playback list", pPlaybackList, ret, eRet_OutOfMemory, error);
@@ -2718,17 +2810,18 @@ error:
 
 void CAtlas::uninitialize()
 {
-    CDisplay *           pDisplayHD       = _model.getDisplay(0);
-    CDisplay *           pDisplaySD       = _model.getDisplay(1);
-    CPlaybackList *      pPlaybackList    = _model.getPlaybackList();
-    CSimpleAudioDecode * pAudioDecodeMain = _model.getSimpleAudioDecode(eWindowType_Main);
-    CSimpleAudioDecode * pAudioDecodePip  = _model.getSimpleAudioDecode(eWindowType_Pip);
-    COutputAudioDac *    pOutputAudioDac  = (COutputAudioDac *)_model.getAudioOutput(eBoardResource_outputAudioDac);
-    COutputSpdif *       pOutputSpdif     = (COutputSpdif *)_model.getAudioOutput(eBoardResource_outputSpdif);
-    COutputHdmi *        pOutputHdmi      = NULL;
-    COutputComponent *   pOutputComponent = NULL;
-    COutputComposite *   pOutputComposite = NULL;
-    COutputRFM *         pOutputRFM       = NULL;
+    CDisplay *           pDisplayHD        = _model.getDisplay(0);
+    CDisplay *           pDisplaySD        = _model.getDisplay(1);
+    CPlaybackList *      pPlaybackList     = _model.getPlaybackList();
+    CSimpleAudioDecode * pAudioDecodeMain  = _model.getSimpleAudioDecode(eWindowType_Main);
+    CSimpleAudioDecode * pAudioDecodePip   = _model.getSimpleAudioDecode(eWindowType_Pip);
+    CSimplePcmPlayback * pAudioPcmPlayback = _model.getSimplePcmPlayback();
+    COutputAudioDac *    pOutputAudioDac   = (COutputAudioDac *)_model.getAudioOutput(eBoardResource_outputAudioDac);
+    COutputSpdif *       pOutputSpdif      = (COutputSpdif *)_model.getAudioOutput(eBoardResource_outputSpdif);
+    COutputHdmi *        pOutputHdmi       = NULL;
+    COutputComponent *   pOutputComponent  = NULL;
+    COutputComposite *   pOutputComposite  = NULL;
+    COutputRFM *         pOutputRFM        = NULL;
 
     if (NULL != pDisplayHD)
     {
@@ -2780,13 +2873,14 @@ void CAtlas::uninitialize()
 #endif
     DEL(pPlaybackList);
 
-    audioDecodeUninitialize(&pAudioDecodePip, eWindowType_Pip);
-    audioDecodeUninitialize(&pAudioDecodeMain, eWindowType_Main);
+    if (NULL != pAudioPcmPlayback) { audioPcmPlaybackUninitialize(&pAudioPcmPlayback); }
+    if (NULL != pAudioDecodePip) { audioDecodeUninitialize(&pAudioDecodePip, eWindowType_Pip); }
+    if (NULL != pAudioDecodeMain) { audioDecodeUninitialize(&pAudioDecodeMain, eWindowType_Main); }
 
-    outputDacUninitialize(&pOutputAudioDac);
-    outputSpdifUninitialize(&pOutputSpdif);
-    outputRfmUninitialize(pDisplaySD, &pOutputRFM);
-    outputCompositeUninitialize(pDisplaySD, &pOutputComposite);
+    if (NULL != pOutputAudioDac) { outputDacUninitialize(&pOutputAudioDac); }
+    if (NULL != pOutputSpdif) { outputSpdifUninitialize(&pOutputSpdif); }
+    if (NULL != pOutputRFM) { outputRfmUninitialize(pDisplaySD, &pOutputRFM); }
+    if (NULL != pOutputComposite) { outputCompositeUninitialize(pDisplaySD, &pOutputComposite); }
     /* component output can be connected to either the HD or SD display */
     if (NULL != pDisplayHD)
     {
@@ -2804,7 +2898,8 @@ void CAtlas::uninitialize()
             outputComponentUninitialize(pDisplaySD, &pOutputComponent);
         }
     }
-    outputHdmiUninitialize(pDisplayHD, &pOutputHdmi);
+
+    if (NULL != pOutputHdmi) { outputHdmiUninitialize(pDisplayHD, &pOutputHdmi); }
 
     videoDecodeStillUninitialize();
 
@@ -2853,8 +2948,8 @@ void CAtlas::uninitialize()
     /* graphicsUninitialize must be _after_ control unitialize to avoid leaks when the widget engine is destroyed */
     graphicsUninitialize();
 
-    displayUninitialize(&pDisplaySD);
-    displayUninitialize(&pDisplayHD);
+    if (NULL != pDisplaySD) { displayUninitialize(&pDisplaySD); }
+    if (NULL != pDisplayHD) { displayUninitialize(&pDisplayHD); }
 } /* uninitialize */
 
 bwin_engine_t CAtlas::getWinEngine()

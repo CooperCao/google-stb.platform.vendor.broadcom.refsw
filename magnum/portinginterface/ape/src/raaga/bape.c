@@ -1995,6 +1995,27 @@ BAPE_DolbyMSVersion BAPE_GetDolbyMSVersion (void)
 #endif
 }
 
+void BAPE_GetLoudnessMode(
+    BAPE_Handle hApe,
+    BAPE_LoudnessSettings *pSettings /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(hApe, BAPE_Device);
+    BDBG_ASSERT(NULL != pSettings);
+    *pSettings = hApe->settings.loudnessSettings;
+}
+
+BERR_Code BAPE_SetLoudnessMode(
+    BAPE_Handle hApe,
+    BAPE_LoudnessSettings *pSettings /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(hApe, BAPE_Device);
+    BDBG_ASSERT(NULL != pSettings);
+    hApe->settings.loudnessSettings = *pSettings;
+    return BERR_SUCCESS;
+}
+
 #if BAPE_DSP_SUPPORT
 void BAPE_P_PopulateSupportedBDSPAlgos(
     BDSP_AlgorithmType type, /* [in] */

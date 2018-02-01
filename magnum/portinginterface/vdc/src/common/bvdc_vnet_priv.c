@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -47,6 +47,8 @@
 #include "bvdc_priv.h"
 
 BDBG_MODULE(VNET);
+
+#if (BVDC_P_SUPPORT_HDDVI || BVDC_P_SUPPORT_NEW_656_IN_VER)
 BDBG_OBJECT_ID(BVDC_VNT);
 
 /* INDEX: By source id, do not put ifdefs and nested ifdefs around these that
@@ -304,5 +306,6 @@ void BVDC_P_Drain_BuildFormatRul_isr
 
     return;
 }
+#endif /* HDDVI or 656IN */
 
 /* End of file. */

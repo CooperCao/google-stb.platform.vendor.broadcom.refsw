@@ -1,20 +1,8 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
-Project  :  khronos
-Module   :  Header file
-File     :  $RCSfile: $
-Revision :  $Revision: $
-
-FILE DESCRIPTION
-Responsible for fitting nodes into the ADD and MUL units and allocating registers
-for their destinations.
-=============================================================================*/
-#ifndef GLSL_ALLOCATOR_4_H
-#define GLSL_ALLOCATOR_4_H
-
-#include "middleware/khronos/common/khrn_mem.h"
+#pragma once
 
 extern void glsl_allocator_add_node(Dataflow *dataflow);
 extern bool glsl_allocator_add_input_dependency(Dataflow *dataflow);
@@ -128,5 +116,3 @@ __declspec(dllimport) void __stdcall OutputDebugStringA(const char * lpOutputStr
 #else
 #define debug_print(s) printf("%s",s)
 #endif
-
-#endif //GLSL_2760SIM_ALLOCATOR_H

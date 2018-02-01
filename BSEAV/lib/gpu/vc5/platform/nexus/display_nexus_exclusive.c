@@ -13,6 +13,7 @@ struct buffer
 {
    NEXUS_SurfaceHandle surface;
    int                 fence;
+   uint32_t            debugId;
 };
 
 typedef struct display
@@ -28,6 +29,7 @@ typedef struct display
 
    void                         *vsyncEvent;
    int                           terminating;
+   EventContext                 *eventContext;
 } display;
 
 static void vsyncCallback(void *context, int param)
@@ -75,8 +77,21 @@ static void frameBufferCallback(void *context, int param)
 
       platform_dbg_message_add("%s %d - surface = %p", __FUNCTION__, __LINE__, self->active.surface);
 
-      self->active.surface = self->pending.surface;
-      self->active.fence = self->pending.fence;
+      if (self->active.surface != NULL)
+      {
+         PerfAddEvent(self->eventContext, PERF_EVENT_TRACK_DISPLAY, PERF_EVENT_ON_DISPLAY, self->active.debugId,
+                      BCM_EVENT_END, (uintptr_t)self->active.surface);
+      }
+
+      if (self->pending.surface != NULL)
+      {
+         self->pending.debugId++;
+         PerfAddEvent(self->eventContext, PERF_EVENT_TRACK_DISPLAY, PERF_EVENT_ON_DISPLAY, self->pending.debugId,
+                      BCM_EVENT_BEGIN, (uintptr_t)self->pending.surface);
+      }
+
+      // Copy all fields from pending to active surface
+      self->active = self->pending;
 
       self->pending.surface = NULL;
       self->pending.fence = self->fenceInterface->invalid_fence;
@@ -194,9 +209,7 @@ static void stop(void *context)
    FenceInterface_Signal(self->fenceInterface, self->pending.fence);
 
    DestroyEvent(self->vsyncEvent);
-
 }
-
 
 static void destroy(void *context)
 {
@@ -256,7 +269,7 @@ static void SetFrameBufferCallback(NEXUS_DISPLAYHANDLE display,
 bool DisplayInterface_InitNexusExclusive(DisplayInterface *di,
       const FenceInterface *fi,
       const NXPL_NativeWindowInfoEXT *windowInfo, NXPL_DisplayType displayType,
-      NEXUS_DISPLAYHANDLE display_handle, int *bound)
+      NEXUS_DISPLAYHANDLE display_handle, int *bound, EventContext *eventContext)
 {
    display *self = calloc(1, sizeof(*self));
    if (self)
@@ -266,6 +279,7 @@ bool DisplayInterface_InitNexusExclusive(DisplayInterface *di,
       self->displayType = displayType;
       self->bound = bound;
       self->display = display_handle;
+      self->eventContext = eventContext;
 
       /* setup the display & callback */
       self->vsyncEvent = CreateEvent();
@@ -273,7 +287,9 @@ bool DisplayInterface_InitNexusExclusive(DisplayInterface *di,
       if (BKNI_CreateMutex(&self->mutex) != BERR_SUCCESS)
          FATAL_ERROR("BKNI_CreateMutex failed");
       self->active.surface = NULL;
+      self->active.debugId = 0;
       self->pending.surface = NULL;
+      self->pending.debugId = 0;
       self->active.fence = self->fenceInterface->invalid_fence;
       self->pending.fence = self->fenceInterface->invalid_fence;
 

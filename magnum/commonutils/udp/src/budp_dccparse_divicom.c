@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,17 +38,10 @@
  * Module Description:
  *
  ***************************************************************************/
-
-/* For debugging */
-/* #define BUDP_P_GETUD_DUMP 1 */
-#ifdef BUDP_P_GETUD_DUMP
-static const char* BUDP_P_Getud_Filename = "userdata.getud";
-#include <stdio.h>
-#endif
-
 #include "bstd.h"
 #include "bdbg.h"
 #include "budp.h"
+#include "budp_priv.h"
 #include "budp_bitread.h"
 #include "budp_dccparse.h"
 #include "budp_dccparse_divicom.h"
@@ -68,24 +61,14 @@ static BERR_Code ParseDivicomData_isr (
     uint8_t*                 pcc_count,
     BUDP_DCCparse_ccdata* pCCdata
 );
-static size_t FindMpegUserdataStart_isr (
-    BUDP_Bitread_Context* pREader, size_t length);
-
-#ifdef BUDP_P_GETUD_DUMP
-static void dump_getud_isr (
-    const BAVC_USERDATA_info* pUserdata_info, size_t offset);
-#endif
 
 /***************************************************************************
 * Static data (tables, etc.)
 ***************************************************************************/
 
-static const bool bByteswap = (BSTD_CPU_ENDIAN == BSTD_ENDIAN_LITTLE);
-
 /***************************************************************************
 * Implementation of "BUDP_DCCparse_" API functions
 ***************************************************************************/
-
 
 /***************************************************************************
  *
@@ -117,8 +100,8 @@ BERR_Code BUDP_DCCparse_Divicom_isr (
 
     /* Programming note:  all function parameters are now validated */
 
-#ifdef BUDP_P_GETUD_DUMP
-    dump_getud_isr (pUserdata_info, offset);
+#if (BUDP_P_GETUD_DUMP)
+    BUDP_P_dump_getud_isr (pUserdata_info, offset, BUDP_P_Getud_Filename);
 #endif
 
     /* Take care of a special case */
@@ -131,10 +114,10 @@ BERR_Code BUDP_DCCparse_Divicom_isr (
     }
 
     /* Prepare to play with bits */
-    BUDP_Bitread_Init_isr (&reader, bByteswap, userdata);
+    BUDP_Bitread_Init_isr (&reader, (BSTD_CPU_ENDIAN == BSTD_ENDIAN_LITTLE), userdata);
 
     /* jump past the first MPEG userdata start code */
-    bytesParsedSub = FindMpegUserdataStart_isr (&reader, length);
+    bytesParsedSub = BUDP_P_FindMpegUserdataStart_isr (&reader, length);
     *pBytesParsed = bytesParsedSub;
     length -= bytesParsedSub;
 
@@ -178,61 +161,6 @@ BERR_Code BUDP_DCCparse_Divicom_isr (
 /***************************************************************************
 * Private functions
 ***************************************************************************/
-
-/***************************************************************************
- * This function finds the next userdata startcode 0x000001B2.  It
- * indicates the byte following this startcode by its return value.
- * If no startcode was found, it simply returns the length of the
- * input data.
- */
-static size_t FindMpegUserdataStart_isr (
-    BUDP_Bitread_Context* pReader, size_t length)
-{
-    size_t count = 0;
-    uint8_t saved[4];
-
-    /* Special case (failure) */
-    if (length < 4)
-        return length;
-
-    /* Initialize */
-    saved[1] = BUDP_Bitread_Byte_isr (pReader);
-    saved[2] = BUDP_Bitread_Byte_isr (pReader);
-    saved[3] = BUDP_Bitread_Byte_isr (pReader);
-
-    while (length >= 4)
-    {
-        /* Read in another byte */
-        saved[0] = saved[1];
-        saved[1] = saved[2];
-        saved[2] = saved[3];
-        saved[3] = BUDP_Bitread_Byte_isr (pReader);
-
-        if ((saved[0] == 0x00) &&
-            (saved[1] == 0x00) &&
-            (saved[2] == 0x01) &&
-            (saved[3] == 0xB2)    )
-        {
-            /* Found it! */
-            break;
-        }
-
-        /* proceed to the next byte */
-        --length;
-        ++count;
-    }
-
-    if (length >= 4)
-    {
-        /* found the pattern before the end of stream */
-        return count + 4;
-    }
-    else
-    {
-        /* Didn't find any start code */
-        return count + 3;
-    }
-}
 
 /***************************************************************************
  * This function parses Divicom data.  It assumes that the userdata
@@ -337,44 +265,4 @@ static BERR_Code ParseDivicomData_isr (
     return BERR_SUCCESS;
 }
 
-#ifdef BUDP_P_GETUD_DUMP
-static void dump_getud_isr (
-    const BAVC_USERDATA_info* pUserdata_info, size_t offset)
-{
-    unsigned int iByte;
-    static FILE* fd = NULL;
-    static unsigned int nPicture;
-    uint8_t* userdata = (uint8_t*)(pUserdata_info->pUserDataBuffer) + offset;
-    uint32_t length   = pUserdata_info->ui32UserDataBufSize - offset;
-
-    /* Initialization */
-    if (fd == NULL)
-    {
-        if ((fd = fopen (BUDP_P_Getud_Filename, "w")) == 0)
-        {
-            fprintf (stderr, "ERROR: could not open %s for debug output\n",
-                BUDP_P_Getud_Filename);
-            return;
-        }
-        fprintf (fd, "getud output format version 1\n");
-        nPicture = 0;
-    }
-
-    fprintf (fd, "\nPic %u LOC %06lx TR %u\n", ++nPicture, 0UL, 0U);
-    fprintf (fd, "PS %d TFF %d RFF %d\n",
-        pUserdata_info->eSourcePolarity,
-        pUserdata_info->bTopFieldFirst,
-        pUserdata_info->bRepeatFirstField);
-    fprintf (fd, "UDBYTES %u\n", length);
-    for (iByte = 0 ; iByte < length ; ++iByte)
-    {
-        fprintf (fd, "%02x", userdata[iByte]);
-        if ((iByte % 16) == 15)
-            putc ('\n', fd);
-        else
-            putc (' ', fd);
-    }
-    if ((iByte % 16) != 15)
-        putc ('\n', fd);
-}
-#endif
+/* End of file */

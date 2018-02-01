@@ -35,7 +35,12 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  **************************************************************************/
-
+#ifdef NXCLIENT_SUPPORT
+#include "nxclient.h"
+#include "nexus_simple_video_decoder.h"
+#include "nexus_simple_audio_decoder.h"
+#include "nexus_simple_stc_channel.h"
+#endif
 #include "nexus_platform.h"
 #include "nexus_video_decoder.h"
 #include "nexus_stc_channel.h"
@@ -105,13 +110,27 @@ int main(int argc, const char *argv[])
 #if AUDIO_ENABLE
     NEXUS_PidChannelHandle audio_ch;
 #endif
+#ifdef NXCLIENT_SUPPORT
+    NxClient_JoinSettings joinSettings;
+    NxClient_AllocSettings allocSettings;
+    NxClient_AllocResults allocResults;
+    NxClient_ConnectSettings connectSettings;
+    unsigned connectId;
+    NEXUS_SimpleStcChannelHandle simpleStcChannel;
+    NEXUS_SimpleVideoDecoderHandle simpleVideoDecoder;
+    NEXUS_SimpleVideoDecoderStartSettings simpleVideoProgram;
+    NEXUS_SimpleAudioDecoderHandle simpleAudioDecoder;
+    NEXUS_SimpleAudioDecoderStartSettings simpleAudioProgram;
+    NEXUS_SimpleAudioDecoderSettings simpleAudioDecoderSettings;
+    NEXUS_MemoryAllocationSettings memSettings;
+    NEXUS_ClientConfiguration clientConfig;
+#else
     NEXUS_StcChannelHandle stcChannel;
     NEXUS_StcChannelSettings stcSettings;
     NEXUS_DisplayHandle display;
     NEXUS_VideoWindowHandle window;
     NEXUS_VideoDecoderHandle videoDecoder;
     NEXUS_VideoDecoderStartSettings videoProgram;
-    NEXUS_VideoDecoderSettings videoDecoderSettings;
 #if AUDIO_ENABLE
     NEXUS_AudioDecoderHandle audioDecoder;
     NEXUS_AudioDecoderStartSettings audioProgram;
@@ -124,6 +143,8 @@ int main(int argc, const char *argv[])
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_DisplaySettings displaySettings;
 #endif
+#endif
+    NEXUS_VideoDecoderSettings videoDecoderSettings;
     NEXUS_Error rc;
     unsigned i;
     bmmt_get_default_open_settings(&open_settings);
@@ -171,11 +192,18 @@ int main(int argc, const char *argv[])
     /**
      * nexus platform initialization
     **/
+#ifdef NXCLIENT_SUPPORT
+    NxClient_GetDefaultJoinSettings(&joinSettings);
+    snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "%s", argv[0]);
+    rc = NxClient_Join(&joinSettings);
+    if (rc) return -1;
+#else
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
     rc = NEXUS_Platform_Init(&platformSettings);
     if (rc) return -1;
     NEXUS_Platform_GetConfiguration(&platformConfig);
+#endif
     /**
      *  mmt module instantiation
     **/
@@ -351,6 +379,43 @@ int main(int argc, const char *argv[])
           goto done;
        }
     }
+#ifdef NXCLIENT_SUPPORT
+    simpleStcChannel = NEXUS_SimpleStcChannel_Create(NULL);
+    NxClient_GetDefaultAllocSettings(&allocSettings);
+    allocSettings.simpleVideoDecoder = 1;
+    allocSettings.surfaceClient = 1;
+    allocSettings.simpleAudioDecoder = 1;
+    rc = NxClient_Alloc(&allocSettings, &allocResults);
+    if (rc) {BDBG_WRN(("unable to alloc AV decode resources")); return -1;}
+    NxClient_GetDefaultConnectSettings(&connectSettings);
+    connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;
+    connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxWidth = 3840;
+    connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxHeight = 2160;
+    connectSettings.simpleVideoDecoder[0].surfaceClientId =  allocResults.surfaceClient[0].id;
+    connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxFormat = NEXUS_VideoFormat_e3840x2160p60hz;
+    connectSettings.simpleVideoDecoder[0].decoderCapabilities.supportedCodecs[NEXUS_VideoCodec_eH265] = true;
+    connectSettings.simpleVideoDecoder[0].windowCapabilities.type = NxClient_VideoWindowType_eMain;
+    #if 0
+    connectSettings.simpleVideoDecoder[0].windowCapabilities.maxHeight = 3840;
+    connectSettings.simpleVideoDecoder[0].windowCapabilities.maxWidth = 2160;
+    #endif
+    connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
+    rc = NxClient_Connect(&connectSettings, &connectId);
+    if (rc) {BDBG_WRN(("unable to connect transcode resources")); return -1;}
+    simpleVideoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
+    NEXUS_SimpleVideoDecoder_GetSettings(simpleVideoDecoder,&videoDecoderSettings);
+    videoDecoderSettings.maxWidth = 3840;
+    videoDecoderSettings.maxHeight = 2160;
+    videoDecoderSettings.discardThreshold = 10*45000;
+    NEXUS_SimpleVideoDecoder_SetSettings(simpleVideoDecoder,&videoDecoderSettings);
+    NEXUS_SimpleVideoDecoder_SetStcChannel(simpleVideoDecoder, simpleStcChannel);
+    simpleAudioDecoder = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
+    NEXUS_SimpleAudioDecoder_SetStcChannel(simpleAudioDecoder, simpleStcChannel);
+    NEXUS_SimpleAudioDecoder_GetSettings(simpleAudioDecoder,&simpleAudioDecoderSettings);
+    simpleAudioDecoderSettings.primary.discardThreshold = 10*1000;
+    simpleAudioDecoderSettings.secondary.discardThreshold = 10*1000;
+    NEXUS_SimpleAudioDecoder_SetSettings(simpleAudioDecoder,&simpleAudioDecoderSettings);
+#else
     NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
     stcSettings.timebase = NEXUS_Timebase_e0;
     stcSettings.mode = NEXUS_StcChannelMode_eAuto;
@@ -413,6 +478,7 @@ int main(int argc, const char *argv[])
     NEXUS_AudioDecoder_GetSettings(audioDecoder, &audioDecoderSettings);
     audioDecoderSettings.discardThreshold = 10*1000;
     NEXUS_AudioDecoder_SetSettings(audioDecoder, &audioDecoderSettings);
+#endif
     /**
       *  find video asset index in the 1st MPT
      **/
@@ -460,11 +526,20 @@ int main(int argc, const char *argv[])
             BDBG_ASSERT(video_stream);
             video_ch = bmmt_stream_get_pid_channel(video_stream);
             if (!open_settings.pesOut) {
+                #ifdef NXCLIENT_SUPPORT
+                NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&simpleVideoProgram);
+                simpleVideoProgram.settings.codec = NEXUS_VideoCodec_eH265;
+                simpleVideoProgram.settings.pidChannel = video_ch;
+                simpleVideoProgram.maxHeight = 2160;
+                simpleVideoProgram.maxWidth = 3860;
+                NEXUS_SimpleVideoDecoder_Start(simpleVideoDecoder,&simpleVideoProgram);
+                #else
                 NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
                 videoProgram.codec = NEXUS_VideoCodec_eH265;
                 videoProgram.pidChannel = video_ch;
                 videoProgram.stcChannel = stcChannel;
                 NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
+                #endif
             }
         }
         else
@@ -519,11 +594,18 @@ int main(int argc, const char *argv[])
             audio_ch = bmmt_stream_get_pid_channel(audio_stream);
             if (!open_settings.pesOut)
             {
+                #ifdef NXCLIENT_SUPPORT
+                NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&simpleAudioProgram);
+                simpleAudioProgram.primary.codec = NEXUS_AudioCodec_eAacLoas;
+                simpleAudioProgram.primary.pidChannel = audio_ch;
+                NEXUS_SimpleAudioDecoder_Start(simpleAudioDecoder,&simpleAudioProgram);
+                #else
                 NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
                 audioProgram.codec = NEXUS_AudioCodec_eAacLoas;
                 audioProgram.pidChannel = audio_ch;
                 audioProgram.stcChannel = stcChannel;
                 NEXUS_AudioDecoder_Start(audioDecoder, &audioProgram);
+                #endif
             }
         }
         else
@@ -541,11 +623,23 @@ int main(int argc, const char *argv[])
     getchar();
     if (!open_settings.pesOut)
     {
+        #ifdef NXCLIENT_SUPPORT
+        NEXUS_SimpleVideoDecoder_Stop(simpleVideoDecoder);
+        #else
         NEXUS_VideoDecoder_Stop(videoDecoder);
+        #endif
     #if AUDIO_ENABLE
+        #ifdef NXCLIENT_SUPPORT
+        NEXUS_SimpleAudioDecoder_Stop(simpleAudioDecoder);
+        #else
         NEXUS_AudioDecoder_Stop(audioDecoder);
+        #endif
     #endif
     }
+#ifdef NXCLIENT_SUPPORT
+    NxClient_Disconnect(connectId);
+    NxClient_Free(&allocResults);
+#else
     NEXUS_VideoDecoder_Close(videoDecoder);
 #if AUDIO_ENABLE
     NEXUS_AudioDecoder_Close(audioDecoder);
@@ -553,10 +647,15 @@ int main(int argc, const char *argv[])
     NEXUS_VideoWindow_Close(window);
     NEXUS_Display_Close(display);
     NEXUS_StcChannel_Close(stcChannel);
+#endif
 done:
     bmmt_stop(mmt);
     bmmt_close(mmt);
+#ifdef NXCLIENT_SUPPORT
+    NxClient_Uninit();
+#else
     NEXUS_Platform_Uninit();
+#endif
 
     return 0;
 }

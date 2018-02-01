@@ -39,6 +39,7 @@
 
 #include <string.h>
 
+#include "keymaster_debug.h"
 #include "bstd.h"
 #include "bkni.h"
 
@@ -171,6 +172,7 @@ BERR_Code km_test_new_params_with_ec_defaults(KM_Tag_ContextHandle *key_params, 
     }
     TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PURPOSE, KM_PURPOSE_SIGN);
     TEST_TAG_ADD_ENUM(*key_params, KM_TAG_PURPOSE, KM_PURPOSE_VERIFY);
+    TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
     TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_MD5);
     TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
     TEST_TAG_ADD_ENUM(*key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
@@ -394,6 +396,7 @@ done:
 
 BERR_Code km_test_update_with_secure_id(KM_Tag_ContextHandle key_params)
 {
+    BSTD_UNUSED(key_params);
     /* TODO: add KM_TAG_USER_SECURE_ID, KM_TAG_USER_AUTH_TYPE, KM_TAG_AUTH_TIMEOUT */
     return BERR_UNKNOWN;
 }

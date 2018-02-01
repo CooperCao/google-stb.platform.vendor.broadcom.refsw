@@ -413,6 +413,7 @@ struct bfile_io_write_net {
     bool stopStreaming; /* this flag is set when app wants streaming thread to stop streaming */
     NEXUS_HeapHandle heapHandle;
     unsigned ipTtl; /* Time To Live (TTL) for IPv4 */
+    bool enableHttpChunkTransferEncoding;
 };
 
 /* implementation of NEXUS_FileRecord */

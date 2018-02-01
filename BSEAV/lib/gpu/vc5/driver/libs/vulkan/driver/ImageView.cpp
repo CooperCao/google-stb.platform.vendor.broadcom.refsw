@@ -65,7 +65,7 @@ ImageView::ImageView(
    uint32_t dims = BasicDims(pCreateInfo->viewType);
    uint32_t slice = 0;
 
-   if (dims == 2 && gfx_lfmt_is_3d(m_image->NaturalLFMT()))
+   if (dims == 2 && gfx_lfmt_is_3d(m_image->LFMT()))
    {
       // We want a 2D slice of the underlying 3D image
       m_baseExtent.depth = 1;
@@ -111,7 +111,7 @@ ImageView::ImageView(
 
       // Replace the native lfmt in the descriptor with the HW lfmt of the
       // image view format (which may be different from the image).
-      GFX_LFMT_T tlbLfmt = Formats::GetLFMT(pCreateInfo->format, Formats::HW);
+      GFX_LFMT_T tlbLfmt = Formats::GetLFMT(pCreateInfo->format);
       Image::AdjustDescForTLBLfmt(&desc, tlbLfmt, ms);
 
       m_layerStride = m_image->LayerOffset(1);
@@ -250,11 +250,9 @@ void ImageView::CreateTSR(const Image *image, VkFormat format, VkImageViewType v
    tsr.l0_addr = image->PhysAddr() + imgDesc.planes[0].offset +
                  image->LayerOffset(subresourceRange.baseArrayLayer);
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
    if (BasicDims(viewType) == 1)
       v3d_tmu_get_wh_for_1d_tex_state(&tsr.width, &tsr.height, imgDesc.width);
    else
-#endif
    {
       tsr.width  = imgDesc.width;
       tsr.height = imgDesc.height;
@@ -265,7 +263,7 @@ void ImageView::CreateTSR(const Image *image, VkFormat format, VkImageViewType v
    tsr.max_level  = subresourceRange.baseMipLevel + subresourceRange.levelCount - 1;
    tsr.arr_str    = CalcArrayStride(viewType, imgDesc, image->LayerSize());
 
-   GFX_LFMT_T fmt = Formats::GetLFMT(format, Formats::HW);
+   GFX_LFMT_T fmt = Formats::GetLFMT(format);
 
    GFX_LFMT_TMU_TRANSLATION_T t;
    GetTMUTranslation(&t, fmt, subresourceRange.aspectMask);

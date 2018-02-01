@@ -195,4 +195,14 @@ BERR_Code BDSP_GetDefaultAlgorithmSettings(
         void *pSettingsBuffer,        /* [out] */
         size_t settingsBufferSize   /*[In]*/
     );
+
+
+/***************************************************************************
+Summary:
+Trigger DBG_service as part of on-chip debug support
+***************************************************************************/
+BERR_Code BDSP_Raaga_RunDebugService(
+    BDSP_Handle hDsp,
+    uint32_t dspIndex
+);
 #endif

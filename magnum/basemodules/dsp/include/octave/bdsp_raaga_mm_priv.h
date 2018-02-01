@@ -65,7 +65,9 @@
 
 typedef enum BDSP_Raaga_P_ATUEntry{
 	BDSP_Raaga_P_ATUEntry_ROMem =0,
-	BDSP_Raaga_P_ATUEntry_RWMem,
+	BDSP_Raaga_P_ATUEntry_RWMem_Kernel,
+	BDSP_Raaga_P_ATUEntry_RWMem_HostFWShared,
+	BDSP_Raaga_P_ATUEntry_RWMem_FW,
 	BDSP_Raaga_P_ATUEntry_Max,
 	BDSP_Raaga_P_ATUEntry_Invalid = 0x7FFFFFFF
 }BDSP_Raaga_P_ATUEntry;

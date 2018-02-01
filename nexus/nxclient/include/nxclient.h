@@ -262,6 +262,7 @@ typedef struct NxClient_VideoDecoderCapabilities
                                 but do not fail if not available.
                                 If 10, require feeder with >= specified decoder colorDepth to avoid downconvert. */
     } feeder;
+    bool virtualized; /* allow this request to be satisfied in mosaic grouping */
 } NxClient_VideoDecoderCapabilities;
 
 typedef enum NxClient_VideoWindowType
@@ -311,7 +312,15 @@ typedef struct NxClient_EncoderCapabilities
     bool interlaced;
     unsigned maxWidth, maxHeight;
     NEXUS_VideoFrameRate maxFrameRate;
+    bool lowDelay;
 } NxClient_EncoderCapabilities;
+
+/**
+Set NXCLIENT_CONNECT_BACKEND_MOSAIC to NxClient_ConnectSettings.simpleVideoDecoder[].id for index 1
+and greater to enable "backend mosaic". Video decode must be started on [0].id, but will be mapped
+to all windows.
+**/
+#define NXCLIENT_CONNECT_BACKEND_MOSAIC 0xB05A1C
 
 /**
 Summary:

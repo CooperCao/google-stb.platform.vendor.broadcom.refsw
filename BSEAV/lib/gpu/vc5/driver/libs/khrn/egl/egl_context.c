@@ -88,7 +88,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglQueryContext(EGLDisplay dpy,
       if (context->draw == NULL)
          *value = EGL_NONE;
       else
-         verif(egl_surface_get_attrib(context->draw, EGL_RENDER_BUFFER, value));
+         verif(egl_surface_get_attrib(context->draw, EGL_RENDER_BUFFER, value) == EGL_SUCCESS);
       break;
 
    default:

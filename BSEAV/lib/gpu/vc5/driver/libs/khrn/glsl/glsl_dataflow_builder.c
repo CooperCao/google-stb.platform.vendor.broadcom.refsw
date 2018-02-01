@@ -702,13 +702,7 @@ static inline void expr_calculate_dataflow_subscript(BasicBlock *ctx, Dataflow *
       glsl_expr_calculate_dataflow(ctx, &subscript_scalar, expr->u.subscript.subscript);
       assert(glsl_dataflow_is_integral_type(subscript_scalar));
 
-      if (subscript_scalar->flavour == DATAFLOW_CONST && expr->u.subscript.aggregate->type->scalar_count > 0)
-      {
-         /* If the index is out of range, clamp to max */
-         unsigned scalar_index = gfx_umin(subscript_scalar->u.constant.value, member_count - 1) * expr->type->scalar_count;
-         memcpy(scalar_values, aggregate_scalar_values + scalar_index, expr->type->scalar_count * sizeof(Dataflow*));
-      }
-      else if (member_count > 1 && glsl_prim_is_prim_atomic_type(expr->type))
+      if (member_count > 1 && glsl_prim_is_prim_atomic_type(expr->type))
       {
          Dataflow *addr = aggregate_scalar_values[0];
          Dataflow *index = clamp_subscript_index(subscript_scalar, member_count);
@@ -716,26 +710,40 @@ static inline void expr_calculate_dataflow_subscript(BasicBlock *ctx, Dataflow *
          Dataflow *offset = glsl_dataflow_construct_binary_op(DATAFLOW_SHL, index, stride_log2);
          *scalar_values = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, addr, offset);
       }
-#if V3D_VER_AT_LEAST(4,0,2,0)
       else if (member_count > 1 && glsl_prim_is_prim_comb_sampler_type(expr->type))
       {
-         Dataflow *stride_log2 = glsl_dataflow_construct_const_value(DF_UINT, gfx_log2(64));
-         Dataflow *index = clamp_subscript_index(subscript_scalar, member_count);
-         Dataflow *offset = glsl_dataflow_construct_binary_op(DATAFLOW_SHL, index, stride_log2);
+         if (subscript_scalar->flavour == DATAFLOW_CONST) {
+            scalar_values[0] = aggregate_scalar_values[subscript_scalar->u.constant.value];
+            scalar_values[1] = aggregate_scalar_values[subscript_scalar->u.constant.value + expr->u.subscript.aggregate->type->u.array_type.member_count];
+         } else {
+#if V3D_VER_AT_LEAST(4,1,34,0)
+            Dataflow *a[2] = { aggregate_scalar_values[0], aggregate_scalar_values[member_count] };
+            Dataflow *stride_log2 = glsl_dataflow_construct_const_value(DF_UINT, gfx_log2(64));
+            Dataflow *index = clamp_subscript_index(subscript_scalar, member_count);
+            Dataflow *offset = glsl_dataflow_construct_binary_op(DATAFLOW_SHL, index, stride_log2);
 
-         Dataflow *unnorm_bits = glsl_dataflow_construct_sampler_unnorms(aggregate_scalar_values[1]);
-         Dataflow *unnorm_bit = glsl_dataflow_construct_binary_op(DATAFLOW_ROR, unnorm_bits, index);
-         unnorm_bit = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, unnorm_bit, glsl_dataflow_construct_const_value(DF_UINT, 2));
+            Dataflow *unnorm_bits = glsl_dataflow_construct_sampler_unnorms(a[1]);
+            Dataflow *unnorm_bit = glsl_dataflow_construct_binary_op(DATAFLOW_ROR, unnorm_bits, index);
+            unnorm_bit = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, unnorm_bit, glsl_dataflow_construct_const_value(DF_UINT, 2));
 
-         for (unsigned i = 0; i != 2; ++i) {
-            Dataflow *addr = glsl_dataflow_construct_reinterp(aggregate_scalar_values[i], DF_UINT);
-            if (i == 1) // Correct unnorm bit in tmuparam1.
-               addr = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_XOR, addr, unnorm_bit);
-            addr = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, addr, offset);
-            scalar_values[i] = glsl_dataflow_construct_reinterp(addr, aggregate_scalar_values[i]->type);
+            for (unsigned i = 0; i != 2; ++i) {
+               Dataflow *addr = glsl_dataflow_construct_reinterp(a[i], DF_UINT);
+               if (i == 1) // Correct unnorm bit in tmuparam1.
+                  addr = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_XOR, addr, unnorm_bit);
+               addr = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, addr, offset);
+               scalar_values[i] = glsl_dataflow_construct_reinterp(addr, a[i]->type);
+            }
+#else
+            assert(0);  /* Dynamic indexing not supported on pre v4.0 */
+#endif
          }
       }
-#endif
+      else if (subscript_scalar->flavour == DATAFLOW_CONST && expr->u.subscript.aggregate->type->scalar_count > 0)
+      {
+         /* If the index is out of range, clamp to max */
+         unsigned scalar_index = gfx_umin(subscript_scalar->u.constant.value, member_count - 1) * expr->type->scalar_count;
+         memcpy(scalar_values, aggregate_scalar_values + scalar_index, expr->type->scalar_count * sizeof(Dataflow*));
+      }
       else
       {
          assert(expr->u.subscript.aggregate->type->flavour == SYMBOL_ARRAY_TYPE ||

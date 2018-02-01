@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="nexus">
+  <copyright>
+    Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited
+    and/or its subsidiaries.
+  </copyright>
+
+  <!-- nexus protocol -->
+  <interface name="wl_nexus" version="1">
+
+    <request name="buffer_create">
+      <description summary="Create a surface buffer">
+        A wl_buffer object contains one of the swapchain buffers.
+      </description>
+      <arg name="id" type="new_id" interface="wl_buffer"/>
+      <arg name="format" type="uint" summary="BEGL_BufferFormat"/>
+      <arg name="width" type="uint" summary="buffer width in pixels"/>
+      <arg name="height" type="uint" summary="buffer height in pixels"/>
+      <arg name="pitch" type="uint" summary="line pitch in bytes"/>
+      <arg name="alignment" type="uint" summary="buffer alignment in bytes"/>
+      <arg name="size" type="uint" summary="total buffer size in bytes"/>
+      <arg name="secure" type="int" summary="boolean flag"/>
+    </request>
+
+    <event name="buffer_created">
+      <arg name="buffer" type="object" interface="wl_buffer"/>
+      <arg name="physical" type="array"/>
+    </event>
+
+    <event name="buffer_out_of_memory">
+      <arg name="buffer" type="object" interface="wl_buffer"/>
+    </event>
+  </interface>
+</protocol>

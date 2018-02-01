@@ -445,7 +445,7 @@ void CommandBuffer::CmdPushConstants(
 {
    CMD_BEGIN
    assert(m_mode == eRECORDING);
-   m_td->SetPushConstants(layout, stageFlags, offset, size, pValues);
+   m_td->SetPushConstants(layout->GetPushConstantBytesRequired(), offset, size, pValues);
    CMD_END
 }
 
@@ -550,15 +550,7 @@ void CommandBuffer::CmdDrawIndexed(
 
    v3d_addr_t indicesAddr  = indexBuffer.CalculateBufferOffsetAddr(0);
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
    v3d_cl_index_buffer_setup(CLPtr(), indicesAddr, idxBufferSize);
-#else
-   assert(firstIndex + indexCount <= idxBufferSize / indexSize);
-   uint32_t maxAllowedIndex, maxAllowedInstance;
-   bool valid = m_td->CalcMaxAllowedIndexAndInstance(pipe->GetLinkResult(), &maxAllowedIndex, &maxAllowedInstance);
-   if (!valid)
-      return;
-#endif
 
    if (instanceCount > 1)
    {
@@ -568,12 +560,7 @@ void CommandBuffer::CmdDrawIndexed(
       primList.num_indices    = indexCount;
       primList.prim_restart   = pipe->PrimitiveRestartEnable();
       primList.num_instances  = instanceCount;
-#if V3D_VER_AT_LEAST(4,1,34,0)
       primList.indices_offset = firstIndex * indexSize;
-#else
-      primList.indices_addr   = indicesAddr + static_cast<v3d_addr_t>(firstIndex * indexSize);
-      primList.max_index      = maxAllowedIndex;
-#endif
 
       v3d_cl_indexed_instanced_prim_list_indirect(CLPtr(), &primList);
    }
@@ -584,13 +571,7 @@ void CommandBuffer::CmdDrawIndexed(
       primList.index_type     = indexType;
       primList.num_indices    = indexCount;
       primList.prim_restart   = pipe->PrimitiveRestartEnable();
-#if V3D_VER_AT_LEAST(4,1,34,0)
       primList.indices_offset = firstIndex * indexSize;
-#else
-      primList.indices_addr   = indicesAddr + static_cast<v3d_addr_t>(firstIndex * indexSize);
-      primList.min_index      = 0;
-      primList.max_index      = maxAllowedIndex;
-#endif
       v3d_cl_indexed_prim_list_indirect(CLPtr(), &primList);
    }
 
@@ -624,17 +605,6 @@ void CommandBuffer::CmdDrawIndirect(
       assert(offset + sizeof(VkDrawIndirectCommand) <= buffer->Size());
    else
       assert((stride * (drawCount - 1)) + offset + sizeof(VkDrawIndirectCommand) <= buffer->Size());
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   uint32_t maxAllowedIndex, maxAllowedInstance;
-   bool valid = m_td->CalcMaxAllowedIndexAndInstance(pipe->GetLinkResult(), &maxAllowedIndex, &maxAllowedInstance);
-
-   if (!valid)
-      return;
-
-   // Set the allowable ranges
-   v3d_cl_indirect_primitive_limits(CLPtr(), maxAllowedIndex, maxAllowedInstance, 0);
-#endif
 
    v3d_addr_t indirectAddr = buffer->CalculateBufferOffsetAddr(offset);
 
@@ -680,29 +650,13 @@ void CommandBuffer::CmdDrawIndexedIndirect(
    uint32_t indexSize;
    v3d_index_type_t indexType = TranslateIndexType(indexBuffer.GetIndexType(), &indexSize);
 
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   uint32_t maxAllowedIndex, maxAllowedInstance;
-   bool valid = m_td->CalcMaxAllowedIndexAndInstance(pipe->GetLinkResult(),
-         &maxAllowedIndex, &maxAllowedInstance);
-
-   if (!valid)
-      return;
-
-   // Set the allowable ranges
-   uint32_t maxIndices = idxBufferSize / indexSize;
-   v3d_cl_indirect_primitive_limits(CLPtr(), maxAllowedIndex, maxAllowedInstance, maxIndices);
-#else
    v3d_cl_index_buffer_setup(CLPtr(), indicesAddr, idxBufferSize);
-#endif
 
    v3d_addr_t indirectAddr = buffer->CalculateBufferOffsetAddr(offset);
 
    // Do the indirect draw
    v3d_cl_indirect_indexed_prim_list(CLPtr(), primMode, indexType, drawCount,
                                      pipe->PrimitiveRestartEnable(), indirectAddr,
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-                                     indicesAddr,
-#endif
                                      stride);
 
    CMD_END
@@ -1003,21 +957,25 @@ void CommandBuffer::CmdClearDepthStencilImage(
    assert(!InRenderPass());
 
    // Stencil only format S8_UINT is optional and not currently supported
-   assert(gfx_lfmt_has_depth(image->NaturalLFMT()));
+   assert(gfx_lfmt_has_depth(image->LFMT()));
    assert(pDepthStencil->depth >= 0.0f && pDepthStencil->depth <= 1.0f);
 
    log_trace("CmdClearDepthStencilImage: image = %p", image);
 
    // The Vulkan spec does not appear to disallow depth/stencil images created
    // as 1-D or 3-D, with mipmaps or as an array.
-   const bool is3D = gfx_lfmt_is_3d(image->NaturalLFMT());
+   const bool is3D = gfx_lfmt_is_3d(image->LFMT());
 
    for (uint32_t i = 0; i < rangeCount; i++)
    {
       assert((pRanges[i].aspectMask &  (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) != 0);
       assert((pRanges[i].aspectMask & ~(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) == 0);
 
-      for (uint32_t m = 0; m < pRanges[i].levelCount; m++)
+      uint32_t mipLevelCount = pRanges[i].levelCount;
+      if (mipLevelCount == VK_REMAINING_MIP_LEVELS)
+            mipLevelCount = image->MipLevels() - pRanges[i].baseMipLevel;
+
+      for (uint32_t m = 0; m < mipLevelCount; m++)
       {
          uint32_t layerCount;
          if (is3D)
@@ -1402,12 +1360,7 @@ void CommandBuffer::CmdEndRenderPass() noexcept
    m_td->FinalizeControlList();
 
    // Final subpass always needs a bin/render job and MCL
-#if V3D_VER_AT_LEAST(4,1,34,0)
    BuildHardwareJob();
-#else
-   if (!m_td->m_curState.CullEverything())
-      BuildHardwareJob();
-#endif
 
    m_td->EndRenderPass();
 
@@ -1493,37 +1446,6 @@ void CommandBuffer::AppendCommandReference(const Command &cmd)
    auto clone = NewObject<CommandReference>(cmd);
    m_commandList.push_back(clone);
 }
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-
-void CommandBuffer::RecordSecondaryDeferredClip(const CmdSecondaryDeferredClipObj &clip)
-{
-   InsertClampedClipRecord(clip.m_x, clip.m_y, clip.m_maxX, clip.m_maxY);
-}
-
-void CommandBuffer::InsertClampedClipRecord(int x, int y, int xMax, int yMax)
-{
-   // Incorporate framebuffer size and insert clip record
-   assert(m_td->m_curRenderPassState.framebuffer != NULL);
-
-   VkExtent3D fbDims;
-   m_td->m_curRenderPassState.framebuffer->Dimensions(&fbDims);
-   int xmax = std::min(xMax, static_cast<int>(fbDims.width));
-   int ymax = std::min(yMax, static_cast<int>(fbDims.height));
-
-   if (x >= xmax || y >= ymax)
-   {
-      m_td->m_curState.SetCullEverything(true);
-      v3d_cl_clip(CLPtr(), x, y, 1, 1);
-   }
-   else
-   {
-      m_td->m_curState.SetCullEverything(false);
-      v3d_cl_clip(CLPtr(), x, y, xmax - x, ymax - y);
-   }
-}
-
-#endif
 
 //////////////////////////////////////////////////////////////////////////////////
 // SYNCHRONIZATION COMMANDS

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2015 Broadcom Corporation
+ * Copyright (C) 2015-201 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -112,7 +112,7 @@ int main(void)
 
     i = fread(buffer, 1, size, f);
     NEXUS_Playpump_WriteComplete(playpump, 0, i);
-    BDBG_WRN(("wrote %d bytes", i));
+    printf("wrote %d bytes\n", i);
 
     BKNI_Sleep(100);
 
@@ -122,7 +122,7 @@ int main(void)
     for (i=0;i*188<(int)size && i<10;i++) {
         unsigned char *packet = &((unsigned char *)buffer)[i*188];
         unsigned pid = (((unsigned)packet[1]&0x1f)<<8) + packet[2];
-        BDBG_WRN(("packet %d: pid 0x%x", i, pid));
+        printf("packet %d: pid 0x%x\n", i, pid);
     }
 
     NEXUS_Playpump_Close(playpump);

@@ -426,7 +426,7 @@ static BERR_Code BAPE_StandardMixer_P_AddInput(
             }
             if( pSettings->capture )
             {
-                handle->inputCaptures[i] = pSettings->capture;
+                handle->inputSettings[i].capture = pSettings->capture;
             }
 
             /* TODO: validate capture is not hooked to another mixer/input and store the link in the capture handle */
@@ -1535,6 +1535,12 @@ void BAPE_StandardMixer_P_SfifoStarted(BAPE_MixerHandle handle, BAPE_PathConnect
         BDBG_ASSERT(inputIndex < BAPE_CHIP_MAX_MIXER_INPUTS);
         BERR_TRACE(BERR_INVALID_PARAMETER);
         return;
+    }
+
+    /* add/remove capture */
+    if ( handle->inputSettings[inputIndex].capture )
+    {
+        handle->inputCaptures[inputIndex] = handle->inputSettings[inputIndex].capture;
     }
 
     if ( handle->inputCaptures[inputIndex] )

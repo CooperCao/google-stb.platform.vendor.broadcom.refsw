@@ -60,11 +60,11 @@
                                                                 if (err != BERR_SUCCESS) { BDBG_ERR(("%s:%d  Tag add failed", BSTD_FUNCTION, __LINE__)); goto done; }
 
 #define TEST_TAG_REMOVE(param_handle, find_tag)                 do { km_tag_value_t *tag = KM_Tag_FindFirst(param_handle, find_tag); \
-                                                                     if (tag) { EXPECT_SUCCESS(KM_Tag_Remove(param_handle, tag)); KM_Tag_Free(tag); } \
+                                                                     if (tag) { EXPECT_SUCCESS(KM_Tag_Remove(param_handle, tag)); KM_Tag_Free(tag); } else { err = BERR_SUCCESS; } \
                                                                 } while (0)
 
 #define TEST_TAG_REMOVE_ENUM(param_handle, find_tag, value)     do { km_tag_value_t *tag = KM_Tag_FindEnum(param_handle, find_tag, value); \
-                                                                     if (tag) { EXPECT_SUCCESS(KM_Tag_Remove(param_handle, tag)); KM_Tag_Free(tag); } \
+                                                                     if (tag) { EXPECT_SUCCESS(KM_Tag_Remove(param_handle, tag)); KM_Tag_Free(tag); }  else { err = BERR_SUCCESS; } \
                                                                 } while (0)
 
 

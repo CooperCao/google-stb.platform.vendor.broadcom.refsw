@@ -5,7 +5,6 @@
 #define KHRN_OPTIONS_H
 
 #include "khrn_int_common.h"
-#include "../glxx/gl_public_api.h"
 #include "vcos.h"
 
 EXTERN_C_BEGIN
@@ -89,7 +88,7 @@ struct khrn_options {
    uint32_t random_noperspective_seed;
 #endif
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    /* For testing sample-rate shading */
    bool force_sample_rate_shading;
    bool random_sample_rate_shading;
@@ -116,10 +115,9 @@ extern bool khrn_options_make_centroid(void);
 #if V3D_VER_AT_LEAST(4,1,34,0)
 extern bool khrn_options_make_noperspective(void);
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 extern bool khrn_options_make_sample_rate_shaded(void);
 #endif
-extern void khrn_error_assist(GLenum error, const char *func, const char *file, int line);
 
 #ifdef WIN32
 #undef __func__

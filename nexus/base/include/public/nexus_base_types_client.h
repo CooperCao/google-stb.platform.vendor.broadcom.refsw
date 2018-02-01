@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
 ***************************************************************************/
 
 #ifndef NEXUS_BASE_TYPES_CLIENT_H
@@ -122,7 +121,7 @@ typedef enum NEXUS_ClientMode
 /* NEXUS_MAX_HEAPS is the maximum number of heaps in the system, pointed to be NEXUS_HeapHandle.
 A heap is required for any memory access, whether by HW or SW.
 This depends on both HW capabilities & SW configuration. */
-#define NEXUS_MAX_HEAPS 24
+#define NEXUS_MAX_HEAPS 32
 
 /* NEXUS_MAX_MEMC is the maximum number of memory controllers in the system. */
 #define NEXUS_MAX_MEMC 3

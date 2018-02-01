@@ -37,13 +37,15 @@
  *****************************************************************************/
 #include "stream_player.h"
 #include "stream_player_priv.h"
-#include "util_priv.h"
 #include "platform.h"
 #include "blst_queue.h"
+#include "util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+
 
 bool stream_player_file_filter(const char * path)
 {
@@ -82,24 +84,18 @@ bool stream_player_file_filter(const char * path)
     }
 }
 
-void stream_player_get_default_create_settings(StreamPlayerCreateSettings * pSettings)
-{
-    memset(pSettings, 0, sizeof(*pSettings));
-}
-
-StreamPlayerHandle stream_player_create(const StreamPlayerCreateSettings * pSettings)
+StreamPlayerHandle stream_player_create(PlatformMediaPlayerHandle platformPlayer)
 {
     StreamPlayerHandle player;
 
-    assert(pSettings);
+    assert(platformPlayer);
 
     player = malloc(sizeof(*player));
     if (!player) goto error;
     memset(player, 0, sizeof(*player));
-    player->platformPlayer = platform_media_player_create(pSettings->platform, pSettings->streamInfo.callback, pSettings->streamInfo.context);
+    player->platformPlayer = platformPlayer;
     assert(player->platformPlayer);
     BLST_Q_INIT(&player->sources);
-    memcpy(&player->createSettings, pSettings, sizeof(*pSettings));
 
     return player;
 
@@ -120,7 +116,6 @@ void stream_player_destroy(StreamPlayerHandle player)
         BLST_Q_REMOVE(&player->sources, pSource, link);
         free(pSource);
     }
-    platform_media_player_destroy(player->platformPlayer);
     free(player);
 }
 
@@ -157,60 +152,82 @@ unsigned stream_player_get_count(StreamPlayerHandle player)
     return count;
 }
 
-static void stream_player_p_play_stream(StreamPlayerHandle player, const char * newPath, PlatformUsageMode usageMode, bool forceRestart)
+static void stream_player_p_play_stream(StreamPlayerHandle player, const char * newPath, const StreamPlayerPlaySettings * pSettings)
 {
     const char * oldPath = player->pCurrentUrl;
 
     /* old and new will be different pointers, but have same content */
-    if (forceRestart || (oldPath && newPath && strcmp(oldPath, newPath)) || (!oldPath && newPath) || (oldPath && !newPath))
+    if (pSettings->forceRestart || (oldPath && newPath && strcmp(oldPath, newPath)) || (!oldPath && newPath) || (oldPath && !newPath))
     {
-        stream_player_stop(player);
+        if (player->started)
+        {
+            stream_player_stop(player);
+        }
         player->pCurrentUrl = set_string(player->pCurrentUrl, newPath);
         printf("stream_player: playing stream '%s'\n", player->pCurrentUrl);
+        memcpy(&player->playSettings, pSettings, sizeof(*pSettings));
     }
     if (!player->started)
     {
-        stream_player_start(player, usageMode);
+        stream_player_start(player);
     }
 }
 
-static void stream_player_p_play_stream_by_path(StreamPlayerHandle player, const char * streamPath, PlatformUsageMode usageMode, bool forceRestart)
+static void stream_player_p_play_stream_by_path(StreamPlayerHandle player, const StreamPlayerPlaySettings * pSettings)
 {
     StreamSource * pSource = NULL;
     const char * fullPath = NULL;
 
     for (pSource = BLST_Q_FIRST(&player->sources); pSource; pSource = BLST_Q_NEXT(pSource, link))
     {
-        fullPath = file_manager_find(pSource->filer, streamPath);
+        fullPath = file_manager_find(pSource->filer, pSettings->streamUrl);
         if (fullPath)
         {
             break;
         }
     }
 
-    if (!fullPath) { printf("stream_player: stream path '%s' not found\n", streamPath); return; }
+    if (!fullPath) { printf("stream_player: stream path '%s' not found\n", pSettings->streamUrl); return; }
 
-    stream_player_p_play_stream(player, fullPath, usageMode, forceRestart);
+    stream_player_p_play_stream(player, fullPath, pSettings);
 }
 
-void stream_player_play_stream(StreamPlayerHandle player, const char * streamUrl, PlatformUsageMode usageMode, bool forceRestart)
+void stream_player_get_platform_settings(StreamPlayerHandle player, PlatformMediaPlayerSettings * pSettings)
 {
-    if (!streamUrl) { printf("stream_player: NULL stream url\n"); return; }
+    assert(player);
+    platform_media_player_get_settings(player->platformPlayer, pSettings);
+}
 
-    if (strchr(streamUrl, ':') || streamUrl[0] == '/')
+int stream_player_set_platform_settings(StreamPlayerHandle player, const PlatformMediaPlayerSettings * pSettings)
+{
+    PlatformMediaPlayerSettings oldSettings;
+    assert(player);
+    assert(pSettings);
+    platform_media_player_get_settings(player->platformPlayer, &oldSettings);
+    if (player->started && pSettings->usageMode != oldSettings.usageMode) { printf("stream_player: can't change usage mode while started\n"); return -1; }
+    return platform_media_player_set_settings(player->platformPlayer, pSettings);
+}
+
+void stream_player_get_default_play_settings(StreamPlayerPlaySettings * pSettings)
+{
+    if (pSettings)
     {
-        if (!forceRestart && player->pCurrentUrl && !strcmp(player->pCurrentUrl, streamUrl)) return;
-        if (player->started)
-        {
-            stream_player_stop(player);
-        }
-        player->pCurrentUrl = set_string(player->pCurrentUrl, streamUrl);
-        printf("stream_player: playing stream '%s'\n", player->pCurrentUrl);
-        stream_player_start(player, usageMode);
+        memset(pSettings, 0, sizeof(*pSettings));
+    }
+}
+
+void stream_player_play_stream(StreamPlayerHandle player, const StreamPlayerPlaySettings * pSettings)
+{
+    if (!pSettings) { printf("stream_player: NULL play settings\n"); return; }
+    if (!pSettings->streamUrl) { printf("stream_player: NULL stream url\n"); return; }
+
+    if (strchr(pSettings->streamUrl, ':') || pSettings->streamUrl[0] == '/')
+    {
+        stream_player_p_play_stream(player, pSettings->streamUrl, pSettings);
     }
     else
     {
-        stream_player_p_play_stream_by_path(player, streamUrl, usageMode, forceRestart);
+        stream_player_p_play_stream_by_path(player, pSettings);
     }
 }
 
@@ -226,12 +243,19 @@ void stream_player_stop(StreamPlayerHandle player)
     player->started = false;
 }
 
-void stream_player_start(StreamPlayerHandle player, PlatformUsageMode usageMode)
+void stream_player_start(StreamPlayerHandle player)
 {
     int rc;
+    PlatformMediaPlayerStartSettings settings;
     assert(player);
     if (!player->pCurrentUrl) { printf("start: no current stream\n"); return; }
-    rc = platform_media_player_start(player->platformPlayer, player->pCurrentUrl, usageMode);
+    player->paused = player->playSettings.startPaused;
+    platform_media_player_get_default_start_settings(&settings);
+    settings.url = player->pCurrentUrl;
+    settings.playMode = player->playSettings.playMode;
+    settings.startPaused = player->playSettings.startPaused;
+    settings.stcTrick = player->playSettings.stcTrick;
+    rc = platform_media_player_start(player->platformPlayer, &settings);
     if (!rc) { stream_player_print(player); }
     player->started = true;
 }
@@ -264,4 +288,16 @@ void stream_player_toggle_pause(StreamPlayerHandle player)
         platform_media_player_trick(player->platformPlayer, 0);
         player->paused = true;
     }
+}
+
+void stream_player_frame_advance(StreamPlayerHandle player)
+{
+    assert(player);
+
+    if (!player->paused)
+    {
+        stream_player_toggle_pause(player);
+    }
+
+    platform_media_player_frame_advance(player->platformPlayer);
 }

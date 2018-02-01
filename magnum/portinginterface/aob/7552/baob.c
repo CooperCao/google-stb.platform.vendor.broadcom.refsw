@@ -1,51 +1,40 @@
-/**************************************************************************
- *     (c)2005-2014 Broadcom Corporation
- *  
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
- *   
- *  Except as expressly set forth in the Authorized License,
- *   
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
- *   
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
- *  USE OR PERFORMANCE OF THE SOFTWARE.
- *  
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
- *  ANY LIMITED REMEDY.
- * 
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+/******************************************************************************
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to the terms and
+* conditions of a separate, written license agreement executed between you and Broadcom
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+* no license (express or implied), right to use, or waiver of any kind with respect to the
+* Software, and Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+* and to use this information only in connection with your use of Broadcom integrated circuit products.
+*
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+* USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+* ANY LIMITED REMEDY.
+*****************************************************************************/
 #include "bstd.h"
 #include "bads.h"
 #include "btmr.h"
@@ -432,8 +421,8 @@ BERR_Code BAOB_DisablePowerSaver (
         return BERR_SUCCESS;
 
 	sTimerSettings.type = BTMR_Type_ePeriodic;
-	sTimerSettings.cb_isr = (BTMR_CallbackFunc)BAOB_P_TimerFunc;
-	sTimerSettings.pParm1 = (void*)hDev;
+	sTimerSettings.cb_isr = (BTMR_CallbackFunc)BAOB_P_TimerFunc_isr;
+	sTimerSettings.pParm1 = (void*)hImplDev;
 	sTimerSettings.parm2 = 0;
 	retCode = BTMR_CreateTimer (hDev->settings.hTmr, &hImplDev->hTimer, &sTimerSettings);
 	if ( retCode != BERR_SUCCESS )
@@ -510,75 +499,10 @@ BERR_Code BAOB_ResetStatus(
 /******************************************************************************
 * BAOB_3x7x_P_TimerFunc()
 ******************************************************************************/
-void BAOB_P_TimerFunc(void *myParam1, int myParam2)
+void BAOB_P_TimerFunc_isr(BAOB_3x7x_Handle hImplDev )
 {
-	BAOB_Handle hDev = (BAOB_Handle)myParam1;
-	BAOB_3x7x_Handle hImplDev = (BAOB_3x7x_Handle) hDev->pImpl;
 	BDBG_ASSERT( hImplDev );
-	BSTD_UNUSED(myParam2);
-
-	if (hImplDev->PowerStatus != BAOB_ePower_On) 
-	{
-		BDBG_ERR(("BAOB_P_TimerFunc: power is still off  "));
-		return;
-	}
-	BAOB_P_GetLock_Status(hImplDev);
-
-	if( hImplDev->pCallback[BAOB_Callback_eLockChange] != NULL )
-	{
-         if (hImplDev->pStatus->FLK)
-		 {
-			    if (hImplDev->pAcqParam->BAOB_Local_Params.LockUpdate)
-				{
-					hImplDev->pAcqParam->BAOB_Local_Params.LockUpdate = false;
-					(hImplDev->pCallback[BAOB_Callback_eLockChange])(hImplDev->pCallbackParam[BAOB_Callback_eLockChange] );
-				}
-
-		 }
-		 else
-		 {
-			    if (hImplDev->pAcqParam->BAOB_Local_Params.LockStatus != hImplDev->pStatus->FLK )
-                {	 
-					hImplDev->pAcqParam->BAOB_Local_Params.LockUpdate = true;
-					(hImplDev->pCallback[BAOB_Callback_eLockChange])(hImplDev->pCallbackParam[BAOB_Callback_eLockChange] );
-				}
-		 }
-	}
-	hImplDev->pAcqParam->BAOB_Local_Params.LockStatus = hImplDev->pStatus->FLK;
-	BMEM_FlushCache(hDev->settings.hHeap, hImplDev->pAcqParam, sizeof( BAOB_AcqParams_t ) );
-	if (hImplDev->pAcqParam->BAOB_Acquire_Params.AcquireStartMode & BAOB_AcquireStartMode_ResetStatus)
-	{
-		hImplDev->pAcqParam->BAOB_Acquire_Params.AcquireStartMode &= (~BAOB_AcquireStartMode_ResetStatus);
-		BMEM_FlushCache(hDev->settings.hHeap, hImplDev->pStatus, sizeof( BAOB_Status_t ) );
-		BAOB_P_Reset_Status(hImplDev);
-	}
-	if (hImplDev->pAcqParam->BAOB_Acquire_Params.AcquireStartMode & BAOB_AcquireStartMode_UpdateStatus)
-	{
-		hImplDev->pAcqParam->BAOB_Acquire_Params.AcquireStartMode &= (~BAOB_AcquireStartMode_UpdateStatus);
-		BMEM_FlushCache(hDev->settings.hHeap, hImplDev->pStatus, sizeof( BAOB_Status_t ) );
-		BAOB_P_Get_Status(hImplDev);
-	}
-	if (hImplDev->pAcqParam->BAOB_Acquire_Params.AcquireStartMode & BAOB_AcquireStartMode_Acquire)
-	{
-		hImplDev->pAcqParam->BAOB_Acquire_Params.AcquireStartMode &= (~BAOB_AcquireStartMode_Acquire);
-		BKNI_SetEvent(hImplDev->hIntEvent);
-	}
-	else
-	{
-		if (hImplDev->pAcqParam->BAOB_Acquire_Params.Auto == BAOB_Acquire_Params_eEnable)
-		{
-		 if (hImplDev->pAcqParam->BAOB_Acquire_Params.BYP == BAOB_Acquire_Params_eEnable)
-		 {
-		  if (hImplDev->pStatus->RLK == BAOB_Status_eUnlock)
-			BKNI_SetEvent(hImplDev->hIntEvent);
-		 }
-		 else
-		 {
-		  if (hImplDev->pStatus->FLK == BAOB_Status_eUnlock)
-			BKNI_SetEvent(hImplDev->hIntEvent);
-		 }
-		}
-	}
+	BKNI_SetEvent(hImplDev->hIntEvent);
 }
 
 /******************************************************************************
@@ -607,7 +531,6 @@ BERR_Code BAOB_InstallCallback(
             hImplDev->pCallback[callbackType] = pCallback;
             hImplDev->pCallbackParam[callbackType] = pParam;
             break;
-        
         default:
             retCode = BERR_TRACE(BERR_INVALID_PARAMETER);
             break;
@@ -622,15 +545,79 @@ BERR_Code BAOB_InstallCallback(
 ******************************************************************************/
 
 void BAOB_ProcessInterruptEvent (BAOB_Handle hDev)
-{	
+{
 	BAOB_3x7x_Handle hImplDev = (BAOB_3x7x_Handle) hDev->pImpl;
-	if (hImplDev->hTimer != NULL)
+	BDBG_ASSERT( hImplDev );
+
+	BTMR_StopTimer(hImplDev->hTimer);  /* the timer is in Micro second */
+	BKNI_ResetEvent(hImplDev->hIntEvent);
+	if (hImplDev->PowerStatus != BAOB_ePower_On) 
 	{
-		BTMR_StopTimer(hImplDev->hTimer);  /* the timer is in Micro second */
-		BKNI_ResetEvent(hImplDev->hIntEvent);
-		BAOB_P_Acquire(hImplDev);
-		BTMR_StartTimer(hImplDev->hTimer, 25000);   /* the timer is in Micro second */;
+		BDBG_ERR(("BAOB_ProcessInterruptEvent: power is still off  "));
+		return;
 	}
+	BAOB_P_GetLock_Status(hImplDev);
+
+	if( hImplDev->pCallback[BAOB_Callback_eLockChange] != NULL )
+	{
+         if (hImplDev->pStatus->FLK)
+		 {
+			    if (hImplDev->pAcqParam->BAOB_Local_Params.LockUpdate)
+				{
+					hImplDev->pAcqParam->BAOB_Local_Params.LockUpdate = false;
+                    BKNI_EnterCriticalSection();
+					(hImplDev->pCallback[BAOB_Callback_eLockChange])(hImplDev->pCallbackParam[BAOB_Callback_eLockChange] );
+                    BKNI_LeaveCriticalSection();
+				}
+
+		 }
+		 else
+		 {
+			    if (hImplDev->pAcqParam->BAOB_Local_Params.LockStatus != hImplDev->pStatus->FLK )
+                {	 
+					hImplDev->pAcqParam->BAOB_Local_Params.LockUpdate = true;
+                    BKNI_EnterCriticalSection();
+					(hImplDev->pCallback[BAOB_Callback_eLockChange])(hImplDev->pCallbackParam[BAOB_Callback_eLockChange] );
+                    BKNI_LeaveCriticalSection();
+				}
+		 }
+	}
+	hImplDev->pAcqParam->BAOB_Local_Params.LockStatus = hImplDev->pStatus->FLK;
+	BMEM_FlushCache(hDev->settings.hHeap, hImplDev->pAcqParam, sizeof( BAOB_AcqParams_t ) );
+	if (hImplDev->pAcqParam->BAOB_Acquire_Params.AcquireStartMode & BAOB_AcquireStartMode_ResetStatus)
+	{
+		hImplDev->pAcqParam->BAOB_Acquire_Params.AcquireStartMode &= (~BAOB_AcquireStartMode_ResetStatus);
+		BMEM_FlushCache(hDev->settings.hHeap, hImplDev->pStatus, sizeof( BAOB_Status_t ) );
+		BAOB_P_Reset_Status(hImplDev);
+	}
+	if (hImplDev->pAcqParam->BAOB_Acquire_Params.AcquireStartMode & BAOB_AcquireStartMode_UpdateStatus)
+	{
+		hImplDev->pAcqParam->BAOB_Acquire_Params.AcquireStartMode &= (~BAOB_AcquireStartMode_UpdateStatus);
+		BMEM_FlushCache(hDev->settings.hHeap, hImplDev->pStatus, sizeof( BAOB_Status_t ) );
+		BAOB_P_Get_Status(hImplDev);
+	}
+	if (hImplDev->pAcqParam->BAOB_Acquire_Params.AcquireStartMode & BAOB_AcquireStartMode_Acquire)
+	{
+		hImplDev->pAcqParam->BAOB_Acquire_Params.AcquireStartMode &= (~BAOB_AcquireStartMode_Acquire);
+		BAOB_P_Acquire(hImplDev);
+	}
+	else
+	{
+		if (hImplDev->pAcqParam->BAOB_Acquire_Params.Auto == BAOB_Acquire_Params_eEnable)
+		{
+		 if (hImplDev->pAcqParam->BAOB_Acquire_Params.BYP == BAOB_Acquire_Params_eEnable)
+		 {
+		  if (hImplDev->pStatus->RLK == BAOB_Status_eUnlock)
+			BAOB_P_Acquire(hImplDev);
+		 }
+		 else
+		 {
+		  if (hImplDev->pStatus->FLK == BAOB_Status_eUnlock)
+			BAOB_P_Acquire(hImplDev);
+		 }
+		}
+	}
+	BTMR_StartTimer(hImplDev->hTimer, 25000);   /* the timer is in Micro second */;
 }
 
 /******************************************************************************

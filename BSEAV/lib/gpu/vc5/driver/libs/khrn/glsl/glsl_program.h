@@ -13,7 +13,7 @@ EXTERN_C_BEGIN
 typedef struct GLSL_SAMPLER_T {
    unsigned location;
    GLenum   texture_type;        // GL_TEXTURE_*
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    uint8_t  array_size;          // The size of an array (only set for the first element).
    bool     in_array;            // The element is part of an array.
 #endif

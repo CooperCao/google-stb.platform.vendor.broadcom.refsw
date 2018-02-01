@@ -62,22 +62,21 @@ extern "C" {
 #define BGRC_P_VER_1                        (1)
 /*7268/7271/7278 */
 #define BGRC_P_VER_2                        (2)
-/*7278 multicontext */
+/*7278 B0 multicontext  A0 no support any more */
 #define BGRC_P_VER_3                        (3)
-#define BGRC_P_VER_4                        (4)
+
 
 
 #if (BCHP_M2MC_REVISION_MAJOR_DEFAULT >=2) && (BCHP_M2MC_REVISION_MINOR_DEFAULT >=2)
 /*  HW7278-466 fixes */
-#define BGRC_P_VER                          (4)
-#elif (BCHP_M2MC_REVISION_MAJOR_DEFAULT ==2) && (BCHP_M2MC_REVISION_MINOR_DEFAULT ==1)
-/*  HW stripe improvement
+/*  HW stripe improvement since A0
+(BCHP_M2MC_REVISION_MAJOR_DEFAULT ==2) && (BCHP_M2MC_REVISION_MINOR_DEFAULT ==1)
 http://jira.broadcom.com/browse/CRM2MC-28
 http://jira.broadcom.com/browse/CRM2MC-29
 http://jira.broadcom.com/browse/CRM2MC-32
 */
 #define BGRC_P_VER                          (3)
-#elif (BCHP_M2MC_REVISION_MAJOR_DEFAULT ==2)
+#elif ((BCHP_M2MC_REVISION_MAJOR_DEFAULT ==2)||(BCHP_M2MC_REVISION_MAJOR_DEFAULT ==0x80))
 #define BGRC_P_VER                          (2)
 #else
 #define BGRC_P_VER                          (1)
@@ -88,6 +87,12 @@ http://jira.broadcom.com/browse/CRM2MC-32
 #define BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT    (1)
 #else
 #define BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT    (0)
+#endif
+
+#ifdef BCHP_M2MC_BLIT_SRC_UIF_FULL_HEIGHT
+#define BGRC_P_UIF                                (1)
+#else
+#define BGRC_P_UIF                                (0)
 #endif
 
 /****************************************************************************
@@ -139,17 +144,10 @@ BDBG_OBJECT_ID_DECLARE(BGRC_PacketContext);
 /*#define BGRC_P_CHECK_RE_ENTRY 1*/
 /*#define BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE*/
 
-/*SWSTB-3670  workaround for 7278A0 blit hw change, hw will be fixed in 7278B0*/
-#if (BGRC_P_VER == BGRC_P_VER_3)
-#define BGRC_PACKET_P_BLIT_WORKAROUND             1
+#if ((BGRC_P_VER > BGRC_P_VER_1) && (BGRC_P_VER<=BGRC_P_VER_3))
+#define BGRC_PACKET_P_BSTC_WORKAROUND             BGRC_P_UIF
 #else
-#define BGRC_PACKET_P_BLIT_WORKAROUND             0
-#endif
-
-#if ((BGRC_P_VER > BGRC_P_VER_1) && (BGRC_P_VER<=BGRC_P_VER_4))
-#define BGRC_PACKET_P_BSTC_WORKAROUND              1
-#else
-#define BGRC_PACKET_P_BSTC_WORKAROUND              0
+#define BGRC_PACKET_P_BSTC_WORKAROUND             0
 #endif
 
 /***************************************************************************/
@@ -188,15 +186,6 @@ BDBG_OBJECT_ID_DECLARE(BGRC_PacketContext);
 #define BGRC_P_64BITS_ADDR    1
 #else
 #define BGRC_P_64BITS_ADDR    0
-#endif
-
-#if BGRC_PACKET_P_BLIT_WORKAROUND
-typedef enum
-{
-    BGRC_P_List_eFinished = 0,
-    BGRC_P_List_eReadytoSubmit,
-    BGRC_P_List_eSubmitted
-} BGRC_P_ListStatus;
 #endif
 
 #if BGRC_P_64BITS_ADDR

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -496,7 +496,6 @@ void BXPT_PCR_RefreshPcrPid(
     BKNI_LeaveCriticalSection();
     return ;
 }
-#endif
 
 void BXPT_PCR_RefreshPcrPid_isr(
     BXPT_PCR_Handle hPcr               /*[in] The pcr handle  */
@@ -516,7 +515,6 @@ void BXPT_PCR_RefreshPcrPid_isr(
     return;
 }
 
-#if (!B_REFSW_MINIMAL)
 BERR_Code   BXPT_PCR_GetLastPcr(
     BXPT_PCR_Handle hPcr,
     uint32_t *p_pcrHi,
@@ -782,7 +780,7 @@ void BXPT_PCR_FreezeIntegrator(
 #else
     uint32_t Reg;
 
-	/* Allow freezing the integrator when there isn't a valid PID channel mapped. This can happen during free-run */
+    /* Allow freezing the integrator when there isn't a valid PID channel mapped. This can happen during free-run */
     Reg = BREG_Read32( hPcr->hRegister, BCHP_XPT_DPCR0_LOOP_CTRL + hPcr->RegOffset );
     BCHP_SET_FIELD_DATA( Reg, XPT_DPCR0_LOOP_CTRL, FREEZE_INTEGRATOR, Freeze == true ? 1 : 0 );
     BREG_Write32( hPcr->hRegister, BCHP_XPT_DPCR0_LOOP_CTRL + hPcr->RegOffset, Reg );

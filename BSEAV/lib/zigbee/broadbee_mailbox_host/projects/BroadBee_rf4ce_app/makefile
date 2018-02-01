@@ -157,6 +157,7 @@ C99_FLAGS += -std=gnu99
 #C99_FLAGS += -fpack-struct=4
 #C99_FLAGS += -fshort-enums
 #C99_FLAGS += -m32               # 32-bit version
+C99_FLAGS += -Wenum-compare
 
 PRJ_FLAGS += _HOST_           # Build for Broadcom STB host.
 PRJ_FLAGS += __i386__
@@ -202,7 +203,7 @@ CFLAGS += $(__PRJ_INCS) $(C99_FLAGS) $(__PRJ_FLAGS)
 
 #LDFLAGS += -m32
 LDFLAGS += -std=gnu99
-LDFLAGS += -g -Xlinker --no-enum-size-warning
+LDFLAGS += -g
 ifeq ($(BYPASS_RPC),y)
 LDFLAGS += -L../BroadBee_mailboxHost/obj.$(NEXUS_PLATFORM) -L../../host/rf4ce_registration -lzigbee -lsqlite3
 endif

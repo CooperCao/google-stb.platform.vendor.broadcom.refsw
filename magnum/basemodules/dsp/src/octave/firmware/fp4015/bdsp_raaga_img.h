@@ -184,5 +184,28 @@ extern const void * BDSP_IMG_app_dsola[];
 extern const void * BDSP_IMG_app_dsola_tables[];
 extern const void * BDSP_IMG_app_dsola_inter_frame[];
 #endif /*BDSP_DSOLA_SUPPORT*/
+#ifdef BDSP_OPUSDEC_SUPPORT
+extern const void * BDSP_IMG_adec_opus[];
+extern const void * BDSP_IMG_adec_opus_tables[];
+extern const void * BDSP_IMG_adec_opus_inter_frame[];
+#endif /*BDSP_OPUSDEC_SUPPORT*/
 
+#ifdef BDSP_LPCMENC_SUPPORT
+extern const void * BDSP_IMG_aenc_lpcm[];
+extern const void * BDSP_IMG_aenc_lpcm_tables[];
+extern const void * BDSP_IMG_aenc_lpcm_inter_frame[];
+#endif /*BDSP_LPCMENC_SUPPORT*/
+
+#ifdef BDSP_MP3ENC_SUPPORT
+extern const void * BDSP_IMG_aenc_mp3[];
+extern const void * BDSP_IMG_aenc_mp3_tables[];
+extern const void * BDSP_IMG_aenc_mp3_inter_frame[];
+#endif /*BDSP_MP3ENC_SUPPORT*/
+
+#ifdef BDSP_AC4_SUPPORT
+extern const void * BDSP_IMG_aids_ac4[];
+extern const void * BDSP_IMG_adec_ac4[];
+extern const void * BDSP_IMG_adec_ac4_tables[];
+extern const void * BDSP_IMG_adec_ac4_inter_frame[];
+#endif /*BDSP_AC4_SUPPORT*/
 #endif /*BDSP_RAAGA_IMG_H_*/

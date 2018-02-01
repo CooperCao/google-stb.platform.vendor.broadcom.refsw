@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -395,21 +395,6 @@ static void SetScdNum(
     BREG_Write32( hCtx->hReg, hCtx->BaseAddr + REC_SCD_PIDS_A_OFFSET, Reg );
 #endif
     BSTD_UNUSED(Scd);
-}
-
-BERR_Code BXPT_Rave_GetTotalChannels(
-    BXPT_Handle hXpt,           /* [in] Handle for this transport instance. */
-    unsigned *TotalChannels     /* [out] The number of RAVE channels supported */
-    )
-{
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BSTD_UNUSED( hXpt );
-    BDBG_ASSERT( TotalChannels );
-
-    *TotalChannels = BXPT_NUM_RAVE_CHANNELS;
-
-    return( ExitCode );
 }
 
 BERR_Code BXPT_Rave_GetChannelDefaultSettings(
@@ -833,15 +818,6 @@ BERR_Code BXPT_Rave_CloseChannel(
     return( ExitCode );
 }
 
-void BXPT_Rave_GetDefaultAllocCxSettings(
-    BXPT_Rave_AllocCxSettings *pSettings /* [out] default settings */
-    )
-{
-    BDBG_ASSERT(pSettings);
-    BKNI_Memset(pSettings, 0, sizeof(BXPT_Rave_AllocCxSettings));
-    pSettings->RequestedType = BXPT_RaveCx_eAv;
-}
-
 BERR_Code BXPT_Rave_AllocAvsCxPair(
     BXPT_Rave_Handle hRave,         /* [in] Handle for this RAVE channel */
     const BXPT_Rave_AllocCxSettings *pDecodeCxSettings, /* [in] settings for this RAVE channel allocation */
@@ -853,6 +829,15 @@ BERR_Code BXPT_Rave_AllocAvsCxPair(
     BSTD_UNUSED(pReferenceCxSettings);
     *ReferenceContext = NULL;
     return BXPT_Rave_AllocCx(hRave, pDecodeCxSettings, DecodeContext);
+}
+
+void BXPT_Rave_GetDefaultAllocCxSettings(
+    BXPT_Rave_AllocCxSettings *pSettings /* [out] default settings */
+    )
+{
+    BDBG_ASSERT(pSettings);
+    BKNI_Memset(pSettings, 0, sizeof(BXPT_Rave_AllocCxSettings));
+    pSettings->RequestedType = BXPT_RaveCx_eAv;
 }
 
 BERR_Code BXPT_Rave_AllocCx(
@@ -1153,14 +1138,23 @@ BERR_Code BXPT_Rave_EnableContext(
     }
 #endif
 
+    /* Needs to be done BEFORE enabling the context. The bitfield name changed from 7278A0 to B0. */
 #ifdef BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG2_PUSH_AND_RESET_WRMASK_MASK
-    /* Needs to be done BEFORE enabling the context. */
     Reg = BREG_Read32( Context->hReg, Context->BaseAddr + AV_MISC_CFG2_OFFSET );
     Reg &= ~(
         BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG2, PUSH_AND_RESET_WRMASK )
     );
     Reg |= (
         BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_MISC_CONFIG2, PUSH_AND_RESET_WRMASK, 1 )
+    );
+    BREG_Write32( Context->hReg, Context->BaseAddr + AV_MISC_CFG2_OFFSET, Reg );
+#elif defined BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG2_RESET_BEFORE_START_MASK
+    Reg = BREG_Read32( Context->hReg, Context->BaseAddr + AV_MISC_CFG2_OFFSET );
+    Reg &= ~(
+        BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG2, RESET_BEFORE_START )
+    );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_MISC_CONFIG2, RESET_BEFORE_START, 1 )
     );
     BREG_Write32( Context->hReg, Context->BaseAddr + AV_MISC_CFG2_OFFSET, Reg );
 #endif
@@ -1194,6 +1188,13 @@ BERR_Code BXPT_Rave_DisableContext(
 #ifdef BCHP_PWR_RESOURCE_XPT_RAVE
     Reg = BREG_Read32(Context->hReg, Context->BaseAddr + AV_MISC_CFG1_OFFSET);
     wasEnabled = BCHP_GET_FIELD_DATA(Reg, XPT_RAVE_CX0_AV_MISC_CONFIG1, CONTEXT_ENABLE);
+#endif
+
+#ifdef BCHP_XPT_RAVE_WRMASK_STOP_VALID_PTR_UPDATE_CX_31_0_WRMASK_STOP_VALID_PTR_UPDATE_CX_31_0_MASK
+    if(Context->Index < 32)
+        BREG_Write32(Context->hReg, BCHP_XPT_RAVE_WRMASK_STOP_VALID_PTR_UPDATE_CX_31_0, 1 << Context->Index);
+    else
+        BREG_Write32(Context->hReg, BCHP_XPT_RAVE_WRMASK_STOP_VALID_PTR_UPDATE_CX_47_32, 1 << (Context->Index - 32));
 #endif
 
     Reg = BREG_Read32( Context->hReg, Context->BaseAddr + AV_MISC_CFG1_OFFSET );
@@ -4028,99 +4029,6 @@ BERR_Code BXPT_Rave_AddBppChannel(
 }
 #endif
 
-BERR_Code BXPT_Rave_RemoveAllPidChannels(
-    BXPT_RaveCx_Handle Context
-    )
-{
-    uint32_t Reg, RegAddr, PipeShift, tempReg;
-    unsigned int PidChanNum;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( Context );
-
-#ifdef BCHP_XPT_RAVE_CXMEM_LOi_ARRAY_BASE
-    if( Context->Index < CXMEM_LO_MAX_CONTEXT )
-    {
-        PipeShift = Context->Index * 2;
-        tempReg = 0x03 << PipeShift;
-        for (PidChanNum=0; PidChanNum < BXPT_NUM_PID_CHANNELS; PidChanNum++)
-        {
-            RegAddr = BCHP_XPT_RAVE_CXMEM_LOi_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
-            Reg = BREG_Read32( Context->hReg, RegAddr );
-            Reg &= tempReg;
-
-            if (Reg)
-                ExitCode = BXPT_Rave_RemovePidChannel( Context, PidChanNum );
-        }
-    }
-    else
-    {
-        PipeShift = ( Context->Index - CXMEM_LO_MAX_CONTEXT ) * 2;
-        tempReg = 0x03 << PipeShift;
-        for (PidChanNum=0; PidChanNum < BXPT_NUM_PID_CHANNELS; PidChanNum++)
-        {
-            RegAddr = BCHP_XPT_RAVE_CXMEM_HIi_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
-            Reg = BREG_Read32( Context->hReg, RegAddr );
-            Reg &= tempReg;
-
-            if (Reg)
-                ExitCode = BXPT_Rave_RemovePidChannel( Context, PidChanNum );
-        }
-    }
-#else
-    if( Context->Index < CXMEM_A_MAX_CONTEXT )
-    {
-        PipeShift = Context->Index * 2;
-        tempReg = 0x03 << PipeShift;
-        for (PidChanNum=0; PidChanNum < BXPT_NUM_PID_CHANNELS; PidChanNum++)
-        {
-            RegAddr = BCHP_XPT_RAVE_CXMEM_Ai_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
-            Reg = BREG_Read32( Context->hReg, RegAddr );
-            Reg &= tempReg;
-
-            if (Reg)
-                ExitCode = BXPT_Rave_RemovePidChannel( Context, PidChanNum );
-        }
-    }
-#ifdef BCHP_XPT_RAVE_CXMEM_Bi_ARRAY_BASE
-    else if( Context->Index < CXMEM_B_MAX_CONTEXT )
-    {
-        PipeShift = ( Context->Index - CXMEM_A_MAX_CONTEXT ) * 2;
-        tempReg = 0x03 << PipeShift;
-        for (PidChanNum=0; PidChanNum < BXPT_NUM_PID_CHANNELS; PidChanNum++)
-        {
-            RegAddr = BCHP_XPT_RAVE_CXMEM_Bi_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
-            Reg = BREG_Read32( Context->hReg, RegAddr );
-            Reg &= tempReg;
-
-            if (Reg)
-                ExitCode = BXPT_Rave_RemovePidChannel( Context, PidChanNum );
-        }
-    }
-#endif
-#ifdef BCHP_XPT_RAVE_CXMEM_Ci_ARRAY_BASE
-    else if( Context->Index < CXMEM_C_MAX_CONTEXT )
-    {
-        PipeShift = ( Context->Index - CXMEM_B_MAX_CONTEXT ) * 2;
-        tempReg = 0x03 << PipeShift;
-        for (PidChanNum=0; PidChanNum < BXPT_NUM_PID_CHANNELS; PidChanNum++)
-        {
-            RegAddr = BCHP_XPT_RAVE_CXMEM_Ci_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
-            Reg = BREG_Read32( Context->hReg, RegAddr );
-            Reg &= tempReg;
-
-            if (Reg)
-                ExitCode = BXPT_Rave_RemovePidChannel( Context, PidChanNum );
-        }
-    }
-#endif
-
-#endif
-
-    return (ExitCode);
-}
-
 BERR_Code BXPT_Rave_RemovePidChannel(
     BXPT_RaveCx_Handle Context,         /* [in] The context  */
     unsigned int PidChanNum         /* [in] Which PID channel to remove. */
@@ -4770,25 +4678,6 @@ BERR_Code BXPT_Rave_FlushContext(
 
     Done:
     return( ExitCode );
-}
-
-
-BERR_Code BXPT_Rave_GetPictureCount(
-    BXPT_RaveCx_Handle hCtx,
-    unsigned *PictureCount
-    )
-{
-    uint32_t Reg;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hCtx );
-    BDBG_ASSERT( PictureCount );
-
-    Reg = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + PICTURE_CTR_OFFSET );
-    *PictureCount = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_PIC_CTR, VALUE );
-
-    return ExitCode;
 }
 
 
@@ -6487,15 +6376,6 @@ void FlushPicCounter(
     BREG_Write32( hCtx->hReg, hCtx->BaseAddr + PIC_INC_DEC_CTRL_OFFSET, Reg );
 }
 
-
-BERR_Code BXPT_Rave_GetDefaultThresholds(
-    BXPT_RaveCx_Handle hCtx,
-    BXPT_Rave_ContextThresholds *Thresholds
-    )
-{
-    /* A size of 0 will return the default thresholds. */
-    return BXPT_Rave_ComputeThresholds( hCtx, 0, 0, Thresholds );
-}
 
 BERR_Code BXPT_Rave_ComputeThresholds(
     BXPT_RaveCx_Handle hCtx,
@@ -8343,32 +8223,6 @@ BERR_Code BXPT_Rave_StartPTS(
 }
 #endif
 
-BERR_Code BXPT_Rave_Monitor_PTS(
-    BXPT_RaveCx_Handle hCtx,
-    uint32_t PTS,uint32_t tolerance,
-    void (* SpliceMonitorPTSCB)(void *, uint32_t pts),
-    void * param
-    )
-{
-    BSTD_UNUSED( param );
-
-    if (PTS == 0 && (hCtx->SoftRave.SpliceMonitorPTSFlag == true) )
-    {
-    hCtx->SoftRave.splice_monitor_PTS = PTS;
-        hCtx->SoftRave.splice_monitor_PTS_tolerance = 0;
-        hCtx->SoftRave.SpliceMonitorPTSFlag = false;
-        hCtx->SoftRave.SpliceMonitorPTSCBParam = NULL;
-        hCtx->SoftRave.SpliceMonitorPTSCB = NULL;
-    }else
-    {
-        hCtx->SoftRave.splice_monitor_PTS = PTS;
-        hCtx->SoftRave.splice_monitor_PTS_tolerance = tolerance;
-    hCtx->SoftRave.SpliceMonitorPTSFlag = true;
-    hCtx->SoftRave.SpliceMonitorPTSCBParam = param;
-    hCtx->SoftRave.SpliceMonitorPTSCB = SpliceMonitorPTSCB;
-    }
-    return BERR_SUCCESS;
-}
 
 #if (!B_REFSW_MINIMAL)
 BERR_Code BXPT_Rave_Cancel_PTS(  BXPT_RaveCx_Handle hCtx  )

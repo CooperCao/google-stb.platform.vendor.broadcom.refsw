@@ -833,6 +833,10 @@ BXUDlib_P_Add_UserData_isr( BXUDlib_P_Context *pContext, BUDP_DCCparse_Format fo
 
           if ( false == bResult )
           {
+             return BERR_BXUD_NO_DATA;
+          }
+          else
+          {
 #if BXUDLIB_P_DUMP_OUTPUT_CC
              if ( NULL != pContext->hOutputCCDump )
              {
@@ -849,8 +853,8 @@ BXUDlib_P_Add_UserData_isr( BXUDlib_P_Context *pContext, BUDP_DCCparse_Format fo
                    );
              }
 #endif
-             return BERR_BXUD_NO_DATA;
           }
+
        }
 
        if ( true == bResult )

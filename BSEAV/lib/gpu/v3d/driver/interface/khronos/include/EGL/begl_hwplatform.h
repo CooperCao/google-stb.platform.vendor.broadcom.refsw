@@ -57,8 +57,8 @@ typedef struct BEGL_HWInstruction
 {
    BEGL_HWOperation   operation;
    uint32_t           arg1;
-   uint32_t           arg2;
-   uint32_t           callbackParam;
+   uint64_t           arg2;
+   uint64_t           callbackParam;
 } BEGL_HWInstruction;
 
 #define BEGL_HW_JOB_MAX_INSTRUCTIONS   8
@@ -113,7 +113,7 @@ typedef struct BEGL_HWBinMemory
 typedef struct BEGL_HWCallbackRecord
 {
    uint32_t    reason;
-   uint32_t    payload[15];
+   uint64_t    payload[15];
 } BEGL_HWCallbackRecord;
 
 typedef struct BEGL_HWPerfMonitorSettings
@@ -132,7 +132,7 @@ typedef struct BEGL_HWPerfMonitorData
  /* The platform MUST provide an implementation of this interface in order that the EGL driver
  * can interact with platform hardware.
  */
-typedef struct
+typedef struct BEGL_HWInterface
 {
    /* Context pointer - opaque to the 3d driver code, but passed out in all function pointer calls.
       Prevents the client code needing to perform context lookups. */
@@ -164,13 +164,16 @@ typedef struct
    void (*GetPerformanceData)(void *context, BEGL_HWPerfMonitorData *data);
 
    /* Create a fence */
-   void (*FenceOpen)(void *context, int *fd, void **p, char type);
+   void (*FenceOpen)(void *context, int *fd, uint64_t *p, char type);
 
    /* Signal a fence (only used for userspace sync) */
    void (*FenceSignal)(void *context, int fd);
 
+   /* Get a platform fence from fd (only used for userspace sync) */
+   void *(*FenceGet)(void *context, int fd);
+
    /* Fence wait async */
-   void (*FenceWaitAsync)(void *context, int fd, void **v3dfence);
+   void (*FenceWaitAsync)(void *context, int fd, uint64_t *v3dfence);
 
 } BEGL_HWInterface;
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -205,6 +205,7 @@ static const BVDC_P_DisplayCscMatrix s_SDYCbCr_to_YIQ_M = BVDC_P_MAKE_VEC_CSC_MA
        0.0000,  0.4541,  0.4206, -111.9584 )
 );
 
+#if (BVDC_P_SUPPORT_ITU656_OUT)
 /* For 656 output. */
 static const BVDC_P_DisplayCscMatrix s_HDYCbCr_to_SDYCbCr_656 = BVDC_P_MAKE_VEC_CSC_MATRIX
 (
@@ -235,6 +236,7 @@ static const BVDC_P_DisplayCscMatrix s_Identity_656 = BVDC_P_MAKE_VEC_CSC_MATRIX
        0.0000,  1.0000,  0.0000,  0.0000,
        0.0000,  0.0000,  1.0000,  0.0000 )
 );
+#endif
 
 /* RGB + Hsync matrix */
 static const BVDC_P_DisplayCscMatrix s_HsyncMatrix = BVDC_P_MAKE_VEC_CSC_MATRIX
@@ -334,6 +336,8 @@ static const BVDC_P_DisplayCscMatrix s_XvYCC_SDYCbCr_to_YIQ_M = BVDC_P_MAKE_VEC_
        0.0000,  0.4657,  0.4554, -117.9042 )
 );
 
+
+#if (BVDC_P_SUPPORT_ITU656_OUT)
 static const BVDC_P_DisplayCscMatrix s_XvYCC_SDYCbCr_to_SDYCbCr_656 = BVDC_P_MAKE_VEC_CSC_MATRIX
 (
     8,
@@ -343,6 +347,7 @@ static const BVDC_P_DisplayCscMatrix s_XvYCC_SDYCbCr_to_SDYCbCr_656 = BVDC_P_MAK
        0.0000,  1.0076, -0.0049,  -0.3520,
        0.0000,  0.0194,  1.0881, -13.7563 )
 );
+#endif
 
 /****************************************************************
  *  Global Tables
@@ -391,6 +396,8 @@ static const BVDC_P_DisplayCscMatrix* const s_apHDYCbCr_MatrixTbl[] =
     &s_HDYCbCr_to_HDYPbPr,   /* HDYPbPr */
 };
 
+
+#if (BVDC_P_SUPPORT_ITU656_OUT)
 /* SDYCbCr 656 CSC table */
 static const BVDC_P_DisplayCscMatrix* const s_apSDYCbCr_656_Bypass_MatrixTbl[] =
 {
@@ -403,6 +410,7 @@ static const BVDC_P_DisplayCscMatrix* const s_apSDYCbCr_656_Bypass_MatrixTbl[] =
     &s_Identity_656,                      /* from FCC 1953 video source */
     &s_HD240MYCbCr_to_SDYCbCr_656         /* from SMPTE 240M HD video source */
 };
+#endif
 
 /***************************************************************************
  *
@@ -437,13 +445,13 @@ void BVDC_P_Display_GetCscTable_isr
     {
         /* HD output */
         uint32_t   ulIndex = (eOutputColorSpace == BVDC_P_Output_eHDYPrPb) ? 1 : 0;
-        if(pDispInfo->eCmpColorimetry <= BAVC_P_Colorimetry_eSmpte240M)
+        if(pDispInfo->eCmpColorimetry <= BCFC_Colorimetry_eSmpte240M)
         {
             *ppCscMatrix = s_apHDYCbCr_MatrixTbl[ulIndex];
         }
         else
         {
-            BDBG_ASSERT(pDispInfo->eCmpColorimetry <= BAVC_P_Colorimetry_eSmpte240M);
+            BDBG_ASSERT(pDispInfo->eCmpColorimetry <= BCFC_Colorimetry_eSmpte240M);
         }
     }
 
@@ -453,6 +461,7 @@ void BVDC_P_Display_GetCscTable_isr
 /***************************************************************************
  *
  */
+#if (BVDC_P_SUPPORT_ITU656_OUT)
 void BVDC_P_Display_Get656CscTable_isr
     ( const BVDC_P_DisplayInfo        *pDispInfo,
       bool                             bBypass,
@@ -460,7 +469,7 @@ void BVDC_P_Display_Get656CscTable_isr
 {
     /* Note the new color space conversion in compositor would always
      * output SD to 656 output. */
-    if(pDispInfo->eCmpColorimetry <= BAVC_P_Colorimetry_eSmpte240M)
+    if(pDispInfo->eCmpColorimetry <= BCFC_Colorimetry_eSmpte240M)
     {
         *ppCscMatrix = (bBypass) ?
             s_apSDYCbCr_656_Bypass_MatrixTbl[pDispInfo->eCmpColorimetry] :
@@ -469,9 +478,10 @@ void BVDC_P_Display_Get656CscTable_isr
     }
     else
     {
-        BDBG_ASSERT(pDispInfo->eCmpColorimetry <= BAVC_P_Colorimetry_eSmpte240M);
+        BDBG_ASSERT(pDispInfo->eCmpColorimetry <= BCFC_Colorimetry_eSmpte240M);
     }
     return;
 }
+#endif
 
 /* End of file */

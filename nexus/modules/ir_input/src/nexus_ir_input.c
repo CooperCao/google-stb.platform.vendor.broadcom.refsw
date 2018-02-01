@@ -80,7 +80,7 @@ static struct IrInputModule {
     struct NEXUS_IrChannel *channel[BKIR_N_CHANNELS];
 } g_NEXUS_irInput;
 
-static BERR_Code NEXUS_IrInput_P_DataReady_isr(BKIR_ChannelHandle hChn, void *context);
+static void NEXUS_IrInput_P_DataReady_isr(BKIR_ChannelHandle hChn, void *context);
 static struct NEXUS_IrChannel *NEXUS_IrInput_P_OpenChannel(unsigned ch, NEXUS_IrInputMode mode, BKIR_KirInterruptDevice interruptDevice);
 static void NEXUS_IrInput_P_CloseChannel(struct NEXUS_IrChannel *irChannel);
 
@@ -232,7 +232,7 @@ static void NEXUS_IrInput_P_CloseChannel(struct NEXUS_IrChannel *irChannel)
 ***************/
 
 /* get KIR isr from INT and dispatch data to appropriate NEXUS_IrInputHandle */
-static BERR_Code NEXUS_IrInput_P_DataReady_isr(BKIR_ChannelHandle hChn, void *context)
+static void NEXUS_IrInput_P_DataReady_isr(BKIR_ChannelHandle hChn, void *context)
 {
     BERR_Code rc;
     NEXUS_IrInputEvent event;
@@ -315,7 +315,7 @@ static BERR_Code NEXUS_IrInput_P_DataReady_isr(BKIR_ChannelHandle hChn, void *co
         NEXUS_IsrCallback_Fire_isr(irInput->dataReady);
     }
 
-    return 0;
+    return;
 }
 
 void NEXUS_IrInput_GetDefaultSettings(NEXUS_IrInputSettings *pSettings)

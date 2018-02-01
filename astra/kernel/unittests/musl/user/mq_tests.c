@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,7 +58,7 @@
 #include <sys/syscall.h>
 #include <sys/wait.h>
 #include <sys/mman.h>
-
+#include "ata_helper.h"
 static char testText[] = "Twinkle Twinkle little star";
 static char recvText[80];
 
@@ -71,7 +71,7 @@ void mq_test() {
 
     mqd_t mq = mq_open("/mqueue/test", O_RDONLY|O_CREAT, S_IRWXU|S_IRWXG|S_IRWXO, &attr);
     if (mq <= 0) {
-        perror("mq creation failed");
+        ATA_LogErr(" %s : mq creation failed" , strerror(errno));
     }
 
     pid_t child = fork();
@@ -79,19 +79,19 @@ void mq_test() {
         // Child is the producer
         mqd_t mqc = mq_open("/mqueue/test", O_WRONLY);
         if (mqc <= 0) {
-            perror("could not open message queue in child process\n");
+            ATA_LogErr(" %s : could not open message queue in child process\n" , strerror(errno));
         }
 
         for (int i=0; i<10; i++) {
             int rc = mq_send(mqc, testText, strlen(testText)+1, 10);
             if (rc <= 0) {
-                perror("mq_send failed: ");
+                ATA_LogErr(" %s : mq_send failed", strerror(errno));
             }
         }
 
         int rc = mq_close(mqc);
         if (rc != 0) {
-            perror("mq_close child failed: ");
+            ATA_LogErr("mq_close child failed: %s ", strerror(errno));
         }
 
 
@@ -104,7 +104,7 @@ void mq_test() {
         for (int i=0; i<10; i++) {
             int rc = mq_receive(mq, recvText, 80, &prio);
             if (rc <= 0) {
-                perror("mq_recv failed: ");
+                ATA_LogErr("mq_recv failed: %s ", strerror(errno));
                 return;
             }
 
@@ -120,12 +120,12 @@ void mq_test() {
 
     int rc = mq_close(mq);
     if (rc != 0) {
-        perror("mq_close failed: ");
+        ATA_LogErr("mq_close failed: %s ", strerror(errno));
     }
 
     rc = mq_unlink("/mqueue/test");
     if (rc != 0) {
-        perror("mq_unlink failed: ");
+        ATA_LogErr("mq_unlink failed: %s ", strerror(errno));
     }
 
     printf("Message queue test success\n");

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -186,7 +186,6 @@ http_calculate_current_position(B_PlaybackIpHandle playback_ip, unsigned current
         /* This can happen when TSM hasn't yet matured for the new frames after the discontinuity */
         /* so we use the previous firstPts to calculate the current position so far */
         BDBG_MSG(("%s: currentPts hasn't changed since the last discontinuity, lastPts %x, currentPts %x", BSTD_FUNCTION, playback_ip->lastUsedPts, currentPts));
-        currentPosition = (playback_ip->lastUsedPts - playback_ip->firstPtsBeforePrevDiscontinuity) / 45; /* in msec: our decoders report PTS in 45Khz rate */
         currentPosition = playback_ip->streamDurationUntilLastDiscontinuity;
     }
     else {
@@ -450,6 +449,7 @@ updateNexusAudioDecodersState(
 #ifdef NEXUS_HAS_SIMPLE_DECODER
     if (playback_ip->nexusHandles.simpleAudioDecoder) {
         int i;
+        rc = B_ERROR_SUCCESS;
         if (playback_ip->nexusHandles.simpleAudioDecoderCount) {
             for (i=0; i<playback_ip->nexusHandles.simpleAudioDecoderCount; i++) {
                 if (NEXUS_SimpleAudioDecoder_SetTrickState(playback_ip->nexusHandles.simpleAudioDecoders[i], &audioTrickSettings) != NEXUS_SUCCESS) {
@@ -466,7 +466,6 @@ updateNexusAudioDecodersState(
                 rc = B_ERROR_UNKNOWN;
             }
         }
-        rc = B_ERROR_SUCCESS;
     }
     else
 #endif

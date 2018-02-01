@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -128,6 +128,9 @@ extern "C" {
 #define BMUXLIB_INPUT_DESCRIPTOR_VIDEO_IS_DATA_UNIT_START(x)   \
         (0 != (((x)->descriptor.pstVideo->uiVideoFlags) & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START))
 
+#define BMUXLIB_INPUT_DESCRIPTOR_VIDEO_IS_HIDDEN_FRAME(x)    \
+        (0 != (((x)->descriptor.pstVideo->uiVideoFlags) & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_HIDDEN_FRAME))
+
 #define BMUXLIB_INPUT_DESCRIPTOR_VIDEO_FLAGS(x)          ((x)->descriptor.pstVideo->uiVideoFlags)
 #define BMUXLIB_INPUT_DESCRIPTOR_VIDEO_DTS(x)            ((x)->descriptor.pstVideo->uiDTS)
 #define BMUXLIB_INPUT_DESCRIPTOR_VIDEO_DATA_UNIT_TYPE(x) ((x)->descriptor.pstVideo->uiDataUnitType)
@@ -135,6 +138,7 @@ extern "C" {
 #define BMUXLIB_INPUT_DESCRIPTOR_AUDIO_RAWOFFSET(x)      ((x)->descriptor.pstAudio->uiRawDataOffset)
 #define BMUXLIB_INPUT_DESCRIPTOR_AUDIO_RAWLENGTH(x)      ((x)->descriptor.pstAudio->uiRawDataLength)
 #define BMUXLIB_INPUT_DESCRIPTOR_AUDIO_DATA_UNIT_TYPE(x) ((x)->descriptor.pstAudio->uiDataUnitType)
+
 
 /*
 ** Input Types

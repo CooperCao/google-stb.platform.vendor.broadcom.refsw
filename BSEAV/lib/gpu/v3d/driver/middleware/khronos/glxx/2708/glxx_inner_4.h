@@ -8,6 +8,7 @@
 #include "middleware/khronos/common/2708/khrn_fmem_4.h"
 #include "interface/khronos/include/GLES/gl.h"
 #include "middleware/khronos/glxx/glxx_server.h"
+#include "middleware/khronos/common/khrn_image.h"
 
 #define FIXABLE_TYPE_NULL 0
 #define FIXABLE_TYPE_ALLOC 1
@@ -19,9 +20,9 @@
 #define FIXABLE_TYPE_JUNK 7
 
 typedef struct {
-   MEM_HANDLE_T mh_color_image;
-   MEM_HANDLE_T mh_depth;
-   MEM_HANDLE_T mh_ms_color;
+   KHRN_IMAGE_T *color;
+   KHRN_IMAGE_T *depth;
+   KHRN_IMAGE_T *ms_color;
    KHRN_IMAGE_FORMAT_T col_format;
    uint16_t flags;
    uint32_t width;
@@ -31,7 +32,6 @@ typedef struct {
    bool ms;
    bool have_depth;
    bool have_stencil;
-   bool stereo_mode;
 } GLXX_HW_FRAMEBUFFER_T;
 
 #ifndef BIG_ENDIAN_CPU
@@ -170,7 +170,7 @@ extern uint32_t glxx_enable_front(GLenum mode);
 extern uint32_t glxx_front_facing_is_clockwise(GLenum mode);
 extern uint32_t glxx_hw_primitive_mode_to_type(GLenum primitive_mode);
 
-extern bool glxx_hw_texture_fix(MEM_HANDLE_T thandle, bool in_vshader);
+extern bool glxx_hw_texture_fix(GLXX_TEXTURE_T *texture, bool in_vshader);
 
 extern uint32_t glxx_hw_acquire_cache_interlock(void);
 extern void glxx_hw_release_cache_interlock(uint32_t pool_index);
@@ -188,6 +188,6 @@ extern uint32_t *glxx_big_mem_alloc_junk(int size, int align, MEM_LOCK_T *lbh);
 extern bool glxx_big_mem_insert(uint32_t *location, MEM_HANDLE_T handle, uint32_t offset);
 extern bool glxx_big_mem_add_fix(uint8_t **p, MEM_HANDLE_T handle, uint32_t offset);
 extern bool glxx_big_mem_add_special(uint8_t **p, uint32_t special_i, uint32_t offset);
-extern bool glxx_hw_insert_interlock(MEM_HANDLE_T handle, uint32_t offset);
+extern bool glxx_hw_insert_interlock(void *p, uint32_t offset);
 
 extern GLXX_HW_RENDER_STATE_T *glxx_install_framebuffer(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T *fb, bool main_buffer);

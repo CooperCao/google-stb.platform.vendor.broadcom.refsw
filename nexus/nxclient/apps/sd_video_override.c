@@ -87,7 +87,7 @@ int main(int argc, const char **argv)
     unsigned timeout = 0, starttime;
     NEXUS_Graphics2DHandle gfx;
     NEXUS_Graphics2DFillSettings fillSettings;
-    NEXUS_SimpleVideoDecoderHandle videoDecoder;
+    NEXUS_SimpleVideoDecoderHandle videoDecoder=NULL;
     NEXUS_VideoImageInputHandle imageInput;
     NEXUS_VideoImageInputStatus imageInputStatus;
     NEXUS_SimpleVideoDecoderStartSettings startSettings;
@@ -132,6 +132,7 @@ int main(int argc, const char **argv)
     if (rc) return BERR_TRACE(rc);
 
     NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&startSettings);
+    BDBG_ASSERT(videoDecoder);
     imageInput = NEXUS_SimpleVideoDecoder_StartImageInput(videoDecoder, &startSettings);
     BDBG_ASSERT(imageInput);
 

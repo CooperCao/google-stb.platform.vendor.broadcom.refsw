@@ -79,13 +79,6 @@ static const uint32_t phyCoeff[] =
    0xFC44fC7A, 0xFE580159, 0x045D0606, 0x054401DD, 0xFCB0F799, 0xF4F0F6BF, 0xFE010A1D, 0x18E92727, 0x316F352D
 };
 
-static const uint32_t script_ftm_shutdown[] =
-{
-   BAST_SCRIPT_WRITE(BCHP_FTM_PHY_FIRQ_STS, 0xFFFFFFFF), /* disable FTM interrupts */
-   BAST_SCRIPT_AND_OR(BCHP_FTM_PHY_CORR_CTL, ~0x00000001, 0x00000000),  /* disable correlator */
-   BAST_SCRIPT_AND_OR(BCHP_FTM_PHY_CTL, ~0x001C0001, 0x00000000),       /* disable timer, disable rcvr */
-   BAST_SCRIPT_EXIT
-};
 
 static const BAST_FtmCbInfo ftmDefCbInfo[BAST_Ftm_MaxIntID] = {
    /* ftm interrupt callback table */
@@ -1443,7 +1436,7 @@ static BERR_Code BAST_g3_Ftm_P_SetOptions_isr(BAST_Handle h)
       if (mb & 0x02)
       {
          mb2 = 0x05000059;
-         BAST_FTM_WRITE(FTM_PHY_TX_RAMP, mb2)
+         BAST_FTM_WRITE(FTM_PHY_TX_RAMP, mb2);
          BAST_FTM_READ(FTM_PHY_TX_MAN, &mb2);
          mb2 &= ~0x10;  /* turn off carrier */
          BAST_FTM_WRITE(FTM_PHY_TX_MAN, mb2);

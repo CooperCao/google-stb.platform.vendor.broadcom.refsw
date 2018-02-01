@@ -78,7 +78,7 @@ static inline GFX_LFMT_T gfx_lfmt_translate_from_memory_pixel_format_and_flipy(
 extern bool gfx_lfmt_maybe_translate_rt_format(V3D_RT_FORMAT_T *rt_format, GFX_LFMT_T lfmt);
 extern void gfx_lfmt_translate_rt_format(V3D_RT_FORMAT_T *rt_format, GFX_LFMT_T lfmt);
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 
 /* Returns dims & format */
 extern GFX_LFMT_T gfx_lfmt_translate_internal_raw_mode(GFX_LFMT_T lfmt);

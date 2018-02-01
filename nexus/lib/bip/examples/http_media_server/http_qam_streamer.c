@@ -79,12 +79,20 @@ typedef struct AppCtx
     B_EventHandle               hHttpRequestRcvdEvent;
     B_EventHandle               hHttpStreamerEvent;
     unsigned                    trackGroupId;       /* For MPEG2-TS this specifies the program_number. */
+    unsigned                    inactivityTimeoutInMs;
     int                         maxTriggeredEvents;
     bool                        enableDtcpIp;
     bool                        slaveModeEnabled;
     bool                        enableXcode;
     char                        *xcodeProfile;
     bool                        disableAvHeadersInsertion;
+    bool                        enableAllPass;
+    bool                        enableHwOffload;
+    unsigned                    maxDataRate;
+    unsigned                    sourceInputRate;
+    bool                        printStatus;
+    bool                        mtsif;
+    bool                        dontReAcquireMediaInfo;
     BLST_Q_HEAD( streamerListHead, AppStreamerCtx ) streamerListHead; /* List of Streamer Ctx */
 } AppCtx;
 
@@ -107,11 +115,14 @@ typedef struct AppStreamerCtx
     char                        *xcodeProfile;
     bool                        enableTransportTimestamp;
     unsigned                    trackGroupId;       /* For MPEG2-TS this specifies the program_number. */
+    bool                        enableAllPass;
+    bool                        enableHwOffload;
+    unsigned                    maxDataRate;
 } AppStreamerCtx;
 
 #define USER_INPUT_BUF_SIZE 64
 /* function to allow proper exit of server */
-bool exitThread( void )
+int readInput( void )
 {
     char    buffer[USER_INPUT_BUF_SIZE];
     size_t  bytesRead;
@@ -122,8 +133,13 @@ bool exitThread( void )
     if (strstr(buffer, "q"))
     {
         BDBG_LOG((BIP_MSG_PRE_FMT "Received quit " BIP_MSG_PRE_ARG));
-        return true;
+        return 'q';
     }
+    else if (strstr(buffer, "s"))
+    {
+        return 's';
+    }
+    else return 'c'; /* continue */
     return false;
 }
 
@@ -196,6 +212,12 @@ BIP_Status acquireAndTuneFrontend(
     NEXUS_Frontend_GetCapabilities( hFrontend, &capabilities );
 
     NEXUS_ParserBand_GetSettings( parserBand, &parserBandSettings );
+
+    if(pAppCtx->mtsif)
+    {
+        userParams.isMtsif = true;
+    }
+
     if (userParams.isMtsif)
     {
         parserBandSettings.sourceType               = NEXUS_ParserBandSourceType_eMtsif;
@@ -206,6 +228,13 @@ BIP_Status acquireAndTuneFrontend(
         parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
         parserBandSettings.sourceTypeSettings.inputBand = userParams.param1;  /* Platform initializes this to input band */
     }
+
+    if (pAppCtx->enableAllPass)
+    {
+       parserBandSettings.allPass = true;
+       parserBandSettings.acceptNullPackets = true;
+    }
+
     parserBandSettings.transportType = HTTP_SERVER_TRANSPORT_TYPE;
     rc = NEXUS_ParserBand_SetSettings( parserBand, &parserBandSettings );
     BIP_CHECK_GOTO(( !rc ), ( "NEXUS_ParserBand_SetSettings Failed" ), error, rc, rc );
@@ -403,12 +432,19 @@ static BIP_Status startStreamer(
         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "acquireAndTuneFrontend Failed" ), rejectRequest, bipStatus, bipStatus );
 
         BIP_Streamer_GetDefaultTunerInputSettings(&tunerInputSettings);
+
+        if (pAppStreamerCtx->enableAllPass)
+        {
+           tunerInputSettings.enableAllPass = true;
+        }
+
         bipStatus = BIP_HttpStreamer_SetTunerInputSettings( pAppStreamerCtx->hHttpStreamer, pAppStreamerCtx->parserBand, &(pAppStreamerCtx->streamerStreamInfo), &tunerInputSettings );
         responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_HttpStreamer_SetTunerInputSettings Failed" ), rejectRequest, bipStatus, bipStatus );
     }
 
     /* Now specify the Tracks that should be added for streaming: done here for Tuner inputs */
+    if ( !pAppStreamerCtx->enableAllPass )
     {
         BIP_MediaInfoTrackGroup *pMediaInfoTrackGroup = NULL;
         BIP_MediaInfoTrack      *pMediaInfoTrack = NULL;
@@ -534,7 +570,15 @@ static BIP_Status startStreamer(
             streamerOutputSettings.dtcpIpOutput.pcpPayloadLengthInBytes = (1024*1024);
             streamerOutputSettings.dtcpIpOutput.akeTimeoutInMs = 2000;
             streamerOutputSettings.dtcpIpOutput.copyControlInfo = B_CCI_eCopyNever;
+
         }
+
+        if (pAppStreamerCtx->maxDataRate)
+        {
+            streamerOutputSettings.streamerSettings.maxDataRate = pAppStreamerCtx->maxDataRate;
+        }
+        streamerOutputSettings.streamerSettings.enableHwOffload = pAppStreamerCtx->enableHwOffload;
+
         streamerProtocol = pAppStreamerCtx->enableHls ? BIP_HttpStreamerProtocol_eHls : BIP_HttpStreamerProtocol_eDirect;
         streamerOutputSettings.streamerSettings.mpeg2Ts.enableTransportTimestamp = pAppStreamerCtx->enableTransportTimestamp;
         streamerOutputSettings.disableAvHeadersInsertion = pAppStreamerCtx->pAppCtx->disableAvHeadersInsertion;
@@ -595,7 +639,7 @@ static BIP_Status startStreamer(
         BIP_HttpServerStartStreamerSettings startSettings;
 
         BIP_HttpServer_GetDefaultStartStreamerSettings( &startSettings );
-        startSettings.streamerStartSettings.inactivityTimeoutInMs = 50000;
+        startSettings.streamerStartSettings.inactivityTimeoutInMs = pAppStreamerCtx->pAppCtx->inactivityTimeoutInMs;
         bipStatus = BIP_HttpServer_StartStreamer( pAppStreamerCtx->pAppCtx->hHttpServer, pAppStreamerCtx->hHttpStreamer, hHttpRequest, &startSettings );
         responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_HttpServer_StartStreamer Failed: hHttpStreamer %p", (void *)pAppStreamerCtx->hHttpStreamer ), rejectRequest, bipStatus, bipStatus );
@@ -661,6 +705,9 @@ static void processHttpRequestEvent(
 
             /* Copy Global Settings into Streamer instance. */
             pAppStreamerCtx->enableXcode = pAppCtx->enableXcode;
+            pAppStreamerCtx->enableAllPass = pAppCtx->enableAllPass;
+            pAppStreamerCtx->maxDataRate = pAppCtx->maxDataRate;
+            pAppStreamerCtx->enableHwOffload = pAppCtx->enableHwOffload;
         }
 
         /* Process the received Request, start w/ the Method */
@@ -765,7 +812,7 @@ static BIP_Status generateMediaInfoForTunerInput (
     hTunerInfoFileAbsolutePath = BIP_String_CreateFromPrintf( "%s/Qam_Freq_%d.xml", BIP_String_GetString(pAppCtx->hInfoDirectoryPath), pAppCtx->frequency );
     BIP_CHECK_GOTO( (hTunerInfoFileAbsolutePath != NULL), ("BIP_String_CreateFromPrintf() Failed"), error, BIP_ERR_CREATE_FAILED, bipStatus);
     BIP_MediaInfo_GetDefaultCreateSettings(&mediaInfoCreateSettings);
-    mediaInfoCreateSettings.reAcquireInfo = true;
+    mediaInfoCreateSettings.reAcquireInfo = !pAppCtx->dontReAcquireMediaInfo;
 
     /* If one doesn't want then they can Pass NULL instead of infoFilename path since we are anyway setting mediaInfoCreateSettings.reAcquireInfo = true.*/
     pAppCtx->hMediaInfo = BIP_MediaInfo_CreateFromParserBand(
@@ -929,7 +976,15 @@ void printUsage( char *pCmdName )
             "  .xcode       #   For enabling xcode. .e.g AbcMpeg2HD.mpg.xcode \n"
             "  .m3u8        #   For enabling HLS Streamer Protocol. e.g. AbcMpeg2HD.m3u8 \n"
             "  .dtcpIp      #   For enabling DTCP/IP Encryption. e.g. AbcMpeg2HD.dtcpIp \n"
+            "  -enableAllPass   #   Enable streaming of all AV Tracks. \n"
+            "  -enableHwOffload #   Enable streaming using ASP HW Offload Engine. \n"
+            "  -inactivityTimeoutInMs <num> # Timeout in msec (default=60000) after which streamer will Stop/Close streaming context if there is no activity for that long!"
           );
+    printf( "  -maxDataRate  <num>          # Maximum data rate for the playback parser band in units of bits per second (default 40000000 (40Mpbs))! \n"
+            "  -srcInputRate <num>          # This sets Maximum input rate taht can be handled by parser band. \n"
+            "  -mtsif                       # This sets parserband input type as mtsif. \n"
+            "  -dontReAcquireMediaInfo      # If set, dont rescan the stream to reacquire Media Info. Instead, used the cached MediaInfo from last run.\n"
+            );
 }
 
 BIP_Status parseOptions(
@@ -942,6 +997,9 @@ BIP_Status parseOptions(
     BIP_Status bipStatus = BIP_ERR_INTERNAL;
 
     pAppCtx->mode = 256;
+    pAppCtx->maxDataRate = 40*1024*1024;
+    pAppCtx->sourceInputRate = 45*1024*1024;
+    pAppCtx->mtsif = false;
     for (i=1; i<argc; i++)
     {
         if ( !strcmp(argv[i], "-h") || !strcmp(argv[i], "--help") )
@@ -993,6 +1051,38 @@ BIP_Status parseOptions(
         {
             pAppCtx->disableAvHeadersInsertion = true;
         }
+        else if ( !strcmp(argv[i], "-enableAllPass") )
+        {
+            pAppCtx->enableAllPass = true;
+        }
+        else if ( !strcmp(argv[i], "-enableHwOffload") )
+        {
+            pAppCtx->enableHwOffload = true;
+        }
+        else if ( !strcmp(argv[i], "-inactivityTimeoutInMs") && i+1<argc )
+        {
+            pAppCtx->inactivityTimeoutInMs = strtoul(argv[++i], NULL, 0);
+        }
+        else if ( !strcmp(argv[i], "-maxDataRate") && i+1<argc )
+        {
+            pAppCtx->maxDataRate = strtoul(argv[++i], NULL, 0);
+        }
+        else if ( !strcmp(argv[i], "-srcInputRate") && i+1<argc )
+        {
+            pAppCtx->sourceInputRate = strtoul(argv[++i], NULL, 0);
+        }
+        else if ( !strcmp(argv[i], "-stats") )
+        {
+            pAppCtx->printStatus = true;
+        }
+        else if ( !strcmp(argv[i], "-mtsif") )
+        {
+            pAppCtx->mtsif = true;
+        }
+        else if ( !strcmp(argv[i], "-dontReAcquireMediaInfo") )
+        {
+            pAppCtx->dontReAcquireMediaInfo = true;
+        }
         else
         {
             printf("Error: incorrect or unsupported option: %s\n", argv[i]);
@@ -1001,6 +1091,7 @@ BIP_Status parseOptions(
         }
     }
     if ( !pAppCtx->xcodeProfile ) pAppCtx->xcodeProfile = TRANSCODE_PROFILE_720p_AVC;
+    if ( pAppCtx->inactivityTimeoutInMs == 0 ) pAppCtx->inactivityTimeoutInMs = 60000; /* 60sec default. */
     bipStatus = BIP_SUCCESS;
     BDBG_LOG(( BIP_MSG_PRE_FMT " port %s, infoDir %s, frequency %u, mode %u, xcode=%s DTCP/IP %s AKE Port %s" BIP_MSG_PRE_ARG,
                 BIP_String_GetString( pAppCtx->hPort ),
@@ -1105,10 +1196,19 @@ int main(
             NEXUS_Platform_GetDefaultSettings(&platformSettings);
             platformSettings.mode = NEXUS_ClientMode_eVerified;
             platformSettings.openFrontend = true;
-        /* Due to latest SAGE restrictions EXPORT_HEAP needs to be initialized even if we are not using SVP/EXPORT_HEAP(XRR).
-           It could be any small size heap.
-           Configure export heap since it's not allocated by nexus by default */
-        platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024;
+            /* Due to latest SAGE restrictions EXPORT_HEAP needs to be initialized even if we are not using SVP/EXPORT_HEAP(XRR).
+              It could be any small size heap.            Configure export heap since it's not allocated by nexus by default */
+            platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024;
+
+            if (pAppCtx->sourceInputRate)
+            {
+               int i =0;
+               for (i=0; i < NEXUS_MAX_PARSER_BANDS; i++)
+               {
+                  platformSettings.transportModuleSettings.maxDataRate.parserBand[i] = pAppCtx->sourceInputRate;
+               }
+            }
+
             nrc = NEXUS_Platform_Init(&platformSettings);
             BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_Platform_Init Failed" ), error, BIP_ERR_INTERNAL, bipStatus );
 
@@ -1140,11 +1240,14 @@ int main(
 
     /* Wait on Event group and process events as they come */
     BDBG_LOG(( BIP_MSG_PRE_FMT " Type 'q' followed by ENTER to exit gracefully\n" BIP_MSG_PRE_ARG ));
-    while (!exitThread())
+    while ( true )
     {
+        unsigned      userInput;
         unsigned      i;
         unsigned      numTriggeredEvents;
         B_EventHandle triggeredEvents[MAX_TRACKED_EVENTS];
+
+        if ( (userInput = readInput()) == 'q' ) break;
 
         B_EventGroup_Wait( pAppCtx->hHttpEventGroup, 1000/*1sec*/, triggeredEvents, pAppCtx->maxTriggeredEvents, &numTriggeredEvents );
         for (i = 0; i < numTriggeredEvents; i++)
@@ -1165,6 +1268,18 @@ int main(
             }
             BDBG_WRN(( BIP_MSG_PRE_FMT " didn't process event (i %d)" BIP_MSG_PRE_ARG, i ));
         }
+
+        if ( userInput == 's' || pAppCtx->printStatus )
+        {
+            AppStreamerCtx *pAppStreamerCtx;
+            for ( pAppStreamerCtx = BLST_Q_FIRST(&pAppCtx->streamerListHead);
+                  pAppStreamerCtx;
+                  pAppStreamerCtx = BLST_Q_NEXT( pAppStreamerCtx, streamerListNext ) )
+            {
+                BIP_HttpStreamer_PrintStatus( pAppStreamerCtx->hHttpStreamer );
+            }
+        }
+
     }
 
     BDBG_LOG(( BIP_MSG_PRE_FMT " Shutting HttpServer down..." BIP_MSG_PRE_ARG ));

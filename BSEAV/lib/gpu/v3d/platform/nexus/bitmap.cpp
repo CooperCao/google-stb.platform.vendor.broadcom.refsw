@@ -2,6 +2,7 @@
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "bitmap.h"
+#include "nexus_platform.h"
 #include <cstdio>
 
 namespace nxpl
@@ -37,6 +38,11 @@ void Bitmap::Init(void *context, NEXUS_HeapHandle heap, const BEGL_PixmapInfoEXT
    surfSettings.pitch = m_settings.pitchBytes;
    surfSettings.heap = heap;
    surfSettings.pixelMemory = NEXUS_MemoryBlock_Allocate(heap, m_settings.totalByteSize, m_settings.alignment, NULL);
+   if (surfSettings.pixelMemory == NULL)
+   {
+      printf("error : out of memory\n");
+      exit(0);
+   }
 
    m_surface = NEXUS_Surface_Create(&surfSettings);
 
@@ -64,6 +70,7 @@ void Bitmap::Init(void *context, NEXUS_HeapHandle heap, const BEGL_PixmapInfoEXT
          printf("unable to lock\n");
          exit(0);
       }
+      NEXUS_FlushCache(res, m_settings.totalByteSize);
    }
    m_settings.cachedAddr = res;
 }

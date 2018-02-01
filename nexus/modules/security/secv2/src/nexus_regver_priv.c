@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -302,12 +302,12 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
     BHSM_RvRegionAllocateSettings rvAllocSettings;
     BHSM_RvRegionSettings rvSettings;
     unsigned countDown = 0;
-    BHSM_RvRegionStatus status;
+    BHSM_RvRegionStatus regionStatus;
     NEXUS_RegVerRsaInfo_priv rvRsaInfoPriv;
     NEXUS_RegVerRsaHandle rvRsaHandle;
 
     NEXUS_Security_GetHsm_priv( &hHsm );
-    if( !hHsm ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
+    if( !hHsm ) { return BERR_TRACE( NEXUS_NOT_INITIALIZED ); }
 
     pRegionData = _GetRegionData( regionId );
     if( pRegionData == NULL ) {
@@ -354,24 +354,20 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
     rvSettings.range[0].size =  regionSize;
 
     rvSettings.signature.address = NEXUS_AddrToOffset( pRegionData->pCertificate );
-    rvSettings.signature.size = 255;                                                    /*TODO .. set value.*/
-    rvSettings.parameters.address = NEXUS_AddrToOffset( pRegionData->pCertificate ); /*TODO .. figure out. */
+    rvSettings.signature.size = 256;
+    rvSettings.parameters.address = NEXUS_AddrToOffset( pRegionData->pCertificate ) + rvSettings.signature.size;
     rvRsaHandle =  pRegionData->rvRsaKeyHandle ? pRegionData->rvRsaKeyHandle
                                                : gRegVerModuleData.defaultRsaKeyHandle;
 
     rc = NEXUS_RegVerRsa_GetInfo_priv( rvRsaHandle, &rvRsaInfoPriv );
     if( rc != NEXUS_SUCCESS ) { rc = BERR_TRACE( NEXUS_INVALID_PARAMETER ); goto error; }
 
-
-    rvSettings.rvRsaHandle = rvRsaInfoPriv.rvRsaKeyHandle;
-
-    #if 0 /* TODO */
-    rvSettings.intervalCheckBandwidth = ;
-    rvSettings.resetOnVerifyFailure = ;
-    rvSettings.backgroundCheck = ;
-    rvSettings.allowRegionDisable = ;
-    rvSettings.enforceAuth = ;
-    #endif
+    rvSettings.rvRsaHandle            = rvRsaInfoPriv.rvRsaKeyHandle;
+    rvSettings.intervalCheckBandwidth = 1;
+    rvSettings.resetOnVerifyFailure   = false;
+    rvSettings.backgroundCheck        = false;
+    rvSettings.allowRegionDisable     = true;
+    rvSettings.enforceAuth            = true;
 
     rc = BHSM_RvRegion_SetSettings( pRegionData->rvRegionHandle, &rvSettings );
     if( rc != NEXUS_SUCCESS ) {  BERR_TRACE( NEXUS_UNKNOWN ); goto error; }
@@ -382,15 +378,15 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
     countDown = 500;
 
     do{
-        rc =  BHSM_RvRegion_GetStatus( pRegionData->rvRegionHandle, &status );
+        BKNI_Sleep (5);
+        rc =  BHSM_RvRegion_GetStatus( pRegionData->rvRegionHandle, &regionStatus );
         if( rc != NEXUS_SUCCESS ) { rc = BERR_TRACE( NEXUS_UNKNOWN ); goto error; }
 
-    } while( --countDown > 0 && !status.verified );
+    } while( --countDown > 0 && !(regionStatus.status & BHSM_RV_REGION_STATUS_ENABLED) );
 
     if( countDown == 0 )  { rc = BERR_TRACE( NEXUS_TIMEOUT ); goto error; }
 
-    pRegionData->verified = true;
-
+    pRegionData->verified = regionStatus.status & BHSM_RV_REGION_STATUS_FAST_CHECK_RESULT;
 
     BDBG_LEAVE( NEXUS_Security_RegionVerifyEnable_priv );
     return NEXUS_SUCCESS;
@@ -420,7 +416,7 @@ void NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID regio
     NEXUS_ASSERT_MODULE();
 
     NEXUS_Security_GetHsm_priv( &hHsm );
-    if( !hHsm ) { BERR_TRACE( NEXUS_INVALID_PARAMETER ); return; }
+    if( !hHsm ) { BERR_TRACE( NEXUS_NOT_INITIALIZED ); return; }
 
     pRegionData = _GetRegionData( regionId );
     if( pRegionData == NULL ) { BERR_TRACE( NEXUS_INVALID_PARAMETER ); return; }
@@ -491,9 +487,7 @@ NEXUS_Error NEXUS_Security_RegionQueryInformation_priv( NEXUS_SecurityRegionInfo
     }
 
     NEXUS_Security_GetHsm_priv (&hHsm);
-    if( !hHsm ){
-        return BERR_TRACE( NEXUS_INVALID_PARAMETER );
-    }
+    if( !hHsm ){ return BERR_TRACE( NEXUS_NOT_INITIALIZED ); }
 
     BKNI_Memset( &status, 0, sizeof(status) );
 
@@ -641,7 +635,7 @@ static void _InitialiseRegion_dbg( NEXUS_SecurityRegverRegionID regionId,
         BHSM_OtpMspRead otpRead;
 
         NEXUS_Security_GetHsm_priv (&hHsm);
-        if( !hHsm ){ BERR_TRACE( NEXUS_INVALID_PARAMETER ); return; }
+        if( !hHsm ){ BERR_TRACE( NEXUS_NOT_INITIALIZED ); return; }
 
         BKNI_Memset( &otpRead, 0, sizeof(otpRead) );
         otpRead.index = otpIndex;

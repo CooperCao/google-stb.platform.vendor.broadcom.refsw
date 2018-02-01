@@ -7,11 +7,12 @@
 
 #include "interface/khronos/common/khrn_client.h"
 #include "middleware/khronos/egl/egl_server.h"
+#include "interface/vcos/vcos.h"
 
 typedef struct {
-   EGLenum type;
+   unsigned type;
+   int32_t condition;
+   int32_t status;
 
-   EGL_SYNC_ID_T serversync;
+   VCOS_SEMAPHORE_T sem;
 } EGL_SYNC_T;
-
-void egl_sync_term(EGL_SYNC_T *sync);

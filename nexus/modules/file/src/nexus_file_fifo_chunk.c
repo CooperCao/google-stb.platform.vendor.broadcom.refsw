@@ -1994,6 +1994,9 @@ static void nexus_p_chunkedfiforecord_timer(void *context)
         NEXUS_FilePosition first, last;
         rc = NEXUS_ChunkedFifoRecord_GetPosition(handle->filefifo, &first, &last);
         if (rc) {rc = BERR_TRACE(rc); goto done;}
+        if (first.timestamp == NEXUS_FILE_INVALID_POSITION) {
+            goto done;
+        }
         if (handle->settings.last.timestamp < first.timestamp) {
             /* timeshift already past target, so nothing to get */
             handle->status.state = NEXUS_ChunkedFifoRecordExportState_eDone;

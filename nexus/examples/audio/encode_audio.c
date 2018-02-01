@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -107,7 +107,7 @@ int main(void)
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_StcChannelHandle stcChannel, stcChannelTranscode;
     NEXUS_StcChannelSettings stcSettings;
-    NEXUS_PidChannelHandle audioPidChannel, pcrPidChannel;
+    NEXUS_PidChannelHandle audioPidChannel;
     NEXUS_DisplayHandle display;
     NEXUS_AudioDecoderHandle audioDecoder;
 #if BTST_ENABLE_PASSTHROUGH
@@ -124,7 +124,9 @@ int main(void)
     NEXUS_AudioMuxOutputStartSettings audioMuxStartSettings;
     NEXUS_AudioCapabilities audioCapabilities;
     NEXUS_AudioOutputHandle audioDacHandle = NULL;
+#if BTST_ENABLE_PASSTHROUGH
     NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+#endif
     NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
 #if BTST_ENABLE_TRANSCODE 
     NEXUS_AudioEncoderSettings encoderSettings;
@@ -136,7 +138,7 @@ int main(void)
     NEXUS_Error rc;
 #endif
     void *pDataBuffer;
-    size_t bytes;
+    unsigned bytes = 0;
     FILE *fout, *fdesc;
     const char *fname = FILE_NAME;
 
@@ -165,10 +167,12 @@ int main(void)
         audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
     }
 
+#if BTST_ENABLE_PASSTHROUGH
     if (audioCapabilities.numOutputs.spdif > 0)
     {
         audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
     }
+#endif
 
     #if NEXUS_NUM_HDMI_OUTPUTS
     if (audioCapabilities.numOutputs.hdmi > 0)
@@ -246,7 +250,6 @@ int main(void)
 
     audioPidChannel = NEXUS_Playback_OpenPidChannel(playback, AUDIO_PID, &playbackPidSettings);
     playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eOther;
-    pcrPidChannel = NEXUS_Playback_OpenPidChannel(playback, PCR_PID, &playbackPidSettings);
 
     /* Set up decoder Start structures now. We need to know the audio codec to properly set up the audio outputs. */
     NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
@@ -340,9 +343,9 @@ int main(void)
                 if(desc[j][i].length > 0)
                 {
                     fwrite((const uint8_t *)pDataBuffer + desc[j][i].offset, desc[j][i].length, 1, fout);
-                    fprintf(fdesc, "%8x %8x   %08x%08x %8x %5u %5d %8x %8x\n", desc[j][i].flags, desc[j][i].originalPts, 
+                    fprintf(fdesc, "%8x %8x   %08x%08x %8x %5u %5d %8x %8p\n", desc[j][i].flags, desc[j][i].originalPts,
                         (uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff), desc[j][i].escr, 
-                        desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, desc[j][i].length);
+                        desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, (void*)desc[j][i].length);
                 }
                 bytes+= desc[j][i].length;
             }

@@ -65,12 +65,13 @@ public:
     virtual CControl *           controlCreate(void);
     virtual CDisplay *           displayCreate(void);
     virtual CGraphics *          graphicsCreate(void);
-    virtual CVideoWindow *       videoWindowInitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, eWindowType windowType);
+    virtual eRet                 videoWindowInitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, CVideoWindow ** ppVideoWindow, eWindowType windowType);
     virtual void                 videoWindowUninitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, CVideoWindow * pVideoWindow);
     virtual eRet                 mosaicInitialize(void);
     virtual void                 mosaicUninitialize(void);
     virtual CSimpleVideoDecode * videoDecodeCreate(eWindowType windowType);
     virtual CSimpleAudioDecode * audioDecodeCreate(eWindowType windowType);
+    virtual CSimplePcmPlayback * audioPcmPlaybackCreate(void);
     virtual void                 videoDecodeStillUninitialize(void) { return; }
     virtual COutputHdmi *        outputHdmiInitialize(CDisplay * pDisplay);
     virtual COutputComponent *   outputComponentInitialize(CDisplay * pDisplay);

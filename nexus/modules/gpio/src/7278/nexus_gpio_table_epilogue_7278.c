@@ -63,7 +63,7 @@ NEXUS_Error NEXUS_Gpio_P_GetPinData(NEXUS_GpioType type, unsigned pin, uint32_t 
         else if ( pin <109 )
         {
             /* GPIO Pins 108-96 */
-            *pAddress = BCHP_GIO_ODEN_EXT_HI;
+            *pAddress = BCHP_GIO_ODEN_EXT2;
             *pShift = (pin-96);
         }
         else

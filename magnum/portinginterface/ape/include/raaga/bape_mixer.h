@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -250,6 +250,9 @@ typedef struct BAPE_MixerSettings
         BAPE_FadeSettings mainDecodeFade; /* Fade control for main decode output mixer stage (Main+Associate or Dual Main) */
     } fade;
     /* End Dolby MS12 DAP features */
+
+    bool mixerEnableZeros;              /* If true if we explictly start the mixer we will start generating zereo's immediately.
+                                           Default is enabled; */
 } BAPE_MixerSettings;
 
 /***************************************************************************
@@ -363,7 +366,6 @@ typedef struct BAPE_MixerAddInputSettings
     BAPE_MixerInputCaptureHandle capture;   /* A mixer input capture handle may be provided to
                                                capture DSP data input to a mixer for debug purposes.
                                                If NULL, data will not be captured. */
-
 } BAPE_MixerAddInputSettings;
 
 /***************************************************************************
@@ -543,6 +545,10 @@ typedef struct BAPE_MixerInputSettings
 {
     bool srcEnabled; /* disable SRC for this mixer input. Settings applies to HW mixers only and will
                         not be applied until the next time this mixer input path to this mixer is started. */
+    BAPE_MixerInputCaptureHandle capture;   /* A mixer input capture handle may be provided to
+                                               capture DSP data input to a mixer for debug purposes.
+                                               If NULL, data will not be captured. will not be applied until
+                                               the next time this mixer input path to this mixer is started.*/
 } BAPE_MixerInputSettings;
 
 /***************************************************************************

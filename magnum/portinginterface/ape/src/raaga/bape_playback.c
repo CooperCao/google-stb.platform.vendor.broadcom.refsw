@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -782,7 +782,12 @@ BERR_Code BAPE_Playback_GetBuffer(
         pBuffers->interleaved = hPlayback->startSettings.interleaved;
         if ( !hPlayback->suspending ) /* As long as we aren't in the middle of suspending */
         {
-            pBuffers->bufferSize = hPlayback->bufferSize - hPlayback->bufferDepth;
+            if ( (hPlayback->bufferDepth + BAPE_CHIP_SFIFO_PADDING) > hPlayback->bufferSize ) {
+                BDBG_ERR(("BufferDepth + SFIFO padding is greater then bufferSize"));
+                return BERR_TRACE(BERR_INVALID_PARAMETER);
+            }
+
+            pBuffers->bufferSize = hPlayback->bufferSize - hPlayback->bufferDepth - BAPE_CHIP_SFIFO_PADDING; /* sfifo padding for master/slave configurations */
             if ( pBuffers->bufferSize )
             {
                 if ( pBuffers->interleaved )
@@ -838,7 +843,7 @@ BERR_Code BAPE_Playback_CommitData(
     }
     else
     {
-        if ( numBytes + hPlayback->bufferDepth > hPlayback->bufferSize )
+        if ( (numBytes + hPlayback->bufferDepth) > (hPlayback->bufferSize - BAPE_CHIP_SFIFO_PADDING) ) /* sfifo padding for master/slave configurations */
         {
             BDBG_ERR(("Invalid number of bytes passed."));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -866,7 +871,7 @@ void BAPE_Playback_GetStatus(
     
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
-    pStatus->fifoSize = hPlayback->bufferSize;
+    pStatus->fifoSize = hPlayback->bufferSize - BAPE_CHIP_SFIFO_PADDING; /* sfifo padding for master/slave configurations */
     
     if ( !hPlayback->running )
     {

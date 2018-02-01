@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,7 +44,8 @@
 enum {
     BP3_CommandId_eProcessBP3BinFile = 0x1,     /* called on normal boot */
     BP3_CommandId_eProvisionBp3Ccf = 0x2,       /* called during manufacturing */
-    BP3_CommandId_eGenerateSessionToken = 0x03  /* called before CCF creation */
+    BP3_CommandId_eGenerateSessionToken = 0x03, /* called before CCF creation */
+    BP3_CommandId_eGetChipOtpId = 0x04          /* called to get OTP ID A after getting session token */
 };
 
 enum

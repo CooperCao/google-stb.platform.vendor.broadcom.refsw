@@ -1,0 +1,3 @@
+## SAGE Binary Metadata - SSF 3_2_14
+## unique_key checksum_type checksum url
+7260A0/sage_ta_manufacturing.bin sha1 91c973cfef1f6d140e6a8fc3a09f2f87551f160d http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_14/7260A0/ZB/sage_ta_manufacturing.bin

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -78,6 +78,7 @@ static void BAPE_DspMixer_P_SetSampleRate_isr(BAPE_MixerHandle mixer, unsigned s
 static void BAPE_DspMixer_P_SetInputSRC_isr(BAPE_MixerHandle mixer, BAPE_Connector input, unsigned inputRate, unsigned outputRate);
 static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsigned index);
 static void BAPE_DspMixer_P_EncoderOverflow_isr(void *pParam1, int param2);
+static void BAPE_DspMixer_P_SampleRateChange_isr(void *pParam1, int param2, unsigned streamSampleRate, unsigned baseSampleRate);
 static void BAPE_DspMixer_P_Destroy(BAPE_MixerHandle handle);
 static BAPE_MultichannelFormat BAPE_DspMixer_P_GetDdreMultichannelFormat(BAPE_MixerHandle handle);
 static bool BAPE_DspMixer_P_DdrePresentDownstream_isrsafe(BAPE_MixerHandle handle);
@@ -758,7 +759,7 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
     BAPE_PathConnection *pInputConnection;
     BAPE_PathNode *pNode;
     unsigned numFound, i;
-    uint32_t sampleRate = 48000;
+    uint32_t sampleRate = 0;
 
     BDBG_ASSERT(false == handle->taskStarted);
 
@@ -816,6 +817,9 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
     BDSP_Task_GetDefaultStartSettings(handle->hTask, &taskStartSettings);
     taskStartSettings.primaryStage = handle->hMixerStage;
     taskStartSettings.openGateAtStart = handle->startedExplicitly;
+    if (!handle->settings.mixerEnableZeros) {
+        taskStartSettings.openGateAtStart = false;
+    }
     taskStartSettings.timeBaseType = BDSP_AF_P_TimeBaseType_e45Khz;
     taskStartSettings.schedulingMode = BDSP_TaskSchedulingMode_eMaster;
 
@@ -884,7 +888,7 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
     }
 
     BKNI_EnterCriticalSection();
-    BAPE_DspMixer_P_SetSampleRate_isr(handle, sampleRate);
+    BAPE_DspMixer_P_SetSampleRate_isr(handle, sampleRate == 0 ? 48000 : sampleRate);
     BKNI_LeaveCriticalSection();
 
     errCode = BAPE_DSP_P_DeriveTaskStartSettings(&handle->pathNode, &taskStartSettings);
@@ -953,12 +957,21 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
         BDSP_AudioTask_GetInterruptHandlers_isr(handle->hTask, &interrupts);
         interrupts.encoderOutputOverflow.pCallback_isr = BAPE_DspMixer_P_EncoderOverflow_isr;
         interrupts.encoderOutputOverflow.pParam1 = handle;
+        interrupts.sampleRateChange.pCallback_isr = BAPE_DspMixer_P_SampleRateChange_isr;
+        interrupts.sampleRateChange.pParam1 = handle;
         BDSP_AudioTask_SetInterruptHandlers_isr(handle->hTask, &interrupts);
         BKNI_LeaveCriticalSection();
     }
     else
     {
+        BDSP_AudioInterruptHandlers interrupts;
         handle->hMuxOutput = NULL;
+        BKNI_EnterCriticalSection();
+        BDSP_AudioTask_GetInterruptHandlers_isr(handle->hTask, &interrupts);
+        interrupts.sampleRateChange.pCallback_isr = BAPE_DspMixer_P_SampleRateChange_isr;
+        interrupts.sampleRateChange.pParam1 = handle;
+        BDSP_AudioTask_SetInterruptHandlers_isr(handle->hTask, &interrupts);
+        BKNI_LeaveCriticalSection();
     }
 
     #if BDBG_DEBUG_BUILD
@@ -1132,9 +1145,36 @@ BAPE_DolbyMSVersion BAPE_P_FwMixer_GetDolbyUsageVersion_isrsafe(BAPE_MixerHandle
 {
     if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 )
     {
+        BDSP_AlgorithmInfo algoInfo;
+        BDSP_Handle hDsp = NULL;
+        bool ms11MixerSupported;
+        bool ms12MixerSupported;
+
+        if ( handle->dspContext != NULL && handle->dspContext == handle->deviceHandle->dspContext )
+        {
+            hDsp = handle->deviceHandle->dspHandle;
+        }
+        else if ( handle->dspContext != NULL && handle->dspContext == handle->deviceHandle->armContext )
+        {
+            hDsp = handle->deviceHandle->armHandle;
+        }
+
+        if ( !hDsp )
+        {
+            BDBG_ERR(("No DSP/ARM device configured, returning BAPE_DolbyMSVersion_eMax"));
+            BERR_TRACE(BERR_INVALID_PARAMETER);
+            return BAPE_DolbyMSVersion_eMax;
+        }
+
+        BDSP_GetAlgorithmInfo(hDsp, BDSP_Algorithm_eMixer, &algoInfo);
+        ms11MixerSupported = algoInfo.supported;
+        BDSP_GetAlgorithmInfo(hDsp, BDSP_Algorithm_eMixerDapv2, &algoInfo);
+        ms12MixerSupported = algoInfo.supported;
+
         /* IF we find a DDRE downstream, use MS12 mixer,
            else use legacy mixer (transcode, etc) */
-        if ( BAPE_DspMixer_P_DdrePresentDownstream_isrsafe(handle) )
+        if ( BAPE_DspMixer_P_DdrePresentDownstream_isrsafe(handle) ||
+             (!ms11MixerSupported && ms12MixerSupported) )
         {
             return BAPE_DolbyMSVersion_eMS12;
         }
@@ -1676,6 +1716,11 @@ static void BAPE_DspMixer_P_InputSampleRateChange_isr(struct BAPE_PathNode *pNod
         /* Make sure there is a valid sample rate */
         if ( BAPE_Mixer_P_GetOutputSampleRate_isr(handle) == 0 )
         {
+            BAPE_DspMixer_P_SetSampleRate_isr(handle, handle->settings.defaultSampleRate);
+        }
+        else if (!handle->master &&
+                 pConnection->pSource->pParent->type == BAPE_PathNodeType_ePlayback &&
+                 !BAPE_DspMixer_P_DdrePresentDownstream_isrsafe(handle)) { /* If master is null, its pcm playback and no DDRE */
             BAPE_DspMixer_P_SetSampleRate_isr(handle, handle->settings.defaultSampleRate);
         }
     }
@@ -2498,16 +2543,15 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(
 
         /* We will only end up in MS12 mode if compiled in MS12 mode AND we find DDRE downstream.
            So we will always set ms12 to 1 here. */
+        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32Ms12Flag, 1);
         if ( BAPE_P_DolbyCapabilities_Dapv2() )
         {
             BDBG_MSG(("DAP v2 is supported"));
-            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32Ms12Flag, 1);
             BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32EnableDapv2, handle->settings.enablePostProcessing ? 1 : 0);
         }
         else
         {
             BDBG_MSG(("DAP v2 is NOT supported"));
-            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32Ms12Flag, 0);
             BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32EnableDapv2, 0);
         }
         BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32MixerUserBalance, handle->settings.multiStreamBalance);
@@ -2781,6 +2825,27 @@ static void BAPE_DspMixer_P_EncoderOverflow_isr(void *pParam1, int param2)
     }
 }
 
+static void BAPE_DspMixer_P_SampleRateChange_isr(void *pParam1, int param2, unsigned streamSampleRate, unsigned baseSampleRate)
+{
+    BAPE_MixerHandle handle = pParam1;
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
+    BSTD_UNUSED(param2);
+
+    BDBG_MSG(("DSP Mixer Sample Rate changed"));
+    BDBG_MSG(("%s: streamSampleRate %d, baseSampleRate %d", BSTD_FUNCTION, streamSampleRate, baseSampleRate));
+    if (!BAPE_DspMixer_P_DdrePresentDownstream_isrsafe(handle)) {
+        if (handle->settings.mixerSampleRate && BAPE_FMT_P_IsLinearPcm_isrsafe(&handle->pathNode.connectors[0].format)) {
+            /* Set mixer sample rate. */
+            BAPE_DspMixer_P_SetSampleRate_isr(handle, handle->settings.mixerSampleRate);
+        }
+        else {
+            if ( BAPE_Mixer_P_GetOutputSampleRate_isr(handle) != baseSampleRate ) {
+                BAPE_DspMixer_P_SetSampleRate_isr(handle, baseSampleRate);
+            }
+        }
+    }
+}
 #define NOT_SUPPORTED(x) NULL
 /* If any of the APIs are not supported by a particular type of mixer,
  * just add a placeholder like this:

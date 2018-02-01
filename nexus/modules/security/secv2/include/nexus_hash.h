@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -94,7 +94,9 @@ typedef struct NEXUS_HashResult
 Description:
     Create a HASH context. There is no limit on the number of hash contexts that can be created.
 */
-NEXUS_HashHandle NEXUS_Hash_Create(void); /* attr{destructor=NEXUS_Hash_Destroy} */
+NEXUS_HashHandle NEXUS_Hash_Create( /* attr{destructor=NEXUS_Hash_Destroy} */
+    void
+    );
 
 /*
 Description:

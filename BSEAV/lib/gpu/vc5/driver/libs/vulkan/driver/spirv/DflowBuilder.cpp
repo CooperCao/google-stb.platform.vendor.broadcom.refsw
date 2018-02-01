@@ -67,20 +67,13 @@ void ExecutionModes::Record(const NodeExecutionMode *node)
       assert(literals.size() == 3);
       SetWorkgroupSize(literals[0], literals[1], literals[2]);
       break;
-   case spv::ExecutionMode::PixelCenterInteger:
-      m_pixelCenterInteger = true;
-      break;
-   case spv::ExecutionMode::OriginUpperLeft:
-      m_originUpperLeft = true;
-      break;
-   case spv::ExecutionMode::OriginLowerLeft:
-      m_originUpperLeft = false;
-      break;
    case spv::ExecutionMode::DepthReplacing:
       m_depthReplacing = true;
       break;
    case spv::ExecutionMode::EarlyFragmentTests:
       m_earlyFragmentTests = true;
+      break;
+   case spv::ExecutionMode::OriginUpperLeft:
       break;
    default:
       // TODO -- handle other modes we're interested in.
@@ -170,12 +163,12 @@ const DflowScalars &DflowBuilder::GetDataflow(const Node *at)
 
 void DflowBuilder::Visit(const NodeTypeVoid *node)
 {
-   AddSymbolType(node, SymbolTypeHandle::Primitive(PRIM_VOID));
+   AddSymbolType(node, SymbolTypeHandle::Void());
 }
 
 void DflowBuilder::Visit(const NodeTypeBool *node)
 {
-   AddSymbolType(node, SymbolTypeHandle::Primitive(PRIM_BOOL));
+   AddSymbolType(node, SymbolTypeHandle::Bool());
 }
 
 void DflowBuilder::Visit(const NodeTypeFloat *node)
@@ -183,7 +176,7 @@ void DflowBuilder::Visit(const NodeTypeFloat *node)
    if (node->GetWidth() != 32)
       log_warn("%u-bit NodeTypeFloat encountered. Treating as 32-bit float.", node->GetWidth());
 
-   AddSymbolType(node, SymbolTypeHandle::Primitive(PRIM_FLOAT));
+   AddSymbolType(node, SymbolTypeHandle::Float());
 }
 
 void DflowBuilder::Visit(const NodeTypeInt *node)
@@ -191,294 +184,75 @@ void DflowBuilder::Visit(const NodeTypeInt *node)
    if (node->GetWidth() != 32)
       log_warn("%u-bit NodeTypeInt encountered. Treating as 32-bit int.", node->GetWidth());
 
-   auto type = node->GetSignedness() == 0          ?
-               SymbolTypeHandle::Primitive(PRIM_UINT) :
-               SymbolTypeHandle::Primitive(PRIM_INT);
-
-   AddSymbolType(node, type);
+   AddSymbolType(node, node->GetSignedness() ? SymbolTypeHandle::Int() : SymbolTypeHandle::UInt());
 }
 
 void DflowBuilder::Visit(const NodeTypeVector *node)
 {
-   PrimitiveTypeIndex   findices[]= { PRIM_VEC2,  PRIM_VEC3,  PRIM_VEC4  };
-   PrimitiveTypeIndex   iindices[]= { PRIM_IVEC2, PRIM_IVEC3, PRIM_IVEC4 };
-   PrimitiveTypeIndex   uindices[]= { PRIM_UVEC2, PRIM_UVEC3, PRIM_UVEC4 };
-   PrimitiveTypeIndex   bindices[]= { PRIM_BVEC2, PRIM_BVEC3, PRIM_BVEC4 };
+   uint32_t compCount = node->GetComponentCount();
+   auto     compType  = node->GetComponentType()->As<const NodeType *>();
 
-   uint32_t index    = node->GetComponentCount() - 2;
-   auto     compType = node->GetComponentType()->As<const NodeType *>();
-
-   PrimitiveTypeIndex typeIndex = PRIM_VEC2;
-
-   switch (GetSymbolType(compType).GetIndex())
-   {
-   case PRIM_FLOAT:  typeIndex = findices[index]; break;
-   case PRIM_INT:    typeIndex = iindices[index]; break;
-   case PRIM_UINT:   typeIndex = uindices[index]; break;
-   case PRIM_BOOL:   typeIndex = bindices[index]; break;
-   default:
-      assert(0);
-   }
-
-   AddSymbolType(node, SymbolTypeHandle::Primitive(typeIndex));
+   AddSymbolType(node, SymbolTypeHandle::Vector(GetSymbolType(compType), compCount));
 }
 
 void DflowBuilder::Visit(const NodeTypeFunction *node)
 {
-   auto type = SymbolTypeHandle::Function(m_module, node->GetParametersType().size(),
-                                          GetSymbolType(node->GetReturnType()->As<const NodeType *>()));
-
-   AddSymbolType(node, type);
+   // The underlying IR won't need to know about these
 }
 
 void DflowBuilder::Visit(const NodeTypePointer *node)
 {
-   auto type = SymbolTypeHandle::Pointer(m_module, GetSymbolType(node->GetType()->As<const NodeType *>()));
+   auto  targetType = node->GetType()->As<const NodeType *>();
 
-   AddSymbolType(node, type);
+   AddSymbolType(node, SymbolTypeHandle::Pointer(m_module, GetSymbolType(targetType)));
 }
 
-static PrimitiveTypeIndex ImageSymbolTypeIndex(const NodeTypeImage *node, PrimitiveTypeIndex basicType)
-{
-   PrimitiveTypeIndex   pti = PRIMITIVE_TYPE_UNDEFINED;
-
-   switch (node->GetDim())
-   {
-   case spv::Dim::Dim1D:          // TODO : is treating 1D as 2D correct??
-   case spv::Dim::Dim2D:
-   case spv::Dim::SubpassData:
-      if (node->GetArrayed())
-         pti = PRIM_IMAGE2DARRAY;
-      else
-         pti = PRIM_IMAGE2D;
-      break;
-   case spv::Dim::Dim3D:
-      pti = PRIM_IMAGE3D;
-      break;
-   case spv::Dim::Cube:
-      if (node->GetArrayed())
-         pti = PRIM_IMAGECUBEARRAY;
-      else
-         pti = PRIM_IMAGECUBE;
-      break;
-   case spv::Dim::Buffer:
-      pti = PRIM_IMAGEBUFFER;
-      break;
-   case spv::Dim::Rect:        // TODO : is this required?
-   default:
-      unreachable();
-   }
-
-   if (basicType == PRIM_INT)
-   {
-      switch (pti)
-      {
-      case PRIM_IMAGE2DARRAY:    pti = PRIM_IIMAGE2DARRAY;     break;
-      case PRIM_IMAGE2D:         pti = PRIM_IIMAGE2D;          break;
-      case PRIM_IMAGE3D:         pti = PRIM_IIMAGE3D;          break;
-      case PRIM_IMAGECUBE:       pti = PRIM_IIMAGECUBE;        break;
-      case PRIM_IMAGECUBEARRAY:  pti = PRIM_IIMAGECUBEARRAY;   break;
-      case PRIM_IMAGEBUFFER:     pti = PRIM_IIMAGEBUFFER;      break;
-      default:                   unreachable();
-      }
-   }
-   else if (basicType == PRIM_UINT)
-   {
-      switch (pti)
-      {
-      case PRIM_IMAGE2DARRAY:    pti = PRIM_UIMAGE2DARRAY;     break;
-      case PRIM_IMAGE2D:         pti = PRIM_UIMAGE2D;          break;
-      case PRIM_IMAGE3D:         pti = PRIM_UIMAGE3D;          break;
-      case PRIM_IMAGECUBE:       pti = PRIM_UIMAGECUBE;        break;
-      case PRIM_IMAGECUBEARRAY:  pti = PRIM_UIMAGECUBEARRAY;   break;
-      case PRIM_IMAGEBUFFER:     pti = PRIM_UIMAGEBUFFER;      break;
-      default:                   unreachable();
-      }
-   }
-   else
-      assert(basicType == PRIM_FLOAT);
-
-   return pti;
-}
-
-static PrimitiveTypeIndex SampledImageSymbolTypeIndex(const NodeTypeImage *node, PrimitiveTypeIndex basicType)
-{
-   PrimitiveTypeIndex   pti = PRIMITIVE_TYPE_UNDEFINED;
-
-   switch (node->GetDim())
-   {
-   case spv::Dim::Dim1D:          // TODO : is treating 1D as 2D correct??
-   case spv::Dim::Dim2D:
-      if (node->GetArrayed())
-         pti = node->GetMS() ? PRIM_TEXTURE2DMSARRAY : PRIM_TEXTURE2DARRAY;
-      else
-         pti = node->GetMS() ? PRIM_TEXTURE2DMS : PRIM_TEXTURE2D;
-      break;
-   case spv::Dim::Dim3D:
-      pti = PRIM_TEXTURE3D;
-      break;
-   case spv::Dim::Cube:
-      if (node->GetArrayed())
-         pti = PRIM_TEXTURECUBEARRAY;
-      else
-         pti = PRIM_TEXTURECUBE;
-      break;
-   case spv::Dim::Buffer:
-      pti = PRIM_TEXTUREBUFFER;
-      break;
-   case spv::Dim::Rect:        // TODO : is this required?
-   case spv::Dim::SubpassData: // TODO : input attachment related
-   default:
-      unreachable();
-   }
-
-   if (basicType == PRIM_INT)
-   {
-      switch (pti)
-      {
-      case PRIM_TEXTURE2DARRAY:     pti = PRIM_ITEXTURE2DARRAY;   break;
-      case PRIM_TEXTURE2D:          pti = PRIM_ITEXTURE2D;        break;
-      case PRIM_TEXTURE2DMSARRAY:   pti = PRIM_ITEXTURE2DMSARRAY; break;
-      case PRIM_TEXTURE2DMS:        pti = PRIM_ITEXTURE2DMS;      break;
-      case PRIM_TEXTURE3D:          pti = PRIM_ITEXTURE3D;        break;
-      case PRIM_TEXTURECUBE:        pti = PRIM_ITEXTURECUBE;      break;
-      case PRIM_TEXTURECUBEARRAY:   pti = PRIM_ITEXTURECUBEARRAY; break;
-      case PRIM_TEXTUREBUFFER:      pti = PRIM_ITEXTUREBUFFER;    break;
-      default:                      unreachable();
-      }
-   }
-   else if (basicType == PRIM_UINT)
-   {
-      switch (pti)
-      {
-      case PRIM_TEXTURE2DARRAY:     pti = PRIM_UTEXTURE2DARRAY;   break;
-      case PRIM_TEXTURE2D:          pti = PRIM_UTEXTURE2D;        break;
-      case PRIM_TEXTURE2DMSARRAY:   pti = PRIM_UTEXTURE2DMSARRAY; break;
-      case PRIM_TEXTURE2DMS:        pti = PRIM_UTEXTURE2DMS;      break;
-      case PRIM_TEXTURE3D:          pti = PRIM_UTEXTURE3D;        break;
-      case PRIM_TEXTURECUBE:        pti = PRIM_UTEXTURECUBE;      break;
-      case PRIM_TEXTURECUBEARRAY:   pti = PRIM_UTEXTURECUBEARRAY; break;
-      case PRIM_TEXTUREBUFFER:      pti = PRIM_UTEXTUREBUFFER;    break;
-      default:                      unreachable();
-      }
-   }
-   else
-      assert(basicType == PRIM_FLOAT);
-
-   return pti;
-}
-
-static PrimitiveTypeIndex CombSampledImageSymbolTypeIndex(const NodeTypeImage *node, PrimitiveTypeIndex basicType)
-{
-   PrimitiveTypeIndex   pti = PRIMITIVE_TYPE_UNDEFINED;
-
-   switch (node->GetDim())
-   {
-   case spv::Dim::Dim1D:          // TODO : is treating 1D as 2D correct??
-   case spv::Dim::Dim2D:
-      if (node->GetArrayed())
-         pti = node->GetMS() ? PRIM_SAMPLER2DMSARRAY : PRIM_SAMPLER2DARRAY;
-      else
-         pti = node->GetMS() ? PRIM_SAMPLER2DMS : PRIM_SAMPLER2D;
-      break;
-   case spv::Dim::Dim3D:
-      pti = PRIM_SAMPLER3D;
-      break;
-   case spv::Dim::Cube:
-      if (node->GetArrayed())
-         pti = PRIM_SAMPLERCUBEARRAY;
-      else
-         pti = PRIM_SAMPLERCUBE;
-      break;
-   case spv::Dim::Buffer:
-      pti = PRIM_SAMPLERBUFFER;
-      break;
-   case spv::Dim::Rect:        // TODO : is this required?
-   case spv::Dim::SubpassData: // TODO : input attachment related
-   default:
-      unreachable();
-   }
-
-   if (basicType == PRIM_INT)
-   {
-      switch (pti)
-      {
-      case PRIM_SAMPLER2DARRAY:     pti = PRIM_ISAMPLER2DARRAY;   break;
-      case PRIM_SAMPLER2D:          pti = PRIM_ISAMPLER2D;        break;
-      case PRIM_SAMPLER2DMSARRAY:   pti = PRIM_ISAMPLER2DMSARRAY; break;
-      case PRIM_SAMPLER2DMS:        pti = PRIM_ISAMPLER2DMS;      break;
-      case PRIM_SAMPLER3D:          pti = PRIM_ISAMPLER3D;        break;
-      case PRIM_SAMPLERCUBE:        pti = PRIM_ISAMPLERCUBE;      break;
-      case PRIM_SAMPLERCUBEARRAY:   pti = PRIM_ISAMPLERCUBEARRAY; break;
-      case PRIM_SAMPLERBUFFER:      pti = PRIM_ISAMPLERBUFFER;    break;
-      default:                      unreachable();
-      }
-   }
-   else if (basicType == PRIM_UINT)
-   {
-      switch (pti)
-      {
-      case PRIM_SAMPLER2DARRAY:     pti = PRIM_USAMPLER2DARRAY;   break;
-      case PRIM_SAMPLER2D:          pti = PRIM_USAMPLER2D;        break;
-      case PRIM_SAMPLER2DMSARRAY:   pti = PRIM_USAMPLER2DMSARRAY; break;
-      case PRIM_SAMPLER2DMS:        pti = PRIM_USAMPLER2DMS;      break;
-      case PRIM_SAMPLER3D:          pti = PRIM_USAMPLER3D;        break;
-      case PRIM_SAMPLERCUBE:        pti = PRIM_USAMPLERCUBE;      break;
-      case PRIM_SAMPLERCUBEARRAY:   pti = PRIM_USAMPLERCUBEARRAY; break;
-      case PRIM_SAMPLERBUFFER:      pti = PRIM_USAMPLERBUFFER;    break;
-      default:                      unreachable();
-      }
-   }
-   else
-      assert(basicType == PRIM_FLOAT);
-
-   return pti;
-}
 
 void DflowBuilder::Visit(const NodeTypeImage *node)
 {
-   PrimitiveTypeIndex pti;
-   PrimitiveTypeIndex basicType = GetSymbolType(node->GetSampledType()->As<const NodeType *>()).GetIndex();
+   spv::Dim dim     = node->GetDim();
+   uint32_t arrayed = node->GetArrayed();
+   uint32_t ms      = node->GetMS();
 
-   if (node->GetSampled() == 1)
-      pti = SampledImageSymbolTypeIndex(node, basicType);
-   else if (node->GetSampled() == 2)
-      pti = ImageSymbolTypeIndex(node, basicType);
-   else
-      unreachable();
+   SymbolTypeHandle sampledType = GetSymbolType(node->GetSampledType()->As<const NodeType *>());
 
-   AddSymbolType(node, SymbolTypeHandle::Primitive(pti));
+   switch (node->GetSampled())
+   {
+   case 1 : AddSymbolType(node, SymbolTypeHandle::SampledImage(sampledType, dim, arrayed, ms));
+            break;
+   case 2 : AddSymbolType(node, SymbolTypeHandle::Image(sampledType, dim, arrayed));
+            break;
+   default: unreachable();
+   }
 }
 
 void DflowBuilder::Visit(const NodeTypeSampledImage *node)
 {
    auto imageNode = node->GetImageType()->As<const NodeTypeImage *>();
 
-   PrimitiveTypeIndex basicType = GetSymbolType(imageNode->GetSampledType()->As<const NodeType *>()).GetIndex();
-   PrimitiveTypeIndex pti       = CombSampledImageSymbolTypeIndex(imageNode, basicType);
+   spv::Dim dim     = imageNode->GetDim();
+   uint32_t arrayed = imageNode->GetArrayed();
+   uint32_t ms      = imageNode->GetMS();
 
-   AddSymbolType(node, SymbolTypeHandle::Primitive(pti));
+   SymbolTypeHandle sampledType = GetSymbolType(imageNode->GetSampledType()->As<const NodeType *>());
+
+   AddSymbolType(node, SymbolTypeHandle::CombinedSampledImage(sampledType, dim, arrayed, ms));
 }
 
 void DflowBuilder::Visit(const NodeTypeStruct *node)
 {
    MemberIter  mi(*this, node->GetMemberstype());
 
-   AddSymbolType(node, SymbolTypeHandle::Struct(m_module, "structure", mi));
+   AddSymbolType(node, SymbolTypeHandle::Struct(m_module, mi));
 }
 
 void DflowBuilder::Visit(const NodeTypeMatrix *node)
 {
-   PrimitiveTypeIndex  index[3][3] = { { PRIM_MAT2,   PRIM_MAT2X3, PRIM_MAT2X4 },
-                                       { PRIM_MAT3X2, PRIM_MAT3,   PRIM_MAT3X4 },
-                                       { PRIM_MAT4X2, PRIM_MAT4X3, PRIM_MAT4   } };
+   auto     columnType = node->GetColumnType()->As<const NodeTypeVector *>();
+   uint32_t cols       = node->GetColumnCount();
+   uint32_t rows       = columnType->GetComponentCount();
 
-   auto columnType = node->GetColumnType()->As<const NodeTypeVector *>();
-
-   uint32_t cols = node->GetColumnCount();
-   uint32_t rows = columnType->GetComponentCount();
-
-   AddSymbolType(node, SymbolTypeHandle::Primitive(index[cols - 2][rows - 2]));
+   AddSymbolType(node, SymbolTypeHandle::Matrix(cols, rows));
 }
 
 void DflowBuilder::Visit(const NodeTypeSampler *node)
@@ -489,19 +263,16 @@ void DflowBuilder::Visit(const NodeTypeSampler *node)
 void DflowBuilder::Visit(const NodeTypeArray *node)
 {
    auto     elementType = node->GetElementType()->As<const NodeType *>();
-   uint32_t length;
+   uint32_t length = RequireConstantInt(node->GetLength());
 
-   if (!ConstantInt(node->GetLength(), &length))
-      assert(0);
-
-   AddSymbolType(node, SymbolTypeHandle::Array(m_module, length, GetSymbolType(elementType)));
+   AddSymbolType(node, SymbolTypeHandle::Array(m_module, GetSymbolType(elementType), length));
 }
 
 void DflowBuilder::Visit(const NodeTypeRuntimeArray *node)
 {
    auto elementType = node->GetElementType()->As<const NodeType *>();
 
-   AddSymbolType(node, SymbolTypeHandle::Array(m_module, 0, GetSymbolType(elementType)));
+   AddSymbolType(node, SymbolTypeHandle::Array(m_module, GetSymbolType(elementType), 0));
 }
 
 uint32_t DflowBuilder::StructureOffset(const NodeTypeStruct *type, uint32_t index) const
@@ -699,8 +470,8 @@ void DflowBuilder::Visit(const NodeSpecConstantOp *node)
       // be simplified to a constant.
       switch (operation)
       {
-      case spv::Core::OpSConvert             : result = *arg0;
-      case spv::Core::OpFConvert             : result = *arg0;
+      case spv::Core::OpSConvert             : result = *arg0; break;
+      case spv::Core::OpFConvert             : result = *arg0; break;
 
       case spv::Core::OpIAdd                 : result = *arg0 + *arg1; break;
       case spv::Core::OpISub                 : result = *arg0 - *arg1; break;
@@ -903,10 +674,7 @@ void DflowBuilder::Visit(const NodeImageSampleProjDrefExplicitLod *imageSample)
 void DflowBuilder::Visit(const NodeImageGather *imageGather)
 {
    const ImageOperands  *imageOperands = nullptr;
-
-   // Assumes that component is a constant
-   uint32_t component;
-   ConstantInt(imageGather->GetComponent(), &component);
+   uint32_t component = RequireConstantInt(imageGather->GetComponent());
 
    if (imageGather->GetImageOperands().IsValid())
       imageOperands = &imageGather->GetImageOperands().Get();
@@ -1004,15 +772,9 @@ const NodeTypeImage *DflowBuilder::GetImageType(const Node *sampledImage)
    auto sampledImageType = sampledImage->GetResultType()->TryAs<const NodeTypeSampledImage *>();
 
    if (sampledImageType != nullptr)
-   {
-      auto imageType = sampledImageType->GetImageType()->As<const NodeTypeImage *>();
-      return imageType;
-   }
+      return sampledImageType->GetImageType()->As<const NodeTypeImage *>();
    else
-   {
-      auto imageType = sampledImage->GetResultType()->As<const NodeTypeImage *>();
-      return imageType;
-   }
+      return sampledImage->GetResultType()->As<const NodeTypeImage *>();
 }
 
 void DflowBuilder::Visit(const NodeImage *node)
@@ -2984,7 +2746,7 @@ void DflowBuilder::Visit(const NodeArrayLength *node)
 
    uint32_t descriptorSet = m_module.RequireLiteralDecoration(spv::Decoration::DescriptorSet, var);
    uint32_t binding       = m_module.RequireLiteralDecoration(spv::Decoration::Binding, var);
-   bool ssbo              = IsSSBO::Test(GetModule(), structType);
+   bool ssbo              = IsSSBO::Test(GetModule(), var);
 
    DescriptorInfo dInfo(descriptorSet, binding, 0);
    uint32_t descTableIndex = GetDescriptorMaps().FindBufferEntry(ssbo, dInfo);
@@ -3045,20 +2807,23 @@ DflowScalars DflowBuilder::LoadFromSymbol(BasicBlockHandle block, SymbolHandle s
 
    Dataflow **scalarValues = block->GetScalars(symbol);
 
+   uint32_t numScalars = symbol.GetType().GetNumScalars();
+
    if (scalarValues != nullptr)
-      return DflowScalars(*this, symbol.GetType().GetNumScalars(), scalarValues);
+      return DflowScalars(*this, numScalars, scalarValues);
 
-   DflowScalars   loads = DflowScalars::Load(*this, symbol);
-   scalarValues = loads.GetDataflowArray();
+   scalarValues = DflowScalars::Load(*this, symbol).Data();
 
+   // Record the load array
    block->PutLoad(symbol, scalarValues);
 
-   DflowScalars   scalars = loads.CopyDflow();
-   scalarValues = scalars.GetDataflowArray();
+   // Creates a new array with the same dataflows
+   DflowScalars result(*this, numScalars, scalarValues);
 
-   block->PutScalars(symbol, scalarValues);
+   // Record the dataflow array
+   block->PutScalars(symbol, result.Data());
 
-   return scalars;
+   return result;
 }
 
 // Store dataflow for given symbol in the given block
@@ -3070,16 +2835,17 @@ void DflowBuilder::StoreToSymbol(BasicBlockHandle block, SymbolHandle symbol, co
 
    Dataflow **scalarValues = block->GetScalars(symbol);
 
+   // Have we seen this symbol?
    if (scalarValues == nullptr)
    {
-      DflowScalars   scalars(*this, data.Size());
-      scalarValues = scalars.GetDataflowArray();
+      // Create new empty array
+      scalarValues = DflowScalars(*this, data.Size()).Data();
 
-      // Record stored dataflow against the symbol
+      // Record the dataflow array
       block->PutScalars(symbol, scalarValues);
    }
 
-   // Write results into the symbol's dataflow
+   // Record results into the symbol's dataflow
    for (uint32_t i = 0; i < data.Size(); ++i)
       scalarValues[i] = data[i];
 }
@@ -3092,18 +2858,17 @@ void DflowBuilder::StoreToSymbol(BasicBlockHandle block, SymbolHandle symbol,
    if (symbol.GetFlavour() == SYMBOL_VAR_INSTANCE && symbol.GetStorageQualifier() == STORAGE_OUT)
       m_usedSymbols.insert(symbol);
 
-   Dataflow         **scalarValues = block->GetScalars(symbol);
+   Dataflow **scalarValues = block->GetScalars(symbol);
 
    if (scalarValues == nullptr)
    {
-      DflowScalars    loads = DflowScalars::Load(*this, symbol);
-      scalarValues = loads.GetDataflowArray();
+      DflowScalars load = DflowScalars::Load(*this, symbol);
 
-      block->PutLoad(symbol, scalarValues);
+      // Record dataflow array in load map
+      block->PutLoad(symbol, load.Data());
 
-      DflowScalars   scalars = loads.CopyDflow();
-      scalarValues = scalars.GetDataflowArray();
-
+      // Record a copy in the scalar map
+      scalarValues = DflowScalars(*this, load.Size(), load.Data()).Data();
       block->PutScalars(symbol, scalarValues);
    }
 
@@ -3341,10 +3106,13 @@ void DflowBuilder::SetupInterface(const NodeEntryPoint *entryPoint, ShaderFlavou
             spv::BuiltIn   builtin;
             if (m_module.GetBuiltinMemberDecoration(&builtin, structure, i))
             {
+
                if (builtin == spv::BuiltIn::Position)
                {
+                  SymbolTypeHandle  floatType = SymbolTypeHandle::Float();
+
                   auto glPosition = SymbolHandle::Builtin(m_module, "gl_Position",
-                                                          spv::StorageClass::Output, PRIM_VEC4);
+                                                          spv::StorageClass::Output, SymbolTypeHandle::Vector(floatType, 4));
                   const DflowScalars scalars  = LoadFromSymbol(exitBlock, m_glPerVertex);
                   const DflowScalars position = scalars.Slice(offset, 4);
 
@@ -3353,8 +3121,10 @@ void DflowBuilder::SetupInterface(const NodeEntryPoint *entryPoint, ShaderFlavou
                }
                else if (builtin == spv::BuiltIn::PointSize)
                {
+                  SymbolTypeHandle  floatType = SymbolTypeHandle::Float();
+
                   auto glPointSize = SymbolHandle::Builtin(m_module, "gl_PointSize",
-                                                           spv::StorageClass::Output, PRIM_FLOAT);
+                                                           spv::StorageClass::Output, floatType);
                   const DflowScalars scalars   = LoadFromSymbol(exitBlock, m_glPerVertex);
                   const DflowScalars pointSize = scalars.Slice(offset, 1);
 
@@ -3373,7 +3143,7 @@ void DflowBuilder::SetupInterface(const NodeEntryPoint *entryPoint, ShaderFlavou
       // We must always have a pointsize, so if it hasn't already turned up,
       // create a fresh one
       auto glPointSize = SymbolHandle::Builtin(m_module, "gl_PointSize",
-                                               spv::StorageClass::Output, PRIM_FLOAT);
+                                               spv::StorageClass::Output, SymbolTypeHandle::Float());
       auto pointSize   = DflowScalars::ConstantFloat(*this, 1.0f);
       StoreToSymbol(exitBlock, glPointSize, pointSize);
       RecordOutputSymbol(glPointSize);
@@ -3568,6 +3338,7 @@ DflowScalars DflowBuilder::CreateVariableDataflow(const NodeVariable *var, Symbo
       break;
 
    case spv::StorageClass::Uniform:
+   case spv::StorageClass::StorageBuffer:
       // UBOs & SSBOs
       break;
 
@@ -3617,12 +3388,16 @@ static bool IsGLPervertexStruct(const NodeTypeStruct *node)
    return false;
 }
 
+SymbolTypeHandle DflowBuilder::GetSymbolType(const NodeVariable *var) const
+{
+   return GetSymbolType(var->TypeOfTarget());
+}
+
 SymbolHandle DflowBuilder::AddSymbol(const NodeVariable *var)
 {
    SymbolHandle      symbol;
-   auto              pointerType = var->GetResultType()->As<const NodeTypePointer *>();
-   auto              nodeType    = pointerType->GetType()->As<const NodeType *>();
-   SymbolTypeHandle  type        = GetSymbolType(nodeType);
+   const NodeType   *nodeType = var->TypeOfTarget();
+   SymbolTypeHandle  type     = GetSymbolType(var);
 
    if (type.GetFlavour() == SYMBOL_STRUCT_TYPE)
    {
@@ -3762,6 +3537,14 @@ bool DflowBuilder::ConstantInt(const Node *node, uint32_t *value)
    return false;
 }
 
+uint32_t DflowBuilder::RequireConstantInt(const Node *node)
+{
+   uint32_t ret;
+   bool ok = ConstantInt(node, &ret);
+   assert(ok);
+   return ret;
+}
+
 static spv::ExecutionModel ConvertExecutionModel(ShaderFlavour flavour)
 {
    switch (flavour)
@@ -3808,7 +3591,7 @@ void DflowBuilder::RecordExecutionModes(const NodeEntryPoint *entry)
 
 void DflowBuilder::InitCompute()
 {
-   m_workgroup = SymbolHandle(glsl_construct_shared_block(GetSharedSymbols()));
+   m_workgroup = SymbolHandle::SharedBlock(GetSharedSymbols());
 
    glsl_generate_compute_variables(
       m_glLocalInvocationIndex, m_glLocalInvocationID, m_glWorkGroupID,
@@ -3842,20 +3625,23 @@ void DflowBuilder::Build(const char *name, ShaderFlavour flavour)
    if (flavour == SHADER_FRAGMENT)
    {
       // The linker looks for the $$discard variable
-      m_discard = SymbolHandle::Builtin(m_module, "$$discard", spv::StorageClass::Output, PRIM_BOOL);
+      m_discard = SymbolHandle::Builtin(m_module, "$$discard", spv::StorageClass::Output, SymbolTypeHandle::Bool());
       StoreToSymbol(m_entryBlock, m_discard, DflowScalars::ConstantBool(*this, false));
       RecordOutputSymbol(m_discard);
    }
 
    if (flavour == SHADER_COMPUTE)
    {
-      // The values associated with these variables are added post-facto
-      m_glWorkGroupID          = SymbolHandle::Builtin(m_module, "gl_WorkGroupID",          spv::StorageClass::Input, PRIM_UVEC3);
-      m_glLocalInvocationID    = SymbolHandle::Builtin(m_module, "gl_LocalInvocationID",    spv::StorageClass::Input, PRIM_UVEC3);
-      m_glGlobalInvocationID   = SymbolHandle::Builtin(m_module, "gl_GlobalInvocationID",   spv::StorageClass::Input, PRIM_UVEC3);
-      m_glLocalInvocationIndex = SymbolHandle::Builtin(m_module, "gl_LocalInvocationIndex", spv::StorageClass::Input, PRIM_UINT);
+      SymbolTypeHandle  uintType  = SymbolTypeHandle::UInt();
+      SymbolTypeHandle  uvec3Type = SymbolTypeHandle::Vector(uintType, 3);
 
-      SymbolHandle comp_vary = SymbolHandle::Builtin(m_module, "$$comp_vary", spv::StorageClass::Input, PRIM_UVEC3);
+      // The values associated with these variables are added post-facto
+      m_glWorkGroupID          = SymbolHandle::Builtin(m_module, "gl_WorkGroupID",          spv::StorageClass::Input, uvec3Type);
+      m_glLocalInvocationID    = SymbolHandle::Builtin(m_module, "gl_LocalInvocationID",    spv::StorageClass::Input, uvec3Type);
+      m_glGlobalInvocationID   = SymbolHandle::Builtin(m_module, "gl_GlobalInvocationID",   spv::StorageClass::Input, uvec3Type);
+      m_glLocalInvocationIndex = SymbolHandle::Builtin(m_module, "gl_LocalInvocationIndex", spv::StorageClass::Input, uintType);
+
+      SymbolHandle comp_vary = SymbolHandle::Builtin(m_module, "$$comp_vary", spv::StorageClass::Input, uvec3Type);
       RecordInputSymbol(comp_vary);
    }
 
@@ -3895,19 +3681,19 @@ void DflowBuilder::DebugPrint() const
 
       log_trace("============== INPUT SYMBOLS");
       for (auto sym : m_inputSymbols)
-         SymbolHandleConst(sym).DebugPrint();
+         SymbolHandle(sym).DebugPrint();
 
       log_trace("============== OUTPUT SYMBOLS");
       for (auto sym : m_outputSymbols)
-         SymbolHandleConst(sym).DebugPrint();
+         SymbolHandle(sym).DebugPrint();
 
       log_trace("============== UNIFORM SYMBOLS");
       for (auto sym : m_uniformSymbols)
-         SymbolHandleConst(sym).DebugPrint();
+         SymbolHandle(sym).DebugPrint();
 
       log_trace("============== SHARED SYMBOLS");
       for (auto sym : m_sharedSymbols)
-         SymbolHandleConst(sym).DebugPrint();
+         SymbolHandle(sym).DebugPrint();
    }
 }
 

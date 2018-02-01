@@ -68,10 +68,10 @@ typedef struct BMXT_P_TransportData
     unsigned dumpIndex;
 
     struct {
-        unsigned *num, *numDcbg;
+        const unsigned *num, *numDcbg;
         uint32_t regbase, regbaseWakeup, regbaseDcbg;
-        uint32_t *regoffsets, *regoffsetsWakeup, *regoffsetsDcbg;
-        unsigned *stepsize, *stepsizeDcbg;
+        const uint32_t *regoffsets, *regoffsetsWakeup, *regoffsetsDcbg;
+        const unsigned *stepsize, *stepsizeDcbg;
         BMXT_P_PlatformType type;
     } platform;
 

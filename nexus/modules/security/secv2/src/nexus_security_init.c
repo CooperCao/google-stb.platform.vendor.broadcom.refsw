@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,16 +39,18 @@
 #include "nexus_security_module.h"
 #include "nexus_security.h"
 #include "nexus_security_init.h"
-#include "priv/nexus_core.h"
 #include "nexus_power_management.h"
 #include "nexus_base.h"
+#include "priv/nexus_core.h"
+#include "priv/nexus_security_priv.h"
+#include "priv/nexus_rsa_priv.h"
+#include "priv/nexus_pid_channel_priv.h"
+#include "priv/nexus_security_standby_priv.h"
 #include "priv/nexus_regver_priv.h"
 #include "priv/nexus_transport_priv.h"
 #include "nexus_security_datatypes.h"
-#include "priv/nexus_security_standby_priv.h"
 #include "bhsm.h"
-#include "priv/nexus_security_priv.h"
-#include "priv/nexus_rsa_priv.h"
+#include "bhsm_keyslot.h"
 
 BDBG_MODULE(nexus_security);
 
@@ -87,6 +89,8 @@ void NEXUS_GetSecurityCapabilities( NEXUS_SecurityCapabilities *pCaps )
 
     BKNI_Memset( &hsmCaps, 0, sizeof(hsmCaps) );
     NEXUS_Security_GetHsm_priv( &hHsm );
+    if( !hHsm ) { BERR_TRACE( NEXUS_NOT_INITIALIZED ); return; }
+
     BHSM_GetCapabilities( hHsm,  &hsmCaps );
 
     pCaps->version.zeus.major    = hsmCaps.version.zeus.major;
@@ -105,10 +109,17 @@ void NEXUS_SecurityModule_GetDefaultSettings( NEXUS_SecurityModuleSettings *pSet
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_GetDefaultCommonModuleSettings(&pSettings->common);
-
-    pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerSlot]  = 21;
-    pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerBlock] = 21;
-    pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerEntry] = 6;
+    if ((BHSM_ZEUS_VERSION == BHSM_ZEUS_VERSION_CALC(4,2)) && (BHSM_ZEUS_VER_SUBMINOR == 2) ) {
+        /* Zeus 4.2.2 */
+        pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerSlot]  = 10;
+        pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerBlock] = 4;
+        pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerEntry] = 6;
+    } else {
+        /* Zeus 2, 3, and 4.x and 5*/
+        pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerSlot]  = 21;
+        pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerBlock] = 21;
+        pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerEntry] = 6;
+    }
 
     if ( NEXUS_SECURITY_ZEUS_VERSION_MAJOR >= 5) {
         pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerBlock256] = 11;
@@ -182,10 +193,12 @@ err_init:
 NEXUS_Error NEXUS_SecurityModule_InitTransport_priv(void)
 {
     NEXUS_Error rc;
+
     NEXUS_Module_Lock( g_security.moduleSettings.transport );
     rc = NEXUS_TransportModule_PostInit_priv( secureFirmwareRave );
     NEXUS_Module_Unlock( g_security.moduleSettings.transport );
-    if (rc) return BERR_TRACE(rc);
+    if (rc) return BERR_TRACE( rc );
+
     return NEXUS_SUCCESS;
 }
 
@@ -243,10 +256,12 @@ static BERR_Code initialiseHsm(const NEXUS_SecurityModuleSettings * pSettings)
     g_security.hsmHandle = BHSM_Open( &hsmSettings );
     if( g_security.hsmHandle == NULL ) { return BERR_TRACE(NEXUS_NOT_AVAILABLE); }
 
-    #if 0 && NEXUS_HAS_XPT_DMA
-    rc = BHSM_SetPidChannelBypassKeyslot(g_security.hsm, NEXUS_PidChannel_GetBypassKeyslotIndex_isrsafe(NEXUS_BypassKeyslot_eG2GR), NEXUS_BypassKeyslot_eG2GR);
+    #if NEXUS_HAS_XPT_DMA
+    rc = BHSM_SetPidChannelBypassKeyslot(g_security.hsmHandle, NEXUS_PidChannel_GetBypassKeySlotIndex_isrsafe(NEXUS_BypassKeySlot_eG2GR), NEXUS_BypassKeySlot_eG2GR);
     if (rc) {BERR_TRACE(rc);} /* keep going */
-    rc = BHSM_SetPidChannelBypassKeyslot(g_security.hsm, NEXUS_PidChannel_GetBypassKeyslotIndex_isrsafe(NEXUS_BypassKeyslot_eGR2R), NEXUS_BypassKeyslot_eGR2R);
+    rc = BHSM_SetPidChannelBypassKeyslot(g_security.hsmHandle, NEXUS_PidChannel_GetBypassKeySlotIndex_isrsafe(NEXUS_BypassKeySlot_eGR2R), NEXUS_BypassKeySlot_eGR2R);
+    if (rc) {BERR_TRACE(rc);} /* keep going */
+    rc = BHSM_SetPidChannelBypassKeyslot(g_security.hsmHandle, NEXUS_PidChannel_GetBypassKeySlotIndex_isrsafe(NEXUS_BypassKeySlot_eGT2T), NEXUS_BypassKeySlot_eGT2T);
     if (rc) {BERR_TRACE(rc);} /* keep going */
     #endif
 
@@ -335,7 +350,6 @@ NEXUS_Error NEXUS_SecurityModule_Standby_priv( bool enabled, const NEXUS_Standby
            #endif
         }
 
-       #if 0
         if( g_security.moduleSettings.callTransportPostInit )
         {
             NEXUS_Module_Lock(g_security.moduleSettings.transport);
@@ -343,7 +357,6 @@ NEXUS_Error NEXUS_SecurityModule_Standby_priv( bool enabled, const NEXUS_Standby
             NEXUS_Module_Unlock(g_security.moduleSettings.transport);
             if (rc) return BERR_TRACE(rc);
         }
-       #endif
     }
 
 #else

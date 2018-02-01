@@ -334,10 +334,8 @@ void NEXUS_Docsis_P_HeartBeatThread(void * arg)
     BERR_Code retCode = BERR_SUCCESS;
     NEXUS_Error rc = NEXUS_SUCCESS;
     BDCM_Version version;
-	BRPC_Param_XXX_Get Param;
 	bool restart;
     unsigned initTryCount=0;
-    Param.devId = BRPC_DevId_DOCSIS;
 
 	hDevice->notificationCount = 0; /* clear notification count*/
 

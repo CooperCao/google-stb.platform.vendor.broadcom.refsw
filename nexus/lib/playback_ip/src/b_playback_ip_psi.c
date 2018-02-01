@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -527,6 +527,7 @@ B_PlaybackIpError B_PlaybackIp_ParseAndProcessPsiState(
     bool                    unlocked = false;
     const bmedia_probe_stream *pNewStream;
 
+    BKNI_Memset(&tsPkt, 0, sizeof(tsPkt));
     if (playback_ip->psi.mpegType != NEXUS_TransportType_eTs)
     {
         BDBG_MSG(("%s: Runtime PSI Parsing is not supported for non-TS container formats=%d", BSTD_FUNCTION, playback_ip->psi.mpegType));
@@ -566,7 +567,6 @@ B_PlaybackIpError B_PlaybackIp_ParseAndProcessPsiState(
         if (breakFromLoopDueToChChg(playback_ip) || pPsi->abort)
         {
             BDBG_MSG(("playback_ip=%p state=%d: breaking out of while loop due to %s", (void *)playback_ip, playback_ip->playback_state, pPsi->abort?"psiStateAbort":"Channel Change"));
-            rc = B_ERROR_CHANNEL_CHANGE;
             break;
         }
         if (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode || playback_ip->playback_state == B_PlaybackIpState_eEnteringTrickMode )
@@ -866,12 +866,14 @@ B_PlaybackIpError B_PlaybackIp_ParseAndProcessPsiState(
             if (!playback_ip->firstPtsPassed)
             {
                 BDBG_MSG(("%p: Still waiting for firstPtsPassed", (void *)playback_ip));
+                /* coverity[sleep: FALSE] */
                 BKNI_Sleep(100);
                 continue;
             }
             else
             {
                 /* Done, Sleep a bit to playout 1st couple of frames. */
+                /* coverity[sleep: FALSE] */
                 BKNI_Sleep(50);
                 BDBG_WRN(("%p: firstPtsPassed is true, now wait until currently buffered AV is completedly played out!", (void *)playback_ip));
                 pPsi->psiState = PBIP_PsiState_eWaitingForAvPipePlayout;
@@ -881,15 +883,18 @@ B_PlaybackIpError B_PlaybackIp_ParseAndProcessPsiState(
         /* Before we can notify BIP about the new program, we will need to ensure that all AV Stream corresponding to current program PID has been decoded & displayed. */
         if (pPsi->psiState == PBIP_PsiState_eWaitingForAvPipePlayout)
         {
+            /* coverity[sleep: FALSE] */
             if (B_PlaybackIp_UtilsEndOfStream(playback_ip) == false)
             {
                 BDBG_MSG(("%p: Still waiting to playout all AV frames!", (void *)playback_ip));
+                /* coverity[sleep: FALSE] */
                 BKNI_Sleep(100);
                 continue;
             }
             else
             {
                 /* Done, Sleep a frametime to playout any last frame. */
+                /* coverity[sleep: FALSE] */
                 BKNI_Sleep(20);
                 BDBG_WRN(("%p: Currently buffered AV stream is played out!", (void *)playback_ip));
 
@@ -920,6 +925,7 @@ B_PlaybackIpError B_PlaybackIp_ParseAndProcessPsiState(
         if (pPsi->psiState == PBIP_PsiState_eWaitingToResumePsiParsing)
         {
             BDBG_MSG(("%p: Waiting to ResumePsiParsing!", (void *)playback_ip));
+            /* coverity[sleep: FALSE] */
             BKNI_Sleep(20);
             continue;
         }

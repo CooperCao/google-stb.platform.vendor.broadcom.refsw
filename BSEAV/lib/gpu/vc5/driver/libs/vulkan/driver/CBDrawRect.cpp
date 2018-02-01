@@ -18,23 +18,12 @@ namespace bvk {
 
 using RectArray = std::vector<VkRect2D>;
 
-static void NVVertex(uint32_t *addr, uint32_t x, uint32_t y, uint32_t z)
-{
-   // Clipping and 1/Wc come from defaults
-   addr[0] = x << 8;
-   addr[1] = y << 8;
-   addr[2] = z;
-}
-
 // Allocate vertex data for DrawClearRect
 void CommandBuffer::DrawRectVertexData(DevMemRange *devMem, uint32_t *dataMaxIndex,
                                        uint32_t rectCount, const VkRect2D *rects, uint32_t z)
 {
-   const size_t attComponents = 3; // x, y, z
-
+   NewDevMemRange(devMem, v3d_nv_vertex_size() * rectCount * 4, V3D_ATTR_ALIGN);
    *dataMaxIndex = rectCount * 4 - 1;
-
-   NewDevMemRange(devMem, attComponents * sizeof(uint32_t) * (*dataMaxIndex + 1), V3D_ATTR_ALIGN);
 
    uint32_t *addr = static_cast<uint32_t*>(devMem->Ptr());
 
@@ -45,14 +34,10 @@ void CommandBuffer::DrawRectVertexData(DevMemRange *devMem, uint32_t *dataMaxInd
       uint32_t xmax = rect.offset.x + rect.extent.width;
       uint32_t ymax = rect.offset.y + rect.extent.height;
 
-      NVVertex(addr, rect.offset.x, rect.offset.y, z);
-      addr += attComponents;
-      NVVertex(addr, xmax, rect.offset.y, z);
-      addr += attComponents;
-      NVVertex(addr, xmax, ymax, z);
-      addr += attComponents;
-      NVVertex(addr, rect.offset.x, ymax, z);
-      addr += attComponents;
+      v3d_nv_vertex(addr, r*4 + 0, rect.offset.x, rect.offset.y, z);
+      v3d_nv_vertex(addr, r*4 + 1, xmax, rect.offset.y, z);
+      v3d_nv_vertex(addr, r*4 + 2, xmax, ymax, z);
+      v3d_nv_vertex(addr, r*4 + 3, rect.offset.x, ymax, z);
    }
 }
 
@@ -103,10 +88,6 @@ void CommandBuffer::DrawSingleLayerClearRects(ControlListBuilder &cb, uint32_t r
    V3D_NV_SHADER_RECORD_ALLOC_SIZES_T  sizes;
    v3d_get_nv_shader_record_alloc_sizes(&sizes);
 
-   // Allocate the device memory for defaults
-   DevMemRange defaultsMem;
-   NewDevMemRange(&defaultsMem, sizes.defaults_size, sizes.defaults_align);
-
    // Allocate the device memory for the shader record
    DevMemRange shadRecMem;
    NewDevMemRange(&shadRecMem, sizes.packed_shader_rec_size, sizes.packed_shader_rec_align);
@@ -114,15 +95,9 @@ void CommandBuffer::DrawSingleLayerClearRects(ControlListBuilder &cb, uint32_t r
    // Fill the NV shader record
    v3d_create_nv_shader_record(
       static_cast<uint32_t*>(shadRecMem.Ptr()),  shadRecMem.Phys(),
-      static_cast<uint32_t*>(defaultsMem.Ptr()), defaultsMem.Phys(),
       fshaderMem.Phys(), uniformMem.Phys(), vdataMem.Phys(), vdataMaxIndex,
       /*does_z_writes=*/false,
-#if V3D_VER_AT_LEAST(4,1,34,0)
-      V3D_THREADING_4
-#else
-      V3D_THREADING_1
-#endif
-      );
+      V3D_THREADING_4);
 
    // Calculate write mask
    // Note: since we are only ever writing to one renderTarget at a time currently

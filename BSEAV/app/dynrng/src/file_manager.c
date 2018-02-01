@@ -155,8 +155,8 @@ int file_manager_p_add_path(FileManagerHandle manager, const char * path, FileFi
     assert(path);
 
     if (stat(path, &stats) == -1) { printf("%s: can't stat '%s'; skipping\n", manager->name, path); return -1; }
-    if (S_ISDIR(stats.st_mode)) { printf("%s: '%s' is directory; skipping\n", manager->name, path); return -1; }
-    if (filter && !filter(path)) { printf("%s: '%s' filtered out\n", manager->name, path); return -1; }
+    if (S_ISDIR(stats.st_mode)) { /*printf("%s: '%s' is directory; skipping\n", manager->name, path);*/ return -1; }
+    if (filter && !filter(path)) { /*printf("%s: '%s' filtered out\n", manager->name, path);*/ return -1; }
     f = fopen(path, "r");
     if (!f) { printf ("%s: could not open file: '%s'; skipping\n", manager->name, path); return -1; }
     fclose(f);
@@ -168,7 +168,7 @@ int file_manager_p_add_path(FileManagerHandle manager, const char * path, FileFi
     strcpy(file->path, path);
     file_manager_p_insert_sort(manager, file);
     manager->fileCount++;
-    printf("%s: added '%s'\n", manager->name, path);
+    /*printf("%s: added '%s'\n", manager->name, path);*/
     return 0;
 }
 

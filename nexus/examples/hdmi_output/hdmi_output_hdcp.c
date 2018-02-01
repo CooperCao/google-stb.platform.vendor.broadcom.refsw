@@ -295,6 +295,7 @@ static void hotplug_callback(void *pParam, int iParam)
     hotplugCallbackParameters *hotPlugCbParams ;
     NEXUS_Error errCode = NEXUS_SUCCESS;
 
+    BSTD_UNUSED(iParam);
     hotPlugCbParams = (hotplugCallbackParameters *) pParam ;
         hdmi = hotPlugCbParams->hdmi ;
         display = hotPlugCbParams->display ;
@@ -343,8 +344,18 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
 {
 
     NEXUS_HdmiOutputHandle handle = pContext;
+    NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_HdmiOutputHdcpStatus hdcpStatus;
     BSTD_UNUSED(param) ;
+
+
+    /* check if  HDCP state changed due to power down */
+    NEXUS_HdmiOutput_GetStatus(handle, &hdmiStatus);
+    if (!hdmiStatus.rxPowered)
+    {
+        BDBG_WRN(("HDMI Rx is powered down; HDCP authentication disabled")) ;
+        goto done ;
+    }
 
 
     NEXUS_HdmiOutput_GetHdcpStatus(handle, &hdcpStatus);
@@ -366,7 +377,8 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
 
 		/* Unauthenticated - with hdcp authentication error */
 		else {
-			BDBG_LOG(("*** HDCP Authentication failed - Error: %s - ***", hdcpErrorToStr(hdcpStatus.hdcpError)));
+			BDBG_LOG(("*** HDCP Authentication failed - Error (%d): %s - ***",
+				hdcpStatus.hdcpError, hdcpErrorToStr(hdcpStatus.hdcpError)));
 
 		    /* always retry if running compliance test */
 	        if (complianceTest) {
@@ -394,6 +406,7 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
     case NEXUS_HdmiOutputHdcpState_eEncryptionEnabled:
 		/* HDCP successfully authenticated */
 		BDBG_LOG(("*** HDCP Authentication Successful ***\n"));
+		hdmiHdcpEnabled = true ;
 		break;
 
 
@@ -428,9 +441,9 @@ static NEXUS_Error initializeHdmiOutputHdcpSettings(void)
     int rc = 0;
     int fileFd;
     uint8_t *buffer = NULL;
-    NEXUS_Error errCode;
-    size_t fileSize;
-    off_t seekPos;
+    NEXUS_Error errCode=NEXUS_SUCCESS;
+    size_t fileSize=0;
+    off_t seekPos=0;
 
     fileFd = open(HDCP1x_DEFAULT_BIN, O_RDONLY);
     if (fileFd < 0) {
@@ -479,7 +492,7 @@ static NEXUS_Error initializeHdmiOutputHdcpSettings(void)
         goto end;
     }
 
-    BDBG_LOG(("%s: buff=%p, size=%u", BSTD_FUNCTION, buffer, fileSize));
+    BDBG_LOG(("%s: buff=%p, size=%u", BSTD_FUNCTION, buffer, (unsigned)fileSize));
 
     NEXUS_HdmiOutput_GetHdcpSettings(platformConfig.outputs.hdmi[0], &hdmiOutputHdcpSettings);
     hdmiOutputHdcpSettings.hdcp_version = version_select;
@@ -525,7 +538,7 @@ end:
 
     if (rc)
     {
-        BDBG_ERR(("%s: error #%d, fileSize=%u, seekPos=%d", BSTD_FUNCTION,  rc, fileSize, (unsigned)seekPos));
+        BDBG_ERR(("%s: error #%d, fileSize=%u, seekPos=%d", BSTD_FUNCTION,  rc, (unsigned)fileSize, (unsigned)seekPos));
         BDBG_ASSERT(false);
     }
 
@@ -603,7 +616,6 @@ int main(int argc, char **argv)
     NEXUS_PidChannelHandle videoPidChannel, audioPidChannel;
     NEXUS_DisplaySettings displaySettings;
     NEXUS_VideoDecoderHandle videoDecoder;
-    NEXUS_VideoDecoderSettings videoDecoderSettings;
     NEXUS_FilePlayHandle file;
     NEXUS_PlaypumpHandle playpump;
     NEXUS_PlaybackHandle playback;

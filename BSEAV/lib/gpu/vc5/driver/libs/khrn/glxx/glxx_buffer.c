@@ -47,10 +47,9 @@ void glxx_buffer_enable(GLXX_BUFFER_T *buffer)
 }
 
 // Only called from memory manager internals during destruction of a GLXX_BUFFER_T
-void glxx_buffer_term(void *v, size_t size)
+void glxx_buffer_term(void *v)
 {
    GLXX_BUFFER_T *buffer = (GLXX_BUFFER_T *)v;
-   unused(size);
 
    free(buffer->debug_label);
    buffer->debug_label = NULL;

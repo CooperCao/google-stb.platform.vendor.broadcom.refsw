@@ -112,7 +112,14 @@ struct g_audioCodec {
            {NEXUS_AudioCodec_eVorbis, baudio_format_vorbis},
            {NEXUS_AudioCodec_eFlac, baudio_format_flac},
            {NEXUS_AudioCodec_eApe, baudio_format_ape},
-           {NEXUS_AudioCodec_eMlp, baudio_format_mlp}
+           {NEXUS_AudioCodec_eMlp, baudio_format_mlp},
+           {NEXUS_AudioCodec_eG711, baudio_format_g711},
+           {NEXUS_AudioCodec_eIlbc, baudio_format_ilbc},
+           {NEXUS_AudioCodec_eIsac, baudio_format_isac},
+           {NEXUS_AudioCodec_eOpus, baudio_format_opus},
+           {NEXUS_AudioCodec_eAls, baudio_format_als},
+           {NEXUS_AudioCodec_eAlsLoas, baudio_format_als_loas},
+           {NEXUS_AudioCodec_eAc4, baudio_format_ac4},
  };
 
 struct g_mpegType{
@@ -358,6 +365,10 @@ STRING_TO_ENUM_START()
     STRING_TO_ENUM_ENTRY("ape",         NEXUS_AudioCodec_eApe)
     STRING_TO_ENUM_ENTRY("ilbc",        NEXUS_AudioCodec_eIlbc)
     STRING_TO_ENUM_ENTRY("isac",        NEXUS_AudioCodec_eIsac)
+    STRING_TO_ENUM_ENTRY("opus",        NEXUS_AudioCodec_eOpus)
+    STRING_TO_ENUM_ENTRY("als",         NEXUS_AudioCodec_eAls)
+    STRING_TO_ENUM_ENTRY("alsloas",     NEXUS_AudioCodec_eAlsLoas)
+    STRING_TO_ENUM_ENTRY("ac4",         NEXUS_AudioCodec_eAc4)
     STRING_TO_ENUM_ENTRY("Unknown",     NEXUS_AudioCodec_eMax)
 STRING_TO_ENUM_END(NEXUS_AudioCodec)
 
@@ -424,6 +435,10 @@ ENUM_TO_MSTRING_START()
     ENUM_TO_MSTRING_ENTRY(NEXUS_AudioCodec_eApe,         "ape")
     ENUM_TO_MSTRING_ENTRY(NEXUS_AudioCodec_eIlbc,        "ilbc")
     ENUM_TO_MSTRING_ENTRY(NEXUS_AudioCodec_eIsac,        "isac")
+    ENUM_TO_MSTRING_ENTRY(NEXUS_AudioCodec_eOpus,        "opus")
+    ENUM_TO_MSTRING_ENTRY(NEXUS_AudioCodec_eAls,         "als")
+    ENUM_TO_MSTRING_ENTRY(NEXUS_AudioCodec_eAlsLoas,     "alsloas")
+    ENUM_TO_MSTRING_ENTRY(NEXUS_AudioCodec_eAc4,         "ac4")
     ENUM_TO_MSTRING_ENTRY(NEXUS_AudioCodec_eMax,         "Unknown")
 ENUM_TO_MSTRING_END()
 
@@ -1636,6 +1651,7 @@ ENUM_TO_MSTRING_START()
     ENUM_TO_MSTRING_ENTRY(eBoardResource_simpleDecodeVideo, "Simple Decode Video")
     ENUM_TO_MSTRING_ENTRY(eBoardResource_decodeAudio,       "Decode Audio")
     ENUM_TO_MSTRING_ENTRY(eBoardResource_simpleDecodeAudio, "Simple Decode Audio")
+    ENUM_TO_MSTRING_ENTRY(eBoardResource_simplePcmPlayback, "Simple Pcm Playback")
     ENUM_TO_MSTRING_ENTRY(eBoardResource_stcChannel,        "Channel")
     ENUM_TO_MSTRING_ENTRY(eBoardResource_pcmPlayback,       "Pcm Playback")
     ENUM_TO_MSTRING_ENTRY(eBoardResource_pcmCapture,        "Pcm Capture")
@@ -1731,6 +1747,10 @@ STRING_TO_ENUM_START()
     STRING_TO_ENUM_ENTRY("jumpFwd",     eKey_JumpFwd)
     STRING_TO_ENUM_ENTRY("jumpRev",     eKey_JumpRev)
     STRING_TO_ENUM_ENTRY("power",       eKey_Power)
+    STRING_TO_ENUM_ENTRY("fav1",        eKey_Fav1)
+    STRING_TO_ENUM_ENTRY("fav2",        eKey_Fav2)
+    STRING_TO_ENUM_ENTRY("fav3",        eKey_Fav3)
+    STRING_TO_ENUM_ENTRY("fav4",        eKey_Fav4)
     STRING_TO_ENUM_ENTRY("0",           eKey_0)
     STRING_TO_ENUM_ENTRY("1",           eKey_1)
     STRING_TO_ENUM_ENTRY("2",           eKey_2)
@@ -1992,4 +2012,56 @@ ENUM_TO_MSTRING_START()
     ENUM_TO_MSTRING_ENTRY(eDynamicRange_TechnicolorPrime, "TechnicolorPrime")
     ENUM_TO_MSTRING_ENTRY(eDynamicRange_Unknown,          "Unknown")
     ENUM_TO_MSTRING_ENTRY(eDynamicRange_Max,              "Invalid")
+ENUM_TO_MSTRING_END()
+
+STRING_TO_ENUM_INIT_C(stringToLanguage, eLanguage)
+STRING_TO_ENUM_START()
+    STRING_TO_ENUM_ENTRY("en-US",              eLanguage_English)
+    STRING_TO_ENUM_ENTRY("fr-FR",              eLanguage_French)
+    STRING_TO_ENUM_ENTRY("de-DE",              eLanguage_German)
+    STRING_TO_ENUM_ENTRY("it-IT",              eLanguage_Italian)
+    STRING_TO_ENUM_ENTRY("es-MX",              eLanguage_Spanish)
+    STRING_TO_ENUM_ENTRY("Invalid",            eLanguage_Max)
+STRING_TO_ENUM_END(eLanguage)
+
+ENUM_TO_MSTRING_INIT_C(languageToString, eLanguage)
+ENUM_TO_MSTRING_START()
+    ENUM_TO_MSTRING_ENTRY(eLanguage_English,   "en-US")
+    ENUM_TO_MSTRING_ENTRY(eLanguage_French,    "fr-FR")
+    ENUM_TO_MSTRING_ENTRY(eLanguage_German,    "de-DE")
+    ENUM_TO_MSTRING_ENTRY(eLanguage_Italian,   "it-IT")
+    ENUM_TO_MSTRING_ENTRY(eLanguage_Spanish,   "es-MX")
+    ENUM_TO_MSTRING_ENTRY(eDynamicRange_Max,   "Invalid")
+ENUM_TO_MSTRING_END()
+
+STRING_TO_ENUM_INIT_C(stringToAssociate, NEXUS_AudioAc4AssociateType)
+STRING_TO_ENUM_START()
+    STRING_TO_ENUM_ENTRY("Not Specified",       NEXUS_AudioAc4AssociateType_eNotSpecified)
+    STRING_TO_ENUM_ENTRY("Visually Impaired",   NEXUS_AudioAc4AssociateType_eVisuallyImpaired)
+    STRING_TO_ENUM_ENTRY("Hearing Impaired",    NEXUS_AudioAc4AssociateType_eHearingImpaired)
+    STRING_TO_ENUM_ENTRY("Commentary",          NEXUS_AudioAc4AssociateType_eCommentary)
+    STRING_TO_ENUM_ENTRY("Invalid",             NEXUS_AudioAc4AssociateType_eMax)
+STRING_TO_ENUM_END(NEXUS_AudioAc4AssociateType)
+
+ENUM_TO_MSTRING_INIT_C(associateToString, NEXUS_AudioAc4AssociateType)
+ENUM_TO_MSTRING_START()
+    ENUM_TO_MSTRING_ENTRY(NEXUS_AudioAc4AssociateType_eNotSpecified,      "Not Specified")
+    ENUM_TO_MSTRING_ENTRY(NEXUS_AudioAc4AssociateType_eVisuallyImpaired,  "Visually Impaired")
+    ENUM_TO_MSTRING_ENTRY(NEXUS_AudioAc4AssociateType_eHearingImpaired,   "Hearing Impaired")
+    ENUM_TO_MSTRING_ENTRY(NEXUS_AudioAc4AssociateType_eCommentary,        "Commentary")
+    ENUM_TO_MSTRING_ENTRY(NEXUS_AudioAc4AssociateType_eMax,               "Invalid")
+ENUM_TO_MSTRING_END()
+
+STRING_TO_ENUM_INIT_C(stringToPriority, ePriority)
+STRING_TO_ENUM_START()
+    STRING_TO_ENUM_ENTRY("Language Priority",   ePriority_Language)
+    STRING_TO_ENUM_ENTRY("Associate Priority",  ePriority_Associate)
+    STRING_TO_ENUM_ENTRY("Invalid",             ePriority_Max)
+STRING_TO_ENUM_END(ePriority)
+
+ENUM_TO_MSTRING_INIT_C(priorityToString, ePriority)
+ENUM_TO_MSTRING_START()
+    ENUM_TO_MSTRING_ENTRY(ePriority_Language,      "Language Priority")
+    ENUM_TO_MSTRING_ENTRY(ePriority_Associate,     "Associate Priority")
+    ENUM_TO_MSTRING_ENTRY(ePriority_Max,           "Invalid")
 ENUM_TO_MSTRING_END()

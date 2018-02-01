@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2015 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #include "bgui.h"
 #include "nexus_types.h"
@@ -153,6 +152,11 @@ error:
 void bgui_destroy(bgui_t gui)
 {
     unsigned i;
+#if NXCLIENT_SUPPORT
+    if (gui->surfaceClient) {
+        NEXUS_SurfaceClient_Release(gui->surfaceClient);
+    }
+#endif
     if (gui->gfx) {
         NEXUS_Graphics2D_Close(gui->gfx);
     }
@@ -166,11 +170,15 @@ void bgui_destroy(bgui_t gui)
     if (gui->windowMovedEvent) {
         BKNI_DestroyEvent(gui->windowMovedEvent);
     }
-    if (gui->surfaceClient) {
-        NEXUS_SurfaceClient_Release(gui->surfaceClient);
-    }
     if (gui->allocResults.surfaceClient[0].id) {
         NxClient_Free(&gui->allocResults);
+    }
+#else
+    {
+        NEXUS_GraphicsSettings graphicsSettings;
+        NEXUS_Display_GetGraphicsSettings(gui->settings.display, &graphicsSettings);
+        graphicsSettings.enabled = false;
+        NEXUS_Display_SetGraphicsSettings(gui->settings.display, &graphicsSettings);
     }
 #endif
     for (i=0;i<2;i++) {

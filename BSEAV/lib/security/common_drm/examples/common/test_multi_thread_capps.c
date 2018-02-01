@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- * 
  *****************************************************************************/
 #include <stdlib.h>
 #include <stdint.h>
@@ -59,12 +56,16 @@
 #include "drm_common_swcrypto_types.h"
 #include "drm_common_swcrypto.h"
 #include "drm_key_region.h"
+#ifdef NONSAGE_PLATFORM
 #include "drm_netflix.h"
-#include "drm_widevine.h"
+#else
+#include "tl/drm_netflix_tl.h"
+#endif
+#include "drm_widevine_cenc.h"
 
-static void test_netflix_loop(void);
-static void test_widevine_loop(void);
-static void test_start_loop(void);
+static void * test_netflix_loop(void * info);
+static void * test_widevine_loop(void * info);
+static void * test_start_loop(void * info);
 static void test_partial_sha1(void);
 
 
@@ -76,6 +77,7 @@ int main(int argc, char *argv[])
     pthread_t thread[6];
     NEXUS_PlatformSettings platformSettings;
     DrmCommonInit_t commonDrmInit;
+    void * info = NULL;
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
@@ -94,13 +96,13 @@ int main(int argc, char *argv[])
     for(i=0;i<NUM_THREADS;i++)
     {
    		if(i==0 || i==3 ){
-   			pthread_create(&thread[i], NULL, test_netflix_loop, NULL);
+            pthread_create(&thread[i], NULL, test_netflix_loop, info);
    		}
    		else if(i==1 || i==4 ){
-   			pthread_create(&thread[i], NULL, test_start_loop, NULL);
+            pthread_create(&thread[i], NULL, test_widevine_loop, info);
    		}
    		else{
-   			pthread_create(&thread[i], NULL, test_widevine_loop, NULL);
+            pthread_create(&thread[i], NULL, test_start_loop, info);
    		}
     }
 
@@ -108,12 +110,19 @@ int main(int argc, char *argv[])
     {
     	pthread_join(thread[i], NULL);
     }
+
+    /* Clean up test environment */
+    DRM_Common_Finalize();
+    NEXUS_Platform_Uninit();
+
     return 0;
 }
 
 
-void test_netflix_loop()
+void * test_netflix_loop(void * info)
 {
+    BSTD_UNUSED(info);
+#ifdef NONSAGE_PLATFORM
 	int i = 0;
 	uint8_t esn[128] = {0x00};
 	for(i = 0; i<500;i++)
@@ -122,32 +131,38 @@ void test_netflix_loop()
 		printf("\tesn = '%s'\n", esn);
 		memset(esn, 0x00, 128);
 	}
-	return;
+#endif
+    return NULL;
 }
 
-void test_widevine_loop()
+void * test_widevine_loop(void * info)
 {
+#ifdef NONSAGE_PLATFORM
 	int i = 0;
 	uint8_t device_id[128] = {0x00};
+        BSTD_UNUSED(info);
 	for(i = 0; i<500;i++)
 	{
 		DRM_Widevine_GetDeviceId(device_id);
 		printf("\tdevice_id = '%s'\n", device_id);
 		memset(device_id, 0x00, 128);
 	}
-
-	return;
+#else
+	BSTD_UNUSED(info);
+#endif
+        return NULL;
 }
 
 
-void test_start_loop(void)
+void * test_start_loop(void * info)
 {
-	int i = 0;
-	for(i = 0; i<500;i++)
-	{
-		test_partial_sha1();
-	}
-	return;
+    int i = 0;
+    BSTD_UNUSED(info);
+    for(i = 0; i<500;i++)
+    {
+        test_partial_sha1();
+    }
+    return NULL;
 }
 
 void test_partial_sha1(void)
@@ -216,4 +231,3 @@ void test_partial_sha1(void)
 	}
 	return;
 }
-

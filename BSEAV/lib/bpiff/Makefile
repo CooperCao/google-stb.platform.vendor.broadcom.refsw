@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,8 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
+
 NEXUS_PLATFORM ?= $(PLATFORM)
 URSR_TOP ?= ../../..
 MAGNUM_TOP := $(URSR_TOP)/magnum
@@ -62,10 +62,6 @@ include $(BSEAV_TOP)/opensource/openssl/openssl.inc
 # Sanity check that we received a valid platform
 ifndef BCHP_CHIP
 $(error Unsupported platform $(NEXUS_PLATFORM))
-endif
-
-ifneq ($(findstring 2.5, ${MSDRM_PRDY_SDK_VERSION}), 2.5)
-$(error unsupported Playready VERSION = ${MSDRM_PRDY_SDK_VERSION})
 endif
 
 # Convert include paths into single variable

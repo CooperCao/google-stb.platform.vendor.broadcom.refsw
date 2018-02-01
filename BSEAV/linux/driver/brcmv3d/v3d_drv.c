@@ -45,9 +45,10 @@
 
 #define DRIVER_NAME	"brcmv3d"
 #define DRIVER_DESC	"Broadcom V3D GEM provider"
-#define DRIVER_DATE	"20161207"
+#define DRIVER_DATE	"20180110"
 #define DRIVER_MAJOR	1
 #define DRIVER_MINOR	1
+#define DRIVER_PATCH    2
 
 /*
  * Add a new debug level for verbose information from the memory allocations
@@ -55,9 +56,9 @@
  */
 #define DRM_UT_ALLOC 0x100
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 9)
-#define DRM_DEBUG_ALLOC(fmt, args...)                                   \
-	do {                                                            \
-		if (unlikely(drm_debug & DRM_UT_ALLOC))                 \
+#define DRM_DEBUG_ALLOC(fmt, args...)				   \
+	do {							    \
+		if (unlikely(drm_debug & DRM_UT_ALLOC))		 \
 			drm_ut_debug_printk(__func__, fmt, ##args);     \
 	} while (0)
 #else
@@ -68,15 +69,17 @@
 /*
  * General helpers
  */
-static inline loff_t v3d_nr_hwpages(size_t size)
+static inline size_t v3d_nr_hwpages(size_t size)
 {
-	BUG_ON((size & ~V3D_HW_PAGE_MASK) != 0);
+	if (WARN_ON((size & ~V3D_HW_PAGE_MASK) != 0))
+		return 0;
+
 	return size >> V3D_HW_PAGE_SHIFT;
 }
 
 static inline bool v3d_alloc_block_full(struct v3d_alloc_block *b)
 {
-	return ~(b->alloc_map) == 0;
+	return bitmap_full(b->alloc_map, V3D_CMA_ALLOC_MAP_SIZE);
 }
 
 static int v3d_cmadev_get_mem_unmapped(struct v3d_drm_dev_private *dp,
@@ -87,6 +90,10 @@ static int v3d_cmadev_get_mem_unmapped(struct v3d_drm_dev_private *dp,
 
 	DRM_DEBUG_ALLOC("cma_dev[%d]=0x%pK, size=%zu, align=%zu\n",
 			cmadev, dp->cma_devs[cmadev], size, align);
+
+	if (WARN_ON(cmadev >= dp->nr_cma_devs) ||
+	    WARN_ON(!dp->cma_devs[cmadev]))
+		return -ENOMEM;
 
 	err = cma_dev_get_mem(dp->cma_devs[cmadev], addr, size, align);
 	if (!err) {
@@ -112,22 +119,21 @@ static int v3d_cma_get_mem_unmapped(struct v3d_drm_dev_private *dp,
 	u64 addr;
 
 	/*
-	 * TODO: Implement some sort of smart balancing of memory between
-	 * CMA areas of multiple MEMCs ?
+	 * cmadev contains the preferred device, but if that is out of memory
+	 * try and find something in another device if we have more than one.
 	 */
-	for (i = 0; i < MAX_CMA_AREAS; i++) {
-		if (dp->cma_devs[i]) {
-			err = v3d_cmadev_get_mem_unmapped(dp, &addr, i,
-							  size, align);
-			if (!err) {
-				*cmadev = i;
-				*phys = (phys_addr_t)addr;
-				return 0;
-			}
+	for (i = 0; i < dp->nr_cma_devs; i++) {
+		int dev_nr = (*cmadev + i) % dp->nr_cma_devs;
+
+		err = v3d_cmadev_get_mem_unmapped(dp, &addr, dev_nr,
+						  size, align);
+		if (!err) {
+			*cmadev = dev_nr;
+			*phys = (phys_addr_t)addr;
+			return 0;
 		}
 	}
 	return -ENOMEM;
-
 }
 
 static inline
@@ -141,7 +147,7 @@ void v3d_cma_put_mem_unmapped(struct v3d_drm_dev_private *dp,
  * v3d_hw_virtual_mem implementation
  */
 static inline
-void v3d_hw_pagetable_clear_range(uint32_t *pt, uint32_t hw_vaddr, size_t size)
+void v3d_hw_pagetable_clear_range(u32 *pt, u32 hw_vaddr, size_t size)
 {
 	loff_t pg_offset = hw_vaddr >> V3D_HW_SMALLEST_PAGE_SHIFT;
 	int npages = size >> V3D_HW_SMALLEST_PAGE_SHIFT;
@@ -152,13 +158,13 @@ void v3d_hw_pagetable_clear_range(uint32_t *pt, uint32_t hw_vaddr, size_t size)
 	dma_wmb();
 }
 
-static void v3d_hw_pagetable_map_page(uint32_t *pt, uint32_t hw_vaddr,
+static void v3d_hw_pagetable_map_page(u32 *pt, u32 hw_vaddr,
 				      phys_addr_t hw_physaddr, bool readonly)
 {
 	const int n = V3D_HW_PAGE_SHIFT > V3D_HW_SMALLEST_PAGE_SHIFT ? 16 : 1;
 	loff_t pg_offset = hw_vaddr >> V3D_HW_SMALLEST_PAGE_SHIFT;
-	uint32_t *page = pt + pg_offset;
-	uint32_t entry;
+	u32 *page = pt + pg_offset;
+	u32 entry;
 	int i;
 
 	entry = (hw_physaddr >> V3D_HW_SMALLEST_PAGE_SHIFT);
@@ -197,7 +203,7 @@ static int v3d_hw_virtual_mem_init(struct v3d_hw_virtual_mem *hw_vmem,
 {
 	const size_t pt_size = V3D_HW_PAGE_TABLE_SIZE;
 	struct gen_pool *pool;
-	uint32_t *pt;
+	u32 *pt;
 	dma_addr_t dma_handle;
 	int err;
 
@@ -242,7 +248,10 @@ static int v3d_hw_virtual_mem_init(struct v3d_hw_virtual_mem *hw_vmem,
 			 &hw_vmem->pt_phys,
 			 (size_t)V3D_HW_PAGE_TABLE_ENTRIES, pt_size);
 
-	BUG_ON((unsigned long)pt & (V3D_HW_PAGE_TABLE_ALIGN - 1));
+	if (WARN_ON((unsigned long)pt & (V3D_HW_PAGE_TABLE_ALIGN - 1))) {
+		err = -ENOMEM;
+		goto pool_out;
+	}
 
 	return 0;
 
@@ -293,11 +302,14 @@ void v3d_hw_virtual_mem_free(struct v3d_hw_virtual_mem *hw_vmem,
 /*
  * v3d_drm_file_private implementation
  */
-static int v3d_drm_file_private_add_block(struct v3d_drm_file_private *fp)
+static int v3d_drm_file_private_add_block(struct v3d_drm_file_private *fp,
+					  struct v3d_alloc_block **new_block)
 {
+	struct v3d_drm_dev_private *dp = fp->dev->dev_private;
+	int cmadev = fp->next_alloc_device;
 	struct v3d_alloc_block *block;
 	phys_addr_t phys;
-	int cmadev = 0, err;
+	int err;
 
 	block = kzalloc(sizeof(*block), GFP_KERNEL);
 	if (!block)
@@ -305,11 +317,12 @@ static int v3d_drm_file_private_add_block(struct v3d_drm_file_private *fp)
 
 	INIT_LIST_HEAD(&block->node);
 
-	/*
-	 * To fit in with the rest of the Broadcom driver CMA+DTU usage
-	 * we allocate 2MB blocks on a 2MB alignment.
+	/* Try and alloc from the indicated CMA device, but if the device
+	 * is out of memory any device with available memory will be used and
+	 * cmadev updated to reflect which actual device the allocation came
+	 * from.
 	 */
-	err = v3d_cma_get_mem_unmapped(fp->dev->dev_private, &phys, &cmadev,
+	err = v3d_cma_get_mem_unmapped(dp, &phys, &cmadev,
 				       V3D_CMA_ALLOC_BLOCK_SIZE,
 				       V3D_CMA_ALLOC_BLOCK_SIZE);
 	if (err)
@@ -318,13 +331,15 @@ static int v3d_drm_file_private_add_block(struct v3d_drm_file_private *fp)
 	block->phys_addr = phys;
 	block->cma_dev = cmadev;
 
-	list_add_tail(&block->node, &fp->alloc_blocks);
-	fp->all_blocks_full = false;
+	list_add_tail(&block->node, &fp->alloc_blocks[cmadev]);
+	fp->all_blocks_full[cmadev] = false;
+	fp->next_alloc_device = cmadev;
 
 	DRM_DEBUG_ALLOC("new block @ %pa (%zu bytes)\n",
 			&block->phys_addr,
 			(size_t)V3D_CMA_ALLOC_BLOCK_SIZE);
 
+	*new_block = block;
 	return 0;
 
 block_out:
@@ -335,8 +350,8 @@ block_out:
 static struct v3d_drm_file_private *
 v3d_drm_file_private_create(struct drm_device *dev)
 {
-	static uint64_t magic_ids = 0xdeadc1e500000000ULL;
-	int err;
+	static u64 magic_ids = 0xdeadc1e500000000ULL;
+	int err, i;
 	struct v3d_drm_file_private *fp;
 
 	fp = kzalloc(sizeof(*fp), GFP_KERNEL);
@@ -349,9 +364,11 @@ v3d_drm_file_private_create(struct drm_device *dev)
 	/* The DRM device struct_mutex is held at this point, so this is safe */
 	fp->magic_id = magic_ids++;
 
-	INIT_LIST_HEAD(&fp->alloc_blocks);
-	/* Force the first block to be allocated on the first object create */
-	fp->all_blocks_full = true;
+	for (i = 0; i < MAX_CMA_AREAS; i++) {
+		INIT_LIST_HEAD(&fp->alloc_blocks[i]);
+		/* Force a block to be allocated on the first object create */
+		fp->all_blocks_full[i] = true;
+	}
 
 	err = v3d_hw_virtual_mem_init(&fp->hw_vmem, dev);
 	if (err)
@@ -365,29 +382,38 @@ out:
 	return ERR_PTR(err);
 }
 
+static inline void
+v3d_drm_alloc_block_release(struct v3d_drm_file_private *fp,
+			    struct v3d_drm_dev_private *dp,
+			    int dev)
+{
+	struct v3d_alloc_block *itr, *itr_tmp;
+
+	list_for_each_entry_safe(itr, itr_tmp,
+				 &fp->alloc_blocks[dev], node) {
+		DRM_DEBUG_ALLOC("free CMA block @ %pa\n", &itr->phys_addr);
+
+		v3d_cma_put_mem_unmapped(dp, itr->cma_dev, itr->phys_addr,
+					 V3D_CMA_ALLOC_BLOCK_SIZE);
+
+		list_del(&itr->node);
+		kfree(itr);
+	}
+}
+
 static void v3d_drm_file_private_release(struct kref *kref)
 {
 	struct v3d_drm_file_private *fp = (struct v3d_drm_file_private *)kref;
-	struct v3d_alloc_block *itr, *itr_tmp;
+	struct v3d_drm_dev_private *dp = fp->dev->dev_private;
+	int i;
 
 	DRM_DEBUG_DRIVER("fp=0x%pK\n", fp);
 
 	v3d_hw_virtual_mem_destroy(&fp->hw_vmem, fp->dev);
 
-	if (!list_empty(&fp->alloc_blocks)) {
-		list_for_each_entry_safe(itr, itr_tmp,
-					 &fp->alloc_blocks, node) {
-			DRM_DEBUG_ALLOC("free CMA block @ %pa\n",
-					&itr->phys_addr);
-
-			v3d_cma_put_mem_unmapped(fp->dev->dev_private,
-						 itr->cma_dev,
-						 itr->phys_addr,
-						 V3D_CMA_ALLOC_BLOCK_SIZE);
-
-			list_del(&itr->node);
-			kfree(itr);
-		}
+	for (i = 0; i < dp->nr_cma_devs; i++) {
+		if (!list_empty(&fp->alloc_blocks[i]))
+			v3d_drm_alloc_block_release(fp, dp, i);
 	}
 
 	kfree(fp);
@@ -455,7 +481,6 @@ static
 struct v3d_drm_dev_private *v3d_drm_dev_private_create(struct drm_device *dev)
 {
 	struct v3d_drm_dev_private *dp;
-	bool found_cma_dev = false;
 	int i;
 
 	dp = kzalloc(sizeof(*dp), GFP_KERNEL);
@@ -479,15 +504,14 @@ struct v3d_drm_dev_private *v3d_drm_dev_private_create(struct drm_device *dev)
 					 dev, dev->memc, &base,
 					 dev->range.size);
 
-			if (v3d_drm_dev_is_cma_device_valid(dev))
-				found_cma_dev = true;
-			else
-				dev = NULL;
+			if (v3d_drm_dev_is_cma_device_valid(dev)) {
+				dp->cma_devs[i] = dev;
+				dp->nr_cma_devs++;
+			}
 		}
-		dp->cma_devs[i] = dev;
 	}
 
-	if (found_cma_dev)
+	if (dp->nr_cma_devs)
 		return dp;
 
 	kfree(dp);
@@ -497,7 +521,6 @@ struct v3d_drm_dev_private *v3d_drm_dev_private_create(struct drm_device *dev)
 static
 void v3d_drm_dev_private_flush_dead_clients(struct v3d_drm_dev_private *dp)
 {
-
 	DRM_DEBUG_DRIVER("dp=0x%pK\n", dp);
 
 	if (!list_empty(&dp->dead_fps)) {
@@ -528,7 +551,7 @@ void v3d_drm_dev_private_flush_dead_clients(struct v3d_drm_dev_private *dp)
 }
 
 static void v3d_drm_dev_private_term_client(struct v3d_drm_dev_private *dp,
-					    uint64_t id)
+					    u64 id)
 {
 	struct v3d_drm_dead_client *dead_client;
 
@@ -573,7 +596,7 @@ static void v3d_drm_dev_private_term_client(struct v3d_drm_dev_private *dp,
  */
 static struct drm_device *the_drm_device;
 
-void v3d_drm_term_client(uint64_t id)
+void v3d_drm_term_client(u64 id)
 {
 	struct v3d_drm_dev_private *dp;
 
@@ -588,7 +611,8 @@ void v3d_drm_term_client(uint64_t id)
 }
 
 /* symbol for bvc5 module to get hold of.  Compiler only inserts relative
-branches, so trampoline via a uintptr_t */
+ * branches, so trampoline via a uintptr_t
+ */
 uintptr_t v3d_drm_term_client_p = (uintptr_t)&v3d_drm_term_client;
 EXPORT_SYMBOL(v3d_drm_term_client_p);
 
@@ -620,16 +644,14 @@ void v3d_drm_dev_private_unreference(struct v3d_drm_dev_private *dp)
  */
 static inline void v3d_free_hw_page(struct v3d_page_allocation *page)
 {
-	BUG_ON(!page->alloc_block);
-	page->alloc_block->alloc_map &= ~BIT(page->block_page_nr);
+	bitmap_release_region(page->alloc_block->alloc_map,
+			      page->block_page_nr, 0);
 }
 
-static void v3d_free_hw_pages(loff_t num_pages,
+static void v3d_free_hw_pages(size_t num_pages,
 			      struct v3d_page_allocation *pages)
 {
-	int i;
-
-	BUG_ON(!pages);
+	size_t i;
 
 	for (i = 0; i < num_pages; i++) {
 		v3d_free_hw_page(&pages[i]);
@@ -644,11 +666,14 @@ static void v3d_free_hw_pages(loff_t num_pages,
 static int v3d_alloc_hw_page(struct v3d_alloc_block *alloc_block,
 			     struct v3d_page_allocation *page)
 {
-	unsigned block_page_nr;
+	int block_page_nr;
 	phys_addr_t paddr;
 
-	block_page_nr = ffz(alloc_block->alloc_map);
-	alloc_block->alloc_map |= BIT(block_page_nr);
+	block_page_nr = bitmap_find_free_region(alloc_block->alloc_map,
+						V3D_CMA_ALLOC_MAP_SIZE, 0);
+
+	if (WARN_ON(block_page_nr < 0))
+		return block_page_nr;
 
 	paddr = alloc_block->phys_addr + (block_page_nr << V3D_HW_PAGE_SHIFT);
 	/*
@@ -664,61 +689,95 @@ static int v3d_alloc_hw_page(struct v3d_alloc_block *alloc_block,
 	return 0;
 }
 
-static int v3d_allocate_hw_pages(struct v3d_drm_file_private *fp,
-				 loff_t num_pages,
-				 struct v3d_page_allocation *pages)
+static inline int v3d_next_cma_dev(int cur_dev, struct v3d_drm_dev_private *dp)
 {
-	struct v3d_alloc_block *alloc_block;
-	int alloc_idx = 0, err;
+	return (cur_dev + 1) % dp->nr_cma_devs;
+}
 
-	BUG_ON(!pages);
-	BUG_ON(!num_pages);
+static void v3d_init_allocation_blocks(struct v3d_drm_file_private *fp,
+				       struct v3d_drm_dev_private *dp,
+				       struct v3d_alloc_block **blocks)
+{
+	int i;
 
-	alloc_block = fp->all_blocks_full ? NULL : v3d_first_alloc_block(fp);
+	for (i = 0; i < dp->nr_cma_devs; i++) {
+		blocks[i] = fp->all_blocks_full[i] ?
+				NULL : v3d_first_alloc_block(fp, i);
+	}
+}
 
-	while (alloc_idx < num_pages) {
-		if (fp->all_blocks_full) {
-			err = v3d_drm_file_private_add_block(fp);
-			if (err)
-				goto out;
+static inline bool v3d_is_last_alloc_block(struct v3d_alloc_block *block,
+					   struct v3d_drm_file_private *fp)
+{
+	return list_is_last(&block->node, &fp->alloc_blocks[block->cma_dev]);
+}
 
-			alloc_block = v3d_last_alloc_block(fp);
-		} else {
-			if (v3d_alloc_block_full(alloc_block)) {
-				if (list_is_last(&alloc_block->node,
-						 &fp->alloc_blocks)) {
-					fp->all_blocks_full = true;
-				} else {
-					alloc_block =
-						list_next_entry(alloc_block,
-								node);
-				}
-				/*
-				 * Round the loop again until we have a block
-				 * with some free space or run out of system
-				 * memory.
-				 */
-				continue;
-			}
+static struct v3d_alloc_block *
+v3d_find_alloc_block_with_space(struct v3d_drm_file_private *fp,
+				struct v3d_alloc_block **alloc_blocks)
+{
+	struct v3d_alloc_block *block = alloc_blocks[fp->next_alloc_device];
+
+	while (true) {
+		if (!block || fp->all_blocks_full[block->cma_dev]) {
+			if (v3d_drm_file_private_add_block(fp, &block))
+				return NULL;
+
+			alloc_blocks[block->cma_dev] = block;
+			return block;
 		}
 
-		err = v3d_alloc_hw_page(alloc_block, &pages[alloc_idx]);
+		if (!v3d_alloc_block_full(block))
+			return block;
+
+		if (v3d_is_last_alloc_block(block, fp)) {
+			/* Trigger allocation of a new block */
+			fp->all_blocks_full[block->cma_dev] = true;
+		} else {
+			/* Try the next block in the list for the CMA device */
+			block = list_next_entry(block, node);
+			alloc_blocks[block->cma_dev] = block;
+		}
+	}
+}
+
+static int v3d_allocate_hw_pages(struct v3d_drm_file_private *fp,
+				 size_t num_pages,
+				 struct v3d_page_allocation *pages)
+{
+	struct v3d_drm_dev_private *dp = fp->dev->dev_private;
+	struct v3d_alloc_block *alloc_blocks[MAX_CMA_AREAS];
+	struct v3d_alloc_block *block;
+	int alloc_idx, err;
+
+	if (WARN_ON(!num_pages))
+		return 0;
+
+	v3d_init_allocation_blocks(fp, dp, alloc_blocks);
+
+	for (alloc_idx = 0; alloc_idx < num_pages; alloc_idx++) {
+		block = v3d_find_alloc_block_with_space(fp, alloc_blocks);
+		if (!block)
+			goto out;
+
+		err = v3d_alloc_hw_page(block, &pages[alloc_idx]);
 		if (err)
 			goto out;
 
-		alloc_idx++;
+		/* Switch CMA device (if more than one) for the next page
+		 * to stripe allocations between memory controllers
+		 */
+		fp->next_alloc_device = v3d_next_cma_dev(block->cma_dev, dp);
 	}
 
 	/*
 	 * If we have just allocated the last free page in the last block
-	 * then flag this we the next object allocation doesn't have to
+	 * then flag this so the next object allocation doesn't have to
 	 * traverse the entire block list just to find out there is no
 	 * space available.
 	 */
-	if (list_is_last(&alloc_block->node, &fp->alloc_blocks) &&
-	    v3d_alloc_block_full(alloc_block)) {
-		fp->all_blocks_full = true;
-	}
+	if (v3d_is_last_alloc_block(block, fp) && v3d_alloc_block_full(block))
+		fp->all_blocks_full[block->cma_dev] = true;
 
 	DRM_DEBUG_ALLOC("allocated %zu pages\n", (size_t)num_pages);
 
@@ -736,7 +795,7 @@ static void v3d_gem_put_pages(struct v3d_drm_gem_object *obj)
 {
 	/* Be safe against cleaning up a partially constructed object */
 	if (obj->pages) {
-		loff_t num_pages = v3d_nr_hwpages(obj->base.size);
+		size_t num_pages = v3d_nr_hwpages(obj->base.size);
 
 		v3d_free_hw_pages(num_pages, obj->pages);
 		vfree(obj->pages);
@@ -747,7 +806,6 @@ static void v3d_gem_put_pages(struct v3d_drm_gem_object *obj)
 static void v3d_gem_free_object(struct drm_gem_object *obj)
 {
 	struct v3d_drm_gem_object *v3d_obj = to_v3d_obj(obj);
-	struct v3d_hw_virtual_mem *hw_vmem;
 
 	DRM_DEBUG_ALLOC("obj=0x%pK\n", obj);
 
@@ -755,14 +813,18 @@ static void v3d_gem_free_object(struct drm_gem_object *obj)
 	drm_gem_free_mmap_offset(obj);
 	drm_gem_object_release(obj);
 
-	BUG_ON(!v3d_obj->fp);
-	hw_vmem = &v3d_obj->fp->hw_vmem;
+	if (!WARN_ON(!v3d_obj->fp)) {
+		struct v3d_hw_virtual_mem *hw_vmem;
 
-	v3d_hw_virtual_mem_free(hw_vmem, v3d_obj->hw_virt_addr, obj->size);
+		hw_vmem = &v3d_obj->fp->hw_vmem;
+		v3d_hw_virtual_mem_free(hw_vmem, v3d_obj->hw_virt_addr,
+					obj->size);
+	}
+
 	v3d_obj->hw_virt_addr = 0;
-
 	v3d_gem_put_pages(v3d_obj);
 	v3d_drm_file_private_unreference(v3d_obj->fp);
+
 	kfree(v3d_obj->desc);
 	kfree(v3d_obj);
 }
@@ -770,13 +832,13 @@ static void v3d_gem_free_object(struct drm_gem_object *obj)
 static void v3d_gem_add_pages_to_pagetable(struct v3d_drm_gem_object *obj)
 {
 	struct v3d_drm_file_private *fp = obj->fp;
-	const loff_t num_pages = v3d_nr_hwpages(obj->base.size);
+	const size_t num_pages = v3d_nr_hwpages(obj->base.size);
 	const bool readonly = !!(obj->alloc_flags & V3D_CREATE_HW_READONLY);
 	int i;
 
 	for (i = 0; i < num_pages; i++) {
 		phys_addr_t phys;
-		uint32_t virt;
+		u32 virt;
 		loff_t phys_pgoff;
 
 		virt = obj->hw_virt_addr + (i << V3D_HW_PAGE_SHIFT);
@@ -792,9 +854,9 @@ static void v3d_gem_add_extobj_to_pagetable(struct v3d_drm_gem_object *obj,
 					    phys_addr_t phys)
 {
 	struct v3d_drm_file_private *fp = obj->fp;
-	const loff_t num_pages = v3d_nr_hwpages(obj->base.size);
+	const size_t num_pages = v3d_nr_hwpages(obj->base.size);
 	const bool readonly = !!(obj->alloc_flags & V3D_CREATE_HW_READONLY);
-	uint32_t virt;
+	u32 virt;
 	int i;
 
 	phys &= V3D_HW_PAGE_MASK;
@@ -814,11 +876,8 @@ static int v3d_gem_get_pages(struct v3d_drm_gem_object *obj)
 	struct v3d_page_allocation *pages;
 	struct v3d_drm_file_private *fp = obj->fp;
 	size_t size = obj->base.size;
-	loff_t num_pages = v3d_nr_hwpages(size);
+	size_t num_pages = v3d_nr_hwpages(size);
 	int err;
-
-	BUG_ON(obj->pages);
-	BUG_ON(!fp);
 
 	pages = vmalloc(sizeof(*pages) * num_pages);
 	if (!pages)
@@ -863,10 +922,11 @@ v3d_gem_create(struct drm_device *dev,
 	struct v3d_drm_file_private *fp = file->driver_priv;
 	struct v3d_drm_gem_object *obj;
 	struct drm_gem_object *gem_object;
-	uint32_t alloc_size;
+	u32 alloc_size;
 	int err;
 
-	BUG_ON(!fp);
+	if (WARN_ON(!fp))
+		return ERR_PTR(-EFAULT);
 
 	alloc_size = roundup(args->size, V3D_HW_PAGE_SIZE);
 
@@ -882,7 +942,7 @@ v3d_gem_create(struct drm_device *dev,
 	obj->fp = fp;
 	obj->alloc_flags = args->flags;
 
-	if (args->desc != NULL) {
+	if (args->desc) {
 		obj->desc = strndup_user(args->desc, 256);
 		/* If the description is too big, ignore it */
 		if (IS_ERR(obj->desc))
@@ -929,10 +989,11 @@ v3d_gem_create_ext(struct drm_device *dev,
 	struct v3d_drm_file_private *fp = file->driver_priv;
 	struct v3d_drm_gem_object *obj;
 	struct drm_gem_object *gem_object;
-	uint32_t alloc_size, page_offset;
+	u32 alloc_size, page_offset;
 	int err;
 
-	BUG_ON(!fp);
+	if (WARN_ON(!fp))
+		return ERR_PTR(-EFAULT);
 
 	/*
 	 * We are not allowing the mapping of an empty object, that must
@@ -943,8 +1004,8 @@ v3d_gem_create_ext(struct drm_device *dev,
 
 	/*
 	 * We need to fit the object into the right position and number
-	 * of 64k pages, we do not require that the external object's
-	 * pages are aligned or sized to 64k boundaries.
+	 * of pages, we do not require that the external object's
+	 * pages are aligned or sized to the V3D HW page boundaries.
 	 */
 	page_offset = args->phys & ~V3D_HW_PAGE_MASK;
 	alloc_size = roundup(args->size + page_offset, V3D_HW_PAGE_SIZE);
@@ -960,7 +1021,7 @@ v3d_gem_create_ext(struct drm_device *dev,
 	v3d_drm_file_private_reference(fp);
 	obj->fp = fp;
 	obj->alloc_flags = args->flags;
-	if (args->desc != NULL)
+	if (args->desc)
 		obj->desc = strndup_user(args->desc, 32);
 
 	obj->hw_virt_addr = v3d_hw_virtual_mem_allocate(&fp->hw_vmem,
@@ -1004,7 +1065,7 @@ object_out:
 }
 
 static int v3d_gem_map_offset(struct drm_file *file, struct drm_device *dev,
-			      uint32_t handle, uint64_t *offset)
+			      u32 handle, u64 *offset)
 {
 	struct drm_gem_object *obj;
 	int ret = 0;
@@ -1058,13 +1119,13 @@ unlock:
 static int v3d_mmu_pagetable_ioctl(struct drm_device *dev, void *data,
 				   struct drm_file *file)
 {
-	struct v3d_drm_file_private *fp;
+	struct v3d_drm_file_private *fp = file->driver_priv;
 	struct drm_v3d_mmu_pt *args = data;
 
-	mutex_lock(&dev->struct_mutex);
+	if (WARN_ON(!fp))
+		return -EFAULT;
 
-	fp = file->driver_priv;
-	BUG_ON(!fp);
+	mutex_lock(&dev->struct_mutex);
 
 	args->pt_phys = fp->hw_vmem.pt_phys;
 	args->va_size = V3D_HW_VIRTUAL_ADDR_SIZE;
@@ -1077,12 +1138,12 @@ static int v3d_mmu_pagetable_ioctl(struct drm_device *dev, void *data,
 static int v3d_clear_pt_on_close_ioctl(struct drm_device *dev, void *data,
 				       struct drm_file *file)
 {
-	struct v3d_drm_file_private *fp;
+	struct v3d_drm_file_private *fp = file->driver_priv;
+
+	if (WARN_ON(!fp))
+		return -EFAULT;
 
 	mutex_lock(&dev->struct_mutex);
-
-	fp = file->driver_priv;
-	BUG_ON(!fp);
 
 	fp->clear_pagetable_on_close = true;
 
@@ -1094,23 +1155,22 @@ static int v3d_clear_pt_on_close_ioctl(struct drm_device *dev, void *data,
 static int v3d_mem_total_ioctl(struct drm_device *dev, void *data,
 			       struct drm_file *file)
 {
-	struct v3d_drm_file_private *fp;
+	struct v3d_drm_file_private *fp = file->driver_priv;
 	struct v3d_drm_dev_private *dp;
 	struct drm_v3d_mem_total *args = data;
 	size_t total = 0;
 	int i;
 
+	if (WARN_ON(!fp))
+		return -EFAULT;
+
 	mutex_lock(&dev->struct_mutex);
 
-	fp = file->driver_priv;
-	BUG_ON(!fp);
-
 	dp = dev->dev_private;
-
-	BUG_ON(dp != fp->dev->dev_private);
+	WARN_ON(dp != fp->dev->dev_private);
 
 	for (i = 0; i < MAX_CMA_AREAS; i++) {
-		if (dp->cma_devs[i] != NULL)
+		if (dp->cma_devs[i])
 			total += dp->cma_devs[i]->range.size;
 	}
 
@@ -1124,11 +1184,11 @@ static int v3d_mem_total_ioctl(struct drm_device *dev, void *data,
 static int v3d_file_token_ioctl(struct drm_device *dev, void *data,
 				struct drm_file *file)
 {
-	struct v3d_drm_file_private *fp;
+	struct v3d_drm_file_private *fp = file->driver_priv;
 	struct drm_v3d_file_private_token *args = data;
 
-	fp = file->driver_priv;
-	BUG_ON(!fp);
+	if (WARN_ON(!fp))
+		return -EFAULT;
 
 	args->token = fp->magic_id;
 	return 0;
@@ -1137,17 +1197,17 @@ static int v3d_file_token_ioctl(struct drm_device *dev, void *data,
 static int v3d_client_term_ioctl(struct drm_device *dev, void *data,
 				 struct drm_file *file)
 {
-	struct v3d_drm_file_private *fp;
+	struct v3d_drm_file_private *fp = file->driver_priv;
 	struct v3d_drm_dev_private *dp;
 	struct drm_v3d_file_private_token *args = data;
 
+	if (WARN_ON(!fp))
+		return -EFAULT;
+
 	mutex_lock(&dev->struct_mutex);
 
-	fp = file->driver_priv;
-	BUG_ON(!fp);
-
 	dp = dev->dev_private;
-	BUG_ON(dp != fp->dev->dev_private);
+	WARN_ON(dp != fp->dev->dev_private);
 
 	v3d_drm_dev_private_term_client(dp, args->token);
 
@@ -1214,7 +1274,6 @@ static int v3d_gem_mmap_offset_ioctl(struct drm_device *dev, void *data,
 	return v3d_gem_map_offset(file, dev, args->handle, &args->offset);
 }
 
-
 static int v3d_drm_gem_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	struct v3d_drm_gem_object *obj;
@@ -1222,7 +1281,7 @@ static int v3d_drm_gem_mmap(struct file *filp, struct vm_area_struct *vma)
 	unsigned long vmsize = vma->vm_end - vma->vm_start;
 	unsigned long remaining = vmsize;
 	unsigned long addr = vma->vm_start;
-	loff_t num_hw_pages = v3d_nr_hwpages(vmsize);
+	size_t num_hw_pages = v3d_nr_hwpages(vmsize);
 	int hwpg, ret;
 
 	ret = drm_gem_mmap(filp, vma);
@@ -1428,7 +1487,6 @@ static void v3d_drm_postclose(struct drm_device *dev, struct drm_file *file)
 				break;
 			}
 		}
-
 	}
 
 	if (!terminated)
@@ -1459,7 +1517,7 @@ static void v3d_drm_lastclose(struct drm_device *dev)
 	 * we should.
 	 */
 	if (the_drm_device) {
-		BUG_ON(dev != the_drm_device);
+		WARN_ON(dev != the_drm_device);
 		drm_dev_unref(the_drm_device);
 		the_drm_device = NULL;
 	}
@@ -1509,6 +1567,9 @@ static const struct file_operations v3d_driver_fops = {
 	.poll		= drm_poll,
 	.read		= drm_read,
 	.unlocked_ioctl = drm_ioctl,
+#ifdef CONFIG_COMPAT
+	.compat_ioctl   = v3d_drm_compat_ioctl,
+#endif
 	.release	= drm_release,
 };
 
@@ -1529,6 +1590,7 @@ static struct drm_driver v3d_driver = {
 	.date			= DRIVER_DATE,
 	.major			= DRIVER_MAJOR,
 	.minor			= DRIVER_MINOR,
+	.patchlevel		= DRIVER_PATCH,
 };
 
 struct v3d_drm_config_data {
@@ -1548,7 +1610,7 @@ static const struct of_device_id v3d_drm_of_table[] = {
 	{ .compatible = "brcm,v3d-v3.3.0.0", .data = &v3d_v3_3_0_0 },
 	{ .compatible = "brcm,v3d-v3.3.1.0", .data = &v3d_v3_3_1_0 },
 	{ .compatible = "brcm,v3d-v4.0.2.0", .data = &v3d_v3_3_1_0 },
-	{ .compatible = "brcm,v3d-v4.1.34.0",.data = &v3d_v3_3_1_0 },
+	{ .compatible = "brcm,v3d-v4.1.34.0", .data = &v3d_v3_3_1_0 },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, v3d_drm_of_table);

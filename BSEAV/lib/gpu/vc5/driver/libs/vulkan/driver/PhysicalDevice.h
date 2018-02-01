@@ -12,7 +12,6 @@
 #include "Dispatchable.h"
 #include "V3DPlatform.h"
 #include "Formats.h"
-#include "TileStateMemory.h"
 
 namespace bvk {
 
@@ -200,10 +199,6 @@ public:
       return m_memProps.memoryTypes[memTypeIndex];
    }
 
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   TileStateMemory &TileStateMemoryManager() { return m_tileStateMemory; }
-#endif
-
    // Match the flags to a memory type index.
    // Note: flags must match a valid memory type or a fatal_error exception will occur.
    uint32_t FindSuitableMemoryTypeIndex(VkMemoryPropertyFlags flags) const;
@@ -242,9 +237,6 @@ private:
 
    // This should only be accessed via FormatProperty() to avoid index errors
    VkFormatProperties               m_formatProperties[VK_FORMAT_RANGE_SIZE];
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   TileStateMemory                  m_tileStateMemory;
-#endif
 };
 
 } // namespace bvk

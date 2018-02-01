@@ -71,6 +71,11 @@
 #include "libdspcontrol/DSP.h"
 #include "libdspcontrol/src/DSP/DSP_raaga_octave_atu.h"
 #include "libdspcontrol/TB.h"
+#include "fpos/pm_types.h"
+
+#ifdef BDSP_RAAGA_DEBUG_SERVICE
+#include "bdsp_raaga_debug_service.h"
+#endif
 
 #if BCHP_PWR_SUPPORT
 #include "bchp_pwr.h"
@@ -107,6 +112,7 @@
 #ifdef FIREPATH_BM
 #include "mutex.h"
 extern BEMU_Client_MutexHandle g_hSocketMutex;
+extern DSP dspInst;
 #endif /* FIREPATH_BM */
 
 #endif /*BDSP_RAAGA_PRIV_INCLUDE_H_*/

@@ -610,6 +610,7 @@ NEXUS_Error NEXUS_HdmiInput_LoadHdcp2xReceiverIdList_priv(
     BHDR_HDCP_Status stHdcpStatus;
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
 
+
     errCode = BHDR_HDCP_GetStatus(hdmiInput->hdr, &stHdcpStatus) ;
     if (errCode != BERR_SUCCESS) {
         errCode = BERR_TRACE(errCode);

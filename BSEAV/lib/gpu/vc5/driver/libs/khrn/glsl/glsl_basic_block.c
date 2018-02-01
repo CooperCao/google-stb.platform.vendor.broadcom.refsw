@@ -116,8 +116,7 @@ static Dataflow **basic_block_get_scalar_values(BasicBlock *basic_block, const S
       for (unsigned i = 0; i < symbol->type->scalar_count; i++) {
          PrimitiveTypeIndex type_index = glsl_get_scalar_value_type_index(symbol->type, i);
          if (glsl_prim_is_prim_texture_type(&primitiveTypes[type_index]) ||
-             glsl_prim_is_prim_image_type  (&primitiveTypes[type_index]) ||
-             glsl_prim_is_prim_comb_sampler_type(&primitiveTypes[type_index]))
+             glsl_prim_is_prim_image_type  (&primitiveTypes[type_index]))
          {
             PrimSamplerInfo *psi = glsl_prim_get_image_info(type_index);
             PrimitiveTypeIndex ret_basic_type = primitiveScalarTypeIndices[psi->return_type];
@@ -130,13 +129,6 @@ static Dataflow **basic_block_get_scalar_values(BasicBlock *basic_block, const S
                default: assert(0); df_type = DF_INVALID;  break;
             }
             loads[i] = glsl_dataflow_construct_load(df_type);
-
-            if (glsl_prim_is_prim_comb_sampler_type(&primitiveTypes[type_index])) {
-               /* Sampled images must be paired up with their samplers */
-               i++;
-               assert(i < symbol->type->scalar_count && type_index == glsl_get_scalar_value_type_index(symbol->type, i));
-               loads[i] = glsl_dataflow_construct_load(DF_SAMPLER);
-            }
          } else if (glsl_prim_is_prim_sampler_type(&primitiveTypes[type_index])) {
             loads[i] = glsl_dataflow_construct_load(DF_SAMPLER);
          } else if (glsl_prim_is_prim_atomic_type(&primitiveTypes[type_index])) {

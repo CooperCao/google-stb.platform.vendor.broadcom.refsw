@@ -1591,10 +1591,12 @@ int cablecard_receive_MMI(char *mmi_message, int len)
 			}
       } else if (mmi_message[cnt] == '<')
 	  {
-		while (mmi_message[cnt] != '>')
+		while (cnt<length && mmi_message[cnt] != '>')
 	  	{
+			BDBG_MSG(("cablecard_receive_MMI length %d cnt %d", length, cnt));
 	    	cnt++;
         }
+		if(cnt>=length) break;
 		cnt++;
 		if (k < 100) {
 			tmp_str1[k++] = new_mmi_message[j++] = ' ';

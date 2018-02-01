@@ -41,6 +41,8 @@ typedef unsigned int     GLuint;
 typedef khronos_float_t  GLfloat;
 typedef khronos_float_t  GLclampf;
 typedef khronos_int32_t  GLfixed;
+typedef khronos_int64_t  GLint64;
+typedef khronos_uint64_t GLuint64;
 
 /* GL types for handling large vertex buffer objects */
 typedef khronos_intptr_t GLintptr;
@@ -579,7 +581,7 @@ GL_APICALL void         GL_APIENTRY glRenderbufferStorage (GLenum target, GLenum
 GL_APICALL void         GL_APIENTRY glSampleCoverage (GLclampf value, GLboolean invert);
 GL_APICALL void         GL_APIENTRY glScissor (GLint x, GLint y, GLsizei width, GLsizei height);
 GL_APICALL void         GL_APIENTRY glShaderBinary (GLsizei n, const GLuint* shaders, GLenum binaryformat, const GLvoid* binary, GLsizei length);
-GL_APICALL void         GL_APIENTRY glShaderSource (GLuint shader, GLsizei count, const GLchar** string, const GLint* length);
+GL_APICALL void         GL_APIENTRY glShaderSource (GLuint shader, GLsizei count, const GLchar*const* string, const GLint* length);
 GL_APICALL void         GL_APIENTRY glStencilFunc (GLenum func, GLint ref, GLuint mask);
 GL_APICALL void         GL_APIENTRY glStencilFuncSeparate (GLenum face, GLenum func, GLint ref, GLuint mask);
 GL_APICALL void         GL_APIENTRY glStencilMask (GLuint mask);
@@ -621,7 +623,7 @@ GL_APICALL void         GL_APIENTRY glVertexAttrib3f (GLuint indx, GLfloat x, GL
 GL_APICALL void         GL_APIENTRY glVertexAttrib3fv (GLuint indx, const GLfloat* values);
 GL_APICALL void         GL_APIENTRY glVertexAttrib4f (GLuint indx, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
 GL_APICALL void         GL_APIENTRY glVertexAttrib4fv (GLuint indx, const GLfloat* values);
-GL_APICALL void         GL_APIENTRY glVertexAttribPointer (GLuint indx, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid* ptr);
+GL_APICALL void         GL_APIENTRY glVertexAttribPointer (GLuint indx, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid* pointer);
 GL_APICALL void         GL_APIENTRY glViewport (GLint x, GLint y, GLsizei width, GLsizei height);
 
 #ifdef __cplusplus

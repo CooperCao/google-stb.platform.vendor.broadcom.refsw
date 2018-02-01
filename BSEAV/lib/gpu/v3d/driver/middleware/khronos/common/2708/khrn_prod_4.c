@@ -6,7 +6,6 @@
 #include "middleware/khronos/common/2708/khrn_prod_4.h"
 #include "middleware/khronos/common/2708/khrn_pool_4.h"
 #include "middleware/khronos/common/khrn_hw.h"
-#include "middleware/khronos/common/khrn_mem.h"
 #include "interface/khronos/common/khrn_int_util.h"
 #ifdef PRINT_CLIST_DEBUG
 #include "middleware/khronos/common/2708/khrn_cle_debug_4.h"

@@ -127,6 +127,7 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
     NEXUS_Platform_P_ApplyHeapStaticMapping(&pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].memoryType, NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED);
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].heapType |= NEXUS_HEAP_TYPE_COMPRESSED_RESTRICTED_REGION;
     pSettings->heap[NEXUS_EXPORT_HEAP].heapType |= NEXUS_HEAP_TYPE_EXPORT_REGION;
+    pSettings->heap[NEXUS_CRRT_HEAP].heapType |= NEXUS_HEAP_TYPE_CRRT;
 #if NEXUS_HAS_SAGE
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.sage = true;
 #if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
@@ -140,6 +141,16 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].memoryType = NEXUS_MemoryType_eSecure;
     pSettings->heap[NEXUS_EXPORT_HEAP].alignment = 2 * 1024 * 1024;
     pSettings->heap[NEXUS_EXPORT_HEAP].memoryType = NEXUS_MemoryType_eSecure;
+    pSettings->heap[NEXUS_CRRT_HEAP].alignment = 2 * 1024 * 1024;
+    pSettings->heap[NEXUS_CRRT_HEAP].memoryType = NEXUS_MemoryType_eSecure;
+    pSettings->heap[NEXUS_MEMC0_URRT_HEAP].alignment = 2 * 1024 * 1024;
+    pSettings->heap[NEXUS_MEMC0_URRT_HEAP].memoryType = NEXUS_MemoryType_eSecure;
+    pSettings->heap[NEXUS_MEMC1_URRT_HEAP].alignment = 2 * 1024 * 1024;
+    pSettings->heap[NEXUS_MEMC1_URRT_HEAP].memoryType = NEXUS_MemoryType_eSecure;
+    pSettings->heap[NEXUS_MEMC1_URRT_HEAP].memcIndex = 1;
+    pSettings->heap[NEXUS_MEMC2_URRT_HEAP].alignment = 2 * 1024 * 1024;
+    pSettings->heap[NEXUS_MEMC2_URRT_HEAP].memoryType = NEXUS_MemoryType_eSecure;
+    pSettings->heap[NEXUS_MEMC2_URRT_HEAP].memcIndex = 2;
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].size =  32*1024*1024; /*Sage Secure heap */
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].heapType |= NEXUS_HEAP_TYPE_SAGE_RESTRICTED_REGION;
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].memoryType = NEXUS_MemoryType_eSecure;
@@ -461,12 +472,7 @@ static void NEXUS_Platform_P_AdjustBmemRegions(NEXUS_PlatformMemory *pMemory)
 
 static const char *NEXUS_P_PlatformHeapName(unsigned heapIndex, const NEXUS_PlatformSettings *pSettings, char *buf, unsigned buf_size)
 {
-    NEXUS_MemoryStatus status;
-    /* Must copy all members neeeded by NEXUS_Heap_ToString. NEXUS_MemoryStatus is not available at this time. */
-    status.memcIndex = pSettings->heap[heapIndex].memcIndex;
-    status.heapType = pSettings->heap[heapIndex].heapType;
-    status.memoryType = pSettings->heap[heapIndex].memoryType;
-    NEXUS_Heap_ToString(&status, buf, buf_size);
+    NEXUS_P_HeapInfo_ToString(buf, buf_size, pSettings->heap[heapIndex].memcIndex, pSettings->heap[heapIndex].heapType, pSettings->heap[heapIndex].memoryType);
     return buf;
 }
 
@@ -499,14 +505,20 @@ NEXUS_Error NEXUS_Platform_P_SetCoreModuleSettings(const NEXUS_PlatformSettings 
 {
     NEXUS_Error rc = 0;
     unsigned i, j;
-    unsigned totalUsed[NEXUS_MAX_HEAPS];
-    NEXUS_Addr heapOffset[NEXUS_MAX_HEAPS];
-    int bmemIndex[NEXUS_MAX_HEAPS]; /* bmem index for each NEXUS_PlatformSettings.heap[] */
-    char buf[64];
+    struct {
+        unsigned totalUsed[NEXUS_MAX_HEAPS];
+        NEXUS_Addr heapOffset[NEXUS_MAX_HEAPS];
+        int bmemIndex[NEXUS_MAX_HEAPS]; /* bmem index for each NEXUS_PlatformSettings.heap[] */
+        char buf[64];
+    } *state;
+
+
+    state = BKNI_Malloc(sizeof(*state));
+    if(state==NULL) {return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);}
 
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-        totalUsed[i] = heapOffset[i] = 0;
-        bmemIndex[i] = -1;
+        state->totalUsed[i] = state->heapOffset[i] = 0;
+        state->bmemIndex[i] = -1;
     }
 
     /* step 1: assign bmemIndex[] and calculate the remainder per bmem region */
@@ -518,7 +530,7 @@ NEXUS_Error NEXUS_Platform_P_SetCoreModuleSettings(const NEXUS_PlatformSettings 
         }
 
         BDBG_MSG(("request heap[%d]: MEMC%d/%d, size %d, %s", i, pSettings->heap[i].memcIndex, pSettings->heap[i].subIndex,
-            pSettings->heap[i].size, NEXUS_P_PlatformHeapName(i,pSettings,buf,sizeof(buf))));
+            pSettings->heap[i].size, NEXUS_P_PlatformHeapName(i,pSettings,state->buf,sizeof(state->buf))));
 
         if (size == -1) {
             continue;
@@ -528,12 +540,12 @@ NEXUS_Error NEXUS_Platform_P_SetCoreModuleSettings(const NEXUS_PlatformSettings 
         /* find the first bmem in this MEMC region that has enough space.
         there is a dynamic mapping from NEXUS_PlatformSettings.heap[] to bmem region based on their order */
         for (j=0;j<NEXUS_MAX_HEAPS;j++) {
-            BDBG_ASSERT(totalUsed[j] <= pMemory->osRegion[j].length);
+            BDBG_ASSERT(state->totalUsed[j] <= pMemory->osRegion[j].length);
             if (pSettings->heap[i].memcIndex == pMemory->osRegion[j].memcIndex &&
                 pSettings->heap[i].subIndex == pMemory->osRegion[j].subIndex &&
-                totalUsed[j] + size <= pMemory->osRegion[j].length)
+                state->totalUsed[j] + size <= pMemory->osRegion[j].length)
             {
-                bmemIndex[i] = j;
+                state->bmemIndex[i] = j;
                 break;
             }
         }
@@ -544,12 +556,12 @@ NEXUS_Error NEXUS_Platform_P_SetCoreModuleSettings(const NEXUS_PlatformSettings 
             }
             else {
                 BDBG_ERR(("No bmem found for heap[%d]: MEMC%d/%d, size %d, %s", i, pSettings->heap[i].memcIndex, pSettings->heap[i].subIndex,
-                    pSettings->heap[i].size, NEXUS_P_PlatformHeapName(i,pSettings,buf,sizeof(buf))));
-                return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                    pSettings->heap[i].size, NEXUS_P_PlatformHeapName(i,pSettings,state->buf,sizeof(state->buf))));
+                rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); goto done;
             }
         }
-        BDBG_ASSERT(totalUsed[bmemIndex[i]] + size <= pMemory->osRegion[bmemIndex[i]].length);
-        totalUsed[bmemIndex[i]] += size;
+        BDBG_ASSERT(state->totalUsed[state->bmemIndex[i]] + size <= pMemory->osRegion[state->bmemIndex[i]].length);
+        state->totalUsed[state->bmemIndex[i]] += size;
     }
 
     /* step 2: allocate the heaps, including determining the size=-1 heaps */
@@ -564,14 +576,14 @@ NEXUS_Error NEXUS_Platform_P_SetCoreModuleSettings(const NEXUS_PlatformSettings 
         if (size == -1) {
             /* find bmem for the remainder heap */
             for (j=0;j<NEXUS_MAX_HEAPS;j++) {
-                BDBG_ASSERT(totalUsed[j] <= pMemory->osRegion[j].length);
-                if (totalUsed[j] == pMemory->osRegion[j].length) {
+                BDBG_ASSERT(state->totalUsed[j] <= pMemory->osRegion[j].length);
+                if (state->totalUsed[j] == pMemory->osRegion[j].length) {
                     continue;
                 }
                 if (pSettings->heap[i].memcIndex == pMemory->osRegion[j].memcIndex &&
                     pSettings->heap[i].subIndex == pMemory->osRegion[j].subIndex)
                 {
-                    bmemIndex[i] = j;
+                    state->bmemIndex[i] = j;
                     break;
                 }
             }
@@ -582,18 +594,18 @@ NEXUS_Error NEXUS_Platform_P_SetCoreModuleSettings(const NEXUS_PlatformSettings 
                 rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
                 goto cannot_create_heap;
             }
-            size = pMemory->osRegion[j].length - totalUsed[bmemIndex[i]];
-            totalUsed[bmemIndex[i]] += size;
+            size = pMemory->osRegion[j].length - state->totalUsed[state->bmemIndex[i]];
+            state->totalUsed[state->bmemIndex[i]] += size;
         }
         else {
             size = PAGE_ALIGN(size);
-            if (bmemIndex[i] == -1) {
+            if (state->bmemIndex[i] == -1) {
                 BDBG_ASSERT(pSettings->heap[i].optional);
                 /* fixed size optional heap that couldn't be created */
                 continue;
             }
         }
-        BDBG_ASSERT(bmemIndex[i] >= 0 && bmemIndex[i] < NEXUS_MAX_HEAPS);
+        BDBG_ASSERT(state->bmemIndex[i] >= 0 && state->bmemIndex[i] < NEXUS_MAX_HEAPS);
         BDBG_ASSERT(size > 0);
 
         NEXUS_Heap_GetDefaultMemcSettings(pSettings->heap[i].memcIndex, &pCoreSettings->heapRegion[i]);
@@ -620,9 +632,9 @@ NEXUS_Error NEXUS_Platform_P_SetCoreModuleSettings(const NEXUS_PlatformSettings 
         }
 #endif
 
-        pCoreSettings->heapRegion[i].offset = pMemory->osRegion[bmemIndex[i]].base + heapOffset[bmemIndex[i]];
+        pCoreSettings->heapRegion[i].offset = pMemory->osRegion[state->bmemIndex[i]].base + state->heapOffset[state->bmemIndex[i]];
 
-        heapOffset[bmemIndex[i]] += size;
+        state->heapOffset[state->bmemIndex[i]] += size;
     }
 
 #if BDBG_DEBUG_BUILD
@@ -633,18 +645,21 @@ NEXUS_Error NEXUS_Platform_P_SetCoreModuleSettings(const NEXUS_PlatformSettings 
             pCoreSettings->heapRegion[i].memcIndex,
             BDBG_UINT64_ARG(pCoreSettings->heapRegion[i].offset),
             (unsigned)pCoreSettings->heapRegion[i].length,
-            NEXUS_P_PlatformHeapName(i,pSettings,buf,sizeof(buf))));
+            NEXUS_P_PlatformHeapName(i,pSettings,state->buf,sizeof(state->buf))));
     }
 #endif
 
+done:
+    BKNI_Free(state);
     return rc;
 
 cannot_create_heap:
     /* assumes i was left at heap of interest */
     BDBG_ERR(("cannot create heap[%d]: MEMC%d/%d, size %d, %s", i, pSettings->heap[i].memcIndex, pSettings->heap[i].subIndex,
-        pSettings->heap[i].size, NEXUS_P_PlatformHeapName(i,pSettings,buf,sizeof(buf))));
+        pSettings->heap[i].size, NEXUS_P_PlatformHeapName(i,pSettings,state->buf,sizeof(state->buf))));
     BDBG_ERR(("run with msg_modules=nexus_platform_settings for more config info"));
-    return BERR_TRACE(rc);
+    rc = BERR_TRACE(rc);
+    goto done;
 }
 #endif
 

@@ -59,7 +59,7 @@ public:
     virtual eRet       setMpaaDecimation(bool bMpaaDecimation);
     virtual eRet       setPowerMode(ePowerMode mode);
     virtual ePowerMode getPowerMode(void);
-    virtual eRet        setWindowGeometry(void);
+    virtual eRet       setWindowGeometry(void);
     virtual eRet       swapPip(void);
     virtual eRet       showPip(bool bShow = true);
     virtual int32_t    getVolume(void);
@@ -77,7 +77,9 @@ public:
     virtual bool checkPower(void);
 #if BDSP_MS12_SUPPORT
     virtual void setMixingMode(eWindowType windowType, NEXUS_AudioDecoderMixingMode mixingMode);
-    virtual void setAudioFade(bool bPipState);
+    virtual void setAudioFade(CSimpleAudioDecode * pAudioDecode, bool bPipState);
+    virtual eRet setAudioFade(bool bPipState);
+    virtual void waitAudioFadeComplete(CSimpleAudioDecode * pAudioDecode);
 #endif
 };
 

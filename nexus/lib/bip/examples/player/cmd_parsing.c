@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -85,8 +85,8 @@ static void printUsage(
             "  -enableLowLatencyMode        #   If set, low latency AV Decode settings are enabled\n"
             "  -maxIpNetworkJitterInMs      #   Set max jitter for the IP network (if known), defaults to 300msec \n"
             "  -clockRecoveryMode           #   see BIP_PlayerClockRecoveryMode_eXXXX, default is selected by BIP Player. \n"
-            "  -bufDepthInMsec          #   Informs PBIP to do the buffer depth calculations using PCR or TTS deltas. \n"
-            "  -sineTone                #   play/mix in a constant sine tone to the audio output \n"
+            "  -bufDepthInMsec              #   Informs PBIP to do the buffer depth calculations using PCR or TTS deltas. \n"
+            "  -sineTone                    #   play/mix in a constant sine tone to the audio output \n"
           );
     printf(
             "  -audioDecoderLatencyMode     #   0=Normal, 1, 2, 3=Lowest/Variable  see NEXUS_AudioDecoderLatencyMode)\n"
@@ -99,6 +99,7 @@ static void printUsage(
           );
     printf(
             "  -trackGroupIndex <index>     #   Select AV tracks belonging to this trackGroupIndex (0: 1st trackGroup, 1: 2nd trackGroup, etc.)\n"
+            "  -enableHwOffload             #   Enable playing using ASP HW Offload Engine. \n"
           );
     exit(0);
 } /* printUsage */
@@ -256,6 +257,10 @@ BIP_Status parseOptions(
         else if ( !strcmp(argv[i], "-trackGroupIndex") )
         {
             pAppCtx->trackGroupIndex = strtoul(argv[++i], NULL, 0);
+        }
+        else if ( !strcmp(argv[i], "-enableHwOffload") )
+        {
+            pAppCtx->enableHwOffload = true;
         }
         else
         {

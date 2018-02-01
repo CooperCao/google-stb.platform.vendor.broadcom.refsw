@@ -171,7 +171,7 @@ public:
    ~ImageSet();
 
    //! Returns the number of levels.
-   uint32_t    NumLevels() const   { return m_images->size(); }
+   uint32_t    NumLevels() const   { return static_cast<uint32_t>(m_images->size()); }
    uint32_t    BaseLevel() const   { return m_baseLevel;      }
    uint32_t    MaxLevel()  const   { return m_maxLevel;       }
 

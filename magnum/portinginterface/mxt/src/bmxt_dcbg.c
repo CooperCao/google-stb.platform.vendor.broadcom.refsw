@@ -82,11 +82,11 @@ typedef struct BMXT_P_DcbgHandle
 #define SET_BIT(val, bit)   (val |= (1 << bit))
 #define CLEAR_BIT(val, bit) (val &= ~(1 << bit))
 
-#define R(reg) (hMxt->platform.regoffsetsDcbg[reg] + hMxt->platform.regbaseDcbg)
-#define STEP(res) (hMxt->platform.stepsizeDcbg[res])
-#define EXIST(reg) (hMxt->platform.regoffsetsDcbg[reg] != BMXT_NOREG)
+#define BMXT_DCBG_R(reg) (hMxt->platform.regoffsetsDcbg[reg] + hMxt->platform.regbaseDcbg)
+#define BMXT_DCBG_STEP(res) (hMxt->platform.stepsizeDcbg[res])
+#define BMXT_DCBG_EXIST(reg) (hMxt->platform.regoffsetsDcbg[reg] != BMXT_NOREG)
 
-static uint32_t BMXT_RegRead32(BMXT_Handle hMxt, uint32_t addr)
+static uint32_t BMXT_Dcbg_P_RegRead32(BMXT_Handle hMxt, uint32_t addr)
 {
     if (addr - hMxt->platform.regbase == BMXT_NOREG) {
         BERR_TRACE(BERR_UNKNOWN);
@@ -94,13 +94,13 @@ static uint32_t BMXT_RegRead32(BMXT_Handle hMxt, uint32_t addr)
     }
 
     BDBG_ASSERT(addr%4==0);
-    BDBG_ASSERT(addr>=R(0));
-    BDBG_ASSERT(addr<=R(BCHP_DEMOD_XPT_FE_OP_PIPE_BAND0_ADD_ATS_CONSTANT_BINARY));
+    BDBG_ASSERT(addr>=BMXT_DCBG_R(0));
+    BDBG_ASSERT(addr<=BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_OP_PIPE_BAND0_ADD_ATS_CONSTANT_BINARY));
 
     return BMXT_RegRead32_common(hMxt, addr);
 }
 
-static void BMXT_RegWrite32(BMXT_Handle hMxt, uint32_t addr, uint32_t data)
+static void BMXT_Dcbg_P_RegWrite32(BMXT_Handle hMxt, uint32_t addr, uint32_t data)
 {
     if (addr - hMxt->platform.regbase == BMXT_NOREG) {
         BERR_TRACE(BERR_UNKNOWN);
@@ -108,8 +108,8 @@ static void BMXT_RegWrite32(BMXT_Handle hMxt, uint32_t addr, uint32_t data)
     }
 
     BDBG_ASSERT(addr%4==0);
-    BDBG_ASSERT(addr>=R(0));
-    BDBG_ASSERT(addr<=R(BCHP_DEMOD_XPT_FE_OP_PIPE_BAND0_ADD_ATS_CONSTANT_BINARY));
+    BDBG_ASSERT(addr>=BMXT_DCBG_R(0));
+    BDBG_ASSERT(addr<=BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_OP_PIPE_BAND0_ADD_ATS_CONSTANT_BINARY));
 
     BMXT_RegWrite32_common(hMxt, addr, data);
     return;
@@ -137,46 +137,46 @@ static void BMXT_Dcbg_Reset(BMXT_Handle hMxt)
     /* DCBG bands programming */
     for (i=0; i<32; i++)
     {
-        addr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_DVB_CTRL1) + (i * 4);
+        addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_DVB_CTRL1) + (i * 4);
         val = 0x80; /* HW reset value */
-        BMXT_RegWrite32(hMxt, addr, val);
+        BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
     }
 
     /* map-vector programming */
-    addr = R(BCHP_DEMOD_XPT_FE_BAND_ISSY_DELTA_EN);
-    BMXT_RegWrite32(hMxt, addr, 0);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_BAND_ISSY_DELTA_EN);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, 0);
 
-    addr = R(BCHP_DEMOD_XPT_FE_BAND_ISSY_EXTRAPOLATE_EN);
-    BMXT_RegWrite32(hMxt, addr, 0);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_BAND_ISSY_EXTRAPOLATE_EN);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, 0);
 
-    addr = R(BCHP_DEMOD_XPT_FE_BAND_ATS_ADJUST_EN);
-    BMXT_RegWrite32(hMxt, addr, 0);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_BAND_ATS_ADJUST_EN);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, 0);
 
-    addr = R(BCHP_DEMOD_XPT_FE_BAND_ATS_ADJUST_MODE);
-    BMXT_RegWrite32(hMxt, addr, 0);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_BAND_ATS_ADJUST_MODE);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, 0);
 
     for (i=0; i<hMxt->platform.numDcbg[BMXT_RESOURCE_ISSY_CNTR0_CTRL]; i++) {
-        addr = R(BCHP_DEMOD_XPT_FE_ISSY_CNTR0_CTRL) + (i * STEP(BMXT_RESOURCE_ISSY_CNTR0_CTRL));
-        BMXT_RegWrite32(hMxt, addr, 0);
+        addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_ISSY_CNTR0_CTRL) + (i * BMXT_DCBG_STEP(BMXT_RESOURCE_ISSY_CNTR0_CTRL));
+        BMXT_Dcbg_P_RegWrite32(hMxt, addr, 0);
     }
 
     for (i=0; i<hMxt->platform.numDcbg[BMXT_RESOURCE_ISSY_PACING0_CTRL]; i++) {
-        addr = R(BCHP_DEMOD_XPT_FE_ISSY_PACING0_CTRL) + (i * STEP(BMXT_RESOURCE_ISSY_PACING0_CTRL));
-        BMXT_RegWrite32(hMxt, addr, 0);
+        addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_ISSY_PACING0_CTRL) + (i * BMXT_DCBG_STEP(BMXT_RESOURCE_ISSY_PACING0_CTRL));
+        BMXT_Dcbg_P_RegWrite32(hMxt, addr, 0);
     }
 
     for (i=0; i<hMxt->platform.numDcbg[BMXT_RESOURCE_ISSY_RATIO_CNTR0_CTRL]; i++) {
-        addr = R(BCHP_DEMOD_XPT_FE_ISSY_RATIO_CNTR0_CTRL) + (i * STEP(BMXT_RESOURCE_ISSY_RATIO_CNTR0_CTRL));
-        BMXT_RegWrite32(hMxt, addr, 0);
-        addr = R(BCHP_DEMOD_XPT_FE_RATIO_SNAPSHOT0_CTRL) + (i * STEP(BMXT_RESOURCE_ISSY_RATIO_CNTR0_CTRL));
-        BMXT_RegWrite32(hMxt, addr, 0xC);
+        addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_ISSY_RATIO_CNTR0_CTRL) + (i * BMXT_DCBG_STEP(BMXT_RESOURCE_ISSY_RATIO_CNTR0_CTRL));
+        BMXT_Dcbg_P_RegWrite32(hMxt, addr, 0);
+        addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_RATIO_SNAPSHOT0_CTRL) + (i * BMXT_DCBG_STEP(BMXT_RESOURCE_ISSY_RATIO_CNTR0_CTRL));
+        BMXT_Dcbg_P_RegWrite32(hMxt, addr, 0xC);
     }
 
     for (i=0; i<hMxt->platform.numDcbg[BMXT_RESOURCE_DCBG0_CTRL]; i++) {
-        addr = R(BCHP_DEMOD_XPT_FE_DCBG0_MAP_VECTOR) + (i * STEP(BMXT_RESOURCE_DCBG0_CTRL));
-        BMXT_RegWrite32(hMxt, addr, 0);
-        addr = R(BCHP_DEMOD_XPT_FE_DCBG0_CTRL) + (i * STEP(BMXT_RESOURCE_DCBG0_CTRL));
-        BMXT_RegWrite32(hMxt, addr, 0x200);
+        addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_DCBG0_MAP_VECTOR) + (i * BMXT_DCBG_STEP(BMXT_RESOURCE_DCBG0_CTRL));
+        BMXT_Dcbg_P_RegWrite32(hMxt, addr, 0);
+        addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_DCBG0_CTRL) + (i * BMXT_DCBG_STEP(BMXT_RESOURCE_DCBG0_CTRL));
+        BMXT_Dcbg_P_RegWrite32(hMxt, addr, 0x200);
     }
     return;
 }
@@ -396,8 +396,8 @@ BERR_Code BMXT_Dcbg_Start(BMXT_Dcbg_Handle hDcbg, const BMXT_Dcbg_Settings *pSet
     {
         if (GET_BIT(hDcbg->mapVector, i)==0) { continue; }
 
-        addr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_DVB_CTRL1) + (i * 4);
-        val = BMXT_RegRead32(hMxt, addr);
+        addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_DVB_CTRL1) + (i * 4);
+        val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
         BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_MINI_PID_PARSER0_DVB_CTRL1, DVB_ISSY_SEL, priband);
         BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_MINI_PID_PARSER0_DVB_CTRL1, DCBG_PRI_BAND, priband);
 #if (ISSY_DNP_RECORD_MODE==1)
@@ -414,32 +414,32 @@ BERR_Code BMXT_Dcbg_Start(BMXT_Dcbg_Handle hDcbg, const BMXT_Dcbg_Settings *pSet
 #if ISSY_DNP_RECORD_MODE /* for both 1 and 2 */
         BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_MINI_PID_PARSER0_DVB_CTRL1, DVB_ISSY_RECEIVED_TX_EN, 1);
 #endif
-        BMXT_RegWrite32(hMxt, addr, val);
+        BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
     }
 
     /* map-vector programming */
-    addr = R(BCHP_DEMOD_XPT_FE_BAND_ISSY_DELTA_EN);
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_BAND_ISSY_DELTA_EN);
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     val |= hDcbg->mapVector;
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
-    addr = R(BCHP_DEMOD_XPT_FE_BAND_ISSY_EXTRAPOLATE_EN);
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_BAND_ISSY_EXTRAPOLATE_EN);
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     val |= hDcbg->mapVector;
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
-    addr = R(BCHP_DEMOD_XPT_FE_BAND_ATS_ADJUST_EN);
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_BAND_ATS_ADJUST_EN);
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     val |= hDcbg->mapVector;
 #if (ISSY_DNP_RECORD_MODE==1)
     val &= ~(hDcbg->mapVector);
 #endif
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
-    addr = R(BCHP_DEMOD_XPT_FE_BAND_ATS_ADJUST_MODE);
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_BAND_ATS_ADJUST_MODE);
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     val &= ~(hDcbg->mapVector); /* 0 for MOD300 output ATS */
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
     /* priband-only programming */
     BMXT_GetParserConfig(hMxt, priband, &parserConfig);
@@ -447,13 +447,13 @@ BERR_Code BMXT_Dcbg_Start(BMXT_Dcbg_Handle hDcbg, const BMXT_Dcbg_Settings *pSet
     priband_mtsifTxSel = parserConfig.mtsifTxSelect;
     priband_virtualParserNum = parserConfig.virtualParserNum;
 
-    addr = R(BCHP_DEMOD_XPT_FE_ISSY_CNTR0_CTRL) + (priband * STEP(BMXT_RESOURCE_ISSY_CNTR0_CTRL));
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_ISSY_CNTR0_CTRL) + (priband * BMXT_DCBG_STEP(BMXT_RESOURCE_ISSY_CNTR0_CTRL));
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_ISSY_CNTR0_CTRL, SYMBOL_CLK_SEL, priband_ib);
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
-    addr = R(BCHP_DEMOD_XPT_FE_ISSY_PACING0_CTRL) + (priband * STEP(BMXT_RESOURCE_ISSY_PACING0_CTRL));
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_ISSY_PACING0_CTRL) + (priband * BMXT_DCBG_STEP(BMXT_RESOURCE_ISSY_PACING0_CTRL));
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_ISSY_PACING0_CTRL, PACING_LAG, 0); /* TODO: ask */
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_ISSY_PACING0_CTRL, PACING_LAG_EN, 1);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_ISSY_PACING0_CTRL, ERR_THRESH_LATE_EN, 1);
@@ -463,7 +463,7 @@ BERR_Code BMXT_Dcbg_Start(BMXT_Dcbg_Handle hDcbg, const BMXT_Dcbg_Settings *pSet
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_ISSY_PACING0_CTRL, FORCE_RESTAMP_ATS_MODE, 0); /* MOD300 */
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_ISSY_PACING0_CTRL, FORCE_RESTAMP, 0); /* disable */
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_ISSY_PACING0_CTRL, PACING_EN, 1);
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
 #if (ISSY_DNP_RECORD_MODE==1)
     /* disable ISSY PACING for all bands */
@@ -471,25 +471,25 @@ BERR_Code BMXT_Dcbg_Start(BMXT_Dcbg_Handle hDcbg, const BMXT_Dcbg_Settings *pSet
     {
         if (GET_BIT(hDcbg->mapVector, i)==0) { continue; }
 
-        addr = R(BCHP_DEMOD_XPT_FE_ISSY_PACING0_CTRL) + (i * STEP(BMXT_RESOURCE_ISSY_PACING0_CTRL));
-        val = BMXT_RegRead32(hMxt, addr);
+        addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_ISSY_PACING0_CTRL) + (i * BMXT_DCBG_STEP(BMXT_RESOURCE_ISSY_PACING0_CTRL));
+        val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
         BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_ISSY_PACING0_CTRL, PACING_EN, 0);
-        BMXT_RegWrite32(hMxt, addr, val);
+        BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
     }
 #endif
 
-    addr = R(BCHP_DEMOD_XPT_FE_ISSY_RATIO_CNTR0_CTRL) + (priband * STEP(BMXT_RESOURCE_ISSY_RATIO_CNTR0_CTRL));
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_ISSY_RATIO_CNTR0_CTRL) + (priband * BMXT_DCBG_STEP(BMXT_RESOURCE_ISSY_RATIO_CNTR0_CTRL));
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_ISSY_RATIO_CNTR0_CTRL, RATIO_SYMBOL_CLK_SEL, priband_ib);
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
-    addr = R(BCHP_DEMOD_XPT_FE_RATIO_SNAPSHOT0_CTRL) + (priband * STEP(BMXT_RESOURCE_ISSY_RATIO_CNTR0_CTRL));
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_RATIO_SNAPSHOT0_CTRL) + (priband * BMXT_DCBG_STEP(BMXT_RESOURCE_ISSY_RATIO_CNTR0_CTRL));
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_RATIO_SNAPSHOT0_CTRL, DROP_ON_RATIO_INVALID, 1);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_RATIO_SNAPSHOT0_CTRL, CAPTURE_AT_RO_EN, 1);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_RATIO_SNAPSHOT0_CTRL, CAPTURE_EN, 1);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_RATIO_SNAPSHOT0_CTRL, SW_START, 1);
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
     /* set MTSIF_TX BAND_ID to priband's destination for all bands */
     for (i=0; i<32; i++) {
@@ -502,31 +502,31 @@ BERR_Code BMXT_Dcbg_Start(BMXT_Dcbg_Handle hDcbg, const BMXT_Dcbg_Settings *pSet
     }
 
     /* DCBG programming */
-    addr = R(BCHP_DEMOD_XPT_FE_DCBG0_BO) + (hDcbg->index * STEP(BMXT_RESOURCE_DCBG0_CTRL));
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_DCBG0_BO) + (hDcbg->index * BMXT_DCBG_STEP(BMXT_RESOURCE_DCBG0_CTRL));
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_BO, BO_COUNT, 0); /* not set since DCBG_BO_EN = 0. note that is per-DCBG, not per-band */
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
     /* CRXPT-1194: ensure that total number of bands supported doesn't exceed number of slots available */
-    addr = R(BCHP_DEMOD_XPT_FE_SLOT_MANAGEMENT_BAND_MAX_POSSIBLE_SLOT_ALLOCATION);
-    BMXT_RegWrite32(hMxt, addr, 0x1B8);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_SLOT_MANAGEMENT_BAND_MAX_POSSIBLE_SLOT_ALLOCATION);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, 0x1B8);
 
 #if 0 /* for debug */
-    addr = R(BCHP_DEMOD_XPT_FE_DCB_MISC_CFG); /* accomodate large skew */
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_DCB_MISC_CFG); /* accomodate large skew */
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_DCB_MISC_CFG, MAX_ISSY_DELTA, 0x300000);
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 #endif
 
-    addr = R(BCHP_DEMOD_XPT_FE_DCBG0_MAP_VECTOR) + (hDcbg->index * STEP(BMXT_RESOURCE_DCBG0_CTRL));
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_DCBG0_MAP_VECTOR) + (hDcbg->index * BMXT_DCBG_STEP(BMXT_RESOURCE_DCBG0_CTRL));
     val = hDcbg->mapVector;
 #if (ISSY_DNP_RECORD_MODE==1)
     val = 0;
 #endif
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
-    addr = R(BCHP_DEMOD_XPT_FE_DCBG0_CTRL) + (hDcbg->index * STEP(BMXT_RESOURCE_DCBG0_CTRL));
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_DCBG0_CTRL) + (hDcbg->index * BMXT_DCBG_STEP(BMXT_RESOURCE_DCBG0_CTRL));
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_CTRL, DCBG_BO_EN, 0); /* 0 to use ISSY pacing */
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_CTRL, DCBG_AUTORECOVER_ON_ERROR, 0);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_CTRL, DCBG_REPORT_ERROR_ONLY, 1);
@@ -535,7 +535,7 @@ BERR_Code BMXT_Dcbg_Start(BMXT_Dcbg_Handle hDcbg, const BMXT_Dcbg_Settings *pSet
 #if (ISSY_DNP_RECORD_MODE==1)
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_CTRL, DCBG_ENABLE, 0);
 #endif
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
     /* enable all bands */
     for (i=0; i<32; i++) {
@@ -570,8 +570,8 @@ void BMXT_Dcbg_Stop(BMXT_Dcbg_Handle hDcbg)
     {
         if (GET_BIT(hDcbg->mapVector, i)==0) { continue; }
 
-        addr = R(BCHP_DEMOD_XPT_FE_SLOT_MANAGEMENT_BAND0_SLOT_WATERMARK) + (i * STEP(BMXT_RESOURCE_SLOT_MANAGEMENT_BAND0_SLOTS_ALLOCATED));
-        val = BMXT_RegRead32(hMxt, addr);
+        addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_SLOT_MANAGEMENT_BAND0_SLOT_WATERMARK) + (i * BMXT_DCBG_STEP(BMXT_RESOURCE_SLOT_MANAGEMENT_BAND0_SLOTS_ALLOCATED));
+        val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
         BDBG_MSG(("SLOT_MANAGEMENT_BAND%u_SLOT_WATERMARK: %08x", i, val));
     }
 
@@ -582,26 +582,26 @@ void BMXT_Dcbg_Stop(BMXT_Dcbg_Handle hDcbg)
         BMXT_P_ParserVersion(hMxt, i);
     }
 
-    addr = R(BCHP_DEMOD_XPT_FE_ISSY_PACING0_CTRL) + (priband * STEP(BMXT_RESOURCE_ISSY_PACING0_CTRL));
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_ISSY_PACING0_CTRL) + (priband * BMXT_DCBG_STEP(BMXT_RESOURCE_ISSY_PACING0_CTRL));
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_ISSY_PACING0_CTRL, PACING_EN, 0);
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
-    addr = R(BCHP_DEMOD_XPT_FE_DCBG0_CTRL) + (hDcbg->index * STEP(BMXT_RESOURCE_DCBG0_CTRL));
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_DCBG0_CTRL) + (hDcbg->index * BMXT_DCBG_STEP(BMXT_RESOURCE_DCBG0_CTRL));
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_CTRL, DCBG_PRI_BAND, 0);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_CTRL, DCBG_ENABLE, 0);
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
     for (i=0; i<32; i++)
     {
         if (GET_BIT(hDcbg->mapVector, i)==0) { continue; }
 
-        addr = R(BCHP_DEMOD_XPT_FE_BAND_DROP_TILL_LAST_SET);
-        val = BMXT_RegRead32(hMxt, addr);
+        addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_BAND_DROP_TILL_LAST_SET);
+        val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
         BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_BAND_DROP_TILL_LAST_SET, BAND_NUM, i);
         BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_BAND_DROP_TILL_LAST_SET, SET, 1);
-        BMXT_RegWrite32(hMxt, addr, val);
+        BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
     }
 
     /* DCBG bands programming */
@@ -609,35 +609,35 @@ void BMXT_Dcbg_Stop(BMXT_Dcbg_Handle hDcbg)
     {
         if (GET_BIT(hDcbg->mapVector, i)==0) { continue; }
 
-        addr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_DVB_CTRL1) + (i * 4);
+        addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_DVB_CTRL1) + (i * 4);
         val = 0x80; /* HW reset value */
-        BMXT_RegWrite32(hMxt, addr, val);
+        BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
     }
 
     /* map-vector programming */
-    addr = R(BCHP_DEMOD_XPT_FE_BAND_ISSY_DELTA_EN);
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_BAND_ISSY_DELTA_EN);
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     val &= ~(hDcbg->mapVector);
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
-    addr = R(BCHP_DEMOD_XPT_FE_BAND_ISSY_EXTRAPOLATE_EN);
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_BAND_ISSY_EXTRAPOLATE_EN);
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     val &= ~(hDcbg->mapVector);
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
-    addr = R(BCHP_DEMOD_XPT_FE_BAND_ATS_ADJUST_EN);
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_BAND_ATS_ADJUST_EN);
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     val &= ~(hDcbg->mapVector);
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
-    addr = R(BCHP_DEMOD_XPT_FE_BAND_ATS_ADJUST_MODE);
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_BAND_ATS_ADJUST_MODE);
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     val &= ~(hDcbg->mapVector);
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
-    addr = R(BCHP_DEMOD_XPT_FE_DCBG0_MAP_VECTOR) + (hDcbg->index * STEP(BMXT_RESOURCE_DCBG0_CTRL));
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_DCBG0_MAP_VECTOR) + (hDcbg->index * BMXT_DCBG_STEP(BMXT_RESOURCE_DCBG0_CTRL));
     val = 0;
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
     hDcbg->running = false;
     return;
@@ -652,32 +652,32 @@ void BMXT_Dcbg_Reacquire(BMXT_Dcbg_Handle hDcbg)
 
     hMxt = hDcbg->hMxt;
 
-    addr = R(BCHP_DEMOD_XPT_FE_DCBG0_CTRL) + (hDcbg->index * STEP(BMXT_RESOURCE_DCBG0_CTRL));
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_DCBG0_CTRL) + (hDcbg->index * BMXT_DCBG_STEP(BMXT_RESOURCE_DCBG0_CTRL));
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_CTRL, DCBG_ENABLE, 0);
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
     for (i=0; i<32; i++)
     {
         if (GET_BIT(hDcbg->mapVector, i)==0) { continue; }
 
-        addr = R(BCHP_DEMOD_XPT_FE_BAND_DROP_TILL_LAST_SET);
-        val = BMXT_RegRead32(hMxt, addr);
+        addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_BAND_DROP_TILL_LAST_SET);
+        val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
         BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_BAND_DROP_TILL_LAST_SET, BAND_NUM, i);
         BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_BAND_DROP_TILL_LAST_SET, SET, 1);
-        BMXT_RegWrite32(hMxt, addr, val);
+        BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
     }
 
     do {
-        addr = R(BCHP_DEMOD_XPT_FE_BAND_DROP_TILL_LAST_STATUS);
-        val = BMXT_RegRead32(hMxt, addr);
+        addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_BAND_DROP_TILL_LAST_STATUS);
+        val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
         if (val==0) { break; }
     } while (--maxWait>0);
 
-    addr = R(BCHP_DEMOD_XPT_FE_DCBG0_CTRL) + (hDcbg->index * STEP(BMXT_RESOURCE_DCBG0_CTRL));
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_DCBG0_CTRL) + (hDcbg->index * BMXT_DCBG_STEP(BMXT_RESOURCE_DCBG0_CTRL));
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_CTRL, DCBG_ENABLE, 1);
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 }
 
 void BMXT_Dcbg_GetSettings(BMXT_Dcbg_Handle hDcbg, BMXT_Dcbg_Settings *pSettings)
@@ -714,8 +714,8 @@ BERR_Code BMXT_Dcbg_GetStatus(BMXT_Dcbg_Handle hDcbg, BMXT_Dcbg_Status *pStatus)
 
     hMxt = hDcbg->hMxt;
 
-    addr = R(BCHP_DEMOD_XPT_FE_DCBG0_STATUS) + (hDcbg->index * STEP(BMXT_RESOURCE_DCBG0_CTRL));
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_DCBG0_STATUS) + (hDcbg->index * BMXT_DCBG_STEP(BMXT_RESOURCE_DCBG0_CTRL));
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     pStatus->locked = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_STATUS, DCBG_SEQ_STATE)==3;
     return BERR_SUCCESS;
 }
@@ -730,8 +730,8 @@ static void BMXT_Dcbg_AtsIssySnapshot(BMXT_Dcbg_Handle hDcbg)
         return;
     }
 
-    addr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_PARSER31_ATS_ISSY_SNAPSHOT_CTRL1);
-    BMXT_RegWrite32(hMxt, addr, hDcbg->mapVector);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_PARSER31_ATS_ISSY_SNAPSHOT_CTRL1);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, hDcbg->mapVector);
     BDBG_WRN(("ATS/ISSY snapshot arm %08x", hDcbg->mapVector));
 }
 
@@ -756,8 +756,8 @@ static void BMXT_Dcbg_DumpAtsIssySnapshot(BMXT_Handle hMxt)
 
     /* wait for valid */
     for (i=0; i<TIMEOUT; i++) {
-        addr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_PARSER31_ATS_ISSY_SNAPSHOT_VALID);
-        val = BMXT_RegRead32(hMxt, addr);
+        addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_PARSER31_ATS_ISSY_SNAPSHOT_VALID);
+        val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
         if ((val & hDcbg->mapVector)==hDcbg->mapVector) { break; }
         BKNI_Sleep(10);
     }
@@ -787,21 +787,21 @@ static void BMXT_P_BlockoutToggle(BMXT_Handle hMxt)
         return;
     }
 
-    addr = R(BCHP_DEMOD_XPT_FE_DCBG0_BO) + (hDcbg->index * STEP(BMXT_RESOURCE_DCBG0_CTRL));
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_DCBG0_BO) + (hDcbg->index * BMXT_DCBG_STEP(BMXT_RESOURCE_DCBG0_CTRL));
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_BO, BO_COUNT, 0xffff);
-    BMXT_RegWrite32(hMxt, addr, val);
+    BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
 
-    addr = R(BCHP_DEMOD_XPT_FE_DCBG0_CTRL) + (hDcbg->index * STEP(BMXT_RESOURCE_DCBG0_CTRL));
-    val = BMXT_RegRead32(hMxt, addr);
+    addr = BMXT_DCBG_R(BCHP_DEMOD_XPT_FE_DCBG0_CTRL) + (hDcbg->index * BMXT_DCBG_STEP(BMXT_RESOURCE_DCBG0_CTRL));
+    val = BMXT_Dcbg_P_RegRead32(hMxt, addr);
     if (BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_CTRL, DCBG_BO_EN)) {
         BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_CTRL, DCBG_BO_EN, 0);
-        BMXT_RegWrite32(hMxt, addr, val);
+        BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
         BDBG_WRN(("DCBG%u DCBG_BO_EN=%u", hDcbg->index, 0));
     }
     else {
         BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_DCBG0_CTRL, DCBG_BO_EN, 1);
-        BMXT_RegWrite32(hMxt, addr, val);
+        BMXT_Dcbg_P_RegWrite32(hMxt, addr, val);
         BDBG_WRN(("DCBG%u DCBG_BO_EN=%u", hDcbg->index, 1));
     }
     BMXT_P_RegDump(hMxt);

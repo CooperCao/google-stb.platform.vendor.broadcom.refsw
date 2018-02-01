@@ -21,7 +21,7 @@ extern uint32_t xxx_shader;
 // QPUResource static
 ///////////////////////////////////////////////////////////////////////////////
 
-static INLINE int32_t WhenReadable(const QPUResource *self)
+static inline int32_t WhenReadable(const QPUResource *self)
 {
    return self->m_readableAtSlot;
 }

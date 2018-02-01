@@ -55,13 +55,20 @@ endif
 
 # include cross-compiler definitions
 include $(B_LIB_TOP)/build/b_lib_defs.inc
+ifeq ($(NXCLIENT_SUPPORT),y)
+THEAPPS = mmt_playback
+else
 THEAPPS = \
 	mmt_playback \
 	mmt_live \
 	mmt_message_from_playback \
 	mmt_all_pass_record \
 	mmt_record \
-	mmt_record_from_playback
+	mmt_record_from_playback \
+	tlv_isdb_s3_live \
+	tlv_isdb_s3_all_pass_record \
+	tsmf_mmt_live
+endif
 
 APPS = $(THEAPPS)
 all: $(APPS)
@@ -78,11 +85,33 @@ include $(B_LIB_TOP)/os/b_os_lib.inc
 include $(B_BSEAV_TOP)/lib/mmt/b_mmt_lib.inc
 
 # For linux builds, link to the correct libraries
-ifneq ($(findstring linux,$(B_REFSW_OS)),)
+#ifneq ($(findstring linux,$(B_REFSW_OS)),)
+ifeq ($(NXCLIENT_SUPPORT),y)
+include $(NEXUS_TOP)/nxclient/include/nxclient.inc
+CFLAGS += $(NXCLIENT_CFLAGS)
+LDFLAGS += -lm -lpthread -lb_os  -lb_mmt
+LDFLAGS += $(NXCLIENT_LDFLAGS)
+CFLAGS += -DNXCLIENT_SUPPORT
+else
 LDFLAGS := -lm -L$(NEXUS_BIN_DIR) -lpthread -lnexus${LIB_NEXUS_SUFFIX} -lb_os  -lb_mmt
 endif
+#endif
 
 # This builds nexus and needed applibs
+ifeq ($(NXCLIENT_SUPPORT),y)
+api:
+	$(MAKE) -C $(NEXUS_TOP)/nxclient server
+	#$(MAKE) -C $(NEXUS_TOP)/nxclient/build
+	$(MAKE) -C $(B_LIB_TOP)/os
+	$(MAKE) -C $(B_BSEAV_TOP)/lib/mmt
+# This cleans nexus and local apps
+clean:
+	$(MAKE) -C $(NEXUS_TOP)/nxclient clean_server
+	#$(MAKE) -C $(NEXUS_TOP)/nxclient/build clean
+	$(MAKE) -C $(B_LIB_TOP)/os clean
+	$(MAKE) -C $(B_BSEAV_TOP)/lib/mmt clean
+	-$(RM) $(TARGET_APPS)
+else
 api:
 	$(MAKE) -C $(NEXUS_TOP)/build
 	$(MAKE) -C $(B_LIB_TOP)/os
@@ -93,7 +122,7 @@ clean:
 	$(MAKE) -C $(B_LIB_TOP)/os clean
 	$(MAKE) -C $(B_BSEAV_TOP)/lib/mmt clean
 	-$(RM) $(TARGET_APPS)
-
+endif
 # This is the minimum needed to compile and link with Nexus
 CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
 

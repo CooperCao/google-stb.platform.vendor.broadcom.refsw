@@ -53,7 +53,7 @@ CFLAGS += \
 
 ifeq ($(VC5_GPUMON_HOOK),)
 CFLAGS += \
-	-I./../../vc5/tools/gpumon_hook
+	-I./../../tools/gpumon_hook
 else
 CFLAGS += \
 	-I$(VC5_GPUMON_HOOK)
@@ -66,7 +66,6 @@ CFLAGS += \
 	-DASSERT_ON_ALLOC_FAIL \
 	-DV3D_LEAN \
 	-DMUST_SET_ALPHA \
-	-DBCG_MULTI_THREADED \
 	-D_XOPEN_SOURCE=600 \
 	-D_GNU_SOURCE \
 	-Wunused-parameter \
@@ -90,14 +89,6 @@ ifeq ($(NO_REMOTE_LOGGING),1)
 	# Do nothing
 else
 	CFLAGS += -DREMOTE_API_LOGGING -DTIMELINE_EVENT_LOGGING
-endif
-
-ifeq ($(WITH_DEFRAG),1)
-#   Add this to CFLAGS to compile memory defragmentation into code.
-#   There is a performance penalty, but this can be useful for code that runs
-#   for a very long time.
-#
-   CFLAGS += -DBCG_VC4_DEFRAG
 endif
 
 ifeq ($(KHRN_AUTOCLIF),1)
@@ -184,10 +175,8 @@ SOURCES = \
 	interface/khronos/common/khrn_int_hash.c \
 	interface/khronos/common/khrn_client_vector.c \
 	interface/khronos/common/khrn_client_pointermap.c \
-	interface/khronos/common/khrn_client_cache.c \
 	interface/khronos/common/khrn_client.c \
 	interface/khronos/common/khrn_options.c \
-	interface/khronos/common/khrn_api_interposer.c \
 	interface/khronos/common/abstract/khrn_client_platform_abstract.c \
 	interface/khronos/egl/egl_client_surface.c \
 	interface/khronos/egl/egl_client_context.c \
@@ -195,19 +184,11 @@ SOURCES = \
 	interface/khronos/egl/egl_client.c \
 	interface/khronos/egl/egl_client_get_proc.c \
 	interface/khronos/ext/egl_android_ext.c \
-	interface/khronos/ext/gl_oes_framebuffer_object.c \
-	interface/khronos/ext/gl_oes_egl_image_client.c \
 	interface/khronos/ext/egl_khr_sync_client.c \
 	interface/khronos/ext/egl_khr_lock_surface_client.c \
 	interface/khronos/ext/egl_khr_image_client.c \
-	interface/khronos/ext/egl_brcm_flush_client.c \
 	interface/khronos/ext/egl_brcm_driver_monitor_client.c \
 	interface/khronos/ext/egl_wl_bind_display_client.c \
-	interface/khronos/ext/ext_gl_oes_query_matrix.c \
-	interface/khronos/ext/ext_gl_oes_draw_texture.c \
-	interface/khronos/ext/ext_gl_debug_marker.c \
-	interface/khronos/ext/ext_gl_multisample_render_to_texture.c \
-	interface/khronos/glxx/glxx_client.c \
 	middleware/khronos/common/2708/khrn_render_state_4.c \
 	middleware/khronos/common/2708/khrn_nmem_4.c \
 	middleware/khronos/common/2708/khrn_interlock_4.c \
@@ -217,10 +198,7 @@ SOURCES = \
 	middleware/khronos/common/2708/khrn_prod_4.c \
 	middleware/khronos/common/2708/khrn_tfconvert_4.c \
 	middleware/khronos/common/khrn_tformat.c \
-	middleware/khronos/common/khrn_misc.c \
 	middleware/khronos/common/khrn_math.c \
-	middleware/khronos/common/khrn_map_64.c \
-	middleware/khronos/common/khrn_map.c \
 	middleware/khronos/common/khrn_interlock.c \
 	middleware/khronos/common/khrn_image.c \
 	middleware/khronos/common/khrn_fleaky_map.c \
@@ -228,14 +206,19 @@ SOURCES = \
 	middleware/khronos/common/khrn_bf_dummy.c \
 	middleware/khronos/common/khrn_workarounds.c \
 	middleware/khronos/common/khrn_debug_helper.cpp \
+	middleware/khronos/common/khrn_mem.c \
+	middleware/khronos/common/khrn_map.c \
 	middleware/khronos/egl/abstract_server/egl_platform_abstractserver.c \
 	middleware/khronos/egl/abstract_server/egl_platform_abstractpixmap.c \
 	middleware/khronos/egl/egl_server.c \
 	middleware/khronos/ext/gl_oes_query_matrix.c \
 	middleware/khronos/ext/gl_oes_egl_image.c \
 	middleware/khronos/ext/gl_oes_draw_texture.c \
+	middleware/khronos/ext/gl_oes_framebuffer_object.c \
+	middleware/khronos/ext/ext_gl_multisample_render_to_texture.c \
 	middleware/khronos/ext/egl_brcm_driver_monitor.c \
 	middleware/khronos/ext/egl_khr_image.c \
+	middleware/khronos/ext/ext_gl_debug_marker.c \
 	middleware/khronos/ext/egl_wl_bind_display.c \
 	middleware/khronos/gl11/2708/gl11_shader_4.c \
 	middleware/khronos/gl11/2708/gl11_shadercache_4.c \
@@ -302,6 +285,7 @@ SOURCES = \
 	middleware/khronos/glxx/glxx_server_cr.c \
 	middleware/khronos/glxx/glxx_tweaker.c \
 	vcfw/rtos/abstract/rtos_abstract_mem.c \
+	vcfw/rtos/abstract/talloc.c \
 	interface/vcos/pthreads/vcos_pthreads.c \
 	interface/vcos/generic/vcos_mem_from_malloc.c \
 	interface/vcos/generic/vcos_generic_named_sem.c \

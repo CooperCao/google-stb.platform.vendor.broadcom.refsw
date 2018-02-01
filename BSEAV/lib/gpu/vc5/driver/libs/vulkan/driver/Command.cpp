@@ -23,58 +23,17 @@ LOG_DEFAULT_CAT("bvk::Command");
 uint32_t CmdBinRenderJobObj::Task::m_brJobCounter = 0;
 
 CmdBinRenderJobObj::CmdBinRenderJobObj(const CmdBinRenderJobObj &rhs) :
-   m_binSubjobs(rhs.m_binSubjobs)
-   , m_layers(rhs.m_layers)
-   , m_renderSubjobs(rhs.m_renderSubjobs)
-   , m_brDetails(rhs.m_brDetails)
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   , m_binConfig(rhs.m_binConfig)
-   , m_tileStateManager(rhs.m_tileStateManager)
-#endif
+   m_binSubjobs(rhs.m_binSubjobs),
+   m_layers(rhs.m_layers),
+   m_renderSubjobs(rhs.m_renderSubjobs),
+   m_brDetails(rhs.m_brDetails)
 {
 }
 
 // Task destructor - called when the job has completed
 CmdBinRenderJobObj::Task::~Task()
 {
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   // Clean up the stuff we made for this task scope
-   m_cmd->m_tileStateManager.Release(m_tileStateAddr);
-   gmem_free(m_binCfgHandle);
-#endif
 }
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-// Makes a small block of control-list memory from transient gmem that will
-// just hold the binner config item and a branch to the master control list.
-void CmdBinRenderJobObj::Task::CreateBinConfigCL()
-{
-   // We will need a piece of transient device memory for the bin config instruction
-   // and a branch.
-   m_binCfgHandle = gmem_alloc_and_map(
-      V3D_CL_TILE_BINNING_MODE_CFG_SIZE + V3D_CL_BRANCH_SIZE + V3D_MAX_CLE_READAHEAD,
-      V3D_CL_ALIGN, GMEM_USAGE_V3D_READ | GMEM_USAGE_HINT_DYNAMIC, "Binner config");
-   if (m_binCfgHandle == GMEM_HANDLE_INVALID)
-      throw bvk::bad_device_alloc();
-
-   // Get CPU addressable memory so we can fill it in
-   uint8_t *ptr = static_cast<uint8_t*>(gmem_get_ptr(m_binCfgHandle));
-
-   // Clone the cfg data and update to use the correct address
-   V3D_CL_TILE_BINNING_MODE_CFG_T binCfg = m_cmd->m_binConfig;
-   binCfg.u.part1.tile_state_addr = m_tileStateAddr;
-
-   // Write the config control list item
-   v3d_cl_tile_binning_mode_cfg_indirect(&ptr, &binCfg);
-
-   // Add a branch to the start of the main master bin control list
-   assert(m_cmd->m_binSubjobs.size() == 1);
-   v3d_cl_branch(&ptr, m_cmd->m_binSubjobs[0].start);
-
-   // We're done writing the buffer.
-   gmem_flush_mapped_buffer(m_binCfgHandle);
-}
-#endif
 
 JobID CmdBinRenderJobObj::Task::ScheduleTask(const SchedDependencies &deps)
 {
@@ -92,22 +51,6 @@ JobID CmdBinRenderJobObj::Task::ScheduleTask(const SchedDependencies &deps)
    size = sizeof(v3d_subjob) * m_cmd->m_renderSubjobs.size();
    info.render_subjobs.subjobs = (v3d_subjob*)alloca(size);
    memcpy(info.render_subjobs.subjobs, m_cmd->m_renderSubjobs.data(), size);
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   // Allocate some tile-state memory for the job now.
-   size_t tileStateBytes = m_cmd->m_binConfig.u.part1.w_in_tiles *
-                           m_cmd->m_binConfig.u.part1.h_in_tiles * V3D_TILE_STATE_SIZE;
-
-   m_tileStateAddr = m_cmd->m_tileStateManager.Acquire(tileStateBytes);
-
-   // Now we can create a bin config record which references the tile-state memory.
-   // We deferred doing this during the creation of the master control lists so we don't
-   // take up tile-state memory for control-lists that aren't executing.
-   CreateBinConfigCL();
-
-   assert(info.bin_subjobs.num_subjobs == 1);
-   info.bin_subjobs.subjobs[0].start = gmem_get_addr(m_binCfgHandle);
-#endif
 
 #if KHRN_DEBUG
    // Dump the control-lists to clif if wanted

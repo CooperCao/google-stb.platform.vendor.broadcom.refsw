@@ -1707,6 +1707,9 @@ unsigned bmedia_probe_get_video_color_depth(const bmedia_probe_track *track)
             colorDepth = 10;
         }
         break;
+    case bvideo_codec_vp9:
+        colorDepth = 10; /* apparently there is no sensible way to detect whether VP9 uses 8 or 10 bits, so return 10 */
+        break;
     default:
         /* we support 8 bits only for all other codecs */
         colorDepth = 8;

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2012 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: drm_common_priv.h $
- *
- * Module Description:
- *  Header file, which declares all "hidden" methods and data structures.
- *  The goal is to encapsulate all WIP and future enhancement  elements,
- *  (so any higher level DRM client will not need to change!)
- *
- * Revision History:
- *  2012/04/10 Initial implementation, DRM_Common_Handle, DRM_Common_GetHandle()
  *****************************************************************************/
 #ifndef DRM_COMMON_PRIV_H_
 #define DRM_COMMON_PRIV_H_
@@ -65,30 +55,28 @@ typedef struct DRM_Common_Settings_t
 } DRM_Common_Settings, *DRM_Common_Handle;
 
 /******************************************************************************
-** FUNCTION
-**   DRM_Common_Initialize
-**
-** DESCRIPTION:
-**   Calls 'DRM_Common_BasicInitialize' internally but also requires the path
-**   to a valid DRM bin file.
-**
-** PARAMETERS:
-** commonDrmInit - DrmCommonInit_t structure to pass on to DRM_Common_BasicInitialize
-** key_file - path to valid DRM bin file
-**
-** RETURNS:
-**   Drm_Success or other.
-**
-******************************************************************************/
+ ** FUNCTION
+ **   DRM_Common_Initialize
+ **
+ ** DESCRIPTION:
+ **   Calls 'DRM_Common_BasicInitialize' internally but also requires the path
+ **   to a valid DRM bin file.
+ **
+ ** PARAMETERS:
+ ** commonDrmInit - DrmCommonInit_t structure to pass on to DRM_Common_BasicInitialize
+ ** key_file - path to valid DRM bin file
+ **
+ ** RETURNS:
+ **   Drm_Success or other.
+ **
+ ******************************************************************************/
 DrmRC DRM_Common_Initialize(
-		DrmCommonInit_t *pCommonDrmSettings,
-		char *key_file);
-
+    DrmCommonInit_t *pCommonDrmSettings,
+    char *key_file);
 
 DrmRC DRM_Common_AcquireHandle(DRM_Common_Handle* drmHnd);
 DrmRC DRM_Common_GetHandle(DRM_Common_Handle* drmHnd);
 DrmRC DRM_Common_CloseHandle(void);
-
 
 #ifdef __cplusplus
 }

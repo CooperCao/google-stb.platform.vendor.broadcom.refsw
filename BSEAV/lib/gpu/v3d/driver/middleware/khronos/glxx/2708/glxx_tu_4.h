@@ -26,7 +26,7 @@
  * \param format is the image format to convert.
  * \return Converted image format.
  */
-static INLINE uint32_t tu_image_format_to_type(KHRN_IMAGE_FORMAT_T format)
+static inline uint32_t tu_image_format_to_type(KHRN_IMAGE_FORMAT_T format)
 {
    switch (format) {
    case ABGR_8888_TF: return 0;
@@ -62,7 +62,7 @@ static INLINE uint32_t tu_image_format_to_type(KHRN_IMAGE_FORMAT_T format)
    }
 }
 
-static INLINE bool tu_image_format_rb_swap(KHRN_IMAGE_FORMAT_T format)
+static inline bool tu_image_format_rb_swap(KHRN_IMAGE_FORMAT_T format)
 {
    switch (format) {
    case ABGR_8888_TF:
@@ -125,7 +125,7 @@ static INLINE bool tu_image_format_rb_swap(KHRN_IMAGE_FORMAT_T format)
 
 //unused
 
-//static INLINE void glxx_hw_tu_set_config(GLXX_FIXABLE_BUF_T *um_ptr, uint32_t wrapt, uint32_t wraps, uint32_t minfilt, uint32_t magfilt, uint32_t miplvls, KHRN_IMAGE_FORMAT_T format, uint32_t width, uint32_t height, GLXX_FIXABLE_ADDR_T *base_addr)
+//static inline void glxx_hw_tu_set_config(GLXX_FIXABLE_BUF_T *um_ptr, uint32_t wrapt, uint32_t wraps, uint32_t minfilt, uint32_t magfilt, uint32_t miplvls, KHRN_IMAGE_FORMAT_T format, uint32_t width, uint32_t height, GLXX_FIXABLE_ADDR_T *base_addr)
 //{
 //   uint32_t type = tu_image_format_to_type(format);
 //   uint32_t nonp2 = (width & (width-1)) != 0 || (height & (height-1)) != 0;

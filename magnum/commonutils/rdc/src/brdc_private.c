@@ -70,10 +70,10 @@ BERR_Code BRDC_P_SoftReset
 )
 {
     BERR_Code err = BERR_SUCCESS;
-    uint32_t  ulReg;
-    int       i;
-    uint32_t  ulRegOffset;
-    uint32_t  ulRegConfig;
+    uint32_t ulReg;
+    uint32_t i;
+    uint32_t ulRegOffset;
+    uint32_t ulRegConfig;
     uint32_t ulTrigSelect;
 
     BDBG_ENTER(BRDC_P_SoftReset);
@@ -141,7 +141,7 @@ BERR_Code BRDC_P_SoftReset
         ;
 
     /* set all descriptors */
-    for (i=0; i<32; ++i)
+    for (i=0; i<hRdc->ulMaxAvailableSlot; ++i)
     {
         BKNI_EnterCriticalSection();
         /* write address and config */

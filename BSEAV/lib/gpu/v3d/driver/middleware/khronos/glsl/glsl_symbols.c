@@ -312,7 +312,7 @@ static void init_primitive_types(void)
    primitiveTypeSubscriptTypes[PRIM_SAMPLERCUBE] = NULL;
 }
 
-static INLINE const_int* allocate_const_int(const_int i)
+static inline const_int* allocate_const_int(const_int i)
 {
    const_int* p = (const_int *)malloc_fast(sizeof(const_int));
    *p = i;

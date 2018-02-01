@@ -58,6 +58,7 @@ typedef struct PlatformListener
     BLST_Q_ENTRY(PlatformListener) link;
     PlatformCallback callback;
     void * pContext;
+    bool deleted;
 } PlatformListener;
 
 typedef BLST_Q_HEAD(PlatformListenerList, PlatformListener) PlatformListenerList;
@@ -70,6 +71,7 @@ typedef struct PlatformScheduler
     BKNI_EventHandle wake;
     BKNI_MutexHandle mutex;
     PlatformListenerList listeners;
+    PlatformListenerList free;
 } PlatformScheduler;
 
 PlatformSchedulerHandle platform_scheduler_p_create(PlatformHandle platform);

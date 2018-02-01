@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,6 +43,7 @@
 #include "nexus_audio_module.h"
 #include "nexus_pid_channel.h"
 #include "nexus_timebase.h"    /* Timebase */
+#include "priv/nexus_audio_mixer_priv.h"
 
 BDBG_MODULE(nexus_audio_mixer);
 
@@ -196,6 +197,9 @@ NEXUS_AudioMixerHandle NEXUS_AudioMixer_Open(
         mixerSettings.fade.mainDecodeFade.level = pSettings->mainDecodeFade.level;
         mixerSettings.fade.mainDecodeFade.type = pSettings->mainDecodeFade.type;
         mixerSettings.fade.mainDecodeFade.duration = pSettings->mainDecodeFade.duration;
+        if ( NEXUS_GetEnv("audio_mixer_zereos_disabled") ) {
+            mixerSettings.mixerEnableZeros = false;
+        }
 
         rc = BAPE_Mixer_Create(NEXUS_AUDIO_DEVICE_HANDLE, &mixerSettings, &pMixer->dspMixer);
         if ( rc )
@@ -1078,6 +1082,16 @@ NEXUS_Error NEXUS_AudioMixer_GetStatus(
     }
 
     return BERR_SUCCESS;
+}
+
+bool NEXUS_AudioMixer_IsInputMaster_priv(
+        NEXUS_AudioMixerHandle handle,
+        NEXUS_AudioInputHandle input
+        )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_AudioMixer);
+    BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
+    return handle->settings.master == input ? true : false;
 }
 
 NEXUS_Error NEXUS_AudioMixer_P_SetInputVolume(

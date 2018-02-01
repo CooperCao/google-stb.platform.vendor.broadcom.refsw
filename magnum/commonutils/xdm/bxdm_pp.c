@@ -3170,7 +3170,7 @@ BXDM_PictureProvider_Callback_GetEnable_isr(
 BERR_Code \
 BXDM_PictureProvider_Callback_Install_##_name##_isr(\
          BXDM_PictureProvider_Handle hXdmPP,\
-         BXDM_PictureProvider_Callback_##_name##_isr fCallback,\
+         BXDM_PictureProvider_Callback_##_name##_isr fCallback_isr,\
          void *pPrivateContext,\
          int32_t iPrivateParam\
 )\
@@ -3181,11 +3181,11 @@ BXDM_PictureProvider_Callback_Install_##_name##_isr(\
    BDBG_ASSERT(hXdmPP);\
    BDBG_MSG(("BXDM_PictureProvider_Callback_Install_"#_name"_isr(0x%lu, f:0x%lu, pp:0x%lu, pi:%d)",\
                   (unsigned long)hXdmPP,\
-                  (unsigned long)fCallback,\
+                  (unsigned long)fCallback_isr,\
                   (unsigned long)pPrivateContext,\
                   iPrivateParam\
                   ));\
-   hXdmPP->stCallbacks[ePictureProviderCallback].stFunction.f##_name = fCallback;\
+   hXdmPP->stCallbacks[ePictureProviderCallback].stFunction.f##_name = fCallback_isr;\
    hXdmPP->stCallbacks[ePictureProviderCallback].pPrivateContext = pPrivateContext;\
    hXdmPP->stCallbacks[ePictureProviderCallback].iPrivateParam = iPrivateParam;\
    BDBG_LEAVE(BXDM_PictureProvider_Callback_Install_##_name##_isr);\

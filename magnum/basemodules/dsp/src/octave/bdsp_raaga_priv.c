@@ -48,9 +48,6 @@ BDBG_OBJECT_ID(BDSP_RaagaQueue);
 BDBG_OBJECT_ID(BDSP_RaagaExternalInterrupt);
 BDBG_OBJECT_ID(BDSP_RaagaCapture);
 
-#ifdef FIREPATH_BM
- extern DSP dspInst;
-#endif
 const BDSP_Version BDSP_sRaagaVersion = {BDSP_RAAGA_MAJOR_VERSION, BDSP_RAAGA_MINOR_VERSION, BDSP_RAAGA_BRANCH_VERSION, BDSP_RAAGA_BRANCH_SUBVERSION};
 
 /***********************************************************************
@@ -118,35 +115,33 @@ BERR_Code BDSP_Raaga_P_InitDeviceSettings(
 )
 {
 	unsigned dspIndex;
-#if 0
 	unsigned lowerDspClkRate;
-#endif/*CDN TODO*/
+
 	BERR_Code err = BERR_SUCCESS;
 
 	pRaaga->numDsp       = BDSP_RAAGA_MAX_DSP;
 	pRaaga->numCorePerDsp= BDSP_RAAGA_MAX_CORE_PER_DSP;
 
-#if 0
+	err = BDSP_Raaga_P_GetNumberOfDspandCores( pRaaga->boxHandle, &pRaaga->numDsp, &pRaaga->numCorePerDsp);
+	if(err != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_InitDeviceSettings: Error in retreiving the Number of DSPs and CorePerDsp from BOX MODE"));
+		BDBG_ERR(("Falling back to default value, DSP (%d) CorePerDsp(%d)",pRaaga->numDsp,pRaaga->numCorePerDsp));
+	}
+
 	for (dspIndex=0 ; dspIndex < pRaaga->numDsp; dspIndex++)
 	{
-		err = BDSP_Raaga_P_GetDefaultClkRate(pDeviceHandle, dspIndex, &pRaaga->dpmInfo.defaultDspClkRate[dspIndex] );
+		err = BDSP_Raaga_P_GetDefaultClkRate(pRaaga, dspIndex, &pRaaga->hardwareStatus.dpmInfo.defaultDspClkRate[dspIndex] );
 		if( err == BERR_SUCCESS )
 		{
-			BDSP_Raaga_P_GetLowerDspClkRate(pRaaga->dpmInfo.defaultDspClkRate[dspIndex], &lowerDspClkRate);
-			BDSP_Raaga_P_SetDspClkRate( pDeviceHandle, lowerDspClkRate, dspIndex );
+			BDSP_Raaga_P_GetLowerDspClkRate(pRaaga->hardwareStatus.dpmInfo.defaultDspClkRate[dspIndex], &lowerDspClkRate);
+			BDSP_Raaga_P_SetDspClkRate( pRaaga, lowerDspClkRate, dspIndex );
 			BDBG_MSG(("PWR: Dynamic frequency scaling enabled for DSP %d", dspIndex));
 		}
 		else
 		{
 			BDBG_MSG(("PWR: Dynamic frequency scaling not enabled for DSP %d", dspIndex));
 		}
-	}
-#endif /*CDN TODO*/
-	err = BDSP_Raaga_P_GetNumberOfDspandCores( pRaaga->boxHandle, &pRaaga->numDsp, &pRaaga->numCorePerDsp);
-	if(err != BERR_SUCCESS)
-	{
-		BDBG_ERR(("BDSP_Raaga_P_InitDeviceSettings: Error in retreiving the Number of DSPs and CorePerDsp from BOX MODE"));
-		BDBG_ERR(("Falling back to default value, DSP (%d) CorePerDsp(%d)",pRaaga->numDsp,pRaaga->numCorePerDsp));
 	}
 
 	for (dspIndex=0 ; dspIndex < pRaaga->numDsp; dspIndex++)
@@ -260,11 +255,15 @@ static BERR_Code BDSP_Raaga_P_InitDebugInfrastructure(
 {
 	BERR_Code errCode = BERR_SUCCESS;
 	uint32_t ui32RegOffset = 0, ui32DspOffset =0, ui32FifoId =0;
-    dramaddr_t  BaseOffset=0, EndOffset=0;
+        dramaddr_t  BaseOffset=0, EndOffset=0;
 	unsigned index =0, dspIndex =0;
 	DSP *pDspInst = NULL;
+
+#ifndef FIREPATH_BM
 	DSP_PARAMETERS dsp_parameters;
 	DSP_RET  eRetVal;
+	uint32_t dspMemoryPoolIndex = 0;
+#endif
 
 	BDBG_ENTER(BDSP_Raaga_P_InitDebugInfrastructure);
 
@@ -281,20 +280,53 @@ static BERR_Code BDSP_Raaga_P_InitDebugInfrastructure(
 	dsp_parameters.hReg = pDevice->regHandle;
 	dsp_parameters.hMem = pDevice->memHandle;
 
-	/* The information provided to DSP INIT is the memory which is part of the kernal RW section, which the
-	FW SDK uses to write into when prints are invoked in the FW.	The same buffer will to be accessed by the
-	HOST LIBDSP to peek/copy/consume the data */
+	/* we should specify the memory range that is accessed by libdspcontrol
+	   This data is used to validate if the memory accessed is within range or not */
 	for(dspIndex=0;dspIndex<pDevice->numDsp;dspIndex++)
 	{
-		dsp_parameters.sMmaBuffer[dspIndex] = pDevice->memInfo.TargetBufferMemory[dspIndex];
+		/* For Debug buffer, we should change the below code */
+		/* We can have control to allocate debug buffer only when debug service is enabled, support will be added in a separate JIRA */
+		/*DBG service would require the process memory pool to be made visible to libdspcontrol */
+		dsp_parameters.sMmaBuffer[dspMemoryPoolIndex] = pDevice->memInfo.DeubgServiceMemory[dspIndex];
+		dspMemoryPoolIndex++;
+
+		/* Add entry for target print buffer accessed throught target print API */
+		dsp_parameters.sMmaBuffer[dspMemoryPoolIndex] = pDevice->memInfo.TargetBufferMemory[dspIndex];
+		dspMemoryPoolIndex++;
 	}
 
-	dsp_parameters.ui32MmaBufferValidEntries = pDevice->numDsp;
+	dsp_parameters.ui32MmaBufferValidEntries = dspMemoryPoolIndex;
 	eRetVal = DSP_init(pDspInst, &dsp_parameters);
 	BDBG_ASSERT(eRetVal == DSP_SUCCESS);
-#endif
+
+#endif /* FIREPATH_BM */
+
         /* We do not need logs from libdsp control (fp_sdk) interface */
 	/*DSPLOG_setLevel(DSPLOG_NOTHING_LEVEL);*/
+
+#ifdef BDSP_RAAGA_DEBUG_SERVICE
+        /*Initialized on-chip debug service module*/
+	for(dspIndex=0;dspIndex<pDevice->numDsp;dspIndex++)
+	{
+            DBG_PARAMETERS dbg_params;
+            int coreId = 0; /* Core 0 */
+	    DSP_RET  errVal;
+
+            dbg_params.dsp = pDspInst;
+            dbg_params.mutex_acquire_retries = 50;
+            dbg_params.id = dspIndex;
+            dbg_params.socket_port = DBG_DEFAULT_PORT + dspIndex;
+            dbg_params.dsp_core = (DSP_CORE) coreId;
+
+            errVal = DBG_init(&pDevice->sDbgInst[dspIndex], &dbg_params);
+            if(!DSP_SUCCEEDED(errVal))
+            {
+                BDBG_ERR(("DBG_init failed with code %d\n", errVal));
+                BDBG_ASSERT(errVal == DSP_SUCCESS);
+            }
+	}
+	DSPLOG_setLevel(DSPLOG_NOTHING_LEVEL);
+#endif /* BDSP_RAAGA_DEBUG_SERVICE */
 
 	for(dspIndex=0;dspIndex<pDevice->numDsp;dspIndex++)
 	{
@@ -589,6 +621,10 @@ static BERR_Code BDSP_Raaga_P_InitAtStartTask(
 	}
 
 	BKNI_AcquireMutex(pDevice->deviceMutex);
+	if( !pDevice->taskDetails[pRaagaTask->createSettings.dspIndex].numActiveTasks )
+	{
+		BDSP_Raaga_P_SetDspClkRate( (void *)pDevice, pDevice->hardwareStatus.dpmInfo.defaultDspClkRate[pRaagaTask->createSettings.dspIndex], pRaagaTask->createSettings.dspIndex );
+	}
 	pDevice->taskDetails[pRaagaTask->createSettings.dspIndex].numActiveTasks++;
 	pDevice->taskDetails[pRaagaTask->createSettings.dspIndex].pTask[pRaagaTask->taskParams.taskId] = (void *)pRaagaTask;
 	BKNI_ReleaseMutex(pDevice->deviceMutex);
@@ -616,6 +652,7 @@ static void BDSP_Raaga_P_UnInitAtStopTask(
 {
 	BDSP_Raaga      *pDevice;
 	BDSP_RaagaStage *pRaagaPrimaryStage;
+	unsigned lowerDspClkRate=0;
 
 	BDBG_ENTER(BDSP_Raaga_P_UnInitAtStopTask);
 	pDevice = (BDSP_Raaga *)pRaagaTask->pContext->pDevice;
@@ -639,6 +676,11 @@ static void BDSP_Raaga_P_UnInitAtStopTask(
 
 	BKNI_AcquireMutex(pRaagaTask->pContext->pDevice->deviceMutex);
 	pDevice->taskDetails[pRaagaTask->createSettings.dspIndex].numActiveTasks--;
+	if( !pDevice->taskDetails[pRaagaTask->createSettings.dspIndex].numActiveTasks)
+	{
+		BDSP_Raaga_P_GetLowerDspClkRate(pDevice->hardwareStatus.dpmInfo.defaultDspClkRate[pRaagaTask->createSettings.dspIndex], &lowerDspClkRate);
+		BDSP_Raaga_P_SetDspClkRate( (void * )pDevice, lowerDspClkRate, pRaagaTask->createSettings.dspIndex );
+	}
 	pDevice->taskDetails[pRaagaTask->createSettings.dspIndex].pTask[pRaagaTask->taskParams.taskId] = NULL;
 	BKNI_ReleaseMutex(pRaagaTask->pContext->pDevice->deviceMutex);
 
@@ -760,6 +802,7 @@ BERR_Code BDSP_Raaga_P_Open(BDSP_Raaga *pDevice)
 {
 	BERR_Code errCode = BERR_SUCCESS;
 	unsigned dspindex=0, MemoryRequired=0;
+  unsigned kernel_rw_memory_size = 0, host_fw_shared_rw_memory_size = 0;
 
 	BDBG_ENTER(BDSP_Raaga_P_Open);
 	BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
@@ -798,9 +841,44 @@ BERR_Code BDSP_Raaga_P_Open(BDSP_Raaga *pDevice)
 		BDBG_MSG(("BDSP_Raaga_P_Open: RO Memory Required = %d",MemoryRequired));
         pDevice->memInfo.sROMemoryPool.ui32Size     = MemoryRequired;
         pDevice->memInfo.sROMemoryPool.ui32UsedSize = 0;
+        BKNI_Memset(pDevice->memInfo.sROMemoryPool.Memory.pAddr, 0 , pDevice->memInfo.sROMemoryPool.ui32Size);
 
+    /* calculate Kernel RW memory */
+    /* calculate host+FW shared RW memory size */
+    /* calculate FW RW memory size */
 		for(dspindex=0; dspindex<pDevice->numDsp; dspindex++)
 		{
+	    BDSP_Raaga_P_CalculateKernelRWMemory(&kernel_rw_memory_size);
+			errCode = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+									kernel_rw_memory_size,
+									&(pDevice->memInfo.sKernelRWMemoryPool[dspindex].Memory),
+									BDSP_MMA_Alignment_4KByte);
+			if(errCode != BERR_SUCCESS)
+			{
+				BDBG_ERR(("BDSP_Raaga_P_Open: Unable to Allocate Kernel Read Write Memory for Raaga"));
+				errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+				BDBG_ASSERT(0);
+			}
+			BDBG_MSG(("BDSP_Raaga_P_Open: RW Memory Required for Dsp(%d)= %d",dspindex, kernel_rw_memory_size));
+			pDevice->memInfo.sKernelRWMemoryPool[dspindex].ui32Size     = kernel_rw_memory_size;
+			pDevice->memInfo.sKernelRWMemoryPool[dspindex].ui32UsedSize = 0;
+
+
+	    BDSP_Raaga_P_CalculateHostFWsharedRWMemory(pDevice, &host_fw_shared_rw_memory_size);
+			errCode = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+									host_fw_shared_rw_memory_size,
+									&(pDevice->memInfo.sHostSharedRWMemoryPool[dspindex].Memory),
+									BDSP_MMA_Alignment_4KByte);
+			if(errCode != BERR_SUCCESS)
+			{
+				BDBG_ERR(("BDSP_Raaga_P_Open: Unable to Allocate Kernel Read Write Memory for Raaga"));
+				errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+				BDBG_ASSERT(0);
+			}
+			BDBG_MSG(("BDSP_Raaga_P_Open: RW Memory Required for Dsp(%d)= %d",dspindex, host_fw_shared_rw_memory_size));
+			pDevice->memInfo.sHostSharedRWMemoryPool[dspindex].ui32Size     = host_fw_shared_rw_memory_size;
+			pDevice->memInfo.sHostSharedRWMemoryPool[dspindex].ui32UsedSize = 0;
+
 			BDSP_Raaga_P_CalculateDeviceRWMemory(pDevice, dspindex, &MemoryRequired);
 			errCode = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
 									MemoryRequired,
@@ -816,6 +894,7 @@ BERR_Code BDSP_Raaga_P_Open(BDSP_Raaga *pDevice)
 			pDevice->memInfo.sRWMemoryPool[dspindex].ui32Size     = MemoryRequired;
 			pDevice->memInfo.sRWMemoryPool[dspindex].ui32UsedSize = 0;
 		}
+
 		errCode = BDSP_Raaga_P_DownloadCode((void *)pDevice);
 		if(errCode != BERR_SUCCESS)
 		{
@@ -996,6 +1075,8 @@ void BDSP_Raaga_P_Close(
             errCode = BERR_TRACE(errCode);
         }
 
+		BDSP_MMA_P_FreeMemory(&(pDevice->memInfo.sKernelRWMemoryPool[dspIndex].Memory));
+		BDSP_MMA_P_FreeMemory(&(pDevice->memInfo.sHostSharedRWMemoryPool[dspIndex].Memory));
 		BDSP_MMA_P_FreeMemory(&(pDevice->memInfo.sRWMemoryPool[dspIndex].Memory));
 	}
 
@@ -1718,6 +1799,17 @@ void BDSP_Raaga_P_DestroyStage(
 		BDBG_ERR(("BDSP_Raaga_P_DestroyStage: Trying to Destroy a Running stage(%d) on Task (%d)",
 			pRaagaStage->eAlgorithm, pRaagaStage->pRaagaTask->taskParams.taskId));
 		BDBG_ASSERT(0);
+	}
+
+	{
+		BDSP_RaagaCapture *pRaagaCapture;
+		for (pRaagaCapture = BLST_S_FIRST(&pRaagaStage->captureList);
+				pRaagaCapture != NULL;
+				pRaagaCapture = BLST_S_NEXT(pRaagaCapture, node) )
+		{
+			BLST_S_REMOVE(&pRaagaStage->captureList, pRaagaCapture, BDSP_RaagaCapture, node);
+			pRaagaCapture->stageDestroyed = true;
+		}
 	}
 
 	BDSP_MMA_P_FreeMemory(&pRaagaStage->stageMemInfo.sMemoryPool.Memory);

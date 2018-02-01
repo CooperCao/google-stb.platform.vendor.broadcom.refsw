@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -168,6 +168,12 @@ int probe_media_request(const struct probe_request *request, struct probe_result
                     results->audio[results->num_audio].pid = track->number;
                     results->audio[results->num_audio].codec = b_audiocodec2nexus(track->info.audio.codec);
                     results->num_audio++;
+                }
+                break;
+            case bmedia_track_type_pcr:
+                if( results->num_pcr < sizeof(results->pcr)/sizeof(results->pcr[0]) ) {
+                    results->pcr[results->num_pcr].pid = track->number;
+                    results->num_pcr++;
                 }
                 break;
             case bmedia_track_type_video:

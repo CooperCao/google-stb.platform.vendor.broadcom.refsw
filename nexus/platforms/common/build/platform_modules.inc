@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -242,6 +242,9 @@ include $(NEXUS_TOP)/modules/playback/playback.inc
 endif
 ifneq ($(NEXUS_RECORD_SUPPORT),n)
 include $(NEXUS_TOP)/modules/record/record.inc
+endif
+ifeq ($(NEXUS_ASP_SUPPORT),y)
+include $(NEXUS_TOP)/modules/asp/asp.inc
 endif
 
 ##############################

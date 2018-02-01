@@ -52,6 +52,15 @@ extern bool v3d_qpu_op_requires_read_a(v3d_qpu_opcode_t op);
 
 extern uint32_t v3d_qpu_op_num_inputs(v3d_qpu_opcode_t opcode);
 
+static inline bool v3d_qpu_op_is_sfu(v3d_qpu_opcode_t op) {
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   return op == V3D_QPU_OP_RECIP || op == V3D_QPU_OP_LOG   || op == V3D_QPU_OP_EXP ||
+          op == V3D_QPU_OP_SIN   || op == V3D_QPU_OP_RSQRT || op == V3D_QPU_OP_RSQRT2;
+#else
+   return false;
+#endif
+}
+
 /* 2-input ops only! */
 extern bool v3d_qpu_op_is_commutative(v3d_qpu_opcode_t opcode);
 extern bool v3d_qpu_op_is_zero_when_inputs_match(v3d_qpu_opcode_t opcode);
@@ -70,7 +79,7 @@ typedef enum
    V3D_QPU_SIG_LDUNIF    = (1<<1),
    V3D_QPU_SIG_LDTMU     = (1<<2),
    V3D_QPU_SIG_LDVARY    = (1<<3),
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_QPU_SIG_WRTMUC    = (1<<4),
 #else
    V3D_QPU_SIG_LDVPM     = (1<<4),
@@ -91,7 +100,7 @@ struct v3d_qpu_sig
 {
    v3d_qpu_sigbits_t sigbits;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 #if V3D_VER_AT_LEAST(4,1,34,0)
    bool magic;
 #else
@@ -234,7 +243,7 @@ typedef enum
    V3D_QPU_MAGIC_WADDR_CLASS_NOP,
    V3D_QPU_MAGIC_WADDR_CLASS_TLB,
    V3D_QPU_MAGIC_WADDR_CLASS_TMU,
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    V3D_QPU_MAGIC_WADDR_CLASS_VPM,
 #endif
    V3D_QPU_MAGIC_WADDR_CLASS_SYNC,
@@ -246,6 +255,17 @@ typedef enum
 } v3d_qpu_magic_waddr_class_t;
 
 extern v3d_qpu_magic_waddr_class_t v3d_qpu_classify_magic_waddr(uint32_t addr);
+
+typedef enum
+{
+   V3D_QPU_RES_FLAG_Z,
+   V3D_QPU_RES_FLAG_N,
+   V3D_QPU_RES_FLAG_C,
+   V3D_QPU_RES_FLAG_INVALID
+} v3d_qpu_res_flag_t;
+
+// Returns V3D_QPU_RES_FLAG_INVALID if no flag needed
+extern v3d_qpu_res_flag_t v3d_qpu_required_res_flag(v3d_qpu_setf_t setf);
 
 struct v3d_qpu_instr_write
 {

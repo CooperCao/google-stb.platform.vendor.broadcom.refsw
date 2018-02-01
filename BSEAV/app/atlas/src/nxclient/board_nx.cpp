@@ -41,6 +41,7 @@
 #include "display_nx.h"
 #include "video_decode_nx.h"
 #include "audio_decode_nx.h"
+#include "audio_playback_nx.h"
 #include "output_nx.h"
 #include "bluetooth_nx.h"
 #include "wifi.h"
@@ -257,6 +258,16 @@ eRet CBoardResourcesNx::add(
             pSimpleAudioDecode = new CSimpleAudioDecodeNx(MString(name)+"Nx", (id && (id != i)) ? id : i, pCfg);
             BDBG_ASSERT(pSimpleAudioDecode);
             _simpleDecodeAudioList.add(pSimpleAudioDecode);
+        }
+        break;
+
+        case eBoardResource_simplePcmPlayback:
+            /* skip unsupported decoders */
+        {
+            CSimplePcmPlayback * pSimpleAudioPlayback = NULL;
+            pSimpleAudioPlayback = new CSimplePcmPlaybackNx(MString(name)+"Nx", (id && (id != i)) ? id : i, pCfg);
+            BDBG_ASSERT(pSimpleAudioPlayback);
+            _simplePcmPlaybackList.add(pSimpleAudioPlayback);
         }
         break;
 

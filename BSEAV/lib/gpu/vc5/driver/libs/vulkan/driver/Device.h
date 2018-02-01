@@ -76,6 +76,27 @@ public:
       const VkCommandBufferAllocateInfo   *pAllocateInfo,
       VkCommandBuffer                     *pCommandBuffers) noexcept;
 
+   void GetImageMemoryRequirements2KHR(
+      const VkImageMemoryRequirementsInfo2KHR   *pInfo,
+      VkMemoryRequirements2KHR                  *pMemoryRequirements) noexcept;
+
+   void GetBufferMemoryRequirements2KHR(
+      const VkBufferMemoryRequirementsInfo2KHR  *pInfo,
+      VkMemoryRequirements2KHR                  *pMemoryRequirements) noexcept;
+
+   void GetImageSparseMemoryRequirements2KHR(
+      const VkImageSparseMemoryRequirementsInfo2KHR   *pInfo,
+      uint32_t                                        *pSparseMemoryRequirementCount,
+      VkSparseImageMemoryRequirements2KHR             *pSparseMemoryRequirements) noexcept;
+
+   VkResult BindBufferMemory2KHR(
+      uint32_t                          bindInfoCount,
+      const VkBindBufferMemoryInfoKHR  *pBindInfos) noexcept;
+
+   VkResult BindImageMemory2KHR(
+      uint32_t                          bindInfoCount,
+      const VkBindImageMemoryInfoKHR   *pBindInfos) noexcept;
+
    VkResult CreateSharedSwapchainsKHR(
       uint32_t                          swapchainCount,
       const VkSwapchainCreateInfoKHR   *pCreateInfos,

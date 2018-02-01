@@ -104,7 +104,6 @@ void khrn_init_options(void)
    khrn_options.disable_tweaks          = read_bool_option(  "V3D_DISABLE_TWEAKS",        khrn_options.disable_tweaks);
    khrn_options.shadow_egl_images       = read_bool_option(  "V3D_SHADOW_EGL_IMAGES",     khrn_options.shadow_egl_images);
    khrn_options.glsl_sts_saving_on      = read_bool_option(  "V3D_GLSL_STS_SAVING_ON",    khrn_options.glsl_sts_saving_on);
-   khrn_options.use_mma                 = read_bool_option(  "V3D_USE_MMA",               khrn_options.use_mma);
    read_string_option("V3D_GLSL_STS_SAVE_DIR",    khrn_options.glsl_sts_save_dir, MAX_OPTION_PATHLEN);
    read_string_option("V3D_GRAPHVIZ_FOLDER",      khrn_options.graphviz_folder, MAX_OPTION_PATHLEN);
 #endif
@@ -127,8 +126,6 @@ void khrn_init_options(void)
    khrn_options.shadow_egl_images       = read_uint32_option("debug.gl.hw.shadow_egl_images",       khrn_options.shadow_egl_images);
    khrn_options.glsl_sts_saving_on      = read_uint32_option("debug.gl.hw.glsl_sts_saving_on",      khrn_options.glsl_sts_saving_on);
    khrn_options.glsl_debug_on           = read_uint32_option("debug.gl.hw.glsl_debug_on",           khrn_options.glsl_debug_on);
-   /* this option matches the same as in libhwcomposer */
-   khrn_options.use_mma                 = read_uint32_option("ro.nx.mma",                           khrn_options.use_mma);
 
    LOGD("==========================================================================");
    LOGD("debug.gl.hw.gl_error_assist = %d",  khrn_options.gl_error_assist);
@@ -146,7 +143,6 @@ void khrn_init_options(void)
    LOGD("debug.gl.hw.disable_tweaks = %d", khrn_options.disable_tweaks);
    LOGD("debug.gl.hw.shadow_egl_images = %d", khrn_options.shadow_egl_images);
    LOGD("debug.gl.hw.glsl_sts_saving_on = %d",  khrn_options.glsl_sts_saving_on);
-   LOGD("ro.nx.mma = %d", khrn_options.use_mma);
    LOGD("==========================================================================");
 #endif
 }

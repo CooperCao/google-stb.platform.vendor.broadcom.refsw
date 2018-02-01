@@ -80,14 +80,12 @@ static bool query_init(GLXX_QUERY_T* query, unsigned name)
    return true;
 }
 
-static void query_term(void *v, size_t size)
+static void query_term(void *v)
 {
    GLXX_QUERY_T *query = (GLXX_QUERY_T *)v;
 
    free(query->debug_label);
    query->debug_label = NULL;
-
-   unused(size);
 }
 
 GLXX_QUERY_T* glxx_query_create(unsigned name)
@@ -262,7 +260,7 @@ void glxx_queries_release(glxx_query_block *query_list)
 }
 
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 static v3d_addr_t primitive_counts_hw_addr(
    khrn_fmem *fmem,

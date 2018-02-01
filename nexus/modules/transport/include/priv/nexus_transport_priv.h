@@ -120,6 +120,20 @@ void NEXUS_TransportModule_GetMtsifPidChannels_priv(
     );
 void NEXUS_TransportModule_GetPidchannelEvent(BKNI_EventHandle *event);
 
+struct NEXUS_TbgHostParserSettings {
+    bool enabled;
+    uint8_t markerTag;
+    struct {
+        bool changed;
+        unsigned primaryParserBandIndex;
+        unsigned unmappedPidChIndex;
+    } band[NEXUS_NUM_PARSER_BANDS];
+};
+
+void NEXUS_Tbg_GetHostParserSettings_priv(
+    struct NEXUS_TbgHostParserSettings *pSettings
+    );
+
 void NEXUS_ParserBand_P_MtsifErrorStatus_priv(unsigned lengthError, unsigned transportError);
 bool NEXUS_TransportModule_P_IsMtsifEncrypted(void);
 void NEXUS_TransportModule_P_ForceMtsifEncrypted(unsigned index);

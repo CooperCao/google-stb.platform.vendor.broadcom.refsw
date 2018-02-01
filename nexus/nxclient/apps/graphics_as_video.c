@@ -107,7 +107,7 @@ int main(int argc, char **argv)
     unsigned connectId;
     NEXUS_Error rc;
     NEXUS_SurfaceCreateSettings surfaceCreateSettings;
-    NEXUS_SimpleVideoDecoderHandle videoDecoder;
+    NEXUS_SimpleVideoDecoderHandle videoDecoder=NULL;
     NEXUS_VideoImageInputHandle imageInput;
     NEXUS_Graphics2DHandle gfx;
     NEXUS_Graphics2DSettings gfxSettings;
@@ -231,6 +231,7 @@ restart:
 
             rc = NEXUS_VideoImageInput_RecycleSurface(imageInput, &freeSurface , 1, &num_entries);
             if (rc) {
+                BDBG_ASSERT(videoDecoder);
                 if (!wait_for_idle_decoder(videoDecoder)) {
                     goto restart;
                 }

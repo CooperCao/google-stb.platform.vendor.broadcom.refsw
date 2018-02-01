@@ -94,6 +94,11 @@ enum nxserverlib_svp_type {
     nxserverlib_svp_type_cdb_urr /* Force CRR for video CDB + default to all secure only buffers */
 };
 
+struct nxclient_connect_settings
+{
+    bool allow_grab;
+};
+
 struct nxserver_settings
 {
     BKNI_MutexHandle lock; /* mutex held by upper layer when NxClient functions are called.
@@ -200,7 +205,8 @@ struct nxserver_settings
         NEXUS_HeapHandle heap[NEXUS_MAX_HEAPS]; /* client heaps */
 
         /* callback when client connects. return non-zero to reject client. pClientSettings may be modified. */
-        int (*connect)(nxclient_t client, const NxClient_JoinSettings *pJoinSettings, NEXUS_ClientSettings *pClientSettings);
+        int (*connect)(nxclient_t client, const NxClient_JoinSettings *pJoinSettings, NEXUS_ClientSettings *pClientSettings,
+            struct nxclient_connect_settings *pconnect_settings);
 
         /* callback when client disconnects */
         void (*disconnect)(nxclient_t client, const NxClient_JoinSettings *pJoinSettings);
@@ -249,6 +255,9 @@ struct nxserver_settings
         void (*freeIndex)(void *callback_context, enum nxserverlib_index_type type, unsigned index);
         void *callback_context;
     } externalApp; /* Allow external application to open displays, outputs and decoders, then invoke nxserver as needed. See nxserverlib_allow_decode below. */
+    struct {
+        char *thermal_config_file;
+    } thermal;
 };
 
 /* Capture some cmdline settings which are parsed and applied to NEXUS_PlatformSettings and
@@ -258,7 +267,7 @@ or you can modify NEXUS_PlatformSettings and NEXUS_MemoryConfigurationSettings d
 struct nxserver_cmdline_settings
 {
     struct {
-        const char *str[5];
+        const char *str[16];
         unsigned total;
     } memconfig, heap;
     bool avc51;
@@ -403,6 +412,8 @@ NEXUS_Error NxClient_P_SetClientMode(nxclient_t client, const NxClient_ClientMod
 
 void NxClient_P_GetSurfaceClientComposition(nxclient_t client, unsigned surfaceClientId, NEXUS_SurfaceComposition *pComposition);
 NEXUS_Error NxClient_P_SetSurfaceClientComposition(nxclient_t client, unsigned surfaceClientId, const NEXUS_SurfaceComposition *pComposition);
+
+NEXUS_Error NxClient_P_GetThermalStatus(nxclient_t client, NxClient_ThermalStatus *pStatus);
 
 /* local server calls for client control */
 struct nxclient_status

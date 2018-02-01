@@ -235,22 +235,22 @@ BERR_Code BSRF_g1_P_OpenChannel(
       chG1->bOmitRfagcLut[idxLutOmit[i]] = true;
 
    chG1->numRfagcLutOmitted = BSRF_SXM_NUM_AGC_CODES_DELETE;
-   chG1->fastDecayGainThr = -32;
-   chG1->bEnableFastDecay = true;
+   chG1->fastDecayGainThr = -37;
+   chG1->bEnableFastDecay = false;
 
-   chG1->rfagcSettings.attackSettings.timeNs = 40000;
-   chG1->rfagcSettings.attackSettings.threshold = -1268777;    /* -15.5dBFS scaled 2^16 */
+   chG1->rfagcSettings.attackSettings.timeNs = 25000;
+   chG1->rfagcSettings.attackSettings.threshold = -1225523;    /* -18.7dBFS scaled 2^16 */
    chG1->rfagcSettings.attackSettings.step = -2048;            /* -1dB scaled 2^11 */
-   chG1->rfagcSettings.decaySettings.timeNs = 40000;
-   chG1->rfagcSettings.decaySettings.threshold = -1268777;     /* -15.5dBFS scaled 2^16 */
+   chG1->rfagcSettings.decaySettings.timeNs = 120000;
+   chG1->rfagcSettings.decaySettings.threshold = -1225523;     /* -18.7dBFS scaled 2^16 */
    chG1->rfagcSettings.decaySettings.step = 2048;              /* 1dB scaled 2^11 */
-   chG1->rfagcSettings.fastDecaySettings.timeNs = 40000;
-   chG1->rfagcSettings.fastDecaySettings.threshold = -1268777; /* -15.5dBFS scaled 2^16 */
+   chG1->rfagcSettings.fastDecaySettings.timeNs = 25000;
+   chG1->rfagcSettings.fastDecaySettings.threshold = -1225523; /* -18.7dBFS scaled 2^16 */
    chG1->rfagcSettings.fastDecaySettings.step = 2048;          /* 1dB scaled 2^11 */
-   chG1->rfagcSettings.clipWindowSettings.timeNs = 2000;
-   chG1->rfagcSettings.clipWindowSettings.threshold = 25;      /* percentage of clip window 0 to 100 */
-   chG1->rfagcSettings.clipWindowSettings.step = -20480;       /* -10dB scaled 2^11 */
-   chG1->rfagcSettings.powerMeasureBw = 5;
+   chG1->rfagcSettings.clipWindowSettings.timeNs = 200;
+   chG1->rfagcSettings.clipWindowSettings.threshold = 20;      /* percentage of clip window 0 to 100 */
+   chG1->rfagcSettings.clipWindowSettings.step = -4096;       /* -2dB scaled 2^11 */
+   chG1->rfagcSettings.powerMeasureBw = 2;
    chG1->rfagcSettings.agcSlewRate = 0xB9;
 #endif
 

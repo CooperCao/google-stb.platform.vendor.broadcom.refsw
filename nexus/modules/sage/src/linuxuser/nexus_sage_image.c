@@ -74,6 +74,9 @@ static const char* firmware_images[SAGE_IMAGE_FirmwareID_Max] =
     "sage_ta_secure_log_dev.bin",       /* SAGE Secure_log TA binary for development (ZS) chip */
     "sage_ta_secure_log.bin",           /* SAGE Secure_log TA binary for production (ZB or customer specific) chip */
     "certificate.bin",                  /* certificate used to enable logging in SAGE Secure_log TA*/
+    "certificate1.bin",                 /* all certificate(certificate.bin, certificate1.bin,certificate2.bin) can enable secure log,*/
+    "certificate2.bin",                 /* each correspond to its own log buffer, log buffers can be TA's private buffer,*/
+                                        /* or BRCM common buffer, they can work together, or individually*/
 };
 #else
 static const char* firmware_images[SAGE_IMAGE_FirmwareID_Max] =

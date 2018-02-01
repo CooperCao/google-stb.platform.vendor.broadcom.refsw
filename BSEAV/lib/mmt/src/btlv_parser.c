@@ -172,7 +172,7 @@ int btlv_parser_process_tlv(btlv_parser *parser,const void *payload, unsigned pa
         for(offset=0; (data[offset] != 0x7F) && (offset < payload_length); offset++);
 
         if(offset == payload_length)
-            return 0;
+            return BTLV_RESULT_TS_SYNC_ERROR;
         else
         {
             BDBG_ASSERT((data[offset]== 0x7F));
@@ -184,7 +184,7 @@ int btlv_parser_process_tlv(btlv_parser *parser,const void *payload, unsigned pa
     if (parser->tail_size)
     {
 
-        BDBG_ASSERT((parser->fragments == 1));
+        /*BDBG_ASSERT((parser->fragments == 1));*/
         parser->packet[0] = parser->tail_pkt;
         if (parser->expected_packet_size == 0)
         {
@@ -249,7 +249,7 @@ int btlv_parser_process_tlv(btlv_parser *parser,const void *payload, unsigned pa
         }
 
     }
-    BDBG_ASSERT((packets->count==0));
+    /*BDBG_ASSERT((packets->count==0));*/
 
     while((offset + B_TLV_PKT_HDR < payload_length))
     {
@@ -257,6 +257,7 @@ int btlv_parser_process_tlv(btlv_parser *parser,const void *payload, unsigned pa
         if (data[offset]!=0x7f)
         {
             parser->in_sync = false;
+            rc = BTLV_RESULT_TS_SYNC_ERROR;
             goto done;
         }
         packet_size = data[offset + 2] << 8  | data[offset+3];
@@ -280,12 +281,13 @@ int btlv_parser_process_tlv(btlv_parser *parser,const void *payload, unsigned pa
         BDBG_ERR(("parser->fragments %d packets->count %d",parser->fragments,packets->count));
     }
     #endif
-    BDBG_ASSERT((parser->fragments==0));
+    /*BDBG_ASSERT((parser->fragments==0));*/
     if (offset < payload_length)
     {
         if (data[offset]!=0x7f)
         {
             parser->in_sync = false;
+            rc = BTLV_RESULT_TS_SYNC_ERROR;
             goto done;
         }
         parser->tail_size = payload_length - offset;

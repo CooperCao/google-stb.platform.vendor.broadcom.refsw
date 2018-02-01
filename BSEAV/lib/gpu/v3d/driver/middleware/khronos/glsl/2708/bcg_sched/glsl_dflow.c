@@ -21,24 +21,24 @@ typedef struct OptionalBypass_s
    DFlowNode   *m_node;
 } OptionalBypass;
 
-static INLINE void OptionalBypass_Constr(OptionalBypass *self)
+static inline void OptionalBypass_Constr(OptionalBypass *self)
 {
    self->m_node = NULL;
 }
 
-static INLINE void OptionalBypass_Set(OptionalBypass *self, DFlowNode *node)
+static inline void OptionalBypass_Set(OptionalBypass *self, DFlowNode *node)
 {
    assert(self->m_node == NULL);
    assert(node != NULL);
    self->m_node = node;
 }
 
-static INLINE bool OptionalBypass_IsSet(const OptionalBypass *self)
+static inline bool OptionalBypass_IsSet(const OptionalBypass *self)
 {
    return self->m_node == NULL ? 0 : 1;
 }
 
-static INLINE DFlowNode *OptionalBypass_Get(OptionalBypass *self)
+static inline DFlowNode *OptionalBypass_Get(OptionalBypass *self)
 {
    assert(self->m_node != NULL);
    return self->m_node;

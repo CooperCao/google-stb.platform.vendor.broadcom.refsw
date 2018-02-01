@@ -85,19 +85,15 @@ void BVC5_P_BinPoolBlock_FreeMem(
 /***************************************************************************/
 void BVC5_P_BinPoolBlock_LockMem(
    BMMA_Block_Handle hBlock,
-   BMMA_DeviceOffset *puiLockOffset,
-   uint32_t          *puiPhysOffset
-   )
+   BMMA_DeviceOffset *puiLockOffset)
 {
    BVC5_BinPoolBlock_MemInterface *pIface = BVC5_P_GetBinPoolMemInterface();
 
    if (pIface && pIface->BinPoolBlock_Lock != NULL)
-      pIface->BinPoolBlock_Lock(hBlock, puiLockOffset, puiPhysOffset);
+      pIface->BinPoolBlock_Lock(hBlock, puiLockOffset);
    else
    {
       *puiLockOffset = BMMA_LockOffset(hBlock);
-      *puiPhysOffset = *puiLockOffset & 0xFFFFFFFF;
-      BDBG_ASSERT(*puiLockOffset >> 32 == 0);
    }
 }
 

@@ -355,8 +355,8 @@ void BDSP_Arm_P_InterTaskBuffer_Destroy(
 
 	BDBG_ENTER(BDSP_Arm_P_InterTaskBuffer_Destroy);
 	pInterTaskBuffer = (BDSP_P_InterTaskBuffer *)pInterTaskBufferHandle;
-    pArmContext = (BDSP_ArmContext *)pInterTaskBuffer->pContext;
 	BDBG_OBJECT_ASSERT(pInterTaskBuffer, BDSP_P_InterTaskBuffer);
+    pArmContext = (BDSP_ArmContext *)pInterTaskBuffer->pContext;
 
 	if (pInterTaskBuffer->dstHandle || pInterTaskBuffer->srcHandle)
 	{

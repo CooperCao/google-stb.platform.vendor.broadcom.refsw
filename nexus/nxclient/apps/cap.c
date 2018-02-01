@@ -80,6 +80,11 @@ static void print_usage(void)
     "  -window_width NUM          Percentage on main display\n"
     "  -window_height NUM         Percentage on main display\n"
     );
+    printf(
+    "  -hd_mosaics                # of HD mosaics supported with main decoder\n"
+    "  -hd_pip_mosaics            # of HD mosaics supported with PIP decoder\n"
+    "  -mosaic_coverage N         %% of screen coverage per mosaic for N mosaics\n"
+    );
 }
 
 int main(int argc, char **argv)
@@ -135,6 +140,36 @@ int main(int argc, char **argv)
 
             NEXUS_GetVideoDecoderCapabilities(&videoDecoderCap);
             result=videoDecoderCap.numVideoDecoders;
+#endif
+            break;
+        }
+        else if (!strcmp(argv[curarg], "-hd_mosaics")) {
+#if NEXUS_HAS_VIDEO_DECODER
+            NEXUS_VideoDecoderCapabilities videoDecoderCap;
+            NEXUS_GetVideoDecoderCapabilities(&videoDecoderCap);
+            if (videoDecoderCap.memory[0].mosaic.maxHeight >= 720) {
+                result = videoDecoderCap.memory[0].mosaic.maxNumber;
+            }
+#endif
+            break;
+        }
+        else if (!strcmp(argv[curarg], "-hd_pip_mosaics")) {
+#if NEXUS_HAS_VIDEO_DECODER
+            NEXUS_VideoDecoderCapabilities videoDecoderCap;
+            NEXUS_GetVideoDecoderCapabilities(&videoDecoderCap);
+            if (videoDecoderCap.memory[1].mosaic.maxHeight >= 720) {
+                result = videoDecoderCap.memory[1].mosaic.maxNumber;
+            }
+#endif
+            break;
+        }
+        else if (!strcmp(argv[curarg], "-mosaic_coverage") && curarg+1<argc) {
+#if NEXUS_HAS_DISPLAY
+            NEXUS_DisplayMaxMosaicCoverage coverage;
+            rc = NEXUS_Display_GetMaxMosaicCoverage(0, atoi(argv[++curarg]), &coverage);
+            if (!rc) {
+                result = coverage.maxCoverage;
+            }
 #endif
             break;
         }

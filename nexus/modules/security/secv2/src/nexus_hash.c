@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -89,10 +89,10 @@ NEXUS_HashHandle NEXUS_Hash_Create( void )
     NEXUS_OBJECT_INIT( NEXUS_Hash, handle );
 
     NEXUS_Security_GetHsm_priv( &hHsm );
+    if( !hHsm ) { BERR_TRACE( NEXUS_NOT_INITIALIZED ); return NULL; }
 
     handle->hHsmHash = BHSM_Hash_Create( hHsm );
     if( !handle->hHsmHash ) { BERR_TRACE(NEXUS_NOT_AVAILABLE); goto _error; }
-
 
     handle->queue = NEXUS_HashHmac_QueueCreate();
     if( handle->queue == NULL)

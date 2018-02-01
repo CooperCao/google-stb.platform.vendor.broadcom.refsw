@@ -40,6 +40,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <getopt.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -87,8 +88,8 @@ typedef struct JoinedDeviceCommissioningInfo_t{
 
 #define MAX_ALLOWED_DEVICE_NUM  10
 #define INVALID_INDEX           -1
-#define MY_HARD_CODED_ENDPOINT_NUMBER   0x0B
-
+#define MY_HARD_CODED_ENDPOINT_NUMBER   0x01    /* 0x0B */
+#define DEFAULT_CHANNEL         23
 typedef enum _TEST_enum_t
 {
     TEST_ENUM_1 = 0x00,
@@ -446,8 +447,12 @@ static void BroadBee_ZHA_EventNtfy(SYS_EventNotifyParams_t *event)
 
 static void My_ZBPRO_ZDO_DeviceAnnceInd(ZBPRO_ZDO_DeviceAnnceIndParams_t *indication)
 {
+    ZBPRO_NWK_NIB_PanId_t pandId;
+
     Sys_DbgPrint("\nMy_ZBPRO_ZDO_DeviceAnnceInd\n");
     Sys_DbgPrint("The device(%016llX:%04X) has sent announcement\n", indication->extAddr, indication->nwkAddr);
+    //if(BROADBEE_ZHA_STATUS_SUCCESS == BroadBee_ZHA_Get_Attribute_nwkPanId(&pandId))
+    //    Sys_DbgPrint("\nPandId:%04X\n", pandId);
 }
 
 static bool hasDeviceJoined()
@@ -595,8 +600,9 @@ static void getDoorLockState(uint8_t index)
 
     int      attributeSize;
     uint8_t  *attributeData;
+    ZBPRO_ZCL_AttributeId_t attributeId = LOCKSTATE_ATTR_ID;
     BroadBee_ZHA_Read_Attributes_DirectByNwk(getSrcEndpoint(index), getDstEndpoint(index), getDstNwkAddr(index),
-                                     ZBPRO_ZCL_CLUSTER_ID_DOOR_LOCK, LOCKSTATE_ATTR_ID, &attributeSize, &attributeData, 5);
+                                     ZBPRO_ZCL_CLUSTER_ID_DOOR_LOCK, 1, &attributeId, &attributeSize, &attributeData, 5);
 
     if(attributeSize == LOCKSTATE_ATTR_LENGTH){
         switch(*(uint8_t*)attributeData){
@@ -645,8 +651,9 @@ static void testLoopForDoorLock(uint8_t index)
 
         int      attributeSize;
         uint8_t  *attributeData;
+        ZBPRO_ZCL_AttributeId_t attributeId = LOCKSTATE_ATTR_ID;
         if(BROADBEE_ZHA_STATUS_SUCCESS == BroadBee_ZHA_Read_Attributes_DirectByNwk(getSrcEndpoint(index), getDstEndpoint(index), getDstNwkAddr(index),
-                                     ZBPRO_ZCL_CLUSTER_ID_DOOR_LOCK, LOCKSTATE_ATTR_ID, &attributeSize, &attributeData, 5))
+                                     ZBPRO_ZCL_CLUSTER_ID_DOOR_LOCK, 1, &attributeId, &attributeSize, &attributeData, 5))
             break;
         sleep(10);
     }
@@ -768,7 +775,8 @@ static BroadBee_ZHA_Status BroadBee_ZHA_Read_Temperature_Direct_Async(uint8_t in
     params->zclObligatoryPart.respWaitTimeout = 5; // 5 Seconds
     params->zclObligatoryPart.disableDefaultResp = ZBPRO_ZCL_FRAME_DEFAULT_RESPONSE_ENABLED;
     params->zclObligatoryPart.useDefaultResponse = ZBPRO_ZCL_RESPONSE_TYPE_SPECIFIC;
-    params->attributeId = TEMPERATURE_ATTR_ID;
+    params->attributeNumber = 1;
+    params->attributeId[0] = TEMPERATURE_ATTR_ID;
     reqDescr->callback = My_BroadBee_ZHA_Read_Temperature_Direct_Async_Callback;
 
     ZBPRO_ZCL_ProfileWideCmdReadAttributesReq(reqDescr);
@@ -866,7 +874,8 @@ static BroadBee_ZHA_Status BroadBee_ZHA_Read_Humidity_Direct_Async(uint8_t index
     params->zclObligatoryPart.respWaitTimeout = 5; // 5 Seconds
     params->zclObligatoryPart.disableDefaultResp = ZBPRO_ZCL_FRAME_DEFAULT_RESPONSE_ENABLED;
     params->zclObligatoryPart.useDefaultResponse = ZBPRO_ZCL_RESPONSE_TYPE_SPECIFIC;
-    params->attributeId = HUMIDITY_ATTR_ID;
+    params->attributeNumber = 1;
+    params->attributeId[0] = HUMIDITY_ATTR_ID;
     reqDescr->callback = My_BroadBee_ZHA_Read_Humidity_Direct_Async_Callback;
 
     ZBPRO_ZCL_ProfileWideCmdReadAttributesReq(reqDescr);
@@ -954,6 +963,8 @@ static void generateRandomKey(uint8_t *keyBuf, char keyLength)
         keyBuf[c] = rand() & 0xff;
 }
 
+#define FACTORY_RESET_TYPE  1
+
 int main(int argc, char *argv[])
 {
     struct zigbeeCallback zcb;
@@ -962,6 +973,28 @@ int main(int argc, char *argv[])
     ZbProSspKey_t nwkKey;
     uint32_t retStatus;
     ZBPRO_APS_EndpointId_t myEndpoint = MY_HARD_CODED_ENDPOINT_NUMBER;
+    int c, channelArg = DEFAULT_CHANNEL, option_index = 0;;
+    uint8_t channel, coexEnable;
+    bool coexEnableBoolean = 1;
+
+    struct option long_options[] =
+    {
+        {"channel",   required_argument,  0,  'c'},
+        {0, 0, 0, 0}
+    };
+
+    while ((c = getopt_long(argc, argv, "c:",
+                   long_options, &option_index )) != -1) {
+        switch (c) {
+             case 'c' :
+                sscanf(optarg, "%d", &channelArg);
+                break;
+             default:
+                break;
+        }
+    }
+
+    channel = channelArg & 0x1f;
 
     /*tcgetattr gets the parameters of the current terminal
     STDIN_FILENO will tell tcgetattr that it should write the settings
@@ -989,7 +1022,32 @@ int main(int argc, char *argv[])
     zcb.SYS_EventNtfy = BroadBee_ZHA_EventNtfy;
     zcb.ZBPRO_ZDO_DeviceAnnceInd = My_ZBPRO_ZDO_DeviceAnnceInd;
     zcb.ZBPRO_ZCL_ProfileWideCmdReportAttributesInd = My_ZBPRO_ZCL_ProfileWideCmdReportAttributesInd;
-    Zigbee_Open(&zcb, argv[1]);
+    Zigbee_Open(&zcb, "127.0.0.1");
+
+    BroadBee_SYS_Get_Fw_Rev();
+
+    TE_ResetCommandReqDescr_t resetReq = {0};
+    resetReq.params.resetType = FACTORY_RESET_TYPE;
+    Mail_TestEngineReset(&resetReq);
+
+    Sys_DbgPrint("\n\nPlease press 'y' or 'Y' to enable CoEx or 'n' or 'N' to disable CoEx\n\n");
+    coexEnable = getInputChar();
+    switch(coexEnable){
+        case 'y':
+        case 'Y':
+            coexEnableBoolean = 1;
+            break;
+        case 'n':
+        case 'N':
+            coexEnableBoolean = 0;
+            break;
+        default:
+            break;
+    }
+    if(BROADBEE_ZHA_STATUS_SUCCESS == BroadBee_ZHA_Set_Attribute_phyCoExFlag(coexEnableBoolean))
+        Sys_DbgPrint("\n\n%s COEX successfully\n\n", coexEnableBoolean == 1 ? "Enable":"Disable");
+    else
+        Sys_DbgPrint("\n\nFailed to %s COEX\n\n", coexEnableBoolean == 1 ? "Enable":"Disable");
 
     if(!retrieveCommissioningInfo())
         memset(commissioningInfoTable, 0, sizeof(commissioningInfoTable));
@@ -998,8 +1056,8 @@ int main(int argc, char *argv[])
     ZBPRO_APS_ExtAddr_t geBulbExtAddr = 0x7CE5240000127D5AUL;
     ZBPRO_APS_ExtAddr_t myExtAddr = 0xeeffaabb187623cdUL;
 
-    Sys_DbgPrint("BroadBee_ZHA_Set_Attribute_apsChannelMask\n");
-    BroadBee_ZHA_Set_Attribute_apsChannelMask(1 << 23);
+    Sys_DbgPrint("\nBroadBee_ZHA_Set_Attribute_apsChannel = %d\n\n", channel);
+    BroadBee_ZHA_Set_Attribute_apsChannelMask(1 << channel);
 
     // Because 3390 zigbee driver can't get mac address from board information,
     // So this function is commented out.
@@ -1023,99 +1081,12 @@ int main(int argc, char *argv[])
     dumpSimpleDescr(&localSimpleDescr);
     BroadBee_ZHA_EndpointRegister(&localSimpleDescr);
 
-    Sys_DbgPrint("Press key 't' to go to test procedure\n");
-    Sys_DbgPrint("Any any other key continue to enable another device to join\n");
+#if (0)
+    Sys_DbgPrint("Press key 't' and <Enter> to skip commissioining and directly test with alreadu joined devices.\n");
+    Sys_DbgPrint("Any any other key and <Enter> continue to enable another device to join\n");
 
     if(getInputChar() == 't')
         goto case_normal_operation;
-
-    if(FALSE == BroadBee_ZHA_Check_NWK_Existing()){
-        /* Setting NWK key is allowed to be called once in the lift time of the network formed by STB */
-        Sys_DbgPrint("BroadBee_ZHA_Set_NWK_Key\n");
-        uint8_t  key[16] = {0x12, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33};
-        //generateRandomKey(key, 16);
-        memcpy(nwkKey.raw, key, sizeof(nwkKey.raw));
-        BroadBee_ZHA_Set_NWK_Key(&nwkKey, 0);
-        Sys_DbgPrint("BroadBee_ZHA_Set_Attribute_nwkActiveKeySeqNumber\n");
-        BroadBee_ZHA_Set_Attribute_nwkActiveKeySeqNumber(0);
-    }
-
-    Sys_DbgPrint("BroadBee_ZHA_StartNetwork\n");
-    BroadBee_ZHA_StartNetwork();
-
-    do{
-        Sys_DbgPrint("BroadBee_ZHA_Set_Attribute_zdoPermitJoinDuration\n");
-        BroadBee_ZHA_PermitJoining(0xff);
-
-
-        Sys_DbgPrint("Waiting for remote device to join\n");
-        while(!hasDeviceJoined())
-            sleep(0);
-
-        BroadBee_ZHA_PermitJoining(0);
-
-        Sys_DbgPrint("Got a new joined device, wait for about 5 seconds for normal operation\n");
-        sleep(5);
-
-        BroadBee_ZHA_GetNwkAddr(remoteDeviceExtAddr, &remoteDeviceNwkAddr);
-        Sys_DbgPrint("remoteDeviceNwkAddr : %04X\n", remoteDeviceNwkAddr);
-        updateNwkAddress(remoteDeviceExtAddr, remoteDeviceNwkAddr);
-
-        uint8_t activeEpCount;
-        ZBPRO_APS_EndpointId_t *activeEpList;
-        Sys_DbgPrint("BroadBee_ZHA_GetActiveEp\n");
-        BroadBee_ZHA_GetActiveEp(remoteDeviceNwkAddr, remoteDeviceNwkAddr, &activeEpCount, &activeEpList, 5000);
-
-        ZbProZdoNodeDescriptor_t nodeDescr;
-        BroadBee_ZHA_GetNodeDesc(remoteDeviceNwkAddr, remoteDeviceNwkAddr, &nodeDescr, 5000);
-
-        ZBPRO_APS_SimpleDescriptor_t  simpleDescr;
-        uint8_t length;
-        for(int i = 0; i < activeEpCount; i++){
-            Sys_DbgPrint("Endpoint %d:\n", activeEpList[i]);
-            BroadBee_ZHA_GetSimpleDesc(remoteDeviceNwkAddr, remoteDeviceNwkAddr, activeEpList[i], &length, &simpleDescr, 5000);
-            dumpSimpleDescr(&simpleDescr);
-
-            ZBPRO_APS_ClusterId_t *inOutClusterList = ALLOCA((simpleDescr.inClusterAmount + simpleDescr.outClusterAmount) * sizeof(ZBPRO_APS_ClusterId_t));
-            SYS_CopyFromPayload(inOutClusterList, &simpleDescr.inOutClusterList, 0, (simpleDescr.inClusterAmount + simpleDescr.outClusterAmount) * sizeof(ZBPRO_APS_ClusterId_t));
-            for(int in = 0; in < simpleDescr.inClusterAmount; in++){
-
-                if(clusterSupported(inOutClusterList[in])){
-
-                    Sys_DbgPrint("\nPlease give a name for this new joined device cluster(%s) used for the following normal operation, such as %s\n",
-                                   getClusterDescr(inOutClusterList[in]),
-                                   getExampleDeviceName(inOutClusterList[in]));
-
-                    uint8_t *deviceName = getInputString();
-                    JoinedDeviceCommissioningInfo info = {
-                                .extAddr = remoteDeviceExtAddr,
-                                .nwkAddr = remoteDeviceNwkAddr,
-                                .clusterId = inOutClusterList[in],
-                                .endpointSrcId = myEndpoint,
-                                .endpointId = simpleDescr.endpoint,
-                                .nodeDescr = nodeDescr,
-                    };
-                    strncpy(info.deviceFriendName, deviceName, sizeof(info.deviceFriendName));
-                    insertCommissioningInfo(&info);
-                    if(BROADBEE_ZHA_STATUS_SUCCESS != (retStatus = BroadBee_ZHA_Bind(myExtAddr, remoteDeviceExtAddr, inOutClusterList[in], myEndpoint, simpleDescr.endpoint)))
-                        Sys_DbgPrint("Failed to call BroadBee_ZHA_Bind %08x:\n", retStatus);
-                }
-            }
-            SYS_FreePayload(&simpleDescr.inOutClusterList);
-        }
-
-        free(activeEpList);
-
-        clearJoinedInformation();
-        Sys_DbgPrint("Press key  'e' to exit from this commissining state and go to test procedure\n");
-        Sys_DbgPrint("Any any other key continue to enable another device to join\n");
-        if(getInputChar() == 'e'){
-            saveCommissioningInfo();
-            break;
-        }
-        BroadBee_ZHA_PermitJoining(0xff);
-    }while(1);
-
 
 case_normal_operation:
     Sys_DbgPrint("BroadBee_ZHA_StartNetwork\n");
@@ -1186,7 +1157,102 @@ case_normal_operation:
         }
     }while(1);
 
-    return 0;
+    goto _exit;
+
+#endif
+
+    if(FALSE == BroadBee_ZHA_Check_NWK_Existing()){
+        /* Setting NWK key is allowed to be called once in the lift time of the network formed by STB */
+        Sys_DbgPrint("BroadBee_ZHA_Set_NWK_Key\n");
+        uint8_t  key[16] = {0x12, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33};
+        //generateRandomKey(key, 16);
+        memcpy(nwkKey.raw, key, sizeof(nwkKey.raw));
+        BroadBee_ZHA_Set_NWK_Key(&nwkKey, 0);
+        Sys_DbgPrint("BroadBee_ZHA_Set_Attribute_nwkActiveKeySeqNumber\n");
+        BroadBee_ZHA_Set_Attribute_nwkActiveKeySeqNumber(0);
+    }
+
+    Sys_DbgPrint("BroadBee_ZHA_StartNetwork\n");
+    BroadBee_ZHA_StartNetwork();
+    Sys_DbgPrint("Wait for ~10 seconds for the network forming.\n");
+    sleep(10);
+
+    Sys_DbgPrint("Press any key and <Enter> for other devices to join\n");
+    getInputChar();
+
+    do{
+        Sys_DbgPrint("BroadBee_ZHA_Set_Attribute_zdoPermitJoinDuration\n");
+        BroadBee_ZHA_PermitJoining(0xff);
+
+
+        Sys_DbgPrint("Waiting for remote device to join\n");
+        while(!hasDeviceJoined())
+            sleep(0);
+
+        BroadBee_ZHA_PermitJoining(0);
+
+        Sys_DbgPrint("Got a new joined device, wait for about 5 seconds for normal operation\n");
+        sleep(5);
+
+        BroadBee_ZHA_GetNwkAddr(remoteDeviceExtAddr, &remoteDeviceNwkAddr);
+        Sys_DbgPrint("remoteDeviceNwkAddr : %04X\n", remoteDeviceNwkAddr);
+        updateNwkAddress(remoteDeviceExtAddr, remoteDeviceNwkAddr);
+
+        uint8_t activeEpCount;
+        ZBPRO_APS_EndpointId_t *activeEpList;
+        Sys_DbgPrint("BroadBee_ZHA_GetActiveEp\n");
+        BroadBee_ZHA_GetActiveEp(remoteDeviceNwkAddr, remoteDeviceNwkAddr, &activeEpCount, &activeEpList, 5000);
+
+        ZbProZdoNodeDescriptor_t nodeDescr;
+        BroadBee_ZHA_GetNodeDesc(remoteDeviceNwkAddr, remoteDeviceNwkAddr, &nodeDescr, 5000);
+
+        ZBPRO_APS_SimpleDescriptor_t  simpleDescr;
+        uint8_t length;
+        for(int i = 0; i < activeEpCount; i++){
+            Sys_DbgPrint("Endpoint %d:\n", activeEpList[i]);
+            BroadBee_ZHA_GetSimpleDesc(remoteDeviceNwkAddr, remoteDeviceNwkAddr, activeEpList[i], &length, &simpleDescr, 5000);
+            dumpSimpleDescr(&simpleDescr);
+
+            ZBPRO_APS_ClusterId_t *inOutClusterList = ALLOCA((simpleDescr.inClusterAmount + simpleDescr.outClusterAmount) * sizeof(ZBPRO_APS_ClusterId_t));
+            SYS_CopyFromPayload(inOutClusterList, &simpleDescr.inOutClusterList, 0, (simpleDescr.inClusterAmount + simpleDescr.outClusterAmount) * sizeof(ZBPRO_APS_ClusterId_t));
+            for(int in = 0; in < simpleDescr.inClusterAmount; in++){
+
+                if(clusterSupported(inOutClusterList[in])){
+
+                    Sys_DbgPrint("\nPlease give a name for this new joined device cluster(%s) used for the following normal operation, such as %s\n",
+                                   getClusterDescr(inOutClusterList[in]),
+                                   getExampleDeviceName(inOutClusterList[in]));
+
+                    uint8_t *deviceName = getInputString();
+                    JoinedDeviceCommissioningInfo info = {
+                                .extAddr = remoteDeviceExtAddr,
+                                .nwkAddr = remoteDeviceNwkAddr,
+                                .clusterId = inOutClusterList[in],
+                                .endpointSrcId = myEndpoint,
+                                .endpointId = simpleDescr.endpoint,
+                                .nodeDescr = nodeDescr,
+                    };
+                    strncpy(info.deviceFriendName, deviceName, sizeof(info.deviceFriendName));
+                    insertCommissioningInfo(&info);
+                    if(BROADBEE_ZHA_STATUS_SUCCESS != (retStatus = BroadBee_ZHA_Bind(myExtAddr, remoteDeviceExtAddr, inOutClusterList[in], myEndpoint, simpleDescr.endpoint)))
+                        Sys_DbgPrint("Failed to call BroadBee_ZHA_Bind %08x:\n", retStatus);
+                }
+            }
+            SYS_FreePayload(&simpleDescr.inOutClusterList);
+        }
+
+        free(activeEpList);
+
+        clearJoinedInformation();
+        Sys_DbgPrint("Press 'e' key and <Enter> to exit from this applicatioin\n");
+        Sys_DbgPrint("Press any other key and <Enter> to enable another device to join\n");
+        if(getInputChar() == 'e'){
+            saveCommissioningInfo();
+            break;
+        }
+        BroadBee_ZHA_PermitJoining(0xff);
+    }while(1);
+
 
 _exit:
     printf("zigbee_ha_stb_commissioning_app:  closing...\n");

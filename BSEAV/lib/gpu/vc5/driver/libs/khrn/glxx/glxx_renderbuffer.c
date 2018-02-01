@@ -46,11 +46,9 @@ static void renderbuffer_init(GLXX_RENDERBUFFER_T *renderbuffer, uint32_t name)
    renderbuffer->debug_label = NULL;
 }
 
-static void renderbuffer_term(void *v, size_t size)
+static void renderbuffer_term(void *v)
 {
    GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)v;
-
-   unused(size);
 
    KHRN_MEM_ASSIGN(renderbuffer->image, NULL);
    egl_image_refdec(renderbuffer->source);
@@ -75,7 +73,7 @@ bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer,
    api_fmt = gfx_api_fmt_from_sized_internalformat(internalformat);
    glxx_hw_fmts_from_api_fmt(&num_planes, lfmts, api_fmt);
    glxx_lfmt_add_dim(lfmts, num_planes, 2);
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    if (ms_mode != GLXX_NO_MS)
    {
       // Multisample color images must be stored using the TLB raw format.
@@ -138,7 +136,7 @@ bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer,
           * if not color then is one of the others */
          flags |= GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL;
       }
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       if (ms_mode != GLXX_NO_MS)
          flags |= GFX_BUFFER_USAGE_V3D_TLB_RAW;
 #endif

@@ -290,6 +290,7 @@ typedef struct BIP_HttpStreamerOutputSettings
     struct BIP_StreamerOutputSettings   streamerSettings;
 
     bool                                enableHttpChunkXferEncoding;    /* if true, HTTP Chunk Tranfer Encoding headers would be inserted in the output streams. Useful when streaming live channels as content length is not available for live channels. */
+    unsigned                            chunkSize;                      /* ChunkSize in bytes. */
                                                                         /* if input stream has transportTimestampEnabled and output settings doesn't set enableTransportTimestamp, then 4 byte timestamp is removed from the output */
     BIP_AppInitialPayload               appInitialPayload;              /* Optional: app specific private payload */
     NEXUS_HeapHandle                    heapHandle;                     /* Optional: heap for fifo allocation */
@@ -305,6 +306,7 @@ BIP_SETTINGS_ID_DECLARE(BIP_HttpStreamerOutputSettings);
 #define BIP_HttpStreamer_GetDefaultOutputSettings(pSettings)                      \
         BIP_SETTINGS_GET_DEFAULT_BEGIN(pSettings, BIP_HttpStreamerOutputSettings) \
         BIP_Streamer_GetDefaultOutputSettings(&(pSettings)->streamerSettings)     \
+        (pSettings)->chunkSize = 7 *48;                                           \
         /* Set non-zero defaults explicitly. */                                   \
         BIP_SETTINGS_GET_DEFAULT_END
 
@@ -512,6 +514,7 @@ typedef struct BIP_HttpStreamerProcessRequestSettings
 {
     BIP_SETTINGS(BIP_HttpStreamerProcessRequestSettings)   /* Internal use... for init verification. */
 
+    BIP_ApiSettings         apiSettings;
     BIP_HttpRequestHandle   hHttpRequest;                   /* Optional: If set, Streamer will prepare & send a response for this Request before streaming. */
 } BIP_HttpStreamerProcessRequestSettings;
 BIP_SETTINGS_ID_DECLARE(BIP_HttpStreamerProcessRequestSettings);
@@ -519,6 +522,7 @@ BIP_SETTINGS_ID_DECLARE(BIP_HttpStreamerProcessRequestSettings);
 #define BIP_HttpStreamer_GetDefaultProcessRequestSettings(pSettings)                      \
         BIP_SETTINGS_GET_DEFAULT_BEGIN(pSettings, BIP_HttpStreamerProcessRequestSettings) \
         /* Set non-zero defaults explicitly. */                                           \
+        (pSettings)->apiSettings.timeout = -1;                                                    \
         BIP_SETTINGS_GET_DEFAULT_END
 
 BIP_Status BIP_HttpStreamer_ProcessRequest(

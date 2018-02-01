@@ -151,7 +151,7 @@ NEXUS_OBJECT_CLASS_MAKE
 #define NEXUS_OBJECT_CLASS_DECLARE(type) \
     BDBG_OBJECT_ID_DECLARE(type); \
     extern const NEXUS_BaseClassDescriptor NEXUS_OBJECT_DESCRIPTOR(type); \
-    NEXUS_Error type##_BaseObject_P_RegisterUnregister(type##Handle object, NEXUS_Object_P_RegisterUnregister operation, NEXUS_ModuleHandle origin)
+    void type##_BaseObject_P_RegisterUnregister(type##Handle object, NEXUS_Object_P_RegisterUnregister operation, NEXUS_ModuleHandle origin)
 
 #if NEXUS_P_BASE_OBJECT_USE_REFCNT 
 #define NEXUS_OBJECT_P_CLASS_MAKE_TAIL(type, destructor) \
@@ -159,14 +159,14 @@ NEXUS_OBJECT_CLASS_MAKE
     static void type##_Obj_P_Finalizer(void *object) {NEXUS_ASSERT_MODULE(); type##_P_Finalizer(object); return;} \
     NEXUS_CASSERT_DECL(NEXUS_OFFSETOF(struct type, _n_baseObject)==0); \
     const NEXUS_BaseClassDescriptor NEXUS_OBJECT_DESCRIPTOR(type) = {NEXUS_OFFSETOF(struct type, _n_baseObject), #type, type##_Obj_P_Finalizer}; \
-    NEXUS_Error type##_BaseObject_P_RegisterUnregister(type##Handle object, NEXUS_Object_P_RegisterUnregister operation, NEXUS_ModuleHandle origin) {BDBG_OBJECT_ASSERT(object, type); return NEXUS_BaseObject_P_RegisterUnregister(object, & NEXUS_OBJECT_DESCRIPTOR(type), operation, origin, NEXUS_MODULE_SELF);} \
+    void type##_BaseObject_P_RegisterUnregister(type##Handle object, NEXUS_Object_P_RegisterUnregister operation, NEXUS_ModuleHandle origin) {BDBG_OBJECT_ASSERT(object, type); NEXUS_BaseObject_P_RegisterUnregister(object, & NEXUS_OBJECT_DESCRIPTOR(type), operation, origin, NEXUS_MODULE_SELF);} \
     BDBG_OBJECT_ID(type)
 #else
 #define NEXUS_OBJECT_P_CLASS_MAKE_TAIL(type, destructor) \
     static void type##_P_Finalizer(type##Handle object); \
     NEXUS_CASSERT_DECL(NEXUS_OFFSETOF(struct type, _n_baseObject)==0); \
     const NEXUS_BaseClassDescriptor NEXUS_OBJECT_DESCRIPTOR(type) = {NEXUS_OFFSETOF(struct type, _n_baseObject), #type}; \
-    NEXUS_Error type##_BaseObject_P_RegisterUnregister(type##Handle object, NEXUS_Object_P_RegisterUnregister operation, NEXUS_ModuleHandle origin) {BDBG_OBJECT_ASSERT(object, type); return NEXUS_BaseObject_P_RegisterUnregister(object, & NEXUS_OBJECT_DESCRIPTOR(type), operation, origin, NEXUS_MODULE_SELF);} \
+    void type##_BaseObject_P_RegisterUnregister(type##Handle object, NEXUS_Object_P_RegisterUnregister operation, NEXUS_ModuleHandle origin) {BDBG_OBJECT_ASSERT(object, type); NEXUS_BaseObject_P_RegisterUnregister(object, & NEXUS_OBJECT_DESCRIPTOR(type), operation, origin, NEXUS_MODULE_SELF);} \
     BDBG_OBJECT_ID(type)
 #endif
 
@@ -253,7 +253,7 @@ Description:
 #define NEXUS_OBJECT_RELEASE(owner,type,object) (void)(object)
 #endif
 
-NEXUS_Error NEXUS_BaseObject_P_RegisterUnregister(void *object, const NEXUS_BaseClassDescriptor *descriptor, NEXUS_Object_P_RegisterUnregister operation, NEXUS_ModuleHandle origin, NEXUS_ModuleHandle destination);
+void NEXUS_BaseObject_P_RegisterUnregister(void *object, const NEXUS_BaseClassDescriptor *descriptor, NEXUS_Object_P_RegisterUnregister operation, NEXUS_ModuleHandle origin, NEXUS_ModuleHandle destination);
 #define NEXUS_OBJECT_REGISTER(type, object, operation) type##_BaseObject_P_RegisterUnregister(object, NEXUS_Object_P_RegisterUnregister_eRegister##operation, NEXUS_MODULE_SELF)
 #define NEXUS_OBJECT_UNREGISTER(type, object, operation) type##_BaseObject_P_RegisterUnregister(object, NEXUS_Object_P_RegisterUnregister_eUnregister##operation, NEXUS_MODULE_SELF)
 NEXUS_Error NEXUS_BaseObject_FromId(NEXUS_BaseObjectId id, NEXUS_BaseObject **object );

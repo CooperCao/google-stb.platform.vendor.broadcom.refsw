@@ -81,7 +81,7 @@ static void print_node(FILE *f, Backflow *backflow)
             case V3D_QPU_SIG_THRSW:
             case V3D_QPU_SIG_UCB:
             case V3D_QPU_SIG_ROTATE:  assert(0);  break;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
             case V3D_QPU_SIG_WRTMUC: fprintf(f, "wrtmuc");  break;
 #else
             case V3D_QPU_SIG_LDVPM:  fprintf(f, "vpm");     break;
@@ -105,89 +105,8 @@ static void print_node(FILE *f, Backflow *backflow)
       case SPECIAL_VARYING:
          fprintf(f, "varying");
          break;
-      case ALU_M:
-         switch(backflow->u.alu.op) {
-            case BACKFLOW_UMUL:   fprintf(f, "umul");   break;
-            case BACKFLOW_SMUL:   fprintf(f, "smul");   break;
-            case BACKFLOW_MULTOP: fprintf(f, "multop"); break;
-            case BACKFLOW_MUL:    fprintf(f, "mul");    break;
-            case BACKFLOW_MOV:    fprintf(f, "mov");    break;
-            case BACKFLOW_FMOV:   fprintf(f, "fmov");   break;
-            default: unreachable();
-         }
-         break;
-      case ALU_A:
-         switch(backflow->u.alu.op) {
-            case BACKFLOW_ADD:        fprintf(f, "+");        break;
-            case BACKFLOW_VFPACK:     fprintf(f, "vfpack");   break;
-            case BACKFLOW_IADD:       fprintf(f, "i+");       break;
-            case BACKFLOW_ISUB:       fprintf(f, "i-");       break;
-            case BACKFLOW_SUB:        fprintf(f, "-");        break;
-            case BACKFLOW_IMIN:       fprintf(f, "imin");     break;
-            case BACKFLOW_IMAX:       fprintf(f, "imax");     break;
-            case BACKFLOW_UMIN:       fprintf(f, "umin");     break;
-            case BACKFLOW_UMAX:       fprintf(f, "umax");     break;
-            case BACKFLOW_SHL:        fprintf(f, "<<");       break;
-            case BACKFLOW_SHR:        fprintf(f, ">>");       break;
-            case BACKFLOW_ASHR:       fprintf(f, "a>>");      break;
-            case BACKFLOW_ROR:        fprintf(f, "r>>");      break;
-            case BACKFLOW_MIN:        fprintf(f, "min");      break;
-            case BACKFLOW_MAX:        fprintf(f, "max");      break;
-            case BACKFLOW_AND:        fprintf(f, "&");        break;
-            case BACKFLOW_OR:         fprintf(f, "|");        break;
-            case BACKFLOW_XOR:        fprintf(f, "^");        break;
-            case BACKFLOW_NOT:        fprintf(f, "~");        break;
-            case BACKFLOW_INEG:       fprintf(f, "ineg");     break;
-            case BACKFLOW_SETMSF:     fprintf(f, "setmsf");   break;
-            case BACKFLOW_SETREVF:    fprintf(f, "setrevf");  break;
-            case BACKFLOW_TIDX:       fprintf(f, "tidx");     break;
-            case BACKFLOW_EIDX:       fprintf(f, "eidx");     break;
-            case BACKFLOW_FL:         fprintf(f, "fl");       break;
-            case BACKFLOW_FLN:        fprintf(f, "fln");      break;
-            case BACKFLOW_FXCD:       fprintf(f, "fxcd");     break;
-            case BACKFLOW_XCD:        fprintf(f, "xcd");      break;
-            case BACKFLOW_FYCD:       fprintf(f, "fycd");     break;
-            case BACKFLOW_YCD:        fprintf(f, "ycd");      break;
-            case BACKFLOW_MSF:        fprintf(f, "msf");      break;
-            case BACKFLOW_REVF:       fprintf(f, "revf");     break;
-#if V3D_VER_AT_LEAST(4,0,2,0)
-            case BACKFLOW_IID:        fprintf(f, "iid");      break;
-            case BACKFLOW_SAMPID:     fprintf(f, "sampid");   break;
-            case BACKFLOW_BARRIERID:  fprintf(f, "barrierid"); break;
-#endif
-            case BACKFLOW_TMUWT:      fprintf(f, "tmuwt");    break;
-#if V3D_VER_AT_LEAST(4,0,2,0)
-            case BACKFLOW_VPMWT:      fprintf(f, "vpmwt");    break;
-            case BACKFLOW_LDVPMV_IN:  fprintf(f, "ldvpmv_in");  break;
-            case BACKFLOW_LDVPMD_IN:  fprintf(f, "ldvpmd_in");  break;
-            case BACKFLOW_LDVPMV_OUT: fprintf(f, "ldvpmv_out"); break;
-            case BACKFLOW_LDVPMD_OUT: fprintf(f, "ldvpmd_out"); break;
-            case BACKFLOW_LDVPMP:     fprintf(f, "ldvpmp");     break;
-            case BACKFLOW_LDVPMG_IN:  fprintf(f, "ldvpmg_in");  break;
-            case BACKFLOW_LDVPMG_OUT: fprintf(f, "ldvpmg_out"); break;
-            case BACKFLOW_STVPMV:     fprintf(f, "stvpmv");     break;
-            case BACKFLOW_STVPMD:     fprintf(f, "stvpmd");     break;
-            case BACKFLOW_STVPMP:     fprintf(f, "stvpmp");     break;
-#else
-            case BACKFLOW_VPMSETUP:   fprintf(f, "vpmsetup"); break;
-#endif
-            case BACKFLOW_NEG:        fprintf(f, "neg");      break;
-            case BACKFLOW_FCMP:       fprintf(f, "fcmp");     break;
-            case BACKFLOW_ROUND:      fprintf(f, "round");    break;
-            case BACKFLOW_FTOIN:      fprintf(f, "ftoin");    break;
-            case BACKFLOW_TRUNC:      fprintf(f, "trunc");    break;
-            case BACKFLOW_FTOIZ:      fprintf(f, "ftoiz");    break;
-            case BACKFLOW_FLOOR:      fprintf(f, "floor");    break;
-            case BACKFLOW_FTOUZ:      fprintf(f, "ftouz");    break;
-            case BACKFLOW_CEIL:       fprintf(f, "ceil");     break;
-            case BACKFLOW_FTOC:       fprintf(f, "ftoc");     break;
-            case BACKFLOW_FDX:        fprintf(f, "fdx");      break;
-            case BACKFLOW_FDY:        fprintf(f, "fdy");      break;
-            case BACKFLOW_ITOF:       fprintf(f, "itof");     break;
-            case BACKFLOW_CLZ:        fprintf(f, "clz");      break;
-            case BACKFLOW_UTOF:       fprintf(f, "utof");     break;
-            default: unreachable();
-         }
+      case ALU:
+         fprintf(f, "%s", v3d_desc_qpu_opcode(backflow->u.alu.op));
          break;
       default:
          unreachable();
@@ -196,8 +115,7 @@ static void print_node(FILE *f, Backflow *backflow)
    /* TODO: Print out the unpacks here */
 
    switch (backflow->type) {
-      case ALU_M:
-      case ALU_A:
+      case ALU:
          switch (backflow->magic_write) {
             case REG_UNDECIDED:   break;
             case REG_MAGIC_NOP:     fprintf(f, " -> [nop]");   break;
@@ -212,7 +130,7 @@ static void print_node(FILE *f, Backflow *backflow)
             case REG_MAGIC_TMUD:    fprintf(f, " -> tmud");    break;
             case REG_MAGIC_TMUA:    fprintf(f, " -> tmua");    break;
             case REG_MAGIC_TMUAU:   fprintf(f, " -> tmuau");   break;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
             case REG_MAGIC_TMUC:    fprintf(f, " -> tmuc");    break;
             case REG_MAGIC_TMUS:    fprintf(f, " -> tmus");    break;
             case REG_MAGIC_TMUT:    fprintf(f, " -> tmut");    break;
@@ -277,7 +195,7 @@ static void print_node(FILE *f, Backflow *backflow)
       case BACKEND_UNIFORM_UBO_ARRAY_LENGTH: fprintf(f, "\\nubo array length: %d", backflow->unif); break;
       case BACKEND_UNIFORM_TEX_PARAM0:       fprintf(f, "\\ntex_parm 0: %d", backflow->unif); break;
       case BACKEND_UNIFORM_TEX_PARAM1:       fprintf(f, "\\ntex_parm 1: %d", backflow->unif); break;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case BACKEND_UNIFORM_TEX_PARAM1_UNNORMS:
                                              fprintf(f, "\\ntex_parm 1 unnorm array: %d", backflow->unif); break;
 #endif
@@ -286,7 +204,7 @@ static void print_node(FILE *f, Backflow *backflow)
       case BACKEND_UNIFORM_TEX_SIZE_Z:       fprintf(f, "\\ntex_size z: %d", backflow->unif); break;
       case BACKEND_UNIFORM_TEX_LEVELS:       fprintf(f, "\\ntex_levels: %d", backflow->unif); break;
       case BACKEND_UNIFORM_IMG_PARAM0:       fprintf(f, "\\nimg_parm 0: %d", backflow->unif); break;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       case BACKEND_UNIFORM_IMG_PARAM1:       fprintf(f, "\\nimg_parm 1: %d", backflow->unif); break;
       case BACKEND_UNIFORM_TEX_BASE_LEVEL:
       case BACKEND_UNIFORM_TEX_BASE_LEVEL_FLOAT:

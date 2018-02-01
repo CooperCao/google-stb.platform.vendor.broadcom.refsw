@@ -1,51 +1,40 @@
-/**************************************************************************
- *     (c)2005-2014 Broadcom Corporation
- *  
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
- *   
- *  Except as expressly set forth in the Authorized License,
- *   
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
- *   
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
- *  USE OR PERFORMANCE OF THE SOFTWARE.
- *  
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
- *  ANY LIMITED REMEDY.
- * 
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+/******************************************************************************
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to the terms and
+* conditions of a separate, written license agreement executed between you and Broadcom
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+* no license (express or implied), right to use, or waiver of any kind with respect to the
+* Software, and Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+* and to use this information only in connection with your use of Broadcom integrated circuit products.
+*
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+* USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+* ANY LIMITED REMEDY.
+*****************************************************************************/
 #include "bstd.h"
 #include "bads.h"
 #include "bads_priv.h"
@@ -115,88 +104,14 @@ void BADS_P_3x7x_Isr(void *p, int param)
 
 
 /*******************************************************************************
-*   BADS_P_TimerFunc
+*   BADS_P_TimerFunc_isr
 *******************************************************************************/
-BERR_Code BADS_P_TimerFunc(void *myParam1, int myParam2)
+BERR_Code BADS_P_TimerFunc_isr(BADS_3x7x_Handle hImplDev)
 {
-
-    BERR_Code retCode = BERR_SUCCESS;
-    BADS_3x7x_Handle hImplDev;
-    BADS_3x7x_ChannelHandle h;
-    BADS_Handle hDev;
-    BSTD_UNUSED(myParam2);
-
-    BDBG_ENTER(BADS_P_TimerFunc);
-    hDev = (BADS_Handle) myParam1;
-    hImplDev = hDev->pImpl;
     BDBG_ASSERT( hImplDev );
-    h = (BADS_3x7x_ChannelHandle)(hImplDev->hAdsChn[0]);
-    BDBG_ASSERT( h );
-  
-    BKNI_ResetEvent(hImplDev->hIntEvent);
-    BADS_P_ChnLockStatus(h);
-    if ( h->pCallback[BADS_Callback_eLockChange] != NULL )
-    {
-            if (h->pChnLockStatus->FLK_te == 1)
-            {
-                if (h->LockUpdate)
-                {
-                    h->LockUpdate = false;
-                    (h->pCallback[BADS_Callback_eLockChange])(h->pCallbackParam[BADS_Callback_eLockChange] );
-                }
-            }
-            else
-            {
-                if (h->lock_status != h->pChnLockStatus->FLK_te )
-                {
-                    h->LockUpdate = true;
-                   (h->pCallback[BADS_Callback_eLockChange])(h->pCallbackParam[BADS_Callback_eLockChange] );
-                   h->pChnLockStatus->ReAck_Count_u32 = 0;
-                }
-            }
-    }
-    h->lock_status = h->pChnLockStatus->FLK_te;
-
-    BMEM_FlushCache(hDev->settings.hHeap, h->pChnAcqParam, sizeof( BADS_3x7x_AcqParams_t ) );
-    if (h->pChnAcqParam->BADS_Acquire_Params.NexusStatusMode & BADS_NexusStatusMode_EnableStatusForNexus)
-    {
-        BMEM_FlushCache(hDev->settings.hHeap, h->pChnStatus, sizeof( BADS_3x7x_ChnStatus_t ) );
-        BADS_P_ChnStatus(h);
-        h->pChnAcqParam->BADS_Acquire_Params.NexusStatusMode &= (~BADS_NexusStatusMode_EnableStatusForNexus);
-    }
-
-    if (h->pChnAcqParam->BADS_Acquire_Params.AcquireStartMode & BADS_AcquireStartMode_ResetStatus)
-    {
-        BDBG_MSG(("call reset"));
-        BMEM_FlushCache(hDev->settings.hHeap, h->pChnStatus, sizeof( BADS_3x7x_ChnStatus_t ) );
-        BADS_P_ChnStatusReset(h);
-        h->pChnAcqParam->BADS_Acquire_Params.AcquireStartMode &= (~BADS_AcquireStartMode_ResetStatus);
-    }
-
-    if (h->pChnAcqParam->BADS_Acquire_Params.AcquireStartMode & BADS_AcquireStartMode_Acquire)
-    {
-        h->pChnAcqParam->BADS_Acquire_Params.AcquireStartMode &= ~BADS_AcquireStartMode_Acquire;
-        h->pChnLockStatus->ReAck_Count_u32 = 0;
-        BDBG_MSG(("call1 BADS_3x7x_ProcessInterruptEvent"));
-        BKNI_SetEvent(hImplDev->hIntEvent);
-        return BERR_SUCCESS;
-    }
-    else
-    {
-        if (h->pChnAcqParam->BADS_Acquire_Params.Auto_te == BADS_Acquire_Params_eEnable)
-        {
-            if (h->lock_status == 0)
-            {
-                BDBG_MSG(("call  BADS_3x7x_ProcessInterruptEvent in AUTO mode"));
-                BKNI_SetEvent(hImplDev->hIntEvent);
-            }
-        }
-    }
-
-    BDBG_LEAVE(BADS_P_TimerFunc);
-    return retCode;
+	BKNI_SetEvent(hImplDev->hIntEvent);
+	return BERR_SUCCESS;
 }
-
 
 /*******************************************************************************
 *   BADS_3x7x_Open
@@ -826,6 +741,7 @@ BERR_Code BADS_3x7x_Acquire(
             (hImplChnDev->pCallback[BADS_Callback_eLockChange])(hImplChnDev->pCallbackParam[BADS_Callback_eLockChange] );
     BKNI_LeaveCriticalSection();
     BADS_P_ResetDSCore(hImplChnDev);
+    BDBG_WRN(("BADS_P_Acquire"));
     BADS_P_Acquire(hImplChnDev);
     BTMR_StartTimer(hImplDev->hTimer, 25000);   /* the timer is in Micro second */
 
@@ -1123,8 +1039,8 @@ BERR_Code BADS_3x7x_DisablePowerSaver(
     /* Create timer for status lock check */
 
     sTimerSettings.type = BTMR_Type_ePeriodic;
-    sTimerSettings.cb_isr = (BTMR_CallbackFunc)BADS_P_TimerFunc;
-    sTimerSettings.pParm1 = (void*)hDev;
+    sTimerSettings.cb_isr = (BTMR_CallbackFunc)BADS_P_TimerFunc_isr;
+    sTimerSettings.pParm1 = (void*)hImplDev;
     sTimerSettings.parm2 = 0;
     sTimerSettings.exclusive = false;
     retCode = BTMR_CreateTimer (hChn->hAds->settings.hTmr, &hImplDev->hTimer, &sTimerSettings);
@@ -1318,32 +1234,91 @@ BERR_Code BADS_3x7x_ProcessInterruptEvent(
 {
     BERR_Code retCode = BERR_SUCCESS;
     BADS_3x7x_Handle hImplDev;
-    BADS_3x7x_ChannelHandle hImplChnDev;
+    BADS_3x7x_ChannelHandle h;
 
-    
+
     BDBG_ENTER(BADS_3x7x_ProcessInterruptEvent);
     BDBG_ASSERT( hDev );
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
 
     hImplDev = (BADS_3x7x_Handle) hDev->pImpl;  
     BDBG_ASSERT( hImplDev );
-    hImplChnDev = (BADS_3x7x_ChannelHandle)(hImplDev->hAdsChn[0]);
-    BDBG_MSG(("BADS_3x7x_ProcessInterruptEvent"));
+    h = (BADS_3x7x_ChannelHandle)(hImplDev->hAdsChn[0]);
+    /*BDBG_MSG(("BADS_3x7x_ProcessInterruptEvent"));*/
 
-    if (hImplChnDev->ePowerStatus  != BADS_eChan_Power_On)
+    if (h->ePowerStatus  != BADS_eChan_Power_On)
     {
         BDBG_WRN(("!!!BADS_3x7x_ProcessInterruptEvent: chan power not on yet"));
         return BERR_NOT_INITIALIZED;
     }
+	BTMR_StopTimer(hImplDev->hTimer);  /* the timer is in Micro second */
+	BKNI_ResetEvent(hImplDev->hIntEvent);
 
-    BTMR_StopTimer(hImplDev->hTimer);  /* the timer is in Micro second */
-    BKNI_ResetEvent(hImplDev->hIntEvent);
-    BADS_P_ResetDSCore(hImplChnDev);
-    BADS_P_Acquire(hImplChnDev);
-    BTMR_StartTimer(hImplDev->hTimer, 25000);   /* the timer is in Micro second */
+    BADS_P_ChnLockStatus(h);
 
+    if ( h->pCallback[BADS_Callback_eLockChange] != NULL )
+    {
+            if (h->pChnLockStatus->FLK_te == 1)
+            {
+                if (h->LockUpdate)
+                {
+                    h->LockUpdate = false;
+                    BKNI_EnterCriticalSection();
+                    (h->pCallback[BADS_Callback_eLockChange])(h->pCallbackParam[BADS_Callback_eLockChange] );
+                    BKNI_LeaveCriticalSection();
+                }
+            }
+            else
+            {
+                if (h->lock_status != h->pChnLockStatus->FLK_te )
+                {
+                    h->LockUpdate = true;
+                    BKNI_EnterCriticalSection();
+                   (h->pCallback[BADS_Callback_eLockChange])(h->pCallbackParam[BADS_Callback_eLockChange] );
+                   BKNI_LeaveCriticalSection();
+                   h->pChnLockStatus->ReAck_Count_u32 = 0;
+                }
+            }
+    }
+    h->lock_status = h->pChnLockStatus->FLK_te;
 
+    BMEM_FlushCache(hDev->settings.hHeap, h->pChnAcqParam, sizeof( BADS_3x7x_AcqParams_t ) );
+    if (h->pChnAcqParam->BADS_Acquire_Params.NexusStatusMode & BADS_NexusStatusMode_EnableStatusForNexus)
+    {
+        BMEM_FlushCache(hDev->settings.hHeap, h->pChnStatus, sizeof( BADS_3x7x_ChnStatus_t ) );
+        BADS_P_ChnStatus(h);
+        h->pChnAcqParam->BADS_Acquire_Params.NexusStatusMode &= (~BADS_NexusStatusMode_EnableStatusForNexus);
+    }
+
+    if (h->pChnAcqParam->BADS_Acquire_Params.AcquireStartMode & BADS_AcquireStartMode_ResetStatus)
+    {
+        BDBG_MSG(("call reset"));
+        BMEM_FlushCache(hDev->settings.hHeap, h->pChnStatus, sizeof( BADS_3x7x_ChnStatus_t ) );
+        BADS_P_ChnStatusReset(h);
+        h->pChnAcqParam->BADS_Acquire_Params.AcquireStartMode &= (~BADS_AcquireStartMode_ResetStatus);
+    }
+
+    if (h->pChnAcqParam->BADS_Acquire_Params.AcquireStartMode & BADS_AcquireStartMode_Acquire)
+    {
+        h->pChnAcqParam->BADS_Acquire_Params.AcquireStartMode &= ~BADS_AcquireStartMode_Acquire;
+        h->pChnLockStatus->ReAck_Count_u32 = 0;
+		BADS_P_ResetDSCore(h);
+		BADS_P_Acquire(h);
+    }
+    else
+    {
+        if (h->pChnAcqParam->BADS_Acquire_Params.Auto_te == BADS_Acquire_Params_eEnable)
+        {
+            if (h->lock_status == 0)
+            {
+                BADS_P_ResetDSCore(h);
+				BADS_P_Acquire(h);
+            }
+        }
+    }
+	BTMR_StartTimer(hImplDev->hTimer, 25000);   /* the timer is in Micro second */
     BDBG_LEAVE(BADS_3x7x_ProcessInterruptEvent);
+
     return( retCode );
 }
 

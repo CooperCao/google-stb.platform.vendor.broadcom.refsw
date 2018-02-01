@@ -108,7 +108,7 @@
   </platform>
   <platform id="97278">
     <bondouts></bondouts>
-    <revisions>A0,B0</revisions>
+    <revisions>B0,B1</revisions>
     <cpu_arch>ARM64</cpu_arch>
     <boards></boards>
   </platform>
@@ -386,8 +386,8 @@
   <version>1.0</version>
   <kernel version="26" default="OLD_MIPS">2.6.37-3.5</kernel>
   <kernel version="33" default="MIPS">3.3-4.2</kernel>
-  <kernel version="314">3.14-1.20</kernel>
-  <kernel version="41" default="ARM,BMIPS,97271B0">4.1-1.15</kernel>
-  <kernel version="49" default="ARM64">4.9-1.2</kernel>
+  <kernel version="314">3.14-1.21</kernel>
+  <kernel version="41" default="ARM,BMIPS">4.1-1.16</kernel>
+  <kernel version="49" default="ARM64">4.9-1.3</kernel>
 </kernels>
 </plat>

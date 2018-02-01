@@ -42,8 +42,7 @@
 #include "file_manager.h"
 #include <stdbool.h>
 
-#define SCENARIO_PLAYER_RESET -1
-#define SCENARIO_PLAYER_EXIT -2
+extern const char * SCENARIO_PLAYER_EXIT_SCENARIO_NAME;
 
 typedef struct ScenarioPlayer * ScenarioPlayerHandle;
 
@@ -55,19 +54,28 @@ typedef struct Scenario
     char * imagePath;
     char * bgPath;
     PlatformUsageMode usageMode;
+    unsigned layout;
     bool osd;
+    bool info;
     bool forceRestart;
+    bool startPaused;
+    bool stcTrick;
+    PlatformPlayMode playMode;
     struct
     {
         PlatformDynamicRangeProcessingMode vid;
         PlatformDynamicRangeProcessingMode gfx;
     } processing;
-    PlatformColorimetry gamut;
-    PlatformDynamicRange dynrng;
-    unsigned layout;
+    struct
+    {
+        int max;
+        int min;
+    } gfxLuminance;
+    PlatformPictureInfo pictureInfo;
 } Scenario;
 
 typedef void (*ScenarioChangedCallback)(void * context, const Scenario * pScenario);
+typedef int (*UnrecognizedScenarioSyntaxCallback)(void * context, const char * name, const char * value);
 
 typedef struct ScenarioPlayerCreateSettings
 {
@@ -77,12 +85,18 @@ typedef struct ScenarioPlayerCreateSettings
         ScenarioChangedCallback callback;
         void * context;
     } scenarioChanged;
+    struct
+    {
+        UnrecognizedScenarioSyntaxCallback callback;
+        void * context;
+    } unrecognizedSyntax;
 } ScenarioPlayerCreateSettings;
 
 bool scenario_player_file_filter(const char * path);
 void scenario_player_get_default_create_settings(ScenarioPlayerCreateSettings * pSettings);
 ScenarioPlayerHandle scenario_player_create(const ScenarioPlayerCreateSettings * pSettings);
 void scenario_player_destroy(ScenarioPlayerHandle player);
-void scenario_player_play_scenario(ScenarioPlayerHandle player, int scenarioNumber);
+int scenario_player_play_scenario(ScenarioPlayerHandle player, const char * scenarioName);
+void scenario_player_abort(ScenarioPlayerHandle player);
 
 #endif /* SCENARIO_PLAYER_H__ */

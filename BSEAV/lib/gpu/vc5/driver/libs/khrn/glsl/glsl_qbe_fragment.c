@@ -23,12 +23,12 @@ static Backflow *cov_accum(Backflow *mask, Backflow *cov) {
 }
 
 static Backflow *coverage_and(Backflow *mask, Backflow *dep) {
-   return tr_uop_io(BACKFLOW_SETMSF, bitand(tr_nullary(BACKFLOW_MSF), mask), dep);
+   return tr_uop_io(V3D_QPU_OP_SETMSF, bitand(tr_nullary(V3D_QPU_OP_MSF), mask), dep);
 }
 
 static Backflow *tr_discard(Backflow *prev, Backflow *cond) {
    Backflow *zero   = tr_const(0);
-   Backflow *result = create_node(BACKFLOW_SETMSF, UNPACK_NONE, COND_IFFLAG, cond, zero, NULL, NULL);
+   Backflow *result = tr_uop_cond(V3D_QPU_OP_SETMSF, COND_IFFLAG, cond, zero);
 
    glsl_iodep(result, prev);
 
@@ -63,7 +63,7 @@ static void fragment_backend(
 
    Backflow *coverage = NULL;
    if (s->sample_alpha_to_coverage)
-      coverage = cov_accum( tr_uop(BACKFLOW_FTOC, A(0,0)), coverage );
+      coverage = cov_accum( tr_uop(V3D_QPU_OP_FTOC, A(0,0)), coverage );
 
 #if !V3D_VER_AT_LEAST(4,1,34,0)
    /* Apply any sample mask set in the API */
@@ -126,12 +126,12 @@ static void fragment_backend(
          if (B(i,0) != NULL) rt_channels++;
          if (A(i,0) != NULL) rt_channels++;
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
          /* Work around GFXH-1212 by writing 4 channels for 16 bit images with alpha */
          if (s->rt[i].alpha_16_workaround) rt_channels = 4;
 #endif
 
-         bool block_per_sample = !V3D_VER_AT_LEAST(4,0,2,0) && block->per_sample;
+         bool block_per_sample = !V3D_VER_AT_LEAST(4,1,34,0) && block->per_sample;
          bool ms_adv_blend     = s->ms && s->adv_blend;
          bool per_sample       = block_per_sample || ms_adv_blend;
          bool shared_frag      = !block_per_sample && ms_adv_blend;
@@ -167,7 +167,7 @@ static void fragment_backend(
                   } else if (is_plain_unif(out[2*j]) && is_plain_unif(out[2*j+1])) {
                      out[j] = tr_typed_uniform(BACKEND_UNIFORM_PLAIN_FPACK, (out[2*j+1]->unif << 16) | out[2*j]->unif);
                   } else {
-                     out[j] = tr_binop(BACKFLOW_VFPACK, out[2*j], out[2*j+1]);
+                     out[j] = tr_binop(V3D_QPU_OP_VFPACK, out[2*j], out[2*j+1]);
                   }
                   out[j]->age = dataflow_age;
                }
@@ -186,7 +186,7 @@ static void fragment_backend(
 #if !V3D_VER_AT_LEAST(4,1,34,0)
    /* QPU restrictions prevent us writing nothing to the TLB. Write some fake data */
    if (s->requires_sbwait && block->first_tlb_read == NULL && tlb_node_count == 0) {
-# if V3D_VER_AT_LEAST(4,0,2,0)
+# if V3D_VER_AT_LEAST(4,1,34,0)
       int vec_sz = 1;
 # else
       /* Check rt[0] for the workaround. If the target is present but the output from
@@ -275,7 +275,7 @@ static void collect_shader_outputs(SchedBlock *block, int block_id, const IRShad
       if (out_idx == -1) continue;
       if (!shader_outputs_used[out_idx]) continue;
 
-      int samples = (!V3D_VER_AT_LEAST(4,0,2,0) && block->per_sample) ? 4 : 1;
+      int samples = (!V3D_VER_AT_LEAST(4,1,34,0) && block->per_sample) ? 4 : 1;
       int out_samples = 4;
       IROutput *o = &sh->outputs[out_idx];
       if (o->block == block_id) {

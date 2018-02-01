@@ -54,6 +54,7 @@
 #define B_IPC_FIELD_DIR(api, dir) B_IPC_DATA()->data.dir.api
 #define B_IPC_FIELD(api, dir, field) B_IPC_DATA()->data.dir.api.field
 #define B_IPC_CLIENT_PROLOGUE(module, function, api) NEXUS_Error __rc; NEXUS_P_ClientCall_State __state;NEXUS_CLIENT_ENTER(function);\
+    BDBG_CASSERT(sizeof(B_IPC_FIELD_DIR(api,in)) <= NEXUS_P_IPC_BUFFER_SIZE); BDBG_CASSERT(sizeof(B_IPC_FIELD_DIR(api,out)) <= NEXUS_P_IPC_BUFFER_SIZE); \
     __state.varargs_begin = B_IPC_DATA_ALIGN( offsetof(b_ipc_this_module_data, data.in.api) +  sizeof(B_IPC_FIELD_DIR(api,in)));\
     __rc = NEXUS_P_ClientCall_Begin(nexus_client_##module##_state, &__state, offsetof(b_ipc_this_module_data, data.in.api));if(__rc!=NEXUS_SUCCESS) {__rc=BERR_TRACE(__rc);goto err_begin;}
 
@@ -70,6 +71,7 @@
 #define B_IPC_CLIENT_BEGIN_VOID(module, MODULE, api, function, args) void function args { B_IPC_CLIENT_PROLOGUE(module,function,api);
 #define B_IPC_CLIENT_BEGIN_DESTRUCTOR(module, MODUELE, api, function, args, handle, has_callbacks) void function args { bool __has_callbacks = has_callbacks; if(__has_callbacks) {NEXUS_StopCallbacks((void *)handle);} {B_IPC_CLIENT_PROLOGUE(module,function,api);
 #define B_IPC_CLIENT_SET_RESULT(type, api) __result = B_IPC_FIELD(api, out, ret.__retval);
+#define B_IPC_CLIENT_CHECK_RETURN_CODE(api) if(__result!=NEXUS_SUCCESS) {/*(void)BERR_TRACE(__result);*/goto done_end;}
 #define B_IPC_CLIENT_END_VOID(api)  err_call: NEXUS_P_ClientCall_End(&__state);err_begin: NEXUS_CLIENT_LEAVE(api);return;}
 #define B_IPC_CLIENT_END_DESTRUCTOR(api, handle)  err_call: NEXUS_P_ClientCall_End(&__state);err_begin: if(__has_callbacks) {NEXUS_StartCallbacks((void *)handle);} NEXUS_CLIENT_LEAVE(api);} return;}
 #define B_IPC_CLIENT_END_HANDLE(type, api) done_end: NEXUS_P_ClientCall_End(&__state); done: NEXUS_CLIENT_LEAVE(api);return __result; err_call: __result=0; goto done_end;;err_begin: __result=0;goto done;}

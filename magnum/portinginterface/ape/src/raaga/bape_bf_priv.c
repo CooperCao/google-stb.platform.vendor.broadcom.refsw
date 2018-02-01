@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -953,7 +953,8 @@ static BERR_Code BAPE_Sfifo_P_GetBuffer(
     )
 {
     BMMA_DeviceOffset rd,wr,base,rdaddr,wraddr;
-    unsigned bufferSize, sfifoId, padding=1024;
+    unsigned bufferSize, sfifoId;
+    unsigned padding = BAPE_CHIP_SFIFO_PADDING;
 
     sfifoId = handle->sfifoIds[chPair];
     bufferSize = handle->settings.bufferInfo[chPair*2 + bufferNum].length;

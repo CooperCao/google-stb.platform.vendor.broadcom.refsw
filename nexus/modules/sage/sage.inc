@@ -1,5 +1,5 @@
 ###############################################################################################################
-#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -113,10 +113,14 @@ NEXUS_CFLAGS += -DBP3_PROVISIONING
 endif
 
 ######################
-# SARM Interface      #
+# SARM Interface     #
 ######################
 ifneq ($(SAGE_VERSION), 2x)
+ifeq ($(NEXUS_SAGE_SARM_TEST),y)
+include $(NEXUS_TOP)/../rockford/nexus_devel/extensions/sage/sarm/sarm.inc
+else
 NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_sarm.c
+endif
 endif
 NEXUS_SAGE_PRIVATE_INCLUDES += $(BSEAV)/lib/security/sage/platforms/include $(MAGNUM)/commonutils/avc/include
 

@@ -32,7 +32,7 @@ private:
    bsg::CameraHandle          m_camera;
    bsg::MaterialHandle        m_material;
 
-   std::auto_ptr<bsg::Tasker> m_tasker;
+   std::unique_ptr<bsg::Tasker> m_tasker;
 };
 
 #endif /* __HELLO_TASK_H__ */

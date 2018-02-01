@@ -1,18 +1,9 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
-Project  :  khronos
-Module   :  Fixed-size leaky map
-
-FILE DESCRIPTION
-Interface.
-=============================================================================*/
-
-#ifndef KHRN_FLEAKY_MAP_H
-#define KHRN_FLEAKY_MAP_H
-
-#include "middleware/khronos/common/khrn_mem.h"
+#include "vcfw/rtos/abstract/rtos_abstract_mem.h"
 
 typedef struct {
    uint32_t key;
@@ -32,5 +23,3 @@ extern void khrn_fleaky_map_term(KHRN_FLEAKY_MAP_T *fleaky_map);
 
 extern void khrn_fleaky_map_insert(KHRN_FLEAKY_MAP_T *fleaky_map, uint32_t key, MEM_HANDLE_T value); /* mustn't already contain key */
 extern MEM_HANDLE_T khrn_fleaky_map_lookup(KHRN_FLEAKY_MAP_T *fleaky_map, uint32_t key);
-
-#endif

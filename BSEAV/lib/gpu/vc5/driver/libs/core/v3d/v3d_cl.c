@@ -24,14 +24,14 @@ uint32_t v3d_prim_mode_num_verts(v3d_prim_mode_t prim_mode, bool tg_enabled)
 
    switch (prim_mode) {
    case V3D_PRIM_MODE_POINTS:
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_PRIM_MODE_POINTS_TF:
 #endif
       return 1;
    case V3D_PRIM_MODE_LINES:
    case V3D_PRIM_MODE_LINE_LOOP:
    case V3D_PRIM_MODE_LINE_STRIP:
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_PRIM_MODE_LINES_TF:
    case V3D_PRIM_MODE_LINE_LOOP_TF:
    case V3D_PRIM_MODE_LINE_STRIP_TF:
@@ -40,7 +40,7 @@ uint32_t v3d_prim_mode_num_verts(v3d_prim_mode_t prim_mode, bool tg_enabled)
    case V3D_PRIM_MODE_TRIS:
    case V3D_PRIM_MODE_TRI_STRIP:
    case V3D_PRIM_MODE_TRI_FAN:
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_PRIM_MODE_TRIS_TF:
    case V3D_PRIM_MODE_TRI_STRIP_TF:
    case V3D_PRIM_MODE_TRI_FAN_TF:
@@ -182,7 +182,7 @@ void v3d_pixel_format_to_rt_format(
    }
 }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 v3d_pixel_format_t v3d_raw_mode_pixel_format(
    v3d_rt_type_t type, v3d_rt_bpp_t bpp)
 {
@@ -327,7 +327,7 @@ void v3d_pack_clear_color(uint32_t packed[4], const uint32_t c[4],
 void v3d_cl_rcfg_clear_colors(uint8_t **cl, uint32_t rt,
    const uint32_t col[4],
    const V3D_RT_FORMAT_T *rt_format
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    , uint32_t raster_padded_width_or_nonraster_height,
    uint32_t uif_height_in_ub
 #endif
@@ -343,7 +343,7 @@ void v3d_cl_rcfg_clear_colors(uint8_t **cl, uint32_t rt,
       v3d_cl_tile_rendering_mode_cfg_clear_colors_part2(cl, rt,
          packed[1] >> 24, packed[2], packed[3] & gfx_mask(16));
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (rt_format->bpp == V3D_RT_BPP_128)
       v3d_cl_tile_rendering_mode_cfg_clear_colors_part3(cl, rt, packed[3] >> 16);
 #else
@@ -431,7 +431,7 @@ float v3d_snap_depth(float depth, v3d_depth_type_t depth_type)
    return snapped;
 }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 const char *v3d_desc_output_format(
    v3d_ldst_buf_t buf, v3d_output_format_t output_format)
 {

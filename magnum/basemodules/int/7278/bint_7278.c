@@ -99,6 +99,7 @@
 
 /* ASP */
 #include "bchp_asp_arcss_host_fw2h_l2.h"
+#include "bchp_asp_arcss_ctrl.h"
 
 /* XPT */
 #include "bchp_xpt_fe.h"
@@ -300,6 +301,10 @@ BDBG_MODULE(interruptinterface_7278);
 #define BINT_P_XPT_MSG_ERR_STATUS   ( 0x00 )
 #define BINT_P_XPT_MSG_ERR_ENABLE   ( 0x04 )
 
+/* ASP */
+#define BINT_P_ASP_ARCSS_CTRL_WD_TIMER1_CASES \
+    case BCHP_ASP_ARCSS_CTRL_WD_TIMER1_CONTROL:
+
 /* BINT_P_UPGSC_ENABLE was defined as -4 for BCHP_SCIRQ0_SCIRQSTAT.
  * Since we are using BCHP_SCIRQ0_SCIRQEN, it is not needed but
  * to minimize the change, it is kept and set to 0
@@ -437,9 +442,8 @@ static const BINT_P_IntMap bint_map[] =
 #endif
 
         /* ASP */
-#ifdef BCHP_ASP_ARCSS_HOST_FW2H_L2_REG_START
+    BINT_MAP(1, ASP_0, "_ASP_ARCSS_CTRL_WD_TIMER1", ASP_ARCSS_CTRL_WD_TIMER1_CONTROL, REGULAR, SOME, 0x00000001),
     BINT_MAP_STD(1, ASP_0, ASP_ARCSS_HOST_FW2H_L2_HOST),
-#endif
 
     BINT_MAP_STD(2, SYS_AON, AON_L2_CPU),
     BINT_MAP_STD(2, UPG_AUX_AON, UPG_AUX_AON_INTR2_CPU),
@@ -447,7 +451,10 @@ static const BINT_P_IntMap bint_map[] =
     BINT_MAP(2, UPG_BSC_AON, "", UPG_BSC_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x3 ),
     BINT_MAP(2, UPG_MAIN, "", UPG_MAIN_IRQ_CPU_STATUS, REGULAR, SOME, 0x3 ),
     BINT_MAP(2, UPG_MAIN_AON, "", UPG_MAIN_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x3f ),
+
+#ifndef BINT_SPI_DISABLED
     BINT_MAP(2, UPG_SPI, "", UPG_SPI_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x1 ),
+#endif
     BINT_MAP(2, UPG_SC, "", SCIRQ0_SCIRQEN, REGULAR, ALL, 0),
 #ifdef BSU_USE_UPG_TIMER
     BINT_MAP(2, UPG_TMR, "", TIMER_TIMER_IS, REGULAR, MASK, 0x8),
@@ -629,6 +636,9 @@ static void BINT_P_ClearInt( BREG_Handle regHandle, uint32_t baseAddr, int shift
             /* Write 0 to clear the int bit. Writing 1's are ingored. */
             BREG_Write32( regHandle, baseAddr + BINT_P_PCROFFSET_STATUS, ~( 1ul << shift ) );
             break;
+        BINT_P_ASP_ARCSS_CTRL_WD_TIMER1_CASES
+            /* Has to be cleared at the source */
+            break;
         default:
             /* Other types of interrupts do not support clearing of interrupts (condition must be cleared) */
             break;
@@ -688,6 +698,11 @@ static void BINT_P_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int shift 
         intEnable &= ~( 1ul << shift );
         BREG_Write32( regHandle, baseAddr + BINT_P_PCROFFSET_ENABLE, intEnable);
         break;
+
+    BINT_P_ASP_ARCSS_CTRL_WD_TIMER1_CASES
+        /* Dont support masking the watchdog timer L2 via this interface */
+        break;
+
     default:
        BDBG_ERR(("NOT SUPPORTED baseAddr 0x%08x ,regHandle %p,  shift %d",
                  baseAddr, (void*)regHandle, shift));
@@ -752,6 +767,11 @@ static void BINT_P_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int shif
         intEnable |= ( 1ul << shift );
         BREG_Write32( regHandle, baseAddr + BINT_P_PCROFFSET_ENABLE, intEnable);
         break;
+
+    BINT_P_ASP_ARCSS_CTRL_WD_TIMER1_CASES
+        /* Dont support unmasking the watchdog timer L2 via this interface */
+        break;
+
     default:
         /* Unhandled interrupt base address */
         BDBG_ASSERT( false );
@@ -784,6 +804,15 @@ static uint32_t BINT_P_ReadStatus( BREG_Handle regHandle, uint32_t baseAddr )
         return BREG_Read32( regHandle, baseAddr + BINT_P_UPGSC_ENABLE );
     BINT_P_PCROFFSET_CASES
         return BREG_Read32( regHandle, baseAddr + BINT_P_PCROFFSET_STATUS );
+
+    BINT_P_ASP_ARCSS_CTRL_WD_TIMER1_CASES
+    {
+        uint32_t flag;
+        flag  = (BREG_Read32( regHandle, baseAddr ) & BCHP_ASP_ARCSS_CTRL_WD_TIMER1_CONTROL_STATUS_MASK) >> BCHP_ASP_ARCSS_CTRL_WD_TIMER1_CONTROL_STATUS_SHIFT;
+        return flag;
+    }
+    break;
+
     default:
         /* Unhandled interrupt base address */
         BDBG_ASSERT( false );

@@ -26,8 +26,10 @@
 #ifndef _V3D_DRV_H_
 #define _V3D_DRV_H_
 
+#include <linux/types.h>
 #include <linux/genalloc.h>
 #include <linux/bitops.h>
+#include <linux/bitmap.h>
 #include <linux/cma.h>
 #include <linux/brcmstb/cma_driver.h>
 #include <drm/drmP.h>
@@ -38,29 +40,36 @@
 #define V3D_PAGE_FLAG_BIGPAGE	BIT(30)
 #define V3D_PAGE_FLAG_MASK      0xf0000000
 
-/* Using 64k big pages in the V3D MMU */
-#define V3D_HW_PAGE_SHIFT (16)
+/* Valid page shifts are:
+ * 12 - 4K pages in the MMU, 128K CMA allocations
+ * 16 - 64K big pages in the MMU, 2MB CMA allocations
+ */
+#define V3D_HW_PAGE_SHIFT (12)
 #define V3D_HW_PAGE_SIZE  (1UL << V3D_HW_PAGE_SHIFT)
 #define V3D_HW_PAGE_MASK  (~((phys_addr_t)V3D_HW_PAGE_SIZE - 1))
 
+#if (V3D_HW_PAGE_SIZE == 4096)
+#define V3D_HW_DEFAULT_PAGE_FLAGS (V3D_PAGE_FLAG_VALID)
+#else
 #define V3D_HW_DEFAULT_PAGE_FLAGS (V3D_PAGE_FLAG_VALID | \
 				   V3D_PAGE_FLAG_BIGPAGE)
+#endif
 
 /*
- * v3d_alloc_block Represents a physically contiguous 2MB block allocated
- * from a CMA device, from which we are going to allocate memory in 64k
+ * v3d_alloc_block Represents a physically contiguous block allocated
+ * from a CMA device, from which we are going to allocate memory in 4k or 64k
  * pages for use by the hardware. These pages do not have to be physically
  * contiguous as we will use the hardware MMU to make them virtually contiguous.
  *
  * We may have a mixture of blocks from more than one CMA device if the
  * platform supports multiple memory controllers.
  */
-#define V3D_CMA_ALLOC_BLOCK_SIZE (V3D_HW_PAGE_SIZE * \
-				  sizeof(uint32_t) * BITS_PER_BYTE)
+#define V3D_CMA_ALLOC_BLOCK_SIZE (2UL * 1024 * 1024)
+#define V3D_CMA_ALLOC_MAP_SIZE (V3D_CMA_ALLOC_BLOCK_SIZE / V3D_HW_PAGE_SIZE)
 
 struct v3d_alloc_block {
 	struct list_head node;
-	uint32_t alloc_map; /* 1bit per page */
+	DECLARE_BITMAP(alloc_map, V3D_CMA_ALLOC_MAP_SIZE); /* 1bit per page */
 	int cma_dev;
 	phys_addr_t phys_addr;
 };
@@ -76,15 +85,15 @@ struct v3d_page_allocation {
 	 * matching addresses
 	 */
 	struct v3d_alloc_block *alloc_block;
-	unsigned block_page_nr;
+	unsigned int block_page_nr;
 };
 
 /*
- * The V3D MMU virtual space management will start at the first 64k and
+ * The V3D MMU virtual space management will start after the first page and
  * use the first 1GB. Note that the MMU page table always contains entries
- * for 4K pages, regardless of the fact we are using 64K bigpages. The
- * 16 entries in a 4K page are duplicated. The pagetable size will therefore
- * be 1MB.
+ * for 4K pages, regardless of the fact we are using 64K bigpages or not. The
+ * 16 entries in a 4K page are duplicated in that case. The pagetable size
+ * will therefore be 1MB.
  *
  * This is believed to be a reasonable compromise; each file open
  * on the device will get its own pagetable which eliminates any
@@ -119,9 +128,8 @@ struct v3d_hw_virtual_mem {
 	 * V3D MMU pagetable allocation details
 	 *
 	 */
-	uint32_t *pt_kaddr;
+	u32 *pt_kaddr;
 	phys_addr_t pt_phys;
-	int pt_cmadev;
 	bool clear_entries_on_free;
 };
 
@@ -144,8 +152,9 @@ struct v3d_drm_file_private {
 	/** Reference count of this object, must be first in structure */
 	struct kref refcount;
 
-	struct list_head alloc_blocks;
-	bool all_blocks_full;
+	struct list_head alloc_blocks[MAX_CMA_AREAS];
+	bool all_blocks_full[MAX_CMA_AREAS];
+	int next_alloc_device;
 
 	bool clear_pagetable_on_close;
 
@@ -159,21 +168,19 @@ struct v3d_drm_file_private {
 	 * Unique identifier for signalling the memory cleanup of a dead
 	 * client associated with this structure
 	 */
-	uint64_t magic_id;
+	u64 magic_id;
 
 	/** When placed on the dead client client cleanup list */
 	struct list_head dead_fp;
 };
 
-#define v3d_first_alloc_block(fp) \
-	list_first_entry(&(fp)->alloc_blocks, struct v3d_alloc_block, node)
-
-#define v3d_last_alloc_block(fp) \
-	list_last_entry(&(fp)->alloc_blocks, struct v3d_alloc_block, node)
+#define v3d_first_alloc_block(fp, mem_dev) \
+	list_first_entry(&(fp)->alloc_blocks[mem_dev], \
+	struct v3d_alloc_block, node)
 
 struct v3d_drm_dead_client {
 	struct list_head node;
-	uint64_t magic_id;
+	u64 magic_id;
 };
 
 struct v3d_drm_dev_private {
@@ -182,6 +189,7 @@ struct v3d_drm_dev_private {
 
 	/** Available Broadcom CMA devices on the platform */
 	struct cma_dev *cma_devs[MAX_CMA_AREAS];
+	int nr_cma_devs;
 
 	/** DMA address mask for the MMU hardware */
 	u64 mmu_dma_mask;
@@ -205,8 +213,8 @@ struct v3d_drm_gem_object {
 	 */
 	struct v3d_drm_file_private *fp;
 	struct v3d_page_allocation *pages;
-	uint32_t hw_virt_addr;
-	uint32_t alloc_flags;
+	u32 hw_virt_addr;
+	u32 alloc_flags;
 	char *desc;
 };
 
@@ -221,6 +229,11 @@ void v3d_debugfs_cleanup_file_entries(struct drm_file *file);
 #else
 void v3d_debugfs_create_file_entries(struct drm_file *file) {}
 void v3d_debugfs_cleanup_file_entries(struct drm_file *file) {}
+#endif
+
+#ifdef CONFIG_COMPAT
+long v3d_drm_compat_ioctl(struct file *filp, unsigned int cmd,
+			  unsigned long arg);
 #endif
 
 #endif

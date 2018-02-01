@@ -3,7 +3,6 @@
  ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_int_parallel.h"
-#include "interface/khronos/common/khrn_api_interposer.h"
 #include "middleware/khronos/common/2708/khrn_prod_4.h"
 #include "middleware/khronos/common/2708/khrn_interlock_priv_4.h"
 #include "middleware/khronos/common/2708/khrn_render_state_4.h"
@@ -13,6 +12,7 @@
 #include "middleware/khronos/ext/egl_khr_image.h"
 #include "middleware/khronos/egl/egl_platform.h"
 #include "middleware/khronos/egl/egl_server.h"
+#include "middleware/khronos/glxx/glxx_server.h"
 #include "middleware/khronos/glxx/2708/glxx_inner_4.h"  /* for GL render state */
 
 #ifndef WIN32
@@ -35,54 +35,6 @@ static uint64_t               s_jobSequenceDone   = 0;
 static VCOS_EVENT_T           s_jobDoneEvent;
 
 void khrn_send_job(BEGL_HWJob *job);
-
-#ifdef TIMELINE_EVENT_LOGGING
-static void EventLog(BEGL_HWNotification *notification, BEGL_HWCallbackRecord *cbRec, uint64_t sequence)
-{
-   EventData ev;
-
-   ev.eventData = sequence & 0xFFFFFFFF;
-   ev.desc = 0;
-
-   switch (cbRec->reason)
-   {
-   case KHRN_BIN_RENDER_DONE :
-   case KHRN_VG_DONE :
-      ev.eventType = eEVENT_START;
-      ev.eventCode = eEVENT_BIN;
-      ev.eventRow  = eEVENT_BINNER;
-      ev.eventSecs = notification->timelineData->binStart.secs;
-      ev.eventNanosecs = 1000 * notification->timelineData->binStart.microsecs;
-      khrn_remote_event_log(&ev);
-      ev.eventType = eEVENT_START;
-      ev.eventCode = eEVENT_RENDER;
-      ev.eventRow  = eEVENT_RENDERER;
-      ev.eventSecs = notification->timelineData->renderStart.secs;
-      ev.eventNanosecs = 1000 * notification->timelineData->renderStart.microsecs;
-      khrn_remote_event_log(&ev);
-      ev.eventType = eEVENT_END;
-      ev.eventCode = eEVENT_BIN;
-      ev.eventRow  = eEVENT_BINNER;
-      ev.eventSecs = notification->timelineData->binEnd.secs;
-      ev.eventNanosecs = 1000 * notification->timelineData->binEnd.microsecs;
-      khrn_remote_event_log(&ev);
-      ev.eventType = eEVENT_END;
-      ev.eventCode = eEVENT_RENDER;
-      ev.eventRow  = eEVENT_RENDERER;
-      ev.eventSecs = notification->timelineData->renderEnd.secs;
-      ev.eventNanosecs = 1000 * notification->timelineData->renderEnd.microsecs;
-      khrn_remote_event_log(&ev);
-      break;
-   case KHRN_TFCONVERT_DONE :
-      khrn_tfconvert_logevents(notification);
-      break;
-   default :
-      break;
-   }
-}
-#else
-#define EventLog(n, c, s)
-#endif
 
 /* order of init/term calls is important */
 
@@ -122,6 +74,14 @@ void khrn_hw_common_flush(void)
    khrn_render_state_flush_all(KHRN_RENDER_STATE_TYPE_NONE);
 }
 
+void khrn_hw_common_finish(void)
+{
+   glxx_context_gl_lock();
+   khrn_hw_common_flush();
+   khrn_hw_common_wait();
+   glxx_context_gl_unlock();
+}
+
 void khrn_hw_common_wait(void)
 {
    khrn_hw_wait();
@@ -147,7 +107,7 @@ void khrn_send_job(BEGL_HWJob *job)
    job->jobSequence = s_jobSequenceIssued;
    unlockCallback();
 
-   job->collectTimeline = khrn_remote_event_logging();
+   job->collectTimeline = false;
 
    for (i = 0; i < BEGL_HW_JOB_MAX_INSTRUCTIONS; ++i)
    {
@@ -175,7 +135,7 @@ bool khrn_has_job_callbacks_pending(void)
    return s_jobCallbacksPending != 0;
 }
 
-void khrn_issue_fence_wait_job(void *p)
+void khrn_issue_fence_wait_job(uint64_t p)
 {
    BEGL_HWCallbackRecord      *callback_data = (BEGL_HWCallbackRecord*)calloc(sizeof(BEGL_HWCallbackRecord), 1);
    BEGL_HWJob                 job;
@@ -185,8 +145,8 @@ void khrn_issue_fence_wait_job(void *p)
    callback_data->reason = KHRN_FENCE_WAIT_DONE;
 
    job.program[0].operation      = BEGL_HW_OP_FENCE;
-   job.program[0].arg1           = (uint32_t)((uintptr_t)p);
-   job.program[0].callbackParam  = (uint32_t)callback_data;
+   job.program[0].arg2           = p;
+   job.program[0].callbackParam  = (uint64_t)(uintptr_t)callback_data;
 
    platform_dbg_message_add("%s -> fence %p", __FUNCTION__, p);
 
@@ -194,7 +154,7 @@ void khrn_issue_fence_wait_job(void *p)
 }
 
 /* Issues a swapbuffers sync job */
-void khrn_issue_swapbuffers_job(int fd, void *p, char type)
+void khrn_issue_swapbuffers_job(int fd, uint64_t p, char type)
 {
    BEGL_HWCallbackRecord      *callback_data = (BEGL_HWCallbackRecord*)calloc(sizeof(BEGL_HWCallbackRecord), 1);
    BEGL_HWJob                 job;
@@ -210,8 +170,8 @@ void khrn_issue_swapbuffers_job(int fd, void *p, char type)
       from executing - thus allowing bin/render overlap. */
    job.program[0].operation      = BEGL_HW_OP_NOTIFY;
    job.program[0].arg1           = BEGL_HW_SIG_RENDER;
-   job.program[0].arg2           = (uint32_t)((uintptr_t)p);
-   job.program[0].callbackParam  = (uint32_t)callback_data;
+   job.program[0].arg2           = p;
+   job.program[0].callbackParam  = (uint64_t)(uintptr_t)callback_data;
 
    platform_dbg_message_add("%s %c -> fd = %d, fence %p", __FUNCTION__, type, fd, p);
 
@@ -235,16 +195,16 @@ void khrn_swapbuffers_job_done(BEGL_HWCallbackRecord *cbRecord)
    free(cbRecord);
 }
 
-void khrn_create_fence(int *fd, void **p, char type)
+void khrn_create_fence(int *fd, uint64_t *p, char type)
 {
    BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
    driverInterfaces->hwInterface->FenceOpen(driverInterfaces->hwInterface->context, fd, p, type);
 }
 
-void *khrn_fence_wait_async(int fd)
+uint64_t khrn_fence_wait_async(int fd)
 {
    BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
-   void *v3dfence = NULL;
+   uint64_t v3dfence = 0;
    if (fd != -1)
       driverInterfaces->hwInterface->FenceWaitAsync(driverInterfaces->hwInterface->context, fd, &v3dfence);
    return v3dfence;
@@ -263,7 +223,7 @@ void khrn_issue_bin_render_job(GLXX_HW_RENDER_STATE_T *rs, bool secure)
    memset(&job, 0, sizeof(BEGL_HWJob));
 
    callback_data->reason     = KHRN_BIN_RENDER_DONE;
-   callback_data->payload[0] = (uint32_t)fmem;
+   callback_data->payload[0] = (uint64_t)(uintptr_t)fmem;
 
    settings.secure = secure;
    BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
@@ -318,18 +278,18 @@ void khrn_issue_bin_render_job(GLXX_HW_RENDER_STATE_T *rs, bool secure)
       render_end                   = khrn_hw_addr(fmem->cle_pos, &fmem->lbh);
       job.program[i].arg1          = render_start;
       job.program[i].arg2          = render_end;
-      job.program[i].callbackParam = (uint32_t)callback_data;
+      job.program[i].callbackParam = (uint64_t)(uintptr_t)callback_data;
    }
    else
    {
       /* This is an empty job which keeps everything in order */
       job.program[i].operation     = BEGL_HW_OP_WAIT;
       job.program[i].arg1          = BEGL_HW_SIG_BIN | BEGL_HW_SIG_RENDER;
-      job.program[i].callbackParam = (uint32_t)callback_data;
+      job.program[i].callbackParam = (uint64_t)(uintptr_t)callback_data;
    }
 
    /* Flush the dcache prior to the bin/render starting */
-   khrn_hw_flush_dcache();
+   khrn_fmem_flush(fmem);
 
 #ifdef KHRN_AUTOCLIF
    V3D_IDENT_T ident = {
@@ -354,7 +314,7 @@ void khrn_issue_bin_render_job(GLXX_HW_RENDER_STATE_T *rs, bool secure)
 /* Called when a bin/render job is complete */
 void khrn_bin_render_done(BEGL_HWCallbackRecord *cbRecord)
 {
-   KHRN_FMEM_T    *fmem   = (KHRN_FMEM_T*)cbRecord->payload[0];
+   KHRN_FMEM_T    *fmem   = (KHRN_FMEM_T*)(uintptr_t)cbRecord->payload[0];
 
    khrn_job_done_fmem(fmem);
 
@@ -370,7 +330,7 @@ void khrn_issue_tfconvert_job(KHRN_FMEM_T *fmem, bool secure)
    memset(&job, 0, sizeof(BEGL_HWJob));
 
    callback_data->reason = KHRN_TFCONVERT_DONE;
-   callback_data->payload[0] = (uint32_t)fmem;
+   callback_data->payload[0] = (uint64_t)(uintptr_t)fmem;
 
    khrn_fmem_prep_for_render_only_job(fmem);
 
@@ -380,10 +340,10 @@ void khrn_issue_tfconvert_job(KHRN_FMEM_T *fmem, bool secure)
    job.program[1].operation     = BEGL_HW_OP_RENDER;
    job.program[1].arg1          = khrn_hw_addr(fmem->render_begin, &fmem->render_begin_lbh);
    job.program[1].arg2          = khrn_hw_addr(fmem->cle_pos, &fmem->lbh);
-   job.program[1].callbackParam = (uint32_t)callback_data;
+   job.program[1].callbackParam = (uint64_t)((uintptr_t)callback_data);
 
    /* Flush the dcache prior to the conversion starting */
-   khrn_hw_flush_dcache();
+   khrn_fmem_flush(fmem);
 
    platform_dbg_message_add("%s", __FUNCTION__);
 
@@ -438,16 +398,12 @@ void khrn_job_callback(void)
 {
    BEGL_DriverInterfaces   *driverInterfaces = BEGL_GetDriverInterfaces();
    BEGL_HWNotification     notification;
-   BEGL_HWTimelineData     timeline;
    BEGL_HWCallbackRecord   *cbRecord;
    bool                    ok = true;
 
    lockCallback();
 
-   if (khrn_remote_event_logging())
-      notification.timelineData = &timeline;
-   else
-      notification.timelineData = NULL;
+   notification.timelineData = NULL;
 
    /* Nexus does not queue callbacks, so we have to drain the notification queue here each time we get
       a callback. Not ideal, but it's all we can do. */
@@ -456,10 +412,6 @@ void khrn_job_callback(void)
       khrn_decrement_job_callbacks_pending();
 
       cbRecord = (BEGL_HWCallbackRecord*)notification.param;
-
-      /* Log any timeline data */
-      if (notification.timelineData)
-         EventLog(&notification, cbRecord, notification.jobSequence);
 
       /* If the record is finished with, then these routines should free it up */
       switch (cbRecord->reason)

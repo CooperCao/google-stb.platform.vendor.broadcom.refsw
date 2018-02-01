@@ -354,7 +354,7 @@ struct bmkv_player {
         size_t length[16];
     } subframe;
 
-    uint8_t frame_buf[4096];
+    uint8_t frame_buf[32768];
     b_mkv_key_frame_entry key_frames_buf[B_MKV_PLAYER_TRICK_ENTRIES];
     uint8_t file_buffer[64*BIO_BLOCK_SIZE];
 };
@@ -3247,8 +3247,8 @@ b_mkv_player_make_frame(bmkv_player_t player, struct b_mkv_player_track *track, 
             do {
                 size_t pes_hdr_buf_size = sizeof(player->frame_buf) - player->frame_buf_off - player->frame_buf_persistent_alloc - 1;
 
-                if(pes_hdr_buf_size > 1024) {
-                    pes_hdr_buf_size = 1024;
+                if(pes_hdr_buf_size > 8*1024) {
+                    pes_hdr_buf_size = 8*1024;
                 }
                 if(player->subframe.count>1) { /* copy subframe payload to accum_dest */
                     batom_accum_clear(player->accum_dest);

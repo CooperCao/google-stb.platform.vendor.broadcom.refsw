@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -150,8 +150,6 @@ int main(int argc, char **argv)
     NEXUS_HdmiOutputStatus hdmiStatus;
     bool done = false;
     bool stereo = false;
-    unsigned fadeDuration = 1000;
-    unsigned fadeType = 2;
     int i;
 
 #if NEXUS_NUM_HDMI_OUTPUTS
@@ -672,9 +670,8 @@ static void initializeHdmiOutputHdcpSettings(void)
 
 static void print_usage(void) {
     printf("Usage:\n");
-    printf("nexus audio_decode_effects\n");
-    printf("-fade_duration [3-1000] - Configures the fade duration in milliseconds\n");
-    printf("-fade_type - [0-3] - Configures the fade type (0- Linear, 1-Quad, 2-cubic, 3-Quart)\n");
+    printf("nexus audio_decode_ambisonic\n");
+    printf("-stereo - configures stereo outputs\n");
     printf("\n");
 }
 

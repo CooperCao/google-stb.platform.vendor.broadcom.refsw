@@ -59,6 +59,14 @@ VBI encoding. VBI encoding control is done at the window.
 Userdata can also be captured for processing by the application using VideoDecoder api's.
 **********************************************/
 
+typedef enum NEXUS_VideoDecoderSecureType
+{
+    NEXUS_VideoDecoderSecureType_eUnsecure,         /* GLR */
+    NEXUS_VideoDecoderSecureType_eSecure,           /* URR */
+    NEXUS_VideoDecoderSecureType_eSecureTranscode,  /* URRT */
+    NEXUS_VideoDecoderSecureType_eMax
+} NEXUS_VideoDecoderSecureType;
+
 /*
 Summary:
 Settings for opening a new VideoDecoder.
@@ -74,7 +82,7 @@ typedef struct NEXUS_VideoDecoderOpenSettings
 
     NEXUS_HeapHandle pictureHeap;     /* Optional picture buffer heap. This overrides the NEXUS_VideoDecoderModuleInternalSettings.avdHeapIndex setting. */
     NEXUS_HeapHandle secondaryPictureHeap; /* Same as above for split picture buffer systems */
-    bool secureVideo;                 /* Select pictureHeap and secondaryPictureHeap for this decoder and any connected window from secure heaps.
+    NEXUS_VideoDecoderSecureType secureVideo; /* Select pictureHeap and secondaryPictureHeap for this decoder and any connected window from secure heaps.
                                          If false (default) and only secure buffers are available, they will be used. */
 
     bool avc51Enabled;                /* Enable AVC 5.1 mode */

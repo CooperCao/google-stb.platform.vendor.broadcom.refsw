@@ -988,26 +988,28 @@ void glxx_tmu_blit_framebuffer(
          srcY0 *= 2;
          srcX1 *= 2;
          srcY1 *= 2;
-
-         if (mask & GL_COLOR_BUFFER_BIT)
-         {
-            khrn_image *src_img = NULL;
-            /* use LINEAR filter if fmt is UNORM or F16, NEAREST otherwise */
-            if (!glxx_fb_acquire_read_image(src_fb, GLXX_PREFER_MULTISAMPLED, &src_img, NULL))
-            {
-               glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
-               glxx_unlock_server_state();
-               return;
-            }
-            assert(src_img);
-            if (glxx_is_texture_filterable_api_fmt(src_img->api_fmt))
-               colour_filter = GL_LINEAR;
-            else
-               colour_filter = GL_NEAREST;
-            KHRN_MEM_ASSIGN(src_img, NULL);
-         }
-
       }
+      if (mask & GL_COLOR_BUFFER_BIT)
+      {
+         khrn_image *src_img = NULL;
+         if (!glxx_fb_acquire_read_image(src_fb, GLXX_PREFER_MULTISAMPLED, &src_img, NULL))
+         {
+            glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
+            glxx_unlock_server_state();
+            return;
+         }
+         assert(src_img);
+         if (!glxx_is_texture_filterable_api_fmt(src_img->api_fmt))
+            colour_filter = GL_NEAREST;
+         else
+         {
+            //for multisample, filter is ignored and linear is used (if texture filterable)
+            if (ms_src_fb)
+               colour_filter = GL_LINEAR;
+         }
+         KHRN_MEM_ASSIGN(src_img, NULL);
+      }
+
       glxx_unlock_server_state();
    }
 

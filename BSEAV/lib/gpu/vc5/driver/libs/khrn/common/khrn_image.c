@@ -12,6 +12,7 @@
 #include "khrn_fence.h"
 #include "libs/platform/v3d_scheduler.h"
 #include "../glxx/glxx_server.h"
+#include "libs/platform/v3d_driver_api.h"
 
 static void *image_map(const khrn_image *img,
       khrn_fence *fence_to_depend_on, bool write);
@@ -32,7 +33,7 @@ static void image_init(khrn_image *img,
    img->api_fmt = api_fmt;
 }
 
-static void image_term(void *v, size_t size)
+static void image_term(void *v)
 {
    khrn_image *img = v;
    KHRN_MEM_ASSIGN(img->blob, NULL);
@@ -214,8 +215,8 @@ static void begin_imgconv(struct v3d_imgconv_gmem_tgt *tgt,
 
    if (fence_to_depend_on)
    {
-      khrn_fence_flush(fence_to_depend_on);
-      v3d_scheduler_merge_deps(&deps, &fence_to_depend_on->deps);
+      const v3d_scheduler_deps *depend_deps = khrn_fence_get_deps(fence_to_depend_on);
+      v3d_scheduler_merge_deps(&deps, depend_deps);
    }
 
    v3d_imgconv_init_gmem_tgt_multi_region(tgt,
@@ -314,7 +315,7 @@ static void* image_map(const khrn_image *img,
    if (fence_to_depend_on)
    {
       khrn_fence_flush(fence_to_depend_on);
-      v3d_scheduler_wait_jobs(&fence_to_depend_on->deps, V3D_SCHED_DEPS_COMPLETED);
+      khrn_fence_wait(fence_to_depend_on, V3D_SCHED_DEPS_COMPLETED);
    }
 
    khrn_access_flags_t access = KHRN_ACCESS_READ;
@@ -345,10 +346,11 @@ static void image_unmap(const khrn_image *img, void* ptr, bool write)
       write ? KHRN_ACCESS_WRITE : KHRN_ACCESS_READ);
 }
 
-gmem_usage_flags_t khrn_image_calc_dst_gmem_usage(
+void khrn_image_calc_dst_usage(
    const khrn_image *src, unsigned width, unsigned height, unsigned depth,
    unsigned num_array_elems, unsigned num_mip_levels, const GFX_LFMT_T *lfmts,
-   unsigned num_planes, gfx_buffer_usage_t blob_usage, bool secure_context)
+   unsigned num_planes, bool secure_context,
+   gfx_buffer_usage_t *dst_buf_usage, gmem_usage_flags_t *gmem_usage)
 {
    v3d_imgconv_gmem_tgt src_tgt;
 
@@ -361,14 +363,25 @@ gmem_usage_flags_t khrn_image_calc_dst_gmem_usage(
                                           src->start_slice, src->start_elem,
                                           src->blob->array_pitch);
 
-   v3d_imgconv_base_tgt dst_base;
+   v3d_imgconv_base_tgt dst_base, dst_base_contiguous;
    memset(&dst_base, 0, sizeof(dst_base));
+   memset(&dst_base_contiguous, 0, sizeof(dst_base_contiguous));
 
    size_t size, align;
-   gfx_buffer_desc_gen(&dst_base.desc, &size, &align, blob_usage, width, height, depth,
+   gfx_buffer_desc_gen(&dst_base.desc, &size, &align, *dst_buf_usage, width, height, depth,
                        num_mip_levels, num_planes, lfmts);
 
-   return v3d_imgconv_calc_dst_gmem_usage(&dst_base, &src_tgt, secure_context);
+   gfx_buffer_usage_t contiguous_buf_usage = *dst_buf_usage | GFX_BUFFER_USAGE_M2MC;
+   if (v3d_scheduler_get_soc_quirks() & V3D_SOC_QUIRK_HWBCM7260_81)
+      contiguous_buf_usage |= GFX_BUFFER_USAGE_M2MC_EVEN_UB_HEIGHT;
+
+   gfx_buffer_desc_gen(&dst_base_contiguous.desc, &size, &align,
+                       contiguous_buf_usage, width, height, depth,
+                       num_mip_levels, num_planes, lfmts);
+
+   *gmem_usage = v3d_imgconv_calc_dst_gmem_usage(&dst_base, &dst_base_contiguous, &src_tgt, secure_context);
+   if (*gmem_usage & GMEM_USAGE_CONTIGUOUS)
+      *dst_buf_usage = contiguous_buf_usage;
 }
 
 bool khrn_image_convert(khrn_image *dst, const khrn_image *src,
@@ -581,17 +594,17 @@ bool khrn_image_generate_mipmaps_tfu(khrn_image* src_image,
 
    if (fences->fence_to_depend_on)
    {
-      khrn_fence_flush(fences->fence_to_depend_on);
-      v3d_scheduler_merge_deps(&tfu_job_deps, &fences->fence_to_depend_on->deps);
+      const v3d_scheduler_deps *depend_deps = khrn_fence_get_deps(fences->fence_to_depend_on);
+      v3d_scheduler_merge_deps(&tfu_job_deps, depend_deps);
    }
 
    uint32_t src_offset = khrn_image_get_offset(src_image, 0);
    uint32_t dst_offset = khrn_image_get_offset(dst_images[0], 0);
 
-   bool has_l3c = v3d_scheduler_get_hub_identity()->has_l3c;
+   const V3D_HUB_IDENT_T* hub_ident = v3d_scheduler_get_hub_identity();
    v3d_cache_ops cache_ops =
-         v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, V3D_BARRIER_TFU_READ | V3D_BARRIER_TFU_WRITE, false, has_l3c)
-       | v3d_barrier_cache_cleans(V3D_BARRIER_TFU_WRITE, V3D_BARRIER_MEMORY_READ, false, has_l3c);
+         v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, V3D_BARRIER_TFU_READ | V3D_BARRIER_TFU_WRITE, false, hub_ident)
+       | v3d_barrier_cache_cleans(V3D_BARRIER_TFU_WRITE, V3D_BARRIER_MEMORY_READ, false, hub_ident);
 
    // todo, ideally the kernel API would support batch submission of TFU jobs.
 
@@ -708,6 +721,15 @@ unsigned khrn_image_get_offset(const khrn_image *img,
 
    return p->offset + img->start_elem * img->blob->array_pitch +
       img->start_slice * p->slice_pitch;
+}
+
+v3d_addr_t khrn_image_get_addr(const khrn_image *img, unsigned plane)
+{
+   unsigned region = khrn_image_get_desc_plane(img, plane)->region;
+   const khrn_resource *res = khrn_image_get_resource(img);
+   assert(region < res->num_handles);
+   return v3d_addr_offset(gmem_get_addr(res->handles[region]),
+      khrn_image_get_offset(img, plane));
 }
 
 bool khrn_image_is_one_elem_slice(const khrn_image *img)

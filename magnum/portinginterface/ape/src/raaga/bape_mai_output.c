@@ -744,7 +744,7 @@ void BAPE_MaiOutput_P_SetLoudnessEquivlanceVolume(BAPE_OutputPort output)
         pFormat->type != BAPE_DataType_ePcm5_1 &&
         pFormat->type != BAPE_DataType_ePcm7_1)
     {
-        switch (handle->deviceHandle->settings.loudnessMode)
+        switch (handle->deviceHandle->settings.loudnessSettings.loudnessMode)
         {
         default:
         case BAPE_LoudnessEquivalenceMode_eNone:
@@ -767,8 +767,8 @@ void BAPE_MaiOutput_P_SetLoudnessEquivlanceVolume(BAPE_OutputPort output)
           (BAPE_FMT_P_IsCompressed_isrsafe(pFormat)) ? "COMPRESSED" :
           (handle->settings.loudnessType == BAPE_OutputLoudnessType_Passive) ? "PASSIVE" : "ACTIVE"),
          handle->outputPort.additionalGain,
-         (handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
-          handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED")));
+         (handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
+          handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED")));
     BAPE_SetOutputVolume(&handle->outputPort, &volume);
 }
 

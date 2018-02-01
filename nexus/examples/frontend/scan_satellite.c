@@ -70,7 +70,6 @@ static void print_usage(void)
     printf(
         "Usage: scan_satellite\n"
         "  --help or -h for help\n"
-        "  -mode {0,7,1} DVB-S=0, DVB-S2(8pskldpc)=7, DSS=1 (default is DVB-S)\n"
         "  -freq   #     frequency in Hz, e.g. 1119000000\n"
         "  -minsym #     min symbol rate in baud, e.g. 15000000\n"
         "  -maxsym #     max symbol rate in baud, e.g. 30000000\n"
@@ -79,18 +78,6 @@ static void print_usage(void)
         "  -psd          enable PSD\n"
         );
     printf(
-        "  -vpid   #     video PID (default: 0x31)\n"
-        "  -apid   #     audio PID (default: 0x34)\n"
-        "  -pcrpid #     PCR PID (default: video PID)\n"
-        "  -vcodec       MPEG2=2, AVC=5 (default is MPEG2)\n"
-        "  -acodec       MPEG=1, AAC=3, AACplus=5, AC3=7 (default is AC3)\n"
-        );
-    printf(
-        "  -adc #        remap to adc #"
-#if NEXUS_USE_7445_DBS
-        " (for most 7445DBS boards, this needs to be 1)"
-#endif
-        "\n"
         "  -debug        enable debug messages for peakscan code\n"
         "  -manual       manual mode\n"
         );
@@ -172,7 +159,7 @@ int main(int argc, char **argv)
     NEXUS_FrontendSatellitePeakscanSettings psSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_FrontendAcquireSettings settings;
-    NEXUS_Error rc;
+    NEXUS_Error rc=NEXUS_SUCCESS;
     unsigned input;
     int i;
 
@@ -183,13 +170,6 @@ int main(int argc, char **argv)
     unsigned minsym = 15 * 1000000;
     unsigned maxsym = 30 * 1000000;
     bool psd = false;
-    int videoPid = 0x31, audioPid = 0x34, pcrPid = -1;
-    unsigned int videoCodec = NEXUS_VideoCodec_eMpeg2;
-    unsigned int audioCodec = NEXUS_AudioCodec_eAc3;
-    NEXUS_FrontendSatelliteMode mode = NEXUS_FrontendSatelliteMode_eDvb;
-    NEXUS_TransportType transportType = NEXUS_TransportType_eTs;
-    int newAdc = 0;
-    bool isNewAdc = false;
     bool manual = false;
     bool debug = false;
     bool list = false;
@@ -205,12 +185,6 @@ int main(int argc, char **argv)
         if (!strcmp(argv[curarg], "-h") || !strcmp(argv[curarg], "--help")) {
             print_usage();
             return 0;
-        }
-        else if (!strcmp(argv[curarg], "-mode") && argc>curarg+1) {
-            mode = atoi(argv[++curarg]);
-            if (mode == 1) {
-                transportType = NEXUS_TransportType_eDssEs;
-            }
         }
         else if (!strcmp(argv[curarg], "-freq") && argc>curarg+1) {
             frequency = atoi(argv[++curarg]);
@@ -229,40 +203,6 @@ int main(int argc, char **argv)
         }
         else if (!strcmp(argv[curarg], "-psd")) {
             psd = true;
-        }
-        else if (!strcmp(argv[curarg], "-vpid")) {
-            if((!strncmp(argv[++curarg], "0X", 2)) || (!strncmp(argv[curarg], "0x", 2))){
-                videoPid = strtol(argv[curarg], NULL, 0);
-            }
-            else{
-                videoPid = atoi(argv[curarg]);
-            }
-        }
-        else if (!strcmp(argv[curarg], "-apid")) {
-            if((!strncmp(argv[++curarg], "0X", 2)) || (!strncmp(argv[curarg], "0x", 2))){
-                audioPid = strtol(argv[curarg], NULL, 0);
-            }
-            else{
-                audioPid = atoi(argv[curarg]);
-            }
-        }
-        else if (!strcmp(argv[curarg], "-pcrpid")) {
-            if((!strncmp(argv[++curarg], "0X", 2)) || (!strncmp(argv[curarg], "0x", 2))){
-                pcrPid = strtol(argv[curarg], NULL, 0);
-            }
-            else{
-                pcrPid = atoi(argv[curarg]);
-            }
-        }
-        else if (!strcmp(argv[curarg], "-vcodec")) {
-            videoCodec = atoi(argv[++curarg]);
-        }
-        else if (!strcmp(argv[curarg], "-acodec")) {
-            audioCodec = atoi(argv[++curarg]);
-        }
-        else if (!strcmp(argv[curarg], "-adc") && argc>curarg+1) {
-            newAdc = atoi(argv[++curarg]);
-            isNewAdc = true;
         }
         else if (!strcmp(argv[curarg], "-debug")) {
             debug = true;

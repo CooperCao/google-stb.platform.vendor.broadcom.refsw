@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,14 +43,14 @@ BDSP_Arm_P_LibDescriptor sResidentLibDescriptor[BDSP_ARM_MAX_NUM_ROMFS_LIB] =
 	 {0,  1024,   "barm_rdbvars.c"},
 	 {0,  28160,   "init_process.fpexe"},
 	 {0,  11264,   "idle_process.fpexe"},
-	 {0,  95744,   "algo_process.fpexe"},
+	 {0,  109056,   "algo_process.fpexe"},
 	 {0,  96768,   "messaging_process.fpexe"},
 	 {0,  66560,   "routing_process.fpexe"},
 	 {0,  122880,   "scheduling_process.fpexe"},
-	 {0,  28672,   "/lib/libcommon.so"},
+	 {0,  44544,   "/lib/libcommon.so"},
 	 {0,  238080,   "/lib/libcommon_ids.so"},
-	 {0,  83968,   "/lib/libkernel_ops.so"},
-	 {0,  90624,   "/lib/libmm_client.so"},
-	 {0,  189440,   "/lib/libstage_io.so"},
-	 {0,  150528,   "mm_server.fpexe"},
+	 {0,  79360,   "/lib/libkernel_ops.so"},
+	 {0,  99328,   "/lib/libmm_client.so"},
+	 {0,  192000,   "/lib/libstage_io.so"},
+	 {0,  156672,   "mm_server.fpexe"},
 };

@@ -78,6 +78,14 @@ void BVDC_GetDefaultMemConfigSettings
 
     BVDC_P_MemConfig_GetDefaultRdcSettings(&pMemConfigSettings->stRdc);
 
+#if BVDC_P_CMP_CFC_VER >= 3
+    /* HDMI CFC */
+    for(ulDispIndex = 0; ulDispIndex < BBOX_VDC_HDMI_DISPLAY_COUNT; ulDispIndex++)
+    {
+        pMemConfigSettings->hdmiDisplayCfc[ulDispIndex].bUsed = true;
+    }
+#endif
+
     for(ulDispIndex = 0; ulDispIndex < BVDC_MAX_DISPLAYS; ulDispIndex++)
     {
         BVDC_DispMemConfigSettings  *pDisplay;
@@ -98,8 +106,13 @@ void BVDC_GetDefaultMemConfigSettings
         pDisplay->vip.bUsed = 0;
         pDisplay->vip.stCfgSettings.ulMaxWidth  = 720;
         pDisplay->vip.stCfgSettings.ulMaxHeight = 480;
+#if BVDC_P_SUPPORT_VIP
+        pDisplay->vip.stCfgSettings.bSupportInterlaced = true;
+        pDisplay->vip.stCfgSettings.bSupportDecimatedLuma = true;
+        pDisplay->vip.stCfgSettings.bSupportBframes = true;
+#else
         pDisplay->vip.stCfgSettings.bSupportInterlaced = false;
-
+#endif
         /* Get settings for each display */
         for(ulWinIndex = 0; ulWinIndex < BVDC_MAX_VIDEO_WINDOWS; ulWinIndex++)
         {
@@ -152,6 +165,13 @@ void BVDC_GetDefaultMemConfigSettings
         pDisplay = (BVDC_DispMemConfigSettings *)(&pMemConfigSettings->stDisplay[ulDispIndex]);
         BDBG_ASSERT(pDisplay);
 
+        if(!pDisplay->bUsed)
+            continue;
+
+#if BVDC_P_CMP_CFC_VER >= 3
+        pDisplay->cfc.bUsed = true;
+#endif
+
         pDispFmtInfo = BFMT_GetVideoFormatInfoPtr(pDisplay->eMaxDisplayFormat);
         BDBG_MSG(("Disp[%d] DEF: Used(%d) %s", ulDispIndex, pDisplay->bUsed,
             pDispFmtInfo->pchFormatStr));
@@ -172,12 +192,12 @@ void BVDC_GetDefaultMemConfigSettings
             BDBG_MSG(("    Win[%d] DEF: Used(%d) CapMemc[%d] MadMemc[%d] %s",
                 ulWinIndex, pWindow->bUsed, pWindow->ulMemcIndex,
                 pWindow->ulMadMemcIndex, pSrcFmtInfo->pchFormatStr));
-            BDBG_MSG(("    Win[%d] DEF: NotMfd Slip Pip Lip Mos Mad Smoo 3D Psf Side Box ACrop ICrop 5060 Slave AddBuf",
+            BDBG_MSG(("    Win[%d] DEF: NotMfd Slip Pip Lip Mos Mad Bias 3D Psf Side Box ACrop ICrop 5060 Slave AddBuf",
                 ulWinIndex));
             BDBG_MSG(("    Win[%d] DEF: %4d %5d %3d %3d %3d %3d %4d %3d %2d %4d %3d %4d %5d %5d %4d %5d",
                 ulWinIndex, pWindow->bNonMfdSource, pWindow->bSyncSlip,
                 pWindow->bPip, pWindow->bLipsync, pWindow->bMosaicMode,
-                pWindow->eDeinterlacerMode, pWindow->bSmoothScaling,
+                pWindow->eDeinterlacerMode, pWindow->eSclCapBias,
                 pWindow->b3DMode, pWindow->bPsfMode, pWindow->bSideBySide,
                 pWindow->bBoxDetect, pWindow->bArbitraryCropping,
                 pWindow->bIndependentCropping, pWindow->b5060Convert,
@@ -189,6 +209,118 @@ void BVDC_GetDefaultMemConfigSettings
         BKNI_Free((void*)pSystemConfigInfo);
 
 }
+
+#if BVDC_P_SUPPORT_VIP
+static BERR_Code BVDC_P_Memconfig_GetVipSize
+    ( const BVDC_MemConfigSettings       *pMemConfigSettings,
+      BVDC_MemConfig                     *pMemConfig )
+{
+    uint32_t   ulDispIndex;
+
+    for(ulDispIndex = 0; ulDispIndex < BVDC_MAX_DISPLAYS; ulDispIndex++)
+    {
+        BVDC_DispMemConfigSettings  *pDisplay;
+
+        pDisplay = (BVDC_DispMemConfigSettings  *)(&pMemConfigSettings->stDisplay[ulDispIndex]);
+        BDBG_ASSERT(pDisplay);
+
+        /* Skip if display is not used */
+        if(!pDisplay->bUsed)
+        {
+            continue;
+        }
+
+        /* VIP memory config */
+        if(pDisplay->vip.bUsed)
+        {
+            BVDC_P_VipMemSettings stVipMemSettings;
+            BVDC_P_VipMemConfig stVipMemConfig;
+
+            if(NULL == pDisplay->vip.pstMemoryInfo) {
+                BDBG_ERR(("Please specify the pstMemoryInfo for display[%d].vip", ulDispIndex));
+                return BERR_TRACE(BERR_INVALID_PARAMETER);
+            }
+            /* compute the memory allocation; TODO: there might be runtime switch of DCXV for some workaround;
+               TODO: debug capture probably requires DCXV off; */
+            if ( BCHP_CHIP == 7425 || BCHP_CHIP == 7435 || BCHP_CHIP == 7364 || BCHP_CHIP == 7250 || BCHP_CHIP == 7271 )
+            {
+               stVipMemSettings.DcxvEnable = false;
+            } else {
+               stVipMemSettings.DcxvEnable = true; /* TODO: must be disabled for MFD display */
+            }
+            stVipMemSettings.DramStripeWidth = pDisplay->vip.pstMemoryInfo->memc[pDisplay->vip.stCfgSettings.ulMemcId].ulStripeWidth;
+            stVipMemSettings.PageSize = pDisplay->vip.pstMemoryInfo->memc[pDisplay->vip.stCfgSettings.ulMemcId].ulPageSize;
+            stVipMemSettings.X = pDisplay->vip.pstMemoryInfo->memc[pDisplay->vip.stCfgSettings.ulMemcId].ulMbMultiplier;
+            stVipMemSettings.Y = pDisplay->vip.pstMemoryInfo->memc[pDisplay->vip.stCfgSettings.ulMemcId].ulMbRemainder;
+            stVipMemSettings.bInterlaced = pDisplay->vip.stCfgSettings.bSupportInterlaced;
+            stVipMemSettings.bDecimatedLuma= pDisplay->vip.stCfgSettings.bSupportDecimatedLuma;
+            stVipMemSettings.bBframes = pDisplay->vip.stCfgSettings.bSupportBframes;
+            stVipMemSettings.MaxPictureWidthInPels = pDisplay->vip.stCfgSettings.ulMaxWidth;
+            stVipMemSettings.MaxPictureHeightInPels = pDisplay->vip.stCfgSettings.ulMaxHeight;
+            pMemConfig->stMemc[pDisplay->vip.stCfgSettings.ulMemcId].ulVipSize += BVDC_P_MemConfig_GetVipBufSizes(&stVipMemSettings, &stVipMemConfig);
+            BDBG_MSG(("Disp[%d] VIP size: %d, Memc[%d]", ulDispIndex,
+                pMemConfig->stMemc[pDisplay->vip.stCfgSettings.ulMemcId].ulVipSize,
+                pDisplay->vip.stCfgSettings.ulMemcId));
+        }
+    }
+
+    return BERR_SUCCESS;
+}
+#endif
+
+
+#if BVDC_P_CMP_CFC_VER >= 3
+static void BVDC_P_Memconfig_GetCfcSize
+    ( const BVDC_MemConfigSettings       *pMemConfigSettings,
+      BVDC_MemConfig                     *pMemConfig )
+{
+    uint32_t   ulDispIndex;
+    uint32_t   ulHdmiCfcLutSize, ulCmpCfcLutSize, ulGfdCfcLutSize;
+
+    BDBG_MSG(("---CFC LUT Size Per Display---"));
+    BDBG_MSG(("            VEC_HDMI          CMP            GFD"));
+    for(ulDispIndex = 0; ulDispIndex < BVDC_MAX_DISPLAYS; ulDispIndex++)
+    {
+        BVDC_DispMemConfigSettings  *pDisplay;
+
+        pDisplay = (BVDC_DispMemConfigSettings  *)(&pMemConfigSettings->stDisplay[ulDispIndex]);
+        BDBG_ASSERT(pDisplay);
+
+        /* Skip if display is not used */
+        if(!pDisplay->bUsed)
+        {
+            continue;
+        }
+
+        ulHdmiCfcLutSize = ulCmpCfcLutSize = ulGfdCfcLutSize = 0;
+
+        if((ulDispIndex < BBOX_VDC_HDMI_DISPLAY_COUNT) && pMemConfigSettings->hdmiDisplayCfc[ulDispIndex].bUsed)
+        {
+            ulHdmiCfcLutSize = BVDC_P_ALIGN_UP(BVDC_P_HDMI_CFC_LUT_SIZE, sizeof(uint32_t))*BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT;
+            pMemConfig->stMemc[pMemConfigSettings->hdmiDisplayCfc[ulDispIndex].ulMemcIndex].ulCfcLutSize += ulHdmiCfcLutSize;/* double-buffer LUT */
+        }
+
+        /* CFC memory config */
+        if(pDisplay->cfc.bUsed)
+        {
+            ulCmpCfcLutSize = BVDC_P_ALIGN_UP(BVDC_P_CMP_CFC_LUT_SIZE, sizeof(uint32_t))*BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT;
+            pMemConfig->stMemc[pDisplay->cfc.ulCmpMemcIndex].ulCfcLutSize += ulCmpCfcLutSize;
+            ulGfdCfcLutSize = BVDC_P_ALIGN_UP(BVDC_P_GFD_CFC_LUT_SIZE, sizeof(uint32_t))*BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT;
+            pMemConfig->stMemc[pDisplay->cfc.ulGfdMemcIndex].ulCfcLutSize += ulGfdCfcLutSize;
+        }
+
+        if(ulHdmiCfcLutSize || ulCmpCfcLutSize || ulGfdCfcLutSize)
+        {
+            BDBG_MSG(("Disp[%d]: %6d(Memc_%d) %6d(Memc_%d) %6d(Memc_%d)", ulDispIndex,
+                ulHdmiCfcLutSize, pMemConfigSettings->hdmiDisplayCfc[ulDispIndex].ulMemcIndex,
+                ulCmpCfcLutSize, pDisplay->cfc.ulCmpMemcIndex,
+                ulGfdCfcLutSize, pDisplay->cfc.ulGfdMemcIndex));
+        }
+    }
+
+}
+#endif
+
 
 /***************************************************************************
  *
@@ -229,19 +361,14 @@ BERR_Code BVDC_GetMemoryConfiguration
     if(err != BERR_SUCCESS)
         return BERR_TRACE(err);
 
+#if BVDC_P_SUPPORT_VIP
+    err = BVDC_P_Memconfig_GetVipSize(pMemConfigSettings, pMemConfig);
+    if(err != BERR_SUCCESS)
+        return BERR_TRACE(err);
+#endif
+
 #if BVDC_P_CMP_CFC_VER >= 3
-    for(ulDispIndex = 0; ulDispIndex < BBOX_VDC_HDMI_DISPLAY_COUNT; ulDispIndex++)
-    {
-        /* CFC memory config */
-        if(pMemConfigSettings->hdmiDisplayCfc[ulDispIndex].bUsed)
-        {
-            BDBG_MSG(("to compute the mem config for hdmiCfc[%d]: MEMC[%d]",
-                ulDispIndex, pMemConfigSettings->hdmiDisplayCfc[ulDispIndex].ulMemcIndex));
-            ulRulSize = BVDC_P_ALIGN_UP(BVDC_P_HDMI_CFC_LUT_SIZE, sizeof(uint32_t))*BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT;
-            pMemConfig->stMemc[pMemConfigSettings->hdmiDisplayCfc[ulDispIndex].ulMemcIndex].ulCfcLutSize += ulRulSize;/* double-buffer LUT */
-            BDBG_MSG(("    VEC_HDMI CFC LUT size = %u", ulRulSize));
-        }
-    }
+    BVDC_P_Memconfig_GetCfcSize(pMemConfigSettings, pMemConfig);
 #endif
 
     for(ulDispIndex = 0; ulDispIndex < BVDC_MAX_DISPLAYS; ulDispIndex++)
@@ -256,46 +383,6 @@ BERR_Code BVDC_GetMemoryConfiguration
         {
             continue;
         }
-
-#if BVDC_P_SUPPORT_VIP
-        /* VIP memory config */
-        if(pDisplay->vip.bUsed)
-        {
-            BVDC_P_VipMemSettings stVipMemSettings;
-            BVDC_P_VipMemConfig stVipMemConfig;
-
-            if(NULL == pDisplay->vip.pstMemoryInfo) {
-                BDBG_ERR(("Please specify the pstMemoryInfo for display[%d].vip", ulDispIndex));
-                return BERR_TRACE(BERR_INVALID_PARAMETER);
-            }
-            BDBG_MSG(("to compute the mem config for display[%d].vip: MEMC[%d]", ulDispIndex, pDisplay->vip.stCfgSettings.ulMemcId));
-            stVipMemSettings.DcxvEnable = false; /* TODO: bring up Dcxv */
-            stVipMemSettings.DramStripeWidth = pDisplay->vip.pstMemoryInfo->memc[pDisplay->vip.stCfgSettings.ulMemcId].ulStripeWidth;
-            stVipMemSettings.PageSize = pDisplay->vip.pstMemoryInfo->memc[pDisplay->vip.stCfgSettings.ulMemcId].ulPageSize;
-            stVipMemSettings.X = pDisplay->vip.pstMemoryInfo->memc[pDisplay->vip.stCfgSettings.ulMemcId].ulMbMultiplier;
-            stVipMemSettings.Y = pDisplay->vip.pstMemoryInfo->memc[pDisplay->vip.stCfgSettings.ulMemcId].ulMbRemainder;
-            stVipMemSettings.bInterlaced = pDisplay->vip.stCfgSettings.bSupportInterlaced;
-            stVipMemSettings.MaxPictureWidthInPels = pDisplay->vip.stCfgSettings.ulMaxWidth;
-            stVipMemSettings.MaxPictureHeightInPels = pDisplay->vip.stCfgSettings.ulMaxHeight;
-            pMemConfig->stMemc[pDisplay->vip.stCfgSettings.ulMemcId].ulVipSize += BVDC_P_MemConfig_GetVipBufSizes(&stVipMemSettings, &stVipMemConfig);
-            BDBG_MSG(("    VIP size = %d", pMemConfig->stMemc[pDisplay->vip.stCfgSettings.ulMemcId].ulVipSize));
-        }
-#endif
-
-#if BVDC_P_CMP_CFC_VER >= 3
-        /* CFC memory config */
-        if(pDisplay->cfc.bUsed)
-        {
-            BDBG_MSG(("to compute the mem config for display[%d].cfc: CMP_LUT <- MEMC[%d], GFD LUT <- MEMC[%d]",
-                ulDispIndex, pDisplay->cfc.ulCmpMemcIndex, pDisplay->cfc.ulGfdMemcIndex));
-            ulRulSize = BVDC_P_ALIGN_UP(BVDC_P_CMP_CFC_LUT_SIZE, sizeof(uint32_t))*BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT;
-            pMemConfig->stMemc[pDisplay->cfc.ulCmpMemcIndex].ulCfcLutSize += ulRulSize;
-            BDBG_MSG(("    CMP CFC LUT size = %u", ulRulSize));
-            ulRulSize = BVDC_P_ALIGN_UP(BVDC_P_GFD_CFC_LUT_SIZE, sizeof(uint32_t))*BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT;
-            pMemConfig->stMemc[pDisplay->cfc.ulGfdMemcIndex].ulCfcLutSize += ulRulSize;
-            BDBG_MSG(("    GFD CFC LUT size = %u", ulRulSize));
-        }
-#endif
 
         /* Get settings for each display */
         for(ulWinIndex = 0; ulWinIndex < BVDC_MAX_VIDEO_WINDOWS; ulWinIndex++)
@@ -457,20 +544,15 @@ BERR_Code BVDC_GetMemoryConfiguration
     }
 
     BDBG_MSG(("---Total Memory (bytes) Per Memory Controller---"));
+    BDBG_MSG(("          PicSize       RUL         VIP    CFC_LUT "));
     for(ulMemcIndex = 0; ulMemcIndex < BVDC_MAX_MEMC; ulMemcIndex++)
     {
-        BDBG_MSG(("Memc[%d] settings: PicSize = %9d, RulSize = %9d",
+        BDBG_MSG(("Memc[%d]: %9d %9d %9d %9d",
             ulMemcIndex,
             pMemConfig->stMemc[ulMemcIndex].ulSize,
-            pMemConfig->stMemc[ulMemcIndex].ulRulSize));
-#if BVDC_P_SUPPORT_VIP
-        BDBG_MSG(("                   Total VIP size = %d",
-            pMemConfig->stMemc[ulMemcIndex].ulVipSize));
-#endif
-#if BVDC_P_CMP_CFC_VER >= 3
-        BDBG_MSG(("                   Total CFC LUT size = %d",
+            pMemConfig->stMemc[ulMemcIndex].ulRulSize,
+            pMemConfig->stMemc[ulMemcIndex].ulVipSize,
             pMemConfig->stMemc[ulMemcIndex].ulCfcLutSize));
-#endif
     }
 
     if(pSystemConfigInfo)

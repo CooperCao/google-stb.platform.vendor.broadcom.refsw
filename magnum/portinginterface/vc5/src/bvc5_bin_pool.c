@@ -67,27 +67,25 @@ typedef struct BVC5_P_BinPool
 
 /***************************************************************************/
 
-static uint32_t BVC5_P_BinBlockLockOffset(
+static void BVC5_P_BinBlockLock(
    BVC5_BinBlockHandle  hBlock
    )
 {
    BDBG_ASSERT(hBlock->uiLockOffset == 0);
-   BDBG_ASSERT(hBlock->uiPhysOffset == 0);
 
-   BVC5_P_BinPoolBlock_LockMem(hBlock->hBlock, &hBlock->uiLockOffset, &hBlock->uiPhysOffset);
+   BVC5_P_BinPoolBlock_LockMem(hBlock->hBlock, &hBlock->uiLockOffset);
 
-   /*BKNI_Printf("BVC5_P_BinBlockLockOffset %p = %x\n", hBlock, hBlock->uiPhysOffset);*/
-   return hBlock->uiPhysOffset;
+   /*BKNI_Printf("BVC5_P_BinBlockLockOffset %p = " BDBG_UINT64_FMT "\n", (void*)hBlock, BDBG_UINT64_ARG(hBlock->uiLockOffset));*/
 }
 
 /***************************************************************************/
 
-uint32_t BVC5_P_BinBlockGetPhysical(
+uint64_t BVC5_P_BinBlockGetPhysical(
    BVC5_BinBlockHandle  hBlock
    )
 {
-   BDBG_ASSERT(hBlock->uiPhysOffset != 0);
-   return hBlock->uiPhysOffset;
+   BDBG_ASSERT(hBlock->uiLockOffset != 0);
+   return (uint64_t)hBlock->uiLockOffset;
 }
 
 /***************************************************************************/
@@ -95,15 +93,13 @@ static void BVC5_P_BinBlockUnlockOffset(
    BVC5_BinBlockHandle  hBlock
    )
 {
-   /*BKNI_Printf("BVC5_P_BinBlockUnlockOffset %p (%x)\n", hBlock, hBlock->uiPhysOffset);*/
+   /*BKNI_Printf("BVC5_P_BinBlockUnlockOffset %p (" BDBG_UINT64_FMT ")\n", (void*)hBlock, BDBG_UINT64_ARG(hBlock->uiLockOffset));*/
 
    BDBG_ASSERT(hBlock->uiLockOffset != 0);
-   BDBG_ASSERT(hBlock->uiPhysOffset != 0);
 
    BVC5_P_BinPoolBlock_UnlockMem(hBlock->hBlock, hBlock->uiLockOffset);
 
    hBlock->uiLockOffset = 0;
-   hBlock->uiPhysOffset = 0;
 }
 
 /***************************************************************************/
@@ -161,7 +157,6 @@ static BVC5_BinBlockHandle BVC5_P_BinPoolBlockAlloc(
 
    pData->hBlock = BVC5_P_BinPoolBlock_AllocMem(hBinPool->hMMAHeap, uiNumBytes, 1 << BVC5_P_BINMEM_ALIGN);
    pData->uiLockOffset = 0;
-   pData->uiPhysOffset = 0;
    pData->uiNumBytes = uiNumBytes;
 
    if (pData->hBlock == NULL)
@@ -230,7 +225,7 @@ void BVC5_P_BinPoolDestroy(
 
 static BVC5_BinBlockHandle BVC5_P_BinPoolAlloc(
    BVC5_BinPoolHandle hBinPool,
-   uint32_t           *uiPhysOffset
+   uint64_t          *uiPhysOffset
 )
 {
    BVC5_BinBlockHandle  pBlock;
@@ -257,7 +252,10 @@ static BVC5_BinBlockHandle BVC5_P_BinPoolAlloc(
    *uiPhysOffset = 0;
 
    if (pBlock != NULL)
-      *uiPhysOffset = BVC5_P_BinBlockLockOffset(pBlock);
+   {
+      BVC5_P_BinBlockLock(pBlock);
+      *uiPhysOffset = BVC5_P_BinBlockGetPhysical(pBlock);
+   }
 
    return pBlock;
 }
@@ -267,7 +265,7 @@ static BVC5_BinBlockHandle BVC5_P_BinPoolAlloc(
 BVC5_BinBlockHandle BVC5_P_BinPoolAllocAtLeast(
    BVC5_BinPoolHandle hBinPool,
    uint32_t           uiMinBytes,
-   uint32_t           *uiPhysOffset
+   uint64_t          *uiPhysOffset
    )
 {
    BVC5_BinBlockHandle pBlock;
@@ -297,7 +295,8 @@ BVC5_BinBlockHandle BVC5_P_BinPoolAllocAtLeast(
    {
       BLST_Q_INSERT_TAIL(&hBinPool->sOversizedBlocks.sQueue, pBlock, sChain);
       hBinPool->sOversizedBlocks.uiSize += pBlock->uiNumBytes;
-      *uiPhysOffset = BVC5_P_BinBlockLockOffset(pBlock);
+      BVC5_P_BinBlockLock(pBlock);
+      *uiPhysOffset = BVC5_P_BinBlockGetPhysical(pBlock);
    }
 
    return pBlock;
@@ -373,7 +372,7 @@ bool BVC5_P_BinPoolReplenish(
       BVC5_BinBlockHandle pBlock = BVC5_P_BinPoolBlockAlloc(hBinPool, BVC5_BIN_MEM_MIN_POOL_BYTES);
       if (pBlock != NULL)
       {
-         BVC5_P_BinBlockLockOffset(pBlock);
+         BVC5_P_BinBlockLock(pBlock);
          BVC5_P_BinPoolRecycle(hBinPool, pBlock);
       }
    }
@@ -403,7 +402,7 @@ void BVC5_P_BinPoolPurge(
 
       for (i = 0; i < uiNumToPurge; ++i)
       {
-         uint32_t uiPhys;
+         uint64_t uiPhys;
          BVC5_BinBlockHandle pBlock = BVC5_P_BinPoolAlloc(hBinPool, &uiPhys);
          BVC5_P_BinBlockUnlockOffset(pBlock);
          BVC5_P_BinPoolBlockFree(pBlock);

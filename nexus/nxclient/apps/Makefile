@@ -161,10 +161,8 @@ LDFLAGS += $(BIP_ALL_LIB_LDFLAGS)
 
 playback_ip:
 	${Q_}$(MAKE) REFSW_BUILD=y -C $(NEXUS_TOP)/lib/bip/build B_NEXUS_API_BUILD_COMPLETED=y install
-	$(Q_)$(MAKE) -C $(B_LIB_TOP)/playback_ip/apps B_NEXUS_API_BUILD_COMPLETED=y install
 clean_playback_ip:
 	${Q_}$(MAKE) REFSW_BUILD=y -C $(NEXUS_TOP)/lib/bip/build clean
-	$(Q_)$(MAKE) -C $(B_LIB_TOP)/playback_ip/apps clean
 endif
 
 #
@@ -203,7 +201,7 @@ include $(FREETYPE_DIR)/b_freetype_targets.inc
 EXTRA_BUILD_RULES += freetype
 EXTRA_CLEAN_RULES += clean_freetype
 CFLAGS += -DFREETYPE_SUPPORT -I$(FREETYPE_SOURCE_PATH)/include
-LDFLAGS += -L$(FREETYPE_LIB_FOLDER) -lfreetype
+LDFLAGS += $(FREETYPE_STATIC_LDFLAGS)
 freetype: b_freetype_target_build
 clean_freetype: b_freetype_target_clean_all
 endif
@@ -288,7 +286,7 @@ $(BINDIR)/ccgfx: CFLAGS += $(addprefix -I,$(APPLIB_INCLUDES)) $(addprefix -D,$(A
 ifneq ($(NEXUS_PLAYBACK_SUPPORT),n)
 $(BINDIR)/ccgfx: LDFLAGS += -lm -lb_dcc
 ifeq ($(FREETYPE_SUPPORT),y)
-$(BINDIR)/ccgfx: LDFLAGS += -lfreetype
+$(BINDIR)/ccgfx: LDFLAGS += $(FREETYPE_STATIC_LDFLAGS)
 endif
 include $(MAGNUM)/commonutils/udp/budp.inc
 $(BINDIR)/ccgfx: dcclib parse_userdata.c $(NXCLIENT_APPS_UTILS_LIB) $(BUDP_SOURCES)
@@ -337,12 +335,10 @@ endef
 $(foreach app, $(CUSTOM_BUILD_APPS), $(eval $(call custom_apprule,$(strip $(app)))))
 
 clean: clean_apps $(EXTRA_CLEAN_RULES)
-	${Q_}if [ -d ${B_REFSW_OBJ_ROOT} ]; then find ${B_REFSW_OBJ_ROOT} -type d -empty -delete; fi
 
 clean_apps:
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/nxclient/server clean_apps
 	-$(RM) -r $(BINDIR)
-	${Q_}if [ -d ${B_REFSW_OBJ_ROOT} ]; then find ${B_REFSW_OBJ_ROOT} -type d -empty -delete; fi
 
 ROCKFORD_NXCLIENT_TESTS := $(NEXUS_TOP)/../rockford/unittests/nexus/nxclient/tests
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -203,20 +203,6 @@ void BXPT_DirecTv_SetStartcodeChecking(
     BREG_Write32( hXpt->hRegister, BCHP_XPT_MSG_PES_CTRL1, Reg );
 }
 #endif /* (!B_REFSW_MINIMAL) */
-
-BERR_Code BXPT_Mesg_StartDirecTvMessageCapture(
-    BXPT_Handle hXpt,                           /* [in] Handle for this transport */
-    unsigned int PidChannelNum,                 /* [in] Which PID channel. */
-    unsigned int MesgBufferNum,                 /* [in] Which Message Buffer. */
-    BXPT_DirecTvMessageType MessageType,        /* [in] What type of DirecTV messages. */
-    const BXPT_PsiMessageSettings *Settings     /* [in] PID, band, and filters to use. */
-    )
-{
-    BXPT_DirecTvMessageOptions Options;
-
-    Options.Flags = BXPT_DirecTvMessageFlags_eSaveFirst;
-    return BXPT_Mesg_StartDirecTvMessageCaptureWithOptions( hXpt, PidChannelNum, MesgBufferNum, MessageType, Settings, &Options );
-}
 
 BERR_Code BXPT_Mesg_StartDirecTvMessageCaptureWithOptions(
     BXPT_Handle hXpt,                           /* [in] Handle for this transport */

@@ -100,7 +100,7 @@ RenderPass::RenderPass(
 
    // Calculate and cache depth bits
    for (uint32_t a = 0; a != pCreateInfo->attachmentCount; ++a)
-      m_depthBits = Formats::DepthBits(pCreateInfo->pAttachments[a].format);
+      m_depthBits = gfx_lfmt_depth_bits(m_attachments[a].format);
 
    // Print the final groups
    LogSubpassGroups();
@@ -114,26 +114,22 @@ void RenderPass::GatherAttachments(const VkAttachmentDescription *attachments, u
       const VkAttachmentDescription &desc  = attachments[a];
       Attachment &att = m_attachments[a];
 
+      // Find the format of the attachment and convert to v3d types
+      att.format = Formats::GetLFMT(desc.format);
+
       // Precompute mask used by CommandBufferBuilder::DrawClearRectForAttachmentIfNeeded
-      VkImageAspectFlags aspectMask = Formats::GetAspects(desc.format);
+      VkImageAspectFlags aspectMask = Formats::GetAspects(att.format);
       if (desc.loadOp != VK_ATTACHMENT_LOAD_OP_CLEAR)
          aspectMask &= ~(VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT);
       if (desc.stencilLoadOp != VK_ATTACHMENT_LOAD_OP_CLEAR)
          aspectMask &= ~VK_IMAGE_ASPECT_STENCIL_BIT;
       att.vkClearRectAspectMask = aspectMask;
 
-      // Find the format of the attachment and convert to v3d types
-      att.format = Formats::GetLFMT(desc.format, Formats::HW);
-
-#if V3D_VER_AT_LEAST(4,1,34,0)
       att.v3dRtFormat = V3D_RT_FORMAT_T{V3D_RT_BPP_32, V3D_RT_TYPE_8, V3D_RT_CLAMP_NONE};
-#else
-      att.v3dRtFormat = V3D_RT_FORMAT_T{V3D_RT_BPP_32, V3D_RT_TYPE_8};
-#endif
 
-      // We may see attachments in the list that aren't valid (but likely aren't used either).
-      // The CTS does this for example, so we must use the maybe variants of translate functions.
-      if (Formats::HasDepth(desc.format) || Formats::HasStencil(desc.format))
+      // We may see attachments in the list that aren't valid. This is useless, but not
+      // invalid usage, so we must use the maybe variants of translate functions.
+      if (gfx_lfmt_has_depth(att.format) || gfx_lfmt_has_stencil(att.format))
          att.v3dDepthType = gfx_lfmt_maybe_translate_depth_type(att.format);
       else
          gfx_lfmt_maybe_translate_rt_format(&att.v3dRtFormat, att.format);
@@ -212,7 +208,7 @@ void RenderPass::CalculateSubpassLoadsAndStores(
 {
    const VkAttachmentDescription &attDesc = attachments[rpAttachmentIndex];
 
-   VkImageAspectFlags aspects = Formats::GetAspects(attDesc.format);
+   VkImageAspectFlags aspects = Formats::GetAspects(m_attachments[rpAttachmentIndex].format);
 
    if (firstUsage[rpAttachmentIndex] == subpassIndex)  // First used in this subpass
    {
@@ -370,11 +366,10 @@ void RenderPass::CalculateSubpassGroups(const VkRenderPassCreateInfo *pCreateInf
 
       if (spg.m_dsAttachment != VK_ATTACHMENT_UNUSED)
       {
-         const VkAttachmentDescription &attDesc = pCreateInfo->pAttachments[spg.m_dsAttachment];
+         const GFX_LFMT_T lfmt = m_attachments[spg.m_dsAttachment].format;
 
-         VkImageAspectFlags aspects = Formats::GetAspects(attDesc.format);
-         spg.m_hasDepth   = (aspects & VK_IMAGE_ASPECT_DEPTH_BIT) != 0;
-         spg.m_hasStencil = (aspects & VK_IMAGE_ASPECT_STENCIL_BIT) != 0;
+         spg.m_hasDepth   = gfx_lfmt_has_depth(lfmt);
+         spg.m_hasStencil = gfx_lfmt_has_stencil(lfmt);
 
          // If this spg is the first use of the attachment, mark it for clearing
          if (firstUsage[spg.m_dsAttachment] == s)
@@ -387,8 +382,9 @@ void RenderPass::CalculateSubpassGroups(const VkRenderPassCreateInfo *pCreateInf
 #if !V3D_HAS_GFXH1461_FIX
          if (spg.m_hasDepth && spg.m_hasStencil)
          {
-            if (((attDesc.loadOp == VK_ATTACHMENT_LOAD_OP_LOAD) && (attDesc.stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)) ||
-               ((attDesc.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR) && (attDesc.stencilLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD)))
+            const VkAttachmentDescription &attDesc = pCreateInfo->pAttachments[spg.m_dsAttachment];
+            if ((attDesc.loadOp == VK_ATTACHMENT_LOAD_OP_LOAD  && attDesc.stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR) ||
+                (attDesc.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR && attDesc.stencilLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ))
             {
                spg.m_workaroundGFXH1461 = true;
             }

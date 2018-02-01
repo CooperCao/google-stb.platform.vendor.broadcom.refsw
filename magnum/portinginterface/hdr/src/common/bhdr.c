@@ -163,7 +163,7 @@ static void BHDR_P_ClearScdcStatus_isr(BHDR_Handle hHDR) ;
 static BERR_Code BHDR_P_CreateTimer(
 	BHDR_Handle hHDR, BTMR_TimerHandle * timerHandle, uint8_t timerId) ;
 
-static BERR_Code BHDR_P_DestroyTimer(
+static void BHDR_P_DestroyTimer(
 	BHDR_Handle hHDR, BTMR_TimerHandle timerHandle, uint8_t timerId) ;
 
 static void BHDR_P_TimerExpiration_isr (BHDR_Handle hHDR, int parm2) ;
@@ -3089,19 +3089,14 @@ static BERR_Code BHDR_P_CreateTimer(BHDR_Handle hHDR, BTMR_TimerHandle * timerHa
 }
 
 
-static BERR_Code BHDR_P_DestroyTimer(BHDR_Handle hHDR, BTMR_TimerHandle timerHandle, uint8_t timerId)
+static void BHDR_P_DestroyTimer(BHDR_Handle hHDR, BTMR_TimerHandle timerHandle, uint8_t timerId)
 {
-	BERR_Code rc = BERR_SUCCESS ;
-
 	BDBG_ENTER(BHDR_P_DestroyTimer) ;
 	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle) ;
-
 	BDBG_MSG(("Destroy BHDR_P_TIMER_eNNN ID %d", timerId)) ;
-	rc = BTMR_DestroyTimer(timerHandle) ;
-
-        BSTD_UNUSED(timerId);
+	BTMR_DestroyTimer(timerHandle) ;
+	BSTD_UNUSED(timerId);
 	BDBG_LEAVE(BHDR_P_DestroyTimer) ;
-	return rc ;
 }
 
 

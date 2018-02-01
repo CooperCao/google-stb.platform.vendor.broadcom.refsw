@@ -19,11 +19,7 @@ namespace bvk {
 LOG_DEFAULT_CAT("bvk::DSAspectCommandBuilder");
 
 // Fixed dummy RT TLB config for depth/stencil only operations
-#if V3D_VER_AT_LEAST(4,1,34,0)
 static const V3D_RT_FORMAT_T s_v3dRtFormat = {V3D_RT_BPP_32, V3D_RT_TYPE_8, V3D_RT_CLAMP_NONE};
-#else
-static const V3D_RT_FORMAT_T s_v3dRtFormat = {V3D_RT_BPP_32, V3D_RT_TYPE_8};
-#endif
 
 void DSAspectCommandBuilder::SetupFrameConfig(uint32_t width, uint32_t height)
 {
@@ -56,7 +52,7 @@ void DSAspectCommandBuilder::SetImageSubresources(
       VkImageAspectFlags aspect)
 {
    const v3d_addr_t basePhys = img->PhysAddr();
-   const GFX_LFMT_T lfmt     = img->NaturalLFMT();
+   const GFX_LFMT_T lfmt     = img->LFMT();
 
    const bool     is3D  = gfx_lfmt_is_3d(lfmt);
    const uint32_t layer = is3D ? 0 : layerOrSlice;
@@ -95,12 +91,8 @@ void DSAspectCommandBuilder::SetDstTLBParamsDirect(
 
    SetupFrameConfig(width, height);
 
-# if V3D_VER_AT_LEAST(4,1,34,0)
    GFX_LFMT_T lfmt = gfx_lfmt_translate_from_pixel_format(params.pixel_format, params.chan_reverse,
                                                           params.rb_swap);
-# else
-   GFX_LFMT_T lfmt = gfx_lfmt_translate_from_pixel_format(params.pixel_format);
-# endif // V3D_VER_AT_LEAST(4,1,34,0)
 
    // NOTE: S8 and D32S8 are not supported in the physical device properties
    m_depthType = gfx_lfmt_translate_depth_type(lfmt);
@@ -138,9 +130,7 @@ void DSAspectCommandBuilder::AddTileListLoads()
             m_TLBParams.flipy,
             m_TLBParams.decimate,
             m_TLBParams.pixel_format,
-#if V3D_VER_AT_LEAST(4,1,34,0)
             false, false, false,    /* alpha_to_one, chan_reverse, rb_swap */
-#endif
             m_TLBParams.stride,
             m_TLBParams.flipy_height_px,
             m_TLBParams.addr);
@@ -160,9 +150,7 @@ void DSAspectCommandBuilder::AddTileListStores()
          m_TLBParams.decimate,
          m_TLBParams.pixel_format,
          /*clear=*/false,
-#if V3D_VER_AT_LEAST(4,1,34,0)
          false, false,    /* chan_reverse, rb_swap */
-#endif
          m_TLBParams.stride,
          m_TLBParams.flipy_height_px,
          m_TLBParams.addr);
@@ -186,19 +174,11 @@ void DSAspectCommandBuilder::InsertRenderTargetCfg()
          /*depthType=*/m_depthType,
          /*earlyDSClear=*/false);
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
    v3d_cl_tile_rendering_mode_cfg_color(CLPtr(),
          s_v3dRtFormat.bpp, s_v3dRtFormat.type, s_v3dRtFormat.clamp,
          s_v3dRtFormat.bpp, s_v3dRtFormat.type, s_v3dRtFormat.clamp,
          s_v3dRtFormat.bpp, s_v3dRtFormat.type, s_v3dRtFormat.clamp,
          s_v3dRtFormat.bpp, s_v3dRtFormat.type, s_v3dRtFormat.clamp);
-#else
-   v3d_cl_tile_rendering_mode_cfg_color(CLPtr(),
-         s_v3dRtFormat.bpp, s_v3dRtFormat.type,
-         s_v3dRtFormat.bpp, s_v3dRtFormat.type,
-         s_v3dRtFormat.bpp, s_v3dRtFormat.type,
-         s_v3dRtFormat.bpp, s_v3dRtFormat.type);
-#endif
 }
 
 

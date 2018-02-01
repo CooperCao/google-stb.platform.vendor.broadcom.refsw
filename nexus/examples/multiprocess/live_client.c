@@ -68,8 +68,8 @@ int main(int argc, char **argv)
     NEXUS_ParserBandSettings parserBandSettings;
     NEXUS_StcChannelHandle stcChannel;
     NEXUS_StcChannelSettings stcSettings;
-    NEXUS_FileRecordHandle file;
-    NEXUS_RecpumpHandle recpump;
+    NEXUS_FileRecordHandle file = NULL;
+    NEXUS_RecpumpHandle recpump = NULL;
     NEXUS_RecordHandle record = NULL;
     NEXUS_Error rc;
     unsigned timeout = 0;

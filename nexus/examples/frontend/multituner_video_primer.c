@@ -312,7 +312,7 @@ int main(int argc, char **argv)
     /* to keep things simple, we borrow TS PSI scanning capability from /nexus/nxclient/apps/utils/tspsimgr3.c */
     {
         tspsimgr_t tspsimgr;
-        NEXUS_FrontendHandle f;
+        NEXUS_FrontendHandle f=NULL;
         NEXUS_FrontendAcquireSettings settings;
         bool useTuner = false;
 
@@ -338,6 +338,7 @@ int main(int argc, char **argv)
         tspsimgr = tspsimgr_create();
         for (map = BLST_Q_FIRST(&g_channel_map); map; map = BLST_Q_NEXT(map, link)) {
             tspsimgr_scan_settings scan_settings;
+            BDBG_ASSERT(f);
             rc = tune(parserBand, f, map->freq, FRONTEND_MODE);
             if (rc) continue;
 

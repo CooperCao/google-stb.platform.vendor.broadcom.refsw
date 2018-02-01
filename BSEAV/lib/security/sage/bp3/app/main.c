@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -280,6 +280,20 @@ int bp3_session_start(uint8_t **token, uint32_t *size)
       return rc;
 }
 
+
+int bp3_get_otp_id (uint32_t *pOtpIdHigh, uint32_t *pOtpIdLow)
+{
+    int     rc = 0;
+
+    if (SAGE_BP3Module_GetOtpId(pOtpIdHigh, pOtpIdLow))
+    {
+        rc = -8;
+        goto error;
+    }
+    error:
+        return rc;
+}
+
 int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_t *logSize, uint32_t **status, uint32_t *statusSize)
 {
     int       rc = 0;
@@ -485,7 +499,7 @@ leave:
 
         next:;
       }
-
+      // always return OTP Key A for now instead of OTP Key with SAGE key ladder rights.
       return NEXUS_OtpKeyType_eA;
     }
 
@@ -514,11 +528,45 @@ leave:
       return errCode;
     }
 #else
+    BP3_Otp_KeyType find_otp_select(void)
+    {
+        unsigned int i;
+        NEXUS_OtpKeyInfo keyInfo;
+        BP3_Otp_KeyType keyType;
+
+        for (i=BP3_OTPKeyTypeA; i< BP3_OTPKeyMax; i++)
+        {
+            NEXUS_Error errCode = NEXUS_OtpKey_GetInfo(i, &keyInfo);
+            if (!errCode)
+            {
+                if (keyInfo.sageKeyLadderAllow)
+                {
+                    keyType = i;
+                    goto End;
+                }
+                else if (i == BP3_OTPKeyTypeH)
+                {
+                    fprintf(stderr, "%s failed to find key \n", __FUNCTION__);
+                    keyType = BP3_OTPKeyTypeA;
+                }
+            }
+            else
+            {
+                fprintf(stderr, "%s failed to get OTP key info %d\n", __FUNCTION__, errCode);
+                goto End;
+            }
+        }
+
+End:
+        // always return OTP Key A for now instead of OTP Key with SAGE key ladder rights.
+        return BP3_OTPKeyTypeA;
+    }
+
     NEXUS_Error read_otp_id(unsigned keyIndex, uint32_t *otpIdHi, uint32_t *otpIdLo)
     {
         NEXUS_OtpKeyInfo keyInfo;
 
-        NEXUS_Error errCode  = NEXUS_OtpKey_GetInfo(keyIndex, &keyInfo);
+        NEXUS_Error errCode = NEXUS_OtpKey_GetInfo(keyIndex, &keyInfo);
 
         if (!errCode)
         {

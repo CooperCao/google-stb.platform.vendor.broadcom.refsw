@@ -32,7 +32,9 @@ bool vcos_atomic_compare_exchange_weak_##name(\
 #define VCOS_ATOMIC_DECLARATIONS(name,T)\
 VCOS_ATOMIC_DECLARATIONS_BOOL_PTR(name,T)\
 T vcos_atomic_fetch_add_##name(T volatile* ptr, T val, vcos_memory_order_t memorder);\
-T vcos_atomic_fetch_sub_##name(T volatile* ptr, T val, vcos_memory_order_t memorder);
+T vcos_atomic_fetch_sub_##name(T volatile* ptr, T val, vcos_memory_order_t memorder);\
+T vcos_atomic_fetch_and_##name(T volatile* ptr, T val, vcos_memory_order_t memorder);\
+T vcos_atomic_fetch_or_##name(T volatile* ptr, T val, vcos_memory_order_t memorder);
 
 VCOS_ATOMIC_DECLARATIONS_BOOL_PTR(bool, bool);
 VCOS_ATOMIC_DECLARATIONS(int8, int8_t);

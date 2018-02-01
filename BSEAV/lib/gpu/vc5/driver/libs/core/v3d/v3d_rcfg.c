@@ -37,7 +37,7 @@ void v3d_rcfg_collect(
          common->ms_mode, common->double_buffer,
          common->num_rts, common->max_bpp);
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       rcfg->depth_type = common->internal_depth_type;
       rcfg->early_ds_clear = common->early_ds_clear;
 #else
@@ -48,7 +48,7 @@ void v3d_rcfg_collect(
 
       break;
    }
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_RCFG_TYPE_Z_STENCIL:
    {
       const V3D_CL_TILE_RENDERING_MODE_CFG_Z_STENCIL_T *zs = &i->u.z_stencil;
@@ -90,7 +90,7 @@ void v3d_rcfg_collect(
    {
       const V3D_CL_TILE_RENDERING_MODE_CFG_COLOR_T *color = &i->u.color;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       for (unsigned i = 0; i != countof(color->rt_formats); ++i)
          rcfg->rts[i].format = color->rt_formats[i];
 #else
@@ -156,7 +156,7 @@ void v3d_rcfg_collect(
 
       r->clear[3] = (r->clear[3] & ~0xffff0000) | (c_clear3->clear_col_3_shift16 << 16);
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       r->clear3_raster_padded_width_or_nonraster_height =
          c_clear3->raster_padded_width_or_nonraster_height;
       r->clear3_uif_height_in_ub = c_clear3->uif_height_in_ub;
@@ -169,7 +169,7 @@ void v3d_rcfg_collect(
    }
 }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 void v3d_rcfg_finalise(struct v3d_rcfg *rcfg)
 {
    for (uint32_t rt = 0; rt != rcfg->num_rts; ++rt)
@@ -302,7 +302,7 @@ static uint32_t calc_tlb_ldst_pitch(
    switch (ls->memory_format)
    {
    case V3D_MEMORY_FORMAT_RASTER:
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       return ls->stride;
 #else
       return gfx_udiv_exactly(ls->stride, bd->block_w) * bd->bytes_per_block;
@@ -335,7 +335,7 @@ void v3d_calc_tlb_ldst_buffer_desc(
 #if V3D_VER_AT_LEAST(4,1,34,0)
    GFX_LFMT_T lfmt = gfx_lfmt_translate_from_memory_pixel_format_and_flipy(
       ls->memory_format, ls->pixel_format, ls->chan_reverse, ls->rb_swap, ls->flipy);
-#elif V3D_VER_AT_LEAST(4,0,2,0)
+#elif V3D_VER_AT_LEAST(4,1,34,0)
    GFX_LFMT_T lfmt = gfx_lfmt_translate_from_memory_pixel_format_and_flipy(
       ls->memory_format, ls->pixel_format, ls->flipy);
 #else

@@ -77,6 +77,9 @@ static BERR_Code BDSP_Raaga_P_InitAudioCapture(
 		errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 		return errCode;
 	}
+	BKNI_Memset(Memory.pAddr, 0, MemoryRequired);
+	BDSP_MMA_P_FlushCache(Memory,MemoryRequired);
+
     pRaagaCapture->captureBuffer = Memory;
     BKNI_Memset((void *)pRaagaCapture->CapturePointerInfo, 0, (sizeof(BDSP_RaagaCapturePointerInfo)*BDSP_AF_P_MAX_CHANNELS));
     for(index=0; index< pRaagaCapture->maxBuffers; index++)
@@ -85,8 +88,8 @@ static BERR_Code BDSP_Raaga_P_InitAudioCapture(
         pDescriptor = &pRaagaCapture->CapturePointerInfo[index].captureBufferPtr;
         pDescriptor->pBasePtr = Memory.pAddr;
         pDescriptor->pReadPtr = Memory.pAddr;
-        pDescriptor->pEndPtr  = Memory.pAddr;
-        pDescriptor->pWritePtr= (void *)((uint8_t *)Memory.pAddr+ pCaptureCreateSettings->channelBufferSize);
+        pDescriptor->pWritePtr= Memory.pAddr;
+        pDescriptor->pEndPtr  = (void *)((uint8_t *)Memory.pAddr+ pCaptureCreateSettings->channelBufferSize);
         pDescriptor->pWrapPtr = (void *)((uint8_t *)Memory.pAddr+ pCaptureCreateSettings->channelBufferSize);
         Memory.pAddr = (void *)((uint8_t *)Memory.pAddr+ pCaptureCreateSettings->channelBufferSize);
         Memory.offset = Memory.offset +  pCaptureCreateSettings->channelBufferSize;
@@ -197,7 +200,7 @@ static BERR_Code BDSP_Raaga_P_PopulateAudioCaptureInfo(
                     psOutputBuffer->ui32BaseAddr = (dramaddr_t)pConnectionDetails->connectionHandle.fmm.fmmDescriptor.buffers[i].base;
                     psOutputBuffer->ui32EndAddr  = (dramaddr_t)pConnectionDetails->connectionHandle.fmm.fmmDescriptor.buffers[i].end;
                     psOutputBuffer->ui32WrapAddr = (dramaddr_t)pConnectionDetails->connectionHandle.fmm.fmmDescriptor.buffers[i].end;
-                    pRaagaCapture->CapturePointerInfo[i].ui32StartWriteAddr = psOutputBuffer->ui32EndAddr + sizeof(dramaddr_t);
+                    pRaagaCapture->CapturePointerInfo[i].ui32StartWriteAddr = psOutputBuffer->ui32EndAddr + (2*BDSP_SIZE_OF_FMMREG);
                     pRaagaCapture->CapturePointerInfo[i].shadowRead = BDSP_ReadFMMReg(pRaagaCapture->pRaagaContext->pDevice->regHandle,psOutputBuffer->ui32BaseAddr);
                     pRaagaCapture->CapturePointerInfo[i].lastWrite  = BDSP_ReadFMMReg(pRaagaCapture->pRaagaContext->pDevice->regHandle,psOutputBuffer->ui32WriteAddr);
                 }
@@ -288,6 +291,7 @@ BERR_Code BDSP_Raaga_P_AddAudioCaptureToStage(
 
 	/* Enable the capture */
     pRaagaCapture->pRaagaStage = pRaagaStage;
+	pRaagaCapture->stageDestroyed =  false;
     pRaagaCapture->updateRead  = pSettings->updateRead;
 	pRaagaCapture->enabled     = true;
 
@@ -311,9 +315,12 @@ void BDSP_Raaga_P_RemoveAudioCaptureFromStage(
 	BSTD_UNUSED(pStageHandle);
 	BDBG_OBJECT_ASSERT(pRaagaCapture, BDSP_RaagaCapture);
 
-	BKNI_AcquireMutex(pRaagaCapture->pRaagaContext->pDevice->deviceMutex);
-	BLST_S_REMOVE(&pRaagaCapture->pRaagaStage->captureList, pRaagaCapture, BDSP_RaagaCapture, node);
-	BKNI_ReleaseMutex(pRaagaCapture->pRaagaContext->pDevice->deviceMutex);
+	if(pRaagaCapture->stageDestroyed != true)
+	{
+		BKNI_AcquireMutex(pRaagaCapture->pRaagaContext->pDevice->deviceMutex);
+		BLST_S_REMOVE(&pRaagaCapture->pRaagaStage->captureList, pRaagaCapture, BDSP_RaagaCapture, node);
+		BKNI_ReleaseMutex(pRaagaCapture->pRaagaContext->pDevice->deviceMutex);
+	}
 
 	pRaagaCapture->enabled     = false;
 	pRaagaCapture->pRaagaStage = NULL;
@@ -454,15 +461,15 @@ static void BDSP_Raaga_P_AudioCaptureGetReadBufferDetails(
 			EndAddr  = BDSP_ReadFMMReg(regHandle, pBuffer->ui32EndAddr);
 			ReadAddr = shadowRead;
 			WriteAddr= BDSP_ReadFMMReg(regHandle, pBuffer->ui32WriteAddr);
-            if((ReadAddr ^ WriteAddr) == BDSP_RAAGA_FMM_WRAP_MASK)/* 40 bit is wrap bit */
+            if((ReadAddr ^ WriteAddr) == BDSP_FMM_WRAP_MASK)
             {
                 /* Buffer is full */
                 depth = (EndAddr - BaseAddr) + 1;
             }
             else
             {
-				ReadAddr  &= BDSP_RAAGA_FMM_ADDR_MASK; /* Get LSB 39 Bits */
-				WriteAddr &= BDSP_RAAGA_FMM_ADDR_MASK; /* Get LSB 39 Bits */
+				ReadAddr  &= BDSP_FMM_ADDR_MASK; /* Get LSB 39/31 Bits based on Register Width */
+				WriteAddr &= BDSP_FMM_ADDR_MASK; /* Get LSB 39/31 Bits based on Register Width */
                 if(ReadAddr > WriteAddr)
                 {
                     depth = EndAddr - ReadAddr + 1;
@@ -495,7 +502,7 @@ static void BDSP_Raaga_P_AudioCaptureGetReadBufferDetails(
     }
 
     *pSize = depth;
-    pReadMemory->pAddr = (void *)((uint8_t *)pReadMemory->pAddr -((shadowRead&BDSP_RAAGA_FMM_ADDR_MASK)-BaseAddr));
+    pReadMemory->pAddr = (void *)((uint8_t *)pReadMemory->pAddr +((shadowRead&BDSP_FMM_ADDR_MASK)-BaseAddr));
     *pLastWrite = WriteAddr;
     BDBG_LEAVE(BDSP_Raaga_P_AudioCaptureGetReadBufferDetails);
 }
@@ -516,8 +523,8 @@ static bool BDSP_Raaga_P_AudioCaptureDetectCaptureError(
     {
         case BDSP_AF_P_BufferType_eFMM:
             WriteAddr = BDSP_ReadFMMReg(regHandle, pBuffer->ui32WriteAddr);
-            WriteAddr  = (WriteAddr & BDSP_RAAGA_FMM_ADDR_MASK); /* use only the LSB 39 bits */
-            shadowRead = (shadowRead & BDSP_RAAGA_FMM_ADDR_MASK); /* use only the LSB 39 bits */
+            WriteAddr  = (WriteAddr & BDSP_FMM_ADDR_MASK); /* use only the LSB 39/31 bits */
+            shadowRead = (shadowRead & BDSP_FMM_ADDR_MASK); /* use only the LSB 39 bits */
             break;
         case BDSP_AF_P_BufferType_eRDB:
             WriteAddr = BDSP_ReadFIFOReg(regHandle, pBuffer->ui32WriteAddr);
@@ -577,7 +584,7 @@ static void BDSP_Raaga_P_AudioCaptureGetWriteBufferDetails(
     pWritePtr= (uint8_t *)pCaptureBufferPtr->pWritePtr;
 
     *pSize = 0;
-    if(pWritePtr > pReadPtr)
+    if(pWritePtr >= pReadPtr)
     {
         /* Wrap Around wont be handled, hence write till End */
         *pSize = pEndPtr-pWritePtr;
@@ -656,12 +663,11 @@ static void BDSP_Raaga_P_AudioCaptureUpdateShadowRead(
         case BDSP_AF_P_BufferType_eFMM:
             BaseAddr = BDSP_ReadFMMReg(regHandle, pBuffer->ui32BaseAddr);
             EndAddr  = BDSP_ReadFMMReg(regHandle, pBuffer->ui32EndAddr);
-            shadowReadAddr = (shadowReadAddr & BDSP_RAAGA_FMM_ADDR_MASK); /* use only the LSB 39 bits */
-            if(shadowReadAddr > EndAddr)
+            if((shadowReadAddr & BDSP_FMM_ADDR_MASK) > EndAddr)
             {
                 shadowReadAddr = BaseAddr+((shadowReadAddr-EndAddr)-1);
-				/* Flip bit 40 on a wrap */
-				shadowReadAddr ^= BDSP_RAAGA_FMM_WRAP_MASK;
+				/* Flip bit 40/32 on a wrap based on register size*/
+				shadowReadAddr ^= BDSP_FMM_WRAP_MASK;
             }
             break;
         case BDSP_AF_P_BufferType_eRDB:
@@ -696,18 +702,31 @@ static BERR_Code BDSP_Raaga_P_AudioCaptureProcessing(
     BKNI_AcquireMutex(pRaagaCapture->pRaagaContext->pDevice->deviceMutex);
     if(pRaagaCapture->eBuffType == BDSP_AF_P_BufferType_eFMM && pRaagaCapture->StartCapture == false)
     {
+		/* Wait for the first channel (L) to have its start write pointer moved as pointers are moved in reverse order*/
         BDSP_Raaga_P_AudioCaptureDetectCaptureReady(
             pRaagaCapture->pRaagaContext->pDevice->regHandle,
             pRaagaCapture->CapturePointerInfo[0].ui32StartWriteAddr,
             pRaagaCapture->CapturePointerInfo[0].outputBufferPtr.ui32WriteAddr,
             &pRaagaCapture->StartCapture);
+        if(true == pRaagaCapture->StartCapture)
+        {
+			BDBG_MSG(("BDSP_Raaga_P_AudioCaptureProcessing: Initilaise the Shadow Read and Last write to Start Write"));
+            for (i = 0; i < pRaagaCapture->numBuffers; i++)
+            {
+                pRaagaCapture->CapturePointerInfo[i].shadowRead = BDSP_ReadFMMReg(
+                    pRaagaCapture->pRaagaContext->pDevice->regHandle,
+                    pRaagaCapture->CapturePointerInfo[i].ui32StartWriteAddr);
+                pRaagaCapture->CapturePointerInfo[i].lastWrite = pRaagaCapture->CapturePointerInfo[i].shadowRead;
+            }
+         }
     }
 
     if(true == pRaagaCapture->StartCapture)
     {
         for(i=0; i<pRaagaCapture->numBuffers; i++)
         {
-            /* Detect Capture Error*/
+            BDBG_MSG(("CAPTURE PASS for Channel %d", i));
+			/* Detect Capture Error*/
             err_status = BDSP_Raaga_P_AudioCaptureDetectCaptureError(
                 pRaagaCapture->pRaagaContext->pDevice->regHandle,
                 pRaagaCapture->eBuffType,

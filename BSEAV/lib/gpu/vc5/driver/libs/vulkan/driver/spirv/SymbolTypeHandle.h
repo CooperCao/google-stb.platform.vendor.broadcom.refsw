@@ -5,8 +5,7 @@
 #pragma once
 
 #include "glsl_symbols.h"
-#include "ModuleAllocator.h"
-#include <vector>
+#include "Spirv.h"
 
 namespace bvk {
 
@@ -32,21 +31,58 @@ public:
       m_symbolType(rhs.m_symbolType)
    {}
 
-   explicit SymbolTypeHandle(SymbolType *symbolType) :
+   SymbolTypeHandle(SymbolType *symbolType) :
       m_symbolType(symbolType)
    {}
 
+   // Primarily for passing to C interfaces
    operator SymbolType *() { return m_symbolType; }
 
-   static SymbolTypeHandle Primitive(PrimitiveTypeIndex index);
+   // Returns void symbol type
+   static SymbolTypeHandle Void();
+
+   // Returns bool symbol type
+   static SymbolTypeHandle Bool();
+
+   // Returns signed int symbol type
+   static SymbolTypeHandle Int();
+
+   // Returns unsigned int symbol type
+   static SymbolTypeHandle UInt();
+
+   // Returns float symbol type
+   static SymbolTypeHandle Float();
+
+   // Returns vector symbol type of size elemTypes
+   static SymbolTypeHandle Vector(SymbolTypeHandle elemType, uint32_t size);
+
+   // Returns matrix symbol type of col x row
+   static SymbolTypeHandle Matrix(uint32_t cols, uint32_t rows);
+
+   // Returns sampler symbol type
    static SymbolTypeHandle Sampler();
-   static SymbolTypeHandle Array(const Module &module, uint32_t size, SymbolTypeHandle elementType);
 
+   // Returns an array type (allocated in Module's arena as it must outlive the builder)
+   static SymbolTypeHandle Array(const Module &module, SymbolTypeHandle elementType, uint32_t size);
+
+   // Returns a struct symbol type (allocated in Module's arena as it must outlive the builder)
    template <typename M>
-   static SymbolTypeHandle Struct(const Module &module, const char *name, const M &members);
+   static SymbolTypeHandle Struct(const Module &module, const M &members);
 
-   static SymbolTypeHandle Function(const Module &module, uint32_t numParams, SymbolTypeHandle returnType);
+   // Returns a pointer symbol type (allocated in Module's arena as it must outlive the builder)
    static SymbolTypeHandle Pointer(const Module &module, SymbolTypeHandle targetType);
+
+   // Returns a sampled image symbol type
+   static SymbolTypeHandle SampledImage(SymbolTypeHandle sampledType, spv::Dim dim, uint32_t arrayed, uint32_t ms);
+
+   // Returns an image symbol type
+   static SymbolTypeHandle Image(SymbolTypeHandle sampledType, spv::Dim dim, uint32_t arrayed);
+
+   // Returns a combined sampled image symbol type
+   static SymbolTypeHandle CombinedSampledImage(SymbolTypeHandle sampledType, spv::Dim dim, uint32_t arrayed, uint32_t ms);
+
+   SymbolTypeHandle IndexType();
+   SymbolTypeHandle MatrixSubscriptVector(uint32_t i);
 
    uint32_t           GetNumScalars() const { return m_symbolType->scalar_count; }
    SymbolTypeFlavour  GetFlavour()    const { return m_symbolType->flavour;      }
@@ -64,10 +100,19 @@ public:
       return m_symbolType->u.array_type.member_count;
    }
 
+   SymbolTypeHandle GetStructMemberType(uint32_t index) const
+   {
+      assert(GetFlavour() == SYMBOL_STRUCT_TYPE);
+      return m_symbolType->u.struct_type.member[index].type;
+   }
+
    DataflowType       ToDataflowType(uint32_t index) const;
    PrimitiveTypeIndex GetIndex()                     const;
    bool               IsSampler()                    const;
    bool               IsImage()                      const;
+
+private:
+   SymbolTypeHandle(PrimitiveTypeIndex index);
 
 private:
    SymbolType  *m_symbolType;

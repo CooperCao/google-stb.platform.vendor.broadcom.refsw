@@ -486,7 +486,9 @@ static NEXUS_Error NEXUS_VideoDecoderModule_P_PostInit(void)
             xvdSettings.stFWMemConfig.uiPictureHeap1Size = pSettings->heapSize[i].secondaryPicture; /* for split picture buffer systems */
         }
         /* TODO: replace pSettings->hostAccessibleHeapIndex with g_pCoreHandles->defaultHeapIndex */
-        BDBG_MSG(("BXVD_Open %d: fw heap=%d, avd heap=%d", i, pSettings->hostAccessibleHeapIndex, pSettings->avdHeapIndex[i]));
+        BDBG_MSG(("BXVD_Open %d: fw heap=%d, avd heap=%d, general %u, secure %u, picture %u picture1 %u", i, pSettings->hostAccessibleHeapIndex, pSettings->avdHeapIndex[i],
+            xvdSettings.stFWMemConfig.uiGeneralHeapSize, xvdSettings.stFWMemConfig.uiCabacHeapSize, xvdSettings.stFWMemConfig.uiPictureHeapSize, xvdSettings.stFWMemConfig.uiPictureHeap1Size
+            ));
         xvdSettings.uiAVDInstance = i;
         /* hFirmwareHeap no longer used for firmware */
         xvdSettings.hFirmwareHeap = g_pCoreHandles->heap[pSettings->hostAccessibleHeapIndex].mma; /* FW always in main heap */
@@ -1707,16 +1709,55 @@ static NEXUS_Error NEXUS_VideoDecoder_P_SetMosaicIndex(NEXUS_VideoDecoderHandle 
     return NEXUS_SUCCESS;
 }
 
-/* we use secure picture buffers if told to, or if that's all we have */
-bool nexus_p_use_secure_picbuf(NEXUS_VideoDecoderHandle videoDecoder)
+NEXUS_VideoDecoderSecureType nexus_p_use_picbuf_type(NEXUS_VideoDecoderHandle videoDecoder)
 {
-    if (videoDecoder->openSettings.openSettings.secureVideo) {
-        return true;
+    NEXUS_VideoDecoderSecureType secureVideo = videoDecoder->openSettings.openSettings.secureVideo;
+    /* if default (eUnsecure), then see if we only have URR or URRT. then change the default. */
+    if (secureVideo == NEXUS_VideoDecoderSecureType_eUnsecure) {
+        const NEXUS_VideoDecoderMemory *mem = &g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex];
+        if (mem->secure == NEXUS_SecureVideo_eSecure) {
+            secureVideo = NEXUS_VideoDecoderSecureType_eSecure;
+        }
+        else if (mem->secure == NEXUS_SecureVideo_eNone && mem->secureTranscode == NEXUS_SecureVideo_eSecure) {
+            secureVideo = NEXUS_VideoDecoderSecureType_eSecureTranscode;
+        }
     }
-    else {
-        return (g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].secure == NEXUS_SecureVideo_eSecure);
-    }
+    return secureVideo;
 }
+
+static unsigned nexus_p_picbuf_heapindex(NEXUS_VideoDecoderHandle videoDecoder, bool secondary)
+{
+    unsigned heapIndex;
+    switch (nexus_p_use_picbuf_type(videoDecoder)) {
+    default:
+    case NEXUS_VideoDecoderSecureType_eUnsecure:
+        if (secondary) {
+            heapIndex = g_NEXUS_videoDecoderModuleSettings.secondaryPictureHeapIndex[videoDecoder->device->index];
+        }
+        else {
+            heapIndex = g_NEXUS_videoDecoderModuleSettings.avdHeapIndex[videoDecoder->device->index];
+        }
+        break;
+    case NEXUS_VideoDecoderSecureType_eSecure:
+        if (secondary) {
+            heapIndex = g_NEXUS_videoDecoderModuleSettings.secure.secondaryPictureHeapIndex[videoDecoder->device->index];
+        }
+        else {
+            heapIndex = g_NEXUS_videoDecoderModuleSettings.secure.avdHeapIndex[videoDecoder->device->index];
+        }
+        break;
+    case NEXUS_VideoDecoderSecureType_eSecureTranscode:
+        if (secondary) {
+            heapIndex = g_NEXUS_videoDecoderModuleSettings.secureTranscode.secondaryPictureHeapIndex[videoDecoder->device->index];
+        }
+        else {
+            heapIndex = g_NEXUS_videoDecoderModuleSettings.secureTranscode.avdHeapIndex[videoDecoder->device->index];
+        }
+        break;
+    }
+    return heapIndex;
+}
+
 
 /**
 NEXUS_VideoDecoder_P_OpenChannel is called when the VideoDecoder is connected to a Display.
@@ -1771,7 +1812,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
 
 
     /* prevent dual decode if a channel is in exclusive mode: 4K, MVC or 3 or 4 HD mosaic. */
-    if (NEXUS_P_VideoDecoderExclusiveMode_isrsafe(g_pCoreHandles->boxConfig->stBox.ulBoxId, videoDecoder->device->index) == NEXUS_VideoDecoderExclusiveMode_4K) {
+    if (NEXUS_P_VideoDecoderExclusiveMode_isrsafe(g_pCoreHandles->boxConfig->stBox.ulBoxId, videoDecoder->device->index) == NEXUS_VideoDecoderExclusiveMode_e4K) {
         unsigned num4K = 0, numHD = 0, numMvc = 0, num = 0, i;
         char problem[16] = "";
         for (i=0;i<NEXUS_NUM_XVD_CHANNELS;i++) {
@@ -1829,14 +1870,9 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
         if (videoDecoder->openSettings.openSettings.pictureHeap) {
             heap = NEXUS_Heap_GetMmaHandle(videoDecoder->openSettings.openSettings.pictureHeap);
         }
-        else if (g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].dynamicPictureBuffers || nexus_p_use_secure_picbuf(videoDecoder)) {
+        else if (g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].dynamicPictureBuffers || nexus_p_use_picbuf_type(videoDecoder)) {
             unsigned deviceHeapIndex;
-            if (nexus_p_use_secure_picbuf(videoDecoder)) {
-                deviceHeapIndex = g_NEXUS_videoDecoderModuleSettings.secure.avdHeapIndex[videoDecoder->device->index];
-            }
-            else {
-                deviceHeapIndex = g_NEXUS_videoDecoderModuleSettings.avdHeapIndex[videoDecoder->device->index];
-            }
+            deviceHeapIndex = nexus_p_picbuf_heapindex(videoDecoder, false);
             heap = g_pCoreHandles->heap[deviceHeapIndex].mma;
             if (!heap) {
                 BDBG_ERR(("no picture buffer heap[%u]", deviceHeapIndex));
@@ -1859,14 +1895,9 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
             if(videoDecoder->openSettings.openSettings.secondaryPictureHeap) {
                 heap = NEXUS_Heap_GetMmaHandle(videoDecoder->openSettings.openSettings.secondaryPictureHeap);
             }
-            else if (g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].dynamicPictureBuffers || nexus_p_use_secure_picbuf(videoDecoder)) {
+            else if (g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].dynamicPictureBuffers || nexus_p_use_picbuf_type(videoDecoder)) {
                 unsigned deviceHeapIndex;
-                if (nexus_p_use_secure_picbuf(videoDecoder)) {
-                    deviceHeapIndex = g_NEXUS_videoDecoderModuleSettings.secure.secondaryPictureHeapIndex[videoDecoder->device->index];
-                }
-                else {
-                    deviceHeapIndex = g_NEXUS_videoDecoderModuleSettings.secondaryPictureHeapIndex[videoDecoder->device->index];
-                }
+                deviceHeapIndex = nexus_p_picbuf_heapindex(videoDecoder, true);
                 heap = g_pCoreHandles->heap[deviceHeapIndex].mma;
                 if (!heap) {
                     if(channelSettings.hChannelPictureBlock) {
@@ -2745,7 +2776,7 @@ static void NEXUS_VideoDecoder_P_CheckStatus(void *context)
         if (videoDecoder->last_field.ulSourceVerticalSize >= 1080 && videoDecoder->last_field.bStreamProgressive) {
             unsigned refreshRate = NEXUS_P_RefreshRate_FromFrameRate_isrsafe(videoDecoder->last_field.eFrameRateCode);
             if (refreshRate >= 59940) {
-                BDBG_WRN(("decoder %u has 1080p60 source which exceeds its 1080p30 capability", videoDecoder->index));
+                BDBG_ERR(("decoder %u has 1080p60 source which exceeds its 1080p30 capability", videoDecoder->index));
             }
         }
     }
@@ -2756,7 +2787,7 @@ static void NEXUS_VideoDecoder_P_CheckStatus(void *context)
             videoDecoder->last_field.ulSourceVerticalSize > 1088) {
             unsigned refreshRate = NEXUS_P_RefreshRate_FromFrameRate_isrsafe(videoDecoder->last_field.eFrameRateCode);
             if (refreshRate >= 59940) {
-                BDBG_WRN(("decoder doesn't support 4Kp60 with second channel"));
+                BDBG_ERR(("decoder doesn't support 4Kp60 with second channel"));
             }
         }
     }
@@ -3971,7 +4002,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_SetStartPts_Avd( NEXUS_VideoDecoderHandle video
     if (videoDecoder->dec) {
         BERR_Code rc;
 
-        BDBG_WRN(("NEXUS_VideoDecoder_SetStartPts %#x", pts));
+        BDBG_MSG(("NEXUS_VideoDecoder_SetStartPts:%p %#x",(void *)videoDecoder, (unsigned)pts));
         rc =BXVD_SetClipTime(videoDecoder->dec, BXVD_ClipTimeType_eClipStartOnly, pts, 0xFFFFFFFF);
         if (rc) return BERR_TRACE(rc);
         rc = BXVD_SetTSMWaitForValidSTC(videoDecoder->dec);
@@ -3982,6 +4013,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_SetStartPts_Avd( NEXUS_VideoDecoderHandle video
         videoDecoder->startPts.pending = true;
         videoDecoder->startPts.pts = pts;
     }
+    videoDecoder->firstPtsPassed = false;
     videoDecoder->startPts.waitForStart = true;
     return 0;
 }
@@ -4486,8 +4518,7 @@ static void NEXUS_P_SetVideoDecoderCapabilities(void)
 static void DML_P_Prepare_MFD_Struct_isr(NEXUS_VideoDecoderExternalTsmData *pVideoDecoderLite, const BXDM_DisplayInterruptInfo *pstDisplayInterruptInfo, BAVC_MFD_Picture **pMFDPicture, BXDM_Picture *pstDispPicture, BAVC_Polarity SrcPolarity)
 {
     BAVC_MFD_Picture *pCurrentMFDPicture;
-    *pMFDPicture = &pVideoDecoderLite->pMFDPicture[0];
-    pCurrentMFDPicture = *pMFDPicture;
+    *pMFDPicture = pCurrentMFDPicture = &pVideoDecoderLite->MFDPicture;
 
     if (pstDispPicture)
     {
@@ -4541,6 +4572,8 @@ static void DML_P_Prepare_MFD_Struct_isr(NEXUS_VideoDecoderExternalTsmData *pVid
         pCurrentMFDPicture->ulDisplayVerticalSize = pCurrentMFDPicture->ulSourceVerticalSize; /* needs to be the post cropped value */
 
 
+        pCurrentMFDPicture->ulIdrPicID = 0;
+        pCurrentMFDPicture->int32_PicOrderCnt = 0;
         if (pstDispPicture->stPOC.bValid == true)
         {
             pCurrentMFDPicture->ulIdrPicID = pstDispPicture->stPOC.uiPictureId;
@@ -4573,6 +4606,23 @@ static void DML_P_Prepare_MFD_Struct_isr(NEXUS_VideoDecoderExternalTsmData *pVid
         pCurrentMFDPicture->ulChannelId = 0;
         pCurrentMFDPicture->bPictureRepeatFlag = 0;
 
+        pCurrentMFDPicture->eMatrixCoefficients = BAVC_MatrixCoefficients_eUnknown;
+        pCurrentMFDPicture->eColorPrimaries = BAVC_ColorPrimaries_eUnknown;
+        pCurrentMFDPicture->eTransferCharacteristics = BAVC_TransferCharacteristics_eUnknown;
+        pCurrentMFDPicture->ePreferredTransferCharacteristics = BAVC_TransferCharacteristics_eUnknown; /* SWSTB-1629 */
+
+        pCurrentMFDPicture->ulAvgContentLight = 0;
+        pCurrentMFDPicture->ulMaxContentLight = 0;
+        pCurrentMFDPicture->stDisplayPrimaries[0].ulX = 0xFFFFFFFF;
+        pCurrentMFDPicture->stDisplayPrimaries[0].ulY = 0xFFFFFFFF;
+        pCurrentMFDPicture->stDisplayPrimaries[1].ulX = 0xFFFFFFFF;
+        pCurrentMFDPicture->stDisplayPrimaries[1].ulY = 0xFFFFFFFF;
+        pCurrentMFDPicture->stDisplayPrimaries[2].ulX = 0xFFFFFFFF;
+        pCurrentMFDPicture->stDisplayPrimaries[2].ulY = 0xFFFFFFFF;
+        pCurrentMFDPicture->stWhitePoint.ulX          = 0xFFFFFFFF;
+        pCurrentMFDPicture->stWhitePoint.ulY          = 0xFFFFFFFF;
+        pCurrentMFDPicture->ulMaxDispMasteringLuma    = 0xFFFFFFFF;
+        pCurrentMFDPicture->ulMinDispMasteringLuma    = 0xFFFFFFFF;
 
         pCurrentMFDPicture->bValidAfd = pstDispPicture->stActiveFormatDescription.bValid;
         pCurrentMFDPicture->ulAfd = pstDispPicture->stActiveFormatDescription.uiValue;
@@ -4588,10 +4638,37 @@ static void DML_P_Prepare_MFD_Struct_isr(NEXUS_VideoDecoderExternalTsmData *pVid
             pCurrentMFDPicture->eChrominanceInterpolationMode  = BAVC_InterpolationMode_eField;
         }
 
-        pCurrentMFDPicture->eColorPrimaries = pstDispPicture->stDisplayInfo.eColorPrimaries;
-        pCurrentMFDPicture->eMatrixCoefficients = pstDispPicture->stDisplayInfo.eMatrixCoefficients;
-        pCurrentMFDPicture->eTransferCharacteristics = pstDispPicture->stDisplayInfo.eTransferCharacteristics;
+        if ( pstDispPicture->stDisplayInfo.bValid )
+        {
+            const BXDM_Picture_DisplayInfo * pDisplayInfo = &pstDispPicture->stDisplayInfo;
+            const BXDM_Picture_HDR * pHDRInfo = &pstDispPicture->stHDR;
 
+            pCurrentMFDPicture->eMatrixCoefficients = pDisplayInfo->eMatrixCoefficients;
+            pCurrentMFDPicture->eColorPrimaries = pDisplayInfo->eColorPrimaries;
+            if ((BAVC_MatrixCoefficients_eItu_R_BT_470_2_BG == pDisplayInfo->eMatrixCoefficients) &&
+                (BAVC_ColorPrimaries_eSmpte_170M == pDisplayInfo->eColorPrimaries || BAVC_ColorPrimaries_eItu_R_BT_470_2_M == pDisplayInfo->eColorPrimaries ||
+                BFMT_NTSC_HEIGHT == pCurrentMFDPicture->ulDisplayVerticalSize))
+            {
+                pCurrentMFDPicture->eMatrixCoefficients = BAVC_MatrixCoefficients_eSmpte_170M;
+            }
+
+            pCurrentMFDPicture->eTransferCharacteristics          = pDisplayInfo->eTransferCharacteristics;
+            pCurrentMFDPicture->ePreferredTransferCharacteristics = pHDRInfo->uiTransferCharacteristics;
+
+            /* HEVC HDR Metadata */
+            if ( BAVC_VideoCompressionStd_eH265 == pstDispPicture->stProtocol.eProtocol )
+            {
+                pCurrentMFDPicture->ulAvgContentLight    = pHDRInfo->ulAvgContentLight;
+                pCurrentMFDPicture->ulMaxContentLight    = pHDRInfo->ulMaxContentLight;
+
+                pCurrentMFDPicture->stDisplayPrimaries[0]    = pHDRInfo->stDisplayPrimaries[0];
+                pCurrentMFDPicture->stDisplayPrimaries[1]    = pHDRInfo->stDisplayPrimaries[1];
+                pCurrentMFDPicture->stDisplayPrimaries[2]    = pHDRInfo->stDisplayPrimaries[2];
+                pCurrentMFDPicture->stWhitePoint             = pHDRInfo->stWhitePoint;
+                pCurrentMFDPicture->ulMaxDispMasteringLuma   = pHDRInfo->ulMaxDispMasteringLuma;
+                pCurrentMFDPicture->ulMinDispMasteringLuma   = pHDRInfo->ulMinDispMasteringLuma;
+            }
+        }
 
         if ( true == pstDispPicture->stBufferInfo.stChromaLocation[pCurrentMFDPicture->eSourcePolarity].bValid )
         {
@@ -4625,8 +4702,6 @@ static void DML_P_Prepare_MFD_Struct_isr(NEXUS_VideoDecoderExternalTsmData *pVid
 
         pCurrentMFDPicture->ulLumaRangeRemapping = 0x08;
         pCurrentMFDPicture->ulChromaRangeRemapping = 0x08;
-
-
 
         if (pstDispPicture->stRangeRemapping.bValid)
         {
@@ -4977,8 +5052,7 @@ static NEXUS_Error NEXUS_VideoDecoder_P_InitializeQueue(NEXUS_VideoDecoderHandle
     BXDM_DisplayInterruptHandler_AddPictureProviderInterface_Settings addPictureProviderSettings;
 
     videoDecoder->externalTsm.stopped = false;
-    videoDecoder->externalTsm.pMFDPicture = &videoDecoder->externalTsm.MFDPicture;
-    BKNI_Memset( videoDecoder->externalTsm.pMFDPicture, 0, sizeof ( BAVC_MFD_Picture ));
+    BKNI_Memset(&videoDecoder->externalTsm.MFDPicture, 0, sizeof ( BAVC_MFD_Picture ));
 
     BDBG_MSG(("NEXUS_VideoDecoder_Initialize_Queue "));
 
@@ -5015,6 +5089,9 @@ static NEXUS_Error NEXUS_VideoDecoder_P_InitializeQueue(NEXUS_VideoDecoderHandle
     rc = BXDM_DIH_AddPictureProviderInterface_GetDefaultSettings (&addPictureProviderSettings);
     if(rc!=BERR_SUCCESS) {BDBG_ERR(("BXDM_DIH_AddPictureProviderInterface_GetDefaultSettings Failed "));}
 
+    /* Allow for mosaic mode with appDisplayManagement */
+    addPictureProviderSettings.uiVDCRectangleNumber = videoDecoder->mosaicIndex;
+
     rc = BXDM_DisplayInterruptHandler_AddPictureProviderInterface(displayInterrupt, DisplayManagerLite_isr, videoDecoder, &addPictureProviderSettings);
     if(rc!=BERR_SUCCESS) {BDBG_ERR(("BXDM_DisplayInterruptHandler_AddPictureProviderInterface Failed "));}
 
@@ -5024,13 +5101,6 @@ static NEXUS_Error NEXUS_VideoDecoder_P_InitializeQueue(NEXUS_VideoDecoderHandle
 
     return rc;
 }
-
-#if 0
-{
-    /* Update the Data Structures reqired by application framework*/
-
-}
-#endif
 
 static NEXUS_Error NEXUS_VideoDecoder_P_GetDecodedFrame(
     NEXUS_VideoDecoderHandle videoDecoder
@@ -5411,6 +5481,8 @@ static void NEXUS_VideoDecoder_P_DiscardOutstandingFrames_Avd(
 
         /* Return active picture */
         DML_P_ReleasePic_isr(&videoDecoder->externalTsm,&videoDecoder->externalTsm.displayPic);
+        videoDecoder->externalTsm.displayPic.valid = false;
+        videoDecoder->externalTsm.displayPic.pDispPicture = NULL;
 
         /* Return all pictures pushed into the decode/display fifos */
         for ( i = 0; i < NEXUS_P_MAX_ELEMENTS_IN_VIDEO_DECODER_PIC_QUEUE; i++ )
@@ -5670,7 +5742,7 @@ bool NEXUS_VideoDecoderModule_DecoderOpenInSecureHeaps_priv(void)
 {
     unsigned i;
     for (i=0;i<NEXUS_NUM_VIDEO_DECODERS;i++) {
-        if (g_videoDecoders[i] && g_videoDecoders[i]->dec && nexus_p_use_secure_picbuf(g_videoDecoders[i])) return true;
+        if (g_videoDecoders[i] && g_videoDecoders[i]->dec && nexus_p_use_picbuf_type(g_videoDecoders[i]) != NEXUS_VideoDecoderSecureType_eUnsecure) return true;
     }
     return false;
 }
@@ -5701,7 +5773,7 @@ NEXUS_VideoDecoderExclusiveMode NEXUS_P_VideoDecoderExclusiveMode_isrsafe(unsign
     BSTD_UNUSED(boxMode);
     /* For these chips, HVD0 4K decode means the second channel is not available */
     if (avdIndex == 0) {
-        return NEXUS_VideoDecoderExclusiveMode_4K;
+        return NEXUS_VideoDecoderExclusiveMode_e4K;
     }
 #elif BCHP_CHIP == 7260
     if (avdIndex == 0 && boxMode == 4) {

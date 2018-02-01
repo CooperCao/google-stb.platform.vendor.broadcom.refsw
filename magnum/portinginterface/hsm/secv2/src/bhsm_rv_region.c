@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -46,11 +46,7 @@
 #include "bhsm_common.h"
 #include "bhsm_rv_region.h"
 #include "bhsm_priv.h"
-#ifdef BHSM_ZEUS5_BFW110
-#include "bhsm_p_rv_BFW110.h"
-#else
 #include "bhsm_p_rv.h"
-#endif
 #include "bhsm_rv_region_priv.h"
 
 
@@ -161,126 +157,6 @@ BERR_Code BHSM_RvRegion_SetSettings( BHSM_RvRegionHandle handle, const BHSM_RvRe
     return BERR_SUCCESS;
 }
 
-#ifdef BHSM_ZEUS5_BFW110
-BERR_Code BHSM_RvRegion_Enable( BHSM_RvRegionHandle handle )
-{
-    BHSM_P_RvRegion *pRvRegion = (BHSM_P_RvRegion*)handle;
-    BHSM_P_RvEnableRegion bspEnableRegion;
-    BMMA_DeviceOffset endOffset;
-    BERR_Code rc;
-
-    BDBG_ENTER( BHSM_RvRegion_Enable );
-
-    BKNI_Memset( &bspEnableRegion, 0, sizeof(bspEnableRegion) );
-
-    bspEnableRegion.in.regionId = pRvRegion->regionId;
-
-    if( pRvRegion->settings.range[0].size )
-    {
-        bspEnableRegion.in.startAddrMsb = ( pRvRegion->settings.range[0].address >> 32 ) & 0xFF;
-        bspEnableRegion.in.startAddr    = ( pRvRegion->settings.range[0].address       ) & 0xFFFFFFFF;
-        endOffset = pRvRegion->settings.range[0].address + pRvRegion->settings.range[0].size-1;
-        bspEnableRegion.in.endAddrMsb =   ( endOffset >> 32 ) & 0xFF;
-        bspEnableRegion.in.endAddr    =   endOffset & 0xFFFFFFFF;
-    }
-
-    if( pRvRegion->settings.range[1].size )
-    {
-        bspEnableRegion.in.secondRangeStartAddrMsb = ( pRvRegion->settings.range[1].address >> 32 ) & 0xFF;
-        bspEnableRegion.in.secondRangeStartAddr = pRvRegion->settings.range[1].address & 0xFFFFFFFF;
-        endOffset = pRvRegion->settings.range[1].address + pRvRegion->settings.range[1].size-1;
-        bspEnableRegion.in.secondRangeEndAddrMsb = ( endOffset >> 32 ) & 0xFF;
-        bspEnableRegion.in.secondRangeEndAddr = endOffset & 0xFFFFFFFF;
-    }
-
-    if( pRvRegion->settings.signature.size )
-    {
-        bspEnableRegion.in.sigStartAddrMsb = ( pRvRegion->settings.signature.address >> 32 ) & 0xFF;
-        bspEnableRegion.in.sigStartAddr = pRvRegion->settings.signature.address & 0xFFFFFFFF;
-        endOffset = pRvRegion->settings.signature.address + pRvRegion->settings.signature.size-1;
-        bspEnableRegion.in.sigEndAddrMsb = ( endOffset >> 32 ) & 0xFF;
-        bspEnableRegion.in.sigEndAddr = endOffset & 0xFFFFFFFF;
-    }
-
-    if( pRvRegion->settings.intervalCheckBandwidth < 0x01 || pRvRegion->settings.intervalCheckBandwidth > 0x10 ) {
-        return BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
-    bspEnableRegion.in.intervalCheckBw = pRvRegion->settings.intervalCheckBandwidth;
-
-    if( pRvRegion->settings.resetOnVerifyFailure ){
-        bspEnableRegion.in.resetOnVerifyFailure = 0x05; /* Bsp_CmdRv_ResetOnVerifyFailure_eReset */
-    }
-
-    if( pRvRegion->settings.rvRsaHandle )
-    {
-        BHSM_RvRsaInfo rvRsaInfo;
-        rc = BHSM_RvRsa_GetInfo( pRvRegion->settings.rvRsaHandle, &rvRsaInfo );
-        if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
-        bspEnableRegion.in.rsaKeyId = rvRsaInfo.rsaKeyId;
-    }
-
-    if( pRvRegion->settings.keyLadderHandle )
-    {
-        BHSM_KeyLadderInfo keyLadderInfo;
-        rc = BHSM_KeyLadder_GetInfo( pRvRegion->settings.keyLadderHandle, &keyLadderInfo );
-        if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
-        bspEnableRegion.in.keyLayer = pRvRegion->settings.keyLadderLayer;
-        bspEnableRegion.in.vklId = keyLadderInfo.index;
-    }
-
-    switch( pRvRegion->regionId )
-    {
-		case BHSM_RegionId_eCpu0:
-		case BHSM_RegionId_eCpu1:
-		case BHSM_RegionId_eCpu2:
-		case BHSM_RegionId_eCpu3:
-		case BHSM_RegionId_eCpu4:
-		case BHSM_RegionId_eCpu5:
-		case BHSM_RegionId_eCpu6:
-		case BHSM_RegionId_eCpu7:           { bspEnableRegion.in.cpuType = 0; /* HOST*/ break; 	}
-		case BHSM_RegionId_eRave0:          { bspEnableRegion.in.cpuType = 3;  /*Rave*/ break; }
-		case BHSM_RegionId_eAudio0:         { bspEnableRegion.in.cpuType = 1;  /* Audio */ break; }
-		case BHSM_RegionId_eVdec0_Il2a:
-		case BHSM_RegionId_eVdec0_Ila:
-		case BHSM_RegionId_eVdec0_Ola:
-		case BHSM_RegionId_eVdec1_Ila:
-		case BHSM_RegionId_eVdec1_Ola:      { bspEnableRegion.in.cpuType = 4;  /* VDEC */ break; }
-		case BHSM_RegionId_eVice0_Pic:
-		case BHSM_RegionId_eVice0_Mb:       { bspEnableRegion.in.cpuType = 5;  /* VICE */ break; }
-		case BHSM_RegionId_eRedacted_0x0A:
-		case BHSM_RegionId_eRedacted_0x0E:
-		case BHSM_RegionId_eRedacted_0x11:
-		case BHSM_RegionId_eRedacted_0x12:
-		case BHSM_RegionId_eRedacted_0x13:
-		case BHSM_RegionId_eRedacted_0x14:
-		case BHSM_RegionId_eRedacted_0x17:
-		case BHSM_RegionId_eRedacted_0x18:
-		case BHSM_RegionId_eRedacted_0x19:
-		case BHSM_RegionId_eRedacted_0x1A:
-		case BHSM_RegionId_eRedacted_0x1B:
-		case BHSM_RegionId_eRedacted_0x1C:
-		case BHSM_RegionId_eRedacted_0x1D:
-		case BHSM_RegionId_eRedacted_0x1E:  { bspEnableRegion.in.cpuType = 7; break; }
-        default: { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
-    }
-
-    bspEnableRegion.in.sigType = 4; /* if we do need to support more sigTyes, we can switch on regionId */
-                                    /* Keys:1;   BootCode:2;   Code:4;   AssymUnlock:5;   PcieWinSize:6; */
-    bspEnableRegion.in.sigVersion = 2;
-    bspEnableRegion.in.bgCheck = pRvRegion->settings.backgroundCheck ? Bsp_CmdRv_BgCheck_eEnable
-                                                                     : Bsp_CmdRv_BgCheck_eDisable;
-    bspEnableRegion.in.allowRegionDisable = pRvRegion->settings.allowRegionDisable ? Bsp_CmdRv_RegionDisable_eAllow
-                                                                                   : Bsp_CmdRv_RegionDisable_eDisallow;
-    bspEnableRegion.in.enforceAuth = pRvRegion->settings.enforceAuth ? Bsp_CmdRv_EnforceAuth_eEnforce
-                                                                     : Bsp_CmdRv_EnforceAuth_eNoEnforce;
-
-    rc = BHSM_P_Rv_EnableRegion( pRvRegion->hHsm, &bspEnableRegion );
-    if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
-
-    BDBG_LEAVE( BHSM_RvRegion_Enable );
-    return BERR_SUCCESS;
-}
-#else
 BERR_Code BHSM_RvRegion_Enable( BHSM_RvRegionHandle handle )
 {
     BHSM_P_RvRegion *pRegion = (BHSM_P_RvRegion*)handle;
@@ -349,35 +225,59 @@ BERR_Code BHSM_RvRegion_Enable( BHSM_RvRegionHandle handle )
         bspEnableRegion.in.rsaKeyId = rvRsaInfo.rsaKeyId;
     }
 
+    if( pRegion->settings.keyLadderHandle )
+    {
+        BHSM_KeyLadderInfo keyLadderInfo;
+        rc = BHSM_KeyLadder_GetInfo( pRegion->settings.keyLadderHandle, &keyLadderInfo );
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+        bspEnableRegion.in.keyLayer = pRegion->settings.keyLadderLayer;
+        bspEnableRegion.in.vklId = keyLadderInfo.index;
+		bspEnableRegion.in.decryptionSel = Bsp_CmdRv_DecryptionMode_eKeyLadderKey;
+    }
     bspEnableRegion.in.bgCheck = pRegion->settings.backgroundCheck ? Bsp_CmdRv_BgCheck_eEnable
                                                                      : Bsp_CmdRv_BgCheck_eDisable;
     bspEnableRegion.in.allowRegionDisable = pRegion->settings.allowRegionDisable ? Bsp_CmdRv_RegionDisable_eAllow
                                                                                    : Bsp_CmdRv_RegionDisable_eDisallow;
     bspEnableRegion.in.enforceAuth = pRegion->settings.enforceAuth ? Bsp_CmdRv_EnforceAuth_eEnforce
                                                                      : Bsp_CmdRv_EnforceAuth_eNoEnforce;
-
-    if( pRegion->regionId == BHSM_RegionId_eRedacted_0x18)
-    {
-        BHSM_KeyLadderInfo ladderInfo;
-        ladderInfo.index = -1;
-        BHSM_KeyLadder_GetInfo(pRegion->settings.keyLadderHandle, &ladderInfo);
-        bspEnableRegion.in.keyLayer = pRegion->settings.keyLadderLayer;
-        bspEnableRegion.in.vklId = ladderInfo.index;
-        bspEnableRegion.in.decryptionSel = Bsp_CmdRv_DecryptionMode_eKeyLadderKey;
-    }
-
     rc = BHSM_P_Rv_EnableRegion( pRegion->hHsm, &bspEnableRegion );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
 
     BDBG_LEAVE( BHSM_RvRegion_Enable );
     return BERR_SUCCESS;
 }
-#endif
+
+BERR_Code BHSM_RvRegion_QueryAll(BHSM_Handle hHsm, BHSM_RvRegionStatusAll *pStatus)
+{
+    BERR_Code rc;
+    BHSM_P_RvQueryAllRegions regionsStatus; /* the status of all regions. */
+    uint32_t numBspRegions = sizeof(regionsStatus)/sizeof(regionsStatus.out.regionStatus[0]);
+    uint32_t i;
+
+    BDBG_ENTER( BHSM_RvRegion_QueryAll );
+
+    if( !pStatus ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( numBspRegions > BHSM_RegionId_eMax ) { return BERR_TRACE( BERR_NOT_SUPPORTED ); }
+
+    BKNI_Memset( &regionsStatus, 0, sizeof(regionsStatus) );
+    BKNI_Memset( pStatus, 0, sizeof(*pStatus) );
+
+    rc = BHSM_P_Rv_QueryAllRegions( hHsm, &regionsStatus );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+
+    for( i = 0; i < numBspRegions; i++) {
+        pStatus->region[i].status = regionsStatus.out.regionStatus[i];
+        pStatus->region[i].configured = hHsm->modules.pRvRegions->instances[i].configured;
+    }
+
+    BDBG_LEAVE( BHSM_RvRegion_QueryAll );
+    return rc;
+}
 
 BERR_Code BHSM_RvRegion_GetStatus( BHSM_RvRegionHandle handle, BHSM_RvRegionStatus *pStatus )
 {
     BHSM_P_RvRegion *pRegion = (BHSM_P_RvRegion*)handle;
-    BHSM_P_RvQueryAllRegions regionsStatus; /* the status if all regions. */
+    BHSM_P_RvQueryAllRegions regionsStatus; /* the status of all regions. */
     uint8_t regionId;
     BERR_Code rc;
 
@@ -410,10 +310,6 @@ BERR_Code BHSM_RvRegion_GetStatus( BHSM_RvRegionHandle handle, BHSM_RvRegionStat
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
 
     regionId = pRegion->regionId;
-
-    if( regionsStatus.out.regionStatus[regionId] & (0x01 << Bsp_CmdRv_QueryStatusBits_eEnabled) ){
-        pStatus->verified = true;
-    }
     pStatus->status = regionsStatus.out.regionStatus[regionId];
 
     BDBG_LEAVE( BHSM_RvRegion_GetStatus );

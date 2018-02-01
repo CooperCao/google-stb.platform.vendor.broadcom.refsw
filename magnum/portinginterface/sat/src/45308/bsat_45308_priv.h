@@ -50,6 +50,7 @@ extern "C" {
 #include "bhab.h"
 
 #define BSAT_45308_MAX_CHANNELS 16
+#define BSAT_45308_MAX_SYMRATE 52000000
 
 #define BSAT_45308_CHK_RETCODE(x) \
    { if ((retCode = (x)) != BERR_SUCCESS) goto done; }

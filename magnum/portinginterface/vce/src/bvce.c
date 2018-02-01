@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -233,17 +233,11 @@ BVCE_S_DestroyTimer(
          BVCE_Handle hVce
          )
 {
-   BERR_Code rc = BERR_SUCCESS;
-
    if ( NULL != hVce->hTimer )
    {
-      rc = BTMR_DestroyTimer(
+      BTMR_DestroyTimer(
                hVce->hTimer
                );
-      if ( BERR_SUCCESS != rc )
-      {
-         BDBG_WRN(("Error destroying timer"));
-      }
    }
 }
 
@@ -1191,6 +1185,27 @@ BVCE_S_Boot(
       }
    }
 
+#if BVCE_PLATFORM_P_DISABLE_FME_RR
+#include "bchp_memc_arb_0.h"
+#include "bchp_memc_arb_1.h"
+   {
+      uint32_t auiFMEMemcArbRegister[2] = {
+            BCHP_MEMC_ARB_0_CLIENT_INFO_47,
+            BCHP_MEMC_ARB_1_CLIENT_INFO_47
+      };
+      uint32_t uiValue;
+      unsigned i;
+
+      for ( i = 0; i < 2; i++ )
+      {
+         uiValue = BREG_Read32( hVce->handles.hReg, auiFMEMemcArbRegister[i] );
+         uiValue &= ~BCHP_MEMC_ARB_0_CLIENT_INFO_47_RR_EN_MASK;
+         uiValue |= ( BCHP_MEMC_ARB_0_CLIENT_INFO_47_RR_EN_DISABLED << BCHP_MEMC_ARB_0_CLIENT_INFO_47_RR_EN_SHIFT );
+         BREG_Write32( hVce->handles.hReg, auiFMEMemcArbRegister[i], uiValue );
+      }
+   }
+#endif
+
    if ( NULL != hVce->stOpenSettings.pARCBootCallback )
    {
       uint32_t i;
@@ -1405,7 +1420,7 @@ BVCE_P_ValidateFrameRateEnum(void)
 #define BVCE_P_WriteRegisters_isr( handle, addr, buffer, size ) BVCE_S_WriteRegistersNew_isrsafe( handle, addr, buffer, size );
 
 static
-BERR_Code
+void
 BVCE_S_WriteRegistersNew_isrsafe(
          BVCE_Handle hVce,
      unsigned uiRegStartAddress,
@@ -1461,14 +1476,14 @@ BVCE_S_WriteRegistersNew_isrsafe(
           );
    }
 
-   return BERR_TRACE( BERR_SUCCESS );
+   return;
 }
 
 #define BVCE_P_ReadRegisters( handle, addr, buffer, size ) BVCE_S_ReadRegistersNew_isrsafe( handle, addr, buffer, size )
 #define BVCE_P_ReadRegisters_isr( handle, addr, buffer, size ) BVCE_S_ReadRegistersNew_isrsafe( handle, addr, buffer, size )
 
 static
-BERR_Code
+void
 BVCE_S_ReadRegistersNew_isrsafe(
          BVCE_Handle hVce,
      unsigned uiRegStartAddress,
@@ -1526,7 +1541,7 @@ BVCE_S_ReadRegistersNew_isrsafe(
 #endif
    }
 
-   return BERR_TRACE( BERR_SUCCESS );
+   return;
 }
 
 static
@@ -1767,7 +1782,8 @@ static
 BERR_Code
 BVCE_S_PopulateFirmwareMemorySettings(
    const BCHP_MemoryInfo *pstMemoryInfo,
-   BVCE_P_FirmwareMemorySettings *pstFirmwareMemorySettings
+   BVCE_P_FirmwareMemorySettings *pstFirmwareMemorySettings,
+   unsigned uiNonSecureMemcIndex
    )
 {
    BERR_Code rc = BERR_SUCCESS;
@@ -1778,12 +1794,12 @@ BVCE_S_PopulateFirmwareMemorySettings(
    BKNI_Memset( pstFirmwareMemorySettings, 0, sizeof( BVCE_P_FirmwareMemorySettings ) );
 
    /* Set WordSize */
-   switch ( pstMemoryInfo->memc[0].mapVer )
+   switch ( pstMemoryInfo->memc[uiNonSecureMemcIndex].mapVer )
    {
       case BCHP_ScbMapVer_eMap2:
       case BCHP_ScbMapVer_eMap5:
       {
-         switch ( pstMemoryInfo->memc[0].width )
+         switch ( pstMemoryInfo->memc[uiNonSecureMemcIndex].width )
             {
                case 16:
                   pstFirmwareMemorySettings->WordSize = WORD_SIZE_GWORD;
@@ -1794,7 +1810,7 @@ BVCE_S_PopulateFirmwareMemorySettings(
                   break;
 
                default:
-                  BDBG_ERR(("Unsupported interface width (%d)", pstMemoryInfo->memc[0].width ));
+                  BDBG_ERR(("Unsupported interface width (%d)", pstMemoryInfo->memc[uiNonSecureMemcIndex].width ));
                   return BERR_TRACE( BERR_NOT_SUPPORTED );
             }
          }
@@ -1805,7 +1821,7 @@ BVCE_S_PopulateFirmwareMemorySettings(
          break;
 
       default:
-         BDBG_ERR(("Unsupported map version (%d)", pstMemoryInfo->memc[0].mapVer ));
+         BDBG_ERR(("Unsupported map version (%d)", pstMemoryInfo->memc[uiNonSecureMemcIndex].mapVer ));
          return BERR_TRACE( BERR_NOT_SUPPORTED );
    }
 
@@ -1814,20 +1830,20 @@ BVCE_S_PopulateFirmwareMemorySettings(
    /* SW7439-252: If the VCE core doesn't support groupage, the bank type
     * needs to be divided by 2
     */
-   if ( true == pstMemoryInfo->memc[0].groupageEnabled )
+   if ( true == pstMemoryInfo->memc[uiNonSecureMemcIndex].groupageEnabled )
    {
       pstFirmwareMemorySettings->BankType = BANK_TYPE_4_BANKS;
    }
    else
 #else
-   pstFirmwareMemorySettings->Grouping = pstMemoryInfo->memc[0].groupageEnabled ? 1 : 0;
+   pstFirmwareMemorySettings->Grouping = pstMemoryInfo->memc[uiNonSecureMemcIndex].groupageEnabled ? 1 : 0;
 #endif
    {
       pstFirmwareMemorySettings->BankType = BANK_TYPE_8_BANKS;
    }
 
    /* Set Page Size */
-   switch ( pstMemoryInfo->memc[0].ulPageSize )
+   switch ( pstMemoryInfo->memc[uiNonSecureMemcIndex].ulPageSize )
    {
       case 1024:
          pstFirmwareMemorySettings->PageSize = PAGE_SIZE_1_KBYTES;
@@ -1850,16 +1866,16 @@ BVCE_S_PopulateFirmwareMemorySettings(
          break;
 
       default:
-         BDBG_ERR(("Unsupported page size (%d)", pstMemoryInfo->memc[0].ulPageSize ));
+         BDBG_ERR(("Unsupported page size (%d)", pstMemoryInfo->memc[uiNonSecureMemcIndex].ulPageSize ));
          return BERR_TRACE( BERR_NOT_SUPPORTED );
    }
 
    /* Set Stripe Width */
-   pstFirmwareMemorySettings->StripeWidth = pstMemoryInfo->memc[0].ulStripeWidth;
+   pstFirmwareMemorySettings->StripeWidth = pstMemoryInfo->memc[uiNonSecureMemcIndex].ulStripeWidth;
 
    /* Set X/Y */
-   pstFirmwareMemorySettings->X = pstMemoryInfo->memc[0].ulMbMultiplier;
-   pstFirmwareMemorySettings->Y = pstMemoryInfo->memc[0].ulMbRemainder;
+   pstFirmwareMemorySettings->X = pstMemoryInfo->memc[uiNonSecureMemcIndex].ulMbMultiplier;
+   pstFirmwareMemorySettings->Y = pstMemoryInfo->memc[uiNonSecureMemcIndex].ulMbRemainder;
 
    return BERR_TRACE( rc );
 }
@@ -1896,9 +1912,20 @@ BVCE_S_SendCommand_Init(
    {
       BCHP_MemoryInfo stMemoryInfo;
       BVCE_P_FirmwareMemorySettings stFirmwareMemorySettings;
+      unsigned uiPictureMemcIndex = 0;
 
+      if ( NULL != hVce->stOpenSettings.hBox )
+      {
+         BBOX_Config *pstBoxConfig = (BBOX_Config *) BKNI_Malloc( sizeof( BBOX_Config ) );
+         if ( NULL != pstBoxConfig )
+         {
+            BBOX_GetConfig( hVce->stOpenSettings.hBox, pstBoxConfig );
+            uiPictureMemcIndex = pstBoxConfig->stVce.stInstance[hVce->stOpenSettings.uiInstance].uiMemcIndex;
+            BKNI_Free( pstBoxConfig );
+         }
+      }
       BCHP_GetMemoryInfo( hVce->handles.hChp, &stMemoryInfo );
-      BVCE_S_PopulateFirmwareMemorySettings( &stMemoryInfo, &stFirmwareMemorySettings );
+      BVCE_S_PopulateFirmwareMemorySettings( &stMemoryInfo, &stFirmwareMemorySettings, uiPictureMemcIndex );
 
       hVce->fw.stCommand.type.stInit.StripeWidth = stFirmwareMemorySettings.StripeWidth;
       hVce->fw.stCommand.type.stInit.X = stFirmwareMemorySettings.X;
@@ -1924,6 +1951,10 @@ BVCE_S_SendCommand_Init(
    hVce->fw.stCommand.type.stInit.VerificationModeFlags = 0;
    hVce->fw.stCommand.type.stInit.VerificationModeFlags |= hVce->stOpenSettings.bVerificationMode ? INIT_CMD_VERIFICATION_MODE_MASK : 0;
    hVce->fw.stCommand.type.stInit.VerificationModeFlags |= hVce->stOpenSettings.bA2NPictureDrop  ? INIT_CMD_A2N_MASK : 0;
+
+#if (BVCE_P_VDC_MANAGE_VIP)
+   hVce->fw.stCommand.type.stInit.NewBvnMailbox = 1;
+#endif
 
    rc = BVCE_S_SendCommand(
             hVce,
@@ -2088,6 +2119,15 @@ BVCE_S_SendCommand_OpenChannel(
 
    /* Handle User Data Queue Info Base */
    hVceCh->userdata.dccm.uiUserDataQueueInfoAddress = hVce->fw.dccm.uiRegisterBaseAddress[0] + (uint32_t) hVce->fw.stResponse.type.stOpenChannel.pUserDataQInfoBase;
+
+#if (BVCE_P_VDC_MANAGE_VIP)
+   /* Handle Picture Release Queue Info Base */
+   hVceCh->picture.dccm.auiPictureReleaseQueueInfoAddress[BVCE_P_PictureBufferType_eLuma] = hVce->fw.dccm.uiRegisterBaseAddress[0] + (uint32_t) hVce->fw.stResponse.type.stOpenChannel.pLumaBufferReleaseQInfoBase;
+   hVceCh->picture.dccm.auiPictureReleaseQueueInfoAddress[BVCE_P_PictureBufferType_eChroma] = hVce->fw.dccm.uiRegisterBaseAddress[0] + (uint32_t) hVce->fw.stResponse.type.stOpenChannel.pChromaBufferReleaseQInfoBase;
+   hVceCh->picture.dccm.auiPictureReleaseQueueInfoAddress[BVCE_P_PictureBufferType_e1VLuma] = hVce->fw.dccm.uiRegisterBaseAddress[0] + (uint32_t) hVce->fw.stResponse.type.stOpenChannel.p1VLumaBufferReleaseQInfoBase;
+   hVceCh->picture.dccm.auiPictureReleaseQueueInfoAddress[BVCE_P_PictureBufferType_e2VLuma] = hVce->fw.dccm.uiRegisterBaseAddress[0] + (uint32_t) hVce->fw.stResponse.type.stOpenChannel.p2VLumaBufferReleaseQInfoBase;
+   hVceCh->picture.dccm.auiPictureReleaseQueueInfoAddress[BVCE_P_PictureBufferType_eShiftedChroma] = hVce->fw.dccm.uiRegisterBaseAddress[0] + (uint32_t) hVce->fw.stResponse.type.stOpenChannel.pShiftedChromaBufferReleaseQInfoBase;
+#endif
 
    return BERR_TRACE( rc );
 }
@@ -2385,12 +2425,14 @@ static const uint32_t BVCE_P_ErrorMaskReverseLUT[32] =
 static
 BERR_Code
 BVCE_S_GOPStructureLUT(
+   const BVCE_Channel_StartEncodeSettings *pstStartEncodeSettings,
    const BVCE_GOPStructure *pstGOPStructure,
    unsigned *puiGOPStructure,
    unsigned *puiGOPLength
    )
 {
    unsigned uiNumberOfPFrames = pstGOPStructure->uiNumberOfPFrames;
+   unsigned uiNumberOfBFrames = pstGOPStructure->uiNumberOfBFrames;
    *puiGOPStructure = 0;
    *puiGOPLength = 0;
 
@@ -2413,20 +2455,38 @@ BVCE_S_GOPStructureLUT(
       }
       else
       {
-         if ( 0 == pstGOPStructure->uiNumberOfBFrames )
+         if ( 0 == uiNumberOfBFrames )
          {
             *puiGOPStructure = ENCODING_GOP_STRUCT_IP;
             *puiGOPLength = 1 + uiNumberOfPFrames;
          }
          else
          {
-            if ( pstGOPStructure->uiNumberOfBFrames > 3 )
+            if ( BAVC_ScanType_eProgressive == pstStartEncodeSettings->eInputType )
             {
-               BDBG_ERR(("Number of consecutive B frames not allowed to exceed 3"));
-               return BERR_TRACE( BERR_INVALID_PARAMETER );
+               if ( uiNumberOfBFrames > BVCE_PLATFORM_P_MAX_B_PICTURES_PROGRESSIVE )
+               {
+                  uiNumberOfBFrames = BVCE_PLATFORM_P_MAX_B_PICTURES_PROGRESSIVE;
+               }
+            }
+            else
+            {
+               if ( uiNumberOfBFrames > BVCE_PLATFORM_P_MAX_B_PICTURES_INTERLACED )
+               {
+                  uiNumberOfBFrames = BVCE_PLATFORM_P_MAX_B_PICTURES_INTERLACED;
+               }
             }
 
-            switch ( pstGOPStructure->uiNumberOfBFrames )
+            /* SWSTB-8115: Cap max GOP Structure for MPEG2 */
+            if ( BAVC_VideoCompressionStd_eMPEG2 == pstStartEncodeSettings->stProtocolInfo.eProtocol )
+            {
+               if ( uiNumberOfBFrames > 2 )
+               {
+                  uiNumberOfBFrames = 2;
+               }
+            }
+
+            switch ( uiNumberOfBFrames )
             {
 
                case 1:
@@ -2434,14 +2494,28 @@ BVCE_S_GOPStructureLUT(
                   break;
 
                case 2:
+#if (BVCE_P_CORE_MAJOR < 3)
                   *puiGOPStructure = ENCODING_GOP_STRUCT_IBBP;
+#else
+                  *puiGOPStructure = (BAVC_VideoCompressionStd_eMPEG2 == pstStartEncodeSettings->stProtocolInfo.eProtocol) ? ENCODING_GOP_STRUCT_IBBP : ENCODING_GOP_STRUCT_IBBP_B_REF;
+#endif
                   break;
 
+#if (BVCE_P_CORE_MAJOR >= 3)
                case 3:
                   *puiGOPStructure = ENCODING_GOP_STRUCT_IBBBP;
                   break;
 
-               case 0:
+               case 5:
+                  *puiGOPStructure = ENCODING_GOP_STRUCT_IBBBBBP;
+                  break;
+
+               case 7:
+                  *puiGOPStructure = ENCODING_GOP_STRUCT_IBBBBBBBP;
+                  break;
+#endif
+
+               /* coverity[dead_error_begin] */
                default:
                   BDBG_ERR(("Invalid Parameter"));
                   return BERR_TRACE( BERR_INVALID_PARAMETER );
@@ -2449,11 +2523,11 @@ BVCE_S_GOPStructureLUT(
 
             if ( true == pstGOPStructure->bAllowOpenGOP )
             {
-               *puiGOPLength = (1 + uiNumberOfPFrames)*(1 + pstGOPStructure->uiNumberOfBFrames);
+               *puiGOPLength = (1 + uiNumberOfPFrames)*(1 + uiNumberOfBFrames);
             }
             else
             {
-               *puiGOPLength = 1 + uiNumberOfPFrames*(1 + pstGOPStructure->uiNumberOfBFrames);
+               *puiGOPLength = 1 + uiNumberOfPFrames*(1 + uiNumberOfBFrames);
             }
          }
       }
@@ -2528,20 +2602,28 @@ BVCE_S_VerifyGopStructure(
          /* supported in all encoders */
          break;
 
+#if (BVCE_P_CORE_MAJOR < 3)
       case ENCODING_GOP_STRUCT_IBP:
          /* not supported yet ... */
          BDBG_ERR(("GOP Structure of IBP not supported"));
          return BERR_TRACE(BERR_NOT_SUPPORTED);
+#endif
 
       case ENCODING_GOP_STRUCT_IBBP:
-         /* supported in AVC and MPEG 2, not supported in all others ... */
+#if (BVCE_P_CORE_MAJOR >= 3)
+      case ENCODING_GOP_STRUCT_IBP:
+      case ENCODING_GOP_STRUCT_IBBP_B_REF:
+      case ENCODING_GOP_STRUCT_IBBBP:
+      case ENCODING_GOP_STRUCT_IBBBBBP:
+      case ENCODING_GOP_STRUCT_IBBBBBBBP:
+#endif
          if ((ENCODING_STD_H264 != hVce->fw.stCommand.type.stConfigChannel.Protocol)
             && (ENCODING_STD_MPEG2 != hVce->fw.stCommand.type.stConfigChannel.Protocol)
             && (ENCODING_STD_HEVC != hVce->fw.stCommand.type.stConfigChannel.Protocol)
             && (ENCODING_STD_VP9 != hVce->fw.stCommand.type.stConfigChannel.Protocol)
             )
          {
-            BDBG_ERR(("GOP Structure of IBBP not supported"));
+            BDBG_ERR(("B-Pictures not supported"));
             return BERR_TRACE(BERR_NOT_SUPPORTED);
          }
 
@@ -2554,36 +2636,94 @@ BVCE_S_VerifyGopStructure(
          }
 
          /* else is supported ... */
-         /* check GOP length - must be 1 + 3*N (open gop) or (1+P)(1+2)*/
-         if ( 0 == (hVce->fw.stCommand.type.stConfigChannel.GopLength & GOP_LENGTH_OR_DURATION_FLAG_MASK) )
          {
-            if ( 0 == (hVce->fw.stCommand.type.stConfigChannel.GopStructure & ALLOW_OPEN_GOP_STRUCTURE_MASK) )
+            unsigned uiMultiplier = 3;
+
+            switch (hVce->fw.stCommand.type.stConfigChannel.GopStructure & GOP_STRUCTURE_MASK)
             {
-               if (((hVce->fw.stCommand.type.stConfigChannel.GopLength & GOP_LENGTH_MASK) - 1) % 3)
-               {
-                  BDBG_ERR(("GOP length (%d) invalid for IBBP Closed GOP Structure - must be 1 + 3*N", hVce->fw.stCommand.type.stConfigChannel.GopLength & GOP_LENGTH_MASK));
-                  return BERR_TRACE(BERR_NOT_SUPPORTED);
-               }
+               case ENCODING_GOP_STRUCT_IBP:
+                  uiMultiplier = 2;
+                  break;
+               case ENCODING_GOP_STRUCT_IBBP:
+                  uiMultiplier = 3;
+                  break;
+         #if (BVCE_P_CORE_MAJOR >= 3)
+               case ENCODING_GOP_STRUCT_IBBP_B_REF:
+                  uiMultiplier = 3;
+                  break;
+
+               case ENCODING_GOP_STRUCT_IBBBP:
+                  uiMultiplier = 4;
+                  break;
+
+               case ENCODING_GOP_STRUCT_IBBBBBP:
+                  uiMultiplier = 6;
+                  break;
+
+               case ENCODING_GOP_STRUCT_IBBBBBBBP:
+                  uiMultiplier = 8;
+                  break;
+         #endif
             }
-            else
+
+            /* check GOP length - must be 1 + 3*N (open gop) or (1+P)(1+2)*/
+            if ( 0 == (hVce->fw.stCommand.type.stConfigChannel.GopLength & GOP_LENGTH_OR_DURATION_FLAG_MASK) )
             {
-               if (((hVce->fw.stCommand.type.stConfigChannel.GopLength & GOP_LENGTH_MASK) - 3) % 3)
+               if ( 0 == (hVce->fw.stCommand.type.stConfigChannel.GopStructure & ALLOW_OPEN_GOP_STRUCTURE_MASK) )
                {
-                  BDBG_ERR(("GOP length (%d) invalid for IBBP Open GOP Structure - must be 3 + 3*N", hVce->fw.stCommand.type.stConfigChannel.GopLength & GOP_LENGTH_MASK));
-                  return BERR_TRACE(BERR_NOT_SUPPORTED);
+                  if (((hVce->fw.stCommand.type.stConfigChannel.GopLength & GOP_LENGTH_MASK) - 1) % uiMultiplier)
+                  {
+                     BDBG_ERR(("GOP length (%d) invalid with B-Pictures Closed GOP Structure - must be 1 + 3*N", hVce->fw.stCommand.type.stConfigChannel.GopLength & GOP_LENGTH_MASK));
+                     return BERR_TRACE(BERR_NOT_SUPPORTED);
+                  }
+               }
+               else
+               {
+                  if (((hVce->fw.stCommand.type.stConfigChannel.GopLength & GOP_LENGTH_MASK) - uiMultiplier) % uiMultiplier)
+                  {
+                     BDBG_ERR(("GOP length (%d) invalid with B-Pictures Open GOP Structure - must be 3 + 3*N", hVce->fw.stCommand.type.stConfigChannel.GopLength & GOP_LENGTH_MASK));
+                     return BERR_TRACE(BERR_NOT_SUPPORTED);
+                  }
                }
             }
          }
+
+#if (BVCE_P_CORE_MAJOR >= 3)
+         /* Check to ensure IB5P and IB7P are only used with progressive */
+         switch (hVce->fw.stCommand.type.stConfigChannel.GopStructure & GOP_STRUCTURE_MASK)
+         {
+            case ENCODING_GOP_STRUCT_IBBBBBP:
+            case ENCODING_GOP_STRUCT_IBBBBBBBP:
+               if ( ENCODER_INPUT_TYPE_INTERLACED == hVce->fw.stCommand.type.stConfigChannel.InputType )
+               {
+                  BDBG_ERR(("Interlaced transcode not allowed with IB5P/IB7P GOP Structure"));
+                  return BERR_TRACE(BERR_NOT_SUPPORTED);
+               }
+         }
+
+         /* Check to ensure B_REF is not used with MPEG2 */
+         if ( ENCODING_STD_MPEG2 == hVce->fw.stCommand.type.stConfigChannel.Protocol )
+         {
+            switch (hVce->fw.stCommand.type.stConfigChannel.GopStructure & GOP_STRUCTURE_MASK)
+            {
+               case ENCODING_GOP_STRUCT_I:
+               case ENCODING_GOP_STRUCT_IP:
+               case ENCODING_GOP_STRUCT_INFINITE_IP:
+               case ENCODING_GOP_STRUCT_IBP:
+               case ENCODING_GOP_STRUCT_IBBP:
+                  break;
+
+               default:
+                  BDBG_ERR(("MPEG2 transcode not allowed with requested GOP Structure"));
+                  return BERR_TRACE(BERR_NOT_SUPPORTED);
+            }
+         }
+#endif
+
          break;
 
-      case ENCODING_GOP_STRUCT_IBBBP:
-         /* not supported yet ... */
-         BDBG_ERR(("GOP Structure of IBBBP not supported"));
-         return BERR_TRACE(BERR_NOT_SUPPORTED);
-
-
       default:
-         BDBG_ERR(("Invalid GOP Structure %d", hVce->fw.stCommand.type.stConfigChannel.GopStructure & GOP_STRUCTURE_MASK));
+         BDBG_ERR(("Unsupported GOP Structure %d", hVce->fw.stCommand.type.stConfigChannel.GopStructure & GOP_STRUCTURE_MASK));
          return BERR_TRACE(BERR_NOT_SUPPORTED);
    }
 
@@ -2957,6 +3097,7 @@ BVCE_S_SendCommand_ConfigChannel(
       unsigned uiGOPLength = 0;
 
       rc = BVCE_S_GOPStructureLUT(
+         &hVceCh->stStartEncodeSettings,
          &pstEncodeSettings->stGOPStructure,
          &uiGOPStructure,
          &uiGOPLength
@@ -2999,6 +3140,7 @@ BVCE_S_SendCommand_ConfigChannel(
       unsigned uiGOPLength = 0;
 
       rc = BVCE_S_GOPStructureLUT(
+         &hVceCh->stStartEncodeSettings,
          &hVceCh->stStartEncodeSettings.stBounds.stGOPStructure,
          &uiGOPStructure,
          &uiGOPLength
@@ -3724,6 +3866,44 @@ BVCE_S_SetupDebugLog(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
+#if (BVCE_P_VDC_MANAGE_VIP)
+static void
+BVCE_S_ValidateAVCBufferCount(void)
+{
+   BAVC_VCE_BufferConfig stBufferConfig;
+
+   BAVC_VCE_GetDefaultBufferConfig_isrsafe(false, &stBufferConfig );
+
+   stBufferConfig.eScanType = BAVC_ScanType_eProgressive;
+   if ( BAVC_VCE_GetRequiredBufferCount_isrsafe( &stBufferConfig, BAVC_VCE_BufferType_eOriginal ) < PREPROCESSOR_MAX_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE )
+   {
+      BDBG_WRN(("BAVC_VCE_GetRequiredBufferCount mismatch (Progressive Original)"));
+   }
+
+   if ( BAVC_VCE_GetRequiredBufferCount_isrsafe( &stBufferConfig, BAVC_VCE_BufferType_eDecimated ) < PREPROCESSOR_MAX_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE )
+   {
+      BDBG_WRN(("BAVC_VCE_GetRequiredBufferCount mismatch (Progressive Decimated)"));
+   }
+
+   BAVC_VCE_GetDefaultBufferConfig_isrsafe(true, &stBufferConfig );
+   stBufferConfig.eScanType = BAVC_ScanType_eInterlaced;
+   if ( BAVC_VCE_GetRequiredBufferCount_isrsafe( &stBufferConfig, BAVC_VCE_BufferType_eOriginal ) < PREPROCESSOR_MAX_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE )
+   {
+      BDBG_WRN(("BAVC_VCE_GetRequiredBufferCount mismatch (Interlaced Original)"));
+   }
+
+   if ( BAVC_VCE_GetRequiredBufferCount_isrsafe( &stBufferConfig, BAVC_VCE_BufferType_eDecimated ) < PREPROCESSOR_MAX_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE )
+   {
+      BDBG_WRN(("BAVC_VCE_GetRequiredBufferCount mismatch (Interlaced Decimated)"));
+   }
+
+   if ( BAVC_VCE_GetRequiredBufferCount_isrsafe( &stBufferConfig, BAVC_VCE_BufferType_eShiftedChroma ) < PREPROCESSOR_MAX_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE )
+   {
+      BDBG_WRN(("BAVC_VCE_GetRequiredBufferCount mismatch (Interlaced Shifted Chroma)"));
+   }
+}
+#endif
+
 BERR_Code
 BVCE_Open(
          BVCE_Handle *phVce, /* [out] VCE Device handle returned */
@@ -3750,6 +3930,10 @@ BVCE_Open(
 
    /* Allocate Context */
    *phVce = NULL;
+
+#if (BVCE_P_VDC_MANAGE_VIP)
+   BVCE_S_ValidateAVCBufferCount();
+#endif
 
    hVce = ( BVCE_Handle ) BKNI_Malloc( sizeof( BVCE_P_Context ) );
    if ( NULL == hVce )
@@ -5548,7 +5732,7 @@ static const BVCE_Channel_StartEncodeSettings s_stDefaultStartEncodeSettings =
      0,     /* uiDuration */
      0,     /* uiDurationRampUpFactor */
      14,    /* uiNumberOfPFrames */
-     2,     /* uiNumberOfBFrames */
+     BVCE_PLATFORM_P_MAX_B_PICTURES_PROGRESSIVE,     /* uiNumberOfBFrames */
      false, /* bAllowOpenGop = false */
     },
     {
@@ -5733,6 +5917,8 @@ BVCE_Channel_S_StartEncode_impl(
       return BERR_TRACE( rc );
    }
 
+   BKNI_Memset( &hVceCh->picture.stState, 0, sizeof(hVceCh->picture.stState) );
+
    /* Send Start Channel Command */
    rc = BVCE_S_SendCommand_StartChannel(
             hVceCh->hVce,
@@ -5843,9 +6029,12 @@ BVCE_Channel_S_StopEncode_impl(
 
       case BVCE_P_Status_eStarted:
          {
+            BVCE_Channel_Status stSavedChannelStatus;
             BVCE_Channel_Status stChannelStatus;
+            stSavedChannelStatus = hVceCh->stStatus;
+            BKNI_Memset( &hVceCh->stStatus, 0, sizeof( hVceCh->stStatus ) );
             rc = BVCE_Channel_GetStatus( hVceCh, &stChannelStatus );
-
+            hVceCh->stStatus = stSavedChannelStatus;
             if ( rc != BERR_SUCCESS )
             {
                BDBG_LEAVE( BVCE_Channel_StopEncode );
@@ -5856,6 +6045,15 @@ BVCE_Channel_S_StopEncode_impl(
             {
                BDBG_LEAVE( BVCE_Channel_StopEncode );
                return BERR_TRACE( BERR_SUCCESS );
+            }
+
+            if ( BVCE_Channel_StopMode_eNormal == hVceCh->stStopEncodeSettings.eStopMode )
+            {
+               if ( 0 != ( stChannelStatus.uiErrorFlags & BVCE_CHANNEL_STATUS_FLAGS_ERROR_CDB_FULL ) )
+               {
+                  BDBG_WRN(("CDB Full during stop...forcing immediate stop!"));
+                  hVceCh->stStopEncodeSettings.eStopMode = BVCE_Channel_StopMode_eImmediate;
+               }
             }
          }
          break;
@@ -6566,9 +6764,11 @@ BVCE_Channel_S_GetStatus_impl(
       hVceCh->stStatus.uiTotalPicturesReceived = hVceCh->hVce->fw.stResponse.type.stGetChannelStatus.StatusInfoStruct.NumOfPicsMbArcFinished
               + hVceCh->hVce->fw.stResponse.type.stGetChannelStatus.StatusInfoStruct.NumOfPicsVipDroppedDueToFRC
               + hVceCh->hVce->fw.stResponse.type.stGetChannelStatus.StatusInfoStruct.NumOfPicsVipDroppedDueToPerformance
-              + hVceCh->hVce->fw.stResponse.type.stGetChannelStatus.StatusInfoStruct.NumOfPicsVipDroppedDueToHRDUnderFlow;
-      hVceCh->stStatus.uiTotalPicturesDroppedDueToFrameRateConversion = hVceCh->hVce->fw.stResponse.type.stGetChannelStatus.StatusInfoStruct.NumOfPicsVipDroppedDueToFRC;
-      hVceCh->stStatus.uiTotalPicturesDroppedDueToErrors = hVceCh->hVce->fw.stResponse.type.stGetChannelStatus.StatusInfoStruct.NumOfPicsVipDroppedDueToPerformance;
+              + hVceCh->hVce->fw.stResponse.type.stGetChannelStatus.StatusInfoStruct.NumOfPicsVipDroppedDueToHRDUnderFlow
+              + hVceCh->picture.stState.stats.uiNumDroppedDueToError
+              + hVceCh->picture.stState.stats.uiNumDroppedDueToFRC;
+      hVceCh->stStatus.uiTotalPicturesDroppedDueToFrameRateConversion = hVceCh->hVce->fw.stResponse.type.stGetChannelStatus.StatusInfoStruct.NumOfPicsVipDroppedDueToFRC + hVceCh->picture.stState.stats.uiNumDroppedDueToFRC;
+      hVceCh->stStatus.uiTotalPicturesDroppedDueToErrors = hVceCh->hVce->fw.stResponse.type.stGetChannelStatus.StatusInfoStruct.NumOfPicsVipDroppedDueToPerformance + hVceCh->picture.stState.stats.uiNumDroppedDueToError;
       hVceCh->stStatus.uiTotalPicturesEncoded = hVceCh->hVce->fw.stResponse.type.stGetChannelStatus.StatusInfoStruct.NumOfPicsMbArcFinished;
       hVceCh->stStatus.uiLastPictureIdEncoded = hVceCh->hVce->fw.stResponse.type.stGetChannelStatus.StatusInfoStruct.PicId;
       hVceCh->stStatus.uiSTCSnapshot = hVceCh->hVce->fw.stResponse.type.stGetChannelStatus.StatusInfoStruct.uiSTCSnapshot;
@@ -7146,6 +7346,1208 @@ BVCE_Channel_UserData_AddBuffers_isr(
    return BERR_TRACE( rc );
 }
 
+#if (BVCE_P_VDC_MANAGE_VIP)
+static bool BVCE_S_AcquirePictureBlockInfoFromEncodePictureBuffer_isrsafe(
+   BVCE_P_PictureBlockInfo *pstBlockInfo,
+   const BAVC_EncodePictureBuffer *pstEncodePictureBuffer,
+   BVCE_P_PictureBufferType ePictureBufferType
+   )
+{
+   BKNI_Memset( pstBlockInfo, 0, sizeof( BVCE_P_PictureBlockInfo ) );
+
+   switch ( ePictureBufferType )
+   {
+      case BVCE_P_PictureBufferType_eLuma:
+         pstBlockInfo->hBlock = pstEncodePictureBuffer->hLumaBlock;
+         pstBlockInfo->uiOffset = pstEncodePictureBuffer->ulLumaOffset;
+         pstBlockInfo->uiNMBY = pstEncodePictureBuffer->ulLumaNMBY;
+         pstBlockInfo->bDcx = pstEncodePictureBuffer->bDcx;
+         break;
+
+      case BVCE_P_PictureBufferType_eChroma:
+         pstBlockInfo->hBlock = pstEncodePictureBuffer->hChromaBlock;
+         pstBlockInfo->uiOffset = pstEncodePictureBuffer->ulChromaOffset;
+         pstBlockInfo->uiNMBY = pstEncodePictureBuffer->ulChromaNMBY;
+         pstBlockInfo->bDcx = pstEncodePictureBuffer->bChromaDcx;
+         break;
+
+      case BVCE_P_PictureBufferType_e1VLuma:
+         pstBlockInfo->hBlock = pstEncodePictureBuffer->h1VLumaBlock;
+         pstBlockInfo->uiOffset = pstEncodePictureBuffer->ul1VLumaOffset;
+         pstBlockInfo->uiNMBY = pstEncodePictureBuffer->ul1VLumaNMBY;
+         pstBlockInfo->uiHorizontalDecimationShift = pstEncodePictureBuffer->ulHorizontalDecimationShift;
+         pstBlockInfo->bDcx = pstEncodePictureBuffer->b1VLumaDcx;
+         break;
+
+      case BVCE_P_PictureBufferType_e2VLuma:
+         pstBlockInfo->hBlock = pstEncodePictureBuffer->h2VLumaBlock;
+         pstBlockInfo->uiOffset = pstEncodePictureBuffer->ul2VLumaOffset;
+         pstBlockInfo->uiNMBY = pstEncodePictureBuffer->ul2VLumaNMBY;
+         pstBlockInfo->uiHorizontalDecimationShift = pstEncodePictureBuffer->ulHorizontalDecimationShift;
+         pstBlockInfo->bDcx = pstEncodePictureBuffer->b2VLumaDcx;
+         break;
+
+      case BVCE_P_PictureBufferType_eShiftedChroma:
+         pstBlockInfo->hBlock = pstEncodePictureBuffer->hShiftedChromaBlock;
+         pstBlockInfo->uiOffset = pstEncodePictureBuffer->ulShiftedChromaOffset;
+         pstBlockInfo->uiNMBY = pstEncodePictureBuffer->ulShiftedChromaNMBY;
+         break;
+
+      default:
+         BDBG_ASSERT(0);
+   }
+
+   if ( NULL != pstBlockInfo->hBlock )
+   {
+      /* Acquire the block and physical offset */
+      pstBlockInfo->uiBlockOffset = BMMA_GetOffset_isr( pstBlockInfo->hBlock );
+      pstBlockInfo->uiPhysicalOffset = pstBlockInfo->uiBlockOffset + pstBlockInfo->uiOffset;
+      return true;
+   }
+   else
+   {
+      return false;
+   }
+}
+
+static void BVCE_S_ReleasePictureBlockInfoToEncodePictureBuffer_isrsafe(
+   BVCE_P_PictureBlockInfo *pstBlockInfo,
+   BAVC_EncodePictureBuffer *pstEncodePictureBuffer,
+   BVCE_P_PictureBufferType ePictureBufferType
+   )
+{
+   switch ( ePictureBufferType )
+   {
+      case BVCE_P_PictureBufferType_eLuma:
+         pstEncodePictureBuffer->hLumaBlock = pstBlockInfo->hBlock;
+         pstEncodePictureBuffer->ulLumaOffset = pstBlockInfo->uiOffset;
+         break;
+
+      case BVCE_P_PictureBufferType_eChroma:
+         pstEncodePictureBuffer->hChromaBlock = pstBlockInfo->hBlock;
+         pstEncodePictureBuffer->ulChromaOffset = pstBlockInfo->uiOffset;
+         break;
+
+      case BVCE_P_PictureBufferType_e1VLuma:
+         pstEncodePictureBuffer->h1VLumaBlock = pstBlockInfo->hBlock;
+         pstEncodePictureBuffer->ul1VLumaOffset = pstBlockInfo->uiOffset;
+         break;
+
+      case BVCE_P_PictureBufferType_e2VLuma:
+         pstEncodePictureBuffer->h2VLumaBlock = pstBlockInfo->hBlock;
+         pstEncodePictureBuffer->ul2VLumaOffset = pstBlockInfo->uiOffset;
+         break;
+
+      case BVCE_P_PictureBufferType_eShiftedChroma:
+         pstEncodePictureBuffer->hShiftedChromaBlock = pstBlockInfo->hBlock;
+         pstEncodePictureBuffer->ulShiftedChromaOffset = pstBlockInfo->uiOffset;
+         break;
+
+      default:
+         BDBG_ASSERT(0);
+   }
+
+   if ( ( NULL != pstBlockInfo->hBlock )
+        && ( 0 != pstBlockInfo->uiBlockOffset ) )
+   {
+      /* Release the block and physical offset */
+      BKNI_Memset( pstBlockInfo, 0, sizeof( BVCE_P_PictureBlockInfo ) );
+   }
+}
+
+static void BVCE_S_SetPictureBufferInfoFromPictureBlockInfo_isrsafe(
+   BVCE_P_FW_PictureBufferMailbox *pstPictureBufferMailbox,
+   const BVCE_P_PictureBlockInfo *pstBlockInfo,
+   BVCE_P_PictureBufferType ePictureBufferType
+   )
+{
+   BVCE_P_FW_PictureBufferInfo* pstPictureBufferInfo = NULL;
+
+   switch ( ePictureBufferType )
+   {
+      case BVCE_P_PictureBufferType_eLuma:
+         pstPictureBufferInfo = &pstPictureBufferMailbox->LumaBufPtr;
+         break;
+
+      case BVCE_P_PictureBufferType_eChroma:
+         pstPictureBufferInfo = &pstPictureBufferMailbox->ChromaBufPtr;
+         break;
+
+      case BVCE_P_PictureBufferType_e1VLuma:
+         pstPictureBufferInfo = &pstPictureBufferMailbox->Luma1VBufPtr;
+         break;
+
+      case BVCE_P_PictureBufferType_e2VLuma:
+         pstPictureBufferInfo = &pstPictureBufferMailbox->Luma2VBufPtr;
+         break;
+
+      case BVCE_P_PictureBufferType_eShiftedChroma:
+         pstPictureBufferInfo = &pstPictureBufferMailbox->ShiftedChromaBufPtr;
+         break;
+
+      default:
+         BDBG_ASSERT(0);
+   }
+
+   BVCE_P_SET_32BIT_HI_LO_FROM_64( pstPictureBufferInfo->stOffset.uiOffset, pstBlockInfo->uiPhysicalOffset );
+
+   pstPictureBufferInfo->uiMetadata &= ~BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK;
+   pstPictureBufferInfo->uiMetadata |= ( pstBlockInfo->uiNMBY << BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT ) & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK;
+
+   pstPictureBufferInfo->uiMetadata &= ~BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_MASK;
+   pstPictureBufferInfo->uiMetadata |= ( pstBlockInfo->uiHorizontalDecimationShift << BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_SHIFT ) & BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_MASK;
+
+   pstPictureBufferInfo->uiMetadata &= ~BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK;
+   pstPictureBufferInfo->uiMetadata |= ( ( true == pstBlockInfo->bDcx ) << BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT ) & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK;
+}
+
+/***********/
+/* Picture */
+/***********/
+static const uint32_t BVCE_P_PI2FW_BarDataTypeLUT[BAVC_BarDataType_eLeftRight + 1] =
+{
+   SOURCE_BAR_DATA_TYPE_INVALID,    /* BAVC_BarDataType_eInvalid */
+   SOURCE_BAR_DATA_TYPE_TOP_BOTTOM, /* BAVC_BarDataType_eTopBottom */
+   SOURCE_BAR_DATA_TYPE_LEFT_RIGHT  /* BAVC_BarDataType_eLeftRight */
+};
+
+static const uint32_t BVCE_P_PI2FW_PolarityLUT[BAVC_Polarity_eFrame + 1] =
+{
+   SOURCE_POLARITY_TOP,  /* BAVC_Polarity_eTopField */
+   SOURCE_POLARITY_BOT,  /* BAVC_Polarity_eBotField */
+   SOURCE_POLARITY_FRAME /* BAVC_Polarity_eFrame */
+};
+
+static const uint32_t BVCE_P_PI2FW_CadenceTypeLUT[BAVC_CadenceType_eMax] =
+{
+   SOURCE_CADENCE_TYPE_UNLOCKED, /* BAVC_CadenceType_eUnlocked */
+   SOURCE_CADENCE_TYPE_3_2,      /* BAVC_CadenceType_e3_2 */
+   SOURCE_CADENCE_TYPE_2_2       /* BAVC_CadenceType_e2_2 */
+};
+
+static const uint32_t BVCE_P_PI2FW_CadencePhaseLUT[BAVC_CadencePhase_eMax] =
+{
+   SOURCE_CADENCE_PHASE_0, /* BAVC_CadencePhase_e0 */
+   SOURCE_CADENCE_PHASE_1, /* BAVC_CadencePhase_e1 */
+   SOURCE_CADENCE_PHASE_2, /* BAVC_CadencePhase_e2 */
+   SOURCE_CADENCE_PHASE_3, /* BAVC_CadencePhase_e3 */
+   SOURCE_CADENCE_PHASE_4  /* BAVC_CadencePhase_e4 */
+};
+
+static const uint32_t BVCE_P_PI2FW_OrientationLUT[BFMT_Orientation_eLeftRight_Enhanced + 1] =
+{
+   SOURCE_ORIENTATION_TYPE_2D,                    /* BFMT_Orientation_e2D */
+   SOURCE_ORIENTATION_TYPE_3D_LEFT_RIGHT,         /* BFMT_Orientation_e3D_LeftRight */
+   SOURCE_ORIENTATION_TYPE_3D_OVER_UNDER,         /* BFMT_Orientation_e3D_OverUnder */
+   SOURCE_ORIENTATION_TYPE_3D_LEFT,               /* BFMT_Orientation_e3D_Left */
+   SOURCE_ORIENTATION_TYPE_3D_RIGHT,              /* BFMT_Orientation_e3D_Right */
+   SOURCE_ORIENTATION_TYPE_3D_LEFT_RIGHT_ENHANCED /* BFMT_Orientation_eLeftRight_Enhanced */
+};
+
+#define BVCE_P_PI2FW_DELTAPTS_BASE ((uint64_t) 90000*4)
+#define BVCE_P_PI2FW_DELTAPTS_BASE_RATE (1000)
+#define BVCE_P_PI2FW_DELTAPTS_ANALOG_RATE (1001)
+#define BVCE_P_PI2FW_DELTAPTS_DIGITAL_RATE (1000)
+#define BVCE_P_PI2FW_DELTAPTS(_frameRateNumerator, _frameRateDenominator, _type) (((BVCE_P_PI2FW_DELTAPTS_BASE) * (BVCE_P_PI2FW_DELTAPTS_##_type##_RATE) * (_frameRateDenominator)) / ((_frameRateNumerator) * (BVCE_P_PI2FW_DELTAPTS_BASE_RATE)))
+
+static const uint16_t BVCE_P_PI2FW_FrameRate2DeltaPtsLUT[BAVC_FrameRateCode_eMax] =
+{
+   0,                                   /* BAVC_FrameRateCode_eUnknown */
+   BVCE_P_PI2FW_DELTAPTS(24,1,ANALOG),  /* BAVC_FrameRateCode_e23_976 */
+   BVCE_P_PI2FW_DELTAPTS(24,1,DIGITAL), /* BAVC_FrameRateCode_e24 */
+   BVCE_P_PI2FW_DELTAPTS(25,1,DIGITAL), /* BAVC_FrameRateCode_e25 */
+   BVCE_P_PI2FW_DELTAPTS(60,2,ANALOG),  /* BAVC_FrameRateCode_e29_97 */
+   BVCE_P_PI2FW_DELTAPTS(60,2,DIGITAL), /* BAVC_FrameRateCode_e30 */
+   BVCE_P_PI2FW_DELTAPTS(50,1,DIGITAL), /* BAVC_FrameRateCode_e50 */
+   BVCE_P_PI2FW_DELTAPTS(60,1,ANALOG),  /* BAVC_FrameRateCode_e59_94 */
+   BVCE_P_PI2FW_DELTAPTS(60,1,DIGITAL), /* BAVC_FrameRateCode_e60 */
+   BVCE_P_PI2FW_DELTAPTS(60,4,ANALOG),  /* BAVC_FrameRateCode_e14_985 */
+   BVCE_P_PI2FW_DELTAPTS(60,8,ANALOG),  /* BAVC_FrameRateCode_e7_493 */
+   BVCE_P_PI2FW_DELTAPTS(60,6,DIGITAL), /* BAVC_FrameRateCode_e10 */
+   BVCE_P_PI2FW_DELTAPTS(60,4,DIGITAL), /* BAVC_FrameRateCode_e15 */
+   BVCE_P_PI2FW_DELTAPTS(60,3,DIGITAL), /* BAVC_FrameRateCode_e20 */
+   BVCE_P_PI2FW_DELTAPTS(25,2,DIGITAL), /* BAVC_FrameRateCode_e12_5 */
+   BVCE_P_PI2FW_DELTAPTS(100,1,DIGITAL),/* BAVC_FrameRateCode_e100 */
+   BVCE_P_PI2FW_DELTAPTS(120,1,ANALOG), /* BAVC_FrameRateCode_e119_88 */
+   BVCE_P_PI2FW_DELTAPTS(120,1,DIGITAL),/* BAVC_FrameRateCode_e120 */
+   BVCE_P_PI2FW_DELTAPTS(60,3,ANALOG),  /* BAVC_FrameRateCode_e19_98 */
+   BVCE_P_PI2FW_DELTAPTS(60,8,DIGITAL), /* BAVC_FrameRateCode_e7_5 */
+   BVCE_P_PI2FW_DELTAPTS(60,5,DIGITAL), /* BAVC_FrameRateCode_e12 */
+   BVCE_P_PI2FW_DELTAPTS(60,5,ANALOG),  /* BAVC_FrameRateCode_e11_988 */
+   BVCE_P_PI2FW_DELTAPTS(60,6,ANALOG),  /* BAVC_FrameRateCode_e9_99 */
+};
+
+/* TODO:
+ *  - Remove references to FrameRate
+ *  - Remove ITFP references?
+ *  - Update A2PDelay function to not include VIP Delay
+ *    - Should STC snapshot account for BVN's VIP A2PDelay?
+ */
+
+typedef struct BVCE_P_FrameRateConversionSettings
+{
+   bool bIs60to24;
+   BAVC_FrameRateCode eEffectiveFrameRate; /* Indicates the effective frame rate after the conversion */
+} BVCE_P_FrameRateConversionSettings;
+
+static
+BERR_Code BVCE_P_FrameRateConversionLUT_isrsafe(
+      BAVC_FrameRateCode eSourceFrameRate,
+      BAVC_FrameRateCode eEncodeFrameRate,
+      BVCE_P_FrameRateConversionSettings *pstFrameRateConversionSettings
+      )
+{
+   BERR_Code rc = BERR_NOT_SUPPORTED;
+   BKNI_Memset( pstFrameRateConversionSettings, 0, sizeof( BVCE_P_FrameRateConversionSettings ) );
+   pstFrameRateConversionSettings->eEffectiveFrameRate = BAVC_FrameRateCode_eUnknown;
+
+   switch ( eSourceFrameRate )
+   {
+      case BAVC_FrameRateCode_e23_976:
+      case BAVC_FrameRateCode_e24:
+         /* 24 Hz Display */
+         switch ( eEncodeFrameRate )
+         {
+            /* 1:1 */
+            case BAVC_FrameRateCode_e23_976:
+            case BAVC_FrameRateCode_e24:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = eSourceFrameRate;
+               rc = BERR_SUCCESS;
+               break;
+
+            case BAVC_FrameRateCode_e11_988:
+            case BAVC_FrameRateCode_e12:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = ( BAVC_FrameRateCode_e24 == eSourceFrameRate ) ? BAVC_FrameRateCode_e12 : BAVC_FrameRateCode_e11_988;
+               rc = BERR_SUCCESS;
+               break;
+
+            default:
+               break;
+         }
+         break;
+
+      case BAVC_FrameRateCode_e25:
+         /* 25 Hz Display */
+         switch ( eEncodeFrameRate )
+         {
+            /* 1:1 */
+            case BAVC_FrameRateCode_e25:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = eSourceFrameRate;
+               rc = BERR_SUCCESS;
+               break;
+
+            /* 2:1 */
+            case BAVC_FrameRateCode_e12_5:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = BAVC_FrameRateCode_e12_5;
+               rc = BERR_SUCCESS;
+               break;
+
+            default:
+               break;
+         }
+         break;
+
+      case BAVC_FrameRateCode_e29_97:
+      case BAVC_FrameRateCode_e30:
+         /* 30 Hz Display */
+         switch ( eEncodeFrameRate )
+         {
+            /* 1:1 */
+            case BAVC_FrameRateCode_e29_97:
+            case BAVC_FrameRateCode_e30:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = eSourceFrameRate;
+               rc = BERR_SUCCESS;
+               break;
+
+            case BAVC_FrameRateCode_e14_985:
+            case BAVC_FrameRateCode_e15:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = ( BAVC_FrameRateCode_e30 == eSourceFrameRate ) ? BAVC_FrameRateCode_e15 : BAVC_FrameRateCode_e14_985;
+               rc = BERR_SUCCESS;
+               break;
+
+            case BAVC_FrameRateCode_e9_99:
+            case BAVC_FrameRateCode_e10:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = ( BAVC_FrameRateCode_e30 == eSourceFrameRate ) ? BAVC_FrameRateCode_e10 : BAVC_FrameRateCode_e9_99;
+               rc = BERR_SUCCESS;
+               break;
+
+            case BAVC_FrameRateCode_e7_493:
+            case BAVC_FrameRateCode_e7_5:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = ( BAVC_FrameRateCode_e30 == eSourceFrameRate ) ? BAVC_FrameRateCode_e7_5 : BAVC_FrameRateCode_e7_493;
+               rc = BERR_SUCCESS;
+               break;
+
+            default:
+               break;
+         }
+         break;
+
+      case BAVC_FrameRateCode_e50:
+         /* 50 Hz Display */
+         switch ( eEncodeFrameRate )
+         {
+            /* 1:1 */
+            case BAVC_FrameRateCode_e50:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = eSourceFrameRate;
+               rc = BERR_SUCCESS;
+               break;
+
+            case BAVC_FrameRateCode_e25:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = BAVC_FrameRateCode_e25;
+               rc = BERR_SUCCESS;
+               break;
+
+            case BAVC_FrameRateCode_e12_5:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = BAVC_FrameRateCode_e12_5;
+               rc = BERR_SUCCESS;
+               break;
+
+            default:
+               break;
+         }
+         break;
+
+      case BAVC_FrameRateCode_e59_94:
+      case BAVC_FrameRateCode_e60:
+         /* 60 Hz Display */
+         switch ( eEncodeFrameRate )
+         {
+            /* 1:1 */
+            case BAVC_FrameRateCode_e59_94:
+            case BAVC_FrameRateCode_e60:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = eSourceFrameRate;
+               rc = BERR_SUCCESS;
+               break;
+
+            case BAVC_FrameRateCode_e23_976:
+            case BAVC_FrameRateCode_e24:
+               pstFrameRateConversionSettings->bIs60to24 = true;
+               pstFrameRateConversionSettings->eEffectiveFrameRate = ( BAVC_FrameRateCode_e60 == eSourceFrameRate ) ? BAVC_FrameRateCode_e24 : BAVC_FrameRateCode_e23_976;
+               rc = BERR_SUCCESS;
+               break;
+
+            case BAVC_FrameRateCode_e29_97:
+            case BAVC_FrameRateCode_e30:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = ( BAVC_FrameRateCode_e60 == eSourceFrameRate ) ? BAVC_FrameRateCode_e30 : BAVC_FrameRateCode_e29_97;
+               rc = BERR_SUCCESS;
+               break;
+
+            case BAVC_FrameRateCode_e19_98:
+            case BAVC_FrameRateCode_e20:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = ( BAVC_FrameRateCode_e60 == eSourceFrameRate ) ? BAVC_FrameRateCode_e20 : BAVC_FrameRateCode_e19_98;
+               rc = BERR_SUCCESS;
+               break;
+
+            case BAVC_FrameRateCode_e14_985:
+            case BAVC_FrameRateCode_e15:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = ( BAVC_FrameRateCode_e60 == eSourceFrameRate ) ? BAVC_FrameRateCode_e15 : BAVC_FrameRateCode_e14_985;
+               rc = BERR_SUCCESS;
+               break;
+
+            case BAVC_FrameRateCode_e11_988:
+            case BAVC_FrameRateCode_e12:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = ( BAVC_FrameRateCode_e60 == eSourceFrameRate ) ? BAVC_FrameRateCode_e12 : BAVC_FrameRateCode_e11_988;
+               rc = BERR_SUCCESS;
+               break;
+
+            case BAVC_FrameRateCode_e9_99:
+            case BAVC_FrameRateCode_e10:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = ( BAVC_FrameRateCode_e60 == eSourceFrameRate ) ? BAVC_FrameRateCode_e10 : BAVC_FrameRateCode_e9_99;
+               rc = BERR_SUCCESS;
+               break;
+
+            case BAVC_FrameRateCode_e7_493:
+            case BAVC_FrameRateCode_e7_5:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = ( BAVC_FrameRateCode_e60 == eSourceFrameRate ) ? BAVC_FrameRateCode_e7_5 : BAVC_FrameRateCode_e7_493;
+               rc = BERR_SUCCESS;
+               break;
+
+            default:
+               break;
+         }
+         break;
+
+      default:
+         break;
+   }
+
+   if ( rc != BERR_SUCCESS )
+   {
+      BDBG_ERR(("Unsupported frame rate conversion from %u to %u", eSourceFrameRate, eEncodeFrameRate ));
+   }
+
+   return BERR_TRACE( rc );
+}
+
+static
+BERR_Code
+BVCE_S_Channel_Picture_Drop_Enqueue_isr(
+         BVCE_Channel_Handle hVceCh,
+         const BAVC_EncodePictureBuffer *pstPicture /* Pointer to picture info descriptor */
+         )
+{
+   BERR_Code rc = BERR_NOT_AVAILABLE;
+   unsigned uiTempWriteOffset = ( hVceCh->picture.stState.dropQueue.uiWriteOffset + 1 ) % BVCE_P_DROP_QUEUE_SIZE;
+   if ( uiTempWriteOffset != hVceCh->picture.stState.dropQueue.uiReadOffset )
+   {
+      hVceCh->picture.stState.dropQueue.astPicture[hVceCh->picture.stState.dropQueue.uiWriteOffset] = *pstPicture;
+      hVceCh->picture.stState.dropQueue.uiWriteOffset = uiTempWriteOffset;
+      rc = BERR_SUCCESS;
+   }
+
+  if ( BERR_NOT_AVAILABLE != rc )
+  {
+     return BERR_TRACE(rc);
+  }
+  else
+  {
+     return rc;
+  }
+}
+
+static
+BERR_Code
+BVCE_S_Channel_Picture_Drop_Dequeue_isr(
+         BVCE_Channel_Handle hVceCh,
+         BAVC_EncodePictureBuffer *pstPicture /* Pointer to picture info descriptor */
+         )
+{
+   BERR_Code rc = BERR_NOT_AVAILABLE;
+   if ( hVceCh->picture.stState.dropQueue.uiReadOffset != hVceCh->picture.stState.dropQueue.uiWriteOffset )
+   {
+      *pstPicture = hVceCh->picture.stState.dropQueue.astPicture[hVceCh->picture.stState.dropQueue.uiReadOffset];
+      hVceCh->picture.stState.dropQueue.uiReadOffset = ( hVceCh->picture.stState.dropQueue.uiReadOffset + 1 ) % BVCE_P_DROP_QUEUE_SIZE;
+      rc = BERR_SUCCESS;
+   }
+
+  if ( BERR_NOT_AVAILABLE != rc )
+  {
+     return BERR_TRACE(rc);
+  }
+  else
+  {
+     return rc;
+  }
+}
+#endif
+
+typedef enum BVCE_P_PictureResult
+{
+   BVCE_P_PictureResult_eWait,
+   BVCE_P_PictureResult_eEncode,
+   BVCE_P_PictureResult_eDropDueToFRC,
+   BVCE_P_PictureResult_eDropDueToError,
+   BVCE_P_PictureResult_eDropDueToPolarity,
+   BVCE_P_PictureResult_eError,
+
+   BVCE_P_PictureResult_eMax
+} BVCE_P_PictureResult;
+
+BERR_Code
+BVCE_Channel_Picture_Enqueue_isr(
+         BVCE_Channel_Handle hVceCh,
+         const BAVC_EncodePictureBuffer *pstPicture /* Pointer to picture info descriptor */
+         )
+{
+#if (BVCE_P_VDC_MANAGE_VIP)
+   if ( ( ( BVCE_P_Status_eStarted == hVceCh->eStatus )
+          || ( BVCE_P_Status_eStopping == hVceCh->eStatus ) )
+        && ( false == hVceCh->hVce->bWatchdogOccurred ) )
+   {
+      BERR_Code rc = BERR_SUCCESS;
+      BVCE_P_PictureResult ePictureResult = BVCE_P_PictureResult_eEncode;
+      BVCE_P_FrameRateConversionSettings stFrameRateConversionSettings;
+      uint64_t uiNewPTSin90Khz = 0;
+      uint32_t uiCurrentSTCin45Khz = 0;
+      uint32_t uiEnqueueSTCSnapshotLo = 0;
+
+      BDBG_ENTER( BVCE_Channel_Picture_Enqueue_isr );
+      BVCE_P_FUNCTION_TRACE_ENTER_isr( 1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance );
+
+      BDBG_ASSERT( hVceCh );
+      BDBG_ASSERT( pstPicture );
+
+      uiEnqueueSTCSnapshotLo = BREG_Read32(
+                   hVceCh->hVce->handles.hReg,
+                   hVceCh->hVce->stPlatformConfig.stDebug.uiSTC[hVceCh->stOpenSettings.uiInstance]
+                   );
+
+      /* Ignore pictures that have the wrong polarity */
+      if ( ( ( BAVC_ScanType_eProgressive == hVceCh->stStartEncodeSettings.eInputType )
+             && ( BAVC_Polarity_eFrame != pstPicture->ePolarity ) )
+           || ( ( BAVC_ScanType_eInterlaced == hVceCh->stStartEncodeSettings.eInputType )
+                && ( BAVC_Polarity_eFrame == pstPicture->ePolarity ) ) )
+      {
+         ePictureResult = BVCE_P_PictureResult_eDropDueToPolarity;
+      }
+
+      if ( BVCE_P_PictureResult_eEncode == ePictureResult )
+      {
+         BVCE_P_PictureBufferType ePictureBufferType;
+         BKNI_Memset( &stFrameRateConversionSettings, 0, sizeof( stFrameRateConversionSettings ) );
+         stFrameRateConversionSettings.eEffectiveFrameRate = pstPicture->eFrameRate;
+
+         /* Keep track of pictures dropped by VDC */
+         if ( ( true == hVceCh->picture.stState.bPreviousPictureIdValid )
+              && ( pstPicture->ulPictureId != hVceCh->picture.stState.uiPreviousPictureId )
+              && ( pstPicture->ulPictureId != ( hVceCh->picture.stState.uiPreviousPictureId + 1 ) ) )
+         {
+            BDBG_ERR(("[%d] ERROR: Display dropped pictures (%u --> %u)", hVceCh->stOpenSettings.uiInstance, hVceCh->picture.stState.uiPreviousPictureId, pstPicture->ulPictureId));
+            hVceCh->picture.stState.stats.uiNumDroppedDueToError += ( ( pstPicture->ulPictureId - hVceCh->picture.stState.uiPreviousPictureId ) - 1);
+         }
+         hVceCh->picture.stState.bPreviousPictureIdValid = true;
+         hVceCh->picture.stState.uiPreviousPictureId = pstPicture->ulPictureId;
+
+         if ( true == hVceCh->stStartEncodeSettings.bNonRealTimeEncodeMode )
+         {
+            uint64_t uiNewPTSLocalin90Khz = hVceCh->picture.stState.uiNextNewPTSIn360Khz/4;
+            /* Generate PTS */
+            uiNewPTSin90Khz = ( uiNewPTSLocalin90Khz >> 32 ) & 0x1;
+            uiNewPTSin90Khz <<= 32;
+            uiNewPTSin90Khz |= uiNewPTSLocalin90Khz & 0xFFFFFFFF;
+            hVceCh->picture.stState.uiNextNewPTSIn360Khz += BVCE_P_PI2FW_FrameRate2DeltaPtsLUT[pstPicture->eFrameRate];
+         }
+         else
+         {
+            /* Use STC Snapshot for PTS */
+            uiNewPTSin90Khz = pstPicture->ulSTCSnapshotHi;
+            uiNewPTSin90Khz <<= 32;
+            uiNewPTSin90Khz |= pstPicture->ulSTCSnapshotLo;
+            uiNewPTSin90Khz /= 300;
+         }
+         uiCurrentSTCin45Khz = uiNewPTSin90Khz/2;
+
+         if ( true == hVceCh->stEncodeSettings.stFrameRate.bSparseFrameRateMode ) /* Sparse Mode */
+         {
+            if ( ( true == hVceCh->picture.stState.bLastOriginalPTSValid )
+                 && ( pstPicture->ulOriginalPTS == hVceCh->picture.stState.ulLastOriginalPTS ) )
+            {
+               /* Drop the frame */
+               ePictureResult = BVCE_P_PictureResult_eDropDueToFRC;
+            }
+         }
+         else if ( BAVC_Polarity_eFrame == pstPicture->ePolarity ) /* Frame Rate Conversion */
+         {
+            rc = BERR_TRACE( BVCE_P_FrameRateConversionLUT_isrsafe( pstPicture->eFrameRate, hVceCh->stEncodeSettings.stFrameRate.eFrameRate, &stFrameRateConversionSettings ) );
+            if ( BERR_SUCCESS == rc )
+            {
+               uint32_t uiTargetPTSin45Khz = hVceCh->picture.stState.uiNextTargetPTSin360Khz/8;
+               int32_t iDeltaTargetPtsStc = (int32_t) (uiTargetPTSin45Khz - uiCurrentSTCin45Khz);
+
+               /* For 60 --> 24 conversion, make sure STC = PTS when Locked to 3:2 and in Phase 0 */
+               if ( ( true == stFrameRateConversionSettings.bIs60to24 )
+                     && ( BAVC_CadenceType_e3_2 == pstPicture->stCadence.type )
+                     && ( BAVC_CadencePhase_e0 == pstPicture->stCadence.phase )
+                     && ( ( iDeltaTargetPtsStc > 2 ) || ( iDeltaTargetPtsStc < -2 ) ) ) /* +/- 2 is to account for STC jitter */
+               {
+                  BDBG_MSG(("3:2 Phase 0 TargetPTS Reset"));
+                  hVceCh->picture.stState.bNextTargetPTSin360KhzValid = false;
+               }
+
+               if ( false == hVceCh->picture.stState.bNextTargetPTSin360KhzValid )
+               {
+                  /* Seed the next target PTS to equal the current STC */
+                  BDBG_MSG(("Reset TargetPTS %#x --> %#x", uiTargetPTSin45Khz, uiCurrentSTCin45Khz));
+                  uiTargetPTSin45Khz = uiCurrentSTCin45Khz;
+                  hVceCh->picture.stState.uiNextTargetPTSin360Khz = uiCurrentSTCin45Khz*8;
+                  hVceCh->picture.stState.bNextTargetPTSin360KhzValid = true;
+               }
+
+               /* For 60 --> 24 conversion, override the uiNewPTS */
+               if ( true == stFrameRateConversionSettings.bIs60to24 )
+               {
+                  uint64_t uiNewPTSLocalin90Khz = hVceCh->picture.stState.uiNextTargetPTSin360Khz/4;
+                  /* Generate PTS */
+                  uiNewPTSin90Khz = ( uiNewPTSLocalin90Khz >> 32 ) & 0x1;
+                  uiNewPTSin90Khz <<= 32;
+                  uiNewPTSin90Khz |= uiNewPTSLocalin90Khz & 0xFFFFFFFF;
+               }
+
+               if ( ((int32_t) (uiTargetPTSin45Khz - uiCurrentSTCin45Khz)) > 2) /* 2 is to account for STC jitter */
+               {
+                  /* Drop the frame */
+                  ePictureResult = BVCE_P_PictureResult_eDropDueToFRC;
+                  BDBG_MSG(("D: stc:%#x < targetPts:%#x", uiCurrentSTCin45Khz, uiTargetPTSin45Khz));
+               }
+               else
+               {
+                  BDBG_MSG(("E: stc:%#x >= targetPts:%#x", uiCurrentSTCin45Khz, uiTargetPTSin45Khz));
+                  hVceCh->picture.stState.uiNextTargetPTSin360Khz += BVCE_P_PI2FW_FrameRate2DeltaPtsLUT[stFrameRateConversionSettings.eEffectiveFrameRate];
+               }
+            }
+            else
+            {
+               BDBG_ERR(("[%d] ERROR: Invalid frame rate conversion (%u --> %u)", hVceCh->stOpenSettings.uiInstance, pstPicture->eFrameRate, hVceCh->stEncodeSettings.stFrameRate.eFrameRate));
+               ePictureResult = BVCE_P_PictureResult_eDropDueToError;
+            }
+         }
+         else
+         {
+            /* Check if we've received the same polarity from VDC twice */
+            if ( ( true == hVceCh->picture.stState.bPreviousPolarityReceivedValid )
+                 && ( hVceCh->picture.stState.ePreviousPolarityReceived == pstPicture->ePolarity ) )
+            {
+               /* If we've encoded the same polarity previously, then drop the frame and print an error */
+               if ( ( true == hVceCh->picture.stState.bPreviousPolarityEncodedValid )
+                    && ( pstPicture->ePolarity == hVceCh->picture.stState.ePreviousPolarityEncoded ) )
+               {
+                  BDBG_ERR(("[%d] ERROR: Duplicate Polarity received for pic id %u (%u)", hVceCh->stOpenSettings.uiInstance, pstPicture->ulPictureId, hVceCh->picture.stState.stats.uiNumReceived ));
+                  rc = BERR_TRACE(BERR_UNKNOWN);
+                  ePictureResult = BVCE_P_PictureResult_eDropDueToPolarity;
+               }
+               else
+               {
+                  if ( false == hVceCh->stStartEncodeSettings.bNonRealTimeEncodeMode )
+                  {
+                     /* If we have not encoded the same polarity previously, then encode the frame and print a warning */
+                     BDBG_WRN(("[%d] WARNING: Duplicate Polarity received for pic id %u (%u)", hVceCh->stOpenSettings.uiInstance, pstPicture->ulPictureId, hVceCh->picture.stState.stats.uiNumReceived ));
+                  }
+               }
+            }
+
+            hVceCh->picture.stState.ePreviousPolarityReceived = pstPicture->ePolarity;
+            hVceCh->picture.stState.bPreviousPolarityReceivedValid = true;
+
+            /* Check if we've encoded the same polarity previously */
+            if ( ( true == hVceCh->picture.stState.bPreviousPolarityEncodedValid )
+                 && ( pstPicture->ePolarity == hVceCh->picture.stState.ePreviousPolarityEncoded ) )
+            {
+               BDBG_ERR(("[%d] ERROR: Duplicate Polarity encoded for pic id %u (%u)", hVceCh->stOpenSettings.uiInstance, pstPicture->ulPictureId, hVceCh->picture.stState.stats.uiNumReceived ));
+               rc = BERR_TRACE(BERR_UNKNOWN);
+               ePictureResult = BVCE_P_PictureResult_eDropDueToPolarity;
+            }
+         }
+
+         hVceCh->picture.stState.bLastOriginalPTSValid = true;
+         hVceCh->picture.stState.ulLastOriginalPTS = pstPicture->ulOriginalPTS;
+
+         if ( BVCE_P_PictureResult_eEncode == ePictureResult )
+         {
+            /* Check if LUT is full */
+            for ( ePictureBufferType = 0; ePictureBufferType < BVCE_P_PictureBufferType_eMax; ePictureBufferType++ )
+            {
+               if ( BVCE_P_PICTURE_OFFSET_LUT_SIZE == hVceCh->picture.stState.astLUT[ePictureBufferType].uiNumEntries )
+               {
+                  if ( false == hVceCh->stStartEncodeSettings.bNonRealTimeEncodeMode )
+                  {
+                     BDBG_ERR(("[%d] ERROR: PI LUT full in RT mode for pic id %u (%u) (deltaSTC = %u ms)", hVceCh->stOpenSettings.uiInstance, pstPicture->ulPictureId, hVceCh->picture.stState.stats.uiNumReceived, (pstPicture->ulSTCSnapshotLo - hVceCh->picture.stState.uiPreviousSTCSnapshotLo)/27000));
+                     rc = BERR_TRACE(BERR_UNKNOWN);
+                     ePictureResult = BVCE_P_PictureResult_eDropDueToError;
+                  }
+                  else
+                  {
+                     /* If in NRT mode, we just wait */
+                     ePictureResult = BVCE_P_PictureResult_eWait;
+                  }
+                  break;
+               }
+            }
+         }
+
+         if ( BVCE_P_PictureResult_eEncode == ePictureResult )
+         {
+   #ifdef BVCE_P_PIC_LOOPBACK_TEST_MODE
+            /* Force mailbox bit to not be busy so that we always "queue" the picture when in loopback test mode */
+            hVceCh->picture.stState.stPictureBufferMailbox.uiMetadata = 0;
+   #else
+            /* Read the FW Mailbox Info */
+            {
+               unsigned uiMetadataOffset = ( (uint8_t*) (&hVceCh->picture.stState.stPictureBufferMailbox.uiMetadata) - (uint8_t*) (&hVceCh->picture.stState.stPictureBufferMailbox) );
+
+               /* Read the metadata field containing the busy flag */
+               /* coverity[address_of] */
+               /* coverity[callee_ptr_arith] */
+               BVCE_P_ReadRegisters_isr(
+                        hVceCh->hVce,
+                        hVceCh->hVce->stPlatformConfig.stPictureMailbox[hVceCh->stOpenSettings.uiInstance].uiBufferAddress + uiMetadataOffset,
+                        (uint32_t*) (&hVceCh->picture.stState.stPictureBufferMailbox.uiMetadata),
+                        sizeof( hVceCh->picture.stState.stPictureBufferMailbox.uiMetadata )
+                        );
+            }
+   #endif
+
+            /* Check if the busy flag is set in the BVN2VICE MBOX */
+            if ( 0 == ( hVceCh->picture.stState.stPictureBufferMailbox.uiMetadata & BVCE_P_FW_PictureBufferMailbox_Metadata_BUSY_MASK ) )
+            {
+               BKNI_Memset( &hVceCh->picture.stState.stPictureBufferMailbox, 0, sizeof( BVCE_P_FW_PictureBufferMailbox ) );
+
+               BDBG_ASSERT( true == pstPicture->bStriped );
+               /* Unused Fields
+                *  - ulStripeWidth
+                *  - ulLumaNMBY
+                *  - ulChromaNMBY
+                *  - ulWidthInMbs
+                *  - ulHeightInMbs
+                */
+
+               /* Fill on MBOX Info */
+               /************/
+               /* Metadata */
+               /************/
+               /* Busy Flag */
+               hVceCh->picture.stState.stPictureBufferMailbox.uiMetadata |= BVCE_P_FW_PictureBufferMailbox_Metadata_BUSY_MASK;
+
+               /* Channel Change Flag */
+               hVceCh->picture.stState.stPictureBufferMailbox.uiMetadata |= pstPicture->bChannelChange ? BVCE_P_FW_PictureBufferMailbox_Metadata_CHANNEL_CHANGE_MASK : 0;
+
+               /* Last Flag */
+               hVceCh->picture.stState.stPictureBufferMailbox.uiMetadata |= pstPicture->bLast ? BVCE_P_FW_PictureBufferMailbox_Metadata_CHANNEL_CHANGE_MASK : 0;
+
+               /****************/
+               /* Picture Info */
+               /****************/
+               {
+                  /* We compute the cropping info based on the resolution rounded up to 8x8 blocks */
+                  unsigned uiHorizontalPadding = 0;
+                  unsigned uiVerticalPadding = 0;
+
+                  if ( 0 != ( pstPicture->ulWidth % 8 ) )
+                  {
+                     uiHorizontalPadding = 8 - ( pstPicture->ulWidth % 8 );
+                  }
+
+                  if ( 0 != ( pstPicture->ulHeight % 8 ) )
+                  {
+                     uiVerticalPadding = 8 - ( pstPicture->ulHeight % 8 );
+                  }
+
+                  /* Resolution */
+                  hVceCh->picture.stState.stPictureBufferMailbox.uiResolution |= ( ( ( ( pstPicture->ulWidth + uiHorizontalPadding ) / 8 ) << BVCE_P_FW_PictureBufferMailbox_Resolution_HORIZONTAL_SIZE_IN_8x8_BLOCKS_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_Resolution_HORIZONTAL_SIZE_IN_8x8_BLOCKS_MASK );
+                  hVceCh->picture.stState.stPictureBufferMailbox.uiResolution |= ( ( ( ( pstPicture->ulHeight + uiVerticalPadding ) / 8 ) << BVCE_P_FW_PictureBufferMailbox_Resolution_VERTICAL_SIZE_IN_8x8_BLOCKS_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_Resolution_VERTICAL_SIZE_IN_8x8_BLOCKS_MASK );
+
+                  /* Cropping */
+                  hVceCh->picture.stState.stPictureBufferMailbox.uiCropping |= ( ( uiHorizontalPadding << BVCE_P_FW_PictureBufferMailbox_Cropping_HORIZONTAL_SIZE_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_Cropping_HORIZONTAL_SIZE_MASK );
+                  hVceCh->picture.stState.stPictureBufferMailbox.uiCropping |= ( ( uiVerticalPadding << BVCE_P_FW_PictureBufferMailbox_Cropping_VERTICAL_SIZE_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_Cropping_VERTICAL_SIZE_MASK );
+               }
+
+               /* Sample Aspect Ratio */
+               hVceCh->picture.stState.stPictureBufferMailbox.uiSampleAspectRatio |= ( ( pstPicture->ulAspectRatioX << BVCE_P_FW_PictureBufferMailbox_SampleAspectRatio_HORIZONTAL_SIZE_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_SampleAspectRatio_HORIZONTAL_SIZE_MASK );
+               hVceCh->picture.stState.stPictureBufferMailbox.uiSampleAspectRatio |= ( ( pstPicture->ulAspectRatioY << BVCE_P_FW_PictureBufferMailbox_SampleAspectRatio_VERTICAL_SIZE_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_SampleAspectRatio_VERTICAL_SIZE_MASK );
+
+               /* Bar Data */
+               hVceCh->picture.stState.stPictureBufferMailbox.uiBarData |= ( ( BVCE_P_PI2FW_BarDataTypeLUT[pstPicture->stBarData.eType] << BVCE_P_FW_PictureBufferMailbox_BarData_TYPE_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_BarData_TYPE_MASK );
+               hVceCh->picture.stState.stPictureBufferMailbox.uiBarData |= ( ( pstPicture->stBarData.uiBotRight << BVCE_P_FW_PictureBufferMailbox_BarData_BOTTOM_RIGHT_VALUE_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_BarData_BOTTOM_RIGHT_VALUE_MASK );
+               hVceCh->picture.stState.stPictureBufferMailbox.uiBarData |= ( ( pstPicture->stBarData.uiTopLeft << BVCE_P_FW_PictureBufferMailbox_BarData_TOP_LEFT_VALUE_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_BarData_TOP_LEFT_VALUE_MASK );
+
+               /* Polarity */
+               hVceCh->picture.stState.stPictureBufferMailbox.uiFormatInfo |= ( ( BVCE_P_PI2FW_PolarityLUT[pstPicture->ePolarity] << BVCE_P_FW_PictureBufferMailbox_FormatInfo_POLARITY_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_FormatInfo_POLARITY_MASK );
+
+               /* Cadence */
+               {
+                  BAVC_CadenceType eType = pstPicture->stCadence.type;
+                  BAVC_CadencePhase ePhase = pstPicture->stCadence.phase;
+
+                  hVceCh->picture.stState.stPictureBufferMailbox.uiFormatInfo |= ( ( BVCE_P_PI2FW_CadenceTypeLUT[eType] << BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_TYPE_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_TYPE_MASK );
+                  hVceCh->picture.stState.stPictureBufferMailbox.uiFormatInfo |= ( ( BVCE_P_PI2FW_CadencePhaseLUT[ePhase] << BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_PHASE_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_PHASE_MASK );
+               }
+
+
+               /* Active Format Description (AFD) */
+               hVceCh->picture.stState.stPictureBufferMailbox.uiFormatInfo |= pstPicture->stAFD.bValid ? BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_VALID_MASK : 0;
+               hVceCh->picture.stState.stPictureBufferMailbox.uiFormatInfo |= ( ( pstPicture->stAFD.uiMode << BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_MODE_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_MODE_MASK );
+
+               /* Orientation */
+               hVceCh->picture.stState.stPictureBufferMailbox.uiFormatInfo |= ( ( BVCE_P_PI2FW_OrientationLUT[pstPicture->eOrientation] << BVCE_P_FW_PictureBufferMailbox_FormatInfo_ORIENTATION_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_FormatInfo_ORIENTATION_MASK );
+
+               /**********/
+               /* Timing */
+               /**********/
+               /* Frame Rate */
+               hVceCh->picture.stState.stPictureBufferMailbox.uiTimingInfo |= ( ( BVCE_P_PI2FW_FrameRate2DeltaPtsLUT[stFrameRateConversionSettings.eEffectiveFrameRate] << BVCE_P_FW_PictureBufferMailbox_TimingInfo_DELTA_PTS_IN_360KHZ_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_TimingInfo_DELTA_PTS_IN_360KHZ_MASK );
+
+               /* New PTS */
+               hVceCh->picture.stState.stPictureBufferMailbox.uiTimingInfo |= ( ( uiNewPTSin90Khz << BVCE_P_FW_PictureBufferMailbox_TimingInfo_NEW_PTS_LSB_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_TimingInfo_NEW_PTS_LSB_MASK );
+               hVceCh->picture.stState.stPictureBufferMailbox.uiNewPts = (uint32_t) (uiNewPTSin90Khz >> 1);
+
+               /* Original PTS */
+               hVceCh->picture.stState.stPictureBufferMailbox.uiOriginalPts = pstPicture->ulOriginalPTS;
+
+               /* Picture ID */
+               hVceCh->picture.stState.stPictureBufferMailbox.uiPictureId = pstPicture->ulPictureId;
+
+               /* STC Snapshot */
+               hVceCh->picture.stState.stPictureBufferMailbox.uiSTCSnapshotLo = pstPicture->ulSTCSnapshotLo;
+               hVceCh->picture.stState.stPictureBufferMailbox.uiSTCSnapshotHi = pstPicture->ulSTCSnapshotHi;
+
+               /* Set Buffer Info */
+               for ( ePictureBufferType = 0; ePictureBufferType < BVCE_P_PictureBufferType_eMax; ePictureBufferType++ )
+               {
+                  unsigned i;
+                  BVCE_P_PictureBlockInfo* pstPictureBlockInfo = NULL;
+
+                  /* Find free spot in LUT */
+                  for ( i = 0; i < BVCE_P_PICTURE_OFFSET_LUT_SIZE; i++ )
+                  {
+                     if ( false == hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].bInUse )
+                     {
+                        pstPictureBlockInfo = &hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].blockInfo;
+                        break;
+                     }
+                  }
+                  BDBG_ASSERT( i < BVCE_P_PICTURE_OFFSET_LUT_SIZE );
+
+                  if ( true == BVCE_S_AcquirePictureBlockInfoFromEncodePictureBuffer_isrsafe( pstPictureBlockInfo, pstPicture, ePictureBufferType ) )
+                  {
+                     /* Sanity check to make sure buffer isn't already in LUT */
+                     {
+                        unsigned j;
+                        for ( j = 0; j < BVCE_P_PICTURE_OFFSET_LUT_SIZE; j++ )
+                        {
+                           if ( true == hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[j].bInUse )
+                           {
+                              if ( hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[j].blockInfo.uiPhysicalOffset == pstPictureBlockInfo->uiPhysicalOffset )
+                              {
+                                 BDBG_ERR(("Buffer Queued Twice!"));
+                              }
+                           }
+                        }
+                     }
+
+                     hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].bInUse = true;
+                     hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].ePictureBufferType = ePictureBufferType;
+                     hVceCh->picture.stState.astLUT[ePictureBufferType].uiNumEntries++;
+                     BVCE_S_SetPictureBufferInfoFromPictureBlockInfo_isrsafe( &hVceCh->picture.stState.stPictureBufferMailbox, pstPictureBlockInfo, ePictureBufferType );
+                  }
+               }
+
+#ifndef BVCE_P_PIC_LOOPBACK_TEST_MODE
+               /* "DMA" MBOX to VICE DCCM */
+               BVCE_P_WriteRegisters_isr(
+                        hVceCh->hVce,
+                        hVceCh->hVce->stPlatformConfig.stPictureMailbox[hVceCh->stOpenSettings.uiInstance].uiBufferAddress,
+                        (uint32_t*) (&hVceCh->picture.stState.stPictureBufferMailbox),
+                        sizeof( BVCE_P_FW_PictureBufferMailbox )
+                        );
+
+               /* Trigger BVN2VICE MBOX Interrupt */
+               BDBG_ASSERT( 0 != hVceCh->hVce->stPlatformConfig.stPictureMailbox[hVceCh->stOpenSettings.uiInstance].uiInterruptAddress );
+
+               BREG_Write32(
+                  hVceCh->hVce->handles.hReg,
+                  hVceCh->hVce->stPlatformConfig.stPictureMailbox[hVceCh->stOpenSettings.uiInstance].uiInterruptAddress,
+                  hVceCh->hVce->stPlatformConfig.stPictureMailbox[hVceCh->stOpenSettings.uiInstance].uiInterruptMask
+               );
+#endif
+               rc = BERR_SUCCESS;
+            }
+            else if ( false == hVceCh->stStartEncodeSettings.bNonRealTimeEncodeMode )
+            {
+               /* If in RT mode, we should always have space in the FW queue, so we need to drop this picture and report an error */
+               BDBG_ERR(("[%d] ERROR: FW Mailbox full in RT mode for pic id %u (%u) (deltaSTC = %u ms elapsed = %u ms)", hVceCh->stOpenSettings.uiInstance, pstPicture->ulPictureId, hVceCh->picture.stState.stats.uiNumReceived,
+                     (pstPicture->ulSTCSnapshotLo - hVceCh->picture.stState.uiPreviousSTCSnapshotLo)/27000,
+                     (uiEnqueueSTCSnapshotLo - hVceCh->picture.stState.uiPreviousEnqueueSTCSnapshotLo)/27000
+               ));
+               rc = BERR_TRACE(BERR_UNKNOWN);
+               ePictureResult = BVCE_P_PictureResult_eDropDueToError;
+            }
+            else
+            {
+               /* If in NRT mode, we just wait */
+               ePictureResult = BVCE_P_PictureResult_eWait;
+            }
+         }
+      }
+
+      switch ( ePictureResult )
+      {
+         case BVCE_P_PictureResult_eDropDueToError:
+         case BVCE_P_PictureResult_eDropDueToFRC:
+         case BVCE_P_PictureResult_eDropDueToPolarity:
+            rc = BVCE_S_Channel_Picture_Drop_Enqueue_isr( hVceCh, pstPicture );
+            if ( BERR_SUCCESS != rc )
+            {
+               if ( true == hVceCh->stStartEncodeSettings.bNonRealTimeEncodeMode )
+               {
+                  /* If in NRT mode, we just wait */
+                  ePictureResult = BVCE_P_PictureResult_eWait;
+               }
+               else
+               {
+                  ePictureResult = BVCE_P_PictureResult_eError;
+                  rc = BERR_TRACE(BERR_UNKNOWN);
+               }
+            }
+            break;
+         default:
+            break;
+      }
+
+      BVCE_P_FUNCTION_TRACE_LEAVE_isr( 1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance );
+      BDBG_LEAVE( BVCE_Channel_Picture_Enqueue_isr );
+
+      /* Update Stats */
+      switch ( ePictureResult )
+      {
+         case BVCE_P_PictureResult_eDropDueToError:
+            hVceCh->picture.stState.stats.uiNumReceived++;
+            hVceCh->picture.stState.stats.uiNumDroppedDueToError++;
+            BVCE_P_DEBUG_ENTRY_isr( hVceCh->hVce, ePictureBufferDropEnqueue, hVceCh->stOpenSettings.uiInstance, *pstPicture );
+            break;
+
+         case BVCE_P_PictureResult_eDropDueToFRC:
+            hVceCh->picture.stState.stats.uiNumReceived++;
+            hVceCh->picture.stState.stats.uiNumDroppedDueToFRC++;
+            BVCE_P_DEBUG_ENTRY_isr( hVceCh->hVce, ePictureBufferDropEnqueue, hVceCh->stOpenSettings.uiInstance, *pstPicture );
+            break;
+
+         case BVCE_P_PictureResult_eEncode:
+            hVceCh->picture.stState.stats.uiNumReceived++;
+            hVceCh->picture.stState.stats.uiNumSentToVice++;
+            hVceCh->picture.stState.ePreviousPolarityEncoded = pstPicture->ePolarity;
+            hVceCh->picture.stState.bPreviousPolarityEncodedValid = true;
+            BVCE_P_DEBUG_ENTRY_isr( hVceCh->hVce, ePictureBufferEnqueue, hVceCh->stOpenSettings.uiInstance, hVceCh->picture.stState.stPictureBufferMailbox );
+            break;
+
+         case BVCE_P_PictureResult_eDropDueToPolarity:
+            if ( 0 != hVceCh->picture.stState.stats.uiNumReceived )
+            {
+               hVceCh->picture.stState.stats.uiNumReceived++;
+               hVceCh->picture.stState.stats.uiNumDroppedDueToError++;
+               BDBG_ERR(("Drop due to Polarity Mismatch"));
+            }
+            BVCE_P_DEBUG_ENTRY_isr( hVceCh->hVce, ePictureBufferDropEnqueue, hVceCh->stOpenSettings.uiInstance, *pstPicture );
+            break;
+
+         case BVCE_P_PictureResult_eWait:
+            return BERR_NOT_AVAILABLE;
+            break;
+
+         default:
+            break;
+      }
+
+      hVceCh->picture.stState.uiPreviousSTCSnapshotLo = pstPicture->ulSTCSnapshotLo;
+
+      hVceCh->picture.stState.uiPreviousEnqueueSTCSnapshotLo = uiEnqueueSTCSnapshotLo;
+      hVceCh->picture.stState.bPreviousEnqueueSTCSnapshotLoValid = true;
+
+      return BERR_TRACE( rc );
+   }
+   else
+   {
+      return BERR_NOT_AVAILABLE;
+   }
+#else
+   BSTD_UNUSED(hVceCh);
+   BSTD_UNUSED(pstPicture);
+   return BERR_TRACE(BERR_NOT_SUPPORTED);
+#endif
+}
+
+BERR_Code
+BVCE_Channel_Picture_Dequeue_isr(
+      BVCE_Channel_Handle hVceCh,
+      BAVC_EncodePictureBuffer *pstPicture
+      )
+{
+#if (BVCE_P_VDC_MANAGE_VIP)
+   BERR_Code rc = BERR_NOT_AVAILABLE;
+   BVCE_P_PictureBufferType ePictureBufferType;
+   bool bDropFrame = false;
+
+   BDBG_ENTER( BVCE_Channel_Picture_Dequeue_isr );
+   BVCE_P_FUNCTION_TRACE_ENTER_isr( 1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance );
+
+   BDBG_ASSERT( hVceCh );
+   BDBG_ASSERT( pstPicture );
+
+   BKNI_Memset( pstPicture, 0, sizeof( BAVC_EncodePictureBuffer) );
+   BKNI_Memset( &hVceCh->picture.stState.stPictureBufferMailbox, 0, sizeof( BVCE_P_FW_PictureBufferMailbox ) );
+
+   {
+      rc = BVCE_S_Channel_Picture_Drop_Dequeue_isr( hVceCh, pstPicture );
+
+      if ( rc == BERR_SUCCESS )
+      {
+         bDropFrame = true;
+      }
+   }
+
+   if ( BERR_NOT_AVAILABLE == rc )
+   {
+      /* Loop through each release queue */
+      for ( ePictureBufferType = 0; ePictureBufferType < BVCE_P_PictureBufferType_eMax; ePictureBufferType++ )
+      {
+#ifdef BVCE_P_PIC_LOOPBACK_TEST_MODE
+         /* Write fake queue entry for this buffer type */
+         /* Zero out temp local buffer queue */
+         BKNI_Memset( &hVceCh->picture.stState.stPictureBufferQueue, 0, sizeof( BVCE_P_FW_PictureBuffer_Queue ) );
+
+         /* See if a buffer of this type is available in the LUT */
+         {
+            unsigned i;
+
+            if ( 0 != hVceCh->picture.stState.astLUT[ePictureBufferType].uiNumEntries )
+            {
+               /* Find physical buffer address in LUT */
+               for ( i = 0; i < BVCE_P_PICTURE_OFFSET_LUT_SIZE; i++ )
+               {
+                  if ( true == hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].bInUse )
+                  {
+                     if ( hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].ePictureBufferType == ePictureBufferType )
+                     {
+                        hVceCh->picture.stState.stPictureBufferQueue.astQueue[hVceCh->picture.stState.stPictureBufferQueue.uiReadOffset].uiOffset = hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].blockInfo.uiPhysicalOffset;
+                        hVceCh->picture.stState.stPictureBufferQueue.uiWriteOffset++;
+                        break;
+                     }
+                  }
+               }
+            }
+         }
+#else
+         if ( ( false == hVceCh->hVce->bWatchdogOccurred )
+              &&  ( ( BVCE_P_Status_eStarted == hVceCh->eStatus )
+                    || ( BVCE_P_Status_eStopping == hVceCh->eStatus ) ) )
+
+         {
+            /* Read the Picture Buffer Queue Info */
+            BVCE_P_ReadRegisters_isr(
+                     hVceCh->hVce,
+                     hVceCh->picture.dccm.auiPictureReleaseQueueInfoAddress[ePictureBufferType],
+                     (uint32_t*) (&hVceCh->picture.stState.stPictureBufferQueue),
+                     sizeof( BVCE_P_FW_PictureBuffer_Queue )
+                     );
+         }
+         else
+         {
+            if ( 0 == hVceCh->picture.stState.astLUT[ePictureBufferType].uiNumEntries )
+            {
+               hVceCh->picture.stState.stPictureBufferQueue.uiWriteOffset = hVceCh->picture.stState.stPictureBufferQueue.uiReadOffset;
+            }
+            else
+            {
+               unsigned i;
+
+               hVceCh->picture.stState.stPictureBufferQueue.uiWriteOffset = ( hVceCh->picture.stState.stPictureBufferQueue.uiReadOffset + 1 ) % BVCE_P_FW_PICTURE_QUEUE_LENGTH;
+
+               for ( i = 0; i < BVCE_P_PICTURE_OFFSET_LUT_SIZE; i++ )
+               {
+                  if ( ( true == hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].bInUse )
+                       && ( hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].ePictureBufferType == ePictureBufferType ) )
+                  {
+                     hVceCh->picture.stState.stPictureBufferQueue.astQueue[hVceCh->picture.stState.stPictureBufferQueue.uiReadOffset].uiOffsetHi = ( hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].blockInfo.uiPhysicalOffset >> 32 ) & 0xFFFFFFFF;
+                     hVceCh->picture.stState.stPictureBufferQueue.astQueue[hVceCh->picture.stState.stPictureBufferQueue.uiReadOffset].uiOffsetLo = hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].blockInfo.uiPhysicalOffset & 0xFFFFFFFF;
+                  }
+               }
+            }
+         }
+#endif
+
+         /* Check read/write ptrs to see if data exists */
+         if ( hVceCh->picture.stState.stPictureBufferQueue.uiReadOffset != hVceCh->picture.stState.stPictureBufferQueue.uiWriteOffset )
+         {
+            unsigned i;
+            BVCE_P_PictureBlockInfo* pstPictureBlockInfo = NULL;
+
+            if ( 0 == hVceCh->picture.stState.astLUT[ePictureBufferType].uiNumEntries )
+            {
+               /* Handle scenario where the release queue is stale from a previous session */
+               hVceCh->picture.stState.stPictureBufferQueue.uiReadOffset = hVceCh->picture.stState.stPictureBufferQueue.uiWriteOffset;
+            }
+            else
+            {
+               /* Find physical buffer address in LUT */
+               for ( i = 0; i < BVCE_P_PICTURE_OFFSET_LUT_SIZE; i++ )
+               {
+                  if ( ( true == hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].bInUse )
+                        && ( hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].ePictureBufferType == ePictureBufferType ) )
+                  {
+                     if ( ( hVceCh->picture.stState.stPictureBufferQueue.astQueue[hVceCh->picture.stState.stPictureBufferQueue.uiReadOffset].uiOffsetHi == ( ( hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].blockInfo.uiPhysicalOffset >> 32 ) & 0xFFFFFFFF ) )
+                          && ( hVceCh->picture.stState.stPictureBufferQueue.astQueue[hVceCh->picture.stState.stPictureBufferQueue.uiReadOffset].uiOffsetLo == ( hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].blockInfo.uiPhysicalOffset & 0xFFFFFFFF ) ) )
+                     {
+                        /* We found the matching block */
+                        pstPictureBlockInfo = &hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].blockInfo;
+                        break;
+                     }
+                  }
+               }
+               BDBG_ASSERT( i < BVCE_P_PICTURE_OFFSET_LUT_SIZE );
+
+               hVceCh->picture.stState.astLUT[ePictureBufferType].astEntry[i].bInUse = false;
+               hVceCh->picture.stState.astLUT[ePictureBufferType].uiNumEntries--;
+               BVCE_S_ReleasePictureBlockInfoToEncodePictureBuffer_isrsafe( pstPictureBlockInfo, pstPicture, ePictureBufferType );
+
+               {
+                  BVCE_P_FW_PictureBufferOffset *pstPictureBufferOffset = NULL;
+
+                  switch ( ePictureBufferType )
+                  {
+                     case BVCE_P_PictureBufferType_eLuma:
+                        pstPictureBufferOffset = &hVceCh->picture.stState.stPictureBufferMailbox.LumaBufPtr.stOffset;
+                        break;
+
+                     case BVCE_P_PictureBufferType_eChroma:
+                        pstPictureBufferOffset = &hVceCh->picture.stState.stPictureBufferMailbox.ChromaBufPtr.stOffset;
+                        break;
+
+                     case BVCE_P_PictureBufferType_e1VLuma:
+                        pstPictureBufferOffset = &hVceCh->picture.stState.stPictureBufferMailbox.Luma1VBufPtr.stOffset;
+                        break;
+
+                     case BVCE_P_PictureBufferType_e2VLuma:
+                        pstPictureBufferOffset = &hVceCh->picture.stState.stPictureBufferMailbox.Luma2VBufPtr.stOffset;
+                        break;
+
+                     case BVCE_P_PictureBufferType_eShiftedChroma:
+                        pstPictureBufferOffset = &hVceCh->picture.stState.stPictureBufferMailbox.ShiftedChromaBufPtr.stOffset;
+                        break;
+
+                     default:
+                        BDBG_ASSERT(0);
+                  }
+
+                  *pstPictureBufferOffset = hVceCh->picture.stState.stPictureBufferQueue.astQueue[hVceCh->picture.stState.stPictureBufferQueue.uiReadOffset];
+               }
+
+               /* Update read pointer */
+               hVceCh->picture.stState.stPictureBufferQueue.uiReadOffset++;
+               hVceCh->picture.stState.stPictureBufferQueue.uiReadOffset %= BVCE_P_FW_PICTURE_QUEUE_LENGTH;
+
+               rc = BERR_SUCCESS;
+            }
+#ifndef BVCE_P_PIC_LOOPBACK_TEST_MODE
+            {
+               unsigned uiReadOffset = ( (uint8_t*) (&hVceCh->picture.stState.stPictureBufferQueue.uiReadOffset) - (uint8_t*) (&hVceCh->picture.stState.stPictureBufferQueue) );
+
+               /* coverity[address_of] */
+               /* coverity[callee_ptr_arith] */
+               BVCE_P_WriteRegisters_isr(
+                        hVceCh->hVce,
+                        hVceCh->picture.dccm.auiPictureReleaseQueueInfoAddress[ePictureBufferType] + uiReadOffset,
+                        (uint32_t*) (&hVceCh->picture.stState.stPictureBufferQueue.uiReadOffset),
+                        sizeof( hVceCh->picture.stState.stPictureBufferQueue.uiReadOffset )
+                        );
+            }
+#endif
+         }
+      }
+   }
+
+   BVCE_P_FUNCTION_TRACE_LEAVE_isr( 1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance );
+   BDBG_LEAVE( BVCE_Channel_Picture_Dequeue_isr );
+
+   if ( BERR_NOT_AVAILABLE != rc )
+   {
+      if ( true == bDropFrame )
+      {
+         BVCE_P_DEBUG_ENTRY_isr( hVceCh->hVce, ePictureBufferDropDequeue, hVceCh->stOpenSettings.uiInstance, *pstPicture );
+      }
+      else
+      {
+         BVCE_P_DEBUG_ENTRY_isr( hVceCh->hVce, ePictureBufferDequeue, hVceCh->stOpenSettings.uiInstance, hVceCh->picture.stState.stPictureBufferMailbox );
+      }
+      return BERR_TRACE( rc );
+   }
+   else
+   {
+      return rc;
+   }
+#else
+   BSTD_UNUSED(hVceCh);
+   BSTD_UNUSED(pstPicture);
+   return BERR_TRACE(BERR_NOT_SUPPORTED);
+#endif
+}
 
 BERR_Code
 BVCE_Channel_UserData_GetStatus_isr(
@@ -7154,7 +8556,6 @@ BVCE_Channel_UserData_GetStatus_isr(
       )
 {
    BERR_Code rc = BERR_SUCCESS;
-   BVCE_FW_P_UserData_Queue stUserDataQueue;
 
    BDBG_ENTER( BVCE_Channel_UserData_GetStatus_isr );
 
@@ -7166,24 +8567,24 @@ BVCE_Channel_UserData_GetStatus_isr(
 
    if ( BVCE_P_Status_eStarted == hVceCh->eStatus )
    {
-      BKNI_Memset( &stUserDataQueue, 0, sizeof( BVCE_FW_P_UserData_Queue ) );
+      BKNI_Memset( &hVceCh->userdata.stUserDataQueue, 0, sizeof( BVCE_FW_P_UserData_Queue ) );
 
       /* Get FW Queue Info */
       BVCE_P_ReadRegisters_isr(
                hVceCh->hVce,
                hVceCh->userdata.dccm.uiUserDataQueueInfoAddress,
-               (uint32_t*) (&stUserDataQueue),
+               (uint32_t*) (&hVceCh->userdata.stUserDataQueue),
                sizeof( BVCE_FW_P_UserData_Queue )
                );
 
-      if ( stUserDataQueue.uiReadOffset < stUserDataQueue.uiWriteOffset )
+      if ( hVceCh->userdata.stUserDataQueue.uiReadOffset < hVceCh->userdata.stUserDataQueue.uiWriteOffset )
       {
-         pstUserDataStatus->uiPendingBuffers = stUserDataQueue.uiWriteOffset - stUserDataQueue.uiReadOffset;
+         pstUserDataStatus->uiPendingBuffers = hVceCh->userdata.stUserDataQueue.uiWriteOffset - hVceCh->userdata.stUserDataQueue.uiReadOffset;
       }
       else
       {
-         pstUserDataStatus->uiPendingBuffers = BVCE_FW_P_USERDATA_QUEUE_LENGTH - stUserDataQueue.uiReadOffset;
-         pstUserDataStatus->uiPendingBuffers += stUserDataQueue.uiWriteOffset;
+         pstUserDataStatus->uiPendingBuffers = BVCE_FW_P_USERDATA_QUEUE_LENGTH - hVceCh->userdata.stUserDataQueue.uiReadOffset;
+         pstUserDataStatus->uiPendingBuffers += hVceCh->userdata.stUserDataQueue.uiWriteOffset;
       }
 
       pstUserDataStatus->uiCompletedBuffers = hVceCh->userdata.uiQueuedBuffers - pstUserDataStatus->uiPendingBuffers;
@@ -7288,13 +8689,15 @@ BVCE_GetA2PDelayInfo(
 
          {
             unsigned uiGOPLength = 0;
+            BERR_Code rc;
 
-            BVCE_S_GOPStructureLUT(
+            rc = BVCE_S_GOPStructureLUT(
+               pstChStartEncodeSettings,
                &pstChStartEncodeSettings->stBounds.stGOPStructure,
                &uiGOPStructure,
                &uiGOPLength
                );
-
+            if ( rc != BERR_SUCCESS ) return BERR_TRACE( rc );
             uiGOPStructure &= GOP_STRUCTURE_MASK;
          }
 
@@ -7327,6 +8730,60 @@ BVCE_GetA2PDelayInfo(
                uiHeight,
                pstChStartEncodeSettings->uiNumParallelNRTEncodes
             );
+
+#if 1 /* FWVICE2-1087 Workaround to set min A2P delay based on 2 B-pictures */
+            switch ( uiGOPStructure )
+            {
+               case ENCODING_GOP_STRUCT_IBP:
+               case ENCODING_GOP_STRUCT_IBBP_B_REF:
+               case ENCODING_GOP_STRUCT_IBBBP:
+               case ENCODING_GOP_STRUCT_IBBBBBP:
+               case ENCODING_GOP_STRUCT_IBBBBBBBP:
+                  {
+                     uint32_t uiA2PDelayMin_FWVICE2_1087;
+                     uint32_t uiA2PDelayMax_FWVICE2_1087;
+
+                     uiA2PDelayMin_FWVICE2_1087 = BVCE_FW_P_CalcVideoA2Pdelay(
+                        &uiA2PDelayMax_FWVICE2_1087,
+                              uiProtocol,
+                              uiProfile,
+                              uiLevel,
+                              BVCE_P_PI2FW_FrameRateLUT[pstChEncodeSettings->stFrameRate.eFrameRate],
+                              (0 != pstChStartEncodeSettings->stBounds.stBitRate.stLargest.uiMax) ? pstChStartEncodeSettings->stBounds.stBitRate.stLargest.uiMax : pstChEncodeSettings->stBitRate.uiMax,
+                        BVCE_S_EncodeModeLUT( pstChStartEncodeSettings ),
+                        pstChStartEncodeSettings->uiRateBufferDelay,
+                        BVCE_P_PI2FW_FrameRateLUT[pstChStartEncodeSettings->stBounds.stFrameRate.eMin],
+                        BVCE_P_PI2FW_FrameRateLUT[pstChStartEncodeSettings->stBounds.stInputFrameRate.eMin],
+                        0,
+                        pstChEncodeSettings->bITFPEnable,
+                        BVCE_P_InputTypeLUT[pstChStartEncodeSettings->eInputType],
+                        ENCODING_GOP_STRUCT_IBBP,
+                        uiWidth,
+                        uiHeight,
+                        pstChStartEncodeSettings->uiNumParallelNRTEncodes
+                     );
+
+                     if ( uiA2PDelayMin_FWVICE2_1087 > uiA2PDelayMin )
+                     {
+                        if ( uiA2PDelayMax > uiA2PDelayMin_FWVICE2_1087 )
+                        {
+                           BDBG_WRN(("FWVICE2-1087 Workaround: Adjusting min A2P Delay from %u ms to %u ms (new min)",
+                                 uiA2PDelayMin / 27000,
+                                 uiA2PDelayMin_FWVICE2_1087 / 27000));
+                           uiA2PDelayMin = uiA2PDelayMin_FWVICE2_1087;
+                        }
+                        else
+                        {
+                           BDBG_WRN(("FWVICE2-1087 Workaround: Adjusting min A2P Delay from %u ms to %u ms (max)",
+                                 uiA2PDelayMin / 27000,
+                                 uiA2PDelayMax / 27000));
+                           uiA2PDelayMin = uiA2PDelayMax;
+                        }
+                     }
+                  }
+                  break;
+            }
+#endif
          }
 
          pstA2PDelay->uiMin = uiA2PDelayMin;
@@ -7431,6 +8888,7 @@ BVCE_GetMemoryConfig(
 void
 BVCE_Channel_GetDefaultMemoryBoundsSettings(
          const BBOX_Handle hBox,
+         const BVCE_Channel_MemorySettings *pstChMemorySettings,
          BVCE_Channel_MemoryBoundsSettings *pstChMemoryBoundsSettings
          )
 {
@@ -7447,24 +8905,66 @@ BVCE_Channel_GetDefaultMemoryBoundsSettings(
    stCoreSettings.eVersion = CORE_VERSION;
 
    /* Get default non-secure memory settings */
-#if (VICE_API_VERSION >= 0x08000000)
    BDBG_CWARNING( sizeof( BVCE_FW_P_NonSecureMemSettings_t ) == 10*4 );
-#else
-   BDBG_CWARNING( sizeof( BVCE_FW_P_NonSecureMemSettings_t ) == 9*4 );
-#endif
    BKNI_Memset( &stNonSecureMemSettings, 0, sizeof( BVCE_FW_P_NonSecureMemSettings_t ) );
    BVCE_FW_P_GetDefaultNonSecureMemSettings( &stCoreSettings, &stNonSecureMemSettings );
 
    /* Map private FW defaults to public VCE PI default */
-   BDBG_CWARNING( sizeof( BVCE_Channel_MemoryBoundsSettings ) == 5*4 );
+   BDBG_CWARNING( sizeof( BVCE_Channel_MemoryBoundsSettings ) == 7*4 );
    BKNI_Memset( pstChMemoryBoundsSettings, 0, sizeof( BVCE_Channel_MemoryBoundsSettings ) );
 
    pstChMemoryBoundsSettings->eInputType = BVCE_P_InputTypeReverseLUT[stNonSecureMemSettings.InputType];
    pstChMemoryBoundsSettings->stDimensions.stMax.uiHeight = stNonSecureMemSettings.MaxPictureHeightInPels;
    pstChMemoryBoundsSettings->stDimensions.stMax.uiWidth= stNonSecureMemSettings.MaxPictureWidthInPels;
 
+   switch ( stNonSecureMemSettings.MaxGopStructure )
+   {
+      case ENCODING_GOP_STRUCT_I:
+         pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfPFrames = 0;
+         pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfBFrames = 0;
+         break;
 
-   BVCE_Platform_P_OverrideChannelDefaultMemoryBoundsSettings( hBox, pstChMemoryBoundsSettings );
+      case ENCODING_GOP_STRUCT_IP:
+         pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfPFrames = 1;
+         pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfBFrames = 0;
+         break;
+
+      case ENCODING_GOP_STRUCT_INFINITE_IP:
+         pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfPFrames = 0xFFFFFFFF;
+         pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfBFrames = 0;
+         break;
+
+      case ENCODING_GOP_STRUCT_IBP:
+         pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfPFrames = 1;
+         pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfBFrames = 1;
+         break;
+
+      case ENCODING_GOP_STRUCT_IBBP:
+      case ENCODING_GOP_STRUCT_IBBP_B_REF:
+         pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfPFrames = 1;
+         pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfBFrames = 2;
+         break;
+
+      case ENCODING_GOP_STRUCT_IBBBP:
+         pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfPFrames = 1;
+         pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfBFrames = 3;
+         break;
+
+      case ENCODING_GOP_STRUCT_IBBBBBP:
+         pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfPFrames = 1;
+         pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfBFrames = 5;
+         break;
+
+      case ENCODING_GOP_STRUCT_IBBBBBBBP:
+         pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfPFrames = 1;
+         pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfBFrames = 7;
+         break;
+
+      default:
+         break;
+   }
+
+   BVCE_Platform_P_OverrideChannelDefaultMemoryBoundsSettings( hBox, pstChMemorySettings, pstChMemoryBoundsSettings );
 
    BDBG_LEAVE( BVCE_Channel_GetDefaultMemoryBoundsSettings );
 }
@@ -7484,11 +8984,11 @@ BVCE_Channel_GetMemoryConfig(
 
    BDBG_ASSERT( pstMemoryConfig );
 
-   BDBG_CWARNING( sizeof( BVCE_Channel_MemoryBoundsSettings ) == 5*4 );
+   BDBG_CWARNING( sizeof( BVCE_Channel_MemoryBoundsSettings ) == 7*4 );
 
    if ( NULL == pstChMemoryBoundsSettings )
    {
-      BVCE_Channel_GetDefaultMemoryBoundsSettings( hBox, &stChMemoryBoundsSettings );
+      BVCE_Channel_GetDefaultMemoryBoundsSettings( hBox, pstChMemorySettings, &stChMemoryBoundsSettings );
       pstChMemoryBoundsSettings = &stChMemoryBoundsSettings;
    }
 
@@ -7498,6 +8998,13 @@ BVCE_Channel_GetMemoryConfig(
 
    if ( 0 != uiNumInstances )
    {
+      BBOX_Config *pstBoxConfig = (BBOX_Config *) BKNI_Malloc( sizeof( BBOX_Config ) );
+
+      if ( NULL != pstBoxConfig )
+      {
+         BBOX_GetConfig( hBox, pstBoxConfig );
+      }
+
       /* SW7435-1069: Calculate non-secure memory requirmeents by calling BVCE_FW_P_CalcNonSecureMem() */
       {
          BVCE_FW_P_CoreSettings_t stCoreSettings;
@@ -7510,11 +9017,7 @@ BVCE_Channel_GetMemoryConfig(
 
          /* Populate non-secure memory settings */
 
-#if (VICE_API_VERSION >= 0x08000000)
          BDBG_CWARNING( sizeof( BVCE_FW_P_NonSecureMemSettings_t ) == 10*4 );
-#else
-         BDBG_CWARNING( sizeof( BVCE_FW_P_NonSecureMemSettings_t ) == 9*4 );
-#endif
          BKNI_Memset( &stNonSecureMemSettings, 0, sizeof( BVCE_FW_P_NonSecureMemSettings_t ) );
 
          BVCE_FW_P_GetDefaultNonSecureMemSettings( &stCoreSettings, &stNonSecureMemSettings );
@@ -7522,13 +9025,67 @@ BVCE_Channel_GetMemoryConfig(
          stNonSecureMemSettings.InputType = BVCE_P_InputTypeLUT[pstChMemoryBoundsSettings->eInputType];
          stNonSecureMemSettings.MaxPictureHeightInPels = BVCE_P_ALIGN_DIMENSION(pstChMemoryBoundsSettings->stDimensions.stMax.uiHeight);
          stNonSecureMemSettings.MaxPictureWidthInPels = BVCE_P_ALIGN_DIMENSION(pstChMemoryBoundsSettings->stDimensions.stMax.uiWidth);
+#if (BVCE_P_VDC_MANAGE_VIP)
+         stNonSecureMemSettings.NewBvnMailboxEnable = 1;
+#endif
+
+         switch ( pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfBFrames )
+         {
+            case 0:
+               switch ( pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfPFrames )
+               {
+                  case 0:
+                     stNonSecureMemSettings.MaxGopStructure = ENCODING_GOP_STRUCT_I;
+                     break;
+
+                  case 0xFFFFFFFF:
+                     stNonSecureMemSettings.MaxGopStructure = ENCODING_GOP_STRUCT_INFINITE_IP;
+                     break;
+
+                  default:
+                     stNonSecureMemSettings.MaxGopStructure = ENCODING_GOP_STRUCT_IP;
+                     break;
+               }
+               break;
+
+            case 1:
+               stNonSecureMemSettings.MaxGopStructure = ENCODING_GOP_STRUCT_IBP;
+               break;
+
+            case 3:
+               stNonSecureMemSettings.MaxGopStructure = ENCODING_GOP_STRUCT_IBBBP;
+               break;
+
+            case 5:
+               stNonSecureMemSettings.MaxGopStructure = ENCODING_GOP_STRUCT_IBBBBBP;
+               break;
+
+            case 7:
+               stNonSecureMemSettings.MaxGopStructure = ENCODING_GOP_STRUCT_IBBBBBBBP;
+               break;
+
+            case 2:
+            default:
+#if (BVCE_P_CORE_MAJOR < 3)
+               stNonSecureMemSettings.MaxGopStructure = ENCODING_GOP_STRUCT_IBBP;
+#else
+               stNonSecureMemSettings.MaxGopStructure = ENCODING_GOP_STRUCT_IBBP_B_REF;
+#endif
+               break;
+         }
 
          if ( NULL != pstChMemorySettings )
          {
             BERR_Code rc;
             BVCE_P_FirmwareMemorySettings stFirmwareMemorySettings;
+            unsigned uiPictureMemcIndex = 0;
 
-            rc = BVCE_S_PopulateFirmwareMemorySettings( pstChMemorySettings->pstMemoryInfo, &stFirmwareMemorySettings );
+            if ( NULL != pstBoxConfig )
+            {
+               uiPictureMemcIndex = pstBoxConfig->stVce.stInstance[pstChMemorySettings->uiInstance].uiMemcIndex;
+            }
+
+            rc = BVCE_S_PopulateFirmwareMemorySettings( pstChMemorySettings->pstMemoryInfo, &stFirmwareMemorySettings, uiPictureMemcIndex );
 
             if ( BERR_SUCCESS == rc )
             {
@@ -7539,14 +9096,14 @@ BVCE_Channel_GetMemoryConfig(
             }
          }
 
-         BDBG_MODULE_MSG(BVCE_MEMORY, ("StripeWidth=%d, X=%d, Y=%d", stNonSecureMemSettings.DramStripeWidth, stNonSecureMemSettings.X, stNonSecureMemSettings.Y));
+         BDBG_MODULE_MSG(BVCE_MEMORY, ("StripeWidth=%d, X=%d, Y=%d, PageSize=%d", stNonSecureMemSettings.DramStripeWidth, stNonSecureMemSettings.X, stNonSecureMemSettings.Y, stNonSecureMemSettings.PageSize));
          pstMemoryConfig->uiPictureMemSize = BVCE_FW_P_CalcNonSecureMem( &stCoreSettings, &stNonSecureMemSettings );
       }
 
       pstMemoryConfig->uiSecureMemSize = MIN_SECURE_BUFFER_SIZE_IN_BYTES; /* A constant depending on the the core revision */
       pstMemoryConfig->uiGeneralMemSize = BVCE_USERDATA_P_QUEUE_SIZE; /* User Data Queue */
       pstMemoryConfig->uiGeneralMemSize += BVCE_P_ALIGN( BVCE_P_MAX_VIDEODESCRIPTORS * sizeof( BAVC_VideoBufferDescriptor ), BVCE_P_DEFAULT_ALIGNMENT ); /* Video Output Descriptors */
-      pstMemoryConfig->uiGeneralMemSize += BVCE_P_ALIGN( BVCE_P_MAX_VIDEODESCRIPTORS * sizeof( BAVC_VideoMetadataDescriptor ), BVCE_P_DEFAULT_ALIGNMENT ); /* Video Output Metadata Descriptors */
+      pstMemoryConfig->uiGeneralMemSize += BVCE_P_ALIGN( BVCE_P_MAX_METADATADESCRIPTORS * sizeof( BAVC_VideoMetadataDescriptor ), BVCE_P_DEFAULT_ALIGNMENT ); /* Video Output Metadata Descriptors */
       pstMemoryConfig->uiGeneralMemSize += BVCE_P_ALIGN( BVCE_P_MAX_VIDEODESCRIPTORS * sizeof( BVCE_P_Output_ITB_IndexEntry ), BVCE_P_DEFAULT_ALIGNMENT ); /* Video ITB Index Entries */
 
       /* Perform size alignment to prevent issues during sub-allocation */
@@ -7556,32 +9113,29 @@ BVCE_Channel_GetMemoryConfig(
       /* TODO: Adjust ITB/CDB size based on the specified bitrate */
       pstMemoryConfig->uiIndexMemSize = BVCE_P_DEFAULT_ITB_SIZE;
       pstMemoryConfig->uiDataMemSize = BVCE_P_DEFAULT_CDB_SIZE;
-   }
 
-   {
-      BBOX_Config *pstBoxConfig = (BBOX_Config *) BKNI_Malloc( sizeof( BBOX_Config ) );
       if ( NULL != pstBoxConfig )
       {
-         BBOX_GetConfig( hBox, pstBoxConfig );
-
-         BDBG_MODULE_MSG( BVCE_MEMORY, ("BVCE_Channel_GetMemoryConfig(boxMode=%d,progressive=%d,width=%d,height=%d,bitrateMax=%d,bitrateTarget=%d):",
+         BDBG_MODULE_MSG( BVCE_MEMORY, ("BVCE_Channel_GetMemoryConfig(boxMode=%d,progressive=%d,width=%d,height=%d,bitrateMax=%d,bitrateTarget=%d,max_b=%d):",
             pstBoxConfig->stBox.ulBoxId,
             pstChMemoryBoundsSettings->eInputType,
             pstChMemoryBoundsSettings->stDimensions.stMax.uiWidth,
             pstChMemoryBoundsSettings->stDimensions.stMax.uiHeight,
             pstChMemoryBoundsSettings->stBitRate.stLargest.uiMax,
-            pstChMemoryBoundsSettings->stBitRate.stLargest.uiTarget
+            pstChMemoryBoundsSettings->stBitRate.stLargest.uiTarget,
+            pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfBFrames
             ));
          BKNI_Free( pstBoxConfig );
       }
       else
       {
-         BDBG_MODULE_MSG( BVCE_MEMORY, ("BVCE_Channel_GetMemoryConfig(boxMode=?,progressive=%d,width=%d,height=%d,bitrateMax=%d,bitrateTarget=%d):",
+         BDBG_MODULE_MSG( BVCE_MEMORY, ("BVCE_Channel_GetMemoryConfig(boxMode=?,progressive=%d,width=%d,height=%d,bitrateMax=%d,bitrateTarget=%d,max_b=%d):",
             pstChMemoryBoundsSettings->eInputType,
             pstChMemoryBoundsSettings->stDimensions.stMax.uiWidth,
             pstChMemoryBoundsSettings->stDimensions.stMax.uiHeight,
             pstChMemoryBoundsSettings->stBitRate.stLargest.uiMax,
-            pstChMemoryBoundsSettings->stBitRate.stLargest.uiTarget
+            pstChMemoryBoundsSettings->stBitRate.stLargest.uiTarget,
+            pstChMemoryBoundsSettings->stGOPStructure.uiNumberOfBFrames
             ));
       }
    }

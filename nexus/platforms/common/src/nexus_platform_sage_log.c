@@ -231,12 +231,87 @@ static bool g_sageSecureLogThreadDone;
 static pthread_t g_sageSecureLogThread;
 
 #define SAGE_SECURE_LOG_PATH_MAX 128
+
+static NEXUS_Error NEXUS_Platform_P_SageSecureLogCapture(
+    NEXUS_Sage_SecureLog_BufferId           bufferId,
+    FILE                                    **ppFile,
+    NEXUS_Sage_Secure_Log_TlBufferContext   *pBuffContext,
+    uint8_t                                 *pLogBuffAddr
+    )
+{
+    NEXUS_Error errCode;
+    uint32_t logBuffCtxSize = sizeof(NEXUS_Sage_Secure_Log_TlBufferContext);
+    uint32_t logBufferSize = SAGE_SECURE_LOG_BUFFER_SIZE;
+    FILE *pFile=*ppFile;
+
+    if(pBuffContext == NULL)
+    {
+        BDBG_ERR(("%s %d pBuffContext NULL",BSTD_FUNCTION,__LINE__));
+        errCode = NEXUS_INVALID_PARAMETER;
+        goto exit;
+    }
+    if(pLogBuffAddr == NULL)
+    {
+        BDBG_ERR(("%s %d pLogBuffAddr NULL",BSTD_FUNCTION,__LINE__));
+        errCode = NEXUS_INVALID_PARAMETER;
+        goto exit;
+    }
+
+    BKNI_Memset(pBuffContext,0,logBuffCtxSize);
+    BKNI_Memset(pLogBuffAddr,0,logBufferSize);
+    errCode = NEXUS_Sage_SecureLog_GetBuffer(
+                                            (uint8_t *)pBuffContext,logBuffCtxSize,
+                                            pLogBuffAddr,    logBufferSize,
+                                            bufferId);
+
+    if(errCode == NEXUS_SUCCESS)
+    {
+
+        if(pBuffContext->secHead.secure_logtotal_cnt > 0)
+        {
+            uint32_t buflen,datalen;
+
+            buflen = BE_TO_UINT32(pBuffContext->secHead.secure_logbuf_len);
+            datalen = BE_TO_UINT32(pBuffContext->secHead.secure_logtotal_cnt);
+
+            if( buflen >  datalen + 15)
+            {
+                buflen = (datalen/16 + 1)*16;
+            }
+
+            BDBG_MSG(("buflen 0x%x(<0x%x) datalen 0x%x",buflen,logBufferSize,datalen));
+
+            pBuffContext->secHead.secure_logbuf_len = UINT32_TO_BE(buflen);
+
+            if(pFile == NULL)
+            {
+                const char *pEnv = "secure_log";
+                char pathname[SAGE_SECURE_LOG_PATH_MAX];
+
+                snprintf(pathname, sizeof(pathname), "%s_%d_0x%x.bin", pEnv,bufferId,pBuffContext->secHead.sdl_id);
+                pFile = fopen(pathname, "ab");
+                if(pFile == NULL)
+                {
+                    BDBG_ERR(("%s %d file %s open Failed",BSTD_FUNCTION,__LINE__,pathname));
+                    errCode = NEXUS_OS_ERROR;
+                    goto exit;
+                }
+            }
+
+            fwrite((uint8_t*)pBuffContext ,sizeof(*pBuffContext),1,pFile);
+            fwrite((uint8_t*)pLogBuffAddr,buflen,1,pFile);
+            fflush(pFile);
+        }
+    }
+exit:
+    *ppFile=pFile;
+    return errCode;
+}
+
 static void *NEXUS_Platform_P_SageSecureLogThread(void *pParam)
 {
-    const char *pEnv = "secure_log";
-    NEXUS_Error errCode;
-    FILE *pFile=NULL;
-    char pathname[SAGE_SECURE_LOG_PATH_MAX];
+    NEXUS_Error errCode,capture1=NEXUS_SUCCESS,capture2=NEXUS_SUCCESS,capture3=NEXUS_SUCCESS;
+    FILE *pFile1=NULL,*pFile2=NULL,*pFile3=NULL;
     NEXUS_Sage_Secure_Log_TlBufferContext *pBuffContext = NULL;
     uint8_t *pLogBuffAddr = NULL;
     uint32_t logBuffCtxSize = sizeof(NEXUS_Sage_Secure_Log_TlBufferContext);
@@ -252,17 +327,8 @@ static void *NEXUS_Platform_P_SageSecureLogThread(void *pParam)
         goto exit;
     }
 
-    snprintf(pathname, sizeof(pathname), "%s.bin", pEnv);
-    pFile = fopen(pathname, "wb+");
-    if ( NULL == pFile )
-    {
-        BDBG_ERR(("%s %d file %s open Failed",BSTD_FUNCTION,__LINE__,pathname));
-        goto exit;
-    }
-
     /* alloc from heap just in case app is expecting it. */
     NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
-    allocSettings.alignment = 4096;
     errCode = NEXUS_Memory_Allocate(logBufferSize, &allocSettings, (void **)&pLogBuffAddr);
     if ( errCode != NEXUS_SUCCESS )
     {
@@ -279,37 +345,13 @@ static void *NEXUS_Platform_P_SageSecureLogThread(void *pParam)
     while ( false == g_sageSecureLogThreadDone )
     {
         BKNI_Sleep(1000);
-        BKNI_Memset(pBuffContext,0,logBuffCtxSize);
-        BKNI_Memset(pLogBuffAddr,0,logBufferSize);
-        errCode = NEXUS_Sage_SecureLog_GetBuffer(
-                                                (uint8_t *)pBuffContext,logBuffCtxSize,
-                                                pLogBuffAddr,    logBufferSize,
-                                                NEXUS_Sage_SecureLog_BufferId_eFirstAvailable);
 
-        if(errCode == NEXUS_SUCCESS)
-        {
-
-            if(pBuffContext->secHead.secure_logtotal_cnt > 0)
-            {
-                uint32_t buflen,datalen;
-
-                buflen = BE_TO_UINT32(pBuffContext->secHead.secure_logbuf_len);
-                datalen = BE_TO_UINT32(pBuffContext->secHead.secure_logtotal_cnt);
-
-                if( buflen >  datalen + 15)
-                {
-                    buflen = (datalen/16 + 1)*16;
-                }
-
-                BDBG_MSG(("buflen 0x%x(<0x%x) datalen 0x%x",buflen,logBufferSize,datalen));
-
-                pBuffContext->secHead.secure_logbuf_len = UINT32_TO_BE(buflen);
-
-                fwrite((uint8_t*)pBuffContext ,sizeof(*pBuffContext),1,pFile);
-                fwrite((uint8_t*)pLogBuffAddr,buflen,1,pFile);
-                fflush(pFile);
-            }
-        }
+        if(capture1 == NEXUS_SUCCESS)
+            capture1 = NEXUS_Platform_P_SageSecureLogCapture(NEXUS_Sage_SecureLog_BufferId_eBRCMBuff,&pFile1,pBuffContext,pLogBuffAddr);
+        if(capture2 == NEXUS_SUCCESS)
+            capture2 = NEXUS_Platform_P_SageSecureLogCapture(NEXUS_Sage_SecureLog_BufferId_eTARangeBuff1,&pFile2,pBuffContext,pLogBuffAddr);
+        if(capture3 == NEXUS_SUCCESS)
+            capture3 = NEXUS_Platform_P_SageSecureLogCapture(NEXUS_Sage_SecureLog_BufferId_eTARangeBuff2,&pFile3,pBuffContext,pLogBuffAddr);
     }
 
 exit:
@@ -321,10 +363,20 @@ exit:
     {
         NEXUS_Memory_Free(pBuffContext);
     }
-    if(pFile != NULL)
+    if(pFile1 != NULL)
     {
-        fclose(pFile);
-        pFile = NULL;
+        fclose(pFile1);
+        pFile1 = NULL;
+    }
+    if(pFile2 != NULL)
+    {
+        fclose(pFile2);
+        pFile2 = NULL;
+    }
+    if(pFile3 != NULL)
+    {
+        fclose(pFile3);
+        pFile3 = NULL;
     }
 
     pthread_exit(NULL);

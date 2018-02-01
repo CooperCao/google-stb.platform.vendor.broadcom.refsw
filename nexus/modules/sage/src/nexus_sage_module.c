@@ -208,7 +208,6 @@ static void NEXUS_SageModule_Print(void)
 /* .free : is compatible with existing NEXUS_Memory_Free */
 NEXUS_Error NEXUS_Sage_P_SAGElibUpdateHsm(bool set)
 {
-#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_Error rc = NEXUS_SUCCESS;
     BHSM_Handle hHsm = NULL;
     BSAGElib_DynamicSettings settings;
@@ -237,11 +236,6 @@ NEXUS_Error NEXUS_Sage_P_SAGElibUpdateHsm(bool set)
 
 end:
     return rc;
-#else
-    BSTD_UNUSED( set );
-    BDBG_ERR(("%s: TBD not supported", BSTD_FUNCTION));
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-#endif
 }
 
 void NEXUS_Sage_P_SAGELogUninit(void)
@@ -640,10 +634,10 @@ static NEXUS_Error NEXUS_Sage_P_CheckSecureRegions(int heapid, NEXUS_Addr offset
         BDBG_ERR(("%s: Unsupported secure region", BSTD_FUNCTION));
         goto end;
     }
-
-    size = end - start + 8;
-
     if (start || end) {
+        /* translate size and offset per Zeus architecture */
+        size = RESTRICTED_REGION_SIZE(start,end);
+        start = RESTRICTED_REGION_OFFSET(start);
         if ((offset != (NEXUS_Addr)start) || (len != size)) {
             rc = NEXUS_INVALID_PARAMETER;
             BDBG_ERR(("%s - Error, heap '%s' [ID=%d] can only be set once per power up.",
@@ -671,18 +665,27 @@ NEXUS_SageModule_P_AddRegion(
     uint32_t offset32 = (uint32_t)offset;
     BERR_Code rc = BERR_SUCCESS;
 
-    if ((NEXUS_Addr)offset32 != offset) {
-        BDBG_ERR(("%s - Error, out of band offset for region 0x%02x",
-                  BSTD_FUNCTION, id));
-        rc = NEXUS_INVALID_PARAMETER;
-        goto end;
-    }
-
     if (g_sage_module.regionMapNum >= _REGION_MAP_MAX_NUM) {
         BDBG_ERR(("%s: cannot add new heap (%u); increase _REGION_MAP_MAX_NUM",
                   BSTD_FUNCTION, id));
         rc = BERR_INVALID_PARAMETER;
         goto end;
+    }
+
+    if ((NEXUS_Addr)offset32 != offset) {
+        NEXUS_Addr offsetTmp;
+
+        BDBG_MSG(("Using 40bit shift for region ID 0x%x", id));
+        id = REGION_ID_SET_FLAG(id, REGION_ID_FLAG_40BIT);
+        offsetTmp = REGION_ID_FLAG_40BIT_OFFSET_SET(offset);
+        offset32 = (uint32_t)offsetTmp;
+
+        if ((NEXUS_Addr)offset32 != offsetTmp) {
+            BDBG_ERR(("%s - Error, out of bounds offset for region 0x%02x",
+                      BSTD_FUNCTION, id));
+            rc = NEXUS_INVALID_PARAMETER;
+            goto end;
+        }
     }
 
     BDBG_MSG(("%s: Adding region 0x%02x [.offset=0x%08x, .size=%u]",
@@ -737,26 +740,6 @@ static NEXUS_Error NEXUS_SageModule_P_ConfigureSecureRegions(void)
 
     rc = NEXUS_SageModule_P_AddRegion(BSAGElib_RegionId_Crr, offset, size);
     if (rc != NEXUS_SUCCESS) { goto err; }
-
-    /* Add XRR */
-    rc = NEXUS_SageModule_P_GetHeapBoundaries(NEXUS_EXPORT_HEAP, &offset, &size, NULL);
-    if (rc == NEXUS_SUCCESS) {
-        if (offset && size) {
-            rc = NEXUS_SageModule_P_AddRegion(BSAGElib_RegionId_Xrr, offset, size);
-            if (rc != NEXUS_SUCCESS) { goto err; }
-        }
-    }
-    else {
-        BDBG_MSG(("%s: No Export heap available", BSTD_FUNCTION));
-        rc = BERR_SUCCESS; /* this is not fatal */
-    }
-
-    /* Add FWRR */
-    rc = NEXUS_SageModule_P_GetHeapBoundaries(NEXUS_FIRMWARE_HEAP, &offset, &size, NULL);
-    if (rc == NEXUS_SUCCESS && offset && size) {
-        rc = NEXUS_SageModule_P_AddRegion(BSAGElib_RegionId_Fwrr, offset, size);
-        if (rc != NEXUS_SUCCESS) { goto err; }
-    }
 
 err:
     return rc;
@@ -1051,21 +1034,13 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
         goto err;
     }
 
-#if 0 /* HOLD OFF until SARM TA is fully implemented */
+#if NEXUS_SAGE_SARM_TEST /* BDSP_ARM_AUDIO_SUPPORT && !BDSP_RAAGA_AUDIO_SUPPORT */
     /* Install SARM TA.  Initialize the platform and SARM module.  */
     rc = NEXUS_Sage_P_SARMInit(&g_sage_module.settings);
     if (rc != NEXUS_SUCCESS)
     {
         rc = BERR_TRACE(rc);
         goto err;
-    }
-
-    {
-        /* Remove - test only */
-        NEXUS_SageAudioOpenSettings pSettings;
-        NEXUS_SageAudioHandle sHandle;
-        NEXUS_SageAudio_GetDefaultOpenSettings_priv(&pSettings);
-        sHandle = NEXUS_SageAudio_Open_priv(&pSettings);
     }
 #endif
 
@@ -1135,6 +1110,8 @@ void NEXUS_SageModule_Uninit(void)
     NEXUS_LockModule();
 
     NEXUS_Sage_P_ARUninit(BSAGElib_eStandbyModeOn);
+
+    NEXUS_Sage_P_SARMUninit();
 
     NEXUS_Sage_P_SecureLog_Uninit();
 

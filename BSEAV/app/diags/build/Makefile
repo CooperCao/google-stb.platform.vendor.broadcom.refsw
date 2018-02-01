@@ -762,6 +762,7 @@ ATLAS_DIRS += \
 	$(NEXUS_TOP)/nxclient/apps/utils
 APP_OBJECTS += budp_dccparse.o
 APP_OBJECTS += budp_bitread.o
+APP_OBJECTS += budp_priv.o
 APP_OBJECTS += parse_userdata.o
 APP_OBJECTS += closed_caption.o
 CFLAGS += -DDCC_SUPPORT

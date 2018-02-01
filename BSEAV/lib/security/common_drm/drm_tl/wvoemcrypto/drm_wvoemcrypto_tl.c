@@ -47,13 +47,22 @@
 #include "nexus_memory.h"
 #include "nexus_platform_client.h"
 #include "nexus_random_number.h"
+
+
+#if (NEXUS_SECURITY_API_VERSION==1)
 #include "nexus_otpmsp.h"
+#else
+#include "nexus_otp_msp.h"
+#include "nexus_otp_key.h"
+#include "nexus_otp_msp_indexes.h"
+#endif
 
 #include "drm_common_tl.h"
 #include "drm_wvoemcrypto_tl.h"
 #include "drm_common.h"
 #include "drm_common_swcrypto.h"
 #include "drm_data.h"
+
 #include "drm_common_command_ids.h"
 
 #include "bsagelib_types.h"
@@ -293,7 +302,11 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
         if(gKeySlotCache[i].hSwKeySlot != NULL)
         {
             BDBG_MSG(("%s:Freeing Keyslot at index %d...",BSTD_FUNCTION, i));
+#if (NEXUS_SECURITY_API_VERSION==1)
             NEXUS_Security_FreeKeySlot(gKeySlotCache[i].hSwKeySlot);
+#else
+            NEXUS_KeySlot_Free(gKeySlotCache[i].hSwKeySlot);
+#endif
             gKeySlotCache[i].hSwKeySlot = NULL;
         }
     }
@@ -810,7 +823,11 @@ ErrorExit:
                 gHostSessionCtx[session].key_slot_ptr[i]->hSwKeySlot != NULL)
             {
                 BDBG_MSG(("%s:Freeing Keyslot...",BSTD_FUNCTION));
+#if (NEXUS_SECURITY_API_VERSION==1)
                 NEXUS_Security_FreeKeySlot(gHostSessionCtx[session].key_slot_ptr[i]->hSwKeySlot);
+#else
+                NEXUS_KeySlot_Free(gHostSessionCtx[session].key_slot_ptr[i]->hSwKeySlot);
+#endif
                 gHostSessionCtx[session].key_slot_ptr[i]->hSwKeySlot = NULL;
                 gKeySlotCacheAllocated--;
             }
@@ -2232,8 +2249,14 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
 {
     DrmRC rc = Drm_Success;
     BERR_Code sage_rc = BERR_SUCCESS;
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityKeySlotSettings keyslotSettings;
     NEXUS_SecurityKeySlotInfo keyslotInfo;
+#else
+    NEXUS_KeySlotAllocateSettings keyslotSettings;
+    NEXUS_KeySlotInformation keyslotInfo;
+#endif
+
     BSAGElib_InOutContainer *container = NULL;
     uint32_t keySlotSelected;
     uint32_t keySlotID[DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT];
@@ -2281,10 +2304,19 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
             if(gKeySlotCache[i].hSwKeySlot == NULL)
             {
                 BDBG_MSG(("%s:Allocate keyslot for index %d",BSTD_FUNCTION, i));
+#if (NEXUS_SECURITY_API_VERSION==1)
                 NEXUS_Security_GetDefaultKeySlotSettings(&keyslotSettings);
+
                 keyslotSettings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
                 keyslotSettings.client = NEXUS_SecurityClientType_eSage;
                 gKeySlotCache[i].hSwKeySlot = NEXUS_Security_AllocateKeySlot(&keyslotSettings);
+#else
+                NEXUS_KeySlot_GetDefaultAllocateSettings(&keyslotSettings);
+                keyslotSettings.useWithDma = true;
+                keyslotSettings.owner = NEXUS_SecurityCpuContext_eSage;
+                keyslotSettings.slotType   = NEXUS_KeySlotType_eIvPerBlock;
+                gKeySlotCache[i].hSwKeySlot =  NEXUS_KeySlot_Allocate(&keyslotSettings);
+#endif
                 if(gKeySlotCache[i].hSwKeySlot == NULL)
                 {
                     BDBG_ERR(("%s - Error allocating keyslot at index %d", BSTD_FUNCTION, i));
@@ -2303,13 +2335,15 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
 
                 BDBG_MSG(("%s: ======Allocated nexus key slot for index %d, keyslot handle=%p =======",
                     BSTD_FUNCTION, i, (void *)gKeySlotCache[i].hSwKeySlot));
-
+#if (NEXUS_SECURITY_API_VERSION==1)
                 NEXUS_Security_GetKeySlotInfo(gKeySlotCache[i].hSwKeySlot, &keyslotInfo);
-
-                BDBG_MSG(("%s - keyslotID[%d] Keyslot number = '%u'", BSTD_FUNCTION, i, keyslotInfo.keySlotNumber));
-
                 gKeySlotCache[i].keySlotID = keyslotInfo.keySlotNumber;
-
+                BDBG_MSG(("%s - keyslotID[%d] Keyslot number = '%u'", BSTD_FUNCTION, i, keyslotInfo.keySlotNumber));
+#else
+                NEXUS_KeySlot_GetInformation( gKeySlotCache[i].hSwKeySlot, &keyslotInfo);
+                gKeySlotCache[i].keySlotID = keyslotInfo.slotNumber;
+                BDBG_MSG(("%s - keyslotID[%d] Keyslot number = '%u'", BSTD_FUNCTION, i, keyslotInfo.slotNumber));
+#endif
                 gHostSessionCtx[session].key_slot_ptr[gHostSessionCtx[session].num_key_slots] = &gKeySlotCache[i];
                 gHostSessionCtx[session].num_key_slots++;
 
@@ -2437,8 +2471,12 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
         rc = Drm_Err;
         goto ErrorExit;
     }
-    BDBG_MSG(("%s - Selected by Sage: keyslotID[%d] Keyslot number = '%u'", BSTD_FUNCTION, i, keyslotInfo.keySlotNumber));
 
+#if (NEXUS_SECURITY_API_VERSION==1)
+        BDBG_MSG(("%s - Selected by Sage: keyslotID[%d] Keyslot number = '%u'", BSTD_FUNCTION, i, keyslotInfo.keySlotNumber));
+#else
+        BDBG_MSG(("%s - Selected by Sage: keyslotID[%d] Keyslot number = '%u'", BSTD_FUNCTION, i, keyslotInfo.slotNumber));
+#endif
     /* Set the cipher mode */
     gHostSessionCtx[session].cipher_mode = container->basicOut[1];
 
@@ -4172,8 +4210,12 @@ This function may be called simultaneously with any session functions.
 DrmRC drm_WVOemCrypto_GetRandom(uint8_t* randomData, uint32_t dataLength)
 {
     DrmRC rc = Drm_Success;
+
+#if (NEXUS_SECURITY_API_VERSION==1)
+{
     uint32_t tempSz=0;
     uint32_t ii = 0;
+
     BDBG_ENTER(drm_WVOemCrypto_GetRandom);
 
     if(dataLength >NEXUS_MAX_RANDOM_NUMBER_LENGTH)
@@ -4208,14 +4250,20 @@ DrmRC drm_WVOemCrypto_GetRandom(uint8_t* randomData, uint32_t dataLength)
             goto ErrorExit;
         }
     }
+}
+#else
+    BDBG_ENTER(drm_WVOemCrypto_GetRandom);
 
-
+    rc = DRM_Common_GenerateRandomNumber(dataLength,randomData);
+    if(rc!=Drm_Success){
+        goto ErrorExit;
+    }
+#endif
 ErrorExit:
-
+    BDBG_LEAVE(drm_WVOemCrypto_GetRandom);
     return rc;
 
 }
-
 
 /************************************************************************************************************************
 Description:

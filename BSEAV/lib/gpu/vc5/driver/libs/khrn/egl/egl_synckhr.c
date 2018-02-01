@@ -226,7 +226,6 @@ static EGLint egl_client_waitsync_impl(EGLDisplay dpy,
    EGL_SYNC_T *egl_sync = NULL;
    EGLint error = EGL_SUCCESS;
    EGLint ret = EGL_FALSE;
-   int timeout_ms = 0;
 
    if (!egl_initialized(dpy, true))
       return EGL_FALSE;
@@ -245,48 +244,22 @@ static EGLint egl_client_waitsync_impl(EGLDisplay dpy,
       goto end;
    }
 
-   if (egl_sync_is_signaled(egl_sync))
+   bool res = true;
+   // egl_sync_is_signaled flushes the render states that are users of this sync
+   if (!egl_sync_is_signaled(egl_sync))
    {
-      ret = EGL_CONDITION_SATISFIED_KHR;
-      goto end;
-   }
-
-   if (timeout != EGL_FOREVER_KHR)
-   {
-      timeout_ms = nanosec_to_trunc_ms(timeout);
-      if (timeout_ms == 0)
+      if (timeout == EGL_FOREVER_KHR)
+         khrn_fence_wait(egl_sync->fence, EGL_SYNC_SIGNALED_DEPS_STATE);
+      else if (timeout == 0)
+         res = false;
+      else
       {
-         egl_context_gl_lock();
-         khrn_fence_flush(egl_sync->fence);
-         egl_context_gl_unlock();
-         ret = EGL_TIMEOUT_EXPIRED_KHR;
-         goto end;
-       }
-   }
-
-   /* we need a gl lock on all the operations involving a khrn_fence because
-    * we are tampering with khrn_fmems */
-   egl_context_gl_lock();
-
-   v3d_scheduler_deps fence_deps;
-   v3d_scheduler_copy_deps(&fence_deps, khrn_fence_get_deps(egl_sync->fence));
-   egl_context_gl_unlock();
-
-   if (timeout == EGL_FOREVER_KHR)
-   {
-      v3d_scheduler_wait_jobs(&fence_deps, EGL_SYNC_SIGNALED_DEPS_STATE);
-   }
-   else
-   {
-      if (!v3d_scheduler_wait_jobs_timeout(&fence_deps, EGL_SYNC_SIGNALED_DEPS_STATE, timeout_ms))
-      {
-         ret = EGL_TIMEOUT_EXPIRED_KHR;
-         goto end;
+         int timeout_ms = nanosec_to_trunc_ms(timeout);
+         res = khrn_fence_wait_timeout(egl_sync->fence,
+               EGL_SYNC_SIGNALED_DEPS_STATE, timeout_ms);
       }
    }
-   ret = EGL_CONDITION_SATISFIED_KHR;
-   egl_sync_set_signaled(egl_sync);
-
+   ret = res ? EGL_CONDITION_SATISFIED_KHR : EGL_TIMEOUT_EXPIRED_KHR;
 end:
    egl_sync_refdec(egl_sync);
    egl_thread_set_error(error);

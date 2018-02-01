@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,8 +49,6 @@
 extern "C" {
 #endif
 
-extern BBOX_Rts stBoxRts_UHDp50_1080i50xcode_box6;
-
 void BBOX_P_Vdc_SetBox6SourceCapabilities
     ( BBOX_Vdc_Source_Capabilities *pSourceCap );
 
@@ -62,12 +60,6 @@ void BBOX_P_Vdc_SetBox6DeinterlacerCapabilities
 
 void BBOX_P_Vdc_SetBox6XcodeCapabilities
     ( BBOX_Vdc_Xcode_Capabilities *pXcodeCap );
-
-void BBOX_P_GetBox6MemConfig
-    ( BBOX_MemConfig *pBoxMemConfig );
-
-void BBOX_P_GetBox6Rts
-    ( BBOX_Rts *pBoxRts );
 
 #ifdef __cplusplus
 }

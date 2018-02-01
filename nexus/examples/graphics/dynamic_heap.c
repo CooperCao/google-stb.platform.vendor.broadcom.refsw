@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2014-2016 Broadcom. All rights reserved.
+ * Copyright (C) 2014-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -502,7 +502,7 @@ int main(int argc, char **argv)
                 }
                 compositorbuffer_add_element(&compositor, heap, &position, color, stepX, stepY);
                 count++;
-                BDBG_LOG(("add %u:%u", count, compositor.allocated/1024));
+                BDBG_LOG(("add %u:%u", count, (unsigned)(compositor.allocated/1024)));
                 if(grow  && (count > 256 || compositor.allocated >= 384*1024*1024)) {
                     grow = false;
                 }
@@ -525,7 +525,7 @@ int main(int argc, char **argv)
                         NEXUS_Platform_ShrinkHeap(heap, 4*1024*1024, 32*1024*1024);
                         grow = true;
                     }
-                    BDBG_LOG(("remove %u(%u)", count, compositor.allocated/1024));
+                    BDBG_LOG(("remove %u(%u)", count, (unsigned)(compositor.allocated/1024)));
                 }
             }
             if(r%16 < 2) {

@@ -13,6 +13,7 @@
 #include "interface/khronos/common/khrn_int_util.h"
 #include "middleware/khronos/common/khrn_interlock.h"
 #include "middleware/khronos/common/khrn_hw.h"
+#include "middleware/khronos/common/khrn_mem.h"
 #include "middleware/khronos/glxx/glxx_tweaker.h"
 
 #include <string.h>
@@ -27,10 +28,8 @@ GLXX_SERVER_STATE_T gl11_server_state;
 
 #define PI     3.14159265f
 
-static int get_texenv_integer_internal(GLenum env, GLenum pname, int *params)
+static int get_texenv_integer(GLXX_SERVER_STATE_T *state, GLenum env, GLenum pname, int *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
-
    GL11_TEXUNIT_T *texunit = &state->texunits[state->active_texture - GL_TEXTURE0];
    GL11_CACHE_TEXUNIT_ABSTRACT_T *texabs = &state->shader.texunits[state->active_texture - GL_TEXTURE0];
 
@@ -96,15 +95,11 @@ static int get_texenv_integer_internal(GLenum env, GLenum pname, int *params)
       break;
    }
 
-   GL11_UNLOCK_SERVER_STATE();
-
    return result;
 }
 
-static int get_texenv_float_internal(GLenum env, GLenum pname, float *params)
+static int get_texenv_float(GLXX_SERVER_STATE_T *state, GLenum env, GLenum pname, float *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
-
    int t = state->active_texture - GL_TEXTURE0;
    int result = 0;
 
@@ -136,8 +131,6 @@ static int get_texenv_float_internal(GLenum env, GLenum pname, float *params)
       UNREACHABLE();
       break;
    }
-
-   GL11_UNLOCK_SERVER_STATE();
 
    return result;
 }
@@ -176,24 +169,32 @@ static float *get_matrix(GLXX_SERVER_STATE_T *state)
 
 static void load_matrix_internal(const float *m)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
    float *c = get_matrix(state);
 
    gl11_matrix_load(c, m);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
+}
+
+static void mult_matrix(GLXX_SERVER_STATE_T *state, const float *m)
+{
+   GLfloat *c = get_matrix(state);
+   gl11_matrix_mult(c, c, m);
 }
 
 static void mult_matrix_internal(const float *m)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
-   GLfloat *c = get_matrix(state);
+   mult_matrix(state, m);
 
-   gl11_matrix_mult(c, c, m);
-
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
 static float *get_plane(GLXX_SERVER_STATE_T *state, GLenum p)
@@ -220,7 +221,9 @@ static bool is_alpha_func(GLenum func)
 
 static void alpha_func_internal(GLenum func, float ref)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
    if (is_alpha_func(func)) {
       state->changed_misc = true;
@@ -230,20 +233,20 @@ static void alpha_func_internal(GLenum func, float ref)
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
-void glAlphaFunc_impl_11(GLenum func, GLclampf ref)
+GL_API void GL_APIENTRY glAlphaFunc(GLenum func, GLclampf ref)
 {
    alpha_func_internal(func, ref);
 }
 
-void glAlphaFuncx_impl_11(GLenum func, GLclampx ref)
+GL_API void GL_APIENTRY glAlphaFuncx(GLenum func, GLclampx ref)
 {
    alpha_func_internal(func, fixed_to_float(ref));
 }
 
-void glClearColorx_impl_11(GLclampx red, GLclampx green, GLclampx blue, GLclampx alpha)
+GL_API void GL_APIENTRY glClearColorx(GLclampx red, GLclampx green, GLclampx blue, GLclampx alpha)
 {
    glxx_clear_color_internal(fixed_to_float(red),
       fixed_to_float(green),
@@ -251,14 +254,16 @@ void glClearColorx_impl_11(GLclampx red, GLclampx green, GLclampx blue, GLclampx
       fixed_to_float(alpha));
 }
 
-void glClearDepthx_impl_11(GLclampx depth)
+GL_API void GL_APIENTRY glClearDepthx(GLclampx depth)
 {
    glxx_clear_depth_internal(fixed_to_float(depth));
 }
 
 static void clip_plane_internal(GLenum p, const float *equation)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
    float *plane = get_plane(state, p);
 
@@ -273,15 +278,15 @@ static void clip_plane_internal(GLenum p, const float *equation)
       gl11_matrix_mult_row(plane, equation, inv);
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
-void glClipPlanef_impl_11(GLenum plane, const GLfloat *equation)
+GL_API void GL_APIENTRY glClipPlanef(GLenum plane, const GLfloat *equation)
 {
    clip_plane_internal(plane, equation);
 }
 
-void glClipPlanex_impl_11(GLenum plane, const GLfixed *equation)
+GL_API void GL_APIENTRY glClipPlanex(GLenum plane, const GLfixed *equation)
 {
    int i;
    float temp[4];
@@ -301,7 +306,9 @@ static bool is_fog_mode(GLenum mode)
 
 static void fogv_internal(GLenum pname, const GLfloat *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
    switch (pname) {
    case GL_FOG_MODE:
@@ -355,16 +362,16 @@ static void fogv_internal(GLenum pname, const GLfloat *params)
       break;
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
-void glDepthRangex_impl_11(GLclampx zNear, GLclampx zFar)
+GL_API void GL_APIENTRY glDepthRangex(GLclampx zNear, GLclampx zFar)
 {
    glxx_depth_range_internal(fixed_to_float(zNear),
       fixed_to_float(zFar));
 }
 
-void glFogf_impl_11(GLenum pname, GLfloat param)
+GL_API void GL_APIENTRY glFogf(GLenum pname, GLfloat param)
 {
    GLfloat params[4];
 
@@ -376,7 +383,7 @@ void glFogf_impl_11(GLenum pname, GLfloat param)
    fogv_internal(pname, params);
 }
 
-void glFogfv_impl_11(GLenum pname, const GLfloat *params)
+GL_API void GL_APIENTRY glFogfv(GLenum pname, const GLfloat *params)
 {
    fogv_internal(pname, params);
 }
@@ -386,7 +393,7 @@ static GLboolean fog_requires_scaling(GLenum pname)
    return pname != GL_FOG_MODE;
 }
 
-void glFogx_impl_11(GLenum pname, GLfixed param)
+GL_API void GL_APIENTRY glFogx(GLenum pname, GLfixed param)
 {
    GLfloat floatParam = fog_requires_scaling(pname) ? fixed_to_float(param) : (GLfloat)param;
    GLfloat params[4];
@@ -399,7 +406,7 @@ void glFogx_impl_11(GLenum pname, GLfixed param)
    fogv_internal(pname, params);
 }
 
-void glFogxv_impl_11(GLenum pname, const GLfixed *params)
+GL_API void GL_APIENTRY glFogxv(GLenum pname, const GLfixed *params)
 {
    GLfloat temp[4];
 
@@ -419,6 +426,10 @@ void glFogxv_impl_11(GLenum pname, const GLfixed *params)
 
 static void frustum_internal(float l, float r, float b, float t, float n, float f)
 {
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
+
    if (n > 0.0f && f > 0.0f && l != r && b != t && n != f) {
       float m[16];
 
@@ -442,18 +453,15 @@ static void frustum_internal(float l, float r, float b, float t, float n, float 
       m[14] = -2.0f * f * n / (f - n);
       m[15] = 0.0f;
 
-      mult_matrix_internal(m);
+      mult_matrix(state, m);
    }
-   else {
-      GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
-
+   else
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
-      GL11_UNLOCK_SERVER_STATE();
-   }
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
-void glFrustumf_impl_11(GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar)
+GL_API void GL_APIENTRY glFrustumf(GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar)
 {
    frustum_internal(left,
       right,
@@ -463,7 +471,7 @@ void glFrustumf_impl_11(GLfloat left, GLfloat right, GLfloat bottom, GLfloat top
       zFar);
 }
 
-void glFrustumx_impl_11(GLfixed left, GLfixed right, GLfixed bottom, GLfixed top, GLfixed zNear, GLfixed zFar)
+GL_API void GL_APIENTRY glFrustumx(GLfixed left, GLfixed right, GLfixed bottom, GLfixed top, GLfixed zNear, GLfixed zFar)
 {
    frustum_internal(fixed_to_float(left),
       fixed_to_float(right),
@@ -475,7 +483,9 @@ void glFrustumx_impl_11(GLfixed left, GLfixed right, GLfixed bottom, GLfixed top
 
 static void get_clip_plane_internal(GLenum pname, float eqn[4])
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
    float *plane = get_plane(state, pname);
 
@@ -485,15 +495,15 @@ static void get_clip_plane_internal(GLenum pname, float eqn[4])
          eqn[i] = plane[i];
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
-void glGetClipPlanef_impl_11(GLenum pname, GLfloat eqn[4])
+GL_API void GL_APIENTRY glGetClipPlanef(GLenum pname, GLfloat eqn[4])
 {
    get_clip_plane_internal(pname, eqn);
 }
 
-void glGetClipPlanex_impl_11(GLenum pname, GLfixed eqn[4])
+GL_API void GL_APIENTRY glGetClipPlanex(GLenum pname, GLfixed eqn[4])
 {
    float temp[4];
 
@@ -505,26 +515,28 @@ void glGetClipPlanex_impl_11(GLenum pname, GLfixed eqn[4])
       eqn[i] = float_to_fixed(temp[i]);
 }
 
-int glGetFixedv_impl_11(GLenum pname, GLfixed *params)
+GL_API void GL_APIENTRY glGetFixedv(GLenum pname, GLfixed *params)
 {
-   int i;
-   GLfloat temp[16];
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-   int count = glxx_get_float_or_fixed_internal(state, pname, temp);
-   GLXX_UNLOCK_SERVER_STATE();
+   GLfloat temp[16];
+   int count = glxx_get_float_or_fixed(state, pname, temp);
 
    assert(count <= 16);
 
-   for (i = 0; i < count; i++)
+   for (int i = 0; i < count; i++)
       params[i] = float_to_fixed(temp[i]);
 
-   return count;
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
 static int get_lightv_internal(GLenum l, GLenum pname, float *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return 0;
 
    GL11_LIGHT_T *light = get_light(state, l);
 
@@ -600,29 +612,25 @@ static int get_lightv_internal(GLenum l, GLenum pname, float *params)
    else
       result = 0;
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 
    return result;
 }
 
-int glGetLightfv_impl_11(GLenum light, GLenum pname, GLfloat *params)
+GL_API void GL_APIENTRY glGetLightfv(GLenum light, GLenum pname, GLfloat *params)
 {
-   return get_lightv_internal(light, pname, params);
+   get_lightv_internal(light, pname, params);
 }
 
-int glGetLightxv_impl_11(GLenum light, GLenum pname, GLfixed *params)
+GL_API void GL_APIENTRY glGetLightxv(GLenum light, GLenum pname, GLfixed *params)
 {
    float temp[4];
-
    int count = get_lightv_internal(light, pname, temp);
-   int i;
 
    assert(count <= 4);
 
-   for (i = 0; i < count; i++)
+   for (int i = 0; i < count; i++)
       params[i] = float_to_fixed(temp[i]);
-
-   return count;
 }
 
 static GLboolean is_single_face(GLenum face)
@@ -633,7 +641,9 @@ static GLboolean is_single_face(GLenum face)
 
 static int get_materialv_internal(GLenum face, GLenum pname, float *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return 0;
 
    int result;
 
@@ -685,17 +695,17 @@ static int get_materialv_internal(GLenum face, GLenum pname, float *params)
       result = 0;
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 
    return result;
 }
 
-int glGetMaterialfv_impl_11(GLenum face, GLenum pname, GLfloat *params)
+GL_API void GL_APIENTRY glGetMaterialfv(GLenum face, GLenum pname, GLfloat *params)
 {
-   return get_materialv_internal(face, pname, params);
+   get_materialv_internal(face, pname, params);
 }
 
-int glGetMaterialxv_impl_11(GLenum face, GLenum pname, GLfixed *params)
+GL_API void GL_APIENTRY glGetMaterialxv(GLenum face, GLenum pname, GLfixed *params)
 {
    int i;
    float temp[4];
@@ -706,29 +716,25 @@ int glGetMaterialxv_impl_11(GLenum face, GLenum pname, GLfixed *params)
 
    for (i = 0; i < count; i++)
       params[i] = float_to_fixed(temp[i]);
-
-   return count;
 }
 
-int glGetTexEnviv_impl_11(GLenum env, GLenum pname, GLint *params)
+GL_API void GL_APIENTRY glGetTexEnviv(GLenum env, GLenum pname, GLint *params)
 {
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
+
    switch (env) {
    case GL_POINT_SPRITE_OES:
       switch (pname) {
       case GL_COORD_REPLACE_OES:
-         return get_texenv_integer_internal(env, pname, params);
+         get_texenv_integer(state, env, pname, params);
       default:
-      {
-         GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
-
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
-
-         GL11_UNLOCK_SERVER_STATE();
-         return 0;
+         break;
       }
-      }
-      UNREACHABLE();
       break;
+
    case GL_TEXTURE_ENV:
       switch (pname) {
       case GL_TEXTURE_ENV_MODE:
@@ -746,88 +752,69 @@ int glGetTexEnviv_impl_11(GLenum env, GLenum pname, GLint *params)
       case GL_OPERAND0_ALPHA:
       case GL_OPERAND1_ALPHA:
       case GL_OPERAND2_ALPHA:
-         return get_texenv_integer_internal(env, pname, params);
+         get_texenv_integer(state, env, pname, params);
+         break;
       case GL_TEXTURE_ENV_COLOR:
       {
-         GLfloat temp[4];
-         GLuint count = get_texenv_float_internal(env, pname, temp);
-         GLuint i;
+         float temp[4];
+         int count = get_texenv_float(state, env, pname, temp);
 
          assert(count <= 4);
 
-         for (i = 0; i < count; i++) {
+         for (int i = 0; i < count; i++) {
             params[i] = (GLint)floor((4294967295.0f * temp[i] - 1.0f) / 2.0f + 0.5f);
 
             if (params[i] < 0)
                params[i] = 0x7fffffff;
          }
-
-         return count;
+         break;
       }
       case GL_RGB_SCALE:
       case GL_ALPHA_SCALE:
       {
-         GLfloat temp;
-         GLuint count = get_texenv_float_internal(env, pname, &temp);
-
+         float temp;
+         GLuint count = get_texenv_float(state, env, pname, &temp);
          assert(count == 1);
-
          params[0] = float_to_int(temp);
-
-         return count;
+         break;
       }
       default:
-      {
-         GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
-
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
-
-         GL11_UNLOCK_SERVER_STATE();
-         return 0;
+         break;
       }
-      }
-      UNREACHABLE();
       break;
+
    default:
-   {
-      GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
-
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
-
-      GL11_UNLOCK_SERVER_STATE();
-      return 0;
-   }
+      break;
    }
 }
 
 static int get_texenv_float_or_fixed_internal(GLenum env, GLenum pname, float *params)
 {
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return 0;
+
+   int result = 0;
    switch (env) {
    case GL_POINT_SPRITE_OES:
       switch (pname) {
       case GL_COORD_REPLACE_OES:
       {
          int temp;
-         int count = get_texenv_integer_internal(env, pname, &temp);
-
+         int count = get_texenv_integer(state, env, pname, &temp);
          assert(count == 1);
-
          params[0] = (float)temp;
-
-         return count;
+         result = count;
+         break;
       }
       default:
-      {
-         GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
-
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
-
-         GL11_UNLOCK_SERVER_STATE();
-         return 0;
+         break;
       }
-      }
-      UNREACHABLE();
       break;
+
    case GL_TEXTURE_ENV:
       switch (pname) {
       case GL_TEXTURE_ENV_MODE:
@@ -847,50 +834,44 @@ static int get_texenv_float_or_fixed_internal(GLenum env, GLenum pname, float *p
       case GL_OPERAND2_ALPHA:
       {
          int temp;
-         int count = get_texenv_integer_internal(env, pname, &temp);
-
+         int count = get_texenv_integer(state, env, pname, &temp);
          assert(count == 1);
-
          params[0] = (float)temp;
-
-         return count;
+         result = count;
+         break;
       }
       case GL_TEXTURE_ENV_COLOR:
       case GL_RGB_SCALE:
       case GL_ALPHA_SCALE:
-         return get_texenv_float_internal(env, pname, params);
+         result = get_texenv_float(state, env, pname, params);
+         break;
       default:
-      {
-         GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
-
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
-
-         GL11_UNLOCK_SERVER_STATE();
-         return 0;
+         break;
       }
-      }
-      UNREACHABLE();
       break;
+
    default:
-   {
-      GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
-
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      break;
+   }
 
-      GL11_UNLOCK_SERVER_STATE();
-      return 0;
-   }
-   }
+   glxx_unlock_server_state(OPENGL_ES_11);
+
+   return result;
 }
 
-int glGetTexEnvfv_impl_11(GLenum env, GLenum pname, GLfloat *params)
+GL_API void GL_APIENTRY glGetTexEnvfv(GLenum env, GLenum pname, GLfloat *params)
 {
-   return get_texenv_float_or_fixed_internal(env, pname, params);
+   get_texenv_float_or_fixed_internal(env, pname, params);
+   return;
 }
 
 static void lightmodelv_internal(GLenum pname, const GLfloat *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
    switch (pname) {
    case GL_LIGHT_MODEL_AMBIENT:
@@ -909,10 +890,10 @@ static void lightmodelv_internal(GLenum pname, const GLfloat *params)
       break;
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
-void glLightModelf_impl_11(GLenum pname, GLfloat param)
+GL_API void GL_APIENTRY glLightModelf(GLenum pname, GLfloat param)
 {
    GLfloat params[4];
 
@@ -924,12 +905,12 @@ void glLightModelf_impl_11(GLenum pname, GLfloat param)
    lightmodelv_internal(pname, params);
 }
 
-void glLightModelfv_impl_11(GLenum pname, const GLfloat *params)
+GL_API void GL_APIENTRY glLightModelfv(GLenum pname, const GLfloat *params)
 {
    lightmodelv_internal(pname, params);
 }
 
-void glLightModelx_impl_11(GLenum pname, GLfixed param)
+GL_API void GL_APIENTRY glLightModelx(GLenum pname, GLfixed param)
 {
    GLfloat params[4];
 
@@ -941,7 +922,7 @@ void glLightModelx_impl_11(GLenum pname, GLfixed param)
    lightmodelv_internal(pname, params);
 }
 
-void glLightModelxv_impl_11(GLenum pname, const GLfixed *params)
+GL_API void GL_APIENTRY glLightModelxv(GLenum pname, const GLfixed *params)
 {
    int i;
    GLfloat temp[4];
@@ -952,12 +933,12 @@ void glLightModelxv_impl_11(GLenum pname, const GLfixed *params)
    lightmodelv_internal(pname, temp);
 }
 
-void glLineWidthx_impl_11(GLfixed width)
+GL_API void GL_APIENTRY glLineWidthx(GLfixed width)
 {
    glxx_line_width_internal(fixed_to_float(width));
 }
 
-void glLoadIdentity_impl_11(void)
+GL_API void GL_APIENTRY glLoadIdentity(void)
 {
    float m[16];
 
@@ -984,33 +965,31 @@ void glLoadIdentity_impl_11(void)
    load_matrix_internal(m);
 }
 
-void glLoadMatrixf_impl_11(const GLfloat *m)
+GL_API void GL_APIENTRY glLoadMatrixf(const GLfloat *m)
 {
    load_matrix_internal(m);
 }
 
-void glLoadMatrixx_impl_11(const GLfixed *m)
+GL_API void GL_APIENTRY glLoadMatrixx(const GLfixed *m)
 {
-   int i;
    float f[16];
 
-   for (i = 0; i < 16; i++)
+   for (int i = 0; i < 16; i++)
       f[i] = fixed_to_float(m[i]);
 
    load_matrix_internal(f);
 }
 
-void glMultMatrixf_impl_11(const GLfloat *m)
+GL_API void GL_APIENTRY glMultMatrixf(const GLfloat *m)
 {
    mult_matrix_internal(m);
 }
 
-void glMultMatrixx_impl_11(const GLfixed *m)
+GL_API void GL_APIENTRY glMultMatrixx(const GLfixed *m)
 {
-   int i;
    float f[16];
 
-   for (i = 0; i < 16; i++)
+   for (int i = 0; i < 16; i++)
       f[i] = fixed_to_float(m[i]);
 
    mult_matrix_internal(f);
@@ -1068,12 +1047,12 @@ static void rotate_internal(float angle, float x, float y, float z)
    mult_matrix_internal(m);
 }
 
-void glRotatef_impl_11(GLfloat angle, GLfloat x, GLfloat y, GLfloat z)
+GL_API void GL_APIENTRY glRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z)
 {
    rotate_internal(angle, x, y, z);
 }
 
-void glRotatex_impl_11(GLfixed angle, GLfixed x, GLfixed y, GLfixed z)
+GL_API void GL_APIENTRY glRotatex(GLfixed angle, GLfixed x, GLfixed y, GLfixed z)
 {
    rotate_internal(fixed_to_float(angle),
       fixed_to_float(x),
@@ -1108,12 +1087,12 @@ static void scale_internal(float x, float y, float z)
    mult_matrix_internal(m);
 }
 
-void glScalef_impl_11(GLfloat x, GLfloat y, GLfloat z)
+GL_API void GL_APIENTRY glScalef(GLfloat x, GLfloat y, GLfloat z)
 {
    scale_internal(x, y, z);
 }
 
-void glScalex_impl_11(GLfixed x, GLfixed y, GLfixed z)
+GL_API void GL_APIENTRY glScalex(GLfixed x, GLfixed y, GLfixed z)
 {
    scale_internal(fixed_to_float(x),
       fixed_to_float(y),
@@ -1147,12 +1126,12 @@ static void translate_internal(float x, float y, float z)
    mult_matrix_internal(m);
 }
 
-void glTranslatef_impl_11(GLfloat x, GLfloat y, GLfloat z)
+GL_API void GL_APIENTRY glTranslatef(GLfloat x, GLfloat y, GLfloat z)
 {
    translate_internal(x, y, z);
 }
 
-void glTranslatex_impl_11(GLfixed x, GLfixed y, GLfixed z)
+GL_API void GL_APIENTRY glTranslatex(GLfixed x, GLfixed y, GLfixed z)
 {
    translate_internal(fixed_to_float(x),
       fixed_to_float(y),
@@ -1161,6 +1140,10 @@ void glTranslatex_impl_11(GLfixed x, GLfixed y, GLfixed z)
 
 static void ortho_internal(float l, float r, float b, float t, float n, float f)
 {
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
+
    if (l != r && b != t && n != f) {
       float m[16];
 
@@ -1184,23 +1167,20 @@ static void ortho_internal(float l, float r, float b, float t, float n, float f)
       m[14] = -(f + n) / (f - n);
       m[15] = 1.0f;
 
-      mult_matrix_internal(m);
+      mult_matrix(state, m);
    }
-   else {
-      GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
-
+   else
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
-      GL11_UNLOCK_SERVER_STATE();
-   }
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
-void glOrthof_impl_11(GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar)
+GL_API void GL_APIENTRY glOrthof(GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar)
 {
    ortho_internal(left, right, bottom, top, zNear, zFar);
 }
 
-void glOrthox_impl_11(GLfixed left, GLfixed right, GLfixed bottom, GLfixed top, GLfixed zNear, GLfixed zFar)
+GL_API void GL_APIENTRY glOrthox(GLfixed left, GLfixed right, GLfixed bottom, GLfixed top, GLfixed zNear, GLfixed zFar)
 {
    ortho_internal(fixed_to_float(left),
       fixed_to_float(right),
@@ -1210,15 +1190,18 @@ void glOrthox_impl_11(GLfixed left, GLfixed right, GLfixed bottom, GLfixed top, 
       fixed_to_float(zFar));
 }
 
-void glPolygonOffsetx_impl_11(GLfixed factor, GLfixed units)
+GL_API void GL_APIENTRY glPolygonOffsetx(GLfixed factor, GLfixed units)
 {
    glxx_polygon_offset_internal(fixed_to_float(factor),
       fixed_to_float(units));
 }
 
-void glPopMatrix_impl_11(void)
+GL_API void GL_APIENTRY glPopMatrix(void)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
+
    GL11_MATRIX_STACK_T *stack = get_stack(state);
 
    if (stack->pos > 0)
@@ -1226,12 +1209,15 @@ void glPopMatrix_impl_11(void)
    else
       glxx_server_state_set_error(state, GL_STACK_UNDERFLOW);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
-void glPushMatrix_impl_11(void)
+GL_API void GL_APIENTRY glPushMatrix(void)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
+
    GL11_MATRIX_STACK_T *stack = get_stack(state);
 
    if (stack->pos + 1 < GL11_CONFIG_MAX_STACK_DEPTH) {
@@ -1242,17 +1228,17 @@ void glPushMatrix_impl_11(void)
    else
       glxx_server_state_set_error(state, GL_STACK_OVERFLOW);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
-bool gl11_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, MEM_HANDLE_T shared)
+bool gl11_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared, bool secure)
 {
-   int i;
-
    state->type = OPENGL_ES_11;
 
+   state->secure = secure;
+
    //initialise common portions of state
-   if(!glxx_server_state_init(state, name, shared))
+   if(!glxx_server_state_init(state, shared))
       return false;
 
    //gl 1.1 specific parts
@@ -1287,7 +1273,7 @@ bool gl11_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, MEM_HANDL
 
    state->shader.two_side = false;
 
-   for (i = 0; i < GL11_CONFIG_MAX_LIGHTS; i++) {
+   for (int i = 0; i < GL11_CONFIG_MAX_LIGHTS; i++) {
       GL11_LIGHT_T *light = &state->lights[i];
 
       light->enabled = false;
@@ -1329,7 +1315,7 @@ bool gl11_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, MEM_HANDL
       light->cos_cutoff = -1.0f;
    }
 
-   for (i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++) {
+   for (int i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++) {
       GL11_TEXUNIT_T *texunit = &state->texunits[i];
       GL11_CACHE_TEXUNIT_ABSTRACT_T *texabs = &state->shader.texunits[i];
 
@@ -1393,14 +1379,14 @@ bool gl11_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, MEM_HANDL
 
    state->hints_program.fog = GL_DONT_CARE;
 
-   for (i = 0; i < GL11_CONFIG_MAX_PLANES; i++) {
+   for (int i = 0; i < GL11_CONFIG_MAX_PLANES; i++) {
       state->planes[i][0] = 0.0f;
       state->planes[i][1] = 0.0f;
       state->planes[i][2] = 0.0f;
       state->planes[i][3] = 0.0f;
    }
 
-   for (i = 0; i < GL11_CONFIG_MAX_PLANES; i++)
+   for (int i = 0; i < GL11_CONFIG_MAX_PLANES; i++)
       state->caps.clip_plane[i] = false;
 
    state->shade_model = GL_SMOOTH;
@@ -1430,17 +1416,53 @@ bool gl11_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, MEM_HANDL
    state->point_params.distance_attenuation[1] = 0.0f;
    state->point_params.distance_attenuation[2] = 0.0f;
 
-   state->copy_of_color[0] = 1.0f;
-   state->copy_of_color[1] = 1.0f;
-   state->copy_of_color[2] = 1.0f;
-   state->copy_of_color[3] = 1.0f;
+   state->client_active_texture = GL_TEXTURE0;
+   state->active_texture = GL_TEXTURE0;
+
+   //color
+   state->attrib[GL11_IX_COLOR].size = 4;
+   state->attrib[GL11_IX_COLOR].normalized = GL_TRUE;
+   state->attrib[GL11_IX_COLOR].value[0] = 1.0f;
+   state->attrib[GL11_IX_COLOR].value[1] = 1.0f;
+   state->attrib[GL11_IX_COLOR].value[2] = 1.0f;
+   state->attrib[GL11_IX_COLOR].value[3] = 1.0f;
+
+   //normal
+   state->attrib[GL11_IX_NORMAL].size = 3;
+   state->attrib[GL11_IX_NORMAL].normalized = GL_TRUE;
+   state->attrib[GL11_IX_NORMAL].value[0] = 0.0f;
+   state->attrib[GL11_IX_NORMAL].value[1] = 0.0f;
+   state->attrib[GL11_IX_NORMAL].value[2] = 1.0f;
+
+   //vertex
+   state->attrib[GL11_IX_VERTEX].size = 4;
+   state->attrib[GL11_IX_VERTEX].normalized = GL_FALSE;
+   state->attrib[GL11_IX_VERTEX].value[0] = 0.0f;
+   state->attrib[GL11_IX_VERTEX].value[1] = 0.0f;
+   state->attrib[GL11_IX_VERTEX].value[2] = 0.0f;
+   state->attrib[GL11_IX_VERTEX].value[3] = 1.0f;
+
+   for (int i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++) {
+      int indx = GL11_IX_TEXTURE_COORD + i;
+      state->attrib[indx].size = 4;
+      state->attrib[indx].normalized = GL_FALSE;
+      state->attrib[indx].value[0] = 0.0f;
+      state->attrib[indx].value[1] = 0.0f;
+      state->attrib[indx].value[2] = 0.0f;
+      state->attrib[indx].value[3] = 1.0f;
+   }
+
+   //point size
+   state->attrib[GL11_IX_POINT_SIZE].size = 1;
+   state->attrib[GL11_IX_POINT_SIZE].normalized = GL_FALSE;
+   state->attrib[GL11_IX_POINT_SIZE].value[0] = 1.0f;
 
    glxx_tweaker_init(&state->tweak_state, false);
 
    return true;
 }
 
-int glGetTexParameterxv_impl_11 (GLenum target, GLenum pname, GLfixed *params)
+GL_API void GL_APIENTRY glGetTexParameterxv(GLenum target, GLenum pname, GLfixed *params)
 {
    GLint temp[4];
    GLuint count = glxx_get_texparameter_internal(target, pname, temp);
@@ -1451,42 +1473,13 @@ int glGetTexParameterxv_impl_11 (GLenum target, GLenum pname, GLfixed *params)
       for(i=0;i<count;i++)
          params[i] = (GLfixed)temp[i];
    }
-
-   return count;
-}
-
-void glTexParameterx_impl_11 (GLenum target, GLenum pname, GLfixed param)
-{
-   GLint iparams[4];
-   iparams[0] = (GLint)param;                /* no scaling for enum to fixed */
-
-   if (pname == GL_TEXTURE_CROP_RECT_OES) {
-      iparams[1] = iparams[2] = iparams[3] = 0;
-   }
-
-   glxx_texparameter_internal(target, pname, iparams);
-}
-
-void glTexParameterxv_impl_11 (GLenum target, GLenum pname, const GLfixed *params)
-{
-   if (params)
-   {
-      GLint iparams[4];
-      iparams[0] = (GLint)params[0];         /* no scaling for enum to fixed */
-
-      if(pname == GL_TEXTURE_CROP_RECT_OES) {
-         int i;
-         for(i=1;i<4;i++)                    /* fill in the remaining 3 */
-            iparams[i] = (GLint)params[i];   /* no scaling for enum to fixed */
-      }
-
-      glxx_texparameter_internal(target, pname, iparams);
-   }
 }
 
 static void point_parameterv_internal(GLenum pname, const GLfloat *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
    switch (pname) {
    case GL_POINT_SIZE_MIN:
@@ -1538,10 +1531,10 @@ static void point_parameterv_internal(GLenum pname, const GLfloat *params)
       break;
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
-void glPointParameterf_impl_11 (GLenum pname, GLfloat param)
+GL_API void GL_APIENTRY glPointParameterf(GLenum pname, GLfloat param)
 {
    GLfloat params[] = {0.0f, 0.0f, 0.0f};
 
@@ -1550,7 +1543,7 @@ void glPointParameterf_impl_11 (GLenum pname, GLfloat param)
    point_parameterv_internal(pname, params);
 }
 
-void glPointParameterfv_impl_11 (GLenum pname, const GLfloat *params)
+GL_API void GL_APIENTRY glPointParameterfv(GLenum pname, const GLfloat *params)
 {
    point_parameterv_internal(pname, params);
 }
@@ -1618,7 +1611,9 @@ static GLboolean is_scalef(GLfloat scale)
 
 static void texenvfv_internal(GLenum target, GLenum pname, const GLfloat *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
    int t = state->active_texture - GL_TEXTURE0;
 
@@ -1786,10 +1781,10 @@ static void texenvfv_internal(GLenum target, GLenum pname, const GLfloat *params
       break;
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
-void glTexEnvf_impl_11 (GLenum target, GLenum pname, GLfloat param)
+GL_API void GL_APIENTRY glTexEnvf(GLenum target, GLenum pname, GLfloat param)
 {
    GLfloat params[] = {0.0f, 0.0f, 0.0f, 0.0f};
 
@@ -1798,14 +1793,16 @@ void glTexEnvf_impl_11 (GLenum target, GLenum pname, GLfloat param)
    texenvfv_internal(target, pname, params);
 }
 
-void glTexEnvfv_impl_11 (GLenum target, GLenum pname, const GLfloat *params)
+GL_API void GL_APIENTRY glTexEnvfv(GLenum target, GLenum pname, const GLfloat *params)
 {
    texenvfv_internal(target, pname, params);
 }
 
 static void lightv_internal(GLenum l, GLenum pname, const GLfloat *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
    GL11_LIGHT_T *light = get_light(state, l);
 
@@ -1890,10 +1887,10 @@ static void lightv_internal(GLenum l, GLenum pname, const GLfloat *params)
          break;
       }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
-void glLightf_impl_11 (GLenum light, GLenum pname, GLfloat param)
+GL_API void GL_APIENTRY glLightf(GLenum light, GLenum pname, GLfloat param)
 {
    GLfloat params[] = {0.0f, 0.0f, 0.0f, 0.0f};
 
@@ -1902,12 +1899,12 @@ void glLightf_impl_11 (GLenum light, GLenum pname, GLfloat param)
    lightv_internal(light, pname, params);
 }
 
-void glLightfv_impl_11 (GLenum light, GLenum pname, const GLfloat *params)
+GL_API void GL_APIENTRY glLightfv(GLenum light, GLenum pname, const GLfloat *params)
 {
    lightv_internal(light, pname, params);
 }
 
-void glLightx_impl_11 (GLenum light, GLenum pname, GLfixed param)
+GL_API void GL_APIENTRY glLightx(GLenum light, GLenum pname, GLfixed param)
 {
    GLfloat params[] = {0.0f, 0.0f, 0.0f, 0.0f};
 
@@ -1916,7 +1913,7 @@ void glLightx_impl_11 (GLenum light, GLenum pname, GLfixed param)
    lightv_internal(light, pname, params);
 }
 
-void glLightxv_impl_11 (GLenum light, GLenum pname, const GLfixed *params)
+GL_API void GL_APIENTRY glLightxv(GLenum light, GLenum pname, const GLfixed *params)
 {
    int i;
    GLfloat temp[4];
@@ -1947,9 +1944,11 @@ static GLboolean is_logic_op(GLenum op)
           op == GL_SET;
 }
 
-void glLogicOp_impl_11 (GLenum opcode)
+GL_API void GL_APIENTRY glLogicOp(GLenum opcode)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
    if (is_logic_op(opcode))
    {
@@ -1959,7 +1958,7 @@ void glLogicOp_impl_11 (GLenum opcode)
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
 static GLboolean is_matrix_mode(GLenum mode)
@@ -1969,21 +1968,25 @@ static GLboolean is_matrix_mode(GLenum mode)
           mode == GL_PROJECTION;
 }
 
-void glMatrixMode_impl_11 (GLenum mode)
+GL_API void GL_APIENTRY glMatrixMode(GLenum mode)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
    if (is_matrix_mode(mode))
       state->matrix_mode = mode;
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
 static void materialv_internal (GLenum face, GLenum pname, const GLfloat *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
    if (face == GL_FRONT_AND_BACK) {
       switch (pname) {
@@ -2040,10 +2043,10 @@ static void materialv_internal (GLenum face, GLenum pname, const GLfloat *params
    } else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
-void glMaterialf_impl_11 (GLenum face, GLenum pname, GLfloat param)
+GL_API void GL_APIENTRY glMaterialf(GLenum face, GLenum pname, GLfloat param)
 {
    GLfloat params[] = {0.0f, 0.0f, 0.0f, 0.0f};
 
@@ -2052,12 +2055,12 @@ void glMaterialf_impl_11 (GLenum face, GLenum pname, GLfloat param)
    materialv_internal(face, pname, params);
 }
 
-void glMaterialfv_impl_11 (GLenum face, GLenum pname, const GLfloat *params)
+GL_API void GL_APIENTRY glMaterialfv(GLenum face, GLenum pname, const GLfloat *params)
 {
    materialv_internal(face, pname, params);
 }
 
-void glMaterialx_impl_11 (GLenum face, GLenum pname, GLfixed param)
+GL_API void GL_APIENTRY glMaterialx(GLenum face, GLenum pname, GLfixed param)
 {
    GLfloat params[] = {0.0f, 0.0f, 0.0f, 0.0f};
 
@@ -2066,7 +2069,7 @@ void glMaterialx_impl_11 (GLenum face, GLenum pname, GLfixed param)
    materialv_internal(face, pname, params);
 }
 
-void glMaterialxv_impl_11 (GLenum face, GLenum pname, const GLfixed *params)
+GL_API void GL_APIENTRY glMaterialxv(GLenum face, GLenum pname, const GLfixed *params)
 {
    int i;
    GLfloat temp[4];
@@ -2077,7 +2080,7 @@ void glMaterialxv_impl_11 (GLenum face, GLenum pname, const GLfixed *params)
    materialv_internal(face, pname, temp);
 }
 
-void glPointParameterx_impl_11 (GLenum pname, GLfixed param)
+GL_API void GL_APIENTRY glPointParameterx(GLenum pname, GLfixed param)
 {
    GLfloat params[] = {0.0f, 0.0f, 0.0f};
 
@@ -2086,7 +2089,7 @@ void glPointParameterx_impl_11 (GLenum pname, GLfixed param)
    point_parameterv_internal(pname, params);
 }
 
-void glPointParameterxv_impl_11 (GLenum pname, const GLfixed *params)
+GL_API void GL_APIENTRY glPointParameterxv(GLenum pname, const GLfixed *params)
 {
    int i;
    GLfloat temp[3];
@@ -2097,7 +2100,7 @@ void glPointParameterxv_impl_11 (GLenum pname, const GLfixed *params)
    point_parameterv_internal(pname, temp);
 }
 
-void glSampleCoveragex_impl_11 (GLclampx value, GLboolean invert)
+GL_API void GL_APIENTRY glSampleCoveragex(GLclampx value, GLboolean invert)
 {
    glxx_sample_coverage_internal(fixed_to_float(value), invert);
 }
@@ -2108,16 +2111,18 @@ static GLboolean is_shade_model(GLenum model)
           model == GL_FLAT;
 }
 
-void glShadeModel_impl_11 (GLenum model)
+GL_API void GL_APIENTRY glShadeModel(GLenum model)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
    if (is_shade_model(model))
       state->shade_model = model;
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
 static GLboolean texenv_requires_scaling(GLenum pname)
@@ -2127,7 +2132,7 @@ static GLboolean texenv_requires_scaling(GLenum pname)
           pname == GL_ALPHA_SCALE;
 }
 
-void glTexEnvi_impl_11 (GLenum target, GLenum pname, GLint param)
+GL_API void GL_APIENTRY glTexEnvi(GLenum target, GLenum pname, GLint param)
 {
    float params[] = {0.0f, 0.0f, 0.0f, 0.0f};
 
@@ -2136,7 +2141,7 @@ void glTexEnvi_impl_11 (GLenum target, GLenum pname, GLint param)
    texenvfv_internal(target, pname, params);
 }
 
-void glTexEnvx_impl_11 (GLenum target, GLenum pname, GLfixed param)
+GL_API void GL_APIENTRY glTexEnvx(GLenum target, GLenum pname, GLfixed param)
 {
    float params[] = {0.0f, 0.0f, 0.0f, 0.0f};
 
@@ -2145,7 +2150,7 @@ void glTexEnvx_impl_11 (GLenum target, GLenum pname, GLfixed param)
    texenvfv_internal(target, pname, params);
 }
 
-void glTexEnviv_impl_11 (GLenum target, GLenum pname, const GLint *params)
+GL_API void GL_APIENTRY glTexEnviv(GLenum target, GLenum pname, const GLint *params)
 {
    int i;
    float temp[4];
@@ -2156,7 +2161,7 @@ void glTexEnviv_impl_11 (GLenum target, GLenum pname, const GLint *params)
    texenvfv_internal(target, pname, temp);
 }
 
-void glTexEnvxv_impl_11 (GLenum target, GLenum pname, const GLfixed *params)
+GL_API void GL_APIENTRY glTexEnvxv(GLenum target, GLenum pname, const GLfixed *params)
 {
    int i;
    float temp[4];
@@ -2170,82 +2175,369 @@ void glTexEnvxv_impl_11 (GLenum target, GLenum pname, const GLfixed *params)
    texenvfv_internal(target, pname, temp);
 }
 
-int glGetTexEnvxv_impl_11 (GLenum env, GLenum pname, GLfixed *params)
+GL_API void GL_APIENTRY glGetTexEnvxv(GLenum env, GLenum pname, GLfixed *params)
 {
-   int i;
    float temp[4];
-
    int count = get_texenv_float_or_fixed_internal(env, pname, temp);
 
    assert(count <= 4);
 
-   for (i = 0; i < count; i++)
+   for (int i = 0; i < count; i++)
+   {
       if (texenv_requires_scaling(pname))
          params[i] = float_to_fixed(temp[i]);
       else
          params[i] = (GLfixed)temp[i];
-
-   return count;
+   }
 }
 
-void glColorPointer_impl_11 ()
+static GLboolean is_color_size(GLint size)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
-
-   MEM_ASSIGN(state->bound_buffer.mh_attrib_array[GL11_IX_COLOR], state->bound_buffer.mh_array);
-
-   GL11_UNLOCK_SERVER_STATE();
+   return size == 4;
 }
 
-void glNormalPointer_impl_11 ()
+static GLboolean is_color_type(GLenum type)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
-
-   MEM_ASSIGN(state->bound_buffer.mh_attrib_array[GL11_IX_NORMAL], state->bound_buffer.mh_array);
-
-   GL11_UNLOCK_SERVER_STATE();
+   return type == GL_UNSIGNED_BYTE ||
+      type == GL_FIXED ||
+      type == GL_FLOAT;
 }
 
-void glVertexPointer_impl_11 ()
+GL_API void GL_APIENTRY glColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
-   MEM_ASSIGN(state->bound_buffer.mh_attrib_array[GL11_IX_VERTEX], state->bound_buffer.mh_array);
+   if (!is_color_type(type)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
 
-   GL11_UNLOCK_SERVER_STATE();
+   if (is_color_size(size) && glxx_is_aligned(type, (size_t)pointer) && glxx_is_aligned(type, (size_t)stride) && stride >= 0) {
+      state->attrib[GL11_IX_COLOR].size = size;
+      state->attrib[GL11_IX_COLOR].type = type;
+      state->attrib[GL11_IX_COLOR].stride = stride;
+      state->attrib[GL11_IX_COLOR].pointer = pointer;
+      state->attrib[GL11_IX_COLOR].offset = (uintptr_t)pointer;
+      state->attrib[GL11_IX_COLOR].buffer = state->bound_buffer.array_name;
+
+      KHRN_MEM_ASSIGN(state->attrib[GL11_IX_COLOR].attrib, state->bound_buffer.array_buffer);
+   }
+   else
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+
+end:
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
-void glTexCoordPointer_impl_11 (GLenum unit)
+static GLboolean is_normal_type(GLenum type)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
-
-   assert(unit >= GL_TEXTURE0);
-   assert(unit < GL_TEXTURE0 + GL11_CONFIG_MAX_TEXTURE_UNITS);
-
-   MEM_ASSIGN(state->bound_buffer.mh_attrib_array[unit - GL_TEXTURE0 + GL11_IX_TEXTURE_COORD], state->bound_buffer.mh_array);
-
-   GL11_UNLOCK_SERVER_STATE();
+   return type == GL_BYTE ||
+      type == GL_SHORT ||
+      type == GL_FIXED ||
+      type == GL_FLOAT;
 }
 
-void glPointSizePointerOES_impl_11 ()
+GL_API void GL_APIENTRY glNormalPointer(GLenum type, GLsizei stride, const GLvoid *pointer)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
 
-   MEM_ASSIGN(state->bound_buffer.mh_attrib_array[GL11_IX_POINT_SIZE], state->bound_buffer.mh_array);
+   if (!is_normal_type(type)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
 
-   GL11_UNLOCK_SERVER_STATE();
+   if (glxx_is_aligned(type, (size_t)pointer) && glxx_is_aligned(type, (size_t)stride) && stride >= 0) {
+
+      state->attrib[GL11_IX_NORMAL].type = type;
+      state->attrib[GL11_IX_NORMAL].stride = stride;
+      state->attrib[GL11_IX_NORMAL].pointer = pointer;
+      state->attrib[GL11_IX_NORMAL].offset = (uintptr_t)pointer;
+      state->attrib[GL11_IX_NORMAL].buffer = state->bound_buffer.array_name;
+
+      KHRN_MEM_ASSIGN(state->attrib[GL11_IX_NORMAL].attrib, state->bound_buffer.array_buffer);
+   }
+   else
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+
+end:
+   glxx_unlock_server_state(OPENGL_ES_11);
 }
 
-void glintColor_impl_11(float red, float green, float blue, float alpha)
+static GLboolean is_vertex_size(GLint size)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   return size == 2 ||
+      size == 3 ||
+      size == 4;
+}
 
-   state->copy_of_color[0] = red;
-   state->copy_of_color[1] = green;
-   state->copy_of_color[2] = blue;
-   state->copy_of_color[3] = alpha;
+static GLboolean is_vertex_type(GLenum type)
+{
+   return type == GL_BYTE ||
+      type == GL_SHORT ||
+      type == GL_FIXED ||
+      type == GL_FLOAT;
+}
+
+GL_API void GL_APIENTRY glVertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
+
+   if (!is_vertex_type(type)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   if (is_vertex_size(size) && glxx_is_aligned(type, (size_t)pointer) && glxx_is_aligned(type, (size_t)stride) && stride >= 0) {
+
+      state->attrib[GL11_IX_VERTEX].size = size;
+      state->attrib[GL11_IX_VERTEX].type = type;
+      state->attrib[GL11_IX_VERTEX].stride = stride;
+      state->attrib[GL11_IX_VERTEX].pointer = pointer;
+      state->attrib[GL11_IX_VERTEX].offset = (uintptr_t)pointer;
+      state->attrib[GL11_IX_VERTEX].buffer = state->bound_buffer.array_name;
+
+      KHRN_MEM_ASSIGN(state->attrib[GL11_IX_VERTEX].attrib, state->bound_buffer.array_buffer);
+   }
+   else
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+
+end:
+   glxx_unlock_server_state(OPENGL_ES_11);
+}
+
+static GLboolean is_texture_coord_size(GLint size)
+{
+   return size == 2 ||
+      size == 3 ||
+      size == 4;
+}
+
+static GLboolean is_texture_coord_type(GLenum type)
+{
+   return type == GL_BYTE ||
+      type == GL_SHORT ||
+      type == GL_FIXED ||
+      type == GL_FLOAT;
+}
+
+GL_API void GL_APIENTRY glTexCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
+
+   if (!is_texture_coord_type(type)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   if (is_texture_coord_size(size) && glxx_is_aligned(type, (size_t)pointer) && glxx_is_aligned(type, (size_t)stride) && stride >= 0) {
+
+      int indx = GL11_IX_TEXTURE_COORD + state->client_active_texture - GL_TEXTURE0;
+
+      state->attrib[indx].size = size;
+      state->attrib[indx].type = type;
+      state->attrib[indx].stride = stride;
+      state->attrib[indx].pointer = pointer;
+      state->attrib[indx].offset = (uintptr_t)pointer;
+      state->attrib[indx].buffer = state->bound_buffer.array_name;
+
+      KHRN_MEM_ASSIGN(state->attrib[indx].attrib, state->bound_buffer.array_buffer);
+   }
+   else
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+
+end:
+   glxx_unlock_server_state(OPENGL_ES_11);
+}
+
+static GLboolean is_point_size_type(GLenum type)
+{
+   return type == GL_FIXED ||
+      type == GL_FLOAT;
+}
+
+GL_API void GL_APIENTRY glPointSizePointerOES(GLenum type, GLsizei stride, const GLvoid *pointer)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
+
+   if (!is_point_size_type(type)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   if (glxx_is_aligned(type, (size_t)pointer) && glxx_is_aligned(type, (size_t)stride) && stride >= 0) {
+
+      state->attrib[GL11_IX_POINT_SIZE].type = type;
+      state->attrib[GL11_IX_POINT_SIZE].stride = stride;
+      state->attrib[GL11_IX_POINT_SIZE].pointer = pointer;
+      state->attrib[GL11_IX_POINT_SIZE].offset = (uintptr_t)pointer;
+      state->attrib[GL11_IX_POINT_SIZE].buffer = state->bound_buffer.array_name;
+
+      KHRN_MEM_ASSIGN(state->attrib[GL11_IX_POINT_SIZE].attrib, state->bound_buffer.array_buffer);
+   }
+   else
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+
+end:
+   glxx_unlock_server_state(OPENGL_ES_11);
+}
+
+static void color4f(float red, float green, float blue, float alpha)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
+
+   state->attrib[GL11_IX_COLOR].value[0] = red;
+   state->attrib[GL11_IX_COLOR].value[1] = green;
+   state->attrib[GL11_IX_COLOR].value[2] = blue;
+   state->attrib[GL11_IX_COLOR].value[3] = alpha;
 
    glxx_update_color_material(state);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_11);
+}
+
+GL_API void GL_APIENTRY glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
+{
+   color4f(
+      clampf(red, 0.0f, 1.0f),
+      clampf(green, 0.0f, 1.0f),
+      clampf(blue, 0.0f, 1.0f),
+      clampf(alpha, 0.0f, 1.0f));
+}
+
+GL_API void GL_APIENTRY glColor4ub(GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha)
+{
+   color4f(
+      (float)red / 255.0f,
+      (float)green / 255.0f,
+      (float)blue / 255.0f,
+      (float)alpha / 255.0f);
+}
+
+GL_API void GL_APIENTRY glColor4x(GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha)
+{
+   color4f(
+      clampf(fixed_to_float(red), 0.0f, 1.0f),
+      clampf(fixed_to_float(green), 0.0f, 1.0f),
+      clampf(fixed_to_float(blue), 0.0f, 1.0f),
+      clampf(fixed_to_float(alpha), 0.0f, 1.0f));
+}
+
+
+GL_API void GL_APIENTRY glClientActiveTexture(GLenum texture)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
+
+   if (texture >= GL_TEXTURE0 && texture < GL_TEXTURE0 + GL11_CONFIG_MAX_TEXTURE_UNITS)
+      state->client_active_texture = texture;
+   else
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+
+   glxx_unlock_server_state(OPENGL_ES_11);
+}
+
+static void enable_client_state(GLenum array, bool enabled)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
+
+   switch (array) {
+   case GL_VERTEX_ARRAY:
+      state->attrib[GL11_IX_VERTEX].enabled = enabled;
+      break;
+   case GL_NORMAL_ARRAY:
+      state->attrib[GL11_IX_NORMAL].enabled = enabled;
+      break;
+   case GL_COLOR_ARRAY:
+      state->attrib[GL11_IX_COLOR].enabled = enabled;
+      break;
+   case GL_POINT_SIZE_ARRAY_OES:
+      state->attrib[GL11_IX_POINT_SIZE].enabled = enabled;
+      break;
+   case GL_TEXTURE_COORD_ARRAY:
+      state->attrib[state->client_active_texture - GL_TEXTURE0 + GL11_IX_TEXTURE_COORD].enabled = enabled;
+      break;
+   default:
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      break;
+   }
+
+   glxx_unlock_server_state(OPENGL_ES_11);
+}
+
+GL_API void GL_APIENTRY glEnableClientState(GLenum array)
+{
+   enable_client_state(array, true);
+}
+
+GL_API void GL_APIENTRY glDisableClientState(GLenum array)
+{
+   enable_client_state(array, false);
+}
+
+static void multitexcoord4f_internal(GLenum target, GLfloat s, GLfloat t, GLfloat r, GLfloat q)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
+
+   if (target < GL_TEXTURE0 || target >= GL_TEXTURE0 + GL11_CONFIG_MAX_TEXTURE_UNITS) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   state->attrib[target - GL_TEXTURE0 + GL11_IX_TEXTURE_COORD].value[0] = clean_float(s);
+   state->attrib[target - GL_TEXTURE0 + GL11_IX_TEXTURE_COORD].value[1] = clean_float(t);
+   state->attrib[target - GL_TEXTURE0 + GL11_IX_TEXTURE_COORD].value[2] = clean_float(r);
+   state->attrib[target - GL_TEXTURE0 + GL11_IX_TEXTURE_COORD].value[3] = clean_float(q);
+
+end:
+   glxx_unlock_server_state(OPENGL_ES_11);
+}
+
+GL_API void GL_APIENTRY glMultiTexCoord4f(GLenum target, GLfloat s, GLfloat t, GLfloat r, GLfloat q)
+{
+   multitexcoord4f_internal(target, s, t, r, q);
+}
+
+GL_API void GL_APIENTRY glMultiTexCoord4x(GLenum target, GLfixed s, GLfixed t, GLfixed r, GLfixed q)
+{
+   multitexcoord4f_internal(target, fixed_to_float(s), fixed_to_float(t), fixed_to_float(r), fixed_to_float(q));
+}
+
+static void normal3f(GLfloat nx, GLfloat ny, GLfloat nz)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return;
+
+   state->attrib[GL11_IX_NORMAL].value[0] = clean_float(nx);
+   state->attrib[GL11_IX_NORMAL].value[1] = clean_float(ny);
+   state->attrib[GL11_IX_NORMAL].value[2] = clean_float(nz);
+
+   glxx_unlock_server_state(OPENGL_ES_11);
+}
+
+GL_API void GL_APIENTRY glNormal3f(GLfloat nx, GLfloat ny, GLfloat nz)
+{
+   normal3f(nx, ny, nz);
+}
+
+GL_API void GL_APIENTRY glNormal3x(GLfixed nx, GLfixed ny, GLfixed nz)
+{
+   normal3f(fixed_to_float(nx), fixed_to_float(ny), fixed_to_float(nz));
 }

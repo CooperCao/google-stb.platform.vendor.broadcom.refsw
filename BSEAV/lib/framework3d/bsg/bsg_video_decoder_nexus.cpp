@@ -704,7 +704,7 @@ private:
                {
                   NEXUS_PlatformConfiguration platformConfig;
                   NEXUS_Platform_GetConfiguration(&platformConfig);
-                  videoDecoderOpenSettings.secureVideo = Platform::Instance()->GetOptions().GetSecure();
+                  videoDecoderOpenSettings.secureVideo = NEXUS_VideoDecoderSecureType_eSecure;
                   videoDecoderOpenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
                }
 #endif

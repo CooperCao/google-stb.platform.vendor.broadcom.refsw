@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -54,7 +54,6 @@
 #include "nexus_stc_channel.h"
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_display.h"
-#include "nexus_video_window.h"
 #include "nexus_hdmi_output.h"
 #include "nexus_hdmi_output_hdcp.h"
 #endif
@@ -106,13 +105,11 @@ int main(int argc, char **argv)
     NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
     NEXUS_DisplayHandle display;
     NEXUS_DisplaySettings displaySettings;
-    NEXUS_VideoWindowHandle window;
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_HdmiOutputSettings hdmiSettings;
     hotplugCallbackParameters hotPlugCbParams;
 #endif
     NEXUS_TimebaseSettings timebaseSettings;
-    NEXUS_StcChannelSettings stcSettings;
     bool decode = false;
     bool dual = false;
     int curarg = 1;
@@ -244,7 +241,6 @@ int main(int argc, char **argv)
         displaySettings.format = hdmiStatus.preferredVideoFormat;
     }
     display = NEXUS_Display_Open(0, &displaySettings);
-    window = NEXUS_VideoWindow_Open(display, 0);
     NEXUS_HdmiOutput_GetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
     hdmiSettings.hotplugCallback.callback = hotplug_callback;
     hotPlugCbParams.hdmiOutput = platformConfig.outputs.hdmi[0];
@@ -490,6 +486,8 @@ static void hotplug_callback(void *pParam, int iParam)
     NEXUS_DisplaySettings displaySettings;
     NEXUS_HdmiOutputSettings hdmiSettings;
     hotplugCallbackParameters *hotPlugCbParams ;
+
+    BSTD_UNUSED(iParam);
 
     hotPlugCbParams = (hotplugCallbackParameters *) pParam ;
     hdmi = hotPlugCbParams->hdmiOutput ;

@@ -52,12 +52,14 @@ void NEXUS_SimpleDecoderModule_GetDefaultSettings( NEXUS_SimpleDecoderModuleSett
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 }
 
+#if BDBG_DEBUG_BUILD
 static void NEXUS_SimpleDecoderModule_P_Print(void)
 {
     NEXUS_SimpleDecoderModule_P_PrintVideoDecoder();
     NEXUS_SimpleDecoderModule_P_PrintAudioDecoder();
     NEXUS_SimpleDecoderModule_P_PrintEncoder();
 }
+#endif
 
 NEXUS_ModuleHandle NEXUS_SimpleDecoderModule_Init( const NEXUS_SimpleDecoderModuleSettings *pSettings )
 {
@@ -70,8 +72,10 @@ NEXUS_ModuleHandle NEXUS_SimpleDecoderModule_Init( const NEXUS_SimpleDecoderModu
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
     moduleSettings.priority = NEXUS_ModulePriority_eDefault;
     moduleSettings.passthroughCallbacks = true;
+#if BDBG_DEBUG_BUILD
     moduleSettings.dbgPrint = NEXUS_SimpleDecoderModule_P_Print;
     moduleSettings.dbgModules = "nexus_simple_decoder_proc";
+#endif
     g_NEXUS_simpleDecoderModule = NEXUS_Module_Create("simple_decoder", &moduleSettings);
     if (!g_NEXUS_simpleDecoderModule) {
         return NULL;

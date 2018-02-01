@@ -779,6 +779,7 @@ NEXUS_Error NEXUS_Rave_ConfigureVideo_priv(NEXUS_RaveHandle rave,
 #endif
         break;
     case NEXUS_VideoCodec_eAvs:
+    case NEXUS_VideoCodec_eAvs2:
         AvCtxCfg.ItbFormat = BAVC_ItbEsType_eAvsVideo;
         AvCtxCfg.StreamIdHi = 0xEF;
         AvCtxCfg.StreamIdLo = 0xE0;

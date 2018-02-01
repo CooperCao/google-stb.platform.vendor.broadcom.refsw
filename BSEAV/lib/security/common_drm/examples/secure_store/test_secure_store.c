@@ -121,9 +121,14 @@ int main(void)
 		}
 
 		printf("\n\tMAIN - Cleaning up Common DRM module (%u)\n", jj);
+		NEXUS_Memory_Free(pDmaBuf);
 		DRM_Common_Finalize();
     }
 
 	printf("\n\tMAIN - Test passes!\n");
+
+    /* Clean up test environment */
+    NEXUS_Platform_Uninit();
+
     return 0;
 }

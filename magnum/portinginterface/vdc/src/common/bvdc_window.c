@@ -218,7 +218,7 @@ BERR_Code BVDC_Window_Create
     }
 
     /* Error if memory going to be short synclock allocation for MPEG. */
-    if(BVDC_P_SRC_IS_MPEG(hSource->eId))
+    if(BVDC_P_SRC_IS_MPEG(hSource->eId) && !(pDefSettings && pDefSettings->bForceSyncLock))
     {
         eRet = BVDC_P_Window_ValidateMemconfigSettings(hCompositor, hSource, hWindow->eId);
         if (BERR_SUCCESS != eRet)
@@ -243,7 +243,7 @@ BERR_Code BVDC_Window_Create
 
         /* this makes gfx surface be validated in next ApplyChanges */
         hSource->hGfxFeeder->hWindow = hWindow;
-        hSource->hGfxFeeder->stCfc.pColorSpaceOut = &(hWindow->hCompositor->stOutColorSpace);
+        hSource->hGfxFeeder->stCfc.pColorSpaceExtOut = &(hWindow->hCompositor->stOutColorSpaceExt);
 
         /* check GFD usage for xcode path*/
         if (BVDC_P_DISPLAY_USED_STG(hWindow->hCompositor->hDisplay->eMasterTg) &&
@@ -450,7 +450,7 @@ BERR_Code BVDC_Window_Create
         hWindow->hCompositor->hDisplay->stNewInfo.stDirty.stBits.bHdmiCsc |= bBypassDirty;
 #if BVDC_P_SUPPORT_STG
         if(BVDC_P_DISPLAY_USED_STG(hWindow->hCompositor->hDisplay->eMasterTg))
-            hWindow->hCompositor->hDisplay->stNewInfo.stDirty.stBits.bStgEnable |= bBypassDirty;
+            hWindow->hCompositor->hDisplay->stNewInfo.stDirty.stBits.bStgFilter |= bBypassDirty;
 #endif
     }
     else
@@ -1492,7 +1492,7 @@ BERR_Code BVDC_Window_GetUserPanScan
  */
 BERR_Code BVDC_Window_EnableBoxDetect
     ( BVDC_Window_Handle                hWindow,
-      BVDC_Window_BoxDetectCallback_isr pfBoxDetectCb,
+      BVDC_Window_BoxDetectCallback_isr pfBoxDetectCb_isr,
       void  *                           pvParm1,
       int                               iParm2,
       bool                              bAutoCutBlack )
@@ -1504,11 +1504,11 @@ BERR_Code BVDC_Window_EnableBoxDetect
 
 #if (BVDC_P_SUPPORT_BOX_DETECT)
     BDBG_MSG(("LBox Detect might not work with extreme source clipping due to bandwidth issue"));
-    eResult = BVDC_P_Window_EnableBoxDetect(hWindow, pfBoxDetectCb,
+    eResult = BVDC_P_Window_EnableBoxDetect(hWindow, pfBoxDetectCb_isr,
         pvParm1, iParm2, bAutoCutBlack );
 #else
     BDBG_MSG(("LBox Detect hardware not available."));
-    BSTD_UNUSED(pfBoxDetectCb);
+    BSTD_UNUSED(pfBoxDetectCb_isr);
     BSTD_UNUSED(pvParm1);
     BSTD_UNUSED(iParm2);
     BSTD_UNUSED(bAutoCutBlack);
@@ -1983,7 +1983,7 @@ BERR_Code BVDC_Window_SetColorTemp
     int32_t lAttenuationR;
     int32_t lAttenuationG;
     int32_t lAttenuationB;
-    BVDC_P_Csc3x4 stCscCoeffs;
+    BCFC_Csc3x4 stCscCoeffs;
 
     BDBG_ENTER(BVDC_Window_SetColorTemp);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
@@ -2070,7 +2070,7 @@ BERR_Code BVDC_Window_GetAttenuationRGB
     BDBG_ENTER(BVDC_Window_GetAttenuationRGB);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    ulShiftBits = BVDC_P_CSC_SW_CX_F_BITS;
+    ulShiftBits = BCFC_CSC_SW_CX_F_BITS;
 
     (*plAttenuationR) = hWindow->stCurInfo.lAttenuationR >> ulShiftBits;
     (*plAttenuationG) = hWindow->stCurInfo.lAttenuationG >> ulShiftBits;
@@ -2946,7 +2946,7 @@ BERR_Code BVDC_Window_GetCallbackSettings
  */
 BERR_Code BVDC_Window_InstallCallback
     ( BVDC_Window_Handle               hWindow,
-      const BVDC_CallbackFunc_isr      pfCallback,
+      const BVDC_CallbackFunc_isr      pfCallback_isr,
       void                            *pvParm1,
       int                              iParm2 )
 {
@@ -2954,7 +2954,7 @@ BERR_Code BVDC_Window_InstallCallback
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
     /* Store the new infos */
-    hWindow->stNewInfo.pfGenCallback      = pfCallback;
+    hWindow->stNewInfo.pfGenCallback      = pfCallback_isr;
     hWindow->stNewInfo.pvGenCallbackParm1 = pvParm1;
     hWindow->stNewInfo.iGenCallbackParm2  = iParm2;
 
@@ -3740,7 +3740,7 @@ BERR_Code BVDC_Window_GetCapabilities
     {
         BVDC_Compositor_Handle hCompositor = hWindow->hCompositor;
         int iWinInCmp = hWindow->eId - BVDC_P_CMP_GET_V0ID(hCompositor);
-        BVDC_P_Cfc_Capability stCapability;
+        BCFC_Capability stCapability;
 
         stCapability.ulInts = hCompositor->stCfcCapability[iWinInCmp].ulInts;
         stCapability.stBits.bBlackBoxNLConv = stCapability.stBits.bNL2L && !stCapability.stBits.bMb;

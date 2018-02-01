@@ -494,6 +494,7 @@ static void hotplug_callback(void *pParam, int iParam)
 
     NEXUS_Error rc = NEXUS_SUCCESS;
 
+    BSTD_UNUSED(iParam);
     BDBG_LOG(("Tx Hot Plug Callback...")) ;
     hdmiOutput = hotPlugCbParams->hdmiOutput ;
     display = hotPlugCbParams->display ;
@@ -600,18 +601,13 @@ static void hotplug_callback(void *pParam, int iParam)
 void hdmi_input_status(void )
 {
     NEXUS_HdmiInputStatus status ;
-    BDBG_Level saveLevel ;
-    static const char *textColorSpace[] =
+    static const char * const textColorSpace[] =
     {
         "RGB ",
         "YCbCr 4:2:2",
         "YCbCr 4:4:4",
         "Max",
     } ;
-
-    BDBG_GetModuleLevel("repeater_passthrough", &saveLevel) ;
-
-    BDBG_SetModuleLevel("repeater_passthrough", BDBG_eMsg) ;
 
     NEXUS_HdmiInput_GetStatus(hdmiInput, &status) ;
     if (!status.validHdmiStatus)
@@ -620,17 +616,15 @@ void hdmi_input_status(void )
         return  ;
     }
 
-    BDBG_MSG(("hdmiInput Mode  : %s", status.hdmiMode ? "HDMI" : "DVI")) ;
-    BDBG_MSG(("hdmiInput Format: %d x %d %c %s",
+    BDBG_LOG(("hdmiInput Mode  : %s", status.hdmiMode ? "HDMI" : "DVI")) ;
+    BDBG_LOG(("hdmiInput Format: %d x %d %c %s",
 		status.avWidth, status.avHeight, status.interlaced ? 'i' : 'p',
 		textColorSpace[status.colorSpace])) ;
 
 
-    BDBG_MSG(("hdmiInput Clock : %d", status.lineClock)) ;
-    BDBG_MSG(("HDCP Enabled    : %s", status.hdcpRiUpdating ? "Yes" : "No")) ;
+    BDBG_LOG(("hdmiInput Clock : %d", status.lineClock)) ;
+    BDBG_LOG(("HDCP Enabled    : %s", status.hdcpRiUpdating ? "Yes" : "No")) ;
 
-    /* restore debug level */
-    BDBG_SetModuleLevel("repeater_passthrough", saveLevel) ;
 
 }
 
@@ -687,9 +681,6 @@ int main(int argc, char **argv)
     uint8_t *attachedRxEdid;
     uint16_t attachedRxEdidSize ;
     unsigned timeout=4;
-
-    BDBG_Level debugLevel ;
-
     int curarg = 1;
 
 
@@ -882,25 +873,22 @@ open_with_edid:
     {
         int tmp;
 
-        BDBG_GetModuleLevel("repeater_passthrough",  &debugLevel) ;
-        BDBG_SetModuleLevel("repeater_passthrough",  BDBG_eMsg) ;
 
-			BDBG_MSG(("**************************************************"));
-			BDBG_MSG(("* Please note the following run time options"));
-			BDBG_MSG(("*      -compliance : required to run HDCP compliance test"));
-			BDBG_MSG(("*      -qd882 : required if run HDCP compliance test on the QuantumData 882EA"));
-			BDBG_MSG(("*******************************************************\n"));
+			BDBG_LOG(("**************************************************"));
+			BDBG_LOG(("* Please note the following run time options"));
+			BDBG_LOG(("*      -compliance : required to run HDCP compliance test"));
+			BDBG_LOG(("*      -qd882 : required if run HDCP compliance test on the QuantumData 882EA"));
+			BDBG_LOG(("*******************************************************\n"));
 
-            BDBG_MSG(("Main Menu"));
-            BDBG_MSG(("1) Change Video Format")) ;
-            BDBG_MSG(("2) Toggle PCM/Compressed audio (currently %s)",
+            BDBG_LOG(("Main Menu"));
+            BDBG_LOG(("1) Change Video Format")) ;
+            BDBG_LOG(("2) Toggle PCM/Compressed audio (currently %s)",
     			hdmiCompressedAudio?"Compressed":"PCM")) ;
-            BDBG_MSG(("3) hdmiInput Status")) ;
+            BDBG_LOG(("3) hdmiInput Status")) ;
 
-            BDBG_MSG(("0) Exit\n")) ;
-            BDBG_MSG(("Enter Selection: ")) ;
+            BDBG_LOG(("0) Exit\n")) ;
+            BDBG_LOG(("Enter Selection: ")) ;
 
-        BDBG_SetModuleLevel("repeater_passthrough", debugLevel) ;
 
 
         scanf("%d", &tmp);
@@ -919,13 +907,10 @@ open_with_edid:
             default: tmp=4; break;
             }
 
-            BDBG_GetModuleLevel("repeater_passthrough",  &debugLevel) ;
-            BDBG_SetModuleLevel("repeater_passthrough",  BDBG_eMsg) ;
 
-                BDBG_MSG(("Current format is %d", tmp)) ;
-                BDBG_MSG(("Enter new format (0=1080p 1=1080i 2=720p 3=480p 4=NTSC): ")) ;
+                BDBG_LOG(("Current format is %d", tmp)) ;
+                BDBG_LOG(("Enter new format (0=1080p 1=1080i 2=720p 3=480p 4=NTSC): ")) ;
 
-            BDBG_SetModuleLevel("repeater_passthrough", debugLevel) ;
 
             scanf("%d", &tmp);
             switch ( tmp )

@@ -72,6 +72,8 @@ public:
 
     virtual bool AddKey(std::string key) = 0;
 
+    virtual void SetKeyId(std::string keyId) = 0;
+
     virtual bool CancelKeyRequest() = 0;
 
     virtual uint32_t DecryptSample(SampleInfo *pSample, IBuffer *input, IBuffer *output, uint32_t sampleSize) = 0;
@@ -97,6 +99,8 @@ public:
     virtual std::string GetKeyRequestResponse(std::string url) OVERRIDE = 0;
 
     virtual bool AddKey(std::string key) OVERRIDE = 0;
+
+    virtual void SetKeyId(std::string keyId) OVERRIDE = 0;
 
     virtual bool CancelKeyRequest() OVERRIDE = 0;
 

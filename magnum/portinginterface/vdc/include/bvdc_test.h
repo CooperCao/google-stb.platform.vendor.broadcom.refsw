@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -348,6 +348,54 @@ See Also: BVDC_Test_Window_ForceCfcConfig
 BERR_Code BVDC_Test_Window_SetCfcConfig
     ( BVDC_Window_Handle               hWindow,
       BVDC_Test_Window_ForceCfcConfig *pForceCfcCfg);
+
+/***************************************************************************
+Summary:
+    This function gets display peak brightness level used by TCH.
+
+Description:
+    Get the target peak brightness level of the display.
+
+Input:
+    hWindow    - A valid window handle created ealier.
+    psHdrPeak  - Pointer to the peak brightness level for HDR display.
+    psSdrPeak  - Pointer to the peak brightness level for SDR display.
+
+Output:
+
+Returns:
+    BERR_SUCCESS - Successfully Get the display peak brightness of the window.
+
+See Also:
+**************************************************************************/
+void BVDC_Test_Window_GetTargetPeakBrightness
+    ( BVDC_Window_Handle               hWindow,
+      int16_t                         *psHdrPeak,
+      int16_t                         *psSdrPeak);
+
+/***************************************************************************
+Summary:
+    This function sets display peak brightness level for a window.
+
+Description:
+    Set target peak brightness level for HDR and SDR display.
+
+Input:
+    hWindow    - A valid window handle created ealier.
+    sHdrPeak   - the peak brightness level for HDR display.
+    sSdrPeak   - the peak brightness level for SDR display.
+
+Output:
+
+Returns:
+    BERR_SUCCESS - Successfully set the target peak brightness level for the window.
+
+See Also:
+**************************************************************************/
+void BVDC_Test_Window_SetTargetPeakBrightness
+    ( BVDC_Window_Handle               hWindow,
+      int16_t                          sHdrPeak,
+      int16_t                          sSdrPeak);
 
 /***************************************************************************
 Summary:

@@ -96,9 +96,9 @@ int main(int argc, char *argv[])
     getchar();
     BroadBee_ZRC_Restore_Factory_Settings(1);
 
-    //printf("press any key to proceed...\n");
-    //getchar();
-    //BroadBee_SYS_Get_Fw_Rev();
+    BroadBee_SYS_Get_Fw_Rev();
+    printf("press any key to proceed...\n");
+    getchar();
 #endif
 
     printf(prebindingInstruction);

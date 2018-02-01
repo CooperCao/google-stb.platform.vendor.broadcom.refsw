@@ -9,7 +9,7 @@
 #include "libs/util/gfx_util/gfx_util.h"
 #include <string.h>
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 static inline uint32_t v3d_vpm_words_to_sectors(uint32_t num_words, v3d_cl_vpm_pack_t pk)
 {
@@ -87,7 +87,7 @@ static void v3d_vpm_cfg_validate_br(
       assert(Ps-1 < 4);
       assert(Cn-1 < 32);
       assert(Cw == 4 || Cw == 8 || Cw == 16);
-      assert(Cd-1 < 16);
+      assert(Cd == 0 || Cd-1 < 16);
       assert(CV < 4);
       assert(Cp-1 < 16);
       assert(Cs-1 < 8);

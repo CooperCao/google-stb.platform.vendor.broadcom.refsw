@@ -636,7 +636,7 @@ int transcode_file(EncodeSettings* pEncodeSettings,
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_StcChannelHandle stcChannel, stcChannelEncoder;
     NEXUS_StcChannelSettings stcSettings;
-    NEXUS_PidChannelHandle videoPidChannel, pcrPidChannel;
+    NEXUS_PidChannelHandle videoPidChannel, pcrPidChannel=NULL;
     NEXUS_VideoDecoderHandle videoDecoder;
     NEXUS_VideoDecoderStartSettings videoProgram;
     NEXUS_FilePlayHandle file;
@@ -946,6 +946,8 @@ int transcode_file(EncodeSettings* pEncodeSettings,
     NEXUS_VideoWindow_Close(windowTranscode);
     NEXUS_Display_Close(display);
     NEXUS_Display_Close(displayTranscode);
+
+    if(pcrPidChannel) NEXUS_PidChannel_Close(pcrPidChannel);
 
     NEXUS_Playback_ClosePidChannel(playback, videoPidChannel);
     NEXUS_FilePlay_Close(file);

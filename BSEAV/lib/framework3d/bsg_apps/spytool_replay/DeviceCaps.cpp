@@ -31,7 +31,7 @@ static bool getExtensionSupported(const char *p)
 static unsigned getVersion(const char *p, const char *t)
 {
    unsigned major, minor;
-   std::sscanf(p, t, &major, &minor);
+   sscanf(p, t, &major, &minor);
    return (major * 100) + minor;
 }
 

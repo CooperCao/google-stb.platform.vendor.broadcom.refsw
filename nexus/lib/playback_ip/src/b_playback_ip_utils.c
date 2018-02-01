@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -255,10 +255,10 @@ B_PlaybackIp_UtilsTuneNetworkStackTx(
         tcp_retries2 = strtol(buf, (char **)NULL, 10);
         fclose(f);
         BDBG_MSG(("current tcp_retries2 %d\n", tcp_retries2));
-        if (tcp_retries2 > 7) {
-            /* it is the default value, make it bigger */
+        if (tcp_retries2 > 8) {
+            /* it is the default value, make it smaller */
             BDBG_MSG(("%s: Reducing default tcp_retries2 from %d to %d\n", BSTD_FUNCTION, tcp_retries2, 7));
-            tmpLen = snprintf(buf, sizeof(buf)-1, "%d", 7);
+            tmpLen = snprintf(buf, sizeof(buf)-1, "%d", 8);
             f = fopen("/proc/sys/net/ipv4/tcp_retries2", "w");
             if (f) {
                 fwrite(buf, 1, tmpLen, f);
@@ -2304,8 +2304,14 @@ sendData(int fd, void *outBuf, int bytesToSend, bool *stopStreaming)
         rc = send(fd, (void*)outBuf, bytesToSend, MSG_NOSIGNAL );
 #endif
         if (rc < 0) {
-            if (errno == EINTR || errno == EAGAIN || errno == ETIMEDOUT) {
-                BDBG_MSG(("%s: got error: timeout or eagain error :%d, retrying", BSTD_FUNCTION, errno));
+            int error_no_temp =0;
+
+            error_no_temp = errno;
+            if (error_no_temp == EINTR || error_no_temp == EAGAIN || error_no_temp == ETIMEDOUT ) {
+                BDBG_MSG(("%s: got error: timeout or eagain error :%d, retrying", BSTD_FUNCTION, error_no_temp));
+                if (error_no_temp == ETIMEDOUT) {
+                   BDBG_WRN(("%s: got error: timeout error :%d, retrying", BSTD_FUNCTION, error_no_temp));
+                }
                 continue;
             }
             /* it is not EINTR & EAGAIN, so all errors are serious network failures */
@@ -2344,10 +2350,8 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
     size_t writeQueueSpaceAvail; /* current space available in write q */
     int outBufLength;       /* how many bytes to send out */
     void *outBuf;           /* pointer to the out buffer */
-#ifdef B_USE_HTTP_CHUNK_ENCODING
     char chunkHdr[16];
     int chunkHdrToSend;
-#endif
 
     BDBG_ASSERT(file);
     BSTD_UNUSED(pcpHeaderInserted);
@@ -2369,7 +2373,7 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
 #ifdef SIOCOUTQNSD
     if (ioctl(file->fd, SIOCOUTQNSD, &writeQueueNotSent)) {
         BDBG_WRN(("%s: failed to get tcp write q depth for socket %d", BSTD_FUNCTION, file->fd));
-        writeQueueDepth = 0;
+        writeQueueNotSent = 0;
     }
 #endif
     writeQueueSpaceAvail = file->writeQueueSize - writeQueueDepth;
@@ -2398,7 +2402,7 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
         if (file->dtcpStreamHandle) {
             /* DTCP/IP encryption is enabled, so encrypt the outgoing data */
             bytesToEncrypt = length > STREAMING_BUF_SIZE ? STREAMING_BUF_SIZE : (length - length%16);
-            BDBG_MSG(("Encrypt %d bytes, asked %d", bytesToEncrypt, length));
+            BDBG_MSG(("Encrypt %d bytes, asked %zu", bytesToEncrypt, length));
             encryptedBufSize = file->encryptedBufSize;
             gettimeofday(&startTime, NULL);
 
@@ -2462,23 +2466,17 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
             outBuf = (void *)buf;
             outBufLength = length;
         }
-#ifdef B_USE_HTTP_CHUNK_ENCODING
+        if (file->enableHttpChunkTransferEncoding)
         {
-            size_t chunkHdrPayloadLength;
-            chunkHdrPayloadLength = outBufLength;
-#ifdef B_HAS_DTCP_IP
-            chunkHdrPayloadLength += (pcpHeaderInserted?file->pcpHeaderSize:0);
-#endif
             memset(chunkHdr, 0, sizeof(chunkHdr));
             chunkHdrToSend = snprintf(chunkHdr, sizeof(chunkHdr)-1, "%x\r\n", outBufLength);
             rc = sendData(file->fd, chunkHdr, chunkHdrToSend, &file->stopStreaming);
             if (rc != chunkHdrToSend) {
-                BDBG_MSG(("%s: Failed to send %d bytes of chunk header begining, sent %d for socket %d", BSTD_FUNCTION, chunkHdrToSend, rc, file->fd));
+                BDBG_MSG(("%s: Failed to send %d bytes of chunk header begining, sent %zd for socket %d", BSTD_FUNCTION, chunkHdrToSend, rc, file->fd));
                 return -1;
             }
             BDBG_MSG(("wrote %d bytes of chunk hdr beginging: %s, chunkhdr size %d", chunkHdrToSend, chunkHdr, outBufLength));
         }
-#endif
         if (file->streamingProtocol == B_PlaybackIpProtocol_eHttp){
 #ifdef B_HAS_DTCP_IP
 #ifdef B_HAS_DTCP_IP_PACKETIZE_WITH_EXTERNAL_PCP
@@ -2552,19 +2550,18 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
         {
             bytesConsumed += rc;
         }
-#ifdef B_USE_HTTP_CHUNK_ENCODING
+        if (file->enableHttpChunkTransferEncoding)
         {
             /* send end of current chunk header */
             memset(chunkHdr, 0, sizeof(chunkHdr));
             chunkHdrToSend = snprintf(chunkHdr, sizeof(chunkHdr)-1, "\r\n");
             rc = sendData(file->fd, chunkHdr, chunkHdrToSend, &file->stopStreaming);
             if (rc != chunkHdrToSend) {
-                BDBG_MSG(("%s: Failed to send %d bytes of chunk header end, sent %d for socket %d", BSTD_FUNCTION, chunkHdrToSend, rc, file->fd));
+                BDBG_MSG(("%s: Failed to send %d bytes of chunk header end, sent %zd for socket %d", BSTD_FUNCTION, chunkHdrToSend, rc, file->fd));
                 return -1;
             }
             BDBG_MSG(("wrote %d bytes of chunk hdr end: %x %x", chunkHdrToSend, chunkHdr[0], chunkHdr[1]));
         }
-#endif
     }
     file->totalBytesConsumed += bytesConsumed;
     BDBG_MSG(("%s: asked %zu, Wrote %zu, Consumed %d (total %"PRId64 ") bytes for fd %d\n", BSTD_FUNCTION, length, bytesSent, bytesConsumed, file->totalBytesConsumed, file->fd));
@@ -2640,20 +2637,23 @@ B_PlaybackIp_UtilsStreamingCtxWriteAll(
             blockSettings.cached = false;
             BDBG_MSG(("%s: DMA job %p, size %zu", BSTD_FUNCTION,
                         (void *)file->dmaJobHandle, blockSettings.blockSize));
-            if ((nrc = NEXUS_DmaJob_ProcessBlocks(file->dmaJobHandle, &blockSettings, 1)) != NEXUS_DMA_QUEUED) {
-                BDBG_ERR(("%s: NEXUS_DmaJob_ProcessBlocks Failed: dmaJobHandle %p, nexus rc %d", BSTD_FUNCTION, (void *)file->dmaJobHandle, nrc));
+            nrc = NEXUS_DmaJob_ProcessBlocks(file->dmaJobHandle, &blockSettings, 1);
+            if (nrc != NEXUS_DMA_QUEUED && nrc != NEXUS_SUCCESS) {
                 return -1;
             }
-            BDBG_MSG(("%s: DMA job %p sumitted", BSTD_FUNCTION, (void *)file->dmaJobHandle));
-            rcdma = BKNI_WaitForEvent(file->event, 10000);
-            if (rcdma == BERR_TIMEOUT || rcdma != 0) {
-                BDBG_ERR(("%s: Nexus DMA Job completion event failed for PVR decryption, rc %d: %s", BSTD_FUNCTION, rcdma, rcdma == BERR_TIMEOUT? "event timeout in 10sec":"event failure"));
-                return -1;
-            }
-            NEXUS_DmaJob_GetStatus(file->dmaJobHandle, &jobStatus);
-            if (jobStatus.currentState != NEXUS_DmaJobState_eComplete) {
-                BDBG_ERR(("%s: DMA job completion failed, dma job current state %d", BSTD_FUNCTION, jobStatus.currentState));
-                return -1;
+
+            if (nrc == NEXUS_DMA_QUEUED) {
+                BDBG_MSG(("%s: DMA job %p sumitted", BSTD_FUNCTION, (void *)file->dmaJobHandle));
+                rcdma = BKNI_WaitForEvent(file->event, 10000);
+                if (rcdma == BERR_TIMEOUT || rcdma != 0) {
+                    BDBG_ERR(("%s: Nexus DMA Job completion event failed for PVR decryption, rc %d: %s", BSTD_FUNCTION, rcdma, rcdma == BERR_TIMEOUT? "event timeout in 10sec":"event failure"));
+                    return -1;
+                }
+                NEXUS_DmaJob_GetStatus(file->dmaJobHandle, &jobStatus);
+                if (jobStatus.currentState != NEXUS_DmaJobState_eComplete) {
+                    BDBG_ERR(("%s: DMA job completion failed, dma job current state %d", BSTD_FUNCTION, jobStatus.currentState));
+                    return -1;
+                }
             }
             BDBG_MSG(("%s: DMA job completed", BSTD_FUNCTION));
         }
@@ -2695,7 +2695,7 @@ B_PlaybackIp_UtilsStreamingCtxWriteAll(
         }
 #ifdef B_HAS_DTCP_IP
         if (!file->liveStreaming && bufSize < 16 && bufSize > 0) {
-            BDBG_MSG(("remaining residual bytes %d", bufSize));
+            BDBG_MSG(("remaining residual bytes %zu", bufSize));
             file->residualBytesLength = bufSize;
             memcpy(file->residualBytesToEncrypt, buf, bufSize);
             totalWritten += bufSize;
@@ -2722,6 +2722,10 @@ B_PlaybackIp_UtilsStreamingCtxClose(struct bfile_io_write_net *data)
                 data->dmaJobHandle = NULL;
                 NEXUS_Dma_Close(data->dmaHandle);
                 data->dmaHandle = NULL;
+            }
+            if (data->event) {
+                BKNI_DestroyEvent(data->event);
+                data->event = NULL;
             }
         }
     }
@@ -2899,6 +2903,7 @@ B_PlaybackIp_UtilsStreamingCtxOpen(struct bfile_io_write_net *data)
 
             if (BKNI_CreateEvent(&data->event)) {
                 BDBG_ERR(("%s: Failed to create an event\n", BSTD_FUNCTION));
+                rc = B_ERROR_OUT_OF_MEMORY;
                 goto error;
             }
 
@@ -2911,6 +2916,7 @@ B_PlaybackIp_UtilsStreamingCtxOpen(struct bfile_io_write_net *data)
             data->dmaJobHandle = NEXUS_DmaJob_Create(data->dmaHandle, &jobSettings);
             if (data->dmaJobHandle == NULL) {
                 BDBG_ERR(("%s: Failed to create Nexus DMA job", BSTD_FUNCTION));
+                rc = B_ERROR_OUT_OF_MEMORY;
                 goto error;
             }
         }
@@ -2983,7 +2989,7 @@ B_PlaybackIp_UtilsDtcpServerCtxOpen(B_PlaybackIpSecurityOpenSettings *securitySe
         goto error;
     }
 
-    BDBG_MSG(("Request from %s passed AKE procedure, akeHandle %p\n", remoteAddrStr, data->dtcpAkeHandle));
+    BDBG_MSG(("Request from %s passed AKE procedure, akeHandle %p pcpPayloadLengthInBytes=%u\n", remoteAddrStr, data->dtcpAkeHandle, securitySettings->settings.dtcpIp.pcpPayloadLengthInBytes));
 
     /* open DTCP content source stream */
     if ((data->dtcpStreamHandle = DtcpAppLib_OpenSourceStream(
@@ -2992,12 +2998,15 @@ B_PlaybackIp_UtilsDtcpServerCtxOpen(B_PlaybackIpSecurityOpenSettings *securitySe
                     DTCP_CONTENT_LENGTH_UNLIMITED,
                     securitySettings->settings.dtcpIp.emiValue,
                     B_Content_eAudioVisual,
-                    data->liveStreaming ? 0 : securitySettings->settings.dtcpIp.pcpPayloadLengthInBytes)) == NULL) /* for live streaming, we set the PCP size to 0 (which enables DTCP lib to prepend PCP on every encrypted block), else on every 8MB boundary */
+                    securitySettings->settings.dtcpIp.pcpPayloadLengthInBytes)) == NULL)
     {
         BDBG_ERR(("ERROR: Failed to open stream for AKE handle %p\n",  data->dtcpAkeHandle));
         rc = B_ERROR_PROTO;
         goto error;
     }
+#if 0
+    DtcpAppLib_SetSourceStreamEmi(data->dtcpStreamHandle, 0);
+#endif
 
     /* allocate the buffer where outgoing data should get encrypted */
     data->encryptedBufSize = STREAMING_BUF_SIZE + ENCRYPTION_PADDING;

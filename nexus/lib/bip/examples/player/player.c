@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -72,7 +72,7 @@ static void playbackDoneCallbackFromBIP(
 int main(int argc, char *argv[])
 {
     AppCtx *pAppCtx;
-    CmdOptions cmdOptions;
+    CmdOptions cmdOptions = {0};
     NEXUS_Error rc = NEXUS_UNKNOWN;
     NEXUS_PidChannelHandle videoPidChannel = NULL, audioPidChannel = NULL;
     NEXUS_AudioCodec    audioCodec = NEXUS_AudioCodec_eUnknown;
@@ -131,10 +131,11 @@ int main(int argc, char *argv[])
     {
         NEXUS_Platform_GetDefaultSettings(&pAppCtx->platformSettings);
         pAppCtx->platformSettings.openFrontend = false;
-    /* Due to latest SAGE restrictions EXPORT_HEAP needs to be initialized even if we are not using SVP/EXPORT_HEAP(XRR).
-       It could be any small size heap.
-       Configure export heap since it's not allocated by nexus by default */
-    pAppCtx->platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024;
+        /*
+         * Due to latest SAGE restrictions EXPORT_HEAP needs to be initialized even if we are not using SVP/EXPORT_HEAP(XRR).
+         * It could be any small size heap. Configure export heap since it's not allocated by nexus by default
+         */
+        pAppCtx->platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024;
         rc = NEXUS_Platform_Init(&pAppCtx->platformSettings);
         BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NEXUS_Platform_Init Failed" ), error, BIP_ERR_NEXUS, bipStatus );
         NEXUS_Platform_GetConfiguration(&platformConfig);
@@ -767,6 +768,7 @@ int main(int argc, char *argv[])
         /* NEXUS Setup is complete, now Prepare & start BIP_Player. */
         {
             startSettings.timePositionInMs = pAppCtx->initialPlaybackPositionInMs;
+            startSettings.enableHwOffload = pAppCtx->enableHwOffload;
             bipStatus = BIP_Player_Start(hPlayer, &startSettings);
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_Start Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
         }

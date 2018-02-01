@@ -1,16 +1,9 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Generic map
-
-FILE DESCRIPTION
-KHRN_GENERIC_MAP_KEY_T to KHRN_GENERIC_MAP_VALUE_T map.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
 #ifdef KHRN_GENERIC_MAP_RELOCATABLE
-   #include "middleware/khronos/common/khrn_mem.h"
+   #include "vcfw/rtos/abstract/rtos_abstract_mem.h"
 #endif
 
 typedef struct {

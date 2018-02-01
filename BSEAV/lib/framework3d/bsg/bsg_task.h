@@ -240,6 +240,8 @@ private:
 class CallbackTask : public Task
 {
 public:
+   CallbackTask() : m_event(false), m_callable(NULL) {}
+
    //! Invoke a synchronous call to the main thread, no arguments
    template <class O>
    void Call(void (O::*method)())
@@ -322,6 +324,7 @@ private:
       Callback();
       std::unique_lock<std::mutex> lock(m_eventGuard);
       m_eventConditional.wait(lock, [&] {return m_event == true;});
+      m_event = false;
    }
 
    // Runs in main thread
@@ -337,7 +340,7 @@ private:
    // Used to syncronise callbacks
    std::condition_variable m_eventConditional;
    mutable std::mutex m_eventGuard;
-   bool m_event = false;
+   bool m_event;
    TaskCallable   *m_callable;
 };
 

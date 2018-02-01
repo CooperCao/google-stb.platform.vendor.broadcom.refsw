@@ -574,7 +574,7 @@ Description:
 See Also:
     BRFM_Open()
 *******************************************************************************/
-BERR_Code BRFM_Close(
+void BRFM_Close(
     BRFM_Handle hDev /* [in] Device handle */
     );
 
@@ -590,7 +590,7 @@ Description:
 See Also:
     BRFM_Open()
 *******************************************************************************/
-BERR_Code BRFM_GetDefaultSettings(
+void BRFM_GetDefaultSettings(
     BRFM_Settings *pDefSettings, /* [out] Returns default setting */
     BCHP_Handle hChip            /* [in] Chip handle */
     );
@@ -625,7 +625,7 @@ Description:
 See Also:
     BRFM_EnableRfOutput()
 *******************************************************************************/
-BERR_Code BRFM_DisableRfOutput(
+void BRFM_DisableRfOutput(
     BRFM_Handle hDev /* [in] Device handle */
     );
 
@@ -730,7 +730,7 @@ BERR_Code BRFM_EnablePowerSaver(
 Summary:
     Enter standby mode
 *******************************************************************************/
-BERR_Code BRFM_Standby(
+void BRFM_Standby(
     BRFM_Handle hDev /* [in] Device handle */
     );
 
@@ -738,7 +738,7 @@ BERR_Code BRFM_Standby(
 Summary:
     Resume from standby mode
 ********************************************************************************/
-BERR_Code BRFM_Resume(
+void BRFM_Resume(
     BRFM_Handle hDev /* [in] Device handle */
     );
 
@@ -752,7 +752,7 @@ Description:
 See Also:
     BRFM_Status
 *******************************************************************************/
-BERR_Code BRFM_GetStatus(
+void BRFM_GetStatus(
     BRFM_Handle hDev,   /* [in] Device handle */
     BRFM_Status *status /* [out] Returns status */
     );
@@ -811,7 +811,7 @@ Description:
 See Also:
     BRFM_SetConfigSettings()
 *******************************************************************************/
-BERR_Code BRFM_GetConfigSettings(
+void BRFM_GetConfigSettings(
     BRFM_Handle hDev,
     BRFM_ConfigSettings *pConfigSettings);
 

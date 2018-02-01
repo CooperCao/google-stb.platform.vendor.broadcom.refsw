@@ -119,9 +119,7 @@ extern NEXUS_AudioDecoderHandle g_decoders[NEXUS_NUM_AUDIO_DECODERS];
 
 static NEXUS_AudioDolbyCodecVersion NEXUS_GetDolbyAudioCodecVersion(void);
 
-#if BDSP_RAAGA_AUDIO_SUPPORT
 static NEXUS_Error secureFirmwareAudio( BDSP_Handle hDevice );
-#endif
 
 static void NEXUS_P_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps);
 
@@ -286,7 +284,7 @@ void NEXUS_AudioModule_GetDefaultSettings(const struct NEXUS_Core_PreInitState *
     BDBG_CASSERT(NEXUS_AudioLoudnessEquivalenceMode_eAtscA85 == (int)BAPE_LoudnessEquivalenceMode_eAtscA85);
     BDBG_CASSERT(NEXUS_AudioLoudnessEquivalenceMode_eEbuR128 == (int)BAPE_LoudnessEquivalenceMode_eEbuR128);
     BDBG_CASSERT(NEXUS_AudioLoudnessEquivalenceMode_eMax == (int)BAPE_LoudnessEquivalenceMode_eMax);
-    pSettings->loudnessMode = (NEXUS_AudioLoudnessEquivalenceMode)apeSettings.loudnessMode;
+    pSettings->loudnessMode = (NEXUS_AudioLoudnessEquivalenceMode)apeSettings.loudnessSettings.loudnessMode;
     pSettings->heapIndex = NEXUS_MAX_HEAPS;
     pSettings->firmwareHeapIndex = NEXUS_MAX_HEAPS;
 
@@ -305,7 +303,7 @@ void NEXUS_AudioModule_GetDefaultSettings(const struct NEXUS_Core_PreInitState *
     }
     #endif
 
-    #if BDSP_RAAGA_AUDIO_SUPPORT
+    #if BDSP_ARM_AUDIO_SUPPORT
     /* TBD - handle ARM case */
     #endif
 #endif
@@ -545,6 +543,8 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
         errCode = BTEE_Instance_GetStatus(g_pCoreHandles->tee, &teeStatus);
         if ( errCode ) { (void)BERR_TRACE(errCode); goto err_dsp; }
 
+        BDBG_MSG(("TEE %d, DSP %p, ARM %p", teeStatus.enabled, (void*)g_NEXUS_audioModuleData.dspHandle, (void*)g_NEXUS_audioModuleData.armHandle));
+
         BDBG_LOG(("Astra Version %u.%u.%u, Astra Enabled %d", teeStatus.version.major, teeStatus.version.minor, teeStatus.version.build, teeStatus.enabled));
         if ( teeStatus.enabled /* && version matches bdsp */ )
         {
@@ -565,6 +565,12 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
                 goto err_dsp;
             }
         }
+        else if ( !g_NEXUS_audioModuleData.dspHandle ) /* if ARM is our only device option, this is a failure. */
+        {
+            BDBG_WRN(("TEE(Astra) is not enabled. Cannot open BDSP ARM instance."));
+            (void)BERR_TRACE(errCode);
+            goto err_dsp;
+        }
     }
     #endif
 #endif /* BAPE_DSP_SUPPORT */
@@ -578,7 +584,7 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
     apeSettings.numCompressed4xBuffers = pSettings->numCompressed4xBuffers;
     apeSettings.numCompressed16xBuffers = pSettings->numCompressed16xBuffers;
     apeSettings.numRfEncodedPcmBuffers = pSettings->numRfEncodedPcmBuffers;
-    apeSettings.loudnessMode = (BAPE_LoudnessEquivalenceMode)pSettings->loudnessMode;
+    apeSettings.loudnessSettings.loudnessMode = (BAPE_LoudnessEquivalenceMode)pSettings->loudnessMode;
     for (i=0;i<NEXUS_MAX_MEMC;i++) {
         /* APE is unable to access above region[0] on each MEMC */
         apeSettings.memc[i].baseAddress = g_pCoreHandles->memoryLayout.memc[i].region[0].addr;
@@ -590,6 +596,7 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
     }
 
     BDBG_MSG(("Calling BAPE_Open"));
+    BDBG_MSG(("DSP %p, ARM %p", (void*)g_NEXUS_audioModuleData.dspHandle, (void*)g_NEXUS_audioModuleData.armHandle));
     errCode = BAPE_Open(&NEXUS_AUDIO_DEVICE_HANDLE,
                         g_pCoreHandles->chp,
                         g_pCoreHandles->reg,
@@ -900,6 +907,8 @@ static BAPE_PostProcessorType NEXUS_AudioModule_P_NexusProcessingTypeToPiProcess
         return BAPE_PostProcessorType_eFade;
     case NEXUS_AudioPostProcessing_eKaraokeVocal:
         return BAPE_PostProcessorType_eKaraokeVocal;
+    case NEXUS_AudioPostProcessing_eAdvancedTsm:
+        return BAPE_PostProcessorType_eAdvancedTsm;
     default:
         break;
     }
@@ -1121,9 +1130,10 @@ void NEXUS_P_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps)
         pCaps->dsp.truVolume |= apeCaps.dsp[j].truVolume;
         pCaps->dsp.karaoke |= apeCaps.dsp[j].karaoke;
 
-        for ( i = 0; i < NEXUS_AudioPostProcessing_eMax; i++ )
-        {
-            pCaps->dsp.processing[(NEXUS_AudioPostProcessing)i] |= apeCaps.dsp[j].processing[NEXUS_AudioModule_P_NexusProcessingTypeToPiProcessingType((NEXUS_AudioPostProcessing)i)];
+        for ( i = 0; i < NEXUS_AudioPostProcessing_eMax; i++ ) {
+            if ( NEXUS_AudioModule_P_NexusProcessingTypeToPiProcessingType((NEXUS_AudioPostProcessing)i) != BAPE_PostProcessorType_eMax ) {
+                pCaps->dsp.processing[(NEXUS_AudioPostProcessing)i] |= apeCaps.dsp[j].processing[NEXUS_AudioModule_P_NexusProcessingTypeToPiProcessingType((NEXUS_AudioPostProcessing)i)];
+            }
         }
     }
 }
@@ -1703,11 +1713,54 @@ static NEXUS_AudioDolbyCodecVersion NEXUS_GetDolbyAudioCodecVersion(void)
     return dolbyCodecVersion;
 }
 
+void NEXUS_AudioModule_GetLoudnessSettings(NEXUS_AudioLoudnessSettings *pSettings)
+{
+    BAPE_LoudnessSettings apeSettings;
+    BDBG_ASSERT(NULL != pSettings);
+    BAPE_GetLoudnessMode(g_NEXUS_audioModuleData.apeHandle, &apeSettings);
+    switch (apeSettings.loudnessMode) {
+    case BAPE_LoudnessEquivalenceMode_eAtscA85:
+        pSettings->loudnessMode = NEXUS_AudioLoudnessEquivalenceMode_eAtscA85;
+        break;
+    case BAPE_LoudnessEquivalenceMode_eEbuR128:
+        pSettings->loudnessMode = NEXUS_AudioLoudnessEquivalenceMode_eEbuR128;
+        break;
+    default:
+        pSettings->loudnessMode = NEXUS_AudioLoudnessEquivalenceMode_eNone;
+        break;
+    }
+}
 
-#if BDSP_RAAGA_AUDIO_SUPPORT
+NEXUS_Error NEXUS_AudioModule_SetLoudnessSettings(const NEXUS_AudioLoudnessSettings *pSettings)
+{
+    BAPE_LoudnessSettings apeSettings;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    BDBG_ASSERT(NULL != pSettings);
+
+    BAPE_GetLoudnessMode(g_NEXUS_audioModuleData.apeHandle, &apeSettings);
+    switch (pSettings->loudnessMode) {
+    case NEXUS_AudioLoudnessEquivalenceMode_eAtscA85:
+        g_NEXUS_audioModuleData.settings.loudnessMode = NEXUS_AudioLoudnessEquivalenceMode_eAtscA85;
+        apeSettings.loudnessMode = BAPE_LoudnessEquivalenceMode_eAtscA85;
+        break;
+    case NEXUS_AudioLoudnessEquivalenceMode_eEbuR128:
+        g_NEXUS_audioModuleData.settings.loudnessMode = NEXUS_AudioLoudnessEquivalenceMode_eEbuR128;
+        apeSettings.loudnessMode = BAPE_LoudnessEquivalenceMode_eEbuR128;
+        break;
+    default:
+        g_NEXUS_audioModuleData.settings.loudnessMode = NEXUS_AudioLoudnessEquivalenceMode_eNone;
+        apeSettings.loudnessMode = BAPE_LoudnessEquivalenceMode_eNone;
+        break;
+    }
+    rc = BAPE_SetLoudnessMode(g_NEXUS_audioModuleData.apeHandle, &apeSettings);
+    if( rc ) { BERR_TRACE( rc ); }
+    return rc;
+}
+
+
 static NEXUS_Error secureFirmwareAudio( BDSP_Handle hDevice )
 {
-#if BAPE_DSP_SUPPORT
+#if BAPE_DSP_SUPPORT && BDSP_RAAGA_AUDIO_SUPPORT
     NEXUS_Error rc = NEXUS_SUCCESS;
     uint32_t firmwareSize;
     void * firmwareAddress;
@@ -1760,12 +1813,11 @@ exit:
   #endif
 
     return rc;
-#else /* NEXUS_AUDIO_DECODER_SUPPORT */
+#else
     BSTD_UNUSED(hDevice);
     return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-#endif /* NEXUS_AUDIO_DECODER_SUPPORT */
-}
 #endif
+}
 
 int32_t NEXUS_Audio_P_ConvertDbToLinear(int index)
 {

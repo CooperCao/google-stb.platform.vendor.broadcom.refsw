@@ -170,6 +170,7 @@ private:
     NEXUS_DmaJobHandle m_dmaJob;
 };
 
+#define MAX_DESCRIPTORS 10
 class IStreamer;
 
 // This is used to create a Streamer
@@ -207,8 +208,15 @@ public:
     // Used to allocate the destination buffer
     virtual IBuffer* GetBuffer(uint32_t size) = 0;
 
+    // Used to submit a buffer for scatter-gather
+    virtual bool SubmitScatterGather(IBuffer* buffer, bool last = false) = 0;
+    virtual bool SubmitScatterGather(void* addr, uint32_t length, bool flush, bool last = false) = 0;
+
     // Used to push data to AV pipeline
     virtual bool Push(uint32_t size) = 0;
+
+    // Returns if this streamer is secure or not
+    virtual bool IsSecure() = 0;
 };
 
 // Parent class to provide streamer API
@@ -233,8 +241,12 @@ public:
 
     virtual IBuffer* GetBuffer(uint32_t size) OVERRIDE;
 
+    virtual bool SubmitScatterGather(IBuffer* buffer, bool last = false) OVERRIDE;
+    virtual bool SubmitScatterGather(void* addr, uint32_t length, bool flush, bool last = false) OVERRIDE;
+
     virtual bool Push(uint32_t size) OVERRIDE;
 
+    virtual bool IsSecure() OVERRIDE { return false; }
 protected:
     virtual bool SetupPlaypump(NEXUS_PlaypumpOpenSettings *playpumpOpenSettings) = 0;
     virtual bool SetupPidChannel() { return true; }
@@ -245,6 +257,12 @@ protected:
     NEXUS_PlaypumpHandle m_playpump;
     IBuffer* m_playpumpBuffer;
     NEXUS_PidChannelHandle m_pidChannel;
+
+private:
+    uint8_t* WaitForBuffer(uint32_t size);
+    uint32_t m_numDesc;
+    NEXUS_PlaypumpScatterGatherDescriptor m_desc[MAX_DESCRIPTORS];
+    bool m_flush[MAX_DESCRIPTORS];
 };
 
 class Streamer : public BaseStreamer
@@ -252,6 +270,8 @@ class Streamer : public BaseStreamer
 public:
     Streamer();
     virtual ~Streamer();
+
+    virtual bool IsSecure() OVERRIDE { return false; }
 
 protected:
     virtual bool SetupPlaypump(NEXUS_PlaypumpOpenSettings *playpumpOpenSettings) OVERRIDE;
@@ -266,6 +286,8 @@ public:
     virtual ~SecureStreamer();
 
     virtual bool Initialize() OVERRIDE;
+
+    virtual bool IsSecure() OVERRIDE { return true; }
 
 protected:
     virtual bool SetupPlaypump(NEXUS_PlaypumpOpenSettings *playpumpOpenSettings) OVERRIDE;

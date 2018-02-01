@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 #include "bstd.h"
@@ -47,6 +48,7 @@
 #include "bhsm_rsa.h"
 #include "bhsm_rv_rsa.h"
 #include "bhsm_hash.h"
+#include "bhsm_rv_region.h"
 
 BDBG_MODULE(BHSM);
 
@@ -95,6 +97,9 @@ BHSM_Handle BHSM_Open( const BHSM_ModuleSettings *pSettings )
     if( rc != BERR_SUCCESS ) { BERR_TRACE(rc); goto error; }
 
     rc = BHSM_HashHmac_Init( pHandle, NULL );
+    if( rc != BERR_SUCCESS ) { BERR_TRACE(rc); goto error; }
+
+    rc = BHSM_RvRegion_Init( pHandle, NULL );
     if( rc != BERR_SUCCESS ) { BERR_TRACE(rc); goto error; }
 
     BDBG_LEAVE( BHSM_Open );

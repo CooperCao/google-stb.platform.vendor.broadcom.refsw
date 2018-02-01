@@ -77,7 +77,9 @@ public:
       Zoom,
       FullScreen,
       Compare,
-      e360
+      e360,
+      e360Multi,
+      eSyncTest
    };
 
 private:
@@ -89,7 +91,6 @@ private:
    void InitGLState();
    void TerminateGLState();
    void InitGLExtensions();
-   void InitGLViewPort();
    void Resize();
    void Display();
    void UpdateAnimation();

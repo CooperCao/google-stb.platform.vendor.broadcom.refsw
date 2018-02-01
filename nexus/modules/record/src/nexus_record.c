@@ -49,6 +49,7 @@
 #include "priv/nexus_playback_notify.h"
 #endif
 #include "nexus_core_utils.h"
+#include "priv/nexus_file_priv.h"
 
 BDBG_MODULE(nexus_record);
 
@@ -359,8 +360,7 @@ NEXUS_Record_P_DataReadyCallback(void *context)
         return;
     }
 
-#if DIRECT_IO_SUPPORT
-    if (!flow->stopping) {
+    if (!flow->stopping && NEXUS_FileRecord_DirectIo_isrsafe(flow->file)) {
         unsigned truncAmount;
 
         /* If Recpump's data.atomSize is working, we will never get less that BIO_BLOCK_SIZE, even on wrap around. */
@@ -370,7 +370,6 @@ NEXUS_Record_P_DataReadyCallback(void *context)
         truncAmount = size % BIO_BLOCK_SIZE;
         size -= truncAmount;
     }
-#endif
 
     /* We limit record size to prevent overflow. If a file transaction takes a long time, we
     may overflow while we wait. Better to split it up into slightly smaller transactions so that we free
@@ -1031,7 +1030,6 @@ NEXUS_Record_StartAppend(NEXUS_RecordHandle record, NEXUS_FileRecordHandle file,
 
     BDBG_ASSERT(record->cfg.recpump);
     BDBG_MSG(("Starting recpump..."));
-    NEXUS_StartCallbacks(record->cfg.recpump);
     rc = NEXUS_Recpump_Start(record->cfg.recpump);
     if(rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc); goto err_start;}
     record->started = true;
@@ -1083,7 +1081,6 @@ NEXUS_Record_Stop(NEXUS_RecordHandle record)
         }
     }
 
-    NEXUS_StopCallbacks(record->cfg.recpump);
     NEXUS_CallbackHandler_Stop(record->data.dataReady);
     NEXUS_CallbackHandler_Stop(record->index.dataReady);
     NEXUS_CallbackHandler_Stop(record->data.overflow);
@@ -1106,7 +1103,9 @@ NEXUS_Record_Stop(NEXUS_RecordHandle record)
         NEXUS_LockModule();
     }
 
+    NEXUS_StopCallbacks(record->cfg.recpump);
     NEXUS_Recpump_Stop(record->cfg.recpump);
+    NEXUS_StartCallbacks(record->cfg.recpump);
 
     if (record->index.info.index.indexer) {
         BNAV_Indexer_Close(record->index.info.index.indexer);

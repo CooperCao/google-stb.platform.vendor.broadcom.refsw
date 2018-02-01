@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,6 +44,8 @@
 int SAGE_BP3Module_Init(SRAI_PlatformHandle platform);
 void SAGE_BP3Module_Uninit(void);
 BERR_Code SAGE_BP3Module_GetSessionToken(uint8_t *pSessionToken, uint32_t tokenSize);
+BERR_Code SAGE_BP3Module_GetOtpId (uint32_t *pOtpIdHigh, uint32_t *pOtpIdLow);
+
 int SAGE_BP3Module_ProcessBP3Bin(uint8_t *binBuf, int binSize);
 BERR_Code SAGE_BP3Module_Provision(
     uint8_t  *pEncryptedBp3CcfFile,     // input: points to encrypted BP3_CCF file

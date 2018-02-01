@@ -3312,6 +3312,20 @@ wlc_dmatx_reclaim(wlc_hw_info_t *wlc_hw)
 
 #endif /* DMATXRC */
 
+void
+wlc_dma_map_pkts(wlc_hw_info_t *wlc_hw, map_pkts_cb_fn cb, void *ctx)
+{
+	uint i;
+	hnddma_t *di;
+
+	for (i = 0; i < WLC_HW_NFIFO_INUSE(wlc_hw->wlc); i++) {
+		di = wlc_hw->di[i];
+		if (di) {
+			dmatx_map_pkts(di, cb, ctx);
+		}
+	}
+}
+
 void * wlc_bmac_dmatx_peeknexttxp(wlc_info_t *wlc, int fifo)
 {
 	return dma_peeknexttxp(WLC_HW_DI(wlc, fifo));
@@ -9895,8 +9909,8 @@ BCMINITFN(wlc_coreinit)(wlc_hw_info_t *wlc_hw)
 	* CRWLDOT11M-1824: SP2DPQ.EOF can get lost when backplane clk transits
 	*    to HT and this causes rxdma stuck
 	*/
-	if (D11REV_GE(wlc_hw->corerev, 24) &&
-		(!(D11REV_GE(wlc_hw->corerev, 64) || D11REV_IS(wlc_hw->corerev, 60) ||
+	if (D11REV_GE(wlc_hw->corerev, 24) && (D11REV_IS(wlc_hw->corerev,66) ||
+		!(D11REV_GE(wlc_hw->corerev, 64) || D11REV_IS(wlc_hw->corerev, 60) ||
 		D11REV_IS(wlc_hw->corerev, 61) || D11REV_IS(wlc_hw->corerev, 62)))) {
 		OR_REG(osh, &wlc_hw->regs->psm_corectlsts, PSM_CORE_CTL_REHE);
 	}

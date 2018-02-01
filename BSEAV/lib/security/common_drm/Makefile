@@ -48,9 +48,18 @@ NEXUS_PLATFORM ?= $(PLATFORM)
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
 COMMON_DRM_OBJ_ROOT = ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm
+D_FOR_LIB_INSTALL = ${COMMON_DRM_OBJ_ROOT}/lib/${CMNDRM_DIR}
 
 # Include nexus definitions
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
+
+# common_drm expects NEXUS_SECURITY_API_VERSION to be set to either '1' or '2'
+ifndef NEXUS_SECURITY_API_VERSION
+$(error NEXUS_SECURITY_API_VERSION is not defined.)
+endif
+ifneq ($(filter $(NEXUS_SECURITY_API_VERSION),1 2),$(NEXUS_SECURITY_API_VERSION))
+$(error Unsupported NEXUS_SECURITY_API_VERSION = $(NEXUS_SECURITY_API_VERSION))
+endif
 
 # Convert include paths into single variable
 NEXUS_APP_INCLUDE_PATHS := $(foreach module, $(NEXUS_MODULES), $(NEXUS_$(module)_PUBLIC_INCLUDES))
@@ -61,7 +70,6 @@ NEXUS_APP_DEFINES += $(foreach module, $(NEXUS_MODULES),NEXUS_HAS_$(module))
 NEXUS_APP_INCLUDE_PATHS += $(foreach module, $(MAGNUM_MODULES), $($(module)_INCLUDES))
 NEXUS_APP_DEFINES += $(foreach module, $(MAGNUM_MODULES), $($(module)_DEFINES))
 
-
 # Set directory based on architecture
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux arm-linux), ${B_REFSW_ARCH})
 ARCH_DIR=arm
@@ -69,13 +77,14 @@ else
 ARCH_DIR=mips
 endif
 
+# Define job slots for parallel build dependencies
+NJOBS ?= 1
+
 include common_drm.inc
 
 ####################################
 # Use URSR CFLAGS
 ###################################
-
-
 
 # SRAI is always from URSR_TOP
 ifeq ($(SAGE_SUPPORT),y)
@@ -102,8 +111,6 @@ ifeq ($(SAGE_SUPPORT),y)
       endif
     endif
 endif
-
-
 
 CFLAGS += -DPIC -fpic
 CFLAGS += $(addprefix -I, ${NEXUS_APP_INCLUDE_PATHS})
@@ -139,9 +146,12 @@ PRDY_LDFLAGS += -lnexus -llog
 ifeq ($(SAGE_VERSION), 2x)
 PRDY_LIB_PATH := ${URSR_TOP}/BSEAV/thirdparty/playready/2.5/bin/${ARCH_DIR}/lib/$(SAGE_VERSION)
 else
-PRDY_LIB_PATH := ${URSR_TOP}/BSEAV/thirdparty/playready/2.5/bin/${ARCH_DIR}/lib
+ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
+    PRDY_LIB_PATH := ${URSR_TOP}/BSEAV/thirdparty/playready/2.5/bin/${ARCH_DIR}/Zeus5x/lib
+else
+    PRDY_LIB_PATH := ${URSR_TOP}/BSEAV/thirdparty/playready/2.5/bin/${ARCH_DIR}/Zeus4x/lib
 endif
-
+endif
 
 ifeq ($(findstring mips,$(B_REFSW_ARCH)),mips)
 #Adding eglibc support for mips platforms. if the tool chain version is greater than 4.8.5
@@ -169,7 +179,6 @@ CFLAGS += $(B_OPENSSL_CFLAGS)
 PRDY_LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
 endif # end of ANDROID_BUILD=n
 
-
 #allow c++ style comments
 CFLAGS += -std=c99
 
@@ -187,10 +196,17 @@ ifeq ($(findstring $(BCHP_CHIP), 7445 7366 7439 7364 7250 74371 7268 7271 7260),
 include config/config_zeus4x.inc
 else ifeq ($(findstring $(BCHP_CHIP), 7435 7584 75845), $(BCHP_CHIP))
 include config/config_zeus30.inc
+else ifeq ($(findstring $(BCHP_CHIP), 7278), $(BCHP_CHIP))
+include config/config_zeus5x.inc
 endif
 else
 include config/config_no_sage.inc
 endif
+
+#################### COMMON ################################
+include ${URSR_TOP}/BSEAV/lib/security/common_drm/drm/common/common.inc
+COMMON_DRM_SOURCES += ${COMMON_SOURCES}
+COMMON_DRM_DEFINES += ${COMMON_DEFINES}
 
 # always include the core TL files ???
 ifeq ($(SAGE_SUPPORT),y)
@@ -202,7 +218,15 @@ endif
 
 #################### ADOBE ################################
 ifeq (${ADOBE_SAGE},OFF)
-#Cannot build non-TL version of Common DRM library)
+ifeq (${ENABLE_ADOBE},y)
+ifeq (${COMMON_DRM_ADOBE},y)
+include drm/adobe/adobe.inc
+COMMON_DRM_SOURCES += ${ADOBE_SOURCES}
+COMMON_DRM_DEFINES += ${ADOBE_DEFINES}
+endif #COMMON_DRM_ADOBE
+else
+#$(warning ADOBE will NOT be compiled !!!)
+endif #ENABLE_ADOBE
 else
 include drm_tl/adobe/adobe.inc
 COMMON_DRM_TL_INCLUDES += ${ADOBE_INCLUDES}
@@ -210,10 +234,17 @@ COMMON_DRM_TL_SOURCES += ${ADOBE_SOURCES}
 COMMON_DRM_TL_DEFINES += ${ADOBE_DEFINES}
 endif
 
-######################widevine modular DRM################################
+################### WIDEVINE ##############################
+# WIDEVINE CENC (for non-SAGE)
 ifeq (${WVOEMCRYPTO_SAGE},OFF)
-#Cannot build non-TL version of Common DRM library)
+ifeq (${COMMON_DRM_WIDEVINE},y)
+include drm/widevine_cenc/widevine_cenc.inc
+COMMON_DRM_INCLUDES += ${WIDEVINE_CENC_INCLUDES}
+COMMON_DRM_SOURCES += ${WIDEVINE_CENC_SOURCES}
+COMMON_DRM_DEFINES += ${WIDEVINE_CENC_DEFINES}
+endif #COMMON_DRM_WIDEVINE
 else
+# WIDEVINE MODULAR DRM (for SAGE)
 include drm_tl/wvoemcrypto/wvoemcrypto.inc
 COMMON_DRM_TL_INCLUDES += ${WVOEMCRYPTO_INCLUDES}
 COMMON_DRM_TL_SOURCES += ${WVOEMCRYPTO_SOURCES}
@@ -229,39 +260,19 @@ COMMON_DRM_TL_SOURCES += ${PLAYBACK_SOURCES}
 COMMON_DRM_TL_DEFINES += ${PLAYBACK_DEFINES}
 endif
 
-
-#################### CUSTOM PRIVATE ################################
-ifeq (${CUSTOM_PRIVATE_SAGE},OFF)
-#Cannot build non-TL version of Common DRM library)
-else
-$(error Support for CustomPrivate on SAGE does not exist)
-endif
-
-COMMON_DRM_INCLUDES += ${CUSTOM_PRIVATE_INCLUDES}
-COMMON_DRM_SOURCES += ${CUSTOM_PRIVATE_SOURCES}
-COMMON_DRM_DEFINES += ${CUSTOM_PRIVATE_DEFINES}
-
-#################### DATAPROC ################################
-ifeq (${DATAPROC_SAGE},OFF)
-#Cannot build non-TL version of Common DRM library)
-else
-    $(error Support for DataProc on SAGE does not exist)
-endif
-
-COMMON_DRM_INCLUDES += ${DATAPROC_INCLUDES}
-COMMON_DRM_SOURCES += ${DATAPROC_SOURCES}
-COMMON_DRM_DEFINES += ${DATAPROC_DEFINES}
-
 #################### DTCP-IP ################################
-ifeq (${DTCP_IP_SAGE},OFF)
-COMMON_DRM_INCLUDES += ${DTCP_IP_INCLUDES}
+# Include non-SAGE DTCPIP on both SAGE and non-SAGE platforms
+ifeq (${COMMON_DRM_DTCPIP},y)
+include drm/dtcp_ip/dtcp_ip.inc
 COMMON_DRM_SOURCES += ${DTCP_IP_SOURCES}
 COMMON_DRM_DEFINES += ${DTCP_IP_DEFINES}
-else
+endif #COMMON_DRM_DTCPIP
+
+ifeq (${DTCP_IP_SAGE},ON)
 include drm_tl/dtcp_ip/dtcp_ip.inc
-COMMON_DRM_TL_INCLUDES += ${DTCP_IP_INCLUDES}
-COMMON_DRM_TL_SOURCES += ${DTCP_IP_SOURCES}
-COMMON_DRM_TL_DEFINES += ${DTCP_IP_DEFINES}
+COMMON_DRM_TL_INCLUDES += ${DTCP_IP_TL_INCLUDES}
+COMMON_DRM_TL_SOURCES += ${DTCP_IP_TL_SOURCES}
+COMMON_DRM_TL_DEFINES += ${DTCP_IP_TL_DEFINES}
 endif
 
 #################### EDRM ################################
@@ -276,40 +287,31 @@ endif
 
 #################### HDCP ################################
 ifeq (${HDCP_SAGE},OFF)
-#Cannot build non-TL version of Common DRM library)
-else
-$(error Support for HDCP on SAGE does not exist)
-endif
-
-COMMON_DRM_INCLUDES += ${HDCP_INCLUDES}
+include drm/hdcp/hdcp.inc
 COMMON_DRM_SOURCES += ${HDCP_SOURCES}
 COMMON_DRM_DEFINES += ${HDCP_DEFINES}
-
-#################### MARLIN ################################
-ifeq (${MARLIN_SAGE},OFF)
-#Cannot build non-TL version of Common DRM library)
 else
-$(error Support for Marlin on SAGE does not exist)
+#$(warning Support for HDCP on SAGE does not exist)
 endif
-
-COMMON_DRM_INCLUDES += ${MARLIN_INCLUDES}
-COMMON_DRM_SOURCES += ${MARLIN_SOURCES}
-COMMON_DRM_DEFINES += ${MARLIN_DEFINES}
 
 #################### OCAP ################################
 ifeq (${OCAP_SAGE},OFF)
-#Cannot build non-TL version of Common DRM library)
-else
-$(error Support for OCAP on SAGE does not exist)
-endif
-
-COMMON_DRM_INCLUDES += ${OCAP_INCLUDES}
+ifeq (${COMMON_DRM_OCAP},y)
+include drm/ocap/ocap.inc
 COMMON_DRM_SOURCES += ${OCAP_SOURCES}
 COMMON_DRM_DEFINES += ${OCAP_DEFINES}
+endif #COMMON_DRM_OCAP
+else
+#$(warning Support for OCAP on SAGE does not exist)
+endif
 
 #################### NETFLIX ################################
 ifeq (${NETFLIX_SAGE},OFF)
-#Cannot build non-TL version of Common DRM library)
+ifeq (${COMMON_DRM_NETFLIX},y)
+include drm/netflix/netflix.inc
+COMMON_DRM_SOURCES += ${NETFLIX_SOURCES}
+COMMON_DRM_DEFINES += ${NETFLIX_DEFINES}
+endif #COMMON_DRM_NETFLIX
 else
 include drm_tl/netflix/netflix.inc
 COMMON_DRM_TL_INCLUDES += ${NETFLIX_INCLUDES}
@@ -319,55 +321,22 @@ endif
 
 #################### PMC ################################
 ifeq (${PMC_SAGE},OFF)
-#Cannot build non-TL version of Common DRM library)
-else
-$(error Support for PMC on SAGE does not exist)
-endif
-
-COMMON_DRM_INCLUDES += ${PMC_INCLUDES}
+ifeq (${ENABLE_ADOBE},y) # PMC only supported with Adobe
+ifeq (${COMMON_DRM_ADOBE},y) # Confirms that all Adobe and PMC components are present
+include drm/pmc/pmc.inc
 COMMON_DRM_SOURCES += ${PMC_SOURCES}
 COMMON_DRM_DEFINES += ${PMC_DEFINES}
-
-#################### SECURE SW RSA ################################
-ifeq (${SECURE_SW_RSA_SAGE},OFF)
-#Cannot build non-TL version of Common DRM library)
+endif #COMMON_DRM_ADOBE
 else
-$(error Support for SECURE_SW_RSA on SAGE does not exist)
-endif
-
-COMMON_DRM_INCLUDES += ${SECURE_SW_RSA_INCLUDES}
-COMMON_DRM_SOURCES += ${SECURE_SW_RSA_SOURCES}
-COMMON_DRM_DEFINES += ${SECURE_SW_RSA_DEFINES}
-
-
-#################### VUDU ################################
-ifeq (${VUDU_SAGE},OFF)
-#Cannot build non-TL version of Common DRM library)
+#$(warning PMC support requires Adobe since all other PMC modules have been deprecated !!!)
+endif #ENABLE_ADOBE
 else
-$(error Support for VUDU on SAGE does not exist)
+#$(warning Support for PMC on SAGE does not exist)
 endif
-
-COMMON_DRM_INCLUDES += ${VUDU_INCLUDES}
-COMMON_DRM_SOURCES += ${VUDU_SOURCES}
-COMMON_DRM_DEFINES += ${VUDU_DEFINES}
-
-#################### WIDEVINE ################################
-ifeq (${WIDEVINE_SAGE},OFF)
-#Cannot build non-TL version of Common DRM library)
-else
-include drm_tl/widevine/widevine.inc
-endif
-
-COMMON_DRM_INCLUDES += ${WIDEVINE_INCLUDES}
-COMMON_DRM_SOURCES += ${WIDEVINE_SOURCES}
-COMMON_DRM_DEFINES += ${WIDEVINE_DEFINES}
-
 
 #############################################################
 
-
 CFLAGS += ${COMMON_DRM_DEFINES}
-
 
 ########################### Playready 2.5 ##################################
 include drm/playready/playready.inc
@@ -401,28 +370,50 @@ endif
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
 
 
-
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
 
-LIB_TL_BASENAME     := cmndrm_tl
+ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
+LIB_BASENAME        := cmndrm64
+else
+LIB_BASENAME        := cmndrm
+endif
 
+LIB_TL_BASENAME     := cmndrm_tl
 
 ###########################################################################
 ## LDFLAGS section
 ###########################################################################
 LDFLAGS = -L$(NEXUS_BIN_DIR)/ -lnexus${NEXUS_LIB_SUFFIX}
 
+# TODO: uncheck when shared OpenSSL library is available
+ifeq ($(ANDROID_BUILD),y)
+ifneq ($(ANDROID_LINKER_SYSROOT),)
+LDFLAGS += --sysroot=$(ANDROID_LINKER_SYSROOT)
+endif # end of ANDROID_LINKER_SYSROOT
+LDFLAGS += -lcrypto -ldrmrootfs -lbcrypt
+LDFLAGS += $(NEXUS_LDFLAGS)
+else # end of ANDROID_BUILD=y
+LDFLAGS += -L$(B_OPENSSL_LIB_INSTALL_DIR) -lcrypto
+endif # end of ANDROID_BUILD=n
+
+# Link against drmrootfs
+LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
 
 #TL lib should always link against regular libcmndrm.so
 LDFLAGS += $(COMMON_DRM_LDFLAGS)
 
-
-
+# make sure SONAME is setup for ELF in android.
+LDSHARED_FLAGS := -shared
+ifeq ($(ANDROID_BUILD),y)
+LDSHARED_FLAGS += -Wl,-soname,lib${LIB_BASENAME}.so
+endif
 
 ############
 # You probably shouldn't have to modify the text below this point.
 #####
+F_PUBLIC_LIBS    	+= lib${LIB_BASENAME}.a lib${LIB_BASENAME}.so
 COMMON_DRM_OBJECTS  :=  $(patsubst %.c,%.o, ${COMMON_DRM_SOURCES})
+TARGET_COMMON_DRM_OBJECTS = $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${COMMON_DRM_OBJECTS})
 F_INSTALLED_LIBS	:= $(addprefix ${COMMON_DRM_OBJ_ROOT}/lib/${CMNDRM_DIR}/, ${F_PUBLIC_LIBS})
 
 ifeq ($(SAGE_SUPPORT),y)
@@ -434,19 +425,20 @@ F_PUBLIC_TL_LIBS   	=
 COMMON_DRM_TL_OBJECTS :=
 F_INSTALLED_TL_LIBS	=
 endif
-BUILD_LIBS = $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${F_PUBLIC_LIBS} ${F_PUBLIC_TL_LIBS})
+BUILD_LIBS = $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${F_PUBLIC_TL_LIBS})
 
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
 
 #$(warning TL_LDFLAGS = ${TL_LDFLAGS})
 #$(warning LDFLAGS = ${LDFLAGS})
 #$(warning F_INSTALLED_LIBS = ${F_INSTALLED_LIBS})
+#$(warning D_FOR_LIB_INSTALL = ${D_FOR_LIB_INSTALL})
 #$(warning COMMON_DRM_OBJECTS = ${COMMON_DRM_OBJECTS})
+#$(warning TARGET_COMMON_DRM_OBJECTS = ${TARGET_COMMON_DRM_OBJECTS})
 #$(warning COMMON_DRM_TL_OBJECTS = ${COMMON_DRM_TL_OBJECTS})
 #$(warning COMMON_DRM_SOURCES = ${COMMON_DRM_SOURCES})
 #$(warning COMMON_DRM_TL_SOURCES = ${COMMON_DRM_TL_SOURCES})
 #$(warning CFLAGS = ${CFLAGS})
-
 
 ############################################################################
 #                              MAIN TARGETS
@@ -454,18 +446,62 @@ BUILD_LIBS = $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${F_PUBLIC_LIBS} ${F_PUBLIC_TL
 ifeq ($(ANDROID_BUILD),y)
 all: $(BUILD_LIBS)
 else
-all: prep_folder prep_openssl prep_srai $(BUILD_LIBS)
+all: prep_folder prep_nexus prep_openssl prep_bcrypt prep_drmrootfs prep_srai $(BUILD_LIBS)
 endif
 
 .PHONY: prep_folder prep_openssl prep_srai prep_drmrootfs playready
 
 prep_folder:
 	@ mkdir -p ${COMMON_DRM_OBJ_ROOT}/
+	@ mkdir -p ${D_FOR_LIB_INSTALL}/
+	@ mkdir -p $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $(dir ${COMMON_SOURCES}))
 	@ mkdir -p $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $(dir ${PLAYREADY_SOURCES} ${COMMON_DRM_TL_SOURCES}))
 	@ mkdir -p ${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}
 ifeq ($(SAGE_SUPPORT),y)
 	@ mkdir -p ${COMMON_DRM_OBJ_ROOT}/lib/${CMNDRM_DIR}
 endif
+
+ifeq (${ADOBE_SAGE},OFF)
+ifeq (${PMC_SAGE},OFF)
+ifeq (${ENABLE_ADOBE},y)
+ifeq (${COMMON_DRM_ADOBE},y)
+	@ mkdir -p $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $(dir ${ADOBE_SOURCES} ${PMC_SOURCES}))
+endif
+endif
+endif
+endif
+
+ifeq (${WVOEMCRYPTO_SAGE},OFF)
+ifeq (${COMMON_DRM_WIDEVINE},y)
+	@ mkdir -p $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $(dir ${WIDEVINE_CENC_SOURCES}))
+endif
+endif
+
+ifeq (${COMMON_DRM_DTCPIP},y)
+	@ mkdir -p $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $(dir ${DTCP_IP_SOURCES}))
+endif
+
+ifeq (${HDCP_SAGE},OFF)
+	@ mkdir -p $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $(dir ${HDCP_SOURCES}))
+endif
+
+ifeq (${OCAP_SAGE},OFF)
+ifeq (${COMMON_DRM_OCAP},y)
+	@ mkdir -p $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $(dir ${OCAP_SOURCES}))
+endif
+endif
+
+ifeq (${NETFLIX_SAGE},OFF)
+ifeq (${COMMON_DRM_NETFLIX},y)
+	@ mkdir -p $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $(dir ${NETFLIX_SOURCES}))
+endif
+endif
+
+prep_nexus:
+	@if [ ! -e ${NEXUS_BIN_DIR}/libnexus.so ]; then \
+		echo [ building nexus .... ] && \
+		$(MAKE) -j$(NJOBS) -C $(NEXUS_TOP)/build >/dev/null; \
+	fi
 
 include $(BSEAV)/opensource/openssl/b_openssl_targets.inc
 ifeq ($(B_BUILD_DEPS),n)
@@ -473,6 +509,10 @@ ifeq ($(B_BUILD_DEPS),n)
 else
  prep_openssl: b_openssl_target_build
 endif
+
+prep_bcrypt:
+	@echo [Compile and install Bcrypt dependency ....] && \
+	$(MAKE) -C $(BSEAV_TOP)/lib/security/bcrypt install copy > /dev/null
 
 include $(BSEAV)/lib/drmrootfs/b_drmrootfs_targets.inc
 ifeq ($(B_BUILD_DEPS),n)
@@ -498,6 +538,7 @@ $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${PRDY_PUBLIC_LIBS}): |prep_folder prep_drm
 
 clean:
 	@rm -rf ${COMMON_DRM_OBJ_ROOT}
+	$(MAKE) -C ${URSR_TOP}/BSEAV/lib/security/sage/srai clean
 
 report:
 	@echo "NEXUS CFLAGS is $(NEXUS_CFLAGS)"
@@ -530,6 +571,26 @@ ${COMMON_DRM_OBJ_ROOT}/lib${LIB_TL_BASENAME}.a: $(addprefix ${COMMON_DRM_OBJ_ROO
 	@ ${AR} rc $@ $^
 endif
 
+${COMMON_DRM_OBJ_ROOT}/%.o: %.c |prep_folder
+	@ echo "[Compile... $(notdir $<) (common_drm)]"
+ifeq ($(SAGE_SUPPORT),y)
+	@ ${CC} ${CFLAGS} ${SAGE_CFLAGS} ${COMMON_DRM_TL_DEFINES} -c -o $@ $<
+else
+	@ ${CC} ${CFLAGS} -c -o $@ $<
+endif
+
+${D_FOR_LIB_INSTALL}/lib${LIB_BASENAME}.so: ${TARGET_COMMON_DRM_OBJECTS}
+	@ echo [Linking shared library .... $@ ]
+ifeq ($(B_REFSW_CROSS_COMPILE),arm-linux-androideabi-)
+	@ ${CC} ${LDSHARED_FLAGS} -o $@  ${LDFLAGS}  $^ -Wl,-Bdynamic
+else
+	@ ${CC} ${LDSHARED_FLAGS} -o $@  ${LDFLAGS}  $^ -Wl,-dy
+endif
+
+${D_FOR_LIB_INSTALL}/lib${LIB_BASENAME}.a: ${TARGET_COMMON_DRM_OBJECTS}
+	@ echo [Linking static library .... $@ ]
+	@ ${AR} rc  $@  $^
+
 ${COMMON_DRM_OBJ_ROOT}/lib${PRDY_BASENAME}.so: $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${PRDY_OBJS})
 	@ echo [Linking shared library .... $@ ]
 ifeq ($(B_REFSW_CROSS_COMPILE),arm-linux-androideabi-)
@@ -560,19 +621,12 @@ ${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}/%.a : ${COMMON_DRM_OBJ_ROOT}/%.a
 ${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}/%.so : ${COMMON_DRM_OBJ_ROOT}/%.so
 	@install -m 0755 $< $@
 
-${COMMON_DRM_OBJ_ROOT}/%.o: %.c |prep_folder
-	@ echo "[Compile... $(notdir $<) (common_drm)]"
-ifeq ($(SAGE_SUPPORT),y)
-	@ ${CC} ${CFLAGS} ${SAGE_CFLAGS} ${COMMON_DRM_TL_DEFINES} -c -o $@ $<
-else
-	@ ${CC} ${CFLAGS} -c -o $@ $<
-endif
-
-
 copy: all
-	@install -m 0755 ${COMMON_DRM_TOP}/lib/${CMNDRM_DIR}/libcmndrm.so $(NEXUS_BIN_DIR);
-	@if [ -f ${COMMON_DRM_OBJ_ROOT}/libcmndrmprdy.so ]; then \
-		install -m 0755 ${COMMON_DRM_TOP}/lib/${CMNDRM_DIR}/libcmndrm64.so $(NEXUS_BIN_DIR); \
+	@if [ -f ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/lib/${CMNDRM_DIR}/libcmndrm.so ]; then \
+		install -m 0755 ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/lib/${CMNDRM_DIR}/libcmndrm.so $(NEXUS_BIN_DIR); \
+	fi;
+	@if [ -f ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/lib/${CMNDRM_DIR}/libcmndrm64.so ]; then \
+		install -m 0755 ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/lib/${CMNDRM_DIR}/libcmndrm64.so $(NEXUS_BIN_DIR); \
 	fi;
 	@if [ -e ${COMMON_DRM_OBJ_ROOT}/libcmndrmprdy.so ]; then \
 		install -m 0755 ${COMMON_DRM_OBJ_ROOT}/libcmndrmprdy.so $(NEXUS_BIN_DIR); \

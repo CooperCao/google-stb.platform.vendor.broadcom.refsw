@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -82,6 +82,7 @@ NEXUS_RegVerRsaHandle NEXUS_RegVerRsa_Allocate( const NEXUS_RegVerRsaAllocateSet
     if( !pSettings ) { BERR_TRACE( NEXUS_INVALID_PARAMETER ); goto error; }
 
     NEXUS_Security_GetHsm_priv( &hHsm );
+    if( !hHsm ) { BERR_TRACE( NEXUS_NOT_INITIALIZED ); return NULL; }
 
     pInstance = BKNI_Malloc( sizeof(*pInstance) );
     if( !pInstance ) { BERR_TRACE( NEXUS_OUT_OF_SYSTEM_MEMORY ); goto error; }

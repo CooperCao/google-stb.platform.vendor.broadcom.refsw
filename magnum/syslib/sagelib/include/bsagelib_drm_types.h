@@ -69,6 +69,7 @@ typedef enum BSAGElib_BinFileDrmTypes_e
     BSAGElib_BinFileDrmType_eHdcp14Tx,
     BSAGElib_BinFileDrmType_eMarlin,
     BSAGElib_BinFileDrmType_eKeyMaster,
+    BSAGElib_BinFileDrmType_eSarm,
     BSAGElib_BinFileDrmType_eMax
 } BSAGElib_BinFileDrmTypes_e;
 

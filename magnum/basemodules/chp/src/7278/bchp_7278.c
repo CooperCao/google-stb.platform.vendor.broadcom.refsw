@@ -62,12 +62,13 @@ BDBG_MODULE(BCHP);
 static const struct BCHP_P_Info s_aChipInfoTable[] =
 {
     /* Chip Family contains the major and minor revs */
-#if BCHP_VER == BCHP_VER_A0
-    /* A0 code will run on A0 */
-    {0x72780000},
-#elif BCHP_VER == BCHP_VER_B0
+#if BCHP_VER == BCHP_VER_B0
     /* B0 code will run on B0 */
     {0x72780010},
+#elif BCHP_VER == BCHP_VER_B1
+    /* B1 code will run on B0,B1 */
+    {0x72780010},
+    {0x72780011},
 #else
     #error "Port required"
 #endif

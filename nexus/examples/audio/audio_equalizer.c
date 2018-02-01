@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -123,10 +123,9 @@ int main(void)
     
     NEXUS_AudioCapabilities audioCaps;
     NEXUS_AudioOutputHandle audioDacHandle = NULL;
-    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
     NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
 
-    NEXUS_AudioMixerHandle mixer, mixerDac;
+    NEXUS_AudioMixerHandle mixer = NULL, mixerDac = NULL;
     NEXUS_AudioMixerSettings mixerSettings;
         
 #if NEXUS_NUM_HDMI_OUTPUTS
@@ -156,11 +155,6 @@ int main(void)
     if (audioCaps.numOutputs.dac > 0)
     {
         audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
-    }
-
-    if (audioCaps.numOutputs.spdif > 0)
-    {
-        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
     }
 
     #if NEXUS_NUM_HDMI_OUTPUTS

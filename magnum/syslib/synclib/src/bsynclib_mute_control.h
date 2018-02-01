@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,6 +45,6 @@
 
 BERR_Code BSYNClib_MuteControl_ScheduleTask_isr(BSYNClib_Channel_Handle hChn);
 BERR_Code BSYNClib_MuteControl_StartUnmuteTimers(BSYNClib_Channel_Handle hChn);
-BERR_Code BSYNClib_MuteControl_CancelUnmuteTimers_isr(BSYNClib_Channel_Handle hChn);
+void      BSYNClib_MuteControl_CancelUnmuteTimers_isr(BSYNClib_Channel_Handle hChn);
 
 #endif /*BSYNCLIB_MUTE_CONTROL_H__ */

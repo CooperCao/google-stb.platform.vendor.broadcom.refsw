@@ -46,6 +46,7 @@
 #include "display.h"
 #include "playback.h"
 #include "record.h"
+#include "audio_playback.h"
 
 #include "encode.h"
 
@@ -190,6 +191,7 @@ protected:
     MAutoList <CSimpleVideoDecode> _simpleDecodeVideoList; /* list of simple video decodes */
     MAutoList <CAudioDecode>       _decodeAudioList;       /* list of audio decodes */
     MAutoList <CSimpleAudioDecode> _simpleDecodeAudioList; /* list of simple audio decodes */
+    MAutoList <CSimplePcmPlayback> _simplePcmPlaybackList; /* list of simple audio playbacks */
     MAutoList <CStc>               _stcChannelList;        /* list of stc channels */
     MAutoList <CResource>          _pcmPlaybackList;       /* list of PCM playbacks */
     MAutoList <CResource>          _pcmCaptureList;        /* list of PCM capture channels */

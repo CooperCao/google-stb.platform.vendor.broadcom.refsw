@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2003-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #include "bstd.h"
 #include "burt.h"
@@ -37,9 +57,7 @@
 
 BDBG_MODULE(burt);
 
-#define	DEV_MAGIC_ID			((BERR_URT_ID<<16) | 0xFACE)
-
-#define	BURT_CHK_RETCODE( rc, func )		\
+#define        BURT_CHK_RETCODE( rc, func )            \
 do {										\
 	if( (rc = BERR_TRACE(func)) != BERR_SUCCESS ) \
 	{										\
@@ -59,9 +77,11 @@ do {										\
 *
 *******************************************************************************/
 
+BDBG_OBJECT_ID(BURT_Handle);
+
 typedef struct BURT_P_Handle
 {
-	uint32_t		magicId;					/* Used to check if structure is corrupt */
+    BDBG_OBJECT(BURT_Handle)
 	BCHP_Handle 	hChip;
 	BREG_Handle		hRegister;
 	BINT_Handle 	hInterrupt;
@@ -69,9 +89,11 @@ typedef struct BURT_P_Handle
 	BURT_ChannelHandle hUrtChn[MAX_URT_CHANNELS];
 } BURT_P_Handle;
 
+BDBG_OBJECT_ID(BURT_ChannelHandle);
+
 typedef struct BURT_P_ChannelHandle
 {
-	uint32_t 			magicId;					/* Used to check if structure is corrupt */
+    BDBG_OBJECT(BURT_ChannelHandle)
 	BURT_Handle 		hUrt;
 	uint32_t	 		chnNo;
 	uint32_t 			coreOffset;
@@ -176,8 +198,7 @@ void BURT_RegisterCallback(
 	BINT_CallbackFunc 	callbackFunc	/* callback function to register */
 	)
 {
-	BDBG_ASSERT( hChn );
-	BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BURT_ChannelHandle);
 
 	hChn->intCallbackFunc = callbackFunc;
 }
@@ -211,7 +232,7 @@ BERR_Code BURT_Open(
 		goto done;
 	}
 
-	hDev->magicId	= DEV_MAGIC_ID;
+    BDBG_OBJECT_SET(hDev, BURT_Handle);
 	hDev->hChip		= hChip;
 	hDev->hRegister = hRegister;
 	hDev->hInterrupt = hInterrupt;
@@ -234,8 +255,8 @@ BERR_Code BURT_Close(
 	BERR_Code retCode = BERR_SUCCESS;
 
 
-	BDBG_ASSERT( hDev );
-	BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev, BURT_Handle);
+    BDBG_OBJECT_DESTROY(hDev, BURT_Handle);
 	BKNI_Free( (void *) hDev );
 
 	return( retCode );
@@ -264,8 +285,7 @@ BERR_Code BURT_GetTotalChannels(
 	BERR_Code retCode = BERR_SUCCESS;
 
 
-	BDBG_ASSERT( hDev );
-	BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev, BURT_Handle);
 
 	*totalChannels = hDev->maxChnNo;
 
@@ -284,8 +304,7 @@ BERR_Code BURT_GetChannelDefaultSettings(
 	BSTD_UNUSED(hDev);
 #endif
 
-	BDBG_ASSERT( hDev );
-	BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev, BURT_Handle);
 
 	switch (channelNo)
 	{
@@ -329,8 +348,7 @@ BERR_Code BURT_OpenChannel(
  	BURT_ChannelHandle	hChnDev;
 	uint32_t			lval;
 
-	BDBG_ASSERT( hDev );
-	BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev, BURT_Handle);
 
 	hChnDev = NULL;
 
@@ -347,10 +365,10 @@ BERR_Code BURT_OpenChannel(
 				BDBG_ERR(("BURT_OpenChannel: BKNI_malloc() failed\n"));
 				goto done;
 			}
+            BDBG_OBJECT_INIT(hChnDev, BURT_ChannelHandle);
 
 			BURT_CHK_RETCODE( retCode, BKNI_CreateEvent( &(hChnDev->hChnTxEvent) ) );
 			BURT_CHK_RETCODE( retCode, BKNI_CreateEvent( &(hChnDev->hChnRxEvent) ) );
-			hChnDev->magicId 	= DEV_MAGIC_ID;
 			hChnDev->hUrt		= hDev;
 			hChnDev->chnNo		= channelNo;
 			hDev->hUrtChn[channelNo] = hChnDev;
@@ -461,8 +479,9 @@ done:
 	{
 		if( hChnDev != NULL )
 		{
-			BKNI_DestroyEvent( hChnDev->hChnTxEvent );
 			BKNI_DestroyEvent( hChnDev->hChnRxEvent );
+			BKNI_DestroyEvent( hChnDev->hChnTxEvent );
+            BDBG_OBJECT_DESTROY(hChnDev, BURT_ChannelHandle);
 			BKNI_Free( hChnDev );
 			hDev->hUrtChn[channelNo] = NULL;
 			*phChn = NULL;
@@ -480,8 +499,7 @@ BERR_Code BURT_CloseChannel(
 	unsigned int chnNo;
 
 
-	BDBG_ASSERT( hChn );
-	BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BURT_ChannelHandle);
 
 	hDev = hChn->hUrt;
 	/*
@@ -499,9 +517,10 @@ BERR_Code BURT_CloseChannel(
 		BURT_CHK_RETCODE( retCode, BINT_DestroyCallback( hChn->hChnCallback ) );
 	}
 
-	BKNI_DestroyEvent( hChn->hChnTxEvent );
 	BKNI_DestroyEvent( hChn->hChnRxEvent );
+	BKNI_DestroyEvent( hChn->hChnTxEvent );
 	chnNo = hChn->chnNo;
+    BDBG_OBJECT_DESTROY(hChn, BURT_ChannelHandle);
 	BKNI_Free( hChn );
 	hDev->hUrtChn[chnNo] = NULL;
 
@@ -516,8 +535,7 @@ BERR_Code BURT_GetDevice(
 {
 	BERR_Code retCode = BERR_SUCCESS;
 
-	BDBG_ASSERT( hChn );
-	BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BURT_ChannelHandle);
 
 	*phDev = hChn->hUrt;
 
@@ -531,8 +549,7 @@ BERR_Code BURT_GetTxEventHandle(
 {
 	BERR_Code retCode = BERR_SUCCESS;
 
-	BDBG_ASSERT( hChn );
-	BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BURT_ChannelHandle);
 
 	*phEvent = hChn->hChnTxEvent;
 
@@ -546,8 +563,7 @@ BERR_Code BURT_GetRxEventHandle(
 {
 	BERR_Code retCode = BERR_SUCCESS;
 
-	BDBG_ASSERT( hChn );
-	BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BURT_ChannelHandle);
 
 	*phEvent = hChn->hChnRxEvent;
 
@@ -562,8 +578,7 @@ bool BURT_IsRxDataAvailable(
 	BURT_Handle	hDev;
 	bool		dataAvail;
 
-	BDBG_ASSERT( hChn );
-	BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BURT_ChannelHandle);
 
 	hDev = hChn->hUrt;
 
@@ -581,8 +596,7 @@ bool BURT_IsRxDataAvailable_Isr(
 	BURT_Handle	hDev;
 	bool		dataAvail;
 
-	BDBG_ASSERT( hChn );
-	BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BURT_ChannelHandle);
 
 	hDev = hChn->hUrt;
 
@@ -599,8 +613,7 @@ uint32_t BURT_GetAvailTxFifoCnt (
 	uint32_t 	lval, byteCnt;
 	BURT_Handle	hDev;
 
-	BDBG_ASSERT( hChn );
-	BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BURT_ChannelHandle);
 
 	hDev = hChn->hUrt;
 
@@ -617,8 +630,7 @@ uint32_t BURT_GetAvailTxFifoCnt_Isr(
 	uint32_t 	lval, byteCnt;
 	BURT_Handle	hDev;
 
-	BDBG_ASSERT( hChn );
-	BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BURT_ChannelHandle);
 
 	hDev = hChn->hUrt;
 
@@ -689,8 +701,7 @@ BERR_Code BURT_Read_Isr (
 	uint32_t 		loopCnt = 0;
 	BURT_Handle		hDev;
 
-	BDBG_ASSERT( hChn );
-	BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BURT_ChannelHandle);
 
 	hDev = hChn->hUrt;
 
@@ -726,8 +737,7 @@ BERR_Code BURT_Read (
 	uint32_t 		loopCnt = 0;
 	BURT_Handle		hDev;
 
-	BDBG_ASSERT( hChn );
-	BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BURT_ChannelHandle);
 
 	hDev = hChn->hUrt;
 
@@ -768,8 +778,7 @@ BERR_Code BURT_Write (
 	uint8_t			bval;
 	BURT_Handle		hDev;
 
-	BDBG_ASSERT( hChn );
-	BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BURT_ChannelHandle);
 
 	hDev = hChn->hUrt;
 	if (!numBytes)
@@ -806,8 +815,7 @@ BURT_RxError BURT_GetRxError (
 	BURT_Handle		hDev;
 	BURT_RxError 	rxError;
 
-	BDBG_ASSERT( hChn );
-	BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BURT_ChannelHandle);
 
 	hDev = hChn->hUrt;
 
@@ -832,8 +840,7 @@ BURT_RxError BURT_GetRxError_Isr (
 	BURT_Handle		hDev;
 	BURT_RxError 	rxError;
 
-	BDBG_ASSERT( hChn );
-	BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BURT_ChannelHandle);
 
 	hDev = hChn->hUrt;
 

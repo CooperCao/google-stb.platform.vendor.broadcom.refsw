@@ -1,7 +1,7 @@
-###############################################################################################
-#    (c)2014 Broadcom Corporation
+#############################################################################
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,7 +35,7 @@
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
 #
-###############################################################################################
+#############################################################################
 DRM_APPS = test_bcrypt \
            test_multi_thread_capps \
            test_multi_thread_partial_sha1
@@ -43,3 +43,8 @@ DRM_APPS = test_bcrypt \
 DRM_APP_SRCS = test_bcrypt.c \
                test_multi_thread_capps.c \
                test_multi_thread_partial_sha1.c
+
+# Detect non-SAGE platforms
+ifneq ($(SAGE_SUPPORT), y)
+CFLAGS += -DNONSAGE_PLATFORM
+endif

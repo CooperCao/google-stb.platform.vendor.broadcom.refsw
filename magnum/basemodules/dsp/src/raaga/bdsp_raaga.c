@@ -192,6 +192,7 @@ BERR_Code BDSP_Raaga_Open(
     pRaaga->device.getDefaultDatasyncSettings = BDSP_Raaga_P_GetDefaultDatasyncSettings;
 #endif /*!B_REFSW_MINIMAL*/
     pRaaga->device.getDefaultTsmSettings = BDSP_Raaga_P_GetDefaultTsmSettings;
+    pRaaga->device.runDebugService = NULL;
 
     /* Init context lists */
     BLST_S_INIT(&pRaaga->contextList);
@@ -329,3 +330,26 @@ void BDSP_P_RbufSetup(
     Rbuf_Setting.rbuf_capture_stop_channel = sRbufCap.rbuf_capture_stop_channel;
 }
 #endif
+
+/***************************************************************************
+Name        :    BDSP_Raaga_RunDebugService
+Type        :    PI Interface
+
+Input       :    hDsp        -   Device handle.
+                 dspIndex    -   dspIndex where debug service to be run
+
+ Return	    :	 Error Code to return SUCCESS or FAILURE
+
+ Functionality	 :
+	 1) Trigger DBG_service if enabled, Currently this is not supported
+***************************************************************************/
+BERR_Code BDSP_Raaga_RunDebugService(
+    BDSP_Handle hDsp,
+    uint32_t dspIndex
+)
+{
+    BSTD_UNUSED(hDsp);
+    BSTD_UNUSED(dspIndex);
+    BDBG_ERR(("Debug service is not supported"));
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}

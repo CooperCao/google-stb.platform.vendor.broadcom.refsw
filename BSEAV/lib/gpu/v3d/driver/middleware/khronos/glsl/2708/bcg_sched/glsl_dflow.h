@@ -250,42 +250,42 @@ DFlowNode *DFlowNode_Flavour_new(DataflowFlavour flavour, ResetHelper *rh);
 DFlowNode *DFlowNode_Dataflow_new(Dataflow *dataflow, ResetHelper *rh);
 
 // The flavour of this dataflow node.
-static INLINE DataflowFlavour DFlowNode_Flavour(const DFlowNode *self)
+static inline DataflowFlavour DFlowNode_Flavour(const DFlowNode *self)
 {
    return self->m_flavour;
 }
 
-static INLINE uint32_t DFlowNode_UniqueId(const DFlowNode *self)
+static inline uint32_t DFlowNode_UniqueId(const DFlowNode *self)
 {
    return self->m_uniqueId;
 }
 
-static INLINE void DFlowNode_SetSampler(DFlowNode *self, uint32_t sampler)
+static inline void DFlowNode_SetSampler(DFlowNode *self, uint32_t sampler)
 {
    self->m_sampler = sampler;
 }
 
-static INLINE void DFlowNode_SetTreeDepth(DFlowNode *self, int32_t val)
+static inline void DFlowNode_SetTreeDepth(DFlowNode *self, int32_t val)
 {
    self->m_treeDepth = val;
 }
 
-static INLINE const NodeList *DFlowNode_Parents(const DFlowNode *self)
+static inline const NodeList *DFlowNode_Parents(const DFlowNode *self)
 {
    return &self->m_parents;
 }
 
-static INLINE const NodeList *DFlowNode_Children(const DFlowNode *self)
+static inline const NodeList *DFlowNode_Children(const DFlowNode *self)
 {
    return &self->m_children;
 }
 
-static INLINE const NodeList *DFlowNode_IoParents(const DFlowNode *self)
+static inline const NodeList *DFlowNode_IoParents(const DFlowNode *self)
 {
    return &self->m_ioParents;
 }
 
-static INLINE const NodeList *DFlowNode_IoChildren(const DFlowNode *self)
+static inline const NodeList *DFlowNode_IoChildren(const DFlowNode *self)
 {
    return &self->m_ioChildren;
 }
@@ -305,18 +305,18 @@ void DFlowNode_MarkForReplication(DFlowNode *self, bool tf);
 uint32_t DFlowNode_NumChildren(const DFlowNode *self);
 
 // Only valid after depth visitor has been run
-static INLINE int32_t  DFlowNode_TreeDepth(const DFlowNode *self)
+static inline int32_t  DFlowNode_TreeDepth(const DFlowNode *self)
 {
    return self->m_treeDepth;
 }
 
 // Only valid after analysis visitor has been run
-static INLINE uint32_t DFlowNode_NumRecursiveChildren(const DFlowNode *self)
+static inline uint32_t DFlowNode_NumRecursiveChildren(const DFlowNode *self)
 {
    return self->m_numRecursiveChildren;
 }
 
-static INLINE uint32_t DFlowNode_NumReferences(const DFlowNode *self)
+static inline uint32_t DFlowNode_NumReferences(const DFlowNode *self)
 {
    return self->m_numReferences;
 }
@@ -324,22 +324,22 @@ static INLINE uint32_t DFlowNode_NumReferences(const DFlowNode *self)
 DFlowNode_ScheduleStatus DFlowNode_AddToInstruction(DFlowNode *self, struct Scheduler_s *sched, QPUGenericInstr *gi);
 DFlowNode_ScheduleStatus DFlowNode_DoDelayedACC5Move(DFlowNode *self, struct Scheduler_s *sched, QPUGenericInstr *gi);
 
-static INLINE int32_t DFlowNode_Slot(const DFlowNode *self)
+static inline int32_t DFlowNode_Slot(const DFlowNode *self)
 {
    return self->m_slot;
 }
 
-static INLINE void DFlowNode_SetSlot(DFlowNode *self, int32_t val)
+static inline void DFlowNode_SetSlot(DFlowNode *self, int32_t val)
 {
    self->m_slot = val;
 }
 
-static INLINE bool DFlowNode_IsScheduled(const DFlowNode *self, int32_t curSlot)
+static inline bool DFlowNode_IsScheduled(const DFlowNode *self, int32_t curSlot)
 {
    return self->m_bypassed || self->m_slot <= curSlot;
 }
 
-static INLINE bool DFlowNode_HasUnconsumedReference(const DFlowNode *self, int32_t curSlot)
+static inline bool DFlowNode_HasUnconsumedReference(const DFlowNode *self, int32_t curSlot)
 {
    if (!DFlowNode_IsScheduled(self, curSlot))
       return true;
@@ -357,47 +357,47 @@ void DFlowNode_SetResultInt(DFlowNode *self, int8_t val);
 void DFlowNode_SetResultFloat(DFlowNode *self, float val);
 void DFlowNode_SetResultReg(DFlowNode *self, Register_Enum reg);
 
-static INLINE DFlowRegFile DFlowNode_GetRegFile(const DFlowNode *self)
+static inline DFlowRegFile DFlowNode_GetRegFile(const DFlowNode *self)
 {
    return self->m_regFile;
 }
 
-static INLINE void DFlowNode_SetRegFile(DFlowNode *self, DFlowRegFile rf)
+static inline void DFlowNode_SetRegFile(DFlowNode *self, DFlowRegFile rf)
 {
    self->m_regFile = rf;
 }
 
-static INLINE const DFlowNode *DFlowNode_GetArg_const(const DFlowNode *self, uint32_t i)
+static inline const DFlowNode *DFlowNode_GetArg_const(const DFlowNode *self, uint32_t i)
 {
    return self->m_args[i];
 }
 
-static INLINE DFlowNode *DFlowNode_GetArg(DFlowNode *self, uint32_t i)
+static inline DFlowNode *DFlowNode_GetArg(DFlowNode *self, uint32_t i)
 {
    return self->m_args[i];
 }
 
-static INLINE const UniformData *DFlowNode_GetConst_const(const DFlowNode *self)
+static inline const UniformData *DFlowNode_GetConst_const(const DFlowNode *self)
 {
    return &self->m_uniform;
 }
 
-static INLINE UniformData *DFlowNode_GetConst(DFlowNode *self)
+static inline UniformData *DFlowNode_GetConst(DFlowNode *self)
 {
    return &self->m_uniform;
 }
 
-static INLINE uint32_t DFlowNode_GetRegisterDelta(const DFlowNode *self)
+static inline uint32_t DFlowNode_GetRegisterDelta(const DFlowNode *self)
 {
    return self->m_registerDelta;
 }
 
-static INLINE void DFlowNode_SetOrder(DFlowNode *self, uint32_t order)
+static inline void DFlowNode_SetOrder(DFlowNode *self, uint32_t order)
 {
    self->m_order = order;
 }
 
-static INLINE uint32_t DFlowNode_GetOrder(const DFlowNode *self)
+static inline uint32_t DFlowNode_GetOrder(const DFlowNode *self)
 {
    return self->m_order;
 }
@@ -409,43 +409,43 @@ bool DFlowNode_IsConstantConditionExpression(const DFlowNode *self);
 // Replace node "other" with "this" in graph (clearly they should be the same)
 void DFlowNode_ReplaceWith(DFlowNode *self, DFlowNode *other);
 
-static INLINE int32_t DFlowNode_SortOrder(const DFlowNode *self)
+static inline int32_t DFlowNode_SortOrder(const DFlowNode *self)
 {
    return self->m_sortOrder;
 }
 
-static INLINE void DFlowNode_SetSortOrder(DFlowNode *self, int32_t val)
+static inline void DFlowNode_SetSortOrder(DFlowNode *self, int32_t val)
 {
    self->m_sortOrder = val;
 }
 
-static INLINE void DFlowNode_FlagForThreadSwitch(DFlowNode *self)
+static inline void DFlowNode_FlagForThreadSwitch(DFlowNode *self)
 {
    self->m_threadSwitch = true;
 }
 
 // Used for schduling TMU ops
-static INLINE void DFlowNode_FlagTMUOrdered(DFlowNode *self)
+static inline void DFlowNode_FlagTMUOrdered(DFlowNode *self)
 {
    self->m_tmuOrdered = true;
 }
 
-static INLINE bool DFlowNode_IsTMUOrdered(const DFlowNode *self)
+static inline bool DFlowNode_IsTMUOrdered(const DFlowNode *self)
 {
    return self->m_tmuOrdered;
 }
 
-static INLINE int32_t DFlowNode_LifespanGuess(const DFlowNode *self)
+static inline int32_t DFlowNode_LifespanGuess(const DFlowNode *self)
 {
    return self->m_lifespanGuess;
 }
 
-static INLINE int32_t DFlowNode_GetBushiness(const DFlowNode *self)
+static inline int32_t DFlowNode_GetBushiness(const DFlowNode *self)
 {
    return self->m_bushiness;
 }
 
-static INLINE void DFlowNode_SetBushiness(DFlowNode *self, int32_t bushiness)
+static inline void DFlowNode_SetBushiness(DFlowNode *self, int32_t bushiness)
 {
    self->m_bushiness = bushiness;
 }
@@ -456,7 +456,7 @@ bool DFlowNode_HasVaryCChild(const DFlowNode *self);
 
 void DFlowNode_CalcRegisterDelta(DFlowNode *self);
 
-static INLINE bool DFlowNode_IncrementIssueCount(DFlowNode *self)
+static inline bool DFlowNode_IncrementIssueCount(DFlowNode *self)
 {
    self->m_issueCount++;
    return self->m_issueCount < 10;

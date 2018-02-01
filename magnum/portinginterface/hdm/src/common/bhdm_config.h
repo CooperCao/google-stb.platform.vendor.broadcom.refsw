@@ -316,9 +316,8 @@ can be disabled to allow for successful compilation
 
 
 
-#if (BCHP_CHIP == 7425)  || (BCHP_CHIP == 7429) || (BCHP_CHIP == 7435) \
- || (BCHP_CHIP == 74295) || BHDM_CONFIG_28NM_SUPPORT
-
+#if (BCHP_CHIP == 7429) || (BCHP_CHIP == 7435) \
+|| (BCHP_CHIP == 74295) || BHDM_CONFIG_28NM_SUPPORT
 #define BHDM_CONFIG_4Kx2K_30HZ_SUPPORT 1
 #endif
 

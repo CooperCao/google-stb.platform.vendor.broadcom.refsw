@@ -341,7 +341,7 @@ public:
    //! if this returns true. If you return false, you should fill in idleTimeMs with the period until the
    //! next animation/update will begin. The app framework will idle (but still process events) until this
    //! time elapses.
-   virtual bool UpdateFrame(int32_t *idleTimeMs) { return true; }
+   virtual bool UpdateFrame(int32_t * /* idleTimeMs */) { return true; }
 
    //! Called by the framework to render the next frame. By default you should not call eglSwapBuffers (or glFinish)
    //! at the end, as this will be done automatically by the framework. The default behaviours can be changed through

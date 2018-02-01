@@ -43,7 +43,7 @@
 #ifndef BXVD_PPB_H__
 #define BXVD_PPB_H__
 
-#if (BCHP_CHIP == 7278)
+#if (BCHP_CHIP == 7278) || (BCHP_CHIP == 7255) || ((BCHP_CHIP == 7260) && (BCHP_VER >= BCHP_VER_B0))
 #define BXVD_P_CORE_40BIT_ADDRESSABLE 1
 #endif
 

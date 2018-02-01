@@ -169,9 +169,9 @@ int main(int argc, char **argv)
     NEXUS_StcChannelSettings stcSettings;
     NEXUS_DisplayHandle display;
     NEXUS_DisplaySettings displaySettings;
-    NEXUS_VideoWindowHandle window;
-    NEXUS_VideoDecoderHandle videoDecoder;
-    NEXUS_AudioDecoderHandle audioDecoder;
+    NEXUS_VideoWindowHandle window=NULL;
+    NEXUS_VideoDecoderHandle videoDecoder=NULL;
+    NEXUS_AudioDecoderHandle audioDecoder=NULL;
     NEXUS_SurfaceHandle surface;
     NEXUS_SurfaceCreateSettings createSettings;
     NEXUS_VideoFormatInfo videoFormatInfo;

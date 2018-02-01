@@ -42,7 +42,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
-
+#include <errno.h>
+#include "ata_helper.h"
 char *testMsg[] = {"blocking pipe", "non blocking pipe", "child", "parent"};
 
 void child_thread(int *blockingPipeFd, int *nonBlockingPipeFd) {
@@ -54,13 +55,13 @@ void child_thread(int *blockingPipeFd, int *nonBlockingPipeFd) {
 /* read entire buffer at once */
     do {
         if (read(nonBlockingPipeFd[0], &recvMsgChild, sizeof(recvMsgChild)) < 0) {
-            perror("[ERROR] reading nonBlockingPipeFd ");
+            ATA_LogErr("reading nonBlockingPipeFd: %s ", strerror(errno));
         }
     } while(strcmp(testMsg[3], recvMsgChild));
 
 /* write to blocking pipe */
     if (write(blockingPipeFd[1], testMsg[2], strlen(testMsg[2])+1) < 0) {
-        perror("[ERROR] writing blockingPipeFd ");
+        ATA_LogErr(" writing blockingPipeFd: %s ", strerror(errno));
     }
 
 /* try again and again untill read EOF or some data*/
@@ -72,7 +73,7 @@ void child_thread(int *blockingPipeFd, int *nonBlockingPipeFd) {
 
     /* write to blocking pipe */
     if (write(blockingPipeFd[1], testMsg[0], strlen(testMsg[0])+1) < 0) {
-        perror("[ERROR] writing blockingPipeFd ");
+        ATA_LogErr(" writing blockingPipeFd: %s ", strerror(errno));
     }
     sleep(5); // sleep before you exit
 
@@ -86,21 +87,21 @@ void parent_thread(int *blockingPipeFd, int *nonBlockingPipeFd) {
     close(blockingPipeFd[1]); // close write end of blocking pipe
 
     if (write(nonBlockingPipeFd[1], testMsg[3], strlen(testMsg[3])+1) < 0) {
-        perror("[ERROR] writing nonBlockingPipeFd ");
+        ATA_LogErr(" writing nonBlockingPipeFd: %s ", strerror(errno));
     }
 
     if (read(blockingPipeFd[0], &recvMsgParent, sizeof(recvMsgParent)) < 0) {
-        perror("[ERROR] reading blockingPipeFd ");
+        ATA_LogErr(" reading blockingPipeFd: %s ", strerror(errno));
     }
 
     if (strcmp(testMsg[2], recvMsgParent)) printf("[ERROR] Received wrong msg\n");
 
     if (write(nonBlockingPipeFd[1], testMsg[1], strlen(testMsg[1])+1) < 0) {
-        perror("[ERROR] writing nonBlockingPipeFd ");
+        ATA_LogErr(" writing nonBlockingPipeFd: %s ", strerror(errno));
     }
 
     if (read(blockingPipeFd[0], &recvMsgParent, sizeof(recvMsgParent)) < 0) {
-        perror("[ERROR] reading blockingPipeFd ");
+        ATA_LogErr(" reading blockingPipeFd : %s ", strerror(errno));
     }
     printf("[MSG] parent received msg: %s\n", recvMsgParent);
 
@@ -110,7 +111,7 @@ void parent_thread(int *blockingPipeFd, int *nonBlockingPipeFd) {
     if (0 == len)
         printf("[MSG] blocking_pipefd with no writers : end of file\n");
     else if (len < 0)
-        perror("[MSG] blocking_pipefd with no writers\n");
+        printf("[MSG] blocking_pipefd with no writers: %s ", strerror(errno));
     else
         printf("[MSG] parent received msg: %s\n", recvMsgParent);
 
@@ -118,9 +119,9 @@ void parent_thread(int *blockingPipeFd, int *nonBlockingPipeFd) {
     len = write(nonBlockingPipeFd[1], testMsg[1], strlen(testMsg[1])+1);
 
     if (len < 0)
-        perror("[MSG] nonblocking_pipefd with no readers");
+        printf("[MSG] nonblocking_pipefd with no readers: %s ", strerror(errno));
     else
-        printf("[ERROR] nonblocking_pipefd with no readers : unexpected return\n");
+        ATA_LogErr(" nonblocking_pipefd with no readers : unexpected return");
 
     /* close all open ends and delete pipe*/
     close(nonBlockingPipeFd[1]);
@@ -128,10 +129,10 @@ void parent_thread(int *blockingPipeFd, int *nonBlockingPipeFd) {
 
     /* try to read and write with pipe which doesn't exist */
     if(write(nonBlockingPipeFd[1], testMsg[1], strlen(testMsg[1])+1) >= 0)
-        printf("[ERROR] nonblocking_pipefd which dosn't exist : unexpected return\n");
+        ATA_LogErr(" nonblocking_pipefd which dosn't exist : unexpected return");
 
     if(read(blockingPipeFd[0], &recvMsgParent, sizeof(recvMsgParent)) >= 0)
-        printf("[ERROR] blocking_pipefd which dosn't exist : unexpected return\n");
+        ATA_LogErr(" blocking_pipefd which dosn't exist : unexpected return");
 }
 
 void pipe_test() {
@@ -140,13 +141,13 @@ void pipe_test() {
 
 /* create blocking pipe with close on exec */
     if (pipe2(blockingPipeFd, O_CLOEXEC) == -1) {
-        perror("[ERROR] pipe_test : blockingPipeFd");
+        ATA_LogErr(" pipe_test : blockingPipeFd: %s ", strerror(errno));
         goto FAIL;
     }
 
 /* create non blocking pipe with close on exec */
     if (pipe2(nonBlockingPipeFd, O_CLOEXEC | O_NONBLOCK) == -1) {
-        perror("[ERROR] pipe_test : nonblocking_pipefd");
+        ATA_LogErr(" pipe_test : nonblocking_pipefd: %s ", strerror(errno));
         goto FAIL;
     }
 
@@ -154,7 +155,7 @@ void pipe_test() {
     pid_t pid;
     pid = fork();
     if (pid == -1) {
-        perror("[ERROR] pipe_test : fork");
+        ATA_LogErr(" pipe_test : fork: %s ", strerror(errno));
         goto FAIL;
     }
 

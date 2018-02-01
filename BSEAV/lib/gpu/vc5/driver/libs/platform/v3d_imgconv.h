@@ -99,6 +99,7 @@ void v3d_imgconv_init_ptr_tgt(struct v3d_imgconv_ptr_tgt *tgt, void *ptr,
  */
 gmem_usage_flags_t v3d_imgconv_calc_dst_gmem_usage(
    const v3d_imgconv_base_tgt *dst_base,
+   const v3d_imgconv_base_tgt *dst_base_contiguous,
    const v3d_imgconv_gmem_tgt *src,
    bool secure_context);
 

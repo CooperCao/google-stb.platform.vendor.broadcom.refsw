@@ -330,7 +330,7 @@ NEXUS_Error NEXUS_Platform_P_InitServer(void)
         BDBG_ASSERT(channel->header);
         channel->moduleId = i;
         channel->moduleName = g_nexus_server_handlers[i].name;
-        channel->dataSize = 8192; /* max size for single transaction with unix domain sockets */
+        channel->dataSize = NEXUS_P_IPC_BUFFER_SIZE; /* max size for single IPC transaction */
         rc = BKNI_CreateMutex(&channel->mutex);
         if(rc!=BERR_SUCCESS) {
             rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);

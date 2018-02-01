@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  External interface
-
-FILE DESCRIPTION
-Environment configurable, one-shot options.
-=============================================================================*/
-
-#ifndef KHRN_OPTIONS_H
-#define KHRN_OPTIONS_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/include/GLES/gl.h"
@@ -34,7 +25,6 @@ typedef struct {
    bool     disable_tweaks;            /* Disable driver tweaks */
    bool     shadow_egl_images;         /* If enabled, the M2MC is used to take a scratch copy at draw time */
    bool     glsl_sts_saving_on;        /* Save STS files for every shader program */
-   bool     use_mma;                   /* Whether the aux buffers are supplied as block handles */
    char     glsl_sts_save_dir[MAX_OPTION_PATHLEN]; /* Folder for sts saves */
    char     graphviz_folder[MAX_OPTION_PATHLEN];   /* Folder for graphviz output */
 } KHRN_OPTIONS_T;
@@ -51,6 +41,4 @@ KHAPI KHRN_OPTIONS_T *khrn_get_options(void);
 
 #undef __func__
 #define __func__ __FUNCTION__
-#endif
-
 #endif

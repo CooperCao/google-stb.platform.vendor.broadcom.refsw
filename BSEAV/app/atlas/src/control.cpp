@@ -39,6 +39,7 @@
 #include "control.h"
 #include "notification.h"
 #include "atlas.h"
+#include "atlas_lua.h"
 #include "channelmgr.h"
 #include "channel_qam.h"
 #include "playback.h"
@@ -250,27 +251,73 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
 
     case eKey_VolumeUp:
     {
-        int32_t vol       = getVolume();
-        int     vol_steps = GET_INT(_pCfg, VOLUME_STEPS);
-
-        if (vol_steps > 0)
+#if BDSP_MS12_SUPPORT
+        /* query VOLUME_KEY_MODE only if ac4 dialog enhancement is available */
+        if (MString(GET_STR(_pCfg, VOLUME_KEY_MODE)).lower() == "dialog")
         {
-            vol = getVolume() + ((NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN)/vol_steps);
+            CSimpleAudioDecode * pAudioDecode = _pModel->getSimpleAudioDecode();
+
+            if (NULL != pAudioDecode)
+            {
+                int nDb = pAudioDecode->getDialogEnhancement();
+                nDb += 3; /* INCREMENT 3dB */
+
+                if (-12 > nDb) { nDb = -12; }
+                if (12 < nDb)  { nDb = 12; }
+
+                ret = pAudioDecode->setDialogEnhancement(nDb);
+                CHECK_ERROR_GOTO("error setting ac4 dialog enhancement level", ret, error);
+            }
         }
-        setVolume(NEXUS_AUDIO_VOLUME_LINEAR_NORMAL > vol ? vol : NEXUS_AUDIO_VOLUME_LINEAR_NORMAL);
+        else
+        if (MString(GET_STR(_pCfg, VOLUME_KEY_MODE)).lower() == "volume")
+#endif
+        {
+            int32_t vol       = getVolume();
+            int     vol_steps = GET_INT(_pCfg, VOLUME_STEPS);
+
+            if (vol_steps > 0)
+            {
+                vol = getVolume() + ((NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN)/vol_steps);
+            }
+            setVolume(NEXUS_AUDIO_VOLUME_LINEAR_NORMAL > vol ? vol : NEXUS_AUDIO_VOLUME_LINEAR_NORMAL);
+        }
     }
     break;
 
     case eKey_VolumeDown:
     {
-        int32_t vol       = getVolume();
-        int     vol_steps = GET_INT(_pCfg, VOLUME_STEPS);
-
-        if (vol_steps > 0)
+#if BDSP_MS12_SUPPORT
+        /* query VOLUME_KEY_MODE only if ac4 dialog enhancement is available */
+        if (MString(GET_STR(_pCfg, VOLUME_KEY_MODE)).lower() == "dialog")
         {
-            vol = getVolume() - ((NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN) /vol_steps);
+            CSimpleAudioDecode * pAudioDecode = _pModel->getSimpleAudioDecode();
+
+            if (NULL != pAudioDecode)
+            {
+                int nDb = pAudioDecode->getDialogEnhancement();
+                nDb -= 3; /* DECREMENT 3dB */
+
+                if (-12 > nDb) { nDb = -12; }
+                if (12 < nDb)  { nDb = 12; }
+
+                ret = pAudioDecode->setDialogEnhancement(nDb);
+                CHECK_ERROR_GOTO("error setting ac4 dialog enhancement level", ret, error);
+            }
         }
-        setVolume(NEXUS_AUDIO_VOLUME_LINEAR_MIN < vol ? vol : NEXUS_AUDIO_VOLUME_LINEAR_MIN);
+        else
+        if (MString(GET_STR(_pCfg, VOLUME_KEY_MODE)).lower() == "volume")
+#endif
+        {
+            int32_t vol       = getVolume();
+            int     vol_steps = GET_INT(_pCfg, VOLUME_STEPS);
+
+            if (vol_steps > 0)
+            {
+                vol = getVolume() - ((NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN) /vol_steps);
+            }
+            setVolume(NEXUS_AUDIO_VOLUME_LINEAR_MIN < vol ? vol : NEXUS_AUDIO_VOLUME_LINEAR_MIN);
+        }
     }
     break;
 
@@ -555,6 +602,43 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
 
     case eKey_Swap:
         swapPip();
+        break;
+
+    case eKey_Fav1:
+    {
+        CLua * pLua = (CLua *)findView("lua");
+        if (NULL != pLua)
+        {
+            pLua->setRunScript("fav1.lua");
+        }
+    }
+        break;
+    case eKey_Fav2:
+    {
+        CLua * pLua = (CLua *)findView("lua");
+        if (NULL != pLua)
+        {
+            pLua->setRunScript("fav2.lua");
+        }
+    }
+        break;
+    case eKey_Fav3:
+    {
+        CLua * pLua = (CLua *)findView("lua");
+        if (NULL != pLua)
+        {
+            pLua->setRunScript("fav3.lua");
+        }
+    }
+        break;
+    case eKey_Fav4:
+    {
+        CLua * pLua = (CLua *)findView("lua");
+        if (NULL != pLua)
+        {
+            pLua->setRunScript("fav4.lua");
+        }
+    }
         break;
 
     default:
@@ -881,6 +965,14 @@ void CControl::processNotification(CNotification & notification)
     /* handle key event notification */
     switch (notification.getId())
     {
+    case eNotify_KeyClick:
+        if (MString("none") != GET_STR(_pCfg, AUDIO_PCM_SOUND_CLICK))
+        {
+            ret = playbackPcm(GET_STR(_pCfg, AUDIO_PCM_SOUND_CLICK));
+            CHECK_WARN("error playing pcm audio", ret);
+        }
+        break;
+
     case eNotify_KeyUp:
     case eNotify_KeyDown:
         ret = processKeyEvent((CRemoteEvent *)notification.getData());
@@ -909,6 +1001,17 @@ void CControl::processNotification(CNotification & notification)
 
     case eNotify_GetChannelStats:
         getChannelStats();
+        break;
+
+    case eNotify_GetCurrentChannelNumber:
+    {
+        CChannel * pChannel = _pModel->getCurrentChannel();
+        if (NULL != pChannel)
+        {
+            /* we are simply re-setting the current channel to generate a change notification */
+            _pModel->setCurrentChannel(pChannel);
+        }
+    }
         break;
 
     case eNotify_ChDown:
@@ -1493,7 +1596,9 @@ void CControl::processNotification(CNotification & notification)
         CSimpleAudioDecode * pAudioDecode = (CSimpleAudioDecode *)notification.getData();
         BDBG_ASSERT(NULL != pAudioDecode);
 
-        setAudioFade(_pModel->getPipState());
+#if BDSP_MS12_SUPPORT
+        setAudioFade(pAudioDecode, _pModel->getPipState());
+#endif
     }
     break;
 
@@ -1586,6 +1691,10 @@ void CControl::processNotification(CNotification & notification)
 
     case eNotify_SwapPip:
         swapPip();
+        break;
+
+    case eNotify_GetPipState:
+        _pModel->setPipState(_pModel->getPipState());
         break;
 
     case eNotify_Exit:
@@ -2153,6 +2262,122 @@ errorBluetooth:
     break;
 #endif /* ifdef HAS_GFX_NL_LUMA_RANGE_ADJ */
 
+#if BDSP_MS12_SUPPORT
+    case eNotify_ShowAudioAc4Presentation:
+    {
+        CSimpleAudioDecode * pAudioDecode = _pModel->getSimpleAudioDecode();
+
+        pAudioDecode->dumpPresentation(pAudioDecode->getPresentation(), true);
+    }
+    break;
+
+    case eNotify_SetAudioAc4Presentation:
+    {
+        CSimpleAudioDecode *                   pAudioDecode = _pModel->getSimpleAudioDecode();
+        CAudioDecodeAc4Data *                  pAc4Data     = (CAudioDecodeAc4Data *)notification.getData();
+
+        BDBG_ASSERT(NULL != pAc4Data);
+
+        BDBG_MSG(("setting presentation:%d", pAc4Data->_presentationIndex));
+
+        ret = pAudioDecode->setPresentation(pAc4Data->_presentationIndex, pAc4Data->_program);
+        CHECK_ERROR_GOTO("unable to set ac4 presentation", ret, error);
+    }
+    break;
+
+    case eNotify_NextAudioAc4Presentation:
+    {
+        CSimpleAudioDecode *  pAudioDecode     = _pModel->getSimpleAudioDecode();
+        CAudioDecodeAc4Data * pAc4Data         = (CAudioDecodeAc4Data *)notification.getData();
+        unsigned              index            = 0;
+
+        BDBG_ASSERT(NULL != pAc4Data);
+
+        index = pAudioDecode->getPresentation(pAc4Data->_program);
+        index++;
+
+        if (pAudioDecode->numPresentations() <= index)
+        {
+            /* cycle back to beginning */
+            index = 0;
+        }
+
+        BDBG_MSG(("setting presentation:%d", index));
+
+        ret = pAudioDecode->setPresentation(index, pAc4Data->_program);
+        CHECK_ERROR_GOTO("unable to set ac4 presentation", ret, error);
+    }
+    break;
+
+    case eNotify_SetAudioAc4Language:
+    {
+        CSimpleAudioDecode *                   pAudioDecode = _pModel->getSimpleAudioDecode();
+        CAudioDecodeAc4Data *                  pAc4Data     = (CAudioDecodeAc4Data *)notification.getData();
+
+        BDBG_ASSERT(NULL != pAc4Data);
+
+        BDBG_MSG(("setting language:%s", languageToString(pAc4Data->_language).s()));
+
+        ret = pAudioDecode->setLanguage(pAc4Data->_language, pAc4Data->_program);
+        CHECK_ERROR_GOTO("unable to set ac4 language", ret, error);
+    }
+    break;
+
+    case eNotify_SetAudioAc4Associate:
+    {
+        CSimpleAudioDecode *                   pAudioDecode = _pModel->getSimpleAudioDecode();
+        CAudioDecodeAc4Data *                  pAc4Data     = (CAudioDecodeAc4Data *)notification.getData();
+
+        BDBG_ASSERT(NULL != pAc4Data);
+
+        BDBG_MSG(("setting associate:%s", associateToString(pAc4Data->_associate).s()));
+
+        ret = pAudioDecode->setAssociate(pAc4Data->_associate, pAc4Data->_program);
+        CHECK_ERROR_GOTO("unable to set ac4 associate", ret, error);
+    }
+    break;
+
+    case eNotify_SetAudioAc4Priority:
+    {
+        CSimpleAudioDecode *                   pAudioDecode = _pModel->getSimpleAudioDecode();
+        CAudioDecodeAc4Data *                  pAc4Data     = (CAudioDecodeAc4Data *)notification.getData();
+
+        BDBG_ASSERT(NULL != pAc4Data);
+
+        BDBG_MSG(("setting priority:%s", priorityToString(pAc4Data->_priority).s()));
+
+        ret = pAudioDecode->setPriority(pAc4Data->_priority, pAc4Data->_program);
+        CHECK_ERROR_GOTO("unable to set ac4 priority", ret, error);
+    }
+    break;
+
+    case eNotify_SetAudioAc4DialogEnhancement:
+    {
+        CSimpleAudioDecode *                   pAudioDecode = _pModel->getSimpleAudioDecode();
+        int *                                  pDb          = (int *)notification.getData();
+
+        BDBG_ASSERT(NULL != pDb);
+        BDBG_MSG(("setting dialog enhancement level:%ddB", *pDb));
+
+        ret = pAudioDecode->setDialogEnhancement(*pDb);
+        CHECK_ERROR_GOTO("unable to set ac4 dialog enhancement", ret, error);
+    }
+    break;
+#endif
+
+    case eNotify_Debug:
+    {
+        eRet ret = eRet_Ok;
+        MString * pStringDebug = (MString *)notification.getData();
+
+        /* This debug notification can be used to test atlas features during development */
+        if (*pStringDebug == "click")
+        {
+            playbackPcm(GET_STR(_pCfg, AUDIO_PCM_SOUND_CLICK));
+        }
+    }
+    break;
+
     default:
         break;
     } /* switch */
@@ -2161,6 +2386,39 @@ error:
 done:
     return;
 } /* processNotification */
+
+#include <sys/stat.h>
+eRet CControl::playbackPcm(const char * strFilename)
+{
+    eRet ret = eRet_NotAvailable;
+    CSimplePcmPlayback * pPcmPlayback = _pModel->getSimplePcmPlayback();
+
+    if (NULL == pPcmPlayback)
+    {
+        return(ret);
+    }
+
+    {
+        struct stat buffer;
+        if (stat (strFilename, &buffer) != 0)
+        {
+            BDBG_WRN(("PCM playback failed - file not found"));
+            return(ret);
+        }
+    }
+
+    if (false == pPcmPlayback->isConnected())
+    {
+        ret = pPcmPlayback->connect();
+        CHECK_ERROR_GOTO("unable to connect pcm playback - ignoring pcm playback request", ret, error);
+    }
+
+    ret = pPcmPlayback->start(strFilename);
+    CHECK_ERROR_GOTO("unable to start PCM Playback", ret, error);
+
+error:
+    return(ret);
+}
 
 /* the given channel is copied and added to the channel list if it passes filters */
 eRet CControl::addChannelToChList(CChannel * pChannel)
@@ -2615,8 +2873,10 @@ eRet CControl::decodeChannel(
         }
     }
 
+#if BDSP_MS12_SUPPORT
     /* if we have dual audio decoders, set master/mixing mode */
     setMixingMode(windowType, NEXUS_AudioDecoderMixingMode_eStandalone);
+#endif
 
     ret = startDecoders(pVideoDecode, pVideoPid, pAudioDecode, pAudioPid, pStc);
     CHECK_ERROR_GOTO("unable to start decoders", ret, error);
@@ -4817,6 +5077,7 @@ eRet CControl::showPip(bool bShow)
 
     if (_pModel->getPipState() == bShow)
     {
+        _pModel->setPipState(bShow);
         return(ret);
     }
 
@@ -4858,11 +5119,15 @@ eRet CControl::showPip(bool bShow)
                 pChannelPip = _pChannelMgr->getFirstChannel(pipWinType);
             }
         }
+
+        showWindowType(pipWinType, bShow);
     }
     else
     {
         /* hide pip */
         eMode mode = _pModel->getMode(pipWinType);
+
+        showWindowType(pipWinType, bShow);
 
         switch (mode)
         {
@@ -4893,7 +5158,6 @@ eRet CControl::showPip(bool bShow)
         } /* switch */
     }
 
-    showWindowType(pipWinType, bShow);
     _pModel->setPipState(bShow);
 
     if (true == bShow)
@@ -5407,6 +5671,7 @@ eRet CControl::stopDecoders(
         )
 {
     eRet ret = eRet_Ok;
+    CSimplePcmPlayback * pPcmPlayback = _pModel->getSimplePcmPlayback();
 
 #if HAS_VID_NL_LUMA_RANGE_ADJ
     while (NULL != _plmVideoDecodeList.remove(pVideoDecode))
@@ -5424,6 +5689,12 @@ eRet CControl::stopDecoders(
     }
     if (NULL != pAudioDecode)
     {
+        if (NULL != pPcmPlayback)
+        {
+            /*  if necessary wait for any sound effects to complete */
+            pPcmPlayback->waitForPcmPlaybackToComplete(2000);
+        }
+
         pAudioDecode->stop();
     }
 
@@ -5454,7 +5725,7 @@ eRet CControl::setGraphicsDynamicRange(CChannel * pChannel)
         }
     }
 
-    BDBG_MSG(("set gfx plm:%s", (true == pChannel->isGraphicsPlmEnabled()) ? "true" : "false"));
+    //TTTTTTTTT BDBG_MSG(("set gfx plm:%s", (true == pChannel->isGraphicsPlmEnabled()) ? "true" : "false"));
     pGraphics->setPlm(pChannel->isGraphicsPlmEnabled());
 
 error:

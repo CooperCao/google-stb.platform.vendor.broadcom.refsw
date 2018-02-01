@@ -3,6 +3,7 @@
  ******************************************************************************/
 #pragma once
 #include "libs/core/v3d/v3d_ver.h"
+#include "libs/core/v3d/v3d_gen.h"
 #include "libs/util/common.h"
 #include <stdint.h>
 #include <stdbool.h>
@@ -98,11 +99,13 @@ typedef enum v3d_cache_ops
 #endif
    V3D_CACHE_CLEAN_L2T  = 1 << 8,   // Per-core read-write L2T cache.
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    V3D_CACHE_CLEAR_GCA  = 1 << 9,   // Read-only legacy L3 cache in wrapper.
 #endif
+#if V3D_HAS_L3C
    V3D_CACHE_FLUSH_L3C  = 1 << 10,   // Read-write L3 cache.
    V3D_CACHE_CLEAN_L3C  = 1 << 11,
+#endif
 } v3d_cache_ops;
 
 #define V3D_CACHE_FLUSH_CORE (\
@@ -118,8 +121,8 @@ typedef enum v3d_cache_ops
       V3D_CACHE_IF_AT_LEAST_33(V3D_CACHE_CLEAN_L1TD)\
    |  V3D_CACHE_CLEAN_L2T)
 
-#define V3D_CACHE_FLUSH_HUB (V3D_CACHE_FLUSH_L3C | V3D_CACHE_IF_NOT_NEW_WRAPPER(V3D_CACHE_CLEAR_GCA))
-#define V3D_CACHE_CLEAN_HUB (V3D_CACHE_CLEAN_L3C)
+#define V3D_CACHE_FLUSH_HUB (V3D_CACHE_IF_HAS_L3C(V3D_CACHE_FLUSH_L3C) | V3D_CACHE_IF_NOT_NEW_WRAPPER(V3D_CACHE_CLEAR_GCA))
+#define V3D_CACHE_CLEAN_HUB (V3D_CACHE_IF_HAS_L3C(V3D_CACHE_CLEAN_L3C))
 #define V3D_CACHE_FLUSH_ALL (V3D_CACHE_FLUSH_CORE | V3D_CACHE_FLUSH_HUB)
 #define V3D_CACHE_CLEAN_ALL (V3D_CACHE_CLEAN_CORE | V3D_CACHE_CLEAN_HUB)
 
@@ -127,8 +130,8 @@ typedef enum v3d_cache_ops
 v3d_cache_ops v3d_barrier_cache_cleans(
    v3d_barrier_flags src,
    v3d_barrier_flags dst,
-   bool cross_core,
-   bool has_l3c);
+   bool cross_core,                 // src and dst are on different cores.
+   const V3D_HUB_IDENT_T* ident);
 
 //! Compute set of caches to be cleaned for barrier within the same core.
 static inline v3d_cache_ops v3d_barrier_cache_cleans_within_core(
@@ -136,15 +139,15 @@ static inline v3d_cache_ops v3d_barrier_cache_cleans_within_core(
    v3d_barrier_flags dst)
 {
    assert(!((src | dst) & (V3D_BARRIER_MEMORY_READ | V3D_BARRIER_MEMORY_WRITE)));
-   return v3d_barrier_cache_cleans(src, dst, false, false);
+   return v3d_barrier_cache_cleans(src, dst, false, NULL);
 }
 
 //! Compute set of caches to be flushed/cleared for barrier.
 v3d_cache_ops v3d_barrier_cache_flushes(
    v3d_barrier_flags src,
    v3d_barrier_flags dst,
-   bool cross_core,
-   bool has_l3c);
+   bool cross_core,                 // src and dst are on different cores.
+   const V3D_HUB_IDENT_T* ident);
 
 //! Compute set of caches to be flushed/cleared for barrier within the same core.
 static inline v3d_cache_ops v3d_barrier_cache_flushes_within_core(
@@ -152,7 +155,7 @@ static inline v3d_cache_ops v3d_barrier_cache_flushes_within_core(
    v3d_barrier_flags dst)
 {
    assert(!((src | dst) & (V3D_BARRIER_MEMORY_READ | V3D_BARRIER_MEMORY_WRITE)));
-   return v3d_barrier_cache_flushes(src, dst, false, false);
+   return v3d_barrier_cache_flushes(src, dst, false, NULL);
 }
 
 #ifdef __cplusplus
@@ -229,8 +232,14 @@ static inline v3d_cache_ops operator&=(v3d_cache_ops& a, v3d_cache_ops b)
 #define V3D_CACHE_IF_NOT_AT_LEAST_33(x) V3D_CACHE_OPS_NONE
 #endif
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 #define V3D_CACHE_IF_NOT_NEW_WRAPPER(x) x
 #else
 #define V3D_CACHE_IF_NOT_NEW_WRAPPER(x) V3D_CACHE_OPS_NONE
+#endif
+
+#if V3D_HAS_L3C
+#define V3D_CACHE_IF_HAS_L3C(x) x
+#else
+#define V3D_CACHE_IF_HAS_L3C(x) V3D_CACHE_OPS_NONE
 #endif

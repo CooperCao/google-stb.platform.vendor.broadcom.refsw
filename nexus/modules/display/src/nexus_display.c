@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #include "nexus_base.h"
 #include "nexus_display_module.h"
@@ -45,10 +44,15 @@
 
 BDBG_MODULE(nexus_display);
 BDBG_FILE_MODULE(nexus_flow_display);
+BDBG_FILE_MODULE(nexus_display_queue);
 
 #define pVideo (&g_NEXUS_DisplayModule_State)
 #define B_REFRESH_RATE_10_TO_1000(RATE) (((RATE) == 2397) ? 23976 : (RATE) * 10)
-
+#if 0
+#define NEXUS_P_Q_DBG_MSG(x)    BDBG_MSG(x)
+#else
+#define NEXUS_P_Q_DBG_MSG(x)
+#endif
 static NEXUS_Error NEXUS_Display_P_SetVsyncCallback(NEXUS_DisplayHandle display, bool enabled);
 static void nexus_display_p_refresh_rate_event(void *context);
 static void NEXUS_Display_P_UndriveVideoDecoder( NEXUS_DisplayHandle display );
@@ -201,7 +205,7 @@ NEXUS_Display_P_SetSettings(NEXUS_DisplayHandle display, const NEXUS_DisplaySett
             rc = BVDC_Display_SetVideoFormat(display->displayVdc, video_format_info.eVideoFmt);
             if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_setformat;}
         }
-#if NEXUS_HAS_VBI && defined(MACROVISION_SUPPORT)
+#if NEXUS_VBI_SUPPORT && defined(MACROVISION_SUPPORT)
         nexus_p_check_macrovision(display, pSettings->format);
 #endif
         /* actual display refresh rate should come from the display rate change callback */
@@ -310,61 +314,119 @@ err_format:
     return rc;
 }
 
-#if NEXUS_HAS_VIDEO_ENCODER && NEXUS_NUM_DSP_VIDEO_ENCODERS
-#if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
+#if NEXUS_P_USE_PROLOGUE_BUFFER
+#if NEXUS_DISPLAY_USE_VIP
 static void NEXUS_Display_GetCaptureBuffer_isr(NEXUS_DisplayHandle display)
 {
-    BAVC_EncodePictureBuffer picture;
+    BAVC_EncodePictureBuffer *picture;
     NEXUS_Error rc;
     bool drop=false;
     NEXUS_Display_P_Image *pImage;
 
-    if (!display->encoder.window || !display->encoder.window->vdcState.window) {
+    if (!display->encoder.context) {
         return;
     }
 
-    for (;;) {
-        BKNI_Memset_isr(&picture, 0, sizeof(BAVC_EncodePictureBuffer));
-        BVDC_Display_GetBuffer_isr(display->displayVdc, &picture);
+    NEXUS_P_Q_DBG_MSG(("DISP%d: %p:%p:%p;%p;%p", display->index,
+        (void*)BLST_SQ_FIRST(&display->encoder.free), (void*)BLST_SQ_FIRST(&display->encoder.freeChroma),
+        (void*)BLST_SQ_FIRST(&display->encoder.freeDecim1v), (void*)BLST_SQ_FIRST(&display->encoder.freeDecim2v),
+        (void*)BLST_SQ_FIRST(&display->encoder.freeShifted)));
+    for (;(pImage=BLST_SQ_FIRST(&display->encoder.free)) && BLST_SQ_FIRST(&display->encoder.freeChroma) &&
+           ((0==display->encoder.numDecimBufs) || (BLST_SQ_FIRST(&display->encoder.freeDecim1v) && BLST_SQ_FIRST(&display->encoder.freeDecim2v))) &&
+           ((0==display->encoder.numShiftedBufs) || BLST_SQ_FIRST(&display->encoder.freeShifted));) {
+        picture = &pImage->picture;
+        BVDC_Display_GetBuffer_isr(display->displayVdc, picture);
 
-        if (picture.hLumaBlock == NULL) {
-            if(!BLST_SQ_FIRST(&display->encoder.free)) {
-                BDBG_WRN(("%d out of %d Buffers in use", NEXUS_DISPLAY_ENCODER_MAX_PICTURE_BUFFERS, NEXUS_DISPLAY_ENCODER_MAX_PICTURE_BUFFERS));
-            }
+        if (picture->hLumaBlock == NULL) {
             break;
         }
 
-        BDBG_MSG(("L:%u ; C:%u ; W:%u ; H:%u ; P:%u ; PTS:%#x ; Lo:%#x ; Hi:%u ; ID: %u ; R:%u ; X:%u ; Y:%u",
-            picture.ulLumaOffset,
-            picture.ulChromaOffset,
-            picture.ulWidth,
-            picture.ulHeight,
-            picture.ePolarity,
-            picture.ulOriginalPTS,
-            picture.ulSTCSnapshotLo,
-            picture.ulSTCSnapshotHi,
-            picture.ulPictureId,
-            picture.eFrameRate,
-            picture.ulAspectRatioX,
-            picture.ulAspectRatioY));
+        BDBG_MODULE_MSG(nexus_display_queue,("DISP%d GET:%u ; C:%u ; W:%u ; H:%u ; P:%u ; PTS:%#x ; Lo:%#x ; Hi:%u ; ID: %u ; R:%u ; X:%u ; Y:%u; %p",
+            display->index,
+            picture->ulLumaOffset,
+            picture->ulChromaOffset,
+            picture->ulWidth,
+            picture->ulHeight,
+            picture->ePolarity,
+            picture->ulOriginalPTS,
+            picture->ulSTCSnapshotHi,
+            picture->ulSTCSnapshotLo,
+            picture->ulPictureId,
+            picture->eFrameRate,
+            picture->ulAspectRatioX,
+            picture->ulAspectRatioY,
+            (void*)picture->hShiftedChromaBlock));
 
+        BLST_SQ_REMOVE_HEAD(&display->encoder.free, link);
+        BLST_SQ_INSERT_TAIL(&display->encoder.captured, pImage, link);
+    }
+
+    /* deliver as many as space available */
+    while((pImage=BLST_SQ_FIRST(&display->encoder.captured))) {
         if (display->encoder.framesEnqueued % display->encoder.dropRate == 0)
         {
-            rc = display->encoder.enqueueCb_isr(display->encoder.context, &picture);
+            NEXUS_Display_P_Image *pNode;
+            rc = display->encoder.enqueueCb_isr(display->encoder.context, &pImage->picture);
             if(rc == BERR_SUCCESS) {
-                pImage = BLST_SQ_FIRST(&display->encoder.free);
                 BDBG_ASSERT(pImage);
-                pImage->hImage = picture.hLumaBlock;
-                pImage->picId = picture.ulPictureId;
-                BLST_SQ_REMOVE_HEAD(&display->encoder.free, link);
+                BLST_SQ_REMOVE_HEAD(&display->encoder.captured, link);
                 BLST_SQ_INSERT_TAIL(&display->encoder.queued, pImage, link);
+                NEXUS_P_Q_DBG_MSG(("DSIP%d captured pic[%d] %p[%#x] -> VCE queue",
+                    display->index, pImage->picture.ulPictureId, (void*)pImage->picture.hLumaBlock, pImage->picture.ulLumaOffset));
+
+                if(pImage->picture.hChromaBlock) {/* use separate queue to manage the orig/decim queues to handle different return timing */
+                    pNode = BLST_SQ_FIRST(&display->encoder.freeChroma);
+                    BDBG_ASSERT(pNode);
+                    pNode->picture.hChromaBlock = pImage->picture.hChromaBlock;
+                    pNode->picture.ulChromaOffset = pImage->picture.ulChromaOffset;
+                    BLST_SQ_REMOVE_HEAD(&display->encoder.freeChroma, link);
+                    BLST_SQ_INSERT_TAIL(&display->encoder.queuedChroma, pNode, link);
+                }
+
+                /* queue shifted chroma buffers for interlaced */
+                if(display->encoder.numShiftedBufs && pImage->picture.hShiftedChromaBlock) {
+                    pNode = BLST_SQ_FIRST(&display->encoder.freeShifted);
+                    BDBG_ASSERT(pNode);
+                    pNode->picture.hShiftedChromaBlock = pImage->picture.hShiftedChromaBlock;
+                    pNode->picture.ulShiftedChromaOffset = pImage->picture.ulShiftedChromaOffset;
+                    BLST_SQ_REMOVE_HEAD(&display->encoder.freeShifted, link);
+                    BLST_SQ_INSERT_TAIL(&display->encoder.queuedShifted, pNode, link);
+                }
+
+                /* queue decimated buffers */
+                if(display->encoder.numDecimBufs) {
+                    if(pImage->picture.h1VLumaBlock) {/* use separate queue to manage the orig/decim queues to handle different return timing */
+                        pNode = BLST_SQ_FIRST(&display->encoder.freeDecim1v);
+                        BDBG_ASSERT(pNode);
+                        pNode->picture.h1VLumaBlock = pImage->picture.h1VLumaBlock;
+                        pNode->picture.ul1VLumaOffset = pImage->picture.ul1VLumaOffset;
+                        BLST_SQ_REMOVE_HEAD(&display->encoder.freeDecim1v, link);
+                        BLST_SQ_INSERT_TAIL(&display->encoder.queuedDecim1v, pNode, link);
+                    }
+
+                    if(pImage->picture.h2VLumaBlock) {/* use separate queue to manage the orig/decim queues to handle different return timing */
+                        pNode = BLST_SQ_FIRST(&display->encoder.freeDecim2v);
+                        BDBG_ASSERT(pNode);
+                        pNode->picture.h2VLumaBlock = pImage->picture.h2VLumaBlock;
+                        pNode->picture.ul2VLumaOffset = pImage->picture.ul2VLumaOffset;
+                        BLST_SQ_REMOVE_HEAD(&display->encoder.freeDecim2v, link);
+                        BLST_SQ_INSERT_TAIL(&display->encoder.queuedDecim2v, pNode, link);
+                    }
+                }
+
+                pImage->picture.hChromaBlock = NULL;
+                pImage->picture.hShiftedChromaBlock = NULL;
+                pImage->picture.h1VLumaBlock = NULL;
+                pImage->picture.h2VLumaBlock = NULL;
+            } else { /* if VCE back pressure, hold it at captured Q */
+                break;
             }
         } else {
             drop = true;
             rc = BERR_SUCCESS;
         }
-        if (drop || rc) {
-            BVDC_Display_ReturnBuffer_isr(display->displayVdc, &picture);
+        if (drop) {
+            BVDC_Display_ReturnBuffer_isr(display->displayVdc, &pImage->picture);
         }
         display->encoder.framesEnqueued++;
     }
@@ -382,30 +444,114 @@ static void NEXUS_Display_ReturnCaptureBuffer_isr(NEXUS_DisplayHandle display)
 
     /* Query the encoder for all possible buffers that can be returned */
     for(;;) {
+        bool match = false;
         BKNI_Memset(&picture, 0, sizeof(BAVC_EncodePictureBuffer));
 
         rc = display->encoder.dequeueCb_isr(display->encoder.context, &picture);
-        if (rc) { BERR_TRACE(rc); break; }
+        if (rc) { break; }
 
-        if (picture.hLumaBlock == NULL) {
+        if (picture.hLumaBlock == NULL && picture.h1VLumaBlock == NULL && picture.h2VLumaBlock == NULL &&
+            picture.hChromaBlock == NULL && picture.hShiftedChromaBlock == NULL) {
             break;
         }
 
-        for (pImage = BLST_SQ_FIRST(&display->encoder.queued); pImage; pImage= BLST_SQ_NEXT(pImage, link)) {
-            if (pImage->hImage == picture.hLumaBlock && pImage->picId == picture.ulPictureId) {
-                break;
+        if (picture.hLumaBlock) {
+            for (pImage = BLST_SQ_FIRST(&display->encoder.queued); pImage; pImage= BLST_SQ_NEXT(pImage, link)) {
+                if (pImage->picture.hLumaBlock == picture.hLumaBlock && pImage->picture.ulLumaOffset == picture.ulLumaOffset) {
+                    break;
+                }
+            }
+
+            if (pImage)
+            {
+                match = true;
+                pImage->picture.hLumaBlock = NULL;
+                BLST_SQ_REMOVE(&display->encoder.queued, pImage , NEXUS_Display_P_Image, link);
+                BLST_SQ_INSERT_TAIL(&display->encoder.free, pImage, link);
+                NEXUS_P_Q_DBG_MSG(("DISP%d RET orig buf[%p] [picID=%u]", display->index, (void*)picture.hLumaBlock, picture.ulPictureId));
             }
         }
 
-        if (pImage)
+        /* continue to search decimated buffer Q */
+        if (picture.h1VLumaBlock) {
+            for (pImage = BLST_SQ_FIRST(&display->encoder.queuedDecim1v); pImage; pImage= BLST_SQ_NEXT(pImage, link)) {
+                if (pImage->picture.ul1VLumaOffset == picture.ul1VLumaOffset && pImage->picture.h1VLumaBlock== picture.h1VLumaBlock) {
+                    break;
+                }
+            }
+            if (pImage)
+            {
+                match = true;
+                /* only return decimated luma buffers */
+                pImage->picture.h1VLumaBlock = NULL;
+                /* release order could be different from deliver order */
+                BLST_SQ_REMOVE(&display->encoder.queuedDecim1v, pImage, NEXUS_Display_P_Image, link);
+                BLST_SQ_INSERT_TAIL(&display->encoder.freeDecim1v, pImage, link);
+                NEXUS_P_Q_DBG_MSG(("DISP%d RET decim 1v buf[%p] [picID=%u]", display->index, (void*)picture.h1VLumaBlock, picture.ulPictureId));
+            }
+        }
+
+        if (picture.h2VLumaBlock) {
+            for (pImage = BLST_SQ_FIRST(&display->encoder.queuedDecim2v); pImage; pImage= BLST_SQ_NEXT(pImage, link)) {
+                if (pImage->picture.ul2VLumaOffset == picture.ul2VLumaOffset && pImage->picture.h2VLumaBlock== picture.h2VLumaBlock) {
+                    break;
+                }
+            }
+            if (pImage)
+            {
+                match = true;
+                /* only return decimated luma buffers */
+                pImage->picture.h2VLumaBlock = NULL;
+                /* release order could be different from deliver order */
+                BLST_SQ_REMOVE(&display->encoder.queuedDecim2v, pImage, NEXUS_Display_P_Image, link);
+                BLST_SQ_INSERT_TAIL(&display->encoder.freeDecim2v, pImage, link);
+                NEXUS_P_Q_DBG_MSG(("DISP%d RET decim 2v buf[%p] [picID=%u]", display->index, (void*)picture.h2VLumaBlock, picture.ulPictureId));
+            }
+        }
+
+        if (picture.hChromaBlock) {
+            for (pImage = BLST_SQ_FIRST(&display->encoder.queuedChroma); pImage; pImage= BLST_SQ_NEXT(pImage, link)) {
+                if (pImage->picture.ulChromaOffset == picture.ulChromaOffset && pImage->picture.hChromaBlock== picture.hChromaBlock) {
+                    break;
+                }
+            }
+            if (pImage)
+            {
+                match = true;
+                /* only return decimated luma buffers */
+                pImage->picture.hChromaBlock = NULL;
+                /* release order could be different from deliver order */
+                BLST_SQ_REMOVE(&display->encoder.queuedChroma, pImage, NEXUS_Display_P_Image, link);
+                BLST_SQ_INSERT_TAIL(&display->encoder.freeChroma, pImage, link);
+                NEXUS_P_Q_DBG_MSG(("DISP%d RET chroma buf[%p] [picID=%u]", display->index, (void*)picture.hChromaBlock, picture.ulPictureId));
+            }
+        }
+
+        if (picture.hShiftedChromaBlock) {
+            for (pImage = BLST_SQ_FIRST(&display->encoder.queuedShifted); pImage; pImage= BLST_SQ_NEXT(pImage, link)) {
+                if (pImage->picture.ulShiftedChromaOffset == picture.ulShiftedChromaOffset && pImage->picture.hShiftedChromaBlock== picture.hShiftedChromaBlock) {
+                    break;
+                }
+            }
+            if (pImage)
+            {
+                match = true;
+                /* only return decimated luma buffers */
+                pImage->picture.hShiftedChromaBlock = NULL;
+                /* release order could be different from deliver order */
+                BLST_SQ_REMOVE(&display->encoder.queuedShifted, pImage, NEXUS_Display_P_Image, link);
+                BLST_SQ_INSERT_TAIL(&display->encoder.freeShifted, pImage, link);
+                NEXUS_P_Q_DBG_MSG(("DISP%d RET chroma buf[%p] [picID=%u]", display->index, (void*)picture.hShiftedChromaBlock, picture.ulPictureId));
+            }
+        }
+
+        if (match) /* if no matching Q, break the loop */
         {
             BVDC_Display_ReturnBuffer_isr(display->displayVdc, &picture);
-            pImage->hImage = NULL;
-            BLST_SQ_REMOVE(&display->encoder.queued, pImage , NEXUS_Display_P_Image, link);
-            BLST_SQ_INSERT_TAIL(&display->encoder.free, pImage, link);
         }
         else
         {
+            BDBG_MODULE_WRN(nexus_display_queue,("DISP%d dequeued pic[%u] unfound in deliver Q", display->index, picture.ulPictureId));
             break;
         }
     }
@@ -479,7 +625,7 @@ static void NEXUS_Display_GetCaptureBuffer_isr(NEXUS_DisplayHandle display,
         display->encoder.framesEnqueued++;
     }else {
         if(!BLST_SQ_FIRST(&display->encoder.free)) {
-            BDBG_WRN(("%d out of %d Buffers in use", NEXUS_DISPLAY_ENCODER_MAX_PICTURE_BUFFERS, NEXUS_DISPLAY_ENCODER_MAX_PICTURE_BUFFERS));
+            BDBG_MODULE_WRN(nexus_display_queue,("%d out of %d Buffers in use", display->encoder.numOrigBufs, display->encoder.numOrigBufs));
         }
     }
 }
@@ -518,12 +664,67 @@ static void NEXUS_Display_ReturnCaptureBuffer_isr(NEXUS_DisplayHandle display)
         } else {
             /* This should never happen. We should always find the return buffer in our list if dequeue_isr returns one*/
             /* BDBG_ASSERT(0); */
-            BDBG_WRN(("Buffer %p not found in queue", (void *)image.hImage));
+            BDBG_MODULE_WRN(nexus_display_queue,("Buffer %p not found in queue", (void *)image.hImage));
         }
     }
 }
-#endif /* NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT */
+#endif /* NEXUS_DISPLAY_USE_VIP */
 #endif /* HAS_DSP_ENCODE */
+
+#if NEXUS_NUM_HDMI_OUTPUTS
+static void nexus_display_p_hdrInfoChange_event(void *context)
+{
+    NEXUS_DisplayHandle display = context;
+    if (display->private.settings.hdrInfoChanged.callback)
+    {
+        BKNI_Memcpy(&display->private.status.infoFrame, &display->hdmi.hdrInfoChange.infoFrame, sizeof(display->private.status.infoFrame));
+        NEXUS_TaskCallback_Fire(display->private.hdrInfoChangedCallback);
+    }
+    if (display->hdmi.outputNotify)
+    {
+        NEXUS_VideoOutput_P_SetHdrSettings(display->hdmi.outputNotify,
+            &display->hdmi.hdrInfoChange.infoFrame) ;
+    }
+}
+
+static void nexus_display_p_hdrType1InfoFrame_fromMagnum_isrsafe(
+    NEXUS_HdmiType1DynamicRangeMasteringStaticMetadata *type1,
+    const BAVC_HDMI_DRMInfoFrameType1 *magnum)
+{
+    BDBG_MSG(("from:"));
+    BDBG_MSG(("      green: (%d, %d)", type1->masteringDisplayColorVolume.greenPrimary.x, type1->masteringDisplayColorVolume.greenPrimary.y));
+    BDBG_MSG(("      blue: (%d, %d)", type1->masteringDisplayColorVolume.bluePrimary.x, type1->masteringDisplayColorVolume.bluePrimary.y));
+    BDBG_MSG(("      red: (%d, %d)", type1->masteringDisplayColorVolume.redPrimary.x, type1->masteringDisplayColorVolume.redPrimary.y));
+    BDBG_MSG(("      white: (%d, %d)", type1->masteringDisplayColorVolume.whitePoint.x, type1->masteringDisplayColorVolume.whitePoint.y));
+    BDBG_MSG(("      luma: (%d, %d)", type1->masteringDisplayColorVolume.luminance.max, type1->masteringDisplayColorVolume.luminance.min));
+    BDBG_MSG(("      cll: %d", type1->contentLightLevel.max));
+    BDBG_MSG(("      fal: %d", type1->contentLightLevel.maxFrameAverage));
+    BDBG_MSG(("to:"));
+    BDBG_MSG(("      green: (%d, %d)", magnum->DisplayPrimaries[0].X, magnum->DisplayPrimaries[0].Y));
+    BDBG_MSG(("      blue: (%d, %d)", magnum->DisplayPrimaries[1].X, magnum->DisplayPrimaries[1].Y));
+    BDBG_MSG(("      red: (%d, %d)", magnum->DisplayPrimaries[2].X, magnum->DisplayPrimaries[2].Y));
+    BDBG_MSG(("      white: (%d, %d)", magnum->WhitePoint.X, magnum->WhitePoint.Y));
+    BDBG_MSG(("      luma: (%d, %d)", magnum->DisplayMasteringLuminance.Max, magnum->DisplayMasteringLuminance.Min));
+    BDBG_MSG(("      cll: %d", magnum->MaxContentLightLevel));
+    BDBG_MSG(("      fal: %d", magnum->MaxFrameAverageLightLevel));
+
+    type1->masteringDisplayColorVolume.greenPrimary.x = magnum->DisplayPrimaries[0].X;
+    type1->masteringDisplayColorVolume.greenPrimary.y = magnum->DisplayPrimaries[0].Y;
+    type1->masteringDisplayColorVolume.bluePrimary.x  = magnum->DisplayPrimaries[1].X;
+    type1->masteringDisplayColorVolume.bluePrimary.y  = magnum->DisplayPrimaries[1].Y;
+    type1->masteringDisplayColorVolume.redPrimary.x   = magnum->DisplayPrimaries[2].X;
+    type1->masteringDisplayColorVolume.redPrimary.y   = magnum->DisplayPrimaries[2].Y;
+    type1->masteringDisplayColorVolume.whitePoint.x   = magnum->WhitePoint.X;
+    type1->masteringDisplayColorVolume.whitePoint.y   = magnum->WhitePoint.Y;
+    type1->masteringDisplayColorVolume.luminance.max  = magnum->DisplayMasteringLuminance.Max;
+    type1->masteringDisplayColorVolume.luminance.min  = magnum->DisplayMasteringLuminance.Min;
+
+    NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(
+        &type1->contentLightLevel,
+        magnum->MaxContentLightLevel,
+        magnum->MaxFrameAverageLightLevel);
+}
+#endif
 
 static void NEXUS_DisplayCb_isr(void *pParam, int iParam, void *pCbData)
 {
@@ -550,7 +751,6 @@ static void NEXUS_DisplayCb_isr(void *pParam, int iParam, void *pCbData)
         unsigned sourceRate = 0;
 
         NEXUS_Display_GetCaptureBuffer_isr(display, &encPicId, &decPicId, &polarity, &sourceRate);
-        NEXUS_Display_ReturnCaptureBuffer_isr(display);
 
         if ((signed)encPicId != -1)
         {
@@ -618,10 +818,24 @@ static void NEXUS_DisplayCb_isr(void *pParam, int iParam, void *pCbData)
         }
     }
 
-#if NEXUS_HAS_VIDEO_ENCODER && NEXUS_NUM_DSP_VIDEO_ENCODERS && NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
+#if NEXUS_NUM_HDMI_OUTPUTS
+    if (pCallbackData->stMask.bHdrInfoFrame) {
+        BDBG_MSG(("display %d HDR info frame changed:", display->index));
+        /*
+         * DO NOT copy or change eotf here, it is set in nexus_video_input instead.
+         * only static metadata is changed here
+         */
+        display->hdmi.hdrInfoChange.infoFrame.metadata.type = NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1;
+        nexus_display_p_hdrType1InfoFrame_fromMagnum_isrsafe(&display->hdmi.hdrInfoChange.infoFrame.metadata.typeSettings.type1,
+            &pCallbackData->stInfoFrame.Type1);
+        display->hdmi.hdrInfoChange.smdValid = true;
+        BKNI_SetEvent(display->hdmi.hdrInfoChange.event);
+    }
+#endif
+
+#if NEXUS_HAS_VIDEO_ENCODER && NEXUS_DISPLAY_USE_VIP
     if (pCallbackData->stMask.bPerVsync && display->encoder.callbackEnabled) {
         NEXUS_Display_GetCaptureBuffer_isr(display);
-        NEXUS_Display_ReturnCaptureBuffer_isr(display);
     }
 #endif
 
@@ -636,6 +850,25 @@ static void NEXUS_DisplayCb_isr(void *pParam, int iParam, void *pCbData)
     }
 #endif
 }
+
+/***********************
+ * The display prologue callback isr recycles display picture buffer before VDC grabs the next free buffer.
+ */
+#if NEXUS_P_USE_PROLOGUE_BUFFER
+static void NEXUS_DisplayPrologueCb_isr(void *pParam, int iParam, void *pCbData)
+{
+    NEXUS_DisplayHandle display = pParam;
+    BDBG_ASSERT(display);
+    BSTD_UNUSED(iParam);
+    BSTD_UNUSED(pCbData);
+
+    NEXUS_OBJECT_ASSERT(NEXUS_Display, display);
+
+    if (display->encoder.callbackEnabled) {
+        NEXUS_Display_ReturnCaptureBuffer_isr(display);
+    }
+}
+#endif
 
 unsigned NEXUS_Display_GetLastVsyncTime_isr(NEXUS_DisplayHandle display)
 {
@@ -654,6 +887,7 @@ static BERR_Code nexus_p_install_display_cb(NEXUS_DisplayHandle display)
     settings.stMask.bCrc = (display->cfg.crcQueueSize != 0);
     settings.stMask.bPerVsync = 1; /* needed for HDMI crc */
     settings.stMask.bCableDetect = 1;
+    settings.stMask.bHdrInfoFrame= 1;
 
 #if NEXUS_HAS_VIDEO_ENCODER
     if( display->encodeUserData )
@@ -661,6 +895,9 @@ static BERR_Code nexus_p_install_display_cb(NEXUS_DisplayHandle display)
         settings.stMask.bStgPictureId = 1;
         BDBG_MSG(("Display %u enables STG display callback.", display->index));
     }
+#if NEXUS_P_USE_PROLOGUE_BUFFER
+    settings.pfPrologueCb_isr = NEXUS_DisplayPrologueCb_isr;
+#endif
 #endif
 
     rc = BVDC_Display_SetCallbackSettings(display->displayVdc, &settings);
@@ -707,6 +944,9 @@ static void nexus_p_uninstall_display_cb(NEXUS_DisplayHandle display)
     BVDC_Display_GetCallbackSettings(display->displayVdc, &settings);
     settings.stMask.bRateChange = 0;
     settings.stMask.bCrc = 0;
+#if NEXUS_P_USE_PROLOGUE_BUFFER
+    settings.pfPrologueCb_isr = NULL;
+#endif
     rc = BVDC_Display_SetCallbackSettings(display->displayVdc, &settings);
     if (rc) rc = BERR_TRACE(rc);
 
@@ -765,7 +1005,13 @@ NEXUS_Display_P_Open(NEXUS_DisplayHandle display, unsigned displayIndex, const N
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_compositor;}
 
         BVDC_Display_GetDefaultSettings(BVDC_DisplayId_eDisplay2, &vdcDisplayCfg);
-        display->timingGenerator = vdcDisplayCfg.eMasterTg = BVDC_DisplayTg_ePrimIt;
+
+        if (pSettings->timingGenerator < NEXUS_DisplayTimingGenerator_eAuto) {
+            display->timingGenerator = vdcDisplayCfg.eMasterTg = pSettings->timingGenerator;
+        }
+        else {
+            display->timingGenerator = vdcDisplayCfg.eMasterTg = BVDC_DisplayTg_ePrimIt;
+        }
         vdcDisplayCfg.bModifiedSync = bModifiedSync;
         rc = BVDC_Display_Create(display->compositor, &display->displayVdc, BVDC_DisplayId_eDisplay0, &vdcDisplayCfg);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_display;}
@@ -950,6 +1196,13 @@ NEXUS_Display_Open(unsigned displayIndex,const NEXUS_DisplaySettings *pSettings)
         pSettings = &defaultSettings;
     }
 
+    if (pSettings->displayType == NEXUS_DisplayType_eBypass && displayIndex != 2)
+    {
+        BDBG_ERR(("Cannot open display[%d] as a bypass display!", displayIndex));
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return NULL;
+    }
+
     if(displayIndex>=sizeof(pVideo->displays)/sizeof(pVideo->displays[0])) {
         rc = BERR_TRACE(BERR_INVALID_PARAMETER);
         goto err_settings;
@@ -972,6 +1225,7 @@ NEXUS_Display_Open(unsigned displayIndex,const NEXUS_DisplaySettings *pSettings)
     display->cfg = *pSettings;
     display->index = displayIndex;
     BLST_D_INIT(&display->outputs);
+    NEXUS_CallbackDesc_Init(&display->private.settings.hdrInfoChanged);
     display->vsyncCallback.isrCallback = NEXUS_IsrCallback_Create(display, NULL);
     if (!display->vsyncCallback.isrCallback) {rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_createisrcallback;}
     rc = BKNI_CreateEvent(&display->refreshRate.event);
@@ -980,10 +1234,18 @@ NEXUS_Display_Open(unsigned displayIndex,const NEXUS_DisplaySettings *pSettings)
     if (!display->refreshRate.handler) {rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_registerrefreshrate;}
 
 #if NEXUS_HAS_HDMI_OUTPUT
+    rc = BKNI_CreateEvent(&display->hdmi.hdrInfoChange.event);
+    if (rc) {rc = BERR_TRACE(rc); goto err_createhdrInfoChange;}
+    display->hdmi.hdrInfoChange.handler = NEXUS_RegisterEvent(display->hdmi.hdrInfoChange.event, nexus_display_p_hdrInfoChange_event, display);
+    if (!display->hdmi.hdrInfoChange.handler) {rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_registerhdrInfoChange;}
+
     BDBG_ASSERT(NULL == display->hdmi.rateChangeCb_isr);
     NEXUS_CallbackHandler_Init(display->hdmi.outputNotifyDisplay,NEXUS_VideoOutput_P_SetHdmiSettings, display );
     display->hdmi.outputNotify = NULL;
 #endif
+
+    display->private.hdrInfoChangedCallback = NEXUS_TaskCallback_Create(display, NULL);
+    if(!display->private.hdrInfoChangedCallback) {rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_registerhdrInfoChange;}
 
     rc = NEXUS_Display_P_Open(display, displayIndex, pSettings);
     if (rc) {rc = BERR_TRACE(rc); goto err_open;}
@@ -1012,21 +1274,21 @@ NEXUS_Display_Open(unsigned displayIndex,const NEXUS_DisplaySettings *pSettings)
 
 #if NEXUS_HAS_VIDEO_ENCODER
     BXUDlib_Create(&display->hXud, NULL);
-    /* TODO: error checking */
-#if NEXUS_NUM_DSP_VIDEO_ENCODERS
+#if NEXUS_P_USE_PROLOGUE_BUFFER
     /*Initialize the capture buffer pointer cache */
-    {
-    NEXUS_Display_P_Image *image;
-
     BLST_SQ_INIT(&display->encoder.free);
     BLST_SQ_INIT(&display->encoder.queued);
-    for(i=0; i<NEXUS_DISPLAY_ENCODER_MAX_PICTURE_BUFFERS; i++){
-        image = BKNI_Malloc(sizeof(*image));
-        /* TODO: error checking */
-        BLST_SQ_INSERT_TAIL(&display->encoder.free, image, link);
-    }
-    display->encoder.framesEnqueued = 0;
-    }
+#if NEXUS_DISPLAY_USE_VIP
+    BLST_SQ_INIT(&display->encoder.captured);
+    BLST_SQ_INIT(&display->encoder.freeChroma);
+    BLST_SQ_INIT(&display->encoder.queuedChroma);
+    BLST_SQ_INIT(&display->encoder.freeShifted);
+    BLST_SQ_INIT(&display->encoder.queuedShifted);
+    BLST_SQ_INIT(&display->encoder.freeDecim1v);
+    BLST_SQ_INIT(&display->encoder.queuedDecim1v);
+    BLST_SQ_INIT(&display->encoder.freeDecim2v);
+    BLST_SQ_INIT(&display->encoder.queuedDecim2v);
+#endif
 #endif
 #endif
     pVideo->displays[display->index] = display;
@@ -1062,10 +1324,14 @@ err_install_display_cb:
     rc = BVDC_ApplyChanges(pVideo->vdc); /* an Apply is needed after the Destroy */
     if (rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);}
 err_open:
-    NEXUS_UnregisterEvent(display->refreshRate.handler);
 #if NEXUS_HAS_HDMI_OUTPUT
     NEXUS_CallbackHandler_Shutdown(display->hdmi.outputNotifyDisplay);
+    NEXUS_UnregisterEvent(display->hdmi.hdrInfoChange.handler);
+err_registerhdrInfoChange:
+    BKNI_DestroyEvent(display->hdmi.hdrInfoChange.event);
+err_createhdrInfoChange:
 #endif
+    NEXUS_UnregisterEvent(display->refreshRate.handler);
 err_registerrefreshrate:
     BKNI_DestroyEvent(display->refreshRate.event);
 err_createrefreshrateevent:
@@ -1181,21 +1447,13 @@ NEXUS_Display_P_Finalizer(NEXUS_DisplayHandle display)
         BKNI_Free(display->customFormatInfo);
         display->customFormatInfo = NULL;
     }
+
+    NEXUS_TaskCallback_Destroy(display->private.hdrInfoChangedCallback);
+
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_CallbackHandler_Shutdown(display->hdmi.outputNotifyDisplay);
-#endif
-#if NEXUS_HAS_VIDEO_ENCODER && NEXUS_NUM_DSP_VIDEO_ENCODERS
-    {
-    NEXUS_Display_P_Image *image;
-    while(NULL != (image=BLST_SQ_FIRST(&display->encoder.free))){
-        BLST_SQ_REMOVE_HEAD(&display->encoder.free, link);
-        BKNI_Free(image);
-    }
-    while(NULL != (image=BLST_SQ_FIRST(&display->encoder.queued))){
-        BLST_SQ_REMOVE_HEAD(&display->encoder.queued, link);
-        BKNI_Free(image);
-    }
-    }
+    NEXUS_UnregisterEvent(display->hdmi.hdrInfoChange.handler);
+    BKNI_DestroyEvent(display->hdmi.hdrInfoChange.event);
 #endif
 
     pVideo->displays[display->index] = NULL;
@@ -2189,8 +2447,8 @@ static void nexus_display_p_refresh_rate_event(void *context)
     NEXUS_Display_P_VideoInputDisplayUpdate(NULL, NULL, &display->cfg);
 }
 
-#if NEXUS_HAS_VIDEO_ENCODER && NEXUS_NUM_DSP_VIDEO_ENCODERS
-#if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
+#if NEXUS_P_USE_PROLOGUE_BUFFER
+#if NEXUS_DISPLAY_USE_VIP
 unsigned NEXUS_Display_GetStgIndex_priv(NEXUS_DisplayHandle display)
 {
     NEXUS_OBJECT_ASSERT(NEXUS_Display, display);
@@ -2201,8 +2459,7 @@ unsigned NEXUS_Display_GetStgIndex_priv(NEXUS_DisplayHandle display)
 NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, NEXUS_VideoWindowHandle window, NEXUS_DisplayEncoderSettings *pSettings)
 {
     BERR_Code rc = NEXUS_SUCCESS;
-#if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
-    BAVC_EncodePictureBuffer picture;
+#if NEXUS_DISPLAY_USE_VIP
     BVDC_Display_StgSettings vdcSettings;
     bool stgEnabled;
 #else
@@ -2211,14 +2468,14 @@ NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, N
     NEXUS_Display_P_Image *pImage;
     NEXUS_VideoWindowHandle encodeWindow = window?window:&display->windows[0];
 
-#if !NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
+#if !(NEXUS_DISPLAY_USE_VIP)
     if (!encodeWindow->vdcState.window) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
 #endif
 
     if(pSettings && pSettings->enqueueCb_isr && pSettings->dequeueCb_isr) {
-#if !NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
+#if !(NEXUS_DISPLAY_USE_VIP)
         unsigned memcIndex;
         unsigned heapIndex = pVideo->moduleSettings.videoWindowHeapIndex[display->index][encodeWindow->index];
         rc = NEXUS_Core_HeapMemcIndex_isrsafe(heapIndex, &memcIndex);
@@ -2228,7 +2485,7 @@ NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, N
         }
 #endif
 
-#if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
+#if NEXUS_DISPLAY_USE_VIP
         BVDC_Display_GetStgConfiguration(display->displayVdc, &stgEnabled, &vdcSettings);
         vdcSettings.ulStcSnapshotLoAddr = pSettings->stcSnapshotLoAddr;
         vdcSettings.ulStcSnapshotHiAddr = pSettings->stcSnapshotHiAddr;
@@ -2237,11 +2494,74 @@ NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, N
         vdcSettings.vip.stMemSettings.ulMaxHeight = pSettings->vip.stMemSettings.ulMaxHeight;
         vdcSettings.vip.stMemSettings.ulMaxWidth = pSettings->vip.stMemSettings.ulMaxWidth;
         vdcSettings.vip.stMemSettings.bSupportInterlaced = pSettings->vip.stMemSettings.bSupportInterlaced;
+        vdcSettings.vip.stMemSettings.bSupportDecimatedLuma = pSettings->vip.stMemSettings.bSupportDecimatedLuma;
+        vdcSettings.vip.stMemSettings.bSupportBframes = pSettings->vip.stMemSettings.bSupportBframes;
         stgEnabled = true;
         BDBG_MSG(("VIP heap set to %p", (void *)(vdcSettings.vip.hHeap)));
         rc = BVDC_Display_SetStgConfiguration(display->displayVdc, stgEnabled, &vdcSettings);
         if (rc) {
             return BERR_TRACE(rc);
+        }
+#endif
+
+#if NEXUS_P_USE_PROLOGUE_BUFFER
+        /*Initialize the capture buffer pointer cache */
+        {
+        unsigned i;
+        NEXUS_Display_P_Image *image;
+
+        /* decide the buffer queues depth */
+        #if !NEXUS_DISPLAY_USE_VIP
+        display->encoder.numOrigBufs = NEXUS_DISPLAY_ENCODER_MAX_PICTURE_BUFFERS;
+        #else
+        {
+            BAVC_VCE_BufferConfig vceBufferConfig;
+
+            BAVC_VCE_GetDefaultBufferConfig_isrsafe(true, &vceBufferConfig );
+            display->encoder.numOrigBufs = BAVC_VCE_GetRequiredBufferCount_isrsafe( &vceBufferConfig, BAVC_VCE_BufferType_eOriginal );
+            display->encoder.numDecimBufs = pSettings->vip.stMemSettings.bSupportDecimatedLuma?
+                BAVC_VCE_GetRequiredBufferCount_isrsafe( &vceBufferConfig, BAVC_VCE_BufferType_eDecimated) : 0;
+            display->encoder.numShiftedBufs = pSettings->vip.stMemSettings.bSupportInterlaced?
+                BAVC_VCE_GetRequiredBufferCount_isrsafe( &vceBufferConfig, BAVC_VCE_BufferType_eShiftedChroma) : 0;
+            BDBG_MSG(("VIP # of bufs: orig = %u, decim = %u, shifted = %u",
+                display->encoder.numOrigBufs, display->encoder.numDecimBufs, display->encoder.numShiftedBufs));
+        }
+        #endif
+        /* alloc queues */
+        for(i=0; i<display->encoder.numOrigBufs; i++){
+            image = BKNI_Malloc(sizeof(*image));
+#if NEXUS_DISPLAY_USE_VIP
+            BKNI_Memset(&image->picture, 0, sizeof(image->picture));
+#else
+            image->hImage = NULL;
+#endif
+            BLST_SQ_INSERT_TAIL(&display->encoder.free, image, link);
+        }
+#if NEXUS_DISPLAY_USE_VIP
+        for(i=0; i<display->encoder.numOrigBufs; i++){
+            image = BKNI_Malloc(sizeof(*image));
+            BKNI_Memset(&image->picture, 0, sizeof(image->picture));
+            BLST_SQ_INSERT_TAIL(&display->encoder.freeChroma, image, link);
+        }
+        if(pSettings->vip.stMemSettings.bSupportInterlaced) {
+            for(i=0; i<display->encoder.numShiftedBufs; i++){
+                image = BKNI_Malloc(sizeof(*image));
+                BKNI_Memset(&image->picture, 0, sizeof(image->picture));
+                BLST_SQ_INSERT_TAIL(&display->encoder.freeShifted, image, link);
+            }
+        }
+        if(pSettings->vip.stMemSettings.bSupportDecimatedLuma) {
+            for(i=0; i<display->encoder.numDecimBufs; i++){
+                image = BKNI_Malloc(sizeof(*image));
+                BKNI_Memset(&image->picture, 0, sizeof(image->picture));
+                BLST_SQ_INSERT_TAIL(&display->encoder.freeDecim1v, image, link);
+
+                image = BKNI_Malloc(sizeof(*image));
+                BKNI_Memset(&image->picture, 0, sizeof(image->picture));
+                BLST_SQ_INSERT_TAIL(&display->encoder.freeDecim2v, image, link);
+            }
+        }
+#endif
         }
 #endif
 
@@ -2252,22 +2572,18 @@ NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, N
         display->encoder.framesEnqueued = 0;
         display->encoder.window = encodeWindow;
         display->encoder.dropRate = 1; /* No drop ins nexus. DSP firmware will handle frame drops */
-
-        for(pImage = BLST_SQ_FIRST(&display->encoder.free); pImage;  pImage= BLST_SQ_NEXT(pImage, link)) {
-            pImage->hImage = NULL;
-        }
         BKNI_LeaveCriticalSection();
-#if !NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
+#if !(NEXUS_DISPLAY_USE_VIP)
         /* force frame capture before starting encoder and capbuf callback to avoid field capture artifact! */
         rc = NEXUS_VideoInput_P_ForceFrameCapture(display->encoder.window->input, true);
         if (rc) return BERR_TRACE(rc);
         rc = BVDC_ApplyChanges(pVideo->vdc);
         if (rc) return BERR_TRACE(rc);
-        rc = BVDC_Window_SetUserCaptureBufferCount(display->encoder.window->vdcState.window, NEXUS_DISPLAY_ENCODER_MAX_PICTURE_BUFFERS);
+        rc = BVDC_Window_SetUserCaptureBufferCount(display->encoder.window->vdcState.window, display->encoder.numOrigBufs);
         if (rc) {
             return BERR_TRACE(rc);
         } else  {
-            display->encoder.window->cfg.userCaptureBufferCount = NEXUS_DISPLAY_ENCODER_MAX_PICTURE_BUFFERS;
+            display->encoder.window->cfg.userCaptureBufferCount = display->encoder.numOrigBufs;
         }
         /* only use artificial vsync for legacy soft encoder */
         rc = BVDC_Display_SetArtificialVsync(display->displayVdc, true, pSettings->extIntAddress, 1<<pSettings->extIntBitNum);
@@ -2278,27 +2594,97 @@ NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, N
     } else {
         /* Reclaim all buffers that encoder might be holding. Note: soft encoder should have been stopped up to this point. */
         BKNI_EnterCriticalSection();
+        display->encoder.callbackEnabled = false;
+        BKNI_LeaveCriticalSection();
+
         while(NULL != (pImage=BLST_SQ_FIRST(&display->encoder.queued))){
-#if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
-            picture.hLumaBlock = pImage->hImage;
-            picture.ulPictureId = pImage->picId;
-            BVDC_Display_ReturnBuffer_isr(display->displayVdc, &picture);
+            BKNI_EnterCriticalSection();
+#if NEXUS_DISPLAY_USE_VIP
+            BVDC_Display_ReturnBuffer_isr(display->displayVdc, &pImage->picture);
+            pImage->picture.hLumaBlock     = NULL;
 #else
             capture.hPicBlock = pImage->hImage;
             capture.ulPicBlockOffset = pImage->offset;
             BVDC_Test_Window_ReturnBuffer_isr(display->encoder.window->vdcState.window, &capture);
-#endif
             pImage->hImage = NULL;
+#endif
+            BKNI_LeaveCriticalSection();
             BLST_SQ_REMOVE_HEAD(&display->encoder.queued, link);
-            BLST_SQ_INSERT_TAIL(&display->encoder.free, pImage, link);
+            BKNI_Free(pImage);
         }
+        while(NULL != (pImage=BLST_SQ_FIRST(&display->encoder.free))){
+            BLST_SQ_REMOVE_HEAD(&display->encoder.free, link);
+            BKNI_Free(pImage);
+        }
+#if NEXUS_DISPLAY_USE_VIP
+        while(NULL != (pImage=BLST_SQ_FIRST(&display->encoder.captured))){
+            BKNI_EnterCriticalSection();
+            BVDC_Display_ReturnBuffer_isr(display->displayVdc, &pImage->picture);
+            BKNI_LeaveCriticalSection();
+            pImage->picture.hLumaBlock     = NULL;
+            pImage->picture.h1VLumaBlock = NULL;
+            BLST_SQ_REMOVE_HEAD(&display->encoder.captured, link);
+            BKNI_Free(pImage);
+        }
+        while(NULL != (pImage=BLST_SQ_FIRST(&display->encoder.queuedDecim1v))){
+            BKNI_EnterCriticalSection();
+            BVDC_Display_ReturnBuffer_isr(display->displayVdc, &pImage->picture);
+            BKNI_LeaveCriticalSection();
+            pImage->picture.h1VLumaBlock = NULL;
+            BLST_SQ_REMOVE_HEAD(&display->encoder.queuedDecim1v, link);
+            BKNI_Free(pImage);
+        }
+        while(NULL != (pImage=BLST_SQ_FIRST(&display->encoder.queuedDecim2v))){
+            BKNI_EnterCriticalSection();
+            BVDC_Display_ReturnBuffer_isr(display->displayVdc, &pImage->picture);
+            BKNI_LeaveCriticalSection();
+            pImage->picture.h2VLumaBlock = NULL;
+            BLST_SQ_REMOVE_HEAD(&display->encoder.queuedDecim2v, link);
+            BKNI_Free(pImage);
+        }
+        while(NULL != (pImage=BLST_SQ_FIRST(&display->encoder.queuedChroma))){
+            BKNI_EnterCriticalSection();
+            BVDC_Display_ReturnBuffer_isr(display->displayVdc, &pImage->picture);
+            BKNI_LeaveCriticalSection();
+            pImage->picture.hChromaBlock = NULL;
+            BLST_SQ_REMOVE_HEAD(&display->encoder.queuedChroma, link);
+            BKNI_Free(pImage);
+        }
+        while(NULL != (pImage=BLST_SQ_FIRST(&display->encoder.queuedShifted))){
+            BKNI_EnterCriticalSection();
+            BVDC_Display_ReturnBuffer_isr(display->displayVdc, &pImage->picture);
+            BKNI_LeaveCriticalSection();
+            pImage->picture.hShiftedChromaBlock = NULL;
+            BLST_SQ_REMOVE_HEAD(&display->encoder.queuedShifted, link);
+            BKNI_Free(pImage);
+        }
+        while(NULL != (pImage=BLST_SQ_FIRST(&display->encoder.freeDecim1v))){
+            BLST_SQ_REMOVE_HEAD(&display->encoder.freeDecim1v, link);
+            BKNI_Free(pImage);
+        }
+        while(NULL != (pImage=BLST_SQ_FIRST(&display->encoder.freeDecim2v))){
+            BLST_SQ_REMOVE_HEAD(&display->encoder.freeDecim2v, link);
+            BKNI_Free(pImage);
+        }
+        while(NULL != (pImage=BLST_SQ_FIRST(&display->encoder.freeChroma))){
+            BLST_SQ_REMOVE_HEAD(&display->encoder.freeChroma, link);
+            BKNI_Free(pImage);
+        }
+        while(NULL != (pImage=BLST_SQ_FIRST(&display->encoder.freeShifted))){
+            BLST_SQ_REMOVE_HEAD(&display->encoder.freeShifted, link);
+            BKNI_Free(pImage);
+        }
+#endif
+        BKNI_EnterCriticalSection();
         display->encoder.framesEnqueued = 0;
         display->encoder.enqueueCb_isr = NULL;
         display->encoder.dequeueCb_isr = NULL;
         display->encoder.context = NULL;
         BKNI_LeaveCriticalSection();
-#if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
-        BVDC_Display_GetStgConfiguration(display->displayVdc, &stgEnabled, &vdcSettings);
+
+#if NEXUS_DISPLAY_USE_VIP
+        rc = BVDC_Display_GetStgConfiguration(display->displayVdc, &stgEnabled, &vdcSettings);
+        if (rc) { return BERR_TRACE(rc); }
         vdcSettings.vip.hHeap = NULL;
         stgEnabled = true; /* always leave STG enabled to have hw trigger and interrupt */
         BDBG_MSG(("VIP heap set to %p", (void *)(vdcSettings.vip.hHeap)));
@@ -2334,15 +2720,6 @@ NEXUS_Error NEXUS_Display_EnableEncoderCallback_priv(NEXUS_DisplayHandle display
 {
     BERR_Code rc = NEXUS_SUCCESS;
     BVDC_Display_CallbackSettings settings;
-    unsigned i;
-
-    /* fail if any window is VideoImageInput, which is not supported for DSP encode */
-    for(i=0;i<sizeof(display->windows)/sizeof(display->windows[0]);i++) {
-        NEXUS_VideoWindowHandle window = &display->windows[i];
-        if (window->open && window->input && window->input->type == NEXUS_VideoInputType_eImage) {
-            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-        }
-    }
 
     BVDC_Display_GetCallbackSettings(display->displayVdc, &settings);
     settings.stMask.bPerVsync = 1;
@@ -2375,23 +2752,48 @@ NEXUS_Error NEXUS_Display_DisableEncoderCallback_priv(NEXUS_DisplayHandle displa
     if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
     return rc;
 }
-#endif /* NEXUS_HAS_VIDEO_ENCODER && NEXUS_NUM_DSP_VIDEO_ENCODERS */
+#endif /* NEXUS_HAS_VIDEO_ENCODER && (NEXUS_NUM_DSP_VIDEO_ENCODERS  || NEXUS_DISPLAY_VIP_SUPPORT) */
 
 NEXUS_Error NEXUS_Display_GetMaxMosaicCoverage( unsigned displayIndex, unsigned numMosaics, NEXUS_DisplayMaxMosaicCoverage *pCoverage )
 {
     int rc;
-    uint32_t coverage;
-    if (displayIndex != 0) {
+    BVDC_Display_MosaicCoverage coverage;
+
+    /* Only supports display 0, when displayIndex = 0xff, return max coverage for BL */
+    if ((displayIndex != 0) && (displayIndex != 0xff)) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
     BKNI_Memset(pCoverage, 0, sizeof(*pCoverage));
-    rc = BVDC_GetMaxMosaicCoverage(pVideo->vdc, displayIndex, numMosaics, &coverage);
+    rc = BVDC_GetMaxMosaicCoverage(pVideo->vdc, 0, numMosaics, &coverage);
     if (rc) return BERR_TRACE(rc);
-    pCoverage->maxCoverage = coverage;
+    if(displayIndex == 0xff)
+        pCoverage->maxCoverage = coverage.ulMaxCoverageBL;
+    else
+        pCoverage->maxCoverage = coverage.ulMaxCoverageEqual;
     return NEXUS_SUCCESS;
 }
 
 void NEXUS_Display_GetIndex_driver( NEXUS_DisplayHandle display, unsigned *pDisplayIndex )
 {
     *pDisplayIndex = display->index;
+}
+
+void NEXUS_Display_GetPrivateSettings(NEXUS_DisplayHandle display, NEXUS_DisplayPrivateSettings * pSettings)
+{
+    NEXUS_OBJECT_ASSERT(NEXUS_Display, display);
+    *pSettings = display->private.settings;
+}
+
+NEXUS_Error NEXUS_Display_SetPrivateSettings(NEXUS_DisplayHandle display, const NEXUS_DisplayPrivateSettings * pSettings)
+{
+    NEXUS_OBJECT_ASSERT(NEXUS_Display, display);
+    display->private.settings = *pSettings;
+    NEXUS_TaskCallback_Set(display->private.hdrInfoChangedCallback, &display->private.settings.hdrInfoChanged);
+    return NEXUS_SUCCESS;
+}
+
+void NEXUS_Display_GetPrivateStatus(NEXUS_DisplayHandle display, NEXUS_DisplayPrivateStatus * pStatus)
+{
+    NEXUS_OBJECT_ASSERT(NEXUS_Display, display);
+    *pStatus = display->private.status;
 }

@@ -1,5 +1,5 @@
 ###############################################################################################################
-#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,45 +51,53 @@ endif
 # Unified Reference Software path
 NEXUS_TOP ?= ${URSR_TOP}/nexus
 BSEAV_TOP ?= ${URSR_TOP}/BSEAV
+MAGNUM_TOP ?= ${URSR_TOP}/magnum
+SAGE_PUBLIC_TOP ?= ${BSEAV_TOP}/lib/security/sage
+SRAI_TOP ?= ${SAGE_PUBLIC_TOP}/srai
 
 # Sage Software path. need to be built first
 APP_TOP := ${BSEAV_TOP}/lib/security/sage/bp3
 # Add utilities sources
-SRCS = $(APP_TOP)/utils/sage_app_utils.c
+SRCS = sage_app_utils.c
 # Add application sources
-SRCS += $(APP_TOP)/app/bp3_platform_host.c
-SRCS += $(APP_TOP)/app/bp3_module_host.c
-SRCS += $(APP_TOP)/app/main.c
+SRCS += bp3_platform_host.c
+SRCS += bp3_module_host.c
+SRCS += main.c
 
 ifneq ($(NEXUS_MODE),proxy)
 ifeq ($(NEXUS_SAGE_BP3_BIN_PATH),)
-NEXUS_SAGE_BP3_BIN_PATH=$(NEXUS_TOP)/modules/sage/src/linuxuser/nexus_sage_bp3_bin_path.c
+NEXUS_SAGE_BP3_BIN_PATH=nexus_sage_bp3_bin_path.c
 endif
 SRCS += $(NEXUS_SAGE_BP3_BIN_PATH)
 endif
+vpath %.c $(APP_TOP)/utils:$(APP_TOP)/app:$(NEXUS_TOP)/modules/sage/src/linuxuser
 
 # include cross-compiler definitions
 include ${NEXUS_TOP}/platforms/${NEXUS_PLATFORM}/build/platform_app.inc
 include $(BSEAV_TOP)/opensource/zlib/zlib.inc
 include $(BSEAV_TOP)/opensource/openssl/openssl.inc
 include $(BSEAV_TOP)/opensource/curl/curl.inc
-
-# Name of application
-APP = bp3
+include $(MAGNUM_TOP)/portinginterface/hsm/bhsm_defs.inc
 
 # Application source file list, include path, C flags, and link
 # flags
-APP_SOURCES = ./main.c
+APP_SOURCES = ./bp3.c ./bp3_features.c
 
 APP_CFLAGS = -DWITH_POSIX -Wno-pedantic -Wno-variadic-macros -fPIC -I$(APP_TOP)/app -I${APP_TOP}/utils
 
 # This is the minimum needed to compile and link with Nexus
 APP_CFLAGS += ${NEXUS_CFLAGS} $(addprefix -I,${NEXUS_APP_INCLUDE_PATHS})  $(addprefix -D,${NEXUS_APP_DEFINES})
 APP_CFLAGS += $(B_OPENSSL_CFLAGS) $(CURL_CFLAGS)
-#allow c++ style comments
-APP_CFLAGS += -std=c99 -g
+APP_CFLAGS += -I${BSEAV_TOP}/lib/security/sage/bp3/utils/
+APP_CFLAGS += -I${BSEAV_TOP}/lib/security/sage/srai/include/
+APP_CFLAGS += -I${BSEAV_TOP}/lib/security/sage/bp3/app/
+APP_CFLAGS += -I${BSEAV_TOP}/lib/security/sage/platforms/include/
+APP_CFLAGS += -DBHSM_ZEUS_VER_MAJOR=$(BHSM_ZEUS_VER_MAJOR) -DBHSM_ZEUS_VER_MINOR=$(BHSM_ZEUS_VER_MINOR)
 
-APP_OBJS := ${SRCS:.c=.o} ${APP_SOURCES:.c=.o}
+# allow c++ style comments
+APP_CFLAGS += -std=c99
+
+APP_OBJS := ${$(notdir SRCS):.c=.o} ${APP_SOURCES:.c=.o}
 
 APP_LDFLAGS = -L$(abspath ${B_REFSW_OBJ_ROOT}/nexus/bin) -lsrai $(NEXUS_LDFLAGS) -lm
 APP_LDFLAGS += $(B_OPENSSL_LDFLAGS) $(CURL_LDFLAGS) $(ZLIB_LDFLAGS)
@@ -102,34 +110,42 @@ APP_LDFLAGS += $(NXCLIENT_LDFLAGS) $(NEXUS_CLIENT_LD_LIBRARIES)
 else
 APP_LDFLAGS += $(NEXUS_LD_LIBRARIES)
 endif
+OUTPUT_DIR = $(B_REFSW_OBJ_ROOT)/BSEAV/tools/bp3/
+OBJECTS = $(addprefix $(OUTPUT_DIR), $(APP_OBJS))
+APP = $(OUTPUT_DIR)bp3
+APPCONFIGFILE = bp3.provision.config
 
-all: curl sage_bp3 $(APP)
+all: curl $(APP)
 
-sage_bp3:
-	make -C $(APP_TOP) install
+srai:
+	@make -C ${SRAI_TOP} install
+
+$(APP): srai folders $(OBJECTS)
+	@echo [Linking... $(notdir $@)]
+	@$(CC) -o $@ $(OBJECTS) $(APP_LDFLAGS)
 
 curl:
-	make -j -C ${BSEAV_TOP}/opensource/openssl
-	make -j -C ${BSEAV_TOP}/opensource/curl install_to_nexus_bin
+	@make -j -C ${BSEAV_TOP}/opensource/openssl
+	@make -j -C ${BSEAV_TOP}/opensource/curl install_to_nexus_bin
 	@echo [Installing CURL related libraries in ${NEXUS_BIN_DIR}]
 	@if ls ${B_REFSW_OBJ_ROOT}/target/usr/local/lib/libz* > /dev/null 2>&1 ; then install -m 0755 ${B_REFSW_OBJ_ROOT}/target/usr/local/lib/libz* ${NEXUS_BIN_DIR}; fi
 	${Q_} install -m 0755 ${B_REFSW_OBJ_ROOT}/target/usr/local/lib/libcrypto* ${NEXUS_BIN_DIR}
 	${Q_} install -m 0755 ${B_REFSW_OBJ_ROOT}/target/usr/local/lib/libssl* ${NEXUS_BIN_DIR}
 
-$(APP): $(APP_OBJS)
-	@echo [Linking... $@]
-	@$(CC) -o $@ $(APP_OBJS) $(APP_LDFLAGS)
-
-%.o: %.c
-	@echo [Compile... $<]
+$(OUTPUT_DIR)%.o: %.c
+	@echo [Compile... $(notdir $<)]
 	@$(CC) -c -o $@ $< $(APP_CFLAGS)
 
 install: all
 	@echo [Installing to ... ${NEXUS_BIN_DIR}]
 	$(Q_)$(CP) -f ${APP} ${NEXUS_BIN_DIR}
+	$(Q_)$(CP) -f ${APPCONFIGFILE} ${NEXUS_BIN_DIR}
+
+folders:
+	@$(MKDIR) $(OUTPUT_DIR)
 
 clean:
-	make clean -C $(APP_TOP)
-	make clean -C ${BSEAV_TOP}/opensource/openssl
-	make clean -C ${BSEAV_TOP}/opensource/curl
-	-${RM} -f ${APP_OBJS} ${APP}
+	make -C ${SRAI_TOP} clean
+	@make -C ${BSEAV_TOP}/opensource/openssl clean
+	@make -C ${BSEAV_TOP}/opensource/curl clean
+	-${RM} -rf $(OUTPUT_DIR)

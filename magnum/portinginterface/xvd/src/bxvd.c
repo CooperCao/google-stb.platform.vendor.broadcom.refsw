@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -88,7 +88,7 @@ BDBG_MODULE(BXVD);
 #endif
 
 /* Default settings. */
-static const BXVD_Settings s_stDefaultSettings =
+static const BXVD_Settings s_stBXVD_DefaultSettings =
 {
    0,                         /* Decoder instance (always 0 for 7401, 7118) */
    BXVD_RaveEndianess_eBig,
@@ -959,7 +959,7 @@ BERR_Code BXVD_GetDefaultSettings(BXVD_Settings *pDefaultSettings)
    BDBG_ASSERT(pDefaultSettings);
 
    BKNI_Memcpy((void*)pDefaultSettings,
-               (void *)&s_stDefaultSettings,
+               (void *)&s_stBXVD_DefaultSettings,
                sizeof(BXVD_Settings));
 
 #if !(BXVD_USE_CUSTOM_IMAGE)
@@ -1623,7 +1623,7 @@ static const char * const sDecodeResolutionNameLUT[BXVD_DecodeResolution_eMaxMod
 #endif
 #endif
 
-#define BXVD_S_MAX_VIDEO_PROTOCOL 22
+#define BXVD_S_MAX_VIDEO_PROTOCOL 23
 
 static const char * const sVideoCompressionStdNameLUT[BXVD_S_MAX_VIDEO_PROTOCOL] =
 {
@@ -1648,7 +1648,8 @@ static const char * const sVideoCompressionStdNameLUT[BXVD_S_MAX_VIDEO_PROTOCOL]
    "BAVC_VideoCompressionStd_eSPARK",
    "BAVC_VideoCompressionStd_eMOTION_JPEG",
    "BAVC_VideoCompressionStd_eH265",
-   "BAVC_VideoCompressionStd_eVP9"
+   "BAVC_VideoCompressionStd_eVP9",
+   "BAVC_VideoCompressionStd_eAVS2"
 };
 
 static const char * const sChannelModeNameLUT[BXVD_ChannelMode_eMax] =
@@ -1974,7 +1975,9 @@ BERR_Code BXVD_OpenChannel(BXVD_Handle                hXvd,
    BXDM_PictureProvider_GetDefaultSettings(&stPictureProviderSettings);
 
    /* SWSTB-1380: XDM needs the heap handle when creating a debug fifo. */
+#ifdef BXVD_ENABLE_BDBG_FIFO
    stPictureProviderSettings.hHeap = pXvdCh->pXvd->hGeneralHeap;
+#endif
 
    rc = BXDM_PictureProvider_Create(&pXvdCh->hPictureProvider, &stPictureProviderSettings);
 
@@ -2797,6 +2800,10 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
    /* Calculate the register address for the appropriate context */
    uiContextReg = ((pXvdCh->sDecodeSettings.pContextMap->CDB_Read) - BXVD_XPT_WR_PTR_OFFSET);
 
+#if BXVD_P_FW_HW_BASE_NON_ZERO
+   uiContextReg -= BXVD_P_STB_REG_BASE;
+#endif
+
    BXVD_DBG_MSG(pXvdCh, ("BXVD_StartDecode() - XPT Rave Context reg base = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)uiContextReg));
 
    pXvdCh->ulXptCDB_Read = pXvdCh->sDecodeSettings.pContextMap->CDB_Read;
@@ -2826,6 +2833,9 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
          /* Calculate the register address for the appropriate context */
          uiContextRegExtend[i] = ((pXvdCh->sDecodeSettings.aContextMapExtended[i]->CDB_Read)-BXVD_XPT_WR_PTR_OFFSET);
 
+#if BXVD_P_FW_HW_BASE_NON_ZERO
+         uiContextRegExtend[i] -= BXVD_P_STB_REG_BASE;
+#endif
          BXVD_DBG_MSG(pXvdCh, ("BXVD_StartDecode() - XPT Rave Context Extended[%d] reg base = 0x%08x",
                                     i, uiContextRegExtend[i]));
 
@@ -4553,7 +4563,7 @@ BXVD_InstallDeviceInterruptCallback: Used to enable and install an application
 ****************************************************************************/
 BERR_Code BXVD_InstallDeviceInterruptCallback(BXVD_Handle           hXvd,
                                               BXVD_DeviceInterrupt  eInterrupt,
-                                              BXVD_CallbackFunc     fCallBack,
+                                              BXVD_CallbackFunc     fCallBack_isr,
                                               void                  *pParm1,
                                               int                   parm2)
 {
@@ -4661,7 +4671,7 @@ BERR_Code BXVD_InstallDeviceInterruptCallback(BXVD_Handle           hXvd,
       case BXVD_DeviceInterrupt_eDisplayInterrupt0:
          BXDM_DisplayInterruptHandler_InstallCallback_DisplayInterrupt(
                   hXvd->hXdmDih[BXVD_DisplayInterrupt_eZero],
-                  (BXDM_DisplayInterruptHandler_Display_isr) fCallBack,
+                  (BXDM_DisplayInterruptHandler_Display_isr) fCallBack_isr,
                   pParm1,
                   parm2);
          break;
@@ -4669,7 +4679,7 @@ BERR_Code BXVD_InstallDeviceInterruptCallback(BXVD_Handle           hXvd,
       case BXVD_DeviceInterrupt_eDisplayInterrupt1:
          BXDM_DisplayInterruptHandler_InstallCallback_DisplayInterrupt(
                   hXvd->hXdmDih[BXVD_DisplayInterrupt_eOne],
-                  (BXDM_DisplayInterruptHandler_Display_isr) fCallBack,
+                  (BXDM_DisplayInterruptHandler_Display_isr) fCallBack_isr,
                   pParm1,
                   parm2);
          break;
@@ -4678,7 +4688,7 @@ BERR_Code BXVD_InstallDeviceInterruptCallback(BXVD_Handle           hXvd,
       case BXVD_DeviceInterrupt_eDisplayInterrupt2:
          BXDM_DisplayInterruptHandler_InstallCallback_DisplayInterrupt(
                   hXvd->hXdmDih[BXVD_DisplayInterrupt_eTwo],
-                  (BXDM_DisplayInterruptHandler_Display_isr) fCallBack,
+                  (BXDM_DisplayInterruptHandler_Display_isr) fCallBack_isr,
                   pParm1,
                   parm2);
          break;
@@ -4687,7 +4697,7 @@ BERR_Code BXVD_InstallDeviceInterruptCallback(BXVD_Handle           hXvd,
       case BXVD_DeviceInterrupt_ePictureDataReady0:
          BXDM_DisplayInterruptHandler_InstallCallback_PictureDataReadyInterrupt(
                   hXvd->hXdmDih[BXVD_DisplayInterrupt_eZero],
-                  (BXDM_DisplayInterruptHandler_PictureDataReady_isr) fCallBack,
+                  (BXDM_DisplayInterruptHandler_PictureDataReady_isr) fCallBack_isr,
                   pParm1,
                   parm2);
          break;
@@ -4695,7 +4705,7 @@ BERR_Code BXVD_InstallDeviceInterruptCallback(BXVD_Handle           hXvd,
       case BXVD_DeviceInterrupt_ePictureDataReady1:
          BXDM_DisplayInterruptHandler_InstallCallback_PictureDataReadyInterrupt(
                   hXvd->hXdmDih[BXVD_DisplayInterrupt_eOne],
-                  (BXDM_DisplayInterruptHandler_PictureDataReady_isr) fCallBack,
+                  (BXDM_DisplayInterruptHandler_PictureDataReady_isr) fCallBack_isr,
                   pParm1,
                   parm2);
          break;
@@ -4704,7 +4714,7 @@ BERR_Code BXVD_InstallDeviceInterruptCallback(BXVD_Handle           hXvd,
      case BXVD_DeviceInterrupt_ePictureDataReady2:
          BXDM_DisplayInterruptHandler_InstallCallback_PictureDataReadyInterrupt(
                   hXvd->hXdmDih[BXVD_DisplayInterrupt_eTwo],
-                  (BXDM_DisplayInterruptHandler_PictureDataReady_isr) fCallBack,
+                  (BXDM_DisplayInterruptHandler_PictureDataReady_isr) fCallBack_isr,
                   pParm1,
                   parm2);
          break;
@@ -4712,7 +4722,7 @@ BERR_Code BXVD_InstallDeviceInterruptCallback(BXVD_Handle           hXvd,
 
       default:
          BKNI_EnterCriticalSection();
-         callback->BXVD_P_pAppIntCallbackPtr = (BXVD_IntCallbackFunc)fCallBack;
+         callback->BXVD_P_pAppIntCallbackPtr = (BXVD_IntCallbackFunc)fCallBack_isr;
          callback->pParm1 = pParm1;
          callback->parm2 = parm2;
          BKNI_LeaveCriticalSection();
@@ -5147,7 +5157,7 @@ BXVD_InstallInterruptCallback: Used to enable and install an application
 ****************************************************************************/
 BERR_Code BXVD_InstallInterruptCallback(BXVD_ChannelHandle hXvdCh,
                                         BXVD_Interrupt     eInterrupt,
-                                        BXVD_CallbackFunc  fCallBack,
+                                        BXVD_CallbackFunc  fCallBack_isr,
                                         void               *pParm1,
                                         int                parm2)
 {
@@ -5183,7 +5193,7 @@ BERR_Code BXVD_InstallInterruptCallback(BXVD_ChannelHandle hXvdCh,
       case BXVD_Interrupt_ePictureDataReady:
          BXDM_DisplayInterruptHandler_InstallCallback_PictureDataReadyInterrupt(
                   hXvdCh->pXvd->hXdmDih[BXVD_DisplayInterrupt_eZero],
-                  (BXDM_DisplayInterruptHandler_PictureDataReady_isr) fCallBack,
+                  (BXDM_DisplayInterruptHandler_PictureDataReady_isr) fCallBack_isr,
                   pParm1,
                   parm2);
          break;
@@ -5197,7 +5207,7 @@ BERR_Code BXVD_InstallInterruptCallback(BXVD_ChannelHandle hXvdCh,
       case BXVD_Interrupt_ePtsStcOffset:
          BXDM_PictureProvider_Callback_Install_StcPtsOffset_isr(
                   hXvdCh->hPictureProvider,
-                  (BXDM_PictureProvider_Callback_StcPtsOffset_isr) fCallBack,
+                  (BXDM_PictureProvider_Callback_StcPtsOffset_isr) fCallBack_isr,
                   pParm1,
                   parm2);
          break;
@@ -5210,7 +5220,7 @@ BERR_Code BXVD_InstallInterruptCallback(BXVD_ChannelHandle hXvdCh,
 
          BXDM_PictureProvider_Callback_Install_FirstCodedPTSReady_isr(
                   hXvdCh->hPictureProvider,
-                  (BXDM_PictureProvider_Callback_FirstCodedPTSReady_isr) fCallBack,
+                  (BXDM_PictureProvider_Callback_FirstCodedPTSReady_isr) fCallBack_isr,
                   pParm1,
                   parm2);
 
@@ -5223,21 +5233,21 @@ BERR_Code BXVD_InstallInterruptCallback(BXVD_ChannelHandle hXvdCh,
       case BXVD_Interrupt_eFirstPTSPassed:
          BXDM_PictureProvider_Callback_Install_FirstPTSPassed_isr(
                   hXvdCh->hPictureProvider,
-                  (BXDM_PictureProvider_Callback_FirstPTSPassed_isr) fCallBack,
+                  (BXDM_PictureProvider_Callback_FirstPTSPassed_isr) fCallBack_isr,
                   pParm1,
                   parm2);
          break;
       case BXVD_Interrupt_ePTSError:
          BXDM_PictureProvider_Callback_Install_PTSError_isr(
                   hXvdCh->hPictureProvider,
-                  (BXDM_PictureProvider_Callback_PTSError_isr) fCallBack,
+                  (BXDM_PictureProvider_Callback_PTSError_isr) fCallBack_isr,
                   pParm1,
                   parm2);
          break;
       case BXVD_Interrupt_eIFrame:
          BXDM_PictureProvider_Callback_Install_IFrame_isr(
                   hXvdCh->hPictureProvider,
-                  (BXDM_PictureProvider_Callback_IFrame_isr) fCallBack,
+                  (BXDM_PictureProvider_Callback_IFrame_isr) fCallBack_isr,
                   pParm1,
                   parm2);
          break;
@@ -5251,7 +5261,7 @@ BERR_Code BXVD_InstallInterruptCallback(BXVD_ChannelHandle hXvdCh,
       case BXVD_Interrupt_eTSMPassInASTMMode:
          BXDM_PictureProvider_Callback_Install_TSMPassInASTMMode_isr(
                   hXvdCh->hPictureProvider,
-                  (BXDM_PictureProvider_Callback_TSMPassInASTMMode_isr) fCallBack,
+                  (BXDM_PictureProvider_Callback_TSMPassInASTMMode_isr) fCallBack_isr,
                   pParm1,
                   parm2);
          break;
@@ -5286,21 +5296,21 @@ BERR_Code BXVD_InstallInterruptCallback(BXVD_ChannelHandle hXvdCh,
       case BXVD_Interrupt_ePPBParameters:
          BXDM_PictureProvider_Callback_Install_PictureUnderEvaluation_isr(
                   hXvdCh->hPictureProvider,
-                  (BXDM_PictureProvider_Callback_PictureUnderEvaluation_isr) fCallBack,
+                  (BXDM_PictureProvider_Callback_PictureUnderEvaluation_isr) fCallBack_isr,
                   pParm1,
                   parm2);
          break;
       case BXVD_Interrupt_eTSMResult:
          BXDM_PictureProvider_Callback_Install_TSMResult_isr(
                   hXvdCh->hPictureProvider,
-                  (BXDM_PictureProvider_Callback_TSMResult_isr) fCallBack,
+                  (BXDM_PictureProvider_Callback_TSMResult_isr) fCallBack_isr,
                   pParm1,
                   parm2);
          break;
       case BXVD_Interrupt_ePictureExtensionData:
          BXDM_PictureProvider_Callback_Install_PictureExtensionData_isr(
                   hXvdCh->hPictureProvider,
-                  (BXDM_PictureProvider_Callback_PictureExtensionData_isr) fCallBack,
+                  (BXDM_PictureProvider_Callback_PictureExtensionData_isr) fCallBack_isr,
                   pParm1,
                   parm2);
          break;
@@ -5316,7 +5326,7 @@ BERR_Code BXVD_InstallInterruptCallback(BXVD_ChannelHandle hXvdCh,
       case BXVD_Interrupt_eChunkDone:
          BXDM_PictureProvider_Callback_Install_ChunkDone_isr(
                   hXvdCh->hPictureProvider,
-                  (BXDM_PictureProvider_Callback_ChunkDone_isr) fCallBack,
+                  (BXDM_PictureProvider_Callback_ChunkDone_isr) fCallBack_isr,
                   pParm1,
                   parm2);
          break;
@@ -5324,7 +5334,7 @@ BERR_Code BXVD_InstallInterruptCallback(BXVD_ChannelHandle hXvdCh,
       default:
          break;
    }
-   callback->BXVD_P_pAppIntCallbackPtr = (BXVD_IntCallbackFunc)fCallBack;
+   callback->BXVD_P_pAppIntCallbackPtr = (BXVD_IntCallbackFunc)fCallBack_isr;
    callback->pParm1 = pParm1;
    callback->parm2 = parm2;
 

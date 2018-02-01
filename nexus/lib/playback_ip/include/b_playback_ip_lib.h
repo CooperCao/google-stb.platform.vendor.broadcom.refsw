@@ -1554,6 +1554,7 @@ typedef struct B_PlaybackIpLiveStreamingOpenSettings
 
                                                        For SystemTimerBasedStreaming : this specifies the duration after which data read call will be initiated periodically.
                                                        For udp case we found that data read at an interval of 5msec provides the best output.*/
+    bool enableHttpChunkTransferEncoding;
 } B_PlaybackIpLiveStreamingOpenSettings;
 
 /* Settings that can be updated when live streaming start is already called */
@@ -1634,6 +1635,7 @@ typedef struct B_PlaybackIpFileStreamingOpenSettings
     bool disableHlsPlaylistGeneration; /* if set, HLS Playlists are not generated during media probing */
     unsigned programIndex;  /* Default value should be 1 to match bmedia indexing. used to determe which program to look at  */
     bool generateAllProgramsInfoFiles; /* default is false, used to get infor for particular program;  true means it will generate Info files for all Programs in streams */
+    bool enableHttpChunkTransferEncoding;
 } B_PlaybackIpFileStreamingOpenSettings;
 
 /***************************************************************************

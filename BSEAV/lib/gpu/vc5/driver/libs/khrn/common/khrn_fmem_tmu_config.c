@@ -4,7 +4,7 @@
 #include "khrn_fmem.h"
 #include "../glxx/glxx_int_config.h"
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 #define ALLOC_SIZE (2048u)
 static_assrt(V3D_TMU_CONFIG_CACHE_LINE_SIZE >= 32);

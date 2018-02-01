@@ -120,7 +120,7 @@ void nexus_driver_recv_addr_cached(void **paddr); /* inplace convert address fro
 void nexus_driver_free(void *addr); /* special version of BKNI_Free which is safe to use for free NULL pointer */
 
 /* nexus_driver_callbacks */
-void nexus_driver_callback_to_driver(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *handle, unsigned id, 
+void nexus_driver_callback_to_driver(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *handle, unsigned id,
     const struct b_objdb_client *client, struct nexus_driver_slave_scheduler *slave);
 void nexus_driver_callback_to_user(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *handle, unsigned id);
 void nexus_driver_callback_update(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *old_handle, unsigned id, void *new_handle);

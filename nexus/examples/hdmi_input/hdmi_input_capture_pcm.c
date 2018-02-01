@@ -353,6 +353,7 @@ void hdmi_source_changed(void *context, int param)
     app_configuration *config = (app_configuration *)context;
     hdmiInput = config->hdmiInput;
 
+    BSTD_UNUSED(param);
     NEXUS_HdmiInput_GetStatus(hdmiInput, &hdmiInputStatus);
     fprintf(stderr, "HDMI input status (callback):\n");
     fprintf(stderr, "attached %d,  audio valid %d,  Type %d,  wordlength %d,  freq %d\n",
@@ -377,6 +378,7 @@ void avmute_changed(void *context, int param)
     NEXUS_HdmiInputStatus hdmiInputStatus;
     app_configuration *config = (app_configuration *)context;
 
+    BSTD_UNUSED(param);
     hdmiInput = config->hdmiInput;
     NEXUS_HdmiInput_GetStatus(hdmiInput, &hdmiInputStatus);
 
@@ -540,6 +542,9 @@ static void hotplug_callback(void *pContext, int iParam)
     NEXUS_DisplayHandle display ;
 
     app_configuration *config = (app_configuration *)pContext;
+
+    BSTD_UNUSED(iParam);
+
     hdmiOutput = config->hdmiOutput ;
     display = config->display ;
 
@@ -576,13 +581,15 @@ void hdmi_input_status(NEXUS_HdmiInputHandle hdmiInput)
 {
     NEXUS_HdmiInputStatus hdmiInputStatus ;
     BDBG_Level saveLevel ;
-    static const char *textColorSpace[] =
+#if BDBG_DEBUG_BUILD
+    static const char * const textColorSpace[] =
     {
         "RGB ",
         "YCbCr 4:2:2",
         "YCbCr 4:4:4",
         "Max",
     } ;
+#endif
 
     BDBG_GetModuleLevel("config", &saveLevel) ;
 
@@ -595,14 +602,14 @@ void hdmi_input_status(NEXUS_HdmiInputHandle hdmiInput)
         return  ;
     }
 
-    BDBG_MSG(("hdmiInput Mode  : %s", hdmiInputStatus.hdmiMode ? "HDMI" : "DVI")) ;
-    BDBG_MSG(("hdmiInput Format: %d x %d %c %s",
+    BDBG_LOG(("hdmiInput Mode  : %s", hdmiInputStatus.hdmiMode ? "HDMI" : "DVI")) ;
+    BDBG_LOG(("hdmiInput Format: %d x %d %c %s",
         hdmiInputStatus.avWidth, hdmiInputStatus.avHeight,
         hdmiInputStatus.interlaced ? 'i' : 'p',
         textColorSpace[hdmiInputStatus.colorSpace])) ;
 
-    BDBG_MSG(("hdmiInput Clock : %d", hdmiInputStatus.lineClock)) ;
-    BDBG_MSG(("HDCP Enabled    : %s", hdmiInputStatus.hdcpRiUpdating ? "Yes" : "No")) ;
+    BDBG_LOG(("hdmiInput Clock : %d", hdmiInputStatus.lineClock)) ;
+    BDBG_LOG(("HDCP Enabled    : %s", hdmiInputStatus.hdcpRiUpdating ? "Yes" : "No")) ;
 
     /* restore debug level */
     BDBG_SetModuleLevel("config", saveLevel) ;

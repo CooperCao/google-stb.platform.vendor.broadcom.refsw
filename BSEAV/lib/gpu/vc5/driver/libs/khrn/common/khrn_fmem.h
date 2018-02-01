@@ -63,7 +63,7 @@ typedef struct khrn_fmem_persist
    khrn_uintptr_vector client_handles;  // client-allocated handles
 
    glxx_query_block *occlusion_query_list;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    glxx_query_block *prim_counts_query_list;
 #endif
 
@@ -368,7 +368,7 @@ bool khrn_fmem_record_fence_to_depend_on(khrn_fmem *fmem,
 static inline bool khrn_fmem_has_queries(khrn_fmem *fmem)
 {
    bool res =  fmem->persist->occlusion_query_list != NULL;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    res = res || (fmem->persist->prim_counts_query_list != NULL);
 #endif
    return res;

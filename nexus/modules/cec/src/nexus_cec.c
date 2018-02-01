@@ -63,15 +63,13 @@ void NEXUS_CecModule_Print(void)
 #endif
 }
 
-NEXUS_Error NEXUS_Cec_P_Shutdown(void)
+void NEXUS_Cec_P_Shutdown(void)
 {
 	if ( g_cec.opened )
 	{
 		BDBG_ERR(("Force closing CEC interface"));
 		NEXUS_Cec_Close(&g_cec);
 	}
-
-	return NEXUS_SUCCESS;
 }
 
 
@@ -79,16 +77,10 @@ void NEXUS_Cec_P_TransmittedCallback(void *pContext)
 {
 	NEXUS_CecHandle handle = (NEXUS_CecHandle)pContext;
 	BCEC_MessageStatus stMessageStatus;
-	NEXUS_Error rc;
 
 	BDBG_OBJECT_ASSERT(handle, NEXUS_Cec);
 
-	rc = BCEC_GetTransmitMessageStatus(handle->cecHandle, &stMessageStatus);
-	if (rc) {
-		BERR_TRACE(rc);
-		return ;
-	}
-
+	BCEC_GetTransmitMessageStatus(handle->cecHandle, &stMessageStatus);
     if ((!handle->cecSettings.disableLogicalAddressPolling)
     &&  (handle->searchState < NEXUS_CecLogicalAddrSearch_eReady))
 	{
@@ -110,16 +102,10 @@ void NEXUS_Cec_P_ReceivedCallback(void *pContext)
 {
 	NEXUS_CecHandle handle = (NEXUS_CecHandle)pContext;
 	BCEC_MessageStatus stMessageStatus;
-	NEXUS_Error rc;
 
 	BDBG_OBJECT_ASSERT(handle, NEXUS_Cec);
 
-	rc = BCEC_GetReceivedMessageStatus(handle->cecHandle, &stMessageStatus);
-	if (rc) {
-		BERR_TRACE(rc);
-		return ;
-	}
-
+	BCEC_GetReceivedMessageStatus(handle->cecHandle, &stMessageStatus);
 	handle->status.messageReceived = true;
 	NEXUS_TaskCallback_Fire(handle->messageReceivedCallback);
 	return;
@@ -183,17 +169,13 @@ NEXUS_CecHandle NEXUS_Cec_Open( /* attr{destructor=NEXUS_Cec_Close} */
 	}
 
 	/* Transmit event */
-	errCode = BCEC_GetEventHandle(pCec->cecHandle, BCEC_EventCec_eTransmitted, &cecTransmittedEvent) ;
-	if (errCode)
-		goto err_cec;
+	BCEC_GetEventHandle(pCec->cecHandle, BCEC_EventCec_eTransmitted, &cecTransmittedEvent) ;
 	pCec->cecTransmittedEventCallback = NEXUS_RegisterEvent(cecTransmittedEvent, NEXUS_Cec_P_TransmittedCallback, pCec);
 	if (!pCec->cecTransmittedEventCallback)
 		goto err_cec;
 
 	/* Receive event */
-	errCode = BCEC_GetEventHandle(pCec->cecHandle, BCEC_EventCec_eReceived, &cecReceivedEvent) ;
-	if (errCode)
-		goto err_cec;
+	BCEC_GetEventHandle(pCec->cecHandle, BCEC_EventCec_eReceived, &cecReceivedEvent) ;
 	pCec->cecReceivedEventCallback = NEXUS_RegisterEvent(cecReceivedEvent, NEXUS_Cec_P_ReceivedCallback, pCec);
 	if (!pCec->cecReceivedEventCallback)
 		goto err_cec;
@@ -346,9 +328,9 @@ NEXUS_Error NEXUS_Cec_GetStatus(
 
 	BDBG_OBJECT_ASSERT(handle, NEXUS_Cec);
 
-	rc = BCEC_GetSettings(handle->cecHandle, &stCecSettings);
+	BCEC_GetSettings(handle->cecHandle, &stCecSettings);
 	/* device logical address has not yet been established */
-	if (rc == BERR_NOT_INITIALIZED)
+	if (stCecSettings.CecLogicalAddr == BCEC_CONFIG_UNINITIALIZED_LOGICAL_ADDR)
 		handle->status.ready = false;
 	else
 		handle->status.ready = true;
@@ -367,12 +349,7 @@ NEXUS_Error NEXUS_Cec_GetStatus(
 	handle->status.cecVersion = stCecSettings.cecVersion;
 
 	/* message status */
-	rc = BCEC_GetTransmitMessageStatus(handle->cecHandle, &stMessageStatus);
-	if (rc)
-	{
-		BDBG_ERR(("Error getting CEC message info"));
-		return BERR_TRACE(rc);
-	}
+	BCEC_GetTransmitMessageStatus(handle->cecHandle, &stMessageStatus);
 	handle->status.transmitMessageAcknowledged =
 							(stMessageStatus.uiStatus !=0);
 
@@ -388,7 +365,6 @@ NEXUS_Error NEXUS_Cec_ReceiveMessage(
 	NEXUS_CecReceivedMessage *pReceivedMessage /* [out] */
 )
 {
-	NEXUS_Error rc = NEXUS_SUCCESS;
 	BAVC_HDMI_CEC_MessageData stMessageData;
 	BCEC_MessageStatus stMessageStatus;
 
@@ -397,12 +373,7 @@ NEXUS_Error NEXUS_Cec_ReceiveMessage(
 	/* reset status */
 	handle->status.messageReceived = false;
 
-	rc = BCEC_GetReceivedMessage(handle->cecHandle, &stMessageData);
-	if (rc)
-	{
-		BDBG_ERR(("Error receiving CEC Msg")) ;
-		return BERR_TRACE(rc);
-	}
+	BCEC_GetReceivedMessage(handle->cecHandle, &stMessageData);
 
 	pReceivedMessage->data.initiatorAddr = stMessageData.initiatorAddr;
 	pReceivedMessage->data.destinationAddr = stMessageData.destinationAddr;
@@ -411,26 +382,15 @@ NEXUS_Error NEXUS_Cec_ReceiveMessage(
 			(sizeof(uint8_t) * stMessageData.messageLength));
 
 	/* message status */
-	rc = BCEC_GetReceivedMessageStatus(handle->cecHandle, &stMessageStatus);
-	if (rc)
-	{
-		BDBG_ERR(("Error getting CEC message info"));
-		goto done;
-	}
+	BCEC_GetReceivedMessageStatus(handle->cecHandle, &stMessageStatus);
 	pReceivedMessage->receivedStatus.receivedMessageAcknowledged = (stMessageStatus.uiStatus !=0);
 	pReceivedMessage->receivedStatus.endOfMessage = (stMessageStatus.uiEOM !=0);
 
 
 	/* Re-enable the CEC core to receive the next incoming CEC message */
-	rc = BCEC_EnableReceive(handle->cecHandle);
-	if (rc != BERR_SUCCESS)
-	{
-		BDBG_ERR(("Error enable CEC core to receive messages"));
-		goto done;
-	}
+	BCEC_EnableReceive(handle->cecHandle);
 
-done:
-	return rc;
+	return NEXUS_SUCCESS;
 }
 
 
@@ -553,8 +513,7 @@ static void NEXUS_Cec_P_AllocateLogicalAddress(NEXUS_CecHandle handle)
 				return;
 			}
 
-			rc = BCEC_EnableReceive(handle->cecHandle);
-			if (rc) rc = BERR_TRACE(rc);
+			BCEC_EnableReceive(handle->cecHandle);
 
 			NEXUS_TaskCallback_Fire(handle->logicalAddressAcquiredCallback);
 
@@ -597,8 +556,7 @@ static void NEXUS_Cec_P_AllocateLogicalAddress(NEXUS_CecHandle handle)
 			if (rc) rc = BERR_TRACE(rc);
 
 			/* always enable receive after CEC msg is processed */
-			rc = BCEC_EnableReceive(handle->cecHandle);
-			if (rc) rc = BERR_TRACE(rc);
+			BCEC_EnableReceive(handle->cecHandle);
 
 			NEXUS_TaskCallback_Fire(handle->logicalAddressAcquiredCallback);
 		}

@@ -261,6 +261,23 @@ GL_OES_sample_variables:
    const mediump int gl_MaxSamples;
 
 
+GL_OES_shader_multisample_interpolation:
+   float interpolateAtCentroid(float interpolant);
+   vec2  interpolateAtCentroid(vec2  interpolant);
+   vec3  interpolateAtCentroid(vec3  interpolant);
+   vec4  interpolateAtCentroid(vec4  interpolant);
+
+   float interpolateAtSample(float interpolant, int s);
+   vec2  interpolateAtSample(vec2  interpolant, int s);
+   vec3  interpolateAtSample(vec3  interpolant, int s);
+   vec4  interpolateAtSample(vec4  interpolant, int s);
+
+   float interpolateAtOffset(float interpolant, vec2 offset);
+   vec2  interpolateAtOffset(vec2  interpolant, vec2 offset);
+   vec3  interpolateAtOffset(vec3  interpolant, vec2 offset);
+   vec4  interpolateAtOffset(vec4  interpolant, vec2 offset);
+
+
 GL_OES_tessellation_shader:
    in highp int gl_PatchVerticesIn;
    in highp int gl_PrimitiveID;

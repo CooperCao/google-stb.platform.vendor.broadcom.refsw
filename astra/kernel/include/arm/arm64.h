@@ -481,24 +481,29 @@
 
 #define ARCH_SPECIFIC_TIMER_INTERRUPT CORTEX_A53_SECURE_TIMER_INTERRUPT
 
-#define ARCH_SPECIFIC_SECURE_TIMER_ENABLE(enable) asm volatile("msr cntp_ctl_el0, %[xt]" : : [xt] "r" (enable) :)
-
-#define ARCH_SPECIFIC_GET_SECURE_TIMER_CNTP_CTL(cntpctl) asm volatile("mrs %[xt],cntp_ctl_el0" : [xt] "=r" (cntpctl) : :)
-
-#define ARCH_SPECIFIC_GET_SECURE_TIMER_CNTP_CVAL(hwTimerFiresAt) asm volatile("mrs %[xt], cntp_cval_el0" : [xt] "=r" (hwTimerFiresAt) : : )
-
-#define ARCH_SPECIFIC_SECURE_TIMER_FIRE_AT(headTime)   asm volatile("msr cntp_cval_el0, %[xt]" :  : [xt] "r" (headTime) : )
-
 #define ARCH_SPECIFIC_GET_SECURE_TIMER_CURRENT_TIME(timeNow) asm volatile("mrs %[xt], cntpct_el0" : [xt] "=r" (timeNow) : : )
 
 #define ARCH_SPECIFIC_GET_SECURE_TIMER_FREQUENCY(rv) asm volatile("mrs %[xt],cntfrq_el0" : [xt] "=r" (rv) : :)
 
 
+#ifdef LEGACY_BL31
 #define ARCH_SPECIFIC_NSWTASK \
 	while (true) { \
-		asm volatile("mov	x0, #0x3c000000":::"x0"); \
-		asm volatile("smc #0": : :"x0"); \
+		asm volatile("mov x0, #0x3c000000":::"x0"); \
+		disable_fiq();\
+		asm volatile("smc #0":::); \
+		enable_fiq();\
 	}
+#else
+#define ARCH_SPECIFIC_NSWTASK \
+	while (true) { \
+		asm volatile("mov x0, #0x83000000":::"x0"); \
+                asm volatile("orr x0, x0, #0x0200":::"x0"); \
+		disable_fiq();\
+		asm volatile("smc #0":::); \
+		enable_fiq();\
+	}
+#endif
 
 #define ARCH_SPECIFIC_ENABLE_INTERRUPTS { \
 	enable_irq(); \

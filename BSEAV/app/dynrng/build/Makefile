@@ -149,8 +149,26 @@ CFLAGS += -MMD
 CFLAGS += -I$(NEXUS_TOP)/../${B_THIS_DIR}/../include
 vpath %.c $(NEXUS_TOP)/../${B_THIS_DIR}/../src
 
+DYNRNG_EXTENSIONS_PATH=$(NEXUS_TOP)/../rockford/applications/dynrng/extensions
+
+define DYNRNG_EXTENSION_template
+-include $$(DYNRNG_EXTENSIONS_PATH)/$(1)/build/$(1).inc
+CFLAGS += -I$$(DYNRNG_EXTENSIONS_PATH)/$(1)/include
+vpath %c $$(DYNRNG_EXTENSIONS_PATH)/$(1)/src
+EXT_$(1)=$(shell echo $(1) | tr a-z A-Z)
+CFLAGS += $$(DYNRNG_$$(EXT_$(1))_CFLAGS)
+LDFLAGS += $$(DYNRNG_$$(EXT_$(1))_LDFLAGS)
+APP_DEPENDENCIES += $$(DYNRNG_$$(EXT_$(1))_SRC)
+endef
+
+$(foreach ext,$(DYNRNG_EXTENSIONS),$(eval $(call DYNRNG_EXTENSION_template,$(ext))))
+
 ifeq ($(DYNRNG_QUIT_SUPPORT),y)
 CFLAGS += -DDYNRNG_QUIT_SUPPORT=1
+endif
+
+ifeq ($(DYNRNG_DBV_CONFORMANCE_MODE),y)
+CFLAGS += -DDYNRNG_DBV_CONFORMANCE_MODE=1
 endif
 
 # nxclient version

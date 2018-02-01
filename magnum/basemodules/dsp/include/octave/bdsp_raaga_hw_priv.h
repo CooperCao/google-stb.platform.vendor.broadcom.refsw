@@ -87,4 +87,18 @@ BERR_Code BDSP_Raaga_P_PowerResume(
 BERR_Code BDSP_Raaga_P_Initialize(
 	void  *pDeviceHandle
 );
+void BDSP_Raaga_P_SetDspClkRate(
+	BDSP_Raaga *pRaaga,
+	unsigned expectedDspClkRate,
+	unsigned dspIndex );
+
+BERR_Code BDSP_Raaga_P_GetDefaultClkRate(
+	BDSP_Raaga *pRaaga,
+	unsigned dspIndex,
+	unsigned *pDefaultDspClkRate );
+
+void    BDSP_Raaga_P_GetLowerDspClkRate(
+	unsigned dspClkRate,
+	unsigned *lowerDspClkRate);
+
 #endif /*BDSP_RAAGA_HW_PRIV_H_*/

@@ -8,7 +8,7 @@
 typedef enum InterfaceVarFlags
 {
    INTERFACE_VAR_NO_FLAGS                 = 0,
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    INTERFACE_VAR_SAMPLER_DYNAMIC_INDEXING = 1 << 0,
 #endif
 } InterfaceVarFlags;
@@ -19,7 +19,7 @@ typedef struct {
 
    bool static_use;
    int *ids;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    InterfaceVarFlags* flags;   // parallel with ids.
 #endif
 } InterfaceVar;

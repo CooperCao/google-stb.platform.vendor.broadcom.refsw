@@ -65,12 +65,24 @@ BDBG_MODULE(nexus_sage_svp);
 #define SAGERESPONSE_TOGGLE_TIMEOUT 20000 /* in ms */
 #define SAGE_SVP_MAX_SHARED_BLOCK_MEM 2 /* At most 2 blocks passed to SAGE */
 
+/* Maintain order for compatibility (i.e. append at end) */
+#define HEAP_OFF_URR 0
+#define HEAP_OFF_XRR (HEAP_OFF_URR+BCHP_P_MEMC_COUNT)
+#define HEAP_OFF_URRT (HEAP_OFF_XRR+1)
+#define HEAP_OFF_CRRT (HEAP_OFF_URRT+BCHP_P_MEMC_COUNT)
+#define HEAP_OFF_END (HEAP_OFF_CRRT+1)
+
 #define SAGE_SVP_INDICATION_QUEUE_SIZE 5
+
+#define SAGE_SVP_SECURE_HDMIRX_SUPPORT (lHandle->apiVer>=0x00020007)
+#define SAGE_SVP_DTU_REMAP_SUPPORT (lHandle->apiVer>=0x00020008)
+#define SAGE_SVP_FWRR_SUPPORT (lHandle->apiVer>=0x00020009)
+#define SAGE_SVP_ENCODE_SECURE_SUPPORT (lHandle->apiVer>=0x0002000A)
 
 union sageSvpSharedMem
 {
     BAVC_CoreList coreList;
-    uint64_t heapInfo[BCHP_P_MEMC_COUNT+1]; /* URR(s) + XRR */
+    uint64_t heapInfo[HEAP_OFF_END]; /* URR(s) + URRT(s) + CRRT + XRR */
     BDTU_RemapSettings remapSettings;
 };
 
@@ -449,10 +461,6 @@ static NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps(bool disable)
     uint64_t *start=(uint64_t *)lHandle->pSharedMem[0];
     uint64_t *size=(uint64_t *)lHandle->pSharedMem[1];
 
-#ifdef NEXUS_SAGE_SVP_TEST
-    /* TODO */
-#endif
-
     rc=NEXUS_Sage_SVP_isReady();
     if(rc!=NEXUS_SUCCESS)
     {
@@ -490,12 +498,33 @@ static NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps(bool disable)
             continue;
         }
 
-        if(status.heapType & NEXUS_HEAP_TYPE_EXPORT_REGION)
+        if(status.heapType & NEXUS_HEAP_TYPE_CRRT)
         {
-            start[BCHP_P_MEMC_COUNT]=status.offset;
+            start[HEAP_OFF_CRRT]=status.offset;
             if(!(status.memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF))
             {
-                size[BCHP_P_MEMC_COUNT]=status.size;
+                size[HEAP_OFF_CRRT]=status.size;
+            }
+            continue;
+        }
+
+        if(status.heapType & NEXUS_HEAP_TYPE_EXPORT_REGION)
+        {
+            start[HEAP_OFF_XRR]=status.offset;
+            if(!(status.memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF))
+            {
+                size[HEAP_OFF_XRR]=status.size;
+            }
+            continue;
+        }
+
+        /* TODO... */
+        if((heapIndex>=NEXUS_MEMC0_URRT_HEAP)&&(heapIndex<=NEXUS_MEMC2_URRT_HEAP))
+        {
+            start[HEAP_OFF_URRT+status.memcIndex]=status.offset;
+            if(!(status.memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF))
+            {
+                size[HEAP_OFF_URRT+(heapIndex-NEXUS_MEMC0_URRT_HEAP)]=status.size;
             }
             continue;
         }
@@ -504,31 +533,43 @@ static NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps(bool disable)
             (status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT) ||
             (status.heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS))
         {
-            if((start[status.memcIndex]==0) ||
-                ((size[status.memcIndex]==0) && !(status.memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF)))
+            if((start[HEAP_OFF_URR+status.memcIndex]==0) ||
+                ((size[HEAP_OFF_URR+status.memcIndex]==0) && !(status.memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF)))
             {
-                start[status.memcIndex]=(uint32_t)status.offset;
+                start[HEAP_OFF_URR+status.memcIndex]=(uint32_t)status.offset;
             }
 
             if(!(status.memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF))
             {
-                size[status.memcIndex]+=status.size;
+                size[HEAP_OFF_URR+status.memcIndex]+=status.size;
             }
         }
     }
 
     if(disable)
     {
-        BKNI_Memset(size, 0, sizeof(uint64_t)*(BCHP_P_MEMC_COUNT+1));
+        BKNI_Memset(size, 0, sizeof(uint64_t)*(HEAP_OFF_END));
     }
 
     BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
     lHandle->sageContainer->basicIn[SECURE_VIDEO_IN_VER]=lHandle->apiVer;
-    lHandle->sageContainer->basicIn[SECURE_VIDEO_UPDATEHEAPS_IN_COUNT]=BCHP_P_MEMC_COUNT+1;
-    lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_START].len=sizeof(uint64_t)*(BCHP_P_MEMC_COUNT+1);
     lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_START].data.ptr=(uint8_t *)start;
-    lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_SIZE].len=sizeof(uint64_t)*(BCHP_P_MEMC_COUNT+1);
     lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_SIZE].data.ptr=(uint8_t *)size;
+    if(SAGE_SVP_ENCODE_SECURE_SUPPORT)
+    {
+        lHandle->sageContainer->basicIn[SECURE_VIDEO_UPDATEHEAPS_IN_COUNT]=HEAP_OFF_END;
+        lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_START].len=sizeof(uint64_t)*HEAP_OFF_END;
+        lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_SIZE].len=sizeof(uint64_t)*HEAP_OFF_END;
+    }
+    else
+    {
+        /* SAGE isn't aware of extra heaps (URRT/CRRT) */
+        lHandle->sageContainer->basicIn[SECURE_VIDEO_UPDATEHEAPS_IN_COUNT]=HEAP_OFF_URRT;
+        lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_START].len=sizeof(uint64_t)*HEAP_OFF_URRT;
+        lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_SIZE].len=sizeof(uint64_t)*HEAP_OFF_URRT;
+    }
+
+    NEXUS_Sage_P_Test_UpdateHeaps(start, size, HEAP_OFF_END);
 
     rc = BSAGElib_Rai_Module_ProcessCommand(lHandle->hSagelibRpcModuleHandle,
             bvn_monitor_CommandId_eUpdateHeaps, lHandle->sageContainer, &lHandle->uiLastAsyncId);
@@ -549,7 +590,7 @@ static NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps(bool disable)
     /* Special case for disable.. i.e. it's a cleanup for shutdown or S3...
     * also clean up FWRR */
     if(disable && g_pCoreHandles->heap[NEXUS_FIRMWARE_HEAP].nexus &&
-       (lHandle->apiVer>=0x00020009))
+       SAGE_SVP_FWRR_SUPPORT)
     {
         rc = NEXUS_Sage_P_EnableHvd(false);
         if (rc != BERR_SUCCESS)
@@ -618,19 +659,18 @@ static void NEXUS_Sage_P_SvpHandleApiVer(uint32_t sageApiVersion, uint32_t minCo
                 /* No Pre 0x00020006 release made with sage 3.x other than 0x00020005 */
         case 0x00020005: /* Can handle this, no hdmi/dtu/fwrr. Use "legacy" update heaps code */
             BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED! Secure HDMI Rx/Secure DTU remap/FWRR NOT supported"));
-            lHandle->apiVer=0x00020005;
             break;
         case 0x00020006: /* Can handle this, no hdmi/dtu/fwrr */
             BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED! Secure HDMI Rx/Secure DTU remap/FWRR NOT supported"));
-            lHandle->apiVer=0x00020006;
             break;
         case 0x00020007: /* Can handle this, no dtu/fwrr */
-            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED! Secure DTU remap/FWRR NOT supported"));
-            lHandle->apiVer=0x00020007;
+            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED! (2.7)"));
             break;
-        case 0x00020008: /* Can handle this, no fwrr */
-            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED! FWRR NOT supported"));
-            lHandle->apiVer=0x00020008;
+        case 0x00020008: /* Can handle, but FWRR not supported */
+            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED (2.8)"));
+            break;
+        case 0x00020009: /* Can handle, but secure xcode not possible */
+            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED (2.9)"));
             break;
         default:
             if(sageApiVersion>=0x00020009)
@@ -942,6 +982,8 @@ NEXUS_Error NEXUS_Sage_P_SvpStart(void)
         NEXUS_Sage_P_SvpStop(true);
     }
 
+    NEXUS_Sage_P_Test_Init();
+
     return NEXUS_SUCCESS;
 }
 
@@ -951,6 +993,8 @@ void NEXUS_Sage_P_SvpStop(bool reset)
     uint8_t i;
 
     BDBG_ASSERT(lHandle);
+
+    NEXUS_Sage_P_Test_Term();
 
     /* Close SVP:Monitor module */
     if (lHandle->hSagelibRpcModuleHandle != NULL)
@@ -1040,11 +1084,21 @@ NEXUS_Error NEXUS_Sage_P_SvpSetRegions(void)
     NEXUS_Error rc=NEXUS_SUCCESS;
     uint32_t regionId;
 
-    for (i = 0; i < NEXUS_MAX_HEAPS; i++) {
+    /* Initial set of URR heaps. May be updated later w/ Secure GFX */
+    /* Note, after recent changes, secure picture buffer heaps always < secure gfx heaps...
+    * so it's not really necessary to have this loop first. Leaving as is in case it changes. */
+    for (i = NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP; i <= NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP; i++)
+    {
         NEXUS_HeapHandle heap = g_pCoreHandles->heap[i].nexus;
+        NEXUS_Error ret;
 
         if (!heap) continue;
-        NEXUS_Heap_GetStatus(heap, &status);
+        ret=NEXUS_Heap_GetStatus(heap, &status);
+        if(ret!=NEXUS_SUCCESS)
+        {
+            BDBG_ERR(("Failed to get heap %d info. SKIPPING", i));
+            continue;
+        }
 
         if(!(status.memoryType & NEXUS_MEMORY_TYPE_SECURE) ||
             !(status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS))
@@ -1065,11 +1119,51 @@ NEXUS_Error NEXUS_Sage_P_SvpSetRegions(void)
         NEXUS_HeapHandle heap = g_pCoreHandles->heap[i].nexus;
 
         if (!heap) continue;
-        NEXUS_Heap_GetStatus(heap, &status);
+        rc = NEXUS_Heap_GetStatus(heap, &status);
+        if(rc != BERR_SUCCESS)
+        {
+            rc = BERR_TRACE(rc);
+            goto EXIT;
+        }
+
+        if(status.heapType & NEXUS_HEAP_TYPE_CRRT)
+        {
+            rc = NEXUS_SageModule_P_AddRegion(BSAGElib_RegionId_Crrt, status.offset, status.size);
+            if (rc != NEXUS_SUCCESS)
+            {
+                rc = BERR_TRACE(rc);
+                goto EXIT;
+            }
+            continue;
+        }
+
+        /* FWRR */
+        if(i == NEXUS_FIRMWARE_HEAP)
+        {
+            rc = NEXUS_SageModule_P_AddRegion(BSAGElib_RegionId_Fwrr, status.offset, status.size);
+            if (rc != NEXUS_SUCCESS)
+            {
+                rc = BERR_TRACE(rc);
+                goto EXIT;
+            }
+            continue;
+        }
+
+        /* XRR */
+        if(status.heapType & NEXUS_HEAP_TYPE_EXPORT_REGION)
+        {
+            rc = NEXUS_SageModule_P_AddRegion(BSAGElib_RegionId_Xrr, status.offset, status.size);
+            if (rc != NEXUS_SUCCESS)
+            {
+                rc = BERR_TRACE(rc);
+                goto EXIT;
+            }
+            continue;
+        }
 
         if(status.heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS)
         {
-            /* Secure graphics is "above" URR */
+            /* Secure graphics is "after" URR */
             if(!size[status.memcIndex] ||
                 ((start[status.memcIndex] + size[status.memcIndex]) != status.offset))
             {
@@ -1078,6 +1172,7 @@ NEXUS_Error NEXUS_Sage_P_SvpSetRegions(void)
             }
 
             /* Only pass 1st secure gfx heap as a separate heap */
+            /* (In case there is ever more than one secure gfx heap... in future) */
             /* Otherwise "add" it to the associated picture buffer heap */
             if(!sec_gfx_start)
             {
@@ -1089,11 +1184,12 @@ NEXUS_Error NEXUS_Sage_P_SvpSetRegions(void)
             {
                 size[status.memcIndex]+=status.size;
             }
+            continue;
         }
 
         if(status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT)
         {
-            /* picture buffer extension is "below" URR */
+            /* picture buffer extension is "before" URR */
             if(!size[status.memcIndex] ||
                 ((status.offset + status.size) != start[status.memcIndex]))
             {
@@ -1103,6 +1199,20 @@ NEXUS_Error NEXUS_Sage_P_SvpSetRegions(void)
 
             start[status.memcIndex]=status.offset;
             size[status.memcIndex]=status.size;
+            continue;
+        }
+
+        /* TODO... better way to determine? */
+        if((i>=NEXUS_MEMC0_URRT_HEAP)&&(i<=NEXUS_MEMC2_URRT_HEAP))
+        {
+            rc = NEXUS_SageModule_P_AddRegion(BSAGElib_RegionId_Urrt0+status.memcIndex,
+                                              status.offset, status.size);
+            if (rc != NEXUS_SUCCESS)
+            {
+                rc = BERR_TRACE(rc);
+                goto EXIT;
+            }
+            continue;
         }
     }
 
@@ -1149,7 +1259,7 @@ NEXUS_Error NEXUS_Sage_UpdateHeaps(void)
 }
 
 /* Not to be called from within SAGE module itself */
-NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList)
+NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList, NEXUS_SageUrrType type)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned i;
@@ -1163,9 +1273,10 @@ NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList)
         goto EXIT;
     }
 
-    if(lHandle->apiVer<=0x00020006)
+    if(!SAGE_SVP_SECURE_HDMIRX_SUPPORT)
     {
         /* SAGE will be expecting a smaller list size */
+        /* (2 entries for DVI appended) (Secure hdmi rx not supported) */
         coreListSize-=(2*sizeof(__typeof__(pCoreList->aeCores[0])));
     }
 
@@ -1197,6 +1308,30 @@ NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList)
     lHandle->sageContainer->blocks[SECURE_VIDEO_SETCORES_BLOCK_CORELIST].len = coreListSize;
     lHandle->sageContainer->blocks[SECURE_VIDEO_SETCORES_BLOCK_CORELIST].data.ptr = lHandle->pSharedMem[0];
 
+    if(SAGE_SVP_ENCODE_SECURE_SUPPORT)
+    {
+        /* Support for secure xcode added w/ API set 2.10 */
+        switch(type)
+        {
+            case NEXUS_SageUrrType_eDisplay:
+                lHandle->sageContainer->basicIn[SECURE_VIDEO_SETCORES_IN_TYPE]=secure_video_urrType_eDisplay;
+                break;
+            case NEXUS_SageUrrType_eTranscode:
+                lHandle->sageContainer->basicIn[SECURE_VIDEO_SETCORES_IN_TYPE]=secure_video_urrType_eTranscode;
+                break;
+            default:
+                rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                goto EXIT;
+        }
+    } else {
+        /* No xcode of secure content, fail if attempted */
+        if(type!=NEXUS_SageUrrType_eDisplay)
+        {
+            rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            goto EXIT;
+        }
+    }
+
     rc = BSAGElib_Rai_Module_ProcessCommand(lHandle->hSagelibRpcModuleHandle,
             bvn_monitor_CommandId_eSetCores, lHandle->sageContainer, &lHandle->uiLastAsyncId);
     BDBG_MSG(("Sending command to SAGE: sageModuleHandle [%p], commandId [%d], assignedAsyncId [0x%x]",
@@ -1214,9 +1349,7 @@ NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList)
         goto EXIT;
     }
 
-#ifdef NEXUS_SAGE_SVP_TEST
-    NEXUS_Sage_P_SecureCores_test(pCoreList, true);
-#endif
+    NEXUS_Sage_P_Test_SecureCores(pCoreList, true, type);
 
 EXIT:
     NEXUS_UnlockModule();
@@ -1247,7 +1380,7 @@ void NEXUS_Sage_P_PrintSvp(void)
 #endif
 
 /* Not to be called from within SAGE module itself */
-void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
+void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList, NEXUS_SageUrrType type)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned ref;
@@ -1264,9 +1397,10 @@ void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
         goto EXIT;
     }
 
-    if(lHandle->apiVer<=0x00020006)
+    if(!SAGE_SVP_SECURE_HDMIRX_SUPPORT)
     {
         /* SAGE will be expecting a smaller list size */
+        /* (2 entries for DVI appended) (Secure hdmi rx not supported) */
         coreListSize-=(2*sizeof(__typeof__(pCoreList->aeCores[0])));
     }
 
@@ -1326,6 +1460,30 @@ void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
         }
     }
 
+    if(SAGE_SVP_ENCODE_SECURE_SUPPORT)
+    {
+        /* Support for secure xcode added w/ API set 2.10 */
+        switch(type)
+        {
+            case NEXUS_SageUrrType_eDisplay:
+                lHandle->sageContainer->basicIn[SECURE_VIDEO_SETCORES_IN_TYPE]=secure_video_urrType_eDisplay;
+                break;
+            case NEXUS_SageUrrType_eTranscode:
+                lHandle->sageContainer->basicIn[SECURE_VIDEO_SETCORES_IN_TYPE]=secure_video_urrType_eTranscode;
+                break;
+            default:
+                rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                goto EXIT;
+        }
+    } else {
+        /* No xcode of secure content, fail if attempted */
+        if(type!=NEXUS_SageUrrType_eDisplay)
+        {
+            rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            goto EXIT;
+        }
+    }
+
     rc = BSAGElib_Rai_Module_ProcessCommand(lHandle->hSagelibRpcModuleHandle,
             bvn_monitor_CommandId_eSetCores, lHandle->sageContainer, &lHandle->uiLastAsyncId);
     BDBG_MSG(("Sending command to SAGE: sageModuleHandle [%p], commandId [%d], assignedAsyncId [0x%x]",
@@ -1343,9 +1501,7 @@ void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
         goto EXIT;
     }
 
-#ifdef NEXUS_SAGE_SVP_TEST
-    NEXUS_Sage_P_SecureCores_test(pCoreList, false);
-#endif
+    NEXUS_Sage_P_Test_SecureCores(pCoreList, false, type);
 
 EXIT:
     if(hMemBlock)
@@ -1377,7 +1533,7 @@ NEXUS_Error NEXUS_Sage_SecureRemap(unsigned memcIndex, const BDTU_RemapSettings 
         goto EXIT;
     }
 
-    if(lHandle->apiVer<0x00020008)
+    if(!SAGE_SVP_DTU_REMAP_SUPPORT)
     {
         BDBG_ERR(("SAGE/SVP Binaries must be updated"));
         rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
@@ -1388,7 +1544,7 @@ NEXUS_Error NEXUS_Sage_SecureRemap(unsigned memcIndex, const BDTU_RemapSettings 
     BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
 
     BKNI_Memcpy(lHandle->pSharedMem[0], pSettings, sizeof(*pSettings));
-    lHandle->sageContainer->basicIn[SECURE_VIDEO_IN_VER]=lHandle->apiVer;
+    lHandle->sageContainer->basicIn[SECURE_VIDEO_IN_VER] = lHandle->apiVer;
     lHandle->sageContainer->basicIn[SECURE_VIDEO_SETCORES_IN_ADD] = false;
     lHandle->sageContainer->basicIn[SECURE_VIDEO_REMAP_IN_MEMC] = memcIndex;
     lHandle->sageContainer->blocks[SECURE_VIDEO_SETCORES_BLOCK_CORELIST].len = sizeof(*pSettings);

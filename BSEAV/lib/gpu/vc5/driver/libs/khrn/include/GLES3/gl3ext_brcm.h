@@ -31,11 +31,6 @@ extern "C" {
 #define GL_BRCM_image_formats 1
 #endif /* GL_BRCM_image_formats */
 
-#ifndef GL_BRCM_mirror_clamp_to_edge
-#define GL_BRCM_mirror_clamp_to_edge 1
-#define GL_MIRROR_CLAMP_TO_EDGE_BRCM      0x8743
-#endif /* GL_BRCM_mirror_clamp_to_edge */
-
 #ifndef GL_BRCM_no_perspective
 #define GL_BRCM_no_perspective 1
 #endif /* GL_BRCM_no_perspective */

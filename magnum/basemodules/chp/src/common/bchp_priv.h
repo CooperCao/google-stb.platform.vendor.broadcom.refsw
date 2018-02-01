@@ -110,6 +110,7 @@ typedef struct BCHP_P_Context
 #if BCHP_UNIFIED_IMPL
 	BCHP_OpenSettings openSettings;
 #endif
+    bool skipInitialReset;
 } BCHP_P_Context;
 
 typedef enum BCHP_PWR_P_ResourceType {

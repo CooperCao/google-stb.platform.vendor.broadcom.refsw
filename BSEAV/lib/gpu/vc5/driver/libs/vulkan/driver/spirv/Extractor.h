@@ -19,7 +19,7 @@ class NodeType;
 // Extractor
 //
 // Utility class that wraps the SPIRV object with the current instruction.
-// Provides stream read to help pull arguments out an some direct access
+// Provides stream read to help pull arguments out and some direct access
 // methods as well.
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -49,13 +49,12 @@ class Extractor
 {
 public:
    Extractor(Module &module, const uint32_t *instr) :
-      m_module(module),
-      m_instr(instr)
+      m_module   (module),
+      m_instr    (instr),
+      m_index    (1),        // Start of first argument
+      m_wordCount(instr[0] >> spv::con::WordCountShift),
+      m_opCode   (static_cast<spv::Core>(instr[0] & spv::con::OpCodeMask))
    {
-      m_opCode    = static_cast<spv::Core>(instr[0] & 0xffff);
-      m_wordCount = instr[0] >> 16;
-      // Point at first argument
-      m_index     = 1;
    }
 
    uint32_t  GetWordCount() const  { return m_wordCount;           }
@@ -155,7 +154,7 @@ public:
 private:
    Module         &m_module;    // The module
    const uint32_t *m_instr;     // SPIRV raw instruction data
-   uint32_t        m_index = 0; // Current word index
+   uint32_t        m_index;     // Current word index
    uint32_t        m_wordCount; // Number of words in the instruction
    spv::Core       m_opCode;    // Opcode for this instruction
 };

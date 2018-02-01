@@ -298,6 +298,50 @@ typedef struct hotplugCallbackParameters
     NEXUS_DisplayHandle display ;
 } hotplugCallbackParameters ;
 
+typedef struct
+{
+	NEXUS_HdmiOutputHdcpError eError ;
+	const char *hdcpErrorText ;
+}  hdcpErrorText ;
+
+static const hdcpErrorText  hdcpErrorTextTable[] =
+{
+	{NEXUS_HdmiOutputHdcpError_eSuccess,		BDBG_STRING("Success")},
+	{NEXUS_HdmiOutputHdcpError_eRxBksvError,		BDBG_STRING("HDCP Rx BKsv Error")},
+	{NEXUS_HdmiOutputHdcpError_eRxBksvRevoked,	BDBG_STRING("HDCP Rx BKsv/Keyset Revoked")},
+	{NEXUS_HdmiOutputHdcpError_eRxBksvI2cReadError,		BDBG_STRING("HDCP I2C Read Error")},
+	{NEXUS_HdmiOutputHdcpError_eTxAksvError,    BDBG_STRING("HDCP Tx Aksv Error")},
+	{NEXUS_HdmiOutputHdcpError_eTxAksvI2cWriteError,		BDBG_STRING("HDCP I2C Write Error")},
+	{NEXUS_HdmiOutputHdcpError_eReceiverAuthenticationError,	BDBG_STRING("HDCP Receiver Authentication Failure")},
+	{NEXUS_HdmiOutputHdcpError_eRepeaterAuthenticationError,		BDBG_STRING("HDCP Repeater Authentication Failure")},
+	{NEXUS_HdmiOutputHdcpError_eRxDevicesExceeded,		BDBG_STRING("HDCP Repeater MAX Downstram Devices Exceeded")},
+	{NEXUS_HdmiOutputHdcpError_eRepeaterDepthExceeded,	BDBG_STRING("HDCP Repeater MAX Downstram Levels Exceeded")},
+    {NEXUS_HdmiOutputHdcpError_eRepeaterFifoNotReady,   BDBG_STRING("Timeout waiting for Repeater")},
+	{NEXUS_HdmiOutputHdcpError_eRepeaterDeviceCount0,	BDBG_STRING("HDCP Repeater Authentication Failure")},
+	{NEXUS_HdmiOutputHdcpError_eRepeaterLinkFailure,		BDBG_STRING("HDCP Repeater Authentication Failure")},
+	{NEXUS_HdmiOutputHdcpError_eLinkRiFailure,	BDBG_STRING("HDCP Ri Integrity Check Failure")},
+	{NEXUS_HdmiOutputHdcpError_eLinkPjFailure,		BDBG_STRING("HDCP Pj Integrity Check Failure")},
+	{NEXUS_HdmiOutputHdcpError_eFifoUnderflow,		BDBG_STRING("Video configuration issue - FIFO underflow")},
+	{NEXUS_HdmiOutputHdcpError_eFifoOverflow,	BDBG_STRING("Video configuration issue - FIFO overflow")},
+	{NEXUS_HdmiOutputHdcpError_eMultipleAnRequest,		BDBG_STRING("Multiple Authentication Request... ")},
+	{NEXUS_HdmiOutputHdcpError_eMax,    BDBG_STRING("Unknown HDCP Authentication Error")},
+};
+
+static const char * hdcpErrorToStr(
+	NEXUS_HdmiOutputHdcpError eError
+)
+{
+	uint8_t i=0;
+
+	for (i=0; i<sizeof(hdcpErrorTextTable)/sizeof(hdcpErrorText); i++) {
+		if (hdcpErrorTextTable[i].eError != eError)
+			continue;
+
+		return hdcpErrorTextTable[i].hdcpErrorText;
+	}
+
+	return BDBG_STRING("Invalid Authentication Error");
+}
 
 void source_changed(void *context, int param)
 {
@@ -372,8 +416,8 @@ void loadHdcp22Keys(NEXUS_HdmiInputHandle hdmiInput)
     int rc = 0;
     uint8_t *buffer = NULL;
     NEXUS_Error errCode;
-    size_t fileSize;
-    off_t seekPos;
+    size_t fileSize=0;
+    off_t seekPos=0;
     int fileFd;
 
     /* Load drm_bin file for Rx */
@@ -411,7 +455,7 @@ void loadHdcp22Keys(NEXUS_HdmiInputHandle hdmiInput)
         }
 
 
-        BDBG_LOG(("%s: drm bin file loaded: buff=%p, size=%u", BSTD_FUNCTION, buffer, fileSize));
+        BDBG_LOG(("%s: drm bin file loaded: buff=%p, size=%u", BSTD_FUNCTION, buffer, (unsigned)fileSize));
         errCode = NEXUS_HdmiInput_SetHdcp2xBinKeys(hdmiInput, buffer, (uint32_t)fileSize);
         if (errCode != NEXUS_SUCCESS)
         {
@@ -435,7 +479,7 @@ end:
 
     if (rc)
     {
-        BDBG_ERR(("%s: error #%d, fileSize=%u, seekPos=%llu", BSTD_FUNCTION,  rc, fileSize, seekPos));
+        BDBG_ERR(("%s: error #%d, fileSize=%u, seekPos=%u", BSTD_FUNCTION,  rc, (unsigned)fileSize, (unsigned)seekPos));
         BDBG_ASSERT(false);
     }
 
@@ -465,6 +509,7 @@ void hdmiInputHdcpStateChanged(void *context, int param)
             return;
         }
 
+        /****************/
         /* Receiver authenticated */
         if (hdmiInputHdcpStatus.hdcpState == NEXUS_HdmiInputHdcpState_eAuthenticated)
         {
@@ -479,16 +524,22 @@ void hdmiInputHdcpStateChanged(void *context, int param)
                 return;
             }
 
-            BDBG_LOG(("%s: *** Start downstream authentication process", BSTD_FUNCTION));
-            rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
-            if (rc != NEXUS_SUCCESS)
+            /* if downstream link not yet authenticated, start Authentication process */
+            NEXUS_HdmiOutput_GetHdcpStatus(platformConfig.outputs.hdmi[0], &hdmiOutputHdcpStatus);
+            if ((!hdmiOutputHdcpStatus.linkReadyForEncryption) && (!hdmiOutputHdcpStatus.transmittingEncrypted))
             {
-                BDBG_ERR(("%s: Error starting HDCP authentication with downstream devices", BSTD_FUNCTION));
-                rc = BERR_TRACE(rc);
-                return;
+                BDBG_LOG(("%s: *** Start downstream authentication process", BSTD_FUNCTION));
+                rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
+                if (rc != NEXUS_SUCCESS)
+                {
+                    BDBG_ERR(("%s: Error starting HDCP authentication with downstream devices", BSTD_FUNCTION));
+                    rc = BERR_TRACE(rc);
+                    return;
+                }
             }
         }
 
+        /****************/
         /* Repeater authenticated */
         else if (hdmiInputHdcpStatus.hdcpState == NEXUS_HdmiInputHdcpState_eRepeaterAuthenticated)
         {
@@ -533,10 +584,9 @@ void hdmiInputHdcpStateChanged(void *context, int param)
         case NEXUS_HdmiInputHdcpAuthState_eWaitForDownstreamKsvs :
             BDBG_WRN(("%s: Downstream FIFO Request; Start hdmiOuput Authentication...", BSTD_FUNCTION)) ;
 
-            NEXUS_HdmiOutputHdcpStatus outputHdcpStatus;
-            NEXUS_HdmiOutput_GetHdcpStatus(platformConfig.outputs.hdmi[0], &outputHdcpStatus);
-            if ((outputHdcpStatus.hdcpState != NEXUS_HdmiOutputHdcpState_eWaitForRepeaterReady)
-            && (outputHdcpStatus.hdcpState != NEXUS_HdmiOutputHdcpState_eCheckForRepeaterReady))
+            NEXUS_HdmiOutput_GetHdcpStatus(platformConfig.outputs.hdmi[0], &hdmiOutputHdcpStatus);
+            if ((hdmiOutputHdcpStatus.hdcpState != NEXUS_HdmiOutputHdcpState_eWaitForRepeaterReady)
+            && (hdmiOutputHdcpStatus.hdcpState != NEXUS_HdmiOutputHdcpState_eCheckForRepeaterReady))
             {
                 rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
                 if (rc) BERR_TRACE(rc) ;
@@ -552,7 +602,6 @@ void hdmiInputHdcpStateChanged(void *context, int param)
 
 static void hdmiOutputHdcpStateChanged(void *pContext, int param)
 {
-    bool success = false;
     NEXUS_HdmiOutputHandle handle = pContext;
 
     NEXUS_HdmiOutputHdcpStatus hdmiOutputHdcpStatus;
@@ -569,23 +618,64 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
 
     BDBG_LOG(("%s: state %d -- error %d", BSTD_FUNCTION, hdmiOutputHdcpStatus.hdcpState, hdmiOutputHdcpStatus.hdcpError));
 
-    if (hdmiOutputHdcpStatus.hdcpState == NEXUS_HdmiOutputHdcpState_eUnpowered)
+    switch (hdmiOutputHdcpStatus.hdcpState)
     {
-        BDBG_ERR(("%s: Attached Device is unpowered", BSTD_FUNCTION)) ;
+    case NEXUS_HdmiOutputHdcpState_eUnpowered:
+        BDBG_ERR(("Attached Device is unpowered")) ;
         goto done;
-    }
+        break;
 
-    if ((hdmiOutputHdcpStatus.hdcpError == NEXUS_HdmiOutputHdcpError_eSuccess)
-    && (hdmiOutputHdcpStatus.linkReadyForEncryption || hdmiOutputHdcpStatus.transmittingEncrypted))
-    {
-        BDBG_LOG(("%s: Hdcp Tx Authentication with Downstream Device: SUCCESS", BSTD_FUNCTION)) ;
-        success = true ;
+    case NEXUS_HdmiOutputHdcpState_eUnauthenticated:
+        /* Unauthenticated - no hdcp error */
+        if (hdmiOutputHdcpStatus.hdcpError == NEXUS_HdmiOutputHdcpError_eSuccess)
+        {
+            BDBG_LOG(("*** HDCP was disabled as requested (NEXUS_HdmiOutput_DisableHdcpAuthentication was called)***"));
+            goto done;
+        }
 
-    }
-    else {
-        BDBG_LOG(("%s: HDCP Authentication Failed.  Current State %d, last error =%d\n", BSTD_FUNCTION,
-            hdmiOutputHdcpStatus.hdcpState, hdmiOutputHdcpStatus.hdcpError)) ;
+        /* Unauthenticated - with hdcp authentication error */
+        else {
+            BDBG_LOG(("*** HDCP Authentication Error: %s - ***", hdcpErrorToStr(hdmiOutputHdcpStatus.hdcpError)));
+            goto retryAuthentication;
+        }
+        break;
+
+
+    case NEXUS_HdmiOutputHdcpState_eWaitForValidVideo:
+    case NEXUS_HdmiOutputHdcpState_eInitializedAuthentication:
+    case NEXUS_HdmiOutputHdcpState_eWaitForReceiverAuthentication:
+    case NEXUS_HdmiOutputHdcpState_eReceiverR0Ready:
+    case NEXUS_HdmiOutputHdcpState_eReceiverAuthenticated:
+    case NEXUS_HdmiOutputHdcpState_eWaitForRepeaterReady:
+    case NEXUS_HdmiOutputHdcpState_eCheckForRepeaterReady:
+    case NEXUS_HdmiOutputHdcpState_eRepeaterReady:
+        /* In process of authenticating with attached Rx/Repeater */
+        /* Do nothing */
+        BDBG_LOG(("*** Authenticating with attached Receiver/Repeater - current state: %d ***", hdmiOutputHdcpStatus.hdcpState));
+        goto done;
+        break;
+
+
+    case NEXUS_HdmiOutputHdcpState_eLinkAuthenticated:
+    case NEXUS_HdmiOutputHdcpState_eEncryptionEnabled:
+        /* HDCP successfully authenticated */
+        BDBG_LOG(("*** HDCP Authentication Successful ***\n"));
+        goto uploadDownstreamInfo;
+        break;
+
+
+    case NEXUS_HdmiOutputHdcpState_eRepeaterAuthenticationFailure:
+    case NEXUS_HdmiOutputHdcpState_eRiLinkIntegrityFailure:
+    case NEXUS_HdmiOutputHdcpState_ePjLinkIntegrityFailure:
+    case NEXUS_HdmiOutputHdcpState_eR0LinkFailure:
+        /* HDCP authentication fail - in particular, link integrity check fail */
+        BDBG_LOG(("*** HDCP Authentication Error: %s - ***", hdcpErrorToStr(hdmiOutputHdcpStatus.hdcpError)));
         goto retryAuthentication;
+        break;
+
+    default:
+        BDBG_ERR(("*** Invalid HDCP authentication state ***"));
+        break;
     }
 
 
@@ -630,30 +720,15 @@ uploadDownstreamInfo:
 
         BKNI_Free(pKsvs) ;
     }
-
+    goto done;
 
 retryAuthentication:
     {
-        /* check the authentication state and process accordingly */
-        NEXUS_HdmiInputHdcpStatus hdmiInputHdcpStatus;
-        NEXUS_HdmiInput_HdcpGetStatus(hdmiInput, &hdmiInputHdcpStatus) ;
-
-        BDBG_LOG(("%s: version[%d], state [%d]", BSTD_FUNCTION, hdmiInputHdcpStatus.version, hdmiInputHdcpStatus.hdcpState));
-
-        if ((hdmiInputHdcpStatus.hdcpState == NEXUS_HdmiInputHdcpState_eAuthenticated)
-        || (hdmiInputHdcpStatus.hdcpState == NEXUS_HdmiInputHdcpState_eRepeaterAuthenticated))
+        if (compliance_test)
         {
-            BDBG_LOG(("%s: HDCP2.2 Authentication status with upstream transmitter: AUTHENTICATED", BSTD_FUNCTION));
-            if (!success && compliance_test)
-            {
-                hdmiOutputHdcpStarted = true;
-                rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput) ;
-                if (rc) BERR_TRACE(rc) ;
-            }
-
-        }
-        else {
-            /* Do nothing */
+            hdmiOutputHdcpStarted = true;
+            rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput) ;
+            if (rc) BERR_TRACE(rc) ;
         }
     }
 done:
@@ -696,6 +771,7 @@ static void hotplug_callback(void *pParam, int iParam)
 
     NEXUS_Error rc = NEXUS_SUCCESS;
 
+    BSTD_UNUSED(iParam);
     BDBG_LOG(("%s: Toggle Rx HOT PLUG to force upstream re-authentication...", BSTD_FUNCTION)) ;
     NEXUS_HdmiInput_ToggleHotPlug(hdmiInput) ;
 
@@ -802,18 +878,13 @@ static void hotplug_callback(void *pParam, int iParam)
 void hdmi_input_status(void )
 {
     NEXUS_HdmiInputStatus status ;
-    BDBG_Level saveLevel ;
-    static const char *textColorSpace[] =
+    static const char *const textColorSpace[] =
     {
         "RGB ",
         "YCbCr 4:2:2",
         "YCbCr 4:4:4",
         "Max",
     } ;
-
-    BDBG_GetModuleLevel("repeater_passthrough_hdcp2x", &saveLevel) ;
-
-    BDBG_SetModuleLevel("repeater_passthrough_hdcp2x", BDBG_eMsg) ;
 
     NEXUS_HdmiInput_GetStatus(hdmiInput, &status) ;
     if (!status.validHdmiStatus)
@@ -822,17 +893,14 @@ void hdmi_input_status(void )
         return  ;
     }
 
-    BDBG_MSG(("hdmiInput Mode  : %s", status.hdmiMode ? "HDMI" : "DVI")) ;
-    BDBG_MSG(("hdmiInput Format: %d x %d %c %s",
+    BDBG_LOG(("hdmiInput Mode  : %s", status.hdmiMode ? "HDMI" : "DVI")) ;
+    BDBG_LOG(("hdmiInput Format: %d x %d %c %s",
         status.avWidth, status.avHeight, status.interlaced ? 'i' : 'p',
         textColorSpace[status.colorSpace])) ;
 
 
-    BDBG_MSG(("hdmiInput Clock : %d", status.lineClock)) ;
-    BDBG_MSG(("HDCP Enabled    : %s", status.hdcpRiUpdating ? "Yes" : "No")) ;
-
-    /* restore debug level */
-    BDBG_SetModuleLevel("repeater_passthrough_hdcp2x", saveLevel) ;
+    BDBG_LOG(("hdmiInput Clock : %d", status.lineClock)) ;
+    BDBG_LOG(("HDCP Enabled    : %s", status.hdcpRiUpdating ? "Yes" : "No")) ;
 
 }
 
@@ -844,8 +912,8 @@ static NEXUS_Error initializeHdmiOutputHdcpSettings(void)
     int fileFd;
     uint8_t *buffer = NULL;
     NEXUS_Error errCode = NEXUS_SUCCESS;
-    size_t fileSize;
-    off_t seekPos;
+    size_t fileSize=0;
+    off_t seekPos=0;
 
     fileFd = open("./drm.bin", O_RDONLY);
     if (fileFd < 0)
@@ -880,7 +948,7 @@ static NEXUS_Error initializeHdmiOutputHdcpSettings(void)
     }
 
 
-    BDBG_LOG(("%s: drm.bin file loaded buff=%p, size=%u", BSTD_FUNCTION, buffer, fileSize));
+    BDBG_LOG(("%s: drm.bin file loaded buff=%p, size=%u", BSTD_FUNCTION, buffer, (unsigned)fileSize));
     errCode = NEXUS_HdmiOutput_SetHdcp2xBinKeys(hdmiOutput, buffer, (uint32_t)fileSize);
     if (errCode != NEXUS_SUCCESS)
     {
@@ -926,7 +994,7 @@ end:
 
     if (rc)
     {
-        BDBG_ERR(("%s: error #%d, fileSize=%u, seekPos=%llu", BSTD_FUNCTION,  rc, fileSize, seekPos));
+        BDBG_ERR(("%s: error #%d, fileSize=%u, seekPos=%u", BSTD_FUNCTION,  rc, (unsigned)fileSize, (unsigned)seekPos));
         BDBG_ASSERT(false);
     }
 
@@ -955,9 +1023,6 @@ int main(int argc, char **argv)
     uint16_t attachedRxEdidSize ;
     bool useSampleEdid = false ;
     unsigned timeout=4;
-
-    BDBG_Level debugLevel ;
-
     int curarg = 1;
 
     while (curarg < argc) {
@@ -1190,26 +1255,21 @@ open_with_edid:
     {
         int tmp;
 
-        BDBG_GetModuleLevel("repeater_passthrough_hdcp2x",  &debugLevel) ;
-        BDBG_SetModuleLevel("repeater_passthrough_hdcp2x",  BDBG_eMsg) ;
+            BDBG_LOG(("**************************************************"));
+            BDBG_LOG(("* Please note the following run time options"));
+            BDBG_LOG(("*      -compliance : required to run HDCP compliance test"));
+            BDBG_LOG(("*      -qd882 : required if run HDCP compliance test on the QuantumData 882EA"));
+            BDBG_LOG(("*******************************************************\n"));
 
-            BDBG_MSG(("**************************************************"));
-            BDBG_MSG(("* Please note the following run time options"));
-            BDBG_MSG(("*      -compliance : required to run HDCP compliance test"));
-            BDBG_MSG(("*      -qd882 : required if run HDCP compliance test on the QuantumData 882EA"));
-            BDBG_MSG(("*******************************************************\n"));
-
-            BDBG_MSG(("Main Menu"));
-            BDBG_MSG(("1) Change Video Format")) ;
-            BDBG_MSG(("2) Toggle PCM/Compressed audio (currently %s)",
+            BDBG_LOG(("Main Menu"));
+            BDBG_LOG(("1) Change Video Format")) ;
+            BDBG_LOG(("2) Toggle PCM/Compressed audio (currently %s)",
                 hdmiCompressedAudio?"Compressed":"PCM")) ;
-            BDBG_MSG(("3) hdmiInput Status")) ;
-            BDBG_MSG(("4) load hdcp2.2 keys")) ;
+            BDBG_LOG(("3) hdmiInput Status")) ;
+            BDBG_LOG(("4) load hdcp2.2 keys")) ;
 
-            BDBG_MSG(("0) Exit\n")) ;
-            BDBG_MSG(("Enter Selection: ")) ;
-
-        BDBG_SetModuleLevel("repeater_passthrough_hdcp2x", debugLevel) ;
+            BDBG_LOG(("0) Exit\n")) ;
+            BDBG_LOG(("Enter Selection: ")) ;
 
 
         scanf("%d", &tmp);
@@ -1228,13 +1288,9 @@ open_with_edid:
             default: tmp=4; break;
             }
 
-            BDBG_GetModuleLevel("repeater_passthrough_hdcp2x",  &debugLevel) ;
-            BDBG_SetModuleLevel("repeater_passthrough_hdcp2x",  BDBG_eMsg) ;
+                BDBG_LOG(("Current format is %d", tmp)) ;
+                BDBG_LOG(("Enter new format (0=1080p 1=1080i 2=720p 3=480p 4=NTSC):")) ;
 
-                BDBG_MSG(("Current format is %d", tmp)) ;
-                BDBG_MSG(("Enter new format (0=1080p 1=1080i 2=720p 3=480p 4=NTSC):")) ;
-
-            BDBG_SetModuleLevel("repeater_passthrough_hdcp2x", debugLevel) ;
 
             scanf("%d", &tmp);
             switch ( tmp )

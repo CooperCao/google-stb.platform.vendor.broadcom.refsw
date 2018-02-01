@@ -38,11 +38,10 @@
 #ifndef NAME_VALUE_FILE_PARSER_PRIV_H__
 #define NAME_VALUE_FILE_PARSER_PRIV_H__ 1
 
-#include "util_priv.h"
+#include "name_value_file_parser.h"
+#include "util.h"
 #include <stdio.h>
 
-typedef struct NameValueFileParser * NameValueFileParserHandle;
-typedef void (*NameValueFileParserListener)(void * listenerContext, const char * name, const char * value);
 typedef struct NameValueFileParser
 {
     FILE * in;
@@ -50,9 +49,5 @@ typedef struct NameValueFileParser
     NameValueFileParserListener announce;
     void * listenerContext;
 } NameValueFileParser;
-
-NameValueFileParserHandle name_value_file_parser_create(const char * filename, NameValueFileParserListener listener, void * listenerContext);
-void name_value_file_parser_parse(NameValueFileParserHandle parser);
-void name_value_file_parser_destroy(NameValueFileParserHandle parser);
 
 #endif /* NAME_VALUE_FILE_PARSER_PRIV_H__ */

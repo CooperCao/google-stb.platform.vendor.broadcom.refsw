@@ -371,6 +371,7 @@ end:
 /* Determine gmem usage flags for a potential conversion */
 gmem_usage_flags_t v3d_imgconv_calc_dst_gmem_usage(
    const v3d_imgconv_base_tgt *dst_base,
+   const v3d_imgconv_base_tgt *dst_base_contiguous,
    const v3d_imgconv_gmem_tgt *src,
    bool secure_context)
 {
@@ -398,7 +399,7 @@ gmem_usage_flags_t v3d_imgconv_calc_dst_gmem_usage(
       {
          /* Does a contiguous memory claim work? */
          info.contiguous_dst = true;
-         if (conv_path[p]->claim(dst_base, &src->base, src->base.desc.width, src->base.desc.height,
+         if (conv_path[p]->claim(dst_base_contiguous, &src->base, src->base.desc.width, src->base.desc.height,
                                  src->base.desc.depth, &info))
             return ret | GMEM_USAGE_CONTIGUOUS;
       }

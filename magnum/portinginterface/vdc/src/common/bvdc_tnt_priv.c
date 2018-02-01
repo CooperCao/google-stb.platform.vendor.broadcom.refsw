@@ -365,7 +365,7 @@ void BVDC_P_Tnt_BuildVysncRul_isr
     bEnable = pCurInfo->bSharpnessEnable;
 
 #if BVDC_P_DBV_SUPPORT && (BVDC_DBV_MODE_BVN_CONFORM)
-    if(BVDC_P_CMP_OUTPUT_IPT(hWindow->hCompositor)) bEnable = false;
+    if(BVDC_P_CMP_DBV_MODE(hWindow->hCompositor)) bEnable = false;
 #endif
     if(bEnable)
     {

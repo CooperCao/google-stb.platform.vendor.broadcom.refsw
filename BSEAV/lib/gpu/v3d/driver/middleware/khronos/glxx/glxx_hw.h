@@ -12,9 +12,9 @@ typedef struct
    MEM_HANDLE_T mh_vcode;
    MEM_HANDLE_T mh_ccode;
    MEM_HANDLE_T mh_fcode;
-   MEM_HANDLE_T mh_vuniform_map;
-   MEM_HANDLE_T mh_cuniform_map;
-   MEM_HANDLE_T mh_funiform_map;
+   void *vuniform_map;
+   void *cuniform_map;
+   void *funiform_map;
    uint32_t num_varyings;
    bool threaded;
    bool has_point_size;
@@ -22,7 +22,7 @@ typedef struct
    uint32_t vattribs_order[GLXX_CONFIG_MAX_VERTEX_ATTRIBS*2];
 } GLXX_LINK_RESULT_DATA_T;
 
-static INLINE GLXX_HW_BLEND_T glxx_hw_blend(
+static inline GLXX_HW_BLEND_T glxx_hw_blend(
    bool blend,
    GLenum equation, GLenum equation_alpha,
    GLenum src_function, GLenum src_function_alpha,
@@ -71,7 +71,7 @@ static INLINE GLXX_HW_BLEND_T glxx_hw_blend(
       && !result.sample_alpha_to_coverage &&!result.sample_coverage) result.ms = false;
    return result;
 }
-static INLINE bool glxx_hw_blend_enabled(GLXX_HW_BLEND_T blend)
+static inline bool glxx_hw_blend_enabled(GLXX_HW_BLEND_T blend)
 {
    return
       blend.equation != GL_FUNC_ADD || blend.equation_alpha != GL_FUNC_ADD ||
@@ -80,7 +80,6 @@ static INLINE bool glxx_hw_blend_enabled(GLXX_HW_BLEND_T blend)
 }
 
 extern bool glxx_hw_clear(bool color, bool depth, bool stencil, GLXX_SERVER_STATE_T *state);
-extern void glxx_hw_finish(void);
 extern void glxx_hw_finish_context(bool wait);
 extern void glxx_hw_term(void);
 extern bool glxx_hw_draw_triangles(GLsizei count, GLenum type, uint32_t indices_offset,
@@ -89,14 +88,13 @@ extern bool glxx_hw_draw_triangles(GLsizei count, GLenum type, uint32_t indices_
                                    MEM_HANDLE_T indices_handle,
                                    MEM_HANDLE_T *attrib_handles,
                                    uint32_t max_index,
-                                   MEM_HANDLE_OFFSET_T *interlocks,
-                                   uint32_t interlock_count,
-                                   bool secure);
+                                   POINTER_OFFSET_T *interlocks,
+                                   uint32_t interlock_count);
 extern void glxx_hw_invalidate_frame(GLXX_SERVER_STATE_T *state, bool color, bool depth, bool stencil, bool multisample,
                                      bool main_buffer);
 extern bool glxx_hw_get_attr_live(GLXX_SERVER_STATE_T *state, GLXX_ATTRIB_T *attrib);
-extern bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, float Ws, float Hs, bool secure);
+extern bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, float Ws, float Hs);
 
 extern bool glxx_schedule_during_link(GLXX_SERVER_STATE_T *state, void *prog);
 
-extern bool glxx_hw_insert_sync(GLXX_SERVER_STATE_T *state, MEM_HANDLE_T handle);
+extern bool glxx_hw_insert_sync(GLXX_SERVER_STATE_T *state, void *sync);

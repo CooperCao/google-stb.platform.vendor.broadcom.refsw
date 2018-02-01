@@ -34,7 +34,7 @@ typedef struct
    NXPL_HeapMapping        heapMap;
    NXPL_HeapMapping        heapMapSecure;
    int                     l2CacheSize;
-   bool                    useMMA;
+   bool                    useDynamicMMA;
    size_t                  heapGrow;
 
 #if NEXUS_HAS_GRAPHICS2D

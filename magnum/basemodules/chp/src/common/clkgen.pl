@@ -57,6 +57,7 @@ my $num_pmap_settings = 0;
 
 my @nexus_functions = (
         "AIO",
+        "AUD_PLL0", "AUD_PLL1",
         "BVN",
         "DVPHR", "DVPHR0", "DVPHR1",
         "DVPHT", "DVPHT0", "DVPHT1",
@@ -119,8 +120,8 @@ sub verify_tree {
 	my $clk_tree = shift;
 
 	for (sort keys %$clk_tree) {
+        my $cnt = 0;
 		foreach my $src (@{$clk_tree->{$_}{_srcs}}) {
-            my $cnt = 0;
 			if(exists $clk_tree->{$src}) {
 				# Eliminate node's functions from parents functions.
 				# Do this till we reach null. This will give a list of top level nodes
@@ -214,17 +215,12 @@ sub rename_function {
 }
 
 sub parse_rdb_file {
-	my ($file, $clk_tree, $featuredef) = @_;
+	my ($file, $clk_tree, $featuredef, $coreprefix) = @_;
 	my ($reg, $field, $resource, $default, $case);
-    my $coreprefix;
     my $disabled = 0;
+    my @files;
 
     open(INFILE,"$file") or die "Can't open input file $file";
-
-    if($file =~ /\/design\/(.*?)\/rdb\//) {
-        $coreprefix = uc($1);
-    }
-    $coreprefix =~ s/SYS_CTRL/SUN_TOP_CTRL/;
 
     foreach (<INFILE>) {
         s/\r\n/\n/; # convert DOS to Unix
@@ -241,16 +237,15 @@ sub parse_rdb_file {
         }
 
         if (/^featuredef\s*(.*?)\s*(\d+)/) {
-            $featuredef->{$1} = $2;
-        } elsif (/^feature\s*(.*)/) {
-            my $feature = $1;
-            if(exists $featuredef->{$1}) {
-               if ($featuredef->{$1} == 0) {
-                   $disabled = 1;
-               }
+            if(!exists $featuredef->{$1}) {
+                $featuredef->{$1} = $2;
             }
+        } elsif (/^feature\s*(.*)/) {
+            $disabled = !has_feature($featuredef, $1);
         } elsif (/^coreprefix\s*(\w+)/) {
             $coreprefix = $1;
+            $coreprefix =~ s/_$//;
+            $coreprefix =~ s/TOP_CTRL/SUN_TOP_CTRL/;
         } elsif (/^regtype32\s*(\w+)/) {
 			$reg = $1;
 			$reg =~ s/Type/$coreprefix/;
@@ -313,10 +308,18 @@ sub parse_rdb_file {
             }
         } elsif (/^\/\/PMPowerProfile:\s*STB\s*:\s*(.*?)\s*:\s*PMap(\d+)/) {
             $profiles[$2] = $1;
+        } elsif (/^include\s*(.*?)$/) {
+            if (($coreprefix eq "CLKGEN") ||
+                ($coreprefix eq "SUN_TOP_CTRL" && $1 eq "sram_pda.rdb")) { # TODO : Pass in a filter list
+                my($filename, $directory, $suffix) = fileparse($file);
+                push(@files, $directory.$1) if -e $directory.$1;
+            }
         }
 	}
 
     close(INFILE);
+
+    parse_rdb_file($_, $clk_tree, $featuredef, $coreprefix) foreach (@files);
 }
 
 sub skip_node {
@@ -328,7 +331,7 @@ sub skip_node {
     }
 
     if(!exists $clk_tree->{$src}) {
-        print "$src does not exist in tree\n";
+        print "$src does not exist in tree. Skip it\n";
         return 1;
     }
 
@@ -693,7 +696,7 @@ sub generate_nexus_nodes {
 
 sub has_feature {
     my ($featuredef, $feature) = @_;
-    if(exists $featuredef->{$feature} && $featuredef->{$feature} == 1) {
+    if(exists $featuredef->{$feature} && $featuredef->{$feature} != 0) {
         return 1;
     } else {
         return 0;
@@ -705,8 +708,11 @@ sub generate_user_defined_nodes {
 
     foreach my $node (keys %$nodes) {
         if($node =~ /(HDMI_)(TX|RX)(\d*)_CLK/) {
-            $nodes->{$1.$2.$3."_PHY"}{_list}{"HW_".$1.$2.$3."_PHY"}++;
-            foreach my $hw_node (keys %{$nodes->{$node}{_list}}) { $nodes->{"HW_".$1.$2.$3."_PHY"}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node} }
+            my $parent_node = $1.$2.$3."_PHY";
+            my $child_node = "HW_".$1.$2.$3."_PHY";
+            $nodes->{$parent_node}{_list}{$child_node}++;
+            foreach my $hw_node (keys %{$nodes->{$node}{_list}}) { $nodes->{$child_node}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node} }
+            @{$nodes->{$child_node}{_order}} = @{$nodes->{$node}{_order}};
 
             $nodes->{"BINT_OPEN"}{_list}{$1.$2.$3."_CLK"}++;
             $nodes->{"MAGNUM_CONTROLLED"}{_list}{$1.$2.$3."_CLK"}++;
@@ -720,32 +726,40 @@ sub generate_user_defined_nodes {
                 $nodes->{"MAGNUM_CONTROLLED"}{_list}{"VDC_".$1.$2."_CLK".$3}++;
             }
         } elsif($node =~ /^(RFM)$/) {
-            $nodes->{$1."_PHY"}{_list}{"HW_".$1."_PHY"}++;
-            foreach my $hw_node (keys %{$nodes->{$node}{_list}}) { $nodes->{"HW_".$1."_PHY"}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node} }
+            my $parent_node = $1."_PHY";
+            my $child_node = "HW_".$1."_PHY";
+            $nodes->{$parent_node}{_list}{$child_node}++;
+            foreach my $hw_node (keys %{$nodes->{$node}{_list}}) { $nodes->{$child_node}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node} }
+            @{$nodes->{$child_node}{_order}} = @{$nodes->{$node}{_order}};
 
             $nodes->{"BINT_OPEN"}{_list}{$1}++;
             $nodes->{"MAGNUM_CONTROLLED"}{_list}{$1}++;
             $nodes->{"MAGNUM_CONTROLLED"}{_list}{$1."_PHY"}++;
         } elsif($node =~ /AIO_CLK/) {
             $nodes->{"AUD_AIO"}{_list}{"$node"}++;
-            $nodes->{"AUD_DAC"}{_list}{"HW_AUD_DAC"}++ if(has_feature($featuredef, "AUDIO_DAC"));
-            $nodes->{"AUD_PLL0"}{_list}{"HW_AUD_PLL0"}++;  # TODO : Remove when fixed in rdb
-            $nodes->{"AUD_PLL1"}{_list}{"HW_AUD_PLL1"}++;  # TODO : Remove when fixed in rdb
-            foreach my $hw_node (keys %{$nodes->{$node}{_list}}) {
-                if($hw_node !~ /VCXO/) {
-                    $nodes->{"HW_AUD_DAC"}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node} if(has_feature($featuredef, "AUDIO_DAC"));
-                    $nodes->{"HW_AUD_PLL0"}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node}; # TODO : Remove when fixed in rdb
-                    $nodes->{"HW_AUD_PLL1"}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node}; # TODO : Remove when fixed in rdb
-                }
-            }
-
             $nodes->{"BINT_OPEN"}{_list}{"AUD_AIO"}++;
             $nodes->{"MAGNUM_CONTROLLED"}{_list}{"AUD_AIO"}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{_list}{"AUD_DAC"}++ if(has_feature($featuredef, "AUDIO_DAC"));
-            $nodes->{"MAGNUM_CONTROLLED"}{_list}{"AUD_PLL0"}++;  # TODO : Remove when fixed in rdb
-            $nodes->{"MAGNUM_CONTROLLED"}{_list}{"AUD_PLL1"}++;  # TODO : Remove when fixed in rdb
+
+            if(has_feature($featuredef, "AUDIO_DAC")) {
+                $nodes->{"AUD_DAC"}{_list}{"HW_AUD_DAC"}++;
+                foreach my $hw_node (keys %{$nodes->{$node}{_list}}) {
+                    $nodes->{"HW_AUD_DAC"}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node}
+                }
+                @{$nodes->{"HW_AUD_DAC"}{_order}} = @{$nodes->{$node}{_order}};
+                $nodes->{"MAGNUM_CONTROLLED"}{_list}{"AUD_DAC"}++;
+            }
         } elsif($node =~ /AIO_SRAM/) {
             $nodes->{"AUD_AIO"}{_list}{"$node"}++;
+        } elsif($node =~ /(AUD_PLL)(\d*)/) {
+            my $parent_node = $1.$2;
+            my $child_node = "HW_".$1.$2;
+            $nodes->{$parent_node}{_list}{$child_node}++;
+            push(@{$nodes->{$parent_node}{_order}}, $child_node);
+            foreach my $hw_node (keys %{$nodes->{"AIO_CLK"}{_list}}) {
+                $nodes->{$child_node}{_list}{$hw_node} = $nodes->{"AIO_CLK"}{_list}{$hw_node};
+            }
+            @{$nodes->{$child_node}{_order}} = @{$nodes->{"AIO_CLK"}{_order}};
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{$parent_node}++;
         } elsif($node =~ /^(BVN|VDC_VEC|VIP)_SRAM/) {
             foreach my $hw_node (keys %{$nodes->{$node}{_list}}) {
                 $nodes->{$1}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node};
@@ -754,14 +768,14 @@ sub generate_user_defined_nodes {
             }
         } elsif($node =~ /^(AVD|VICE)(\d*)(.*?)$/) {
             if($3 eq "_CPU") {
-                foreach my $clk_node (keys %{$nodes->{$1.$2."_CLK"}{_list}}) {
-                    foreach my $cpu_node (keys %{$nodes->{$1.$2.$3}{_list}}) {
+                foreach my $cpu_node (keys %{$nodes->{$1.$2.$3}{_list}}) {
+                    foreach my $clk_node (keys %{$nodes->{$1.$2."_CLK"}{_list}}) {
                         $nodes->{$cpu_node}{_list}{$clk_node}++;
-                        push(@{$nodes->{$cpu_node}{_order}}, $clk_node);
-
                     }
-                    delete($nodes->{$1.$2."_CLK"}{_list}{$clk_node});
+                    push(@{$nodes->{$cpu_node}{_order}}, @{$nodes->{$1.$2."_CLK"}{_order}});
                 }
+
+                delete($nodes->{$1.$2."_CLK"}{_list});
                 undef(@{$nodes->{$1.$2."_CLK"}{_order}});
 
                 foreach my $cpu_node (keys %{$nodes->{$1.$2.$3}{_list}}) {
@@ -785,11 +799,12 @@ sub generate_user_defined_nodes {
             }
         } elsif($node =~ /^(RAAGA)(\d*)(.*?)$/) {
             if($3 eq "_DSP") {
-                foreach my $clk_node (keys %{$nodes->{$1.$2."_CLK"}{_list}}) {
+                if (exists $nodes->{$1.$2."_CLK"}) {
                     foreach my $cpu_node (keys %{$nodes->{$1.$2.$3}{_list}}) {
-                        $nodes->{$cpu_node}{_list}{$clk_node}++;
-                        push(@{$nodes->{$cpu_node}{_order}}, $clk_node);
-
+                        foreach my $clk_node (keys %{$nodes->{$1.$2."_CLK"}{_list}}) {
+                            $nodes->{$cpu_node}{_list}{$clk_node}++;
+                        }
+                        push(@{$nodes->{$cpu_node}{_order}}, @{$nodes->{$1.$2."_CLK"}{_order}});
                     }
                 }
             }
@@ -798,14 +813,14 @@ sub generate_user_defined_nodes {
             $nodes->{"BINT_OPEN"}{_list}{$1}++;
             $nodes->{"MAGNUM_CONTROLLED"}{_list}{$1}++;
         } elsif($node =~ /^(SID|GRAPHICS3D)(_CPU)$/) {
-            foreach my $clk_node (keys %{$nodes->{$1}{_list}}) {
-                foreach my $cpu_node (keys %{$nodes->{$1.$2}{_list}}) {
+            foreach my $cpu_node (keys %{$nodes->{$1.$2}{_list}}) {
+                foreach my $clk_node (keys %{$nodes->{$1}{_list}}) {
                     $nodes->{$cpu_node}{_list}{$clk_node}++;
-                    push(@{$nodes->{$cpu_node}{_order}}, $clk_node);
-
                 }
-                delete($nodes->{$1}{_list}{$clk_node});
+                push(@{$nodes->{$cpu_node}{_order}}, @{$nodes->{$1}{_order}});
             }
+
+            delete($nodes->{$1}{_list});
             undef(@{$nodes->{$1}{_order}});
 
             foreach my $cpu_node (keys %{$nodes->{$1.$2}{_list}}) {
@@ -861,9 +876,21 @@ sub generate_user_defined_nodes {
     #check for nodes with no order
     foreach my $node (keys %$nodes) {
         if(!exists $nodes->{$node}{_order}) {
-            foreach my $child_node (keys %{$nodes->{$node}{_list}}) {
+            foreach my $child_node ( sort keys %{$nodes->{$node}{_list}}) {
                 push (@{$nodes->{$node}{_order}}, $child_node);
             }
+        } else {
+            # check for duplicates and remove
+            my %tmp;
+            my $cnt=0;
+            undef %tmp;
+            foreach my $child_node (@{$nodes->{$node}{_order}}) {
+                if (exists $tmp{$child_node}) {
+                    splice(@{$nodes->{$node}{_order}}, $cnt, 1);
+                }
+                $tmp{$child_node}++;
+            }
+            #@{$nodes->{$node}{_order}} = keys %tmp;
         }
     }
 }
@@ -917,7 +944,6 @@ sub generate_brcm_copyright_header
 sub generate_bchp_resources_txt_file {
     my ($nodes, $file) = @_;
     my @resource_list;
-    my (@magnum_nodes, @bint_nodes);
 
     open(my $fh, ">$file") or die "Can't open output file $file";
 
@@ -1454,7 +1480,16 @@ sub generate_pmap_table
                     if($field eq "_pmap") {next;}
                     if($field eq "_shared") {next;}
                     if(!$hw_desc->{$_}{$reg}{_field}{$type}{_shared}) {
-                        $pmap_table{$reg}{$field}{_value} = $hw_desc->{$_}{$reg}{_field}{$type}{$field};
+                        if (exists $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}) {
+                            foreach my $pmap (0 .. 8) {
+                                if (exists $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}{$pmap}{_pstate}{0}) {
+                                    $pmap_table{$reg}{$field}{_value} = $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}{$pmap}{_pstate}{0};
+                                    last;
+                                }
+                            }
+                        } else {
+                            $pmap_table{$reg}{$field}{_value} = $hw_desc->{$_}{$reg}{_field}{$type}{$field};
+                        }
                         $pmap_table{$reg}{$field}{_type} = $type;
                         push(@{$pmap_table{$reg}{$field}{_nodes}}, $_);
                     }
@@ -1961,6 +1996,9 @@ sub main {
         if(/debug/) {
             $dbg = 1;
         }
+        if(/nodac/) {
+            $featuredef{"AUDIO_DAC"} = 0;
+        }
     }
 
     if(not defined $chp) {
@@ -1985,17 +2023,15 @@ sub main {
     }
     print"\n\n";
 
-    my $clkgen_dir = $dir."/design/clkgen/rdb/*.rdb" if -e $dir."/design/clkgen/rdb/clkgen.rdb";
-    my $avstop_dir = $dir."/design/avs_top/rdb/avs_top_ctrl.rdb" if -e $dir."/design/avs_top/rdb/avs_top_ctrl.rdb";
-    my $sysctrl_dir = $dir."/design/sys_ctrl/rdb/sram_pda.rdb" if -e $dir."/design/sys_ctrl/rdb/sram_pda.rdb";
-    my $audiop_dir = $dir."/design/brahms/iop/rdb/aud_iop_top.rdb" if -e $dir."/design/brahms/iop/rdb/aud_iop_top.rdb";
+    my $clkgen_top = $dir."/design/clkgen/rdb/clkgen_top.rdb";
+    my $sys_ctrl_top = $dir."/design/sys_ctrl/rdb/top_ctrl.rdb";
+    my $aud_iop_top = $dir."/design/brahms/iop/rdb/aud_iop_top.rdb";
 
-    push(@files, glob("$clkgen_dir")) if ($clkgen_dir);
-    push(@files, glob("$avstop_dir")) if ($avstop_dir);
-    push(@files, glob("$sysctrl_dir")) if ($sysctrl_dir);
-    push(@files, glob("$audiop_dir")) if ($audiop_dir);
+    push(@files, $clkgen_top) if -e $clkgen_top;
+    push(@files, $sys_ctrl_top) if -e $sys_ctrl_top;
+    push(@files, $aud_iop_top) if -e $aud_iop_top;
 
-	parse_rdb_file($_, \%clk_tree, \%featuredef)  foreach (@files);
+	parse_rdb_file($_, \%clk_tree, \%featuredef, '')  foreach (@files);
 
 	verify_tree(\%clk_tree);
 

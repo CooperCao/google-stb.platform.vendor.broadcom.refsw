@@ -245,7 +245,9 @@ void BDTU_GetDefaultRemapSettings( BDTU_RemapSettings *pSettings )
 static BERR_Code BDTU_P_Remap( BDTU_Handle handle, BSTD_DeviceOffset orgPhysAddr, BSTD_DeviceOffset fromPhysAddr, BSTD_DeviceOffset toPhysAddr )
 {
     unsigned from_bp, to_bp, dp;
-    unsigned from_region, to_region, dp_region;
+    unsigned from_region = 0;
+    unsigned to_region = 0;
+    unsigned dp_region = 0;
     uint32_t val;
     BERR_Code rc;
 
@@ -335,7 +337,7 @@ error:
 BERR_Code BDTU_ReadOriginalAddress( BDTU_Handle handle, BSTD_DeviceOffset physAddr, BSTD_DeviceOffset *orgPhysAddr )
 {
     unsigned bp;
-    unsigned region;
+    unsigned region = 0;
     unsigned dp;
     uint32_t val;
     BERR_Code rc;
@@ -503,7 +505,7 @@ error:
 BERR_Code BDTU_ReadInfo( BDTU_Handle handle, BSTD_DeviceOffset physAddr, BDTU_PageInfo *info)
 {
     unsigned bp;
-    unsigned region;
+    unsigned region = 0;
     BERR_Code rc;
     uint32_t val;
     int i; /* Must be signed */

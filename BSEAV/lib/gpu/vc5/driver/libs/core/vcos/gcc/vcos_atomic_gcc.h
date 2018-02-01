@@ -53,6 +53,16 @@ static inline T vcos_atomic_fetch_add_##name(T volatile* ptr, T val, vcos_memory
 static inline T vcos_atomic_fetch_sub_##name(T volatile* ptr, T val, vcos_memory_order_t memorder)\
 {\
    return __atomic_fetch_sub(ptr, val, memorder);\
+}\
+\
+static inline T vcos_atomic_fetch_or_##name(T volatile* ptr, T val, vcos_memory_order_t memorder)\
+{\
+   return __atomic_fetch_or(ptr, val, memorder);\
+}\
+\
+static inline T vcos_atomic_fetch_and_##name(T volatile* ptr, T val, vcos_memory_order_t memorder)\
+{\
+   return __atomic_fetch_and(ptr, val, memorder);\
 }
 
 VCOS_ATOMIC_DEFINITIONS_BOOL_PTR(bool, bool);

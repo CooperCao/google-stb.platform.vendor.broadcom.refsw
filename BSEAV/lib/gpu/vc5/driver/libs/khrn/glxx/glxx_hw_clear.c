@@ -130,6 +130,7 @@ no_discard:
    khrn_render_state_disallow_flush((khrn_render_state*)rs);
 
    rs->num_used_layers = rs->installed_fb.layers;
+   rs->has_rasterization = true;
 
    // Try doing HW clears
    bool use_draw_rect = false;

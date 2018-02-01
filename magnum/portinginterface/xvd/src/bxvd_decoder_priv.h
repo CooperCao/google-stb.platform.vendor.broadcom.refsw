@@ -52,6 +52,9 @@ extern "C" {
 /* Define the following to allow frames to be captured */
 /* #define BXVD_DM_ENABLE_YUV_GRAB_MODE 1  */
 
+/* Define the following to allow PPBs to be captured */
+/* #define BXVD_DM_ENABLE_PPB_GRAB_MODE 1 */
+
 /*
  * type definitions
  */
@@ -323,8 +326,12 @@ typedef struct BXVD_P_Decoder_Context
 #if BXVD_DM_ENABLE_YUV_GRAB_MODE
    /* variables assocated with the "grab" debug mode */
    bool  bGrabRvc;
-   bool  bGrabPpb;
    bool  bGrabYuv;
+#endif
+
+#if BXVD_DM_ENABLE_PPB_GRAB_MODE
+   /* variables assocated with the "grab" debug mode */
+   bool  bGrabPpb;
 #endif
 
 } BXVD_P_Decoder_Context;
@@ -338,7 +345,7 @@ typedef struct BXVD_Decoder_P_LocalState
 BERR_Code
 BXVD_Decoder_P_ComputeAspectRatio_isr(
          BXVD_P_PPB * pPPB,
-         BXDM_Picture * pstXdmPicture
+         BXDM_Picture_AspectRatio *aspectRatio
          );
 
 /* SWSTB-788: move the calculation of the Delivery Queue depth from BXVD_GetChannelStatus_isr to

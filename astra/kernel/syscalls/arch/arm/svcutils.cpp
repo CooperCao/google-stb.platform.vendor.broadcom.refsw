@@ -101,7 +101,7 @@ void SysCalls::init() {
     dispatchTable[SYS_umount2] = doUmount;
     dispatchTable[SYS_ioctl] = doIoctl;
     dispatchTable[SYS_fcntl] = notImpl;
-    dispatchTable[SYS_setpgid] = notImpl;
+    dispatchTable[SYS_setpgid] = doSetPgid;
     dispatchTable[SYS_umask] = notImpl;
     dispatchTable[SYS_chroot] = notImpl;
     dispatchTable[SYS_ustat] = notImpl;
@@ -156,7 +156,7 @@ void SysCalls::init() {
     dispatchTable[SYS_init_module] = notImpl;
     dispatchTable[SYS_delete_module] = notImpl;
     dispatchTable[SYS_quotactl] = notImpl;
-    dispatchTable[SYS_getpgid] = notImpl;
+    dispatchTable[SYS_getpgid] = doGetPgid;
     dispatchTable[SYS_fchdir] = doFchdir;
     dispatchTable[SYS_bdflush] = notImpl;
     dispatchTable[SYS_sysfs] = notImpl;
@@ -312,6 +312,7 @@ void SysCalls::init() {
     dispatchTableExt[EXT_tracelog_start - EXT_SYS_CALL_BASE] = doTraceLogStart;
     dispatchTableExt[EXT_tracelog_stop - EXT_SYS_CALL_BASE] = doTraceLogStop;
     dispatchTableExt[EXT_tracelog_add - EXT_SYS_CALL_BASE] = doTraceLogAdd;
+    dispatchTableExt[EXT_sched_runtask - EXT_SYS_CALL_BASE] = doSchedRunTask;
 
     paramsPagePhys.cpuLocal() = TzMem::allocPage(KERNEL_PID);
     if (paramsPagePhys.cpuLocal() == nullptr) {

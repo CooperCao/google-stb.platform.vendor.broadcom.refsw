@@ -885,7 +885,7 @@ See Also:
 BERR_Code BODS_InstallCallback(
     BODS_ChannelHandle hChn,            /* [in] Device channel handle */
     BODS_Callback callbackType,         /* [in] Type of callback */
-    BODS_CallbackFunc pCallback,        /* [in] Function Ptr to callback */
+    BODS_CallbackFunc pCallback_isr,    /* [in] Function Ptr to callback */
     void *pParam                        /* [in] Generic parameter sent on callback */
     );
 

@@ -6,7 +6,6 @@
 #include "interface/khronos/common/khrn_options.h"
 #include "interface/khronos/include/GLES2/gl2.h"
 #include "interface/khronos/include/GLES2/gl2ext.h"
-#include "interface/khronos/common/khrn_api_interposer.h"
 #include "middleware/khronos/common/2708/khrn_prod_4.h"
 #include "middleware/khronos/common/2708/khrn_interlock_priv_4.h"
 #include "middleware/khronos/common/2708/khrn_render_state_4.h"
@@ -31,6 +30,7 @@
 #include "interface/khronos/common/khrn_client_platform.h"
 #include "middleware/khronos/egl/egl_platform.h"
 #include "middleware/khronos/glxx/glxx_tweaker.h"
+#include "middleware/khronos/common/khrn_mem.h"
 
 #include "vcfw/rtos/rtos.h"
 
@@ -56,20 +56,19 @@ static bool install_uniforms(
    uint32_t *startaddr_location,
    GLXX_SERVER_STATE_T *state,
    uint32_t count,
-   MEM_HANDLE_T hmap,
+   uint32_t *map,
    GL20_HW_INDEXED_UNIFORM_T *iu,
    uint32_t * num_vpm_rows,
    GLXX_ATTRIB_T *attrib,
    bool egl_output,
-   unsigned int fb_height,
-   bool secure);
+   unsigned int fb_height);
 
 static bool get_shaders(
     GL20_PROGRAM_T *program,
     GLXX_HW_SHADER_RECORD_T *shader_out,
-    MEM_HANDLE_T *cunifmap_out,
-    MEM_HANDLE_T *vunifmap_out,
-    MEM_HANDLE_T *funifmap_out,
+    void **cunifmap_out,
+    void **vunifmap_out,
+    void **funifmap_out,
     uint32_t *color_varyings_out,
     GLXX_SERVER_STATE_T *state,
     GLXX_ATTRIB_T *attrib,
@@ -92,7 +91,7 @@ bool do_vcd_setup(
    );
 
 static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *location,
-   uint32_t u0, uint32_t u1, bool secure);
+   uint32_t u0, uint32_t u1);
 
 static uint32_t convert_primitive_type(GLenum mode);
 static uint32_t convert_index_type(GLenum type);
@@ -101,25 +100,6 @@ static bool backend_uniform_address( uint32_t u1,
                   GLXX_SERVER_STATE_T *state,
                   GL20_HW_INDEXED_UNIFORM_T *iu,
                   uint32_t *location);
-
-#ifdef TIMELINE_EVENT_LOGGING
-
-static void EventLog(uint32_t t, uint32_t c, uint32_t d, char *desc)
-{
-   EventData ev;
-   ev.eventType = t;
-   ev.eventCode = c;
-   ev.eventRow  = khrn_event_cpu_row();
-   ev.eventData = d;
-   ev.desc = desc;
-   ev.eventSecs = 0;
-   ev.eventNanosecs = 0;
-   khrn_remote_event_log(&ev);
-}
-
-#else
-#define EventLog(t, c, d, desc)
-#endif
 
 /*************************************************************
  Global Functions
@@ -161,7 +141,7 @@ void glxx_hw_term(void)
    }
 }
 
-static MEM_HANDLE_T get_texture_11(GLXX_SERVER_STATE_T *state,
+static GLXX_TEXTURE_T *get_texture_11(GLXX_SERVER_STATE_T *state,
    unsigned texunit)
 {
    assert(IS_GL_11(state));
@@ -169,9 +149,9 @@ static MEM_HANDLE_T get_texture_11(GLXX_SERVER_STATE_T *state,
 
    switch (state->texunits[texunit].target_enabled) {
    case GL_TEXTURE_2D:
-      return state->bound_texture[texunit].mh_twod;
+      return state->bound_texture[texunit].twod;
    case GL_TEXTURE_EXTERNAL_OES:
-      return state->bound_texture[texunit].mh_external;
+      return state->bound_texture[texunit].external;
    case GL_TEXTURE_CUBE_MAP:
    case GL_NONE:
       break;
@@ -179,10 +159,10 @@ static MEM_HANDLE_T get_texture_11(GLXX_SERVER_STATE_T *state,
       UNREACHABLE();
       break;
    }
-   return MEM_HANDLE_INVALID;
+   return NULL;
 }
 
-static MEM_HANDLE_T get_texture_20(GLXX_SERVER_STATE_T *state,
+static GLXX_TEXTURE_T *get_texture_20(GLXX_SERVER_STATE_T *state,
    unsigned index, bool *in_vshader)
 {
    const GLXX_DRAW_BATCH_T *batch = &state->batch;
@@ -192,22 +172,22 @@ static MEM_HANDLE_T get_texture_20(GLXX_SERVER_STATE_T *state,
    unsigned texunit = batch->uniform_data[ui->offset + sinfo[index].index];
 
    if (texunit >= GLXX_CONFIG_MAX_TEXTURE_UNITS)
-      return MEM_HANDLE_INVALID;
+      return NULL;
 
    *in_vshader = sinfo[index].in_vshader;
 
    switch (ui->type) {
    case GL_SAMPLER_2D:
-      return state->bound_texture[texunit].mh_twod;
+      return state->bound_texture[texunit].twod;
    case GL_SAMPLER_EXTERNAL_OES:
-      return state->bound_texture[texunit].mh_external;
+      return state->bound_texture[texunit].external;
    case GL_SAMPLER_CUBE:
-      return state->bound_texture[texunit].mh_cube;
+      return state->bound_texture[texunit].cube;
    default:
       UNREACHABLE();
       break;
    }
-   return MEM_HANDLE_INVALID;
+   return NULL;
 }
 
 static void set_current_render_state(GLXX_SERVER_STATE_T *state, uint32_t rs_name) {
@@ -222,72 +202,67 @@ static void set_current_render_state(GLXX_SERVER_STATE_T *state, uint32_t rs_nam
 
 GLXX_HW_RENDER_STATE_T *glxx_install_framebuffer(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T *fb, bool main_buffer)
 {
-   MEM_HANDLE_T hcolor, hdepth, hstencil;
+   KHRN_IMAGE_T *color, *depth, *stencil;
    bool multisample;
 
-   if (state->mh_bound_framebuffer != MEM_HANDLE_INVALID && !main_buffer) {
-      GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)mem_lock(state->mh_bound_framebuffer, NULL);
+   if (state->bound_framebuffer != NULL && !main_buffer) {
+      GLXX_FRAMEBUFFER_T *framebuffer = state->bound_framebuffer;
 
-      hcolor = glxx_attachment_info_get_images(&framebuffer->attachments.color, &fb->mh_ms_color);
-      hdepth = glxx_attachment_info_get_images(&framebuffer->attachments.depth, NULL);
-      hstencil = glxx_attachment_info_get_images(&framebuffer->attachments.stencil, NULL);
+      color = glxx_attachment_info_get_images(&framebuffer->attachments.color, &fb->ms_color);
+      depth = glxx_attachment_info_get_images(&framebuffer->attachments.depth, NULL);
+      stencil = glxx_attachment_info_get_images(&framebuffer->attachments.stencil, NULL);
 
-      fb->mh_depth = hdepth != MEM_HANDLE_INVALID ? hdepth : hstencil;  /* TODO naughty */
+      fb->depth = depth != NULL ? depth : stencil;  /* TODO naughty */
       fb->have_depth = framebuffer->attachments.depth.type != GL_NONE;
       fb->have_stencil = framebuffer->attachments.stencil.type != GL_NONE;
 
       multisample = (framebuffer->attachments.color.samples != 0);
    } else {
-      hcolor = state->mh_draw;
-      hdepth = state->mh_depth;
-      multisample = state->mh_color_multi != MEM_HANDLE_INVALID;    /* TODO naughty */
+      color = state->draw;
+      depth = state->depth;
+      multisample = state->color_multi != NULL;    /* TODO naughty */
 
       if (multisample) {
-         fb->mh_ms_color = state->mh_color_multi;  /* TODO naughty */
-         fb->mh_depth = state->mh_ds_multi;        /* TODO naughty */
+         fb->ms_color = state->color_multi;  /* TODO naughty */
+         fb->depth = state->ds_multi;        /* TODO naughty */
       } else {
-         fb->mh_ms_color = MEM_HANDLE_INVALID;  /* TODO naughty */
-         fb->mh_depth = state->mh_depth;        /* TODO naughty */
+         fb->ms_color = NULL;                /* TODO naughty */
+         fb->depth = state->depth;           /* TODO naughty */
       }
 
-      fb->have_depth = state->mh_depth != MEM_HANDLE_INVALID && state->config_depth_bits > 0;
-      fb->have_stencil = state->mh_depth && state->config_stencil_bits > 0;
+      fb->have_depth = state->depth != NULL && state->config_depth_bits > 0;
+      fb->have_stencil = state->depth && state->config_stencil_bits > 0;
    }
 
-   if (hcolor == MEM_HANDLE_INVALID)
+   if (color == NULL)
       return NULL;
 
-   KHRN_IMAGE_T *color = (KHRN_IMAGE_T *)mem_lock(hcolor, NULL);
-
-   fb->mh_color_image = hcolor; /* TODO naughty */
+   fb->color = color; /* TODO naughty */
 
    /* resize the depth and stencil if its changed */
-   if (state->mh_depth) {
+   if (state->depth) {
       int scale = (multisample) ? 2 : 1;
-      KHRN_IMAGE_T *depth = (KHRN_IMAGE_T *)mem_lock(state->mh_depth, NULL);
+      KHRN_IMAGE_T *depth = state->depth;
       if ((depth->width != (color->width * scale)) ||
          (depth->height != (color->height * scale))) {
          khrn_interlock_write_immediate(&depth->interlock);
          khrn_image_resize(depth, color->width * scale, color->height * scale);
       }
-      mem_unlock(state->mh_depth);
    }
 
    if (multisample) {
-      KHRN_IMAGE_T *color_multi = (KHRN_IMAGE_T *)mem_lock(state->mh_color_multi, NULL);
+      KHRN_IMAGE_T *color_multi = state->color_multi;
       if (color_multi->width != (color->width * 2) || color_multi->height != (color->height * 2)) {
          khrn_interlock_write_immediate(&color_multi->interlock);
          khrn_image_resize(color_multi, color->width * 2, color->height * 2);
       }
-      mem_unlock(state->mh_color_multi);
 
-      if (state->mh_ds_multi != MEM_HANDLE_INVALID) {
-         KHRN_IMAGE_T *ds_multi = (KHRN_IMAGE_T *)mem_lock(state->mh_ds_multi, NULL);
+      if (state->ds_multi != NULL) {
+         KHRN_IMAGE_T *ds_multi = state->ds_multi;
          if (ds_multi->width != (color->width * 2) || ds_multi->height != (color->height * 2)) {
             khrn_interlock_write_immediate(&ds_multi->interlock);
             khrn_image_resize(ds_multi, color->width * 2, color->height * 2);
          }
-         mem_unlock(state->mh_ds_multi);
       }
    }
 
@@ -299,7 +274,6 @@ GLXX_HW_RENDER_STATE_T *glxx_install_framebuffer(GLXX_SERVER_STATE_T *state, GLX
    fb->ms = true;
 #else
    fb->ms = multisample;
-   fb->stereo_mode = (state->hints.stereo_rendering != 0);
 #endif
    fb->pad_width = color->stride * 8 / khrn_image_get_bpp(color->format);
    fb->pad_height = fb->height;
@@ -327,7 +301,6 @@ GLXX_HW_RENDER_STATE_T *glxx_install_framebuffer(GLXX_SERVER_STATE_T *state, GLX
       if (!glxx_hw_start_frame_internal(rs, fb))
       {
          glxx_hw_discard_frame(rs);
-         mem_unlock(hcolor);
          return NULL;    /* TODO: distinguish between out-of-memory and null clip rectangle */
       }
    }
@@ -336,7 +309,6 @@ GLXX_HW_RENDER_STATE_T *glxx_install_framebuffer(GLXX_SERVER_STATE_T *state, GLX
    if (!state->caps.dither)
       rs->dither = false;
 
-   mem_unlock(hcolor);
    return rs;
 }
 
@@ -523,7 +495,9 @@ bool do_vcd_setup(
 #endif
          assert( ((((length + 3) & ~3)+3)/4) <= 15 );//small enough to fit in a vpm_setup
 
-         glxx_big_mem_insert(&shader_record->attr[n].base, attrib_handles[i], (uint32_t)attrib[i].pointer);
+         /* fits in 32bits */
+         assert((attrib[i].offset & 0xFFFFFFFF) == attrib[i].offset);
+         glxx_big_mem_insert(&shader_record->attr[n].base, attrib_handles[i], (uint32_t)attrib[i].offset);
 
          shader_record->attr[n].base = i; /* SW-5891 temporarily store i here so can duplicate shader record if needed */
 
@@ -601,7 +575,9 @@ bool do_vcd_setup(
          }
 #endif
 
-         glxx_big_mem_insert(&shader_record->attr[n].base, attrib_handles[i], (uint32_t)attrib[i].pointer);
+         /* fits in 32bits */
+         assert((attrib[i].offset & 0xFFFFFFFF) == attrib[i].offset);
+         glxx_big_mem_insert(&shader_record->attr[n].base, attrib_handles[i], (uint32_t)attrib[i].offset);
 
          shader_record->attr[n].base = i; /* SW-5891 temporarily store i here so can duplicate shader record if needed */
 
@@ -678,67 +654,58 @@ bool do_vcd_setup(
 /* TODO: get rid of fb and attrib parameters */
 static void calculate_and_hide(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T *fb, GLXX_ATTRIB_T *attrib)
 {
-   float *modelview;
-   int i;
-
 #if GL_EXT_texture_format_BGRA8888
    /* TODO: we enumerate over textures elsewhere. Feels slightly wasteful. */
-   for (i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
+   for (int i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
    {
-      MEM_HANDLE_T thandle = MEM_HANDLE_INVALID;
-
+      GLXX_TEXTURE_T *texture = NULL;
       state->shader.common.texture_rb_swap[i] = false;
       if (IS_GL_11(state))
       {
-          switch (state->texunits[i].target_enabled) {
-          case GL_TEXTURE_2D:
-              thandle = state->bound_texture[i].mh_twod;
-              break;
-          case GL_TEXTURE_EXTERNAL_OES:
-              thandle = state->bound_texture[i].mh_external;
-              break;
-          }
+         switch (state->texunits[i].target_enabled)
+         {
+         case GL_TEXTURE_2D:
+            texture = state->bound_texture[i].twod;
+            break;
+         case GL_TEXTURE_EXTERNAL_OES:
+            texture = state->bound_texture[i].external;
+            break;
+         }
       }
       else
       {
          if (i < state->batch.num_samplers)
          {
-            GL20_UNIFORM_INFO_T *ui;
-            int index;
-
             assert(state->batch.sampler_info != NULL);
 
-            ui = &state->batch.uniform_info[state->batch.sampler_info[i].uniform];
-            index = state->batch.uniform_data[ui->offset + state->batch.sampler_info[i].index];
+            GL20_UNIFORM_INFO_T *ui = &state->batch.uniform_info[state->batch.sampler_info[i].uniform];
+            int index = state->batch.uniform_data[ui->offset + state->batch.sampler_info[i].index];
 
             /* Index may not be valid, in which case a dummy texture will be set up later */
-            if (index >= 0 && index < GLXX_CONFIG_MAX_TEXTURE_UNITS) {
-                switch (ui->type) {
-                case GL_SAMPLER_2D:
-                    thandle = state->bound_texture[index].mh_twod;
-                    break;
-                case GL_SAMPLER_EXTERNAL_OES:
-                    thandle = state->bound_texture[index].mh_external;
-                    break;
-                case GL_SAMPLER_CUBE:
-                    thandle = state->bound_texture[index].mh_cube;
-                    break;
-                default:
-                    UNREACHABLE();
-                    break;
-                }
+            if (index >= 0 && index < GLXX_CONFIG_MAX_TEXTURE_UNITS)
+            {
+               switch (ui->type)
+               {
+               case GL_SAMPLER_2D:
+                  texture = state->bound_texture[index].twod;
+                  break;
+               case GL_SAMPLER_EXTERNAL_OES:
+                  texture = state->bound_texture[index].external;
+                  break;
+               case GL_SAMPLER_CUBE:
+                  texture = state->bound_texture[index].cube;
+                  break;
+               default:
+                  UNREACHABLE();
+                  break;
+               }
             }
          }
       }
-      if (thandle != MEM_HANDLE_INVALID)
+      if (texture != NULL)
       {
-         GLXX_TEXTURE_T *texture;
-
-         texture = (GLXX_TEXTURE_T *)mem_lock(thandle, NULL);
          if (glxx_texture_check_complete(texture) == COMPLETE)
             state->shader.common.texture_rb_swap[i] = tu_image_format_rb_swap(glxx_texture_get_tformat(texture));
-
-         mem_unlock(thandle);
       }
    }
 #endif
@@ -746,7 +713,7 @@ static void calculate_and_hide(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T
    state->shader.common.fb_rb_swap = tu_image_format_rb_swap(khrn_image_to_tf_format(fb->col_format));  /* TODO: slight hack - using tu function to determine fb thing */
 
    /* TODO: this copying shouldn't be necessary */
-   for (i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
+   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
    {
       if (attrib[i].enabled)
       {
@@ -862,7 +829,7 @@ static void calculate_and_hide(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T
 
       if (state->changed_light)
       {
-         for (i = 0; i < GL11_CONFIG_MAX_LIGHTS; i++)
+         for (int i = 0; i < GL11_CONFIG_MAX_LIGHTS; i++)
          {
             if (state->shader.lighting && state->lights[i].enabled)
             {
@@ -886,12 +853,12 @@ static void calculate_and_hide(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T
 
       //TODO: better handling of matrix stacks
       //optimisation: moved here from install_uniforms to avoid repeated calculation
-      modelview = state->modelview.body[state->modelview.pos];
+      float *modelview = state->modelview.body[state->modelview.pos];
 
       if (state->caps_fragment.fog || state->shader.lighting || state->batch.primitive_mode == 0)
          khrn_memcpy(state->current_modelview, modelview, 16*4);
 
-      for (i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++) {
+      for (int i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++) {
          GL11_TEXUNIT_T *texunit = &state->texunits[i];
          if (state->shader.texunits[i].props.active) {
             khrn_memcpy(texunit->current_matrix,texunit->stack.body[texunit->stack.pos],16*4);
@@ -939,12 +906,11 @@ bool glxx_hw_get_attr_live(GLXX_SERVER_STATE_T *state, GLXX_ATTRIB_T *attrib)
    }
    else
    {
-      if (state->mh_program != MEM_HANDLE_INVALID)
+      if (state->program != NULL)
       {
-         GL20_PROGRAM_T *program = (GL20_PROGRAM_T *)mem_lock(state->mh_program, NULL);
+         GL20_PROGRAM_T *program = state->program;
          state->batch.cattribs_live = program->result.cattribs_live;
          state->batch.vattribs_live = program->result.vattribs_live;
-         mem_unlock(state->mh_program);
       }
    }
    return true;
@@ -1107,21 +1073,13 @@ fail:
    return false;
 }
 
-static void reset_egl_image(MEM_HANDLE_T thandle)
+static void reset_egl_image(GLXX_TEXTURE_T *texture)
 {
-   if (thandle != MEM_HANDLE_INVALID)
+   if (texture && texture->external_image != NULL)
    {
-      GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(thandle, NULL);
-      if (texture && texture->external_image != MEM_HANDLE_INVALID)
-      {
-         EGL_IMAGE_T *egl_image = (EGL_IMAGE_T *)mem_lock(texture->external_image, NULL);
-         if (egl_image)
-         {
-            MEM_ASSIGN(egl_image->mh_tf_image, MEM_HANDLE_INVALID);
-            mem_unlock(texture->external_image);
-         }
-         mem_unlock(thandle);
-      }
+      EGL_IMAGE_T *eglimage = texture->external_image;
+      if (eglimage != NULL)
+         KHRN_MEM_ASSIGN(eglimage->tf_image, NULL);
    }
 }
 
@@ -1187,13 +1145,12 @@ bool glxx_hw_draw_triangles(
    MEM_HANDLE_T indices_handle,
    MEM_HANDLE_T *attrib_handles,
    uint32_t max_index,
-   MEM_HANDLE_OFFSET_T *interlocks,
-   uint32_t interlock_count,
-   bool secure)
+   POINTER_OFFSET_T *interlocks,
+   uint32_t interlock_count)
 {
    uint32_t i, j;
    GLXX_HW_FRAMEBUFFER_T fb;
-   MEM_HANDLE_T cunif_map, vunif_map, funif_map;
+   void *cunif_map, *vunif_map, *funif_map;
    uint32_t cattribs_live;
    uint32_t vattribs_live;
 
@@ -1222,7 +1179,7 @@ bool glxx_hw_draw_triangles(
       if (count == 0)
          return true;
    } else {
-      program = (GL20_PROGRAM_T *)mem_lock(state->mh_program, NULL);
+      program = state->program;
       if(!program->linked)
          goto done;
    }
@@ -1268,9 +1225,9 @@ bool glxx_hw_draw_triangles(
 
    for (i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
    {
-      uint32_t      *attrib_handles_i    = &attrib_handles[i];
-      uint32_t      *mergeable_attribs_i = &mergeable_attribs[i];
-      GLXX_ATTRIB_T *attrib_i            = &attrib[i];
+      MEM_HANDLE_T *attrib_handles_i = &attrib_handles[i];
+      uint32_t *mergeable_attribs_i = &mergeable_attribs[i];
+      GLXX_ATTRIB_T *attrib_i = &attrib[i];
 
       if (*attrib_handles_i != MEM_HANDLE_INVALID)
       {
@@ -1283,7 +1240,7 @@ bool glxx_hw_draw_triangles(
                int size = attrib_i->size*khrn_get_type_size(attrib_i->type);
                GLXX_ATTRIB_T *attrib_j            = &attrib[j];
 
-               if ((uint32_t)attrib_i->pointer + size == (uint32_t)attrib_j->pointer
+               if (attrib_i->offset + size == attrib_j->offset
                   && attrib_i->stride == attrib_j->stride
                   && (size & 3) == 0)
                {
@@ -1297,8 +1254,8 @@ bool glxx_hw_draw_triangles(
 
    if (DRAW_TEX_LOGGING)
    {
-      vcos_log(LOG_INFO, "state_name: %d rs: %d draw_triangles: count %d type %d",
-         state->name, rs->name, count, type);
+      vcos_log(LOG_INFO, "rs: %d draw_triangles: count %d type %d",
+         rs->name, count, type);
       vcos_log(LOG_INFO, "--------------------");
    }
 
@@ -1336,9 +1293,9 @@ bool glxx_hw_draw_triangles(
       gl20_hw_iu_init(&iu);
 
    /* Install uniforms */
-   cunif_count = mem_get_size(cunif_map)/8;
-   vunif_count = mem_get_size(vunif_map)/8;
-   funif_count = mem_get_size(funif_map)/8;
+   cunif_count = khrn_mem_get_size(cunif_map)/8;
+   vunif_count = khrn_mem_get_size(vunif_map)/8;
+   funif_count = khrn_mem_get_size(funif_map)/8;
 
    if (!install_uniforms(
       &shader_record->cunif,
@@ -1349,8 +1306,7 @@ bool glxx_hw_draw_triangles(
       num_vpm_rows_c,
       attrib,/*TODO for GL 2.0 NULL is passed instead of attrib - does this matter? */
       state->shader.common.egl_output,
-      fb.height,
-      secure))
+      fb.height))
    {
       goto fail;
    }
@@ -1364,8 +1320,7 @@ bool glxx_hw_draw_triangles(
       num_vpm_rows_v,
       attrib,
       state->shader.common.egl_output,
-      fb.height,
-      secure))
+      fb.height))
    {
       goto fail;
    }
@@ -1379,8 +1334,7 @@ bool glxx_hw_draw_triangles(
       0,
       attrib,
       state->shader.common.egl_output,
-      fb.height,
-      secure))
+      fb.height))
    {
       goto fail;
    }
@@ -1502,7 +1456,10 @@ bool glxx_hw_draw_triangles(
             {
                i = shader_record->attr[j].base;
                assert(i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);/* stored i here in do_vcd_setup */
-               glxx_big_mem_insert(&shader_record->attr[j].base, attrib_handles[i], (uint32_t)attrib[i].pointer + offset*shader_record->attr[j].stride);
+               /* fits in 32bits */
+               uintptr_t hw_offset = attrib[i].offset + offset*shader_record->attr[j].stride;
+               assert((hw_offset & 0xFFFFFFFF) == hw_offset);
+               glxx_big_mem_insert(&shader_record->attr[j].base, attrib_handles[i], (uint32_t)hw_offset);
                assert(i == shader_record->attr[j].base);/* check big_mem_insert didn't change this */
             }
          }
@@ -1540,10 +1497,9 @@ bool glxx_hw_draw_triangles(
    //now add references to vertex attribute cache interlocks to fixer
    for (i = 0; i < interlock_count; i++)
    {
-      KHRN_INTERLOCK_T *lock = (KHRN_INTERLOCK_T *)((char *)mem_lock(interlocks[i].mh_handle, NULL) + interlocks[i].offset);
+      KHRN_INTERLOCK_T *lock = (KHRN_INTERLOCK_T *)((char *)(interlocks[i].p) + interlocks[i].offset);
       khrn_interlock_read(lock, khrn_interlock_user(rs->name));
-      mem_unlock(interlocks[i].mh_handle);
-      glxx_hw_insert_interlock(interlocks[i].mh_handle, interlocks[i].offset);
+      glxx_hw_insert_interlock(interlocks[i].p, interlocks[i].offset);
       //fixer should then mark all the interlocks as in use and when the next flush occurs transfer them to the hardware
       //client is then able to wait until hardware has finished before deleting a cache entry
    }
@@ -1551,21 +1507,12 @@ bool glxx_hw_draw_triangles(
    glxx_unlock_fixer_stuff();
 
 done:
-
-   if(!IS_GL_11(state)) {
-      mem_unlock(state->mh_program);
-   }
-
    return true;
 
 fail:
    glxx_unlock_fixer_stuff();
 
 fail2:
-   if(!IS_GL_11(state)) {
-      mem_unlock(state->mh_program);
-   }
-
    glxx_hw_discard_frame(rs);
 
    return false;
@@ -1645,24 +1592,22 @@ static void save_shader_tool_file(GL20_PROGRAM_T *program, GLXX_SERVER_STATE_T *
    }
 
    fprintf(sts, "<vertexShader>");
-   shader = (GL20_SHADER_T *)mem_lock(program->mh_vertex, NULL);
+   shader = program->vertex;
    count = shader->sourcec;
    for (i = 0; i < count; i++)
       fprintf(sts, "%s\n", shader->sourcev[i]);
-   mem_unlock(program->mh_vertex);
    fprintf(sts, "</vertexShader>\n");
 
    fprintf(sts, "<fragmentShader>");
-   shader = (GL20_SHADER_T *)mem_lock(program->mh_fragment, NULL);
+   shader = program->fragment;
    count = shader->sourcec;
    for (i = 0; i < count; i++)
       fprintf(sts, "%s\n", shader->sourcev[i]);
-   mem_unlock(program->mh_fragment);
    fprintf(sts, "</fragmentShader>\n");
 
    fprintf(sts, "hasDepth=%d\n", key->use_depth ? 1 : 0);
    fprintf(sts, "hasStencil=%d\n", (key->stencil_config & 0x1) != 0 ? 1 : 0);
-   fprintf(sts, "hasMSAA=%d\n", state->mh_color_multi == MEM_HANDLE_INVALID ? 0 : 1);
+   fprintf(sts, "hasMSAA=%d\n", state->color_multi == NULL ? 0 : 1);
    fprintf(sts, "is565=%d\n", key->rgb565 ? 1 : 0);
    fprintf(sts, "renderAlpha=%d\n", key->render_alpha ? 1 : 0);
 
@@ -1691,9 +1636,9 @@ static void save_shader_tool_file(GL20_PROGRAM_T *program, GLXX_SERVER_STATE_T *
 static bool get_shaders(
     GL20_PROGRAM_T *program,
     GLXX_HW_SHADER_RECORD_T *shader_out,
-    MEM_HANDLE_T *cunifmap_out,
-    MEM_HANDLE_T *vunifmap_out,
-    MEM_HANDLE_T *funifmap_out,
+    void **cunifmap_out,
+    void **vunifmap_out,
+    void **funifmap_out,
     uint32_t *color_varyings_out,
     GLXX_SERVER_STATE_T *state,
     GLXX_ATTRIB_T *attrib,
@@ -1761,8 +1706,7 @@ static bool install_uniform(uint32_t *ptr, uint32_t u0, uint32_t u1,
    uint32_t * num_vpm_rows,
    GLXX_ATTRIB_T *attrib,
    bool egl_output,
-   unsigned int fb_height,
-   bool secure)
+   unsigned int fb_height)
 {
    switch (u0)
    {
@@ -1859,7 +1803,7 @@ static bool install_uniform(uint32_t *ptr, uint32_t u0, uint32_t u1,
       if(IS_GL_11(state)) {
          *ptr = 0;
       } else {
-         if(!glxx_install_tex_param(state, ptr, u0, u1, secure))
+         if(!glxx_install_tex_param(state, ptr, u0, u1))
             goto fail;
       }
       break;
@@ -1868,7 +1812,7 @@ static bool install_uniform(uint32_t *ptr, uint32_t u0, uint32_t u1,
       break;
    case BACKEND_UNIFORM_TEX_PARAM0:
    case BACKEND_UNIFORM_TEX_PARAM1:
-      if(!glxx_install_tex_param(state, ptr, u0, u1, secure))
+      if(!glxx_install_tex_param(state, ptr, u0, u1))
          goto fail;
       break;
    case BACKEND_UNIFORM_ADDRESS:
@@ -1892,28 +1836,24 @@ static bool install_uniforms(
    uint32_t *startaddr_location,
    GLXX_SERVER_STATE_T *state,
    uint32_t count,
-   MEM_HANDLE_T hmap,
+   uint32_t *map,
    GL20_HW_INDEXED_UNIFORM_T *iu,
    uint32_t *num_vpm_rows,
    GLXX_ATTRIB_T *attrib,
    bool egl_output,
-   unsigned int fb_height,
-   bool secure)
+   unsigned int fb_height)
 {
    //debugging
    //uint32_t count_platform_specific = 0;
    uint32_t i;
    uint32_t *ptr;
    MEM_LOCK_T ptr_lbh;
-   uint32_t *map;
    //gl 2.0 specific
 
    ptr = glxx_big_mem_alloc_junk(4 * count, 4, &ptr_lbh);
 
    if (!ptr) return false;
    *startaddr_location = khrn_hw_addr(ptr, &ptr_lbh); //PTR
-
-   map = (uint32_t *)mem_lock(hmap, NULL);
 
    for (i = count; i != 0; --i, ptr++)
    {
@@ -1938,17 +1878,12 @@ static bool install_uniforms(
       }
       else
       {
-         if (!install_uniform(ptr, u0, u1, state, iu, num_vpm_rows, attrib, egl_output, fb_height, secure))
-            goto fail;
+         if (!install_uniform(ptr, u0, u1, state, iu, num_vpm_rows, attrib, egl_output, fb_height))
+            return false;
       }
    }
 
-   mem_unlock(hmap);
-
    return true;
-fail:
-   mem_unlock(hmap);
-   return false;
 }
 
 static int texture_buffer(GLenum target)
@@ -1966,13 +1901,15 @@ static int texture_buffer(GLenum target)
     return TEXTURE_BUFFER_TWOD;
 }
 
+#define DUMMY_TEXTURE_SIZE 4096
+
 static bool use_dummy(uint32_t *location, uint32_t u0)
 {
    int i;
 
    if (dummy_texture_handle == MEM_HANDLE_INVALID)
    {
-      dummy_texture_handle = mem_alloc_ex(64, 4096,
+      dummy_texture_handle = mem_alloc_ex(64, DUMMY_TEXTURE_SIZE,
                                           (MEM_FLAG_T)(MEM_FLAG_DIRECT | MEM_FLAG_NO_INIT),
                                           "Dummy texture data",
                                           MEM_COMPACT_DISCARD);
@@ -1984,6 +1921,7 @@ static bool use_dummy(uint32_t *location, uint32_t u0)
          return false;
       for (i = 0; i < 16; i++)
          dummy_texture_data[i] = 0xff000000;
+      khrn_hw_flush_dcache_range(dummy_texture_data, DUMMY_TEXTURE_SIZE);
    }
 
    switch (u0) {
@@ -2011,79 +1949,68 @@ static KHRN_IMAGE_FORMAT_T image_for_shadow_format(KHRN_IMAGE_FORMAT_T format)
    return (format == YV12_RSO) ? XBGR_8888_RSO : format;
 }
 
-static MEM_HANDLE_T image_for_texturing(GLXX_SERVER_STATE_T *state,
-   MEM_HANDLE_T heglimage, bool secure)
+static KHRN_IMAGE_T *image_for_texturing(GLXX_SERVER_STATE_T *state,
+   void *p)
 {
-   EGL_IMAGE_T *egl_image = (EGL_IMAGE_T*)mem_lock(heglimage, NULL);
+   EGL_IMAGE_T *eglimage = p;
 
-   if (egl_image)
+   if (eglimage)
    {
       /* if the image is an underlying platform client buffer, then it may have resized since it
          originally was mapped */
-      if ((egl_image->platform_client_buffer) &&
-          (egl_image->mh_image != MEM_HANDLE_INVALID) &&
-          (egl_image->mh_tf_image != MEM_HANDLE_INVALID))
+      if ((eglimage->platform_client_buffer) &&
+          (eglimage->image != NULL) &&
+          (eglimage->tf_image != NULL))
       {
-         MEM_HANDLE_T new_image = egl_server_platform_image_wrap(
-               egl_image->target, egl_image->native_buffer);
+         KHRN_IMAGE_T *image = egl_server_platform_image_wrap(
+            eglimage->target, eglimage->native_buffer);
 
-         KHRN_IMAGE_T *src = (KHRN_IMAGE_T *)mem_lock(egl_image->mh_image, NULL);
-         KHRN_IMAGE_T *dst = (KHRN_IMAGE_T *)mem_lock(egl_image->mh_tf_image, NULL);
+         KHRN_IMAGE_T *src = eglimage->image;
+         KHRN_IMAGE_T *dst = eglimage->tf_image;
 
          uintptr_t src_offset = mem_lock_offset(src->mh_storage);
          uintptr_t dst_offset = mem_lock_offset(dst->mh_storage);
 
          if (src_offset != dst_offset)
          {
-            MEM_ASSIGN(egl_image->mh_image, new_image);
-            MEM_ASSIGN(egl_image->mh_tf_image, MEM_HANDLE_INVALID);
+            KHRN_MEM_ASSIGN(eglimage->image, image);
+            KHRN_MEM_ASSIGN(eglimage->tf_image, NULL);
          }
-         MEM_ASSIGN(new_image, MEM_HANDLE_INVALID);
+         KHRN_MEM_ASSIGN(image, NULL);
 
          mem_unlock(src->mh_storage);
          mem_unlock(dst->mh_storage);
-
-         mem_unlock(egl_image->mh_image);
-         mem_unlock(egl_image->mh_tf_image);
       }
 
       /* already have a conversion this draw call, just return that */
-      if (egl_image->mh_tf_image != MEM_HANDLE_INVALID)
-      {
-         MEM_HANDLE_T res = egl_image->mh_tf_image;
-         mem_unlock(heglimage);
-         return res;
-      }
+      if (eglimage->tf_image != NULL)
+         return eglimage->tf_image;
 
-      KHRN_IMAGE_T *src = (KHRN_IMAGE_T *)mem_lock(egl_image->mh_image, NULL);
+      KHRN_IMAGE_T *src = eglimage->image;
 
       /* egl image is already bound as TF, just return this */
       if (khrn_image_is_tformat(src->format))
-      {
-         mem_unlock(heglimage);
-         return egl_image->mh_image;
-      }
+         return eglimage->image;
 
       /* if the context is secure, promote to secure target */
-      bool image_secure = src->secure || secure;
+      bool image_secure = src->secure || state->secure;
 
       /* Create the tformat variant */
-      egl_image->mh_tf_image = khrn_image_create(image_for_texturing_format(src->format),
+      eglimage->tf_image = khrn_image_create(image_for_texturing_format(src->format),
          src->width, src->height, IMAGE_CREATE_FLAG_TEXTURE, image_secure);
 
       /* copy the image if required */
       if (khrn_options.shadow_egl_images || src->format == YV12_RSO)
       {
          /* Create a RSO scratch to travel down the pipeline */
-         MEM_HANDLE_T hscratch = khrn_image_create(
+         KHRN_IMAGE_T *scratch = khrn_image_create(
             image_for_shadow_format(src->format),
             src->width, src->height,
             IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_DISPLAY,
             image_secure);
 
-         if (hscratch != MEM_HANDLE_INVALID)
+         if (scratch != NULL)
          {
-            KHRN_IMAGE_T *scratch = mem_lock(hscratch, NULL);
             if (!image_secure)
             {
                void *dp = mem_lock(scratch->mh_storage, NULL);
@@ -2093,44 +2020,39 @@ static MEM_HANDLE_T image_for_texturing(GLXX_SERVER_STATE_T *state,
 
             mem_copy2d(src->format, scratch->mh_storage, src->mh_storage,
                src->width, src->height, src->stride, scratch->stride, image_secure);
-            mem_unlock(hscratch);
 
-            khrn_rso_to_tf_convert(state, hscratch, egl_image->mh_tf_image);
+            khrn_rso_to_tf_convert(state, scratch, eglimage->tf_image);
 
-            MEM_ASSIGN(hscratch, MEM_HANDLE_INVALID);
+            KHRN_MEM_ASSIGN(scratch, NULL);
          }
       }
       else
-         khrn_rso_to_tf_convert(state, egl_image->mh_image, egl_image->mh_tf_image);
+         khrn_rso_to_tf_convert(state, eglimage->image, eglimage->tf_image);
 
-      mem_unlock(heglimage);
-
-      return egl_image->mh_tf_image;
+      return eglimage->tf_image;
    }
 
-   return MEM_HANDLE_INVALID;
+   return NULL;
 }
 
 vcos_static_assert(GL11_CONFIG_MAX_TEXTURE_UNITS <= GL20_CONFIG_MAX_COMBINED_TEXTURE_UNITS);
 static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *location,
-   uint32_t u0, uint32_t u1, bool secure)
+   uint32_t u0, uint32_t u1)
 {
    bool ok = false;
    bool in_vshader = false;
 
    *location = 0;
 
-   MEM_HANDLE_T thandle;
+   GLXX_TEXTURE_T *texture;
    if (IS_GL_11(state))
-      thandle = get_texture_11(state, u1);
+      texture = get_texture_11(state, u1);
    else
-      thandle = get_texture_20(state, u1, &in_vshader);
+      texture = get_texture_20(state, u1, &in_vshader);
 
-   GLXX_TEXTURE_T *texture = NULL;
-   if (thandle != MEM_HANDLE_INVALID)
+
+   if (texture != NULL)
    {
-      texture = (GLXX_TEXTURE_T *)mem_lock(thandle, NULL);
-
       switch (glxx_texture_check_complete(texture))
       {
       case INCOMPLETE:
@@ -2161,14 +2083,12 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
          uint32_t type = 0;
          uint32_t offset = 0;
 
-         if (texture->external_image != MEM_HANDLE_INVALID)
+         if (texture->external_image != NULL)
          {
-            MEM_HANDLE_T himage = image_for_texturing(state, texture->external_image, secure);
-            KHRN_IMAGE_T *image = (KHRN_IMAGE_T*)mem_lock(himage, NULL);
+            KHRN_IMAGE_T *image = image_for_texturing(state, texture->external_image);
             type = tu_image_format_to_type(khrn_image_to_tf_format(image->format));
             handle = image->mh_storage;
             offset = image->offset;
-            mem_unlock(himage);
          }
          else
          {
@@ -2177,12 +2097,9 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
 
             if (texture->binding_type != TEXTURE_STATE_COMPLETE_UNBOUND || (!is_cube && texture->framebuffer_sharing))
             {
-               KHRN_IMAGE_T *image;
-
-               image = mem_lock(texture->mh_mipmaps[buf_index][0], NULL);
+               KHRN_IMAGE_T *image = texture->mipmaps[buf_index][0];
                handle = image->mh_storage;
                offset = image->offset;
-               mem_unlock(texture->mh_mipmaps[buf_index][0]);
             }
             else
             {
@@ -2203,7 +2120,7 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
          if(!glxx_big_mem_insert(location, handle, offset))
             goto end;
 
-         if (!glxx_hw_texture_fix(thandle, in_vshader))
+         if (!glxx_hw_texture_fix(texture, in_vshader))
             goto end;
 
          break;
@@ -2211,7 +2128,7 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
       case BACKEND_UNIFORM_TEX_PARAM1:
       {
          uint32_t type;
-         if (texture->external_image != MEM_HANDLE_INVALID)
+         if (texture->external_image != NULL)
             type = tu_image_format_to_type(image_for_texturing_format(glxx_texture_get_tformat(texture)));
          else
             type = tu_image_format_to_type(glxx_texture_get_tformat(texture));
@@ -2251,11 +2168,6 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
    }
    ok = true;
 end:
-   if (thandle != MEM_HANDLE_INVALID)
-       mem_unlock(thandle);
-
-   if (!ok)
-      MEM_ASSIGN(handle, MEM_HANDLE_INVALID);
 
    return ok;
 }
@@ -2345,8 +2257,7 @@ static uint32_t convert_index_type(GLenum type)
 static void draw_tex_log(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T *fb, GLXX_HW_RENDER_STATE_T *rs,
                          GLfloat Xs, GLfloat Ys, GLfloat Zw, GLfloat Ws, GLfloat Hs)
 {
-   GL11_CACHE_KEY_T * entry = &state->shader;
-   int i;
+   GL11_CACHE_KEY_T *entry = &state->shader;
 
    UNUSED(fb);
    UNUSED(rs);
@@ -2356,14 +2267,13 @@ static void draw_tex_log(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T *fb, 
    UNUSED(Ws);
    UNUSED(Hs);
 
-   vcos_log(LOG_INFO, "state_name: %d rs: %d drawTex: Xs %f Ys %f Zw %f Ws %f Hs %f\n",
-      state->name, rs->name, Xs, Ys, Zw, Ws, Hs);
+   vcos_log(LOG_INFO, "rs: %d drawTex: Xs %f Ys %f Zw %f Ws %f Hs %f\n",
+      rs->name, Xs, Ys, Zw, Ws, Hs);
 
-   for (i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
+   for (int i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
    {
       if (entry->texunits[i].props.active)
       {
-         GLXX_TEXTURE_T * texture;
          vcos_log(LOG_INFO, "texunit:%d mode:0x%x coord_replace:0x%x",i,entry->texunits[i].mode,entry->texunits[i].coord_replace);
          vcos_log(LOG_INFO, "   active:%d complex:%d has_color:%d has_alpha:%d",entry->texunits[i].props.active,entry->texunits[i].props.complex,
             entry->texunits[i].props.has_color, entry->texunits[i].props.has_alpha);
@@ -2373,12 +2283,11 @@ static void draw_tex_log(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T *fb, 
          vcos_log(LOG_INFO, "   alpha: combine:0x%x scale:%f source:0x%x 0x%x 0x%x operand:0x%x 0x%x 0x%x",entry->texunits[i].alpha.combine,entry->texunits[i].alpha.scale,
             entry->texunits[i].alpha.source[0],entry->texunits[i].alpha.source[1],entry->texunits[i].alpha.source[2],
             entry->texunits[i].alpha.operand[0],entry->texunits[i].alpha.operand[1],entry->texunits[i].alpha.operand[2]);
-         texture = mem_lock(state->bound_texture[i].mh_twod, NULL);
+         GLXX_TEXTURE_T *texture = state->bound_texture[i].twod;
          vcos_log(LOG_INFO, "   handle: %d crop_rect: Ucr %d Vcr %d Wcr %d Hcr %d W %d H %d",
-            state->bound_texture[i].mh_twod,
+            state->bound_texture[i].twod,
             texture->crop_rect.Ucr,texture->crop_rect.Vcr,texture->crop_rect.Wcr,texture->crop_rect.Hcr,texture->width,texture->height);
          vcos_log(LOG_INFO, "   wrap: s 0x%x t 0x%x mag: 0x%x min: 0x%x",texture->wrap.s,texture->wrap.t,texture->mag,texture->min);
-         mem_unlock(state->bound_texture[i].mh_twod);
       }
    }
 
@@ -2404,7 +2313,7 @@ static void draw_tex_log(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T *fb, 
    vcos_log(LOG_INFO, "polygon_offset: %d alpha_test: %d fog: %d",
       state->caps.polygon_offset_fill,state->caps_fragment.alpha_test,state->caps_fragment.fog);
    vcos_log(LOG_INFO, "color: (%f %f %f %f)",
-         state->copy_of_color[0],state->copy_of_color[1],state->copy_of_color[2],state->copy_of_color[3]);
+      state->attrib[GL11_IX_COLOR].value[0], state->attrib[GL11_IX_COLOR].value[1], state->attrib[GL11_IX_COLOR].value[2], state->attrib[GL11_IX_COLOR].value[3]);
 
    vcos_log(LOG_INFO, "cattribs_live:0x%x vattribs_live:0x%x",entry->cattribs_live,entry->vattribs_live);
 
@@ -2415,11 +2324,11 @@ static void draw_tex_log(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T *fb, 
    vcos_log(LOG_INFO, "--------------------");
 }
 
-bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, float Ws, float Hs, bool secure)
+bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, float Ws, float Hs)
 {
    uint32_t i;
    GLXX_HW_FRAMEBUFFER_T fb;
-   MEM_HANDLE_T cunif_map, vunif_map, funif_map;
+   void *cunif_map, *vunif_map, *funif_map;
    uint32_t cattribs_live;
    uint32_t vattribs_live;
 
@@ -2479,27 +2388,23 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
    attrib[GL11_IX_VERTEX].enabled = 1;
    attrib[GL11_IX_VERTEX].size = 3;
    attrib[GL11_IX_VERTEX].type = GL_FLOAT;
-   attrib[GL11_IX_VERTEX].pointer = 0;
-   attrib[GL11_IX_COLOR].value[0] = state->copy_of_color[0];
-   attrib[GL11_IX_COLOR].value[1] = state->copy_of_color[1];
-   attrib[GL11_IX_COLOR].value[2] = state->copy_of_color[2];
-   attrib[GL11_IX_COLOR].value[3] = state->copy_of_color[3];
+   attrib[GL11_IX_VERTEX].pointer = NULL;
+   attrib[GL11_IX_VERTEX].offset = 0;
    merge_index = GL11_IX_VERTEX;
    for(i=0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++) {
       if(state->shader.texunits[i].props.active) {
-         GLXX_TEXTURE_T * texture;
          attrib[GL11_IX_TEXTURE_COORD+i].enabled = 1;
          attrib[GL11_IX_TEXTURE_COORD+i].size = 2;
          attrib[GL11_IX_TEXTURE_COORD+i].type = GL_FLOAT;
-         attrib[GL11_IX_TEXTURE_COORD+i].pointer = (void *)stride;
+         attrib[GL11_IX_TEXTURE_COORD+i].pointer = (void *)(uintptr_t)stride;
+         attrib[GL11_IX_TEXTURE_COORD+i].offset = (uintptr_t)stride;
          stride += 2*4;/* sizeof(float)*(2 texcoords) */
 
-         texture = mem_lock(state->bound_texture[i].mh_twod, NULL);
+         GLXX_TEXTURE_T *texture = state->bound_texture[i].twod;
          s[i] = ((float)texture->crop_rect.Ucr)/texture->width;
          t[i] = ((float)texture->crop_rect.Vcr)/texture->height;
          sw[i] = ((float)texture->crop_rect.Wcr)/texture->width;
          sh[i] = ((float)texture->crop_rect.Hcr)/texture->height;
-         mem_unlock(state->bound_texture[i].mh_twod);
 
          mergeable_attribs[merge_index] = GL11_IX_TEXTURE_COORD+i;
          merge_index = GL11_IX_TEXTURE_COORD+i;
@@ -2608,9 +2513,9 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
    shader_record->cattrsize = (stride + 3) & ~3;
 
    /* Install uniforms */
-   cunif_count = mem_get_size(cunif_map)/8;
-   vunif_count = mem_get_size(vunif_map)/8;
-   funif_count = mem_get_size(funif_map)/8;
+   cunif_count = khrn_mem_get_size(cunif_map)/8;
+   vunif_count = khrn_mem_get_size(vunif_map)/8;
+   funif_count = khrn_mem_get_size(funif_map)/8;
 
    if (!install_uniforms(
       &shader_record->cunif,
@@ -2621,8 +2526,7 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
       num_vpm_rows_c,
       attrib,/*TODO for GL 2.0 NULL is passed instead of attrib - does this matter? */
       state->shader.common.egl_output,
-      fb.height,
-      secure))
+      fb.height))
    {
       goto fail;
    }
@@ -2636,8 +2540,7 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
       num_vpm_rows_v,
       attrib,
       state->shader.common.egl_output,
-      fb.height,
-      secure))
+      fb.height))
    {
       goto fail;
    }
@@ -2651,8 +2554,7 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
       0,
       attrib,
       state->shader.common.egl_output,
-      fb.height,
-      secure))
+      fb.height))
    {
       goto fail;
    }
@@ -2714,7 +2616,7 @@ fail2:
 bool glxx_schedule_during_link(GLXX_SERVER_STATE_T *state, void *prog)
 {
    uint32_t i;
-   MEM_HANDLE_T cunif_map, vunif_map, funif_map;
+   void *cunif_map, *vunif_map, *funif_map;
    uint32_t mergeable_attribs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
    uint32_t vattribs_order[GLXX_CONFIG_MAX_VERTEX_ATTRIBS*2];
    uint32_t cattribs_order[GLXX_CONFIG_MAX_VERTEX_ATTRIBS*2];
@@ -2759,7 +2661,8 @@ bool glxx_schedule_during_link(GLXX_SERVER_STATE_T *state, void *prog)
       attrib[i].enabled = bits > 0;
       attrib[i].size = bits;
       attrib[i].type = GL_FLOAT; // We have to guess - and this is by far the most common
-      attrib[i].pointer = 0;
+      attrib[i].pointer = NULL;
+      attrib[i].offset = 0;
    }
 
    for (i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
@@ -2800,7 +2703,7 @@ done:
    return false;
 }
 
-bool glxx_hw_insert_sync(GLXX_SERVER_STATE_T *state, MEM_HANDLE_T handle)
+bool glxx_hw_insert_sync(GLXX_SERVER_STATE_T *state, void *sync)
 {
    GLXX_HW_FRAMEBUFFER_T fb;
    GLXX_HW_RENDER_STATE_T *rs = glxx_install_framebuffer(state, &fb, false);
@@ -2808,7 +2711,7 @@ bool glxx_hw_insert_sync(GLXX_SERVER_STATE_T *state, MEM_HANDLE_T handle)
    if (!rs)
       return false;
 
-   khrn_fmem_sync(rs->fmem, handle);
+   khrn_fmem_sync(rs->fmem, sync);
 
    return true;
 }

@@ -78,8 +78,8 @@ step3 =
 
 ---------------------------------------------------------------------------*/
 
-#define DR_I_BITS   BVDC_P_CSC_SW_CX_I_BITS
-#define DR_F_BITS   BVDC_P_CSC_SW_CX_F_BITS
+#define DR_I_BITS   BCFC_CSC_SW_CX_I_BITS
+#define DR_F_BITS   BCFC_CSC_SW_CX_F_BITS
 
 #define DR_MAKE_E(e) \
    BMTH_FIX_SIGNED_FTOFIX(e, DR_I_BITS, DR_F_BITS)
@@ -127,7 +127,7 @@ static const int32_t s_iM[3][3][3] = DR_MAKE_M(
     BMTH_FIX_SIGNED_MUL_isrsafe(s, x, DR_I_BITS, DR_F_BITS, DR_I_BITS, DR_F_BITS, DR_I_BITS, DR_F_BITS)
 
 #define DR_MAKE_O(x) \
-    BMTH_FIX_SIGNED_FTOFIX(x, BVDC_P_CSC_SW_CO_I_BITS, BVDC_P_CSC_SW_CO_F_BITS)
+    BMTH_FIX_SIGNED_FTOFIX(x, BCFC_CSC_SW_CO_I_BITS, BCFC_CSC_SW_CO_F_BITS)
 
 /* Calculate special SDR to HDR CSC adjustment for GFX
  */
@@ -137,7 +137,7 @@ void BVDC_P_GfxFeeder_CalculateSdr2HdrCsc_isr
     int32_t iSlider;
     int32_t iYScl, iCbScl, iCrScl;
     BVDC_P_GfxFeederCfgInfo *pCurCfg = &(hGfxFeeder->stCurCfgInfo);
-    BVDC_P_Csc3x4 *pCsc = &hGfxFeeder->stCscSdr2Hdr;
+    BCFC_Csc3x4 *pCsc = &hGfxFeeder->stCscSdr2Hdr;
 
     /* YScl range: [0.440165761116297, 0.751711283942877504], default: 0.508078421517399104
      *   0.000304541078031848 * 1023 + 0.440165761116297 = 0.751711283942877504

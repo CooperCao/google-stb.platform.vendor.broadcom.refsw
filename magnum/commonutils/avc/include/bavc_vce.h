@@ -1,5 +1,5 @@
-/***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * [File Description:]
- *
- ***************************************************************************/
+ ******************************************************************************/
 
 #ifndef BAVC_VCE_H__
 #define BAVC_VCE_H__
@@ -149,6 +146,12 @@ typedef struct BAVC_CompressedBufferStatus
    this descriptor  - if this is set, then the uiDataUnitID field is valid also */
 #define BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START           0x00020000
 
+/* Only used for VP9: used to indicate this frame is a "hidden frame"
+   within a superframe - the timestamp used for the superframe is the next
+   non-hidden frame */
+#define BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_HIDDEN_FRAME              0x00040000
+#define BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_SHOW_FRAME                0x00080000
+
 #define BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_EXTENDED                  0x80000000
 
 typedef struct BAVC_VideoBufferDescriptor
@@ -190,6 +193,34 @@ typedef struct BAVC_VideoUserDataStatus
         unsigned uiPendingBuffers; /* Buffers pending */
         unsigned uiCompletedBuffers; /* Buffers completed since previous call to XXX_GetStatusUserDataBuffers_isr() */
 } BAVC_VideoUserDataStatus;
+
+/**************/
+/* VIP in VDC */
+/**************/
+typedef enum BAVC_VCE_BufferType
+{
+   BAVC_VCE_BufferType_eOriginal,
+   BAVC_VCE_BufferType_eDecimated,
+   BAVC_VCE_BufferType_eShiftedChroma,
+
+   BAVC_VCE_BufferType_eMax
+} BAVC_VCE_BufferType;
+
+typedef struct BAVC_VCE_BufferConfig
+{
+   BAVC_ScanType eScanType;
+   unsigned uiNumberOfBFrames;
+} BAVC_VCE_BufferConfig;
+
+void BAVC_VCE_GetDefaultBufferConfig_isrsafe(
+      bool bInterlaced,
+      BAVC_VCE_BufferConfig *pstBufferConfig
+      );
+
+unsigned BAVC_VCE_GetRequiredBufferCount_isrsafe(
+      const BAVC_VCE_BufferConfig *pstBufferConfig,
+      BAVC_VCE_BufferType eBufferType
+      );
 
 #ifdef __cplusplus
 }

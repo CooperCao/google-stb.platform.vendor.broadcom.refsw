@@ -49,7 +49,7 @@
 #include "drm_common.h"
 
 #include "bstd.h"
-#include "bdbg.h" 
+#include "bdbg.h"
 #include "bkni.h"
 
 int main(int argc, char* argv[])
@@ -201,5 +201,9 @@ int main(int argc, char* argv[])
 	DRM_Ocap_Finalize();
 
 	printf("Done\n");
+
+    /* Clean up test environment */
+    NEXUS_Platform_Uninit();
+
     return 0;
 }

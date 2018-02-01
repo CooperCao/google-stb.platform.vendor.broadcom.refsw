@@ -206,7 +206,7 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
       state->primitive_bounding_box.max[i] = pbb[4+i];
    }
 
-#if V3d_HAS_POLY_OFFSET_CLAMP
+#if V3D_VER_AT_LEAST(4,1,34,0)
    state->polygon_offset.limit = 0.0f;
 #endif
    state->polygon_offset.factor = 0.0f;
@@ -245,7 +245,7 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
 
    state->statebits.backend = GLSL_SAMPLE_MS;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    state->blend.rt_enables = 0;
    for (unsigned i = 0; i != GLXX_MAX_RENDER_TARGETS; ++i)
       init_blend_cfg(&state->blend.rt_cfgs[i]);
@@ -383,6 +383,9 @@ void glxx_server_state_flush(GLXX_SERVER_STATE_T *state, bool wait)
       gmem_finish();
 #endif
    }
+#ifndef NDEBUG
+   khrn_fence_allow_change(state->fences.fence);
+#endif
 }
 
 
@@ -542,7 +545,7 @@ static void set_blend_func(GLXX_SERVER_STATE_T *state, glxx_blend_cfg *cfg,
 static void set_all_blend_funcs(GLXX_SERVER_STATE_T *state,
    v3d_blend_mul_t sc, v3d_blend_mul_t dc, v3d_blend_mul_t sa, v3d_blend_mul_t da)
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    for (unsigned i = 0; i != GLXX_MAX_RENDER_TARGETS; ++i)
       set_blend_func(state, &state->blend.rt_cfgs[i], sc, dc, sa, da);
 #else
@@ -578,7 +581,7 @@ static inline bool validate_func_es11(GLenum func, bool is_src)
 }
 
 bool glxx_advanced_blend_eqn_set(const GLXX_SERVER_STATE_T *state) {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    return state->blend.rt_cfgs[0].color_eqn & GLXX_ADV_BLEND_EQN_BIT;
 #else
    return state->blend.cfg.color_eqn & GLXX_ADV_BLEND_EQN_BIT;
@@ -589,7 +592,7 @@ bool glxx_advanced_blend_eqn_set(const GLXX_SERVER_STATE_T *state) {
 // 0 means it is not an advanced blend or blending is disabled
 uint32_t glxx_advanced_blend_eqn(const GLXX_SERVER_STATE_T *state)
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if ((state->blend.rt_enables & 1) && state->blend.rt_cfgs[0].color_eqn >= GLXX_ADV_BLEND_EQN_BIT)
       return state->blend.rt_cfgs[0].color_eqn - GLXX_ADV_BLEND_EQN_BIT;
 #else
@@ -646,7 +649,7 @@ GL_API void GL_APIENTRY glBlendFuncSeparate(GLenum srcRGB, GLenum dstRGB, GLenum
    glxx_unlock_server_state();
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 static void blend_func_i(GLuint buf, GLenum src, GLenum dst)
 {
@@ -724,7 +727,7 @@ GL_API void GL_APIENTRY glBlendFuncSeparateiOES(GLuint buf,
 
 GL_API void GL_APIENTRY glBlendFunci(GLuint buf, GLenum src, GLenum dst)
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    blend_func_i(buf, src, dst);
 #endif
 }
@@ -732,7 +735,7 @@ GL_API void GL_APIENTRY glBlendFunci(GLuint buf, GLenum src, GLenum dst)
 GL_API void GL_APIENTRY glBlendFuncSeparatei(GLuint buf,
    GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha)
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    blend_func_separate_i(buf, srcRGB, dstRGB, srcAlpha, dstAlpha);
 #endif
 }
@@ -1149,7 +1152,7 @@ static bool is_valid_server_cap(const GLXX_SERVER_STATE_T *state, GLenum cap)
    case GL_PRIMITIVE_RESTART_FIXED_INDEX:
    case GL_RASTERIZER_DISCARD:
       return !IS_GL_11(state);
-#if V3D_VER_AT_LEAST(4,0,2,0) || KHRN_GLES32_DRIVER
+#if V3D_VER_AT_LEAST(4,1,34,0) || KHRN_GLES32_DRIVER
    case GL_SAMPLE_SHADING:
 #endif
    case GL_SAMPLE_MASK:
@@ -1288,7 +1291,7 @@ static void set_enabled(GLenum cap, bool enabled)
       state->caps.depth_test = enabled;
       break;
    case GL_BLEND:
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       state->blend.rt_enables = enabled ? gfx_mask(GLXX_MAX_RENDER_TARGETS) : 0;
       state->dirty.blend_enables = KHRN_RENDER_STATE_SET_ALL;
 #else
@@ -1329,7 +1332,7 @@ static void set_enabled(GLenum cap, bool enabled)
    case GL_BLEND_ADVANCED_COHERENT_KHR:
       state->blend.advanced_coherent = enabled;
       break;
-#if V3D_VER_AT_LEAST(4,0,2,0) || KHRN_GLES32_DRIVER
+#if V3D_VER_AT_LEAST(4,1,34,0) || KHRN_GLES32_DRIVER
    case GL_SAMPLE_SHADING:
       state->caps.sample_shading = enabled;
       break;
@@ -1353,7 +1356,7 @@ GL_API void GL_APIENTRY glEnable(GLenum cap)
    set_enabled(cap, true);
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 static void set_enabled_i(GLenum target, GLuint index, bool enabled)
 {
@@ -1407,14 +1410,14 @@ GL_API void GL_APIENTRY glEnableiOES(GLenum target, GLuint index)
 
 GL_API void GL_APIENTRY glDisablei(GLenum target, GLuint index)
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    set_enabled_i(target, index, false);
 #endif
 }
 
 GL_API void GL_APIENTRY glEnablei(GLenum target, GLuint index)
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    set_enabled_i(target, index, true);
 #endif
 }
@@ -1694,7 +1697,7 @@ GL_API GLboolean GL_APIENTRY glIsEnabled(GLenum cap)
    return result;
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 static GLboolean is_enabled_i(GLenum target, GLuint index)
 {
@@ -1732,7 +1735,7 @@ GL_API GLboolean GL_APIENTRY glIsEnablediOES(GLenum target, GLuint index)
 
 GL_API GLboolean GL_APIENTRY glIsEnabledi(GLenum target, GLuint index)
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    return is_enabled_i(target, index);
 #else
    return GL_FALSE;
@@ -2386,7 +2389,6 @@ static v3d_attr_type_t translate_attrib_type(bool* is_signed, GLenum type)
 {
    switch (type)
    {
-   case GL_NONE:                          *is_signed = false;  return V3D_ATTR_TYPE_DISABLED; // GL 1.x can use this
    case GL_BYTE:                          *is_signed = true;   return V3D_ATTR_TYPE_BYTE;
    case GL_UNSIGNED_BYTE:                 *is_signed = false;  return V3D_ATTR_TYPE_BYTE;
    case GL_SHORT:                         *is_signed = true;   return V3D_ATTR_TYPE_SHORT;
@@ -2784,7 +2786,7 @@ GL_API void GL_APIENTRY glColorMask(GLboolean r, GLboolean g, GLboolean b, GLboo
    glxx_unlock_server_state();
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 static void color_mask_i(GLuint buf, GLboolean r, GLboolean g, GLboolean b, GLboolean a)
 {
@@ -2824,7 +2826,7 @@ GL_API void GL_APIENTRY glColorMaskiOES(GLuint buf, GLboolean r, GLboolean g, GL
 
 GL_API void GL_APIENTRY glColorMaski(GLuint buf, GLboolean r, GLboolean g, GLboolean b, GLboolean a)
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    color_mask_i(buf, r, g, b, a);
 #endif
 }
@@ -2929,7 +2931,7 @@ end:
 void glxx_server_invalidate_for_render_state(GLXX_SERVER_STATE_T *state, GLXX_HW_RENDER_STATE_T *rs)
 {
    khrn_render_state_set_add(&state->dirty.blend_color, rs);
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    khrn_render_state_set_add(&state->dirty.blend_enables, rs);
 #endif
    khrn_render_state_set_add(&state->dirty.blend_cfg, rs);
@@ -3023,7 +3025,7 @@ GL_API void GL_APIENTRY glPrimitiveBoundingBoxOES(GLfloat minX, GLfloat minY, GL
 }
 #endif
 
-#if KHRN_GLES32_DRIVER || V3D_VER_AT_LEAST(4,0,2,0)
+#if KHRN_GLES32_DRIVER || V3D_VER_AT_LEAST(4,1,34,0)
 static void min_sample_shading(float value) {
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
@@ -3040,7 +3042,7 @@ GL_API void GL_APIENTRY glMinSampleShading(GLfloat value) {
 }
 #endif
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 GL_API void GL_APIENTRY glMinSampleShadingOES(GLfloat value) {
    min_sample_shading(value);
 }

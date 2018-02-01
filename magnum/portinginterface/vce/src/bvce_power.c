@@ -53,7 +53,6 @@
 #include "bvce_power.h"
 
 BDBG_MODULE(BVCE_POWER);
-BDBG_OBJECT_ID_DECLARE(BVCE_P_Context);           /* BVCE_Handle */
 
 #ifdef BCHP_PWR_SUPPORT
 static bool

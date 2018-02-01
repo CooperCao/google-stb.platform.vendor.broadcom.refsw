@@ -47,7 +47,7 @@ static const Args defaultArgs =
 {
     "dynrng",
     "../etc/dynrng/plm.conf",
-    1
+    "1"
 };
 
 void args_p_print_usage(ArgsHandle args)
@@ -56,7 +56,7 @@ void args_p_print_usage(ArgsHandle args)
     printf("Usage: %s OPTIONS\n", args->name);
     printf("-h  this help\n");
     printf("-c config-file-path  path to config file. Defaults to %s\n", defaultArgs.configPath);
-    printf("-s startup-scenario-number  scenario to play on startup.  Defaults to %d\n", defaultArgs.scenario);
+    printf("-s startup-scenario-name  scenario to play on startup.  Defaults to '%s'\n", defaultArgs.scenario);
 }
 
 ArgsHandle args_create(int argc, char **argv)
@@ -68,7 +68,6 @@ ArgsHandle args_create(int argc, char **argv)
     assert(args);
     memset(args, 0, sizeof(*args));
     args->name = argv[0];
-    args->scenario = defaultArgs.scenario;
 
     while (argc > curarg)
     {
@@ -81,7 +80,7 @@ ArgsHandle args_create(int argc, char **argv)
             args->configPath = strdup(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-s") && argc>curarg+1) {
-            args->scenario = strtoul(argv[++curarg], NULL, 0);
+            args->scenario = strdup(argv[++curarg]);
         }
         else
         {
@@ -96,6 +95,11 @@ ArgsHandle args_create(int argc, char **argv)
         args->configPath = strdup(defaultArgs.configPath);
     }
 
+    if (!args->scenario)
+    {
+        args->scenario = strdup(defaultArgs.scenario);
+    }
+
     return args;
 
 error:
@@ -107,5 +111,6 @@ void args_destroy(ArgsHandle args)
 {
     if (!args) return;
     if (args->configPath) free(args->configPath);
+    if (args->scenario) free(args->scenario);
     free(args);
 }

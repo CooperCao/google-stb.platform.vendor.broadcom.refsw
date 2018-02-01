@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -120,6 +120,12 @@ typedef struct BIP_Player
     bool                            dynamicTrackSelectionEnabled;           /* Set if BIP_PlayerSettings.enableDynamicTrackSelection is set & either */
                                                                             /* PlayerSettings.trackSelectionCallback is set or explicit trackIds were not specified!. */
     bool                            newProgramFound;
+    int                             socketFd;
+#ifdef NEXUS_HAS_ASP
+    B_AspChannelHandle              hAspChannel;
+    bool                            gotAspLibDataReadyCallback;
+    bool                            gotAspLibStateChangedCallback;
+#endif
 
     BIP_DtcpIpClientFactoryAkeEntryHandle hAkeEntry;
     BIP_PlayerDataAvailabilityModel dataAvailabilityModel;

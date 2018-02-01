@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -69,6 +69,12 @@
  * necessary. */
 #if defined(__FP4014__)
 #  define MISC_BLOCK_CORECTRL_CORE_ENABLE               MISC_BLOCK_CCS_CORE_ENABLE
+
+#  define MISC_BLOCK_CORECTRL_CORE_RESET_CAUSE          MISC_BLOCK_CCS_CORE_RESET_CAUSE
+#  define MISC_BLOCK_CORECTRL_CORE_RESET_CAUSE_POR      MISC_BLOCK_CCS_CORE_RESET_CAUSE_POR
+#  define MISC_BLOCK_CORECTRL_CORE_RESET_CAUSE_WATCHDOG MISC_BLOCK_CCS_CORE_RESET_CAUSE_WATCHDOG
+#  define MISC_BLOCK_CORECTRL_CORE_RESET_CAUSE_DEADLOCK MISC_BLOCK_CCS_CORE_RESET_CAUSE_DEADLOCK
+
 #  define MISC_BLOCK_CORECTRL_SYS_FLG0_STATUS           MISC_BLOCK_FLAGS_SYS_FLG0_STATUS
 #  define MISC_BLOCK_CORECTRL_SYS_FLG0_SET              MISC_BLOCK_FLAGS_SYS_FLG0_SET
 #  define MISC_BLOCK_CORECTRL_SYS_FLG0_CLEAR            MISC_BLOCK_FLAGS_SYS_FLG0_CLEAR
@@ -167,7 +173,7 @@
 /* Define the Misc Block location */
 #if defined(PIKE) || defined(GENERIC)
 #  define MISC_BLOCK_BASE_ADDR(dsp_p, core)     SHARED_ADDR_CAST(0xe0000000)
-#elif defined(LEAP_PHY)
+#elif defined(LEAP_PHY_BCM3465)
 #  define MISC_BLOCK_BASE_ADDR(dsp_p, core)     SHARED_ADDR_CAST(0x000d0000)
 #elif defined(PMC3)
 #  define MISC_BLOCK_BASE_ADDR(dsp_p, core)     SHARED_ADDR_CAST(0xffb20400)

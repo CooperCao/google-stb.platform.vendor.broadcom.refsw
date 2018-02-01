@@ -13,9 +13,6 @@ void v3d_get_nv_shader_record_alloc_sizes(V3D_NV_SHADER_RECORD_ALLOC_SIZES_T *si
    sizes->packed_shader_rec_size = V3D_SHADREC_GL_MAIN_PACKED_SIZE +
                                    NUM_ATTR * V3D_SHADREC_GL_ATTR_PACKED_SIZE;
    sizes->packed_shader_rec_align = V3D_SHADREC_ALIGN;
-
-   sizes->defaults_size = 2 * 16;
-   sizes->defaults_align = V3D_ATTR_DEFAULTS_ALIGN;
 }
 // Work around GFXH-1276. 0 varyings causes memory corruption.
 #if !V3D_VER_AT_LEAST(3,3,0,0)
@@ -52,8 +49,6 @@ static void push_simple_float_shader_attr(uint32_t **attr_packed,
 void v3d_create_nv_shader_record(
    uint32_t         *packed_shader_rec_ptr,
    v3d_addr_t        packed_shader_rec_addr,
-   uint32_t         *defaults_ptr,
-   v3d_addr_t        defaults_addr,
    v3d_addr_t        fshader_addr,
    v3d_addr_t        funif_addr,
    v3d_addr_t        vdata_addr,
@@ -62,14 +57,7 @@ void v3d_create_nv_shader_record(
    v3d_threading_t   threading)
 {
    V3D_SHADREC_GL_MAIN_T shader_record = { 0, };
-   unsigned vdata_stride = 12;  // Xs, Ys, Zs (clip header and 1/Wc from defaults)
-
-   // First attribute contains clip header (dummy values).
-   // Last value is is 1/Wc for second attribute.
-   for (int i = 0; i < 8; ++i)
-      defaults_ptr[i] = gfx_float_to_bits((i == 7) ? 1.0f : 0.0f);
-
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    // Coord and IO VPM segment, measured in units of 8 words (we only need 3 words)
    shader_record.cs_output_size = (V3D_OUT_SEG_ARGS_T) { .sectors = 1, };
    shader_record.cs_input_size = (V3D_IN_SEG_ARGS_T) { .sectors = 0, .min_req = 1 };
@@ -82,7 +70,6 @@ void v3d_create_nv_shader_record(
    // Vertex IO VPM segment, measured in units of 8 words (we only need 3 words)
    shader_record.vs_output_size = 1;
 #endif
-   shader_record.defaults = defaults_addr;
    shader_record.fs.threading = threading;
    shader_record.fs.addr = fshader_addr;
    shader_record.fs.unifs_addr = funif_addr;
@@ -99,9 +86,12 @@ void v3d_create_nv_shader_record(
    static_assrt(V3D_SHADREC_GL_MAIN_PACKED_SIZE % sizeof(uint32_t) == 0);
    uint32_t *attrs = packed_shader_rec_ptr + V3D_SHADREC_GL_MAIN_PACKED_SIZE/sizeof(uint32_t);
 
-   // Xc, Yc, Zc, Wc - clipping is disabled so we just use dummy default values
-   push_simple_float_shader_attr(&attrs, 4, 4, 0, shader_record.defaults, 0, /*max_index*/ 0);
+   unsigned vdata_stride = v3d_nv_vertex_size();
+   unsigned vdata_size = vdata_stride / sizeof(uint32_t);
 
-   // Xs, Ys, Zs from attribute data - 1/Wc from default values (1.0)
-   push_simple_float_shader_attr(&attrs, 3, 4, 4, vdata_addr, vdata_stride, vdata_max_index);
+   // Xc, Yc, Zc, Wc - clipping is disabled so just the attribute data below.
+   push_simple_float_shader_attr(&attrs, vdata_size, 4, 0, vdata_addr, vdata_stride, vdata_max_index);
+
+   // Xs, Ys, Zs, 1/Wc(=1.0f) from attribute data
+   push_simple_float_shader_attr(&attrs, vdata_size, 4, 4, vdata_addr, vdata_stride, vdata_max_index);
 }

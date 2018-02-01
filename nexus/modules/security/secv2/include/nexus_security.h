@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,6 +43,11 @@
 
 #include "nexus_keyslot.h"
 #include "nexus_security_types.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 
 #define NEXUS_SECURITY_PENDING    NEXUS_MAKE_ERR_CODE(0x109, (1))
@@ -93,5 +98,8 @@ void NEXUS_GetPidChannelBypassKeyslot( NEXUS_PidChannelHandle pidChannel,
                                        NEXUS_BypassKeySlot *pBypassKeySlot /* [out]  the bypass keyslot associated with the specified pidChannel */
                                        );
 
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif

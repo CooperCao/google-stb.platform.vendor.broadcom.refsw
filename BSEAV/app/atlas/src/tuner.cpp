@@ -309,7 +309,7 @@ eRet CTuner::scan(
     }
 
     _scanThread_handle = B_Thread_Create(_scanThread_name, scanThread, this, NULL);
-    CHECK_PTR_ERROR_GOTO("thread creation failed!", _scanThread_handle, ret, eRet_ExternalError, error);
+    CHECK_PTR_ERROR_GOTO("scan thread creation failed!", _scanThread_handle, ret, eRet_ExternalError, error);
 
     _pWidgetEngine->addCallback(this, CALLBACK_TUNER_SCAN, bwinTunerScanCallback);
 error:

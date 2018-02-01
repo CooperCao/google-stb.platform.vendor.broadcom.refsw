@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -113,15 +113,14 @@ NEXUS_KeySlotHandle NEXUS_KeySlot_Allocate( const NEXUS_KeySlotAllocateSettings 
 
     pKeySlot = BKNI_Malloc( sizeof(*pKeySlot) );
     if( !pKeySlot ) { BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); return NULL; }
+    BKNI_Memset( pKeySlot, 0, sizeof(*pKeySlot) );
 
     NEXUS_Security_GetHsm_priv( &hHsm );
-
-    BKNI_Memset( pKeySlot, 0, sizeof(*pKeySlot) );
+    if( !hHsm ) { BERR_TRACE( NEXUS_NOT_INITIALIZED ); return NULL; }
 
     handle = NEXUS_KeySlot_Create();
     if( !handle ){ BERR_TRACE(NEXUS_NOT_AVAILABLE); goto error; }
 
-    handle->deferDestroy = true;
 
     BHSM_Keyslot_GetDefaultAllocateSettings( &hsmKeyslotSettings );
     BKNI_Memset( &hsmKeyslotSettings, 0, sizeof(hsmKeyslotSettings) );
@@ -152,12 +151,13 @@ NEXUS_KeySlotHandle NEXUS_KeySlot_Allocate( const NEXUS_KeySlotAllocateSettings 
     }
 
     handle->security.data = (void*)pKeySlot;
+    handle->deferDestroy = true;
     handle->settings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
 
     return handle;
 
 error:
-
+    handle->deferDestroy = false;
     if( pKeySlot->dmaPidChannelHandle ) {
         NEXUS_PidChannel_CloseDma_Priv( pKeySlot->dmaPidChannelHandle );
         handle->dma.valid = false;
@@ -598,6 +598,7 @@ NEXUS_Error NEXUS_KeySlot_SetMulti2Key( const NEXUS_KeySlotSetMulti2Key *pKeyDat
     BHSM_KeySlotSetMulti2Key hsmConfig;
 
     NEXUS_Security_GetHsm_priv( &hHsm );
+    if( !hHsm ) { return BERR_TRACE( NEXUS_NOT_INITIALIZED ); }
 
     BKNI_Memset( &hsmConfig, 0, sizeof(hsmConfig) );
     hsmConfig.keySelect = pKeyData->keySelect;

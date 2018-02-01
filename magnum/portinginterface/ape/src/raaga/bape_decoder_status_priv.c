@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -250,8 +250,23 @@ static BERR_Code BAPE_Decoder_P_GetAc3Status(
     pStatus->codecStatus.ac3.copyright = BAPE_GET_AC3_STATUS(handle, ui32CopyrightBit)?true:false;
     pStatus->codecStatus.ac3.original = BAPE_GET_AC3_STATUS(handle, ui32OriginalBitStream)?true:false;
     pStatus->codecStatus.ac3.frameSizeCode = BAPE_GET_AC3_STATUS(handle, ui32FrmSizeCod);
-    if ( !handle->passthrough )
-    {
+
+    if ( !handle->passthrough ) {
+        #if BAPE_DSP_LEGACY_DDP_ALGO
+        pStatus->codecStatus.ac3.atmosDetected = false;
+        #else
+        switch ( handle->streamInfo.ddp.ui32AtmosPresent )
+        {
+        default:
+        case 0:
+            pStatus->codecStatus.ac3.atmosDetected = false;
+            break;
+        case 1:
+            pStatus->codecStatus.ac3.atmosDetected = true;
+            break;
+        }
+        #endif
+
         pStatus->codecStatus.ac3.dependentFrameChannelMap = handle->streamInfo.ddp.ui32DepFrameChanmapMode;
         pStatus->codecStatus.ac3.dialnorm = handle->streamInfo.ddp.ui32CurrentDialNorm;
         pStatus->codecStatus.ac3.previousDialnorm = handle->streamInfo.ddp.ui32PreviousDialNorm;
@@ -323,6 +338,7 @@ static BERR_Code BAPE_Decoder_P_GetAc4Status(
             pStatus->codecStatus.ac4.currentPresentationId[i] = (handle->streamInfo.ac4.i32ProgramIdentifier[i/sizeof(uint32_t)] >> 8*(3-(i%4))) & 0xff;
         }
         pStatus->codecStatus.ac4.currentPresentationIndex = handle->streamInfo.ac4.ui32DecodedPresentationIndex;
+        pStatus->codecStatus.ac4.currentAlternateStereoPresentationIndex = pStatus->codecStatus.ac4.currentPresentationIndex;
         pStatus->codecStatus.ac4.dialogEnhanceMax = handle->streamInfo.ac4.ui32DecodedPresentationMaxDialogGain;
 
         BDBG_MSG(("AC4 Stream Info: streamInfoVersion %lu, numPresentations %lu, curPresIdx %lu, deMax %lu",
@@ -761,6 +777,13 @@ static BERR_Code BAPE_Decoder_P_GetDtsStatus(
         pStatus->framesDecoded = handle->streamInfo.dts.ui32TotalFramesDecoded;
         pStatus->frameErrors = handle->streamInfo.dts.ui32TotalFramesInError;
         pStatus->dummyFrames = handle->streamInfo.dts.ui32TotalFramesDummy;
+    }
+    else {
+        errCode = BDSP_Stage_GetStatus(handle->hPrimaryStage, &handle->streamInfo.dts, sizeof(handle->streamInfo.dts));
+        if ( errCode ) {
+            return errCode;
+        }
+        pStatus->codecStatus.dts.numPcmBlocks = handle->streamInfo.dts.ui32NBlocks;
     }
 
     return BERR_SUCCESS;

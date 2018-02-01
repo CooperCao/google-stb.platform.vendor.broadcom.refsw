@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -228,6 +228,7 @@ BERR_Code BVDC_Source_Create
     }
 
     /* Find an available drain for the source. */
+#if (BVDC_P_SUPPORT_HDDVI || BVDC_P_SUPPORT_NEW_656_IN_VER)
     if(BVDC_P_SRC_NEED_DRAIN(eSourceId))
     {
         if(BVDC_P_Drain_Acquire(&stTmpDrain, hVdc->hResource, eSourceId) != BERR_SUCCESS)
@@ -237,6 +238,7 @@ BERR_Code BVDC_Source_Create
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
     }
+#endif /* HDDVI or 656IN */
 #endif /* #ifndef BVDC_FOR_BOOTUPDATER */
 
     pSource = hVdc->ahSource[eSourceId];
@@ -314,10 +316,12 @@ BERR_Code BVDC_Source_Destroy
     }
 
     /* Release the drain for the source. */
+#if (BVDC_P_SUPPORT_HDDVI || BVDC_P_SUPPORT_NEW_656_IN_VER)
     if(BVDC_P_SRC_NEED_DRAIN(hSource->eId))
     {
         BVDC_P_Drain_Release(&hSource->stDrain, hSource->hVdc->hResource);
     }
+#endif /* HDDVI or 656IN */
 
     if(BVDC_P_STATE_IS_DESTROY(hSource) ||
        BVDC_P_STATE_IS_INACTIVE(hSource))
@@ -1453,7 +1457,7 @@ BERR_Code BVDC_Source_ForceFrameCapture
  */
 BERR_Code BVDC_Source_InstallPictureCallback
     ( BVDC_Source_Handle               hSource,
-      BVDC_Source_PictureCallback_isr  pfSrcCallback,
+      BVDC_Source_PictureCallback_isr  pfSrcCallback_isr,
       void                            *pvParm1,
       int                              iParm2 )
 {
@@ -1473,11 +1477,11 @@ BERR_Code BVDC_Source_InstallPictureCallback
     }
 
     /* set new info and dirty bits. */
-    pNewInfo->pfPicCallbackFunc = pfSrcCallback;
+    pNewInfo->pfPicCallbackFunc = pfSrcCallback_isr;
     pNewInfo->pvParm1 = pvParm1;
     pNewInfo->iParm2 = iParm2;
 
-    if((hSource->stCurInfo.pfPicCallbackFunc != pfSrcCallback) ||
+    if((hSource->stCurInfo.pfPicCallbackFunc != pfSrcCallback_isr) ||
        (hSource->stCurInfo.pvParm1 != pvParm1) ||
        (hSource->stCurInfo.iParm2 != iParm2)   ||
        (hSource->stNewInfo.bErrorLastSetting))
@@ -1495,7 +1499,7 @@ BERR_Code BVDC_Source_InstallPictureCallback
  */
 BERR_Code BVDC_Source_InstallCallback
     ( BVDC_Source_Handle               hSource,
-      const BVDC_CallbackFunc_isr      pfCallback,
+      const BVDC_CallbackFunc_isr      pfCallback_isr,
       void                            *pvParm1,
       int                              iParm2 )
 {
@@ -1506,11 +1510,11 @@ BERR_Code BVDC_Source_InstallCallback
     pNewInfo = &hSource->stNewInfo;
 
     /* set new info and dirty bits. */
-    pNewInfo->pfGenericCallback = pfCallback;
+    pNewInfo->pfGenericCallback = pfCallback_isr;
     pNewInfo->pvGenericParm1 = pvParm1;
     pNewInfo->iGenericParm2 = iParm2;
 
-    if((hSource->stCurInfo.pfGenericCallback != pfCallback) ||
+    if((hSource->stCurInfo.pfGenericCallback != pfCallback_isr) ||
        (hSource->stCurInfo.pvGenericParm1 != pvParm1) ||
        (hSource->stCurInfo.iGenericParm2 != iParm2)   ||
        (hSource->stNewInfo.bErrorLastSetting))
@@ -2479,6 +2483,14 @@ static void BVDC_P_Source_ValidateMpegData_isr
        pNewPic->eSourcePolarity = BAVC_Polarity_eFrame;
     }
 #endif
+#if BVDC_P_TCH_SUPPORT
+    /* TCH only supports progressive source; TODO: if source is 10-bit, 8-bit
+     * deinterlacer should be disabled; */
+    if(BCFC_IS_TCH(pNewPic->stHdrMetadata.eType))
+    {
+       pNewPic->eSourcePolarity = BAVC_Polarity_eFrame;
+    }
+#endif
 
     /* MVD should not give VDC a bad interrupt field somehing like
      * 5 or -1.  It should giving the interrupt that VDC interrupted them
@@ -2640,7 +2652,7 @@ static void BVDC_P_Source_UpdateMfdVertRateCode_isr
                 hSource->hSyncLockCompositor->hDisplay->stCurInfo.ulVertFreq);
         }
     }
-#if BVDC_P_SUPPORT_MTG
+#if (BVDC_P_SUPPORT_MTG)
     else if (hSource->bMtgSrc && hSource->bUsedMadAtWriter)
     {
         BAVC_FrameRateCode eMtgVertRateCode;
@@ -2667,7 +2679,7 @@ static void BVDC_P_Source_UpdateMfdVertRateCode_isr
          * if MTG is running at higher rate, XDM needs to repeat, and VDC needs to drop, but VDC could drop
          * the wrong one and then repeat --> motion jitter. So we now make MTG run at display frequency until
          * we use bRepeat bit from XDM in multi-bufering */
-#if BVDC_P_SUPPORT_MTG
+#if (BVDC_P_SUPPORT_MTG)
         if (hSource->bMtgSrc)
         {
             uint32_t ulVertFrq = BVDC_P_ROUND_OFF(hSource->hMfdVertDrivingWin->hCompositor->stCurInfo.pFmtInfo->ulVertFreq,
@@ -2699,6 +2711,127 @@ static void BVDC_P_Source_UpdateMfdVertRateCode_isr
 
     hSource->ulVertFreq = BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(hSource->eMfdVertRateCode);
 }
+
+
+#ifndef BVDC_FOR_BOOTUPDATER
+static bool BVDC_P_Source_MpegSizeWithinRTSLimit_isr
+    ( BVDC_Source_Handle         hSource,
+      uint32_t                   ulCount,
+      uint32_t                   ulRTSMaxWidth,
+      uint32_t                   ulRTSMaxHeight )
+{
+    uint32_t   i, ulSourceWidth, ulSourceHeight;
+
+    for(i = 0; i < ulCount; i++)
+    {
+        ulSourceWidth = hSource->stNewPic[i].ulSourceHorizontalSize;
+        ulSourceHeight = hSource->stNewPic[i].ulSourceVerticalSize >>
+            (hSource->stNewPic[i].eSourcePolarity != BAVC_Polarity_eFrame);
+
+        if((ulSourceWidth > ulRTSMaxWidth) || (ulSourceHeight > ulRTSMaxHeight))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static BERR_Code BVDC_P_Source_ValidateCoverage_isr
+    ( BVDC_Source_Handle         hSource )
+{
+    bool                     bValid, bDoubleVertSize;
+    uint32_t                 ulIndex, ulHalfSrcRateLimit;
+    uint32_t                 ulRTSMaxWidth, ulRTSMaxHeight;
+    BBOX_Config             *pBoxConfig;
+    BBOX_Vdc_SourceClass     eSourceClass;
+    BBOX_Vdc_SourceRateLimit eRateLimit;
+    const BVDC_SourceClassLimits  *pSourceClassLimit;
+
+    BDBG_ASSERT(BVDC_P_SRC_IS_MPEG(hSource->eId));
+
+    ulIndex = hSource->stCurInfo.bMosaicMode
+        ? hSource->ulMosaicCount - 1 : 0;
+
+    /* Get boxmode mosaic mode class */
+    pBoxConfig = &hSource->hVdc->stBoxConfig;
+    eSourceClass = pBoxConfig->stVdc.astSource[hSource->eId].eClass;
+
+    if(eSourceClass == BBOX_Vdc_SourceClass_eLegacy)
+    {
+        return BERR_SUCCESS;
+    }
+
+    /* Non-legacy class */
+    BDBG_ASSERT(eSourceClass != BBOX_Vdc_SourceClass_eLegacy);
+    pSourceClassLimit = &hSource->hVdc->pstSrcClassTbl[eSourceClass];
+
+    eRateLimit = pBoxConfig->stVdc.astSource[hSource->eId].eRateLimit;
+    if(eRateLimit == BBOX_Vdc_SourceRateLimit_e50Hz)
+        ulHalfSrcRateLimit = 25;
+    else
+        ulHalfSrcRateLimit = 30;
+
+    if(s_aulFrmRate[hSource->eMfdVertRateCode] <= ulHalfSrcRateLimit)
+        bDoubleVertSize = true;
+    else
+        bDoubleVertSize = false;
+
+    /* landscape1 */
+    ulRTSMaxWidth = pSourceClassLimit->landscape1[ulIndex].ulWidth;
+    ulRTSMaxHeight = pSourceClassLimit->landscape1[ulIndex].ulHeight;
+    if(ulRTSMaxWidth || ulRTSMaxHeight)
+    {
+        bValid = BVDC_P_Source_MpegSizeWithinRTSLimit_isr(hSource,
+            ulIndex+1, ulRTSMaxWidth, ulRTSMaxHeight << bDoubleVertSize);
+        if(bValid)
+        {
+            return BERR_SUCCESS;
+        }
+    }
+
+    /* landscape2 */
+    ulRTSMaxWidth = pSourceClassLimit->landscape2[ulIndex].ulWidth;
+    ulRTSMaxHeight = pSourceClassLimit->landscape2[ulIndex].ulHeight;
+    if(ulRTSMaxWidth || ulRTSMaxHeight)
+    {
+        bValid = BVDC_P_Source_MpegSizeWithinRTSLimit_isr(hSource,
+            ulIndex+1, ulRTSMaxWidth, ulRTSMaxHeight << bDoubleVertSize);
+        if(bValid)
+        {
+            return BERR_SUCCESS;
+        }
+    }
+
+    /* portrait */
+    ulRTSMaxWidth = pSourceClassLimit->portrait[ulIndex].ulWidth;
+    ulRTSMaxHeight = pSourceClassLimit->portrait[ulIndex].ulHeight;
+    if(ulRTSMaxWidth || ulRTSMaxHeight)
+    {
+        bValid = BVDC_P_Source_MpegSizeWithinRTSLimit_isr(hSource,
+            ulIndex+1, ulRTSMaxWidth, ulRTSMaxHeight << bDoubleVertSize);
+        if(bValid)
+        {
+            return BERR_SUCCESS;
+        }
+    }
+
+    BDBG_ERR(("===================================================================="));
+    BDBG_ERR(("Src[%d] Boxmode[%d] RTS violation: eSourceClass %d, eRateLimit: %d",
+        hSource->eId, hSource->hVdc->stBoxConfig.stBox.ulBoxId, eSourceClass, eRateLimit));
+    BDBG_ERR(("Mosaic Cnt[%d] landscape1(%dx%d), landscape2(%dx%d), portrait(%dx%d)",
+        ulIndex+1,
+        pSourceClassLimit->landscape1[ulIndex].ulWidth,
+        pSourceClassLimit->landscape1[ulIndex].ulHeight,
+        pSourceClassLimit->landscape2[ulIndex].ulWidth,
+        pSourceClassLimit->landscape2[ulIndex].ulHeight,
+        pSourceClassLimit->portrait[ulIndex].ulWidth,
+        pSourceClassLimit->portrait[ulIndex].ulHeight));
+    BDBG_ERR(("===================================================================="));
+
+    return BVDC_ERR_INVALID_MOSAIC_MODE;
+}
+#endif
 
 /***************************************************************************
  * Application calls this function at every interrupt to set source info.
@@ -2887,6 +3020,11 @@ void BVDC_Source_MpegDataReady_isr
         hSource->ulPixelCount = ((pNewPic->ulSourceHorizontalSize *
              pNewPic->ulSourceVerticalSize) / BFMT_FREQ_FACTOR) * hSource->ulVertFreq;
     }
+
+#ifndef BVDC_FOR_BOOTUPDATER
+    /* Check coverage */
+    BVDC_P_Source_ValidateCoverage_isr(hSource);
+#endif
 
     hSource->ulMosaicFirstUnmuteRectIndex = 0;
     hSource->bMosaicFirstUnmuteRectIndexSet = false;
@@ -3393,13 +3531,13 @@ void BVDC_Source_MpegDataReady_isr
     /* Reset the RUL entry count and build RUL for backend! */
     BRDC_List_SetNumEntries_isr(hList, 0);
 
-#if BVDC_P_SUPPORT_MTG
+#if (BVDC_P_SUPPORT_MTG)
     if (hSource->bMtgSrc)
     {
         /* reset mtg if needed */
         BVDC_P_Feeder_Mtg_MpegDataReady_isr(hSource->hMpegFeeder, hList, pNewPic);
     }
-#endif /* #if BVDC_P_SUPPORT_MTG */
+#endif /* BVDC_P_SUPPORT_MTG */
 
     /* PsF: prefix a NOP RUL at head of PIP source RUL for robustness purpose;
             sync-slipped mpg source isr will only build capture side RUL; if 1080p
@@ -3621,7 +3759,7 @@ void BVDC_Source_MpegDataReady_isr
 
             if((NULL == hSource->hSyncLockCompositor) && (0 == ulPictureIdx))
             {
-#if BVDC_P_SUPPORT_MTG
+#if (BVDC_P_SUPPORT_MTG)
                 if (BVDC_P_MVP_USED_MAD_AT_WRITER(hSource->ahWindow[i]->stVnetMode, hSource->ahWindow[i]->stMvpMode))
                 {
                     hSource->bUsedMadAtWriter = true;

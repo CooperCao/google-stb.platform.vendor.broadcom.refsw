@@ -37,105 +37,13 @@ typedef struct BackflowIODep
 typedef glsl_backflow_iodep_chain      BackflowIODepChain;
 typedef glsl_backflow_iodep_chain_node BackflowIODepChainNode;
 
-/* TODO: Consider separating the backend shader gen functions into their own lib */
 typedef enum {
-   // ALU
-   BACKFLOW_ADD,
-   BACKFLOW_VFPACK,
-   BACKFLOW_IADD,
-   BACKFLOW_ISUB,
-   BACKFLOW_SUB,
-   BACKFLOW_IMIN,
-   BACKFLOW_IMAX,
-   BACKFLOW_UMIN,
-   BACKFLOW_UMAX,
-   BACKFLOW_SHL,
-   BACKFLOW_SHR,
-   BACKFLOW_ASHR,
-   BACKFLOW_ROR,
-   BACKFLOW_MIN,
-   BACKFLOW_MAX,
-   BACKFLOW_AND,
-   BACKFLOW_OR,
-   BACKFLOW_XOR,
-
-   BACKFLOW_NOT,
-   BACKFLOW_INEG,
-   BACKFLOW_SETMSF,
-   BACKFLOW_SETREVF,
-   BACKFLOW_TIDX,
-   BACKFLOW_EIDX,
-   BACKFLOW_FL,
-   BACKFLOW_FLN,
-   BACKFLOW_FXCD,
-   BACKFLOW_XCD,
-   BACKFLOW_FYCD,
-   BACKFLOW_YCD,
-   BACKFLOW_MSF,
-   BACKFLOW_REVF,
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   BACKFLOW_IID,
-   BACKFLOW_SAMPID,
-   BACKFLOW_BARRIERID,
-#endif
-   BACKFLOW_TMUWT,
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   BACKFLOW_VPMWT,
-
-   BACKFLOW_LDVPMV_IN,
-   BACKFLOW_LDVPMV_OUT,
-   BACKFLOW_LDVPMD_IN,
-   BACKFLOW_LDVPMD_OUT,
-   BACKFLOW_LDVPMP,
-   BACKFLOW_LDVPMG_IN,
-   BACKFLOW_LDVPMG_OUT,
-   BACKFLOW_STVPMV,
-   BACKFLOW_STVPMD,
-   BACKFLOW_STVPMP,
-#else
-   BACKFLOW_VPMSETUP,
-#endif
-   BACKFLOW_NEG,
-   BACKFLOW_FCMP,
-
-   BACKFLOW_ROUND,
-   BACKFLOW_FTOIN,
-   BACKFLOW_TRUNC,
-   BACKFLOW_FTOIZ,
-   BACKFLOW_FLOOR,
-   BACKFLOW_FTOUZ,
-   BACKFLOW_CEIL,
-   BACKFLOW_FTOC,
-   BACKFLOW_FDX,
-   BACKFLOW_FDY,
-
-   BACKFLOW_ITOF,
-   BACKFLOW_CLZ,
-   BACKFLOW_UTOF,
-
-   BACKFLOW_IADD_M,
-   BACKFLOW_ISUB_M,
-   BACKFLOW_UMUL,
-   BACKFLOW_SMUL,
-   BACKFLOW_MULTOP,
-   BACKFLOW_FMOV,
-   BACKFLOW_MOV,
-   BACKFLOW_MUL,
-
-   /* TODO: These are not real flavours. They are a hack for converting */
-   BACKFLOW_IMUL32,
-   BACKFLOW_THREADSWITCH,  /* Only appears after scheduler */
-   BACKFLOW_DUMMY,         /* No op. Used to aggregate dependencies (e.g sbwait) */
-
-   BACKFLOW_FLAVOUR_COUNT
-} BackflowFlavour;
-
-typedef enum {
-   ALU_M, ALU_A,
+   ALU,
    SIG,
    SPECIAL_THRSW,
    SPECIAL_IMUL32,
    SPECIAL_VARYING,
+   SPECIAL_ROTATE,
    SPECIAL_VOID,
 } SchedNodeType;
 
@@ -165,8 +73,8 @@ struct backflow_s {
    SchedNodeType type;
    union {
       struct {
-         BackflowFlavour op;
-         SchedNodeUnpack unpack[2];
+         v3d_qpu_opcode_t op;
+         SchedNodeUnpack  unpack[2];
       } alu;
 
       struct {
@@ -175,6 +83,11 @@ struct backflow_s {
       } varying;
 
       v3d_qpu_sigbits_t sigbits;
+
+      struct {
+         uint32_t amount;
+         bool     quad;
+      } rotate;
    } u;
 
    backend_reg magic_write;
@@ -232,6 +145,7 @@ typedef struct {
    Backflow *point_x;
    Backflow *point_y;
    Backflow *line;
+   Backflow *prim_id;
 
    Backflow *inputs[V3D_MAX_VARYING_COMPONENTS];
 
@@ -283,7 +197,7 @@ typedef struct {
    Backflow *first_tlb_read;
    Backflow *last_tlb_read;
    Backflow *first_tlb_write;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    Backflow *last_vpm_read;      /* TODO: Employ a better strategy than having all      */
    Backflow *first_vpm_write;    /*       reads/writes in the first/last thread section */
 #endif
@@ -292,10 +206,12 @@ typedef struct {
 #endif
 } SchedBlock;
 
+Backflow *create_node(SchedNodeType type);
+
 Backflow *create_sig(uint32_t sigbits);
 
-Backflow *create_node(BackflowFlavour flavour, SchedNodeUnpack unpack, uint32_t cond_setf, Backflow *flag,
-                      Backflow *left, Backflow *right, Backflow *output);
+Backflow *create_alu(v3d_qpu_opcode_t op, SchedNodeUnpack unpack, uint32_t cond_setf, Backflow *flag,
+                     Backflow *left, Backflow *right, Backflow *output);
 
 Backflow *tr_external(int block, int output, ExternalList **list);
 
@@ -303,13 +219,14 @@ void glsl_iodep_offset(Backflow *consumer, Backflow *supplier, int io_timestamp_
 void glsl_iodep(Backflow *consumer, Backflow *supplier);
 
 bool glsl_sched_node_requires_regfile(const Backflow *node);
-bool glsl_sched_node_admits_unpack(BackflowFlavour op);
+bool glsl_sched_node_admits_unpack(v3d_qpu_opcode_t op);
 
 void tr_read_tlb(bool ms, uint32_t rt_num, bool is_16, bool is_int, uint32_t required_components,
                  Backflow **result, Backflow **first_read, Backflow **last_read);
 
 void fragment_shader_inputs(SchedShaderInputs *ins,
                             uint32_t primitive_type,
+                            bool prim_id,
                             bool ignore_centroids,
                             const VARYING_INFO_T *varying);
 

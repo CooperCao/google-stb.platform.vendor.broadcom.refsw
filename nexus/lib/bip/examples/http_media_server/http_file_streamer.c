@@ -78,6 +78,7 @@ typedef struct AppCtx
     bool                        disableTrickmode;
     bool                        enablePacing;
     bool                        enableDtcpIp;
+    B_CCI_T                     dtcpIpCopyControlInfo;
     bool                        enableSlaveMode;
     bool                        enableXcode;
     bool                        enableHls;
@@ -90,6 +91,9 @@ typedef struct AppCtx
     bool                        enableHwOffload;
     bool                        enableStreamingUsingPlaybackCh;
     unsigned                    maxDataRate;
+    bool                        enableHttpChunkXferEncoding;
+    unsigned                    chunkSizeInBytes;
+    unsigned                    pcpPayloadLengthInBytes;
     BLST_Q_HEAD( streamerListHead, AppStreamerCtx ) streamerListHead; /* List of Streamer Ctx */
 } AppCtx;
 
@@ -155,7 +159,7 @@ static void endOfStreamCallbackFromBIP(
 
     BSTD_UNUSED( param );
 
-    BDBG_WRN(( BIP_MSG_PRE_FMT " B_Event_Set( pAppCtx->hHttpStreamerEvent )" BIP_MSG_PRE_ARG ));
+    BDBG_WRN(( BIP_MSG_PRE_FMT "ctx=%p B_Event_Set( pAppCtx->hHttpStreamerEvent )" BIP_MSG_PRE_ARG, (void *)pAppStreamerCtx ));
     pAppStreamerCtx->endOfStreamerRcvd = true;
     B_Event_Set( pAppStreamerCtx->pAppCtx->hHttpStreamerEvent );
 }
@@ -320,7 +324,6 @@ static BIP_Status startStreamer(
 
         BIP_Streamer_GetDefaultFileInputSettings(&fileInputSettings);
 
-        fileInputSettings.maxDataRate = pAppStreamerCtx->pAppCtx->maxDataRate;
         /* Parse the PlaySpeed Header and if present, configure its values in the input settings. */
         {
             const char *pHeaderValue;
@@ -542,9 +545,9 @@ static BIP_Status startStreamer(
         if (pAppStreamerCtx->enableDtcpIp)
         {
             streamerOutputSettings.enableDtcpIp = true;
-            streamerOutputSettings.dtcpIpOutput.pcpPayloadLengthInBytes = (1024*1024);
+            streamerOutputSettings.dtcpIpOutput.pcpPayloadLengthInBytes = pAppStreamerCtx->pAppCtx->pcpPayloadLengthInBytes;
             streamerOutputSettings.dtcpIpOutput.akeTimeoutInMs = 2000;
-            streamerOutputSettings.dtcpIpOutput.copyControlInfo = B_CCI_eCopyNever;
+            streamerOutputSettings.dtcpIpOutput.copyControlInfo = pAppStreamerCtx->pAppCtx->dtcpIpCopyControlInfo;
         }
 
         streamerOutputSettings.streamerSettings.enableHwOffload = pAppStreamerCtx->enableHwOffload;
@@ -554,10 +557,14 @@ static BIP_Status startStreamer(
         streamerOutputSettings.streamerSettings.mpeg2Ts.enableTransportTimestamp = pAppStreamerCtx->enableTransportTimestamp;
         streamerOutputSettings.disableAvHeadersInsertion = pAppStreamerCtx->pAppCtx->disableAvHeadersInsertion;
         streamerOutputSettings.disableContentLengthInsertion = pAppStreamerCtx->pAppCtx->disableContentLengthInsertion;
+        streamerOutputSettings.streamerSettings.maxDataRate = pAppStreamerCtx->pAppCtx->maxDataRate;
+        streamerOutputSettings.enableHttpChunkXferEncoding = pAppStreamerCtx->pAppCtx->enableHttpChunkXferEncoding;
+        streamerOutputSettings.chunkSize = pAppStreamerCtx->pAppCtx->chunkSizeInBytes;
 
         bipStatus = BIP_HttpStreamer_SetOutputSettings(pAppStreamerCtx->hHttpStreamer, streamerProtocol, &streamerOutputSettings);
         responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_HttpStreamer_SetOutputSettings Failed" ), rejectRequest, bipStatus, bipStatus );
+
     }
 
     /* Add Encoder Profile. */
@@ -1323,6 +1330,7 @@ static BIP_Status initHttpServer(
             httpServerStartSettings.enableDtcpIp = true;
             BIP_DtcpIpServer_GetDefaultStartSettings( &httpServerStartSettings.dtcpIpServer );
             httpServerStartSettings.dtcpIpServer.pAkePort = BIP_String_GetString(pAppCtx->hDtcpIpAkePort);
+            httpServerStartSettings.dtcpIpServer.enableHwOffload = pAppCtx->enableHwOffload;
             if (strcasecmp(BIP_String_GetString(pAppCtx->hDtcpIpKeyFormat), DTCP_IP_KEY_FORMAT_COMMON_DRM ) == 0)
             {
                 httpServerStartSettings.dtcpIpServer.keyFormat = B_DTCP_KeyFormat_eCommonDRM;
@@ -1360,13 +1368,15 @@ static void printUsage(
     printf( "  -disableTrickmode#   Enable server for trickmode support (defaults is not disabled)\n"
             "  -dontAddAvInfo   #   Dont insert AV Track Info in the HTTP Response (default: Insert it)\n"
             "  -dontAddContentLength #   Dont insert HTTP Content-Length header in the HTTP Response (default: Insert it)\n"
+            "  -slave           #   Start Server in slave mode (Client in Nexus Multi-Process)\n"
             );
     printf(
             "  -loop            #   ContinousLoop after reach EOF\n"
             "  -dtcpIp          #   Start DTCP/IP Server\n"
             "  -akePort         #   DTCP/IP Ake Port# (default 8000)\n"
             "  -dtcpIpKeyFormat <keyFormat> # keyFormat values are: [commonDrm | test]. Default is commonDrm \n"
-            "  -slave           #   Start Server in slave mode (Client in Nexus Multi-Process)\n"
+            "  -dtcpIpCci <cci> # CCI enum values as defined in dtcp_ip/include/b_dtcp_applib.h: CopyFree=0, CopyNever=3, etc.\n"
+            "  -pcpPayloadLengthInBytes <num>    # Size of PCP payload in bytes. \n"
           );
     printf(
             "  -xcode           #   Xcode the input using XcodeProfile (default No xcode)\n"
@@ -1380,6 +1390,8 @@ static void printUsage(
     printf(
             "  -inactivityTimeoutInMs <num> # Timeout in msec (default=60000) after which streamer will Stop/Close streaming context if there is no activity for that long!"
             "  -maxDataRate <num>           # Maximum data rate for the playback parser band in units of bits per second (default 40000000 (40Mpbs))!"
+            "  -enableChunkXferEncoding     # Enable HTTP Chunk Transfer Encoding\n"
+            "  -chunkSizeInBytes   <num>    # Size of each chunk in bytes. \n"
           );
     printf( "To enable some of the above options at runtime via the URL Request, add following suffix extension to the URL: \n");
     printf(
@@ -1400,6 +1412,9 @@ BIP_Status parseOptions(
     BIP_Status bipStatus = BIP_ERR_INTERNAL;
 
     pAppCtx->maxDataRate = 40*1000*1000;
+    pAppCtx->chunkSizeInBytes = 192*5461; /* ~1MB */
+    pAppCtx->pcpPayloadLengthInBytes = 192*5461; /* ~1MB */
+    pAppCtx->dtcpIpCopyControlInfo = B_CCI_eCopyNever;
     for (i=1; i<argc; i++)
     {
         if ( !strcmp(argv[i], "-h") || !strcmp(argv[i], "--help") )
@@ -1499,6 +1514,22 @@ BIP_Status parseOptions(
         {
             pAppCtx->enableStreamingUsingPlaybackCh = true;
         }
+        else if ( !strcmp(argv[i], "-enableChunkXferEncoding") )
+        {
+            pAppCtx->enableHttpChunkXferEncoding = true;
+        }
+        else if ( !strcmp(argv[i], "-chunkSizeInBytes") && i+1<argc )
+        {
+            pAppCtx->chunkSizeInBytes = strtoul(argv[++i], NULL, 0);
+        }
+        else if ( !strcmp(argv[i], "-pcpPayloadLengthInBytes") && i+1<argc )
+        {
+            pAppCtx->pcpPayloadLengthInBytes = strtoul(argv[++i], NULL, 0);
+        }
+        else if ( !strcmp(argv[i], "-dtcpIpCci") && i+1<argc )
+        {
+            pAppCtx->dtcpIpCopyControlInfo = strtoul(argv[++i], NULL, 0);
+        }
         else
         {
             printf("Error: incorrect or unsupported option: %s\n", argv[i]);
@@ -1508,7 +1539,7 @@ BIP_Status parseOptions(
     if ( !pAppCtx->xcodeProfile ) pAppCtx->xcodeProfile = TRANSCODE_PROFILE_720p_AVC;
     if (pAppCtx->inactivityTimeoutInMs == 0) pAppCtx->inactivityTimeoutInMs = 60000; /* 60sec default. */
     bipStatus = BIP_SUCCESS;
-    BDBG_LOG(( BIP_MSG_PRE_FMT " port %s, interface %s, mediaDir %s, infoDir %s, DTCP/IP %s: AKE Port %s, dtcpIpKeyFormat=%s Xcode %s, trackGroupId %d, inactivityTimeoutInMs=%u, dontAddContentLength=%s maxDataRate=%u" BIP_MSG_PRE_ARG,
+    BDBG_LOG(( BIP_MSG_PRE_FMT " port %s, interface %s, mediaDir %s, infoDir %s, DTCP/IP %s: AKE Port %s, dtcpIpKeyFormat=%s Xcode %s, trackGroupId %d, inactivityTimeoutInMs=%u, dontAddContentLength=%s maxDataRate=%u httpChunking=%s CCI=0x%x dtcpPcpPayloadSize=%u httpChunkSize=%u" BIP_MSG_PRE_ARG,
                 BIP_String_GetString( pAppCtx->hPort ),
                 BIP_String_GetString( pAppCtx->hInterfaceName ),
                 BIP_String_GetString( pAppCtx->hMediaDirectoryPath ),
@@ -1520,7 +1551,11 @@ BIP_Status parseOptions(
                 pAppCtx->trackGroupId,
                 pAppCtx->inactivityTimeoutInMs,
                 pAppCtx->disableContentLengthInsertion ? "Y":"N",
-                pAppCtx->maxDataRate
+                pAppCtx->maxDataRate,
+                pAppCtx->enableHttpChunkXferEncoding ? "Y":"N",
+                pAppCtx->dtcpIpCopyControlInfo,
+                pAppCtx->pcpPayloadLengthInBytes,
+                pAppCtx->chunkSizeInBytes
              ));
     return ( bipStatus );
 } /* parseOptions */
@@ -1619,13 +1654,26 @@ int main(
             NEXUS_PlatformConfiguration platformConfig;
 
             NEXUS_Platform_GetDefaultSettings(&platformSettings);
+
+            /* Increase Nexus' MAIN heap to allow for 32 ASP channels...
+             * 32 channels * 3 MB per channel = 96 MB  */
+            platformSettings.heap[0].size += 96 *1024*1024;
+            platformSettings.fileModuleSettings.maxQueuedElements = 100;
+            platformSettings.fileModuleSettings.workerThreads = NEXUS_FILE_MAX_IOWORKERS;
+
             platformSettings.mode = NEXUS_ClientMode_eVerified;
-        /* Due to latest SAGE restrictions EXPORT_HEAP needs to be initialized even if we are not using SVP/EXPORT_HEAP(XRR).
-           It could be any small size heap.
-           Configure export heap since it's not allocated by nexus by default */
-        platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024;
+            /* Due to latest SAGE restrictions EXPORT_HEAP needs to be initialized even if we are not using SVP/EXPORT_HEAP(XRR).
+             * It could be any small size heap.
+             * Configure export heap since it's not allocated by nexus by default */
+            platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024;
             nrc = NEXUS_Platform_Init(&platformSettings);
-            BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_Platform_Init Failed" ), error, BIP_ERR_INTERNAL, bipStatus );
+            if (nrc == NEXUS_OUT_OF_DEVICE_MEMORY)
+            {
+                BDBG_ERR((BIP_MSG_PRE_FMT""BIP_MSG_PRE_ARG));
+                BDBG_ERR((BIP_MSG_PRE_FMT"               IMPORTANT!"BIP_MSG_PRE_ARG));
+                BDBG_ERR((BIP_MSG_PRE_FMT"Please check that your bmem settings of the Linux boot parameters meet the values suggested above"BIP_MSG_PRE_ARG));
+            }
+            BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_Platform_Init Failed" ), error, nrc, bipStatus );
 
             NEXUS_Platform_GetConfiguration(&platformConfig);
 

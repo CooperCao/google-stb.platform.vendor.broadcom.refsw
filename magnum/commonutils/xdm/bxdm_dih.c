@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2003-2017 Broadcom. All rights reserved.
+ * Copyright (C) 2003-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -238,7 +238,7 @@ BXDM_DIH_AddPictureProviderInterface_GetDefaultSettings (
 BERR_Code
 BXDM_DisplayInterruptHandler_AddPictureProviderInterface(
          BXDM_DisplayInterruptHandler_Handle hXdmDih,
-         BXDM_DisplayInterruptHandler_PictureProvider_isr fCallback,
+         BXDM_DisplayInterruptHandler_PictureProvider_isr fCallback_isr,
          void *pPrivateContext,
          BXDM_DisplayInterruptHandler_AddPictureProviderInterface_Settings *pDefSettings
          )
@@ -249,13 +249,13 @@ BXDM_DisplayInterruptHandler_AddPictureProviderInterface(
 
    BDBG_ENTER( BXDM_DisplayInterruptHandler_AddPictureProviderInterface );
 
-   BDBG_ASSERT( fCallback );
+   BDBG_ASSERT( fCallback_isr );
 
    BKNI_EnterCriticalSection();
 
    pPictureProvider = BXDM_DisplayInterruptHandler_S_FindPictureProvider_isr(
                hXdmDih,
-               fCallback,
+               fCallback_isr,
                pPrivateContext);
 
    BKNI_LeaveCriticalSection();
@@ -271,7 +271,7 @@ BXDM_DisplayInterruptHandler_AddPictureProviderInterface(
       /* Zero out the newly allocated context */
       BKNI_Memset( ( void * ) pPictureProvider, 0, sizeof( BXDM_DisplayInterruptHandler_P_PictureProviderCallback) );
 
-      pPictureProvider->fCallback = fCallback;
+      pPictureProvider->fCallback = fCallback_isr;
       pPictureProvider->pPrivateContext = pPrivateContext;
       pPictureProvider->uiVDCRectangleNumber = pDefSettings->uiVDCRectangleNumber;
 
@@ -327,7 +327,7 @@ err_duplicate:
 BERR_Code
 BXDM_DisplayInterruptHandler_RemovePictureProviderInterface(
          BXDM_DisplayInterruptHandler_Handle hXdmDih,
-         BXDM_DisplayInterruptHandler_PictureProvider_isr fCallback,
+         BXDM_DisplayInterruptHandler_PictureProvider_isr fCallback_isr,
          void *pPrivateContext
          )
 {
@@ -342,7 +342,7 @@ BXDM_DisplayInterruptHandler_RemovePictureProviderInterface(
    /* Find the picture provider */
    pPictureProvider = BXDM_DisplayInterruptHandler_S_FindPictureProvider_isr(
             hXdmDih,
-            fCallback,
+            fCallback_isr,
             pPrivateContext);
 
    BKNI_LeaveCriticalSection();
@@ -529,7 +529,7 @@ BXDM_DisplayInterruptHandler_Callback_isr(
 BERR_Code
 BXDM_DisplayInterruptHandler_InstallCallback_PictureDataReadyInterrupt(
          BXDM_DisplayInterruptHandler_Handle hXdmDih,
-         BXDM_DisplayInterruptHandler_PictureDataReady_isr fCallback,
+         BXDM_DisplayInterruptHandler_PictureDataReady_isr fCallback_isr,
          void *pPrivateContext,
          int32_t iPrivateParam
          )
@@ -538,7 +538,7 @@ BXDM_DisplayInterruptHandler_InstallCallback_PictureDataReadyInterrupt(
 
    BDBG_ASSERT( hXdmDih );
 
-   hXdmDih->stPictureDataReadyHandler.fCallback = fCallback;
+   hXdmDih->stPictureDataReadyHandler.fCallback = fCallback_isr;
    hXdmDih->stPictureDataReadyHandler.pPrivateContext = pPrivateContext;
    hXdmDih->stPictureDataReadyHandler.iPrivateParam = iPrivateParam;
 
@@ -641,7 +641,7 @@ BXDM_DisplayInterruptHandler_UnInstallCallback_DisplayInterrupt(
 BERR_Code
 BXDM_DisplayInterruptHandler_SetPictureProviderMode_isr(
    BXDM_DisplayInterruptHandler_Handle hXdmDih,
-   BXDM_DisplayInterruptHandler_PictureProvider_isr fCallback,
+   BXDM_DisplayInterruptHandler_PictureProvider_isr fCallback_isr,
    void *pPrivateContext,
    BXDM_DisplayInterruptHandler_PictureProviderMode eMode
    )
@@ -657,7 +657,7 @@ BXDM_DisplayInterruptHandler_SetPictureProviderMode_isr(
    /* Find the picture provider */
    pPictureProvider = BXDM_DisplayInterruptHandler_S_FindPictureProvider_isr(
             hXdmDih,
-            fCallback,
+            fCallback_isr,
             pPrivateContext);
 
    if ( NULL != pPictureProvider )

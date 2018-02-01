@@ -119,10 +119,12 @@ PRDY_LIB_PATH := ${BSEAV_TOP}/${CMNDRM_PRDY_LIBDIR}
 LDFLAGS += ${COMMON_DRM_LDFLAGS}
 CXXFLAGS += ${COMMON_DRM_CFLAGS}
 
+# Link with common_drm libraries
+LDFLAGS += $(COMMON_DRM_LIB_LDFLAGS)
+
 ifeq ($(SAGE_SUPPORT), y)
 	CXXFLAGS += -DSAGE_SUPPORT
 	CXXFLAGS += -I$(BSEAV_TOP)/../magnum/syslib/sagelib/include
-	LDFLAGS += -L${NEXUS_BIN_DIR} -lcmndrm_tl
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
 	LDFLAGS +=  -L${PRDY_LIB_PATH} -lplayreadypk64_host
 	PLAYREADY_LIB_PATH = ${CP} -pv ${PRDY_LIB_PATH}/libplayreadypk64_host.so  ${NEXUS_BIN_DIR}
@@ -133,7 +135,6 @@ endif
 else
 	LDFLAGS +=  -L${PRDY_LIB_PATH} -lplayreadypk
 	PLAYREADY_LIB_PATH = ${CP} -pv ${PRDY_LIB_PATH}/libplayreadypk.so  ${NEXUS_BIN_DIR}
-	LDFLAGS += -L${BSEAV}/lib/security/common_drm/lib/${CMNDRM_DIR} -lcmndrm
 endif
 
 LDFLAGS += -L${D_FOR_LIB_INSTALL} -lcdmi
@@ -178,9 +179,9 @@ endif
 prep_cmndrm:
 	@echo [ ..... Installing common DRM lib ..... ]
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
-	${CP} -pv $(BSEAV_TOP)/lib/security/common_drm/lib/$(CMNDRM_DIR)/libcmndrm64.so $(NEXUS_BIN_DIR)
+	${CP} -pv ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/lib/$(CMNDRM_DIR)/libcmndrm64.so $(NEXUS_BIN_DIR)
 else
-	${CP} -pv $(BSEAV_TOP)/lib/security/common_drm/lib/$(CMNDRM_DIR)/libcmndrm.so $(NEXUS_BIN_DIR)
+	${CP} -pv ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/lib/$(CMNDRM_DIR)/libcmndrm.so $(NEXUS_BIN_DIR)
 endif
 
 cmndrm_tl:

@@ -5,7 +5,6 @@
 
 #include "interface/khronos/include/GLES2/gl2.h"
 
-#include "middleware/khronos/common/khrn_mem.h"
 
 #define SIG_SHADER 0x0054ade7
 
@@ -26,7 +25,7 @@ typedef struct {
 } GL20_SHADER_T;
 
 extern void gl20_shader_init(GL20_SHADER_T *shader, int32_t name, unsigned type);
-extern void gl20_shader_term(MEM_HANDLE_T handle);
+extern void gl20_shader_term(void *p);
 
 extern void gl20_shader_acquire(GL20_SHADER_T *shader);
 extern void gl20_shader_release(GL20_SHADER_T *shader);

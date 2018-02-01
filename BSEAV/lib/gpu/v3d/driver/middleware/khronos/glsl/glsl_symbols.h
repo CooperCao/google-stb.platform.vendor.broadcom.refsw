@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
-#ifndef GLSL_SYMBOLS_H
-#define GLSL_SYMBOLS_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include <stdlib.h>
 #include <string.h>
@@ -508,7 +500,7 @@ struct _Symbol
 // Symbol constructors.
 //
 
-static INLINE void glsl_symbol_construct_type(Symbol* result, SymbolType* type)
+static inline void glsl_symbol_construct_type(Symbol* result, SymbolType* type)
 {
    result->flavour = SYMBOL_TYPE;
    result->name = type->name;
@@ -519,7 +511,7 @@ static INLINE void glsl_symbol_construct_type(Symbol* result, SymbolType* type)
 extern void glsl_symbol_construct_var_instance(Symbol* result, const char* name, SymbolType* type, TypeQualifier type_qual, void*compile_time_value);
 extern void glsl_symbol_construct_param_instance(Symbol* result, const char* name, SymbolType* type, TypeQualifier type_qual, ParamQualifier param_qual);
 
-static INLINE void glsl_symbol_construct_function_instance(Symbol* result, const char* name, SymbolType* type, ConstantFunction const_function_code, const char *const_function_body, Symbol* next_overload)
+static inline void glsl_symbol_construct_function_instance(Symbol* result, const char* name, SymbolType* type, ConstantFunction const_function_code, const char *const_function_body, Symbol* next_overload)
 {
    result->flavour = SYMBOL_FUNCTION_INSTANCE;
    result->name = name;
@@ -532,7 +524,7 @@ static INLINE void glsl_symbol_construct_function_instance(Symbol* result, const
    result->u.function_instance.next_overload = next_overload;
 }
 
-static INLINE void glsl_symbol_construct_struct_member(Symbol* result, const char* name, SymbolType* type)
+static inline void glsl_symbol_construct_struct_member(Symbol* result, const char* name, SymbolType* type)
 {
    result->flavour = SYMBOL_STRUCT_MEMBER;
    result->name = name;
@@ -641,5 +633,3 @@ extern SymbolType* primitiveTypeSubscriptTypes[PRIMITIVE_TYPES_COUNT];
 extern int primitiveTypeSubscriptDimensions[PRIMITIVE_TYPES_COUNT];
 // The type indices of scalar components, e.g. for PRIM_BVEC3, PRIM_BOOL; for PRIM_FLOAT, PRIM_FLOAT.
 extern PrimitiveTypeIndex primitiveScalarTypeIndices[PRIMITIVE_TYPES_COUNT];
-
-#endif // SYMBOLS_H

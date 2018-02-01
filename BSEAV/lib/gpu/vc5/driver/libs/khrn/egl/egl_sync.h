@@ -11,13 +11,9 @@ struct egl_sync
 {
    EGLenum type;
    EGLenum condition; /* signalling condition : e.g prior commands */
-   bool signaled;
    khrn_fence *fence;
    volatile int ref_count;
 };
-
-extern bool egl_syncs_lock_init(void);
-extern void egl_syncs_lock_deinit(void);
 
 extern EGL_SYNC_T* egl_sync_create(EGLenum type, EGLenum condition, const
       khrn_fence *fence);
@@ -29,10 +25,11 @@ extern EGL_SYNC_T* egl_sync_create_from_cl_event(EGLenum type, EGLenum condition
 extern void egl_sync_refdec(EGL_SYNC_T* sync);
 extern void egl_sync_refinc(EGL_SYNC_T *sync);
 
-/* an eglsync object is signaled when the dependencies specified in fence
- * reach state = completed */
 #define EGL_SYNC_SIGNALED_DEPS_STATE V3D_SCHED_DEPS_COMPLETED
+/* an eglsync object is signaled when the dependencies specified in fence
+ * reach state = completed;
+ * This function flushes all render states that are users of this sync
+ */
 extern bool egl_sync_is_signaled(EGL_SYNC_T*);
-extern void egl_sync_set_signaled(EGL_SYNC_T * sync);
 
 #endif /* EGL_SYNC_H */

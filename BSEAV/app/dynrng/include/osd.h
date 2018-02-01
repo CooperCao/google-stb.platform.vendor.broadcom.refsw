@@ -63,6 +63,7 @@ void osd_flip(OsdHandle osd);
 void osd_destroy(OsdHandle osd);
 void osd_toggle_visibility(OsdHandle osd);
 void osd_set_visibility(OsdHandle osd, bool visible);
+void osd_set_info_visibility(OsdHandle osd, bool visible);
 void osd_set_usage_mode(OsdHandle osd, PlatformUsageMode usageMode, unsigned layout);
 void osd_update_out_model(OsdHandle osd, const PlatformPictureModel * pModel);
 void osd_update_gfx_model(OsdHandle osd, const PlatformPictureModel * pModel);

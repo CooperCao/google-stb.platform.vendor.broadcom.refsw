@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -819,14 +819,14 @@ NEXUS_PictureDecoder_Stop(NEXUS_PictureDecoderHandle decoder)
     NEXUS_TaskCallback_Set(decoder->pictureParsedCallback, NULL);
     NEXUS_TaskCallback_Set(decoder->segmentDecodedCallback, NULL);
 
+    BSID_GetDefaultStopSettings(&settings);
     if ( decoder->state == NEXUS_PictureDecoder_P_eDecoding ||
          decoder->state == NEXUS_PictureDecoder_P_eStreamInfo ||
          decoder->state == NEXUS_PictureDecoder_P_eMoreInfoData ||
          decoder->state == NEXUS_PictureDecoder_P_eMoreImageData ) {
-        BSID_GetDefaultStopSettings(&settings);
         settings.bForceStop = true;
-        BSID_StopDecode(decoder->sid, &settings);
     }
+    BSID_StopDecode(decoder->sid, &settings);
 
     NEXUS_PictureDecoder_P_Reset(decoder);
     hwState->acquired = NULL;

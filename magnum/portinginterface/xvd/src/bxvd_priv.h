@@ -57,6 +57,10 @@
 #include "bxdm_dih.h"
 #include "bxdm_pp.h"
 
+#if BXVD_DM_ENABLE_PPB_GRAB_MODE
+#include "stdio.h"
+#endif
+
 /* needed to get pb_lib.c to compile.
  * better to change pi_util.h?
  */
@@ -198,6 +202,10 @@ extern "C" {
                                            BXVD_P_CREATE_PROTOCOLS_MASK( BAVC_VideoCompressionStd_eMVC)  | \
                                            BXVD_P_CREATE_PROTOCOLS_MASK( BAVC_VideoCompressionStd_eAVS)  | \
                                            BXVD_P_CREATE_PROTOCOLS_MASK( BAVC_VideoCompressionStd_eVP9))
+
+#define BXVD_P_REVU_DECODE_PROTOCOLS_MASK (BXVD_P_REVS_DECODE_PROTOCOLS_MASK | \
+                                           BXVD_P_CREATE_PROTOCOLS_MASK( BAVC_VideoCompressionStd_eAVS2))
+
 #endif
 
 #define BXVD_P_OFFSET_TO_VA(hXvdCh, uiOffset)                                               \
@@ -1019,6 +1027,15 @@ typedef struct BXVD_P_Channel
 
    /* SW7425-2686: contains the settings for multi-pass DQT */
    BXVD_TrickModeSettings stTrickModeSettings;
+
+#if BXVD_DM_ENABLE_PPB_GRAB_MODE
+   FILE* fCapturePPB;
+#endif
+   union {
+       struct {
+            BXVD_Decoder_P_UnifiedPictureContext  stUnifiedContext;
+       } BXVD_Decoder_S_DeliveryQ_DropPicture_isr;
+   } functionData;
 
 } BXVD_P_Channel;
 

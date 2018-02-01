@@ -86,7 +86,18 @@ LDFLAGS += ${NEXUS_EXTRA_LDFLAGS}
 # Always build with debug
 CFLAGS += -g
 
-STANDBY_SRCS += standby.c standby_priv.c cmdline.c util.c
+STANDBY_SRCS += \
+				standby.c \
+				standby_priv.c \
+				display.c \
+				video.c \
+				live.c \
+				play.c \
+				graphics.c \
+				frontend.c \
+				io.c \
+				cmdline.c \
+				util.c
 
 # Pmlib
 PMLIB_TOP=$(NEXUS_TOP)/../BSEAV/lib/pmlib
@@ -119,46 +130,36 @@ CFLAGS += -I$(GLOB_PATH)
 STANDBY_SRCS += glob.c
 endif
 
-# PSIP library is being built aas part of playback Ip
-B_PSIP_TOP := $(NEXUS_TOP)/../rockford/lib/psip
-include $(B_PSIP_TOP)/b_psip_lib.inc
-CFLAGS += $(addprefix -I,$(B_PSIP_LIB_PUBLIC_INCLUDES)) -I$(BSEAV)/api/include
-
 #
 # playback_ip
 #
 .PHONY: playback_ip clean_playback_ip
 ifeq ($(PLAYBACK_IP_SUPPORT),y)
-include $(NEXUS_TOP)/lib/playback_ip/b_playback_ip_lib.inc
+include $(NEXUS_TOP)/lib/bip/bip_lib.inc
 clean: clean_playback_ip
 libs: playback_ip
 
 playback_ip:
-	$(Q_)$(MAKE) -C $(NEXUS_TOP)/lib/playback_ip/apps install
+	$(Q_)$(MAKE) REFSW_BUILD=y -C $(NEXUS_TOP)/lib/bip/build B_NEXUS_API_BUILD_COMPLETED=y install
 clean_playback_ip:
-	$(Q_)$(MAKE) -C $(NEXUS_TOP)/lib/playback_ip/apps clean
+	$(Q_)$(MAKE) REFSW_BUILD=y -C $(NEXUS_TOP)/lib/bip/build clean
 
-CFLAGS += $(PLAYBACK_IP_CFLAGS)
-LDFLAGS += $(PLAYBACK_IP_LDFLAGS)
+CFLAGS += $(BIP_ALL_LIB_CFLAGS)
+LDFLAGS += $(BIP_ALL_LIB_LDFLAGS)
 else
-.PHONY: os clean_os psip clean_psip
+.PHONY: os clean_os
 B_LIB_TOP=$(NEXUS_TOP)/lib
 include $(B_LIB_TOP)/os/b_os_lib.inc
-clean: clean_os clean_psip
-libs: os psip
+clean: clean_os
+libs: os
 
 os:
 	$(Q_)$(MAKE) -C $(NEXUS_TOP)/lib/os
 clean_os:
 	$(Q_)$(MAKE) -C $(NEXUS_TOP)/lib/os clean
 
-psip:
-	$(Q_)$(MAKE) -C $(B_PSIP_TOP)
-clean_psip:
-	$(Q_)$(MAKE) -C $(B_PSIP_TOP) clean
-
 CFLAGS += $(addprefix -I,$(B_OS_LIB_PUBLIC_INCLUDES))
-LDFLAGS += -lb_psip -lb_os
+LDFLAGS += -lb_os
 endif
 
 # media probe
@@ -168,6 +169,11 @@ CFLAGS += $(addprefix -I,$(BMEDIA_INCLUDES))
 CFLAGS += $(addprefix -D,$(BMEDIA_PROBE_DEFINES))
 
 STANDBY_OBJS = $(addprefix $(BINDIR)/,$(notdir $(patsubst %.c, %.o, $(STANDBY_SRCS))))
+
+include $(NEXUS_TOP)/nxclient/apps/utils/nxutils.inc
+STANDBY_OBJS += $(addprefix $(BINDIR)/,$(foreach src,$(NXUTILS_SINGLE_SOURCES), $(patsubst %.c,%.o,$(notdir $(src)))))
+CFLAGS += $(addprefix -I,$(NXUTILS_INCLUDES))
+vpath %.c $(foreach src,$(NXUTILS_SINGLE_SOURCES), $(dir $(src)))
 
 $(BINDIR)/%.o: %.c
 	@echo [Compile... $(notdir $<)]
@@ -179,6 +185,7 @@ $(BINDIR)/standby: $(STANDBY_OBJS) libs $(if ${B_NEXUS_API_BUILD_COMPLETED}, , a
 	@mkdir -p $(dir $@)
 	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o, $^) $(LDFLAGS)
 	cp -f $@ $(NEXUS_BIN_DIR)
+	cp -f $(NEXUS_TOP)/nxclient/apps/resources/arial_18_aa.bwin_font $(NEXUS_BIN_DIR)
 
 .PHONY: standby
 standby: $(BINDIR)/standby

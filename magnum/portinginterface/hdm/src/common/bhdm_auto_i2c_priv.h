@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #ifndef BHDM_AUTO_I2C_PRIV_H__
@@ -117,26 +116,6 @@ typedef enum BHDM_AUTO_I2C_P_CHANNEL_OFFSET
 
 /******************************************************************************
 Summary:
-Enumerated Type of different Auto I2c Modes available
-NOTE: These enums are mapped to the MODE field within the RDB register HDMI_AUTO_I2C_CH0_CFG
-
-Description:
-The HDMI core can support up to four automated I2c modes
-
-See Also:
-*******************************************************************************/
-typedef enum BHDM_AUTO_I2C_MODE
-{
-	BHDM_AUTO_I2C_MODE_eWrite,
-	BHDM_AUTO_I2C_MODE_eRead,
-	BHDM_AUTO_I2C_MODE_ePollScdcUpdate0,
-	BHDM_AUTO_I2C_MODE_ePollHdcp22RxStatus,
-	BHDM_AUTO_I2C_MODE_eMax
-} BHDM_AUTO_I2C_MODE ;
-
-
-/******************************************************************************
-Summary:
 Enumerated Type of different Auto I2c Read Data available.  The type of data read is stored to properly
 intepret the read data after the Auto I2C Read is completed
 
@@ -175,20 +154,8 @@ typedef enum BHDM_AUTO_I2C_INTERRUPT_MASK
  } BHDM_AUTO_I2C_INTERRUPT_MASK ;
 
 
-typedef struct BHDM_AUTO_I2C_P_TriggerConfiguration
-{
-	uint8_t timerMs ;
-	uint8_t bscxDataOffset ;
-	BHDM_AUTO_I2C_MODE eMode ;
-	uint8_t triggerSource ;  /* RDB Write (0) or Timer (1) */
-	uint8_t enable ;
-	bool activePolling ;
-} BHDM_AUTO_I2C_P_TriggerConfiguration ;
-
-
-
 BERR_Code BHDM_AUTO_I2C_P_SetBSCx(const BHDM_Handle hHDMI,
-	BHDM_AUTO_I2C_P_CHANNEL eChannel,  /* channel: CH0, CH1, CH2, or CH3 */
+	BHDM_AUTO_I2C_CHANNEL eChannel,  /* channel: CH0, CH1, CH2, or CH3 */
 	BHDM_AUTO_I2C_P_CHANNEL_OFFSET eRegOffset, /* CHy_REGx it can range from 0 to 13 */
 	uint8_t bscxOffset, /* BSCx offset register can range from 0 to 21; Maps to BSCx registers*/
 	uint32_t data /* data to be written */
@@ -200,21 +167,21 @@ BERR_Code BHDM_AUTO_I2C_P_EnableInterrupts(BHDM_Handle hHDMI);
 BERR_Code BHDM_AUTO_I2C_P_DisableInterrupts(BHDM_Handle hHDMI);
 
 void BHDM_AUTO_I2C_EnableReadChannel_isr(const BHDM_Handle hHDMI,
-	BHDM_AUTO_I2C_P_CHANNEL eChannel, uint8_t enable
+	BHDM_AUTO_I2C_CHANNEL eChannel, uint8_t enable
 ) ;
 BERR_Code BHDM_AUTO_I2C_P_ConfigureReadChannel_isr(const BHDM_Handle hHDMI,
 	BHDM_AUTO_I2C_MODE eAutoI2cMode,
 	uint8_t slaveAddress, uint8_t slaveOffset, uint8_t length) ;
 
 BERR_Code BHDM_AUTO_I2C_P_ConfigureWriteChannel_isr(const BHDM_Handle hHDMI,
-	BHDM_AUTO_I2C_P_CHANNEL eChannel,
+	BHDM_AUTO_I2C_CHANNEL eChannel,
 	uint8_t slaveAddress, uint8_t slaveOffset, uint8_t *pBuffer, uint8_t length) ;
 
-void  BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(const BHDM_Handle hHDMI, BHDM_AUTO_I2C_P_CHANNEL eChannel,
-	const BHDM_AUTO_I2C_P_TriggerConfiguration *pstTriggerConfig) ;
+void  BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(BHDM_Handle hHDMI, BHDM_AUTO_I2C_CHANNEL eChannel,
+	const BHDM_AUTO_I2C_TriggerConfiguration *pstTriggerConfig) ;
 
-void BHDM_AUTO_I2C_P_GetTriggerConfiguration_isrsafe(const BHDM_Handle hHDMI, BHDM_AUTO_I2C_P_CHANNEL eChannel,
-	BHDM_AUTO_I2C_P_TriggerConfiguration *pstTriggerConfig) ;
+void BHDM_AUTO_I2C_P_GetTriggerConfiguration_isrsafe(const BHDM_Handle hHDMI, BHDM_AUTO_I2C_CHANNEL eChannel,
+	BHDM_AUTO_I2C_TriggerConfiguration *pstTriggerConfig) ;
 
 /******************************************************************************
 Summary:
@@ -247,6 +214,25 @@ BERR_Code BHDM_AUTO_I2C_P_ConfigureReadChannel(const BHDM_Handle hHDMI,
 
 /******************************************************************************
 Summary:
+Determine if any channel is actively polling
+NOTE: I2c writes are scheduled for one time only
+
+Input:
+	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
+
+Output:
+	<None>
+
+Returns:
+	bool - status of auto i2c polling
+
+See Also:
+*******************************************************************************/
+bool BHDM_AUTO_I2C_P_IsPollingEnabled(const BHDM_Handle hHDMI) ;
+
+
+/******************************************************************************
+Summary:
 Set up an Auto I2C Channel for writing.
 NOTE: I2c writes are scheduled for one time only
 
@@ -266,11 +252,9 @@ Returns:
 	BERR_INVALID_PARAMETER - Invalid function parameter.
 
 See Also:
-	BHDM_AUTO_I2C_P_ChannelStart
-	BHDM_AUTO_I2C_P_ChannelStop
 *******************************************************************************/
 BERR_Code BHDM_AUTO_I2C_P_ConfigureWriteChannel(const BHDM_Handle hHDMI,
-	BHDM_AUTO_I2C_P_CHANNEL eChannel,
+	BHDM_AUTO_I2C_CHANNEL eChannel,
 	uint8_t slaveAddress, uint8_t slaveOffset, uint8_t *pBuffer, uint8_t length) ;
 
 

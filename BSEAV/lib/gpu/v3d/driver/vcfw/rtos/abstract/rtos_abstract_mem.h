@@ -6,6 +6,7 @@
 #include "vcinclude/common.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "interface/vcos/vcos.h"
 #include "interface/khronos/common/khrn_int_image.h"
@@ -16,20 +17,6 @@
    #define RCM_ALIGNOF(T) __alignof(T)
 #else
    #define RCM_ALIGNOF(T) (sizeof(struct { T t; char ch; }) - sizeof(T))
-#endif
-
-#ifdef _MSC_VER
-   #define RCM_INLINE __inline
-#else
-   #ifdef __LCC__
-      #define RCM_INLINE
-   #elif defined __GNUC__
-      #define RCM_INLINE inline __attribute__((always_inline)) __attribute__((no_instrument_function))
-   #elif __STDC_VERSION__
-      #define RCM_INLINE inline
-   #else
-      #define RCM_INLINE __inline__       /* C89 version */
-   #endif
 #endif
 
 /*
@@ -46,7 +33,6 @@ by calling mem_acquire and decremented by calling mem_release.
 
 /*
 MEM_ZERO_SIZE_HANDLE is a preallocated handle to a zero-size block of memory
-MEM_EMPTY_STRING_HANDLE is a preallocated handle to a block of memory containing the empty string
 
 MEM_HANDLE_INVALID is the equivalent of NULL for MEM_HANDLE_Ts -- no valid
 MEM_HANDLE_T will ever equal MEM_HANDLE_INVALID.
@@ -148,11 +134,6 @@ extern void mem_term(void);
 */
 
 extern void mem_compact(mem_compact_mode_t mode);
-
-uint32_t mem_map_cached_to_physical(void *virt);
-void *mem_map_physical_to_cached(uint32_t phys);
-void * mem_map_cached_to_uncached(void *virt);
-void * mem_map_uncached_to_cached(void *virt);
 
 /******************************************************************************
 Movable memory core API
@@ -286,17 +267,22 @@ typedef enum {
    */
    MEM_FLAG_SECURE = 1 << 12,
 
+   /*
+      If the TRANSIENT flag is set then the memory is only short lived (for the duration of the call)
+   */
+   MEM_FLAG_TRANSIENT = 1 << 13,
+
 } MEM_FLAG_T;
 
 /*
-   A common way of storing a MEM_HANDLE_T together with an offset into it.
+   A common way of storing a pointer together with an offset into it.
 */
 
 typedef struct
 {
-   MEM_HANDLE_T mh_handle;
+   void *p;
    uint32_t offset;
-} MEM_HANDLE_OFFSET_T;
+} POINTER_OFFSET_T;
 
 /* gets the size of a cacheline in the host CPU */
 uint32_t mem_cacheline_size(void);
@@ -352,7 +338,7 @@ extern MEM_HANDLE_T mem_wrap(void *p, uint32_t offset, uint32_t size, uint32_t a
    - The reference count of the MEM_HANDLE_T is incremented.
 */
 
-static RCM_INLINE void mem_acquire(MEM_HANDLE_T handle)
+static inline void mem_acquire(MEM_HANDLE_T handle)
 {
    MEM_HEADER_T * h = (MEM_HEADER_T *)handle;
 
@@ -390,7 +376,7 @@ static RCM_INLINE void mem_acquire(MEM_HANDLE_T handle)
 
 extern void mem_release_inner(MEM_HANDLE_T handle);
 
-static RCM_INLINE void mem_release(MEM_HANDLE_T handle)
+static inline void mem_release(MEM_HANDLE_T handle)
 {
    MEM_HEADER_T *h = (MEM_HEADER_T *)handle;
    unsigned int ref_count;
@@ -446,7 +432,7 @@ extern int mem_try_release(
    -
 */
 
-static RCM_INLINE uint32_t mem_get_size(MEM_HANDLE_T handle)
+static inline uint32_t mem_get_size(MEM_HANDLE_T handle)
 {
    MEM_HEADER_T *h = (MEM_HEADER_T *)handle;
    assert(h->magic == MAGIC);
@@ -474,7 +460,7 @@ Invariants preserved:
 -
 */
 
-static RCM_INLINE void *mem_get_param(MEM_HANDLE_T handle)
+static inline void *mem_get_param(MEM_HANDLE_T handle)
 {
    MEM_HEADER_T *h = (MEM_HEADER_T *)handle;
    assert(h->magic == MAGIC);
@@ -492,7 +478,7 @@ static RCM_INLINE void *mem_get_param(MEM_HANDLE_T handle)
      passed to mem_alloc) is returned.
 */
 
-static RCM_INLINE uint32_t mem_get_align(MEM_HANDLE_T handle)
+static inline uint32_t mem_get_align(MEM_HANDLE_T handle)
 {
    MEM_HEADER_T *h = (MEM_HEADER_T *)handle;
    assert(h->magic == MAGIC);
@@ -510,7 +496,7 @@ static RCM_INLINE uint32_t mem_get_align(MEM_HANDLE_T handle)
    - The MEM_HANDLE_T's flags (as passed to mem_alloc) are returned.
 */
 
-static RCM_INLINE MEM_FLAG_T mem_get_flags(MEM_HANDLE_T handle)
+static inline MEM_FLAG_T mem_get_flags(MEM_HANDLE_T handle)
 {
    MEM_HEADER_T *h = (MEM_HEADER_T *)handle;
    assert(h->magic == MAGIC);
@@ -756,12 +742,6 @@ extern void mem_unretain(
 Movable memory helpers
 ******************************************************************************/
 
-extern MEM_HANDLE_T mem_strdup_ex(
-   const char *str,
-   mem_compact_mode_t mode);
-
-#define mem_strdup(str) mem_strdup_ex((str),MEM_COMPACT_ALL)
-
 /*
    Attempts to allocate a movable block of memory of the same size and alignment
    as the specified structure type.
@@ -797,7 +777,7 @@ extern MEM_HANDLE_T mem_strdup_ex(
 #ifndef VCMODS_LCC
 /* LCC doesn't support inline so cannot define these functions in a header file */
 
-static RCM_INLINE void mem_assign(MEM_HANDLE_T *x, MEM_HANDLE_T y)
+static inline void mem_assign(MEM_HANDLE_T *x, MEM_HANDLE_T y)
 {
    if (y != MEM_HANDLE_INVALID)
       mem_acquire(y);
@@ -829,7 +809,7 @@ static RCM_INLINE void mem_assign(MEM_HANDLE_T *x, MEM_HANDLE_T y)
 
 #define MEM_ASSIGN(x, y)            mem_assign(&(x), (y))
 
-/*@null@*/ static RCM_INLINE void * mem_maybe_lock(MEM_HANDLE_T handle, MEM_LOCK_T *lbh)
+/*@null@*/ static inline void * mem_maybe_lock(MEM_HANDLE_T handle, MEM_LOCK_T *lbh)
 {
    if (handle == MEM_HANDLE_INVALID)
       return 0;
@@ -837,7 +817,7 @@ static RCM_INLINE void mem_assign(MEM_HANDLE_T *x, MEM_HANDLE_T y)
       return mem_lock(handle, lbh);
 }
 
-static RCM_INLINE void mem_maybe_unlock(MEM_HANDLE_T handle)
+static inline void mem_maybe_unlock(MEM_HANDLE_T handle)
 {
    if (handle != MEM_HANDLE_INVALID)
       mem_unlock(handle);
@@ -845,7 +825,6 @@ static RCM_INLINE void mem_maybe_unlock(MEM_HANDLE_T handle)
 
 #endif
 
-extern void mem_flush_cache(void);
 extern void mem_flush_cache_range(void * p, size_t numBytes);
 extern void mem_copy2d(KHRN_IMAGE_FORMAT_T format, MEM_HANDLE_T hDst, MEM_HANDLE_T hSrc,
                        uint16_t width, uint16_t height, int32_t stride, int32_t dstStride, bool secure);
@@ -855,7 +834,6 @@ header/link
 ******************************************************************************/
 
 extern MEM_HANDLE_T MEM_ZERO_SIZE_HANDLE;
-extern MEM_HANDLE_T MEM_EMPTY_STRING_HANDLE;
 
 /******************************************************************************
 special interface only for KHRN_AUTOCLIF

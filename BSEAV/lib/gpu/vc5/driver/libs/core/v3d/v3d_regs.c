@@ -1,0 +1,597 @@
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#include "v3d_regs.h"
+
+bool v3d_is_bin_cle_reg(uint32_t addr)
+{
+   if (!v3d_is_core_reg(addr))
+      return false;
+
+   switch (v3d_reg_to_core0(addr))
+   {
+   /* BEGIN AUTO-GENERATED CODE (v3d_is_bin_cle_reg_cases) */
+#if V3D_VER_AT_LEAST(4,3,10,0)
+   case V3D_CLE_0_CT0CS:
+   case V3D_CLE_0_CT0EA:
+   case V3D_CLE_0_CT0CA:
+   case V3D_CLE_0_CT0RA0:
+   case V3D_CLE_0_CT0LC:
+   case V3D_CLE_0_CT0PC:
+   case V3D_CLE_0_CT0SYNC:
+   case V3D_CLE_0_CT0QTS:
+   case V3D_CLE_0_CT0QBA:
+   case V3D_CLE_0_CT0QEA:
+   case V3D_CLE_0_CT0QMA:
+   case V3D_CLE_0_CT0QMS:
+   case V3D_CLE_0_CT0QSYNC:
+   case V3D_CLE_0_CT0CAD:
+#elif V3D_VER_AT_LEAST(4,3,9,0)
+   case V3D_CLE_0_CT0CS:
+   case V3D_CLE_0_CT0EA:
+   case V3D_CLE_0_CT0CA:
+   case V3D_CLE_0_CT0RA0:
+   case V3D_CLE_0_CT0LC:
+   case V3D_CLE_0_CT0PC:
+   case V3D_CLE_0_CT0SYNC:
+   case V3D_CLE_0_CT0QTS:
+   case V3D_CLE_0_CT0QBA:
+   case V3D_CLE_0_CT0QEA:
+   case V3D_CLE_0_CT0QMA:
+   case V3D_CLE_0_CT0QMS:
+   case V3D_CLE_0_CT0QSYNC:
+   case V3D_CLE_0_CT0CAD:
+#elif V3D_VER_AT_LEAST(4,3,8,0)
+   case V3D_CLE_0_CT0CS:
+   case V3D_CLE_0_CT0EA:
+   case V3D_CLE_0_CT0CA:
+   case V3D_CLE_0_CT0RA0:
+   case V3D_CLE_0_CT0LC:
+   case V3D_CLE_0_CT0PC:
+   case V3D_CLE_0_CT0SYNC:
+   case V3D_CLE_0_CT0QTS:
+   case V3D_CLE_0_CT0QBA:
+   case V3D_CLE_0_CT0QEA:
+   case V3D_CLE_0_CT0QMA:
+   case V3D_CLE_0_CT0QMS:
+   case V3D_CLE_0_CT0QSYNC:
+   case V3D_CLE_0_CT0CAD:
+#elif V3D_VER_AT_LEAST(4,3,4,0)
+   case V3D_CLE_0_CT0CS:
+   case V3D_CLE_0_CT0EA:
+   case V3D_CLE_0_CT0CA:
+   case V3D_CLE_0_CT0RA0:
+   case V3D_CLE_0_CT0LC:
+   case V3D_CLE_0_CT0PC:
+   case V3D_CLE_0_CT0SYNC:
+   case V3D_CLE_0_CT0QTS:
+   case V3D_CLE_0_CT0QBA:
+   case V3D_CLE_0_CT0QEA:
+   case V3D_CLE_0_CT0QMA:
+   case V3D_CLE_0_CT0QMS:
+   case V3D_CLE_0_CT0QSYNC:
+   case V3D_CLE_0_CT0CAD:
+#elif V3D_VER_AT_LEAST(4,3,0,0)
+   case V3D_CLE_0_CT0CS:
+   case V3D_CLE_0_CT0EA:
+   case V3D_CLE_0_CT0CA:
+   case V3D_CLE_0_CT0RA0:
+   case V3D_CLE_0_CT0LC:
+   case V3D_CLE_0_CT0PC:
+   case V3D_CLE_0_CT0SYNC:
+   case V3D_CLE_0_CT0QTS:
+   case V3D_CLE_0_CT0QBA:
+   case V3D_CLE_0_CT0QEA:
+   case V3D_CLE_0_CT0QMA:
+   case V3D_CLE_0_CT0QMS:
+   case V3D_CLE_0_CT0QSYNC:
+   case V3D_CLE_0_CT0CAD:
+#elif V3D_VER_AT_LEAST(4,2,13,0)
+   case V3D_CLE_0_CT0CS:
+   case V3D_CLE_0_CT0EA:
+   case V3D_CLE_0_CT0CA:
+   case V3D_CLE_0_CT0RA0:
+   case V3D_CLE_0_CT0LC:
+   case V3D_CLE_0_CT0PC:
+   case V3D_CLE_0_CT0SYNC:
+   case V3D_CLE_0_CT0QTS:
+   case V3D_CLE_0_CT0QBA:
+   case V3D_CLE_0_CT0QEA:
+   case V3D_CLE_0_CT0QMA:
+   case V3D_CLE_0_CT0QMS:
+   case V3D_CLE_0_CT0QSYNC:
+   case V3D_CLE_0_CT0CAD:
+#elif V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CLE_0_CT0CS:
+   case V3D_CLE_0_CT0EA:
+   case V3D_CLE_0_CT0CA:
+   case V3D_CLE_0_CT0RA0:
+   case V3D_CLE_0_CT0LC:
+   case V3D_CLE_0_CT0PC:
+   case V3D_CLE_0_CT0SYNC:
+   case V3D_CLE_0_CT0QTS:
+   case V3D_CLE_0_CT0QBA:
+   case V3D_CLE_0_CT0QEA:
+   case V3D_CLE_0_CT0QMA:
+   case V3D_CLE_0_CT0QMS:
+   case V3D_CLE_0_CT0QSYNC:
+   case V3D_CLE_0_CT0CAD:
+#elif V3D_VER_AT_LEAST(3,3,2,0)
+   case V3D_CLE_0_CT0CS:
+   case V3D_CLE_0_CT0EA:
+   case V3D_CLE_0_CT0CA:
+   case V3D_CLE_0_CT0RA0:
+   case V3D_CLE_0_CT0LC:
+   case V3D_CLE_0_CT0PC:
+   case V3D_CLE_0_CT0SYNC:
+   case V3D_CLE_0_CT0QBA:
+   case V3D_CLE_0_CT0QEA:
+   case V3D_CLE_0_CT0QMA:
+   case V3D_CLE_0_CT0QMS:
+   case V3D_CLE_0_CT0QSYNC:
+   case V3D_CLE_0_CT0CAD:
+#elif V3D_VER_AT_LEAST(3,3,1,0)
+   case V3D_CLE_0_CT0CS:
+   case V3D_CLE_0_CT0EA:
+   case V3D_CLE_0_CT0CA:
+   case V3D_CLE_0_CT0RA0:
+   case V3D_CLE_0_CT0LC:
+   case V3D_CLE_0_CT0PC:
+   case V3D_CLE_0_CT0SYNC:
+   case V3D_CLE_0_CT0QBA:
+   case V3D_CLE_0_CT0QEA:
+   case V3D_CLE_0_CT0QMA:
+   case V3D_CLE_0_CT0QMS:
+   case V3D_CLE_0_CT0QSYNC:
+   case V3D_CLE_0_CT0CAD:
+#elif V3D_VER_AT_LEAST(3,3,0,0)
+   case V3D_CLE_0_CT0CS:
+   case V3D_CLE_0_CT0EA:
+   case V3D_CLE_0_CT0CA:
+   case V3D_CLE_0_CT0RA0:
+   case V3D_CLE_0_CT0LC:
+   case V3D_CLE_0_CT0PC:
+   case V3D_CLE_0_CT0SYNC:
+   case V3D_CLE_0_CT0QBA:
+   case V3D_CLE_0_CT0QEA:
+   case V3D_CLE_0_CT0QMA:
+   case V3D_CLE_0_CT0QMS:
+   case V3D_CLE_0_CT0QSYNC:
+   case V3D_CLE_0_CT0CAD:
+#elif V3D_VER_AT_LEAST(3,2,1,0)
+   case V3D_CLE_0_CT0CS:
+   case V3D_CLE_0_CT0EA:
+   case V3D_CLE_0_CT0CA:
+   case V3D_CLE_0_CT0RA0:
+   case V3D_CLE_0_CT0LC:
+   case V3D_CLE_0_CT0PC:
+   case V3D_CLE_0_CT0SYNC:
+   case V3D_CLE_0_CT0QBA:
+   case V3D_CLE_0_CT0QEA:
+   case V3D_CLE_0_CT0QMA:
+   case V3D_CLE_0_CT0QMS:
+   case V3D_CLE_0_CT0QSYNC:
+   case V3D_CLE_0_CT0CAD:
+#elif V3D_VER_AT_LEAST(3,2,0,0)
+   case V3D_CLE_0_CT0CS:
+   case V3D_CLE_0_CT0EA:
+   case V3D_CLE_0_CT0CA:
+   case V3D_CLE_0_CT0RA0:
+   case V3D_CLE_0_CT0LC:
+   case V3D_CLE_0_CT0PC:
+   case V3D_CLE_0_CT0SYNC:
+   case V3D_CLE_0_CT0QBA:
+   case V3D_CLE_0_CT0QEA:
+   case V3D_CLE_0_CT0QMA:
+   case V3D_CLE_0_CT0QMS:
+   case V3D_CLE_0_CT0QSYNC:
+   case V3D_CLE_0_CT0CAD:
+#else
+#error
+#endif
+   /* END AUTO-GENERATED CODE (v3d_is_bin_cle_reg_cases) */
+      return true;
+   default:
+      return false;
+   }
+}
+
+bool v3d_is_render_cle_reg(uint32_t addr)
+{
+   if (!v3d_is_core_reg(addr))
+      return false;
+
+   switch (v3d_reg_to_core0(addr))
+   {
+   /* BEGIN AUTO-GENERATED CODE (v3d_is_render_cle_reg_cases) */
+#if V3D_VER_AT_LEAST(4,3,10,0)
+   case V3D_CLE_0_CT1CS:
+   case V3D_CLE_0_CT1EA:
+   case V3D_CLE_0_CT1CA:
+   case V3D_CLE_0_CT1RA0:
+   case V3D_CLE_0_CT1LC:
+   case V3D_CLE_0_CT1PC:
+   case V3D_CLE_0_CT1CFG:
+   case V3D_CLE_0_CT1TILECT:
+   case V3D_CLE_0_CT1TSKIP:
+   case V3D_CLE_0_CT1PTCT:
+   case V3D_CLE_0_CT1SYNC:
+   case V3D_CLE_0_CT1QBA:
+   case V3D_CLE_0_CT1QEA:
+   case V3D_CLE_0_CT1QCFG:
+   case V3D_CLE_0_CT1QTSKIP:
+   case V3D_CLE_0_CT1QBASE0:
+   case V3D_CLE_0_CT1QBASE1:
+   case V3D_CLE_0_CT1QBASE2:
+   case V3D_CLE_0_CT1QBASE3:
+   case V3D_CLE_0_CT1QBASE4:
+   case V3D_CLE_0_CT1QBASE5:
+   case V3D_CLE_0_CT1QBASE6:
+   case V3D_CLE_0_CT1QBASE7:
+   case V3D_CLE_0_CT1QSYNC:
+   case V3D_CLE_0_CT1CAD:
+#elif V3D_VER_AT_LEAST(4,3,9,0)
+   case V3D_CLE_0_CT1CS:
+   case V3D_CLE_0_CT1EA:
+   case V3D_CLE_0_CT1CA:
+   case V3D_CLE_0_CT1RA0:
+   case V3D_CLE_0_CT1LC:
+   case V3D_CLE_0_CT1PC:
+   case V3D_CLE_0_CT1CFG:
+   case V3D_CLE_0_CT1TILECT:
+   case V3D_CLE_0_CT1TSKIP:
+   case V3D_CLE_0_CT1PTCT:
+   case V3D_CLE_0_CT1SYNC:
+   case V3D_CLE_0_CT1QBA:
+   case V3D_CLE_0_CT1QEA:
+   case V3D_CLE_0_CT1QCFG:
+   case V3D_CLE_0_CT1QTSKIP:
+   case V3D_CLE_0_CT1QBASE0:
+   case V3D_CLE_0_CT1QBASE1:
+   case V3D_CLE_0_CT1QBASE2:
+   case V3D_CLE_0_CT1QBASE3:
+   case V3D_CLE_0_CT1QBASE4:
+   case V3D_CLE_0_CT1QBASE5:
+   case V3D_CLE_0_CT1QBASE6:
+   case V3D_CLE_0_CT1QBASE7:
+   case V3D_CLE_0_CT1QSYNC:
+   case V3D_CLE_0_CT1CAD:
+#elif V3D_VER_AT_LEAST(4,3,8,0)
+   case V3D_CLE_0_CT1CS:
+   case V3D_CLE_0_CT1EA:
+   case V3D_CLE_0_CT1CA:
+   case V3D_CLE_0_CT1RA0:
+   case V3D_CLE_0_CT1LC:
+   case V3D_CLE_0_CT1PC:
+   case V3D_CLE_0_CT1CFG:
+   case V3D_CLE_0_CT1TILECT:
+   case V3D_CLE_0_CT1TSKIP:
+   case V3D_CLE_0_CT1PTCT:
+   case V3D_CLE_0_CT1SYNC:
+   case V3D_CLE_0_CT1QBA:
+   case V3D_CLE_0_CT1QEA:
+   case V3D_CLE_0_CT1QCFG:
+   case V3D_CLE_0_CT1QTSKIP:
+   case V3D_CLE_0_CT1QBASE0:
+   case V3D_CLE_0_CT1QBASE1:
+   case V3D_CLE_0_CT1QBASE2:
+   case V3D_CLE_0_CT1QBASE3:
+   case V3D_CLE_0_CT1QBASE4:
+   case V3D_CLE_0_CT1QBASE5:
+   case V3D_CLE_0_CT1QBASE6:
+   case V3D_CLE_0_CT1QBASE7:
+   case V3D_CLE_0_CT1QSYNC:
+   case V3D_CLE_0_CT1CAD:
+#elif V3D_VER_AT_LEAST(4,3,4,0)
+   case V3D_CLE_0_CT1CS:
+   case V3D_CLE_0_CT1EA:
+   case V3D_CLE_0_CT1CA:
+   case V3D_CLE_0_CT1RA0:
+   case V3D_CLE_0_CT1LC:
+   case V3D_CLE_0_CT1PC:
+   case V3D_CLE_0_CT1CFG:
+   case V3D_CLE_0_CT1TILECT:
+   case V3D_CLE_0_CT1TSKIP:
+   case V3D_CLE_0_CT1PTCT:
+   case V3D_CLE_0_CT1SYNC:
+   case V3D_CLE_0_CT1QBA:
+   case V3D_CLE_0_CT1QEA:
+   case V3D_CLE_0_CT1QCFG:
+   case V3D_CLE_0_CT1QTSKIP:
+   case V3D_CLE_0_CT1QBASE0:
+   case V3D_CLE_0_CT1QBASE1:
+   case V3D_CLE_0_CT1QBASE2:
+   case V3D_CLE_0_CT1QBASE3:
+   case V3D_CLE_0_CT1QBASE4:
+   case V3D_CLE_0_CT1QBASE5:
+   case V3D_CLE_0_CT1QBASE6:
+   case V3D_CLE_0_CT1QBASE7:
+   case V3D_CLE_0_CT1QSYNC:
+   case V3D_CLE_0_CT1CAD:
+#elif V3D_VER_AT_LEAST(4,3,0,0)
+   case V3D_CLE_0_CT1CS:
+   case V3D_CLE_0_CT1EA:
+   case V3D_CLE_0_CT1CA:
+   case V3D_CLE_0_CT1RA0:
+   case V3D_CLE_0_CT1LC:
+   case V3D_CLE_0_CT1PC:
+   case V3D_CLE_0_CT1CFG:
+   case V3D_CLE_0_CT1TILECT:
+   case V3D_CLE_0_CT1TSKIP:
+   case V3D_CLE_0_CT1PTCT:
+   case V3D_CLE_0_CT1SYNC:
+   case V3D_CLE_0_CT1QBA:
+   case V3D_CLE_0_CT1QEA:
+   case V3D_CLE_0_CT1QCFG:
+   case V3D_CLE_0_CT1QTSKIP:
+   case V3D_CLE_0_CT1QBASE0:
+   case V3D_CLE_0_CT1QBASE1:
+   case V3D_CLE_0_CT1QBASE2:
+   case V3D_CLE_0_CT1QBASE3:
+   case V3D_CLE_0_CT1QBASE4:
+   case V3D_CLE_0_CT1QBASE5:
+   case V3D_CLE_0_CT1QBASE6:
+   case V3D_CLE_0_CT1QBASE7:
+   case V3D_CLE_0_CT1QSYNC:
+   case V3D_CLE_0_CT1CAD:
+#elif V3D_VER_AT_LEAST(4,2,13,0)
+   case V3D_CLE_0_CT1CS:
+   case V3D_CLE_0_CT1EA:
+   case V3D_CLE_0_CT1CA:
+   case V3D_CLE_0_CT1RA0:
+   case V3D_CLE_0_CT1LC:
+   case V3D_CLE_0_CT1PC:
+   case V3D_CLE_0_CT1CFG:
+   case V3D_CLE_0_CT1TILECT:
+   case V3D_CLE_0_CT1TSKIP:
+   case V3D_CLE_0_CT1PTCT:
+   case V3D_CLE_0_CT1SYNC:
+   case V3D_CLE_0_CT1QBA:
+   case V3D_CLE_0_CT1QEA:
+   case V3D_CLE_0_CT1QCFG:
+   case V3D_CLE_0_CT1QTSKIP:
+   case V3D_CLE_0_CT1QBASE0:
+   case V3D_CLE_0_CT1QBASE1:
+   case V3D_CLE_0_CT1QBASE2:
+   case V3D_CLE_0_CT1QBASE3:
+   case V3D_CLE_0_CT1QBASE4:
+   case V3D_CLE_0_CT1QBASE5:
+   case V3D_CLE_0_CT1QBASE6:
+   case V3D_CLE_0_CT1QBASE7:
+   case V3D_CLE_0_CT1QSYNC:
+   case V3D_CLE_0_CT1CAD:
+#elif V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CLE_0_CT1CS:
+   case V3D_CLE_0_CT1EA:
+   case V3D_CLE_0_CT1CA:
+   case V3D_CLE_0_CT1RA0:
+   case V3D_CLE_0_CT1LC:
+   case V3D_CLE_0_CT1PC:
+   case V3D_CLE_0_CT1CFG:
+   case V3D_CLE_0_CT1TILECT:
+   case V3D_CLE_0_CT1TSKIP:
+   case V3D_CLE_0_CT1PTCT:
+   case V3D_CLE_0_CT1SYNC:
+   case V3D_CLE_0_CT1QBA:
+   case V3D_CLE_0_CT1QEA:
+   case V3D_CLE_0_CT1QCFG:
+   case V3D_CLE_0_CT1QTSKIP:
+   case V3D_CLE_0_CT1QBASE0:
+   case V3D_CLE_0_CT1QBASE1:
+   case V3D_CLE_0_CT1QBASE2:
+   case V3D_CLE_0_CT1QBASE3:
+   case V3D_CLE_0_CT1QBASE4:
+   case V3D_CLE_0_CT1QBASE5:
+   case V3D_CLE_0_CT1QBASE6:
+   case V3D_CLE_0_CT1QBASE7:
+   case V3D_CLE_0_CT1QSYNC:
+   case V3D_CLE_0_CT1CAD:
+#elif V3D_VER_AT_LEAST(3,3,2,0)
+   case V3D_CLE_0_CT1CS:
+   case V3D_CLE_0_CT1EA:
+   case V3D_CLE_0_CT1CA:
+   case V3D_CLE_0_CT1RA0:
+   case V3D_CLE_0_CT1LC:
+   case V3D_CLE_0_CT1PC:
+   case V3D_CLE_0_CT1CFG:
+   case V3D_CLE_0_CT1TILECT:
+   case V3D_CLE_0_CT1TSKIP:
+   case V3D_CLE_0_CT1PTCT:
+   case V3D_CLE_0_CT1SYNC:
+   case V3D_CLE_0_CT1QBA:
+   case V3D_CLE_0_CT1QEA:
+   case V3D_CLE_0_CT1QCFG:
+   case V3D_CLE_0_CT1QTSKIP:
+   case V3D_CLE_0_CT1QBASE0:
+   case V3D_CLE_0_CT1QBASE1:
+   case V3D_CLE_0_CT1QBASE2:
+   case V3D_CLE_0_CT1QBASE3:
+   case V3D_CLE_0_CT1QBASE4:
+   case V3D_CLE_0_CT1QBASE5:
+   case V3D_CLE_0_CT1QBASE6:
+   case V3D_CLE_0_CT1QBASE7:
+   case V3D_CLE_0_CT1QSYNC:
+   case V3D_CLE_0_CT1CAD:
+#elif V3D_VER_AT_LEAST(3,3,1,0)
+   case V3D_CLE_0_CT1CS:
+   case V3D_CLE_0_CT1EA:
+   case V3D_CLE_0_CT1CA:
+   case V3D_CLE_0_CT1RA0:
+   case V3D_CLE_0_CT1LC:
+   case V3D_CLE_0_CT1PC:
+   case V3D_CLE_0_CT1CFG:
+   case V3D_CLE_0_CT1TILECT:
+   case V3D_CLE_0_CT1TSKIP:
+   case V3D_CLE_0_CT1PTCT:
+   case V3D_CLE_0_CT1SYNC:
+   case V3D_CLE_0_CT1QBA:
+   case V3D_CLE_0_CT1QEA:
+   case V3D_CLE_0_CT1QCFG:
+   case V3D_CLE_0_CT1QTSKIP:
+   case V3D_CLE_0_CT1QBASE0:
+   case V3D_CLE_0_CT1QBASE1:
+   case V3D_CLE_0_CT1QBASE2:
+   case V3D_CLE_0_CT1QBASE3:
+   case V3D_CLE_0_CT1QBASE4:
+   case V3D_CLE_0_CT1QBASE5:
+   case V3D_CLE_0_CT1QBASE6:
+   case V3D_CLE_0_CT1QBASE7:
+   case V3D_CLE_0_CT1QSYNC:
+   case V3D_CLE_0_CT1CAD:
+#elif V3D_VER_AT_LEAST(3,3,0,0)
+   case V3D_CLE_0_CT1CS:
+   case V3D_CLE_0_CT1EA:
+   case V3D_CLE_0_CT1CA:
+   case V3D_CLE_0_CT1RA0:
+   case V3D_CLE_0_CT1LC:
+   case V3D_CLE_0_CT1PC:
+   case V3D_CLE_0_CT1CFG:
+   case V3D_CLE_0_CT1TILECT:
+   case V3D_CLE_0_CT1TSKIP:
+   case V3D_CLE_0_CT1PTCT:
+   case V3D_CLE_0_CT1SYNC:
+   case V3D_CLE_0_CT1QBA:
+   case V3D_CLE_0_CT1QEA:
+   case V3D_CLE_0_CT1QCFG:
+   case V3D_CLE_0_CT1QTSKIP:
+   case V3D_CLE_0_CT1QBASE0:
+   case V3D_CLE_0_CT1QBASE1:
+   case V3D_CLE_0_CT1QBASE2:
+   case V3D_CLE_0_CT1QBASE3:
+   case V3D_CLE_0_CT1QBASE4:
+   case V3D_CLE_0_CT1QBASE5:
+   case V3D_CLE_0_CT1QBASE6:
+   case V3D_CLE_0_CT1QBASE7:
+   case V3D_CLE_0_CT1QSYNC:
+   case V3D_CLE_0_CT1CAD:
+#elif V3D_VER_AT_LEAST(3,2,1,0)
+   case V3D_CLE_0_CT1CS:
+   case V3D_CLE_0_CT1EA:
+   case V3D_CLE_0_CT1CA:
+   case V3D_CLE_0_CT1RA0:
+   case V3D_CLE_0_CT1LC:
+   case V3D_CLE_0_CT1PC:
+   case V3D_CLE_0_CT1CFG:
+   case V3D_CLE_0_CT1TILECT:
+   case V3D_CLE_0_CT1TSKIP:
+   case V3D_CLE_0_CT1PTCT:
+   case V3D_CLE_0_CT1SYNC:
+   case V3D_CLE_0_CT1QBA:
+   case V3D_CLE_0_CT1QEA:
+   case V3D_CLE_0_CT1QCFG:
+   case V3D_CLE_0_CT1QTSKIP:
+   case V3D_CLE_0_CT1QBASE0:
+   case V3D_CLE_0_CT1QBASE1:
+   case V3D_CLE_0_CT1QBASE2:
+   case V3D_CLE_0_CT1QBASE3:
+   case V3D_CLE_0_CT1QBASE4:
+   case V3D_CLE_0_CT1QBASE5:
+   case V3D_CLE_0_CT1QBASE6:
+   case V3D_CLE_0_CT1QBASE7:
+   case V3D_CLE_0_CT1QSYNC:
+   case V3D_CLE_0_CT1CAD:
+#elif V3D_VER_AT_LEAST(3,2,0,0)
+   case V3D_CLE_0_CT1CS:
+   case V3D_CLE_0_CT1EA:
+   case V3D_CLE_0_CT1CA:
+   case V3D_CLE_0_CT1RA0:
+   case V3D_CLE_0_CT1LC:
+   case V3D_CLE_0_CT1PC:
+   case V3D_CLE_0_CT1CFG:
+   case V3D_CLE_0_CT1TILECT:
+   case V3D_CLE_0_CT1TSKIP:
+   case V3D_CLE_0_CT1PTCT:
+   case V3D_CLE_0_CT1SYNC:
+   case V3D_CLE_0_CT1QBA:
+   case V3D_CLE_0_CT1QEA:
+   case V3D_CLE_0_CT1QCFG:
+   case V3D_CLE_0_CT1QTSKIP:
+   case V3D_CLE_0_CT1QBASE0:
+   case V3D_CLE_0_CT1QBASE1:
+   case V3D_CLE_0_CT1QBASE2:
+   case V3D_CLE_0_CT1QBASE3:
+   case V3D_CLE_0_CT1QBASE4:
+   case V3D_CLE_0_CT1QBASE5:
+   case V3D_CLE_0_CT1QBASE6:
+   case V3D_CLE_0_CT1QBASE7:
+   case V3D_CLE_0_CT1QSYNC:
+   case V3D_CLE_0_CT1CAD:
+#else
+#error
+#endif
+   /* END AUTO-GENERATED CODE (v3d_is_render_cle_reg_cases) */
+      return true;
+   default:
+      return false;
+   }
+}
+
+bool v3d_is_l2t_reg(uint32_t addr)
+{
+   if (!v3d_is_core_reg(addr))
+      return false;
+
+   switch (v3d_reg_to_core0(addr))
+   {
+   /* BEGIN AUTO-GENERATED CODE (v3d_is_l2t_reg_cases) */
+#if V3D_VER_AT_LEAST(4,3,10,0)
+   case V3D_CTL_0_L2TLOCCTRL:
+   case V3D_CTL_0_L2TLOCBASE:
+   case V3D_CTL_0_L2TCACTL:
+   case V3D_CTL_0_L2TFLSTA:
+   case V3D_CTL_0_L2TFLEND:
+#elif V3D_VER_AT_LEAST(4,3,9,0)
+   case V3D_CTL_0_L2TLOCCTRL:
+   case V3D_CTL_0_L2TLOCBASE:
+   case V3D_CTL_0_L2TCACTL:
+   case V3D_CTL_0_L2TFLSTA:
+   case V3D_CTL_0_L2TFLEND:
+#elif V3D_VER_AT_LEAST(4,3,8,0)
+   case V3D_CTL_0_L2TCACTL:
+   case V3D_CTL_0_L2TFLSTA:
+   case V3D_CTL_0_L2TFLEND:
+#elif V3D_VER_AT_LEAST(4,3,4,0)
+   case V3D_CTL_0_L2TCACTL:
+   case V3D_CTL_0_L2TFLSTA:
+   case V3D_CTL_0_L2TFLEND:
+#elif V3D_VER_AT_LEAST(4,3,0,0)
+   case V3D_CTL_0_L2TCACTL:
+   case V3D_CTL_0_L2TFLSTA:
+   case V3D_CTL_0_L2TFLEND:
+#elif V3D_VER_AT_LEAST(4,2,13,0)
+   case V3D_CTL_0_L2TCACTL:
+   case V3D_CTL_0_L2TFLSTA:
+   case V3D_CTL_0_L2TFLEND:
+#elif V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_CTL_0_L2TCACTL:
+   case V3D_CTL_0_L2TFLSTA:
+   case V3D_CTL_0_L2TFLEND:
+#elif V3D_VER_AT_LEAST(3,3,2,0)
+   case V3D_CTL_0_L2TCACTL:
+   case V3D_CTL_0_L2TFLSTA:
+   case V3D_CTL_0_L2TFLEND:
+#elif V3D_VER_AT_LEAST(3,3,1,0)
+   case V3D_CTL_0_L2TCACTL:
+   case V3D_CTL_0_L2TFLSTA:
+   case V3D_CTL_0_L2TFLEND:
+#elif V3D_VER_AT_LEAST(3,3,0,0)
+   case V3D_CTL_0_L2TCACTL:
+   case V3D_CTL_0_L2TFLSTA:
+   case V3D_CTL_0_L2TFLEND:
+#elif V3D_VER_AT_LEAST(3,2,1,0)
+   case V3D_CTL_0_L2TCACTL:
+   case V3D_CTL_0_L2TFLSTA:
+   case V3D_CTL_0_L2TFLEND:
+#elif V3D_VER_AT_LEAST(3,2,0,0)
+   case V3D_CTL_0_L2TCACTL:
+   case V3D_CTL_0_L2TFLSTA:
+   case V3D_CTL_0_L2TFLEND:
+#else
+#error
+#endif
+   /* END AUTO-GENERATED CODE (v3d_is_l2t_reg_cases) */
+      return true;
+   default:
+      return false;
+   }
+}

@@ -92,7 +92,7 @@ extern unsigned glxx_query_get_result(GLXX_QUERY_T *query);
 void glxx_occlusion_queries_update(glxx_query_block *query_list, bool valid_results);
 void glxx_queries_release(glxx_query_block *query_list);
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 extern bool glxx_prim_counts_query_record(GLXX_HW_RENDER_STATE_T *rs,
       GLXX_QUERY_T *query_pg, GLXX_QUERY_T *query_pw);
 extern void glxx_prim_drawn_by_us_record(GLXX_HW_RENDER_STATE_T *rs,

@@ -53,11 +53,18 @@
 
 BDBG_MODULE(BVDC_PRIV);
 
+#ifndef BVDC_FOR_BOOTUPDATER
+#define BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH     3840
+#define BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT    2176
+
 static const BVDC_P_MosaicCanvasCoverage s_full_CCTbl =
     /* 1    2    3    4    5    6    7    8    9   10   11   12  */
-    {{100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100}};
+    {{100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100},
+     {  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0}};
 
-/* Official number for class 4
+#if 0
+/* Legacy table for total area coverage for all mosaics
+ * Official number for class 4
  * http://www.sj.broadcom.com/projects/dvt/Chip_Architecture/Video/Released/BVN_Mosaic_Rules_tables.xlsx
  */
 static const BVDC_P_MosaicCanvasCoverage sa_MosaicCoverageTble[] =
@@ -69,6 +76,269 @@ static const BVDC_P_MosaicCanvasCoverage sa_MosaicCoverageTble[] =
     {{136, 100, 100,  90,  90,  90,  68,  68,  68,  68,  68,  68 }},
     {{100, 100, 100, 100,  75,  66,  66,  50,  50,  50,  50,  50 }}
 };
+#else
+/* derived Legacy table for dimension coverage for each mosaic
+ * sa_LegacyMosaicCoverageTble[i] = sqrt(sa_MosaicCoverageTble/n) * 10
+ */
+static const BVDC_P_MosaicCanvasCoverage sa_LegacyMosaicCoverageTble[] =
+{
+    /* 1    2    3    4    5    6    7    8    9    10   11   12  */
+    {{141,  71,  58,  50,  45,  41,  29,  27,  26,  24,  23,  22 },
+     {  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0 }},
+    {{100,  50,  41,  35,  32,  29,  27,  25,  24,  22,  21,  20 },
+     {  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0 }},
+    {{100,  61,  50,  41,  36,  33,  27,  25,  24,  22,  21,  20 },
+     {  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0 }},
+    {{116,  71,  57,  47,  42,  39,  31,  29,  27,  26,  25,  24 },
+     {  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0 }},
+    {{100,  71,  57,  50,  39,  33,  31,  25,  24,  22,  21,  20 },
+     {  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0 }}
+};
+
+#endif
+
+static const BVDC_SourceClassLimits sa_SourceClassTble[] =
+{
+    /* 1            2             3             4           5           6           7           8           9           10          11          12  */
+    /* legacy class */
+    {
+     {
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}
+     },
+     {
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}
+     },
+     {
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}
+     }
+    },
+
+    /* class 0.0 */
+    {
+     {
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT},
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT},
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT},
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT},
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT},
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}
+     },
+     {
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT},
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT},
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT},
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT},
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT},
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}
+     },
+     {
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT},
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT},
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT},
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT},
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT},
+        {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}, {BVDC_P_SRC_SIZE_LIMIT_MAX_WIDTH, BVDC_P_SRC_SIZE_LIMIT_MAX_HEIGHT}
+     }
+    },
+    /* class 2.1 */
+    {
+     {{1280,  720}, {352,   240}, {352,   240}, {176, 120}, {176, 120}, {176, 120},},
+     {{1920,  540}, {720,   240}, {720,   240},},
+     {{720,  1280},}
+    },
+    /* class 2.2 */
+    {
+     {{1280,  720}, {352,   288}, {352,   288}, {176, 144}, {176, 144}, {176, 144},},
+     {{1920,  540}, {720,   288}, {720,   288},},
+     {{720,  1280},}
+    },
+    /* class 3.1 */
+    {
+     {{1920, 1080}, {720,   480}, {720,   480}, {352, 240}, {176, 120}, {176, 120}, {176, 120}, {176, 120},},
+     {{1920,  540}, {720,   240}, {720,   240}, {720, 240},},
+     {{720,  1280},}
+    },
+    /* class 3.2 */
+    {
+     {{1920, 1080}, {720,   480}, {720,   480}, {352, 288}, {176, 144}, {176, 144}, {176, 144}, {176, 144},},
+     {{1920,  540}, {720,   288}, {720,   288}, {720, 288},},
+     {{720,  1280},}
+    },
+    /* class 4.1 */
+    {
+     {{3840, 2160}, {1280,  720}, {1280,  720}, {720, 480}, {720, 480}, {720, 480}, {720, 480}, {720, 240}, {720, 240}, {720, 240}, {720, 240}, {720, 240}},
+     {{3840, 2160}, {1920,  540}, {1920,  540}, {720, 480}, {720, 480}, {720, 480}, {720, 480}, {720, 240}, {720, 240}, {720, 240}, {720, 240}, {720, 240}},
+     {{1440, 2560},}
+    },
+    /* class 4.1.2 */
+    {
+     {{3840, 2160}, {1280,  720}, {1280,  720}, {720, 480}, {720, 480}, {720, 480}, {720, 480}, {720, 288}, {720, 288}, {720, 288}, {720, 288}, {720, 288}},
+     {{3840, 2160}, {1920,  540}, {1920,  540}, {720, 480}, {720, 480}, {720, 480}, {720, 480}, {720, 288}, {720, 288}, {720, 288}, {720, 288}, {720, 288}},
+     {{1440, 2560},}
+    },
+    /* class 4.2 */
+    {
+     {{3840, 2160}, {1920, 1080}, {1920, 1080}, {1280,  720}, {720, 480}, {720, 480}, {720, 480}, {720, 480}, {720, 480}, {720, 240}, {720, 240}, {720, 240}},
+     {{3840, 2160}, {1920, 1080}, {1920, 1080}, {1920,  540}, {720, 480}, {720, 480}, {720, 480}, {720, 480}, {720, 480}, {720, 240}, {720, 240}, {720, 240}},
+     {{1440, 2560},}
+    },
+    /* class 4.2.2 */
+    {
+     {{3840, 2160}, {1920, 1080}, {1920, 1080}, {720, 480}, {720, 480}, {720, 480}, {720, 480}, {720, 480}, {720, 480}, {720, 288}, {720, 288}, {720, 288}},
+     {{3840, 2160}, {1920, 1080}, {1920, 1080}, {720, 480}, {720, 480}, {720, 480}, {720, 480}, {720, 480}, {720, 480}, {720, 288}, {720, 288}, {720, 288}},
+     {{1440, 2560},}
+    }
+};
+
+static const BVDC_WindowClassLimits sa_WindowClassTble[] =
+{
+    /* legacy class */
+    {
+        /* bounding boxes */
+        {{100, 100, false},},
+        /* mosaic rects */
+        {
+            {{0, 0}, 100,   0}
+        }
+    },
+
+    /* class 0.0 (all pass) */
+    {
+        /* bounding boxes */
+        {{100, 100, false},},
+        /* mosaic rects */
+        {
+            {{1920, 1080}, 100, 100},
+            {{1920, 1080}, 100, 100},
+            {{1920, 1080}, 100, 100},
+            {{1920, 1080}, 100, 100},
+            {{1920, 1080}, 100, 100},
+            {{1920, 1080}, 100, 100},
+            {{1920, 1080}, 100, 100},
+            {{1920, 1080}, 100, 100},
+            {{1920, 1080}, 100, 100},
+            {{1920, 1080}, 100, 100},
+            {{1920, 1080}, 100, 100},
+            {{1920, 1080}, 100, 100}
+        }
+    },
+    /* class 0.1 (all fail no mosaic support) */
+    {
+        /* bounding boxes */
+        {{100, 100, false},},
+        /* mosaic rects */
+        {
+            {{0, 0}, 0, 0},
+        }
+    },
+    /* class 1.1 */
+    {
+        /* bounding boxes */
+        {{100, 100, false},},
+        {
+            {{0, 0}, 95,   0},
+            {{0, 0}, 63,  39},
+            {{0, 0}, 51,  29},
+            {{0, 0}, 45,  32},
+            {{0, 0}, 41,  29},
+            {{0, 0}, 34,  28},
+            {{0, 0}, 30,  27},
+            {{0, 0}, 29,  25},
+            {{0, 0}, 26,  23},
+            {{0, 0}, 25,  22},
+            {{0, 0}, 23,  20},
+            {{0, 0}, 21,  19}
+        }
+    },
+    /* class 1.2 */
+    {
+        /* bounding boxes */
+        {{50, 50, false}, {25, 100, false},},
+        {
+            {{0, 0}, 48,   0},
+            {{0, 0}, 30,  19},
+            {{0, 0}, 25,  14},
+        }
+    },
+    /* class 2.1 */
+    {
+        /* bounding boxes */
+        {{100, 100, false},},
+        {
+            {{720, 576}, 100,  0},
+        }
+    },
+    /* class 3.1 */
+    {
+        /* bounding boxes */
+        {{100, 100, false},},
+        {
+            {{1920, 1080}, 95,   0},
+            {{720,   576}, 61,  35},
+            {{720,   576}, 51,  29},
+            {{720,   576}, 38,  28},
+            {{0, 0}, 32,  26},
+            {{0, 0}, 29,  25},
+            {{0, 0}, 26,  23},
+            {{0, 0}, 23,  21},
+            {{0, 0}, 21,  20},
+            {{0, 0}, 20,  18},
+            {{0, 0}, 18,  16},
+            {{0, 0}, 16,  15}
+        }
+    },
+    /* class 3.2 */
+    {
+        /* bounding boxes */
+        {{50, 50, false}, {25, 100, false},},
+        {
+            {{720,   576}, 38,   0},
+            {{720,   576}, 29,  14},
+            {{720,   576}, 25,  13},
+        }
+    },
+    /* class 4.1 */
+    {
+        /* bounding boxes */
+        {{100, 100, false},},
+        {
+            {{1920, 1080}, 95,   0},
+            {{720,   576}, 63,  39},
+            {{720,   576}, 51,  29},
+            {{720,   576}, 45,  30},
+            {{0, 0}, 41,  30},
+            {{0, 0}, 34,  28},
+            {{0, 0}, 30,  27},
+            {{0, 0}, 29,  25},
+            {{0, 0}, 26,  23},
+            {{0, 0}, 25,  22},
+            {{0, 0}, 23,  20},
+            {{0, 0}, 21,  19}
+        }
+    },
+    /* class 4.2 */
+    {
+        /* bounding boxes */
+        {{50, 50, false}, {25, 100, false},},
+        {
+            {{1920, 1080}, 48,   0},
+            {{720,   576}, 30,  19},
+            {{720,   576}, 25,  14},
+        }
+    },
+    /* class 4.2_2 */
+    {
+        /* bounding boxes */
+        {{50, 50, false}, {25, 100, false}, {100, 25, false},},
+        {
+            {{1920, 1080}, 48,   0},
+            {{720,   576}, 30,  19},
+            {{720,   576}, 25,  14},
+        }
+    },
+
+};
+#endif
 
 /***************************************************************************
  * Add an NO-OP into RUL.
@@ -600,29 +870,6 @@ BVDC_P_CompositorDisplay_isr_Done:
 }
 
 /***************************************************************************
- * This function convert from percentage clip rect (left, right, top, bottom)
- * and width and height to the actual rect
- *     offset_x = width * left
- *     offset_y = height * top
- *     size_x   = width - (width * left + width * right)
- *     size_y   = height - (height * top + height * bottom)
- */
-void BVDC_P_CalculateRect_isr
-    ( const BVDC_ClipRect             *pClipRect,
-      uint32_t                         ulWidth,
-      uint32_t                         ulHeight,
-      bool                             bInterlaced,
-      BVDC_P_Rect                     *pRect )
-{
-    pRect->lLeft    = ulWidth * pClipRect->ulLeft / BVDC_P_CLIPRECT_PERCENT;
-    pRect->lTop     = (ulHeight >> bInterlaced) * pClipRect->ulTop / BVDC_P_CLIPRECT_PERCENT;
-    pRect->ulWidth  = ulWidth -(pRect->lLeft +
-        ulWidth * pClipRect->ulRight / BVDC_P_CLIPRECT_PERCENT);
-    pRect->ulHeight = (ulHeight >> bInterlaced) -
-        (pRect->lTop + (ulHeight >> bInterlaced) * pClipRect->ulBottom / BVDC_P_CLIPRECT_PERCENT);
-}
-
-/***************************************************************************
  * This function checks if a callback's dirty bits are dirty.
  */
 bool BVDC_P_CbIsDirty_isr
@@ -814,7 +1061,8 @@ BERR_Code BVDC_GetCapabilities
         pCapabilities->ulNumHdmiOutput = BVDC_P_SUPPORT_DVI_OUT;
 
 
-        pCapabilities->b3DSupport      = true;
+        pCapabilities->b3DSupport      = hVdc->pFeatures->ab3dSrc[0];   /* mpeg0 support 3d or not */
+        pCapabilities->b64BitSupport   = BRDC_64BIT_SUPPORT;
     }
 
     BDBG_LEAVE(BVDC_GetCapabilities);
@@ -960,23 +1208,126 @@ BERR_Code BVDC_P_CheckHeapSettings
     return eStatus;
 }
 
-void BVDC_P_MosaicCoverage_Init
-    ( BBOX_Config                     *pBoxConfig,
-      BVDC_DisplayId                   eDisplayId,
-      BVDC_P_MosaicCanvasCoverage     *pCoverageTbl )
+#ifndef BVDC_FOR_BOOTUPDATER
+void BVDC_P_SrcWinClass_Init
+    ( BVDC_Handle  hVdc )
 {
-    BBOX_Vdc_MosaicModeClass   eMosaicModeClass;
+    int i, j, ulCoveragePerDimension;
 
-    /* Get boxmode mosaic mode class */
-    eMosaicModeClass = pBoxConfig->stVdc.astDisplay[eDisplayId].eMosaicModeClass;
-    BDBG_MSG(("Disp[%d] eMosaicModeClass: %d", eDisplayId, eMosaicModeClass));
+    hVdc->pstSrcClassTbl = sa_SourceClassTble;
+    hVdc->pstWinClassTbl = sa_WindowClassTble;
 
-    /* Get coverage table */
-    if(eMosaicModeClass == BBOX_VDC_DISREGARD)
-        *pCoverageTbl = s_full_CCTbl;
-    else
-        *pCoverageTbl = sa_MosaicCoverageTble[eMosaicModeClass];
+    /* for backwards compatible API, assume window0's class to prefill msoaic coverage table */
+    for(i = 0; i < BVDC_P_MAX_DISPLAY_COUNT; i++)
+    {
+        BBOX_Vdc_WindowClass       eClass;
+        BBOX_Vdc_MosaicModeClass   eLegacyMosaicModeClass;
+
+        eClass = hVdc->stBoxConfig.stVdc.astDisplay[i].astWindow[0].eClass;
+        eLegacyMosaicModeClass = hVdc->stBoxConfig.stVdc.astDisplay[i].eMosaicModeClass;
+
+        for(j = 0; j < BAVC_MOSAIC_MAX; j++)
+        {
+            /* aulCanvasCoverageEqual */
+            if(eClass != BBOX_Vdc_WindowClass_eLegacy)
+                ulCoveragePerDimension = sa_WindowClassTble[eClass].mosaicRects[j].ulPercentEqual;
+            else if(eLegacyMosaicModeClass == BBOX_VDC_DISREGARD)
+                ulCoveragePerDimension = s_full_CCTbl.aulCanvasCoverageEqual[j];
+            else
+                ulCoveragePerDimension = sa_LegacyMosaicCoverageTble[eLegacyMosaicModeClass].aulCanvasCoverageEqual[j];
+
+            hVdc->stMosaicCoverageTbl[i].aulCanvasCoverageEqual[j] = (ulCoveragePerDimension *ulCoveragePerDimension*(j+1))/100;
+            hVdc->stMosaicCoverageTbl[i].aulCanvasCoverageEqual[j]=
+                BVDC_P_MIN(hVdc->stMosaicCoverageTbl[i].aulCanvasCoverageEqual[j], 100);
+
+            /* aulCanvasCoverageBL */
+            if((eClass == BBOX_Vdc_WindowClass_eLegacy) || (j == 0))
+                hVdc->stMosaicCoverageTbl[i].aulCanvasCoverageBL[j]= 0;
+            else
+            {
+                ulCoveragePerDimension = sa_WindowClassTble[eClass].mosaicRects[j].ulPercentBigSmall;
+
+                hVdc->stMosaicCoverageTbl[i].aulCanvasCoverageBL[j] =
+                    (ulCoveragePerDimension *ulCoveragePerDimension*(j+4))/100;
+                hVdc->stMosaicCoverageTbl[i].aulCanvasCoverageBL[j]=
+                    BVDC_P_MIN(hVdc->stMosaicCoverageTbl[i].aulCanvasCoverageBL[j], 100);
+            }
+        }
+    }
 }
+#endif
+
+BERR_Code BVDC_GetWindowClassLimit
+    ( BVDC_Handle                      hVdc,
+      BVDC_DisplayId                   eDisplayId,
+      BVDC_WindowId                    eWinId,
+      BVDC_WindowClassLimits          *pClassLimit )
+{
+#ifndef BVDC_FOR_BOOTUPDATER
+    uint32_t  i;
+    BBOX_Vdc_WindowClass   eClass;
+
+    eClass = hVdc->stBoxConfig.stVdc.astDisplay[eDisplayId].astWindow[eWinId].eClass;
+
+    if(pClassLimit)
+    {
+        *pClassLimit = sa_WindowClassTble[eClass];
+
+        if(eClass == BBOX_Vdc_WindowClass_eLegacy)
+        {
+            BBOX_Vdc_MosaicModeClass   eLegacyMosaicModeClass;
+            eLegacyMosaicModeClass = hVdc->stBoxConfig.stVdc.astDisplay[eDisplayId].eMosaicModeClass;
+
+            /* default to class 0 */
+            *pClassLimit = sa_WindowClassTble[BBOX_Vdc_WindowClass_e0_0];
+            for(i = 0; i < BAVC_MOSAIC_MAX; i++)
+            {
+                if(eLegacyMosaicModeClass == BBOX_VDC_DISREGARD)
+                {
+                    (*pClassLimit).mosaicRects[i].ulPercentEqual = s_full_CCTbl.aulCanvasCoverageEqual[i];
+                }
+                else
+                {
+                    (*pClassLimit).mosaicRects[i].ulPercentEqual =
+                        sa_LegacyMosaicCoverageTble[eLegacyMosaicModeClass].aulCanvasCoverageEqual[i];
+                }
+                (*pClassLimit).mosaicRects[i].ulPercentBigSmall = 0;
+            }
+        }
+    }
+#else
+    BSTD_UNUSED(hVdc);
+    BSTD_UNUSED(eDisplayId);
+    BSTD_UNUSED(eWinId);
+    BSTD_UNUSED(pClassLimit);
+#endif
+
+    return BERR_SUCCESS;
+}
+
+BERR_Code BVDC_GetSourceClassLimit
+    ( BVDC_Handle                      hVdc,
+      BAVC_SourceId                    eSrcId,
+      BVDC_SourceClassLimits          *pClassLimit )
+{
+#ifndef BVDC_FOR_BOOTUPDATER
+    BBOX_Vdc_SourceClass   eClass;
+
+    eClass = hVdc->stBoxConfig.stVdc.astSource[eSrcId].eClass;
+
+    if(pClassLimit)
+    {
+        *pClassLimit = sa_SourceClassTble[eClass];
+    }
+#else
+    BSTD_UNUSED(hVdc);
+    BSTD_UNUSED(eSrcId);
+    BSTD_UNUSED(pClassLimit);
+#endif
+
+    return BERR_SUCCESS;
+}
+
 
 
 /* End of file. */

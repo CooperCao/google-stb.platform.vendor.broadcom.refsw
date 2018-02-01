@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2007-2016 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,15 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #ifndef BIP_STATUSCODES_H
 #define BIP_STATUSCODES_H
@@ -88,6 +79,7 @@ BIP_MAKE_STATUS_CODE( BIP_SUCCESS, 0,  0x0) /* success (always zero) */
     BIP_MAKE_STATUS_CODE( BIP_ERR_INVALID_REQUEST_TARGET, BIP_NEXUS_STATUS_CODE_ID, 0x010) /* HTTP Request Contains Invalid Request Target */
     BIP_MAKE_STATUS_CODE( BIP_ERR_CREATE_FAILED,          BIP_NEXUS_STATUS_CODE_ID, 0x011) /* A create API failed but didn't return a specific reason. */
     BIP_MAKE_STATUS_CODE( BIP_ERR_INVALID_HANDLE,         BIP_NEXUS_STATUS_CODE_ID, 0x012) /* An object handle pointed an object that didn't exist. */
+    BIP_MAKE_STATUS_CODE( BIP_ERR_ASYNC_API_ABORT,        BIP_NEXUS_STATUS_CODE_ID, 0x013) /* An Async API was aborted due to Stop API. */
 
     /* Range 0x0080 -> 0x00ff: Informational Codes:  Normal discrete BIP "Informational" statuses. */
     BIP_MAKE_STATUS_CODE( BIP_INF_IN_PROGRESS,            BIP_NEXUS_STATUS_CODE_ID, 0x081)
@@ -128,6 +120,9 @@ BIP_MAKE_STATUS_CODE( BIP_SUCCESS, 0,  0x0) /* success (always zero) */
     BIP_MAKE_STATUS_CODE( BIP_ERR_DTCPIP_HW_SECURITY_PARAMS,        BIP_NEXUS_STATUS_CODE_ID, 0x401)  /* DtcpInitHWSecurityParams() Failed: key loading error? */
     BIP_MAKE_STATUS_CODE( BIP_ERR_DTCPIP_SERVER_START,              BIP_NEXUS_STATUS_CODE_ID, 0x402)  /* DtcpAppLib_Startup Failed */
     BIP_MAKE_STATUS_CODE( BIP_ERR_DTCPIP_SERVER_LISTEN,             BIP_NEXUS_STATUS_CODE_ID, 0x403)  /* DtcpAppLib_Listen Failed */
+
+    BIP_MAKE_STATUS_CODE( BIP_INF_DTCPIP_SERVER_AKE_NOT_DONE,       BIP_NEXUS_STATUS_CODE_ID, 0x430)  /* Client hasn't yet completed AKE with this server. */
+    BIP_MAKE_STATUS_CODE( BIP_ERR_DTCPIP_SERVER_OPEN_STREAM,        BIP_NEXUS_STATUS_CODE_ID, 0x431)  /* Failed to Open Stream. */
 
     /* BIP_HttpDtcpIpClient Status Codes*/
     /* Range 0x0460 -> 0x04ff: Error Codes: Normal discrete BIP_DtcpIpClient "Error" status. */

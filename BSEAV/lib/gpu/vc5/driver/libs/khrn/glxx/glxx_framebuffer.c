@@ -164,11 +164,10 @@ void framebuffer_init(GLXX_FRAMEBUFFER_T *fb, int32_t name)
 }
 
 
-void framebuffer_term(void *v, size_t size)
+static void framebuffer_term(void *v)
 {
    GLXX_FRAMEBUFFER_T *fb = (GLXX_FRAMEBUFFER_T *)v;
    unsigned i;
-   unused(size);
 
    for (i = 0; i < GLXX_ATT_COUNT; i++)
       attachment_reset(&fb->attachment[i]);
@@ -251,7 +250,7 @@ void glxx_fb_detach_attachment(GLXX_FRAMEBUFFER_T *fb,
 void glxx_fb_detach(GLXX_FRAMEBUFFER_T *fb)
 {
    uint32_t name = fb->name;
-   framebuffer_term(fb, sizeof(GLXX_FRAMEBUFFER_T));
+   framebuffer_term(fb);
    framebuffer_init(fb, name);
 }
 

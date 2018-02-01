@@ -343,7 +343,7 @@ static bool timebaseIsHandle(NEXUS_Timebase timebase)
      return timebase > NEXUS_Timebase_eMax && timebase != NEXUS_Timebase_eInvalid;
 }
 
-static NEXUS_Error validateSettings(const NEXUS_SimpleStcChannelSettings *pSettings)
+static NEXUS_Error nexus_p_simplestcchannel_validateSettings(const NEXUS_SimpleStcChannelSettings *pSettings)
 {
     if (pSettings->mode == NEXUS_StcChannelMode_ePcr) {
         if (NULL == pSettings->modeSettings.pcr.pidChannel) {
@@ -364,7 +364,7 @@ static NEXUS_Error validateSettings(const NEXUS_SimpleStcChannelSettings *pSetti
 }
 
 /* do acquire/release on any resource stored in handle->settings */
-static void doSettingsAccounting(NEXUS_SimpleStcChannelHandle handle, const NEXUS_SimpleStcChannelSettings *pSettings)
+static void nexus_p_simplestcchannel_doSettingsAccounting(NEXUS_SimpleStcChannelHandle handle, const NEXUS_SimpleStcChannelSettings *pSettings)
 {
     NEXUS_PidChannelHandle acq;
     NEXUS_PidChannelHandle rel;
@@ -405,7 +405,7 @@ NEXUS_SimpleStcChannelHandle NEXUS_SimpleStcChannel_Create(const NEXUS_SimpleStc
     NEXUS_SimpleStcChannelHandle handle;
     int rc;
 
-    if (pSettings && validateSettings(pSettings)) {
+    if (pSettings && nexus_p_simplestcchannel_validateSettings(pSettings)) {
         return NULL;
     }
 
@@ -422,7 +422,7 @@ NEXUS_SimpleStcChannelHandle NEXUS_SimpleStcChannel_Create(const NEXUS_SimpleStc
     BLST_S_INSERT_HEAD(&g_simpleStcChannels, handle, link);
     handle->state.increment = 0x1;
     if (pSettings) {
-        doSettingsAccounting(handle, pSettings);
+        nexus_p_simplestcchannel_doSettingsAccounting(handle, pSettings);
         handle->settings = *pSettings;
     }
     else {
@@ -804,7 +804,7 @@ NEXUS_Error NEXUS_SimpleStcChannel_SetSettings( NEXUS_SimpleStcChannelHandle han
     int rc;
 
     NEXUS_OBJECT_ASSERT(NEXUS_SimpleStcChannel, handle);
-    rc = validateSettings(pSettings);
+    rc = nexus_p_simplestcchannel_validateSettings(pSettings);
     if (rc) return BERR_TRACE(rc);
 
     if (handle->stcChannel) {
@@ -840,7 +840,7 @@ NEXUS_Error NEXUS_SimpleStcChannel_SetSettings( NEXUS_SimpleStcChannelHandle han
 #endif
 
     /* must do after any use of pidChannel in case this releases it */
-    doSettingsAccounting(handle, pSettings);
+    nexus_p_simplestcchannel_doSettingsAccounting(handle, pSettings);
     handle->settings = *pSettings;
     return 0;
 }

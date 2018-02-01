@@ -656,7 +656,7 @@ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_FrontendCard);
 void NEXUS_Frontend_P_Init(void);
 void NEXUS_Frontend_P_Uninit(void);
 void NEXUS_Frontend_P_EnablePidFiltering(void);
-unsigned NEXUS_Frontend_P_CloseAllMtsifPidChannels(void);
+void NEXUS_Frontend_P_CloseAllMtsifPidChannels(void);
 NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_P_Create(void);
 NEXUS_FrontendHandle NEXUS_Frontend_P_Create(void *pDeviceHandle);
 void NEXUS_Frontend_P_Destroy(NEXUS_FrontendHandle handle);

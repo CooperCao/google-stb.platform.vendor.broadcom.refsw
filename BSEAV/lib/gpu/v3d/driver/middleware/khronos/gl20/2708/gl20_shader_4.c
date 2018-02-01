@@ -9,6 +9,8 @@
 #include "middleware/khronos/glxx/2708/glxx_shader_4.h"
 #include "middleware/khronos/glxx/2708/glxx_attr_sort_4.h"
 #include "middleware/khronos/gl20/2708/gl20_shader_4.h"
+#include "middleware/khronos/common/khrn_mem.h"
+
 #define vclib_memcmp memcmp
 #include <assert.h>
 
@@ -81,14 +83,14 @@ static bool gl20_hw_emit_shaders(GL20_LINK_RESULT_T *link_result, GLXX_LINK_RESU
    root = glxx_backend(key->blend, glxx_vec4(frag_color[0], frag_color[1], frag_color[2], frag_color[3]), frag_color[4], key->stencil_config, key->use_depth, key->render_alpha, key->rgb565, key->fb_rb_swap);
    glxx_iodep(root, dep);
    data->threaded = true;
-   if (!glxx_schedule(root, fragment_shader_type, &data->mh_fcode, &data->mh_funiform_map, &data->threaded, vary_map, &vary_count))
+   if (!glxx_schedule(root, fragment_shader_type, &data->mh_fcode, &data->funiform_map, &data->threaded, vary_map, &vary_count))
    {
       /* try again as non-threaded shader */
       init_frag_vary(frag_vary, link_result->vary_count, key->primitive_type);
       glsl_dataflow_copy(5, frag_color, (Dataflow **)link_result->nodes, base, frag_vary, 64, DATAFLOW_VARYING, texture_rb_swap);
       root = glxx_backend(key->blend, glxx_vec4(frag_color[0], frag_color[1], frag_color[2], frag_color[3]), frag_color[4], key->stencil_config, key->use_depth, key->render_alpha, key->rgb565, key->fb_rb_swap);
       data->threaded = false;
-      result &= glxx_schedule(root, fragment_shader_type, &data->mh_fcode, &data->mh_funiform_map, &data->threaded, vary_map, &vary_count);
+      result &= glxx_schedule(root, fragment_shader_type, &data->mh_fcode, &data->funiform_map, &data->threaded, vary_map, &vary_count);
    }
    data->num_varyings = vary_count;
 
@@ -99,7 +101,7 @@ static bool gl20_hw_emit_shaders(GL20_LINK_RESULT_T *link_result, GLXX_LINK_RESU
    point_size = has_point_size ? shaded[4] : NULL;
    last_vpm_write = glxx_vertex_backend(shaded[0], shaded[1], shaded[2], shaded[3], point_size, true, false, NULL, NULL, 0, key->egl_output);
    glxx_iodep(last_vpm_write, last_vpm_read);
-   result &= glxx_schedule(last_vpm_write, GLSL_BACKEND_TYPE_COORD, &data->mh_ccode, &data->mh_cuniform_map, NULL, NULL, NULL);
+   result &= glxx_schedule(last_vpm_write, GLSL_BACKEND_TYPE_COORD, &data->mh_ccode, &data->cuniform_map, NULL, NULL, NULL);
 
    /* vertex shader */
    last_vpm_read = fetch_all_es20_attributes(attrib, key->attribs, link_result->vattribs_live, data->vattribs_order);
@@ -107,7 +109,7 @@ static bool gl20_hw_emit_shaders(GL20_LINK_RESULT_T *link_result, GLXX_LINK_RESU
    point_size = has_point_size ? shaded[4] : NULL;
    last_vpm_write = glxx_vertex_backend(shaded[0], shaded[1], shaded[2], shaded[3], point_size, false, true, shaded+5, vary_map, vary_count, key->egl_output);
    glxx_iodep(last_vpm_write, last_vpm_read);
-   result &= glxx_schedule(last_vpm_write, GLSL_BACKEND_TYPE_VERTEX, &data->mh_vcode, &data->mh_vuniform_map, NULL, NULL, NULL);
+   result &= glxx_schedule(last_vpm_write, GLSL_BACKEND_TYPE_VERTEX, &data->mh_vcode, &data->vuniform_map, NULL, NULL, NULL);
 
    data->has_point_size = has_point_size;
 
@@ -122,16 +124,16 @@ void gl20_link_result_term(void *v, uint32_t size)
 
    UNUSED(size);
 
-   MEM_ASSIGN(result->mh_blob, MEM_HANDLE_INVALID);
+   KHRN_MEM_ASSIGN(result->blob, NULL);
 
    for (i = 0; i < GL20_LINK_RESULT_CACHE_SIZE; i++)
    {
       MEM_ASSIGN(result->cache[i].data.mh_vcode, MEM_HANDLE_INVALID);
       MEM_ASSIGN(result->cache[i].data.mh_ccode, MEM_HANDLE_INVALID);
       MEM_ASSIGN(result->cache[i].data.mh_fcode, MEM_HANDLE_INVALID);
-      MEM_ASSIGN(result->cache[i].data.mh_vuniform_map, MEM_HANDLE_INVALID);
-      MEM_ASSIGN(result->cache[i].data.mh_cuniform_map, MEM_HANDLE_INVALID);
-      MEM_ASSIGN(result->cache[i].data.mh_funiform_map, MEM_HANDLE_INVALID);
+      KHRN_MEM_ASSIGN(result->cache[i].data.vuniform_map, NULL);
+      KHRN_MEM_ASSIGN(result->cache[i].data.cuniform_map, NULL);
+      KHRN_MEM_ASSIGN(result->cache[i].data.funiform_map, NULL);
    }
 }
 
@@ -267,13 +269,10 @@ static bool create_shader(GL20_LINK_RESULT_T *link_result, uint32_t cache_index)
    {
       /* We must be jumping back from an error. */
       glsl_fastmem_term();
-      mem_unlock(link_result->mh_blob);
       return false;
    }
 
-   /* looks a little strange.  The block above is marking the error return point.  If gl20_hw_emit_shaders() dies it will jump back to
-      this point with link_result->mh_blob locked from below. */
-   base = mem_lock(link_result->mh_blob, NULL);
+   base = link_result->blob;
    glsl_init_primitive_values();
 
    result = gl20_hw_emit_shaders(link_result, &link_result->cache[cache_index].key, &link_result->cache[cache_index].data, base);
@@ -283,16 +282,15 @@ static bool create_shader(GL20_LINK_RESULT_T *link_result, uint32_t cache_index)
       dump_key(&link_result->cache[cache_index].key);
 
    glsl_fastmem_term();
-   mem_unlock(link_result->mh_blob);
    return result;
 }
 
 bool gl20_link_result_get_shaders(
    GL20_LINK_RESULT_T *link_result,
    GLXX_HW_SHADER_RECORD_T *shader_out,
-   MEM_HANDLE_T *cunifmap_out,
-   MEM_HANDLE_T *vunifmap_out,
-   MEM_HANDLE_T *funifmap_out,
+   void **cunifmap_out,
+   void **vunifmap_out,
+   void **funifmap_out,
    GLXX_SERVER_STATE_T *state,
    GLXX_ATTRIB_T *attrib,
    uint32_t *mergeable_attribs,
@@ -417,8 +415,8 @@ bool gl20_link_result_get_shaders(
       assert(shader_out->fshader == (uint32_t)link_result->cache[i].data.mh_fcode);
       assert(shader_out->vshader == (uint32_t)link_result->cache[i].data.mh_vcode);
 
-      *vunifmap_out = link_result->cache[i].data.mh_vuniform_map;
-      *funifmap_out = link_result->cache[i].data.mh_funiform_map;
+      *vunifmap_out = link_result->cache[i].data.vuniform_map;
+      *funifmap_out = link_result->cache[i].data.funiform_map;
 
       /* store copy of handle in here, so can properly copy shader record */
       shader_out->cshader = (uint32_t)link_result->cache[i].data.mh_ccode;
@@ -428,7 +426,7 @@ bool gl20_link_result_get_shaders(
       /* check big_mem_insert didn't change our handle copies */
       assert(shader_out->cshader == (uint32_t)link_result->cache[i].data.mh_ccode);
 
-      *cunifmap_out = link_result->cache[i].data.mh_cuniform_map;
+      *cunifmap_out = link_result->cache[i].data.cuniform_map;
    }
 
    return true;

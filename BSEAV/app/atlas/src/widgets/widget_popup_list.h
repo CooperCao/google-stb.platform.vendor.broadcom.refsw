@@ -67,6 +67,7 @@ public:
     void                 layout(void);
     void                 popup(bool show);
     CWidgetCheckButton * addButton(const char * name, unsigned width, unsigned height);
+    unsigned             numButtons(void) { return(_listCheckButtons.total()); }
     CWidgetCheckButton * findButton(long value);
     void                 setActive(
             CWidgetButton * pWidgetItem,

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,13 +48,28 @@
 #endif
 
 int bp3_session_start(uint8_t **token, uint32_t *size);
+int bp3_get_otp_id (uint32_t *pOtpIdHigh, uint32_t *pOtpIdLow);
+
 int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_t *logSize, uint32_t **status, uint32_t *statusSize);
 
 #if (NEXUS_SECURITY_API_VERSION == 1)
 NEXUS_OtpKeyType find_otp_select(void);
 NEXUS_Error read_otp_id(NEXUS_OtpIdType keyType, uint32_t *otpIdHi, uint32_t *otpIdLo);
 #else
-
+typedef enum BP3_Otp_KeyType
+{
+    BP3_OTPKeyTypeA,
+    BP3_OTPKeyTypeB,
+    BP3_OTPKeyTypeC,
+    BP3_OTPKeyTypeD,
+    BP3_OTPKeyTypeE,
+    BP3_OTPKeyTypeF,
+    BP3_OTPKeyTypeG,
+    BP3_OTPKeyTypeH,
+    BP3_OTPKeyMax
+} BP3_Otp_KeyType;
+BP3_Otp_KeyType find_otp_select(void);
+NEXUS_Error read_otp_id(unsigned keyIndex, uint32_t *otpIdHi, uint32_t *otpIdLo);
 #endif
 
 #define MAP_MEM_START \

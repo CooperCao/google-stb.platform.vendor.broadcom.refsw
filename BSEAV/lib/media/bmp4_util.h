@@ -45,6 +45,9 @@
 #define _BMP4_UTIL_H__
 
 #include "bmpeg4_util.h"
+#if B_HAS_MEDIA_DBV
+#include "bmedia_dbv_util.h"
+#endif
 
 #ifdef __cplusplus
 extern "C"
@@ -205,7 +208,9 @@ typedef enum bmp4_sample_type {
     bmp4_sample_type_unknown /* unknown sample */
 } bmp4_sample_type;
 
-#define BMP4_SAMPLE_AVC BMP4_TYPE('a','v','c','1')
+#define BMP4_SAMPLE_AVC_N(n) BMP4_TYPE('a','v','c',n)
+#define BMP4_SAMPLE_AVC BMP4_SAMPLE_AVC_N('1'):case BMP4_SAMPLE_AVC_N('2'):case BMP4_SAMPLE_AVC_N('3'):case BMP4_SAMPLE_AVC_N('4')
+
 #define B_MP4_AVC_MAX_SETS  4
 typedef struct bmp4_parameter_data {
     size_t len;
@@ -223,6 +228,10 @@ typedef struct bmp4_sample_avc {
 typedef struct bmp4_sample_hevc {
     bmp4_visualsampleentry visual;
     bmedia_h265_meta meta;
+#if B_HAS_MEDIA_DBV
+    bool dvc_valid;
+    bmedia_DOVIDecoderConfigurationRecord dvc;
+#endif
 } bmp4_sample_hevc;
 
 #define BMP4_SAMPLE_MP4A    BMP4_TYPE('m','p','4','a')

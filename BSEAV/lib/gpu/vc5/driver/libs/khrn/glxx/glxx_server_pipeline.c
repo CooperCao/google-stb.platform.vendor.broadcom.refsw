@@ -175,7 +175,7 @@ static void pipeline_object_free_mem(GLXX_PIPELINE_T *pipeline_object)
    gl20_program_common_term(&pipeline_object->common);
 }
 
-static void pipeline_object_term(void *v, size_t size)
+static void pipeline_object_term(void *v)
 {
    GLXX_PIPELINE_T *pipeline_object = (GLXX_PIPELINE_T *)v;
 

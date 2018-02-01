@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,11 +49,13 @@ extern "C" {
 
 #if (defined BXPT_IS_CORE28NM) && (!defined BXPT_FOR_BOOTUPDATER)
 
-/* Bug fix for 727B0, 7255, and subsequent chips. See SWSTB-1525 */
-#if (BCHP_CHIP == 7278 && BCHP_VER == BCHP_VER_B0) || (BCHP_CHIP == 7255)
+/* Bug fix for 7278Bx, 7255, and subsequent chips. See SWSTB-1525 */
+#if (BCHP_CHIP == 7278 && BCHP_VER == BCHP_VER_B0) || \
+    (BCHP_CHIP == 7278 && BCHP_VER == BCHP_VER_B1) || \
+    (BCHP_CHIP == 7255)
    #define BXPT_P_JITTER_CORRECTION_FIX     1
    #define BXPT_P_PCR_OFFSET_JITTER_FIX     1
-   #define BXPT_P_REMUX_JITTER_FIX      1
+   #define BXPT_P_REMUX_JITTER_FIX          1
 #endif
 
 /* remux */
@@ -86,7 +88,11 @@ extern "C" {
 #define BXPT_HAS_LOCAL_ATS                  1
 
 /* playback */
-#define BXPT_NUM_PLAYBACKS                  32
+#if BCHP_CHIP == 7255
+    #define BXPT_NUM_PLAYBACKS                  16
+#else
+    #define BXPT_NUM_PLAYBACKS                  32
+#endif
 #define BXPT_HAS_MULTICHANNEL_PLAYBACK      1
 #if (BCHP_CHIP == 7278)
     #define BXPT_USE_HOST_AGGREGATOR            1
@@ -101,7 +107,7 @@ extern "C" {
 #if ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) )
     #define BXPT_NUM_PCRS                       6
 #elif (BCHP_CHIP == 7255)
-    #define BXPT_NUM_PCRS                       4
+    #define BXPT_NUM_PCRS                       2
 #else
     #define BXPT_NUM_PCRS                       14
 #endif
@@ -215,7 +221,10 @@ In the math below, the arrays are 0-based.
 #define BXPT_HAS_MEMDMA                      1
 #define BXPT_NUM_MEMDMA_PID_CHANNELS         (BXPT_P_PID_TABLE_SIZE - BXPT_NUM_PID_CHANNELS)
 #define BXPT_P_MEMDMA_PID_CHANNEL_START      BXPT_NUM_PID_CHANNELS
-#if (BCHP_CHIP == 7278 && BCHP_VER == BCHP_VER_B0) || (BCHP_CHIP == 7255)
+#if (BCHP_CHIP == 7278 && BCHP_VER == BCHP_VER_B0) || \
+    (BCHP_CHIP == 7278 && BCHP_VER == BCHP_VER_B1) || \
+    (BCHP_CHIP == 7255)
+
 /* Some chips do not have the performance monitor regs */
 #else
 #define BXPT_DMA_HAS_PERFORMANCE_METER  1
@@ -258,11 +267,11 @@ In the math below, the arrays are 0-based.
 
 #elif (BCHP_CHIP == 7278)
 #define BXPT_NUM_RAVE_CONTEXTS          48
-	#if BCHP_VER == BCHP_VER_A0
-		#define BXPT_NUM_MTSIF                  4
-	#else
-		#define BXPT_NUM_MTSIF                  2
-	#endif
+    #if BCHP_VER == BCHP_VER_A0
+        #define BXPT_NUM_MTSIF                  4
+    #else
+        #define BXPT_NUM_MTSIF                  2
+    #endif
 #define BXPT_NUM_STCS                   16
 #define BXPT_P_HAS_0_238_PPM_RESOLUTION 1
 #define BXPT_MAX_EXTERNAL_TRIGS         6
@@ -290,7 +299,8 @@ In the math below, the arrays are 0-based.
 #define BXPT_HAS_RAVE_L2                    1
 #endif
 
-#if(BCHP_CHIP == 7278 && BCHP_VER == BCHP_VER_B0)
+#if(BCHP_CHIP == 7278 && BCHP_VER == BCHP_VER_B0) || \
+   (BCHP_CHIP == 7278 && BCHP_VER == BCHP_VER_B1)
 #define BXPT_HAS_PACKET_PLACEHOLDER 1
 #endif
 
@@ -330,10 +340,13 @@ In the math below, the arrays are 0-based.
 #define BXPT_NUM_STC_SNAPSHOTS          12
 #define BXPT_HAS_STC_SNAPSHOT_XBAR 1
 #elif ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) )
-    #define BXPT_NUM_STC_SNAPSHOTS          6
+    #define BXPT_NUM_STC_SNAPSHOTS          8
     #define BXPT_HAS_STC_SNAPSHOT_XBAR      1
 #elif (BCHP_CHIP == 7255)
     #define BXPT_NUM_STC_SNAPSHOTS          4
+    #define BXPT_HAS_STC_SNAPSHOT_XBAR      1
+#elif (BCHP_CHIP == 7278)
+    #define BXPT_NUM_STC_SNAPSHOTS          16
     #define BXPT_HAS_STC_SNAPSHOT_XBAR      1
 #else
 #define BXPT_NUM_STC_SNAPSHOTS          0

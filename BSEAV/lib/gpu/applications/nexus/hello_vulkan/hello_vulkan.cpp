@@ -2160,7 +2160,7 @@ void Options::Usage()
 {
    std::cout << "Arguments supported:\n";
    std::cout << "d=XxY          display at X by Y resolution\n";
-   std::cout << "o=XxY          display at protion (X,Y)\n";
+   std::cout << "o=XxY          display at position (X,Y)\n";
    std::cout << "frames=N       run for N frames then quit\n";
 }
 

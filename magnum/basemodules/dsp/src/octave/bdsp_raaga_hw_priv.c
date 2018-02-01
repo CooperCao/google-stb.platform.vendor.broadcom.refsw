@@ -553,7 +553,7 @@ BERR_Code BDSP_Raaga_P_ProgramAtuEntries(
 )
 {
 	unsigned index;
-	unsigned num_atu_entry;
+	unsigned num_atu_entry, previous_start;
     BERR_Code errCode = BERR_SUCCESS;
 	BDSP_Raaga_P_ATUInfo sATUInfo;
     BDBG_ENTER(BDSP_Raaga_P_ProgramAtuEntries);
@@ -586,10 +586,33 @@ BERR_Code BDSP_Raaga_P_ProgramAtuEntries(
 	}
 
 	/* Program the RW Region */
-	sATUInfo.eATUIndex = BDSP_Raaga_P_ATUEntry_RWMem;
+	sATUInfo.eATUIndex = BDSP_Raaga_P_ATUEntry_RWMem_Kernel;
+	sATUInfo.offset    = pDevice->memInfo.sKernelRWMemoryPool[dspindex].Memory.offset;
+	sATUInfo.size      = pDevice->memInfo.sKernelRWMemoryPool[dspindex].ui32Size;
+	sATUInfo.ui32StartAddr = BDSP_ATU_VIRTUAL_RW_MEM_START_ADDR;
+	errCode = BDSP_Raaga_P_WriteAtuEntry(pDevice->regHandle, &sATUInfo);
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_ProgramAtuEntries: Error in programming ATU for RW Memory"));
+		goto end;
+	}
+  previous_start = sATUInfo.ui32StartAddr;
+
+	sATUInfo.eATUIndex = BDSP_Raaga_P_ATUEntry_RWMem_HostFWShared;
+	sATUInfo.offset    = pDevice->memInfo.sHostSharedRWMemoryPool[dspindex].Memory.offset;
+	sATUInfo.size      = pDevice->memInfo.sHostSharedRWMemoryPool[dspindex].ui32Size;
+	sATUInfo.ui32StartAddr = previous_start +  pDevice->memInfo.sKernelRWMemoryPool[dspindex].ui32Size;
+	errCode = BDSP_Raaga_P_WriteAtuEntry(pDevice->regHandle, &sATUInfo);
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_ProgramAtuEntries: Error in programming ATU for RW Memory"));
+		goto end;
+	}
+  previous_start = sATUInfo.ui32StartAddr;
+	sATUInfo.eATUIndex = BDSP_Raaga_P_ATUEntry_RWMem_FW;
 	sATUInfo.offset    = pDevice->memInfo.sRWMemoryPool[dspindex].Memory.offset;
 	sATUInfo.size      = pDevice->memInfo.sRWMemoryPool[dspindex].ui32Size;
-	sATUInfo.ui32StartAddr = BDSP_ATU_VIRTUAL_RW_MEM_START_ADDR;
+	sATUInfo.ui32StartAddr = previous_start + pDevice->memInfo.sHostSharedRWMemoryPool[dspindex].ui32Size;
 	errCode = BDSP_Raaga_P_WriteAtuEntry(pDevice->regHandle, &sATUInfo);
 	if(errCode != BERR_SUCCESS)
 	{
@@ -630,6 +653,134 @@ void BDSP_Raaga_P_DirectRaagaUartToPort(BREG_Handle regHandle)
 #else
 	BSTD_UNUSED(regHandle);
 #endif /*RAAGA_UART_ENABLE*/
+}
+
+/***********************************************************************
+Name        :   BDSP_Raaga_P_GetDefaultClkRate
+
+Input       :   pDeviceHandle
+				dsp Index
+
+Output      :   Default Dsp Clock Rate
+
+Function    :   This function is used for dynamic frequency scaling.
+				Here we obtain the default clock rate of the DSP.
+***********************************************************************/
+BERR_Code BDSP_Raaga_P_GetDefaultClkRate(
+	BDSP_Raaga *pRaaga,
+	unsigned dspIndex,
+	unsigned *pDefaultDspClkRate
+)
+{
+	BERR_Code err = BERR_NOT_INITIALIZED;
+
+	BDBG_ASSERT((dspIndex + 1) <= BDSP_RAAGA_MAX_DSP);
+
+	if( dspIndex == 0 )
+	{
+		#ifdef BCHP_PWR_RESOURCE_RAAGA0_DSP
+			err = BCHP_PWR_GetDefaultClockRate(pRaaga->chpHandle, BCHP_PWR_RESOURCE_RAAGA0_DSP, pDefaultDspClkRate );
+		#else
+			BSTD_UNUSED(pRaaga);
+			BSTD_UNUSED(pDefaultDspClkRate);
+		#endif
+	}
+	else if( dspIndex == 1 )
+	{
+		#ifdef BCHP_PWR_RESOURCE_RAAGA1_DSP
+			err = BCHP_PWR_GetDefaultClockRate(pRaaga->chpHandle, BCHP_PWR_RESOURCE_RAAGA1_DSP, pDefaultDspClkRate );
+		#endif
+	}
+
+	return err;
+}
+
+/***********************************************************************
+Name        :   BDSP_Raaga_P_SetDspClkRate
+
+Input       :   pRaagaHandle
+				expectedDspClkRate
+				dsp Index
+
+Function    :   This function is used for dynamic frequency scaling.
+				This will be required as part of power management until we
+				decouple the AIO RBUS bridge from the  DSP0 and have
+				independent control.
+
+				dspIndex decides which DSPs frequency is being updated.
+				In case BCHP_PWR doesn't have support for dynamic freq
+				scaling, the apis will return BERR_NOT_SUPPORTED.
+
+Return      :   void
+***********************************************************************/
+void BDSP_Raaga_P_SetDspClkRate(
+		BDSP_Raaga *pRaaga,
+		unsigned expectedDspClkRate,
+		unsigned dspIndex
+)
+{
+	BERR_Code err = BERR_NOT_SUPPORTED;
+	unsigned currentDspClkRate=0;
+
+	BDBG_ASSERT((dspIndex + 1) <= BDSP_RAAGA_MAX_DSP);
+
+	if( dspIndex == 0 )
+	{
+		#ifdef BCHP_PWR_RESOURCE_RAAGA0_DSP
+			/* GetClk is done before SetClk to detect if DSP is already running at expected frequency,
+				to avoid invoking the glitchless circuit */
+			err = BCHP_PWR_GetClockRate(pRaaga->chpHandle, BCHP_PWR_RESOURCE_RAAGA0_DSP, &currentDspClkRate );
+			if( (err == BERR_SUCCESS) && \
+				( currentDspClkRate !=  expectedDspClkRate))
+			{
+				err = BCHP_PWR_SetClockRate(pRaaga->chpHandle, BCHP_PWR_RESOURCE_RAAGA0_DSP, expectedDspClkRate );
+			}
+		#else
+			BSTD_UNUSED(pRaaga);
+			BSTD_UNUSED(expectedDspClkRate);
+			BSTD_UNUSED(currentDspClkRate);
+			BSTD_UNUSED(dspIndex);
+		#endif
+	}
+	else if( dspIndex == 1 )
+	{
+		#ifdef BCHP_PWR_RESOURCE_RAAGA1_DSP
+			err = BCHP_PWR_GetClockRate(pRaaga->chpHandle, BCHP_PWR_RESOURCE_RAAGA1_DSP, &currentDspClkRate );
+			if( (err == BERR_SUCCESS) && \
+				( currentDspClkRate !=  expectedDspClkRate))
+			{
+				err = BCHP_PWR_SetClockRate(pDevice->chpHandle, BCHP_PWR_RESOURCE_RAAGA1_DSP, expectedDspClkRate );
+			}
+		#endif
+	}
+
+	if( err == BERR_SUCCESS)
+			BDBG_MSG(("PWR: DSP%d current ClkRate = %d Hz ",dspIndex, expectedDspClkRate));
+	return;
+}
+
+/***********************************************************************
+Name        :   BDSP_Raaga_P_GetLowerDspClkRate
+
+Input       :   Default Raaga DSP frequency
+
+Output      :   1/16th the input parameter-defaultDspClkRate
+
+Funtion     :   After measuring power at different clock frequencies it
+				was decided to have a 1/16th frequency for lower power
+				consumption. So whenever DSP is not in use, before taking
+				off the clock we will reduce the Clock frequency to
+				1/16th the default.
+
+***********************************************************************/
+
+void  BDSP_Raaga_P_GetLowerDspClkRate(
+		unsigned dspClkRate,
+		unsigned *lowerDspClkRate
+)
+{
+	BSTD_UNUSED(dspClkRate);
+	*lowerDspClkRate = 46875000;
 }
 
 /***********************************************************************
@@ -800,7 +951,9 @@ BERR_Code BDSP_Raaga_P_PowerResume(
 	if (pDevice->hardwareStatus.powerStandby)
 	{
 		BDSP_Raaga_P_EnableAllPwrResource(pDeviceHandle, true);
-
+        pDevice->hardwareStatus.deviceWatchdogFlag = true;
+        BDSP_Raaga_P_Reset(pDevice);
+        /*Raaga_Open enables Watchdog*/
 		BDSP_Raaga_P_Open(pDevice);
 		if(pDevice->deviceSettings.authenticationEnabled == false)
 		{
@@ -813,7 +966,20 @@ BERR_Code BDSP_Raaga_P_PowerResume(
 				goto end;
 			}
 		}
-		pDevice->hardwareStatus.powerStandby = false;
+        errCode = BDSP_Raaga_P_CheckDspAlive(pDevice);
+        if (errCode!=BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_Raaga_P_PowerResume: DSP not alive"));
+            errCode= BERR_TRACE(errCode);
+            goto end;
+        }
+        else
+        {
+            BDBG_MSG(("BDSP_Raaga_P_PowerResume: DSP is alive"));
+        }
+
+        pDevice->hardwareStatus.deviceWatchdogFlag = false;
+        pDevice->hardwareStatus.powerStandby = false;
 	}
 	else
 	{

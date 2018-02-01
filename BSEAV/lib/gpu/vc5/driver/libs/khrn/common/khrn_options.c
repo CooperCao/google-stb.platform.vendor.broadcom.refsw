@@ -17,7 +17,7 @@ static GFX_RAND_STATE_T random_centroid_state;
 #if V3D_VER_AT_LEAST(4,1,34,0)
 static GFX_RAND_STATE_T random_noperspective_state;
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static GFX_RAND_STATE_T random_sample_rate_shading_state;
 #endif
 
@@ -96,7 +96,7 @@ void khrn_init_options(void)
    khrn_options.random_noperspective_seed    = gfx_options_uint32("KHRN_RANDOM_NOPERSPECTIVE_SEED",42);
 #endif
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    khrn_options.force_sample_rate_shading    = gfx_options_bool(  "KHRN_FORCE_SAMPLE_RATE_SHADING", false);
    khrn_options.random_sample_rate_shading   = gfx_options_bool(  "KHRN_RANDOM_SAMPLE_RATE_SHADING", false);
    khrn_options.random_sample_rate_shading_seed = gfx_options_uint32("KHRN_RANDOM_SAMPLE_RATE_SHADING_SEED", 42);
@@ -117,7 +117,7 @@ void khrn_init_options(void)
    if (khrn_options.random_noperspective)
       gfx_rand_init(&random_noperspective_state, khrn_options.random_noperspective_seed);
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (khrn_options.random_sample_rate_shading)
       gfx_rand_init(&random_sample_rate_shading_state, khrn_options.random_sample_rate_shading_seed);
 #endif
@@ -169,7 +169,7 @@ bool khrn_options_make_noperspective(void)
 }
 #endif
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 bool khrn_options_make_sample_rate_shaded(void)
 {
    if (khrn_options.force_sample_rate_shading)

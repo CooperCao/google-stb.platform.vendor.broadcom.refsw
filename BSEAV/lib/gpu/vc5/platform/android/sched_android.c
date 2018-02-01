@@ -97,7 +97,7 @@ static BEGL_FenceStatus WaitForAnyJobTimeout(void *context,
 BEGL_SchedInterface *CreateAndroidSchedInterface(BEGL_MemoryInterface *memIface)
 {
    /* Get a standard Nexus scheduler interface */
-   BEGL_SchedInterface *iface = CreateSchedInterface(memIface);
+   BEGL_SchedInterface *iface = CreateSchedInterface(memIface, NULL);
 
    if (iface) /* Override a couple of functions with Android-specific ones */
    {

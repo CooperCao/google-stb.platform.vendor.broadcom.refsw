@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -195,7 +195,7 @@ const uint32_t BDSP_IMG_ddp_ids_array1[] = {
 	0x2b01fe30,
 	0x940811cf,
 	0x940c45cf,
-	0xa7518dd7,
+	0xa75209d7,
 	0x001ffe89,
 	0x07a47f1f,
 	0x7404050f,
@@ -237,7 +237,7 @@ const uint32_t BDSP_IMG_ddp_ids_array1[] = {
 	0x940c13cf,
 	0x941011cf,
 	0x941445cf,
-	0xa70c09d7,
+	0xa70c0dd7,
 	0x001ffe8a,
 	0x762003cf,
 	0x761c01cf,
@@ -264,7 +264,7 @@ const uint32_t BDSP_IMG_ddp_ids_array1[] = {
 	0x46104207,
 	0x3d9c7217,
 	0x07b17e1f,
-	0xa70909d7,
+	0xa7090dd7,
 	0x001ffe8d,
 	0xb6f88dff,
 	0x07a47f1f,
@@ -273,7 +273,7 @@ const uint32_t BDSP_IMG_ddp_ids_array1[] = {
 	0x3d9c7217,
 	0x3da8721f,
 	0x07b17e23,
-	0xa72b8dd7,
+	0xa72c09d7,
 	0x001ffe8d,
 	0x15009143,
 	0xb6f605fc,

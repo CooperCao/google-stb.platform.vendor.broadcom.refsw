@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -247,14 +247,11 @@ Description:
 	This function is responsible for closing BLED module. Closing BLED 
 	will free main BLED handle. 
 
-Returns:
-	TODO:
-
 See Also:
 	BLED_Open()
 
 ****************************************************************************/
-BERR_Code BLED_Close(
+void BLED_Close(
 	BLED_Handle hDev					/* [in] Device handle */
 	);
 
@@ -274,7 +271,7 @@ See Also:
 	BLED_Open()
 
 ****************************************************************************/
-BERR_Code BLED_GetDefaultSettings(
+void BLED_GetDefaultSettings(
 	BLED_Settings *pDefSettings,		/* [out] Returns default setting */
 	BCHP_Handle hChip					/* [in] Chip handle */
 	);
@@ -285,13 +282,6 @@ Summary:
 
 Description:
 	This function is used to write a character to an LED digit.
-		
-Returns:
-	TODO:
-
-See Also:
-	
-
 ****************************************************************************/
 BERR_Code BLED_Write ( 
 	BLED_Handle 		hLed, 			/* [in] Device handle */
@@ -306,15 +296,8 @@ Summary:
 Description:
 	This function is used to adjust LED brightness.  The caller specifies
 	the percentage of brightness from (0-100).
-		
-Returns:
-	TODO:
-
-See Also:
-	
-
 ****************************************************************************/
-BERR_Code BLED_AdjustBrightness ( 
+void BLED_AdjustBrightness (
 	BLED_Handle 		hLed,				/* [in] Device handle */
 	uint8_t				percentBrightness	/* [in] percent of brightness */
 	);
@@ -325,13 +308,6 @@ Summary:
 
 Description:
 	This function is used to turn on or off a discrete LED
-		
-Returns:
-	TODO:
-
-See Also:
-	
-
 ****************************************************************************/
 BERR_Code BLED_SetDiscreteLED ( 
 	BLED_Handle 		hLed, 			/* [in] Device handle */
@@ -342,16 +318,6 @@ BERR_Code BLED_SetDiscreteLED (
 /***************************************************************************
 Summary:
 	This function starts HLCD
-
-Description:
-	This function is used to start HLCD
-		
-Returns:
-	TODO:
-
-See Also:
-	
-
 ****************************************************************************/
 BERR_Code BLED_StartHLCD ( 
 	BLED_Handle 		hLed, 			/* Device handle */
@@ -369,13 +335,6 @@ Summary:
 
 Description:
 	This function is used to stop HLCD
-		
-Returns:
-	TODO:
-
-See Also:
-	
-
 ****************************************************************************/
 BERR_Code BLED_StopHLCD ( 
 	BLED_Handle 		hLed 			/* Device handle */

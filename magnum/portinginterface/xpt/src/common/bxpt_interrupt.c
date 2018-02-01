@@ -136,7 +136,7 @@ static BINT_Id GetMesgReadyIntId(
 BERR_Code BXPT_Interrupt_EnableMessageInt(
     BXPT_Handle hXpt,               /* [in] Handle for this transport */
     int MessageBufferNum,       /* [in] Which message buffer to watch. */
-    BINT_CallbackFunc Callback,     /* [in] Handler for this interrupt. */
+    BINT_CallbackFunc Callback_isr, /* [in] Handler for this interrupt. */
     void *Parm1,                    /* [in] First arg to be passed to callback */
     int Parm2                       /* [in] Second arg to be passed to callback */
     )
@@ -147,7 +147,7 @@ BERR_Code BXPT_Interrupt_EnableMessageInt(
     {
         rc = BINT_CreateCallback( &hXpt->MesgIntrCallbacks[ MessageBufferNum ], hXpt->hInt,
             GetMesgReadyIntId( MessageBufferNum, BCHP_XPT_MSG_BUF_DAT_RDY_INTR_00_31_L2_W0_CPU_STATUS ),
-            Callback, Parm1, Parm2 );
+            Callback_isr, Parm1, Parm2 );
         if( rc )
         {
             rc = BERR_TRACE( rc );
@@ -182,7 +182,7 @@ BERR_Code BXPT_Interrupt_DisableMessageInt(
 BERR_Code BXPT_Interrupt_EnableMessageOverflowInt(
     BXPT_Handle hXpt,               /* [in] Handle for this transport */
     int MessageBufferNum,       /* [in] Which message buffer to watch. */
-    BINT_CallbackFunc Callback,     /* [in] Handler for this interrupt. */
+    BINT_CallbackFunc Callback_isr, /* [in] Handler for this interrupt. */
     void *Parm1,                    /* [in] First arg to be passed to callback */
     int Parm2                       /* [in] Second arg to be passed to callback */
     )
@@ -193,7 +193,7 @@ BERR_Code BXPT_Interrupt_EnableMessageOverflowInt(
     {
         rc = BINT_CreateCallback( &hXpt->OverflowIntrCallbacks[ MessageBufferNum ], hXpt->hInt,
             GetMesgReadyIntId( MessageBufferNum, BCHP_XPT_MSG_BUF_OVFL_INTR_00_31_L2_W8_CPU_STATUS ),
-            Callback, Parm1, Parm2 );
+            Callback_isr, Parm1, Parm2 );
         if( rc )
         {
             rc = BERR_TRACE( rc );
@@ -236,12 +236,12 @@ void BXPT_P_Interrupt_MsgSw_isr(
 BERR_Code BXPT_Interrupt_EnableMessageInt_isr(
     BXPT_Handle hXpt,               /* [in] Handle for this transport */
     int MessageBufferNum,       /* [in] Which message buffer to watch. */
-    BINT_CallbackFunc Callback,     /* [in] Handler for this interrupt. */
+    BINT_CallbackFunc Callback_isr, /* [in] Handler for this interrupt. */
     void *Parm1,                    /* [in] First arg to be passed to callback */
     int Parm2                       /* [in] Second arg to be passed to callback */
     )
 {
-    BSTD_UNUSED( Callback );
+    BSTD_UNUSED( Callback_isr );
     BSTD_UNUSED( Parm1 );
     BSTD_UNUSED( Parm2 );
 
@@ -273,12 +273,12 @@ BERR_Code BXPT_Interrupt_DisableMessageInt_isr(
 BERR_Code BXPT_Interrupt_EnableMessageOverflowInt_isr(
     BXPT_Handle hXpt,               /* [in] Handle for this transport */
     int MessageBufferNum,       /* [in] Which message buffer to watch. */
-    BINT_CallbackFunc Callback,     /* [in] Handler for this interrupt. */
+    BINT_CallbackFunc Callback_isr, /* [in] Handler for this interrupt. */
     void *Parm1,                    /* [in] First arg to be passed to callback */
     int Parm2                       /* [in] Second arg to be passed to callback */
     )
 {
-    BSTD_UNUSED( Callback );
+    BSTD_UNUSED( Callback_isr );
     BSTD_UNUSED( Parm1 );
     BSTD_UNUSED( Parm2 );
 
@@ -319,7 +319,7 @@ BERR_Code BXPT_Interrupt_DisableMessageOverflowInt_isr(
 BERR_Code BXPT_Interrupt_EnableMessageInt(
     BXPT_Handle hXpt,               /* [in] Handle for this transport */
     int MessageBufferNum,       /* [in] Which message buffer to watch. */
-    BINT_CallbackFunc Callback,     /* [in] Handler for this interrupt. */
+    BINT_CallbackFunc Callback_isr, /* [in] Handler for this interrupt. */
     void *Parm1,                    /* [in] First arg to be passed to callback */
     int Parm2                       /* [in] Second arg to be passed to callback */
     )
@@ -327,7 +327,7 @@ BERR_Code BXPT_Interrupt_EnableMessageInt(
     BERR_Code ExitCode;
 
     BKNI_EnterCriticalSection();
-    ExitCode = BXPT_Interrupt_EnableMessageInt_isr( hXpt, MessageBufferNum, Callback, Parm1, Parm2 );
+    ExitCode = BXPT_Interrupt_EnableMessageInt_isr( hXpt, MessageBufferNum, Callback_isr, Parm1, Parm2 );
     BKNI_LeaveCriticalSection();
 
     return ExitCode;
@@ -364,7 +364,7 @@ BERR_Code BXPT_Interrupt_DisableMessageOverflowInt(
 BERR_Code BXPT_Interrupt_EnableMessageOverflowInt(
     BXPT_Handle hXpt,               /* [in] Handle for this transport */
     int MessageBufferNum,       /* [in] Which message buffer to watch. */
-    BINT_CallbackFunc Callback,     /* [in] Handler for this interrupt. */
+    BINT_CallbackFunc Callback_isr, /* [in] Handler for this interrupt. */
     void *Parm1,                    /* [in] First arg to be passed to callback */
     int Parm2                       /* [in] Second arg to be passed to callback */
     )
@@ -372,7 +372,7 @@ BERR_Code BXPT_Interrupt_EnableMessageOverflowInt(
     BERR_Code ExitCode;
 
     BKNI_EnterCriticalSection();
-    ExitCode = BXPT_Interrupt_EnableMessageOverflowInt_isr( hXpt, MessageBufferNum, Callback, Parm1, Parm2 );
+    ExitCode = BXPT_Interrupt_EnableMessageOverflowInt_isr( hXpt, MessageBufferNum, Callback_isr, Parm1, Parm2 );
     BKNI_LeaveCriticalSection();
 
     return ExitCode;
@@ -401,7 +401,7 @@ static void ClearBit_isr(
 BERR_Code BXPT_Interrupt_EnableMessageInt_isr(
     BXPT_Handle hXpt,               /* [in] Handle for this transport */
     int MessageBufferNum,       /* [in] Which message buffer to watch. */
-    BINT_CallbackFunc Callback,     /* [in] Handler for this interrupt. */
+    BINT_CallbackFunc Callback_isr, /* [in] Handler for this interrupt. */
     void *Parm1,                    /* [in] First arg to be passed to callback */
     int Parm2                       /* [in] Second arg to be passed to callback */
     )
@@ -409,7 +409,7 @@ BERR_Code BXPT_Interrupt_EnableMessageInt_isr(
     BERR_Code ExitCode = BERR_SUCCESS;
 
     BDBG_ASSERT( hXpt );
-    BDBG_ASSERT( Callback );
+    BDBG_ASSERT( Callback_isr );
 
     if( MessageBufferNum >= BXPT_NUM_MESG_BUFFERS )
     {
@@ -423,7 +423,7 @@ BERR_Code BXPT_Interrupt_EnableMessageInt_isr(
         uint32_t RegAddr = 0;
 
         /* Load the callback into the jump table. */
-        hXpt->MesgIntrCallbacks[ MessageBufferNum ].Callback = Callback;
+        hXpt->MesgIntrCallbacks[ MessageBufferNum ].Callback = Callback_isr;
         hXpt->MesgIntrCallbacks[ MessageBufferNum ].Parm1 = Parm1;
         hXpt->MesgIntrCallbacks[ MessageBufferNum ].Parm2 = Parm2;
 
@@ -469,7 +469,7 @@ BERR_Code BXPT_Interrupt_DisableMessageInt_isr(
 BERR_Code BXPT_Interrupt_EnableMessageOverflowInt_isr(
     BXPT_Handle hXpt,               /* [in] Handle for this transport */
     int MessageBufferNum,       /* [in] Which message buffer to watch. */
-    BINT_CallbackFunc Callback,     /* [in] Handler for this interrupt. */
+    BINT_CallbackFunc Callback_isr, /* [in] Handler for this interrupt. */
     void *Parm1,                    /* [in] First arg to be passed to callback */
     int Parm2                       /* [in] Second arg to be passed to callback */
     )
@@ -477,7 +477,7 @@ BERR_Code BXPT_Interrupt_EnableMessageOverflowInt_isr(
     BERR_Code ExitCode = BERR_SUCCESS;
 
     BDBG_ASSERT( hXpt );
-    BDBG_ASSERT( Callback );
+    BDBG_ASSERT( Callback_isr );
 
     if( MessageBufferNum >= BXPT_NUM_MESG_BUFFERS )
     {
@@ -491,7 +491,7 @@ BERR_Code BXPT_Interrupt_EnableMessageOverflowInt_isr(
         uint32_t RegAddr = 0;
 
         /* Load the callback into the jump table. */
-        hXpt->OverflowIntrCallbacks[ MessageBufferNum ].Callback = Callback;
+        hXpt->OverflowIntrCallbacks[ MessageBufferNum ].Callback = Callback_isr;
         hXpt->OverflowIntrCallbacks[ MessageBufferNum ].Parm1 = Parm1;
         hXpt->OverflowIntrCallbacks[ MessageBufferNum ].Parm2 = Parm2;
 

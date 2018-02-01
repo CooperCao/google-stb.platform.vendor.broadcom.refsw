@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -56,8 +56,8 @@ Description:
     Get the HSM handle associated with the keyslot.
 */
 NEXUS_Error NEXUS_KeySlot_GetHsmHandle_priv( NEXUS_KeySlotHandle handle,
-                                          BHSM_KeyslotHandle *pHsmKeySlotHandle    /*[out]*/
-                                 );
+                                             BHSM_KeyslotHandle *pHsmKeySlotHandle    /*[out]*/
+                                           );
 
 #ifdef __cplusplus
 } /* extern "C" */

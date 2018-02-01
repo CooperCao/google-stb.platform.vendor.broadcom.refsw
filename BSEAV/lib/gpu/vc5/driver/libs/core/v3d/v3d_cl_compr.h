@@ -26,7 +26,7 @@ extern uint32_t v3d_cl_compr_size(
    GFX_MAX(V3D_CL_COMPR_IND_POINT_MAX_PACKED_SIZE, \
    V3D_CL_COMPR_XY_TRI_MAX_PACKED_SIZE)))))
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 #define V3D_CL_MAX_COMPR_SIZE GFX_MAX(V3D_CL_MAX_COMPR_SIZE_SHARED, V3D_CL_COMPR_IND_GENERIC_MAX_PACKED_SIZE)
 #else
 #define V3D_CL_MAX_COMPR_SIZE V3D_CL_MAX_COMPR_SIZE_SHARED
@@ -36,14 +36,14 @@ union v3d_cl_compr_union
 {
    uint32_t id; /* iid8, iid32, prim_id8, prim_id32 */
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_CL_COMPR_IND_COMMON_CLIPPED_PRIM_T ind_common_clipped_prim;
 #else
    int32_t rel_branch;
    v3d_addr_t branch;
 #endif
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_CL_COMPR_IND_GENERIC_C0_T ind_generic_c0;
    V3D_CL_COMPR_IND_GENERIC_C1_T ind_generic_c1;
    V3D_CL_COMPR_IND_GENERIC_C2_T ind_generic_c2;
@@ -59,7 +59,7 @@ union v3d_cl_compr_union
    V3D_CL_COMPR_IND_TRI_C3_T ind_tri_c3;
    V3D_CL_COMPR_IND_TRI_C4_T ind_tri_c4;
    V3D_CL_COMPR_IND_TRI_C5_T ind_tri_c5;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_CL_COMPR_IND_TRI_C6_T ind_tri_c6;
 #endif
 
@@ -69,7 +69,7 @@ union v3d_cl_compr_union
    V3D_CL_COMPR_IND_D3DPVSF_TRI_C3_T ind_d3dpvsf_tri_c3;
    V3D_CL_COMPR_IND_D3DPVSF_TRI_C4_T ind_d3dpvsf_tri_c4;
    V3D_CL_COMPR_IND_D3DPVSF_TRI_C5_T ind_d3dpvsf_tri_c5;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_CL_COMPR_IND_D3DPVSF_TRI_C6_T ind_d3dpvsf_tri_c6;
 #endif
 
@@ -79,7 +79,7 @@ union v3d_cl_compr_union
    V3D_CL_COMPR_IND_LINE_C3_T ind_line_c3;
    V3D_CL_COMPR_IND_LINE_C4_T ind_line_c4;
    V3D_CL_COMPR_IND_LINE_C5_T ind_line_c5;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_CL_COMPR_IND_LINE_C6_T ind_line_c6;
 #endif
 
@@ -88,7 +88,7 @@ union v3d_cl_compr_union
    V3D_CL_COMPR_IND_POINT_C2_T ind_point_c2;
    V3D_CL_COMPR_IND_POINT_C4_T ind_point_c4;
    V3D_CL_COMPR_IND_POINT_C5_T ind_point_c5;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_CL_COMPR_IND_POINT_C6_T ind_point_c6;
 #endif
 

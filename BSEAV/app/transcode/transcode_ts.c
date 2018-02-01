@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -471,6 +471,8 @@ typedef struct TranscodeContext {
        bool bEnable;
        uint32_t uiValue;
     } ptsSeed;
+
+    bool bShuttingDown;
 } TranscodeContext;
 
 /* global context
@@ -527,6 +529,7 @@ static bool g_bOnePtsPerSegment = false;
 static bool g_audioPesPacking = false;
 static bool g_bSparseFrameRate = false;
 static bool g_bEnableFieldPairing = true;
+static bool g_bfMP4 = false;
 static bool g_bPrintStatus = false;
 
 static const namevalue_t g_audioChannelFormatStrs[] = {
@@ -1945,7 +1948,7 @@ static void avsync_correlation_error( TranscodeContext *pContext )
     unsigned i, j;
     uint32_t v_opts, a_opts;
     uint64_t v_pts, a_pts, v_stc, a_stc;
-    double v_opts2pts, a_opts2pts, error;
+    double v_opts2pts = 0, a_opts2pts = 0, error;
     unsigned origPtsScale = (NEXUS_TransportType_eDssEs != pContext->inputSettings.eStreamType ||
         NEXUS_TransportType_eDssPes != pContext->inputSettings.eStreamType)? 45 : 27000;
     bool validVframe = false, validAframe = false;
@@ -2155,7 +2158,7 @@ static void keyHandler( TranscodeContext  xcodeContext[] )
     NEXUS_VideoDecoderSettings videoDecoderSettings;
     NEXUS_VideoInputSettings  videoInputSettings;
     NEXUS_Error rc;
-    int rcInput;
+    int rcInput = 0;
     TranscodeContext *pContext = &xcodeContext[g_selectedXcodeContextId];
 
     printMenu(pContext);
@@ -3226,7 +3229,7 @@ static void insertSystemDataTimer(void *context)
  */
 static void xcode_create_systemdata( TranscodeContext  *pContext )
 {
-    uint8_t vidStreamType, audStreamType;
+    uint8_t vidStreamType = 0, audStreamType = 0;
     uint16_t audPid = 0;
     unsigned i;
     NEXUS_AudioCodec audCodec = NEXUS_AudioCodec_eUnknown;
@@ -3380,7 +3383,7 @@ static void xcode_av_sync(
     NEXUS_VideoEncoderDelayRange videoDelay;
     NEXUS_AudioMuxOutputDelayStatus audioDelayStatus;
     NEXUS_AudioMuxOutputStartSettings audioMuxStartSettings;
-    unsigned Dee;
+    unsigned Dee = 0;
 
     /******************************************
      * add configurable delay to video path
@@ -3911,12 +3914,14 @@ static void nrt_endOfStreamHandler(void *context)
 #ifndef NEXUS_NUM_DSP_VIDEO_ENCODERS
 static void BTST_VideoEncoder_WatchdogHandler (void *context, int param)
 {
-    NEXUS_VideoEncoderStopSettings videoEncoderStopSettings;
-    TranscodeContext *pContext = (TranscodeContext*) context;
-    BSTD_UNUSED(param);
-    BDBG_WRN(("Video encoder %d watchdog callback fired. To restart it...", pContext->contextId));
-    B_Mutex_Lock(pContext->mutexStarted);
-    if(pContext->bNonRealTime) {/* NRT mode needs to stop&start whole context */
+   NEXUS_VideoEncoderStopSettings videoEncoderStopSettings;
+   TranscodeContext *pContext = (TranscodeContext*) context;
+   BSTD_UNUSED(param);
+   if (!pContext->bShuttingDown)
+   {
+      BDBG_WRN(("Video encoder %d watchdog callback fired. To restart it...", pContext->contextId));
+      B_Mutex_Lock(pContext->mutexStarted);
+      if(pContext->bNonRealTime) {/* NRT mode needs to stop&start whole context */
         /* bringdown loopback path */
         if(g_bLoopbackPlayer && pContext->contextId == g_loopbackXcodeId && g_loopbackStarted) {
             g_loopbackStarted = false;
@@ -3932,13 +3937,14 @@ static void BTST_VideoEncoder_WatchdogHandler (void *context, int param)
             xcode_loopback_setup(pContext);
             g_loopbackStarted = true;
         }
-    } else {/* RT mode only need to stop/start video encoder */
+      } else {/* RT mode only need to stop/start video encoder */
         NEXUS_VideoEncoder_GetDefaultStopSettings(&videoEncoderStopSettings);
         videoEncoderStopSettings.mode = NEXUS_VideoEncoderStopMode_eAbort;
         NEXUS_VideoEncoder_Stop(pContext->videoEncoder, &videoEncoderStopSettings);
         NEXUS_VideoEncoder_Start(pContext->videoEncoder, &pContext->vidEncoderStartSettings);
-    }
-    B_Mutex_Unlock(pContext->mutexStarted);
+      }
+      B_Mutex_Unlock(pContext->mutexStarted);
+   }
 }
 #endif
 
@@ -5488,8 +5494,12 @@ static void start_transcode(
         BDBG_MSG(("Opened record fifo file."));
     }
     else {
-        pContext->fileTranscode = NEXUS_FileRecord_OpenPosix(pContext->encodeSettings.fname,
-            pContext->indexfname[0]? pContext->indexfname : NULL);
+        NEXUS_FileRecordOpenSettings openSettings;
+        NEXUS_FileRecord_GetDefaultOpenSettings(&openSettings);
+        openSettings.data.filename = pContext->encodeSettings.fname;
+        openSettings.data.directIo = !g_bfMP4;
+        openSettings.index.filename = pContext->indexfname[0]? pContext->indexfname : NULL;
+        pContext->fileTranscode = NEXUS_FileRecord_Open(&openSettings);
     }
     if (!pContext->fileTranscode) {
         fprintf(stderr, "can't create file: %s, %s\n", pContext->encodeSettings.fname, pContext->indexfname);
@@ -6737,7 +6747,9 @@ again:
     for(i = 0; i < NEXUS_NUM_VIDEO_ENCODERS; i++) {
         B_Mutex_Lock(xcodeContext[i].mutexStarted);
         if(xcodeContext[i].videoEncoder || xcodeContext[i].audioMuxOutput) {
-            shutdown_transcode(&xcodeContext[i]);
+           xcodeContext[i].bShuttingDown = true;
+           shutdown_transcode(&xcodeContext[i]);
+           xcodeContext[i].bShuttingDown = false;
         }
         B_Mutex_Unlock(xcodeContext[i].mutexStarted);
         if(xcodeContext[i].nrtEofHandle) {

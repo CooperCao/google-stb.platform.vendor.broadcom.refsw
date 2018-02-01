@@ -112,10 +112,18 @@ struct BMMA_Block {
 static BERR_Code BMMA_Heap_Compact_locked(BMMA_Heap_Handle h, BMMA_RangeAllocator_CompactionStatus *compactionStatus);
 static void BMMA_Dbg_DumpHeap_locked(BMMA_Heap_Handle h);
 
+static void BMMA_P_DefaultFlush_Cache_isrsafe(const void *addr, size_t length)
+{
+    BSTD_UNUSED(addr);
+    BSTD_UNUSED(length);
+    BDBG_ERR(("Flush cache is not supported"));
+    return;
+}
+
 void BMMA_GetDefaultCreateSettings(BMMA_CreateSettings *settings)
 {
     BDBG_ASSERT(settings);
-    BKNI_Memset(settings, 0, sizeof(*settings));
+    settings->flush_cache = BMMA_P_DefaultFlush_Cache_isrsafe;
     return;
 }
 

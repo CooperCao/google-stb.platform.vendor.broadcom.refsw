@@ -117,7 +117,7 @@ BERR_Code BDSP_Arm_Open(
     pArm->device.allocateExternalInterrupt = NULL; /* BDSP_Arm_P_AllocateExternalInterrupt;*/
     pArm->device.freeExternalInterrupt = NULL; /* BDSP_Arm_P_FreeExternalInterrupt;*/
     pArm->device.getExternalInterruptInfo = NULL; /* BDSP_Arm_P_GetExternalInterruptInfo;*/
-    pArm->device.processAudioCapture = NULL;
+    pArm->device.processAudioCapture = BDSP_Arm_P_ProcessAudioCapture;
     pArm->device.getDebugBuffer = NULL;
     pArm->device.consumeDebugData = NULL;
     pArm->device.getCoreDumpStatus = NULL;

@@ -429,3 +429,10 @@ void binput_print_script_usage(void)
         BKNI_Printf("  %s\n", g_input_keymap[i].script);
     }
 }
+
+#if NEXUS_HAS_IR_INPUT && !NXCLIENT_SUPPORT
+NEXUS_IrInputHandle binput_irhandle(binput_t input)
+{
+    return input->irInput;
+}
+#endif

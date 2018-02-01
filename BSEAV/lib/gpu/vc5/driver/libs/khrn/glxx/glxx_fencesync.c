@@ -19,14 +19,13 @@ static bool fencesync_init(GLXX_FENCESYNC_T* fsync, unsigned name,
    return true;
 }
 
-static void fencesync_term(void *v, size_t size)
+static void fencesync_term(void *v)
 {
    GLXX_FENCESYNC_T *fsync = (GLXX_FENCESYNC_T *)v;
 
    free(fsync->debug_label);
    fsync->debug_label = NULL;
 
-   unused(size);
    khrn_fence_refdec(fsync->fence);
 }
 
@@ -51,9 +50,4 @@ GLXX_FENCESYNC_T* glxx_fencesync_create(unsigned name,
 bool glxx_fencesync_is_signaled(GLXX_FENCESYNC_T *fsync)
 {
    return khrn_fence_reached_state(fsync->fence, GLXX_FENCESYNC_SIGNALED_DEPS_STATE);
-}
-
-void glxx_fencesync_set_signaled(GLXX_FENCESYNC_T *fsync)
-{
-   khrn_fence_set_known_state(fsync->fence, V3D_SCHED_DEPS_COMPLETED);
 }

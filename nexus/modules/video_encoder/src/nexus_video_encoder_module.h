@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2010-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,6 +50,9 @@
 #include "priv/nexus_rave_priv.h"
 #include "priv/nexus_video_encoder_priv.h"
 #include "priv/nexus_video_encoder_standby_priv.h"
+#if NEXUS_DISPLAY_VIP_SUPPORT
+#include "priv/nexus_stc_channel_priv.h"
+#endif
 
 #include "bvce.h"
 #include "bdbg_fifo.h"
@@ -68,6 +71,9 @@ struct NEXUS_VideoEncoder {
     NEXUS_VideoEncoderOpenSettings openSettings;
     NEXUS_VideoEncoderStartSettings startSettings;
     NEXUS_TaskCallbackHandle watchdogCallbackHandler;
+#if NEXUS_DISPLAY_VIP_SUPPORT
+    NEXUS_StcChannelSnapshotHandle snapshot;
+#endif
     struct NEXUS_VideoEncoder_P_Device *device;
     struct { /* mapping between MMA and nexus memory blocks, there is an assumption that BVCE encoder will return the _same_ memory blocks for as long as it opened */
         BMMA_Block_Handle mma;
@@ -116,4 +122,3 @@ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_VideoEncoder);
 
 
 #endif /* NEXUS_VIDEO_ENCODER_MODULE_H__ */
-

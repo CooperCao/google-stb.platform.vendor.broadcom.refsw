@@ -76,6 +76,7 @@
 #include "bbox_vdc_box27_config.h"
 #include "bbox_vdc_box28_config.h"
 #include "bbox_vdc_box30_config.h"
+#include "bbox_vdc_box31_config.h"
 
 #include "bbox_rts_box1.h"
 #include "bbox_rts_box2.h"
@@ -104,6 +105,7 @@
 #include "bbox_rts_box28.h"
 #include "bbox_rts_box29.h"
 #include "bbox_rts_box30.h"
+#include "bbox_rts_box31.h"
 
 BDBG_MODULE(BBOX_PRIV);
 BDBG_OBJECT_ID(BBOX_BOX_PRIV);
@@ -206,6 +208,9 @@ void BBOX_P_Vdc_SetSourceCapabilities
         case 30:
             BBOX_P_Vdc_SetBox30SourceCapabilities(pSourceCap);
             break;
+        case 31:
+            BBOX_P_Vdc_SetBox31SourceCapabilities(pSourceCap);
+            break;
     }
 }
 
@@ -293,6 +298,9 @@ void BBOX_P_Vdc_SetDisplayCapabilities
             break;
          case 30:
             BBOX_P_Vdc_SetBox30DisplayCapabilities(pDisplayCap);
+            break;
+         case 31:
+            BBOX_P_Vdc_SetBox31DisplayCapabilities(pDisplayCap);
             break;
     }
 }
@@ -383,6 +391,9 @@ void BBOX_P_Vdc_SetDeinterlacerCapabilities
         case 30:
             BBOX_P_Vdc_SetBox30DeinterlacerCapabilities(pDeinterlacerCap);
             break;
+        case 31:
+            BBOX_P_Vdc_SetBox31DeinterlacerCapabilities(pDeinterlacerCap);
+            break;
     }
 }
 
@@ -470,6 +481,9 @@ void BBOX_P_Vdc_SetXcodeCapabilities
             break;
         case 30:
             BBOX_P_Vdc_SetBox30XcodeCapabilities(pXcodeCap);
+            break;
+        case 31:
+            BBOX_P_Vdc_SetBox31XcodeCapabilities(pXcodeCap);
             break;
     }
 }
@@ -567,6 +581,9 @@ BERR_Code BBOX_P_SetMemConfig
         case 30:
             BBOX_P_SetBox30MemConfig(pBoxMemConfig);
             break;
+        case 31:
+            BBOX_P_SetBox31MemConfig(pBoxMemConfig);
+            break;
         default:
             BDBG_ERR(("There is no box mode %d MEMC configuration.", ulBoxId));
             eStatus = BBOX_MEM_CFG_UNINITIALIZED;
@@ -661,6 +678,9 @@ BERR_Code BBOX_P_GetRtsConfig
             break;
         case 30:
             BBOX_P_GetBox30Rts(pBoxRts);
+            break;
+        case 31:
+            BBOX_P_GetBox31Rts(pBoxRts);
             break;
         default:
             BDBG_ERR(("There is no box mode %d RTS configuration.", ulBoxId));

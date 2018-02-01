@@ -57,13 +57,7 @@ static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
     BREG_Handle hReg = g_pCoreHandles->reg;
     uint32_t reg;
 
-    const char *pinmux_env = NEXUS_GetEnv("sage_log");
-    if (pinmux_env) {
-        int pinmux_env_val = NEXUS_atoi(pinmux_env);
-        if (pinmux_env_val != 1) {
-            return; /* Only enable pin mux if this is set to 1 */
-        }
-    } else {
+    if (!NEXUS_Platform_P_EnableSageLog()) {
         return;
     }
 
@@ -80,27 +74,27 @@ static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
         }
         case SV_BOARD_ID:
         {
-            /* BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2
-             * GPIO_06    : TP_IN_18
-             * GPIO_07    : TP_OUT_19
+            /* BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6
+             * GPIO_040    : TP_IN_19
+             * BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_7
+             * GPIO_041    : TP_OUT_20
              */
-            reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2);
-            /* pinmux for Rx & Tx */
-            reg &= ~(
-                BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_006) |
-                BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_007)
-                );
+            /* pinmux for Rx */
+            reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6);
+            reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_6, gpio_040));
+            reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_6, gpio_040, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6_gpio_040_TP_IN_19));
+            BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6, reg);
 
-            reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_006, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2_gpio_006_TP_IN_18) |
-                    BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_007, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2_gpio_007_TP_OUT_19)
-                );
-            BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2, reg);
+            /* pinmux for Tx */
+            reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_7);
+            reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_7, gpio_041));
+            reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_7, gpio_041, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_7_gpio_041_TP_OUT_20));
+            BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_7, reg);
 
-            /* Route SAGE_UART to connector */
+            /* Route SAGE_UART to UART3 connector */
             reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0);
-            reg &=~( BCHP_MASK(SUN_TOP_CTRL_UART_ROUTER_SEL_0, port_1_cpu_sel ) );
-            reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_UART_ROUTER_SEL_0, port_1_cpu_sel, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0_port_1_cpu_sel_SCPU) );
-
+            reg &=~( BCHP_MASK(SUN_TOP_CTRL_UART_ROUTER_SEL_0, port_5_cpu_sel ) );
+            reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_UART_ROUTER_SEL_0, port_5_cpu_sel, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0_port_5_cpu_sel_SCPU) );
             BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0, reg);
             break;
         }
@@ -261,14 +255,87 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
     if (platformStatus.boardId.major == SV_BOARD_ID) {
 
         BDBG_MSG(("Configuring pin mux for BCM9TS streamer input to input band 0"));
+#if NEXUS_HAS_DVB_CI
+        reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6);
+        reg &= ~(
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_6, gpio_033) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_6, gpio_035) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_6, gpio_036)
+            );
 
+        reg |= (
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_6, gpio_033,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6_gpio_033_EBI_ADDR_01) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_6, gpio_035,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6_gpio_035_EBI_ADDR_00) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_6, gpio_036,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6_gpio_036_EBI_ADDR_02)
+            );
+        BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6, reg);
+
+        reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_7);
+        reg &= ~(
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_7, gpio_047)
+            );
+
+        reg |= (
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_7, gpio_047,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_7_gpio_047_EBI_ADDR_13)
+            );
+        BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_7, reg);
+
+        reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_9);
+        reg &= ~(
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_058) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_059) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_060) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_061) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_062) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_063) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_064)
+            );
+
+        reg |= (
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_058,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_9_gpio_058_EBI_ADDR_12) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_059,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_9_gpio_059_EBI_ADDR_03) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_060,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_9_gpio_060_EBI_ADDR_04) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_061,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_9_gpio_061_EBI_ADDR_05) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_062,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_9_gpio_062_EBI_ADDR_06) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_063,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_9_gpio_063_EBI_ADDR_07) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_064,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_9_gpio_064_EBI_ADDR_08)
+            );
+        BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_9, reg);
+#endif
         reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10);
         BDBG_MSG(("Before BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10: %08x",reg));
         reg &= ~(
+#if NEXUS_HAS_DVB_CI
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_065) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_066) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_067) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_068) |
+#endif
             BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_071) |
             BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_072)
             );
         reg |= (
+#if NEXUS_HAS_DVB_CI
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_065,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10_gpio_065_EBI_ADDR_09) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_066,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10_gpio_066_GPIO_066) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_067,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10_gpio_067_EBI_ADDR_11) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_068,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10_gpio_068_EBI_ADDR_14) |
+#endif
             BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_071,
                             BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10_gpio_071_PKT_CLK0) |
             BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_072,
@@ -295,7 +362,58 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
         BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_11, reg);
         BDBG_MSG(("After  BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_11: %08x",reg));
     }
+#if NEXUS_HAS_DVB_CI
+        reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14);
+        BDBG_MSG(("Before BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14: %08x",reg));
+        reg &= ~(
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_097) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_098) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_099) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_100) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_101) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_102) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_103) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_104)
+            );
+        reg |= (
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_097,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_097_GPIO_097) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_098,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_098_GPIO_098) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_099,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_099_GPIO_099) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_100,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_100_GPIO_100) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_101,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_101_GPIO_101) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_102,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_102_GPIO_102) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_103,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_103_GPIO_103) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_104,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_104_EBI_ADDR_10)
+            );
+        BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14, reg);
+        BDBG_MSG(("After  BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14: %08x",reg));
 
+        reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14);
+        BDBG_MSG(("Before BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15: %08x",reg));
+        reg &= ~(
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_105) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_106) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_107)
+            );
+        reg |= (
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_105,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_gpio_105_GPIO_105) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_106,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_gpio_106_EBI_WAITB) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_107,
+                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_gpio_107_GPIO_107)
+            );
+        BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15, reg);
+        BDBG_MSG(("After  BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15: %08x",reg));
+#endif
 #if NEXUS_HAS_SAGE
     NEXUS_Platform_P_EnableSageDebugPinmux();
 #endif

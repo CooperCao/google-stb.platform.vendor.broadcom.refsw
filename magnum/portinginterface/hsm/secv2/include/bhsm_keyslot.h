@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -103,7 +103,7 @@ extern "C"
 #define BHSM_KEYSLOT_MAX_IV_SIZE (BHSM_KEYSLOT_MAX_KEY_SIZE)
 
 
-typedef struct BHSM_P_Keyslot* BHSM_KeyslotHandle;
+typedef struct BHSM_P_KeySlot* BHSM_KeyslotHandle;
 
 typedef enum
 {
@@ -330,7 +330,9 @@ Enumerator to identify a particular Bypass Keyslot.
 typedef enum BHSM_BypassKeySlot_e{
     BHSM_BypassKeySlot_eG2GR,      /* allows transfer of clear data from GLR to GLR or CRR */
     BHSM_BypassKeySlot_eGR2R,      /* allows transfer of clear data from GLR or CRR to CRR */
-    BHSM_BypassKeySlot_eInvalid    /* Not a bypass bypass filter. */
+    BHSM_BypassKeySlot_eGT2T,      /* allows transfer of clear data from GLR or CRRT to CRRT */
+    BHSM_BypassKeySlot_eMax,
+    BHSM_BypassKeySlot_eInvalid = BHSM_BypassKeySlot_eMax    /* Not a bypass bypass filter. */
 }BHSM_BypassKeySlot_e;
 
 

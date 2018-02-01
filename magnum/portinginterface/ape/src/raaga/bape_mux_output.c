@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -278,6 +278,7 @@ BERR_Code BAPE_MuxOutput_Create(
     hMuxOutput->deviceHandle = hApe;
     hMuxOutput->dspIndex = BAPE_DEVICE_INVALID;
     hMuxOutput->createSettings = *pSettings;
+    BAPE_MuxOutput_GetDefaultSettings(&hMuxOutput->settings);
 
     if ( pSettings->dspIndex != BAPE_DEVICE_INVALID )
     {
@@ -704,8 +705,8 @@ static BERR_Code BAPE_MuxOutput_P_ApplyDspSettings(
                                          hMuxOutput->nonRealTimeIncrement.IncTrigger == 0 ) ? BDSP_AF_P_eEnable /* RT */ : BDSP_AF_P_eDisable /* NRT */;
         userConfig.eStcItbEntryEnable = BDSP_AF_P_eEnable;  /* Always enable the per-frame STC ITB entry */
 
-        if (userConfig.eSnapshotRequired == BDSP_AF_P_eEnable) {
-            userConfig.ui64AVSTCOffset = hMuxOutput->startSettings.initialStc * (27000/45);
+        if (userConfig.eSnapshotRequired == BDSP_AF_P_eDisable) {
+            userConfig.ui64AVSTCOffset = ((uint64_t)hMuxOutput->startSettings.initialStc) * (uint64_t)(27000/45);
         }
 
         errCode = BDSP_Stage_SetSettings(hMuxOutput->hStage, &userConfig, sizeof(userConfig));

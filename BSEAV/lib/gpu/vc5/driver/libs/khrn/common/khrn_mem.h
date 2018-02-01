@@ -7,7 +7,7 @@
 #include "vcos.h"
 #include "khrn_int_common.h"
 
-typedef void (*khrn_mem_term_t)(void *, size_t);
+typedef void (*khrn_mem_term_t)(void *);
 
 #define KHRN_MEM_HEADER_MAGIC 0xBA5EBA11
 

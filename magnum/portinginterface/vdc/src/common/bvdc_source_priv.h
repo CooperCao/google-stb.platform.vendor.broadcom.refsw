@@ -649,11 +649,13 @@ void BVDC_P_Source_HdDviDataReady_isr
     ( void                            *pvSourceHandle,
       int                              iParam2 );
 
+#if (BVDC_P_SUPPORT_HDDVI)
 void BVDC_P_Source_UpdateFrameRate_isr
     ( const BFMT_VideoInfo            *pFmtInfo,
       uint32_t                         ulClkPerVsync,
       uint32_t                         ulDelta,
       BAVC_FrameRateCode              *peFrameRateCode );
+#endif /* BVDC_P_SUPPORT_HDDVI */
 
 void BVDC_P_Source_CheckAndIssueCallback_isr
     ( BVDC_P_SourceContext            *pSource,
@@ -671,9 +673,11 @@ uint32_t BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe
 BAVC_FrameRateCode BVDC_P_Source_RefreshRateCode_FromRefreshRate_isrsafe
     ( uint32_t                         ulVertRefreshRate);
 
+#if (BVDC_P_SUPPORT_MTG)
 BAVC_FrameRateCode BVDC_P_Source_MtgRefreshRate_FromFrameRateCode_isrsafe
     ( BVDC_Source_Handle               hSource,
       BAVC_FrameRateCode               eFrameRateCode );
+#endif /* (BVDC_P_SUPPORT_MTG) */
 
 #ifdef __cplusplus
 }

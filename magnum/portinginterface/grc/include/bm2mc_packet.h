@@ -50,7 +50,8 @@ PACKET TYPE ENUMERATION
 typedef enum BM2MC_PACKET_PacketType
 {
     BM2MC_PACKET_PacketType_eSourceFeeder = 1,           /* source plane and color */
-    BM2MC_PACKET_PacketType_eSourceFeeders,              /* source planes and color */
+    BM2MC_PACKET_PacketType_eSourceFeeders,              /* 2 source planes and color */
+    BM2MC_PACKET_PacketType_eThreeSourceFeeders,         /* 3 source planes and color */
     BM2MC_PACKET_PacketType_eStripedSourceFeeders,       /* striped source planes and color */
     BM2MC_PACKET_PacketType_eSourceColor,                /* source color */
     BM2MC_PACKET_PacketType_eSourceNone,                 /* source none (default) */
@@ -268,6 +269,17 @@ typedef struct BM2MC_PACKET_PacketSourceFeeders
     uint32_t color;                  /* 32-bit color (A, R/Y, G/Cb, B/Cr/P) (defaults to 0) */
 }
 BM2MC_PACKET_PacketSourceFeeders;
+
+/***************************************************************************/
+typedef struct BM2MC_PACKET_PacketThreeSourceFeeders
+{
+    BM2MC_PACKET_Header header;      /* packet header */
+    BM2MC_PACKET_Plane plane0;       /* primary source plane (defaults to none) */
+    BM2MC_PACKET_Plane plane1;       /* secondary source plane (defaults to none) */
+    BM2MC_PACKET_Plane plane2;       /* third source plane (defaults to none) */
+    uint32_t color;                  /* 32-bit color (A, R/Y, G/Cb, B/Cr/P) (defaults to 0) */
+}
+BM2MC_PACKET_PacketThreeSourceFeeders;
 
 /***************************************************************************
  * for striped 4:2:0 format, frame or fields
@@ -826,6 +838,20 @@ while(0)
 while(0)
 
 /***************************************************************************/
+#define BM2MC_PACKET_WRITE_ThreeSourceFeeders( BUFFER, PLANE0, PLANE1, PLANE2,COLOR, EXECUTE ) do \
+{ \
+    BM2MC_PACKET_PacketThreeSourceFeeders *packet = (BM2MC_PACKET_PacketThreeSourceFeeders *) (BUFFER); \
+    BM2MC_PACKET_INIT( packet, ThreeSourceFeeders, EXECUTE ); \
+    packet->plane0 = (PLANE0); \
+    packet->plane1 = (PLANE1); \
+    packet->plane2 = (PLANE2); \
+    packet->color = (COLOR); \
+    BM2MC_PACKET_TERM( packet ); \
+    (BUFFER) = (void *) packet; \
+} \
+while(0)
+
+/***************************************************************************/
 #define BM2MC_PACKET_WRITE_SourceColor( BUFFER, COLOR, EXECUTE ) do \
 { \
     BM2MC_PACKET_PacketSourceColor *packet = (BM2MC_PACKET_PacketSourceColor *) (BUFFER); \
@@ -1284,6 +1310,7 @@ typedef struct BM2MC_PACKET_PacketAll {
     union {
         BM2MC_PACKET_PacketSourceFeeder             packetSourceFeeder;
         BM2MC_PACKET_PacketSourceFeeders            packetSourceFeeders;
+        BM2MC_PACKET_PacketThreeSourceFeeders       packetSourceThreeFeeders;
         BM2MC_PACKET_PacketStripedSourceFeeders     packetStripedSourceFeeders;
         BM2MC_PACKET_PacketSourceColor              packetSourceColor;
         BM2MC_PACKET_PacketSourceNone               packetSourceNone;

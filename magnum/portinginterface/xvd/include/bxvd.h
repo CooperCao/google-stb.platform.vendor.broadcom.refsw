@@ -404,7 +404,7 @@ See also:
   BXVD_SetDisplayFieldMode
   BXVD_GetDisplayFieldMode
   BXVD_RegisterVdcInterrupt
-  BXVD_InstallInterruptCallbac
+  BXVD_InstallInterruptCallback
   BXVD_UnInstallInterruptCallback
   BXVD_SetChannelChangeMode
   BXVD_GetChannelChangeMode
@@ -661,7 +661,7 @@ typedef struct  BXVD_FWMemConfigSettings
   unsigned int     uiAVDInstance;     /* Decoder instance */
   unsigned int     MemcIndex;         /* Memory controller for main picture buffer */
   unsigned int     MemcIndexExtended; /* Memory controller for split picture buffers  */
-  BCHP_MemoryInfo *pInfo;             /* Memory characteristics */
+  const BCHP_MemoryInfo *pInfo;       /* Memory characteristics */
 } BXVD_FWMemConfigSettings;
 
 /***************************************************************************
@@ -2698,7 +2698,7 @@ BERR_Code BXVD_InstallDeviceInterruptCallback
 (
    BXVD_Handle hXvd,                /* [in] XVD device handle */
    BXVD_DeviceInterrupt eInterrupt, /* [in] Desired interrupt that needs to be activated */
-   BXVD_CallbackFunc fCallBack,     /* [in] XVD callback function */
+   BXVD_CallbackFunc fCallBack_isr, /* [in] XVD callback function */
    void *pParm1,                    /* [in] application specified parameter */
    int  parm2                       /* [in] application specified parameter */
    );
@@ -3010,7 +3010,7 @@ BERR_Code BXVD_InstallInterruptCallback
 (
    BXVD_ChannelHandle hXvdCh,    /* [in] XVD device handle */
    BXVD_Interrupt eInterrupt,    /* [in] Desired interrupt that needs to be activated */
-   BXVD_CallbackFunc fCallBack,  /* [in] XVD callback function */
+   BXVD_CallbackFunc fCallBack_isr,/* [in] XVD callback function */
    void *pParm1,                 /* [in] application specified parameter */
    int  parm2                    /* [in] application specified parameter */
    );

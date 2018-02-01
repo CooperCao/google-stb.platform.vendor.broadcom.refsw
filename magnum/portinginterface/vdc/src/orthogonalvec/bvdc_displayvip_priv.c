@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,12 +45,12 @@
 #include "bvdc_displayvip_priv.h"
 
 #if (BVDC_P_SUPPORT_VIP)
-
+#include "bavc_vce.h"
 /* ==============   MEMORY CALCULATIONS   ================== */
 
-
-#define BVDC_P_VIP_IBBP_NUMBER_OF_ORIGINAL_PICTURE_QUEUES                      (9+1)
-#define BVDC_P_VIP_IBBP_NUMBER_OF_DECIMATED_PICTURE_QUEUES                     (8+1)
+#if 0
+#define BVDC_P_VIP_IBBP_NUMBER_OF_ORIGINAL_PICTURE_QUEUES                      (10)
+#define BVDC_P_VIP_IBBP_NUMBER_OF_DECIMATED_PICTURE_QUEUES                     (12)
 
 #define BVDC_P_VIP_IP_NUMBER_OF_ORIGINAL_PICTURE_QUEUES_PROGRESSIVE            (4)
 #define BVDC_P_VIP_IP_NUMBER_OF_DECIMATED_PICTURE_QUEUES_PROGRESSIVE           (5)
@@ -68,6 +68,7 @@
 #define BVDC_P_VIP_MAX_NUMBER_OF_IP_DECIMATED_PICTURE_QUEUES                   BVDC_P_VIP_IP_NUMBER_OF_DECIMATED_PICTURE_QUEUES_PROGRESSIVE
 
 #define BVDC_P_VIP_NUMBER_OF_ORIGINAL_PICTURE_DESCRIPTORS                      (BVDC_P_VIP_MAX_NUMBER_OF_IBBP_ORIGINAL_PICTURE_QUEUES*2 + 1)
+#endif
 
 #define HOR_SIZE_IN_PELS_720P                                           1280
 #define VER_SIZE_IN_PELS_720P                                           720
@@ -171,13 +172,11 @@ static uint8_t BVDC_P_VIP_CalcNMBY_isr(uint32_t PictureHeightInMbs, uint32_t X, 
 
     nmby = X*n+Y;
     return(nmby);
-
-
 }
 
 
 /************************************************************************
-* Function: BVDC_P_VIP_CalcDcxvNMBY
+* Function: BVDC_P_VIP_CalcDcxvNMBY_isr
 *
 * Actions: find the number of macroblocs in stripe height
 *
@@ -220,6 +219,48 @@ static uint8_t BVDC_P_VIP_CalcNMBY_isr(uint32_t PictureHeightInMbs, uint32_t X, 
 
 #define MULT16(x)       ( (x) << 4 )
 #define MULT8(x)        ( (x) << 3 )
+
+static uint32_t BVDC_P_VIP_CalcDcxvNMBY_isr(uint32_t PictureHeightInMbs, uint32_t IsDcxvBuf , uint32_t IsInterlace , uint32_t IsChroma , uint32_t X, uint32_t Y)
+{
+    uint32_t Nmby;
+    uint32_t DcxvPaddingHeight;
+    uint32_t BuffereHeightInPels;
+    uint32_t PictureHeightInPels;
+
+    PictureHeightInPels = MULT16(PictureHeightInMbs);
+    if (IsChroma == 1)
+    PictureHeightInPels = DIV2_ROUNDUP(PictureHeightInPels);
+
+
+    if ( IsInterlace == 1 )
+    {
+            DcxvPaddingHeight = DCXV_PADDED_LINE *2;
+    }
+    else
+    {
+            DcxvPaddingHeight = DCXV_PADDED_LINE;
+    }
+
+    if ( IsDcxvBuf == 1 )
+    {
+      BuffereHeightInPels = PictureHeightInPels + DcxvPaddingHeight;
+    }
+    else
+    {
+      BuffereHeightInPels = PictureHeightInPels;
+    }
+
+    if (
+        (IsInterlace == 1) &&
+        (IsChroma == 1)
+       )
+    {
+        BuffereHeightInPels = PictureHeightInPels;
+    }
+
+    Nmby = BVDC_P_VIP_CalcNMBY_isr(DIV16_ROUNDUP(BuffereHeightInPels) , X , Y);
+    return(Nmby);
+}
 
 
 /************************************************************************
@@ -280,6 +321,21 @@ static uint32_t BVDC_P_VIP_CalcStripeBufferSize(
     return(BuffSize);
 }
 
+/* Workarounds specific to core 2_1_1_2 (7366) and 2_1_0_3 (7445) */
+#if ( BCHP_CHIP == 7445 ) || ( BCHP_CHIP == 7366 )
+#define WORKAROUND_HW_ISSUE_VICE2_196
+#define WORKAROUND_HW_ISSUE_VICE2_210
+
+#define WORKAROUND_HW_ISSUE_VICE2_210_LOWER_LIMIT 61
+#define WORKAROUND_HW_ISSUE_VICE2_210_UPPER_LIMIT 64
+
+#define WORKAROUND_HW_ISSUE_VICE2_196_MAX_NON_DCXV_WIDTH 640
+#define WORKAROUND_HW_ISSUE_VICE2_196_MAX_NON_DCXV_HEIGHT 480
+
+#define WORKAROUND_HW_ISSUE_VICE2_196_210_MAX_NON_DCXV_WIDTH 1024
+#define WORKAROUND_HW_ISSUE_VICE2_196_210_MAX_NON_DCXV_HEIGHT 576
+#endif
+
 /************************************************************************
 * Function: BVDC_P_Vip_CalcMemAlloc
 *
@@ -312,15 +368,18 @@ uint32_t BVDC_P_MemConfig_GetVipBufSizes ( const BVDC_P_VipMemSettings *pstMemSe
     uint32_t max_horizontal_size_in_pels;
     uint32_t max_vertical_size_in_pels;
 
+    uint32_t Non_dcxv_BufferSize=0;
+
     uint32_t size_of_luma_buffer;
     uint32_t size_of_420_chroma_buffer;
-#if BVDC_P_VIP_SUPPORT_INTERLACED
     uint32_t size_of_shifted_422_chroma_buffer=0;
-#endif
-#if BVDC_P_VIP_SUPPORT_DECIMBUFFER
     uint32_t size_of_2h1v_luma_buffer;
     uint32_t size_of_2h2v_luma_buffer;
-#endif
+    BAVC_VCE_BufferConfig stVceBufferConfig;
+
+    BAVC_VCE_GetDefaultBufferConfig_isrsafe(pstMemSettings->bInterlaced, &stVceBufferConfig );
+    stVceBufferConfig.eScanType = pstMemSettings->bInterlaced ? BAVC_ScanType_eInterlaced : BAVC_ScanType_eProgressive;
+    if ( false == pstMemSettings->bBframes ) stVceBufferConfig.uiNumberOfBFrames = 0;
 
     BKNI_Memset(pstMemConfig, 0, sizeof(BVDC_P_VipMemConfig));
     DramStripeWidth = pstMemSettings->DramStripeWidth;
@@ -340,6 +399,35 @@ uint32_t BVDC_P_MemConfig_GetVipBufSizes ( const BVDC_P_VipMemSettings *pstMemSe
     BDBG_MODULE_MSG(BVDC_VIP_MEM,("         Height: %u", MaxPictureHeightInPels));
     BDBG_MODULE_MSG(BVDC_VIP_MEM,("           DCXV: %u", DcxvEnable));
 
+#if defined(WORKAROUND_HW_ISSUE_VICE2_196) || defined(WORKAROUND_HW_ISSUE_VICE2_210)
+    if (DcxvEnable)
+    {
+        uint32_t max_horizontal_size_in_mbs  = DIV16_ROUNDUP(MaxPictureWidthInPels);
+
+        if (( (max_horizontal_size_in_mbs & 0x3) == 3 ) && ( BCHP_CHIP != 7366 ) )
+        {
+            max_horizontal_size_in_mbs = max_horizontal_size_in_mbs +1;
+            MaxPictureWidthInPels = (max_horizontal_size_in_mbs<<4);
+        }
+
+        max_horizontal_size_in_mbs  = DIV16_ROUNDUP(MaxPictureWidthInPels);
+        if ((max_horizontal_size_in_mbs >= WORKAROUND_HW_ISSUE_VICE2_210_LOWER_LIMIT) && (max_horizontal_size_in_mbs <= WORKAROUND_HW_ISSUE_VICE2_210_UPPER_LIMIT) )
+        {
+            max_horizontal_size_in_mbs = WORKAROUND_HW_ISSUE_VICE2_210_UPPER_LIMIT + 1;
+            MaxPictureWidthInPels = (max_horizontal_size_in_mbs<<4);
+        }
+
+    }
+
+    {
+        uint32_t Non_dcxv_size_of_luma_buffer =
+           BVDC_P_VIP_CalcStripeBufferSize( WORKAROUND_HW_ISSUE_VICE2_196_210_MAX_NON_DCXV_WIDTH , WORKAROUND_HW_ISSUE_VICE2_196_210_MAX_NON_DCXV_HEIGHT , 0 , bInterlaced, DramStripeWidth , X , Y, PageSize );
+        uint32_t Non_dcxv_size_of_420_chroma_buffer
+           = BVDC_P_VIP_CalcStripeBufferSize( WORKAROUND_HW_ISSUE_VICE2_196_210_MAX_NON_DCXV_WIDTH , DIV2_ROUND(WORKAROUND_HW_ISSUE_VICE2_196_210_MAX_NON_DCXV_HEIGHT) , 0 , bInterlaced, DramStripeWidth , X , Y, PageSize );
+        Non_dcxv_BufferSize = Non_dcxv_size_of_luma_buffer + Non_dcxv_size_of_420_chroma_buffer;
+    }
+#endif
+
     /* Initialize BVDC_P_VIP stack of buffers */
     CurrAddress = 0;
 
@@ -351,7 +439,7 @@ uint32_t BVDC_P_MemConfig_GetVipBufSizes ( const BVDC_P_VipMemSettings *pstMemSe
     size_of_420_chroma_buffer = BVDC_P_VIP_CalcStripeBufferSize( max_horizontal_size_in_pels , DIV2_ROUND(max_vertical_size_in_pels), false , bInterlaced , DramStripeWidth , X , Y, PageSize);
 
     /* TODO: may reduce if no B-picture required */
-    pstMemConfig->ulNumOrigBuf           = BVDC_P_VIP_MAX_NUMBER_OF_IBBP_ORIGINAL_PICTURE_QUEUES;
+    pstMemConfig->ulNumOrigBuf           = BAVC_VCE_GetRequiredBufferCount_isrsafe( &stVceBufferConfig, BAVC_VCE_BufferType_eOriginal );
     pstMemConfig->ulLumaBufSize          = size_of_luma_buffer;
     pstMemConfig->ulChromaBufSize        = size_of_420_chroma_buffer;
     BDBG_MODULE_MSG(BVDC_VIP_MEM,("# Original Buffers : %u", pstMemConfig->ulNumOrigBuf));
@@ -360,42 +448,59 @@ uint32_t BVDC_P_MemConfig_GetVipBufSizes ( const BVDC_P_VipMemSettings *pstMemSe
 
     /* 1) Allocate Stack of buffers for the Original picture */
     BufferSize=size_of_luma_buffer+size_of_420_chroma_buffer;
+    if (Non_dcxv_BufferSize > BufferSize) {
+        BufferSize = Non_dcxv_BufferSize;
+    }
 
-    for (StackPointer=0; StackPointer<(BVDC_P_VIP_MAX_NUMBER_OF_IBBP_ORIGINAL_PICTURE_QUEUES << (1+bInterlaced)); StackPointer+=(1+bInterlaced))
+    for (StackPointer=0; StackPointer<(pstMemConfig->ulNumOrigBuf << (bInterlaced)); StackPointer+=(1+bInterlaced))
     {
         CurrAddress=CurrAddress+BufferSize;
     }
 
     /*2) Allocate Stack of buffers for the Original Shifted 4:2:2 top field Chroma for interlaced */
-#if BVDC_P_VIP_SUPPORT_INTERLACED
-    size_of_shifted_422_chroma_buffer = bInterlaced? size_of_420_chroma_buffer : 0;
-    pstMemConfig->ulShiftedChromaBufSize = size_of_shifted_422_chroma_buffer;
-    BDBG_MODULE_MSG(BVDC_VIP_MEM,("Shifted CrCb BufSize: %u", pstMemConfig->ulShiftedChromaBufSize));
-    BufferSize=size_of_shifted_422_chroma_buffer;
-    for (StackPointer=0; StackPointer<(BVDC_P_VIP_NUMBER_OF_ORIGINAL_PICTURE_QUEUES); StackPointer+=1)
-    {
-        CurrAddress=CurrAddress+BufferSize;
+    if(bInterlaced) {
+        size_of_shifted_422_chroma_buffer = bInterlaced? size_of_420_chroma_buffer : 0;
+        pstMemConfig->ulShiftedChromaBufSize = size_of_shifted_422_chroma_buffer;
+        pstMemConfig->ulNumShiftedBuf        = BAVC_VCE_GetRequiredBufferCount_isrsafe( &stVceBufferConfig, BAVC_VCE_BufferType_eShiftedChroma);
+        BDBG_MODULE_MSG(BVDC_VIP_MEM,("# Shifted CrCb Bufs : %u", pstMemConfig->ulNumShiftedBuf));
+        BDBG_MODULE_MSG(BVDC_VIP_MEM,("Shifted CrCb BufSize: %u", pstMemConfig->ulShiftedChromaBufSize));
+        BufferSize=size_of_shifted_422_chroma_buffer;
+        for (StackPointer=0; StackPointer<(pstMemConfig->ulNumShiftedBuf); StackPointer+=1)
+        {
+            CurrAddress=CurrAddress+BufferSize;
+        }
     }
-#endif
 
     /*3) Allocate stack of buffers for the Decimated picture*/
-#if BVDC_P_VIP_SUPPORT_DECIMBUFFER
-    size_of_2h1v_luma_buffer = BVDC_P_VIP_CalcStripeBufferSize( DIV2_ROUND(max_horizontal_size_in_pels) , max_vertical_size_in_pels , NonDCXVBuffer , bInterlaced , DramStripeWidth , X , Y, PageSize);
-    size_of_2h2v_luma_buffer = BVDC_P_VIP_CalcStripeBufferSize( DIV2_ROUND(max_horizontal_size_in_pels) , DIV2_ROUND(max_vertical_size_in_pels) , NonDCXVBuffer , bInterlaced , DramStripeWidth , X , Y, PageSize);
-    pstMemConfig->ul2H1VBufSize          = size_of_2h1v_luma_buffer;
-    pstMemConfig->ul2H2VBufSize          = size_of_2h2v_luma_buffer;
-    pstMemConfig->ulNumDecimBuf          = BVDC_P_VIP_MAX_NUMBER_OF_IBBP_DECIMATED_PICTURE_QUEUES;
+    if(pstMemSettings->bDecimatedLuma) {
+        uint32_t ulH1Vsize = 0, ulH2Vsize = 0;
+        size_of_2h1v_luma_buffer = BVDC_P_VIP_CalcStripeBufferSize( DIV2_ROUND(max_horizontal_size_in_pels) , max_vertical_size_in_pels , NonDCXVBuffer , bInterlaced , DramStripeWidth , X , Y, PageSize);
+        size_of_2h2v_luma_buffer = BVDC_P_VIP_CalcStripeBufferSize( DIV2_ROUND(max_horizontal_size_in_pels) , DIV2_ROUND(max_vertical_size_in_pels) , NonDCXVBuffer , bInterlaced , DramStripeWidth , X , Y, PageSize);
+        /* ViCE2v2 limit 960 for 2H vs 4H; ViCE3 limit 640 (CME) for 1H vs 2H */
+        if(( BVDC_P_VIP_VER == 1 ) &&
+           ( max_horizontal_size_in_pels > (HOR_SIZE_IN_PELS_1080P/2)))
+        {
+            ulH1Vsize = BVDC_P_VIP_CalcStripeBufferSize( DIV4_ROUND(HOR_SIZE_IN_PELS_1080P) , max_vertical_size_in_pels , NonDCXVBuffer , bInterlaced , DramStripeWidth , X , Y, PageSize);
+            ulH2Vsize = BVDC_P_VIP_CalcStripeBufferSize( DIV4_ROUND(HOR_SIZE_IN_PELS_1080P) , DIV2_ROUND(max_vertical_size_in_pels) , NonDCXVBuffer , bInterlaced , DramStripeWidth , X , Y, PageSize);
+        } else if( BVDC_P_VIP_VER >= 2 ) /* ViCE3 CME throughput limit and 1H vs 2H */
+        {
+            ulH1Vsize = BVDC_P_VIP_CalcStripeBufferSize( BVDC_P_VIP_MAX_H1V_WIDTH, BVDC_P_VIP_MAX_H1V_HEIGHT, NonDCXVBuffer , bInterlaced , DramStripeWidth , X , Y, PageSize);
+            ulH2Vsize = BVDC_P_VIP_CalcStripeBufferSize( BVDC_P_VIP_MAX_H1V_WIDTH , DIV2_ROUND(BVDC_P_VIP_MAX_H1V_HEIGHT) , NonDCXVBuffer , bInterlaced , DramStripeWidth , X , Y, PageSize);
+        }
+        pstMemConfig->ul2H1VBufSize          = (size_of_2h1v_luma_buffer > ulH1Vsize)? size_of_2h1v_luma_buffer : ulH1Vsize;
+        pstMemConfig->ul2H2VBufSize          = (size_of_2h2v_luma_buffer > ulH2Vsize)? size_of_2h2v_luma_buffer : ulH2Vsize;
+        pstMemConfig->ulNumDecimBuf          = BAVC_VCE_GetRequiredBufferCount_isrsafe( &stVceBufferConfig, BAVC_VCE_BufferType_eDecimated );
 
-    BDBG_MODULE_MSG(BVDC_VIP_MEM,("# Decimate Buffers : %u", pstMemConfig->ulNumDecimBuf));
-    BDBG_MODULE_MSG(BVDC_VIP_MEM,("ul2H1VBufSize      : %u", pstMemConfig->ul2H1VBufSize));
-    BDBG_MODULE_MSG(BVDC_VIP_MEM,("ul2H2VBufSize      : %u", pstMemConfig->ul2H2VBufSize));
+        BDBG_MODULE_MSG(BVDC_VIP_MEM,("# Decimate Buffers : %u", pstMemConfig->ulNumDecimBuf));
+        BDBG_MODULE_MSG(BVDC_VIP_MEM,("ul2H1VBufSize      : %u", pstMemConfig->ul2H1VBufSize));
+        BDBG_MODULE_MSG(BVDC_VIP_MEM,("ul2H2VBufSize      : %u", pstMemConfig->ul2H2VBufSize));
 
-    BufferSize=size_of_2h1v_luma_buffer+size_of_2h2v_luma_buffer;
-    for (StackPointer=0; StackPointer<(BVDC_P_VIP_MAX_NUMBER_OF_IBBP_DECIMATED_PICTURE_QUEUES << (1+bInterlaced)); StackPointer+=(1+bInterlaced))
-    {
-        CurrAddress=CurrAddress+BufferSize;
+        BufferSize=size_of_2h1v_luma_buffer+size_of_2h2v_luma_buffer;
+        for (StackPointer=0; StackPointer<(pstMemConfig->ulNumDecimBuf << (bInterlaced)); StackPointer+=(1+bInterlaced))
+        {
+            CurrAddress=CurrAddress+BufferSize;
+        }
     }
-#endif
 
     pstMemConfig->ulTotalSize = CurrAddress;
     BDBG_MODULE_MSG(BVDC_VIP_MEM,("Total size = %#x", pstMemConfig->ulTotalSize));
@@ -404,7 +509,7 @@ uint32_t BVDC_P_MemConfig_GetVipBufSizes ( const BVDC_P_VipMemSettings *pstMemSe
 }
 
 /***************************************************************************
- *
+ * This is called when encoder starts or when display enables STG/VIP
  */
 BERR_Code BVDC_P_Vip_AllocBuffer
     ( BVDC_P_Vip_Handle            hVip,
@@ -412,12 +517,32 @@ BERR_Code BVDC_P_Vip_AllocBuffer
 {
     BERR_Code rc = BERR_SUCCESS;
     BVDC_P_VipBufferNode *pBuffer;
+    BVDC_P_VipAssocBufferNode *pBufferAssoc;
     uint32_t ulBlockOffset = 0;
+    unsigned i;
+    const BFMT_VideoInfo *pFmtInfo;
     BVDC_VipMemConfigSettings *pVipMemSettings = &hDisplay->stNewInfo.stVipMemSettings;
+    BAVC_VCE_BufferConfig stVceBufferConfig;
 
-    /* compute the memory allocation */
-    hVip->stMemSettings.DcxvEnable = false;
-    hVip->stMemSettings.bInterlaced            = pVipMemSettings->bSupportInterlaced;
+    pFmtInfo = (hDisplay->pStgFmtInfo)?
+        hDisplay->pStgFmtInfo : hDisplay->stNewInfo.pFmtInfo;
+
+    BAVC_VCE_GetDefaultBufferConfig_isrsafe(pFmtInfo->bInterlaced, &stVceBufferConfig );
+    stVceBufferConfig.eScanType = pFmtInfo->bInterlaced ? BAVC_ScanType_eInterlaced : BAVC_ScanType_eProgressive;
+    if ( false == pVipMemSettings->bSupportBframes ) stVceBufferConfig.uiNumberOfBFrames = 0;
+
+    /* compute the memory allocation; TODO: there might be runtime switch of DCXV for some workaround;
+       TODO: debug capture probably requires DCXV off; */
+    if ( BCHP_CHIP == 7425 || BCHP_CHIP == 7435 || BCHP_CHIP == 7364 || BCHP_CHIP == 7250 || BCHP_CHIP == 7271 )
+    {
+       hVip->stMemSettings.DcxvEnable = false;
+    } else {
+       hVip->stMemSettings.DcxvEnable = true; /* TODO: must be disabled for MFD display */
+    }
+
+    hVip->stMemSettings.bInterlaced            = pFmtInfo->bInterlaced;
+    hVip->stMemSettings.bDecimatedLuma         = pVipMemSettings->bSupportDecimatedLuma;
+    hVip->stMemSettings.bBframes               = pVipMemSettings->bSupportBframes;
     hVip->stMemSettings.MaxPictureHeightInPels = pVipMemSettings->ulMaxHeight;
     hVip->stMemSettings.MaxPictureWidthInPels  = pVipMemSettings->ulMaxWidth;
     BDBG_ASSERT(pVipMemSettings->ulMemcId < 3);
@@ -427,7 +552,9 @@ BERR_Code BVDC_P_Vip_AllocBuffer
     hVip->stMemSettings.Y = hDisplay->hVdc->stMemInfo.memc[pVipMemSettings->ulMemcId].ulMbRemainder;
     BVDC_P_MemConfig_GetVipBufSizes(&hVip->stMemSettings, &hVip->stMemConfig);
 
-    BDBG_MODULE_MSG(BVDC_VIP_MEM,("VIP[%d] alloc %d bytes picture buffers on memc%u..", hVip->eId, hVip->stMemConfig.ulTotalSize, pVipMemSettings->ulMemcId));
+    BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] alloc %d bytes picture buffers(%u:%u:%u) on memc%u..",
+        hVip->eId, hVip->stMemConfig.ulTotalSize, hVip->stMemConfig.ulNumOrigBuf,
+        hVip->stMemConfig.ulNumShiftedBuf, hVip->stMemConfig.ulNumDecimBuf, pVipMemSettings->ulMemcId));
 
     /* Allocate picture buffers for VIP freeQ. TODO: add ITFP, B-picture and interlaced support. */
     hVip->hBlock = BMMA_Alloc(hDisplay->stNewInfo.hVipHeap, hVip->stMemConfig.ulTotalSize, hVip->stMemSettings.PageSize, NULL);
@@ -437,28 +564,73 @@ BERR_Code BVDC_P_Vip_AllocBuffer
     }
     hVip->ullDeviceOffset = BMMA_LockOffset(hVip->hBlock);
     BDBG_MODULE_MSG(BVDC_VIP_MEM,("starting offset = "BDBG_UINT64_FMT, BDBG_UINT64_ARG(hVip->ullDeviceOffset)));
-    for(pBuffer = BLST_SQ_FIRST(&hVip->stFreeQ); pBuffer;  pBuffer= BLST_SQ_NEXT(pBuffer, link)) {
+    for(i=0; i<hVip->stMemConfig.ulNumOrigBuf; i++){
+        /* original luma queue */
+        pBuffer = BKNI_Malloc(sizeof(BVDC_P_VipBufferNode));
+        BDBG_ASSERT(pBuffer);
+        pBuffer->ulBufferId = i;
+        BLST_SQ_INSERT_TAIL(&hVip->stFreeQ, pBuffer, link);
+
         BKNI_Memset(&pBuffer->stPicture, 0, sizeof(BAVC_EncodePictureBuffer));
         pBuffer->stPicture.hLumaBlock   = hVip->hBlock;
         pBuffer->stPicture.ulLumaOffset = ulBlockOffset;
         ulBlockOffset += hVip->stMemConfig.ulLumaBufSize;
 
-        pBuffer->stPicture.hChromaBlock   = hVip->hBlock;
-        pBuffer->stPicture.ulChromaOffset = ulBlockOffset;
-        ulBlockOffset += hVip->stMemConfig.ulChromaBufSize;
-#if BVDC_P_VIP_SUPPORT_DECIMBUFFER
-        pBuffer->stPicture.h2H1VLumaBlock   = hVip->hBlock;
-        pBuffer->stPicture.ul2H1VLumaOffset = ulBlockOffset;
-        ulBlockOffset += hVip->stMemConfig.ul2H1VBufSize;
+        /* chroma queue */
+        pBufferAssoc = BKNI_Malloc(sizeof(BVDC_P_VipAssocBufferNode));
+        BDBG_ASSERT(pBufferAssoc);
+        pBufferAssoc->ulBufferId = i;
+        BLST_SQ_INSERT_TAIL(&hVip->stFreeQchroma, pBufferAssoc, link);
 
-        pBuffer->stPicture.h2H2VLumaBlock   = hVip->hBlock;
-        pBuffer->stPicture.ul2H2VLumaOffset = ulBlockOffset;
-        ulBlockOffset += hVip->stMemConfig.ul2H2VBufSize;
-#endif
+        pBufferAssoc->hBlock   = hVip->hBlock;
+        pBufferAssoc->ulOffset = ulBlockOffset;
+        ulBlockOffset += hVip->stMemConfig.ulChromaBufSize;
     }
 
+    if(pVipMemSettings->bSupportInterlaced) {/* interlaced shifted chroma buffer */
+        for(i=0; i<hVip->stMemConfig.ulNumShiftedBuf; i++){
+            /* shifted chroma queue */
+            pBufferAssoc = BKNI_Malloc(sizeof(BVDC_P_VipAssocBufferNode));
+            BDBG_ASSERT(pBufferAssoc);
+            pBufferAssoc->ulBufferId = i;
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQshifted, pBufferAssoc, link);
+
+            pBufferAssoc->hBlock = hVip->hBlock;
+            pBufferAssoc->ulOffset = ulBlockOffset;
+            ulBlockOffset += hVip->stMemConfig.ulShiftedChromaBufSize;
+        }
+    }
+
+    if(pVipMemSettings->bSupportDecimatedLuma) {/* decimated luma buffers */
+        for(i=0; i<hVip->stMemConfig.ulNumDecimBuf; i++){
+            /* decimated 1v luma queue */
+            pBufferAssoc = BKNI_Malloc(sizeof(BVDC_P_VipAssocBufferNode));
+            BDBG_ASSERT(pBufferAssoc);
+            pBufferAssoc->ulBufferId = i;
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim1v, pBufferAssoc, link);
+
+            pBufferAssoc->hBlock   = hVip->hBlock;
+            pBufferAssoc->ulOffset = ulBlockOffset;
+            ulBlockOffset += hVip->stMemConfig.ul2H1VBufSize;
+
+            /* decimated 2v luma queue */
+            pBufferAssoc = BKNI_Malloc(sizeof(BVDC_P_VipAssocBufferNode));
+            BDBG_ASSERT(pBufferAssoc);
+            pBufferAssoc->ulBufferId = i;
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim2v, pBufferAssoc, link);
+
+            pBufferAssoc->hBlock   = hVip->hBlock;
+            pBufferAssoc->ulOffset = ulBlockOffset;
+            ulBlockOffset += hVip->stMemConfig.ul2H2VBufSize;
+        }
+    }
+
+    BVDC_P_ITFP_EPM_Preprocessor_init(hVip);
 #if BVDC_P_DUMP_VIP_PICTURE
-    hVip->pY = hVip->pC = BMMA_Lock(hVip->hBlock);
+    hVip->pY = BMMA_Lock(hVip->hBlock);
+    if(hVip->pY == NULL) {
+        BDBG_ERR(("VIP dump failed to lock the memory block!"));
+    }
     hVip->pfY = fopen("videos/vipY0.img", "wb");
     if(!hVip->pfY) {
         BDBG_ERR(("Failed to open videos/vipY.img to dump vip luma capture picture"));
@@ -466,6 +638,22 @@ BERR_Code BVDC_P_Vip_AllocBuffer
     hVip->pfC = fopen("videos/vipC0.img", "wb");
     if(!hVip->pfC) {
         BDBG_ERR(("Failed to open videos/vipC.img to dump vip chroma capture picture"));
+    }
+    if(hVip->stMemSettings.bDecimatedLuma) {
+        hVip->pfY2H1V= fopen("videos/vip2H1V0.img", "wb");
+        if(!hVip->pfY2H1V) {
+            BDBG_ERR(("Failed to open videos/vip2H1V0.img to dump vip 2H1V decimated luma capture picture"));
+        }
+        hVip->pfY2H2V= fopen("videos/vip2H2V0.img", "wb");
+        if(!hVip->pfY2H2V) {
+            BDBG_ERR(("Failed to open videos/vip2H2V0.img to dump vip 2H2V decimated luma capture picture"));
+        }
+    }
+    if(hVip->stMemSettings.bInterlaced) {
+        hVip->pfCshifted = fopen("videos/vipCshift0.img", "wb");
+        if(!hVip->pfCshifted) {
+            BDBG_ERR(("Failed to open videos/vipCshift0.img to dump vip shifted chroma capture picture"));
+        }
     }
     {
         const char *pValue = getenv("BVDC_VipCapNum");
@@ -492,9 +680,10 @@ BERR_Code BVDC_P_Vip_FreeBuffer
     ( BVDC_P_Vip_Handle            hVip )
 {
     BVDC_P_VipBufferNode *pBuffer;
+    BVDC_P_VipAssocBufferNode *pBufferAssoc;
     BERR_Code rc = BERR_SUCCESS;
 
-    BDBG_MODULE_MSG(BVDC_DISP_VIP,("VIP[%d] frees buffers", hVip->eId));
+    BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] frees buffers", hVip->eId));
 
     /* unlink VIP with display first */
     BKNI_EnterCriticalSection();
@@ -502,14 +691,15 @@ BERR_Code BVDC_P_Vip_FreeBuffer
     hVip->hDisplay       = NULL;
     BKNI_LeaveCriticalSection();
 
+    /* 1) free original luma buffer queues */
     while(NULL != (pBuffer=BLST_SQ_FIRST(&hVip->stCaptureQ))){
-        BDBG_MODULE_MSG(BVDC_VIP_MEM,("VIP[%d] releases captureQ buf[%d] %p, pNext=%p", hVip->eId, pBuffer->ulBufferId, (void *)pBuffer, (void *)BLST_SQ_NEXT(pBuffer, link)));
+        BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases captureQ buf[%d] %p, pNext=%p", hVip->eId, pBuffer->ulBufferId, (void *)pBuffer, (void *)BLST_SQ_NEXT(pBuffer, link)));
         BLST_SQ_REMOVE_HEAD(&hVip->stCaptureQ, link);
         BLST_SQ_INSERT_TAIL(&hVip->stFreeQ, pBuffer, link);
     }
     /* TODO: must make sure encoder releasing the delivered pictures before unlock/free the mma allocation */
     while(NULL != (pBuffer=BLST_SQ_FIRST(&hVip->stDeliverQ))){
-        BDBG_ERR(("VIP[%d] releases deliveryQ buf[%d]", hVip->eId, pBuffer->ulBufferId));
+        BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases deliveryQ buf[%d]", hVip->eId, pBuffer->ulBufferId));
         BLST_SQ_REMOVE_HEAD(&hVip->stDeliverQ, link);
         BLST_SQ_INSERT_TAIL(&hVip->stFreeQ, pBuffer, link);
     }
@@ -522,11 +712,105 @@ BERR_Code BVDC_P_Vip_FreeBuffer
         BLST_SQ_INSERT_TAIL(&hVip->stFreeQ, hVip->pToCapture, link);
         hVip->pToCapture = NULL;
     }
+
+    /* 2) free chroma buffer queues */
+    while(NULL != (pBufferAssoc=BLST_SQ_FIRST(&hVip->stCaptureQchroma))){
+        BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases captureQ chroma buf[%d] %p, pNext=%p", hVip->eId, pBufferAssoc->ulBufferId, (void *)pBufferAssoc, (void *)BLST_SQ_NEXT(pBufferAssoc, link)));
+        BLST_SQ_REMOVE_HEAD(&hVip->stCaptureQchroma, link);
+        BLST_SQ_INSERT_TAIL(&hVip->stFreeQchroma, pBufferAssoc, link);
+    }
+    /* TODO: must make sure encoder releasing the delivered pictures before unlock/free the mma allocation */
+    while(NULL != (pBufferAssoc=BLST_SQ_FIRST(&hVip->stDeliverQchroma))){
+        BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases deliveryQ chroma buf[%d]", hVip->eId, pBufferAssoc->ulBufferId));
+        BLST_SQ_REMOVE_HEAD(&hVip->stDeliverQchroma, link);
+        BLST_SQ_INSERT_TAIL(&hVip->stFreeQchroma, pBufferAssoc, link);
+    }
+    /* free the intermediate pToCapture and pCapture buffers */
+    if(hVip->pCaptureChroma) {
+        BLST_SQ_INSERT_TAIL(&hVip->stFreeQchroma, hVip->pCaptureChroma, link);
+        hVip->pCaptureChroma = NULL;
+    }
+    if(hVip->pToCaptureChroma) {
+        BLST_SQ_INSERT_TAIL(&hVip->stFreeQchroma, hVip->pToCaptureChroma, link);
+        hVip->pToCaptureChroma = NULL;
+    }
+
+    if(hVip->stMemSettings.bInterlaced) {/* interlaced shifted chroma buffer */
+        /* 3) free shifted chroma luma buffer queues */
+        while(NULL != (pBufferAssoc=BLST_SQ_FIRST(&hVip->stCaptureQshifted))){
+            BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases captureQ shifted chroma buf[%d] %p, pNext=%p", hVip->eId, pBufferAssoc->ulBufferId, (void *)pBufferAssoc, (void *)BLST_SQ_NEXT(pBufferAssoc, link)));
+            BLST_SQ_REMOVE_HEAD(&hVip->stCaptureQshifted, link);
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQshifted, pBufferAssoc, link);
+        }
+        /* TODO: must make sure encoder releasing the delivered pictures before unlock/free the mma allocation */
+        while(NULL != (pBufferAssoc=BLST_SQ_FIRST(&hVip->stDeliverQshifted))){
+            BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases deliveryQ shifted chroma buf[%d]", hVip->eId, pBufferAssoc->ulBufferId));
+            BLST_SQ_REMOVE_HEAD(&hVip->stDeliverQshifted, link);
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQshifted, pBufferAssoc, link);
+        }
+        /* free the intermediate pToCapture and pCapture buffers */
+        if(hVip->pCaptureShifted) {
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQshifted, hVip->pCaptureShifted, link);
+            BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases pCaptureShifted buf[%d]", hVip->eId, hVip->pCaptureShifted->ulBufferId));
+            hVip->pCaptureShifted = NULL;
+        }
+        if(hVip->pToCaptureShifted) {
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQshifted, hVip->pToCaptureShifted, link);
+            BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases pToCaptureShifted buf[%d]", hVip->eId, hVip->pToCaptureShifted->ulBufferId));
+            hVip->pToCaptureShifted = NULL;
+        }
+    }
+
+    if(hVip->stMemSettings.bDecimatedLuma) {
+        /* 4) free decimated 1v luma buffer queues */
+        while(NULL != (pBufferAssoc=BLST_SQ_FIRST(&hVip->stCaptureQdecim1v))){
+            BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases captureQ decim 1v buf[%d] %p, pNext=%p", hVip->eId, pBufferAssoc->ulBufferId, (void *)pBufferAssoc, (void *)BLST_SQ_NEXT(pBufferAssoc, link)));
+            BLST_SQ_REMOVE_HEAD(&hVip->stCaptureQdecim1v, link);
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim1v, pBufferAssoc, link);
+        }
+        /* TODO: must make sure encoder releasing the delivered pictures before unlock/free the mma allocation */
+        while(NULL != (pBufferAssoc=BLST_SQ_FIRST(&hVip->stDeliverQdecim1v))){
+            BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases deliveryQ decim 1v buf[%d]", hVip->eId, pBufferAssoc->ulBufferId));
+            BLST_SQ_REMOVE_HEAD(&hVip->stDeliverQdecim1v, link);
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim1v, pBufferAssoc, link);
+        }
+        /* free the intermediate pToCapture and pCapture buffers */
+        if(hVip->pCaptureDecim1v) {
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim1v, hVip->pCaptureDecim1v, link);
+            hVip->pCaptureDecim1v = NULL;
+        }
+        if(hVip->pToCaptureDecim1v) {
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim1v, hVip->pToCaptureDecim1v, link);
+            hVip->pToCaptureDecim1v = NULL;
+        }
+
+        /* 5) free decimated 2v luma buffer queues */
+        while(NULL != (pBufferAssoc=BLST_SQ_FIRST(&hVip->stCaptureQdecim2v))){
+            BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases captureQ decim 2v buf[%d] %p, pNext=%p", hVip->eId, pBufferAssoc->ulBufferId, (void *)pBufferAssoc, (void *)BLST_SQ_NEXT(pBufferAssoc, link)));
+            BLST_SQ_REMOVE_HEAD(&hVip->stCaptureQdecim2v, link);
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim2v, pBufferAssoc, link);
+        }
+        /* TODO: must make sure encoder releasing the delivered pictures before unlock/free the mma allocation */
+        while(NULL != (pBufferAssoc=BLST_SQ_FIRST(&hVip->stDeliverQdecim2v))){
+            BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases deliveryQ decim 2v buf[%d]", hVip->eId, pBufferAssoc->ulBufferId));
+            BLST_SQ_REMOVE_HEAD(&hVip->stDeliverQdecim2v, link);
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim2v, pBufferAssoc, link);
+        }
+        /* free the intermediate pToCapture and pCapture buffers */
+        if(hVip->pCaptureDecim2v) {
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim2v, hVip->pCaptureDecim2v, link);
+            hVip->pCaptureDecim2v = NULL;
+        }
+        if(hVip->pToCaptureDecim2v) {
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim2v, hVip->pToCaptureDecim2v, link);
+            hVip->pToCaptureDecim2v = NULL;
+        }
+    }
+
+    BVDC_P_ITFP_EPM_Preprocessor_flush(&hVip->stEpmInfo);
     /* free picture buffers for VIP queues */
     pBuffer = BLST_SQ_FIRST(&hVip->stFreeQ);
     BMMA_UnlockOffset(pBuffer->stPicture.hLumaBlock, hVip->ullDeviceOffset);
-    BMMA_Free(hVip->hBlock);
-    hVip->hBlock = NULL;
 #if BVDC_P_DUMP_VIP_PICTURE
     BMMA_Unlock(hVip->hBlock, hVip->pY);
     if(hVip->pfY) {
@@ -535,7 +819,44 @@ BERR_Code BVDC_P_Vip_FreeBuffer
     if(hVip->pfC) {
         fclose(hVip->pfC);
     }
+    if(hVip->pfY2H1V) {
+        fclose(hVip->pfY2H1V);
+    }
+    if(hVip->pfY2H2V) {
+        fclose(hVip->pfY2H2V);
+    }
+    if(hVip->pfCshifted) {
+        fclose(hVip->pfCshifted);
+    }
 #endif
+    BMMA_Free(hVip->hBlock);
+    hVip->hBlock = NULL;
+    /* release freeQ and deliverQ */
+    while(NULL != (pBuffer=BLST_SQ_FIRST(&hVip->stFreeQ))){
+        BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] freeQ orig buffer[%d] to remove", hVip->eId, pBuffer->ulBufferId));
+        BLST_SQ_REMOVE_HEAD(&hVip->stFreeQ, link);
+        BKNI_Free(pBuffer);
+    }
+    while(NULL != (pBufferAssoc=BLST_SQ_FIRST(&hVip->stFreeQchroma))){
+        BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] freeQ chroma buffer[%d] to remove", hVip->eId, pBufferAssoc->ulBufferId));
+        BLST_SQ_REMOVE_HEAD(&hVip->stFreeQchroma, link);
+        BKNI_Free(pBufferAssoc);
+    }
+    while(NULL != (pBufferAssoc=BLST_SQ_FIRST(&hVip->stFreeQshifted))){
+        BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] freeQ shifted chroma buffer[%d] to remove", hVip->eId, pBufferAssoc->ulBufferId));
+        BLST_SQ_REMOVE_HEAD(&hVip->stFreeQshifted, link);
+        BKNI_Free(pBufferAssoc);
+    }
+    while(NULL != (pBufferAssoc=BLST_SQ_FIRST(&hVip->stFreeQdecim1v))){
+        BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] freeQ decim 1v buffer[%d] to remove", hVip->eId, pBufferAssoc->ulBufferId));
+        BLST_SQ_REMOVE_HEAD(&hVip->stFreeQdecim1v, link);
+        BKNI_Free(pBufferAssoc);
+    }
+    while(NULL != (pBufferAssoc=BLST_SQ_FIRST(&hVip->stFreeQdecim2v))){
+        BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] freeQ decim 2v buffer[%d] to remove", hVip->eId, pBufferAssoc->ulBufferId));
+        BLST_SQ_REMOVE_HEAD(&hVip->stFreeQdecim2v, link);
+        BKNI_Free(pBufferAssoc);
+    }
 
     return rc;
 }
@@ -548,21 +869,60 @@ void BVDC_P_Vip_GetBuffer_isr
       BAVC_EncodePictureBuffer *pPicture )
 {
     BVDC_P_VipBufferNode *pBuffer;
+    BVDC_P_VipAssocBufferNode *pBufferChroma;
+    BVDC_P_VipAssocBufferNode *pBufferShifted;
+    BVDC_P_VipAssocBufferNode *pBufferDecim1v;
+    BVDC_P_VipAssocBufferNode *pBufferDecim2v;
 
     BDBG_ASSERT(pPicture);
     BKNI_Memset_isr((void*)pPicture, 0, sizeof(BAVC_EncodePictureBuffer));
     pBuffer = BLST_SQ_FIRST(&hVip->stCaptureQ);
+    pBufferChroma = BLST_SQ_FIRST(&hVip->stCaptureQchroma);
+    pBufferShifted = BLST_SQ_FIRST(&hVip->stCaptureQshifted);
+    pBufferDecim1v = BLST_SQ_FIRST(&hVip->stCaptureQdecim1v);
+    pBufferDecim2v = BLST_SQ_FIRST(&hVip->stCaptureQdecim2v);
     /* NOTE: delay one picture to avoid tearing */
-    if(pBuffer) { /* move from captureQ to deliverQ */
+    if(pBuffer && pBufferChroma &&
+       ((pBufferDecim1v && pBufferDecim2v) || !hVip->stMemSettings.bDecimatedLuma) &&
+       (pBufferShifted || (BAVC_Polarity_eTopField!=pBuffer->stPicture.ePolarity))) { /* move from captureQ to deliverQ */
         BKNI_Memcpy_isr((void*)pPicture, (void*)&pBuffer->stPicture, sizeof(BAVC_EncodePictureBuffer));
-        BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] GET pic[%u] buf[%d]: %ux%u%c[stc=%#x, %#x]", hVip->eId, pPicture->ulPictureId, pBuffer->ulBufferId,
-            pPicture->ulWidth, pPicture->ulHeight, (BAVC_Polarity_eFrame==pPicture->ePolarity)?'p':'i',
-            pPicture->ulSTCSnapshotHi, pPicture->ulSTCSnapshotLo));
+        /* enqueue chroma buf */
+        pPicture->hChromaBlock   = pBufferChroma->hBlock;
+        pPicture->ulChromaOffset = pBufferChroma->ulOffset;
+        BLST_SQ_REMOVE_HEAD(&hVip->stCaptureQchroma, link);
+        BLST_SQ_INSERT_TAIL(&hVip->stDeliverQchroma, pBufferChroma, link);
+
+        if(BAVC_Polarity_eTopField == pBuffer->stPicture.ePolarity) {
+            /* enqueue shifted chroma buf */
+            pPicture->hShiftedChromaBlock   = pBufferShifted->hBlock;
+            pPicture->ulShiftedChromaOffset = pBufferShifted->ulOffset;
+            BLST_SQ_REMOVE_HEAD(&hVip->stCaptureQshifted, link);
+            BLST_SQ_INSERT_TAIL(&hVip->stDeliverQshifted, pBufferShifted, link);
+        }
+
+        if(hVip->stMemSettings.bDecimatedLuma) {
+            pPicture->h1VLumaBlock = pBufferDecim1v->hBlock;
+            pPicture->ul1VLumaOffset = pBufferDecim1v->ulOffset;
+            pPicture->h2VLumaBlock = pBufferDecim2v->hBlock;
+            pPicture->ul2VLumaOffset = pBufferDecim2v->ulOffset;
+            /* enqueue decim 1v buf */
+            BLST_SQ_REMOVE_HEAD(&hVip->stCaptureQdecim1v, link);
+            BLST_SQ_INSERT_TAIL(&hVip->stDeliverQdecim1v, pBufferDecim1v, link);
+            /* enqueue decim 2v buf */
+            BLST_SQ_REMOVE_HEAD(&hVip->stCaptureQdecim2v, link);
+            BLST_SQ_INSERT_TAIL(&hVip->stDeliverQdecim2v, pBufferDecim2v, link);
+        }
+        BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] GET pic[%u][%#x] buf[%d]: %ux%u%c[stc=%#x, %#x][opts=%#x]", hVip->eId, pPicture->ulPictureId,
+            pPicture->ulLumaOffset, pBuffer->ulBufferId,
+            pPicture->ulWidth, pPicture->ulHeight, (BAVC_Polarity_eFrame==pPicture->ePolarity)?'p':
+            ((BAVC_Polarity_eTopField==pPicture->ePolarity)? 'T':'B'),
+            pPicture->ulSTCSnapshotHi, pPicture->ulSTCSnapshotLo, pPicture->ulOriginalPTS));
+        BDBG_MODULE_MSG(BVDC_DISP_VIP,("  cadence: type = %d, phase = %d", pPicture->stCadence.type, pPicture->stCadence.phase));
         BLST_SQ_REMOVE_HEAD(&hVip->stCaptureQ, link);
         BLST_SQ_INSERT_TAIL(&hVip->stDeliverQ, pBuffer, link);
-#if BVDC_P_DUMP_VIP_PICTURE
+#if BVDC_P_DUMP_VIP_PICTURE /* original pic buffer */
         if(!hVip->bDumped && pPicture->ulPictureId > 0) {/* skip initial 30 pictures in case mute */
-            void *pY, *pC;
+            void *pY, *pC, *pY1V, *pY2V, *pCshift;
             uint32_t totalStripes = (pPicture->ulWidth + pPicture->ulStripeWidth - 1) / pPicture->ulStripeWidth;
             uint32_t ulLumaBufSize = pPicture->ulLumaNMBY * totalStripes * pPicture->ulStripeWidth * 16;
             uint32_t ulChromaBufSize = pPicture->ulChromaNMBY * totalStripes * pPicture->ulStripeWidth * 16;
@@ -570,7 +930,7 @@ void BVDC_P_Vip_GetBuffer_isr
 
             hVip->bDumped = (++hVip->dumpCnt) >= hVip->numPicsToCapture;/* only capture ten */
             pY = (void*)((uint32_t)hVip->pY + pPicture->ulLumaOffset);
-            pC = (void*)((uint32_t)hVip->pC + pPicture->ulChromaOffset);
+            pC = (void*)((uint32_t)hVip->pY + pPicture->ulChromaOffset);
             BMMA_FlushCache_isr(pPicture->hLumaBlock, pY, ulLumaBufSize);
             BMMA_FlushCache_isr(pPicture->hChromaBlock, pC, ulChromaBufSize);
 
@@ -600,11 +960,57 @@ void BVDC_P_Vip_GetBuffer_isr
                     hVip->pfC = NULL;
                 }
             }
+            if(hVip->stMemSettings.bDecimatedLuma) {
+                uint32_t ulH1VBufSize = pPicture->ul2H1VLumaNMBY * totalStripes * pPicture->ulStripeWidth * 16;
+                uint32_t ulH2VBufSize = pPicture->ul2H2VLumaNMBY * totalStripes * pPicture->ulStripeWidth * 16;
+                pY1V = (void*)((uint32_t)hVip->pY + pPicture->ul2H1VLumaOffset);
+                pY2V = (void*)((uint32_t)hVip->pY + pPicture->ul2H2VLumaOffset);
+                BDBG_MSG(("2H1V pointer   = %p, offset = %#x, size = %u", pY1V, pPicture->ul2H1VLumaOffset, ulH1VBufSize));
+                BDBG_MSG(("2H2V pointer   = %p, offset = %#x, size = %u", pY2V, pPicture->ul2H2VLumaOffset, ulH2VBufSize));
+                BMMA_FlushCache_isr(pPicture->h2H1VLumaBlock, pY1V, ulH1VBufSize);
+                BMMA_FlushCache_isr(pPicture->h2H2VLumaBlock, pY2V, ulH2VBufSize);
+                if(hVip->pfY2H1V) {
+                    fwrite(pY1V, 1, ulH1VBufSize, hVip->pfY2H1V);
+                    fclose(hVip->pfY2H1V);
+                    if(!hVip->bDumped) {
+                        BKNI_Snprintf(path, 40, "videos/vipY2H1V%u.img", hVip->dumpCnt);
+                        hVip->pfY2H1V = fopen(path, "wb");
+                    } else {
+                        hVip->pfY2H1V = NULL;
+                    }
+                }
+                if(hVip->pfY2H2V) {
+                    fwrite(pY2V, 1, ulH2VBufSize, hVip->pfY2H2V);
+                    fclose(hVip->pfY2H2V);
+                    if(!hVip->bDumped) {
+                        BKNI_Snprintf(path, 40, "videos/vipY2H2V%u.img", hVip->dumpCnt);
+                        hVip->pfY2H2V = fopen(path, "wb");
+                    } else {
+                        hVip->pfY2H2V = NULL;
+                    }
+                }
+            }
+            if(pPicture->ePolarity != BAVC_Polarity_eFrame) {
+                pCshift = (void*)((uint32_t)hVip->pY + pPicture->ulShiftedChromaOffset);
+                BMMA_FlushCache_isr(pPicture->hShiftedChromaBlock, pCshift, ulChromaBufSize);
+                BDBG_MSG(("shifted chroma pointer   = %p, offset = %#x, size = %u", pCshift, pPicture->ulShiftedChromaOffset, ulChromaBufSize));
+                if(hVip->pfCshifted) {
+                    fwrite(pCshift, 1, ulChromaBufSize, hVip->pfCshifted);
+                    fclose(hVip->pfCshifted);
+                    if(!hVip->bDumped) {
+                        BKNI_Snprintf(path, 40, "videos/vipCshift%u.img", hVip->dumpCnt);
+                        hVip->pfCshifted = fopen(path, "wb");
+                    } else {
+                        hVip->pfCshifted = NULL;
+                    }
+                }
+            }
         }
 #endif
     } else
     {
-        BDBG_MODULE_MSG(BVDC_DISP_VIP,("VIP[%d] GET NULL", hVip->eId));
+        BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] GET NULL[%p, %p, %p, %p, %p]", hVip->eId,
+            (void*)pBuffer, (void*)pBufferChroma, (void*)pBufferShifted, (void*)pBufferDecim1v, (void*)pBufferDecim2v));
     }
 }
 
@@ -616,21 +1022,95 @@ void BVDC_P_Vip_ReturnBuffer_isr
       const BAVC_EncodePictureBuffer *pPicture )
 {
     BVDC_P_VipBufferNode *pBuffer;
+    BVDC_P_VipAssocBufferNode *pBufferAssoc;
+    bool bFound = false;
 
     BDBG_ASSERT(pPicture);
 
     /* find the matching node */
-    for(pBuffer = BLST_SQ_FIRST(&hVip->stDeliverQ); pBuffer; pBuffer= BLST_SQ_NEXT(pBuffer, link)) {
-        if(pBuffer->stPicture.hLumaBlock == pPicture->hLumaBlock &&
-           pBuffer->stPicture.ulPictureId == pPicture->ulPictureId) {
-            BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] RET pic[%u] buf[%d]..", hVip->eId, pPicture->ulPictureId, pBuffer->ulBufferId));
-            /* move from deliverQ to freeQ */
-            BLST_SQ_REMOVE(&hVip->stDeliverQ, pBuffer, BVDC_P_VipBufferNode, link);
-            BLST_SQ_INSERT_TAIL(&hVip->stFreeQ, pBuffer, link);
-            return;
+    if(pPicture->hLumaBlock) {
+        for(pBuffer = BLST_SQ_FIRST(&hVip->stDeliverQ); pBuffer; pBuffer= BLST_SQ_NEXT(pBuffer, link)) {
+            BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] to RET pic[%u][%#x:%p] buf[%d]pic[%u][%#x:%p]..",
+                hVip->eId, pPicture->ulPictureId, pPicture->ulLumaOffset, (void*)pPicture->hLumaBlock,
+                pBuffer->ulBufferId, pBuffer->stPicture.ulPictureId, pBuffer->stPicture.ulLumaOffset, (void*)pBuffer->stPicture.hLumaBlock));
+            if(pBuffer->stPicture.ulLumaOffset == pPicture->ulLumaOffset &&
+               pBuffer->stPicture.hLumaBlock   == pPicture->hLumaBlock) {
+                BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] RET pic[%u] buf[%d]..", hVip->eId, pPicture->ulPictureId, pBuffer->ulBufferId));
+                /* move from deliverQ to freeQ */
+                BLST_SQ_REMOVE(&hVip->stDeliverQ, pBuffer, BVDC_P_VipBufferNode, link);
+                BLST_SQ_INSERT_TAIL(&hVip->stFreeQ, pBuffer, link);
+                bFound = true;
+                break;
+            }
         }
     }
-    BDBG_MODULE_WRN(BVDC_DISP_VIP,("[%d] RET a pic[%u] not found", hVip->eId, pPicture->ulPictureId));
+    if(pPicture->hChromaBlock) {
+        for(pBufferAssoc = BLST_SQ_FIRST(&hVip->stDeliverQchroma); pBufferAssoc; pBufferAssoc= BLST_SQ_NEXT(pBufferAssoc, link)) {
+            BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] to RET chroma pic[%u][%#x:%p] buf[%d][%#x:%p]..",
+                hVip->eId, pPicture->ulPictureId, pPicture->ulChromaOffset, (void*)pPicture->hChromaBlock,
+                pBufferAssoc->ulBufferId, pBufferAssoc->ulOffset, (void*)pBufferAssoc->hBlock));
+            if(pBufferAssoc->hBlock == pPicture->hChromaBlock &&
+               pBufferAssoc->ulOffset == pPicture->ulChromaOffset) {
+                BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] RET chroma pic[%u] buf[%d]..", hVip->eId, pPicture->ulPictureId, pBufferAssoc->ulBufferId));
+                /* move from deliverQ to freeQ */
+                BLST_SQ_REMOVE(&hVip->stDeliverQchroma, pBufferAssoc, BVDC_P_VipAssocBufferNode, link);
+                BLST_SQ_INSERT_TAIL(&hVip->stFreeQchroma, pBufferAssoc, link);
+                bFound = true;
+                break;
+            }
+        }
+    }
+    if(pPicture->hShiftedChromaBlock) {
+        for(pBufferAssoc = BLST_SQ_FIRST(&hVip->stDeliverQshifted); pBufferAssoc; pBufferAssoc= BLST_SQ_NEXT(pBufferAssoc, link)) {
+            BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] to RET shifted chroma pic[%u][%#x:%p] buf[%d][%#x:%p]..",
+                hVip->eId, pPicture->ulPictureId, pPicture->ulShiftedChromaOffset, (void*)pPicture->hShiftedChromaBlock,
+                pBufferAssoc->ulBufferId, pBufferAssoc->ulOffset, (void*)pBufferAssoc->hBlock));
+            if(pBufferAssoc->hBlock == pPicture->hShiftedChromaBlock &&
+               pBufferAssoc->ulOffset == pPicture->ulShiftedChromaOffset) {
+                BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] RET shifted chroma pic[%u] buf[%d]..", hVip->eId, pPicture->ulPictureId, pBufferAssoc->ulBufferId));
+                /* move from deliverQ to freeQ */
+                BLST_SQ_REMOVE(&hVip->stDeliverQshifted, pBufferAssoc, BVDC_P_VipAssocBufferNode, link);
+                BLST_SQ_INSERT_TAIL(&hVip->stFreeQshifted, pBufferAssoc, link);
+                bFound = true;
+                break;
+            }
+        }
+    }
+    if(pPicture->h1VLumaBlock) {
+        for(pBufferAssoc = BLST_SQ_FIRST(&hVip->stDeliverQdecim1v); pBufferAssoc; pBufferAssoc= BLST_SQ_NEXT(pBufferAssoc, link)) {
+            BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] to RET decim 1v pic[%u][%#x:%p] buf[%d][%#x:%p]..",
+                hVip->eId, pPicture->ulPictureId, pPicture->ul1VLumaOffset, (void*)pPicture->h1VLumaBlock,
+                pBufferAssoc->ulBufferId, pBufferAssoc->ulOffset, (void*)pBufferAssoc->hBlock));
+            if(pBufferAssoc->hBlock == pPicture->h1VLumaBlock &&
+               pBufferAssoc->ulOffset == pPicture->ul1VLumaOffset) {
+                BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] RET decim 1v pic[%u] buf[%d]..", hVip->eId, pPicture->ulPictureId, pBufferAssoc->ulBufferId));
+                /* move from deliverQ to freeQ */
+                BLST_SQ_REMOVE(&hVip->stDeliverQdecim1v, pBufferAssoc, BVDC_P_VipAssocBufferNode, link);
+                BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim1v, pBufferAssoc, link);
+                bFound = true;
+                break;
+            }
+        }
+    }
+    if(pPicture->h2VLumaBlock) {
+        for(pBufferAssoc = BLST_SQ_FIRST(&hVip->stDeliverQdecim2v); pBufferAssoc; pBufferAssoc= BLST_SQ_NEXT(pBufferAssoc, link)) {
+            BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] to RET decim 2v pic[%u][%#x:%p] buf[%d][%#x:%p]..",
+                hVip->eId, pPicture->ulPictureId, pPicture->ul2VLumaOffset, (void*)pPicture->h2VLumaBlock,
+                pBufferAssoc->ulBufferId, pBufferAssoc->ulOffset, (void*)pBufferAssoc->hBlock));
+            if(pBufferAssoc->hBlock == pPicture->h2VLumaBlock &&
+               pBufferAssoc->ulOffset == pPicture->ul2VLumaOffset) {
+                BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] RET decim 2v pic[%u] buf[%d]..", hVip->eId, pPicture->ulPictureId, pBufferAssoc->ulBufferId));
+                /* move from deliverQ to freeQ */
+                BLST_SQ_REMOVE(&hVip->stDeliverQdecim2v, pBufferAssoc, BVDC_P_VipAssocBufferNode, link);
+                BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim2v, pBufferAssoc, link);
+                bFound = true;
+                break;
+            }
+        }
+    }
+    if(!bFound) {
+        BDBG_MODULE_WRN(BVDC_DISP_VIP,("[%d] RET a pic[%u] not found", hVip->eId, pPicture->ulPictureId));
+    }
 }
 
 /***************************************************************************
@@ -644,7 +1124,6 @@ BERR_Code BVDC_P_Vip_Create
 {
     unsigned i;
     BVDC_P_VipContext *pVip;
-    BVDC_P_VipBufferNode *pBuffer;
 
     BDBG_ENTER(BVDC_P_Vip_Create);
 
@@ -690,25 +1169,45 @@ BERR_Code BVDC_P_Vip_Create
     case 1:
         pVip->ulRegOffset = BCHP_VICE2_VIP1_0_0_REG_START - BCHP_VICE2_VIP_0_0_REG_START;
         break;
+#elif BCHP_VICE_VIP1_0_0_REG_START
+    case 1:
+        pVip->ulRegOffset = BCHP_VICE_VIP1_0_0_REG_START - BCHP_VICE_VIP_0_0_REG_START;
+        break;
 #endif
 #if BCHP_VICE2_VIP_0_1_REG_START
     case 2:
         pVip->ulRegOffset = BCHP_VICE2_VIP_0_1_REG_START - BCHP_VICE2_VIP_0_0_REG_START;
+        break;
+#elif BCHP_VICE_VIP_0_1_REG_START
+    case 2:
+        pVip->ulRegOffset = BCHP_VICE_VIP_0_1_REG_START - BCHP_VICE_VIP_0_0_REG_START;
         break;
 #endif
 #if BCHP_VICE2_VIP1_0_1_REG_START
     case 3:
         pVip->ulRegOffset = BCHP_VICE2_VIP1_0_1_REG_START - BCHP_VICE2_VIP_0_0_REG_START;
         break;
+#elif BCHP_VICE_VIP1_0_1_REG_START
+    case 3:
+        pVip->ulRegOffset = BCHP_VICE_VIP1_0_1_REG_START - BCHP_VICE_VIP_0_0_REG_START;
+        break;
 #endif
 #if BCHP_VICE2_VIP2_0_0_REG_START
     case 4:
         pVip->ulRegOffset = BCHP_VICE2_VIP2_0_0_REG_START - BCHP_VICE2_VIP_0_0_REG_START;
         break;
+#elif BCHP_VICE_VIP2_0_0_REG_START
+    case 4:
+        pVip->ulRegOffset = BCHP_VICE_VIP2_0_0_REG_START - BCHP_VICE_VIP_0_0_REG_START;
+        break;
 #endif
 #if BCHP_VICE2_VIP2_0_1_REG_START
     case 5:
         pVip->ulRegOffset = BCHP_VICE2_VIP2_0_1_REG_START - BCHP_VICE2_VIP_0_0_REG_START;
+        break;
+#elif BCHP_VICE_VIP2_0_1_REG_START
+    case 5:
+        pVip->ulRegOffset = BCHP_VICE_VIP2_0_1_REG_START - BCHP_VICE_VIP_0_0_REG_START;
         break;
 #endif
 
@@ -730,12 +1229,18 @@ BERR_Code BVDC_P_Vip_Create
     BLST_SQ_INIT(&pVip->stFreeQ);
     BLST_SQ_INIT(&pVip->stCaptureQ);
     BLST_SQ_INIT(&pVip->stDeliverQ);
-    for(i=0; i<BVDC_P_VIP_IBBP_NUMBER_OF_ORIGINAL_PICTURE_QUEUES; i++){
-        pBuffer = BKNI_Malloc(sizeof(BVDC_P_VipBufferNode));
-        BDBG_ASSERT(pBuffer);
-        pBuffer->ulBufferId = i;
-        BLST_SQ_INSERT_TAIL(&pVip->stFreeQ, pBuffer, link);
-    }
+    BLST_SQ_INIT(&pVip->stFreeQchroma);
+    BLST_SQ_INIT(&pVip->stCaptureQchroma);
+    BLST_SQ_INIT(&pVip->stDeliverQchroma);
+    BLST_SQ_INIT(&pVip->stFreeQshifted);
+    BLST_SQ_INIT(&pVip->stCaptureQshifted);
+    BLST_SQ_INIT(&pVip->stDeliverQshifted);
+    BLST_SQ_INIT(&pVip->stFreeQdecim1v);
+    BLST_SQ_INIT(&pVip->stCaptureQdecim1v);
+    BLST_SQ_INIT(&pVip->stDeliverQdecim1v);
+    BLST_SQ_INIT(&pVip->stFreeQdecim2v);
+    BLST_SQ_INIT(&pVip->stCaptureQdecim2v);
+    BLST_SQ_INIT(&pVip->stDeliverQdecim2v);
     BDBG_MODULE_MSG(BVDC_DISP_VIP,("Created VIP%u", pVip->eId));
     /* All done. now return the new fresh context to user. */
     *phVip = (BVDC_P_Vip_Handle)pVip;
@@ -752,28 +1257,10 @@ BERR_Code BVDC_P_Vip_Create
 void BVDC_P_Vip_Destroy
     ( BVDC_P_Vip_Handle            hVip )
 {
-    BVDC_P_VipBufferNode *pBuffer;
-
     BDBG_ENTER(BVDC_P_Vip_Destroy);
     BDBG_OBJECT_ASSERT(hVip, BVDC_VIP);
 
     BDBG_MODULE_MSG(BVDC_DISP_VIP,("To destroy VIP%u", hVip->eId));
-    /* release freeQ and deliverQ */
-    while(NULL != (pBuffer=BLST_SQ_FIRST(&hVip->stFreeQ))){
-        BDBG_MODULE_MSG(BVDC_DISP_VIP,("VIP[%d] freeQ buffer[%d] to remove", hVip->eId, pBuffer->ulBufferId));
-        BLST_SQ_REMOVE_HEAD(&hVip->stFreeQ, link);
-        BKNI_Free(pBuffer);
-    }
-    while(NULL != (pBuffer=BLST_SQ_FIRST(&hVip->stCaptureQ))){
-        BDBG_MODULE_MSG(BVDC_DISP_VIP,("VIP[%d] captureQ buffer[%d] to remove", hVip->eId, pBuffer->ulBufferId));
-        BLST_SQ_REMOVE_HEAD(&hVip->stCaptureQ, link);
-        BKNI_Free(pBuffer);
-    }
-    while(NULL != (pBuffer=BLST_SQ_FIRST(&hVip->stDeliverQ))){
-        BDBG_ERR(("VIP[%d] delivery Q buffer[%d] not returned", hVip->eId, pBuffer->ulBufferId));
-        BLST_SQ_REMOVE_HEAD(&hVip->stDeliverQ, link);
-        BKNI_Free(pBuffer);
-    }
 
     BDBG_OBJECT_DESTROY(hVip, BVDC_VIP);
     /* Release context in system memory */
@@ -797,44 +1284,48 @@ void BVDC_P_Vip_Init
     /* Clear out shadow registers. */
     BKNI_Memset((void*)&hVip->stRegs, 0x0, sizeof(BVDC_P_VipRegisterSetting));
 
-    hVip->stRegs.ulFwControl = (
-        BCHP_FIELD_ENUM(VICE2_VIP_0_0_FW_CONTROL, DONE_RD_HIST, DONE) |
-        BCHP_FIELD_ENUM(VICE2_VIP_0_0_FW_CONTROL, DONE_RD_PCC,  DONE) |
-        BCHP_FIELD_ENUM(VICE2_VIP_0_0_FW_CONTROL, PIC_START,    NULL) |
-        BCHP_FIELD_ENUM(VICE2_VIP_0_0_FW_CONTROL, DONE_WR_REG,  NULL) );
+      hVip->stRegs.ulFwControl = (
+        BVDC_P_VIP_RDB_ENUM(FW_CONTROL, DONE_RD_HIST, DONE) |
+        BVDC_P_VIP_RDB_ENUM(FW_CONTROL, DONE_RD_PCC,  DONE) |
+        BVDC_P_VIP_RDB_ENUM(FW_CONTROL, PIC_START,    NULL) |
+        BVDC_P_VIP_RDB_ENUM(FW_CONTROL, DONE_WR_REG,  NULL) );
 
     hVip->stRegs.ulConfig = (
-        BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, ENABLE_CTRL, ENABLE_BY_PICTURE) |
-        BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, AUTO_SHUTOFF,           ENABLE) |
-        BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, PADDING_MODE,           ENABLE) |
-#if BCHP_MASK(VICE2_VIP_0_0_CONFIG,   ADDRESSING_MODE)
-        BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, ADDRESSING_MODE,        STRIPE) |
+        BVDC_P_VIP_RDB_ENUM(CONFIG, ENABLE_CTRL, ENABLE_BY_PICTURE) |
+        BVDC_P_VIP_RDB_ENUM(CONFIG, AUTO_SHUTOFF,           ENABLE) |
+        BVDC_P_VIP_RDB_ENUM(CONFIG, PADDING_MODE,           ENABLE) |
+#if BVDC_P_VIP_RDB_MASK(CONFIG,   ADDRESSING_MODE)
+        BVDC_P_VIP_RDB_ENUM(CONFIG, ADDRESSING_MODE,        STRIPE) |
 #endif
-#if BCHP_MASK(VICE2_VIP_0_0_CONFIG,   DRAM_STRIPE_WIDTH)
-        BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, DRAM_STRIPE_WIDTH,   BYTES_128) |
+#if BVDC_P_VIP_RDB_MASK(CONFIG,   DRAM_STRIPE_WIDTH)
+        BVDC_P_VIP_RDB_DATA(CONFIG, DRAM_STRIPE_WIDTH,           1) |
 #endif
-        BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, CHROMA_420,             ENABLE) |
-        BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, LUMA,                   ENABLE) );
+        BVDC_P_VIP_RDB_ENUM(CONFIG, CHROMA_420,             ENABLE) |
+        BVDC_P_VIP_RDB_ENUM(CONFIG, LUMA,                   ENABLE) );
 
     /* Initialize state. */
     hVip->bInitial = true;
     hVip->eVipDataMode = BVDC_P_VipDataMode_eStripe;
 
-#if BCHP_VICE2_VIP_0_0_DCXV_CFG
     if(hVip->stMemSettings.DcxvEnable)
     {
+#if BVDC_P_VIP_RDB_MASK(DCXV_CFG, MODE)
         /* VICE2_VIP_0_0_DCXV_CFG */
         hVip->stRegs.ulDcxvCfg =  (
-            BCHP_FIELD_ENUM(VICE2_VIP_0_0_DCXV_CFG, MODE,     COMPRESS) |
-            BCHP_FIELD_ENUM(VICE2_VIP_0_0_DCXV_CFG, PREDICTION,    AVG) |
-            BCHP_FIELD_ENUM(VICE2_VIP_0_0_DCXV_CFG, LINE_STORE, BITS_6));
-    }
+            BVDC_P_VIP_RDB_ENUM(DCXV_CFG, MODE,     COMPRESS) |
+            BVDC_P_VIP_RDB_ENUM(DCXV_CFG, PREDICTION,    AVG) |
+            BVDC_P_VIP_RDB_ENUM(DCXV_CFG, LINE_STORE, BITS_6));
+#elif BVDC_P_VIP_RDB_MASK(DCXV_CFG, MODE_IME_PATH)
+        /* VICE2_VIP_0_0_DCXV_CFG */
+        hVip->stRegs.ulDcxvCfg =  (
+            BVDC_P_VIP_RDB_ENUM(DCXV_CFG, MODE_IME_PATH,     COMPRESS) |
+            BVDC_P_VIP_RDB_ENUM(DCXV_CFG, PREDICTION_IME_PATH,    AVG));
 #endif
+    }
     BDBG_LEAVE(BVDC_P_Vip_Init);
     return;
 }
 
-#include "bchp_xpt_pcroffset.h"
 /***************************************************************************
  * {private}
  *
@@ -845,6 +1336,10 @@ void BVDC_P_Vip_BuildRul_isr
       BAVC_Polarity                eFieldPolarity )
 {
     BVDC_P_VipBufferNode *pBuffer;
+    BVDC_P_VipAssocBufferNode *pBufferChroma;
+    BVDC_P_VipAssocBufferNode *pBufferShifted;
+    BVDC_P_VipAssocBufferNode *pBufferDecim1v;
+    BVDC_P_VipAssocBufferNode *pBufferDecim2v;
     const BFMT_VideoInfo *pFmtInfo;
     BVDC_Display_Handle hDisplay = hVip->hDisplay;
 
@@ -854,55 +1349,183 @@ void BVDC_P_Vip_BuildRul_isr
     pFmtInfo = (hDisplay->pStgFmtInfo)?
         hDisplay->pStgFmtInfo : hDisplay->stCurInfo.pFmtInfo;
 
+    if (pFmtInfo->bInterlaced) {
+       BDBG_ASSERT( hVip->stMemSettings.bInterlaced );
+    }
+
     /* Two intermediate picture delays.
        Note RUL has a picture delay, so when isr building the next capture picture, the last capture just got triggered!
        and it takes one more picture time to complete the capture! We allow picture delivered only after its capture is done. */
     if(hVip->pCapture) {/* beingCaptured -> Capture Done */
+        /* cadence detection given the stats available now with the just captured picture! */
+        hVip->stEpmInfo.IsProgressive = !pFmtInfo->bInterlaced;
+        BVDC_P_ITFP_EPM_Preprocessor_ReadVipStats_isr(hVip);
+        BVDC_P_ITFP_EPM_Preprocessor_CadenceDetection_isr(hVip);
+
         /* insert the captured picture to the CaptureQ available for GetBuffer API */
         BLST_SQ_INSERT_TAIL(&hVip->stCaptureQ, hVip->pCapture, link);
+        BLST_SQ_INSERT_TAIL(&hVip->stCaptureQchroma, hVip->pCaptureChroma, link);
+        /* only top field delivers shifted chroma buffer */
+        if(hVip->pCaptureShifted && hVip->pCapture->stPicture.ePolarity == BAVC_Polarity_eTopField) {
+            BLST_SQ_INSERT_TAIL(&hVip->stCaptureQshifted, hVip->pCaptureShifted, link);
+            hVip->pCaptureShifted = NULL; /* clear the pointer */
+        }
+        if(hVip->stMemSettings.bDecimatedLuma) {
+            BLST_SQ_INSERT_TAIL(&hVip->stCaptureQdecim1v, hVip->pCaptureDecim1v, link);
+            hVip->pCaptureDecim1v = NULL; /* clear the pointer */
+            BLST_SQ_INSERT_TAIL(&hVip->stCaptureQdecim2v, hVip->pCaptureDecim2v, link);
+            hVip->pCaptureDecim2v = NULL; /* clear the pointer */
+        }
         hVip->pCapture = NULL; /* clear the pointer */
+        hVip->pCaptureChroma = NULL; /* clear the pointer */
     }
     /* if last picture to be captured existed, now that last trigger fired this isr, move it to the pCapture */
     if(hVip->pToCapture) {
-        /* one picture delay: ToCapture -> beingCaptured */
-        hVip->pCapture = hVip->pToCapture;
-        hVip->pToCapture = NULL; /* clear the pointer */
-        /* read stc snapshot by last trigger and saved to the buffer! */
-        if(hDisplay->stCurInfo.ulStcSnapshotLoAddr && hDisplay->stCurInfo.ulStcSnapshotHiAddr) {
-            /* 20150123 must read HI first to latch LO */
-            hVip->pCapture->stPicture.ulSTCSnapshotHi = BREG_Read32_isr(hDisplay->hVdc->hRegister, hDisplay->stCurInfo.ulStcSnapshotHiAddr);
-            hVip->pCapture->stPicture.ulSTCSnapshotLo = BREG_Read32_isr(hDisplay->hVdc->hRegister, hDisplay->stCurInfo.ulStcSnapshotLoAddr);
+        /* drop the unexecuted buffer, including cmp slip2lock transition */
+        if(hDisplay->stCurInfo.bStgNonRealTime ||
+           (pList->bLastExecuted && /* if not executed, skip */
+             /* only if the last two isrs both in slip2lock transition and current isr exits transition, skip it */
+            ((0==hVip->ulPrevSlip2Lock) || (0==hVip->ulSlip2Lock) || (0!=hDisplay->hCompositor->ulSlip2Lock)))) {
+            /* one picture delay: ToCapture -> beingCaptured */
+            hVip->pCapture = hVip->pToCapture;
+            hVip->pCaptureChroma = hVip->pToCaptureChroma;
+            /* only top field delivers shifted chroma buffer */
+            if(hVip->pCapture->stPicture.ePolarity == BAVC_Polarity_eTopField) {
+                hVip->pCaptureShifted = hVip->pToCaptureShifted;
+                hVip->pToCaptureShifted = NULL; /* clear the pointer */
+            }
+            if(hVip->stMemSettings.bDecimatedLuma) {
+                hVip->pCaptureDecim1v = hVip->pToCaptureDecim1v;
+                hVip->pCaptureDecim2v = hVip->pToCaptureDecim2v;
+                hVip->pToCaptureDecim1v = NULL; /* clear the pointer */
+                hVip->pToCaptureDecim2v = NULL; /* clear the pointer */
+            }
+            /* read stc snapshot by last trigger and saved to the buffer! */
+            if(hDisplay->stCurInfo.ulStcSnapshotLoAddr && hDisplay->stCurInfo.ulStcSnapshotHiAddr) {
+                /* 20150123 must read HI first to latch LO */
+                hVip->pCapture->stPicture.ulSTCSnapshotHi = BREG_Read32_isr(hDisplay->hVdc->hRegister, hDisplay->stCurInfo.ulStcSnapshotHiAddr);
+                hVip->pCapture->stPicture.ulSTCSnapshotLo = BREG_Read32_isr(hDisplay->hVdc->hRegister, hDisplay->stCurInfo.ulStcSnapshotLoAddr);
+                BDBG_MODULE_MSG(BVDC_DISP_VIP, ("[%u] STC: %#x:%#x buf[%u]", hVip->eId, hVip->pCapture->stPicture.ulSTCSnapshotHi,
+                    hVip->pCapture->stPicture.ulSTCSnapshotLo, hVip->pCapture->ulBufferId));
+            }
+        } else {/* if last RUL not executed, free the buffer right away */
+            if(pList->bLastExecuted) hDisplay->hCompositor->ulPicId--; /* backout pic id for slip2lock transition case */
+            BDBG_MODULE_MSG(BVDC_DISP_VIP, ("[%u] exec = %d slip2lock = %u skip buf[%u]", hVip->eId,
+                pList->bLastExecuted, hVip->ulSlip2Lock, hVip->pToCapture->ulBufferId));
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQ, hVip->pToCapture, link);
+            BLST_SQ_INSERT_TAIL(&hVip->stFreeQchroma, hVip->pToCaptureChroma, link);
+            if(hVip->pToCaptureShifted) {
+                BLST_SQ_INSERT_TAIL(&hVip->stFreeQshifted, hVip->pToCaptureShifted, link);
+                hVip->pToCaptureShifted = NULL; /* clear the pointer */
+            }
+            if(hVip->pToCaptureDecim1v) {
+                BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim1v, hVip->pToCaptureDecim1v, link);
+                BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim2v, hVip->pToCaptureDecim2v, link);
+                hVip->pToCaptureDecim1v = NULL; /* clear the pointer */
+                hVip->pToCaptureDecim2v = NULL; /* clear the pointer */
+            }
         }
+        hVip->pToCapture = NULL; /* clear the pointer */
+        hVip->pToCaptureChroma = NULL; /* clear the pointer */
+        hVip->ulPrevSlip2Lock = hVip->ulSlip2Lock;
+        hVip->ulSlip2Lock = hDisplay->hCompositor->ulSlip2Lock;
     }
 
     /* Get buffer from free Q (fifo) first */
     pBuffer = BLST_SQ_FIRST(&hVip->stFreeQ);
+    pBufferChroma = BLST_SQ_FIRST(&hVip->stFreeQchroma);
+    pBufferShifted = BLST_SQ_FIRST(&hVip->stFreeQshifted);
+    pBufferDecim1v = BLST_SQ_FIRST(&hVip->stFreeQdecim1v);
+    pBufferDecim2v = BLST_SQ_FIRST(&hVip->stFreeQdecim2v);
 
     /* if STG or VIP is disabled, put VIP back to auto drain mode */
     if(!hDisplay->stCurInfo.bEnableStg || !hDisplay->stCurInfo.hVipHeap) {
         hVip->stRegs.ulConfig  &= ~(
-            BCHP_MASK(VICE2_VIP_0_0_CONFIG, DROP_PROCESS_MODE) |
-            BCHP_MASK(VICE2_VIP_0_0_CONFIG,       ENABLE_CTRL));
+            BVDC_P_VIP_RDB_MASK(CONFIG, DROP_PROCESS_MODE) |
+            BVDC_P_VIP_RDB_MASK(CONFIG,       ENABLE_CTRL));
     }
     /* In cases:
         1) not FULL and
+        2.0) RT mode, or
         2.1) non-ignore, or
         2.2) previously non-ignore, but dropped due to FULL (this time may be marked as ignore repeat pic);
         capture it to VIP!
     */
-    else if(pBuffer && (!hDisplay->hCompositor->bIgnorePicture || hVip->bPrevNonIgnoreDropByFull)) {
-        BDBG_MODULE_MSG(BVDC_DISP_VIP,("VIP[%d] has free buf[%d]..ign=%d, prevNIDBF=%d",
+    else if(pBuffer && pBufferChroma &&
+            (pBufferShifted || !pFmtInfo->bInterlaced) &&
+            ((pBufferDecim1v && pBufferDecim2v) || !hVip->stMemSettings.bDecimatedLuma) &&
+            (!hDisplay->stCurInfo.bStgNonRealTime   ||
+             !hDisplay->hCompositor->bIgnorePicture || hVip->bPrevNonIgnoreDropByFull)) {
+        BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] has free buf[%d]..ign=%d, prevNIDBF=%d",
             hVip->eId, pBuffer->ulBufferId, hDisplay->hCompositor->bIgnorePicture, hVip->bPrevNonIgnoreDropByFull));
 
         /* if previously dropped due to buffer FULL, this time marked as ignore, clear the flag, capture the repeated pic */
         if(hVip->bPrevNonIgnoreDropByFull) {
             hVip->bPrevNonIgnoreDropByFull = false;
+            hDisplay->hCompositor->bIgnorePicture = false;
         }
+
         /* populate the buffer info. */
-        pBuffer->stPicture.ulWidth = pFmtInfo->ulDigitalWidth;
-        pBuffer->stPicture.ulHeight= pFmtInfo->ulDigitalHeight>>(pFmtInfo->bInterlaced);
+        pBuffer->stPicture.bDcx          = hVip->stMemSettings.DcxvEnable;
+        if (!pFmtInfo->bInterlaced)
+        {
+           pBuffer->stPicture.bChromaDcx = hVip->stMemSettings.DcxvEnable;
+        }
+        else
+        {
+           pBuffer->stPicture.bChromaDcx = false;
+        }
+#if ((BCHP_CHIP == 7278) && (BCHP_VER == BCHP_VER_A0))
+        pBuffer->stPicture.b1VLumaDcx = false;
+        pBuffer->stPicture.b2VLumaDcx = false;
+#else
+        pBuffer->stPicture.b1VLumaDcx = hVip->stMemSettings.DcxvEnable;
+        pBuffer->stPicture.b2VLumaDcx = hVip->stMemSettings.DcxvEnable;
+#endif
+
+        pBuffer->stPicture.ulWidth       = pFmtInfo->ulDigitalWidth;
+        pBuffer->stPicture.ulHeight      = pFmtInfo->ulDigitalHeight>>(pFmtInfo->bInterlaced);
+#if BVDC_P_VIP_RDB_MASK(OUTPUT_PICTURE_SIZE, HSIZE_MB)
+        pBuffer->stPicture.ulWidthInMbs  = DIV16_ROUNDUP(pFmtInfo->ulDigitalWidth);
+        pBuffer->stPicture.ulHeightInMbs = DIV16_ROUNDUP(pFmtInfo->ulDigitalHeight>>(pFmtInfo->bInterlaced));
+#ifdef WORKAROUND_HW_ISSUE_VICE2_196
+        if (( pBuffer->stPicture.bDcx == true ) && (( pBuffer->stPicture.ulWidthInMbs & 0x3) == 3))
+        {
+            if (
+                ( pBuffer->stPicture.ulWidthInMbs <=  (WORKAROUND_HW_ISSUE_VICE2_196_MAX_NON_DCXV_WIDTH/16) ) &&
+                (!pFmtInfo->bInterlaced)  &&
+                (pBuffer->stPicture.ulHeightInMbs <= (WORKAROUND_HW_ISSUE_VICE2_196_MAX_NON_DCXV_HEIGHT/16))
+               )
+            {
+                pBuffer->stPicture.bDcx = false;
+            }
+            else
+                pBuffer->stPicture.ulWidthInMbs++;
+        }
+#endif
+
+#ifdef WORKAROUND_HW_ISSUE_VICE2_210
+        if (( pBuffer->stPicture.bDcx ) && (pBuffer->stPicture.ulWidthInMbs >= WORKAROUND_HW_ISSUE_VICE2_210_LOWER_LIMIT) && (pBuffer->stPicture.ulWidthInMbs <= WORKAROUND_HW_ISSUE_VICE2_210_UPPER_LIMIT) )
+        {
+            if (
+                ( pBuffer->stPicture.ulWidthInMbs <=  (WORKAROUND_HW_ISSUE_VICE2_196_210_MAX_NON_DCXV_WIDTH/16) ) &&
+                (!pFmtInfo->bInterlaced)  &&
+                (pBuffer->stPicture.ulHeightInMbs <= (WORKAROUND_HW_ISSUE_VICE2_196_210_MAX_NON_DCXV_HEIGHT/16)) &&
+                (pFmtInfo->ulVertFreq <= BFMT_FREQ_FACTOR * 25)
+                )
+            {
+                pBuffer->stPicture.bDcx = false;
+            }
+            else
+                pBuffer->stPicture.ulWidthInMbs = WORKAROUND_HW_ISSUE_VICE2_210_UPPER_LIMIT + 1;
+        }
+#endif
+#else
+        pBuffer->stPicture.ulWidthInMbs  = DIV8_ROUNDUP(pFmtInfo->ulDigitalWidth);
+        pBuffer->stPicture.ulHeightInMbs = DIV8_ROUNDUP(pFmtInfo->ulDigitalHeight>>(pFmtInfo->bInterlaced));
+#endif
         pBuffer->stPicture.ulOriginalPTS = hDisplay->hCompositor->ulOrigPTS;
-        pBuffer->stPicture.ePolarity  = BAVC_Polarity_eFrame/* TODO: support interlaced! eFieldPolarity*/;
+        pBuffer->stPicture.ePolarity  = eFieldPolarity;
         switch(hDisplay->stCurInfo.ulVertFreq) {
         case 12000: pBuffer->stPicture.eFrameRate= BAVC_FrameRateCode_e120; break;
         case 11988: pBuffer->stPicture.eFrameRate= BAVC_FrameRateCode_e119_88; break;
@@ -936,17 +1559,35 @@ void BVDC_P_Vip_BuildRul_isr
         pBuffer->stPicture.ulPictureId = hDisplay->hCompositor->ulPicId;
 
         /* TODO: handle linear; interlaced and DCXV buffer */
-        pBuffer->stPicture.bStriped = (hVip->eVipDataMode == BVDC_P_VipDataMode_eStripe);
+        pBuffer->stPicture.bStriped      = (hVip->eVipDataMode == BVDC_P_VipDataMode_eStripe);
         pBuffer->stPicture.ulStripeWidth = hVip->stMemSettings.DramStripeWidth;
-        pBuffer->stPicture.ulLumaNMBY = BVDC_P_VIP_CalcNMBY_isr(DIV16_ROUNDUP(pBuffer->stPicture.ulHeight), hVip->stMemSettings.X, hVip->stMemSettings.Y);
-        pBuffer->stPicture.ulChromaNMBY = BVDC_P_VIP_CalcNMBY_isr(DIV32_ROUNDUP(pBuffer->stPicture.ulHeight), hVip->stMemSettings.X, hVip->stMemSettings.Y);
+        pBuffer->stPicture.ulLumaNMBY    = BVDC_P_VIP_CalcDcxvNMBY_isr(DIV16_ROUNDUP(pFmtInfo->ulDigitalHeight),
+            hVip->stMemSettings.DcxvEnable, pFmtInfo->bInterlaced, false, hVip->stMemSettings.X, hVip->stMemSettings.Y);
+        pBuffer->stPicture.ulChromaNMBY  = BVDC_P_VIP_CalcDcxvNMBY_isr(DIV16_ROUNDUP(pFmtInfo->ulDigitalHeight),
+            hVip->stMemSettings.DcxvEnable, pFmtInfo->bInterlaced, true, hVip->stMemSettings.X, hVip->stMemSettings.Y);
 
         /* move from freeQ to intermediate pToCapture pointer */
         BLST_SQ_REMOVE_HEAD(&hVip->stFreeQ, link);
         hVip->pToCapture = pBuffer;
+        BLST_SQ_REMOVE_HEAD(&hVip->stFreeQchroma, link);
+        hVip->pToCaptureChroma = pBufferChroma;
+        /* only top field delivers shifted chroma */
+        if(BAVC_Polarity_eTopField == eFieldPolarity) {
+            BLST_SQ_REMOVE_HEAD(&hVip->stFreeQshifted, link);
+            hVip->pToCaptureShifted = pBufferShifted;
+        }
+        if(hVip->stMemSettings.bDecimatedLuma) {
+            BLST_SQ_REMOVE_HEAD(&hVip->stFreeQdecim1v, link);
+            hVip->pToCaptureDecim1v = pBufferDecim1v;
+            BLST_SQ_REMOVE_HEAD(&hVip->stFreeQdecim2v, link);
+            hVip->pToCaptureDecim2v = pBufferDecim2v;
+            /* update decimated luma NMBY */
+            pBuffer->stPicture.ul1VLumaNMBY = BVDC_P_VIP_CalcNMBY_isr(DIV16_ROUNDUP(pFmtInfo->ulDigitalHeight), hVip->stMemSettings.X, hVip->stMemSettings.Y);
+            pBuffer->stPicture.ul2VLumaNMBY = BVDC_P_VIP_CalcNMBY_isr(DIV32_ROUNDUP(pFmtInfo->ulDigitalHeight), hVip->stMemSettings.X, hVip->stMemSettings.Y);
+        }
 
-        BDBG_MODULE_MSG(BVDC_DISP_VIP,("VIP display %d stg_id %d:", hDisplay->eId, hVip->eId));
-        BDBG_MODULE_MSG(BVDC_DISP_VIP,("%dx%d%c%d", pBuffer->stPicture.ulWidth, pBuffer->stPicture.ulHeight,
+        BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%u] display %d stg_id %d:", hVip->eId, hDisplay->eId, hDisplay->stStgChan.ulStg));
+        BDBG_MODULE_MSG(BVDC_DISP_VIP,("%dx%d%c%d", pFmtInfo->ulDigitalWidth, pFmtInfo->ulDigitalHeight,
             (pBuffer->stPicture.ePolarity==BAVC_Polarity_eFrame)? 'p' : 'i', hDisplay->stCurInfo.ulVertFreq));
         BDBG_MODULE_MSG(BVDC_DISP_VIP,("stall STC? %d", hDisplay->hCompositor->bStallStc));
         BDBG_MODULE_MSG(BVDC_DISP_VIP,("repeat? %d", hDisplay->hCompositor->bPictureRepeatFlag));
@@ -957,124 +1598,387 @@ void BVDC_P_Vip_BuildRul_isr
 
         /* set FW_CONTROL */
         hVip->stRegs.ulFwControl = (
-            BCHP_FIELD_ENUM(VICE2_VIP_0_0_FW_CONTROL, PIC_START,  START) |
-            BCHP_FIELD_ENUM(VICE2_VIP_0_0_FW_CONTROL, DONE_WR_REG, DONE) );
+            BVDC_P_VIP_RDB_ENUM(FW_CONTROL, PIC_START,   START) |
+            BVDC_P_VIP_RDB_ENUM(FW_CONTROL, DONE_RD_HIST, DONE) |
+            BVDC_P_VIP_RDB_ENUM(FW_CONTROL, DONE_RD_PCC,  DONE) |
+            BVDC_P_VIP_RDB_ENUM(FW_CONTROL, DONE_WR_REG,  DONE) );
+
 
         /* set VIP config. TODO: add decimated luma, interlaced and itfp support */
         hVip->stRegs.ulConfig &= ~(
-            BCHP_MASK(VICE2_VIP_0_0_CONFIG,       ENABLE_CTRL) |
-#if BCHP_MASK(VICE2_VIP_0_0_CONFIG,   DRAM_STRIPE_WIDTH)
-            BCHP_MASK(VICE2_VIP_0_0_CONFIG, DRAM_STRIPE_WIDTH) |
+            BVDC_P_VIP_RDB_MASK(CONFIG,       ENABLE_CTRL) |
+#if BVDC_P_VIP_RDB_MASK(CONFIG,   LUMA_DCMH2V)
+            BVDC_P_VIP_RDB_MASK(CONFIG,       LUMA_DCMH2V) |
+            BVDC_P_VIP_RDB_MASK(CONFIG,       LUMA_DCMH1V) |
+#else
+            BVDC_P_VIP_RDB_MASK(CONFIG,       LUMA_2H2V) |
+            BVDC_P_VIP_RDB_MASK(CONFIG,       LUMA_2H1V) |
 #endif
-            BCHP_MASK(VICE2_VIP_0_0_CONFIG, DROP_PROCESS_MODE) |
-#if BCHP_MASK(VICE2_VIP_0_0_CONFIG,   ADDRESSING_MODE)
-            BCHP_MASK(VICE2_VIP_0_0_CONFIG,   ADDRESSING_MODE) |
+            BVDC_P_VIP_RDB_MASK(CONFIG,      SHIFT_CHROMA) |
+#if BVDC_P_VIP_RDB_MASK(CONFIG,   LUMA_DCMH)
+            BVDC_P_VIP_RDB_MASK(CONFIG,         LUMA_DCMH) |
 #endif
-            BCHP_MASK(VICE2_VIP_0_0_CONFIG,        INPUT_TYPE) );
+            BVDC_P_VIP_RDB_MASK(CONFIG, DRAM_STRIPE_WIDTH) |
+            BVDC_P_VIP_RDB_MASK(CONFIG, DROP_PROCESS_MODE) |
+#if BVDC_P_VIP_RDB_MASK(CONFIG,   ADDRESSING_MODE)
+            BVDC_P_VIP_RDB_MASK(CONFIG,   ADDRESSING_MODE) |
+#endif
+#if BVDC_P_VIP_RDB_MASK(CONFIG,   HISTOGRAM)
+            BVDC_P_VIP_RDB_MASK(CONFIG,   HISTOGRAM) |
+#endif
+            BVDC_P_VIP_RDB_MASK(CONFIG,        INPUT_TYPE) );
 
         hVip->stRegs.ulConfig |= (
-            BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, ENABLE_CTRL,      ENABLE_BY_PICTURE) |
-#if BCHP_MASK(VICE2_VIP_0_0_CONFIG,   DRAM_STRIPE_WIDTH)
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_CONFIG, DRAM_STRIPE_WIDTH, (pBuffer->stPicture.ulStripeWidth==128)) |
+            BVDC_P_VIP_RDB_ENUM(CONFIG, ENABLE_CTRL,      ENABLE_BY_PICTURE) |
+            BVDC_P_VIP_RDB_DATA(CONFIG, SHIFT_CHROMA, (BAVC_Polarity_eTopField==eFieldPolarity)?1:0) |
+            BVDC_P_VIP_RDB_DATA(CONFIG, DRAM_STRIPE_WIDTH,  (pBuffer->stPicture.ulStripeWidth==128)) |
+            BVDC_P_VIP_RDB_ENUM(CONFIG, DROP_PROCESS_MODE,          PROCESS) |
+#if BVDC_P_VIP_RDB_MASK(CONFIG,   ADDRESSING_MODE)
+            BVDC_P_VIP_RDB_DATA(CONFIG, ADDRESSING_MODE,  (uint32_t)hVip->eVipDataMode) |
 #endif
-            BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, DROP_PROCESS_MODE,          PROCESS) |
-#if BCHP_MASK(VICE2_VIP_0_0_CONFIG,   ADDRESSING_MODE)
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_CONFIG, ADDRESSING_MODE,  (uint32_t)hVip->eVipDataMode) |
+            BVDC_P_VIP_RDB_DATA(CONFIG, INPUT_TYPE, eFieldPolarity) );
+
+        if(hVip->stMemSettings.bDecimatedLuma) {
+             hVip->stRegs.ulConfig |= (
+#if BVDC_P_VIP_RDB_MASK(CONFIG,   HISTOGRAM)
+                BVDC_P_VIP_RDB_DATA(CONFIG, HISTOGRAM, 0!=(pFmtInfo->bInterlaced? hVip->prevPrev1VLumaOffset : hVip->prev1VLumaOffset)) |
+                BVDC_P_VIP_RDB_DATA(CONFIG, PCC,       0!=(pFmtInfo->bInterlaced? hVip->prevPrev1VLumaOffset : hVip->prev1VLumaOffset)) |
 #endif
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_CONFIG, INPUT_TYPE,        eFieldPolarity) );
+#if BVDC_P_VIP_RDB_MASK(CONFIG,   LUMA_DCMH2V)
+                BVDC_P_VIP_RDB_ENUM(CONFIG, HISTOGRAM_SEL, LUMA_DCMH1V) |
+                BVDC_P_VIP_RDB_ENUM(CONFIG, PCC_SEL,       LUMA_DCMH1V) |
+                BVDC_P_VIP_RDB_ENUM(CONFIG, LUMA_DCMH2V,    ENABLE) |
+                BVDC_P_VIP_RDB_ENUM(CONFIG, LUMA_DCMH1V,    ENABLE)
+#else
+                BVDC_P_VIP_RDB_ENUM(CONFIG, HISTOGRAM_SEL, LUMA_DCM2H1V) |
+                BVDC_P_VIP_RDB_ENUM(CONFIG, PCC_SEL,       LUMA_DCM2H1V) |
+                BVDC_P_VIP_RDB_ENUM(CONFIG, LUMA_2H2V,      ENABLE) |
+                BVDC_P_VIP_RDB_ENUM(CONFIG, LUMA_2H1V,      ENABLE)
+#endif
+#if BVDC_P_VIP_RDB_MASK(CONFIG,   LUMA_DCMH)
+                |
+                BVDC_P_VIP_RDB_DATA(CONFIG, LUMA_DCMH,
+                    (pBuffer->stPicture.ulWidth  > BVDC_P_VIP_MAX_H1V_WIDTH ||
+                     pBuffer->stPicture.ulHeight > BVDC_P_VIP_MAX_H1V_HEIGHT)? 1 : 0)
+#endif
+            );
+
+#ifdef BCHP_VICE_VIP_0_0_DCMH1V_BASE
+             /* luma 2H1V address */
+              hVip->stRegs.ull1VLumaAddr =  (
+                 BVDC_P_VIP_RDB_DATA(DCMH1V_BASE, ADDR, hVip->ullDeviceOffset + pBufferDecim1v->ulOffset));
+
+             /* luma 2H1V nmby */
+              hVip->stRegs.ul1VLumaNMBY =  (
+                 BVDC_P_VIP_RDB_DATA(DCMH1V_CFG, LINE_STRIDE_MODE, !pFmtInfo->bInterlaced) |
+                 BVDC_P_VIP_RDB_DATA(DCMH1V_CFG, NMBY, pBuffer->stPicture.ul1VLumaNMBY));
+
+             /* luma 2H2V address */
+              hVip->stRegs.ull2VLumaAddr =  (
+                 BVDC_P_VIP_RDB_DATA(DCMH2V_BASE, ADDR, hVip->ullDeviceOffset + pBufferDecim2v->ulOffset));
+
+             /* luma 2H2V nmby */
+              hVip->stRegs.ul2VLumaNMBY =  (
+                 BVDC_P_VIP_RDB_DATA(DCMH2V_CFG, LINE_STRIDE_MODE, !pFmtInfo->bInterlaced) |
+                 BVDC_P_VIP_RDB_DATA(DCMH2V_CFG, NMBY, pBuffer->stPicture.ul2VLumaNMBY));
+
+             /* pcc/hist previous luma address */
+              hVip->stRegs.ullPccLumaAddr =  (
+                 BVDC_P_VIP_RDB_DATA(PCC_LUMA_BASE, ADDR, hVip->ullDeviceOffset + hVip->prev1VLumaOffset));
+              hVip->stRegs.ullHistLumaAddr =  (
+                 BVDC_P_VIP_RDB_DATA(HIST_LUMA_BASE, ADDR, hVip->ullDeviceOffset +
+                    (pFmtInfo->bInterlaced? hVip->prevPrev1VLumaOffset : hVip->prev1VLumaOffset)));
+#elif BVDC_P_VIP_RDB_MASK(CONFIG,   LUMA_DCMH2V)
+            /* luma 2H1V address */
+             hVip->stRegs.ull1VLumaAddr =  (
+                BVDC_P_VIP_RDB_DATA(DCMH1V_ADDR, ADDR, hVip->ullDeviceOffset + pBufferDecim1v->ulOffset));
+
+            /* luma 2H1V nmby */
+             hVip->stRegs.ul1VLumaNMBY =  (
+                BVDC_P_VIP_RDB_DATA(DCMH1V_NMBY, LINE_STRIDE_MODE, !pFmtInfo->bInterlaced) |
+                BVDC_P_VIP_RDB_DATA(DCMH1V_NMBY, NMBY, pBuffer->stPicture.ul1VLumaNMBY));
+
+            /* luma 2H2V address */
+             hVip->stRegs.ull2VLumaAddr =  (
+                BVDC_P_VIP_RDB_DATA(DCMH2V_ADDR, ADDR, hVip->ullDeviceOffset + pBufferDecim2v->ulOffset));
+
+            /* luma 2H2V nmby */
+             hVip->stRegs.ul2VLumaNMBY =  (
+                BVDC_P_VIP_RDB_DATA(DCMH2V_NMBY, LINE_STRIDE_MODE, !pFmtInfo->bInterlaced) |
+                BVDC_P_VIP_RDB_DATA(DCMH2V_NMBY, NMBY, pBuffer->stPicture.ul2VLumaNMBY));
+
+             /* pcc/hist previous luma address */
+              hVip->stRegs.ullPccLumaAddr =  (
+                 BVDC_P_VIP_RDB_DATA(PCC_LUMA_ADDR, ADDR, hVip->ullDeviceOffset + hVip->prev1VLumaOffset));
+              hVip->stRegs.ullHistLumaAddr =  (
+                 BVDC_P_VIP_RDB_DATA(HIST_LUMA_ADDR, ADDR, hVip->ullDeviceOffset +
+                    (pFmtInfo->bInterlaced? hVip->prevPrev1VLumaOffset : hVip->prev1VLumaOffset)));
+#else
+            /* luma 2H1V address */
+             hVip->stRegs.ull1VLumaAddr =  (
+                BVDC_P_VIP_RDB_DATA(2H1V_ADDR, ADDR, hVip->ullDeviceOffset + pBufferDecim1v->ulOffset));
+
+            /* luma 2H1V nmby */
+             hVip->stRegs.ul1VLumaNMBY =  (
+                BVDC_P_VIP_RDB_DATA(2H1V_NMBY, LINE_STRIDE_MODE, !pFmtInfo->bInterlaced) |
+                BVDC_P_VIP_RDB_DATA(2H1V_NMBY, NMBY, pBuffer->stPicture.ul1VLumaNMBY));
+
+            /* luma 2H2V address */
+             hVip->stRegs.ull2VLumaAddr =  (
+                BVDC_P_VIP_RDB_DATA(2H2V_ADDR, ADDR, hVip->ullDeviceOffset + pBufferDecim2v->ulOffset));
+
+            /* luma 2H2V nmby */
+             hVip->stRegs.ul2VLumaNMBY =  (
+                BVDC_P_VIP_RDB_DATA(2H2V_NMBY, LINE_STRIDE_MODE, !pFmtInfo->bInterlaced) |
+                BVDC_P_VIP_RDB_DATA(2H2V_NMBY, NMBY, pBuffer->stPicture.ul2VLumaNMBY));
+
+             /* pcc/hist luma address */
+              hVip->stRegs.ullPccLumaAddr =  (
+                 BVDC_P_VIP_RDB_DATA(PCC_LUMA_ADDR, ADDR, hVip->ullDeviceOffset + hVip->prev1VLumaOffset));
+              hVip->stRegs.ullHistLumaAddr =  (
+                 BVDC_P_VIP_RDB_DATA(HIST_LUMA_ADDR, ADDR, hVip->ullDeviceOffset +
+                    (pFmtInfo->bInterlaced? hVip->prevPrev1VLumaOffset : hVip->prev1VLumaOffset)));
+#endif
+
+             /* pcc/hist line range */
+              hVip->stRegs.ulStatsLineRange =
+#if BVDC_P_VIP_RDB_MASK(PCC_LINE_RANGE, START)
+                 BVDC_P_VIP_RDB_DATA(PCC_LINE_RANGE, START, (16>>pFmtInfo->bInterlaced)-1) |
+                 BVDC_P_VIP_RDB_DATA(PCC_LINE_RANGE, END, 0xFFF);
+#else
+                 BVDC_P_VIP_RDB_DATA(PCC_LINE_RANGE, START_LINE, 0) |
+                 BVDC_P_VIP_RDB_DATA(PCC_LINE_RANGE, END_LINE, (pFmtInfo->ulDigitalHeight - 16) >> pFmtInfo->bInterlaced);
+#endif
+
+            /* store the previous frame's decimated luma offset for ITFP */
+            hVip->prevPrev1VLumaOffset = hVip->prev1VLumaOffset; /* interlaced previous frame */
+            hVip->prev1VLumaOffset = pBufferDecim1v->ulOffset; /* progressive previous frame */
+        }
 
         /* set VIP input pixel size */
         hVip->stRegs.ulInputPicSize =  (
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_INPUT_PICTURE_SIZE, HSIZE, pBuffer->stPicture.ulWidth) |
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_INPUT_PICTURE_SIZE, VSIZE, pBuffer->stPicture.ulHeight));
+            BVDC_P_VIP_RDB_DATA(INPUT_PICTURE_SIZE, HSIZE, pBuffer->stPicture.ulWidth) |
+            BVDC_P_VIP_RDB_DATA(INPUT_PICTURE_SIZE, VSIZE, pBuffer->stPicture.ulHeight));
 
         /* set output MB size */
+#if BVDC_P_VIP_RDB_MASK(OUTPUT_PICTURE_SIZE, HSIZE_MB)
         hVip->stRegs.ulOutputPicSize =  (
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_OUTPUT_PICTURE_SIZE, HSIZE_MB, pBuffer->stPicture.ulWidth/16) |
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_OUTPUT_PICTURE_SIZE, VSIZE_MB, pBuffer->stPicture.ulHeight/16));
+            BVDC_P_VIP_RDB_DATA(OUTPUT_PICTURE_SIZE, HSIZE_MB, pBuffer->stPicture.ulWidthInMbs) |
+            BVDC_P_VIP_RDB_DATA(OUTPUT_PICTURE_SIZE, VSIZE_MB, pBuffer->stPicture.ulHeightInMbs));
+#else
+        hVip->stRegs.ulOutputPicSize =  (
+            BVDC_P_VIP_RDB_DATA(OUTPUT_PICTURE_SIZE, HSIZE_8X8, pBuffer->stPicture.ulWidthInMbs) |
+            BVDC_P_VIP_RDB_DATA(OUTPUT_PICTURE_SIZE, VSIZE_8X8, pBuffer->stPicture.ulHeightInMbs));
+#endif
 
+
+#if BCHP_VICE_VIP_0_0_DCMH1V_BASE
         /* luma address */
         hVip->stRegs.ullLumaAddr =  (
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_LUMA_ADDR, ADDR, hVip->ullDeviceOffset + pBuffer->stPicture.ulLumaOffset));
+            BVDC_P_VIP_RDB_DATA(LUMA_BASE, ADDR, hVip->ullDeviceOffset + pBuffer->stPicture.ulLumaOffset));
 
         /* luma nmby */
         hVip->stRegs.ulLumaNMBY =  (
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_LUMA_NMBY, LINE_STRIDE_MODE, !pFmtInfo->bInterlaced) |
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_LUMA_NMBY, NMBY, pBuffer->stPicture.ulLumaNMBY));
+            BVDC_P_VIP_RDB_DATA(LUMA_CFG, LINE_STRIDE_MODE, !pFmtInfo->bInterlaced) |
+            BVDC_P_VIP_RDB_DATA(LUMA_CFG, NMBY, pBuffer->stPicture.ulLumaNMBY));
+#else
+        /* luma address */
+        hVip->stRegs.ullLumaAddr =  (
+            BVDC_P_VIP_RDB_DATA(LUMA_ADDR, ADDR, hVip->ullDeviceOffset + pBuffer->stPicture.ulLumaOffset));
+
+        /* luma nmby */
+        hVip->stRegs.ulLumaNMBY =  (
+            BVDC_P_VIP_RDB_DATA(LUMA_NMBY, LINE_STRIDE_MODE, !pFmtInfo->bInterlaced) |
+            BVDC_P_VIP_RDB_DATA(LUMA_NMBY, NMBY, pBuffer->stPicture.ulLumaNMBY));
+#endif
 
         /* chroma address */
+#if BCHP_VICE_VIP_0_0_DCMH1V_BASE
         hVip->stRegs.ullChromaAddr =  (
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_CHROMA_420_ADDR, ADDR, hVip->ullDeviceOffset + pBuffer->stPicture.ulChromaOffset));
+            BVDC_P_VIP_RDB_DATA(CHROMA_420_BASE, ADDR, hVip->ullDeviceOffset + pBufferChroma->ulOffset));
 
         /* chroma nmby */
         hVip->stRegs.ulChromaNMBY =  (
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_CHROMA_420_NMBY, LINE_STRIDE_MODE, !pFmtInfo->bInterlaced) |
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_CHROMA_420_NMBY, NMBY, pBuffer->stPicture.ulChromaNMBY));
+            BVDC_P_VIP_RDB_DATA(CHROMA_420_CFG, LINE_STRIDE_MODE, !pFmtInfo->bInterlaced) |
+            BVDC_P_VIP_RDB_DATA(CHROMA_420_CFG, NMBY,    pBuffer->stPicture.ulChromaNMBY));
+#elif BVDC_P_VIP_RDB_MASK(CHROMA_420_ADDR, ADDR)
+        hVip->stRegs.ullChromaAddr =  (
+            BVDC_P_VIP_RDB_DATA(CHROMA_420_ADDR, ADDR, hVip->ullDeviceOffset + pBufferChroma->ulOffset));
 
-        /* TODO: add shifted chroma for interlaced; decimated luma for motion search */
+        /* chroma nmby */
+        hVip->stRegs.ulChromaNMBY =  (
+            BVDC_P_VIP_RDB_DATA(CHROMA_420_NMBY, LINE_STRIDE_MODE, !pFmtInfo->bInterlaced) |
+            BVDC_P_VIP_RDB_DATA(CHROMA_420_NMBY, NMBY,    pBuffer->stPicture.ulChromaNMBY));
+#else
+        hVip->stRegs.ullChromaAddr =  (
+            BVDC_P_VIP_RDB_DATA(420_CHROMA_ADDR, ADDR, hVip->ullDeviceOffset + pBufferChroma->ulOffset));
+
+        /* chroma nmby */
+        hVip->stRegs.ulChromaNMBY =  (
+            BVDC_P_VIP_RDB_DATA(420_CHROMA_NMBY, LINE_STRIDE_MODE, !pFmtInfo->bInterlaced) |
+            BVDC_P_VIP_RDB_DATA(420_CHROMA_NMBY, NMBY,    pBuffer->stPicture.ulChromaNMBY));
+#endif
+        /* interlaced shifted chroma address */
+        if(pFmtInfo->bInterlaced) {
+           /* The shifted chroma is stored only for top field and it's a frame chroma so it's stored as a frame */
+#if BCHP_VICE_VIP_0_0_DCMH1V_BASE
+           hVip->stRegs.ullShiftedChromaAddr =  (
+                BVDC_P_VIP_RDB_DATA(SHIFT_CHROMA_BASE, ADDR, hVip->ullDeviceOffset + pBufferShifted->ulOffset));
+
+            /* shifted chroma nmby */
+           hVip->stRegs.ulShiftedChromaNMBY =  (
+                BVDC_P_VIP_RDB_ENUM(SHIFT_CHROMA_CFG, LINE_STRIDE_MODE,               FRAME) |
+                BVDC_P_VIP_RDB_DATA(SHIFT_CHROMA_CFG, NMBY, pBuffer->stPicture.ulChromaNMBY));
+#else
+           hVip->stRegs.ullShiftedChromaAddr =  (
+                BVDC_P_VIP_RDB_DATA(SHIFT_CHROMA_ADDR, ADDR, hVip->ullDeviceOffset + pBufferShifted->ulOffset));
+
+            /* shifted chroma nmby */
+           hVip->stRegs.ulShiftedChromaNMBY =  (
+                BVDC_P_VIP_RDB_ENUM(SHIFT_CHROMA_NMBY, LINE_STRIDE_MODE,               FRAME) |
+                BVDC_P_VIP_RDB_DATA(SHIFT_CHROMA_NMBY, NMBY, pBuffer->stPicture.ulChromaNMBY));
+#endif
+        }
 
         /* DCXV config */
-#if BCHP_VICE2_VIP_0_0_DCXV_CFG
+#if BVDC_P_VIP_RDB_MASK(DCXV_CFG, MODE)
         hVip->stRegs.ulDcxvCfg =  (
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_DCXV_CFG, MODE, hVip->stMemSettings.DcxvEnable));
+            BVDC_P_VIP_RDB_DATA(DCXV_CFG, MODE, hVip->stMemSettings.DcxvEnable));
+#elif BVDC_P_VIP_RDB_MASK(DCXV_CFG, MODE_IMD_PATH)
+        hVip->stRegs.ulDcxvCfg =  (
+            BVDC_P_VIP_RDB_DATA(DCXV_CFG, MODE_CME_PATH, pBuffer->stPicture.b1VLumaDcx) |
+            BVDC_P_VIP_RDB_DATA(DCXV_CFG, MODE_IMD_PATH, pBuffer->stPicture.bDcx)
+            );
 #endif
 
         /* build RUL */
-        BDBG_CASSERT(2 == (((BCHP_VICE2_VIP_0_0_OUTPUT_PICTURE_SIZE - BCHP_VICE2_VIP_0_0_INPUT_PICTURE_SIZE) / sizeof(uint32_t)) + 1));
-        *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_VICE2_VIP_0_0_OUTPUT_PICTURE_SIZE - BCHP_VICE2_VIP_0_0_INPUT_PICTURE_SIZE) / sizeof(uint32_t)) + 1);
-        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VICE2_VIP_0_0_INPUT_PICTURE_SIZE + hVip->ulRegOffset);
+        BDBG_CASSERT(2 == (((BVDC_P_VIP_RDB(OUTPUT_PICTURE_SIZE) - BVDC_P_VIP_RDB(INPUT_PICTURE_SIZE)) / sizeof(uint32_t)) + 1));
+        *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BVDC_P_VIP_RDB(OUTPUT_PICTURE_SIZE) - BVDC_P_VIP_RDB(INPUT_PICTURE_SIZE)) / sizeof(uint32_t)) + 1);
+        *pList->pulCurrent++ = BRDC_REGISTER(BVDC_P_VIP_RDB(INPUT_PICTURE_SIZE) + hVip->ulRegOffset);
         *pList->pulCurrent++ = hVip->stRegs.ulInputPicSize;
         *pList->pulCurrent++ = hVip->stRegs.ulOutputPicSize;
 
-        BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_LUMA_NMBY, pList->pulCurrent,
+        BVDC_P_VIP_WRITE_TO_RUL(PCC_LINE_RANGE, pList->pulCurrent, hVip->stRegs.ulStatsLineRange);
+        BVDC_P_VIP_WRITE_TO_RUL(HIST_LINE_RANGE, pList->pulCurrent, hVip->stRegs.ulStatsLineRange);
+#if BCHP_VICE_VIP_0_0_DCMH1V_BASE
+        BVDC_P_VIP_WRITE_TO_RUL(LUMA_CFG, pList->pulCurrent,
             hVip->stRegs.ulLumaNMBY);
-        BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_CHROMA_420_NMBY, pList->pulCurrent,
+        BVDC_P_VIP_WRITE_TO_RUL(CHROMA_420_CFG, pList->pulCurrent,
             hVip->stRegs.ulChromaNMBY);
+        BVDC_P_VIP_WRITE_TO_RUL(DCMH1V_CFG, pList->pulCurrent,
+              hVip->stRegs.ul1VLumaNMBY);
+        BVDC_P_VIP_WRITE_TO_RUL(DCMH2V_CFG, pList->pulCurrent,
+              hVip->stRegs.ul2VLumaNMBY);
+        BVDC_P_VIP_WRITE_TO_RUL(SHIFT_CHROMA_CFG, pList->pulCurrent,
+              hVip->stRegs.ulShiftedChromaNMBY);
 
         BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
-            BCHP_VICE2_VIP_0_0_LUMA_ADDR + hVip->ulRegOffset,
+              BVDC_P_VIP_RDB(LUMA_BASE) + hVip->ulRegOffset,
             hVip->stRegs.ullLumaAddr);
         BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
-            BCHP_VICE2_VIP_0_0_CHROMA_420_ADDR + hVip->ulRegOffset,
+              BVDC_P_VIP_RDB(CHROMA_420_BASE) + hVip->ulRegOffset,
             hVip->stRegs.ullChromaAddr);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+              BVDC_P_VIP_RDB(DCMH1V_BASE) + hVip->ulRegOffset,
+            hVip->stRegs.ull1VLumaAddr);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+              BVDC_P_VIP_RDB(DCMH2V_BASE) + hVip->ulRegOffset,
+            hVip->stRegs.ull2VLumaAddr);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+              BVDC_P_VIP_RDB(SHIFT_CHROMA_BASE) + hVip->ulRegOffset,
+            hVip->stRegs.ullShiftedChromaAddr);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+              BVDC_P_VIP_RDB(PCC_LUMA_BASE) + hVip->ulRegOffset,
+              hVip->stRegs.ullPccLumaAddr);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+              BVDC_P_VIP_RDB(HIST_LUMA_BASE) + hVip->ulRegOffset,
+              hVip->stRegs.ullHistLumaAddr);
+#else
+        BVDC_P_VIP_WRITE_TO_RUL(LUMA_NMBY, pList->pulCurrent,
+            hVip->stRegs.ulLumaNMBY);
+        BVDC_P_VIP_WRITE_TO_RUL(CHROMA_420_NMBY, pList->pulCurrent,
+            hVip->stRegs.ulChromaNMBY);
+        BVDC_P_VIP_WRITE_TO_RUL(DCMH1V_NMBY, pList->pulCurrent,
+              hVip->stRegs.ul1VLumaNMBY);
+        BVDC_P_VIP_WRITE_TO_RUL(DCMH2V_NMBY, pList->pulCurrent,
+              hVip->stRegs.ul2VLumaNMBY);
+        BVDC_P_VIP_WRITE_TO_RUL(SHIFT_CHROMA_NMBY, pList->pulCurrent,
+              hVip->stRegs.ulShiftedChromaNMBY);
+
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+              BVDC_P_VIP_RDB(LUMA_ADDR) + hVip->ulRegOffset,
+            hVip->stRegs.ullLumaAddr);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+              BVDC_P_VIP_RDB(CHROMA_420_ADDR) + hVip->ulRegOffset,
+            hVip->stRegs.ullChromaAddr);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+              BVDC_P_VIP_RDB(DCMH1V_ADDR) + hVip->ulRegOffset,
+            hVip->stRegs.ull1VLumaAddr);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+              BVDC_P_VIP_RDB(DCMH2V_ADDR) + hVip->ulRegOffset,
+            hVip->stRegs.ull2VLumaAddr);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+              BVDC_P_VIP_RDB(SHIFT_CHROMA_ADDR) + hVip->ulRegOffset,
+            hVip->stRegs.ullShiftedChromaAddr);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+              BVDC_P_VIP_RDB(PCC_LUMA_ADDR) + hVip->ulRegOffset,
+              hVip->stRegs.ullPccLumaAddr);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+              BVDC_P_VIP_RDB(HIST_LUMA_ADDR) + hVip->ulRegOffset,
+              hVip->stRegs.ullHistLumaAddr);
+#endif
 
         if(hVip->bInitial) {
-            BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_ERR_STATUS_ENABLE, pList->pulCurrent, 0x3FF);
+            BVDC_P_VIP_WRITE_TO_RUL(ERR_STATUS_ENABLE, pList->pulCurrent, 0x3FF);
 
-#if BCHP_VICE2_VIP_0_0_DCXV_CFG
-            BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_DCXV_CFG, pList->pulCurrent,
-                hVip->stRegs.ulDcxvCfg);
+#if BVDC_P_VIP_RDB_MASK(DCXV_CFG, MODE) /* could be dynamic for some workaround cases */
+        BVDC_P_VIP_WRITE_TO_RUL(DCXV_CFG, pList->pulCurrent,
+              hVip->stRegs.ulDcxvCfg);
+#elif BVDC_P_VIP_RDB_MASK(DCXV_CFG, MODE_IMD_PATH) /* could be dynamic for some workaround cases */
+        BVDC_P_VIP_WRITE_TO_RUL(DCXV_CFG, pList->pulCurrent,
+              hVip->stRegs.ulDcxvCfg);
 #endif
-            hVip->bInitial = false;
+
+#if BVDC_P_VIP_RDB_MASK(BVB_PADDING_DATA, LUMA) /* could be dynamic for some workaround cases */
+        BVDC_P_VIP_WRITE_TO_RUL(BVB_PADDING_DATA, pList->pulCurrent,
+              0);
+#endif
+
+        hVip->bInitial = false;
         }
     } else /* freeQ empty: drop the picture (RT and NRT mode) */
     {
-        BDBG_MODULE_MSG(BVDC_DISP_VIP,("VIP[%d] drop pic[pBuf=%p][ign=%d]", hVip->eId, (void *)pBuffer, hDisplay->hCompositor->bIgnorePicture));
+        BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] drop pic%u[pBuf=%p:%p:%p:%p:%p][ign=%d]", hVip->eId, hDisplay->hCompositor->ulPicId, (void *)pBuffer,
+            (void *)pBufferChroma, (void *)pBufferShifted, (void *)pBufferDecim1v, (void *)pBufferDecim2v, hDisplay->hCompositor->bIgnorePicture));
         /* set VIP config. drop it */
         hVip->stRegs.ulConfig &= ~(
-            BCHP_MASK(VICE2_VIP_0_0_CONFIG,       ENABLE_CTRL) |
-            BCHP_MASK(VICE2_VIP_0_0_CONFIG, DROP_PROCESS_MODE) |
-            BCHP_MASK(VICE2_VIP_0_0_CONFIG,        INPUT_TYPE) );
+            BVDC_P_VIP_RDB_MASK(CONFIG,       ENABLE_CTRL) |
+            BVDC_P_VIP_RDB_MASK(CONFIG, DROP_PROCESS_MODE) |
+            BVDC_P_VIP_RDB_MASK(CONFIG,        INPUT_TYPE) );
 
         hVip->stRegs.ulConfig |= (
-            BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, ENABLE_CTRL, ENABLE_BY_PICTURE) |
-            BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, DROP_PROCESS_MODE,        DROP) |
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_CONFIG, INPUT_TYPE,     eFieldPolarity) );
+            BVDC_P_VIP_RDB_ENUM(CONFIG, ENABLE_CTRL, ENABLE_BY_PICTURE) |
+            BVDC_P_VIP_RDB_ENUM(CONFIG, DROP_PROCESS_MODE,        DROP) |
+            BVDC_P_VIP_RDB_DATA(CONFIG, INPUT_TYPE,     eFieldPolarity) );
 
         /* set FW_CONTROL */
         hVip->stRegs.ulFwControl = (
-            BCHP_FIELD_ENUM(VICE2_VIP_0_0_FW_CONTROL, PIC_START,  START) |
-            BCHP_FIELD_ENUM(VICE2_VIP_0_0_FW_CONTROL, DONE_WR_REG, DONE) );
+            BVDC_P_VIP_RDB_ENUM(FW_CONTROL, PIC_START,   START) |
+            BVDC_P_VIP_RDB_ENUM(FW_CONTROL, DONE_RD_HIST, DONE) |
+            BVDC_P_VIP_RDB_ENUM(FW_CONTROL, DONE_RD_PCC,  DONE) |
+            BVDC_P_VIP_RDB_ENUM(FW_CONTROL, DONE_WR_REG,  DONE) );
 
         /* set VIP input pixel size */
         hVip->stRegs.ulInputPicSize =  (
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_INPUT_PICTURE_SIZE, HSIZE, pFmtInfo->ulDigitalWidth) |
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_INPUT_PICTURE_SIZE, VSIZE, (pFmtInfo->ulDigitalHeight>>pFmtInfo->bInterlaced)));
+            BVDC_P_VIP_RDB_DATA(INPUT_PICTURE_SIZE, HSIZE, pFmtInfo->ulDigitalWidth) |
+            BVDC_P_VIP_RDB_DATA(INPUT_PICTURE_SIZE, VSIZE, (pFmtInfo->ulDigitalHeight>>pFmtInfo->bInterlaced)));
 
-        BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_INPUT_PICTURE_SIZE, pList->pulCurrent,
-            hVip->stRegs.ulInputPicSize);
+        BVDC_P_VIP_WRITE_TO_RUL(INPUT_PICTURE_SIZE, pList->pulCurrent, hVip->stRegs.ulInputPicSize);
 
-        if(pBuffer == NULL && hDisplay->stCurInfo.bStgNonRealTime) {/* if FULL, stall STC in NRT mode since it's dropped! */
+        if((pBuffer == NULL || pBufferChroma == NULL ||
+            (pBufferShifted == NULL && pFmtInfo->bInterlaced) ||
+            ((pBufferDecim1v == NULL || pBufferDecim2v == NULL) && hVip->stMemSettings.bDecimatedLuma)) &&
+            hDisplay->stCurInfo.bStgNonRealTime) {/* if FULL, stall STC in NRT mode since it's dropped! */
             hDisplay->hCompositor->bStallStc = true;
             /* if dropping non-ignore pic due to buffer FULL, mark it to capture later when DM marks it as ignroe next time! */
             if(!hDisplay->hCompositor->bIgnorePicture) {
@@ -1085,8 +1989,8 @@ void BVDC_P_Vip_BuildRul_isr
         hDisplay->hCompositor->bIgnorePicture = true;
     }
 
-    BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_CONFIG, pList->pulCurrent, hVip->stRegs.ulConfig);
-    BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_FW_CONTROL, pList->pulCurrent, hVip->stRegs.ulFwControl);
+    BVDC_P_VIP_WRITE_TO_RUL(CONFIG, pList->pulCurrent, hVip->stRegs.ulConfig);
+    BVDC_P_VIP_WRITE_TO_RUL(FW_CONTROL, pList->pulCurrent, hVip->stRegs.ulFwControl);
     BDBG_LEAVE(BVDC_P_Vip_BuildRul_isr);
     return;
 }

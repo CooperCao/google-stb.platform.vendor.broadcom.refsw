@@ -481,7 +481,7 @@ static uint32_t glxx_front_facing_is_clockwise(GLenum mode)
    return mode == GL_CW;
 }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 static bool fmt_requires_alpha16(v3d_rt_type_t type, v3d_rt_bpp_t bpp)
 {
    switch (type)
@@ -533,7 +533,7 @@ static unsigned compute_texture_uniforms(GLXX_SERVER_STATE_T *state, glxx_render
          sampler->texture_type = state->gl11.texunits[i].target_enabled_2D ? GL_TEXTURE_2D : GL_TEXTURE_EXTERNAL_OES;
          sampler->is_32bit = false;
          sampler->in_binning = false;
-       #if V3D_VER_AT_LEAST(4,0,2,0)
+       #if V3D_VER_AT_LEAST(4,1,34,0)
          sampler->array_size = 0;
          sampler->in_array = false;
        #endif
@@ -547,7 +547,7 @@ static unsigned compute_texture_uniforms(GLXX_SERVER_STATE_T *state, glxx_render
       num_samplers = program_common->linked_glsl_program->num_samplers;
    }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    memset(image_like_uniforms->unnorm, 0, sizeof(image_like_uniforms->unnorm));
 #endif
 
@@ -558,7 +558,7 @@ static unsigned compute_texture_uniforms(GLXX_SERVER_STATE_T *state, glxx_render
       unsigned j = samplers[i].location;
       if (!is_gl11)
       {
-       #if V3D_VER_AT_LEAST(4,0,2,0)
+       #if V3D_VER_AT_LEAST(4,1,34,0)
          unsigned array_size = samplers[i].array_size;
          if (array_size && !khrn_fmem_reserve_tmu_cfg(&rs->fmem, array_size*2))
             return ~0u;
@@ -581,7 +581,7 @@ static unsigned compute_texture_uniforms(GLXX_SERVER_STATE_T *state, glxx_render
          enum glxx_tex_completeness complete = glxx_texture_key_and_uniforms(
             texture, NULL, sampler, &samplers[i], rs, &image_like_uniforms->tex[i], &state->fences);
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
          if (sampler->unnormalised_coords)
             image_like_uniforms->unnorm[i / 16] |= 1 << (i % 16);
 #endif
@@ -630,7 +630,7 @@ static bool setup_dummy_texture_for_texture_unif(GLXX_TEXTURE_UNIF_T *texture_un
    texture_unif->width = width;
    texture_unif->height = height;
    texture_unif->depth = depth;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    texture_unif->base_level = 0;
 #endif
 
@@ -641,16 +641,15 @@ static bool setup_dummy_texture_for_texture_unif(GLXX_TEXTURE_UNIF_T *texture_un
       texture_unif->height = is_1d ? 1 : 0;
       texture_unif->depth = 0;
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-      texture_unif->arr_stride = 0;
-      texture_unif->lx_addr = addr_base;
-      texture_unif->lx_pitch = 0;
-      texture_unif->lx_slice_pitch = 0;
-      texture_unif->lx_swizzling = GLSL_IMGUNIT_SWIZZLING_LT;
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+      struct image_params *img_params = &texture_unif->img_params;
+      memset(img_params, 0, sizeof(*img_params));
+      img_params->lx_addr = addr_base;
+      img_params->lx_swizzling = GLSL_IMGUNIT_SWIZZLING_LT;
 #endif
    }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_TMU_TEX_STATE_T tex_state;
    memset(&tex_state, 0, sizeof(tex_state));
    tex_state.l0_addr = addr_base;
@@ -705,9 +704,7 @@ static bool setup_dummy_texture_for_texture_unif(GLXX_TEXTURE_UNIF_T *texture_un
    tmu_indirect.depth = depth;
    tmu_indirect.ttype = type;
 #if V3D_VER_AT_LEAST(3,3,0,0)
-   tmu_indirect.u.not_child_image.output_type = glsl_sampler->is_32bit ? V3D_TMU_OUTPUT_TYPE_32 : V3D_TMU_OUTPUT_TYPE_16;
-#else
-   tmu_indirect.u.not_child_image.output_type = V3D_TMU_OUTPUT_TYPE_AUTO;
+   tmu_indirect.output_32 = glsl_sampler->is_32bit;
 #endif
    tmu_indirect.swizzles[0] = V3D_TMU_SWIZZLE_R;
    tmu_indirect.swizzles[1] = V3D_TMU_SWIZZLE_G;
@@ -715,7 +712,7 @@ static bool setup_dummy_texture_for_texture_unif(GLXX_TEXTURE_UNIF_T *texture_un
    tmu_indirect.swizzles[3] = V3D_TMU_SWIZZLE_A;
 
    uint32_t hw_indirect[V3D_TMU_INDIRECT_PACKED_SIZE / 4];
-   v3d_pack_tmu_indirect_not_child_image(hw_indirect, &tmu_indirect);
+   v3d_pack_tmu_indirect(hw_indirect, &tmu_indirect);
    texture_unif->hw_param[1] = khrn_fmem_add_tmu_indirect(fmem, hw_indirect);
    if (!texture_unif->hw_param[1])
       return false;
@@ -723,7 +720,7 @@ static bool setup_dummy_texture_for_texture_unif(GLXX_TEXTURE_UNIF_T *texture_un
    texture_unif->hw_param1_no_aniso = texture_unif->hw_param[1];
 
    tmu_indirect.filters = V3D_TMU_FILTERS_MIN_LIN_MAG_LIN;
-   v3d_pack_tmu_indirect_not_child_image(hw_indirect, &tmu_indirect);
+   v3d_pack_tmu_indirect(hw_indirect, &tmu_indirect);
    v3d_addr_t gather012_indirect_addr = khrn_fmem_add_tmu_indirect(fmem, hw_indirect);
    if (!gather012_indirect_addr)
       return false;
@@ -731,7 +728,7 @@ static bool setup_dummy_texture_for_texture_unif(GLXX_TEXTURE_UNIF_T *texture_un
       texture_unif->hw_param1_gather[i] = gather012_indirect_addr;
 
    tmu_indirect.swizzles[0] = tmu_indirect.swizzles[3];
-   v3d_pack_tmu_indirect_not_child_image(hw_indirect, &tmu_indirect);
+   v3d_pack_tmu_indirect(hw_indirect, &tmu_indirect);
    texture_unif->hw_param1_gather[3] = khrn_fmem_add_tmu_indirect(fmem, hw_indirect);
    if (!texture_unif->hw_param1_gather[3])
       return false;
@@ -864,7 +861,7 @@ static uint32_t compute_backend_shader_key(const GLXX_SERVER_STATE_T *state,
          if (v3d_tlb_rt_type_use_rw_cfg_16 (fb->color_rt_format[i].type)) fb_gadget |= GLSL_FB_16;
          if (v3d_tlb_rt_type_is_int(fb->color_rt_format[i].type))         fb_gadget |= GLSL_FB_INT;
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
          const V3D_RT_FORMAT_T *b = &fb->color_rt_format[i];
          if (fmt_requires_alpha16(b->type, b->bpp))
             fb_gadget |= GLSL_FB_ALPHA_16_WORKAROUND;
@@ -923,7 +920,7 @@ void glxx_copy_gadgettypes_to_shader_key(GLSL_BACKEND_CFG_T* cfg, const glxx_hw_
 }
 #endif
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static bool blend_cfgs_equal(const glxx_blend_cfg *a, const glxx_blend_cfg *b)
 {
    return
@@ -943,7 +940,7 @@ static v3d_blend_eqn_t convert_blend_eqn(glxx_blend_eqn_t eq)
 }
 
 static void write_blend_cfg_instr(uint8_t **instr, const glxx_blend_cfg *cfg
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    , uint32_t rt_mask
 #endif
    )
@@ -955,7 +952,7 @@ static void write_blend_cfg_instr(uint8_t **instr, const glxx_blend_cfg *cfg
       convert_blend_eqn(cfg->color_eqn),
       cfg->src_rgb,
       cfg->dst_rgb,
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       rt_mask,
 #endif
       V3D_BLEND_VG_MODE_NORMAL);
@@ -964,7 +961,7 @@ static void write_blend_cfg_instr(uint8_t **instr, const glxx_blend_cfg *cfg
 static void write_blend_cfg(uint8_t **instr,
    const GLXX_HW_RENDER_STATE_T *rs, const GLXX_SERVER_STATE_T *state)
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    uint32_t done_mask = 0;
    for (unsigned i = 0; i != rs->installed_fb.rt_count; ++i)
    {
@@ -1048,7 +1045,7 @@ static bool do_changed_cfg(
 
    unsigned max_size = GLXX_CL_STATE_SIZE[GLXX_CL_STATE_VIEWPORT]
                      + GLXX_CL_STATE_SIZE[GLXX_CL_STATE_SAMPLE_STATE]
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
                      + GLXX_CL_STATE_SIZE[GLXX_CL_STATE_BLEND_ENABLES]
 #endif
                      + GLXX_CL_STATE_SIZE[GLXX_CL_STATE_BLEND_CFG]
@@ -1163,7 +1160,7 @@ static bool do_changed_cfg(
       glxx_cl_record_end(cl_record, GLXX_CL_STATE_SAMPLE_STATE, instr);
    }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (khrn_render_state_set_contains(state->dirty.blend_enables, rs))
    {
       khrn_render_state_set_remove(&state->dirty.blend_enables, rs);
@@ -1258,7 +1255,7 @@ static bool do_changed_cfg(
       cfg_bits.blend = !(state->gl11.statebits.f_enable & GL11_LOGIC_M);
       /* Switch blending off if advanced blending is enabled */
       cfg_bits.blend = cfg_bits.blend && !glxx_advanced_blend_eqn_set(state);
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       cfg_bits.blend = cfg_bits.blend && state->blend.enable;
 #endif
 
@@ -1461,7 +1458,7 @@ static bool glxx_hw_draw_elements_record(GLXX_SERVER_STATE_T *state,
 
    if (draw->basevertex || draw->baseinstance)
       v3d_cl_base_vertex_base_instance(&instr,
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
          draw->basevertex,
 #else
          // Partial workaround for GFXH-1692
@@ -1660,7 +1657,7 @@ bool glxx_hw_draw_triangles(GLXX_SERVER_STATE_T *state,
    if (!glxx_server_tf_install(state, rs, point_size_used))
       goto fail;
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    if (state->transform_feedback.in_use)
    {
       GLXX_TRANSFORM_FEEDBACK_T *tf = state->transform_feedback.bound;
@@ -1744,7 +1741,7 @@ bool glxx_hw_draw_triangles(GLXX_SERVER_STATE_T *state,
       // glEndTransformFeedback as transform feedback state is not saved by
       // post_draw_journal
       !glxx_tf_is_active(glxx_get_bound_tf(state)) &&
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       // Similarly, do not do this if any prim count queries are active -- this
       // state is not saved either
       !state->queries.queries[GLXX_Q_PRIM_GEN].active &&
@@ -1948,7 +1945,7 @@ static uint32_t assemble_tmu_param(uint32_t param, uint32_t u_value,
 {
    assert(param == 0 || param == 1);
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    uint32_t sampler    = backend_uniform_get_sampler(u_value);
    uint32_t extra_bits = backend_uniform_get_extra(u_value);
    uint32_t bits       = tus[sampler].hw_param[param];
@@ -2172,7 +2169,7 @@ v3d_addr_t glxx_hw_install_uniforms(
       case BACKEND_UNIFORM_TEX_PARAM1:
          *ptr = assemble_tmu_param(1, u_value, image_like_uniforms->tex);
          break;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case BACKEND_UNIFORM_TEX_PARAM1_UNNORMS:
       {
          // Unaligned load of unnorm mask beginning at given sampler index.
@@ -2201,7 +2198,7 @@ v3d_addr_t glxx_hw_install_uniforms(
          assert(0); // Not used in GL
          break;
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       case BACKEND_UNIFORM_TEX_BASE_LEVEL:
          *ptr = image_like_uniforms->tex[u_value].base_level;
          break;
@@ -2212,27 +2209,27 @@ v3d_addr_t glxx_hw_install_uniforms(
       case BACKEND_UNIFORM_IMG_PARAM0:
          *ptr = assemble_tmu_param(0, u_value, image_like_uniforms->img);
          break;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       case BACKEND_UNIFORM_IMG_PARAM1:
          *ptr = assemble_tmu_param(1, u_value, image_like_uniforms->img);
          break;
       case BACKEND_UNIFORM_IMAGE_SWIZZLING:
-         *ptr = (uint32_t)image_like_uniforms->img[u_value].lx_swizzling;
+         *ptr = (uint32_t)image_like_uniforms->img[u_value].img_params.lx_swizzling;
          break;
       case BACKEND_UNIFORM_IMAGE_XOR_ADDR:
-         *ptr = image_like_uniforms->img[u_value].lx_swizzling == GLSL_IMGUNIT_SWIZZLING_UIF_XOR ? GFX_UIF_XOR_ADDR : 0;
+         *ptr = image_like_uniforms->img[u_value].img_params.lx_swizzling == GLSL_IMGUNIT_SWIZZLING_UIF_XOR ? GFX_UIF_XOR_ADDR : 0;
          break;
       case BACKEND_UNIFORM_IMAGE_LX_ADDR:
-         *ptr = image_like_uniforms->img[u_value].lx_addr;
+         *ptr = image_like_uniforms->img[u_value].img_params.lx_addr;
          break;
       case BACKEND_UNIFORM_IMAGE_LX_PITCH:
-         *ptr = image_like_uniforms->img[u_value].lx_pitch;
+         *ptr = image_like_uniforms->img[u_value].img_params.lx_pitch;
          break;
       case BACKEND_UNIFORM_IMAGE_LX_SLICE_PITCH:
-         *ptr = image_like_uniforms->img[u_value].lx_slice_pitch;
+         *ptr = image_like_uniforms->img[u_value].img_params.lx_slice_pitch;
          break;
       case BACKEND_UNIFORM_IMAGE_ARR_STRIDE:
-         *ptr = image_like_uniforms->img[u_value].arr_stride;
+         *ptr = image_like_uniforms->img[u_value].img_params.arr_stride;
          break;
 #endif
       case BACKEND_UNIFORM_IMG_SIZE_X:
@@ -2371,7 +2368,7 @@ static v3d_prim_mode_t convert_primitive_type(GLXX_SERVER_STATE_T const* state, 
    static_assrt(GL_TRIANGLE_STRIP == V3D_PRIM_MODE_TRI_STRIP );
    static_assrt(GL_TRIANGLE_FAN   == V3D_PRIM_MODE_TRI_FAN   );
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    switch (mode) {
       case GL_LINES_ADJACENCY:          return V3D_PRIM_MODE_LINES_ADJ;
       case GL_LINE_STRIP_ADJACENCY:     return V3D_PRIM_MODE_LINE_STRIP_ADJ;
@@ -2417,6 +2414,7 @@ static v3d_index_type_t convert_index_type(GLenum type)
    }
 }
 
+#if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
 static bool write_gl_shader_record_defaults(
    v3d_addr_t*                      defaults_addr,
    khrn_fmem*                       fmem,
@@ -2454,10 +2452,10 @@ static bool write_gl_shader_record_defaults(
    }
    return true;
 }
+#endif
 
 static bool write_gl_shader_record_attribs(
    uint32_t*                           packed_attrs,
-   v3d_addr_t                          defaults_addr,
    khrn_fmem*                          fmem,
    const GLXX_LINK_RESULT_DATA_T*      link_data,
    const GLXX_ATTRIB_CONFIG_T*         attribs,
@@ -2632,9 +2630,11 @@ static bool write_gl_shader_record(
    GLXX_LINK_RESULT_DATA_T *link_data, const glxx_hw_image_like_uniforms *image_like_uniforms,
    const GLXX_ATTRIB_CONFIG_T *attribs, const glxx_hw_vb *vbs)
 {
+#if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
    v3d_addr_t defaults_addr;
    if (!write_gl_shader_record_defaults(&defaults_addr, &rs->fmem, link_data, attribs))
       return false;
+#endif
 
    if (!khrn_fmem_sync_res(&rs->fmem, link_data->res, V3D_BARRIER_QPU_INSTR_READ, V3D_BARRIER_QPU_INSTR_READ))
       return false;
@@ -2811,7 +2811,7 @@ static bool write_gl_shader_record(
       .fs_needs_w                = !!(link_data->flags & GLXX_SHADER_FLAGS_FS_NEEDS_W),
       .scb_wait_on_first_thrsw   = !!(link_data->flags & GLXX_SHADER_FLAGS_TLB_WAIT_FIRST_THRSW),
       .disable_scb               = false,
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       .disable_implicit_varys    = !!(link_data->flags & GLXX_SHADER_FLAGS_DISABLE_IMPLICIT_VARYS),
       .cs_baseinstance = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_READS_BASE_INSTANCE << MODE_BIN)),
       .vs_baseinstance = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_READS_BASE_INSTANCE << MODE_RENDER)),
@@ -2828,7 +2828,9 @@ static bool write_gl_shader_record(
       .cs_input_size = vpm_cfg_v[MODE_BIN].input_size,
       .vs_output_size = vpm_cfg_v[MODE_RENDER].output_size,
       .vs_input_size = vpm_cfg_v[MODE_RENDER].input_size,
+#if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
       .defaults = defaults_addr,
+#endif
       .fs.threading = link_data->fs.threading,
 #if V3D_VER_AT_LEAST(4,1,34,0)
       .fs.single_seg  = link_data->fs.single_seg,
@@ -2866,7 +2868,6 @@ static bool write_gl_shader_record(
    // Write shader record attributes.
    bool ok = write_gl_shader_record_attribs(
       shadrec_attr_data,
-      defaults_addr,
       &rs->fmem,
       link_data,
       attribs,
@@ -2915,12 +2916,6 @@ static v3d_addr_t create_nv_shader_record(
    V3D_NV_SHADER_RECORD_ALLOC_SIZES_T  sizes;
    v3d_get_nv_shader_record_alloc_sizes(&sizes);
 
-   // Allocate the defaults fmem
-   v3d_addr_t defaults_addr;
-   uint32_t *defaults_ptr = khrn_fmem_data(&defaults_addr, fmem, sizes.defaults_size, sizes.defaults_align);
-   if (!defaults_ptr)
-      return 0;
-
    // Allocate the shader record fmem
    v3d_addr_t shader_record_packed_addr;
    uint32_t *shader_record_packed_ptr = khrn_fmem_data(
@@ -2935,8 +2930,6 @@ static v3d_addr_t create_nv_shader_record(
    v3d_create_nv_shader_record(
       shader_record_packed_ptr,
       shader_record_packed_addr,
-      defaults_ptr,
-      defaults_addr,
       fshader_addr,
       funif_addr,
       vdata_addr,
@@ -2947,32 +2940,22 @@ static v3d_addr_t create_nv_shader_record(
    return shader_record_packed_addr;
 }
 
-static void nv_vertex(uint32_t *addr, uint32_t x, uint32_t y, uint32_t z)
-{
-   // Clipping and 1/Wc come from defaults
-   addr[0] = x << 8;
-   addr[1] = y << 8;
-   addr[2] = z;
-}
-
 /* Allocate vertex data for draw_rect in fmem */
 v3d_addr_t glxx_draw_rect_vertex_data(uint32_t *vdata_max_index, khrn_fmem *fmem, const glxx_rect *rect, uint32_t z)
 {
    *vdata_max_index = 3;
-   unsigned attr_components= 3 ; /* x, y, z */
    v3d_addr_t addr;
-
-   uint32_t size = attr_components * sizeof(uint32_t) * (*vdata_max_index + 1);
+   uint32_t size = v3d_nv_vertex_size() * 4;
    uint32_t *ptr = khrn_fmem_data(&addr, fmem, size, V3D_ATTR_ALIGN);
    if (ptr == NULL)
       return 0;
 
    int xmax = rect->x + rect->width;
    int ymax = rect->y + rect->height;
-   nv_vertex(ptr, rect->x, rect->y, z);
-   nv_vertex(ptr + attr_components, xmax, rect->y, z);
-   nv_vertex(ptr + 2 * attr_components, xmax, ymax, z);
-   nv_vertex(ptr + 3 * attr_components, rect->x, ymax, z);
+   v3d_nv_vertex(ptr, 0, rect->x, rect->y, z);
+   v3d_nv_vertex(ptr, 1, xmax, rect->y, z);
+   v3d_nv_vertex(ptr, 2, xmax, ymax, z);
+   v3d_nv_vertex(ptr, 3, rect->x, ymax, z);
 
    return addr;
 }
@@ -3144,7 +3127,7 @@ bool glxx_draw_rect(
 #endif
             );
    }
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    else
    {
       //layered_fb, we need a vs + gs for clear
@@ -3161,7 +3144,7 @@ bool glxx_draw_rect(
    if (!glxx_draw_rect_write_state_changes(state, rs, clear, rect))
       return false;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    glxx_prim_drawn_by_us_record(rs, 2 * rs->num_used_layers);
    if (!glxx_tf_record_disable(rs))
       return false;
@@ -3182,7 +3165,7 @@ bool glxx_draw_rect(
       v3d_cl_nv_shader(&instr, 2, sh_rec_addr);
       v3d_cl_vertex_array_prims(&instr, V3D_PRIM_MODE_TRI_FAN, 4, 0);
    }
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    else
    {
       v3d_cl_gl_g_shader(&instr, 1, sh_rec_addr);
@@ -3243,7 +3226,7 @@ static bool setup_render_dummy_point_no_shader_no_query_addr(uint8_t** instr_ptr
    {
       /* Set up the TLB config uniform */
       /* Configure tlb for f32 color writes, but disable the write masks later */
-      /* GFXH-1212 means we must write 4 values to prevent a lockup (if !V3D_VER_AT_LEAST(4,0,2,0) at least) */
+      /* GFXH-1212 means we must write 4 values to prevent a lockup (if !V3D_VER_AT_LEAST(4,1,34,0) at least) */
       V3D_TLB_CONFIG_COLOR_32_T cfg = {
          .num_words = 4,
          .all_samples_same_data = true,
@@ -3259,10 +3242,10 @@ static bool setup_render_dummy_point_no_shader_no_query_addr(uint8_t** instr_ptr
    /* create single point vertex */
    uint32_t vdata_max_index = 0;
    v3d_addr_t vdata_addr;
-   uint32_t* vdata_ptr = khrn_fmem_data(&vdata_addr, fmem, sizeof(uint32_t) * 3, V3D_ATTR_ALIGN);
+   uint32_t* vdata_ptr = khrn_fmem_data(&vdata_addr, fmem, v3d_nv_vertex_size(), V3D_ATTR_ALIGN);
    if (!vdata_ptr)
       return false;
-   nv_vertex(vdata_ptr, 0, 0, 0);
+   v3d_nv_vertex(vdata_ptr, 0, 0, 0, 0);
 
    /* Install the shader and shader record. */
    v3d_addr_t fshader_addr = copy_shader_to_fmem(fmem, sizeof(clear_shader_no_color_point), clear_shader_no_color_point);
@@ -3480,7 +3463,7 @@ static bool glxx_hw_update_z_prepass_state(
    if (state->caps.depth_test && state->depth_mask)
    {
       // disable z-only if using blending (currently a conservative test)
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       if (state->blend.rt_enables & gfx_mask(rs->installed_fb.rt_count))
 #else
       if (state->blend.enable)

@@ -40,8 +40,8 @@
 #include "osd.h"
 #include "osd_priv.h"
 #include "bwt.h"
-#include "util_priv.h"
 #include "platform.h"
+#include "util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -249,7 +249,7 @@ BWT_PanelHandle osd_p_create_video_panel(OsdHandle osd, const BWT_Dimensions * m
     video = BWT_Panel_Create(osd->bwt, &panelSettings);
     assert(video);
 
-    for(i = 0; i < platform_graphics_get_mosaic_count(osd->createSettings.gfx); i++) {
+    for(i = 0; i < platform_graphics_get_max_mosaic_count(osd->createSettings.gfx); i++) {
         osd->window[i] = osd_p_create_window(osd, &panelSettings.dims, i);
         assert(osd->window[i]);
     }
@@ -290,7 +290,9 @@ OsdHandle osd_create(const OsdCreateSettings * pSettings)
     OsdHandle osd;
     const BWT_Dimensions * mainDims;
     BWT_ToolkitCreateSettings settings;
+#if 0
     unsigned mainPadding;
+#endif
     unsigned textHeight;
 
     assert(pSettings);
@@ -310,12 +312,14 @@ OsdHandle osd_create(const OsdCreateSettings * pSettings)
 
     platform_get_default_model(&osd->model);
 
-    osd->mosaicCount = platform_graphics_get_mosaic_count(pSettings->gfx);
+    osd->mosaicCount = platform_graphics_get_max_mosaic_count(pSettings->gfx);
 
     osd->main = osd_p_create_main_panel(osd);
     if (!osd->main) goto error;
     mainDims = BWT_Widget_GetDimensions((BWT_WidgetHandle)osd->main);
+#if 0
     mainPadding = BWT_Widget_GetPadding((BWT_WidgetHandle)osd->main);
+#endif
     textHeight = BWT_Toolkit_GetTextHeight(osd->bwt);
 
     osd->video = osd_p_create_video_panel(osd, mainDims);
@@ -399,6 +403,14 @@ void osd_set_visibility(OsdHandle osd, bool visible)
     pthread_mutex_unlock(&osd->lock);
 }
 
+void osd_set_info_visibility(OsdHandle osd, bool visible)
+{
+    assert(osd);
+    pthread_mutex_lock(&osd->lock);
+    BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->current->base, visible);
+    pthread_mutex_unlock(&osd->lock);
+}
+
 static void osd_p_configure_info_panel_layout(OsdHandle osd, PlatformUsageMode usageMode, bool layout)
 {
     BWT_VerticalAlignment vAlign;
@@ -425,10 +437,8 @@ static void osd_p_configure_info_panel_layout(OsdHandle osd, PlatformUsageMode u
             break;
     }
 
-    BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->current->base, false);
     BWT_Panel_RemoveChild(osd->main, (BWT_WidgetHandle)osd->current->base);
     BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)infoPanel->base, vAlign, hAlign);
-    BWT_Widget_SetVisibility((BWT_WidgetHandle)infoPanel->base, true);
 
     osd->current = infoPanel;
 }

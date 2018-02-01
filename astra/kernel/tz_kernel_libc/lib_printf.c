@@ -43,6 +43,8 @@
 
 #include "uart.h"
 
+extern void kernel_write(const void *data, const size_t numBytes);
+
 #define UNUSED(x) (void)(x)
 
 /*  *********************************************************************
@@ -410,7 +412,8 @@ int xprintf(const char *templat, ...)
 	count = xvsprintf(buffer, templat, marker);
 	va_end(marker);
 
-	uart_puts(buffer);
+	//uart_puts(buffer);
+    kernel_write(buffer,count);
 
 	return count;
 }
@@ -422,7 +425,7 @@ int xvprintf(const char *templat, va_list marker)
 
 	count = xvsprintf(buffer, templat, marker);
 
-	uart_puts(buffer);
-
+	//uart_puts(buffer);
+    kernel_write(buffer,count);
 	return count;
 }

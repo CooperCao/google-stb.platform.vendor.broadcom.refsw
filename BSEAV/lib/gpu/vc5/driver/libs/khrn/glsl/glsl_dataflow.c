@@ -54,7 +54,7 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
    { DATAFLOW_LOGICAL_NOT,         "logical_not",          DF_RET_BOOL,       1, { DF_ARG_BOOL } },
    { DATAFLOW_CONST_IMAGE,         "const_image",          DF_RET_UNDEFINED   },
    { DATAFLOW_CONST_SAMPLER,       "const_sampler",        DF_RET_UNDEFINED   },
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    { DATAFLOW_SAMPLER_UNNORMS,     "sampler_unnorms",      DF_RET_UNDEFINED },
 #endif
    { DATAFLOW_FTOI_TRUNC,          "ftoi_trunc",           DF_RET_INT,        1, { DF_ARG_FLOAT } },
@@ -127,13 +127,19 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
    { DATAFLOW_FUNPACKA,            "funpacka",             DF_RET_FLOAT,      1, { DF_ARG_UINT }  },
    { DATAFLOW_FUNPACKB,            "funpackb",             DF_RET_FLOAT,      1, { DF_ARG_UINT }  },
 
+   { DATAFLOW_VFMIN,               "vfmin",                DF_RET_UINT,       2, { DF_ARG_UINT, DF_ARG_UINT } },
+   { DATAFLOW_VFMAX,               "vfmax",                DF_RET_UINT,       2, { DF_ARG_UINT, DF_ARG_UINT } },
+   { DATAFLOW_VFMUL,               "vfmul",                DF_RET_UINT,       2, { DF_ARG_UINT, DF_ARG_UINT } },
+   { DATAFLOW_VITODENF,            "vitodenf",             DF_RET_UINT,       1, { DF_ARG_UINT } },              // 2x 8-bit int ([23:16],[7:0])
+   { DATAFLOW_VFMULDENFTOI,        "vfmuldenftoi",         DF_RET_UINT,       2, { DF_ARG_UINT, DF_ARG_UINT } }, // 2xfp16 mula, 2xfp16 mulb (+ve, mula * mulb must be 7-bit denormal)
+
    { DATAFLOW_ITOF,                "itof",                 DF_RET_FLOAT,      1, { DF_ARG_INT }   },
    { DATAFLOW_UTOF,                "utof",                 DF_RET_FLOAT,      1, { DF_ARG_UINT }  },
    { DATAFLOW_CLZ,                 "clz",                  DF_RET_UINT,       1, { DF_ARG_UINT }  },
 
    { DATAFLOW_VEC4,                "vec4",                 DF_RET_UNDEFINED   },
    { DATAFLOW_TEXTURE,             "texture",              DF_RET_UNDEFINED   },
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    { DATAFLOW_TEXTURE_ADDR,        "texture_addr",         DF_RET_UNDEFINED   },
 #endif
    { DATAFLOW_TEXTURE_SIZE,        "texture_size",         DF_RET_UNDEFINED   },
@@ -165,6 +171,9 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
    { DATAFLOW_SAMPLE_ID,           "sample_id",            DF_RET_INT,        0 },
    { DATAFLOW_NUM_SAMPLES,         "num_samples",          DF_RET_INT,        0 },
 
+   { DATAFLOW_SG_LOCAL_IDX,        "subgroup_local_idx",   DF_RET_UINT,       0 },
+   { DATAFLOW_SG_ELECT,            "subgroup_elect",       DF_RET_BOOL,       1, { DF_ARG_BOOL } },
+
    { DATAFLOW_GET_VERTEX_ID,       "get_vertex_id",        DF_RET_INT,        0 },
    { DATAFLOW_GET_INSTANCE_ID,     "get_instance_id",      DF_RET_INT,        0 },
    { DATAFLOW_GET_BASE_INSTANCE,   "get_base_instance",    DF_RET_INT,        0 },
@@ -179,11 +188,12 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
    { DATAFLOW_GET_NUMWORKGROUPS_Z, "get_numworkgroups_z",  DF_RET_UINT,       0 },
 
    { DATAFLOW_GET_INVOCATION_ID,   "get_invocation_id",    DF_RET_INT,        0 },
+   { DATAFLOW_GET_PRIMITIVE_ID,    "get_primitive_id",     DF_RET_INT,        0 },
 
    { DATAFLOW_ADDRESS,             "address",              DF_RET_UNDEFINED   },
    { DATAFLOW_BUF_SIZE,            "buf_size",             DF_RET_UNDEFINED   },
    { DATAFLOW_BUF_ARRAY_LENGTH,    "buf_array_length",     DF_RET_UNDEFINED   },
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    { DATAFLOW_IMAGE_INFO_PARAM,    "image_info_param",     DF_RET_UNDEFINED   },
 #endif
    { DATAFLOW_GET_FB_MAX_LAYER,    "get_fb_max_layer"    , DF_RET_UINT,        0 },
@@ -464,7 +474,7 @@ Dataflow *glsl_dataflow_construct_buf_array_length(Dataflow *operand, const_valu
    return dataflow;
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 Dataflow *glsl_dataflow_construct_sampler_unnorms(Dataflow *operand) {
    Dataflow *dataflow = dataflow_construct_common(DATAFLOW_SAMPLER_UNNORMS, DF_UINT);
    dataflow->d.unary_op.operand = operand;
@@ -593,7 +603,7 @@ void glsl_dataflow_construct_texture_lookup(Dataflow **out, unsigned n_out,
       out[i] = glsl_dataflow_construct_get_vec4_component(i, dataflow, component_type_index);
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 Dataflow *glsl_dataflow_construct_texture_addr(Dataflow *image,
                                                Dataflow *x, Dataflow *y, Dataflow *z,
                                                Dataflow *i)

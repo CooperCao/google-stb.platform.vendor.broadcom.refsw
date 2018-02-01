@@ -12,7 +12,7 @@ static bool tf_init(GLXX_TRANSFORM_FEEDBACK_T* tf, unsigned name)
    return true;
 }
 
-static void tf_term(void *v, size_t size)
+static void tf_term(void *v)
 {
    GLXX_TRANSFORM_FEEDBACK_T *tf = (GLXX_TRANSFORM_FEEDBACK_T *)v;
 
@@ -31,8 +31,6 @@ static void tf_term(void *v, size_t size)
 
    free(tf->debug_label);
    tf->debug_label = NULL;
-
-   unused(size);
 }
 
 GLXX_TRANSFORM_FEEDBACK_T* glxx_tf_create(unsigned name)
@@ -162,7 +160,7 @@ static void write_specs(uint8_t **instr,
    }
 }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 /* saturate on overflow */
 static size_t multiply_overflow(size_t a, size_t b)
 {
@@ -308,7 +306,7 @@ static bool emit_specs_and_buff_addrs(const GLXX_PROGRAM_TFF_POST_LINK_T *ptf,
 }
 #endif
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static bool emit_specs(const GLXX_PROGRAM_TFF_POST_LINK_T *ptf,
          bool point_size_used, khrn_fmem *fmem)
 {
@@ -382,7 +380,7 @@ bool glxx_tf_record_enable(GLXX_HW_RENDER_STATE_T *rs,
 
    if (rs->tf.res == tf->res)
    {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       /* if not enabled, just enable the previous specs, otherwise, we are done; */
       if (!rs->tf.enabled)
       {
@@ -399,7 +397,7 @@ bool glxx_tf_record_enable(GLXX_HW_RENDER_STATE_T *rs,
    }
    else
    {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       if (!glxx_store_tf_buffers_state(rs))
          return false;
 #endif
@@ -412,7 +410,7 @@ bool glxx_tf_record_enable(GLXX_HW_RENDER_STATE_T *rs,
       fmem_sync_active_buffers(tf->num_active_buffers, tf->active_buffers, fmem);
 
       bool res;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       if (khrn_resource_has_storage(tf->res))
          res = emit_load_buffers_state(tf->res->handles[0], fmem);
       else
@@ -440,7 +438,7 @@ bool glxx_tf_record_enable(GLXX_HW_RENDER_STATE_T *rs,
    return true;
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 bool glxx_tf_record_disable(GLXX_HW_RENDER_STATE_T *rs)
 {
    if (rs->tf.enabled)
@@ -495,7 +493,7 @@ bool glxx_store_tf_buffers_state(GLXX_HW_RENDER_STATE_T *rs)
 }
 #endif
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static bool emit_explicit_tf_flush_count(GLXX_HW_RENDER_STATE_T *rs)
 {
    uint8_t *instr = khrn_fmem_cle(&rs->fmem, V3D_CL_TF_DRAW_FLUSH_AND_COUNT_SIZE);
@@ -516,7 +514,7 @@ bool glxx_tf_post_draw(GLXX_HW_RENDER_STATE_T *rs, const GLXX_TRANSFORM_FEEDBACK
 {
    assert(rs->tf.last_used == tf && glxx_tf_is_active(rs->tf.last_used));
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (!emit_explicit_tf_flush_count(rs))
       return false;
 #endif

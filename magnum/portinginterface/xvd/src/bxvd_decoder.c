@@ -61,8 +61,9 @@
 #include "bxvd_vdec_info.h"
 
 /* #define BXVD_DM_ENABLE_YUV_GRAB_MODE 1 */
+/* #define BXVD_DM_ENABLE_PPB_GRAB_MODE 1 */
 
-#if BXVD_DM_ENABLE_YUV_GRAB_MODE
+#if BXVD_DM_ENABLE_YUV_GRAB_MODE || BXVD_DM_ENABLE_PPB_GRAB_MODE
 #include <stdio.h>
 #include <stdlib.h>
 #include "bxvd_reg.h"
@@ -325,15 +326,18 @@ static void BXVD_Decoder_S_UnifiedQ_PPBToUniPic_isr(
    );
 
 static void BXVD_Decoder_S_ComputeAspectRatio_isr(
-   BXVD_P_PPB * pPPB,
-   BXDM_Picture * pstXdmPicture,
+   const BXVD_P_PPB * pPPB,
+   BXDM_Picture_AspectRatio *aspectRatio,
    BXVD_P_PPB_Protocol   eProtocol
    );
 
 #if BXVD_DM_ENABLE_YUV_GRAB_MODE
-void BXVD_Decoder_S_Dbg_DumpPPB( BXVD_P_PPB *ppb );
 void BXVD_Decoder_S_Dbg_DumpRVC( BXVD_ChannelHandle hXvdCh );
 void BXVD_Decoder_S_Dbg_DumpYUV( BXVD_ChannelHandle hXvdCh, BXVD_P_PPB *ppb );
+#endif
+
+#if BXVD_DM_ENABLE_PPB_GRAB_MODE
+void BXVD_Decoder_S_Dbg_DumpPPB( BXVD_P_PPB *ppb, FILE * fCapturePPB);
 #endif
 
 /***************************************************************************
@@ -582,7 +586,7 @@ static void BXVD_Decoder_S_DeliveryQ_DropPicture_isr(
    char * psPrefix
    )
 {
-   BXVD_Decoder_P_UnifiedPictureContext  stUnifiedContext;
+   BXVD_Decoder_P_UnifiedPictureContext  *unifiedContext;
 
 #ifndef BDBG_DEBUG_BUILD
    BSTD_UNUSED(psPrefix);
@@ -594,8 +598,9 @@ static void BXVD_Decoder_S_DeliveryQ_DropPicture_isr(
    /* Initialize "stUnifiedContext", in particular need to be certain that
     * "pstDependent" is NULL. For the normal code flow, this reset
     * is handled in "BXVD_Decoder_S_UnifiedQ_InvalidateElement. */
+   unifiedContext = &hXvdCh->functionData.BXVD_Decoder_S_DeliveryQ_DropPicture_isr.stUnifiedContext;
 
-   BKNI_Memset( &stUnifiedContext, 0, sizeof( BXVD_Decoder_P_UnifiedPictureContext ) );
+   BKNI_Memset( unifiedContext, 0, sizeof( BXVD_Decoder_P_UnifiedPictureContext ) );
 
    BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: drop picture, wr: %d idx: %d",
                         hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
@@ -603,7 +608,7 @@ static void BXVD_Decoder_S_DeliveryQ_DropPicture_isr(
                         pstPicCntxt->index,
                         pstPicCntxt->uiIntraGOPIndex ));
 
-   BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr( hXvdCh, pstPicCntxt, &stUnifiedContext, true );
+   BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr( hXvdCh, pstPicCntxt, unifiedContext, true );
 
    /* Remove the picture from the delivery queue. This could have been done in the
     * preceeding loop, but it is done here to keep the manipulation of the deliver
@@ -1021,15 +1026,15 @@ static void BXVD_Decoder_S_Print_Queue_isr(
  */
 BERR_Code BXVD_Decoder_P_ComputeAspectRatio_isr(
    BXVD_P_PPB * pPPB,
-   BXDM_Picture * pstXdmPicture
+   BXDM_Picture_AspectRatio *aspectRatio
    )
 {
    BDBG_ASSERT( pPPB );
-   BDBG_ASSERT( pstXdmPicture );
+   BDBG_ASSERT( aspectRatio );
 
    BDBG_ENTER(BXVD_Decoder_P_ComputeAspectRatio_isr);
 
-   BXVD_Decoder_S_ComputeAspectRatio_isr( pPPB, pstXdmPicture, pPPB->protocol );
+   BXVD_Decoder_S_ComputeAspectRatio_isr( pPPB, aspectRatio, pPPB->protocol );
 
    BDBG_LEAVE(BXVD_Decoder_P_ComputeAspectRatio_isr);
 
@@ -1040,18 +1045,18 @@ BERR_Code BXVD_Decoder_P_ComputeAspectRatio_isr(
  *
  */
 static void BXVD_Decoder_S_ComputeAspectRatio_isr(
-   BXVD_P_PPB * pPPB,
-   BXDM_Picture * pstXdmPicture,
+   const BXVD_P_PPB * pPPB,
+   BXDM_Picture_AspectRatio *aspectRatio,
    BXVD_P_PPB_Protocol   eProtocol
    )
 {
    BDBG_ENTER(BXVD_Decoder_S_ComputeAspectRatio_isr);
 
    BDBG_ASSERT( pPPB );
-   BDBG_ASSERT( pstXdmPicture );
+   BDBG_ASSERT( aspectRatio );
 
-   pstXdmPicture->stAspectRatio.uiSampleAspectRatioX = 0;
-   pstXdmPicture->stAspectRatio.uiSampleAspectRatioY = 0;
+   aspectRatio->uiSampleAspectRatioX = 0;
+   aspectRatio->uiSampleAspectRatioY = 0;
 
    switch ( eProtocol )
    {
@@ -1065,27 +1070,27 @@ static void BXVD_Decoder_S_ComputeAspectRatio_isr(
          switch ( pPPB->aspect_ratio )
          {
             case BXVD_P_PPB_AspectRatio_eSquare:
-               pstXdmPicture->stAspectRatio.eAspectRatio = BFMT_AspectRatio_eSquarePxl;
-               pstXdmPicture->stAspectRatio.bValid = true;
+               aspectRatio->eAspectRatio = BFMT_AspectRatio_eSquarePxl;
+               aspectRatio->bValid = true;
                break;
 
             case BXVD_P_PPB_AspectRatio_e4_3:
-               pstXdmPicture->stAspectRatio.eAspectRatio = BFMT_AspectRatio_e4_3;
-               pstXdmPicture->stAspectRatio.bValid = true;
+               aspectRatio->eAspectRatio = BFMT_AspectRatio_e4_3;
+               aspectRatio->bValid = true;
                break;
 
             case BXVD_P_PPB_AspectRatio_e16_9:
-               pstXdmPicture->stAspectRatio.eAspectRatio = BFMT_AspectRatio_e16_9;
-               pstXdmPicture->stAspectRatio.bValid = true;
+               aspectRatio->eAspectRatio = BFMT_AspectRatio_e16_9;
+               aspectRatio->bValid = true;
                break;
 
             case BXVD_P_PPB_AspectRatio_e221_1:
-               pstXdmPicture->stAspectRatio.eAspectRatio = BFMT_AspectRatio_e221_1;
-               pstXdmPicture->stAspectRatio.bValid = true;
+               aspectRatio->eAspectRatio = BFMT_AspectRatio_e221_1;
+               aspectRatio->bValid = true;
                break;
 
             default:
-               pstXdmPicture->stAspectRatio.bValid = false;
+               aspectRatio->bValid = false;
          }
          break;
 
@@ -1098,29 +1103,29 @@ static void BXVD_Decoder_S_ComputeAspectRatio_isr(
 
          if ( BXVD_P_PPB_AspectRatio_eOther == pPPB->aspect_ratio  )
          {
-            pstXdmPicture->stAspectRatio.eAspectRatio = BFMT_AspectRatio_eSAR;
-            pstXdmPicture->stAspectRatio.uiSampleAspectRatioX = pPPB->custom_aspect_ratio_width_height & 0xFFFF;
-            pstXdmPicture->stAspectRatio.uiSampleAspectRatioY = (pPPB->custom_aspect_ratio_width_height >> 16) & 0xFFFF;
-            pstXdmPicture->stAspectRatio.bValid = true;
+            aspectRatio->eAspectRatio = BFMT_AspectRatio_eSAR;
+            aspectRatio->uiSampleAspectRatioX = pPPB->custom_aspect_ratio_width_height & 0xFFFF;
+            aspectRatio->uiSampleAspectRatioY = (pPPB->custom_aspect_ratio_width_height >> 16) & 0xFFFF;
+            aspectRatio->bValid = true;
          }
          else if ( BXVD_P_PPB_AspectRatio_eUnknown == pPPB->aspect_ratio )
          {
-            pstXdmPicture->stAspectRatio.eAspectRatio = BFMT_AspectRatio_eUnknown;
-            pstXdmPicture->stAspectRatio.uiSampleAspectRatioX = sSampleAspectRatioLUT[pPPB->aspect_ratio].uiSampleAspectRatioX;
-            pstXdmPicture->stAspectRatio.uiSampleAspectRatioY = sSampleAspectRatioLUT[pPPB->aspect_ratio].uiSampleAspectRatioY;
-            pstXdmPicture->stAspectRatio.bValid = true;
+            aspectRatio->eAspectRatio = BFMT_AspectRatio_eUnknown;
+            aspectRatio->uiSampleAspectRatioX = sSampleAspectRatioLUT[pPPB->aspect_ratio].uiSampleAspectRatioX;
+            aspectRatio->uiSampleAspectRatioY = sSampleAspectRatioLUT[pPPB->aspect_ratio].uiSampleAspectRatioY;
+            aspectRatio->bValid = true;
          }
          else if (( pPPB->aspect_ratio >= BXVD_P_PPB_AspectRatio_eSquare )
                   && ( pPPB->aspect_ratio <= BXVD_P_PPB_AspectRatio_e221_1 ))
          {
-            pstXdmPicture->stAspectRatio.eAspectRatio = BFMT_AspectRatio_eSAR;
-            pstXdmPicture->stAspectRatio.uiSampleAspectRatioX = sSampleAspectRatioLUT[pPPB->aspect_ratio].uiSampleAspectRatioX;
-            pstXdmPicture->stAspectRatio.uiSampleAspectRatioY = sSampleAspectRatioLUT[pPPB->aspect_ratio].uiSampleAspectRatioY;
-            pstXdmPicture->stAspectRatio.bValid = true;
+            aspectRatio->eAspectRatio = BFMT_AspectRatio_eSAR;
+            aspectRatio->uiSampleAspectRatioX = sSampleAspectRatioLUT[pPPB->aspect_ratio].uiSampleAspectRatioX;
+            aspectRatio->uiSampleAspectRatioY = sSampleAspectRatioLUT[pPPB->aspect_ratio].uiSampleAspectRatioY;
+            aspectRatio->bValid = true;
          }
          else
          {
-            pstXdmPicture->stAspectRatio.bValid = false;
+            aspectRatio->bValid = false;
          }
          break;
    }
@@ -1848,6 +1853,17 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
          pstXdmPicture->stBufferInfo.stDisplay.uiHeight  = pPPB->other.avs.display_vertical_size;
          break;
 
+      case BXVD_P_PPB_Protocol_eAVS2:
+         pstXdmPicture->stBufferInfo.stDisplay.bValid    = true;
+/*
+ *        avs uses these fields for display width and height. Spec is ambiguous. This may change back.
+ *        pstXdmPicture->stBufferInfo.stDisplay.uiWidth   = pPPB->other.avs2.display_horizontal_size;
+ *        pstXdmPicture->stBufferInfo.stDisplay.uiHeight  = pPPB->other.avs2.display_vertical_size;
+ */
+         pstXdmPicture->stBufferInfo.stDisplay.uiWidth   = pPPB->other.avs2.frame_width;
+         pstXdmPicture->stBufferInfo.stDisplay.uiHeight  = pPPB->other.avs2.frame_height;
+         break;
+
       /* SWDTV-8681: add support for VP8 display size */
       case BXVD_P_PPB_Protocol_eVP8:
          pstXdmPicture->stBufferInfo.stDisplay.bValid    = true;
@@ -1889,17 +1905,29 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
    pstXdmPicture->stBufferInfo.uiLumaStripeHeight =   pPPB->luma_stripe_height /* >> 4*/;
    pstXdmPicture->stBufferInfo.uiChromaStripeHeight = pPPB->chroma_stripe_height /* >> 4*/;
 
+   /* Verify mixed enums have equal values */
+   BDBG_CASSERT((int)BXDM_Picture_PullDown_eTop == (int)BXVD_P_PPB_PullDown_eTop);
+   BDBG_CASSERT((int)BXDM_Picture_PullDown_eBottom == (int)BXVD_P_PPB_PullDown_eBottom);
+   BDBG_CASSERT((int)BXDM_Picture_PullDown_eTopBottom == (int)BXVD_P_PPB_PullDown_eTopBottom);
+   BDBG_CASSERT((int)BXDM_Picture_PullDown_eBottomTop == (int)BXVD_P_PPB_PullDown_eBottomTop);
+   BDBG_CASSERT((int)BXDM_Picture_PullDown_eTopBottomTop == (int)BXVD_P_PPB_PullDown_eTopBottomTop);
+   BDBG_CASSERT((int)BXDM_Picture_PullDown_eBottomTopBottom == (int)BXVD_P_PPB_PullDown_eBottomTopBottom);
+   BDBG_CASSERT((int)BXDM_Picture_PullDown_eFrameX2 == (int)BXVD_P_PPB_PullDown_eFrameX2);
+   BDBG_CASSERT((int)BXDM_Picture_PullDown_eFrameX3 == (int)BXVD_P_PPB_PullDown_eFrameX3);
+   BDBG_CASSERT((int)BXDM_Picture_PullDown_eFrameX1 == (int)BXVD_P_PPB_PullDown_eFrameX1);
+   BDBG_CASSERT((int)BXDM_Picture_PullDown_eFrameX4 == (int)BXVD_P_PPB_PullDown_eFrameX4);
+
    /* Set the pulldown, start by range check.
     * (This is needed in case corrupted data is delivered.)
     */
    if (( ePulldown >= BXVD_P_PPB_PullDown_eMax )
         || ( ePulldown < BXVD_P_PPB_PullDown_eTop ) )
    {
-      pstXdmPicture->stBufferInfo.ePulldown = BXVD_P_PPB_PullDown_eTopBottom;
+      pstXdmPicture->stBufferInfo.ePulldown = BXDM_Picture_PullDown_eTopBottom;
    }
-#if BXVD_P_PPB_EXTENDED
-   else if ( BXVD_P_PPB_Protocol_eH265 == eProtocol )
 
+#if BXVD_P_PPB_EXTENDED
+   else if (( BXVD_P_PPB_Protocol_eH265 == eProtocol ) || ( BXVD_P_PPB_Protocol_eAVS2 == eProtocol ))
    {
       /* SW7445-586: initial H265/HEVC interlaced code.
        * SW7445-1638: the following logic handles "split interlace", i.e.
@@ -1936,6 +1964,7 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
 
          case BXVD_P_PPB_PullDown_eTop:
          case BXVD_P_PPB_PullDown_eBottom:
+            /* coverity[mixed_enums] */
             pstXdmPicture->stBufferInfo.ePulldown = ePulldown;
             pstXdmPicture->stBufferInfo.eBufferFormat = BXDM_Picture_BufferFormat_eSplitInterlaced;
             pstXdmPicture->stBufferInfo.eBufferHandlingMode =
@@ -1945,6 +1974,7 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
             break;
 
          default:
+            /* coverity[mixed_enums] */
             pstXdmPicture->stBufferInfo.ePulldown = ePulldown;
             break;
       }
@@ -1953,6 +1983,7 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
 #endif   /* #if BXVD_P_PPB_EXTENDED */
    else
    {
+      /* coverity[mixed_enums] */
       pstXdmPicture->stBufferInfo.ePulldown = ePulldown;
    }
 
@@ -1975,12 +2006,12 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
       {
          switch( pstXdmPicture->stBufferInfo.ePulldown )
          {
-         case BXVD_P_PPB_PullDown_eTopBottom:
-            pstXdmPicture->stBufferInfo.ePulldown = BXVD_P_PPB_PullDown_eTopBottomTop;
+         case BXDM_Picture_PullDown_eTopBottom:
+            pstXdmPicture->stBufferInfo.ePulldown = BXDM_Picture_PullDown_eTopBottomTop;
             break;
 
-         case BXVD_P_PPB_PullDown_eBottomTop:
-            pstXdmPicture->stBufferInfo.ePulldown = BXVD_P_PPB_PullDown_eBottomTopBottom;
+         case BXDM_Picture_PullDown_eBottomTop:
+            pstXdmPicture->stBufferInfo.ePulldown = BXDM_Picture_PullDown_eBottomTopBottom;
             break;
 
          default:
@@ -2013,18 +2044,18 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
 
       switch( pstXdmPicture->stBufferInfo.ePulldown )
       {
-         case BXVD_P_PPB_PullDown_eBottom:
+         case BXDM_Picture_PullDown_eBottom:
             pstXdmPicture->stBufferInfo.stChromaLocation[BAVC_Polarity_eBotField].eMpegType = uiChromaBottom;
             pstXdmPicture->stBufferInfo.stChromaLocation[BAVC_Polarity_eBotField].bValid = true;
             break;
 
-         case BXVD_P_PPB_PullDown_eTop:
+         case BXDM_Picture_PullDown_eTop:
             pstXdmPicture->stBufferInfo.stChromaLocation[BAVC_Polarity_eTopField].eMpegType = uiChromaTop;
             pstXdmPicture->stBufferInfo.stChromaLocation[BAVC_Polarity_eTopField].bValid = true;
             break;
 
-         case BXVD_P_PPB_PullDown_eTopBottom:
-         case BXVD_P_PPB_PullDown_eBottomTop:
+         case BXDM_Picture_PullDown_eTopBottom:
+         case BXDM_Picture_PullDown_eBottomTop:
             pstXdmPicture->stBufferInfo.stChromaLocation[BAVC_Polarity_eBotField].eMpegType = uiChromaBottom;
             pstXdmPicture->stBufferInfo.stChromaLocation[BAVC_Polarity_eBotField].bValid = true;
 
@@ -2139,6 +2170,26 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
       pstXdmPicture->stClipping.uiBottom = pPPB->video_height - pPPB->other.vp8.display_vertical_size;
    }
 
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eH264 == (int)BAVC_VideoCompressionStd_eH264);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eMPEG2 == (int)BAVC_VideoCompressionStd_eMPEG2);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eH261 == (int)BAVC_VideoCompressionStd_eH261);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eH263 == (int)BAVC_VideoCompressionStd_eH263);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eVC1 == (int)BAVC_VideoCompressionStd_eVC1);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eMPEG1 == (int)BAVC_VideoCompressionStd_eMPEG1);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eMPEG2DTV == (int)BAVC_VideoCompressionStd_eMPEG2DTV);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eVC1SimpleMain == (int)BAVC_VideoCompressionStd_eVC1SimpleMain);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eMPEG4Part2 == (int)BAVC_VideoCompressionStd_eMPEG4Part2);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eAVS == (int)BAVC_VideoCompressionStd_eAVS);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eMPEG2_DSS_PES == (int)BAVC_VideoCompressionStd_eMPEG2_DSS_PES);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eSVC == (int)BAVC_VideoCompressionStd_eSVC);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eSVC_BL == (int)BAVC_VideoCompressionStd_eSVC_BL);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eMVC == (int)BAVC_VideoCompressionStd_eMVC);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eVP6 == (int)BAVC_VideoCompressionStd_eVP6);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eVP7 == (int)BAVC_VideoCompressionStd_eVP7);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eVP8 == (int)BAVC_VideoCompressionStd_eVP8);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eRV9 == (int)BAVC_VideoCompressionStd_eRV9);
+   BDBG_CASSERT((int)BXVD_P_PPB_Protocol_eSPARK == (int)BAVC_VideoCompressionStd_eSPARK);
+
    /*************************/
    /* BXDM_Picture_Protocol */
    /*************************/
@@ -2156,7 +2207,13 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
          pstXdmPicture->stProtocol.eProtocol = BAVC_VideoCompressionStd_eVP9;
          break;
 
+      case BXVD_P_PPB_Protocol_eAVS2:
+         pstXdmPicture->stProtocol.eProtocol = BAVC_VideoCompressionStd_eAVS2;
+         break;
+
       default:
+
+         /* coverity[mixed_enums] */
          pstXdmPicture->stProtocol.eProtocol = eProtocol;
 
          /* SWSTB-612: add range checking. */
@@ -2857,6 +2914,33 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
       }
       break;
 
+      case BXVD_P_PPB_Protocol_eAVS2:
+      {
+         if ( pPPB->other.avs2.offset_count > 0 )
+         {
+            uint32_t uiPanScanIndex;
+
+            pstXdmPicture->stPanScan.uiCount = pPPB->other.avs2.offset_count;
+
+            /* SW7125-1281: range check for bad data. */
+            if ( pstXdmPicture->stPanScan.uiCount > BXDM_PICTURE_MAX_PAN_SCAN_VECTOR )
+            {
+               pstXdmPicture->stPanScan.uiCount = BXDM_PICTURE_MAX_PAN_SCAN_VECTOR;
+            }
+
+            for ( uiPanScanIndex = 0; uiPanScanIndex < pstXdmPicture->stPanScan.uiCount; uiPanScanIndex++ )
+            {
+               pstXdmPicture->stPanScan.stVector[uiPanScanIndex].eType = BXDM_Picture_PanScanVectorType_eSourceWindow;
+               pstXdmPicture->stPanScan.stVector[uiPanScanIndex].iHorizontal = pPPB->other.avs2.horizontal_offset[uiPanScanIndex];
+               pstXdmPicture->stPanScan.stVector[uiPanScanIndex].iVertical = pPPB->other.avs2.vertical_offset[uiPanScanIndex];
+               pstXdmPicture->stPanScan.stVector[uiPanScanIndex].uiWidth = pPPB->other.avs2.display_horizontal_size;
+               pstXdmPicture->stPanScan.stVector[uiPanScanIndex].uiHeight = pPPB->other.avs2.display_vertical_size;
+            }
+         }
+      }
+
+      break;
+
       default:
          break;
    }
@@ -2866,7 +2950,7 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
    /****************************/
    BXVD_Decoder_S_ComputeAspectRatio_isr(
             pPPB,
-            pstXdmPicture,
+            &pstXdmPicture->stAspectRatio,
             eProtocol );
 
    /**************************************/
@@ -3916,7 +4000,8 @@ static void BXVD_Decoder_S_UnifiedQ_GetSetType_isr(
 
    }
 #if BXVD_P_PPB_EXTENDED
-   else if ( BXVD_P_PPB_Protocol_eH265 == pstPicCntxt->stPPB.pPPB->protocol )
+   else if (( BXVD_P_PPB_Protocol_eH265 == pstPicCntxt->stPPB.pPPB->protocol ) ||
+            ( BXVD_P_PPB_Protocol_eAVS2 == pstPicCntxt->stPPB.pPPB->protocol ))
    {
       /* SW7445-586: check the pulldown to determine if this is H265/HEVC
        * interlaced content.  Again, H265 3D is not currently supported.
@@ -4796,7 +4881,9 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
              * a dangling field and send to along to XDM and VDC.  This is done
              * by setting the type to eSingle and the count to "1". */
 
-            if ( BXVD_P_PPB_Protocol_eH265 == pstTempCntxt->stPPB.pPPB->protocol )
+
+            if (( BXVD_P_PPB_Protocol_eH265 == pstTempCntxt->stPPB.pPPB->protocol ) ||
+                ( BXVD_P_PPB_Protocol_eAVS2 == pstTempCntxt->stPPB.pPPB->protocol ))
             {
                pstTempCntxt->eSetType = BXVD_Decoder_P_PictureSet_eSingle;
                pstTempCntxt->uiSetCount = 1;
@@ -4876,7 +4963,8 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
              * a dangling field and send to along to XDM and VDC.  This is done
              * by setting the type to eSingle and the count to "1". */
 
-            if ( BXVD_P_PPB_Protocol_eH265 == pstPicCntxt->stPPB.pPPB->protocol )
+            if (( BXVD_P_PPB_Protocol_eH265 == pstPicCntxt->stPPB.pPPB->protocol ) ||
+                ( BXVD_P_PPB_Protocol_eAVS2 == pstPicCntxt->stPPB.pPPB->protocol ))
             {
                pstPicCntxt->eSetType = BXVD_Decoder_P_PictureSet_eSingle;
                pstPicCntxt->uiSetCount = 1;
@@ -5922,14 +6010,17 @@ BERR_Code BXVD_Decoder_GetNextPicture_isr(
 
 #if BXVD_DM_ENABLE_YUV_GRAB_MODE
 
-   if( true == hXvdCh->stDecoderContext.bGrabPpb )
-      BXVD_Decoder_S_Dbg_DumpPPB( pstUnifiedContext->pPPB );
-
    if( true == hXvdCh->stDecoderContext.bGrabYuv )
       BXVD_Decoder_S_Dbg_DumpYUV( hXvdCh, pstUnifiedContext->pPPB );
 
    if( true == hXvdCh->stDecoderContext.bGrabRvc )
       BXVD_Decoder_S_Dbg_DumpRVC( hXvdCh );
+
+#endif
+
+#if BXVD_DM_ENABLE_PPB_GRAB_MODE
+   if( true == hXvdCh->stDecoderContext.bGrabPpb )
+      BXVD_Decoder_S_Dbg_DumpPPB( pstUnifiedContext->pPPB, hXvdCh->fCapturePPB);
 
 #endif
 
@@ -6211,6 +6302,10 @@ BERR_Code BXVD_Decoder_OpenChannel(
    BXVD_ChannelHandle hXvdCh
    )
 {
+#if BXVD_DM_ENABLE_PPB_GRAB_MODE
+   char filename_buffer[] = "ppb_capture_XXXX_YYYY.bin\0";
+#endif
+
    BDBG_ENTER( BXVD_Decoder_OpenChannel );
 
    BDBG_MODULE_MSG( BXVD_QMON,("%s: channel %08x, initializing queues", BSTD_FUNCTION, hXvdCh->uiSerialNumber ));
@@ -6219,6 +6314,11 @@ BERR_Code BXVD_Decoder_OpenChannel(
 
    /* Initialize the Unified Picture Queue */
    BXVD_Decoder_S_UnifiedQ_Initialize_isrsafe( hXvdCh );
+
+#if BXVD_DM_ENABLE_PPB_GRAB_MODE
+   sprintf(filename_buffer,"ppb_capture_%04d_%04d.bin",  hXvdCh->pXvd->uDecoderInstance, hXvdCh->ulChannelNum);
+   hXvdCh->fCapturePPB = fopen(filename_buffer, "wb");
+#endif
 
    BDBG_LEAVE( BXVD_Decoder_OpenChannel );
 
@@ -6241,6 +6341,13 @@ BERR_Code BXVD_Decoder_CloseChannel(
                                     BSTD_FUNCTION,
                                     hXvdCh->uiSerialNumber,
                                     hXvdCh->stDecoderContext.stLogData.uiOutstandingPics ));
+
+#if BXVD_DM_ENABLE_PPB_GRAB_MODE
+   if (hXvdCh->fCapturePPB)
+   {
+      fclose(hXvdCh->fCapturePPB);
+   }
+#endif
 
    BDBG_LEAVE( BXVD_Decoder_CloseChannel );
 
@@ -6461,7 +6568,6 @@ BERR_Code BXVD_Decoder_StartDecode_isr(
 
 #if BXVD_DM_ENABLE_YUV_GRAB_MODE
 
-   hXvdCh->stDecoderContext.bGrabPpb = ( NULL == getenv("grabppb")) ? false : true;
    hXvdCh->stDecoderContext.bGrabYuv = ( NULL == getenv("grabyuv")) ? false : true;
    hXvdCh->stDecoderContext.bGrabRvc = ( NULL == getenv("grabrvc")) ? false : true;
 
@@ -6478,6 +6584,21 @@ BERR_Code BXVD_Decoder_StartDecode_isr(
    {
       BXVD_Reg_Write32_isr (hXvdCh->pXvd, hXvdCh->pXvd->stPlatformInfo.stReg.uiDecode_RVCCtl, 0x01);
    }
+#endif
+
+#if BXVD_DM_ENABLE_PPB_GRAB_MODE
+
+   hXvdCh->stDecoderContext.bGrabPpb = ( NULL == getenv("grabppb")) ? false : true;
+
+   if (hXvdCh->stDecoderContext.bGrabPpb == true)
+   {
+      BDBG_WRN(("Grab PPB Enabled"));
+   }
+   else
+   {
+      BDBG_WRN(("Grab PPB NOT enabled"));
+   }
+
 #endif
 
    BDBG_LEAVE(BXVD_Decoder_StartDecode_isr);
@@ -7012,25 +7133,21 @@ void BXVD_Decoder_S_Dbg_DumpRVC(
 
 }  /* end of BXVD_Decoder_S_Dbg_DumpRVC() */
 
+#endif /* End of BXVD_DM_ENABLE_YUV_GRAB_MODE */
+
+#if BXVD_DM_ENABLE_PPB_GRAB_MODE
 /*
  * BXVD_Decoder_S_Dbg_DumpPPB
  */
 void BXVD_Decoder_S_Dbg_DumpPPB(
-   BXVD_P_PPB *ppb
+   BXVD_P_PPB *ppb,
+   FILE * fCapturePPB
    )
 {
-   static FILE *fpPPB = NULL;
-
-   if (fpPPB == NULL)
+   if (fCapturePPB)
    {
-      if ((fpPPB=fopen("/Work/ppb_capture.bin", "wb"))==NULL)
-      {
-         return;
-      }
+       fwrite(ppb, sizeof(BXVD_P_PPB), 1, fCapturePPB);
    }
-
-   fwrite(ppb, sizeof(BXVD_P_PPB), 1, fpPPB);
-
 }  /* end of BXVD_Decoder_S_Dbg_DumpPPB() */
 
-#endif /* End of BXVD_DM_ENABLE_YUV_GRAB_MODE */
+#endif /* End of BXVD_DM_ENABLE_PPB_GRAB_MODE */

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,6 +38,7 @@
 
 #include "bstd.h"
 #include "bavc.h"
+#include "bkni.h"
 
 BDBG_MODULE( BAVC );
 
@@ -90,6 +91,79 @@ BAVC_HDMI_DRM_EOTF BAVC_TransferCharacteristicsToEotf_isrsafe(BAVC_TransferChara
     }
 
     return eEotf;
+}
+
+#if ( BCHP_CHIP != 7425 ) && ( BCHP_CHIP != 7435 ) && ( BCHP_CHIP != 7445 ) && ( BCHP_CHIP != 7439 ) && ( BCHP_CHIP != 7366 )
+#define BAVC_VCE_MAX_B_FRAMES_INTERLACED 3
+#define BAVC_VCE_MAX_BUFFERS_ORIGINAL_INTERLACED 8
+#define BAVC_VCE_MAX_BUFFERS_SHIFTED_INTERLACED 8
+#define BAVC_VCE_MAX_BUFFERS_DECIMATED_INTERLACED 10
+
+#define BAVC_VCE_MAX_B_FRAMES_PROGRESSIVE 7
+#define BAVC_VCE_MAX_BUFFERS_ORIGINAL_PROGRESSIVE 12
+#define BAVC_VCE_MAX_BUFFERS_DECIMATED_PROGRESSIVE 14
+#endif
+
+void BAVC_VCE_GetDefaultBufferConfig_isrsafe(
+      bool bInterlaced,
+      BAVC_VCE_BufferConfig *pstBufferConfig
+      )
+{
+   BKNI_Memset( pstBufferConfig, 0, sizeof( *pstBufferConfig ) );
+#if ( BCHP_CHIP != 7425 ) && ( BCHP_CHIP != 7435 ) && ( BCHP_CHIP != 7445 ) && ( BCHP_CHIP != 7439 ) && ( BCHP_CHIP != 7366 )
+    pstBufferConfig->eScanType = bInterlaced? BAVC_ScanType_eInterlaced : BAVC_ScanType_eProgressive;
+    pstBufferConfig->uiNumberOfBFrames = bInterlaced?
+        BAVC_VCE_MAX_B_FRAMES_INTERLACED : BAVC_VCE_MAX_B_FRAMES_PROGRESSIVE;
+#else
+    BSTD_UNUSED(bInterlaced);
+#endif
+}
+
+unsigned BAVC_VCE_GetRequiredBufferCount_isrsafe(
+      const BAVC_VCE_BufferConfig *pstBufferConfig,
+      BAVC_VCE_BufferType eBufferType
+      )
+{
+#if ( BCHP_CHIP != 7425 ) && ( BCHP_CHIP != 7435 ) && ( BCHP_CHIP != 7445 ) && ( BCHP_CHIP != 7439 ) && ( BCHP_CHIP != 7366 )
+   unsigned uiNumberOfBFrames = pstBufferConfig->uiNumberOfBFrames;
+
+   switch ( pstBufferConfig->eScanType )
+   {
+   case BAVC_ScanType_eInterlaced:
+      if ( uiNumberOfBFrames > BAVC_VCE_MAX_B_FRAMES_INTERLACED )
+      {
+         uiNumberOfBFrames = BAVC_VCE_MAX_B_FRAMES_INTERLACED;
+      }
+      switch ( eBufferType )
+      {
+         case BAVC_VCE_BufferType_eOriginal: return (BAVC_VCE_MAX_BUFFERS_ORIGINAL_INTERLACED-(BAVC_VCE_MAX_B_FRAMES_INTERLACED-pstBufferConfig->uiNumberOfBFrames))*2;
+         case BAVC_VCE_BufferType_eDecimated: return (BAVC_VCE_MAX_BUFFERS_DECIMATED_INTERLACED-(BAVC_VCE_MAX_B_FRAMES_INTERLACED-pstBufferConfig->uiNumberOfBFrames))*2;
+         case BAVC_VCE_BufferType_eShiftedChroma: return (BAVC_VCE_MAX_BUFFERS_SHIFTED_INTERLACED-(BAVC_VCE_MAX_B_FRAMES_INTERLACED-pstBufferConfig->uiNumberOfBFrames));
+         default:
+            return 0;
+      }
+      break;
+
+   case BAVC_ScanType_eProgressive:
+      if ( uiNumberOfBFrames > BAVC_VCE_MAX_B_FRAMES_PROGRESSIVE )
+      {
+         uiNumberOfBFrames = BAVC_VCE_MAX_B_FRAMES_PROGRESSIVE;
+      }
+      switch ( eBufferType )
+      {
+         case BAVC_VCE_BufferType_eOriginal: return (BAVC_VCE_MAX_BUFFERS_ORIGINAL_PROGRESSIVE-(BAVC_VCE_MAX_B_FRAMES_PROGRESSIVE-pstBufferConfig->uiNumberOfBFrames));
+         case BAVC_VCE_BufferType_eDecimated: return (BAVC_VCE_MAX_BUFFERS_DECIMATED_PROGRESSIVE-(BAVC_VCE_MAX_B_FRAMES_PROGRESSIVE-pstBufferConfig->uiNumberOfBFrames));
+         case BAVC_VCE_BufferType_eShiftedChroma: return 0;
+         default:
+            return 0;
+      }
+      break;
+   }
+#else
+   BSTD_UNUSED( pstBufferConfig );
+   BSTD_UNUSED( eBufferType );
+#endif
+   return 0;
 }
 
 

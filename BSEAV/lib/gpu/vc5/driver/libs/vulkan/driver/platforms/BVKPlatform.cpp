@@ -33,7 +33,7 @@ void BVKPlatform::Register()
 #ifdef VK_USE_PLATFORM_ANDROID_KHR
    m_schedInterface = CreateAndroidSchedInterface(m_memoryInterface);
 #else
-   m_schedInterface  = CreateSchedInterface(m_memoryInterface);
+   m_schedInterface  = CreateSchedInterface(m_memoryInterface, NULL);
 #endif
 
    if (m_schedInterface == NULL)

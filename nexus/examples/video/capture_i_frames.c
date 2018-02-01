@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2008-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -200,7 +200,6 @@ int main(void)
     while (1) {
         NEXUS_VideoDecoderFrameStatus frameStatus;
         NEXUS_Graphics2DDestripeBlitSettings blitSettings;
-        NEXUS_StripedSurfaceHandle stripedSurface;
         unsigned num;
         char filename[64];
 

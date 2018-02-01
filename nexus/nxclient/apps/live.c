@@ -497,7 +497,7 @@ int main(int argc, const char **argv)
     NxClient_JoinSettings joinSettings;
     NxClient_AllocSettings allocSettings;
     NxClient_AllocResults allocResults;
-    NEXUS_SurfaceClientHandle surfaceClient, video_sc;
+    NEXUS_SurfaceClientHandle surfaceClient, video_sc=NULL;
     NEXUS_Error rc;
     BKNI_EventHandle event;
     int curarg = 1;
@@ -672,6 +672,7 @@ int main(int argc, const char **argv)
             NxClient_SetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
         }
         video_sc = NEXUS_SurfaceClient_AcquireVideoWindow(surfaceClient, 0);
+        BDBG_ASSERT(video_sc);
         if (contentMode != NEXUS_VideoWindowContentMode_eMax) {
             NEXUS_SurfaceClientSettings settings;
             NEXUS_SurfaceClient_GetSettings(video_sc, &settings);
@@ -921,6 +922,7 @@ int main(int argc, const char **argv)
                     BKNI_Sleep(100);
                     continue;
                 }
+                BDBG_ASSERT(video_sc);
                 b_pig_move(video_sc, &pig_inc);
                 rc = BKNI_WaitForEvent(g_constellation.displayedEvent, 5000);
                 BDBG_ASSERT(!rc);

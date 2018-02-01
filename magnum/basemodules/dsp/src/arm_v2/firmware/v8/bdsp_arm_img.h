@@ -133,12 +133,27 @@ extern const void * BDSP_ARM_IMG_adec_aache_tables[];
 extern const void * BDSP_ARM_IMG_adec_aache_inter_frame[];
 #endif /*BDSP_AACSBR_SUPPORT*/
 
+#ifdef BDSP_DOLBY_AACHE_SUPPORT
+extern const void * BDSP_ARM_IMG_adec_dolby_aache [];
+extern const void * BDSP_ARM_IMG_adec_dolby_aache_tables[];
+extern const void * BDSP_ARM_IMG_adec_dolby_aache_inter_frame[];
+#endif /* DOLBY ACCHE BDSP_AACSBR_SUPPORT*/
 #ifdef BDSP_SRC_SUPPORT
 extern const void * BDSP_ARM_IMG_app_src[];
 extern const void * BDSP_ARM_IMG_app_src_tables[];
 extern const void * BDSP_ARM_IMG_app_src_inter_frame[];
 #endif /*BDSP_SRC_SUPPORT*/
 
+#ifdef BDSP_MIXERDAPV2_SUPPORT
+extern const void * BDSP_ARM_IMG_app_mixer_dapv2[];
+extern const void * BDSP_ARM_IMG_app_mixer_dapv2_tables[];
+extern const void * BDSP_ARM_IMG_app_mixer_dapv2_inter_frame[];
+#endif /*BDSP_MIXERDAPV2_SUPPORT*/
+#ifdef BDSP_FWMIXER_SUPPORT
+extern const void * BDSP_ARM_IMG_app_fw_mixer[];
+extern const void * BDSP_ARM_IMG_app_fw_mixer_tables[];
+extern const void * BDSP_ARM_IMG_app_fw_mixer_inter_frame[];
+#endif /*BDSP_FWMIXER_SUPPORT*/
 #ifdef BDSP_PCMWAV_SUPPORT
 extern const void * BDSP_ARM_IMG_aids_wavformatex[];/* Move this to passthru like others when pcmwav passthru support comes in */
 extern const void * BDSP_ARM_IMG_adec_pcmwav[];
@@ -152,4 +167,20 @@ extern const void * BDSP_ARM_IMG_adec_passthru_tables[];
 extern const void * BDSP_ARM_IMG_adec_passthru_inter_frame[];
 #endif /*BDSP_PASSTHRU_SUPPORT*/
 
+#ifdef BDSP_DPCMR_SUPPORT
+extern const void * BDSP_ARM_IMG_app_dpcmr[];
+extern const void * BDSP_ARM_IMG_app_dpcmr_tables[];
+extern const void * BDSP_ARM_IMG_app_dpcmr_inter_frame[];
+#endif /*BDSP_DPCMR_SUPPORT*/
+
+#ifdef BDSP_DDPENC_SUPPORT
+extern const void * BDSP_ARM_IMG_aenc_ddp[];
+extern const void * BDSP_ARM_IMG_aenc_ddp_tables[];
+extern const void * BDSP_ARM_IMG_aenc_ddp_inter_frame[];
+#endif /*BDSP_DDPENC_SUPPORT*/
+#ifdef BDSP_DSOLA_SUPPORT
+extern const void * BDSP_ARM_IMG_app_dsola[];
+extern const void * BDSP_ARM_IMG_app_dsola_tables[];
+extern const void * BDSP_ARM_IMG_app_dsola_inter_frame[];
+#endif /*BDSP_DSOLA_SUPPORT*/
 #endif /*BDSP_ARM_IMG_H_*/

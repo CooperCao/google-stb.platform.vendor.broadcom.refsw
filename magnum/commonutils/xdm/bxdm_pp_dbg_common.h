@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -61,7 +61,6 @@ extern "C" {
 
 
 #define BXDM_PPDBG_P_MAX_VSYNC_DEPTH 12
-#define BXDM_PPDBG_P_MAX_DBG_LENGTH 1024
 
 typedef enum BXDM_PPDBG_Selection
 {
@@ -119,7 +118,7 @@ typedef enum BXDM_PPDBG_Selection
 
 typedef struct BXDM_PPDBG_P_String
 {
-   char szDebugStr[BXDM_PPDBG_P_MAX_DBG_LENGTH];
+   char szDebugStr[BXDM_PPDBG_P_STR_LENGTH];
    uint32_t uiDebugStrOffset;
 } BXDM_PPDBG_P_String;
 
@@ -127,7 +126,6 @@ typedef struct BXDM_PPDBG_P_Info
 {
    uint32_t uiVsyncCount;
 
-   BXDM_PPDBG_P_String stHeaderString;
    BXDM_PPDBG_P_String stTSMString;
    BXDM_PPDBG_P_String stPendingDropString;
    BXDM_PPDBG_P_String stInterruptString;

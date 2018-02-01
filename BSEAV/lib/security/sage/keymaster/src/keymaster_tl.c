@@ -50,7 +50,11 @@
 #include "keymaster_cmd_keys.h"
 #include "keymaster_cmd_crypto.h"
 
+#ifdef ANDROID
+#define KEYMASTER_DRM_BIN_DEFAULT_FILEPATH "/hwcfg/drm.bin"
+#else
 #define KEYMASTER_DRM_BIN_DEFAULT_FILEPATH "./drm.bin"
+#endif
 
 BDBG_MODULE(keymaster_tl);
 
@@ -1032,7 +1036,9 @@ BERR_Code KeymasterTl_CryptoBegin(
 done:
     if (command_completed && (err != BERR_SUCCESS)) {
         /* We need to abort because it failed after successful SAGE call */
-        (void)KeymasterTl_CryptoAbort(handle, (km_operation_handle_t)KM_CMD_CRYPTO_BEGIN_OUT_OP_HANDLE_PTR);
+        km_operation_handle_t tmp_handle;
+        BKNI_Memcpy(&tmp_handle, KM_CMD_CRYPTO_BEGIN_OUT_OP_HANDLE_PTR, sizeof(km_operation_handle_t));
+        (void)KeymasterTl_CryptoAbort(handle, tmp_handle);
     }
     KM_FREE_CONTAINER();
     KM_FREE_BLOCK(params);

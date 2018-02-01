@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  **************************************************************************/
 
 #include "nexus_transport_module.h"
@@ -121,9 +116,11 @@ void NEXUS_Vcxo_Init(void)
         NEXUS_Vcxo_P_Init();
         for ( i = 0; i < NEXUS_NUM_VCXOS; i++ )
         {
+            NEXUS_Error rc;
             NEXUS_VcxoSettings vcxoSettings;
             NEXUS_Vcxo_GetSettings(i, &vcxoSettings);
-            NEXUS_Vcxo_SetSettings(i, &vcxoSettings);
+            rc = NEXUS_Vcxo_SetSettings(i, &vcxoSettings);
+            if (rc) BERR_TRACE(rc); /* keep going */
         }
         #endif
     }

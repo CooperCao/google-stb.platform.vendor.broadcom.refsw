@@ -80,10 +80,6 @@ BDBG_OBJECT_ID(NEXUS_45308Device);
 #define NEXUS_45308_MAX_FRONTEND_CHANNELS 16
 #endif
 
-#if NEXUS_HAS_FRONTEND_PID_FILTERING && (!NEXUS_TRANSPORT_EXTENSION_TBG)
-#define NEXUS_HAS_453XX_PID_FILTERING 1
-#endif
-
 typedef struct NEXUS_FrontendDevice45308OpenSettings
 {
     /* either GPIO or an L1 is used for notification from the frontend to the host. */
@@ -676,8 +672,13 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
                 break;
             }
         }
-#if NEXUS_HAS_453XX_PID_FILTERING
+#if NEXUS_HAS_FRONTEND_PID_FILTERING
         mxtSettings.enablePidFiltering = true;
+#if NEXUS_TRANSPORT_EXTENSION_TBG
+        if (mxtSettings.chip!=BMXT_Chip_e45316) {
+            mxtSettings.enablePidFiltering = false;
+        }
+#endif
 #endif
 
         BDBG_MSG(("NEXUS_FrontendDevice_Open45308: BMXT_Open"));
@@ -924,7 +925,7 @@ static NEXUS_Error NEXUS_Frontend_45308_P_DelayedInitialization(NEXUS_FrontendDe
         goto err;
     }
 
-#if NEXUS_HAS_453XX_PID_FILTERING
+#if NEXUS_HAS_FRONTEND_PID_FILTERING
     NEXUS_Frontend_P_EnablePidFiltering();
 #endif
 
@@ -1547,9 +1548,6 @@ static NEXUS_Error NEXUS_Frontend_P_45308_GetSatelliteAgcStatus(void *handle, NE
 
     return rc;
 }
-
-NEXUS_Error NEXUS_Frontend_P_Sat_TuneSatellite(void *handle, const NEXUS_FrontendSatelliteSettings *pSettings);
-void NEXUS_Frontend_P_Sat_Untune(void *handle);
 
 static NEXUS_Error NEXUS_Frontend_P_45308_TuneSatellite(void *handle, const NEXUS_FrontendSatelliteSettings *pSettings)
 {

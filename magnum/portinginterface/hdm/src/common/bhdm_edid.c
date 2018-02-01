@@ -313,7 +313,6 @@ static const char * const g_status[] = {"No", "Yes"} ;
 
 static const unsigned char EDIDByPassedText[] = "BYPASSED EDID" ;
 
-#endif
 
 static const char * const CeaAudioTypeText[] =
 {
@@ -326,6 +325,8 @@ static const char * const CeaAudioTypeText[] =
 	"MAT (MLP)",	"DST",
 	"WMA Pro",	"Reserved15"
 } ;
+#endif
+
 
 static const BHDM_EDID_P_AUDIO_FORMATS BcmSupportedAudioFormats[] =
 {
@@ -469,7 +470,7 @@ BERR_Code BHDM_EDID_GetNthBlock(
 		goto done ;
 	}
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid) {
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
 	}
@@ -477,7 +478,7 @@ BERR_Code BHDM_EDID_GetNthBlock(
 	/* check if the requested block already cached */
 	if ((hHDMI->bUseCachedEdid)
 	&& (BlockNumber == hHDMI->AttachedEDID.CachedBlock)
-	&& (hHDMI->edidStatus == BHDM_EDID_STATE_eOK))
+	&& (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eOK))
 	{
 		BDBG_MSG(("Skip reading EDID; Block %d already cached", BlockNumber)) ;
 
@@ -549,7 +550,7 @@ BERR_Code BHDM_EDID_GetNthBlock(
 			if (rc == BERR_SUCCESS)
 			{
 				/* check for a valid checksum */
-				validChecksum = BHDM_EDID_P_EdidCheckSum(hHDMI->AttachedEDID.Block) ;
+				validChecksum = BHDM_EDID_P_EdidCheckSum(pBuffer) ;
 
 				/*
 				-- EDID with a valid checksum has been read
@@ -595,7 +596,7 @@ BERR_Code BHDM_EDID_GetNthBlock(
 	}
 
 	hHDMI->AttachedEDID.CachedBlock = BlockNumber ;
-	hHDMI->edidStatus = BHDM_EDID_STATE_eOK;
+	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eOK;
 
 done:
 #if BHDM_CONFIG_HAS_HDCP22
@@ -656,7 +657,7 @@ BERR_Code BHDM_EDID_GetBasicData(
 		goto done ;
 	}
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid)
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
 	{
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
@@ -716,7 +717,7 @@ BERR_Code BHDM_EDID_GetHdmiVsdb(
 		goto done ;
 	}
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid) {
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
 		BDBG_WRN(("No Valid EDID Found. Default to DVI Device"));
 		goto done;
 	}
@@ -762,7 +763,7 @@ BERR_Code BHDM_EDID_GetHdmiForumVsdb(
 		goto done ;
 	}
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid) {
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
 		BDBG_WRN(("No Valid EDID Found. Default to DVI Device"));
 		goto done;
 	}
@@ -982,6 +983,19 @@ static BERR_Code BHDM_EDID_P_DetailTiming2VideoFmt(
 		}
 #endif
 
+#if !defined(BHDM_CONFIG_4Kx2K_30HZ_SUPPORT)
+		if ((eVideoFmt == BFMT_VideoFmt_e3840x2160p_24Hz)
+		|| (eVideoFmt == BFMT_VideoFmt_e3840x2160p_25Hz)
+		|| (eVideoFmt == BFMT_VideoFmt_e3840x2160p_30Hz))
+		{
+			/* 4K p24/25/30 Not Supported on this device */
+			BDBG_WRN(("This device does not support %s",
+				pVideoFormatInfo->pchFormatStr)) ;
+			rc = BHDM_EDID_DETAILTIMING_NOT_SUPPORTED ;
+			break ;
+		}
+#endif
+
 		/* 3rd check the Pixel Clock reported in Detail Timing Block
 		    matches the Pxl Frequency specified in the BCM supported format */
 		if (pVideoFormatInfo->ulPxlFreq / BFMT_FREQ_FACTOR != pBHDM_EDID_DetailTiming->PixelClock)
@@ -989,24 +1003,32 @@ static BERR_Code BHDM_EDID_P_DetailTiming2VideoFmt(
 			continue;
 		}
 
+
 		/* 4th check the vertical frequency range */
 		/* notify if format is out of the vertical range specified in MonitorRange descriptor */
-		if  ((hHDMI->AttachedEDID.BcmMonitorRangeParsed)
-		&& !((uiVerticalFrequency >= hHDMI->AttachedEDID.MonitorRange.MinVertical)
-		&&  (uiVerticalFrequency <= hHDMI->AttachedEDID.MonitorRange.MaxVertical)))
-		{
-			BDBG_MSG(("  Format %s refresh rate of %dHz does not fall in the Vertical Frequency range of %dHz to %dHz",
-				pVideoFormatInfo->pchFormatStr,  uiVerticalFrequency,
-				hHDMI->AttachedEDID.MonitorRange.MinVertical,
-				hHDMI->AttachedEDID.MonitorRange.MaxVertical)) ;
-		}
+
 #if 0
 		/* debug Vertical Frequency */
-		BDBG_MSG(("Vertical Frequency %d <= %d <=%d",
+		BDBG_LOG(("Vertical Frequency %d <= %d <=%d",
 			hHDMI->AttachedEDID.MonitorRange.MinVertical,
 			uiVerticalFrequency,
 			hHDMI->AttachedEDID.MonitorRange.MaxVertical));
 #endif
+
+		if  ((hHDMI->AttachedEDID.BcmMonitorRangeParsed)
+		&& !((uiVerticalFrequency >= hHDMI->AttachedEDID.MonitorRange.MinVertical)
+		&&  (uiVerticalFrequency <= hHDMI->AttachedEDID.MonitorRange.MaxVertical)))
+		{
+			BDBG_MSG(("Inconsistent EDID: Format %s refresh rate of %dHz does not fall in the specified Vertical Frequency range of %dHz to %dHz",
+				pVideoFormatInfo->pchFormatStr,  uiVerticalFrequency,
+				hHDMI->AttachedEDID.MonitorRange.MinVertical,
+				hHDMI->AttachedEDID.MonitorRange.MaxVertical)) ;
+
+			/* while an inconsistency, it is assumed the EDID is incorrect */
+			/* and the format is supported */
+			/* DO NOT prevent display of format due to EDID error */
+			/* continue ; */
+		}
 
 		/* 5th Detailed Timings indicate support for 2D formats Only
 		make sure the selected format is 2D */
@@ -1027,7 +1049,7 @@ static BERR_Code BHDM_EDID_P_DetailTiming2VideoFmt(
 
 #if 0
       /* debug message for conversion */
-		BDBG_MSG(("   %s (#%d) %4d x %4d %c %dHz",
+		BDBG_LOG(("DetailTiming to eVideoFmt:   %s (#%d) %4d x %4d %c %dHz",
 			pVideoFormatInfo->pchFormatStr, i,
 			pVideoFormatInfo->ulDigitalWidth, pVideoFormatInfo->ulDigitalHeight,
 			Mode[pVideoFormatInfo->bInterlaced], uiVerticalFrequency)) ;
@@ -1132,7 +1154,7 @@ BERR_Code BHDM_EDID_GetDetailTiming(
 	}
 #endif
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid)
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
 	{
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done;
@@ -1379,7 +1401,7 @@ BERR_Code BHDM_EDID_GetVideoDescriptor(
 	}
 #endif
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid)
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
 	{
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done;
@@ -1456,7 +1478,7 @@ BERR_Code BHDM_EDID_GetDescriptor(
 		goto done ;
 	}
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid)
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
 	{
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done;
@@ -1756,7 +1778,7 @@ BERR_Code BHDM_EDID_IsRxDeviceHdmi(
 	}
 #endif
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid) {
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
 		BDBG_WRN(("No Valid EDID Found. Default to DVI Device"));
 		goto done;
 	}
@@ -1770,7 +1792,7 @@ BERR_Code BHDM_EDID_IsRxDeviceHdmi(
 
 
 #if BDBG_DEBUG_BUILD
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInitialize)
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eNotInitialized)
 	{
 		BDBG_MSG(("HDMI Rx Supported Features (%p):", (void *)RxVSDB)) ;
 		BDBG_MSG(("   Underscan:    %s", g_status[RxVSDB->Underscan ? 1 : 0])) ;
@@ -1783,7 +1805,7 @@ BERR_Code BHDM_EDID_IsRxDeviceHdmi(
 			RxVSDB->NativeFormatsInDescriptors)) ;
 
 		BDBG_MSG(("END HDMI Rx Supported Features")) ;
-		hHDMI->edidStatus = BHDM_EDID_STATE_eProcessing ;
+		hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eProcessing ;
 	}
 #endif
 
@@ -1833,7 +1855,7 @@ BERR_Code BHDM_EDID_CheckRxHdmiAudioSupport(
 		goto done ;
 	}
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid)
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
 	{
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
@@ -1974,7 +1996,7 @@ BERR_Code BHDM_EDID_CheckRxHdmiVideoSupport(
 		goto done ;
 	}
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid)
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
 	{
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
@@ -1994,7 +2016,7 @@ BERR_Code BHDM_EDID_CheckRxHdmiVideoSupport(
 	/* check ALL extensions for Version 3 Timing Extensions */
 	for (i = 1 ; i <= extensions; i++)
 	{
-		if (hHDMI->edidStatus != BHDM_EDID_STATE_eOK)
+		if (hHDMI->DeviceStatus.edidState != BHDM_EDID_STATE_eOK)
 		{
 			BHDM_CHECK_RC(rc,
 				BHDM_EDID_GetNthBlock(hHDMI, i, (uint8_t *) &hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE)) ;
@@ -2175,7 +2197,7 @@ BERR_Code BHDM_EDID_VideoFmtSupported(
 		goto done ;
 	}
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid) {
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto error;
 	}
@@ -3141,6 +3163,7 @@ static void BHDM_EDID_P_SetSupportedMatchingFmts(
 
 		/* set as supported */
 		hHDMI->AttachedEDID.BcmSupportedVideoFormats[i] = true ;
+		BDBG_MSG(("Set Format %s as SUPPORTED", pVideoFormatInfo->pchFormatStr)) ;
 	}
 
 }  /* BHDM_EDID_P_SetSupportedMatchingFmts */
@@ -3161,7 +3184,7 @@ BERR_Code BHDM_EDID_GetSupported420VideoFormats(
 	BDBG_ENTER(BHDM_EDID_GetSupported420VideoFormats) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid) {
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
 		rc = BERR_TRACE( BHDM_EDID_NOT_FOUND) ;
 		goto done ;
 	}
@@ -3195,7 +3218,7 @@ BERR_Code BHDM_EDID_GetSupportedVideoFormats(
 	BDBG_ENTER(BHDM_EDID_GetSupportedVideoFormats) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid)
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
 	{
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
@@ -3233,7 +3256,7 @@ BERR_Code BHDM_EDID_GetSupportedVideoInfo(
 	BDBG_ENTER(BHDM_EDID_GetSupportedVideoInfo) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid) {
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done;
 	}
@@ -3282,7 +3305,7 @@ BERR_Code BHDM_EDID_GetSupportedAudioFormats(
 
 	BKNI_Memset(BcmAudioFormats, 0, sizeof(hHDMI->AttachedEDID.BcmSupportedAudioFormats)) ;
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid)
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
 	{
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
@@ -4154,7 +4177,7 @@ BERR_Code BHDM_EDID_Initialize(
 		hHDMI->AttachedEDID.BcmSupported420VideoFormatsChecked = 1 ;
 		hHDMI->AttachedEDID.RxHasHdmiSupport = true ;
 
-		hHDMI->edidStatus = BHDM_EDID_STATE_eOK;
+		hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eOK;
 		rc = BERR_SUCCESS ;
 
 		goto done ;
@@ -4176,7 +4199,7 @@ BERR_Code BHDM_EDID_Initialize(
 	BKNI_Memset((void *) &hHDMI->AttachedEDID, 0, sizeof(BHDM_EDID_DATA)) ;
 	hHDMI->AttachedEDID.RxHdmiForumVsdb.Max_TMDS_Clock_Rate = BHDM_HDMI_1_4_MAX_RATE ;
 
-	BDBG_MSG(("Initializing/Reading EDID Information   (%s %d)",
+	BDBG_LOG(("Initializing/Reading EDID Information   (%s %d)",
 		BHDM_P_GetVersion(), BCHP_CHIP)) ;
 
 	/* always add support for VGA (640x480p) */
@@ -4187,7 +4210,7 @@ BERR_Code BHDM_EDID_Initialize(
 
 	/* during InitializeEDID, always force the reading of EDID block 0 */
 	/* incorrectly implemented Hot Plug signals sometimes cause a problem */
-	hHDMI->edidStatus = BHDM_EDID_STATE_eInitialize;
+	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eNotInitialized;
 
 	rc = BHDM_EDID_GetNthBlock(hHDMI, 0, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE) ;
 	if (rc)  /* error reading/getting EDID block */
@@ -4219,7 +4242,7 @@ BERR_Code BHDM_EDID_Initialize(
 	{
 		/* probably read all 0xFF or 0x00; invalid EDID */
 		BDBG_ERR(("EDID returns possible all 0xFF or 0x00 values. Invalid EDID information"));
-		hHDMI->edidStatus = BHDM_EDID_STATE_eInvalid;
+		hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eInvalid;
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
 	}
@@ -4337,7 +4360,6 @@ BERR_Code BHDM_EDID_Initialize(
 		}
 	}
 
-
 	for (i = 0 ; i < 4 ; i++)
 	{
 		offset = BHDM_EDID_MONITOR_DESC_1 + BHDM_EDID_MONITOR_DESC_SIZE * i ;
@@ -4387,7 +4409,7 @@ BERR_Code BHDM_EDID_Initialize(
 		hHDMI->AttachedEDID.RxHasHdmiSupport = 0 ;
 		/* Its not mandatory to have extension blocks. so there is no error. Display a message and continue */
 		BDBG_WRN(("No EDID Extensions Found... Monitor supports DVI (Video) only")) ;
-		hHDMI->edidStatus = BHDM_EDID_STATE_eOK;
+		hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eOK;
 		rc = BERR_SUCCESS ;
 		goto done ;
 	}
@@ -4446,10 +4468,11 @@ BERR_Code BHDM_EDID_Initialize(
 	}
 
 
-	hHDMI->edidStatus = BHDM_EDID_STATE_eOK;
+	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eOK;
 
 done:
 	{
+#if BDBG_DEBUG_BUILD
 	    BDBG_Level level ;
 	    /* save the current debug level */
 	    BDBG_GetModuleLevel("BHDM_EDID", &level) ;
@@ -4457,6 +4480,7 @@ done:
 		{
 			BHDM_EDID_DEBUG_PrintData(hHDMI) ;
 		}
+#endif
 		BDBG_LEAVE(BHDM_EDID_Initialize) ;
 	}
 	return rc ;
@@ -4485,7 +4509,7 @@ BERR_Code BHDM_EDID_GetMonitorName(
 		goto done ;
 	}
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid)
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
 	{
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
@@ -4527,7 +4551,7 @@ BERR_Code BHDM_EDID_GetPreferredColorimetry(
 	}
 
 	*eColorimetry = BAVC_MatrixCoefficients_eDvi_Full_Range_RGB;
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid) {
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
 
 		/* Whether or not the EDID is valid; HDMI requires all devices to support full range RGB */
 		/* Default to Full range RGB */
@@ -4617,7 +4641,7 @@ BERR_Code BHDM_EDID_GetSupportedColorimetry(
 
 
 	*eColorimetry = BAVC_MatrixCoefficients_eDvi_Full_Range_RGB;
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid) {
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
 		/* Default to Full range RGB */
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
@@ -4739,7 +4763,7 @@ BERR_Code BHDM_EDID_GetVideoCapabilityDB(
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
 	BKNI_Memset(pVideoCapabilityDataBlock, 0, sizeof(BHDM_EDID_VideoCapabilityDataBlock)) ;
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid)
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
 	{
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
@@ -4764,7 +4788,7 @@ BERR_Code BHDM_EDID_GetColorimetryDB(
 	BERR_Code rc = BERR_SUCCESS ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid)
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
 	{
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
@@ -4792,7 +4816,7 @@ BERR_Code BHDM_EDID_GetSupportedColorDepth(
 
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid)
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
 	{
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
@@ -4826,7 +4850,7 @@ BERR_Code BHDM_EDID_GetMyCecPhysicalAddr(
 
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	if (hHDMI->edidStatus != BHDM_EDID_STATE_eOK)
+	if (hHDMI->DeviceStatus.edidState != BHDM_EDID_STATE_eOK)
 	{
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
@@ -4872,7 +4896,7 @@ BERR_Code BHDM_EDID_GetHdrStaticMetadatadb(
 		goto done ;
 	}
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid) {
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
 		BDBG_WRN(("No Valid EDID Found..."));
 		goto done;
 	}

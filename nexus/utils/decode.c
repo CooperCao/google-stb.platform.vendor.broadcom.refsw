@@ -121,7 +121,7 @@ int main(int argc, const char *argv[])
 #endif
 #if NEXUS_HAS_SYNC_CHANNEL
     NEXUS_SyncChannelSettings syncChannelSettings;
-    NEXUS_SyncChannelHandle syncChannel;
+    NEXUS_SyncChannelHandle syncChannel=NULL;
 #endif
     struct util_opts_t opts;
     NEXUS_Error rc;

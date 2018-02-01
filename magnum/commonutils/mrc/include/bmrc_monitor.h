@@ -99,7 +99,7 @@ void main(void)
 	.... Initialize MemoryManager, RegisterInterface, InterruptInterface, ChipInterface, and MemoryRangeChecker ...
 
 	rc = BMRC_Monitor_Open(&hMonitor, reg, isr, chp, mrc, 0, 256 * 1024 * 1024); ... Control all 256MBytes window ...
-	rc = BMRC_Monitor_GetMemoryInterface(hMonitor, &interface);
+	BMRC_Monitor_GetMemoryInterface(hMonitor, &interface);
 	rc = BMEM_InstallMonitor(heap, &interface);
 }
 
@@ -115,7 +115,7 @@ This shows the use of a jail for debugging a specific client:
 	.... Initialize MemoryManager, RegisterInterface, InterruptInterface and ChipInterface ...
 
 	rc = BMRC_Monitor_Open(&hMonitor, reg, isr, chp, mrc, 0, 256 * 1024 * 1024); ... Control all 256MBytes window ...
-	rc = BMRC_Monitor_GetMemoryInterface(hMonitor, &interface);
+	BMRC_Monitor_GetMemoryInterface(hMonitor, &interface);
 	rc = BMEM_InstallMonitor(heap, &interface);
 	... Performing AVD debug, so optimize range checking for AVD ...
 	BMRC_Monitor_JailAdd(hMonitor, BRMM_CLIENT_AVD_BLK_0);
@@ -213,35 +213,12 @@ Description:
 	available number of hardware checkers.  It can be overridden to specify
 	a number less than that.
 
-Returns:
-	N/A
-
 See Also:
 	BMRC_Monitor_Open
 ****************************************************************************/
-BERR_Code
+void
 BMRC_Monitor_GetDefaultSettings(
 		BMRC_Monitor_Settings *pDefSettings
-		);
-
-/***************************************************************************
-Summary:
-	Gets current settings for a MRC Monitor
-
-Description:
-	This function gets the current configuration settings for a MRC
-	Monitor by filling in pDefSettings.
-
-Returns:
-	N/A
-
-See Also:
-	BMRC_Monitor_Open
-****************************************************************************/
-BERR_Code
-BMRC_Monitor_GetSettings(
-		BMRC_Monitor_Handle hMonitor, /* Instance of the memory monitor */
-		BMRC_Monitor_Settings *pSettings
 		);
 
 /***************************************************************************
@@ -258,13 +235,8 @@ Description:
 	BMEM_MonitorInterface remains intact all the time while the interface
 	can be referenced. For example, do not use an instance of
 	BMEM_MonitorInterface which is allocated as a function's local variable.
-
-
-Returns:
-	BERR_SUCCESS - Memory monitor was opened.
-
 ****************************************************************************/
-BERR_Code
+void
 BMRC_Monitor_GetMemoryInterface(
 		BMRC_Monitor_Handle hMonitor, /* Instance of the memory monitor */
 		BMRC_MonitorInterface *pInterface /* [out] memory interface */

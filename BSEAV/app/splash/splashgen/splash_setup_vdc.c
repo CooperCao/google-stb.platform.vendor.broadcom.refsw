@@ -275,7 +275,7 @@ BERR_Code  splash_vdc_setup(
 #endif
 
 #ifdef SPLASH_SUPPORT_RFM
-	eErr = BRFM_GetDefaultSettings( &rfmDevSettings, hChp );
+	BRFM_GetDefaultSettings( &rfmDevSettings, hChp );
 	rfmDevSettings.audioEncoding = BRFM_AudioEncoding_eStereo;
 	eErr = BRFM_Open( &hRfm, hChp, hReg, hInt, &rfmDevSettings );
 	eErr = BRFM_SetModulationType( hRfm, BRFM_ModulationType_eNtscOpenCable,

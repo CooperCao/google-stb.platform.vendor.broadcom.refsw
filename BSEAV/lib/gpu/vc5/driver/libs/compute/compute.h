@@ -22,8 +22,8 @@ typedef struct compute_params
 
 typedef struct compute_sg_config
 {
-   uint16_t wgs_per_sg;
    uint16_t max_wgs;
+   uint8_t wgs_per_sg;
 } compute_sg_config;
 
 //! Chooses super-group configuration for the given compute params.
@@ -42,8 +42,8 @@ typedef struct compute_program
    v3d_addr_t code_addr;
    uint16_t wg_size[3];
    uint16_t items_per_wg;
-   uint16_t wgs_per_sg;
    uint16_t max_wgs;
+   uint8_t wgs_per_sg;
    uint8_t num_varys;
    uint8_t vary_map[3];
    bool has_barrier;

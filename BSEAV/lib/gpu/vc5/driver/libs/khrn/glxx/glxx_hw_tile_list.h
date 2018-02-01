@@ -30,7 +30,7 @@ struct glxx_hw_tile_list_fb_ops
 
 struct glxx_hw_tile_list_rcfg
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    /* if adding more data members, change rcfgs_not_equal*/
    bool early_ds_clear;
 #else
@@ -42,7 +42,7 @@ struct glxx_hw_tile_list_rcfg
 #endif
 };
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static inline bool glxx_hw_tile_list_rcfgs_equal(const struct glxx_hw_tile_list_rcfg *rcfg1,
       const struct glxx_hw_tile_list_rcfg *rcfg2)
 {

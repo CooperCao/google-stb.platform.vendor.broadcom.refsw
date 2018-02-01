@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -510,12 +510,18 @@ NEXUS_Error NEXUS_DspVideoEncoder_EnqueuePicture_isr(NEXUS_DspVideoEncoderHandle
     descriptor.ulSTCSnapshotLo = picture->ulSTCSnapshotLo;
     descriptor.ulSTCSnapshotHi = picture->ulSTCSnapshotHi;
     descriptor.ulPictureId = picture->ulPictureId;
+    #if 0 /* TODO: add cadence support */
     descriptor.bCadenceLocked = picture->bCadenceLocked;
     descriptor.ePicStruct = picture->ePicStruct;
-    descriptor.h2H1VLumaBlock = picture->h2H1VLumaBlock;
-    descriptor.ul2H1VLumaOffset = picture->ul2H1VLumaOffset;
-    descriptor.h2H2VLumaBlock = picture->h2H2VLumaBlock;
-    descriptor.ul2H2VLumaOffset = picture->ul2H2VLumaOffset;
+    #endif
+    descriptor.h2H1VLumaBlock = picture->h1VLumaBlock;
+    descriptor.ul2H1VLumaOffset = picture->ul1VLumaOffset;
+    descriptor.h2H2VLumaBlock = picture->h2VLumaBlock;
+    descriptor.ul2H2VLumaOffset = picture->ul2VLumaOffset;
+    descriptor.hChromaBlock = picture->hChromaBlock;
+    descriptor.ulChromaOffset = picture->ulChromaOffset;
+    descriptor.hShiftedChromaBlock = picture->hShiftedChromaBlock;
+    descriptor.ulShiftedChromaOffset = picture->ulShiftedChromaOffset;
 
     BDBG_MSG(("Enqueue %p %u %08x%08x", (void *)descriptor.hLumaBlock, descriptor.ulPictureId, descriptor.ulSTCSnapshotHi, descriptor.ulSTCSnapshotLo));
 
@@ -541,6 +547,15 @@ NEXUS_Error NEXUS_DspVideoEncoder_DequeuePicture_isr(NEXUS_DspVideoEncoderHandle
 
     picture->hLumaBlock = descriptor.hLumaBlock;
     picture->ulPictureId = descriptor.ulPictureId;
+    picture->ulLumaOffset = descriptor.ulLumaOffset;
+    picture->h1VLumaBlock = descriptor.h2H1VLumaBlock;
+    picture->h2VLumaBlock = descriptor.h2H2VLumaBlock;
+    picture->ul1VLumaOffset = descriptor.ul2H1VLumaOffset;
+    picture->ul2VLumaOffset = descriptor.ul2H2VLumaOffset;
+    picture->hChromaBlock = descriptor.hChromaBlock;
+    picture->hShiftedChromaBlock = descriptor.hShiftedChromaBlock;
+    picture->ulChromaOffset = descriptor.ulChromaOffset;
+    picture->ulShiftedChromaOffset = descriptor.ulShiftedChromaOffset;
 
     return rc;
 }

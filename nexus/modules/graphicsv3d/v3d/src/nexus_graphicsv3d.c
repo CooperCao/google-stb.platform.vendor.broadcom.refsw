@@ -54,6 +54,7 @@
 #endif
 
 #include "nexus_client_resources.h"
+#include "bchp_pwr.h"
 
 BDBG_OBJECT_ID_DECLARE(NEXUS_Graphicsv3d);
 
@@ -127,9 +128,9 @@ static void graphics3d_secure_toggle(bool secure)
    coreList.aeCores[BAVC_CoreId_eV3D_0] = true;
    coreList.aeCores[BAVC_CoreId_eV3D_1] = true;
    if (secure)
-      rc = NEXUS_Sage_AddSecureCores(&coreList);
+      rc = NEXUS_Sage_AddSecureCores(&coreList, NEXUS_SageUrrType_eDisplay);
    else
-      NEXUS_Sage_RemoveSecureCores(&coreList);
+      NEXUS_Sage_RemoveSecureCores(&coreList, NEXUS_SageUrrType_eDisplay);
 
    if (rc) BERR_TRACE(rc);
 #else
@@ -672,7 +673,7 @@ NEXUS_Error NEXUS_Graphicsv3d_GetLoadData(
 NEXUS_Error NEXUS_Graphicsv3d_FenceOpen(
    NEXUS_Graphicsv3dHandle          gfx,
    int *fd,
-   void **p,
+   uint64_t *p,
    char cType,
    int iPid
    )
@@ -683,7 +684,7 @@ NEXUS_Error NEXUS_Graphicsv3d_FenceOpen(
 
    if (fd != NULL)
    {
-      BERR_Code err = BV3D_FenceOpen(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, gfx->clientId, fd, p, cType, iPid);
+      BERR_Code err = BV3D_FenceOpen(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, gfx->clientId, fd, (void**)p, cType, iPid);
       ret = err == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
    }
    else
@@ -697,7 +698,7 @@ NEXUS_Error NEXUS_Graphicsv3d_FenceOpen(
 NEXUS_Error NEXUS_Graphicsv3d_FenceWaitAsync(
    NEXUS_Graphicsv3dHandle          gfx,
    int fd,
-   void **pV3dFence
+   uint64_t *pV3dFence
    )
 {
    NEXUS_Error ret;
@@ -711,7 +712,7 @@ NEXUS_Error NEXUS_Graphicsv3d_FenceWaitAsync(
       goto error;
    }
 
-   err = BV3D_FenceWaitAsync(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, gfx->clientId, fd, pV3dFence);
+   err = BV3D_FenceWaitAsync(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, gfx->clientId, fd, (void **)pV3dFence);
    if (err == BERR_SUCCESS)
       ret = NEXUS_SUCCESS;
    else
@@ -726,4 +727,27 @@ error:
 void NEXUS_Graphicsv3d_GetTime(uint64_t *pMicroseconds)
 {
    BV3D_GetTime(pMicroseconds);
+}
+
+NEXUS_Error NEXUS_Graphicsv3d_SetFrequencyScaling(unsigned percent)
+{
+#if NEXUS_POWER_MANAGEMENT && BCHP_PWR_RESOURCE_GRAPHICS3D
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    unsigned clkRate;
+
+    if(percent > 100) {
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
+    rc = BCHP_PWR_GetMaxClockRate(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_GRAPHICS3D, &clkRate);
+    if(rc) {return BERR_TRACE(NEXUS_INVALID_PARAMETER);}
+    clkRate = percent*(clkRate/100);
+    rc = BCHP_PWR_SetClockRate(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_GRAPHICS3D, clkRate);
+    if(rc) {return BERR_TRACE(NEXUS_INVALID_PARAMETER);}
+
+    return rc;
+#else
+    BSTD_UNUSED(percent);
+    return NEXUS_NOT_SUPPORTED;
+#endif
 }

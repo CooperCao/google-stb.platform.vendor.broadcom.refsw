@@ -132,7 +132,6 @@ static unsigned int maxSdecsEnabledByDefault = 0;
 static unsigned int maxSdecFormatResolutionByDefault[NEXUS_MAX_VIDEO_DECODERS]; /* don't display 3820 if default max is only 480 */
 #endif /* if NEXUS_NUM_STILL_DECODES */
 static unsigned int      maxDisplayFormatByDefault[NEXUS_MAX_DISPLAYS]; /* used on the Display Settings page */
-static unsigned int      maxDisplayFormatByDefault[NEXUS_MAX_DISPLAYS]; /* used on the Display Settings page */
 static unsigned int      maxGraphicsEnabledByDefault = 0;               /* used on the Graphics page (only show graphics that are on by default) */
 static unsigned int      maxNumTranscodesByDefault   = 0;
 static bool              videoDecodeCodecEnabledDefaults[NEXUS_MAX_VIDEO_DECODERS][NEXUS_VideoCodec_eMax];
@@ -1194,14 +1193,14 @@ static void print_heaps(
     NEXUS_PlatformStatus            platformStatus;
     NEXUS_AudioModuleMemoryEstimate audioEstimate;
     NEXUS_AudioModuleUsageSettings  audioUsageSettingsSummation;
-    unsigned           i;
+    unsigned           i          = 0;
     int                memc       = 0;
     unsigned int       codec      = 0;
     unsigned           heapIdx    = 0;
     unsigned           codecCount = 0;
-    NEXUS_Error        rc;
+    NEXUS_Error        rc         = 0;
     NEXUS_MemoryStatus status;
-    NEXUS_HeapHandle   heap;
+    NEXUS_HeapHandle   heap       = NULL;
     unsigned int       mainTotalVdec      = 0, secureTotalVdec = 0;
     unsigned int       mainTotalVencPlat  = 0, secureTotalVencPlat = 0;
     unsigned int       mainTotalAudioPlat = 0;
@@ -1225,6 +1224,7 @@ static void print_heaps(
 
     PRINTF( "~%s: top: previous->audioDecoder[0].general %u\n~", __FUNCTION__, pOutputPrevious->audioDecoder[0].bytesGeneral );
     NEXUS_Platform_GetStatus( &platformStatus );
+    PRINTF( "%s:%u platformStatus.estimatedMemory.memc[%d].display.general %10u \n", __FUNCTION__, __LINE__, i, platformStatus.estimatedMemory.memc[i].display.general );
 
     systemTotal = getSystemMemoryMB( &platformStatus );
 
@@ -1393,7 +1393,7 @@ static void print_heaps(
     for (i = 0; i<NEXUS_MAX_MEMC; i++)
     {
         mainTotalAudioPlat += platformStatus.estimatedMemory.memc[i].audio.general;
-        PRINTF( "~%s: mainTotalAudioPlat %u += platformStatus[%u] = %u\n~", __FUNCTION__, mainTotalAudioPlat, i, platformStatus.estimatedMemory.memc[i].audio.general );
+        PRINTF( "%s:%u platformStatus.estimatedMemory.memc[%d].audio.general   %10u ... mainTotalAudioPlat %u \n", __FUNCTION__, __LINE__, i, platformStatus.estimatedMemory.memc[i].audio.general, mainTotalAudioPlat );
     }
     appTotalGeneral += mainTotalAudioPlat;
 
@@ -1402,7 +1402,6 @@ static void print_heaps(
     /* only include MEMC0 in the usage count for Main; MEMC1 and MEMC2 get apportioned with Driver heap */
     i                 = 0;
     mainTotalDisplay += platformStatus.estimatedMemory.memc[i].display.general;
-    PRINTF( "%s: display[%u] %u; sum %u\n", __FUNCTION__, i, platformStatus.estimatedMemory.memc[i].display.general, mainTotalDisplay );
     appTotalGeneral += mainTotalDisplay;
 #endif /* if NEXUS_HAS_DISPLAY && NEXUS_NUM_VIDEO_WINDOWS */
 
@@ -2304,11 +2303,33 @@ static unsigned long int findWidthHeightHertz(
     posp = strstr( name, "p" );
     posx = strstr( name, "x" );
 
-    if (( strcmp( name, "ntsc" ) == 0 ) || ( strcmp( name, "480i" ) == 0 ))
+    if (( strcmp( name, "ntsc" ) == 0 ) || ( strcmp( name, "480i" ) == 0 ) || ( strcmp( name, "vga" ) == 0 ) )
     {
         *width  = 640;
         *height = 480;
         *hertz  = 60;
+    }
+    else if (( strncasecmp( name, "4kp", 3 ) == 0 ) )
+    {
+        *width  = 4096;
+        *height = 2161; /* need to make 4kp resolution sort greater than 3840 resolutions ... using height */
+        if (posp)
+        {
+            posp++;
+            /* if string has p separator */
+            if (*posp)
+            {
+                sscanf( posp, "%lu", hertz );
+                if (*hertz ==0) {*hertz = 61; }
+                else if (*hertz ==24) {*hertz = 48; }
+                else if (*hertz ==25) {*hertz = 50; }
+                else if (*hertz ==30) {*hertz = 61; }
+                else if (*hertz ==50) {*hertz = 96; } /* sort requires digits do not exceed two */
+                else if (*hertz ==60) {*hertz = 97; } /* sort requires digits do not exceed two */
+                else if (*hertz ==120) {*hertz = 98; } /* sort requires digits do not exceed two */
+                else if (*hertz ==240) {*hertz = 99; } /* sort requires digits do not exceed two */
+            }
+        }
     }
     else if (( strcmp( name, "480p" ) == 0 ))
     {
@@ -2316,7 +2337,7 @@ static unsigned long int findWidthHeightHertz(
         *height = 480;
         *hertz  = 61;
     }
-    else if (strcmp( name, "pal" ) == 0)
+    else if (strncmp( name, "pal", 3 ) == 0)
     {
         *width  = 700;
         *height = 525;
@@ -2326,6 +2347,7 @@ static unsigned long int findWidthHeightHertz(
     {
         *width  = 1920;
         *height = 1080;
+        *hertz  = 29;
     }
     else if (strcmp( name, "1080p" ) == 0)
     {
@@ -2340,6 +2362,8 @@ static unsigned long int findWidthHeightHertz(
             sscanf( name, "%lu", width );
             posx++;
             sscanf( posx, "%lu", height );
+
+            if ( *width == 4096 && *height == 2160 ) *height=2161; /* need to make 4096 resolutions sort greater than 3840 resolutions ... using height */
         }
         else
         {
@@ -2353,8 +2377,13 @@ static unsigned long int findWidthHeightHertz(
             {
                 sscanf( posp, "%lu", hertz );
                 if (*hertz ==0) {*hertz = 61; }
-                if (*hertz ==30) {*hertz = 61; }
-                if (*hertz ==60) {*hertz = 62; }
+                else if (*hertz ==24) {*hertz = 48; }
+                else if (*hertz ==25) {*hertz = 50; }
+                else if (*hertz ==30) {*hertz = 61; }
+                else if (*hertz ==50) {*hertz = 96; } /* sort requires digits do not exceed two */
+                else if (*hertz ==60) {*hertz = 97; } /* sort requires digits do not exceed two */
+                else if (*hertz ==120) {*hertz = 98; } /* sort requires digits do not exceed two */
+                else if (*hertz ==240) {*hertz = 99; } /* sort requires digits do not exceed two */
             }
             else
             {
@@ -2414,7 +2443,7 @@ static char *HtmlVideoFormats(
     unsigned int      idx        = 0;
     char             *htmlBuffer = malloc( SIZE_HTML_VIDEO_FORMATS );
     char              oneLine[128];
-    int               enumValues[NEXUS_VideoFormat_eMax];
+    unsigned long int enumValues[NEXUS_VideoFormat_eMax];
     int               enumEnums[NEXUS_VideoFormat_eMax];
     char             *enumNames[NEXUS_VideoFormat_eMax];
     unsigned int      enumCount     = 0;
@@ -2438,37 +2467,37 @@ static char *HtmlVideoFormats(
         PRINTF( "%s: findWidthHeightHertz for (%s)<br>\n", __FUNCTION__, g_videoFormatStrs[idx].name );
         widthTmp       = 0; heightTmp = 0; hertzTmp = 0;
         thisResolution = findWidthHeightHertz( g_videoFormatStrs[idx].name, &widthTmp, &heightTmp, &hertzTmp );
-        PRINTF( "max: %u ... g_str[%u] is %u (%s); maxRes %lu<br>\n", maxResolution, idx, g_videoFormatStrs[idx].value, g_videoFormatStrs[idx].name,
+        PRINTF( "max: %u ... g_str[%u] is %u (%s); maxRes %010lu<br>\n", maxResolution, idx, g_videoFormatStrs[idx].value, g_videoFormatStrs[idx].name,
             thisResolution );
         if (g_videoFormatStrs[idx].value && ( thisResolution <= maxResolution ) && ( used_formats[idx] == 0 ))
         {
-            unsigned int j = 0;
             used_formats[idx] = g_videoFormatStrs[idx].value;
-            if (debug) {printf( "adding new format (%u) to idx (%u)<br>\n", used_formats[idx], idx ); }
+            if (debug) {PRINTF( "adding new format (%u) to idx (%u)<br>\n", used_formats[idx], idx ); }
             if (thisResolution > 0)
             {
                 if (printedValues==false)
                 {
                     if (debug)
                     {
-                        printf( "for %s (%u), scannedValue %lu; count %d<br>\n", g_videoFormatStrs[idx].name,
+                        PRINTF( "for %s (%u), scannedValue %lu; count %d<br>\n", g_videoFormatStrs[idx].name,
                             g_videoFormatStrs[idx].value, heightTmp, enumCount );
                     }
                 }
 
-                enumValues[enumCount] = heightTmp;
+                enumValues[enumCount] = thisResolution;
                 enumEnums[enumCount]  = g_videoFormatStrs[idx].value;
                 enumNames[enumCount]  = (char *)g_videoFormatStrs[idx].name;
+                PRINTF( "enumValues[%d] is (%lu) new (%d) ... (%s)<br>\n", enumCount, enumValues[enumCount], enumEnums[enumCount], enumNames[enumCount] );
+
                 enumCount++;
-                if (debug) {printf( "enumValues[%d] is (%d) new (%d)<br>\n", j, enumValues[j], enumEnums[j] ); }
             }
         }
         else
         {
-            if (debug) {printf( "skipped value %u; max %u<br>\n", g_videoFormatStrs[idx].value, maxResolution ); }
+            if (debug) {PRINTF( "skipped value %u; this %u > max %u ... used[%d] %d <br>\n", g_videoFormatStrs[idx].value, thisResolution, maxResolution, idx, used_formats[idx] ); }
         }
     }
-    if (debug) {printf( "sorting list<br>\n" ); }
+    if (debug) {PRINTF( "sorting list<br>\n" ); }
     /* sort the list based on 480, 720, 1080, 2160, etc */
     {
         int   n = enumCount;
@@ -2497,7 +2526,7 @@ static char *HtmlVideoFormats(
     printedValues = true;
     for (idx = 0; idx<enumCount; idx++)
     {
-        if (debug) {printf( "enumValues[%d] is (%d) (%d)<br>\n", idx, enumValues[idx], enumEnums[idx] ); }
+        if (debug) {PRINTF( "enumValues[%d] is (%d) (%d)<br>\n", idx, enumValues[idx], enumEnums[idx] ); }
     }
 
     sprintf( oneLine, "<option value=%d %s>%s</option>\n", 0, ( 0 == currentFormat ) ? "selected" : "", "Disabled" );

@@ -303,7 +303,7 @@ install: all
 
 ifeq ($(DTCP_IP_SUPPORT),y)
 	@cp -f $(BSEAV)/lib/security/bcrypt/lib/libbcrypt.so $(NEXUS_BIN_DIR)
-	@cp -f $(BSEAV)/lib/security/common_drm/lib/$(CMNDRM_DIR)/libcmndrm.so $(NEXUS_BIN_DIR)
+	@cp -f ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/lib/$(CMNDRM_DIR)/libcmndrm*.so $(NEXUS_BIN_DIR)
 endif #DTCP_IP_SUPPORT
 
 

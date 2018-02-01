@@ -3,8 +3,8 @@
  ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/common/2708/khrn_nmem_4.h"
+#include "middleware/khronos/common/2708/khrn_prod_4.h"
 #include "interface/vcos/vcos.h"
-#include "middleware/khronos/common/khrn_mem.h"
 
 #ifndef MEM_LEGACY_BLOCK_SIZE
 #define MEM_LEGACY_BLOCK_SIZE    0x00200000
@@ -214,6 +214,20 @@ static void free_group_count(KHRN_NMEM_GROUP_BLOCK_T *block, bool throttle,
    for (; block; block = next_block) {
       next_block = block->next;
       free_count(block, throttle);
+      --n;
+   }
+   assert(n == 0);
+}
+
+/* call with mutex acquired */
+static void flush_group(KHRN_NMEM_GROUP_BLOCK_T *block,
+   /* just for checking */
+   uint32_t n)
+{
+   KHRN_NMEM_GROUP_BLOCK_T *next_block;
+   for (; block; block = next_block) {
+      next_block = block->next;
+      khrn_hw_flush_dcache_range(block->data, sizeof(block->data));
       --n;
    }
    assert(n == 0);
@@ -484,6 +498,13 @@ void khrn_nmem_group_term(KHRN_NMEM_GROUP_T *group)
    /* we don't dereference group after this point. this allows group to be
     * located inside an allocated block */
    do_callbacks(); /* notify potential waiters */
+   vcos_mutex_unlock(&mutex);
+}
+
+void khrn_nmem_group_flush(KHRN_NMEM_GROUP_T *group)
+{
+   vcos_mutex_lock(&mutex);
+   flush_group(group->head, group->n);
    vcos_mutex_unlock(&mutex);
 }
 

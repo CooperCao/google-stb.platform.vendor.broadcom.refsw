@@ -164,7 +164,7 @@ error:
 
 NEXUS_Error NEXUS_Gcb_P_Start(NEXUS_GcbSwHandle hGcb);
 void NEXUS_Gcb_P_Stop(NEXUS_GcbSwHandle hGcb);
-NEXUS_Error NEXUS_Gcb_P_RemoveParserBand(NEXUS_GcbSwHandle hGcb, NEXUS_ParserBand parserBand);
+static void NEXUS_Gcb_P_RemoveParserBand(NEXUS_GcbSwHandle hGcb, NEXUS_ParserBand parserBand);
 
 void NEXUS_Gcb_P_Close(NEXUS_GcbSwHandle hGcb)
 {
@@ -328,7 +328,7 @@ NEXUS_Error NEXUS_Gcb_P_AddParserBand(NEXUS_GcbSwHandle hGcb, NEXUS_ParserBandHa
     return 0;
 }
 
-NEXUS_Error NEXUS_Gcb_P_RemoveParserBand(NEXUS_GcbSwHandle hGcb, NEXUS_ParserBand parserBand)
+static void NEXUS_Gcb_P_RemoveParserBand(NEXUS_GcbSwHandle hGcb, NEXUS_ParserBand parserBand)
 {
     NEXUS_ParserBandHandle band;
     NEXUS_PidChannelHandle pid;
@@ -337,7 +337,8 @@ NEXUS_Error NEXUS_Gcb_P_RemoveParserBand(NEXUS_GcbSwHandle hGcb, NEXUS_ParserBan
     BDBG_ASSERT(hGcb);
     band = NEXUS_ParserBand_Resolve_priv(parserBand);
     if (!band) {
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return;
     }
     pb = band->hwIndex;
 
@@ -350,7 +351,8 @@ NEXUS_Error NEXUS_Gcb_P_RemoveParserBand(NEXUS_GcbSwHandle hGcb, NEXUS_ParserBan
     }
     if (index>=MAX_PARSERS) {
         BDBG_ERR(("%u: Parserband %u not previously added", hGcb->index, pb));
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return;
     }
 
     NEXUS_Recpump_RemoveAllPidChannels(hGcb->parsers[index].recpump);
@@ -369,7 +371,7 @@ NEXUS_Error NEXUS_Gcb_P_RemoveParserBand(NEXUS_GcbSwHandle hGcb, NEXUS_ParserBan
     hGcb->parsers[index].parserBandIndex = 0;
     hGcb->parsers[index].bipPidChannel = NULL;
     hGcb->numParsers--;
-    return NEXUS_SUCCESS;
+    return;
 }
 
 /* parse ITB data and store in fifo */

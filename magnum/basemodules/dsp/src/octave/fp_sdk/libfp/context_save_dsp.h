@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -148,7 +148,7 @@ typedef struct CS_mRegContext
 #  endif
 } CS_mRegContext;
 
-#endif  // MAC_CONTEXT
+#endif  /* MAC_CONTEXT */
 
 
 #ifdef SIMD_BITFIELD_CONTEXT
@@ -190,7 +190,7 @@ typedef struct CS_bitFieldState
 } CS_bitFieldState;
 #  endif /* !FP4014 onwards */
 
-#endif  // SIMD_BITFIELD_CONTEXT
+#endif  /* SIMD_BITFIELD_CONTEXT */
 
 
 #ifdef REED_SOLOMON_CONTEXT
@@ -204,10 +204,10 @@ typedef struct CS_reedSolomonState
     /** @} */
 } CS_reedSolomonState;
 
-#endif  // REED_SOLOMON_CONTEXT
+#endif  /* REED_SOLOMON_CONTEXT */
 
 
-#ifdef TRELLIS_STATE_CONTEXT
+#ifdef TRELLIS_CONTEXT
 
 /** Trellis decoder state. */
 typedef struct CS_trellisState
@@ -218,10 +218,10 @@ typedef struct CS_trellisState
     uint64_t u64TrellisState;
 } CS_trellisState;
 
-#endif  // TRELLIS_STATE_CONTEXT
+#endif  /* TRELLIS_CONTEXT */
 
 
-#ifdef FIR_STATE_CONTEXT
+#ifdef FIR_CONTEXT
 
 /** FIR state */
 typedef struct CS_firState
@@ -236,7 +236,7 @@ typedef struct CS_firState
     /** @} */
 } CS_firState;
 
-#endif  // FIR_STATE_CONTEXT
+#endif  /* FIR_CONTEXT */
 
 
 /* FIXME: this structure might get split/reorganised in the future to fix the
@@ -283,10 +283,10 @@ typedef struct CS_registerContext
 #ifdef REED_SOLOMON_CONTEXT
     CS_reedSolomonState reedSolomonState;
 #endif
-#ifdef TRELLIS_STATE_CONTEXT
+#ifdef TRELLIS_CONTEXT
     CS_trellisState trellisState;
 #endif
-#ifdef FIR_STATE_CONTEXT
+#ifdef FIR_CONTEXT
     CS_firState firState;
 #endif
     /** @} */
@@ -306,10 +306,10 @@ typedef struct CS_FullVolatileContext
 #ifdef REED_SOLOMON_CONTEXT
     CS_reedSolomonState reedSolomonState;
 #endif
-#ifdef TRELLIS_STATE_CONTEXT
+#ifdef TRELLIS_CONTEXT
     CS_trellisState trellisState;
 #endif
-#ifdef FIR_STATE_CONTEXT
+#ifdef FIR_CONTEXT
     CS_firState firState;
 #endif
     /** @} */

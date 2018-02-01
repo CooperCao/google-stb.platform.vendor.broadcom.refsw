@@ -63,9 +63,11 @@ static
 int gen_random_num( uint32_t numberOfBytes, uint8_t *pRandomBytes)
 {
     int rc = 0;
+    NEXUS_Error nxs_rc = NEXUS_SUCCESS;
+#if (NEXUS_SECURITY_API_VERSION==1)
+{
     NEXUS_RandomNumberGenerateSettings settings;
     NEXUS_RandomNumberOutput rngOutput;
-    NEXUS_Error nxs_rc = NEXUS_SUCCESS;
 
     NEXUS_RandomNumber_GetDefaultGenerateSettings(&settings);
     settings.randomNumberSize = numberOfBytes;
@@ -77,8 +79,19 @@ int gen_random_num( uint32_t numberOfBytes, uint8_t *pRandomBytes)
         rc = -1;
         goto ErrorExit;
     }
-
     BKNI_Memcpy(pRandomBytes, rngOutput.buffer, numberOfBytes);
+}
+#else
+{
+    nxs_rc = NEXUS_GetRandomNumber(pRandomBytes, numberOfBytes);
+    if((nxs_rc != NEXUS_SUCCESS))
+    {
+        printf("%s - Error generating '%u' random bytes  ", BSTD_FUNCTION, numberOfBytes);
+        rc = -1;
+        goto ErrorExit;
+    }
+}
+#endif
 
 ErrorExit:
     return rc;

@@ -41,6 +41,7 @@
 #include "channelmgr.h"
 #include "channel.h"
 #include "audio_decode.h"
+#include "screen_main.h"
 
 BDBG_MODULE(panel_audio);
 
@@ -59,6 +60,9 @@ CPanelAudio::CPanelAudio(
     _Pid(NULL),
     _PidLabel(NULL),
     _PidPopup(NULL),
+#if BDSP_MS12_SUPPORT
+    _Ac4(NULL),
+#endif
     _AudioProcessing(NULL),
     _AudioProcessingLabel(NULL),
     _AudioProcessingPopup(NULL),
@@ -99,7 +103,7 @@ eRet CPanelAudio::initialize(
     uint32_t    graphicsWidth  = 0;
     uint32_t    graphicsHeight = 0;
     int         menuWidth      = 220;
-    int         menuHeight     = 238;
+    int         menuHeight     = 242;
     MRect       rectPanel;
 
     BDBG_ASSERT(NULL != pModel);
@@ -120,6 +124,11 @@ eRet CPanelAudio::initialize(
 
     graphicsWidth  = GET_INT(_pCfg, GRAPHICS_SURFACE_WIDTH);
     graphicsHeight = GET_INT(_pCfg, GRAPHICS_SURFACE_HEIGHT);
+
+#if BDSP_MS12_SUPPORT
+    /* increase menu height for AC4 button */
+    menuHeight += 20;
+#endif
 
     /* set the size of the panel itself */
     rectPanel.set(50, 50, menuWidth, menuHeight);
@@ -150,6 +159,13 @@ eRet CPanelAudio::initialize(
             _PidLabel->setText("Pid:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _PidPopup->setText("", bwidget_justify_horiz_right, bwidget_justify_vert_middle);
             /* buttons are stream dependent and will be populated in source changed callback */
+
+#if BDSP_MS12_SUPPORT
+            _Ac4 = new CWidgetButton("CScreenMain::_Ac4", getEngine(), this, MRect(0, 0, 0, 22), font12);
+            CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _Ac4, ret, eRet_OutOfMemory, error);
+            _Ac4->setText("AC-4...", bwidget_justify_horiz_left);
+            _settings->addButton(_Ac4, "AC-4");
+#endif
 
             /* Audio Processing */
             if ((true == pFeatures->_autoVolume) ||
@@ -349,6 +365,9 @@ void CPanelAudio::uninitialize()
     DEL(_AudioProcessingPopup);
     DEL(_AudioProcessingLabel);
     DEL(_AudioProcessing);
+#if BDSP_MS12_SUPPORT
+    DEL(_Ac4);
+#endif
     DEL(_PidPopup);
     DEL(_PidLabel);
     DEL(_Pid);
@@ -360,6 +379,7 @@ void CPanelAudio::onClick(bwidget_t widget)
 {
     CWidgetBase * pWidget = NULL;
     CModel *      pModel  = getModel();
+    eRet          ret     = eRet_Ok;
 
     BDBG_ASSERT(NULL != pModel);
 
@@ -378,6 +398,13 @@ void CPanelAudio::onClick(bwidget_t widget)
         notifyObservers(eNotify_SetAudioProgram, &pid);
     }
     else
+#if BDSP_MS12_SUPPORT
+    if (_Ac4 == pWidget)
+    {
+        getScreenMain()->showMenu(eMenu_Audio_Ac4);
+    }
+    else
+#endif
     if ((NULL != _AudioProcessingPopup) && (0 <= _AudioProcessingPopup->getItemListIndex(pWidget->getWidget())))
     {
         CWidgetCheckButton * pButton         = (CWidgetCheckButton *)pWidget;
@@ -446,6 +473,7 @@ void CPanelAudio::onClick(bwidget_t widget)
         getParent()->show(true);
     }
 
+error:
     return;
 } /* onClick */
 

@@ -18,28 +18,11 @@
 
 #include <assert.h>
 
-// Helpers
-static Backflow *tr_if(Backflow *c, Backflow *t, Backflow *f)
-{
-   return create_node(BACKFLOW_MOV, UNPACK_NONE, COND_IFFLAG, c, t, NULL, f);
-}
-
-static Backflow *fdiv(Backflow *l, Backflow *r) {
-   return tr_binop(BACKFLOW_MUL, l, tr_mov_to_reg(REG_MAGIC_RECIP, r));
-}
-
 // If numerator is zero return zero otherwise divide.
 static Backflow *tr_blend_div(Backflow *n, Backflow *d)
 {
-   Backflow *eq0 = tr_uop_cond(BACKFLOW_FMOV, SETF_PUSHZ, NULL, n);
-   return tr_if(eq0, n /* 0 */, fdiv(n, d));
-}
-
-// If first arg is zero return zero otherwise multiply
-static Backflow *blend_mul(Backflow *a, Backflow *b)
-{
-   Backflow *eq0 = tr_uop_cond(BACKFLOW_FMOV, SETF_PUSHZ, NULL, a);
-   return tr_if(eq0, a /* 0 */, mul(a, b));
+   Backflow *eq0 = tr_uop_push(V3D_QPU_OP_FMOV, SETF_PUSHZ, n);
+   return tr_cond(eq0, n /* 0 */, fdiv(n, d), false);
 }
 
 static void adv_blend_copy_rgb(Backflow *rgb[3], Backflow *rgba[4])
@@ -70,27 +53,24 @@ static Backflow *adv_blend_overlay_or_hardlight(
 {
    // 2CsCd                 , if cond
    // AsAd - 2(As-Cs)(Ad-Cd), otherwise
-   Backflow *t =
-      mul(tr_cfloat(2.0f), mul(cs, cd));
+   Backflow *t = mul(tr_cfloat(2.0f), mul(cs, cd));
+   Backflow *f = sub(mul(as, ad),
+                     mul(tr_cfloat(2.0f),
+                         mul(sub(as, cs),
+                             sub(ad, cd))));
 
-   Backflow *f =
-      sub(mul(as, ad),
-          mul(tr_cfloat(2.0f),
-              mul(sub(as, cs),
-                  sub(ad, cd))));
-
-   return tr_if(cond, t, f);
+   return tr_cond(cond, t, f, false);
 }
 
 static Backflow *adv_blend_overlay(Backflow *cs, Backflow *cd, Backflow *as, Backflow *ad, Backflow *asad)
 {
-   Backflow *c = tr_binop_push(BACKFLOW_FCMP, SETF_PUSHC, cd, mul(tr_cfloat(0.5f), ad));
+   Backflow *c = tr_binop_push(V3D_QPU_OP_FCMP, SETF_PUSHC, cd, mul(tr_cfloat(0.5f), ad));
    return adv_blend_overlay_or_hardlight(cs, cd, as, ad, asad, c);
 }
 
 static Backflow *adv_blend_hardlight(Backflow *cs, Backflow *cd, Backflow *as, Backflow *ad, Backflow *asad)
 {
-   Backflow *c = tr_binop_push(BACKFLOW_FCMP, SETF_PUSHC, cs, mul(tr_cfloat(0.5f), as));
+   Backflow *c = tr_binop_push(V3D_QPU_OP_FCMP, SETF_PUSHC, cs, mul(tr_cfloat(0.5f), as));
    return adv_blend_overlay_or_hardlight(cs, cd, as, ad, asad, c);
 }
 
@@ -111,13 +91,13 @@ static Backflow *adv_blend_colordodge(Backflow *cs, Backflow *cd, Backflow *as, 
    // 0                            , if Cd <= 0
    // min(AsAd, AsAsCd / (As - Cs)), if Cd > 0 && Cs < As
    // AsAd                         , if Cd > 0 && Cs >= As
-   Backflow *expr = tr_blend_div(mul(mul(as, as), cd), sub(as, cs));
+   Backflow *expr = fdiv(mul(mul(as, as), cd), sub(as, cs));
 
-   Backflow *cd_lte0 = tr_uop_cond(BACKFLOW_FMOV, SETF_PUSHC, NULL, cd);
-   Backflow *cs_gte1 = tr_binop_push(BACKFLOW_FCMP, SETF_PUSHC, as, cs);
+   Backflow *cd_lte0 = tr_uop_push(V3D_QPU_OP_FMOV, SETF_PUSHC, cd);
+   Backflow *cs_gte1 = tr_binop_push(V3D_QPU_OP_FCMP, SETF_PUSHC, as, cs);
 
-   return tr_if(cd_lte0, tr_cfloat(0.0f),
-                         tr_if(cs_gte1, asad, imin(asad, expr)));
+   return tr_cond(cd_lte0, tr_cfloat(0.0f),
+                           tr_cond(cs_gte1, asad, imin(asad, expr), false), false);
 }
 
 static Backflow *adv_blend_colorburn(Backflow *cs, Backflow *cd, Backflow *as, Backflow *ad, Backflow *asad)
@@ -125,13 +105,13 @@ static Backflow *adv_blend_colorburn(Backflow *cs, Backflow *cd, Backflow *as, B
    // AsAd                                , if Cd >= Ad
    // AsAd - min(AsAd, AsAs(Ad - Cd) / Cs), if Cd < Ad && Cs > 0
    // 0                                   , if Cd < Ad && Cs <= 0
-   Backflow *expr = tr_blend_div(mul(mul(as, as), sub(ad, cd)), cs);
+   Backflow *expr = fdiv(mul(mul(as, as), sub(ad, cd)), cs);
 
-   Backflow *cd_gte1 = tr_binop_push(BACKFLOW_FCMP, SETF_PUSHC, ad, cd);
-   Backflow *cs_lte0 = tr_uop_cond(BACKFLOW_FMOV, SETF_PUSHC, NULL, cs);
+   Backflow *cd_gte1 = tr_binop_push(V3D_QPU_OP_FCMP, SETF_PUSHC, ad, cd);
+   Backflow *cs_lte0 = tr_uop_push(V3D_QPU_OP_FMOV, SETF_PUSHC, cs);
 
-   return tr_if(cd_gte1, asad,
-                         tr_if(cs_lte0, tr_cfloat(0.0f), sub(asad, imin(asad, expr))));
+   return tr_cond(cd_gte1, asad,
+                           tr_cond(cs_lte0, tr_cfloat(0.0f), sub(asad, imin(asad, expr)), false), false);
 }
 
 static Backflow *adv_blend_softlight(Backflow *cs, Backflow *cd, Backflow *as, Backflow *ad, Backflow *asad)
@@ -147,9 +127,9 @@ static Backflow *adv_blend_softlight(Backflow *cs, Backflow *cd, Backflow *as, B
    Backflow *e2 = add(mul(sub(mul(tr_cfloat(16.0f), d), tr_cfloat(12.0f)), d), tr_cfloat(3.0f));
    Backflow *e3 = sub(tr_mov_to_reg(REG_MAGIC_RSQRT, d), one);
 
-   Backflow *s_lte_half = tr_binop_push(BACKFLOW_FCMP, SETF_PUSHC, cs, mul(tr_cfloat(0.5f), as));
-   Backflow *d_lte_qter = tr_binop_push(BACKFLOW_FCMP, SETF_PUSHC, d, tr_cfloat(0.25f));
-   Backflow *e = tr_if(s_lte_half, e1, tr_if(d_lte_qter, e2, e3));
+   Backflow *s_lte_half = tr_binop_push(V3D_QPU_OP_FCMP, SETF_PUSHC, cs, mul(tr_cfloat(0.5f), as));
+   Backflow *d_lte_qter = tr_binop_push(V3D_QPU_OP_FCMP, SETF_PUSHC, d, tr_cfloat(0.25f));
+   Backflow *e = tr_cond(s_lte_half, e1, tr_cond(d_lte_qter, e2, e3, false), false);
 
    Backflow *ascd = mul(as, cd);
    Backflow *s2_one = sub(mul(mul(cs, cd), tr_cfloat(2.0f)), ascd);
@@ -228,8 +208,8 @@ static void adv_blend_set_lum(Backflow *res[3], Backflow *cbase[3], Backflow *cl
    Backflow *max_color = maxv3(color);
    Backflow *min_color = minv3(color);
 
-   Backflow *min_color_lt0 = tr_uop_cond(BACKFLOW_FMOV, SETF_PUSHN, NULL, min_color);
-   Backflow *max_color_gt1 = tr_binop_push(BACKFLOW_FCMP, SETF_PUSHN, tr_cfloat(1.0f), max_color);
+   Backflow *min_color_lt0 = tr_uop_push(V3D_QPU_OP_FMOV, SETF_PUSHN, min_color);
+   Backflow *max_color_gt1 = tr_binop_push(V3D_QPU_OP_FCMP, SETF_PUSHN, tr_cfloat(1.0f), max_color);
 
    Backflow *color_minus_llum[3];
 
@@ -251,7 +231,7 @@ static void adv_blend_set_lum(Backflow *res[3], Backflow *cbase[3], Backflow *cl
    }
 
    for (uint32_t i = 0; i < 3; ++i)
-      res[i] = tr_if(min_color_lt0, case1[i], tr_if(max_color_gt1, case2[i], color[i]));
+      res[i] = tr_cond(min_color_lt0, case1[i], tr_cond(max_color_gt1, case2[i], color[i], false), false);
 }
 
 // vec3 SetSatLum(vec3 cbase, vec3 csat, vec3 clum)
@@ -276,8 +256,8 @@ static void adv_blend_set_sat_lum(Backflow *res[3], Backflow *cbase[3], Backflow
 
    Backflow *color[3];
 
-   Backflow *sbase_gt0 = tr_binop_push(BACKFLOW_FCMP, SETF_PUSHN, tr_cfloat(0.0f), sbase);
-   Backflow *ssat_over_sbase = tr_if(sbase_gt0, fdiv(ssat, sbase), tr_cfloat(0.0f));
+   Backflow *sbase_gt0 = tr_binop_push(V3D_QPU_OP_FCMP, SETF_PUSHN, tr_cfloat(0.0f), sbase);
+   Backflow *ssat_over_sbase = tr_cond(sbase_gt0, fdiv(ssat, sbase), tr_cfloat(0.0f), false);
 
    for (uint32_t i = 0; i < 3; ++i)
       color[i] = mul(sub(cbase[i], minbase), ssat_over_sbase);
@@ -353,13 +333,15 @@ void adv_blend_hsl(Backflow *res[3], uint32_t mode, Backflow *cs[3], Backflow *c
    Backflow *bcs[3];
    Backflow *bcd[3];
 
-   Backflow *as_rcp = recip(as);
-   Backflow *ad_rcp = recip(ad);
+   Backflow *as_rcp  = recip(as);
+   Backflow *as_zero = tr_uop_push(V3D_QPU_OP_FMOV, SETF_PUSHZ, as);
+   Backflow *ad_rcp  = recip(ad);
+   Backflow *ad_zero = tr_uop_push(V3D_QPU_OP_FMOV, SETF_PUSHZ, ad);
 
    for (uint32_t i = 0; i < 3; ++i)
    {
-      bcs[i] = blend_mul(cs[i], as_rcp);
-      bcd[i] = blend_mul(cd[i], ad_rcp);
+      bcs[i] = tr_cond(as_zero, as, mul(cs[i], as_rcp), false);
+      bcd[i] = tr_cond(ad_zero, ad, mul(cd[i], ad_rcp), false);
    }
 
    adv_blend_hsl_fn(mode)(res, bcs, bcd, as, ad);

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -77,6 +77,7 @@ BDBG_FILE_MODULE(BVDC_WIN_VNET);
 BDBG_FILE_MODULE(BVDC_WIN_BUF);
 BDBG_FILE_MODULE(BVDC_WIN_BUF_SIZE);
 BDBG_FILE_MODULE(BVDC_BAR);
+BDBG_FILE_MODULE(BVDC_WIN_COV);
 BDBG_FILE_MODULE(BVDC_REPEATPOLARITY);
 BDBG_FILE_MODULE(BVDC_DEINTERLACER_MOSAIC);
 BDBG_FILE_MODULE(BVDC_MTGW);
@@ -351,7 +352,7 @@ static const BVDC_P_ResourceFeature s_aResourceFeatureTable[] =
     /*            ulCap;  ulVfd;  ulScl;  ulMad;  ulAnr; */
     /*Comp0_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD, FTR___ },
     /*Comp0_V1*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD, FTR___ },
-    /*Comp1_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD, FTR___  },
+    /*Comp1_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD, FTR___ },
     /*Comp1_V1*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
     /*Comp2_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
     /*Comp3_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
@@ -361,9 +362,9 @@ static const BVDC_P_ResourceFeature s_aResourceFeatureTable[] =
 
 #elif (BCHP_CHIP==7255)
     /*            ulCap;  ulVfd;  ulScl;  ulMad;  ulAnr; */
-    /*Comp0_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD, FTR___ },
+    /*Comp0_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD, FTR___ }, /* sharing with Comp1_V0 */
     /*Comp0_V1*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
-    /*Comp1_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___  },
+    /*Comp1_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD, FTR___ }, /* sharing with Comp0_V0 */
     /*Comp1_V1*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
     /*Comp2_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
     /*Comp3_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
@@ -375,7 +376,7 @@ static const BVDC_P_ResourceFeature s_aResourceFeatureTable[] =
     /*            ulCap;  ulVfd;  ulScl;  ulMad;  ulAnr; */
     /*Comp0_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_SD, FTR___ },
     /*Comp0_V1*/{ FTR_M0, FTR_M0, FTR_HD, FTR_SD, FTR___ },
-    /*Comp1_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_SD, FTR___  },
+    /*Comp1_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_SD, FTR___ },
     /*Comp1_V1*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
     /*Comp2_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
     /*Comp3_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
@@ -960,7 +961,7 @@ void BVDC_P_Window_SetInvalidVnetMode_isr
     pVnetMode->stBits.bInvalid = BVDC_P_ON;
 }
 
-#if BVDC_P_SUPPORT_HIST
+#if (BVDC_P_SUPPORT_HIST)
 static bool BVDC_P_Hist_Level_Cmp
     ( const uint32_t                   *pulNewThres,
       const uint32_t                   *pulCurThres )
@@ -1116,7 +1117,7 @@ BERR_Code BVDC_P_Window_Create
     pWindow->stResourceRequire  = s_aResourceRequireTable[eWindowId];
     pWindow->stResourceFeature  = s_aResourceFeatureTable[eWindowId];
 
-#if BVDC_P_SUPPORT_TNT
+#if (BVDC_P_SUPPORT_TNT)
     if(BVDC_P_WindowId_eComp0_V0 ==eWindowId)
     {
         pWindow->bTntAvail = true;
@@ -1491,6 +1492,7 @@ void BVDC_P_Window_Init
     const BBOX_Vdc_Capabilities *pBoxVdcCap;
     const BBOX_Vdc_Display_Capabilities *pBoxVdcDispCap;
     uint32_t ulBoxWinId;
+    BVDC_DisplayId   eDisplayId;
 
     BDBG_ENTER(BVDC_P_Window_Init);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
@@ -1732,6 +1734,9 @@ void BVDC_P_Window_Init
     pNewInfo->lOffsetG              = 0;
     pNewInfo->lOffsetB              = 0;
 
+    pNewInfo->sHdrPeakBrightness    = 1000;
+    pNewInfo->sSdrPeakBrightness    = 100;
+
     /* Color key attributes */
     pNewInfo->stColorKey.bLumaKey            = false;
     pNewInfo->stColorKey.ucLumaKeyMask       = 0;
@@ -1821,8 +1826,15 @@ void BVDC_P_Window_Init
     pBoxVdcDispCap = &pBoxVdcCap->astDisplay[hWindow->hCompositor->eId];
 
     ulBoxWinId = BVDC_P_GetBoxWindowId_isrsafe(hWindow->eId);
+    eDisplayId = hWindow->hCompositor->hDisplay->eId;
 
     hWindow->bSrcSideDeinterlace = pBoxVdcDispCap->astWindow[ulBoxWinId].stResource.bSrcSideDeinterlacer;
+
+    hWindow->eWindowClass = pBoxVdcCap->astDisplay[eDisplayId].astWindow[ulBoxWinId].eClass;
+    if(hWindow->eWindowClass != BBOX_Vdc_WindowClass_eLegacy)
+        hWindow->pWindowClassLimit = &hWindow->hCompositor->hDisplay->hVdc->pstWinClassTbl[hWindow->eWindowClass];
+    else
+        hWindow->pWindowClassLimit = NULL;
 
     if(hWindow->stResourceRequire.bRequireScaler)
     {
@@ -1863,7 +1875,222 @@ void BVDC_P_Window_Init
     return;
 }
 
-#if BVDC_P_SUPPORT_MOSAIC_MODE
+static void BVDC_P_Window_GetCoverageInfo
+    ( const BVDC_Window_Handle         hWindow,
+      BVDC_P_Window_CoverageInfo      *pCoverageInfo )
+{
+    uint32_t    i, ulMosaicCount;
+    int32_t     lLeft, lRight, lTop, lBottom;
+    BVDC_P_Window_CoverageInfo   stCoverageInfo;
+
+    ulMosaicCount = hWindow->stNewInfo.ulMaxMosaicCount;
+
+    lLeft = hWindow->stNewInfo.astMosaicRect[0].lLeft;
+    lTop = hWindow->stNewInfo.astMosaicRect[0].lTop;
+    lRight = lLeft + hWindow->stNewInfo.astMosaicRect[0].ulWidth;
+    lBottom = lTop + hWindow->stNewInfo.astMosaicRect[0].ulHeight;
+    stCoverageInfo.ulMaxMosaicRectWidth = hWindow->stNewInfo.astMosaicRect[0].ulWidth;
+
+    for(i = 1; i < ulMosaicCount; i++)
+    {
+        lLeft = BVDC_P_MIN(lLeft, hWindow->stNewInfo.astMosaicRect[i].lLeft);
+        lTop = BVDC_P_MIN(lTop,hWindow->stNewInfo.astMosaicRect[i].lTop);
+        lRight = BVDC_P_MAX(lRight, (int32_t)(hWindow->stNewInfo.astMosaicRect[i].lLeft +
+            hWindow->stNewInfo.astMosaicRect[i].ulWidth));
+        lBottom = BVDC_P_MAX(lBottom, (int32_t)(hWindow->stNewInfo.astMosaicRect[i].lTop +
+            hWindow->stNewInfo.astMosaicRect[i].ulHeight));
+
+        stCoverageInfo.ulMaxMosaicRectWidth = BVDC_P_MAX(stCoverageInfo.ulMaxMosaicRectWidth,
+            hWindow->stNewInfo.astMosaicRect[i].ulWidth);
+    }
+   stCoverageInfo.stBoundingBox.lLeft = lLeft;
+   stCoverageInfo.stBoundingBox.lTop = lTop;
+   stCoverageInfo.stBoundingBox.ulWidth = lRight - lLeft;
+   stCoverageInfo.stBoundingBox.ulHeight = lBottom - lTop;
+
+    if(pCoverageInfo)
+        *pCoverageInfo = stCoverageInfo;
+}
+
+static BERR_Code BVDC_P_Window_ValidateBoundingBox
+    ( const BVDC_Window_Handle         hWindow,
+      const BVDC_WindowClassLimits    *pWindowClassLimit,
+      uint32_t                         ulBoxMaxFmtWidth,
+      uint32_t                         ulBoxMaxFmtHeight,
+      BVDC_P_Window_CoverageInfo      *pCoverageInfo )
+{
+    uint32_t    i, j, ulMosaicCount;
+    uint32_t    ulRTSMaxWidth, ulRTSMaxHeight;
+
+    pCoverageInfo->bInsideBoundingBox = false;
+    ulMosaicCount = hWindow->stNewInfo.ulMaxMosaicCount;
+    for(i = 0; i < BVDC_NUM_BOUNDING_BOXES; i++)
+    {
+        if(pWindowClassLimit->boundingBox[i].ulPercentW ||
+           pWindowClassLimit->boundingBox[i].ulPercentH)
+        {
+            ulRTSMaxWidth = (ulBoxMaxFmtWidth * pWindowClassLimit->boundingBox[i].ulPercentW) / 100;
+            ulRTSMaxHeight = (ulBoxMaxFmtHeight * pWindowClassLimit->boundingBox[i].ulPercentH) / 100;
+
+            if(!pWindowClassLimit->boundingBox[i].bOutside)
+            {
+                /* inside */
+                if((pCoverageInfo->stBoundingBox.ulWidth <= ulRTSMaxWidth) &&
+                   (pCoverageInfo->stBoundingBox.ulHeight <= ulRTSMaxHeight))
+                {
+                    pCoverageInfo->bInsideBoundingBox = true;
+                    return BERR_SUCCESS;
+                }
+            }
+            else
+            {
+                /* TODO: check outside  for non-mosaic live at isr time */
+                if(ulMosaicCount)
+                {
+                    for(j = 0; j < ulMosaicCount; j++)
+                    {
+                        if((hWindow->stNewInfo.astMosaicRect[j].ulWidth >= ulRTSMaxWidth) &&
+                           (hWindow->stNewInfo.astMosaicRect[j].ulHeight >= ulRTSMaxHeight))
+                        {
+                            pCoverageInfo->bInsideBoundingBox = false;
+                            return BERR_SUCCESS;
+                        }
+                    }
+                }
+                else
+                {
+                    if((hWindow->stNewInfo.stDstRect.ulWidth >= ulRTSMaxWidth) &&
+                       (hWindow->stNewInfo.stDstRect.ulHeight >= ulRTSMaxHeight))
+                    {
+                        pCoverageInfo->bInsideBoundingBox = false;
+                        return BERR_SUCCESS;
+                    }
+                }
+            }
+        }
+    }
+
+    BDBG_ERR(("============================================================"));
+    BDBG_ERR(("Win[%d] Boxmode[%d] RTS violation: BoundingBox",
+        hWindow->eId, hWindow->hCompositor->hVdc->stBoxConfig.stBox.ulBoxId));
+    BDBG_ERR(("MaxFmt: %dx%d, count %d", ulBoxMaxFmtWidth, ulBoxMaxFmtHeight,
+        ulMosaicCount));
+    for(i = 0; i < BVDC_NUM_BOUNDING_BOXES; i++)
+    {
+        if(pWindowClassLimit->boundingBox[i].ulPercentW ||
+           pWindowClassLimit->boundingBox[i].ulPercentH)
+        {
+            BDBG_ERR(("RTS Limit BoundingBox[%d] %dx%d(%dx%d), bOutside: %d",
+                i,
+                (ulBoxMaxFmtWidth * pWindowClassLimit->boundingBox[i].ulPercentW) / 100,
+                (ulBoxMaxFmtHeight * pWindowClassLimit->boundingBox[i].ulPercentH) / 100,
+                pWindowClassLimit->boundingBox[i].ulPercentW,
+                pWindowClassLimit->boundingBox[i].ulPercentH,
+                pWindowClassLimit->boundingBox[i].bOutside));
+        }
+    }
+    BDBG_ERR(("MosaicRect bounding box: %dx%d",
+        pCoverageInfo->stBoundingBox.ulWidth,
+        pCoverageInfo->stBoundingBox.ulHeight));
+    for(i = 0; i < ulMosaicCount; i++)
+    {
+        BDBG_ERR(("MosaicRect[%d]: %dx%d",
+            i, hWindow->stNewInfo.astMosaicRect[i].ulWidth,
+            hWindow->stNewInfo.astMosaicRect[i].ulHeight));
+    }
+    BDBG_ERR(("============================================================"));
+
+    return BVDC_ERR_INVALID_MOSAIC_MODE;
+}
+
+static BERR_Code BVDC_P_Window_ValidateMosaicRectSize
+    ( const BVDC_Window_Handle         hWindow,
+      const BVDC_WindowClassLimits    *pWindowClassLimit,
+      uint32_t                         ulBoxMaxFmtWidth,
+      uint32_t                         ulBoxMaxFmtHeight,
+      BVDC_P_Window_CoverageInfo      *pCoverageInfo )
+{
+    bool        bValid = true;
+    uint32_t    i, ulIndex;
+    uint32_t    ulRTSMaxWidthEqual, ulRTSMaxHeightEqual;
+    uint32_t    ulRTSMaxWidthSmall, ulRTSMaxHeightSmall;
+
+    ulIndex = hWindow->stNewInfo.bMosaicMode
+        ? hWindow->stNewInfo.ulMaxMosaicCount - 1 : 0;
+
+    /* Check mosaic rectangles for ulPercentEqual */
+    ulRTSMaxWidthEqual = (ulBoxMaxFmtWidth * pWindowClassLimit->mosaicRects[ulIndex].ulPercentEqual) / 100;
+    ulRTSMaxHeightEqual = (ulBoxMaxFmtHeight * pWindowClassLimit->mosaicRects[ulIndex].ulPercentEqual) / 100;
+    for(i = 0; i <= ulIndex; i++)
+    {
+        if((hWindow->stNewInfo.astMosaicRect[i].ulWidth > ulRTSMaxWidthEqual) ||
+           (hWindow->stNewInfo.astMosaicRect[i].ulHeight > ulRTSMaxHeightEqual))
+        {
+            bValid = false;
+            break;
+        }
+    }
+
+    if(bValid)
+    {
+        return BERR_SUCCESS;
+    }
+
+    /* Does not meet ulPercentEqual limit, check ulPercentBigSmall */
+    bValid = true;
+    ulRTSMaxWidthSmall = (ulBoxMaxFmtWidth * pWindowClassLimit->mosaicRects[ulIndex].ulPercentBigSmall) / 100;
+    ulRTSMaxHeightSmall = (ulBoxMaxFmtHeight * pWindowClassLimit->mosaicRects[ulIndex].ulPercentBigSmall) / 100;
+    for(i = 0; i <= ulIndex; i++)
+    {
+        if(hWindow->stNewInfo.astMosaicRect[i].ulWidth == pCoverageInfo->ulMaxMosaicRectWidth)
+        {
+            /* Big rect */
+            if((hWindow->stNewInfo.astMosaicRect[i].ulWidth > 2*ulRTSMaxWidthSmall) ||
+               (hWindow->stNewInfo.astMosaicRect[i].ulHeight > 2*ulRTSMaxHeightSmall))
+            {
+                bValid = false;
+                break;
+            }
+        }
+        else
+        {
+            if((hWindow->stNewInfo.astMosaicRect[i].ulWidth > ulRTSMaxWidthSmall) ||
+               (hWindow->stNewInfo.astMosaicRect[i].ulHeight > ulRTSMaxHeightSmall))
+            {
+                bValid = false;
+                break;
+            }
+        }
+    }
+
+
+    if(bValid)
+    {
+        return BERR_SUCCESS;
+    }
+    else
+    {
+        BDBG_ERR(("============================================================"));
+        BDBG_ERR(("Win[%d] Boxmode[%d] RTS violation: Canvas coverage",
+            hWindow->eId, hWindow->hCompositor->hVdc->stBoxConfig.stBox.ulBoxId));
+        BDBG_ERR(("MaxFmt: %dx%d, count %d", ulBoxMaxFmtWidth, ulBoxMaxFmtHeight,
+            ulIndex+1));
+        BDBG_ERR(("RTS Limit ulPercentEqual: %dx%d(%d), ulPercentBigSmall: %dx%d(%d)",
+            ulRTSMaxWidthEqual, ulRTSMaxHeightEqual,
+            pWindowClassLimit->mosaicRects[ulIndex].ulPercentEqual,
+            ulRTSMaxWidthSmall, ulRTSMaxHeightSmall,
+            pWindowClassLimit->mosaicRects[ulIndex].ulPercentBigSmall));
+        for(i = 0; i <= ulIndex; i++)
+        {
+            BDBG_ERR(("MosaicRect[%d]: %dx%d",
+                i, hWindow->stNewInfo.astMosaicRect[i].ulWidth,
+                hWindow->stNewInfo.astMosaicRect[i].ulHeight));
+        }
+        BDBG_ERR(("============================================================"));
+        return BVDC_ERR_INVALID_MOSAIC_MODE;
+    }
+}
+
 /***************************************************************************
  * {private}
  *
@@ -1871,7 +2098,7 @@ void BVDC_P_Window_Init
  *   - (Rect_Width[i] / Rect_Height[i]) > (0.95)
  *   - (Rect_Width[i] * Rect_Height[i]) < ((x%* Canvas_Width * Canvas_height) / N)
  */
-static BERR_Code BVDC_P_Window_ValidateMosaicCoverage
+static BERR_Code BVDC_P_Window_ValidateLegacyMosaicCoverage
     ( const BVDC_Window_Handle         hWindow )
 {
     uint32_t i, ulMosaicCount = hWindow->stNewInfo.ulMaxMosaicCount;
@@ -1882,6 +2109,9 @@ static BERR_Code BVDC_P_Window_ValidateMosaicCoverage
     BFMT_VideoFmt   eBoxmodeMaxVideoFmt;
     BBOX_Vdc_MosaicModeClass   eMosaicModeClass;
     BVDC_P_MosaicCanvasCoverage     *pCoverageTbl;
+
+    if(!hWindow->stNewInfo.bMosaicMode)
+        return BERR_SUCCESS;
 
     /* Get boxmode mosaic mode class */
     pBoxConfig = &hWindow->hCompositor->hVdc->stBoxConfig;
@@ -1904,7 +2134,7 @@ static BERR_Code BVDC_P_Window_ValidateMosaicCoverage
     }
 
     pCoverageTbl = &hWindow->hCompositor->hVdc->stMosaicCoverageTbl[eDisplayId];
-    ulCoverage = pCoverageTbl->ulCanvasCoverage[ulMosaicCount-1];
+    ulCoverage = pCoverageTbl->aulCanvasCoverageEqual[ulMosaicCount-1];
 
     if( BFMT_IS_4kx2k(eBoxmodeMaxVideoFmt) &&
        !BFMT_IS_4kx2k(hWindow->hCompositor->stNewInfo.pFmtInfo->eVideoFmt))
@@ -1916,7 +2146,7 @@ static BERR_Code BVDC_P_Window_ValidateMosaicCoverage
     {
             ulCoverage /= BVDC_P_4K_TO_1080P_NORM_FACTOR;
     }
-    BDBG_MSG(("Win[%d] Coverage: %d, Mosaic Count: %d", hWindow->eId,
+    BDBG_MODULE_MSG(BVDC_WIN_COV,("Win[%d] Coverage: %d, Mosaic Count: %d", hWindow->eId,
         ulCoverage, ulMosaicCount));
 
     ulCanvasArea = hWindow->hCompositor->stNewInfo.pFmtInfo->ulWidth *
@@ -1964,7 +2194,71 @@ static BERR_Code BVDC_P_Window_ValidateMosaicCoverage
 
     return BERR_SUCCESS;
 }
-#endif
+
+/***************************************************************************
+ * {private}
+ *
+ * Validate coverage for each mosaic rectangle:
+ */
+static BERR_Code BVDC_P_Window_ValidateCoverage
+    ( const BVDC_Window_Handle         hWindow )
+{
+    uint32_t                 ulWinId;
+    uint32_t                 ulBoxMaxFmtWidth, ulBoxMaxFmtHeight;
+    BBOX_Config             *pBoxConfig;
+    BFMT_VideoFmt            eBoxmodeMaxVideoFmt;
+    BVDC_DisplayId           eDisplayId;
+    const BFMT_VideoInfo    *pBoxMaxFmtInfo;
+    BERR_Code                eStatus = BERR_SUCCESS;
+
+    ulWinId = BVDC_P_WIN_IS_V0(hWindow->eId) ? 0 : 1;
+    eDisplayId = hWindow->hCompositor->hDisplay->eId;
+
+    /* Get boxmode mosaic mode class */
+    pBoxConfig = &hWindow->hCompositor->hVdc->stBoxConfig;
+
+    if(!pBoxConfig->stVdc.astDisplay[eDisplayId].astWindow[ulWinId].bAvailable)
+        return BERR_SUCCESS;
+
+    if(hWindow->eWindowClass == BBOX_VDC_DISREGARD)
+    {
+        return BERR_SUCCESS;
+    }
+
+    if(hWindow->eWindowClass == BBOX_Vdc_WindowClass_eLegacy)
+    {
+        /* Class 0 is for legacy support */
+        return BVDC_P_Window_ValidateLegacyMosaicCoverage(hWindow);
+    }
+
+    /* Non-legacy class */
+    BDBG_ASSERT(hWindow->eWindowClass != BBOX_Vdc_WindowClass_eLegacy);
+    BDBG_ASSERT(hWindow->pWindowClassLimit);
+    eBoxmodeMaxVideoFmt = pBoxConfig->stVdc.astDisplay[eDisplayId].eMaxVideoFmt;
+    pBoxMaxFmtInfo = BFMT_GetVideoFormatInfoPtr(eBoxmodeMaxVideoFmt);
+
+    ulBoxMaxFmtWidth  = pBoxMaxFmtInfo->ulWidth;
+    ulBoxMaxFmtHeight = pBoxMaxFmtInfo->ulHeight;
+    BDBG_MODULE_MSG(BVDC_WIN_COV,("Win[%d] windowclass %d, Boxmode Max size: %dx%d",
+        hWindow->eId, hWindow->eWindowClass, ulBoxMaxFmtWidth, ulBoxMaxFmtHeight));
+
+    /* Get bounding box */
+    BVDC_P_Window_GetCoverageInfo(hWindow, &hWindow->stCoverageInfo);
+
+    /* Check bounding box */
+    eStatus = BVDC_P_Window_ValidateBoundingBox(hWindow, hWindow->pWindowClassLimit,
+        ulBoxMaxFmtWidth, ulBoxMaxFmtHeight, &hWindow->stCoverageInfo);
+    if(eStatus != BERR_SUCCESS)
+        return BERR_TRACE(eStatus);
+
+    /* Check mosaic rect size */
+    eStatus = BVDC_P_Window_ValidateMosaicRectSize(hWindow, hWindow->pWindowClassLimit,
+        ulBoxMaxFmtWidth, ulBoxMaxFmtHeight, &hWindow->stCoverageInfo);
+    if(eStatus != BERR_SUCCESS)
+        return BERR_TRACE(eStatus);
+
+    return BERR_SUCCESS;
+}
 
 /***************************************************************************
  * {private}
@@ -1982,7 +2276,7 @@ BERR_Code BVDC_P_Window_ValidateChanges
     BVDC_P_Window_Info *pNewInfo;
     const BVDC_P_Window_Info *pCurInfo;
     BVDC_P_Window_DirtyBits *pNewDirty;
-#if BVDC_P_SUPPORT_HIST
+#if (BVDC_P_SUPPORT_HIST)
     const BVDC_ClipRect *pNewRect, *pCurRect;
 #endif
     uint32_t ulMinV;
@@ -2210,9 +2504,9 @@ BERR_Code BVDC_P_Window_ValidateChanges
                 return BERR_TRACE(BERR_INVALID_PARAMETER);
             }
 
-            if(!(hDisplay->stNewInfo.hTargetDisplay || hDisplay->ulAlignSlaves))
+            if(!(hDisplay->stNewInfo.hTargetDisplay || hDisplay->ulAlignSlaves || (1>=hWindow->stNewInfo.hSource->ulConnectedWindow)))
             {
-                BDBG_ERR(("MPEG window%d can only be forced sync-lock when VEC aligned!", hWindow->eId));
+                BDBG_ERR(("MPEG window%d can only be forced sync-lock when VEC aligned! %d", hWindow->eId, hWindow->stNewInfo.hSource->ulConnectedWindow));
                 if(hDisplay->stNewInfo.hTargetDisplay)
                 {
                     BDBG_ERR(("    Display%d's alignment target is display%d.",
@@ -2323,8 +2617,6 @@ BERR_Code BVDC_P_Window_ValidateChanges
             {
                 return BERR_TRACE(BVDC_ERR_INVALID_MOSAIC_MODE);
             }
-
-            BVDC_P_Window_ValidateMosaicCoverage(hWindow);
 
             pNewInfo->stScalerOutput.ulWidth = BVDC_P_ALIGN_UP(pNewInfo->stScalerOutput.ulWidth, 2);
             pNewInfo->stDstRect.ulWidth = BVDC_P_ALIGN_UP(pNewInfo->stDstRect.ulWidth, 2);
@@ -2823,6 +3115,12 @@ BERR_Code BVDC_P_Window_ValidateChanges
         }
     }
 
+    /* (17) Check coverage */
+    if(BVDC_P_Window_ValidateCoverage(hWindow) != BERR_SUCCESS)
+    {
+        BDBG_ERR(("Win[%d] RTS violation. Check settings", hWindow->eId));
+    }
+
     /* set picture adjust dirty bit if picture adjustment values
      * have changed */
     if((pNewInfo->sHue            != pCurInfo->sHue           ) ||
@@ -2880,7 +3178,7 @@ BERR_Code BVDC_P_Window_ValidateChanges
           hWindow->stNewInfo.hSource->stNewInfo.stDirty.stBits.bResume) &&
          pNewInfo->bUserSharpnessConfig != true))
     {
-#if BVDC_P_SUPPORT_TNT
+#if (BVDC_P_SUPPORT_TNT)
         pNewDirty->stBits.bTntAdjust = BVDC_P_DIRTY;
 #endif
     }
@@ -2920,12 +3218,12 @@ BERR_Code BVDC_P_Window_ValidateChanges
        ((pNewInfo->stSplitScreenSetting.eSharpness != BVDC_SplitScreenMode_eDisable) &&
         (!BVDC_P_RECT_CMP_EQ(&pNewInfo->stDstRect, &pCurInfo->stDstRect)))))
     {
-#if BVDC_P_SUPPORT_TNT
+#if (BVDC_P_SUPPORT_TNT)
         pNewDirty->stBits.bTntAdjust = BVDC_P_DIRTY;
 #endif
     }
 
-#if BVDC_P_SUPPORT_HIST
+#if (BVDC_P_SUPPORT_HIST)
     pNewRect  = &pNewInfo->stLumaRect.stRegion;
     pCurRect  = &pCurInfo->stLumaRect.stRegion;
     if((pNewRect->ulLeft   != pCurRect->ulLeft) ||
@@ -3210,8 +3508,8 @@ static void BVDC_P_Window_SetBypassColor_isr
     BVDC_P_WindowId  eV0Id;
     uint32_t ulEnColorConv;
 #if (BVDC_P_CMP_CFC_VER <= BVDC_P_CFC_VER_1)
-    BAVC_P_ColorSpace *pAvcColorSpaceIn = &(hWindow->pMainCfc->stColorSpaceIn.stAvcColorSpace);
-    BAVC_P_ColorSpace *pAvcColorSpaceOut = &(hWindow->pMainCfc->pColorSpaceOut->stAvcColorSpace);
+    BCFC_ColorSpace *pColorSpaceIn = &(hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace);
+    BCFC_ColorSpace *pColorSpaceOut = &(hWindow->pMainCfc->pColorSpaceExtOut->stColorSpace);
     bool bBypassColorByTf, bBypassCmpCsc, bBypassDviCsc;
 #endif
 
@@ -3225,31 +3523,31 @@ static void BVDC_P_Window_SetBypassColor_isr
     hWindow->bBypassCmpCsc = hWindow->stSettings.bBypassVideoProcessings || bFixedColor;
     ulEnColorConv = (hWindow->bBypassCmpCsc)? 0 : 1;
 #else /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2) */
-    bBypassColorByTf = BVDC_P_NEED_TF_CONV(pAvcColorSpaceIn->eColorTF, pAvcColorSpaceOut->eColorTF);
+    bBypassColorByTf = BCFC_NEED_TF_CONV(pColorSpaceIn->eColorTF, pColorSpaceOut->eColorTF);
     bBypassCmpCsc = hWindow->stSettings.bBypassVideoProcessings || bBypassColorByTf || bFixedColor ||
-        (BVDC_P_IS_BT2020(pAvcColorSpaceIn->eColorimetry) && BVDC_P_IS_BT2020(pAvcColorSpaceOut->eColorimetry) && (pAvcColorSpaceIn->eColorFmt != BAVC_P_ColorFormat_eYCbCr_CL));
+        (BCFC_IS_BT2020(pColorSpaceIn->eColorimetry) && BCFC_IS_BT2020(pColorSpaceOut->eColorimetry) && (pColorSpaceIn->eColorFmt != BCFC_ColorFormat_eYCbCr_CL));
     if (bBypassColorByTf && !hWindow->bBypassCmpCsc)
     {
-        BDBG_WRN(("Cmp%d_V%d bypass CSC due to TF %d->%d, display might be too %s", hCompositor->eId, hWindow->eId-eV0Id, pAvcColorSpaceIn->eColorTF, pAvcColorSpaceOut->eColorTF, (BVDC_P_IS_SDR(pAvcColorSpaceIn->eColorTF))? "bright" : "dim"));
+        BDBG_WRN(("Cmp%d_V%d bypass CSC due to TF %d->%d, display might be too bright or too dim", hCompositor->eId, hWindow->eId-eV0Id, pColorSpaceIn->eColorTF, pColorSpaceOut->eColorTF));
     }
     else if (hWindow->bBypassCmpCsc != bBypassCmpCsc)
     {
         /* WARNING!! no extra msg out when switch from "bypass due to mismatched eotf" to "matched eotf and matched matrixCoeffs" */
         BDBG_MODULE_MSG(BVDC_CFC_2,("Cmp%d_V%d decides %s CSC, due to (TF %d->%d, b2020 %d->%d)", hCompositor->eId, hWindow->eId-eV0Id, (bBypassCmpCsc)? "bypass":"no longer bypass",
-            pAvcColorSpaceIn->eColorTF, pAvcColorSpaceOut->eColorTF, BVDC_P_IS_BT2020(pAvcColorSpaceIn->eColorimetry), BVDC_P_IS_BT2020(pAvcColorSpaceOut->eColorimetry)));
+            pColorSpaceIn->eColorTF, pColorSpaceOut->eColorTF, BCFC_IS_BT2020(pColorSpaceIn->eColorimetry), BCFC_IS_BT2020(pColorSpaceOut->eColorimetry)));
     }
     hWindow->bBypassCmpCsc = bBypassCmpCsc;
     ulEnColorConv = (hWindow->bBypassCmpCsc)? 0 : 1;
     if((hCompositor->ulActiveVideoWindow == 1) || (hWindow->eId == eV0Id))
     {
-        BAVC_P_ColorSpace  *pDspOutColorSpace = &hCompositor->hDisplay->stOutColorSpace.stAvcColorSpace;
+        BCFC_ColorSpace  *pDspOutColorSpace = &hCompositor->hDisplay->stOutColorSpaceExt.stColorSpace;
 
         /* if there is only one window in this compositor, it decides whether dviCsc bypass,
          * and if two windows are enabled, then window 0 decides it */
         bBypassDviCsc = bFixedColor ||
-            ((bBypassColorByTf || (pAvcColorSpaceIn->eColorimetry == pAvcColorSpaceOut->eColorimetry)) &&
-             (pDspOutColorSpace->eColorFmt == BAVC_P_ColorFormat_eYCbCr) &&
-             (pDspOutColorSpace->eColorRange == BAVC_P_ColorRange_eLimited));
+            ((bBypassColorByTf || (pColorSpaceIn->eColorimetry == pColorSpaceOut->eColorimetry)) &&
+             (pDspOutColorSpace->eColorFmt == BCFC_ColorFormat_eYCbCr) &&
+             (pDspOutColorSpace->eColorRange == BCFC_ColorRange_eLimited));
         if (hCompositor->bBypassDviCsc != bBypassDviCsc)
         {
             BDBG_MODULE_MSG(BVDC_CFC_2,("Cmp%d_V%d decides to %s DVI_CSC", hCompositor->eId, hWindow->eId-eV0Id, (bBypassDviCsc)? "bypass":"not bypass"));
@@ -4227,7 +4525,7 @@ static void BVDC_P_Window_AdjustForMadDelay_isr
     pWriter->bEndofChunk          = pPicture->bEndofChunk;
     pWriter->ulChunkId            = pPicture->ulChunkId;
     pWriter->eDispOrientation     = pPicture->eDispOrientation;
-    pWriter->stMosaicColorSpace   = pPicture->astMosaicColorSpace[ulPictureIdx];
+    BCFC_CopyColorSpace_isrsafe(&pWriter->stMosaicColorSpace, &pPicture->astMosaicColorSpace[ulPictureIdx]);
 
     /* It is very important for modules to read the correctly delayed picture info! */
     if (usMadVsyncDelay > 0)
@@ -4256,15 +4554,12 @@ static void BVDC_P_Window_AdjustForMadDelay_isr
         pPicture->bEndofChunk          = pReader->bEndofChunk;
         pPicture->ulChunkId            = pReader->ulChunkId;
         pPicture->eDispOrientation     = pReader->eDispOrientation;
-#if BVDC_P_DBV_SUPPORT /* DBV would bypass mad delay as no interlaced DVS exists */
-        pReader->stMosaicColorSpace.stMetaData.stDbvInput.stHdrMetadata.pData =
-            pPicture->astMosaicColorSpace[ulPictureIdx].stMetaData.stDbvInput.stHdrMetadata.pData;
-#endif
-#if BVDC_P_TCH_SUPPORT /* TCH would bypass mad delay as no interlaced TCH exists */
-        pReader->stMosaicColorSpace.stMetaData.stTchInput.stHdrMetadata.pData =
-            pPicture->astMosaicColorSpace[ulPictureIdx].stMetaData.stTchInput.stHdrMetadata.pData;
-#endif
-        pPicture->astMosaicColorSpace[ulPictureIdx] = pReader->stMosaicColorSpace;
+        BCFC_CopyColorSpace_isrsafe(&pPicture->astMosaicColorSpace[ulPictureIdx], &pReader->stMosaicColorSpace);
+      #if BVDC_P_DBV_SUPPORT
+        pPicture->astMosaicMetaData[ulPictureIdx].stDbvInput.stHdrMetadata.eType = BAVC_HdrMetadataType_eUnknown;
+      #elif BVDC_P_TCH_SUPPORT
+        pPicture->astMosaicMetaData[ulPictureIdx].stTchInput.stHdrMetadata.eType = BAVC_HdrMetadataType_eUnknown;
+      #endif
 
         /* If Mpeg Src and no capture, reduce the MAD delay by 1 to achieve */
         /* -1 delay histogram and dynamic contrast */
@@ -4622,28 +4917,39 @@ static void BVDC_P_Window_GetDeinterlacerMaxResolution_isr
 #if BVDC_P_SUPPORT_MOSAIC_DEINTERLACE
         if(hWindow->stCurInfo.bMosaicMode)
         {
-#if (BCHP_CHIP == 7250)
-            /* KLUDGY: special boxmode handling */
-            /* Only 1st Channel Mosaic channel get the deintelacer */
-            if((8 == hWindow->hCompositor->hVdc->stBoxConfig.stBox.ulBoxId) &&
-               (0 != pMvdFieldData->ulChannelId))
+            if(hWindow->eWindowClass != BBOX_Vdc_WindowClass_eLegacy)
             {
-                ulMaxWidth  = 0;
-                ulMaxHeight = 0;
+                uint32_t   ulIndex;
+
+                ulIndex = hWindow->stCurInfo.ulMaxMosaicCount - 1;
+                ulMaxWidth = hWindow->pWindowClassLimit->mosaicRects[ulIndex].stDeinterlacer.ulWidth;
+                ulMaxHeight = hWindow->pWindowClassLimit->mosaicRects[ulIndex].stDeinterlacer.ulHeight;
             }
-#else
-            /* ALL CHIP: ulMosaicMaxChannels mosaic pal support for multipip */
-            if((hWindow->stCurResource.hMcvp) &&
-               (hWindow->stCurInfo.ulMosaicCount <= hWindow->stCurResource.hMcvp->hMcdi->ulMosaicMaxChannels))
-            {
-                ulMaxWidth  = BFMT_PAL_WIDTH;
-                ulMaxHeight = BFMT_PAL_HEIGHT;
-            }
-#endif
             else
             {
-                ulMaxWidth  = 0;
-                ulMaxHeight = 0;
+#if (BCHP_CHIP == 7250)
+                /* KLUDGY: special boxmode handling */
+                /* Only 1st Channel Mosaic channel get the deintelacer */
+                if((8 == hWindow->hCompositor->hVdc->stBoxConfig.stBox.ulBoxId) &&
+                   (0 != pMvdFieldData->ulChannelId))
+                {
+                    ulMaxWidth  = 0;
+                    ulMaxHeight = 0;
+                }
+#else
+                /* ALL CHIP: ulMosaicMaxChannels mosaic pal support for multipip */
+                if((hWindow->stCurResource.hMcvp) &&
+                   (hWindow->stCurInfo.ulMosaicCount <= hWindow->stCurResource.hMcvp->hMcdi->ulMosaicMaxChannels))
+                {
+                    ulMaxWidth  = BFMT_PAL_WIDTH;
+                    ulMaxHeight = BFMT_PAL_HEIGHT;
+                }
+#endif
+                else
+                {
+                    ulMaxWidth  = 0;
+                    ulMaxHeight = 0;
+                }
             }
         }
 #endif
@@ -6410,7 +6716,7 @@ BERR_Code BVDC_P_Window_ApplyChanges_isr
         hWindow->stNewResource.hMcvp = NULL;
     }
 
-#if BVDC_P_SUPPORT_TNTD
+#if (BVDC_P_SUPPORT_TNTD)
     if((!hWindow->stVnetMode.stBits.bUseTntd) &&
        (!hWindow->stNewInfo.bSharpnessEnable) &&
        ( hWindow->stCurResource.hTntd))
@@ -6495,6 +6801,8 @@ BERR_Code BVDC_P_Window_ApplyChanges_isr
        (pNewInfo->eBackBlendFactor  != pCurInfo->eBackBlendFactor  ) ||
        (pNewInfo->eFrontBlendFactor != pCurInfo->eFrontBlendFactor ) ||
        (pNewInfo->ulMosaicTrackChannelId != pCurInfo->ulMosaicTrackChannelId) ||
+       (pNewInfo->sHdrPeakBrightness != pCurInfo->sHdrPeakBrightness) ||
+       (pNewInfo->sSdrPeakBrightness != pCurInfo->sSdrPeakBrightness) ||
        (pNewInfo->bUseSrcFrameRate  != pCurInfo->bUseSrcFrameRate  ))
     {
         hWindow->bUserAppliedChanges = true;
@@ -6517,7 +6825,7 @@ BERR_Code BVDC_P_Window_ApplyChanges_isr
         hWindow->bUserAppliedChanges = true;
     }
 
-#if BVDC_P_SUPPORT_TNTD
+#if (BVDC_P_SUPPORT_TNTD)
     if((pNewInfo->bSharpnessEnable != pCurInfo->bSharpnessEnable) ||
        (pNewInfo->sSharpness       != pCurInfo->sSharpness      ))
     {
@@ -6791,7 +7099,7 @@ static void BVDC_P_Window_ProcPostShutDown_isr
         BDBG_ERR(("pCurDirty->stBits.bHistoRect             = %d", pCurDirty->stBits.bHistoRect));
         BDBG_ERR(("pCurDirty->stBits.bVnetCrc               = %d", pCurDirty->stBits.bVnetCrc));
         BDBG_ERR(("pCurDirty->stBits.bBufferPending         = %d", pCurDirty->stBits.bBufferPending));
-#if BVDC_P_SUPPORT_TNTD
+#if (BVDC_P_SUPPORT_TNTD)
         BDBG_ERR(("pCurDirty->stBits.bTntd                  = %d", pCurDirty->stBits.bTntd));
 #endif
         BDBG_ERR(("bSetAppliedEventPending           = %d", hWindow->bSetAppliedEventPending));
@@ -6871,7 +7179,7 @@ static void BVDC_P_Window_ProcPostShutDown_isr
             hWindow->stNewResource.hVnetCrc = NULL;
         }
 
-#if BVDC_P_SUPPORT_TNTD
+#if (BVDC_P_SUPPORT_TNTD)
         if((hWindow->stCurResource.hTntd) &&
            (pCurDirty->stBits.bDestroy ||
             (!hWindow->stCurInfo.bSharpnessEnable &&
@@ -8763,71 +9071,11 @@ static void BVDC_P_Window_AutoAdjRelatedToSclRatio_isr
 /***************************************************************************
  * {private}
  *
- * Utility func called by BVDC_P_ScaleSrcPxlAspRatio_isr to shift off the
- * lower bits if the pixel aspect ratio x and y have more than 16 bits
- */
-static uint32_t BVDC_P_PxlAspRatio32BitsTo16Bits_isr
-    ( uint32_t                         ulPxlAspRatio_x,
-      uint32_t                         ulPxlAspRatio_y,
-      uint32_t                         ulBitsToCheck )
-{
-    uint32_t  ulNewCheckBits;
-    uint32_t b=0, a=0, m=0, i=0;
-
-    if(ulPxlAspRatio_x == ulPxlAspRatio_y)
-        ulPxlAspRatio_x = ulPxlAspRatio_y = 1;
-    else
-    {
-
-        a = ulPxlAspRatio_y > ulPxlAspRatio_x ? ulPxlAspRatio_y:ulPxlAspRatio_x;
-        b = ulPxlAspRatio_y > ulPxlAspRatio_x ? ulPxlAspRatio_x:ulPxlAspRatio_y;
-
-        while (b  && (i<10)) { m = a % b; a = b; b = m; i++;}
-
-        if (i<10) {
-            ulPxlAspRatio_y/=a;
-            ulPxlAspRatio_x/=a;
-        }
-        if(((ulPxlAspRatio_y & 0xffff) == ulPxlAspRatio_y) &&
-            ((ulPxlAspRatio_x& 0xffff) == ulPxlAspRatio_x))
-            ulBitsToCheck = 1;
-    }
-
-    if (ulBitsToCheck == 1)
-    {
-        if ((ulPxlAspRatio_x >> 16) || (ulPxlAspRatio_y >> 16))
-            return ((ulPxlAspRatio_x >> 1) << 16) | (ulPxlAspRatio_y >> 1);
-        else
-            return ((ulPxlAspRatio_x) << 16) | (ulPxlAspRatio_y);
-    }
-    else
-    {
-        ulNewCheckBits = ulBitsToCheck / 2;
-        if ((ulPxlAspRatio_x >> (ulNewCheckBits + 16)) ||
-            (ulPxlAspRatio_y >> (ulNewCheckBits + 16)))
-        {
-            return BVDC_P_PxlAspRatio32BitsTo16Bits_isr(
-                ulPxlAspRatio_x >> ulNewCheckBits,
-                ulPxlAspRatio_y >> ulNewCheckBits,
-                ulNewCheckBits);
-        }
-        else
-        {
-            return BVDC_P_PxlAspRatio32BitsTo16Bits_isr(
-                ulPxlAspRatio_x,
-                ulPxlAspRatio_y,
-                ulNewCheckBits);
-        }
-    }
-}
-
-/***************************************************************************
- * {private}
- *
  * Utility func called by BVDC_P_Window_AdjustRectangles_isr to calculate
  * the STG pixel aspect ratio when aspect ratio correction is not performed.
  * It is the scaled source pixel aspect ratio
  */
+#define BVDC_P_MSB(x)  (31 -  __builtin_clz(x))
 static void BVDC_P_ScaleSrcPxlAspRatio_isr
     ( uint32_t                         ulSrcPxlAspRatio_x_y,
       uint32_t                         ulSrcWidth,
@@ -8838,6 +9086,7 @@ static void BVDC_P_ScaleSrcPxlAspRatio_isr
 {
     uint32_t ulPxlAspR_x, ulPxlAspR_y;
     uint32_t ulPxlAspR_x_hi, ulPxlAspR_x_low, ulPxlAspR_y_hi, ulPxlAspR_y_low;
+    uint32_t ulTmp, ulMsb;
 
     ulPxlAspR_x = ulSrcPxlAspRatio_x_y >> 16;
     ulPxlAspR_y = ulSrcPxlAspRatio_x_y & 0xffff;
@@ -8859,10 +9108,39 @@ static void BVDC_P_ScaleSrcPxlAspRatio_isr
         ulPxlAspR_y_low |= (ulPxlAspR_y_hi << 16);
     }
 
-    /* the original numbers are less than 11 + 11 + 16 = 38 bits,
-     * so we now have less than 32 bits */
-    *pulOutPxlAspRatio_x_y = BVDC_P_PxlAspRatio32BitsTo16Bits_isr(
-        ulPxlAspR_x_low, ulPxlAspR_y_low, 16);
+    /* STG/ViCE hope to have smaller ulPxlAspR_x and ulPxlAspR_y, so we try to find
+     * the GCD of them, and then divide them by the GCD if it is found
+     * note: the original numbers are less than 12 + 12 + 16 = 40 bits,
+     * so after the 16 bits right shifting, we now have less than 32 bits */
+    if(ulPxlAspR_x_low == ulPxlAspR_y_low)
+    {
+        ulPxlAspR_x_low = ulPxlAspR_y_low = 1;
+    }
+    else
+    {
+        uint32_t b = 0, a = 0, m = 0, i = 0;
+        a = (ulPxlAspR_y_low > ulPxlAspR_x_low)? ulPxlAspR_y_low : ulPxlAspR_x_low;
+        b = (ulPxlAspR_y_low > ulPxlAspR_x_low)? ulPxlAspR_x_low : ulPxlAspR_y_low;
+
+        while (b  && (i<10)) { m = a % b; a = b; b = m; i++; }
+
+        if (i < 10) /* found GCD a */
+        {
+            ulPxlAspR_y_low /= a;
+            ulPxlAspR_x_low /= a;
+        }
+    }
+
+    /* */
+    ulTmp = BVDC_P_MAX(ulPxlAspR_x_low, ulPxlAspR_y_low);
+    ulMsb = BVDC_P_MSB(ulTmp);
+    if (ulMsb > 15) /* the max of msb of uint16_t number is 15 */
+    {
+        ulPxlAspR_x_low >>= (ulMsb - 15);
+        ulPxlAspR_y_low >>= (ulMsb - 15);
+    }
+
+    *pulOutPxlAspRatio_x_y = (ulPxlAspR_x_low << 16) | ulPxlAspR_y_low;
 }
 
 
@@ -9652,7 +9930,6 @@ void BVDC_P_Window_AdjustRectangles_isr
             pAspRatioSettings->bNonlinearScl)
         {
             hWindow->ulStgPxlAspRatio_x_y = hCompositor->hDisplay->ulPxlAspRatio_x_y;
-
         }
         else
         {
@@ -9924,7 +10201,6 @@ static uint32_t BVDC_P_Window_DecideSclCapAsymmetric_isr
     return ulCapFdrRate;
 }
 
-
 /***************************************************************************
  * {private}
  *
@@ -9961,7 +10237,7 @@ static bool BVDC_P_Window_DecideVnetMode_isr
     bool bRecfgVnet = false;
     bool bStreamProgressive = false;
     bool bVnetDiff = false;
-#if BVDC_P_SUPPORT_TNTD
+#if (BVDC_P_SUPPORT_TNTD)
     uint32_t ulVertRatio;
 #endif
     uint32_t ulBoxWinId;
@@ -10087,7 +10363,7 @@ static bool BVDC_P_Window_DecideVnetMode_isr
         /* No 1080i deinterlacing at 100/120Hz; TODO: what if RTS allows? */
         if(hWindow->stCurInfo.hSource->ulVertFreq >= 100*BFMT_FREQ_FACTOR &&
            hWindow->stCurInfo.hSource->stScanOut.ulHeight > BFMT_720P_HEIGHT
-#if BVDC_P_SUPPORT_MTG
+#if (BVDC_P_SUPPORT_MTG)
             && (!hWindow->stCurInfo.hSource->bMtgSrc)
 #endif
         ) {
@@ -10230,11 +10506,11 @@ static bool BVDC_P_Window_DecideVnetMode_isr
 
     /* clear off all the mcvp detail configuration for mode compare */
     pMvpMode->stBits.bUseHscl = ((bDeinterlace || bAnr) && !bForceBypassMcvp)? BVDC_P_ON : BVDC_P_OFF;
-#if BVDC_P_SUPPORT_MANR
+#if (BVDC_P_SUPPORT_MANR)
     pMvpMode->stBits.bUseAnr = (bAnr && !bForceBypassMcvp)? BVDC_P_ON : BVDC_P_OFF;
 #endif
 
-#if BVDC_P_SUPPORT_TNTD
+#if (BVDC_P_SUPPORT_TNTD)
     /* base on vert scaling ratio, need to decide if before or after SCL */
     pVnetMode->stBits.bUseTntd = (pCurInfo->bSharpnessEnable)? BVDC_P_ON : BVDC_P_OFF;
     if(pVnetMode->stBits.bUseTntd)
@@ -10306,6 +10582,13 @@ static bool BVDC_P_Window_DecideVnetMode_isr
     BDBG_MODULE_MSG(BVDC_WIN_VNET,(" BypassMcvp %d", pMvpMode->stBits.bUseMvpBypass));
     BDBG_MODULE_MSG(BVDC_WIN_VNET,(" UseAnr %d", pMvpMode->stBits.bUseAnr));
 
+    if(!hWindow->bCapture)
+    {
+        BVDC_P_MvpMode *pCurMvpMode = &hWindow->stMvpMode;
+        bool bMvpDiff = BVDC_P_DIRTY_COMPARE(pMvpMode, pCurMvpMode);
+        if(bMvpDiff)
+            BVDC_P_Window_SetReconfiguring_isr(hWindow, false, true, false);
+    }
     /* store new MvpMode into win contrext */
     hWindow->stMvpMode = *pMvpMode;
 
@@ -10575,7 +10858,7 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
         bCapInterlaced = false;
         bDoPulldown = true;
     }
-#if BVDC_P_SUPPORT_MTG
+#if (BVDC_P_SUPPORT_MTG)
     else if (hWindow->stCurInfo.hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode &&
              (bUseMadAtWriter ||
              /* For progressive sources displayed as interlaced without a deinterlacer, ie., SD path,
@@ -10944,7 +11227,7 @@ static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
         BVDC_P_Window_GetBufHeapId_isr(hWindow, ulBufSize,
             hWindow->hDeinterlacerHeap, &eNewMcvpHeapId, NULL);
 
-        BVDC_P_BufferHeap_GetHeapSizeById_isr(hWindow->hCapHeap, eNewMcvpHeapId, &ulBufHeapSize);
+        BVDC_P_BufferHeap_GetHeapSizeById_isr(hWindow->hDeinterlacerHeap, eNewMcvpHeapId, &ulBufHeapSize);
         BDBG_MODULE_MSG(BVDC_WIN_BUF_SIZE, ("win[%d] mvp[%d] pixel buffer %d buf %d heapsize %d",
                 hWindow->eId, hWindow->stCurResource.hMcvp->eId, usMcvpPixBufCnt,
                 ulBufSize, ulBufHeapSize));
@@ -11054,7 +11337,7 @@ static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
         }
     }
 
-#if BVDC_P_SUPPORT_MANR
+#if (BVDC_P_SUPPORT_MANR)
     if(hWindow->stCurResource.hMcvp->hAnr)
         BVDC_P_Anr_SetBufPxlFmt_isr(hWindow->stCurResource.hMcvp->hAnr, hWindow->stCurInfo.stAnrSettings.ePxlFormat);
 #endif
@@ -12700,7 +12983,7 @@ void BVDC_P_Window_Writer_isr
         pCurDirty->stBits.bAnrAdjust   = BVDC_P_CLEAN;
         pCurDirty->stBits.bStg         = BVDC_P_CLEAN;
         pCurDirty->stBits.b3D          = BVDC_P_CLEAN;
-#if BVDC_P_SUPPORT_TNTD
+#if (BVDC_P_SUPPORT_TNTD)
         pCurDirty->stBits.bTntd        = BVDC_P_CLEAN;
 #endif
 
@@ -13002,7 +13285,7 @@ void BVDC_P_Window_Writer_isr
             /* the '=' in the following is for the case that forceCap is turnt off during src
              * pending, so that ReleasePictureNodes_isr will sets ulSyncDelay. Otherwise
              * readerNode will be fixed to buf0, writerNode fixed to buf1 => mute forever */
-            else if(hWindow->ulBufCntNeeded <= hWindow->ulBufCntAllocated)
+            else
             {
                 ulCount = hWindow->ulBufCntAllocated - hWindow->ulBufCntNeeded;
                 BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] free %d cap buffers (%s)", hWindow->eId, ulCount,
@@ -13027,13 +13310,15 @@ void BVDC_P_Window_Writer_isr
                 }
                 else
                 {
-                BVDC_P_Buffer_ReleasePictureNodes_isr(hWindow->hBuffer,
-                    hWindow->apHeapNode, NULL,
-                    BVDC_P_MIN(hWindow->hBuffer->ulActiveBufCnt, ulCount),
-                    hWindow->ulBufDelay);
+                    BVDC_P_Buffer_ReleasePictureNodes_isr(hWindow->hBuffer,
+                        hWindow->apHeapNode, NULL,
+                        BVDC_P_MIN(hWindow->hBuffer->ulActiveBufCnt, ulCount),
+                        hWindow->ulBufDelay);
                 }
-                BVDC_P_BufferHeap_FreeBuffers_isr(hWindow->hCapHeap,
-                    hWindow->apHeapNode, ulCount, false);
+                if(hWindow->hCapHeap) { /* in case of captureless window */
+                    BVDC_P_BufferHeap_FreeBuffers_isr(hWindow->hCapHeap,
+                        hWindow->apHeapNode, ulCount, false);
+                }
             }
 
             hWindow->ulBufCntAllocated = hWindow->ulBufCntNeeded;
@@ -13084,7 +13369,7 @@ void BVDC_P_Window_Writer_isr
     {
         BVDC_P_Buffer_MtgMode eMtgMode = BVDC_P_Buffer_MtgMode_eNonMtg;
 
-#if BVDC_P_SUPPORT_MTG
+#if (BVDC_P_SUPPORT_MTG)
         /* we read after RUL-done, and hWindow->pCurWriterNode is pointing to the buffer MAD is writing */
         if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode)
         {
@@ -14310,7 +14595,6 @@ static bool BVDC_P_Window_BuildReaderRul_isr
         if(BVDC_P_VNET_USED_TNTD_AT_READER(hWindow->stVnetMode) && !hWindow->stVnetMode.stBits.bTntdBeforeScl)
         {
             BVDC_P_Tntd_BuildRul_isr(hWindow->stCurResource.hTntd, pList, eReaderState, pPicComRulInfo);
-
         }
 #endif
 
@@ -14323,7 +14607,6 @@ static bool BVDC_P_Window_BuildReaderRul_isr
         if(BVDC_P_VNET_USED_TNTD_AT_READER(hWindow->stVnetMode) && hWindow->stVnetMode.stBits.bTntdBeforeScl)
         {
             BVDC_P_Tntd_BuildRul_isr(hWindow->stCurResource.hTntd, pList, eReaderState, pPicComRulInfo);
-
         }
 #endif
 
@@ -14343,7 +14626,6 @@ static bool BVDC_P_Window_BuildReaderRul_isr
         if(BVDC_P_VNET_USED_VFC_AT_READER(hWindow->stVnetMode))
         {
             BVDC_P_Vfc_BuildRul_isr(hWindow->stCurResource.hVfc, pList, eReaderState, pPicComRulInfo);
-
         }
 #endif
 
@@ -14352,7 +14634,6 @@ static bool BVDC_P_Window_BuildReaderRul_isr
         if(BVDC_P_VNET_USED_XSRC_AT_READER(hWindow->stVnetMode))
         {
             BVDC_P_Xsrc_BuildRul_isr(hWindow->stCurResource.hXsrc, pList, eReaderState, pPicComRulInfo);
-
         }
 #endif
 
@@ -14361,7 +14642,6 @@ static bool BVDC_P_Window_BuildReaderRul_isr
         if(BVDC_P_VNET_USED_DNR_AT_READER(hWindow->stVnetMode))
         {
             BVDC_P_Dnr_BuildRul_isr(hWindow->stCurResource.hDnr, pList, eReaderState, pPicComRulInfo);
-
         }
 #endif
 
@@ -14389,7 +14669,6 @@ static bool BVDC_P_Window_BuildReaderRul_isr
     BDBG_LEAVE(BVDC_P_Window_BuildReaderRul_isr);
     return (BVDC_P_State_eActive == eReaderState);
 }
-
 
 static void BVDC_P_Window_BuildWriterRul_isr
     ( BVDC_Window_Handle               hWindow,
@@ -14800,10 +15079,10 @@ void BVDC_P_Window_CalculateCsc_isr
     ( BVDC_Window_Handle               hWindow )
 {
     BVDC_P_Window_Info *pCurInfo;
-    BVDC_P_Csc3x4 *pCsc;
-    BVDC_P_Csc3x4 *pDemoCsc;
-    const BVDC_P_Csc3x4 *pRGBToYCbCr;
-    const BVDC_P_Csc3x4 *pYCbCrToRGB;
+    BCFC_Csc3x4 *pCsc;
+    BCFC_Csc3x4 *pDemoCsc;
+    const BCFC_Csc3x4 *pRGBToYCbCr;
+    const BCFC_Csc3x4 *pYCbCrToRGB;
 
     BDBG_ENTER(BVDC_P_Window_CalculateCsc_isr);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
@@ -14818,7 +15097,7 @@ void BVDC_P_Window_CalculateCsc_isr
     pDemoCsc = &hWindow->pDemoCfc->stMc;
     /* use user specified Matrix C as RGB->YCbCr matrix and
     inverse of Matrix C as YCbCr->RGB matrix. */
-    BVDC_P_Cfc_GetCfcToApplyAttenuationRGB_isr(hWindow->pMainCfc->pColorSpaceOut->stAvcColorSpace.eColorimetry, &pYCbCrToRGB, &pRGBToYCbCr);
+    BVDC_P_Cfc_GetCfcToApplyAttenuationRGB_isr(hWindow->pMainCfc->pColorSpaceExtOut->stColorSpace.eColorimetry, &pYCbCrToRGB, &pRGBToYCbCr);
 
     /* apply adjustments to primary color matrix */
     if(pCurInfo->stSplitScreenSetting.eContrast == BVDC_SplitScreenMode_eDisable)
@@ -14939,8 +15218,8 @@ void BVDC_P_Window_CalculateMosaicCsc_isr
     ( BVDC_Window_Handle               hWindow )
 {
     BVDC_P_Window_Info *pCurInfo;
-    BVDC_P_Csc3x4 *pCsc;
-    const BVDC_P_Csc3x4 *pYCbCrToRGB, *pRGBToYCbCr;
+    BCFC_Csc3x4 *pCsc;
+    const BCFC_Csc3x4 *pYCbCrToRGB, *pRGBToYCbCr;
     int i = 0;
 
     BDBG_ENTER(BVDC_P_Window_CalculateMosaicCsc_isr);
@@ -14954,7 +15233,7 @@ void BVDC_P_Window_CalculateMosaicCsc_isr
     {
         pCsc = &hWindow->astMosaicCfc[i].stMc;
 
-        BVDC_P_Cfc_GetCfcToApplyAttenuationRGB_isr(hWindow->pMainCfc->pColorSpaceOut->stAvcColorSpace.eColorimetry, &pYCbCrToRGB, &pRGBToYCbCr);
+        BVDC_P_Cfc_GetCfcToApplyAttenuationRGB_isr(hWindow->pMainCfc->pColorSpaceExtOut->stColorSpace.eColorimetry, &pYCbCrToRGB, &pRGBToYCbCr);
 
         /* apply adjustments to mosaic color matrix */
         BVDC_P_Cfc_ApplyContrast_isr(pCurInfo->sContrast, pCsc);

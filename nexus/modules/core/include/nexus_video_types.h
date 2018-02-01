@@ -162,6 +162,7 @@ typedef enum NEXUS_VideoCodec {
     NEXUS_VideoCodec_eSpark,           /* H.263 Sorenson Spark coded video */
     NEXUS_VideoCodec_eMotionJpeg,      /* Motion Jpeg video codec */
     NEXUS_VideoCodec_eH265,            /* HEVC,H.265 ITU-T SG16 WP3 and ISO/IEC JTC1/SC29/WG11 */
+    NEXUS_VideoCodec_eAvs2,            /* AVS2 coded video */
     NEXUS_VideoCodec_eMax
 } NEXUS_VideoCodec;
 
@@ -809,6 +810,7 @@ typedef enum NEXUS_SecureVideo
     NEXUS_SecureVideo_eUnsecure, /* decoder/window is only unsecure */
     NEXUS_SecureVideo_eSecure,   /* decoder/window is only secure */
     NEXUS_SecureVideo_eBoth,     /* decoder/window may switch between secure and unsecure */
+    NEXUS_SecureVideo_eNone,     /* decoder not used. only applies in combination with secure transcode. */
     NEXUS_SecureVideo_eMax
 } NEXUS_SecureVideo;
 
@@ -853,6 +855,7 @@ typedef enum NEXUS_VideoProtocolLevel
    NEXUS_VideoProtocolLevel_eL2,
    NEXUS_VideoProtocolLevel_eL3,
    NEXUS_VideoProtocolLevel_e80,
+   NEXUS_VideoProtocolLevel_e52,
    NEXUS_VideoProtocolLevel_eMax
 } NEXUS_VideoProtocolLevel;
 
@@ -877,6 +880,7 @@ typedef enum NEXUS_VideoProtocolProfile
    NEXUS_VideoProtocolProfile_eMain10,
    NEXUS_VideoProtocolProfile_e0,
    NEXUS_VideoProtocolProfile_e2,
+   NEXUS_VideoProtocolProfile_eGuango,
    NEXUS_VideoProtocolProfile_eMax
 } NEXUS_VideoProtocolProfile;
 

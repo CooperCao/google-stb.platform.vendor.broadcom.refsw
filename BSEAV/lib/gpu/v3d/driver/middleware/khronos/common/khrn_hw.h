@@ -13,7 +13,6 @@
 struct KHRN_FMEM;
 struct GLXX_HW_RENDER_STATE;
 struct EGL_IMAGE;
-struct VG_BE_RENDER_STATE;
 
 typedef enum
 {
@@ -33,6 +32,9 @@ extern void unlockCallback(void);
 /* flush all queued stuff */
 extern void khrn_hw_common_flush(void);
 
+/* finish all queued stuff */
+extern void khrn_hw_common_finish(void);
+
 /* wait for all flushed stuff to finish */
 extern void khrn_hw_common_wait(void);
 
@@ -42,27 +44,20 @@ extern void khrn_wait_for_job_done(uint64_t jobSequenceNumber);
 /* retrieve the performance counters from the job */
 extern void khrn_update_perf_counters(void);
 
-static INLINE void khrn_hw_common_finish(void)
-{
-   khrn_hw_common_flush();
-   khrn_hw_common_wait();
-}
-
 extern void khrn_issue_finish_job(void);
 extern void khrn_issue_bin_render_job(struct GLXX_HW_RENDER_STATE *rs, bool secure);
-extern void khrn_issue_vg_job(struct VG_BE_RENDER_STATE *rs, bool loadFrameUsed, bool storeFrameUsed, bool maskUsed);
 extern void khrn_issue_tfconvert_job(struct KHRN_FMEM *fmem, bool secure);
-extern void khrn_issue_swapbuffers_job(int fd, void *p, char type);
-extern void khrn_issue_fence_wait_job(void *p);
-extern void khrn_create_fence(int *fd, void **p, char type);
-extern void *khrn_fence_wait_async(int fd);
+extern void khrn_issue_swapbuffers_job(int fd, uint64_t, char type);
+extern void khrn_issue_fence_wait_job(uint64_t);
+extern void khrn_create_fence(int *fd, uint64_t *p, char type);
+extern uint64_t khrn_fence_wait_async(int fd);
 
 extern uint64_t khrn_get_last_issued_seq(void);
 extern uint64_t khrn_get_last_done_seq(void);
 
-static INLINE void khrn_memcpy(void *dest, const void *src, uint32_t size)       { khrn_par_memcpy(dest, src, size); }
-static INLINE void khrn_memset(void *dest, uint32_t val, uint32_t size)          { khrn_par_memset(dest, val, size); }
-static INLINE int  khrn_memcmp(const void *ptr1, const void *ptr2, size_t size)  { return khrn_par_memcmp(ptr1, ptr2, size); }
+static inline void khrn_memcpy(void *dest, const void *src, uint32_t size)       { khrn_par_memcpy(dest, src, size); }
+static inline void khrn_memset(void *dest, uint32_t val, uint32_t size)          { khrn_par_memset(dest, val, size); }
+static inline int  khrn_memcmp(const void *ptr1, const void *ptr2, size_t size)  { return khrn_par_memcmp(ptr1, ptr2, size); }
 
 typedef struct {
    uint64_t qpu_cycles_idle;

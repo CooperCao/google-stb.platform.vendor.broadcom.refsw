@@ -2689,7 +2689,7 @@ dma64_txunframed(dma_info_t *di, void *buf, uint len, bool commit)
 	ASSERT(di->txp[txout] == NULL);
 
 #if defined(BULK_DESCR_FLUSH)
-	DMA_MAP(di->osh,  dma64_txd64(di, di->txout), DMA64_FLUSH_LEN(1),
+	DMA_FLUSH(di->osh,	dma64_txd64(di, di->txout), DMA64_FLUSH_LEN(1),
 		DMA_TX, NULL, NULL);
 #endif /* BULK_DESCR_FLUSH */
 
@@ -2755,7 +2755,7 @@ dma_rxfill_unframed(hnddma_t *dmah, void *buf, uint len, bool commit)
 #endif /* #if !defined(BCM_SECURE_DMA) */
 
 #if defined(BULK_DESCR_FLUSH)
-	DMA_MAP(di->osh, dma64_rxd64(di, di->rxout), DMA64_FLUSH_LEN(1),
+	DMA_FLUSH(di->osh, dma64_rxd64(di, di->rxout), DMA64_FLUSH_LEN(1),
 		DMA_TX, NULL, NULL);
 #endif /* BULK_DESCR_FLUSH */
 
@@ -3299,4 +3299,46 @@ dma_txchan_reset(hnddma_t *dmah)
 
 	size = di->ntxd * sizeof(void *);
 	bzero(di->txp, size);
+}
+
+int
+dmatx_map_pkts(hnddma_t *dmah, map_pkts_cb_fn cb, void *ctx)
+{
+	uint16 start, end, i;
+	dma_info_t *di = DI_INFO(dmah);
+
+	DMA_TRACE(("%s: dmatx_map_pkts\n", di->name));
+
+	if (di->ntxd == 0) {
+		return BCME_ERROR;
+	}
+
+#ifdef BULK_PKTLIST
+	/* Walk through the DMA pkt list */
+	if (DMA_BULK_PATH(di)) {
+		void *txp = di->dma_pkt_list.head_pkt;
+
+		while (txp) {
+			/* Do map call back */
+			(void)cb(ctx, txp);
+
+			txp = PKTLINK(txp);
+		}
+
+		return BCME_OK;
+	}
+#endif
+
+	start = di->txin;
+	end = di->txout;
+
+	for (i = start; i != end; i = NEXTTXD(i)) {
+		if (di->txp[i] != NULL) {
+			/* ignoring the return 'delete' bool since hnddma
+			 * does not allow deleting pkts on the ring.
+			 */
+			(void)cb(ctx, di->txp[i]);
+		}
+	}
+	return BCME_OK;
 }

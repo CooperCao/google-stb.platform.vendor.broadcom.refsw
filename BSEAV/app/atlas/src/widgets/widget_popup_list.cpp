@@ -427,6 +427,7 @@ void CWidgetPopupList::clearButtons()
     _pListView->clear();
     _listCheckButtons.clear();
     _pSelectedButton = NULL;
+    setText("");
 }
 
 eRet CWidgetPopupList::select(CWidgetCheckButton * pButton)

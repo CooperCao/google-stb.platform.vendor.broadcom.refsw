@@ -53,6 +53,26 @@ struct bcm_sched_event_track_desc;
 struct bcm_sched_event_desc;
 struct bcm_sched_event_field_desc;
 
+typedef struct BEGL_SchedPerfCountInterface
+{
+   void               (*GetPerfNumCounterGroups)(void *context, void *session, uint32_t *numGroups);
+   BEGL_SchedStatus   (*GetPerfCounterGroupInfo)(void *context, void *session, uint32_t group, struct bcm_sched_counter_group_desc *desc);
+   BEGL_SchedStatus   (*SetPerfCounting)(void *context, void *session, BEGL_SchedCounterState state);
+   BEGL_SchedStatus   (*ChoosePerfCounters)(void *context, void *session, const struct bcm_sched_group_counter_selector *selector);
+   uint32_t           (*GetPerfCounterData)(void *context, void *session, struct bcm_sched_counter  *counters, uint32_t max_counters, uint32_t reset_counts);
+} BEGL_SchedPerfCountInterface;
+
+typedef struct BEGL_SchedEventTrackInterface
+{
+   /* Event timeline */
+   void               (*GetEventCounts)(void *context, void *session, uint32_t *numTracks, uint32_t *numEvents);
+   BEGL_SchedStatus   (*GetEventTrackInfo)(void *context, void *session, uint32_t track, struct bcm_sched_event_track_desc *track_desc);
+   BEGL_SchedStatus   (*GetEventInfo)(void *context, void *session, uint32_t event, struct bcm_sched_event_desc *event_desc);
+   BEGL_SchedStatus   (*GetEventDataFieldInfo)(void *context, void *session, uint32_t event, uint32_t field, struct bcm_sched_event_field_desc *field_desc);
+   BEGL_SchedStatus   (*SetEventCollection)(void *context, void *session, BEGL_SchedEventState state);
+   uint32_t           (*GetEventData)(void *context, void *session, uint32_t event_buffer_bytes, void *event_buffer, uint32_t *overflowed, uint64_t *timebase_us);
+} BEGL_SchedEventTrackInterface;
+
 typedef struct BEGL_SchedInterface
 {
    void              *(*Open)(void *context);
@@ -72,21 +92,6 @@ typedef struct BEGL_SchedInterface
 
    void               (*RegisterUpdateOldestNFID)(void *context, void *session, void (*update)(uint64_t));
 
-   /* Performance counters */
-   void               (*GetPerfNumCounterGroups)(void *context, void *session, uint32_t *numGroups);
-   BEGL_SchedStatus   (*GetPerfCounterGroupInfo)(void *context, void *session, uint32_t group, struct bcm_sched_counter_group_desc *desc);
-   BEGL_SchedStatus   (*SetPerfCounting)(void *context, void *session, BEGL_SchedCounterState state);
-   BEGL_SchedStatus   (*ChoosePerfCounters)(void *context, void *session, const struct bcm_sched_group_counter_selector *selector);
-   uint32_t           (*GetPerfCounterData)(void *context, void *session, struct bcm_sched_counter  *counters, uint32_t max_counters, uint32_t reset_counts);
-
-   /* Event timeline */
-   void               (*GetEventCounts)(void *context, void *session, uint32_t *numTracks, uint32_t *numEvents);
-   BEGL_SchedStatus   (*GetEventTrackInfo)(void *context, void *session, uint32_t track, struct bcm_sched_event_track_desc *track_desc);
-   BEGL_SchedStatus   (*GetEventInfo)(void *context, void *session, uint32_t event, struct bcm_sched_event_desc *event_desc);
-   BEGL_SchedStatus   (*GetEventDataFieldInfo)(void *context, void *session, uint32_t event, uint32_t field, struct bcm_sched_event_field_desc *field_desc);
-   BEGL_SchedStatus   (*SetEventCollection)(void *context, void *session, BEGL_SchedEventState state);
-   uint32_t           (*GetEventData)(void *context, void *session, uint32_t event_buffer_bytes, void *event_buffer, uint32_t *overflowed, uint64_t *timebase_us);
-
    void               (*SetMMUContext)(void *context, uint64_t physAddr, uint32_t maxVirtAddr, int64_t unsecureBinTranslation, int64_t secureBinTranslation, uint64_t platformToken);
 
    bool               (*ExplicitSync)(void *context);
@@ -97,6 +102,12 @@ typedef struct BEGL_SchedInterface
    void               (*SetSchedEvent)(void *context, uint64_t event_id);
    void               (*ResetSchedEvent)(void *context, uint64_t event_id);
    bool               (*QuerySchedEvent)(void *context, uint64_t event_id);
+
+   /* Performance counters */
+   BEGL_SchedPerfCountInterface  perf_count_iface;
+
+   /* Event timeline */
+   BEGL_SchedEventTrackInterface event_track_iface;
 
    void                 *context;
    BEGL_MemoryInterface *memIface;

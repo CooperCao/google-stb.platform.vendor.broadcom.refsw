@@ -218,7 +218,6 @@ Module::Module(const VkAllocationCallbacks *cbs, const uint32_t *code, uint32_t 
    m_extensions(m_arenaAllocator),
    m_extImports(m_arenaAllocator),
    m_variables(m_arenaAllocator),
-   m_types(m_arenaAllocator),
    m_globals(m_arenaAllocator),
    m_functions(m_arenaAllocator),
    m_entryPoints(m_arenaAllocator),
@@ -303,7 +302,6 @@ void Module::AllocateArrays(const ModuleInfo &info)
    m_names.resize(size);
    m_decorations.resize(size);
    m_variables.reserve(info.m_variableCount);
-   m_types.reserve(info.m_typeCount);
    m_globals.reserve(info.m_globalCount),
    m_functions.reserve(info.m_functionCount);
    m_entryPoints.reserve(info.m_entryPointCount);
@@ -514,38 +512,6 @@ uint32_t Module::RequireLiteralDecoration(spv::Decoration dec, const Node *n) co
    return l;
 }
 
-void Module::GetMatrixMemoryLayout(const NodeType *parent, uint32_t *matrixStride, bool *columnMajor) const
-{
-   *matrixStride = ~0u;
-   *columnMajor  = true;
-
-   if (parent == nullptr)
-      return;
-
-   auto &decorations = GetDecorations(parent);
-
-   for (const Decoration *decoration : decorations)
-   {
-      if (decoration->Is(spv::Decoration::RowMajor))
-         *columnMajor = false;
-      else if (decoration->Is(spv::Decoration::MatrixStride))
-         *matrixStride = decoration->GetLiteral();
-   }
-}
-
-void Module::GetMatrixMemoryLayout(const NodeTypeStruct *node, uint32_t index,
-                                   uint32_t *matrixStride, bool *columnMajor) const
-{
-   if (GetLiteralMemberDecoration(matrixStride, spv::Decoration::MatrixStride, node, index))
-   {
-      if (HasMemberDecoration(spv::Decoration::ColMajor, node, index))
-         *columnMajor = true;
-
-      if (HasMemberDecoration(spv::Decoration::RowMajor, node, index))
-         *columnMajor = false;
-   }
-}
-
 void Module::AddDecoration(const NodeDecorate *node)
 {
    m_decorations[node->GetTarget()->GetResultId()].push_back(&node->GetDecoration());
@@ -613,6 +579,15 @@ bool Module::GetLiteralMemberDecoration(uint32_t *literal, spv::Decoration decoT
    }
 
    return false;
+}
+
+uint32_t Module::RequireLiteralMemberDecoration(spv::Decoration decoType,
+                                                const NodeTypeStruct *node, uint32_t memberIndex) const
+{
+   uint32_t ret = 0; // Value never used
+   bool ok = GetLiteralMemberDecoration(&ret, decoType, node, memberIndex);
+   assert(ok);
+   return ret;
 }
 
 bool Module::HasDecoration(spv::Decoration decoType, const Node *node) const

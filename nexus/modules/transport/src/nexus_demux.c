@@ -100,6 +100,7 @@ NEXUS_Error NEXUS_InputBand_SetSettings(NEXUS_InputBand inputBand, const NEXUS_I
         config.IbPktLength = pSettings->packetLength;
         config.SyncDetectEn = pSettings->useInternalSync;
     }
+    config.SyncGen.Length = pSettings->parallelInput ? pSettings->packetLength : pSettings->packetLength * 8;
     rc = BXPT_SetInputBandConfig(pTransport->xpt, inputBand, &config);
     if (rc) {return BERR_TRACE(rc);}
 
@@ -111,6 +112,29 @@ NEXUS_Error NEXUS_InputBand_SetSettings(NEXUS_InputBand inputBand, const NEXUS_I
     BSTD_UNUSED(pSettings);
     return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 #endif
+}
+
+NEXUS_Error NEXUS_InputBand_ArmSyncGeneration(NEXUS_InputBand inputBand, unsigned skip)
+{
+    BERR_Code rc;
+    BXPT_InputBandConfig  config;
+
+    NEXUS_ASSERT_MODULE(); /* make sure init was called */
+    if (!NEXUS_P_InputBandIsSupported( inputBand )) {
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
+    /* Since board designers don't dynamically change tuner wiring, we can leave sync gen on */
+    BXPT_GetInputBandConfig(pTransport->xpt, inputBand, &config);
+    config.SyncGen.Enable = true;
+    config.SyncGen.Length = config.ParallelInputSel ? config.IbPktLength : config.IbPktLength * 8;
+    rc = BXPT_SetInputBandConfig(pTransport->xpt, inputBand, &config);
+    if (rc) {return BERR_TRACE(rc);}
+
+    rc = BXPT_ArmSyncGeneration(pTransport->xpt, inputBand, skip);
+    if(rc == BERR_INVALID_PARAMETER)
+    return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    return BERR_SUCCESS;
 }
 
 NEXUS_Error NEXUS_InputBand_P_SetTransportType(NEXUS_InputBand inputBand, NEXUS_TransportType transportType)
@@ -319,7 +343,7 @@ static NEXUS_Error nexus_p_find_avail_pidch(unsigned first, unsigned bound, unsi
     return NEXUS_SUCCESS;
 }
 
-NEXUS_Error nexus_p_set_pid_cc(NEXUS_P_HwPidChannel *hwPidChannel, const NEXUS_PidChannelSettings *pSettings)
+void nexus_p_set_pid_cc(NEXUS_P_HwPidChannel *hwPidChannel, const NEXUS_PidChannelSettings *pSettings)
 {
     BXPT_PidChannel_CC_Config cfg;
     bool bandContinuityCountEnabled = true;
@@ -345,9 +369,7 @@ NEXUS_Error nexus_p_set_pid_cc(NEXUS_P_HwPidChannel *hwPidChannel, const NEXUS_P
     cfg.Secondary_CC_CheckEnable = pSettings->remap.continuityCountEnabled && bandContinuityCountEnabled;
     cfg.Generate_CC_Enable = pSettings->generateContinuityCount;
     rc = BXPT_SetPidChannel_CC_Config(pTransport->xpt, hwPidChannel->status.pidChannelIndex, &cfg);
-    if (rc) return BERR_TRACE(rc);
-
-    return NEXUS_SUCCESS;
+    if (rc) BERR_TRACE(rc); /* should never happen, so don't propagate */
 }
 
 NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBand, NEXUS_PlaypumpHandle playpump, unsigned combinedPid,
@@ -675,8 +697,7 @@ NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBan
             if (rc) {rc=BERR_TRACE(rc); goto fail1;}
         }
 
-        rc = nexus_p_set_pid_cc(pidChannel, pSettings);
-        if (rc) {rc=BERR_TRACE(rc); goto fail1;}
+        nexus_p_set_pid_cc(pidChannel, pSettings);
     }
 
     if (!playpump) {
@@ -1109,8 +1130,7 @@ static NEXUS_Error NEXUS_P_HwPidChannel_SetRemapSettings( NEXUS_P_HwPidChannel *
         {
             NEXUS_PidChannelSettings settings = pidChannel->settings;
             settings.remap = *pSettings;
-            rc = nexus_p_set_pid_cc(pidChannel, &settings);
-            if (rc) {rc=BERR_TRACE(rc); goto fail;}
+            nexus_p_set_pid_cc(pidChannel, &settings);
         }
 
         pidChannel->settings.remap = *pSettings;
@@ -1243,6 +1263,7 @@ void NEXUS_PidChannel_GetSettings(
     NEXUS_OBJECT_ASSERT( NEXUS_PidChannel, pidChannel );
     BDBG_ASSERT( pSettings );
     *pSettings = pidChannel->hwPidChannel->settings;
+    pSettings->enabled = pidChannel->enabled;
 }
 
 NEXUS_Error NEXUS_PidChannel_SetSettings(
@@ -1296,8 +1317,7 @@ NEXUS_Error NEXUS_PidChannel_SetSettings(
     || pSettings->generateContinuityCount != pidChannel->hwPidChannel->settings.generateContinuityCount
     )
     {
-        rc = nexus_p_set_pid_cc(pidChannel->hwPidChannel, pSettings);
-        if (rc) {rc=BERR_TRACE(rc); goto done;}
+        nexus_p_set_pid_cc(pidChannel->hwPidChannel, pSettings);
 
         pidChannel->hwPidChannel->settings.continuityCountEnabled = pSettings->continuityCountEnabled;
         pidChannel->hwPidChannel->settings.generateContinuityCount = pSettings->generateContinuityCount;

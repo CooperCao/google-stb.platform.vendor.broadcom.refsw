@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,12 +36,19 @@
  * ANY LIMITED REMEDY.
  ******************************************************************************/
 
+/** \file c_utils.h
+ *
+ * Common utility functions and macros.
+ *
+ */
 #ifndef _C_UTILS_H_
 #define _C_UTILS_H_
 
-#include "fp_sdk_config.h"
-
-
+#if defined(__FIREPATH__)
+#  include "fp_sdk_config.h"
+#elif defined(DOXYGEN)
+#  define __FIREPATH__
+#endif
 
 #ifndef ASMCPP
 
@@ -194,10 +201,6 @@
  */
 #define __grouped_vmem(n)               __attribute__((section_prefix(".vmem" QUOTE_ARG(n))))
 
-#if defined(CELIVERO) || defined(CELTRIX)
-#  define __buf4k                       __attribute__((section_prefix(".buf4k")))
-#endif
-
 #endif  /* __FIREPATH__ */
 
 
@@ -236,11 +239,12 @@
 #  else
 #    define __packed
 #  endif
+#  define __alwayspacked                __attribute__((packed))
 #endif
 
 /** Shrink an enum to the minimum size required to contain its values */
 #ifndef __packed_enum
-#  define __packed_enum                 __attribute__((packed))
+#  define __packed_enum                 __alwayspacked
 #endif
 
 /** Instruct the compiler to align a variable on an n-byte boundary */
@@ -256,6 +260,14 @@
 #  define _Static_assert(exp, msg) \
     typedef int _Static_assert_type [(exp) ? 1 : -1] __unused
 #endif
+
+#if defined(__FIREPATH__) && !defined(ASMCPP) && !defined(__LINKER_SCRIPT__)
+/* Ensure that we are not being built with short enums, as this will break
+ * binary compatibility with compiled SDK libraries. */
+enum _fp_sdk_test_enum_size { _fp_sdk_test_enum_val = 1 };
+_Static_assert(sizeof(enum _fp_sdk_test_enum_size) == sizeof(int),
+        "SDK enum size did not match. Are you compiling with --short-enums?");
+#endif /* __FIREPATH__ && !ASMCPP && !__LINKER_SCRIPT__ */
 
 #endif /* !defined(ASMCPP) */
 

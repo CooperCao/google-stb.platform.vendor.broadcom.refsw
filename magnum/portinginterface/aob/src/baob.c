@@ -748,7 +748,7 @@ BERR_Code BAOB_ProcessNotification(
 BERR_Code BAOB_InstallCallback(
     BAOB_Handle hDev,                   /* [in] Device handle */
     BAOB_Callback callbackType,         /* [in] Type of callback */
-    BAOB_CallbackFunc pCallback,        /* [in] Function Ptr to callback */
+    BAOB_CallbackFunc pCallback_isr,    /* [in] Function Ptr to callback */
     void *pParam                        /* [in] Generic parameter send on callback */
     )
 {
@@ -762,11 +762,11 @@ BERR_Code BAOB_InstallCallback(
     switch( callbackType )
     {
         case BAOB_Callback_eLockChange:
-            hDev->pCallback[callbackType] = pCallback;
+            hDev->pCallback[callbackType] = pCallback_isr;
             hDev->pCallbackParam[callbackType] = pParam;
             break;
         case BAOB_Callback_eAsyncStatusReady:
-            hDev->pCallback[callbackType] = pCallback;
+            hDev->pCallback[callbackType] = pCallback_isr;
             hDev->pCallbackParam[callbackType] = pParam;
             break;
         default:

@@ -10,7 +10,7 @@
 #include "Framebuffer.h"
 #include "Options.h"
 #include "LinkResult.h"
-#include "DerivedViewportState.h"
+#include "Viewport.h"
 
 #include "libs/core/gfx_buffer/gfx_buffer_translate_v3d.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
@@ -143,10 +143,6 @@ void CommandBufferBuilder::BeginRenderPass(
    VkExtent3D  fbDims;
    frambuffer->Dimensions(&fbDims);
 
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   m_curState.SetCullEverything(false);
-#endif
-
    m_numPixelsX = fbDims.width;
    m_numPixelsY = fbDims.height;
 
@@ -230,10 +226,6 @@ void CommandBufferBuilder::BeginSecondaryCommandBuffer(
    m_curSubpassIndex                = inheritanceInfo->subpass;
 
    auto &renderPass = *m_curRenderPassState.renderPass;
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   m_curState.SetCullEverything(false);
-#endif
 
    // Ensure our subpass vector is the right size
    m_subpasses.clear(); // Ensure we get newly created objects in the vector
@@ -486,14 +478,14 @@ void CommandBufferBuilder::PatchMainShadrecAttributeAddressesAndMaxIndex(
       v3d_unpack_shadrec_gl_attr(&attr, srcPtr + offset);
       assert(attr.addr == 0);
       attr.addr = physAddr;
-#if V3D_VER_AT_LEAST(4,1,34,0)
+
       uint32_t maxIndex;
       const auto &bindDesc = pipe->GetVertexBindingDesc(attDesc.binding);
-      if (!vBuf.CalcMaxIndex(maxIndex, attDesc, bindDesc))
+      if (!vBuf.CalcMaxIndex(maxIndex, attDesc, bindDesc.stride))
          throw bvk::nothing_to_do();
       assert(attr.max_index == 0);
       attr.max_index = gfx_umin(maxIndex, V3D_VCD_MAX_INDEX);
-#endif
+
       v3d_pack_shadrec_gl_attr(dstPtr + offset, &attr);
    }
 }
@@ -597,13 +589,12 @@ VkExtent3D CommandBufferBuilder::UniformPatcher::GetTextureBaseExtent(uint32_t u
    return ds.descriptorSet->GetTextureSize(descInfo.bindingPoint, descInfo.element);
 }
 
-void CommandBufferBuilder::SetPushConstants(PipelineLayout *layout, VkShaderStageFlags stageFlags,
-                                            uint32_t offset, uint32_t size, const void *pValues)
+void CommandBufferBuilder::SetPushConstants(uint32_t bytesRequired, uint32_t offset,
+                                            uint32_t size, const void *pValues)
 {
    // Resize pushConstant buffer if needed
-   uint32_t pushConstBytesNeeded = layout->GetPushConstantBytesRequired();
-   if (pushConstBytesNeeded > m_pushConstants.size())
-      m_pushConstants.resize(pushConstBytesNeeded);
+   if (bytesRequired > m_pushConstants.size())
+      m_pushConstants.resize(bytesRequired);
 
    assert(offset + size <= m_pushConstants.size());
 
@@ -646,9 +637,9 @@ void CommandBufferBuilder::CopyAndPatchUniformBuffer(
    // Include enough room for read-ahead
    // TODO : It would be nicer to have the read-ahead space just at the end of the
    // block, rather than in each allocation, but that's a more complex solution.
-   v3d_size_t size = uniforms.defaults.size() * sizeof(Pipeline::Uniform) + V3D_MAX_QPU_UNIFS_READAHEAD;
+   v3d_size_t size = uniforms.defaults.size() * sizeof(Pipeline::Uniform);
 
-   m_cmdBuf->NewDevMemRange(&uniformMem, size, V3D_QPU_UNIFS_ALIGN);
+   m_cmdBuf->NewDevMemRange(&uniformMem, size + V3D_MAX_QPU_UNIFS_READAHEAD, V3D_QPU_UNIFS_ALIGN);
    Pipeline::Uniform *uniformsPtr = static_cast<Pipeline::Uniform*>(uniformMem.Ptr());
    memcpy(uniformsPtr, uniforms.defaults.data(), size);
 
@@ -656,9 +647,9 @@ void CommandBufferBuilder::CopyAndPatchUniformBuffer(
       pipe.GetLinkResult().m_descriptorTables[shaderFlavour],
       m_curState.BoundDescriptorSetArray(pipe.GetBindPoint()));
 
-   DerivedViewportState derived;
+   const Viewport *vp = nullptr;
    if (pipe.GetBindPoint() == VK_PIPELINE_BIND_POINT_GRAPHICS)
-      derived.Set(m_curState.Viewport());
+      vp = &m_curState.GetViewport();
 
    for (const auto &patch: uniforms.patches)
    {
@@ -670,23 +661,21 @@ void CommandBufferBuilder::CopyAndPatchUniformBuffer(
          switch ((BackendSpecialUniformFlavour)patch.value)
          {
          case BACKEND_SPECIAL_UNIFORM_VP_SCALE_X:
-            ptr->f = derived.internalScale[0];
+            ptr->f = vp->internalScale[0];
             break;
          case BACKEND_SPECIAL_UNIFORM_VP_SCALE_Y:
-            ptr->f = derived.internalScale[1];
+            ptr->f = vp->internalScale[1];
             break;
          case BACKEND_SPECIAL_UNIFORM_VP_OFFSET_Z:
-            ptr->f = derived.internalZOffset;
-            break;
          case BACKEND_SPECIAL_UNIFORM_DEPTHRANGE_NEAR:
-            ptr->f = derived.internalDepthRangeNear;
+            ptr->f = vp->depthNear;
             break;
          case BACKEND_SPECIAL_UNIFORM_DEPTHRANGE_FAR:
-            ptr->f = derived.internalDepthRangeFar;
+            ptr->f = vp->depthFar;
             break;
          case BACKEND_SPECIAL_UNIFORM_VP_SCALE_Z:
          case BACKEND_SPECIAL_UNIFORM_DEPTHRANGE_DIFF:
-            ptr->f = derived.internalDepthRangeDiff;
+            ptr->f = vp->depthDiff;
             break;
          default:
             unreachable();
@@ -707,9 +696,6 @@ void CommandBufferBuilder::CopyAndPatchUniformBuffer(
          break;
       case BACKEND_UNIFORM_SSBO_ADDRESS:
          ptr->u = patcher.CalcBufferAddress(patch.value, /*ssbo=*/true);
-         break;
-      case BACKEND_UNIFORM_ATOMIC_ADDRESS:
-         NOT_IMPLEMENTED_YET;
          break;
       case BACKEND_UNIFORM_SSBO_SIZE:
          ptr->u = patcher.CalcBufferUsableSpace(patch.value, /*ssbo=*/true, *this);
@@ -739,44 +725,12 @@ void CommandBufferBuilder::CopyAndPatchUniformBuffer(
       case BACKEND_UNIFORM_TEX_LEVELS:
          ptr->u = patcher.GetTextureNumLevels(patch.value);
          break;
+      case BACKEND_UNIFORM_ATOMIC_ADDRESS: // Don't exist in Vulkan
       default:
          unreachable();
       }
    }
 }
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-bool CommandBufferBuilder::CalcMaxAllowedIndexAndInstance(
-   const LinkResult &linkData,
-   uint32_t         *maxIndex,
-   uint32_t         *maxInstance) const
-{
-   const GraphicsPipeline *pipe = m_curState.BoundGraphicsPipeline();
-
-   *maxIndex = m_device->GetPhysicalDevice()->Limits().maxDrawIndexedIndexValue;
-   *maxInstance = std::numeric_limits<uint32_t>::max();
-
-   for (uint32_t n = 0; n < linkData.m_attrCount; n++)
-   {
-      uint32_t attrIndex   = linkData.m_attr[n].idx;
-
-      const auto &attDesc  = pipe->GetVertexAttributeDesc(attrIndex);
-      const auto &bindDesc = pipe->GetVertexBindingDesc(attDesc.binding);
-      const auto &vBuf     = m_cmdBuf->CurState().BoundVertexBuffer(attDesc.binding);
-
-      uint32_t attMaxIndex;
-      if (!vBuf.CalcMaxIndex(attMaxIndex, attDesc, bindDesc))
-         return false;
-
-      if (bindDesc.inputRate == VK_VERTEX_INPUT_RATE_VERTEX)
-         *maxIndex = std::min(*maxIndex, attMaxIndex);
-      else
-         *maxInstance = std::min(*maxInstance, attMaxIndex);
-   }
-   return true;
-}
-
-#endif
 
 void CommandBufferBuilder::InsertRenderTargetCfg(bool doubleBuffer, bool earlyDSClear)
 {
@@ -862,9 +816,7 @@ void CommandBufferBuilder::AddStore(uint32_t rpIndex, v3d_ldst_buf_t buf, bool r
 
    v3d_cl_store(CLPtr(), buf, ls.memory_format, ls.flipy,
       ls.dither, decimate, ls.pixel_format, /*clear=*/false,
-#if V3D_VER_AT_LEAST(4,1,34,0)
       ls.chan_reverse, ls.rb_swap,
-#endif
       ls.stride, ls.flipy_height_px, ls.addr);
 }
 
@@ -877,9 +829,7 @@ void CommandBufferBuilder::AddLoad(uint32_t rpIndex, v3d_ldst_buf_t buf)
    const v3d_tlb_ldst_params  &ls = m_tlbAttachmentInfo[rpIndex].ldstParams;
 
    v3d_cl_load(CLPtr(), buf, ls.memory_format, ls.flipy, ls.decimate, ls.pixel_format,
-#if V3D_VER_AT_LEAST(4,1,34,0)
       ls.load_alpha_to_one, ls.chan_reverse, ls.rb_swap,
-#endif
       ls.stride, ls.flipy_height_px, ls.addr);
 }
 
@@ -961,9 +911,7 @@ void CommandBufferBuilder::AddTileListStores()
       // We must have at least one store - so add a dummy one
       v3d_cl_store(CLPtr(), V3D_LDST_BUF_NONE, V3D_MEMORY_FORMAT_RASTER, /*flipy=*/false,
          V3D_DITHER_OFF, V3D_DECIMATE_SAMPLE0, V3D_PIXEL_FORMAT_SRGB8_ALPHA8, /*clear=*/false,
-#if V3D_VER_AT_LEAST(4,1,34,0)
          /*chan_reverse=*/false, /*rb_swap=*/false,
-#endif
          /*stride=*/0, /*height=*/0, /*addr=*/0);
    }
 

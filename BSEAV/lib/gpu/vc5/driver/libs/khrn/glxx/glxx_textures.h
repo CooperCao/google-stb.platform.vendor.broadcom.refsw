@@ -15,7 +15,7 @@ typedef struct
    GLXX_TEXTURE_T *m_cube_array;
    GLXX_TEXTURE_T *m_3d;
    GLXX_TEXTURE_T *m_2darray;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    GLXX_TEXTURE_T *m_1d;
    GLXX_TEXTURE_T *m_1darray;
 #endif

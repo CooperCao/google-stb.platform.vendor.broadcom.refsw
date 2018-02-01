@@ -62,6 +62,7 @@ BSEAV = $(shell cd "../../.." && pwd)
 
 NEXUS_TOP = $(shell cd "../../../../nexus" && pwd)
 NEXUS_PLATFORM ?= $(PLATFORM)
+NXCLIENT_SUPPORT ?= y
 ifeq ($(NEXUS_PLATFORM),)
 $(error Please define NEXUS_PLATFORM first)
 endif
@@ -323,7 +324,7 @@ include $(NEXUS_TOP)/lib/os/b_os_lib_targets.inc
 api:  $(ATLAS_BIN_DIR) $(ATLAS_ODIR) b_os_lib_target_build
 	@echo [Build..... Nexus]
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/build  INSTALL_DIR=$(ATLAS_BIN_DIR)
-	${Q_}$(CP) -f $(NEXUS_BIN_DIR)/lib*.so $(ATLAS_BIN_DIR)
+	${Q_}$(CP) -du --preserve=links $(NEXUS_BIN_DIR)/lib*.so $(ATLAS_BIN_DIR)
 ifeq  ($(NEXUS_MODE),proxy)
 	@echo [Install... KernelMode Driver to $(ATLAS_BIN_DIR)]
 	${Q_}$(CP)   $(NEXUS_BIN_DIR)/nexus.ko $(ATLAS_BIN_DIR)
@@ -421,6 +422,7 @@ APP_OBJECTS += \
     timebase.o \
     thumb.o \
     audio_decode.o \
+    audio_playback.o \
     audio_processing.o \
     remote.o \
     control.o \
@@ -465,7 +467,13 @@ APP_OBJECTS += \
     panel_network_wifi.o \
     panel_bluetooth.o \
     panel_keyboard.o \
+    wav_file.o \
     main.o
+
+ifeq ($(BDSP_MS12_SUPPORT),y)
+APP_OBJECTS += \
+    panel_audio_ac4.o
+endif
 
 ifeq ($(JPEG_SUPPORT),y)
 ifeq ($(CPUTEST_SUPPORT),y)
@@ -650,6 +658,7 @@ ATLAS_DIRS += \
 	$(NEXUS_TOP)/nxclient/apps/utils
 APP_OBJECTS += budp_dccparse.o
 APP_OBJECTS += budp_bitread.o
+APP_OBJECTS += budp_priv.o
 APP_OBJECTS += parse_userdata.o
 APP_OBJECTS += closed_caption.o
 CFLAGS += -DDCC_SUPPORT
@@ -767,6 +776,7 @@ APP_OBJECTS += \
 	control_nx.o \
 	display_nx.o \
 	audio_decode_nx.o \
+	audio_playback_nx.o \
 	bluetooth_nx.o \
 	audio_capture_nx.o \
 	band_nx.o \
@@ -1068,7 +1078,7 @@ nxclient: api
 	${Q_}$(MAKE) -C $(NXCLIENT_DIR)/build -f Makefile
 	${Q_}$(MAKE) -C $(NXCLIENT_DIR)/server -f Makefile
 	${Q_}$(CP) -f $(NEXUS_BIN_DIR)/nxserver $(ATLAS_BIN_DIR)
-	${Q_}$(CP) -fu $(NEXUS_BIN_DIR)/lib*.so $(ATLAS_BIN_DIR)
+	${Q_}$(CP) -du --preserve=links $(NEXUS_BIN_DIR)/lib*.so $(ATLAS_BIN_DIR)
 
 nxclient-clean:
 	${Q_}$(MAKE) -C $(NXCLIENT_DIR)/build -f Makefile clean
@@ -1481,7 +1491,7 @@ endif
 	${Q_}$(CP) $(NEXUS_BIN_DIR)/nexus $(STAGING_DIR)
 ifeq ($(NXCLIENT_SUPPORT),y)
 	${Q_}$(CP) $(NEXUS_BIN_DIR)/nxserver $(STAGING_DIR)
-	${Q_}$(CP) $(NEXUS_BIN_DIR)/lib*.so $(STAGING_DIR)
+	${Q_}$(CP) -du --preserve=links $(NEXUS_BIN_DIR)/lib*.so $(STAGING_DIR)
 endif
 	${Q_}chmod +x $(STAGING_DIR)/nexus
 ifeq ($(CABLECARD_SUPPORT),y)
@@ -1517,6 +1527,12 @@ install-wlan-files:
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/wl $(STAGING_DIR)
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/wlinstall $(STAGING_DIR)
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/wl.ko $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/wlplat.ko $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/nvram $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/nvramd $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/envram $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/envrams $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/libnvram.so $(STAGING_DIR)
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/libnl-3.so* $(STAGING_DIR)
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/libnl-genl-3.so* $(STAGING_DIR)
 	${Q_}$(CP)  ../scripts/atlas_wlan_prep.sh $(STAGING_DIR)
@@ -1524,7 +1540,7 @@ install-wlan-files:
 	${Q_}$(CP)  ../scripts/udhcpc.script $(STAGING_DIR)
 	${Q_}chmod 755 $(STAGING_DIR)/udhcpc.script
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/bcm97271*.txt $(STAGING_DIR)
-	${Q_}$(CP) $(ATLAS_BIN_DIR)/wlan_plat.ko $(STAGING_DIR)
+#	${Q_}$(CP) $(ATLAS_BIN_DIR)/wlan_plat.ko $(STAGING_DIR)
 else
 install-wlan-files:
 #intentionally left empty
@@ -1637,7 +1653,7 @@ endif
 ####
 install-config-files:
 	${Q_}cd ../; \
-		$(CP) -r images/bcmlogo.png images scripts $(STAGING_DIR)
+		$(CP) -r images/bcmlogo.png images scripts sounds $(STAGING_DIR)
 	${Q_}$(CP) -r ../scripts/atlas.cfg $(STAGING_DIR)/atlas.cfg
 	${Q_}if [ "$(NEXUS_USE_7252S_GW)" = "y" ]; then \
 		$(CP) ../channelmap/cable.channels.xml $(STAGING_DIR)/channels.xml; \
@@ -1658,7 +1674,7 @@ bin-install-config-files:
 # you can run this manually with "make bin-install-config-files"
 	@echo  [Install... config files to $(ATLAS_BIN_DIR)]
 	${Q_}cd ../; \
-		$(CP) -r images/bcmlogo.png images scripts $(ATLAS_BIN_DIR)
+		$(CP) -r images/bcmlogo.png images scripts sounds $(ATLAS_BIN_DIR)
 	${Q_}$(CP) -r ../scripts/atlas.cfg $(ATLAS_BIN_DIR)/atlas.cfg
 	${Q_}if [ "$(NEXUS_USE_7252S_GW)" = "y" ]; then \
 		$(CP) ../channelmap/cable.channels.xml $(STAGING_DIR)/channels.xml; \

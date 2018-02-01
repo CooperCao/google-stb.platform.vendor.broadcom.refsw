@@ -45,7 +45,7 @@
 #include <assert.h>
 #include <dirent.h>
 #include "bbMailAPI.h"
-#include "bbSysNvmManager.h"
+//#include "bbSysNvmManager.h"
 #include "zigbee_api.h"
 #include "zigbee_common.h"
 
@@ -93,7 +93,7 @@ void NVM_ReadFileInd( NVM_ReadFileIndDescr_t *readFileFromHostParam)
         goto read_file_error;
     }
 
-    sprintf(filename, "/data/zigbee/dat%d.bin", readFileFromHostParam->params.fileIndex);
+    sprintf(filename, "/tmp/zigbee/dat%d.bin", readFileFromHostParam->params.fileIndex);
     //returnData.payload.size = 0;
 
     if ((fd = open_func(filename, O_CREAT | O_RDONLY /*O_WRONLY*/)) == -1) {
@@ -256,7 +256,7 @@ void Zigbee_NVM_Init(
 {
     open_fd = -1;
     open_dir_fd = (DIR *)(-1);
-    sprintf(dirname, "/data/zigbee");
+    sprintf(dirname, "/tmp/zigbee");
     open_dir_fd = opendir(dirname);
 
     if (open_func_user) {
@@ -317,8 +317,8 @@ void NVM_OpenFileInd( NVM_OpenFileIndDescr_t *openFileIndDescr)
         goto open_file_error;
     }
 
-    sprintf(org_filename, "/data/zigbee/dat%d.bin", openFileIndDescr->params.fileIndex);
-    sprintf(tmp_filename, "/data/zigbee/dat%d.bin.tmp", openFileIndDescr->params.fileIndex);
+    sprintf(org_filename, "/tmp/zigbee/dat%d.bin", openFileIndDescr->params.fileIndex);
+    sprintf(tmp_filename, "/tmp/zigbee/dat%d.bin.tmp", openFileIndDescr->params.fileIndex);
 
     if ((org_fd = open_func(org_filename, O_RDONLY)) == -1) {
         /* File does not already exist. */
@@ -366,7 +366,7 @@ void NVM_CloseFileInd( NVM_CloseFileIndDescr_t *closeFileIndDescr)
         goto close_file_error;
     }
 
-    //sprintf(filename, "/data/zigbee/dat%d.bin", openFileIndDescr->params.id);
+    //sprintf(filename, "/tmp/zigbee/dat%d.bin", openFileIndDescr->params.id);
 
     if (fdatasync(open_fd)) {
         printf("fdatasync not successful\n");
@@ -475,8 +475,8 @@ void NVM_WriteFileInd( NVM_WriteFileIndDescr_t *writeFileToHostParam)
         goto write_file_error;
     }
 
-    sprintf(org_filename, "/data/zigbee/dat%d.bin", writeFileToHostParam->params.fileIndex);
-    sprintf(tmp_filename, "/data/zigbee/dat%d.bin.tmp", writeFileToHostParam->params.fileIndex);
+    sprintf(org_filename, "/tmp/zigbee/dat%d.bin", writeFileToHostParam->params.fileIndex);
+    sprintf(tmp_filename, "/tmp/zigbee/dat%d.bin.tmp", writeFileToHostParam->params.fileIndex);
 
     /*
        To ensure no data integrity issue with file, during possible power-loss in the middle of update:
@@ -536,7 +536,7 @@ void NVM_WriteFileInd( NVM_WriteFileIndDescr_t *writeFileToHostParam)
     if(writeFileToHostParam->params.fileIndex == CC_PROFILE_ID){
         dumpOutTestResult(pData, length);
         int appendFileFd = -1;
-        if ((appendFileFd = open_func("/data/zigbee/datReports.bin", O_WRONLY | O_CREAT | O_APPEND)) != -1) {
+        if ((appendFileFd = open_func("/tmp/zigbee/datReports.bin", O_WRONLY | O_CREAT | O_APPEND)) != -1) {
             write_func(appendFileFd, pData, length);
             if (fdatasync(appendFileFd)) {
                 printf("fdatasync not successful\n");

@@ -2200,9 +2200,9 @@ void BCMINITFN(wlc_init)(wlc_info_t *wlc)
 	/* init probe response timeout */
 	wlc_write_shm(wlc, M_PRS_MAXTIME(wlc), wlc->prb_resp_timeout);
 
-	/* init max burst txop (framebursting) */
-	wlc_write_shm(wlc, M_MBURST_TXOP(wlc),
-	              (WLC_HT_GET_RIFS(wlc->hti) ? (EDCF_AC_VO_TXOP_AP << 5) : MAXFRAMEBURST_TXOP));
+	/* limit frameburst txop by country */
+	wlc_ht_frameburst_limit(wlc->hti);
+
 	/* in case rifs was set when not up, need to run war here */
 	phy_misc_tkip_rifs_war(pi, WLC_HT_GET_RIFS(wlc->hti));
 
@@ -6697,6 +6697,20 @@ BCMATTACHFN(wlc_attach)(void *wl, uint16 vendor, uint16 device, uint unit, uint 
 	}
 #endif
 
+#if defined(WL_2G2X2LOCK)
+	/* Default in 2G */
+	wlc->bandlocked = TRUE;
+	wlc_bandlock(wlc, WLC_BAND_2G);
+
+	if (CHSPEC_IS2G(wlc->chanspec)) {
+		/* Default to cores 0 and 1 for 2G chain lock */
+		wlc_stf_txchain_set(wlc, 0x3, TRUE, WLC_TXCHAIN_ID_2G2X2LOCK);
+		wlc_stf_rxchain_set(wlc, 0x3, TRUE);
+	} else {
+		WL_ERROR(("wl%d: %s: -2glock- chanspec must be 2G band.\n", unit, __FUNCTION__));
+	}
+#endif
+
 	return ((void*)wlc);
 
 fail:
@@ -8804,8 +8818,10 @@ wlc_watchdog(void *arg)
 	wlc_radio_upd(wlc);
 #if defined(STA) && !defined(BCMNODOWN)
 	/* if ismpc, driver should be in down state if up/down is allowed */
+#ifndef WAR_USE_MPC2_UNASSOCIATED_S2
 	if (wlc->mpc && wlc_ismpc(wlc))
 		ASSERT(!wlc->pub->up);
+#endif
 #endif /* STA && !BCMNODOWN */
 	/* Please dont add anything here (always mpc stuff should be end) */
 
@@ -9376,6 +9392,11 @@ BCMUNINITFN(wlc_down)(wlc_info_t *wlc)
 	/* wlc_bmac_down_finish has done wlc_coredisable(). so clk is off */
 	wlc->clk = FALSE;
 
+	FOREACH_BSS(wlc, i, bsscfg) {
+		/* BCMC SCBs needs to be de-allocated, if there is any */
+		wlc_bsscfg_bcmcscbfree(wlc, bsscfg);
+	}
+
 	/* Verify all packets are flushed from the driver */
 	if (PKTALLOCED(wlc->osh) > 0) {
 		WL_ERROR(("wl%d: %d packets not freed at wlc_down. MBSS=%d\n",
@@ -9806,6 +9827,19 @@ wlc_change_band(wlc_info_t *wlc, int band)
 		/* sync up phy/radio chanspec */
 		wlc_set_phy_chanspec(wlc, chspec);
 	}
+
+#if defined(WL_2G2X2LOCK)
+	/* Set chains based on band */
+	if (CHSPEC_IS2G(wlc->chanspec)) {
+		wlc_stf_txchain_set(wlc, 0x3, TRUE, WLC_TXCHAIN_ID_2G2X2LOCK);
+		wlc_stf_rxchain_set(wlc, 0x3, TRUE);
+	} else if (CHSPEC_IS5G(wlc->chanspec)) {
+		wlc_stf_txchain_set(wlc, wlc->stf->hw_txchain, TRUE, WLC_TXCHAIN_ID_2G2X2LOCK);
+		wlc_stf_rxchain_set(wlc, wlc->stf->hw_rxchain, TRUE);
+	} else {
+		WL_ERROR(("%s:%d ERROR unknown chanspec for WL_2G2X2LOCK. 0x%x\n", __FUNCTION__, __LINE__, wlc->chanspec));
+	}
+#endif
 
 	return BCME_OK;
 }
@@ -11001,25 +11035,27 @@ wlc_doioctl(void *ctx, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 		if (bcmerror)
 			break;
 #ifdef BCMCCX
-	        if (CAC_ENAB(wlc->pub) && AP_ENAB(wlc->pub))
-	                wlc->pub->cmn->_cac = FALSE;
+		if (CAC_ENAB(wlc->pub) && AP_ENAB(wlc->pub))
+			wlc->pub->cmn->_cac = FALSE;
 #endif  /* BCMCCX */
 
-	        wlc_ap_upd(wlc, bsscfg);
+		wlc_ap_upd(wlc, bsscfg);
 
-	        /* always turn off WET when switching mode */
-	        wlc->wet = FALSE;
-	        /* always turn off MAC_SPOOF when switching mode */
-	        wlc->mac_spoof = FALSE;
+		if (!APSTA_ENAB(wlc->pub)) {
+			/* always turn off WET when switching mode */
+			wlc->wet = FALSE;
+			/* always turn off MAC_SPOOF when switching mode */
+			wlc->mac_spoof = FALSE;
+		}
 
-	        if (wasup) {
-	                WL_APSTA_UPDN(("wl%d: WLC_SET_AP -> wl_up()\n", wlc->pub->unit));
-	                bcmerror = wl_up(wlc->wl);
-	        }
+		if (wasup) {
+			WL_APSTA_UPDN(("wl%d: WLC_SET_AP -> wl_up()\n", wlc->pub->unit));
+			bcmerror = wl_up(wlc->wl);
+		}
 #ifdef STA
-	        wlc_radio_mpc_upd(wlc);
+        wlc_radio_mpc_upd(wlc);
 #endif /* STA */
-	        break;
+        break;
 	}
 
 	case WLC_GET_AP:
@@ -12174,6 +12210,9 @@ wlc_doiovar(void *hdl, uint32 actionid,
 		wlc->mpc = bool_val;
 #ifdef STA
 		wlc_radio_mpc_upd(wlc);
+#ifdef WAR_USE_MPC2_UNASSOCIATED_S2
+        wlc_radio_upd(wlc);
+#endif
 
 #ifdef BCMNODOWN
 		/* enable radio immediately upon MPC disable */

@@ -3,7 +3,7 @@
  ******************************************************************************/
 #pragma once
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 
 /* The ordering in this enum is important to the compiler code. It is assumed
  * that UIF || UBLinear is equivalent to < LT. Keeping ublinear == 0 also allows

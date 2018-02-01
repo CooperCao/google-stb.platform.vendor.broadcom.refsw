@@ -8,77 +8,9 @@
 #include "interface/khronos/common/khrn_client.h"
 #include "interface/khronos/egl/egl_int_impl.h"
 #include "middleware/khronos/egl/egl_platform.h"
+#include "middleware/khronos/common/khrn_mem.h"
 
 #include <stdlib.h>
-
-/*
-   surface_pool
-
-   cache for a small number of pre-allocated surface objects
-
-   Validity:
-   surfaces[i] is valid if allocated & (1<<i)
-*/
-
-#define EGL_SURFACE_POOL_SIZE 2
-static struct
-{
-   EGL_SURFACE_T surfaces[EGL_SURFACE_POOL_SIZE];
-   uint32_t allocated;
-} surface_pool;
-
-
-/*
-   EGL_SURFACE_T* egl_surface_pool_alloc(void)
-
-   Implementation notes:
-
-   We have a small static pool of structures (surface_pool) which we try and allocate out of
-   in order to reduce memory fragmentation. When we have run out of space in the pool we
-   resort to malloc.
-
-   Preconditions:
-
-   Whoever calls this must initialise (or free) the returned structure in order to satisfy the invariant
-   on surface_pool.
-
-   Postconditions:
-
-   Return value is NULL or an uninitialised EGL_SURFACE_T structure, valid until egl_surface_pool_free
-   is called.
-*/
-
-static EGL_SURFACE_T* egl_surface_pool_alloc(void)
-{
-   int i = 0;
-
-   while(surface_pool.allocated & (1 << i))
-      i++;
-
-   if (i < EGL_SURFACE_POOL_SIZE)
-   {
-      surface_pool.allocated |= 1 << i;
-      return &surface_pool.surfaces[i];
-   }
-   else
-   {
-      return (EGL_SURFACE_T*)malloc(sizeof(EGL_SURFACE_T));
-   }
-}
-
-static void egl_surface_pool_free(EGL_SURFACE_T* surface)
-{
-   unsigned int i = (unsigned int) (surface - surface_pool.surfaces);
-
-   if (i < EGL_SURFACE_POOL_SIZE)
-   {
-      surface_pool.allocated &= ~(1 << i);
-   }
-   else
-   {
-      free((void*)surface);
-   }
-}
 
 EGLint egl_surface_check_attribs(
    EGL_SURFACE_TYPE_T type,
@@ -102,57 +34,66 @@ EGLint egl_surface_check_attribs(
 
    while (*attrib_list != EGL_NONE) {
       int name = *attrib_list++;
-      int value = *attrib_list++;
+      int value; /* read only if we recognise the name */
 
       switch (name) {
 
       case EGL_VG_COLORSPACE:
+         value = *attrib_list++;
          if (value != EGL_VG_COLORSPACE_sRGB && value != EGL_VG_COLORSPACE_LINEAR)
             return EGL_BAD_ATTRIBUTE;
          break;
       case EGL_VG_ALPHA_FORMAT:
+         value = *attrib_list++;
          if (value != EGL_VG_ALPHA_FORMAT_NONPRE && value != EGL_VG_ALPHA_FORMAT_PRE)
             return EGL_BAD_ATTRIBUTE;
          break;
 
       /* For WINDOW types only */
       case EGL_RENDER_BUFFER:
+         value = *attrib_list++;
          if (type != WINDOW || (value != EGL_SINGLE_BUFFER && value != EGL_BACK_BUFFER))
             return EGL_BAD_ATTRIBUTE;
          break;
 
       /* For PBUFFER types only */
       case EGL_WIDTH:
+         value = *attrib_list++;
          if (type != PBUFFER || value < 0)
             return EGL_BAD_PARAMETER;
          if (width != NULL)
             *width = value;
          break;
       case EGL_HEIGHT:
+         value = *attrib_list++;
          if (type != PBUFFER || value < 0)
             return EGL_BAD_PARAMETER;
          if (height != NULL)
             *height = value;
          break;
       case EGL_LARGEST_PBUFFER:
+         value = *attrib_list++;
          if (type != PBUFFER || (value != EGL_FALSE && value != EGL_TRUE))
             return EGL_BAD_ATTRIBUTE;
          if (largest_pbuffer != NULL)
             *largest_pbuffer = value;
          break;
       case EGL_TEXTURE_FORMAT:
+         value = *attrib_list++;
          if (type != PBUFFER || (value != EGL_NO_TEXTURE && value != EGL_TEXTURE_RGB && value != EGL_TEXTURE_RGBA))
             return EGL_BAD_ATTRIBUTE;
          if (texture_format != NULL)
             *texture_format = value;
          break;
       case EGL_TEXTURE_TARGET:
+         value = *attrib_list++;
          if (type != PBUFFER || (value != EGL_NO_TEXTURE && value != EGL_TEXTURE_2D))
             return EGL_BAD_ATTRIBUTE;
          if (texture_target != NULL)
             *texture_target = value;
          break;
       case EGL_MIPMAP_TEXTURE:
+         value = *attrib_list++;
          if (type != PBUFFER || (value != EGL_FALSE && value != EGL_TRUE))
             return EGL_BAD_ATTRIBUTE;
          if (mipmap_texture != NULL)
@@ -160,6 +101,7 @@ EGLint egl_surface_check_attribs(
          break;
 #if EGL_EXT_protected_content
       case EGL_PROTECTED_CONTENT_EXT:
+         value = *attrib_list++;
          if (value != EGL_FALSE && value != EGL_TRUE)
             return EGL_BAD_ATTRIBUTE;
          if (secure != NULL)
@@ -173,6 +115,8 @@ EGLint egl_surface_check_attribs(
 
    return EGL_SUCCESS;
 }
+
+extern void egl_server_surface_term(void *p);
 
 EGL_SURFACE_T *egl_surface_create(
    EGLSurface name,
@@ -190,18 +134,20 @@ EGL_SURFACE_T *egl_surface_create(
    bool mipmap_texture,
    EGLenum texture_format,
    EGLenum texture_target,
-   EGLNativePixmapType pixmap)
+   EGLNativePixmapType pixmap,
+   int *result)
 {
    UNUSED(colorspace);
    UNUSED(alphaformat);
-   EGL_SURFACE_T *surface = egl_surface_pool_alloc();
 
    assert((type == WINDOW) || (width > 0 && height > 0));
    assert((type == PIXMAP) || (width <= EGL_CONFIG_MAX_WIDTH && height <= EGL_CONFIG_MAX_HEIGHT) || largest_pbuffer);
 
-   if (!surface) {
-      return 0;
-   }
+   EGL_SURFACE_T *surface = KHRN_MEM_ALLOC_STRUCT(EGL_SURFACE_T);
+   if (surface == NULL)
+      return NULL;
+
+   khrn_mem_set_term(surface, egl_server_surface_term);
 
    surface->name = name;
    surface->type = type;
@@ -220,9 +166,6 @@ EGL_SURFACE_T *egl_surface_create(
    surface->pixmap = pixmap;
    surface->swap_behavior = EGL_BUFFER_DESTROYED;
    surface->multisample_resolve = EGL_MULTISAMPLE_RESOLVE_DEFAULT;
-
-   surface->context_binding_count = 0;
-   surface->is_destroyed = false;
 
 #if EGL_KHR_lock_surface
    surface->is_locked = false;
@@ -244,9 +187,11 @@ EGL_SURFACE_T *egl_surface_create(
 
    surface->buffers = buffers;
 
+   bool create_surface_result = false;
    if (pixmap) {
       assert(type == PIXMAP);
-      surface->serverbuffer = eglIntCreateWrappedSurface_impl(
+      create_surface_result = egl_create_wrapped_surface(
+         surface,
          (void *)pixmap,
          depth,
          mask,
@@ -254,7 +199,8 @@ EGL_SURFACE_T *egl_surface_create(
          config_depth_bits,
          config_stencil_bits);
    } else {
-      surface->serverbuffer = eglIntCreateSurface_impl(
+      create_surface_result = egl_create_surface(
+         surface,
          serverwin,
          buffers,
          width,
@@ -270,49 +216,30 @@ EGL_SURFACE_T *egl_surface_create(
          type);
    }
 
-   if (surface->serverbuffer) {
+   if (create_surface_result) {
       /* update dimensions */
       uint32_t width, height;
-      if (eglIntBackBufferDims_impl(surface->serverbuffer, &width, &height)) {
+      if (egl_back_buffer_dims(surface, &width, &height)) {
          surface->width = width;
          surface->height = height;
          surface->base_width = width;
          surface->base_height = height;
-         return surface;
+         if (result)
+            *result = 0;
       } else {
          /* failed as image is not suitible as render target */
-         egl_surface_pool_free(surface);
-         return (EGL_SURFACE_T*)-1;
+         KHRN_MEM_ASSIGN(surface, NULL);
+         if (result)
+            *result = -1;
       }
    } else {
       /* Server failed to create a surface due to out-of-memory or
          we failed to create the named semaphore object. */
-      egl_surface_pool_free(surface);
-      return 0;
+      KHRN_MEM_ASSIGN(surface, NULL);
+      if (result)
+         *result = 0;
    }
-}
-
-/*
-   void egl_surface_free(EGL_SURFACE_T *surface)
-
-   Preconditions:
-
-   surface is a valid EGL_SURFACE_T returned from egl_surface_create or egl_surface_from_vg_image
-
-   Postconditions:
-
-   surface is freed and any associated server-side resources are dereferenced.
-*/
-
-void egl_surface_free(EGL_SURFACE_T *surface)
-{
-   /* return value ignored -- read performed to ensure blocking. we want this to
-    * block so clients can safely destroy the surface's window as soon as the
-    * egl call that destroys the surface returns (usually eglDestroySurface, but
-    * could be eg eglMakeCurrent) */
-   (void)eglIntDestroySurface_impl(surface->serverbuffer);
-
-   egl_surface_pool_free(surface);
+   return surface;
 }
 
 EGLint egl_surface_get_render_buffer(EGL_SURFACE_T *surface)
@@ -352,7 +279,7 @@ EGLBoolean egl_surface_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint 
       *value = (EGLint)(intptr_t)surface->config;
       return EGL_TRUE;
    case EGL_HEIGHT:
-      if (!eglIntBackBufferDims_impl(surface->serverbuffer, NULL, value))
+      if (!egl_back_buffer_dims(surface, NULL, value))
          *value = surface->height;
       return EGL_TRUE;
    case EGL_HORIZONTAL_RESOLUTION:
@@ -401,7 +328,7 @@ EGLBoolean egl_surface_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint 
          *value = surface->texture_target;
       return EGL_TRUE;
    case EGL_WIDTH:
-      if (!eglIntBackBufferDims_impl(surface->serverbuffer, value, NULL))
+      if (!egl_back_buffer_dims(surface, value, NULL))
          *value = surface->width;
       return EGL_TRUE;
    default:
@@ -419,7 +346,7 @@ EGLint egl_surface_set_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint valu
       if (surface->type == PBUFFER) {
          if ((surface->texture_format != EGL_NO_TEXTURE) &&
              (surface->texture_target != EGL_NO_TEXTURE))
-         eglIntSelectMipmap_impl(surface->serverbuffer, value);
+            egl_select_mipmap(surface, value);
       }
       surface->mipmap_level = value;
       return EGL_SUCCESS;
@@ -530,48 +457,3 @@ EGLint egl_surface_get_mapped_buffer_attrib(EGL_SURFACE_T *surface, EGLint attri
    }
 }
 #endif
-
-
-/*
-   void egl_surface_maybe_free(EGL_SURFACE_T *surface)
-
-   Frees a surface together with its server-side resources if:
-   - it has been destroyed
-   - it is no longer current
-
-   Implementation notes:
-
-   -
-
-   Preconditions:
-
-   surface is a valid pointer
-
-   Postconditions:
-
-   Either:
-   - surface->is_destroyed is false (we don't change this), or
-   - surface->context_binding_count > 0, or
-   - surface has been deleted.
-
-   Invariants preserved:
-
-   -
-
-   Invariants used:
-
-   -
- */
-
-void egl_surface_maybe_free(EGL_SURFACE_T *surface)
-{
-   assert(surface);
-
-   if (!surface->is_destroyed)
-      return;
-
-   if (surface->context_binding_count)
-      return;
-
-   egl_surface_free(surface);
-}

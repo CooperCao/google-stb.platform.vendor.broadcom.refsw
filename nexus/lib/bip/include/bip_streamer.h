@@ -250,6 +250,8 @@ typedef struct BIP_StreamerTunerInputSettings
 {
     BIP_SETTINGS(BIP_StreamerTunerInputSettings)        /* Internal use... for init verification. */
 
+    bool                            enableAllPass;      /* Allows app to send everything in the tuner input. */
+
     NEXUS_RecpumpHandle             hRecpump;          /* Recpump handle: BIP will internally open one if not specified & is required for streaming! */
     NEXUS_RecpumpSettings           recpumpSettings;   /* Recpump settings: to allow app to provide any specific settings */
 } BIP_StreamerTunerInputSettings;
@@ -452,6 +454,7 @@ typedef struct BIP_StreamerOutputSettings
 
     bool                enableHwOffload;    /* Optional: enables offload to h/w like ASP if available on a platform & doable for a particular mediaInput stream format */
     bool                enableStreamingUsingPlaybackCh;    /* Optional: enables streaming out using Nexus Playback -> Recpump -> PBIP Streaming Path. */
+    unsigned            maxDataRate;        /* Maximum data rate for streaming out. */
 } BIP_StreamerOutputSettings;
 BIP_SETTINGS_ID_DECLARE(BIP_StreamerOutputSettings );
 
@@ -460,6 +463,7 @@ BIP_SETTINGS_ID_DECLARE(BIP_StreamerOutputSettings );
         /* Set non-zero defaults explicitly. */                                \
         (pSettings)->mpeg2Ts.patPmtMode = BIP_StreamerMpeg2TsPatPmtMode_eAuto; \
         (pSettings)->mpeg2Ts.patPmtIntervalInMs = 100;                         \
+        (pSettings)->maxDataRate = 108*1000*1000;                              \
         BIP_SETTINGS_GET_DEFAULT_END
 
 BIP_Status BIP_Streamer_SetOutputSettings(

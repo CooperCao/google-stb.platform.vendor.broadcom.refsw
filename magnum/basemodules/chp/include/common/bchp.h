@@ -908,7 +908,6 @@ typedef struct BCHP_OpenSettings
     BCHP_MemoryLayout memoryLayout;
     unsigned pMapId;
     BCHP_PmapSettings *pMapSettings;
-    bool skipInitialReset;
 } BCHP_OpenSettings;
 
 void BCHP_GetDefaultOpenSettings(
@@ -1143,6 +1142,14 @@ typedef enum BCHP_LicensedFeature {
     BCHP_LicensedFeature_eDolbyVision,
     BCHP_LicensedFeature_eTchPrime,
     BCHP_LicensedFeature_eItm,
+    BCHP_LicensedFeature_eDap,
+    BCHP_LicensedFeature_eDolbyDigital,
+    BCHP_LicensedFeature_eDolbyDigitalPlus,
+    BCHP_LicensedFeature_eDolbyAc4,
+    BCHP_LicensedFeature_eDolbyTrueHd,
+    BCHP_LicensedFeature_eDolbyMS10_11,
+    BCHP_LicensedFeature_eDolbyMS12v1,
+    BCHP_LicensedFeature_eDolbyMS12v2,
     BCHP_LicensedFeature_eMax
 } BCHP_LicensedFeature;
 
@@ -1154,6 +1161,8 @@ BERR_Code BCHP_HasLicensedFeature_isrsafe(BCHP_Handle chp, BCHP_LicensedFeature 
 bool BCHP_SAGE_IsStarted(BREG_Handle hReg); /* returns true if SAGE is CURRENTLY running */
 bool BCHP_SAGE_HasEverStarted(BREG_Handle hReg); /* returns true if SAGE has EVER run. It may or may not be currently running */
 BERR_Code BCHP_SAGE_Reset(BREG_Handle hReg);
+
+bool BCHP_SkipInitialReset(BCHP_Handle chp);
 
 #ifdef __cplusplus
 }

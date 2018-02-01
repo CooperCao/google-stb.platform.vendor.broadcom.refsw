@@ -197,7 +197,11 @@ B_DTCP_IP_LIB_PUBLIC_INCLUDES += ${COMMON_DRM_INCLUDES}
 
 ifneq (${B_DTCP_IP_BUILD_MODE},stubs)
     B_DTCP_IP_LIB_LDFLAGS += ${COMMON_DRM_LDFLAGS}
-endif
+
+# Link with common_drm libraries
+B_DTCP_IP_LIB_LDFLAGS += $(COMMON_DRM_LIB_LDFLAGS)
+
+endif # B_DTCP_IP_BUILD_MODE
 
 #build with legacy production key provisioning if requested.
 ifeq ($(DTCP_IP_LEGACY_PRODUCTION_KEY), y)

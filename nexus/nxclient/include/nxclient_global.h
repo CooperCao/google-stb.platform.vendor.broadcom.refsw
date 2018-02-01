@@ -140,6 +140,8 @@ typedef struct NxClient_AudioOutputSettings
                                                                             As long as the transcode codec is supported (via edid or through this) transcode will could still be possible.
                                                                             Only applies to HDMI and spdif. */
     NxClient_AudioEqualizer equalizer; /* Equalizer settings */
+    NEXUS_AudioPresentation presentation; /* Specifies which presentation output should get. Currently only supported for DAC and I2S outputs,
+                                                other outputs always get main presentation. */
 } NxClient_AudioOutputSettings;
 
 /**
@@ -180,6 +182,7 @@ typedef struct NxClient_AudioSettings {
     NxClient_AudioOutputSettings dac; /* DAC settings and I2S0 unless -i2s0 specified at runtime */
     NxClient_AudioOutputSettings i2s[NEXUS_MAX_AUDIO_I2S_OUTPUTS];
     NxClient_AudioOutputSettings rfm;
+    NEXUS_AudioLoudnessSettings loudnessSettings;
 } NxClient_AudioSettings;
 
 void NxClient_GetAudioSettings(
@@ -199,6 +202,7 @@ typedef struct NxClient_AudioProcessingSettings
         NEXUS_AudioMixerDolbySettings dolbySettings; /* used when ms11 or ms12 is enabled */
         NEXUS_DolbyVolume258Settings dolbyVolume258; /* used when ms11 is enabled */
     } dolby;
+    NEXUS_AudioAdvancedTsmSettings advancedTsm; /* used when ms11 or ms12 is enabled */
 } NxClient_AudioProcessingSettings;
 
 void NxClient_GetAudioProcessingSettings(
@@ -281,6 +285,7 @@ typedef struct NxClient_GraphicsSettings
     unsigned horizontalCoeffIndex;                 /* if horizontalFilter == eSharp, then this index is used for table-driven coefficients for horizontal upscale. */
     unsigned verticalCoeffIndex;                   /* if verticalFilter == eSharp, then this index is used for table-driven coefficients for vertical upscale. */
     uint8_t alpha;                                 /* GFD alpha, from 0 (transparent) to 0xFF (opaque). Applied in addition to per-pixel alpha. */
+    bool enabled;                                  /* if set to false graphics is disabled */
     /*
      * With hdr display, sdr gfx pixel values are always adjusted lower to avoid being too bright / too saturated.
      * The following settings allow linear adjustment of gfx pixel values to approximate an sdr to hdr conversion.
@@ -444,6 +449,7 @@ typedef struct NxClient_CallbackStatus
     unsigned hdmiOutputHdcpChanged;
     unsigned displaySettingsChanged;
     unsigned audioSettingsChanged;
+    unsigned coolingAgentChanged;
 } NxClient_CallbackStatus;
 
 /**
@@ -459,6 +465,7 @@ typedef struct NxClient_CallbackThreadSettings
     NEXUS_CallbackDesc hdmiOutputHdcpChanged;
     NEXUS_CallbackDesc displaySettingsChanged; /* called if NxClient_CallbackStatus.displaySettingsChanged increments */
     NEXUS_CallbackDesc audioSettingsChanged; /* called if NxClient_CallbackStatus.audioSettingsChanged increments */
+    NEXUS_CallbackDesc coolingAgentChanged;  /* called when the cooling agent changes */
     unsigned interval; /* polling interval in milliseconds */
 } NxClient_CallbackThreadSettings;
 
@@ -589,6 +596,17 @@ NEXUS_Error NxClient_LoadHdcpKeys(
 (after hdcp authentication has already been enabled). */
 NEXUS_Error NxClient_SetHdmiInputRepeater(
     NEXUS_HdmiInputHandle hdmiInput
+    );
+
+typedef struct NxClient_ThermalStatus
+{
+    unsigned temperature;   /* Current Temperature in degrees C*/
+    bool userDefined;       /* True if user defined Cooling Agent needs to be applied*/
+    unsigned level;         /* Level of throttling for user defined cooling agent */
+} NxClient_ThermalStatus;
+
+NEXUS_Error NxClient_GetThermalStatus(
+    NxClient_ThermalStatus *pStatus
     );
 
 #ifdef __cplusplus

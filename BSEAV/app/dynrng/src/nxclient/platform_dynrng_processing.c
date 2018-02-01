@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -136,6 +136,18 @@ void platform_display_set_video_dynamic_range_processing_settings(PlatformDispla
     platform_display_p_dynamic_range_processing_settings_to_nexus(pSettings, &settings);
     rc = NEXUS_VideoWindow_SetDynamicRangeProcessingSettings(windowId, &settings);
     if (rc) { rc = BERR_TRACE(rc); }
+}
+
+void platform_display_get_video_target_peak_brightness(PlatformDisplayHandle display, unsigned windowId, int *hdrPeak, int *sdrPeak)
+{
+    BSTD_UNUSED(display);
+    NEXUS_VideoWindow_GetTargetPeakBrightness(windowId, hdrPeak, sdrPeak);
+}
+
+void platform_display_set_video_target_peak_brightness(PlatformDisplayHandle display, unsigned windowId, int hdrPeak, int sdrPeak)
+{
+    BSTD_UNUSED(display);
+    NEXUS_VideoWindow_SetTargetPeakBrightness(windowId, hdrPeak, sdrPeak);
 }
 
 void platform_display_get_graphics_dynamic_range_processing_capabilities(PlatformDisplayHandle display, PlatformDynamicRangeProcessingCapabilities * pCapabilities)

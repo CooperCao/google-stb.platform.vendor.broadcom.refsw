@@ -179,6 +179,28 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
     case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eDsola):                      return BDSP_IMG_app_dsola_tables;
     case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eDsola):                     return BDSP_IMG_app_dsola_inter_frame;
 #endif /*BDSP_DSOLA_SUPPORT*/
+#ifdef BDSP_OPUSDEC_SUPPORT
+    case BDSP_IMG_ID_CODE(BDSP_Algorithm_eOpusDecode):                  return BDSP_IMG_adec_opus;
+    case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eOpusDecode):                 return BDSP_IMG_adec_opus_tables;
+    case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eOpusDecode):                return BDSP_IMG_adec_opus_inter_frame;
+    case BDSP_IMG_ID_IDS(BDSP_Algorithm_eOpusDecode):                   return BDSP_IMG_aids_wavformatex;
+#endif /* BDSP_OPUSDEC_SUPPORT */
+#ifdef BDSP_LPCMENC_SUPPORT
+    case BDSP_IMG_ID_CODE(BDSP_Algorithm_eLpcmEncode):                       return BDSP_IMG_aenc_lpcm;
+    case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eLpcmEncode):                      return BDSP_IMG_aenc_lpcm_tables;
+    case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eLpcmEncode):                     return BDSP_IMG_aenc_lpcm_inter_frame;
+#endif /*BDSP_LPCMENC_SUPPORT*/
+#ifdef BDSP_MP3ENC_SUPPORT
+    case BDSP_IMG_ID_CODE(BDSP_Algorithm_eMpegAudioEncode):                       return BDSP_IMG_aenc_mp3;
+    case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eMpegAudioEncode):                      return BDSP_IMG_aenc_mp3_tables;
+    case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eMpegAudioEncode):                     return BDSP_IMG_aenc_mp3_inter_frame;
+#endif /*BDSP_MP3ENC_SUPPORT*/
+#ifdef BDSP_AC4_SUPPORT
+		case BDSP_IMG_ID_CODE(BDSP_Algorithm_eAC4Decode): 				return BDSP_IMG_adec_ac4;
+		case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eAC4Decode):				return BDSP_IMG_adec_ac4_tables;
+		case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eAC4Decode):				return BDSP_IMG_adec_ac4_inter_frame;
+		case BDSP_IMG_ID_IDS(BDSP_Algorithm_eAC4Decode):				return BDSP_IMG_aids_ac4;
+#endif /* BDSP_AC4_SUPPORT */
     default:
         BDBG_WRN(("IMG %u not supported (algo %u)", imgId, BDSP_IMG_ID_TO_ALGO(imgId)));
         return NULL;

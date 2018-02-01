@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,6 +58,14 @@ BDBG_FILE_MODULE(BVCE_DBG_TR0);
 BDBG_FILE_MODULE(BVCE_DBG_TR1);
 BDBG_FILE_MODULE(BVCE_DBG_CDO);
 BDBG_FILE_MODULE(BVCE_DBG_ITO);
+BDBG_FILE_MODULE(BVCE_DBG_PNQ);
+BDBG_FILE_MODULE(BVCE_DBG_PBNQ);
+BDBG_FILE_MODULE(BVCE_DBG_PBDQ);
+BDBG_FILE_MODULE(BVCE_DBG_DNQ);
+BDBG_FILE_MODULE(BVCE_DBG_DBNQ);
+BDBG_FILE_MODULE(BVCE_DBG_DBDQ);
+
+#define BVCE_DEBUG_STRING_SIZE 512
 
 static
 unsigned
@@ -77,6 +85,40 @@ BVCE_Debug_S_CommandIndexLUT(
 
    return 0;
 }
+
+static const char* const BVCE_P_FW_BarTypeFriendlyNameLUT[SOURCE_BAR_DATA_TYPE_LEFT_RIGHT + 1] =
+{
+   BDBG_STRING("INV"),
+   BDBG_STRING("T/B"),
+   BDBG_STRING("L/R"),
+
+};
+
+static const char* const BVCE_P_FW_OrientationFriendlyNameLUT[SOURCE_ORIENTATION_TYPE_3D_LEFT_RIGHT_ENHANCED + 1] =
+{
+   BDBG_STRING("2D   "),
+   BDBG_STRING("3DLR "),
+   BDBG_STRING("3DOU "),
+   BDBG_STRING("3DL  "),
+   BDBG_STRING("3DR  "),
+   BDBG_STRING("3DLRE"),
+};
+
+static const char* const BVCE_P_FW_PolarityFriendlyNameLUT[SOURCE_POLARITY_FRAME + 2] =
+{
+   BDBG_STRING("T"),
+   BDBG_STRING("B"),
+   BDBG_STRING("F"),
+   BDBG_STRING("U"),
+};
+
+static const char* const BVCE_P_FW_CadenceTypeFriendlyNameLUT[SOURCE_CADENCE_TYPE_2_2 + 2] =
+{
+   BDBG_STRING("UNK"),
+   BDBG_STRING("3:2"),
+   BDBG_STRING("2:2"),
+   BDBG_STRING("INV"),
+};
 
 void
 BVCE_Debug_PrintLogVideoDescriptor(
@@ -158,6 +200,18 @@ BVCE_Debug_PrintLogVideoDescriptor(
    (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
       "%s",
       ( 0 != ( pstDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START ) )  ? "dut " : "    "
+   );
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+      "%s",
+      ( 0 != ( pstDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_HIDDEN_FRAME ) )  ? "hid " : "    "
+   );
+   if ( (*piBytesLeft) < 0 ) { return; }
+
+   (*piBytesLeft) -= BKNI_Snprintf( &szDebug[uiSize-(*piBytesLeft)], (*piBytesLeft),
+      "%s",
+      ( 0 != ( pstDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_SHOW_FRAME ) )  ? "shw " : "    "
    );
    if ( (*piBytesLeft) < 0 ) { return; }
 
@@ -257,7 +311,7 @@ BVCE_Debug_PrintLogMessageEntry(
 
    BDBG_ASSERT( pstEntry );
 
-   BDBG_CASSERT( BVCE_DebugFifo_EntryType_eMax == (BVCE_DebugFifo_EntryType_eITBOffsets + 1) );
+   BDBG_CASSERT( BVCE_DebugFifo_EntryType_eMax == (BVCE_DebugFifo_EntryType_ePictureBufferDropDequeue + 1) );
    switch ( pstEntry->stMetadata.eType )
    {
       case BVCE_DebugFifo_EntryType_eConfig:
@@ -398,7 +452,6 @@ BVCE_Debug_PrintLogMessageEntry(
 
       case BVCE_DebugFifo_EntryType_eBufferDescriptor:
          {
-#define BVCE_DEBUG_STRING_SIZE 256
             char szDebug[BVCE_DEBUG_STRING_SIZE] = "";
             signed iBytesLeft = BVCE_DEBUG_STRING_SIZE;
 
@@ -425,9 +478,9 @@ dbg_buf_done:
 
       case BVCE_DebugFifo_EntryType_eMetadataDescriptor:
       {
-#define BVCE_DEBUG_STRING_SIZE 256
             char szDebug[BVCE_DEBUG_STRING_SIZE] = "";
             signed iBytesLeft = BVCE_DEBUG_STRING_SIZE;
+            unsigned i;
 
             if ( 0 != ( pstEntry->data.stMetadataDescriptor.uiMetadataFlags & BAVC_VIDEOMETADATADESCRIPTOR_FLAGS_BITRATE_VALID ) )
             {
@@ -507,6 +560,25 @@ dbg_buf_done:
             }
             if ( iBytesLeft < 0 ) { goto dbg_mta_overflow; }
 
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "NALU[ "
+             );
+            if ( iBytesLeft < 0 ) { goto dbg_mta_overflow; }
+
+            for ( i = 0; i < BAVC_VIDEO_MAX_EXTRACTED_NALU_COUNT; i++ )
+            {
+               iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+                  "%03u ",
+                  pstEntry->data.stMetadataDescriptor.stExtractedNALUInfo.astExtractedNALUEntry[i].uiNumValidBytes
+                );
+               if ( iBytesLeft < 0 ) { goto dbg_mta_overflow; }
+            }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "] "
+             );
+            if ( iBytesLeft < 0 ) { goto dbg_mta_overflow; }
+
             goto dbg_mta_done;
 dbg_mta_overflow:
             BDBG_MODULE_MSG(BVCE_DBG_MTA, ("Debug String Overflow"));
@@ -522,7 +594,6 @@ dbg_mta_done:
 
       case BVCE_DebugFifo_EntryType_eITB:
       {
-#define BVCE_DEBUG_STRING_SIZE 256
          char szDebug[BVCE_DEBUG_STRING_SIZE] = "";
          signed iBytesLeft = BVCE_DEBUG_STRING_SIZE;
          unsigned i;
@@ -642,6 +713,472 @@ dbg_itb_done:
          }
          break;
 
+      case BVCE_DebugFifo_EntryType_ePictureBufferEnqueue:
+         {
+            char szDebug[BVCE_DEBUG_STRING_SIZE] = "";
+            char *pszDebug2 = NULL;
+            signed iBytesLeft = BVCE_DEBUG_STRING_SIZE;
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "luma="BDBG_UINT64_FMT"(%1u,%3u) ",
+               ( pstEntry->data.stPictureBufferMailbox.LumaBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.LumaBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.LumaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.LumaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "chroma="BDBG_UINT64_FMT"(%1u,%3u) ",
+               ( pstEntry->data.stPictureBufferMailbox.ChromaBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.ChromaBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.ChromaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.ChromaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "1v="BDBG_UINT64_FMT"(%1u,%1u,%3u) ",
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "2v="BDBG_UINT64_FMT"(%1u,%1u,%3u) ",
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "shifted="BDBG_UINT64_FMT"(%1u,%3u) ",
+               ( pstEntry->data.stPictureBufferMailbox.ShiftedChromaBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.ShiftedChromaBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.ShiftedChromaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.ShiftedChromaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft--;
+            pszDebug2 = &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft];
+            szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft] = '\0';
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "res=%ux%u (%ux%u) ",
+               ( pstEntry->data.stPictureBufferMailbox.uiResolution & BVCE_P_FW_PictureBufferMailbox_Resolution_HORIZONTAL_SIZE_IN_8x8_BLOCKS_MASK ) >> BVCE_P_FW_PictureBufferMailbox_Resolution_HORIZONTAL_SIZE_IN_8x8_BLOCKS_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiResolution & BVCE_P_FW_PictureBufferMailbox_Resolution_VERTICAL_SIZE_IN_8x8_BLOCKS_MASK ) >> BVCE_P_FW_PictureBufferMailbox_Resolution_VERTICAL_SIZE_IN_8x8_BLOCKS_SHIFT,
+               ( ( pstEntry->data.stPictureBufferMailbox.uiResolution & BVCE_P_FW_PictureBufferMailbox_Resolution_HORIZONTAL_SIZE_IN_8x8_BLOCKS_MASK ) >> BVCE_P_FW_PictureBufferMailbox_Resolution_HORIZONTAL_SIZE_IN_8x8_BLOCKS_SHIFT ) << 3,
+               ( ( pstEntry->data.stPictureBufferMailbox.uiResolution & BVCE_P_FW_PictureBufferMailbox_Resolution_VERTICAL_SIZE_IN_8x8_BLOCKS_MASK ) >> BVCE_P_FW_PictureBufferMailbox_Resolution_VERTICAL_SIZE_IN_8x8_BLOCKS_SHIFT ) << 3
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "crop=%ux%u ",
+               ( pstEntry->data.stPictureBufferMailbox.uiCropping & BVCE_P_FW_PictureBufferMailbox_Cropping_HORIZONTAL_SIZE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_Cropping_HORIZONTAL_SIZE_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiCropping & BVCE_P_FW_PictureBufferMailbox_Cropping_VERTICAL_SIZE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_Cropping_VERTICAL_SIZE_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "sar=%ux%u ",
+               ( pstEntry->data.stPictureBufferMailbox.uiSampleAspectRatio & BVCE_P_FW_PictureBufferMailbox_SampleAspectRatio_HORIZONTAL_SIZE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_SampleAspectRatio_HORIZONTAL_SIZE_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiSampleAspectRatio & BVCE_P_FW_PictureBufferMailbox_SampleAspectRatio_VERTICAL_SIZE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_SampleAspectRatio_VERTICAL_SIZE_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "bar=%u/%u(%s) ",
+               ( pstEntry->data.stPictureBufferMailbox.uiBarData & BVCE_P_FW_PictureBufferMailbox_BarData_TOP_LEFT_VALUE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_BarData_TOP_LEFT_VALUE_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiBarData & BVCE_P_FW_PictureBufferMailbox_BarData_BOTTOM_RIGHT_VALUE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_BarData_BOTTOM_RIGHT_VALUE_SHIFT,
+               BVCE_P_FW_BarTypeFriendlyNameLUT[( pstEntry->data.stPictureBufferMailbox.uiBarData & BVCE_P_FW_PictureBufferMailbox_BarData_TYPE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_BarData_TYPE_SHIFT]
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "ori=%s ",
+               BVCE_P_FW_OrientationFriendlyNameLUT[( pstEntry->data.stPictureBufferMailbox.uiFormatInfo & BVCE_P_FW_PictureBufferMailbox_FormatInfo_ORIENTATION_MASK ) >> BVCE_P_FW_PictureBufferMailbox_FormatInfo_ORIENTATION_SHIFT]
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "afd=%u(%u) ",
+               ( pstEntry->data.stPictureBufferMailbox.uiFormatInfo & BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_MODE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_MODE_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiFormatInfo & BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_VALID_MASK ) >> BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_VALID_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            {
+               unsigned uiPolarity = ( pstEntry->data.stPictureBufferMailbox.uiFormatInfo & BVCE_P_FW_PictureBufferMailbox_FormatInfo_POLARITY_MASK ) >> BVCE_P_FW_PictureBufferMailbox_FormatInfo_POLARITY_SHIFT;
+               unsigned uiCadenceType = ( pstEntry->data.stPictureBufferMailbox.uiFormatInfo & BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_TYPE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_TYPE_SHIFT;
+
+               if ( uiPolarity > SOURCE_POLARITY_FRAME )
+               {
+                  BDBG_MODULE_MSG(BVCE_DBG_PNQ, ("Invalid Polarity: %u", uiPolarity));
+                  uiPolarity = SOURCE_POLARITY_FRAME+1;
+               }
+
+               if ( uiCadenceType > SOURCE_CADENCE_TYPE_2_2 )
+               {
+                  BDBG_MODULE_MSG(BVCE_DBG_PNQ, ("Invalid Cadence Type: %u", uiCadenceType));
+                  uiCadenceType = SOURCE_CADENCE_TYPE_2_2+1;
+               }
+
+               iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+                  "cad=%s%u(%s) ",
+                  BVCE_P_FW_PolarityFriendlyNameLUT[uiPolarity],
+                  ( pstEntry->data.stPictureBufferMailbox.uiFormatInfo & BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_PHASE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_PHASE_SHIFT,
+                  BVCE_P_FW_CadenceTypeFriendlyNameLUT[uiCadenceType]
+               );
+            }
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "oPts=0x%08x ",
+               pstEntry->data.stPictureBufferMailbox.uiOriginalPts
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "picId=%u ",
+               pstEntry->data.stPictureBufferMailbox.uiPictureId
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "stc="BDBG_UINT64_FMT" ",
+               BDBG_UINT64_ARG( ( ((uint64_t) pstEntry->data.stPictureBufferMailbox.uiSTCSnapshotHi) << 32 ) | pstEntry->data.stPictureBufferMailbox.uiSTCSnapshotLo )
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "[ "
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "%s",
+               ( 0 != ( pstEntry->data.stPictureBufferMailbox.uiMetadata & BVCE_P_FW_PictureBufferMailbox_Metadata_LAST_MASK ) ) ? "lst " : "    "
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "%s",
+               ( 0 != ( pstEntry->data.stPictureBufferMailbox.uiMetadata & BVCE_P_FW_PictureBufferMailbox_Metadata_CHANNEL_CHANGE_MASK ) ) ? "chc " : "    "
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "%s",
+               ( 0 != ( pstEntry->data.stPictureBufferMailbox.uiMetadata & BVCE_P_FW_PictureBufferMailbox_Metadata_BUSY_MASK ) ) ? "bsy " : "    "
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "] "
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "dPts=%u ",
+               ( pstEntry->data.stPictureBufferMailbox.uiTimingInfo & BVCE_P_FW_PictureBufferMailbox_TimingInfo_DELTA_PTS_IN_360KHZ_MASK ) >> BVCE_P_FW_PictureBufferMailbox_TimingInfo_DELTA_PTS_IN_360KHZ_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "newPts="BDBG_UINT64_FMT" ",
+               BDBG_UINT64_ARG( ( ((uint64_t) pstEntry->data.stPictureBufferMailbox.uiNewPts) << 1 ) | ( ( pstEntry->data.stPictureBufferMailbox.uiTimingInfo & BVCE_P_FW_PictureBufferMailbox_TimingInfo_NEW_PTS_LSB_MASK ) >> BVCE_P_FW_PictureBufferMailbox_TimingInfo_NEW_PTS_LSB_SHIFT) )
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_pic_overflow; }
+
+            goto dbg_pic_done;
+dbg_pic_overflow:
+            BDBG_MODULE_MSG(BVCE_DBG_PNQ, ("Debug String Overflow"));
+dbg_pic_done:
+            BDBG_MODULE_MSG(BVCE_DBG_PBNQ, ("(%10u)[%u][%u] %s",
+               pstEntry->stMetadata.uiTimestamp,
+               pstEntry->stMetadata.uiInstance,
+               pstEntry->stMetadata.uiChannel,
+               szDebug
+            ));
+            BDBG_MODULE_MSG(BVCE_DBG_PNQ, ("(%10u)[%u][%u] %s",
+               pstEntry->stMetadata.uiTimestamp,
+               pstEntry->stMetadata.uiInstance,
+               pstEntry->stMetadata.uiChannel,
+               pszDebug2
+            ));
+         }
+         break;
+
+      case BVCE_DebugFifo_EntryType_ePictureBufferDequeue:
+         {
+            char szDebug[BVCE_DEBUG_STRING_SIZE] = "";
+            signed iBytesLeft = BVCE_DEBUG_STRING_SIZE;
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "luma="BDBG_UINT64_FMT"(%1u,%3u) ",
+               ( pstEntry->data.stPictureBufferMailbox.LumaBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.LumaBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.LumaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.LumaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "chroma="BDBG_UINT64_FMT"(%1u,%3u) ",
+               ( pstEntry->data.stPictureBufferMailbox.ChromaBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.ChromaBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.ChromaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.ChromaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "1v="BDBG_UINT64_FMT"(%1u,%1u,%3u) ",
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "2v="BDBG_UINT64_FMT"(%1u,%1u,%3u) ",
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "shifted="BDBG_UINT64_FMT"(%1u,%3u) ",
+               ( pstEntry->data.stPictureBufferMailbox.ShiftedChromaBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.ShiftedChromaBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.ShiftedChromaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.ShiftedChromaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_rel_overflow; }
+
+            goto dbg_rel_done;
+dbg_rel_overflow:
+            BDBG_MODULE_MSG(BVCE_DBG_PBDQ, ("Debug String Overflow"));
+dbg_rel_done:
+            BDBG_MODULE_MSG(BVCE_DBG_PBDQ, ("(%10u)[%u][%u] %s",
+               pstEntry->stMetadata.uiTimestamp,
+               pstEntry->stMetadata.uiInstance,
+               pstEntry->stMetadata.uiChannel,
+               szDebug
+            ));
+         }
+         break;
+
+      case BVCE_DebugFifo_EntryType_ePictureBufferDropEnqueue:
+      case BVCE_DebugFifo_EntryType_ePictureBufferDropDequeue:
+         {
+            char szDebug[BVCE_DEBUG_STRING_SIZE] = "";
+            char *pszDebug2 = NULL;
+            signed iBytesLeft = BVCE_DEBUG_STRING_SIZE;
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "luma="BDBG_UINT64_FMT"(%1u,%3u) ",
+               0,
+               pstEntry->data.stPicture.ulLumaOffset,
+               0,
+               0
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "chroma="BDBG_UINT64_FMT"(%1u,%3u) ",
+               0,
+               pstEntry->data.stPicture.ulChromaOffset,
+               0,
+               0
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "1v="BDBG_UINT64_FMT"(%1u,%1u,%3u) ",
+               0,
+               pstEntry->data.stPicture.ul1VLumaOffset,
+               0,
+               0,
+               0
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "2v="BDBG_UINT64_FMT"(%1u,%1u,%3u) ",
+               0,
+               pstEntry->data.stPicture.ul2VLumaOffset,
+               0,
+               0,
+               0
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "shifted="BDBG_UINT64_FMT"(%1u,%3u) ",
+               0,
+               pstEntry->data.stPicture.ulShiftedChromaOffset,
+               0,
+               0
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft--;
+            pszDebug2 = &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft];
+            szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft] = '\0';
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "res=%ux%u (%ux%u) ",
+               pstEntry->data.stPicture.ulWidthInMbs,
+               pstEntry->data.stPicture.ulHeightInMbs,
+               pstEntry->data.stPicture.ulWidth,
+               pstEntry->data.stPicture.ulHeight
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "crop=%ux%u ",
+               0,
+               0
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "sar=%ux%u ",
+               pstEntry->data.stPicture.ulAspectRatioX,
+               pstEntry->data.stPicture.ulAspectRatioY
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "bar=%u/%u(%s) ",
+               pstEntry->data.stPicture.stBarData.uiTopLeft,
+               pstEntry->data.stPicture.stBarData.uiBotRight,
+               BVCE_P_FW_BarTypeFriendlyNameLUT[pstEntry->data.stPicture.stBarData.eType]
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "ori=%s ",
+               BVCE_P_FW_OrientationFriendlyNameLUT[pstEntry->data.stPicture.eOrientation]
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "afd=%u(%u) ",
+               pstEntry->data.stPicture.stAFD.uiMode,
+               pstEntry->data.stPicture.stAFD.bValid
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "cad=%s%u(%s) ",
+               BVCE_P_FW_PolarityFriendlyNameLUT[pstEntry->data.stPicture.ePolarity],
+               pstEntry->data.stPicture.stCadence.phase,
+               BVCE_P_FW_CadenceTypeFriendlyNameLUT[pstEntry->data.stPicture.stCadence.type]
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "oPts=0x%08x ",
+               pstEntry->data.stPicture.ulOriginalPTS
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "picId=%u ",
+               pstEntry->data.stPicture.ulPictureId
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "stc="BDBG_UINT64_FMT" ",
+               BDBG_UINT64_ARG( ( ((uint64_t) pstEntry->data.stPicture.ulSTCSnapshotHi) << 32 ) | pstEntry->data.stPicture.ulSTCSnapshotLo )
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "[ "
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "%s",
+               ( true == ( pstEntry->data.stPicture.bLast ) ) ? "lst " : "    "
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "%s",
+               ( true == ( pstEntry->data.stPicture.bChannelChange ) ) ? "chc " : "    "
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "%s",
+               "    "
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+               "] "
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_drop_rel_overflow; }
+
+            goto dbg_drop_rel_done;
+dbg_drop_rel_overflow:
+            if ( BVCE_DebugFifo_EntryType_ePictureBufferDropEnqueue == pstEntry->stMetadata.eType )
+            {
+               BDBG_MODULE_MSG(BVCE_DBG_DNQ, ("Debug String Overflow"));
+               BDBG_MODULE_MSG(BVCE_DBG_DBNQ, ("Debug String Overflow"));
+            }
+            else
+            {
+               BDBG_MODULE_MSG(BVCE_DBG_DBDQ, ("Debug String Overflow"));
+            }
+
+dbg_drop_rel_done:
+            if ( BVCE_DebugFifo_EntryType_ePictureBufferDropEnqueue == pstEntry->stMetadata.eType )
+            {
+               BDBG_MODULE_MSG(BVCE_DBG_DBNQ, ("(%10u)[%u][%u] %s",
+                  pstEntry->stMetadata.uiTimestamp,
+                  pstEntry->stMetadata.uiInstance,
+                  pstEntry->stMetadata.uiChannel,
+                  szDebug
+               ));
+
+               BDBG_MODULE_MSG(BVCE_DBG_DNQ, ("(%10u)[%u][%u] %s",
+                  pstEntry->stMetadata.uiTimestamp,
+                  pstEntry->stMetadata.uiInstance,
+                  pstEntry->stMetadata.uiChannel,
+                  pszDebug2
+               ));
+
+            }
+            else
+            {
+               BDBG_MODULE_MSG(BVCE_DBG_DBDQ, ("(%10u)[%u][%u] %s",
+                  pstEntry->stMetadata.uiTimestamp,
+                  pstEntry->stMetadata.uiInstance,
+                  pstEntry->stMetadata.uiChannel,
+                  szDebug
+               ));
+            }
+         }
+         break;
+
       default:
          BDBG_LOG(("Unrecognized debug entry type: %d", pstEntry->stMetadata.eType));
          break;
@@ -661,6 +1198,8 @@ BVCE_Debug_FormatLogHeader(
    {
       bool bMore = true;
       signed iBytesLeft = uiSize;
+      unsigned i;
+
       if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
 
       if ( 0 == uiIndex )
@@ -674,7 +1213,7 @@ BVCE_Debug_FormatLogHeader(
       {
          BVCE_DebugFifo_EntryType eType = uiIndex - 1;
 
-         BDBG_CASSERT( BVCE_DebugFifo_EntryType_eMax == (BVCE_DebugFifo_EntryType_eITBOffsets + 1) );
+         BDBG_CASSERT( BVCE_DebugFifo_EntryType_eMax == (BVCE_DebugFifo_EntryType_ePictureBufferDropDequeue + 1) );
          switch ( eType )
          {
             case BVCE_DebugFifo_EntryType_eConfig:
@@ -688,6 +1227,10 @@ BVCE_Debug_FormatLogHeader(
             case BVCE_DebugFifo_EntryType_eTrace1:
             case BVCE_DebugFifo_EntryType_eCDBOffsets:
             case BVCE_DebugFifo_EntryType_eITBOffsets:
+            case BVCE_DebugFifo_EntryType_ePictureBufferEnqueue:
+            case BVCE_DebugFifo_EntryType_ePictureBufferDequeue:
+            case BVCE_DebugFifo_EntryType_ePictureBufferDropEnqueue:
+            case BVCE_DebugFifo_EntryType_ePictureBufferDropDequeue:
                iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
                   "%u,%u,%s,instance,channel",
                   0,
@@ -745,7 +1288,7 @@ BVCE_Debug_FormatLogHeader(
                if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
 
                iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
-                  ",vflags,dts valid,dts,dut start,dut,rai"
+                  ",vflags,dts valid,dts,dut start,dut,rai,hid,shw"
                 );
                if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
                break;
@@ -781,6 +1324,14 @@ BVCE_Debug_FormatLogHeader(
                );
                if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
 
+               for ( i = 0; i < BAVC_VIDEO_MAX_EXTRACTED_NALU_COUNT; i++ )
+               {
+                  iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                     ",nalu[%u] size",
+                     i
+                  );
+                  if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+               }
                break;
 
             case BVCE_DebugFifo_EntryType_eITB:
@@ -804,6 +1355,147 @@ BVCE_Debug_FormatLogHeader(
             case BVCE_DebugFifo_EntryType_eITBOffsets:
                iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
                   ",base,end,read,shadow read,valid,write"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+               break;
+
+            case BVCE_DebugFifo_EntryType_ePictureBufferEnqueue:
+               BDBG_CWARNING( sizeof( BVCE_P_FW_PictureBufferMailbox ) == 4*27 );
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",luma offset hi, luma offset lo,luma dcxv enable,luma nmby"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",chroma offset hi,chroma offset lo,chroma dcxv enable,chroma nmby"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",1v luma offset hi,1v luma offset lo,1v luma dcxv enable,1v decimation shift,1v luma nmby"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",2v luma offset hi,2v luma offset lo,2v luma dcxv enable,2v decimation shift,2v luma nmby"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",shifted chroma offset hi,shifted chroma offset lo,shifted chroma dcxv enable,shifted chroma nmby"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",width,height"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",right crop,bottom crop"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",sample aspect ratio x,sample aspect ratio y"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",bar data type,bar data top/left,bar data bottom/right"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",orientation,afd valid,afd mode,cadence type,cadence phase,polarity"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",delta pts"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",new pts"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",original pts"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",picture id"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",stc snapshot"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",last,channel change,busy"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+               break;
+
+            case BVCE_DebugFifo_EntryType_ePictureBufferDequeue:
+               BDBG_CWARNING( sizeof( BVCE_P_FW_PictureBufferMailbox ) == 4*27 );
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",luma offset hi, luma offset lo,luma dcxv enable,luma nmby"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",chroma offset hi,chroma offset lo,chroma dcxv enable,chroma nmby"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",1v luma offset hi,1v luma offset lo,1v luma dcxv enable,1v decimation shift,1v luma nmby"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",2v luma offset hi,2v luma offset lo,2v luma dcxv enable,2v decimation shift,2v luma nmby"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",shifted chroma offset hi,shifted chroma offset lo,shifted chroma dcxv enable,shifted chroma nmby"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+               break;
+
+            case BVCE_DebugFifo_EntryType_ePictureBufferDropEnqueue:
+            case BVCE_DebugFifo_EntryType_ePictureBufferDropDequeue:
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",luma offset hi, luma offset lo"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",chroma offset hi,chroma offset lo"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",1v luma offset hi,1v luma offset lo"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",2v luma offset hi,2v luma offset lo"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",shifted chroma offset hi,shifted chroma offset lo"
                );
                if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
                break;
@@ -844,6 +1536,7 @@ BVCE_Debug_FormatLogMessage(
    {
       const BVCE_P_DebugFifo_Entry *pstEntry = (BVCE_P_DebugFifo_Entry *) pstFifoEntry;
       signed iBytesLeft = uiSize;
+      unsigned i;
       if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
 
       BDBG_ASSERT( pstEntry );
@@ -858,7 +1551,7 @@ BVCE_Debug_FormatLogMessage(
       );
       if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
 
-      BDBG_CASSERT( BVCE_DebugFifo_EntryType_eMax == (BVCE_DebugFifo_EntryType_eITBOffsets + 1) );
+      BDBG_CASSERT( BVCE_DebugFifo_EntryType_eMax == (BVCE_DebugFifo_EntryType_ePictureBufferDropDequeue + 1) );
       switch ( pstEntry->stMetadata.eType )
       {
          case BVCE_DebugFifo_EntryType_eConfig:
@@ -973,13 +1666,15 @@ BVCE_Debug_FormatLogMessage(
             if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
 
             iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
-               ",0x%08x,%u,"BDBG_UINT64_FMT",%u,%u,%u",
+               ",0x%08x,%u,"BDBG_UINT64_FMT",%u,%u,%u,%u,%u",
                pstEntry->data.stBufferDescriptor.uiVideoFlags,
                ( 0 != ( pstEntry->data.stBufferDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DTS_VALID ) ),
                BDBG_UINT64_ARG(pstEntry->data.stBufferDescriptor.uiDTS),
                ( 0 != ( pstEntry->data.stBufferDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START ) ),
                pstEntry->data.stBufferDescriptor.uiDataUnitType,
-               ( 0 != ( pstEntry->data.stBufferDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_RAP ) )
+               ( 0 != ( pstEntry->data.stBufferDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_RAP ) ),
+               ( 0 != ( pstEntry->data.stBufferDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_HIDDEN_FRAME ) ),
+               ( 0 != ( pstEntry->data.stBufferDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_SHOW_FRAME ) )
              );
             if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
 
@@ -1034,6 +1729,14 @@ BVCE_Debug_FormatLogMessage(
             );
             if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
 
+            for ( i = 0; i < BAVC_VIDEO_MAX_EXTRACTED_NALU_COUNT; i++ )
+            {
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",%u",
+                  pstEntry->data.stMetadataDescriptor.stExtractedNALUInfo.astExtractedNALUEntry[i].uiNumValidBytes
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+            }
             break;
 
          case BVCE_DebugFifo_EntryType_eITB:
@@ -1102,6 +1805,224 @@ BVCE_Debug_FormatLogMessage(
                BDBG_UINT64_ARG(pstEntry->data.stOffset.uiShadowRead),
                BDBG_UINT64_ARG(pstEntry->data.stOffset.uiValid),
                BDBG_UINT64_ARG(pstEntry->data.stOffset.uiWrite)
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+            break;
+
+         case BVCE_DebugFifo_EntryType_ePictureBufferEnqueue:
+            BDBG_CWARNING( sizeof( BVCE_P_FW_PictureBufferMailbox ) == 4*27 );
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u,%u,%u",
+               ( pstEntry->data.stPictureBufferMailbox.LumaBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.LumaBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.LumaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.LumaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u,%u,%u",
+               ( pstEntry->data.stPictureBufferMailbox.ChromaBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.ChromaBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.ChromaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.ChromaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u,%u,%u,%u",
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u,%u,%u,%u",
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u,%u,%u",
+               ( pstEntry->data.stPictureBufferMailbox.ShiftedChromaBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.ShiftedChromaBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.ShiftedChromaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.ShiftedChromaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u",
+               ( pstEntry->data.stPictureBufferMailbox.uiResolution & BVCE_P_FW_PictureBufferMailbox_Resolution_HORIZONTAL_SIZE_IN_8x8_BLOCKS_MASK ) >> BVCE_P_FW_PictureBufferMailbox_Resolution_HORIZONTAL_SIZE_IN_8x8_BLOCKS_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiResolution & BVCE_P_FW_PictureBufferMailbox_Resolution_VERTICAL_SIZE_IN_8x8_BLOCKS_MASK ) >> BVCE_P_FW_PictureBufferMailbox_Resolution_VERTICAL_SIZE_IN_8x8_BLOCKS_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u",
+               ( pstEntry->data.stPictureBufferMailbox.uiCropping & BVCE_P_FW_PictureBufferMailbox_Cropping_HORIZONTAL_SIZE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_Cropping_HORIZONTAL_SIZE_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiCropping & BVCE_P_FW_PictureBufferMailbox_Cropping_VERTICAL_SIZE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_Cropping_VERTICAL_SIZE_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u",
+               ( pstEntry->data.stPictureBufferMailbox.uiSampleAspectRatio & BVCE_P_FW_PictureBufferMailbox_SampleAspectRatio_HORIZONTAL_SIZE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_SampleAspectRatio_HORIZONTAL_SIZE_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiSampleAspectRatio & BVCE_P_FW_PictureBufferMailbox_SampleAspectRatio_VERTICAL_SIZE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_SampleAspectRatio_VERTICAL_SIZE_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u,%u",
+               ( pstEntry->data.stPictureBufferMailbox.uiBarData & BVCE_P_FW_PictureBufferMailbox_BarData_TYPE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_BarData_TYPE_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiBarData & BVCE_P_FW_PictureBufferMailbox_BarData_TOP_LEFT_VALUE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_BarData_TOP_LEFT_VALUE_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiBarData & BVCE_P_FW_PictureBufferMailbox_BarData_BOTTOM_RIGHT_VALUE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_BarData_BOTTOM_RIGHT_VALUE_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u,%u,%u,%u,%u",
+               ( pstEntry->data.stPictureBufferMailbox.uiFormatInfo & BVCE_P_FW_PictureBufferMailbox_FormatInfo_ORIENTATION_MASK ) >> BVCE_P_FW_PictureBufferMailbox_FormatInfo_ORIENTATION_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiFormatInfo & BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_VALID_MASK ) >> BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_VALID_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiFormatInfo & BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_MODE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_MODE_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiFormatInfo & BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_TYPE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_TYPE_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiFormatInfo & BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_PHASE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_FormatInfo_CADENCE_PHASE_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiFormatInfo & BVCE_P_FW_PictureBufferMailbox_FormatInfo_POLARITY_MASK ) >> BVCE_P_FW_PictureBufferMailbox_FormatInfo_POLARITY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u",
+               ( pstEntry->data.stPictureBufferMailbox.uiTimingInfo & BVCE_P_FW_PictureBufferMailbox_TimingInfo_DELTA_PTS_IN_360KHZ_MASK ) >> BVCE_P_FW_PictureBufferMailbox_TimingInfo_DELTA_PTS_IN_360KHZ_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ","BDBG_UINT64_FMT,
+               BDBG_UINT64_ARG( ( ((uint64_t) pstEntry->data.stPictureBufferMailbox.uiNewPts) << 1 ) | ( ( pstEntry->data.stPictureBufferMailbox.uiTimingInfo & BVCE_P_FW_PictureBufferMailbox_TimingInfo_NEW_PTS_LSB_MASK ) >> BVCE_P_FW_PictureBufferMailbox_TimingInfo_NEW_PTS_LSB_SHIFT) )
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u",
+               pstEntry->data.stPictureBufferMailbox.uiOriginalPts
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u",
+               pstEntry->data.stPictureBufferMailbox.uiPictureId
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ","BDBG_UINT64_FMT,
+               BDBG_UINT64_ARG( ( ((uint64_t) pstEntry->data.stPictureBufferMailbox.uiSTCSnapshotHi) << 32 ) | pstEntry->data.stPictureBufferMailbox.uiSTCSnapshotLo )
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u,%u",
+               ( pstEntry->data.stPictureBufferMailbox.uiMetadata & BVCE_P_FW_PictureBufferMailbox_Metadata_LAST_MASK ) >> BVCE_P_FW_PictureBufferMailbox_Metadata_LAST_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiMetadata & BVCE_P_FW_PictureBufferMailbox_Metadata_CHANNEL_CHANGE_MASK ) >> BVCE_P_FW_PictureBufferMailbox_Metadata_CHANNEL_CHANGE_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.uiMetadata & BVCE_P_FW_PictureBufferMailbox_Metadata_BUSY_MASK ) >> BVCE_P_FW_PictureBufferMailbox_Metadata_BUSY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+            break;
+
+         case BVCE_DebugFifo_EntryType_ePictureBufferDequeue:
+            BDBG_CWARNING( sizeof( BVCE_P_FW_PictureBufferMailbox ) == 4*27 );
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u,%u,%u",
+               ( pstEntry->data.stPictureBufferMailbox.LumaBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.LumaBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.LumaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.LumaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u,%u,%u",
+               ( pstEntry->data.stPictureBufferMailbox.ChromaBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.ChromaBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.ChromaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.ChromaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u,%u,%u,%u",
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.Luma1VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u,%u,%u,%u",
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DECIMATION_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.Luma2VBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u,%u,%u",
+               ( pstEntry->data.stPictureBufferMailbox.ShiftedChromaBufPtr.stOffset.uiOffsetHi ),
+               ( pstEntry->data.stPictureBufferMailbox.ShiftedChromaBufPtr.stOffset.uiOffsetLo ),
+               ( pstEntry->data.stPictureBufferMailbox.ShiftedChromaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_DCXV_SHIFT,
+               ( pstEntry->data.stPictureBufferMailbox.ShiftedChromaBufPtr.uiMetadata & BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_MASK ) >> BVCE_P_FW_PictureBufferInfo_Metadata_NMBY_SHIFT
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+            break;
+
+         case BVCE_DebugFifo_EntryType_ePictureBufferDropEnqueue:
+         case BVCE_DebugFifo_EntryType_ePictureBufferDropDequeue:
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u",
+               0,
+               ( pstEntry->data.stPicture.ulLumaOffset )
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u",
+               0,
+               ( pstEntry->data.stPicture.ulChromaOffset )
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u",
+               0,
+               ( pstEntry->data.stPicture.ul1VLumaOffset )
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u",
+               0,
+               ( pstEntry->data.stPicture.ul2VLumaOffset )
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ",%u,%u",
+               0,
+               ( pstEntry->data.stPicture.ulShiftedChromaOffset )
             );
             if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
             break;

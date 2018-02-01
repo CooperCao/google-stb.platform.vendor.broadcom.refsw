@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  EGL driver
-Module   :  Abstract Memory Interface
-
-FILE DESCRIPTION
-Defines an abstract interface that will be used to interact with platform memory.
-=============================================================================*/
-
-#ifndef _BEGL_MEMPLATFORM_H__
-#define _BEGL_MEMPLATFORM_H__
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "begl_dispplatform.h"
 
@@ -47,7 +38,7 @@ typedef struct BEGL_MemCopy2d
 /* The platform MUST provide an implementation of this interface in order that the EGL driver
  * can interact with platform memory.
  */
-typedef struct
+typedef struct BEGL_MemoryInterface
 {
    /* Context pointer - opaque to the 3d driver code, but passed out in all function pointer calls.
       Prevents the client code needing to perform context lookups. */
@@ -59,12 +50,6 @@ typedef struct
 
    /* Free a previously allocated block of device memory. Pass a cached address.*/
    void (*Free)(void *context, void *pCached);
-
-   /* Return a physical device memory offset given a cached pointer. Returns 0 on failure.*/
-   uint32_t (*ConvertCachedToPhysical)(void *context, void *pCached);
-
-   /* Return a cached memory pointer given a physical device memory offset. Returns 0 on failure.*/
-   void *(*ConvertPhysicalToCached)(void *context, uint32_t offset);
 
    /* Flush the cache for the given address range.*/
    void (*FlushCache)(void *context, void *pCached, size_t numBytes);
@@ -95,5 +80,3 @@ typedef struct
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _BEGL_MEMPLATFORM_H__ */

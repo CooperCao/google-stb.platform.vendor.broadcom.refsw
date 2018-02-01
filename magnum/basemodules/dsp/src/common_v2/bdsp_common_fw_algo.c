@@ -437,6 +437,79 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
             false
         }
     },
+    {
+        /* Algorithm */                    /* Type */                       /* Name */
+        BDSP_Algorithm_eOpusDecode, BDSP_AlgorithmType_eAudioDecode, "OPUS Audio Decode",
+        /* Default User Config */            /* User config size */
+        &BDSP_sOpusDecDefaultUserConfig, sizeof(BDSP_Raaga_Audio_OpusDecConfigParams),
+        /* Stream Info Size */                   /* Valid offset */
+        sizeof(BDSP_Raaga_Audio_OpusDecStreamInfo), BDSP_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_OpusDecStreamInfo, ui32StatusValid),
+        /* IDS status size */					 /* TSM status size */
+        sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
+        /* Max Channels Supported */      /* samples per channel */
+        8,   					         2880,
+        /* Preemption levels*/
+        {
+            true,
+            false,
+            false
+        }
+    },
+    {
+        /* Algorithm */                /* Type */                       /* Name */
+        BDSP_Algorithm_eLpcmEncode, BDSP_AlgorithmType_eAudioEncode, "LPCM Encode",
+        /* Default User Config */         /* User config size */
+        &BDSP_sDefLpcmEncConfigSettings,  sizeof(BDSP_Raaga_Audio_LpcmEncConfigParams),
+        /* Stream Info Size */            /* Valid offset */
+        0,                              0xffffffff,
+        /* IDS status size */             /* TSM status size */
+        0,                                0,
+        /* Max Channels Supported */      /* Samples per channel */
+        1,                             3072,
+        /* Preemption levels*/
+        {
+            true,
+            false,
+            false
+        }
+    },
+
+    {
+        /* Algorithm */                /* Type */                       /* Name */
+        BDSP_Algorithm_eMpegAudioEncode, BDSP_AlgorithmType_eAudioEncode, "MPEG Audio Encode",
+        /* Default User Config */         /* User config size */
+        &BDSP_sDefMpeg1L3EncConfigSettings,  sizeof(BDSP_Raaga_Audio_Mpeg1L3EncConfigParams),
+        /* Stream Info Size */            /* Valid offset */
+        0,                              0xffffffff,
+        /* IDS status size */             /* TSM status size */
+        0,                                0,
+        /* Max Channels Supported */      /* Samples per channel */
+        2,                             1024,
+        /* Preemption levels*/
+        {
+            true,
+            false,
+            false
+        }
+    },
+	{
+		/* Algorithm */                    /* Type */                       /* Name */
+		BDSP_Algorithm_eAC4Decode, BDSP_AlgorithmType_eAudioDecode, "AC4 Audio Decode",
+		/* Default User Config */            /* User config size */
+		&BDSP_sAC4DecDefaultUserConfig, sizeof(BDSP_Raaga_Audio_AC4DecConfigParams),
+		/* Stream Info Size */                   /* Valid offset */
+		sizeof(BDSP_Raaga_Audio_AC4StreamInfo), BDSP_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_AC4StreamInfo, ui32StatusValid),
+		/* IDS status size */					 /* TSM status size */
+		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
+		/* Max Channels Supported */      /* samples per channel */
+		8,   					         2230,
+		/* Preemption levels*/
+		{
+			true,
+			false,
+			false
+		}
+	},
     /* This entry must always be last used to derive the unsupported/invalid information */
 	{
 		BDSP_Algorithm_eMax, BDSP_AlgorithmType_eMax, "Invalid",

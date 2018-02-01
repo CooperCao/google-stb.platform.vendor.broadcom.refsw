@@ -1,5 +1,5 @@
 #/******************************************************************************
-#*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #*
 #*  This program is the proprietary software of Broadcom and/or its licensors,
 #*  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -37,7 +37,6 @@
 #******************************************************************************/
 
 BHSM_BSP_INTERRUPT_SUPPORT ?= y
-BHSM_ZEUS5_BFW110 ?= y
 
 include $(MAGNUM)/portinginterface/hsm/bhsm_defs.inc
 
@@ -52,16 +51,24 @@ ifeq ($(BHSM_BUILD_HSM_FOR_SAGE),y)
     _BHSM_BUILD_HSM_FOR_SAGE=y
 endif
 
+ifeq ($(BHSM_BUILD_HSM_FOR_NOS),y)
+    BHSM_DEFINES += BHSM_BUILD_HSM_FOR_NOS=1
+endif
+
 ifeq ($(BHSM_BSP_INTERRUPT_SUPPORT),y)
     BHSM_DEFINES += BHSM_BSP_INTERRUPT_SUPPORT=1
 endif
 
-ifeq ($(BHSM_ZEUS5_BFW110),y)
-    BHSM_DEFINES += BHSM_ZEUS5_BFW110=1
-endif
-
 ifeq ($(BHSM_DEBUG_SOA),y)
     BHSM_DEFINES += BHSM_DEBUG_SOA=1
+endif
+
+ifeq ($(BHSM_DEBUG_BSP),y)
+    BHSM_DEFINES += BHSM_DEBUG_BSP=1
+endif
+
+ifeq ($(BHSM_ELCAJON_SUPPORT),y)
+    BHSM_DEFINES += BHSM_ELCAJON_SUPPORT=1
 endif
 
 # Define this module
@@ -99,26 +106,12 @@ ifneq ($(HSM_SOURCE_AVAILABLE),n)
         ifeq ($(BHSM_ENCINITAS),y)
             BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_encinitas_restricted.c
         endif
-        ifeq ($(BHSM_ZEUS5_BFW110),y)
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_rv_BFW110.c
-        else
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_rv.c
+        ifeq ($(BHSM_ELCAJON_SUPPORT),y)
+            BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/zeus5/bhsm_p_control_elcajon_restricted.c
+            BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/zeus5/bhsm_p_elcajon_restricted.c
+            BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_elcajon.c
         endif
-        ifeq ($(_BHSM_BUILD_HSM_FOR_SAGE),y)
-#            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_crypto.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_hdcp22.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_otpsoa.c
-#            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_rv.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_sagechecker.c
-#            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_memcarch.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_biuchecker.c
-#            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_gisbblocker.c
-#            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_control.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_standby.c
-            ifeq ($(BHSM_ZEUS5_BFW110),y)
-            else
-            endif
-        endif
+        BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_rv.c
 
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_bsp_msg.c
@@ -137,18 +130,26 @@ ifneq ($(HSM_SOURCE_AVAILABLE),n)
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_rv_rsa.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_rv_region.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_hwkl.c
-        ifeq ($(_BHSM_BUILD_HSM_FOR_SAGE),y)
-            BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_hdcp22_restricted.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/bhsm_restricted_anti_rollback_sage.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/bhsm_sandbox_restricted.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/bhsm_crypto_restricted_sage.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/bhsm_control_restricted.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/bhsm_standby_restricted.c
+        ifeq ($(BHSM_DEBUG_BSP),y)
+        BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/zeus5/bhsm_p_debug_load_data.c
+        BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_bsp_debug.c
         endif
+
+
 
         ifeq ($(BHSM_BUILD_BROADCOM_ONLY),y)
             BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/zeus5/bhsm_p_control_broadcom_only_restricted.c
+            BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_exception_status_broadcom_only_restricted.c
         endif
+        ifeq ($(BHSM_POWAY_SUPPORT),y)
+            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_poway_restricted.c
+            BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_poway.c
+        endif
+        ifeq ($(BHSM_ENCINITAS_SUPPORT),y)
+            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/bhsm_encinitas.c
+            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_encinitas_restricted.c
+        endif
+
     else
 
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm.c
@@ -165,13 +166,20 @@ ifneq ($(HSM_SOURCE_AVAILABLE),n)
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_hdcp1x.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_rv_rsa.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_rv_region.c
-
         ifeq ($(_BHSM_BUILD_HSM_FOR_SAGE),y)
             BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_sandbox_restricted.c
             BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/bhsm_restricted_anti_rollback_sage.c
             BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/bhsm_hdcp22_restricted.c
             BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/bhsm_crypto_restricted_sage.c
         endif
-
+        ifeq ($(BHSM_POWAY_SUPPORT),y)
+            BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_poway.c
+        endif
+        ifeq ($(BHSM_ENCINITAS_SUPPORT),y)
+            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src_zeus432/bhsm_encinitas.c
+        endif
+        ifeq ($(BHSM_ELCAJON_SUPPORT),y)
+            BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_elcajon.c
+        endif
     endif
 endif

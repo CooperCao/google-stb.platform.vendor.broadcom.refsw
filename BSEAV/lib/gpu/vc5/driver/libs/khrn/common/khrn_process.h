@@ -27,9 +27,6 @@ extern const char *khrn_get_gl3x_exts_str(void);
 extern unsigned khrn_get_num_gl3x_exts(void);
 extern const char *khrn_get_gl3x_ext(unsigned i);
 extern gfx_lfmt_translate_gl_ext_t khrn_get_lfmt_translate_exts(void);
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-extern const V3D_MISCCFG_T *khrn_get_hw_misccfg(void);
-#endif
 
 static inline uint32_t khrn_get_num_qpus_per_core(void);
 static inline uint32_t khrn_get_num_render_subjobs(void);

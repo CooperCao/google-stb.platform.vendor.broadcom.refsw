@@ -1,18 +1,10 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Handles vertex and fragment shader caches.
-=============================================================================*/
-#ifndef GL11_SHADERCACHE_4_H
-#define GL11_SHADERCACHE_4_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "interface/khronos/common/khrn_int_common.h"
-#include "middleware/khronos/common/khrn_mem.h"
+#include "vcfw/rtos/abstract/rtos_abstract_mem.h"
 #include "interface/khronos/glxx/gl11_int_config.h"
 #include "middleware/khronos/gl11/gl11_matrix.h"
 #include "middleware/khronos/gl11/gl11_texunit.h"
@@ -31,15 +23,13 @@ typedef struct {
 } GL11_CACHE_ENTRY_T;
 
 extern bool gl11_hw_get_shaders(
-    GLXX_HW_SHADER_RECORD_T *shader_out,
-    MEM_HANDLE_T *cunifmap_out,
-    MEM_HANDLE_T *vunifmap_out,
-    MEM_HANDLE_T *funifmap_out,
-    uint32_t *color_varyings_out,
-    GLXX_SERVER_STATE_T *state,
-    GLXX_ATTRIB_T *attrib,
-    uint32_t *mergeable_attribs,
-    uint32_t * cattribs_order_out,
-    uint32_t * vattribs_order_out);
-
-#endif
+   GLXX_HW_SHADER_RECORD_T *shader_out,
+   void **cunifmap_out,
+   void **vunifmap_out,
+   void **funifmap_out,
+   uint32_t *color_varyings_out,
+   GLXX_SERVER_STATE_T *state,
+   GLXX_ATTRIB_T *attrib,
+   uint32_t *mergeable_attribs,
+   uint32_t * cattribs_order_out,
+   uint32_t * vattribs_order_out);

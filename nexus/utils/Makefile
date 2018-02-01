@@ -91,7 +91,10 @@ clean_apps:
 	-$(RM) -r $(addprefix $(BINDIR)/,$(APPS)) $(BINDIR)/obj
 
 # This is the minimum needed to compile and link with Nexus
-CFLAGS += $(NEXUS_CFLAGS) ${NEXUS_INTERNAL_CFLAGS} $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
+CFLAGS += $(NEXUS_CFLAGS)  $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
+# This enables extra goodies (like compiler warnings)
+CFLAGS += ${NEXUS_INTERNAL_CFLAGS}
+
 LDFLAGS += ${NEXUS_EXTRA_LDFLAGS}
 
 # Always build with debug

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -855,6 +855,7 @@ BIP_HttpResponseHandle BIP_HttpResponse_Create(
 
     BIP_HttpResponse_Clear_locked( hResponse, NULL );
 
+    /* coverity[missing_lock] */
     hResponse->deserializeState = deserializeState_eIdle;
     hResponse->serializeState   = serializeState_eIdle;
 

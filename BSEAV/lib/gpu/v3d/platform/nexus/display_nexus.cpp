@@ -104,10 +104,9 @@ static BEGL_Error DispBufferQueue(void *context, void *platformState, BEGL_Buffe
       auto data = static_cast<NXPL_Display *>(context);
       auto windowState = static_cast<nxpl::WindowState *>(platformState);
       std::unique_ptr<nxpl::Bitmap> bitmap(static_cast<nxpl::Bitmap*>(buffer));
-      static_assert(sizeof(int) == sizeof(void *), "doesn't function as a 64bit compile!");
       std::unique_ptr<helper::Semaphore> fence;
       if (fd != -1)
-         fence = std::move(std::unique_ptr<helper::Semaphore>(reinterpret_cast<helper::Semaphore*>(fd)));
+         fence = std::move(std::unique_ptr<helper::Semaphore>(static_cast<helper::Semaphore*>(data->hwInterface->FenceGet(data->hwInterface->context, fd))));
       else
          fence = std::move(std::unique_ptr<helper::Semaphore>(new helper::Semaphore(1)));
 

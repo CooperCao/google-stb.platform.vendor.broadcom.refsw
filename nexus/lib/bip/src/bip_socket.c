@@ -1138,7 +1138,7 @@ void BIP_Socket_Destroy(
     BIP_SocketHandle hSocket
     )
 {
-    BIP_Status               rc = BIP_SUCCESS;
+    BIP_Status              rc = BIP_SUCCESS;
     BIP_ArbSubmitSettings   arbSettings;
     BIP_ArbHandle           hArb;
 
@@ -1175,6 +1175,9 @@ void BIP_Socket_Destroy(
     BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_SubmitRequest() hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hArb ));
     rc = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BDBG_ASSERT(rc == BIP_SUCCESS);
+
+    rc = BIP_CLASS_REMOVE_INSTANCE(BIP_Socket, hSocket);
+    if (rc == BIP_ERR_INVALID_HANDLE) return;   /* Object has already been destroyed (by another thread). */
 
     B_Event_Reset(hSocket->hObjectShutdownEvent);
 
@@ -1239,8 +1242,6 @@ void BIP_Socket_Destroy(
     }
 
     BDBG_ASSERT( BLST_Q_EMPTY( &hSocket->recvArbQueueHead));
-
-    BIP_CLASS_REMOVE_INSTANCE(BIP_Socket, hSocket);
 
     BDBG_OBJECT_DESTROY( hSocket, BIP_Socket );
 

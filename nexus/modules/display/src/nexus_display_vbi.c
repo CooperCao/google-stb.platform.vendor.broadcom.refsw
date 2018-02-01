@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -298,30 +298,50 @@ NEXUS_Display_P_DisableVbi(NEXUS_DisplayHandle display)
         return;
     }
 
-    rc = BVBI_Encode_SetCC(display->vbi.enc_core, false);
-    if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
+    if (display->cfg.timingGenerator == NEXUS_DisplayTimingGenerator_e656Output) {
 
-    rc = BVBI_Encode_SetTeletext(display->vbi.enc_core, false);
-    if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
+        rc = BVBI_Encode_656_SetCC(display->vbi.enc_core, false);
+        if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
 
-    rc = BVBI_Encode_SetWSS(display->vbi.enc_core, false);
-    if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
+        rc = BVBI_Encode_656_SetTeletext(display->vbi.enc_core, false);
+        if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
 
-    rc = BVBI_Encode_SetCGMSA(display->vbi.enc_core, false);
-    if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
-    display->vbi.enabled[nexus_vbi_resources_cgmse] = false;
+        rc = BVBI_Encode_656_SetWSS(display->vbi.enc_core, false);
+        if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
 
-    rc = BVBI_Encode_SetCGMSB(display->vbi.enc_core, false);
-    if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
+        rc = BVBI_Encode_656_SetGemstar(display->vbi.enc_core, false);
+        if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
 
-    rc = BVBI_Encode_SetVPS(display->vbi.enc_core, false);
-    if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
+        rc = BVBI_Encode_656_SetAMOL(display->vbi.enc_core, false);
+        if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
+    }
+    else {
 
-    rc = BVBI_Encode_SetGemstar(display->vbi.enc_core, false);
-    if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
+        rc = BVBI_Encode_SetCC(display->vbi.enc_core, false);
+        if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
 
-    rc = BVBI_Encode_SetAMOL(display->vbi.enc_core, false);
-    if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
+        rc = BVBI_Encode_SetTeletext(display->vbi.enc_core, false);
+        if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
+
+        rc = BVBI_Encode_SetWSS(display->vbi.enc_core, false);
+        if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
+
+        rc = BVBI_Encode_SetCGMSA(display->vbi.enc_core, false);
+        if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
+        display->vbi.enabled[nexus_vbi_resources_cgmse] = false;
+
+        rc = BVBI_Encode_SetCGMSB(display->vbi.enc_core, false);
+        if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
+
+        rc = BVBI_Encode_SetVPS(display->vbi.enc_core, false);
+        if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
+
+        rc = BVBI_Encode_SetGemstar(display->vbi.enc_core, false);
+        if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
+
+        rc = BVBI_Encode_SetAMOL(display->vbi.enc_core, false);
+        if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
+    }
 
     rc = BVBI_Encode_ApplyChanges(display->vbi.enc_core);
     if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
@@ -362,6 +382,7 @@ NEXUS_Display_P_EnableVbi(NEXUS_DisplayHandle display, NEXUS_VideoFormat format)
     bool isSd = NEXUS_P_VideoFormat_IsSd(format);
     BFMT_VideoFmt formatVdc;
     bool enabled;
+    bool is656Output = (display->cfg.timingGenerator == NEXUS_DisplayTimingGenerator_e656Output) ? true : false;
 
     if (!display->vbi.enc_core) {
         BDBG_MSG(("Display does not support VBI encoding."));
@@ -412,51 +433,72 @@ NEXUS_Display_P_EnableVbi(NEXUS_DisplayHandle display, NEXUS_VideoFormat format)
         return BERR_TRACE(rc);
     }
 
-    rc = BVBI_Encode_SetCC(display->vbi.enc_core, isSd && display->vbi.settings.closedCaptionEnabled);
-    if (rc) {
-        BDBG_WRN(("ClosedCaption is not supported for this display format"));
-        return BERR_TRACE(rc);
-    }
-
-    rc = BVBI_Encode_SetTeletext(display->vbi.enc_core, isSd && display->vbi.settings.teletextEnabled);
-    if (rc) {
-        BDBG_WRN(("Teletext is not supported for this display format"));
-        return BERR_TRACE(rc);
-    }
-
-    rc = BVBI_Encode_SetWSS(display->vbi.enc_core, display->vbi.settings.wssEnabled);
-    if (rc) {
-        BDBG_WRN(("WSS is not supported for this display format"));
-        return BERR_TRACE(rc);
-    }
-
-    if(g_NEXUS_DisplayModule_State.moduleSettings.vbi.allowCgmsB){
-        /* CGMS is supported for NTSC and 50/60Hz HD, but not PAL. */
-        rc = BVBI_Encode_SetCGMSB(display->vbi.enc_core, (format != NEXUS_VideoFormat_ePal) && display->vbi.settings.cgmsEnabled);
+    if (is656Output) {
+        rc = BVBI_Encode_656_SetCC(display->vbi.enc_core, isSd && display->vbi.settings.closedCaptionEnabled);
         if (rc) {
-            BDBG_WRN(("CGMS B is not supported for this display format"));
+            BDBG_WRN(("ClosedCaption is not supported for this display format"));
             return BERR_TRACE(rc);
         }
-    }
 
-    /* CGMS is supported for NTSC and 50/60Hz HD, but not PAL. */
-    enabled = (format != NEXUS_VideoFormat_ePal) && display->vbi.settings.cgmsEnabled;
-    if (enabled && !display->vbi.enabled[nexus_vbi_resources_cgmse] && !nexus_display_p_vbi_available(nexus_vbi_resources_cgmse)) {
-        BDBG_WRN(("no CGMS A encoder available for display %u", display->index));
+        rc = BVBI_Encode_656_SetTeletext(display->vbi.enc_core, isSd && display->vbi.settings.teletextEnabled);
+        if (rc) {
+            BDBG_WRN(("Teletext is not supported for this display format"));
+            return BERR_TRACE(rc);
+        }
+
+        rc = BVBI_Encode_656_SetWSS(display->vbi.enc_core, display->vbi.settings.wssEnabled);
+        if (rc) {
+            BDBG_WRN(("WSS is not supported for this display format"));
+            return BERR_TRACE(rc);
+        }
     }
     else {
-        rc = BVBI_Encode_SetCGMSA(display->vbi.enc_core, enabled);
+        rc = BVBI_Encode_SetCC(display->vbi.enc_core, isSd && display->vbi.settings.closedCaptionEnabled);
         if (rc) {
-            BDBG_WRN(("CGMS A is not supported for this display format"));
+            BDBG_WRN(("ClosedCaption is not supported for this display format"));
             return BERR_TRACE(rc);
         }
-        display->vbi.enabled[nexus_vbi_resources_cgmse] = enabled;
-    }
 
-    rc = BVBI_Encode_SetVPS(display->vbi.enc_core, display->vbi.settings.vpsEnabled);
-    if (rc) {
-        BDBG_WRN(("VPS is not supported for this display format"));
-        return BERR_TRACE(rc);
+        rc = BVBI_Encode_SetTeletext(display->vbi.enc_core, isSd && display->vbi.settings.teletextEnabled);
+        if (rc) {
+            BDBG_WRN(("Teletext is not supported for this display format"));
+            return BERR_TRACE(rc);
+        }
+
+        rc = BVBI_Encode_SetWSS(display->vbi.enc_core, display->vbi.settings.wssEnabled);
+        if (rc) {
+            BDBG_WRN(("WSS is not supported for this display format"));
+            return BERR_TRACE(rc);
+        }
+
+        if(g_NEXUS_DisplayModule_State.moduleSettings.vbi.allowCgmsB){
+            /* CGMS is supported for NTSC and 50/60Hz HD, but not PAL. */
+            rc = BVBI_Encode_SetCGMSB(display->vbi.enc_core, (format != NEXUS_VideoFormat_ePal) && display->vbi.settings.cgmsEnabled);
+            if (rc) {
+                BDBG_WRN(("CGMS B is not supported for this display format"));
+                return BERR_TRACE(rc);
+            }
+        }
+
+        /* CGMS is supported for NTSC and 50/60Hz HD, but not PAL. */
+        enabled = (format != NEXUS_VideoFormat_ePal) && display->vbi.settings.cgmsEnabled;
+        if (enabled && !display->vbi.enabled[nexus_vbi_resources_cgmse] && !nexus_display_p_vbi_available(nexus_vbi_resources_cgmse)) {
+            BDBG_WRN(("no CGMS A encoder available for display %u", display->index));
+        }
+        else {
+            rc = BVBI_Encode_SetCGMSA(display->vbi.enc_core, enabled);
+            if (rc) {
+                BDBG_WRN(("CGMS A is not supported for this display format"));
+                return BERR_TRACE(rc);
+            }
+            display->vbi.enabled[nexus_vbi_resources_cgmse] = enabled;
+        }
+
+        rc = BVBI_Encode_SetVPS(display->vbi.enc_core, display->vbi.settings.vpsEnabled);
+        if (rc) {
+            BDBG_WRN(("VPS is not supported for this display format"));
+            return BERR_TRACE(rc);
+        }
     }
 
     if (display->vbi.settings.gemStarEnabled) {
@@ -470,10 +512,19 @@ NEXUS_Display_P_EnableVbi(NEXUS_DisplayHandle display, NEXUS_VideoFormat format)
         if (rc) return BERR_TRACE(rc);
     }
 
-    rc = BVBI_Encode_SetGemstar(display->vbi.enc_core, display->vbi.settings.gemStarEnabled);
-    if (rc) {
-        BDBG_WRN(("GemStar is not supported for this display format"));
-        return BERR_TRACE(rc);
+    if (is656Output) {
+        rc = BVBI_Encode_656_SetGemstar(display->vbi.enc_core, display->vbi.settings.gemStarEnabled);
+        if (rc) {
+            BDBG_WRN(("656 GemStar is not supported for this display format"));
+            return BERR_TRACE(rc);
+        }
+    }
+    else {
+        rc = BVBI_Encode_SetGemstar(display->vbi.enc_core, display->vbi.settings.gemStarEnabled);
+        if (rc) {
+            BDBG_WRN(("GemStar is not supported for this display format"));
+            return BERR_TRACE(rc);
+        }
     }
 
     if (display->vbi.settings.amolEnabled) {
@@ -491,14 +542,24 @@ NEXUS_Display_P_EnableVbi(NEXUS_DisplayHandle display, NEXUS_VideoFormat format)
         if (rc) return BERR_TRACE(rc);
     }
 
-    rc = BVBI_Encode_SetAMOL(display->vbi.enc_core,
-        /* AMOL only supported for NTSC and NTSC-J */
-        (format == NEXUS_VideoFormat_eNtsc || format == NEXUS_VideoFormat_eNtscJapan) && display->vbi.settings.amolEnabled);
-    if (rc) {
-        BDBG_WRN(("AMOL is not supported"));
-        return BERR_TRACE(rc);
+    if (is656Output) {
+        rc = BVBI_Encode_656_SetAMOL(display->vbi.enc_core,
+            /* AMOL only supported for NTSC and NTSC-J */
+            (format == NEXUS_VideoFormat_eNtsc || format == NEXUS_VideoFormat_eNtscJapan) && display->vbi.settings.amolEnabled);
+        if (rc) {
+            BDBG_WRN(("AMOL is not supported"));
+            return BERR_TRACE(rc);
+        }
     }
-
+    else {
+        rc = BVBI_Encode_SetAMOL(display->vbi.enc_core,
+            /* AMOL only supported for NTSC and NTSC-J */
+            (format == NEXUS_VideoFormat_eNtsc || format == NEXUS_VideoFormat_eNtscJapan) && display->vbi.settings.amolEnabled);
+        if (rc) {
+            BDBG_WRN(("AMOL is not supported"));
+            return BERR_TRACE(rc);
+        }
+    }
 
     rc = BVBI_Encode_ApplyChanges(display->vbi.enc_core);
     if (rc) {return BERR_TRACE(rc);}
@@ -518,6 +579,12 @@ NEXUS_Error NEXUS_Display_SetVbiSettings(NEXUS_DisplayHandle display, const NEXU
     NEXUS_VideoInput prevInput;
 
     BDBG_OBJECT_ASSERT(display, NEXUS_Display);
+
+    if (!display->vbi.enc && !display->vbi.enc_core)
+    {
+        BDBG_WRN(("Display %d does not have a VBI encoder.", display->index));
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
 
     if (pSettings->amolEnabled && !g_NEXUS_DisplayModule_State.moduleSettings.vbi.allowAmol) {
         BDBG_WRN(("cannot enable amol because NEXUS_DisplayModuleSettings.vbi.allowAmol is false"));
@@ -622,6 +689,12 @@ NEXUS_Error NEXUS_Display_WriteTeletext(NEXUS_DisplayHandle display, const NEXUS
     BERR_Code rc = 0;
     unsigned i;
 
+    if (!display->vbi.enc && !display->vbi.enc_core)
+    {
+        BDBG_WRN(("Display %d does not have a VBI encoder.", display->index));
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+
     if (numLines && !pLines) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     *pNumLinesWritten = 0; /* in case of error, assigned early */
     if (!display->vbi.settings.teletextEnabled) {
@@ -700,6 +773,12 @@ NEXUS_Error NEXUS_Display_WriteClosedCaption(NEXUS_DisplayHandle display, const 
     int full = 0;
     const NEXUS_DisplayModule_State *video = &g_NEXUS_DisplayModule_State;
 
+    if (!display->vbi.enc && !display->vbi.enc_core)
+    {
+        BDBG_WRN(("Display %d does not have a VBI encoder.", display->index));
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+
     *pNumEntriesWritten = 0; /* in case of error, assigned early */
     if (!display->vbi.settings.closedCaptionEnabled) {
         BDBG_WRN(("NEXUS_DisplayVbiSettings.closedCaptionEnabled is false"));
@@ -762,6 +841,12 @@ NEXUS_Error NEXUS_Display_WriteGemStar(NEXUS_DisplayHandle display, const NEXUS_
     int full = 0;
     const NEXUS_DisplayModule_State *video = &g_NEXUS_DisplayModule_State;
 
+    if (!display->vbi.enc && !display->vbi.enc_core)
+    {
+        BDBG_WRN(("Display %d does not have a VBI encoder.", display->index));
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+
     *pNumEntriesWritten = 0; /* in case of error, assigned early */
 
     if (!display->vbi.settings.gemStarEnabled) {
@@ -822,6 +907,12 @@ done_critsec:
 
 NEXUS_Error NEXUS_Display_SetWss(NEXUS_DisplayHandle display, uint16_t wssData)
 {
+    if (!display->vbi.enc && !display->vbi.enc_core)
+    {
+        BDBG_WRN(("Display %d does not have a VBI encoder.", display->index));
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+
     if (!display->vbi.settings.wssEnabled) {
         BDBG_WRN(("NEXUS_DisplayVbiSettings.wssEnabled is false"));
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
@@ -837,6 +928,12 @@ NEXUS_Error NEXUS_Display_SetWss(NEXUS_DisplayHandle display, uint16_t wssData)
 
 NEXUS_Error NEXUS_Display_SetCgms(NEXUS_DisplayHandle display, uint32_t cgmsData)
 {
+    if (!display->vbi.enc && !display->vbi.enc_core)
+    {
+        BDBG_WRN(("Display %d does not have a VBI encoder.", display->index));
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+
     if (!display->vbi.settings.cgmsEnabled) {
         BDBG_WRN(("NEXUS_DisplayVbiSettings.cgmsEnabled is false"));
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
@@ -854,6 +951,12 @@ NEXUS_Error NEXUS_Display_SetCgms(NEXUS_DisplayHandle display, uint32_t cgmsData
 
 NEXUS_Error NEXUS_Display_SetCgmsB(NEXUS_DisplayHandle display, const uint32_t *pCgmsData, unsigned size )
 {
+    if (!display->vbi.enc && !display->vbi.enc_core)
+    {
+        BDBG_WRN(("Display %d does not have a VBI encoder.", display->index));
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+
     if (!pCgmsData) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     if (!g_NEXUS_DisplayModule_State.moduleSettings.vbi.allowCgmsB) {
         BDBG_WRN(("NEXUS_DisplayModuleSettings.vbi.allowCgmsB is false"));
@@ -880,6 +983,12 @@ NEXUS_Error NEXUS_Display_SetCgmsB(NEXUS_DisplayHandle display, const uint32_t *
 
 NEXUS_Error NEXUS_Display_SetVps(NEXUS_DisplayHandle display, const NEXUS_VpsData *pData)
 {
+    if (!display->vbi.enc && !display->vbi.enc_core)
+    {
+        BDBG_WRN(("Display %d does not have a VBI encoder.", display->index));
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+
     if (!display->vbi.settings.vpsEnabled) {
         BDBG_WRN(("NEXUS_DisplayVbiSettings.vpsEnabled is false"));
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);

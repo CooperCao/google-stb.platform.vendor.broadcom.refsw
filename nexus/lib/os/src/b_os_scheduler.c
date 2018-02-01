@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -141,6 +141,7 @@ B_SchedulerHandle B_Scheduler_Create(
     )
 {
     B_Scheduler *pScheduler;
+    B_Error      rc;
 
     BSTD_UNUSED(pSettings);     /* Empty Structure */
 
@@ -180,11 +181,18 @@ B_SchedulerHandle B_Scheduler_Create(
     }
 
     /* Add control event to group */
-    B_EventGroup_AddEvent(pScheduler->eventGroup, pScheduler->controlEvent);
+    rc = B_EventGroup_AddEvent(pScheduler->eventGroup, pScheduler->controlEvent);
+    if (rc != B_ERROR_SUCCESS)
+    {
+        (void)BERR_TRACE(rc);
+        goto err_group_add;
+    }
 
     /* Success */
     return pScheduler;
 
+err_group_add:
+    B_EventGroup_Destroy(pScheduler->eventGroup);
 err_group:
     B_Event_Destroy(pScheduler->controlEvent);
 err_event:
@@ -271,6 +279,7 @@ B_SchedulerEventId B_Scheduler_RegisterEvent(
     )
 {
     B_SchedulerEvent *pEvent;
+    B_Error           rc;
 
     BDBG_ASSERT(NULL != scheduler);
     BDBG_ASSERT(NULL != mutex);
@@ -310,7 +319,15 @@ B_SchedulerEventId B_Scheduler_RegisterEvent(
         }
     }
     #endif
-    B_EventGroup_AddEvent(scheduler->eventGroup, event);
+    rc = B_EventGroup_AddEvent(scheduler->eventGroup, event);
+    if (rc != B_ERROR_SUCCESS)
+    {
+        (void)BERR_TRACE(rc);
+        B_Mutex_Unlock(scheduler->mutex);
+        B_Os_Free(pEvent);
+        return NULL;
+    }
+
     BLST_S_INSERT_HEAD(&scheduler->eventList, pEvent, node);
     B_Mutex_Unlock(scheduler->mutex);
 
@@ -525,6 +542,7 @@ void B_Scheduler_Run(
                     B_Mutex_Lock(pFirstTimer->mutex);
                     if ( !pFirstTimer->deleted )
                     {
+                        /* coverity[sleep] because callback can sleep inside of playback_ip */
                         pFirstTimer->pCallback(pFirstTimer->pContext);
                     }
                     B_Mutex_Unlock(pFirstTimer->mutex);

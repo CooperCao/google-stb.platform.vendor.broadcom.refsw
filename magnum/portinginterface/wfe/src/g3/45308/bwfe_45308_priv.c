@@ -1,42 +1,40 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 #include "bwfe.h"
 #include "bwfe_priv.h"
@@ -530,66 +528,22 @@ BERR_Code BWFE_P_GetAdcSampleFreq(BWFE_ChannelHandle h, uint32_t *freqKhz)
 ******************************************************************************/
 BERR_Code BWFE_P_SetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
 {
-#if 0
    BERR_Code retCode = BERR_SUCCESS;
    BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
-   uint32_t loChan, val, freqRefKhz;
-   uint32_t n_xtal, m_xtal, gcd;
+   uint32_t P_hi, P_lo, Q_hi, Q_lo;
+   uint32_t gcd, fcw, thr, Q;
    uint16_t n;
-   uint8_t p, m, outsel;
+   uint8_t p;
 
-   /* loPLL1 is the 1st stage PLL that generates CH5 CMOS reference shared between 2nd stage loPLL0 and loPLL2 */
-   p = 1;
-   n = 56;
-   m = 59;
-   outsel = 0; /* select CH5 postdiv output as output of master PLL */
-
-   /* calculate stage1 reference freq = f_xtal / pdiv * ndiv_int / mdiv_ch5 */
-   freqRefKhz = ((BWFE_XTAL_FREQ_KHZ << 1) * n) / p;
-   freqRefKhz = ((freqRefKhz / m) + 1) >> 1;    /* round */
-
-   /* set loPLL1 pdiv, ndiv, and outsel */
-   BWFE_P_LoWriteReg(1, BCHP_PLL_LOD2_0_PLL_DIV, ((p & 0xF) << 10) | (n & 0x1FF));
-   BWFE_P_LoWriteReg(1, BCHP_PLL_LOD2_0_PLL_OUTSEL_SEL, outsel);
-
-   /* set loPLL1 mdiv */
-   BWFE_P_LoReadReg(1, BCHP_PLL_LOD2_0_PLL_CHANNEL_CTRL_CH_5, &val);
-   val &= ~0x000001FF;
-   val |= m << 1;
-   BWFE_P_LoWriteReg(1, BCHP_PLL_LOD2_0_PLL_CHANNEL_CTRL_CH_5, val);
-
-   /* power up loPLL1 to 47.669MHz */
-   BWFE_P_LoPowerUp(1);
-
-   if (h->channel >= BWFE_NUM_CHANNELS/2)
-      loChan = 0; /* use loPLL0 for ADC4-7 */
-   else
-      loChan = 2; /* use loPLL2 for ADC0-3 */
-
-   /* search for target dpm freq based on stage1 reference, expect p=m=1, n=52, outsel=0 */
-   retCode = BWFE_P_LoSearchDiv(freqKhz, freqRefKhz, &p, &n, &m, &outsel);
-   /*BKNI_Printf(">>> p=%d, m=%d, n=%d, outsel=%d\n", p, m, n, outsel);*/
-   if (retCode != BERR_SUCCESS)
-      return retCode;
-
-   /* set pdiv, ndiv, and outsel */
-   /* To select FVCO/3 output, OUTPUT_SEL = 4 (first MUX), TEST_SEL = 5 (second MUX) */
-   /* To select CH5 postdiv output, OUTPUT_SEL = 0 (first MUX), TEST_SEL = 3 (second MUX) */
-   BWFE_P_LoWriteReg(loChan, BCHP_PLL_LOD2_0_PLL_DIV, ((p & 0xF) << 10) | (n & 0x1FF));
-   BWFE_P_LoWriteReg(loChan, BCHP_PLL_LOD2_0_PLL_OUTSEL_SEL, outsel);
-
-   /* select ch5 post-div, enable test buffer, power up loPLL1 */
-   BWFE_P_LoWriteReg(loChan, BCHP_PLL_LOD2_0_PLL_TEST, 0x00000007);
+   /* DAC pll fixed at 4779MHz */
+   p = 4;
+   n = 177;
+   BWFE_P_ReadModifyWriteRegister(h, BCHP_WFE_ANA_DPM_DAC_R04, ~0x001EFFC0, p << 17 | n << 6);
+   BWFE_P_AndRegister(h, BCHP_WFE_ANA_DPM_DAC_R06, ~0x00008000);  /* select pilot output to vco */
 
    /* calculate QDDFS ratio */
-   gcd = BWFE_P_GCF(BWFE_DEF_FS_ADC_KHZ, BWFE_XTAL_FREQ_KHZ);
-   n_xtal = BWFE_DEF_FS_ADC_KHZ / gcd;
-   m_xtal = BWFE_XTAL_FREQ_KHZ / gcd;
-
-   /* M = N2 x N1 = 2912 */
-   /* N = 100 x Mdiv1 x Mdiv2 = 5900 */
-   hChn->dpmQddfsM = 56 * n * BWFE_LIC_L;
-   hChn->dpmQddfsN = n_xtal * 59 * m;
+   hChn->dpmQddfsM = freqKhz * 184;
+   hChn->dpmQddfsN = BWFE_DEF_FS_ADC_KHZ * n;
 
    /* remove common divider */
    gcd = BWFE_P_GCF(hChn->dpmQddfsM, hChn->dpmQddfsN);
@@ -601,12 +555,22 @@ BERR_Code BWFE_P_SetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
    hChn->dpmQddfsM = hChn->dpmQddfsM % hChn->dpmQddfsN;
    /*BKNI_Printf("BWFE_P_SetDpmPilotFreq(%d KHz): dpmQddfsN=%d, dpmQddfsM=%d\n", freqKhz, hChn->dpmQddfsN, hChn->dpmQddfsM);*/
 
+   BMTH_HILO_32TO64_Mul(2147483648UL, 2, &P_hi, &P_lo);    /* 2^intbw where intbw=32 matches rtl word length */
+   BMTH_HILO_64TO64_Div32(P_hi, P_lo, hChn->dpmQddfsN, &Q_hi, &Q_lo);  /* QDDFS_N is positive */
+   Q = Q_lo;      /* Q = floor(2^intbw / QDDFS_N) where intbw=32 */
+
+   BMTH_HILO_32TO64_Mul(hChn->dpmQddfsM, Q, &P_hi, &P_lo);
+   fcw = P_lo;    /* fcw = QDDFS_M * Q */
+
+   BMTH_HILO_32TO64_Mul(hChn->dpmQddfsN, Q, &P_hi, &P_lo);
+   thr = P_lo;    /* thr = QDDFS_N * Q mod 2^intbw where intbw=32 */
+
+   BWFE_P_WriteRegister(h, BCHP_WFE_ANA_DPM_DAC_R02, fcw);
+   BWFE_P_WriteRegister(h, BCHP_WFE_ANA_DPM_DAC_R03, thr);
+
+   hChn->dpmPilotFreqKhz = freqKhz;
+
    return retCode;
-#else
-   BSTD_UNUSED(h);
-   BSTD_UNUSED(freqKhz);
-   return BERR_NOT_SUPPORTED;
-#endif
 }
 
 
@@ -615,56 +579,10 @@ BERR_Code BWFE_P_SetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
 ******************************************************************************/
 BERR_Code BWFE_P_GetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t *freqKhz)
 {
-#if 0
    BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
-   uint32_t loChan, val;
-   uint16_t ndiv;
-   uint8_t pdiv, mdiv, outsel;
 
-   /* loPLL1 is the 1st stage PLL that generates CH5 CMOS reference shared between 2nd stage loPLL0 and loPLL2 */
-   BWFE_P_LoReadReg(1, BCHP_PLL_LOD2_0_PLL_DIV, &val);
-   pdiv = (val >> 10) & 0xF;
-   ndiv = val & 0x1FF;
-
-   BWFE_P_LoReadReg(1, BCHP_PLL_LOD2_0_PLL_OUTSEL_SEL, &val);
-   outsel = val & 0x7;
-   BWFE_P_LoReadReg(1, BCHP_PLL_LOD2_0_PLL_CHANNEL_CTRL_CH_5, &val);
-   mdiv = (val >> 1) & 0xFF;
-
-   /* calculate stage1 reference freq = f_xtal / pdiv * ndiv_int / mdiv_ch5 */
-   *freqKhz = ((BWFE_XTAL_FREQ_KHZ << 1) * ndiv) / pdiv;
-   *freqKhz = ((*freqKhz / mdiv) + 1) >> 1;  /* round */
-
-   if (h->channel >= BWFE_NUM_CHANNELS/2)
-      loChan = 0; /* use loPLL0 for ADC4-7 */
-   else
-      loChan = 2; /* use loPLL2 for ADC0-3 */
-
-   BWFE_P_LoReadReg(loChan, BCHP_PLL_LOD2_0_PLL_DIV, &val);
-   pdiv = (val >> 10) & 0xF;
-   ndiv = val & 0x1FF;
-
-   BWFE_P_LoReadReg(loChan, BCHP_PLL_LOD2_0_PLL_OUTSEL_SEL, &val);
-   outsel = val & 0x7;
-   BWFE_P_LoReadReg(loChan, BCHP_PLL_LOD2_0_PLL_CHANNEL_CTRL_CH_5, &val);
-   mdiv = (val >> 1) & 0xFF;
-   /*BKNI_Printf("$$$%d: p=%d, m=%d, n=%d, outsel=%d\n", loChan, pdiv, mdiv, ndiv, outsel);*/
-
-   *freqKhz = ((*freqKhz << 1) * ndiv) / pdiv;
-   if (outsel == 0)
-      *freqKhz >>= 1;
-   else if (outsel == 4)
-      *freqKhz /= 3;
-   else if (outsel == 5)
-      *freqKhz /= mdiv;
-
-   hChn->dpmPilotFreqKhz = *freqKhz;
+   *freqKhz = hChn->dpmPilotFreqKhz;
    return BERR_SUCCESS;
-#else
-   BSTD_UNUSED(h);
-   BSTD_UNUSED(freqKhz);
-   return BERR_NOT_SUPPORTED;
-#endif
 }
 
 
@@ -673,24 +591,18 @@ BERR_Code BWFE_P_GetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t *freqKhz)
 ******************************************************************************/
 BERR_Code BWFE_P_EnableDpmPilot(BWFE_ChannelHandle h)
 {
-#if 0
-   uint32_t loChan;
-
-   if (h->channel >= BWFE_NUM_CHANNELS/2)
-      loChan = 0; /* use loPLL0 for ADC4-7 */
-   else
-      loChan = 2; /* use loPLL2 for ADC0-3 */
-
-   BWFE_P_LoPowerUp(loChan);
-
    /* inject dpm tone to adc input */
    BWFE_P_OrRegister(h, BCHP_WFE_ANA_RFFE_WRITER01, 0x00000010);
+   BWFE_P_OrRegister(h, BCHP_WFE_ANA_RFFE_WRITER02, 0x60000000);  /* max gain */
+
+   /* pilot power control */
+	BWFE_P_WriteRegister(h, BCHP_WFE_ANA_DPM_DAC_R00, 0x00050740); /* +35% relative to normal amplitude */
+   BWFE_P_WriteRegister(h, BCHP_WFE_ANA_DPM_DAC_R01, 0x00FFFE00); /* max tone1 amplitude, lowest R bias */
+
+   /* power on dpm pll and dac */
+   BWFE_P_OrRegister(h, BCHP_WFE_ANA_DPM_CNTL, 0x00000073);    /* release resets */
 
    return BERR_SUCCESS;
-#else
-   BSTD_UNUSED(h);
-   return BERR_NOT_SUPPORTED;
-#endif
 }
 
 
@@ -699,24 +611,13 @@ BERR_Code BWFE_P_EnableDpmPilot(BWFE_ChannelHandle h)
 ******************************************************************************/
 BERR_Code BWFE_P_DisableDpmPilot(BWFE_ChannelHandle h)
 {
-#if 0
-   uint32_t loChan;
-
-   if (h->channel >= BWFE_NUM_CHANNELS/2)
-      loChan = 0; /* use loPLL0 for ADC4-7 */
-   else
-      loChan = 2; /* use loPLL2 for ADC0-3 */
-
-   BWFE_P_LoPowerDown(loChan);
-
    /* disable dpm tone injection */
    BWFE_P_AndRegister(h, BCHP_WFE_ANA_RFFE_WRITER01, ~0x00000010);
 
+   /* power down dpm pll and dac and assert resets */
+   BWFE_P_AndRegister(h, BCHP_WFE_ANA_DPM_CNTL, ~0x00000073);
+
    return BERR_SUCCESS;
-#else
-   BSTD_UNUSED(h);
-   return BERR_NOT_SUPPORTED;
-#endif
 }
 
 

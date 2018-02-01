@@ -31,7 +31,7 @@ namespace video_texturing
 const uint32_t DemoTwistSeconds = 5;
 const uint32_t ZoomSeconds      = 10;
 const float    DefaultFov       = 45.0f;
-const float    Default360Fov    = 80.0f;
+const float    Default360Fov    = 67.0f;
 
 template<typename T>
 static T Clamp(T x, T mn, T mx)
@@ -191,7 +191,6 @@ Application::Application(int argc, const char *argv[]) :
 
    // Setup the local state
    InitGLState();
-   InitGLViewPort();
 
    printf("Rendering ");
    if (m_frames != 0)
@@ -204,8 +203,11 @@ Application::Application(int argc, const char *argv[]) :
    for (uint32_t b = 0; b < m_texture.NumBuffers(); b++)
       decodeSurfaces.push_back(m_texture.GetNativePixmap(b));
 
+   bool startPaused = m_mode == eSyncTest;
+
    m_videoDecoder.reset(new VideoDecoder(m_mediaData, decodeSurfaces, m_showVideo,
-                                         m_secure, m_ambisonic, m_stereoAudio, m_nexusDisplay));
+                                         m_secure, m_ambisonic, m_stereoAudio,
+                                         startPaused, m_nexusDisplay));
 
    m_texture.SetDecoder(m_videoDecoder->GetVideoDecoder());
 
@@ -254,10 +256,15 @@ void Application::PollKeyPress()
          return;
       }
 
-      if (m_mode == e360)
+      if (m_mode == e360 || m_mode == e360Multi)
       {
          switch (key)
          {
+#if VC5
+         case b_remote_key_info:   // Toggle wireframe
+            m_geometry->ToggleWireframe();
+            break;
+#endif
          case b_remote_key_up:     // More pitch change per frame
             m_animPitch.Update(m_animPitch.EndAngle() + inc, endTime, now);
             break;
@@ -286,7 +293,6 @@ void Application::PollKeyPress()
          // reset camera to center
          case b_remote_key_select:
          case b_remote_key_back:
-         case b_remote_key_info:
          case b_remote_key_guide:
          case b_remote_key_menu:
          case b_remote_key_clear:
@@ -341,12 +347,33 @@ void Application::Run()
    }
    else
    {
+      if (m_mode == e360 || m_mode == e360Multi)
+      {
+         printf("\nUse the remote to control the view:\n");
+         printf("  power              = close demo\n");
+         printf("  left/right/up/down = look around\n");
+         printf("  play               = roll anti-clockwise\n");
+         printf("  pause              = roll clockwise\n");
+         printf("  fast-forward       = zoom in\n");
+         printf("  rewind             = zoom out\n");
+         printf("  select             = reset view to default\n");
+#if VC5
+         printf("  info               = toggle wireframe view of geometry\n\n");
+#endif
+      }
+
       uint32_t frame = 0;
       while (!m_exit && (m_frames == 0 || frame <= m_frames))
       {
          PollKeyPress();
          Display();
          frame++;
+
+         if (m_mode == eSyncTest)
+         {
+            m_videoDecoder->FrameAdvance();
+            usleep(250000);
+         }
       }
    }
 }
@@ -392,7 +419,7 @@ void Application::InitGLState()
    glClearDepthf(1.0f);
    glDepthFunc(GL_LEQUAL); // To allow the overlay to be drawn at the same depth
 
-   if (m_mode == Compare)
+   if (m_mode == Compare || m_mode == eSyncTest)
       glClearColor(0.2f, 0.2f, 0.2f, 0.0f);   // Fully transparent background
    else
       glClearColor(0.2f, 0.2f, 0.2f, 0.75f);  // Gray, slightly transparent background
@@ -404,13 +431,13 @@ void Application::InitGLState()
    glEnable(GL_CULL_FACE);
 
    // Create geometry
-   m_geometry.reset(new Geometry(m_mode == e360, m_360Format, m_texW, m_texH));
+   m_geometry.reset(new Geometry(m_mode == e360 || m_mode == e360Multi, m_360Format, m_texW, m_texH));
 
    GLuint v = glCreateShader(GL_VERTEX_SHADER);
    GLuint f = glCreateShader(GL_FRAGMENT_SHADER);
 
-   const char *vv = VertexShaderStr(m_mode == e360, m_360Format);
-   const char *ff = FragmentShaderStr(m_mode == e360, m_360Format);
+   const char *vv = VertexShaderStr(m_mode == e360 || m_mode == e360Multi, m_360Format);
+   const char *ff = FragmentShaderStr(m_mode == e360 || m_mode == e360Multi, m_360Format);
 
    glShaderSource(v, 1, &vv, NULL);
    glShaderSource(f, 1, &ff, NULL);
@@ -453,7 +480,7 @@ void Application::InitGLState()
    m_camera.SetPosition(ESVec3{ 0.0f, 0.0f, 0.0f });
    m_camera.SetFov(DefaultFov);
 
-   if (m_mode == Demo || m_mode == Zoom)
+   if (m_mode == Demo || m_mode == Zoom || m_mode == eSyncTest)
    {
       // Adjust for video aspect ratio
       float aspect = static_cast<float>(m_texW) / m_texH;
@@ -472,7 +499,7 @@ void Application::InitGLState()
          m_animFov.Update(140.0f, now + std::chrono::seconds(ZoomSeconds), now);
       }
    }
-   else if (m_mode == e360)
+   else if (m_mode == e360 || m_mode == e360Multi)
    {
       m_animFov.Set(Default360Fov, Default360Fov, now, now);
       esScale(&m_modelMatrix, 100, 100, 100);
@@ -480,6 +507,8 @@ void Application::InitGLState()
       // The 360 geometry may need rotating to get the front face correct
       esRotate(&m_modelMatrix, m_geometry->GetModelYRotate(), 0.0f, 1.0f, 0.0f);
    }
+
+   glViewport(0, 0, m_vpW, m_vpH);
 }
 
 void Application::TerminateGLState()
@@ -489,11 +518,6 @@ void Application::TerminateGLState()
    m_geometry.reset();
 
    m_texture.Destroy();
-}
-
-void Application::InitGLViewPort()
-{
-   glViewport(0, 0, m_vpW, m_vpH);
 }
 
 void Application::Resize()
@@ -510,7 +534,7 @@ void Application::Resize()
    {
       m_vpW = w;
       m_vpH = h;
-      InitGLViewPort();
+      glViewport(0, 0, m_vpW, m_vpH);
    }
 }
 
@@ -963,6 +987,10 @@ void Application::ProcessArgs(int argc, const char *argv[])
                m_mode = Compare;
             else if (mode == "360")
                m_mode = e360;
+            else if (mode == "360Multi")
+               m_mode = e360Multi;
+            else if (mode == "syncTest")
+               m_mode = eSyncTest;
             else
                throw false;
          }
@@ -1045,20 +1073,22 @@ void Application::ProcessArgs(int argc, const char *argv[])
          "  miplevels=N         use up to N miplevels when mipmapping\n"
          "                      destripe is available (default 1)\n"
 #endif
-         "  mode=[demo|zoom|fullscreen|compare|360]\n"
+         "  mode=[demo|zoom|fullscreen|compare|360|360Multi|syncTest]\n"
          "                      'demo' plays a video texture on a rotating surface\n"
          "                      'zoom' plays a video texture zooming in and out\n"
          "                      'fullscreen' plays a fullscreen video texture\n"
          "                      'compare' switches between fullscreen texture and\n"
-         "                        fullscreen video once per second. The texture size is\n"
-         "                        forced to match the display resolution in this mode.\n"
-         "                      (default 'demo')\n"
+         "                         fullscreen video once per second. The texture size is\n"
+         "                         forced to match the display resolution in this mode.\n"
          "                      '360' displays a 360 degree video\n"
+         "                      '360Multi' displays 4 viewports with different views\n"
+         "                      'syncTest' is used for internal testing\n"
+         "                      (default 'demo')\n"
          "  360_format=N        select the type of 360 video\n"
          "                      0=equirect(default)     1=cube_32_0     2=cube_32_90\n"
          "                      3=cube_32_270(YouTube)  4=cube_32_p270  5=cube_43_0\n"
          "                      6=fisheye               7=icosahedron   8=octahedron\n"
-         "                      9=eap\n",
+         "                      9=eap                  10=equirect_sphere\n",
          progname, SupportedDecodeFormats().c_str());
       throw "Invalid arguments";
    }
@@ -1117,7 +1147,7 @@ void Application::UpdateAnimation()
 {
    std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
 
-   if (m_mode == e360)
+   if (m_mode == e360 || m_mode == e360Multi)
    {
       m_camera.SetRotation(m_animYaw.AngleAtTime(now), m_animPitch.AngleAtTime(now), m_animRoll.AngleAtTime(now));
       m_camera.SetFov(m_animFov.AngleAtTime(now));
@@ -1142,9 +1172,17 @@ void Application::UpdateAnimation()
 
       m_camera.SetFov(m_animFov.AngleAtTime(now));
    }
+   else if (m_mode == eSyncTest)
+   {
+      static int syncTestIncrement = -90;
+      syncTestIncrement += 1;
+      if (syncTestIncrement >= 90)
+         syncTestIncrement = -90;
+      m_camera.SetRotation(syncTestIncrement, 0.0f, 0.0f);
+   }
 
    esMatrixLoadIdentity(&m_projectionMatrix);
-   if (m_mode == Demo || m_mode == Zoom || m_mode == e360)
+   if (m_mode == Demo || m_mode == Zoom || m_mode == e360 || m_mode == e360Multi || m_mode == eSyncTest)
       esPerspective(&m_projectionMatrix, m_camera.GetFov(), (float)m_vpW / (float)m_vpH, 1, 5000);
 
    // Update spatial audio
@@ -1196,11 +1234,6 @@ void Application::Display()
    // Update the video frame texture (will leave the texture untouched if no new frame is ready)
    m_texture.AcquireVideoFrame();
 
-   // Compute the final MVP matrix
-   ESMatrix viewMx = m_camera.GetViewMatrix();
-   esMatrixMultiply(&m_modelviewMatrix, &m_modelMatrix, &viewMx);
-   esMatrixMultiply(&m_mvpMatrix, &m_modelviewMatrix, &m_projectionMatrix);
-
    // Clear all the buffers we asked for during config to ensure fast-path
    glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -1209,17 +1242,53 @@ void Application::Display()
    // Bind the geometry
    m_geometry->Bind(m_positionLoc, m_tcLoc);
 
-   // Load the latest MVP matrix into its uniform
-   glUniformMatrix4fv(m_mvpMatrixLoc, 1, GL_FALSE, (GLfloat*)&m_mvpMatrix.m[0][0]);
-   glUniform1i(m_texUnitLoc, 0);
-
    // Bind the current buffer of the video-texture
    bool texValid = m_texture.BindTexture(GL_TEXTURE_2D);
+
+   glUniform1i(m_texUnitLoc, 0);
+
+   // Compute the final MVP matrix
+   ESMatrix viewMx = m_camera.GetViewMatrix();
+   esMatrixMultiply(&m_modelviewMatrix, &m_modelMatrix, &viewMx);
+   esMatrixMultiply(&m_mvpMatrix, &m_modelviewMatrix, &m_projectionMatrix);
+
+   // Load the latest MVP matrix into its uniform
+   glUniformMatrix4fv(m_mvpMatrixLoc, 1, GL_FALSE, (GLfloat*)&m_mvpMatrix.m[0][0]);
 
    if (!justVideo && texValid)
    {
       // Draw the geometry
-      m_geometry->Draw();
+      if (m_mode == e360Multi)
+      {
+         // Rotate the model 90 degrees for each of the 4 viewports
+         ESMatrix model = m_modelMatrix;
+
+         glViewport(0, 0, m_vpW / 2, m_vpH / 2);
+         m_geometry->Draw();
+
+         glViewport(m_vpW / 2, 0, m_vpW / 2, m_vpH / 2);
+         esRotate(&model, 90.0f, 0.0f, 1.0f, 0.0f);
+         esMatrixMultiply(&m_modelviewMatrix, &model, &viewMx);
+         esMatrixMultiply(&m_mvpMatrix, &m_modelviewMatrix, &m_projectionMatrix);
+         glUniformMatrix4fv(m_mvpMatrixLoc, 1, GL_FALSE, (GLfloat*)&m_mvpMatrix.m[0][0]);
+         m_geometry->Draw();
+
+         glViewport(0, m_vpH / 2, m_vpW / 2, m_vpH / 2);
+         esRotate(&model, 90.0f, 0.0f, 1.0f, 0.0f);
+         esMatrixMultiply(&m_modelviewMatrix, &model, &viewMx);
+         esMatrixMultiply(&m_mvpMatrix, &m_modelviewMatrix, &m_projectionMatrix);
+         glUniformMatrix4fv(m_mvpMatrixLoc, 1, GL_FALSE, (GLfloat*)&m_mvpMatrix.m[0][0]);
+         m_geometry->Draw();
+
+         glViewport(m_vpW / 2, m_vpH / 2, m_vpW / 2, m_vpH / 2);
+         esRotate(&model, 90.0f, 0.0f, 1.0f, 0.0f);
+         esMatrixMultiply(&m_modelviewMatrix, &model, &viewMx);
+         esMatrixMultiply(&m_mvpMatrix, &m_modelviewMatrix, &m_projectionMatrix);
+         glUniformMatrix4fv(m_mvpMatrixLoc, 1, GL_FALSE, (GLfloat*)&m_mvpMatrix.m[0][0]);
+         m_geometry->Draw();
+      }
+      else
+         m_geometry->Draw();
 
       if (m_mode == Compare)
          DrawTextOverlay();

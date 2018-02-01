@@ -8,9 +8,13 @@
 #include "packetreader.h"
 #include "bsg_task.h"
 #include <mutex>
-#include <chrono>
-using namespace std::chrono;
-#include <thread>
+
+#ifdef WIN32
+#include <windows.h>
+#define sleep(x) Sleep(x)
+#else
+#include <unistd.h>
+#endif
 
 #include <memory.h>
 
@@ -33,7 +37,7 @@ void LoaderTask::OnThread()
    {
       bool filled = m_loader.FillBuffer(false);
       if (filled)
-         std::this_thread::sleep_for(milliseconds(1000));
+         sleep(1);
       else
       {
          std::lock_guard<std::mutex> guard(m_loader.m_queueMutex);
@@ -189,7 +193,7 @@ bool Loader::LoadCommand(Command **cmd)
       {
          q.unlock();
          printf("Waiting for data - file reading too slow - FPS may be inaccurate\n");
-         std::this_thread::sleep_for(milliseconds(1000));
+         sleep(1);
          q.lock();
 
          if (m_taskDone && m_numCmds == 0)
@@ -238,16 +242,12 @@ bool Loader::ReadCommand(Command *cmd)
 
 bool Loader::CaptureHasPointerSize()
 {
-#if V3D_TECH_VERSION >= 3
    #define CAPTURE_WITH_PTR_SIZE_MAJOR_VER_MIN 1
    #define CAPTURE_WITH_PTR_SIZE_MINOR_VER_MIN 5
 
    return m_major > CAPTURE_WITH_PTR_SIZE_MAJOR_VER_MIN ||
          (m_major == CAPTURE_WITH_PTR_SIZE_MAJOR_VER_MIN &&
                m_minor >= CAPTURE_WITH_PTR_SIZE_MINOR_VER_MIN);
-#else
-   return false;
-#endif
 }
 
 bool Loader::Open(const std::string &filename, uint32_t bufferBytes, uint32_t ioBufferBytes, uint32_t maxCmds, bool reprime)
@@ -377,7 +377,6 @@ bool Loader::Open(const std::string &filename, uint32_t bufferBytes, uint32_t io
 #endif
       }
 
-#if V3D_TECH_VERSION >= 3
       #define DEFAULT_PTR_SIZE 4 // Assume 32-bit platform if not specified
       unsigned capturePtrSize = CaptureHasPointerSize() ?
             PacketReader::Read32(*this) : DEFAULT_PTR_SIZE;
@@ -399,7 +398,9 @@ bool Loader::Open(const std::string &filename, uint32_t bufferBytes, uint32_t io
          }
 #endif
       }
-#endif
+
+      printf("Capture format version = %d.%d %zu-bit\n\n", m_major, m_minor,
+            PacketItem::GetPointerSize() * 8);
 
       if (!m_reprime)
       {
@@ -440,7 +441,7 @@ void Loader::PrimeBuffer()
             fflush(stdout);
             last = m_cmdQueueBytes;
          }
-         std::this_thread::sleep_for(milliseconds(1000));
+         sleep(1);
       }
 
       printf("Buffered %d MB, %d commands               \n", m_cmdQueueBytes / (1024 * 1024), m_numCmds);

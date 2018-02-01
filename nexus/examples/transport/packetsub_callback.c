@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- *****************************************************************************/
+  *****************************************************************************/
 #include "nexus_platform.h"
 #include "nexus_packetsub.h"
 #include "nexus_parser_band.h"
@@ -214,7 +211,7 @@ int main(void) {
         fwrite(buffer, size, 1, data_file);
         rc = NEXUS_Recpump_DataReadComplete(recpump, size);
         BDBG_ASSERT(!rc);
-        printf("writing %d bytes\n", size);
+        printf("writing %u bytes\n", (unsigned)size);
         total_data += size;
     }
     NEXUS_Recpump_Stop(recpump);

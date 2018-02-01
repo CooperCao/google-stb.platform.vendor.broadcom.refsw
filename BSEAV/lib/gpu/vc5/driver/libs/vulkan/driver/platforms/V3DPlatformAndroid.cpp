@@ -40,30 +40,51 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetSwapchainGrallocUsageANDROID(
     int*                grallocUsage
 )
 {
-   // TODO: Use image format to select correct gralloc usage
-   // Format returned by GetPhysicalDeviceSurfaceFormatsKHR in the loader
-   // VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_SRGB, VK_FORMAT_R5G6B5_UNORM_PACK16
+   // The format is not important to the gralloc usage on our platform.
+   (void)format;
+   (void)device;
 
+   // The current (N) swapchain code does zero this before calling, but
+   // zero it here in case their code changes in the future.
+   *grallocUsage = 0;
+
+   // NOTE: The following flags are not advertised as valid for WSI surfaces by
+   //       the Android swapchain implementation provided by Google.
+   //       VK_USAGE_DEPTH_STENCIL_BIT        - swapchain images must be color
+   //       VK_USAGE_TRANSIENT_ATTACHMENT_BIT - swapchain images cannot be
+   //          transient memory as they are backed by gralloc buffers
+
+   // If we ever implement UIF gralloc buffers as an interop format with
+   // the display composition then add GRALLOC_USAGE_HW_TEXTURE for TRANSFER_SRC
+   // to allow for optimized blits from swapchain images (i.e. screen snapshot).
+   //
+   // NOTE: we have no sensible flag available to indicate the TFU might read
+   //       this, so just specify HW_RENDER to make sure the memory is visible
+   //       to the v3d hardware in general. Although a swapchain image usage
+   //       without either TRANSFER_DST or COLOR_ATTACHMENT as well would be
+   //       pretty useless.
    if (imageUsage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
-      *grallocUsage |= GRALLOC_USAGE_SW_READ_MASK | GRALLOC_USAGE_HW_RENDER;
+      *grallocUsage |= GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_HW_RENDER;
 
    if (imageUsage & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
-      *grallocUsage |= GRALLOC_USAGE_SW_WRITE_MASK | GRALLOC_USAGE_HW_RENDER;
+      *grallocUsage |= GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_HW_RENDER;
 
+   if (imageUsage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+      *grallocUsage |= GRALLOC_USAGE_HW_RENDER;
+
+   // These require UIF compatible gralloc buffers, which are currently not
+   // supported in our Android implementation. We would prefer Google allowed
+   // vendors the choice to decide if certain usage was valid for swapchain
+   // images, but currently their layer hardcodes it.
+   //
+   // NOTE: we are not flagging any error here, we are relying on the
+   //       surface window's creation of the buffers failing when our
+   //       gralloc implementation sees the GRALLOC_USAGE_HW_TEXTURE flag.
    if (imageUsage & VK_IMAGE_USAGE_SAMPLED_BIT)
       *grallocUsage |= GRALLOC_USAGE_HW_TEXTURE;
 
    if (imageUsage & VK_IMAGE_USAGE_STORAGE_BIT)
-      *grallocUsage |= GRALLOC_USAGE_SW_WRITE_MASK | GRALLOC_USAGE_HW_TEXTURE;
-
-   if (imageUsage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-      *grallocUsage |= GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_SW_WRITE_MASK;
-
-   if (imageUsage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
-      *grallocUsage |= GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_SW_WRITE_MASK;
-
-   if (imageUsage & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT)
-      *grallocUsage |= GRALLOC_USAGE_SW_WRITE_MASK;
+      *grallocUsage |= GRALLOC_USAGE_HW_TEXTURE;
 
    if (imageUsage & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)
       *grallocUsage |= GRALLOC_USAGE_HW_TEXTURE;

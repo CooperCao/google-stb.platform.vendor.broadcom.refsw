@@ -40,12 +40,14 @@
 #ifdef WL_NAN
 #include <wl_cfgnan.h>
 #endif /* WL_NAN */
+#include <wlc_cfg.h>
 struct wl_conf;
 struct wl_iface;
 struct bcm_cfg80211;
 struct wl_security;
 struct wl_ibss;
 
+#define SUPPORT_SOFTAP_WPAWPA2_MIXED
 
 #if defined(IL_BIGENDIAN)
 #include <bcmendian.h>
@@ -875,6 +877,10 @@ struct bcm_cfg80211 {
 	struct workqueue_struct *event_workq;   /* workqueue for event */
 	struct work_struct event_work;		/* work item for event */
 	struct mutex pm_sync;	/* mainly for pm work synchronization */
+#ifdef WLDFS
+	struct delayed_work dfs_cac_work;
+	struct mutex dfs_cac_sync;
+#endif
 
 	vndr_ie_setbuf_t *ibss_vsie;	/* keep the VSIE for IBSS */
 	int ibss_vsie_len;
@@ -1771,12 +1777,12 @@ struct net_device *wl_cfg80211_get_remain_on_channel_ndev(struct bcm_cfg80211 *c
 #define ACS_MSRMNT_DELAY 1000 /* dump_obss delay in ms */
 #define IOCTL_RETRY_COUNT 5
 #define CHAN_NOISE_DUMMY -80
-#define OBSS_TOKEN_IDX 15
-#define IBSS_TOKEN_IDX 15
-#define TX_TOKEN_IDX 14
-#define CTG_TOKEN_IDX 13
-#define PKT_TOKEN_IDX 15
-#define IDLE_TOKEN_IDX 12
+#define OBSS_TOKEN_IDX 1
+#define IBSS_TOKEN_IDX 1
+#define TX_TOKEN_IDX 2
+#define CTG_TOKEN_IDX 1
+#define PKT_TOKEN_IDX 1
+#define IDLE_TOKEN_IDX 3
 #endif /* WL_SUPPORT_ACS */
 
 #ifdef BCMWAPI_WPI

@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
-#ifndef GLSL_CONST_OPERATORS_H
-#define GLSL_CONST_OPERATORS_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "middleware/khronos/glsl/glsl_const_types.h"
 
@@ -20,37 +12,37 @@ Standalone GLSL compiler
 //
 
 // EXPR_ARITH_NEGATE
-static INLINE void op_arith_negate__const_int__const_int(const_int* result, const_int* operand)
+static inline void op_arith_negate__const_int__const_int(const_int* result, const_int* operand)
 {
    *result = -*operand;
 }
-static INLINE void op_arith_negate__const_float__const_float(const_float* result, const_float* operand)
+static inline void op_arith_negate__const_float__const_float(const_float* result, const_float* operand)
 {
    *result = *operand ^ (1 << (sizeof(const_float) * 8 - 1));
 }
 
 // EXPR_LOGICAL_NOT
-static INLINE void op_logical_not__const_bool__const_bool(const_bool* result, const_bool* operand)
+static inline void op_logical_not__const_bool__const_bool(const_bool* result, const_bool* operand)
 {
    *result = !*operand;
 }
 
 // EXPR_MUL
-static INLINE void op_mul__const_int__const_int__const_int(const_int* result, const_int* left, const_int* right)
+static inline void op_mul__const_int__const_int__const_int(const_int* result, const_int* left, const_int* right)
 {
    *result = (*left) * (*right);
 }
-static INLINE void op_mul__const_float__const_float__const_float(const_float* result, const_float* left, const_float* right)
+static inline void op_mul__const_float__const_float__const_float(const_float* result, const_float* left, const_float* right)
 {
    glsl_fpu_mul((unsigned *)result, *left, *right);
 }
 
 // EXPR_DIV
-static INLINE void op_div__const_int__const_int__const_int(const_int* result, const_int* left, const_int* right)
+static inline void op_div__const_int__const_int__const_int(const_int* result, const_int* left, const_int* right)
 {
    *result = (*left) / (*right);
 }
-static INLINE void op_div__const_float__const_float__const_float(const_float* result, const_float* left, const_float* right)
+static inline void op_div__const_float__const_float__const_float(const_float* result, const_float* left, const_float* right)
 {
    unsigned CONST_2_0 = 0x40000000;
    unsigned temp, nr_prod,nr_factor,tempres;
@@ -62,26 +54,26 @@ static INLINE void op_div__const_float__const_float__const_float(const_float* re
 }
 
 // EXPR_ADD
-static INLINE void op_add__const_int__const_int__const_int(const_int* result, const_int* left, const_int* right)
+static inline void op_add__const_int__const_int__const_int(const_int* result, const_int* left, const_int* right)
 {
    *result = (*left) + (*right);
 }
-static INLINE void op_add__const_float__const_float__const_float(const_float* result, const_float* left, const_float* right)
+static inline void op_add__const_float__const_float__const_float(const_float* result, const_float* left, const_float* right)
 {
    glsl_fpu_add((unsigned *)result, *left, *right);
 }
 
 // EXPR_SUB
-static INLINE void op_sub__const_int__const_int__const_int(const_int* result, const_int* left, const_int* right)
+static inline void op_sub__const_int__const_int__const_int(const_int* result, const_int* left, const_int* right)
 {
    *result = (*left) - (*right);
 }
-static INLINE void op_sub__const_float__const_float__const_float(const_float* result, const_float* left, const_float* right)
+static inline void op_sub__const_float__const_float__const_float(const_float* result, const_float* left, const_float* right)
 {
    glsl_fpu_sub((unsigned *)result, *left, *right);
 }
 
-static INLINE void op_cmp__const_int__const_float__const_float(const_int* result, const_float* left, const_float* right)
+static inline void op_cmp__const_int__const_float__const_float(const_int* result, const_float* left, const_float* right)
 {
    int a = *left;
    int b = *right;
@@ -116,11 +108,11 @@ static INLINE void op_cmp__const_int__const_float__const_float(const_int* result
 }
 
 // EXPR_LESS_THAN
-static INLINE void op_less_than__const_bool__const_int__const_int(const_bool* result, const_int* left, const_int* right)
+static inline void op_less_than__const_bool__const_int__const_int(const_bool* result, const_int* left, const_int* right)
 {
    *result = (*left) < (*right);
 }
-static INLINE void op_less_than__const_bool__const_float__const_float(const_bool* result, const_float* left, const_float* right)
+static inline void op_less_than__const_bool__const_float__const_float(const_bool* result, const_float* left, const_float* right)
 {
    const_int cmpres;
 
@@ -130,11 +122,11 @@ static INLINE void op_less_than__const_bool__const_float__const_float(const_bool
 }
 
 // EXPR_LESS_THAN_EQUAL
-static INLINE void op_less_than_equal__const_bool__const_int__const_int(const_bool* result, const_int* left, const_int* right)
+static inline void op_less_than_equal__const_bool__const_int__const_int(const_bool* result, const_int* left, const_int* right)
 {
    *result = (*left) <= (*right);
 }
-static INLINE void op_less_than_equal__const_bool__const_float__const_float(const_bool* result, const_float* left, const_float* right)
+static inline void op_less_than_equal__const_bool__const_float__const_float(const_bool* result, const_float* left, const_float* right)
 {
    const_int cmpres;
 
@@ -144,11 +136,11 @@ static INLINE void op_less_than_equal__const_bool__const_float__const_float(cons
 }
 
 // EXPR_GREATER_THAN
-static INLINE void op_greater_than__const_bool__const_int__const_int(const_bool* result, const_int* left, const_int* right)
+static inline void op_greater_than__const_bool__const_int__const_int(const_bool* result, const_int* left, const_int* right)
 {
    *result = (*left) > (*right);
 }
-static INLINE void op_greater_than__const_bool__const_float__const_float(const_bool* result, const_float* left, const_float* right)
+static inline void op_greater_than__const_bool__const_float__const_float(const_bool* result, const_float* left, const_float* right)
 {
    const_int cmpres;
 
@@ -158,11 +150,11 @@ static INLINE void op_greater_than__const_bool__const_float__const_float(const_b
 }
 
 // EXPR_GREATER_THAN_EQUAL
-static INLINE void op_greater_than_equal__const_bool__const_int__const_int(const_bool* result, const_int* left, const_int* right)
+static inline void op_greater_than_equal__const_bool__const_int__const_int(const_bool* result, const_int* left, const_int* right)
 {
    *result = (*left) >= (*right);
 }
-static INLINE void op_greater_than_equal__const_bool__const_float__const_float(const_bool* result, const_float* left, const_float* right)
+static inline void op_greater_than_equal__const_bool__const_float__const_float(const_bool* result, const_float* left, const_float* right)
 {
    const_int cmpres;
 
@@ -172,51 +164,51 @@ static INLINE void op_greater_than_equal__const_bool__const_float__const_float(c
 }
 
 // EXPR_LOGICAL_AND
-static INLINE void op_logical_and__const_bool__const_bool__const_bool(const_bool* result, const_bool* left, const_bool* right)
+static inline void op_logical_and__const_bool__const_bool__const_bool(const_bool* result, const_bool* left, const_bool* right)
 {
    *result = (*left) && (*right);
 }
 
 // EXPR_LOGICAL_XOR
-static INLINE void op_logical_xor__const_bool__const_bool__const_bool(const_bool* result, const_bool* left, const_bool* right)
+static inline void op_logical_xor__const_bool__const_bool__const_bool(const_bool* result, const_bool* left, const_bool* right)
 {
    *result = (*left ? CONST_BOOL_TRUE : CONST_BOOL_FALSE) != (*right ? CONST_BOOL_TRUE : CONST_BOOL_FALSE);
 }
 
 // EXPR_LOGICAL_OR
-static INLINE void op_logical_or__const_bool__const_bool__const_bool(const_bool* result, const_bool* left, const_bool* right)
+static inline void op_logical_or__const_bool__const_bool__const_bool(const_bool* result, const_bool* left, const_bool* right)
 {
    *result = (*left) || (*right);
 }
 
 // EXPR_INTRINSIC_MIN
-static INLINE void op_min__const_int__const_int__const_int(const_int* result, const_int* left, const_int* right)
+static inline void op_min__const_int__const_int__const_int(const_int* result, const_int* left, const_int* right)
 {
    *result = (*left) < (*right) ? (*left) : (*right);
 }
-static INLINE void op_min__const_float__const_float__const_float(const_float* result, const_float* left, const_float* right)
+static inline void op_min__const_float__const_float__const_float(const_float* result, const_float* left, const_float* right)
 {
    glsl_fpu_min((unsigned *)result, *left, *right);
 }
 
 // EXPR_INTRINSIC_MAX
-static INLINE void op_max__const_int__const_int__const_int(const_int* result, const_int* left, const_int* right)
+static inline void op_max__const_int__const_int__const_int(const_int* result, const_int* left, const_int* right)
 {
    *result = (*left) > (*right) ? (*left) : (*right);
 }
-static INLINE void op_max__const_float__const_float__const_float(const_float* result, const_float* left, const_float* right)
+static inline void op_max__const_float__const_float__const_float(const_float* result, const_float* left, const_float* right)
 {
    glsl_fpu_max((unsigned *)result, *left, *right);
 }
 
 // EXPR_INTRINSIC_MINABS
-static INLINE void op_minabs__const_float__const_float__const_float(const_float *res, const_float *l, const_float *r)
+static inline void op_minabs__const_float__const_float__const_float(const_float *res, const_float *l, const_float *r)
 {
    glsl_fpu_minabs((unsigned *)res, *l, *r);
 }
 
 // EXPR_INTRINSIC_MAXABS
-static INLINE void op_maxabs__const_float__const_float__const_float(const_float *res, const_float *l, const_float *r)
+static inline void op_maxabs__const_float__const_float__const_float(const_float *res, const_float *l, const_float *r)
 {
    glsl_fpu_maxabs((unsigned *)res, *l, *r);
 }
@@ -225,7 +217,7 @@ static INLINE void op_maxabs__const_float__const_float__const_float(const_float 
 // Linear algebraic multiplies.
 //
 
-static INLINE void op_mul__const_mat2__const_mat2__const_mat2(const_mat2* result, const_mat2* left, const_mat2* right)
+static inline void op_mul__const_mat2__const_mat2__const_mat2(const_mat2* result, const_mat2* left, const_mat2* right)
 {
    int i, j, k;
    const_float mul;
@@ -245,7 +237,7 @@ static INLINE void op_mul__const_mat2__const_mat2__const_mat2(const_mat2* result
       }
    }
 }
-static INLINE void op_mul__const_mat3__const_mat3__const_mat3(const_mat3* result, const_mat3* left, const_mat3* right)
+static inline void op_mul__const_mat3__const_mat3__const_mat3(const_mat3* result, const_mat3* left, const_mat3* right)
 {
    int i, j, k;
    const_float mul;
@@ -265,7 +257,7 @@ static INLINE void op_mul__const_mat3__const_mat3__const_mat3(const_mat3* result
       }
    }
 }
-static INLINE void op_mul__const_mat4__const_mat4__const_mat4(const_mat4* result, const_mat4* left, const_mat4* right)
+static inline void op_mul__const_mat4__const_mat4__const_mat4(const_mat4* result, const_mat4* left, const_mat4* right)
 {
    int i, j, k;
    const_float mul;
@@ -286,7 +278,7 @@ static INLINE void op_mul__const_mat4__const_mat4__const_mat4(const_mat4* result
    }
 }
 
-static INLINE void op_mul__const_vec2__const_vec2__const_mat2(const_vec2* result, const_vec2* left, const_mat2* right)
+static inline void op_mul__const_vec2__const_vec2__const_mat2(const_vec2* result, const_vec2* left, const_mat2* right)
 {
    int i, k;
    const_float mul;
@@ -303,7 +295,7 @@ static INLINE void op_mul__const_vec2__const_vec2__const_mat2(const_vec2* result
       }
    }
 }
-static INLINE void op_mul__const_vec3__const_vec3__const_mat3(const_vec3* result, const_vec3* left, const_mat3* right)
+static inline void op_mul__const_vec3__const_vec3__const_mat3(const_vec3* result, const_vec3* left, const_mat3* right)
 {
    int i, k;
    const_float mul;
@@ -320,7 +312,7 @@ static INLINE void op_mul__const_vec3__const_vec3__const_mat3(const_vec3* result
       }
    }
 }
-static INLINE void op_mul__const_vec4__const_vec4__const_mat4(const_vec4* result, const_vec4* left, const_mat4* right)
+static inline void op_mul__const_vec4__const_vec4__const_mat4(const_vec4* result, const_vec4* left, const_mat4* right)
 {
    int i, k;
    const_float mul;
@@ -338,7 +330,7 @@ static INLINE void op_mul__const_vec4__const_vec4__const_mat4(const_vec4* result
    }
 }
 
-static INLINE void op_mul__const_vec2__const_mat2__const_vec2(const_vec2* result, const_mat2* left, const_vec2* right)
+static inline void op_mul__const_vec2__const_mat2__const_vec2(const_vec2* result, const_mat2* left, const_vec2* right)
 {
    int j, k;
    const_float mul;
@@ -355,7 +347,7 @@ static INLINE void op_mul__const_vec2__const_mat2__const_vec2(const_vec2* result
       }
    }
 }
-static INLINE void op_mul__const_vec3__const_mat3__const_vec3(const_vec3* result, const_mat3* left, const_vec3* right)
+static inline void op_mul__const_vec3__const_mat3__const_vec3(const_vec3* result, const_mat3* left, const_vec3* right)
 {
    int j, k;
    const_float mul;
@@ -372,7 +364,7 @@ static INLINE void op_mul__const_vec3__const_mat3__const_vec3(const_vec3* result
       }
    }
 }
-static INLINE void op_mul__const_vec4__const_mat4__const_vec4(const_vec4* result, const_mat4* left, const_vec4* right)
+static inline void op_mul__const_vec4__const_mat4__const_vec4(const_vec4* result, const_mat4* left, const_vec4* right)
 {
    int j, k;
    const_float mul;
@@ -390,49 +382,47 @@ static INLINE void op_mul__const_vec4__const_mat4__const_vec4(const_vec4* result
    }
 }
 
-static INLINE void op_rsqrt__const_float__const_float(const_float* result, const_float* operand)
+static inline void op_rsqrt__const_float__const_float(const_float* result, const_float* operand)
 {
    glsl_fpu_rsqrt((unsigned *)result, *operand);
 }
 
-static INLINE void op_recip__const_float__const_float(const_float* result, const_float* operand)
+static inline void op_recip__const_float__const_float(const_float* result, const_float* operand)
 {
    glsl_fpu_recip((unsigned *)result, *operand);
 }
 
-static INLINE void op_log2__const_float__const_float(const_float* result, const_float* operand)
+static inline void op_log2__const_float__const_float(const_float* result, const_float* operand)
 {
    glsl_fpu_log2((unsigned *)result, *operand);
 }
 
-static INLINE void op_exp2__const_float__const_float(const_float* result, const_float* operand)
+static inline void op_exp2__const_float__const_float(const_float* result, const_float* operand)
 {
    glsl_fpu_exp2((unsigned *)result, *operand);
 }
 
-static INLINE void op_ceil__const_float__const_float(const_float* result, const_float* operand)
+static inline void op_ceil__const_float__const_float(const_float* result, const_float* operand)
 {
    glsl_fpu_ceil((unsigned *)result, *operand);
 }
 
-static INLINE void op_floor__const_float__const_float(const_float* result, const_float* operand)
+static inline void op_floor__const_float__const_float(const_float* result, const_float* operand)
 {
    glsl_fpu_floor((unsigned *)result, *operand);
 }
 
-static INLINE void op_floattoint_trunc__const_int__const_float(const_int* result, const_float* operand)
+static inline void op_floattoint_trunc__const_int__const_float(const_int* result, const_float* operand)
 {
    glsl_fpu_floattointz((unsigned *)result, *operand, 0);
 }
 
-static INLINE void op_floattoint_nearest__const_int__const_float(const_int* result, const_float* operand)
+static inline void op_floattoint_nearest__const_int__const_float(const_int* result, const_float* operand)
 {
    glsl_fpu_floattointn((unsigned *)result, *operand, 0);
 }
 
-static INLINE void op_inttofloat__const_float__const_int(const_float *result, const_int* operand)
+static inline void op_inttofloat__const_float__const_int(const_float *result, const_int* operand)
 {
    glsl_fpu_inttofloat((unsigned *)result, *operand, 0);
 }
-
-#endif // CONST_OPERATORS_H

@@ -540,7 +540,7 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
 #if BVDC_P_DBV_SUPPORT && (BVDC_DBV_MODE_BVN_CONFORM)
     /* DBV conformance to disable DNR */
     {
-        bool bDbvMode = BVDC_P_CMP_OUTPUT_IPT(pPicture->hBuffer->hWindow->hCompositor);
+        bool bDbvMode = BVDC_P_CMP_DBV_MODE(pPicture->hBuffer->hWindow->hCompositor);
         /* detect DBV mode toggles */
         if(bDbvMode != hDnr->bDbvMode)
         {

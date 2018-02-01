@@ -42,6 +42,7 @@
 #include "nexus_surface_compositor_impl.h"
 #include "priv/nexus_display_priv.h"
 #include "priv/nexus_video_window_priv.h"
+#include "nexus_mosaic_display.h"
 
 BDBG_MODULE(nexus_surface_client_video);
 
@@ -110,6 +111,10 @@ NEXUS_Error NEXUS_SurfaceCompositor_SwapWindows(NEXUS_SurfaceCompositorHandle ha
 {
     unsigned i;
     NEXUS_SurfaceClientHandle child0, child1;
+    union {
+        NEXUS_SurfaceClientSettings settings;
+        NEXUS_SurfaceComposition composition;
+    } *state;
     BSTD_UNUSED(handle);
     for (child0 = BLST_S_FIRST(&client0->children); child0; child0 = BLST_S_NEXT(child0, child_link)) {
         if (child0->client_id == windowId0) break;
@@ -127,19 +132,23 @@ NEXUS_Error NEXUS_SurfaceCompositor_SwapWindows(NEXUS_SurfaceCompositorHandle ha
         client1->serverSettings.display[i].window[windowId1].window = temp;
     }
 
+    state = BKNI_Malloc(sizeof(*state));
+    if(state==NULL) {return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);}
+
     /* remove and re-insert for correct zorder */
     if (client0 == client1) {
-        NEXUS_SurfaceClientSettings temp = child0->settings;
+        state->settings = child0->settings;
         child0->settings = child1->settings;
-        child1->settings = temp;
+        child1->settings = state->settings;
         nexus_surfacecmp_p_insert_child(client0, child0, true);
     }
     else {
-        NEXUS_SurfaceComposition temp = client0->serverSettings.composition;
+        state->composition = client0->serverSettings.composition;
         client0->serverSettings.composition = client1->serverSettings.composition;
-        client1->serverSettings.composition = temp;
+        client1->serverSettings.composition = state->composition;
         nexus_surfacecmp_p_insert_client(client0->server, client0, true);
     }
+    BKNI_Free(state);
 
     return NEXUS_SUCCESS;
 }
@@ -339,15 +348,35 @@ static int nexus_surfaceclient_p_setvideo( NEXUS_SurfaceClientHandle client )
                 pWindowSettings->clipRect = pWindowSettings->clipBase;
             }
 
-            if(pSettings->composition.clipRect.x || pSettings->composition.clipRect.y || pSettings->composition.clipRect.width || pSettings->composition.clipRect.height) {
-                /* add user requested clipping, using either clipBase or virtualDisplay */
-                NEXUS_SurfaceRegion clipBase = pSettings->composition.clipBase;
-                if (!clipBase.width || !clipBase.height) {
-                    clipBase = pSettings->composition.virtualDisplay;
+            if (client->parent->serverSettings.backendMosaic) {
+                NEXUS_VideoWindowMosaicSettings mosaicWindowSettings;
+                NEXUS_VideoWindow_GetMosaicSettings_priv(window, &mosaicWindowSettings);
+                mosaicWindowSettings.backendMosaic.enabled = true;
+                mosaicWindowSettings.backendMosaic.clipRect = pSettings->composition.clipRect;
+                mosaicWindowSettings.backendMosaic.clipBase.width = pSettings->composition.clipBase.width;
+                mosaicWindowSettings.backendMosaic.clipBase.height = pSettings->composition.clipBase.height;
+                rc = NEXUS_VideoWindow_SetMosaicSettings_priv(window, &mosaicWindowSettings);
+                if (rc) {BERR_TRACE(rc); goto done;}
+            }
+            else {
+                NEXUS_VideoWindowMosaicSettings mosaicWindowSettings;
+                NEXUS_VideoWindow_GetMosaicSettings_priv(window, &mosaicWindowSettings);
+                if (mosaicWindowSettings.backendMosaic.enabled) {
+                    mosaicWindowSettings.backendMosaic.enabled = false;
+                    rc = NEXUS_VideoWindow_SetMosaicSettings_priv(window, &mosaicWindowSettings);
+                    if (rc) {BERR_TRACE(rc); goto done;}
                 }
-                if (clipBase.width && clipBase.height) {
-                    nexus_surfaceclient_p_combine_clipping(&pWindowSettings->clipBase, &pWindowSettings->clipRect, &clipBase, &pSettings->composition.clipRect,  &temp);
-                    pWindowSettings->clipRect = temp;
+
+                if(pSettings->composition.clipRect.x || pSettings->composition.clipRect.y || pSettings->composition.clipRect.width || pSettings->composition.clipRect.height) {
+                    /* add user requested clipping, using either clipBase or virtualDisplay */
+                    NEXUS_SurfaceRegion clipBase = pSettings->composition.clipBase;
+                    if (!clipBase.width || !clipBase.height) {
+                        clipBase = pSettings->composition.virtualDisplay;
+                    }
+                    if (clipBase.width && clipBase.height) {
+                        nexus_surfaceclient_p_combine_clipping(&pWindowSettings->clipBase, &pWindowSettings->clipRect, &clipBase, &pSettings->composition.clipRect,  &temp);
+                        pWindowSettings->clipRect = temp;
+                    }
                 }
             }
 
@@ -403,28 +432,50 @@ static int nexus_surfaceclient_p_setvideo( NEXUS_SurfaceClientHandle client )
     /* set zorder */
     for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
         NEXUS_SurfaceClientHandle c, child;
-        unsigned parentZorder = 0;
+        unsigned parentIndex = NEXUS_NUM_VIDEO_WINDOWS; /* wait to learn first parent, which could be 0 or 1 */
+        unsigned parentZorder = 0; /* first parent is zorder 0 */
+        unsigned surfaceClientZorder = 0;
         for (c = BLST_Q_FIRST(&client->server->clients); c; c = BLST_Q_NEXT(c, link)) {
-            unsigned zorder = parentZorder; /* mosaic zorder is relative to the parent */
             for (child = BLST_S_FIRST(&c->children); child; child = BLST_S_NEXT(child, child_link)) {
                 NEXUS_VideoWindowSettings *pWindowSettings;
                 NEXUS_VideoWindowHandle window;
+                unsigned parent, setzorder;
+                bool isMosaic;
                 window = child->window[i];
                 if (!window) continue;
 
+                NEXUS_VideoWindow_GetParentIndex_isrsafe(window, &parent, &isMosaic);
+                if (parentIndex != NEXUS_NUM_VIDEO_WINDOWS && parent != parentIndex) {
+                    /* a change in parentIndex bumps parentZorder, but don't unsupported interleave to
+                    cause collision with graphics zorder (which is NEXUS_NUM_VIDEO_WINDOWS, aka "above video"). */
+                    if (parentZorder+1 == NEXUS_NUM_VIDEO_WINDOWS) {
+                        /* unsupported interleave happens if pip is placed between main mosaics or vice versa. */
+                        BDBG_ERR(("unsupported window zorder interleaving: %d %d %d", parent, parentIndex, parentZorder));
+                    }
+                    else {
+                        ++parentZorder;
+                    }
+                }
+                parentIndex = parent;
+                /* for mosaics, passthrough SurfaceClient zorder and let NEXUS_Display and VDC resolve.
+                for non-mosaics, resolve to only 0 or 1 so that video is always under graphics. */
+                if (isMosaic) {
+                    setzorder = surfaceClientZorder;
+                }
+                else {
+                    setzorder = parentZorder;
+                }
+
                 pWindowSettings = &client->server->windowSettings;
                 NEXUS_VideoWindow_GetSettings_priv(window, pWindowSettings);
-                if (pWindowSettings->zorder != zorder) {
-                    BDBG_MSG(("client %p, child %p, display%d: zorder %d -> %d", (void *)c, (void *)child, i, pWindowSettings->zorder, zorder));
+                if (pWindowSettings->zorder != setzorder) {
+                    BDBG_MSG(("client %p, child %p, display%d: zorder %d -> %d", (void *)c, (void *)child, i, pWindowSettings->zorder, setzorder));
                     changed = true;
-                    pWindowSettings->zorder = zorder;
+                    pWindowSettings->zorder = setzorder;
                     rc = NEXUS_VideoWindow_SetSettings_priv(window, pWindowSettings);
                     if (rc) {rc = BERR_TRACE(rc); goto done;}
                 }
-                zorder++;
-            }
-            if (zorder > parentZorder) {
-                parentZorder++;
+                surfaceClientZorder++;
             }
         }
     }

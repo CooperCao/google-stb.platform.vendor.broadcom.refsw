@@ -130,10 +130,11 @@ const char *VertexShaderStr(bool is360, Format360 fmt)
 
    switch (fmt)
    {
-   case FORMAT_EQUIRECT : return vShaderStrEq;
-   case FORMAT_FISHEYE  : return vShaderStrEq;
-   case FORMAT_EAP      : return vShaderStrEq;
-   default              : return vShaderStrCube;
+   case FORMAT_EQUIRECT        : return vShaderStrEq;
+   case FORMAT_EQUIRECT_SPHERE : return vShaderStrCube;
+   case FORMAT_FISHEYE         : return vShaderStrEq;
+   case FORMAT_EAP             : return vShaderStrEq;
+   default                     : return vShaderStrCube;
    }
 }
 
@@ -144,10 +145,11 @@ const char *FragmentShaderStr(bool is360, Format360 fmt)
 
    switch (fmt)
    {
-   case FORMAT_EQUIRECT : return fShaderStrEq;
-   case FORMAT_FISHEYE  : return fShaderStrFish;
-   case FORMAT_EAP      : return fShaderStrEap;
-   default              : return fShaderStrCube;
+   case FORMAT_EQUIRECT        : return fShaderStrEq;
+   case FORMAT_EQUIRECT_SPHERE : return fShaderStrCube;
+   case FORMAT_FISHEYE         : return fShaderStrFish;
+   case FORMAT_EAP             : return fShaderStrEap;
+   default                     : return fShaderStrCube;
    }
 }
 

@@ -204,18 +204,8 @@ typedef void (*BMRC_CallbackFunc_isr)( void *pvData1, int iData2, BMRC_CheckerIn
 /***************************************************************************
 Summary:
 	Gets the default settings.
-
-Description:
-	Fills the default settings structure with default values.
-
-Returns:
-	BERR_SUCCESS - Handle was successfully closed.
-	BERR_INVALID_PARAMETER - Handle was invalid.
-
-See Also:
-	BMRC_Open
 **************************************************************************/
-BERR_Code BMRC_GetDefaultSettings
+void BMRC_GetDefaultSettings
 	( BMRC_Settings *pDefSettings  /* [out] Default settings structure to fill */
 	);
 
@@ -248,15 +238,8 @@ Summary:
 
 Description:
 	Closes the Memory Range Checker module and its context.
-
-Returns:
-	BERR_SUCCESS - Handle was successfully closed.
-	BERR_INVALID_PARAMETER - Handle was invalid.
-
-See Also:
-	BMRC_Open
 **************************************************************************/
-BERR_Code BMRC_Close
+void BMRC_Close
 	( BMRC_Handle hMrc /* [in] MRC handle to close */
 	);
 
@@ -277,14 +260,8 @@ Summary:
 Description:
 	Gets maximum number of checkers available to this MRC isntance, depending
 	on its associated memory controller.
-
-Returns:
-	BERR_SUCCESS - Handle was successfully closed.
-	BERR_INVALID_PARAMETER - Handle was invalid.
-
-See Also:
 **************************************************************************/
-BERR_Code BMRC_GetMaxCheckers
+void BMRC_GetMaxCheckers
 	( BMRC_Handle hMrc,         /* [in] MRC handle */
 	  uint32_t *pulMaxCheckers  /* [out] Maximum number of checkers for this MRC */
 	);
@@ -322,14 +299,10 @@ Summary:
 Description:
 	Disables and destroys an existing checker and cleans up its resources.
 
-Returns:
-	BERR_SUCCESS - Checker handle was successfully destroyed.
-	BERR_INVALID_PARAMETER - Checker handle was invalid.
-
 See Also:
 	BMRC_Checker_Create
 **************************************************************************/
-BERR_Code BMRC_Checker_Destroy
+void BMRC_Checker_Destroy
 	( BMRC_Checker_Handle hChecker  /* [in] Checker handle to be destroyed */
 	);
 
@@ -638,7 +611,7 @@ See Also:
 **************************************************************************/
 BERR_Code BMRC_Checker_SetCallback
 	( BMRC_Checker_Handle hChecker,          /* [in] Checker handle */
-	  const BMRC_CallbackFunc_isr pfCbFunc,  /* [in] Pointer to the callback function */
+	  const BMRC_CallbackFunc_isr pfCbFunc_isr,  /* [in] Pointer to the callback function */
 	  void *pvCbData1,                       /* [in] User defined callback data structure. */
 	  int iCbData2                           /* [in] User defined callback value */
 	);

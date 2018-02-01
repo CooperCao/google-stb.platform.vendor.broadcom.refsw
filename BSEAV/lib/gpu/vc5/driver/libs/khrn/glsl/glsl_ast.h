@@ -372,5 +372,3 @@ Statement *glsl_statement_construct_qualifier_default(int line_num, QualList *qu
 Statement *glsl_statement_construct_qualifier_augment(int line_num, QualList *quals, SymbolList *vars);
 
 void glsl_ast_validate(Statement *ast, ShaderFlavour flavour, int version);
-
-void glsl_ast_validate_function_call(const Expr *e, ShaderFlavour flavour);

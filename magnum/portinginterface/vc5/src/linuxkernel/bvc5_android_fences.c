@@ -49,16 +49,19 @@
 #include "sw_sync.h"
 #include "bvc5_fence_priv.h"
 
-#define pr_info_fence pr_debug
+BDBG_MODULE(BVC5_Fence);
 
-/* these two lists are only for debug purposes, to be able to check that we've
- * signaled all created fences and cleaned up all fences we were asked to wait
- * for */
+//#define BVC5_FENCE_CHECK_DESTROY
+
+#ifdef BVC5_FENCE_CHECK_DESTROY
+/* check that we've signaled all the fences we've created and waited for all
+ * the fences we were asked to wait for */
 static LIST_HEAD(signal_data_list_head);
 static DEFINE_SPINLOCK(signal_data_list_lock);
 
 static LIST_HEAD(wait_data_list_head);
 static DEFINE_SPINLOCK(wait_data_list_lock);
+#endif
 
 struct signal_data
 {
@@ -67,6 +70,49 @@ struct signal_data
    uint32_t clientId;
    struct list_head signal_data_list;
 };
+
+#ifdef BVC5_FENCE_CHECK_DESTROY
+static void signal_data_debug_add(struct signal_data *signal_data)
+{
+   unsigned long flags;
+   spin_lock_irqsave(&signal_data_list_lock, flags);
+   list_add_tail(&signal_data->signal_data_list, &signal_data_list_head);
+   spin_unlock_irqrestore(&signal_data_list_lock, flags);
+}
+
+static void signal_data_debug_remove(struct signal_data *signal_data)
+{
+   unsigned long flags;
+   spin_lock_irqsave(&signal_data_list_lock, flags);
+   list_del(&signal_data->signal_data_list);
+   spin_unlock_irqrestore(&signal_data_list_lock, flags);
+}
+
+static bool has_signaled_data(uint32_t uiClientId)
+{
+   struct list_head *pos;
+   unsigned long flags;
+   bool found = false;
+   spin_lock_irqsave(&signal_data_list_lock, flags);
+   list_for_each(pos, &signal_data_list_head)
+   {
+      struct signal_data *obj = container_of(pos, struct signal_data,
+            signal_data_list);
+      if (obj->clientId == uiClientId)
+      {
+         found = true;
+         break;
+      }
+   }
+   spin_unlock_irqrestore(&signal_data_list_lock, flags);
+   return found;
+
+}
+#else
+static void signal_data_debug_add(struct signal_data *signal_data) {}
+static void signal_data_debug_remove(struct signal_data *signal_data) {}
+static bool has_signaled_data(uint32_t uiClientId) { return false; }
+#endif
 
 struct wait_data
 {
@@ -86,6 +132,49 @@ struct wait_data
    uint32_t clientId;
    struct list_head wait_data_list;
 };
+
+#ifdef BVC5_FENCE_CHECK_DESTROY
+static void wait_data_debug_add(struct wait_data *obj)
+{
+   unsigned long flags;
+   spin_lock_irqsave(&wait_data_list_lock, flags);
+   list_add_tail(&obj->wait_data_list, &wait_data_list_head);
+   spin_unlock_irqrestore(&wait_data_list_lock, flags);
+}
+
+static void wait_data_debug_remove(struct wait_data *obj)
+{
+   unsigned long flags;
+   spin_lock_irqsave(&wait_data_list_lock, flags);
+   list_del(&obj->wait_data_list);
+   spin_unlock_irqrestore(&wait_data_list_lock, flags);
+}
+
+static bool has_wait_data(uint32_t uiClientId)
+{
+   unsigned long flags;
+   struct list_head *pos;
+   bool found = false;
+   spin_lock_irqsave(&signal_data_list_lock, flags);
+   list_for_each(pos, &signal_data_list_head)
+   {
+      struct signal_data *obj = container_of(pos, struct signal_data,
+            signal_data_list);
+      if (obj->clientId == uiClientId)
+      {
+         found = true;
+         break;
+      }
+   }
+   spin_unlock_irqrestore(&signal_data_list_lock, flags);
+   return found;
+
+}
+#else
+static void wait_data_debug_add(struct wait_data *obj) {}
+static void wait_data_debug_remove(struct wait_data *obj) {}
+static bool has_waited_data(uint32_t uiClientId) { return false;}
+#endif
 
 BERR_Code BVC5_P_FenceArrayCreate(BVC5_FenceArrayHandle *handle)
 {
@@ -119,6 +208,8 @@ int BVC5_P_FenceCreate(BVC5_FenceArrayHandle hFenceArr, uint32_t uiClientId,
       goto err;
 
    snprintf(name, sizeof(name), "bvc5_fence_%p", signal_data);
+   signal_data->clientId = uiClientId;
+
    signal_data->timeline = sw_sync_timeline_create(name);
    if (signal_data->timeline == NULL)
       goto err;
@@ -137,17 +228,13 @@ int BVC5_P_FenceCreate(BVC5_FenceArrayHandle hFenceArr, uint32_t uiClientId,
    sync_fence_install(sync_fence, fd);
 
    *dataToSignal = signal_data;
-   pr_info_fence("%s: fd=%d sync_fence=%p name=%s timeline=%p \n",
-         __FUNCTION__, fd, sync_fence, sync_fence->name, signal_data->timeline);
+   BDBG_MSG(("%s: fd=%d sync_fence=%p name=%s timeline=%p \n",
+         __FUNCTION__, fd, sync_fence, sync_fence->name, signal_data->timeline));
 
-   spin_lock_irqsave(&signal_data_list_lock, flags);
-   signal_data->clientId = uiClientId;
-   list_add_tail(&signal_data->signal_data_list, &signal_data_list_head);
-   spin_unlock_irqrestore(&signal_data_list_lock, flags);
-
+   signal_data_debug_add(signal_data);
    return fd;
 err:
-   pr_err("%s:%d FAILED \n", __FUNCTION__, __LINE__);
+   BDBG_ERR(("%s:%d FAILED \n", __FUNCTION__, __LINE__));
 
    if (sync_point)
       sync_pt_free(sync_point);
@@ -170,11 +257,11 @@ void BVC5_P_FenceClose(BVC5_FenceArrayHandle hFenceArr, int fd)
 
    if (!sync_fence)
    {
-      pr_err("%s not a sync_fence fd, fd - %d \n", __FUNCTION__, fd);
+      BDBG_ERR(("%s not a sync_fence fd, fd - %d \n", __FUNCTION__, fd));
       return;
    }
-   pr_info_fence("%s fd=%d sync_fence=%p name=%s\n", __FUNCTION__, fd,
-         sync_fence, sync_fence->name);
+   BDBG_MSG(("%s fd=%d sync_fence=%p name=%s\n", __FUNCTION__, fd,
+         sync_fence, sync_fence->name));
    sync_fence_put(sync_fence);
    sys_close(fd);
 }
@@ -184,16 +271,13 @@ void BVC5_P_FenceSignalAndCleanup(BVC5_FenceArrayHandle hFenceArr, void *dataToS
    struct signal_data *signal_data = (struct signal_data*)dataToSignal;
    unsigned long flags;
 
-   pr_info_fence("%s timeline=%p \n", __FUNCTION__, signal_data->timeline);
+   BDBG_MSG(("%s timeline=%p \n", __FUNCTION__, signal_data->timeline));
    sw_sync_timeline_inc(signal_data->timeline, 1);
 
    /* we are done, destroy timeline and free signal_data */
    sync_timeline_destroy(&signal_data->timeline->obj);
 
-   spin_lock_irqsave(&signal_data_list_lock, flags);
-   list_del(&signal_data->signal_data_list);
-   spin_unlock_irqrestore(&signal_data_list_lock, flags);
-
+   signal_data_debug_remove(signal_data);
    kfree(signal_data);
 }
 
@@ -202,7 +286,7 @@ static void sync_fence_callback(struct sync_fence *sync_fence, struct sync_fence
    unsigned long flags;
    struct wait_data *wait_data = container_of(waiter, typeof(*wait_data), waiter);
 
-   pr_info_fence("%s sync_fence=%p fence_name=%s\n", __FUNCTION__, sync_fence, sync_fence->name);
+   BDBG_MSG(("%s sync_fence=%p fence_name=%s\n", __FUNCTION__, sync_fence, sync_fence->name));
 
    spin_lock_irqsave(&wait_data->lock_signaled, flags);
    wait_data->signaled = 1;
@@ -232,7 +316,7 @@ int BVC5_P_FenceWaitAsync(BVC5_FenceArrayHandle hFenceArr, uint32_t uiClientId,
    wait_data->sync_fence = sync_fence_fdget(fd);
    if (!wait_data->sync_fence)
    {
-      pr_err("%s not a sync_fence fd, fd - %d \n", __FUNCTION__, fd);
+      BDBG_ERR(("%s not a sync_fence fd, fd - %d \n", __FUNCTION__, fd));
       goto end;
    }
 
@@ -241,6 +325,7 @@ int BVC5_P_FenceWaitAsync(BVC5_FenceArrayHandle hFenceArr, uint32_t uiClientId,
    wait_data->param = param;
    spin_lock_init(&wait_data->lock_signaled);
    wait_data->signaled = 0;
+   wait_data->clientId = uiClientId;
 
    spin_lock_init(&wait_data->lock_cb_done);
    wait_data->cb_done= 0;
@@ -252,9 +337,9 @@ int BVC5_P_FenceWaitAsync(BVC5_FenceArrayHandle hFenceArr, uint32_t uiClientId,
         0: is not yet signalled, callback will be made when signalled
       > 0: was already signalled, callback will not be made
    */
-   pr_info_fence("%s sync_fence=%p name=%s, status=%s\n", __FUNCTION__,
+   BDBG_MSG(("%s sync_fence=%p name=%s, status=%s\n", __FUNCTION__,
          wait_data->sync_fence, wait_data->sync_fence->name,
-         status > 0 ? "already_signaled" : ( status==0 ? "callback installed" : "error installing callback"));
+         status > 0 ? "already_signaled" : ( status==0 ? "callback installed" : "error installing callback")));
 
    if (status != 0)
       goto end;
@@ -263,11 +348,7 @@ int BVC5_P_FenceWaitAsync(BVC5_FenceArrayHandle hFenceArr, uint32_t uiClientId,
    sys_close(fd);
    *waitData = wait_data;
 
-   spin_lock_irqsave(&wait_data_list_lock, flags);
-   wait_data->clientId = uiClientId;
-   list_add_tail(&wait_data->wait_data_list, &wait_data_list_head);
-   spin_unlock_irqrestore(&wait_data_list_lock, flags);
-
+   wait_data_debug_add(wait_data);
    return 0;
 
 end:
@@ -284,8 +365,8 @@ int BVC5_P_FenceWaitAsyncIsSignaled(BVC5_FenceArrayHandle hFenceArr, void *waitD
    int signaled = 0;
    struct wait_data *wait_data = (struct wait_data*)waitData;
 
-   pr_info_fence("%s sync_fence=%p fence_name=%s \n", __FUNCTION__,
-         wait_data->sync_fence, wait_data->sync_fence->name);
+   BDBG_MSG(("%s sync_fence=%p fence_name=%s \n", __FUNCTION__,
+         wait_data->sync_fence, wait_data->sync_fence->name));
 
    spin_lock_irqsave(&wait_data->lock_signaled, flags);
    signaled = wait_data->signaled;
@@ -301,8 +382,8 @@ void BVC5_P_FenceWaitAsyncCleanup( BVC5_FenceArrayHandle  hFenceArr,
    unsigned long flags;
    struct wait_data *wait_data = (struct wait_data*)waitData;
 
-   pr_info_fence("%s sync_fence=%p fence_name=%s \n", __FUNCTION__,
-         wait_data->sync_fence, wait_data->sync_fence->name);
+   BDBG_MSG(("%s sync_fence=%p fence_name=%s \n", __FUNCTION__,
+         wait_data->sync_fence, wait_data->sync_fence->name));
 
    /* returns 0 if waiter was removed from fence's async waiter list.
     * returns -ENOENT if waiter was not found on fence's async waiter list */
@@ -324,18 +405,15 @@ void BVC5_P_FenceWaitAsyncCleanup( BVC5_FenceArrayHandle  hFenceArr,
          /* the callback was not called yet, but we lost the race for removing the async waiter;
           *  give the callback a chance to be called ? how ? wait for an event ?
           */
-         pr_err("%s cancel_async failed but callback not called yet sync_fence=%p name=%s\n",
-               __FUNCTION__, wait_data->sync_fence, wait_data->sync_fence->name);
+         BDBG_ERR(("%s cancel_async failed but callback not called yet sync_fence=%p name=%s\n",
+               __FUNCTION__, wait_data->sync_fence, wait_data->sync_fence->name));
          /*  for the moment , just leak the waitData */
          return;
       }
    }
    sync_fence_put(wait_data->sync_fence);
 
-   spin_lock_irqsave(&wait_data_list_lock, flags);
-   list_del(&wait_data->wait_data_list);
-   spin_unlock_irqrestore(&wait_data_list_lock, flags);
-
+   wait_data_debug_remove(wait_data);
    kfree(wait_data);
 }
 
@@ -345,64 +423,42 @@ void BVC5_P_FenceClientDestroy(BVC5_FenceArrayHandle hFenceArr, uint32_t uiClien
 
 void BVC5_P_FenceClientCheckDestroy(BVC5_FenceArrayHandle hFenceArr, uint32_t uiClientId)
 {
-   unsigned long flags;
-   struct list_head *pos;
-   int have_signal_data  = 0;
-   int have_wait_data  = 0;
+#ifdef BVC5_FENCE_CHECK_DESTROY
+   if (has_signaled_data(uiClientId))
+      BDBG_ERR(("%sclient %d didn't signal all the fences", __FUNCTION__, uiClientId));
 
-   spin_lock_irqsave(&signal_data_list_lock, flags);
-   list_for_each(pos, &signal_data_list_head)
-   {
-      struct signal_data *obj = container_of(pos, struct signal_data,
-            signal_data_list);
-      if (obj->clientId == uiClientId)
-         have_signal_data = 1;
-   }
-   spin_unlock_irqrestore(&signal_data_list_lock, flags);
-
-   if (have_signal_data == 1)
-      pr_err("%s we still have unsignaled data for this client uiClientId=%d", __FUNCTION__, uiClientId);
-
-   spin_lock_irqsave(&wait_data_list_lock, flags);
-   list_for_each(pos, &wait_data_list_head)
-   {
-      struct wait_data *obj = container_of(pos, struct wait_data,
-            wait_data_list);
-      if (obj->clientId == uiClientId)
-         have_wait_data = 1;
-
-   }
-   spin_unlock_irqrestore(&wait_data_list_lock, flags);
-
-   if (have_wait_data == 1)
-      pr_err("%s we still have wait_data for this client uiClientId=%d", __FUNCTION__, uiClientId);
+   if (has_wait_data(uiClientId))
+      BDBG_ERR(("%s client %d didn't wait for all the fences", __FUNCTION__, uiClientId));
+#endif
 }
 
 /* These functions should not be called */
 int BVC5_P_FenceCreateToSignalFromUser(BVC5_FenceArrayHandle hFenceArr, uint32_t uiClientId)
 {
-   BUG_ON(1);
+   WARN_ON(1);
+   return -1;
 }
 
 int BVC5_P_FenceKeep(BVC5_FenceArrayHandle hFenceArr, int iFenceId)
 {
-   BUG_ON(1);
+   WARN_ON(1);
+   return -1;
 }
 
 void BVC5_P_FenceSignalFromUser(BVC5_FenceArrayHandle hFenceArr, int iFenceId)
 {
-   BUG_ON(1);
+   WARN_ON(1);
 }
 
 void BVC5_P_FenceAddCallback(BVC5_FenceArrayHandle hFenceArr, int iFenceId,
       uint32_t uiClientId, void (*pfnCallback)(void *, uint64_t), void *pContext, uint64_t param)
 {
-   BUG_ON(1);
+   WARN_ON(1);
 }
 
 bool BVC5_P_FenceRemoveCallback( BVC5_FenceArrayHandle hFenceArr, int iFenceId,
       uint32_t uiClientId, void (*pfnCallback)(void *, uint64_t), void *pContext, uint64_t param)
 {
-   BUG_ON(1);
+   WARN_ON(1);
    return true;
 }

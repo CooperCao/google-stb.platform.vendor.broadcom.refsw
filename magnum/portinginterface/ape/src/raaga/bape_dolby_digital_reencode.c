@@ -128,6 +128,7 @@ void BAPE_DolbyDigitalReencode_GetDefaultSettings(
     pSettings->surroundMixLevel = (BAPE_Ac3SurroundMixLevel)encodeStageSettings.ui32SurroundMixLevel;
     pSettings->dolbySurround = (BAPE_Ac3DolbySurround)encodeStageSettings.ui32DolbySurroundMode;
     pSettings->fixedEncoderFormat = (rendererStageSettings.ui32ChannelLockModeEnable == 1) ? true : false;
+    pSettings->fixedAtmosOutput = (encodeStageSettings.ui32AtmosLockEnabled == 1) ? true : false;
     pSettings->dialogLevel = encodeStageSettings.ui32DialNorm;
     pSettings->multichannelFormat = BAPE_P_DolbyCapabilities_MultichannelPcmFormat();
     pSettings->encodeSettings.certificationMode = (encodeStageSettings.ui32DolbyCertificationFlag)?false:true;
@@ -890,6 +891,7 @@ static void BAPE_DolbyDigitalReencode_P_ApplyAc3DecoderSettings(
     ddreSettings->drcModeDownmix = pSettings->drcModeDownmix;
     ddreSettings->dualMonoMode = handle->masterDecoder->settings.dualMonoMode;
     ddreSettings->fixedEncoderFormat = handle->settings.fixedEncoderFormat;
+    ddreSettings->fixedAtmosOutput = handle->settings.fixedAtmosOutput;
     ddreSettings->profile = handle->settings.profile;
     switch ( pSettings->stereoMode )
     {
@@ -921,6 +923,7 @@ static void BAPE_DolbyDigitalReencode_P_ApplyAacDecoderSettings(
     ddreSettings->drcModeDownmix = pSettings->drcMode;
     ddreSettings->dualMonoMode = handle->masterDecoder->settings.dualMonoMode;
     ddreSettings->fixedEncoderFormat = handle->settings.fixedEncoderFormat;
+    ddreSettings->fixedAtmosOutput = handle->settings.fixedAtmosOutput;
     ddreSettings->profile = handle->settings.profile;
     switch ( pSettings->downmixMode )
     {
@@ -955,6 +958,7 @@ static void BAPE_DolbyDigitalReencode_P_ApplyAc4DecoderSettings(
     ddreSettings->drcModeDownmix = pSettings->drcModeDownmix;
     ddreSettings->dualMonoMode = handle->masterDecoder->settings.dualMonoMode;
     ddreSettings->fixedEncoderFormat = handle->settings.fixedEncoderFormat;
+    ddreSettings->fixedAtmosOutput = handle->settings.fixedAtmosOutput;
     ddreSettings->profile = handle->settings.profile;
     switch ( pSettings->stereoMode )
     {
@@ -985,7 +989,7 @@ static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
     BSTD_UNUSED(handle);
 
     /* Handle loudness equivalence. */
-    if ( handle->node.deviceHandle->settings.loudnessMode != BAPE_LoudnessEquivalenceMode_eNone )
+    if ( handle->node.deviceHandle->settings.loudnessSettings.loudnessMode != BAPE_LoudnessEquivalenceMode_eNone )
     {
         forceDrcModes = true;
     }
@@ -995,6 +999,7 @@ static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
     BAPE_DSP_P_SET_VARIABLE((*encodeStageSettings), ui32SurroundMixLevel, (unsigned)ddreSettings->surroundMixLevel);
     BAPE_DSP_P_SET_VARIABLE((*encodeStageSettings), ui32DolbySurroundMode, (unsigned)ddreSettings->dolbySurround);
     BAPE_DSP_P_SET_VARIABLE((*encodeStageSettings), ui32DialNorm, (unsigned)ddreSettings->dialogLevel);
+    BAPE_DSP_P_SET_VARIABLE((*encodeStageSettings), ui32AtmosLockEnabled, (unsigned)ddreSettings->fixedAtmosOutput ? 1 : 0);
 
     /* Set Renderer Stage Params */
     BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32CompressorProfile, (unsigned)ddreSettings->profile);
@@ -1006,7 +1011,7 @@ static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
     {
         /* Force to RF mode based on LE setting */
         BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sMultiChannelOutputPort[0].ui32DrcMode, 0);
-        switch (handle->node.deviceHandle->settings.loudnessMode)
+        switch (handle->node.deviceHandle->settings.loudnessSettings.loudnessMode)
         {
         case BAPE_LoudnessEquivalenceMode_eAtscA85:
             BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sStereoDownmixedPort.ui32DrcMode, 3); /* -24dB */
@@ -1135,7 +1140,7 @@ static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
     }
 
     /* Handle loudness equivalence. */
-    if ( handle->node.deviceHandle->settings.loudnessMode != BAPE_LoudnessEquivalenceMode_eNone )
+    if ( handle->node.deviceHandle->settings.loudnessSettings.loudnessMode != BAPE_LoudnessEquivalenceMode_eNone )
     {
         forceDrcModes = true;
     }
@@ -1170,7 +1175,7 @@ static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
         /* input level to DDRE is expected to always be -31 */
         BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32DialNorm, 31);
 
-        switch (handle->node.deviceHandle->settings.loudnessMode)
+        switch (handle->node.deviceHandle->settings.loudnessSettings.loudnessMode)
         {
         case BAPE_LoudnessEquivalenceMode_eAtscA85:
             BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32CompMode, 3); /* -24dB */

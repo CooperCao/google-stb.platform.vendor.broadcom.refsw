@@ -880,7 +880,7 @@ retry:
 
 static int BNAV_Player_AddNormalPlay(BNAV_Player_Handle handle)
 {
-    uint64_t nextOffset;
+    uint64_t nextOffset, targetOffset;
     BNAV_PktFifoEntry *curFifoEntry;
     BNAV_Entry *pEntry;
 
@@ -892,6 +892,11 @@ static int BNAV_Player_AddNormalPlay(BNAV_Player_Handle handle)
     CHECKREAD(curFifoEntry = BNAV_Player_AddFifoEntry(handle, handle->pid));
     curFifoEntry->insertpackettype = eBpInsertNone;
     curFifoEntry->startByte = handle->currentOffset;
+
+    targetOffset = handle->currentOffset + handle->normalPlayBufferSize;
+    if (handle->settings.normalPlayAlignment) {
+        targetOffset &= ~(handle->settings.normalPlayAlignment-1);
+    }
 
     /* find out how much we can read, up to normalPlayBufferSize */
     nextOffset = handle->currentOffset;
@@ -910,8 +915,8 @@ static int BNAV_Player_AddNormalPlay(BNAV_Player_Handle handle)
         if (handle->packetSize) {
             nextOffset += handle->packetSize - (nextOffset % handle->packetSize);
         }
-        if (nextOffset > handle->currentOffset + handle->normalPlayBufferSize) {
-            curFifoEntry->endByte = handle->currentOffset + handle->normalPlayBufferSize - 1;
+        if (nextOffset > targetOffset) {
+            curFifoEntry->endByte = targetOffset - 1;
             break;
         }
         curFifoEntry->endByte = nextOffset - 1;

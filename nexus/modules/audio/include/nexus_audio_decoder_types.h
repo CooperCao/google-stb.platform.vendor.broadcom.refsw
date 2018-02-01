@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -516,7 +516,8 @@ typedef struct NEXUS_AudioDecoderStatus
             unsigned previousDialnorm;                                         /* Previous Dialog Normalization value -
                                                                                   Possible range 0 to 31 which corresponds to 0 to -31 dB level.
                                                                                   Values outside of this range should be ignored */
-
+            bool atmosDetected;                                                /* Returns if decoder was able to detect Atmos metadata.
+                                                                                  MS10/11 always returns false. */
         } ac3;  /* Applies to both AC3 and AC3+ */
         struct
         {
@@ -535,6 +536,7 @@ typedef struct NEXUS_AudioDecoderStatus
             unsigned numPresentations;                                         /* Identifies the number of presentations present in compressed bitstream.
                                                                                    Values greater than NEXUS_AUDIO_AC4_MAX_PRESENTATIONS should be ignored. */
             unsigned currentPresentationIndex;                                 /* Index to the current Presentation that is being decoded. */
+            unsigned currentAlternateStereoPresentationIndex;                  /* Index to the current Presentation that is being decoded for alternate stereo. */
             unsigned dialogEnhanceMax;                                         /* Specifies the maximum value that will be honored as
                                                                                   a Dialog Enhance Amount Value. Possible range 0 to 12.
                                                                                   Values outside of this range should be ignored */
@@ -649,6 +651,7 @@ typedef struct NEXUS_AudioDecoderStatus
     int32_t ptsStcDifference;  /* current PTS-STC difference including lipsync adjustments */
     unsigned ptsErrorCount;    /* counter for number of PTS errors since start of decode */
     unsigned queuedFrames;     /* Number of compressed frames in the queue */
+    unsigned queuedOutput;     /* Returns number of ms of data that is queued for output post decoder */
 
     uint8_t wordLength;    /* For SPDIF/HDMI inputs, this is the bits per sample of PCM data */
     uint8_t maxWordLength; /* For SPDIF/HDMI inputs, this is the max bits per sample of PCM data */

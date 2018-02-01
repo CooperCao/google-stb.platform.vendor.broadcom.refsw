@@ -392,13 +392,39 @@ static void query_chunk_filenames(char *filename, unsigned filenamesize, char *i
     if (!indexname[0]) strcpy(indexname, PERMANENT_CHUNK_INDEXNAME);
 }
 
-static void export_chunkedfifo(NEXUS_ChunkedFifoRecordHandle chunkedFifofile)
+static NEXUS_ChunkedFifoRecordExportHandle g_exportHandle;
+
+static void stop_export_chunkedfifo(void)
+{
+    NEXUS_ChunkedFifoRecordExportStatus status;
+    while (1) {
+        NEXUS_ChunkedFifoRecord_GetExportStatus(g_exportHandle, &status);
+        if (status.state >= NEXUS_ChunkedFifoRecordExportState_eFailed) break;
+        BKNI_Sleep(250);
+    }
+    NEXUS_ChunkedFifoRecord_StopExport(g_exportHandle);
+    g_exportHandle = NULL;
+    if (status.state == NEXUS_ChunkedFifoRecordExportState_eFailed) {
+        BDBG_ERR(("export failed"));
+    }
+    else {
+        BDBG_WRN(("exported: timestamp %u..%u, chunk %u..%u, offset " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT,
+            (unsigned)status.first.timestamp, (unsigned)status.last.timestamp,
+            status.first.chunkNumber, status.last.chunkNumber,
+            BDBG_UINT64_ARG(status.first.offset), BDBG_UINT64_ARG(status.last.offset)
+            ));
+    }
+}
+
+static void start_export_chunkedfifo(NEXUS_ChunkedFifoRecordHandle chunkedFifofile)
 {
     char filename[128], indexname[128], timerange[64];
     NEXUS_ChunkedFifoRecordExportSettings settings;
-    int rc;
-    NEXUS_ChunkedFifoRecordExportHandle exportHandle;
     char *s;
+
+    if (g_exportHandle) {
+        stop_export_chunkedfifo();
+    }
 
     NEXUS_ChunkedFifoRecord_GetDefaultExportSettings(&settings);
 
@@ -426,26 +452,9 @@ static void export_chunkedfifo(NEXUS_ChunkedFifoRecordHandle chunkedFifofile)
         mkdir(settings.filename);
     */
     strcpy(settings.chunkTemplate, "%s_%04u");
-    exportHandle = NEXUS_ChunkedFifoRecord_StartExport(chunkedFifofile, &settings);
-    if (exportHandle) {
-        NEXUS_ChunkedFifoRecordExportStatus status;
-        while (1) {
-            NEXUS_ChunkedFifoRecord_GetExportStatus(exportHandle, &status);
-            if (status.state >= NEXUS_ChunkedFifoRecordExportState_eFailed) break;
-            BKNI_Sleep(250);
-        }
-        NEXUS_ChunkedFifoRecord_StopExport(exportHandle);
-        if (status.state == NEXUS_ChunkedFifoRecordExportState_eFailed) {
-            BDBG_ERR(("export failed"));
-        }
-        else {
-            BDBG_WRN(("saved %s: timestamp %lu..%lu, chunk %u..%u, offset " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT,
-                filename,
-                status.first.timestamp, status.last.timestamp,
-                status.first.chunkNumber, status.last.chunkNumber,
-                BDBG_UINT64_ARG(status.first.offset), BDBG_UINT64_ARG(status.last.offset)
-                ));
-        }
+    g_exportHandle = NEXUS_ChunkedFifoRecord_StartExport(chunkedFifofile, &settings);
+    if (g_exportHandle) {
+        BDBG_WRN(("exporting to %s", filename));
     }
     else {
         BDBG_ERR(("unable to export"));
@@ -465,8 +474,8 @@ int main(int argc, char **argv)
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_DisplaySettings displaySettings;
 #endif
-    NEXUS_FileRecordHandle recordfile;
-    NEXUS_RecpumpHandle recpump;
+    NEXUS_FileRecordHandle recordfile=NULL;
+    NEXUS_RecpumpHandle recpump=NULL;
     NEXUS_RecordPidChannelSettings pidSettings;
     NEXUS_RecordSettings recordSettings;
     NEXUS_PidChannelHandle pidChannel[2];
@@ -479,6 +488,7 @@ int main(int argc, char **argv)
     unsigned interval = 1;
     bool playbackOnly = false;
     bool exportOnly = false;
+    bool initialExport = false;
 
     memset(app, 0, sizeof(*app));
     app->rate = 1;
@@ -500,6 +510,9 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[curarg], "-export")) {
             exportOnly = true;
         }
+        else if (!strcmp(argv[curarg], "-initial_export")) {
+            initialExport = true;
+        }
         else {
             print_usage();
             return -1;
@@ -516,7 +529,8 @@ int main(int argc, char **argv)
             app->chunkedFifofile = NEXUS_ChunkedFifoRecord_ReOpenForExport(datafilename, indexfilename);
             if (app->chunkedFifofile) {
                 set_interval(app, interval);
-                export_chunkedfifo(app->chunkedFifofile);
+                start_export_chunkedfifo(app->chunkedFifofile);
+                stop_export_chunkedfifo();
                 NEXUS_FileRecord_Close(NEXUS_ChunkedFifoRecord_GetFile(app->chunkedFifofile));
                 rc = 0;
             }
@@ -559,6 +573,10 @@ int main(int argc, char **argv)
             recordfile = NEXUS_FifoRecord_GetFile(app->fifofile);
         }
         set_interval(app, interval);
+        if (initialExport) {
+            start_export_chunkedfifo(app->chunkedFifofile);
+            /* don't stop */
+        }
 
         NEXUS_Record_GetDefaultPidChannelSettings(&pidSettings);
         pidSettings.recpumpSettings.pidType = NEXUS_PidType_eVideo;
@@ -879,7 +897,8 @@ int main(int argc, char **argv)
                 break;
             case 's':
                 if (app->chunksize) {
-                    export_chunkedfifo(app->chunkedFifofile);
+                    start_export_chunkedfifo(app->chunkedFifofile);
+                    stop_export_chunkedfifo();
                 }
                 else {
                     BDBG_ERR(("save only supported with chunked fifo"));

@@ -1721,7 +1721,7 @@ int main(int argc, char* argv[])
     {
         /* Request a secure decoder, i.e. secure picture buffers, i.e. URR
         * Should only do this if SAGE is in use, and when SAGE_SECURE_MODE is NOT 1 */
-        videoDecoderOpenSettings.secureVideo = NEXUS_SecureVideo_eSecure;
+        videoDecoderOpenSettings.secureVideo = NEXUS_VideoDecoderSecureType_eSecure;
     }
 #endif
     videoDecoder = NEXUS_VideoDecoder_Open(0, &videoDecoderOpenSettings);

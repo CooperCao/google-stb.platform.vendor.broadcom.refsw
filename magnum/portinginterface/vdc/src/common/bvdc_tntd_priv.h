@@ -236,7 +236,7 @@ typedef struct BVDC_P_TntdContext
     bool                           bPqNcl;
 } BVDC_P_TntdContext;
 
-
+#if (BVDC_P_SUPPORT_TNTD)
 /***************************************************************************
  * Tntd private functions
  ***************************************************************************/
@@ -249,20 +249,12 @@ BERR_Code BVDC_P_Tntd_Create
 void BVDC_P_Tntd_Destroy
     ( BVDC_P_Tntd_Handle            hTntd );
 
-void BVDC_P_Tntd_Init
-    ( BVDC_P_Tntd_Handle            hTntd,
-      BVDC_Window_Handle            hWindow);
-
 BERR_Code BVDC_P_Tntd_AcquireConnect_isr
     ( BVDC_P_Tntd_Handle            hTntd,
       BVDC_Window_Handle            hWindow );
 
 BERR_Code BVDC_P_Tntd_ReleaseConnect_isr
     ( BVDC_P_Tntd_Handle           *phTntd );
-
-void BVDC_P_Tntd_BuildRul_SetEnable_isr
-    ( BVDC_P_Tntd_Handle            hTntd,
-      BVDC_P_ListInfo              *pList );
 
 void BVDC_P_Tntd_BuildRul_isr
     ( const BVDC_P_Tntd_Handle      hTntd,
@@ -274,15 +266,13 @@ void BVDC_P_Tntd_SetInfo_isr
     ( BVDC_P_Tntd_Handle            hTntd,
       const BVDC_P_PictureNodePtr   pPicture );
 
-void BVDC_P_Tntd_SetEnable_isr
-    ( BVDC_P_Tntd_Handle            hTntd,
-      bool                          bEnable );
-
 uint32_t BVDC_P_Tntd_CalcVertSclRatio_isr
     ( uint32_t                      ulInV,
       bool                          bInInterlaced,
       uint32_t                      ulOutV,
       bool                          bOutInterlaced );
+
+#endif /* BVDC_P_SUPPORT_TNTD */
 
 #ifdef __cplusplus
 }

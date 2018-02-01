@@ -66,6 +66,9 @@
 #include "panel_scan_ofdm.h"
 #endif /* if NEXUS_HAS_FRONTEND */
 #include "panel_vbi.h"
+#if BDSP_MS12_SUPPORT
+#include "panel_audio_ac4.h"
+#endif
 #ifdef MPOD_SUPPORT
 #include "panel_cablecard.h"
 #endif
@@ -105,6 +108,9 @@ typedef enum eMenu
     eMenu_ScanSat,
     eMenu_ScanOfdm,
     eMenu_Vbi,
+#if BDSP_MS12_SUPPORT
+    eMenu_Audio_Ac4,
+#endif
     eMenu_Power,
     eMenu_CableCard,
     eMenu_Max
@@ -176,6 +182,10 @@ public:
     eRet            addRecordEncodeIndicator(CChannel * pChannel);
     void            setChannelIndicator(CChannelMgr * pChannelMgr, CPlaylistDb * pPlaylistDb);
     void            setVolumeProgress(uint8_t progress, bool bMute = false);
+#if BDSP_MS12_SUPPORT
+    void            setAudioFadeProgress(uint8_t progress, eWindowType windowType = eWindowType_Max);
+    void            setDialogEnhancementProgress(int nDb);
+#endif
     eRet            registerObserver(CObserver * pObserver, eNotification notification = eNotify_All);
     MRect           getPipGraphicsGeometry(CSimpleVideoDecode * pVideoDecode);
     eRet            showConnectionStatus(bool bConnected, const char * strText, uint32_t timeout = 3000);
@@ -195,6 +205,9 @@ public:
 #ifdef CPUTEST_SUPPORT
     void updateCpuTestUtilization(void);
 #endif
+#if BDSP_MS12_SUPPORT
+    void updateAudioFadeLevels(void);
+#endif
 #if DVR_LIB_SUPPORT
     void setTsbStatus(CTsb * pTsb);
     eRet updateTsbProgress(void);
@@ -210,6 +223,10 @@ protected:
 protected:
     CWidgetProgress *        _pLabelScan;
     CWidgetProgress *        _pLabelVolume;
+#if BDSP_MS12_SUPPORT
+    CWidgetProgress *        _pLabelAudioFadeMain;
+    CWidgetProgress *        _pLabelAudioFadePip;
+#endif
     MRect                    _rectChannelNum;
     CWidgetLabel *           _pLabelPip;
     CWidgetLabel *           _pLabelChannelNum;
@@ -275,11 +292,18 @@ protected:
 #ifdef CPUTEST_SUPPORT
     CTimer _timerCpuTest;
 #endif
+#ifdef BDSP_MS12_SUPPORT
+    CTimer _timerAudioFade;
+    CTimer _timerAudioFadeShow;
+#endif
     unsigned             _channelsFound;
     CWidgetModalMsgBox * _MsgBox;
     CPanelPower *        _pPowerMenu;
     CPanelKeyboard *     _pKeyboard;
     CPanelVbi *          _pVbiMenu;
+#if BDSP_MS12_SUPPORT
+    CPanelAudioAc4 *     _pAudioAc4Menu;
+#endif
     CTimer               _timerMsgBox;
 #if NEXUS_HAS_FRONTEND
     CWidgetButton *  _Tuner;

@@ -69,10 +69,11 @@ static struct {
     } clients[APP_MAX_CLIENTS]; /* index provides id */
 } g_app;
 
-static int client_connect(nxclient_t client, const NxClient_JoinSettings *pJoinSettings, NEXUS_ClientSettings *pClientSettings)
+static int client_connect(nxclient_t client, const NxClient_JoinSettings *pJoinSettings, NEXUS_ClientSettings *pClientSettings, struct nxclient_connect_settings *pconnect_settings)
 {
     unsigned i;
     BSTD_UNUSED(pClientSettings);
+    BSTD_UNUSED(pconnect_settings);
     /* server app has opportunity to reject client altogether, or modify pClientSettings */
     for (i=0;i<APP_MAX_CLIENTS;i++) {
         if (!g_app.clients[i].client) {

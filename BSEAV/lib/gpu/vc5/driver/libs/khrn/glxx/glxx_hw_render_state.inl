@@ -87,7 +87,7 @@ static inline unsigned glxx_hw_render_state_num_render_subjobs_per_layer(const G
 {
    // Buffer writes are not suitably coherent on multiple cores and frame isolation
    // also disables multicore.
-   if (rs->base.has_buffer_writes || khrn_options.isolate_frame == khrn_fmem_frame_i)
+   if (!rs->has_rasterization || rs->base.has_buffer_writes || khrn_options.isolate_frame == khrn_fmem_frame_i)
       return 1;
    return khrn_get_num_render_subjobs();
 }

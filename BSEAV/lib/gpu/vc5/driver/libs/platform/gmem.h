@@ -155,9 +155,19 @@ static inline void* gmem_map_and_invalidate_buffer(gmem_handle_t handle);
 static inline void* gmem_map_and_invalidate_range(gmem_handle_t handle,
    v3d_size_t offset, v3d_size_t length);
 
+// If gmem_has_bidi_sync() returns true, gmem_bidi_sync_mapped_buffer can be
+// used instead of gmem_invalidate_mapped_buffer/gmem_flush_mapped_buffer to
+// sync data between V3D and host -- it syncs dirty data both ways.
+bool gmem_has_bidi_sync(void);
+void gmem_bidi_sync_mapped_buffer(gmem_handle_t handle);
+
+// p should point to a buffer of size gmem_get_size(handle). It is filled with
+// the contents of handle as seen by V3D.
+void gmem_read_buffer_as_v3d(void *p, gmem_handle_t handle);
+
 /* Queries ================================================================= */
 
-v3d_size_t gmem_heap_size();
+v3d_size_t gmem_heap_size(void);
 
 GMEM_PLAT_INLINE v3d_size_t gmem_get_size(gmem_handle_t handle);
 GMEM_PLAT_INLINE gmem_usage_flags_t gmem_get_usage(gmem_handle_t handle);

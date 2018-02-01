@@ -43,7 +43,7 @@ u = disable UBO fetch optimization
 #define GLSL_FB_INT         (1 << 1)
 #define GLSL_FB_PRESENT     (1 << 2)
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 /* V3Dv3.3 and earlier must write alpha if it's present for 16-bit RTs */
 # define GLSL_FB_ALPHA_16_WORKAROUND (1<<3)
 #endif

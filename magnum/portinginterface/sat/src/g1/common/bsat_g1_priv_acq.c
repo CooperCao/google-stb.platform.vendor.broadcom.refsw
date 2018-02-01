@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -160,7 +160,9 @@ BERR_Code BSAT_g1_P_InitHandle(BSAT_Handle h)
    hDev->acqDoneThreshold = 3;
    hDev->networkSpec = BSAT_NetworkSpec_eDefault;
    hDev->pSaBuf = 0;
-   hDev->afecRampSettings = 0x8000;
+   hDev->afecRampSettings = 0x00011170;
+   hDev->afecRampChanMask = 0;
+   hDev->afecRampLowThreshChanMask = 0;
    return BSAT_g1_P_InitHandleExt(h);
 }
 
@@ -318,10 +320,12 @@ BERR_Code BSAT_g1_P_InitChannel(BSAT_ChannelHandle h)
 #ifdef BSAT_HAS_DUAL_TFEC
       if (BSAT_g1_P_TfecIsOtherChannelBusy_isrsafe(h) == false)
 #endif
+      {
          BKNI_EnterCriticalSection();
          BSAT_g1_P_TfecPowerUp_isr(h);
          BKNI_LeaveCriticalSection();
          BSAT_g1_P_TfecPowerDown_isrsafe(h);
+      }
    }
 #endif
 
@@ -639,6 +643,10 @@ void BSAT_g1_P_PowerDownOpll_isrsafe(BSAT_ChannelHandle h)
    BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00, 0x00080001);
    BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00, ~0x1);
    BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_OI_OPLL_PWRDN_RST, 0x7);
+#ifdef BCHP_SDS_OI_0_OPLL_PWRDN_RST_pwrdn_ldo_MASK
+   BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_OI_OPLL_PWRDN_RST,
+      BCHP_SDS_OI_0_OPLL_PWRDN_RST_pwrdn_ldo_MASK | BCHP_SDS_OI_0_OPLL_PWRDN_RST_pwrdn_bg_MASK);
+#endif
 }
 
 
@@ -647,7 +655,7 @@ void BSAT_g1_P_PowerDownOpll_isrsafe(BSAT_ChannelHandle h)
 ******************************************************************************/
 void BSAT_g1_P_PowerUpOpll_isr(BSAT_ChannelHandle h)
 {
-   BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_OI_OPLL_PWRDN_RST, ~0x7);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_OPLL_PWRDN_RST, 0);
 }
 
 
@@ -1566,6 +1574,7 @@ static BERR_Code BSAT_g1_P_SetNyquistAlpha_isr(BSAT_ChannelHandle h)
      nvctl = 0;
 
    alpha = hChn->acqSettings.options & BSAT_ACQ_NYQUIST_MASK;
+
    switch (alpha)
    {
       case BSAT_ACQ_NYQUIST_35:
@@ -2259,7 +2268,7 @@ BERR_Code BSAT_g1_P_ConfigOif_isr(BSAT_ChannelHandle h)
       val |= 0x400000;
    if (hChn->xportSettings.bSync1)
       val |= 0x200000;
-#if (BCHP_CHIP==45308) && (BSAT_CHIP_FAMILY==45316)
+#if ((BCHP_CHIP==45308) && (BSAT_CHIP_FAMILY==45316)) || (BCHP_CHIP==45402)
    if (BSAT_MODE_IS_LEGACY_QPSK(hChn->actualMode))
    {
       if ((h->channel & 1) == 0)
@@ -2311,7 +2320,13 @@ bool BSAT_g1_P_IsValidFreq(uint32_t freq)
 ******************************************************************************/
 bool BSAT_g1_P_IsValidSymbolRate(uint32_t Fb)
 {
-   if ((Fb < 1000000UL) || (Fb > 45000000UL))
+   if ((Fb < 1000000UL) ||
+#if (BCHP_CHIP != 45308)
+       (Fb > 45000000UL)
+#else
+       (Fb > 52000000UL)
+#endif
+       )
       return false;
    return true;
 }

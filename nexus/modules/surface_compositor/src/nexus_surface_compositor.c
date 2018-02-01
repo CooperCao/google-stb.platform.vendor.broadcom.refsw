@@ -180,6 +180,13 @@ static void nexus_surface_compositor_p_initialize_compositor_display(struct NEXU
     return;
 }
 
+static void nexus_surface_compositor_p_framebuffer_callback(void *context)
+{
+    struct NEXUS_SurfaceCompositorDisplay *display = context;
+    nexus_surface_compositor_p_framebuffer_applied(display);
+    return;
+}
+
 static struct NEXUS_SurfaceCompositorDisplay *nexus_surface_compositor_p_create_display(NEXUS_SurfaceCompositorHandle server)
 {
     struct NEXUS_SurfaceCompositorDisplay *display;
@@ -194,8 +201,7 @@ static struct NEXUS_SurfaceCompositorDisplay *nexus_surface_compositor_p_create_
     display->canvas.width = 720;
     display->canvas.height = 480;
 
-
-    NEXUS_CallbackHandler_Init(display->frameBufferCallback, nexus_surface_compositor_p_framebuffer, display);
+    NEXUS_CallbackHandler_Init(display->frameBufferCallback, nexus_surface_compositor_p_framebuffer_callback, display);
     NEXUS_CallbackHandler_Init(display->vsyncCallback, nexus_surface_compositor_p_vsync, server);
     display->server = server;
     return display;
@@ -278,6 +284,7 @@ NEXUS_SurfaceCompositorHandle NEXUS_SurfaceCompositor_Create( unsigned server_id
 
     for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
         /* default settings per display */
+        server->settings.display[i].enabled = true;
         server->settings.display[i].framebuffer.number = 2;
         server->settings.display[i].framebuffer.width = 720;
         server->settings.display[i].framebuffer.height = 480;
@@ -572,6 +579,7 @@ static NEXUS_Error nexus_surface_compositor_p_update_graphics_settings( NEXUS_Su
     for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
         NEXUS_GraphicsSettings graphicsSettings;
         bool change = false;
+        bool toogle_enable;
         if (!pSettings->display[i].display) continue;
         NEXUS_Display_GetGraphicsSettings(pSettings->display[i].display, &graphicsSettings);
         /* update only those members which NSC does not calculate */
@@ -586,9 +594,20 @@ static NEXUS_Error nexus_surface_compositor_p_update_graphics_settings( NEXUS_Su
         COPY_STRUCT_FIELD(&graphicsSettings.sdrToHdr, &pSettings->display[i].graphicsSettings.sdrToHdr, y);
         COPY_STRUCT_FIELD(&graphicsSettings.sdrToHdr, &pSettings->display[i].graphicsSettings.sdrToHdr, cb);
         COPY_STRUCT_FIELD(&graphicsSettings.sdrToHdr, &pSettings->display[i].graphicsSettings.sdrToHdr, cr);
+        toogle_enable = graphicsSettings.enabled != pSettings->display[i].enabled;
+        COPY_STRUCT_FIELD(&graphicsSettings, &pSettings->display[i], enabled);
         if (change) {
             rc = NEXUS_Display_SetGraphicsSettings(pSettings->display[i].display, &graphicsSettings);
             if (rc) return BERR_TRACE(rc);
+        }
+        if(toogle_enable) {
+            /* if enabled was changed we need to simulate that submitted framebuffers was applied */
+            if(server->settings.display[i].display && server->display) {
+                struct NEXUS_SurfaceCompositorDisplay *display =  server->display[i];
+                if(display && display->submitted) {
+                    nexus_surface_compositor_p_framebuffer_applied(display);
+                }
+            }
         }
     }
     return 0;
@@ -716,7 +735,7 @@ static NEXUS_Error nexus_surface_compositor_p_update_display( NEXUS_SurfaceCompo
             cmpDisplay->backgroundColor = pSettings->display[i].framebuffer.backgroundColor;
 
             graphicsSettings = pSettings->display[i].graphicsSettings;
-            graphicsSettings.enabled = true;
+            graphicsSettings.enabled = pSettings->display[i].enabled;
             /* at this time only full screen graphics is supported */
             graphicsSettings.clip.x = graphicsSettings.clip.y = 0;
             if (!pSettings->display[i].manualPosition) {
@@ -890,10 +909,11 @@ err_switch_secure:
     return rc;
 }
 
-static void nexus_surface_compositor_inactive_timer(void *context)
+static void nexus_surface_compositor_p_inactive_timer(void *context)
 {
     NEXUS_SurfaceCompositorHandle server = context;
     NEXUS_SurfaceClientHandle client;
+    bool fire_again = false;
 
     BDBG_MSG(("inactive_timer enabled=%d", server->settings.enabled));
     server->inactiveTimer = NULL;
@@ -911,9 +931,30 @@ static void nexus_surface_compositor_inactive_timer(void *context)
                 NEXUS_TaskCallback_Fire(client->displayedCallback);
             }
         }
-
-        server->inactiveTimer = NEXUS_ScheduleTimer(50, nexus_surface_compositor_inactive_timer, server);
+        fire_again = true;
+    } else {
+        unsigned i;
+        for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+            if(server->settings.display[i].display && !server->settings.display[i].enabled) {
+                struct NEXUS_SurfaceCompositorDisplay *display =  server->display[i];
+                if(display && display->submitted) {
+                    nexus_surface_compositor_p_framebuffer_applied(display);
+                    fire_again = true;
+                }
+            }
+        }
     }
+    if(fire_again) {
+        nexus_surface_compositor_p_schedule_inactive_timer(server);
+    }
+}
+
+void nexus_surface_compositor_p_schedule_inactive_timer(NEXUS_SurfaceCompositorHandle server)
+{
+    if (!server->inactiveTimer) {
+        server->inactiveTimer = NEXUS_ScheduleTimer(50, nexus_surface_compositor_p_inactive_timer, server);
+    }
+    return;
 }
 
 NEXUS_Error NEXUS_SurfaceCompositor_SetSettings( NEXUS_SurfaceCompositorHandle server, const NEXUS_SurfaceCompositorSettings *pSettings )
@@ -988,7 +1029,7 @@ NEXUS_Error NEXUS_SurfaceCompositor_SetSettings( NEXUS_SurfaceCompositorHandle s
             nexus_p_surface_compositor_check_inactive(server);
             if (!server->inactiveTimer) {
                 /* kick start timer that keeps clients alive if fmt change takes a long time */
-                nexus_surface_compositor_inactive_timer(server);
+                nexus_surface_compositor_p_schedule_inactive_timer(server);
             }
         }
         else if (muteVideoChanged) {

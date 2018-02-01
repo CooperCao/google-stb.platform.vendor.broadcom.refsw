@@ -83,7 +83,7 @@ CompiledShader *glsl_compiled_shader_create(ShaderFlavour f, int version) {
 static void free_shader_interface(ShaderInterface* iface) {
    for (unsigned i = 0; i != iface->n_vars; i++) {
       free(iface->var[i].ids);
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       free(iface->var[i].flags);
 #endif
    }
@@ -141,7 +141,7 @@ static bool interface_from_symbols(ShaderInterface *iface, int n_vars, struct sy
 
       v->symbol = glsl_map_get(symbol_map, l[i].symbol);
       v->active = false;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       v->flags = NULL;
 #endif
 
@@ -152,7 +152,7 @@ static bool interface_from_symbols(ShaderInterface *iface, int n_vars, struct sy
          continue;      /* We'll free all of these, continue ensures they are initialised */
       }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       if (alloc_flags) {
          v->flags = calloc(l[i].symbol->type->scalar_count, sizeof(InterfaceVarFlags));
          if (v->flags == NULL) {
@@ -305,7 +305,7 @@ static void update_atomics(ShaderInterface *iface, uint32_t *actives) {
    }
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 static void dpostv_detect_dynamic_indexed_samplers(Dataflow *dataflow, void *data)
 {
@@ -370,7 +370,7 @@ void glsl_mark_interface_actives(ShaderInterface *in, ShaderInterface *uniform, 
 
    update_atomics(uniform, active.atomic);
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    detect_dynamic_indexed_samplers(uniform, block, n_blocks);
 #endif
 
@@ -622,6 +622,16 @@ static Dataflow *dprev_apply_opt_map(Dataflow *d, void *data) {
    return d;
 }
 
+static void array_apply_opt_map(Dataflow **arr, unsigned count, Map *opt_map) {
+   glsl_dataflow_visit_array(arr, 0, count, opt_map, dprev_apply_opt_map, NULL);
+   for (unsigned i=0; i<count; i++) {
+      if (arr[i] != NULL) {
+         Dataflow *new = glsl_map_get(opt_map, arr[i]);
+         if (new != NULL) arr[i] = new;
+      }
+   }
+}
+
 struct replace_info {
    Map *replace_map;
 
@@ -636,18 +646,29 @@ struct replace_info {
    Dataflow **guards_false;
 };
 
+void glsl_predicate_dataflow(Dataflow *d, Dataflow *g) {
+   if (g->flavour != DATAFLOW_CONST || !g->u.constant.value) {
+      if (glsl_dataflow_affects_memory(d->flavour)) {
+         if (d->d.addr_store.cond == NULL) d->d.addr_store.cond = g;
+         else d->d.addr_store.cond = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, d->d.addr_store.cond, g);
+      }
+
+      switch (d->flavour) {
+      case DATAFLOW_SG_ELECT:
+         d->d.unary_op.operand = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, d->d.unary_op.operand, g);
+         break;
+      default: /* Do nothing */
+         break;
+      }
+   }
+}
+
 static void replace_externals(Dataflow *d, void *data) {
    struct replace_info *info = data;
 
    d->age += info->id * 1000;
 
-   if (glsl_dataflow_affects_memory(d->flavour)) {
-      Dataflow *g = info->guards_mem[info->id];
-      if (g->flavour != DATAFLOW_CONST || !g->u.constant.value) {
-         if (d->d.addr_store.cond == NULL) d->d.addr_store.cond = g;
-         else d->d.addr_store.cond = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, d->d.addr_store.cond, g);
-      }
-   }
+   glsl_predicate_dataflow(d, info->guards_mem[info->id]);
 
    if (d->flavour != DATAFLOW_EXTERNAL) return;
 
@@ -841,14 +862,14 @@ static void sink_stores(SSAShader *sh) {
    }
 }
 
-struct unphi_data {
+struct opt_data {
    SSABlock *blocks;
-   Map *unphi;
+   Map      *map;
 };
 
 static void dpostv_find_phid_constants(Dataflow *d, void *data) {
-   struct unphi_data *dat = data;
-   Map *unphi = dat->unphi;
+   struct opt_data *dat = data;
+   Map *unphi = dat->map;
    SSABlock *blocks = dat->blocks;
 
    if (d->flavour != DATAFLOW_PHI) return;
@@ -886,29 +907,19 @@ static void unphi_constants(SSABlock *blocks, int n_blocks) {
    for (int i=0; i<n_blocks; i++) {
       SSABlock *b = &blocks[i];
 
-      struct unphi_data data;
+      struct opt_data data;
       data.blocks = blocks;
-      data.unphi = glsl_map_new();
+      data.map    = glsl_map_new();
       glsl_dataflow_visit_array(b->outputs, 0, b->n_outputs, &data, NULL, dpostv_find_phid_constants);
 
-      glsl_dataflow_visit_array(b->outputs, 0, b->n_outputs, data.unphi, dprev_apply_opt_map, NULL);
-      for (int i=0; i<b->n_outputs; i++) {
-         Dataflow *new = glsl_map_get(data.unphi, b->outputs[i]);
-         if (new != NULL)
-            b->outputs[i] = new;
-      }
+      array_apply_opt_map(b->outputs, b->n_outputs, data.map);
 
-      glsl_map_delete(data.unphi);
+      glsl_map_delete(data.map);
    }
 }
 
-struct promote_data {
-   SSABlock *blocks;
-   Map *map;
-};
-
 static Dataflow *dprev_promote_constants(Dataflow *d, void *data) {
-   struct promote_data *dat = data;
+   struct opt_data *dat = data;
    /* Don't look at phi node's children. They can't be promoted */
    if (d->flavour == DATAFLOW_PHI)      return NULL;
    if (d->flavour != DATAFLOW_EXTERNAL) return d;
@@ -952,17 +963,12 @@ static void promote_constants(SSABlock *blocks, int n_blocks) {
    for (int i=0; i<n_blocks; i++) {
       SSABlock *b = &blocks[i];
 
-      struct promote_data data;
+      struct opt_data data;
       data.blocks = blocks;
       data.map = glsl_map_new();
       glsl_dataflow_visit_array(b->outputs, 0, b->n_outputs, &data, dprev_promote_constants, NULL);
 
-      glsl_dataflow_visit_array(b->outputs, 0, b->n_outputs, data.map, dprev_apply_opt_map, NULL);
-      for (int i=0; i<b->n_outputs; i++) {
-         Dataflow *new = glsl_map_get(data.map, b->outputs[i]);
-         if (new != NULL)
-            b->outputs[i] = new;
-      }
+      array_apply_opt_map(b->outputs, b->n_outputs, data.map);
 
       glsl_map_delete(data.map);
    }
@@ -1605,7 +1611,7 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
       for (int i=0; i<3; i++) data->compute.wg_size[i] = 0;
 }
 
-void glsl_ssa_shader_optimise(SSAShader *sh, bool mem_read_only, bool flatten) {
+void glsl_ssa_shader_optimise(SSAShader *sh, bool flatten) {
    if (flatten)
       flatten_and_predicate(sh);
 
@@ -1618,7 +1624,7 @@ void glsl_ssa_shader_optimise(SSAShader *sh, bool mem_read_only, bool flatten) {
 
    eliminate_dead_code(sh);
 
-   glsl_dataflow_cse(sh->blocks, sh->n_blocks, mem_read_only);
+   glsl_dataflow_cse(sh->blocks, sh->n_blocks);
 
    setup_required_components(sh->blocks, sh->n_blocks);
 }
@@ -1682,12 +1688,7 @@ void glsl_ssa_shader_hoist_loads(SSAShader *sh) {
       sh->blocks[0].outputs = new_outs;
 
       /* Apply the opt map to drop the loads from the original block */
-      glsl_dataflow_visit_array(b->outputs, 0, b->n_outputs, opt_map, dprev_apply_opt_map, NULL);
-      for (int j=0; j<b->n_outputs; j++) {
-         Dataflow *new = glsl_map_get(opt_map, b->outputs[j]);
-         if (new != NULL)
-            b->outputs[j] = new;
-      }
+      array_apply_opt_map(b->outputs, b->n_outputs, opt_map);
       glsl_map_delete(opt_map);
    }
 }
@@ -1835,7 +1836,7 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    glsl_ssa_convert(&ir_sh, entry_block, interfaces->outs, symbol_ids);
    glsl_basic_block_delete_reachable(entry_block);
 
-   glsl_ssa_shader_optimise(&ir_sh, version < GLSL_SHADER_VERSION(3, 10, 1), ssa_flattening);
+   glsl_ssa_shader_optimise(&ir_sh, ssa_flattening);
 
    if (flavour == SHADER_VERTEX || flavour == SHADER_FRAGMENT || flavour == SHADER_COMPUTE)
       glsl_ssa_shader_hoist_loads(&ir_sh);

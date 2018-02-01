@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -205,7 +205,7 @@ typedef struct BMRC_P_CheckerContext
     /* callback data */
     BINT_Id InterruptName;
     BINT_CallbackHandle hCallback;
-    BMRC_CallbackFunc_isr pfCbFunc;
+    BMRC_CallbackFunc_isr pfCbFunc_isr;
     void *pvCbData1;
     int iCbData2;
     BMRC_CheckerInfo stCheckerInfo;
@@ -291,18 +291,11 @@ static BERR_Code BMRC_P_Checker_WriteRegs ( BMRC_Checker_Handle hChecker );
 /***************************************************************************
  *
  */
-BERR_Code
+void
 BMRC_GetDefaultSettings
     ( BMRC_Settings *pDefSettings )
 {
-    if (!pDefSettings)
-    {
-        return BERR_INVALID_PARAMETER;
-    }
-
     *pDefSettings = s_stDefaultSettings;
-
-    return BERR_SUCCESS;
 }
 
 /***************************************************************************
@@ -364,15 +357,12 @@ error:
 /***************************************************************************
  *
  */
-BERR_Code BMRC_Close
+void BMRC_Close
     ( BMRC_Handle hMrc )
 {
     BDBG_OBJECT_ASSERT(hMrc, BMRC);
-
     BDBG_OBJECT_DESTROY(hMrc, BMRC);
     BKNI_Free(hMrc);
-
-    return BERR_SUCCESS;
 }
 
 /***************************************************************************
@@ -388,15 +378,12 @@ void BMRC_GetSettings ( BMRC_Handle hMrc, BMRC_Settings *pSettings )
 /***************************************************************************
  *
  */
-BERR_Code BMRC_GetMaxCheckers
+void BMRC_GetMaxCheckers
     ( BMRC_Handle hMrc,
       uint32_t *pulMaxChecker )
 {
     BDBG_OBJECT_ASSERT(hMrc, BMRC);
-
     *pulMaxChecker = hMrc->usMaxCheckers;
-
-    return BERR_SUCCESS;
 }
 
 /***************************************************************************
@@ -451,7 +438,7 @@ BERR_Code BMRC_Checker_Create
 
             pCurChecker->InterruptName = s_saIntIdTbl[hMrc->usMemcId][i];
             pCurChecker->hCallback = 0;
-            pCurChecker->pfCbFunc = NULL;
+            pCurChecker->pfCbFunc_isr = NULL;
             pCurChecker->pvCbData1 = NULL;
             pCurChecker->iCbData2 = 0;
 
@@ -494,7 +481,7 @@ BERR_Code BMRC_Checker_Create
 /***************************************************************************
  *
  */
-BERR_Code BMRC_Checker_Destroy
+void BMRC_Checker_Destroy
     ( BMRC_Checker_Handle hChecker )
 {
     BMRC_Handle hMrc;
@@ -511,8 +498,6 @@ BERR_Code BMRC_Checker_Destroy
     hChecker->bActive = false;
     hMrc->usActiveCheckers--;
     BDBG_OBJECT_UNSET(hChecker, BMRC_Checker);
-
-    return BERR_SUCCESS;
 }
 
 /***************************************************************************
@@ -823,7 +808,7 @@ BERR_Code BMRC_Checker_DisableCallback_isr
  */
 BERR_Code BMRC_Checker_SetCallback
     ( BMRC_Checker_Handle hChecker,
-      const BMRC_CallbackFunc_isr pfCbFunc,
+      const BMRC_CallbackFunc_isr pfCbFunc_isr,
       void *pvCbData1,
       int iCbData2)
 {
@@ -834,7 +819,7 @@ BERR_Code BMRC_Checker_SetCallback
         return BERR_TRACE(BMRC_CHECKER_ERR_ENABLED_CANT_SET);
     }
 
-    hChecker->pfCbFunc = pfCbFunc;
+    hChecker->pfCbFunc_isr = pfCbFunc_isr;
     hChecker->pvCbData1 = pvCbData1;
     hChecker->iCbData2 = iCbData2;
 
@@ -920,9 +905,9 @@ void BMRC_P_Checker_Violation_isr
     BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_VIOLATION_INFO_CLEAR, ulReg);
 #endif
 
-    if (hChecker->pfCbFunc)
+    if (hChecker->pfCbFunc_isr)
     {
-        hChecker->pfCbFunc(hChecker->pvCbData1, hChecker->iCbData2, pCheckerInfo);
+        hChecker->pfCbFunc_isr(hChecker->pvCbData1, hChecker->iCbData2, pCheckerInfo);
     }
     return;
 }

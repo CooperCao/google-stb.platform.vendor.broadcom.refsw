@@ -1225,7 +1225,7 @@ void NEXUS_VideoDecoder_GetDisplayConnection_priv_Avd(NEXUS_VideoDecoderHandle v
     else {
         pConnection->parentIndex = videoDecoder->mfdIndex;
     }
-    pConnection->secureVideo = nexus_p_use_secure_picbuf(videoDecoder);
+    pConnection->secureVideo = nexus_p_use_picbuf_type(videoDecoder);
 }
 
 unsigned NEXUS_VideoDecoder_GetMosaicIndex_isrsafe(NEXUS_VideoDecoderHandle videoDecoder)

@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -13,11 +13,11 @@
 #
 #  Except as expressly set forth in the Authorized License,
 #
-#  1.	  This program, including its structure, sequence and organization, constitutes the valuable trade
+#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 #  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 #  and to use this information only in connection with your use of Broadcom integrated circuit products.
 #
-#  2.	  TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
 #  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
 #  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
 #  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
@@ -26,7 +26,7 @@
 #  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 #  USE OR PERFORMANCE OF THE SOFTWARE.
 #
-#  3.	  TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
 #  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
 #  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
 #  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 
 # Makefile.app is called by nexus/platforms/$(NEXUS_PLATFORM)/build/Makefile to generate the static nexus/bin/include/platform_app.inc
@@ -110,6 +109,8 @@ copy_headers:
 	${Q_}echo "/* stub file */" >${NEXUS_BIN_DIR}/include/bstd_cfg.h
 	${Q_}echo "#include \"bchp_ver_types.h\"" >${NEXUS_BIN_DIR}/include/bchp.h
 	${Q_}$(CP) -f $(NEXUS_TOP)/../magnum/basemodules/chp/include/common/bchp_ver_types.h ${NEXUS_BIN_DIR}/include
+	${Q_}$(CP) -f $(NEXUS_TOP)/../magnum/basemodules/chp/include/${BCHP_CHIP}/rdb/$(shell awk 'BEGIN{print tolower("$(BCHP_VER)")}')/bchp_common.h ${NEXUS_BIN_DIR}/include
+	${Q_}$(CP) -f $(NEXUS_TOP)/../magnum/basemodules/chp/include/${BCHP_CHIP}/rdb/$(shell awk 'BEGIN{print tolower("$(BCHP_VER)")}')/bchp_cmp_0.h ${NEXUS_BIN_DIR}/include
 
 # NEXUS_TOP may be relative. convert to absolute path.
 ${PLATFORM_APP_INC_FILE}: copy_headers

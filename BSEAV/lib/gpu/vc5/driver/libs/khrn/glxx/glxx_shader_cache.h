@@ -73,7 +73,7 @@ typedef struct
 #define GLXX_SHADER_FLAGS_TCS_BARRIERS                   (1<<15)
 #define GLXX_SHADER_FLAGS_PRIM_ID_USED                   (1<<16)
 #define GLXX_SHADER_FLAGS_PRIM_ID_TO_FS                  (1<<17)
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 #define GLXX_SHADER_FLAGS_DISABLE_IMPLICIT_VARYS         (1<<18)
 #endif
 
@@ -144,7 +144,7 @@ typedef struct glxx_link_result_data
 #if V3D_VER_AT_LEAST(3,3,0,0)
    struct
    {
-      uint16_t wgs_per_sg;       // number of work-groups per super-group.
+      uint8_t wgs_per_sg;        // number of work-groups per super-group.
     #if V3D_USE_CSD
       uint8_t max_sg_id;         // maximum number of concurrent super-groups minus 1.
     #else

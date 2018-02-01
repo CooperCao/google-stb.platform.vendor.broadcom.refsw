@@ -214,6 +214,7 @@ typedef struct BXPT_PcrOffset_Settings
     ** OffsetThreshold (above) are seen. That number is programmable, below.
     */
     unsigned ConsecutiveErrorThreshold;
+    bool EnableJitterAdjustment;
 #endif
 
     /*
@@ -853,9 +854,7 @@ Returns:
 ***************************************************************************/
 BERR_Code BXPT_PcrOffset_EnableOffset(
     BXPT_PcrOffset_Handle hPcrOff,      /* [in] Handle for the PCR Offset channel to use */
-    uint32_t PidChannelNum,             /* [in] Which PID channel to generate offsets for */
-    bool FixedOffsetEn,                 /* [in] Add a fixed offset during jitter adjustment */
-    bool JitterAdjustEn                 /* [in] Enable jitter adjustment */
+    uint32_t PidChannelNum              /* [in] Which PID channel to generate offsets for */
     );
 
 /***************************************************************************
@@ -871,6 +870,12 @@ Returns:
     void
 ***************************************************************************/
 void BXPT_PcrOffset_DisableOffset(
+    BXPT_PcrOffset_Handle hPcrOff,      /* [in] Handle for the PCR Offset channel to use */
+    uint32_t PidChannelNum              /* [in] Which PID channel to disable offsets for */
+    );
+
+/* Reapply per-pidchannel BXPT_PcrOffset_Settings */
+void BXPT_PcrOffset_ApplyPidChannelSettings(
     BXPT_PcrOffset_Handle hPcrOff,      /* [in] Handle for the PCR Offset channel to use */
     uint32_t PidChannelNum              /* [in] Which PID channel to disable offsets for */
     );

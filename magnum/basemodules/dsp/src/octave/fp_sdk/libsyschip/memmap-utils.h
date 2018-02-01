@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,7 +39,7 @@
 #ifndef _MEMMAP_UTILS_H_
 #define _MEMMAP_UTILS_H_
 
-#if !defined(__FIREPATH__) || defined(ASMCPP) || defined(__LINKER_SCRIPT__)
+#if !defined(__FIREPATH__) || defined(ASMCPP) || defined(__RALL2__) || defined(__LINKER_SCRIPT__)
 
 # define SYMBOL_ADDR_TO_ADDR(x) x
 # define SYMBOL_ADDR_TO_SIZE(x) x

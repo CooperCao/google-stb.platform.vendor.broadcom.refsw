@@ -161,6 +161,9 @@ typedef struct NEXUS_PlaybackSettings
                               Useful for non-MPEG frame reverse (where Brcm trick modes don't apply).
                               If zero (default), use Brcm or I frame rewind for frame reverse. */
     } frameReverse;
+    unsigned minimumBlockSize; /* Don't do I/O until XPT has at least this space available. Lower value reduces latency and higher value
+                                    increases I/O efficiency. */
+    unsigned endOfStreamTimeout; /* in milliseconds. determines how long playback waits to decide the stream is done. */
 } NEXUS_PlaybackSettings;
 
 

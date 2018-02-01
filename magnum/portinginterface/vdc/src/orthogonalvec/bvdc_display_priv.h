@@ -213,8 +213,13 @@ extern "C" {
 #define BVDC_P_SM_TABLE_SIZE              (uint32_t)((BCHP_SM_0_COMP_CNTRL - BCHP_SM_0_PG_CNTRL)/4+1)
 #else
 #define BVDC_P_VF_TABLE_SIZE              1  /* hush warnings */
+#if BVDC_P_NUM_SHARED_656
+#define BVDC_P_CSC_TABLE_SIZE             (uint32_t)((BCHP_ITU656_CSC_0_CSC_COEFF_C23_C22 - BCHP_ITU656_CSC_0_CSC_MODE)/4+1)
+#define BVDC_P_DITHER_TABLE_SIZE          (uint32_t)((BCHP_ITU656_CSC_0_DITHER_LFSR_INIT - BCHP_ITU656_CSC_0_DITHER_CONTROL)/4+1)
+#else
 #define BVDC_P_CSC_TABLE_SIZE             1  /* hush warnings */
 #define BVDC_P_DITHER_TABLE_SIZE          1  /* hush warnings */
+#endif
 #define BVDC_P_CHROMA_TABLE_SIZE          1  /* hush warnings */
 #define BVDC_P_SM_TABLE_SIZE              1  /* hush warnings */
 #endif
@@ -631,6 +636,7 @@ typedef union
         uint32_t                bAspRatio         : 1; /* aspect ratio might changed */
 #if (BVDC_P_SUPPORT_STG != 0)
         uint32_t                bStgEnable        : 1; /* Stg enable/disable */
+        uint32_t                bStgFilter        : 1; /* Stg filter bypass enable/disable */
 #endif
         uint32_t                bVfFilter         : 1; /* user VF filters */
         uint32_t                bOutputMute       : 1; /* output Mute */
@@ -764,7 +770,7 @@ typedef struct
     bool                        bWidthTrimmed;
     bool                        bFullRate;
     bool                        bBypassDviCsc;
-    BAVC_P_Colorimetry          eCmpColorimetry;
+    BCFC_Colorimetry            eCmpColorimetry;
 } BVDC_P_Display_SrcInfo;
 
 typedef struct
@@ -831,7 +837,7 @@ typedef struct
 
 typedef struct
 {
-    BAVC_P_Colorimetry          eCmpColorimetry;
+    BCFC_Colorimetry            eCmpColorimetry;
     BVDC_P_Output               eAnlg_0_OutputColorSpace;
     BVDC_P_Output               eAnlg_1_OutputColorSpace;
     uint32_t                    ulAnlgChan0Mask;
@@ -1096,13 +1102,13 @@ typedef struct BVDC_P_DisplayContext
     BVDC_P_DisplayCscMatrix     stDvoCscMatrix;
     BVDC_P_DisplayCscMatrix     st656CscMatrix;
 
-    BVDC_P_ColorSpace           stOutColorSpace;
-    BVDC_P_CfcContext           stCfc;
+    BCFC_ColorSpaceExt          stOutColorSpaceExt;
+    BCFC_Context                stCfc;
     BVDC_P_CscClamp             stCscClamp;
 #if BVDC_P_CMP_CFC_VER >= 3
     /* CFC LUT heap */
     BMMA_Heap_Handle            hCfcHeap; /* must be cpu accessible for LUT fill */
-    BVDC_P_CfcLutLoadListInfo   stCfcLutList; /* for CFC ram table loading */
+    BCFC_LutLoadListInfo        stCfcLutList; /* for CFC ram table loading */
 #if BVDC_P_DBV_SUPPORT
     BVDC_P_DBV_HdmiPktzr       * pstDbv;
 #endif /* BVDC_P_DBV_SUPPORT */
@@ -1270,14 +1276,14 @@ void BVDC_P_Display_AbortChanges
 void BVDC_P_ResetAnalogChanInfo
     (BVDC_P_DisplayAnlgChan *pstChan);
 
-BERR_Code BVDC_P_AllocITResources
+BERR_Code BVDC_P_AllocITResources_isr
     ( BVDC_P_Resource_Handle           hResource,
       BVDC_Display_Handle              hDisplay,
       BVDC_DisplayId                   eDisplayId,
       BVDC_P_DisplayAnlgChan          *pstChan,
       uint32_t                         ulIt );
 
-BERR_Code BVDC_P_AllocAnalogChanResources
+BERR_Code BVDC_P_AllocAnalogChanResources_isr
     ( BVDC_P_Resource_Handle           hResource,
       BVDC_DisplayId                   eDisplayId,
       BVDC_P_DisplayAnlgChan          *pstChan,
@@ -1324,7 +1330,7 @@ void BVDC_P_FreeDviChanResources_isr
       BVDC_Display_Handle   hDisplay,
      BVDC_P_DisplayDviChan *pstChan);
 
-BERR_Code BVDC_P_AllocDacResources
+BERR_Code BVDC_P_AllocDacResources_isr
     ( BVDC_P_Resource_Handle     hResource,
       BVDC_P_DisplayAnlgChan    *pstChan,
       uint32_t                   ulDacId );
@@ -1368,6 +1374,17 @@ void BVDC_P_Display_Copy_Stg_Setting_isr
     ( BVDC_Display_Handle              hDisplay );
 
 void BVDC_P_Display_Apply_Stg_Setting_isr
+    ( BVDC_Display_Handle              hDisplay,
+      BVDC_P_ListInfo                 *pList,
+      BAVC_Polarity                    eFieldPolarity );
+
+BERR_Code BVDC_P_Display_Validate_StgFilter_Setting
+    ( BVDC_Display_Handle              hDisplay );
+
+void BVDC_P_Display_Copy_StgFilter_Setting_isr
+    ( BVDC_Display_Handle              hDisplay );
+
+void BVDC_P_Display_Apply_StgFilter_Setting_isr
     ( BVDC_Display_Handle              hDisplay,
       BVDC_P_ListInfo                 *pList,
       BAVC_Polarity                    eFieldPolarity );
@@ -1480,6 +1497,10 @@ void BVDC_P_Display_BuildCfcRul_isr
     ( BVDC_Display_Handle              hDisplay,
       uint32_t                         ulStartReg,
       BVDC_P_ListInfo                 *pList);
+
+bool BVDC_P_Display_GetInfoFrame_isr(
+    BVDC_Display_Handle hDisplay,
+    BAVC_HDMI_DRMInfoFrameType1 *pInfoFrame);
 
 #ifdef __cplusplus
 }

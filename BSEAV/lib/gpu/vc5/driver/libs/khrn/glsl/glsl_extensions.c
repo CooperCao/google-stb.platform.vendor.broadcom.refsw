@@ -15,7 +15,7 @@ static struct {
    const char          *identifiers[GLSL_EXT_MAX_ID_COUNT];
    bool                 supported;
    enum glsl_ext_status status;
-   int                  stdlib_prop;
+   uint64_t             stdlib_prop;
    enum glsl_ext       *implies;
 } extensions[] = {
    {{"GL_OES_EGL_image_external",},                    true, GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_EGL_IMAGE_EXTERNAL,   NULL },
@@ -32,25 +32,25 @@ static struct {
    {{"GL_EXT_primitive_bounding_box",},                true, GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_EXT_PRIMITIVE_BOUNDING_BOX, NULL },
    {{"GL_KHR_blend_equation_advanced",},               true, GLSL_DISABLED, 0, NULL },
 
-   {{"GL_BRCM_shader_framebuffer_fetch_depth_stencil",}, V3D_VER_AT_LEAST(4,0,2,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_BRCM_SHADER_FRAMEBUFFER_FETCH_DEPTH_STENCIL, NULL },
+   {{"GL_BRCM_shader_framebuffer_fetch_depth_stencil",}, V3D_VER_AT_LEAST(4,2,13,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_BRCM_SHADER_FRAMEBUFFER_FETCH_DEPTH_STENCIL, NULL },
 
-   {{"GL_OES_sample_variables",},                      V3D_VER_AT_LEAST(4,0,2,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_SAMPLE_VARIABLES, NULL},
-   {{"GL_OES_shader_multisample_interpolation",},      V3D_VER_AT_LEAST(4,0,2,0), GLSL_DISABLED, 0, NULL },
+   {{"GL_OES_sample_variables",},                      V3D_VER_AT_LEAST(4,1,34,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_SAMPLE_VARIABLES, NULL},
+   {{"GL_OES_shader_multisample_interpolation",},      V3D_VER_AT_LEAST(4,1,34,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_SHADER_MULTISAMPLE_INTERPOLATION, NULL },
 
    {{"GL_OES_texture_buffer",          "GL_EXT_texture_buffer",},         V3D_VER_AT_LEAST(4,1,34,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_TEXTURE_BUFFER, NULL },
-   {{"GL_OES_gpu_shader5",             "GL_EXT_gpu_shader5"},             V3D_VER_AT_LEAST(4,0,2,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_GPU_SHADER5, NULL },
-   {{"GL_OES_texture_cube_map_array",  "GL_EXT_texture_cube_map_array"},  V3D_VER_AT_LEAST(4,0,2,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_TEXTURE_CUBE_MAP_ARRAY, NULL },
+   {{"GL_OES_gpu_shader5",             "GL_EXT_gpu_shader5"},             V3D_VER_AT_LEAST(4,1,34,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_GPU_SHADER5, NULL },
+   {{"GL_OES_texture_cube_map_array",  "GL_EXT_texture_cube_map_array"},  V3D_VER_AT_LEAST(4,1,34,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_TEXTURE_CUBE_MAP_ARRAY, NULL },
    {{"GL_OES_shader_io_blocks",        "GL_EXT_shader_io_blocks"},        false, GLSL_DISABLED, 0, NULL },
 
-   {{"GL_OES_tessellation_shader",     "GL_EXT_tessellation_shader"},     V3D_VER_AT_LEAST(4,0,2,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_TESSELLATION_SHADER, tng_implies },
-   {{"GL_OES_tessellation_point_size", "GL_EXT_tessellation_point_size"}, V3D_VER_AT_LEAST(4,0,2,0), GLSL_DISABLED, 0, NULL },
+   {{"GL_OES_tessellation_shader",     "GL_EXT_tessellation_shader"},     V3D_VER_AT_LEAST(4,1,34,0), GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_TESSELLATION_SHADER, tng_implies },
+   {{"GL_OES_tessellation_point_size", "GL_EXT_tessellation_point_size"}, V3D_VER_AT_LEAST(4,1,34,0), GLSL_DISABLED, 0, NULL },
    {{"GL_OES_geometry_shader",         "GL_EXT_geometry_shader"},         false, GLSL_DISABLED, GLSL_STDLIB_PROPERTY_GL_OES_GEOMETRY_SHADER, tng_implies },
    {{"GL_OES_geometry_point_size",     "GL_EXT_geometry_point_size"},     false, GLSL_DISABLED, 0, NULL },
 
    {{"GL_BRCM_no_perspective",},     V3D_VER_AT_LEAST(4,1,34,0), GLSL_DISABLED, 0, NULL },
    {{"GL_BRCM_image_formats",},      V3D_VER_AT_LEAST(4,2,13,0),  GLSL_DISABLED, 0, NULL },
 
-   {{"GL_ANDROID_extension_pack_es31a", },     V3D_VER_AT_LEAST(4,0,2,0) && false, GLSL_DISABLED, 0, aep_implies },
+   {{"GL_ANDROID_extension_pack_es31a", },     V3D_VER_AT_LEAST(4,1,34,0) && false, GLSL_DISABLED, 0, aep_implies },
 };
 
 void glsl_ext_init() {
@@ -110,8 +110,8 @@ const char *glsl_ext_get_identifier(unsigned ext, unsigned id) {
    else return extensions[ext].identifiers[id];
 }
 
-int glsl_ext_get_symbol_mask() {
-   int mask = 0;
+uint64_t glsl_ext_get_symbol_mask() {
+   uint64_t mask = 0;
    for (int i=0; i<GLSL_EXT_COUNT; i++) {
       if (extensions[i].status != GLSL_DISABLED) mask |= extensions[i].stdlib_prop;
    }

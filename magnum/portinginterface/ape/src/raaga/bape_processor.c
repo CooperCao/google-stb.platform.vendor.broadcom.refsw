@@ -55,6 +55,7 @@ BDBG_OBJECT_ID(BAPE_Processor);
 typedef struct BAPE_Processor
 {
     BDBG_OBJECT(BAPE_Processor)
+    BAPE_Handle deviceHandle;
     BAPE_PathNode node;
     BAPE_PostProcessorType type;
     BAPE_ProcessorSettings settings;
@@ -62,6 +63,7 @@ typedef struct BAPE_Processor
     BDSP_StageHandle hStage;
     BDSP_Algorithm bdspAlgo;
     unsigned sampleRate;
+    bool allocated;
 } BAPE_Processor;
 
 static BERR_Code BAPE_Processor_P_AllocatePathFromInput(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection);
@@ -237,6 +239,7 @@ BERR_Code BAPE_Processor_Create(
     BAPE_FMT_P_EnableSource(&caps, BAPE_DataSource_eDspBuffer);
     BAPE_FMT_P_EnableType(&caps, BAPE_DataType_ePcmStereo);
     BAPE_FMT_P_EnableType(&caps, BAPE_DataType_ePcm5_1);
+    BAPE_FMT_P_EnableType(&caps, BAPE_DataType_ePcm7_1);
     errCode = BAPE_PathNode_P_SetInputCapabilities(&handle->node, &caps);
     if ( errCode ) { (void)BERR_TRACE(errCode); goto err_caps; }
 
@@ -267,7 +270,7 @@ BERR_Code BAPE_Processor_Create(
     handle->bdspAlgo = bdspAlgo;
     handle->node.connectors[BAPE_ConnectorFormat_eStereo].hStage = handle->hStage;
     handle->node.connectors[BAPE_ConnectorFormat_eMultichannel].hStage = handle->hStage;
-
+    handle->deviceHandle = deviceHandle;
     *pHandle = handle;
 
     return BERR_SUCCESS;
@@ -317,6 +320,12 @@ BERR_Code BAPE_Processor_SetSettings(
     if ( pSettings != &handle->settings )
     {
         handle->settings = *pSettings;
+    }
+
+    /* If we are running and a set settings call occured for
+       Advanced TSM wait until next restart of the path to apply. */
+    if (handle->allocated && handle->type == BAPE_PostProcessorType_eAdvancedTsm) {
+        return BERR_SUCCESS;
     }
 
     errCode = BAPE_Processor_P_ApplyDspSettings(handle);
@@ -592,11 +601,31 @@ static BERR_Code BAPE_Processor_P_AllocatePathFromInput(struct BAPE_PathNode *pN
     handle = pNode->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_Processor);
 
-
     if ( BAPE_Processor_P_DetermineOutputFormat(handle) == BDSP_DataType_eMax )
     {
         BDBG_ERR(("No Valid outputs attached"));
         return BERR_TRACE(BERR_NOT_INITIALIZED);
+    }
+
+    if ( pConnection->pSource->pParent->deviceContext != NULL )
+    {
+        pNode->deviceContext = pConnection->pSource->pParent->deviceContext;
+    }
+    else
+    {
+        if ( handle->deviceHandle->dspContext != NULL )
+        {
+            pNode->deviceContext = handle->deviceHandle->dspContext;
+        }
+        else if ( handle->deviceHandle->armContext != NULL )
+        {
+            pNode->deviceContext = handle->deviceHandle->armContext;
+        }
+        else
+        {
+            BDBG_ERR(("No available device context"));
+            return BERR_TRACE(BERR_NOT_AVAILABLE);
+        }
     }
 
     BDBG_MSG(("Adding output stage with BDSP_DataType of %d", BAPE_FMT_P_GetDspDataType_isrsafe(&pConnection->pSource->format)));
@@ -615,6 +644,7 @@ static BERR_Code BAPE_Processor_P_AllocatePathFromInput(struct BAPE_PathNode *pN
         BERR_TRACE(errCode);
         goto err_applysettings;
     }
+    handle->allocated = true;
 
     return BERR_SUCCESS;
 
@@ -698,6 +728,7 @@ static BERR_Code BAPE_Processor_P_ApplyAdvancedTsmSettings(BAPE_ProcessorHandle 
     BERR_Code errCode;
     BDSP_Raaga_Audio_TsmCorrectionConfigParams userConfig;
     unsigned currentTsmMode;
+    BAPE_AdvancedTsmMode requestedMode;
 
     errCode = BDSP_Stage_GetSettings(handle->hStage, &userConfig, sizeof(userConfig));
     if ( errCode )
@@ -707,7 +738,12 @@ static BERR_Code BAPE_Processor_P_ApplyAdvancedTsmSettings(BAPE_ProcessorHandle 
     currentTsmMode = userConfig.ui32TsmCorrectionMode;
 
     BDBG_MSG(("Applying AdvancedTsm settings for Processor module %p.", (void *)handle));
-    BAPE_DSP_P_SET_VARIABLE(userConfig, ui32TsmCorrectionMode, (unsigned)BAPE_DSP_P_VALIDATE_VARIABLE_UPPER((unsigned)handle->settings.settings.advTsm.mode, (unsigned)BAPE_AdvancedTsmMode_ePpm));
+    requestedMode = handle->settings.settings.advTsm.mode;
+    if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 && requestedMode == BAPE_AdvancedTsmMode_eDsola ) {
+        BDBG_WRN(("Advanced TSM Mode DSOLA not supported for MS12, force to PPM."));
+        requestedMode = BAPE_AdvancedTsmMode_ePpm;
+    }
+    BAPE_DSP_P_SET_VARIABLE(userConfig, ui32TsmCorrectionMode, (unsigned)BAPE_DSP_P_VALIDATE_VARIABLE_UPPER((unsigned)requestedMode, (unsigned)BAPE_AdvancedTsmMode_ePpm));
 
     if ( currentTsmMode != userConfig.ui32TsmCorrectionMode )
     {
@@ -801,6 +837,7 @@ static void BAPE_Processor_P_StopPathFromInput(struct BAPE_PathNode *pNode, stru
     BSTD_UNUSED(pConnection);
     handle = pNode->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_Processor);
+    handle->allocated = false;
     BDSP_Stage_RemoveAllInputs(handle->hStage);
     BDSP_Stage_RemoveAllOutputs(handle->hStage);
 
@@ -865,7 +902,18 @@ static BERR_Code BAPE_Processor_P_InputFormatChange(struct BAPE_PathNode *pNode,
     }
     BAPE_Connector_P_GetFormat(&pNode->connectors[BAPE_ConnectorFormat_eMultichannel], &curOutputFormat);
     outputFormat = *pNewFormat;
-    outputFormat.type = curOutputFormat.type;
+
+    switch (handle->type) {
+    case BAPE_PostProcessorType_eAdvancedTsm:
+        if (pNewFormat->type != BAPE_DataType_ePcm7_1) {
+            outputFormat.type = curOutputFormat.type;
+        }
+        break;
+    default:
+        outputFormat.type = curOutputFormat.type;
+        break;
+    }
+
     errCode = BAPE_Connector_P_SetFormat(&pNode->connectors[BAPE_ConnectorFormat_eMultichannel], &outputFormat);
     if ( errCode )
     {
@@ -873,6 +921,30 @@ static BERR_Code BAPE_Processor_P_InputFormatChange(struct BAPE_PathNode *pNode,
     }
     return BERR_SUCCESS;
 }
+
+unsigned BAPE_Processor_P_GetAdvancedTsmMode(
+    BAPE_ProcessorHandle handle
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_Processor);
+    if (handle->type == BAPE_PostProcessorType_eAdvancedTsm) {
+        if (handle->allocated)
+        {
+            BERR_Code errCode;
+            BDSP_Raaga_Audio_TsmCorrectionConfigParams userConfig;
+            errCode = BDSP_Stage_GetSettings(handle->hStage, &userConfig, sizeof(userConfig));
+            if ( errCode ) {
+                return 0;
+            }
+            return userConfig.ui32TsmCorrectionMode;
+        }
+        else {
+            return handle->settings.settings.advTsm.mode;
+        }
+    }
+    return 0;
+}
+
 
 #else
 typedef struct BAPE_Processor
@@ -973,5 +1045,13 @@ BERR_Code BAPE_Processor_RemoveAllInputs(
 {
     BSTD_UNUSED(handle);
     return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+unsigned BAPE_Processor_P_GetAdvancedTsmMode(
+    BAPE_ProcessorHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return 0;
 }
 #endif

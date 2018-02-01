@@ -455,6 +455,10 @@ done:
 	/* clean up SAGE container if error */
 	if (rc != BERR_SUCCESS) {
 		BHDCPlib_P_Hdcp2x_CleanSageContainer(hHDCPlib);
+
+		/* reset internal states */
+		hHDCPlib->currentHdcp2xState = BHDCPlib_Hdcp2xState_eUnauthenticated;
+		hHDCPlib->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eUnencrypted;
 	}
 
 	return rc;
@@ -507,8 +511,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_DestroyTimer(
 
 	if (*timerHandle)
 	{
-		rc = BTMR_DestroyTimer(*timerHandle) ;
-		if (rc) {rc = BERR_TRACE(rc) ; }
+		BTMR_DestroyTimer(*timerHandle) ;
 		*timerHandle = NULL;
 	}
 
@@ -537,7 +540,7 @@ static void BHDCPlib_P_Hdcp2x_AutoI2cTimerExpiration_isr (BHDCPlib_Handle hHDCPl
 		goto done;
 	}
 
-	BDBG_MSG(("%s: AutoI2C HW Timer status: %s", BSTD_FUNCTION, available?"available":"unavailable"));
+	BDBG_LOG(("%s: AutoI2C HW Timer status: %s", BSTD_FUNCTION, available?"available":"unavailable"));
 
 	if (!available)
 	{
@@ -551,14 +554,16 @@ static void BHDCPlib_P_Hdcp2x_AutoI2cTimerExpiration_isr (BHDCPlib_Handle hHDCPl
 		}
 	}
 
-	/* reset state to unauthenticated */
-	hHDCPlib->currentHdcp2xState = BHDCPlib_Hdcp2xState_eUnauthenticated;
+	/* reset state to unauthenticated if currently blocking */
+	if (hHDCPlib->currentHdcp2xState == BHDCPlib_Hdcp2xState_eAuthenticating) {
+		BDBG_LOG(("%s: Reset hdcplib state machine to prevent blocking authentication request", BSTD_FUNCTION));
+		hHDCPlib->currentHdcp2xState = BHDCPlib_Hdcp2xState_eUnauthenticated;
 
-	/* Set event informing HDCP authentication result */
-	hHDCPlib->hdcp2xLinkAuthenticated = false;
-	hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eReceiverAuthenticationError;
-	BKNI_SetEvent_isr(hHDCPlib->hdcp2xIndicationEvent);
-
+		/* Set event informing HDCP authentication result */
+		hHDCPlib->hdcp2xLinkAuthenticated = false;
+		hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eReceiverAuthenticationError;
+		BKNI_SetEvent_isr(hHDCPlib->hdcp2xIndicationEvent);
+	}
 
 done:
 
@@ -582,6 +587,7 @@ static void BHDCPlib_P_Hdcp2x_AuthenticationTimerExpiration_isr(BHDCPlib_Handle 
 
 	/* update state to allow future authentication request*/
 	if (hHDCPlib->currentHdcp2xState == BHDCPlib_Hdcp2xState_eAuthenticating) {
+		BDBG_LOG(("%s: Reset hdcplib state machine to prevent blocking authentication request", BSTD_FUNCTION));
 		hHDCPlib->currentHdcp2xState = BHDCPlib_Hdcp2xState_eUnauthenticated;
 
 		/* Set event informing HDCP authentication result */
@@ -1059,9 +1065,12 @@ BERR_Code BHDCPlib_P_Hdcp2x_Open(BHDCPlib_Handle *hHDCPlib, const BHDCPlib_Depen
 			goto done ;
 		}
 
+		/* TODO: Test HDCP 2.2 Compliance with Auto i2c disabled until Auth starts */
+#if 0
 		/* Enable/Configure AutoI2C settings for Hdcp2.x */
 		BHDM_AUTO_I2C_EnableReadChannel(hHandle->stDependencies.hHdm,
-							BHDM_AUTO_I2C_P_CHANNEL_ePollHdcp22RxStatus, 1);
+			BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus, 1);
+#endif
 	}
 #if BHDCPLIB_HDR_SUPPORT
 	else {
@@ -1153,7 +1162,7 @@ BERR_Code BHDCPlib_P_Hdcp2x_Close(BHDCPlib_Handle hHDCPlib)
 	{
 		/* Disable AutoI2C settings for Hdcp2.x */
 		BHDM_AUTO_I2C_EnableReadChannel(hHDCPlib->stDependencies.hHdm,
-							BHDM_AUTO_I2C_P_CHANNEL_ePollHdcp22RxStatus, 0);
+			BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus, 0);
 	}
 
 #if BHDCPLIB_HDR_SUPPORT
@@ -1370,6 +1379,7 @@ done:
 BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 {
 	BERR_Code rc = BERR_SUCCESS;
+	BHDM_AUTO_I2C_TriggerConfiguration stTriggerConfig ;
 	bool bReauthReqPending = false;
 	uint8_t ucDeviceAttached = 0;
 
@@ -1482,11 +1492,29 @@ BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 	}
 	hHDCPlib->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eUnencrypted;
 
+	/* Enable/Configure AutoI2C settings for Hdcp2.x */
+	/* configure AutoI2c for polling every 1ms */
+	BHDM_AUTO_I2C_GetTriggerConfiguration(hHDCPlib->stDependencies.hHdm,
+		BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,  &stTriggerConfig) ;
+
+		stTriggerConfig.timerMs = 1 ;
+
+	BHDM_AUTO_I2C_SetTriggerConfiguration(hHDCPlib->stDependencies.hHdm,
+		BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,  &stTriggerConfig) ;
+
+	/* enable the AutoI2c Channel */
+	BHDM_AUTO_I2C_EnableReadChannel(hHDCPlib->stDependencies.hHdm,
+		BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus, 1);
+
 	rc = BHDCPlib_P_Hdcp2x_ProcessRequest(hHDCPlib,
-					BHDCPlib_P_Hdcp2xRequest_eHost_StartAuthentication);
+		BHDCPlib_P_Hdcp2xRequest_eHost_StartAuthentication);
 	if (rc != BERR_SUCCESS)
 	{
 		BDBG_ERR(("Error [0x%x] starting Hdcp2.2 authentication", rc ));
+		/* disable the just enabled AutoI2c Channel */
+		BHDM_AUTO_I2C_EnableReadChannel(hHDCPlib->stDependencies.hHdm,
+			BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus, 0);
+
 		rc = BERR_TRACE(rc);
 		goto done;
 	}
@@ -1508,20 +1536,23 @@ done:
 BERR_Code BHDCPlib_P_Hdcp2x_StopAuthentication(const BHDCPlib_Handle hHDCPlib)
 {
 	BERR_Code rc = BERR_SUCCESS;
+	BHDM_AUTO_I2C_TriggerConfiguration stTriggerConfig ;
 
 	BDBG_ENTER(BHDCPlib_P_Hdcp2x_StopAuthentication);
 	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
+
+
 
 	/* Make sure system is ready for the request */
 	switch (hHDCPlib->currentHdcp2xState)
 	{
 	case BHDCPlib_Hdcp2xState_eAuthenticated:
 	case BHDCPlib_Hdcp2xState_eRepeaterAuthenticated:
-	case BHDCPlib_Hdcp2xState_eUnauthenticated:
 	case BHDCPlib_Hdcp2xState_eAuthenticating:
 	case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
 		break;
 
+	case BHDCPlib_Hdcp2xState_eUnauthenticated:
 	case BHDCPlib_Hdcp2xState_eUnauthenticating:
 		/* drop stopAuthentication attempt */
 		BDBG_WRN(("%s: Current State [%s], drop StopAuthentication request", BSTD_FUNCTION,
@@ -1555,6 +1586,15 @@ BERR_Code BHDCPlib_P_Hdcp2x_StopAuthentication(const BHDCPlib_Handle hHDCPlib)
 	}
 
 	/* Disable HDCP2.x encryption bit */
+	BHDM_AUTO_I2C_GetTriggerConfiguration(
+
+		hHDCPlib->stDependencies.hHdm, BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,  &stTriggerConfig) ;
+		stTriggerConfig.enable = 0 ;
+		stTriggerConfig.activePolling = false ;
+
+	BHDM_AUTO_I2C_SetTriggerConfiguration(
+		hHDCPlib->stDependencies.hHdm, BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,  &stTriggerConfig) ;
+
 	rc = BHDM_HDCP_EnableHdcp2xEncryption(hHDCPlib->stDependencies.hHdm, false);
 	if (rc != BERR_SUCCESS)
 	{
@@ -1566,6 +1606,15 @@ BERR_Code BHDCPlib_P_Hdcp2x_StopAuthentication(const BHDCPlib_Handle hHDCPlib)
 
 	/* Reset HDCP error - HDCP link status will be updated after UNAUTHENTICATE indication received */
 	hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eSuccess;
+
+	/* Stop timers */
+	if (hHDCPlib->hAuthenticationTimer) {
+		BTMR_StopTimer(hHDCPlib->hAuthenticationTimer);
+	}
+
+	if (hHDCPlib->hTimer) {
+		BTMR_StopTimer(hHDCPlib->hTimer);
+	}
 
 	/* Send request to stop authentication */
 	rc = BHDCPlib_P_Hdcp2x_ProcessRequest(hHDCPlib,
@@ -1781,6 +1830,15 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 				nextState = BHDCPlib_Hdcp2xState_eSessionKeyLoaded;
 				hHDCPlib->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eEncrypting;
 
+				/* Stop timers */
+				if (hHDCPlib->hAuthenticationTimer) {
+					BTMR_StopTimer(hHDCPlib->hAuthenticationTimer);
+				}
+
+				if (hHDCPlib->hTimer) {
+					BTMR_StopTimer(hHDCPlib->hTimer);
+				}
+
 				BDBG_LOG(("Indication Received [%s] - current state [%s] - next state [%s] ",
 					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
 					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
@@ -1854,9 +1912,16 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
 					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
 
-				/* Stop authentication timer */
-				if (hHDCPlib->hAuthenticationTimer) {
-					BTMR_StopTimer(hHDCPlib->hAuthenticationTimer);
+				{
+					BHDM_AUTO_I2C_TriggerConfiguration stTriggerConfig ;
+					BHDM_AUTO_I2C_GetTriggerConfiguration(hHDCPlib->stDependencies.hHdm,
+						BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,  &stTriggerConfig) ;
+
+						stTriggerConfig.enable = 0 ;
+						stTriggerConfig.timerMs = 250 ;
+
+					BHDM_AUTO_I2C_SetTriggerConfiguration(hHDCPlib->stDependencies.hHdm,
+						BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,  &stTriggerConfig) ;
 				}
 
 				/* fire event informing HDCP authentication result */
@@ -1881,16 +1946,6 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 				BDBG_LOG(("Rx: Indication Received [%s] - current state [%s] - next state [%s] - ",
 					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
 					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
-
-				if (hHDCPlib->stReceiverIdListData.deviceCount != 0)
-				{
-					rc = BHDCPlib_P_Hdcp2x_Rx_SendReceiverIdListToUpstreamDevice(hHDCPlib, &hHDCPlib->stReceiverIdListData);
-					if (rc != BERR_SUCCESS)
-					{
-						rc = BERR_TRACE(rc);
-						goto done;
-					}
-				}
 
 				/* Stop authentication timer */
 				if (hHDCPlib->hAuthenticationTimer) {
@@ -2117,7 +2172,7 @@ done:
 }
 
 
-void BHDCPlib_Hdcp2x_EnableEncryption(const BHDCPlib_Handle hHDCPlib, const bool enable)
+BERR_Code BHDCPlib_Hdcp2x_EnableEncryption(const BHDCPlib_Handle hHDCPlib, const bool enable)
 {
 	BERR_Code rc = BERR_SUCCESS;
 
@@ -2125,9 +2180,26 @@ void BHDCPlib_Hdcp2x_EnableEncryption(const BHDCPlib_Handle hHDCPlib, const bool
 	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
 
 	/* Make sure system is ready for the request */
+
 	switch (hHDCPlib->currentHdcp2xState)
 	{
 	case BHDCPlib_Hdcp2xState_eAuthenticated:
+		{
+		/* slow down auto i2c polling */
+		BHDM_AUTO_I2C_TriggerConfiguration stTriggerConfig ;
+		BHDM_AUTO_I2C_GetTriggerConfiguration(
+			hHDCPlib->stDependencies.hHdm, BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,  &stTriggerConfig) ;
+
+			stTriggerConfig.enable = 1 ;
+			stTriggerConfig.timerMs = 250 ;
+			BDBG_MSG(("Start Auto I2c HDCP 2.2 RxStatus Polling; Set Polling Interval: %d",
+				stTriggerConfig.timerMs)) ;
+
+		BHDM_AUTO_I2C_SetTriggerConfiguration(
+			hHDCPlib->stDependencies.hHdm, BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,  &stTriggerConfig) ;
+		}
+		break ;
+
 	case BHDCPlib_Hdcp2xState_eRepeaterAuthenticated:
 	case BHDCPlib_Hdcp2xState_eUnauthenticating:
 	case BHDCPlib_Hdcp2xState_eUnauthenticated:
@@ -2172,7 +2244,7 @@ void BHDCPlib_Hdcp2x_EnableEncryption(const BHDCPlib_Handle hHDCPlib, const bool
 done:
 
 	BDBG_LEAVE(BHDCPlib_Hdcp2x_EnableEncryption);
-	return;
+	return rc ;
 }
 
 
@@ -2526,6 +2598,7 @@ BERR_Code BHDCPlib_Hdcp2x_GetAuthenticationStatus(
 #else
 				BDBG_ERR(("%s: Invalid hdcp2x State %d", BSTD_FUNCTION, hHDCPlib->currentHdcp2xState));
 #endif
+
 				break ;
 			}
 
@@ -2881,11 +2954,16 @@ BERR_Code BHDCPlib_Hdcp2x_Rx_UploadReceiverIdList(
 	/* save ReceiverIdList for later use */
 	hHDCPlib->stReceiverIdListData = *stReceiverIdListData;
 
-	rc = BHDCPlib_P_Hdcp2x_Rx_SendReceiverIdListToUpstreamDevice(hHDCPlib, stReceiverIdListData);
-	if (rc != BERR_SUCCESS)
+	/* upload receiverId List only when part1 of authentication completed */
+	if ((hHDCPlib->currentHdcp2xState == BHDCPlib_Hdcp2xState_eAuthenticated)
+	|| (hHDCPlib->currentHdcp2xState == BHDCPlib_Hdcp2xState_eRepeaterAuthenticated))
 	{
-		rc = BERR_TRACE(rc);
-		goto done;
+		rc = BHDCPlib_P_Hdcp2x_Rx_SendReceiverIdListToUpstreamDevice(hHDCPlib, stReceiverIdListData);
+		if (rc != BERR_SUCCESS)
+		{
+			rc = BERR_TRACE(rc);
+			goto done;
+		}
 	}
 
 done:

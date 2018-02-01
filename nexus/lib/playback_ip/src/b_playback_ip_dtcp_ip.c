@@ -322,7 +322,7 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
                 BDBG_MSG(("DTCP PCP header flag is set "));
             }
 
-            BDBG_MSG(("len: bytesRemaining (enc) %d, clear %d, processed %d, dtcp_pcp_header_cnt=%u\n", bytesRemaining, clear_buff_size, data_processed, dtcpPcpHeaderCount));
+            BDBG_MSG(("len: bytesRemaining (enc) %zu, clear %d, processed %d, dtcp_pcp_header_cnt=%u\n", bytesRemaining, clear_buff_size, data_processed, dtcpPcpHeaderCount));
             beginPointer += data_processed;
             bytesRemaining = endPointer - beginPointer;
 
@@ -333,7 +333,7 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
 
             /* Check for any unencrypted data */
             if ((bytesRemaining < HTTP_AES_BLOCK_SIZE) && (bytesRemaining > 0)) {
-                BDBG_MSG(("bytesRemaining  %d are less than AES block size, save the encrypted bytes and continue next time, read_ptr %p, begin ptr %d, end ptr %d, clear_buf_size %d",
+                BDBG_MSG(("bytesRemaining  %zu are less than AES block size, save the encrypted bytes and continue next time, read_ptr %p, begin ptr %d, end ptr %d, clear_buf_size %d",
                             bytesRemaining, read_ptr, beginPointer, endPointer, clear_buff_size));
                 securityCtx->residual_encrypted_len = bytesRemaining;
                 memcpy(securityCtx->residual_encrypted_bytes, read_ptr+beginPointer, securityCtx->residual_encrypted_len);

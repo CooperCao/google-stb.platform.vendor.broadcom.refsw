@@ -819,13 +819,13 @@ NEXUS_Error NEXUS_Platform_P_UninitOS(void)
 NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
 {
     unsigned total = 0;
+    char buf[256];
     /* try 2.6.31 filesystem first. we cannot do a compile-time test for linux kernel version here
     because it's linux user mode. */
     {
         unsigned i;
         BDBG_CASSERT(NEXUS_MAX_HEAPS);
         for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-            char buf[256];
             const char *bmem_dir = NEXUS_GetEnv("bmem_override");
             FILE *f;
             unsigned n, base, length;
@@ -835,14 +835,13 @@ NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
                 bmem_dir = "/sys/devices/platform/brcmstb";
             }
 
-            BKNI_Snprintf(buf, 256, "%s/bmem.%d", bmem_dir, i);
+            BKNI_Snprintf(buf, sizeof(buf), "%s/bmem.%d", bmem_dir, i);
             f = fopen(buf, "r");
             if (!f) break;
-            if (!fgets(buf, 256, f)) {
+            if (!fgets(buf, sizeof(buf), f)) {
                 n = 0;
             }
             else {
-                buf[255] = 0; /* ensure no memory overrun */
                 n = sscanf(buf, "0x%x 0x%x", &base, &length);
             }
             fclose(f);
@@ -865,7 +864,6 @@ NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
         FILE *pFile;
         pFile = fopen(bmeminfo2618, "r");
         if (pFile) {
-            char buf[512];
             char *pStart, *pEnd;
 
             if ( fgets(buf, sizeof(buf), pFile) )
@@ -897,7 +895,7 @@ NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
 #if !B_REFSW_SYSTEM_MODE_SERVER
 static NEXUS_Error NEXUS_Platform_P_ConnectInterrupt_isr(
     unsigned irqNum,
-    NEXUS_Core_InterruptFunction pIsrFunc,
+    NEXUS_Core_InterruptFunction pIsrFunc_isr,
     void *pFuncParam,
     int iFuncParam
     )
@@ -913,7 +911,7 @@ static NEXUS_Error NEXUS_Platform_P_ConnectInterrupt_isr(
     if (pEntry->pFunction) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
-    pEntry->pFunction = pIsrFunc;
+    pEntry->pFunction = pIsrFunc_isr;
     pEntry->pFuncParam = pFuncParam;
     pEntry->iFuncParam = iFuncParam;
 
@@ -947,7 +945,7 @@ See Also:
  ***************************************************************************/
 NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(
     unsigned irqNum,
-    NEXUS_Core_InterruptFunction pIsrFunc,
+    NEXUS_Core_InterruptFunction pIsrFunc_isr,
     void *pFuncParam,
     int iFuncParam
     )
@@ -955,7 +953,7 @@ NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(
     NEXUS_Error errCode;
 
     BKNI_EnterCriticalSection();
-    errCode = NEXUS_Platform_P_ConnectInterrupt_isr(irqNum, pIsrFunc, pFuncParam, iFuncParam);
+    errCode = NEXUS_Platform_P_ConnectInterrupt_isr(irqNum, pIsrFunc_isr, pFuncParam, iFuncParam);
     BKNI_LeaveCriticalSection();
 
     return errCode;
@@ -1338,19 +1336,17 @@ static bool NEXUS_Platform_P_CheckCompatible(const char *path, const char *compa
     if(compatible == NULL) { return true;} /* No compatible check. Parse all nodes */
 
     len = strlen(compatible);
-    BKNI_Memset(buf, 0, BUF_SIZE);
-    BKNI_Snprintf(buf, BUF_SIZE, "%s/%s", path, "compatible");
+    BKNI_Snprintf(buf, sizeof(buf), "%s/compatible", path);
 
     /* coverity[fs_check_call: FALSE] */
     if (!lstat(buf, &st)) {
         FILE *pFile;
         pFile = fopen(buf, "rb");
         if (pFile) {
-            char val[BUF_SIZE];
-            if (fread(val, st.st_size, 1, pFile) != 1) {
-                BDBG_WRN(("Failed to read file %s", buf));
+            if (st.st_size >= (unsigned)sizeof(buf) || fread(buf, st.st_size, 1, pFile) != 1) {
+                BDBG_WRN(("Failed to read file %s/compatible", path));
             } else {
-                if (!strncmp(val, compatible, len)) {
+                if (!strncmp(buf, compatible, len)) {
                     match = true;
                 }
             }
@@ -1398,8 +1394,7 @@ static unsigned NEXUS_Platform_P_ParseDeviceTreeCompatible(NEXUS_Platform_P_DtNo
         if (!strncmp(ent->d_name, ".", 1) || !strncmp(ent->d_name, "..", 2))
 			continue;
 
-        BKNI_Memset(buf, 0, BUF_SIZE);
-        BKNI_Snprintf(buf, BUF_SIZE, "%s/%s", path, ent->d_name);
+        BKNI_Snprintf(buf, sizeof(buf), "%s/%s", path, ent->d_name);
 
         /* coverity[fs_check_call: FALSE] */
         if (lstat(buf, &st) < 0) { continue; }
@@ -1547,24 +1542,20 @@ NEXUS_Error NEXUS_Platform_P_RemoveDynamicRegion(NEXUS_Addr addr, unsigned size)
 
 NEXUS_Error NEXUS_Platform_P_InitializeThermalMonitor(void)
 {
-#if NEXUS_CPU_ARM && NEXUS_POWER_MANAGEMENT && !B_REFSW_SYSTEM_MODE_CLIENT
-    int rc;
+    int rc = NEXUS_SUCCESS;
 
     if (!g_NEXUS_platformHandles.baseOnlyInit) {
         rc = NEXUS_Platform_P_InitThermalMonitor();
-        if (rc) return BERR_TRACE(rc);
+        if (rc) {rc= BERR_TRACE(rc);}
     }
-#endif
-    return NEXUS_SUCCESS;
+    return rc;
 }
 
 void NEXUS_Platform_P_UninitializeThermalMonitor(void)
 {
-#if NEXUS_CPU_ARM && NEXUS_POWER_MANAGEMENT && !B_REFSW_SYSTEM_MODE_CLIENT
     if (!g_NEXUS_platformHandles.baseOnlyInit) {
         NEXUS_Platform_P_UninitThermalMonitor();
     }
-#endif
 }
 
 bool NEXUS_Platform_P_IsGisbTimeoutAvailable(void)

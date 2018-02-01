@@ -5,7 +5,7 @@
 #include "../glxx/glxx_server.h"
 #include "../glxx/glxx_server_texture.h"
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 GL_APICALL void GL_APIENTRY glTexParameterIivOES (GLenum target, GLenum pname, const GLint *params)
 {
    glxx_texparamter_iv_common(target, pname, params);

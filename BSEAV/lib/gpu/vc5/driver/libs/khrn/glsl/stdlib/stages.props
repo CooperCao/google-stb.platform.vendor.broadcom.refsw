@@ -69,6 +69,21 @@ fragment:
   vec3 fwidth(vec3 p);
   vec4 fwidth(vec4 p);
 
+  float interpolateAtCentroid(float interpolant);
+  vec2  interpolateAtCentroid(vec2  interpolant);
+  vec3  interpolateAtCentroid(vec3  interpolant);
+  vec4  interpolateAtCentroid(vec4  interpolant);
+
+  float interpolateAtSample(float interpolant, int s);
+  vec2  interpolateAtSample(vec2  interpolant, int s);
+  vec3  interpolateAtSample(vec3  interpolant, int s);
+  vec4  interpolateAtSample(vec4  interpolant, int s);
+
+  float interpolateAtOffset(float interpolant, vec2 offset);
+  vec2  interpolateAtOffset(vec2  interpolant, vec2 offset);
+  vec3  interpolateAtOffset(vec3  interpolant, vec2 offset);
+  vec4  interpolateAtOffset(vec4  interpolant, vec2 offset);
+
   out mediump vec4  gl_FragColor;
   out mediump vec4  gl_FragData[gl_MaxDrawBuffers];
   in  highp   vec4  gl_FragCoord;

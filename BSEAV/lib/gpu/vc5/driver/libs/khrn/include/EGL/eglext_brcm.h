@@ -99,6 +99,21 @@ typedef khronos_uint64_t EGLuint64BRCM;
 #define EGL_PLATFORM_NEXUS_BRCM                    0x32F0
 #endif /* EGL_BRCM_platform_nexus */
 
+/* This is old driver monitor extension still in use by VC4.
+ * It will be deleted when VC4 implements VC5-style events and timers.
+ */
+#ifndef EGL_BRCM_driver_monitor
+#define EGL_BRCM_driver_monitor 1
+#ifdef EGL_EGLEXT_PROTOTYPES
+EGLAPI EGLBoolean EGLAPIENTRY eglInitDriverMonitorBRCM(EGLDisplay display, EGLint hw_bank, EGLint l3c_bank);
+EGLAPI void EGLAPIENTRY eglGetDriverMonitorXMLBRCM(EGLDisplay display, EGLint bufSize, EGLint *length, char *xmlStats);
+EGLAPI EGLBoolean EGLAPIENTRY eglTermDriverMonitorBRCM(EGLDisplay display);
+#endif /* EGL_EGLEXT_PROTOTYPES */
+typedef void (EGLAPIENTRYP PFNEGLINITDRIVERMONITORBRCMPROC)(EGLDisplay display, EGLint hw_bank, EGLint l3c_bank);
+typedef void (EGLAPIENTRYP PFNEGLGETDRIVERMONITORXMLBRCMPROC)(EGLDisplay display, EGLint bufSize, EGLint *length, char *xmlStats);
+typedef void (EGLAPIENTRYP PFNEGLTERMDRIVERMONITORBRCMPROC)(EGLDisplay display);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

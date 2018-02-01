@@ -338,15 +338,6 @@ typedef struct _BHDM_EDID_DATA_
 
 } BHDM_EDID_DATA ;
 
-typedef enum
-{
-	BHDM_EDID_STATE_eInvalid,
-	BHDM_EDID_STATE_eInitialize,
-	BHDM_EDID_STATE_eProcessing,
-	BHDM_EDID_STATE_eOK
-} BHDM_EDID_STATE;
-
-
 #if BHDM_CONFIG_BTMR_SUPPORT
 /* time units for BTMR which returns microseconds */
 #define BHDM_P_MILLISECOND 1000
@@ -490,7 +481,6 @@ typedef struct BHDM_P_Handle
 	/******************/
 	/* EDID variables */
 	/******************/
-	BHDM_EDID_STATE edidStatus;
 	BHDM_EDID_DATA AttachedEDID ;
 	bool bUseCachedEdid ;
 
@@ -552,7 +542,7 @@ typedef struct BHDM_P_Handle
 	/************/
 	/*     SCDC      */
 	/************/
-	BHDM_AUTO_I2C_P_CHANNEL AutoI2CChannel_ScdcUpdate ;
+	BHDM_AUTO_I2C_CHANNEL AutoI2CChannel_ScdcUpdate ;
 	BKNI_EventHandle AutoI2CEvent_ScdcUpdate ;
 	BHDM_SCDC_ManufacturerData manufacturerData;
 	uint8_t ScdcBuffer[2] ;
@@ -560,7 +550,7 @@ typedef struct BHDM_P_Handle
 	/************/
 	/*    HDCP 22   */
 	/************/
-	BHDM_AUTO_I2C_P_CHANNEL AutoI2CChannel_Hdcp22RxStatus ;
+	BHDM_AUTO_I2C_CHANNEL AutoI2CChannel_Hdcp22RxStatus ;
 	BKNI_EventHandle AutoI2CEvent_Hdcp22RxStatusUpdate ;
 	BKNI_EventHandle BHDM_EventHdcp22EncEnUpdate;
 	BKNI_EventHandle BHDM_EventHdcp22ReAuthRequest;
@@ -571,18 +561,18 @@ typedef struct BHDM_P_Handle
 	/************/
 	/*   AutoWrite  */
 	/************/
-	BHDM_AUTO_I2C_P_CHANNEL AutoI2CChannel_Read ;
+	BHDM_AUTO_I2C_CHANNEL AutoI2CChannel_Read ;
 	BKNI_EventHandle AutoI2CEvent_Write ;
 
 	/************/
 	/*   AutoRead  */
 	/************/
-	BHDM_AUTO_I2C_P_CHANNEL AutoI2CChannel_Write ;
+	BHDM_AUTO_I2C_CHANNEL AutoI2CChannel_Write ;
 	BKNI_EventHandle AutoI2CEvent_Read ;
 
 	BHDM_AUTO_I2C_P_READ_DATA ePendingReadType ;
 
-	BHDM_AUTO_I2C_P_TriggerConfiguration AutoI2CChannel_TriggerConfig[BHDM_AUTO_I2C_P_CHANNEL_eMax] ;
+	BHDM_AUTO_I2C_TriggerConfiguration AutoI2CChannel_TriggerConfig[BHDM_AUTO_I2C_CHANNEL_eMax] ;
 
 	BHDM_SCDC_StatusControlData stStatusControlData ;
 

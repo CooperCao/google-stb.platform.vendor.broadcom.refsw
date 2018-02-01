@@ -58,6 +58,7 @@
 #endif
 
 BDBG_MODULE(BVDC_HSCL);
+BDBG_FILE_MODULE(BVDC_FIR_BYPASS);
 BDBG_OBJECT_ID(BVDC_HSL);
 
 #define BVDC_P_MAKE_HSCALER(pHscaler, id)                                                    \
@@ -413,6 +414,7 @@ void BVDC_P_Hscaler_SetInfo_isr
     int32_t  lHrzPhsAccInit = 0;
     uint32_t ulMaxX;
     BVDC_P_Rect  *pHsclIn, *pHsclOut;
+    bool     bHsclFirEnable;
 
     BDBG_ENTER(BVDC_P_Hscaler_SetInfo_isr);
     BDBG_OBJECT_ASSERT(hHscaler, BVDC_HSL);
@@ -486,13 +488,18 @@ void BVDC_P_Hscaler_SetInfo_isr
             BCHP_MASK(HSCL_0_HORIZ_CONTROL, MASK_HSCL_SHORT_LINE) |
             BCHP_MASK(HSCL_0_HORIZ_CONTROL, STALL_DRAIN_ENABLE  ));
 
+
+        bHsclFirEnable =
+            ((1 << BVDC_P_NRM_SRC_STEP_F_BITS) != pPicture->ulHsclNrmHrzSrcStep) ||
+            (hWindow->stCurInfo.stCtIndex.ulHsclHorzLuma) ||
+            (hWindow->stCurInfo.stCtIndex.ulHsclHorzChroma);
         BVDC_P_HSCL_GET_REG_DATA(HSCL_0_HORIZ_CONTROL) |=  (
-            (((1 << BVDC_P_NRM_SRC_STEP_F_BITS) == pPicture->ulHsclNrmHrzSrcStep)?
-             BCHP_FIELD_ENUM(HSCL_0_HORIZ_CONTROL, FIR_ENABLE,          OFF) :
-             BCHP_FIELD_ENUM(HSCL_0_HORIZ_CONTROL, FIR_ENABLE,          ON ))|
+            BCHP_FIELD_DATA(HSCL_0_HORIZ_CONTROL, FIR_ENABLE, bHsclFirEnable )|
             BCHP_FIELD_ENUM(HSCL_0_HORIZ_CONTROL, MASK_HSCL_LONG_LINE,  ON ) |
             BCHP_FIELD_ENUM(HSCL_0_HORIZ_CONTROL, MASK_HSCL_SHORT_LINE, ON ) |
             BCHP_FIELD_ENUM(HSCL_0_HORIZ_CONTROL, STALL_DRAIN_ENABLE,   OFF));
+
+        BDBG_MODULE_MSG(BVDC_FIR_BYPASS, ("hscl[%d] HFIR_ENABLE %s", hHscaler->eId, bHsclFirEnable?"OFF":"ON"));
 
 #if (BVDC_P_SUPPORT_HSCL_VER >= BVDC_P_SUPPORT_HSCL_VER_5)
         BVDC_P_HSCL_GET_REG_DATA(HSCL_0_VIDEO_3D_MODE) =

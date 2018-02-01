@@ -19,7 +19,7 @@
 
 #define PLATFORM_WIN_NONE     UINTPTR_MAX
 
-static INLINE uintptr_t platform_get_handle(EGLNativeWindowType win)
+static inline uintptr_t platform_get_handle(EGLNativeWindowType win)
 {
    return (uintptr_t)win;
 }

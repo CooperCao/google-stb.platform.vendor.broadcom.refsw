@@ -1,44 +1,40 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  ******************************************************************************/
-
 
 #ifndef BMUXLIB_FILE_IVF_PRIV_H__
 #define BMUXLIB_FILE_IVF_PRIV_H__
@@ -112,12 +108,14 @@ typedef enum BMUXlib_File_IVF_P_InputState
 {
    BMUXlib_File_IVF_P_InputState_eStartup,
    BMUXlib_File_IVF_P_InputState_eGenerateFileHeader,
-   BMUXlib_File_IVF_P_InputState_eGetNextDescriptor,
+   BMUXlib_File_IVF_P_InputState_eProcessNextDescriptor,
    BMUXlib_File_IVF_P_InputState_eProcessMetadata,
    BMUXlib_File_IVF_P_InputState_eGenerateFrameHeader,
    BMUXlib_File_IVF_P_InputState_eProcessFrameData,
    BMUXlib_File_IVF_P_InputState_eProcessEOS,
    BMUXlib_File_IVF_P_InputState_eDone,
+   BMUXlib_File_IVF_P_InputState_eGenerateSuperframeIndex,
+   BMUXlib_File_IVF_P_InputState_eSuperframeHeaderUpdate,
 
    BMUXlib_File_IVF_P_InputState_eMax
 } BMUXlib_File_IVF_P_InputState;
@@ -129,6 +127,19 @@ typedef enum BMUXlib_File_IVF_P_InputState
 #define BMUXlib_File_IVF_P_MAX_FRAMES (64*8)
 #define BMUXlib_File_IVF_P_FILE_HEADER_SIZE 32
 #define BMUXlib_File_IVF_P_FRAME_HEADER_SIZE 12
+
+/* See VP9 Bitstream - Superframe and uncompressed header Rev 1.0, 2015.12.08
+   num_frames_minus_one is 3 bits, hence max of 8 frames */
+#define BMUXlib_File_IVF_P_MAX_FRAMES_IN_SUPERFRAME   8
+
+#define BMUXlib_File_IVF_P_SUPERFRAME_INDEX_MAX_SIZE  34
+/* NOTE: we assume a fixed Frame Size length of 4 bytes
+   (since the IVF frame header always stores 4 bytes for size)
+   so this includes the two bits to indicate a length of 4
+   (i.e. 110 11 xxx)
+   The lower 3 bits are the number of frames - 1 */
+#define BMUXlib_File_IVF_P_SUPERFRAME_INDEX_MARKER    0xD8
+
 
 #define BMUXlib_File_IVF_P_FileHeader_Signature_OFFSET 0
 #define BMUXlib_File_IVF_P_FileHeader_Version_OFFSET 4
@@ -173,6 +184,13 @@ typedef union BMUXlib_File_IVF_P_FrameHeader
 #endif
 } BMUXlib_File_IVF_P_FrameHeader;
 
+/* a single superframe index
+   An entry is unused if the first byte of the index is zero */
+typedef struct
+{
+   uint8_t auiBytes[BMUXlib_File_IVF_P_SUPERFRAME_INDEX_MAX_SIZE];
+} BMUXlib_File_IVF_P_SuperframeIndex;
+
 typedef struct BMUXlib_File_IVF_P_Context
 {
    BDBG_OBJECT(BMUXlib_File_IVF_P_Context)
@@ -196,6 +214,17 @@ typedef struct BMUXlib_File_IVF_P_Context
       unsigned uiReadOffset;
       unsigned uiWriteOffset;
    } stFrameHeader;
+
+   struct
+   {
+      bool bEnd;           /* indicates the end of the superframe has been found */
+      uint64_t uiPTSms;    /* PTS of the superframe in ms (PTS of the non-hidden frame) */
+      uint32_t uiSize;     /* size in bytes of the superframe, including the index */
+      uint64_t uiOffset;   /* starting location of the superframe header to be updated */
+      unsigned uiFrameCount;
+      unsigned auiFrameSizes[BMUXlib_File_IVF_P_MAX_FRAMES_IN_SUPERFRAME+1];  /* sizes of each frame in superframe */
+      BMUXlib_File_IVF_P_SuperframeIndex aIndexEntries[BMUXlib_File_IVF_P_MAX_FRAMES];
+   } stSuperframe;
 
 } BMUXlib_File_IVF_P_Context;
 

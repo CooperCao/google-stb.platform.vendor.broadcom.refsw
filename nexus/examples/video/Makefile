@@ -39,6 +39,7 @@
 
 APPS = \
     app_display_mgmt \
+    backend_mosaic \
     capture_buffer \
     capture_i_frames \
     ccir656_video \

@@ -54,7 +54,8 @@ enum txcore_index {
 #define WLC_TXCHAIN_ID_PWR_LIMIT	3 /* chain mask for tx power offsets */
 #define WLC_TXCHAIN_ID_BTCOEX		4 /* chain mask for BT coex */
 #define WLC_TXCHAIN_ID_MWS		5 /* chain mask for mws */
-#define WLC_TXCHAIN_ID_COUNT		6 /* number of txchain_subval masks */
+#define WLC_TXCHAIN_ID_2G2X2LOCK	6 /* chain mask for 2G chain lock */
+#define WLC_TXCHAIN_ID_COUNT		7 /* number of txchain_subval masks */
 
 #define MWS_ANTMAP_DEFAULT	0
 #define WL_STF_CONFIG_CHAINS_DISABLED -1

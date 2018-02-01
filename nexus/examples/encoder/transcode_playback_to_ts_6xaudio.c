@@ -1,43 +1,40 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 /* Nexus example app: playback and decode */
 
 #include "nexus_platform.h"
@@ -96,13 +93,13 @@
 
 /* the following define the input file and its characteristics -- these will vary by input file */
 #define TRANSPORT_TYPE NEXUS_TransportType_eTs
-#if BTST_SINGLE_AUDIO_PID_PASSTHRU_6X /* AC3 */   
+#if BTST_SINGLE_AUDIO_PID_PASSTHRU_6X /* AC3 */
   #define FILE_NAME "videos/avatar_AVC_15M.ts" /*"videos/WildChina_Short.ts"*/
   #define VIDEO_CODEC NEXUS_VideoCodec_eH264
   #define AUDIO_CODEC NEXUS_AudioCodec_eAc3
   #define VIDEO_PID 0x101 /*0x201*/
   #define AUDIO_PID 0x104
-#else 
+#else
   #define FILE_NAME "videos/h264and6xaudio.ts"
   #define VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
   #define VIDEO_PID 0x31
@@ -132,7 +129,7 @@ static uint32_t CRC32_mpeg(uint32_t crc, uint8_t *data, int length)
 	crc = ~crc;
 	while (length--)
 	{
-		for (j=0; j<8; j++) 
+		for (j=0; j<8; j++)
 			crc = (crc<<1) ^ ((((*data >> (7-j)) ^ (crc >> 31)) & 1) ? 0x04c11db7 : 0);
 		data++;
 	}
@@ -191,7 +188,7 @@ void print_usage(void)
         "  -mixer      - enable DSP mixer for seamless audio\n", NEXUS_SYNC_CHANNEL_NUM_AUDIO_INPUTS-1, NEXUS_SYNC_CHANNEL_NUM_AUDIO_INPUTS);
 }
 
-int main(int argc, const char *argv[])  
+int main(int argc, const char *argv[])
 {
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
@@ -208,7 +205,7 @@ int main(int argc, const char *argv[])
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_Error rc;
 #endif
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST    
+#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST
     NEXUS_StcChannelHandle stcAudioChannel;
     NEXUS_AudioDecoderHandle audioDecoder[NEXUS_SYNC_CHANNEL_NUM_AUDIO_INPUTS];
     NEXUS_AudioDecoderStartSettings audioProgram[NEXUS_SYNC_CHANNEL_NUM_AUDIO_INPUTS];
@@ -219,11 +216,11 @@ int main(int argc, const char *argv[])
     NEXUS_PlaypumpHandle playpumpTranscodeAudio[NEXUS_SYNC_CHANNEL_NUM_AUDIO_INPUTS];
     NEXUS_PidChannelHandle pidChannelTranscodeAudio[NEXUS_SYNC_CHANNEL_NUM_AUDIO_INPUTS];
     NEXUS_AudioEncoderSettings encoderSettings;
-    NEXUS_AudioEncoderHandle audioEncoder;
+    NEXUS_AudioEncoderHandle audioEncoder = NULL;
     NEXUS_AudioCodec audioCodec[NEXUS_SYNC_CHANNEL_NUM_AUDIO_INPUTS];
     NEXUS_AudioMixerHandle dspMixer[NEXUS_SYNC_CHANNEL_NUM_AUDIO_INPUTS], audioMixer;
     NEXUS_AudioCodec srcAudCodec;
-#endif    
+#endif
     NEXUS_FilePlayHandle file;
     NEXUS_PlaypumpHandle playpump;
     NEXUS_PlaybackHandle playback;
@@ -241,7 +238,7 @@ int main(int argc, const char *argv[])
     NEXUS_PlaypumpHandle playpumpTranscodeVideo;
     NEXUS_PidChannelHandle pidChannelTranscodeVideo;
     NEXUS_RecordPidChannelSettings recordPidSettings;
-#endif    
+#endif
     NEXUS_StreamMuxHandle streamMux;
     NEXUS_StreamMuxCreateSettings muxCreateSettings;
     BKNI_EventHandle finishEvent;
@@ -422,13 +419,13 @@ again:
 
 #if NEXUS_NUM_COMPONENT_OUTPUTS
     NEXUS_Display_AddOutput(display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
-#endif 
+#endif
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_Display_AddOutput(display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
     rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
     if ( !rc && hdmiStatus.connected )
     {
-        /* If current display format is not supported by monitor, switch to monitor's preferred format. 
+        /* If current display format is not supported by monitor, switch to monitor's preferred format.
            If other connected outputs do not support the preferred format, a harmless error will occur. */
         NEXUS_Display_GetSettings(display, &displaySettings);
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
@@ -445,7 +442,7 @@ again:
     windowMadSettings.enable32Pulldown = true;
     NEXUS_VideoWindow_SetMadSettings(window, &windowMadSettings);
 
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST    
+#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST
     /* Open the hw mixer -> dummy output */
     audioMixer = NEXUS_AudioMixer_Open(NULL);
     if ( !audioMixer )
@@ -468,7 +465,7 @@ again:
         playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
         /* 6 passthru audio */
         playbackPidSettings.pidTypeSettings.audio.primary = audioDecoder[j]; /* must be told codec for correct handling */
-#if BTST_SINGLE_AUDIO_PID_PASSTHRU_6X /* AC3 */   
+#if BTST_SINGLE_AUDIO_PID_PASSTHRU_6X /* AC3 */
         srcAudCodec = AUDIO_CODEC;
         if(j==0) {
         	audioPidChannel[0] = NEXUS_Playback_OpenPidChannel(playback, aPid, &playbackPidSettings);
@@ -507,7 +504,7 @@ again:
 	                    NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[1]),
 	                    NEXUS_AudioMixer_GetConnector(dspMixer[j]));
 	            } else {/* dspMixer -> hwMixer -> dummy0 out */
-	                NEXUS_AudioMixer_AddInput(audioMixer, 
+	                NEXUS_AudioMixer_AddInput(audioMixer,
 	                    NEXUS_AudioMixer_GetConnector(dspMixer[j]));
 	            }
             } else {
@@ -516,7 +513,7 @@ again:
 	                    NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[1]),
 	                    NEXUS_AudioDecoder_GetConnector(audioDecoder[j], NEXUS_AudioDecoderConnectorType_eStereo));
 	            } else {/* Dec -> hwMixer -> dummy out */
-	                NEXUS_AudioMixer_AddInput(audioMixer, 
+	                NEXUS_AudioMixer_AddInput(audioMixer,
 	                    NEXUS_AudioDecoder_GetConnector(audioDecoder[j], NEXUS_AudioDecoderConnectorType_eCompressed));
 	            }
             }
@@ -547,7 +544,7 @@ again:
 				audioMixerSettings.master = NEXUS_AudioDecoder_GetConnector(audioDecoder[j], NEXUS_AudioDecoderConnectorType_eStereo);
 				NEXUS_AudioMixer_SetSettings(dspMixer[j], &audioMixerSettings);
 				/* Connect mixer -> encoder */
-				NEXUS_AudioEncoder_AddInput(audioEncoder, 
+				NEXUS_AudioEncoder_AddInput(audioEncoder,
 					NEXUS_AudioMixer_GetConnector(dspMixer[j]));
 			}
 
@@ -646,7 +643,7 @@ again:
 
 #if BTST_HAS_VIDEO_ENCODE_TEST
     NEXUS_VideoEncoder_GetSettings(videoEncoder, &videoEncoderConfig);
-    videoEncoderConfig.variableFrameRate = false; 
+    videoEncoderConfig.variableFrameRate = false;
     videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e30;
     videoEncoderConfig.frameRate = cmdSettings[i].encoderFrameRate;
     videoEncoderConfig.bitrateMax = cmdSettings[i].encoderBitrate;
@@ -662,8 +659,8 @@ again:
     videoEncoderStartConfig.nonRealTime = bNonRealTime;
 
     /* encode setting and startSetting to be set after end-to-end delay is determined */
-    
-    /* get end-to-end delay (Dee) for audio and video encoders; 
+
+    /* get end-to-end delay (Dee) for audio and video encoders;
      * TODO: match AV delay! In other words,
      *   if (aDee > vDee) {
      *       vDee' = aDee' = aDee;
@@ -673,14 +670,14 @@ again:
      *   }
      */
     {
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST    
+#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST
         unsigned Dee=0;
 #endif
         /* NOTE: video encoder delay is in 27MHz ticks */
         NEXUS_VideoEncoder_GetDelayRange(videoEncoder, &videoEncoderConfig, &videoEncoderStartConfig, &videoDelay);
         printf("\n\tVideo encoder end-to-end delay = %u ms; maximum allowed: %u ms\n", videoDelay.min/27000, videoDelay.max/27000);
-    
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST    
+
+#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST
         /* pick the maximum delay of 6 audios. */
         for(j=0; j<numAudios; j++) {
             NEXUS_AudioMuxOutput_GetDelayStatus(audioMuxOutput[j], audioCodec[j], &audioDelayStatus);
@@ -733,7 +730,7 @@ again:
 
     playpumpTranscodePcr = NEXUS_Playpump_Open(2, &playpumpConfig);
     assert(playpumpTranscodePcr);
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST    
+#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST
     NEXUS_Playpump_GetDefaultOpenSettings(&playpumpConfig);
     playpumpConfig.fifoSize = 16384; /* reduce FIFO size allocated for playpump */
     playpumpConfig.numDescriptors = 64; /* set number of descriptors */
@@ -742,8 +739,8 @@ again:
         playpumpTranscodeAudio[j] = NEXUS_Playpump_Open(3+j, &playpumpConfig);
         assert(playpumpTranscodeAudio[j]);
     }
-#endif    
-    
+#endif
+
     BKNI_CreateEvent(&finishEvent);
     NEXUS_StreamMux_GetDefaultCreateSettings(&muxCreateSettings);
     muxCreateSettings.finished.callback = transcoderFinishCallback;
@@ -759,11 +756,11 @@ again:
     muxConfig.video[0].pid = 0x11;
     muxConfig.video[0].encoder = videoEncoder;
     muxConfig.video[0].playpump = playpumpTranscodeVideo;
-#endif    
+#endif
     muxConfig.pcr.pid = 0x12;
     muxConfig.pcr.playpump = playpumpTranscodePcr;
     muxConfig.pcr.interval = 50;
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST    
+#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST
     for(j=0; j<numAudios; j++) {
         muxConfig.audio[j].pid = 0x13+j;
         muxConfig.audio[j].pesId += j; /* differentiate audio channels in TS mux PID filters with PES streamIDs */
@@ -786,7 +783,7 @@ again:
 #if BTST_HAS_VIDEO_ENCODE_TEST
     pidChannelTranscodeVideo = muxOutput.video[0];
 #endif
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST    
+#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST
     for(j=0; j<numAudios; j++) {
         pidChannelTranscodeAudio[j] = muxOutput.audio[j];
     }
@@ -825,7 +822,7 @@ again:
     /* add multiplex data to the same record */
     NEXUS_Record_AddPidChannel(record, pidChannelTranscodeVideo, &recordPidSettings);
 #endif
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST    
+#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST
     for(j=0; j<numAudios; j++) {
         NEXUS_Record_AddPidChannel(record, pidChannelTranscodeAudio[j], NULL);
     }
@@ -865,7 +862,7 @@ again:
 
     /* Start decoder */
     NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST    
+#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST
     for(j=0; j<numAudios; j++) {
         if(bDspMixer) {/* need to explicitly start mixer before decoder to seamlessly handle discontinuity and stream wraparound */
             NEXUS_AudioMixer_Start(dspMixer[j]);
@@ -1004,7 +1001,7 @@ static const uint8_t s_auiTSPacket_PMT[188] =
     /* Bring down system */
     NEXUS_Playback_Stop(playback);
     NEXUS_VideoDecoder_Stop(videoDecoder);
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST    
+#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST
     for(j=0; j<numAudios; j++) {
         NEXUS_AudioDecoder_Stop(audioDecoder[j]);
         if(bDspMixer) {
@@ -1023,7 +1020,7 @@ static const uint8_t s_auiTSPacket_PMT[188] =
     NEXUS_SyncChannel_SetSettings(syncChannel, &syncChannelSettings);
 #endif
 
-    
+
 #if BTST_HAS_VIDEO_ENCODE_TEST
     NEXUS_VideoEncoder_Stop(videoEncoder, NULL);
 #endif
@@ -1042,8 +1039,8 @@ static const uint8_t s_auiTSPacket_PMT[188] =
     NEXUS_Recpump_Close(recpump);
     NEXUS_FileRecord_Close(fileTranscode);
 
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST    
-#if BTST_SINGLE_AUDIO_PID_PASSTHRU_6X /* avatar */  
+#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST
+#if BTST_SINGLE_AUDIO_PID_PASSTHRU_6X /* avatar */
     NEXUS_Playback_ClosePidChannel(playback, audioPidChannel[0]);
 #else
     for(j=0; j<numAudios; j++)
@@ -1073,13 +1070,13 @@ static const uint8_t s_auiTSPacket_PMT[188] =
     NEXUS_StreamMux_Destroy(streamMux);
 
     NEXUS_Playpump_Close(playpumpTranscodePcr);
-	
+
 #if BTST_HAS_VIDEO_ENCODE_TEST
 	NEXUS_Playpump_Close(playpumpTranscodeVideo);
 	NEXUS_VideoEncoder_Close(videoEncoder);
-#endif    
+#endif
 
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST    
+#if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST
 	if(b1x5p) {
 		NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[1]));
 		NEXUS_AudioOutput_Shutdown(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[1]));
@@ -1090,7 +1087,7 @@ static const uint8_t s_auiTSPacket_PMT[188] =
     NEXUS_AudioMixer_Close(audioMixer);
     for(j=0; j<numAudios; j++) {
 		NEXUS_AudioOutput_RemoveAllInputs( NEXUS_AudioMuxOutput_GetConnector(audioMuxOutput[j]));
-		if(b1x5p && j==audioXcodeChanNum) { 
+		if(b1x5p && j==audioXcodeChanNum) {
 			NEXUS_AudioEncoder_RemoveAllInputs(audioEncoder);
 			NEXUS_AudioInput_Shutdown(NEXUS_AudioEncoder_GetConnector(audioEncoder));
 			NEXUS_AudioEncoder_Close(audioEncoder);
@@ -1139,7 +1136,7 @@ static const uint8_t s_auiTSPacket_PMT[188] =
     }
     NEXUS_Memory_Free(pat);
     NEXUS_Memory_Free(pmt);
-    
+
     if(key != 'q')
     {
         i = iteration++%TEST_ITERATIONS;

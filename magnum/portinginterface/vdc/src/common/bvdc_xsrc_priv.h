@@ -331,7 +331,7 @@ typedef struct BVDC_P_XsrcContext
     bool                           bPqNcl;
 } BVDC_P_XsrcContext;
 
-
+#if (BVDC_P_SUPPORT_XSRC)
 /***************************************************************************
  * Xsrc private functions
  ***************************************************************************/
@@ -344,19 +344,12 @@ BERR_Code BVDC_P_Xsrc_Create
 void BVDC_P_Xsrc_Destroy
     ( BVDC_P_Xsrc_Handle            hXsrc );
 
-void BVDC_P_Xsrc_Init_isr
-    ( BVDC_P_Xsrc_Handle            hXsrc );
-
 BERR_Code BVDC_P_Xsrc_AcquireConnect_isr
     ( BVDC_P_Xsrc_Handle            hXsrc,
       BVDC_Source_Handle            hSource );
 
 BERR_Code BVDC_P_Xsrc_ReleaseConnect_isr
     ( BVDC_P_Xsrc_Handle           *phXsrc );
-
-void BVDC_P_Xsrc_BuildRul_SetEnable_isr
-    ( BVDC_P_Xsrc_Handle            hXsrc,
-      BVDC_P_ListInfo              *pList );
 
 void BVDC_P_Xsrc_BuildRul_isr
     ( const BVDC_P_Xsrc_Handle      hXsrc,
@@ -369,9 +362,7 @@ void BVDC_P_Xsrc_SetInfo_isr
       BVDC_Window_Handle            hWindow,
       const BVDC_P_PictureNodePtr   pPicture );
 
-void BVDC_P_Xsrc_SetEnable_isr
-    ( BVDC_P_Xsrc_Handle            hXsrc,
-      bool                          bEnable );
+#endif /* BVDC_P_SUPPORT_XSRC */
 
 #ifdef __cplusplus
 }

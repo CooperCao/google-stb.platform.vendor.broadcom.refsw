@@ -126,7 +126,7 @@ static bool is_query_target(GLenum target)
          result = true;
          break;
       case GL_PRIMITIVES_GENERATED:
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
          /* this is supported in es31 with extension geometry_shader */
          return (V3D_VER_AT_LEAST(3,3,0,0) ? true : false);
 #else
@@ -412,7 +412,7 @@ static bool occlusion_query_install(GLXX_SERVER_STATE_T *state,
    return ok;
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static bool prim_counts_queries_install(GLXX_SERVER_STATE_T *state,
       GLXX_HW_RENDER_STATE_T *rs)
 {
@@ -439,7 +439,7 @@ bool glxx_server_queries_install(GLXX_SERVER_STATE_T *state,
    if (!occlusion_query_install(state, rs))
       return false;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (!prim_counts_queries_install(state, rs))
       return false;
 #endif

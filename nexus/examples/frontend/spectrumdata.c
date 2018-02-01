@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2008-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -59,14 +59,12 @@ typedef struct callback_data_t {
 static void spectrum_data_ready_callback(void *context, int param)
 {
     callback_data_t *callbackData = (callback_data_t *)context;
-    NEXUS_FrontendHandle frontend;
     unsigned dataCount;
     BKNI_EventHandle spectrumEvent;
     BSTD_UNUSED(param);
 
     BDBG_ASSERT(NULL != context);
     spectrumEvent = callbackData->event;
-    frontend = callbackData->frontend;
 
     for (dataCount=0; dataCount<NUM_SAMPLES; dataCount++){
         printf("Data[0x%x] = 0x%x   ", dataCount, *(dataPointer+dataCount));
@@ -81,18 +79,11 @@ int main(int argc, char **argv)
     NEXUS_FrontendHandle frontend = NULL;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_FrontendAcquireSettings settings;
-    unsigned freq;
-    NEXUS_FrontendQamMode qamMode;
     BKNI_EventHandle spectrumEvent = NULL;
-    unsigned codec = -1;
     NEXUS_FrontendSpectrumSettings spectrumSettings;
     callback_data_t spectrumCallbackData;
     BSTD_UNUSED(argc);
     BSTD_UNUSED(argv);
-
-    codec = NEXUS_VideoCodec_eMpeg2;
-    qamMode = NEXUS_FrontendQamMode_e64;
-    freq = 765;
 
     NEXUS_Platform_Init(NULL);
     NEXUS_Platform_GetConfiguration(&platformConfig);

@@ -78,46 +78,35 @@ void glsl_iodep(Backflow *consumer, Backflow *supplier)
    glsl_iodep_offset(consumer, supplier, 0);
 }
 
-bool op_requires_regfile(BackflowFlavour f) {
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   return f == BACKFLOW_LDVPMV_IN  || f == BACKFLOW_LDVPMD_IN  ||
-          f == BACKFLOW_LDVPMV_OUT || f == BACKFLOW_LDVPMD_OUT ||
-          f == BACKFLOW_LDVPMG_IN  || f == BACKFLOW_LDVPMG_OUT ||
-          f == BACKFLOW_LDVPMP;
-#else
-   return false;
-#endif
-}
-
 bool glsl_sched_node_requires_regfile(const Backflow *n) {
-   if (n->type == ALU_A && op_requires_regfile(n->u.alu.op)) return true;
+   if (n->type == ALU && v3d_qpu_res_type_from_opcode(n->u.alu.op) == V3D_QPU_RES_TYPE_DIRECT_RF_WRITE) return true;
 #if !V3D_VER_AT_LEAST(4,1,34,0)
    if (n->type == SIG) return true;
 #endif
    return false;
 }
 
-bool glsl_sched_node_admits_unpack(BackflowFlavour f) {
-   switch(f) {
-      case BACKFLOW_ADD:
-      case BACKFLOW_SUB:
-      case BACKFLOW_MIN:
-      case BACKFLOW_MAX:
-      case BACKFLOW_FCMP:
-      case BACKFLOW_VFPACK:
-      case BACKFLOW_ROUND:
-      case BACKFLOW_TRUNC:
-      case BACKFLOW_FLOOR:
-      case BACKFLOW_CEIL:
-      case BACKFLOW_FDX:
-      case BACKFLOW_FDY:
-      case BACKFLOW_FTOIN:
-      case BACKFLOW_FTOIZ:
-      case BACKFLOW_FTOUZ:
-      case BACKFLOW_FTOC:
+bool glsl_sched_node_admits_unpack(v3d_qpu_opcode_t op) {
+   switch(op) {
+      case V3D_QPU_OP_FADD:
+      case V3D_QPU_OP_FSUB:
+      case V3D_QPU_OP_FMIN:
+      case V3D_QPU_OP_FMAX:
+      case V3D_QPU_OP_FCMP:
+      case V3D_QPU_OP_VFPACK:
+      case V3D_QPU_OP_FROUND:
+      case V3D_QPU_OP_FTRUNC:
+      case V3D_QPU_OP_FFLOOR:
+      case V3D_QPU_OP_FCEIL:
+      case V3D_QPU_OP_FDX:
+      case V3D_QPU_OP_FDY:
+      case V3D_QPU_OP_FTOIN:
+      case V3D_QPU_OP_FTOIZ:
+      case V3D_QPU_OP_FTOUZ:
+      case V3D_QPU_OP_FTOC:
 
-      case BACKFLOW_MUL:
-      case BACKFLOW_FMOV:
+      case V3D_QPU_OP_FMUL:
+      case V3D_QPU_OP_FMOV:
          return true;
 
       default:
@@ -125,47 +114,41 @@ bool glsl_sched_node_admits_unpack(BackflowFlavour f) {
    }
 }
 
-static SchedNodeType get_sched_node_type(BackflowFlavour f) {
-   switch (f) {
-      case BACKFLOW_MUL:
-      case BACKFLOW_SMUL:
-      case BACKFLOW_UMUL:
-      case BACKFLOW_MOV:
-      case BACKFLOW_FMOV:
-         return ALU_M;
-
-      case BACKFLOW_IMUL32:       return SPECIAL_IMUL32;
-      case BACKFLOW_THREADSWITCH: return SPECIAL_THRSW;
-      case BACKFLOW_DUMMY:        return SPECIAL_VOID;
-      default:                    return ALU_A;
-   }
+static bool op_uses_flag(v3d_qpu_opcode_t f) {
+   return f == V3D_QPU_OP_VFLA || f == V3D_QPU_OP_VFLNA
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      || f == V3D_QPU_OP_FLAFIRST
+#endif
+#if V3D_HAS_FLNAFIRST
+      || f == V3D_QPU_OP_FLNAFIRST
+#endif
+      ;
 }
 
-static Backflow *create_internal() {
+Backflow *create_node(SchedNodeType type) {
    Backflow *node = malloc_fast(sizeof(Backflow));
    memset(node, 0, sizeof(Backflow));
 
    glsl_backflow_iodep_chain_init(&node->io_dependencies);
 
-   node->age = dataflow_age;
-   node->unif_type = BACKEND_UNIFORM_UNASSIGNED;
+   node->age         = dataflow_age;
+   node->unif_type   = BACKEND_UNIFORM_UNASSIGNED;
    node->magic_write = REG_UNDECIDED;
-   node->cond_setf = SETF_NONE;
+   node->cond_setf   = SETF_NONE;
+   node->type        = type;
    return node;
 }
 
 Backflow *create_sig(uint32_t sigbits) {
-   Backflow *node = create_internal();
-   node->type = SIG;
+   Backflow *node = create_node(SIG);
    node->u.sigbits = sigbits;
    return node;
 }
 
 Backflow *create_varying(VaryingType vary_type, uint32_t vary_row, Backflow *w)
 {
-   Backflow *node = create_internal();
+   Backflow *node = create_node(SPECIAL_VARYING);
 
-   node->type = SPECIAL_VARYING;
    node->u.varying.type = vary_type;
    node->u.varying.row  = vary_row;
 
@@ -173,23 +156,27 @@ Backflow *create_varying(VaryingType vary_type, uint32_t vary_row, Backflow *w)
    return node;
 }
 
-Backflow *create_node(BackflowFlavour flavour, SchedNodeUnpack unpack, uint32_t cond_setf, Backflow *flag,
-                      Backflow *left, Backflow *right, Backflow *output)
-{
-   Backflow *node = create_internal();
+Backflow *create_imul32(Backflow *l, Backflow *r) {
+   Backflow *node = create_node(SPECIAL_IMUL32);
+   dep(node, 1, l);
+   dep(node, 2, r);
+   return node;
+}
 
-   assert(flavour < BACKFLOW_FLAVOUR_COUNT);
-   node->type = get_sched_node_type(flavour);
-   node->u.alu.op  = flavour;
+Backflow *create_alu(v3d_qpu_opcode_t op, SchedNodeUnpack unpack, uint32_t cond_setf, Backflow *flag,
+                     Backflow *left, Backflow *right, Backflow *output)
+{
+   Backflow *node = create_node(ALU);
+
+   node->u.alu.op        = op;
    node->u.alu.unpack[0] = unpack;
    node->u.alu.unpack[1] = UNPACK_NONE;
 
    node->cond_setf = cond_setf;
 
    /* Verify that the flag field is used correctly */
-   assert(flag == NULL || flavour   == BACKFLOW_FL || flavour   == BACKFLOW_FLN ||
-                          cond_setf == COND_IFFLAG || cond_setf == COND_IFNFLAG ||
-                          cs_is_updt(cond_setf));
+   assert(flag == NULL || op_uses_flag(op)          || cs_is_updt(cond_setf) ||
+                          cond_setf == COND_IFFLAG  || cond_setf == COND_IFNFLAG);
    assert(output == NULL || cond_setf == COND_IFFLAG || cond_setf == COND_IFNFLAG);
    /* Could further validate that left and right are used consistently with the operation */
 
@@ -199,6 +186,18 @@ Backflow *create_node(BackflowFlavour flavour, SchedNodeUnpack unpack, uint32_t 
    dep(node, 3, output);
    return node;
 }
+
+Backflow *create_rotate(Backflow *input, uint32_t amount, bool quad, Backflow *r5_amount) {
+   assert((amount == 0 && r5_amount != NULL) || (amount != 0 && r5_amount == NULL));
+
+   Backflow *ret = create_node(SPECIAL_ROTATE);
+   dep(ret, 1, input);
+   dep(ret, 2, r5_amount);
+   ret->u.rotate.amount = amount;
+   ret->u.rotate.quad   = quad;
+   return ret;
+}
+
 
 typedef enum {
    GLSL_TRANSLATION_UNVISITED = 0, /* This should be 0 as nodes start off cleared with zeroes */
@@ -212,12 +211,12 @@ typedef enum {
 typedef struct {
    GLSL_TRANSLATION_TYPE_T type;
    struct backflow_s *node[4];
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    bool per_sample;
 #endif
 } GLSL_TRANSLATION_T;
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 typedef struct _GLSL_TRANSLATION_LIST_T {
    GLSL_TRANSLATION_T *value;
    struct _GLSL_TRANSLATION_LIST_T *next;
@@ -229,7 +228,7 @@ struct tlb_read_s {
    /* QPU does a chain of reads for each of 4 samples per RT */
    Backflow *first;
    Backflow *last;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    uint8_t samples_read;
    Backflow *data[16];
 #endif
@@ -245,7 +244,7 @@ typedef struct {
    bool ms;
    bool disable_ubo_fetch;
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    /* These translations need to be done multiple times during multisampling */
    GLSL_TRANSLATION_LIST_T *per_sample_clear_list;
    int sample_num;      /* Which sample we're currently translating */
@@ -270,11 +269,11 @@ static inline Backflow *tr_mov_to_reg_cond_io(uint32_t reg, Backflow *param, GLS
    Backflow *result;
 
    if (cond == NULL)
-      result = create_node(BACKFLOW_MOV, UNPACK_NONE, SETF_NONE, NULL, param, NULL, NULL);
-   else if (cond->type == GLSL_TRANSLATION_BOOL_FLAG)
-      result = create_node(BACKFLOW_MOV, UNPACK_NONE, COND_IFFLAG, cond->node[0], param, NULL, NULL);
-   else
-      result = create_node(BACKFLOW_MOV, UNPACK_NONE, COND_IFNFLAG, cond->node[0], param, NULL, NULL);
+      result = tr_uop(V3D_QPU_OP_MOV, param);
+   else {
+      uint32_t c = (cond->type == GLSL_TRANSLATION_BOOL_FLAG) ? COND_IFFLAG : COND_IFNFLAG;
+      result = tr_uop_cond(V3D_QPU_OP_MOV, c, cond->node[0], param);
+   }
 
    assert(result->magic_write == REG_UNDECIDED);
    result->magic_write = reg;
@@ -283,35 +282,27 @@ static inline Backflow *tr_mov_to_reg_cond_io(uint32_t reg, Backflow *param, GLS
    return result;
 }
 
-static inline Backflow *tr_cond(Backflow *cond, Backflow *true_value, Backflow *false_value, GLSL_TRANSLATION_TYPE_T rep)
-{
-   uint32_t cond_setf = (rep == GLSL_TRANSLATION_BOOL_FLAG) ? COND_IFFLAG : COND_IFNFLAG;
-   assert(rep == GLSL_TRANSLATION_BOOL_FLAG || rep == GLSL_TRANSLATION_BOOL_FLAG_N);
-
-   return create_node(BACKFLOW_MOV, UNPACK_NONE, cond_setf, cond, true_value, NULL, false_value);
-}
-
 static Backflow *tr_sin(Backflow *angle)
 {
-   Backflow *x = tr_binop(BACKFLOW_MUL, angle, tr_const(0x3ea2f983 /* 1 / pi */));
-   Backflow *y = tr_uop(BACKFLOW_ROUND, x);
-   Backflow *sfu_sin = tr_mov_to_reg(REG_MAGIC_SIN, tr_binop(BACKFLOW_SUB, x, y));
-   Backflow *i = tr_uop(BACKFLOW_FTOIN, y);
-   Backflow *il31 = tr_binop(BACKFLOW_SHL, i, tr_const(31));
+   Backflow *x = tr_binop(V3D_QPU_OP_FMUL, angle, tr_const(0x3ea2f983 /* 1 / pi */));
+   Backflow *y = tr_uop(V3D_QPU_OP_FROUND, x);
+   Backflow *sfu_sin = tr_mov_to_reg(REG_MAGIC_SIN, tr_binop(V3D_QPU_OP_FSUB, x, y));
+   Backflow *i = tr_uop(V3D_QPU_OP_FTOIN, y);
+   Backflow *il31 = tr_binop(V3D_QPU_OP_SHL, i, tr_const(31));
 
-   return tr_binop(BACKFLOW_XOR, sfu_sin, il31);
+   return tr_binop(V3D_QPU_OP_XOR, sfu_sin, il31);
 }
 
 static Backflow *tr_cos(Backflow *angle)
 {
-   return tr_sin( tr_binop(BACKFLOW_ADD, angle, tr_const(0x3fc90fdb /* pi/2 */) ) );
+   return tr_sin( tr_binop(V3D_QPU_OP_FADD, angle, tr_const(0x3fc90fdb /* pi/2 */) ) );
 }
 
 static Backflow *tr_tan(Backflow *angle)
 {
    Backflow *sin = tr_sin(angle);
    Backflow *one_on_cos = tr_mov_to_reg(REG_MAGIC_RECIP, tr_cos(angle));
-   return tr_binop( BACKFLOW_MUL, sin, one_on_cos );
+   return tr_binop(V3D_QPU_OP_FMUL, sin, one_on_cos);
 }
 
 /*
@@ -343,17 +334,17 @@ static void unsigned_div_rem(Backflow **div, Backflow **rem, Backflow *l, Backfl
 
    for (int i=0; i<32; i++) {
       Backflow *c1, *c2, *ncond, *cond1;
-      c1 = tr_binop(BACKFLOW_SHR, Rq, CONST31);
-      Rq = tr_binop(BACKFLOW_SHL, Rq, CONST1);
-      c2 = tr_binop(BACKFLOW_SHR, Rs, CONST31);
-      Rs = tr_binop(BACKFLOW_SHL, Rs, CONST1);
-      Rs = tr_binop(BACKFLOW_OR, Rs, c1);
+      c1 = tr_binop(V3D_QPU_OP_SHR, Rq, CONST31);
+      Rq = tr_binop(V3D_QPU_OP_SHL, Rq, CONST1);
+      c2 = tr_binop(V3D_QPU_OP_SHR, Rs, CONST31);
+      Rs = tr_binop(V3D_QPU_OP_SHL, Rs, CONST1);
+      Rs = tr_binop(V3D_QPU_OP_OR, Rs, c1);
 
-      cond1 = tr_binop_push(BACKFLOW_XOR, SETF_PUSHZ, c2, CONST1);
-      ncond = create_node(BACKFLOW_ISUB, UNPACK_NONE, SETF_NORNC, cond1, Rs, Rd, NULL);
+      cond1 = tr_binop_push(V3D_QPU_OP_XOR, SETF_PUSHZ, c2, CONST1);
+      ncond = create_alu(V3D_QPU_OP_SUB, UNPACK_NONE, SETF_NORNC, cond1, Rs, Rd, NULL);
 
-      Rs = tr_cond(ncond, tr_binop(BACKFLOW_ISUB, Rs, Rd), Rs, GLSL_TRANSLATION_BOOL_FLAG_N);
-      Rq = tr_cond(ncond, tr_binop(BACKFLOW_OR, Rq, CONST1), Rq, GLSL_TRANSLATION_BOOL_FLAG_N);
+      Rs = tr_cond(ncond, tr_binop(V3D_QPU_OP_SUB, Rs, Rd),     Rs, true);
+      Rq = tr_cond(ncond, tr_binop(V3D_QPU_OP_OR,  Rq, CONST1), Rq, true);
    }
 
    *div = Rq;
@@ -361,17 +352,17 @@ static void unsigned_div_rem(Backflow **div, Backflow **rem, Backflow *l, Backfl
 }
 
 static void signed_div_rem(Backflow **div, Backflow **rem, Backflow *l, Backflow *r) {
-   Backflow *cond_left  = tr_uop_cond(BACKFLOW_MOV, SETF_PUSHN, NULL, l);
-   Backflow *cond_right = tr_uop_cond(BACKFLOW_MOV, SETF_PUSHN, NULL, r);
-   Backflow *uleft  = tr_cond(cond_left,  tr_uop(BACKFLOW_INEG, l), l, GLSL_TRANSLATION_BOOL_FLAG);
-   Backflow *uright = tr_cond(cond_right, tr_uop(BACKFLOW_INEG, r), r, GLSL_TRANSLATION_BOOL_FLAG);
+   Backflow *cond_left  = tr_uop_push(V3D_QPU_OP_MOV, SETF_PUSHN, l);
+   Backflow *cond_right = tr_uop_push(V3D_QPU_OP_MOV, SETF_PUSHN, r);
+   Backflow *uleft  = tr_cond(cond_left,  tr_uop(V3D_QPU_OP_NEG, l), l, false);
+   Backflow *uright = tr_cond(cond_right, tr_uop(V3D_QPU_OP_NEG, r), r, false);
 
    Backflow *udiv, *urem;
    unsigned_div_rem(&udiv, &urem, uleft, uright);
 
-   udiv = tr_cond(cond_left,  tr_uop(BACKFLOW_INEG, udiv), udiv, GLSL_TRANSLATION_BOOL_FLAG);
-   *div = tr_cond(cond_right, tr_uop(BACKFLOW_INEG, udiv), udiv, GLSL_TRANSLATION_BOOL_FLAG);
-   *rem = tr_cond(cond_left,  tr_uop(BACKFLOW_INEG, urem), urem, GLSL_TRANSLATION_BOOL_FLAG);
+   udiv = tr_cond(cond_left,  tr_uop(V3D_QPU_OP_NEG, udiv), udiv, false);
+   *div = tr_cond(cond_right, tr_uop(V3D_QPU_OP_NEG, udiv), udiv, false);
+   *rem = tr_cond(cond_left,  tr_uop(V3D_QPU_OP_NEG, urem), urem, false);
 }
 
 static Backflow *tr_div(DataflowType type, Backflow *l, Backflow *r) {
@@ -384,7 +375,7 @@ static Backflow *tr_div(DataflowType type, Backflow *l, Backflow *r) {
          unsigned_div_rem(&div, &rem, l, r);
          return div;
       case DF_FLOAT:
-         return tr_binop(BACKFLOW_MUL, l, tr_mov_to_reg(REG_MAGIC_RECIP, r));
+         return tr_binop(V3D_QPU_OP_FMUL, l, tr_mov_to_reg(REG_MAGIC_RECIP, r));
       default:
          unreachable();
          return NULL;
@@ -410,7 +401,7 @@ static Backflow *tr_rem(DataflowType type, Backflow *l, Backflow *r) {
 static void tr_comparison(GLSL_TRANSLATION_T *result, DataflowFlavour flavour, DataflowType type, Backflow *left, Backflow *right)
 {
    struct cmp_s {
-      BackflowFlavour flavour;
+      v3d_qpu_opcode_t op;
       uint32_t cond_setf;
       bool negate;
       bool reverse;
@@ -419,29 +410,29 @@ static void tr_comparison(GLSL_TRANSLATION_T *result, DataflowFlavour flavour, D
    static const struct cmp_s ops[3][6] = {
    {              /* Float */
       /* Flavour        setf       negate  reverse */
-      { BACKFLOW_FCMP, SETF_PUSHN, false,  false },     /* <  */
-      { BACKFLOW_FCMP, SETF_PUSHN, false,  true  },     /* >  */
-      { BACKFLOW_FCMP, SETF_PUSHC, false,  false },     /* <= */
-      { BACKFLOW_FCMP, SETF_PUSHC, false,  true  },     /* >= */
-      { BACKFLOW_FCMP, SETF_PUSHZ, false,  false },     /* == */
-      { BACKFLOW_FCMP, SETF_PUSHZ, true,   false },     /* != */
+      { V3D_QPU_OP_FCMP, SETF_PUSHN, false,  false },     /* <  */
+      { V3D_QPU_OP_FCMP, SETF_PUSHN, false,  true  },     /* >  */
+      { V3D_QPU_OP_FCMP, SETF_PUSHC, false,  false },     /* <= */
+      { V3D_QPU_OP_FCMP, SETF_PUSHC, false,  true  },     /* >= */
+      { V3D_QPU_OP_FCMP, SETF_PUSHZ, false,  false },     /* == */
+      { V3D_QPU_OP_FCMP, SETF_PUSHZ, true,   false },     /* != */
    }, {           /* uint */
-      { BACKFLOW_ISUB, SETF_PUSHC, false,  false },     /* <  */
-      { BACKFLOW_ISUB, SETF_PUSHC, false,  true  },     /* >  */
-      { BACKFLOW_ISUB, SETF_PUSHC, true,   true  },     /* <= */
-      { BACKFLOW_ISUB, SETF_PUSHC, true,   false },     /* >= */
-      { BACKFLOW_ISUB, SETF_PUSHZ, false,  false },     /* == */
-      { BACKFLOW_ISUB, SETF_PUSHZ, true,   false },     /* != */
+      { V3D_QPU_OP_SUB,  SETF_PUSHC, false,  false },     /* <  */
+      { V3D_QPU_OP_SUB,  SETF_PUSHC, false,  true  },     /* >  */
+      { V3D_QPU_OP_SUB,  SETF_PUSHC, true,   true  },     /* <= */
+      { V3D_QPU_OP_SUB,  SETF_PUSHC, true,   false },     /* >= */
+      { V3D_QPU_OP_SUB,  SETF_PUSHZ, false,  false },     /* == */
+      { V3D_QPU_OP_SUB,  SETF_PUSHZ, true,   false },     /* != */
    }, {           /* int */
-      { BACKFLOW_ISUB, SETF_PUSHN, false,  false },     /* <  */
-      { BACKFLOW_ISUB, SETF_PUSHN, false,  true  },     /* >  */
-      { BACKFLOW_ISUB, SETF_PUSHN, true,   true  },     /* <= */
-      { BACKFLOW_ISUB, SETF_PUSHN, true,   false },     /* >= */
-      { BACKFLOW_ISUB, SETF_PUSHZ, false,  false },     /* == */
-      { BACKFLOW_ISUB, SETF_PUSHZ, true,   false },     /* != */
+      { V3D_QPU_OP_SUB,  SETF_PUSHN, false,  false },     /* <  */
+      { V3D_QPU_OP_SUB,  SETF_PUSHN, false,  true  },     /* >  */
+      { V3D_QPU_OP_SUB,  SETF_PUSHN, true,   true  },     /* <= */
+      { V3D_QPU_OP_SUB,  SETF_PUSHN, true,   false },     /* >= */
+      { V3D_QPU_OP_SUB,  SETF_PUSHZ, false,  false },     /* == */
+      { V3D_QPU_OP_SUB,  SETF_PUSHZ, true,   false },     /* != */
    }};
    const struct cmp_s *op;
-   int type_idx, flavour_idx;
+   int type_idx, op_idx;
 
    switch (type) {
       case DF_FLOAT: type_idx = 0;  break;
@@ -450,26 +441,26 @@ static void tr_comparison(GLSL_TRANSLATION_T *result, DataflowFlavour flavour, D
       default: unreachable();
    }
    switch (flavour) {
-      case DATAFLOW_LESS_THAN:          flavour_idx = 0; break;
-      case DATAFLOW_GREATER_THAN:       flavour_idx = 1; break;
-      case DATAFLOW_LESS_THAN_EQUAL:    flavour_idx = 2; break;
-      case DATAFLOW_GREATER_THAN_EQUAL: flavour_idx = 3; break;
-      case DATAFLOW_EQUAL:              flavour_idx = 4; break;
-      case DATAFLOW_NOT_EQUAL:          flavour_idx = 5; break;
+      case DATAFLOW_LESS_THAN:          op_idx = 0; break;
+      case DATAFLOW_GREATER_THAN:       op_idx = 1; break;
+      case DATAFLOW_LESS_THAN_EQUAL:    op_idx = 2; break;
+      case DATAFLOW_GREATER_THAN_EQUAL: op_idx = 3; break;
+      case DATAFLOW_EQUAL:              op_idx = 4; break;
+      case DATAFLOW_NOT_EQUAL:          op_idx = 5; break;
       default: unreachable();
    }
 
-   op = &ops[type_idx][flavour_idx];
+   op = &ops[type_idx][op_idx];
    Backflow *op_l = op->reverse ? right : left;
    Backflow *op_r = op->reverse ? left  : right;
    result->type = op->negate ? GLSL_TRANSLATION_BOOL_FLAG_N : GLSL_TRANSLATION_BOOL_FLAG;
    if (is_const_zero(op_r)) {
-      BackflowFlavour f = (type == DF_FLOAT) ? BACKFLOW_FMOV : BACKFLOW_MOV;
-      result->node[0] = tr_uop_cond(f, op->cond_setf, NULL, op_l);
-   } else if (is_const_zero(op_l) && op->flavour == BACKFLOW_ISUB) {
-      result->node[0] = tr_uop_cond(BACKFLOW_INEG, op->cond_setf, NULL, op_r);
+      v3d_qpu_opcode_t o = (type == DF_FLOAT) ? V3D_QPU_OP_FMOV : V3D_QPU_OP_MOV;
+      result->node[0] = tr_uop_push(o, op->cond_setf, op_l);
+   } else if (is_const_zero(op_l) && op->op == V3D_QPU_OP_SUB) {
+      result->node[0] = tr_uop_push(V3D_QPU_OP_NEG, op->cond_setf, op_r);
    } else {
-      result->node[0] = tr_binop_push(op->flavour, op->cond_setf, op_l, op_r);
+      result->node[0] = tr_binop_push(op->op, op->cond_setf, op_l, op_r);
    }
 }
 
@@ -511,7 +502,7 @@ static void tr_logical_and_or(GLSL_TRANSLATION_T *result, DataflowFlavour flavou
    else unreachable();
 
    result->type = rep;
-   result->node[0] = tr_uop_cond(BACKFLOW_MOV, cond_setf, left->node[0], right->node[0]);
+   result->node[0] = tr_uop_cond(V3D_QPU_OP_MOV, cond_setf, left->node[0], right->node[0]);
 }
 
 static void tr_logical_binop(GLSL_TRANSLATION_T *result, DataflowFlavour flavour, GLSL_TRANSLATION_T *left, GLSL_TRANSLATION_T *right)
@@ -540,6 +531,41 @@ static void tr_logical_cond(GLSL_TRANSLATION_T *result, GLSL_TRANSLATION_T *cond
    tr_logical_and_or(result, DATAFLOW_LOGICAL_OR, &a, &b);
 }
 
+// Input is 2x 8-bit twos-compliment signed integers in half-float mantissa bits.
+// Output is 2x denormalised half-floats representing float(arg) / (1 >> 24).
+static Backflow *tr_itodenf(Backflow *arg)
+{
+   // Detect negative 8-bit integer (in mantissa bits).
+   const uint32_t num_bits = 8u;
+   uint32_t max_mantissa = gfx_mask(num_bits-1);
+   uint32_t max_mantissa2 = max_mantissa | max_mantissa << 16;
+   Backflow* cond = tr_binop_push(V3D_QPU_OP_VSUB, SETF_PUSHC, tr_const(max_mantissa2), arg);
+
+   // If negative, negate mantissa and set sign bit.
+   uint32_t negate = 0x8000 | 1u << num_bits;
+   uint32_t negate2 = negate | negate << 16;
+   return create_alu(V3D_QPU_OP_VSUB, UNPACK_NONE, COND_IFFLAG, cond, tr_const(negate2), arg, arg);
+}
+
+// Input is a pair of vector half-floats that when multiplied together produce an 7-bit denormal.
+// The second vector must be a positive scale (deduced from first for parallelism).
+// Output is the denormal sign/bits converted to twos-compliment in N bits.
+static Backflow *tr_vfmuldenftoi(Backflow *a, Backflow *b)
+{
+   // Detect negative floats. todo: ideally we'd generate this flag from the mul, but
+   // the backend can't support this?
+   Backflow* cond = tr_uop_push(V3D_QPU_OP_VFMOV, SETF_PUSHN, a);
+
+   // Compute product.
+   Backflow* prod = tr_binop(V3D_QPU_OP_VFMUL, a, b);
+
+   // If negative, calculate the twos-compliment of the mantissa and clear the sign bit.
+   const uint32_t num_bits = 8u;
+   uint32_t negate = 0x8000 | 1u << num_bits;
+   uint32_t negate2 = negate | negate << 16;
+   return create_alu(V3D_QPU_OP_VSUB, UNPACK_NONE, COND_IFFLAG, cond, tr_const(negate2), prod, prod);
+}
+
 Backflow* tr_pack_int16(Backflow* a, Backflow *b)
 {
    Backflow *i65535 = tr_const(65535);
@@ -548,7 +574,7 @@ Backflow* tr_pack_int16(Backflow* a, Backflow *b)
    a = bitand(a, i65535);
    b = bitand(b, i65535);
 
-   return bitor(a, tr_binop(BACKFLOW_SHL, b, i16));
+   return bitor(a, tr_binop(V3D_QPU_OP_SHL, b, i16));
 }
 
 static Backflow *tr_texture_get(Backflow *iodep0, struct tmu_lookup_s *lookup)
@@ -596,7 +622,7 @@ static int get_word_reads(uint32_t components, bool is_32bit) {
 }
 
 static Backflow *unpack_float(Backflow *in, bool high) {
-   Backflow *res = tr_uop(BACKFLOW_FMOV, in);
+   Backflow *res = tr_uop(V3D_QPU_OP_FMOV, in);
    if (!high) res->u.alu.unpack[0] = UNPACK_F16_A;
    else       res->u.alu.unpack[0] = UNPACK_F16_B;
    return res;
@@ -636,8 +662,8 @@ static void unpack_tmu_return(Backflow *output[4], Backflow *words[4], DataflowT
 static struct tmu_lookup_s *tr_begin_tmu_access(SchedBlock *block)
 {
    struct tmu_lookup_s *lookup = new_tmu_lookup(block);
-   lookup->first_write = tr_nullary(BACKFLOW_DUMMY);
-   lookup->last_write = tr_nullary(BACKFLOW_DUMMY);
+   lookup->first_write = create_node(SPECIAL_VOID);
+   lookup->last_write = create_node(SPECIAL_VOID);
    glsl_iodep(lookup->last_write, lookup->first_write);
    lookup->write_count = 0;
    return lookup;
@@ -657,7 +683,7 @@ static void tr_mid_tmu_access_data(struct tmu_lookup_s *lookup, GLSL_TRANSLATION
    glsl_iodep(lookup->last_write, node);
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static Backflow *tr_texture_cfg(Backflow *c_node, uint32_t c_extra, Backflow *dep) {
    Backflow *ret;
    if (c_node == NULL) {
@@ -669,7 +695,7 @@ static Backflow *tr_texture_cfg(Backflow *c_node, uint32_t c_extra, Backflow *de
       ret->unif_type = c_node->unif_type;
       ret->unif = c_node->unif | c_extra;
    } else if (c_extra != 0) {
-      ret = tr_binop_io(BACKFLOW_IADD, c_node, tr_const(c_extra), dep);
+      ret = tr_binop_io(V3D_QPU_OP_ADD, c_node, tr_const(c_extra), dep);
       ret->magic_write = REG_MAGIC_TMUC;
    } else {
       ret = tr_mov_to_reg_io(REG_MAGIC_TMUC, c_node, dep);
@@ -800,7 +826,7 @@ static void tr_mid_tmu_access_texture(struct tmu_lookup_s *lookup,
       if (is_const_zero(b))
          b = base_level;
       else
-         b = tr_binop(bias_int ? BACKFLOW_IADD : BACKFLOW_ADD, base_level, b);
+         b = tr_binop(bias_int ? V3D_QPU_OP_ADD : V3D_QPU_OP_FADD, base_level, b);
    }
 
    assert(s != NULL);
@@ -947,7 +973,7 @@ static void tr_texture_gadget(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T 
    if (required_components != 0) {
       uint32_t lookup_required_components = required_components;
       if (d != NULL)
-         assert(!is_32bit); /* Shadow lookups are always 16 bit */
+         is_32bit = false;  /* Shadow lookups are always 16 bit */
       else switch (gadgettype)
       {
       case GLSL_GADGETTYPE_AUTO:
@@ -974,16 +1000,16 @@ static void tr_texture_gadget(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T 
       if ((extra & DF_TEXBITS_FETCH) && off) {
          /* GFXH-1314: Offset not supported for fetch on v3.2 */
          assert(is_const(off));
-         if (s) s = tr_binop(BACKFLOW_IADD, s, tr_const(gfx_sext(off->unif >> 0, 4)));
-         if (t) t = tr_binop(BACKFLOW_IADD, t, tr_const(gfx_sext(off->unif >> 4, 4)));
-         if (r) r = tr_binop(BACKFLOW_IADD, r, tr_const(gfx_sext(off->unif >> 8, 4)));
+         if (s) s = tr_binop(V3D_QPU_OP_ADD, s, tr_const(gfx_sext(off->unif >> 0, 4)));
+         if (t) t = tr_binop(V3D_QPU_OP_ADD, t, tr_const(gfx_sext(off->unif >> 4, 4)));
+         if (r) r = tr_binop(V3D_QPU_OP_ADD, r, tr_const(gfx_sext(off->unif >> 8, 4)));
          off = NULL;
       }
 
       /* For shadow clamp D_ref to [0,1] for fixed point textures. */
       if (gadgettype == GLSL_GADGETTYPE_DEPTH_FIXED && d != NULL) {
-         d = tr_binop(BACKFLOW_MAX, tr_cfloat(0.0f), d);
-         d = tr_binop(BACKFLOW_MIN, tr_cfloat(1.0f), d);
+         d = tr_binop(V3D_QPU_OP_FMAX, tr_cfloat(0.0f), d);
+         d = tr_binop(V3D_QPU_OP_FMIN, tr_cfloat(1.0f), d);
       }
 
       tr_texture_lookup(ctx, result, texture, sampler, type, is_32bit, per_quad,
@@ -1058,15 +1084,15 @@ void tr_read_tlb(bool ms, uint32_t rt_num, bool is_16, bool is_int,
       for (unsigned i=2*load_len-1; i<2*load_len; i--) result[i] = unpack_float(result[i/2], i&1);
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0) && !V3D_VER_AT_LEAST(4,2,13,0)
+#if V3D_VER_AT_LEAST(4,1,34,0) && !V3D_VER_AT_LEAST(4,2,13,0)
 static void sample_select(Backflow **out, Backflow **data, int n) {
    for (int i=0; i<n; i++) out[i] = data[i];
 
-   Backflow *sampid = tr_nullary(BACKFLOW_SAMPID);
+   Backflow *sampid = tr_nullary(V3D_QPU_OP_SAMPID);
    for (int s = 1; s<4; s++) {
-      Backflow *cond = tr_binop_push(BACKFLOW_ISUB, SETF_PUSHZ, sampid, tr_const(s));
+      Backflow *cond = tr_binop_push(V3D_QPU_OP_SUB, SETF_PUSHZ, sampid, tr_const(s));
       for (int i=0; i<n; i++)
-         out[i] = create_node(BACKFLOW_MOV, UNPACK_NONE, COND_IFFLAG, cond, data[s*n + i], NULL, out[i]);
+         out[i] = create_alu(V3D_QPU_OP_MOV, UNPACK_NONE, COND_IFFLAG, cond, data[s*n + i], NULL, out[i]);
    }
 }
 #endif
@@ -1080,7 +1106,7 @@ static void tr_get_col_gadget(GLSL_TRANSLATE_CONTEXT_T *ctx,
 #if V3D_VER_AT_LEAST(4,2,13,0)
    tr_read_tlb(false, render_target, rt_is_16, rt_is_int, required_components, result->node,
                &ctx->tlb_read[render_target].first, &ctx->tlb_read[render_target].last);
-#elif V3D_VER_AT_LEAST(4,0,2,0)
+#elif V3D_VER_AT_LEAST(4,1,34,0)
    Backflow *data[16];
    tr_read_tlb(ctx->ms, render_target, rt_is_16, rt_is_int, required_components, data, &ctx->tlb_read[render_target].first, &ctx->tlb_read[render_target].last);
 
@@ -1098,7 +1124,7 @@ static void tr_get_col_gadget(GLSL_TRANSLATE_CONTEXT_T *ctx,
    result->type = GLSL_TRANSLATION_VEC4;
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static void tr_get_depth_stencil(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T *r, bool depth)
 {
    int read_idx = V3D_MAX_RENDER_TARGETS + (depth ? 0: 1);
@@ -1221,10 +1247,11 @@ static inline Backflow *varying_io(VaryingType vary_type, uint32_t vary_row, Bac
    return res;
 }
 
-static Backflow *init_frag_vary( SchedShaderInputs *in,
-                                 uint32_t primitive_type,
-                                 bool ignore_centroids,
-                                 const VARYING_INFO_T *varying)
+static Backflow *init_frag_vary(SchedShaderInputs *in,
+                                uint32_t primitive_type,
+                                bool prim_id,
+                                bool ignore_centroids,
+                                const VARYING_INFO_T *varying)
 {
    Backflow *dep = NULL;
 
@@ -1240,6 +1267,9 @@ static Backflow *init_frag_vary( SchedShaderInputs *in,
       dep = in->line = varying_io(VARYING_NOPERSP, VARYING_ID_HW_0, NULL, dep);
    else
       in->line = tr_cfloat(0.0f);
+
+   if (prim_id)
+      dep = in->prim_id = varying_io(VARYING_FLAT, VARYING_ID_HW_2, NULL, dep);
 
    memset(in->inputs, 0, sizeof(Backflow *)*(V3D_MAX_VARYING_COMPONENTS));
    for (int i = 0; i < V3D_MAX_VARYING_COMPONENTS; i++)
@@ -1257,7 +1287,7 @@ static Backflow *init_frag_vary( SchedShaderInputs *in,
    return dep;
 }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 /* We must load all samples for any RT that we read */
 static void validate_tlb_loads(struct tlb_read_s *reads, bool ms) {
    for (int rt=0; rt<V3D_MAX_RENDER_TARGETS; rt++)
@@ -1287,10 +1317,10 @@ static void resolve_tlb_loads(SchedBlock *block, struct tlb_read_s *reads) {
    block->last_tlb_read  = last_read;
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 static Backflow *ldvpmv(SchedShaderInputs *ins, int addr) {
-   Backflow *r = tr_uop(BACKFLOW_LDVPMV_IN, tr_const(addr));
+   Backflow *r = tr_uop(V3D_QPU_OP_LDVPMV_IN, tr_const(addr));
    ins->vpm_dep[addr] = r;
    return r;
 }
@@ -1316,7 +1346,7 @@ static Backflow *tr_vpm_read_setup(uint32_t count, uint32_t addr)
    assert(count >= 1 && count <= 32);
    assert(addr  >= 0 && addr  <= 0x1fff);
    uint32_t value = 1<<30 | 1<<27 | 1<<15 | 2<<13 | 1<<29 | (count & 31) << 22 | (addr & 0x1fff);
-   Backflow *result = tr_uop(BACKFLOW_VPMSETUP, tr_const(value));
+   Backflow *result = tr_uop(V3D_QPU_OP_VPMSETUP, tr_const(value));
    result->age = 0;     /* XXX Hack this to make it come out early */
    return result;
 }
@@ -1367,47 +1397,50 @@ static inline GLSL_TRANSLATION_TYPE_T get_translation_type(DataflowType type)
    else return GLSL_TRANSLATION_WORD;
 }
 
-static BackflowFlavour translate_flavour(DataflowFlavour flavour, DataflowType type, int *params) {
+static v3d_qpu_opcode_t translate_flavour(DataflowFlavour flavour, DataflowType type, int *params) {
    switch(flavour) {
-#if V3D_VER_AT_LEAST(4,0,2,0)
-      case DATAFLOW_SAMPLE_ID:         *params = 0; return BACKFLOW_SAMPID;
-      case DATAFLOW_GET_INVOCATION_ID: *params = 0; return BACKFLOW_IID;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      case DATAFLOW_SAMPLE_ID:         *params = 0; return V3D_QPU_OP_SAMPID;
+      case DATAFLOW_GET_INVOCATION_ID: *params = 0; return V3D_QPU_OP_IID;
 #endif
-      case DATAFLOW_SAMPLE_MASK:       *params = 0; return BACKFLOW_MSF;
-      case DATAFLOW_FRAG_GET_X:        *params = 0; return BACKFLOW_FXCD;
-      case DATAFLOW_FRAG_GET_Y:        *params = 0; return BACKFLOW_FYCD;
-      case DATAFLOW_FRAG_GET_X_UINT:   *params = 0; return BACKFLOW_XCD;
-      case DATAFLOW_FRAG_GET_Y_UINT:   *params = 0; return BACKFLOW_YCD;
-      case DATAFLOW_GET_THREAD_INDEX:  *params = 0; return BACKFLOW_TIDX;
-      case DATAFLOW_FTOI_TRUNC:        *params = 1; return BACKFLOW_FTOIZ;
-      case DATAFLOW_FTOI_NEAREST:      *params = 1; return BACKFLOW_FTOIN;
-      case DATAFLOW_FTOU:              *params = 1; return BACKFLOW_FTOUZ;
-      case DATAFLOW_ITOF:              *params = 1; return BACKFLOW_ITOF;
-      case DATAFLOW_CLZ:               *params = 1; return BACKFLOW_CLZ;
-      case DATAFLOW_UTOF:              *params = 1; return BACKFLOW_UTOF;
-      case DATAFLOW_BITWISE_NOT:       *params = 1; return BACKFLOW_NOT;
-      case DATAFLOW_ARITH_NEGATE:      *params = 1; return type == DF_FLOAT ? BACKFLOW_NEG: BACKFLOW_INEG;
-      case DATAFLOW_FDX:               *params = 1; return BACKFLOW_FDX;
-      case DATAFLOW_FDY:               *params = 1; return BACKFLOW_FDY;
-      case DATAFLOW_TRUNC:             *params = 1; return BACKFLOW_TRUNC;
-      case DATAFLOW_NEAREST:           *params = 1; return BACKFLOW_ROUND;
-      case DATAFLOW_CEIL:              *params = 1; return BACKFLOW_CEIL;
-      case DATAFLOW_FLOOR:             *params = 1; return BACKFLOW_FLOOR;
-      case DATAFLOW_MUL:               *params = 2; return type == DF_FLOAT ? BACKFLOW_MUL : BACKFLOW_IMUL32;
-      case DATAFLOW_MUL24:             *params = 2; return type == DF_UINT ? BACKFLOW_UMUL : BACKFLOW_SMUL;
-      case DATAFLOW_ADD:               *params = 2; return type == DF_FLOAT ? BACKFLOW_ADD : BACKFLOW_IADD;
-      case DATAFLOW_SUB:               *params = 2; return type == DF_FLOAT ? BACKFLOW_SUB : BACKFLOW_ISUB;
-      case DATAFLOW_MIN:               *params = 2; return type == DF_FLOAT ? BACKFLOW_MIN :
-                                                         ( type == DF_INT ? BACKFLOW_IMIN : BACKFLOW_UMIN );
-      case DATAFLOW_MAX:               *params = 2; return type == DF_FLOAT ? BACKFLOW_MAX :
-                                                         ( type == DF_INT ? BACKFLOW_IMAX : BACKFLOW_UMAX );
-      case DATAFLOW_FPACK:             *params = 2; return BACKFLOW_VFPACK;
-      case DATAFLOW_SHL:               *params = 2; return BACKFLOW_SHL;
-      case DATAFLOW_SHR:               *params = 2; return type == DF_UINT ? BACKFLOW_SHR : BACKFLOW_ASHR;
-      case DATAFLOW_ROR:               *params = 2; return BACKFLOW_ROR;
-      case DATAFLOW_BITWISE_AND:       *params = 2; return BACKFLOW_AND;
-      case DATAFLOW_BITWISE_OR:        *params = 2; return BACKFLOW_OR;
-      case DATAFLOW_BITWISE_XOR:       *params = 2; return BACKFLOW_XOR;
+      case DATAFLOW_SAMPLE_MASK:       *params = 0; return V3D_QPU_OP_MSF;
+      case DATAFLOW_FRAG_GET_X:        *params = 0; return V3D_QPU_OP_FXCD;
+      case DATAFLOW_FRAG_GET_Y:        *params = 0; return V3D_QPU_OP_FYCD;
+      case DATAFLOW_FRAG_GET_X_UINT:   *params = 0; return V3D_QPU_OP_XCD;
+      case DATAFLOW_FRAG_GET_Y_UINT:   *params = 0; return V3D_QPU_OP_YCD;
+      case DATAFLOW_GET_THREAD_INDEX:  *params = 0; return V3D_QPU_OP_TIDX;
+      case DATAFLOW_SG_LOCAL_IDX:      *params = 0; return V3D_QPU_OP_EIDX;
+      case DATAFLOW_FTOI_TRUNC:        *params = 1; return V3D_QPU_OP_FTOIZ;
+      case DATAFLOW_FTOI_NEAREST:      *params = 1; return V3D_QPU_OP_FTOIN;
+      case DATAFLOW_FTOU:              *params = 1; return V3D_QPU_OP_FTOUZ;
+      case DATAFLOW_ITOF:              *params = 1; return V3D_QPU_OP_ITOF;
+      case DATAFLOW_CLZ:               *params = 1; return V3D_QPU_OP_CLZ;
+      case DATAFLOW_UTOF:              *params = 1; return V3D_QPU_OP_UTOF;
+      case DATAFLOW_BITWISE_NOT:       *params = 1; return V3D_QPU_OP_NOT;
+      case DATAFLOW_ARITH_NEGATE:      *params = 1; return type == DF_FLOAT ? V3D_QPU_OP_VFNEGMOV: V3D_QPU_OP_NEG;
+      case DATAFLOW_FDX:               *params = 1; return V3D_QPU_OP_FDX;
+      case DATAFLOW_FDY:               *params = 1; return V3D_QPU_OP_FDY;
+      case DATAFLOW_TRUNC:             *params = 1; return V3D_QPU_OP_FTRUNC;
+      case DATAFLOW_NEAREST:           *params = 1; return V3D_QPU_OP_FROUND;
+      case DATAFLOW_CEIL:              *params = 1; return V3D_QPU_OP_FCEIL;
+      case DATAFLOW_FLOOR:             *params = 1; return V3D_QPU_OP_FFLOOR;
+      case DATAFLOW_MUL24:             *params = 2; return type == DF_UINT ? V3D_QPU_OP_UMUL24 : V3D_QPU_OP_SMUL24;
+      case DATAFLOW_ADD:               *params = 2; return type == DF_FLOAT ? V3D_QPU_OP_FADD : V3D_QPU_OP_ADD;
+      case DATAFLOW_SUB:               *params = 2; return type == DF_FLOAT ? V3D_QPU_OP_FSUB : V3D_QPU_OP_SUB;
+      case DATAFLOW_MIN:               *params = 2; return type == DF_FLOAT ? V3D_QPU_OP_FMIN :
+                                                         ( type == DF_INT ? V3D_QPU_OP_MIN : V3D_QPU_OP_UMIN );
+      case DATAFLOW_MAX:               *params = 2; return type == DF_FLOAT ? V3D_QPU_OP_FMAX :
+                                                         ( type == DF_INT ? V3D_QPU_OP_MAX : V3D_QPU_OP_UMAX );
+      case DATAFLOW_FPACK:             *params = 2; return V3D_QPU_OP_VFPACK;
+      case DATAFLOW_VFMIN:             *params = 2; assert(type == DF_UINT); return V3D_QPU_OP_VFMIN;
+      case DATAFLOW_VFMAX:             *params = 2; assert(type == DF_UINT); return V3D_QPU_OP_VFMAX;
+      case DATAFLOW_VFMUL:             *params = 2; assert(type == DF_UINT); return V3D_QPU_OP_VFMUL;
+      case DATAFLOW_SHL:               *params = 2; return V3D_QPU_OP_SHL;
+      case DATAFLOW_SHR:               *params = 2; return type == DF_UINT ? V3D_QPU_OP_SHR : V3D_QPU_OP_ASR;
+      case DATAFLOW_ROR:               *params = 2; return V3D_QPU_OP_ROR;
+      case DATAFLOW_BITWISE_AND:       *params = 2; return V3D_QPU_OP_AND;
+      case DATAFLOW_BITWISE_OR:        *params = 2; return V3D_QPU_OP_OR;
+      case DATAFLOW_BITWISE_XOR:       *params = 2; return V3D_QPU_OP_XOR;
       default: unreachable(); return 0;
    }
 }
@@ -1437,7 +1470,7 @@ Backflow *tr_external(int block, int output, ExternalList **list) {
    }
 
    ExternalList *new = malloc_fast(sizeof(ExternalList));
-   new->node = tr_nullary(BACKFLOW_DUMMY);
+   new->node = create_node(SPECIAL_VOID);
    new->block = block;
    new->output = output;
    new->next = *list;
@@ -1488,7 +1521,7 @@ static void tr_atomic(GLSL_TRANSLATION_T *r, GLSL_TRANSLATE_CONTEXT_T *ctx,
 
    int word_reads = (dataflow->flavour == DATAFLOW_ADDRESS_STORE) ? 0 : 1;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (d[0]->type == GLSL_TRANSLATION_VOID) {
       const Dataflow *addr = relocate_dataflow(ctx, dataflow->d.reloc_deps[0]);
       assert(addr->flavour == DATAFLOW_TEXTURE_ADDR);
@@ -1524,7 +1557,7 @@ static void tr_atomic(GLSL_TRANSLATION_T *r, GLSL_TRANSLATE_CONTEXT_T *ctx,
 
 static int find_value(Backflow *e) {
    if (is_const(e)) return e->unif;
-   if (e->type == ALU_A && e->u.alu.op == BACKFLOW_IADD) {
+   if (e->type == ALU && e->u.alu.op == V3D_QPU_OP_ADD) {
       int a = find_value(e->dependencies[1]);
       int b = find_value(e->dependencies[2]);
       if (a == -1 || b == -1) return -1;
@@ -1540,7 +1573,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
 
    assert(dataflow->id < ctx->translations_count);
    GLSL_TRANSLATION_T *r = &ctx->translations[dataflow->id];
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    assert(r->type == GLSL_TRANSLATION_UNVISITED);
 #else
    if (r->type != GLSL_TRANSLATION_UNVISITED) return;
@@ -1590,17 +1623,17 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
             uint32_t image_index = d[0]->node[0]->unif >> 4;
             r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_TEX_LEVELS, image_index);
          } else {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
             /* The texture handle gives the address of the state record, so work the answer out from there.
              * Base and max level make up the top byte, so load the highest 32-bits of the TSR */
-            Backflow *addr = tr_binop(BACKFLOW_IADD, d[0]->node[0], tr_const(12));
+            Backflow *addr = tr_binop(V3D_QPU_OP_ADD, d[0]->node[0], tr_const(12));
             Backflow *rec[4];
             tr_indexed_read_vector_gadget(ctx->block, rec, dataflow->age, addr, 1, ctx->per_quad[dataflow->id]);
             /* Extract the max and base levels */
             Backflow *max = bitand(shr(rec[0], 24), tr_const(0xF));
             Backflow *base = shr(rec[0], 28);
             /* Num level = max - base + 1 */
-            r->node[0] = tr_binop(BACKFLOW_IADD, tr_binop(BACKFLOW_ISUB, max, base), tr_const(1));
+            r->node[0] = tr_binop(V3D_QPU_OP_ADD, tr_binop(V3D_QPU_OP_SUB, max, base), tr_const(1));
 #else
             /* Dynamic indexing is not possible prior to v4.0 */
             unreachable();
@@ -1634,7 +1667,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
                                                   dataflow->u.get_col.render_target);
          break;
       }
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case DATAFLOW_FRAG_GET_DEPTH:
       case DATAFLOW_FRAG_GET_STENCIL:
          tr_get_depth_stencil(ctx, r, flavour == DATAFLOW_FRAG_GET_DEPTH);
@@ -1697,7 +1730,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
 
       case DATAFLOW_ISNAN:
          r->type = GLSL_TRANSLATION_BOOL_FLAG_N;
-         r->node[0] = tr_binop_push(BACKFLOW_FCMP, SETF_PUSHZ, d[0]->node[0], d[0]->node[0]);
+         r->node[0] = tr_binop_push(V3D_QPU_OP_FCMP, SETF_PUSHZ, d[0]->node[0], d[0]->node[0]);
          break;
 
       case DATAFLOW_UNIFORM:
@@ -1720,7 +1753,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_TEX_PARAM1, ctx->link_map->uniforms[dataflow->u.linkable_value.row] << 4);
          break;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case DATAFLOW_SAMPLER_UNNORMS:
       {
          assert(d[0]->type == GLSL_TRANSLATION_WORD);
@@ -1731,7 +1764,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
       }
 #endif
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case DATAFLOW_TEXTURE_ADDR:
 #endif
       case DATAFLOW_UNIFORM_BUFFER:
@@ -1830,27 +1863,45 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          break;
       case DATAFLOW_FRAG_GET_FF:
          r->type = GLSL_TRANSLATION_BOOL_FLAG;
-         r->node[0] = tr_nullary(BACKFLOW_REVF);
+         r->node[0] = tr_nullary(V3D_QPU_OP_REVF);
          break;
       case DATAFLOW_IS_HELPER:
          r->type = GLSL_TRANSLATION_BOOL_FLAG;
          /* For BOOL_FLAG non-zero means false, so MSF is good enough */
-         r->node[0] = tr_nullary(BACKFLOW_MSF);
+         r->node[0] = tr_nullary(V3D_QPU_OP_MSF);
          break;
       case DATAFLOW_SAMPLE_POS_X:
          r->type = GLSL_TRANSLATION_WORD;
-         Backflow *fxcd = tr_nullary(BACKFLOW_FXCD);
-         r->node[0] = tr_binop(BACKFLOW_SUB, fxcd, tr_uop(BACKFLOW_FLOOR, fxcd));
+         Backflow *fxcd = tr_nullary(V3D_QPU_OP_FXCD);
+         r->node[0] = tr_binop(V3D_QPU_OP_FSUB, fxcd, tr_uop(V3D_QPU_OP_FFLOOR, fxcd));
          break;
       case DATAFLOW_SAMPLE_POS_Y:
          r->type = GLSL_TRANSLATION_WORD;
-         Backflow *fycd = tr_nullary(BACKFLOW_FYCD);
-         r->node[0] = tr_binop(BACKFLOW_SUB, fycd, tr_uop(BACKFLOW_FLOOR, fycd));
+         Backflow *fycd = tr_nullary(V3D_QPU_OP_FYCD);
+         r->node[0] = tr_binop(V3D_QPU_OP_FSUB, fycd, tr_uop(V3D_QPU_OP_FFLOOR, fycd));
          break;
       case DATAFLOW_NUM_SAMPLES:
          r->type = GLSL_TRANSLATION_WORD;
          r->node[0] = tr_const(ctx->ms ? 4 : 1);
          break;
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      case DATAFLOW_SG_ELECT:
+         r->type = GLSL_TRANSLATION_BOOL_FLAG_N;
+         assert(d[0]->type == GLSL_TRANSLATION_BOOL_FLAG || d[0]->type == GLSL_TRANSLATION_BOOL_FLAG_N);
+# if V3D_HAS_FLNAFIRST
+         v3d_qpu_opcode_t op = (d[0]->type == GLSL_TRANSLATION_BOOL_FLAG) ? V3D_QPU_OP_FLAFIRST : V3D_QPU_OP_FLNAFIRST;
+         r->node[0] = tr_flop(op, d[0]->node[0]);
+# else
+         if (d[0]->type == GLSL_TRANSLATION_BOOL_FLAG_N) {
+            Backflow *inverted = create_alu(V3D_QPU_OP_VFLA, UNPACK_NONE, SETF_PUSHZ, d[0]->node[0], NULL, NULL, NULL);
+            r->node[0] = tr_flop(V3D_QPU_OP_FLAFIRST, inverted);
+         } else
+            r->node[0] = tr_flop(V3D_QPU_OP_FLAFIRST, d[0]->node[0]);
+# endif
+         break;
+#endif
+
       case DATAFLOW_GET_VERTEX_ID:
          r->type = GLSL_TRANSLATION_WORD;
          r->node[0] = ctx->in->vertexid;
@@ -1859,10 +1910,14 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          r->type = GLSL_TRANSLATION_WORD;
          r->node[0] = ctx->in->instanceid;
          break;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case DATAFLOW_GET_BASE_INSTANCE:
          r->type = GLSL_TRANSLATION_WORD;
          r->node[0] = ctx->in->baseinstance;
+         break;
+      case DATAFLOW_GET_PRIMITIVE_ID:
+         r->type = GLSL_TRANSLATION_WORD;
+         r->node[0] = ctx->in->prim_id;
          break;
 #endif
 
@@ -1888,10 +1943,19 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          if (d[1]->type == GLSL_TRANSLATION_WORD) {
             assert(d[2]->type == GLSL_TRANSLATION_WORD);
             r->type = GLSL_TRANSLATION_WORD;
-            r->node[0] = tr_cond(d[0]->node[0], d[1]->node[0], d[2]->node[0], d[0]->type);
+            r->node[0] = tr_cond(d[0]->node[0], d[1]->node[0], d[2]->node[0], (d[0]->type == GLSL_TRANSLATION_BOOL_FLAG_N));
          } else {
             tr_logical_cond(r, d[0], d[1], d[2]);
          }
+         break;
+      case DATAFLOW_MUL:
+         assert(d[0]->type == GLSL_TRANSLATION_WORD);
+         assert(d[1]->type == GLSL_TRANSLATION_WORD);
+         r->type = GLSL_TRANSLATION_WORD;
+         if (dataflow->type == DF_FLOAT)
+            r->node[0] = tr_binop(V3D_QPU_OP_FMUL, d[0]->node[0], d[1]->node[0]);
+         else
+            r->node[0] = create_imul32(d[0]->node[0], d[1]->node[0]);
          break;
       case DATAFLOW_DIV:
          assert(d[0]->type == GLSL_TRANSLATION_WORD);
@@ -1946,7 +2010,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
       case DATAFLOW_FUNPACKB:
          r->type = d[0]->type;
          assert(d[0]->type == GLSL_TRANSLATION_WORD);
-         r->node[0] = tr_uop(BACKFLOW_FMOV, d[0]->node[0]);
+         r->node[0] = tr_uop(V3D_QPU_OP_FMOV, d[0]->node[0]);
          r->node[0]->u.alu.unpack[0] = flavour == DATAFLOW_ABS ? UNPACK_ABS : flavour == DATAFLOW_FUNPACKA ? UNPACK_F16_A : UNPACK_F16_B;
          break;
 
@@ -1982,7 +2046,18 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          r->type = (type == DF_BOOL) ? GLSL_TRANSLATION_BOOL_FLAG : GLSL_TRANSLATION_WORD;
          r->node[0] = tr_external(dataflow->u.external.block, dataflow->u.external.output, &ctx->block->external_list);
          break;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+      case DATAFLOW_VITODENF:
+         assert(d[0]->type == GLSL_TRANSLATION_WORD);
+         r->type = GLSL_TRANSLATION_WORD;
+         r->node[0] = tr_itodenf(d[0]->node[0]);
+         break;
+      case DATAFLOW_VFMULDENFTOI:
+         assert(d[0]->type == GLSL_TRANSLATION_WORD);
+         assert(d[1]->type == GLSL_TRANSLATION_WORD);
+         r->type = GLSL_TRANSLATION_WORD;
+         r->node[0] = tr_vfmuldenftoi(d[0]->node[0], d[1]->node[0]);
+         break;
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       case DATAFLOW_IMAGE_INFO_PARAM:
          {
             const Dataflow *image = relocate_dataflow(ctx, dataflow->d.reloc_deps[0]);
@@ -2019,19 +2094,19 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
       default:       /* Default case: Flavour should map directly to an instruction */
       {
          int params;
-         BackflowFlavour f = translate_flavour(flavour, type, &params);
+         v3d_qpu_opcode_t op = translate_flavour(flavour, type, &params);
          for (int i=0; i<params; i++) assert(d[i]->type == GLSL_TRANSLATION_WORD);
 
          r->type = GLSL_TRANSLATION_WORD;
-         if      (params == 0) r->node[0] = tr_nullary(f);
-         else if (params == 1) r->node[0] = tr_uop    (f, d[0]->node[0]);
-         else                  r->node[0] = tr_binop  (f, d[0]->node[0], d[1]->node[0]);
+         if      (params == 0) r->node[0] = tr_nullary(op);
+         else if (params == 1) r->node[0] = tr_uop    (op, d[0]->node[0]);
+         else                  r->node[0] = tr_binop  (op, d[0]->node[0], d[1]->node[0]);
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
          if (flavour == DATAFLOW_FRAG_GET_X || flavour == DATAFLOW_FRAG_GET_Y) {
             /* In older hardware this value matches the integer coordinate so
              * add 0.5 to get the pixel centre. */
-            r->node[0] = tr_binop(BACKFLOW_ADD,
+            r->node[0] = tr_binop(V3D_QPU_OP_FADD,
                                   tr_const(gfx_float_to_bits(0.5)),
                                   r->node[0]);
          }
@@ -2049,7 +2124,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
    bool df_per_sample = (flavour == DATAFLOW_FRAG_GET_COL     || flavour == DATAFLOW_FRAG_GET_DEPTH ||
                          flavour == DATAFLOW_FRAG_GET_STENCIL || flavour == DATAFLOW_SAMPLE_ID      ||
                          flavour == DATAFLOW_SAMPLE_POS_X     || flavour == DATAFLOW_SAMPLE_POS_Y);
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    r->per_sample = df_per_sample;
    for (int i = 0; i < dataflow->dependencies_count; i++) {
       if (dataflow->d.reloc_deps[i] != -1) {
@@ -2105,26 +2180,27 @@ static void init_translation_context(GLSL_TRANSLATE_CONTEXT_T *ctx,
 
    ctx->ms = (key->backend & GLSL_SAMPLE_MS);
    ctx->disable_ubo_fetch = (key->backend & GLSL_DISABLE_UBO_FETCH);
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    /* Stuff used to do framebuffer fetch on multisample targets */
    ctx->sample_num = 0;
    ctx->per_sample_clear_list = NULL;
 #endif
 }
 
-void fragment_shader_inputs(SchedShaderInputs *ins, uint32_t primitive_type, bool ignore_centroids,
-                            const VARYING_INFO_T *varying) {
+void fragment_shader_inputs(SchedShaderInputs *ins, uint32_t primitive_type, bool prim_id,
+                            bool ignore_centroids, const VARYING_INFO_T *varying)
+{
    /* NULL out the whole structure to kill things we don't use */
    memset(ins, 0, sizeof(SchedShaderInputs));
 
    dataflow_age = 0;
 
    /* The QPU gets these and can't fetch them again, so create one copy */
-   ins->rf0 = tr_nullary(BACKFLOW_DUMMY);
-   ins->rf1 = tr_nullary(BACKFLOW_DUMMY);
-   ins->rf2 = tr_nullary(BACKFLOW_DUMMY);
+   ins->rf0 = create_node(SPECIAL_VOID);
+   ins->rf1 = create_node(SPECIAL_VOID);
+   ins->rf2 = create_node(SPECIAL_VOID);
 
-   ins->read_dep = init_frag_vary(ins, primitive_type, ignore_centroids, varying);
+   ins->read_dep = init_frag_vary(ins, primitive_type, prim_id, ignore_centroids, varying);
 }
 
 static void translate_node_array(GLSL_TRANSLATE_CONTEXT_T *ctx, const CFGBlock *b_in,
@@ -2153,7 +2229,7 @@ static void translate_node_array(GLSL_TRANSLATE_CONTEXT_T *ctx, const CFGBlock *
          if (is_const(tr->node[0]))
             nodes_out[i] = tr->node[0]->unif ? tr_const(0) : tr_const(1);
          else
-            nodes_out[i] = create_node(BACKFLOW_FL, UNPACK_NONE, SETF_NONE, tr->node[0], NULL, NULL, NULL);
+            nodes_out[i] = tr_flop(V3D_QPU_OP_VFLA, tr->node[0]);
       } else
          nodes_out[i] = tr->node[0];
    }
@@ -2180,7 +2256,7 @@ SchedBlock *translate_block(const CFGBlock *b_in, const LinkMap *link_map,
       ret->branch_per_quad = per_quad[o->id];
    }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    int max_samples = (key->backend & GLSL_SAMPLE_MS) ? 4 : 1;
    Backflow **nodes_out[4] = { NULL, };
    for (int i=0; i<max_samples; i++) nodes_out[i] = glsl_safemem_calloc(b_in->num_outputs, sizeof(Backflow *));

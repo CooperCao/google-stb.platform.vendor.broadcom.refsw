@@ -57,6 +57,7 @@ static const struct {
     {NEXUS_VideoCodec_eMpeg4Part2,BAVC_VideoCompressionStd_eMPEG4Part2},
     {NEXUS_VideoCodec_eDivx311, BAVC_VideoCompressionStd_eMPEG4Part2},
     {NEXUS_VideoCodec_eAvs, BAVC_VideoCompressionStd_eAVS},
+    {NEXUS_VideoCodec_eAvs2, BAVC_VideoCompressionStd_eAVS2},
     {NEXUS_VideoCodec_eRv40, BAVC_VideoCompressionStd_eRV9}, /* Codec ID used by Real is RV40, Real Video 9 is just a version of software first introduced implementation of RV40 video codec */
     {NEXUS_VideoCodec_eVp6, BAVC_VideoCompressionStd_eVP6},  /* Codec most often used in Flash Video */
     {NEXUS_VideoCodec_eVp7, BAVC_VideoCompressionStd_eVP7},
@@ -281,45 +282,60 @@ NEXUS_AudioCodec NEXUS_P_AudioCodec_FromMagnum(BAVC_AudioCompressionStd std)
     }
 }
 
-
-void NEXUS_Heap_ToString(const NEXUS_MemoryStatus *pStatus, char *buf, unsigned buf_size )
+void NEXUS_P_HeapInfo_ToString(char *buf, unsigned buf_size, unsigned memcIndex, unsigned heapType, unsigned memoryType)
 {
 #ifdef BDBG_DEBUG_BUILD /* used in BDBG_ERR and BDBG_MSG */
     unsigned n = 0;
-    if (pStatus->heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) {
-        n+= BKNI_Snprintf(buf, buf_size, "PICBUF%u", pStatus->memcIndex);
+    if (heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) {
+        if (memoryType & NEXUS_MEMORY_TYPE_SECURE) {
+            n+= BKNI_Snprintf(buf, buf_size, "URR%u", memcIndex);
+        }
+        else {
+            n+= BKNI_Snprintf(buf, buf_size, "PICBUF%u", memcIndex);
+        }
     }
-    else if (pStatus->heapType & NEXUS_HEAP_TYPE_MAIN) {
+    else if (heapType & NEXUS_HEAP_TYPE_MAIN) {
         n+= BKNI_Snprintf(buf, buf_size, "MAIN");
     }
-    else if (pStatus->heapType & NEXUS_HEAP_TYPE_SAGE_RESTRICTED_REGION) {
+    else if (heapType & NEXUS_HEAP_TYPE_SAGE_RESTRICTED_REGION) {
         n+= BKNI_Snprintf(buf, buf_size, "SAGE");
     }
-    else if (pStatus->heapType & NEXUS_HEAP_TYPE_COMPRESSED_RESTRICTED_REGION) {
+    else if (heapType & NEXUS_HEAP_TYPE_COMPRESSED_RESTRICTED_REGION) {
         n+= BKNI_Snprintf(buf, buf_size, "CRR");
     }
-    else if (pStatus->heapType & NEXUS_HEAP_TYPE_EXPORT_REGION) {
+    else if (heapType & NEXUS_HEAP_TYPE_CRRT) {
+        n+= BKNI_Snprintf(buf, buf_size, "CRRT");
+    }
+    else if (heapType & NEXUS_HEAP_TYPE_EXPORT_REGION) {
         n+= BKNI_Snprintf(buf, buf_size, "XRR");
     }
-    else if (pStatus->heapType & NEXUS_HEAP_TYPE_GRAPHICS) {
+    else if (heapType & NEXUS_HEAP_TYPE_GRAPHICS) {
         n+= BKNI_Snprintf(buf, buf_size, "GFX");
     }
-    else if (pStatus->heapType & NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS) {
+    else if (heapType & NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS) {
         n+= BKNI_Snprintf(buf, buf_size, "2ND_GFX");
     }
     else {
-        n+= BKNI_Snprintf(buf, buf_size, "DRIVER%u", pStatus->memcIndex);
+        n+= BKNI_Snprintf(buf, buf_size, "DRIVER%u", memcIndex);
     }
-    if (pStatus->memoryType & NEXUS_MEMORY_TYPE_SECURE && buf_size > n) {
-        if (pStatus->memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF) {
+    if (memoryType & NEXUS_MEMORY_TYPE_SECURE && buf_size > n) {
+        if (memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF) {
            n+= BKNI_Snprintf(&buf[n], buf_size-n, " (SECURE, RUNTIME: OPEN)");
         } else {
            n+= BKNI_Snprintf(&buf[n], buf_size-n, " (SECURE)");
         }
     }
 #else /* BDBG_DEBUG_BUILD */
-    BSTD_UNUSED(pStatus);
-    BSTD_UNUSED(buf);
+    *buf = '\0';
+    BSTD_UNUSED(memcIndex);
+    BSTD_UNUSED(heapType);
+    BSTD_UNUSED(memoryType);
     BSTD_UNUSED(buf_size);
 #endif
+}
+
+void NEXUS_Heap_ToString(const NEXUS_MemoryStatus *pStatus, char *buf, unsigned buf_size )
+{
+    NEXUS_P_HeapInfo_ToString(buf, buf_size, pStatus->memcIndex, pStatus->heapType, pStatus->memoryType);
+    return;
 }

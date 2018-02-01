@@ -39,6 +39,11 @@
 
 .PHONY: install_sage
 
+THIS_MFILE_DIR_FUNC := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+MY_TOP := $(call THIS_MFILE_DIR_FUNC)
+
+B_REFSW_TOP:= $(abspath $(realpath ${MY_TOP}/../../../../..))
+
 ifeq ($(SAGE_VERSION), 2x)
 # Supported SAGE secure mode:
 #     Secure mode 1 (default): Disable URR and HDCP enforcement
@@ -112,51 +117,60 @@ endif
 endif
 
 else
+
+###################################
+#####  SAGE 3.x
+###################################
 #
-# SAGE secure mode has been DEPRECATED
-#     Secure mode 1 (default): Disable URR and HDCP enforcement
-#     Secure mode 5          : Enable URR (with URR toggling) and HDCP enforcement (standard mode). Available on Zeus 4.2 only.
-#     Secure mode 6          : Enable URR and HDCP enforcement (standard mode). Available on Zeus 4.2 only.
-#     Secure mode 9          : Enable URR and HDCP enforcement (strict mode). Available on Zeus 4.2 only.
-###SAGE_SECURE_MODE_DEFAULT := 1
+# SAGE secure mode has been DEPRECATED in SAGE 3.x
 #
 
-SAGE_BL_BINARY_PATH := $(BSEAV)/lib/security/sage/bin/$(BCHP_CHIP)$(BCHP_VER)
-SAGE_APP_BINARY_PATH := $(SAGE_BL_BINARY_PATH)
+SAGE_BINARY_PATH = ${SAGE_BINARY_TOP}/$(BCHP_CHIP)$(BCHP_VER)
+
+# Try to see if SAGE firmware is pre-loaded in bin directory
+SAGE_BINARY_TOP  := ${B_REFSW_TOP}/BSEAV/lib/security/sage/bin
+ifneq ($(wildcard ${SAGE_BINARY_PATH}/sage_bl.bin),)
+VERIFY_TARGETS :=
+else
+SAGE_BINARY_TOP := $(abspath $(B_REFSW_OBJ_ROOT))/BSEAV/lib/security/sage/bin
+VERIFY_TARGETS := sbl sagesw
+ifeq ($(SAGESW_BINARIES_AVAILABLE),y)
+VERIFY_TARGETS := $(filter-out sagesw, ${VERIFY_TARGETS})
+endif
+ifeq ($(SAGEBL_BINARIES_AVAILABLE),y)
+VERIFY_TARGETS := $(filter-out sbl, ${VERIFY_TARGETS})
+endif
+endif
 
 install_sage:
 
 ifeq ($(SAGE_BINARIES_AVAILABLE),y)
 	@echo [Please install your own SAGE binaries under $(NEXUS_BIN_DIR)]
-else
 
-	@echo [Install... SAGE binaries]
-ifeq (, $(wildcard $(SAGE_BL_BINARY_PATH)/sage_bl.bin))
-	@echo "[$(SAGE_BL_BINARY_PATH)/sage_bl.bin does not exist. Please advise!]"
 else
-	${Q_}$(CP) -f $(SAGE_BL_BINARY_PATH)/sage_bl.bin ${NEXUS_BIN_DIR}
+ifneq (${VERIFY_TARGETS},)
+	@echo [Verify and download SAGE binaries to ${SAGE_BINARY_TOP}]
+	${Q_}${MKDIR} $(SAGE_BINARY_PATH)
+	${Q_}${MAKE} -C ${MY_TOP} -f Makefile SAGE_BINARY_TOP=${SAGE_BINARY_TOP} ${VERIFY_TARGETS}
 endif
 
-ifeq (, $(wildcard $(SAGE_APP_BINARY_PATH)/sage_framework.bin))
-	@echo "[$(SAGE_APP_BINARY_PATH)/sage_framework.bin does not exist. Please advise!]"
+ifneq ($(SAGEBL_BINARIES_AVAILABLE),y)
+	@echo [Install SAGEBL binaries from ${SAGE_BINARY_TOP}]
+	${Q_}$(CP) -f $(SAGE_BINARY_PATH)/sage_bl.bin ${NEXUS_BIN_DIR}
+	${Q_}$(CP) -f $(SAGE_BINARY_PATH)/dev/sage_bl_dev.bin ${NEXUS_BIN_DIR}
 else
-	${Q_}$(CP) -f $(SAGE_APP_BINARY_PATH)/sage_framework.bin ${NEXUS_BIN_DIR}
-	${Q_}$(CP) -f $(SAGE_APP_BINARY_PATH)/sage_ta*.bin ${NEXUS_BIN_DIR}
+	@echo [Please install your own SAGEBL binaries under $(NEXUS_BIN_DIR)]
 endif
 
-ifeq (, $(wildcard $(SAGE_BL_BINARY_PATH)/dev/sage_bl_dev.bin))
-	@echo "[$(SAGE_BL_BINARY_PATH)/dev/sage_bl_dev.bin does not exist. Please advise!]"
+ifneq ($(SAGESW_BINARIES_AVAILABLE),y)
+	@echo [Install SAGESW binaries from ${SAGE_BINARY_TOP}]
+	${Q_}$(CP) -f $(SAGE_BINARY_PATH)/sage_framework.bin ${NEXUS_BIN_DIR}
+	${Q_}$(CP) -f $(SAGE_BINARY_PATH)/sage_ta*.bin ${NEXUS_BIN_DIR}
+
+	${Q_}$(CP) -f $(SAGE_BINARY_PATH)/dev/sage_framework_dev.bin ${NEXUS_BIN_DIR}
+	${Q_}$(CP) -f $(SAGE_BINARY_PATH)/dev/sage_ta*.bin ${NEXUS_BIN_DIR}
 else
-	${Q_}$(CP) -f $(SAGE_BL_BINARY_PATH)/dev/sage_bl_dev.bin ${NEXUS_BIN_DIR}
+	@echo [Please install your own SAGESW binaries under $(NEXUS_BIN_DIR)]
 endif
-
-ifeq (, $(wildcard $(SAGE_APP_BINARY_PATH)/dev/sage_framework_dev.bin))
-	@echo "[$(SAGE_APP_BINARY_PATH)/dev/sage_framework_dev.bin does not exist. Please advise!]"
-else
-	${Q_}$(CP) -f $(SAGE_APP_BINARY_PATH)/dev/sage_framework_dev.bin ${NEXUS_BIN_DIR}
-	${Q_}$(CP) -f $(SAGE_APP_BINARY_PATH)/dev/sage_ta*.bin ${NEXUS_BIN_DIR}
 endif
-
-endif
-
 endif

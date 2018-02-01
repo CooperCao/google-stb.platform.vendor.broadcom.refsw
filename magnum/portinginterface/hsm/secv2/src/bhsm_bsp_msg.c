@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-******************************************************************************/
+
+ ******************************************************************************/
 
 #include <stdlib.h>
 #include "bstd.h"
@@ -44,17 +45,17 @@
 #include "bchp_bsp_control_intr2.h"
 #include "bchp_bsp_glb_control.h"
 #include "bsp_components.h"
-#ifdef BHSM_ZEUS5_BFW110
- #include "bsp_headers_BFW110.h"
-#else
  #include "bsp_headers.h"
-#endif
 #include "bhsm_bsp_msg.h"
 #include "bhsm_priv.h"
 #include "bchp_bsp_glb_control.h"
 #ifdef BHSM_BUILD_HSM_FOR_SAGE
  #include "bchp_bsp_ipi_intr2.h"
 #endif
+#ifdef BHSM_DEBUG_BSP
+  #include "bhsm_bsp_debug.h"
+#endif
+
 
 BDBG_MODULE(BHSMa);
 
@@ -138,7 +139,7 @@ typedef struct BHSM_P_BspMsg_Module_s
     BHSM_BspMsgInit_t conf;
 
     uint32_t *pSecureWord;     /* Pointer to memory location (the size of a uint32_t) that is secure. */
-    uint32_t insecureWord;     /* When there is no secure memory loaction availabe/required, pSecureWord will point to this value. */
+    uint32_t insecureWord;     /* When there is no secure memory location availabe/required, pSecureWord will point to this value. */
 
    #ifdef BHSM_BSP_INTERRUPT_SUPPORT
     BKNI_EventHandle     oLoadWait;
@@ -181,8 +182,11 @@ BERR_Code BHSM_BspMsg_Init( BHSM_Handle hHsm, BHSM_BspMsgInit_t *pParam )
 
     BDBG_ENTER( BHSM_BspMsg_Init );
 
+    if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pParam ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
-    if( !(BHSM_P_Handle*)hHsm->regHandle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( !hHsm->regHandle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     pModuleData = BKNI_Malloc( sizeof(*pModuleData) );
     if( pModuleData == NULL ) { return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); }
@@ -242,6 +246,9 @@ void BHSM_BspMsg_Uninit( BHSM_Handle hHsm )
 
     BDBG_ENTER( BHSM_BspMsg_Uninit );
 
+    if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
     if( !hHsm->modules.pBsp ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
 
    #ifdef BHSM_BSP_INTERRUPT_SUPPORT
@@ -274,9 +281,11 @@ BHSM_BspMsg_h BHSM_BspMsg_Create( BHSM_Handle hHsm, BHSM_BspMsgCreate_t *pParam 
 
     BDBG_ENTER ( BHSM_BspMsg_Create );
 
-    if( !hHsm )                    { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+    if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+    if( !pParam ){ BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
     if( !hHsm->modules.pBsp ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
-    if( !pParam )                  { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
 
     hMsg = (BHSM_BspMsg_h) BKNI_Malloc( sizeof(BHSM_P_BspMsg) );
     if( hMsg == NULL) { BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); return NULL; }
@@ -323,6 +332,7 @@ BERR_Code BHSM_BspMsg_Destroy ( BHSM_BspMsg_h hMsg )
 
     BDBG_ENTER( BHSM_BspMsg_Destroy );
 
+    if( !hMsg ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
 
     hHsm = hMsg->hHsm;
@@ -340,9 +350,9 @@ BERR_Code BHSM_BspMsg_Configure( BHSM_BspMsg_h hMsg, BHSM_BspMsgConfigure_t *pPa
 {
     BDBG_ENTER( BHSM_BspMsg_Configure );
 
-    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
-
+    if( !hMsg ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pParam ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
 
     hMsg->component = pParam->component;
     hMsg->command = pParam->command;
@@ -363,9 +373,9 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg, uint16_t *pBspStatus )
     Bsp_CmdHeader_InFields_t *pSendHeader = NULL;
     Bsp_CmdHeader_OutFields_t *pReceiveHeader = NULL;
 
-    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
-
+    if( !hMsg ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pBspStatus ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
 
     hHsm = hMsg->hHsm;
 
@@ -373,17 +383,6 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg, uint16_t *pBspStatus )
 
     /* set the mailbox header.*/
     pSendHeader = (Bsp_CmdHeader_InFields_t*)&hMsg->mailBox[0];
-
-   #ifdef BHSM_ZEUS5_BFW110
-    pSendHeader->comVerExp          = 0x00;
-    pSendHeader->comVerExpGlitch[0] = 0x55;
-    pSendHeader->comVerExpGlitch[1] = 0xAA;
-    pSendHeader->comVerExpGlitch[2] = 0x55;
-    pSendHeader->ownerId            = hHsm->modules.pBsp->ownerId;
-    pSendHeader->cmdId              = hMsg->command;
-    pSendHeader->cmdComponent       = hMsg->component;
-    pSendHeader->cmdGlitch          = (((~hMsg->component)&0xFF) << 8) | ((~hMsg->command)&0xFF);
-   #else
     pSendHeader->ownerId            = hHsm->modules.pBsp->ownerId;
     pSendHeader->signedFlag         = 0;
     pSendHeader->secondTierKeyId    = 0;
@@ -393,7 +392,6 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg, uint16_t *pBspStatus )
     pSendHeader->cmdComponent       = hMsg->component;
     pSendHeader->cmdVersion         = 0;
     pSendHeader->cmdGlitch          = (((~hMsg->component)&0xFF) << 8) | ((~hMsg->command)&0xFF);
-   #endif
 
     /* Copy data to mailbox registers. */
     for( i = 0; i < BHSM_P_MAILBOX_WORD_SIZE; i++ )
@@ -402,6 +400,10 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg, uint16_t *pBspStatus )
         writeOutbox( hHsm->regHandle, i, regValue );
         if( regValue ) commandLength = i;
     }
+
+   #ifdef BHSM_DEBUG_BSP
+    BHSM_BspDebug_PrintCommand( hHsm, (uint32_t*)hMsg->mailBox );
+   #endif
 
     for( i = 0; i <= commandLength; i++ )
     {
@@ -444,6 +446,10 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg, uint16_t *pBspStatus )
         if( regValue ) { commandLength = i; }
     }
 
+   #ifdef BHSM_DEBUG_BSP
+    BHSM_BspDebug_PrintResponse( hHsm, (uint32_t*)hMsg->mailBox );
+   #endif
+
     pReceiveHeader = (Bsp_CmdHeader_OutFields_t*)&hMsg->mailBox[0];
 
     if( !hHsm->bfwVersionValid )
@@ -480,6 +486,9 @@ void BHSM_BspMsg_DumpOutbox( BHSM_BspMsg_h hMsg )
     unsigned wordOffset;
     uint32_t value;
 
+    if( !hMsg ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
+
     hHsm = hMsg->hHsm;
 
     for( wordOffset = 0; wordOffset < BHSM_P_MAILBOX_WORD_SIZE; wordOffset++ )
@@ -497,6 +506,9 @@ void BHSM_BspMsg_DumpInbox( BHSM_BspMsg_h hMsg )
     unsigned wordOffset;
     uint32_t value;
 
+    if( !hMsg ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
+
     hHsm = hMsg->hHsm;
 
     for( wordOffset = 0; wordOffset < BHSM_P_MAILBOX_WORD_SIZE; wordOffset++ )
@@ -512,10 +524,7 @@ static void  _ParseBfwVersion( BHSM_BfwVersion *pVersion, uint32_t bspFwReleaseV
 {
     unsigned verifiedBits;
 
-    if( !pVersion ) {
-        BERR_TRACE( BERR_INVALID_PARAMETER );
-        return;
-    }
+    if( !pVersion ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
 
     BKNI_Memset( pVersion, 0, sizeof(*pVersion) );
 
@@ -556,7 +565,7 @@ static void _MailboxIntHandler_isr( void* pHsm, int unused )
     BHSM_Handle  hHsm = (BHSM_Handle)pHsm;
     BSTD_UNUSED( unused );
 
-    if( !hHsm )              { BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR ); return; }
+    if( !hHsm ) { BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR ); return; }
     if( !hHsm->modules.pBsp ){ BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR ); return; }
 
     BREG_Write32_isr( hHsm->regHandle, MAILBOX_INT_CLEAR, MAILBOX_INT_CLEAR_OLOAD_MASK );

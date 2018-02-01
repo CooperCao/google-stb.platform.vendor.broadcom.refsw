@@ -1163,11 +1163,14 @@ void BWT_VideoWindow_Render(BWT_WidgetHandle w)
 void BWT_VideoWindow_SetScale(BWT_VideoWindowHandle window, unsigned scale)
 {
     BWT_WidgetHandle w = (BWT_WidgetHandle)window;
+#if 0
     const BWT_Dimensions * dims;
+#endif
     PlatformRect r;
 
     assert(window);
 
+#if 0
     if (w->parent)
     {
         dims = BWT_Widget_GetDimensions((BWT_WidgetHandle)w->parent);
@@ -1176,6 +1179,7 @@ void BWT_VideoWindow_SetScale(BWT_VideoWindowHandle window, unsigned scale)
     {
         dims = BWT_Toolkit_GetFramebufferDimensions(w->bwt);
     }
+#endif
 
     w->dims.width = window->width * scale / 100;
     w->dims.height = window->height * scale / 100;

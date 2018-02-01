@@ -735,6 +735,16 @@ typedef struct _BHDM_Settings_
 } BHDM_Settings;
 
 
+typedef enum
+{
+	BHDM_EDID_STATE_eNotInitialized,
+	BHDM_EDID_STATE_eProcessing,
+	BHDM_EDID_STATE_eInvalid,
+	BHDM_EDID_STATE_eOK
+} BHDM_EDID_STATE;
+
+
+
 /***************************************************************************
 Summary:
 HDMI Status .
@@ -748,6 +758,7 @@ typedef struct
 	BHDM_TmdsSettings tmds ;
 	uint32_t pixelClockRate;
 	BHDM_PACKET_ACR_CONFIG stAcrPacketConfig ;
+	BHDM_EDID_STATE edidState ;
 } BHDM_Status ;
 
 

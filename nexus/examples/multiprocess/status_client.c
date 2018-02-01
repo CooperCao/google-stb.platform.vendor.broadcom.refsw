@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2011-2016 Broadcom. All rights reserved.
+ * Copyright (C) 2011-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  **************************************************************************/
 
 #include "nexus_platform.h"
@@ -98,10 +95,10 @@ int main(void)
                 "mediaPts %#x\n",
                 (void*)playpump,
                 status.started,
-                status.fifoDepth,
-                status.fifoSize,
-                status.descFifoDepth,
-                status.descFifoSize,
+                (unsigned)status.fifoDepth,
+                (unsigned)status.fifoSize,
+                (unsigned)status.descFifoDepth,
+                (unsigned)status.descFifoSize,
                 status.bufferBase,
                 (unsigned)status.bytesPlayed,
                 status.index,

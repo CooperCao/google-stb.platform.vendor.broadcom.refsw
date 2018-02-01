@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 
@@ -310,15 +311,15 @@ int bpiff_parse_stsd(batom_cursor *cursor, bmp4_box *pBox, bpiff_trackInfo *pTra
                         goto ErrorExit;
                     }
                 } else if (box.type == BMP4_CENC_DVC1) {
-                    BDBG_MSG(("%s - Got the DVC1 box, read the vc1_config data\n", __FUNCTION__));
+                    BDBG_MSG(("%s - Got the DVC1 box, read the vc1_config data\n", BSTD_FUNCTION));
                     batom_cursor_copy(cursor, pTrack->scheme.decConfig.data, box.size-box_hdr_size);
                     pTrack->scheme.decConfig.size = box.size-box_hdr_size;
                 } else if(box.type == BMP4_CENC_AVCC) {
-                    BDBG_MSG(("%s - Got the AvcC box, read the avc_config data\n", __FUNCTION__));
+                    BDBG_MSG(("%s - Got the AvcC box, read the avc_config data\n", BSTD_FUNCTION));
                     batom_cursor_copy(cursor, pTrack->scheme.decConfig.data, box.size-box_hdr_size);
                     pTrack->scheme.decConfig.size = box.size-box_hdr_size;
                 } else if(box.type == BMP4_CENC_WFEX) {
-                    BDBG_MSG(("%s - Got the wmap box, read the wmapro_config data\n", __FUNCTION__));
+                    BDBG_MSG(("%s - Got the wmap box, read the wmapro_config data\n", BSTD_FUNCTION));
                     batom_cursor_copy(cursor, pTrack->scheme.decConfig.data, box.size-box_hdr_size);
                     pTrack->scheme.decConfig.size = box.size-box_hdr_size;
                 } else if(box.type == BMP4_CENC_ESDS) {
@@ -328,7 +329,7 @@ int bpiff_parse_stsd(batom_cursor *cursor, bmp4_box *pBox, bpiff_trackInfo *pTra
                     BATOM_CLONE(&aac_cursor, cursor);
                     batom_cursor_skip(&aac_cursor, AAC_ESDS_ES_HDR_OFFSET);
 
-                    BDBG_MSG(("%s - Got the esds box, read the aac_config data\n", __FUNCTION__));
+                    BDBG_MSG(("%s - Got the esds box, read the aac_config data\n", BSTD_FUNCTION));
 
                     bmedia_info_probe_aac_info(&aac_cursor, &info_aac);
                     BKNI_Memcpy(pTrack->scheme.decConfig.data, &info_aac, sizeof(bmedia_info_aac));

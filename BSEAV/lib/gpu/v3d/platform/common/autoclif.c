@@ -212,8 +212,8 @@ void *MemDebugAutoclifAddrToPtr(void *context, uint32_t addr)
          if (AUTOCLIF_DEBUG)
          {
             autoclif_log("match existing phys(%p) key(%p) virt(%p) ret(%p)",
-               (void *)addr,
-               (void *)hit->key,
+               (void *)(uintptr_t)addr,
+               (void *)(uintptr_t)hit->key,
                hit->address,
                ret);
          }
@@ -237,8 +237,8 @@ void *MemDebugAutoclifAddrToPtr(void *context, uint32_t addr)
          if (AUTOCLIF_DEBUG)
          {
             autoclif_log("match new phys(%p) key(%p) virt(%p) ret(%p)",
-               (void *)addr,
-               (void *)hit->key,
+               (void *)(uintptr_t)addr,
+               (void *)(uintptr_t)hit->key,
                hit->address,
                ret);
          }

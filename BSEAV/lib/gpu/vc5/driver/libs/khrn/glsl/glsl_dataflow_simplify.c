@@ -92,6 +92,10 @@ static const struct dataflow_fold_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] =
    [ DATAFLOW_FUNPACKA ]           = { FOLDER_RET_FLOAT, 1, .uf = { NULL, NULL, NULL, op_funpacka }, },
    [ DATAFLOW_FUNPACKB ]           = { FOLDER_RET_FLOAT, 1, .uf = { NULL, NULL, NULL, op_funpackb }, },
 
+   [ DATAFLOW_VFMIN ]              = { FOLDER_RET_UINT,  2, .bf = { NULL, NULL, NULL, op_vfmin    }, },
+   [ DATAFLOW_VFMAX ]              = { FOLDER_RET_UINT,  2, .bf = { NULL, NULL, NULL, op_vfmax    }, },
+   [ DATAFLOW_VFMUL ]              = { FOLDER_RET_UINT,  2, .bf = { NULL, NULL, NULL, op_vfmul    }, },
+
    [ DATAFLOW_ITOF ]               = { FOLDER_RET_FLOAT, 1, .uf = { NULL, NULL, op_inttofloat, NULL }, },
    [ DATAFLOW_UTOF ]               = { FOLDER_RET_FLOAT, 1, .uf = { NULL, NULL, NULL, op_uinttofloat }, },
    [ DATAFLOW_CLZ ]                = { FOLDER_RET_UINT,  1, .uf = { NULL, NULL, NULL, op_clz }, },
@@ -595,7 +599,56 @@ static bool simplify_address_offset(
    return false;
 }
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
+static const Dataflow *is_const_sampler_unnorms(const Dataflow *d, const_value *rotate) {
+   if (d->flavour != DATAFLOW_BITWISE_AND) return NULL;
+
+   const Dataflow *r = d->d.binary_op.right;
+   if (r->flavour != DATAFLOW_CONST || r->u.constant.value != 2) return NULL;
+
+   const Dataflow *l = d->d.binary_op.left;
+   *rotate = 0;
+   if (l->flavour == DATAFLOW_ROR) {
+      const Dataflow *amnt = l->d.binary_op.right;
+      if (amnt->flavour != DATAFLOW_CONST) return NULL;
+      *rotate = amnt->u.constant.value;
+      l = l->d.binary_op.left;
+   }
+
+   if (l->flavour != DATAFLOW_SAMPLER_UNNORMS) return NULL;
+   return l->d.unary_op.operand;
+}
+#endif
+
 static Dataflow *simplify_commutative_binop(DataflowFlavour flavour, Dataflow *non_c, Dataflow *c) {
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   if (flavour == DATAFLOW_ADD && non_c->flavour == DATAFLOW_REINTERP) {
+      Dataflow *im = non_c->d.unary_op.operand;
+      if (im->flavour == DATAFLOW_CONST_IMAGE) {
+         assert((c->u.constant.value & 63) == 0);
+         const_value v = c->u.constant.value / 64;
+         return glsl_dataflow_construct_const_image(im->type, im->u.const_image.location + v, im->u.const_image.is_32bit);
+      }
+   }
+
+   if (flavour == DATAFLOW_ADD && non_c->flavour == DATAFLOW_BITWISE_XOR) {
+      const Dataflow *addr   = non_c->d.binary_op.left;
+      const Dataflow *unnorm = non_c->d.binary_op.right;
+
+      const_value rot;
+      const Dataflow *unnorm_sampler = is_const_sampler_unnorms(unnorm, &rot);
+      if (unnorm_sampler && addr->flavour == DATAFLOW_REINTERP) {
+         const Dataflow *sampler = addr->d.unary_op.operand;
+         if (sampler->flavour == DATAFLOW_CONST_SAMPLER) {
+            int sampler_row = sampler->u.linkable_value.row + c->u.constant.value / 64;
+            int unnorm_row  = unnorm_sampler->u.linkable_value.row + rot;
+            if (sampler_row == unnorm_row)
+               return glsl_dataflow_construct_linkable_value(DATAFLOW_CONST_SAMPLER, DF_SAMPLER, sampler_row);
+         }
+      }
+   }
+#endif
+
    if (non_c->type == DF_FLOAT) {
       if (is_float_zero(c->u.constant.value)) {
 #ifndef NAN_CORRECT_OPTIMISATION
@@ -670,7 +723,18 @@ static bool is_24bit_safe(const Dataflow *o) {
       if (o->d.binary_op.right->flavour == DATAFLOW_CONST && (o->d.binary_op.right->u.constant.value & sign_mask) == 0) return true;
       if (o->d.binary_op.left->flavour  == DATAFLOW_CONST && (o->d.binary_op.left->u.constant.value & sign_mask) == 0) return true;
    }
-   return false;
+   switch (o->flavour) {
+      case DATAFLOW_FRAG_GET_X_UINT:
+      case DATAFLOW_FRAG_GET_Y_UINT:
+      case DATAFLOW_NUM_SAMPLES:
+      case DATAFLOW_SG_LOCAL_IDX:
+      case DATAFLOW_GET_NUMWORKGROUPS_X:
+      case DATAFLOW_GET_NUMWORKGROUPS_Y:
+      case DATAFLOW_GET_NUMWORKGROUPS_Z:
+         return true;
+      default:
+         return false;
+   }
 }
 
 static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Dataflow *right) {
@@ -857,6 +921,7 @@ static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Da
          /* DIV and REM have already been dealt with, above */
          if (flavour == DATAFLOW_SHL) return left;
          if (flavour == DATAFLOW_SHR) return left;
+         if (flavour == DATAFLOW_ROR) return left;
       }
    }
 
@@ -866,9 +931,10 @@ static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Da
 
       if (flavour == DATAFLOW_SUB && is_numeric_zero(right)) return left;
 
-      if ((right->type == DF_INT || right->type == DF_UINT) && right->u.constant.value == 0) {
+      if ((right->type == DF_INT || right->type == DF_UINT) && (right->u.constant.value & 31) == 0) {
          if (flavour == DATAFLOW_SHL) return left;
          if (flavour == DATAFLOW_SHR) return left;
+         if (flavour == DATAFLOW_ROR) return left;
       }
 
       if (flavour == DATAFLOW_SHL && right->u.constant.value == 1)

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -64,6 +64,8 @@ NEXUS_Error NEXUS_OtpKey_GetInfo( unsigned index, NEXUS_OtpKeyInfo *pKeyInfo )
     keyInfo.index = index;
 
     NEXUS_Security_GetHsm_priv( &hHsm );
+    if( !hHsm ) { return BERR_TRACE( NEXUS_NOT_INITIALIZED ); }
+
     rc = BHSM_OtpKey_GetInfo( hHsm, &keyInfo );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
 
@@ -108,6 +110,8 @@ NEXUS_Error NEXUS_OtpKey_Program( unsigned index, const NEXUS_OtpKeyProgram * pK
     hsmKeyConfig.keyladder.level = pKeyConfig->keyladder.level;
 
     NEXUS_Security_GetHsm_priv( &hHsm );
+    if( !hHsm ) { return BERR_TRACE( NEXUS_NOT_INITIALIZED ); }
+
     rc = BHSM_OtpKey_Program( hHsm, &hsmKeyConfig );
     if( rc != BERR_SUCCESS ) {
         return BERR_TRACE( NEXUS_INVALID_PARAMETER );

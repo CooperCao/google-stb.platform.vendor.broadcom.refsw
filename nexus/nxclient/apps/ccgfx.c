@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -129,7 +129,7 @@ int main( int argc, char *argv[] )
     BDCC_WINLIB_Interface winlibInterface;
     B_Dcc_Handle ccEngine;
     B_Dcc_Settings ccEngineSettings;
-    uint32_t scaleFactor;
+    uint32_t scaleFactor = 100;
     BDCC_WINLIB_OpenSettings openSettings;
     BDCC_WINLIB_Handle winlib;
     int rc;
@@ -211,7 +211,6 @@ int main( int argc, char *argv[] )
     /* get the winlib function table */
     BDCC_WINLIB_GetInterface( &winlibInterface );
     loadFonts( winlib, &scaleFactor );
-
     rc = B_Dcc_Open( &ccEngine, winlib, &winlibInterface );
     BDBG_ASSERT(!rc);
 
@@ -288,6 +287,39 @@ static void loadFonts( BDCC_WINLIB_Handle winlib, uint32_t *scaleFactor )
     BDCC_FONT_DESCRIPTOR standardFonts[ BDCC_FontStyle_Max_Value ][BDCC_PenSize_Max_Size];
     BDCC_FONT_DESCRIPTOR italicsFonts [ BDCC_FontStyle_Max_Value ][BDCC_PenSize_Max_Size];
 
+#ifdef FREETYPE_SUPPORT
+    char *pszFontFilenames[BDCC_FontStyle_Max_Value] =
+    {
+        "cc_fonts/cinecavB_type_03.ttf", /* BDCC_FontStyle_Default    */
+        "cc_fonts/cinecavB_type_03.ttf",  /* BDCC_FontStyle_MonoSerifs */
+        "cc_fonts/cinecavB_serif_02.ttf" ,/* BDCC_FontStyle_PropSerifs */
+        "cc_fonts/cinecavB_mono_03.ttf",  /* BDCC_FontStyle_Mono       */
+        "cc_fonts/cinecavB_sans_02.ttf",  /* BDCC_FontStyle_Prop       */
+        "cc_fonts/cinecavB_casual_02.ttf",/* BDCC_FontStyle_Casual     */
+        "cc_fonts/cinecavB_script_02.ttf",/* BDCC_FontStyle_Cursive    */
+        "cc_fonts/cinecavB_sc_02.ttf"     /* BDCC_FontStyle_SmallCaps  */
+    };
+
+    int iFontSize[BDCC_FontStyle_Max_Value][CCTest_Display_Max_Size][BDCC_PenSize_Max_Size] =
+    {
+        /* 480i S M L      480p S M L      720p S M L     1080i S M L */
+
+        {{ 14, 18, 22 }, { 14, 18, 22 }, { 21, 28, 33 }, { 32, 41, 49 }}, /* BDCC_FontStyle_Default */
+        {{ 14, 18, 22 }, { 14, 18, 22 }, { 21, 28, 33 }, { 32, 41, 49 }}, /* BDCC_FontStyle_MonoSerifs */
+        {{ 12, 15, 19 }, { 12, 15, 19 }, { 18, 23, 29 }, { 28, 35, 44 }}, /* BDCC_FontStyle_PropSerifs */
+        {{ 14, 18, 22 }, { 14, 18, 22 }, { 21, 29, 34 }, { 34, 43, 52 }}, /* BDCC_FontStyle_Mono       */
+        {{ 12, 15, 19 }, { 12, 15, 19 }, { 18, 23, 29 }, { 28, 35, 44 }}, /* BDCC_FontStyle_Prop       */
+        {{ 13, 16, 20 }, { 13, 16, 20 }, { 19, 24, 30 }, { 30, 36, 45 }}, /* BDCC_FontStyle_Casual     */
+        {{ 12, 14, 18 }, { 12, 14, 18 }, { 16, 18, 25 }, { 25, 28, 38 }}, /* BDCC_FontStyle_Cursive    */
+        {{ 13, 15, 19 }, { 13, 15, 19 }, { 18, 23, 30 }, { 28, 35, 45 }}  /* BDCC_FontStyle_SmallCaps  */
+    };
+
+    /* we do not need to scale these fonts using the m2mc since the freetype engine can do it */
+    *scaleFactor = 100 ;  /* scale factor in hundredths i.e. scale factor is 1.0 */
+
+    printf("USING TRUE-TYPE FONTS\n");
+
+#else
 
 /* The following is a trade-off for pre-rendered fonts.
 **
@@ -324,12 +356,27 @@ static void loadFonts( BDCC_WINLIB_Handle winlib, uint32_t *scaleFactor )
   {{ "cc_fonts/cinecavB12i_script.bwin_font", "cc_fonts/cinecavB14i_script.bwin_font", "cc_fonts/cinecavB18i_script.bwin_font" }, { "cc_fonts/cinecavB12i_script.bwin_font", "cc_fonts/cinecavB14i_script.bwin_font", "cc_fonts/cinecavB18i_script.bwin_font" }, { "cc_fonts/cinecavB16i_script.bwin_font", "cc_fonts/cinecavB18i_script.bwin_font", "cc_fonts/cinecavB25i_script.bwin_font" }, { "cc_fonts/cinecavB25i_script.bwin_font", "cc_fonts/cinecavB28i_script.bwin_font", "cc_fonts/cinecavB38i_script.bwin_font" }}, /* BDCC_FontStyle_Cursive */
   {{ "cc_fonts/cinecavB13i_sc.bwin_font",     "cc_fonts/cinecavB15i_sc.bwin_font",     "cc_fonts/cinecavB19i_sc.bwin_font"     }, { "cc_fonts/cinecavB13i_sc.bwin_font",     "cc_fonts/cinecavB15i_sc.bwin_font",     "cc_fonts/cinecavB19i_sc.bwin_font"     }, { "cc_fonts/cinecavB18i_sc.bwin_font",     "cc_fonts/cinecavB23i_sc.bwin_font",     "cc_fonts/cinecavB30i_sc.bwin_font"     }, { "cc_fonts/cinecavB28i_sc.bwin_font",     "cc_fonts/cinecavB35i_sc.bwin_font",     "cc_fonts/cinecavB45i_sc.bwin_font"     }}  /* BDCC_FontStyle_SmallCaps */
   };
+#endif
 
     /* we do not need to scale these fonts using the m2mc since we have pre-rendered a complete set of 126!! */
     *scaleFactor = 100;  /* scale factor in hundredths i.e. scale factor is 1.0 */
 
     BKNI_Memset( standardFonts, 0, ( sizeof( BDCC_FONT_DESCRIPTOR ) * BDCC_FontStyle_Max_Value ));
     BKNI_Memset( italicsFonts , 0, ( sizeof( BDCC_FONT_DESCRIPTOR ) * BDCC_FontStyle_Max_Value ));
+
+#ifdef FREETYPE_SUPPORT
+    for ( i = 0; i < BDCC_FontStyle_Max_Value; i++){
+        for ( j = 0; j < BDCC_PenSize_Max_Size; j++){
+
+            standardFonts[ i ][ j ].pszFontFile = pszFontFilenames[ i ];
+            standardFonts[ i ][ j ].iFontSize = iFontSize[ i ][ g_DisplayMode ][ j ];
+
+            italicsFonts[ i ][ j ].pszFontFile = pszFontFilenames[ i ];
+            italicsFonts[ i ][ j ].iFontSize = iFontSize[ i ][ g_DisplayMode ][ j ];
+        }
+    }
+
+#else
 
     for ( i = 0; i < BDCC_FontStyle_Max_Value; i++){
         for ( j = 0; j < BDCC_PenSize_Max_Size; j++){
@@ -341,6 +388,7 @@ static void loadFonts( BDCC_WINLIB_Handle winlib, uint32_t *scaleFactor )
             italicsFonts[ i ][ j ].iFontSize = -1;
         }
     }
+#endif
 
     for ( i=0; i < BDCC_FontStyle_Max_Value; i++ )
     {

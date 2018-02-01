@@ -90,10 +90,9 @@ public:
    const Dflow  &operator[](uint32_t i) const { assert(i < m_size); return m_scalars[i]; }
    Dflow        &operator[](uint32_t i)       { assert(i < m_size); return m_scalars[i]; }
 
-   explicit operator bool() const { return m_scalars != nullptr; }
    bool IsNull() const { return m_scalars == nullptr; }
 
-   Dataflow **GetDataflowArray() const { return reinterpret_cast<Dataflow **>(m_scalars); }
+   Dataflow **Data() const { return reinterpret_cast<Dataflow **>(m_scalars); }
 
    static DflowScalars Initialize(const SymbolTypeHandle type, const DflowScalars &init);
    static DflowScalars Default(const DflowBuilder &builder, SymbolTypeHandle type);
@@ -102,16 +101,6 @@ public:
    {
       for (uint32_t i = 0; i < Size(); ++i)
          m_scalars[i] = nullptr;
-   }
-
-   DflowScalars CopyDflow() const
-   {
-      DflowScalars   result(*m_builder, m_size);
-
-      for (uint32_t i = 0; i < result.Size(); ++i)
-         result.m_scalars[i] = m_scalars[i];
-
-      return result;
    }
 
    static DflowScalars ConstantValue(const DflowBuilder &builder, const SymbolTypeHandle type, uint32_t value)
@@ -163,6 +152,16 @@ public:
          result.m_scalars[i] = Dflow::In(type.ToDataflowType(i), startRow++);
 
       return result;
+   }
+
+   static DflowScalars InLoad(const DflowScalars &scalars)
+   {
+      DflowScalars s(scalars.GetBuilder(), scalars.Size());
+
+      for (unsigned i = 0; i < s.Size(); i++)
+         s[i] = Dflow::InLoad(scalars[i]);
+
+      return s;
    }
 
    static DflowScalars ImageSampler(DflowBuilder &builder, const SymbolTypeHandle type,
@@ -365,7 +364,7 @@ public:
       DflowScalars result = DflowScalars(builder, numResultScalars);
 
       // required_components gets filled in the later compiler stages, when the usage of the texture is known
-      glsl_dataflow_construct_texture_lookup(result.GetDataflowArray(), numResultScalars, bits,
+      glsl_dataflow_construct_texture_lookup(result.Data(), numResultScalars, bits,
                                              image.m_dflow, Dflow::Vec4(coords).m_dflow, depthRef.m_dflow,
                                              bias.m_dflow,  offset.m_dflow, sampler.m_dflow);
 

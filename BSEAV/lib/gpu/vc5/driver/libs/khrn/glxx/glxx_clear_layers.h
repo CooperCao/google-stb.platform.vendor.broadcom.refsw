@@ -7,7 +7,7 @@
 #include "../common/khrn_fmem.h"
 #include "glxx_rect.h"
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 #ifdef __cplusplus
 extern "C" {

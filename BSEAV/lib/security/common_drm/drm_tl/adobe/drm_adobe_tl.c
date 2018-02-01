@@ -182,7 +182,7 @@ void DRM_Adobe_GetDefaultParamSettings(
 **   Set param settings
 **
 ** PARAMETERS:
-** vuduParamSettings - pointer to settings structure
+** pAdobeParamSettings - pointer to settings structure
 **
 ** RETURNS:
 **   void.
@@ -696,8 +696,13 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
 {
     BERR_Code sage_rc = BERR_SUCCESS;
     DrmRC rc = Drm_Success;
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityKeySlotSettings keyslotSettings;
     NEXUS_SecurityKeySlotInfo keyslotInfo;
+#else
+    NEXUS_KeySlotAllocateSettings keyslotSettings;
+    NEXUS_KeySlotInformation keyslotInfo;
+#endif
     BSAGElib_InOutContainer *pContainer = NULL;
     DrmAdobeKeyIndexMap_t *pSearchEntry = NULL;
     DrmAdobeMetaDataStructure *pMeta = (DrmAdobeMetaDataStructure *)pMetadata;
@@ -749,8 +754,6 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
         pSessCtx->bUseCtxforDiskIO = false;
     }
 
-
-
     /*
      *
      * Regardless if index is found on Host or not we need to perform the following actions:
@@ -760,6 +763,7 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
      *  3) assign the 'mode' to the session context
      *  4) copy IV if necessary
      **/
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_Security_GetDefaultKeySlotSettings(&keyslotSettings);
     if((DRM_Adobe_HostKeyIndexMapList_Search(&pSearchEntry, index) == true)||( pSessCtx->bUseCtxforDiskIO == true))
     {
@@ -787,28 +791,66 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
     }
 
     NEXUS_Security_GetKeySlotInfo(pSessCtx->drmCommonOpStruct.keyConfigSettings.keySlot, &keyslotInfo);
-
     BDBG_MSG(("%s - Keyslot index = '%u'", BSTD_FUNCTION, keyslotInfo.keySlotNumber));
+#else
+    NEXUS_KeySlot_GetDefaultAllocateSettings(&keyslotSettings);
+    if((DRM_Adobe_HostKeyIndexMapList_Search(&pSearchEntry, index) == true)||( pSessCtx->bUseCtxforDiskIO == true))
+    {
+        BDBG_MSG(("%s - Allocating keyslot for Host", BSTD_FUNCTION));
+        keyslotSettings.owner = NEXUS_SecurityCpuContext_eHost;
+         BDBG_MSG(("%s:loadSWKeyToKeySlot !!!",BSTD_FUNCTION));
+
+    }
+    else
+    {
+        BDBG_MSG(("%s - Allocating keyslot for SAGE", BSTD_FUNCTION));
+        keyslotSettings.owner = NEXUS_SecurityCpuContext_eSage;
+    }
+    keyslotSettings.useWithDma = true;
+    keyslotSettings.slotType   = NEXUS_KeySlotType_eIvPerBlock;
+    pSessCtx->drmCommonOpStruct.keyConfigSettings.keySlot = NEXUS_KeySlot_Allocate(&keyslotSettings);
+    NEXUS_KeySlot_GetInformation(pSessCtx->drmCommonOpStruct.keyConfigSettings.keySlot, &keyslotInfo);
+    BDBG_MSG(("%s - Keyslot index = '%u'", BSTD_FUNCTION, keyslotInfo.slotNumber));
+#endif
 
     /* set mode */
+#if (NEXUS_SECURITY_API_VERSION==1)
     pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algType = NEXUS_SecurityAlgorithm_eAes;
+#else
+    pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algType = NEXUS_CryptographicAlgorithm_eAes128;
+#endif
     if(mode == DrmAdobe_AesMode_eAESCBC)
     {
         BDBG_MSG(("%s - Setting AES-CBC operation", BSTD_FUNCTION));
+#if (NEXUS_SECURITY_API_VERSION==1)
         pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algVariant = NEXUS_SecurityAlgorithmVariant_eCbc;
         pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algType = NEXUS_SecurityAlgorithm_eAes;
+#else
+        pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algVariant = NEXUS_CryptographicAlgorithmMode_eCbc;
+        pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algType = NEXUS_CryptographicAlgorithm_eAes128;
+#endif
     }
     else if(mode == DrmAdobe_AesMode_eAESECB)
     {
         BDBG_MSG(("%s - Setting AES-ECB operation", BSTD_FUNCTION));
+#if (NEXUS_SECURITY_API_VERSION==1)
         pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algVariant = NEXUS_SecurityAlgorithmVariant_eEcb;
         pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algType = NEXUS_SecurityAlgorithm_eAes;
+#else
+        pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algVariant = NEXUS_CryptographicAlgorithmMode_eEcb;
+        pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algType = NEXUS_CryptographicAlgorithm_eAes128;
+#endif
     }
     else if(mode == DrmAdobe_AesMode_eAESCTR)
     {
+#if (NEXUS_SECURITY_API_VERSION==1)
         BDBG_MSG(("%s - Setting AES-CTR operation", BSTD_FUNCTION));
         pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algVariant = NEXUS_SecurityAlgorithmVariant_eCounter;
         pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algType = NEXUS_SecurityAlgorithm_eAesCounter;
+#else
+        pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algVariant = NEXUS_CryptographicAlgorithmMode_eCounter;
+        pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algType = NEXUS_CryptographicAlgorithm_eAes128;
+#endif
         }
     else
     {
@@ -865,12 +907,11 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
                 DRM_MSG_PRINT_BUF("pSessCtx->drmCommonOpStruct.keyIvSettings.key", pSessCtx->drmCommonOpStruct.keyIvSettings.key, pSessCtx->drmCommonOpStruct.keyIvSettings.keySize);
             }
         }
-
         /* Search for keyindex in Host list */
         if(DRM_Adobe_HostKeyIndexMapList_Search(&pSearchEntry, index) == true)
         {
             BDBG_MSG(("%s -  Index '0x%08x' found on Host side", BSTD_FUNCTION, index));
-
+ #if (NEXUS_SECURITY_API_VERSION==1)
             if(pMeta == NULL)
             {
                 BDBG_MSG(("%s -  metadata is null, setting decrypt operation", BSTD_FUNCTION));
@@ -898,7 +939,35 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
             pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.termMode       = NEXUS_SecurityTerminationMode_eClear;
             pSessCtx->drmCommonOpStruct.pKeyLadderInfo                            = NULL;
             pSessCtx->drmCommonOpStruct.keySrc                                    = CommonCrypto_eClearKey;
-
+#else
+            if(pMeta == NULL)
+            {
+                BDBG_MSG(("%s -  metadata is null, setting decrypt operation", BSTD_FUNCTION));
+                pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.opType =  NEXUS_CryptographicOperation_eDecrypt;
+            }
+            else
+            {
+                if(pMeta->encrypt != 0)
+                {
+                    BDBG_MSG(("%s -  meta->encrypt != 0, setting encrypt operation", BSTD_FUNCTION));
+                    pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.opType =  NEXUS_CryptographicOperation_eEncrypt;
+                }
+                else
+                {
+                    BDBG_MSG(("%s -  meta->encrypt == 0 setting decrypt operation", BSTD_FUNCTION));
+                    pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.opType =  NEXUS_CryptographicOperation_eDecrypt;
+                }
+            }
+            pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algType       = NEXUS_CryptographicAlgorithm_eAes128;
+            pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.algVariant     = NEXUS_CryptographicAlgorithmMode_eCbc;
+            pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.solitaryMode   = NEXUS_KeySlotTerminationSolitaryMode_eClear;
+            pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.enableExtKey   = false;
+            pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.enableExtIv    = false;
+            pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.keySlotType    = NEXUS_KeySlotPolarity_eOdd;
+            pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.termMode       = NEXUS_KeySlotTerminationMode_eClear;
+            pSessCtx->drmCommonOpStruct.pKeyLadderInfo                            = NULL;
+            pSessCtx->drmCommonOpStruct.keySrc                                    = CommonCrypto_eClearKey;
+#endif
 
             /* configure host side keyslot */
             if(DRM_Common_KeyConfigOperation(&pSessCtx->drmCommonOpStruct) != Drm_Success)
@@ -945,7 +1014,11 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
             pContainer->basicIn[0] = index;
             pContainer->basicIn[1] = (uint32_t)padtype;
             pContainer->basicIn[2] = (uint32_t)mode;
+#if (NEXUS_SECURITY_API_VERSION==1)
             pContainer->basicIn[3] =  keyslotInfo.keySlotNumber;
+#else
+            pContainer->basicIn[3] =  keyslotInfo.slotNumber;
+#endif
 
             /*
              * If meta is NULL, this indicates decryption, otherwise look at meta->encrypt  Ignored for rest
@@ -1003,8 +1076,11 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
         BDBG_MSG(("%s - session context created for DiskIO operations. Index value '0x%08x' will be ignored for future operations that are not DiskIO related", BSTD_FUNCTION,index));
         pSessCtx->drmCommonOpStruct.keyConfigSettings.keySlot = NULL;
         pSessCtx->drmCommonOpStruct.pKeyLadderInfo = NULL;
+#if (NEXUS_SECURITY_API_VERSION==1)
         pSessCtx->drmCommonOpStruct.keySrc = CommonCrypto_eOtpKey;
-
+#else
+        pSessCtx->drmCommonOpStruct.keySrc = CommonCrypto_eOtpDirect;
+#endif
         /* augment the secure_store API by being able to specify custom procIns? */
     }
 
@@ -1073,7 +1149,11 @@ void DRM_Adobe_DestroyDRMSessionCtx(DrmAdobeSessionContext_t *pCTX)
     if(pCTX->drmCommonOpStruct.keyConfigSettings.keySlot != NULL)
     {
         BDBG_MSG(("%s - Freeing keyslot...", BSTD_FUNCTION));
+#if (NEXUS_SECURITY_API_VERSION==1)
         NEXUS_Security_FreeKeySlot(pCTX->drmCommonOpStruct.keyConfigSettings.keySlot);
+#else
+        NEXUS_KeySlot_Free(pCTX->drmCommonOpStruct.keyConfigSettings.keySlot);
+#endif
 
         pCTX->drmCommonOpStruct.keyConfigSettings.keySlot = NULL;
     }
@@ -1119,7 +1199,11 @@ DrmRC DRM_Adobe_DecryptInit(DrmAdobeSessionContext_t *pCTX)
     }
 
     /**/
+#if (NEXUS_SECURITY_API_VERSION==1)
     if(pCTX->drmCommonOpStruct.keyConfigSettings.settings.algVariant == NEXUS_SecurityAlgorithmVariant_eCbc)
+#else
+    if(pCTX->drmCommonOpStruct.keyConfigSettings.settings.algVariant == NEXUS_CryptographicAlgorithmMode_eCbc)
+#endif
     {
         DRM_MSG_PRINT_BUF("pCTX->drmCommonOpStruct.keyIvSettings.iv (current iv)", pCTX->drmCommonOpStruct.keyIvSettings.iv, pCTX->drmCommonOpStruct.keyIvSettings.ivSize);
         DRM_MSG_PRINT_BUF("pCTX->iv0", pCTX->iv0, 16);
@@ -1233,7 +1317,11 @@ DrmRC DRM_Adobe_DecryptUpdate(  DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
     leftOverLength = (pCTX->prevTrailingBytesSize + length)%16;
     decryptLength = length - leftOverLength;
 
+#if (NEXUS_SECURITY_API_VERSION==1)
     if(pCTX->drmCommonOpStruct.keyConfigSettings.settings.algVariant == NEXUS_SecurityAlgorithmVariant_eCbc)
+#else
+    if(pCTX->drmCommonOpStruct.keyConfigSettings.settings.algVariant == NEXUS_CryptographicAlgorithmMode_eCbc)
+#endif
     {
         /* if the first chunk was already decrypted with Iv0 then we can overwite the keyslot with the new IV */
         if(pCTX->firstChunkDecrypted == true)
@@ -1382,7 +1470,11 @@ DrmRC DRM_Adobe_DecryptFinal(   DrmAdobeSessionContext_t *pCTX,/* Input: Pointer
         goto ErrorExit;
     }
 
+#if (NEXUS_SECURITY_API_VERSION==1)
     if(pCTX->drmCommonOpStruct.keyConfigSettings.settings.algVariant == NEXUS_SecurityAlgorithmVariant_eCbc)
+#else
+    if(pCTX->drmCommonOpStruct.keyConfigSettings.settings.algVariant == NEXUS_CryptographicAlgorithmMode_eCbc)
+#endif
     {
         /* if the first chunk was already decrypted with Iv0 then we can overwite the keyslot with the new IV */
         if(pCTX->firstChunkDecrypted == true)

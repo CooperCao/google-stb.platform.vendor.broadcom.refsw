@@ -1,6 +1,7 @@
 /******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
+#pragma once
 /*
    clean_boolean(int b)
 
@@ -17,7 +18,7 @@
    result r is 0 or 1
 */
 
-static INLINE bool clean_boolean(int b)
+static inline bool clean_boolean(int b)
 {
    return !!b;
 }
@@ -40,7 +41,7 @@ static INLINE bool clean_boolean(int b)
    result r is not NaN or infinite
 */
 
-static INLINE float clean_float(float f)
+static inline float clean_float(float f)
 {
    uint32_t u = float_to_bits(f);
 
@@ -75,7 +76,7 @@ static INLINE float clean_float(float f)
    result r is not NaN or an infinity, and l <= r <= u
 */
 
-static INLINE float clampf(float x, float l, float u)
+static inline float clampf(float x, float l, float u)
 {
    assert(l <= u);
 
@@ -106,7 +107,7 @@ static INLINE float clampf(float x, float l, float u)
    result r is not NaN or an infinity
 */
 
-static INLINE float fixed_to_float(int f)
+static inline float fixed_to_float(int f)
 {
    return (float)f / 65536.0f;
 }
@@ -125,7 +126,7 @@ static INLINE float fixed_to_float(int f)
    result r satisfies l <= r <= u
 */
 
-static INLINE int clampi(int x, int l, int u)
+static inline int clampi(int x, int l, int u)
 {
    assert(l <= u);
 

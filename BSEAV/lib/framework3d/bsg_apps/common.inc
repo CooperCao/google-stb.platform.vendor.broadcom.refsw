@@ -46,13 +46,6 @@ include $(NEXUS_TOP)/../BSEAV/opensource/zlib/zlib.inc
 include $(NEXUS_TOP)/../BSEAV/opensource/libpng/libpng.inc
 include $(NEXUS_TOP)/../BSEAV/opensource/freetype/freetype.inc
 
-# For spytool_replay only
-ifeq ($(V3D_PREFIX),vc5)
-HOOK_NAME = gpumon_hook
-else
-HOOK_NAME = spyhook
-endif
-
 B_REFSW_OBJ_DIR  ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${BSEAV}/../${B_REFSW_OBJ_DIR}
 BSG_OBJ_DIR      ?= $(B_REFSW_OBJ_ROOT)/BSEAV/lib/bsg/$(TARGET)
@@ -65,10 +58,10 @@ TARGET_DIR       := $(NEXUS_BIN_DIR)/bsg
 TARGET_APP       := $(TARGET_DIR)/$(TARGET)
 
 # Includes for most BSG files
-# The commandmap.inc is located in vc5/tools/gpumon_hook and is valid for vc4 and vc5
+# The commandmap.inc is located in tools/gpumon_hook and is valid for vc4 and vc5
 INCLUDES       += $(BSG_DIR)                                                \
                   $(V3D_DIR)/interface/khronos/include                      \
-                  $(V3D_DIR)/../../vc5/tools/gpumon_hook
+                  $(V3D_DIR)/../../tools/gpumon_hook
 
 LDFLAGS += -L$(NEXUS_BIN_DIR)
 LDFLAGS += -lbsg -lrt -lm -lnxpl -lv3ddriver -ldl

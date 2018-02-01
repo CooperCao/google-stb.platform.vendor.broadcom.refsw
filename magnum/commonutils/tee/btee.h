@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -224,12 +224,22 @@ BERR_Code BTEE_Client_ContextSwitch(
 
 /***************************************************************************
 Summary:
+    BTEE File Open Flags
+***************************************************************************/
+#define BTEE_O_RDONLY    00
+#define BTEE_O_WRONLY    01
+#define BTEE_O_RDWR      02
+#define BTEE_O_CREAT   0100
+#define BTEE_O_TRUNC  01000
+
+/***************************************************************************
+Summary:
     Open a file visible to both execution environments
 ***************************************************************************/
 BERR_Code BTEE_File_Open(
     BTEE_ClientHandle hClient,  /* Client Handle */
     const char *pPath,          /* Path to file */
-    int flags,                  /* Standard file flags defined in fcntl.h */
+    int flags,                  /* BTEE File Open Flags */
     BTEE_FileHandle *pFile      /* [out] Returned file handle */
     );
 

@@ -141,7 +141,7 @@ NEXUS_VideoInput_P_ConnectHdmiInput(NEXUS_VideoInput_P_Link *link)
     NEXUS_HdmiInput_VideoConnected_priv((NEXUS_HdmiInputHandle)link->input->source, true);
     NEXUS_HdmiInput_SetFormatChangeCb_priv((NEXUS_HdmiInputHandle)link->input->source, NEXUS_VideoInput_P_CheckFormatChange_isr, link);
     NEXUS_HdmiInput_SetHdrEvent_priv((NEXUS_HdmiInputHandle)link->input->source, link->drm.inputInfoUpdatedEvent);
-    link->secureVideo = NEXUS_HdmiInput_GetSecure_isrsafe((NEXUS_HdmiInputHandle)link->input->source);
+    link->secureVideo = NEXUS_HdmiInput_GetSecure_isrsafe((NEXUS_HdmiInputHandle)link->input->source) ? NEXUS_VideoDecoderSecureType_eSecure : NEXUS_VideoDecoderSecureType_eUnsecure;
     NEXUS_Module_Unlock(pVideo->modules.hdmiInput);
 
     return 0;

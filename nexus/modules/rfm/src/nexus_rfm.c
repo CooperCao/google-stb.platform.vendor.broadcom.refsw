@@ -143,8 +143,7 @@ NEXUS_RfmHandle NEXUS_Rfm_Open( unsigned index, const NEXUS_RfmSettings *pSettin
     rfm->audioOutput.pName = rfm->name;
     rfm->audioOutput.port = NEXUS_AudioOutputPort_eRfMod;
 
-    rc = BRFM_GetDefaultSettings(&rfmSettings, g_pCoreHandles->chp);
-    if (rc) {rc = BERR_TRACE(rc); goto error;}
+    BRFM_GetDefaultSettings(&rfmSettings, g_pCoreHandles->chp);
     rfmSettings.volume = pSettings->volume/100;
 
     rc = BRFM_Open(&rfm->mRfm, g_pCoreHandles->chp, g_pCoreHandles->reg, g_pCoreHandles->bint, &rfmSettings);
@@ -206,8 +205,7 @@ NEXUS_Error NEXUS_Rfm_SetSettings( NEXUS_RfmHandle rfm, const NEXUS_RfmSettings 
     }
     rfm->settings = *pSettings;
 
-    rc = BRFM_GetConfigSettings(rfm->mRfm, &configSettings);
-    if (rc) return BERR_TRACE(rc);
+    BRFM_GetConfigSettings(rfm->mRfm, &configSettings);
 
     configSettings.audioVideoRatio = pSettings->audioVideoRatio;
     rc = BRFM_SetConfigSettings(rfm->mRfm, &configSettings);
@@ -323,8 +321,7 @@ NEXUS_Error NEXUS_Rfm_SetConnectionSettings_priv( NEXUS_RfmHandle rfm, const NEX
         if (rc) return BERR_TRACE(rc);
     }
     else {
-        rc = BRFM_DisableRfOutput(rfm->mRfm);
-        if (rc) return BERR_TRACE(rc);
+        BRFM_DisableRfOutput(rfm->mRfm);
         rc = BRFM_EnablePowerSaver(rfm->mRfm);
         if (rc) return BERR_TRACE(rc);
     }
@@ -346,8 +343,7 @@ NEXUS_Error NEXUS_RfmModule_Standby_priv( bool enabled, const NEXUS_StandbySetti
         if ( (rfm = g_NEXUS_rfmHandle[i]) ) {
             if (enabled) { /* means that we have to power down in one way or another */
                 if (pSettings->mode != NEXUS_StandbyMode_eDeepSleep) { /* not S3 */
-                    rc = BRFM_Standby(rfm->mRfm);
-                    if (rc) { return BERR_TRACE(NEXUS_UNKNOWN); }
+                    BRFM_Standby(rfm->mRfm);
                 }
                 else {
                     BRFM_Close(rfm->mRfm);
@@ -360,8 +356,7 @@ NEXUS_Error NEXUS_RfmModule_Standby_priv( bool enabled, const NEXUS_StandbySetti
                 }
                 else {
                     BRFM_Settings rfmSettings;
-                    rc = BRFM_GetDefaultSettings(&rfmSettings, g_pCoreHandles->chp);
-                    if (rc) { return BERR_TRACE(NEXUS_UNKNOWN); }
+                    BRFM_GetDefaultSettings(&rfmSettings, g_pCoreHandles->chp);
 
                     rc = BRFM_Open(&rfm->mRfm, g_pCoreHandles->chp, g_pCoreHandles->reg, g_pCoreHandles->bint, &rfmSettings);
                     if (rc) { return BERR_TRACE(NEXUS_UNKNOWN); }

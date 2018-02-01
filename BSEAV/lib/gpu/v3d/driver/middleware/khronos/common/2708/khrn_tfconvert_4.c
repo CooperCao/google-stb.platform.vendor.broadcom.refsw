@@ -5,7 +5,6 @@
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/common/khrn_image.h"
 #include "middleware/khronos/common/2708/khrn_prod_4.h"
-#include "interface/khronos/common/khrn_api_interposer.h"
 #include "middleware/khronos/common/2708/khrn_interlock_priv_4.h"
 #include "middleware/khronos/glxx/2708/glxx_inner_4.h"
 #include "middleware/khronos/common/2708/khrn_render_state_4.h"
@@ -42,58 +41,26 @@ static uint32_t get_type_flag(KHRN_IMAGE_FORMAT_T format)
       return 0;
 }
 
-void khrn_tfconvert_logevents(BEGL_HWNotification *notification)
-{
-#ifdef TIMELINE_EVENT_LOGGING
-   EventData               ev;
-
-   /* not a real copy, just for output in spyhook so no reference counting required */
-   ev.eventData = 0;
-   ev.desc = 0;
-
-   ev.eventType = eEVENT_START;
-   ev.eventCode = eEVENT_TFCONVERT;
-   ev.eventRow  = eEVENT_RENDERER;
-   ev.eventSecs = notification->timelineData->renderStart.secs;
-   ev.eventNanosecs = 1000 * notification->timelineData->renderStart.microsecs;
-   khrn_remote_event_log(&ev);
-
-   ev.eventType = eEVENT_END;
-   ev.eventCode = eEVENT_TFCONVERT;
-   ev.eventRow  = eEVENT_RENDERER;
-   ev.eventSecs = notification->timelineData->renderEnd.secs;
-   ev.eventNanosecs = 1000 * notification->timelineData->renderEnd.microsecs;
-   khrn_remote_event_log(&ev);
-#endif
-}
-
 /* BEWARE: This is a callback function and is on another thread to the main API code
  * Anything you do in these functions must not interfere with state that might be being used on the main API thread.
  */
 void khrn_tfconvert_done(BEGL_HWCallbackRecord *cbRecord)
 {
-   KHRN_FMEM_T    *fmem = (KHRN_FMEM_T*)cbRecord->payload[0];
+   KHRN_FMEM_T    *fmem = (KHRN_FMEM_T*)((uintptr_t)cbRecord->payload[0]);
 
    khrn_job_done_fmem(fmem);
 
    free(cbRecord);
 }
 
-bool khrn_rso_to_tf_convert(GLXX_SERVER_STATE_T *state, MEM_HANDLE_T hsrc, MEM_HANDLE_T hdst)
+bool khrn_rso_to_tf_convert(GLXX_SERVER_STATE_T *state, KHRN_IMAGE_T *src, KHRN_IMAGE_T *dst)
 {
-   vcos_demand(hsrc != MEM_HANDLE_INVALID);
-   vcos_demand(hdst != MEM_HANDLE_INVALID);
-
-   KHRN_IMAGE_T *src = (KHRN_IMAGE_T *)mem_lock(hsrc, NULL);
+   vcos_demand(src != NULL);
+   vcos_demand(dst != NULL);
 
    /* if a YUV image has come through this path, ignore */
    if (get_src_format(src->format) == TLB_INVALID_FORMAT)
-   {
-      mem_unlock(hsrc);
       return false;
-   }
-
-   KHRN_IMAGE_T *dst = (KHRN_IMAGE_T *)mem_lock(hdst, NULL);
 
    bool secure = src->secure;
    /* if the src is secure, the destination must also be */
@@ -110,17 +77,11 @@ bool khrn_rso_to_tf_convert(GLXX_SERVER_STATE_T *state, MEM_HANDLE_T hsrc, MEM_H
 
    KHRN_FMEM_T *fmem = khrn_fmem_init(KHRN_INTERLOCK_USER_TEMP);
    if (!fmem)
-   {
-      mem_unlock(hsrc);
-      mem_unlock(hdst);
       return false;
-   }
 
    if (!khrn_fmem_start_render(fmem))
    {
       khrn_fmem_discard(fmem);
-      mem_unlock(hsrc);
-      mem_unlock(hdst);
       return false;
    }
 
@@ -197,9 +158,6 @@ bool khrn_rso_to_tf_convert(GLXX_SERVER_STATE_T *state, MEM_HANDLE_T hsrc, MEM_H
 
       res = true;
    }
-
-   mem_unlock(hsrc);
-   mem_unlock(hdst);
 
    return res;
 }

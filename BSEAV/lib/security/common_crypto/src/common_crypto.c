@@ -49,7 +49,6 @@
 
 #include "common_crypto.h"
 
-
 BDBG_MODULE(common_crypto);
 
 
@@ -88,13 +87,50 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(NEXUS_KeySlotHandle keySlot
 static NEXUS_Error CommonCrypto_LoadClearKey_priv(NEXUS_KeySlotHandle keySlot,
                                                   const uint8_t  *pKey,
                                                   uint32_t  keySize,
-                                                  NEXUS_KeySlotPolarity keySlotType);
+                                                  NEXUS_KeySlotBlockEntry keySlotEntryType,
+                                                  CommonCryptoKeyType);
 
 static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(NEXUS_KeySlotHandle keySlot,
-                                                     NEXUS_KeyLadderRootType keySrc,/*????*/
-                                                     NEXUS_KeySlotPolarity keySlotType,
+                                                     NEXUS_KeyLadderRootType keySrc,
+                                                     NEXUS_KeySlotBlockEntry keySlotEntryType,
                                                      const CommonCryptoKeyLadderSettings   *pKeyLadderInfo);
-#endif
+
+size_t CommonCryptoGetAlogrithmKeySize(
+    NEXUS_CryptographicAlgorithm algorithm )
+{
+    size_t        key_size = 0;
+
+    switch ( algorithm ) {
+    case NEXUS_CryptographicAlgorithm_eDes:
+        key_size = 8;
+        break;
+    case NEXUS_CryptographicAlgorithm_e3DesAba:
+        key_size = 8 * 2;       /* Actually 8 * 2 */
+        break;
+    case NEXUS_CryptographicAlgorithm_e3DesAbc:
+        key_size = 8 * 3;
+        break;
+    case NEXUS_CryptographicAlgorithm_eAes128:
+        key_size = 128 / 8;
+        break;
+    case NEXUS_CryptographicAlgorithm_eAes192:
+        key_size = 192 / 8;
+        break;
+    case NEXUS_CryptographicAlgorithm_eAes256:
+    case NEXUS_CryptographicAlgorithm_eMulti2:
+        key_size = 256 / 8;
+        break;
+    default:
+        /* Invalid */
+        key_size = 0;
+        BDBG_ERR( ( "Can't get algorithm %d's key size", algorithm ) );
+        break;
+    }
+
+    return key_size;
+}
+
+#endif /*#if NEXUS_SECURITY_API_VERSION==1 */
 
 
 static void CommonCrypto_P_InitializeVideoSecureHeapInfo(CommonCryptoHandle handle);
@@ -115,18 +151,23 @@ void CommonCrypto_GetDefaultSettings(
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 }
 
-#if (NEXUS_SECURITY_API_VERSION==1)
+
 void CommonCrypto_GetDefaultCipheredKeySettings(
     CommonCryptoCipheredKeySettings *pSettings    /* [out] default settings */
     )
 {
+
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityAlgorithmSettings nexusAlgSettings;
+#endif
     BDBG_ASSERT(pSettings != NULL);
     BKNI_Memset(pSettings, 0, sizeof(CommonCryptoCipheredKeySettings));
     CommonCrypto_GetDefaultKeyLadderSettings(&pSettings->settings);
 
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_Security_GetDefaultAlgorithmSettings(&nexusAlgSettings);
     pSettings->keySlotType = nexusAlgSettings.keyDestEntryType;
+#endif
 }
 
 
@@ -134,14 +175,19 @@ void CommonCrypto_GetDefaultClearKeySettings(
     CommonCryptoClearKeySettings *pSettings    /* [out] default settings */
     )
 {
+
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityAlgorithmSettings nexusAlgSettings;
+#endif
     BDBG_ASSERT(pSettings != NULL);
     BKNI_Memset(pSettings, 0, sizeof(CommonCryptoClearKeySettings));
-
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_Security_GetDefaultAlgorithmSettings(&nexusAlgSettings);
     pSettings->keySlotType = nexusAlgSettings.keyDestEntryType;
-}
 #endif
+
+}
+
 
 #if (NEXUS_SECURITY_HAS_ASKM == 1)
 #define UINT32_MAX__ (0xFFFFFFFF -1)
@@ -178,6 +224,7 @@ static uint32_t strToHex(const char *s)
    return result;
 }
 #endif  /*NEXUS_SECURITY_HAS_ASKM == 1*/
+
 #if (NEXUS_SECURITY_API_VERSION==1)
 
 void CommonCrypto_GetDefaultKeyConfigSettings(
@@ -230,6 +277,21 @@ void CommonCrypto_GetDefaultKeyConfigSettings(
 #endif /*(NEXUS_SECURITY_HAS_ASKM == 1)*/
 }
 
+#else /*(NEXUS_SECURITY_API_VERSION==1)*/
+
+void CommonCrypto_GetDefaultKeyConfigSettings(
+    CommonCryptoKeyConfigSettings *pSettings    /* [out] default settings */ )
+    {
+         BDBG_ASSERT(pSettings != NULL);
+         BKNI_Memset(pSettings, 0, sizeof(CommonCryptoKeyConfigSettings));
+         pSettings->settings.caVendorID      = 0x8176;
+         pSettings->settings.stbOwnerID      =  NEXUS_KeyLadderStbOwnerIdSelect_eOne;
+    }
+
+#endif /*(NEXUS_SECURITY_API_VERSION==1)*/
+
+#if (NEXUS_SECURITY_API_VERSION==1)
+
 void CommonCrypto_GetDefaultKeySettings(
     CommonCryptoKeySettings *pSettings,    /* [out] default settings */
     CommonCryptoKeySrc keySrc
@@ -246,7 +308,26 @@ void CommonCrypto_GetDefaultKeySettings(
         CommonCrypto_GetDefaultKeyLadderSettings((CommonCryptoKeyLadderSettings*)&pSettings->src);
     }
 }
-#endif
+
+#else /*#if (NEXUS_SECURITY_API_VERSION==1)*/
+
+
+void CommonCrypto_GetDefaultKeySettings(
+    CommonCryptoKeySettings *pSettings,    /* [out] default settings */
+    CommonCryptoKeySrc keySrc
+    )
+{
+
+    BDBG_ASSERT(pSettings != NULL);
+    BKNI_Memset(pSettings, 0, sizeof(CommonCryptoKeySettings));
+
+    if(keySrc != CommonCrypto_eClearKey){
+        CommonCrypto_GetDefaultKeyLadderSettings((CommonCryptoKeyLadderSettings*)&pSettings->src);
+    }
+}
+
+#endif /*#if (NEXUS_SECURITY_API_VERSION==1)*/
+
 
 CommonCryptoHandle CommonCrypto_Open(
     const CommonCryptoSettings *pSettings
@@ -256,6 +337,7 @@ CommonCryptoHandle CommonCrypto_Open(
     BERR_Code magnumRc;
     CommonCryptoHandle  pCrypto;
     CommonCryptoSettings defaultSettings;
+
 
     if (!pSettings) {
         CommonCrypto_GetDefaultSettings(&defaultSettings);
@@ -358,7 +440,37 @@ void CommonCrypto_GetDefaultKeyLadderSettings(
     BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return;
 }
-#endif
+
+#else /*#if (NEXUS_SECURITY_API_VERSION==1)*/
+
+void CommonCrypto_GetDefaultKeyLadderSettings(
+        CommonCryptoKeyLadderSettings *pSettings)
+{
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
+    pSettings->overwriteKeyLadderOperation = false;
+    pSettings->overwriteVKLSettings = false;
+    pSettings->KeyLadderOpStruct.SessionKeyOperation = NEXUS_CryptographicOperation_eDecrypt;
+    pSettings->KeyLadderOpStruct.SessionKeyOperationKey2 = NEXUS_CryptographicOperation_eEncrypt;
+    pSettings->KeyLadderOpStruct.ControlWordKeyOperation = NEXUS_CryptographicOperation_eDecrypt;
+
+
+    pSettings->keyladderMode = NEXUS_KeyLadderMode_eCp_128_4;
+    pSettings->askmSupport = false;
+    pSettings->aesKeySwap = false;
+    pSettings->key4Size = COMMON_CRYPTO_PROC_SIZE;
+    pSettings->key3Size = COMMON_CRYPTO_PROC_SIZE;
+
+    pSettings->globalKeyOwnerId = NEXUS_KeyLadderGlobalKeyOwnerIdSelect_eOne;
+    pSettings->globalKeyIndex = 0;
+
+
+
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
+    return;
+}
+
+#endif /*#if (NEXUS_SECURITY_API_VERSION==1)*/
+
 
 void CommonCrypto_GetSettings(
     CommonCryptoHandle handle,
@@ -432,6 +544,7 @@ static bool CommonCrypto_EnsureDmaJobResources_priv(
         nBlocks = MINIMUM_DESCRIPTORS;
 
     handle->dmaJobSettings.numBlocks = nBlocks;
+    BDBG_MSG(("%s: keySlot = %p ", BSTD_FUNCTION,(void*)pJobSettings->keySlot ));
     handle->dmaJobSettings.keySlot = pJobSettings->keySlot;
     handle->dmaJobSettings.dataFormat = pJobSettings->dataFormat;
     handle->dmaJob = NEXUS_DmaJob_Create(handle->dmaHandle, &handle->dmaJobSettings);
@@ -482,6 +595,13 @@ NEXUS_Error CommonCrypto_DmaXfer(
 
     for(ii = 0; ii < nBlocks; ii++)
     {
+
+            BDBG_MSG(("%s: block %d: cached=%d, security.btp=%d",BSTD_FUNCTION,ii,handle->localBlkSettings[ii].cached, handle->localBlkSettings[ii].securityBtp ));
+            BDBG_MSG (("%s:resetCrypto=%d,scatterGatherCryptoStart=%d,scatterGatherCryptoEn=%d",BSTD_FUNCTION,handle->localBlkSettings[ii].resetCrypto,
+                handle->localBlkSettings[ii].scatterGatherCryptoStart,
+                handle->localBlkSettings[ii].scatterGatherCryptoEnd  ));
+
+
         if(handle->localBlkSettings[ii].pSrcAddr == NULL ||
            handle->localBlkSettings[ii].pDestAddr == NULL)
         {
@@ -504,6 +624,7 @@ NEXUS_Error CommonCrypto_DmaXfer(
 
             if(handle->localBlkSettings[ii].pDestAddr != handle->localBlkSettings[ii].pSrcAddr)
             {
+                BDBG_MSG(("%s:source and destination are different, hence flush the destination address also",BSTD_FUNCTION));
                 /* Flush cache for the destination buffer. */
                 rc = CommonCrypto_P_FlushCache(handle, handle->localBlkSettings[ii].pDestAddr, handle->localBlkSettings[ii].blockSize);
                 if(rc != NEXUS_SUCCESS)
@@ -546,7 +667,7 @@ NEXUS_Error CommonCrypto_DmaXfer(
         /* in the SAGE video secure heap.                                                           */
         if(pBlkSettings[ii].cached)
         {
-            /* Flush cache for the source buffer. */
+            /* Flush cache for the Destination buffer. */
             rc = CommonCrypto_P_FlushCache(handle, pBlkSettings[ii].pDestAddr, pBlkSettings[ii].blockSize);
             if(rc != NEXUS_SUCCESS)
             {
@@ -562,6 +683,7 @@ errorExit:
 }
 
 #if (NEXUS_SECURITY_API_VERSION==1)
+
 NEXUS_Error CommonCrypto_P_LoadKeyConfig(
     CommonCryptoHandle handle,
     NEXUS_KeySlotHandle keySlot,
@@ -588,7 +710,7 @@ NEXUS_Error CommonCrypto_P_LoadKeyConfig(
         nexusConfig.enableExtIv         = pSettings->enableExtIv;
         nexusConfig.aesCounterSize      = pSettings->aesCounterSize;
         nexusConfig.aesCounterMode      = pSettings->aesCounterMode;
-        nexusConfig.solitarySelect		= pSettings->solitaryMode;
+        nexusConfig.solitarySelect      = pSettings->solitaryMode;
 
 #if (NEXUS_SECURITY_HAS_ASKM == 1)
         nexusConfig.key2Select          = pSettings->maskKey2Select;
@@ -613,6 +735,72 @@ NEXUS_Error CommonCrypto_P_LoadKeyConfig(
 
     return rc;
 }
+
+#else /*#if (NEXUS_SECURITY_API_VERSION==1)*/
+
+NEXUS_Error CommonCrypto_P_LoadKeyConfig(
+    CommonCryptoHandle handle,
+    NEXUS_KeySlotHandle keySlotHandle,
+    const CommonCryptoAlgorithmSettings *pSettings)
+    {
+
+        NEXUS_Error rc = NEXUS_SUCCESS;
+        NEXUS_KeySlotSettings keyslotSettings;
+        NEXUS_KeySlotEntrySettings keyslotEntrySettings;
+        NEXUS_KeySlotBlockEntry slotEntry;
+        /*NEXUS_KeySlotExternalKeyData extKeyData;*/
+
+        BSTD_UNUSED (handle);
+
+        BDBG_MSG(("%s - Entered function ^^^^^^^^^****************", BSTD_FUNCTION));
+        BDBG_MSG(("%s: keyslot=%p, pSettings->algType=%d", BSTD_FUNCTION, (void *)keySlotHandle,pSettings->algType));
+
+        if(pSettings->opType==NEXUS_CryptographicOperation_eEncrypt)
+        {
+            BDBG_MSG(("%s: setting keyslot entery for encrypt",BSTD_FUNCTION));
+            slotEntry = NEXUS_KeySlotBlockEntry_eCpsClear;
+        }
+        if(pSettings->opType==NEXUS_CryptographicOperation_eDecrypt)
+        {
+            BDBG_MSG(("%s: setting keyslot entery for decrypt",BSTD_FUNCTION));
+            slotEntry = NEXUS_KeySlotBlockEntry_eCpdClear;
+        }
+
+        /* configure a keyslot's parameters */
+        NEXUS_KeySlot_GetSettings( keySlotHandle, &keyslotSettings );
+        rc = NEXUS_KeySlot_SetSettings( keySlotHandle, &keyslotSettings );
+        if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto ErrorExit; }
+
+        /* configure a keyslot's entry parameters */
+        NEXUS_KeySlot_GetEntrySettings( keySlotHandle, slotEntry, &keyslotEntrySettings );
+        keyslotEntrySettings.algorithm = pSettings->algType;
+        keyslotEntrySettings.algorithmMode = pSettings->algVariant;
+        keyslotEntrySettings.terminationMode = pSettings->termMode;
+        keyslotEntrySettings.terminationMode = pSettings->termMode;
+
+        BDBG_MSG(("%s - counter settings coustersize= %d, countermode=%d", BSTD_FUNCTION,pSettings->aesCounterSize ,pSettings->aesCounterMode));
+        keyslotEntrySettings.counterSize     = pSettings->aesCounterSize;
+        keyslotEntrySettings.counterMode     = pSettings->aesCounterMode;
+        keyslotEntrySettings.solitaryMode    = pSettings->solitaryMode;
+
+        keyslotEntrySettings.rPipeEnable = true;
+        keyslotEntrySettings.gPipeEnable = true;
+
+        BDBG_MSG(("%s: ExtIv=%d, ExtKey=%d", BSTD_FUNCTION,pSettings->enableExtIv,pSettings->enableExtKey ));
+        /* Specify to use external IV and key from BTP. */
+        keyslotEntrySettings.external.iv = pSettings->enableExtIv;
+        keyslotEntrySettings.external.key = pSettings->enableExtKey;
+
+
+        rc = NEXUS_KeySlot_SetEntrySettings( keySlotHandle, slotEntry, &keyslotEntrySettings );
+        if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto ErrorExit;}
+ErrorExit:
+            return rc;
+    }
+
+#endif /*#if (NEXUS_SECURITY_API_VERSION==1)*/
+
+
 NEXUS_Error CommonCrypto_LoadKeyConfig(
     CommonCryptoHandle handle,
     const CommonCryptoKeyConfigSettings *pSettings
@@ -622,13 +810,13 @@ NEXUS_Error CommonCrypto_LoadKeyConfig(
 
     BDBG_ASSERT(pSettings != NULL);
     BDBG_ASSERT(pSettings->keySlot != NULL);
-
+    BDBG_MSG(("%s:Calling CommonCrypto_P_LoadKeyConfig with keyslot=%p, %p",BSTD_FUNCTION,(void *)pSettings->keySlot, (void *)&pSettings->keySlot));
     rc = CommonCrypto_P_LoadKeyConfig(handle, pSettings->keySlot, &pSettings->settings);
 
     return rc;
 }
 
-
+#if (NEXUS_SECURITY_API_VERSION==1)
 
 NEXUS_Error CommonCrypto_P_LoadClearKeyIv(
     CommonCryptoHandle handle,
@@ -687,14 +875,83 @@ NEXUS_Error CommonCrypto_LoadClearKeyIv(
     return rc;
 }
 
+#else /*#if (NEXUS_SECURITY_API_VERSION==1)*/
+
+NEXUS_Error CommonCrypto_P_LoadClearKeyIv(
+    CommonCryptoHandle handle,
+    NEXUS_KeySlotHandle keySlot,
+    NEXUS_KeySlotBlockEntry keySlotEntryType,
+    const CommonCryptoKeyIvSettings *pKeyIvStruct
+    )
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    BSTD_UNUSED(handle);
+
+
+    BDBG_MSG(("%s: pKeyIvStruct->keySize=%d,pKeyIvStruct->ivSize=%d",BSTD_FUNCTION,pKeyIvStruct->keySize,pKeyIvStruct->ivSize ));
+    if(pKeyIvStruct->keySize > 0 )
+    {
+        rc = CommonCrypto_LoadClearKey_priv(keySlot,
+                                pKeyIvStruct->key,
+                                pKeyIvStruct->keySize,
+                                keySlotEntryType,
+                                CommonCryptoKeyType_eKey);
+
+
+        if(rc != NEXUS_SUCCESS){
+            return BERR_TRACE(rc);
+        }
+    }
+
+
+        if(pKeyIvStruct->ivSize > 0)
+        {
+            rc = CommonCrypto_LoadClearKey_priv(keySlot,
+                                    pKeyIvStruct->iv,
+                                    pKeyIvStruct->ivSize,
+                                    keySlotEntryType,
+                                    CommonCryptoKeyType_eIv);
+            if(rc != NEXUS_SUCCESS){
+                return BERR_TRACE(rc);
+            }
+
+    }
+
+   return rc;
+}
+
+NEXUS_Error CommonCrypto_LoadClearKeyIv(
+    CommonCryptoHandle handle,
+    const CommonCryptoClearKeySettings *pSettings
+    )
+{
+    NEXUS_Error rc;
+
+    BDBG_ASSERT(pSettings != NULL);
+    BDBG_ASSERT(pSettings->keySlot != NULL);
+
+    rc = CommonCrypto_P_LoadClearKeyIv(handle, pSettings->keySlot, pSettings->keySlotEntryType, &pSettings->settings);
+
+    return rc;
+}
+
+#endif /*#if (NEXUS_SECURITY_API_VERSION==1)*/
+
+
 static NEXUS_Error CommonCrypto_P_LoadCipheredKey(
     NEXUS_KeySlotHandle keySlot,
     CommonCryptoKeySrc keySrc,
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityKeyType keySlotType,
+#else
+     NEXUS_KeySlotBlockEntry keySlotType,
+#endif
     const CommonCryptoKeyLadderSettings *pKeyLadderInfo
     )
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
+
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityRootKeySrc  rootKeySrc;
 
     switch(keySrc)
@@ -715,7 +972,33 @@ static NEXUS_Error CommonCrypto_P_LoadCipheredKey(
             return BERR_TRACE(NEXUS_INVALID_PARAMETER);
             break;
     }
+#else
+    NEXUS_KeyLadderRootType  rootKeySrc;
 
+    switch(keySrc)
+    {
+     /*   case CommonCrypto_eCustKey:
+            BDBG_MSG(("%s: cust key ",BSTD_FUNCTION));
+            rootKeySrc = NEXUS_KeyLadderRootType_eCustomerKey;
+            break;*/
+        case CommonCrypto_eOtpAskm:
+            BDBG_MSG(("%s: OtpAskm key ",BSTD_FUNCTION));
+            rootKeySrc = NEXUS_KeyLadderRootType_eOtpAskm;
+            break;
+        case CommonCrypto_eOtpDirect:
+            BDBG_MSG(("%s: OtpDirect key ",BSTD_FUNCTION));
+            rootKeySrc = NEXUS_KeyLadderRootType_eOtpDirect;
+            break;
+        case CommonCrypto_eGlobalKey:
+            BDBG_MSG(("%s: global key ",BSTD_FUNCTION));
+            rootKeySrc = NEXUS_KeyLadderRootType_eGlobalKey;
+            break;
+        default:
+            BDBG_ERR(("%s: Invalid keyladderrootType /keySrc = %d",BSTD_FUNCTION,keySrc));
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            break;
+    }
+#endif
     rc = CommonCrypto_LoadCipheredKey_priv(keySlot, rootKeySrc, keySlotType, pKeyLadderInfo);
 
     return rc;
@@ -732,10 +1015,16 @@ NEXUS_Error CommonCrypto_LoadCipheredKey(
     BDBG_ASSERT(pSettings->keySlot != NULL);
     BSTD_UNUSED(handle);
 
+#if (NEXUS_SECURITY_API_VERSION==1)
     rc = CommonCrypto_P_LoadCipheredKey(pSettings->keySlot, pSettings->keySrc, pSettings->keySlotType, &pSettings->settings);
 
+#else
+    rc = CommonCrypto_P_LoadCipheredKey(pSettings->keySlot, pSettings->keySrc, pSettings->keySlotEntryType, &pSettings->settings);
+#endif
     return rc;
 }
+
+#if (NEXUS_SECURITY_API_VERSION==1)
 
 NEXUS_Error CommonCrypto_SetupKey(
     CommonCryptoHandle handle,
@@ -780,9 +1069,59 @@ NEXUS_Error CommonCrypto_SetupKey(
     BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return rc;
 }
-#endif
+#else /*#if (NEXUS_SECURITY_API_VERSION==1)*/
+
+NEXUS_Error CommonCrypto_SetupKey(
+    CommonCryptoHandle handle,
+    const CommonCryptoKeySettings *pSettings
+    )
+{
+    NEXUS_Error rc  = NEXUS_SUCCESS;
+
+    BDBG_ASSERT(pSettings != NULL);
+    BDBG_ASSERT(pSettings->keySlot != NULL);
+
+    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
+
+    rc = CommonCrypto_P_LoadKeyConfig(handle,
+                            pSettings->keySlot,
+                            &pSettings->alg);
+    if(rc != NEXUS_SUCCESS) {
+        return BERR_TRACE(rc);
+    }
+
+     switch(pSettings->keySrc){
+        case CommonCrypto_eClearKey:
+
+            rc = CommonCrypto_P_LoadClearKeyIv(handle,
+                            pSettings->keySlot,
+                            pSettings->alg.keySlotEntryType,
+                            &pSettings->src.keyIvInfo);
+            break;
+        /*case CommonCrypto_eCustKey:*/
+        case CommonCrypto_eOtpAskm:
+        case CommonCrypto_eOtpDirect:
+        case CommonCrypto_eGlobalKey:
+            rc = CommonCrypto_P_LoadCipheredKey(
+                            pSettings->keySlot,
+                            pSettings->keySrc,
+                            pSettings->alg.keySlotEntryType,
+                            &pSettings->src.keyLadderInfo);
+            break;
+        default:
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            break;
+    }
+
+    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
+    return rc;
+}
+
+#endif /*#if (NEXUS_SECURITY_API_VERSION==1)*/
+
 
 #if (NEXUS_SECURITY_API_VERSION==1)
+
 static NEXUS_Error CommonCrypto_LoadClearKey_priv(
     NEXUS_KeySlotHandle keySlot,
     const uint8_t *pKey,
@@ -790,17 +1129,6 @@ static NEXUS_Error CommonCrypto_LoadClearKey_priv(
     NEXUS_SecurityKeyType keySlotType,
     NEXUS_SecurityKeyIVType keyIvType
     )
-    /*
-#else
-
-static NEXUS_Error CommonCrypto_LoadClearKey_priv(
-    NEXUS_KeySlotHandle keySlot,
-    const uint8_t  *pKey,
-    uint32_t  keySize,
-    NEXUS_KeySlotPolarity keySlotType
-    )
-#endif*/
-
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_SecurityClearKey swKey;
@@ -808,11 +1136,8 @@ static NEXUS_Error CommonCrypto_LoadClearKey_priv(
     BDBG_ASSERT(pKey != NULL);
     BDBG_ASSERT(keySlot != NULL);
 
-#if (NEXUS_SECURITY_API_VERSION==1)
     BDBG_MSG(("%s - Loading sw key or iv... (keyIvType = %u) keySlotType = %u", BSTD_FUNCTION, keyIvType, keySlotType));
-#else
-    BDBG_MSG(("%s - Loading sw key or iv... keySlotType = %u", BSTD_FUNCTION, keySlotType));
-#endif
+
     if(keySize > sizeof(swKey.keyData)){
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
@@ -836,9 +1161,61 @@ static NEXUS_Error CommonCrypto_LoadClearKey_priv(
 
     return rc;
 }
-#endif
+
+#else /*#if (NEXUS_SECURITY_API_VERSION==1)*/
+
+static NEXUS_Error CommonCrypto_LoadClearKey_priv(
+    NEXUS_KeySlotHandle keySlot,
+    const uint8_t  *pKey,
+    uint32_t  keySize,
+    NEXUS_KeySlotBlockEntry keySlotEntryType,
+    CommonCryptoKeyType keyType)
+    {
+
+        NEXUS_Error rc = NEXUS_SUCCESS;
+        NEXUS_KeySlotKey slotKey;
+        NEXUS_KeySlotIv slotIv;
+        NEXUS_KeySlotBlockEntry entry;
+        NEXUS_KeySlotEntrySettings keyslotEntrySettings;
+
+        BDBG_ASSERT(pKey != NULL);
+        BDBG_ASSERT(keySlot != NULL);
+
+        entry = keySlotEntryType;
+
+        BDBG_MSG( ( "Loads the clear key to key entry #%d.\n", entry ) );
+
+        NEXUS_KeySlot_GetEntrySettings( keySlot, entry, &keyslotEntrySettings );
+
+        BDBG_MSG(("%s: keyslotEntrySettings.algorithm =%d",BSTD_FUNCTION,keyslotEntrySettings.algorithm));
+
+        if(keyType == CommonCryptoKeyType_eKey) {
+            slotKey.size = keySize;
+            BKNI_Memcpy( slotKey.key, pKey, keySize );
+
+            rc = NEXUS_KeySlot_SetEntryKey( keySlot, entry, &slotKey );
+            if( rc != NEXUS_SUCCESS )
+            { BERR_TRACE( rc ); goto ErrorExit;}
+        }
+
+        if(keyType == CommonCryptoKeyType_eIv) {
+            slotIv.size = keySize;
+            BKNI_Memcpy( slotIv.iv, pKey, keySize );
+
+            rc = NEXUS_KeySlot_SetEntryIv( keySlot, entry, &slotIv, NULL );
+            if( rc != NEXUS_SUCCESS )
+            { BERR_TRACE( rc ); goto ErrorExit;}
+        }
+
+ErrorExit:
+        return rc;
+
+    }
+
+#endif /*#if (NEXUS_SECURITY_API_VERSION==1)*/
 
 #if (NEXUS_SECURITY_API_VERSION==1)
+
 static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
     NEXUS_KeySlotHandle keySlot,
     NEXUS_SecurityRootKeySrc keySrc,
@@ -848,7 +1225,7 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
 
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-/*SWSECDRM-1165 : use dynamic vkl allocation for all Zeus version*/
+    /*SWSECDRM-1165 : use dynamic vkl allocation for all Zeus version*/
 
     NEXUS_SecurityVKLSettings    vklSettings;
     NEXUS_VirtualKeyLadderHandle vkl = NULL;
@@ -883,8 +1260,8 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
     NEXUS_Security_GetDefaultControlWordSettings(&encrytedCW);
 
     encryptedSessionkey.keyladderID     = pKeyLadderInfo->keyladderID;
-    encryptedSessionkey.keyladderType	= pKeyLadderInfo->keyladderType;
-    encryptedSessionkey.swizzleType		= pKeyLadderInfo->swizzleType;
+    encryptedSessionkey.keyladderType   = pKeyLadderInfo->keyladderType;
+    encryptedSessionkey.swizzleType     = pKeyLadderInfo->swizzleType;
 
     encryptedSessionkey.rootKeySrc      = keySrc;
     encryptedSessionkey.bRouteKey       = false;
@@ -969,72 +1346,72 @@ handle_error:
     BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return rc;
 }
-#else
-#if 0
+
+#else /*#if (NEXUS_SECURITY_API_VERSION==1)*/
+
 static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
     NEXUS_KeySlotHandle keySlot,
-    NEXUS_KeyLadderRootType keySrc,/*????*/
-    NEXUS_KeySlotPolarity keySlotType,
+    NEXUS_KeyLadderRootType keySrc,
+    NEXUS_KeySlotBlockEntry keySlotEntryType,
     const CommonCryptoKeyLadderSettings   *pKeyLadderInfo
     )
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    NEXUS_KeyLadderHandle vklHandle = NULL;
-    NEXUS_KeyLadderAllocateSettings vklSettings;
-    NEXUS_KeyLadderInformation vklInfo;
+
+    NEXUS_KeyLadderHandle klHandle = NULL;
+    NEXUS_KeyLadderAllocateSettings klSettings;
+    NEXUS_KeyLadderInfo keyLadderInfo;
+
     NEXUS_KeyLadderSettings ladderSettings;
     NEXUS_KeyLadderLevelKey levelKey;
 
-#if 0
-
-    NEXUS_SecurityEncryptedSessionKey encryptedSessionkey;
-    NEXUS_SecurityEncryptedControlWord encrytedCW;
-#endif
     BDBG_ASSERT(pKeyLadderInfo != NULL);
     BDBG_ASSERT(keySlot != NULL);
 
-    /*SWSECDRM-1165 : use dynamic vkl allocation for all Zeus version*/
-#if 0
-    /* Allocate a VKL */
-    NEXUS_Security_GetDefaultVKLSettings(&vklSettings);
-    vklSettings.custSubMode = pKeyLadderInfo->VirtualKeyLadderSettings.CustSubMode;
-    vklSettings.client      = NEXUS_SecurityClientType_eHost;
-    vkl = NEXUS_Security_AllocateVKL(&vklSettings);
-    if(vkl == NULL)
-    {
-        BDBG_ERR(("%s - Failure to allocate a VKL.", BSTD_FUNCTION));
-        rc = NEXUS_NOT_AVAILABLE;
-        goto handle_error;
-    }
-
-    /* Retrieve VKL info */
-    NEXUS_Security_GetVKLInfo(vkl, &vklInfo);
-#else
-
-    NEXUS_KeyLadder_GetDefaultAllocateSettings(&vklSettings);
-    vklSettings.owner = NEXUS_SecurityCpuContext_eHost;
-    vklHandle = NEXUS_KeyLadder_Allocate(0, &vklSettings);
+    BDBG_MSG(("%s:keySrc = %d,Keyslotentry =%d",BSTD_FUNCTION,keySrc,keySlotEntryType));
+    /* Allocate a keyladder*/
+    NEXUS_KeyLadder_GetDefaultAllocateSettings(&klSettings);
+    klSettings.owner = NEXUS_SecurityCpuContext_eHost;
+    klHandle = NEXUS_KeyLadder_Allocate(NEXUS_ANY_ID, &klSettings);
+    if( !klHandle ) { return BERR_TRACE( NEXUS_NOT_AVAILABLE ); }
 
     /* Retrieve id */
-    NEXUS_KeyLadder_GetInformation(vklHandle, &vklInfo);
+    NEXUS_KeyLadder_GetInfo(klHandle, &keyLadderInfo);
+     if( rc != NEXUS_SUCCESS ) { return BERR_TRACE( rc ); }
 
     /* configure keyladder root key */
-    BKNI_Memset( &ladderSettings, 0, sizeof(ladderSettings) );
-    ladderSettings.algorithm = NEXUS_CryptographicAlgorithm_eAes128;
-    ladderSettings.keySize = 128;
-    ladderSettings.operation = NEXUS_CryptographicOperation_eDecrypt;
-    ladderSettings.mode = NEXUS_KeyLadderMode_eCp_128_4; /*BHSM_KeyLadderMode_eSageBlDecrypt*/
+    NEXUS_KeyLadder_GetSettings( klHandle, &ladderSettings );
+    ladderSettings.algorithm = pKeyLadderInfo->keyladderAlgType; /*NEXUS_CryptographicAlgorithm_eAes128;*/
 
-    ladderSettings.root.type = NEXUS_KeyLadderRootType_eGlobalKey;
+    ladderSettings.operation = pKeyLadderInfo->KeyLadderOpStruct.SessionKeyOperation; /*NEXUS_CryptographicOperation_eDecrypt;*/
 
-    ladderSettings.root.askm.caVendorId = 0x1234;
+    /*if( destination == NEXUS_KeyLadderDestination_eKeyslotIv || destination == NEXUS_KeyLadderDestination_eKeyslotIv2 ) {
+        ladderSettings.mode = NEXUS_KeyLadderMode_eGeneralPurpose1;
+    }
+    else {
+        ladderSettings.mode =pKeyLadderInfo->keyladderMode;
+    }*/
+
+    BDBG_MSG(("%s:pKeyLadderInfo->keyladderMode = %d.\n", BSTD_FUNCTION,pKeyLadderInfo->keyladderMode));
+    ladderSettings.mode = pKeyLadderInfo->keyladderMode;
+
+    BDBG_MSG(("%s:KEYLADDER: Configure Index[%d].\n", BSTD_FUNCTION,keyLadderInfo.index ));
+
+
+    ladderSettings.root.type = keySrc; /*NEXUS_KeyLadderRootType_eGlobalKey;*/
+
+    ladderSettings.root.askm.caVendorId = 0x8176;
     ladderSettings.root.askm.caVendorIdScope = NEXUS_KeyladderCaVendorIdScope_eFixed;
     ladderSettings.root.askm.stbOwnerSelect = NEXUS_KeyLadderStbOwnerIdSelect_eOne;
-    ladderSettings.root.askm.swapKey = false;
+    ladderSettings.root.askm.swapKey = pKeyLadderInfo->aesKeySwap;
 
-    ladderSettings.root.globalKey.owner = NEXUS_KeyLadderGlobalKeyOwnerIdSelect_eOne;
-    ladderSettings.root.globalKey.index = 0;
-    rc = NEXUS_KeyLadder_SetSettings(vklHandle, &ladderSettings);
+    if(keySrc == NEXUS_KeyLadderRootType_eGlobalKey)
+    {
+        ladderSettings.root.globalKey.owner = pKeyLadderInfo->globalKeyOwnerId;
+        ladderSettings.root.globalKey.index = pKeyLadderInfo->globalKeyIndex;
+        BDBG_MSG(("%s: ladderSettings.root.globalKey.owner=%d, ladderSettings.root.globalKey.index=%d",BSTD_FUNCTION,ladderSettings.root.globalKey.owner,ladderSettings.root.globalKey.index));
+    }
+    rc = NEXUS_KeyLadder_SetSettings(klHandle, &ladderSettings);
     if(rc)
     {
         BDBG_ERR(("%s: NEXUS_KeyLadder_SetSettings failed", BSTD_FUNCTION));
@@ -1046,107 +1423,40 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
     NEXUS_KeyLadder_GetLevelKeyDefault(&levelKey);
     levelKey.level = 3;
     levelKey.route.destination = NEXUS_KeyLadderDestination_eNone;
+    levelKey.ladderKeySize = 128;
 
-    rc = NEXUS_KeyLadder_GenerateLevelKey(vklHandle, &levelKey);
+     BKNI_Memcpy(levelKey.ladderKey, pKeyLadderInfo->procInForKey3, sizeof(pKeyLadderInfo->procInForKey3));
+
+
+    rc = NEXUS_KeyLadder_GenerateLevelKey(klHandle, &levelKey);
     if(rc)
     {
         BDBG_ERR(("%s: NEXUS_KeyLadder_GenerateLevelKey failed", BSTD_FUNCTION));
         rc = 1;
         goto handle_error;
     }
-    #endif
+
+    NEXUS_KeyLadder_GetLevelKeyDefault( &levelKey );
+    levelKey.level = 4;
+    levelKey.ladderKeySize = 128;
+    levelKey.route.destination = NEXUS_KeyLadderDestination_eKeyslotKey;
+    levelKey.route.keySlot.handle = keySlot;
+    levelKey.route.keySlot.entry =  keySlotEntryType;
+    BKNI_Memcpy(levelKey.ladderKey, pKeyLadderInfo->procInForKey4, sizeof(pKeyLadderInfo->procInForKey4));
+    rc = NEXUS_KeyLadder_GenerateLevelKey(klHandle, &levelKey );
+    if( rc != NEXUS_SUCCESS ) { return BERR_TRACE( rc ); }
 
 
-    NEXUS_Security_GetDefaultSessionKeySettings(&encryptedSessionkey);
-    NEXUS_Security_GetDefaultControlWordSettings(&encrytedCW);
 
-    encryptedSessionkey.keyladderID     = pKeyLadderInfo->keyladderID;
-    encryptedSessionkey.keyladderType	= pKeyLadderInfo->keyladderType;
-    encryptedSessionkey.swizzleType		= pKeyLadderInfo->swizzleType;
-
-    encryptedSessionkey.rootKeySrc      = keySrc;
-    encryptedSessionkey.bRouteKey       = false;
-    encryptedSessionkey.operation       = pKeyLadderInfo->KeyLadderOpStruct.SessionKeyOperation;/* Default: NEXUS_SecurityOperation_eDecrypt;*/
-    encryptedSessionkey.operationKey2   = pKeyLadderInfo->KeyLadderOpStruct.SessionKeyOperationKey2;/* Default: NEXUS_SecurityOperation_eEncrypt;*/
-    encryptedSessionkey.keyEntryType    = keySlotType;
-
-    if(keySrc == NEXUS_SecurityRootKeySrc_eCuskey)
-    {
-        BDBG_ERR(("%s - CustKey no supported in Zeus5", BSTD_FUNCTION));
-        rc = NEXUS_INVALID_PARAMETER;
-        goto handle_error;
-    }
-    BKNI_Memcpy(encryptedSessionkey.keyData, pKeyLadderInfo->procInForKey3, pKeyLadderInfo->key3Size);
-
-#if (NEXUS_SECURITY_HAS_ASKM == 1)
-    BDBG_MSG(("%s - Session key (40nm and after) *****************", BSTD_FUNCTION));
-    encryptedSessionkey.keyGenCmdID = NEXUS_SecurityKeyGenCmdID_eKeyGen;
-    encryptedSessionkey.sessionKeyOp =  NEXUS_SecuritySessionKeyOp_eNoProcess;
-    encryptedSessionkey.bASKMMode = pKeyLadderInfo->askmSupport;
-    encryptedSessionkey.bSwapAESKey = pKeyLadderInfo->aesKeySwap;
-    encryptedSessionkey.keyDestIVType = NEXUS_SecurityKeyIVType_eNoIV;
-    /*SWSECDRM-1165 : use dynamic vkl allocation for all Zeus version*/
-    /* Use dynamically allocated VKL. */
-    BDBG_MSG(("%s - Session key (Zeus 3.0 and after) *****************", BSTD_FUNCTION));
-    encryptedSessionkey.custSubMode        = vklInfo.custSubMode;
-    encryptedSessionkey.virtualKeyLadderID = vklInfo.vkl;
-#endif /*NEXUS_SECURITY_HAS_ASKM*/
-    encryptedSessionkey.keyMode = NEXUS_SecurityKeyMode_eRegular;
-
-    BDBG_MSG(("%s - Calling 'NEXUS_Security_GenerateSessionKey'", BSTD_FUNCTION));
-    rc = NEXUS_Security_GenerateSessionKey(keySlot, &encryptedSessionkey);
-    if(rc == NEXUS_SUCCESS){
-        /* Load CW */
-        encrytedCW.keyladderID = pKeyLadderInfo->keyladderID;
-        encrytedCW.keyladderType = pKeyLadderInfo->keyladderType;
-        encrytedCW.swizzleType = pKeyLadderInfo->swizzleType;
-        encrytedCW.keySize = pKeyLadderInfo->key4Size;
-        encrytedCW.keyEntryType = keySlotType;
-        encrytedCW.operation = pKeyLadderInfo->KeyLadderOpStruct.ControlWordKeyOperation;/* Default: NEXUS_SecurityOperation_eDecrypt;*/
-        encrytedCW.bRouteKey = true;
-        encrytedCW.rootKeySrc = keySrc;
-
-        BKNI_Memcpy(encrytedCW.keyData, pKeyLadderInfo->procInForKey4, sizeof(pKeyLadderInfo->procInForKey4));
-
-#if (NEXUS_SECURITY_HAS_ASKM == 1)
-        BDBG_MSG(("%s - Control Word (40nm and after) *****************", BSTD_FUNCTION));
-        encrytedCW.keyDestIVType = NEXUS_SecurityKeyIVType_eNoIV;
-        encrytedCW.keyGenCmdID = NEXUS_SecurityKeyGenCmdID_eKeyGen;
-        encrytedCW.bSwapAESKey = pKeyLadderInfo->aesKeySwap;
-        /*SWSECDRM-1165 : use dynamic vkl allocation for all Zeus version*/
-        /* Use dynamically allocated VKL. */
-        BDBG_MSG(("%s - Control Word (Zeus 3.0 and after) *****************", BSTD_FUNCTION));
-        encrytedCW.custSubMode        = vklInfo.custSubMode;
-        encrytedCW.virtualKeyLadderID = vklInfo.vkl;
-
-#endif /*NEXUS_SECURITY_HAS_ASKM*/
-
-        encrytedCW.keyMode = NEXUS_SecurityKeyMode_eRegular;
-        rc = NEXUS_Security_GenerateControlWord(keySlot, &encrytedCW);
-        if(rc != NEXUS_SUCCESS)
-        {
-            BDBG_ERR(("%s - Error generating Control Word (key4)", BSTD_FUNCTION));
-        }
-    }
-    else
-    {
-        BDBG_ERR(("%s - Error generating Session key (key3)", BSTD_FUNCTION));
-    }
-    /*SWSECDRM-1165 : use dynamic vkl allocation for all Zeus version, hence free vkl*/
 
 handle_error:
-    if(vkl != NULL)
-    {
-        NEXUS_Security_FreeVKL(vkl);
-        vkl = NULL;
-    }
-
+        if( klHandle)    NEXUS_KeyLadder_Free( klHandle );
 
     BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return rc;
 }
-#endif
-#endif
+
+#endif /*#if (NEXUS_SECURITY_API_VERSION==1)*/
 
 /* Retrieve the information for the video secure heap and save them into the Common Crypto context. */
 /* If the Common Crypto settings contain an invalid index for the video secure heap, search in all  */
@@ -1255,7 +1565,107 @@ static NEXUS_Error CommonCrypto_P_FlushCache(CommonCryptoHandle handle, const ui
     {
         NEXUS_FlushCache(address, size);
     }
+    else
+         BDBG_MSG(("%s: address in secure memory, skip flushing cache with addr= %p, size=%d ",BSTD_FUNCTION,address,size));
 
 errorExit:
     return rc;
 }
+
+
+#if (NEXUS_SECURITY_API_VERSION==2)
+
+void CommonCrypto_CompileBtp(
+    uint8_t * pBtp,
+    CommonCryptoExternalKeyData * pBtpData )
+{
+    unsigned char *p = pBtp;
+    /*unsigned      x = 0;*/
+    unsigned      len = 0;
+    unsigned char templateBtp[] = {
+        /* ( 0) */ 0x47,
+        /* ( 1) */ 0x00,
+        /* ( 2) */ 0x21,
+        /* ( 3) */ 0x20,
+        /* ( 4) */ 0xb7,
+        /* ( 5) */ 0x82,
+        /* ( 6) */ 0x45,
+        /* ( 7) */ 0x00,
+        /* ( 8) */ 0x42,
+        /*'B' */
+        /* ( 9) */ 0x52,
+        /*'R' */
+        /* (10) */ 0x43,
+        /*'C' */
+        /* (11) */ 0x4d,
+        /*'M' */
+        /* (12) */ 0x00,
+        /* (13) */ 0x00,
+        /* (14) */ 0x00,
+        /* (15) */ 0x1a
+        /* security BTP */
+    };
+
+    BDBG_ASSERT( pBtp );
+    BDBG_ASSERT( pBtpData );
+    BDBG_ASSERT( sizeof( templateBtp ) <= XPT_TS_PACKET_SIZE );
+
+    BKNI_Memset( pBtp, 0, XPT_TS_PACKET_SIZE );
+    BKNI_Memcpy( pBtp, templateBtp, sizeof( templateBtp ) );
+
+    /* Location of external  keyslot in external keyslot table  */
+    pBtp[18] = ( pBtpData->slotIndex >> 8 ) & 0xFF;
+    pBtp[19] = pBtpData->slotIndex & 0xFF;
+
+    BDBG_MSG( ( "\n Slot offset [%d] \n", pBtpData->slotIndex ) );
+
+    /* Pack key into BTP */
+    BDBG_MSG( ( "KEY valid[%d] offset[%d] size[%d]\n", pBtpData->key.valid, pBtpData->key.offset,
+                pBtpData->key.size ) );
+    if( pBtpData->key.valid ) {
+        /*x = 0;*/
+
+        p = &pBtp[20];          /* start of BTP data section . */
+        p += ( pBtpData->key.offset * 16 ); /* locate where to write the key within the BTP data section. */
+
+        len = pBtpData->key.size;
+
+
+
+        pBtpData->key.pData += ( len - 8 ); /*  write the data into BTP in reversed 64bit chunks !! */
+
+        while( len ) {
+            BKNI_Memcpy( p, pBtpData->key.pData, MIN( len, 8 ) );   /* set Key   */
+            BKNI_Memset( ( p + 8 ), 0xFF, MIN( len, 8 ) );  /* set Mask */
+            p += 16;            /* 8 bytes for data, 8 for mask */
+            len -= MIN( len, 8 );
+            pBtpData->key.pData -= MIN( len, 8 );
+        }
+    }
+
+    /* pack iv into BTP */
+    BDBG_MSG( ( "IV valid[%d] offset[%d] size[%d]\n", pBtpData->iv.valid, pBtpData->iv.offset, pBtpData->iv.size ) );
+    if( pBtpData->iv.valid ) {
+        /*x = 0;*/
+
+        p = &pBtp[20];          /* start of BTP data section . */
+        p += ( pBtpData->iv.offset * 16 );  /* move to offset withtin BTP for IV */
+
+        len = pBtpData->iv.size;
+
+
+        pBtpData->iv.pData += ( len - 8 );  /*  write the data into BTP in reverse!! */
+
+        while( len ) {
+            BKNI_Memcpy( p, pBtpData->iv.pData, MIN( len, 8 ) );    /* set IV    */
+            BKNI_Memset( p + 8, 0xFF, MIN( len, 8 ) );  /* set Mask */
+            p += 16;
+            len -= MIN( len, 8 );
+            pBtpData->iv.pData -= MIN( len, 8 );
+        }
+    }
+
+
+    return;
+}
+#endif /*#if (NEXUS_SECURITY_API_VERSION==2)*/

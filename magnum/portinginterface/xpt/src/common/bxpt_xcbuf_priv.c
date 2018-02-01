@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -64,7 +64,7 @@ BDBG_MODULE( xpt_xcbuf_priv );
 /* Threshold for pause generation when XC Buffer for a corresponding band is almost full */
 #define DEFAULT_PACKET_PAUSE_LEVEL  ( 12 )
 
-static void SetupBufferRegs(
+static void SetupRsBufferRegs(
     BXPT_Handle hXpt,
     unsigned BaseRegAddr,       /* [in] Which client buffer we are dealing with */
     unsigned WhichInstance,
@@ -85,7 +85,7 @@ static void SetupBufferRegs(
     BREG_Write32( hXpt->hRegister, BaseRegAddr + 20, 0 );                   /* Set WATERMARK */
 }
 
-static int GetBufferIndex(unsigned BaseRegAddr, unsigned WhichInstance)
+static int GetRsBufferIndex(unsigned BaseRegAddr, unsigned WhichInstance)
 {
     unsigned start = 0, index;
 
@@ -113,7 +113,7 @@ static int GetBufferIndex(unsigned BaseRegAddr, unsigned WhichInstance)
     return index;
 }
 
-static BERR_Code AllocateBuffer(
+static BERR_Code AllocateRsBuffer(
     BXPT_Handle hXpt,
     unsigned BaseRegAddr,       /* [in] Which client buffer we are dealing with */
     unsigned WhichInstance,
@@ -130,7 +130,7 @@ static BERR_Code AllocateBuffer(
     /* Size must be a multiple of 256. */
     Size = Size - ( Size % 256 );
 
-    index = GetBufferIndex(BaseRegAddr, WhichInstance);
+    index = GetRsBufferIndex(BaseRegAddr, WhichInstance);
     BDBG_ASSERT(index >= 0); /* this is internal, so do a hard assert */
 
     block = BMMA_Alloc(mmaHeap, Size, 256, 0);
@@ -142,12 +142,12 @@ static BERR_Code AllocateBuffer(
     hXpt->xcbuff[index].block = block;
     hXpt->xcbuff[index].offset = Offset;
 
-    SetupBufferRegs( hXpt, BaseRegAddr, WhichInstance, Size, Offset );
+    SetupRsBufferRegs( hXpt, BaseRegAddr, WhichInstance, Size, Offset );
     return BERR_SUCCESS;
 }
 
 #ifndef BXPT_FOR_BOOTUPDATER
-static BERR_Code DeleteBuffer(
+static BERR_Code DeleteRsBuffer(
     BXPT_Handle hXpt,
     unsigned BaseRegAddr,       /* [in] Which client buffer we are dealing with */
     unsigned WhichInstance
@@ -155,7 +155,7 @@ static BERR_Code DeleteBuffer(
 {
     int index;
 
-    index = GetBufferIndex(BaseRegAddr, WhichInstance);
+    index = GetRsBufferIndex(BaseRegAddr, WhichInstance);
     BDBG_ASSERT(index >= 0);
 
 #if BXPT_P_HAS_XCBUFF_ENABLE_WORKAROUND
@@ -177,7 +177,7 @@ static BERR_Code DeleteBuffer(
 }
 #endif
 
-static BERR_Code SetBufferEnable(
+static BERR_Code SetRsBufferEnable(
     BXPT_Handle hXpt,
     unsigned EnableRegAddr,
     unsigned Index,
@@ -203,7 +203,7 @@ static BERR_Code SetBufferEnable(
 }
 
 #ifndef BXPT_FOR_BOOTUPDATER
-static bool IsBufferEnabled(
+static bool IsRsBufferEnabled(
     BXPT_Handle hXpt,
     unsigned EnableRegAddr,
     unsigned Index
@@ -216,7 +216,7 @@ static bool IsBufferEnabled(
 }
 #endif /* BXPT_FOR_BOOTUPDATER */
 
-static unsigned long ComputeBlockOut(
+static unsigned long ComputeRsBlockOut(
     unsigned long PeakRate,         /* [in] Max data rate (in bps) the band will handle. */
     unsigned PacketLen,             /* [in] Packet size ,130 for dss and 188 for mpeg */
     char *BufferName,
@@ -255,7 +255,7 @@ static unsigned long ComputeBlockOut(
     return (10800 * PacketLen * 8) / ( PeakRate / 10000 );
 }
 
-static BERR_Code SetBlockout(
+static BERR_Code SetRsBlockout(
     BXPT_Handle hXpt,           /* [in] Handle for this transport */
     unsigned BufferTypeBlockoutAddr,
     unsigned WhichInstance,
@@ -269,7 +269,7 @@ static BERR_Code SetBlockout(
     BDBG_ASSERT( hXpt );
 
 /*
-NewB0 = ComputeBlockOut( 45000000, 192, "Buffer", WhichInstance );
+NewB0 = ComputeRsBlockOut( 45000000, 192, "Buffer", WhichInstance );
 BDBG_ERR(( "Overriding XC blockout to 45 Mbps: %u, 0x%04X", NewB0, NewB0 ));
 */
     RegAddr = BufferTypeBlockoutAddr + WhichInstance * BLOCKOUT_REG_STEPSIZE;
@@ -359,11 +359,11 @@ BERR_Code BXPT_P_XcBuf_Init(
         if( BandwidthConfig->MaxInputRate[ ii ] && BandwidthConfig->IbParserClients[ ii ].ToRave )
         {
             BDBG_MSG(( "Alloc XC for IB parser %u to RAVE, %u bps", ii, BandwidthConfig->MaxInputRate[ ii ] ));
-            AllocateBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP0, ii, INPUT_BAND_BUF_SIZE );
-            SetBlockout( hXpt, BCHP_XPT_XCBUFF_BO_RAVE_IBP0, ii,
-               ComputeBlockOut( BandwidthConfig->MaxInputRate[ ii ], DEFAULT_PACKET_SIZE, "MaxInputRate", ii ) );
+            AllocateRsBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP0, ii, INPUT_BAND_BUF_SIZE );
+            SetRsBlockout( hXpt, BCHP_XPT_XCBUFF_BO_RAVE_IBP0, ii,
+               ComputeRsBlockOut( BandwidthConfig->MaxInputRate[ ii ], DEFAULT_PACKET_SIZE, "MaxInputRate", ii ) );
 
-            SetBufferEnable( hXpt, BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_IBP, ii, true );
+            SetRsBufferEnable( hXpt, BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_IBP, ii, true );
             totalAllocated += INPUT_BAND_BUF_SIZE;
         }
         else
@@ -373,8 +373,8 @@ BERR_Code BXPT_P_XcBuf_Init(
                 BXPT_P_AllocSharedXcRsBuffer( hXpt );
                 totalAllocated += BXPT_P_MINIMUM_BUF_SIZE;
             }
-            SetupBufferRegs( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
-            SetBlockout(hXpt, BCHP_XPT_XCBUFF_BO_RAVE_IBP0, ii, PWR_BO_COUNT);
+            SetupRsBufferRegs( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
+            SetRsBlockout(hXpt, BCHP_XPT_XCBUFF_BO_RAVE_IBP0, ii, PWR_BO_COUNT);
         }
     }
     #endif
@@ -386,10 +386,10 @@ BERR_Code BXPT_P_XcBuf_Init(
         if( BandwidthConfig->MaxPlaybackRate[ ii ] && BandwidthConfig->PlaybackParserClients[ ii ].ToRave )
         {
             BDBG_MSG(( "Alloc XC for PB parser %u to RAVE, %u bps", ii, BandwidthConfig->MaxPlaybackRate[ ii ] ));
-            AllocateBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP0, ii, PLAYBACK_BUF_SIZE );
-            SetBlockout( hXpt, BCHP_XPT_XCBUFF_BO_RAVE_PBP0, ii,
-               ComputeBlockOut( BandwidthConfig->MaxPlaybackRate[ ii ], DEFAULT_PACKET_SIZE, "MaxPlaybackRate", ii ) );
-            SetBufferEnable( hXpt, BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_PBP, ii, true );
+            AllocateRsBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP0, ii, PLAYBACK_BUF_SIZE );
+            SetRsBlockout( hXpt, BCHP_XPT_XCBUFF_BO_RAVE_PBP0, ii,
+               ComputeRsBlockOut( BandwidthConfig->MaxPlaybackRate[ ii ], DEFAULT_PACKET_SIZE, "MaxPlaybackRate", ii ) );
+            SetRsBufferEnable( hXpt, BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_PBP, ii, true );
             totalAllocated += PLAYBACK_BUF_SIZE;
         }
         else
@@ -399,8 +399,8 @@ BERR_Code BXPT_P_XcBuf_Init(
                 BXPT_P_AllocSharedXcRsBuffer( hXpt );
                 totalAllocated += BXPT_P_MINIMUM_BUF_SIZE;
             }
-            SetupBufferRegs( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
-            SetBlockout(hXpt, BCHP_XPT_XCBUFF_BO_RAVE_PBP0, ii, PWR_BO_COUNT);
+            SetupRsBufferRegs( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
+            SetRsBlockout(hXpt, BCHP_XPT_XCBUFF_BO_RAVE_PBP0, ii, PWR_BO_COUNT);
         }
     }
     #endif
@@ -412,10 +412,10 @@ BERR_Code BXPT_P_XcBuf_Init(
         if( BandwidthConfig->MaxInputRate[ ii ] && BandwidthConfig->IbParserClients[ ii ].ToMsg )
         {
             BDBG_MSG(( "Alloc XC for IB parser %u to MSG, %u bps", ii, BandwidthConfig->MaxInputRate[ ii ] ));
-            AllocateBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP0, ii, INPUT_BAND_BUF_SIZE );
-            SetBlockout( hXpt, BCHP_XPT_XCBUFF_BO_MSG_IBP0, ii,
-               ComputeBlockOut( BandwidthConfig->MaxInputRate[ ii ], DEFAULT_PACKET_SIZE, "MaxInputRate", ii ) );
-            SetBufferEnable( hXpt, BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_IBP, ii, true );
+            AllocateRsBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP0, ii, INPUT_BAND_BUF_SIZE );
+            SetRsBlockout( hXpt, BCHP_XPT_XCBUFF_BO_MSG_IBP0, ii,
+               ComputeRsBlockOut( BandwidthConfig->MaxInputRate[ ii ], DEFAULT_PACKET_SIZE, "MaxInputRate", ii ) );
+            SetRsBufferEnable( hXpt, BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_IBP, ii, true );
             totalAllocated += INPUT_BAND_BUF_SIZE;
         }
         else
@@ -425,8 +425,8 @@ BERR_Code BXPT_P_XcBuf_Init(
                 BXPT_P_AllocSharedXcRsBuffer( hXpt );
                 totalAllocated += BXPT_P_MINIMUM_BUF_SIZE;
             }
-            SetupBufferRegs( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
-            SetBlockout(hXpt, BCHP_XPT_XCBUFF_BO_MSG_IBP0, ii, PWR_BO_COUNT);
+            SetupRsBufferRegs( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
+            SetRsBlockout(hXpt, BCHP_XPT_XCBUFF_BO_MSG_IBP0, ii, PWR_BO_COUNT);
         }
     }
     #endif
@@ -438,10 +438,10 @@ BERR_Code BXPT_P_XcBuf_Init(
         if( BandwidthConfig->MaxPlaybackRate[ ii ] && BandwidthConfig->PlaybackParserClients[ ii ].ToMsg )
         {
             BDBG_MSG(( "Alloc XC for PB parser %u to MSG, %u bps", ii, BandwidthConfig->MaxPlaybackRate[ ii ] ));
-            AllocateBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP0, ii, PLAYBACK_BUF_SIZE );
-            SetBlockout( hXpt, BCHP_XPT_XCBUFF_BO_MSG_PBP0, ii,
-               ComputeBlockOut( BandwidthConfig->MaxPlaybackRate[ ii ], DEFAULT_PACKET_SIZE, "MaxPlaybackRate", ii ) );
-            SetBufferEnable( hXpt, BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_PBP, ii, true );
+            AllocateRsBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP0, ii, PLAYBACK_BUF_SIZE );
+            SetRsBlockout( hXpt, BCHP_XPT_XCBUFF_BO_MSG_PBP0, ii,
+               ComputeRsBlockOut( BandwidthConfig->MaxPlaybackRate[ ii ], DEFAULT_PACKET_SIZE, "MaxPlaybackRate", ii ) );
+            SetRsBufferEnable( hXpt, BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_PBP, ii, true );
             totalAllocated += PLAYBACK_BUF_SIZE;
         }
         else
@@ -451,8 +451,8 @@ BERR_Code BXPT_P_XcBuf_Init(
                 BXPT_P_AllocSharedXcRsBuffer( hXpt );
                 totalAllocated += BXPT_P_MINIMUM_BUF_SIZE;
             }
-            SetupBufferRegs( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
-            SetBlockout(hXpt, BCHP_XPT_XCBUFF_BO_MSG_PBP0, ii, PWR_BO_COUNT);
+            SetupRsBufferRegs( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
+            SetRsBlockout(hXpt, BCHP_XPT_XCBUFF_BO_MSG_PBP0, ii, PWR_BO_COUNT);
         }
     }
     #endif
@@ -465,10 +465,10 @@ BERR_Code BXPT_P_XcBuf_Init(
         if( BandwidthConfig->MaxInputRate[ ii ] && BandwidthConfig->RemuxUsed[ 0 ] && BandwidthConfig->IbParserClients[ ii ].ToRmx[ 0 ] )
         {
             BDBG_MSG(( "Alloc XC for IB parser %u to RMX0, %u bps", ii, BandwidthConfig->MaxInputRate[ ii ] ));
-            AllocateBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP0, ii, INPUT_BAND_BUF_SIZE );
-            SetBlockout( hXpt, BCHP_XPT_XCBUFF_BO_RMX0_IBP0, ii,
-               ComputeBlockOut( BandwidthConfig->MaxInputRate[ ii ], DEFAULT_PACKET_SIZE, "MaxInputRate", ii ) );
-            SetBufferEnable( hXpt, BCHP_XPT_XCBUFF_RMX0_CTRL_BUFFER_EN_IBP, ii, true );
+            AllocateRsBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP0, ii, INPUT_BAND_BUF_SIZE );
+            SetRsBlockout( hXpt, BCHP_XPT_XCBUFF_BO_RMX0_IBP0, ii,
+               ComputeRsBlockOut( BandwidthConfig->MaxInputRate[ ii ], DEFAULT_PACKET_SIZE, "MaxInputRate", ii ) );
+            SetRsBufferEnable( hXpt, BCHP_XPT_XCBUFF_RMX0_CTRL_BUFFER_EN_IBP, ii, true );
             totalAllocated += INPUT_BAND_BUF_SIZE;
         }
         else
@@ -478,8 +478,8 @@ BERR_Code BXPT_P_XcBuf_Init(
                 BXPT_P_AllocSharedXcRsBuffer( hXpt );
                 totalAllocated += BXPT_P_MINIMUM_BUF_SIZE;
             }
-            SetupBufferRegs( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
-            SetBlockout(hXpt, BCHP_XPT_XCBUFF_BO_RMX0_IBP0, ii, PWR_BO_COUNT);
+            SetupRsBufferRegs( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
+            SetRsBlockout(hXpt, BCHP_XPT_XCBUFF_BO_RMX0_IBP0, ii, PWR_BO_COUNT);
         }
     }
 
@@ -491,10 +491,10 @@ BERR_Code BXPT_P_XcBuf_Init(
         if( BandwidthConfig->MaxInputRate[ ii ] && BandwidthConfig->RemuxUsed[ 1 ] && BandwidthConfig->IbParserClients[ ii ].ToRmx[ 1 ])
         {
             BDBG_MSG(( "Alloc XC for IB parser %u to RMX1, %u bps", ii, BandwidthConfig->MaxInputRate[ ii ] ));
-            AllocateBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP0, ii, INPUT_BAND_BUF_SIZE );
-            SetBlockout( hXpt, BCHP_XPT_XCBUFF_BO_RMX1_IBP0, ii,
-               ComputeBlockOut( BandwidthConfig->MaxInputRate[ ii ], DEFAULT_PACKET_SIZE, "MaxInputRate", ii ) );
-            SetBufferEnable( hXpt, BCHP_XPT_XCBUFF_RMX1_CTRL_BUFFER_EN_IBP, ii, true );
+            AllocateRsBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP0, ii, INPUT_BAND_BUF_SIZE );
+            SetRsBlockout( hXpt, BCHP_XPT_XCBUFF_BO_RMX1_IBP0, ii,
+               ComputeRsBlockOut( BandwidthConfig->MaxInputRate[ ii ], DEFAULT_PACKET_SIZE, "MaxInputRate", ii ) );
+            SetRsBufferEnable( hXpt, BCHP_XPT_XCBUFF_RMX1_CTRL_BUFFER_EN_IBP, ii, true );
             totalAllocated += INPUT_BAND_BUF_SIZE;
         }
         else
@@ -504,8 +504,8 @@ BERR_Code BXPT_P_XcBuf_Init(
                 BXPT_P_AllocSharedXcRsBuffer( hXpt );
                 totalAllocated += BXPT_P_MINIMUM_BUF_SIZE;
             }
-            SetupBufferRegs( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
-            SetBlockout(hXpt, BCHP_XPT_XCBUFF_BO_RMX1_IBP0, ii, PWR_BO_COUNT);
+            SetupRsBufferRegs( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
+            SetRsBlockout(hXpt, BCHP_XPT_XCBUFF_BO_RMX1_IBP0, ii, PWR_BO_COUNT);
         }
     }
     #endif
@@ -524,10 +524,10 @@ BERR_Code BXPT_P_XcBuf_Init(
         if( BandwidthConfig->MaxPlaybackRate[ ii ] && BandwidthConfig->RemuxUsed[ 0 ] && BandwidthConfig->PlaybackParserClients[ ii ].ToRmx[ 0 ] )
         {
             BDBG_MSG(( "Alloc XC for PB parser %u to RMX0, %u bps", ii, BandwidthConfig->MaxPlaybackRate[ ii ] ));
-            AllocateBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP0, ii, PLAYBACK_BUF_SIZE );
-            SetBlockout( hXpt, BCHP_XPT_XCBUFF_BO_RMX0_PBP0, ii,
-               ComputeBlockOut( BandwidthConfig->MaxPlaybackRate[ ii ], DEFAULT_PACKET_SIZE, "MaxPlaybackRate", ii ) );
-            SetBufferEnable( hXpt, BCHP_XPT_XCBUFF_RMX0_CTRL_BUFFER_EN_PBP, ii, true );
+            AllocateRsBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP0, ii, PLAYBACK_BUF_SIZE );
+            SetRsBlockout( hXpt, BCHP_XPT_XCBUFF_BO_RMX0_PBP0, ii,
+               ComputeRsBlockOut( BandwidthConfig->MaxPlaybackRate[ ii ], DEFAULT_PACKET_SIZE, "MaxPlaybackRate", ii ) );
+            SetRsBufferEnable( hXpt, BCHP_XPT_XCBUFF_RMX0_CTRL_BUFFER_EN_PBP, ii, true );
             totalAllocated += PLAYBACK_BUF_SIZE;
         }
         else
@@ -537,8 +537,8 @@ BERR_Code BXPT_P_XcBuf_Init(
                 BXPT_P_AllocSharedXcRsBuffer( hXpt );
                 totalAllocated += BXPT_P_MINIMUM_BUF_SIZE;
             }
-            SetupBufferRegs( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
-            SetBlockout(hXpt, BCHP_XPT_XCBUFF_BO_RMX0_PBP0, ii, PWR_BO_COUNT);
+            SetupRsBufferRegs( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
+            SetRsBlockout(hXpt, BCHP_XPT_XCBUFF_BO_RMX0_PBP0, ii, PWR_BO_COUNT);
         }
     }
 
@@ -550,10 +550,10 @@ BERR_Code BXPT_P_XcBuf_Init(
         if( BandwidthConfig->MaxPlaybackRate[ ii ] && BandwidthConfig->RemuxUsed[ 1 ] && BandwidthConfig->PlaybackParserClients[ ii ].ToRmx[ 1 ])
         {
             BDBG_MSG(( "Alloc XC for PB parser %u to RMX1, %u bps", ii, BandwidthConfig->MaxPlaybackRate[ ii ] ));
-            AllocateBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP0, ii, PLAYBACK_BUF_SIZE );
-            SetBlockout( hXpt, BCHP_XPT_XCBUFF_BO_RMX1_PBP0, ii,
-               ComputeBlockOut( BandwidthConfig->MaxPlaybackRate[ ii ], DEFAULT_PACKET_SIZE, "MaxPlaybackRate", ii ) );
-            SetBufferEnable( hXpt, BCHP_XPT_XCBUFF_RMX1_CTRL_BUFFER_EN_PBP, ii, true );
+            AllocateRsBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP0, ii, PLAYBACK_BUF_SIZE );
+            SetRsBlockout( hXpt, BCHP_XPT_XCBUFF_BO_RMX1_PBP0, ii,
+               ComputeRsBlockOut( BandwidthConfig->MaxPlaybackRate[ ii ], DEFAULT_PACKET_SIZE, "MaxPlaybackRate", ii ) );
+            SetRsBufferEnable( hXpt, BCHP_XPT_XCBUFF_RMX1_CTRL_BUFFER_EN_PBP, ii, true );
             totalAllocated += PLAYBACK_BUF_SIZE;
         }
         else
@@ -563,8 +563,8 @@ BERR_Code BXPT_P_XcBuf_Init(
                 BXPT_P_AllocSharedXcRsBuffer( hXpt );
                 totalAllocated += BXPT_P_MINIMUM_BUF_SIZE;
             }
-            SetupBufferRegs( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset);
-            SetBlockout(hXpt, BCHP_XPT_XCBUFF_BO_RMX1_PBP0, ii, PWR_BO_COUNT);
+            SetupRsBufferRegs( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset);
+            SetRsBlockout(hXpt, BCHP_XPT_XCBUFF_BO_RMX1_PBP0, ii, PWR_BO_COUNT);
         }
     }
     #endif
@@ -577,10 +577,10 @@ BERR_Code BXPT_P_XcBuf_Init(
 
 #if BXPT_NUM_TBG
     for (ii=0; ii<BXPT_NUM_TBG; ii++) {
-        SetBlockout(hXpt, BCHP_XPT_XCBUFF_TBG0_BO_RAVE, ii, PWR_BO_COUNT);
-        SetBlockout(hXpt, BCHP_XPT_XCBUFF_TBG0_BO_MSG, ii, PWR_BO_COUNT);
-        SetBlockout(hXpt, BCHP_XPT_XCBUFF_TBG0_BO_RMX0, ii, PWR_BO_COUNT);
-        SetBlockout(hXpt, BCHP_XPT_XCBUFF_TBG0_BO_RMX1, ii, PWR_BO_COUNT);
+        SetRsBlockout(hXpt, BCHP_XPT_XCBUFF_TBG0_BO_RAVE, ii, PWR_BO_COUNT);
+        SetRsBlockout(hXpt, BCHP_XPT_XCBUFF_TBG0_BO_MSG, ii, PWR_BO_COUNT);
+        SetRsBlockout(hXpt, BCHP_XPT_XCBUFF_TBG0_BO_RMX0, ii, PWR_BO_COUNT);
+        SetRsBlockout(hXpt, BCHP_XPT_XCBUFF_TBG0_BO_RMX1, ii, PWR_BO_COUNT);
     }
 #endif
 
@@ -589,15 +589,15 @@ BERR_Code BXPT_P_XcBuf_Init(
     Reg = BREG_Read32(hXpt->hRegister, BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_PBP);
     for (ii=0; ii<BXPT_NUM_PLAYBACKS; ii++) {
         if ((Reg >> ii) & 0x1) {
-            SetBufferEnable(hXpt, BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_PBP, ii, true);
+            SetRsBufferEnable(hXpt, BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_PBP, ii, true);
         }
     }
 
     Reg = BREG_Read32(hXpt->hRegister, BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_IBP);
     for (ii=0; ii<BXPT_NUM_PID_PARSERS; ii++) {
         if ((Reg >> ii) & 0x1) {
-            SetBufferEnable(hXpt, BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_IBP, ii, true);
-            SetBufferEnable(hXpt, BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_PBP, ii, true);
+            SetRsBufferEnable(hXpt, BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_IBP, ii, true);
+            SetRsBufferEnable(hXpt, BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_PBP, ii, true);
         }
     }
 #endif
@@ -620,10 +620,10 @@ BERR_Code BXPT_P_XcBuf_Shutdown(
     #if BXPT_HAS_IB_PID_PARSERS && BXPT_HAS_RAVE
     for( ii = 0; ii < BXPT_NUM_PID_PARSERS; ii++ )
     {
-        if( IsBufferEnabled( hXpt, BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_IBP, ii ) )
+        if( IsRsBufferEnabled( hXpt, BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_IBP, ii ) )
         {
-            ExitCode |= SetBufferEnable( hXpt, BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_IBP, ii, false );
-            ExitCode |= DeleteBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP0, ii );
+            ExitCode |= SetRsBufferEnable( hXpt, BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_IBP, ii, false );
+            ExitCode |= DeleteRsBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP0, ii );
             if( ExitCode != BERR_SUCCESS )
             {
                 BDBG_ERR(( "Disable/Delete of XC RAVE Buffer %d failed", ii ));
@@ -636,10 +636,10 @@ BERR_Code BXPT_P_XcBuf_Shutdown(
     #if BXPT_HAS_PLAYBACK_PARSERS && BXPT_HAS_RAVE
     for( ii = 0; ii < BXPT_NUM_PLAYBACKS; ii++ )
     {
-        if( IsBufferEnabled( hXpt, BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_PBP, ii ) )
+        if( IsRsBufferEnabled( hXpt, BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_PBP, ii ) )
         {
-            ExitCode |= SetBufferEnable( hXpt, BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_PBP, ii, false );
-            ExitCode |= DeleteBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP0, ii );
+            ExitCode |= SetRsBufferEnable( hXpt, BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_PBP, ii, false );
+            ExitCode |= DeleteRsBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP0, ii );
             if( ExitCode != BERR_SUCCESS )
             {
                 BDBG_ERR(( "Disable/Delete of XC RAVE Buffer %d failed", ii ));
@@ -652,10 +652,10 @@ BERR_Code BXPT_P_XcBuf_Shutdown(
     #if BXPT_HAS_IB_PID_PARSERS && BXPT_HAS_MESG_BUFFERS
     for( ii = 0; ii < BXPT_NUM_PID_PARSERS; ii++ )
     {
-        if( IsBufferEnabled( hXpt, BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_IBP, ii ) )
+        if( IsRsBufferEnabled( hXpt, BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_IBP, ii ) )
         {
-            ExitCode |= SetBufferEnable( hXpt, BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_IBP, ii, false );
-            ExitCode |= DeleteBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP0, ii );
+            ExitCode |= SetRsBufferEnable( hXpt, BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_IBP, ii, false );
+            ExitCode |= DeleteRsBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP0, ii );
             if( ExitCode != BERR_SUCCESS )
             {
                 BDBG_ERR(( "Disable/Delete of XC Msg Input Buffer %d failed", ii ));
@@ -668,10 +668,10 @@ BERR_Code BXPT_P_XcBuf_Shutdown(
     #if BXPT_HAS_PLAYBACK_PARSERS && BXPT_HAS_MESG_BUFFERS
     for( ii = 0; ii < BXPT_NUM_PLAYBACKS; ii++ )
     {
-        if( IsBufferEnabled( hXpt, BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_PBP, ii ) )
+        if( IsRsBufferEnabled( hXpt, BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_PBP, ii ) )
         {
-            ExitCode |= SetBufferEnable( hXpt, BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_PBP, ii, false );
-            ExitCode |= DeleteBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP0, ii );
+            ExitCode |= SetRsBufferEnable( hXpt, BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_PBP, ii, false );
+            ExitCode |= DeleteRsBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP0, ii );
             if( ExitCode != BERR_SUCCESS )
             {
                 BDBG_ERR(( "Disable/Delete of XC Msg Playback Buffer %d failed", ii ));
@@ -685,10 +685,10 @@ BERR_Code BXPT_P_XcBuf_Shutdown(
     /* We have at least RMX0 */
     for( ii = 0; ii < BXPT_NUM_PID_PARSERS; ii++ )
     {
-        if( IsBufferEnabled( hXpt, BCHP_XPT_XCBUFF_RMX0_CTRL_BUFFER_EN_IBP, ii ) )
+        if( IsRsBufferEnabled( hXpt, BCHP_XPT_XCBUFF_RMX0_CTRL_BUFFER_EN_IBP, ii ) )
         {
-            ExitCode |= SetBufferEnable( hXpt, BCHP_XPT_XCBUFF_RMX0_CTRL_BUFFER_EN_IBP, ii, false );
-            ExitCode |= DeleteBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP0, ii );
+            ExitCode |= SetRsBufferEnable( hXpt, BCHP_XPT_XCBUFF_RMX0_CTRL_BUFFER_EN_IBP, ii, false );
+            ExitCode |= DeleteRsBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP0, ii );
             if( ExitCode != BERR_SUCCESS )
             {
                 BDBG_ERR(( "Disable/Delete of XC RMX0 Input Buffer %d failed", ii ));
@@ -701,10 +701,10 @@ BERR_Code BXPT_P_XcBuf_Shutdown(
     /* We've got at least RMX1 */
     for( ii = 0; ii < BXPT_NUM_PID_PARSERS; ii++ )
     {
-        if( IsBufferEnabled( hXpt, BCHP_XPT_XCBUFF_RMX1_CTRL_BUFFER_EN_IBP, ii ) )
+        if( IsRsBufferEnabled( hXpt, BCHP_XPT_XCBUFF_RMX1_CTRL_BUFFER_EN_IBP, ii ) )
         {
-            ExitCode |= SetBufferEnable( hXpt, BCHP_XPT_XCBUFF_RMX1_CTRL_BUFFER_EN_IBP, ii, false );
-            ExitCode |= DeleteBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP0, ii );
+            ExitCode |= SetRsBufferEnable( hXpt, BCHP_XPT_XCBUFF_RMX1_CTRL_BUFFER_EN_IBP, ii, false );
+            ExitCode |= DeleteRsBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP0, ii );
             if( ExitCode != BERR_SUCCESS )
             {
                 BDBG_ERR(( "Disable/Delete of XC RMX1 Input Buffer %d failed", ii ));
@@ -724,10 +724,10 @@ BERR_Code BXPT_P_XcBuf_Shutdown(
     /* We have at least RMX0 */
     for( ii = 0; ii < BXPT_NUM_PLAYBACKS; ii++ )
     {
-        if( IsBufferEnabled( hXpt, BCHP_XPT_XCBUFF_RMX0_CTRL_BUFFER_EN_PBP, ii ) )
+        if( IsRsBufferEnabled( hXpt, BCHP_XPT_XCBUFF_RMX0_CTRL_BUFFER_EN_PBP, ii ) )
         {
-            ExitCode |= SetBufferEnable( hXpt, BCHP_XPT_XCBUFF_RMX0_CTRL_BUFFER_EN_PBP, ii, false );
-            ExitCode |= DeleteBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP0, ii );
+            ExitCode |= SetRsBufferEnable( hXpt, BCHP_XPT_XCBUFF_RMX0_CTRL_BUFFER_EN_PBP, ii, false );
+            ExitCode |= DeleteRsBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP0, ii );
             if( ExitCode != BERR_SUCCESS )
             {
                 BDBG_ERR(( "Disable/Delete of XC RMX0 Playback Buffer %d failed", ii ));
@@ -740,10 +740,10 @@ BERR_Code BXPT_P_XcBuf_Shutdown(
     /* We've got at least RMX1 */
     for( ii = 0; ii < BXPT_NUM_PLAYBACKS; ii++ )
     {
-        if( IsBufferEnabled( hXpt, BCHP_XPT_XCBUFF_RMX1_CTRL_BUFFER_EN_PBP, ii ) )
+        if( IsRsBufferEnabled( hXpt, BCHP_XPT_XCBUFF_RMX1_CTRL_BUFFER_EN_PBP, ii ) )
         {
-            ExitCode |= SetBufferEnable( hXpt, BCHP_XPT_XCBUFF_RMX1_CTRL_BUFFER_EN_PBP, ii, false );
-            ExitCode |= DeleteBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP0, ii );
+            ExitCode |= SetRsBufferEnable( hXpt, BCHP_XPT_XCBUFF_RMX1_CTRL_BUFFER_EN_PBP, ii, false );
+            ExitCode |= DeleteRsBuffer( hXpt, BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP0, ii );
             if( ExitCode != BERR_SUCCESS )
             {
                 BDBG_ERR(( "Disable/Delete of XC RMX1 Playback Buffer %d failed", ii ));
@@ -763,6 +763,7 @@ BERR_Code BXPT_P_XcBuf_Shutdown(
     return( ExitCode );
 }
 
+#ifdef BXPT_IS_CORE40NM
 void BXPT_XcBuf_P_EnablePlaybackPausing(
     BXPT_Handle hXpt,
     unsigned PbChannelNum,
@@ -780,6 +781,8 @@ void BXPT_XcBuf_P_EnablePlaybackPausing(
         BREG_Write32( hXpt->hRegister, BCHP_XPT_XCBUFF_RAVE_CTRL_PAUSE_EN_PBP, Reg & ~( 1 << PbChannelNum ) );
     }
 }
+#endif
+
 #endif /* BXPT_FOR_BOOTUPDATER */
 
 #if BXPT_HAS_PIPELINE_ERROR_REPORTING
@@ -961,17 +964,6 @@ BERR_Code BXPT_P_XcBuf_Shutdown(
     return( BERR_SUCCESS );
 }
 
-void BXPT_XcBuf_P_EnablePlaybackPausing(
-    BXPT_Handle hXpt,
-    unsigned PbChannelNum,
-    bool PauseEn
-    )
-{
-    BSTD_UNUSED(hXpt);
-    BSTD_UNUSED(PbChannelNum);
-    BSTD_UNUSED(PauseEn);
-    BDBG_MSG(( "%s: XC Buffers not present on this chip.", BSTD_FUNCTION ));
-}
 #endif /* BXPT_FOR_BOOTUPDATER */
 
 #if BXPT_HAS_PIPELINE_ERROR_REPORTING

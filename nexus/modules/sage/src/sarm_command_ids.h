@@ -39,19 +39,26 @@
 #ifndef __SARM_COMMAND_IDS_H__
 #define __SARM_COMMAND_IDS_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+/* SARM Version verification */
+#define SARM_MAJOR_VERSION 0x0001 /* SARM Major version must be same */
+#define SARM_MINOR_VERSION 0x0000 /* SARM Minor version can mismatch up to compatibility minor version */
+#define SARM_VERSION ((SARM_MAJOR_VERSION << 16) | (SARM_MINOR_VERSION))
 
-/* #if SAGE_VERSION <= SAGE_VERSION_CALC(3,2)
- * #define SARM_VER_ID 0x00010000
- * #endif */
+#define SARM_MIN_VERSION 0x0000 /* SARM Compatibility Minor version */
+#define SARM_MINOR_VERSION_MASK 0x0000FFFF
 
-/* container out positions */
+/* container OUT positions */
+#define SARM_CONTAINER_CMD_RC(container) (container->basicOut[0])       /* Command Return Code */
+#define SARM_CONTAINER_SARM_VER(container) (container->basicOut[1])     /* SARM Current version */
+#define SARM_CONTAINER_SARM_MIN_VER(container) (container->basicOut[2]) /* SARM SAGE minimum compatible Minor version */
+
+/* container IN positions */
 #define SARM_CONTAINER_ASYNC(container) (container->basicIn[0])
-#define SARM_CONTAINER_CMD_RC(container) (container->basicIn[1])
-#define SARM_CONTAINER_SARM_ID(container) (container->basicIn[2])
-#define SARM_CONTAINER_STREAM_CNT(container) (container->basicIn[3])
+#define SARM_CONTAINER_SARM_ID(container) (container->basicIn[1])      /* SARM ID for all commands */
+#define SARM_CONTAINER_STREAM_CNT(container) (container->basicIn[2])   /* Total stream count */
+
+#define SARM_CONTAINER_SARM_MAJOR_VER(container) (SARM_CONTAINER_SARM_VER(container) >> 16)
+#define SARM_CONTAINER_SARM_MINOR_VER(container) (SARM_CONTAINER_SARM_VER(container) & SARM_MINOR_VERSION_MASK)
 
 #define SARM_CONTAINER_STATUS_BLOCK(container) container->blocks[0]
 #define SARM_CONTAINER_START_PARAMS_BLOCK(container) container->blocks[0]
@@ -69,16 +76,28 @@ typedef enum sarm_CommandId_e {
     sarm_CommandId_eMax
 } sarm_CommandId_e;
 
+/* Following structures are shared between Host & SAGE, use aligned members */
 typedef struct
 {
-    NEXUS_AudioCodec   codec;   /* Type of audio codec */
-    bool               routingOnly; /* Bypass Monitoring */
-    BAVC_XptContextMap inContext; /* RAVE writes/SAGE reads */
-    BAVC_XptContextMap outContext; /* SAGE writes/Audio Decoder reads */
-} _P_NEXUS_SageAudioStartSettings;
+    uint32_t CDB_Read;      /* Address of the coded data buffer READ register */
+    uint32_t CDB_Base;      /* Address of the coded data buffer BASE register */
+    uint32_t CDB_Wrap;      /* Address of the coded data buffer WRAPAROUND register */
+    uint32_t CDB_Valid;     /* Address of the coded data buffer VALID register */
+    uint32_t CDB_End;       /* Address of the coded data buffer END register */
 
-#ifdef __cplusplus
-}
-#endif
+    uint32_t ITB_Read;      /* Address of the index table buffer READ register */
+    uint32_t ITB_Base;      /* Address of the index table buffer BASE register */
+    uint32_t ITB_Wrap;      /* Address of the index table buffer WRAPAROUND register */
+    uint32_t ITB_Valid;     /* Address of the index table buffer VALID register */
+    uint32_t ITB_End;       /* Address of the index table buffer END register */
+} SARM_XptContextMap;
+
+typedef struct
+{
+    uint32_t codec;         /* Type of audio codec */
+    uint32_t noMonitoring;         /* Request bypass Monitoring, straight copy from GLR to GLR only */
+    SARM_XptContextMap inContext;  /* RAVE writes/SAGE reads */
+    SARM_XptContextMap outContext; /* SAGE writes/Audio Decoder reads */
+} SARM_P_SageAudioStartSettings;
 
 #endif /*__SARM_COMMAND_IDS_H__*/

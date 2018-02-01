@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -630,7 +630,7 @@ typedef struct BVCE_FW_P_UserData_QueueEntry
    uint32_t uiOffset;  /* Offset into DRAM of the user data packet descriptor relative to the base offset. See BVCE_FW_P_UserData_PacketDescriptor */
 } BVCE_FW_P_UserData_QueueEntry;
 
-#define BVCE_FW_P_USERDATA_QUEUE_LENGTH 36
+#define BVCE_FW_P_USERDATA_QUEUE_LENGTH 72
 
 typedef struct BVCE_FW_P_UserData_Queue
 {
@@ -668,7 +668,7 @@ typedef struct BVCE_FW_P_UserData_Queue
  *
  */
 
-#define BVCE_P_FW_PICTURE_QUEUE_LENGTH 6
+#define BVCE_P_FW_PICTURE_QUEUE_LENGTH 20
 
 typedef struct BVCE_P_FW_PictureBufferOffset
 {
@@ -1316,6 +1316,7 @@ typedef enum
       BVCE_FW_P_COREVERSION_V2_1_3_2 = 6,
       BVCE_FW_P_COREVERSION_V3_0_0_2 = 7,
       BVCE_FW_P_COREVERSION_V3_0_1_2 = 8,
+      BVCE_FW_P_COREVERSION_V3_0_2_2 = 9,
 
       /* Add new revisions ABOVE this line */
       BVCE_FW_P_COREVERSION_MAX
@@ -1499,6 +1500,12 @@ typedef union
          build process
  */
 
+#define PREPROCESSOR_MAX_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE           12
+#define PREPROCESSOR_MAX_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE                      14
+
+#define PREPROCESSOR_MAX_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE                 (8)*2
+#define PREPROCESSOR_MAX_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE              (8)
+#define PREPROCESSOR_MAX_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE                            (10)*2
 
 /* ==========================================================*/
 /* ------------------  BUILD TIME CHECKS ------------------- */

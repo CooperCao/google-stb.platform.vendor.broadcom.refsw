@@ -562,12 +562,7 @@ static NEXUS_Error NEXUS_Platform_P_BuildRegionCandidates(const NEXUS_PlatformHe
 #if BDBG_DEBUG_BUILD
         {
             char buf[128];
-            NEXUS_MemoryStatus status;
-            /* Must copy all members neeeded by NEXUS_Heap_ToString. NEXUS_MemoryStatus is not available at this time. */
-            status.memcIndex = heap[candidates->heap[i].nexusHeapNo].memcIndex;
-            status.heapType = heap[candidates->heap[i].nexusHeapNo].heapType;
-            status.memoryType = heap[candidates->heap[i].nexusHeapNo].memoryType;
-            NEXUS_Heap_ToString(&status, buf, sizeof(buf));
+            NEXUS_P_HeapInfo_ToString(buf, sizeof(buf),heap[candidates->heap[i].nexusHeapNo].memcIndex,heap[candidates->heap[i].nexusHeapNo].heapType,heap[candidates->heap[i].nexusHeapNo].memoryType);
             BDBG_MSG(("MEMC%u heap:%u %uMBytes '%s' could be located in %u regions", memc, candidates->heap[i].nexusHeapNo, heap[candidates->heap[i].nexusHeapNo].size/(1024*1024), buf, candidates->heap[i].size));
         }
 #endif

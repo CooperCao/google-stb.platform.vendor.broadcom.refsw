@@ -546,22 +546,10 @@ typedef struct
 
 } BVDC_P_DrainContext;
 
-
-/***************************************************************************
- * VNET Front and back context.
- ***************************************************************************/
-typedef struct BVDC_P_VnetContext
-{
-    BDBG_OBJECT(BVDC_VNT)
-
-    BREG_Handle                        hRegister;
-
-} BVDC_P_VnetContext;
-
-
 /***************************************************************************
  * Build RUL for VNET front & back
  ***************************************************************************/
+#if (BVDC_P_SUPPORT_HDDVI || BVDC_P_SUPPORT_NEW_656_IN_VER)
 BERR_Code BVDC_P_Drain_Acquire
     ( BVDC_P_DrainContext             *pDrain,
       BVDC_P_ResourceContext          *pResource,
@@ -580,6 +568,7 @@ void BVDC_P_Drain_BuildFormatRul_isr
       const BVDC_P_Rect               *pScanOut,
       const BFMT_VideoInfo            *pFmtInfo,
       BVDC_P_ListInfo                 *pList );
+#endif /* HDDVI or 656IN */
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2007-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #include "nexus_graphics2d_module.h"
 #include "nexus_graphics2d_impl.h"
@@ -45,6 +44,7 @@
 #include "priv/nexus_sage_priv.h"
 #endif
 #include "bchp_common.h"
+#include "bchp_pwr.h"
 
 BDBG_MODULE(nexus_graphics2d);
 BTRC_MODULE(nexus_graphics2d_blit, ENABLE);
@@ -316,7 +316,7 @@ NEXUS_Graphics2DHandle NEXUS_Graphics2D_Open(unsigned index, const NEXUS_Graphic
     BDBG_CASSERT(sizeof(BRect) == sizeof(NEXUS_Rect));
 
     gfx->openSettings = *pSettings;
-    (void)BGRC_Packet_GetDefaultCreateContextSettings(gfx->grc, &packetContextSettings);
+    BGRC_Packet_GetDefaultCreateContextSettings(&packetContextSettings);
     heap = NEXUS_P_DefaultHeap(pSettings->heap, NEXUS_DefaultHeapType_eFull);
     if (heap) {
         /* allow null for packet buffer.
@@ -1263,11 +1263,11 @@ static int nexus_p_switch_secure(struct NEXUS_Graphics2DEngine *engine)
     BDBG_ASSERT(index <= BAVC_CoreId_eGFX_2 - BAVC_CoreId_eGFX_0); /* don't overrun BAVC_CoreId GFX types */
     coreList.aeCores[BAVC_CoreId_eGFX_0 + index] = true;
     if (secure) {
-        rc = NEXUS_Sage_AddSecureCores(&coreList);
+        rc = NEXUS_Sage_AddSecureCores(&coreList, NEXUS_SageUrrType_eDisplay);
         if (rc) BERR_TRACE(rc);
     }
     else {
-        NEXUS_Sage_RemoveSecureCores(&coreList);
+        NEXUS_Sage_RemoveSecureCores(&coreList, NEXUS_SageUrrType_eDisplay);
     }
     engine->secure = secure;
 #else
@@ -1646,4 +1646,35 @@ bool NEXUS_Graphics2D_MipmapModeSupported_isrsafe(void)
         if ((NEXUS_Graphics2DMode)BGRC_GetMode_isrsafe(index) == NEXUS_Graphics2DMode_eMipmap) return true;
     }
     return false;
+}
+
+NEXUS_Error NEXUS_Graphics2D_SetFrequencyScaling(unsigned percent)
+{
+#if NEXUS_POWER_MANAGEMENT && BCHP_PWR_RESOURCE_M2MC0
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    unsigned clkRate;
+
+    if(percent > 100) {
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+#if BCHP_PWR_RESOURCE_M2MC0
+    rc = BCHP_PWR_GetMaxClockRate(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_M2MC0, &clkRate);
+    if(rc) {return BERR_TRACE(NEXUS_INVALID_PARAMETER);}
+    clkRate = percent*(clkRate/100);
+    rc = BCHP_PWR_SetClockRate(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_M2MC0, clkRate);
+    if(rc) {return BERR_TRACE(NEXUS_INVALID_PARAMETER);}
+#endif
+#if BCHP_PWR_RESOURCE_M2MC1
+    rc = BCHP_PWR_GetMaxClockRate(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_M2MC1, &clkRate);
+    if(rc) {return BERR_TRACE(NEXUS_INVALID_PARAMETER);}
+    clkRate = percent*(clkRate/100);
+    rc = BCHP_PWR_SetClockRate(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_M2MC1, clkRate);
+    if(rc) {return BERR_TRACE(NEXUS_INVALID_PARAMETER);}
+#endif
+
+    return rc;
+#else
+    BSTD_UNUSED(percent);
+    return NEXUS_NOT_SUPPORTED;
+#endif
 }

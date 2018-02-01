@@ -144,7 +144,9 @@ void Worker::mainThread(void)
          }
 
          // buffer is ready when mutex is triggered (replace with fence in final solution)
-         dispItem->m_fence->wait();
+         // if this is NULL, then its already signalled, so OK to display
+         if (dispItem->m_fence)
+            dispItem->m_fence->wait();
 
          if (NEXUS_Display_SetGraphicsSettings(windowState->GetDisplay(), &m_graphicsSettings) != NEXUS_SUCCESS)
          {

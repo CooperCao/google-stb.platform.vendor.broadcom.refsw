@@ -9,22 +9,23 @@
 #include "khrn_types.h"
 #include "libs/platform/v3d_scheduler.h"
 
-typedef enum
-{
-   KHRN_FENCE_STATE_NONE,
-   KHRN_FENCE_STATE_COMPLETED,
-   KHRN_FENCE_STATE_FINALISED,
-}khrn_fence_state;
+typedef struct khrn_fence khrn_fence;
 
-typedef struct khrn_fence
-{
-   khrn_render_state_set_t users;
-   v3d_scheduler_deps deps;
-   volatile int ref_count;
-   khrn_fence_state known_state;
-} khrn_fence;
+/* We record in a fence all the render states that use this fence.
+ * A fence can also have in deps additional dependencies that we need to wait
+ * for.
+ * When a fence gets flushed, render states get translated in dependencies,
+ * removed as users of that fence and merged with fence's dependecies.
+ * We then can wait (without a gl lock if needed) for a fence to be signalled.
+ * After a fence is flushed, users and deps cannot be modified anymore, unless
+ * khrn_fence_allow_change gets called.
+ * When calling khrn_fence_allow_change, the caller must make sure that khrn_fence_wait
+ * is not called at the same time from another thread on the same fence.
+ * Most of the fence functions, except khrn_fence_wait* and
+ * khrn_fence_incref/dec_ref need a gl lock;
+ */
 
-extern khrn_fence* khrn_fence_create(void);
+extern khrn_fence *khrn_fence_create(void);
 
 /* return false if rs is already the user of that fence;
  * You should not call this function directly, instead call
@@ -51,23 +52,13 @@ extern void khrn_fence_deps_add(khrn_fence *fence, v3d_scheduler_deps const* dep
 /* flush all the users of this fence */
 extern void khrn_fence_flush(khrn_fence *fence);
 
-extern void khrn_fence_wait(khrn_fence *fence,
-      v3d_sched_deps_state deps_state);
-
-/* returns true if the fence was flushed and the dependencies in fence
- *  reached the specified deps_state */
-extern bool khrn_fence_reached_state(khrn_fence *fence,
-      v3d_sched_deps_state deps_state);
-
-extern void khrn_fence_refinc(khrn_fence *fence);
-extern void khrn_fence_refdec(khrn_fence *fence);
-
 /* Flush all the users of this fence and return the dependencies. */
-extern const v3d_scheduler_deps* khrn_fence_get_deps(khrn_fence *fence);
+extern const v3d_scheduler_deps *khrn_fence_get_deps(khrn_fence *fence);
 
-/* when we wait for a deps_state for platform fence, we might one to set the
- * known state of the fence to the one we waited for */
-extern void khrn_fence_set_known_state(khrn_fence *fence,
+/*  Flushes all the users of this fence;
+ *  Returns true if the the dependencies in fence reached
+ *  the specified deps_state */
+extern bool khrn_fence_reached_state(khrn_fence *fence,
       v3d_sched_deps_state deps_state);
 
 /* Creates a new fence and adds it to all the render states(fmems) used by the
@@ -86,4 +77,25 @@ extern bool khrn_fence_merge(khrn_fence *fence_1, const khrn_fence *fence_2);
 
 /* print a khrn_fence */
 extern void khrn_fence_print(const khrn_fence *fence);
+
+#ifndef NDEBUG
+/* When calling khrn_fence_allow_change, the caller must make sure that
+ * khrn_fence_wait is not called at the same time from another thread on the
+ * same fence.
+ */
+extern void khrn_fence_allow_change(khrn_fence *fence);
+#endif
+
+/*
+ * Wait functions do not need a gl lock.
+ * khrn_fence_flush should have been called before this.
+ */
+extern void khrn_fence_wait(khrn_fence *fence,
+      v3d_sched_deps_state deps_state);
+extern bool khrn_fence_wait_timeout(khrn_fence *fence,
+      v3d_sched_deps_state deps_state, int timeout_ms);
+
+extern void khrn_fence_refinc(khrn_fence *fence);
+extern void khrn_fence_refdec(khrn_fence *fence);
+
 #endif

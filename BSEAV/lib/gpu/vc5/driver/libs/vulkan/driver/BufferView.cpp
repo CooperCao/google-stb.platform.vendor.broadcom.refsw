@@ -20,43 +20,33 @@ BufferView::BufferView(
 {
    Buffer *buffer = fromHandle<Buffer>(pCreateInfo->buffer);
 
-   m_format = pCreateInfo->format;
+   v3d_addr_t physAddr = buffer->CalculateBufferOffsetAddr(pCreateInfo->offset);
+   GFX_LFMT_T format   = Formats::GetLFMT(pCreateInfo->format);
 
-   m_size = 0;
+   uint32_t size = 0;
    if (buffer->Size() > buffer->GetBoundMemoryOffset() + pCreateInfo->offset)
-      m_size = static_cast<uint32_t>(buffer->Size() - buffer->GetBoundMemoryOffset() - pCreateInfo->offset);
+      size = static_cast<uint32_t>(buffer->Size() - buffer->GetBoundMemoryOffset() - pCreateInfo->offset);
 
    if (pCreateInfo->range != VK_WHOLE_SIZE)
-      m_size = std::min(m_size, static_cast<uint32_t>(pCreateInfo->range));
+      size = std::min(size, static_cast<uint32_t>(pCreateInfo->range));
 
-   m_physAddr = buffer->CalculateBufferOffsetAddr(pCreateInfo->offset);
+   m_nElems = size / gfx_lfmt_bytes_per_block(format);
 
-   CreateTSR(pCreateInfo);
+   CreateTSR(physAddr, format, m_nElems);
 }
 
 BufferView::~BufferView() noexcept
 {
 }
 
-void BufferView::CreateTSR(const VkBufferViewCreateInfo *info)
+void BufferView::CreateTSR(v3d_addr_t addr, GFX_LFMT_T fmt, uint32_t size)
 {
    V3D_TMU_TEX_STATE_T tsr = {};
 
-   tsr.l0_addr = m_physAddr;
+   tsr.l0_addr = addr;
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   v3d_tmu_get_wh_for_1d_tex_state(&tsr.width, &tsr.height, m_size);
-#else
-   // If we have to fully support older hardware, we will need to use a 1d-array texture
-   // and manipulate texture coords in the qpu.
-   assert(info->range <= 4096); // Best we can do on older h/w without using an array
-   tsr.width  = info->range;
-   tsr.height = 1;
-#endif
+   v3d_tmu_get_wh_for_1d_tex_state(&tsr.width, &tsr.height, size);
    tsr.depth = 1;
-
-   // TODO : modify fmt based on our special cases where we don't use exact format
-   GFX_LFMT_T fmt = Formats::GetLFMT(info->format, Formats::HW);
 
    GFX_LFMT_TMU_TRANSLATION_T t;
    gfx_lfmt_translate_tmu(&t, gfx_lfmt_ds_to_red(fmt)

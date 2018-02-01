@@ -627,15 +627,21 @@ sub process_functions {
     return [\@ioctls, \%api_structs, \%references, \@api_ids, \%compat_info, $varargs_info];
 }
 
-sub process_arguments {
-    my ($functions, $func,$class_handles, $structs) = @_;
-    my $code = {};
-    my $funcname = $func->{FUNCNAME};
-    my $api = "_${funcname}";
-    my $arg_no = 0;
-    my @trace_format;
-    my @trace_names;
-    my @trace_args;
+sub get_arg_callback_id {
+    my ($functions, $func, $arg_no) = @_;
+    my $id = sprintf("0x%05x", ((bapi_util::func_id $functions, $func)*256 + $arg_no + 0x10000));
+    $id;
+}
+
+sub get_field_callback_id {
+    my ($structs, $param, $field_no) = @_;
+    my $id = sprintf("0x%04x", ((bapi_util::struct_id $structs, $param->{BASETYPE})*256 + $field_no));
+    $id;
+}
+
+sub get_callback_kind {
+    my ($func,$class_handles,$param) = @_;
+
     my $func_callback_kind='_UNKNOWN';
     if(scalar @{$func->{PARAMS}} >= 1) {
         if (is_handle($func->{RETTYPE}, $class_handles)) {
@@ -648,11 +654,26 @@ sub process_arguments {
             $func_callback_kind = '_INIT';
         }
     }
+    my $callback_kind = $func_callback_kind;
+    if(exists $param->{ATTR}{pragma} && $param->{ATTR}{pragma} eq 'ClearCallbacks') {
+        $callback_kind='_CLEAR';
+    }
+    $callback_kind;
+}
+
+
+sub process_arguments {
+    my ($functions, $func,$class_handles, $structs) = @_;
+    my $code = {};
+    my $funcname = $func->{FUNCNAME};
+    my $api = "_${funcname}";
+    my $arg_no = 0;
+    my @trace_format;
+    my @trace_names;
+    my @trace_args;
+
     for my $param (@{$func->{PARAMS}} ) {
-        my $callback_kind = $func_callback_kind;
-        if(exists $param->{ATTR}{pragma} && $param->{ATTR}{pragma} eq 'ClearCallbacks') {
-            $callback_kind='_CLEAR';
-        }
+        my $callback_kind=get_callback_kind($func, $class_handles, $param);
         $arg_no++;
         push @trace_names,$param->{NAME};
         if($param->{ISREF} || is_handle($param->{TYPE}, $class_handles) || $param->{TYPE} eq 'NEXUS_AnyObject' ) {
@@ -677,7 +698,7 @@ sub process_arguments {
             }
         }
         if(exists $param->{BASETYPE} && $param->{BASETYPE} eq 'NEXUS_CallbackDesc') {
-            my $id = sprintf("0x%05x", ((bapi_util::func_id $functions, $func)*256 + $arg_no + 0x10000));
+            my $id = get_arg_callback_id($functions, $func, $arg_no);
             if ($param->{INPARAM}) {
                 push @{$code->{SERVER}{CALLBACK_PRE}}, "B_IPC_CALLBACK${callback_kind}_IN_PREPARE($api, $param->{NAME}, $func->{PARAMS}[0]{NAME}, $id )";
                 push @{$code->{SERVER}{CALLBACK_POST}}, "B_IPC_CALLBACK${callback_kind}_IN_FINALIZE($api, $param->{NAME}, $func->{PARAMS}[0]{NAME}, $id )";
@@ -814,10 +835,11 @@ sub process_arguments {
                         }
                     }
                     if( $_->{TYPE} eq 'NEXUS_CallbackDesc') {
-                        my $id = sprintf("0x%04x", ((bapi_util::struct_id $structs, $param->{BASETYPE})*256 + $field_no));
+                        my $id = get_field_callback_id($structs, $param, $field_no);
                         if ($param->{INPARAM}) {
                             push @{$code->{SERVER}{CALLBACK_PRE}}, "B_IPC_CALLBACK${callback_kind}_FIELD_IN_PREPARE($api, $param->{NAME}, $_->{NAME}, $func->{PARAMS}[0]{NAME}, $id )";
                             push @{$code->{SERVER}{CALLBACK_POST}}, "B_IPC_CALLBACK${callback_kind}_FIELD_IN_FINALIZE($api, $param->{NAME}, $_->{NAME}, $func->{PARAMS}[0]{NAME}, $id )";
+                            $code->{SERVER}{CALLBACK_VERIFY}{$param->{BASETYPE}} = "B_IPC_CALLBACK${callback_kind}_STRUCT_IN_VERIFY($api, $param->{BASETYPE}, $func->{PARAMS}[0]{NAME})";
                         } else {
                             push @{$code->{SERVER}{CALLBACK_POST}}, "B_IPC_CALLBACK${callback_kind}_FIELD_OUT($api,$param->{NAME}, $_->{NAME}, $func->{PARAMS}[0]{NAME}, $id )";
                         }
@@ -856,6 +878,9 @@ sub process_arguments {
             $result_args=',__result';
         }
         push @{$code->{DRIVER}{RESULT}}, "B_IPC_DRIVER_RESULT($api)";
+        if($func->{RETTYPE} eq 'NEXUS_Error') {
+            push @{$code->{DRIVER}{RESULT}}, "B_IPC_DRIVER_CHECK_RETURN_CODE($api)";
+        }
     }
     $code->{TRACE}{RESULT}{FORMAT} = $result_format;
     $code->{TRACE}{RESULT}{ARG} = $result_args;
@@ -1149,6 +1174,9 @@ sub generate_client {
         if($is_destructor || $func->{RETTYPE} eq 'void') {
         } else {
             print $fout "    B_IPC_CLIENT_SET_RESULT($func->{RETTYPE}, $api)\n";
+            if($func->{RETTYPE} eq 'NEXUS_Error') {
+                print $fout "    B_IPC_CLIENT_CHECK_RETURN_CODE($api)\n";
+            }
         }
 
         print $fout "    B_IPC_CLIENT_TRACE((\"<%s(%d):$code->{TRACE}{RESULT}{FORMAT} $code->{TRACE}{FORMAT}\", \"$funcname\", __rc $code->{TRACE}{RESULT}{ARG} $code->{TRACE}{ARG}))\n";
@@ -1192,6 +1220,7 @@ sub generate_meta
     my $in_arg_type = "b_${module}_module_ipc_in";
     my $out_arg_type = "b_${module}_module_ipc_out";
     my %class_dict = map {$_ => 1} @$class_handles;
+    my %all_callback_ids;
 
     for my $func (@$funcs) {
         next if(exists $func->{ATTR}{'local'});
@@ -1260,7 +1289,10 @@ sub generate_meta
                 }
                 # check if param is a struct which has a class handle field
                 my $struct_field;
+                my $field_no = 0;
+                my @callback_ids;
                 for $struct_field (@{$structs->{$param->{BASETYPE}}}) {
+                    $field_no++;
                     my $field_name = $struct_field->{NAME};
                     my @array_size;
                     my @array_offset;
@@ -1347,6 +1379,19 @@ sub generate_meta
                             }
                         }
                         push @objects, \@object if scalar @object;
+                    }
+                    if( $struct_field->{TYPE} eq 'NEXUS_CallbackDesc') {
+                        if ($param->{INPARAM}) {
+                            my $callback_kind=get_callback_kind($func, $class_handles,$param);
+                            my $id = get_field_callback_id($structs, $param, $field_no);
+                            push @callback_ids, [$struct_field->{NAME},$id];
+                        }
+                    }
+                }
+                if(scalar @callback_ids) {
+                    my $callback_kind=get_callback_kind($func, $class_handles,$param);
+                    if($callback_kind ne '_CONSTRUCTOR' && $callback_kind ne '_CLEAR') {
+                        $all_callback_ids{$param->{BASETYPE}} = \@callback_ids;
                     }
                 }
             }
@@ -1458,6 +1503,14 @@ sub generate_meta
         bapi_util::print_code $file, \@function, "   ";
         print $file "};\n";
     }
+
+    for my $name (sort keys %all_callback_ids) {
+        print $file "B_IPC_SERVER_CALLBACK_LIST_BEGIN($name)\n";
+        my @ids = map { "B_IPC_SERVER_CALLBACK_LIST_ID($_->[0],$_->[1])"} @{$all_callback_ids{$name}};
+        bapi_util::print_code $file, \@ids, "   ";
+        print $file "B_IPC_SERVER_CALLBACK_LIST_END($name)\n";
+        print $file "\n";
+    }
 }
 
 sub print_function_prototype {
@@ -1513,6 +1566,11 @@ BDBG_FILE_MODULE(nexus_trace_${module});
 
         print $fout "    B_IPC_SERVER_VERIFY($module, _${funcname})\n";
         bapi_util::print_code($fout, $code->{SERVER}{RECV}, $tab);
+        if(exists $code->{SERVER}{CALLBACK_VERIFY}) {
+            for my $name (sort keys %{$code->{SERVER}{CALLBACK_VERIFY}}) {
+                bapi_util::print_code($fout, [$code->{SERVER}{CALLBACK_VERIFY}{$name}], $tab);
+            }
+        }
         bapi_util::print_code($fout, $code->{SERVER}{RECV_VARARG}, $tab);
         if(exists $code->{SERVER}{OUT_VARARGS}) {
             bapi_util::print_code($fout, ["B_IPC_SERVER_BEGIN_OUT_VARARG($api)"],$tab);
@@ -1916,6 +1974,10 @@ BDBG_MODULE(nexus_${module}_compat);
         bapi_util::print_code($fout, $code->{COMPAT}{VARARG_IN_PLACE}, $tab);
         bapi_util::print_code($fout, $code->{COMPAT}{VARARG_IN_CONVERT}, $tab);
         print $fout "    NEXUS_P_COMPAT_PROCESS($module,$api)\n";
+        if($func_map{$funcname}->{RETTYPE} eq 'NEXUS_Error') {
+            print $fout "    NEXUS_P_COMPAT_CHECK_RETURN_CODE($module, $api)\n";
+        }
+
         print $fout "    NEXUS_P_COMPAT_CONVERT_OUT($module,$api)\n";
         if(exists $code->{COMPAT}{VARARG_OUT_DECLARE}) {
             bapi_util::print_code($fout, ["NEXUS_P_COMPAT_VARARG_OUT_BEGIN($api)"],$tab);

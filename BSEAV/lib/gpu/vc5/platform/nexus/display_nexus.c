@@ -23,6 +23,7 @@
 #include "platform_common.h"
 #include "fence_queue.h"
 #include "../common/debug_helper.h"
+#include "../common/perf_event.h"
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -32,6 +33,7 @@
 #include <memory.h>
 #include <assert.h>
 #include <pthread.h>
+#include <stdint.h>
 
 #define MAX_SWAP_BUFFERS   3
 
@@ -70,6 +72,9 @@ static BEGL_Error DispWindowGetInfo(void *context,
 
       if (flags & BEGL_WindowInfoSwapChainCount)
          info->swapchain_count = nw->numSurfaces;
+
+      if (flags & BEGL_WindowInfoBackBufferAge)
+         info->backBufferAge = nw->ageOfLastDequeuedSurface;
 
       return BEGL_Success;
    }
@@ -201,32 +206,52 @@ static BEGL_Error DispGetNextSurface(
    int *fence
 )
 {
-   UNUSED(context);
-
-   PlatformState *state = (PlatformState *) nativeWindow;
+   NXPL_DisplayContext *dc    = (NXPL_DisplayContext*)context;
+   PlatformState       *state = (PlatformState *)nativeWindow;
 
    if (state == NULL || nativeSurface == NULL || actualFormat == NULL)
       return BEGL_Fail;
 
-   *nativeSurface = DisplayFramework_GetNextSurface(
-         &state->display_framework, format, secure, fence);
-
+   uint64_t before = PerfGetTimeNow();
+   *nativeSurface = DisplayFramework_GetNextSurface(&state->display_framework, format, secure, fence,
+                                                    &state->native_window->ageOfLastDequeuedSurface);
    if (!*nativeSurface)
    {
       *actualFormat = BEGL_BufferFormat_INVALID;
       return BEGL_Fail;
    }
+
+   static uint32_t eventID = 0;
+   NXPL_Surface *nxpl_surface = (NXPL_Surface *)*nativeSurface;
+   NEXUS_SurfaceHandle surface = nxpl_surface->surface;
+
+   PerfAddEventWithTime(dc->eventContext, PERF_EVENT_TRACK_QUEUE, PERF_EVENT_DEQUEUE, eventID,
+                        BCM_EVENT_BEGIN, before, (uintptr_t)surface, *fence);
+   PerfAddEvent(dc->eventContext, PERF_EVENT_TRACK_QUEUE, PERF_EVENT_DEQUEUE, eventID++,
+                BCM_EVENT_END, (uintptr_t)surface, *fence);
+
    return BEGL_Success;
 }
 
 static BEGL_Error DispDisplaySurface(void *context, void *nativeWindow, void *nativeSurface, int fence, int interval)
 {
-   UNUSED(context);
-   PlatformState *state = (PlatformState *) nativeWindow;
+   NXPL_DisplayContext *dc    = (NXPL_DisplayContext*)context;
+   PlatformState       *state = (PlatformState *) nativeWindow;
+
    if (state && nativeSurface)
    {
-      DisplayFramework_DisplaySurface(&state->display_framework,
-            nativeSurface, fence, interval);
+      static uint32_t eventID = 0;
+      NXPL_Surface *nxpl_surface = (NXPL_Surface *)nativeSurface;
+      NEXUS_SurfaceHandle surface = nxpl_surface->surface;
+
+      PerfAddEvent(dc->eventContext, PERF_EVENT_TRACK_QUEUE, PERF_EVENT_QUEUE, eventID, BCM_EVENT_BEGIN,
+                   (uintptr_t)surface, (int32_t)fence, (int32_t)interval);
+
+      DisplayFramework_DisplaySurface(&state->display_framework, nativeSurface, fence, interval);
+
+      PerfAddEvent(dc->eventContext, PERF_EVENT_TRACK_QUEUE, PERF_EVENT_QUEUE, eventID++, BCM_EVENT_END,
+                    (uintptr_t)surface, (int32_t)fence, (int32_t)interval);
+
       return BEGL_Success;
    }
    else
@@ -269,12 +294,12 @@ static void *DispWindowPlatformStateCreate(void *context, void *native)
 #ifdef NXPL_PLATFORM_EXCLUSIVE
          if (!DisplayInterface_InitNexusExclusive(&state->display_interface,
                &state->fence_interface, &nw->windowInfo, ctx->displayType,
-               ctx->display, &nw->bound))
+               ctx->display, &nw->bound, ctx->eventContext))
             goto error_display;
 #else
          if (!DisplayInterface_InitNexusMulti(&state->display_interface,
                &state->fence_interface, &nw->windowInfo, ctx->displayType,
-               nw->numSurfaces, nw->clientID, nw->surfaceClient))
+               nw->numSurfaces, nw->clientID, nw->surfaceClient, ctx->eventContext))
             goto error_display;
 #endif
 
@@ -325,7 +350,8 @@ static BEGL_Error DispWindowPlatformStateDestroy(void *context, void *windowStat
 BEGL_DisplayInterface *CreateDisplayInterface(
       NEXUS_DISPLAYHANDLE display,
       NXPL_DisplayContext *ctx,
-      struct BEGL_SchedInterface *schedIface)
+      BEGL_SchedInterface *schedIface,
+      EventContext *eventContext)
 {
    BEGL_DisplayInterface *disp = (BEGL_DisplayInterface*)malloc(sizeof(BEGL_DisplayInterface));
 
@@ -341,6 +367,7 @@ BEGL_DisplayInterface *CreateDisplayInterface(
          ctx->display = display;
 #endif
          ctx->schedIface = schedIface;
+         ctx->eventContext = eventContext;
 
          disp->context = (void*)ctx;
 

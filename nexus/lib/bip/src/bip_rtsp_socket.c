@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -252,7 +252,7 @@ BIP_RtspSocketHandle BIP_RtspSocket_CreateFromFd(
     BIP_CHECK_ERR_NZ_GOTO( rc, "BKNI_CreateMutex() Failed", error );
 
     /* Set state to idle */
-    /* coverity [missing_lock] */
+    /* coverity[missing_lock] */
     hRtspSocket->state = BIP_RtspSocketState_eIdle;
     BDBG_MSG((BIP_MSG_PRE_FMT "hRtspSocket %p" BIP_MSG_PRE_ARG , (void *)hRtspSocket ));
 

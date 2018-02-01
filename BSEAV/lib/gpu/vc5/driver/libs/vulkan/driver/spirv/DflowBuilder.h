@@ -45,15 +45,11 @@ public:
 
    const std::array<uint32_t, 3> &GetWorkgroupSize() const { return m_workgroupSize; }
 
-   bool IsPixelCenterInteger()  const { return m_pixelCenterInteger; }
-   bool IsOriginUpperLeft()     const { return m_originUpperLeft;    }
    bool IsDepthReplacing()      const { return m_depthReplacing;     }
    bool HasEarlyFragTests()     const { return m_earlyFragmentTests; }
 
 private:
    std::array<uint32_t, 3> m_workgroupSize;
-   bool                    m_pixelCenterInteger = false;
-   bool                    m_originUpperLeft = true;
    bool                    m_depthReplacing = false;
    bool                    m_earlyFragmentTests = false;
 };
@@ -462,6 +458,9 @@ public:
       return m_symbolTypes[node->GetTypeId()];
    }
 
+   SymbolTypeHandle GetSymbolType(const NodeVariable *var) const;
+
+
    uint32_t GetNumScalars(const NodeType *node) const
    {
       return GetSymbolType(node).GetNumScalars();
@@ -502,6 +501,7 @@ public:
    void InitCompute();
 
    bool RobustBufferAccess() const { return m_robustBufferAccess; }
+   uint32_t RequireConstantInt(const Node *node);
    bool ConstantInt(const Node *node, uint32_t *value);
 
    uint32_t     StructureOffset(const NodeTypeStruct *type, uint32_t index) const;
@@ -526,10 +526,10 @@ private:
 
    SymbolHandle AddSymbol(const NodeVariable *var);
 
-   void         CallFunction(const NodeFunction *function, const NodeFunctionCall *functionCall);
+   void CallFunction(const NodeFunction *function, const NodeFunctionCall *functionCall);
 
    // Debug
-   void         DebugPrint() const;
+   void DebugPrint() const;
 
    void AddBoolConstant(const Node *node, bool value);
    void AddValueConstant(const Node *node, uint32_t value);

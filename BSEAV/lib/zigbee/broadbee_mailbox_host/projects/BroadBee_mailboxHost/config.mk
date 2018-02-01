@@ -68,12 +68,11 @@ override LD = $(CROSS_COMPILE)gcc
 override PY=/usr/bin/python3
 
 ### Override tools' default flags for Project build: C compiler, assembler, linker.
-override CFLAGS  = -c -O0 -g -std=gnu99 -Wattributes -fpack-struct=4 -fshort-enums
-#-fshort-enums
+override CFLAGS  = -c -O0 -g -std=gnu99 -Wattributes -Wenum-compare
 override ASFLAGS =
 # Linker flags.
 
-override LDFLAGS += -g -Xlinker --no-enum-size-warning
+override LDFLAGS += -g
 
 override LIBS += $(HOST_PATH)/rf4ce_registration/libsqlite3.a -lpthread -ldl
 
@@ -125,7 +124,7 @@ endif
 
 # Exclude units not necessary for MAC Sertification Tests.
 SRCEXCL += bbSys% zigbee_core_sim zigbee_rpc_client shell sqlite3 bbPcUsart bbHal% bbExtPowerFilterKey bbExtTestEngine
-SRCINCL += bbSysEvent bbSysDbg bbSysFsm bbSysMemMan bbSysDbgMm bbSysPayload bbSysStackData bbSysTaskScheduler bbSysTimeoutTask bbSysQueue bbHalSystemTimer bbHalTask
+SRCINCL += bbSysEvent bbSysDbg bbSysFsm bbSysMemMan bbSysDbgMm bbSysPayload bbSysStackData bbSysTaskScheduler bbSysTimeoutTask bbSysQueue bbHalSystemTimer bbHalTask bbSysFifo
 
 # Make RF4CE_TEST enabled by default.
 RF4CE_TEST=n
@@ -172,6 +171,7 @@ override CDEFS += \
     _ZBPRO_ \
     USE_ZBPRO_PROFILE_ZHA \
     _ZHA_PROFILE_CIE_DEVICE_IMPLEMENTATION_ \
+    MULTIPLE_ATTRIBUTES_READ \
     _MAC_BAN_TABLE_SIZE_=1 \
     _RELEASE_TO_HOST_ \
     _PHY_SAP_IEEE_ \

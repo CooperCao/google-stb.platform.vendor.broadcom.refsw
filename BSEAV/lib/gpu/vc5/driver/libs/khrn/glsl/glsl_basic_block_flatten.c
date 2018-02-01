@@ -75,7 +75,8 @@ static Map *create_guards(const BasicBlockList *basic_blocks)
 }
 
 // make a copy of the dataflow and costant fold it
-static Dataflow *dataflow_simplify_recursive(Map *dataflow_copy, int age_offset, Dataflow *original, bool copy)
+static Dataflow *dataflow_simplify_recursive(Map *dataflow_copy, int age_offset, Dataflow *original,
+                                             bool copy, Dataflow *guard_value)
 {
    if (original == NULL) return NULL;
 
@@ -90,7 +91,7 @@ static Dataflow *dataflow_simplify_recursive(Map *dataflow_copy, int age_offset,
       n = original;
 
    for (int i = 0; i < original->dependencies_count; i++)
-      n->d.dependencies[i] = dataflow_simplify_recursive(dataflow_copy, age_offset, original->d.dependencies[i], copy);
+      n->d.dependencies[i] = dataflow_simplify_recursive(dataflow_copy, age_offset, original->d.dependencies[i], copy, guard_value);
 
    n->age = original->age + age_offset;
 
@@ -99,6 +100,9 @@ static Dataflow *dataflow_simplify_recursive(Map *dataflow_copy, int age_offset,
       simplified->age = n->age;
       n = simplified;
    }
+
+   if (guard_value)
+      glsl_predicate_dataflow(n, guard_value);
 
    glsl_map_put(dataflow_copy, original, n);
    return n;
@@ -167,7 +171,8 @@ static void copy_block_dataflow(BasicBlock *dst_block, const BasicBlock *src_blo
       Dataflow **simplified_values = glsl_safemem_malloc(sizeof(Dataflow*) * symbol->type->scalar_count);
 
       for (unsigned i = 0; i < symbol->type->scalar_count; i++)
-         simplified_values[i] = dataflow_simplify_recursive(dataflow_copy, age_offset, scalar_values[i], generate_new_ids);
+         simplified_values[i] = dataflow_simplify_recursive(dataflow_copy, age_offset, scalar_values[i],
+                                                            generate_new_ids, guard_value);
 
       set_dst_scalar_values(dst_block, src_block, symbol, simplified_values, guard_value);
 
@@ -175,12 +180,8 @@ static void copy_block_dataflow(BasicBlock *dst_block, const BasicBlock *src_blo
    }
 
    Dataflow *memory_head = dataflow_simplify_recursive(dataflow_copy, age_offset,
-                                                       src_block->memory_head, generate_new_ids);
+                                                       src_block->memory_head, generate_new_ids, guard_value);
    for (Dataflow *m = memory_head; m != NULL; m=m->d.addr_store.prev) {
-      if (!guard_is_always_true(guard_value)) {
-         if (m->d.addr_store.cond != NULL) m->d.addr_store.cond = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, m->d.addr_store.cond, guard_value);
-         else m->d.addr_store.cond = guard_value;
-      }
       if (m->d.addr_store.prev == NULL) {
          m->d.addr_store.prev = dst_block->memory_head;
          dst_block->memory_head = memory_head;
@@ -189,7 +190,7 @@ static void copy_block_dataflow(BasicBlock *dst_block, const BasicBlock *src_blo
    }
 
    if (src_block->branch_cond) {
-      *branch_cond = dataflow_simplify_recursive(dataflow_copy, age_offset, src_block->branch_cond, generate_new_ids);
+      *branch_cond = dataflow_simplify_recursive(dataflow_copy, age_offset, src_block->branch_cond, generate_new_ids, guard_value);
       *not_branch_cond = glsl_dataflow_construct_unary_op(DATAFLOW_LOGICAL_NOT, *branch_cond);
    } else {
       *branch_cond = NULL;

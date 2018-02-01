@@ -38,6 +38,7 @@
 #include "bstd.h"
 #include "nexus_platform_priv.h"
 #include "nexus_platform_features.h"
+#include "bchp_clkgen.h"
 
 BDBG_MODULE(nexus_platform_97255);
 
@@ -63,20 +64,44 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
-
+    /* Main driver heap */
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 128 * MB;
-    pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 56 * MB;
-    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 64 * MB;
-    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_GRAPHICS;
 
+    if (g_platformMemory.memoryLayout.memc[0].size <= 512 * MB) {
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size /= 2;
+    }
+
+    /* Compressed buffer heap */
     switch(boxMode)
     {
-        /* Box 4 is a UHD mode so we need a larger CRR region */
+        /* Box 4 is a UHD mode so we need a larger CRR region. */
         case 4:
         {
             pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 64 * MB;
             break;
         }
+        /* Box 3 allows 2 1080p decodes. */
+        case 3:
+        {
+            pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 48 * MB;
+            break;
+        }
+        /* Single 1080p decode. */
+        default:
+        {
+            pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 32 * MB;
+        }
+
+    }
+
+    /* Graphics memory */
+    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 32 * MB;
+    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_GRAPHICS;
+
+    /* On platforms with more memory increase the graphics heap to give 3D core more memory.
+    *  2GB systems 256MB for GFX, 1GB use 128MB. */
+    if (g_platformMemory.memoryLayout.memc[0].size >= 1024 * MB) {
+        pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = g_platformMemory.memoryLayout.memc[0].size /8;
     }
 }
 
@@ -107,6 +132,9 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
         case 6:
             board = "HB";
             break;
+       case 12:
+            board = "2L";
+            break;
         default:
             board = "unknown";
             break;
@@ -136,6 +164,35 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
             }
         }
     }
+
+#if 0
+    {
+        uint32_t reg;
+        unsigned postdiv,vco,pdiv,ndiv;
+
+        reg = BREG_Read32(g_pCoreHandles->reg, BCHP_CLKGEN_PLL_AVX_PLL_DIV);
+        pdiv = (reg >> 10) & 0xf;
+        ndiv = reg & 0x1ff;
+        vco = 54/pdiv * ndiv;
+        BDBG_ERR((" PLL AVX PLL  VCO - %dMHz", vco));
+
+        reg = BREG_Read32(g_pCoreHandles->reg, BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_1);
+        postdiv = (reg >> 1) & 0xff;
+        BDBG_ERR((" PLL AVX CTRL CH1 - HVD CPU\t- div - %2d  - Freq %dMHz ", postdiv, vco / postdiv));
+
+        reg = BREG_Read32(g_pCoreHandles->reg, BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_2);
+        postdiv = (reg >> 1) & 0xff;
+        BDBG_ERR((" PLL AVX CTRL CH2 - HVD Core\t- div - %2d  - Freq %dMHz ", postdiv, vco / postdiv));
+
+        reg = BREG_Read32(g_pCoreHandles->reg, BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_3);
+        postdiv = (reg >> 1) & 0xff;
+        BDBG_ERR((" PLL AVX CTRL CH3 - M2MC\t\t- div - %2d  - Freq %dMHz ", postdiv, vco / postdiv));
+
+        reg = BREG_Read32(g_pCoreHandles->reg, BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4);
+        postdiv = (reg >> 1) & 0xff;
+        BDBG_ERR((" PLL AVX CTRL CH4 - V3D\t\t- div - %2d  - Freq %dMHz ", postdiv, vco / postdiv));
+    }
+#endif
 
     return NEXUS_SUCCESS;
 }

@@ -221,7 +221,6 @@ done:
 
 static void NEXUS_Keypad_P_DataReady_isr(void *context, int param, void *unused)
 {
-    BERR_Code rc;
     NEXUS_KeypadHandle keypad = (NEXUS_KeypadHandle)context;
     NEXUS_KeypadEvent event;
     NEXUS_Time time;
@@ -230,8 +229,7 @@ static void NEXUS_Keypad_P_DataReady_isr(void *context, int param, void *unused)
     BSTD_UNUSED(unused);
     BDBG_OBJECT_ASSERT(keypad, NEXUS_Keypad);
 
-    rc = BKPD_Read_isrsafe(keypad->kpd, &event.code);
-    if (rc) BERR_TRACE(rc);
+    BKPD_Read_isrsafe(keypad->kpd, &event.code);
 
     NEXUS_Time_Get_isrsafe(&time);
     event.repeat = (keypad->lastCode == event.code) && (unsigned)NEXUS_Time_Diff_isrsafe(&time, &keypad->lastTime) < keypad->settings.repeatFilterTime;
@@ -329,9 +327,7 @@ NEXUS_KeypadHandle NEXUS_Keypad_Open(unsigned index, const NEXUS_KeypadSettings 
 #endif
     }
 
-    rc = BKPD_GetDefaultSettings(&kpdSettings, g_pCoreHandles->chp);
-    if (rc) {BERR_TRACE(rc);goto error;}
-
+    BKPD_GetDefaultSettings(&kpdSettings, g_pCoreHandles->chp);
     kpdSettings.prescale = pSettings->prescale;
     kpdSettings.debounce = pSettings->debounce;
     kpdSettings.keyMask = pSettings->keyMask;
@@ -346,8 +342,7 @@ NEXUS_KeypadHandle NEXUS_Keypad_Open(unsigned index, const NEXUS_KeypadSettings 
     {
         uint16_t code;
 
-        rc = BKPD_Read_isrsafe(keypad->kpd, &code);
-        if (rc) {BERR_TRACE(rc);goto error;}
+        BKPD_Read_isrsafe(keypad->kpd, &code);
         if (code != 0)
         {   /* this pattern occurs when no keypad is connected */
             goto done;

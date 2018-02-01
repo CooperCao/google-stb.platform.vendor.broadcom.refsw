@@ -53,7 +53,6 @@ typedef struct BVC5_P_BinPoolBlock
 {
    BMMA_Block_Handle    hBlock;
    BMMA_DeviceOffset    uiLockOffset;
-   uint32_t             uiPhysOffset;
    uint32_t             uiNumBytes;
 
    /* Link pointers when used in the over-sized queue */
@@ -68,7 +67,7 @@ typedef struct BVC5_BinPoolBlock_MemInterface
 {
    BMMA_Block_Handle (*BinPoolBlock_Alloc)(BMMA_Heap_Handle hHeap, size_t size, uint32_t align);
    void (*BinPoolBlock_Free)(BMMA_Block_Handle hBlock);
-   void (*BinPoolBlock_Lock)(BMMA_Block_Handle hBlock, BMMA_DeviceOffset *lockOffset, uint32_t *physOffset);
+   void (*BinPoolBlock_Lock)(BMMA_Block_Handle hBlock, BMMA_DeviceOffset *lockOffset);
    void (*BinPoolBlock_Unlock)(BMMA_Block_Handle hBlock, BMMA_DeviceOffset lockOffset);
 
 } BVC5_BinPoolBlock_MemInterface;
@@ -91,7 +90,7 @@ void BVC5_P_BinPoolDestroy(
 BVC5_BinBlockHandle BVC5_P_BinPoolAllocAtLeast(
    BVC5_BinPoolHandle hBinPool,
    uint32_t           uiMinBytes,
-   uint32_t           *uiPhysOffset
+   uint64_t          *uiPhysOffset
 );
 
 /***************************************************************************/
@@ -118,7 +117,7 @@ void BVC5_P_BinPoolStats(
 );
 
 /***************************************************************************/
-uint32_t BVC5_P_BinBlockGetPhysical(
+uint64_t BVC5_P_BinBlockGetPhysical(
    BVC5_BinBlockHandle  hBlock
 );
 
@@ -138,9 +137,7 @@ void BVC5_P_BinPoolBlock_FreeMem(
 /***************************************************************************/
 void BVC5_P_BinPoolBlock_LockMem(
    BMMA_Block_Handle hBlock,
-   BMMA_DeviceOffset *puiLockOffset,
-   uint32_t          *puiPhysOffset
-   );
+   BMMA_DeviceOffset *puiLockOffset);
 
 /***************************************************************************/
 void BVC5_P_BinPoolBlock_UnlockMem(

@@ -47,7 +47,6 @@
 #include <bcm_mpool_pub.h>
 #include <bcmcdc.h>
 
-
 typedef struct {
 	uint32 num;
 	chanspec_t list[1];
@@ -115,7 +114,7 @@ typedef struct {
 typedef struct wl_action_frame {
 	struct ether_addr 	da;
 	uint16 			len;
-	uint32 			packetId;
+	ulong	 		packetId;
 	uint8			data[ACTION_FRAME_SIZE];
 } wl_action_frame_t;
 
@@ -6610,6 +6609,15 @@ typedef struct chanim_stats {
 	uint32 bphy_badplcp;            /**< normalized as per second count */
 	uint8 chan_idle;                /**< normalized as 0~255 */
 } chanim_stats_t;
+
+typedef struct {
+	uint32 buflen;
+	uint32 version;
+	uint32 count;
+	chanim_stats_v2_t stats[1];
+} wl_chanim_stats_v2_t;
+
+#define WL_CHANIM_STATS_V2_FIXED_LEN OFFSETOF(wl_chanim_stats_v2_t, stats)
 
 #define WL_CHANIM_STATS_VERSION 3
 typedef struct {

@@ -39,6 +39,7 @@
 #define NEXUS_PLATFORM_GENERIC_FEATURES_H__
 
 #include "bstd.h"
+#include "bchp_common.h"
 
 /* NEXUS_NUM_INPUT_BANDS is actually max input bands.
 See NEXUS_TransportCapabilities.numInputBands for actual number. */
@@ -75,9 +76,13 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 #endif
 
 #ifdef NEXUS_HAS_XPT_DMA
+#if defined(BCHP_XPT_WDMA_CH8_REG_START) || defined(BCHP_XPT_MEMDMA_MCPB_CH8_REG_START)
 #define NEXUS_NUM_DMA_CHANNELS 31
+#else
+#define NEXUS_NUM_DMA_CHANNELS 8
+#endif
 #elif defined NEXUS_HAS_DMA
-#if BCHP_CHIP == 7435
+#ifdef BCHP_MEM_DMA_1_REG_START
 #define NEXUS_NUM_DMA_CHANNELS 2
 #else
 #define NEXUS_NUM_DMA_CHANNELS 1
@@ -91,11 +96,7 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 #endif
 
 #ifdef NEXUS_HAS_HDMI_OUTPUT
-#if BCHP_CHIP == 7439 && BCHP_VER == BCHP_VER_A0
-#define NEXUS_NUM_HDMI_OUTPUTS 2
-#else
 #define NEXUS_NUM_HDMI_OUTPUTS 1
-#endif
 #else
 #define NEXUS_NUM_HDMI_OUTPUTS 0
 #endif
@@ -113,7 +114,7 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 #endif
 
 #ifdef NEXUS_HAS_GRAPHICS2D
-#if (BCHP_CHIP == 7366 || BCHP_CHIP == 7435 || BCHP_CHIP == 74371 || BCHP_CHIP == 7439 || BCHP_CHIP == 7445 || BCHP_CHIP == 7278 || BCHP_CHIP == 11360 ) && !defined NEXUS_WEBCPU
+#if defined(BCHP_M2MC1_REG_START) && !defined(NEXUS_WEBCPU)
 #define NEXUS_NUM_2D_ENGINES 2
 #else
 #define NEXUS_NUM_2D_ENGINES 1
@@ -125,8 +126,15 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 #ifdef NEXUS_HAS_VIDEO_DECODER
 /* unused. only for backward compat. */
 #define NEXUS_NUM_XVD_DEVICES 1
-#define NEXUS_NUM_MOSAIC_DECODES 14
+#ifdef BCHP_CMP_0_REG_START
+#include "bchp_cmp_0.h"
+#endif
+#ifndef BCHP_CMP_0_V0_RECT_TOP_CTRL
+#define NEXUS_NUM_MOSAIC_DECODES 0
 #else
+#define NEXUS_NUM_MOSAIC_DECODES 12
+#endif
+#else /* NEXUS_HAS_VIDEO_DECODER */
 #define NEXUS_NUM_XVD_DEVICES 0
 #define NEXUS_NUM_MOSAIC_DECODES 0
 #endif
@@ -288,5 +296,9 @@ For a compile-time test for RAAGA, use:
 #define NEXUS_MEMC2_SECURE_GRAPHICS_HEAP        17
 #define NEXUS_EXPORT_HEAP                       18
 #define NEXUS_FIRMWARE_HEAP                     19
+#define NEXUS_CRRT_HEAP                         20
+#define NEXUS_MEMC0_URRT_HEAP                   21
+#define NEXUS_MEMC1_URRT_HEAP                   22
+#define NEXUS_MEMC2_URRT_HEAP                   23
 
 #endif

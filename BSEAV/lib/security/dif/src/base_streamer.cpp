@@ -121,21 +121,18 @@ NEXUS_PidChannelHandle BaseStreamer::OpenPidChannel(unsigned pid,
     return m_pidChannel;
 }
 
-IBuffer* BaseStreamer::GetBuffer(uint32_t size)
+uint8_t* BaseStreamer::WaitForBuffer(uint32_t size)
 {
-    if (m_playpump == NULL) {
-        LOGE(("Playpump hasn't been opened"));
-        return NULL;
-    }
+    uint8_t *playpumpBuffer = NULL;
+    size_t bufferSize = 0;
 
-    uint8_t *playpumpBuffer;
-    size_t bufferSize;
     for (;;) {
         uint32_t fragment_size = m_offset + size;
         NEXUS_Playpump_GetBuffer(m_playpump, (void**)&playpumpBuffer, &bufferSize);
         if (bufferSize == 0) {
             BKNI_Sleep(100);
-            NEXUS_Playpump_GetBuffer(m_playpump, (void**)&playpumpBuffer, &bufferSize);
+            continue;
+//            NEXUS_Playpump_GetBuffer(m_playpump, (void**)&playpumpBuffer, &bufferSize);
         }
 
         if (bufferSize >= fragment_size) {
@@ -156,10 +153,100 @@ IBuffer* BaseStreamer::GetBuffer(uint32_t size)
         }
     }
 
+    return playpumpBuffer;
+}
+
+IBuffer* BaseStreamer::GetBuffer(uint32_t size)
+{
+    if (m_playpump == NULL) {
+        LOGE(("Playpump hasn't been opened"));
+        return NULL;
+    }
+
+    uint8_t* playpumpBuffer = WaitForBuffer(size);
+
     IBuffer* buf = CreateBuffer(size, playpumpBuffer + m_offset);
     m_offset += size;
 
     return buf;
+}
+
+bool BaseStreamer::SubmitScatterGather(IBuffer* buffer, bool last)
+{
+    if (buffer == NULL) {
+        LOGE(("BaseStreamer::%s: Buffer pointer is NULL", BSTD_FUNCTION));
+        return false;
+    }
+
+    if (buffer->IsSecure())
+        return SubmitScatterGather((void*)buffer->GetPtr(), buffer->GetSize(), false, last);
+    else
+        return SubmitScatterGather((void*)buffer->GetPtr(), buffer->GetSize(), true, last);
+}
+
+bool BaseStreamer::SubmitScatterGather(void* addr, uint32_t length, bool flush, bool last)
+{
+    NEXUS_Error rc;
+    NEXUS_PlaypumpStatus status;
+    uint32_t numConsumed = 0;
+    uint32_t lengthToSubmit = 0;
+
+    if (m_playpump == NULL) {
+        LOGE(("BaseStreamer::%s: Playpump hasn't been opened", BSTD_FUNCTION));
+        return false;
+    }
+    LOGD(("BaseStreamer::%s ptr=%p len=%u", BSTD_FUNCTION, addr, length));
+
+retry:
+    rc = NEXUS_Playpump_GetStatus(m_playpump, &status);
+    if (rc != BERR_SUCCESS) {
+        LOGE(("BaseStreamer::%s: Playpump_GetStatus failed rc=0x%x",
+            BSTD_FUNCTION, rc));
+        return false;
+    }
+
+    if (status.descFifoDepth >= status.descFifoSize / 2) {
+        BKNI_Sleep(500);
+        goto retry;
+    }
+
+    m_desc[m_numDesc].addr = addr;
+    m_desc[m_numDesc].length = (unsigned)length;
+    m_flush[m_numDesc] = flush;
+    m_numDesc++;
+
+    /* if it's not last block just return */
+    if (!last) return true;
+
+    /* Flush if source is GLR and destination is secure */
+    for (unsigned i = 0; i < m_numDesc; i++) {
+        if (m_flush[i] && IsSecure())
+            NEXUS_FlushCache(m_desc[i].addr, m_desc[i].length);
+        lengthToSubmit += m_desc[i].length;
+    }
+
+    rc = NEXUS_Playpump_SubmitScatterGatherDescriptor(m_playpump, m_desc, m_numDesc, (size_t*)&numConsumed);
+    if (rc != BERR_SUCCESS) {
+        LOGE(("BaseStreamer::%s: SubmitScatterGather failed rc=0x%x",
+            BSTD_FUNCTION, rc));
+        m_numDesc = 0;
+        return false;
+    }
+
+    if (numConsumed < m_numDesc) {
+        LOGE(("BaseStreamer::%s: numConsumed didn't match: %u/%u",
+            BSTD_FUNCTION, numConsumed, m_numDesc));
+        // Not clear what to do for this case
+        m_numDesc = 0;
+        return false;
+    }
+
+    m_numDesc = 0;
+
+    // Need to call Playpump_GetBuffer
+    WaitForBuffer(lengthToSubmit);
+
+    return true;
 }
 
 bool BaseStreamer::Push(uint32_t size)
@@ -169,13 +256,13 @@ bool BaseStreamer::Push(uint32_t size)
         return false;
     }
 
-    LOGD(("SecureStreamer::%s size=%u", BSTD_FUNCTION, size));
+    LOGD(("BaseStreamer::%s size=%u", BSTD_FUNCTION, size));
     NEXUS_Error rc;
     if (size > m_internallyPushed) {
         rc = NEXUS_Playpump_WriteComplete(m_playpump, 0, size - m_internallyPushed);
         m_internallyPushed = 0;
     } else
-        LOGW(("SecureStreamer::%s warning size=%u < internallyPushed=%u", BSTD_FUNCTION, size, m_internallyPushed));
+        LOGW(("BaseStreamer::%s warning size=%u < internallyPushed=%u", BSTD_FUNCTION, size, m_internallyPushed));
 
     m_offset = 0;
     return (rc == NEXUS_SUCCESS);

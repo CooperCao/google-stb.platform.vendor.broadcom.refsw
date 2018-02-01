@@ -43,6 +43,23 @@
 #ifndef BSAGELIB_REGION_MAP_IDS_H_
 #define BSAGELIB_REGION_MAP_IDS_H_
 
+/* Use the upper 16 bits as modifier flags to heap index's */
+#define REGION_ID_FLAG_MASK 0xFF
+#define REGION_ID_FLAG_SHIFT 24
+
+#define REGION_ID_GET_ID(region) ((region) & ~(REGION_ID_FLAG_MASK << REGION_ID_FLAG_SHIFT))
+#define REGION_ID_GET_FLAGS(region) ((region) >> REGION_ID_FLAG_SHIFT)
+#define REGION_ID_CHECK_FLAG(region, flag) (REGION_ID_GET_FLAGS(region) & ((flag) & REGION_ID_FLAG_MASK))
+#define REGION_ID_SET_FLAG(region, flag) ((region) | (((flag) & REGION_ID_FLAG_MASK) << REGION_ID_FLAG_SHIFT))
+#define REGION_ID_CLEAR_FLAG(region, flag) ((region) & ~(((flag) & REGION_ID_FLAG_MASK) << REGION_ID_FLAG_SHIFT))
+
+/* Flag and helper macro's for passing up 40bit offset instead of 32bit */
+#define REGION_ID_FLAG_40BIT 0x80
+#define REGION_ID_FLAG_40BIT_OFFSET_SET(offset) ((uint64_t)(offset) >> 8)
+#define REGION_ID_FLAG_40BIT_OFFSET_GET(offset) ((uint64_t)(offset) << 8)
+#define REGION_ID_FLAG_40BIT_OFFSET_GET_WCHECK(region) REGION_ID_CHECK_FLAG(region.id, REGION_ID_FLAG_40BIT) ? \
+                                                REGION_ID_FLAG_40BIT_OFFSET_GET(region.offset) : \
+                                                (uint64_t)(region.offset)
 
 #define BSAGElib_RegionId_eInvalid 0x00
 #define BSAGElib_RegionId_Glr      0x01

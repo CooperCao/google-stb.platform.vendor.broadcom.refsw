@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,23 +38,15 @@
  * Module Description:
  *
  ***************************************************************************/
-
-/* For debugging */
-/* #define BUDP_P_GETUD_DUMP 1 */
-#ifdef BUDP_P_GETUD_DUMP
-static const char* BUDP_P_Getud_Filename = "userdata.getud";
-#include <stdio.h>
-#endif
-
 #include "bstd.h"
 #include "bkni.h"
 #include "bdbg.h"
 #include "budp.h"
+#include "budp_priv.h"
 #include "budp_bitread.h"
 #include "budp_scteparse.h"
 
 BDBG_MODULE(BUDP);
-
 
 #if !B_REFSW_MINIMAL /** { **/
 
@@ -83,8 +75,6 @@ typedef struct {
         (((a) >= (b)) ? (a) : (b))
 #endif
 
-static size_t FindMpegUserdataStart_isr (
-    BUDP_Bitread_Context* pReader, size_t length);
 static BERR_Code ParseSCTE20Data_isr (
     BUDP_Bitread_Context* pReader,
     size_t                   length,
@@ -110,18 +100,22 @@ static BERR_Code ParseSCTE21PAMData_isr (
     uint8_t*                 pscte_count,
     BUDP_SCTEparse_sctedata* pScteData);
 
+static BERR_Code BUDP_P_SCTEparse_isr (
+    const BAVC_USERDATA_info* pUserdata_info,
+    size_t                   offset,
+    size_t*                  pBytesParsed,
+    uint8_t*                 pscte_count,
+    BUDP_SCTEparse_sctedata* pScteData,
+    const DigitalParser      aParser[],
+    unsigned int             iMaxParser
+);
+
 static void P_ArrayInit_SCTE_isr (
     BUDP_SCTEparse_sctedata* pSCTEdata,
     const BAVC_USERDATA_info* pUserdata_info);
 
 static int swap_bits_isr (int src);
 static void P_EndSwap_isr (uint8_t* byteData, size_t byteLength);
-
-#ifdef BUDP_P_GETUD_DUMP
-static void dump_getud_isr (
-    const BAVC_USERDATA_info* pUserdata_info, size_t offset);
-#endif
-
 
 /***************************************************************************
 * Static data (tables, etc.)
@@ -140,280 +134,139 @@ static const DigitalParser scte21Parsers[] = {
 };
 #define NUM_21_PARSERS (sizeof(scte21Parsers) / sizeof(scte21Parsers[0]))
 
-static const bool bByteswap = (BSTD_CPU_ENDIAN == BSTD_ENDIAN_LITTLE);
-
-
 /***************************************************************************
 * Implementation of "BUDP_SCTEparse_" API functions
 ***************************************************************************/
-
-
-/***************************************************************************
- *
- */
 BERR_Code BUDP_SCTE20parse_isr (
-    const BAVC_USERDATA_info*      pUserdata_info,
+    const BAVC_USERDATA_info* pUserdata_info,
     size_t                   offset,
     size_t*                  pBytesParsed,
     uint8_t*                 pscte_count,
     BUDP_SCTEparse_sctedata* pScteData
 )
 {
-    size_t bytesParsedSub;
-    uint32_t length;
-    uint8_t* userdata;
-    unsigned int iparser;
-    BERR_Code eErr;
-    BUDP_Bitread_Context reader;
-    BUDP_Bitread_Context savedReader;
-
-    BDBG_ENTER(BUDP_SCTE20parse_isr);
-
-    /* Check for obvious errors from user */
-    if ((pUserdata_info   == 0x0) ||
-        (pBytesParsed     == 0x0) ||
-        (pscte_count      == 0x0) ||
-        (pScteData        == 0x0)   )
-    {
-        return BERR_INVALID_PARAMETER;
-    }
-
-    /* Programming note:  all function parameters are now validated */
-
-#ifdef BUDP_P_GETUD_DUMP
-    dump_getud_isr (pUserdata_info, offset);
-#endif
-
-    /* Take care of a special case */
-    userdata = (uint8_t*)(pUserdata_info->pUserDataBuffer) + offset;
-    length   = pUserdata_info->ui32UserDataBufSize - offset;
-    if (length < 4)
-    {
-        *pBytesParsed = length;
-        return BERR_BUDP_NO_DATA;
-    }
-
-    /* Prepare to play with bits */
-    BUDP_Bitread_Init_isr (&reader, bByteswap, userdata);
-
-    /* jump past the first MPEG userdata start code */
-    bytesParsedSub = FindMpegUserdataStart_isr (&reader, length);
-    *pBytesParsed = bytesParsedSub;
-    length -= bytesParsedSub;
-    savedReader = reader;
-
-    /* If we did not find a start code, bail out now */
-    if (length == 0)
-    {
-        return BERR_BUDP_NO_DATA;
-    }
-
-    /* Initialize output array */
-    P_ArrayInit_SCTE_isr (pScteData, pUserdata_info);
-    *pscte_count = 0;
-
-    /*********************************************************************\
-    * Programming note:  each of the parsers will give up and return
-    * BERR_BUDP_NO_DATA if it finds the wrong identifier byte.
-    \*********************************************************************/
-
-    /* Try all the available parsers */
-    for (iparser = 0 ; iparser < NUM_20_PARSERS ; ++iparser)
-    {
-        reader = savedReader;
-        eErr = (*scte20Parsers[iparser].parser) (
-            &reader, length, &bytesParsedSub, pscte_count, pScteData);
-        switch (eErr)
-        {
-        case BERR_SUCCESS:
-        case BERR_BUDP_PARSE_ERROR:
-            *pBytesParsed += bytesParsedSub;
-            BDBG_LEAVE(BUDP_SCTE20parse_isr);
-            return eErr;
-            break;
-        case BERR_BUDP_NO_DATA:
-            break;
-        default:
-            /* Programming error */
-            BDBG_ASSERT (false);
-            break;
-        }
-    }
-
-    /* Programming note:
-     * None of the parsers liked this bit of userdata.
-     * It would be more elegant to skip to the next start code
-     * before returning.  But it is more efficient to simply
-     * stop parsing. */
-
-    /* No userdata was found */
-    BDBG_LEAVE(BUDP_SCTE20parse_isr);
-    return BERR_BUDP_NO_DATA;
+    return BUDP_P_SCTEparse_isr(pUserdata_info, offset, pBytesParsed,
+        pscte_count, pScteData, scte20Parsers, NUM_20_PARSERS);
 }
 
-
-/***************************************************************************
- *
- */
 BERR_Code BUDP_SCTE21parse_isr (
-    const BAVC_USERDATA_info*      pUserdata_info,
+    const BAVC_USERDATA_info* pUserdata_info,
     size_t                   offset,
     size_t*                  pBytesParsed,
     uint8_t*                 pscte_count,
     BUDP_SCTEparse_sctedata* pScteData
 )
 {
-    size_t bytesParsedSub;
-    uint32_t length;
-    uint8_t* userdata;
-    unsigned int iparser;
-    BERR_Code eErr;
-    BUDP_Bitread_Context reader;
-    BUDP_Bitread_Context savedReader;
-
-    BDBG_ENTER(BUDP_SCTE21parse_isr);
-
-    /* Check for obvious errors from user */
-    if ((pUserdata_info   == 0x0) ||
-        (pBytesParsed     == 0x0) ||
-        (pscte_count      == 0x0) ||
-        (pScteData        == 0x0)   )
-    {
-        return BERR_INVALID_PARAMETER;
-    }
-
-    /* Programming note:  all function parameters are now validated */
-
-#ifdef BUDP_P_GETUD_DUMP
-    dump_getud_isr (pUserdata_info, offset);
-#endif
-
-    /* Take care of a special case */
-    userdata = (uint8_t*)(pUserdata_info->pUserDataBuffer) + offset;
-    length   = pUserdata_info->ui32UserDataBufSize - offset;
-    if (length < 4)
-    {
-        *pBytesParsed = length;
-        return BERR_BUDP_NO_DATA;
-    }
-
-    /* Prepare to play with bits */
-    BUDP_Bitread_Init_isr (&reader, bByteswap, userdata);
-
-    /* jump past the first MPEG userdata start code */
-    bytesParsedSub = FindMpegUserdataStart_isr (&reader, length);
-    *pBytesParsed = bytesParsedSub;
-    length -= bytesParsedSub;
-    savedReader = reader;
-
-    /* If we did not find a start code, bail out now */
-    if (length == 0)
-    {
-        return BERR_BUDP_NO_DATA;
-    }
-
-    /* Initialize output array */
-    P_ArrayInit_SCTE_isr (pScteData, pUserdata_info);
-    *pscte_count = 0;
-
-    /*********************************************************************\
-    * Programming note:  each of the parsers will give up and return
-    * BERR_BUDP_NO_DATA if it finds the wrong identifier byte.
-    \*********************************************************************/
-
-    /* Try all the available parsers */
-    for (iparser = 0 ; iparser < NUM_21_PARSERS ; ++iparser)
-    {
-        reader = savedReader;
-        eErr = (*scte21Parsers[iparser].parser) (
-            &reader, length, &bytesParsedSub, pscte_count, pScteData);
-        switch (eErr)
-        {
-        case BERR_SUCCESS:
-        case BERR_BUDP_PARSE_ERROR:
-            *pBytesParsed += bytesParsedSub;
-            BDBG_LEAVE(BUDP_SCTE21parse_isr);
-            return eErr;
-            break;
-        case BERR_BUDP_NO_DATA:
-            break;
-        default:
-            /* Programming error */
-            BDBG_ASSERT (false);
-            break;
-        }
-    }
-
-    /* Programming note:
-     * None of the parsers liked this bit of userdata.
-     * It would be more elegant to skip to the next start code
-     * before returning.  But it is more efficient to simply
-     * stop parsing. */
-
-    /* No userdata was found */
-    BDBG_LEAVE(BUDP_SCTE21parse_isr);
-    return BERR_BUDP_NO_DATA;
+    return BUDP_P_SCTEparse_isr(pUserdata_info, offset, pBytesParsed,
+        pscte_count, pScteData, scte21Parsers, NUM_21_PARSERS);
 }
 
 
 /***************************************************************************
 * Implementation of private (static) functions
 ***************************************************************************/
-
-/***************************************************************************
- * This function finds the next userdata startcode 0x000001B2.  It
- * indicates the byte following this startcode by its return value.
- * If no startcode was found, it simply returns the length of the
- * input data.
- */
-static size_t FindMpegUserdataStart_isr (
-    BUDP_Bitread_Context* pReader, size_t length)
+BERR_Code BUDP_P_SCTEparse_isr (
+    const BAVC_USERDATA_info* pUserdata_info,
+    size_t                   offset,
+    size_t*                  pBytesParsed,
+    uint8_t*                 pscte_count,
+    BUDP_SCTEparse_sctedata* pScteData,
+    const DigitalParser      aParser[],
+    unsigned int             iMaxParser
+)
 {
-    size_t count = 0;
-    uint8_t saved[4];
+    size_t bytesParsedSub;
+    uint32_t length;
+    uint8_t* userdata;
+    unsigned int iparser;
+    BERR_Code eErr;
+    BUDP_Bitread_Context reader;
+    BUDP_Bitread_Context savedReader;
 
-    /* Special case (failure) */
-    if (length < 4)
-        return length;
+    BDBG_ENTER(BUDP_P_SCTEparse_isr);
 
-    /* Initialize */
-    saved[1] = BUDP_Bitread_Byte_isr (pReader);
-    saved[2] = BUDP_Bitread_Byte_isr (pReader);
-    saved[3] = BUDP_Bitread_Byte_isr (pReader);
-
-    while (length >= 4)
+    /* Check for obvious errors from user */
+    if ((pUserdata_info   == 0x0) ||
+        (pBytesParsed     == 0x0) ||
+        (pscte_count      == 0x0) ||
+        (pScteData        == 0x0)   )
     {
-        /* Read in another byte */
-        saved[0] = saved[1];
-        saved[1] = saved[2];
-        saved[2] = saved[3];
-        saved[3] = BUDP_Bitread_Byte_isr (pReader);
+        return BERR_INVALID_PARAMETER;
+    }
 
-        if ((saved[0] == 0x00) &&
-            (saved[1] == 0x00) &&
-            (saved[2] == 0x01) &&
-            (saved[3] == 0xB2)    )
+    /* Programming note:  all function parameters are now validated */
+
+#if (BUDP_P_GETUD_DUMP)
+    BUDP_P_dump_getud_isr (pUserdata_info, offset, BUDP_P_Getud_Filename);
+#endif
+
+    /* Take care of a special case */
+    userdata = (uint8_t*)(pUserdata_info->pUserDataBuffer) + offset;
+    length   = pUserdata_info->ui32UserDataBufSize - offset;
+    if (length < 4)
+    {
+        *pBytesParsed = length;
+        return BERR_BUDP_NO_DATA;
+    }
+
+    /* Prepare to play with bits */
+    BUDP_Bitread_Init_isr (&reader, (BSTD_CPU_ENDIAN == BSTD_ENDIAN_LITTLE), userdata);
+
+    /* jump past the first MPEG userdata start code */
+    bytesParsedSub = BUDP_P_FindMpegUserdataStart_isr (&reader, length);
+    *pBytesParsed = bytesParsedSub;
+    length -= bytesParsedSub;
+    savedReader = reader;
+
+    /* If we did not find a start code, bail out now */
+    if (length == 0)
+    {
+        return BERR_BUDP_NO_DATA;
+    }
+
+    /* Initialize output array */
+    P_ArrayInit_SCTE_isr (pScteData, pUserdata_info);
+    *pscte_count = 0;
+
+    /*********************************************************************\
+    * Programming note:  each of the parsers will give up and return
+    * BERR_BUDP_NO_DATA if it finds the wrong identifier byte.
+    \*********************************************************************/
+
+    /* Try all the available parsers */
+    for (iparser = 0 ; iparser < iMaxParser ; ++iparser)
+    {
+        reader = savedReader;
+        eErr = (*aParser[iparser].parser) (
+            &reader, length, &bytesParsedSub, pscte_count, pScteData);
+        switch (eErr)
         {
-            /* Found it! */
+        case BERR_SUCCESS:
+        case BERR_BUDP_PARSE_ERROR:
+            *pBytesParsed += bytesParsedSub;
+            BDBG_LEAVE(BUDP_P_SCTEparse_isr);
+            return eErr;
+            break;
+        case BERR_BUDP_NO_DATA:
+            break;
+        default:
+            /* Programming error */
+            BDBG_ASSERT (false);
             break;
         }
-
-        /* proceed to the next byte */
-        --length;
-        ++count;
     }
 
-    if (length >= 4)
-    {
-        /* found the pattern before the end of stream */
-        return count + 4;
-    }
-    else
-    {
-        /* Didn't find any start code */
-        return count + 3;
-    }
+    /* Programming note:
+     * None of the parsers liked this bit of userdata.
+     * It would be more elegant to skip to the next start code
+     * before returning.  But it is more efficient to simply
+     * stop parsing. */
+
+    /* No userdata was found */
+    BDBG_LEAVE(BUDP_P_SCTEparse_isr);
+    return BERR_BUDP_NO_DATA;
 }
+
 
 /***************************************************************************
  * This function parses SCTE20 data.  It assumes that the userdata
@@ -1125,7 +978,7 @@ static BERR_Code ParseSCTE21PAMData_isr (
                 pScteData[ifield].data.luma_PAM_data, pam_data, bytesParsedSub);
 
             /* It is a shame that this is necessary */
-            if (bByteswap)
+            if (pReader->bByteswap)
             {
                 P_EndSwap_isr (
                     pScteData[ifield].data.luma_PAM_data, bytesParsedSub);
@@ -1228,47 +1081,5 @@ static void P_EndSwap_isr (uint8_t* byteData, size_t byteLength)
         byteData += 4;
     }
 }
-
-#ifdef BUDP_P_GETUD_DUMP
-static void dump_getud_isr (
-    const BAVC_USERDATA_info* pUserdata_info, size_t offset)
-{
-    unsigned int iByte;
-    static FILE* fd = NULL;
-    static unsigned int nPicture;
-    uint8_t* userdata = (uint8_t*)(pUserdata_info->pUserDataBuffer) + offset;
-    uint32_t length   = pUserdata_info->ui32UserDataBufSize - offset;
-
-    /* Initialization */
-    if (fd == NULL)
-    {
-        if ((fd = fopen (BUDP_P_Getud_Filename, "w")) == 0)
-        {
-            fprintf (stderr, "ERROR: could not open %s for debug output\n",
-                BUDP_P_Getud_Filename);
-            return;
-        }
-        fprintf (fd, "getud output format version 1\n");
-        nPicture = 0;
-    }
-
-    fprintf (fd, "\nPic %u LOC %06lx TR %u\n", ++nPicture, 0UL, 0U);
-    fprintf (fd, "PS %d TFF %d RFF %d\n",
-        pUserdata_info->eSourcePolarity,
-        pUserdata_info->bTopFieldFirst,
-        pUserdata_info->bRepeatFirstField);
-    fprintf (fd, "UDBYTES %u\n", length);
-    for (iByte = 0 ; iByte < length ; ++iByte)
-    {
-        fprintf (fd, "%02x", userdata[iByte]);
-        if ((iByte % 16) == 15)
-            putc ('\n', fd);
-        else
-            putc (' ', fd);
-    }
-    if ((iByte % 16) != 15)
-        putc ('\n', fd);
-}
-#endif
 
 #endif /** } !B_REFSW_MINIMAL **/

@@ -122,8 +122,7 @@ typedef enum b_trick_state {
 enum b_accurate_seek_state {
     b_accurate_seek_state_idle, /* nothing happens */
     b_accurate_seek_state_videoPtsQueued, /* target video PTS was obtained */
-    b_accurate_seek_state_videoPtsSet, /* target video PTS was set to the decoder*/
-    b_accurate_seek_state_videoFirstPts /* video FirstPTS callback was received */
+    b_accurate_seek_state_videoPtsSet /* target video PTS was set to the decoder*/
 };
 
 typedef struct b_trick_settings {
@@ -155,7 +154,6 @@ struct NEXUS_Playback {
     NEXUS_TaskCallbackHandle errorCallback, endOfStreamCallback, beginningOfStreamCallback, parsingErrorCallback;
     NEXUS_PlaybackIndexFileIo index_file_mode; /* control what context is used for index file I/O */
     NEXUS_CallbackHandler dataCallbackHandler;
-    NEXUS_CallbackHandler videoDecoderFirstPts;
     NEXUS_CallbackHandler videoDecoderFirstPtsPassed;
     bool thread_terminate; /* set to true when playpump_thread should exit */
     unsigned recordProgressCnt; /* number of current NEXUS_Record_AddPlayback connections. if zero, don't go into eWaitingRecord. */
@@ -283,7 +281,6 @@ struct NEXUS_Playback {
 };
 
 #define B_IO_BLOCK_SIZE BIO_BLOCK_SIZE
-#define B_IO_BLOCK_LIMIT (4*B_IO_BLOCK_SIZE)
 #define B_IO_ALIGN_TRUNC(n) ((n)&(~(B_IO_BLOCK_SIZE-1)))
 #define B_IO_ALIGN_ROUND(n) (((n)+B_IO_BLOCK_SIZE-1)&(~(B_IO_BLOCK_SIZE-1)))
 #define B_IO_ALIGN_REST(n)  (((unsigned long)(n)) & (B_IO_BLOCK_SIZE-1))
@@ -354,7 +351,6 @@ void        NEXUS_P_Playback_VideoDecoder_GetPlaybackSettings(const NEXUS_Playba
 NEXUS_Error NEXUS_P_Playback_VideoDecoder_SetPlaybackSettings(const NEXUS_Playback_P_PidChannel *pid, const NEXUS_VideoDecoderPlaybackSettings *pSettings);
 void        NEXUS_P_Playback_VideoDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid);
 NEXUS_Error NEXUS_P_Playback_AudioDecoder_GetStatus(const NEXUS_Playback_P_PidChannel *pid, NEXUS_AudioDecoderStatus *pStatus, NEXUS_AudioDecoderStatus *pSecondaryStatus);
-NEXUS_Error NEXUS_Playback_P_AudioDecoder_Advance(const NEXUS_Playback_P_PidChannel *pid, uint32_t video_pts);
 void        NEXUS_P_Playback_AudioDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid);
 void        NEXUS_P_Playback_AudioDecoder_GetTrickState(const NEXUS_Playback_P_PidChannel *pid, NEXUS_AudioDecoderTrickState *pState, NEXUS_AudioDecoderTrickState *pSecondaryState);
 NEXUS_Error NEXUS_P_Playback_AudioDecoder_SetTrickState(const NEXUS_Playback_P_PidChannel *pid, const NEXUS_AudioDecoderTrickState *pState);
@@ -364,7 +360,6 @@ const NEXUS_Playback_P_PidChannel *b_play_get_video_decoder(NEXUS_PlaybackHandle
 bool NEXUS_Playback_P_CheckSimpleDecoderSuspended(const NEXUS_Playback_P_PidChannel *pid);
 
 /* callbacks from decoders */
-void NEXUS_Playback_P_VideoDecoderFirstPts(void *context);
 void NEXUS_Playback_P_VideoDecoderFirstPtsPassed(void *context);
 
 #define b_imin(x,y) ((x)<(y) ? (x):(y))

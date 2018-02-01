@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -276,19 +276,6 @@ BERR_Code BXPT_Mpod_Shutdown(
 
     return( ExitCode );
 }
-
-unsigned int BXPT_Mpod_GetPodRes(
-    BXPT_Handle hXpt                /* [in] Handle for this transport */
-    )
-{
-    unsigned int Reg;
-
-    BDBG_ASSERT( hXpt );
-
-    Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_MPOD_RES_FIELD );
-    return BCHP_GET_FIELD_DATA( Reg, XPT_MPOD_RES_FIELD, POD_RES );
-}
-
 
 BERR_Code BXPT_Mpod_RouteToMpod(
     BXPT_Handle hXpt,           /* [in] Handle for this instance of transport. */

@@ -46,7 +46,7 @@ typedef struct {
 } GL20_SHADER_T;
 
 extern void gl20_shader_init(GL20_SHADER_T *shader, int32_t name, GLenum type);
-extern void gl20_shader_term(void *v, size_t size);
+extern void gl20_shader_term(void *v);
 
 extern bool gl20_shader_set_source(GL20_SHADER_T *shader, unsigned count,
                                    const char *const *string, const int *length);

@@ -9,6 +9,7 @@
 #include "middleware/khronos/ext/egl_khr_image.h"
 #include "interface/khronos/include/GLES2/gl2.h"
 #include "interface/khronos/include/GLES2/gl2ext.h"
+#include "middleware/khronos/common/khrn_mem.h"
 
 /*
    void glEGLImageTargetTexture2DOES_impl (GLenum target, GLeglImageOES image)
@@ -55,16 +56,18 @@ Another way of specifying two-dimensional texture images is to
     If <target> is not TEXTURE_2D, the error INVALID_ENUM is generated.
 */
 
-void glEGLImageTargetTexture2DOES_impl (GLenum target, GLeglImageOES image)
+GL_API void GL_APIENTRY glEGLImageTargetTexture2DOES(GLenum target, GLeglImageOES image)
 {
    GLenum error = GL_NONE;
-   MEM_HANDLE_T htexture;
    GLXX_TEXTURE_T *texture;
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-   EGL_SERVER_STATE_T *eglstate = EGL_GET_SERVER_STATE();
-   MEM_HANDLE_T heglimage = khrn_map_lookup(&eglstate->eglimages, (uint32_t)image);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
-   if (heglimage == MEM_HANDLE_INVALID)
+   EGL_SERVER_STATE_T *eglstate = EGL_GET_SERVER_STATE();
+   EGL_IMAGE_T *eglimage = khrn_map_lookup(&eglstate->eglimages, (uint32_t)(uintptr_t)image);
+
+   if (eglimage == NULL)
    {
       error = GL_INVALID_OPERATION;
       goto end;
@@ -80,23 +83,18 @@ void glEGLImageTargetTexture2DOES_impl (GLenum target, GLeglImageOES image)
        goto end;
    }
 
-   texture = glxx_server_state_get_texture(state, target, GL_FALSE, &htexture);
+   texture = glxx_server_state_get_texture(state, target, GL_FALSE);
 
    if (texture) {
-      EGL_IMAGE_T * egl_image = (EGL_IMAGE_T *)mem_lock(heglimage, NULL);
-      KHRN_IMAGE_T * image;
-
-      MEM_HANDLE_T himage = egl_image->mh_image;
-
-      image = (KHRN_IMAGE_T *)mem_lock(himage, NULL);
+      KHRN_IMAGE_T *image = eglimage->image;
 
       assert(texture->target != GL_TEXTURE_CUBE_MAP);
       if (glxx_texture_is_valid_image(image))
       {
-         glxx_texture_bind_images(texture, 1, &himage, TEXTURE_STATE_BOUND_EGLIMAGE, MEM_HANDLE_INVALID, 0);
+         glxx_texture_bind_images(texture, 1, &image, TEXTURE_STATE_BOUND_EGLIMAGE, 0);
          /* The bind above removes all previous bindings, so assign the external image here */
          if (khrn_image_is_rso(image->format))
-            MEM_ASSIGN(texture->external_image, heglimage);
+            KHRN_MEM_ASSIGN(texture->external_image, eglimage);
       }
       else
       {
@@ -110,19 +108,13 @@ void glEGLImageTargetTexture2DOES_impl (GLenum target, GLeglImageOES image)
 #endif
          error = GL_INVALID_OPERATION;
       }
-
-      mem_unlock(himage);
-      mem_unlock(heglimage);
-      mem_unlock(htexture);
    }
 
 end:
    if (error != GL_NONE)
-   {
       glxx_server_state_set_error(state, error);
-   }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
 /*
@@ -165,30 +157,42 @@ end:
     INVALID_OPERATION.
 */
 
-void glEGLImageTargetRenderbufferStorageOES_impl_20 (GLenum target, GLeglImageOES image)
+GL_API void GL_APIENTRY glEGLImageTargetRenderbufferStorageOES(GLenum target, GLeglImageOES image)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
+
    EGL_SERVER_STATE_T *eglstate = EGL_GET_SERVER_STATE();
-   MEM_HANDLE_T heglimage = khrn_map_lookup(&eglstate->eglimages, (uint32_t)image);
+   EGL_IMAGE_T *eglimage = khrn_map_lookup(&eglstate->eglimages, (uint32_t)(uintptr_t)image);
 
-   if (heglimage == MEM_HANDLE_INVALID)
-      glxx_server_state_set_error(state, GL_INVALID_VALUE);
-   else if (state->mh_bound_renderbuffer == MEM_HANDLE_INVALID)
+   if (IS_GL_11(state)) {
+      /* OES_framebuffer_object not supported for GLES1.1 */
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-   else if (target != GL_RENDERBUFFER)
-      glxx_server_state_set_error(state, GL_INVALID_ENUM);
-   else {
-      GLXX_RENDERBUFFER_T *renderbuffer;
-      MEM_HANDLE_T himage = ((EGL_IMAGE_T *)mem_lock(heglimage, NULL))->mh_image;
-      mem_unlock(heglimage);
-
-      renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(state->mh_bound_renderbuffer, NULL);
-
-      if (!glxx_renderbuffer_bind_image(renderbuffer, himage))
-         glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-
-      mem_unlock(state->mh_bound_renderbuffer);
+      goto end;
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   if (eglimage == NULL) {
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+      goto end;
+   }
+
+   if (state->bound_renderbuffer == NULL) {
+      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+      goto end;
+   }
+
+   if (target != GL_RENDERBUFFER) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   KHRN_IMAGE_T *khrn_image = eglimage->image;
+   GLXX_RENDERBUFFER_T *renderbuffer = state->bound_renderbuffer;
+
+   if (!glxx_renderbuffer_bind_image(renderbuffer, khrn_image))
+      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+
+end:
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }

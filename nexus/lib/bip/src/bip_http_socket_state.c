@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -246,6 +246,7 @@ error:
 static BIP_Status addHttpRsvdHeaders(
     BIP_HttpResponseHandle hHttpResponse,
     int64_t messageLength,
+    bool enableHttpChunkXferEncoding,
     bool disablePersistentConnection
     )
 {
@@ -273,6 +274,12 @@ static BIP_Status addHttpRsvdHeaders(
     {
         /* Live or Transcoded content, so can't support Range. */
         acceptRangeHeaderValue = "none";
+    }
+
+    if (enableHttpChunkXferEncoding)
+    {
+        hHeader = BIP_HttpResponse_AddHeader(hHttpResponse , "Transfer-Encoding", "chunked", NULL);
+        BIP_CHECK_GOTO(( hHeader ), ( "BIP_HttpResponse_AddHeader Failed" ), error, BIP_ERR_INTERNAL, bipStatus );
     }
 
     hHeader = BIP_HttpResponse_AddHeader(hHttpResponse , "Accept-Ranges", acceptRangeHeaderValue, NULL);
@@ -1200,7 +1207,11 @@ static bool processHttpSendState(
                 hHttpSocket->recv.persistentConnectionTimeoutInMs = 0;
             }
 
-            brc = addHttpRsvdHeaders( hHttpSocket->sendResponseApi.hHttpResponse, hHttpSocket->sendResponseApi.messageLength, hHttpSocket->disablePersistentConnection );
+            brc = addHttpRsvdHeaders(
+                    hHttpSocket->sendResponseApi.hHttpResponse,
+                    hHttpSocket->sendResponseApi.messageLength,
+                    hHttpSocket->sendResponseApi.settings.enableHttpChunkXferEncoding,
+                    hHttpSocket->disablePersistentConnection);
             BIP_CHECK_GOTO(( (brc == BIP_SUCCESS) ), ( "Failed to add Reserved Http Headers to the Response"), error, brc, hHttpSocket->send.completionStatus );
 
             /* This is probably a good time to print the HttpResponse. */

@@ -33,7 +33,7 @@ typedef struct
    v3d_addr_t addr;
    size_t offset;
    size_t size;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    size_t stream_position;
 #endif
 }glxx_tf_active_buffer;
@@ -87,12 +87,12 @@ extern bool glxx_tf_post_draw(GLXX_HW_RENDER_STATE_T *rs, const GLXX_TRANSFORM_F
 
 extern void glxx_tf_incr_start_count(GLXX_HW_RENDER_STATE_T *rs);
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 extern bool glxx_tf_record_disable(GLXX_HW_RENDER_STATE_T *rs);
 extern bool glxx_store_tf_buffers_state(GLXX_HW_RENDER_STATE_T *rs);
 #endif
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 /* returns false if capturing the desired tf overflows the limits of the buffers
  * bound to the indexed binding point sof the tf */
 extern bool glxx_tf_capture_to_buffers_no_overflow(const GLXX_TRANSFORM_FEEDBACK_T *tf,

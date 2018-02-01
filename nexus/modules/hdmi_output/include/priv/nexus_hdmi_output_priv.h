@@ -111,7 +111,7 @@ bool NEXUS_HdmiOutput_GetEotf_priv(
     NEXUS_VideoEotf *pEotf
 	);
 
-NEXUS_Error NEXUS_HdmiOutput_GetDisplaySettings_priv(
+void NEXUS_HdmiOutput_GetDisplaySettings_priv(
     NEXUS_HdmiOutputHandle handle,
     NEXUS_HdmiOutputDisplaySettings *stDisplaySettings
     );

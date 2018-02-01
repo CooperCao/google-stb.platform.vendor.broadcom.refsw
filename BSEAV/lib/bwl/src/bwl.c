@@ -8115,7 +8115,7 @@ static void switchStdout(const char *newStream)
   fflush(stdout);
   fgetpos(stdout, &pos);
   fd = dup(fileno(stdout));
-  freopen(newStream, "w", stdout);
+  if ( freopen(newStream, "w", stdout) == NULL ) fprintf( stderr, "Could not freopen(stdout)\n" );
 }
 
 static void revertStdout()

@@ -48,11 +48,11 @@
 
 BDBG_MODULE(BCHP_PWR);
 
-
-#ifdef BCHP_PWR_HAS_RESOURCES
-
 #define BDBG_MSG_TRACE(x) /*BDBG_MSG(x)*/
 
+static bool BCHP_PWR_P_SkipInitialReset(BCHP_Handle handle);
+
+#ifdef BCHP_PWR_HAS_RESOURCES
 static BERR_Code BCHP_PWR_P_AcquireResource(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, bool from_init);
 static void BCHP_PWR_P_Init(BCHP_Handle handle);
 static unsigned BCHP_PWR_P_GetInternalIndex(BCHP_PWR_ResourceId resourceId);
@@ -272,7 +272,7 @@ static void BCHP_PWR_P_Init(BCHP_Handle handle)
 {
     const BCHP_PWR_P_Resource *resource = NULL;
     unsigned i, idx;
-    unsigned refcnt[BCHP_PWR_P_NUM_ALLNODES];
+    unsigned *refcnt = BKNI_Malloc(sizeof(unsigned)*BCHP_PWR_P_NUM_ALLNODES);
 
     BDBG_MSG(("BCHP_PWR_P_Init: >"));
     BKNI_Memset(refcnt, 0, sizeof(refcnt));
@@ -287,11 +287,11 @@ static void BCHP_PWR_P_Init(BCHP_Handle handle)
     BKNI_Memcpy(refcnt, handle->pwrManager->privRefcnt, sizeof(refcnt));
 
     /* At this point all clocks should be acquired. So we can reset cores */
+    if (!BCHP_PWR_P_SkipInitialReset(handle)) {
 #ifdef BCHP_RESET_COMMON
-    if (!handle->openSettings.skipInitialReset) {
         BCHP_Cmn_ResetMagnumCores(handle);
-    }
 #endif
+    }
 
 #if BCHP_PWR_SUPPORT
 #ifdef BCHP_PWR_RESOURCE_SECURE_ACCESS
@@ -334,6 +334,7 @@ static void BCHP_PWR_P_Init(BCHP_Handle handle)
 
     BCHP_PWR_P_InitPMapSettings(handle);
 
+    BKNI_Free(refcnt);
     handle->pwrManager->initComplete = true;
     BDBG_MSG(("BCHP_PWR_P_Init: <"));
 
@@ -412,7 +413,7 @@ void BCHP_PWR_InitAllHwResources(BCHP_Handle handle)
     BDBG_MSG(("BCHP_PWR_InitAllHwResources: >"));
 
 #ifdef BCHP_RESET_COMMON
-    if (handle->openSettings.skipInitialReset) {
+    if (handle->skipInitialReset) {
         BCHP_Cmn_ResetMagnumCores(handle);
     }
 #endif
@@ -869,6 +870,7 @@ void BCHP_PWR_Resume(BCHP_Handle handle)
 #if BCHP_PWR_SUPPORT
     const BCHP_PWR_P_Resource *resource = NULL;
     unsigned i, idx;
+    unsigned size = sizeof(unsigned)*BCHP_PWR_P_NUM_ALLNODES;
     unsigned *refcnt;
     BDBG_ASSERT(handle);
 
@@ -878,7 +880,7 @@ void BCHP_PWR_Resume(BCHP_Handle handle)
     BDBG_MSG(("BCHP_PWR_Resume:>"));
 
     /* save the current state, because we have to muck with it a little */
-    refcnt = BKNI_Malloc(sizeof(unsigned)*BCHP_PWR_P_NUM_ALLNODES);
+    refcnt = BKNI_Malloc(size);
     if (!refcnt) {
         (void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         return;
@@ -886,7 +888,7 @@ void BCHP_PWR_Resume(BCHP_Handle handle)
 
     BKNI_AcquireMutex(handle->pwrManager->lock);
 
-    BKNI_Memcpy(refcnt, handle->pwrManager->privRefcnt, sizeof(unsigned)*BCHP_PWR_P_NUM_ALLNODES);
+    BKNI_Memcpy(refcnt, handle->pwrManager->privRefcnt, size);
 
     /* Initialize Mux and Divs */
     BCHP_PWR_P_InitPMapSettings(handle);
@@ -931,7 +933,7 @@ void BCHP_PWR_Resume(BCHP_Handle handle)
     }
 
     /* this is an important sanity check */
-    i = BKNI_Memcmp(refcnt, handle->pwrManager->privRefcnt, sizeof(unsigned)*BCHP_PWR_P_NUM_ALLNODES);
+    i = BKNI_Memcmp(refcnt, handle->pwrManager->privRefcnt, size);
     BDBG_ASSERT(i==0);
 
     BKNI_ReleaseMutex(handle->pwrManager->lock);
@@ -1225,11 +1227,11 @@ BERR_Code BCHP_PWR_Open(BCHP_PWR_Handle *pHandle, BCHP_Handle chp)
     BDBG_WRN(("*******************************************"));
     BDBG_WRN((" "));
 
+    if (!BCHP_PWR_P_SkipInitialReset(handle)) {
 #ifdef BCHP_RESET_COMMON
-    if (!chp->openSettings.skipInitialReset) {
         BCHP_Cmn_ResetMagnumCores(chp);
-    }
 #endif
+    }
 
     return BERR_SUCCESS;
 }
@@ -1336,3 +1338,19 @@ BERR_Code BCHP_PWR_SetClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId resource
 }
 
 #endif
+
+#include "bchp_cmp_0.h"
+static bool BCHP_PWR_P_SkipInitialReset(BCHP_Handle handle)
+{
+#ifdef BCHP_SAGE_SUPPORT
+    if (!BCHP_SAGE_HasEverStarted(handle->regHandle)) {
+        /* If GFD0 is enabled, it is splash. */
+        uint32_t val = BREG_Read32(handle->regHandle, BCHP_CMP_0_G0_SURFACE_CTRL);
+        handle->skipInitialReset = BCHP_GET_FIELD_DATA(val,CMP_0_G0_SURFACE_CTRL,ENABLE);
+        if (handle->skipInitialReset) {
+            BDBG_LOG(("skipping initial reset to extend splash across SAGE boot"));
+        }
+    }
+#endif
+    return handle->skipInitialReset;
+}

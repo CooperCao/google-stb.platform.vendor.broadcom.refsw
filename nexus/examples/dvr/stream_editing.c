@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  *****************************************************************************/
 /* Nexus example app: playback and decode */
 #include "nexus_platform.h"
@@ -78,7 +75,7 @@ static void copy_file(off_t start, off_t end, void *buf, size_t buf_size, bfile_
         size_t to_read = buf_size;
         ssize_t result;
 
-        if(current+to_read>end) {
+        if(current+(off_t)to_read>end) {
             to_read = end-current;
         }
         result = src->read(src, buf, to_read);

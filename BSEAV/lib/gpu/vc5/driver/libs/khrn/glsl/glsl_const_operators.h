@@ -374,6 +374,18 @@ static inline const_value op_funpackb(const_value ui) {
    return qpu_float_unpack16(ui >> 16);
 }
 
+static inline const_value op_vfmin(const_value a, const_value b) {
+   return qpu_vfmin(a, b, true);
+}
+
+static inline const_value op_vfmax(const_value a, const_value b) {
+   return qpu_vfmax(a, b, true);
+}
+
+static inline const_value op_vfmul(const_value a, const_value b) {
+   return qpu_vfmul(a, b, true);
+}
+
 static inline const_value op_clz(const_value ui) {
    if (ui == 0) return 32;
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,10 +67,10 @@ BDBG_OBJECT_ID_DECLARE(BVEE_Channel);
 #define BVEE_ITB_ENTRY_TYPE_ALGO_INFO    (0x62)
 
 /* (CEILING((PicWidth+(Padding*2))/StripeWidth,1)* StripeWidth)*(CEILING((PicHeight +( Padding *2))/32,1)*32)) */
-#define BVEE_H264_ENCODE_REF_LUMAFRAME_BUF_SIZE			487424
+#define BVEE_H264_ENCODE_REF_LUMAFRAME_BUF_SIZE         487424
 /* (=(CEILING((PicWidth+(Padding*2))/StripeWidth,1)* StripeWidth)*(CEILING(((PicHeight/2) +( Padding *2))/32,1)*32)) */
-#define BVEE_H264_ENCODE_REF_CHROMAFRAME_BUF_SIZE		286720
-#if 	 BDSP_ENCODER_ACCELERATOR_SUPPORT
+#define BVEE_H264_ENCODE_REF_CHROMAFRAME_BUF_SIZE       286720
+#if      BDSP_ENCODER_ACCELERATOR_SUPPORT
 #define BVEE_H264_ENCODE_REF_LUMASTRIPE_HEIGHT      784  /*672*/
 #define BVEE_H264_ENCODE_REF_CHROMASTRIPE_HEIGHT    784  /*336*/
 /* LUMA FRAME BUF SIZE for HD resolution */
@@ -86,20 +86,20 @@ BDBG_OBJECT_ID_DECLARE(BVEE_Channel);
 #define BVEE_H264_ENCODE_REF_CHROMASTRIPE_HEIGHT    304  /*336*/
 
 /* LUMA FRAME BUF SIZE for HD resolution */
-#define BVEE_H264_ENCODE_REF_LUMAFRAME_BUF_SIZE_HD			1126400
+#define BVEE_H264_ENCODE_REF_LUMAFRAME_BUF_SIZE_HD          1126400
 /* CHROMA FRAME BUF SIZE for HD resolution */
-#define BVEE_H264_ENCODE_REF_CHROMAFRAME_BUF_SIZE_HD		630784
+#define BVEE_H264_ENCODE_REF_CHROMAFRAME_BUF_SIZE_HD        630784
 
 #define BVEE_H264_ENCODE_REF_LUMASTRIPE_HEIGHT_HD      784
 #define BVEE_H264_ENCODE_REF_CHROMASTRIPE_HEIGHT_HD    432
 #endif
 
 
-#define	BVEE_H264_ENCODE_OUTPUT_CDB_SIZE (1024)*(1024)
-#define	BVEE_H264_ENCODE_OUTPUT_ITB_SIZE (512)*(1024)
+#define BVEE_H264_ENCODE_OUTPUT_CDB_SIZE (1024)*(1024)
+#define BVEE_H264_ENCODE_OUTPUT_ITB_SIZE (512)*(1024)
 
-#define	BVEE_H264_ENCODE_OUTPUT_CDB_FIFO_NUM    9
-#define	BVEE_H264_ENCODE_OUTPUT_ITB_FIFO_NUM	10
+#define BVEE_H264_ENCODE_OUTPUT_CDB_FIFO_NUM    9
+#define BVEE_H264_ENCODE_OUTPUT_ITB_FIFO_NUM    10
 
 
 /***************************************************************************
@@ -129,12 +129,12 @@ typedef struct BVEE_Device
     BTMR_Handle tmrHandle;
     BDSP_Handle dspHandle;
     BVEE_OpenSettings opensettings;
-    
+
     /* Software resource allocation */
 #if 1 /*BVEE_MAX_CHANNELS > 0*/
     BDSP_ContextHandle  dspContext;
     BVEE_ChannelHandle  channels[BVEE_MAX_CHANNELS];
-    struct 
+    struct
     {
         BVEE_Channel_State state;
         BVEE_ChannelStartSettings startsettings;
@@ -143,8 +143,8 @@ typedef struct BVEE_Device
 
     /* Interrupts */
     BVEE_InterruptHandlers interrupts;
-	/*Watchdog Flag */
-	bool				 VEEWatchdogFlag;
+    /*Watchdog Flag */
+    bool                 VEEWatchdogFlag;
 
 } BVEE_Device;
 
@@ -181,10 +181,10 @@ Summary:
 Device Level Interrupts
 ***************************************************************************/
 typedef struct BVEE_CapBufferMemory
-{   
+{
     unsigned numpictures;
 
-    BMMA_Block_Handle   hPpBufferMmaBlock;  /*To store picture parameter sent to bdsp*/    
+    BMMA_Block_Handle   hPpBufferMmaBlock;  /*To store picture parameter sent to bdsp*/
     uint32_t uiPpBufferOffset;              /* Picture parameter base : hardware address */
     void *pPpBufferCached;                  /* Picture parameter base : software address */
 
@@ -193,39 +193,47 @@ typedef struct BVEE_CapBufferMemory
 
     BMMA_Block_Handle   hLumaBlock;     /*To store Luma Mma block sent by application/nexus*/
     uint32_t            ulPictureId;      /*To store picture id sent by application/nexus*/
-	uint32_t            ulLumaOffset;
-    
+    uint32_t            ulLumaOffset;
+    BMMA_Block_Handle   h2H1VBlock;     /*To store 1vLuma Mma block sent by application/nexus*/
+    uint32_t            ul2H1VOffset;
+    BMMA_Block_Handle   h2H2VBlock;     /*To store 2vLuma Mma block sent by application/nexus*/
+    uint32_t            ul2H2VOffset;
+    BMMA_Block_Handle   hChromaBlock;     /*To store chroma Mma block sent by application/nexus*/
+    uint32_t            ulChromaOffset;
+    BMMA_Block_Handle   hShiftedChromaBlock;     /*To store shifted chroma Mma block sent by application/nexus*/
+    uint32_t            ulShiftedChromaOffset;
+
     bool bValid;
 }BVEE_CapBufferMemory;
 
 typedef struct BVEE_P_SDRAM_Circular_Buffer
-{	
-	uint32_t	ui32BaseAddr;		/*	Circular buffer's base address */
-	uint32_t	ui32EndAddr;		/*	Circular buffer's End address */
-	uint32_t	ui32ReadAddr;		/*	Circular buffer's read address */
-	uint32_t	ui32WriteAddr;		/*	Circular buffer's write address */
-	uint32_t	ui32WrapAddr;		/*	Circular buffer's wrap address */
+{
+    uint32_t    ui32BaseAddr;       /*  Circular buffer's base address */
+    uint32_t    ui32EndAddr;        /*  Circular buffer's End address */
+    uint32_t    ui32ReadAddr;       /*  Circular buffer's read address */
+    uint32_t    ui32WriteAddr;      /*  Circular buffer's write address */
+    uint32_t    ui32WrapAddr;       /*  Circular buffer's wrap address */
 }BVEE_P_SDRAM_Circular_Buffer;
 
 
 typedef struct BVEE_OutputBufferMemory
-{   
+{
     BMMA_Block_Handle   hCDBBufferMmaBlock;
     BMMA_Block_Handle   hITBBufferMmaBlock;
 
-    void *pCDBBufferCached;     /* CDB base : software address */        
-    void *pITBBufferCached;     /* ITB base : software address */        
+    void *pCDBBufferCached;     /* CDB base : software address */
+    void *pITBBufferCached;     /* ITB base : software address */
 
-    uint32_t uiCDBBufferOffset; /* CDB base : hardware address */        
-    uint32_t uiITBBufferOffset; /* ITB base : hardware address */        
-    
+    uint32_t uiCDBBufferOffset; /* CDB base : hardware address */
+    uint32_t uiITBBufferOffset; /* ITB base : hardware address */
+
     BVEE_P_SDRAM_Circular_Buffer sCdbBuffer;
-    BVEE_P_SDRAM_Circular_Buffer sItbBuffer;    
+    BVEE_P_SDRAM_Circular_Buffer sItbBuffer;
 }BVEE_OutputBufferMemory;
 
 typedef struct BVEE_P_ITBData
 {
-	uint32_t words[4];
+    uint32_t words[4];
 }BVEE_P_ITBData;
 typedef union BVEE_P_ITBEntry
 {
@@ -245,9 +253,9 @@ typedef union BVEE_P_ITBEntry
 
 
 #define BVEE_ITB_GET_FIELD(Memory,Entry,Field)\
-	((((Memory)->words[BVEE_ITB_WORD(Entry,Field)] & \
+    ((((Memory)->words[BVEE_ITB_WORD(Entry,Field)] & \
        BVEE_ITB_MASK(Entry,Field)) >> \
-	  BVEE_ITB_SHIFT(Entry,Field)))
+      BVEE_ITB_SHIFT(Entry,Field)))
 
 /* General Fields */
 #define BVEE_ITB_GENERIC_ENTRY_TYPE_WORD      (0)
@@ -320,18 +328,18 @@ typedef union BVEE_P_ITBEntry
 #define BVEE_ITB_ESCR_METADATA_ORIGINAL_PTS_INTERPOLATED_SHIFT   (31)
 
 typedef struct BVEE_ChannelOutputDescriptorInfo
-{   
+{
     uint32_t uiITBBufferShadowReadOffset; /* Points to the ITB entry that needs to be parsed next */
     uint32_t uiCDBBufferShadowReadOffset; /* Points to the CDB location that needs to be muxed next */
-    
+
     uint32_t uiCDBBufferShadowValidOffset;
 
-    BMMA_Block_Handle hDescriptorsMmaBlock;      
+    BMMA_Block_Handle hDescriptorsMmaBlock;
     BAVC_VideoBufferDescriptor *pstDescriptorsCached;
 
     BMMA_Block_Handle  hMetadataMmaBlock;
     BAVC_VideoMetadataDescriptor *pstMetadataCached;
-    
+
 
     uint32_t uiDescriptorWriteOffset;
     uint32_t uiDescriptorReadOffset;
@@ -344,18 +352,18 @@ typedef struct BVEE_ChannelOutputDescriptorInfo
         BVEE_P_ITBEntry current, next;
     } itb;
     bool bFrameStart;
-    bool bMetadataSent;   
+    bool bMetadataSent;
     unsigned uiPendingDescriptors;
     unsigned uiConsumedDescriptors;
-    
-    void *pCdbBaseCached;
-}BVEE_ChannelOutputDescriptorInfo;    
 
-typedef struct 
+    void *pCdbBaseCached;
+}BVEE_ChannelOutputDescriptorInfo;
+
+typedef struct
 {
     bool bIsFree;
     unsigned uiNumDescriptors;
-	unsigned uiStgId[BVEE_FW_P_UserData_PacketType_eMax]; /* For each STG ID */
+    unsigned uiStgId[BVEE_FW_P_UserData_PacketType_eMax]; /* For each STG ID */
     unsigned uiNumCCLines[BVEE_FW_P_UserData_PacketType_eMax];  /* for each uiNumDescriptors */
     BUDP_DCCparse_Format ePacketFormat[BVEE_FW_P_UserData_PacketType_eMax];  /* for each uiNumDescriptors */
     size_t uiDescriptorBufferSize;
@@ -383,11 +391,11 @@ typedef struct BVEE_Channel
     BAVC_XptContextMap contextmap;    /*VEE Destination - Old */
     BVEE_OutputBufferMemory outputbuffer; /* VEE Destination - New */
     BVEE_ChannelOutputDescriptorInfo veeoutput;
-    BVEE_ChannelInterruptHandlers interrupts;  
-    bool bContextValid;   /* CDB/ITB register map init status */	  	
+    BVEE_ChannelInterruptHandlers interrupts;
+    bool bContextValid;   /* CDB/ITB register map init status */
     BDSP_QueueHandle    cdbqueue;
     BDSP_QueueHandle    itbqueue;
-    
+
     /* DSP Task Information */
     BDSP_TaskHandle task;
     BDSP_StageHandle hPrimaryStage;
@@ -403,7 +411,7 @@ typedef struct BVEE_Channel
        unsigned uiQueuedBuffers;
 
        BVEE_CCInfo savebuffer_cc;
-       
+
   #if BVEE_P_DUMP_USERDATA_LOG
        FILE *hUserDataLog;
   #endif
@@ -415,8 +423,8 @@ Struct for External interrupt to DSP
 ***************************************************************************/
 typedef struct BVEE_ExtInterrupt
 {
-	BDSP_Handle	hDsp;
-	void * pExtInterruptHandle;
+    BDSP_Handle hDsp;
+    void * pExtInterruptHandle;
 }BVEE_ExtInterrupt;
 
 #define BVEE_P_ITBENTRY_ERROR_OFFSET 0

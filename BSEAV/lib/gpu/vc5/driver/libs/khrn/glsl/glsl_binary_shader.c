@@ -49,7 +49,7 @@ BINARY_SHADER_T *glsl_binary_shader_create(ShaderFlavour flavour) {
       ret->u.fragment.tlb_wait_first_thrsw = false;
       ret->u.fragment.per_sample           = false;
       ret->u.fragment.reads_prim_id        = false;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       ret->u.fragment.reads_implicit_varys = false;
 #endif
 #if !V3D_HAS_SRS_CENTROID_FIX
@@ -129,7 +129,7 @@ static void dpostv_find_live_attribs(Dataflow *dataflow, void *data)
       attr->vertexid_used = true;
    else if (dataflow->flavour == DATAFLOW_GET_INSTANCE_ID)
       attr->instanceid_used = true;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    else if (dataflow->flavour == DATAFLOW_GET_BASE_INSTANCE)
       attr->baseinstance_used = true;
 #endif
@@ -180,7 +180,7 @@ static bool reads_w(const CFGBlock *b, const bool *output_active)
    return ret;
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static void dpostv_find_implicit_vary(Dataflow *dataflow, void *data)
 {
    bool *found = data;
@@ -198,6 +198,23 @@ static bool reads_implicit_varys(const CFGBlock *b, const bool *output_active) {
    return ret;
 }
 #endif
+
+static void dpostv_find_prim_id(Dataflow *dataflow, void *data)
+{
+   bool *u = data;
+
+   if (dataflow->flavour == DATAFLOW_GET_PRIMITIVE_ID)
+      *u = true;
+}
+
+static bool get_prim_id_used(const CFGBlock *blocks, int n_blocks, /* const */ bool **output_active) {
+   bool ret = false;
+
+   for (int i=0; i<n_blocks; i++)
+      reloc_visit_block(&blocks[i], output_active[i], &ret, dpostv_find_prim_id);
+
+   return ret;
+}
 
 static void fragment_backend_init(FragmentBackendState *s,
                                   uint32_t backend, bool early_fragment_tests
@@ -222,7 +239,7 @@ static void fragment_backend_init(FragmentBackendState *s,
       s->rt[i].is_16      = (fb_gadget & GLSL_FB_16);
       s->rt[i].is_int     = (fb_gadget & GLSL_FB_INT);
       s->rt[i].is_present = (fb_gadget & GLSL_FB_PRESENT);
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       s->rt[i].alpha_16_workaround = (fb_gadget & GLSL_FB_ALPHA_16_WORKAROUND);
 #endif
    }
@@ -924,12 +941,14 @@ bool glsl_binary_shader_from_dataflow(
    }
 
    SchedShaderInputs ins;
+   bool prim_id_used = (flavour != SHADER_VERTEX) && get_prim_id_used(sh->blocks, sh->num_cfg_blocks, output_translate);
+
    switch (flavour) {
       case SHADER_FRAGMENT:
       {
          binary->u.fragment.needs_w = reads_w(&sh->blocks[0], output_translate[0]); // DATAFLOW_FRAG_GET_W must be in first block
          uint32_t prim_varys = key->backend & GLSL_PRIM_M;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
          binary->u.fragment.reads_implicit_varys = prim_varys != 0 && reads_implicit_varys(&sh->blocks[0], output_translate[0]);
          if (!binary->u.fragment.reads_implicit_varys) prim_varys = 0;
 #else
@@ -941,7 +960,8 @@ bool glsl_binary_shader_from_dataflow(
             ignore_centroids = true;
          binary->u.fragment.ignore_centroids = ignore_centroids;
 #endif
-         fragment_shader_inputs(&ins, prim_varys, ignore_centroids, ir->varying);
+         binary->u.fragment.reads_prim_id = prim_id_used;
+         fragment_shader_inputs(&ins, prim_varys, binary->u.fragment.reads_prim_id, ignore_centroids, ir->varying);
          break;
       }
       case SHADER_VERTEX:
@@ -952,18 +972,17 @@ bool glsl_binary_shader_from_dataflow(
          get_attrib_info(&sh->blocks[0], attr, l, output_translate[0]);
 
          binary->u.vertex.input_words = vertex_shader_inputs(&ins, attr);
-         binary->u.vertex.has_point_size = (((key->backend & GLSL_PRIM_M) == GLSL_PRIM_POINT) && l->outs[DF_VNODE_POINT_SIZE] != -1);
          break;
       }
       case SHADER_TESS_CONTROL:
+         binary->u.tess_c.prim_id_used = prim_id_used;
          break;
-
       case SHADER_TESS_EVALUATION:
-         binary->u.tess_e.has_point_size = (((key->backend & GLSL_PRIM_M) == GLSL_PRIM_POINT) && l->outs[DF_VNODE_POINT_SIZE] != -1);
+         binary->u.tess_e.prim_id_used = prim_id_used;
          break;
 
       case SHADER_GEOMETRY:
-         binary->u.geometry.has_point_size = false;
+         binary->u.geometry.prim_id_used = prim_id_used;
          break;
 
       default: unreachable();
@@ -991,7 +1010,7 @@ bool glsl_binary_shader_from_dataflow(
    glsl_safemem_free(output_reg);
    glsl_safemem_free(per_quad);
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    if (flavour == SHADER_VERTEX) tblocks[0]->last_vpm_read = ins.read_dep;
 
    /* Only the final block may be per-sample. Blocks reading per-sample from  *
@@ -1083,8 +1102,13 @@ bool glsl_binary_shader_from_dataflow(
 
       unsigned output_words = (s.bin_mode ? 6 : 4) + (s.emit_point_size ? 1 : 0) +
                               (s.z_only_active ? (s.emit_point_size ? 1 : 2) : 0) + vary_map->n;
-      if (flavour == SHADER_VERTEX) binary->u.vertex.output_words = output_words;
-      else                          binary->u.tess_e.output_words = output_words;
+      if (flavour == SHADER_VERTEX) {
+         binary->u.vertex.output_words   = output_words;
+         binary->u.vertex.has_point_size = s.emit_point_size;
+      } else {
+         binary->u.tess_e.output_words   = output_words;
+         binary->u.tess_e.has_point_size = s.emit_point_size;
+      }
    }
    final_block->num_outputs = 0;
    final_block->outputs = NULL;

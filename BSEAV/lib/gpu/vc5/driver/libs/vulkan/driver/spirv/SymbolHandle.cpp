@@ -90,6 +90,7 @@ public:
       case spv::StorageClass::UniformConstant : m_qual.sq = STORAGE_UNIFORM; break;
       case spv::StorageClass::Input           : m_qual.sq = STORAGE_IN;      break;
       case spv::StorageClass::Output          : m_qual.sq = STORAGE_OUT;     break;
+      // TODO: Don't we need Uniform and StorageBuffer here?
 
       default : break;
       }
@@ -217,11 +218,10 @@ SymbolHandle SymbolHandle::Variable(const Module &module, ShaderFlavour flavour,
 
 // Used for internal symbols e.g. "discard", "gl_Position" etc.
 SymbolHandle SymbolHandle::Builtin(const Module &module, const char *name,
-                                   spv::StorageClass storageClass, PrimitiveTypeIndex index)
+                                   spv::StorageClass storageClass, SymbolTypeHandle type)
 {
    SPVQualifiers    q(storageClass);
    SymbolHandle     symbol(module);
-   SymbolTypeHandle type = SymbolTypeHandle::Primitive(index);
 
    glsl_symbol_construct_var_instance(symbol, name, type, &q.GetQualifiers(), nullptr, nullptr);
 
@@ -238,19 +238,24 @@ SymbolHandle SymbolHandle::Internal(const Module &module, const char *name, Symb
    return symbol;
 }
 
-void SymbolHandleConst::DebugPrint() const
+SymbolHandle SymbolHandle::SharedBlock(const SymbolListHandle &symbols)
+{
+   return SymbolHandle(glsl_construct_shared_block(symbols));
+}
+
+void SymbolHandle::DebugPrint() const
 {
    const char *flavourNames[] = { "TYPE", "INTERFACE_BLOCK", "VAR_INSTANCE",
                                   "PARAM_INSTANCE", "FUNCTION_INSTANCE", "TEMPORARY" };
    const char *typeFlavours[] = { "PRIMITIVE_TYPE", "STRUCT_TYPE", "BLOCK_TYPE",
                                   "ARRAY_TYPE", "FUNCTION_TYPE" };
 
-   SymbolTypeHandle  th(GetType());
-
    if (log_trace_enabled())
    {
       log_trace("Flavour  = %s", flavourNames[GetFlavour()]);
       log_trace("Name     = %s", GetName() ? GetName() : "(null)");
+
+      SymbolTypeHandle  th(GetType());
 
       if (th)
       {

@@ -1,23 +1,43 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #include "bstd.h"
@@ -36,9 +56,9 @@
 #ifdef BTFE_SUPPORTS_SHARED_MEMORY
 #include "bchp_sun_top_ctrl.h"
 #endif
-#define BTFE_CORE_ID		0x0
-#define BTFE_CORE_TYPE		0x8
-#define CORE_TYPE_GLOBAL	0x0
+#define BTFE_CORE_ID        0x0
+#define BTFE_CORE_TYPE      0x8
+#define CORE_TYPE_GLOBAL    0x0
 /* Defines raw HAB test mesg hdr (struct) */
 #define HAB_MSG_HDR(OPCODE,N,CORE_TYPE) \
     { ((uint8_t)(((uint16_t)(OPCODE)) >> 2)), \
@@ -160,9 +180,22 @@ static const struct
 };
 
 /*******************************************************************************
-*   BTFE_P_TimerFunc
+*   BTFE_P_TimerFunc_isr
 *******************************************************************************/
-BERR_Code BTFE_P_TimerFunc(void *myParam1, int myParam2)
+BERR_Code BTFE_P_TimerFunc_isr(void *myParam1, int myParam2)
+{
+       BERR_Code retCode = BERR_SUCCESS;
+       BTFE_Handle hDev;
+       BSTD_UNUSED(myParam2);
+       BDBG_ASSERT(myParam1);
+       hDev = (BTFE_Handle)myParam1;
+       BKNI_SetEvent(hDev->hBBSIntEvent);
+}
+
+/*******************************************************************************
+*   BTFE_ProcessBBSInetrrupt
+*******************************************************************************/
+BERR_Code BTFE_ProcessBBSInetrrupt(BTFE_Handle hDev)
 {
     BERR_Code retCode = BERR_SUCCESS;
     BTFE_Handle hDev;
@@ -170,11 +203,7 @@ BERR_Code BTFE_P_TimerFunc(void *myParam1, int myParam2)
     BTFE_ConfigSetTunerIF ifData;
     BTFE_AcquireParams acquireParams;
 #endif
-    BSTD_UNUSED(myParam2);
-
-    BDBG_ENTER(BTFE_P_TimerFunc);
-    BDBG_ASSERT( myParam1 );
-	hDev = (BTFE_Handle) myParam1;
+    BDBG_ENTER(BTFE_ProcessBBSInetrrupt);
 
 #ifdef BTFE_SUPPORTS_SHARED_MEMORY
     if( hDev->pChannels[0]->acqParams->commandType ) {
@@ -299,11 +328,28 @@ BERR_Code BTFE_P_TimerFunc(void *myParam1, int myParam2)
             BTFE_SetConfig(hDev->pChannels[0], BTFE_ConfigItem_eSetTunerIF, &ifData);
         }
     }
-	BDBG_LEAVE(BTFE_P_TimerFunc);
+    BDBG_LEAVE(BTFE_ProcessBBSInetrrupt);
 #endif
-	return retCode;
+    return retCode;
+}
+
+/******************************************************************************
+BTFE_GetBBSIntEventHandle()
+******************************************************************************/
+BERR_Code BTFE_GetBBSIntEventHandle(
+    BTFE_Handle hTFE, /* [in]  TFE handle */
+    BKNI_EventHandle *hEvent /* [out] lock event handle */
+)
+{
+    BDBG_ASSERT(hTFE);
+    *hEvent = hTFE->hBBSIntEvent;
+    return BERR_SUCCESS;
 }
 #endif
+
+
+
+
 
 /******************************************************************************
  BTFE_Open()
@@ -351,10 +397,12 @@ BERR_Code BTFE_Open(
       hDev->pChannels[i] = NULL;
 
 #ifdef BTFE_SUPPORTS_SHARED_MEMORY
-	/* Create timer for status lock check */
+    /* Create timer for status lock check */
+   retCode = BKNI_CreateEvent(&(hDev->hBBSIntEvent));
+   BDBG_ASSERT(retCode == BERR_SUCCESS);
 
    sTimerSettings.type = BTMR_Type_ePeriodic;
-   sTimerSettings.cb_isr = (BTMR_CallbackFunc)BTFE_P_TimerFunc;
+   sTimerSettings.cb_isr = (BTMR_CallbackFunc)BTFE_P_TimerFunc_isr;
    sTimerSettings.pParm1 = (void*)hDev;
    sTimerSettings.parm2 = 0;
    sTimerSettings.exclusive = true;
@@ -365,7 +413,10 @@ BERR_Code BTFE_Open(
       goto done;
    }
    BTMR_StartTimer(hDev->hTimer, 25000);   /* the timer is in Micro second */
+
 #endif
+
+
 
    *hTFE = hDev;
 
@@ -384,12 +435,9 @@ BERR_Code BTFE_Close(
    BTFE_Handle hTFE /* [in] BTFE handle */
 )
 {
-   BTFE_P_Handle *hDev;
-
    BDBG_OBJECT_ASSERT(hTFE, BTFE);
    BDBG_ENTER(BTFE_Close);
 
-   hDev = (BTFE_P_Handle *)(hTFE->pChannels);
 #if (BCHP_CHIP==7543)
    BTFE_P_ScdCleanup();
 #endif
@@ -397,7 +445,9 @@ BERR_Code BTFE_Close(
 #ifdef BTFE_SUPPORTS_SHARED_MEMORY
    BTMR_StopTimer(hTFE->hTimer);
    BTMR_DestroyTimer(hTFE->hTimer);
+   BKNI_DestroyEvent(hTFE->hBBSIntEvent);
 #endif
+
 
    BDBG_OBJECT_DESTROY(hTFE, BTFE);
    BKNI_Free((void*)hTFE);
@@ -497,6 +547,7 @@ BERR_Code BTFE_OpenChannel(
    BDBG_ASSERT(retCode == BERR_SUCCESS);
    retCode = BKNI_CreateEvent(&(ch->hScanEvent));
    BDBG_ASSERT(retCode == BERR_SUCCESS);
+
 
 #ifdef BCHP_PWR_RESOURCE_DFE
    BCHP_PWR_AcquireResource(hTFE->hChip, BCHP_PWR_RESOURCE_DFE);
@@ -601,6 +652,7 @@ BERR_Code BTFE_CloseChannel(
 #endif
    BKNI_DestroyEvent(hTFEChan->hLockStateChangeEvent);
    BKNI_DestroyEvent(hTFEChan->hScanEvent);
+
 #if (BCHP_CHIP==7543)
    BINT_DestroyCallback(hTFEChan->hLockStatusChangeCb);
    BINT_DestroyCallback(hTFEChan->hScanCb);
@@ -888,6 +940,7 @@ BERR_Code BTFE_Acquire(
 done:
    return retCode;
 }
+
 
 #if (BCHP_CHIP==7543)
 /******************************************************************************
@@ -1472,6 +1525,7 @@ BERR_Code BTFE_GetLockStateChangeEventHandle(
 }
 
 
+
 /******************************************************************************
  BTFE_GetScanEventHandle()
 ******************************************************************************/
@@ -1612,16 +1666,16 @@ void BTFE_P_EnableIrq(
    if (irq)
    {
       if (irq & BTFE_IRQ_LOCK_CHANGE)
-	   {
-	     BINT_ClearCallback(hTFEChan->hLockStatusChangeCb);
-	     BINT_EnableCallback(hTFEChan->hLockStatusChangeCb);
-	   }
+       {
+         BINT_ClearCallback(hTFEChan->hLockStatusChangeCb);
+         BINT_EnableCallback(hTFEChan->hLockStatusChangeCb);
+       }
 
-	   if (irq & BTFE_IRQ_SCAN)
-	   {
-	     BINT_ClearCallback(hTFEChan->hScanCb);
-	     BINT_EnableCallback(hTFEChan->hScanCb);
-	   }
+       if (irq & BTFE_IRQ_SCAN)
+       {
+         BINT_ClearCallback(hTFEChan->hScanCb);
+         BINT_EnableCallback(hTFEChan->hScanCb);
+       }
    }
 }
 
@@ -1640,15 +1694,15 @@ void BTFE_P_DisableIrq(
    if (irq)
    {
       if (irq & BTFE_IRQ_LOCK_CHANGE)
-	   {
-	     BINT_DisableCallback(hTFEChan->hLockStatusChangeCb);
-	   }
+       {
+         BINT_DisableCallback(hTFEChan->hLockStatusChangeCb);
+       }
 
 
-	   if (irq & BTFE_IRQ_SCAN)
-	   {
-	     BINT_DisableCallback(hTFEChan->hScanCb);
-	   }
+       if (irq & BTFE_IRQ_SCAN)
+       {
+         BINT_DisableCallback(hTFEChan->hScanCb);
+       }
    }
 }
 

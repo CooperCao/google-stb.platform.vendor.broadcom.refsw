@@ -23,7 +23,7 @@ LOCAL_C_INCLUDES := \
 	$(V3D_DRIVER_TOP)/driver/interface/khronos/include \
 	$(V3D_DRIVER_TOP)/driver/interface/vcos/pthreads \
 	$(V3D_DRIVER_TOP)/driver/interface/vcos/generic \
-	$(BSEAV_TOP)/lib/gpu/vc5/tools/gpumon_hook \
+	$(BSEAV_TOP)/lib/gpu/tools/gpumon_hook \
 	$(V3D_DRIVER_TOP)/platform/android \
 	$(V3D_DRIVER_TOP)/platform/nexus
 
@@ -38,7 +38,6 @@ LOCAL_CFLAGS := \
 	-DMUST_SET_ALPHA \
 	-DREMOTE_API_LOGGING \
 	-DTIMELINE_EVENT_LOGGING \
-	-DBCG_MULTI_THREADED \
 	-D_XOPEN_SOURCE=600 \
 	-D_GNU_SOURCE \
 	-DANDROID \
@@ -130,10 +129,8 @@ LOCAL_SRC_FILES := \
 	driver/interface/khronos/common/khrn_int_hash.c \
 	driver/interface/khronos/common/khrn_client_vector.c \
 	driver/interface/khronos/common/khrn_client_pointermap.c \
-	driver/interface/khronos/common/khrn_client_cache.c \
 	driver/interface/khronos/common/khrn_client.c \
 	driver/interface/khronos/common/khrn_options.c \
-	driver/interface/khronos/common/khrn_api_interposer.c \
 	driver/interface/khronos/common/abstract/khrn_client_platform_abstract.c \
 	driver/interface/khronos/egl/egl_client_surface.c \
 	driver/interface/khronos/egl/egl_client_context.c \
@@ -141,18 +138,10 @@ LOCAL_SRC_FILES := \
 	driver/interface/khronos/egl/egl_client.c \
 	driver/interface/khronos/egl/egl_client_get_proc.c \
 	driver/interface/khronos/ext/egl_android_ext.c \
-	driver/interface/khronos/ext/gl_oes_framebuffer_object.c \
-	driver/interface/khronos/ext/gl_oes_egl_image_client.c \
 	driver/interface/khronos/ext/egl_khr_sync_client.c \
 	driver/interface/khronos/ext/egl_khr_lock_surface_client.c \
 	driver/interface/khronos/ext/egl_khr_image_client.c \
-	driver/interface/khronos/ext/egl_brcm_flush_client.c \
 	driver/interface/khronos/ext/egl_brcm_driver_monitor_client.c \
-	driver/interface/khronos/ext/ext_gl_oes_query_matrix.c \
-	driver/interface/khronos/ext/ext_gl_oes_draw_texture.c \
-	driver/interface/khronos/ext/ext_gl_debug_marker.c \
-	driver/interface/khronos/ext/ext_gl_multisample_render_to_texture.c \
-	driver/interface/khronos/glxx/glxx_client.c \
 	driver/middleware/khronos/common/2708/khrn_render_state_4.c \
 	driver/middleware/khronos/common/2708/khrn_nmem_4.c \
 	driver/middleware/khronos/common/2708/khrn_interlock_4.c \
@@ -162,10 +151,7 @@ LOCAL_SRC_FILES := \
 	driver/middleware/khronos/common/2708/khrn_prod_4.c \
 	driver/middleware/khronos/common/2708/khrn_tfconvert_4.c \
 	driver/middleware/khronos/common/khrn_tformat.c \
-	driver/middleware/khronos/common/khrn_misc.c \
 	driver/middleware/khronos/common/khrn_math.c \
-	driver/middleware/khronos/common/khrn_map_64.c \
-	driver/middleware/khronos/common/khrn_map.c \
 	driver/middleware/khronos/common/khrn_interlock.c \
 	driver/middleware/khronos/common/khrn_image.c \
 	driver/middleware/khronos/common/khrn_fleaky_map.c \
@@ -173,14 +159,19 @@ LOCAL_SRC_FILES := \
 	driver/middleware/khronos/common/khrn_bf_dummy.c \
 	driver/middleware/khronos/common/khrn_workarounds.c \
 	driver/middleware/khronos/common/khrn_debug_helper.cpp \
+	driver/middleware/khronos/common/khrn_mem.c \
+	driver/middleware/khronos/common/khrn_map.c \
 	driver/middleware/khronos/egl/abstract_server/egl_platform_abstractserver.c \
 	driver/middleware/khronos/egl/abstract_server/egl_platform_abstractpixmap.c \
 	driver/middleware/khronos/egl/egl_server.c \
 	driver/middleware/khronos/ext/gl_oes_query_matrix.c \
 	driver/middleware/khronos/ext/gl_oes_egl_image.c \
 	driver/middleware/khronos/ext/gl_oes_draw_texture.c \
+	driver/middleware/khronos/ext/gl_oes_framebuffer_object.c \
+	driver/middleware/khronos/ext/ext_gl_multisample_render_to_texture.c \
 	driver/middleware/khronos/ext/egl_brcm_driver_monitor.c \
 	driver/middleware/khronos/ext/egl_khr_image.c \
+	driver/middleware/khronos/ext/ext_gl_debug_marker.c \
 	driver/middleware/khronos/gl11/2708/gl11_shader_4.c \
 	driver/middleware/khronos/gl11/2708/gl11_shadercache_4.c \
 	driver/middleware/khronos/gl11/2708/gl11_support_4.c \
@@ -248,6 +239,7 @@ LOCAL_SRC_FILES := \
 	driver/middleware/khronos/glxx/glxx_server_cr.c \
 	driver/middleware/khronos/glxx/glxx_tweaker.c \
 	driver/vcfw/rtos/abstract/rtos_abstract_mem.c \
+	driver/vcfw/rtos/abstract/talloc.c \
 	driver/interface/vcos/pthreads/vcos_pthreads.c \
 	driver/interface/vcos/generic/vcos_mem_from_malloc.c \
 	driver/interface/vcos/generic/vcos_generic_named_sem.c \

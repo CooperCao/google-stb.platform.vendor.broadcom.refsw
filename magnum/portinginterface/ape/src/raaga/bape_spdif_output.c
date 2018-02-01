@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -953,7 +953,7 @@ static BERR_Code BAPE_SpdifOutput_P_Enable_IopOut(BAPE_OutputPort output)
 
     /* apply loudness equivalance levels*/
     BAPE_GetOutputVolume(output, &volume);
-    switch (handle->deviceHandle->settings.loudnessMode)
+    switch (handle->deviceHandle->settings.loudnessSettings.loudnessMode)
     {
     default:
     case BAPE_LoudnessEquivalenceMode_eNone:
@@ -1567,7 +1567,7 @@ static BERR_Code BAPE_SpdifOutput_P_Enable_Legacy(BAPE_OutputPort output)
 
     /* apply loudness equivalance levels*/
     BAPE_GetOutputVolume(output, &volume);
-    switch (handle->deviceHandle->settings.loudnessMode)
+    switch (handle->deviceHandle->settings.loudnessSettings.loudnessMode)
     {
     default:
     case BAPE_LoudnessEquivalenceMode_eNone:
@@ -1710,9 +1710,11 @@ static BERR_Code BAPE_SpdifOutput_P_OpenHw_Legacy(BAPE_SpdifOutputHandle handle)
     regAddr = BCHP_AUD_FMM_OP_CTRL_SPDIF_CFG_0 + handle->offset;
     regVal = BREG_Read32(deviceHandle->regHandle, regAddr);
     regVal &= ~(BCHP_MASK(AUD_FMM_OP_CTRL_SPDIF_CFG_0, CLOCK_ENABLE)|
-                BCHP_MASK(AUD_FMM_OP_CTRL_SPDIF_CFG_0,DATA_ENABLE));
+                BCHP_MASK(AUD_FMM_OP_CTRL_SPDIF_CFG_0, DATA_ENABLE)|
+                BCHP_MASK(AUD_FMM_OP_CTRL_SPDIF_CFG_0, PREAM_POL));
     regVal |= BCHP_FIELD_ENUM(AUD_FMM_OP_CTRL_SPDIF_CFG_0, CLOCK_ENABLE, Enable);
     regVal |= BCHP_FIELD_ENUM(AUD_FMM_OP_CTRL_SPDIF_CFG_0, DATA_ENABLE, Enable);
+    regVal |= BCHP_FIELD_ENUM(AUD_FMM_OP_CTRL_SPDIF_CFG_0, PREAM_POL, High);
     BREG_Write32(deviceHandle->regHandle, regAddr, regVal);
 
     streamId = GET_SPDIF_STREAM_ID(handle->index);

@@ -45,11 +45,6 @@
 ############################################################
 
 #
-# Default to -Os by default
-#
-B_REFSW_OPTIMIZER_LEVEL ?= s
-
-#
 # Default to PIC code by default
 #
 ifndef B_REFSW_SHAREABLE
@@ -59,7 +54,6 @@ endif
 ifeq ($(B_REFSW_DEBUG),y)
 NEXUS_CFLAGS += -g
 endif
-NEXUS_CFLAGS += -O${B_REFSW_OPTIMIZER_LEVEL}
 
 #
 # Allow for shared and non-shared builds.  Shared will be relocatable, non-shared will not.

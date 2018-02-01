@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -421,8 +421,8 @@ nav_indexer_mode(void *context, trick_mode_t *tm)
     mode.playModeModifier = 1;
     BNAV_Player_GetPlayMode(h, &mode);
 
-    if (tm->videoType == NEXUS_VideoCodec_eH264 || tm->videoType == NEXUS_VideoCodec_eH265) {
-        /* AVC Trickmodes (+ve speeds) */
+    {
+        /* Trickmodes (+ve speeds) */
         if(tm->direction>0){
             switch(tm->speed){
                 case 1:
@@ -436,42 +436,15 @@ nav_indexer_mode(void *context, trick_mode_t *tm)
             }
         }
         else {
-            /* AVC Trickmodes (-ve speeds) */
+            /* Trickmodes (-ve speeds) */
             switch(tm->speed){
-                /* no -1x support for AVC, we just use the regular i-frame rewind */
+                /* no -1x support, we just use the regular i-frame rewind */
             default:
                 mode.playMode = eBpPlayI;
                 mode.playModeModifier = -tm->modifier;
                 break;
-
             }
         }
-    }
-    else {
-            /* Mpeg2 Trickmodes (+ve speeds) */
-            if(tm->direction> 0) {
-                switch(tm->speed) {
-                case 1:
-                case 2:
-                    /* use a more efficient block read-mode as it allows read by large fixed size blocks */
-                    mode.playMode = eBpPlayNormal;
-                    break;
-                default:
-                    mode.playMode = eBpPlayI;
-                    mode.playModeModifier = tm->modifier;
-                    break;
-                }
-            }
-            else {
-                /* Mpeg2 Trickmodes (-ve speeds) */
-                switch(tm->speed) {
-                default:
-                    /* we are now just sending I-frames for all rewind speeds */
-                    mode.playMode = eBpPlayI;
-                    mode.playModeModifier = -tm->modifier;
-                    break;
-                }
-            }
     }
 
     mode.disableExtraBOptimization = 0;
@@ -639,7 +612,7 @@ B_Error updateTargetDurationInHlsMediaPlaylist(FILE *mediaPlaylistFp, unsigned l
     size_t bytesRead;
     B_Error rc = B_ERROR_UNKNOWN;
     int playlistBufferSize = 128;
-    char *playlistBuffer;
+    char *playlistBuffer = NULL;
     int roundedMaxGopDuration;
 
     roundedMaxGopDuration = (int)floor(maxGopDuration/1000.);
@@ -682,6 +655,7 @@ B_Error updateTargetDurationInHlsMediaPlaylist(FILE *mediaPlaylistFp, unsigned l
 
     rc = B_ERROR_SUCCESS;
 error:
+    if (playlistBuffer) BKNI_Free(playlistBuffer);
     return rc;
 }
 

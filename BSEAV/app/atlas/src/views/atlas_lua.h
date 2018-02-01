@@ -82,6 +82,8 @@ public:
     bool             handleInput(char * pLine);
     void             processNotification(CNotification & notification);
     CAction *        getBusyAction(void)       { return(&_busyAction); }
+    void             setRunScript(MString strRunScript);
+    MString          getRunScript(void);
     void             setModel(CModel * pModel) { _pModel = pModel;  }
     CModel *         getModel(void)            { return(_pModel); }
 
@@ -95,6 +97,8 @@ protected:
     bool             _shellStarted;
     MList <CAction>  _actionList;
     B_MutexHandle    _actionMutex;
+    MString          _strRunScript;
+    B_MutexHandle    _runScriptMutex;
     B_EventHandle    _busyEvent;
     CWidgetEngine *  _pWidgetEngine;
     CAction          _busyAction;

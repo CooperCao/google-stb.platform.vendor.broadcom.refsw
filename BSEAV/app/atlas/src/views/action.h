@@ -112,6 +112,15 @@ public:
         return((pNotify != NULL) ? *pNotify : eNotify_Invalid);
     }
 
+    void clear(void)
+    {
+        _id = eNotify_Invalid;
+        _waitIdList.clear();
+        _waitTimeout   = 1000;
+        _bTimedOut     = false;
+        _numReturnVals = 1;
+    }
+
     void operator =(CAction &other)
     {
         eNotification otherNotification = eNotify_Invalid;

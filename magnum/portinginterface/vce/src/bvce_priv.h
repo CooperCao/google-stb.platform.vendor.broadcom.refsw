@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -54,6 +54,10 @@ extern "C" {
 }
 #endif
 #endif
+
+BDBG_OBJECT_ID_DECLARE(BVCE_P_Output_Context);    /* BVCE_Output_Handle */
+BDBG_OBJECT_ID_DECLARE(BVCE_P_Channel_Context);   /* BVCE_Channel_Handle */
+BDBG_OBJECT_ID_DECLARE(BVCE_P_Context);           /* BVCE_Handle */
 
 /* DEBUG */
 #ifndef BVCE_P_DUMP_OUTPUT_CDB
@@ -579,6 +583,9 @@ typedef struct BVCE_P_Output_Context
             uint32_t uiPreviousDTS;
             bool bPreviousDTSValid;
          } stReadIndex;
+
+         BAVC_VideoExtractedNALUInfo stExtractedNALUInfo;
+         bool bExtractedNaluInfoDone;
       } state;
 
 #if BVCE_P_DUMP_OUTPUT_CDB
@@ -598,6 +605,31 @@ typedef struct BVCE_P_Output_Context
       unsigned uiDescriptorCount;
 #endif
 } BVCE_P_Output_Context;
+
+typedef enum BVCE_P_PictureBufferType
+{
+   BVCE_P_PictureBufferType_eLuma,
+   BVCE_P_PictureBufferType_eChroma,
+   BVCE_P_PictureBufferType_e1VLuma,
+   BVCE_P_PictureBufferType_e2VLuma,
+   BVCE_P_PictureBufferType_eShiftedChroma,
+
+   BVCE_P_PictureBufferType_eMax
+} BVCE_P_PictureBufferType;
+
+#define BVCE_P_PICTURE_OFFSET_LUT_SIZE BVCE_P_FW_PICTURE_QUEUE_LENGTH
+#define BVCE_P_DROP_QUEUE_SIZE BVCE_P_FW_PICTURE_QUEUE_LENGTH
+
+typedef struct BVCE_P_PictureBlockInfo
+{
+   BMMA_Block_Handle hBlock;
+   unsigned uiOffset;
+   unsigned uiNMBY;
+   bool bDcx;
+   unsigned uiHorizontalDecimationShift;
+   BSTD_DeviceOffset uiBlockOffset;
+   BSTD_DeviceOffset uiPhysicalOffset;
+} BVCE_P_PictureBlockInfo;
 
 typedef struct BVCE_P_Channel_Context
 {
@@ -624,6 +656,66 @@ typedef struct BVCE_P_Channel_Context
 #endif
          BVCE_FW_P_UserData_Queue stUserDataQueue; /* Temporary Copy */
       } userdata;
+
+      struct {
+         struct {
+            uint32_t auiPictureReleaseQueueInfoAddress[BVCE_P_PictureBufferType_eMax];
+         } dccm;
+
+         struct
+         {
+            struct
+            {
+               struct
+               {
+                  bool bInUse;
+                  BVCE_P_PictureBufferType ePictureBufferType;
+                  BVCE_P_PictureBlockInfo blockInfo;
+               } astEntry[BVCE_P_PICTURE_OFFSET_LUT_SIZE];
+               unsigned uiNumEntries;
+            } astLUT[BVCE_P_PictureBufferType_eMax];
+
+            BVCE_P_FW_PictureBufferMailbox stPictureBufferMailbox; /* Temporary Copy */
+            BVCE_P_FW_PictureBuffer_Queue stPictureBufferQueue; /* Temporary Copy */
+
+            struct
+            {
+               unsigned uiReadOffset;
+               unsigned uiWriteOffset;
+               BAVC_EncodePictureBuffer astPicture[BVCE_P_DROP_QUEUE_SIZE];
+            } dropQueue;
+
+            bool bLastOriginalPTSValid;
+            uint32_t ulLastOriginalPTS;
+
+            uint64_t uiNextNewPTSIn360Khz; /* PTS of incoming pictures for NRT mode */
+            uint64_t uiNextSTCIn360Khz; /* STC for NRT mode */
+
+            bool bNextTargetPTSin360KhzValid;
+            uint64_t uiNextTargetPTSin360Khz; /* PTS of next picture to encode */
+
+            bool bPreviousPictureIdValid;
+            uint32_t uiPreviousPictureId;
+            uint32_t uiPreviousSTCSnapshotLo;
+
+            bool bPreviousEnqueueSTCSnapshotLoValid;
+            uint32_t uiPreviousEnqueueSTCSnapshotLo;
+
+            bool bPreviousPolarityReceivedValid;
+            BAVC_Polarity ePreviousPolarityReceived;
+
+            bool bPreviousPolarityEncodedValid;
+            BAVC_Polarity ePreviousPolarityEncoded;
+
+            struct
+            {
+               unsigned uiNumReceived;
+               unsigned uiNumSentToVice;
+               unsigned uiNumDroppedDueToFRC;
+               unsigned uiNumDroppedDueToError;
+            } stats;
+         } stState;
+      } picture;
 
       BVCE_Channel_StartEncodeSettings stStartEncodeSettings;
       BVCE_Channel_EncodeSettings stEncodeSettings;
@@ -806,6 +898,97 @@ if ( NULL != (_hVce)->stDebugFifo.hDebugFifo )\
    }\
 }
 
+typedef struct BVCE_P_DebugFifo_VideoExtractedNALUEntries
+{
+   unsigned uiNumValidBytes;
+} BVCE_P_DebugFifo_VideoExtractedNALUEntry;
+
+typedef struct BVCE_P_DebugFifo_VideoExtractedNALUInfo
+{
+   BVCE_P_DebugFifo_VideoExtractedNALUEntry astExtractedNALUEntry[BAVC_VIDEO_MAX_EXTRACTED_NALU_COUNT];
+   unsigned uiNumExtractedNaluEntries;
+} BVCE_P_DebugFifo_VideoExtractedNALUInfo;
+
+typedef struct BVCE_P_DebugFifo_VideoMetadataDescriptor
+{
+      uint32_t uiMetadataFlags;
+
+      BAVC_VideoBufferInfo stBufferInfo;
+
+      struct
+      {
+            uint32_t uiMax; /* in bits/sec */
+      } stBitrate;
+
+      struct
+      {
+            BAVC_FrameRateCode eFrameRateCode;
+      } stFrameRate;
+
+      struct
+      {
+            struct
+            {
+                  uint16_t uiWidth;
+                  uint16_t uiHeight;
+            } coded;
+      } stDimension;
+
+      union
+      {
+            BAVC_VideoMetadata_VC1 stVC1; /* Applies for BAVC_VideoCompressionStd_eVC1SimpleMain */
+      } uProtocolData;
+
+      struct
+      {
+            uint64_t uiSTCSnapshot; /* Initial 42-bit STC Snapshot from video encode */
+            unsigned uiChunkId; /* The FNRT chunk ID for the subsequent frame descriptors */
+            unsigned uiEtsDtsOffset; /* The ETS to DTS offset for the encode session as determined by RC */
+      } stTiming;
+
+      BVCE_P_DebugFifo_VideoExtractedNALUInfo stExtractedNALUInfo; /* If the video encoder ITB contains NALU data beyond the NAL unit header,
+                                                                    * then ALL of the NALU bytes are copied to this data structure. Each array will
+                                                                    * start with the NAL unit header. (1 byte for AVC, 2 bytes for HEVC, etc) */
+} BVCE_P_DebugFifo_VideoMetadataDescriptor;
+
+#define BVCE_P_DEBUG_ENTRY(_hVce, _entryType, _uiChannel, _struct) \
+{\
+   BVCE_P_DebugFifo_Entry *pstEntry;\
+   BDBG_Fifo_Token stToken;\
+\
+   pstEntry = (BVCE_P_DebugFifo_Entry *) BDBG_Fifo_GetBuffer( (_hVce)->stDebugFifo.hDebugFifo, &stToken );\
+\
+   if ( NULL != pstEntry )\
+   {\
+      pstEntry->stMetadata.eType = BVCE_DebugFifo_EntryType_##_entryType;\
+      pstEntry->stMetadata.uiInstance = (_hVce)->stOpenSettings.uiInstance;\
+      pstEntry->stMetadata.uiChannel = (_uiChannel);\
+      pstEntry->stMetadata.uiTimestamp = 0;\
+      ( NULL != (_hVce)->hTimer ) ? BTMR_ReadTimer( (_hVce)->hTimer, &pstEntry->stMetadata.uiTimestamp ) : 0;\
+      BKNI_Memcpy( &pstEntry->data.stCommand, &(_struct), sizeof(_struct) );\
+      BDBG_Fifo_CommitBuffer( &stToken );\
+   }\
+}
+
+#define BVCE_P_DEBUG_ENTRY_isr(_hVce, _entryType, _uiChannel, _struct) \
+{\
+   BVCE_P_DebugFifo_Entry *pstEntry;\
+   BDBG_Fifo_Token stToken;\
+\
+   pstEntry = (BVCE_P_DebugFifo_Entry *) BDBG_Fifo_GetBuffer( (_hVce)->stDebugFifo.hDebugFifo, &stToken );\
+\
+   if ( NULL != pstEntry )\
+   {\
+      pstEntry->stMetadata.eType = BVCE_DebugFifo_EntryType_##_entryType;\
+      pstEntry->stMetadata.uiInstance = (_hVce)->stOpenSettings.uiInstance;\
+      pstEntry->stMetadata.uiChannel = (_uiChannel);\
+      pstEntry->stMetadata.uiTimestamp = 0;\
+      ( NULL != (_hVce)->hTimer ) ? BTMR_ReadTimer_isr( (_hVce)->hTimer, &pstEntry->stMetadata.uiTimestamp ) : 0;\
+      BKNI_Memcpy( &pstEntry->data.stCommand, &(_struct), sizeof(_struct) );\
+      BDBG_Fifo_CommitBuffer( &stToken );\
+   }\
+}
+
 typedef struct BVCE_P_DebugFifo_Entry
 {
    BVCE_DebugFifo_EntryMetadata stMetadata;
@@ -821,7 +1004,7 @@ typedef struct BVCE_P_DebugFifo_Entry
       BVCE_Channel_Status stStatus;
       BVCE_P_Output_ITB_IndexEntry stITBDescriptor;
       BAVC_VideoBufferDescriptor stBufferDescriptor;
-      BAVC_VideoMetadataDescriptor stMetadataDescriptor;
+      BVCE_P_DebugFifo_VideoMetadataDescriptor stMetadataDescriptor;
       struct
       {
          uint64_t uiReadOffset;
@@ -831,6 +1014,8 @@ typedef struct BVCE_P_DebugFifo_Entry
       BVCE_P_Response stResponse;
       char szFunctionTrace[BVCE_P_FUNCTION_TRACE_LENGTH];
       BVCE_P_Buffer_Offsets stOffset;
+      BVCE_P_FW_PictureBufferMailbox stPictureBufferMailbox;
+      BAVC_EncodePictureBuffer stPicture;
    } data;
 } BVCE_P_DebugFifo_Entry;
 

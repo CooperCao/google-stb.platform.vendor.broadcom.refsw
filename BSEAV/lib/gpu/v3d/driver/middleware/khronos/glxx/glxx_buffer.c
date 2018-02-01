@@ -6,10 +6,14 @@
 
 #include "middleware/khronos/glxx/glxx_buffer.h"
 #include "middleware/khronos/common/khrn_hw.h"
+#include "middleware/khronos/common/2708/khrn_prod_4.h"
 
 #include <string.h>
 
-#include "middleware/khronos/glxx/glxx_buffer_cr.c"
+int glxx_buffer_get_size(GLXX_BUFFER_T *buffer)
+{
+   return (int)mem_get_size(buffer->pool[buffer->current_item].mh_storage);
+}
 
 static bool write_would_block(GLXX_BUFFER_INNER_T *item)
 {
@@ -18,33 +22,12 @@ static bool write_would_block(GLXX_BUFFER_INNER_T *item)
           item->interlock.pos > khrn_get_last_done_seq();
 }
 
-/*
-   void glxx_buffer_init(GLXX_BUFFER_T *buffer, uint32_t name)
-
-   initialize a buffer object
-
-   Implementation notes:
-
-   -
-
-   Precondition:
-
-   buffer is a valid pointer to an uninitialised GLXX_BUFFER_T
-   memory management invariants for buffer are satisfied
-   name != 0
-
-   Postcondition:
-
-   The GLXX_BUFFER_T pointed to by buffer is valid
-*/
-
 static void glxx_buffer_inner_init(GLXX_BUFFER_INNER_T *item)
 {
    assert(item->mh_storage == MEM_HANDLE_INVALID);
    MEM_ASSIGN(item->mh_storage, MEM_ZERO_SIZE_HANDLE);
 
    khrn_interlock_init(&item->interlock);
-
 }
 
 void glxx_buffer_init(GLXX_BUFFER_T *buffer, uint32_t name)
@@ -62,25 +45,6 @@ void glxx_buffer_init(GLXX_BUFFER_T *buffer, uint32_t name)
    buffer->current_item = 0;
 }
 
-/*
-   void glxx_buffer_term(MEM_HANDLE_T handle)
-
-   Terminator for GLXX_BUFFER_T.
-
-   Implementation notes:
-
-   Precondition:
-
-   is only called from memory manager internals during destruction of a GLXX_BUFFER_T
-   handle  (possibly uninitialised or partially initialised*) GLXX_BUFFER_T
-
-   * uninitialised sections of a GLXX_BUFFER_T are set to -1
-
-   Postcondition:
-
-   Frees any references to resources that are referred to by the GLXX_BUFFER_T
-*/
-
 static void glxx_buffer_inner_term(GLXX_BUFFER_INNER_T *item)
 {
    MEM_ASSIGN(item->mh_storage, MEM_HANDLE_INVALID);
@@ -88,48 +52,18 @@ static void glxx_buffer_inner_term(GLXX_BUFFER_INNER_T *item)
    khrn_interlock_term(&item->interlock);
 }
 
-void glxx_buffer_term(MEM_HANDLE_T handle)
+void glxx_buffer_term(void *p)
 {
+   GLXX_BUFFER_T *buffer = p;
    uint32_t i;
-   GLXX_BUFFER_T *buffer = (GLXX_BUFFER_T *)mem_lock(handle, NULL);
-
    if(buffer->pool[buffer->current_item].mh_storage!=MEM_ZERO_SIZE_HANDLE)
       mem_unretain(buffer->pool[buffer->current_item].mh_storage);
 
    for(i = 0; i< GLXX_BUFFER_POOL_SIZE; i++)
       glxx_buffer_inner_term(&buffer->pool[i]);
-
-   mem_unlock(handle);
 }
 
-/*
-   bool glxx_buffer_data(GLXX_BUFFER_T *buffer, int32_t size, const void *data, GLenum usage)
-
-   Set a buffer object's size, contents and usage. Returns true if successful or false if out of memory
-
-   Implementation notes:
-
-   As the storage associated with the buffer is always the size of the buffer, we reallocate
-   even when shrinking. Thus making a buffer smaller can lead to GL_OUT_OF_MEMORY.
-
-   Preconditions:
-
-   buffer is a valid pointer
-   size >= 0
-   data is either NULL or a valid pointer to size bytes which does not overlap buffer contents in memory
-   usage is GL_STATIC_DRAW or GL_DYNAMIC_DRAW
-   conceptual_buffers_owned_by_master is true
-
-   Postconditions:
-
-   If we fail (due to out of memory), the state of buffer is unmodified.
-
-   Invariants preserved:
-
-   All invariants on buffer
-*/
-
-static bool glxx_buffer_inner_data(GLXX_BUFFER_INNER_T *item, int32_t size, const void *data, bool is_new_item)
+static bool glxx_buffer_inner_data(GLXX_BUFFER_INNER_T *item, int32_t size, const void *data, bool is_new_item, bool transient)
 {
    uint32_t current_size;
    assert(size >= 0);
@@ -148,6 +82,11 @@ static bool glxx_buffer_inner_data(GLXX_BUFFER_INNER_T *item, int32_t size, cons
             mem_unretain(item->mh_storage);
 
          flags |= MEM_FLAG_RETAINED;
+      }
+      if (transient)
+      {
+         flags |= MEM_FLAG_TRANSIENT;
+         flags &= ~MEM_FLAG_ZERO;
       }
       /* discardable so can be reclaimed if short of memory and no longer retained */
       if (khrn_workarounds.GFXH776)
@@ -173,14 +112,16 @@ static bool glxx_buffer_inner_data(GLXX_BUFFER_INNER_T *item, int32_t size, cons
    */
 
    if (data) {
-      khrn_memcpy(mem_lock(item->mh_storage, NULL), data, size);
+      void *storage = mem_lock(item->mh_storage, NULL);
+      khrn_memcpy(storage, data, size);
+      khrn_hw_flush_dcache_range(storage, size);
       mem_unlock(item->mh_storage);
    }
 
    return true;
 }
 
-bool glxx_buffer_data(GLXX_BUFFER_T *buffer, int32_t size, const void *data, GLenum usage)
+bool glxx_buffer_data(GLXX_BUFFER_T *buffer, int32_t size, const void *data, GLenum usage, bool transient)
 {
    assert(size >= 0);
 
@@ -206,7 +147,7 @@ bool glxx_buffer_data(GLXX_BUFFER_T *buffer, int32_t size, const void *data, GLe
       } //else stick with the existing and wait
    }
 
-   if(!glxx_buffer_inner_data(&buffer->pool[buffer->current_item],size,data,false))
+   if(!glxx_buffer_inner_data(&buffer->pool[buffer->current_item], size, data, false, transient))
       return false;
 
    //successfuly allocated memory and copied data
@@ -214,34 +155,6 @@ bool glxx_buffer_data(GLXX_BUFFER_T *buffer, int32_t size, const void *data, GLe
 
    return true;
 }
-
-/*
-   void glxx_buffer_subdata(GLXX_BUFFER_T *buffer, int32_t offset, int32_t size, const void *data)
-
-   Overwrites a portion of a buffer object's contents with new data. Does not change its size so
-   cannot fail due to out-of-memory.
-
-   Implementation notes:
-
-   We rely on memcpy(x,y,0) doing nothing (i.e. not crashing) when x and y are invalid pointers
-
-   Preconditions:
-
-   buffer is a valid pointer
-   offset >= 0
-   size >= 0
-   offset + size <= buffer.size
-   data is a valid pointer to size bytes which does not overlap buffer contents in memory
-   conceptual_buffers_owned_by_master is true
-
-   Postconditions:
-
-   -
-
-   Invariants preserved:
-
-   Invariants on size_used_for_max and max
-*/
 
 static void glxx_buffer_inner_subdata(GLXX_BUFFER_INNER_T *item, int32_t offset, int32_t size, const void *data)
 {
@@ -251,7 +164,9 @@ static void glxx_buffer_inner_subdata(GLXX_BUFFER_INNER_T *item, int32_t offset,
    khrn_interlock_write_immediate(&item->interlock);
 
    if(size>0) {
-      khrn_memcpy((uint8_t *)mem_lock(item->mh_storage, NULL) + offset, data, size);
+      void *storage = (uint8_t *)mem_lock(item->mh_storage, NULL) + offset;
+      khrn_memcpy(storage, data, size);
+      khrn_hw_flush_dcache_range(storage, size);
       mem_unlock(item->mh_storage);
    }
 }
@@ -281,7 +196,7 @@ void glxx_buffer_subdata(GLXX_BUFFER_T *buffer, int32_t offset, int32_t size, co
          uint32_t existing_size = mem_get_size(buffer->pool[buffer->current_item].mh_storage);
          bool ok;
          void * existing_data = mem_lock(buffer->pool[buffer->current_item].mh_storage, NULL);
-         ok = glxx_buffer_inner_data(&buffer->pool[i],existing_size,existing_data,true);
+         ok = glxx_buffer_inner_data(&buffer->pool[i], existing_size, existing_data, true, false);
          mem_unlock(buffer->pool[buffer->current_item].mh_storage);
          if(ok)
          {
@@ -298,27 +213,6 @@ void glxx_buffer_subdata(GLXX_BUFFER_T *buffer, int32_t offset, int32_t size, co
 
    glxx_buffer_inner_subdata(&buffer->pool[buffer->current_item],offset,size,data);
 }
-
-/*
-   Returns whether all values in the specified sequence (defined by type_size, offset
-   and count) are less than the specified value.
-
-   The buffer contains a sort of cache to help with this. buffer->max tells us
-   whether the entire buffer is less than the specified value. If this turns out
-   not to be the case, then we check just the range we're given.
-
-   TODO: is this the most sensible algorithm to use? I guess we'll find out if
-   things start running slowly...
-
-   Preconditions:
-      type_size is 1 or 2
-      offset is a multiple of type_size
-      [offset, offset + size * count) fits inside the buffer
-*/
-
-/*
-   return handle to the current storage
-*/
 
 MEM_HANDLE_T glxx_buffer_get_storage_handle(GLXX_BUFFER_T *buffer)
 {

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,31 +57,6 @@ void BRDC_AddrRul_ImmToReg_isr
     *ptr++ = BRDC_REGISTER(ulAddrReg);
     *BRDC_P_ADDR_PTR(ptr) = BRDC_P_ADDR_OFFSET(deviceAddress);
     *pRulPtr = (uint32_t*)(BRDC_P_ADDR_PTR(ptr) + 1);
-}
-
-/***************************************************************************
- * This function build the RUL to block write immediate values (device addresses) into
- * consecutive count of address registers;
- */
-void BRDC_AddrRul_ImmsToRegs_isr
-    ( uint32_t                       **pRulPtr,
-      uint32_t                         ulStartAddrReg,
-      uint32_t                         ulEndAddrReg,
-      BMMA_DeviceOffset               *deviceAddress)
-{
-    size_t i;
-    uint32_t count;
-    uint32_t *ptr = *pRulPtr;
-
-    BDBG_ASSERT(ulEndAddrReg >= ulStartAddrReg);
-    count = (ulEndAddrReg - ulStartAddrReg)/BRDC_P_ADDR_REG_SIZE + 1;
-    *ptr++ = BRDC_P_OP_IMMS_TO_ADDRS(count);
-    *ptr++ = BRDC_REGISTER(ulStartAddrReg);
-    for(i = 0; i < count; i++) {
-        *BRDC_P_ADDR_PTR(ptr) = BRDC_P_ADDR_OFFSET(deviceAddress[i]);
-        ptr = (uint32_t*)(BRDC_P_ADDR_PTR(ptr) + 1);
-    }
-    *pRulPtr = ptr;
 }
 
 /***************************************************************************

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -62,13 +62,6 @@ typedef enum PlatformUsageMode
     PlatformUsageMode_eMax
 } PlatformUsageMode;
 
-typedef enum PlatformInputMethod
-{
-    PlatformInputMethod_eRemote,
-    PlatformInputMethod_eConsole,
-    PlatformInputMethod_eMax
-} PlatformInputMethod;
-
 typedef enum PlatformDynamicRangeProcessingMode
 {
     PlatformDynamicRangeProcessingMode_eAuto,
@@ -112,9 +105,7 @@ typedef enum PlatformColorSpace
 {
     PlatformColorSpace_eAuto,
     PlatformColorSpace_eRgb,
-    PlatformColorSpace_eYCbCr422,
-    PlatformColorSpace_eYCbCr444,
-    PlatformColorSpace_eYCbCr420,
+    PlatformColorSpace_eYCbCr,
     PlatformColorSpace_eInvalid,
     PlatformColorSpace_eUnknown,
     PlatformColorSpace_eMax
@@ -147,6 +138,8 @@ typedef enum PlatformInputEvent
     PlatformInputEvent_eMax
 } PlatformInputEvent;
 
+typedef void (*PlatformInputEventCallback)(void * context, PlatformInputEvent event, int param);
+
 typedef enum PlatformTriState
 {
     PlatformTriState_eOff,
@@ -173,6 +166,22 @@ typedef enum PlatformVerticalAlignment
     PlatformVerticalAlignment_eMax
 } PlatformVerticalAlignment;
 
+typedef enum PlatformPlayMode
+{
+    PlatformPlayMode_eDefault,
+    PlatformPlayMode_eLoop,
+    PlatformPlayMode_eOnce,
+    PlatformPlayMode_eMax
+} PlatformPlayMode;
+
+typedef enum PlatformRenderingPriority
+{
+    PlatformRenderingPriority_eAuto,
+    PlatformRenderingPriority_eVideo,
+    PlatformRenderingPriority_eGraphics,
+    PlatformRenderingPriority_eMax
+} PlatformRenderingPriority;
+
 typedef struct PlatformRect
 {
     int x;
@@ -189,13 +198,37 @@ typedef struct PlatformTextRenderingSettings
     PlatformVerticalAlignment valign;
 } PlatformTextRenderingSettings;
 
+typedef enum PlatformAspectRatioType
+{
+    PlatformAspectRatioType_eAuto,
+    PlatformAspectRatioType_eDisplay,
+    PlatformAspectRatioType_ePixel,
+    PlatformAspectRatioType_eMax
+} PlatformAspectRatioType;
+
+typedef struct PlatformAspectRatio
+{
+    PlatformAspectRatioType type;
+    unsigned x;
+    unsigned y;
+} PlatformAspectRatio;
+
 typedef struct PlatformPictureFormat
 {
     unsigned width;
     unsigned height;
     unsigned rate;
+    bool dropFrame;
     bool interlaced;
 } PlatformPictureFormat;
+
+typedef struct PlatformPictureCtrlSettings
+{
+    int contrast;
+    int saturation;
+    int hue;
+    int brightness;
+} PlatformPictureCtrlSettings;
 
 typedef struct PlatformPictureInfo
 {
@@ -203,7 +236,9 @@ typedef struct PlatformPictureInfo
     PlatformDynamicRange dynrng;
     PlatformColorimetry gamut;
     PlatformColorSpace space;
-    unsigned depth;
+    PlatformAspectRatio ar;
+    int sampling;
+    int depth;
 } PlatformPictureInfo;
 
 typedef struct PlatformPictureModel
@@ -234,6 +269,7 @@ typedef struct PlatformModel
 {
     PlatformPictureModel vid[MAX_MOSAICS];
     PlatformPictureModel gfx;
+    PlatformRenderingPriority renderingPriority;
     PlatformPictureModel out;
     PlatformSelectorModel sel;
     PlatformHdmiReceiverModel rcv;
@@ -250,5 +286,49 @@ typedef struct PlatformDynamicRangeProcessingSettings
 {
     PlatformDynamicRangeProcessingMode modes[PlatformDynamicRangeProcessingType_eMax];
 } PlatformDynamicRangeProcessingSettings;
+
+typedef struct PlatformMediaPlayerStartSettings
+{
+    const char * url;
+    PlatformPlayMode playMode;
+    bool startPaused;
+    bool stcTrick;
+} PlatformMediaPlayerStartSettings;
+
+typedef struct PlatformPqSettings
+{
+    struct
+    {
+        bool enabled;
+    } sharpness;
+    struct
+    {
+        bool enabled;
+    } anr;
+    struct
+    {
+        bool enabled;
+    } dnr;
+    struct
+    {
+        bool enabled;
+    } deinterlacing;
+    struct
+    {
+        bool enabled;
+    } deringing;
+    struct
+    {
+        bool enabled;
+    } dejagging;
+
+    PlatformPictureCtrlSettings pictureCtrlSettings;
+} PlatformPqSettings;
+
+typedef struct PlatformMediaPlayerSettings
+{
+    PlatformUsageMode usageMode;
+    PlatformPqSettings pqSettings;
+} PlatformMediaPlayerSettings;
 
 #endif /* PLATFORM_TYPES_H__ */

@@ -380,108 +380,63 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
         pSample = &frag_info->samples_info->samples[i];
         numOfByteDecrypted = sampleSize = frag_info->sample_info[i].size;
 
-        if (frag_info->trackType == BMP4_SAMPLE_ENCRYPTED_VIDEO ||
-            frag_info->trackType == BMP4_SAMPLE_AVC) {
-            streamer = s_app.videoStreamer;
-            /* H.264 Decoder configuration parsing */
-            size_t avcc_hdr_size;
-            size_t nalu_len = 0;
-            parse_avcc_config(s_app.pAvccHdr, &avcc_hdr_size, &nalu_len, (uint8_t*)decoder_data, decoder_len);
-
-            bmedia_pes_info_init(&pes_info, REPACK_VIDEO_PES_ID);
-            frag_duration = s_app.last_video_fragment_time +
-                (int32_t)frag_info->sample_info[i].composition_time_offset;
-            s_app.last_video_fragment_time += frag_info->sample_info[i].duration;
-
-            pes_info.pts_valid = true;
-            pes_info.pts = (uint32_t)CALCULATE_PTS(frag_duration);
-
-            if (s_app.video_decode_hdr == 0) {
-                pes_header_len = bmedia_pes_header_init(s_app.pVideoHeaderBuf,
-                    (sampleSize + avcc_hdr_size - nalu_len + sizeof(bmp4_nal)), &pes_info);
-            } else {
-                pes_header_len = bmedia_pes_header_init(s_app.pVideoHeaderBuf,
-                    sampleSize - nalu_len + sizeof(bmp4_nal), &pes_info);
-            }
-
-            if (pes_header_len > 0) {
-                IBuffer* output =
-                    streamer->GetBuffer(pes_header_len);
-                output->Copy(0, s_app.pVideoHeaderBuf, pes_header_len);
-                BufferFactory::DestroyBuffer(output);
-                bytes_processed += pes_header_len;
-            }
-
-            if (s_app.video_decode_hdr == 0) {
-                IBuffer* output =
-                    streamer->GetBuffer(avcc_hdr_size);
-                output->Copy(0, s_app.pAvccHdr, avcc_hdr_size);
-                BufferFactory::DestroyBuffer(output);
-                bytes_processed += avcc_hdr_size;
-                s_app.video_decode_hdr = 1;
-            }
-
-            IBuffer* input = BufferFactory::CreateBuffer(sampleSize, (uint8_t*)frag_info->cursor.cursor);
-
-            /* Add NAL header per entry */
-            uint32_t dst_offset = 0;
-            do {
-                uint32_t entryDataSize;
-                entryDataSize = batom_cursor_uint32_be(&frag_info->cursor);
-                input->Copy(dst_offset, (uint8_t*)bmp4_nal, sizeof(bmp4_nal));
-                dst_offset += sizeof(entryDataSize);
-                dst_offset += entryDataSize;
-                batom_cursor_skip(&frag_info->cursor, entryDataSize);
-            } while (dst_offset < sampleSize);
-
-            IBuffer* decOutput = streamer->GetBuffer(sampleSize);
-            if (s_app.decryptor) {
-                numOfByteDecrypted = s_app.decryptor->DecryptSample(pSample,
-                    input, decOutput, sampleSize);
-            } else {
-                decOutput->Copy(0, input, sampleSize);
-                numOfByteDecrypted = sampleSize;
-            }
-            if (numOfByteDecrypted != sampleSize)
+        switch(frag_info->trackType)
+        {
+            case BMP4_SAMPLE_ENCRYPTED_VIDEO:
+            case BMP4_SAMPLE_AVC:
             {
-                LOGE(("%s Failed to decrypt sample, can't continue - %d", BSTD_FUNCTION, __LINE__));
-                BufferFactory::DestroyBuffer(input);
-                BufferFactory::DestroyBuffer(decOutput);
-                return -1;
-            }
-            BufferFactory::DestroyBuffer(input);
-            BufferFactory::DestroyBuffer(decOutput);
-            bytes_processed += numOfByteDecrypted;
-        } else if (frag_info->trackType == BMP4_SAMPLE_ENCRYPTED_AUDIO ||
-            frag_info->trackType == BMP4_SAMPLE_MP4A) {
-            streamer = s_app.audioStreamer;
-            bmedia_pes_info_init(&pes_info, REPACK_AUDIO_PES_ID);
-            frag_duration = s_app.last_audio_fragment_time +
-                (int32_t)frag_info->sample_info[i].composition_time_offset;
-            s_app.last_audio_fragment_time += frag_info->sample_info[i].duration;
+                streamer = s_app.videoStreamer;
+                /* H.264 Decoder configuration parsing */
+                size_t avcc_hdr_size;
+                size_t nalu_len = 0;
+                parse_avcc_config(s_app.pAvccHdr, &avcc_hdr_size, &nalu_len, (uint8_t*)decoder_data, decoder_len);
 
-            pes_info.pts_valid = true;
-            pes_info.pts = (uint32_t)CALCULATE_PTS(frag_duration);
+                bmedia_pes_info_init(&pes_info, REPACK_VIDEO_PES_ID);
+                frag_duration = s_app.last_video_fragment_time +
+                    (int32_t)frag_info->sample_info[i].composition_time_offset;
+                s_app.last_video_fragment_time += frag_info->sample_info[i].duration;
 
-            pes_header_len = bmedia_pes_header_init(s_app.pAudioHeaderBuf,
-                (sampleSize + BMEDIA_ADTS_HEADER_SIZE), &pes_info);
+                pes_info.pts_valid = true;
+                pes_info.pts = (uint32_t)CALCULATE_PTS(frag_duration);
 
-            /* AAC information parsing */
-            bmedia_info_aac *info_aac = (bmedia_info_aac *)decoder_data;
-            parse_esds_config(s_app.pAudioHeaderBuf + pes_header_len, info_aac, sampleSize);
+                if (s_app.video_decode_hdr == 0) {
+                    pes_header_len = bmedia_pes_header_init(s_app.pVideoHeaderBuf,
+                        (sampleSize + avcc_hdr_size - nalu_len + sizeof(bmp4_nal)), &pes_info);
+                } else {
+                    pes_header_len = bmedia_pes_header_init(s_app.pVideoHeaderBuf,
+                        sampleSize - nalu_len + sizeof(bmp4_nal), &pes_info);
+                }
 
-            if (streamer) {
-                IBuffer* output =
-                    streamer->GetBuffer(pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
-                output->Copy(0, s_app.pAudioHeaderBuf, pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
-                bytes_processed += pes_header_len + BMEDIA_ADTS_HEADER_SIZE;
-                BufferFactory::DestroyBuffer(output);
-            }
+                if (pes_header_len > 0) {
+                    IBuffer* output =
+                        streamer->GetBuffer(pes_header_len);
+                    output->Copy(0, s_app.pVideoHeaderBuf, pes_header_len);
+                    BufferFactory::DestroyBuffer(output);
+                    bytes_processed += pes_header_len;
+                }
 
-            IBuffer* input = BufferFactory::CreateBuffer(sampleSize, (uint8_t*)frag_info->cursor.cursor);
-            batom_cursor_skip(&frag_info->cursor, sampleSize);
+                if (s_app.video_decode_hdr == 0) {
+                    IBuffer* output =
+                        streamer->GetBuffer(avcc_hdr_size);
+                    output->Copy(0, s_app.pAvccHdr, avcc_hdr_size);
+                    BufferFactory::DestroyBuffer(output);
+                    bytes_processed += avcc_hdr_size;
+                    s_app.video_decode_hdr = 1;
+                }
 
-            if (streamer) {
+                IBuffer* input = BufferFactory::CreateBuffer(sampleSize, (uint8_t*)frag_info->cursor.cursor);
+
+                /* Add NAL header per entry */
+                uint32_t dst_offset = 0;
+                do {
+                    uint32_t entryDataSize;
+                    entryDataSize = batom_cursor_uint32_be(&frag_info->cursor);
+                    input->Copy(dst_offset, (uint8_t*)bmp4_nal, sizeof(bmp4_nal));
+                    dst_offset += sizeof(entryDataSize);
+                    dst_offset += entryDataSize;
+                    batom_cursor_skip(&frag_info->cursor, entryDataSize);
+                } while (dst_offset < sampleSize);
+
                 IBuffer* decOutput = streamer->GetBuffer(sampleSize);
                 if (s_app.decryptor) {
                     numOfByteDecrypted = s_app.decryptor->DecryptSample(pSample,
@@ -500,16 +455,74 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 BufferFactory::DestroyBuffer(input);
                 BufferFactory::DestroyBuffer(decOutput);
                 bytes_processed += numOfByteDecrypted;
+
+                break;
             }
-        } else {
-            LOGW(("%s Unsupported track type %d detected", BSTD_FUNCTION, frag_info->trackType));
-            return -1;
-        }
+
+            case BMP4_SAMPLE_ENCRYPTED_AUDIO:
+            case BMP4_SAMPLE_MP4A:
+            {
+                streamer = s_app.audioStreamer;
+                bmedia_pes_info_init(&pes_info, REPACK_AUDIO_PES_ID);
+                frag_duration = s_app.last_audio_fragment_time +
+                    (int32_t)frag_info->sample_info[i].composition_time_offset;
+                s_app.last_audio_fragment_time += frag_info->sample_info[i].duration;
+
+                pes_info.pts_valid = true;
+                pes_info.pts = (uint32_t)CALCULATE_PTS(frag_duration);
+
+                pes_header_len = bmedia_pes_header_init(s_app.pAudioHeaderBuf,
+                    (sampleSize + BMEDIA_ADTS_HEADER_SIZE), &pes_info);
+
+                /* AAC information parsing */
+                bmedia_info_aac *info_aac = (bmedia_info_aac *)decoder_data;
+                parse_esds_config(s_app.pAudioHeaderBuf + pes_header_len, info_aac, sampleSize);
+
+                if (streamer) {
+                    IBuffer* output =
+                        streamer->GetBuffer(pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
+                    output->Copy(0, s_app.pAudioHeaderBuf, pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
+                    bytes_processed += pes_header_len + BMEDIA_ADTS_HEADER_SIZE;
+                    BufferFactory::DestroyBuffer(output);
+                }
+
+                IBuffer* input = BufferFactory::CreateBuffer(sampleSize, (uint8_t*)frag_info->cursor.cursor);
+                batom_cursor_skip(&frag_info->cursor, sampleSize);
+
+                if (streamer) {
+                    IBuffer* decOutput = streamer->GetBuffer(sampleSize);
+                    if (s_app.decryptor) {
+                        numOfByteDecrypted = s_app.decryptor->DecryptSample(pSample,
+                            input, decOutput, sampleSize);
+                    } else {
+                        decOutput->Copy(0, input, sampleSize);
+                        numOfByteDecrypted = sampleSize;
+                    }
+                    if (numOfByteDecrypted != sampleSize)
+                    {
+                        LOGE(("%s Failed to decrypt sample, can't continue - %d", BSTD_FUNCTION, __LINE__));
+                        BufferFactory::DestroyBuffer(input);
+                        BufferFactory::DestroyBuffer(decOutput);
+                        return -1;
+                    }
+                    BufferFactory::DestroyBuffer(input);
+                    BufferFactory::DestroyBuffer(decOutput);
+                    bytes_processed += numOfByteDecrypted;
+                }
+                break;
+            }
+
+            default:
+            {
+                LOGW(("%s Unsupported track type %d detected", BSTD_FUNCTION, frag_info->trackType));
+                return -1;
+            }
+        } /* End switch */
 
         if (streamer)
             streamer->Push(bytes_processed - last_bytes_processed);
         last_bytes_processed = bytes_processed;
-    }
+    } /* End for */
 
     return 0;
 }
@@ -832,7 +845,7 @@ static void setup_gui()
     if (secure_video)
     {
         videoDecoderOpenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
-        videoDecoderOpenSettings.secureVideo = true;
+        videoDecoderOpenSettings.secureVideo = NEXUS_VideoDecoderSecureType_eSecure;
     }
     s_app.videoDecoder = NEXUS_VideoDecoder_Open(0, &videoDecoderOpenSettings);
     if (s_app.videoDecoder == NULL) {

@@ -266,7 +266,7 @@ static void *BGRClib_P_SetSourceFeederPacket( BGRClib_Handle grclib,
     void *pPacket, const BM2MC_PACKET_Plane *pSrcSurface, uint32_t color )
 {
     grclib->defaultSourceFeederPacket = (!pSrcSurface && color == DEFAULT_COLOR);
-    BGRC_Packet_SetSourcePlanePacket( grclib->hGRC, &pPacket, pSrcSurface, 0, color );
+    BGRC_Packet_SetSourcePlanePacket( grclib->hGRC, &pPacket, pSrcSurface, 0, 0, color );
     return pPacket;
 }
 

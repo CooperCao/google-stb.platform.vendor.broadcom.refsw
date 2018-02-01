@@ -351,8 +351,8 @@ void BDSP_Raaga_P_InterTaskBuffer_Destroy(
 
 	BDBG_ENTER(BDSP_Raaga_P_InterTaskBuffer_Destroy);
 	pInterTaskBuffer = (BDSP_P_InterTaskBuffer *)pInterTaskBufferHandle;
-    pRaagaContext = (BDSP_RaagaContext *)pInterTaskBuffer->pContext;
 	BDBG_OBJECT_ASSERT(pInterTaskBuffer, BDSP_P_InterTaskBuffer);
+    pRaagaContext = (BDSP_RaagaContext *)pInterTaskBuffer->pContext;
 
 	if (pInterTaskBuffer->dstHandle || pInterTaskBuffer->srcHandle)
 	{

@@ -52,6 +52,7 @@
 #include "nexus_video_adj.h"
 #include "nexus_spdif_output.h"
 #include "nexus_component_output.h"
+#include "nexus_core_utils.h"
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #endif
@@ -581,7 +582,6 @@ again:
 #else
 
 {   /* set proper encoder interlaced/progressive format. NOTE: fw currently doesn't support dynamic switch between interlaced and progressive. */
-    #include "nexus_core_utils.h"
     NEXUS_VideoFormatInfo fmtInfo;
     NEXUS_VideoFormat_GetInfo(cmdSettings[i].displayFormat, &fmtInfo);
     videoEncoderStartConfig.interlaced = fmtInfo.interlaced;

@@ -125,7 +125,7 @@ typedef struct
    bool                waitVSync;      /* Should we wait for a vSync after displaying the buffer? */
 } BEGL_BufferDisplayState;
 
-typedef struct
+typedef struct BEGL_DisplayInterface
 {
    /* Context pointer - opaque to the 3d driver code, but passed out in all function pointer calls.
     * Prevents the client code needing to perform context lookups. */

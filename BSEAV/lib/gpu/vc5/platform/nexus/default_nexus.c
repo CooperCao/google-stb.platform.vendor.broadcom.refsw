@@ -87,8 +87,8 @@ BEGL_Error Initialize(void *context, BEGL_DisplayHandle handle)
    if (!platform->displayContext)
       return BEGL_Fail; /* oom */
 
-   platform->displayInterface = CreateDisplayInterface(display,
-         platform->displayContext, platform->schedInterface);
+   platform->displayInterface = CreateDisplayInterface(display, platform->displayContext,
+                                                       platform->schedInterface, &platform->eventContext);
 
    if (!platform->displayInterface)
    {
@@ -174,7 +174,7 @@ void NXPL_RegisterNexusDisplayPlatform(NXPL_PlatformHandle *handle, NEXUS_DISPLA
       else
          platform->memoryInterface = CreateMemoryInterface();
 
-      platform->schedInterface  = CreateSchedInterface(platform->memoryInterface);
+      platform->schedInterface = CreateSchedInterface(platform->memoryInterface, &platform->eventContext);
       platform->displayInterface = NULL;
       platform->currentDisplay = NULL;
       platform->defaultDisplay = display;

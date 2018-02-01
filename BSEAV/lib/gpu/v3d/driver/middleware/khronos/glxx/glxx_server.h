@@ -9,13 +9,14 @@
 #include "interface/khronos/include/GLES2/gl2ext.h"
 #include "interface/khronos/include/GLES/gl.h"
 #include "interface/khronos/include/GLES/glext.h"
+#include "interface/khronos/egl/egl_client_context.h"
 
 #include "middleware/khronos/common/khrn_image.h"
-#include "middleware/khronos/common/khrn_mem.h"
-#include "middleware/khronos/common/khrn_map.h"
 #include "middleware/khronos/glxx/glxx_texture.h"
+#include "middleware/khronos/glxx/glxx_framebuffer.h"
+#include "middleware/khronos/glxx/glxx_renderbuffer.h"
 #include "middleware/khronos/glxx/glxx_shared.h"
-#include "middleware/khronos/glxx/glxx_buffer.h" //needed for definition of GLXX_BUFFER_T
+#include "middleware/khronos/glxx/glxx_buffer.h"
 
 #include "interface/khronos/glxx/glxx_int_attrib.h"
 #include "interface/khronos/glxx/glxx_int_config.h"
@@ -351,7 +352,13 @@ typedef struct {
       OPENGL_ES_11 or OPENGL_ES_20
    */
 
-   int type;
+   EGL_CONTEXT_TYPE_T type;
+
+   /*
+      context is marked secure
+   */
+
+   bool secure;
 
 
    /*
@@ -399,69 +406,12 @@ typedef struct {
    uint32_t old_flat_shading_flags;
 
    struct {
-      /*
-        Currently bound array buffer
-
-        Khronos state variable names:
-
-        ARRAY_BUFFER_BINDING
-
-        Implementation Notes:
-
-        We store the object rather than its integer name because it may have been deleted FROM ANOTHER EGL CONTEXT SHARING WITH THIS ONE
-        and thus disassociated from its name.  The name can be obtained from the object.
-
-        Invariant:
-
-        mh_array is either MEM_HANDLE_INVALID or a valid handle to a GLXX_BUFFER_T
-      */
-
-      MEM_HANDLE_T mh_array;
-
-      /*
-        Currently bound element array buffer
-
-        Khronos state variable names:
-
-        ELEMENT_ARRAY_BUFFER_BINDING
-
-        Implementation Notes:
-
-        We store the object rather than its integer name because it may have been deleted FROM ANOTHER EGL CONTEXT SHARING WITH THIS ONE
-        and thus disassociated from its name.  The name can be obtained from the object.
-
-        Invariant:
-
-        mh_element_array is either MEM_HANDLE_INVALID or a valid handle to a GLXX_BUFFER_T
-      */
-      MEM_HANDLE_T mh_element_array;
-
-      /*
-        Currently bound color, normal, vertex, texcoord and point size array buffers in one generic attribute array
-
-        Khronos state variable names:
-
-        COLOR_ARRAY_BUFFER_BINDING,
-        NORMAL_ARRAY_BUFFER_BINDING,
-        VERTEX_ARRAY_BUFFER_BINDING,
-        TEXTURE_COORD_ARRAY_BUFFER_BINDING,
-        POINT_SIZE_ARRAY_BUFFER_BINDING_OES
-
-        Implementation Notes:
-
-        We store the object rather than its integer name because it may have been deleted FROM ANOTHER EGL CONTEXT SHARING WITH THIS ONE
-        and thus disassociated from its name.  The name can be obtained from the object.
-
-        Invariant:
-
-        mh_attrib_array is either MEM_HANDLE_INVALID or a valid handle to a GLXX_BUFFER_T
-      */
-      MEM_HANDLE_T mh_attrib_array[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
-
-
-
+      GLXX_BUFFER_T *array_buffer;
+      GLXX_BUFFER_T *element_array_buffer;
+      GLuint array_name;
+      GLuint element_array_name;
    } bound_buffer;
-
+   GLXX_ATTRIB_T attrib[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
 
    /*
       Current texture bound to this unit
@@ -491,9 +441,9 @@ typedef struct {
    */
 
    struct {
-      MEM_HANDLE_T mh_twod;
-      MEM_HANDLE_T mh_external;
-      MEM_HANDLE_T mh_cube;
+      GLXX_TEXTURE_T *twod;
+      GLXX_TEXTURE_T *external;
+      GLXX_TEXTURE_T *cube;
    } bound_texture[GLXX_CONFIG_MAX_TEXTURE_UNITS];
 
 /*
@@ -505,7 +455,7 @@ typedef struct {
       mh_shared is a handle to a valid GLXX_SHARED_T object
    */
 
-   MEM_HANDLE_T mh_shared;
+   GLXX_SHARED_T *shared;
 
    /*
       default texture
@@ -522,8 +472,8 @@ typedef struct {
       Same goes for mh_default_texture_external
    */
 
-   MEM_HANDLE_T mh_default_texture_twod;
-   MEM_HANDLE_T mh_default_texture_external;
+   GLXX_TEXTURE_T *default_texture_twod;
+   GLXX_TEXTURE_T *default_texture_external;
 
    /*
       for compatibility with gl 2.0
@@ -536,7 +486,7 @@ typedef struct {
 
       mh_default_texture_cube == MEM_HANDLE_INVALID
    */
-   MEM_HANDLE_T mh_default_texture_cube;
+   GLXX_TEXTURE_T *default_texture_cube;
 
    /*
       target buffers
@@ -556,8 +506,8 @@ typedef struct {
          RGBA_4444_TF
    */
 
-   MEM_HANDLE_T mh_draw;   /* floating KHRN_IMAGE_T */
-   MEM_HANDLE_T mh_read;   /* floating KHRN_IMAGE_T */
+   KHRN_IMAGE_T *draw;
+   KHRN_IMAGE_T *read;
 
    /*
       Current depth and stencil buffer for EGL draw surface (if any)
@@ -580,7 +530,7 @@ typedef struct {
             must be at least as big as draw surface color buffer
    */
 
-   MEM_HANDLE_T mh_depth;   /* floating KHRN_IMAGE_T */
+   KHRN_IMAGE_T *depth;
 
    /*
       Current multisample color buffer for EGL context draw surface (if any)
@@ -602,8 +552,8 @@ typedef struct {
       If valid must be twice the width and height of, and have the same format as the draw surface color buffer
    */
 
-   MEM_HANDLE_T mh_color_multi;    /* floating KHRN_IMAGE_T */
-   MEM_HANDLE_T mh_ds_multi;    /* floating KHRN_IMAGE_T */
+   KHRN_IMAGE_T *color_multi;
+   KHRN_IMAGE_T *ds_multi;
 
    uint32_t config_depth_bits;   /* Bit depth of depth buffer in chosen config (not the same as physical depth bits in buffer) */
    uint32_t config_stencil_bits; /* Bit depth of stencil buffer in chosen config (not the same as physical stencil bits in buffer) */
@@ -613,14 +563,6 @@ typedef struct {
    */
 
    GLboolean made_current;
-
-   /*
-      cache memory and latch
-   */
-
-   MEM_HANDLE_T mh_cache;
-
-   uint32_t name;
 
    /*
       Current clear color
@@ -776,7 +718,6 @@ typedef struct {
 
    struct {
       GLenum generate_mipmap;
-      GLenum stereo_rendering;
 
       //gl 1.1 specific
       GLenum perspective_correction;
@@ -872,7 +813,6 @@ typedef struct {
    */
 
    GL11_MATERIAL_T material;
-   float copy_of_color[4];           //TODO: ugly
 
    GL11_LIGHTMODEL_T lightmodel;
 
@@ -976,84 +916,75 @@ typedef struct {
    float projected_clip_plane[4];
 
    //gl 2.0 specific
-   MEM_HANDLE_T mh_bound_renderbuffer;
-   MEM_HANDLE_T mh_bound_framebuffer;
-   MEM_HANDLE_T mh_program;
+   GLXX_RENDERBUFFER_T *bound_renderbuffer;
+   GLXX_FRAMEBUFFER_T *bound_framebuffer;
+   void *program;
 
    GLfloat point_size;                                      // U
 
+   GLenum client_active_texture;
+
    TWEAK_STATE_T  tweak_state;
+
+   //client side stuff
+   struct {
+      GLint pack;
+      GLint unpack;
+   } alignment;
 
 } GLXX_SERVER_STATE_T;
 
 #define IS_GL_11(state) is_server_opengles_11(state)
 #define IS_GL_20(state) is_server_opengles_20(state)
 
-static INLINE bool is_server_opengles_11(GLXX_SERVER_STATE_T * state)
+static inline bool is_server_opengles_11(GLXX_SERVER_STATE_T * state)
 {
    return state && state->type == OPENGL_ES_11;
 }
 
-static INLINE bool is_server_opengles_20(GLXX_SERVER_STATE_T * state)
+static inline bool is_server_opengles_20(GLXX_SERVER_STATE_T * state)
 {
    return state && state->type == OPENGL_ES_20;
 }
 
-static INLINE GLXX_SERVER_STATE_T *glxx_lock_server_state(void)
+static inline bool glxx_check_gl_api(GLXX_SERVER_STATE_T *state, EGL_CONTEXT_TYPE_T type)
 {
-   EGL_SERVER_STATE_T *egl_state = EGL_GET_SERVER_STATE();
-   GLXX_SERVER_STATE_T * state;
-
-   if (!egl_state->locked_glcontext) {
-      egl_state->locked_glcontext = mem_lock(egl_state->glcontext, NULL);
-   }
-
-   state = (GLXX_SERVER_STATE_T *)egl_state->locked_glcontext;
-
-   assert(((IS_GL_11(state) && egl_state->glversion == EGL_SERVER_GL11) ||
-         (IS_GL_20(state) && egl_state->glversion == EGL_SERVER_GL20)));
-
-   return state;
-}
-
-static INLINE void glxx_unlock_server_state(void)
-{
-#ifndef NDEBUG
-   EGL_SERVER_STATE_T *egl_state = EGL_GET_SERVER_STATE();
-
-   GLXX_SERVER_STATE_T * state = (GLXX_SERVER_STATE_T *)egl_state->locked_glcontext;
-
-   assert(((IS_GL_11(state) && egl_state->glversion == EGL_SERVER_GL11) ||
-         (IS_GL_20(state) && egl_state->glversion == EGL_SERVER_GL20)));
-   assert(egl_state->locked_glcontext);
-#endif /* NDEBUG */
-}
-
-static INLINE void glxx_force_unlock_server_state(void)
-{
-   EGL_SERVER_STATE_T *egl_state = EGL_GET_SERVER_STATE();
-
-   GLXX_SERVER_STATE_T * state = (GLXX_SERVER_STATE_T *)egl_state->locked_glcontext;
-
-   if ( ((IS_GL_11(state) && egl_state->glversion == EGL_SERVER_GL11) ||
-         (IS_GL_20(state) && egl_state->glversion == EGL_SERVER_GL20)) ) {
-      mem_unlock(egl_state->glcontext);
-      egl_state->locked_glcontext = NULL;
+   switch (type)
+   {
+   case OPENGL_ES_11:
+      return IS_GL_11(state);
+   case OPENGL_ES_20:
+      return IS_GL_20(state);
+   case OPENGL_ES_ANY:
+      return IS_GL_11(state) || IS_GL_20(state);
+   default:
+      UNREACHABLE();
+      return false;
    }
 }
 
-#define GLXX_LOCK_SERVER_STATE()         glxx_lock_server_state()
-#define GLXX_UNLOCK_SERVER_STATE()       glxx_unlock_server_state()
-#define GLXX_FORCE_UNLOCK_SERVER_STATE() glxx_force_unlock_server_state()
+extern void glxx_context_gl_lock(void);
+extern void glxx_context_gl_unlock(void);
 
-extern GLXX_TEXTURE_T *glxx_server_state_get_texture(GLXX_SERVER_STATE_T *state, GLenum target, GLboolean use_face, MEM_HANDLE_T *handle);
-extern void glxx_server_state_set_buffers(GLXX_SERVER_STATE_T *state, MEM_HANDLE_T hdraw, MEM_HANDLE_T hread,
-   MEM_HANDLE_T hdepth, MEM_HANDLE_T hcolormulti, MEM_HANDLE_T hdsmulti,
+GLXX_SERVER_STATE_T *glxx_lock_server_state(EGL_CONTEXT_TYPE_T type);
+void glxx_unlock_server_state(EGL_CONTEXT_TYPE_T type);
+
+bool glxx_is_aligned(GLenum type, size_t value);
+
+extern GLXX_TEXTURE_T *glxx_server_state_get_texture(GLXX_SERVER_STATE_T *state, GLenum target, GLboolean use_face);
+extern void glxx_server_state_set_buffers(GLXX_SERVER_STATE_T *state, KHRN_IMAGE_T *draw, KHRN_IMAGE_T *read,
+   KHRN_IMAGE_T *depth, KHRN_IMAGE_T *color_multi, KHRN_IMAGE_T *ds_multi,
    uint32_t config_depth_bits, uint32_t config_stencil_bits);
 
-extern bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, MEM_HANDLE_T shared);
-extern void glxx_server_state_term(MEM_HANDLE_T handle);
+extern bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared);
+extern void glxx_server_state_term(void *p);
 extern void glxx_server_state_flush(bool wait);
+
+extern void glxx_server_set_stencil_func(GLXX_SERVER_STATE_T *state, GLenum face, GLenum func, GLint ref, GLuint mask);
+extern void glxx_server_set_stencil_mask(GLXX_SERVER_STATE_T *state, GLenum face, GLuint mask);
+extern void glxx_server_set_stencil_op(GLXX_SERVER_STATE_T *state, GLenum face, GLenum fail, GLenum zfail, GLenum zpass);
+
+extern void glxx_server_set_blend_func(GLXX_SERVER_STATE_T *state, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha);
 
 #ifdef DISABLE_OPTION_PARSING
 extern void glxx_server_state_set_error(GLXX_SERVER_STATE_T *state, GLenum error);
@@ -1062,7 +993,27 @@ extern void glxx_server_state_set_error_ex(GLXX_SERVER_STATE_T *state, GLenum er
 #define glxx_server_state_set_error(a, b) glxx_server_state_set_error_ex(a, b, __func__, __LINE__)
 #endif
 
-static INLINE MEM_HANDLE_T glxx_image_create_ms(KHRN_IMAGE_FORMAT_T format,
+extern GLboolean is_renderbuffer_internal(GLuint renderbuffer);
+extern void bind_renderbuffer_internal(GLenum target, GLuint renderbuffer);
+extern void delete_renderbuffers_internal(GLsizei n, const GLuint *renderbuffers);
+extern void gen_renderbuffers_internal(GLsizei n, GLuint *renderbuffers);
+extern void renderbuffer_storage_multisample_internal(GLenum target, GLsizei samples,
+   GLenum internalformat, GLsizei width, GLsizei height);
+extern void get_renderbuffer_parameteriv_internal(GLenum target, GLenum pname, GLint* params);
+extern GLboolean is_framebuffer_internal(GLuint framebuffer);
+extern void bind_framebuffer_internal(GLenum target, GLuint framebuffer);
+extern void delete_framebuffers_internal(GLsizei n, const GLuint *framebuffers);
+extern void gen_framebuffers_internal(GLsizei n, GLuint *framebuffers);
+extern GLenum check_framebuffer_status_internal(GLenum target);
+extern void framebuffer_texture2D_multisample_internal(GLenum target, GLenum attachment,
+   GLenum textarget, GLuint texture, GLint level, GLsizei samples, bool only_attachment0);
+extern void framebuffer_renderbuffer_internal(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
+extern void get_framebuffer_attachment_parameteriv_internal(GLenum target, GLenum attachment, GLenum pname, GLint *params);
+extern void generate_mipmap_internal(GLenum target);
+extern void flush_internal(bool wait);
+extern void get_core_revision_internal(GLsizei bufSize, GLubyte *revisionStr);
+
+static inline KHRN_IMAGE_T *glxx_image_create_ms(KHRN_IMAGE_FORMAT_T format,
    uint32_t width, uint32_t height,
    KHRN_IMAGE_CREATE_FLAG_T flags,
    bool secure)
@@ -1073,10 +1024,4 @@ static INLINE MEM_HANDLE_T glxx_image_create_ms(KHRN_IMAGE_FORMAT_T format,
       flags, secure);
 }
 
-/*
-   Prototypes for server-side implementation functions.
-
-   These are in general very similar to the OpenGL ES 1.1 and 2.0 client
-   side functions.
-*/
-#include "interface/khronos/glxx/glxx_int_impl.h"
+extern void glxx_context_gl_create_lock(void);

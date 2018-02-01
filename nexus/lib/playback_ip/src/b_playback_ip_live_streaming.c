@@ -774,9 +774,9 @@ liveStreamingThreadFromRaveBuffer(
     /* setup bytes to read: account for transport timestamp & aes encryption */
     /* Increase clearBuffer size to 60Kbytes based on latest http/udp optimization analysis.*/
     if (liveStreamingSettings->transportTimestampEnabled)
-        clearBufferSize = (TS_PKT_SIZE+4) * HTTP_AES_BLOCK_SIZE * 5 * 4 ;
+        clearBufferSize = (TS_PKT_SIZE+4) * HTTP_AES_BLOCK_SIZE * 5 * 4 *6 ;
     else
-        clearBufferSize = TS_PKT_SIZE * HTTP_AES_BLOCK_SIZE * 5 * 4;
+        clearBufferSize = TS_PKT_SIZE * HTTP_AES_BLOCK_SIZE * 5 * 4*6 ;
 
 #if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
     if (liveStreamingHandle->data.pvrDecKeyHandle) {
@@ -791,6 +791,7 @@ liveStreamingThreadFromRaveBuffer(
         liveStreamingHandle->clearBuf = clearBuf;
     }
 #endif
+    liveStreamingHandle->data.enableHttpChunkTransferEncoding = liveStreamingHandle->settings.enableHttpChunkTransferEncoding;
 
     /* let the main thread know that we have started */
     liveStreamingHandle->threadRunning = true;
@@ -1318,6 +1319,7 @@ hlsStreamingThreadFromRaveBuffer(
     BDBG_ASSERT(liveStreamingHandle);
     liveStreamingSettings = &liveStreamingHandle->settings;
     liveStreamingHandle->connectionState = B_PlaybackIpConnectionState_eActive;
+    liveStreamingHandle->data.enableHttpChunkTransferEncoding = liveStreamingHandle->settings.enableHttpChunkTransferEncoding;
 
     /* let the main thread know that we have started */
     liveStreamingHandle->threadRunning = true;

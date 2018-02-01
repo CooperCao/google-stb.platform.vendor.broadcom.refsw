@@ -124,13 +124,21 @@ typedef struct ASP_ChannelPktControl
 } ASP_ChannelPktControl;
 #define ASP_CHANNEL_IOC_PKT_CONTROL                 _IOW(ASP_DEVICE_MAGIC_TYPE, 6, ASP_ChannelPktControl)
 
-#define ASP_DEVICE_IOC_MAXNR                        6
+typedef struct ASP_DeviceGetGateway
+{
+    uint32_t                    remoteIpAddr[4];
+    uint32_t                    gatewayIpAddr[4];
+} ASP_DeviceGetGateway;
+#define ASP_DEVICE_IOC_GET_GATEWAY                  _IOWR(ASP_DEVICE_MAGIC_TYPE, 7, ASP_DeviceGetGateway)
+
+
+#define ASP_DEVICE_IOC_MAXNR                        7
 
 #define IPv4(addr) \
-    ((unsigned char *)&addr)[0], \
-    ((unsigned char *)&addr)[1], \
-    ((unsigned char *)&addr)[2], \
-    ((unsigned char *)&addr)[3]
+    ((unsigned char *)&(addr))[0], \
+    ((unsigned char *)&(addr))[1], \
+    ((unsigned char *)&(addr))[2], \
+    ((unsigned char *)&(addr))[3]
 
 #define MacAddrPrintFmt \
     "macAddr: %2x:%2x:%2x:%2x:%2x:%2x"

@@ -39,9 +39,7 @@ void ShaderData::Set(DevMemHeap *dmHeap, const BINARY_SHADER_T &bs)
    }
 
    threading  = v3d_translate_threading(bs.n_threads);
-#if V3D_VER_AT_LEAST(4,1,34,0)
    singleSeg  = bs.single_seg;
-#endif
 }
 
 ShaderData::~ShaderData()
@@ -56,9 +54,9 @@ void LinkResult::LinkShaders(CompiledShaderHandle shaders[SHADER_FLAVOUR_COUNT],
 {
    using namespace std::placeholders;  // for _1, _2
 
-   Linker::BuildFunc buildFn = std::bind(&LinkResult::Build, this, _1, _2);
+   Linker::OutputFunc buildFn = std::bind(&LinkResult::Build, this, _1, _2);
 
-   Linker::LinkShaders(shaders, calcBackendKey, buildFn, nullptr, nullptr, attribRBSwaps);
+   Linker::LinkShaders(shaders, calcBackendKey, buildFn, attribRBSwaps);
 }
 
 ShaderFlavour LinkResult::ConvertShaderFlavour(unsigned stage)
@@ -76,74 +74,74 @@ ShaderFlavour LinkResult::ConvertShaderFlavour(unsigned stage)
 }
 
 // Build a LinkResult from the linker output
-void LinkResult::Build(const IR_PROGRAM_T &ir, const BINARY_PROGRAM_T &prog)
+void LinkResult::Build(const IR_PROGRAM_T *ir, const BINARY_PROGRAM_T *prog)
 {
-   assert(!m_built);
-   m_built = true;
+   if (!prog)
+      return;
 
-   bool hasVertex  = ProgHasVStage(&prog, SHADER_VERTEX);
-   bool hasTessEv  = ProgHasVStage(&prog, SHADER_TESS_EVALUATION);
-   bool hasGeom    = ProgHasVStage(&prog, SHADER_GEOMETRY);
+   bool hasVertex  = ProgHasVStage(prog, SHADER_VERTEX);
+   bool hasTessEv  = ProgHasVStage(prog, SHADER_TESS_EVALUATION);
+   bool hasGeom    = ProgHasVStage(prog, SHADER_GEOMETRY);
 
    // Fill in the ShaderData structures for each shader stage.
    for (unsigned m = 0; m != MODE_COUNT; ++m)
    {
       for (unsigned s = 0; s != SHADER_VPS_COUNT; ++s)
       {
-         const BINARY_SHADER_T *bs = prog.vstages[ConvertShaderFlavour(s)][m];
+         const BINARY_SHADER_T *bs = prog->vstages[ConvertShaderFlavour(s)][m];
 
          if (bs != nullptr)
             m_vps[s][m].Set(m_devMemHeap, *bs);
       }
    }
-   if (prog.fshader != nullptr)
-      m_fs.Set(m_devMemHeap, *prog.fshader);
+   if (prog->fshader != nullptr)
+      m_fs.Set(m_devMemHeap, *prog->fshader);
 
    // Copy the varyings map
-   assert(prog.vary_map.n <= V3D_MAX_VARYING_COMPONENTS);
-   m_numVarys = prog.vary_map.n;
+   assert(prog->vary_map.n <= V3D_MAX_VARYING_COMPONENTS);
+   m_numVarys = prog->vary_map.n;
    for (unsigned i = 0; i != m_numVarys; i++)
-      m_varyMap[i] = prog.vary_map.entries[i];
+      m_varyMap[i] = prog->vary_map.entries[i];
 
    // Set the initial flags
-   SetInitialFlags(ir, prog);
+   SetInitialFlags(*ir, *prog);
 
    // Fill out vertex shader and attribute data
    if (hasVertex)
    {
-      if (!hasTessEv && !hasGeom && prog.vstages[SHADER_VERTEX][MODE_RENDER]->u.vertex.has_point_size)
+      if (!hasTessEv && !hasGeom && prog->vstages[SHADER_VERTEX][MODE_RENDER]->u.vertex.has_point_size)
          m_flags |= POINT_SIZE_SHADED_VERTEX_DATA;
 
-      SetVertexShaderData(prog);
+      SetVertexShaderData(*prog);
 
       m_attrCount = 0;
       for (int i = 0; i < V3D_MAX_ATTR_ARRAYS; i++)
       {
-         if (prog.vstages[SHADER_VERTEX][MODE_BIN]->u.vertex.attribs.scalars_used[i] > 0 ||
-             prog.vstages[SHADER_VERTEX][MODE_RENDER]->u.vertex.attribs.scalars_used[i] > 0)
+         if (prog->vstages[SHADER_VERTEX][MODE_BIN]->u.vertex.attribs.scalars_used[i] > 0 ||
+             prog->vstages[SHADER_VERTEX][MODE_RENDER]->u.vertex.attribs.scalars_used[i] > 0)
          {
             AttributeRecord &ar = m_attr[m_attrCount];
             ar.idx          = i;
-            ar.cScalarsUsed = prog.vstages[SHADER_VERTEX][MODE_BIN]->u.vertex.attribs.scalars_used[i];
-            ar.vScalarsUsed = prog.vstages[SHADER_VERTEX][MODE_RENDER]->u.vertex.attribs.scalars_used[i];
+            ar.cScalarsUsed = prog->vstages[SHADER_VERTEX][MODE_BIN]->u.vertex.attribs.scalars_used[i];
+            ar.vScalarsUsed = prog->vstages[SHADER_VERTEX][MODE_RENDER]->u.vertex.attribs.scalars_used[i];
             m_attrCount++;
          }
       }
 
       // Data for bin load balancing, TODO T+G
-      m_numBinQpuInstructions = prog.vstages[SHADER_VERTEX][MODE_BIN]->code_size / 8;
+      m_numBinQpuInstructions = prog->vstages[SHADER_VERTEX][MODE_BIN]->code_size / 8;
    }
 
    // Set the flat-shade and centroid data (per varying)
    bool centroids = true;
 #if !V3D_HAS_SRS_CENTROID_FIX
-   centroids = !prog.fshader->u.fragment.ignore_centroids;
+   centroids = !prog->fshader->u.fragment.ignore_centroids;
 #endif
 
    bool allCentroid = true;
    for (unsigned i = 0; i < m_numVarys; i++)
    {
-      const VARYING_INFO_T &vary = ir.varying[prog.vary_map.entries[i]];
+      const VARYING_INFO_T &vary = ir->varying[prog->vary_map.entries[i]];
       uint32_t idx  = i / V3D_VARY_FLAGS_PER_WORD;
       uint32_t flag = 1 << (i % V3D_VARY_FLAGS_PER_WORD);
 
@@ -160,51 +158,51 @@ void LinkResult::Build(const IR_PROGRAM_T &ir, const BINARY_PROGRAM_T &prog)
          m_varyingCentroid[i / V3D_VARY_FLAGS_PER_WORD] |= 1 << (i % V3D_VARY_FLAGS_PER_WORD);
 
    // Fill out TnG data
-   SetTnGData(ir, prog);
+   SetTnGData(*ir, *prog);
 
-   if (ir.cs_shared_block_size != ~0u)
+   if (ir->cs_shared_block_size != ~0u)
    {
       const V3D_IDENT_T* ident = v3d_scheduler_get_identity();
       compute_params params{};
       params.num_qpus = ident->num_qpus_per_slice * ident->num_slices;
       params.shared_mem_per_core = v3d_scheduler_get_compute_shared_mem_size_per_core();
-      params.wg_size = ir.cs_wg_size[0] * ir.cs_wg_size[1] * ir.cs_wg_size[2];
-      params.shared_block_size = ir.cs_shared_block_size;
-      params.num_threads = prog.fshader->n_threads;
-      params.has_barrier = prog.fshader->u.fragment.barrier;
-      assert(!prog.fshader->u.fragment.writes_z);
-      assert(!prog.fshader->u.fragment.ez_disable);
-      assert(!prog.fshader->u.fragment.per_sample);
-      assert(!prog.fshader->u.fragment.reads_implicit_varys);
+      params.wg_size = ir->cs_wg_size[0] * ir->cs_wg_size[1] * ir->cs_wg_size[2];
+      params.shared_block_size = ir->cs_shared_block_size;
+      params.num_threads = prog->fshader->n_threads;
+      params.has_barrier = prog->fshader->u.fragment.barrier;
+      assert(!prog->fshader->u.fragment.writes_z);
+      assert(!prog->fshader->u.fragment.ez_disable);
+      assert(!prog->fshader->u.fragment.per_sample);
+      assert(!prog->fshader->u.fragment.reads_implicit_varys);
       compute_sg_config cfg = compute_choose_sg_config(&params);
 
 #if V3D_USE_CSD
       m_cs.subjob.wg_size = params.wg_size;
       m_cs.subjob.wgs_per_sg = cfg.wgs_per_sg;
       m_cs.subjob.max_sg_id = cfg.max_wgs / cfg.wgs_per_sg - 1;
-      m_cs.subjob.threading = v3d_translate_threading(prog.fshader->n_threads);
-      m_cs.subjob.single_seg = prog.fshader->single_seg;
+      m_cs.subjob.threading = v3d_translate_threading(prog->fshader->n_threads);
+      m_cs.subjob.single_seg = prog->fshader->single_seg;
       m_cs.subjob.propagate_nans = true;
       m_cs.subjob.shader_addr = m_fs.shaderMemory.Phys();
-      m_cs.subjob.shared_block_size = ir.cs_shared_block_size;
+      m_cs.subjob.shared_block_size = ir->cs_shared_block_size;
       m_cs.subjob.no_overlap = !compute_allow_concurrent_jobs(&params, cfg.wgs_per_sg);
 #else
       m_cs.program.code_addr = m_fs.shaderMemory.Phys();
-      m_cs.program.wg_size[0] = ir.cs_wg_size[0];
-      m_cs.program.wg_size[1] = ir.cs_wg_size[1];
-      m_cs.program.wg_size[2] = ir.cs_wg_size[2];
+      m_cs.program.wg_size[0] = ir->cs_wg_size[0];
+      m_cs.program.wg_size[1] = ir->cs_wg_size[1];
+      m_cs.program.wg_size[2] = ir->cs_wg_size[2];
       m_cs.program.items_per_wg = params.wg_size;
       m_cs.program.wgs_per_sg = cfg.wgs_per_sg;
       m_cs.program.max_wgs = cfg.max_wgs;
-      m_cs.program.num_varys = prog.vary_map.n;
+      m_cs.program.num_varys = prog->vary_map.n;
       m_cs.program.has_barrier = params.has_barrier;
-      m_cs.program.has_shared = ir.cs_shared_block_size;
-      m_cs.program.scb_wait_on_first_thrsw = prog.fshader->u.fragment.tlb_wait_first_thrsw;
-      m_cs.program.threading = v3d_translate_threading(prog.fshader->n_threads);
+      m_cs.program.has_shared = ir->cs_shared_block_size;
+      m_cs.program.scb_wait_on_first_thrsw = prog->fshader->u.fragment.tlb_wait_first_thrsw;
+      m_cs.program.threading = v3d_translate_threading(prog->fshader->n_threads);
 
-      assert((unsigned)prog.vary_map.n <= countof(m_cs.program.vary_map));
-      for (unsigned i = 0; i != (unsigned)prog.vary_map.n; ++i)
-         m_cs.program.vary_map[i] = prog.vary_map.entries[i];
+      assert((unsigned)prog->vary_map.n <= countof(m_cs.program.vary_map));
+      for (unsigned i = 0; i != (unsigned)prog->vary_map.n; ++i)
+         m_cs.program.vary_map[i] = prog->vary_map.entries[i];
 
       m_cs.allowConcurrentJobs = compute_allow_concurrent_jobs(&params, cfg.wgs_per_sg);
 #endif

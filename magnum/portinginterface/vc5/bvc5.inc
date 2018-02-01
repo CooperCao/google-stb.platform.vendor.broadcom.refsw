@@ -48,11 +48,16 @@ BVC5_SOURCES += \
 				$(V3D_MAGNUM_TOP)/src/$(B_REFSW_OS)/bvc5_os.c
 
 ifeq ($(B_REFSW_ANDROID),y)
+ifeq ($(LOCAL_LINUX_VERSION_NODASH),4.1)
 BVC5_SOURCES += \
-				$(V3D_MAGNUM_TOP)/src/$(B_REFSW_OS)/bvc5_android_fences.c
+   $(V3D_MAGNUM_TOP)/src/$(B_REFSW_OS)/bvc5_android_fences.c
 else
 BVC5_SOURCES += \
-				$(V3D_MAGNUM_TOP)/src/bvc5_fence.c
+   $(V3D_MAGNUM_TOP)/src/$(B_REFSW_OS)/bvc5_linux_fences.c
+endif
+else
+BVC5_SOURCES += \
+   (V3D_MAGNUM_TOP)/src/bvc5_fence.c
 endif
 
 

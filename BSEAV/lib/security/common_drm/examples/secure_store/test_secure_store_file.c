@@ -109,5 +109,11 @@ int main(int argc, char* argv[])
 	printf("\n\n");
 
 	printf("Done\n");
+
+    /* Clean up test environment */
+    NEXUS_Memory_Free(pDmaBuf);
+    DRM_Common_Finalize();
+    NEXUS_Platform_Uninit();
+
     return 0;
 }

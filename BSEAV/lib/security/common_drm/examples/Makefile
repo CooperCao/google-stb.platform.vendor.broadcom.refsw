@@ -48,7 +48,7 @@ endif
 $(warning target = $(target))
 
 ifeq ($(target), )
-$(error Makefile usage:  make target=<directory> (i.e. make target=widevine))
+$(error Makefile usage:  make target=<directory> (i.e. make target=widevine_cenc))
 else
 include ./$(target)/$(target)_app.inc
 TARGET_DIR := BSEAV/lib/security/common_drm/drm
@@ -100,7 +100,7 @@ all:  $(APPS)
 
 # For linux builds, link to the correct libraries
 LDFLAGS := ${COMMON_DRM_LDFLAGS}
-LDFLAGS += -L$(NEXUS_BIN_DIR)/ -lpthread -lm -lnexus
+LDFLAGS += -L$(NEXUS_BIN_DIR)/ -lpthread -lm -lnexus$(NEXUS_LIB_SUFFIX)
 
 CFLAGS += $(DRM_APP_CFLAGS)
 LDFLAGS += $(DRM_APP_LDFLAGS)
@@ -111,10 +111,17 @@ CFLAGS += -I$(BSEAV_TOP)/../magnum/syslib/sagelib/include
 CFLAGS += -I$(BSEAV_TOP)/lib/security/sage/srai/include
 endif
 
+# Link with common_drm libraries
+LDFLAGS += $(COMMON_DRM_LIB_LDFLAGS)
+
 ifeq ($(SAGE_VERSION), 2x)
 PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/$(SAGE_VERSION)
 else
-PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/lib
+    ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
+        PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/Zeus5x/lib
+    else
+        PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/Zeus4x/lib
+    endif
 endif
 
 PLAYREADY_LIB_PATH :=
@@ -144,6 +151,7 @@ endif
 clean:
 	rm -rf ${B_REFSW_OBJ_ROOT}/${TARGET_DIR}/${target}
 	rm -f ${CLEAN_APPS}
+	$(MAKE) -C ${URSR_TOP}/BSEAV/lib/security/sage/srai clean
 
 
 # This is the minimum needed to compile and link with Nexus

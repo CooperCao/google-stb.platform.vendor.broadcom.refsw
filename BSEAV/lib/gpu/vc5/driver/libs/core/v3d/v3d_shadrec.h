@@ -12,10 +12,8 @@ EXTERN_C_BEGIN
 
 typedef struct v3d_nv_shader_record_alloc_sizes
 {
-   size_t   packed_shader_rec_size;
-   size_t   packed_shader_rec_align;
-   size_t   defaults_size;
-   size_t   defaults_align;
+   v3d_size_t packed_shader_rec_size;
+   v3d_size_t packed_shader_rec_align;
 } V3D_NV_SHADER_RECORD_ALLOC_SIZES_T;
 
 // Determine the sizes and alignments of memory needed to create an NV shader record
@@ -23,12 +21,27 @@ void v3d_get_nv_shader_record_alloc_sizes(V3D_NV_SHADER_RECORD_ALLOC_SIZES_T *si
 
 // Create NV shader record
 void v3d_create_nv_shader_record(uint32_t *packed_shader_rec_ptr, v3d_addr_t packed_shader_rec_addr,
-                                 uint32_t *defaults_ptr, v3d_addr_t defaults_addr, v3d_addr_t fshader_addr,
-                                 v3d_addr_t funif_addr, v3d_addr_t vdata_addr,
+                                 v3d_addr_t fshader_addr, v3d_addr_t funif_addr, v3d_addr_t vdata_addr,
                                  uint32_t vdata_max_index,
                                  bool does_z_writes,
                                  v3d_threading_t threading
                                  );
+
+static inline unsigned v3d_nv_vertex_size(void)
+{
+   return (V3D_HAS_IMPLICIT_ATTR_DEFAULTS ? 3 : 4) * sizeof(uint32_t);
+}
+
+static inline void v3d_nv_vertex(uint32_t *base, uint32_t index, uint32_t x, uint32_t y, uint32_t z)
+{
+   unsigned components = V3D_HAS_IMPLICIT_ATTR_DEFAULTS ? 3 : 4;
+   base[components*index + 0] = x << 8;
+   base[components*index + 1] = y << 8;
+   base[components*index + 2] = z;
+#if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
+   base[components*index + 3] = 0x3f80000;
+#endif
+}
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
 void v3d_workaround_gfxh_1276(V3D_SHADREC_GL_MAIN_T *record);
@@ -68,7 +81,7 @@ static inline const char *v3d_maybe_desc_shader_type_br(bool render, v3d_shader_
 {
    switch (shader_type)
    {
-   case V3D_SHADER_TYPE_VERTEX:  return render ? "vertex" : "coord";
+   case V3D_SHADER_TYPE_VERTEX:  return render ? "vertex_rdr" : "vertex_bin";
    case V3D_SHADER_TYPE_TESSC:   return render ? "tessc_rdr" : "tessc_bin";
    case V3D_SHADER_TYPE_TESSE:   return render ? "tesse_rdr" : "tesse_bin";
    case V3D_SHADER_TYPE_GEOM:    return render ? "geom_rdr" : "geom_bin";
@@ -88,7 +101,7 @@ static inline const char *v3d_desc_shader_type_br(bool render, v3d_shader_type_t
    return desc;
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 static inline void v3d_shadrec_gl_tg_set_vpm_cfg(V3D_SHADREC_GL_TESS_OR_GEOM_T *sr,
    const V3D_VPM_CFG_TG_T cfg[2])

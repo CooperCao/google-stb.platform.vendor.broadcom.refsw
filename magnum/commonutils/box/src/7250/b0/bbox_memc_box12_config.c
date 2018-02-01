@@ -1,58 +1,46 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-*
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-******************************************************************************
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/*******************************************************************
 *               Do Not Edit Directly
 * Auto-Generated from RTS environment:
-*   at: Wed May 24 07:04:07 2017 GMT
-*   by: ramki
+*   at: Thu Jan 11 09:27:46 2018 GMT
+*   by: rl902794
 *   for: Box 1u_0t
 *         MemC 0 (16-bit DDR4@1200MHz) w/324MHz clock
 *******************************************************************/
@@ -61,18 +49,18 @@
 
 #include "bbox.h"  /* located in /magnum/commonutils/box/include directory */
 
-static const uint32_t aulMemc0_20170524070407_7250_box12[] = {
-           0x007f300f,  /*   0: XPT_WR_RS 6289ns */
+static const uint32_t aulMemc0_20180111092746_7250_box12[] = {
+           0x007f300e,  /*   0: XPT_WR_RS 6289ns */
            0x805ff021,  /*   1: XPT_WR_XC RR 5030ns */
-           0x809c0014,  /*   2: XPT_WR_CDB RR 7712ns */
+           0x809c0015,  /*   2: XPT_WR_CDB RR 7712ns */
            0x81c9c028,  /*   3: XPT_WR_ITB_MSG RR 23968ns */
            0x80cc4017,  /*   4: XPT_RD_RS RR 10093ns */
            0x81337019,  /*   5: XPT_RD_XC_RMX_MSG RR 15191ns */
-           0x809c0013,  /*   6: XPT_RD_XC_RAVE RR 7712ns */
+           0x809c0014,  /*   6: XPT_RD_XC_RAVE RR 7712ns */
            0x8104b026,  /*   7: XPT_RD_PB RR 13653ns */
            0x80be1024,  /*   8: XPT_WR_MEMDMA RR 9955ns */
            0x81b29027,  /*   9: XPT_RD_MEMDMA RR 22755ns */
-           0x80a1e015,  /*  10: GENET0_WR RR 8000ns */
+           0x80a1e016,  /*  10: GENET0_WR RR 8000ns */
            0x80c1c025,  /*  11: GENET0_RD RR 10150ns */
            0x3ffff0ff,  /*  12: UNASSIGNED off */
            0x3ffff0ff,  /*  13: UNASSIGNED off */
@@ -87,7 +75,7 @@ static const uint32_t aulMemc0_20170524070407_7250_box12[] = {
            0x83f4601b,  /*  22: BSP RR 50000ns */
            0x80822022,  /*  23: SAGE RR 6820ns */
            0x84b36029,  /*  24: FLASH_DMA RR 63000ns */
-           0x8094a012,  /*  25: HIF_PCIe RR 7348.23529411765ns */
+           0x8094a013,  /*  25: HIF_PCIe RR 7348.23529411765ns */
            0x84b3602b,  /*  26: SDIO_EMMC RR 63000ns */
            0x84b3602a,  /*  27: SDIO_CARD RR 63000ns */
            0x3ffff0ff,  /*  28: UNASSIGNED off */
@@ -106,7 +94,7 @@ static const uint32_t aulMemc0_20170524070407_7250_box12[] = {
            0x3ffff0ff,  /*  41: UNASSIGNED off */
            0x3ffff0ff,  /*  42: UNASSIGNED off */
            0x3ffff0ff,  /*  43: UNASSIGNED off */
-           0x008c6010,  /*  44: AUD_AIO 6940ns */
+           0x008c600f,  /*  44: AUD_AIO 6940ns */
            0x3ffff0ff,  /*  45: UNASSIGNED off */
            0x3ffff0ff,  /*  46: UNASSIGNED off */
            0x3ffff0ff,  /*  47: UNASSIGNED off */
@@ -139,8 +127,8 @@ static const uint32_t aulMemc0_20170524070407_7250_box12[] = {
            0x8000002e,  /*  74: HVD0_DBLK_1 RR 0ns */
            0x801d401c,  /*  75: HVD0_ILCPU RR 1451ns */
            0x80a34023,  /*  76: HVD0_OLCPU RR 8553ns */
-           0x005e6007,  /*  77: HVD0_CAB 4667ns */
-           0x00553006,  /*  78: HVD0_ILSI 4214ns */
+           0x005e6009,  /*  77: HVD0_CAB 4667ns */
+           0x00553008,  /*  78: HVD0_ILSI 4214ns */
            0x3ffff0ff,  /*  79: UNASSIGNED off */
            0x3ffff0ff,  /*  80: UNASSIGNED off */
            0x3ffff0ff,  /*  81: UNASSIGNED off */
@@ -157,8 +145,8 @@ static const uint32_t aulMemc0_20170524070407_7250_box12[] = {
            0x3ffff0ff,  /*  92: UNASSIGNED off */
            0x3ffff0ff,  /*  93: UNASSIGNED off */
            0x00464004,  /*  94: BVN_MAD_PIX_FD 3476.23762376238ns */
-           0x0062e00c,  /*  95: BVN_MAD_QUANT 4889.10891089109ns */
-           0x008ca011,  /*  96: BVN_MAD_PIX_CAP 6953.46534653465ns */
+           0x0062e00d,  /*  95: BVN_MAD_QUANT 4889.10891089109ns */
+           0x008ca010,  /*  96: BVN_MAD_PIX_CAP 6953.46534653465ns */
            0x3ffff0ff,  /*  97: UNASSIGNED off */
            0x3ffff0ff,  /*  98: UNASSIGNED off */
            0x3ffff0ff,  /*  99: UNASSIGNED off */
@@ -168,10 +156,10 @@ static const uint32_t aulMemc0_20170524070407_7250_box12[] = {
            0x3ffff0ff,  /* 103: UNASSIGNED off */
            0x3ffff0ff,  /* 104: UNASSIGNED off */
            0x3ffff0ff,  /* 105: UNASSIGNED off */
-           0x0063d00d,  /* 106: BVN_MFD0 4938ns */
-           0x00343001,  /* 107: BVN_MFD0_1 2585ns */
-           0x0063d00e,  /* 108: BVN_MFD1 4938ns */
-           0x00343002,  /* 109: BVN_MFD1_1 2585ns */
+           0x004ad005,  /* 106: BVN_MFD0 3703ns */
+           0x002b7001,  /* 107: BVN_MFD0_1 2154ns */
+           0x004ad006,  /* 108: BVN_MFD1 3703ns */
+           0x002b7002,  /* 109: BVN_MFD1_1 2154ns */
            0x3ffff0ff,  /* 110: UNASSIGNED off */
            0x3ffff0ff,  /* 111: UNASSIGNED off */
            0x3ffff0ff,  /* 112: UNASSIGNED off */
@@ -180,16 +168,16 @@ static const uint32_t aulMemc0_20170524070407_7250_box12[] = {
            0x3ffff0ff,  /* 115: UNASSIGNED off */
            0x3ffff0ff,  /* 116: UNASSIGNED off */
            0x3ffff0ff,  /* 117: UNASSIGNED off */
-           0x005ee008,  /* 118: BVN_VFD0 4693.06930693069ns */
-           0x005ee009,  /* 119: BVN_VFD1 4693.06930693069ns */
+           0x005ee00a,  /* 118: BVN_VFD0 4693.06930693069ns */
+           0x008e6011,  /* 119: BVN_VFD1 7039.60396039604ns */
            0x3ffff0ff,  /* 120: UNASSIGNED off */
            0x3ffff0ff,  /* 121: UNASSIGNED off */
            0x3ffff0ff,  /* 122: UNASSIGNED off */
            0x3ffff0ff,  /* 123: UNASSIGNED off */
            0x3ffff0ff,  /* 124: UNASSIGNED off */
            0x3ffff0ff,  /* 125: UNASSIGNED off */
-           0x005ee00a,  /* 126: BVN_CAP0 4693.06930693069ns */
-           0x00bdf016,  /* 127: BVN_CAP1 9386.13861386139ns */
+           0x005ee00b,  /* 126: BVN_CAP0 4693.06930693069ns */
+           0x008e6012,  /* 127: BVN_CAP1 7039.60396039604ns */
            0x3ffff0ff,  /* 128: UNASSIGNED off */
            0x3ffff0ff,  /* 129: UNASSIGNED off */
            0x3ffff0ff,  /* 130: UNASSIGNED off */
@@ -206,7 +194,7 @@ static const uint32_t aulMemc0_20170524070407_7250_box12[] = {
            0x3ffff0ff,  /* 141: UNASSIGNED off */
            0x3ffff0ff,  /* 142: UNASSIGNED off */
            0x3ffff0ff,  /* 143: UNASSIGNED off */
-           0x0061f00b,  /* 144: BVN_RDC 4845ns */
+           0x0061f00c,  /* 144: BVN_RDC 4845ns */
            0x027dc01a,  /* 145: VEC_VBI_ENC0 31500ns */
            0x3ffff0ff,  /* 146: UNASSIGNED off */
            0xbffff0ff,  /* 147: M2MC_0 RR */
@@ -317,26 +305,26 @@ static const uint32_t aulMemc0_20170524070407_7250_box12[] = {
            0xbffff0ff,  /* 252: MEMC_DIS0 RR */
            0xbffff0ff,  /* 253: MEMC_DIS1 RR */
            0xbffff0ff,  /* 254: MEMC_DRAM_INIT_ZQCS RR */
-           0x004ed005   /* 255: REFRESH 3900ns */
+           0x004ed007   /* 255: REFRESH 3900ns */
          };
 
 
-static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20170524070407_7250_box12[] = {
-  {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG,      0x80300905}, /* HVD0_PFRI (gHvd0) 448320.00 ns/60 */
-  {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_FILTER_CTRL, 0x4000025d}, /* d: 4; p: 605.229166666667 */
-  {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH0,     0x00001028}, /* 4136 */
-  {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH1,     0x000009b1}  /* 60% * 4136 */
+static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20180111092746_7250_box12[] = {
+  {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG,      0x80300905}, /* HVD0_PFRI (gHvd0) 980160.00 ns/40 */
+  {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_FILTER_CTRL, 0x400007c0}, /* d: 4; p: 1984.81875 */
+  {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH0,     0x00002e60}, /* 11872 */
+  {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH1,     0x00001bd3}  /* 60% * 11872 */
 };
 
-static const uint32_t* const paulMemc_box12[] = { &aulMemc0_20170524070407_7250_box12[0]};
+static const uint32_t* const paulMemc_box12[] = { &aulMemc0_20180111092746_7250_box12[0]};
 
 const BBOX_Rts stBoxRts_1u_0t_box12 = {
-  "20170524070407_7250_box12_box12",
+  "20180111092746_7250_box12_box12",
   7250,
   12,
   1,
   256,
   (const uint32_t**)&paulMemc_box12[0],
   4,
-  stBoxRts_PfriClient_20170524070407_7250_box12
+  stBoxRts_PfriClient_20180111092746_7250_box12
 };

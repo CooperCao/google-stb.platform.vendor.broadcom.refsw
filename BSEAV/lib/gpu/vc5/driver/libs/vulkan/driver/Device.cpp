@@ -59,9 +59,9 @@ Device::Device(
 #if !V3D_USE_CSD
    barrier_flags |= compute_mem_access_flags();
 #endif
-   bool hasL3C = v3d_scheduler_get_hub_identity()->has_l3c;
-   m_computeCacheOps = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_RW, barrier_flags, false, hasL3C)
-                     | v3d_barrier_cache_cleans(barrier_flags, V3D_BARRIER_MEMORY_RW, false, hasL3C);
+   const V3D_HUB_IDENT_T* hub_ident = v3d_scheduler_get_hub_identity();
+   m_computeCacheOps = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_RW, barrier_flags, false, hub_ident)
+                     | v3d_barrier_cache_cleans(barrier_flags, V3D_BARRIER_MEMORY_RW, false, hub_ident);
 #if !V3D_USE_CSD
    m_computeCacheOps &= ~V3D_CACHE_CLEAR_VCD; // VCD cache flushed in the control list
 #endif
@@ -222,6 +222,75 @@ VkResult Device::AllocateCommandBuffers(
    catch (const std::bad_alloc &)         { return VK_ERROR_OUT_OF_HOST_MEMORY;   }
    catch (const bvk::bad_device_alloc &)  { return VK_ERROR_OUT_OF_DEVICE_MEMORY; }
 
+   return VK_SUCCESS;
+}
+
+static void FillDedicatedAllocProps(void *pExt)
+{
+   while (pExt != nullptr)
+   {
+      auto p = static_cast<VkMemoryDedicatedRequirementsKHR *>(pExt);
+      if (p->sType == VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS_KHR)
+      {
+         p->prefersDedicatedAllocation  = false;
+         p->requiresDedicatedAllocation = false;
+      }
+      pExt = p->pNext;
+   }
+}
+
+void Device::GetImageMemoryRequirements2KHR(
+   const VkImageMemoryRequirementsInfo2KHR   *pInfo,
+   VkMemoryRequirements2KHR                  *pMemoryRequirements) noexcept
+{
+   Image *imageObj = bvk::fromHandle<bvk::Image>(pInfo->image);
+   imageObj->GetImageMemoryRequirements(this, &pMemoryRequirements->memoryRequirements);
+   FillDedicatedAllocProps(pMemoryRequirements->pNext);
+}
+
+void Device::GetBufferMemoryRequirements2KHR(
+   const VkBufferMemoryRequirementsInfo2KHR  *pInfo,
+   VkMemoryRequirements2KHR                  *pMemoryRequirements) noexcept
+{
+   Buffer *bufferObj = bvk::fromHandle<bvk::Buffer>(pInfo->buffer);
+   bufferObj->GetBufferMemoryRequirements(this, &pMemoryRequirements->memoryRequirements);
+   FillDedicatedAllocProps(pMemoryRequirements->pNext);
+}
+
+void Device::GetImageSparseMemoryRequirements2KHR(
+   const VkImageSparseMemoryRequirementsInfo2KHR   *pInfo,
+   uint32_t                                        *pSparseMemoryRequirementCount,
+   VkSparseImageMemoryRequirements2KHR             *pSparseMemoryRequirements) noexcept
+{
+   /* Valid usage prevents this function from actually being uesd */
+   unreachable();
+}
+
+VkResult Device::BindBufferMemory2KHR(
+   uint32_t                          bindInfoCount,
+   const VkBindBufferMemoryInfoKHR  *pBindInfos) noexcept
+{
+   for (uint32_t i=0; i<bindInfoCount; i++)
+   {
+      Buffer       *b   = fromHandle<Buffer>(pBindInfos[i].buffer);
+      DeviceMemory *mem = fromHandle<DeviceMemory>(pBindInfos[i].memory);
+      VkResult r = b->BindBufferMemory(this, mem, pBindInfos[i].memoryOffset);
+      assert(r == VK_SUCCESS);
+   }
+   return VK_SUCCESS;
+}
+
+VkResult Device::BindImageMemory2KHR(
+   uint32_t                          bindInfoCount,
+   const VkBindImageMemoryInfoKHR   *pBindInfos) noexcept
+{
+   for (uint32_t i=0; i<bindInfoCount; i++)
+   {
+      Image        *im  = fromHandle<Image>(pBindInfos[i].image);
+      DeviceMemory *mem = fromHandle<DeviceMemory>(pBindInfos[i].memory);
+      VkResult r = im->BindImageMemory(this, mem, pBindInfos[i].memoryOffset);
+      assert(r == VK_SUCCESS);
+   }
    return VK_SUCCESS;
 }
 

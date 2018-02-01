@@ -58,6 +58,12 @@ int TzTask::execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp)
     if (!exeFile->isExecutable())
         return -ENOEXEC;
 
+    // destroy signal state before deleting image
+    if (!signalsCloned) {
+        terminateSignalState();
+    }
+    destroyUContext();
+
     // Destroy the current elf image
     if ((!vmCloned) && (image != nullptr)) {
         delete image;
@@ -96,7 +102,7 @@ int TzTask::execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp)
             return -ENOMEM;
     int numBytesWritten = tslinkInfo.prepareUserStack(userStackVa);
     unsigned long userStackTop = imageStackTop - numBytesWritten;
-    image->unmapStackFromKernel();
+
     /*
      * Point user space to the new image. Reset the stack
      */
@@ -139,5 +145,9 @@ int TzTask::execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp)
 
     // Change the working directory
     currWorkDir = exeDir;
+
+    // init signal state on new process
+    initSignalState();
+    createUContext();
     return 0;
 }

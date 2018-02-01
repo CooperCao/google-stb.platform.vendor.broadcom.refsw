@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -121,6 +121,7 @@ typedef struct dataCallbackParameters
 static void data_callback(void *pParam1, int param2)
 {
     dataCallbackParameters *dataCBParams;
+    BSTD_UNUSED(param2);
 
     dataCBParams = (dataCallbackParameters *)pParam1;
     /*

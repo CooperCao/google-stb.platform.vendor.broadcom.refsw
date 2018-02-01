@@ -6426,6 +6426,19 @@ void Command::run_eglDestroyImageKHR()
    WarnNotAvailable("eglDestroyImageKHR");
 #endif
 }
+void Command::run_eglSetDamageRegionKHR()
+{
+#if EGL_KHR_partial_update
+   if (m_packet.NumItems() > 5)
+      WarnDataNotHandled("eglSetDamageRegionKHR");
+   if (m_replay->GetDeviceCaps().m_has_EGL_KHR_partial_update && m_replay->GetDispatch().real_eglSetDamageRegionKHR)
+      m_replay->GetDispatch().real_eglSetDamageRegionKHR(GetEGLDisplay(EGLDisplay, 0), GetEGLSurface(EGLSurface, 1), dummyEGLint, GetI32(EGLint, 3));
+   else
+      WarnNotAvailable("eglSetDamageRegionKHR");
+#else
+   WarnNotAvailable("eglSetDamageRegionKHR");
+#endif
+}
 void Command::run_eglWaitSyncKHR()
 {
 #if EGL_KHR_wait_sync
@@ -6842,17 +6855,17 @@ void Command::run_glDrawElementsInstancedBaseVertexOES()
    WarnNotAvailable("glDrawElementsInstancedBaseVertexOES");
 #endif
 }
-void Command::run_glMultiDrawElementsBaseVertexOES()
+void Command::run_glMultiDrawElementsBaseVertexEXT()
 {
 #if GL_OES_draw_elements_base_vertex
    if (m_packet.NumItems() > 10)
-      WarnDataNotHandled("glMultiDrawElementsBaseVertexOES");
-   if (m_replay->GetDeviceCaps().m_has_GL_OES_draw_elements_base_vertex && m_replay->GetDispatch().real_glMultiDrawElementsBaseVertexOES)
-      m_replay->GetDispatch().real_glMultiDrawElementsBaseVertexOES(GetU32(GLenum, 0), GetArrayPtr(const GLsizei *, 6), GetU32(GLenum, 2), GetArrayPtr(const void *const*, 7), GetI32(GLsizei, 4), GetArrayPtr(const GLint *, 8));
+      WarnDataNotHandled("glMultiDrawElementsBaseVertexEXT");
+   if (m_replay->GetDeviceCaps().m_has_GL_OES_draw_elements_base_vertex && m_replay->GetDispatch().real_glMultiDrawElementsBaseVertexEXT)
+      m_replay->GetDispatch().real_glMultiDrawElementsBaseVertexEXT(GetU32(GLenum, 0), GetArrayPtr(const GLsizei *, 6), GetU32(GLenum, 2), GetArrayPtr(const void *const*, 7), GetI32(GLsizei, 4), GetArrayPtr(const GLint *, 8));
    else
-      WarnNotAvailable("glMultiDrawElementsBaseVertexOES");
+      WarnNotAvailable("glMultiDrawElementsBaseVertexEXT");
 #else
-   WarnNotAvailable("glMultiDrawElementsBaseVertexOES");
+   WarnNotAvailable("glMultiDrawElementsBaseVertexEXT");
 #endif
 }
 void Command::run_glDrawTexsOES()
@@ -8101,19 +8114,6 @@ void Command::run_glDrawElementsInstancedBaseVertexEXT()
       WarnNotAvailable("glDrawElementsInstancedBaseVertexEXT");
 #else
    WarnNotAvailable("glDrawElementsInstancedBaseVertexEXT");
-#endif
-}
-void Command::run_glMultiDrawElementsBaseVertexEXT()
-{
-#if GL_EXT_draw_elements_base_vertex
-   if (m_packet.NumItems() > 10)
-      WarnDataNotHandled("glMultiDrawElementsBaseVertexEXT");
-   if (m_replay->GetDeviceCaps().m_has_GL_EXT_draw_elements_base_vertex && m_replay->GetDispatch().real_glMultiDrawElementsBaseVertexEXT)
-      m_replay->GetDispatch().real_glMultiDrawElementsBaseVertexEXT(GetU32(GLenum, 0), GetArrayPtr(const GLsizei *, 6), GetU32(GLenum, 2), GetArrayPtr(const void *const*, 7), GetI32(GLsizei, 4), GetArrayPtr(const GLint *, 8));
-   else
-      WarnNotAvailable("glMultiDrawElementsBaseVertexEXT");
-#else
-   WarnNotAvailable("glMultiDrawElementsBaseVertexEXT");
 #endif
 }
 void Command::run_glFramebufferTextureEXT()

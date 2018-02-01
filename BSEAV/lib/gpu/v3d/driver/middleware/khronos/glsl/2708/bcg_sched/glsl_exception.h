@@ -23,7 +23,7 @@ typedef enum
    eExceptionTMUUniformClash
 } Exception;
 
-static INLINE void PrintException(Exception e)
+static inline void PrintException(Exception e)
 {
    switch (e)
    {

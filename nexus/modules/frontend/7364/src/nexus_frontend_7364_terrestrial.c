@@ -2090,11 +2090,9 @@ static NEXUS_Error NEXUS_Frontend_P_7364_GetVsbAsyncStatus(void *handle, NEXUS_F
 {
     NEXUS_Error rc = BERR_SUCCESS;
     NEXUS_7364Device *pDevice;
-    unsigned chn_num;
 
     BDBG_ASSERT(NULL != handle);
     pDevice = (NEXUS_7364Device *)handle;
-    chn_num = pDevice->lastChannel;
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
     BKNI_Memset(&pDevice->vsbStatus, 0, sizeof(pDevice->vsbStatus));
@@ -2120,12 +2118,11 @@ static NEXUS_Error NEXUS_Frontend_P_7364_GetVsbStatus(void *handle, NEXUS_Fronte
 {
     NEXUS_Error rc = BERR_SUCCESS;
     NEXUS_7364Device *pDevice;
-    unsigned chn_num, j=0;
+    unsigned j=0;
     uint32_t buf=0;
 
     BDBG_ASSERT(NULL != handle);
     pDevice = (NEXUS_7364Device *)handle;
-    chn_num = pDevice->lastChannel;
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
     BKNI_Memset(&pDevice->vsbStatus, 0, sizeof(pDevice->vsbStatus));
@@ -2248,7 +2245,6 @@ done:
 /* Terrestrial implementation */
 NEXUS_FrontendHandle NEXUS_Frontend_Open7364_Terrestrial(const NEXUS_FrontendChannelSettings *pSettings)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_FrontendHandle frontendHandle = NULL;
     NEXUS_7364Device *pDevice = NULL;
     unsigned chn_num=0;
@@ -2266,7 +2262,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open7364_Terrestrial(const NEXUS_FrontendCha
 
     /* Create a Nexus frontend handle */
     frontendHandle = NEXUS_Frontend_P_Create(pDevice);
-    if ( NULL == frontendHandle ) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_alloc;}
+    if ( NULL == frontendHandle ) {BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_alloc;}
 
     /* Establish device capabilities */
     frontendHandle->capabilities.vsb = true;
@@ -2309,14 +2305,14 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open7364_Terrestrial(const NEXUS_FrontendCha
     for(chn_num=0; chn_num < NEXUS_MAX_7364_T_FRONTENDS; chn_num++){
 
         pDevice->lockAppCallback[chn_num] = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-        if ( NULL == pDevice->lockAppCallback[chn_num] ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
+        if ( NULL == pDevice->lockAppCallback[chn_num] ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
 
         pDevice->asyncStatusAppCallback[chn_num] = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-        if ( NULL == pDevice->asyncStatusAppCallback[chn_num] ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
+        if ( NULL == pDevice->asyncStatusAppCallback[chn_num] ) {BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
      }
 
     pDevice->updateGainAppCallback[0] = NEXUS_IsrCallback_Create(frontendHandle, NULL);
-    if ( NULL == pDevice->updateGainAppCallback[0] ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
+    if ( NULL == pDevice->updateGainAppCallback[0] ) {BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
 
     frontendHandle->userParameters.isMtsif = true;
 

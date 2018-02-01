@@ -48,8 +48,9 @@
  * States for DtcpIpServer Object (main server object),
  *  states reflecting DtcpIpServer APIs visiable to Apps: Create, Start, Stop of Server
  */
-BDBG_MODULE( bip_http_server );
+BDBG_MODULE( bip_dtcp_ip_server );
 BDBG_OBJECT_ID( BIP_DtcpIpServer );
+BDBG_OBJECT_ID( BIP_DtcpIpServerStream );
 BIP_SETTINGS_ID(BIP_DtcpIpServerStartSettings);
 
 typedef enum BIP_DtcpIpServerStartState
@@ -60,6 +61,15 @@ typedef enum BIP_DtcpIpServerStartState
     BIP_DtcpIpServerStartState_eStopped,               /* Server is stopped and is ready to be started again. */
     BIP_DtcpIpServerStartState_eMax
 } BIP_DtcpIpServerStartState;
+
+typedef struct BIP_DtcpIpServerStream
+{
+    BDBG_OBJECT( BIP_DtcpIpServerStream )
+
+    BLST_Q_ENTRY(BIP_DtcpIpServerStream)   streamLink;              /* Link for next & previous stream entries in the list. */
+    void *hDtcpIpAke;
+    void *hDtcpIpStream;
+} BIP_DtcpIpServerStream;
 
 typedef struct BIP_DtcpIpServer
 {
@@ -94,14 +104,39 @@ typedef struct BIP_DtcpIpServer
     struct
     {
         BIP_ArbHandle               hArb;
-        BIP_DtcpIpServerStatus           *pStatus;
+        BIP_DtcpIpServerStatus      *pStatus;
     } getStatusApi;
+    struct
+    {
+        BIP_ArbHandle               hArb;
+        const char *                pClientIp;
+    } checkForClientAkeApi;
+    struct
+    {
+        BIP_ArbHandle               hArb;
+        const char *                pClientIp;
+        B_CCI_T                     copyControlInfo;
+        BIP_DtcpIpServerStreamHandle *phStream;
+    } openStreamApi;
+    struct
+    {
+        BIP_ArbHandle               hArb;
+        BIP_DtcpIpServerStreamHandle hStream;
+    } closeStreamApi;
+    struct
+    {
+        BIP_ArbHandle               hArb;
+        BIP_DtcpIpServerStreamHandle hStream;
+        BIP_DtcpIpServerStreamStatus   *pStatus;
+    } getStreamStatusApi;
 
     /* Stats. */
     struct
     {
         unsigned                    numAcceptedConnections;     /* total connections accepted since _Start */
     } stats;
+
+    BLST_Q_HEAD(streamHead, BIP_DtcpIpServerStream) streamHead;
 } BIP_DtcpIpServer;
 
 #define BIP_DTCP_IP_SERVER_PRINTF_FMT  \
@@ -126,13 +161,30 @@ static void dtcpServerDestroy(
     BIP_DtcpIpServerHandle hDtcpIpServer
     )
 {
+    BIP_DtcpIpServerStreamHandle hStream;
+
     if (!hDtcpIpServer) return;
     BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hDtcpIpServer %p" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer ));
+
+    for (
+            hStream = BLST_Q_FIRST(&hDtcpIpServer->streamHead);
+            hStream;
+            hStream = BLST_Q_FIRST(&hDtcpIpServer->streamHead)
+        )
+    {
+        BLST_Q_REMOVE(&hDtcpIpServer->streamHead, hStream, streamLink);
+        DtcpAppLib_CloseStream(hStream->hDtcpIpStream);
+        B_Os_Free(hStream);
+    }
 
     if (hDtcpIpServer->startApi.hArb) BIP_Arb_Destroy(hDtcpIpServer->startApi.hArb);
     if (hDtcpIpServer->stopApi.hArb) BIP_Arb_Destroy(hDtcpIpServer->stopApi.hArb);
     if (hDtcpIpServer->destroyApi.hArb) BIP_Arb_Destroy(hDtcpIpServer->destroyApi.hArb);
     if (hDtcpIpServer->getStatusApi.hArb) BIP_Arb_Destroy(hDtcpIpServer->getStatusApi.hArb);
+    if (hDtcpIpServer->getStreamStatusApi.hArb) BIP_Arb_Destroy(hDtcpIpServer->getStreamStatusApi.hArb);
+    if (hDtcpIpServer->checkForClientAkeApi.hArb) BIP_Arb_Destroy(hDtcpIpServer->checkForClientAkeApi.hArb);
+    if (hDtcpIpServer->openStreamApi.hArb) BIP_Arb_Destroy(hDtcpIpServer->openStreamApi.hArb);
+    if (hDtcpIpServer->closeStreamApi.hArb) BIP_Arb_Destroy(hDtcpIpServer->closeStreamApi.hArb);
 
     if (hDtcpIpServer->hStateMutex) B_Mutex_Destroy( hDtcpIpServer->hStateMutex );
 
@@ -180,6 +232,18 @@ BIP_DtcpIpServerHandle BIP_DtcpIpServer_Create(
 
     hDtcpIpServer->getStatusApi.hArb = BIP_Arb_Create(NULL, NULL);
     BIP_CHECK_GOTO(( hDtcpIpServer->getStatusApi.hArb ), ( "BIP_Arb_Create Failed " ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
+
+    hDtcpIpServer->checkForClientAkeApi.hArb = BIP_Arb_Create(NULL, NULL);
+    BIP_CHECK_GOTO(( hDtcpIpServer->checkForClientAkeApi.hArb ), ( "BIP_Arb_Create Failed " ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
+
+    hDtcpIpServer->openStreamApi.hArb = BIP_Arb_Create(NULL, NULL);
+    BIP_CHECK_GOTO(( hDtcpIpServer->openStreamApi.hArb ), ( "BIP_Arb_Create Failed " ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
+
+    hDtcpIpServer->closeStreamApi.hArb = BIP_Arb_Create(NULL, NULL);
+    BIP_CHECK_GOTO(( hDtcpIpServer->closeStreamApi.hArb ), ( "BIP_Arb_Create Failed " ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
+
+    hDtcpIpServer->getStreamStatusApi.hArb = BIP_Arb_Create(NULL, NULL);
+    BIP_CHECK_GOTO(( hDtcpIpServer->getStreamStatusApi.hArb ), ( "BIP_Arb_Create Failed " ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: Created ARBs" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer));
 
@@ -326,9 +390,9 @@ error:
     return( brc );
 } /* BIP_DtcpIpServer_Stop */
 
-BIP_Status BIP_DtcpIpServer_GetStatus(
-    BIP_DtcpIpServerHandle    hDtcpIpServer,
-    BIP_DtcpIpServerStatus         *pStatus
+BIP_Status BIP_DtcpIpServer_CheckForClientAke(
+    BIP_DtcpIpServerHandle      hDtcpIpServer,
+    const char *                pClientIp
     )
 {
     BIP_Status brc = BIP_SUCCESS;
@@ -337,10 +401,132 @@ BIP_Status BIP_DtcpIpServer_GetStatus(
 
     BDBG_OBJECT_ASSERT( hDtcpIpServer, BIP_DtcpIpServer );
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hDtcpIpServer %p: ClientIp=%s --------------------->" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, pClientIp));
+
+    BIP_CHECK_GOTO(( hDtcpIpServer ), ( "hDtcpIpServer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
+    BIP_CHECK_GOTO(( pClientIp ), ( "pClientIp pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
+    /* Serialize access to this API. */
+    hArb = hDtcpIpServer->checkForClientAkeApi.hArb;
+    brc = BIP_Arb_Acquire(hArb);
+    BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, brc, brc );
+
+    hDtcpIpServer->checkForClientAkeApi.pClientIp = pClientIp;
+
+    /* Get ready to run the state machine. */
+    BIP_Arb_GetDefaultSubmitSettings( &arbSettings );
+    arbSettings.hObject = hDtcpIpServer;
+    arbSettings.arbProcessor = processDtcpIpServerState;
+    arbSettings.waitIfBusy = true;
+
+    /* Invoke state machine via the Arb Submit API */
+    brc = BIP_Arb_Submit(hArb, &arbSettings, NULL);
+    BIP_CHECK_GOTO((brc == BIP_SUCCESS || brc == BIP_INF_DTCPIP_SERVER_AKE_NOT_DONE), ( "BIP_Arb_SubmitRequest() Failed for %s", BSTD_FUNCTION ), error, brc, brc );
+
+error:
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hDtcpIpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, BIP_StatusGetText(brc) ));
+
+    return (brc);
+} /* BIP_DtcpIpServer_CheckForClientAke */
+
+BIP_Status BIP_DtcpIpServer_OpenStream(
+    BIP_DtcpIpServerHandle      hDtcpIpServer,
+    const char *                pClientIp,
+    B_CCI_T                     copyControlInfo,
+    BIP_DtcpIpServerStreamHandle *phStream
+    )
+{
+    BIP_Status brc = BIP_SUCCESS;
+    BIP_ArbHandle hArb;
+    BIP_ArbSubmitSettings arbSettings;
+
+    BDBG_OBJECT_ASSERT( hDtcpIpServer, BIP_DtcpIpServer );
+
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hDtcpIpServer %p: ClientIp=%s --------------------->" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, pClientIp));
+
+    BIP_CHECK_GOTO(( hDtcpIpServer ), ( "hDtcpIpServer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
+    BIP_CHECK_GOTO(( pClientIp ), ( "pClientIp pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
+    BIP_CHECK_GOTO(( phStream ), ( "phStream pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
+
+    /* Serialize access to this API. */
+    hArb = hDtcpIpServer->openStreamApi.hArb;
+    brc = BIP_Arb_Acquire(hArb);
+    BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, brc, brc );
+
+    hDtcpIpServer->openStreamApi.pClientIp = pClientIp;
+    hDtcpIpServer->openStreamApi.phStream = phStream;
+    hDtcpIpServer->openStreamApi.copyControlInfo = copyControlInfo;
+
+    /* Get ready to run the state machine. */
+    BIP_Arb_GetDefaultSubmitSettings( &arbSettings );
+    arbSettings.hObject = hDtcpIpServer;
+    arbSettings.arbProcessor = processDtcpIpServerState;
+    arbSettings.waitIfBusy = true;
+
+    /* Invoke state machine via the Arb Submit API */
+    brc = BIP_Arb_Submit(hArb, &arbSettings, NULL);
+    BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for %s", BSTD_FUNCTION ), error, brc, brc );
+
+error:
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hDtcpIpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, BIP_StatusGetText(brc) ));
+
+    return (brc);
+} /* BIP_DtcpIpServer_OpenStream */
+
+BIP_Status BIP_DtcpIpServer_CloseStream(
+    BIP_DtcpIpServerHandle      hDtcpIpServer,
+    BIP_DtcpIpServerStreamHandle hStream
+    )
+{
+    BIP_Status brc = BIP_SUCCESS;
+    BIP_ArbHandle hArb;
+    BIP_ArbSubmitSettings arbSettings;
+
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hDtcpIpServer %p: hStream=%p --------------------->" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, (void *)hStream));
+
+    BIP_CHECK_GOTO(( hDtcpIpServer ), ( "hDtcpIpServer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
+    BIP_CHECK_GOTO(( hStream ), ( "hStream pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
+    BDBG_OBJECT_ASSERT( hDtcpIpServer, BIP_DtcpIpServer );
+    BDBG_OBJECT_ASSERT( hStream, BIP_DtcpIpServerStream );
+
+
+    /* Serialize access to this API. */
+    hArb = hDtcpIpServer->closeStreamApi.hArb;
+    brc = BIP_Arb_Acquire(hArb);
+    BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, brc, brc );
+
+    hDtcpIpServer->closeStreamApi.hStream = hStream;
+
+    /* Get ready to run the state machine. */
+    BIP_Arb_GetDefaultSubmitSettings( &arbSettings );
+    arbSettings.hObject = hDtcpIpServer;
+    arbSettings.arbProcessor = processDtcpIpServerState;
+    arbSettings.waitIfBusy = true;
+
+    /* Invoke state machine via the Arb Submit API */
+    brc = BIP_Arb_Submit(hArb, &arbSettings, NULL);
+    BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for %s", BSTD_FUNCTION ), error, brc, brc );
+
+error:
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hDtcpIpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, BIP_StatusGetText(brc) ));
+
+    return (brc);
+} /* BIP_DtcpIpServer_CloseStream */
+
+BIP_Status BIP_DtcpIpServer_GetStatus(
+    BIP_DtcpIpServerHandle          hDtcpIpServer,
+    BIP_DtcpIpServerStatus         *pStatus
+    )
+{
+    BIP_Status brc = BIP_SUCCESS;
+    BIP_ArbHandle hArb;
+    BIP_ArbSubmitSettings arbSettings;
+
     BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hDtcpIpServer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer));
 
     BIP_CHECK_GOTO(( hDtcpIpServer ), ( "hDtcpIpServer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
     BIP_CHECK_GOTO(( pStatus ), ( "pStatus pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
+    BDBG_OBJECT_ASSERT( hDtcpIpServer, BIP_DtcpIpServer );
+
 
     /* Serialize access to Settings state among another thread calling the same _SetSettings API. */
     hArb = hDtcpIpServer->getStatusApi.hArb;
@@ -364,6 +550,48 @@ error:
 
     return (brc);
 } /* BIP_DtcpIpServer_GetStatus */
+
+BIP_Status BIP_DtcpIpServer_GetStreamStatus(
+    BIP_DtcpIpServerHandle          hDtcpIpServer,
+    BIP_DtcpIpServerStreamHandle    hStream,
+    BIP_DtcpIpServerStreamStatus   *pStatus
+    )
+{
+    BIP_Status brc = BIP_SUCCESS;
+    BIP_ArbHandle hArb;
+    BIP_ArbSubmitSettings arbSettings;
+
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hDtcpIpServer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer));
+
+    BIP_CHECK_GOTO(( hDtcpIpServer ), ( "hDtcpIpServer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
+    BIP_CHECK_GOTO(( hStream ), ( "hStream pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
+    BIP_CHECK_GOTO(( pStatus ), ( "pStatus pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
+    BDBG_OBJECT_ASSERT( hDtcpIpServer, BIP_DtcpIpServer );
+    BDBG_OBJECT_ASSERT( hStream, BIP_DtcpIpServerStream );
+
+    /* Serialize access to Settings state among another thread calling the same _SetSettings API. */
+    hArb = hDtcpIpServer->getStreamStatusApi.hArb;
+    brc = BIP_Arb_Acquire(hArb);
+    BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, brc, brc );
+
+    hDtcpIpServer->getStreamStatusApi.pStatus = pStatus;
+    hDtcpIpServer->getStreamStatusApi.hStream = hStream;
+
+    /* Get ready to run the state machine. */
+    BIP_Arb_GetDefaultSubmitSettings( &arbSettings );
+    arbSettings.hObject = hDtcpIpServer;
+    arbSettings.arbProcessor = processDtcpIpServerState;
+    arbSettings.waitIfBusy = true;;
+
+    /* Invoke state machine via the Arb Submit API */
+    brc = BIP_Arb_Submit(hArb, &arbSettings, NULL);
+    BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_DtcpIpServer_DestroyStreamer" ), error, brc, brc );
+
+error:
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hDtcpIpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, BIP_StatusGetText(brc) ));
+
+    return (brc);
+} /* BIP_DtcpIpServer_GetStreamStatus */
 
 struct BIP_DtcpIpServerStartStateNames
 {
@@ -429,6 +657,7 @@ static BIP_Status startDtcpIpServer(
     )
 {
     B_Error rc;
+    B_DeviceMode_T dtcpIpMode;
     BIP_Status bipStatus = BIP_ERR_INVALID_PARAMETER;
 
     BDBG_ASSERT(hDtcpIpServer);
@@ -440,15 +669,23 @@ static BIP_Status startDtcpIpServer(
     hDtcpIpServer->hKeyFileAbsolutePathname = BIP_String_CreateFromPrintf("%s", hDtcpIpServer->startApi.pSettings->pKeyFileAbsolutePathname );
     BIP_CHECK_GOTO( ( hDtcpIpServer->hAkePort || hDtcpIpServer->hKeyFileAbsolutePathname ), ("String Creation Failed"), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
 
+    if (hDtcpIpServer->startApi.pSettings->enableHwOffload)
+    {
+        dtcpIpMode = B_DeviceMode_eSourceWithAsp;
+    }
+    else
+    {
+        dtcpIpMode = B_DeviceMode_eSource;
+    }
     hDtcpIpServer->pDtcpIpLibInitCtx = DtcpAppLib_Startup(
-            B_DeviceMode_eSource, /* DtcpIpServer will be a source device for sending out the streams. */
+            dtcpIpMode, /* DtcpIpServer will be a source device for sending out the streams. */
             hDtcpIpServer->startSettings.pcpUsageRuleEnabled,
             hDtcpIpServer->startSettings.keyFormat,
             false /* TODO; CKS Check: Need more info on this. */
             );
     BIP_CHECK_GOTO( ( hDtcpIpServer->pDtcpIpLibInitCtx ), ( "hDtcpIpServer %p: DtcpAppLib_Startup() Failed", (void *)hDtcpIpServer ), error, BIP_ERR_DTCPIP_SERVER_START, bipStatus );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: DtcpAppLib_Startup is successfull, pDtcpIpLibInitCtx %p" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, hDtcpIpServer->pDtcpIpLibInitCtx ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: DtcpAppLib_Startup is successfull in mode=%d pDtcpIpLibInitCtx %p" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, dtcpIpMode, hDtcpIpServer->pDtcpIpLibInitCtx ));
 
     rc = DtcpAppLib_Listen(
             hDtcpIpServer->pDtcpIpLibInitCtx,
@@ -459,6 +696,7 @@ static BIP_Status startDtcpIpServer(
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: DtcpAppLib_Listen is successfull, pDtcpIpLibInitCtx %p" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, hDtcpIpServer->pDtcpIpLibInitCtx ));
 
+    BLST_Q_INIT(&hDtcpIpServer->streamHead);
     bipStatus = BIP_SUCCESS;
 
 error:
@@ -466,6 +704,31 @@ error:
 
     return (bipStatus);
 } /* startDtcpIpServer */
+
+static BIP_Status getClientStreamStatus(
+    BIP_DtcpIpServerHandle          hDtcpIpServer,
+    BIP_DtcpIpServerStreamHandle    hStream,
+    BIP_DtcpIpServerStreamStatus    *pStatus
+    )
+{
+    B_Error rc;
+    BIP_Status bipStatus = BIP_ERR_INVALID_PARAMETER;
+    B_DTCP_SinkAkeStreamAttribute streamAttribute;
+
+    rc = DtcpAppLib_GetSinkAkeStreamAttribute(hStream->hDtcpIpStream, &streamAttribute);
+    BIP_CHECK_GOTO(( rc == B_ERROR_SUCCESS ), ( "DtcpAppLib_GetSinkAkeStreamAttribute() Failed!" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: DtcpAppLib_Startup is successfull, pDtcpIpLibInitCtx %p" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, hDtcpIpServer->pDtcpIpLibInitCtx ));
+
+    pStatus->emiModes = streamAttribute.emiModes;
+    pStatus->exchKeyLabel = streamAttribute.exchKeyLabel;
+    BKNI_Memcpy(pStatus->exchKey, streamAttribute.exchKey, BIP_DTCP_IP_EXCH_KEY_IN_BYTES);
+    BKNI_Memcpy(pStatus->initialNonce, streamAttribute.initialNonce, BIP_DTCP_IP_NONCE_IN_BYTES);
+
+    bipStatus = BIP_SUCCESS;
+
+error:
+    return (bipStatus);
+} /* getClientStreamStatus */
 
 void processDtcpIpServerState(
     void *                  hObject,
@@ -557,6 +820,77 @@ void processDtcpIpServerState(
                         BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, BIP_DTCP_IP_SERVER_START_STATE(hDtcpIpServer->startState), hDtcpIpServer->startSettings.pAkePort));
         }
     }
+    else if (BIP_Arb_IsNew(hArb = hDtcpIpServer->checkForClientAkeApi.hArb))
+    {
+        BIP_Status bipStatus;
+        void *hDtcpIpAke;
+
+        BIP_Arb_AcceptRequest(hArb);
+
+        DtcpAppLib_GetSinkAkeSession( hDtcpIpServer->pDtcpIpLibInitCtx, hDtcpIpServer->checkForClientAkeApi.pClientIp, &hDtcpIpAke);
+        if (hDtcpIpAke) bipStatus = BIP_SUCCESS; else bipStatus = BIP_INF_DTCPIP_SERVER_AKE_NOT_DONE;
+        BIP_Arb_CompleteRequest( hDtcpIpServer->checkForClientAkeApi.hArb, bipStatus );
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: BIP_DtcpIpServer_CheckForClientAke(): AKE for ClientIp %s is %s" BIP_MSG_PRE_ARG,
+                    (void *)hDtcpIpServer, hDtcpIpServer->checkForClientAkeApi.pClientIp, hDtcpIpAke ? "Completed!" : "Not Completed!"));
+    }
+    else if (BIP_Arb_IsNew(hArb = hDtcpIpServer->openStreamApi.hArb))
+    {
+        BIP_Status bipStatus = BIP_SUCCESS;
+        void *hDtcpIpAke = NULL;
+        void *hDtcpIpStream = NULL;
+        BIP_DtcpIpServerStreamHandle hStream = NULL;
+
+        BIP_Arb_AcceptRequest(hArb);
+
+        DtcpAppLib_GetSinkAkeSession( hDtcpIpServer->pDtcpIpLibInitCtx, hDtcpIpServer->openStreamApi.pClientIp, &hDtcpIpAke );
+        if (!hDtcpIpAke)
+        {
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: BIP_DtcpIpServer_OpenStream(): AKE to ClientIp=%s Not complete, retry!" BIP_MSG_PRE_ARG,
+                        (void *)hDtcpIpServer, hDtcpIpServer->openStreamApi.pClientIp ));
+            bipStatus = BIP_INF_DTCPIP_SERVER_AKE_NOT_DONE;
+        }
+        if (bipStatus == BIP_SUCCESS)
+        {
+            hDtcpIpStream = DtcpAppLib_OpenSourceStream(
+                    hDtcpIpAke, B_StreamTransport_eHttp, DTCP_CONTENT_LENGTH_UNLIMITED,
+                    hDtcpIpServer->openStreamApi.copyControlInfo,
+                    B_Content_eAudioVisual, 0 /* PCP length but it doesn't matter.*/ );
+            if (!hDtcpIpStream)
+            {
+                BDBG_ERR(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: BIP_DtcpIpServer_OpenStream(): DtcpAppLib_OpenSourceStream() to ClientIp=%s failed!" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, hDtcpIpServer->openStreamApi.pClientIp ));
+                bipStatus = BIP_ERR_DTCPIP_SERVER_OPEN_STREAM;
+            }
+        }
+        if (bipStatus == BIP_SUCCESS)
+        {
+            hStream = B_Os_Calloc( 1, sizeof( BIP_DtcpIpServerStream ));
+            if (!hStream)
+            {
+                BDBG_ERR(( BIP_MSG_PRE_FMT "Failed to Allocate a New BIP_DtcpIpStream entry!" BIP_MSG_PRE_ARG ));
+                DtcpAppLib_CloseStream(hDtcpIpStream);
+                bipStatus = BIP_ERR_OUT_OF_SYSTEM_MEMORY;
+            }
+            hStream->hDtcpIpAke = hDtcpIpAke;
+            hStream->hDtcpIpStream = hDtcpIpStream;
+            BDBG_OBJECT_SET( hStream, BIP_DtcpIpServerStream );
+            BLST_Q_INSERT_TAIL(&hDtcpIpServer->streamHead, hStream, streamLink);
+            bipStatus = BIP_SUCCESS;
+            *hDtcpIpServer->openStreamApi.phStream = hStream;
+        }
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: BIP_DtcpIpServer_OpenStream(): Opened Stream, hStream=%p hDtcpIpAke=%p hDtcpIpAke=%p" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, (void *)hStream, (void *)hStream->hDtcpIpStream, (void *)hStream->hDtcpIpAke));
+        BIP_Arb_CompleteRequest( hDtcpIpServer->openStreamApi.hArb, bipStatus );
+    }
+    else if (BIP_Arb_IsNew(hArb = hDtcpIpServer->closeStreamApi.hArb))
+    {
+        BIP_Arb_AcceptRequest(hArb);
+
+        DtcpAppLib_CloseStream(hDtcpIpServer->closeStreamApi.hStream->hDtcpIpStream);
+        BLST_Q_REMOVE(&hDtcpIpServer->streamHead, hDtcpIpServer->closeStreamApi.hStream, streamLink);
+        BDBG_OBJECT_DESTROY( hDtcpIpServer->closeStreamApi.hStream, BIP_DtcpIpServerStream );
+        B_Os_Free(hDtcpIpServer->closeStreamApi.hStream);
+        BIP_Arb_CompleteRequest( hDtcpIpServer->closeStreamApi.hArb, BIP_SUCCESS );
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: BIP_DtcpIpServer_CloseStream(): Closed Stream, hStream=%p " BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, (void *)hDtcpIpServer->closeStreamApi.hStream ));
+    }
     else if (BIP_Arb_IsNew(hArb = hDtcpIpServer->getStatusApi.hArb))
     {
         BIP_Arb_AcceptRequest(hArb);
@@ -573,6 +907,15 @@ void processDtcpIpServerState(
 
         BIP_Arb_CompleteRequest( hDtcpIpServer->getStatusApi.hArb, BIP_SUCCESS );
         BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: BIP_DtcpIpServer_GetStatus(): pDtcpIpLibCtx %p" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, hDtcpIpServer->pDtcpIpLibInitCtx ));
+    }
+    else if (BIP_Arb_IsNew(hArb = hDtcpIpServer->getStreamStatusApi.hArb))
+    {
+        BIP_Status bipStatus;
+        BIP_Arb_AcceptRequest(hArb);
+
+        bipStatus = getClientStreamStatus(hDtcpIpServer, hDtcpIpServer->getStreamStatusApi.hStream, hDtcpIpServer->getStreamStatusApi.pStatus);
+        BIP_Arb_CompleteRequest( hDtcpIpServer->getStreamStatusApi.hArb, bipStatus );
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: BIP_DtcpIpServer_GetStreamStatus():" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer));
     }
     else if (BIP_Arb_IsNew(hArb = hDtcpIpServer->destroyApi.hArb))
     {

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -114,6 +114,9 @@ int binput_wait(binput_t input, unsigned timeout_msec);
 void binput_interrupt(binput_t input);
 int binput_set_mask(binput_t input, uint32_t mask);
 void binput_print_script_usage(void);
+#if NEXUS_HAS_IR_INPUT && !NXCLIENT_SUPPORT
+NEXUS_IrInputHandle binput_irhandle(binput_t input);
+#endif
 
 #ifdef __cplusplus
 }

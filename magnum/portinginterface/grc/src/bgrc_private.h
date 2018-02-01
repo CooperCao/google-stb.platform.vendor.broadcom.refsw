@@ -82,6 +82,8 @@ typedef struct BGRC_P_Handle
     uint32_t ulRegOffset;                       /* offset from m2mc0*/
 #if BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT
     uint32_t ulWeight;                          /* scheduling */
+    uint32_t ulPacketCountClr;                  /* count clear */
+	uint32_t ulPacketCountClrReg;               /* count clear reg */
 #endif
     bool secure;
 
@@ -97,11 +99,6 @@ typedef struct BGRC_P_Handle
     BGRC_PacketContext_Handle hDummyCtx; /* dummy context for extra flush blit */
     uint32_t  ulNumCreates;
     bool waitForSync;
-
-#if BGRC_PACKET_P_BLIT_WORKAROUND
-    /* List status to hardware. */
-    uint32_t             ulNumbersToRun;
-#endif
 
     BMMA_Block_Handle pHwPktFifoBaseAlloc;
     uint8_t  *pHwPktFifoBase;

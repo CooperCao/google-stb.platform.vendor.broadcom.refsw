@@ -211,7 +211,7 @@ static bool is_arrays_of_image_type(SymbolType *type) {
    return glsl_prim_is_prim_image_type(type);
 }
 
-static void check_args_valid_for_overload(SymbolType *overload, ExprChain *args, bool relaxed_memq, ShaderFlavour flavour)
+static void check_args_valid(SymbolType *overload, ExprChain *args, bool relaxed_memq, ShaderFlavour flavour)
 {
    ExprChainNode *arg = args->first;
    assert(overload->u.function_type.param_count == args->count);
@@ -244,11 +244,76 @@ static void check_args_valid_for_overload(SymbolType *overload, ExprChain *args,
    }
 }
 
-void glsl_ast_validate_function_call(const Expr *e, ShaderFlavour flavour) {
+struct validate_data {
+   ShaderFlavour flavour;
+   int           version;
+
+   int loop_depth;
+   int switch_depth;
+   int selection_depth;
+
+   bool in_main;
+   bool seen_return;
+};
+
+static const Expr *expr_chain_get_expr(const ExprChain *c, int n) {
+   const ExprChainNode *cn = c->first;
+   for (int i=0; i<n; i++) cn = cn->next;
+   return cn->expr;
+}
+
+static bool arg_n_const(const ExprChain *args, int n) {
+   const Expr *arg = expr_chain_get_expr(args, n-1);
+   return (arg->compile_time_value != NULL);
+}
+
+static void validate_function_call(const Expr *e, struct validate_data *d) {
    const Symbol *f = e->u.function_call.function;
-   bool memq_template = glsl_stdlib_is_stdlib_function(f) &&
-                        (glsl_stdlib_function_properties[glsl_stdlib_function_index(f)] & GLSL_STDLIB_PROPERTY_MEMQ_TEMPLATE);
-   check_args_valid_for_overload(f->type, e->u.function_call.args, memq_template, flavour);
+   bool memq_template = false;
+
+   if (f->u.function_instance.function_def == NULL)
+      glsl_compile_error(ERROR_CUSTOM, 21, e->line_num, "%s", f->name);
+
+   if (glsl_stdlib_is_stdlib_function(f)) {
+      if (glsl_stdlib_function_index(f) == GLSL_STDLIB_FN__BARRIER__VOID) {
+         bool in_control_flow = (d->loop_depth > 0 || d->selection_depth > 0 || d->switch_depth > 0);
+         if (d->flavour == SHADER_TESS_CONTROL && (in_control_flow || !d->in_main || d->seen_return))
+            glsl_compile_error(ERROR_CUSTOM, 7, e->line_num, "barrier() may not appear in control flow");
+      }
+
+      uint64_t fn_props = glsl_stdlib_function_properties[glsl_stdlib_function_index(f)];
+      if (fn_props & GLSL_STDLIB_PROPERTY_ATOMIC_MEM) {
+         if (!valid_for_atomic(e->u.function_call.args->first->expr))
+            glsl_compile_error(ERROR_CUSTOM, 16, e->line_num, "Atomic memory function %s requires buffer or shared type", f->name);
+      }
+
+      if (fn_props & GLSL_STDLIB_PROPERTY_INTERPOLATE) {
+         const Expr *interp = e->u.function_call.args->first->expr;
+         while (interp->flavour == EXPR_SUBSCRIPT) interp = interp->u.subscript.aggregate;
+         if (interp->flavour != EXPR_INSTANCE)
+            glsl_compile_error(ERROR_CUSTOM, 16, e->line_num, "Interpolation function %s requires whole variable or array member", f->name);
+
+         const Symbol *s = interp->u.instance.symbol;
+         if (s->flavour != SYMBOL_VAR_INSTANCE || s->u.var_instance.storage_qual != STORAGE_IN)
+            glsl_compile_error(ERROR_CUSTOM, 16, e->line_num, "Interpolation function %s requires input type", f->name);
+      }
+
+      bool gath_off_const = d->version < GLSL_SHADER_VERSION(3,20,1) && glsl_ext_status(GLSL_EXT_GPU_SHADER5) == GLSL_DISABLED;
+      bool const_correct = true;
+      if (fn_props & (GLSL_STDLIB_PROPERTY_ARG3_CONST | (gath_off_const ? GLSL_STDLIB_PROPERTY_ARG3_GATHER_OFFSET : 0)))
+         const_correct = const_correct && arg_n_const(e->u.function_call.args, 3);
+      if (fn_props & (GLSL_STDLIB_PROPERTY_ARG4_CONST | (gath_off_const ? GLSL_STDLIB_PROPERTY_ARG4_GATHER_OFFSET : 0)))
+         const_correct = const_correct && arg_n_const(e->u.function_call.args, 4);
+      if (fn_props & (GLSL_STDLIB_PROPERTY_ARG5_CONST))
+         const_correct = const_correct && arg_n_const(e->u.function_call.args, 5);
+
+      if (!const_correct)
+         glsl_compile_error(ERROR_SEMANTIC, 10, e->line_num, "in argument to function %s", f->name);
+
+      memq_template = (fn_props & GLSL_STDLIB_PROPERTY_MEMQ_TEMPLATE);
+   }
+
+   check_args_valid(f->type, e->u.function_call.args, memq_template, d->flavour);
 }
 
 
@@ -278,18 +343,6 @@ static void spostv_check_returns(Statement *s, void *data) {
 static void check_returns(SymbolType *return_type, Statement *statement) {
    glsl_statement_accept(statement, return_type, NULL, NULL, spostv_check_returns, NULL);
 }
-
-struct validate_data {
-   ShaderFlavour flavour;
-   int           version;
-
-   int loop_depth;
-   int switch_depth;
-   int selection_depth;
-
-   bool in_main;
-   bool seen_return;
-};
 
 static Statement *sprev_mark_entries(Statement *s, void *data) {
    struct validate_data *info = data;
@@ -547,17 +600,6 @@ static void spostv_check_and_mark_exits(Statement *s, void *data) {
    }
 }
 
-static const Expr *expr_chain_get_expr(const ExprChain *c, int n) {
-   const ExprChainNode *cn = c->first;
-   for (int i=0; i<n; i++) cn = cn->next;
-   return cn->expr;
-}
-
-static bool arg_n_const(const ExprChain *args, int n) {
-   const Expr *arg = expr_chain_get_expr(args, n-1);
-   return (arg->compile_time_value != NULL);
-}
-
 static void epostv_validate(Expr *e, void *data) {
    struct validate_data *d = data;
 
@@ -566,7 +608,6 @@ static void epostv_validate(Expr *e, void *data) {
       case EXPR_VALUE:         /* Doesn't read anything */
       case EXPR_ARRAY_LENGTH:
       case EXPR_INTRINSIC:     /* Should already be valid. We constructed these. */
-      case EXPR_FUNCTION_CALL: /* Validated elsewhere */
          break;
 
       case EXPR_INSTANCE:
@@ -574,6 +615,10 @@ static void epostv_validate(Expr *e, void *data) {
       case EXPR_FIELD_SELECTOR:
       case EXPR_SWIZZLE:
          break;               /* These can't be validated without more context. Parent must do it */
+
+      case EXPR_FUNCTION_CALL:
+         validate_function_call(e, d);
+         break;
 
       case EXPR_POST_INC:
       case EXPR_POST_DEC:
@@ -662,38 +707,6 @@ static void epostv_validate(Expr *e, void *data) {
       default:
          unreachable();
          break;
-   }
-
-   if (e->flavour == EXPR_FUNCTION_CALL) {
-      const Symbol *called = e->u.function_call.function;
-      if (called->u.function_instance.function_def == NULL)
-         glsl_compile_error(ERROR_CUSTOM, 21, e->line_num, "%s", called->name);
-
-      if (glsl_stdlib_is_stdlib_function(called)) {
-         if (glsl_stdlib_function_index(called) == GLSL_STDLIB_FN__BARRIER__VOID) {
-            bool in_control_flow = (d->loop_depth > 0 || d->selection_depth > 0 || d->switch_depth > 0);
-            if (d->flavour == SHADER_TESS_CONTROL && (in_control_flow || !d->in_main || d->seen_return))
-               glsl_compile_error(ERROR_CUSTOM, 7, e->line_num, "barrier() may not appear in control flow");
-         }
-
-         uint64_t fn_props = glsl_stdlib_function_properties[glsl_stdlib_function_index(called)];
-         if (fn_props & GLSL_STDLIB_PROPERTY_ATOMIC_MEM) {
-            if (!valid_for_atomic(e->u.function_call.args->first->expr))
-               glsl_compile_error(ERROR_CUSTOM, 21, e->line_num, NULL);
-         }
-
-         bool gath_off_const = d->version < GLSL_SHADER_VERSION(3,20,1) && glsl_ext_status(GLSL_EXT_GPU_SHADER5) == GLSL_DISABLED;
-         bool const_correct = true;
-         if (fn_props & (GLSL_STDLIB_PROPERTY_ARG3_CONST | (gath_off_const ? GLSL_STDLIB_PROPERTY_ARG3_GATHER_OFFSET : 0)))
-            const_correct = const_correct && arg_n_const(e->u.function_call.args, 3);
-         if (fn_props & (GLSL_STDLIB_PROPERTY_ARG4_CONST | (gath_off_const ? GLSL_STDLIB_PROPERTY_ARG4_GATHER_OFFSET : 0)))
-            const_correct = const_correct && arg_n_const(e->u.function_call.args, 4);
-         if (fn_props & (GLSL_STDLIB_PROPERTY_ARG5_CONST))
-            const_correct = const_correct && arg_n_const(e->u.function_call.args, 5);
-
-         if (!const_correct)
-            glsl_compile_error(ERROR_SEMANTIC, 10, e->line_num, "in argument to function %s", called->name);
-      }
    }
 
    if (d->version < GLSL_SHADER_VERSION(3,0,1)) {
@@ -985,8 +998,6 @@ Expr *glsl_expr_construct_function_call(int line_num, Symbol *f, ExprChain *args
    expr->u.function_call.function = function;
    expr->u.function_call.args     = args;
    expr->compile_time_value       = NULL;
-
-   glsl_ast_validate_function_call(expr, g_ShaderFlavour);
 
    /* Fold any function call with constant arguments when there is a folding function. */
    if(function->u.function_instance.folding_function && expr_chain_all_compile_time_value(args)) {

@@ -45,6 +45,8 @@
 #include "bkni.h"
 #include "bdbg.h"
 
+#define ENABLE_FULL_CONTENT_MODE 1
+
 BDBG_MODULE(platform_graphics);
 
 PlatformGraphicsHandle platform_graphics_open(PlatformHandle platform, const char * fontPath, unsigned fbWidth, unsigned fbHeight)
@@ -95,6 +97,7 @@ PlatformGraphicsHandle platform_graphics_open(PlatformHandle platform, const cha
         if (gfx->maxMosaics < MAX_MOSAICS) {
             BDBG_ASSERT((MAX_MOSAICS - gfx->maxMosaics) == 1); /* Can we have more than 1 pip for mosaic?? */
             gfx->sc[i].numWindows = MAX_MOSAICS - gfx->maxMosaics;
+            gfx->maxMosaics += gfx->sc[i].numWindows; /* maxMosaics is across all decoders */
         }
     } else {
         BDBG_ASSERT(gfx->sc[0].numWindows == 0);
@@ -107,11 +110,19 @@ PlatformGraphicsHandle platform_graphics_open(PlatformHandle platform, const cha
     for (j=0; j<gfx->maxMosaics; j++) {
         gfx->video[windowCnt] = NEXUS_SurfaceClient_AcquireVideoWindow(gfx->sc[0].surfaceClient, j);
         BDBG_ASSERT(gfx->video[windowCnt]);
+#if ENABLE_FULL_CONTENT_MODE
+        {
+            NEXUS_SurfaceClientSettings scSettings;
+            NEXUS_SurfaceClient_GetSettings(gfx->video[windowCnt], &scSettings);
+            scSettings.composition.contentMode = NEXUS_VideoWindowContentMode_eFull;
+            NEXUS_SurfaceClient_SetSettings(gfx->video[windowCnt], &scSettings);
+        }
+#endif
         windowCnt++;
     }
 
     gfx->mainWindowId = 0;
-    gfx->pipWindowId = 1;
+    gfx->pipWindowId = 3;
 
     platform->gfx = gfx;
     gfx->platform = platform;
@@ -128,7 +139,10 @@ void platform_graphics_close(PlatformGraphicsHandle gfx)
         if (gfx->video[i]) { NEXUS_SurfaceClient_Release(gfx->video[i]); }
     }
     if (gfx->font) bfont_close(gfx->font);
-    if (gfx->gui) bgui_destroy(gfx->gui);
+    if (gfx->gui) {
+        bgui_checkpoint(gfx->gui);
+        bgui_destroy(gfx->gui);
+    }
     BKNI_Free(gfx);
 }
 
@@ -345,8 +359,14 @@ unsigned platform_graphics_get_pip_window_id(PlatformGraphicsHandle gfx)
     return gfx->pipWindowId;
 }
 
-unsigned platform_graphics_get_mosaic_count(PlatformGraphicsHandle gfx)
+unsigned platform_graphics_get_max_mosaic_count(PlatformGraphicsHandle gfx)
 {
     BDBG_ASSERT(gfx);
     return gfx->maxMosaics;
+}
+
+unsigned platform_graphics_get_decoder_window_count(PlatformGraphicsHandle gfx, unsigned decoderIndex)
+{
+    BDBG_ASSERT(gfx);
+    return gfx->sc[decoderIndex].numWindows;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -98,6 +98,7 @@ typedef enum BIP_HttpServerSocketState
     BIP_HttpServerSocketState_eWaitingForRequestArrival,    /* Waiting for a New complete HTTP Request on the associated HttpSocket. */
     BIP_HttpServerSocketState_eWaitingForRecvRequestApi,    /* Received a New Request, requestReceivedCallback to App has been invoked and now waiting for _RecvRequest(). */
     BIP_HttpServerSocketState_eWaitingForStartStreamerApi,  /* Caller has issued _RecvRequest to receive the Request and we are now waiting for _StartStreamer(). */
+    BIP_HttpServerSocketState_eWaitingForProcessRequestApiCompletion, /* We have called BIP_HttpStreamer_ProcessRequest() but this API returned IN_PROGRESS. HttpStreamer will give us a async callback to indicate the API completion. */
     BIP_HttpServerSocketState_eProcessingRequest,           /* We are now Processing given a HttpRequest by streaming media on the associated HttpSocket. */
     BIP_HttpServerSocketState_eDestroying,                  /* An error has occurred on the ServerSocket object & we are now destroying it. */
     BIP_HttpServerSocketState_eMax
@@ -119,6 +120,8 @@ typedef struct BIP_HttpServerSocket
     BIP_HttpStreamerHandle              hHttpStreamer;
     BIP_HttpSocketCallbackState         requestReceivedCallbackState;
     bool                                requestProcessed;                       /* set when HttpStreamer invokes the requestProcessed callback. */
+    bool                                processRequestApiCompleted;             /* set when HttpStreamer completes its _ProcessRequest(). */
+    BIP_Status                          processRequestApiStatus;
     const char                          *pRemoteIpAddress;
     bool                                httpSocketOwnedByCaller;
     struct

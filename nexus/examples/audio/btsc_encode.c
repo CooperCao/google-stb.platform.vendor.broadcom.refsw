@@ -170,9 +170,12 @@ int main(int argc, char **argv)
             NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     }
     /* Connect RFM as Slave to DAC 0 */
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_Rfm_GetAudioConnector(platformConfig.outputs.rfm[0]),
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    if (platformConfig.outputs.rfm[0]) {
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_Rfm_GetAudioConnector(platformConfig.outputs.rfm[0]),
+            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+    BSTD_UNUSED(audioSecondDacHandle);
 #else /* No Hardware RFM, use DSP modulation */
     rfEncoder = NEXUS_RfAudioEncoder_Open(NULL);
     if (audioDacHandle) {
@@ -224,7 +227,9 @@ int main(int argc, char **argv)
     NEXUS_Display_AddOutput(display, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[1]));
 #endif
 #if NEXUS_NUM_RFM_OUTPUTS
-    NEXUS_Display_AddOutput(display, NEXUS_Rfm_GetVideoConnector(platformConfig.outputs.rfm[0]));
+    if (platformConfig.outputs.rfm[0]) {
+        NEXUS_Display_AddOutput(display, NEXUS_Rfm_GetVideoConnector(platformConfig.outputs.rfm[0]));
+    }
 #endif
 #if NEXUS_NUM_SVIDEO_OUTPUTS
     if (platformConfig.outputs.svideo[0]) {

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2004-2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,18 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Platform (private)
-*    Common part of all kernel servers
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #ifndef _NEXUS_IPC_API_H_
@@ -93,6 +81,9 @@ enum nexus_main_socket_message_type
     nexus_main_socket_message_type_start_callbacks, /* client sends void *interface. no read. */
     nexus_main_socket_message_type_max
 };
+
+/* Fixed size IPC buffer all [fixed size] arguments shall fit into this buffer */
+#define NEXUS_P_IPC_BUFFER_SIZE 16384
 
 /* queue size in server and client. not required to be the same, but efficient. */
 #define NEXUS_CALLBACK_QUEUE_SIZE 32

@@ -96,22 +96,18 @@ by an attribute value"
    EGL_TRANSPARENT_TYPE is always EGL_NONE because we don't support EGL_TRANSPARENT_RGB. Should there be an EGL_TRANSPARENT_ALPHA?
 */
 
-#include "interface/khronos/common/khrn_client_mangle.h"
-
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_options.h"
-#include "interface/khronos/common/khrn_int_misc_impl.h"
-
 #include "interface/khronos/egl/egl_client_surface.h"
 #include "interface/khronos/egl/egl_client_context.h"
 #include "interface/khronos/egl/egl_client_config.h"
-
 #include "interface/khronos/common/khrn_client.h"
 #include "interface/khronos/egl/egl_int_impl.h"
-
 #include "interface/khronos/common/khrn_client_platform.h"
-
 #include "middleware/khronos/egl/egl_platform.h"
+#include "middleware/khronos/egl/egl_server.h"
+#include "middleware/khronos/common/khrn_mem.h"
+
 
 #include <stdlib.h>
 #include <string.h>
@@ -120,7 +116,33 @@ by an attribute value"
 #include <alloca.h>
 #endif
 
-void egl_current_release_surfaces(CLIENT_PROCESS_STATE_T *process, EGL_CURRENT_T *current);
+static VCOS_ONCE_T    once;
+static bool           once_ok;
+static VCOS_MUTEX_T   lock;
+
+static void init_once(void)
+{
+   once_ok = (vcos_mutex_create(&lock, "lock") == VCOS_SUCCESS);
+   if (!once_ok)
+      vcos_log(LOG_ERROR, "Fatal: unable to init once egl_display");
+}
+
+bool egl_ensure_init_once(void)
+{
+   vcos_demand(vcos_once(&once, init_once) == VCOS_SUCCESS);
+   return once_ok;
+}
+
+void CLIENT_LOCK(void)
+{
+   vcos_mutex_lock(&lock);
+}
+
+void CLIENT_UNLOCK(void)
+{
+   assert(vcos_mutex_is_locked(&lock));
+   vcos_mutex_unlock(&lock);
+}
 
 EGLAPI EGLint EGLAPIENTRY eglGetError(void)
 {
@@ -147,6 +169,12 @@ static EGLDisplay eglGetDisplay_impl(EGLenum platform,
    EGLDisplay display;
    EGLint error;
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+
+   if (!egl_ensure_init_once())
+   {
+      thread->error = EGL_NOT_INITIALIZED;
+      return EGL_FALSE;
+   }
 
    CLIENT_LOCK();
 
@@ -254,10 +282,10 @@ static void update_sort_params(EGLint *cleaned_attrib_list, bool *use_red,
 static EGLBoolean egl_choose_config(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs, EGLint config_size, EGLint *num_config)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLBoolean result = EGL_FALSE;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
    {
       if (!num_config) {
          thread->error = EGL_BAD_PARAMETER;
@@ -340,10 +368,13 @@ end:
 EGLAPI EGLBoolean EGLAPIENTRY eglGetConfigAttrib(EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint *value)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLBoolean result;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
+
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
    {
       if (!value) {
          thread->error = EGL_BAD_PARAMETER;
@@ -423,34 +454,50 @@ Also affects global image (and possibly others?)
 
 EGLAPI EGLBoolean EGLAPIENTRY eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor)
 {
-   CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process = CLIENT_GET_PROCESS_STATE();
+   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   if (!thread)
+      return EGL_FALSE;
+
+   if (!egl_ensure_init_once())
+   {
+      thread->error = EGL_NOT_INITIALIZED;
+      return EGL_FALSE;
+   }
+
    EGLint error = EGL_SUCCESS;
 
-   vcos_demand(process != NULL);
+   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
+   vcos_demand(state != NULL);
 
    CLIENT_LOCK();
 
-   if (process->display != dpy && process->inited)
+   if (state->display != dpy && state->inited)
    {
       /* we don't support simultaneous displays */
       error = EGL_BAD_DISPLAY;
-      process = NULL;
+      state = NULL;
    }
-   else if (!process->inited)
+   else if (!state->inited)
    {
-      if (!process->platform_inited)
+      if (!state->platform_inited)
          error = egl_server_platform_init(dpy);
       else
          error = EGL_SUCCESS;
       if (error == EGL_SUCCESS)
       {
-         process->platform_inited = true;
-         process->display = dpy;
-         client_process_state_init(process);
+         state->platform_inited = true;
+         state->display = dpy;
+
+         if (!server_process_state_init())
+         {
+            error = EGL_NOT_INITIALIZED;
+            state = NULL;
+            if (state->platform_inited)
+               egl_server_platform_term(dpy);
+         }
       }
       else
-         process = NULL;
+         state = NULL;
    }
    /* else already initialised on this display */
 
@@ -461,7 +508,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglInitialize(EGLDisplay dpy, EGLint *major, EGLin
    thread = CLIENT_GET_THREAD_STATE();
    thread->error = error;
 
-   if (!process)
+   if (!state)
    {
       CLIENT_UNLOCK();
       return EGL_FALSE;
@@ -530,44 +577,41 @@ EGLAPI EGLBoolean EGLAPIENTRY eglInitialize(EGLDisplay dpy, EGLint *major, EGLin
 EGLAPI EGLBoolean EGLAPIENTRY eglTerminate(EGLDisplay dpy)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
-   CLIENT_PROCESS_STATE_T *process = CLIENT_GET_PROCESS_STATE();
 
-   EGLBoolean result;
+   if (!egl_ensure_init_once()) {
+      thread->error = EGL_SUCCESS;
+      return EGL_TRUE;
+   }
+
+   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
+
    CLIENT_LOCK();
 
-   vcos_demand(process != NULL);
+   vcos_demand(state != NULL);
 
-   if (process->display == dpy) {
+   if (state->display == dpy) {
       /* TODO : what about client tls state, this needs removing */
 
       /* teardown process state and recreate back to initial condition */
-      client_process_state_term(process);
+      server_process_state_term();
 
-      if (process->context_current_count == 0 && process->platform_inited)
+      if (state->context_current_count == 0 && state->platform_inited)
       {
          thread->error = egl_server_platform_term(dpy);
          if (thread->error == EGL_SUCCESS)
-            process->platform_inited = false;
+            state->platform_inited = false;
       }
       else
          thread->error = EGL_SUCCESS;
    } else
-   {
       thread->error = EGL_BAD_DISPLAY;
-   }
-   if (thread->error == EGL_SUCCESS)
-   {
-      result = EGL_TRUE;
-   }
-   else
-      result = EGL_FALSE;
 
    /* external egl images may still be in the pipeline */
-   (void)eglIntFlushAndWait_impl(true, false);
+   eglIntFinish_impl(true);
 
    CLIENT_UNLOCK();
 
-   return result;
+   return (thread->error == EGL_SUCCESS);
 }
 
 /*
@@ -635,11 +679,17 @@ is not one of the values described above.
    -
 */
 
-EGLAPI const char EGLAPIENTRY * eglQueryString(EGLDisplay dpy, EGLint name)
+EGLAPI const char * EGLAPIENTRY eglQueryString(EGLDisplay dpy, EGLint name)
 {
-   CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   EGL_SERVER_STATE_T *state;
    const char *result = NULL;
+
+   if (!egl_ensure_init_once())
+   {
+      thread->error = EGL_BAD_PARAMETER;
+      goto end;
+   }
 
    if (dpy == EGL_NO_DISPLAY && name == EGL_EXTENSIONS)
    {
@@ -658,12 +708,12 @@ EGLAPI const char EGLAPIENTRY * eglQueryString(EGLDisplay dpy, EGLint name)
       return result;
    }
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
    {
       thread->error = EGL_SUCCESS;
       switch (name) {
       case EGL_CLIENT_APIS:
-         result = "OpenGL_ES OpenVG";
+         result = "OpenGL_ES";
          break;
       case EGL_EXTENSIONS:
          //TODO: this list isn't quite correct
@@ -711,24 +761,25 @@ EGLAPI const char EGLAPIENTRY * eglQueryString(EGLDisplay dpy, EGLint name)
    } else
       result = NULL;
 
+end:
    return result;
 }
 
 typedef struct {
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLNativeWindowType window;
    int is_dup;
 } WINDOW_CHECK_DATA_T;
 
-static void callback_check_duplicate_window(KHRN_POINTER_MAP_T *map, uint32_t key, void *value, void *data)
+static void callback_check_duplicate_window(khrn_map *map, uint32_t key, void *value, void *p)
 {
-   WINDOW_CHECK_DATA_T *window_check_data = (WINDOW_CHECK_DATA_T *)data;
-   EGL_SURFACE_T *surface = (EGL_SURFACE_T *)value;
+   WINDOW_CHECK_DATA_T *window_check_data = (WINDOW_CHECK_DATA_T *)p;
+   EGL_SURFACE_T *surface = value;
 
    UNUSED_NDEBUG(map);
    UNUSED_NDEBUG(key);
 
-   assert(map == &window_check_data->process->surfaces);
+   assert(map == &window_check_data->state->surfaces);
    assert(surface != NULL);
    assert((uintptr_t)key == (uintptr_t)surface->name);
 
@@ -855,10 +906,13 @@ static void callback_check_duplicate_window(KHRN_POINTER_MAP_T *map, uint32_t ke
 static EGLSurface eglCreateWindowSurface_impl(EGLDisplay dpy, EGLConfig config, EGLNativeWindowType win, const EGLint *attrib_list)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLSurface result;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
+   if (!egl_ensure_init_once())
+      return EGL_NO_SURFACE;
+
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
    {
       uintptr_t handle = platform_get_handle(win);
 
@@ -885,11 +939,11 @@ static EGLSurface eglCreateWindowSurface_impl(EGLDisplay dpy, EGLConfig config, 
              * earlier call to eglCreateWindowSurface()
             */
             WINDOW_CHECK_DATA_T window_check_data;
-            window_check_data.process = process;
+            window_check_data.state = state;
             window_check_data.window = win;
             window_check_data.is_dup = 0;
 
-            khrn_pointer_map_iterate(&process->surfaces, callback_check_duplicate_window, &window_check_data);
+            khrn_map_iterate(&state->surfaces, callback_check_duplicate_window, &window_check_data);
 
             EGL_SURFACE_T *surface;
             if (window_check_data.is_dup) {
@@ -898,7 +952,7 @@ static EGLSurface eglCreateWindowSurface_impl(EGLDisplay dpy, EGLConfig config, 
             }
             else {
                surface = egl_surface_create(
-                                 (EGLSurface)(size_t)process->next_surface,
+                                 (EGLSurface)(size_t)state->next_surface,
                                  WINDOW,
                                  linear ? LINEAR : SRGB,
                                  premult ? PRE : NONPRE,
@@ -912,17 +966,18 @@ static EGLSurface eglCreateWindowSurface_impl(EGLDisplay dpy, EGLConfig config, 
                                  false,
                                  EGL_NO_TEXTURE,
                                  EGL_NO_TEXTURE,
-                                 0 /* pixmap */);
+                                 0 /* pixmap */,
+                                 NULL);
 
-               if (surface) {
-                  if (khrn_pointer_map_insert(&process->surfaces, process->next_surface, surface)) {
+               if (surface != NULL) {
+                  if (khrn_map_insert(&state->surfaces, state->next_surface, surface)) {
                      thread->error = EGL_SUCCESS;
-                     result = (EGLSurface)(size_t)process->next_surface++;
+                     result = (EGLSurface)(size_t)state->next_surface++;
                   } else {
                      thread->error = EGL_BAD_ALLOC;
                      result = EGL_NO_SURFACE;
-                     egl_surface_free(surface);
                   }
+                  KHRN_MEM_ASSIGN(surface, NULL);
                } else {
                   thread->error = EGL_BAD_ALLOC;
                   result = EGL_NO_SURFACE;
@@ -1094,10 +1149,13 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy, EGLConfig 
                const EGLint *attrib_list)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLSurface result;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
+   if (!egl_ensure_init_once())
+      return EGL_NO_SURFACE;
+
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
    {
       if ((int)(size_t)config < 1 || (int)(size_t)config > EGL_MAX_CONFIGS) {
          thread->error = EGL_BAD_CONFIG;
@@ -1154,7 +1212,7 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy, EGLConfig 
             result = EGL_NO_SURFACE;
          } else {
             EGL_SURFACE_T *surface = egl_surface_create(
-                             (EGLSurface)(size_t)process->next_surface,
+                             (EGLSurface)(size_t)state->next_surface,
                              PBUFFER,
                              linear ? LINEAR : SRGB,
                              premult ? PRE : NONPRE,
@@ -1168,17 +1226,18 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy, EGLConfig 
                              mipmap_texture,
                              texture_format,
                              texture_target,
-                             0);
+                             0,
+                             NULL);
 
-            if (surface) {
-               if (khrn_pointer_map_insert(&process->surfaces, process->next_surface, surface)) {
+            if (surface != NULL) {
+               if (khrn_map_insert(&state->surfaces, state->next_surface, surface)) {
                   thread->error = EGL_SUCCESS;
-                  result = (EGLSurface)(size_t)process->next_surface++;
+                  result = (EGLSurface)(size_t)state->next_surface++;
                } else {
                   thread->error = EGL_BAD_ALLOC;
                   result = EGL_NO_SURFACE;
-                  egl_surface_free(surface);
                }
+               KHRN_MEM_ASSIGN(surface, NULL);
             } else {
                thread->error = EGL_BAD_ALLOC;
                result = EGL_NO_SURFACE;
@@ -1194,20 +1253,20 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy, EGLConfig 
 }
 
 typedef struct {
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLNativePixmapType pixmap;
    int is_dup;
 } PIXMAP_CHECK_DATA_T;
 
-static void callback_check_duplicate_pixmap(KHRN_POINTER_MAP_T *map, uint32_t key, void *value, void *data)
+static void callback_check_duplicate_pixmap(khrn_map *map, uint32_t key, void *value, void *p)
 {
-   PIXMAP_CHECK_DATA_T *pixmap_check_data = (PIXMAP_CHECK_DATA_T *)data;
-   EGL_SURFACE_T *surface = (EGL_SURFACE_T *)value;
+   PIXMAP_CHECK_DATA_T *pixmap_check_data = (PIXMAP_CHECK_DATA_T *)p;
+   EGL_SURFACE_T *surface = value;
 
    UNUSED_NDEBUG(map);
    UNUSED_NDEBUG(key);
 
-   assert(map == &pixmap_check_data->process->surfaces);
+   assert(map == &pixmap_check_data->state->surfaces);
    assert(surface != NULL);
    assert((uintptr_t)key == (uintptr_t)surface->name);
 
@@ -1221,14 +1280,16 @@ static EGLSurface eglCreatePixmapSurface_impl(EGLDisplay dpy, EGLConfig config,
               const EGLint *attrib_list)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLSurface result = EGL_NO_SURFACE;
    EGLint error = EGL_BAD_ALLOC;
 
-   if (!CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
+   if (!egl_ensure_init_once())
       return EGL_NO_SURFACE;
 
-   EGL_SURFACE_T *surface = NULL;
+   if (!CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
+      return EGL_NO_SURFACE;
+
    if ((int)(size_t)config < 1 || (int)(size_t)config > EGL_MAX_CONFIGS) {
       error = EGL_BAD_CONFIG;
       goto end;
@@ -1245,17 +1306,18 @@ static EGLSurface eglCreatePixmapSurface_impl(EGLDisplay dpy, EGLConfig config,
       * earlier call to eglCreatePixmapSurface()
       */
    PIXMAP_CHECK_DATA_T pixmap_check_data;
-   pixmap_check_data.process = process;
+   pixmap_check_data.state = state;
    pixmap_check_data.pixmap = pixmap;
    pixmap_check_data.is_dup = 0;
 
-   khrn_pointer_map_iterate(&process->surfaces, callback_check_duplicate_pixmap, &pixmap_check_data);
+   khrn_map_iterate(&state->surfaces, callback_check_duplicate_pixmap, &pixmap_check_data);
 
    if (pixmap_check_data.is_dup)
       goto end; /* EGL_BAD_ALLOC */
 
-   surface = egl_surface_create(
-                  (EGLSurface)(size_t)process->next_surface,
+   int egl_surface_create_result = 0;
+   EGL_SURFACE_T *surface = egl_surface_create(
+                  (EGLSurface)(size_t)state->next_surface,
                   PIXMAP,
                   linear ? LINEAR : SRGB,
                   premult ? PRE : NONPRE,
@@ -1269,37 +1331,36 @@ static EGLSurface eglCreatePixmapSurface_impl(EGLDisplay dpy, EGLConfig config,
                   EGL_FALSE,
                   EGL_NO_TEXTURE,
                   EGL_NO_TEXTURE,
-                  pixmap);
+                  pixmap,
+                  &egl_surface_create_result);
 
    if (surface == NULL)
       goto end; /* EGL_BAD_ALLOC */
 
-   if (surface == (EGL_SURFACE_T *)-1) {
+   if (egl_surface_create_result == -1) {
       error = EGL_BAD_NATIVE_PIXMAP;
+      KHRN_MEM_ASSIGN(surface, NULL);
       goto end;
    }
 
    if (surface->width > EGL_CONFIG_MAX_WIDTH || surface->height > EGL_CONFIG_MAX_HEIGHT) {
       /* Maybe EGL_BAD_ALLOC might be more appropriate? */
       error = EGL_BAD_NATIVE_WINDOW;
+      KHRN_MEM_ASSIGN(surface, NULL);
       goto end;
    }
 
-   if (khrn_pointer_map_insert(&process->surfaces, process->next_surface, surface)) {
+   if (khrn_map_insert(&state->surfaces, state->next_surface, surface)) {
       error = EGL_SUCCESS;
-      result = (EGLSurface)(size_t)process->next_surface++;
-   } else {
+      result = (EGLSurface)(size_t)state->next_surface++;
+   } else
       error = EGL_BAD_ALLOC;
-      egl_surface_free(surface);
-   }
+
+   KHRN_MEM_ASSIGN(surface, NULL);
 
 end:
-   if (error != EGL_SUCCESS) {
-      if (surface)
-         egl_surface_free(surface);
-
+   if (error != EGL_SUCCESS)
       result = EGL_NO_SURFACE;
-   }
 
    thread->error = error;
 
@@ -1329,22 +1390,20 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformPixmapSurfaceEXT (EGLDisplay dpy,
 EGLAPI EGLBoolean EGLAPIENTRY eglDestroySurface(EGLDisplay dpy, EGLSurface surf)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLBoolean result;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
-   {
-      EGL_SURFACE_T *surface;
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
 
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
+   {
       thread->error = EGL_SUCCESS;
 
-      surface = client_egl_get_surface(thread, process, surf);
+      EGL_SURFACE_T *surface = egl_get_surface(thread, state, surf);
 
-      if (surface) {
-         surface->is_destroyed = true;
-         khrn_pointer_map_delete(&process->surfaces, (uint32_t)(uintptr_t)surf);
-         egl_surface_maybe_free(surface);
-      }
+      if (surface != NULL)
+         khrn_map_delete(&state->surfaces, (uint32_t)(uintptr_t)surf);
 
       result = (thread->error == EGL_SUCCESS ? EGL_TRUE : EGL_FALSE );
 
@@ -1359,18 +1418,19 @@ EGLAPI EGLBoolean EGLAPIENTRY eglQuerySurface(EGLDisplay dpy, EGLSurface surf,
             EGLint attribute, EGLint *value)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLBoolean result;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
-   {
-      EGL_SURFACE_T *surface;
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
 
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
+   {
       thread->error = EGL_SUCCESS;
 
-      surface = client_egl_get_locked_surface(thread, process, surf);
+      EGL_SURFACE_T *surface = egl_get_locked_surface(thread, state, surf);
 
-      if (surface) {
+      if (surface != NULL) {
 #if EGL_KHR_lock_surface
          switch (attribute)
          {
@@ -1412,6 +1472,9 @@ EGLAPI EGLBoolean EGLAPIENTRY eglBindAPI(EGLenum api)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
 
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
+
    switch (api) {
    case EGL_OPENVG_API:
    case EGL_OPENGL_ES_API:
@@ -1429,6 +1492,9 @@ EGLAPI EGLenum EGLAPIENTRY eglQueryAPI(void)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
 
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
+
    return thread->bound_api;
 }
 
@@ -1436,20 +1502,30 @@ EGLAPI EGLBoolean EGLAPIENTRY eglWaitClient(void)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
 
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
+
+   CLIENT_LOCK();
+
    //TODO: "If the surface associated with the calling thread's current context is no
    //longer valid, EGL_FALSE is returned and an EGL_BAD_CURRENT_SURFACE error is
    //generated".
 
-   eglIntFlushAndWait_impl(thread->bound_api == EGL_OPENGL_ES_API,
-                           thread->bound_api == EGL_OPENVG_API);   // return unimportant - read is just to cause blocking
+   eglIntFinish_impl(thread->bound_api == EGL_OPENGL_ES_API);
 
    thread->error = EGL_SUCCESS;
+
+   CLIENT_UNLOCK();
+
    return EGL_TRUE;
 }
 
 //TODO: update pixmap surfaces?
 EGLAPI EGLBoolean EGLAPIENTRY eglReleaseThread(void)
 {
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
+
    CLIENT_LOCK();
 
    client_thread_detach(NULL);
@@ -1463,10 +1539,13 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferFromClientBuffer(
          EGLConfig config, const EGLint *attrib_list)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLSurface result;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
+   if (!egl_ensure_init_once())
+      return EGL_NO_SURFACE;
+
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
    {
       UNUSED(buftype);
       UNUSED(buffer);
@@ -1488,16 +1567,17 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSurfaceAttrib(EGLDisplay dpy, EGLSurface surf,
              EGLint attribute, EGLint value)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLBoolean result;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
-   {
-      EGL_SURFACE_T *surface;
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
 
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
+   {
       thread->error = EGL_SUCCESS;
 
-      surface = client_egl_get_surface(thread, process, surf);
+      EGL_SURFACE_T *surface = egl_get_surface(thread, state, surf);
 
       if (surface)
          thread->error = egl_surface_set_attrib(surface, attribute, value);
@@ -1513,100 +1593,114 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSurfaceAttrib(EGLDisplay dpy, EGLSurface surf,
 EGLAPI EGLBoolean EGLAPIENTRY eglBindTexImage(EGLDisplay dpy, EGLSurface surf, EGLint buffer)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLBoolean result;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
+
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
    {
 //TODO: is behaviour correct if there is no current rendering context?
-      EGL_SURFACE_T *surface;
-
       thread->error = EGL_SUCCESS;
 
-      surface = client_egl_get_surface(thread, process, surf);
+      EGL_SURFACE_T *surface = egl_get_surface(thread, state, surf);
 
-      if (surface) {
-         if (surface->texture_format != EGL_NO_TEXTURE) {
-            if (buffer == EGL_BACK_BUFFER) {
-               if (surface->type == PBUFFER && surface->texture_target == EGL_TEXTURE_2D) {
-                  result = (EGLBoolean)eglIntBindTexImage_impl(surface->serverbuffer);
-                  if (result != EGL_TRUE) {
-                     // If buffer is already bound to a texture then an
-                     // EGL_BAD_ACCESS error is returned.
-                     // But we don't know whether it is or not until we call
-                     // the server.
-                     thread->error = EGL_BAD_ACCESS;
-                  }
-               } else
-                  thread->error = EGL_BAD_SURFACE;
+      if (surface == NULL)
+         goto end;
+
+      if (surface->texture_format != EGL_NO_TEXTURE) {
+         if (buffer == EGL_BACK_BUFFER) {
+            if (surface->type == PBUFFER && surface->texture_target == EGL_TEXTURE_2D) {
+               result = (EGLBoolean)egl_bind_tex_image(surface);
+               if (result != EGL_TRUE) {
+                  // If buffer is already bound to a texture then an
+                  // EGL_BAD_ACCESS error is returned.
+                  // But we don't know whether it is or not until we call
+                  // the server.
+                  thread->error = EGL_BAD_ACCESS;
+               }
             } else
-               thread->error = EGL_BAD_PARAMETER;
+               thread->error = EGL_BAD_SURFACE;
          } else
-            thread->error = EGL_BAD_MATCH;
-      }
+            thread->error = EGL_BAD_PARAMETER;
+      } else
+         thread->error = EGL_BAD_MATCH;
 
       result = (thread->error == EGL_SUCCESS ? EGL_TRUE : EGL_FALSE );
+
       CLIENT_UNLOCK();
    } else
       result = EGL_FALSE;
 
    return result;
+
+end:
+   CLIENT_UNLOCK();
+   return EGL_FALSE;
 }
 
 EGLAPI EGLBoolean EGLAPIENTRY eglReleaseTexImage(EGLDisplay dpy, EGLSurface surf, EGLint buffer)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLBoolean result;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
-   {
-      EGL_SURFACE_T *surface;
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
 
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
+   {
       thread->error = EGL_SUCCESS;
 
-      surface = client_egl_get_surface(thread, process, surf);
+      EGL_SURFACE_T *surface = egl_get_surface(thread, state, surf);
 
-      if (surface) {
-         if (surface->texture_format != EGL_NO_TEXTURE) {
-            if (buffer == EGL_BACK_BUFFER) {
-               if (surface->type == PBUFFER) {
-                  //TODO: not a "bound" pbuffer?
-                  eglIntReleaseTexImage_impl(surface->serverbuffer);
-               } else
-                  thread->error = EGL_BAD_SURFACE;
+      if (surface == NULL)
+         goto end;
+
+      if (surface->texture_format != EGL_NO_TEXTURE) {
+         if (buffer == EGL_BACK_BUFFER) {
+            if (surface->type == PBUFFER) {
+               //TODO: not a "bound" pbuffer?
+               egl_release_tex_image(surface);
             } else
-               thread->error = EGL_BAD_PARAMETER;
+               thread->error = EGL_BAD_SURFACE;
          } else
-            thread->error = EGL_BAD_MATCH;
-      }
+            thread->error = EGL_BAD_PARAMETER;
+      } else
+         thread->error = EGL_BAD_MATCH;
 
       result = (thread->error == EGL_SUCCESS ? EGL_TRUE : EGL_FALSE );
+
       CLIENT_UNLOCK();
    } else
       result = EGL_FALSE;
 
    return result;
+
+end:
+   CLIENT_UNLOCK();
+   return EGL_FALSE;
 }
 
 EGLAPI EGLBoolean EGLAPIENTRY eglSwapInterval(EGLDisplay dpy, EGLint interval)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLint error;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process)) {
-      EGL_SURFACE_T *surface;
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
 
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state)) {
       EGL_CURRENT_T *current = &thread->opengl;
-      EGL_CONTEXT_T *context = current->context;
-      if (!context) {
+      if (current->context == NULL) {
          error = EGL_BAD_CONTEXT;
          goto end;
       }
 
-      surface = current->draw;
-      if (!surface) {
+      EGL_SURFACE_T *surface = current->draw;
+      if (surface == NULL) {
          error = EGL_BAD_SURFACE;
          goto end;
       }
@@ -1617,7 +1711,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapInterval(EGLDisplay dpy, EGLint interval)
          if (interval > EGL_CONFIG_MAX_SWAP_INTERVAL)
             interval = EGL_CONFIG_MAX_SWAP_INTERVAL;
 
-         eglIntSwapInterval_impl(surface->serverbuffer, interval);
+         surface->swap_interval = interval;
       }
 
       error = EGL_SUCCESS;
@@ -1634,10 +1728,13 @@ end:
 EGLAPI EGLContext EGLAPIENTRY eglCreateContext(EGLDisplay dpy, EGLConfig config, EGLContext share_ctx, const EGLint *attrib_list)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLContext result;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
+   if (!egl_ensure_init_once())
+      return EGL_NO_CONTEXT;
+
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
    {
       if ((int)(size_t)config < 1 || (int)(size_t)config > EGL_MAX_CONFIGS) {
          thread->error = EGL_BAD_CONFIG;
@@ -1660,46 +1757,32 @@ EGLAPI EGLContext EGLAPIENTRY eglCreateContext(EGLDisplay dpy, EGLConfig config,
             EGL_CONTEXT_T *share_context;
 
             if (share_ctx != EGL_NO_CONTEXT) {
-               share_context = client_egl_get_context(thread, process, share_ctx);
+               share_context = egl_get_context(thread, state, share_ctx);
 
-               if (share_context) {
-                  if ((share_context->type == OPENVG && thread->bound_api != EGL_OPENVG_API) ||
-                     (share_context->type != OPENVG && thread->bound_api == EGL_OPENVG_API)) {
-                     thread->error = EGL_BAD_MATCH;
-                     share_context = NULL;
-                  }
-               } else {
+               if (share_context == NULL)
                   thread->error = EGL_BAD_CONTEXT;
-               }
-            } else {
+            } else
                share_context = NULL;
-            }
 
-            if (share_ctx == EGL_NO_CONTEXT || share_context) {
-               EGL_CONTEXT_T *context;
-               EGL_CONTEXT_TYPE_T type;
+            if ((share_ctx == EGL_NO_CONTEXT) || (share_context != NULL)) {
 
-               if (version == 1)
-                  type = OPENGL_ES_11;
-               else
-                  type = OPENGL_ES_20;
+               EGL_CONTEXT_TYPE_T type = (version == 1) ? OPENGL_ES_11 : OPENGL_ES_20;
 
-               context = egl_context_create(
-                                share_context,
-                                (EGLContext)(size_t)process->next_context,
-                                dpy, config, type,
-                                secure);
+               EGL_CONTEXT_T *context = egl_context_create(
+                  share_context,
+                  (EGLContext)(size_t)state->next_context,
+                  dpy, config, type,
+                  secure);
 
-               if (context) {
-                  if (khrn_pointer_map_insert(&process->contexts, process->next_context, context)) {
+               if (context != NULL) {
+                  if (khrn_map_insert(&state->contexts, state->next_context, context)) {
                      thread->error = EGL_SUCCESS;
-                     result = (EGLContext)(size_t)process->next_context++;
+                     result = (EGLContext)(size_t)state->next_context++;
                   } else {
                      thread->error = EGL_BAD_ALLOC;
                      result = EGL_NO_CONTEXT;
-                     egl_context_term(context);
-                     free(context);
                   }
+                  KHRN_MEM_ASSIGN(context, NULL);
                } else {
                   thread->error = EGL_BAD_ALLOC;
                   result = EGL_NO_CONTEXT;
@@ -1721,22 +1804,21 @@ EGLAPI EGLContext EGLAPIENTRY eglCreateContext(EGLDisplay dpy, EGLConfig config,
 EGLAPI EGLBoolean EGLAPIENTRY eglDestroyContext(EGLDisplay dpy, EGLContext ctx)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLBoolean result;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
-   {
-      EGL_CONTEXT_T *context;
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
 
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
+   {
       thread->error = EGL_SUCCESS;
 
-      context = client_egl_get_context(thread, process, ctx);
+      EGL_CONTEXT_T *context = egl_get_context(thread, state, ctx);
 
-      if (context) {
-         context->is_destroyed = true;
-         khrn_pointer_map_delete(&process->contexts, (uint32_t)(uintptr_t)ctx);
-         egl_context_maybe_free(context);
-      }
+      if (context != NULL)
+         khrn_map_delete(&state->contexts, (uint32_t)(uintptr_t)ctx);
+
       result = thread->error == EGL_SUCCESS;
       CLIENT_UNLOCK();
    }
@@ -1746,46 +1828,23 @@ EGLAPI EGLBoolean EGLAPIENTRY eglDestroyContext(EGLDisplay dpy, EGLContext ctx)
    return result;
 }
 
-void egl_current_release_surfaces(CLIENT_PROCESS_STATE_T *process, EGL_CURRENT_T *current)
+void egl_current_release_surfaces(EGL_SERVER_STATE_T *state, CLIENT_THREAD_STATE_T *thread)
 {
-   bool terminate = false;
-   if (current->context) {
-      EGL_CONTEXT_T *context = current->context;
-      assert(context->is_current);
-      context->is_current = false;
+   if (thread->opengl.context != NULL) {
+      EGL_CONTEXT_T *context = thread->opengl.context;
       context->renderbuffer = EGL_NONE;
 
-      current->context = 0;
+      KHRN_MEM_ASSIGN(thread->opengl.context, NULL);
 
-      egl_context_maybe_free(context);
-
-      assert(process->context_current_count > 0);
-      process->context_current_count--;
-      terminate = process->context_current_count == 0 && !process->inited;
-   }
-   if (current->draw) {
-      EGL_SURFACE_T *draw = current->draw;
-
-      assert(draw->context_binding_count > 0);
-      draw->context_binding_count--;
-
-      current->draw = 0;
-
-      egl_surface_maybe_free(draw);
-   }
-   if (current->read) {
-      EGL_SURFACE_T *read = current->read;
-
-      assert(read->context_binding_count > 0);
-      read->context_binding_count--;
-
-      current->read = 0;
-
-      egl_surface_maybe_free(read);
+      assert(state->context_current_count > 0);
+      state->context_current_count--;
    }
 
-   if (terminate)
-      egl_server_platform_term(process->display);
+   KHRN_MEM_ASSIGN(thread->opengl.draw, NULL);
+   KHRN_MEM_ASSIGN(thread->opengl.read, NULL);
+
+   if (state->context_current_count == 0 && !state->inited)
+      egl_server_platform_term(state->display);
 }
 
 static bool context_and_surface_are_compatible(EGL_CONTEXT_T *context, EGL_SURFACE_T *surface)
@@ -1806,7 +1865,6 @@ static bool context_and_surface_are_compatible(EGL_CONTEXT_T *context, EGL_SURFA
    switch (context->type) {
    case OPENGL_ES_11: api_type = EGL_OPENGL_ES_BIT; break;
    case OPENGL_ES_20: api_type = EGL_OPENGL_ES2_BIT; break;
-   case OPENVG:       api_type = EGL_OPENVG_BIT; break;
    default:           UNREACHABLE();
    }
 
@@ -1818,11 +1876,10 @@ static bool context_and_surface_are_compatible(EGL_CONTEXT_T *context, EGL_SURFA
       (egl_config_get_api_support(context_configid) & api_type); /* (3) */
 }
 
-static bool egl_current_set_surfaces(CLIENT_PROCESS_STATE_T *process, CLIENT_THREAD_STATE_T *thread, EGL_CURRENT_T *current, EGL_CONTEXT_T *context, EGL_SURFACE_T *draw, EGL_SURFACE_T *read)
+static bool egl_current_set_surfaces(EGL_SERVER_STATE_T *state, CLIENT_THREAD_STATE_T *thread, EGL_CONTEXT_T *context,
+   EGL_SURFACE_T *draw, EGL_SURFACE_T *read)
 {
-   UNUSED(process);
-
-   if (context->is_current && context->thread != thread) {
+   if ((khrn_mem_get_ref_count(context) > 1) && context->thread != thread) {
       // Fail - context is current to some other thread
       thread->error = EGL_BAD_ACCESS;
       return false;
@@ -1836,7 +1893,9 @@ static bool egl_current_set_surfaces(CLIENT_PROCESS_STATE_T *process, CLIENT_THR
 
    for (i = 0; i < COUNT; i++)
    {
-      if (surfaces[i]->context_binding_count && surfaces[i]->thread != thread) {
+      EGL_SURFACE_T *surface = surfaces[i];
+
+      if ((khrn_mem_get_ref_count(surfaces[i]) > 1) && surface->thread != thread) {
          // Fail - draw surface is bound to context which is current to another thread
          thread->error = EGL_BAD_ACCESS;
          return false;
@@ -1844,58 +1903,54 @@ static bool egl_current_set_surfaces(CLIENT_PROCESS_STATE_T *process, CLIENT_THR
 
       // causes a check that get_back_buffer() is OK for this surface
       uint32_t width, height;
-      if (!eglIntBackBufferDims_impl(surfaces[i]->serverbuffer, &width, &height)) {
+      if (!egl_back_buffer_dims(surface, &width, &height)) {
          thread->error = EGL_BAD_NATIVE_WINDOW;
          return false;
       }
 
-      if (!context_and_surface_are_compatible(context, surfaces[i])) {
+      if (!context_and_surface_are_compatible(context, surface)) {
          // Fail - draw surface is not compatible with context
          thread->error = EGL_BAD_MATCH;
          return false;
       }
 
-      surfaces[i]->width = width;
-      surfaces[i]->height = height;
+      surface->width = width;
+      surface->height = height;
    }
 
-   egl_current_release_surfaces(process, current);
+   egl_current_release_surfaces(state, thread);
 
-   context->is_current = true;
    context->thread = thread;
 
    /* TODO: GLES supposedly doesn't support single-buffered rendering. Should we take this into account? */
    context->renderbuffer = egl_surface_get_render_buffer(draw);
-
-   // Check surfaces are not bound to a different thread, and increase their reference count
-
    draw->thread = thread;
-   draw->context_binding_count++;
-
    read->thread = thread;
-   read->context_binding_count++;
 
-   current->context = context;
-   current->draw = draw;
-   current->read = read;
+   KHRN_MEM_ASSIGN(thread->opengl.context, context);
+   KHRN_MEM_ASSIGN(thread->opengl.draw, draw);
+   KHRN_MEM_ASSIGN(thread->opengl.read, read);
 
-   process->context_current_count++;
+   state->context_current_count++;
+
+   egl_update_gl_buffers(&thread->opengl);
 
    return true;
 }
 
 static void flush_current_api(CLIENT_THREAD_STATE_T *thread)
 {
-   eglIntFlush_impl(thread->bound_api == EGL_OPENGL_ES_API,
-                    thread->bound_api == EGL_OPENVG_API);
-   khrn_misc_rpc_flush_impl();
+   eglIntFlush_impl(thread->bound_api == EGL_OPENGL_ES_API);
 }
 
 EGLAPI EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay dpy, EGLSurface dr, EGLSurface rd, EGLContext ctx)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    EGLBoolean result;
-   CLIENT_PROCESS_STATE_T *process = NULL; /* init to avoid warnings */
+   EGL_SERVER_STATE_T *state = NULL; /* init to avoid warnings */
+
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
 
    CLIENT_LOCK();
 
@@ -1906,13 +1961,10 @@ EGLAPI EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay dpy, EGLSurface dr, EGLS
    */
 
    if (dr == EGL_NO_SURFACE && rd == EGL_NO_SURFACE && ctx == EGL_NO_CONTEXT) {
-      process = client_egl_get_process_state(thread, dpy, EGL_FALSE);
+      state = egl_get_process_state(thread, dpy, EGL_FALSE);
 
-      if (process) {
-         EGL_CURRENT_T *current = &thread->opengl;
-
-         egl_current_release_surfaces(process, current);
-
+      if (state) {
+         egl_current_release_surfaces(state, thread);
          thread->error = EGL_SUCCESS;
          result = EGL_TRUE;
       } else {
@@ -1926,18 +1978,18 @@ EGLAPI EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay dpy, EGLSurface dr, EGLS
          get display
       */
 
-      process = client_egl_get_process_state(thread, dpy, EGL_TRUE);
+      state = egl_get_process_state(thread, dpy, EGL_TRUE);
 
-      if (!process)
+      if (!state)
          result = EGL_FALSE;
       else {
          /*
             get context
          */
 
-         EGL_CONTEXT_T *context = client_egl_get_context(thread, process, ctx);
+         EGL_CONTEXT_T *context = egl_get_context(thread, state, ctx);
 
-         if (!context) {
+         if (context == NULL) {
             result = EGL_FALSE;
          }  else {
 
@@ -1945,10 +1997,10 @@ EGLAPI EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay dpy, EGLSurface dr, EGLS
                get surfaces
             */
 
-            EGL_SURFACE_T *draw = client_egl_get_surface(thread, process, dr);
-            EGL_SURFACE_T *read = client_egl_get_surface(thread, process, rd);
+            EGL_SURFACE_T *draw = egl_get_surface(thread, state, dr);
+            EGL_SURFACE_T *read = egl_get_surface(thread, state, rd);
 
-            if (!draw || !read) {
+            if (draw == NULL || read == NULL) {
                result = EGL_FALSE;
             } else if (thread->bound_api == EGL_OPENVG_API && dr != rd) {
                thread->error = EGL_BAD_MATCH;   //TODO: what error are we supposed to return here?
@@ -1956,19 +2008,10 @@ EGLAPI EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay dpy, EGLSurface dr, EGLS
             } else {
                EGL_CURRENT_T *current = &thread->opengl;
 
-               if (draw->type == PIXMAP || (draw->buffers == 1 && draw->type == WINDOW))
-               {
-                  /* Store the fact that we have switched to a single buffered render surface at some point */
-                  thread->has_rendered_to_pixmap = true;
-                  thread->is_current_pixmap = true;
-               }
-               else
-                  thread->is_current_pixmap = false;
-
                /* Check if nothing is changing */
                changed = current->context != context || current->draw != draw || current->read != read;
 
-               if (!changed || egl_current_set_surfaces(process, thread, current, context, draw, read))
+               if (!changed || egl_current_set_surfaces(state, thread, context, draw, read))
                {
                   thread->error = EGL_SUCCESS;
                   result = EGL_TRUE;
@@ -1982,15 +2025,8 @@ EGLAPI EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay dpy, EGLSurface dr, EGLS
       }
    }
 
-   if (changed && result) {
+   if (changed && result)
       flush_current_api(thread);
-      /*
-         in non-direct mode, the rpc_flush call in flush_current_api will
-         send the make current, so we don't have to
-      */
-
-      client_send_make_current(thread);
-   }
 
    CLIENT_UNLOCK();
 
@@ -2002,14 +2038,19 @@ EGLAPI EGLContext EGLAPIENTRY eglGetCurrentContext(void)
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    EGLContext result;
 
+   if (!egl_ensure_init_once())
+      return EGL_NO_CONTEXT;
+
    CLIENT_LOCK();
 
    EGL_CURRENT_T *current = &thread->opengl;
 
-   if (!current->context)
+   if (current->context == NULL)
       result = EGL_NO_CONTEXT;
-   else
-      result = current->context->name;
+   else {
+      EGL_CONTEXT_T *context = current->context;
+      result = context->name;
+   }
 
    thread->error = EGL_SUCCESS;
 
@@ -2023,31 +2064,27 @@ EGLAPI EGLSurface EGLAPIENTRY eglGetCurrentSurface(EGLint readdraw)
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    EGLSurface result;
 
-   CLIENT_LOCK();
+   if (!egl_ensure_init_once())
+      return EGL_NO_SURFACE;
 
-   EGL_SURFACE_T *surface;
+   CLIENT_LOCK();
 
    EGL_CURRENT_T *current = &thread->opengl;
 
    switch (readdraw) {
    case EGL_READ:
-      surface = current->read;
+      result = current->read->name;
       thread->error = EGL_SUCCESS;
       break;
    case EGL_DRAW:
-      surface = current->draw;
+      result = current->draw->name;
       thread->error = EGL_SUCCESS;
       break;
    default:
-      surface = 0;
+      result = EGL_NO_SURFACE;
       thread->error = EGL_BAD_PARAMETER;
       break;
    }
-
-   if (!surface)
-      result = EGL_NO_SURFACE;
-   else
-      result = surface->name;
 
    CLIENT_UNLOCK();
 
@@ -2059,11 +2096,14 @@ EGLAPI EGLDisplay EGLAPIENTRY eglGetCurrentDisplay(void)
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    EGLDisplay result;
 
+   if (!egl_ensure_init_once())
+      return EGL_NO_DISPLAY;
+
    CLIENT_LOCK();
 
    EGL_CURRENT_T *current = &thread->opengl;
 
-   if (!current->context)
+   if (current->context == NULL)
       result = EGL_NO_DISPLAY;
    else
       result = current->context->display;
@@ -2078,25 +2118,25 @@ EGLAPI EGLDisplay EGLAPIENTRY eglGetCurrentDisplay(void)
 EGLAPI EGLBoolean EGLAPIENTRY eglQueryContext(EGLDisplay dpy, EGLContext ctx, EGLint attribute, EGLint *value)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLBoolean result;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
+
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
    {
       if (!value) {
          thread->error = EGL_BAD_PARAMETER;
          result = EGL_FALSE;
       } else {
-         EGL_CONTEXT_T *context;
-
          thread->error = EGL_SUCCESS;
 
-         context = client_egl_get_context(thread, process, ctx);
+         EGL_CONTEXT_T *context = egl_get_context(thread, state, ctx);
 
-         if (context) {
+         if (context != NULL) {
             if (!egl_context_get_attrib(context, attribute, value))
                thread->error = EGL_BAD_ATTRIBUTE;
-
          }
          result = thread->error == EGL_SUCCESS;
       }
@@ -2113,13 +2153,20 @@ EGLAPI EGLBoolean EGLAPIENTRY eglWaitGL(void)
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    EGLBoolean result;
 
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
+
+   CLIENT_LOCK();
+
    //TODO: "If the surface associated with the calling thread's current context is no
    //longer valid, EGL_FALSE is returned and an EGL_BAD_CURRENT_SURFACE error is
    //generated".
-   eglIntFlushAndWait_impl(true, false);   // return unimportant - read is just to cause blocking
+   eglIntFinish_impl(true);
 
    thread->error = EGL_SUCCESS;
    result = EGL_TRUE;
+
+   CLIENT_UNLOCK();
 
    return result;
 }
@@ -2128,6 +2175,9 @@ EGLAPI EGLBoolean EGLAPIENTRY eglWaitNative(EGLint engine)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    EGLBoolean result;
+
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
 
    //TODO: "If the surface associated with the calling thread's current context is no
    //longer valid, EGL_FALSE is returned and an EGL_BAD_CURRENT_SURFACE error is
@@ -2148,16 +2198,19 @@ EGLAPI EGLBoolean EGLAPIENTRY eglWaitNative(EGLint engine)
 EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
    EGLBoolean result;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
+
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
    {
       thread->error = EGL_SUCCESS;
 
-      EGL_SURFACE_T *surface = client_egl_get_surface(thread, process, surf);
+      EGL_SURFACE_T *surface = egl_get_surface(thread, state, surf);
 
-      if (surface) {
+      if (surface != NULL) {
 
 #if !(EGL_KHR_lock_surface)
          /* Surface to be displayed must be bound to current context and API */
@@ -2180,11 +2233,8 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
 
                /* TODO: raise EGL_BAD_ALLOC if we try to enlarge window and then run out of memory */
 
-               eglIntSwapBuffers_impl(surface->serverbuffer);
-
-               khrn_misc_rpc_flush_impl();
+               egl_swapbuffers(surface);
             }
-            // else do nothing. eglSwapBuffers has no effect on pixmap or pbuffer surfaces
          }
       }
 
@@ -2200,9 +2250,12 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
 EGLAPI EGLBoolean EGLAPIENTRY eglCopyBuffers(EGLDisplay dpy, EGLSurface surf, EGLNativePixmapType target)
 {
    CLIENT_THREAD_STATE_T *thread;
-   CLIENT_PROCESS_STATE_T *process;
+   EGL_SERVER_STATE_T *state;
 
-   if (!CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
+
+   if (!CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &state))
       return EGL_FALSE;
 
    EGLBoolean result;
@@ -2210,7 +2263,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglCopyBuffers(EGLDisplay dpy, EGLSurface surf, EG
 
    thread->error = EGL_SUCCESS;
 
-   EGL_SURFACE_T *surface = client_egl_get_surface(thread, process, surf);
+   EGL_SURFACE_T *surface = egl_get_surface(thread, state, surf);
 
    if ((thread->bound_api == EGL_OPENGL_ES_API && surface != thread->opengl.draw && surface != thread->opengl.read)) {
          /* Surface to be displayed must be bound to current context and API */
@@ -2220,7 +2273,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglCopyBuffers(EGLDisplay dpy, EGLSurface surf, EG
    }
 
    if (surface)
-      error = eglIntCopyBuffers_impl(surface->serverbuffer, target);
+      error = egl_copybuffers(surface, target);
 
 end:
    result = (error == EGL_SUCCESS);
@@ -2235,12 +2288,18 @@ EGLAPI EGLBoolean EGLAPIENTRY eglChooseConfig(EGLDisplay dpy,
    const EGLint *attrib_list, EGLConfig *configs,
    EGLint config_size, EGLint *num_config)
 {
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
+
    return egl_choose_config(dpy, attrib_list, configs, config_size, num_config);
 }
 
 EGLAPI EGLBoolean EGLAPIENTRY eglGetConfigs(EGLDisplay dpy,
    EGLConfig *configs, EGLint config_size, EGLint *num_config)
 {
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
+
    /*
    * Technically I don't think you need to sort them for eglGetConfigs, but
    * since if you don't, the order is unspecified, it doesn't do any harm.

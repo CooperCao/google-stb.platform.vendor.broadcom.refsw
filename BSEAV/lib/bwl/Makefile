@@ -237,17 +237,14 @@ BWL_CFLAGS += -DNO_WIFI_SECDMA
 BWL_CFLAGS += -DNO_DUALSOFTAP
 BWL_CFLAGS += -I$(BWL_SRC_DIR)/../include
 
-ifeq ($(filter ${B_REFSW_ARCH}, arm-linux ), ${B_REFSW_ARCH})
-B_REFSW_CROSS_COMPILE ?= arm-linux-
+HOSTNAME = $(shell uname -n)
+ifeq ("$(HOSTNAME)","stbsdo-dms-1")
+CC := gcc
+AR := ar
 else
-ifeq ($(filter ${B_REFSW_ARCH}, mipsel-linux ), ${B_REFSW_ARCH})
-B_REFSW_CROSS_COMPILE ?= mipsel-linux-
-else
-B_REFSW_CROSS_COMPILE =
+CC := ${B_REFSW_ARCH}-gcc
+AR := ${B_REFSW_ARCH}-ar
 endif
-endif
-CC := $(B_REFSW_CROSS_COMPILE)gcc
-AR := $(B_REFSW_CROSS_COMPILE)ar
 
 ${BWL_OBJ_DIR}:
 	@mkdir -p $@
@@ -256,7 +253,7 @@ ${NEXUS_BIN_DIR}:
 ###	@mkdir -p $@
 
 $(BWL_OBJ_DIR)/bcmwifi_channels.o: $(BWL_SRC_DIR)/bcmwifi_channels.c $(BWL_SRC_DIR)/../include/bwl.h $(BWL_SRC_DIR)/../include/bcmwifi_channels.h
-	@echo [Compiling ... bcmwifi_channels.c]
+	@echo [Compiling ... bcmwifi_channels.c ... CC $(CC)]
 	@(cd $(BWL_OBJ_DIR) && $(CC) $(BWL_CFLAGS) -c $(BWL_SRC_DIR)/bcmwifi_channels.c)
 
 $(BWL_OBJ_DIR)/bwl.o: $(BWL_SRC_DIR)/bwl.c $(BWL_SRC_DIR)/../include/bwl.h $(BWL_SRC_DIR)/../include/bwl_priv.h

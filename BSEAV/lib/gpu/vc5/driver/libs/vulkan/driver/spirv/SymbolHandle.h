@@ -13,9 +13,8 @@
 namespace bvk {
 
 class NodeVariable;
-class Node;
 class Module;
-class DflowBuilder;
+class SymbolListHandle;
 
 FormatQualifier ConvertToFormatQualifier(spv::ImageFormat fmt);
 
@@ -27,8 +26,6 @@ FormatQualifier ConvertToFormatQualifier(spv::ImageFormat fmt);
 ////////////////////////////////////////////////////
 class SymbolHandle
 {
-   friend class SymbolHandleCompare;
-
 public:
    SymbolHandle() = default;
    SymbolHandle(const SymbolHandle &rhs) = default;
@@ -39,15 +36,14 @@ public:
                                 const NodeVariable *var, SymbolTypeHandle type);
 
    static SymbolHandle Builtin(const Module &module, const char *name,
-                               spv::StorageClass storageClass, PrimitiveTypeIndex index);
+                               spv::StorageClass storageClass, SymbolTypeHandle type);
 
    static SymbolHandle Internal(const Module &module, const char *name, SymbolTypeHandle type);
 
+   static SymbolHandle SharedBlock(const SymbolListHandle &symbols);
+
    // Test for nullptr
    explicit operator bool() const;
-
-   // Equality
-   friend bool operator==(const SymbolHandle &lhs, const SymbolHandle &rhs);
 
    // Casts
    operator       Symbol *();
@@ -65,7 +61,10 @@ public:
    const char            *GetName()             const;
 
    // Setters
-   void              SetName(const char *newName);
+   void                   SetName(const char *newName);
+
+   // Debug
+   void                   DebugPrint() const;
 
 private:
    SymbolHandle(const Module &module);
@@ -74,33 +73,12 @@ private:
    Symbol   *m_symbol = nullptr;
 };
 
-class SymbolHandleConst
-{
-public:
-   explicit SymbolHandleConst(const Symbol *symbol) :
-      m_symbol(symbol)
-   {}
-
-   explicit SymbolHandleConst(SymbolHandle symbol) :
-      m_symbol(symbol)
-   {}
-
-   SymbolTypeHandle  GetType()    const;
-   SymbolFlavour     GetFlavour() const;
-   const char       *GetName()    const;
-
-   void DebugPrint() const;
-
-private:
-   const Symbol *m_symbol;
-};
-
 ////////////////////////////////////////////////////////
 // SymbolListHandle
 //
 // Wraps the glsl 'C' SymbolList with a C++ interface
 ////////////////////////////////////////////////////////
-class SymbolListHandle : public SymbolList
+class SymbolListHandle
 {
 public:
    SymbolListHandle()
@@ -113,7 +91,8 @@ public:
       m_symbolList(symbolList)
    {}
 
-   operator SymbolList *() { return m_symbolList; }
+   operator       SymbolList *()       { return m_symbolList; }
+   operator const SymbolList *() const { return m_symbolList; }
 
    void push_back(SymbolHandle sym) { glsl_symbol_list_append(m_symbolList, sym); }
 
@@ -239,29 +218,6 @@ inline uint32_t SymbolHandle::GetBlockSize() const
 {
    assert(m_symbol->flavour == SYMBOL_INTERFACE_BLOCK);
    return m_symbol->u.interface_block.block_data_type->u.block_type.layout->u.struct_layout.size;
-}
-
-//
-// SymbolHandleConst inlines
-//
-inline SymbolTypeHandle SymbolHandleConst::GetType() const
-{
-   return SymbolTypeHandle(m_symbol->type);
-}
-
-inline SymbolFlavour SymbolHandleConst::GetFlavour() const
-{
-   return m_symbol->flavour;
-}
-
-inline const char *SymbolHandleConst::GetName() const
-{
-   return m_symbol->name;
-}
-
-inline bool operator==(const SymbolHandle &lhs, const SymbolHandle &rhs)
-{
-   return lhs.m_symbol == rhs.m_symbol;
 }
 
 class SymbolHandleCompare

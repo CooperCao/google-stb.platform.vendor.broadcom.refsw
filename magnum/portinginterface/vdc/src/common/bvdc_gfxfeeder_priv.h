@@ -165,6 +165,8 @@ typedef struct BVDC_P_GfxCfgFlags
 
     uint32_t                 bDeringDemoMode                : 1;
     uint32_t                 bDejagDemoMode                 : 1;
+    uint32_t                 bEnDering                      : 1;
+    uint32_t                 bEnDejag                       : 1;
 
     uint32_t                 bEnDecompression               : 1;
 } BVDC_P_GfxCfgFlags;
@@ -266,18 +268,18 @@ typedef struct BVDC_P_GfxFeederContext
     BVDC_P_GfxDirtyBits              stPrevDirty;
 
     /* current matrix to convert SDR gfx to HDR in pre-7271 chips */
-    BVDC_P_Csc3x4                    stCscSdr2Hdr;
+    BCFC_Csc3x4                      stCscSdr2Hdr;
 
     /* color space conversion */
 #if BVDC_P_CMP_CFC_VER >= 3
     /* CFC LUT heap */
     BMMA_Heap_Handle                 hCfcHeap; /* must be cpu accessible for LUT fill */
-    BVDC_P_CfcLutLoadListInfo        stCfcLutList; /* for CFC ram table loading */
+    BCFC_LutLoadListInfo             stCfcLutList; /* for CFC ram table loading */
 #if BVDC_P_DBV_SUPPORT
     bool                             bDbvEnabled;
 #endif
 #endif
-    BVDC_P_CfcContext                stCfc;
+    BCFC_Context                     stCfc;
 
     bool                             bSupportVertScl;
 
@@ -475,13 +477,13 @@ void BVDC_P_GfxFeeder_CalculateSdr2HdrCsc_isr
 /* init GFD CFC
  */
 void BVDC_P_GfxFeeder_InitCfc
-    ( BVDC_P_GfxFeeder_Handle          hGfxFeeder);
+    ( BVDC_P_GfxFeeder_Handle      hGfxFeeder);
 
 /* copy input color space info from gfx surface
  */
 void BVDC_P_GfxFeeder_UpdateGfxInputColorSpace_isr(
     const BVDC_P_SurfaceInfo   *pGfxSurface,
-    BVDC_P_ColorSpace          *pColorSpace );
+    BCFC_ColorSpaceExt         *pColorSpaceExt );
 
 /* Build RUL for cfc inside a GFD
  */

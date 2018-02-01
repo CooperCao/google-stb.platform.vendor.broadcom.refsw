@@ -70,6 +70,9 @@ public:
    // Set the spatial audio orientation
    virtual void SetSpatialAudio(float yawDegrees, float pitchDegrees, float rollDegrees) = 0;
 
+   // Advance one frame (if the video was started paused)
+   virtual void FrameAdvance() = 0;
+
    // Set the audio delay in ms
    virtual void SetAudioDelay(uint32_t ms) = 0;
 
@@ -220,7 +223,7 @@ class NexusVideoStreamSingleProcess : public NexusVideoStream
 public:
    // Default Constructor
    NexusVideoStreamSingleProcess(NEXUS_DISPLAYHANDLE nexusDisplay, NexusVideoFilePlayback &filePlayback,
-                                 bool secure, bool ambisonic, bool stereoAudio,
+                                 bool secure, bool ambisonic, bool stereoAudio, bool startPaused,
                                  NEXUS_VideoWindowHandle videoWindow, bool showVideo) :
       NexusVideoStream(filePlayback, nexusDisplay, ambisonic),
       m_videoDecoder(NULL),
@@ -234,7 +237,7 @@ public:
       m_sourceWidth  = mediaData.data.video[0].width;
       m_sourceHeight = mediaData.data.video[0].height;
 
-      Configure(nexusDisplay, secure, stereoAudio);
+      Configure(nexusDisplay, secure, stereoAudio, startPaused);
    };
 
    // Destructor
@@ -307,7 +310,8 @@ public:
    };
 
 private:
-   virtual void Configure(NEXUS_DISPLAYHANDLE nexusDisplay, bool secure, bool stereoAudio)
+   virtual void Configure(NEXUS_DISPLAYHANDLE nexusDisplay, bool secure, bool stereoAudio,
+                          bool startPaused)
    {
       try
       {
@@ -405,7 +409,7 @@ private:
          {
             NEXUS_PlatformConfiguration platformConfig;
             NEXUS_Platform_GetConfiguration(&platformConfig);
-            videoDecoderOpenSettings.secureVideo = secure;
+            videoDecoderOpenSettings.secureVideo = NEXUS_VideoDecoderSecureType_eSecure;
             videoDecoderOpenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
          }
 #endif
@@ -442,8 +446,9 @@ private:
          NEXUS_Playback_GetSettings(m_filePlayback.GetPlayback(), &playbackSettings);
          playbackSettings.playpumpSettings.transportType = mediaData.data.transportType;
          playbackSettings.endOfStreamAction = NEXUS_PlaybackLoopMode_eLoop;
-         playbackSettings.stcChannel = m_stcChannel;
-         playbackSettings.stcTrick   = m_stcChannel;
+         playbackSettings.stcChannel  = m_stcChannel;
+         playbackSettings.stcTrick    = m_stcChannel;
+         playbackSettings.startPaused = startPaused;
          playbackSettings.enableStreamProcessing = mediaData.data.enableStreamProcessing;
          NEXUS_Playback_SetSettings(m_filePlayback.GetPlayback(), &playbackSettings);
 
@@ -545,6 +550,12 @@ public:
 #endif
    }
 
+   virtual void FrameAdvance()
+   {
+      if (m_videoDecoder && m_playStarted)
+         NEXUS_Playback_FrameAdvance(m_filePlayback.GetPlayback(), true);
+   }
+
    // Set audio delay
    virtual void SetAudioDelay(uint32_t ms)
    {
@@ -617,7 +628,8 @@ public:
    // Default constructor
    NexusVideoStreamMultiProcess(NEXUS_DISPLAYHANDLE nexusDisplay, NexusVideoFilePlayback &filePlayback,
                                 const std::vector<NEXUS_SurfaceHandle> decodeSurfaces,
-                                bool secure, bool ambisonic, bool stereoAudio, bool showVideo) :
+                                bool secure, bool ambisonic, bool stereoAudio, bool startPaused,
+                                bool showVideo) :
       NexusVideoStream(filePlayback, nexusDisplay, ambisonic),
       m_videoDecoder(NULL),
       m_audioDecoder(NULL),
@@ -630,7 +642,7 @@ public:
       m_sourceWidth  = mediaData.data.video[0].width;
       m_sourceHeight = mediaData.data.video[0].height;
 
-      Configure(nexusDisplay, decodeSurfaces, secure, stereoAudio);
+      Configure(nexusDisplay, decodeSurfaces, secure, stereoAudio, startPaused);
    };
 
    // Destructor
@@ -684,7 +696,7 @@ private:
    // Creates the necessary buffers and configure the decoder
    virtual void Configure(NEXUS_DISPLAYHANDLE nexusDisplay,
                           const std::vector<NEXUS_SurfaceHandle> decodeSurfaces,
-                          bool secure, bool stereoAudio)
+                          bool secure, bool stereoAudio, bool startPaused)
    {
       try
       {
@@ -732,6 +744,7 @@ private:
          playbackSettings.playpumpSettings.transportType = mediaData.data.transportType;
          playbackSettings.endOfStreamAction = NEXUS_PlaybackLoopMode_eLoop;
          playbackSettings.stcChannel        = m_stcChannel;
+         playbackSettings.startPaused       = startPaused;
          playbackSettings.enableStreamProcessing = mediaData.data.enableStreamProcessing;
          NEXUS_Playback_SetSettings(m_filePlayback.GetPlayback(), &playbackSettings);
 
@@ -863,6 +876,12 @@ public:
       }
    }
 
+   virtual void FrameAdvance()
+   {
+      if (m_videoDecoder && m_playStarted)
+         NEXUS_Playback_FrameAdvance(m_filePlayback.GetPlayback(), true);
+   }
+
    virtual void SetSpatialAudio(float yawDegrees, float pitchDegrees, float rollDegrees)
    {
 #if ENABLE_AMBISONIC_AUDIO
@@ -914,7 +933,7 @@ private:
 VideoDecoder::VideoDecoder(const MediaData &mediaData,
                            std::vector<NEXUS_SurfaceHandle> decodeSurfaces,
                            bool showVideo, bool secure, bool ambisonic, bool stereoAudio,
-                           NEXUS_DISPLAYHANDLE nexusDisplay) :
+                           bool startPaused, NEXUS_DISPLAYHANDLE nexusDisplay) :
    m_audioDelay(0),
    m_videoWindow(NULL),
    m_showVideo(showVideo),
@@ -927,10 +946,12 @@ VideoDecoder::VideoDecoder(const MediaData &mediaData,
       m_videoWindow = NEXUS_VideoWindow_Open(nexusDisplay, 0);
 
    m_stream = new NexusVideoStreamSingleProcess(nexusDisplay, *m_nexusFilePlayback,
-                                                secure, ambisonic, stereoAudio, m_videoWindow, m_showVideo);
+                                                secure, ambisonic, stereoAudio, startPaused,
+                                                m_videoWindow, m_showVideo);
 #else
    m_stream = new NexusVideoStreamMultiProcess(nexusDisplay, *m_nexusFilePlayback,
-                                               decodeSurfaces, secure, ambisonic, stereoAudio, m_showVideo);
+                                               decodeSurfaces, secure, ambisonic, stereoAudio,
+                                               startPaused, m_showVideo);
 #endif
 }
 
@@ -981,6 +1002,11 @@ NEXUS_VIDEODECODERHANDLE VideoDecoder::GetVideoDecoder()
 void VideoDecoder::SetSpatialAudio(float yawDegrees, float pitchDegrees, float rollDegrees)
 {
    m_stream->SetSpatialAudio(yawDegrees, pitchDegrees, rollDegrees);
+}
+
+void VideoDecoder::FrameAdvance()
+{
+   m_stream->FrameAdvance();
 }
 
 // Get the audio stream delay in ms

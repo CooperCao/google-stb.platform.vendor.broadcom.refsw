@@ -36,7 +36,7 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "bstd.h"
-#include "util_priv.h"
+#include "util.h"
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>

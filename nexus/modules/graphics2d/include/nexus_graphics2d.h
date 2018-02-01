@@ -1071,7 +1071,13 @@ typedef struct NEXUS_Graphics2DModuleSettings
     } core[NEXUS_MAX_GRAPHICS2D_CORES];
 } NEXUS_Graphics2DModuleSettings;
 
-
+/**
+Summary:
+Set frequency scaling percentage for Graphics 2D
+**/
+NEXUS_Error NEXUS_Graphics2D_SetFrequencyScaling(
+        unsigned percent      /* [in] percentage of max frequency */
+        );
 #ifdef __cplusplus
 }
 #endif

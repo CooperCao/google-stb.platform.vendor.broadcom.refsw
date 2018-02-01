@@ -253,7 +253,7 @@ int main(int argc, const char *argv[]) {
         NEXUS_PlaypumpStatus status;
         BKNI_Sleep(200);
         NEXUS_Playpump_GetStatus(playpump, &status);
-        printf("playpump fifo %d\n", status.fifoDepth);
+        printf("playpump fifo %u\n", (unsigned)status.fifoDepth);
         if (status.fifoDepth == last_depth && status.fifoDepth<MAX_READ ) {
             depth_count++;
         } else {

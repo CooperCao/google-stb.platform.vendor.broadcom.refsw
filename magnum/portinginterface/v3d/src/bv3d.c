@@ -61,6 +61,9 @@
 
 BDBG_MODULE(BV3D);
 
+/* 7255: ignore until 64bit issues addressed properly */
+#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
+
 static void InterruptCallback_intctl_isr(void * pParm, int value)
 {
    uint32_t flags;
@@ -565,7 +568,7 @@ BERR_Code BV3D_UnregisterClient(
          else if (psInstruction->eOperation == BV3D_Operation_eFenceInstr)
          {
             /* delete any waiter callbacks */
-            void *p = (void *)((uintptr_t)psInstruction->uiArg1);
+            void *p = (void *)((uintptr_t)psInstruction->uiArg2);
             BV3D_P_FenceFree(hV3d->hFences, p);
          }
 
@@ -652,7 +655,9 @@ BERR_Code BV3D_GetNotification(
                            &notification->uiJobSequence,
                            notification->pTimelineData);
 
-   BDBG_MSG(("GetNotification(p=%d), client %d", notification->uiParam, clientId));
+   BDBG_MSG(("GetNotification(p="BDBG_UINT64_FMT"), client %d",
+      BDBG_UINT64_ARG(notification->uiParam),
+      clientId));
 
    BKNI_ReleaseMutex(hV3d->hModuleMutex);
 

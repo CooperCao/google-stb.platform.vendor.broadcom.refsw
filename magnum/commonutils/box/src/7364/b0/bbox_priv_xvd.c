@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -85,6 +85,41 @@ const BBOX_Xvd_Config BBOX_P_Xvd_ConfigLUT[] =
       6,
       {
          BBOX_XVD_DECODER_INFO_1080p60_V1( 0, BBOX_XVD_UNUSED, BAVC_VideoBitDepth_e10Bit, 0, 0 ),
+      }
+   },
+
+   {
+      7,
+      {
+         BBOX_XVD_DECODER_INFO_1080p30_480p30_V1(0, BBOX_XVD_UNUSED, BAVC_VideoBitDepth_e8Bit, 0, 0, BAVC_VideoBitDepth_e8Bit, 1, 1),
+      }
+   },
+
+   {
+      8,
+      {
+         BBOX_XVD_DECODER_INFO_1080p30_V1( 0, BBOX_XVD_UNUSED, BAVC_VideoBitDepth_e8Bit, 0, 0),
+      }
+   },
+
+   {
+      9,
+      {
+         BBOX_XVD_DECODER_INFO_1080p30_V1( 0, BBOX_XVD_UNUSED, BAVC_VideoBitDepth_e8Bit, 0, 0),
+      }
+   },
+
+   {
+      11,
+      {
+         BBOX_XVD_DECODER_INFO_Dual1080p30_V1( 0, BBOX_XVD_UNUSED, BAVC_VideoBitDepth_e8Bit, 0, 0, BBOX_XVD_UNUSED, 1),
+      }
+   },
+
+   {
+      12,
+      {
+         BBOX_XVD_DECODER_INFO_1080p60_1080p30_V1( 0, BBOX_XVD_UNUSED, BAVC_VideoBitDepth_e8Bit, 0, 0, BAVC_VideoBitDepth_e8Bit, 1, 1),
       }
    },
 };

@@ -96,11 +96,12 @@ int main(void)
     pid_t pID[NUM_CHILD_PROCESSES];
     unsigned *index;
     unsigned i;
+    sem_t **mutex;
 
     BKNI_Init();
 
     /* mutex[n][0] blocks the n-th child. mutex[n][1] blocks the parent */
-    sem_t **mutex = mmap(NULL, sizeof(sem_t*)*NUM_CHILD_PROCESSES, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_SHARED, 0, 0);
+    mutex = mmap(NULL, sizeof(sem_t*)*NUM_CHILD_PROCESSES, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_SHARED, 0, 0);
     for (i=0; i<NUM_CHILD_PROCESSES; i++) {
         mutex[i] = mmap(NULL, sizeof(sem_t)*2, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_SHARED, 0, 0);
     }

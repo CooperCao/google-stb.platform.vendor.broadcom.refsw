@@ -45,18 +45,17 @@ BDBG_MODULE(nexus_playback_trick);
 
 static void b_play_stc_rate(NEXUS_PlaybackHandle p, unsigned increment, unsigned prescale);
 static void b_play_stc_invalidate(NEXUS_PlaybackHandle p);
+static void NEXUS_Playback_P_AudioDecoder_Advance(const NEXUS_Playback_P_PidChannel *pid, uint32_t video_pts);
 
-static void
-b_play_trick_monitor(void *p_)
+
+static void b_play_advance_audio_once(NEXUS_PlaybackHandle p)
 {
-    NEXUS_PlaybackHandle p = p_;
     BERR_Code rc;
     uint32_t video_pts;
     const NEXUS_Playback_P_PidChannel *pid;
     NEXUS_VideoDecoderStatus status;
 
     BDBG_OBJECT_ASSERT(p, NEXUS_Playback);
-    p->trick.rap_monitor_timer = NULL;
     if (p->state.accurateSeek.state == b_accurate_seek_state_idle) {
         const NEXUS_Playback_P_PidChannel *decode = b_play_get_video_decoder(p);
         if(!decode) { goto done; }
@@ -68,16 +67,25 @@ b_play_trick_monitor(void *p_)
     } else {
         video_pts = p->state.accurateSeek.videoPts;
     }
-    BDBG_MSG(("b_play_trick_monitor: %p, video pts %#x", (void *)p, video_pts));
+    BDBG_MSG(("b_play_advance_audio_once:%p, video pts %#x", (void *)p, video_pts));
 
     for(pid = BLST_S_FIRST(&p->pid_list); pid ; pid = BLST_S_NEXT(pid, link)) {
         if(pid->cfg.pidSettings.pidType==NEXUS_PidType_eAudio) {
-            rc = NEXUS_Playback_P_AudioDecoder_Advance(pid, video_pts);
-            if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);}
+            NEXUS_Playback_P_AudioDecoder_Advance(pid, video_pts);
         }
     }
+done:
+    return;
+}
 
-done: /* keep going anyway */
+static void
+b_play_trick_monitor(void *p_)
+{
+    NEXUS_PlaybackHandle p = p_;
+
+    p->trick.rap_monitor_timer = NULL;
+    b_play_advance_audio_once(p);
+
     p->trick.rap_monitor_timer = NEXUS_ScheduleTimer(100, b_play_trick_monitor, p);
     return;
 }
@@ -228,35 +236,6 @@ error:
     return rc;
 }
 
-void NEXUS_Playback_P_VideoDecoderFirstPts(void *context)
-{
-    NEXUS_PlaybackHandle playback = context;
-
-    BDBG_OBJECT_ASSERT(playback, NEXUS_Playback);
-
-    if (playback->state.accurateSeek.state != b_accurate_seek_state_idle) {
-        b_trick_settings settings;
-        /* video has found its first pts, so now audio can chase */
-        /* NOTE: Due to XVD callback order, FirstPtsPassed cback can occur before FirstPts */
-        /*       So check if we are in audio pause mode */
-        b_play_trick_get(playback, &settings);
-        if( settings.audio_only_pause ) {
-           /* We got FirstPtsPassed first ! */
-           settings.audio_only_pause = false;
-           b_play_trick_set(playback, &settings);
-           playback->state.accurateSeek.state = b_accurate_seek_state_idle;
-           BDBG_WRN(("accurate seek: first pts passed, audio seek done FirstPts"));
-        }
-        else {
-            BDBG_WRN(("accurate seek: first pts, starting audio seek FirstPts"));
-            settings.audio_only_pause = true;
-            playback->state.accurateSeek.state = b_accurate_seek_state_videoFirstPts;
-        }
-        b_play_trick_set(playback, &settings);
-    }
-    return;
-}
-
 void NEXUS_Playback_P_VideoDecoderFirstPtsPassed(void *context)
 {
     NEXUS_PlaybackHandle playback = context;
@@ -265,19 +244,14 @@ void NEXUS_Playback_P_VideoDecoderFirstPtsPassed(void *context)
 
     if (playback->state.accurateSeek.state != b_accurate_seek_state_idle) {
         b_trick_settings settings;
+
+        b_play_advance_audio_once(playback);
         b_play_trick_get(playback, &settings);
-        if( settings.audio_only_pause ) {
-            /* we're done. video has arrived. now audio can start. */
-            settings.audio_only_pause = false;
-            b_play_trick_set(playback, &settings);
-            playback->state.accurateSeek.state = b_accurate_seek_state_idle;
-            BDBG_WRN(("accurate seek: first pts passed, audio seek done PtsPassed"));
-        }
-        else {
-            BDBG_WRN(("accurate seek: first pts, starting audio seek PtsPassed"));
-            settings.audio_only_pause = true;
-            b_play_trick_set(playback, &settings);
-        }
+        /* we're done. video has arrived. now audio can start. */
+        settings.audio_only_pause = false;
+        b_play_trick_set(playback, &settings);
+        playback->state.accurateSeek.state = b_accurate_seek_state_idle;
+        BDBG_WRN(("%p:accurate seek: target pts:%#x completed", (void*)playback, (unsigned)playback->state.accurateSeek.videoPts));
     }
     return;
 }
@@ -307,7 +281,6 @@ b_play_trick_set_pid(NEXUS_PlaybackHandle p, const NEXUS_Playback_P_PidChannel *
 
         NEXUS_P_Playback_VideoDecoder_GetPlaybackSettings(pid, &playbackSettings);
         if( playbackSettings.firstPts.callback == NULL ) {
-            NEXUS_CallbackHandler_PrepareCallback(p->videoDecoderFirstPts, playbackSettings.firstPts);
             NEXUS_CallbackHandler_PrepareCallback(p->videoDecoderFirstPtsPassed, playbackSettings.firstPtsPassed);
             rc = NEXUS_P_Playback_VideoDecoder_SetPlaybackSettings(pid, &playbackSettings);
             if (rc) return BERR_TRACE(rc);
@@ -521,7 +494,9 @@ set_decoder_state:
     condition if the order of pause, invalidate changes */
 #if 1
     if(!settings->stc_trick) {
-        b_play_stc_invalidate(p);
+        if (p->state.accurateSeek.state == b_accurate_seek_state_idle) {
+            b_play_stc_invalidate(p);
+        }
 
         if (settings->decode_rate != 0 && settings->decode_rate != NEXUS_NORMAL_DECODE_RATE) {
             /* Don't allow decoder trick for audio only. It just results in mysterious silence and premature loops. */
@@ -835,7 +810,7 @@ void NEXUS_P_Playback_AudioDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid)
 #endif
 }
 
-NEXUS_Error NEXUS_Playback_P_AudioDecoder_Advance(const NEXUS_Playback_P_PidChannel *pid, uint32_t video_pts)
+static void NEXUS_Playback_P_AudioDecoder_Advance(const NEXUS_Playback_P_PidChannel *pid, uint32_t video_pts)
 {
     NEXUS_Error rc;
     BSTD_UNUSED(video_pts);
@@ -863,7 +838,6 @@ NEXUS_Error NEXUS_Playback_P_AudioDecoder_Advance(const NEXUS_Playback_P_PidChan
         if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);}
     }
 #endif
-    return 0;
 }
 
 void NEXUS_P_Playback_AudioDecoder_GetTrickState(const NEXUS_Playback_P_PidChannel *pid, NEXUS_AudioDecoderTrickState *pState, NEXUS_AudioDecoderTrickState *pSecondaryState)

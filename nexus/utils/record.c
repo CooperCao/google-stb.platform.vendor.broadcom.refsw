@@ -171,13 +171,13 @@ int main(int argc, const char *argv[])
     NEXUS_PidChannelSettings pidSettings;
     NEXUS_StcChannelHandle stcChannel;
     NEXUS_StcChannelSettings stcSettings;
-    NEXUS_PidChannelHandle pcrPidChannel, videoPidChannel, audioPidChannel, allpassPidChannel, otherPidChannels[MAX_RECORD_PIDS], videoExtPidChannel=NULL;
+    NEXUS_PidChannelHandle pcrPidChannel=NULL, videoPidChannel, audioPidChannel, allpassPidChannel=NULL, otherPidChannels[MAX_RECORD_PIDS], videoExtPidChannel=NULL;
 #if NEXUS_HAS_PLAYBACK
-    NEXUS_PlaypumpHandle playpump0, playpump1;
-    NEXUS_PlaybackHandle playback0, playback1;
+    NEXUS_PlaypumpHandle playpump0=NULL, playpump1=NULL;
+    NEXUS_PlaybackHandle playback0=NULL, playback1=NULL;
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
-    NEXUS_FilePlayHandle playfile;
+    NEXUS_FilePlayHandle playfile=NULL;
 #endif
     NEXUS_RecpumpHandle recpump;
     NEXUS_RecpumpOpenSettings recpumpOpenSettings;
@@ -204,25 +204,25 @@ int main(int argc, const char *argv[])
 #endif
     FrontendSettings frontendSettings;
 #if NEXUS_HAS_HDMI_INPUT
-    NEXUS_HdmiInputHandle hdmiInput;
+    NEXUS_HdmiInputHandle hdmiInput=NULL;
     NEXUS_HdmiInputSettings hdmiInputSettings;
 #endif
 #if NEXUS_HAS_STREAM_MUX
-    NEXUS_DisplayHandle displayTranscode;
+    NEXUS_DisplayHandle displayTranscode=NULL;
     NEXUS_VideoWindowHandle windowTranscode;
-    NEXUS_VideoEncoderHandle videoEncoder;
+    NEXUS_VideoEncoderHandle videoEncoder=NULL;
     NEXUS_VideoEncoderSettings videoEncoderConfig;
     NEXUS_VideoEncoderStartSettings videoEncoderStartConfig;
     NEXUS_StcChannelHandle stcChannelTranscode;
-    NEXUS_StreamMuxHandle streamMux;
+    NEXUS_StreamMuxHandle streamMux=NULL;
     NEXUS_StreamMuxCreateSettings muxCreateSettings;
     BKNI_EventHandle finishEvent;
     NEXUS_StreamMuxStartSettings muxConfig;
     NEXUS_PlaypumpOpenSettings playpumpConfig;
-    NEXUS_PlaypumpHandle playpumpTranscodeVideo;
-    NEXUS_PlaypumpHandle playpumpTranscodePcr;
-    NEXUS_PidChannelHandle pidChannelTranscodeVideo;
-    NEXUS_PidChannelHandle pidChannelTranscodePcr;
+    NEXUS_PlaypumpHandle playpumpTranscodeVideo=NULL;
+    NEXUS_PlaypumpHandle playpumpTranscodePcr=NULL;
+    NEXUS_PidChannelHandle pidChannelTranscodeVideo=NULL;
+    NEXUS_PidChannelHandle pidChannelTranscodePcr=NULL;
 #endif
     struct util_opts_record_t opts;
     RecordSource source;
@@ -439,6 +439,7 @@ int main(int argc, const char *argv[])
     }
     else if (source!=RecordSource_ePlayback) {
         stcSettings.mode = NEXUS_StcChannelMode_ePcr;
+        BDBG_ASSERT(pcrPidChannel);
         stcSettings.modeSettings.pcr.pidChannel = pcrPidChannel;
     }
     else {
@@ -653,6 +654,7 @@ int main(int argc, const char *argv[])
             playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
             playbackPidSettings.pidTypeSettings.audio.primary = audioDecoder;
             playbackPidSettings.pidSettings.pidTypeSettings.audio.codec = opts.common.audioCodec;
+            BDBG_ASSERT(playback0);
             audioPidChannel = NEXUS_Playback_OpenPidChannel(playback0, opts.common.audioPid, &playbackPidSettings);
         }
 #endif
@@ -1020,14 +1022,19 @@ int main(int argc, const char *argv[])
             NEXUS_Playback_ClosePidChannel(playback0, audioPidChannel);
         }
         if (opts.allpass) {
+            BDBG_ASSERT(allpassPidChannel);
             NEXUS_Playback_ClosePidChannel(playback1, allpassPidChannel);
         }
 
+        BDBG_ASSERT(playfile);
         NEXUS_FilePlay_Close(playfile);
         NEXUS_Playback_Destroy(playback0);
+        BDBG_ASSERT(playpump0);
         NEXUS_Playpump_Close(playpump0);
         if (opts.allpass) {
+            BDBG_ASSERT(playback1);
             NEXUS_Playback_Destroy(playback1);
+            BDBG_ASSERT(playpump1);
             NEXUS_Playpump_Close(playpump1);
         }
     }

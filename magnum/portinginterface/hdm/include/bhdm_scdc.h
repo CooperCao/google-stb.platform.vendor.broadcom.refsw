@@ -305,6 +305,30 @@ void BHDM_SCDC_GetStatusControlData(
 ) ;
 
 
+/******************************************************************************
+Summary:
+	Set the Monitoring  of the SCDC Status Info of the HDMI Rx
+
+Input:
+	hHDMI - The HDMI device handle that the application created earlier
+	during the system initialization sequence.
+	enable - enable/disable of the Monitoring
+
+Output:
+	None
+
+Returns:
+	None
+
+See Also:
+	o BHDM_Handle
+
+*******************************************************************************/
+void BHDM_SCDC_SetStatusMonitor(
+	const BHDM_Handle hHDMI,   /* [in] HDMI handle */
+	uint8_t enable             /* [in] enable/disable monitor */
+) ;
+
 #ifdef __cplusplus
 }
 #endif

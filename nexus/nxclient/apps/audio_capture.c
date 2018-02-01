@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
  *
  *****************************************************************************/
 
@@ -159,12 +157,12 @@ int main(int argc, char **argv)
     unsigned connectId;
     FILE *file = NULL;
     NEXUS_PlaypumpSettings playpumpSettings;
-    NEXUS_PlaypumpHandle playpump;
+    NEXUS_PlaypumpHandle playpump=NULL;
     NEXUS_PlaypumpOpenSettings playpumpOpenSettings;
     BKNI_EventHandle event;
-    NEXUS_SimpleStcChannelHandle stcChannel;
-    NEXUS_PidChannelHandle audioPidChannel;
-    NEXUS_SimpleAudioDecoderHandle audioDecoder;
+    NEXUS_SimpleStcChannelHandle stcChannel=NULL;
+    NEXUS_PidChannelHandle audioPidChannel=NULL;
+    NEXUS_SimpleAudioDecoderHandle audioDecoder=NULL;
     NEXUS_SimpleAudioDecoderStartSettings audioProgram;
     NEXUS_MemoryAllocationSettings memSettings;
     NEXUS_ClientConfiguration clientConfig;
@@ -385,12 +383,15 @@ int main(int argc, char **argv)
 
     if ( standalone ) {
         BDBG_ERR(("Add Capture as output to Standalone Simple Audio Decoder"));
+        BDBG_ASSERT(audioDecoder);
         NEXUS_SimpleAudioDecoder_AddOutput(audioDecoder, NEXUS_AudioCapture_GetConnector(capHandles.capture), NEXUS_SimpleAudioDecoderSelector_ePrimary, connectorType);
 
+        BDBG_ASSERT(stcChannel);
         NEXUS_SimpleAudioDecoder_SetStcChannel(audioDecoder, stcChannel);
 
         NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&audioProgram);
         audioProgram.primary.codec = AUDIO_CODEC;
+        BDBG_ASSERT(audioPidChannel);
         audioProgram.primary.pidChannel = audioPidChannel;
         BDBG_ERR(("Start Audio Decoder"));
         NEXUS_SimpleAudioDecoder_Start(audioDecoder, &audioProgram);
@@ -439,6 +440,7 @@ int main(int argc, char **argv)
                     NEXUS_FlushCache(desc.addr, desc.length);
                 }
                 #endif
+                BDBG_ASSERT(playpump);
                 rc = NEXUS_Playpump_SubmitScatterGatherDescriptor(playpump, &desc, 1, &numConsumed);
                 BDBG_ASSERT(!rc);
                 BDBG_ASSERT(numConsumed==1); /* we've already checked that there are descriptors available*/

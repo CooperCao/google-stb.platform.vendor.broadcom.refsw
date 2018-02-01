@@ -197,7 +197,7 @@ static void write_vertex_shader_data(GLXX_LINK_RESULT_DATA_T  *data,
          data->flags |= GLXX_SHADER_FLAGS_VS_READS_VERTEX_ID << m;
       if (prog->vstages[SHADER_VERTEX][m]->u.vertex.attribs.instanceid_used)
          data->flags |= GLXX_SHADER_FLAGS_VS_READS_INSTANCE_ID << m;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       if (prog->vstages[SHADER_VERTEX][m]->u.vertex.attribs.baseinstance_used)
          data->flags |= GLXX_SHADER_FLAGS_VS_READS_BASE_INSTANCE << m;
 #endif
@@ -343,7 +343,7 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
          data->flags |= (GLXX_SHADER_FLAGS_PRIM_ID_USED | GLXX_SHADER_FLAGS_PRIM_ID_TO_FS);
    }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (!prog->fshader || !prog->fshader->u.fragment.reads_implicit_varys)
       data->flags |= GLXX_SHADER_FLAGS_DISABLE_IMPLICIT_VARYS;
 #endif
@@ -466,7 +466,7 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
       assert(!prog->fshader->u.fragment.writes_z);
       assert(!prog->fshader->u.fragment.ez_disable);
       assert(!prog->fshader->u.fragment.per_sample);
-    #if V3D_VER_AT_LEAST(4,0,2,0)
+    #if V3D_VER_AT_LEAST(4,1,34,0)
       assert(!prog->fshader->u.fragment.reads_implicit_varys);
     #endif
 

@@ -46,7 +46,7 @@
 #include "tztask.h"
 #include "scheduler.h"
 #include "futex.h"
-
+#include "tzclone.h"
 #include "fs/ramfs.h"
 
 
@@ -255,8 +255,8 @@ void SysCalls::doClone(TzTask *currTask) {
         return doFork(currTask);
     }
     void *childStack = (void *)currTask->userReg(TzTask::UserRegs::r1);
-    void *ctid = (void *)currTask->userReg(TzTask::UserRegs::r2);
-    void *ptid = (void *)currTask->userReg(TzTask::UserRegs::r4);
+    void *ptid = (void *)currTask->userReg(TzTask::UserRegs::r2);
+    void *ctid = (void *)currTask->userReg(TzTask::UserRegs::r4);
     // void *ptRegs = (void *)currTask->userReg(TzTask::UserRegs::r4);
     // void *entryPoint = (void *)currTask->userReg(TzTask::UserRegs::r5);
     uint8_t *tls = (uint8_t *)currTask->userReg(TzTask::UserRegs::r3);
@@ -264,19 +264,18 @@ void SysCalls::doClone(TzTask *currTask) {
 
     //printf("---->%s: ptid %p ctid %p tls %p childStack %p flags %lx\n", __FUNCTION__, ptid, ctid, tls, childStack, flags);
 
-    if (ptid != nullptr) {
+    if ((ptid != nullptr) && (flags & CLONE_PARENT_SETTID)) {
         if (!validateUserMemAccess(ptid, sizeof(void *))) {
             currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
             return;
         }
     }
 
-    if (ctid != nullptr) {
+    if ((ctid != nullptr) && (flags & CLONE_CHILD_SETTID)) {
         if (!validateUserMemAccess(ctid, sizeof(void *))) {
             currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
             return;
         }
-
     }
 
     if (childStack == nullptr) {
@@ -344,7 +343,7 @@ void SysCalls::doSetSchedulerParam(TzTask *currTask) {
 }
 void SysCalls::doGetSchedulerParam(TzTask *currTask) {
 
-//  int pid = currTask->userReg(TzTask::UserRegs::r0);
+    //int pid = currTask->userReg(TzTask::UserRegs::r0);
     void *param_t = (void *)currTask->userReg(TzTask::UserRegs::r1);
 
     //printf("doGetSchedulerParam %d \n",pid);
@@ -379,16 +378,21 @@ void SysCalls::doGetSchedulerParam(TzTask *currTask) {
 }
 void SysCalls::doGetScheduler(TzTask *currTask) {
 
-    //int pid = (int)currTask->userReg(TzTask::UserRegs::r0);
+    int pid = (int)currTask->userReg(TzTask::UserRegs::r0);
 
     //printf("doGetScheduler %d \n",pid);
 
-    Scheduler::removeTask(currTask);
+    //Scheduler::removeTask(currTask);
+    TzTask *task;
+    if(currTask->id() == pid)
+        task = currTask;
+    else
+        task = TzTask::taskFromId(pid);
     int oldPriority;
     int oldPolicy;
-    currTask->getScheduler(&oldPolicy, &oldPriority);
-    //printf("Get Task %d %d\n",oldPolicy, oldPriority);
-    Scheduler::addTask(currTask);
+    task->getScheduler(&oldPolicy, &oldPriority);
+    //printf("doGetScheduler : Get Task %d %d\n",oldPolicy, oldPriority);
+    //Scheduler::addTask(currTask);
 
     currTask->writeUserReg(TzTask::UserRegs::r0, oldPolicy);
 
@@ -396,11 +400,16 @@ void SysCalls::doGetScheduler(TzTask *currTask) {
 
 void SysCalls::doSetScheduler(TzTask *currTask) {
 
-    //int pid = currTask->userReg(TzTask::UserRegs::r0);
+    int pid = currTask->userReg(TzTask::UserRegs::r0);
     int policy = currTask->userReg(TzTask::UserRegs::r1);
     void *param_t = (void *)currTask->userReg(TzTask::UserRegs::r2);
 
     //printf("doSetScheduler %d\n",pid);
+    TzTask *task;
+    if(currTask->id() == pid)
+        task = currTask;
+    else
+        task = TzTask::taskFromId(pid);
 
     if (param_t != nullptr) {
         if (!validateUserMemAccess(param_t, sizeof(sched_param))) {
@@ -418,16 +427,38 @@ void SysCalls::doSetScheduler(TzTask *currTask) {
     }
 
 
-    Scheduler::removeTask(currTask);
+    Scheduler::removeTask(task);
     int oldPriority;
     int oldPolicy;
-    currTask->getScheduler(&oldPolicy, &oldPriority);
+    task->getScheduler(&oldPolicy, &oldPriority);
     //printf("Get Task %d %d\n",oldPolicy, oldPriority);
 
-    currTask->setScheduler(policy, param.sched_priority);
+    task->setScheduler(policy, param.sched_priority);
     //printf("Set Task %d %d\n",policy, param.sched_priority);
 
-    Scheduler::addTask(currTask);
+    Scheduler::addTask(task);
     currTask->writeUserReg(TzTask::UserRegs::r0, 0);
 
+}
+void SysCalls::doSchedRunTask(TzTask *currTask) {
+    int pid = currTask->userReg(TzTask::UserRegs::r0);
+    TzTask *runTask =  TzTask::taskFromId(pid);
+    if (runTask == nullptr) {
+        currTask->writeUserReg(TzTask::UserRegs::r0, -EINVAL);
+        return;
+    }
+
+    Scheduler::removeTask(currTask);
+    currTask->keepAtQueueHead = true;
+    Scheduler::updateTimeSlice();
+    Scheduler::addTask(currTask);
+    currentTask[arm::smpCpuNum()] = runTask;
+
+    int priority,policy;
+    runTask->getScheduler(&policy, &priority);
+    /*if(policy == SCHED_FIFO)
+        Scheduler::setWHPreemptionTimer(runTask);*/
+
+    currTask->writeUserReg(TzTask::UserRegs::r0, 0);
+    resumeCurrentTask();
 }

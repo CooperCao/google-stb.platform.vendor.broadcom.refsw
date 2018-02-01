@@ -400,7 +400,7 @@ static bool get_client_vbs(
          struct arr_pointer *curr = &pointers[i];
 
          vbs[i].addr = dynamic_read_copy(fmem,
-            curr->end - curr->start, V3D_ATTR_REC_ALIGN, curr->start,
+            curr->end - curr->start, V3D_ATTR_ALIGN, curr->start,
             V3D_BARRIER_VCD_READ, V3D_BARRIER_VCD_READ,
             "client-side vertex data");
          if (!vbs[i].addr)
@@ -483,7 +483,7 @@ static bool check_valid_tf_draw(GLXX_SERVER_STATE_T *state, const glxx_hw_draw *
    if (!glxx_tf_draw_mode_allowed(tf, used_draw_mode))
       return false;
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    /* we are using draw->count and instance->count; valid only if !is_indirect); */
    assert(!draw->is_indirect);
    const GLXX_PROGRAM_TFF_POST_LINK_T *ptf = &gl20_program_common_get(state)->transform_feedback;
@@ -1340,7 +1340,7 @@ static bool create_and_record_drawtex_attribs(
    size_t size = vertex_count * stride;
 
    gmem_handle_t v_handle = alloc_and_sync_dynamic_read(fmem,
-      size, V3D_ATTR_REC_ALIGN,
+      size, V3D_ATTR_ALIGN,
       V3D_BARRIER_VCD_READ, V3D_BARRIER_VCD_READ,
       "drawtex vertices");
    if (!v_handle)

@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
-#ifndef __GLSL_REGISTERS_H__
-#define __GLSL_REGISTERS_H__
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_qpu_enum.h"
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_forward.h"
@@ -28,7 +19,7 @@ typedef enum
    DFlowRegFile_A_ONLY     = 3
 } DFlowRegFile;
 
-static INLINE DFlowRegFile DFlowRegFile_OtherFile(DFlowRegFile self, DFlowRegFile deflt)
+static inline DFlowRegFile DFlowRegFile_OtherFile(DFlowRegFile self, DFlowRegFile deflt)
 {
    if (self == DFlowRegFile_A_OR_ACCUM)
       return DFlowRegFile_B_OR_ACCUM;
@@ -39,7 +30,7 @@ static INLINE DFlowRegFile DFlowRegFile_OtherFile(DFlowRegFile self, DFlowRegFil
    return deflt;
 }
 
-static INLINE const char *DFlowRegFile_GetFileString(DFlowRegFile self)
+static inline const char *DFlowRegFile_GetFileString(DFlowRegFile self)
 {
    switch (self)
    {
@@ -68,28 +59,28 @@ typedef struct QPUResource_s
 void QPUResource_Constr(QPUResource *self);
 void QPUResource_ConstrName(QPUResource *self, Register_Enum name);
 
-// INLINE methods
-static INLINE Register_Enum QPUResource_Name(const QPUResource *self)
+// inline methods
+static inline Register_Enum QPUResource_Name(const QPUResource *self)
 {
    return self->m_name;
 }
 
-static INLINE bool QPUResource_IsReadable(const QPUResource *self, int32_t atSlot)
+static inline bool QPUResource_IsReadable(const QPUResource *self, int32_t atSlot)
 {
    return atSlot >= self->m_readableAtSlot;
 }
 
-static INLINE DFlowNode *QPUResource_GetOwner(const QPUResource *self)
+static inline DFlowNode *QPUResource_GetOwner(const QPUResource *self)
 {
    return self->m_owner;
 }
 
-static INLINE bool QPUResource_IsReferenced(const QPUResource *self)
+static inline bool QPUResource_IsReferenced(const QPUResource *self)
 {
    return self->m_refCount > 0;
 }
 
-static INLINE int32_t QPUResource_RefCount(const QPUResource *self)
+static inline int32_t QPUResource_RefCount(const QPUResource *self)
 {
    return self->m_refCount;
 }
@@ -124,28 +115,28 @@ typedef struct QPUResources_s
 // constructor
 void QPUResources_Constr(QPUResources *self, bool isFrag, bool allowThread);
 
-// INLINE methods
-static INLINE void QPUResources_Destr(QPUResources *self)
+// inline methods
+static inline void QPUResources_Destr(QPUResources *self)
 {
    UNUSED(self);
 }
 
-static INLINE QPUResource *QPUResources_GetResource(QPUResources *self, Register_Enum reg)
+static inline QPUResource *QPUResources_GetResource(QPUResources *self, Register_Enum reg)
 {
    return &self->m_resources[reg];
 }
 
-static INLINE const QPUResource *QPUResources_GetResourceConst(const QPUResources *self, Register_Enum reg)
+static inline const QPUResource *QPUResources_GetResourceConst(const QPUResources *self, Register_Enum reg)
 {
    return &self->m_resources[reg];
 }
 
-static INLINE bool QPUResources_IsReadable(const QPUResources *self, Register_Enum reg, int32_t atSlot)
+static inline bool QPUResources_IsReadable(const QPUResources *self, Register_Enum reg, int32_t atSlot)
 {
    return QPUResource_IsReadable(&self->m_resources[reg], atSlot);
 }
 
-static INLINE DFlowNode *QPUResources_GetOwner(const QPUResources *self, Register_Enum reg)
+static inline DFlowNode *QPUResources_GetOwner(const QPUResources *self, Register_Enum reg)
 {
    return QPUResource_GetOwner(&self->m_resources[reg]);
 }
@@ -164,5 +155,3 @@ void     QPUResources_CheckRefCounts(const QPUResources *self, bool *stillRefere
 void     QPUResources_MoveRefCount(QPUResources *self, Register_Enum from, Register_Enum to);
 bool     QPUResources_IsFull(const QPUResources *self, bool threaded);
 uint32_t QPUResources_RegistersFree(const QPUResources *self, Register_File bank);
-
-#endif /* __GLSL_REGISTERS_H__ */

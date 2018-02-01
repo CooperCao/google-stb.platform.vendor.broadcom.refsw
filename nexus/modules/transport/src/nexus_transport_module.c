@@ -42,6 +42,7 @@
 #include "nexus_recpump_impl.h"
 #include "priv/nexus_core.h"
 #include "priv/nexus_tsmf_priv.h"
+#include "nexus_playpump_impl.h"
 #if !BXPT_HAS_MESG_BUFFERS && !NEXUS_USE_SW_FILTER
 #error chips without message filtering require NEXUS_USE_SW_FILTER
 #endif
@@ -542,11 +543,56 @@ static void NEXUS_TransportModule_P_Print(void)
         NEXUS_PlaypumpHandle p = pTransport->playpump[i].playpump;
         if (p) {
             NEXUS_PlaypumpStatus status;
+            BMMA_DeviceOffset lastCompletedDataAddress;
+            bool lastCompletedDataAddress_valid;
+            BERR_Code rc;
+            struct bpvr_queue copyOfactiveFifo = p->activeFifo; /* create copy of FIFO to allow its destructive read */
+            struct {
+                bool valid;
+                NEXUS_PlaypumpDesc desc;
+                BMMA_DeviceOffset descDeviceOffset;
+            } lastDesc[2];
+            unsigned descriptors;
+            bool media=false;
+            unsigned j;
+
             if (NEXUS_Playpump_GetStatus(p, &status)) continue;
-            BDBG_LOG(("playpump %d: %s, fifo %u/%u(%u%%) %uKB played, %u stream errors, %u sync errors, %u resyncs, %u pacing errors", status.index,
+            BDBG_LOG(("playpump[%u/%u] %d: %s, fifo %u/%u(%u%%) %uKB played, %u stream errors, %u sync errors, %u resyncs, %u pacing errors", i, NEXUS_NUM_PLAYPUMPS, status.index,
                 status.started?"started":"stopped",
                 (unsigned)status.fifoDepth, (unsigned)status.fifoSize, status.fifoSize?(unsigned)(status.fifoDepth*100/status.fifoSize):0,
                 (unsigned)(status.bytesPlayed/1024), status.streamErrors, status.syncErrors, status.resyncEvents, status.pacingTsRangeError));
+            rc=BXPT_Playback_GetLastCompletedDataAddress(p->xpt_play, &lastCompletedDataAddress);
+            if(rc==BERR_SUCCESS) {
+                lastCompletedDataAddress_valid = true;
+            } else {
+                lastCompletedDataAddress=0;
+                lastCompletedDataAddress_valid = false;
+            }
+#if B_HAS_MEDIA
+            if(p->state.packetizer==b_play_packetizer_media) {
+                media=true;
+            }
+#endif
+            descriptors=BFIFO_READ_LEFT(&copyOfactiveFifo);
+            for(j=0;j<sizeof(lastDesc)/sizeof(lastDesc[0]);j++) {
+                if(BFIFO_READ_LEFT(&copyOfactiveFifo)!=0) {
+                    const struct bpvr_queue_item *item = BFIFO_READ(&copyOfactiveFifo);
+                    lastDesc[j].valid = true;
+                    lastDesc[j].desc = item->desc;
+                    lastDesc[j].descDeviceOffset = NEXUS_AddrToOffset(item->desc.addr);
+                    BFIFO_READ_COMMIT(&copyOfactiveFifo, 1);
+                } else {
+                    lastDesc[j].valid=false;
+                    lastDesc[j].descDeviceOffset=0;
+                    lastDesc[j].desc.addr = NULL;
+                    lastDesc[j].desc.length = 0;
+                }
+            }
+            BDBG_LOG(("playpump[%u/%u] %s%s%sLastCompletedDataAddress:" BDBG_UINT64_FMT "%s queued:%u/%u desc:%p(" BDBG_UINT64_FMT "):%u%s desc:%p(" BDBG_UINT64_FMT "):%u%s", i, NEXUS_NUM_PLAYPUMPS,
+                      media?"MEDIA ":"",p->settings.mode == NEXUS_PlaypumpMode_eSegment?"SEGMENT ":"", p->state.packetizer==b_play_packetizer_crypto?"CRYPTO ":"", BDBG_UINT64_ARG(lastCompletedDataAddress),lastCompletedDataAddress_valid?"":"(INVALID)", descriptors, p->state.queued_in_hw,
+                      lastDesc[0].desc.addr,BDBG_UINT64_ARG(lastDesc[0].descDeviceOffset),(unsigned)lastDesc[0].desc.length, lastDesc[0].valid?"":"(INVALID)",
+                      lastDesc[1].desc.addr,BDBG_UINT64_ARG(lastDesc[1].descDeviceOffset),(unsigned)lastDesc[1].desc.length, lastDesc[1].valid?"":"(INVALID)"
+                      ));
         }
     }
     #endif
@@ -672,6 +718,9 @@ NEXUS_ModuleHandle NEXUS_TransportModule_PreInit( const NEXUS_TransportModuleInt
 #if NEXUS_HAS_ETBG
     BKNI_Memset(&g_NEXUS_Etbg_P_State, 0, sizeof(g_NEXUS_Etbg_P_State));
 #endif
+#endif
+#if NEXUS_TRANSPORT_EXTENSION_TBG
+    BKNI_Memset(&g_NEXUS_Tbg_P_State, 0, sizeof(g_NEXUS_Tbg_P_State));
 #endif
 
     /* init global module handle */

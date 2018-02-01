@@ -12,6 +12,8 @@
 #include <cstdio>
 
 #include <memory>
+#include <map>
+#include <mutex>
 
 /* #include <cutils/log.h> */
 
@@ -23,6 +25,9 @@ typedef struct
 {
    NEXUS_Graphicsv3dHandle nexusHandle;
    CallbackFunc            callback;
+   std::mutex              fenceLock;
+   std::map<int, void *>   fenceMap;
+   int                     fence;
 } NXPL_HWData;
 
 /*****************************************************************************
@@ -31,7 +36,7 @@ typedef struct
 
 static void JobCallbackHandler(void *context, int param __attribute__((unused)))
 {
-   NXPL_HWData *data = reinterpret_cast<NXPL_HWData*>(context);
+   NXPL_HWData *data = static_cast<NXPL_HWData*>(context);
 
    if (data && data->callback)
       data->callback();
@@ -61,7 +66,7 @@ static bool GetInfo(void *context __attribute__((unused)), BEGL_HWInfo *info)
 /* Send a job to the V3D job queue */
 bool SendJob(void *context, BEGL_HWJob *job)
 {
-   NXPL_HWData *data = reinterpret_cast<NXPL_HWData*>(context);
+   NXPL_HWData *data = static_cast<NXPL_HWData*>(context);
 
    if (data != NULL)
    {
@@ -100,7 +105,7 @@ bool SendJob(void *context, BEGL_HWJob *job)
 /* Retrieves and removes latest notification for this client */
 bool GetNotification(void *context, BEGL_HWNotification *notification)
 {
-   NXPL_HWData *data = reinterpret_cast<NXPL_HWData*>(context);
+   NXPL_HWData *data = static_cast<NXPL_HWData*>(context);
 
    if (data != NULL)
    {
@@ -145,7 +150,7 @@ bool GetNotification(void *context, BEGL_HWNotification *notification)
 /* Acknowledge the last synchronous notification */
 static void SendSync(void *context, bool abandon)
 {
-   NXPL_HWData *data = reinterpret_cast<NXPL_HWData*>(context);
+   NXPL_HWData *data = static_cast<NXPL_HWData*>(context);
 
    if (data != NULL)
       NEXUS_Graphicsv3d_SendSync(data->nexusHandle, abandon);
@@ -160,7 +165,7 @@ static bool GetBinMemory(void *context, const BEGL_HWBinMemorySettings *settings
    NEXUS_Graphicsv3dBinMemory nexusMemory;
    NEXUS_Graphicsv3dBinMemorySettings nexusMemorySettings = { /*.bSecure = */ settings->secure };
 
-   NXPL_HWData *data = reinterpret_cast<NXPL_HWData*>(context);
+   NXPL_HWData *data = static_cast<NXPL_HWData*>(context);
    NEXUS_Error rc = NEXUS_Graphicsv3d_GetBinMemory(data->nexusHandle, &nexusMemorySettings, &nexusMemory);
 
    if (rc == NEXUS_SUCCESS)
@@ -188,7 +193,7 @@ static void SetPerformanceMonitor(void *context, const BEGL_HWPerfMonitorSetting
    nSettings.uiMemBank = settings->memBank;
    nSettings.uiFlags   = settings->flags;
 
-   NXPL_HWData *data = reinterpret_cast<NXPL_HWData*>(context);
+   NXPL_HWData *data = static_cast<NXPL_HWData*>(context);
    NEXUS_Graphicsv3d_SetPerformanceMonitor(data->nexusHandle, &nSettings);
 }
 
@@ -199,7 +204,7 @@ static void GetPerformanceData(void *context, BEGL_HWPerfMonitorData *bData)
       return;
 
    NEXUS_Graphicsv3dPerfMonitorData nData;
-   NXPL_HWData *data = reinterpret_cast<NXPL_HWData*>(context);
+   NXPL_HWData *data = static_cast<NXPL_HWData*>(context);
    NEXUS_Graphicsv3d_GetPerformanceData(data->nexusHandle, &nData);
 
    for (int i = 0; i < 16; i++)
@@ -210,35 +215,65 @@ static void GetPerformanceData(void *context, BEGL_HWPerfMonitorData *bData)
 }
 
 #ifdef ANDROID
-static void FenceOpen(void *context, int *fd, void **p, char type)
+static void FenceOpen(void *context, int *fd, uint64_t *p, char type)
 {
-   NXPL_HWData *data = (NXPL_HWData*)context;
+   NXPL_HWData *data = static_cast<NXPL_HWData*>(context);
 
    if (data != NULL)
       NEXUS_Graphicsv3d_FenceOpen(data->nexusHandle, fd, p, type, getpid());
 }
 
-static void FenceWaitAsync(void *context, int fd, void **v3dfence)
+static void FenceWaitAsync(void *context, int fd, uint64_t *v3dfence)
 {
-   NXPL_HWData *data = (NXPL_HWData*)context;
+   NXPL_HWData *data = static_cast<NXPL_HWData*>(context);
 
    if (data != NULL)
       NEXUS_Graphicsv3d_FenceWaitAsync(data->nexusHandle, fd, v3dfence);
 }
 #else
-static void FenceOpen(void *context __attribute__((unused)), int *fd, void **p, char type __attribute__((unused)))
+static void FenceOpen(void *context, int *fd, uint64_t *p, char type __attribute__((unused)))
 {
+   NXPL_HWData *data = static_cast<NXPL_HWData*>(context);
+
+   std::unique_lock<std::mutex> lock(data->fenceLock);
+
    auto m = new helper::Semaphore();
-   *fd = reinterpret_cast<int>(m);
-   *p = m;
+   int fence = data->fence++;
+   data->fenceMap.insert(std::pair<int, void *>(fence, m));
+   *fd = fence;
+   *p = 0;  // TODO: probably remove this
 }
 
 // only required on platforms with a consumer thread/managing own display.
 // Android is handled in the kernel
-static void FenceSignal(void *context __attribute__((unused)), int fd)
+static void FenceSignal(void *context, int fd)
 {
-   auto m = reinterpret_cast<helper::Semaphore *>(fd);
-   m->notify();
+   NXPL_HWData *data = static_cast<NXPL_HWData*>(context);
+
+   std::unique_lock<std::mutex> lock(data->fenceLock);
+
+   auto it = data->fenceMap.find(fd);
+   if (it != data->fenceMap.end())
+   {
+      auto m = static_cast<helper::Semaphore *>(it->second);
+      m->notify();
+      data->fenceMap.erase(it);
+   }
+}
+
+// only required on platforms with a consumer thread/managing own display.
+// Android is handled in the kernel
+static void *FenceGet(void *context, int fd)
+{
+   NXPL_HWData *data = static_cast<NXPL_HWData*>(context);
+
+   std::unique_lock<std::mutex> lock(data->fenceLock);
+
+   auto it = data->fenceMap.find(fd);
+   if (it != data->fenceMap.end())
+      return static_cast<helper::Semaphore *>(it->second);
+   else
+      return NULL;
 }
 #endif
 
@@ -269,6 +304,7 @@ extern "C" BEGL_HWInterface *NXPL_CreateHWInterface(BEGL_HardwareCallbacks *call
    hw->FenceWaitAsync         = FenceWaitAsync;
 #else
    hw->FenceSignal            = FenceSignal;
+   hw->FenceGet               = FenceGet;
 #endif
 
    NEXUS_Graphicsv3dCreateSettings  settings;
@@ -280,6 +316,8 @@ extern "C" BEGL_HWInterface *NXPL_CreateHWInterface(BEGL_HardwareCallbacks *call
    settings.uiClientPID           = getpid();
 
    hw->data.nexusHandle = NEXUS_Graphicsv3d_Create(&settings);
+
+   hw->data.fence = 0;
 
    /* Drain the callback queue */
    BEGL_HWNotification notification = {};
@@ -294,7 +332,7 @@ extern "C" BEGL_HWInterface *NXPL_CreateHWInterface(BEGL_HardwareCallbacks *call
 
 extern "C" void NXPL_DestroyHWInterface(BEGL_HWInterface *p)
 {
-   auto hw = std::unique_ptr<NXPL_HWInterface>(reinterpret_cast<NXPL_HWInterface *>(p));
+   auto hw = std::unique_ptr<NXPL_HWInterface>(static_cast<NXPL_HWInterface *>(p));
    if (hw)
       NEXUS_Graphicsv3d_Destroy(hw->data.nexusHandle);
 }

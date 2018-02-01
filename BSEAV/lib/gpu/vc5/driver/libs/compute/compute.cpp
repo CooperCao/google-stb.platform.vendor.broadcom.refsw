@@ -99,8 +99,8 @@ compute_sg_config compute_choose_sg_config(const compute_params* p)
    }
 
    compute_sg_config cfg{};
-   cfg.wgs_per_sg = wgs_per_sg;
-   cfg.max_wgs = max_wgs;
+   cfg.wgs_per_sg = gfx_bits(wgs_per_sg, sizeof(cfg.wgs_per_sg)*8);
+   cfg.max_wgs = gfx_bits(max_wgs, sizeof(cfg.max_wgs)*8);
    return cfg;
 }
 
@@ -839,7 +839,7 @@ static bool write_shader_record(
 #if V3D_VER_AT_LEAST(4,1,34,0)
    shader_record.no_prim_pack = true;
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    shader_record.disable_implicit_varys = true;
    shader_record.vs_output_size.sectors = v3d_vs_output_size(false, shader_record.num_varys);
    shader_record.vs_output_size.min_extra_req = 0 ;
@@ -900,7 +900,7 @@ static inline bool begin_build_dispatch_extent_inner(
       return false;
 
    size_t const cl_size = 0
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       + V3D_CL_TILE_COORDS_SIZE
       + V3D_CL_LOAD_SIZE
       + V3D_CL_END_LOADS_SIZE
@@ -916,7 +916,7 @@ static inline bool begin_build_dispatch_extent_inner(
       return false;
    uint8_t* cl_end = cl + cl_size;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    v3d_cl_tile_coords(&cl, 0, 0);
    V3D_CL_LOAD_T load_lookup{};
    load_lookup.buffer = V3D_LDST_BUF_COLOR0;
@@ -979,7 +979,7 @@ static bool build_dispatch_extent_inner(
 static bool end_build_dispatch_extent_inner(compute_job_mem& mem)
 {
    size_t const cl_size = 0
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       + V3D_CL_STORE_SIZE
       + V3D_CL_END_TILE_SIZE
 #else
@@ -991,7 +991,7 @@ static bool end_build_dispatch_extent_inner(compute_job_mem& mem)
       return false;
    uint8_t* cl_end = cl + cl_size;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_CL_STORE_T dummy_store{};
    dummy_store.buffer = V3D_LDST_BUF_NONE;
    v3d_cl_store_indirect(&cl, &dummy_store);
@@ -1156,7 +1156,7 @@ uint32_t compute_backend_flags(unsigned items_per_wg) noexcept
       backend_flags |= GLSL_COMPUTE_PADDING;
    backend_flags |= GLSL_PRIM_LINE;
    backend_flags |= ((GLSL_FB_32 | GLSL_FB_INT | GLSL_FB_PRESENT) << GLSL_FB_GADGET_S);
-# if !V3D_VER_AT_LEAST(4,0,2,0)
+# if !V3D_VER_AT_LEAST(4,1,34,0)
    backend_flags |= (GLSL_FB_ALPHA_16_WORKAROUND << GLSL_FB_GADGET_S);
 #endif
 
@@ -1284,7 +1284,7 @@ bool compute_cl_begin(compute_cl_mem_if const* mem, void* ctx) noexcept
 {
    // Initial state setup for all compute jobs.
    size_t const cl_size = 0
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       + V3D_CL_TILE_RENDERING_MODE_CFG_SIZE*3
       + V3D_CL_SET_INSTANCE_ID_SIZE
 #else
@@ -1321,7 +1321,7 @@ bool compute_cl_begin(compute_cl_mem_if const* mem, void* ctx) noexcept
       cfg.u.common.frame_height = TLB_HEIGHT;
       cfg.u.common.max_bpp = V3D_RT_BPP_64;
       cfg.u.common.ez_disable = true;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       cfg.u.common.internal_depth_type = V3D_DEPTH_TYPE_24;
 #else
       cfg.u.common.disable_rt_store_mask = 0xff;
@@ -1335,7 +1335,7 @@ bool compute_cl_begin(compute_cl_mem_if const* mem, void* ctx) noexcept
       cfg.type = V3D_RCFG_TYPE_COLOR;
       v3d_rt_bpp_t internal_bpp = V3D_RT_BPP_64;
       v3d_rt_type_t internal_type = V3D_RT_TYPE_16UI;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       cfg.u.color.rt_formats[0].bpp = internal_bpp;
       cfg.u.color.rt_formats[0].type = internal_type;
 #else
@@ -1349,7 +1349,7 @@ bool compute_cl_begin(compute_cl_mem_if const* mem, void* ctx) noexcept
       v3d_cl_tile_rendering_mode_cfg_indirect(&cl, &cfg);
    }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    // Rendering Configuration (Z/Stencil Config).
    {
       V3D_CL_TILE_RENDERING_MODE_CFG_T cfg{};
@@ -1396,7 +1396,7 @@ bool compute_cl_begin(compute_cl_mem_if const* mem, void* ctx) noexcept
    cfg_bits.depth_test = V3D_COMPARE_FUNC_ALWAYS;
    v3d_cl_cfg_bits_indirect(&cl, &cfg_bits);
    v3d_cl_color_wmasks(&cl, gfx_mask(V3D_MAX_RENDER_TARGETS * 4));
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    v3d_cl_set_instance_id(&cl, 0);
 #endif
    assert(cl == cl_end);

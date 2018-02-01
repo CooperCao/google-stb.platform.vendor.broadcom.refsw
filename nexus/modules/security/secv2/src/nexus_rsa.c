@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -105,6 +105,8 @@ NEXUS_Error NEXUS_Rsa_Init( void )
     BDBG_ENTER( NEXUS_Rsa_Init );
 
     NEXUS_Security_GetHsm_priv( &hHsm );
+    if( !hHsm ) { return BERR_TRACE( NEXUS_NOT_INITIALIZED ); }
+
     BKNI_Memset( &gRsaModuleData, 0, sizeof(gRsaModuleData) );
 
     gRsaModuleData.hHsmRsa = BHSM_Rsa_Open( hHsm );

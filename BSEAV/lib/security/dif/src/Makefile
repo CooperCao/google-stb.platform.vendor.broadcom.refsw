@@ -92,6 +92,11 @@ include $(COMMON_DRM_TOP)/lib/prdy_libdir.inc
 include $(COMMON_DRM_TOP)/common_drm.inc
 include $(DIF_TOP)/dif_libdir.inc
 
+# Prepare to include 32-bit or 64-bit libs
+ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
+PREBLT_LIB_SUFFIX := 64
+endif
+
 # Custom include paths
 CFLAGS += -I./include
 ifeq ($(WIDEVINE_SUPPORT),y)
@@ -125,8 +130,10 @@ LDFLAGS += $(COMMON_DRM_LDFLAGS)
 LDFLAGS += $(B_OPENSSL_LDFLAGS)
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR) -lbcrypt \
            -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
-LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm$(PREBLT_LIB_SUFFIX)
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR) -lcmndrmprdy
+
+# Link with common_drm libraries
+LDFLAGS += $(COMMON_DRM_LIB_LDFLAGS)
 
 # Link settings for Widevine
 ifeq ($(WIDEVINE_SUPPORT),y)
@@ -140,11 +147,7 @@ LDFLAGS += $(PROTOBUF_LDFLAGS) $(GTEST_LDFLAGS)
 endif
 
 # Link settings for Playready 2.5
-ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
-PREBLT_LIB_SUFFIX := 64
-endif
 ifeq ($(SAGE_SUPPORT),y)
-#LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm_tl
 LDFLAGS += -lplayreadypk$(PREBLT_LIB_SUFFIX)_host
 else
 LDFLAGS += -lplayreadypk

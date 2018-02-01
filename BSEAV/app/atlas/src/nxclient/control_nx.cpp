@@ -210,6 +210,8 @@ eRet CControlNx::showPip(bool bShow)
 
     if (_pModel->getPipState() == bShow)
     {
+        /* this will generate a necessary pip change notification even though nothing changed */
+        _pModel->setPipState(bShow);
         return(ret);
     }
 
@@ -252,23 +254,33 @@ eRet CControlNx::showPip(bool bShow)
             }
         }
 
-        /* start audio fade at 0 for the decimated window. after showing, decimated window audio will
+#if BDSP_MS12_SUPPORT
+        /* start audio fade at 1 for the decimated window. after showing, decimated window audio will
            then rise up to the requested level */
         {
             CSimpleAudioDecode * pAudioDecode = _pModel->getSimpleAudioDecode(_pModel->getPipScreenWindowType());
             if (NULL != pAudioDecode)
             {
-                BDBG_MSG(("set audio fade to 0 for decode:%d (PIP)", pAudioDecode->getNumber()));
-                /* set decimated window audio fade to 0 */
-                pAudioDecode->setAudioFade(0, 3);
+                /* we are showing pip so start it's fade level at 1% so we can ramp up
+                   the volume level gradually once audio source changed notification occurs */
+                pAudioDecode->setAudioFadeStartLevel(1);
             }
         }
+#endif
     }
     else
     {
         /* hide pip */
 
+#if BDSP_MS12_SUPPORT
         setAudioFade(false);
+
+        if (false == GET_BOOL(_pCfg, EXIT_APPLICATION))
+        {
+            CSimpleAudioDecode * pAudioDecode = _pModel->getSimpleAudioDecode(_pModel->getPipScreenWindowType());
+            waitAudioFadeComplete(pAudioDecode);
+        }
+#endif
 
         eMode mode = _pModel->getMode(pipWinType);
 
@@ -364,8 +376,10 @@ eRet CControlNx::swapPip()
     nerror = NxClient_Reconfig(&reconfigSettings);
     CHECK_NEXUS_ERROR_GOTO("unable to swap pip windows", ret, nerror, error);
 
+#if BDSP_MS12_SUPPORT
     /* if we have dual audio decoders, and if pip is visible, fade main/pip audio */
     setAudioFade(_pModel->getPipState());
+#endif
 
 error:
     /* notify that pip state has changed - no actual change in pip state value */
@@ -808,6 +822,7 @@ eRet CControlNx::setWindowGeometry()
     /* setVideoWindGeometry will give you the correct error messages */
     return(ret);
 }
+
 #if BDSP_MS12_SUPPORT
 /* if we have dual audio decoders, set master/mixing mode */
 void CControlNx::setMixingMode(eWindowType windowType, NEXUS_AudioDecoderMixingMode mixingMode)
@@ -834,42 +849,51 @@ void CControlNx::setMixingMode(eWindowType windowType, NEXUS_AudioDecoderMixingM
     //pAudioDecode->setMaster((eWindowType_Main == windowType) ? true : false);
     pAudioDecode->setMixingMode(mixingMode);
 }
+#endif
 
-/* if we have dual audio decoders, set audio fade */
-void CControlNx::setAudioFade(bool bPipState)
+#if BDSP_MS12_SUPPORT
+void CControlNx::setAudioFade(CSimpleAudioDecode * pAudioDecode, bool bPipState)
 {
-    int duration       = GET_INT(_pCfg, AUDIO_DECODER_FADE_DURATION);
-    int levelFull      = GET_INT(_pCfg, AUDIO_DECODER_FADE_LEVEL_FULL);
-    int levelDecimated = GET_INT(_pCfg, AUDIO_DECODER_FADE_LEVEL_DECIMATED);
-    int level          = 100;
+    CSimpleAudioDecode * pAudioDecodeFull = _pModel->getSimpleAudioDecode(_pModel->getFullScreenWindowType());
+    CSimpleAudioDecode * pAudioDecodeDecimated = _pModel->getSimpleAudioDecode(_pModel->getPipScreenWindowType());
+    int  duration       = GET_INT(_pCfg, AUDIO_DECODER_FADE_DURATION);
+    int  levelFull      = (true == bPipState) ? GET_INT(_pCfg, AUDIO_DECODER_FADE_LEVEL_FULL) : 100;
+    int  levelDecimated = GET_INT(_pCfg, AUDIO_DECODER_FADE_LEVEL_DECIMATED);
+    eRet ret            = eRet_Ok;
+
+    if ((NULL == pAudioDecode) || (NULL == pAudioDecodeFull) || (NULL == pAudioDecodeDecimated))
+    {
+        return;
+    }
+
+    if (pAudioDecode == pAudioDecodeFull)
+    {
+        ret = pAudioDecodeFull->setAudioFade(levelFull, duration);
+        CHECK_WARN("error setting MAIN audio fade", ret);
+    }
+    else
+    {
+        ret = pAudioDecodeDecimated->setAudioFade(levelDecimated, duration);
+        CHECK_WARN("error setting PIP audio fade", ret);
+    }
+}
+#endif
+#if BDSP_MS12_SUPPORT
+/* if we have dual audio decoders, set audio fade. returns eRet_NotSupported if no change was made. */
+eRet CControlNx::setAudioFade(bool bPipState)
+{
+    int  duration       = GET_INT(_pCfg, AUDIO_DECODER_FADE_DURATION);
+    int  levelFull      = GET_INT(_pCfg, AUDIO_DECODER_FADE_LEVEL_FULL);
+    int  levelDecimated = GET_INT(_pCfg, AUDIO_DECODER_FADE_LEVEL_DECIMATED);
+    int  level          = 100;
+    eRet ret            = eRet_NotSupported;
 
     CSimpleAudioDecode * pAudioDecodeMain = _pModel->getSimpleAudioDecode(eWindowType_Main);
     CSimpleAudioDecode * pAudioDecodePip  = _pModel->getSimpleAudioDecode(eWindowType_Pip);
 
     if ((NULL == pAudioDecodeMain) || (NULL == pAudioDecodePip))
     {
-        return;
-    }
-
-    /* make sure any previous audio fade setting has completed before continuing.
-       note that this will really only work after simple audio decode has started. */
-    {
-        NEXUS_SimpleAudioDecoderSettings settings;
-        eRet ret = eRet_Ok;
-
-        NEXUS_SimpleAudioDecoder_GetSettings(pAudioDecodeMain->getSimpleDecoder(), &settings);
-        if (true == settings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.connected)
-        {
-            ret = pAudioDecodeMain->waitAudioFadeComplete();
-            CHECK_ERROR("timeout waiting for previous audio fade to complete on main decoder", ret);
-        }
-
-        NEXUS_SimpleAudioDecoder_GetSettings(pAudioDecodePip->getSimpleDecoder(), &settings);
-        if (true == settings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.connected)
-        {
-            ret = pAudioDecodePip->waitAudioFadeComplete();
-            CHECK_ERROR("timeout waiting for previous audio fade to complete on pip decoder", ret);
-        }
+        return(ret);
     }
 
     if (true == bPipState)
@@ -882,7 +906,33 @@ void CControlNx::setAudioFade(bool bPipState)
     }
 
     BDBG_MSG(("set audio fade main:%d pip:%d", level, 100-level));
-    pAudioDecodeMain->setAudioFade(level, duration);
-    pAudioDecodePip->setAudioFade(100 - level, duration);
+    ret = pAudioDecodeMain->setAudioFade(level, duration);
+    CHECK_WARN("error setting MAIN audio fade", ret);
+    ret = pAudioDecodePip->setAudioFade(100 - level, duration);
+    CHECK_WARN("error setting PIP audio fade", ret);
+
+    return(ret);
+}
+#endif
+#if BDSP_MS12_SUPPORT
+void CControlNx::waitAudioFadeComplete(CSimpleAudioDecode * pAudioDecode)
+{
+    NEXUS_SimpleAudioDecoderSettings settings;
+    eRet ret = eRet_Ok;
+
+    if (NULL == pAudioDecode)
+    {
+        return;
+    }
+
+    NEXUS_SimpleAudioDecoder_GetSettings(pAudioDecode->getSimpleDecoder(), &settings);
+    if (true == settings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.connected)
+    {
+        ret = pAudioDecode->waitAudioFadeComplete();
+        CHECK_ERROR("timeout waiting for previous audio fade to complete on decoder", ret);
+    }
+
+error:
+    return;
 }
 #endif

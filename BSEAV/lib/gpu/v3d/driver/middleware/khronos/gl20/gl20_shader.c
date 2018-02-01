@@ -62,15 +62,12 @@ static char *copy_source_string(const char *string, int length)
    return str;
 }
 
-void gl20_shader_term(MEM_HANDLE_T handle)
+void gl20_shader_term(void *p)
 {
-   GL20_SHADER_T *shader = (GL20_SHADER_T *)mem_lock(handle, NULL);
-
+   GL20_SHADER_T *shader = p;
    gl20_shader_free_source(shader);
    free(shader->info_log);
    shader->info_log = NULL;
-
-   mem_unlock(handle);
 }
 
 void gl20_shader_acquire(GL20_SHADER_T *shader)

@@ -155,7 +155,8 @@ static void BVC5_P_ProcessInterrupt(
       {
          BVC5_P_InternalJob  *pRenderJob = pJob->jobData.sBin.psInternalRenderJob;
          BVC5_BinBlockHandle  pBlock;
-         uint32_t             uiPhysOffset = 0;
+         uint64_t             uiPhysical = 0;
+         uint32_t             uiBinAddr = 0;
 
          /* TODO -- bin only jobs won't currently work as they require somewhere to store memory           */
          /* One way to work around this would be to issue a dummy associated render job with no work in it */
@@ -167,7 +168,7 @@ static void BVC5_P_ProcessInterrupt(
 
          BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_BIN_OOMS, 1);
 
-         pBlock = BVC5_P_BinMemArrayAdd(&pRenderJob->jobData.sRender.sBinMemArray, 0, &uiPhysOffset);
+         pBlock = BVC5_P_BinMemArrayAdd(&pRenderJob->jobData.sRender.sBinMemArray, 0, &uiPhysical);
 
          if (pBlock == NULL)
          {
@@ -175,7 +176,7 @@ static void BVC5_P_ProcessInterrupt(
                and let it run to completion on that instead.
              */
             pBlock = BVC5_P_BinMemArrayGetBlock(&pRenderJob->jobData.sRender.sBinMemArray, 0);
-            uiPhysOffset = BVC5_P_BinBlockGetPhysical(pBlock);
+            uiPhysical = BVC5_P_BinBlockGetPhysical(pBlock);
 
             pJob->eStatus = BVC5_JobStatus_eOUT_OF_MEMORY;
 
@@ -186,10 +187,19 @@ static void BVC5_P_ProcessInterrupt(
 
          /* Translate to fixed MMU virtual mapping of Nexus heap */
          if (pJob->pBase->uiPagetablePhysAddr != 0)
-            uiPhysOffset = BVC5_P_TranslateBinAddress(hVC5, uiPhysOffset, pJob->pBase->bSecure);
+         {
+            uiBinAddr = BVC5_P_TranslateBinAddress(hVC5, uiPhysical, pJob->pBase->bSecure);
+         }
+         else
+         {
+            if ((uiPhysical >> 32) == 0)
+               uiBinAddr = (uint32_t)(uiPhysical & 0xffffffff);
+            else
+               BKNI_Fail();
+         }
 
          /* TODO: which core for multi-core */
-         BVC5_P_HardwareSupplyBinner(hVC5, uiCoreIndex, uiPhysOffset, pBlock->uiNumBytes);
+         BVC5_P_HardwareSupplyBinner(hVC5, uiCoreIndex, uiBinAddr, pBlock->uiNumBytes);
 
          /* Now the hardware is happy, prepare some more memory for next time */
          BVC5_P_BinMemArrayReplenishPool(&pRenderJob->jobData.sRender.sBinMemArray);

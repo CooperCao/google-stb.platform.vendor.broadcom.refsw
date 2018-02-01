@@ -44,6 +44,9 @@
 
 BDBG_MODULE(BV3D);
 
+/* 7255: ignore until 64bit issues addressed properly */
+#pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
+
 /***************************************************************************/
 bool BV3D_P_InstructionIsClear(
    const BV3D_Instruction *psInstruction

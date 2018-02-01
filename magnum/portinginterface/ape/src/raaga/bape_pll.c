@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1192,6 +1192,9 @@ BERR_Code BAPE_Pll_EnableExternalMclk(
         }
     }
 #endif
+    handle->extMclkSettings[mclkIndex].enabled = true;
+    handle->extMclkSettings[mclkIndex].pll = pll;
+    handle->extMclkSettings[mclkIndex].mclkRate = mclkRate;
 
     return(BERR_SUCCESS);
     
@@ -1201,6 +1204,7 @@ BERR_Code BAPE_Pll_P_ResumeFromStandby(BAPE_Handle bapeHandle)
 {
     BERR_Code   errCode = BERR_SUCCESS;
     unsigned    pllIndex;
+    unsigned    extMclkIndex;
 
     BDBG_OBJECT_ASSERT(bapeHandle, BAPE_Device);
 
@@ -1219,6 +1223,16 @@ BERR_Code BAPE_Pll_P_ResumeFromStandby(BAPE_Handle bapeHandle)
             BKNI_EnterCriticalSection();
                 errCode = BAPE_P_SetPllFreq_isr( bapeHandle, pllIndex, pPll->baseSampleRate );
             BKNI_LeaveCriticalSection();
+            if ( errCode ) return BERR_TRACE(errCode);
+        }
+    }
+
+    for (extMclkIndex = 0; extMclkIndex < BAPE_CHIP_MAX_EXT_MCLKS; extMclkIndex++) {
+        if (bapeHandle->extMclkSettings[extMclkIndex].enabled) {
+            errCode = BAPE_Pll_EnableExternalMclk(bapeHandle,
+                                                  bapeHandle->extMclkSettings[extMclkIndex].pll,
+                                                  extMclkIndex,
+                                                  bapeHandle->extMclkSettings[extMclkIndex].mclkRate);
             if ( errCode ) return BERR_TRACE(errCode);
         }
     }

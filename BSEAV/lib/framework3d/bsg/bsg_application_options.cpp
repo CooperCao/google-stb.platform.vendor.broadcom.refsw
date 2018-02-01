@@ -20,7 +20,6 @@ void ApplicationOptions::AddDefaultPath(const std::string &path)
 ApplicationOptions::ApplicationOptions() :
    m_useMultisample(false),
    m_stretchToFit(false),
-   m_usePreservingSwap(false),
    m_renderToPixmap(false),
    m_showFps(false),
    m_showDevHUD(false),
@@ -318,9 +317,6 @@ bool ApplicationOptions::ProcessArg(char *arg)
    if (FlagMatch(&m_useMultisample, arg, "m"))
       return true;
 
-   if (FlagMatch(&m_usePreservingSwap, arg, "p"))
-      return true;
-
    if (FlagMatch(&m_stretchToFit, arg, "s"))
       return true;
 
@@ -539,7 +535,6 @@ void ApplicationOptions::PrintUsage(const char *progName, const char *badArg, Ar
    fprintf(stderr,
       "Usage: %s options\n"
       "+m                 use multi-sampling\n"
-      "+p                 preserve during swap\n"
       "+s                 stretch to fit display panel\n"
       "d=WWWxHHH          set window size (WWW, HHH > 0)\n"
       "o=XXXxYYY          set window origin\n"

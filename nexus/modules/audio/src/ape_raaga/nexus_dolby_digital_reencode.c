@@ -85,6 +85,7 @@ void NEXUS_DolbyDigitalReencode_GetDefaultSettings(
     BDBG_CASSERT((int)NEXUS_AudioDecoderDualMonoMode_eMax == (int)BAPE_DualMonoMode_eMax);
     pSettings->multichannelFormat = (piSettings.multichannelFormat == BAPE_MultichannelFormat_e7_1) ? NEXUS_AudioMultichannelFormat_e7_1 : NEXUS_AudioMultichannelFormat_e5_1;
     pSettings->fixedEncoderFormat = piSettings.fixedEncoderFormat;
+    pSettings->fixedAtmosOutput = piSettings.fixedAtmosOutput;
 }
 
 NEXUS_DolbyDigitalReencodeHandle NEXUS_DolbyDigitalReencode_Open(
@@ -121,7 +122,7 @@ NEXUS_DolbyDigitalReencodeHandle NEXUS_DolbyDigitalReencode_Open(
     BKNI_Snprintf(handle->name, sizeof(handle->name), "DDRE");
 
     BAPE_DolbyDigitalReencode_GetDefaultSettings(&piSettings);
-    if ( g_NEXUS_audioModuleData.armHandle && !NEXUS_GetEnv("disable_arm_audio") )
+    if ( g_NEXUS_audioModuleData.armHandle && g_NEXUS_audioModuleData.dspHandle && !NEXUS_GetEnv("disable_arm_audio") )
     {
         piSettings.encoderDeviceIndex = BAPE_DEVICE_ARM_FIRST;
         piSettings.encoderMixerRequired = false;
@@ -134,6 +135,8 @@ NEXUS_DolbyDigitalReencodeHandle NEXUS_DolbyDigitalReencode_Open(
         piSettings.encoderTaskRequired = true;
     }
 
+    BDBG_MSG(("devIndex %d, mixerReq %d, taskReq %d", (int)piSettings.encoderDeviceIndex, (int)piSettings.encoderMixerRequired, (int)piSettings.encoderTaskRequired ));
+
     if ( pSettings->multichannelFormat == NEXUS_AudioMultichannelFormat_e7_1 )
     {
         piSettings.multichannelFormat = BAPE_MultichannelFormat_e7_1;
@@ -143,6 +146,7 @@ NEXUS_DolbyDigitalReencodeHandle NEXUS_DolbyDigitalReencode_Open(
         piSettings.multichannelFormat = BAPE_MultichannelFormat_e5_1;
     }
     piSettings.fixedEncoderFormat = pSettings->fixedEncoderFormat;
+    piSettings.fixedAtmosOutput = pSettings->fixedAtmosOutput;
     errCode = BAPE_DolbyDigitalReencode_Create(NEXUS_AUDIO_DEVICE_HANDLE, &piSettings, &handle->apeHandle);
     if ( errCode )
     {
@@ -303,6 +307,7 @@ NEXUS_Error NEXUS_DolbyDigitalReencode_SetSettings(
     piSettings.stereoMode = pSettings->stereoDownmixMode;
     piSettings.dualMonoMode = pSettings->dualMonoMode;
     piSettings.fixedEncoderFormat = pSettings->fixedEncoderFormat;
+    piSettings.fixedAtmosOutput = pSettings->fixedAtmosOutput;
     switch ( pSettings->stereoOutputMode )
     {
     default:

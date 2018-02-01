@@ -253,6 +253,8 @@ CBoardResources::CBoardResources()
     _mapResourceList[eBoardResource_decodeAudio] = (MAutoList <CResource> *)&_decodeAudioList;
     _simpleDecodeAudioList.clear();
     _mapResourceList[eBoardResource_simpleDecodeAudio] = (MAutoList <CResource> *)&_simpleDecodeAudioList;
+    _simplePcmPlaybackList.clear();
+    _mapResourceList[eBoardResource_simplePcmPlayback] = (MAutoList <CResource> *)&_simplePcmPlaybackList;
     _stcChannelList.clear();
     _mapResourceList[eBoardResource_stcChannel] = (MAutoList <CResource> *)&_stcChannelList;
     _pcmPlaybackList.clear();
@@ -411,6 +413,7 @@ void CBoardResources::clear()
     _pcmCaptureList.clear();
     _pcmPlaybackList.clear();
     _stcChannelList.clear();
+    _simplePcmPlaybackList.clear();
     _simpleDecodeAudioList.clear();
     _decodeAudioList.clear();
     _simpleDecodeVideoList.clear();
@@ -648,6 +651,15 @@ eRet CBoardResources::add(
             pSimpleAudioDecode = new CSimpleAudioDecode(name, (id && (id != i)) ? id : i, pCfg);
             BDBG_ASSERT(pSimpleAudioDecode);
             _simpleDecodeAudioList.add(pSimpleAudioDecode);
+        }
+        break;
+
+        case eBoardResource_simplePcmPlayback:
+        {
+            CSimplePcmPlayback * pSimpleAudioPlayback = NULL;
+            pSimpleAudioPlayback = new CSimplePcmPlayback(name, (id && (id != i)) ? id : i, pCfg);
+            BDBG_ASSERT(pSimpleAudioPlayback);
+            _simplePcmPlaybackList.add(pSimpleAudioPlayback);
         }
         break;
 
@@ -1479,6 +1491,8 @@ void CBoardResources::dump(bool bForce)
     dumpList((MList <CResource> *)&_simpleDecodeVideoList);
     BDBG_MSG(("decodes (simple audio):      %d", _simpleDecodeAudioList.total()));
     dumpList((MList <CResource> *)&_simpleDecodeAudioList);
+    BDBG_MSG(("playbacks (simple audio):    %d", _simplePcmPlaybackList.total()));
+    dumpList((MList <CResource> *)&_simplePcmPlaybackList);
     BDBG_MSG(("stc channels:                %d", _stcChannelList.total()));
     dumpList((MList <CResource> *)&_stcChannelList);
     BDBG_MSG(("PCM playbacks:               %d", _pcmPlaybackList.total()));

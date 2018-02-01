@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -66,6 +66,10 @@ typedef enum BVCE_DebugFifo_EntryType
    BVCE_DebugFifo_EntryType_eTrace1, /* VCE Function Trace 1 */
    BVCE_DebugFifo_EntryType_eCDBOffsets, /* CDB Offsets */
    BVCE_DebugFifo_EntryType_eITBOffsets, /* ITB Offsets */
+   BVCE_DebugFifo_EntryType_ePictureBufferEnqueue, /* VCE Picture Buffer Enqueue */
+   BVCE_DebugFifo_EntryType_ePictureBufferDequeue, /* VCE Picture Buffer Dequeue */
+   BVCE_DebugFifo_EntryType_ePictureBufferDropEnqueue, /* VCE Picture Buffer Drop Enqueue */
+   BVCE_DebugFifo_EntryType_ePictureBufferDropDequeue, /* VCE Picture Buffer Drop Dequeue */
 
    /* Add new enums ABOVE this line */
    BVCE_DebugFifo_EntryType_eMax

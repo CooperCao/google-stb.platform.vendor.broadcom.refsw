@@ -47,6 +47,11 @@
 #define _MAIL_API_H
 
 /************************* INCLUDES *****************************************************/
+#ifdef _HOST_
+#pragma GCC optimize "short-enums"
+#pragma pack(4)
+#endif
+
 #include "bbExtTestEngine.h"
 #ifdef MAILBOX_UNIT_TEST
 # include "bbExtMailboxUnitTest.h"
@@ -479,6 +484,11 @@ extern void RF4CE_Get_Diag_Req_Call(RF4CE_Diag_ReqDescr_t *request);
 extern void Mail_UartSendReq_Call(Mail_UartSendReqDescr_t *request);
 #endif
 #endif  // _HOST_   // MAILBOX_UNIT_TEST
+
+#ifdef _HOST_
+#pragma GCC optimize "no-short-enums"
+#pragma pack()
+#endif
 
 #endif /* _MAIL_API_H */
 

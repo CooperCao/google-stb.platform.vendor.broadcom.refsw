@@ -9,28 +9,31 @@ EXTERN_C_BEGIN
 
 typedef enum
 {
-   GFX_BUFFER_USAGE_NONE               = 0,
-   GFX_BUFFER_USAGE_V3D_TEXTURE        = (1u << 0),
-   GFX_BUFFER_USAGE_V3D_CUBEMAP        = (1u << 1), /* Must also specify V3D_TEXTURE */
-   GFX_BUFFER_USAGE_V3D_RENDER_TARGET  = (1u << 2),
-   GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL  = (1u << 3),
-   GFX_BUFFER_USAGE_YFLIP_IF_POSSIBLE  = (1u << 4),
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   GFX_BUFFER_USAGE_V3D_TLB_RAW        = (1u << 5) /* Must also specify V3D_RENDER_TARGET/V3D_DEPTH_STENCIL */
+   GFX_BUFFER_USAGE_NONE                = 0,
+   GFX_BUFFER_USAGE_V3D_TEXTURE         = (1u << 0),
+   GFX_BUFFER_USAGE_V3D_CUBEMAP         = (1u << 1), /* Must also specify V3D_TEXTURE */
+   GFX_BUFFER_USAGE_V3D_RENDER_TARGET   = (1u << 2),
+   GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL   = (1u << 3),
+   GFX_BUFFER_USAGE_YFLIP_IF_POSSIBLE   = (1u << 4),
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+   GFX_BUFFER_USAGE_V3D_TLB_RAW         = (1u << 5), /* Must also specify V3D_RENDER_TARGET/V3D_DEPTH_STENCIL */
 #endif
+   GFX_BUFFER_USAGE_M2MC                = (1u << 6), /* Compatibility with M2MC */
+   GFX_BUFFER_USAGE_M2MC_EVEN_UB_HEIGHT = (1u << 7)  /* Compatibility with M2MC limitation on 7260A0 */
 } gfx_buffer_usage_t;
 
 #define GFX_BUFFER_USAGE_V3D_TLB (        \
    GFX_BUFFER_USAGE_V3D_RENDER_TARGET |   \
    GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL)
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 #define GFX_BUFFER_USAGE_ALL (            \
    GFX_BUFFER_USAGE_V3D_TEXTURE |         \
    GFX_BUFFER_USAGE_V3D_CUBEMAP |         \
    GFX_BUFFER_USAGE_V3D_RENDER_TARGET |   \
    GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL |   \
-   GFX_BUFFER_USAGE_YFLIP_IF_POSSIBLE     \
+   GFX_BUFFER_USAGE_YFLIP_IF_POSSIBLE |   \
+   GFX_BUFFER_USAGE_M2MC                  \
    )
 #else
 #define GFX_BUFFER_USAGE_ALL (            \
@@ -39,7 +42,9 @@ typedef enum
    GFX_BUFFER_USAGE_V3D_RENDER_TARGET |   \
    GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL |   \
    GFX_BUFFER_USAGE_V3D_TLB_RAW |         \
-   GFX_BUFFER_USAGE_YFLIP_IF_POSSIBLE     \
+   GFX_BUFFER_USAGE_YFLIP_IF_POSSIBLE |   \
+   GFX_BUFFER_USAGE_M2MC |                \
+   GFX_BUFFER_USAGE_M2MC_EVEN_UB_HEIGHT   \
    )
 #endif
 

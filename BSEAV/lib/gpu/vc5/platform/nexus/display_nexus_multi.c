@@ -26,6 +26,7 @@ typedef struct display
 
    void                      *vsyncEvent;
    int                        terminating;
+   EventContext              *eventContext;
 } display;
 
 static void vsyncCallback(void *context, int param)
@@ -232,7 +233,8 @@ bool DisplayInterface_InitNexusMulti(DisplayInterface *di,
       const FenceInterface *fi,
       const NXPL_NativeWindowInfoEXT *windowInfo, NXPL_DisplayType displayType,
       unsigned int numSurfaces, uint32_t clientID,
-      NEXUS_SurfaceClientHandle surfaceClient)
+      NEXUS_SurfaceClientHandle surfaceClient,
+      EventContext *eventContext)
 {
    display *self = calloc(1, sizeof(*self));
    if (self)
@@ -246,6 +248,7 @@ bool DisplayInterface_InitNexusMulti(DisplayInterface *di,
       self->clientID = clientID;
       self->surfaceClient = surfaceClient;
       self->display = NULL;
+      self->eventContext = eventContext;
 
       /* setup the display & callback */
       self->vsyncEvent = CreateEvent();

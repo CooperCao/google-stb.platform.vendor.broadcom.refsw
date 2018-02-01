@@ -483,7 +483,7 @@ static int wlc_dump_chanim(wlc_info_t *wlc, struct bcmstrbuf *b);
 #endif /* WLCHANIM_DISABLED */
 
 static wlc_chanim_stats_t *wlc_lq_chanim_create_stats(wlc_info_t *wlc, chanspec_t chanspec);
-static int wlc_lq_chanim_get_stats(chanim_info_t *c_info, wl_chanim_stats_t* iob, int *len, int);
+static int wlc_lq_chanim_get_stats(chanim_info_t *c_info, void *iob, int *len, int);
 static wlc_chanim_stats_t *wlc_lq_chanim_find_stats(wlc_info_t *wlc, chanspec_t chanspec);
 static int wlc_lq_chanim_get_acs_record(chanim_info_t *c_info, int buf_len, void *output);
 static void wlc_lq_chanim_insert_stats(wlc_chanim_stats_t **rootp, wlc_chanim_stats_t *new);
@@ -1057,7 +1057,7 @@ wlc_lq_doiovar(void *hdl, uint32 actionid,
 
 	case IOV_GVAL(IOV_CHANIM_STATS): {
 		wl_chanim_stats_t input = *((wl_chanim_stats_t *)p);
-		wl_chanim_stats_t *iob = (wl_chanim_stats_t*) a;
+		void *iob = a;
 		int buflen;
 
 		if ((uint)alen < WL_CHANIM_STATS_FIXED_LEN) {
@@ -3572,17 +3572,28 @@ wlc_lq_chanim_get_acs_record(chanim_info_t *c_info, int buf_len, void *output)
 }
 
 static int
-wlc_lq_chanim_get_stats(chanim_info_t *c_info, wl_chanim_stats_t* iob, int *len, int cnt)
+wlc_lq_chanim_get_stats(chanim_info_t *c_info, void *iob, int *len, int cnt)
 {
 	uint32 count = 0;
 	uint32 datalen;
+	uint32 stats_size;
 	wlc_chanim_stats_t* stats = NULL;
 	int bcmerror = BCME_OK;
 	int buflen = *len;
 	wlc_chanim_stats_t cur_stats;
 
-	iob->version = WL_CHANIM_STATS_VERSION;
+	/* For STBAP_BISON, we convert chanim_stats from v3 structure to v2 structure */
+#ifdef STBAP_BISON
+	wl_chanim_stats_v2_t *iob_stats = (wl_chanim_stats_v2_t *)iob;
+	iob_stats->version = WL_CHANIM_STATS_V2;
+	datalen = WL_CHANIM_STATS_V2_FIXED_LEN;
+	stats_size = sizeof(chanim_stats_v2_t);
+#else
+	wl_chanim_stats_t *iob_stats = (wl_chanim_stats_t *)iob;
+	iob_stats->version = WL_CHANIM_STATS_VERSION;
 	datalen = WL_CHANIM_STATS_FIXED_LEN;
+	stats_size = sizeof(chanim_stats_t);
+#endif /* STBAP_BISON */
 
 	if (cnt == WL_CHANIM_COUNT_ALL)
 		stats = c_info->stats;
@@ -3604,26 +3615,39 @@ wlc_lq_chanim_get_stats(chanim_info_t *c_info, wl_chanim_stats_t* iob, int *len,
 	}
 
 	if (stats == NULL) {
-		memset(&iob->stats[0], 0, sizeof(chanim_stats_t));
+		memset(&iob_stats->stats[0], 0, stats_size);
 		count = 0;
 	} else {
 		while (stats) {
-			if (buflen < (int)sizeof(chanim_stats_t)) {
+			if (buflen < (int)stats_size) {
 				bcmerror = BCME_BUFTOOSHORT;
 				break;
 			}
-			bcopy(&stats->chanim_stats, &iob->stats[count],
-				sizeof(chanim_stats_t));
-
+#ifdef STBAP_BISON
+			/* copy the data from v3 structure to v2 structure. */
+			iob_stats->stats[count].glitchcnt = stats->chanim_stats.glitchcnt;
+			iob_stats->stats[count].badplcp = stats->chanim_stats.badplcp;
+			bcopy(&stats->chanim_stats.ccastats,
+				&iob_stats->stats[count].ccastats, CCASTATS_V2_MAX);
+			iob_stats->stats[count].bgnoise = stats->chanim_stats.bgnoise;
+			iob_stats->stats[count].chanspec = stats->chanim_stats.chanspec;
+			iob_stats->stats[count].timestamp = stats->chanim_stats.timestamp;
+			iob_stats->stats[count].bphy_glitchcnt = stats->chanim_stats.bphy_glitchcnt;
+			iob_stats->stats[count].bphy_badplcp = stats->chanim_stats.bphy_badplcp;
+			iob_stats->stats[count].chan_idle = stats->chanim_stats.chan_idle;
+#else
+			bcopy(&stats->chanim_stats, &iob_stats->stats[count],
+				stats_size);
+#endif /* STBAP_BISON */
 			count++;
 			stats = stats->next;
-			datalen += sizeof(chanim_stats_t);
-			buflen -= sizeof(chanim_stats_t);
+			datalen += stats_size;
+			buflen -= stats_size;
 		}
 	}
 
-	iob->count = count;
-	iob->buflen = datalen;
+	iob_stats->count = count;
+	iob_stats->buflen = datalen;
 
 	return bcmerror;
 }

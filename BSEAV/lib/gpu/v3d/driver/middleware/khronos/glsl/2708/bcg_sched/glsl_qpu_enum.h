@@ -39,7 +39,7 @@ typedef enum
    AOP_V8SUBS  = 31
 } AOP_Enum;
 
-static INLINE bool AOP_HasFloatInput(AOP_Enum e)
+static inline bool AOP_HasFloatInput(AOP_Enum e)
 {
    switch (e)
    {
@@ -69,7 +69,7 @@ typedef enum
    MOP_V8SUBS = 7
 } MOP_Enum;
 
-static INLINE bool MOP_HasFloatInput(MOP_Enum e)
+static inline bool MOP_HasFloatInput(MOP_Enum e)
 {
    return e == MOP_FMUL;
 }
@@ -116,7 +116,7 @@ typedef enum
    VirtualUnpack_8R
 } VirtualUnpack_Enum;
 
-static INLINE Unpack_Enum VirtualUnpack_RealUnpackCode(VirtualUnpack_Enum e)
+static inline Unpack_Enum VirtualUnpack_RealUnpackCode(VirtualUnpack_Enum e)
 {
    switch (e)
    {
@@ -138,7 +138,7 @@ static INLINE Unpack_Enum VirtualUnpack_RealUnpackCode(VirtualUnpack_Enum e)
    }
 }
 
-static INLINE bool VirtualUnpack_IsFloat(VirtualUnpack_Enum e)
+static inline bool VirtualUnpack_IsFloat(VirtualUnpack_Enum e)
 {
    switch (e)
    {
@@ -155,7 +155,7 @@ static INLINE bool VirtualUnpack_IsFloat(VirtualUnpack_Enum e)
    }
 }
 
-static INLINE bool VirtualUnpack_IsR4Compatible(VirtualUnpack_Enum e)
+static inline bool VirtualUnpack_IsR4Compatible(VirtualUnpack_Enum e)
 {
    switch (e)
    {
@@ -325,17 +325,17 @@ typedef enum
    Register_NUM_REGISTERS
 } Register_Enum;
 
-static INLINE bool Register_IsNormalReg(Register_Enum r)
+static inline bool Register_IsNormalReg(Register_Enum r)
 {
    return r <= Register_RB31;
 }
 
-static INLINE bool Register_IsNormalRegOrAcc(Register_Enum r)
+static inline bool Register_IsNormalRegOrAcc(Register_Enum r)
 {
    return r <= Register_ACC5;
 }
 
-static INLINE bool Register_IsReadOnly(Register_Enum r)
+static inline bool Register_IsReadOnly(Register_Enum r)
 {
    switch (r)
    {
@@ -362,12 +362,12 @@ static INLINE bool Register_IsReadOnly(Register_Enum r)
    return false;
 }
 
-static INLINE bool Register_IsAccumulator(Register_Enum r)
+static inline bool Register_IsAccumulator(Register_Enum r)
 {
    return r >= Register_ACC0 && r <= Register_ACC5;
 }
 
-static INLINE uint8_t Register_GetCode(Register_Enum r)
+static inline uint8_t Register_GetCode(Register_Enum r)
 {
    if (r <= Register_RA31)
       return r;
@@ -494,7 +494,7 @@ static INLINE uint8_t Register_GetCode(Register_Enum r)
    return 0;
 }
 
-static INLINE Register_File Register_GetFile(Register_Enum r)
+static inline Register_File Register_GetFile(Register_Enum r)
 {
    if (r <= Register_RA31)
       return Register_FILE_A;
@@ -565,7 +565,7 @@ static INLINE Register_File Register_GetFile(Register_Enum r)
    }
 }
 
-static INLINE bool Register_IsRefCounted(Register_Enum r)
+static inline bool Register_IsRefCounted(Register_Enum r)
 {
    if (r <= Register_ACC5)
       return true;
@@ -625,7 +625,7 @@ static INLINE bool Register_IsRefCounted(Register_Enum r)
    }
 }
 
-static INLINE int32_t Register_ReadLatency(Register_Enum r)
+static inline int32_t Register_ReadLatency(Register_Enum r)
 {
    if (r <= Register_RA31)
       return 2;
@@ -639,7 +639,7 @@ static INLINE int32_t Register_ReadLatency(Register_Enum r)
    return 1;
 }
 
-static INLINE bool Register_IsMutuallyExclusiveOnWrite(Register_Enum r)
+static inline bool Register_IsMutuallyExclusiveOnWrite(Register_Enum r)
 {
    switch (r)
    {
@@ -671,7 +671,7 @@ static INLINE bool Register_IsMutuallyExclusiveOnWrite(Register_Enum r)
    }
 }
 
-static INLINE bool Register_IsSelfExclusiveRead(Register_Enum r)
+static inline bool Register_IsSelfExclusiveRead(Register_Enum r)
 {
    switch (r)
    {
@@ -686,7 +686,7 @@ static INLINE bool Register_IsSelfExclusiveRead(Register_Enum r)
    }
 }
 
-static INLINE Register_Mode Register_GetMode(Register_Enum r)
+static inline Register_Mode Register_GetMode(Register_Enum r)
 {
    if (r <= Register_RB31)
       return Register_READ_WRITE;
@@ -750,7 +750,7 @@ static INLINE Register_Mode Register_GetMode(Register_Enum r)
    }
 }
 
-static INLINE InputMux_Enum Register_GetInputMux(Register_Enum r)
+static inline InputMux_Enum Register_GetInputMux(Register_Enum r)
 {
    if (r >= Register_RA0 && r <= Register_RA31)
       return InputMux_REGA;
@@ -772,7 +772,7 @@ static INLINE InputMux_Enum Register_GetInputMux(Register_Enum r)
    }
 }
 
-static INLINE bool Register_IsTMUSetupWrite(Register_Enum r)
+static inline bool Register_IsTMUSetupWrite(Register_Enum r)
 {
    switch (r)
    {
@@ -808,7 +808,7 @@ typedef enum
    Sig_LDALPHA  = 12
  } Sig_Enum;
 
-static INLINE bool Sig_ClashesWith(Sig_Enum sig, Register_Enum r)
+static inline bool Sig_ClashesWith(Sig_Enum sig, Register_Enum r)
 {
    if (r == Register_VPM_WRITE) // Exclude this from the IsMutuallyExclusiveOnWrite test
       return false;

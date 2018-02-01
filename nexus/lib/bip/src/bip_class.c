@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -200,6 +200,7 @@ BIP_Status BIP_Class_P_LockAndCheckInstance(BIP_Class *pDesc, const char *pClass
     BIP_Status            rc = BIP_SUCCESS;
     BIP_ClassInstance    *pCheck;
 
+    BDBG_MSG((BIP_MSG_PRE_FMT "ClassName=%s Requested by %s:%u\n" BIP_MSG_PRE_ARG, pClassName, pFilename, lineNumber ));
     /* Lock the class mutex to protect the object list during navigation. */
     if (pDesc->hClassMutex == NULL)
     {
@@ -236,6 +237,7 @@ BIP_Status BIP_Class_P_LockAndCheckInstance(BIP_Class *pDesc, const char *pClass
     /* If successful, return to caller with the class lock held.
      * Caller will call BIP_CLASS_UNLOCK() to release it.  */
     /* coverity[missing_unlock] */
+    BDBG_MSG((BIP_MSG_PRE_FMT "ClassName=%s Locked by %s:%u\n" BIP_MSG_PRE_ARG, pClassName, pFilename, lineNumber ));
     return(rc);
 }
 
@@ -250,6 +252,7 @@ BIP_Status BIP_Class_P_Unlock(BIP_Class *pDesc, const char *pClassName, void *pO
 
     B_MUTEX_ASSERT_LOCKED(pDesc->hClassMutex);
 
+    BDBG_MSG((BIP_MSG_PRE_FMT "ClassName=%s Unlocked by %s:%u\n" BIP_MSG_PRE_ARG, pClassName, pFilename, lineNumber ));
     B_Mutex_Unlock(pDesc->hClassMutex);
 
     return(rc);

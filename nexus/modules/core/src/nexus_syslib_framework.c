@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 
@@ -94,7 +86,7 @@ struct NEXUS_SYSlib_Timer {
     BSYSlib_Timer_Settings settings;
 };
 
-BERR_Code NEXUS_SYSlib_P_GetTime_isr(void * pvParm1, int iParm2, unsigned long * pulNow)
+void NEXUS_SYSlib_P_GetTime_isr(void * pvParm1, int iParm2, unsigned long * pulNow)
 {
     NEXUS_Time now;
     /* these statics are not affected by module synchronization */
@@ -109,7 +101,7 @@ BERR_Code NEXUS_SYSlib_P_GetTime_isr(void * pvParm1, int iParm2, unsigned long *
     }
     NEXUS_Time_Get(&now);
     *pulNow = NEXUS_Time_Diff(&now, &beginning);
-    return 0;
+    return;
 }
 
 BERR_Code NEXUS_SYSlib_P_CreateTimer(void * pvParm1, int iParm2, BSYSlib_Timer_Handle *phTimer)
@@ -176,7 +168,7 @@ static void NEXUS_SYSlib_P_TimerHandler(void *context)
     }
 }
 
-BERR_Code NEXUS_SYSlib_P_CancelTimer_isr(void * pvParm1, int iParm2, BSYSlib_Timer_Handle hTimer)
+void NEXUS_SYSlib_P_CancelTimer_isr(void * pvParm1, int iParm2, BSYSlib_Timer_Handle hTimer)
 {
     struct NEXUS_SYSlib_Timer *pTimer = (struct NEXUS_SYSlib_Timer *)hTimer;
     BSTD_UNUSED(pvParm1);
@@ -184,7 +176,7 @@ BERR_Code NEXUS_SYSlib_P_CancelTimer_isr(void * pvParm1, int iParm2, BSYSlib_Tim
     /* can't cancel with nexus at isr time, so just wipe out the callback */
     pTimer->settings.pfTimerExpired = NULL;
     BDBG_MSG(("cancel timer %p", (void *)pTimer));
-    return 0;
+    return;
 }
 
 void NEXUS_SYSlib_GetDefaultContextSettings_priv(
@@ -256,9 +248,8 @@ void NEXUS_SYSlib_P_Test()
         BDBG_ASSERT(!rc);
         BKNI_Sleep(2000);
         BKNI_EnterCriticalSection();
-        rc = NEXUS_SYSlib_P_CancelTimer_isr(NULL, 2, timer);
+        NEXUS_SYSlib_P_CancelTimer_isr(NULL, 2, timer);
         BKNI_LeaveCriticalSection();
-        BDBG_ASSERT(!rc);
 
         settings.ulTimeout = 5000;
         BKNI_EnterCriticalSection();
@@ -267,9 +258,8 @@ void NEXUS_SYSlib_P_Test()
         BDBG_ASSERT(!rc);
         BKNI_Sleep(2000);
         BKNI_EnterCriticalSection();
-        rc = NEXUS_SYSlib_P_CancelTimer_isr(NULL, 2, timer);
+        NEXUS_SYSlib_P_CancelTimer_isr(NULL, 2, timer);
         BKNI_LeaveCriticalSection();
-        BDBG_ASSERT(!rc);
     }
 
     NEXUS_SYSlib_P_DestroyTimer(NULL, 1, timer);

@@ -85,6 +85,24 @@ void NxClient_GetDefaultJoinSettings(NxClient_JoinSettings *pSettings)
     }
     pSettings->mode = NEXUS_ClientMode_eProtected;
     if (password) {
+        const char *colon = strchr(password,':');
+        if (colon) {
+            char buf[128];
+            unsigned n = colon - password;
+            memset(buf, 0, sizeof(buf));
+            if (n > sizeof(buf)) n = sizeof(buf);
+            strncpy(buf, password, n);
+            if (nxclient_p_parse_password_file(buf, &pSettings->certificate)) {
+                /* try the next */
+                password = colon+1;
+           }
+           else {
+                pSettings->mode = NEXUS_ClientMode_eVerified;
+                password = NULL;
+           }
+        }
+    }
+    if (password) {
         if (nxclient_p_parse_password_file(password, &pSettings->certificate)) {
            pSettings->mode = NEXUS_ClientMode_eUntrusted;
         } else {
@@ -164,6 +182,9 @@ static void *nxclient_p_callback_thread(void *context)
             }
             if (g_callbackThread.settings.audioSettingsChanged.callback && status.audioSettingsChanged != g_callbackThread.lastStatus.audioSettingsChanged) {
                 (g_callbackThread.settings.audioSettingsChanged.callback)(g_callbackThread.settings.audioSettingsChanged.context, g_callbackThread.settings.audioSettingsChanged.param);
+            }
+            if (g_callbackThread.settings.coolingAgentChanged.callback && status.coolingAgentChanged != g_callbackThread.lastStatus.coolingAgentChanged) {
+                (g_callbackThread.settings.coolingAgentChanged.callback)(g_callbackThread.settings.coolingAgentChanged.context, g_callbackThread.settings.coolingAgentChanged.param);
             }
             g_callbackThread.lastStatus = status;
         }

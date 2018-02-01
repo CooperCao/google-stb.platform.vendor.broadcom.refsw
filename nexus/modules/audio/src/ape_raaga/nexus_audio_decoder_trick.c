@@ -72,6 +72,7 @@ NEXUS_Error NEXUS_AudioDecoder_SetTrickState(
     bool stopForTrick = false;
     bool dsola = false;
     bool wasDsola = false;
+    bool muteForTrick = false;
 
     /* actions to take */
     bool stop = false;
@@ -147,9 +148,16 @@ NEXUS_Error NEXUS_AudioDecoder_SetTrickState(
 
     if (trick)
     {
-        if (pTrickState->rate <= NEXUS_AUDIO_DECODER_P_MAX_DSOLA_RATE && !pause && !dspMixerAttached)
+        if (g_NEXUS_audioModuleData.capabilities.dsp.decodeRateControl && !dspMixerAttached)
         {
-            dsola = true;
+            if (pTrickState->rate <= NEXUS_AUDIO_DECODER_P_MAX_DSOLA_RATE && !pause)
+            {
+                dsola = true;
+            }
+        }
+        if (!dsola)
+        {
+            muteForTrick = true;
         }
     }
 
@@ -245,8 +253,8 @@ NEXUS_Error NEXUS_AudioDecoder_SetTrickState(
     oldState = decoder->trickState;
     decoder->trickState = *pTrickState;
 
-    /* If we are attempting trickplay and a DSP Mixer is attached we need to mute */
-    if (trick && dspMixerAttached)
+    /* If we are attempting trickplay and we cannot run DSOLA we need to mute */
+    if (trick && muteForTrick)
     {
         decoder->trickState.muted = true;
     }

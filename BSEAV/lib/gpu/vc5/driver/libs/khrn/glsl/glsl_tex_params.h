@@ -3,7 +3,7 @@
  ******************************************************************************/
 #pragma once
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 static inline uint32_t backend_uniform_get_sampler(uint32_t u) {
    return (u >> 4);
@@ -86,4 +86,4 @@ static inline uint32_t backend_uniform_get_extra_param1(uint32_t u) {
    return backend_uniform_get_extra(u) & GLSL_TEXPARAM1_WORD_READ_MASK;
 }
 
-#endif // V3D_VER_AT_LEAST(4,0,2,0)
+#endif // V3D_VER_AT_LEAST(4,1,34,0)

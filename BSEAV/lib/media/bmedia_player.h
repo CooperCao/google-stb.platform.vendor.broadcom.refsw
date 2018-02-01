@@ -93,7 +93,7 @@ Summary:
 Summary:
  Max size of block to send to playback. Truncate any blocks larger than that size.
 **/
-#define BMEDIA_PLAYER_MAX_BLOCK (4*1024*1024)
+#define BMEDIA_PLAYER_MAX_BLOCK (8*1024*1024)
 
 
 /**

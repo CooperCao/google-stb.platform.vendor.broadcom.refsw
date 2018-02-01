@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -293,13 +293,11 @@ void BSYNClib_Channel_P_Destroy(
 syslib framework stuff
  *******************************************/
 
-BERR_Code BSYNClib_Channel_P_CancelTimer_isr(
+void BSYNClib_Channel_P_CancelTimer_isr(
 	BSYNClib_Channel_Handle hChn,
 	BSYNClib_Timer * psTimer
 )
 {
-	BERR_Code rc = BERR_SUCCESS;
-
 	BDBG_ENTER(BSYNClib_Channel_P_CancelTimer_isr);
 
 	BDBG_ASSERT(hChn);
@@ -309,23 +307,16 @@ BERR_Code BSYNClib_Channel_P_CancelTimer_isr(
 	{
 		if (hChn->sSettings.cbTimer.pfCancel_isr)
 		{
-			rc = hChn->sSettings.cbTimer.pfCancel_isr(
+			hChn->sSettings.cbTimer.pfCancel_isr(
 				hChn->sSettings.cbTimer.pvParm1,
 				hChn->sSettings.cbTimer.iParm2,
 				psTimer->hTimer);
-			if (rc) goto error;
 		}
 		psTimer->bScheduled = false;
 	}
 
-	goto end;
-
-	error:
-
-	end:
-
 	BDBG_LEAVE(BSYNClib_Channel_P_CancelTimer_isr);
-	return rc;
+	return;
 }
 
 BERR_Code BSYNClib_Channel_P_StartTimer_isr(
@@ -359,8 +350,7 @@ BERR_Code BSYNClib_Channel_P_StartTimer_isr(
 		iParm2 = hChn->sSettings.cbTimer.iParm2;
 
 		/* clean up old timer if any */
-		rc = BSYNClib_Channel_P_CancelTimer_isr(hChn, psTimer);
-		if (rc) goto error;
+		BSYNClib_Channel_P_CancelTimer_isr(hChn, psTimer);
 
 		/* reschedule timer */
 		rc = hChn->sSettings.cbTimer.pfStart_isr(pvParm1, iParm2, psTimer->hTimer, &sTimer);

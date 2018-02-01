@@ -31,41 +31,23 @@ constants that come from the hw
 misc stuff
 ******************************************************************************/
 
-static INLINE uint32_t khrn_hw_addr(const void *addr, MEM_LOCK_T *lbh)
+static inline uint32_t khrn_hw_addr(const void *addr, MEM_LOCK_T *lbh)
 {
-   uint32_t res;
-   if (khrn_options.use_mma)
-   {
-      /* just for debug */
-      if ((addr < lbh->p) || (addr >(void *)((uintptr_t)lbh->p + lbh->size)))
-         printf("address out of range for block %p, lbh->p %p, lbh->size %d lbh->name %s\n", addr, lbh->p, lbh->size, lbh->desc);
+   /* just for debug */
+   if ((addr < lbh->p) || (addr >(void *)((uintptr_t)lbh->p + lbh->size)))
+      printf("address out of range for block %p, lbh->p %p, lbh->size %d lbh->name %s\n", addr, lbh->p, lbh->size, lbh->desc);
 
-      res = lbh->offset + ((uintptr_t)addr - (uintptr_t)lbh->p);
-   }
-   else
-      res = mem_map_cached_to_physical((void*)addr);
-
-   return res;
+   return lbh->offset + ((uintptr_t)addr - (uintptr_t)lbh->p);
 }
 
-static INLINE void *khrn_hw_unaddr(uint32_t addr)
-{
-   void * addr_cached = mem_map_physical_to_cached(addr);
-   return addr_cached;
-}
-
-static INLINE void khrn_hw_flush_dcache(void) { mem_flush_cache(); }
-static INLINE void khrn_hw_flush_dcache_range(void *p, uint32_t size) { mem_flush_cache_range(p, size); }
-static INLINE void khrn_hw_flush_l1cache_range(void *p, uint32_t size) { UNUSED(p); UNUSED(size); }
-static INLINE void khrn_hw_invalidate_dcache_range(void *p, uint32_t size) { mem_flush_cache_range(p, size); }
-static INLINE void khrn_hw_invalidate_l1cache_range(void *p, uint32_t size) { UNUSED(p); UNUSED(size); }
+static inline void khrn_hw_flush_dcache_range(void *p, uint32_t size) { mem_flush_cache_range(p, size); }
 
 /******************************************************************************
 stuff for writing control lists
 ******************************************************************************/
 
 typedef uint64_t KHRN_SHADER_T;
-static INLINE uint8_t get_byte(const uint8_t *p)
+static inline uint8_t get_byte(const uint8_t *p)
 {
    #ifdef BIG_ENDIAN_CPU
       return ((uint8_t)*(uint8_t*)((uint32_t)&p[0]^0x3));
@@ -74,7 +56,7 @@ static INLINE uint8_t get_byte(const uint8_t *p)
    #endif
 }
 
-static INLINE uint16_t get_short(const uint8_t *p)
+static inline uint16_t get_short(const uint8_t *p)
 {
    #ifdef BIG_ENDIAN_CPU
       return ((uint16_t)*(uint8_t*)((uint32_t)&p[0]^0x3)) |
@@ -85,7 +67,7 @@ static INLINE uint16_t get_short(const uint8_t *p)
    #endif
 }
 
-static INLINE uint32_t get_word(const uint8_t *p)
+static inline uint32_t get_word(const uint8_t *p)
 {
    #ifdef BIG_ENDIAN_CPU
       return ((uint32_t)*(uint8_t*)((uint32_t)&p[0]^0x3)) |
@@ -100,7 +82,7 @@ static INLINE uint32_t get_word(const uint8_t *p)
    #endif
 }
 
-static INLINE void put_byte(uint8_t *p, uint8_t n)
+static inline void put_byte(uint8_t *p, uint8_t n)
 {
    #ifdef BIG_ENDIAN_CPU
       *(uint8_t*)((uint32_t)&p[0]^0x3) = n;
@@ -108,7 +90,7 @@ static INLINE void put_byte(uint8_t *p, uint8_t n)
       p[0] = n;
    #endif
 }
-static INLINE void put_short(uint8_t *p, uint16_t n)
+static inline void put_short(uint8_t *p, uint16_t n)
 {
    #ifdef BIG_ENDIAN_CPU
       *(uint8_t*)((uint32_t)&p[0]^0x3) = (uint8_t)n;
@@ -119,7 +101,7 @@ static INLINE void put_short(uint8_t *p, uint16_t n)
    #endif
 }
 
-static INLINE void put_word(uint8_t *p, uint32_t n)
+static inline void put_word(uint8_t *p, uint32_t n)
 {
    #ifdef BIG_ENDIAN_CPU
       *(uint8_t*)((uint32_t)&p[0]^0x3) = (uint8_t)n;
@@ -134,35 +116,35 @@ static INLINE void put_word(uint8_t *p, uint32_t n)
    #endif
 }
 
-static INLINE void put_float(uint8_t *p, float f)
+static inline void put_float(uint8_t *p, float f)
 {
    put_word(p, float_to_bits(f));
 }
 
-static INLINE void add_byte(uint8_t **p, uint8_t n)
+static inline void add_byte(uint8_t **p, uint8_t n)
 {
    put_byte(*p, n);
    (*p) += 1;
 }
 
-static INLINE void add_short(uint8_t **p, uint16_t n)
+static inline void add_short(uint8_t **p, uint16_t n)
 {
    put_short(*p, n);
    (*p) += 2;
 }
 
-static INLINE void add_word(uint8_t **p, uint32_t n)
+static inline void add_word(uint8_t **p, uint32_t n)
 {
    put_word(*p, n);
    (*p) += 4;
 }
 
-static INLINE void add_float(uint8_t **p, float f)
+static inline void add_float(uint8_t **p, float f)
 {
    add_word(p, float_to_bits(f));
 }
 
-static INLINE void add_pointer(uint8_t **p, void *ptr, MEM_LOCK_T *lbh)
+static inline void add_pointer(uint8_t **p, void *ptr, MEM_LOCK_T *lbh)
 {
    add_word(p, khrn_hw_addr(ptr, lbh));   //PTR
 }

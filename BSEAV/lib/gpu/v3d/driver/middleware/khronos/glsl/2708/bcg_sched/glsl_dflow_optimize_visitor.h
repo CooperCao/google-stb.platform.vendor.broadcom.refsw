@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
-#ifndef __GLSL_DFLOW_OPTIMIZE_VISITOR_H__
-#define __GLSL_DFLOW_OPTIMIZE_VISITOR_H__
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_dflow_visitor.h"
 #include "middleware/khronos/glsl/glsl_common.h"
@@ -26,9 +17,7 @@ typedef struct DFlowOptimizeVisitor_s
 void DFlowOptimizeVisitor_Constr(DFlowOptimizeVisitor *self, DFlowRecursionOptimizer *opt);
 void DFlowOptimizeVisitor_Visit(DFlowOptimizeVisitor *self, DFlowNode *node);
 
-static INLINE void DFlowOptimizeVisitor_Destr(DFlowOptimizeVisitor *self)
+static inline void DFlowOptimizeVisitor_Destr(DFlowOptimizeVisitor *self)
 {
    DFlowVisitor_Destr(self);
 }
-
-#endif /* __GLSL_DFLOW_OPTIMIZE_VISITOR_H__ */

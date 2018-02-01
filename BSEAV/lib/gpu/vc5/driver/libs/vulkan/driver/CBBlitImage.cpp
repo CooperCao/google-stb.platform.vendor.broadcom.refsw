@@ -77,7 +77,6 @@ public:
       V3D_TMU_SAMPLER_T sampler;
       std::memset(&sampler, 0, sizeof(sampler));
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
       if (filter == VK_FILTER_LINEAR)
       {
          sampler.magfilt = V3D_TMU_FILTER_LINEAR;
@@ -89,10 +88,6 @@ public:
          sampler.minfilt = V3D_TMU_FILTER_NEAREST;
       }
       sampler.mipfilt = V3D_TMU_MIPFILT_NEAREST;
-#else
-      sampler.filters = (filter == VK_FILTER_LINEAR) ? V3D_TMU_FILTERS_MIN_LIN_MAG_LIN :
-                                                       V3D_TMU_FILTERS_MIN_NEAR_MAG_NEAR;
-#endif
       sampler.wrap_s = V3D_TMU_WRAP_CLAMP;
       sampler.wrap_t = V3D_TMU_WRAP_CLAMP;
       sampler.wrap_r = V3D_TMU_WRAP_CLAMP;
@@ -112,7 +107,6 @@ public:
          bvk::Image *img,
          uint32_t    mipLevel,
          uint32_t    arrayLayer,
-         bool        needsRBSwap,
          bool        use32BitPrecision)
    {
       const auto &imgDesc = img->GetDescriptor(mipLevel);
@@ -120,14 +114,11 @@ public:
 
       GFX_LFMT_TMU_TRANSLATION_T t;
 
-      gfx_lfmt_translate_tmu(&t, img->HardwareLFMT()
+      gfx_lfmt_translate_tmu(&t, img->LFMT()
 #if !V3D_HAS_TMU_R32F_R16_SHAD
          , /*need_depth_type=*/false
 #endif
          );
-
-      if (needsRBSwap)
-         std::swap(t.swizzles[0], t.swizzles[2]);
 
       gfx_buffer_uif_cfg uifCfg;
       gfx_buffer_get_tmu_uif_cfg(&uifCfg, &imgDesc, 0);
@@ -138,11 +129,9 @@ public:
 
       tsr.l0_addr = img->PhysAddr() + imgDesc.planes[0].offset + img->LayerOffset(arrayLayer);
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
       if (dims == GFX_LFMT_DIMS_1D)
          v3d_tmu_get_wh_for_1d_tex_state(&tsr.width, &tsr.height, imgDesc.width);
       else
-#endif
       {
          tsr.width  = imgDesc.width;
          tsr.height = imgDesc.height;
@@ -248,15 +237,6 @@ public:
       NewDevMemRange(&fshaderMem, shader->size * sizeof(uint64_t), V3D_QPU_INSTR_ALIGN);
       std::memcpy(fshaderMem.Ptr(), shader->code, shader->size * sizeof(uint64_t));
 
-      // Allocate the device memory for defaults, used for the clip header
-      // Xc,Yc,Zc,Wc values in NV shader (all 0.0f at this point).
-      constexpr uint32_t nDefaults    = 4;
-      constexpr uint32_t defaultsSize = nDefaults * sizeof(uint32_t);
-      DevMemRange defaultsMem;
-
-      NewDevMemRange(&defaultsMem, defaultsSize, V3D_ATTR_DEFAULTS_ALIGN);
-      std::memset(defaultsMem.Ptr(), 0, defaultsSize);
-
       // Allocate the device memory for the shader record
       const uint32_t srSize = V3D_SHADREC_GL_MAIN_PACKED_SIZE +
                               m_nAttrArrays * V3D_SHADREC_GL_ATTR_PACKED_SIZE;
@@ -283,16 +263,13 @@ public:
       shaderRec.cs_input_size  = V3D_IN_SEG_ARGS_T  { /*.sectors = */0, /*.min_req = */1 };
       shaderRec.vs_output_size = V3D_OUT_SEG_ARGS_T { 1, 0 };
       shaderRec.vs_input_size  = V3D_IN_SEG_ARGS_T  { /*.sectors = */0, /*.min_req = */1 };
-      shaderRec.defaults       = defaultsMem.Phys();
       shaderRec.fs.threading   = V3D_THREADING_4;
       shaderRec.fs.addr        = fshaderMem.Phys();
       shaderRec.fs.unifs_addr  = m_uniformMem.Phys();
-#if V3D_VER_AT_LEAST(4,1,34,0)
       shaderRec.fs.single_seg  = false;
-#endif
 
-      // Xc, Yc, Zc, Wc - clipping is disabled so we just use dummy default values
-      MakeShaderAttr(&attr[0], nDefaults, nDefaults, 0, shaderRec.defaults, 0, 0);
+      // Xc, Yc, Zc, Wc - clipping is disabled so we just replicate the following attribute.
+      MakeShaderAttr(&attr[0], 4, 4, 0, m_vdataMem.Phys(), m_vdataStride, m_vdataMaxIndex);
 
       // Xs, Ys, Zs, 1/Wc
       MakeShaderAttr(&attr[1], 4, 4, 4, m_vdataMem.Phys(), m_vdataStride, m_vdataMaxIndex);
@@ -353,9 +330,7 @@ private:
       attr->cs_num_reads = csReads;
       attr->vs_num_reads = vsReads;
       attr->stride       = stride;
-#if V3D_VER_AT_LEAST(4,1,34,0)
       attr->max_index    = max_index;
-#endif
    }
 
    DevMemArena                     *m_devDataArena;
@@ -518,8 +493,8 @@ void CommandBuffer::BlitImageRegion(
    const VkImageBlit &region,
    VkFilter           filter)
 {
-   const bool dstIs3D = gfx_lfmt_is_3d(dstImage->NaturalLFMT());
-   const bool srcIs3D = gfx_lfmt_is_3d(srcImage->NaturalLFMT());
+   const bool dstIs3D = gfx_lfmt_is_3d(dstImage->LFMT());
+   const bool srcIs3D = gfx_lfmt_is_3d(srcImage->LFMT());
    const uint32_t srcMipLevel = region.srcSubresource.mipLevel;
    const uint32_t dstMipLevel = region.dstSubresource.mipLevel;
 
@@ -539,7 +514,7 @@ void CommandBuffer::BlitImageRegion(
 
    CreateTexCoords(adjustment, srcOffsets, dstOffsets, coords);
 
-   GFX_LFMT_T tlbLFMT = dstImage->HardwareLFMT();
+   GFX_LFMT_T tlbLFMT = dstImage->LFMT();
 
    uint32_t clampVal1,clampVal2;
    bool signedClamp;
@@ -567,19 +542,6 @@ void CommandBuffer::BlitImageRegion(
          UpdateWTexCoordFor3DSlice(0, scalew, adjustment, srcOffsets[0], dstOffsets[0], coords);
    }
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   bool needsRBSwap = false;
-#else
-   // If we are blitting out to a TILED_LINEAR buffer with a format not natively
-   // supported by the TLB then we need to do something in the shader to
-   // get the component order correct when viewed from the CPU.
-   //
-   // The physical device format features means that this case is only
-   // valid for BGRA formats, hence we know that we only need to do an RB swap
-   // if the destination requires this.
-   bool needsRBSwap = dstImage->KeepVulkanComponentOrder();
-#endif
-
    for (int32_t l = 0; l < layerCount; l++)
    {
       ColorAspectCommandBuilder cb {GetCallbacks(), this};
@@ -593,8 +555,7 @@ void CommandBuffer::BlitImageRegion(
       log_trace("\tBlitNVShader bin/render job for:");
       log_trace("\tsrcMipLevel  = %u dstMipLevel = %u", srcMipLevel, dstMipLevel);
       log_trace("\tsrcBaseLayer = %u dstBaseLayer/slice = %d", srcBaseLayer, dstBaseLayer);
-      log_trace("\tneedsRBswap  = %s filter = %s", TF(needsRBSwap), filter == VK_FILTER_NEAREST ?
-                                                                            "nearest" : "linear");
+      log_trace("\tfilter       = %s", filter == VK_FILTER_NEAREST ?  "nearest" : "linear");
 
       if (dstIs3D)
          UpdateWTexCoordFor3DSlice(dstBaseLayer, scalew, adjustment, srcOffsets[0], dstOffsets[0], coords);
@@ -621,7 +582,7 @@ void CommandBuffer::BlitImageRegion(
 
       const inline_qasm *shader = GetBlitShader(!use16, signedClamp, srcDim);
 
-      nv.TextureParameter(srcImage, srcMipLevel, srcBaseLayer, needsRBSwap, !use16);
+      nv.TextureParameter(srcImage, srcMipLevel, srcBaseLayer, !use16);
       nv.SamplerParameter(filter, !use16);
       nv.VertexData(dstOffsets, coords);
 
@@ -734,7 +695,7 @@ void CommandBuffer::CmdBlitImage(
    {
       // We can hit this case for example when using blit to take a snapshot
       // from a swapchain image, which is in RSO for efficient display interop.
-      GFX_LFMT_T tmuLFMT = srcImage->NaturalLFMT();
+      GFX_LFMT_T tmuLFMT = srcImage->LFMT();
       if (!gfx_lfmt_is_1d(tmuLFMT) && gfx_lfmt_is_rso(tmuLFMT))
       {
          // We should never have a 2D or 3D mipmapped image in an RSO layout.
@@ -771,7 +732,7 @@ void CommandBuffer::CmdBlitImage(
       {
          assert(pRegions[i].srcSubresource.aspectMask == pRegions[i].dstSubresource.aspectMask);
          assert(pRegions[i].srcSubresource.layerCount == pRegions[i].dstSubresource.layerCount);
-         if (gfx_lfmt_is_3d(dstImage->NaturalLFMT()))
+         if (gfx_lfmt_is_3d(dstImage->LFMT()))
          {
             assert(pRegions[i].dstSubresource.layerCount == 1);
             assert(pRegions[i].dstSubresource.baseArrayLayer == 0);

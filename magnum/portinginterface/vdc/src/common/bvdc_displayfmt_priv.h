@@ -440,10 +440,12 @@ const uint32_t* BVDC_P_GetDtramTable_isr
     bool                         bArib480p
 );
 
+#if (BVDC_P_SUPPORT_ITU656_OUT)
 const uint32_t* BVDC_P_Get656DtramTable_isr
 (
     const BVDC_P_DisplayInfo *pDispInfo
 );
+#endif /* BVDC_P_SUPPORT_ITU656_OUT */
 
 const uint32_t* BVDC_P_GetSmTable_isr
 (

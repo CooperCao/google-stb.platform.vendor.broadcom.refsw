@@ -161,4 +161,13 @@ BERR_Code BDSP_Raaga_GetMemoryEstimate(
     BBOX_Handle                   boxHandle,
     BDSP_RaagaMemoryEstimate     *pEstimate /*[out]*/
 );
+
+/***************************************************************************
+Summary:
+Trigger DBG_service as part of on-chip debug support
+***************************************************************************/
+BERR_Code BDSP_Raaga_RunDebugService(
+    BDSP_Handle hDsp,
+    uint32_t dspIndex
+);
 #endif /* BDSP_RAAGA_H_ */

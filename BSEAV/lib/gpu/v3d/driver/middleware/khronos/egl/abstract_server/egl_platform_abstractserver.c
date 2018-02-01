@@ -148,9 +148,8 @@ EGLAPI void EGLAPIENTRY BEGLint_BufferGetRequirements(const BEGL_PixmapInfoEXT *
    BEGLint_intBufferGetRequirements(bufferRequirements, bufferConstrainedRequirements);
 }
 
-MEM_HANDLE_T egl_server_platform_create_pixmap_info(void *platform_pixmap, bool invalid)
+KHRN_IMAGE_T *egl_server_platform_create_pixmap_info(void *platform_pixmap, bool invalid)
 {
-   MEM_HANDLE_T mh_image = MEM_HANDLE_INVALID;
    BEGL_BufferSettings bufferSettings;
    BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
 
@@ -159,50 +158,51 @@ MEM_HANDLE_T egl_server_platform_create_pixmap_info(void *platform_pixmap, bool 
    BEGL_Error ret = driverInterfaces->displayInterface->SurfaceGetInfo(driverInterfaces->displayInterface->context,
       BEGL_DEFAULT_BUFFER, (BEGL_BufferHandle)platform_pixmap, &bufferSettings);
 
-   if (ret == BEGL_Success)
+   if (ret != BEGL_Success)
+      return NULL;
+
+   KHRN_IMAGE_FORMAT_T format = IMAGE_FORMAT_INVALID;
+   KHRN_IMAGE_CREATE_FLAG_T flags;
+
+   uint32_t w = bufferSettings.width;
+   uint32_t h = bufferSettings.height;
+
+   flags = IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_DISPLAY;
+
+   if (invalid)
+      flags |= IMAGE_CREATE_FLAG_INVALID;
+
+   format = abstract_bufferformat_to_format(bufferSettings.format);
+
+   if (format == YV12_RSO)
+      flags = IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RSO_TEXTURE;  /* Not a valid render target */
+
+   KHRN_IMAGE_T *image = NULL;
+   if ((((uintptr_t)bufferSettings.cachedAddr & ~0xFFF) == (uintptr_t)bufferSettings.cachedAddr) &&
+         (((uintptr_t)bufferSettings.physOffset & ~0xFFF) == (uintptr_t)bufferSettings.physOffset) &&
+         (format != IMAGE_FORMAT_INVALID))
    {
-      KHRN_IMAGE_FORMAT_T format = IMAGE_FORMAT_INVALID;
-      KHRN_IMAGE_CREATE_FLAG_T flags;
+      uint32_t align = 0;
+      khrn_image_platform_fudge(&format, &w, &h, &align, flags);
 
-      uint32_t w = bufferSettings.width;
-      uint32_t h = bufferSettings.height;
+      MEM_HANDLE_T mh_wrap = mem_wrap(bufferSettings.secure ? NULL : bufferSettings.cachedAddr,
+                              bufferSettings.physOffset,
+                              bufferSettings.pitchBytes * h,
+                              align, MEM_FLAG_DIRECT | (bufferSettings.secure ? MEM_FLAG_SECURE : 0),
+                              "wrapped pixmap");
 
-      flags = IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_DISPLAY;
+      image = khrn_image_create_from_storage(format,
+         bufferSettings.width, bufferSettings.height, bufferSettings.pitchBytes,
+         MEM_HANDLE_INVALID, mh_wrap, 0,
+         flags, bufferSettings.secure);
 
-      if (invalid)
-         flags |= IMAGE_CREATE_FLAG_INVALID;
+      /* Note: Don't store the opaque buffer handle here, as we may not always want to destroy it.
+         * We'll store it explicitly for our swap chain created buffers. Remember, this is used for pixmaps too.*/
 
-      format = abstract_bufferformat_to_format(bufferSettings.format);
-
-      if (format == YV12_RSO)
-         flags = IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RSO_TEXTURE;  /* Not a valid render target */
-
-      if ((((uint32_t)bufferSettings.cachedAddr & ~0xFFF) == (uint32_t)bufferSettings.cachedAddr) &&
-            (((uint32_t)bufferSettings.physOffset & ~0xFFF) == (uint32_t)bufferSettings.physOffset) &&
-            (format != IMAGE_FORMAT_INVALID))
-      {
-         uint32_t align = 0;
-         khrn_image_platform_fudge(&format, &w, &h, &align, flags);
-
-         MEM_HANDLE_T mh_wrap = mem_wrap(bufferSettings.secure ? NULL : bufferSettings.cachedAddr,
-                                 bufferSettings.physOffset,
-                                 bufferSettings.pitchBytes * h,
-                                 align, MEM_FLAG_DIRECT | (bufferSettings.secure ? MEM_FLAG_SECURE : 0),
-                                 "wrapped pixmap");
-
-         mh_image = khrn_image_create_from_storage(format,
-            bufferSettings.width, bufferSettings.height, bufferSettings.pitchBytes,
-            MEM_HANDLE_INVALID, mh_wrap, 0,
-            flags, bufferSettings.secure);
-
-         /* Note: Don't store the opaque buffer handle here, as we may not always want to destroy it.
-            * We'll store it explicitly for our swap chain created buffers. Remember, this is used for pixmaps too.*/
-
-         mem_release(mh_wrap);
-      }
+      mem_release(mh_wrap);
    }
 
-   return mh_image;
+   return image;
 }
 
 static EGLDisplay egl_server_platform_default_display(void)
@@ -457,7 +457,7 @@ static void egl_server_platform_image_wrap_term(MEM_HANDLE_T handle)
    free(info);
 }
 
-MEM_HANDLE_T egl_server_platform_image_wrap(EGLenum target, void *native_buffer)
+KHRN_IMAGE_T *egl_server_platform_image_wrap(EGLenum target, void *native_buffer)
 {
    MEM_HANDLE_T handle;
    void *p;
@@ -465,20 +465,20 @@ MEM_HANDLE_T egl_server_platform_image_wrap(EGLenum target, void *native_buffer)
    KHRN_IMAGE_FORMAT_T format = ABGR_8888_RSO;
 
    if (!egl_server_platform_get_info(target, native_buffer, &w, &h, &stride, &format, &offset, &p))
-      return MEM_HANDLE_INVALID;
+      return NULL;
 
    handle = mem_wrap(p, offset,
       h * stride,
       1, MEM_FLAG_DIRECT,
       "EGL_NATIVE_BUFFER_ANDROID");
    if (handle == MEM_HANDLE_INVALID)
-      return MEM_HANDLE_INVALID;
+      return NULL;
 
    EGLBUFINFO_T *info = malloc(sizeof(*info));
    if (!info)
    {
       mem_release(handle); /* this can't trigger our term handle - it's not set yet */
-      return MEM_HANDLE_INVALID;
+      return NULL;
    }
    info->target = target;
    info->native_buffer = native_buffer;
@@ -487,13 +487,13 @@ MEM_HANDLE_T egl_server_platform_image_wrap(EGLenum target, void *native_buffer)
 
    mem_set_term(handle, egl_server_platform_image_wrap_term, info);
 
-   MEM_HANDLE_T res = khrn_image_create_from_storage(format,
+   KHRN_IMAGE_T *image = khrn_image_create_from_storage(format,
       w, h, stride,
       MEM_HANDLE_INVALID, handle, 0, IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RSO_TEXTURE, false);
 
    mem_release(handle);
 
-   return res;
+   return image;
 }
 
 void *egl_server_platform_get_native_buffer(EGLenum target, EGLClientBuffer *egl_buffer)
@@ -516,16 +516,14 @@ void *egl_server_platform_get_native_buffer(EGLenum target, EGLClientBuffer *egl
 
 }
 
-MEM_HANDLE_T egl_server_platform_image_new(EGLenum target, void *native_buffer, EGLint *error)
+KHRN_IMAGE_T *egl_server_platform_image_new(EGLenum target, void *native_buffer, EGLint *error)
 {
    if (native_buffer)
-   {
       return egl_server_platform_image_wrap(target, native_buffer);
-   }
    else
    {
       *error = EGL_BAD_MATCH;
-      return MEM_HANDLE_INVALID;
+      return NULL;
    }
 }
 

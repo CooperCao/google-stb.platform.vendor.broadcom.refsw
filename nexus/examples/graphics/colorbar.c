@@ -74,7 +74,7 @@ static void complete(void *context, int param)
 
 int main(int argc, char **argv)
 {
-    NEXUS_SurfaceHandle framebuffer0, framebuffer1;
+    NEXUS_SurfaceHandle framebuffer0, framebuffer1=NULL, surface;
     NEXUS_SurfaceCreateSettings hdCreateSettings, sdCreateSettings;
     NEXUS_PlatformCapabilities platformCap;
     NEXUS_DisplayHandle display0, display1 = NULL;
@@ -82,17 +82,18 @@ int main(int argc, char **argv)
     NEXUS_DisplayCapabilities displayCap;
     NEXUS_GraphicsSettings graphicsSettings;
     NEXUS_Graphics2DHandle gfx;
+    NEXUS_SurfaceMemory mem;
     NEXUS_Graphics2DSettings gfxSettings;
     BKNI_EventHandle checkpointEvent;
-    NEXUS_Graphics2DFillSettings fillSettings;
     NEXUS_PlatformSettings platformSettings;
     NEXUS_Graphics2DBlitSettings blitSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_VideoFormatInfo info;
     NEXUS_Error rc;
-    int i;
+    int i,j;
     bool sd_display;
     bool pal;
+    unsigned colorWidth, pitchinInt;
 
     pal = (argc > 1 && !strcmp(argv[1], "-pal"));
 
@@ -123,7 +124,8 @@ int main(int argc, char **argv)
     hdCreateSettings.width = min(displayCap.display[0].graphics.width, info.width);
     hdCreateSettings.height = min(displayCap.display[0].graphics.height, info.height);
     hdCreateSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
-    framebuffer0 = NEXUS_Display_CreateFramebuffer(display0, &hdCreateSettings);
+    surface = NEXUS_Surface_Create(&hdCreateSettings);
+    framebuffer0 = NEXUS_Surface_Create(&hdCreateSettings);
 
     if (sd_display) {
         NEXUS_Display_GetDefaultSettings(&displaySettings);
@@ -138,7 +140,9 @@ int main(int argc, char **argv)
         NEXUS_Display_AddOutput(display1, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[1]));
 #endif
 #if NEXUS_NUM_RFM_OUTPUTS
-        NEXUS_Display_AddOutput(display1, NEXUS_Rfm_GetVideoConnector(platformConfig.outputs.rfm[0]));
+        if (platformConfig.outputs.rfm[0]) {
+            NEXUS_Display_AddOutput(display1, NEXUS_Rfm_GetVideoConnector(platformConfig.outputs.rfm[0]));
+        }
 #endif
             
         NEXUS_VideoFormat_GetInfo(displaySettings.format, &info);
@@ -147,7 +151,7 @@ int main(int argc, char **argv)
         sdCreateSettings.width = min(displayCap.display[1].graphics.width, info.width);
         sdCreateSettings.height = min(displayCap.display[1].graphics.height, info.height);
         sdCreateSettings.heap = NEXUS_Platform_GetFramebufferHeap(1);
-        framebuffer1 = NEXUS_Display_CreateFramebuffer(display1, &sdCreateSettings);
+        framebuffer1= NEXUS_Surface_Create(&sdCreateSettings);
     }
         
     gfx = NEXUS_Graphics2D_Open(0, NULL);
@@ -157,21 +161,26 @@ int main(int argc, char **argv)
     gfxSettings.checkpointCallback.context = checkpointEvent;
     NEXUS_Graphics2D_SetSettings(gfx, &gfxSettings);
         
-    /* draw for the HD display */
-    NEXUS_Graphics2D_GetDefaultFillSettings(&fillSettings);
-    fillSettings.surface = framebuffer0;
-    fillSettings.rect.width = hdCreateSettings.width/NUM_COLORS;
-    fillSettings.rect.y = 0;
-    fillSettings.rect.height = hdCreateSettings.height;
-    for (i=0;i<NUM_COLORS;i++) {
-        fillSettings.rect.x = fillSettings.rect.width * i;
-        fillSettings.color = g_colors[i];
-        NEXUS_Graphics2D_Fill(gfx, &fillSettings);
+    /* draw for the framebuffer */
+    NEXUS_Surface_GetMemory(surface, &mem);
+    colorWidth = hdCreateSettings.width/NUM_COLORS;
+    pitchinInt = mem.pitch/sizeof(uint32_t);
+    for (j=0;j<hdCreateSettings.height;j++) {
+        for (i=0;i<hdCreateSettings.width;i++) {
+            unsigned colorIndex = min(i/colorWidth, NUM_COLORS-1);
+            *((uint32_t*)mem.buffer + j*pitchinInt + i) = g_colors[colorIndex];
+        }
     }
+    NEXUS_Surface_Flush(surface);
         
+    NEXUS_Graphics2D_GetDefaultBlitSettings(&blitSettings);
+    blitSettings.source.surface = surface;
+    blitSettings.output.surface = framebuffer0;
+    NEXUS_Graphics2D_Blit(gfx, &blitSettings);
     if (display1) {
         NEXUS_Graphics2D_GetDefaultBlitSettings(&blitSettings);
-        blitSettings.source.surface = framebuffer0;
+        blitSettings.source.surface = surface;
+        BDBG_ASSERT(framebuffer1);
         blitSettings.output.surface = framebuffer1;
         NEXUS_Graphics2D_Blit(gfx, &blitSettings);
     }
@@ -208,6 +217,7 @@ int main(int argc, char **argv)
         NEXUS_Surface_Destroy(framebuffer1);
     }
     NEXUS_Display_Close(display0);
+    NEXUS_Surface_Destroy(surface);
     NEXUS_Surface_Destroy(framebuffer0);
     BKNI_DestroyEvent(checkpointEvent);
     NEXUS_Platform_Uninit();

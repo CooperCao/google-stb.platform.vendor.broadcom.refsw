@@ -72,6 +72,7 @@ void name_value_file_parser_parse(NameValueFileParserHandle parser)
     char * value;
     char * p;
     int nlen;
+    int result;
 
     assert(parser);
 
@@ -103,7 +104,8 @@ void name_value_file_parser_parse(NameValueFileParserHandle parser)
 
         if (nlen && parser->announce)
         {
-            parser->announce(parser->listenerContext, name, value);
+            result = parser->announce(parser->listenerContext, name, value);
+            if (result < 0) break;
         }
     }
 }

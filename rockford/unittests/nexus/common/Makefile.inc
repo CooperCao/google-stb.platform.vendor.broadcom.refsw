@@ -128,6 +128,10 @@ ifeq ($(NEXUS_POWER_MANAGEMENT),y)
     SUBLIBS += pmlib
 endif
 
+ifeq ($(NXCLIENT_SUPPORT),y)
+    SUBLIBS += nxclient
+endif
+
 ifeq ($(SSL_SUPPORT),y)
     export SSL_SUPPORT
 endif
@@ -283,6 +287,19 @@ ifneq ($(PLAYBACK_IP_SUPPORT),y)
         clean_oslib:
 			$(Q_)$(MAKE) -C $(NEXUS_TOP)/lib/os clean
     endif
+endif
+
+ifeq ($(NXCLIENT_SUPPORT),y)
+.PHONY: nxclient clean_nxclient
+nxclient: nexus
+	$(B_TRACE_RECIPE_BEGIN)
+	${Q_}${MAKE} -C $(NEXUS_TOP)/nxclient server
+	$(B_TRACE_RECIPE_END)
+
+clean_nxclient:
+	$(B_TRACE_RECIPE_BEGIN)
+	${Q_}${MAKE} -C $(NEXUS_TOP)/nxclient clean
+	$(B_TRACE_RECIPE_END)
 endif
 
 

@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- * 
  *****************************************************************************/
 #include <stdlib.h>
 #include <stdint.h>
@@ -62,9 +59,9 @@
 #include "drm_key_region.h"
 
 static void test_partial_sha1(void);
-static void test_partial_sha1_loop(void);
+static void * test_partial_sha1_loop(void * info);
 static void test_sha1(void);
-static void test_sha1_loop(void);
+static void * test_sha1_loop(void * info);
 
 /* Global error variable counter */
 static uint32_t error_count = 0;
@@ -78,6 +75,7 @@ int main(int argc, char *argv[])
     pthread_t thread[6];
     NEXUS_PlatformSettings platformSettings;
     DrmCommonInit_t commonDrmInit;
+    void * info=NULL;
 
     BSTD_UNUSED(argc);
 
@@ -98,10 +96,10 @@ int main(int argc, char *argv[])
     for(i=0;i<NUM_THREADS;i++)
     {
    		if(i==0||i==2||i==4){
-   			pthread_create(&thread[i], NULL, test_partial_sha1_loop, NULL);
+            pthread_create(&thread[i], NULL, test_partial_sha1_loop, (void *)info);
    		}
    		else{
-   			pthread_create(&thread[i], NULL, test_sha1_loop, NULL);
+            pthread_create(&thread[i], NULL, test_sha1_loop, (void *)info);
    		}
 
    		test_partial_sha1();
@@ -117,28 +115,34 @@ int main(int argc, char *argv[])
     {
     	pthread_join(thread[i], NULL);
     }
+
+    /* Clean up test environment */
+    NEXUS_Platform_Uninit();
+
     return 0;
 }
 
 
-void test_partial_sha1_loop()
+void * test_partial_sha1_loop(void * info)
 {
-	int i = 0;
-	for(i = 0; i<10;i++)
-	{
-		test_partial_sha1();
-	}
-	return;
+    int i = 0;
+    BSTD_UNUSED(info);
+    for(i = 0; i<10;i++)
+    {
+        test_partial_sha1();
+    }
+    return NULL;
 }
 
-void test_sha1_loop()
+void * test_sha1_loop(void * info)
 {
-	int i = 0;
-	for(i = 0; i<10;i++)
-	{
-		test_sha1();
-	}
-	return;
+    int i = 0;
+    BSTD_UNUSED(info);
+    for(i = 0; i<10;i++)
+    {
+        test_sha1();
+    }
+    return NULL;
 }
 
 

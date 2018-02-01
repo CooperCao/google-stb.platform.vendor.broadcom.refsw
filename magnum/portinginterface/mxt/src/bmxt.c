@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -119,19 +119,19 @@ void BMXT_P_SetPlatform(
     }
 
     if (mxt) {
-        mxt->platform.num = (uint32_t*)pNum;
+        mxt->platform.num = pNum;
         mxt->platform.regbase = base;
-        mxt->platform.regoffsets = (uint32_t*)pOff;
-        mxt->platform.stepsize = (uint32_t*)pStep;
+        mxt->platform.regoffsets = pOff;
+        mxt->platform.stepsize = pStep;
         mxt->platform.type = type;
 
         mxt->platform.regbaseWakeup = baseWakeup;
-        mxt->platform.regoffsetsWakeup = (uint32_t*)pOffWakeup;
+        mxt->platform.regoffsetsWakeup = pOffWakeup;
 
-        mxt->platform.numDcbg = (uint32_t*)pNumDcbg;
+        mxt->platform.numDcbg = pNumDcbg;
         mxt->platform.regbaseDcbg = baseDcbg;
-        mxt->platform.regoffsetsDcbg = (uint32_t*)pOffDcbg;
-        mxt->platform.stepsizeDcbg = (uint32_t*)pStepDcbg;
+        mxt->platform.regoffsetsDcbg = pOffDcbg;
+        mxt->platform.stepsizeDcbg = pStepDcbg;
     }
     else {
         *pNumElem = (uint32_t*)pNum;

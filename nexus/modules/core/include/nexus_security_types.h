@@ -207,6 +207,7 @@ is a memory region that contains compressed media data and can't be accessed fro
 typedef enum NEXUS_BypassKeySlot{
     NEXUS_BypassKeySlot_eG2GR,              /* allows transfer of clear data from GLR to GLR or CRR */
     NEXUS_BypassKeySlot_eGR2R,              /* allows transfer of clear data from GLR or CRR to CRR */
+    NEXUS_BypassKeySlot_eGT2T,              /* allows transfer of clear data from GLR or CRRT to CRRT */
     NEXUS_BypassKeySlot_eMax
 } NEXUS_BypassKeySlot;
 

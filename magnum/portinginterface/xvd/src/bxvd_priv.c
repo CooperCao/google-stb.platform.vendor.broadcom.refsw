@@ -464,12 +464,7 @@ void BXVD_P_GetVidCmprCapability( BXVD_VidComprStd_Capabilities *pCodecCapabilit
          break;
 
       case BAVC_VideoCompressionStd_eAVS:
-#if BXVD_P_CORE_REVISION_NUM >= 21    /* Core revision U or later */
-         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eMain10;
-         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_e80;
-         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e10Bit;
-
-#elif BXVD_P_CORE_REVISION_NUM >= 18    /* Core revision R or later */
+#if BXVD_P_CORE_REVISION_NUM >= 18    /* Core revision R or later */
          pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eMain;
          pCodecCapability->eLevel = BAVC_VideoCompressionLevel_e60;
          pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
@@ -479,6 +474,14 @@ void BXVD_P_GetVidCmprCapability( BXVD_VidComprStd_Capabilities *pCodecCapabilit
          pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e8Bit;
 #endif
          break;
+
+#if BXVD_P_CORE_REVISION_NUM >= 21    /* Core revision U or later */
+      case BAVC_VideoCompressionStd_eAVS2:
+         pCodecCapability->eProfile = BAVC_VideoCompressionProfile_eMain10;
+         pCodecCapability->eLevel = BAVC_VideoCompressionLevel_e80;
+         pCodecCapability->eBitDepth = BAVC_VideoBitDepth_e10Bit;
+         break;
+#endif
 
       case BAVC_VideoCompressionStd_eMPEG2_DSS_PES:
          pCodecCapability->eProfile =  BAVC_VideoCompressionProfile_eMain;
@@ -563,6 +566,9 @@ BERR_Code BXVD_P_MapToAVDProtocolEnum( BXVD_Handle               hXvd,
          break;
       case BAVC_VideoCompressionStd_eAVS:
          *peProtocol = BXVD_P_PPB_Protocol_eAVS;
+         break;
+      case BAVC_VideoCompressionStd_eAVS2:
+         *peProtocol = BXVD_P_PPB_Protocol_eAVS2;
          break;
       case BAVC_VideoCompressionStd_eMPEG2_DSS_PES:
          *peProtocol = BXVD_P_PPB_Protocol_eMPEG2_DSS_PES;
@@ -825,6 +831,7 @@ BERR_Code BXVD_P_GetDecodeFWMemSize(BXVD_Handle hXvd,
 #if BXVD_P_HVD_PRESENT
          case BAVC_VideoCompressionStd_eH265:
          case BAVC_VideoCompressionStd_eVP9:
+         case BAVC_VideoCompressionStd_eAVS2:
             BXVD_DBG_MSG(hXvd, ("Video Protocol Memory Config: HEVC"));
             eVideoProtocol_TableIndex = BXVD_VideoProtocol_eHEVC;
             break;
@@ -1185,6 +1192,7 @@ BERR_Code BXVD_P_GetStillDecodeFWMemSize(BXVD_Handle hXvd,
 #if BXVD_P_HVD_PRESENT
          case BAVC_VideoCompressionStd_eH265:
          case BAVC_VideoCompressionStd_eVP9:
+         case BAVC_VideoCompressionStd_eAVS2:
             BXVD_DBG_MSG(hXvd, ("Still Protocol Memory Config: HEVC"));
             eVideoProtocol = BXVD_VideoProtocol_eHEVC;
             break;

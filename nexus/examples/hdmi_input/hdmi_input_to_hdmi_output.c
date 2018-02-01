@@ -137,6 +137,8 @@ static void source_changed(void *context, int param)
 
     SourceChangedCallbackParameters *sourceChangeCbParams ;
 
+    BSTD_UNUSED(param);
+
     sourceChangeCbParams = (SourceChangedCallbackParameters *) context ;
         hdmiInput = sourceChangeCbParams->hdmiInput ;
         display = sourceChangeCbParams->display ;
@@ -363,6 +365,7 @@ static void hotplug_callback(void *pParam, int iParam)
     NEXUS_DisplayHandle display ;
     hotplugCallbackParameters *hotPlugCbParams ;
 
+    BSTD_UNUSED(iParam);
     hotPlugCbParams = (hotplugCallbackParameters *) pParam ;
     hdmiOutput = hotPlugCbParams->hdmiOutput ;
     display = hotPlugCbParams->display ;
@@ -401,7 +404,7 @@ void hdmi_input_status(void )
 {
     NEXUS_HdmiInputStatus hdmiInputStatus ;
     BDBG_Level saveLevel ;
-    static const char *textColorSpace[] =
+    static const char * const textColorSpace[] =
     {
         "RGB ",
         "YCbCr 4:2:2",
@@ -421,14 +424,14 @@ void hdmi_input_status(void )
     }
 
 
-    BDBG_MSG(("hdmiInput Mode  : %s", hdmiInputStatus.hdmiMode ? "HDMI" : "DVI")) ;
-    BDBG_MSG(("hdmiInput Format: %d x %d %c %s",
+    BDBG_LOG(("hdmiInput Mode  : %s", hdmiInputStatus.hdmiMode ? "HDMI" : "DVI")) ;
+    BDBG_LOG(("hdmiInput Format: %d x %d %c %s",
         hdmiInputStatus.avWidth, hdmiInputStatus.avHeight,
         hdmiInputStatus.interlaced ? 'i' : 'p',
         textColorSpace[hdmiInputStatus.colorSpace])) ;
 
-    BDBG_MSG(("hdmiInput Clock : %d", hdmiInputStatus.lineClock)) ;
-    BDBG_MSG(("HDCP Enabled    : %s", hdmiInputStatus.hdcpRiUpdating ? "Yes" : "No")) ;
+    BDBG_LOG(("hdmiInput Clock : %d", hdmiInputStatus.lineClock)) ;
+    BDBG_LOG(("HDCP Enabled    : %s", hdmiInputStatus.hdcpRiUpdating ? "Yes" : "No")) ;
 
     {
         NEXUS_Error errCode;

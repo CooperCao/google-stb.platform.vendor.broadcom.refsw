@@ -11,6 +11,7 @@
 #include "DriverLimits.h"
 #include "Pipeline.h"
 #include "DescriptorSet.h"
+#include "Viewport.h"
 #include "libs/core/v3d/v3d_gen.h"
 
 #include <memory.h>
@@ -35,9 +36,6 @@ public:
       eGraphicsPipeline,
       eComputePipeline,
       eOcclusionCounter,
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-      eCullEverything,
-#endif
       eNumDirtyBits        // Must be last entry
    };
 
@@ -77,7 +75,7 @@ public:
       // return false if there is not enough data for one index in the attrib
       bool CalcMaxIndex(uint32_t &maxIndex,
             const VkVertexInputAttributeDescription &attDesc,
-            const VkVertexInputBindingDescription &bindDesc) const;
+            uint32_t stride) const;
 
    private:
       const Buffer   *m_buffer{};
@@ -91,9 +89,9 @@ public:
 
       uint32_t GetDynamicOffset(uint32_t binding, uint32_t element) const
       {
-         if (!dynamicOffsets.empty() && descriptorSet->HasDynamicOffset(binding, element))
+         if (!dynamicOffsets.empty() && descriptorSet->HasDynamicOffset(binding))
          {
-            uint32_t dynamicIndex = descriptorSet->DynamicOffsetIndexFor(binding, element);
+            uint32_t dynamicIndex = descriptorSet->DynamicOffsetIndexFor(binding) + element;
             assert(dynamicIndex < dynamicOffsets.size());
             return dynamicOffsets[dynamicIndex];
          }
@@ -166,21 +164,19 @@ public:
    void SetStencilCompareMask(VkStencilFaceFlags faceMask, uint32_t compareMask);
    void SetStencilReference(VkStencilFaceFlags faceMask, uint32_t reference);
 
-   const VkViewport &Viewport() const { return m_viewport; }
-   void SetViewport(const VkViewport &val)
+   const Viewport &GetViewport() const { return m_viewport; }
+   void SetViewport(const Viewport &val)
    {
       m_viewport = val;
       SetDirty(CmdBufState::eViewport);
    }
 
-   const VkRect2D &ScissorRect() const { return m_scissorRect; }
    void SetScissorRect(const VkRect2D &val)
    {
       m_scissorRect = val;
       SetDirty(CmdBufState::eScissor);
    }
 
-   float LineWidth() const { return m_lineWidth; }
    void SetLineWidth(float val)
    {
       m_lineWidth = val;
@@ -202,7 +198,6 @@ public:
       SetDirty(CmdBufState::eDepthBias);
    }
 
-   const float *BlendConstants() const { return m_blendConstants; }
    void SetBlendConstants(const float val[4])
    {
       memcpy(m_blendConstants, val, 4 * sizeof(float));
@@ -217,22 +212,6 @@ public:
          SetDirty(CmdBufState::eOcclusionCounter);
       }
    }
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   bool CullEverything() const
-   {
-      return m_cullEverything;
-   }
-
-   void SetCullEverything(bool tf)
-   {
-      if (m_cullEverything != tf)
-      {
-         SetDirty(CmdBufState::eCullEverything);
-         m_cullEverything = tf;
-      }
-   }
-#endif
 
    DirtyBits GetDirtyBits()               { return m_dirtyBits; }
    const DirtyBits &GetDirtyBits() const  { return m_dirtyBits; }
@@ -249,10 +228,8 @@ public:
    void BuildStateUpdateCL(CommandBuffer *cb);
 
 private:
-   void BuildScissorAndViewportCL(
-      CommandBuffer     *cb,
-      const VkRect2D    *scissorRect,
-      const VkViewport  *viewport);
+   void BuildScissorCL (CommandBuffer *cb, const VkRect2D &scissorRect, const Viewport &vp);
+   void BuildViewportCL(CommandBuffer *cb, const Viewport &vp);
 
    void BuildStencilCL(
       CommandBuffer           *cb,
@@ -270,7 +247,7 @@ private:
    // bound Pipeline if they are defined as dynamic in the Pipeline.
    // We will always use these values (initialised from the Pipeline)
    // as the master.
-   VkViewport           m_viewport;
+   Viewport             m_viewport;
    VkRect2D             m_scissorRect;
    float                m_lineWidth;
    float                m_depthBiasConstantFactor;
@@ -280,11 +257,6 @@ private:
    StencilState         m_frontStencilState;
    StencilState         m_backStencilState;
    v3d_addr_t           m_occlusionCounterAddr = 0;
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   // An internal flag for culling all drawing (when draw area is zero)
-   bool                 m_cullEverything = false;
-#endif
 
    // A bit-mask of dirty bits (dirty with respect to the control list being built)
    DirtyBits            m_dirtyBits;

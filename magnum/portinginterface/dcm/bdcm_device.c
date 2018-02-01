@@ -46,7 +46,6 @@ BDCM_DeviceHandle BDCM_OpenDevice(BDCM_DeviceSettings *pSettings)
 {
     BERR_Code retCode = BERR_SUCCESS;
     BDCM_DeviceHandle hDevice = NULL;
-    BRPC_Handle hRpc=NULL;
     BRPC_OpenSocketImplSettings socketSettings;
     BDBG_ASSERT(pSettings);
     BDBG_ENTER(BDCM_OpenDevice);
@@ -67,7 +66,6 @@ BDCM_DeviceHandle BDCM_OpenDevice(BDCM_DeviceSettings *pSettings)
         BDBG_ERR(("%s: BRPC_Open_SocketImpl failed",BSTD_FUNCTION));
         goto error_socket_open;
     }
-    hRpc = hDevice->hRpc;
     return hDevice;
 error_socket_open:
     BKNI_Free(hDevice);

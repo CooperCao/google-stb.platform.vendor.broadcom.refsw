@@ -256,91 +256,91 @@ typedef enum {
    IMAGE_FORMAT_INVALID = -1
 } KHRN_IMAGE_FORMAT_T;
 
-static INLINE bool khrn_image_is_rso(KHRN_IMAGE_FORMAT_T format)
+static inline bool khrn_image_is_rso(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_MEM_LAYOUT_MASK) == IMAGE_FORMAT_RSO;
 }
 
-static INLINE bool khrn_image_is_tformat(KHRN_IMAGE_FORMAT_T format)
+static inline bool khrn_image_is_tformat(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_MEM_LAYOUT_MASK) == IMAGE_FORMAT_TF;
 }
 
-static INLINE bool khrn_image_is_lineartile(KHRN_IMAGE_FORMAT_T format)
+static inline bool khrn_image_is_lineartile(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_MEM_LAYOUT_MASK) == IMAGE_FORMAT_LT;
 }
 
-static INLINE KHRN_IMAGE_FORMAT_T khrn_image_to_rso_format(KHRN_IMAGE_FORMAT_T format)
+static inline KHRN_IMAGE_FORMAT_T khrn_image_to_rso_format(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (KHRN_IMAGE_FORMAT_T)((format & ~IMAGE_FORMAT_MEM_LAYOUT_MASK) | IMAGE_FORMAT_RSO);
 }
 
-static INLINE KHRN_IMAGE_FORMAT_T khrn_image_to_tf_format(KHRN_IMAGE_FORMAT_T format)
+static inline KHRN_IMAGE_FORMAT_T khrn_image_to_tf_format(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (KHRN_IMAGE_FORMAT_T)((format & ~IMAGE_FORMAT_MEM_LAYOUT_MASK) | IMAGE_FORMAT_TF);
 }
 
-static INLINE KHRN_IMAGE_FORMAT_T khrn_image_to_lt_format(KHRN_IMAGE_FORMAT_T format)
+static inline KHRN_IMAGE_FORMAT_T khrn_image_to_lt_format(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (KHRN_IMAGE_FORMAT_T)((format & ~IMAGE_FORMAT_MEM_LAYOUT_MASK) | IMAGE_FORMAT_LT);
 }
 
-static INLINE KHRN_IMAGE_FORMAT_T khrn_image_to_linear_format(KHRN_IMAGE_FORMAT_T format)
+static inline KHRN_IMAGE_FORMAT_T khrn_image_to_linear_format(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (KHRN_IMAGE_FORMAT_T)(format | IMAGE_FORMAT_LIN);
 }
 
-static INLINE KHRN_IMAGE_FORMAT_T khrn_image_to_premultiplied_format(KHRN_IMAGE_FORMAT_T format)
+static inline KHRN_IMAGE_FORMAT_T khrn_image_to_premultiplied_format(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (KHRN_IMAGE_FORMAT_T)(format | IMAGE_FORMAT_PRE);
 }
 
-static INLINE bool khrn_image_is_uncomp(KHRN_IMAGE_FORMAT_T format)
+static inline bool khrn_image_is_uncomp(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_COMP_MASK) == IMAGE_FORMAT_UNCOMP;
 }
 
-static INLINE bool khrn_image_is_color(KHRN_IMAGE_FORMAT_T format)
+static inline bool khrn_image_is_color(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (format & (IMAGE_FORMAT_COMP_MASK | IMAGE_FORMAT_PIXEL_TYPE_MASK)) == (IMAGE_FORMAT_UNCOMP | IMAGE_FORMAT_COLOR);
 }
 
-static INLINE bool khrn_image_is_gray(KHRN_IMAGE_FORMAT_T format)
+static inline bool khrn_image_is_gray(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (format & (IMAGE_FORMAT_L)) != 0;
 }
 
-static INLINE bool khrn_image_is_paletted(KHRN_IMAGE_FORMAT_T format)
+static inline bool khrn_image_is_paletted(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (format & (IMAGE_FORMAT_COMP_MASK | IMAGE_FORMAT_PIXEL_TYPE_MASK)) == (IMAGE_FORMAT_UNCOMP | IMAGE_FORMAT_PALETTE);
 }
 
-static INLINE bool khrn_image_is_depth(KHRN_IMAGE_FORMAT_T format)
+static inline bool khrn_image_is_depth(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (format & (IMAGE_FORMAT_COMP_MASK | IMAGE_FORMAT_PIXEL_TYPE_MASK)) == (IMAGE_FORMAT_UNCOMP | IMAGE_FORMAT_DEPTH);
 }
 
-static INLINE bool khrn_image_is_etc1(KHRN_IMAGE_FORMAT_T format)
+static inline bool khrn_image_is_etc1(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_COMP_MASK) == IMAGE_FORMAT_ETC1;
 }
 
-static INLINE bool khrn_image_is_yuv422(KHRN_IMAGE_FORMAT_T format)
+static inline bool khrn_image_is_yuv422(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return khrn_image_is_uncomp(format) &&
@@ -350,32 +350,32 @@ static INLINE bool khrn_image_is_yuv422(KHRN_IMAGE_FORMAT_T format)
       ((format & IMAGE_FORMAT_PIXEL_LAYOUT_MASK) == IMAGE_FORMAT_YUYV);
 }
 
-static INLINE bool khrn_image_is_packed_mask(KHRN_IMAGE_FORMAT_T format)
+static inline bool khrn_image_is_packed_mask(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_COMP_MASK) == IMAGE_FORMAT_PACKED_MASK;
 }
 
-static INLINE bool khrn_image_is_linear(KHRN_IMAGE_FORMAT_T format)
+static inline bool khrn_image_is_linear(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_LIN) != 0;
 }
 
-static INLINE bool khrn_image_is_premultiplied(KHRN_IMAGE_FORMAT_T format)
+static inline bool khrn_image_is_premultiplied(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_PRE) != 0;
 }
 
 /* returns the image stripped of its colorspace flags */
-static INLINE KHRN_IMAGE_FORMAT_T khrn_image_no_colorspace_format(KHRN_IMAGE_FORMAT_T format)
+static inline KHRN_IMAGE_FORMAT_T khrn_image_no_colorspace_format(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (format & ~(IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN));
 }
 
-static INLINE KHRN_IMAGE_FORMAT_T khrn_image_no_layout_format(KHRN_IMAGE_FORMAT_T format)
+static inline KHRN_IMAGE_FORMAT_T khrn_image_no_layout_format(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (format & ~IMAGE_FORMAT_MEM_LAYOUT_MASK);
@@ -420,7 +420,7 @@ extern uint32_t khrn_image_pad_height(KHRN_IMAGE_FORMAT_T format, uint32_t heigh
 extern uint32_t khrn_image_get_stride(KHRN_IMAGE_FORMAT_T format, uint32_t width);
 extern uint32_t khrn_image_get_size(KHRN_IMAGE_FORMAT_T format, uint32_t width, uint32_t height);
 
-static INLINE uint32_t khrn_image_get_packed_mask_height(uint32_t height)
+static inline uint32_t khrn_image_get_packed_mask_height(uint32_t height)
 {
    return ((height / (VG_Q_TILE_HEIGHT * 4)) * VG_Q_TILE_HEIGHT) +
       _min(height & ((VG_Q_TILE_HEIGHT * 4) - 1), VG_Q_TILE_HEIGHT);

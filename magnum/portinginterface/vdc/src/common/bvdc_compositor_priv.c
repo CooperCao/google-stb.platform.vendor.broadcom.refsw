@@ -1163,7 +1163,7 @@ static void BVDC_P_Window_BuildDitherRul_isr
 #ifdef BCHP_CMP_0_V0_CSC_DITHER_CTRL
     /* CSC Dither: only with 10-bit compositor */
 #if BVDC_P_DBV_SUPPORT && (BVDC_DBV_MODE_BVN_CONFORM)
-    if(!BVDC_P_CMP_OUTPUT_IPT(hCompositor))
+    if(!BVDC_P_CMP_DBV_MODE(hCompositor))
 #endif
     if(hCompositor->bIs10BitCore &&
        hCompositor->pFeatures->ulMaxVideoWindow > eWinInCmp)
@@ -1500,10 +1500,13 @@ static void BVDC_P_Compositor_BuildRul_Video_isr
         }
 
 #if BVDC_P_TCH_SUPPORT
-        if ((hCompositor->stCfcCapability[0].stBits.bTpToneMapping) &&
-            (eVId == BVDC_P_WindowId_eComp0_V0 && BVDC_P_IS_TCH(hCompositor->ahWindow[eVId]->pMainCfc->stColorSpaceIn.stAvcColorSpace.stMetaData.stTchInput.stHdrMetadata.eType)))
+        if ((hCompositor->stCfcCapability[0].stBits.bTpToneMapping) && (eVId == BVDC_P_WindowId_eComp0_V0))
         {
-            BVDC_P_Compositor_BuildTchVsyncRul_isr(hCompositor, pList);
+            BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hCompositor->ahWindow[eVId]->pMainCfc->stColorSpaceExtIn.stColorSpace.pMetaData;
+            if (pMetaData && BCFC_IS_TCH(pMetaData->stTchInput.stHdrMetadata.eType))
+            {
+                BVDC_P_Compositor_BuildTchVsyncRul_isr(hCompositor, pList);
+            }
         }
 #endif
 
@@ -1750,13 +1753,20 @@ void BVDC_P_Compositor_BuildSyncLockRul_isr
             /* FIELDSWAP 1) detection; */
             if(BVDC_P_STATE_IS_ACTIVE(hCompositor->hSyncLockWin))
             {
-                hSource->bFieldSwap = (hCompositor->hSyncLockWin->ulTotalBvnDelay & 1);
+                uint32_t ulTotalBvnDelay;
+                /* forced synclock window uses its own delay to decide bFieldSwap! */
+                if(hCompositor->ahWindow[i]->stSettings.bForceSyncLock) {
+                    ulTotalBvnDelay = hCompositor->ahWindow[i]->ulTotalBvnDelay;
+                } else {
+                    ulTotalBvnDelay = hCompositor->hSyncLockWin->ulTotalBvnDelay;
+                }
+                hSource->bFieldSwap = (ulTotalBvnDelay & 1);
                 BDBG_MSG(("CMP[%d], SRC[%d], WIN[%d], bFieldSwap[%d], ulTotalBvnDelay[%d] pol[%u]",
                     hCompositor->eId,
                     hSource->eId,
                     hCompositor->hSyncLockWin->eId,
                     hSource->bFieldSwap,
-                    hCompositor->hSyncLockWin->ulTotalBvnDelay, eFieldId));
+                    ulTotalBvnDelay, eFieldId));
             }
 
             /* Force source slot to execute. */
@@ -1912,7 +1922,7 @@ bool BVDC_P_Compositor_BuildSyncSlipRul_isr
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
     if (BVDC_CompositorId_eCompositor0 == hCompositor->eId)
     {
-        BVDC_P_Cfc_BuildRulForLutLoading_isr(&hCompositor->stCfcLutList, BCHP_HDR_CMP_0_LUT_DESC_ADDR, pList);
+        BVDC_P_Cfc_BuildRulForLutLoading_isr(&hCompositor->stCfcLutList, BCHP_HDR_CMP_0_LUT_DESC_ADDR, BCHP_HDR_CMP_0_LUT_DESC_CFG, pList);
     }
 #endif
 
@@ -1997,13 +2007,16 @@ void BVDC_P_Compositor_WindowsReader_isr
 #endif
     BVDC_P_Display_SrcInfo    stSrcInfo;
     const BFMT_VideoInfo     *pFmtInfo;
-    BAVC_P_Colorimetry        eOutColorimetry;
+    BCFC_Colorimetry          eOutColorimetry;
 
     BDBG_OBJECT_ASSERT(hCompositor, BVDC_CMP);
 
     BVDC_P_Compositor_UpdateOutColorSpace_isr(hCompositor, false); /* for nxserver/client */
-    eOutColorimetry = hCompositor->stOutColorSpace.stAvcColorSpace.eColorimetry;
+    eOutColorimetry = hCompositor->stOutColorSpaceExt.stColorSpace.eColorimetry;
     pFmtInfo = hCompositor->stCurInfo.pFmtInfo;
+
+    /* if no video window or with multiple video windows, set unknown hdr parameters */
+    hCompositor->bUnknownHdrParm = (hCompositor->ulActiveVideoWindow != 1);
 
     /* second pass: to adjust non-vbi-pass-thru window position;
        Note: adjustment is done in the second pass in case vwin0 has no pass-thru,
@@ -2042,6 +2055,52 @@ void BVDC_P_Compositor_WindowsReader_isr
         if(BVDC_P_WIN_GET_FIELD_NAME(CMP_0_V0_DISPLAY_SIZE, HSIZE) > 704)
         {
             bWidthTrim = false;
+        }
+
+        /* set unknown video hdr parm if:
+            1) input video is SDR or HLG;
+            2) any video window is smaller than 1/4 screen;
+            3) mosaic mode;
+         */
+        if(BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId))
+        {
+#if BVDC_P_DBV_SUPPORT
+            BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)&hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.pMetaData;
+#endif
+            if((!BCFC_IS_HDR10(hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.eColorTF)
+#if BVDC_P_DBV_SUPPORT
+                && (pMetaData==NULL || (BAVC_HdrMetadataType_eDrpu != pMetaData->stDbvInput.stHdrMetadata.eType))
+#endif
+                ) ||
+               hWindow->stCurInfo.ulMosaicCount ||
+               BVDC_P_WIN_GET_FIELD_NAME(CMP_0_V0_DISPLAY_SIZE, HSIZE) <= pFmtInfo->ulDigitalWidth/4 ||
+               BVDC_P_WIN_GET_FIELD_NAME(CMP_0_V0_DISPLAY_SIZE, VSIZE) <= pFmtInfo->ulDigitalHeight/4)
+            {
+                hCompositor->bUnknownHdrParm = true;
+            }
+
+            if(hCompositor->bUnknownHdrParm)
+            {
+                BKNI_Memset_isr(&hCompositor->stHdrParm, 0, sizeof(BAVC_HDMI_DRMInfoFrameType1));
+            }
+            else
+#if BVDC_P_DBV_SUPPORT
+                if(pMetaData==NULL || BAVC_HdrMetadataType_eDrpu != pMetaData->stDbvInput.stHdrMetadata.eType)
+#endif
+            {
+                hCompositor->stHdrParm.DisplayMasteringLuminance.Max = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.ulMaxDispMasteringLuma / 10000;
+                hCompositor->stHdrParm.DisplayMasteringLuminance.Min = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.ulMinDispMasteringLuma;
+                hCompositor->stHdrParm.MaxContentLightLevel = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.ulMaxContentLight;
+                hCompositor->stHdrParm.MaxFrameAverageLightLevel = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.ulAvgContentLight;
+                hCompositor->stHdrParm.WhitePoint.X = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stWhitePoint.ulX;
+                hCompositor->stHdrParm.WhitePoint.Y = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stWhitePoint.ulY;
+                hCompositor->stHdrParm.DisplayPrimaries[0].X = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[0].ulX;
+                hCompositor->stHdrParm.DisplayPrimaries[0].Y = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[0].ulY;
+                hCompositor->stHdrParm.DisplayPrimaries[1].X = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[1].ulX;
+                hCompositor->stHdrParm.DisplayPrimaries[1].Y = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[1].ulY;
+                hCompositor->stHdrParm.DisplayPrimaries[2].X = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[2].ulX;
+                hCompositor->stHdrParm.DisplayPrimaries[2].Y = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[2].ulY;
+            }
         }
     }
 
@@ -2156,10 +2215,13 @@ void BVDC_P_Compositor_WindowsReader_isr
     }
 #endif
 #if BVDC_P_TCH_SUPPORT
-    if ((hCompositor->stCfcCapability[0].stBits.bTpToneMapping) &&
-        (hWindow0 && BVDC_P_IS_TCH(hWindow0->pMainCfc->stColorSpaceIn.stAvcColorSpace.stMetaData.stTchInput.stHdrMetadata.eType)))
+    if (hCompositor->stCfcCapability[0].stBits.bTpToneMapping && hWindow0)
     {
-        BVDC_P_Compositor_ApplyTchSettings_isr(hCompositor);
+        BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hWindow0->pMainCfc->stColorSpaceExtIn.stColorSpace.pMetaData;
+        if (pMetaData && BCFC_IS_TCH(pMetaData->stTchInput.stHdrMetadata.eType))
+        {
+            BVDC_P_Compositor_ApplyTchSettings_isr(hCompositor);
+        }
     }
 #endif
 #else
@@ -2180,6 +2242,7 @@ void BVDC_P_Compositor_WindowsReader_isr
         hCompositor->stCurInfo.ulBgColorYCrCb = ulBgColorYCrCb;
         BVDC_P_CMP_SET_REG_DATA(CMP_0_BG_COLOR, ulBgColorYCrCb);
     }
+
 
     BDBG_LEAVE(BVDC_P_Compositor_WindowsReader_isr);
     return;

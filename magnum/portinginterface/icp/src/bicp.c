@@ -388,7 +388,7 @@ BERR_Code BICP_OpenChannel(
                  * Enable ICP interrupt in ICP
                  */
                 BKNI_EnterCriticalSection();
-                BICP_P_EnableInt (hChnDev);
+                BICP_P_EnableInt_isr( hChnDev );
                 BKNI_LeaveCriticalSection();
             }
 
@@ -441,7 +441,7 @@ BERR_Code BICP_CloseChannel(
      * Disable interrupt for this channel
      */
     BKNI_EnterCriticalSection();
-    BICP_P_DisableInt (hChn);
+    BICP_P_DisableInt_isr( hChn );
     BKNI_LeaveCriticalSection();
 
     BICP_CHK_RETCODE( retCode, BINT_DisableCallback( hChn->hChnCallback ) );
@@ -614,7 +614,9 @@ void BICP_EnableInt(
 {
     BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
 
-    BICP_P_EnableInt( hChn );
+    BKNI_EnterCriticalSection();
+    BICP_P_EnableInt_isr( hChn );
+    BKNI_LeaveCriticalSection();
 }
 
 void BICP_DisableInt(
@@ -622,7 +624,10 @@ void BICP_DisableInt(
     )
 {
     BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
-    BICP_P_DisableInt( hChn );
+
+    BKNI_EnterCriticalSection();
+    BICP_P_DisableInt_isr( hChn );
+    BKNI_LeaveCriticalSection();
 }
 
 void BICP_EnableRC6(
@@ -720,7 +725,7 @@ done:
     return retCode;
 }
 
-void BICP_P_EnableInt(
+void BICP_P_EnableInt_isr(
     BICP_ChannelHandle  hChn            /* Device channel handle */
     )
 {
@@ -735,7 +740,7 @@ void BICP_P_EnableInt(
 
 }
 
-void BICP_P_DisableInt(
+void BICP_P_DisableInt_isr(
     BICP_ChannelHandle  hChn            /* Device channel handle */
     )
 {

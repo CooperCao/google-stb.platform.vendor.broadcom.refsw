@@ -56,7 +56,7 @@ static uint32_t next_image_type = NON_SECURE;
 /*******************************************************************************
  * Simple function to initialise all BL31 helper libraries.
  ******************************************************************************/
-void bl31_lib_init(void)
+void bl31_lib_init(uintptr_t bl31_offset)
 {
 	cm_init();
 
@@ -64,7 +64,7 @@ void bl31_lib_init(void)
 	 * Initialize the PSCI library here. This also does EL3 architectural
 	 * setup.
 	 */
-	psci_setup((uintptr_t)bl31_warm_entrypoint);
+	psci_setup((uintptr_t)bl31_warm_entrypoint + bl31_offset);
 }
 
 /*******************************************************************************
@@ -75,7 +75,7 @@ void bl31_lib_init(void)
  * swtich to the next exception level. When this function returns, the core will
  * switch to the programmed exception level via. an ERET.
  ******************************************************************************/
-void bl31_main(void)
+void bl31_main(uintptr_t bl31_offset)
 {
 	NOTICE("BL31: %s\n", version_string);
 	NOTICE("BL31: %s\n", build_message);
@@ -84,7 +84,7 @@ void bl31_main(void)
 	bl31_platform_setup();
 
 	/* Initialise helper libraries */
-	bl31_lib_init();
+	bl31_lib_init(bl31_offset);
 
 	/* Initialize the runtime services e.g. psci */
 	INFO("BL31: Initializing runtime services\n");

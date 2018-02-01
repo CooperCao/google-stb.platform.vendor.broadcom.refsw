@@ -1836,7 +1836,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P3158_SetWakeupFilter(NEXUS_FrontendDevi
                 Filter[j].MaskType = pSettings->filter[i].packet[j].maskType;
             }
             rc = BMXT_Wakeup_SetPacketFilterBytes(pDevice->pGenericDeviceHandle->mtsifConfig.mxt, i, Filter);
-            if (rc) {return BERR_TRACE(rc);}
+            if (rc) { BKNI_Free(Filter); return BERR_TRACE(rc); }
         }
         BKNI_Free(Filter);
 

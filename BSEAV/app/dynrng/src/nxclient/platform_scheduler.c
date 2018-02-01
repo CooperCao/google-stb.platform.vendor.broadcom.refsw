@@ -55,7 +55,13 @@ PlatformSchedulerHandle platform_scheduler_p_create(PlatformHandle platform)
     BKNI_Memset(scheduler, 0, sizeof(*scheduler));
 
     BKNI_CreateMutex(&scheduler->mutex);
+
+    BKNI_AcquireMutex(scheduler->mutex);
+    BLST_Q_INIT(&scheduler->listeners);
+    BLST_Q_INIT(&scheduler->free);
     scheduler->platform = platform;
+    BKNI_ReleaseMutex(scheduler->mutex);
+
     BKNI_CreateEvent(&scheduler->wake);
 
     return scheduler;
@@ -63,6 +69,8 @@ PlatformSchedulerHandle platform_scheduler_p_create(PlatformHandle platform)
 
 void platform_scheduler_p_destroy(PlatformSchedulerHandle scheduler)
 {
+    PlatformListenerHandle l;
+
     if (!scheduler) return;
     if (scheduler->thread)
     {
@@ -70,6 +78,13 @@ void platform_scheduler_p_destroy(PlatformSchedulerHandle scheduler)
         BKNI_SetEvent(scheduler->wake);
         pthread_join(scheduler->thread, NULL);
     }
+
+    for (l = BLST_Q_FIRST(&scheduler->free); l; l = BLST_Q_FIRST(&scheduler->free))
+    {
+        BLST_Q_REMOVE_HEAD(&scheduler->free, link);
+        BKNI_Free(l);
+    }
+
     BKNI_DestroyEvent(scheduler->wake);
     scheduler->platform->scheduler = NULL;
     BKNI_DestroyMutex(scheduler->mutex);
@@ -86,6 +101,7 @@ PlatformListenerHandle platform_scheduler_add_listener(PlatformSchedulerHandle s
     memset(listener, 0, sizeof(*listener));
     listener->callback = callback;
     listener->pContext = pCallbackContext;
+    listener->deleted = false;
     BKNI_AcquireMutex(scheduler->mutex);
     BLST_Q_INSERT_TAIL(&scheduler->listeners, listener, link);
     BKNI_ReleaseMutex(scheduler->mutex);
@@ -97,10 +113,11 @@ void platform_scheduler_remove_listener(PlatformSchedulerHandle scheduler, Platf
     BDBG_ASSERT(scheduler);
     if (listener)
     {
+        listener->deleted = true;
         BKNI_AcquireMutex(scheduler->mutex);
         BLST_Q_REMOVE(&scheduler->listeners, listener, link);
+        BLST_Q_INSERT_TAIL(&scheduler->free, listener, link);
         BKNI_ReleaseMutex(scheduler->mutex);
-        BKNI_Free(listener);
     }
 }
 
@@ -140,13 +157,21 @@ void * platform_scheduler_p_thread(void * context)
     while (scheduler->state == PlatformSchedulerState_eRunning)
     {
         BKNI_AcquireMutex(scheduler->mutex);
+        for (l = BLST_Q_FIRST(&scheduler->free); l; l = BLST_Q_FIRST(&scheduler->free))
+        {
+            BLST_Q_REMOVE_HEAD(&scheduler->free, link);
+            BKNI_Free(l);
+        }
         for (l = BLST_Q_FIRST(&scheduler->listeners); l; l = BLST_Q_NEXT(l, link))
         {
             if (scheduler->state == PlatformSchedulerState_eDone) break;
             if (l->callback)
             {
                 BKNI_ReleaseMutex(scheduler->mutex);
-                l->callback(l->pContext, 0);
+                if (!l->deleted)
+                {
+                    l->callback(l->pContext, 0);
+                }
                 BKNI_AcquireMutex(scheduler->mutex);
             }
         }
@@ -154,11 +179,14 @@ void * platform_scheduler_p_thread(void * context)
 
         if (scheduler->state == PlatformSchedulerState_eDone) break;
 
-        rc = BKNI_WaitForEvent(scheduler->wake, 100);
-        if (rc == BERR_OS_ERROR)
+        if (scheduler->wake)
         {
-            BDBG_ERR(("Error waiting for scheduler wake event"));
-            break;
+            rc = BKNI_WaitForEvent(scheduler->wake, 100);
+            if (rc == BERR_OS_ERROR)
+            {
+                BDBG_ERR(("Error waiting for scheduler wake event"));
+                break;
+            }
         }
     }
 

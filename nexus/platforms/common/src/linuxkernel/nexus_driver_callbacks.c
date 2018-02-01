@@ -316,6 +316,18 @@ nexus_driver_run_scheduler(NEXUS_ModulePriority priority, unsigned timeout, bool
     return 0;
 }
 
+void
+nexus_driver_wakeup_scheduler(struct nexus_driver_slave_scheduler *slave)
+{
+    if(slave==NULL) {
+#if NEXUS_BASE_EXTERNAL_SCHEDULER
+        NEXUS_P_Base_ExternalScheduler_Wakeup();
+#endif
+    } else {
+        BKNI_SetEvent(slave->event);
+    }
+}
+
 /* this function is non-blocking and returns available callbacks. */
 unsigned
 nexus_driver_scheduler_dequeue(NEXUS_ModulePriority priority, nexus_driver_callback_desc *desc, unsigned nentries, struct nexus_driver_slave_scheduler *slave, bool compat)
@@ -475,12 +487,9 @@ nexus_driver_p_callback_find_entry_locked(const struct nexus_driver_callback_map
     return NULL;
 }
 
-static void
-nexus_driver_p_callback_recycle_entry_locked(struct nexus_driver_callback_map *map, struct nexus_driver_callback_entry *entry)
+static void nexus_driver_p_cancel_callback(struct nexus_driver_callback_entry *entry)
 {
-    BDBG_OBJECT_ASSERT(map, nexus_driver_callback_map);
-    BDBG_OBJECT_ASSERT(entry, nexus_driver_callback_entry);
-    if(entry->fired) {
+    if (entry->fired) {
         struct nexus_driver_callback_scheduler *scheduler;
         entry->fired = false;
         if(entry->slave==NULL) {
@@ -492,6 +501,15 @@ nexus_driver_p_callback_recycle_entry_locked(struct nexus_driver_callback_map *m
         BDBG_OBJECT_ASSERT(scheduler, nexus_driver_callback_scheduler);
         BLST_S_REMOVE(&scheduler->fired_callbacks, entry, nexus_driver_callback_entry, list_fired);
     }
+}
+
+static void
+nexus_driver_p_callback_recycle_entry_locked(struct nexus_driver_callback_map *map, struct nexus_driver_callback_entry *entry)
+{
+    BDBG_OBJECT_ASSERT(map, nexus_driver_callback_map);
+    BDBG_OBJECT_ASSERT(entry, nexus_driver_callback_entry);
+
+    BLST_S_REMOVE(&map->callbacks, entry, nexus_driver_callback_entry, list);
     
 	/* the callback may not be removed from the interface. if it fires, we need it to bounce off. */
     entry->slave = NULL;
@@ -510,7 +528,7 @@ static void
 nexus_driver_p_callback_remove_entry_locked(struct nexus_driver_callback_map *map, struct nexus_driver_callback_entry *entry)
 {
     BDBG_MSG(("%#lx(%s:%#lx) remove callback entry %#x:%#lx", (unsigned long)map, map->header->name, (unsigned long)map->header->module, entry->key.type, (unsigned long)entry->key.object));
-    BLST_S_REMOVE(&map->callbacks, entry, nexus_driver_callback_entry, list);
+    nexus_driver_p_cancel_callback(entry);
     nexus_driver_p_callback_recycle_entry_locked(map, entry);
     return;
 }
@@ -526,15 +544,10 @@ nexus_driver_p_callback_get_entry_locked(const struct nexus_driver_module_header
     /* 1. find already mapped entry */
     entry = nexus_driver_p_callback_find_entry_locked(map, handle, id);
     if(entry) {
-#if 0
-    /* don't verify the client is the same. for protected clients, they can't set a callback that isn't theirs.
-    for unprotected clients, we shouldn't prevent two clients to cooperating on the same struct. 
-    remove this code once it has proven itself. */
         if (entry->client != client) {
             BDBG_ERR(("two apps can't register for the same callback for the same handle"));
             return NULL;
         }
-#endif
         return entry;
     }
     /* 2. Search for exact match in freed entries */
@@ -597,6 +610,37 @@ nexus_driver_p_callback_get_entry_locked(const struct nexus_driver_module_header
     return entry;
 }
 
+NEXUS_Error
+nexus_driver_verify_callbacks(struct nexus_driver_module_header *header, void *handle, const unsigned *ids, const struct b_objdb_client *client)
+{
+    unsigned i;
+    struct nexus_driver_callback_map *map;
+    struct nexus_driver_callback_entry *entry;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+
+    LOCK();
+    map = header->callback_map;
+    if(map==NULL) {
+        goto done; /* if map was not created there are no active binding exist */
+    }
+
+    for(i=0;;i++) {
+        unsigned id = ids[i];
+        if(id==0) {
+            break;
+        }
+        entry = nexus_driver_p_callback_find_entry_locked(map, handle, id);
+        if(entry) {
+            if(client != entry->client) {
+                BDBG_ERR(("client:%p can't set callback id:%#x that was already set by client:%p", (void *)client, id, (void *)entry->client));
+                rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto done;
+            }
+        }
+    }
+done:
+    UNLOCK();
+    return rc;
+}
 
 void
 nexus_driver_callback_to_driver(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *handle, unsigned id, 
@@ -748,7 +792,7 @@ nexus_driver_callback_to_driver_commit(struct nexus_driver_module_header *header
 }
 
 void
-nexus_driver_deactivate_callbacks(void *context, void *object, const struct b_objdb_client *client)
+nexus_driver_deactivate_callbacks(void *context, void *object, const struct b_objdb_client *client, enum b_objdb_cancel_callbacks_action action)
 {
     struct nexus_driver_module_header *header = context;
     struct nexus_driver_callback_map *map;
@@ -756,8 +800,8 @@ nexus_driver_deactivate_callbacks(void *context, void *object, const struct b_ob
     LOCK();
     map = header->callback_map;
     if(map) {
-        struct nexus_driver_callback_entry *entry,*prev,*next;
-        for( prev = NULL, entry = BLST_S_FIRST(&map->callbacks); entry ; ) {
+        struct nexus_driver_callback_entry *entry,*next;
+        for(entry = BLST_S_FIRST(&map->callbacks); entry ; ) {
             BDBG_OBJECT_ASSERT(entry, nexus_driver_callback_entry);
             next = BLST_S_NEXT(entry, list);
             /* if object == NULL, remove all objects for the client (client is being closed)
@@ -768,15 +812,10 @@ nexus_driver_deactivate_callbacks(void *context, void *object, const struct b_ob
                 (object && client && entry->key.object == object && entry->client == client)) 
             {
                 BDBG_MSG(("nexus_driver_scheduler_deactivate_object: %s(%#lx) deactivating callback %#x:%#lx (%#lx)", header->name, (unsigned long)header->module, entry->key.type, (unsigned long)object, (unsigned long)entry ));
-                if(prev) {
-                    BLST_S_REMOVE_NEXT(&map->callbacks, prev, list);
-                } else {
-                    BLST_S_REMOVE_HEAD(&map->callbacks, list);
+                nexus_driver_p_cancel_callback(entry);
+                if (action == b_objdb_cancel_callbacks_action_destroy) {
+                    nexus_driver_p_callback_recycle_entry_locked(map, entry); /* this would move entry into another list */
                 }
-                nexus_driver_p_callback_recycle_entry_locked(map, entry); /* this would move entry into another list */
-                /* continue traversing list */
-            } else {
-                prev = entry;
             }
             entry = next;
         }
@@ -863,12 +902,7 @@ nexus_driver_slave_scheduler_release(struct nexus_driver_module_header *header, 
                 entry->zombie = true;
 
                 /* must remove from fired_callbacks because ref_cnt might be >1 and we can't have client pick this up. */
-                if (entry->fired) {
-                    struct nexus_driver_callback_scheduler *scheduler = &entry->slave->scheduler;
-                    entry->fired = false;
-                    BDBG_OBJECT_ASSERT(scheduler, nexus_driver_callback_scheduler);
-                    BLST_S_REMOVE(&scheduler->fired_callbacks, entry, nexus_driver_callback_entry, list_fired);
-                }
+                nexus_driver_p_cancel_callback(entry);
 
                 /* prevent this from being removed from regular scheduler's fired_callbacks */
                 entry->slave = NULL;

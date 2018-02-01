@@ -107,7 +107,7 @@ b_test_buffer(NEXUS_PlaybackHandle p, uint8_t **addr, size_t *size)
     }
     /* Make sure the block is large enough to satisfy any possible alignment
     requirement. */
-    if (*size < B_IO_BLOCK_LIMIT) {
+    if (*size < p->params.minimumBlockSize) {
         /* minimum size needed for buffer alignment */
         BDBG_MSG_FLOW(("available space is too small (%#lx). wait for more.", (unsigned long)*size));
         return -1;
@@ -623,7 +623,7 @@ bplay_get_decode_mark(NEXUS_PlaybackHandle playback, uint32_t *pFifoMarker, bool
                         fifoMarker += audioStatus.queuedFrames;
                         if(audioStatus.queuedFrames>8) {
                             /* if we have a few audio frames, we need to wait longer. */
-                            *pWaitTime = 500; /* msec */
+                            if (*pWaitTime < 500) *pWaitTime = 500; /* msec */
                         }
                     }
                     if(audioStatus2.started) {
@@ -632,7 +632,7 @@ bplay_get_decode_mark(NEXUS_PlaybackHandle playback, uint32_t *pFifoMarker, bool
                         fifoMarker += audioStatus2.queuedFrames;
                         if(audioStatus2.queuedFrames>8) {
                             /* if we have a few audio frames, we need to wait longer. */
-                            *pWaitTime = 500; /* msec */
+                            if (*pWaitTime < 500) *pWaitTime = 500; /* msec */
                         }
                     }
                 }
@@ -659,7 +659,7 @@ b_play_wait_for_end(NEXUS_PlaybackHandle p)
     bool queued;
     NEXUS_Time now;
     long diff;
-    unsigned waitTime = B_FRAME_DISPLAY_TIME * 6;
+    unsigned waitTime = p->params.endOfStreamTimeout;
 
     BDBG_OBJECT_ASSERT(p, NEXUS_Playback);
     /* in the case of forward frame advance, we have to use different logic */

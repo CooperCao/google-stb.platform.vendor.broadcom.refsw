@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -636,20 +636,4 @@ void BXPT_Playback_ConfigTsMuxDesc(
     BXPT_Playback_InitDescriptorFlags( &flags );
     flags.muxFlags = *Config;
     BXPT_Playback_SetDescriptorFlags( hPb, Desc, &flags );
-}
-
-void BXPT_Tsmux_GetDescConfig(
-    const BXPT_PvrDescriptor *Desc,
-    BAVC_TsMux_DescConfig *Config     /* [out] muxing flags unpacked from the descriptor */
-    )
-{
-    BDBG_ASSERT( Desc );
-    BDBG_ASSERT( Config );
-
-    /* These definitions came from the SW Guide to MCPB 2.0 doc, definition of the 12 word descriptor. */
-    Config->bRandomAccessIndication = Desc->MuxingFlags & 1 << 2 ? true : false;
-    Config->bNextPacketPacingTimestampValid = Desc->MuxingFlags & 1 << 1 ? true : false;
-    Config->uiNextPacketPacingTimestamp = Desc->NextPacketPacingTimestamp;
-    Config->bPacket2PacketTimestampDeltaValid = Desc->MuxingFlags & 1 ? true : false;
-    Config->uiPacket2PacketTimestampDelta = Desc->Pkt2PktPacingTimestampDelta;
 }

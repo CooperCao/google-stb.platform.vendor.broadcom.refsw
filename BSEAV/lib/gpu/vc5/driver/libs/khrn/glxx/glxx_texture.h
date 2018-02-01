@@ -84,7 +84,7 @@ typedef struct glxx_tex_sampler_state {
    // Note GL_CLAMP_TO_BORDER is supported internally on earlier versions for
    // images (see init_image_unit_default_sampler), but the border color is
    // always (0,0,0,0)
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    uint32_t border_color[4];
 #endif
    char   *debug_label;
@@ -184,7 +184,7 @@ extern bool glxx_texture_image(GLXX_TEXTURE_T *texture, unsigned face, unsigned 
       GLenum internalformat, unsigned width, unsigned height, unsigned depth,
       GLenum fmt, GLenum type, const GLXX_PIXEL_STORE_STATE_T *pack_unpack,
       GLXX_BUFFER_T *pixel_buffer, const void *pixels,
-      glxx_context_fences *fences, GLenum *error, bool secure);
+      glxx_context_fences *fences, GLenum *error);
 
 extern bool glxx_texture_subimage(GLXX_TEXTURE_T *texture, unsigned face, unsigned level,
       unsigned dst_x, unsigned dst_y, unsigned dst_z,
@@ -229,6 +229,16 @@ glxx_texture_ensure_contiguous_blob_if_complete(GLXX_TEXTURE_T *texture, const
       GLXX_TEXTURE_SAMPLER_STATE_T *sampler, unsigned *base_level,
       unsigned *num_levels, glxx_context_fences *fences);
 
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+struct image_params
+{
+   v3d_addr_t lx_addr; /* for bound level and selected plane */
+   uint32_t lx_pitch, lx_slice_pitch;
+   glsl_imgunit_swizzling lx_swizzling;
+   uint32_t arr_stride;
+};
+#endif
+
 typedef struct
 {
    uint32_t hw_param[2];
@@ -242,7 +252,7 @@ typedef struct
    glsl_gadgettype_t gadgettype;
 #endif
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    uint32_t hw_param1_gather[4];
    uint32_t hw_param1_fetch;
    uint32_t hw_param1_no_aniso;
@@ -255,11 +265,8 @@ typedef struct
    bool force_no_pixmask;
 #endif
 
-   /* for imageStore */
-   uint32_t arr_stride; /* array_stride */
-   glsl_imgunit_swizzling lx_swizzling;
-   uint32_t lx_addr; /* address for bound level */
-   uint32_t lx_pitch, lx_slice_pitch;
+   /* valid when texture is used as image unit */
+   struct image_params img_params;
 #endif
 } GLXX_TEXTURE_UNIF_T;
 

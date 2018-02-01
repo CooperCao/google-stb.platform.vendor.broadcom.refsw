@@ -105,7 +105,7 @@ typedef struct NEXUS_VideoInput_P_Link {
     NEXUS_VideoInput input;
     NEXUS_HeapHandle heap;
     BVDC_Mode mtg; /* BVDC_Source created with mtg */
-    bool secureVideo;
+    NEXUS_VideoDecoderSecureType secureVideo;
 
     NEXUS_VideoInputSettings cfg;
     NEXUS_VideoInputStatus status;

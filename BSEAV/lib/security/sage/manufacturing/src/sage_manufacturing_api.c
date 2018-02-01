@@ -50,6 +50,7 @@
 #include "sage_srai.h"
 #include "sage_manufacturing_module_ids.h"
 
+#include "nexus_security_datatypes.h"
 #if (NEXUS_SECURITY_API_VERSION == 1)
 #include "nexus_otpmsp.h"
 #include "nexus_read_otp_id.h"
@@ -773,11 +774,13 @@ static ChipType_e _P_GetChipType(void)
     uint32_t Msp0Data;
     uint32_t Msp1Data;
     NEXUS_Error rc =  NEXUS_SUCCESS;
-
+#if NEXUS_ZEUS_VERSION < NEXUS_ZEUS_VERSION_CALC(5,0)
+    rc = NEXUS_OtpMsp_Read(233, &readMsp0);
+    rc = NEXUS_OtpMsp_Read(234, &readMsp1);
+#else
     rc = NEXUS_OtpMsp_Read(224, &readMsp0);
-
     rc = NEXUS_OtpMsp_Read(225, &readMsp1);
-
+#endif
     Msp0Data = readMsp0.data & readMsp0.valid;
     Msp1Data = readMsp1.data & readMsp1.valid;
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -91,7 +91,7 @@ Description:
 See Also:
     BVDC_Window_SetMosaic, BVDC_Window_GetMosaicDstRects
 ***************************************************************************/
-#define BAVC_MOSAIC_MAX                      (16)
+#define BAVC_MOSAIC_MAX                      (12)
 
 /***************************************************************************
 Summary:
@@ -1099,6 +1099,7 @@ typedef enum BAVC_VideoCompressionStd
     BAVC_VideoCompressionStd_eMOTION_JPEG,    /* Motion Jpeg */
     BAVC_VideoCompressionStd_eH265,           /* H.265 */
     BAVC_VideoCompressionStd_eVP9,            /* VP9 */
+    BAVC_VideoCompressionStd_eAVS2,           /* AVS2  */
     BAVC_VideoCompressionStd_eMax
 
 } BAVC_VideoCompressionStd;
@@ -1132,6 +1133,7 @@ typedef enum BAVC_VideoCompressionProfile
     BAVC_VideoCompressionProfile_eMain10,
     BAVC_VideoCompressionProfile_e0,
     BAVC_VideoCompressionProfile_e2,
+    BAVC_VideoCompressionProfile_eGuango,
 
     BAVC_VideoCompressionProfile_eMax
 
@@ -1180,6 +1182,7 @@ typedef enum BAVC_VideoCompressionLevel
     BAVC_VideoCompressionLevel_eL2,
     BAVC_VideoCompressionLevel_eL3,
     BAVC_VideoCompressionLevel_e80,
+    BAVC_VideoCompressionLevel_e52,
 
     BAVC_VideoCompressionLevel_eMax
 
@@ -1225,6 +1228,98 @@ typedef enum BAVC_VideoBitDepth
     BAVC_VideoBitDepth_eMax
 
 } BAVC_VideoBitDepth;
+
+/***************************************************************************
+Summary:
+    Defines h264/5 spec of pic_struct syntax for picture cadence.
+
+Description:
+
+See Also:
+****************************************************************************/
+typedef enum BAVC_PicStruct
+{
+    BAVC_PicStruct_eFrame = 0,
+    BAVC_PicStruct_eTopField,
+    BAVC_PicStruct_eBotField,
+    BAVC_PicStruct_eTopFirst,
+    BAVC_PicStruct_eBotFirst,
+    BAVC_PicStruct_eTopBotTopRepeat,
+    BAVC_PicStruct_eBotTopBotRepeat,
+    BAVC_PicStruct_eFrameDoubling,
+    BAVC_PicStruct_eFrameTripling,
+    BAVC_PicStruct_eReserved
+} BAVC_PicStruct;
+
+/***************************************************************************
+Summary:
+    Defines picture cadence type.
+
+Description:
+    If eUnlocked, video picture cadence is unlocked; else, it reports 3:2 or 2:2 locked cadence.
+
+See Also:
+****************************************************************************/
+typedef enum BAVC_CadenceType
+{
+    BAVC_CadenceType_eUnlocked = 0,
+    BAVC_CadenceType_e3_2,
+    BAVC_CadenceType_e2_2,
+    BAVC_CadenceType_eMax
+} BAVC_CadenceType;
+
+/***************************************************************************
+Summary:
+    Defines picture cadence phase.
+
+Description:
+    If video picture cadence type is 3:2 or 2:2 locked type, this enum reports the cadence phase
+    for the current picture.
+
+    Example cadence scenarios:
+
+       VSYNC    | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+
+    Interlaced:
+       POLARITY | T | B | T | B | T | B | T | B | T | B |
+
+       TYPE = 3:2
+       PHASE    | 0 | 1 | 2 | 3 | 4 | 0 | 1 | 2 | 3 | 4 | --> [T0 B1 T2] [B3 T4] [B5 T6 B7] [T8 B9]
+       PHASE    | 1 | 2 | 3 | 4 | 0 | 1 | 2 | 3 | 4 | 0 | --> T0 B1] [T2 B3] [T4 B5 T6] [B7 T8] [B9
+       PHASE    | 2 | 3 | 4 | 0 | 1 | 2 | 3 | 4 | 0 | 1 | --> T0] [B1 T2] [B3 T4 B5] [T6 B7] [T8 B9
+       PHASE    | 3 | 4 | 0 | 1 | 2 | 3 | 4 | 0 | 1 | 2 | --> [T0 B1] [T2 B3 T4] [B5 T6] [B7 T8 B9]
+       PHASE    | 4 | 0 | 1 | 2 | 3 | 4 | 0 | 1 | 2 | 3 | --> T0] [B1 T2 B3] [T4 B5] [T6 B7 T8] [B9
+
+       TYPE = 2:2
+       PHASE    | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | --> [T0 B1] [T2 B3] [T4 B5] [T6 B7] [T8 B9]
+       PHASE    | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | --> T0] [B1 T2] [B3 T4] [B5 T6] [B7 T8] [B9
+
+
+     Progressive:
+        POLARITY | F | F | F | F | F | F | F | F | F | F |
+
+        TYPE = 3:2
+        PHASE    | 0 | 1 | 2 | 3 | 4 | 0 | 1 | 2 | 3 | 4 | --> [F0 F1 F2] [F3 F4] [F5 F6 F7] [F8 F9]
+        PHASE    | 1 | 2 | 3 | 4 | 0 | 1 | 2 | 3 | 4 | 0 | --> F0 F1] [F2 F3] [F4 F5] [F6 F7 F8] [F9
+        PHASE    | 2 | 3 | 4 | 0 | 1 | 2 | 3 | 4 | 0 | 1 | --> F0] [F1 F2] [F3 F4 F5] [F6 F7] [F8 F9
+        PHASE    | 3 | 4 | 0 | 1 | 2 | 3 | 4 | 0 | 1 | 2 | --> [F0 F1] [F2 F3 F4] [F5 F6] [F7 F8 F9]
+        PHASE    | 4 | 0 | 1 | 2 | 3 | 4 | 0 | 1 | 2 | 3 | --> F0] [F1 F2 F3] [F4 F5] [F6 F7 F8] [F9
+
+        TYPE = 2:2
+        PHASE    | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | --> [F0 F1] [F2 F3] [F4 F5] [F6 F7] [F8 F9]
+        PHASE    | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | --> F0] [F1 F2] [F3 F4] [F5 F6] [F7 F8] [F9
+
+See Also:
+****************************************************************************/
+typedef enum BAVC_CadencePhase
+{
+    BAVC_CadencePhase_e0 = 0, /* 1st picture of cadence 3 of 3:2 type or cadence 2 of 2:2 type */
+    BAVC_CadencePhase_e1, /* 2nd picture of cadence 3 of 3:2 type or cadence 2 of 2:2 type */
+    BAVC_CadencePhase_e2, /* 3rd picture (repeat) of cadence 3 of 3:2 type */
+    BAVC_CadencePhase_e3, /* 1st picture of the cadence 2 of 3:2 type */
+    BAVC_CadencePhase_e4, /* 2nd picture of the cadence 2 of 3:2 type */
+    BAVC_CadencePhase_eMax
+} BAVC_CadencePhase;
 
 /***************************************************************************
 Summary:

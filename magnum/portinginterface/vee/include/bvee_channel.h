@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2003-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,7 +39,6 @@
 #define _BVEE_CHANNEL_
 
 #include "bavc.h"
-#include "bavc_vee.h"
 #include "budp_vce.h"
 
 /***************************************************************************
@@ -53,7 +52,7 @@ typedef struct BVEE_Channel *BVEE_ChannelHandle;
 Summary:
 Live Transcode for video phone: 640x480 @ 15fps
 Live Transcode for iPad: 440x224 @ 30fps
-Offline Transcode: 1280x720 @ 30fps 1/6 X real time 
+Offline Transcode: 1280x720 @ 30fps 1/6 X real time
                     640x360 @ 30fps 1~0.7 X real time
 ***************************************************************************/
 typedef struct BVEE_Resolution
@@ -73,32 +72,32 @@ typedef enum
 
 typedef enum
 {
-    BVEE_VideoH264Profile_eBaseline		                            = 66,
-    BVEE_VideoH264Profile_eMain									    = 77,
-    BVEE_VideoH264Profile_eExtended								    = 88,
-    BVEE_VideoH264Profile_eFRExtProfileHigh						    = 100,							
-    BVEE_VideoH264Profile_eFRExtProfileHigh10							= 110,	
-    BVEE_VideoH264Profile_eFRExtProfileHigh422					    = 122,	
-    BVEE_VideoH264Profile_eFRExtProfileHigh444					    = 244,	
-    BVEE_VideoH264Profile_eFRExtProfileHighCavlc444					= 44	
+    BVEE_VideoH264Profile_eBaseline                                 = 66,
+    BVEE_VideoH264Profile_eMain                                     = 77,
+    BVEE_VideoH264Profile_eExtended                                 = 88,
+    BVEE_VideoH264Profile_eFRExtProfileHigh                         = 100,
+    BVEE_VideoH264Profile_eFRExtProfileHigh10                           = 110,
+    BVEE_VideoH264Profile_eFRExtProfileHigh422                      = 122,
+    BVEE_VideoH264Profile_eFRExtProfileHigh444                      = 244,
+    BVEE_VideoH264Profile_eFRExtProfileHighCavlc444                 = 44
 }BVEE_VideoH264ProfileIdc;
 
 typedef enum
 {
-    BVEE_VideoEncodeMode_eHighDelay   				    = 0x0,      
-    BVEE_VideoEncodeMode_eLowDelay    				    = 0x1,      
-    BVEE_VideoEncodeMode_eAfap         				    = 0x2,
-    BVEE_VideoEncodeMode_eInvalid		                = 0x7FFFFFFF
+    BVEE_VideoEncodeMode_eHighDelay                     = 0x0,
+    BVEE_VideoEncodeMode_eLowDelay                      = 0x1,
+    BVEE_VideoEncodeMode_eAfap                          = 0x2,
+    BVEE_VideoEncodeMode_eInvalid                       = 0x7FFFFFFF
 }BVEE_VideoEncodeMode;
 
 typedef enum
 {
-    BVEE_VideoGopStruct_eIOnly		       			    = 0x0,      
-    BVEE_VideoGopStruct_eIP			       			    = 0x1,      
-    BVEE_VideoGopStruct_eIPB   							= 0x2,
-    BVEE_VideoGopStruct_eIPBB			       			    = 0x3,
+    BVEE_VideoGopStruct_eIOnly                          = 0x0,
+    BVEE_VideoGopStruct_eIP                             = 0x1,
+    BVEE_VideoGopStruct_eIPB                            = 0x2,
+    BVEE_VideoGopStruct_eIPBB                               = 0x3,
     BVEE_VideoGopStruct_eMax,
-    BVEE_VideoGopStruct_eInvalid					        = 0x7FFFFFFF
+    BVEE_VideoGopStruct_eInvalid                            = 0x7FFFFFFF
 }BVEE_VideoGopStruct;
 
 typedef enum
@@ -162,7 +161,7 @@ VEE channel open settings
 typedef struct BVEE_ChannelOpenSettings
 {
     /* JDG: Capture buffers should not be allocated by the PI.  Only reference frame buffers. */
-    BMMA_Heap_Handle bufferHeap;             /* Heap to allocate any reference buffers required by this channel.  
+    BMMA_Heap_Handle bufferHeap;             /* Heap to allocate any reference buffers required by this channel.
                                            If NULL, the heap passed to BVEE_Open will be used. */
     BAVC_VideoCompressionStd codec;   /* List of Video compression standards used by this channel */
 
@@ -184,7 +183,7 @@ Get default open settings for a video channel
 ***************************************************************************/
  void BVEE_Channel_GetDefaultOpenSettings(
     BVEE_ChannelOpenSettings *pSettings             /* [out] */
-    ); 
+    );
 
 /***************************************************************************
 Summary:
@@ -205,28 +204,28 @@ Close an instance of video encoding
     BVEE_ChannelHandle handle
     );
 /***************************************************************************
-Summary: 
-	The structure contains all information regarding soft external interrupts to DSP 
+Summary:
+    The structure contains all information regarding soft external interrupts to DSP
 
 Description:
-	This structure contains configuration info of soft external interrupts to DSP.
+    This structure contains configuration info of soft external interrupts to DSP.
 
 See Also:
-	None.
+    None.
 ****************************************************************************/
 typedef struct BVEE_ExtIntrptConfig
 {
-	/* If the dsp task will be interrupted by external client */
-	bool	                enableInterrupts;
-	uint32_t				numInterrupts;
-	/* only numInterrupts of following struct will be valid */
-	struct
-	{
-		/* ESR_SI register address. Full 32bit address */
-		uint32_t				interruptRegAddr;
-	    /* Trigger bit in the above register. Bit count [0...31]*/
-		uint32_t				interruptBit;
-	}interruptInfo[BDSP_MAX_EXT_INTERRUPT_PER_TASK];
+    /* If the dsp task will be interrupted by external client */
+    bool                    enableInterrupts;
+    uint32_t                numInterrupts;
+    /* only numInterrupts of following struct will be valid */
+    struct
+    {
+        /* ESR_SI register address. Full 32bit address */
+        uint32_t                interruptRegAddr;
+        /* Trigger bit in the above register. Bit count [0...31]*/
+        uint32_t                interruptBit;
+    }interruptInfo[BDSP_MAX_EXT_INTERRUPT_PER_TASK];
 
 }BVEE_ExtIntrptConfig;
 /***************************************************************************
@@ -235,26 +234,26 @@ VEE Channel settings
 ***************************************************************************/
 typedef struct BVEE_ChannelStartSettings
 {
-    BAVC_VideoCompressionStd codec;         
+    BAVC_VideoCompressionStd codec;
     const BAVC_XptContextMap *pContextMap;  /* What RAVE context should be written while encoding. */
     bool                    nonRealTime;    /* Encode Mode.  Set to true for offline transcode and false otherwise. */
-    BVEE_AspectRatio		eAspectRatio;
+    BVEE_AspectRatio        eAspectRatio;
     BAVC_FrameRateCode      frameRate;
     BAVC_YCbCrType          pxlformat;
     BVEE_VideoH264ProfileIdc    eProfileIDC;
-    uint32_t					ui32LevelIdc;			/* ranges from 9 to 51. For SD it is 30 */
-    BVEE_VideoEncodeMode	 	eMode;					/* (High Delay, Low Delay, AFAP)	 */
-    uint32_t 					ui32TargetBitRate;			/* Number of bits per sec.	*/
-    uint32_t 					ui32EncodPicWidth;
-    uint32_t 					ui32EncodPicHeight;
-    uint32_t					ui32IntraPeriod;
-    uint32_t					ui32IDRPeriod;
-    BVEE_VideoGopStruct			eGopStruct;
-    bool						bDblkEnable;
+    uint32_t                    ui32LevelIdc;           /* ranges from 9 to 51. For SD it is 30 */
+    BVEE_VideoEncodeMode        eMode;                  /* (High Delay, Low Delay, AFAP)     */
+    uint32_t                    ui32TargetBitRate;          /* Number of bits per sec.  */
+    uint32_t                    ui32EncodPicWidth;
+    uint32_t                    ui32EncodPicHeight;
+    uint32_t                    ui32IntraPeriod;
+    uint32_t                    ui32IDRPeriod;
+    BVEE_VideoGopStruct         eGopStruct;
+    bool                        bDblkEnable;
     bool                        bSubPelMvEnable;
     bool                        bVarModeOptEnable;
-    bool						bRateControlEnable;    
-    uint32_t					ui32End2EndDelay;
+    bool                        bRateControlEnable;
+    uint32_t                    ui32End2EndDelay;
     bool                        sendMetadata;
     bool                        sendEos;
     BVEE_ExtIntrptConfig        extIntCfg;
@@ -266,10 +265,10 @@ typedef struct BVEE_ChannelStartSettings
 /***************************************************************************
 Summary:
 Get default start settings for a video channel
-***************************************************************************/ 
+***************************************************************************/
  void BVEE_Channel_GetDefaultStartSettings(
     BVEE_ChannelStartSettings *settings
-    ); 
+    );
 
 /***************************************************************************
 Summary:
@@ -291,22 +290,22 @@ Stop Video encoding
 /***************************************************************************
 Summary:
 Description of a picture buffer
-***************************************************************************/ 
+***************************************************************************/
 typedef struct BVEE_PictureDescriptor
-{    
+{
     BAVC_FrameRateCode  frameRate;          /* Picture frame rate */
     BAVC_PictureCoding  pictureCoding;      /* Picture Type */
     BAVC_Polarity       polarity;           /* Picture Polarity */
     unsigned            sarHorizontal;      /* Sample Aspect Ratio horizontal value (SAR = sarHorizontal/sarVertical) */
     unsigned            sarVertical;        /* Sample Aspect Ratio vertical value (SAR = sarHorizontal/sarVertical) */
-    bool                repeat;             /* This indicates the picture repeat known by the caller.  This flag applies 
+    bool                repeat;             /* This indicates the picture repeat known by the caller.  This flag applies
                                                to both interlaced and progressive sequences.  For interlaced, repeated pictures
                                                have the same polarity as the previous picture.*/
-    bool                ignore;             /* This flag indicates an unintentional picture repeat due to decoder underflow in 
+    bool                ignore;             /* This flag indicates an unintentional picture repeat due to decoder underflow in
                                                non-realtime transcode mode.  The encoder will drop any pictures with this flag set,
                                                timestamps will not be adjusted and it will have no effect in the coded stream.  */
     BAVC_PTSInfo        originalPts;        /* Original PTS value */
-    uint32_t            id;                 /* Picture ID.  A 32-bit counter value generated by the caller to identify pictures. */    
+    uint32_t            id;                 /* Picture ID.  A 32-bit counter value generated by the caller to identify pictures. */
     BMMA_Block_Handle   hImageMmaBlock;     /* Raw picture Mma block */
     unsigned            offset;             /* Raw picture hardware address */
     unsigned            height;             /* Encoded picture height*/
@@ -346,15 +345,17 @@ typedef struct BVEE_PictureDescriptor
     uint32_t            ul2H1VLumaOffset;
     BMMA_Block_Handle   h2H2VLumaBlock;/* NULL if unused */
     uint32_t            ul2H2VLumaOffset;
+    BMMA_Block_Handle   hShiftedChromaBlock;/* NULL if unused */
+    uint32_t            ulShiftedChromaOffset;
 #endif
 } BVEE_PictureDescriptor;
 /***************************************************************************
 Summary:
 Description of a Data Sync settings
-***************************************************************************/ 
+***************************************************************************/
 typedef struct BVEE_DatasyncSettings
 {
-    unsigned eEnableStc;		/*Set 0 to disable, 1 to enable*/
+    unsigned eEnableStc;        /*Set 0 to disable, 1 to enable*/
     uint32_t ui32StcAddress;
 } BVEE_DatasyncSettings;
 /***************************************************************************
@@ -376,7 +377,7 @@ typedef struct BVEE_ChannelInterruptHandlers
     {
         void (*pCallback_isr)(void *pParam1, int param2);
         void *pParam1;
-        int param2;        
+        int param2;
     } vencDataDiscarded;
 } BVEE_ChannelInterruptHandlers;
 
@@ -388,12 +389,12 @@ void BVEE_Channel_GetInterruptHandlers(
     BVEE_ChannelHandle handle,
     BVEE_ChannelInterruptHandlers *pInterrupts     /* [out] */
     );
-    
+
 /***************************************************************************
 Summary:
-Set Interrupt Handlers 
- 
-Description: 
+Set Interrupt Handlers
+
+Description:
 To disable any unwanted interrupt, pass NULL for its callback routine
 ***************************************************************************/
 BERR_Code BVEE_Channel_SetInterruptHandlers(
@@ -403,51 +404,51 @@ BERR_Code BVEE_Channel_SetInterruptHandlers(
 
 /***************************************************************************
 Summary:
-Add picture to encoder's queue. 
- 
-Description: 
-The provided descriptor will be enqueued for the firmware.  If 
-BVEE_ChannelOpenSettings.enableExternalTrigger is true, the register 
-described in BVEE_ChannelTriggerInfo must also be written each vsync. 
-Otherwise, the encoder will be automatically triggered. 
- 
-See Also: 
-    BVEE_Channel_InitPictureDescriptor 
-    BVEE_Channel_DequeuePicture_isr 
+Add picture to encoder's queue.
+
+Description:
+The provided descriptor will be enqueued for the firmware.  If
+BVEE_ChannelOpenSettings.enableExternalTrigger is true, the register
+described in BVEE_ChannelTriggerInfo must also be written each vsync.
+Otherwise, the encoder will be automatically triggered.
+
+See Also:
+    BVEE_Channel_InitPictureDescriptor
+    BVEE_Channel_DequeuePicture_isr
 ***************************************************************************/
 BERR_Code BVEE_Channel_EnqueuePicture_isr(
     BVEE_ChannelHandle handle,
-    const BVEE_PictureDescriptor *pPicture 
+    const BVEE_PictureDescriptor *pPicture
     );
 
 /***************************************************************************
 Summary:
-Remove a picture that the encoder has finished encoding. 
- 
-Description: 
-This call is non-blocking.  If no pictures are available, 
-NULL will be returned. 
- 
-Returns: 
+Remove a picture that the encoder has finished encoding.
+
+Description:
+This call is non-blocking.  If no pictures are available,
+NULL will be returned.
+
+Returns:
     BERR_SUCCESS - A frame was successfully dequeued.
     BVEE_ERR_QUEUE_EMPTY - No frames are available to dequeue.
- 
-See Also: 
-    BVEE_Channel_EnqueuePicture_isr 
+
+See Also:
+    BVEE_Channel_EnqueuePicture_isr
 ***************************************************************************/
 BERR_Code BVEE_Channel_DequeuePicture_isr(
-    BVEE_ChannelHandle handle,    
-    BVEE_PictureDescriptor *pPicture 
+    BVEE_ChannelHandle handle,
+    BVEE_PictureDescriptor *pPicture
     );
 
 /***************************************************************************
 Summary:
-External Trigger Information 
- 
-Description: 
-This structure describes a register that must be written each vsync by 
-an external source (e.g. BVN/VDC).  This is only used when the channel was 
-opened with BVEE_ChannelOpenSettings. 
+External Trigger Information
+
+Description:
+This structure describes a register that must be written each vsync by
+an external source (e.g. BVN/VDC).  This is only used when the channel was
+opened with BVEE_ChannelOpenSettings.
 ***************************************************************************/
 typedef struct BVEE_ChannelTriggerInfo
 {
@@ -457,7 +458,7 @@ typedef struct BVEE_ChannelTriggerInfo
 
 /***************************************************************************
 Summary:
-Get External Trigger Information 
+Get External Trigger Information
 ***************************************************************************/
 void BVEE_Channel_GetTriggerInfo(
     BVEE_ChannelHandle handle,
@@ -510,7 +511,7 @@ Summary:
     Set Data Sync Settings
 
 Description:
-    Provide STC address to DSP to do a TSM based picture drop in case if it 
+    Provide STC address to DSP to do a TSM based picture drop in case if it
     is not running real time. This STC address should be the same which was
     used to generate time-stamp for captured picture and *not* the STC that
     is used by video/audio decoder
@@ -525,7 +526,7 @@ Summary:
     Get Data Sync Settings
 
 Description:
-    Returns STC address used to do a TSM based picture drop in case if it 
+    Returns STC address used to do a TSM based picture drop in case if it
     is not running real time.
 ***************************************************************************/
 BERR_Code BVEE_Channel_GetDataSyncSettings(
@@ -541,10 +542,10 @@ typedef struct BVEE_ExtInterrupt *BVEE_ExtInterruptHandle;
 
 /***************************************************************************
 Summary:
-External Interrupt Information 
- 
-Description: 
-This structure describes a register address and bit that must be set by 
+External Interrupt Information
+
+Description:
+This structure describes a register address and bit that must be set by
 an external source (e.g. BVN/VDC), when data is ready for encode.
 ***************************************************************************/
 typedef struct BVEE_ExtInterruptInfo
@@ -571,12 +572,12 @@ Summary:
 
 Description:
     Returns allocated register address and bit number which needs to be set
-	to raise interrupt.
+    to raise interrupt.
 ***************************************************************************/
 BERR_Code BVEE_Channel_GetExtInterruptInfo(
    BVEE_ChannelHandle handle,
    BVEE_ExtInterruptHandle pIntHandle,
-   BVEE_ExtInterruptInfo *pExtIntInfo 
+   BVEE_ExtInterruptInfo *pExtIntInfo
    );
 
 /***************************************************************************
@@ -614,7 +615,7 @@ typedef struct BVEE_ChannelSettings
 {
     uint32_t                ui32TargetBitRate;          /* Number of bits per sec.  */
     BAVC_FrameRateCode      frameRate;
-    bool                    bSceneChangeEnable;    
+    bool                    bSceneChangeEnable;
 } BVEE_ChannelSettings;
 
 /***************************************************************************
@@ -632,15 +633,15 @@ Summary:
 Get Encoder Settings
 ***************************************************************************/
 BERR_Code BVEE_Channel_SetSettings(
-   BVEE_ChannelHandle handle, 
+   BVEE_ChannelHandle handle,
    const BVEE_ChannelSettings *pSettings
    );
 
 /***************************************************************************
 Summary:
-Encoder status information. 
- 
-Description: 
+Encoder status information.
+
+Description:
 This structure describes the current encoder status.
 ***************************************************************************/
 typedef struct BVEE_ChannelStatus
@@ -652,7 +653,7 @@ typedef struct BVEE_ChannelStatus
     uint32_t    ui32CdbFullCounter;
     uint32_t    ui32RelinquishCounter;
     uint32_t    ui32EncodedPTS;
-    uint32_t    ui32StcValue;   
+    uint32_t    ui32StcValue;
 } BVEE_ChannelStatus;
 
 /***************************************************************************

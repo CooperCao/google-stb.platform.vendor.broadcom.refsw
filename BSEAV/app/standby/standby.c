@@ -554,12 +554,6 @@ int deepStandbyMode(void)
             nexusStandbyStatus.wakeupStatus.keypad,
             nexusStandbyStatus.wakeupStatus.timeout);
 
-    if(nexusStandbyStatus.wakeupStatus.ir) {
-        unsigned code, codeHigh;
-        ir_last_key(&code, &codeHigh);
-        printf("Wake-up key was: %x %x\n", code, codeHigh);
-    }
-
     if(g_cmd_options._auto) {
         wait_for_all_devices();
     } else {
@@ -735,6 +729,7 @@ int initialize_state(int argc, char **argv)
     g_DeviceState.source[0] = eInputSourceFile;
     g_DeviceState.playfile[0] = "videos/cnnticker.mpg";
     g_DeviceState.gpio_pin = 1;
+    g_DeviceState.gui = true;
 
     if(!parse_cmdline_args(argc, argv)) return 0;
 

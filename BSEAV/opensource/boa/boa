@@ -60,3 +60,8 @@ fi
 if [ -e bsysperf.sh ]; then
 source bsysperf.sh
 fi
+
+# if bastraperf.sh exists, start the server
+if [ -e astratop.sh ]; then
+source astratop.sh
+fi

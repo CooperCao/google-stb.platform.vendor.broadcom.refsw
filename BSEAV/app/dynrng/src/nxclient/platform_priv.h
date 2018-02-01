@@ -62,11 +62,21 @@ PlatformDynamicRange platform_p_input_dynamic_range_from_nexus(NEXUS_VideoEotf n
 PlatformDynamicRange platform_p_output_dynamic_range_from_nexus(NEXUS_VideoEotf nxEotf, NEXUS_HdmiOutputDolbyVisionMode dolbyVision);
 NEXUS_MatrixCoefficients platform_p_colorimetry_to_nexus(PlatformColorimetry colorimetry);
 PlatformColorimetry platform_p_colorimetry_from_nexus(NEXUS_MatrixCoefficients nxColorimetry);
-NEXUS_ColorSpace platform_p_color_space_to_nexus(PlatformColorSpace colorSpace);
+NEXUS_ColorSpace platform_p_color_space_and_sampling_to_nexus(PlatformColorSpace colorSpace, int colorSampling);
 PlatformColorSpace platform_p_color_space_from_nexus(NEXUS_ColorSpace nxColorSpace);
+int platform_p_color_sampling_from_nexus(NEXUS_ColorSpace nxColorSpace);
 unsigned platform_p_frame_rate_from_nexus(NEXUS_VideoFrameRate frameRate);
+bool platform_p_drop_frame_from_nexus(NEXUS_VideoFrameRate frameRate);
+void platform_p_picture_format_from_nexus(NEXUS_VideoFormat format, PlatformPictureFormat * pFormat);
+NEXUS_VideoFormat platform_p_picture_format_to_nexus(const PlatformPictureFormat * pFormat);
+void platform_p_aspect_ratio_from_nexus(PlatformAspectRatio * pAr, NEXUS_DisplayAspectRatio ar, unsigned x, unsigned y);
+NEXUS_DisplayAspectRatio platform_p_aspect_ratio_to_nexus(const PlatformAspectRatio * pAr, unsigned * pX, unsigned * pY);
+PlatformRenderingPriority platform_p_rendering_priority_from_nexus(NEXUS_HdmiOutputDolbyVisionPriorityMode nxRenderingPriority);
+NEXUS_HdmiOutputDolbyVisionPriorityMode platform_p_rendering_priority_to_nexus(PlatformRenderingPriority renderingPriority);
+
 void platform_p_hotplug_handler(void * context, int param);
 void platform_hdmi_receiver_p_hotplug_handler(PlatformHdmiReceiverHandle rx);
+
 bool platform_display_p_is_dolby_vision_supported(PlatformDisplayHandle display);
 
 #endif /* PLATFORM_PRIV_H__ */

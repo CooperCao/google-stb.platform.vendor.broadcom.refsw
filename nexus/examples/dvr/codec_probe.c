@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -90,7 +90,7 @@ static bmpeg2ts_parser_action
 payload_probe_ts_data(bmpeg2ts_parser_pid *pid, unsigned flags, batom_accum_t src, batom_cursor *cursor, size_t len)
 {
     payload_probe *probe = (payload_probe*)pid;
-    BDBG_MSG(("payload_probe_ts_data: %p pid:%#x %u bytes", (void*)probe, probe->ts.pid, len));
+    BDBG_MSG(("payload_probe_ts_data: %p pid:%#x %u bytes", (void*)probe, probe->ts.pid, (unsigned)len));
     if(probe->active) {
         return bmpeg2pes_parser_feed(&probe->pes, flags, src, cursor, len);
     }
@@ -128,7 +128,7 @@ payload_probe_pes_data(void *packet_cnxt, batom_accum_t src, batom_cursor *paylo
     batom_t packet = NULL;
     batom_cursor payload_start;
 
-    BDBG_MSG(("payload_probe_pes_data: %#lx stream %#x:%#x pes data %u:%u", (unsigned long)probe, (unsigned)probe->ts.pid, (unsigned)info->pes_id, info->data_offset, len));
+    BDBG_MSG(("payload_probe_pes_data: %p stream %#x:%#x pes data %u:%u", (void *)probe, (unsigned)probe->ts.pid, (unsigned)info->pes_id, info->data_offset, (unsigned)len));
 
     if(!probe->active || probe->track) {
         return;

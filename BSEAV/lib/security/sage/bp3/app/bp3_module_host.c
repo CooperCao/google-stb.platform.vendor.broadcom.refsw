@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -90,6 +90,7 @@ void SAGE_BP3Module_Uninit(void)
     }
 }
 
+
 //  Generate Session Token
 BERR_Code SAGE_BP3Module_GetSessionToken(uint8_t *pSessionToken, uint32_t tokenSize)
 {
@@ -100,11 +101,13 @@ BERR_Code SAGE_BP3Module_GetSessionToken(uint8_t *pSessionToken, uint32_t tokenS
     if (pSageInOutContainer == NULL)
     {
         BDBG_ERR(("%s: Unable to allocate container.",BSTD_FUNCTION));
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
         goto end;
     }
     if (tokenSize == 0)
     {
         BDBG_ERR(("%s: Invalid session token size.",BSTD_FUNCTION));
+        rc = BERR_INVALID_PARAMETER;
         goto end;
     }
     pSageInOutContainer->blocks[0].data.ptr  = pSessionToken;
@@ -122,6 +125,47 @@ BERR_Code SAGE_BP3Module_GetSessionToken(uint8_t *pSessionToken, uint32_t tokenS
     {
         BDBG_ERR(("%s: Failed to generate Session Token %d",BSTD_FUNCTION,rc));
     }
+end:
+    if (pSageInOutContainer)
+    {
+        SRAI_Container_Free(pSageInOutContainer);
+        pSageInOutContainer = NULL;
+    }
+    return rc;
+}
+
+
+// Get OTP ID
+BERR_Code SAGE_BP3Module_GetOtpId (uint32_t *pOtpIdHigh, uint32_t *pOtpIdLow)
+{
+    BERR_Code                rc = BERR_UNKNOWN;
+    BSAGElib_InOutContainer *pSageInOutContainer = NULL;
+
+    pSageInOutContainer = SRAI_Container_Allocate();
+    if (pSageInOutContainer == NULL)
+    {
+        BDBG_ERR(("%s: Unable to allocate container.",BSTD_FUNCTION));
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
+        goto end;
+    }
+
+    rc = SRAI_Module_ProcessCommand(hBP3Module,
+                                    BP3_CommandId_eGetChipOtpId,
+                                    pSageInOutContainer);
+    if (rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s: Failed to send get OTP ID command. %d",BSTD_FUNCTION,rc));
+    }
+
+    rc          = pSageInOutContainer->basicOut[0];
+    if (rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s: Failed to get OTP ID. %d",BSTD_FUNCTION,rc));
+    }
+
+    *pOtpIdHigh = pSageInOutContainer->basicOut[1];
+    *pOtpIdLow  = pSageInOutContainer->basicOut[2];
+
 end:
     if (pSageInOutContainer)
     {

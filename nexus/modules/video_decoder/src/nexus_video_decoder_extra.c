@@ -254,6 +254,8 @@ NEXUS_Error NEXUS_VideoDecoder_P_GetStripedSurfaceCreateSettings( NEXUS_VideoDec
         pCreateSettings->lumaPixelFormat = m2mcPxlFmt;
     }
 
+    pCreateSettings->matrixCoefficients = NEXUS_P_MatrixCoefficients_FromMagnum_isrsafe(pPicture->eMatrixCoefficients);
+
     return NEXUS_SUCCESS;
 }
 

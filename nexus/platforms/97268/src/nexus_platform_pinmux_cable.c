@@ -60,13 +60,7 @@ void NEXUS_Platform_P_EnableSageDebugPinmux(void)
     BREG_Handle hReg = g_pCoreHandles->reg;
     uint32_t reg;
 
-    const char *pinmux_env = NEXUS_GetEnv("sage_log");
-    if (pinmux_env) {
-        int pinmux_env_val = NEXUS_atoi(pinmux_env);
-        if (pinmux_env_val != 1) {
-            return; /* Only enable pin mux if this is set to 1 */
-        }
-    } else {
+    if (!NEXUS_Platform_P_EnableSageLog()) {
         return;
     }
 
@@ -141,7 +135,7 @@ void NEXUS_Platform_P_EnableSageDebugPinmux(void)
     reg = BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL_encoded_tp_enable_SYS;
     BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL, reg);
 
-	return BERR_SUCCESS;
+        return BERR_SUCCESS;
 
 }
 #endif
@@ -151,7 +145,7 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
 {
     NEXUS_PlatformStatus platformStatus;
 
-	NEXUS_Platform_GetStatus(&platformStatus);
+        NEXUS_Platform_GetStatus(&platformStatus);
     BDBG_MSG(("Board ID major: %d, minor: %d", platformStatus.boardId.major, platformStatus.boardId.minor));
 
 #if NEXUS_HAS_SAGE

@@ -546,7 +546,7 @@ BERR_Code BAPE_Encoder_SetCodecSettings(
         break;
     }
 
-    if ( codecsEqual )
+    if ( codecsEqual && handle->hStage )
     {
         errCode = BAPE_Encoder_P_ApplyDspSettings(handle);
         if ( errCode )
@@ -1083,7 +1083,7 @@ static BERR_Code BAPE_Encoder_P_ApplyAacSettings(BAPE_EncoderHandle handle)
     }
 
 
-    switch ( handle->node.deviceHandle->settings.loudnessMode )
+    switch ( handle->node.deviceHandle->settings.loudnessSettings.loudnessMode )
     {
     case BAPE_LoudnessEquivalenceMode_eAtscA85:
         /* A/85 is consistent with 24dB stereo output from the decoder */

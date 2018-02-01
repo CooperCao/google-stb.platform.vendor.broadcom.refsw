@@ -3216,6 +3216,83 @@ VKAPI_ATTR void VKAPI_CALL vkTrimCommandPoolKHR(
 
 
 
+VKAPI_ATTR void VKAPI_CALL vkGetImageMemoryRequirements2KHR(
+   VkDevice                                   device,
+   const VkImageMemoryRequirementsInfo2KHR   *pInfo,
+   VkMemoryRequirements2KHR                  *pMemoryRequirements)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+
+   deviceObj->GetImageMemoryRequirements2KHR(
+      pInfo,
+      pMemoryRequirements
+   );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetBufferMemoryRequirements2KHR(
+   VkDevice                                   device,
+   const VkBufferMemoryRequirementsInfo2KHR  *pInfo,
+   VkMemoryRequirements2KHR                  *pMemoryRequirements)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+
+   deviceObj->GetBufferMemoryRequirements2KHR(
+      pInfo,
+      pMemoryRequirements
+   );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetImageSparseMemoryRequirements2KHR(
+   VkDevice                                         device,
+   const VkImageSparseMemoryRequirementsInfo2KHR   *pInfo,
+   uint32_t                                        *pSparseMemoryRequirementCount,
+   VkSparseImageMemoryRequirements2KHR             *pSparseMemoryRequirements)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+
+   deviceObj->GetImageSparseMemoryRequirements2KHR(
+      pInfo,
+      pSparseMemoryRequirementCount,
+      pSparseMemoryRequirements
+   );
+}
+
+
+
+VKAPI_ATTR VkResult VKAPI_CALL vkBindBufferMemory2KHR(
+   VkDevice                          device,
+   uint32_t                          bindInfoCount,
+   const VkBindBufferMemoryInfoKHR  *pBindInfos)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+
+   return deviceObj->BindBufferMemory2KHR(
+      bindInfoCount,
+      pBindInfos
+   );
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkBindImageMemory2KHR(
+   VkDevice                          device,
+   uint32_t                          bindInfoCount,
+   const VkBindImageMemoryInfoKHR   *pBindInfos)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+
+   return deviceObj->BindImageMemory2KHR(
+      bindInfoCount,
+      pBindInfos
+   );
+}
+
+
+
+
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateDebugReportCallbackEXT(
    VkInstance                                 instance,
    const VkDebugReportCallbackCreateInfoEXT  *pCreateInfo,

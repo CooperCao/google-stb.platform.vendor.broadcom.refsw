@@ -337,6 +337,7 @@ NEXUS_SageModule_Standby_priv(
             NEXUS_Sage_P_SvpEnterS3();
             NEXUS_Sage_P_SvpStop(false);
             NEXUS_Sage_P_BP3Uninit();
+            NEXUS_Sage_P_SecureLog_Uninit();
             NEXUS_Sage_P_ARUninit(SAGElibStandbyMode);
         }
 

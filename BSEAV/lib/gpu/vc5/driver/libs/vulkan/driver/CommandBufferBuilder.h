@@ -83,16 +83,10 @@ public:
 
    QueryManager *GetQueryManager() { return &m_queryManager; }
 
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   bool CalcMaxAllowedIndexAndInstance(const LinkResult &linkData,
-                                       uint32_t *maxIndex, uint32_t *maxInstance) const;
-#endif
-
    const bvk::vector<uint8_t>   &PushConstants() const { return m_pushConstants; }
    DevMemRange &PushConstantsDevMem() { return m_pushConstantsDevMem; }
 
-   void SetPushConstants(PipelineLayout *layout, VkShaderStageFlags stageFlags,
-                         uint32_t offset, uint32_t size, const void *pValues);
+   void SetPushConstants(uint32_t bytesRequired, uint32_t offset, uint32_t size, const void *pValues);
 
    uint32_t GetPushConstantValue(uint32_t offset)
    {

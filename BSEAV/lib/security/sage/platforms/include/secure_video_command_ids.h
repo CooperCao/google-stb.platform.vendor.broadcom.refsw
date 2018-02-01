@@ -45,16 +45,17 @@ extern "C" {
 #endif
 
 /***********
-2.6 - Support dynamic URR
-2.7 - Support secure HDMI Rx
-2.8 - Support for DTU remap of URR
-2.9 - Support enable/disable FWRR arch. SECURE_VIDEO_OUT_VER_COMPAT_MIN added.
+2.6  - Support dynamic URR
+2.7  - Support secure HDMI Rx (core map has changed - incompatible)
+2.8  - Support for DTU remap of URR (compatible to 2.7)
+2.9  - Support enable/disable FWRR arch. SECURE_VIDEO_VER_ID_COMPAT_MIN added. (compatible to 2.7)
+2.10 - Support for encode of secure content
 ************/
 
 #if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
 #define SECURE_VIDEO_VER_ID 0x00010000
 #else
-#define SECURE_VIDEO_VER_ID 0x00020009
+#define SECURE_VIDEO_VER_ID 0x0002000A
 #endif
 #define SECURE_VIDEO_V3D_ALIGNMENT 4096
 #define SECURE_VIDEO_V3D_SIZE 0x4000
@@ -71,6 +72,7 @@ extern "C" {
 #define SECURE_VIDEO_SETCORES_IN_ADD 1
 #define SECURE_VIDEO_SETCORES_IN_V3D_OFFSET 2
 #define SECURE_VIDEO_SETCORES_IN_V3D_SIZE 3
+#define SECURE_VIDEO_SETCORES_IN_TYPE 4
 #define SECURE_VIDEO_SETCORES_BLOCK_CORELIST 0
 
 /* For bvn_monitor_CommandId_eUpdateHeaps command */
@@ -95,12 +97,20 @@ typedef enum secureVideo_Toggle_e {
     bvn_monitor_Command_eDisable
 }secureVideo_Toggle_e;
 
+typedef enum secureVideo_UrrType_e {
+    secure_video_urrType_eMin,
+    secure_video_urrType_eDisplay=secure_video_urrType_eMin,
+    secure_video_urrType_eTranscode,
+    secure_video_urrType_eEnd=secure_video_urrType_eTranscode,
+    secure_video_urrType_eMax
+}secureVideo_UrrType_e;
+
 /*
  * List of supported SAGE commands
  * */
 
 typedef enum secureVideo_CommandId_e {
-    bvn_monitor_CommandId_eSetCores = 0x1,
+    bvn_monitor_CommandId_eSetCores = 1,
     bvn_monitor_CommandId_eToggle, /* Legacy support, no longer used */
     bvn_monitor_CommandId_eUpdateHeaps,
     bvn_monitor_CommandId_eSecureRemap

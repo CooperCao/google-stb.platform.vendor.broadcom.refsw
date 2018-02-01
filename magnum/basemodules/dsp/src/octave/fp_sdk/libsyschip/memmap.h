@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -71,14 +71,6 @@
 #  include "libsyschip/memmap-raaga.h"
 #endif
 
-#ifdef CELIVERO
-#  include "libsyschip/memmap-celivero.h"
-#endif
-
-#ifdef CELTRIX
-#  include "libsyschip/memmap-celtrix.h"
-#endif
-
 #ifdef MCPHY
 #  include "libsyschip/memmap-mcphy.h"
 #endif
@@ -89,10 +81,6 @@
 
 #ifdef BSP
 #  include "libsyschip/memmap-bsp.h"
-#endif
-
-#ifdef LEAP_PHY
-#  include "libsyschip/memmap-leap-phy.h"
 #endif
 
 #ifdef PMC3
@@ -139,6 +127,26 @@
 #  include "libsyschip/memmap-avs.h"
 #endif
 
+#ifdef WOD
+#  include "libsyschip/memmap-wod.h"
+#endif
+
+#ifdef LEAP_PHY_BCM3465
+#  include "libsyschip/memmap-leap-phy-bcm3465.h"
+#endif
+
+#if defined(LEAP_PHY) || defined(LEAP_PHY_BCM45402)
+#  include "libsyschip/memmap-leap-phy.h"
+#endif
+
+#ifdef LEAP_SOC
+#  include "libsyschip/memmap-leap-soc.h"
+#endif
+
+#ifdef CMTS_PHY
+#  include "libsyschip/memmap-cmts-phy.h"
+#endif
+
 #ifdef VIPER2_TP0
 #  include "libsyschip/memmap-viper2-tp0.h"
 #endif
@@ -155,8 +163,12 @@
 #  include "libsyschip/memmap-ofdx_rx.h"
 #endif
 
-#ifdef WOD
-#  include "libsyschip/memmap-wod.h"
+#ifdef DSLCPE
+#  include "libsyschip/memmap-dslcpe.h"
+#endif
+
+#ifdef SAGE
+#  include "libsyschip/memmap-sage.h"
 #endif
 
 #if defined(__FP4014__)
@@ -312,7 +324,7 @@ with the pcache these macros just return the value supplied.
 #endif /* ASMCPP */
 
 
-/* FIREPATH_DSP_SUBSYS_NUM handling */
+/* FIREPATH_SUBSYS_NUM handling */
 #if NUM_SUBSYSTEMS > 1
 #  if NUM_CORES > 1
 #    error "Unsupported NUM_SUBSYSTEMS > 1 with NUM_CORES > 1"
@@ -328,15 +340,15 @@ with the pcache these macros just return the value supplied.
  * we are multicore would trigger many (wrong) assumptions about target in the
  * SDK code.
  * As we are configured for NUM_CORES == 1, FIREPATH_NUM will always return 0.
- * We introduce here the FIREPATH_DSP_SUBSYS_NUM macro, as some parts of the
+ * We introduce here the FIREPATH_SUBSYS_NUM macro, as some parts of the
  * system need to be accessed in a DSP-dependent way.
  */
-#    define FIREPATH_DSP_SUBSYS_NUM     (__fp_dirr_w(DIR_CORE_ID))
+#    define FIREPATH_SUBSYS_NUM     (__fp_dirr_w(DIR_CORE_ID))
 
 #  endif /* !defined(ASMCPP) && !defined(__LINKER_SCRIPT__) && defined(__FIREPATH__) */
 
 #else
-#  define FIREPATH_DSP_SUBSYS_NUM       0
+#  define FIREPATH_SUBSYS_NUM       0
 #endif /* NUM_SUBSYSTEMS > 1 */
 
 

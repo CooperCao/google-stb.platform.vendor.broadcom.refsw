@@ -83,7 +83,7 @@ void BVC5_P_BinMemArrayDestroy(
 BVC5_BinBlockHandle BVC5_P_BinMemArrayAdd(
    BVC5_P_BinMemArray  *psArray,
    uint32_t             uiMinBlockSizeBytes,
-   uint32_t            *puiPhysOffset
+   uint64_t            *puiPhysOffset
 );
 
 /* BVC5_P_BinMemArrayGetBlock

@@ -365,6 +365,7 @@ typedef struct BDSP_RaagaCapture
     uint8_t maxBuffers; /* Maximum number of buffers */
 
     bool StartCapture;
+	bool stageDestroyed;
     BDSP_MMA_Memory captureBuffer;
     BDSP_RaagaCapturePointerInfo capPtrs[BDSP_AF_P_MAX_CHANNELS]; /* Capture pointer info for all the output capture ports */
 } BDSP_RaagaCapture;
@@ -922,6 +923,7 @@ buffer type and a specified read pointer
 uint32_t BDSP_Raaga_P_GetAudioBufferDepthLinear(
     BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *pBuffer, /* [in] pointer to circular buffer */
     uint32_t ui32ShadowRead, /* [in] read pointer */
+    dramaddr_t *pLastWrite,
     BDSP_AF_P_BufferType eType, /* [in] buffer type */
     BREG_Handle hReg
     ); /* [in] register handle */

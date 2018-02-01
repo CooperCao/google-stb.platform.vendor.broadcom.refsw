@@ -1004,11 +1004,11 @@ bool gl11_hw_emit_shaders(GL11_CACHE_KEY_T *v, GLXX_LINK_RESULT_DATA_T *data, ui
    fcard = fshader(v);
    data->threaded = true;
 
-   result = glxx_schedule(fcard->root, GLSL_BACKEND_TYPE_FRAGMENT, &data->mh_fcode, &data->mh_funiform_map, &data->threaded, vary_map, &vary_count);
+   result = glxx_schedule(fcard->root, GLSL_BACKEND_TYPE_FRAGMENT, &data->mh_fcode, &data->funiform_map, &data->threaded, vary_map, &vary_count);
    if (!result)
    {
       data->threaded = false;
-      result = glxx_schedule(fcard->root, GLSL_BACKEND_TYPE_FRAGMENT, &data->mh_fcode, &data->mh_funiform_map, &data->threaded, vary_map, &vary_count);
+      result = glxx_schedule(fcard->root, GLSL_BACKEND_TYPE_FRAGMENT, &data->mh_fcode, &data->funiform_map, &data->threaded, vary_map, &vary_count);
    }
 
    data->num_varyings = vary_count;
@@ -1025,7 +1025,7 @@ bool gl11_hw_emit_shaders(GL11_CACHE_KEY_T *v, GLXX_LINK_RESULT_DATA_T *data, ui
    vcard = vshader(v,data->vattribs_order);
    last_vpm_write = glxx_vertex_backend(vcard->vertex->x, vcard->vertex->y, vcard->vertex->z, vcard->vertex->w, vcard->point_size, true, false, NULL, NULL, 0, v->common.egl_output);
    glxx_iodep(last_vpm_write, vcard->force_vpm_read);
-   result &= glxx_schedule(last_vpm_write, GLSL_BACKEND_TYPE_COORD, &data->mh_ccode, &data->mh_cuniform_map, NULL, NULL, NULL);
+   result &= glxx_schedule(last_vpm_write, GLSL_BACKEND_TYPE_COORD, &data->mh_ccode, &data->cuniform_map, NULL, NULL, NULL);
 
    /* vertex shader */
 
@@ -1043,7 +1043,7 @@ bool gl11_hw_emit_shaders(GL11_CACHE_KEY_T *v, GLXX_LINK_RESULT_DATA_T *data, ui
    }
    last_vpm_write = glxx_vertex_backend(vcard->vertex->x, vcard->vertex->y, vcard->vertex->z, vcard->vertex->w, vcard->point_size, false, true, vertex_vary, vary_map, vary_count, v->common.egl_output);
    glxx_iodep(last_vpm_write, vcard->force_vpm_read);
-   result &= glxx_schedule(last_vpm_write, GLSL_BACKEND_TYPE_VERTEX, &data->mh_vcode, &data->mh_vuniform_map, NULL, NULL, NULL);
+   result &= glxx_schedule(last_vpm_write, GLSL_BACKEND_TYPE_VERTEX, &data->mh_vcode, &data->vuniform_map, NULL, NULL, NULL);
 
    data->has_point_size = vcard->point_size != NULL;
 

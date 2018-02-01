@@ -164,7 +164,7 @@ typedef struct wpa_suppl {
 #ifdef BCMSUPPL
 	/* need to differentiate message 1 and 3 in 4 way handshake */
 	eapol_sup_pk_state_t pk_state;
-	uint8 eapol_temp_ptk[TKIP_PTK_LEN];     /* Temp PTK */
+	uint8 eapol_temp_ptk[TKIP_TK_LEN];		/* Temp PTK */
 #endif /* BCMSUPPL */
 #ifdef WLHOSTFBT
 	supp_ft_t ft_info;
@@ -224,6 +224,7 @@ typedef struct nas_sta {
 #endif /* WLWNM */
 	/* WPA capabilities */
 	uint8 cap[WPA_CAP_LEN];
+	bool auth_retx;         /* If auth frame is retransmitted */
 } nas_sta_t;
 
 /* nas_sta_t flags */
@@ -294,7 +295,7 @@ typedef enum { ITIMER_OK = 0, ITIMER_CREATE_ERROR, ITIMER_CONNECT_ERROR,
 
 /* Set an iterval timer. */
 extern itimer_status_t wpa_set_itimer(bcm_timer_module_id module, bcm_timer_id *td,
-                                      bcm_timer_cb handler, int handler_param,
+                                      bcm_timer_cb handler, void *handler_param,
                                       int secs, int msecs);
 extern itimer_status_t wpa_set_timeout(bcm_timer_id td, int secs, int msecs);
 

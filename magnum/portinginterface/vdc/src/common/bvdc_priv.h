@@ -299,7 +299,10 @@ typedef struct
  */
 typedef struct
 {
-    uint32_t   ulCanvasCoverage[12];
+    /* This is the area coverage for BVDC_GetMaxMosaicCoverage */
+    uint32_t   aulCanvasCoverageEqual[BAVC_MOSAIC_MAX];
+    uint32_t   aulCanvasCoverageBL[BAVC_MOSAIC_MAX];
+
 } BVDC_P_MosaicCanvasCoverage;
 
 typedef struct BVDC_P_Context
@@ -396,6 +399,8 @@ typedef struct BVDC_P_Context
     BBOX_Config                    stBoxConfig;
 #endif
 
+    const BVDC_SourceClassLimits  *pstSrcClassTbl;
+    const BVDC_WindowClassLimits  *pstWinClassTbl;
     BVDC_P_MosaicCanvasCoverage    stMosaicCoverageTbl[BVDC_P_MAX_DISPLAY_COUNT];
 
     /* memory info */
@@ -446,13 +451,6 @@ const BVDC_P_IntCbTbl *BVDC_P_GetBvnErrorCb
 const BVDC_P_IntCbTbl *BVDC_P_GetBvnErrorCb_isr
     ( BVDC_BvnError                    eBvnErrId );
 
-void BVDC_P_CalculateRect_isr
-    ( const BVDC_ClipRect             *pClipRect,
-      uint32_t                         ulWidth,
-      uint32_t                         ulHeight,
-      bool                             bInterlaced,
-      BVDC_P_Rect                     *pRect );
-
 bool BVDC_P_CbIsDirty_isr
     (void                           *pDirty,
      uint32_t                        ulSize );
@@ -485,10 +483,10 @@ uint32_t BVDC_P_GetNumCmp
 uint32_t BVDC_P_GetBoxWindowId_isrsafe
     ( BVDC_P_WindowId                  eWindowId );
 
-void BVDC_P_MosaicCoverage_Init
-    ( BBOX_Config                     *pBoxConfig,
-      BVDC_DisplayId                   eDisplayId,
-      BVDC_P_MosaicCanvasCoverage     *pCoverageTbl );
+#ifndef BVDC_FOR_BOOTUPDATER
+void BVDC_P_SrcWinClass_Init
+    ( BVDC_Handle                      hVdc );
+#endif
 
 void BVDC_P_PrintHeapInfo
     ( const BVDC_Heap_Settings        *pHeap );

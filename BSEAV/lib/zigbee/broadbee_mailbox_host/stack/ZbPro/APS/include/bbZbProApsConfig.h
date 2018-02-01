@@ -65,7 +65,9 @@
 /*
  * Number of ZbProApsBuffer_t buffers in the Buffer Pool
  */
+#ifndef ZBPRO_APS_BUFFER_POOL_SIZE
 #define ZBPRO_APS_BUFFER_POOL_SIZE      8
+#endif
 
 #define ZBPRO_APS_MAX_FRAME_RETRIES     3
 

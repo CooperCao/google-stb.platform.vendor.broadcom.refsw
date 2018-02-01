@@ -198,17 +198,19 @@ const uint8_t g_keyID[] = {0xB6, 0xEB, 0x18, 0x37, 0x7B, 0xA8, 0x79, 0x4F, 0xB3,
 
 #ifdef NETFLIX_EXT
 /* **FixMe** test code until IsSecureStopAPI is implemented */
-static bool		bIsSecureStopEnabled = false;
-static uint8_t	sSessionIdBuf[DRM_PRDY_SESSION_ID_LEN];
+static bool     bIsSecureStopEnabled = false;
+static uint8_t  sSessionIdBuf[DRM_PRDY_SESSION_ID_LEN];
 #endif
 
 static
 int gen_random_num( uint32_t numberOfBytes, uint8_t *pRandomBytes)
 {
     int rc = 0;
+    NEXUS_Error nxs_rc = NEXUS_SUCCESS;
+#if (NEXUS_SECURITY_API_VERSION==1)
+{
     NEXUS_RandomNumberGenerateSettings settings;
     NEXUS_RandomNumberOutput rngOutput;
-    NEXUS_Error nxs_rc = NEXUS_SUCCESS;
 
     NEXUS_RandomNumber_GetDefaultGenerateSettings(&settings);
     settings.randomNumberSize = numberOfBytes;
@@ -220,8 +222,19 @@ int gen_random_num( uint32_t numberOfBytes, uint8_t *pRandomBytes)
         rc = -1;
         goto ErrorExit;
     }
-
     BKNI_Memcpy(pRandomBytes, rngOutput.buffer, numberOfBytes);
+}
+#else
+{
+    nxs_rc = NEXUS_GetRandomNumber(pRandomBytes, numberOfBytes);
+    if((nxs_rc != NEXUS_SUCCESS))
+    {
+        printf("%s - Error generating '%u' random bytes  ", BSTD_FUNCTION, numberOfBytes);
+        rc = -1;
+        goto ErrorExit;
+    }
+}
+#endif
 
 ErrorExit:
     return rc;
@@ -434,7 +447,11 @@ int main(int argc, char* argv[])
     NEXUS_KeySlotHandle            keySlot=NULL;
     NEXUS_DmaJobBlockSettings      blk;
     CommonCryptoSettings           cryptoSettings;
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityKeySlotSettings  keySlotSettings;
+#else
+    NEXUS_KeySlotAllocateSettings keySlotSettings;
+#endif
     CommonCryptoKeyConfigSettings  algSettings;
     int                            rc = 0;
     uint8_t                        key[16] = {0};
@@ -766,7 +783,7 @@ int main(int argc, char* argv[])
                                                            non_quiet,
                                                            app_security,
                                                            (unsigned char**)&(timeChResp),
-							   MAX_TIME_CHALLENGE_RESPONSE_LENGTH,
+                               MAX_TIME_CHALLENGE_RESPONSE_LENGTH,
                                                            &startOffset,
                                                            &length);
        if( post_ret != 0)
@@ -835,13 +852,13 @@ TEST_GENEATE_SEED:
     }
 
 #ifdef NETFLIX_EXT
-	/* enable secure stop */
-	if ( DRM_Prdy_TurnSecureStop(drm, 1) ) {
-	    printf("[FAILED] - %d Failed to enable Secure Stop \n",__LINE__);
-	}
-	else{
-		bIsSecureStopEnabled = true;
-	}
+    /* enable secure stop */
+    if ( DRM_Prdy_TurnSecureStop(drm, 1) ) {
+        printf("[FAILED] - %d Failed to enable Secure Stop \n",__LINE__);
+    }
+    else{
+        bIsSecureStopEnabled = true;
+    }
 #endif
 
     /* initialize the key slot and DMA blocks */
@@ -853,10 +870,19 @@ TEST_GENEATE_SEED:
     }
 
     /* Allocate key slot for AES Counter mode */
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_Security_GetDefaultKeySlotSettings(&keySlotSettings);
     keySlotSettings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
 
     keySlot = NEXUS_Security_AllocateKeySlot(&keySlotSettings);
+#else
+    NEXUS_KeySlot_GetDefaultAllocateSettings(&keySlotSettings);
+    keySlotSettings.useWithDma = true;
+    keySlotSettings.owner = NEXUS_SecurityCpuContext_eHost;
+    keySlotSettings.slotType = NEXUS_KeySlotType_eIvPerBlock;
+
+    keySlot = NEXUS_KeySlot_Allocate(&keySlotSettings);
+#endif
     if(keySlot == NULL) {
         printf("[FAILED] - %d Failure to allocate key slot.\n", __LINE__);
         rc = -1;
@@ -864,17 +890,27 @@ TEST_GENEATE_SEED:
     }
 
     CommonCrypto_GetDefaultKeyConfigSettings(&algSettings);
+#if (NEXUS_SECURITY_API_VERSION==1)
     algSettings.keySlot = keySlot;
     algSettings.settings.opType = NEXUS_SecurityOperation_eEncrypt;
     algSettings.settings.algType = NEXUS_SecurityAlgorithm_eAes128;
     algSettings.settings.algVariant = NEXUS_SecurityAlgorithmVariant_eCounter;
     algSettings.settings.termMode = NEXUS_SecurityTerminationMode_eClear;
     algSettings.settings.aesCounterMode = NEXUS_SecurityCounterMode_eGenericAllBlocks;
-    algSettings.settings.enableExtKey = false;
-    algSettings.settings.enableExtIv = false;
     /* always assume IV size 8 */
     algSettings.settings.aesCounterSize = NEXUS_SecurityAesCounterSize_e64Bits;
-
+#else
+    algSettings.keySlot = keySlot;
+    algSettings.settings.opType = NEXUS_CryptographicOperation_eEncrypt;
+    algSettings.settings.algType = NEXUS_CryptographicAlgorithm_eAes128;
+    algSettings.settings.algVariant = NEXUS_CryptographicAlgorithmMode_eCounter;
+    algSettings.settings.termMode = NEXUS_KeySlotTerminationMode_eClear;
+    algSettings.settings.aesCounterMode = NEXUS_CounterMode_e1;
+    /* always assume IV size 8 */
+    algSettings.settings.aesCounterSize = 64;
+#endif
+    algSettings.settings.enableExtKey = false;
+    algSettings.settings.enableExtIv = false;
     /* Configure key slot for AES Counter mode */
     if(CommonCrypto_LoadKeyConfig( cryptoHandle, &algSettings) != NEXUS_SUCCESS) {
         printf("[FAILED] - %d CommonCrypto_ConfigAlg failed aes ctr\n", __LINE__);
@@ -991,7 +1027,7 @@ TEST_GENEATE_SEED:
     /* Prepare the license challenge */
     /* first, determine the size of the challenge and the URL string */
 #ifdef NETFLIX_EXT
-	if (bIsSecureStopEnabled == true) {
+    if (bIsSecureStopEnabled == true) {
         if( DRM_Prdy_Get_Buffer_Size( drm,
                                       DRM_Prdy_getBuffer_licenseAcq_challenge_Netflix,
                                       NULL,
@@ -1047,7 +1083,7 @@ TEST_GENEATE_SEED:
 
     /* call the API to generate the license challenge */
 #ifdef NETFLIX_EXT
-	if (bIsSecureStopEnabled == true) {
+    if (bIsSecureStopEnabled == true) {
         uint8_t    tNounce[DRM_PRDY_SESSION_ID_LEN];
         if( DRM_Prdy_LicenseAcq_GenerateChallenge_Netflix( drm,
                                                    NULL,
@@ -1062,7 +1098,7 @@ TEST_GENEATE_SEED:
             printf("[FAILED] - %d Failed to generate license challenge .\n",__LINE__);
             goto clean_exit;
         }
-	} else {
+    } else {
         if( DRM_Prdy_LicenseAcq_GenerateChallenge( drm,
                                                    NULL,
                                                    0,
@@ -1074,7 +1110,7 @@ TEST_GENEATE_SEED:
             printf("[FAILED] - %d Failed to generate license challenge .\n",__LINE__);
             goto clean_exit;
         }
-	}
+    }
 #else
     if( DRM_Prdy_LicenseAcq_GenerateChallenge( drm,
                                                NULL,
@@ -1115,7 +1151,7 @@ TEST_GENEATE_SEED:
                                                        non_quiet,
                                                        app_security,
                                                        (unsigned char**)&(licResp),
-						       MAX_LICENCE_RESPONSE_LENGTH,
+                               MAX_LICENCE_RESPONSE_LENGTH,
                                                        &startOffset,
                                                        &length);
     if( post_ret != 0)
@@ -1126,24 +1162,24 @@ TEST_GENEATE_SEED:
     printf("[PASSED] - %d DRM_Prdy_http_client_license_post_soap succeeded with response size = %d.\n",__LINE__,length);
 
 #ifdef NETFLIX_EXT
-	if (bIsSecureStopEnabled == true) {
-		if( DRM_Prdy_LicenseAcq_ProcessResponse_SecStop( drm,
-												 (char *)licResp,
-												 length, sSessionIdBuf, NULL) != DRM_Prdy_ok )
-		{
-			printf("[FAILED] - %d Failed to process license response with SessionID buffer.\n",__LINE__);
-			goto clean_exit;
-		}
-	}
-	else {
-		if( DRM_Prdy_LicenseAcq_ProcessResponse( drm,
-												 (char *)licResp,
-												 length, NULL) != DRM_Prdy_ok )
-		{
-			printf("[FAILED] - %d Failed to process license response.\n",__LINE__);
-			goto clean_exit;
-		}
-	}
+    if (bIsSecureStopEnabled == true) {
+        if( DRM_Prdy_LicenseAcq_ProcessResponse_SecStop( drm,
+                                                 (char *)licResp,
+                                                 length, sSessionIdBuf, NULL) != DRM_Prdy_ok )
+        {
+            printf("[FAILED] - %d Failed to process license response with SessionID buffer.\n",__LINE__);
+            goto clean_exit;
+        }
+    }
+    else {
+        if( DRM_Prdy_LicenseAcq_ProcessResponse( drm,
+                                                 (char *)licResp,
+                                                 length, NULL) != DRM_Prdy_ok )
+        {
+            printf("[FAILED] - %d Failed to process license response.\n",__LINE__);
+            goto clean_exit;
+        }
+    }
 #else
     if( DRM_Prdy_LicenseAcq_ProcessResponse( drm,
                                              (char *)licResp,
@@ -1249,7 +1285,13 @@ clean_exit:
     }
 
     if( keySlot)
+	{
+#if (NEXUS_SECURITY_API_VERSION==1)
         NEXUS_Security_FreeKeySlot(keySlot);
+#else
+        NEXUS_KeySlot_Free(keySlot);
+#endif
+	}
 
     if( cryptoHandle)
         CommonCrypto_Close(cryptoHandle);
@@ -1284,132 +1326,132 @@ clean_exit:
     }
 
 #ifdef NETFLIX_EXT
-	{
-		DRM_Prdy_Error_e	err;
-	    char 				hash[256];
-		uint32_t			i;
-		printf("Calling DRM_Prdy_GetSecureStoreHash\n");
-		err = DRM_Prdy_GetSecureStoreHash(hash);
-		if (err == DRM_Prdy_ok)
-		{
-			for (i = 0; i < 256; i++)
-			{
-				printf("%02x ", hash[i]);
-			}
-		}
-		else
-		{
-			printf("DRM_Prdy_GetSecureStoreHash returned error: %d\n", err);
-		}
-		printf("Calling DRM_Prdy_GetKeyStoreHash\n");
-		err = DRM_Prdy_GetKeyStoreHash(drm,hash);
-		if (err == DRM_Prdy_ok)
-		{
-			for (i = 0; i < 256; i++)
-			{
-				printf("%02x ", hash[i]);
-			}
-		}
-		else
-		{
-			printf("DRM_Prdy_GetKeyStoreHash returned error: %d\n", err);
-		}
-		printf("Calling DRM_Prdy_DeleteSecureStore\n");
-		err = DRM_Prdy_DeleteSecureStore();
-		if (err != DRM_Prdy_ok)
-		{
-			printf("DRM_Prdy_DeleteSecureStore returned error: %d\n", err);
-		}
-		printf("Calling DRM_Prdy_DeleteKeyStore\n");
-		err = DRM_Prdy_DeleteKeyStore(drm);
-		if (err != DRM_Prdy_ok)
-		{
-			printf("DRM_Prdy_DeleteKeyStore returned error: %d\n", err);
-		}
-		printf("Calling DRM_Prdy_GetSecureStoreHash\n");
-		err = DRM_Prdy_GetSecureStoreHash(hash);
-		if (err == DRM_Prdy_ok)
-		{
-			for (i = 0; i < 256; i++)
-			{
-				printf("%02x ", hash[i]);
-			}
-		}
-		else
-		{
-			printf("DRM_Prdy_GetSecureStoreHash returned error: %d\n", err);
-		}
-		printf("Calling DRM_Prdy_GetKeyStoreHash\n");
-		err = DRM_Prdy_GetKeyStoreHash(drm,hash);
-		if (err == DRM_Prdy_ok)
-		{
-			for (i = 0; i < 256; i++)
-			{
-				printf("%02x ", hash[i]);
-			}
-		}
-		else
-		{
-			printf("DRM_Prdy_GetKeyStoreHash returned error: %d\n", err);
-		}
-	}
-	if (bIsSecureStopEnabled == true)
-	{
-		uint8_t             *pSecureStop = NULL;
-		uint16_t 			dataSize = 0;
-		uint8_t 			dummy;
-		uint8_t 			sessionIds[DRM_PRDY_MAX_NUM_SECURE_STOPS][DRM_PRDY_SESSION_ID_LEN];
-		uint32_t 			count = 0;
-		uint32_t			i;
-		DRM_Prdy_Error_e	err;
+    {
+        DRM_Prdy_Error_e    err;
+        char                hash[256];
+        uint32_t            i;
+        printf("Calling DRM_Prdy_GetSecureStoreHash\n");
+        err = DRM_Prdy_GetSecureStoreHash(hash);
+        if (err == DRM_Prdy_ok)
+        {
+            for (i = 0; i < 256; i++)
+            {
+                printf("%02x ", hash[i]);
+            }
+        }
+        else
+        {
+            printf("DRM_Prdy_GetSecureStoreHash returned error: %d\n", err);
+        }
+        printf("Calling DRM_Prdy_GetKeyStoreHash\n");
+        err = DRM_Prdy_GetKeyStoreHash(drm,hash);
+        if (err == DRM_Prdy_ok)
+        {
+            for (i = 0; i < 256; i++)
+            {
+                printf("%02x ", hash[i]);
+            }
+        }
+        else
+        {
+            printf("DRM_Prdy_GetKeyStoreHash returned error: %d\n", err);
+        }
+        printf("Calling DRM_Prdy_DeleteSecureStore\n");
+        err = DRM_Prdy_DeleteSecureStore();
+        if (err != DRM_Prdy_ok)
+        {
+            printf("DRM_Prdy_DeleteSecureStore returned error: %d\n", err);
+        }
+        printf("Calling DRM_Prdy_DeleteKeyStore\n");
+        err = DRM_Prdy_DeleteKeyStore(drm);
+        if (err != DRM_Prdy_ok)
+        {
+            printf("DRM_Prdy_DeleteKeyStore returned error: %d\n", err);
+        }
+        printf("Calling DRM_Prdy_GetSecureStoreHash\n");
+        err = DRM_Prdy_GetSecureStoreHash(hash);
+        if (err == DRM_Prdy_ok)
+        {
+            for (i = 0; i < 256; i++)
+            {
+                printf("%02x ", hash[i]);
+            }
+        }
+        else
+        {
+            printf("DRM_Prdy_GetSecureStoreHash returned error: %d\n", err);
+        }
+        printf("Calling DRM_Prdy_GetKeyStoreHash\n");
+        err = DRM_Prdy_GetKeyStoreHash(drm,hash);
+        if (err == DRM_Prdy_ok)
+        {
+            for (i = 0; i < 256; i++)
+            {
+                printf("%02x ", hash[i]);
+            }
+        }
+        else
+        {
+            printf("DRM_Prdy_GetKeyStoreHash returned error: %d\n", err);
+        }
+    }
+    if (bIsSecureStopEnabled == true)
+    {
+        uint8_t             *pSecureStop = NULL;
+        uint16_t            dataSize = 0;
+        uint8_t             dummy;
+        uint8_t             sessionIds[DRM_PRDY_MAX_NUM_SECURE_STOPS][DRM_PRDY_SESSION_ID_LEN];
+        uint32_t            count = 0;
+        uint32_t            i;
+        DRM_Prdy_Error_e    err;
 
-		/* Get the list of Secure Stop Session IDs that are ready for release */
-		err = DRM_Prdy_GetSecureStopIds(drm, sessionIds, &count);
-		if (err == DRM_Prdy_ok)
-		{
-			int j;
-			printf("DRM_Prdy_GetSecureStopIds retrieved the following %ld session ID(s): \n", count);
-			for (i = 0; i < count; i++)
-			{
-				for (j = 0; j < DRM_PRDY_SESSION_ID_LEN; j++)
-				{
-						printf("%02x ", sessionIds[i][j]);
-				}
-				printf("\n");
-			}
-		}
-		else
-		{
-			printf("DRM_Prdy_GetSecureStopIds failed with error: %d\n", err);
-		}
+        /* Get the list of Secure Stop Session IDs that are ready for release */
+        err = DRM_Prdy_GetSecureStopIds(drm, sessionIds, &count);
+        if (err == DRM_Prdy_ok)
+        {
+            int j;
+            printf("DRM_Prdy_GetSecureStopIds retrieved the following %ld session ID(s): \n", count);
+            for (i = 0; i < count; i++)
+            {
+                for (j = 0; j < DRM_PRDY_SESSION_ID_LEN; j++)
+                {
+                        printf("%02x ", sessionIds[i][j]);
+                }
+                printf("\n");
+            }
+        }
+        else
+        {
+            printf("DRM_Prdy_GetSecureStopIds failed with error: %d\n", err);
+        }
 
-		printf("Actual session ID is: \n");
-		for (i = 0; i < DRM_PRDY_SESSION_ID_LEN; i++)
-		{
-			printf("%02x ", sSessionIdBuf[i]);
-		}
-		printf("\n");
+        printf("Actual session ID is: \n");
+        for (i = 0; i < DRM_PRDY_SESSION_ID_LEN; i++)
+        {
+            printf("%02x ", sSessionIdBuf[i]);
+        }
+        printf("\n");
 
-		/* call once with zero size to determine actual size of secure stop */
-		err = DRM_Prdy_GetSecureStop(drm, sSessionIdBuf, &dummy, &dataSize);
-		if (err != DRM_Prdy_buffer_size)
-		{
-			printf("DRM_Prdy_GetSecureStop failed input data size = 0 with error: %d\n", err);
-		}
-		else
-		{
-			if ( NEXUS_SUCCESS == NEXUS_Memory_Allocate(dataSize, NULL, (void **)(&pSecureStop)) )
-			{
-				/* now get the secure stop */
-				err = DRM_Prdy_GetSecureStop(drm, sSessionIdBuf, pSecureStop, &dataSize);
-				if (err != DRM_Prdy_ok)
-				{
-					printf("DRM_Prdy_GetSecureStop failed with error %d\n", err);
-				}
-				NEXUS_Memory_Free(pSecureStop);
-			}
-		}
-	}
+        /* call once with zero size to determine actual size of secure stop */
+        err = DRM_Prdy_GetSecureStop(drm, sSessionIdBuf, &dummy, &dataSize);
+        if (err != DRM_Prdy_buffer_size)
+        {
+            printf("DRM_Prdy_GetSecureStop failed input data size = 0 with error: %d\n", err);
+        }
+        else
+        {
+            if ( NEXUS_SUCCESS == NEXUS_Memory_Allocate(dataSize, NULL, (void **)(&pSecureStop)) )
+            {
+                /* now get the secure stop */
+                err = DRM_Prdy_GetSecureStop(drm, sSessionIdBuf, pSecureStop, &dataSize);
+                if (err != DRM_Prdy_ok)
+                {
+                    printf("DRM_Prdy_GetSecureStop failed with error %d\n", err);
+                }
+                NEXUS_Memory_Free(pSecureStop);
+            }
+        }
+    }
 #endif
 
     if( drm != NULL) DRM_Prdy_Uninitialize(drm);

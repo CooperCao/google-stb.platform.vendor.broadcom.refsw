@@ -126,6 +126,12 @@ if [ $# -gt 0 ]; then
         return $PERL_ERROR
     fi
 
+    if [ -f ${LINUX_ROOT}/misc/toolchain_63 ] && echo $LINUX | grep -q "linux-4.9" ; then
+        TOOLCHAIN_SUFFIX=_63
+    else
+        TOOLCHAIN_SUFFIX=
+    fi
+
     if [ -z $TOOLCHAIN_SUFFIX ]; then
         TOOLCHAIN_SUFFIX=
     fi

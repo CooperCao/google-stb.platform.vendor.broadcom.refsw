@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -112,7 +112,7 @@ ssize_t OS_write(int fd, const void *buf, size_t nbyte)
 
 
 size_t OS_writeAll(int fd, const void *buff, size_t nbytes, unsigned max_attempts,
-                   unsigned ms_before_retry, ssize_t *last_ret_value)
+                   unsigned ms_before_retry __attribute__((unused)), ssize_t *last_ret_value)
 {
     size_t written_bytes = 0;
     char *cur_buf_ptr = (char *) buff;

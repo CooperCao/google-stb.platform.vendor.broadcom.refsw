@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -243,38 +243,55 @@ BERR_Code BXPT_GetDefaultSettings(
     return( ExitCode );
 }
 
+static void BXPT_P_PMUMemPwr_WriteSlow(BREG_Handle hReg, uint32_t reg, bool powerOn)
+{
+    unsigned i;
+    static const unsigned mask = 0x3;
+    uint32_t val = powerOn ? 0xffffffff : 0;
+    /* write two bits at a time to avoid power spikes */
+    for (i=0; i<32; i+=2) {
+        if (powerOn) {
+            val &= ~(mask << i);
+        }
+        else {
+            val |= (mask << i);
+        }
+        BREG_Write32(hReg, reg, val);
+    }
+}
+
 static void BXPT_P_PMUMemPwr_Control(BREG_Handle hReg, bool powerOn, const BXPT_StandbySettings *pStandbySettings)
 {
 #ifdef BCHP_XPT_PMU_FE_SP_PD_MEM_PWR_DN_CTRL /* use single ifdef for all registers */
-    uint32_t val = powerOn ? 0 : 0xffffffff;
-#if (!BXPT_POWER_MANAGEMENT)
-    val = 0;
-#endif
-    BREG_Write32(hReg, BCHP_XPT_PMU_FE_SP_PD_MEM_PWR_DN_CTRL, val);
-    BREG_Write32(hReg, BCHP_XPT_PMU_MCPB_SP_PD_MEM_PWR_DN_CTRL, val);
-    BREG_Write32(hReg, BCHP_XPT_PMU_MEMDMA_SP_PD_MEM_PWR_DN_CTRL, val);
-    BREG_Write32(hReg, BCHP_XPT_PMU_MSG_SP_PD_MEM_PWR_DN_CTRL, val);
-    BREG_Write32(hReg, BCHP_XPT_PMU_RAVE_SP_PD_MEM_PWR_DN_CTRL, val);
-    BREG_Write32(hReg, BCHP_XPT_PMU_TSIO_SP_PD_MEM_PWR_DN_CTRL, val);
-    BREG_Write32(hReg, BCHP_XPT_PMU_PCROFFSET_SP_PD_MEM_PWR_DN_CTRL, val);
-    BREG_Write32(hReg, BCHP_XPT_PMU_PSUB_SP_PD_MEM_PWR_DN_CTRL, val);
-    BREG_Write32(hReg, BCHP_XPT_PMU_RSBUFF_SP_PD_MEM_PWR_DN_CTRL, val);
-#ifdef BCHP_XPT_PMU_XCBUFF_SP_PD_MEM_PWR_DN_CTRL
-    BREG_Write32(hReg, BCHP_XPT_PMU_XCBUFF_SP_PD_MEM_PWR_DN_CTRL, val);
-#endif
-#ifdef BCHP_XPT_PMU_OCXC_SP_PD_MEM_PWR_DN_CTRL
-    BREG_Write32(hReg, BCHP_XPT_PMU_OCXC_SP_PD_MEM_PWR_DN_CTRL, val);
-#endif
+    #if (!BXPT_POWER_MANAGEMENT)
+    powerOn = true;
+    #endif
+    BXPT_P_PMUMemPwr_WriteSlow(hReg, BCHP_XPT_PMU_FE_SP_PD_MEM_PWR_DN_CTRL, powerOn);
+    BXPT_P_PMUMemPwr_WriteSlow(hReg, BCHP_XPT_PMU_MCPB_SP_PD_MEM_PWR_DN_CTRL, powerOn);
+    BXPT_P_PMUMemPwr_WriteSlow(hReg, BCHP_XPT_PMU_MEMDMA_SP_PD_MEM_PWR_DN_CTRL, powerOn);
+    BXPT_P_PMUMemPwr_WriteSlow(hReg, BCHP_XPT_PMU_MSG_SP_PD_MEM_PWR_DN_CTRL, powerOn);
+    BXPT_P_PMUMemPwr_WriteSlow(hReg, BCHP_XPT_PMU_RAVE_SP_PD_MEM_PWR_DN_CTRL, powerOn);
+    BXPT_P_PMUMemPwr_WriteSlow(hReg, BCHP_XPT_PMU_TSIO_SP_PD_MEM_PWR_DN_CTRL, powerOn);
+    BXPT_P_PMUMemPwr_WriteSlow(hReg, BCHP_XPT_PMU_PCROFFSET_SP_PD_MEM_PWR_DN_CTRL, powerOn);
+    BXPT_P_PMUMemPwr_WriteSlow(hReg, BCHP_XPT_PMU_PSUB_SP_PD_MEM_PWR_DN_CTRL, powerOn);
+    BXPT_P_PMUMemPwr_WriteSlow(hReg, BCHP_XPT_PMU_RSBUFF_SP_PD_MEM_PWR_DN_CTRL, powerOn);
+    #ifdef BCHP_XPT_PMU_XCBUFF_SP_PD_MEM_PWR_DN_CTRL
+    BXPT_P_PMUMemPwr_WriteSlow(hReg, BCHP_XPT_PMU_XCBUFF_SP_PD_MEM_PWR_DN_CTRL, powerOn);
+    #endif
+    #ifdef BCHP_XPT_PMU_OCXC_SP_PD_MEM_PWR_DN_CTRL
+    BXPT_P_PMUMemPwr_WriteSlow(hReg, BCHP_XPT_PMU_OCXC_SP_PD_MEM_PWR_DN_CTRL, powerOn);
+    #endif
     if (pStandbySettings && pStandbySettings->UseWakeupPacket) {
-        BREG_Write32(hReg, BCHP_XPT_PMU_WAKEUP_SP_PD_MEM_PWR_DN_CTRL, 0);
+        BXPT_P_PMUMemPwr_WriteSlow(hReg, BCHP_XPT_PMU_WAKEUP_SP_PD_MEM_PWR_DN_CTRL, true);
     }
     else {
-        BREG_Write32(hReg, BCHP_XPT_PMU_WAKEUP_SP_PD_MEM_PWR_DN_CTRL, val);
+        BXPT_P_PMUMemPwr_WriteSlow(hReg, BCHP_XPT_PMU_WAKEUP_SP_PD_MEM_PWR_DN_CTRL, false);
     }
 #else
     BSTD_UNUSED(hReg);
     BSTD_UNUSED(powerOn);
     BSTD_UNUSED(pStandbySettings);
+    BSTD_UNUSED(BXPT_P_PMUMemPwr_WriteSlow);
 #endif
 }
 
@@ -1390,6 +1407,7 @@ BERR_Code BXPT_GetDefaultInputBandConfig(
     }
     else
     {
+        BKNI_Memset(InputBandConfig, 0, sizeof(*InputBandConfig));
         InputBandConfig->ClockPolSel = BXPT_Polarity_eActiveHigh;
         InputBandConfig->SyncPolSel = BXPT_Polarity_eActiveHigh;
         InputBandConfig->DataPolSel = BXPT_Polarity_eActiveHigh;
@@ -1571,6 +1589,7 @@ BERR_Code BXPT_GetInputBandConfig(
     }
     else
     {
+        BKNI_Memset(InputBandConfig, 0, sizeof(*InputBandConfig));
         /* The parser config registers are at consecutive addresses. */
         RegAddr =  BXPT_P_GetInputBandRegAddr(hXpt, BandNum);
         Reg = BREG_Read32( hXpt->hRegister, RegAddr );
@@ -1608,6 +1627,12 @@ BERR_Code BXPT_GetInputBandConfig(
         InputBandConfig->IbPktLength = ( int ) BCHP_GET_FIELD_DATA( Reg, XPT_FE_IB0_CTRL, IB_PKT_LENGTH );
 
         InputBandConfig->ParallelInputSel = BCHP_GET_FIELD_DATA( Reg, XPT_FE_IB0_CTRL, IB_PARALLEL_INPUT_SEL ) ? true : false;
+
+#ifdef BCHP_XPT_FE_IB0_CTRL2_SYNC_GEN_EN_DEFAULT
+        Reg = BREG_Read32( hXpt->hRegister, RegAddr + 4);   /* CTRL2 follows 4 bytes after */
+        InputBandConfig->SyncGen.Length = BCHP_GET_FIELD_DATA(Reg, XPT_FE_IB0_CTRL2, SYNC_GEN_LENGTH);
+        InputBandConfig->SyncGen.Enable = BCHP_GET_FIELD_DATA(Reg, XPT_FE_IB0_CTRL2, SYNC_GEN_EN) ? true : false;
+#endif
     }
 
     return( ExitCode );
@@ -1704,10 +1729,66 @@ BERR_Code BXPT_SetInputBandConfig(
         );
 
         BREG_Write32( hXpt->hRegister, RegAddr, Reg );
+
+#ifdef BCHP_XPT_FE_IB0_CTRL2_SYNC_GEN_EN_DEFAULT
+        Reg = BREG_Read32( hXpt->hRegister, RegAddr + 4);   /* CTRL2 follows 4 bytes after */
+        BCHP_SET_FIELD_DATA(Reg, XPT_FE_IB0_CTRL2, SYNC_GEN_LENGTH, InputBandConfig->SyncGen.Length);
+        BCHP_SET_FIELD_DATA(Reg, XPT_FE_IB0_CTRL2, SYNC_GEN_EN, InputBandConfig->SyncGen.Enable ? true : false);
+        BREG_Write32(hXpt->hRegister, RegAddr + 4, Reg);
+#else
+        if(InputBandConfig->SyncGen.Enable)
+        {
+            BDBG_ERR(("Internal sync generation is not supported on this part."));
+            ExitCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+#endif
     }
 
 Done:
     return( ExitCode );
+}
+
+BERR_Code BXPT_ArmSyncGeneration(
+    BXPT_Handle hXpt,
+    unsigned BandNum,
+    unsigned Offset
+    )
+{
+#ifdef BCHP_XPT_FE_IB0_CTRL2_SYNC_GEN_EN_DEFAULT
+    uint32_t Reg, RegAddr;
+
+    if ( !BXPT_P_InputBandIsSupported( BandNum ) )
+    {
+        BDBG_ERR(( "InputBand %u is not supported on this chip.", BandNum ));
+        return BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+    if(Offset > 255)
+    {
+        BDBG_ERR(( "Offset %u is not supported", Offset ));
+        return BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+
+    RegAddr = BXPT_P_GetInputBandRegAddr( hXpt, BandNum );
+    Reg = BREG_Read32( hXpt->hRegister, RegAddr + 4);   /* CTRL2 follows 4 bytes after */
+
+    /* Don't arm again if it's already armed. Applied offset becomes unpredictable. */
+    if(BCHP_GET_FIELD_DATA(Reg, XPT_FE_IB0_CTRL2, SYNC_OFFSET_ARM))
+    {
+        BDBG_ERR(("Internal sync already armed."));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    BCHP_SET_FIELD_DATA(Reg, XPT_FE_IB0_CTRL2, SYNC_OFFSET, Offset);
+    BCHP_SET_FIELD_DATA(Reg, XPT_FE_IB0_CTRL2, SYNC_OFFSET_ARM, 1);
+    BREG_Write32(hXpt->hRegister, RegAddr + 4, Reg);
+    return BERR_SUCCESS;
+#else
+    BSTD_UNUSED(hXpt);
+    BSTD_UNUSED(BandNum);
+    BSTD_UNUSED(Offset);
+    BDBG_ERR(("Internal sync generation is not supported on this part."));
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+#endif
 }
 
 #ifndef BXPT_FOR_BOOTUPDATER
@@ -2018,49 +2099,6 @@ So, don't do the destination check before calling SetChannelEnable().
         BKNI_LeaveCriticalSection();
 #endif /*ENABLE_PLAYBACK_MUX*/
     }
-
-    return( ExitCode );
-}
-
-BERR_Code BXPT_AllocPidChannel(
-    BXPT_Handle hXpt,           /* [in] Handle for this transport */
-    bool NeedMessageBuffer,     /* [in] Is a message buffer required? */
-    unsigned int *PidChannelNum     /* [out] The allocated channel number. */
-    )
-{
-    unsigned int i = 0;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hXpt );
-
-    /* Search for channels with buffers, if thats what they asked for. */
-    if( NeedMessageBuffer == true )
-    {
-        for( i = 0; i < hXpt->MaxPidChannels; i++ )
-        {
-            if( hXpt->PidChannelTable[ i ].IsAllocated == false
-            && hXpt->PidChannelTable[ i ].HasMessageBuffer ==  true )
-            {
-                hXpt->PidChannelTable[ i ].IsAllocated = true;
-                break;
-            }
-        }
-    }
-    else
-    {
-        /* Otherwise, grab the first free channel we find. */
-        for( i= 0; i < hXpt->MaxPidChannels; i++ )
-        {
-            if( hXpt->PidChannelTable[ i ].IsAllocated == false )
-            {
-                hXpt->PidChannelTable[ i ].IsAllocated = true;
-                break;
-            }
-        }
-    }
-
-    *PidChannelNum = i;
 
     return( ExitCode );
 }
@@ -3022,6 +3060,7 @@ void BXPT_GetParserMapping(
     ParserMap->FrontEnd[ 3 ].VirtualParserIsPlayback =
         BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER3_PARSER_SEL ) ? true : false;
 
+#ifdef BCHP_XPT_FE_MINI_PID_PARSER4_CTRL1
     Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID );
     ParserMap->FrontEnd[ 4 ].VirtualParserBandNum =
         BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER4_BAND_ID );
@@ -3039,25 +3078,9 @@ void BXPT_GetParserMapping(
         BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER7_BAND_ID );
     ParserMap->FrontEnd[ 7 ].VirtualParserIsPlayback =
         BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER7_PARSER_SEL ) ? true : false;
+#endif
 
-    Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID );
-    ParserMap->FrontEnd[ 4 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER4_BAND_ID );
-    ParserMap->FrontEnd[ 4 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER4_PARSER_SEL ) ? true : false;
-    ParserMap->FrontEnd[ 5 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER5_BAND_ID );
-    ParserMap->FrontEnd[ 5 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER5_PARSER_SEL ) ? true : false;
-    ParserMap->FrontEnd[ 6 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER6_BAND_ID );
-    ParserMap->FrontEnd[ 6 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER6_PARSER_SEL ) ? true : false;
-    ParserMap->FrontEnd[ 7 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER7_BAND_ID );
-    ParserMap->FrontEnd[ 7 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER7_PARSER_SEL ) ? true : false;
-
+#ifdef BCHP_XPT_FE_MINI_PID_PARSER4_CTRL1
     Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_FE_MINI_PID_PARSER8_TO_PARSER11_BAND_ID );
     ParserMap->FrontEnd[ 8 ].VirtualParserBandNum =
         BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER8_TO_PARSER11_BAND_ID, PARSER8_BAND_ID );
@@ -3080,6 +3103,7 @@ void BXPT_GetParserMapping(
 #endif
 
 #if BXPT_NUM_REMAPPABLE_FE_PARSERS > 12
+    Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_FE_MINI_PID_PARSER12_TO_PARSER15_BAND_ID );
     ParserMap->FrontEnd[ 12 ].VirtualParserBandNum =
         BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER12_TO_PARSER15_BAND_ID, PARSER12_BAND_ID );
     ParserMap->FrontEnd[ 13 ].VirtualParserIsPlayback =
@@ -3088,6 +3112,7 @@ void BXPT_GetParserMapping(
         BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER12_TO_PARSER15_BAND_ID, PARSER14_BAND_ID );
     ParserMap->FrontEnd[ 15 ].VirtualParserIsPlayback =
         BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER12_TO_PARSER15_BAND_ID, PARSER15_PARSER_SEL ) ? true : false;
+#endif
 #endif
     /* ToDo: Add playback support. */
 }

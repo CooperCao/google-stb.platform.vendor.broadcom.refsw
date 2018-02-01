@@ -6,7 +6,7 @@
 #include "interface/khronos/include/GLES/gl.h"
 
 #include "interface/khronos/common/khrn_int_common.h"
-#include "middleware/khronos/common/khrn_mem.h"
+#include "vcfw/rtos/abstract/rtos_abstract_mem.h"
 #include "middleware/khronos/common/khrn_interlock.h"
 
 /*
@@ -87,9 +87,9 @@ typedef struct {
 } GLXX_BUFFER_T;
 
 extern void glxx_buffer_init(GLXX_BUFFER_T *buffer, uint32_t name);
-extern void glxx_buffer_term(MEM_HANDLE_T handle);
+extern void glxx_buffer_term(void *p);
 
-extern bool glxx_buffer_data(GLXX_BUFFER_T *buffer, int32_t size, const void *data, GLenum usage);
+extern bool glxx_buffer_data(GLXX_BUFFER_T *buffer, int32_t size, const void *data, GLenum usage, bool transient);
 extern void glxx_buffer_subdata(GLXX_BUFFER_T *buffer, int32_t offset, int32_t size, const void *data);
 
 extern int glxx_buffer_get_size(GLXX_BUFFER_T *buffer);

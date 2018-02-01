@@ -1,5 +1,5 @@
 #############################################################
-#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -135,7 +135,8 @@ NEXUS_DISPLAY_SOURCES += $(NEXUS_SYNCTHUNK_DIR)/nexus_display_thunks.c
 NEXUS_DISPLAY_MAGNUM_MODULES =  \
     $(MAGNUM)/portinginterface/vdc/bvdc.inc \
     $(MAGNUM)/commonutils/udp/budp.inc \
-    $(MAGNUM)/commonutils/rdc/brdc.inc
+    $(MAGNUM)/commonutils/rdc/brdc.inc \
+    $(MAGNUM)/commonutils/cfc/bcfc.inc
 
 ifneq ($(NEXUS_VBI_SUPPORT),n)
 NEXUS_DISPLAY_MAGNUM_MODULES +=  \

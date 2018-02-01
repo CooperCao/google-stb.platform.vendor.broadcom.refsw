@@ -81,6 +81,8 @@ BDBG_MODULE(playback_chunk);
 static int glob_errfunc(const char *epath, int eerrno)
 {
     BDBG_ERR(("glob_errfunc %s %d", epath, eerrno));
+    BSTD_UNUSED(epath);
+    BSTD_UNUSED(eerrno);
     return -1;
 }
 
@@ -89,7 +91,6 @@ static int detect_chunk(const char *fname, off_t *chunk_size, unsigned *first_ch
     char path[64];
     int rc;
     glob_t glb;
-    unsigned i;
 
     snprintf(path, sizeof(path), "%s_*", fname);
     rc = glob(path, 0, glob_errfunc, &glb);

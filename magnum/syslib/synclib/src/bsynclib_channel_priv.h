@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -177,7 +177,7 @@ BERR_Code BSYNClib_Channel_P_StartTimer_isr(
 	int iParm2
 );
 
-BERR_Code BSYNClib_Channel_P_CancelTimer_isr(
+void BSYNClib_Channel_P_CancelTimer_isr(
 	BSYNClib_Channel_Handle hChn,
 	BSYNClib_Timer * psTimer
 );

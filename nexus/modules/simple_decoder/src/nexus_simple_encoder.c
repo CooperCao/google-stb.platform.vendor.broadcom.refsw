@@ -129,6 +129,9 @@ struct NEXUS_SimpleEncoder
         unsigned total, max;
         unsigned *pid;
     } auxpid;
+    struct {
+        bool inProgress;
+    } programChange;
 };
 
 static NEXUS_SimpleEncoderHandle nexus_simple_encoder_p_first(void)
@@ -662,7 +665,7 @@ done:
 
 static bool ready_to_start(NEXUS_SimpleEncoderHandle handle)
 {
-    return handle->clientStarted && !handle->wait.audio && !handle->wait.video && (!handle->started || !handle->videoEncoderStarted);
+    return handle->clientStarted && !handle->wait.audio && !handle->wait.video && (!handle->started || !handle->videoEncoderStarted || handle->programChange.inProgress);
 }
 
 NEXUS_Error nexus_simpleencoder_p_start_audio(NEXUS_SimpleEncoderHandle handle)
@@ -773,8 +776,7 @@ static NEXUS_Error nexus_simpleencoder_p_pre_start( NEXUS_SimpleEncoderHandle ha
         rc = NEXUS_SimpleEncoder_SetSettings(handle, &handle->settings);
         if (rc) {rc = BERR_TRACE(rc); goto err_encodersettings;}
 
-        rc = nexus_simplevideodecoder_p_add_encoder(handle->startSettings.input.video, handle->transcodeWindow, handle);
-        if (rc) {rc = BERR_TRACE(rc); goto err_addinput;}
+        nexus_simplevideodecoder_p_add_encoder(handle->startSettings.input.video, handle->transcodeWindow, handle);
 
 #if NEXUS_NUM_DSP_VIDEO_ENCODERS && !NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
         /* DSP video encode requires waiting for decode to start */
@@ -821,7 +823,6 @@ err_addaudioinput:
     if (handle->startSettings.input.video) {
         nexus_simplevideodecoder_p_remove_encoder(handle->startSettings.input.video, handle->transcodeWindow, handle);
     }
-err_addinput:
 err_encodersettings:
     if (handle->transcodeWindow) {
         NEXUS_VideoWindow_Close(handle->transcodeWindow);
@@ -1148,6 +1149,40 @@ static NEXUS_Error nexus_simpleencoder_p_start( NEXUS_SimpleEncoderHandle handle
     NEXUS_Error rc;
 
     BDBG_MSG(("nexus_simpleencoder_p_start %p", (void *)handle));
+
+    if (handle->programChange.inProgress) {
+        NEXUS_VideoEncoderStatus status;
+        handle->programChange.inProgress = false;
+
+        NEXUS_AudioMuxOutput_GetDelayStatus(handle->serverSettings.audioMuxOutput, handle->startSettings.output.audio.codec, &handle->stack.audioDelayStatus);
+        NEXUS_AudioMuxOutput_GetDefaultStartSettings(&handle->stack.audioMuxStartSettings);
+        handle->stack.audioMuxStartSettings.stcChannel = nexus_simpleencoder_p_getStcChannel(handle, NEXUS_SimpleDecoderType_eAudio);
+        handle->stack.audioMuxStartSettings.presentationDelay =
+            (handle->settings.videoEncoder.encoderDelay > handle->stack.audioDelayStatus.endToEndDelay * 27000)?
+            handle->settings.videoEncoder.encoderDelay/27000 : handle->stack.audioDelayStatus.endToEndDelay;
+        handle->stack.audioMuxStartSettings.nonRealTime = nexus_simpleencoder_p_nonRealTime(handle);
+
+        rc = NEXUS_VideoEncoder_GetStatus(handle->serverSettings.videoEncoder, &status);
+        if (!rc && handle->settings.video.refreshRate) {
+            /* convert encoded pictures to STC based on display refresh rate.
+            refreshRate is units of 1/1000 Hz. initialStc is units of 45KHz.
+            For examples, 60 pics at 60.000 Hz should be 45000.
+            Use uint64_t to avoid overflow.
+            */
+            handle->stack.audioMuxStartSettings.initialStc = (uint64_t)status.picturesReceived * 45000 / handle->settings.video.refreshRate * 1000;
+            BDBG_WRN(("Starting Audio Mux Output with initialStc = %#x @45Khz, presentationDelay=%u(ms)",
+                handle->stack.audioMuxStartSettings.initialStc,handle->stack.audioMuxStartSettings.presentationDelay));
+        }
+        rc = NEXUS_AudioMuxOutput_Start(handle->serverSettings.audioMuxOutput, &handle->stack.audioMuxStartSettings);
+        if (rc) {rc = BERR_TRACE(rc); goto err_startaudio;}
+
+        if (handle->serverSettings.mixer) {
+            NEXUS_AudioMixer_Start(handle->serverSettings.mixer);
+        }
+
+        return 0;
+    }
+
     if (handle->videoEncoderStarted) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
@@ -1285,7 +1320,7 @@ err_startaudio:
 
 void nexus_simpleencoder_p_stop_videoencoder(NEXUS_SimpleEncoderHandle handle, bool abort)
 {
-    if (handle->videoEncoderStarted) {
+    if (handle->videoEncoderStarted && !handle->settings.programChange) {
         NEXUS_VideoEncoderStopSettings settings;
         NEXUS_VideoEncoder_GetDefaultStopSettings(&settings);
         settings.mode = abort?NEXUS_VideoEncoderStopMode_eAbort:NEXUS_VideoEncoderStopMode_eImmediate;
@@ -1349,6 +1384,8 @@ void nexus_simpleencoder_p_stop( NEXUS_SimpleEncoderHandle handle )
         handle->wait.video = false;
         handle->wait.audio = false;
     }
+
+    handle->programChange.inProgress = false;
 }
 
 /* TSHDRBUILDER has one extra byte at the beginning to describe the variable length TS header buffer */
@@ -1723,6 +1760,14 @@ void NEXUS_SimpleDecoderModule_P_PrintEncoder(void)
 bool nexus_simpleencoder_p_nonRealTime(NEXUS_SimpleEncoderHandle encoder)
 {
     return encoder && encoder->serverSettings.nonRealTime;
+}
+
+void nexus_simpleencoder_p_beginProgramChange(NEXUS_SimpleEncoderHandle encoder, bool *pSendEos)
+{
+    if (encoder->settings.programChange) {
+        *pSendEos = false;
+        encoder->programChange.inProgress = true;
+    }
 }
 
 void NEXUS_SimpleEncoder_GetStcStatus_priv(NEXUS_SimpleEncoderHandle encoder, NEXUS_SimpleStcChannelEncoderStatus *pStatus)

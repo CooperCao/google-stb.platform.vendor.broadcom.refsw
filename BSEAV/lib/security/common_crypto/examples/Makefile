@@ -42,13 +42,27 @@
 NEXUS_TOP := $(shell cd ../../../../../nexus; pwd)
 BSEAV_TOP := $(shell cd ../../../../../BSEAV; pwd)
 
-APPS = test_common_crypto 
+# include cross-compiler definitions
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
+
+########################################
+# Determine core size and ZEUS version
+########################################
+include ${NEXUS_TOP}/modules/security/security_defs.inc
+$(warning NEXUS_SECURITY_ZEUS_VERSION_MAJOR=$(NEXUS_SECURITY_ZEUS_VERSION_MAJOR) NEXUS_SECURITY_ZEUS_VERSION_MINOR=$(NEXUS_SECURITY_ZEUS_VERSION_MINOR))
+
+ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
+APPS = test_common_crypto_secv2
+SRCS = test_common_crypto_secv2.c
+else
+APPS = test_common_crypto
 SRCS = test_common_crypto.c
+endif
+
 OBJS = ${SRCS:.c=.o}
 TARGET_DIR := BSEAV/lib/security/common_crypto/examples
 
-# include cross-compiler definitions
-include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
+
 
 ifeq ($(APPS),)
 $(error Must define APPS)
@@ -74,8 +88,6 @@ endif
 # nxclient build
 ifeq (${NXCLIENT_SUPPORT},y)
 include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
-CFLAGS += -DNXCLIENT_SUPPORT=1
-CFLAGS += $(addprefix -I,${NXCLIENT_INCLUDES})
 CFLAGS += $(NXCLIENT_CFLAGS)
 LDFLAGS += $(NXCLIENT_LDFLAGS)
 endif

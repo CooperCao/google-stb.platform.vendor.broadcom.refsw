@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -337,18 +337,6 @@ BERR_Code BXPT_Remux_AddPidChannelToRemux(
     return AddPidChannel( hRmx, PidChannelNum, false );
 }
 
-BERR_Code BXPT_Remux_AddRPipePidChannelToRemux(
-    BXPT_Remux_Handle hRmx,             /* [in] Handle for the remux channel */
-    BXPT_RemuxInput RemuxInput,         /* [in] Which remux input */
-    unsigned int PidChannelNum          /* [in] Which PID channel. */
-    )
-{
-    BDBG_ASSERT( hRmx );
-    BSTD_UNUSED( RemuxInput );
-
-    return AddPidChannel( hRmx, PidChannelNum, true );
-}
-
 BERR_Code AddPidChannel(
     BXPT_Remux_Handle hRmx,
     unsigned int PidChannelNum,
@@ -460,99 +448,6 @@ BERR_Code BXPT_Remux_RemovePidChannelFromRemux(
         uint32_t PipeShift;
 
         /* Clear the PID channels enable bit. */
-        switch( hRmx->ChannelNo )
-        {
-            case 0:
-            PipeShift = 0;      /* G pipe */
-            break;
-
-            case 1:
-            PipeShift = 2;      /* G pipe */
-            break;
-
-            default:
-            BDBG_ERR(( "ChannelNo %lu invalid!", ( unsigned long ) hRmx->ChannelNo ));
-            ExitCode = BERR_INVALID_PARAMETER;
-            goto Done;
-        }
-
-        BXPT_P_SetPidChannelDestination( (BXPT_Handle) hRmx->vhXpt, PidChannelNum, PipeShift, false );
-    }
-
-    Done:
-    return( ExitCode );
-}
-
-BERR_Code BXPT_Remux_GetPidChannel(
-    BXPT_Remux_Handle hRmx,         /* [in] Handle for the remux channel */
-    BXPT_RemuxInput RemuxInput,             /* [in] Which remux input */
-    unsigned int PidChannelNum,             /* [in] Which PID channel. */
-    bool *Enable                        /* [out] Where to put channel status. */
-    )
-{
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hRmx );
-    BSTD_UNUSED( RemuxInput );
-
-    *Enable = false;
-
-    if( PidChannelNum > BXPT_NUM_PID_CHANNELS )
-    {
-        BDBG_ERR(( "PidChannelNum %lu is out of range!", ( unsigned long ) PidChannelNum ));
-        ExitCode = BERR_INVALID_PARAMETER;
-        *Enable = false;
-    }
-    else
-    {
-        uint32_t Reg, RegAddr, PipeShift;
-
-        /* Set the PID channels enable bit. */
-        RegAddr = BCHP_XPT_FE_SPID_TABLE_i_ARRAY_BASE + ( PidChannelNum * SPID_CHNL_STEPSIZE );
-        Reg = BREG_Read32( hRmx->hRegister, RegAddr );
-
-        switch( hRmx->ChannelNo )
-        {
-            case 0:
-            PipeShift = 24;     /* G pipe */
-            break;
-
-            case 1:
-            PipeShift = 24 + 2;     /* G pipe */
-            break;
-
-            default:
-            BDBG_ERR(( "ChannelNo %lu invalid!", ( unsigned long ) hRmx->ChannelNo ));
-            ExitCode = BERR_INVALID_PARAMETER;
-            goto Done;
-        }
-
-        if( Reg & ( 3ul << PipeShift ) )
-            *Enable = true;
-        else
-            *Enable = false;
-    }
-
-    Done:
-    return( ExitCode );
-}
-
-BERR_Code BXPT_Remux_RemoveAllPidChannel(
-    BXPT_Remux_Handle hRmx,         /* [in] Handle for the remux channel */
-    BXPT_RemuxInput RemuxInput          /* [in] Which remux input */
-    )
-{
-    unsigned PidChannelNum;
-    uint32_t PipeShift;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hRmx );
-    BSTD_UNUSED( RemuxInput );
-
-    /* Clear all the PID channels' enable bit. */
-    for( PidChannelNum = 0; PidChannelNum < BXPT_NUM_PID_CHANNELS; PidChannelNum++ )
-    {
         switch( hRmx->ChannelNo )
         {
             case 0:

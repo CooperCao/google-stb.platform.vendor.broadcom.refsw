@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -314,11 +314,10 @@ end:
 	return rc;
 }
 
-BERR_Code BASTMlib_Stop(
+void BASTMlib_Stop(
 	BASTMlib_Handle hAstm
 )
 {
-	BERR_Code rc = BERR_SUCCESS;
 	void * pvParm1;
 	int iParm2;
 	BSYSlib_Timer_Cancel_isr pfCancel_isr;
@@ -337,21 +336,18 @@ BERR_Code BASTMlib_Stop(
 	{
 		BKNI_EnterCriticalSection();
 		hAstm->sClockCoupling.bAcquire = false;
-		rc = pfCancel_isr(pvParm1, iParm2, hAstm->sClockCoupling.hTimer);
+		pfCancel_isr(pvParm1, iParm2, hAstm->sClockCoupling.hTimer);
 		BKNI_LeaveCriticalSection();
-		if (rc) goto error;
 
 		BKNI_EnterCriticalSection();
 		hAstm->sPresentation.bAcquire = false;
-		rc = pfCancel_isr(pvParm1, iParm2, hAstm->sPresentation.hTimer);
+		pfCancel_isr(pvParm1, iParm2, hAstm->sPresentation.hTimer);
 		BKNI_LeaveCriticalSection();
-		if (rc) goto error;
 
 		/* PR:50051 need to stop watchdog timer, too */
 		BKNI_EnterCriticalSection();
-		rc = pfCancel_isr(pvParm1, iParm2, hAstm->sPresentation.hWatchdogTimer);
+		pfCancel_isr(pvParm1, iParm2, hAstm->sPresentation.hWatchdogTimer);
 		BKNI_LeaveCriticalSection();
-		if (rc) goto error;
 	}
 
 	BASTMlib_P_ClockCoupling_StateMachine_SendSignal(hAstm, 
@@ -363,13 +359,8 @@ BERR_Code BASTMlib_Stop(
 	BASTMlib_P_Presentation_StcSourceStateMachine_SendSignal(hAstm, 
 		BASTMlib_Presentation_StateMachineSignal_eReset);
 
-	goto end;
-
-error:
-
-end:
 	BDBG_LEAVE(BASTMlib_Stop);
-	return rc;
+	return;
 }
 
 void BASTMlib_GetDefaultConfig(

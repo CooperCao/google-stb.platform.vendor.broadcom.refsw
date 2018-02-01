@@ -91,6 +91,14 @@ TzTask::~TzTask() {
         threadInfo = nullptr;
     }
 
+    int nc = tasks.numElements();
+    for (int i = 0; i < nc ; i++) {
+        if (tasks[i]->id() == id()) {
+            tasks[i] = tasks[nc-1];
+            tasks.popBack(nullptr);
+            break;
+        }
+    }
     //printf("Task %d %p collected\n", tid, this);
 }
 
@@ -99,7 +107,7 @@ void TzTask::terminate(int tcode, int tsignal) {
     //printf("terminate task %d \n",this->id());
     Scheduler::removeTask(this);
 #ifdef TASK_LOG
-    Scheduler::idleQueue.remove(this->id());
+    Scheduler::idleQueue.cpuLocal().remove(this->id());
 #endif
     TzIoc::cleanupTask(this);
 
@@ -110,7 +118,7 @@ void TzTask::terminate(int tcode, int tsignal) {
         // Terminating, no need to schedule
         Scheduler::removeTask(this);
 #ifdef TASK_LOG
-        Scheduler::idleQueue.remove(this->id());
+        Scheduler::idleQueue.cpuLocal().remove(this->id());
 #endif
     }
 
@@ -162,24 +170,10 @@ void TzTask::terminate(int tcode, int tsignal) {
     PageTable *kernelPageTable = PageTable::kernelPageTable();
 
     if (!signalsCloned) {
-        // Free the signal return stack
-        TzMem::PhysAddr pa = kernelPageTable->lookUp(sigParamsStack);
-        kernelPageTable->unmapPage(sigParamsStack);
-        TzMem::freePage(pa);
-
-        // Free the signals array
-        int numPages = (sizeof(Signal) * NumSignals)/PAGE_SIZE_4K_BYTES + 1;
-        uint8_t *currVa = (uint8_t *)signals;
-        for (int i=0; i<numPages; i++) {
-            TzMem::PhysAddr pa = kernelPageTable->lookUp(currVa);
-            kernelPageTable->unmapPage(currVa);
-            if (pa != nullptr)
-                TzMem::freePage(pa);
-
-            //printf("unmapped signal array %p pa %p\n", currVa, pa);
-            currVa += PAGE_SIZE_4K_BYTES;
-        }
+        terminateSignalState();
     }
+
+    ProcessGroup::removeGroupMember(pgid, this);
 
     // Free the file descriptor array
     if (!filesCloned) {
@@ -224,10 +218,18 @@ void TzTask::terminate(int tcode, int tsignal) {
     //printf("Task %d %p zombied\n", tid, this);
 }
 
-int TzTask::wait4(IDType pid, int *status, int options) {
+int TzTask::wait4(int pid, int *status, int options) {
 
     if (pid == -1) {
         return waitAnyChild(status, options);
+    }
+
+    if (pid < 1) { //wait for pg childs, pgid = -pid
+        int pgid = 0;
+        if (!pid) pgid = this->pgid;
+        else pgid = -pid;
+
+        return waitAnyPgChild(pgid, status, options);
     }
 
     //printf("%s: check for pid %d options %d\n", __PRETTY_FUNCTION__, pid, options);
@@ -277,6 +279,53 @@ int TzTask::wait4(IDType pid, int *status, int options) {
     return -EINTR;
 
 }
+
+int TzTask::waitAnyPgChild(int pgid, int *status, int options) {
+
+    while (!signalled) {
+        // Has any child terminated
+        volatile int nc = children.numElements();
+        bool numPgChild = 0;
+        for (int i=0; i<nc; i++) {
+            if (children[i]->pgid != pgid) {
+                continue;
+            }
+            numPgChild++;
+            //printf("\tChild %d state %d pid %d\n", i, children[i]->state, children[i]->id());
+            if (children[i]->state == Defunct) {
+                TzTask *zombie = children[i];
+                bool exited = zombie->exited();
+
+                IDType id = zombie->id();
+
+                if (exited)
+                    SETEXITCODE(*status, zombie->termCode);
+                else
+                    SETTERMSIGNAL(*status, zombie->termSignal);
+
+                delete zombie;
+
+                children[i] = children[nc-1];
+                children.popBack(nullptr);
+
+                return id;
+            }
+        }
+
+        if(!numPgChild) return -ECHILD;
+
+        // No child has terminated yet.
+        if (options & WNOHANG)
+            return -EAGAIN;
+        // We do not support PTRACE and SIGCONT.
+
+        // Wait for any child to exit.
+        childTermQueue.wait(this);
+    }
+
+    return -EINTR;
+}
+
 
 int TzTask::waitAnyChild(int *status, int options) {
 

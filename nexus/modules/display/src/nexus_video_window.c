@@ -257,6 +257,12 @@ static void NEXUS_VideoWindow_P_DestroyForSyncLock(NEXUS_VideoWindowHandle windo
             if (!pVideo->displays[d] || !pVideo->displays[d]->windows[i].open) continue;
             w = &pVideo->displays[d]->windows[i];
             if (w->input != recreate->input) continue; /* not expected */
+
+#if NEXUS_NUM_MOSAIC_DECODES
+            /* TODO: we need more logic to recreate a set of mosaics. for now, just skip it. */
+            if (BLST_S_FIRST(&w->mosaic.children)) continue;
+#endif
+
             BDBG_WRN(("  destroying %d.%d", d, i));
             recreate->window[d] = w;
             NEXUS_VideoWindow_P_RemoveInput(w, recreate->input, true);
@@ -871,6 +877,12 @@ NEXUS_VideoWindow_P_EnableMultiBufLog( NEXUS_VideoWindowHandle window, NEXUS_Vid
 }
 #endif /* BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser */
 
+static bool nexus_is_urrt_display(unsigned displayIndex)
+{
+    return g_pCoreHandles->boxConfig->stVdc.astDisplay[displayIndex].stStgEnc.bAvailable &&
+        pVideo->moduleSettings.secureTranscode.videoWindowHeapIndex[displayIndex][0] != NEXUS_MAX_HEAPS;
+}
+
 BERR_Code
 NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_VideoWindowSettings *cfg)
 {
@@ -891,6 +903,15 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
 
     BDBG_MSG((">%s(%d) window: %ux%u display=%p window=%p", link->id>=BAVC_SourceId_eHdDvi0?"avc/hdmi": link->id==BAVC_SourceId_eVdec0?"analog": link->id==BAVC_SourceId_e656In0?"656": "other(mpeg?)", (int)link->id, cfg->position.width, cfg->position.height, (void *)display, (void *)window));
 
+    /* make copy so display-based override can happen.
+    if display is transcode and URRT is active, then all windows use URRT regardless of decoder */
+    if (nexus_is_urrt_display(window->display->index)) {
+        window->secureVideo = NEXUS_VideoDecoderSecureType_eSecureTranscode;
+    }
+    else {
+        window->secureVideo = link->secureVideo;
+    }
+
     rc = BVDC_Window_GetDefaultSettings(window->windowId, &windowCfg);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_window;}
 
@@ -905,18 +926,44 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
     {
         unsigned deinterlacerHeapIndex;
 
-        if (link->secureVideo) {
-            windowHeapIndex = pVideo->moduleSettings.secure.videoWindowHeapIndex[window->display->index][window->index];
-        }
-        else {
+        switch (window->secureVideo) {
+        default:
+        case NEXUS_VideoDecoderSecureType_eUnsecure:
             windowHeapIndex = pVideo->moduleSettings.videoWindowHeapIndex[window->display->index][window->index];
+            break;
+        case NEXUS_VideoDecoderSecureType_eSecure:
+            windowHeapIndex = pVideo->moduleSettings.secure.videoWindowHeapIndex[window->display->index][window->index];
+            break;
+        case NEXUS_VideoDecoderSecureType_eSecureTranscode:
+            windowHeapIndex = pVideo->moduleSettings.secureTranscode.videoWindowHeapIndex[window->display->index][window->index];
+            break;
         }
-        BDBG_MSG(("window zorder %d display index %d windowheapindex %d display main heap %d",
-            window->index,window->display->index,windowHeapIndex,pVideo->moduleSettings.primaryDisplayHeapIndex ));
+        switch (window->secureVideo) {
+        default:
+        case NEXUS_VideoDecoderSecureType_eUnsecure:
+            deinterlacerHeapIndex = pVideo->moduleSettings.deinterlacerHeapIndex[window->display->index][window->index];
+            break;
+        case NEXUS_VideoDecoderSecureType_eSecure:
+            deinterlacerHeapIndex = pVideo->moduleSettings.secure.deinterlacerHeapIndex[window->display->index][window->index];
+            break;
+        case NEXUS_VideoDecoderSecureType_eSecureTranscode:
+            deinterlacerHeapIndex = pVideo->moduleSettings.secureTranscode.deinterlacerHeapIndex[window->display->index][window->index];
+            break;
+        }
+        BDBG_MSG(("d%u.w%u window heap %u, mad heap %u primary heap %d",
+            window->display->index,window->index,windowHeapIndex,deinterlacerHeapIndex,pVideo->moduleSettings.primaryDisplayHeapIndex ));
         if (windowHeapIndex >= NEXUS_MAX_HEAPS) {
-            BDBG_ERR(("no %s memory for display %d, window %d", link->secureVideo?"secure":"unsecure", window->display->index, window->index));
-            rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
-            goto err_window;
+            /* This check is to make sure when video window has valid capture, a valid window heap should be used.
+               However, box mode window could have capture-less case, where NULL window heap is valid!
+             */
+            if(BBOX_MemcIndex_Invalid != g_pCoreHandles->boxConfig->stMemConfig.stVdcMemcIndex.astDisplay[window->display->index].aulVidWinCapMemcIndex[window->index]) {
+                BDBG_ERR(("no %s memory for display %d, window %d",
+                    window->secureVideo==NEXUS_VideoDecoderSecureType_eSecureTranscode?"URRT":
+                    window->secureVideo==NEXUS_VideoDecoderSecureType_eSecure?"URR":"GLR",
+                    window->display->index, window->index));
+                rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+                goto err_window;
+            }
         }
         else if (!g_pCoreHandles->heap[windowHeapIndex].nexus) {
             BDBG_ERR(("no heap[%d] for display %d, window %d", windowHeapIndex, window->display->index, window->index));
@@ -928,12 +975,6 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
            window->vdcHeap= windowCfg.hHeap = NEXUS_Display_P_CreateHeap(g_pCoreHandles->heap[windowHeapIndex].nexus);
         }
 
-        if (link->secureVideo) {
-            deinterlacerHeapIndex = pVideo->moduleSettings.secure.deinterlacerHeapIndex[window->display->index][window->index];
-        }
-        else {
-            deinterlacerHeapIndex = pVideo->moduleSettings.deinterlacerHeapIndex[window->display->index][window->index];
-        }
         /* this should only occur to the newer chips using platform memconfig which removed primary display heap */
         if (deinterlacerHeapIndex < NEXUS_MAX_HEAPS && deinterlacerHeapIndex != windowHeapIndex) {
             window->vdcDeinterlacerHeap = windowCfg.hDeinterlacerHeap = NEXUS_Display_P_CreateHeap(g_pCoreHandles->heap[deinterlacerHeapIndex].nexus);
@@ -942,7 +983,9 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
 
     /* BOXMODE: boxmode driven, pre-alloc fullscreen capture memory for smooth
      * scaling.*/
-    windowCfg.bAllocFullScreen = NEXUS_VideoWindow_IsSmoothScaling_isrsafe(window)?true:cfg->allocateFullScreen;
+    windowCfg.bAllocFullScreen = NEXUS_VideoWindow_IsSmoothScaling_isrsafe(window) &&
+        (g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->windowId].sizeLimit != NEXUS_VideoWindowSizeLimit_eQuarter)
+        ?true:cfg->allocateFullScreen;
 
     if (cfg->minimumSourceFormat != NEXUS_VideoFormat_eUnknown) {
         BFMT_VideoFmt fmt;
@@ -952,9 +995,13 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
     }
     if (cfg->minimumDisplayFormat != NEXUS_VideoFormat_eUnknown) {
         BFMT_VideoFmt fmt;
-        rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(cfg->minimumDisplayFormat, &fmt);
+        if(BBOX_Vdc_SclCapBias_eAutoDisable1080p == g_pCoreHandles->boxConfig->stVdc.astDisplay[window->display->index].astWindow[window->index].eSclCapBias)
+            rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(NEXUS_VideoFormat_e1080p, &fmt);
+        else
+            rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(cfg->minimumDisplayFormat, &fmt);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_window;}
-        windowCfg.pMinDspFmt = BFMT_GetVideoFormatInfoPtr(fmt);
+        windowCfg.pMinDspFmt = (g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->windowId].sizeLimit == NEXUS_VideoWindowSizeLimit_eQuarter)
+            ? NULL : BFMT_GetVideoFormatInfoPtr(fmt);
     }
 
     if(g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->windowId].deinterlacer == NEXUS_DeinterlacerMode_eBestQuality)
@@ -970,14 +1017,18 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
 
     windowId = (display->index < 2) ? window->windowId : BVDC_WindowId_eAuto;
 #if NEXUS_HAS_SAGE
-    if (link->secureVideo)
+    if (window->secureVideo)
     {
         BVDC_Window_GetCores(windowId, g_pCoreHandles->box, link->sourceVdc, window->display->compositor, &window->sage.coreList);
-        rc = NEXUS_Sage_AddSecureCores(&window->sage.coreList);
+        rc = NEXUS_Sage_AddSecureCores(&window->sage.coreList,
+            window->secureVideo == NEXUS_VideoDecoderSecureType_eSecureTranscode?NEXUS_SageUrrType_eTranscode:NEXUS_SageUrrType_eDisplay);
         if (rc) {rc = BERR_TRACE(rc); goto err_window;}
     }
 #endif
 
+    /* force sync lock for the first window of the mfd input */
+    windowCfg.bForceSyncLock = nexus_p_synclock_capable(window->input, window) && (1>=link->ref_cnt) &&
+        g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->windowId].forceSyncLock;
     rc = BVDC_Window_Create( display->compositor, &window->vdcState.window,
                              windowId,
                              link->sourceVdc, &windowCfg);
@@ -1011,9 +1062,10 @@ err_postcreate:
     window->vdcState.window = NULL;
 err_createwindow:
 #if NEXUS_HAS_SAGE
-    if (link->secureVideo)
+    if (window->secureVideo)
     {
-        NEXUS_Sage_RemoveSecureCores(&window->sage.coreList);
+        NEXUS_Sage_RemoveSecureCores(&window->sage.coreList,
+            window->secureVideo == NEXUS_VideoDecoderSecureType_eSecureTranscode?NEXUS_SageUrrType_eTranscode:NEXUS_SageUrrType_eDisplay);
     }
 #endif
 err_window:
@@ -1025,7 +1077,6 @@ void
 NEXUS_VideoWindow_P_DestroyVdcWindow(NEXUS_VideoWindowHandle window)
 {
     BERR_Code rc;
-    NEXUS_VideoInput_P_Link *link;
 
     BDBG_ASSERT(window->vdcState.window);
 
@@ -1090,13 +1141,11 @@ NEXUS_VideoWindow_P_DestroyVdcWindow(NEXUS_VideoWindowHandle window)
 
 #if NEXUS_HAS_SAGE
     BDBG_OBJECT_ASSERT(window->input, NEXUS_VideoInput);
-    link = window->input->destination;
-    if (link->secureVideo)
+    if (window->secureVideo)
     {
-        NEXUS_Sage_RemoveSecureCores(&window->sage.coreList);
+        NEXUS_Sage_RemoveSecureCores(&window->sage.coreList,
+            window->secureVideo == NEXUS_VideoDecoderSecureType_eSecureTranscode?NEXUS_SageUrrType_eTranscode:NEXUS_SageUrrType_eDisplay);
     }
-#else
-    BSTD_UNUSED(link);
 #endif
 
     return;
@@ -2455,3 +2504,16 @@ NEXUS_Error NEXUS_Display_P_GetWindowMemc_isrsafe(unsigned displayIndex, unsigne
     return NEXUS_NOT_AVAILABLE; /* no BERR_TRACE */
 }
 #endif
+
+void NEXUS_VideoWindow_GetParentIndex_isrsafe(NEXUS_VideoWindowHandle window, unsigned *parentIndex, bool *isMosaic)
+{
+#if NEXUS_NUM_MOSAIC_DECODES
+    if (window->mosaic.parent) {
+        *parentIndex = window->mosaic.parent->index;
+        *isMosaic = true;
+        return;
+    }
+#endif
+    *parentIndex = window->index;
+    *isMosaic = false;
+}

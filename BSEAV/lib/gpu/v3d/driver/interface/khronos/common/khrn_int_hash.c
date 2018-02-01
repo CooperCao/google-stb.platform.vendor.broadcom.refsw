@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Hashing utilities. Derived from lookup3.c, by Bob Jenkins, May 2006,
-Public Domain.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
 /*
 -------------------------------------------------------------------------------
@@ -180,7 +172,7 @@ uint32_t khrn_hashlittle( const void *key, int length, uint32_t initval)
 
 #else /* make valgrind happy */
 
-    k8 = (const uint8_t *)k;
+    const uint8_t *k8 = (const uint8_t *)k;
     switch(length)
     {
     case 12: c+=k[2]; b+=k[1]; a+=k[0]; break;

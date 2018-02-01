@@ -249,6 +249,29 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             }
         }
 
+        if (cdt) {
+            reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2);
+            BDBG_MSG(("SUN_TOP_CTRL_PIN_MUX_CTRL_2: %08x",reg));
+            if ((reg & 0xFFFF0000) != 0x66660000 ) {
+                BDBG_MSG(("Reprogramming CTRL_2 SPI registers for frontend communication..."));
+                reg &= ~(
+                         BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_013) |
+                         BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_014) |
+                         BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_015) |
+                         BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_016)
+                         );
+
+                reg |= (
+                        BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_013, 6) |  /* SPI_M_MISO */
+                        BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_014, 6) |  /* SPI_M_SCK */
+                        BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_015, 6) |  /* SPI_M_SS0B */
+                        BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_016, 6)    /* SPI_M_MOSI */
+                        );
+                BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2, reg);
+                BDBG_MSG(("SUN_TOP_CTRL_PIN_MUX_CTRL_2: %08x",reg));
+            }
+        }
+
         reg = BREG_Read32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0);
         BDBG_MSG(("AON_PIN_CTRL_PIN_MUX_CTRL_0: %08x",reg));
         reg &= ~(BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_00));
@@ -486,9 +509,21 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             } else {
                 BDBG_ERR(("Unable to open detected %x frontend", probeResults.chip.familyId));
             }
-        } else {
-            BDBG_WRN(("No frontend found."));
         }
+    }
+
+    if (!pConfig->frontend[0]) {
+        uint32_t reg;
+        /* If no frontend, set pinmux for PKT3 to enable BCM9TS_DC streamer input. may require board rework. */
+        BDBG_WRN(("No frontend found."));
+        reg = BREG_Read32(g_pCoreHandles->reg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2);
+        reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_013) |
+                 BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_014) |
+                 BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_015) );
+        reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_013, 5) |
+                BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_014, 5) |
+                BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_015, 5) );
+        BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2, reg);
     }
 
     return NEXUS_SUCCESS;

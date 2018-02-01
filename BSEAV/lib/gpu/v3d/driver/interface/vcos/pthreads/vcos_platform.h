@@ -450,14 +450,80 @@ VCOS_STATUS_T vcos_event_wait(VCOS_EVENT_T *event)
 {
    pthread_mutex_lock(&event->mutex);
 
-   while (!event->flag)
-      pthread_cond_wait(&event->cond, &event->mutex);
+   int ret = 0;
+   while (!event->flag && (ret == 0) /* no error, try again */) {
+      ret = pthread_cond_wait(&event->cond, &event->mutex);
+   }
 
    event->flag = 0;
 
    pthread_mutex_unlock(&event->mutex);
 
    return VCOS_SUCCESS;
+}
+
+VCOS_INLINE_IMPL
+VCOS_STATUS_T vcos_event_timed_wait(VCOS_EVENT_T *event, uint32_t timeout_ms)
+{
+   VCOS_STATUS_T status = VCOS_EINVAL;
+   int ret = 0;
+   struct timespec abs_timeout;
+   clockid_t clock;
+
+#if defined(HAVE_PTHREAD_COND_TIMEDWAIT_MONOTONIC)
+   clock = CLOCK_MONOTONIC;
+#else
+   clock = CLOCK_REALTIME;
+#endif
+
+   uint32_t timeout_sec = timeout_ms / 1000;
+   uint32_t timeout_ns = (timeout_ms - timeout_sec*1000)*1000000;
+
+   clock_gettime( clock, &abs_timeout );
+   abs_timeout.tv_sec += timeout_sec;
+   abs_timeout.tv_nsec += timeout_ns;
+   if (abs_timeout.tv_nsec >= 1000000000)
+   {
+      abs_timeout.tv_nsec -= 1000000000;
+      abs_timeout.tv_sec += 1;
+      assert(abs_timeout.tv_nsec < 1000000000);
+   }
+
+   if (pthread_mutex_lock(&event->mutex)) {
+      assert(0);
+      return status;
+   }
+
+   while (!event->flag && (ret == 0) /* no error, try again */) {
+#if defined(HAVE_PTHREAD_COND_TIMEDWAIT_MONOTONIC) && !defined(__LP64__)
+      /* under bionic - always returns 0 or ETIMEDOUT */
+      ret = pthread_cond_timedwait_monotonic_np(&event->cond, &event->mutex, &abs_timeout);
+#else
+      ret = pthread_cond_timedwait(&event->cond, &event->mutex, &abs_timeout);
+#endif
+      if (ret == ETIMEDOUT)
+      {
+          /* condition may be true due to race between predicate
+           * setting and timer timeout.
+           */
+          if (event->flag)
+             status = VCOS_SUCCESS;
+          else
+             status = VCOS_ETIMEDOUT;
+          event->flag = 0;
+          pthread_mutex_unlock(&event->mutex);
+          return status;
+      }
+   }
+
+   /* always clear condition here.  return error if applicable.
+    */
+   event->flag = 0;
+   if (!ret) {
+      status = VCOS_SUCCESS;
+   }
+   pthread_mutex_unlock(&event->mutex);
+   return status;
 }
 
 VCOS_INLINE_IMPL

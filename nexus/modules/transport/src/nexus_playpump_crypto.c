@@ -573,13 +573,13 @@ b_pump_crypto_reclaim(b_pump_crypto_t crypto)
     bsink_playback_status sink_status;
     size_t ts_bytes;
 
+    BDBG_OBJECT_ASSERT(crypto, b_pump_crypto_t);
     if(!crypto->ts_feed.pipe_clear) {
         /* run-away event */
         return;
     }
 
     BDBG_MSG_TRACE(("b_pump_crypto_reclaim>: %#lx", (unsigned long)crypto));
-    BDBG_OBJECT_ASSERT(crypto, b_pump_crypto_t);
     ts_bytes = bsink_playback_feed(crypto->sink, crypto->ts_feed.pipe_clear);
     BDBG_MSG_TRACE(("b_pump_crypto_reclaim: %#lx ts_bytes:%u(%u)", (unsigned long)crypto, ts_bytes, crypto->ts_feed.ts_bytes));
     crypto->ts_feed.ts_bytes += ts_bytes;

@@ -28,8 +28,8 @@ void V3DPlatformBase::CommonInitialize()
    // Read any environment options first
    Options::Initialise();
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   throw "You need at least v4.0 VC5 hardware to use Vulkan";
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+   throw "You need at least v4.1 VC5 hardware to use Vulkan";
 #endif
 
    if (vcos_init() != VCOS_SUCCESS)

@@ -42,10 +42,6 @@
 
 #define BDSP_RAAGA_MAX_INTERRUPTS_PER_DSP   32
 
-#define BDSP_RAAGA_FMM_WRAP_BIT             40
-#define BDSP_RAAGA_FMM_WRAP_MASK           ((dramaddr_t)0x1<<BDSP_RAAGA_FMM_WRAP_BIT)
-#define BDSP_RAAGA_FMM_ADDR_MASK           (BDSP_RAAGA_FMM_WRAP_MASK-1)
-
 #define BDSP_RAAGA_PREBOOT_MAILBOX_PATTERN          0xA5A5
 
 #define BDSP_RAAGA_NUM_FIFOS  ((BCHP_RAAGA_DSP_FW_CFG_FIFO_DRAMLOGS_BASE_ADDR - BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR)/ \
@@ -111,16 +107,25 @@
 typedef struct BDSP_Raaga_P_DeviceMemoryInfo
 {
 	BDSP_P_MemoryPool 			sROMemoryPool;
+	BDSP_P_MemoryPool 			sKernelRWMemoryPool[BDSP_RAAGA_MAX_DSP];
+	BDSP_P_MemoryPool 			sHostSharedRWMemoryPool[BDSP_RAAGA_MAX_DSP];
 	BDSP_P_MemoryPool 			sRWMemoryPool[BDSP_RAAGA_MAX_DSP];
 
     BDSP_P_FwBuffer             KernalMemory[BDSP_RAAGA_MAX_DSP];
     BDSP_P_FwBuffer             TargetBufferMemory[BDSP_RAAGA_MAX_DSP];
+    BDSP_P_FwBuffer             DeubgServiceMemory[BDSP_RAAGA_MAX_DSP];
     BDSP_P_FwBuffer             DescriptorMemory[BDSP_RAAGA_MAX_DSP];
 	BDSP_P_FwBuffer             WorkBufferMemory[BDSP_RAAGA_MAX_DSP][BDSP_MAX_NUM_SCHED_LEVELS];
     BDSP_P_MsgQueueParams       cmdQueueParams[BDSP_RAAGA_MAX_DSP];
     BDSP_P_MsgQueueParams       genRspQueueParams[BDSP_RAAGA_MAX_DSP];
 	BDSP_P_MsgQueueParams       debugQueueParams[BDSP_RAAGA_MAX_DSP][BDSP_DebugType_eLast];
 }BDSP_Raaga_P_DeviceMemoryInfo;
+
+typedef struct BDSP_Raaga_P_DPM
+{
+    unsigned defaultDspClkRate[BDSP_RAAGA_MAX_DSP];
+    unsigned dynFreqSclRefCnt[BDSP_RAAGA_MAX_DSP];
+}BDSP_Raaga_P_DPM;
 
 typedef struct BDSP_Raaga_P_HardwareStatus
 {
@@ -130,6 +135,7 @@ typedef struct BDSP_Raaga_P_HardwareStatus
 	bool dspFifo[BDSP_RAAGA_MAX_DSP][BDSP_RAAGA_NUM_FIFOS];
 	bool descriptor[BDSP_RAAGA_MAX_DSP][BDSP_MAX_DESCRIPTORS];
 	bool powerStandby;
+	BDSP_Raaga_P_DPM dpmInfo;
 }BDSP_Raaga_P_HardwareStatus;
 
 BDBG_OBJECT_ID_DECLARE(BDSP_Raaga);
@@ -146,6 +152,9 @@ typedef struct BDSP_Raaga
     DSP     sLibDsp;  /* Structure used to initialise the libDspControl module  */
     TB      sTbTargetPrint[BDSP_RAAGA_MAX_DSP]; /* TB support structure for targetprint */
     uint32_t dspOffset[BDSP_RAAGA_MAX_DSP];
+#ifdef BDSP_RAAGA_DEBUG_SERVICE
+    DBG    sDbgInst[BDSP_RAAGA_MAX_DSP];
+#endif /* BDSP_RAAGA_DEBUG_SERVICE */
 
 	unsigned numDsp;
 	unsigned numCorePerDsp;
@@ -260,6 +269,7 @@ typedef struct BDSP_RaagaCapture
     BDSP_AF_P_BufferType eBuffType; /* The buffer type of the the output buffer (RAVE, FMM, DRAM etc ...) */
     bool StartCapture;
     uint8_t numBuffers;             /* Number of valid buffers */
+	bool    stageDestroyed;
     BDSP_RaagaCapturePointerInfo CapturePointerInfo[BDSP_AF_P_MAX_CHANNELS]; /* Capture pointer info for all the output capture */
     BLST_S_ENTRY(BDSP_RaagaCapture) node;
 } BDSP_RaagaCapture;
@@ -306,6 +316,16 @@ void BDSP_Raaga_P_CalculateStageMemory(
 void BDSP_Raaga_P_CalculateTaskMemory(
 	unsigned *pMemReqd
 );
+
+void BDSP_Raaga_P_CalculateKernelRWMemory(
+    unsigned   *pMemReqd
+);
+
+void BDSP_Raaga_P_CalculateHostFWsharedRWMemory(
+    BDSP_Raaga *pDevice,
+    unsigned   *pMemReqd
+);
+
 void BDSP_Raaga_P_CalculateDeviceRWMemory(
     BDSP_Raaga *pDevice,
     unsigned    dspIndex,

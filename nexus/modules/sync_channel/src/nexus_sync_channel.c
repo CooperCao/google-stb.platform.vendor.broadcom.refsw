@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -17,8 +17,8 @@
  * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
  * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
  * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
  * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
  * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
@@ -26,7 +26,7 @@
  * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
  * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
  * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
  * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
  * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
@@ -1537,7 +1537,7 @@ NEXUS_Synclib_P_SetAudioSourceDelay(void * pvParm1, int iParm2, unsigned int ind
 
 /* TODO: this was lifted right out of SAD
  * should put in a shared place so it is reused properly */
-static bool nexus_p_is_decoder_connected(NEXUS_AudioDecoderHandle audioDecoder)
+static bool nexus_p_syncchannel_is_decoder_connected(NEXUS_AudioDecoderHandle audioDecoder)
 {
     NEXUS_AudioDecoderConnectorType i;
     for (i=0;i<NEXUS_AudioDecoderConnectorType_eMax;i++) {
@@ -1578,7 +1578,7 @@ NEXUS_SyncChannel_P_AudioInputStartEventHandler(void * context)
             if (decoder)
             {
                 BDBG_MSG(("[%p] Checking if decoder %p has outputs", (void *)syncChannel, (void *)decoder));
-                connected = nexus_p_is_decoder_connected(decoder);
+                connected = nexus_p_syncchannel_is_decoder_connected(decoder);
             }
             else
             {

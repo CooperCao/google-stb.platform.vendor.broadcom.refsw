@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -108,6 +108,26 @@ Set the per-window video dynamic range processing settings for the display with 
 NEXUS_Error NEXUS_VideoWindow_SetDynamicRangeProcessingSettings(
     unsigned windowId,
     const NEXUS_DynamicRangeProcessingSettings * pSettings
+);
+
+/***************************************************************************
+Summary:
+Get the current per-window video target peak brightness for the display with HDMI attached
+****************************************************************************/
+void NEXUS_VideoWindow_GetTargetPeakBrightness(
+    unsigned windowId,
+    int *psHdrPeak,
+    int *psSdrPeak
+);
+
+/***************************************************************************
+Summary:
+Set the per-window video target peak brightness for the display with HDMI attached
+****************************************************************************/
+void NEXUS_VideoWindow_SetTargetPeakBrightness(
+    unsigned windowId,
+    int  sHdrPeak,
+    int  sSdrPeak
 );
 
 /***************************************************************************

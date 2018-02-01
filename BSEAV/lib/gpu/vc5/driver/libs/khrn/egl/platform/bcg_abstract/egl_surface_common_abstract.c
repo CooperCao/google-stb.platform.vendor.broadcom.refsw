@@ -300,7 +300,40 @@ static void image_term_abstract(void *nativeSurface)
       platform->SurfaceChangeRefCount(platform->context, nativeSurface, BEGL_Decrement);
 }
 
-khrn_image *image_from_surface_abstract(void *nativeSurface, bool flipY, unsigned *num_mip_levels)
+static void image_get_base_external_addr(uint64_t external_addr[GFX_BUFFER_MAX_PLANES],
+      const khrn_image *img)
+{
+   memset(external_addr, 0, sizeof(uint64_t) * GFX_BUFFER_MAX_PLANES);
+
+   const khrn_resource *res = khrn_image_get_resource(img);
+   for (unsigned i = 0; i < res->num_handles; i++)
+      external_addr[i] = gmem_get_external_addr(res->handles[i]);
+}
+
+static bool surface_and_desc_equal_with_img(
+      const BEGL_SurfaceInfo *surfaceInfo, const GFX_BUFFER_DESC_T *new_desc,
+      const khrn_image *img)
+{
+   uint64_t base_addr_img[GFX_BUFFER_MAX_PLANES];
+   image_get_base_external_addr(base_addr_img, img);
+
+   uint64_t new_base_addr[GFX_BUFFER_MAX_PLANES];
+   new_base_addr[0] = surfaceInfo->physicalOffset;
+
+   if (!surfaceInfo->lumaAndChromaInSameAllocation &&
+       gfx_lfmt_is_sand_family(new_desc->planes[0].lfmt))
+   {
+      assert(new_desc->num_planes == 2 && new_desc->planes[1].region == 1);
+      new_base_addr[1] = surfaceInfo->chromaOffset;
+   }
+
+   /* check if new locations/fmt/size, etc */
+   return gfx_buffer_equal_with_bases(new_base_addr, new_desc,
+            base_addr_img, khrn_image_get_desc(img));
+}
+
+khrn_image *image_from_surface_abstract_with_existing(void *nativeSurface, bool flipY,
+      unsigned *num_mip_levels, khrn_image *existing_img)
 {
    BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
    BEGL_SurfaceInfo       surfaceInfo;
@@ -312,6 +345,16 @@ khrn_image *image_from_surface_abstract(void *nativeSurface, bool flipY, unsigne
    GFX_LFMT_T         api_fmt;
    gfx_buffer_usage_t usage;
    buffer_desc_from_surface_info(buffer_descs, &api_fmt, &usage, &surfaceInfo, flipY);
+
+   if (existing_img)
+   {
+      assert(surfaceInfo.miplevels == 1);
+      if (surface_and_desc_equal_with_img(&surfaceInfo, &buffer_descs[0], existing_img))
+      {
+         khrn_mem_acquire(existing_img);
+         return existing_img;
+      }
+   }
 
    /* We must be given locked pointers */
    assert(surfaceInfo.physicalOffset != 0);
@@ -334,6 +377,9 @@ khrn_image *image_from_surface_abstract(void *nativeSurface, bool flipY, unsigne
    if (!surfaceInfo.lumaAndChromaInSameAllocation &&
        gfx_lfmt_is_sand_family(buffer_descs[0].planes[0].lfmt))
    {
+      if (platform->SurfaceChangeRefCount)
+         platform->SurfaceChangeRefCount(platform->context, nativeSurface, BEGL_Increment);
+
       num_handles = 2;
       gmem_handles[1] = gmem_from_external_memory(image_term_abstract, nativeSurface,
                                                   surfaceInfo.chromaOffset, NULL,
@@ -362,6 +408,13 @@ oom:
    for (uint32_t p = 0; p < GFX_BUFFER_MAX_PLANES; p++)
       gmem_free(gmem_handles[p]);
    return NULL;
+}
+
+khrn_image *image_from_surface_abstract(void *nativeSurface, bool flipY,
+      unsigned *num_mip_levels)
+{
+   return image_from_surface_abstract_with_existing(nativeSurface, flipY,
+         num_mip_levels, NULL);
 }
 
 bool surface_get_info(void *nativeSurface, BEGL_SurfaceInfo *surfaceInfo)

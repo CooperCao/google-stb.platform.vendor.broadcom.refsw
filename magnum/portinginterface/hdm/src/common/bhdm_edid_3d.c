@@ -201,7 +201,7 @@ BERR_Code BHDM_EDID_GetSupported3DFormats(
 	if (!hHDMI->AttachedEDID.RxHasHdmiSupport)
 		goto done ;
 
-	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid) {
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
 	}

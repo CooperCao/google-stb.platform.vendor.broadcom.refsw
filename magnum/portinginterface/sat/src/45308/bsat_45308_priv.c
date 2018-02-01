@@ -67,7 +67,7 @@ BERR_Code BSAT_45308_P_Open(BSAT_Handle *h, BCHP_Handle hChip, void *pReg, BINT_
 {
    BERR_Code retCode;
    BSAT_Handle hDev;
-   BSAT_45308_P_Handle *hImplDev;
+   BSAT_45308_P_Handle *pDevImpl;
    uint32_t numChannels;
    uint8_t i;
    BHAB_Handle hHab;
@@ -81,15 +81,15 @@ BERR_Code BSAT_45308_P_Open(BSAT_Handle *h, BCHP_Handle hChip, void *pReg, BINT_
    /* allocate memory for the handle */
    hDev = (BSAT_Handle)BKNI_Malloc(sizeof(BSAT_P_Handle));
    BDBG_ASSERT(hDev);
-   hImplDev = (BSAT_45308_P_Handle *)BKNI_Malloc(sizeof(BSAT_45308_P_Handle));
-   BDBG_ASSERT(hImplDev);
-   hDev->pImpl = (void*)hImplDev;
-   hImplDev->hHab = (BHAB_Handle)pReg;
+   pDevImpl = (BSAT_45308_P_Handle *)BKNI_Malloc(sizeof(BSAT_45308_P_Handle));
+   BDBG_ASSERT(pDevImpl);
+   hDev->pImpl = (void*)pDevImpl;
+   pDevImpl->hHab = (BHAB_Handle)pReg;
 
    retCode = BSAT_45308_P_GetTotalChannels(hDev, &numChannels);
    if (retCode != BERR_SUCCESS)
    {
-      BKNI_Free(hImplDev);
+      BKNI_Free(pDevImpl);
       BKNI_Free(hDev);
       return retCode;
    }
@@ -97,10 +97,10 @@ BERR_Code BSAT_45308_P_Open(BSAT_Handle *h, BCHP_Handle hChip, void *pReg, BINT_
 
    hDev->pChannels = (BSAT_P_ChannelHandle **)BKNI_Malloc(numChannels * sizeof(BSAT_P_ChannelHandle *));
    BDBG_ASSERT(hDev->pChannels);
-   retCode = BKNI_CreateEvent(&(hImplDev->hInitDoneEvent));
+   retCode = BKNI_CreateEvent(&(pDevImpl->hInitDoneEvent));
    BDBG_ASSERT(retCode == BERR_SUCCESS);
-   hImplDev->lastFastStatusCmd = 0;
-   hImplDev->lastFastStatusCount = 0;
+   pDevImpl->lastFastStatusCmd = 0;
+   pDevImpl->lastFastStatusCount = 0;
 
    BKNI_Memcpy((void*)(&(hDev->settings)), (void*)pSettings, sizeof(BSAT_Settings));
 
@@ -119,11 +119,12 @@ BERR_Code BSAT_45308_P_Open(BSAT_Handle *h, BCHP_Handle hChip, void *pReg, BINT_
 ******************************************************************************/
 BERR_Code BSAT_45308_P_Close(BSAT_Handle h)
 {
-   BSAT_45308_P_Handle *pDevImpl = (BSAT_45308_P_Handle *)(h->pImpl);
+   BSAT_45308_P_Handle *pDevImpl;
    uint32_t mask;
    BERR_Code retCode;
 
    BDBG_ASSERT(h);
+   pDevImpl = (BSAT_45308_P_Handle *)(h->pImpl);
 
    mask = BHAB_45308_HIRQ0_SAT_MASK;
    BHAB_CHK_RETCODE(BHAB_WriteRegister(pDevImpl->hHab, BCHP_LEAP_HOST_L2_MASK_SET0, &mask));
@@ -444,7 +445,7 @@ BERR_Code BSAT_45308_P_Acquire(BSAT_ChannelHandle h, BSAT_AcqSettings *pParams)
       goto invalid_parameter;
    }
 
-   if ((pParams->symbolRate < 1000000) || (pParams->symbolRate > 45000000))
+   if ((pParams->symbolRate < 1000000) || (pParams->symbolRate > BSAT_45308_MAX_SYMRATE))
    {
       BDBG_WRN(("BSAT_45308_P_Acquire(): invalid symbol rate (%d)", pParams->symbolRate));
       goto invalid_parameter;
@@ -1145,13 +1146,13 @@ BERR_Code BSAT_45308_P_StartSymbolRateScan(BSAT_ChannelHandle h, uint32_t freq, 
 
    BDBG_ENTER(BSAT_45308_P_StartSymbolRateScan);
 
-   if ((minSymbolRate < 1000000) || (minSymbolRate > 45000000))
+   if ((minSymbolRate < 1000000) || (minSymbolRate > BSAT_45308_MAX_SYMRATE))
    {
       BDBG_WRN(("BSAT_45308_P_StartSymbolRateScan(): invalid symbol rate (%d)", minSymbolRate));
       goto invalid_parameter;
    }
 
-   if ((maxSymbolRate < 1000000) || (maxSymbolRate > 45000000))
+   if ((maxSymbolRate < 1000000) || (maxSymbolRate > BSAT_45308_MAX_SYMRATE))
    {
       BDBG_WRN(("BSAT_45308_P_StartSymbolRateScan(): invalid symbol rate (%d)", maxSymbolRate));
       goto invalid_parameter;
@@ -1406,7 +1407,7 @@ BERR_Code BSAT_45308_P_SetACIBandwidth(BSAT_ChannelHandle h, uint32_t bw)
 
    BDBG_ENTER(BSAT_45308_P_SetACIBandwidth);
 
-   if ((bw != 0) && ((bw < 1000000) || (bw > 45000000)))
+   if ((bw != 0) && ((bw < 1000000) || (bw > BSAT_45308_MAX_SYMRATE)))
       return BERR_INVALID_PARAMETER;
 
    hab[0] = BHAB_45308_InitHeader(0x19, h->channel, 0, 0);
@@ -1431,7 +1432,7 @@ BERR_Code BSAT_45308_P_StartSignalDetect(BSAT_ChannelHandle h, uint32_t symbolRa
 
    BDBG_ENTER(BSAT_45308_P_StartSignalDetect);
 
-   if ((symbolRate < 1000000) || (symbolRate > 45000000))
+   if ((symbolRate < 1000000) || (symbolRate > BSAT_45308_MAX_SYMRATE))
    {
       BDBG_WRN(("BSAT_45308_P_StartSignalDetect(): invalid symbol rate (%d)", symbolRate));
       goto invalid_parameter;

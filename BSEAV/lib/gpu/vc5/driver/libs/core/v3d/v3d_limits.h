@@ -15,7 +15,7 @@
 
 #define V3D_VPAR 16        //!< Virtual paralleism: 16 way (number of lanes)
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 #define V3D_QPU_RF_SIZE 128    // Number of register file rows per QPU
 #else
 #define V3D_QPU_RF_SIZE 64     // Number of register file rows per QPU
@@ -117,7 +117,7 @@ static_assrt((1u << V3D_VP_COARSE_OFFSET_SHIFT) >= V3D_MAX_TLB_HEIGHT_PX);
 #define V3D_MAX_GEOMETRY_INVOCATIONS 32u
 
 /* Number of bits of sub-pixel precision in the rasterizer */
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 #define V3D_COORD_SHIFT 6
 #else
 #define V3D_COORD_SHIFT 4
@@ -130,7 +130,7 @@ static_assrt(V3D_COORD_SHIFT <= 8);
 
 #define V3D_COORD_SCALE (1 << V3D_COORD_SHIFT)
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 #define V3D_MAX_PCTR_SRC 32
 #else
 #define V3D_MAX_PCTR_SRC 16

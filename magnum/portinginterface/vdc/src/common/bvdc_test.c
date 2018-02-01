@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -387,7 +387,7 @@ BERR_Code BVDC_Test_Window_ReturnBuffer_isr
  *
  */
 static void BVDC_P_Cfc_SetForceCfg
-    ( BVDC_P_Cfc_ForceCfg             *pCfcForceCfg,
+    ( BCFC_ForceCfg                   *pCfcForceCfg,
       BVDC_Test_Window_ForceCfcConfig *pWinForceCfcCfg)
 {
     pCfcForceCfg->stBits.bDisableNl2l = (pWinForceCfcCfg->bDisableNl2l)? 1 : 0;
@@ -409,7 +409,7 @@ BERR_Code BVDC_Test_Window_SetCfcConfig
       BVDC_Test_Window_ForceCfcConfig *pForceCfcCfg)
 {
     int ii;
-    BVDC_P_Cfc_ForceCfg  stCfcForceCfg;
+    BCFC_ForceCfg  stCfcForceCfg;
 
     BDBG_ENTER(BVDC_Test_Window_SetCfcConfig);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
@@ -421,9 +421,9 @@ BERR_Code BVDC_Test_Window_SetCfcConfig
         for (ii=0; ii<BVDC_P_CMP_CFCS; ii++)
         {
             hWindow->astMosaicCfc[ii].stForceCfg.ulInts = stCfcForceCfg.ulInts;
-            hWindow->astMosaicCfc[ii].stColorSpaceIn.stCfg.stBits.bDirty = BVDC_P_DIRTY;
+            hWindow->astMosaicCfc[ii].stColorSpaceExtIn.stCfg.stBits.bDirty = BVDC_P_DIRTY;
         }
-        hWindow->astMosaicCfc[0].pColorSpaceOut->stCfg.stBits.bDirty = BVDC_P_DIRTY;
+        hWindow->astMosaicCfc[0].pColorSpaceExtOut->stCfg.stBits.bDirty = BVDC_P_DIRTY;
         hWindow->stNewInfo.stDirty.stBits.bCscAdjust = BVDC_P_DIRTY;
         hWindow->stCurInfo.stDirty.stBits.bCscAdjust = BVDC_P_DIRTY;
         BDBG_MSG(("win%d stCfcForceCfg = %08x", hWindow->eId, stCfcForceCfg.ulInts));
@@ -431,8 +431,8 @@ BERR_Code BVDC_Test_Window_SetCfcConfig
     else if (NULL != hWindow->stCurInfo.hSource->hGfxFeeder)
     {
         hWindow->stCurInfo.hSource->hGfxFeeder->stCfc.stForceCfg.ulInts = stCfcForceCfg.ulInts;
-        hWindow->stCurInfo.hSource->hGfxFeeder->stCfc.stColorSpaceIn.stCfg.stBits.bDirty = BVDC_P_DIRTY;
-        hWindow->stCurInfo.hSource->hGfxFeeder->stCfc.pColorSpaceOut->stCfg.stBits.bDirty = BVDC_P_DIRTY;
+        hWindow->stCurInfo.hSource->hGfxFeeder->stCfc.stColorSpaceExtIn.stCfg.stBits.bDirty = BVDC_P_DIRTY;
+        hWindow->stCurInfo.hSource->hGfxFeeder->stCfc.pColorSpaceExtOut->stCfg.stBits.bDirty = BVDC_P_DIRTY;
         hWindow->stCurInfo.hSource->hGfxFeeder->stNewCfgInfo.stDirty.stBits.bCsc = BVDC_P_DIRTY;
         hWindow->stCurInfo.hSource->hGfxFeeder->stCurCfgInfo.stDirty.stBits.bCsc = BVDC_P_DIRTY;
         BDBG_MSG(("gfx%d stCfcForceCfg = %08x", hWindow->stCurInfo.hSource->hGfxFeeder->eId, stCfcForceCfg.ulInts));
@@ -440,6 +440,47 @@ BERR_Code BVDC_Test_Window_SetCfcConfig
 
     BDBG_LEAVE(BVDC_Test_Window_SetCfcConfig);
     return BERR_SUCCESS;
+}
+
+/*************************************************************************
+ *  BVDC_Test_Window_GetTargetPeakBrightness
+ *************************************************************************/
+void BVDC_Test_Window_GetTargetPeakBrightness
+    ( BVDC_Window_Handle               hWindow,
+      int16_t                         *psHdrPeak,
+      int16_t                         *psSdrPeak)
+
+{
+    BDBG_ENTER(BVDC_Test_Window_GetTargetPeakBrightness);
+    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
+
+    if(psHdrPeak)
+    {
+        *psHdrPeak = hWindow->stCurInfo.sHdrPeakBrightness;
+    }
+    if(psSdrPeak)
+    {
+        *psSdrPeak = hWindow->stCurInfo.sSdrPeakBrightness;
+    }
+
+    BDBG_LEAVE(BVDC_Test_Window_GetTargetPeakBrightness);
+}
+
+/*************************************************************************
+ *  BVDC_Test_Window_SetTargetPeakBrightness
+ *************************************************************************/
+void BVDC_Test_Window_SetTargetPeakBrightness
+    ( BVDC_Window_Handle               hWindow,
+      int16_t                          sHdrPeak,
+      int16_t                          sSdrPeak)
+{
+    BDBG_ENTER(BVDC_Test_Window_SetTargetPeakBrightness);
+    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
+
+    hWindow->stNewInfo.sHdrPeakBrightness = sHdrPeak;
+    hWindow->stNewInfo.sSdrPeakBrightness = sSdrPeak;
+
+    BDBG_LEAVE(BVDC_Test_Window_SetTargetPeakBrightness);
 }
 
 #if !B_REFSW_MINIMAL /** { **/

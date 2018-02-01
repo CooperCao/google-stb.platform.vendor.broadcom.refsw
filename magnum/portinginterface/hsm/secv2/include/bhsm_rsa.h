@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -68,8 +68,12 @@ typedef struct BHSM_RsaExponentiateSettings
 {
     BHSM_RsaKeySize keySize;       /* the RSA key size */
     bool counterMeasure;           /* true to enable counter measures */
-    BSTD_DeviceOffset rsaData;     /* contains the modulus, exponent, and base in contigious memory.
-                                      TODO, explain layout. */
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0)
+    BSTD_DeviceOffset rsaData;     /* contains the modulus, exponent, and base in contigious memory.*/
+#else
+    uint8_t *rsaData; /* contains the modulus, exponent, and base in contigious memory.*/
+#endif
+                                     /*TODO, explain layout. */
 }BHSM_RsaExponentiateSettings;
 
 

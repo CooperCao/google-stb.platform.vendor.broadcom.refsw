@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -172,7 +172,8 @@ BIP_File_Realpath(BIP_StringHandle hDest, const char *pPath )
             if (level > 0) {
                 pTrim = rindex(pDest,'/');
                 if (pTrim && level > 0) {
-                    BIP_String_Trim(hDest, pTrim, 0);  /* Trim from pTrim to end of string. */
+                    rc = BIP_String_Trim(hDest, pTrim, 0);  /* Trim from pTrim to end of string. */
+                    BIP_CHECK_GOTO(( rc==BIP_SUCCESS ), ( "BIP_String_Trim() Failed" ), error, rc, rc );
                     level--;
                 }
             }

@@ -61,9 +61,10 @@ include $(NEXUS_TOP)/platforms/common/build/nexus_platforms.inc
 
 ####################################################
 
+LINUX_OUT ?= $(LINUX)
 NEXUS_P_DRIVER_ARCH?=${B_REFSW_ARCH}
 ifeq ($(B_REFSW_ARCH),arm-linux)
-ifeq ($(shell grep -q CONFIG_64BIT=y ${LINUX}/.config 2>/dev/null && echo y),y)
+ifeq ($(shell grep -q CONFIG_64BIT=y ${LINUX_OUT}/.config 2>/dev/null && echo y),y)
 NEXUS_P_DRIVER_ARCH:=aarch64-linux
 NEXUS_P_DRIVER_B_REFSW_ARCH=" B_REFSW_ARCH=${NEXUS_P_DRIVER_ARCH}"
 endif
@@ -146,10 +147,13 @@ endif
 # NOTE: platform_modules.inc must also exclude the modules in NEXUS_CLIENT_MODULES
 
 ####################################################
+ifeq ($(NEXUS_ARM_AUDIO_SUPPORT),y)
+NEXUS_TEE_SUPPORT ?= y
+endif
 
 # Pull in astra for kernel builds
 ifeq ($(NEXUS_MODE),driver)
-ifeq ($(NEXUS_ARM_AUDIO_SUPPORT),y)
+ifeq ($(NEXUS_TEE_SUPPORT),y)
 EXTRA_CLEAN += astra_drv_clean
 NEXUS_DRIVER_EXTRADEPS += astra_drv_install
 NEXUS_DRIVER_KBUILD_ARGS += $(realpath $(NEXUS_OBJ_DIR))/bcm_astra.symvers
@@ -163,7 +167,7 @@ ifneq  (${B_REFSW_SYSTEM_MODE},CLIENT)
 # user mode is a one pass build which also builds bcmdriver
 EXTRA_CLEAN += bcmdriver_clean
 EXTRA_INSTALL += bcmdriver_install
-ifeq ($(NEXUS_ARM_AUDIO_SUPPORT),y)
+ifeq ($(NEXUS_TEE_SUPPORT),y)
 EXTRA_CLEAN += astra_clean astra_drv_clean
 EXTRA_INSTALL += astra_install astra_drv_install
 NEXUS_EXTRALIBS += $(ASTRA_LIB)
@@ -180,7 +184,7 @@ endif
 endif
 endif
 ifeq ($(NEXUS_MODE),proxy)
-ifeq ($(NEXUS_ARM_AUDIO_SUPPORT),y)
+ifeq ($(NEXUS_TEE_SUPPORT),y)
 EXTRA_CLEAN += astra_clean
 EXTRA_INSTALL += astra_install
 NEXUS_EXTRALIBS += $(ASTRA_LIB)

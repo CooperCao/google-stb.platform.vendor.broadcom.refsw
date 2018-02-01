@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  vcfw
-Module   :  chip driver
-File     :  $RCSfile: $
-Revision :  $Revision: $
-
-FILE DESCRIPTION
-VideoCore OS Abstraction Layer - public header file
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
 /**
   * \mainpage OS Abstraction Layer
@@ -90,8 +81,7 @@ VideoCore OS Abstraction Layer - public header file
   *
   */
 
-#ifndef VCOS_H
-#define VCOS_H
+#pragma once
 
 #include "interface/vcos/vcos_assert.h"
 #include "vcos_types.h"
@@ -175,10 +165,6 @@ VideoCore OS Abstraction Layer - public header file
 #include "interface/vcos/vcos_atomic_flags.h"
 #endif
 
-#ifndef V3D_LEAN
 #if VCOS_HAVE_ONCE
 #include "interface/vcos/vcos_once.h"
 #endif
-#endif
-
-#endif /* VCOS_H */

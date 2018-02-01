@@ -141,32 +141,23 @@ done:
 	return( retCode );
 }
 
-BERR_Code BLED_Close(
+void BLED_Close(
 	BLED_Handle hDev                    /* Device handle */
 	)
 {
-	BERR_Code retCode = BERR_SUCCESS;
-
     BDBG_OBJECT_ASSERT(hDev, BLED_Handle);
 
     BDBG_OBJECT_DESTROY(hDev, BLED_Handle);
 	BKNI_Free( (void *) hDev );
-
-	return( retCode );
 }
 
-BERR_Code BLED_GetDefaultSettings(
+void BLED_GetDefaultSettings(
 	BLED_Settings *pDefSettings,        /* [output] Returns default setting */
 	BCHP_Handle hChip                   /* Chip handle */
 )
 {
-	BERR_Code retCode = BERR_SUCCESS;
-
 	BSTD_UNUSED(hChip);
-
 	*pDefSettings = defLedSettings;
-
-	return( retCode );
 }
 
 BERR_Code BLED_Write (
@@ -200,11 +191,10 @@ BERR_Code BLED_Write (
 	}
 
 	BREG_Write32 (hLed->hRegister, offset, (uint32_t)value);
-
 	return BERR_SUCCESS;
 }
 
-BERR_Code BLED_AdjustBrightness (
+void BLED_AdjustBrightness (
 	BLED_Handle         hLed,               /* Device handle */
 	uint8_t             percentBrightness   /* percent of brightness */
 )
@@ -222,8 +212,6 @@ BERR_Code BLED_AdjustBrightness (
 
 	BREG_Write32 (hLed->hRegister, BCHP_LDK_DUTYOFF, (uint32_t)ucDutyCycleOff);
 	BREG_Write32 (hLed->hRegister, BCHP_LDK_DUTYON,  (uint32_t)ucDutyCycleOn);
-
-	return BERR_SUCCESS;
 }
 
 BERR_Code BLED_SetDiscreteLED (

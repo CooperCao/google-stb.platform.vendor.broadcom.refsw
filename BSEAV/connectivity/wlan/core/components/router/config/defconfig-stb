@@ -12,7 +12,7 @@ CONFIG_NVRAMD=y
 CONFIG_SHARED=y
 # CONFIG_GPIO_USE_NEXUS is not set
 # CONFIG_LIBBCMSTB is not set
-CONFIG_LIBBCM=y
+# CONFIG_LIBBCM is not set
 # CONFIG_BUZZZ is not set
 # CONFIG_BUSYBOX is not set
 # CONFIG_WLCONF is not set
@@ -20,10 +20,13 @@ CONFIG_LIBBCM=y
 # CONFIG_VLAN is not set
 # CONFIG_HTTPD is not set
 # CONFIG_WWW is not set
-CONFIG_GLIBC=y
+# CONFIG_GLIBC is not set
 # CONFIG_UCLIBC is not set
 # CONFIG_LIBOPT is not set
 # CONFIG_USBAP is not set
+# CONFIG_GMAC3 is not set
+# CONFIG_DHDAP is not set
+# CONFIG_RSDB is not set
 # CONFIG_SQUASHFS is not set
 # CONFIG_CRAMFS is not set
 
@@ -44,6 +47,9 @@ CONFIG_VENDOR=broadcom
 #
 # CONFIG_DLNA_DMS is not set
 # CONFIG_DLNA_DMR is not set
+# CONFIG_MFP is not set
+# CONFIG_HSPOT is not set
+# CONFIG_WNM is not set
 CONFIG_NAS=y
 # CONFIG_WAPI is not set
 # CONFIG_NAND_JFFS2 is not set
@@ -63,13 +69,20 @@ CONFIG_BCMWPA2=y
 # CONFIG_TRAFFIC_MGMT_RSSI_POLICY is not set
 # CONFIG_PHYMON_UTILITY is not set
 # CONFIG_SHRINK_MEMORY is not set
+# CONFIG_BCMDCS is not set
+# CONFIG_EXTACS is not set
+# CONFIG_BCMBSD is not set
+# CONFIG_BCMSSD is not set
+# CONFIG_CR4_OFFLOAD is not set
 # CONFIG_PLC is not set
 # CONFIG_IPV6 is not set
 # CONFIG_DUAL_IMAGE_FLASH_SUPPORT is not set
 # CONFIG_FAILSAFE_UPGRADE_SUPPORT is not set
 # CONFIG_VOIP is not set
+# CONFIG_MDNSRESPONDER is not set
 # CONFIG_LIBZ is not set
 # CONFIG_SOUND is not set
+# CONFIG_BCMASPMD is not set
 
 #
 # Additional C libraries
@@ -89,15 +102,20 @@ CONFIG_LIBRESOLV=y
 # Environment
 #
 LIBDIR=$(TOOLCHAIN)/lib
+ifeq ($(CC),aarch64-linux-gcc)
+USRLIBDIR=$(TOOLCHAIN)/aarch64-linux-gnu/sys-root/usr/lib
+else
 USRLIBDIR=$(TOOLCHAIN)/arm-linux-gnueabihf/sys-root/usr/lib
+endif
 # CONFIG_RTR_OPTIMIZE_SIZE is not set
 # CONFIG_MINI_ROUTER is not set
 
 #
 # Internal Options
 #
+# CONFIG_CURL is not set
 # CONFIG_UTELNETD is not set
-# CONFIG_ENVRAM_UTILITY is not set
+CONFIG_ENVRAM_UTILITY=y
 # CONFIG_PCMCIA is not set
 # CONFIG_WIRELESS is not set
 # CONFIG_TRUEFFS is not set
@@ -121,6 +139,8 @@ USRLIBDIR=$(TOOLCHAIN)/arm-linux-gnueabihf/sys-root/usr/lib
 #
 # Advanced Router Features
 #
+# CONFIG_TOAD is not set
 # CONFIG_BCMQOS is not set
+# CONFIG_PROXDETECT is not set
 # CONFIG_VISUALIZATION is not set
 CONFIG_FBT=y

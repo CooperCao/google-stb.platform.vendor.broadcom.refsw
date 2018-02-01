@@ -69,6 +69,8 @@ BDBG_MODULE(BVDC_GFX);
 BDBG_OBJECT_ID(BVDC_GFX);
 BDBG_FILE_MODULE(BVDC_CFC_1); /* print CFC in and out color space info */
 BDBG_FILE_MODULE(BVDC_CFC_2); /* print CFC configure */
+BDBG_FILE_MODULE(BVDC_FIR_BYPASS);
+
 
 #define BVDC_P_MAKE_GFD(pGfxFeeder, id)                                                   \
 {                                                                                         \
@@ -748,6 +750,16 @@ static BERR_Code BVDC_P_GfxFeeder_ValidateSurAndRects_isrsafe
     ulAdjCntHeight = pDstRect->ulHeight; /* not used */
 #endif /* #if (BVDC_P_SUPPORT_GFD_VER == BVDC_P_SUPPORT_GFD_VER_3)   */
 
+    /* turn on dejag if vertical scale factor is bigger than 1*/
+    pCfg->stFlags.bEnDejag = (pCfg->stFlags.bNeedVertScale &&
+         (pCfg->ulVsclSrcStep <= GFD_VSCL_FIR_STEP_1) &&
+         (0 == pCfg->ulVsclBlkAvgSize))? 1 : 0;
+
+    /* turn on dering if horizontal scale factor is bigger than 2/3, alpha clip */
+    pCfg->stFlags.bEnDering =
+                ( pCfg->stFlags.bNeedHorizScale &&
+                ((2 * pCfg->ulHsclSrcStep) <= (3 * GFD_HSCL_FIR_STEP_1)))? 1 : 0;
+
     /* OutWidth and ulOutHeight are used to set GFD_0_DISP_PIC_SIZE */
     pCfg->ulOutHeight = pDstRect->ulHeight;
 
@@ -1373,8 +1385,7 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
     uint32_t  *pulCoeffs;
     uint32_t  ulRulOffset;
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_3)
-    uint32_t  ulEnDejag, ulEnDering, ulEnDemoMode;
-    uint32_t  ulEnVscl, ulFilterOrder;
+    uint32_t  ulEnDemoMode;
     uint32_t  ulVsclFirStep;
     uint32_t  *pulVsclCoeffs;
     uint32_t  ulCntHeight;
@@ -1444,17 +1455,14 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
         /* dering/dejag features come with vertical scaling capacity */
         if(hGfxFeeder->bSupportVertScl)
         {
-            /* turn on dering if horizontal scale factor is bigger than 2/3, alpha clip */
-            ulEnDering =
-                ( stFlags.bNeedHorizScale &&
-                ((2 * pCurCfg->ulHsclSrcStep) <= (3 * GFD_HSCL_FIR_STEP_1)))? 1 : 0;
+            bool bEnDering = pCurCfg->stFlags.bEnDering;
             ulEnDemoMode = (pCurCfg->stFlags.bDeringDemoMode)? 1 : 0;
             *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
             *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_DERINGING ) + ulRulOffset;
             *pulRulCur++ =
-                BCHP_FIELD_DATA( GFD_0_DERINGING, HORIZ_ALPHA_DERINGING,  ulEnDering ) |
-                BCHP_FIELD_DATA( GFD_0_DERINGING, HORIZ_CHROMA_DERINGING, ulEnDering ) |
-                BCHP_FIELD_DATA( GFD_0_DERINGING, HORIZ_LUMA_DERINGING,   ulEnDering ) |
+                BCHP_FIELD_DATA( GFD_0_DERINGING, HORIZ_ALPHA_DERINGING,  bEnDering ) |
+                BCHP_FIELD_DATA( GFD_0_DERINGING, HORIZ_CHROMA_DERINGING, bEnDering ) |
+                BCHP_FIELD_DATA( GFD_0_DERINGING, HORIZ_LUMA_DERINGING,   bEnDering ) |
                 BCHP_FIELD_DATA( GFD_0_DERINGING, DEMO_MODE,              ulEnDemoMode );
 
             /* set vertical scale factor and block average, and filter order
@@ -1476,36 +1484,16 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
             *pulRulCur++ =
                 BCHP_FIELD_DATA( GFD_0_SRC_VSIZE, VSIZE, ulCntHeight );
 
-            /* turn on dejag if vertical scale factor is bigger than 1*/
-            ulEnVscl = (stFlags.bNeedVertScale)? 1: 0;
-            ulEnDejag =
-                 (ulEnVscl &&
-                 (pCurCfg->ulVsclSrcStep <= GFD_VSCL_FIR_STEP_1) &&
-                 (0 == pCurCfg->ulVsclBlkAvgSize))? 1 : 0;
             ulEnDemoMode = (pCurCfg->stFlags.bDejagDemoMode)? 1 : 0;
             *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
             *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_DEJAGGING ) + ulRulOffset;
             *pulRulCur++ =
-                BCHP_FIELD_DATA( GFD_0_DEJAGGING, HORIZ,           0)          |
-                BCHP_FIELD_DATA( GFD_0_DEJAGGING, GAIN,            0)          |
-                BCHP_FIELD_DATA( GFD_0_DEJAGGING, CORE,            0)          |
-                BCHP_FIELD_DATA( GFD_0_DEJAGGING, VERT_DEJAGGING,  ulEnDejag ) |
+                BCHP_FIELD_DATA( GFD_0_DEJAGGING, HORIZ,           0)                         |
+                BCHP_FIELD_DATA( GFD_0_DEJAGGING, GAIN,            0)                         |
+                BCHP_FIELD_DATA( GFD_0_DEJAGGING, CORE,            0)                         |
+                BCHP_FIELD_DATA( GFD_0_DEJAGGING, VERT_DEJAGGING,  pCurCfg->stFlags.bEnDejag) |
                 BCHP_FIELD_DATA( GFD_0_DEJAGGING, DEMO_MODE,       ulEnDemoMode );
 
-            /* set gfd scale top configure */
-            ulFilterOrder = (pCurCfg->ulHsclSrcStep < GFD_HSCL_FIR_STEP_1)?
-                BCHP_FIELD_ENUM( GFD_0_GSCL_CFG, FILTER_ORDER, VERT_FIRST ) :
-                BCHP_FIELD_ENUM( GFD_0_GSCL_CFG, FILTER_ORDER, HORIZ_FIRST );
-            *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
-            *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_GSCL_CFG ) + ulRulOffset;
-            *pulRulCur++ =
-                BCHP_FIELD_DATA( GFD_0_GSCL_CFG, BAVG_BLK_SIZE, pCurCfg-> ulVsclBlkAvgSize ) |
-                BCHP_FIELD_DATA( GFD_0_GSCL_CFG, HCLIP_ENABLE,  1 )                          |
-                BCHP_FIELD_DATA( GFD_0_GSCL_CFG, VCLIP_ENABLE,  1 )                          |
-                ulFilterOrder                                                                |
-                BCHP_FIELD_DATA( GFD_0_GSCL_CFG, IOBUF_ENABLE,  ulEnVscl )                   |
-                BCHP_FIELD_DATA( GFD_0_GSCL_CFG, VSCL_ENABLE,   ulEnVscl )                   |
-                BCHP_FIELD_DATA( GFD_0_GSCL_CFG, GSCL_ENABLE,   1 );
             /* TODO set demo_setting */
         }
 #endif
@@ -2031,7 +2019,7 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForEnableCtrl_isr
     uint32_t ulEnMA = 0;
 #if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_1)
     if (hGfxFeeder->stCfc.stCapability.stBits.bMa &&
-        (hGfxFeeder->stCfc.ucSelBlackBoxNL != BVDC_P_CFC_NL_SEL_BYPASS))
+        (hGfxFeeder->stCfc.ucSelBlackBoxNL != BCFC_NL_SEL_BYPASS))
     {
         ulEnMA = BCHP_FIELD_DATA( GFD_0_CTRL, CSC_R0_MA_ENABLE, 1 );
     }
@@ -2055,7 +2043,7 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForEnableCtrl_isr
     /* 7271 A/B */
     if (hGfxFeeder->hWindow)
     {
-        ulEnAlphaDiv  = (BVDC_P_NEED_BLEND_MATRIX(hGfxFeeder->hWindow->hCompositor)
+        ulEnAlphaDiv  = (BVDC_P_CFC_NEED_BLEND_MATRIX(hGfxFeeder->hWindow->hCompositor)
 #if BVDC_P_DBV_SUPPORT
             || hGfxFeeder->bDbvEnabled
 #endif
@@ -2074,6 +2062,52 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForEnableCtrl_isr
 #else
     ulEnClrMtrx       = stFlags.bNeedColorSpaceConv;
 #endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3) */
+
+    if(hGfxFeeder->bSupportVertScl)
+    {
+        uint32_t ulFilterOrder;
+        bool     bEnGscl, bEnDejag, bEnDering, bEnVscl;
+        /* set gfd scale top configure */
+        ulFilterOrder = (pCurCfg->ulHsclSrcStep < GFD_HSCL_FIR_STEP_1)?
+            BCHP_FIELD_ENUM( GFD_0_GSCL_CFG, FILTER_ORDER, VERT_FIRST ) :
+            BCHP_FIELD_ENUM( GFD_0_GSCL_CFG, FILTER_ORDER, HORIZ_FIRST );
+        /*
+                 none of these functions are needed, GSCL_ENABLE can be turned off
+                 GFD_0_GSCL_CFG. HCLIP_ENABLE
+    ·            GFD_0_GSCL_CFG. VCLIP_ENABLE
+    ·            GFD_0_GSCL_CFG. IOBUF_ENABLE
+    ·            GFD_0_GSCL_CFG. VSCL_ENABLE
+    ·            GFD_0_DEJAGGING. VERT_DEJAGGING
+    ·            GFD_0_DERINGING. HORIZ_ALPHA_DERINGING
+    ·            GFD_0_DERINGING. HORIZ_CHROMA_DERINGING
+    ·            GFD_0_DERINGING. HORIZ_LUMA_DERINGING
+    ·            GFD_0_CTRL. HFIR_ENABLE
+                 */
+        bEnVscl   = stFlags.bNeedVertScale;
+        bEnDejag  = stFlags.bEnDejag;
+        bEnDering = stFlags.bEnDering;
+        bEnGscl = bEnDejag || bEnVscl
+                    || bEnDering || stFlags.bNeedHorizScale
+                    ||BVDC_P_ORIENTATION_IS_3D(eInOrientation)
+                    ||BVDC_P_ORIENTATION_IS_3D(pCurCfg->eOutOrientation);
+
+        *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
+        *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_GSCL_CFG ) + ulRulOffset;
+        /* HCLIP controls the alpha clipping circuit in GFD’s HSCL dering block */
+        /* VCLIP controls the alpha clipping circuit in GFD’s VSCL dejag block */
+        *pulRulCur++ =
+            BCHP_FIELD_DATA( GFD_0_GSCL_CFG, BAVG_BLK_SIZE, pCurCfg-> ulVsclBlkAvgSize ) |
+            BCHP_FIELD_DATA( GFD_0_GSCL_CFG, HCLIP_ENABLE,  bEnDering )                  |
+            BCHP_FIELD_DATA( GFD_0_GSCL_CFG, VCLIP_ENABLE,  bEnDejag )                   |
+            ulFilterOrder                                                                |
+            BCHP_FIELD_DATA( GFD_0_GSCL_CFG, IOBUF_ENABLE,  bEnVscl )                    |
+            BCHP_FIELD_DATA( GFD_0_GSCL_CFG, VSCL_ENABLE,   bEnVscl )                    |
+            BCHP_FIELD_DATA( GFD_0_GSCL_CFG, GSCL_ENABLE,   bEnGscl );
+
+        BDBG_MODULE_MSG(BVDC_FIR_BYPASS, ("GFD[%d] VFIR %s GSCL %s ", hGfxFeeder->eId, bEnVscl?"ON":"OFF",
+            bEnGscl? "ON":"OFF"));
+    }
+
     ulEnHscl          = stFlags.bNeedHorizScale;
     ulEnGamma         = stFlags.bEnableGammaCorrection;
     ulDoneAlphaPreMul = (stFlags.bEnGfdHwAlphaPreMultiply)? 0: 1; /* NOT 1: 0 */
@@ -2119,6 +2153,8 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForEnableCtrl_isr
         BCHP_FIELD_DATA( GFD_0_CTRL, ALPHA_PRE_MULT,   ulDoneAlphaPreMul ) |
         BCHP_FIELD_DATA( GFD_0_CTRL, COLOR_KEY_ENABLE, ulEnKey );
 #endif
+
+    BDBG_MODULE_MSG(BVDC_FIR_BYPASS, ("GFD[%d] HFIR %s", hGfxFeeder->eId, ulEnHscl?"ON":"OFF"));
 
     /*vertical scaling is enabled in GSCL_CFG */
 
@@ -2230,7 +2266,7 @@ void BVDC_P_GfxFeeder_UpdateState_isr
     BVDC_P_GfxFeederCfgInfo  *pCurCfg;
     BVDC_P_GfxDirtyBits  stCurDirty;
 #ifndef BVDC_FOR_BOOTUPDATER
-    BVDC_P_Csc3x4 const *pRGBToYCbCr, *pYCbCrToRGB;
+    BCFC_Csc3x4 const *pRGBToYCbCr, *pYCbCrToRGB;
 #endif
 
     BDBG_ENTER(BVDC_P_GfxFeeder_UpdateState_isr);
@@ -2306,11 +2342,11 @@ void BVDC_P_GfxFeeder_UpdateState_isr
         {
             if (stCurDirty.stBits.bCsc)
             {
-                BVDC_P_GfxFeeder_UpdateGfxInputColorSpace_isr(pCurSur, &hGfxFeeder->stCfc.stColorSpaceIn);
+                BVDC_P_GfxFeeder_UpdateGfxInputColorSpace_isr(pCurSur, &hGfxFeeder->stCfc.stColorSpaceExtIn);
             }
 #if BVDC_P_DBV_SUPPORT
             if(hGfxFeeder->stCfc.stCapability.stBits.bDbvToneMapping) {
-                BVDC_P_Dbv_UpdateGfxInputColorSpace_isr(hGfxFeeder->hWindow->hCompositor, &hGfxFeeder->stCfc.stColorSpaceIn.stAvcColorSpace);
+                BVDC_P_Dbv_UpdateGfxInputColorSpace_isr(hGfxFeeder->hWindow->hCompositor, &hGfxFeeder->stCfc.stColorSpaceExtIn.stColorSpace);
             }
 #endif
             BVDC_P_Cfc_UpdateCfg_isr(&hGfxFeeder->stCfc, false, true);
@@ -2322,7 +2358,7 @@ void BVDC_P_GfxFeeder_UpdateState_isr
             }
 
 #ifndef BVDC_FOR_BOOTUPDATER
-            BVDC_P_Cfc_GetCfcToApplyAttenuationRGB_isr(hGfxFeeder->hWindow->pMainCfc->pColorSpaceOut->stAvcColorSpace.eColorimetry, &pYCbCrToRGB, &pRGBToYCbCr);
+            BVDC_P_Cfc_GetCfcToApplyAttenuationRGB_isr(hGfxFeeder->hWindow->pMainCfc->pColorSpaceExtOut->stColorSpace.eColorimetry, &pYCbCrToRGB, &pRGBToYCbCr);
             /* color adjustment */
             BVDC_P_Cfc_ApplyContrast_isr(hGfxFeeder->hWindow->stCurInfo.sContrast, &hGfxFeeder->stCfc.stMc);
             BVDC_P_Cfc_ApplyBrightness_isr(hGfxFeeder->hWindow->stCurInfo.sBrightness, &hGfxFeeder->stCfc.stMc);
@@ -2474,7 +2510,7 @@ BERR_Code BVDC_P_GfxFeeder_AdjustBlend_isr
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
         /* when blen-matrix is enabled, we would enable alpha-div, so the output pixel
          * from GFD has alpha removed from the YCbCr value */
-        if ((hGfxFeeder->hWindow && BVDC_P_NEED_BLEND_MATRIX(hGfxFeeder->hWindow->hCompositor))
+        if ((hGfxFeeder->hWindow && BVDC_P_CFC_NEED_BLEND_MATRIX(hGfxFeeder->hWindow->hCompositor))
 #if BVDC_P_DBV_SUPPORT
             || hGfxFeeder->bDbvEnabled
 #endif

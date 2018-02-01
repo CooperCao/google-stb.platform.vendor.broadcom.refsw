@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -204,7 +204,6 @@ BERR_Code BHSM_RvRegion_SetSettings( BHSM_RvRegionHandle handle, const BHSM_RvRe
     BHSM_RvRsaInfo rsaInfo;
 
     BDBG_ENTER( BHSM_RvRegion_SetSettings );
-
     if( !pRegion->allocated ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pSettings ) return BERR_TRACE(BERR_INVALID_PARAMETER );
     if( !pSettings->rvRsaHandle ) return BERR_TRACE(BERR_INVALID_PARAMETER );
@@ -217,6 +216,9 @@ BERR_Code BHSM_RvRegion_SetSettings( BHSM_RvRegionHandle handle, const BHSM_RvRe
     BKNI_Memset( &bspRvConfig, 0, sizeof(bspRvConfig) );
     bspRvConfig.region.address = pSettings->range[0].address;
     bspRvConfig.region.size = pSettings->range[0].size;
+    bspRvConfig.signature.address = pSettings->signature.address;
+    bspRvConfig.signature.size = pSettings->signature.size;
+
     if( pSettings->keyLadderHandle )
     {
         BHSM_KeyLadderInfo keyLadderInfo;
@@ -227,13 +229,12 @@ BERR_Code BHSM_RvRegion_SetSettings( BHSM_RvRegionHandle handle, const BHSM_RvRe
         bspRvConfig.keyLadderLayer = pSettings->keyLadderLayer;
     }
     bspRvConfig.rsaKeyId = rsaInfo.rsaKeyId;
-    bspRvConfig.scbBurstSize = 0; /* default */
+    bspRvConfig.scbBurstSize = pSettings->SCBBurstSize;
     bspRvConfig.intervalCheckBandwidth = pSettings->intervalCheckBandwidth;
     bspRvConfig.resetOnVerifyFailure = pSettings->resetOnVerifyFailure;
     bspRvConfig.enforceAuth = pSettings->enforceAuth;
     bspRvConfig.allowRegionDisable = pSettings->allowRegionDisable;
     bspRvConfig.backgroundCheck = pSettings->backgroundCheck;
-    bspRvConfig.instrCheck = pSettings->instrCheck;
     bspRvConfig.signatureType = pSettings->signatureType;
     bspRvConfig.signatureVersion = pSettings->signatureVersion;
     bspRvConfig.codeRelocatable = pSettings->codeRelocatable;
@@ -294,6 +295,7 @@ exit:
     return rc;
 }
 
+
 BERR_Code BHSM_RvRegion_GetStatus( BHSM_RvRegionHandle handle, BHSM_RvRegionStatus *pStatus )
 {
     BERR_Code rc = BERR_SUCCESS;
@@ -307,6 +309,8 @@ BERR_Code BHSM_RvRegion_GetStatus( BHSM_RvRegionHandle handle, BHSM_RvRegionStat
     BDBG_ENTER( BHSM_RegionVerification_QueryStatus );
 
     if( !pStatus ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
+    BKNI_Memset( pStatus, 0, sizeof(*pStatus) );
 
     rc = BHSM_BspMsg_Create( pRegion->hHsm, &hMsg );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
@@ -456,7 +460,8 @@ BERR_Code _RvRegionConfigure( BHSM_RvRegionHandle hRegion, _RvRegionConfigure_t 
         case 256: scbBurstSize = BCMD_ScbBurstSize_e256; break;
         default: { rc = BERR_TRACE( BERR_INVALID_PARAMETER ); goto exit; }
     }
-    BHSM_BspMsg_Pack8 ( hMsg, BCMD_MemAuth_InCmdField_eScbBurstSize, (uint8_t)pConf->scbBurstSize );
+
+    BHSM_BspMsg_Pack8 ( hMsg, BCMD_MemAuth_InCmdField_eScbBurstSize, (uint8_t)scbBurstSize );
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_MemAuth_InCmdField_eResetOnVerifyFailure, pConf->resetOnVerifyFailure ? BCMD_MemAuth_ResetOnVerifyFailure_eReset
                                                                                                   : BCMD_MemAuth_ResetOnVerifyFailure_eNoReset );
@@ -499,7 +504,6 @@ BERR_Code _RvRegionConfigure( BHSM_RvRegionHandle hRegion, _RvRegionConfigure_t 
         default: { rc = BERR_TRACE( BERR_INVALID_PARAMETER ); goto exit; } /* you may have to add type[s] to BHSM_RvSignatureType */
     }
     BHSM_BspMsg_Pack8( hMsg, BCMD_MemAuth_InCmdField_eSigType, (uint8_t)signatureType );
-
     rc = BHSM_BspMsg_SubmitCommand( hMsg );
     if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
 

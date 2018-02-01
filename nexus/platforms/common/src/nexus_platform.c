@@ -217,6 +217,9 @@
 #if NEXUS_HAS_SCM
 #include "nexus_scm_init.h"
 #endif
+#if NEXUS_HAS_ASP
+#include "nexus_asp_init.h"
+#endif
 #include "nexus_scm_id_string.h"
 
 #include "priv/nexus_core_standby_priv.h"
@@ -356,6 +359,10 @@ static void NEXUS_Platform_P_InitAudio(void *context)
     BDBG_ASSERT(g_NEXUS_platformHandles.security);
     internalAudioSettings.modules.security = g_NEXUS_platformHandles.security;
     #endif
+    #if NEXUS_HAS_SAGE
+    BDBG_ASSERT(g_NEXUS_platformHandles.sage);
+    internalAudioSettings.modules.sage = g_NEXUS_platformHandles.sage;
+    #endif
     /* this is something used by the DTV... for now ignore the "DTV centric guarding schema" */
     #if NEXUS_HAS_FRONTEND
     internalAudioSettings.modules.frontend = g_NEXUS_platformHandles.frontend;
@@ -400,6 +407,7 @@ static void NEXUS_Platform_P_UninitDvbci(void)
 }
 #endif
 
+#if BDBG_DEBUG_BUILD
 static void NEXUS_Platform_P_Print(void)
 {
 #if BCHP_PWR_SUPPORT
@@ -410,6 +418,7 @@ static void NEXUS_Platform_P_Print(void)
     BDBG_LOG(("Nexus Release %d.%d",NEXUS_P_GET_VERSION(NEXUS_PLATFORM) / NEXUS_PLATFORM_VERSION_UNITS,
         NEXUS_P_GET_VERSION(NEXUS_PLATFORM) % NEXUS_PLATFORM_VERSION_UNITS));
 }
+#endif
 
 static NEXUS_Error nexus_platform_p_apply_memconfig(const NEXUS_Core_PreInitState *preInitState, const NEXUS_MemoryConfigurationSettings *pMemConfig)
 {
@@ -574,6 +583,9 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #if NEXUS_HAS_SMARTCARD
         NEXUS_SmartcardModuleInternalSettings smartcardSettings;
 #endif
+#if NEXUS_HAS_ASP
+        NEXUS_AspModuleSettings aspSettings;
+#endif
 #if NEXUS_HAS_VIDEO_ENCODER
         NEXUS_VideoEncoderModuleInternalSettings videoEncoderSettings;
 #endif
@@ -658,8 +670,10 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     if ( errCode!=BERR_SUCCESS ) { errCode=BERR_TRACE(errCode); goto err_base; }
 
     NEXUS_Module_GetDefaultSettings(&state->moduleSettings);
+#if BDBG_DEBUG_BUILD
     state->moduleSettings.dbgPrint = NEXUS_Platform_P_Print;
     state->moduleSettings.dbgModules = "nexus_platform";
+#endif
     g_NEXUS_platformModule = NEXUS_Module_Create("platform",  &state->moduleSettings);
     if ( !g_NEXUS_platformModule ) { errCode=BERR_TRACE(errCode); goto err_plaform_module; }
     NEXUS_LockModule();
@@ -820,6 +834,24 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
             NULL
 #endif
     );
+#endif
+
+#if NEXUS_HAS_ASP
+    BDBG_MSG((">ASP:"));
+    NEXUS_AspModule_GetDefaultSettings(&state->aspSettings);
+#if NEXUS_HAS_SECURITY
+    state->aspSettings.modules.security = g_NEXUS_platformHandles.security;
+#endif
+#if NEXUS_HAS_SAGE
+    state->aspSettings.modules.sage = g_NEXUS_platformHandles.sage;
+#endif
+    handle = NEXUS_AspModule_Init(&state->aspSettings);
+    if ( !handle ) {
+        BDBG_ERR(("Unable to init ASP"));
+        errCode=BERR_TRACE(errCode);
+        goto err;
+    }
+    NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAll, NEXUS_AspModule_Uninit, NULL);
 #endif
 
     /* init power state, which blanks display. then bring up transport via security. */

@@ -75,6 +75,14 @@
    #define BSAT_HAS_WFE
    #define BSAT_EXCLUDE_MI2C
    #include "bsat_7364_priv.h"
+#elif (BCHP_CHIP==45402)
+   #define BSAT_HAS_LEAP
+   #define BSAT_HAS_WFE
+   #define BSAT_EXCLUDE_MI2C
+   #define BSAT_HAS_DVBS2X
+   #define BSAT_HAS_DUAL_TFEC
+   #define BSAT_HAS_ACM
+   #include "bsat_45402_priv.h"
 #else
    #error "unsupported BCHP_CHIP"
 #endif
@@ -204,6 +212,8 @@ typedef struct BSAT_g1_P_Handle
    uint32_t              *pSaBuf;               /* memory area for SA data */
    uint32_t              afecRampSettings;      /* BSAT_g1_CONFIG_AFEC_RAM configuration parameter */
    bool                  bResetDone;            /* true if BSAT PI was just completed reset */
+   uint16_t              afecRampChanMask;          /* bitmask indicating which channels have afec lock */
+   uint16_t              afecRampLowThreshChanMask; /* bitmask indicating which afec locked channels have ave iter below threshold */
    uint8_t               sdsRevId;              /* SDS core revision ID */
 #ifdef BSAT_HAS_WFE
    uint8_t               nNotch;                /* number of spurs cancelled by DCO notch filter */

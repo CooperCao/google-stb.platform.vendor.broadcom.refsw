@@ -60,11 +60,9 @@ void gl20_shader_init(GL20_SHADER_T *shader, int32_t name, GLenum type)
    shader->debug_label = NULL;
 }
 
-void gl20_shader_term(void *v, size_t size)
+void gl20_shader_term(void *v)
 {
    GL20_SHADER_T *shader = v;
-
-   unused(size);
 
    gl20_shader_free_source(shader);
 

@@ -483,14 +483,34 @@ eRet CSimpleAudioDecodeNx::updateConnectSettings(NxClient_ConnectSettings * pSet
     return(ret);
 } /* updateConnectSettings */
 
+#if BDSP_MS12_SUPPORT
+/* level: 0-100 */
+int CSimpleAudioDecodeNx::getAudioFade()
+{
+    eRet                           ret     = eRet_Ok;
+    int                            level   = -1;
+    NEXUS_Error                    nerror  = NEXUS_SUCCESS;
+    NEXUS_SimpleAudioDecoderHandle decoder = getSimpleDecoder();
+    NEXUS_AudioProcessorStatus     processorStatus;
+
+    nerror = NEXUS_SimpleAudioDecoder_GetProcessorStatus(decoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, NEXUS_AudioPostProcessing_eFade, &processorStatus);
+    CHECK_NEXUS_ERROR_GOTO("error getting audio decoder processor status", nerror, ret, error);
+
+    level = processorStatus.status.fade.level;
+
+error:
+    return(level);
+} /* getAudioFade */
+#endif
+
+#if BDSP_MS12_SUPPORT
 /* level:0-100, duration:3-60000 msecs - note that setting audio fade before a previous request completes
    will interrupt the previous request.  if you want any previous fade requests to complete first, see
    waitAudioFadeComplete(). */
-eRet CSimpleAudioDecodeNx::setAudioFade(unsigned level, unsigned duration)
+eRet CSimpleAudioDecodeNx::setAudioFade(unsigned level, unsigned duration, bool bWait)
 {
-    eRet        ret                        = eRet_Ok;
+    eRet ret = eRet_Ok;
 
-#if BDSP_MS12_SUPPORT
     NEXUS_SimpleAudioDecoderHandle decoder = getSimpleDecoder();
     NEXUS_Error nerror                     = NEXUS_SUCCESS;
 
@@ -499,19 +519,78 @@ eRet CSimpleAudioDecodeNx::setAudioFade(unsigned level, unsigned duration)
 
     NEXUS_SimpleAudioDecoder_GetSettings(decoder, &_simpleDecoderSettings);
 
+    /* sets a starting fade level if specified */
+    if (-1 < _fadeStartLevel)
+    {
+        /* set starting level for fade */
+        _simpleDecoderSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.connected         = true;
+        _simpleDecoderSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.level    = _fadeStartLevel;
+        _simpleDecoderSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.duration = 100;
+
+        BDBG_MSG(("setting starting audio fade level:%d", _fadeStartLevel));
+
+        /* reset start level */
+        _fadeStartLevel = -1;
+
+        nerror = NEXUS_SimpleAudioDecoder_SetSettings(decoder, &_simpleDecoderSettings);
+        CHECK_NEXUS_ERROR_GOTO("unable to set initial audio fade", ret, nerror, error);
+
+        ret = waitAudioFadeComplete();
+        CHECK_ERROR_GOTO("error waiting for initial audio fade to complete", ret, error);
+    }
+
+    if ((int)level == getAudioFade())
+    {
+        BDBG_MSG(("fade level (%d) already set!", level));
+        goto done;
+    }
+
     _simpleDecoderSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.connected         = true;
     _simpleDecoderSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.level    = level;
     _simpleDecoderSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.duration = duration;
-
     nerror = NEXUS_SimpleAudioDecoder_SetSettings(decoder, &_simpleDecoderSettings);
     CHECK_NEXUS_ERROR_GOTO("unable to set audio fade", ret, nerror, error);
+
     BDBG_MSG(("Setting audio fade level:%d duration:%d", level, duration));
 
+    if (true == bWait)
+    {
+        ret = waitAudioFadeComplete();
+        CHECK_ERROR_GOTO("error waiting for audio fade to complete", ret, error);
+    }
+
+done:
 error:
-#endif
     return(ret);
 } /* setAudioFade */
+#endif
 
+#if BDSP_MS12_SUPPORT
+bool CSimpleAudioDecodeNx::isAudioFadePending()
+{
+    eRet                           ret                  = eRet_Timeout;
+    NEXUS_SimpleAudioDecoderHandle decoder              = getSimpleDecoder();
+    NEXUS_Error                    nerror               = NEXUS_SUCCESS;
+    bool                           bPending             = false;
+    NEXUS_AudioProcessorStatus     processorStatus;
+
+    nerror = NEXUS_SimpleAudioDecoder_GetProcessorStatus(decoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, NEXUS_AudioPostProcessing_eFade, &processorStatus);
+    if (NEXUS_SUCCESS != nerror)
+    {
+        goto done;
+    }
+
+    if (true == processorStatus.status.fade.active)
+    {
+        bPending = true;
+    }
+
+done:
+    return(bPending);
+}
+#endif
+
+#if BDSP_MS12_SUPPORT
 /* audio fade requests are not queued.  if a fade request occurs before a previous request
    completes, it will interrupt the previous request.  this method will allow you to wait
    until a previous fade request completes before starting a new one (if that's what you want to do).
@@ -519,47 +598,35 @@ error:
 */
 eRet CSimpleAudioDecodeNx::waitAudioFadeComplete()
 {
-    eRet                           ret                  = eRet_Timeout;
-    NEXUS_SimpleAudioDecoderHandle decoder              = getSimpleDecoder();
+    eRet                           ret                  = eRet_Ok;
     NEXUS_Error                    nerror               = NEXUS_SUCCESS;
-    int                            nNotAvailableRetries = 10;
-    int                            nMaxSleeps           = 100;
+    NEXUS_SimpleAudioDecoderHandle decoder              = getSimpleDecoder();
     NEXUS_AudioProcessorStatus     processorStatus;
-
-    /* nNotAvailableRetries will only allow 1 second for retrying unsuccessful calls to GetProcessorStatus()
-       nMaxSleeps will only allow 10 secs waiting for audio fade to become inactive
-       These timeouts are designed to avoid an infinite loop in the case that GetProcessorStatus()
-       either always returns an error (audio decode not started), or the case where it always
-       returns success but audio fade is active forever.
-    */
 
     if (false == isStarted())
     {
         return(eRet_Ok);
     }
 
-#if BDSP_MS12_SUPPORT
-    for (nMaxSleeps = 0; (0 <= nNotAvailableRetries) && (100 > nMaxSleeps); nMaxSleeps++)
+    do
     {
+        BKNI_Sleep(100);
         nerror = NEXUS_SimpleAudioDecoder_GetProcessorStatus(decoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, NEXUS_AudioPostProcessing_eFade, &processorStatus);
-        if (NEXUS_SUCCESS != nerror)
+
+        if (!nerror && processorStatus.status.fade.active)
         {
-            BDBG_WRN(("NEXUS_SimpleAudioDecoder_GetProcessorStatus() error:%d - retrying...", __FUNCTION__, nerror));
-            nNotAvailableRetries--;
-        }
-        else
-        {
-            BDBG_MSG(("%s() audio fade active:%d", __FUNCTION__, processorStatus.status.fade.active));
-            if (false == processorStatus.status.fade.active)
-            {
-                ret = eRet_Ok;
-                break;
-            }
+            BDBG_MSG(("%s nerror:%d type:%d active:%d remain:%d level:%d%%",
+                __FUNCTION__, nerror, processorStatus.type, processorStatus.status.fade.active,
+                processorStatus.status.fade.remaining, processorStatus.status.fade.level));
         }
 
-        BKNI_Sleep(100);
+        if (nerror)
+        {
+            continue;
+        }
     }
-#endif
+    while (nerror != NEXUS_SUCCESS || processorStatus.type == NEXUS_AudioPostProcessing_eMax || processorStatus.status.fade.active);
 
     return(ret);
 }
+#endif

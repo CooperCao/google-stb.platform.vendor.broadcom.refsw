@@ -200,7 +200,7 @@ int main(void)
     while (1) {
         void *vbuffer, *abuffer;
         size_t vbuffer_size, abuffer_size;
-        int nVideo, nAudio;
+        int nVideo=0, nAudio;
         NEXUS_Error rc;
         NEXUS_VideoDecoderStatus vStatus;
         NEXUS_AudioDecoderStatus aStatus;

@@ -61,8 +61,12 @@
 #include "bsp_s_otp_common.h" /* provide BCMD_Otp_CmdMsp_e */
 #include "bsp_s_keycommon.h" /* provide BCMD_VKLID_e */
 #else
-typedef uint32_t BCMD_Otp_CmdMsp_e;
 #include "bhsm_keyladder.h" /* BHSM_KeyLadderHandle */
+#if (BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(5,0))
+#include "bsp_s_otp_common.h"
+#else
+typedef uint32_t BCMD_Otp_CmdMsp_e;
+#endif
 #endif
 
 #ifdef SAGE_KO
@@ -172,7 +176,9 @@ struct BSAGElib_P_Instance {
 
     uint8_t resetPending;
     uint8_t enablePinmux;
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
     BSAGElib_RpcRemoteHandle hStandbyRemote; /* remote used to sent S2 request */
+#endif
     BSAGElib_RpcRemoteHandle securelog_module; /* for auto attach TAs to secure_log */
     BSAGElib_InOutContainer *securelogContainer;
     BKNI_EventHandle         securelog_response;

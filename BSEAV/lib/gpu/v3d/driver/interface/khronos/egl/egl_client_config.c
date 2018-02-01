@@ -191,7 +191,7 @@ bool egl_config_check_attribs(const EGLint *attrib_list)
 
    while (*attrib_list != EGL_NONE) {
       EGLint name = *attrib_list++;
-      EGLint value = *attrib_list++;
+      EGLint value; /* read only if we recognise the name */
 
       switch (name) {
       case EGL_BUFFER_SIZE:
@@ -201,33 +201,41 @@ bool egl_config_check_attribs(const EGLint *attrib_list)
       case EGL_LUMINANCE_SIZE:
       case EGL_ALPHA_SIZE:
       case EGL_ALPHA_MASK_SIZE:
+         value = *attrib_list++;
          if (value != EGL_DONT_CARE && value < 0) return false;
          break;
       case EGL_BIND_TO_TEXTURE_RGB:
       case EGL_BIND_TO_TEXTURE_RGBA:
+         value = *attrib_list++;
          if (value != EGL_DONT_CARE && value != EGL_FALSE && value != EGL_TRUE)
             return false;
          break;
       case EGL_COLOR_BUFFER_TYPE:
+         value = *attrib_list++;
          if (value != EGL_DONT_CARE && value != EGL_RGB_BUFFER && value != EGL_LUMINANCE_BUFFER)
             return false;
          break;
       case EGL_CONFIG_CAVEAT:
+         value = *attrib_list++;
          if (value != EGL_DONT_CARE && value != EGL_NONE && value != EGL_SLOW_CONFIG && value != EGL_NON_CONFORMANT_CONFIG)
             return false;
          break;
       case EGL_CONFIG_ID:
+         value = *attrib_list++;
          if (value != EGL_DONT_CARE && value < 1)
             return false;
          break;
       case EGL_CONFORMANT:
+         value = *attrib_list++;
          if (value != EGL_DONT_CARE && (value & ~(EGL_OPENGL_BIT | EGL_OPENGL_ES_BIT | EGL_OPENGL_ES2_BIT | EGL_OPENVG_BIT)))
             return false;
          break;
       case EGL_DEPTH_SIZE:
+         value = *attrib_list++;
          if (value != EGL_DONT_CARE && value < 0) return false;
          break;
       case EGL_LEVEL:
+         attrib_list++; /* ignore */
          break;
       case EGL_MATCH_NATIVE_PIXMAP:
          /* 1.4 Spec is poor here - says that value has to be a valid handle, but also says that any attribute
@@ -240,29 +248,36 @@ bool egl_config_check_attribs(const EGLint *attrib_list)
       case EGL_MAX_PBUFFER_WIDTH:
       case EGL_MAX_PBUFFER_HEIGHT:
       case EGL_MAX_PBUFFER_PIXELS:
+         attrib_list++; /* ignore */
          break;
       case EGL_MAX_SWAP_INTERVAL:
       case EGL_MIN_SWAP_INTERVAL:
+         value = *attrib_list++;
          if (value != EGL_DONT_CARE && value < 0) return false;
          break;
       case EGL_NATIVE_RENDERABLE:
+         value = *attrib_list++;
          if (value != EGL_DONT_CARE && value != EGL_FALSE && value != EGL_TRUE)
             return false;
          break;
       case EGL_NATIVE_VISUAL_ID:
       case EGL_NATIVE_VISUAL_TYPE:
+         attrib_list++; /* ignore */
          break;
       case EGL_RENDERABLE_TYPE:
+         value = *attrib_list++;
          if (value != EGL_DONT_CARE && (value & ~(EGL_OPENGL_BIT | EGL_OPENGL_ES_BIT | EGL_OPENGL_ES2_BIT | EGL_OPENVG_BIT)))
             return false;
          break;
       case EGL_SAMPLE_BUFFERS:
       case EGL_SAMPLES:
       case EGL_STENCIL_SIZE:
+         value = *attrib_list++;
          if (value != EGL_DONT_CARE && value < 0) return false;
          break;
       case EGL_SURFACE_TYPE:
       {
+         value = *attrib_list++;
          int valid_bits = EGL_WINDOW_BIT | EGL_PIXMAP_BIT | EGL_PBUFFER_BIT |
             EGL_MULTISAMPLE_RESOLVE_BOX_BIT | EGL_SWAP_BEHAVIOR_PRESERVED_BIT |
             EGL_VG_COLORSPACE_LINEAR_BIT | EGL_VG_ALPHA_FORMAT_PRE_BIT;
@@ -274,16 +289,19 @@ bool egl_config_check_attribs(const EGLint *attrib_list)
          break;
       }
       case EGL_TRANSPARENT_TYPE:
+         value = *attrib_list++;
          if (value != EGL_DONT_CARE && value != EGL_NONE && value != EGL_TRANSPARENT_RGB)
             return false;
          break;
       case EGL_TRANSPARENT_RED_VALUE:
       case EGL_TRANSPARENT_GREEN_VALUE:
       case EGL_TRANSPARENT_BLUE_VALUE:
+         value = *attrib_list++;
          if (value != EGL_DONT_CARE && value < 0) return false;
          break;
 #if EGL_KHR_lock_surface
       case EGL_MATCH_FORMAT_KHR:
+         value = *attrib_list++;
          switch (value) {
          case EGL_DONT_CARE:
          case EGL_NONE:
@@ -299,6 +317,7 @@ bool egl_config_check_attribs(const EGLint *attrib_list)
 #endif
 #if EGL_ANDROID_recordable
       case EGL_RECORDABLE_ANDROID:
+         value = *attrib_list++;
          switch (value) {
          case EGL_DONT_CARE:
          case EGL_TRUE:
@@ -311,6 +330,7 @@ bool egl_config_check_attribs(const EGLint *attrib_list)
 #endif
 #if EGL_ANDROID_framebuffer_target
       case EGL_FRAMEBUFFER_TARGET_ANDROID:
+         value = *attrib_list++;
          switch (value) {
          case EGL_DONT_CARE:
          case EGL_TRUE:

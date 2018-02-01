@@ -79,7 +79,7 @@ void DebugSymDataflowMap(Map *map)
       auto k = static_cast<const Symbol *>(e->k);
       auto v = static_cast<Dataflow **>(e->v);
 
-      SymbolHandleConst(k).DebugPrint();
+      SymbolHandle(const_cast<Symbol *>(k)).DebugPrint();
 
       for (uint32_t i = 0; i < k->type->scalar_count; i++)
       {

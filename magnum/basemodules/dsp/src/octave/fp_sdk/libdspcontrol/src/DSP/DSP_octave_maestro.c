@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -101,14 +101,27 @@ DSP_RET DSP_enable(DSP *dsp, DSP_CORE core)
     DSP_writeSharedRegister(dsp, MISC_COMM_DBG_MAILBOX_BASE_ADDR(dsp, core), 0);
 #endif
 
+    /* The Misc Block *_CORE_RESET_CAUSE documentation reports:
+     *  "This register holds the cause of the last internal core reset. On a power on reset,
+     *   the por field is set to 1, but the other fields are not reset, hence they can have
+     *   any value. The register is unaffected by subsequent non power on resets."
+     * Hence we must clear this register ourselves on a manual un-reset for it to be of any use. */
+    DSP_writeSharedRegister(dsp, MISC_BLOCK(dsp, core, CORECTRL_CORE_RESET_CAUSE), 0);
+
     DSP_writeSharedRegister(dsp, MISC_BLOCK(dsp, core, CORECTRL_CORE_ENABLE), 1);
 
+    /* Disabled until TLFIREPATH-4704 gets fixed.
+     *
+     * uint32_t reset_cause = DSP_readSharedRegister(dsp, MISC_BLOCK(dsp, core, CORECTRL_CORE_RESET_CAUSE));
+     * if(!(reset_cause & MISC_BLOCK_CORECTRL_CORE_RESET_CAUSE_POR))
+     */
     DSP_enabledStatus(dsp, &cores);
-    if(cores == DSP_CORES_NONE)
+    if(!(cores & (1 << core)))
     {
-        DSPLOG_ERROR("DSP: after enable, no core seems to be running");
+        DSPLOG_ERROR("DSP: after enable, core %u seems not to be running", core);
         return DSP_DEAD_CORE;
     }
+
     return DSP_SUCCESS;
 }
 

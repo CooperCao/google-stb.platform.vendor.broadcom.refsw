@@ -125,6 +125,7 @@ void bmp4_FreeMp4Header(bmp4_mp4_headers *pMp4)
     int i;
     for (i = 0; i < pMp4->numOfDrmSchemes; i++){
         if(pMp4->pPsshData[i] != NULL) NEXUS_Memory_Free((void*) pMp4->pPsshData[i]);
+        if(pMp4->cpsSpecificData[i] != NULL) NEXUS_Memory_Free((void*) pMp4->cpsSpecificData[i]);
     }
 }
 
@@ -309,74 +310,84 @@ int bmp4_parse_stsd(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
         }
 
         LOGD(("%s: type=0x%x", BSTD_FUNCTION, entry_box.type));
-        if((entry_box.type == BMP4_SAMPLE_ENCRYPTED_VIDEO) ||
-            (entry_box.type == BMP4_SAMPLE_ENCRYPTED_AUDIO) ||
-            (entry_box.type == BMP4_SAMPLE_AVC) ||
-            (entry_box.type == BMP4_SAMPLE_MP4A)
-        )
+
+        switch(entry_box.type)
         {
-            uint32_t skip_bytes = ((entry_box.type == BMP4_SAMPLE_ENCRYPTED_VIDEO) || (entry_box.type == BMP4_SAMPLE_AVC) ?
-                BMP4_VISUAL_ENTRY_SIZE:BMP4_AUDIO_ENTRY_SIZE);
+           case BMP4_SAMPLE_ENCRYPTED_VIDEO:
+           case BMP4_SAMPLE_ENCRYPTED_AUDIO:
+           case BMP4_SAMPLE_AVC:
+           case BMP4_SAMPLE_MP4A:
+           {
+                uint32_t skip_bytes = 0;
+                switch(entry_box.type)
+                {
+                    case BMP4_SAMPLE_ENCRYPTED_VIDEO:
+                    case BMP4_SAMPLE_AVC:
+                        skip_bytes = BMP4_VISUAL_ENTRY_SIZE;
+                        break;
+                    default:
+                        skip_bytes = BMP4_AUDIO_ENTRY_SIZE;
+                        break;
+                }
 
-            pTrack->scheme.trackType = entry_box.type;
-            LOGD(("%s: scheme=%p trackType=%d", BSTD_FUNCTION,
+                pTrack->scheme.trackType = entry_box.type;
+                LOGD(("%s: scheme=%p trackType=%d", BSTD_FUNCTION,
                 (void*)&pTrack->scheme, pTrack->scheme.trackType));
-            batom_cursor_skip(cursor, skip_bytes);
+                batom_cursor_skip(cursor, skip_bytes);
 
-            for(j = skip_bytes + entry_hdr_size; j < entry_box.size; j += box.size)
-            {
-                box_hdr_size = bmp4_parse_box(cursor, &box);
-                if(box_hdr_size == 0) {
+                for(j = skip_bytes + entry_hdr_size; j < entry_box.size; j += box.size)
+                {
+                    box_hdr_size = bmp4_parse_box(cursor, &box);
+                    if(box_hdr_size == 0) {
                     break;
-                }
-
-                if(box.type == BMP4_PROTECTIONSCHEMEINFO) {
-                    LOGD(("%s: BMP4_PROTECTIONSCHEMEINFO", BSTD_FUNCTION));
-                    rc = bmp4_parse_sinf(cursor, &box, pTrack);
-                    if(rc != 0) {
-                        goto ErrorExit;
                     }
-                    else if (pTrack->scheme_box_valid == true) {
-                        /* No need to dig further once a valid TE box has been parsed */
-                        goto ErrorExit;
+
+                    if(box.type == BMP4_PROTECTIONSCHEMEINFO) {
+                        LOGD(("%s: BMP4_PROTECTIONSCHEMEINFO", BSTD_FUNCTION));
+                        rc = bmp4_parse_sinf(cursor, &box, pTrack);
+                        if(rc != 0) {
+                            goto ErrorExit;
+                        }
+                    } else if (box.type == BMP4_CENC_DVC1) {
+                        LOGD(("%s - Got the DVC1 box, read the vc1_config data\n", BSTD_FUNCTION));
+                        batom_cursor_copy(cursor, pTrack->scheme.decConfig.data, box.size-box_hdr_size);
+                        pTrack->scheme.decConfig.size = box.size-box_hdr_size;
+                    } else if(box.type == BMP4_CENC_AVCC) {
+                        LOGD(("%s - Got the AvcC box, read the avc_config data\n", BSTD_FUNCTION));
+                        batom_cursor_copy(cursor, pTrack->scheme.decConfig.data, box.size-box_hdr_size);
+                        pTrack->scheme.decConfig.size = box.size-box_hdr_size;
+                        rc = 0;
+                        pTrack->scheme_box_valid = true;
+                    } else if(box.type == BMP4_CENC_WFEX) {
+                        LOGD(("%s - Got the wmap box, read the wmapro_config data\n", BSTD_FUNCTION));
+                        batom_cursor_copy(cursor, pTrack->scheme.decConfig.data, box.size-box_hdr_size);
+                        pTrack->scheme.decConfig.size = box.size-box_hdr_size;
+                    } else if(box.type == BMP4_CENC_ESDS) {
+                        bmedia_info_aac info_aac;
+                        batom_cursor aac_cursor;
+
+                        BATOM_CLONE(&aac_cursor, cursor);
+                        batom_cursor_skip(&aac_cursor, AAC_ESDS_ES_HDR_OFFSET);
+
+                        LOGD(("%s - Got the esds box, read the aac_config data\n", BSTD_FUNCTION));
+
+                        bmedia_info_probe_aac_info(&aac_cursor, &info_aac);
+                        BKNI_Memcpy(pTrack->scheme.decConfig.data, &info_aac, sizeof(bmedia_info_aac));
+                        pTrack->scheme.decConfig.size = sizeof(bmedia_info_aac);
+                        batom_cursor_skip(cursor, box.size - box_hdr_size);
+                        rc = 0;
+                        pTrack->scheme_box_valid = true;
+                    } else {
+                        LOGD(("%s - unknown box 0x%x\n", BSTD_FUNCTION, box.type));
+                        batom_cursor_skip(cursor, box.size - box_hdr_size);
                     }
-                } else if (box.type == BMP4_CENC_DVC1) {
-                    LOGD(("%s - Got the DVC1 box, read the vc1_config data\n", BSTD_FUNCTION));
-                    batom_cursor_copy(cursor, pTrack->scheme.decConfig.data, box.size-box_hdr_size);
-                    pTrack->scheme.decConfig.size = box.size-box_hdr_size;
-                } else if(box.type == BMP4_CENC_AVCC) {
-                    LOGD(("%s - Got the AvcC box, read the avc_config data\n", BSTD_FUNCTION));
-                    batom_cursor_copy(cursor, pTrack->scheme.decConfig.data, box.size-box_hdr_size);
-                    pTrack->scheme.decConfig.size = box.size-box_hdr_size;
-rc = 0;
-pTrack->scheme_box_valid = true;
-                } else if(box.type == BMP4_CENC_WFEX) {
-                    LOGD(("%s - Got the wmap box, read the wmapro_config data\n", BSTD_FUNCTION));
-                    batom_cursor_copy(cursor, pTrack->scheme.decConfig.data, box.size-box_hdr_size);
-                    pTrack->scheme.decConfig.size = box.size-box_hdr_size;
-                } else if(box.type == BMP4_CENC_ESDS) {
-                    bmedia_info_aac info_aac;
-                    batom_cursor aac_cursor;
-
-                    BATOM_CLONE(&aac_cursor, cursor);
-                    batom_cursor_skip(&aac_cursor, AAC_ESDS_ES_HDR_OFFSET);
-
-                    LOGD(("%s - Got the esds box, read the aac_config data\n", BSTD_FUNCTION));
-
-                    bmedia_info_probe_aac_info(&aac_cursor, &info_aac);
-                    BKNI_Memcpy(pTrack->scheme.decConfig.data, &info_aac, sizeof(bmedia_info_aac));
-                    pTrack->scheme.decConfig.size = sizeof(bmedia_info_aac);
-                    batom_cursor_skip(cursor, box.size - box_hdr_size);
-                    rc = 0;
-                    pTrack->scheme_box_valid = true;
-                } else {
-                    LOGD(("%s - unknown box 0x%x\n", BSTD_FUNCTION, box.type));
-                    batom_cursor_skip(cursor, box.size - box_hdr_size);
                 }
+                break;
             }
-        } else {
-            LOGD(("%s - not A/V\n", BSTD_FUNCTION));
-            batom_cursor_skip(cursor, entry_box.size - entry_hdr_size);
+            default:
+                LOGD(("%s - not A/V\n", BSTD_FUNCTION));
+                batom_cursor_skip(cursor, entry_box.size - entry_hdr_size);
+            break;
         }
     }
 
@@ -730,7 +741,7 @@ int bmp4_parse_traf(bmp4_mp4_headers *header, bmp4_mp4_frag_headers *frag_header
     int rc = -1;
     bool skip_frag = false;
     uint32_t trackId;
-    uint32_t trackType;
+    uint32_t trackType = BMP4_TYPE_BEGIN;
 
     LOGD(("%s: traf.size %llu", BSTD_FUNCTION, (long long unsigned)traf.size));
     for (i = box_size; i < traf.size; i += box.size) {
@@ -756,24 +767,27 @@ int bmp4_parse_traf(bmp4_mp4_headers *header, bmp4_mp4_frag_headers *frag_header
                     skip_frag = true;
                 }
 
-#if 1
-                if (trackType != BMP4_SAMPLE_ENCRYPTED_VIDEO &&
-                    trackType != BMP4_SAMPLE_ENCRYPTED_AUDIO &&
-                    trackType != BMP4_SAMPLE_AVC &&
-                    trackType != BMP4_SAMPLE_MP4A) {
-#else
-                if (trackType != BMP4_SAMPLE_ENCRYPTED_VIDEO &&
-                    trackType != BMP4_SAMPLE_ENCRYPTED_AUDIO) {
-#endif
-                    LOGW(("%s: Detected unexpected track type in fragment 0x%x, skip over.\n",
-                        __func__, trackType));
-                for (j=0; j < BMP4_MAX_NB_OF_TRACKS; j++) {
-                    LOGD(("scheme[trackId=%d]=%p trackType=0x%x",j, (void*)&header->scheme[j],header->scheme[j].trackType));
-                }
-                    skip_frag = true;
-                } else {
-                    frag_header->trackId = trackId;
-                    frag_header->trackType = trackType;
+                switch(trackType)
+                {
+                    case BMP4_SAMPLE_ENCRYPTED_VIDEO:
+                    case BMP4_SAMPLE_ENCRYPTED_AUDIO:
+                    case BMP4_SAMPLE_AVC:
+                    case BMP4_SAMPLE_MP4A:
+                    {
+                        frag_header->trackId = trackId;
+                        frag_header->trackType = trackType;
+                        break;
+                    }
+                    default:
+                    {
+                        LOGW(("%s: Detected unexpected track type in fragment 0x%x, skip over.\n",
+                            __func__, trackType));
+                        for (j=0; j < BMP4_MAX_NB_OF_TRACKS; j++) {
+                            LOGD(("scheme[trackId=%d]=%p trackType=0x%x",j, (void*)&header->scheme[j],header->scheme[j].trackType));
+                        }
+                        skip_frag = true;
+                        break;
+                    }
                 }
                 break;
             }
@@ -812,7 +826,7 @@ int bmp4_parse_traf(bmp4_mp4_headers *header, bmp4_mp4_frag_headers *frag_header
             case BMP4_CENC_SENC: /* senc */
             {
                 LOGD(("%s: BMP4_CENC_SENC", BSTD_FUNCTION));
-                cenc_parse_sample_encryption_box(cursor, frag_header);
+                rc = cenc_parse_sample_encryption_box(cursor, frag_header);
                 if (rc == 0)
                     frag_header->enc_info_parsed = true;
                 break;

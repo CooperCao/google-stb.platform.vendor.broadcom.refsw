@@ -324,20 +324,8 @@ int main(int argc, char **argv)
     }
 
     /* update_mac_addr(); */
-    /* uninstall driver */
+    /* uninstall driver must be uninstalled wl, then wlplat */
     memset((void*)buf,0,BUF_SIZE);
-    fd = popen("lsmod | grep -w wlan_plat","r");
-    if(fread(buf, 1, sizeof(buf), fd) > 0) {
-        memset((void*)command_buf, 0, COMMAND_BUF_SIZE);
-        snprintf(command_buf, COMMAND_BUF_SIZE, "rmmod %s", "wlan_plat.ko");
-        printf("*** Uninstall driver: %s ***\n", command_buf);
-        sleep(1);
-        system(command_buf);
-    }
-    else {
-        printf("*** Module wlan_plat is not loaded\n");
-    }
-
     fd = popen("lsmod | grep -w wl", "r");
     if(fread(buf, 1, sizeof(buf), fd) > 0) {
         memset((void*)command_buf, 0, COMMAND_BUF_SIZE);
@@ -350,8 +338,20 @@ int main(int argc, char **argv)
         printf("*** Module wl is not loaded\n");
     }
 
+    fd = popen("lsmod | grep -w wlplat","r");
+    if(fread(buf, 1, sizeof(buf), fd) > 0) {
+        memset((void*)command_buf, 0, COMMAND_BUF_SIZE);
+        snprintf(command_buf, COMMAND_BUF_SIZE, "rmmod %s", "wlplat.ko");
+        printf("*** Uninstall driver: %s ***\n", command_buf);
+        sleep(1);
+        system(command_buf);
+    }
+    else {
+        printf("*** Module wlplat is not loaded\n");
+    }
+
     memset((void*)command_buf, 0, COMMAND_BUF_SIZE);
-    snprintf(command_buf, COMMAND_BUF_SIZE,"insmod %s","wlan_plat.ko");
+    snprintf(command_buf, COMMAND_BUF_SIZE,"insmod %s","wlplat.ko");
     printf("*** Installing driver: %s ***\n",command_buf);
     sleep(1);
     system(command_buf);

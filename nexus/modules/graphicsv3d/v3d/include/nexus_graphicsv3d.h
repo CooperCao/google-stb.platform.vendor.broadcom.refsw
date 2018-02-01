@@ -202,6 +202,7 @@ typedef enum NEXUS_Graphicsv3dOperation
    NEXUS_Graphicsv3dOperation_eWaitInstr,      /* Args waitFlags                   */
    NEXUS_Graphicsv3dOperation_eSyncInstr,      /* Args none                        */
    NEXUS_Graphicsv3dOperation_eNotifyInstr,    /* Args notifyFlags                 */
+   NEXUS_Graphicsv3dOperation_eFenceInstr,     /* Args none         and fence      */
    NEXUS_Graphicsv3dOperation_eSecureInstr     /* Args is the job secure           */
 } NEXUS_Graphicsv3dOperation;
 
@@ -216,8 +217,8 @@ typedef struct NEXUS_Graphicsv3dInstruction
 {
    NEXUS_Graphicsv3dOperation eOperation;       /* The opcode for this instruction                   */
    uint32_t                   uiArg1;           /* First argument (if appropriate)                   */
-   uint32_t                   uiArg2;           /* Second argument (if appropriate)                  */
-   uint32_t                   uiCallbackParam;  /* Callback parameter (or 0 if no callback required) */
+   uint64_t                   uiArg2;           /* Second argument (if appropriate)                  */
+   uint64_t                   uiCallbackParam;  /* Callback parameter (or 0 if no callback required) */
 } NEXUS_Graphicsv3dInstruction;
 
 /**
@@ -429,7 +430,7 @@ Returns -1 if fences are not supported or a valid file descriptor if they are
 NEXUS_Error NEXUS_Graphicsv3d_FenceOpen(
    NEXUS_Graphicsv3dHandle          gfx,
    int *fd,                                        /* [out] file handle */
-   void **p,                                       /* [out] internal fence */
+   uint64_t *p,                                    /* [out] internal fence */
    char cType,                                     /* [in] marker to distinguish where the fence was made */
    int iPid                                        /* [in] creator process - as it might not be this one */
    );
@@ -441,7 +442,7 @@ Async wait on a fence.
 NEXUS_Error NEXUS_Graphicsv3d_FenceWaitAsync(
    NEXUS_Graphicsv3dHandle          gfx,
    int fd,                                         /* [in] file handle */
-   void **pV3dFence                                /* [out] internal async fence */
+   uint64_t *pV3dFence                             /* [out] internal async fence */
    );
 
 /**
@@ -456,6 +457,13 @@ void NEXUS_Graphicsv3d_GetTime(
    uint64_t *pMicroseconds                         /* [out] time in microseconds */
    );
 
+/**
+Summary:
+Set frequency scaling percentage for Graphics 3D
+**/
+NEXUS_Error NEXUS_Graphicsv3d_SetFrequencyScaling(
+        unsigned percent                            /* [in] percentage of max frequency */
+        );
 #ifdef __cplusplus
 }
 #endif

@@ -350,6 +350,14 @@ typedef struct BXPT_Dma_Context
 /* context identifier */
 #define CTX_ID(ctx) (ctx?ctx->firstMcpbDescOffset[0]:0)
 
+#ifdef BCHP_XPT_MEMDMA_MCPB_CH0_CPU_ID_GRAB_CHANNEL
+#define MEMDMA_MCPB_GRAB_CH(dma) BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_CPU_ID_GRAB_CHANNEL + dma->mcpbRegOffset, 1);
+#define MEMDMA_MCPB_RELEASE_CH(dma) BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_CPU_ID_CFG_DONE + dma->mcpbRegOffset, 1);
+#else
+#define MEMDMA_MCPB_GRAB_CH(dma)
+#define MEMDMA_MCPB_RELEASE_CH(dma)
+#endif
+
 typedef struct BXPT_Dma_Handle_Tag
 {
     BDBG_OBJECT(BXPT_Dma_Handle_Tag)
@@ -731,7 +739,7 @@ void BXPT_Dma_GetDefaultSettings(
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 }
 
-static BERR_Code BXPT_Dma_P_SetSettings_isr(BXPT_Dma_Handle dma, const BXPT_Dma_Settings *pSettings)
+static BERR_Code BXPT_Dma_P_SetSettings(BXPT_Dma_Handle dma, const BXPT_Dma_Settings *pSettings)
 {
     unsigned spPacketLength, spStreamType, spFeedSize;
     uint32_t reg;
@@ -821,12 +829,6 @@ BERR_Code BXPT_Dma_P_Init(BXPT_Handle hXpt)
             BCHP_FIELD_DATA(XPT_BUS_IF_SUB_MODULE_SOFT_INIT_CLEAR, MEMDMA_MCPB_SOFT_INIT_CLEAR, 1));
     }
 
-    /* init BO_COUNT */
-    for (i=BXPT_DMA_NUM_FRONT_SHARED_CH; i<BXPT_DMA_NUM_CHANNELS; i++) {
-        uint32_t step = BCHP_XPT_MEMDMA_MCPB_CH1_DMA_DESC_CONTROL - BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DESC_CONTROL;
-        BREG_Write32(hReg, BCHP_XPT_MEMDMA_MCPB_CH0_TMEU_BLOCKOUT_CTRL + step*i, BXPT_DMA_PWR_BO_COUNT);
-    }
-
     return 0;
 }
 
@@ -909,6 +911,14 @@ BERR_Code BXPT_Dma_P_OpenChannel(
 
     /* see BXPT_Dma_P_Init() for global init routine */
 
+    MEMDMA_MCPB_GRAB_CH(dma);
+
+    /* init BO_COUNT */
+    {
+        uint32_t step = BCHP_XPT_MEMDMA_MCPB_CH1_DMA_DESC_CONTROL - BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DESC_CONTROL;
+        BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_TMEU_BLOCKOUT_CTRL + step*dma->channelNum, BXPT_DMA_PWR_BO_COUNT);
+    }
+
     /* enforce RUN=0 for MCPB and WDMA */
     if (BXPT_Dma_P_GetMcpbRun_isrsafe(dma)) {
         BDBG_WRN(("BXPT_Dma_OpenChannel: %u: MCPB RUN_STATUS bit set. Forcing RUN=0...", channelNum));
@@ -921,10 +931,13 @@ BERR_Code BXPT_Dma_P_OpenChannel(
 
     /* setup SP_PARSER_CTRL */
 #ifdef BCHP_XPT_MEMDMA_MCPB_CH0_PARSER_BAND_ID_CTRL
-    reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_PARSER_BAND_ID_CTRL + 4 * dma->channelNum);
+{
+    uint32_t step = BCHP_XPT_MEMDMA_MCPB_CH1_PARSER_BAND_ID_CTRL - BCHP_XPT_MEMDMA_MCPB_CH0_PARSER_BAND_ID_CTRL;
+    reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_PARSER_BAND_ID_CTRL + step * dma->channelNum);
     BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_SEL, 1);
     BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_BAND_ID, dma->channelNum + BXPT_DMA_BAND_ID_OFFSET);
-    BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_PARSER_BAND_ID_CTRL + 4 * dma->channelNum, reg);
+    BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_PARSER_BAND_ID_CTRL + step * dma->channelNum, reg);
+}
 #endif
 
     reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_SP_PARSER_CTRL + dma->mcpbRegOffset);
@@ -955,7 +968,7 @@ BERR_Code BXPT_Dma_P_OpenChannel(
 #endif
 
     /* set channel settings */
-    rc = BXPT_Dma_SetSettings(dma, pSettings);
+    rc = BXPT_Dma_P_SetSettings(dma, pSettings);
     if (rc!=BERR_SUCCESS) {
         goto error;
     }
@@ -970,7 +983,15 @@ BERR_Code BXPT_Dma_P_OpenChannel(
     BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_RUN_VERSION_CONFIG + dma->wdmaRamOffset, 0);
     BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_OVERFLOW_REASONS + dma->wdmaRamOffset, 0);
 
-#if BXPT_DMA_WDMA_ENDIAN_SWAP_CBIT
+    /* should have been cleared via soft-reset */
+    reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL + dma->mcpbRegOffset);
+    if (BCHP_GET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL, ENDIAN_CONTROL)) {
+        BDBG_WRN(("%u: Invalid endian control setting in MCPB", dma->channelNum));
+        BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL, ENDIAN_CONTROL, 0);
+        BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL + dma->mcpbRegOffset, reg);
+    }
+    /* needs manual clearing */
+#ifdef BCHP_XPT_WDMA_CH0_DATA_CONTROL
     BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_DATA_CONTROL + dma->wdmaRamOffset, 0);
 #endif
 
@@ -1125,6 +1146,7 @@ postint:
 
 error:
     if (dma != NULL) {
+        MEMDMA_MCPB_RELEASE_CH(dma);
         if (dma->irqDescDone) {
             BINT_DestroyCallback(dma->irqDescDone);
         }
@@ -1213,11 +1235,12 @@ BERR_Code BXPT_Dma_SetSettings(
     if (BLST_SQ_FIRST(&hDma->activeCtxList)) {
         BDBG_ERR(("%u: Cannot change channel settings while contexts are active", hDma->channelNum));
         rc = BERR_NOT_SUPPORTED;
-    }
-    else {
-        rc = BXPT_Dma_P_SetSettings_isr(hDma, pSettings);
+        goto done;
     }
     BKNI_LeaveCriticalSection();
+    rc = BXPT_Dma_P_SetSettings(hDma, pSettings);
+
+done:
     return rc;
 }
 
@@ -2280,8 +2303,9 @@ void BXPT_Dma_CloseChannel(
 {
     BXPT_Dma_ContextHandle ctx;
     uint32_t reg;
-    bool isSageCh = (BXPT_DMA_RESERVE_SAGE_CH && hDma->channelNum==BXPT_DMA_SAGE_CH_NUM);
+    bool isSageCh;
     BDBG_OBJECT_ASSERT(hDma, BXPT_Dma_Handle_Tag);
+    isSageCh = (BXPT_DMA_RESERVE_SAGE_CH && hDma->channelNum==BXPT_DMA_SAGE_CH_NUM);
 
     /* wait for pending operations to finish */
     if (BLST_SQ_FIRST(&hDma->activeCtxList)) { /* Context_Destroy() never actually destroys any contexts that are part of activeCtxList */
@@ -2341,6 +2365,7 @@ postint:
     if (hDma->channelNum >= BXPT_DMA_NUM_FRONT_SHARED_CH) {
         BREG_Write32(hDma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_TMEU_BLOCKOUT_CTRL + hDma->mcpbRegOffset, BXPT_DMA_PWR_BO_COUNT);
     }
+    MEMDMA_MCPB_RELEASE_CH(hDma);
 
     if (!isSageCh) {
         hDma->xpt->dmaChannels[hDma->channelNum] = NULL;
@@ -2527,6 +2552,7 @@ BERR_Code BXPT_P_Dma_Standby(BXPT_Handle hXpt)
         if (rc != BERR_SUCCESS) { rc = BERR_TRACE(rc); }
     }
 
+    MEMDMA_MCPB_RELEASE_CH(dma);
     return rc;
 }
 
@@ -2551,6 +2577,7 @@ void BXPT_P_Dma_Resume(BXPT_Handle hXpt)
 
         dma = hXpt->dmaChannels[i];
         if (!dma) { continue; }
+        MEMDMA_MCPB_GRAB_CH(dma);
 
         (void) BXPT_Dma_SetSettings(dma, &dma->settings);
 

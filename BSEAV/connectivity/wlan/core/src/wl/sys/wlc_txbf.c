@@ -2711,6 +2711,10 @@ bool wlc_txbf_bfen(wlc_txbf_info_t *txbf, struct scb *scb,
 		ntx_steer = (uint8)WLC_BITSCNT(wlc->stf->txchain);
 		WL_TXBF(("%s is_imp:%d ntx_steer:%d\n", __FUNCTION__, is_imp, ntx_steer));
 	} else {
+
+		if (bfi->bfe_sts_cap == 0)
+			return FALSE;
+
 		/* Number of txbf steering chains is MIN(#active txchains, #bfe sts + 1) */
 		ntx_steer = MIN((uint8)WLC_BITSCNT(wlc->stf->txchain), (bfi->bfe_sts_cap + 1));
 		WL_TXBF(("%s is_imp:%d ntx_steer:%d #bits_txchain:%d bfe_sts_cap+1:%d\n",

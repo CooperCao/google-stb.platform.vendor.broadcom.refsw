@@ -42,7 +42,9 @@
 #include "bkni.h"           /* kernel interface */
 #include "bint.h"
 
+#include "bvce.h"
 #include "bvce_platform.h"
+#include "bvce_fw_api_common.h"
 
 #ifdef BCHP_PWR_SUPPORT
 #include "bchp_pwr.h"
@@ -362,7 +364,6 @@ BVCE_Platform_P_IsInstanceSupported(
 typedef struct BVCE_VideoFormatInfo
 {
    BAVC_ScanType eDefaultInputType;
-   BAVC_ScanType eDefaultInputTypeMemory;
    struct
    {
       unsigned uiWidth;
@@ -385,7 +386,7 @@ typedef struct BVCE_VideoFormatEntry
 static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
 {
    { 0,
-      { BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */\
+      { BAVC_ScanType_eProgressive,
          {
             { 0, 0, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e30 }, }, /* Bounds[eInterlaced] */
             { 0, 0, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e60 }, }, /* Bounds[eProgressive] */
@@ -394,7 +395,7 @@ static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
    },
    { BFMT_VideoFmt_e720p_25Hz,
       {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */
+         BAVC_ScanType_eProgressive,
          {
             { 720, 576, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e25, }, }, /* Bounds[eInterlaced] */
             { 1280, 720, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e50, }, }, /* Bounds[eProgressive] */
@@ -403,7 +404,7 @@ static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
    },
    { BFMT_VideoFmt_e720p_30Hz,
       {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */
+         BAVC_ScanType_eProgressive,
          {
             { 720, 576, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
             { 1280, 720, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
@@ -412,7 +413,7 @@ static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
    },
    { BFMT_VideoFmt_e720p,
       {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */
+         BAVC_ScanType_eProgressive,
          {
             { 720, 576, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
             { 1280, 720, { BAVC_FrameRateCode_e60, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e60, }, },  /* Bounds[eProgressive] */
@@ -421,7 +422,7 @@ static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
    },
    { BFMT_VideoFmt_e1080p_25Hz,
       {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */
+         BAVC_ScanType_eProgressive,
          {
             { 1920, 1088, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e50, }, }, /* Bounds[eInterlaced] */
             { 1920, 1088, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e50, }, }, /* Bounds[eProgressive] */
@@ -430,7 +431,7 @@ static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
    },
    { BFMT_VideoFmt_e1080p_30Hz,
       {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */
+         BAVC_ScanType_eProgressive,
          {
             { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
             { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
@@ -439,7 +440,7 @@ static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
    },
    { BFMT_VideoFmt_e1080p,
       {
-         BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */
+         BAVC_ScanType_eProgressive,
          {
             { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
             { 1920, 1088, { BAVC_FrameRateCode_e60, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
@@ -528,6 +529,7 @@ BVCE_Platform_P_OverrideChannelDefaultEncodeSettings(
 void
 BVCE_Platform_P_OverrideChannelDefaultMemoryBoundsSettings(
    const BBOX_Handle hBox,
+   const BVCE_Channel_MemorySettings *pstChMemorySettings,
    BVCE_Channel_MemoryBoundsSettings *pstChMemoryBoundsSettings
    )
 {
@@ -539,13 +541,33 @@ BVCE_Platform_P_OverrideChannelDefaultMemoryBoundsSettings(
       {
          if ( 0 != pstBoxConfig->stVce.uiBoxId )
          {
+            BVCE_MemoryConfig stMemoryConfig[2];
+            BVCE_Channel_MemoryBoundsSettings stMemoryBoundsSettings[2];
             const BVCE_VideoFormatInfo *pstVideoFormatInfo = BVCE_Platform_S_GetVideoFormatInfo( pstBoxConfig->stVce.stInstance[0].eVideoFormat );
             BDBG_ASSERT( pstVideoFormatInfo );
+
+            stMemoryBoundsSettings[BAVC_ScanType_eInterlaced] = *pstChMemoryBoundsSettings;
+            stMemoryBoundsSettings[BAVC_ScanType_eInterlaced].eInputType = BAVC_ScanType_eInterlaced;
+            stMemoryBoundsSettings[BAVC_ScanType_eInterlaced].stGOPStructure.uiNumberOfBFrames = BVCE_PLATFORM_P_MAX_B_PICTURES_INTERLACED;
+            stMemoryBoundsSettings[BAVC_ScanType_eInterlaced].stDimensions.stMax.uiWidth = pstVideoFormatInfo->stBounds[BAVC_ScanType_eInterlaced].uiWidth;
+            stMemoryBoundsSettings[BAVC_ScanType_eInterlaced].stDimensions.stMax.uiHeight = pstVideoFormatInfo->stBounds[BAVC_ScanType_eInterlaced].uiHeight;
+
+            stMemoryBoundsSettings[BAVC_ScanType_eProgressive] = *pstChMemoryBoundsSettings;
+            stMemoryBoundsSettings[BAVC_ScanType_eProgressive].eInputType = BAVC_ScanType_eProgressive;
+            stMemoryBoundsSettings[BAVC_ScanType_eProgressive].stGOPStructure.uiNumberOfBFrames = BVCE_PLATFORM_P_MAX_B_PICTURES_PROGRESSIVE;
+            stMemoryBoundsSettings[BAVC_ScanType_eProgressive].stDimensions.stMax.uiWidth = pstVideoFormatInfo->stBounds[BAVC_ScanType_eProgressive].uiWidth;
+            stMemoryBoundsSettings[BAVC_ScanType_eProgressive].stDimensions.stMax.uiHeight = pstVideoFormatInfo->stBounds[BAVC_ScanType_eProgressive].uiHeight;
+
+            BVCE_Channel_GetMemoryConfig( hBox, pstChMemorySettings, &stMemoryBoundsSettings[BAVC_ScanType_eInterlaced], &stMemoryConfig[BAVC_ScanType_eInterlaced] );
+            BVCE_Channel_GetMemoryConfig( hBox, pstChMemorySettings, &stMemoryBoundsSettings[BAVC_ScanType_eProgressive], &stMemoryConfig[BAVC_ScanType_eProgressive] );
+
+            if ( stMemoryConfig[BAVC_ScanType_eInterlaced].uiPictureMemSize > stMemoryConfig[BAVC_ScanType_eProgressive].uiPictureMemSize )
             {
-               BAVC_ScanType eInputType = pstVideoFormatInfo->eDefaultInputTypeMemory;
-               pstChMemoryBoundsSettings->eInputType = eInputType;
-               pstChMemoryBoundsSettings->stDimensions.stMax.uiWidth = pstVideoFormatInfo->stBounds[eInputType].uiWidth;
-               pstChMemoryBoundsSettings->stDimensions.stMax.uiHeight = pstVideoFormatInfo->stBounds[eInputType].uiHeight;
+               *pstChMemoryBoundsSettings = stMemoryBoundsSettings[BAVC_ScanType_eInterlaced];
+            }
+            else
+            {
+               *pstChMemoryBoundsSettings = stMemoryBoundsSettings[BAVC_ScanType_eProgressive];
             }
          }
       }

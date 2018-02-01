@@ -27,9 +27,7 @@ public:
       m_numRenderTargets = 0;
       m_v3dRtFormat.type = V3D_RT_TYPE_INVALID;
       m_v3dRtFormat.bpp  = V3D_RT_BPP_INVALID;
-#if V3D_VER_AT_LEAST(4,1,34,0)
       m_v3dRtFormat.clamp = V3D_RT_CLAMP_INVALID;
-#endif
       m_loadOffset       = VkOffset2D {0, 0};
       m_storeOffset      = VkOffset2D {0, 0};
       m_drawList         = nullptr;

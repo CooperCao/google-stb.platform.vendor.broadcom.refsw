@@ -284,6 +284,7 @@ public:
    void InitializeDisplay();
    void InitializeDisplayNoContext();
    void TerminateDisplay();
+   void *GetNativeDisplay();
 
 private:
    /////////////////////
@@ -338,6 +339,11 @@ public:
       {
          EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
          context.Initialize(display, options, nativePixmap);
+      }
+
+      virtual void *GetNativeDisplay() const
+      {
+         return EGL_DEFAULT_DISPLAY;
       }
    };
 

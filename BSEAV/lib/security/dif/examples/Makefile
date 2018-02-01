@@ -36,6 +36,7 @@
 #  ANY LIMITED REMEDY.
 ############################################################
 NEXUS_PLATFORM ?= $(PLATFORM)
+NXCLIENT_SUPPORT ?= y
 ifndef NEXUS_PLATFORM
 $(error NEXUS_PLATFORM is not defined)
 endif
@@ -124,6 +125,11 @@ INCLUDES += -I$(NEXUS_TOP)/modules/graphics2d/include
 TARGET_SINGLE_SRCS := ./$(target)/$(target)_single.cpp
 else
 TARGET_SRCS := ./$(target)/$(target)_single.cpp
+endif
+
+DIF_SCATTER_GATHER ?= n
+ifeq ($(DIF_SCATTER_GATHER),y)
+CFLAGS += -DDIF_SCATTER_GATHER
 endif
 
 DIF_MULTI_THREAD ?= y

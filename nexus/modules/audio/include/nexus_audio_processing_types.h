@@ -295,6 +295,9 @@ typedef struct NEXUS_DolbyDigitalReencodeSettings
                                                                    Only applied at open time. */
     bool                                    fixedEncoderFormat; /* When true, content will be upmixed or downmixed to the
                                                                         multichannelFormat specified. This control only applies when MS12 is enabled. */
+    bool                                    fixedAtmosOutput;   /* When true, DDP encoded output will always indicate Atmos present, regardless of presence
+                                                                        of metadata in the stream.  If false, a drop out will occur when switching between Atmos
+                                                                        present and non-present data. This control only applies when MS12 is enabled. */
 
     NEXUS_AudioDecoderDolbyDrcMode          drcMode;    /* DRC Mode for multichannel connector.  This will be the DRC mode applied for multichannel outputs */
     NEXUS_AudioDecoderDolbyDrcMode          drcModeDownmix; /* DRC Mode for stereo connector.   This will be the DRC mode applied for stereo outputs */
@@ -392,6 +395,39 @@ typedef struct NEXUS_AmbisonicSettings
     unsigned pitch;             /* 0 - 359 degrees (x axis) */
     unsigned roll;              /* 0 - 359 degrees (y axis) */
 } NEXUS_AmbisonicSettings;
+
+/***************************************************************************
+Summary:
+Advanced Audio Tsm processing mode
+***************************************************************************/
+typedef enum NEXUS_AudioAdvancedTsmMode
+{
+    NEXUS_AudioAdvancedTsmMode_eOff,
+    NEXUS_AudioAdvancedTsmMode_eDsola, /* stretches or shrinks audio, using pitch correction */
+    NEXUS_AudioAdvancedTsmMode_ePpm,   /* repeat or drop audio samples, smoothing with neighboring samples */
+    NEXUS_AudioAdvancedTsmMode_eMax
+} NEXUS_AudioAdvancedTsmMode;
+
+/***************************************************************************
+Summary:
+Advanced Audio Tsm Settings
+***************************************************************************/
+typedef struct NEXUS_AudioAdvancedTsmSettings
+{
+    NEXUS_AudioAdvancedTsmMode mode;
+} NEXUS_AudioAdvancedTsmSettings;
+
+/***************************************************************************
+Summary:
+Advanced Audio Tsm Status
+***************************************************************************/
+typedef struct NEXUS_AudioAdvancedTsmStatus
+{
+    NEXUS_AudioAdvancedTsmMode mode;    /* current mode of Advanced TSM processor */
+    uint32_t pts;                       /* current PTS in 45kHz units */
+    NEXUS_PtsType ptsType;              /* PTS Type */
+    int correction;                     /* Correction to this PTS in milliseconds */
+} NEXUS_AudioAdvancedTsmStatus;
 
 #ifdef __cplusplus
 }

@@ -104,9 +104,9 @@ int main(int argc, const char **argv)
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_PlaypumpHandle playpump = NULL;
     NEXUS_PlaybackHandle playback = NULL;
-    NEXUS_FilePlayHandle file;
+    NEXUS_FilePlayHandle file=NULL;
 #endif
-    NEXUS_ParserBand parserBand;
+    NEXUS_ParserBand parserBand=(NEXUS_ParserBand)(unsigned long)NULL;
     NEXUS_ParserBandSettings parserBandSettings;
     int curarg = 1;
     const char *filename = NULL;
@@ -203,6 +203,7 @@ int main(int argc, const char **argv)
 #if NEXUS_HAS_PLAYBACK
     if (playpump) {
         NEXUS_Playback_Stop(playback);
+        BDBG_ASSERT(file);
         NEXUS_FilePlay_Close(file);
         NEXUS_Playback_Destroy(playback);
         NEXUS_Playpump_Close(playpump);
@@ -210,6 +211,7 @@ int main(int argc, const char **argv)
     else
 #endif
     {
+        BDBG_ASSERT(parserBand);
         NEXUS_ParserBand_Close(parserBand);
     }
     NxClient_Uninit();

@@ -1,52 +1,44 @@
 /***************************************************************************
- *     Copyright (c) 2006-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2006-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * Perfomance counter module
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
-  PR 26928: Adding 7400 support
- * 
- * 8   1/15/07 10:50a vsilyaev
- * PR 25997: Added 7038 performance counters
- * 
- * 7   12/22/06 12:03p vsilyaev
- * PR 26792: Added rac_access, rac_prefetch and rac_hits configurations
- * for the peformance counter
- * 
- * 6   12/14/06 4:38p vsilyaev
- * PR 25997: Added counter configuration to capture issue rate
- * 
- * 5   12/13/06 7:46p vsilyaev
- * PR 25997: Removed debug output
- * 
- * 4   12/8/06 7:24p vsilyaev
- * PR 25997: Fixed warning
- * 
- * 3   12/7/06 2:44p vsilyaev
- * PR 25997: Added fixes for 3.4 GCC compiler
- * 
- * 2   12/5/06 11:08a vsilyaev
- * PR 25997: Improved perf counter interface
- * 
- * 1   12/1/06 5:58p vsilyaev
- * PR 25997: CPU perfomance counter interface
- * 
- * 
  *******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -934,16 +926,23 @@ const  bperf_counter_mode bperf_counter_instructions = {
 	}
 };
 #elif B_PERF_LINUX
-#if !defined(B_REFSW_OS_BKERNEL)
+#if !(defined(B_REFSW_OS_BKERNEL) || defined(__KERNEL__))
 #include <sys/time.h>
+#elif defined(__KERNEL__)
+#include <linux/timer.h>
 #endif
 #define DONT_PROFILE __attribute__((no_instrument_function))
 unsigned  DONT_PROFILE
 b_perf_read_time(void)
 {
     unsigned time;
-	struct timeval tv;
+    struct timeval tv;
+#if defined(__KERNEL__)
+	do_gettimeofday(&tv);
+#else
 	gettimeofday(&tv, NULL);
+#endif
+
 	time = tv.tv_usec+((unsigned)tv.tv_sec)*1000000;
     return time;
 }

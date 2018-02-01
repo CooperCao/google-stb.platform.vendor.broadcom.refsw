@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,6 +67,7 @@ NEXUS_Error NEXUS_OtpDataSection_Read( unsigned index, NEXUS_DataSectionRead * p
     if( !pData )                                                { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
 
     NEXUS_Security_GetHsm_priv( &hHsm );
+    if( !hHsm ) { return BERR_TRACE( NEXUS_NOT_INITIALIZED ); }
 
     BKNI_Memset( &dataSectRead, 0, sizeof(dataSectRead) );
     dataSectRead.index = index;
@@ -97,6 +98,7 @@ NEXUS_Error NEXUS_OtpDataSection_Write( unsigned index, const NEXUS_DataSectionW
     if( !pData ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
 
     NEXUS_Security_GetHsm_priv( &hHsm );
+    if( !hHsm ) { return BERR_TRACE( NEXUS_NOT_INITIALIZED ); }
 
     BDBG_CASSERT( sizeof(dataSectProg.data) == sizeof(pData->data) );
 

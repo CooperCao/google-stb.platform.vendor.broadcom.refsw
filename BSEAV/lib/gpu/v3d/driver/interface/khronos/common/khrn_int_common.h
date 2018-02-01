@@ -29,19 +29,6 @@ extern "C" {
 #include "interface/vcos/vcos_assert.h"
 #include <string.h> /* size_t */
 
-#ifdef _MSC_VER
-#define INLINE __inline
-typedef unsigned long long uint64_t;
-#else
-#ifdef __GNUC__
-/* Just using inline doesn't work for gcc (at least on MIPS), so use the gcc attribute.
-   This gives a pretty decent performance boost */
-#define INLINE inline __attribute__((always_inline)) /*__attribute__((no_instrument_function))*/
-#else
-#define INLINE inline
-#endif
-#endif
-
 #include <stdbool.h>
 
 #ifdef NDEBUG

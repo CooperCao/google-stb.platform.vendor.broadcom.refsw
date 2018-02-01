@@ -2550,6 +2550,7 @@ void DRM_Prdy_GetDefaultDecryptSettings(
     if( pSettings != NULL)
     {
         BKNI_Memset(pSettings, 0, sizeof(DRM_Prdy_DecryptSettings_t));
+#if (NEXUS_SECURITY_API_VERSION==1)
         pSettings->opType = NEXUS_SecurityOperation_eDecrypt;
         pSettings->algType = NEXUS_SecurityAlgorithm_eAes128;
         pSettings->algVariant = NEXUS_SecurityAlgorithmVariant_eCounter;
@@ -2559,6 +2560,18 @@ void DRM_Prdy_GetDefaultDecryptSettings(
         pSettings->aesCounterSize = NEXUS_SecurityAesCounterSize_e64Bits;
         pSettings->keySlotType = NEXUS_SecurityKeyType_eOdd;
         pSettings->aesCounterMode = NEXUS_SecurityCounterMode_ePartialBlockInNextPacket;
+#else
+        pSettings->opType = NEXUS_CryptographicOperation_eDecrypt;
+        pSettings->algType = NEXUS_CryptographicAlgorithm_eAes128;
+        pSettings->algVariant = NEXUS_CryptographicAlgorithmMode_eCounter;
+        pSettings->termMode = NEXUS_KeySlotTerminationMode_eClear;
+        pSettings->enableExtKey = true;
+        pSettings->enableExtIv = true;
+        pSettings->aesCounterSize = 64;
+        pSettings->keySlotEntryType = NEXUS_KeySlotBlockEntry_eCpdClear;
+        pSettings->aesCounterMode = NEXUS_CounterMode_e0;
+
+#endif
     }
 }
 
@@ -2568,7 +2581,11 @@ static DRM_Prdy_Error_e Drm_Prdy_AllocateDecryptContextKeySlot (
 {
     NEXUS_Error                    rc = NEXUS_SUCCESS;
     DRM_RESULT                     dr = DRM_SUCCESS;
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityKeySlotSettings  keySlotSettings;
+#else
+    NEXUS_KeySlotAllocateSettings keySlotSettings;
+#endif
     NEXUS_MemoryAllocationSettings allocSettings;
     NEXUS_ClientConfiguration      platformConfig;
 
@@ -2596,9 +2613,18 @@ static DRM_Prdy_Error_e Drm_Prdy_AllocateDecryptContextKeySlot (
     BKNI_Memset((*pDecryptContextKey), 0, sizeof(DRM_Prdy_DecryptContextKey_t));
 
     /* Allocate key slot */
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_Security_GetDefaultKeySlotSettings(&keySlotSettings);
     keySlotSettings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
     (*pDecryptContextKey)->keySlot = NEXUS_Security_AllocateKeySlot(&keySlotSettings);
+#else
+    NEXUS_KeySlot_GetDefaultAllocateSettings(&keySlotSettings);
+    keySlotSettings.useWithDma = true;
+    keySlotSettings.owner      = NEXUS_SecurityCpuContext_eHost;
+    keySlotSettings.slotType   = NEXUS_KeySlotType_eIvPerBlock;
+    (*pDecryptContextKey)->keySlot =  NEXUS_KeySlot_Allocate(&keySlotSettings);
+#endif
+
     if((*pDecryptContextKey)->keySlot == NULL)
     {
         BDBG_ERR(("%s: Failed to allocate Key Slot, exiting...\n", BSTD_FUNCTION));
@@ -2621,7 +2647,12 @@ static void Drm_Prdy_FreeDecryptContextKeySlot (
         if(pDecryptContextKey->refCount > 0) pDecryptContextKey->refCount--;
 
         if(pDecryptContextKey->refCount == 0){
+#if (NEXUS_SECURITY_API_VERSION==1)
             NEXUS_Security_FreeKeySlot(pDecryptContextKey->keySlot);
+#else
+            NEXUS_KeySlot_Free(pDecryptContextKey->keySlot);
+#endif
+
             NEXUS_Memory_Free(pDecryptContextKey);
         }
     }
@@ -2979,7 +3010,7 @@ ErrorExit:
  ***********************************************************************************/
 DRM_Prdy_Error_e DRM_Prdy_Reader_Bind_Netflix_WCK(
         DRM_Prdy_Handle_t          pPrdyContext,
-        uint8_t					   *pSessionID,
+        uint8_t                    *pSessionID,
         DRM_Prdy_DecryptContext_t  *pDecryptContext)
 {
     DRM_RESULT              dr = DRM_SUCCESS;

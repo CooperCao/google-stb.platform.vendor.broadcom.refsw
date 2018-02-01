@@ -554,17 +554,19 @@ static BIP_Status openAllpassPidChannel(
 
                 break;
             }
-#if 0
-            /* TODO: need to add all pass support for other inputs */
+
         case BIP_StreamerInputType_eTuner:
             {
-                hPidChannel = NEXUS_PidChannel_Open( hStreamer->tuner.hParserBand, hTrackEntry->streamerTrackInfo.trackId, &hTrackEntry->trackSettings.pidChannelSettings );
-                BIP_CHECK_GOTO(( hPidChannel ), ( "hStreamer %p, state %s: NEXUS_PidChannel_Open() Failed",
-                            hStreamer, BIP_STREAMER_STATE(hStreamer->state) ), error, BIP_ERR_NOT_AVAILABLE, bipStatus );
+                NEXUS_PidChannelSettings pidChannelSettings;
+                NEXUS_PidChannel_GetDefaultSettings( &pidChannelSettings );
+                NEXUS_ParserBand_GetAllPassPidChannelIndex( hStreamer->tuner.hParserBand, &pidChannelSettings.pidChannelIndex );
+                pidChannelSettings.continuityCountEnabled = false;/*continuityCountEnabled must be false to stop the hw from checking for continuity count errors. Since you?re in all-pass mode, you?ll get lots of CC errors. This will cause problems in RAVE downstream.*/
+                pidChannelSettings.generateContinuityCount = false;/*generateContinuityCount should be false, otherwise the hw will restamp the CC values for each packet, regardless of PID. If you try to playback the recorded stream and filter on only 1 PID, you?ll get CC errors. This bit is intended for transcoding.*/
+
+                hPidChannel = NEXUS_PidChannel_Open( hStreamer->tuner.hParserBand, 0, &pidChannelSettings );
 
                 break;
             }
-#endif
         case BIP_StreamerInputType_eFile:
             {
                 NEXUS_PlaybackPidChannelSettings playbackPidSettings;
@@ -790,11 +792,7 @@ static BIP_Status openNexusPlayback(
         playbackSettings.endOfStreamAction = hStreamer->file.inputSettings.enableContinousPlay ? NEXUS_PlaybackLoopMode_eLoop : NEXUS_PlaybackLoopMode_ePause;
         playbackSettings.playpump = hStreamer->hPlaypump;
         playbackSettings.playpumpSettings.transportType = hStreamer->streamerStreamInfo.transportType;
-        if (!hStreamer->offloadStreamerToAsp)
-        {
-            /* TODO: restricting b/w for non-ASP case. Restricting it here for ASP case has some issue w/ client's starving for data. */
-            playbackSettings.playpumpSettings.maxDataRate = hStreamer->file.inputSettings.maxDataRate;
-        }
+        playbackSettings.playpumpSettings.maxDataRate = hStreamer->output.settings.maxDataRate;
         if ( hStreamer->file.inputSettings.enableAllPass )
         {
             playbackSettings.playpumpSettings.allPass = true;
@@ -1628,7 +1626,14 @@ static BIP_Status prepareStreamerForTunerInput(
     if ( bipStatus == BIP_SUCCESS )
     {
         /* Now open the PidChannels. */
-        bipStatus = openPidChannels( hStreamer );
+        if(hStreamer->tuner.inputSettings.enableAllPass)
+        {
+           bipStatus = openAllpassPidChannel( hStreamer );
+        }
+        else
+        {
+           bipStatus = openPidChannels( hStreamer );
+        }
     }
     if ( bipStatus == BIP_SUCCESS )
     {

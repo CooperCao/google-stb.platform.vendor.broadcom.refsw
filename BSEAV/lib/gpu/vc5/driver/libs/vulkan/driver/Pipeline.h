@@ -14,6 +14,7 @@
 #include "Compiler.h"
 #include "PipelineLayout.h"
 #include "Device.h"
+#include "Viewport.h"
 
 #include "libs/compute/compute.h"
 
@@ -79,9 +80,6 @@ protected:
 protected:
    DevMemHeap             *m_devMemHeap;
    VkPipelineBindPoint     m_bindPoint;
-   VkPipelineCreateFlags   m_flags;
-   VkPipeline              m_basePipelineHandle;
-   int32_t                 m_basePipelineIndex;
    VkPipelineLayout        m_layout;
 
    // The linker results
@@ -118,9 +116,7 @@ public:
                                            V3D_CL_BLEND_ENABLES_SIZE +
                                            V3D_CL_BLEND_CFG_SIZE * V3D_MAX_RENDER_TARGETS +
                                            V3D_CL_COLOR_WMASKS_SIZE  +
-#if V3D_VER_AT_LEAST(4,1,34,0)
                                            V3D_CL_SAMPLE_STATE_SIZE  +
-#endif
                                            V3D_CL_BLEND_CCOLOR_SIZE  +
                                            V3D_CL_LINE_WIDTH_SIZE    +
                                            V3D_CL_DEPTH_OFFSET_SIZE  +
@@ -137,8 +133,8 @@ public:
 
    bool IsDynamic(VkDynamicState test) const { return m_dynamicStateBits.IsSet(test); }
 
-   const VkViewport &GetViewport()     const { return m_viewport; }
-   const VkRect2D   &GetScissorRect()  const { return m_scissorRect; }
+   const Viewport  &GetViewport()    const { return m_viewport; }
+   const VkRect2D  &GetScissorRect() const { return m_scissorRect; }
 
    const VkPipelineDepthStencilStateCreateInfo  &GetDepthStencilState() const { return m_depthStencilState; }
 
@@ -157,19 +153,11 @@ public:
       return m_vpsUniforms[s*MODE_COUNT + m];
    }
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
    void GetSetupCL(const uint8_t **cl, size_t *size) const
    {
       *cl = m_setupCL.data();
       *size = m_setupCLSize;
    }
-#else
-   void GetSetupCL(bool cullAll, const uint8_t **cl, size_t *size) const
-   {
-      *cl = cullAll ? m_setupCLCull.data() : m_setupCL.data();
-      *size = m_setupCLSize;
-   }
-#endif
 
    const VkVertexInputBindingDescription &GetVertexBindingDesc(uint32_t binding) const
    {
@@ -208,7 +196,7 @@ private:
    ///////////////////////////////
    // State from pipeline creation
    ///////////////////////////////
-   VkViewport                             m_viewport = {};
+   Viewport                               m_viewport = {};
    VkRect2D                               m_scissorRect = {};
    VkPipelineDepthStencilStateCreateInfo  m_depthStencilState = {};
    DynamicStateBits                       m_dynamicStateBits;
@@ -225,21 +213,15 @@ private:
    ////////////////
 
    std::array<uint8_t, MAX_SETUP_CL_SIZE> m_setupCL;
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   std::array<uint8_t, MAX_SETUP_CL_SIZE> m_setupCLCull;
-#endif
    uint8_t                                m_setupCLSize;
 
    // So that we know whether to issue dynamic depth bias commands
    bool                                   m_depthBiasEnable;
    uint32_t                               m_depthBits;
 
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   // Sample mask to be applied in shaders
-   uint8_t                                m_sampleMask;
-#endif
-
+#if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
    DevMemRange                            m_attribDefaultsMem;
+#endif
    DevMemRange                            m_dummyAttribMem;
 
    // System memory (incomplete) shader record - needs patching on use

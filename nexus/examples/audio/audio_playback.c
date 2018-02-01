@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -147,6 +147,8 @@ static void data_callback(void *pParam1, int param2)
 {
     dataCallbackParameters *dataCBParams;
 
+    BSTD_UNUSED(param2);
+
     dataCBParams = (dataCallbackParameters *)pParam1;
     /*
     printf("Data callback - channel 0x%08x\n", (unsigned)dataCBParams->playback);
@@ -158,7 +160,7 @@ static void data_callback(void *pParam1, int param2)
 int main(int argc, char **argv)
 {
     NEXUS_PlatformSettings platformSettings;
-    BERR_Code errCode;
+    BERR_Code errCode = BERR_SUCCESS;
     BKNI_EventHandle event;
     NEXUS_PlatformConfiguration config;
     NEXUS_AudioOutputSettings outputSettings;
@@ -455,7 +457,7 @@ int main(int argc, char **argv)
                         uint8_t significand[8];
                         short channels, bitrate;
                         int i,e;
-                        uint64_t s;
+                        uint64_t s = 0;
 
                         fread(&skip,4,1,pFile);
                         skipLocation = ftell(pFile);

@@ -420,7 +420,7 @@ BERR_Code BODS_GetSoftDecision(
 BERR_Code BODS_InstallCallback(
     BODS_ChannelHandle hChn,            /* [in] Device channel handle */
     BODS_Callback callbackType,         /* [in] Type of callback */
-    BODS_CallbackFunc pCallback,        /* [in] Function Ptr to callback */
+    BODS_CallbackFunc pCallback_isr,   /* [in] Function Ptr to callback */
     void *pParam                        /* [in] Generic parameter send on callback */
     )
 {
@@ -432,7 +432,7 @@ BERR_Code BODS_InstallCallback(
     
     if( hChn->hOds->settings.funcPtr.InstallCallback != NULL )
     {
-        retCode = hChn->hOds->settings.funcPtr.InstallCallback( hChn, callbackType, pCallback, pParam );
+        retCode = hChn->hOds->settings.funcPtr.InstallCallback( hChn, callbackType, pCallback_isr, pParam );
     }
     else
     {

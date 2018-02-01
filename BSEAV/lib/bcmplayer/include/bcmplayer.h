@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -164,6 +164,9 @@ typedef struct {
                                 the currentIndex to be kept up-to-date. The normalPlayBufferSize
                                 determines how big the blocks will be. Generally HD content
                                 needs larger sized blocks than SD content. */
+    unsigned normalPlayAlignment; /* The layer above will align all I/O reads to this amount (like 4096).
+                                So, we get better performance in normal play if normalPlayBufferSize is used
+                                with this alignment in mind. */
     int cacheSize;          /* Size of NAV Table cache. */
     BNAV_Player_DebugMode debugMode;
                             /* Runtime control for debug information. This feature is subject to change.

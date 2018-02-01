@@ -234,7 +234,7 @@ Summary:
  ***************************************************************************/
 NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(
     unsigned irqNum,
-    NEXUS_Core_InterruptFunction pIsrFunc,
+    NEXUS_Core_InterruptFunction pIsrFunc_isr,
     void *pFuncParam,
     int iFuncParam
     );
@@ -431,8 +431,9 @@ bool nexus_p_has_secure_decoder_on_memc(const NEXUS_Core_PreInitState *preInitSt
 
 enum nexus_memconfig_picbuftype
 {
-    nexus_memconfig_picbuftype_unsecure,
-    nexus_memconfig_picbuftype_secure,
+    nexus_memconfig_picbuftype_glr,
+    nexus_memconfig_picbuftype_urr,
+    nexus_memconfig_picbuftype_urrt,
     nexus_memconfig_picbuftype_max
 };
 
@@ -534,6 +535,12 @@ bool NEXUS_Platform_P_LazyUnmap(void);
 
 NEXUS_Error nexus_platform_p_add_proc(NEXUS_ModuleHandle module, const char *filename, const char *module_name, void (*dbgPrint)(void));
 void nexus_platform_p_remove_proc(NEXUS_ModuleHandle module, const char *filename);
+
+/***************************************************************************
+Summary:
+Check the environment to see if we should enable SAGE logging
+ ***************************************************************************/
+bool NEXUS_Platform_P_EnableSageLog(void);
 
 #endif /* #ifndef NEXUS_PLATFORM_PRIV_H__ */
 

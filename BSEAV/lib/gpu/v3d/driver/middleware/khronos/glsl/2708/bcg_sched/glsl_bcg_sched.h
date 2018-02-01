@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
-#ifndef __GLSL_BCG_SCHED_4_H__
-#define __GLSL_BCG_SCHED_4_H__
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "interface/khronos/common/khrn_client_vector.h"
 #include "middleware/khronos/glsl/glsl_common.h"
@@ -24,7 +15,7 @@ typedef enum
 } Scheduler_Strategy;
 
 bool bcg_schedule(Dataflow *root, uint32_t type, bool *allow_thread, Scheduler_Strategy strategy, MEM_HANDLE_T *mh_code,
-                  MEM_HANDLE_T *mh_uniform_map, uint32_t *vary_map, uint32_t *vary_count, void **resetHelper);
+                  void **puniform_map, uint32_t *vary_map, uint32_t *vary_count, void **resetHelper);
 void bcg_schedule_cleanup(void **resetHelper);
 
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_registers.h"
@@ -51,18 +42,18 @@ void GIVector_Constr(GIVector *self, uint32_t capacity);
 void GIVector_push_back(GIVector *self, const QPUGenericInstr *node);
 
 // Inline functions
-static INLINE void GIVector_Destr(GIVector *self)
+static inline void GIVector_Destr(GIVector *self)
 {
    VectorBase_Destr(&self->m_vector);
 }
 
-static INLINE void GIVector_clear(GIVector *self)
+static inline void GIVector_clear(GIVector *self)
 {
    self->m_end = 0;
    VectorBase_Clear(&self->m_vector);
 }
 
-static INLINE QPUGenericInstr *GIVector_lindex(GIVector *self, uint32_t i)
+static inline QPUGenericInstr *GIVector_lindex(GIVector *self, uint32_t i)
 {
    GIVector_iterator resultList;
 
@@ -74,7 +65,7 @@ static INLINE QPUGenericInstr *GIVector_lindex(GIVector *self, uint32_t i)
    return &resultList[i];
 }
 
-static INLINE const QPUGenericInstr *GIVector_const_lindex(const GIVector *self, uint32_t i)
+static inline const QPUGenericInstr *GIVector_const_lindex(const GIVector *self, uint32_t i)
 {
    GIVector_const_iterator resultList;
 
@@ -86,7 +77,7 @@ static INLINE const QPUGenericInstr *GIVector_const_lindex(const GIVector *self,
    return &resultList[i];
 }
 
-static INLINE QPUGenericInstr *GIVector_index(GIVector *self, uint32_t i)
+static inline QPUGenericInstr *GIVector_index(GIVector *self, uint32_t i)
 {
    GIVector_iterator resultList;
 
@@ -98,7 +89,7 @@ static INLINE QPUGenericInstr *GIVector_index(GIVector *self, uint32_t i)
    return &resultList[i];
 }
 
-static INLINE const QPUGenericInstr *GIVector_const_index(const GIVector *self, uint32_t i)
+static inline const QPUGenericInstr *GIVector_const_index(const GIVector *self, uint32_t i)
 {
    GIVector_const_iterator resultList;
 
@@ -110,57 +101,57 @@ static INLINE const QPUGenericInstr *GIVector_const_index(const GIVector *self, 
    return &resultList[i];
 }
 
-static INLINE uint32_t GIVector_size(const GIVector *self)
+static inline uint32_t GIVector_size(const GIVector *self)
 {
    return self->m_end;
 }
 
 // Iterator
-static INLINE GIVector_iterator GIVector_begin(GIVector *self)
+static inline GIVector_iterator GIVector_begin(GIVector *self)
 {
    GIVector_iterator   data  = (GIVector_iterator)self->m_vector.data;
 
    return &data[0];
 }
 
-static INLINE GIVector_const_iterator GIVector_const_begin(const GIVector *self)
+static inline GIVector_const_iterator GIVector_const_begin(const GIVector *self)
 {
    GIVector_const_iterator   data  = (GIVector_const_iterator)self->m_vector.data;
 
    return &data[0];
 }
 
-static INLINE GIVector_iterator GIVector_end(GIVector *self)
+static inline GIVector_iterator GIVector_end(GIVector *self)
 {
    GIVector_iterator   data  = (GIVector_iterator)self->m_vector.data;
 
    return &data[self->m_end];
 }
 
-static INLINE GIVector_const_iterator GIVector_const_end(const GIVector *self)
+static inline GIVector_const_iterator GIVector_const_end(const GIVector *self)
 {
    GIVector_const_iterator   data  = (GIVector_const_iterator)self->m_vector.data;
 
    return &data[self->m_end];
 }
 
-static INLINE void GIVector_next(GIVector_iterator *iter)
+static inline void GIVector_next(GIVector_iterator *iter)
 {
    (*iter)++;
 }
 
-static INLINE void GIVector_const_next(GIVector_const_iterator *iter)
+static inline void GIVector_const_next(GIVector_const_iterator *iter)
 {
    (*iter)++;
 }
 
 // Iterator methods
-static INLINE QPUGenericInstr *GIVector_star(GIVector_iterator self)
+static inline QPUGenericInstr *GIVector_star(GIVector_iterator self)
 {
    return self;
 }
 
-static INLINE const QPUGenericInstr *GIVector_const_star(GIVector_const_iterator self)
+static inline const QPUGenericInstr *GIVector_const_star(GIVector_const_iterator self)
 {
    return self;
 }
@@ -175,7 +166,7 @@ typedef struct Uniform_s
    uint32_t m_value;
 } Uniform;
 
-static INLINE void Uniform_Constr(Uniform *self, uint32_t uniformType, uint32_t value)
+static inline void Uniform_Constr(Uniform *self, uint32_t uniformType, uint32_t value)
 {
    self->m_type  = uniformType;
    self->m_value = value;
@@ -199,18 +190,18 @@ void UniformVector_Constr(UniformVector *self, uint32_t capacity);
 void UniformVector_push_back(UniformVector *self, const Uniform *node);
 
 // Inline functions
-static INLINE void UniformVector_Destr(UniformVector *self)
+static inline void UniformVector_Destr(UniformVector *self)
 {
    VectorBase_Destr(&self->m_vector);
 }
 
-static INLINE void UniformVector_clear(UniformVector *self)
+static inline void UniformVector_clear(UniformVector *self)
 {
    self->m_end = 0;
    VectorBase_Clear(&self->m_vector);
 }
 
-static INLINE Uniform *UniformVector_lindex(UniformVector *self, uint32_t i)
+static inline Uniform *UniformVector_lindex(UniformVector *self, uint32_t i)
 {
    UniformVector_iterator resultList;
 
@@ -222,7 +213,7 @@ static INLINE Uniform *UniformVector_lindex(UniformVector *self, uint32_t i)
    return &resultList[i];
 }
 
-static INLINE const Uniform *UniformVector_const_lindex(const UniformVector *self, uint32_t i)
+static inline const Uniform *UniformVector_const_lindex(const UniformVector *self, uint32_t i)
 {
    UniformVector_const_iterator resultList;
 
@@ -234,7 +225,7 @@ static INLINE const Uniform *UniformVector_const_lindex(const UniformVector *sel
    return &resultList[i];
 }
 
-static INLINE Uniform *UniformVector_index(UniformVector *self, uint32_t i)
+static inline Uniform *UniformVector_index(UniformVector *self, uint32_t i)
 {
    UniformVector_iterator resultList;
 
@@ -246,7 +237,7 @@ static INLINE Uniform *UniformVector_index(UniformVector *self, uint32_t i)
    return &resultList[i];
 }
 
-static INLINE const Uniform *UniformVector_const_index(const UniformVector *self, uint32_t i)
+static inline const Uniform *UniformVector_const_index(const UniformVector *self, uint32_t i)
 {
    UniformVector_const_iterator resultList;
 
@@ -258,57 +249,57 @@ static INLINE const Uniform *UniformVector_const_index(const UniformVector *self
    return &resultList[i];
 }
 
-static INLINE uint32_t UniformVector_size(const UniformVector *self)
+static inline uint32_t UniformVector_size(const UniformVector *self)
 {
    return self->m_end;
 }
 
 // Iterator
-static INLINE UniformVector_iterator UniformVector_begin(UniformVector *self)
+static inline UniformVector_iterator UniformVector_begin(UniformVector *self)
 {
    UniformVector_iterator   data  = (UniformVector_iterator)self->m_vector.data;
 
    return &data[0];
 }
 
-static INLINE UniformVector_const_iterator UniformVector_const_begin(const UniformVector *self)
+static inline UniformVector_const_iterator UniformVector_const_begin(const UniformVector *self)
 {
    UniformVector_const_iterator   data  = (UniformVector_const_iterator)self->m_vector.data;
 
    return &data[0];
 }
 
-static INLINE UniformVector_iterator UniformVector_end(UniformVector *self)
+static inline UniformVector_iterator UniformVector_end(UniformVector *self)
 {
    UniformVector_iterator   data  = (UniformVector_iterator)self->m_vector.data;
 
    return &data[self->m_end];
 }
 
-static INLINE UniformVector_const_iterator UniformVector_const_end(const UniformVector *self)
+static inline UniformVector_const_iterator UniformVector_const_end(const UniformVector *self)
 {
    UniformVector_const_iterator   data  = (UniformVector_const_iterator)self->m_vector.data;
 
    return &data[self->m_end];
 }
 
-static INLINE void UniformVector_next(UniformVector_iterator *iter)
+static inline void UniformVector_next(UniformVector_iterator *iter)
 {
    (*iter)++;
 }
 
-static INLINE void UniformVector_const_next(UniformVector_const_iterator *iter)
+static inline void UniformVector_const_next(UniformVector_const_iterator *iter)
 {
    (*iter)++;
 }
 
 // Iterator methods
-static INLINE Uniform *UniformVector_star(UniformVector_iterator self)
+static inline Uniform *UniformVector_star(UniformVector_iterator self)
 {
    return self;
 }
 
-static INLINE const Uniform *UniformVector_const_star(UniformVector_const_iterator self)
+static inline const Uniform *UniformVector_const_star(UniformVector_const_iterator self)
 {
    return self;
 }
@@ -331,18 +322,18 @@ void VaryingVector_Constr(VaryingVector *self, uint32_t capacity);
 void VaryingVector_push_back(VaryingVector *self, const int32_t *node);
 
 // Inline functions
-static INLINE void VaryingVector_Destr(VaryingVector *self)
+static inline void VaryingVector_Destr(VaryingVector *self)
 {
    VectorBase_Destr(&self->m_vector);
 }
 
-static INLINE void VaryingVector_clear(VaryingVector *self)
+static inline void VaryingVector_clear(VaryingVector *self)
 {
    self->m_end = 0;
    VectorBase_Clear(&self->m_vector);
 }
 
-static INLINE int32_t *VaryingVector_lindex(VaryingVector *self, uint32_t i)
+static inline int32_t *VaryingVector_lindex(VaryingVector *self, uint32_t i)
 {
    VaryingVector_iterator resultList;
 
@@ -354,7 +345,7 @@ static INLINE int32_t *VaryingVector_lindex(VaryingVector *self, uint32_t i)
    return &resultList[i];
 }
 
-static INLINE const int32_t *VaryingVector_const_lindex(const VaryingVector *self, uint32_t i)
+static inline const int32_t *VaryingVector_const_lindex(const VaryingVector *self, uint32_t i)
 {
    VaryingVector_const_iterator resultList;
 
@@ -366,7 +357,7 @@ static INLINE const int32_t *VaryingVector_const_lindex(const VaryingVector *sel
    return &resultList[i];
 }
 
-static INLINE int32_t VaryingVector_index(VaryingVector *self, uint32_t i)
+static inline int32_t VaryingVector_index(VaryingVector *self, uint32_t i)
 {
    VaryingVector_iterator resultList;
 
@@ -378,7 +369,7 @@ static INLINE int32_t VaryingVector_index(VaryingVector *self, uint32_t i)
    return resultList[i];
 }
 
-static INLINE int32_t VaryingVector_const_index(const VaryingVector *self, uint32_t i)
+static inline int32_t VaryingVector_const_index(const VaryingVector *self, uint32_t i)
 {
    VaryingVector_const_iterator resultList;
 
@@ -390,57 +381,57 @@ static INLINE int32_t VaryingVector_const_index(const VaryingVector *self, uint3
    return resultList[i];
 }
 
-static INLINE uint32_t VaryingVector_size(const VaryingVector *self)
+static inline uint32_t VaryingVector_size(const VaryingVector *self)
 {
    return self->m_end;
 }
 
 // Iterator
-static INLINE VaryingVector_iterator VaryingVector_begin(VaryingVector *self)
+static inline VaryingVector_iterator VaryingVector_begin(VaryingVector *self)
 {
    VaryingVector_iterator   data  = (VaryingVector_iterator)self->m_vector.data;
 
    return &data[0];
 }
 
-static INLINE VaryingVector_const_iterator VaryingVector_const_begin(const VaryingVector *self)
+static inline VaryingVector_const_iterator VaryingVector_const_begin(const VaryingVector *self)
 {
    VaryingVector_const_iterator   data  = (VaryingVector_const_iterator)self->m_vector.data;
 
    return &data[0];
 }
 
-static INLINE VaryingVector_iterator VaryingVector_end(VaryingVector *self)
+static inline VaryingVector_iterator VaryingVector_end(VaryingVector *self)
 {
    VaryingVector_iterator   data  = (VaryingVector_iterator)self->m_vector.data;
 
    return &data[self->m_end];
 }
 
-static INLINE VaryingVector_const_iterator VaryingVector_const_end(const VaryingVector *self)
+static inline VaryingVector_const_iterator VaryingVector_const_end(const VaryingVector *self)
 {
    VaryingVector_const_iterator   data  = (VaryingVector_const_iterator)self->m_vector.data;
 
    return &data[self->m_end];
 }
 
-static INLINE void VaryingVector_next(VaryingVector_iterator *iter)
+static inline void VaryingVector_next(VaryingVector_iterator *iter)
 {
    (*iter)++;
 }
 
-static INLINE void VaryingVector_const_next(VaryingVector_const_iterator *iter)
+static inline void VaryingVector_const_next(VaryingVector_const_iterator *iter)
 {
    (*iter)++;
 }
 
 // Iterator methods
-static INLINE int32_t *VaryingVector_star(VaryingVector_iterator self)
+static inline int32_t *VaryingVector_star(VaryingVector_iterator self)
 {
    return self;
 }
 
-static INLINE const int32_t *VaryingVector_const_star(VaryingVector_const_iterator self)
+static inline const int32_t *VaryingVector_const_star(VaryingVector_const_iterator self)
 {
    return self;
 }
@@ -496,93 +487,91 @@ void Scheduler_InsertThreadSwitch(Scheduler *self);
 bool Scheduler_CanInsertThreadSwitch(const Scheduler *self);
 bool Scheduler_AllThreadSwitchesDone(const Scheduler *self);
 
-static INLINE uint32_t Scheduler_CodeByteSize(const Scheduler *self)
+static inline uint32_t Scheduler_CodeByteSize(const Scheduler *self)
 {
    return GIVector_size(&self->m_schedule) * sizeof(uint64_t);
 }
 
-static INLINE uint32_t Scheduler_UniformsByteSize(const Scheduler *self)
+static inline uint32_t Scheduler_UniformsByteSize(const Scheduler *self)
 {
    return UniformVector_size(&self->m_uniforms) * sizeof(Uniform);
 }
 
-static INLINE uint32_t Scheduler_VaryingsByteSize(const Scheduler *self)
+static inline uint32_t Scheduler_VaryingsByteSize(const Scheduler *self)
 {
    return VaryingVector_size(&self->m_varyings) * sizeof(int32_t);
 }
 
-static INLINE QPUResources *Scheduler_Resources(Scheduler *self)
+static inline QPUResources *Scheduler_Resources(Scheduler *self)
 {
    return &self->m_resources;
 }
 
-static INLINE UniformVector *Scheduler_Uniforms(Scheduler *self)
+static inline UniformVector *Scheduler_Uniforms(Scheduler *self)
 {
    return &self->m_uniforms;
 }
 
-static INLINE VaryingVector *Scheduler_Varyings(Scheduler *self)
+static inline VaryingVector *Scheduler_Varyings(Scheduler *self)
 {
    return &self->m_varyings;
 }
 
-static INLINE void Scheduler_SetNextTextureUniform(Scheduler *self, uint32_t unit, uint32_t value)
+static inline void Scheduler_SetNextTextureUniform(Scheduler *self, uint32_t unit, uint32_t value)
 {
    self->m_nextTextureUniform[unit] = value;
 }
 
-static INLINE uint32_t Scheduler_GetNextTextureUniform(Scheduler *self, uint32_t unit)
+static inline uint32_t Scheduler_GetNextTextureUniform(Scheduler *self, uint32_t unit)
 {
    return self->m_nextTextureUniform[unit];
 }
 
-static INLINE bool Scheduler_IsFragmentShader(const Scheduler *self)
+static inline bool Scheduler_IsFragmentShader(const Scheduler *self)
 {
    return self->m_isFragmentShader;
 }
 
-static INLINE bool Scheduler_AllowThreadswitch(const Scheduler *self)
+static inline bool Scheduler_AllowThreadswitch(const Scheduler *self)
 {
    return self->m_allowThread;
 }
 
 // Register the current instruction to be scheduled with the scheduler (used for e.g. writing tXs registers when spilling)
-static INLINE void Scheduler_SetActiveNode(Scheduler *self, DFlowNode *node)
+static inline void Scheduler_SetActiveNode(Scheduler *self, DFlowNode *node)
 {
    self->m_activeNode = node;
 }
 
-static INLINE DFlowNode *Scheduler_CurrentFlagsCondition(const Scheduler *self)
+static inline DFlowNode *Scheduler_CurrentFlagsCondition(const Scheduler *self)
 {
    return self->m_currentFlagsCondition;
 }
 
-static INLINE void Scheduler_SetCurrentFlagsCondition(Scheduler *self, DFlowNode *val)
+static inline void Scheduler_SetCurrentFlagsCondition(Scheduler *self, DFlowNode *val)
 {
    self->m_currentFlagsCondition = val;
 }
 
-static INLINE void Scheduler_SetNeedsACC5Mov(Scheduler *self, DFlowNode *node, bool tf)
+static inline void Scheduler_SetNeedsACC5Mov(Scheduler *self, DFlowNode *node, bool tf)
 {
    self->m_needsACC5Move = tf;
    self->m_ACC5MoveNode  = node;
 }
 
-static INLINE void Scheduler_SetNeedsACC5MovDef(Scheduler *self, DFlowNode *node)
+static inline void Scheduler_SetNeedsACC5MovDef(Scheduler *self, DFlowNode *node)
 {
    self->m_needsACC5Move = true;
    self->m_ACC5MoveNode  = node;
 }
 
-static INLINE bool Scheduler_NeedsACC5Mov(const Scheduler *self, DFlowNode **node)
+static inline bool Scheduler_NeedsACC5Mov(const Scheduler *self, DFlowNode **node)
 {
    *node = self->m_ACC5MoveNode;
    return self->m_needsACC5Move;
 }
 
-static INLINE bool Scheduler_LastGasp(const Scheduler *self)
+static inline bool Scheduler_LastGasp(const Scheduler *self)
 {
    return self->m_strategy == Scheduler_LAST_GASP;
 }
-
-#endif /* __GLSL_BCG_SCHED_4_H__ */

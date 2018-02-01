@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,6 +57,10 @@
 
 #include "fp_sdk_config.h"
 
+#if DOXYGEN && TARGET_BUFFER_VERSION == 2
+#  include "libsychip/tbuf_v2_framing.h"
+#endif
+
 
 
 #ifdef __cplusplus
@@ -65,9 +69,10 @@ extern "C" {
 
 
 /**
- * IDs of the services that can be transported in a Target Buffer data stream.
- * One of these values gets embedded in the \ref TB_header#prologue field of a #TB_header.
- */
+ * IDs of the services that can be transported in a Target Buffer data stream. */
+#if TARGET_BUFFER_VERSION == 2
+/** One of these values gets embedded in the \ref TB_header#prologue field of a #TB_header. */
+#endif
 typedef enum
 {
     TB_SERVICE_RAW              = 0,

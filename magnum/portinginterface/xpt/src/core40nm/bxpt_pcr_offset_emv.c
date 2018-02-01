@@ -102,12 +102,6 @@ static uint32_t GetStcRegAddr_isrsafe(
     unsigned WhichStc
     );
 
-static void SetSplicePidChannel(
-    BXPT_PcrOffset_Handle hPcrOff,
-    unsigned ChannelNum,
-    unsigned Pid
-    );
-
 static uint32_t MapPcrToTimebase(
     unsigned WhichPcr
     )
@@ -134,21 +128,6 @@ static unsigned MapTimebaseToPcr(
 #else
     return Timebase;
 #endif
-}
-
-BERR_Code BXPT_PcrOffset_GetTotalChannels(
-    BXPT_Handle hXpt,               /* [in] The transport handle */
-    unsigned int *TotalChannels     /* [out] The number of Pcr offset channels. */
-    )
-{
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BSTD_UNUSED( hXpt );
-
-    /* PCR Offset channels are mapped one-to-one to the RAVE channels. */
-    *TotalChannels = BXPT_NUM_PCR_OFFSET_CHANNELS;
-
-    return( ExitCode );
 }
 
 BERR_Code BXPT_PcrOffset_GetChannelDefSettings(
@@ -231,6 +210,7 @@ BERR_Code BXPT_PcrOffset_Open(
     lhPcrOff->PidChannelNum = 0;
     lhPcrOff->WhichStc = Defaults->WhichStc;
     lhPcrOff->UseHostPcrs = false;
+    lhPcrOff->EnableJitterAdjustment = false;
 
     BREG_Write32(lhPcrOff->hReg, lhPcrOff->BaseAddr + PCROFF_FIXED_OFFSET_OFFSET, 0);
 
@@ -418,27 +398,9 @@ BERR_Code BXPT_PcrOffset_GetSettings(
         Settings->ConsecutiveErrorThreshold = 1;
     if( BCHP_GET_FIELD_DATA( Reg, XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL, TWO_ERR_ACQ ) )
         Settings->ConsecutiveErrorThreshold = 2;
+    Settings->EnableJitterAdjustment = hChannel->EnableJitterAdjustment;
 
     return( ExitCode );
-}
-
-BERR_Code BXPT_PcrOffset_ReleasePidChannel(
-    BXPT_PcrOffset_Handle hChannel,
-    unsigned int PidChannel
-    )
-{
-    BDBG_ASSERT( hChannel );
-
-    if( PidChannel >= BXPT_NUM_PID_CHANNELS )
-    {
-        /* Bad PID channel number. Complain. */
-        BDBG_ERR(( "PidChannel %lu is out of range!", ( unsigned long ) PidChannel ));
-        return BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
-
-    BXPT_P_SetPidChannelDestination( (BXPT_Handle) hChannel->lvXpt, PidChannel, BXPT_PidChannelDestination_eRaveRPipe, false );
-    hChannel->PidChannelNum = BXPT_NUM_PID_CHANNELS;
-    return BERR_SUCCESS;
 }
 
 BERR_Code BXPT_PcrOffset_SetSettings(
@@ -547,10 +509,9 @@ BERR_Code BXPT_PcrOffset_SetSettings(
     else
     {
         Reg |= ( BCHP_FIELD_DATA( XPT_PCROFFSET_CONTEXT0_PP_PCR_PID_CH_NUM, PCR_PID_CH_NUM, Settings->PidChannelNum ) );
-
-        /* Enable PCR Offset in the PID channel config table */
-        BXPT_PcrOffset_EnableOffset( hChannel, Settings->PidChannelNum, false, true );
+        /* caller is responsible to enable PCR pid channel */
     }
+    hChannel->EnableJitterAdjustment = Settings->EnableJitterAdjustment;
 
     BREG_Write32( hChannel->hReg, hChannel->BaseAddr + PCROFF_PID_CHAN_OFFSET, Reg );
 
@@ -889,45 +850,6 @@ BERR_Code BXPT_PcrOffset_FreeRun(
     return( ExitCode );
 }
 
-BERR_Code BXPT_PcrOffset_PushPidChannel(
-    BXPT_PcrOffset_Handle hChannel,     /* [in] The channel handle */
-    unsigned int PidChannel             /* [in] Channel carrying the PID to splice. */
-    )
-{
-    uint32_t WrPtr, Reg;
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hChannel );
-
-    if( BXPT_PcrOffset_GetQueueDepth( hChannel ) == MAX_PCR_SPLICING_ENTRIES )
-    {
-        BDBG_ERR(( "Splicing stack full!" ));
-        ExitCode = BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
-        goto Done;
-    }
-
-    Reg = BREG_Read32( hChannel->hReg, hChannel->BaseAddr + PCROFF_SPLICE_WRPTR_OFFSET );
-    WrPtr = BCHP_GET_FIELD_DATA( Reg, XPT_PCROFFSET_CONTEXT0_SPLICE_WR_PTR, NEXT_PID_CH_WR_PTR );
-
-    SetSplicePidChannel( hChannel, WrPtr, PidChannel );
-
-    WrPtr = ( WrPtr + 1 ) % BXPT_P_SPLICING_QUEUE_SIZE;
-    BREG_Write32( hChannel->hReg, hChannel->BaseAddr + PCROFF_SPLICE_WRPTR_OFFSET, WrPtr );
-
-    /* Set the enable, just in case. Should happen automatically when RD != WR */
-    Reg = BREG_Read32( hChannel->hReg, hChannel->BaseAddr + PCROFF_CTRL_OFFSET );
-    Reg &= ~(
-        BCHP_MASK( XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL, SPLICE_ENABLE )
-    );
-    Reg |= (
-        BCHP_FIELD_DATA( XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL, SPLICE_ENABLE, 1 )
-    );
-    BREG_Write32( hChannel->hReg, hChannel->BaseAddr + PCROFF_CTRL_OFFSET, Reg );
-
-    Done:
-    return( ExitCode );
-}
-
 BERR_Code BXPT_PcrOffset_ClearQueue(
     BXPT_PcrOffset_Handle hChannel      /* [in] The channel handle */
     )
@@ -962,18 +884,6 @@ BERR_Code BXPT_PcrOffset_ClearQueue(
     BREG_Write32( hChannel->hReg, hChannel->BaseAddr + PCROFF_SPLICE_CHAN67_OFFSET, 0 );
 
     return( ExitCode );
-}
-
-unsigned BXPT_PcrOffset_GetCountdown(
-    BXPT_PcrOffset_Handle hChannel      /* [in] The channel handle */
-    )
-{
-    uint32_t Reg;
-
-    BDBG_ASSERT( hChannel );
-
-    Reg = BREG_Read32( hChannel->hReg, hChannel->BaseAddr + PCROFF_SPLICE_STATUS_OFFSET );
-    return BCHP_GET_FIELD_DATA( Reg, XPT_PCROFFSET_CONTEXT0_SPLICE_STATUS, COUNT );
 }
 
 unsigned BXPT_PcrOffset_GetQueueDepth(
@@ -1024,13 +934,12 @@ void BXPT_PcrOffset_RegenOffset_isr(
 
 BERR_Code BXPT_PcrOffset_EnableOffset(
     BXPT_PcrOffset_Handle hPcrOff,
-    uint32_t PidChannelNum,
-    bool FixedOffsetEn,
-    bool JitterAdjustEn
+    uint32_t PidChannelNum
     )
 {
     uint32_t Reg, RegAddr;
     bool bAlreadyEnabled;
+    bool FixedOffsetEn = false;
 
     BERR_Code ExitCode = BERR_SUCCESS;
 
@@ -1061,7 +970,7 @@ BERR_Code BXPT_PcrOffset_EnableOffset(
         BCHP_MASK( XPT_PCROFFSET_PID_CONFIG_TABLE_i, OFFSET_INDEX )
     );
     Reg |= (
-        BCHP_FIELD_DATA( XPT_PCROFFSET_PID_CONFIG_TABLE_i, JITTER_DIS, JitterAdjustEn == true ? 0 : 1 ) |
+        BCHP_FIELD_DATA( XPT_PCROFFSET_PID_CONFIG_TABLE_i, JITTER_DIS, hPcrOff->EnableJitterAdjustment == true ? 0 : 1 ) |
         BCHP_FIELD_DATA( XPT_PCROFFSET_PID_CONFIG_TABLE_i, FIXED_OFFSET_EN, FixedOffsetEn == true ? 1 : 0 ) |
         BCHP_FIELD_DATA( XPT_PCROFFSET_PID_CONFIG_TABLE_i, PCROFFSET_EN, 1 ) |
         BCHP_FIELD_DATA( XPT_PCROFFSET_PID_CONFIG_TABLE_i, OFFSET_INDEX, hPcrOff->ChannelNo )
@@ -1106,28 +1015,27 @@ void BXPT_PcrOffset_DisableOffset(
     BREG_Write32( hPcrOff->hReg, RegAddr, Reg );
 }
 
-void SetSplicePidChannel(
+void BXPT_PcrOffset_ApplyPidChannelSettings(
     BXPT_PcrOffset_Handle hPcrOff,
-    unsigned ChannelNum,
-    unsigned Pid
+    uint32_t PidChannelNum
     )
 {
-    uint32_t Reg, RegAddr, Shift;
+    uint32_t Reg, RegAddr;
 
-    /*
-    ** Each splice register holds entries for 2 channels, so divide the
-    ** channel number by 2 to figure out which reg holds the channel we're after.
-    ** Then, mult by 4 since each channel is 4 bytes wide. Add in the physical
-    ** address of the first register, and we're done.
-    */
-    RegAddr = hPcrOff->BaseAddr + 4 * ( ChannelNum / 2 );
-    RegAddr += PCROFF_SPLICE_CHAN01_OFFSET;
+    if( PidChannelNum >= BXPT_NUM_PID_CHANNELS )
+    {
+        BERR_TRACE( BERR_INVALID_PARAMETER );
+        return;
+    }
+
+    RegAddr = BCHP_XPT_PCROFFSET_PID_CONFIG_TABLE_i_ARRAY_BASE + PidChannelNum * PID_CHNL_STEPSIZE;
     Reg = BREG_Read32( hPcrOff->hReg, RegAddr );
-
-    /* Of the two channels in the reg, the lower numbered channel is in lower half of the word */
-    Shift = ChannelNum % 2 ? 0 : 16;
-    Reg &= ( 0xFF << Shift );
-    Reg |= ( Pid << Shift );
+    Reg &= ~(
+        BCHP_MASK( XPT_PCROFFSET_PID_CONFIG_TABLE_i, JITTER_DIS )
+    );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_PCROFFSET_PID_CONFIG_TABLE_i, JITTER_DIS, hPcrOff->EnableJitterAdjustment == true ? 0 : 1 )
+    );
     BREG_Write32( hPcrOff->hReg, RegAddr, Reg );
 }
 
@@ -1149,25 +1057,6 @@ bool BXPT_PcrOffset_IsOffsetValid(
     Status = BXPT_PcrOffset_IsOffsetValid_isr( hPcrOff );
     BKNI_LeaveCriticalSection();
     return Status;
-}
-
-bool BXPT_PcrOffset_IsOffsetEnabled_isr(
-      BXPT_PcrOffset_Handle hChannel,
-      unsigned int PidChannel
-    )
-{
-   uint32_t RegAddr;
-
-   BDBG_ASSERT( hChannel );
-
-   if( PidChannel >= BXPT_NUM_PID_CHANNELS )
-   {
-       BDBG_ERR(( "PidChannelNum %u out of range!", PidChannel ));
-       return false;
-   }
-
-   RegAddr = BCHP_XPT_PCROFFSET_PID_CONFIG_TABLE_i_ARRAY_BASE + PidChannel * PID_CHNL_STEPSIZE;
-   return BCHP_GET_FIELD_DATA( BREG_Read32( hChannel->hReg, RegAddr ), XPT_PCROFFSET_PID_CONFIG_TABLE_i, PCROFFSET_EN ) == 1 ? true : false;
 }
 
 bool BXPT_PcrOffset_IsOffsetValid_isr(
@@ -1203,165 +1092,6 @@ void  BXPT_PcrOffset_ForceInvalid_isr( BXPT_PcrOffset_Handle hPcrOff)
     BREG_Write32( hPcrOff->hReg, hPcrOff->BaseAddr + PCROFF_OFFSET_INVALID, Reg );
 
     return;
-}
-
-void BXPT_PcrOffset_CaptureStcOnce(
-    BXPT_PcrOffset_Handle hPcrOff,      /* [in] Handle for the PCR Offset channel to use */
-    bool Enable                         /* [in] true to capture once, false to disable a pending capture */
-    )
-{
-    BKNI_EnterCriticalSection();
-    BXPT_PcrOffset_CaptureStcOnce_isr( hPcrOff, Enable );
-    BKNI_LeaveCriticalSection();
-    return;
-}
-
-void BXPT_PcrOffset_CaptureStcOnce_isr(
-    BXPT_PcrOffset_Handle hPcrOff,      /* [in] Handle for the PCR Offset channel to use */
-    bool Enable                         /* [in] true to capture once, false to disable a pending capture */
-    )
-{
-    uint32_t RegAddr, Reg;
-
-    RegAddr = GetStcRegAddr_isrsafe( BCHP_XPT_PCROFFSET_STC0_CAPTURE_PCR_ONCE, hPcrOff->WhichStc );
-    Reg = BREG_Read32( hPcrOff->hReg, RegAddr );
-    Reg &= ~(
-        BCHP_MASK( XPT_PCROFFSET_STC0_CAPTURE_PCR_ONCE, ENABLE )
-    );
-    Reg |= (
-        BCHP_FIELD_DATA( XPT_PCROFFSET_STC0_CAPTURE_PCR_ONCE, ENABLE, Enable == true ? 1 : 0 )
-    );
-    BREG_Write32( hPcrOff->hReg, RegAddr, Reg );
-}
-
-bool BXPT_P_PcrOffset_IsPidChannelInUse(
-    BXPT_Handle hXpt,               /* [in] The transport handle */
-    uint32_t PidChannelNum              /* [in] Which PID channel to disable offsets for */
-    )
-{
-    unsigned ChannelNum;
-
-    for( ChannelNum = 0; ChannelNum < BXPT_NUM_PCR_OFFSET_CHANNELS; ChannelNum++ )
-    {
-        uint32_t PidChannelReg = BREG_Read32( hXpt->hRegister, BCHP_XPT_PCROFFSET_CONTEXT0_PP_PCR_PID_CH_NUM + ( ChannelNum * PCROFF_CONTEXT_STEP ) );
-        uint32_t ControlReg = BREG_Read32( hXpt->hRegister, BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL + ( ChannelNum * PCROFF_CONTEXT_STEP ) );
-
-        /* The PID channel is mapped AND the offset context is enabled. */
-        if( BCHP_GET_FIELD_DATA( PidChannelReg, XPT_PCROFFSET_CONTEXT0_PP_PCR_PID_CH_NUM, PCR_PID_CH_NUM ) == PidChannelNum
-        && BCHP_GET_FIELD_DATA( ControlReg, XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL, CTXT_ENABLE ) )
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-BERR_Code BXPT_PcrOffset_GetIntId(
-    BXPT_PcrOffset_Handle hChannel,
-    BXPT_PcrOffsetIntName Name,
-    BINT_Id *IntId
-    )
-{
-    uint32_t RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT0_STATUS;
-    uint32_t IntShift = 0;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hChannel );
-
-    switch( hChannel->ChannelNo )
-    {
-        case 0:
-        RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT0_STATUS;
-        IntShift = 0;
-        break;
-
-        case 1:
-        RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT0_STATUS;
-        IntShift = 8;
-        break;
-
-        case 2:
-        RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT0_STATUS;
-        IntShift = 16;
-        break;
-
-        case 3:
-        RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT0_STATUS;
-        IntShift = 24;
-        break;
-
-        case 4:
-        RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT1_STATUS;
-        IntShift = 0;
-        break;
-
-        case 5:
-        RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT1_STATUS;
-        IntShift = 8;
-        break;
-
-        case 6:
-        RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT1_STATUS;
-        IntShift = 16;
-        break;
-
-        case 7:
-        RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT1_STATUS;
-        IntShift = 24;
-        break;
-
-        case 8:
-        RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT2_STATUS;
-        IntShift = 0;
-        break;
-
-        case 9:
-        RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT2_STATUS;
-        IntShift = 8;
-        break;
-
-        case 10:
-        RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT2_STATUS;
-        IntShift = 16;
-        break;
-
-        case 11:
-        RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT2_STATUS;
-        IntShift = 24;
-        break;
-
-        case 12:
-        RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT3_STATUS;
-        IntShift = 0;
-        break;
-
-        case 13:
-        RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT3_STATUS;
-        IntShift = 8;
-        break;
-
-        case 14:
-        RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT3_STATUS;
-        IntShift = 16;
-        break;
-
-        case 15:
-        RegAddr = BCHP_XPT_PCROFFSET_INTERRUPT3_STATUS;
-        IntShift = 24;
-        break;
-
-        default:
-        BDBG_ERR(( "Unsupported offset channel" ));
-        ExitCode = BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
-        goto Done;
-    }
-
-    *IntId = BCHP_INT_ID_CREATE( RegAddr, Name + IntShift );
-
-    Done:
-    return( ExitCode );
 }
 
 void BXPT_P_PcrOffset_ModuleInit(

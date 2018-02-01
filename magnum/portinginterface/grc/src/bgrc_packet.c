@@ -196,16 +196,10 @@ static const BGRC_Settings BGRC_P_DEFAULT_SETTINGS =
 };
 
 /***************************************************************************/
-BERR_Code BGRC_GetDefaultSettings(
+void BGRC_GetDefaultSettings(
     BGRC_Settings *pDefSettings )
 {
-    BDBG_ENTER(BGRC_GetDefaultSettings);
-
-    if( pDefSettings )
-        *pDefSettings = BGRC_P_DEFAULT_SETTINGS;
-
-    BDBG_LEAVE(BGRC_GetDefaultSettings);
-    return BERR_SUCCESS;
+    *pDefSettings = BGRC_P_DEFAULT_SETTINGS;
 }
 /***************************************************************************/
 void BGRC_P_SetMemoryInfo(
@@ -341,6 +335,7 @@ void BGRC_P_ResetDevice(
         BREG_Write32( hGrc->hRegister, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL + ulRegOffset, BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL_INTER_BLT_CLK_GATE_ENABLE_MASK );
 
 #if BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT
+        BREG_Write32(hGrc->hRegister, hGrc->ulPacketCountClrReg, hGrc->ulPacketCountClr);
         BREG_Write32(hGrc->hRegister, hGrc->ulWeightReg, BCHP_FIELD_DATA(M2MC_CXT_SCH_WEIGHT_CONTEXT0, WEIGHT, hGrc->ulWeight));
 #endif
 
@@ -481,6 +476,9 @@ BERR_Code BGRC_Open(
             hGrc->ulRegOffset = 0;
 #if BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT
             hGrc->ulWeightReg = BCHP_M2MC_CXT_SCH_WEIGHT_CONTEXT0;
+            hGrc->ulPacketCountClrReg = BCHP_M2MC_CXT_SCH_COUNT_CLR;
+            hGrc->ulPacketCountClr = BCHP_M2MC_CXT_SCH_COUNT_CLR_PACKET_COUNT_CONTEXT0_CLR_MASK |
+                BCHP_M2MC_CXT_SCH_COUNT_CLR_SCB_REQ_COUNT_CONTEXT0_CLR_MASK ;
 #endif
 #if BCHP_SUN_TOP_CTRL_SW_INIT_0_SET_gfx_sw_init_MASK
             hGrc->ulRegCoreReset = BCHP_SUN_TOP_CTRL_SW_INIT_0_SET;
@@ -514,6 +512,9 @@ BERR_Code BGRC_Open(
 #endif
 #if BGRC_P_MULTI_CONTEXT_SCHEDULER_SUPPORT
             hGrc->ulWeightReg = BCHP_M2MC_CXT_SCH_WEIGHT_CONTEXT1;
+            hGrc->ulPacketCountClrReg = BCHP_M2MC_CXT_SCH_COUNT_CLR;
+            hGrc->ulPacketCountClr = BCHP_M2MC_CXT_SCH_COUNT_CLR_PACKET_COUNT_CONTEXT1_CLR_MASK |
+                BCHP_M2MC_CXT_SCH_COUNT_CLR_SCB_REQ_COUNT_CONTEXT1_CLR_MASK ;
 #endif
 
 #if BCHP_PWR_SUPPORT
@@ -533,9 +534,12 @@ BERR_Code BGRC_Open(
 #if BCHP_MM_M2MC0_REG_START
             hGrc->ulRegOffset = BCHP_MM_M2MC0_REG_START - BCHP_M2MC_REG_START;
             hGrc->ulWeightReg = BCHP_MM_M2MC_CXT_SCH_WEIGHT_CONTEXT0;
+            hGrc->ulPacketCountClrReg = BCHP_MM_M2MC_CXT_SCH_COUNT_CLR;
             hGrc->ulRegCoreReset = BCHP_SUN_TOP_CTRL_SW_INIT_1_SET;
             hGrc->ulRegClearCore = BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR;
             hGrc->ulCoreResetMask = BCHP_SUN_TOP_CTRL_SW_INIT_1_SET_mm_m2mc_sw_init_MASK;
+            hGrc->ulPacketCountClr = BCHP_MM_M2MC_CXT_SCH_COUNT_CLR_PACKET_COUNT_CONTEXT0_CLR_MASK |
+                BCHP_MM_M2MC_CXT_SCH_COUNT_CLR_SCB_REQ_COUNT_CONTEXT0_CLR_MASK ;
 #if BCHP_PWR_SUPPORT
             hGrc->ulM2mcPwrId = BCHP_PWR_RESOURCE_MM_M2MC0;
             hGrc->ulSramPwrId = BCHP_PWR_RESOURCE_MMM2MC0_SRAM;
@@ -612,7 +616,7 @@ BERR_Code BGRC_Open(
     BLST_D_INIT(&hGrc->context_list);
 
     /* create dummy context for extra flush blit */
-    BGRC_Packet_GetDefaultCreateContextSettings( hGrc, &stCtxSettings );
+    BGRC_Packet_GetDefaultCreateContextSettings( &stCtxSettings );
     stCtxSettings.packet_buffer_size = BGRC_PACKET_P_FLUSH_PACKET_SIZE;
     err = BGRC_Packet_CreateContext( hGrc, &hGrc->hDummyCtx, &stCtxSettings );
     if( err != BERR_SUCCESS )
@@ -836,14 +840,11 @@ BERR_Code BGRC_Packet_SetCallback(
 }
 
 /***************************************************************************/
-BERR_Code BGRC_Packet_GetDefaultCreateContextSettings(
-    BGRC_Handle hGrc,
+void BGRC_Packet_GetDefaultCreateContextSettings(
     BGRC_PacketContext_CreateSettings *pSettings )
 {
-    BSTD_UNUSED(hGrc);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->packet_buffer_size = 1024*64;
-    return BERR_SUCCESS;
 }
 
 /***************************************************************************/
@@ -1104,12 +1105,7 @@ BERR_Code BGRC_Packet_SubmitPackets(
             BDBG_MODULE_MSG(BGRC_SWPKT_FIFO, ("ctx[%x] sw pkt submit: wrap [%p, %p]", hContext->ulId, hContext->pSwPktWritePtr, hContext->pSwPktWrapPtr));
         }
 
-    /*SWSTB-3670  workaround for 7278A0 blit hw change, hw will be fixed in 7278B0*/
-#if BGRC_PACKET_P_BLIT_WORKAROUND
-        if( hContext->ulSwPktSizeToProc > BGRC_PACKET_P_BLIT_GROUP_SIZE_MAX)
-#else
         if( hContext->ulSwPktSizeToProc > hContext->create_settings.packet_buffer_store )
-#endif
             BGRC_PACKET_P_ProcessSwPktFifo( hGrc, hContext );
     }
 
@@ -1171,25 +1167,6 @@ BERR_Code BGRC_Packet_AdvancePackets(
         BLST_D_REMOVE(&hGrc->context_list, hLastContext, context_link);
         BLST_D_INSERT_HEAD(&hGrc->context_list, hLastContext, context_link);
     }
-
-#if BGRC_PACKET_P_BLIT_WORKAROUND
-    if(hGrc->ulNumbersToRun)
-    {
-        uint32_t ulListStatus = BGRC_P_ReadReg32(hGrc, LIST_STATUS);
-        bool bListFinished = BCHP_GET_FIELD_DATA(ulListStatus, M2MC_LIST_STATUS, FINISHED);
-        if(bListFinished)
-        {
-            BGRC_P_WriteReg32( hGrc, LIST_CTRL,
-                BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |
-                    BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |
-                    BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE_MODE, ResumeFromLast ));
-            BKNI_EnterCriticalSection();
-            hGrc->ulNumbersToRun --;
-            BKNI_LeaveCriticalSection();
-            BDBG_MODULE_MSG(BGRC_LISTSTATUS, ("ulNumbersToRun %d", hGrc->ulNumbersToRun));
-        }
-    }
-#endif
 
     BGRC_P_LEAVE(hGrc);
     return err;
@@ -1522,9 +1499,20 @@ BERR_Code BGRC_Packet_InitPacketPlane(
 
 /*****************************************************************************/
 BERR_Code BGRC_Packet_SetSourcePlanePacket( BGRC_Handle hGrc, void **ppPacket,
-    const BM2MC_PACKET_Plane *pSrcPlane0, const BM2MC_PACKET_Plane *pSrcPlane1, uint32_t color )
+    const BM2MC_PACKET_Plane *pSrcPlane0, const BM2MC_PACKET_Plane *pSrcPlane1,
+    const BM2MC_PACKET_Plane *pSrcPlane2, uint32_t color )
 {
-    if( pSrcPlane0 && pSrcPlane1 )
+    if( pSrcPlane0 && pSrcPlane1 && pSrcPlane2)
+    {
+        BM2MC_PACKET_PacketThreeSourceFeeders *pPacket = (BM2MC_PACKET_PacketThreeSourceFeeders *) (*ppPacket);
+        BM2MC_PACKET_INIT( pPacket, ThreeSourceFeeders, false );
+        pPacket->plane0 = *pSrcPlane0;
+        pPacket->plane1 = *pSrcPlane1;
+        pPacket->plane2 = *pSrcPlane2;
+        pPacket->color = color;
+        BM2MC_PACKET_TERM( pPacket );
+        *ppPacket = (void *) pPacket;
+    }else if( pSrcPlane0 && pSrcPlane1 )
     {
         BM2MC_PACKET_PacketSourceFeeders *pPacket = (BM2MC_PACKET_PacketSourceFeeders *) (*ppPacket);
         BM2MC_PACKET_INIT( pPacket, SourceFeeders, false );

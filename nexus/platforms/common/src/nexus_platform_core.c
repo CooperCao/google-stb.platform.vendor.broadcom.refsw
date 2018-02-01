@@ -701,12 +701,7 @@ static void NEXUS_Platform_P_UnmapRegion(NEXUS_Core_MemoryRegion *region)
 
 NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, NEXUS_PlatformMemoryLayout *pMemory)
 {
-    BCHP_MemoryInfo info;
     unsigned memcIndex;
-    int rc;
-
-    rc = BCHP_GetMemoryInfo_PreInit(preInitState->hReg, &info);
-    if (rc) return BERR_TRACE(rc);
 
     for (memcIndex=0;memcIndex<NEXUS_NUM_MEMC;memcIndex++) {
         switch (memcIndex) {
@@ -721,7 +716,7 @@ NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitS
         default: return BERR_TRACE(NEXUS_INVALID_PARAMETER);
         }
         /* this size calculation is not valid for LPDDR4. only use for older silicon. */
-        pMemory->memc[memcIndex].size = (uint64_t)info.memc[memcIndex].deviceTech / 8 * (info.memc[memcIndex].width/info.memc[memcIndex].deviceWidth) * 1024 * 1024;
+        pMemory->memc[memcIndex].size = (uint64_t)preInitState->memoryInfo.memc[memcIndex].deviceTech / 8 * (preInitState->memoryInfo.memc[memcIndex].width/preInitState->memoryInfo.memc[memcIndex].deviceWidth) * 1024 * 1024;
         pMemory->memc[memcIndex].region[0].size = pMemory->memc[memcIndex].size;
         /* MIPS register hole */
         if (memcIndex == 0 && pMemory->memc[0].region[0].size > 0x10000000) {
@@ -921,9 +916,14 @@ const NEXUS_Core_PreInitState *NEXUS_Platform_P_PreInit(void)
 
     preInitState->pMapId = NEXUS_Platform_P_ReadPMapId();
     preInitState->pMapSettings = NEXUS_Platform_P_ReadPMapSettings();
+
+    rc = BCHP_GetMemoryInfo_PreInit(preInitState->hReg, &preInitState->memoryInfo);
+    if (rc) {rc = BERR_TRACE(rc); goto err_chpmeminfo;}
+
     g_NEXUS_preinit.refcnt++;
     return &g_NEXUS_preinit.state;
 
+err_chpmeminfo:
 err_box:
     NEXUS_Platform_P_UnmapRegisters(preInitState);
     g_pPreInitState = NULL;

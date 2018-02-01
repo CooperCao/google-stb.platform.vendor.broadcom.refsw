@@ -1,17 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  vcfw
-Module   :  chip driver
-File     :  $RCSfile: $
-
-FILE DESCRIPTION
-VideoCore OS Abstraction Layer - public header file for events
-=============================================================================*/
-
-#ifndef VCOS_EVENT_H
-#define VCOS_EVENT_H
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,6 +62,15 @@ void vcos_event_signal(VCOS_EVENT_T *event);
 VCOS_INLINE_DECL
 VCOS_STATUS_T vcos_event_wait(VCOS_EVENT_T *event);
 
+/**
+* Wait for the event with timeout.
+*
+* @param event The event to wait for
+* @return VCOS_SUCCESS on success, VCOS_ETIMEDOUT if the wait timedout.
+*/
+VCOS_INLINE_DECL
+VCOS_STATUS_T vcos_event_timed_wait(VCOS_EVENT_T *event, uint32_t timeout_ms);
+
 #endif
 
 /*
@@ -82,6 +81,4 @@ void vcos_event_delete(VCOS_EVENT_T *event);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

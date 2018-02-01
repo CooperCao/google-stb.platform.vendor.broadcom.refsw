@@ -1,16 +1,9 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
-Project  :  khronos
-Module   :  Pointer map
-
-FILE DESCRIPTION
-uint32_t to void * map.
-=============================================================================*/
-
-#ifndef KHRN_CLIENT_POINTERMAP_H
-#define KHRN_CLIENT_POINTERMAP_H
+#include <stdint.h>
 
 #define khrn_generic_map(X) khrn_pointer_map_##X
 #define KHRN_GENERIC_MAP(X) KHRN_POINTER_MAP_##X
@@ -27,5 +20,3 @@ uint32_t to void * map.
 #undef KHRN_GENERIC_MAP_KEY_T
 #undef KHRN_GENERIC_MAP
 #undef khrn_generic_map
-
-#endif

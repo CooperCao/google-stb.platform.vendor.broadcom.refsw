@@ -46,6 +46,7 @@
 #include "biobits.h"
 
 
+
 BDBG_MODULE(bmp4_util);
 
 #define BDBG_MSG_TRACE(x)   BDBG_MSG(x)
@@ -447,12 +448,19 @@ b_mp4_parse_sample_avc(batom_cursor *cursor, bmp4_sample_avc *avc, size_t entry_
 }
 
 static bool
-b_mp4_parse_sample_hevc(batom_cursor *cursor, bmp4_sample_hevc *hevc, bmp4_sample_codecprivate *codecprivate)
+b_mp4_parse_sample_hevc(batom_cursor *cursor, bmp4_sample_hevc *hevc, bmp4_sample_codecprivate *codecprivate, const bmp4_box *entry_box)
 {
     BDBG_ASSERT(cursor);
     BDBG_ASSERT(hevc);
     if(bmp4_parse_visualsampleentry(cursor, &hevc->visual)) {
         unsigned configurationVersion;
+#if B_HAS_MEDIA_DBV
+        batom_cursor dbv_cursor;
+
+        BATOM_CLONE(&dbv_cursor, cursor);
+        hevc->dvc_valid = false;
+#endif
+
         if(!b_mp4_find_box(cursor, BMP4_TYPE('h','v','c','C'), codecprivate)) {
             return false;
         }
@@ -468,8 +476,23 @@ b_mp4_parse_sample_hevc(batom_cursor *cursor, bmp4_sample_hevc *hevc, bmp4_sampl
             BDBG_ERR(("b_mp4_parse_sample_hevc: can't parse hvcC data"));
             return false;
         }
+#if B_HAS_MEDIA_DBV
+        if(b_mp4_find_box(&dbv_cursor, BMP4_BOX_DV_CONFIGURATION, NULL) && batom_cursor_pos(&dbv_cursor) < entry_box->size ) {
+            if(!bmedia_parse_DOVIDecoderConfigurationRecord(&dbv_cursor, &hevc->dvc)) {
+                return false;
+            }
+            hevc->dvc_valid = true;
+            return true;
+        } else {
+            switch(entry_box->type) {
+            case BMP4_SAMPLE_DV_HEVC: return false;
+            default: break;
+            }
+        }
+#endif
         return true;
     }
+    BSTD_UNUSED(entry_box);
     return false;
 }
 
@@ -878,10 +901,16 @@ bmp4_parse_sample_info(batom_t box, bmp4_sample_info *sample, uint32_t handler_t
         switch(handler_type) {
         case BMP4_HANDLER_VISUAL:
             switch(entry_box.type) {
+#if B_HAS_MEDIA_DBV
+            case BMP4_SAMPLE_DV_AVC:
+#endif
             case BMP4_SAMPLE_AVC:
                 BDBG_MSG(("bmp4_parse_sample: avc video"));
                 type = bmp4_sample_type_avc;
                 break;
+#if B_HAS_MEDIA_DBV
+            case BMP4_SAMPLE_DV_HEVC:
+#endif
             case BMP4_SAMPLE_HVC1:
             case BMP4_SAMPLE_HEV1:
                 BDBG_MSG(("bmp4_parse_sample: HEVC video"));
@@ -1070,7 +1099,7 @@ bmp4_parse_sample_info(batom_t box, bmp4_sample_info *sample, uint32_t handler_t
             }
             break;
         case bmp4_sample_type_hevc:
-            if(!b_mp4_parse_sample_hevc(&cursor, &entry->codec.hevc, &entry->codecprivate)) {
+            if(!b_mp4_parse_sample_hevc(&cursor, &entry->codec.hevc, &entry->codecprivate, &entry_box)) {
                 entry->sample_type = bmp4_sample_type_unknown;
             }
             break;

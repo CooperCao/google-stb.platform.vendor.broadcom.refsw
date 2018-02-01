@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1846,8 +1846,9 @@ extern "C" {
 #define BVDC_P_SUPPORT_STG                    (1) /* STG HW */
 #define BVDC_P_SUPPORT_STG_VER                (4)
 #define BVDC_P_BVB_BUS_CLOCK                  (BVDC_P_324_SYSCLK)
+#ifndef BVDC_P_MANAGE_VIP
 #define BVDC_P_MANAGE_VIP                     (1) /* VDC owns VIP */
-
+#endif
 #elif (BCHP_CHIP==7586)
 
 #define BVDC_P_SUPPORT_656_MASTER_MODE        (1) /* Has 656Out and run as master mode */
@@ -2151,7 +2152,9 @@ extern "C" {
 #define BVDC_P_BVB_BUS_CLOCK                  (BVDC_P_324_SYSCLK)
 #define BVDC_P_SUPPORT_STG                    (1) /* STG HW */
 #define BVDC_P_SUPPORT_STG_VER                (4)
+#ifndef BVDC_P_MANAGE_VIP
 #define BVDC_P_MANAGE_VIP                     (1) /* VDC owns VIP */
+#endif
 #define BVDC_P_SUPPORT_RDC_STC_FLAG           (1) /* RDC STC flags */
 
 #elif (BCHP_CHIP==7255)
@@ -2437,7 +2440,9 @@ extern "C" {
 #define BVDC_P_BVB_BUS_CLOCK                  (BVDC_P_324_SYSCLK)
 #define BVDC_P_SUPPORT_STG                    (2) /* two STGs are supported */
 #define BVDC_P_SUPPORT_STG_VER                (4)
+#ifndef BVDC_P_MANAGE_VIP
 #define BVDC_P_MANAGE_VIP                     (0) /* TODO: VDC owns VIP */
+#endif
 #define BVDC_P_SUPPORT_RDC_STC_FLAG           (1) /* RDC STC flags */
 
 #else
@@ -2475,12 +2480,12 @@ extern "C" {
 #if (BVDC_P_CMP_CFC_VER >= 3) && BVDC_DBV_SUPPORT
 #define BVDC_P_DBV_SUPPORT (1)
 /* DBV in or out would NOT make CMP bg_color as RGB either */
-#define BVDC_P_CMP_OUTPUT_IPT(hCompositor) \
+#define BVDC_P_CMP_DBV_MODE(hCompositor) \
     ((hCompositor->hDisplay && hCompositor->hDisplay->stCurInfo.stHdmiSettings.stSettings.bDolbyVisionEnabled) || \
      (hCompositor->pstDbv && hCompositor->pstDbv->metadataPresent))
 #else
 #define BVDC_P_DBV_SUPPORT (0)
-#define BVDC_P_CMP_OUTPUT_IPT(hCompositor)    false
+#define BVDC_P_CMP_DBV_MODE(hCompositor)    false
 #endif
 
 #if (BVDC_P_CMP_CFC_VER >= 3) && BVDC_TCH_SUPPORT
@@ -2968,8 +2973,12 @@ DCX macro
 /* guard memory for 3D: (N-1)*32 */
 #define BVDC_P_GUARD_MEMORY_3D(ulMosaicCnt)     ((ulMosaicCnt -1)*32)
 
-#define BVDC_P_MAX_CAP_GUARD_MEMORY_2D  (BVDC_P_GUARD_MEMORY_2D(BAVC_MOSAIC_MAX))
-#define BVDC_P_MAX_CAP_GUARD_MEMORY_3D  (BVDC_P_GUARD_MEMORY_3D(BAVC_MOSAIC_MAX))
+/* TODO: Use BAVC_MOSAIC_MAX
+ * Use this due to MCVP PIXEL buffers not fit into HD buffers with
+ * BAVC_MOSAIC_MAX set to 12 */
+#define BVDC_P_MOSAIC_MAX_FOR_GUARD_MEMORY      (16)
+#define BVDC_P_MAX_CAP_GUARD_MEMORY_2D  (BVDC_P_GUARD_MEMORY_2D(BVDC_P_MOSAIC_MAX_FOR_GUARD_MEMORY))
+#define BVDC_P_MAX_CAP_GUARD_MEMORY_3D  (BVDC_P_GUARD_MEMORY_3D(BVDC_P_MOSAIC_MAX_FOR_GUARD_MEMORY))
 
 /***************************************************************************
  * Macros
@@ -3732,7 +3741,6 @@ typedef struct
 #define BVDC_P_CFC_VER_5                  (5) /* 7255 A0 */
 
 #define BVDC_P_CMP_NL_CFG_REGS                (BAVC_MOSAIC_MAX / 2)
-#define BVDC_P_CMP_LR_ADJ_PTS                 (8)
 
 /* CSC configure for a CMP/GFD that has NL CSC HW */
 #define BVDC_P_NL_CSC_CTRL_SEL_BYPASS         (0xFFFFFFFF)
@@ -3993,7 +4001,6 @@ typedef struct BVDC_P_McdiContext        *BVDC_P_Mcdi_Handle;
 typedef struct BVDC_P_BoxDetectContext   *BVDC_P_BoxDetect_Handle;
 typedef struct BVDC_P_CaptureContext     *BVDC_P_Capture_Handle;
 typedef struct BVDC_P_BufferContext      *BVDC_P_Buffer_Handle;
-typedef struct BVDC_P_VnetContext        *BVDC_P_Vnet_Handle;
 typedef struct BVDC_P_HdDviContext       *BVDC_P_HdDvi_Handle;
 typedef struct BVDC_P_BufferHeapContext  *BVDC_P_BufferHeap_Handle;
 typedef struct BVDC_P_PepContext         *BVDC_P_Pep_Handle;

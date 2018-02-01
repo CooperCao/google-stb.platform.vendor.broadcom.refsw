@@ -591,16 +591,30 @@ static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHa
         NEXUS_SimpleVideoDecoder_SetClientSettings(handle, &handle->clientSettings);
         NEXUS_SimpleVideoDecoder_SetPictureQualitySettings(handle, &handle->pictureQualitySettings);
         if (!use_cache(handle)) {
-            for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
-                NEXUS_VideoWindowHandle window = handle->serverSettings.window[i];
-                if (window) {
-                    if (i == 1 && handle->server->sdOverride.videoInput) {
-                        rc = NEXUS_VideoWindow_AddInput(window, handle->server->sdOverride.videoInput);
-                        if (rc) { rc = BERR_TRACE(rc); goto error; }
+            if (handle->serverSettings.backendMosaic.display[0].window[0]) {
+                for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+                    unsigned j;
+                    for (j=0;j<NEXUS_MAX_MOSAIC_DECODES;j++) {
+                        NEXUS_VideoWindowHandle window = handle->serverSettings.backendMosaic.display[i].window[j];
+                        if (window) {
+                            rc = NEXUS_VideoWindow_AddInput(window, videoInput);
+                            if (rc) { rc = BERR_TRACE(rc); goto error; }
+                        }
                     }
-                    else {
-                        rc = NEXUS_VideoWindow_AddInput(window, videoInput);
-                        if (rc) { rc = BERR_TRACE(rc); goto error; }
+                }
+            }
+            else {
+                for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+                    NEXUS_VideoWindowHandle window = handle->serverSettings.window[i];
+                    if (window) {
+                        if (i == 1 && handle->server->sdOverride.videoInput) {
+                            rc = NEXUS_VideoWindow_AddInput(window, handle->server->sdOverride.videoInput);
+                            if (rc) { rc = BERR_TRACE(rc); goto error; }
+                        }
+                        else {
+                            rc = NEXUS_VideoWindow_AddInput(window, videoInput);
+                            if (rc) { rc = BERR_TRACE(rc); goto error; }
+                        }
                     }
                 }
             }
@@ -1787,12 +1801,15 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_StopPrimerAndStartDecode( NEXUS_SimpleVideo
 
     nexus_simplevideodecoder_p_enable_tsm_extensions(handle);
 
+    handle->started = true;
+    NEXUS_SimpleStcChannel_SetVideo_priv(handle->stcChannel, handle);
+
     rc = NEXUS_VideoDecoderPrimer_StopPrimerAndStartDecode(handle->primer.handle, handle->serverSettings.videoDecoder);
     if (rc) {
+        handle->started = false;
         nexus_simplevideodecoder_p_disable_tsm_extensions(handle);
         return BERR_TRACE(rc);
     }
-    handle->started = true;
 
     return 0;
 }
@@ -1817,6 +1834,7 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_StopDecodeAndStartPrimer( NEXUS_SimpleVideo
     }
     else {
         handle->started = false;
+        NEXUS_SimpleStcChannel_SetVideo_priv(handle->stcChannel, handle);
     }
 
     return rc;
@@ -1840,7 +1858,7 @@ NEXUS_Error NEXUS_SimpleVideoDecoderPrimer_SetSettings( NEXUS_SimpleVideoDecoder
     return 0;
 }
 
-NEXUS_Error nexus_simplevideodecoder_p_add_encoder(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_VideoWindowHandle window, NEXUS_SimpleEncoderHandle encoder)
+void nexus_simplevideodecoder_p_add_encoder(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_VideoWindowHandle window, NEXUS_SimpleEncoderHandle encoder)
 {
     handle->encoder.handle = encoder;
     handle->encoder.window = window;
@@ -1848,7 +1866,6 @@ NEXUS_Error nexus_simplevideodecoder_p_add_encoder(NEXUS_SimpleVideoDecoderHandl
         /* adding encoder may change timebase */
         NEXUS_SimpleStcChannel_SetVideo_priv(handle->stcChannel, handle);
     }
-    return 0;
 }
 
 void nexus_simplevideodecoder_p_remove_encoder(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_VideoWindowHandle window, NEXUS_SimpleEncoderHandle encoder)

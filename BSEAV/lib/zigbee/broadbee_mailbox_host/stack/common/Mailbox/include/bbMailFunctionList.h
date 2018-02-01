@@ -456,7 +456,7 @@ typedef enum
     UART_RECV_FID,
     FINAL_PUBLIC_FID,
 
-} MailFID_t;
+} PACKED MailFID_t;
 SYS_DbgAssertStatic(0x0000U == INCORRECT_REQ_ID);       //NOTE: This is special value and must be zero.
 SYS_DbgAssertStatic(0x0001U == TE_RESET_FID);           //NOTE: This value hardcoded inside HAL code.
 SYS_DbgAssertStatic(0x03FFU == TE_ASSERT_ERRID_FID);    //NOTE: This value hardcoded inside HAL code.

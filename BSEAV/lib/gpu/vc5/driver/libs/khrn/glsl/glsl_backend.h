@@ -18,6 +18,7 @@
 
 #define VARYING_ID_HW_0 (V3D_MAX_VARYING_COMPONENTS)
 #define VARYING_ID_HW_1 (V3D_MAX_VARYING_COMPONENTS + 1)
+#define VARYING_ID_HW_2 (V3D_MAX_VARYING_COMPONENTS + 2)
 
 typedef enum {
    CONFLICT_NONE           = 0,
@@ -33,7 +34,7 @@ typedef enum {
    CONFLICT_TLB_R          = (1<<9),
    CONFLICT_TLB_W          = (1<<10),
    CONFLICT_VPM            = (1<<11),
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    CONFLICT_VPMWT          = (1<<12),
 #endif
    CONFLICT_SFU            = (1<<13),
@@ -53,7 +54,7 @@ typedef enum {
 } QBEConflict;
 
 static inline unsigned get_max_regfile(unsigned threading) {
-   return gfx_umin((V3D_VER_AT_LEAST(4,0,2,0) ? 128u : 64u) / threading, 64u);
+   return gfx_umin((V3D_VER_AT_LEAST(4,1,34,0) ? 128u : 64u) / threading, 64u);
 }
 
 #define SETF_NONE  0
@@ -101,6 +102,7 @@ typedef enum {
    MOV_EXCUSE_COPY_ON_WRITE         = 6,
    MOV_EXCUSE_R5_WRITE              = 7,
    MOV_EXCUSE_FLAGIFY               = 8,
+   MOV_EXCUSE_R_RF_INPUT            = 9,
    MOV_EXCUSE_COUNT
 } MOV_EXCUSE;
 
@@ -118,7 +120,7 @@ typedef struct {
 
 typedef struct {
    bool used;
-   BackflowFlavour op;
+   v3d_qpu_opcode_t op;
    SchedNodeUnpack unpack[2];
    backend_reg output;
    backend_reg input_a;
@@ -132,15 +134,13 @@ typedef struct _INSTR_T {
    v3d_qpu_sigbits_t sigbits;
    uint64_t unif;
    uint32_t varying;
+   uint32_t rotate_or_small_imm;
 
-   GLSL_OP_T a;
-   GLSL_OP_T m;
+   GLSL_OP_T op[2];
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    backend_reg sig_waddr;
 #endif
-
-   struct _INSTR_T *alt_mov_i;
 } INSTR_T;
 
 typedef struct {

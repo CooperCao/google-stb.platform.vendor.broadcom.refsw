@@ -43,7 +43,7 @@
 
 typedef struct BV3D_P_Notification
 {
-   uint32_t             uiParam;
+   uint64_t             uiParam;
    uint32_t             uiSync;
    uint32_t             uiClientId;
    uint32_t             uiOutOfMemory;
@@ -97,7 +97,7 @@ BERR_Code BV3D_P_NotifyQDestroy(
 BERR_Code BV3D_P_NotifyQPush(
    BV3D_NotifyQHandle hNotifyQ,
    uint32_t           uiClientId,
-   uint32_t           uiParam,
+   uint64_t           uiParam,
    uint32_t           uiSync,
    uint32_t           uiOutOfMemory,
    uint64_t           uiJobSequence,
@@ -131,7 +131,7 @@ BERR_Code BV3D_P_NotifyQPush(
 BERR_Code BV3D_P_NotifyQPop(
    BV3D_NotifyQHandle hNotifyQ,
    uint32_t           uiClientId,
-   uint32_t           *puiParam,
+   uint64_t           *puiParam,
    uint32_t           *puiSync,
    uint32_t           *puiOutOfMemory,
    uint64_t           *puiJobSequence,

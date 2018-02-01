@@ -1,5 +1,5 @@
 /******************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1316,6 +1316,14 @@ temp_cappict->uiPDescOffset = pPicture->offset;
 temp_cappict->hLumaBlock = pPicture->hLumaBlock;
 temp_cappict->ulPictureId = pPicture->ulPictureId;
 temp_cappict->ulLumaOffset = pPicture->ulLumaOffset;
+temp_cappict->h2H1VBlock = pPicture->h2H1VLumaBlock;
+temp_cappict->ul2H1VOffset = pPicture->ul2H1VLumaOffset;
+temp_cappict->h2H2VBlock = pPicture->h2H2VLumaBlock;
+temp_cappict->ul2H2VOffset = pPicture->ul2H2VLumaOffset;
+temp_cappict->hChromaBlock = pPicture->hChromaBlock;
+temp_cappict->ulChromaOffset = pPicture->ulChromaOffset;
+temp_cappict->hShiftedChromaBlock = pPicture->hShiftedChromaBlock;
+temp_cappict->ulShiftedChromaOffset = pPicture->ulShiftedChromaOffset;
 #endif
 
 pPpb_Cached = (BVENC_VF_sPicParamBuff*)temp_cappict->pPpBufferCached;
@@ -1326,7 +1334,7 @@ return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 
 BDBG_MSG(("Picture:FrameRate %d\n" "\t\t ui32CurrentPTS %d \n" "\t\t height %d \n" "\t\t width %d \n"
 "\t\t polarity %d \n" "\t\t sarHorz %d \n" "\t\t sarVert %d \n" "\t\t repeat %d \n" "\t\t ignore %d \n"
-"\t\t bIgnorePicture %d \n" "\t\t bStallStc %d \n",
+"\t\t bIgnorePicture %d \n" "\t\t bStallStc %d \n" "\t\t",
 pPicture->frameRate,pPicture->originalPts.ui32CurrentPTS,pPicture->height,pPicture->width,pPicture->polarity
 ,pPicture->sarHorizontal,pPicture->sarVertical,pPicture->repeat,pPicture->ignore,pPicture->bIgnorePicture,pPicture->bStallStc));
 
@@ -1439,6 +1447,14 @@ pPicture->offset = handle->capturepicture[i].uiPDescOffset;
 pPicture->hLumaBlock = handle->capturepicture[i].hLumaBlock;
 pPicture->ulPictureId = handle->capturepicture[i].ulPictureId;
 pPicture->ulLumaOffset = handle->capturepicture[i].ulLumaOffset;
+pPicture->h2H1VLumaBlock = handle->capturepicture[i].h2H1VBlock;
+pPicture->ul2H1VLumaOffset = handle->capturepicture[i].ul2H1VOffset;
+pPicture->h2H2VLumaBlock = handle->capturepicture[i].h2H2VBlock;
+pPicture->ul2H2VLumaOffset = handle->capturepicture[i].ul2H2VOffset;
+pPicture->hChromaBlock = handle->capturepicture[i].hChromaBlock;
+pPicture->ulChromaOffset = handle->capturepicture[i].ulChromaOffset;
+pPicture->hShiftedChromaBlock = handle->capturepicture[i].hShiftedChromaBlock;
+pPicture->ulShiftedChromaOffset = handle->capturepicture[i].ulShiftedChromaOffset;
 /*
 BDBG_ERR(("VEE dequeue Luma MMA 0x%x offset = 0x%x pic id = 0x%x PPB = 0x%x", pPicture->hLumaBlock,pPicture->ulLumaOffset ,pPicture->ulPictureId,pPpb_Offset));
 BDBG_ERR(("DEQ :: YPhy = 0x%x, PpBoffset = 0x%x", (uint32_t)(BMMA_GetOffset_isr(pPicture->hLumaBlock)+pPicture->ulLumaOffset), pPpb_Offset));

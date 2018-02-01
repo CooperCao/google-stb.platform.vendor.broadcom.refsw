@@ -49,7 +49,8 @@ BERR_Code BGRC_Packet_InitPacketPlane(BPXL_Plane *pSurface, BM2MC_PACKET_Plane *
 
 /***************************************************************************/
 BERR_Code BGRC_Packet_SetSourcePlanePacket( BGRC_Handle hGrc, void **ppPacket,
-    const BM2MC_PACKET_Plane *pSrcPlane0, const BM2MC_PACKET_Plane *pSrcPlane1, uint32_t color );
+    const BM2MC_PACKET_Plane *pSrcPlane0, const BM2MC_PACKET_Plane *pSrcPlane1,
+    const BM2MC_PACKET_Plane *pSrcPlane2, uint32_t color );
 
 /***************************************************************************/
 BERR_Code BGRC_Packet_SetStripedSourcePlanePacket( BGRC_Handle hGrc, void **ppPacket,

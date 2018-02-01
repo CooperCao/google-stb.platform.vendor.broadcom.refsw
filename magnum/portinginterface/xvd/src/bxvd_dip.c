@@ -156,6 +156,13 @@ typedef struct BXVD_DisplayInterruptProvider_P_ChannelContext
 
       /* Application Callback */
       BXVD_DisplayInterruptProvider_P_DisplayInterruptHandler stDisplayInterruptHandler;
+      union {
+          struct {
+              BXVD_P_DisplayInfo stDisplayInfo;
+              BXVD_P_DisplayInfo stUpdateDisplayInfo;
+          } BXVD_DisplayInterruptProvider_S_PictureDataReady_isr;
+      } functionData;
+
 } BXVD_DisplayInterruptProvider_P_ChannelContext;
 
 #if BXVD_DIP_P_MEASURE_LATENCY
@@ -285,8 +292,8 @@ BXVD_DisplayInterruptProvider_S_PictureDataReady_isr(
 {
    BXVD_DisplayInterruptProvider_P_ChannelHandle hXvdDipCh = (BXVD_DisplayInterruptProvider_P_ChannelHandle) pXvdDipCh;
 
-   BXVD_P_DisplayInfo stDisplayInfo;
-   BXVD_P_DisplayInfo stUpdateDisplayInfo;
+   BXVD_P_DisplayInfo *displayInfo = &hXvdDipCh->functionData.BXVD_DisplayInterruptProvider_S_PictureDataReady_isr.stDisplayInfo;
+   BXVD_P_DisplayInfo *updateDisplayInfo = &hXvdDipCh->functionData.BXVD_DisplayInterruptProvider_S_PictureDataReady_isr.stUpdateDisplayInfo;
 
    uint32_t i;
 
@@ -315,20 +322,20 @@ BXVD_DisplayInterruptProvider_S_PictureDataReady_isr(
 
    for ( i = 0; i < 2; i++ )
    {
-      BXVD_P_READ_DISPLAY_INFO(hXvdDipCh, stDisplayInfo);
+      BXVD_P_READ_DISPLAY_INFO(hXvdDipCh, (*displayInfo));
 
       /* Extract Interrupt Polarity */
-      BXVD_DIP_TEST_MULTI_INTERRUPT_BITS_SET(stDisplayInfo, hXvdDipCh->stInterruptSettings);
+      BXVD_DIP_TEST_MULTI_INTERRUPT_BITS_SET((*displayInfo), hXvdDipCh->stInterruptSettings);
 
-      if (BXVD_DIP_IS_POLARITY_BOTTOM(stDisplayInfo, hXvdDipCh->stInterruptSettings))
+      if (BXVD_DIP_IS_POLARITY_BOTTOM((*displayInfo), hXvdDipCh->stInterruptSettings))
       {
          hXvdDipCh->stDisplayInterruptInfo.eInterruptPolarity = BAVC_Polarity_eBotField ;
       }
-      else if (BXVD_DIP_IS_POLARITY_TOP(stDisplayInfo, hXvdDipCh->stInterruptSettings))
+      else if (BXVD_DIP_IS_POLARITY_TOP((*displayInfo), hXvdDipCh->stInterruptSettings))
       {
          hXvdDipCh->stDisplayInterruptInfo.eInterruptPolarity = BAVC_Polarity_eTopField ;
       }
-      else if (BXVD_DIP_IS_POLARITY_FRAME(stDisplayInfo, hXvdDipCh->stInterruptSettings))
+      else if (BXVD_DIP_IS_POLARITY_FRAME((*displayInfo), hXvdDipCh->stInterruptSettings))
       {
          hXvdDipCh->stDisplayInterruptInfo.eInterruptPolarity = BAVC_Polarity_eFrame ;
       }
@@ -336,7 +343,7 @@ BXVD_DisplayInterruptProvider_S_PictureDataReady_isr(
       {
          /* We default to TopField for the vsync polarity if we don't
           * recognize the polarity type */
-         BXVD_DIP_DBG_WRN_BAD_VSYNC(stDisplayInfo);
+         BXVD_DIP_DBG_WRN_BAD_VSYNC((*displayInfo));
 
          hXvdDipCh->stDisplayInterruptInfo.eInterruptPolarity = BAVC_Polarity_eTopField ;
       }
@@ -344,9 +351,9 @@ BXVD_DisplayInterruptProvider_S_PictureDataReady_isr(
       /* Verify that the AVD FW hasn't updated the STC and Vsync Parity, meaning something is keeping the
          PDR ISR from being serviced in a timely manner */
 
-      BXVD_P_READ_DISPLAY_INFO(hXvdDipCh, stUpdateDisplayInfo);
+      BXVD_P_READ_DISPLAY_INFO(hXvdDipCh, (*updateDisplayInfo));
 
-      if (!BXVD_P_IS_DISPLAY_INFO_EQUAL(stUpdateDisplayInfo, stDisplayInfo))
+      if (!BXVD_P_IS_DISPLAY_INFO_EQUAL((*updateDisplayInfo), (*displayInfo)))
       {
 #if !B_REFSW_SYSTEM_MODE_CLIENT
          BDBG_ERR(("AVD Picture Data Ready interrupt not processed in time!"));
@@ -363,7 +370,7 @@ BXVD_DisplayInterruptProvider_S_PictureDataReady_isr(
    /* Extract STC snapshot(s) */
    BDBG_ASSERT( BXVD_P_STC_MAX == hXvdDipCh->stDisplayInterruptInfo.uiSTCCount );
 
-   BXVD_P_SAVE_DIP_INFO_STC(hXvdDipCh, stDisplayInfo);
+   BXVD_P_SAVE_DIP_INFO_STC(hXvdDipCh, (*displayInfo));
 
 #if 0
    /* Enable to see the STCs that are being captured by FW */
@@ -808,7 +815,7 @@ BXVD_DisplayInterruptProvider_P_GetInterruptConfiguration(
 BERR_Code
 BXVD_DisplayInterruptProvider_InstallCallback_DisplayInterrupt(
          BXVD_DisplayInterruptProvider_P_ChannelHandle hXvdDipCh,
-         BXDM_DisplayInterruptHandler_isr fCallback,
+         BXDM_DisplayInterruptHandler_isr fCallback_isr,
          void *pPrivateContext
          )
 {
@@ -816,7 +823,7 @@ BXVD_DisplayInterruptProvider_InstallCallback_DisplayInterrupt(
 
    BDBG_ASSERT( hXvdDipCh );
 
-   hXvdDipCh->stDisplayInterruptHandler.fCallback = fCallback;
+   hXvdDipCh->stDisplayInterruptHandler.fCallback = fCallback_isr;
    hXvdDipCh->stDisplayInterruptHandler.pPrivateContext = pPrivateContext;
 
    BDBG_MODULE_MSG( BXVD_DIPCTL, ("hDip:0x%0*lx Install DIH Decoder:%d hXvd:0x%0*lx eDisplayInterrupt:%d hDih:0x%0*lx cb:0x%0*lx",

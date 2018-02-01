@@ -230,10 +230,10 @@ static int pack_sampler_array(
 {
    // Find the first dynamically indexed sampler, and treat as an array from that point.
    unsigned first_dynamically_indexed = ~0u;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    for (unsigned s = 0; s != n_stages; ++s) {
       for (unsigned i = 0; i != array_length && i < first_dynamically_indexed; ++i) {
-         if (flags[s] && flags[s][i*2 + 1] & INTERFACE_VAR_SAMPLER_DYNAMIC_INDEXING) {
+         if (flags[s] && flags[s][array_length + i] & INTERFACE_VAR_SAMPLER_DYNAMIC_INDEXING) {
             first_dynamically_indexed = i;
             break;
          }
@@ -246,7 +246,7 @@ static int pack_sampler_array(
       bool s_used[SHADER_FLAVOUR_COUNT] = { false, };
       bool any_used = false;
       for (int j=0; j<n_stages; j++) {
-         s_used[j] = (ids[j][2*i] != -1);
+         s_used[j] = (ids[j][i] != -1);
          any_used = any_used || s_used[j];
       }
 
@@ -257,8 +257,8 @@ static int pack_sampler_array(
 
       for (int j=0; j<n_stages; j++) {
          if (s_used[j]) {
-            maps[j][ids[j][2*i]] = location;
-            if (ids[j][2*i+1] != -1) maps[j][ids[j][2*i+1]] = location;
+            maps[j][ids[j][i]] = location;
+            if (ids[j][array_length + i] != -1) maps[j][ids[j][array_length + i]] = location;
          }
       }
 
@@ -273,7 +273,7 @@ static int pack_sampler_array(
          .texture_type   = sampler_type_to_texture_type(get_gl_type(type)),
          .is_32bit       = false, /* XXX: Overridden later */
          .in_binning     = in_vertex_pipeline,
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
          .array_size     = i == first_dynamically_indexed ? array_length - i : 0,
          .in_array       = in_array,
 #endif
@@ -898,7 +898,7 @@ static void pack_shader_uniforms(GLSL_PROGRAM_T *program,
             if (u) {
                used[stages[k]]  = u->active;
                ids[var_n_stages] = u->ids;
-             #if V3D_VER_AT_LEAST(4,0,2,0)
+             #if V3D_VER_AT_LEAST(4,1,34,0)
                flags[var_n_stages] = u->flags;
              #endif
                maps[var_n_stages++] = stage_maps[k];
@@ -1147,15 +1147,6 @@ static void record_inout(unsigned *count, GLSL_INOUT_T *info, const struct if_va
       link_error(2, NULL);
 }
 
-static void record_output(GLSL_PROGRAM_T *program, const InterfaceVar *out, int index) {
-   bool used[SHADER_FLAVOUR_COUNT] = { false, false, false, false, true, false };
-   struct if_var_t v;
-   enumerate_in_out_var(&v, out->symbol->name, NULL, out->symbol->type,
-                            out->symbol->u.var_instance.prec_qual,
-                            out->symbol->u.var_instance.interp_qual, out->symbol->u.var_instance.aux_qual);
-   record_inout(&program->num_outputs, program->outputs, &v, index, used);
-}
-
 static inline int row_offset(const SymbolType *type, int index)
 {
    if (type->flavour == SYMBOL_ARRAY_TYPE)
@@ -1179,15 +1170,10 @@ static void bind_attribute(const SymbolType *t, const int *ids, int binding, int
 {
    assert(binding >= 0 && binding < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
 
-   // For every scalar...
+   // For every scalar set the link map to the correct location
    for (unsigned i = 0; i < t->scalar_count; i++)
-   {
-      unsigned int scalar_row = binding * 4 + row_offset(t, i);
-
-      // Write index to dataflow nodes.
       if (ids[i] != -1)
-         id_ptr[ids[i]] = scalar_row;
-   }
+         id_ptr[ids[i]] = binding * 4 + row_offset(t, i);
 }
 
 static bool is_hidden_builtin(const Symbol *s) {
@@ -1780,23 +1766,10 @@ static void pack_tf(pack_tf_t *tf_ctx, const pack_varying_t *vary_ctx, const GLS
    glsl_safemem_free(var_starts);
 }
 
-static void pack_fragment_output_nodes(const InterfaceVar *out_src, int loc,
-                                       int *out_nodes)
+static void pack_fragment_output_nodes(const SymbolType *type, const int *ids, int loc, int *out_nodes)
 {
-   int array_size, member_count;
-
-   if (out_src->symbol->type->flavour == SYMBOL_ARRAY_TYPE) {
-      array_size = out_src->symbol->type->u.array_type.member_count;
-      member_count = out_src->symbol->type->u.array_type.member_type->scalar_count;
-   } else {
-      array_size = 1;
-      member_count = out_src->symbol->type->scalar_count;
-   }
-
-   for (int i = 0; i < array_size; i++) {
-      for (int j = 0; j < member_count; j++)
-         out_nodes[DF_FNODE_R(loc + i) + j] = out_src->ids[i*member_count + j];
-   }
+   for (unsigned i = 0; i<type->scalar_count; i++)
+      out_nodes[DF_FNODE_R(loc) + row_offset(type, i)] = ids[i];
 }
 
 static void fill_last_vtx_out_nodes(const pack_varying_t *context, ShaderInterface *outs, int *out_nodes)
@@ -2023,22 +1996,14 @@ static void validate_tess_geom_match(v3d_cl_tess_type_t tes_mode, bool tes_point
    }
 }
 
-GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE_T *source, bool separable)
-{
-   GLSL_PROGRAM_T  *program = glsl_program_create();
-   if(!program) return NULL;
+static CompiledShader *get_last_vtx_stage(CompiledShader **sh) {
+   for (int i=SHADER_FRAGMENT-1; i>=0; i--)
+      if (sh[i] != NULL) return sh[i];
 
-   glsl_fastmem_init();
-   glsl_compile_error_reset();
+   return NULL;
+}
 
-   assert(sh[SHADER_COMPUTE] == NULL); /* Should be sent to link_compute_program */
-
-   // Set long jump point in case of error.
-   if (setjmp(g_ErrorHandlerEnv) != 0) {
-      // We must be jumping back from an error.
-      goto exit_with_error;
-   }
-
+static void validate_link(CompiledShader**sh, const GLSL_PROGRAM_SOURCE_T *source, bool separable) {
    if (!stages_valid(sh, separable))
       link_error(6, NULL);
 
@@ -2095,14 +2060,7 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
    }
    validate_uniforms_match(uniform_ifaces, n_active_stages, link_version);
 
-   CompiledShader *last_vtx_stage = NULL;
-   for (int i=SHADER_FRAGMENT-1; i>=0; i--) {
-      if (sh[i] != NULL) {
-         last_vtx_stage = sh[i];
-         break;
-      }
-   }
-
+   CompiledShader *last_vtx_stage = get_last_vtx_stage(sh);
    if (last_vtx_stage != NULL)
       validate_tf_varyings(source, &last_vtx_stage->out);
 
@@ -2120,6 +2078,25 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
          validate_tess_geom_match(te->tess_mode, te->tess_point_mode, gs->gs_in);
       }
    }
+}
+
+GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE_T *source, bool separable, bool validate)
+{
+   GLSL_PROGRAM_T  *program = glsl_program_create();
+   if(!program) return NULL;
+
+   glsl_fastmem_init();
+   glsl_compile_error_reset();
+
+   assert(sh[SHADER_COMPUTE] == NULL); /* Should be sent to link_compute_program */
+
+   // Set long jump point in case of error.
+   if (setjmp(g_ErrorHandlerEnv) != 0) {
+      // We must be jumping back from an error.
+      goto exit_with_error;
+   }
+
+   if (validate) validate_link(sh, source, separable);
 
    IR_PROGRAM_T *ir = program->ir;
 
@@ -2177,12 +2154,29 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
          if (out_src->symbol->u.var_instance.layout_loc_specified)
             loc = out_src->symbol->u.var_instance.layout_location;
 
-         if (!builtin || out_src->static_use)
-            record_output(program, out_src, builtin ? -1 : loc);
+         if (!builtin || frag_color || frag_data || out_src->static_use) {
+            const Symbol *s = out_src->symbol;
 
-         /* This is a bit of a hacky way to allow FragColor/Data to use the same code */
-         if (!builtin || frag_color || frag_data)
-            pack_fragment_output_nodes(out_src, loc, ir->stage[SHADER_FRAGMENT].link_map->outs);
+            int n = deep_member_count(s->type);
+            struct if_var_t *v = glsl_safemem_malloc(n * sizeof(struct if_var_t));
+
+            enumerate_ins_outs(v, s->name, NULL, s->type, s->u.var_instance.prec_qual, s->u.var_instance.interp_qual, s->u.var_instance.aux_qual);
+
+            const int *ids = out_src->ids;
+            for (int j=0; j<n; j++) {
+               const bool used[SHADER_FLAVOUR_COUNT] = { false, false, false, false, true, false };
+               if (!builtin || out_src->static_use)
+                  record_inout(&program->num_outputs, program->outputs, &v[j], builtin ? -1 : loc, used);
+
+               if (!builtin || frag_color || frag_data)
+                  pack_fragment_output_nodes(v[j].type, ids, loc, ir->stage[SHADER_FRAGMENT].link_map->outs);
+
+               int c = s->type->flavour == SYMBOL_ARRAY_TYPE ? s->type->u.array_type.member_count : 1;
+               loc += c;
+               ids += v[j].type->scalar_count;
+            }
+            glsl_safemem_free(v);
+         }
       }
 
       InterfaceVar *discard = interface_var_find(&fsh->out, "$$discard");
@@ -2205,6 +2199,8 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
                                       .any_varying_per_sample = false,
                                       .num_scalar_varyings = 0,
                                       .f_id_ptr = fsh ? ir->stage[SHADER_FRAGMENT].link_map->ins : NULL };
+
+   CompiledShader *last_vtx_stage = get_last_vtx_stage(sh);
 
    /* TODO: The SSO handling here is broken for tessellation. Also, there is
     * minimal code reuse which makes this look particularly terrible */
@@ -2247,7 +2243,7 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
    }
 
    if (sh[SHADER_VERTEX]) {
-      bind_attributes(program, source, &sh[SHADER_VERTEX]->in, ir->stage[SHADER_VERTEX].link_map->ins, (link_version == GLSL_SHADER_VERSION(1,0,1)));
+      bind_attributes(program, source, &sh[SHADER_VERTEX]->in, ir->stage[SHADER_VERTEX].link_map->ins, (sh[SHADER_VERTEX]->version == GLSL_SHADER_VERSION(1,0,1)));
    }
 
    /* Fill in output nodes from vertex shader */
@@ -2258,7 +2254,7 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
    ShaderFlavour stages[SHADER_FLAVOUR_COUNT];
    ShaderInterface *uniforms[SHADER_FLAVOUR_COUNT];
    int *maps[SHADER_FLAVOUR_COUNT];
-   n_active_stages = 0;
+   int n_active_stages = 0;
    for (int i=0; i<SHADER_FLAVOUR_COUNT; i++) {
       if (sh[i] != NULL) {
          stages[n_active_stages] = i;

@@ -65,7 +65,7 @@ extern int EGL_MAX_CONFIGS;
    Return value is a valid EGLConfig
 */
 
-static INLINE EGLConfig egl_config_from_id(int id)
+static inline EGLConfig egl_config_from_id(int id)
 {
    return (EGLConfig)(size_t)(id + 1);
 }
@@ -85,7 +85,7 @@ static INLINE EGLConfig egl_config_from_id(int id)
 
 */
 
-static INLINE int egl_config_to_id(EGLConfig config)
+static inline int egl_config_to_id(EGLConfig config)
 {
    return (int)(size_t)config - 1;
 }

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -73,6 +73,7 @@ void BAPE_Mixer_GetDefaultSettings(
     pSettings->outputNco = BAPE_Nco_eMax;       /* eMax => Don't use an NCO  */
     #endif
     pSettings->loopbackMixerEnabled = true;
+    pSettings->mixerEnableZeros = true;
 }
 
 /*************************************************************************/
@@ -911,6 +912,12 @@ BERR_Code BAPE_Mixer_P_PrintNodeInfo( BAPE_PathNode *pPathNode, int level, int i
                 {
                     BAPE_DolbyDigitalReencodeHandle ddreHandle = pPathNode->pHandle;
                     BKNI_Snprintf(dspIndex, sizeof(dspIndex), "Device Index: %u", BAPE_DolbyDigitalReencode_P_GetDeviceIndex(ddreHandle));
+                }
+                break;
+            case BAPE_PostProcessorType_eAdvancedTsm:
+                {
+                    BAPE_ProcessorHandle processorHandle = pPathNode->pHandle;
+                    BKNI_Snprintf(dspIndex, sizeof(dspIndex), "(%s)", BAPE_Processor_P_GetAdvancedTsmMode(processorHandle) == 0 ? "BYPASS" : "ENABLED");
                 }
                 break;
             default:

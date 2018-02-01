@@ -424,6 +424,7 @@ extern const uint8 prio2fifo[];
 #define DATA_BLOCK_TX_SUPR	(1 << 4) /* wlc_sendq() will block if DATA_BLOCK_TX_SUPR is set */
 #define DATA_BLOCK_TXCHAIN	(1 << 5)
 #define DATA_BLOCK_SPATIAL	(1 << 6)
+#define DATA_BLOCK_MUTX     (1 << 7)
 
 /* Ucode MCTL_WAKE override bits */
 #define WLC_WAKE_OVERRIDE_CLKCTL	0x01
@@ -470,7 +471,8 @@ extern const uint8 prio2fifo[];
 #define	MAXTXFRAMEBURST		MAXTXFRAMEBURST_MAX
 #endif
 
-#define	MAXFRAMEBURST_TXOP	10000		/* Frameburst TXOP in usec */
+#define	MAXFRAMEBURST_TXOP	12000u		/* Frameburst TXOP in usec */
+#define	MAXFRAMEBURST_TXOP_EU	6000u		/* Frameburst TXOP in usec to use in EU (EU-RED) */
 
 #ifdef STA
 /* PM2 tick time in milliseconds and gptimer units */
@@ -930,7 +932,7 @@ struct wlc_txq_info {
 	wlc_mux_t*              ac_mux[NFIFO];
 	mux_source_handle_t     mux_hdl[NFIFO];
 #endif /* TXQ_MUX */
-	uint8			epoch[AC_COUNT];	/* in case of WL_MULTIQUEUE this is used to
+	uint8			epoch[NFIFO_EXT];	/* in case of WL_MULTIQUEUE this is used to
 							 * save/restore the per ac epoch state
 							 */
 };

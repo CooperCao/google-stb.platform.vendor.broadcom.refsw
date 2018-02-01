@@ -40,43 +40,15 @@
 #ifndef NEXUS_SAGE_AUDIO_H__
 #define NEXUS_SAGE_AUDIO_H__
 
-#include "nexus_audio_types.h"
 #include "nexus_rave.h"
+#include "sarm_common.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define _MAX_SARM_AUDIO_STREAMS     3
-#define NEXUS_SAGE_AUDIO_RAVE_ALIGN 4096
-
-typedef enum
-{
-    NEXUS_SageAudioState_eNone = 0, /* No Sync WORD Found */
-    NEXUS_SageAudioState_eInit,     /* Sync WORD found with byte by byte search */
-    NEXUS_SageAudioState_eSteady,   /* Sync WORD found with frame size */
-    NEXUS_SageAudioState_eStop,     /* Stream is stopped */
-    NEXUS_SageAudioState_eMax       /* Validity check */
-} NEXUS_SageAudioState;
-
-typedef struct NEXUS_SageAudioStatus
-{
-    /* SARM TA State for specified stream */
-    NEXUS_SageAudioState state;
-    /* Number of frames successfully copied to destination ITB/CDB */
-    unsigned             numFrames;
-    /* Total bytes discarded (copied as zeros) */
-    unsigned             zeroBytes;
-    /* Bytes sice last sync WORD was found */
-    unsigned             lastSyncBytes;
-    /* Sync State Transitions */
-    unsigned             lostSyncCount; /* Number of time Sync frame was lost, after locking-in once */
-    /* CDB tables current buffer depth */
-    unsigned             inputContextDepth; /* RAVE writes/SAGE reads */
-    unsigned             outputContextDepth; /* SAGE writes/Audio Decoder reads */
-}NEXUS_SageAudioStatus;
-
 typedef struct NEXUS_SageAudio_P_Context *NEXUS_SageAudioHandle;
+typedef SARM_SageAudioStatus NEXUS_SageAudioStatus;
 
 /*
  * Open/Close routines

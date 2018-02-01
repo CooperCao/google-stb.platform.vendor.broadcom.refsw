@@ -1,40 +1,40 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
- *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *****************************************************************************/
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to the terms and
+* conditions of a separate, written license agreement executed between you and Broadcom
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+* no license (express or implied), right to use, or waiver of any kind with respect to the
+* Software, and Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+* and to use this information only in connection with your use of Broadcom integrated circuit products.
+*
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+* USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+* ANY LIMITED REMEDY.
+*****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "btmr.h"
@@ -241,26 +241,26 @@ static BERR_Code BTHD_P_ResetEvent(BTHD_3x7x_Handle h)
 
 
 /******************************************************************************
-BTHD_P_BBSTimerFunc()
+BTHD_P_BBSTimerFunc_isr()
 ******************************************************************************/
-static BERR_Code BTHD_P_BBSTimerFunc(BTHD_Handle h)
+static BERR_Code BTHD_P_BBSTimerFunc_isr(BTHD_Handle h)
 {
   BTHD_3x7x_P_Handle *p3x7x;
   p3x7x = (BTHD_3x7x_P_Handle *)(h->pImpl);
-  /*BDBG_MSG(("BTHD_P_TimerFunc")); */
+  /*BDBG_MSG(("BTHD_P_BBSTimerFunc_isr")); */
   BKNI_SetEvent(p3x7x->hBBSInterruptEvent);
   return BERR_SUCCESS;
 }
 
 
 /******************************************************************************
-BTHD_P_TimerFunc()
+BTHD_P_TimerFunc_isr()
 ******************************************************************************/
-static BERR_Code BTHD_P_TimerFunc(BTHD_Handle h)
+static BERR_Code BTHD_P_TimerFunc_isr(BTHD_Handle h)
 {
   BTHD_3x7x_P_Handle *p3x7x;
   p3x7x = (BTHD_3x7x_P_Handle *)(h->pImpl);
-  /*BDBG_ERR(("BTHD_P_TimerFunc")); */
+  /*BDBG_ERR(("BTHD_P_TimerFunc_isr")); */
   BKNI_SetEvent(p3x7x->hIntEvent);
   return BERR_SUCCESS;
 }
@@ -1901,7 +1901,7 @@ BERR_Code BTHD_3x7x_PowerUp(BTHD_Handle h)
     /* Create timer for status lock check */
      BTMR_GetDefaultTimerSettings(&sTimerSettings);
      sTimerSettings.type = BTMR_Type_eCountDown;
-     sTimerSettings.cb_isr = (BTMR_CallbackFunc)BTHD_P_TimerFunc;
+     sTimerSettings.cb_isr = (BTMR_CallbackFunc)BTHD_P_TimerFunc_isr;
      sTimerSettings.pParm1 = (void*)h;
      sTimerSettings.parm2 = 0;
      sTimerSettings.exclusive = false;
@@ -1922,7 +1922,7 @@ BERR_Code BTHD_3x7x_PowerUp(BTHD_Handle h)
     /* Create timer for status lock check */
      BTMR_GetDefaultTimerSettings(&sTimerSettings);
      sTimerSettings.type = BTMR_Type_eCountDown;
-     sTimerSettings.cb_isr = (BTMR_CallbackFunc)BTHD_P_BBSTimerFunc;
+     sTimerSettings.cb_isr = (BTMR_CallbackFunc)BTHD_P_BBSTimerFunc_isr;
      sTimerSettings.pParm1 = (void*)h;
      sTimerSettings.parm2 = 0;
      sTimerSettings.exclusive = false;

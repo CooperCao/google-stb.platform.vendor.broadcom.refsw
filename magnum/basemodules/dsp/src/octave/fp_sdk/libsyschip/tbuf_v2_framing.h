@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -276,9 +276,8 @@ TB_id_zipped TB_create_id_for_service(TB_service_id service);
  * data type. To access this TB_header field use the provided TB_PROLOGUE_* macros.
  */
 typedef
-#if defined(CELIVERO) || defined(CELTRIX) || defined(RAAGA) ||  \
-    defined(MCPHY) || defined(PIKE) ||                          \
-    defined(BSP) || defined(LEAP_PHY) ||                        \
+#if defined(RAAGA) || defined(MCPHY) || defined(PIKE) || \
+    defined(BSP) || defined(LEAP_PHY_BCM3465) ||         \
     defined(GENERIC) || defined(__COMPILE_HEADER__)
 uint8_t
 #else
@@ -295,9 +294,8 @@ uint8_t
 TB_prologue;
 
 
-#if   defined(CELIVERO) || defined(CELTRIX) || defined(RAAGA) || \
-      defined(MCPHY) || defined(PIKE) ||                         \
-      defined(BSP) || defined(LEAP_PHY) ||                       \
+#if   defined(RAAGA) || defined(MCPHY) || defined(PIKE) || \
+      defined(BSP) || defined(LEAP_PHY_BCM3465) ||         \
       defined(GENERIC) || defined(__COMPILE_HEADER__)
 #  define TB_PROLOGUE_INIT(prologue)                (prologue) = 0
 #  define TB_PROLOGUE_GET_ID(prologue)              (((prologue) & 0xF0) >> 4)

@@ -44,6 +44,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <termios.h>
+
 #pragma GCC optimize "short-enums"
 #pragma pack(4)
 

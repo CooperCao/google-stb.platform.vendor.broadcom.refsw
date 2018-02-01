@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -180,6 +180,7 @@ static void httpServerDestroyAllResources(
         )
     {
         BLST_Q_REMOVE( &hHttpServer->httpStreamerListHead, hHttpStreamer, httpStreamerListNext);
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: Calling BIP_HttpStreamer_Detroy for hHttpStreamer=%p" BIP_MSG_PRE_ARG, (void *)hHttpServer, (void *)hHttpStreamer ));
         BIP_HttpStreamer_Destroy( hHttpStreamer );
     }
 
@@ -191,6 +192,7 @@ static void httpServerDestroyAllResources(
         )
     {
         BLST_Q_REMOVE( &hHttpServer->httpServerSocketInUseListHead, hHttpServerSocket, httpServerSocketInUseListNext );
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: Calling Destory stateMachine for hHttpServerSocket=%p" BIP_MSG_PRE_ARG, (void *)hHttpServer, (void *)hHttpServerSocket ));
         processHttpServerState_ServerSocket(hHttpServer, hHttpServerSocket);
     }
 
@@ -773,13 +775,14 @@ void processHttpServerState(
                 else
                 {
                     /* We can start streamer, so lets get started! */
-                    BIP_Arb_AcceptRequest(hArb);
+                    /* Note: we dont accept the ARB here as we want ServerSocket to do one time work. */
+                    /* So Start Streamer state machine processing w/ Accept the ARB. */
 
                     /* Now we can associate this streamer w/ the ServerSocket object until _StopStreamer() is called */
                     /* NOTE: API side has already validated this pointer to be non-NULL */
                     hHttpServerSocket->hHttpStreamer = hHttpServer->startStreamerApi.hHttpStreamer;
                     hHttpServerSocket->completionStatus = BIP_INF_IN_PROGRESS;
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer:state %p:%s: hHttpStreamer %p: Accepted StartStreamer Arb request"
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer:state %p:%s: hHttpStreamer %p: Starting StartStreamer request!"
                                 BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState), (void *)hHttpServerSocket->hHttpStreamer));
                 }
             }

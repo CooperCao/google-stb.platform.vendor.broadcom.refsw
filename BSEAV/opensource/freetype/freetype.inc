@@ -61,7 +61,7 @@ FREETYPE_BIN_FOLDER:=${FREETYPE_INSTALL_PREFIX}/bin
 
 FREETYPE_CFLAGS:= -D_REENTRANT -I${FREETYPE_INC_FOLDER}/freetype2 -I${FREETYPE_INC_FOLDER}
 FREETYPE_LDFLAGS:= -L$(FREETYPE_LIB_FOLDER) -lfreetype
-FREETYPE_STATIC_LDFLAGS:= -L$(FREETYPE_LIB_FOLDER) -l:libfreetype.a -l:libpng.a -l:libz.a
+FREETYPE_STATIC_LDFLAGS:= -L$(FREETYPE_LIB_FOLDER) -l:libfreetype.a -l:libpng.a -l:libz.a -lm
 
 #  Where to store downloaded open-source files for local sharing
 B_REFSW_CACHE_DIR ?= $(realpath /projects/stbdev/open-source)

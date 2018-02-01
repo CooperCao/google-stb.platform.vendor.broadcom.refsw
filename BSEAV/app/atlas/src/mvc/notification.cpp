@@ -47,6 +47,7 @@ ENUM_TO_MSTRING_START()
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_All).s(), "eNotify_All")
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_KeyUp).s(), "eNotify_KeyUp")                   /* keypress - key pressed up */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_KeyDown).s(), "eNotify_KeyDown")               /* keypress - key pressed down */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_KeyClick).s(), "eNotify_KeyClick")             /* keypress - key click sound event */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_VirtualKeyDown).s(), "eNotify_VirtualKeyDown") /* keypress - virtual key pressed down */
 
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_Tune).s(), "eNotify_Tune")                               /* command  - tune */
@@ -68,6 +69,8 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_RefreshPlaybackList).s(), "eNotify_Refresh
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListLoad).s(), "eNotify_ChannelListLoad")         /* command  - load channel list */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListSave).s(), "eNotify_ChannelListSave")         /* command  - save channel list */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListDump).s(), "eNotify_ChannelListDump")         /* command  - dump channel list */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_GetChannelStats).s(), "eNotify_GetChannelStats")         /* command  - get channel stats */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_GetCurrentChannelNumber).s(), "eNotify_GetCurrentChannelNumber") /* command  - get current channel number in fullscreen */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioProgram).s(), "eNotify_SetAudioProgram")         /* command  - change current audio pid */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioProcessing).s(), "eNotify_SetAudioProcessing")   /* command  - change audio processing type*/
 #ifdef CPUTEST_SUPPORT
@@ -127,6 +130,15 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetPlmVideo).s(), "eNotify_SetPlmVideo") /
 #endif
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetPlmGraphics).s(), "eNotify_SetPlmGraphics") /* command  - set programmable luma mapping for graphics */
+#endif
+#if BDSP_MS12_SUPPORT
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ShowAudioAc4Presentation).s(), "eNotify_ShowAudioAc4Presentation")  /* command  - show the current AC4 audio presentation */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioAc4Presentation).s(), "eNotify_SetAudioAc4Presentation")    /* command  - set the current AC4 audio presentation */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NextAudioAc4Presentation).s(), "eNotify_NextAudioAc4Presentation")  /* command  - set the current AC4 audio to next available presentation */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioAc4Language).s(), "eNotify_SetAudioAc4Language")            /* command  - set the current AC4 audio language */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioAc4Associate).s(), "eNotify_SetAudioAc4Associate")          /* command  - set the current AC4 audio associate */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioAc4Priority).s(), "eNotify_SetAudioAc4Priority")            /* command  - set the current AC4 audio priority */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioAc4DialogEnhancement).s(), "eNotify_SetAudioAc4DialogEnhancement")  /* command  - set the current AC4 audio dialog enhancement level */
 #endif
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_Debug).s(), "eNotify_Debug") /* command  - show debug message */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_Exit).s(), "eNotify_Exit")   /* command  - exit atlas */
@@ -227,6 +239,15 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_DecodeStarted).s(), "eNotify_DecodeStarted
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_DecodeStopped).s(), "eNotify_DecodeStopped")                       /* status   - a video or audio decode has stopped decoding */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_DiscoveredPlaylistsShown).s(), "eNotify_DiscoveredPlaylistsShown") /* status   - a discovered playlist has been displayed on console */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaylistShown).s(), "eNotify_PlaylistShown")                       /* status   - a playlist contents has been displayed on console */
+#if BDSP_MS12_SUPPORT
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_AudioAc4PresentationShown).s(), "eNotify_AudioAc4PresentationShown") /* status   - an audio AC4 presentation has been displayed on console */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_AudioAc4PresentationChanged).s(), "eNotify_AudioAc4PresentationChanged") /* status   - the current audio AC4 presentation has been changed */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_AudioAc4LanguageChanged).s(), "eNotify_AudioAc4LanguageChanged")         /* status   - the current audio AC4 language has been changed */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_AudioAc4AssociateChanged).s(), "eNotify_AudioAc4AssociateChanged")           /* status   - the current audio AC4 language has been changed */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_AudioAc4PriorityChanged).s(), "eNotify_AudioAc4PriorityChanged")         /* status   - the current audio AC4 language has been changed */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_AudioAc4DialogEnhancementChanged).s(), "eNotify_AudioAc4DialogEnhancementChanged") /* status   - the current audio AC4 dialog enhancement level has been displayed changed */
+#endif
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelStatsShown).s(), "eNotify_ChannelStatsChanged")             /* status   - channel stats has been displayed on console */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_EnableRemoteIr).s(), "eNotify_EnableRemoteIr")                     /* status   - enable/disable ir remote handling */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_Invalid).s(), "eNotify_Invalid")
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_Max).s(), "eNotify_Max")

@@ -184,7 +184,7 @@ BERR_Code BHDM_EnablePacketTransmission(
 	/* the reference code will do this anyway, however some TVs still */
 	/* do not detect the change unless the DRM packet is turned off 1st */
 
-#if 0 /* DISABLED to meet DBV conformance and HDMI spec */
+#if 1
 	/* DEBUG/workaround delay start of DRM Packet */
 
 	/* time in milleseconds to delay DRM packet transmission */

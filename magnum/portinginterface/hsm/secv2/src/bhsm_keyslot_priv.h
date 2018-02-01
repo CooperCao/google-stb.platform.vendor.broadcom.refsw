@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 #ifndef BHSM_KEYSLOT_PRIV_H__
@@ -45,6 +46,10 @@
 typedef struct{
     unsigned numKeySlotsForType[BHSM_KeyslotType_eMax];
 }BHSM_KeyslotModuleSettings;
+
+typedef struct{
+    unsigned numKeySlotsForType[BHSM_KeyslotType_eMax];
+} BHSM_KeyslotModuleCapabilities;
 
 typedef struct {
     uint32_t ctrlWord0;
@@ -74,10 +79,17 @@ typedef struct {
 
 }BHSM_KeyslotDetails;
 
-
 BERR_Code BHSM_Keyslot_Init( BHSM_Handle hHsm, BHSM_KeyslotModuleSettings *pSettings );
 void BHSM_Keyslot_Uninit( BHSM_Handle hHsm );
 
+BERR_Code BHSM_P_KeyslotModule_GetCapabilities( BHSM_Handle hHsm, BHSM_KeyslotModuleCapabilities *pCaps );
+
 BERR_Code BHSM_P_Keyslot_GetDetails( BHSM_KeyslotHandle handle, BHSM_KeyslotBlockEntry entry, BHSM_KeyslotDetails *pDetails );
+uint8_t BHSM_P_Map2KeySlotCryptoAlg( BHSM_CryptographicAlgorithm  algorithm );
+uint8_t BHSM_P_ConvertSlotType( BHSM_KeyslotType type );
+
+/* Look up existing BHSM_KeyslotHandle, given the type and number
+ * Restricted usage only. BHSM clients should typically use the allocate/free mechanism */
+BHSM_KeyslotHandle BHSM_P_GetKeySlotHandle( BHSM_Handle hHsm, BHSM_KeyslotType slotType, unsigned slotNumber );
 
 #endif

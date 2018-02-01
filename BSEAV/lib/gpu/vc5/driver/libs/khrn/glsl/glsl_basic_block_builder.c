@@ -84,26 +84,18 @@ static void block_assignment(BasicBlock *block, Expr *lvalue, int offset, Datafl
       break;
    }
    case EXPR_SUBSCRIPT: {
-      Expr *aggregate = lvalue->u.subscript.aggregate;
       Dataflow *subscript;
-      unsigned int member_scalar_count;
-
       assert(lvalue->u.subscript.subscript->type->scalar_count == 1);
       glsl_expr_calculate_dataflow(block, &subscript, lvalue->u.subscript.subscript);
       assert(glsl_dataflow_is_integral_type(subscript));
 
-      switch (aggregate->type->flavour) {
-      case SYMBOL_PRIMITIVE_TYPE:
+      Expr *aggregate = lvalue->u.subscript.aggregate;
+      unsigned int member_scalar_count;
+      assert(aggregate->type->flavour == SYMBOL_PRIMITIVE_TYPE || aggregate->type->flavour == SYMBOL_ARRAY_TYPE);
+      if (aggregate->type->flavour == SYMBOL_PRIMITIVE_TYPE)
          member_scalar_count = primitiveTypeSubscriptTypes[aggregate->type->u.primitive_type.index]->scalar_count;
-         break;
-      case SYMBOL_ARRAY_TYPE:
+      else
          member_scalar_count = aggregate->type->u.array_type.member_type->scalar_count;
-         break;
-      default:
-         member_scalar_count = 0;
-         unreachable();
-         break;
-      }
 
       if (subscript->flavour == DATAFLOW_CONST) {
          unsigned int element_offset = subscript->u.constant.value * member_scalar_count;

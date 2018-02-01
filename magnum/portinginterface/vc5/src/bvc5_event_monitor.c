@@ -198,7 +198,7 @@ static void BVC5_P_GetClockSpeed(
    if (err == BERR_SUCCESS)
    {
       hVC5->sEventMonitor.uiCyclesPerUs = rate / (1000 * 1000);
-      BDBG_WRN(("GPU Clock speed: %u MHz\n", hVC5->sEventMonitor.uiCyclesPerUs));
+      BDBG_WRN(("GPU Clock speed for event capture: %u MHz\n", hVC5->sEventMonitor.uiCyclesPerUs));
    }
    else
 #endif
@@ -215,8 +215,6 @@ void BVC5_P_InitEventMonitor(
    BKNI_AcquireMutex(hVC5->hEventMutex);
 
    BKNI_Memset(&hVC5->sEventMonitor, 0, sizeof(hVC5->sEventMonitor));
-
-   BVC5_P_GetClockSpeed(hVC5);
 
    BVC5_P_SetEventTrack(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_SCHED_TRACK, "Scheduler");
    BVC5_P_SetEventTrack(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_TFU_TRACK,   "TFU");
@@ -441,6 +439,8 @@ static BERR_Code BVC5_P_SetEventCollection(
             err = BERR_OUT_OF_SYSTEM_MEMORY;
             goto error;
          }
+
+         BVC5_P_GetClockSpeed(hVC5);
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
          if (hVC5->sEventMonitor.uiCyclesPerUs == 1)  /* GPU clock speed unknown */

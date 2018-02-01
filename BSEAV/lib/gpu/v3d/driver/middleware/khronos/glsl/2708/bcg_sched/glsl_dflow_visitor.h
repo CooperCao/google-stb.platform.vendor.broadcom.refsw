@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
-#ifndef __GLSL_DFLOW_VISITOR_H__
-#define __GLSL_DFLOW_VISITOR_H__
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_dflow_containers.h"
 
@@ -30,12 +21,12 @@ typedef struct DFlowRecursionOptimizer_s
 void DFlowRecursionOptimizer_Constr(DFlowRecursionOptimizer *self);
 void DFlowRecursionOptimizer_Destr(DFlowRecursionOptimizer *self);
 
-static INLINE DFlowNode *DFlowRecursionOptimizer_Root(const DFlowRecursionOptimizer *self)
+static inline DFlowNode *DFlowRecursionOptimizer_Root(const DFlowRecursionOptimizer *self)
 {
    return self->m_root;
 }
 
-static INLINE void DFlowRecursionOptimizer_SetRoot(DFlowRecursionOptimizer *self, DFlowNode *val)
+static inline void DFlowRecursionOptimizer_SetRoot(DFlowRecursionOptimizer *self, DFlowNode *val)
 {
    self->m_root = val;
 }
@@ -57,7 +48,7 @@ typedef struct DFlowVisitor_s
    DFlowRecursionOptimizer *m_opt;
 } DFlowVisitor;
 
-static INLINE void DFlowVisitor_Constr(void *me, PFN_DFlowVisitor_Destroy destroy, PFN_DFlowVisitor_Accept accept, DFlowRecursionOptimizer *opt)
+static inline void DFlowVisitor_Constr(void *me, PFN_DFlowVisitor_Destroy destroy, PFN_DFlowVisitor_Accept accept, DFlowRecursionOptimizer *opt)
 {
    DFlowVisitor  *self = (DFlowVisitor *)me;
 
@@ -66,21 +57,21 @@ static INLINE void DFlowVisitor_Constr(void *me, PFN_DFlowVisitor_Destroy destro
    self->m_opt   = opt;
 }
 
-static INLINE void DFlowVisitor_Destr(void *me)
+static inline void DFlowVisitor_Destr(void *me)
 {
    DFlowVisitor  *self = (DFlowVisitor *)me;
 
    self->Destroy(me);
 }
 
-static INLINE void DFlowVisitor_Accept(void *me, DFlowNode *node)
+static inline void DFlowVisitor_Accept(void *me, DFlowNode *node)
 {
    DFlowVisitor  *self = (DFlowVisitor *)me;
 
    self->Accept(me, node);
 }
 
-static INLINE void DFlowVisitor_InvalidateRecursionOptimizer(void *me)
+static inline void DFlowVisitor_InvalidateRecursionOptimizer(void *me)
 {
    DFlowVisitor  *self = (DFlowVisitor *)me;
 
@@ -90,5 +81,3 @@ static INLINE void DFlowVisitor_InvalidateRecursionOptimizer(void *me)
 void DFlowVisitor_VisitBottomUp(void *me, DFlowNode *root);
 void DFlowVisitor_VisitTopDown(void *me, DFlowNode *root);
 void DFlowVisitor_VisitBreadthFirst(void *me, DFlowNode *root);
-
-#endif /* __GLSL_DFLOW_VISITOR_H__ */

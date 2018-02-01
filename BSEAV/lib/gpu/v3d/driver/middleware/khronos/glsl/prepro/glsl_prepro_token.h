@@ -33,27 +33,27 @@ extern Token *glsl_token_construct_ppnumberi(int i);
 
 extern bool glsl_token_equals(Token *t1, Token *t2, bool subcmp);
 
-static INLINE bool is_pp_identifier(Token *t)
+static inline bool is_pp_identifier(Token *t)
 {
    return t->type == IDENTIFIER || (t->type >= DEFINE && t->type <= _FALSE);
 }
 
-static INLINE bool is_lparen(Token *t)
+static inline bool is_lparen(Token *t)
 {
    return t->type == LEFT_PAREN;
 }
 
-static INLINE bool is_rparen(Token *t)
+static inline bool is_rparen(Token *t)
 {
    return t->type == RIGHT_PAREN;
 }
 
-static INLINE bool is_comma(Token *t)
+static inline bool is_comma(Token *t)
 {
    return t->type == COMMA;
 }
 
-static INLINE bool is_newline(Token *t)
+static inline bool is_newline(Token *t)
 {
    return t->type == NEWLINE;
 }

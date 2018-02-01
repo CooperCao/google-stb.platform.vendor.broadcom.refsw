@@ -88,7 +88,7 @@ upon the chip usage. See below */
 #define NEXUS_NUM_SMARTCARD_CHANNELS 2
 
 /* DVB-CI Details */
-#define NEXUS_DVB_CI_MEMORY_BASE (0xEFF00000)
+#define NEXUS_DVB_CI_MEMORY_BASE (0x2FF00000)
 #define NEXUS_DVB_CI_MEMORY_LENGTH (1024*1024)
 
 /* Memory features */

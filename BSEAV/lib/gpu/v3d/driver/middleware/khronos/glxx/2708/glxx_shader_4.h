@@ -1,20 +1,13 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-common GLES 1.1 and 2.0 dataflow graph functions
-=============================================================================*/
-
-#ifndef GLXX_SHADER_4_H
-#define GLXX_SHADER_4_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "middleware/khronos/glsl/glsl_common.h"
 #include "middleware/khronos/glsl/glsl_dataflow.h"
 #include "middleware/khronos/glxx/glxx_hw.h"
+
+#include <stdint.h>
 
 typedef struct
 {
@@ -39,6 +32,7 @@ typedef struct
 #define GLXX_NUM_VARYINGS 12
 
 #define GLXX_STATE_MASK 0x81000000
+
 /*
    Returns the offset into the server state matrix
    Preconditions:
@@ -48,8 +42,8 @@ typedef struct
    Postconditions:
       GLXX_STATE_MASK <= result < GLXX_STATE_MASK + sizeof(GLXX_SERVER_STATE_T)
 */
+#define GLXX_STATE_OFFSET(x) (((int)offsetof(GLXX_SERVER_STATE_T, x)) | GLXX_STATE_MASK)
 
-#define GLXX_STATE_OFFSET(x) (int)((char *)&(((GLXX_SERVER_STATE_T *)(0))->x)) | GLXX_STATE_MASK
 /*
    Returns a pointer to an  offset into the server state matrix
    Preconditions:
@@ -59,9 +53,10 @@ typedef struct
       result is a pointer to a float
       state <= result < state+sizeof(GLXX_SERVER_STATE_T)
 */
-#define GLXX_READ_STATE_OFFSET(state, a) (float *)((char *)state + (int)(a^GLXX_STATE_MASK))
+#define GLXX_READ_STATE_OFFSET(state, a) (float *)((char *)state + (intptr_t)(a^GLXX_STATE_MASK))
 
 #define GLXX_ATTRIB_MASK 0x82000000
+
 /*
    Returns the offset into the attribs array
    Preconditions:
@@ -71,7 +66,8 @@ typedef struct
    Postconditions:
       GLXX_ATTRIB_MASK <= result < GLXX_ATTRIB_MASK + sizeof(GLXX_ATTRIB_T)*GLXX_CONFIG_MAX_VERTEX_ATTRIBS
 */
-#define GLXX_ATTRIB_OFFSET(x) (int)((char *)&(((GLXX_ATTRIB_T *)((x)*sizeof(GLXX_ATTRIB_T)))->value)) | GLXX_ATTRIB_MASK
+#define GLXX_ATTRIB_OFFSET(x) ((int)(((x) * sizeof(GLXX_ATTRIB_T)) + offsetof(GLXX_ATTRIB_T, value)) | GLXX_ATTRIB_MASK)
+
 /*
    Returns a pointer to an  offset into the attribs array
    Preconditions:
@@ -81,7 +77,7 @@ typedef struct
       result is a pointer to a float
       attrib <= x < attrib+sizeof(GLXX_ATTRIB_T)*GLXX_CONFIG_MAX_VERTEX_ATTRIBS
 */
-#define GLXX_READ_ATTRIB_OFFSET(attrib, a) (float *)((char *)attrib + (int)(a^GLXX_ATTRIB_MASK))
+#define GLXX_READ_ATTRIB_OFFSET(attrib, a) (float *)((char *)attrib + (intptr_t)(a^GLXX_ATTRIB_MASK))
 
 
 typedef struct {
@@ -194,7 +190,6 @@ Dataflow *glxx_perform_logic_op(GLenum operation, Dataflow *s, Dataflow *d);
 Dataflow *glxx_perform_color_mask(uint32_t mask, Dataflow *s, Dataflow *d);
 Dataflow *glxx_backend(GLXX_HW_BLEND_T blend, GLXX_VEC4_T *color, Dataflow *discard, unsigned int stencil_config, bool use_depth, bool render_alpha, bool rgb565, bool fb_rb_swap);
 Dataflow *glxx_alpha_test(GLenum test, Dataflow *a, Dataflow *b);
-bool glxx_schedule(Dataflow *root, uint32_t type, MEM_HANDLE_T *mh_code, MEM_HANDLE_T *mh_uniform_map, bool *threaded, uint32_t *vary_map, uint32_t *vary_count);
+bool glxx_schedule(Dataflow *root, uint32_t type, MEM_HANDLE_T *mh_code, void **uniform_map, bool *threaded, uint32_t *vary_map, uint32_t *vary_count);
 Dataflow *glxx_vertex_backend(Dataflow *x, Dataflow *y, Dataflow *z, Dataflow *w, Dataflow *point_size, bool write_clip_header, bool write_varyings, Dataflow **vertex_vary, uint32_t *vary_map, uint32_t vary_count, bool egl_output);
 Dataflow *glxx_fetch_all_attributes(GLXX_ATTRIB_ABSTRACT_T *abstract,uint32_t *uniform_index, Dataflow **attrib,Dataflow *dep,uint32_t attribs_live, uint32_t *ordering);
-#endif

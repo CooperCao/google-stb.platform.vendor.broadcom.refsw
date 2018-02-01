@@ -156,10 +156,17 @@ INLINE void phyPibApiSetCcaMode(const enum PHY_CCAMode_t newValue)
 {
     const enum PHY_CCAMode_t  newCcaMode = newValue;    /* New value of CCA mode to be assigned. */
 
+#ifdef _HOST_
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wenum-compare"
+#endif
 #if (PHY_ATTR_MINALLOWED_VALUE_CCA_MODE > 0)
     SYS_DbgAssertComplex(newCcaMode >= PHY_ATTR_MINALLOWED_VALUE_CCA_MODE, LOG_phyPibApiSetCcaMode_InvalidTooLow);
 #endif
     SYS_DbgAssertComplex(newCcaMode <= PHY_ATTR_MAXALLOWED_VALUE_CCA_MODE, LOG_phyPibApiSetCcaMode_InvalidTooHigh);
+#ifdef _HOST_
+#pragma GCC diagnostic pop
+#endif
 
     ATOMIC_SECTION_ENTER(ATM_phyPibApiSetCcaMode)
         PHY_MEMORY_PIB().phyCcaMode = newCcaMode;
@@ -262,7 +269,6 @@ INLINE PHY_SymbolsPerOctetX10_t phyPibApiGetSymbolsPerOctetX10(void)
 }
 
 
-#if defined(RF4CE_TARGET)
 /*************************************************************************************//**
  * \brief   Returns value of the PHY-PIB attribute phyRssi.
  * \return  Value of the requested PHY-PIB attribute.
@@ -271,7 +277,6 @@ INLINE PHY_RSSI_t phyPibApiGetRssi(void)
 {
     return HAL_Radio__RSSI_get();
 }
-#endif /* RF4CE_TARGET */
 
 
 #endif /* _BB_PHY_PIB_API_H */

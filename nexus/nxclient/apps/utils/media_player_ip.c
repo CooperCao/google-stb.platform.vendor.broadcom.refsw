@@ -290,7 +290,7 @@ int media_player_ip_start(media_player_ip_t player, const media_player_start_set
     NEXUS_TransportType transportType = NEXUS_TransportType_eTs;
     NEXUS_TransportTimestampType timestampType = NEXUS_TransportTimestampType_eNone;
     NEXUS_PlaybackSettings playbackSettings;
-    int rc;
+    int rc=0;
     const bmedia_probe_track *track;
 
     NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&videoProgram);

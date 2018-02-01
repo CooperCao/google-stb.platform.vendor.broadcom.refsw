@@ -51,7 +51,6 @@ static v3d_tmu_wrap_t TranslateWrapMode(VkSamplerAddressMode mode)
    }
 }
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
 static v3d_tmu_filter_t TranslateFilter(VkFilter filter)
 {
    switch (filter)
@@ -71,47 +70,6 @@ static v3d_tmu_mipfilt_t TranslateMipmapMode(VkSamplerMipmapMode mipmapMode)
    default:                               unreachable(); return V3D_TMU_MIPFILT_INVALID;
    }
 }
-#else
-static v3d_tmu_filters_t TranslateFilters(const VkSamplerCreateInfo *pci)
-{
-   if (pci->anisotropyEnable && pci->maxAnisotropy > 1.0f)
-      return v3d_tmu_filters_anisotropic(pci->maxAnisotropy);
-
-   assert((pci->magFilter == VK_FILTER_NEAREST) || (pci->magFilter == VK_FILTER_LINEAR));
-   bool mag_near = pci->magFilter == VK_FILTER_NEAREST;
-   switch (pci->minFilter)
-   {
-   case VK_FILTER_NEAREST:
-      switch (pci->mipmapMode)
-      {
-      case VK_SAMPLER_MIPMAP_MODE_NEAREST:   return mag_near ? V3D_TMU_FILTERS_MIN_NEAR_MIP_NEAR_MAG_NEAR :
-                                                               V3D_TMU_FILTERS_MIN_NEAR_MIP_NEAR_MAG_LIN;
-      case VK_SAMPLER_MIPMAP_MODE_LINEAR:    return mag_near ? V3D_TMU_FILTERS_MIN_NEAR_MIP_LIN_MAG_NEAR :
-                                                               V3D_TMU_FILTERS_MIN_NEAR_MIP_LIN_MAG_LIN;
-      default:                               unreachable(); return V3D_TMU_FILTERS_INVALID;
-      }
-   case VK_FILTER_LINEAR:
-      switch (pci->mipmapMode)
-      {
-      case VK_SAMPLER_MIPMAP_MODE_NEAREST:   return mag_near ? V3D_TMU_FILTERS_MIN_LIN_MIP_NEAR_MAG_NEAR :
-                                                               V3D_TMU_FILTERS_MIN_LIN_MIP_NEAR_MAG_LIN;
-      case VK_SAMPLER_MIPMAP_MODE_LINEAR:    return mag_near ? V3D_TMU_FILTERS_MIN_LIN_MIP_LIN_MAG_NEAR :
-                                                               V3D_TMU_FILTERS_MIN_LIN_MIP_LIN_MAG_LIN;
-      default:                               unreachable(); return V3D_TMU_FILTERS_INVALID;
-      }
-   default:
-      unreachable();
-      return V3D_TMU_FILTERS_INVALID;
-   }
-}
-
-static bool WorkaroundAnisotropic(const VkSamplerCreateInfo *pci)
-{
-   // A workaround is needed if only the base level should be used.
-   return (pci->mipmapMode == VK_SAMPLER_MIPMAP_MODE_NEAREST &&
-           pci->maxLod <= 0.5f && pci->anisotropyEnable && pci->maxAnisotropy > 1.0f);
-}
-#endif
 
 void Sampler::CreateSamplerRecord(const VkSamplerCreateInfo *pci)
 {
@@ -124,18 +82,11 @@ void Sampler::CreateSamplerRecord(const VkSamplerCreateInfo *pci)
    s.min_lod    = gfx_umin(gfx_float_to_uint32(pci->minLod * 256.0f), s.max_lod);
    s.fixed_bias = gfx_float_to_int32(pci->mipLodBias * 256.0f);
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
    s.magfilt   = TranslateFilter(pci->magFilter);
    s.minfilt   = TranslateFilter(pci->minFilter);
    s.mipfilt   = TranslateMipmapMode(pci->mipmapMode);
    s.aniso_en  = pci->anisotropyEnable && pci->maxAnisotropy > 1.0f;
    s.max_aniso = s.aniso_en ? v3d_tmu_translate_max_aniso(pci->maxAnisotropy) : V3D_MAX_ANISO_2;
-#else
-   s.filters = TranslateFilters(pci);
-
-   if (WorkaroundAnisotropic(pci))
-      s.min_lod = s.max_lod = 0;
-#endif
 
    s.wrap_s = TranslateWrapMode(pci->addressModeU);
    s.wrap_t = TranslateWrapMode(pci->addressModeV);

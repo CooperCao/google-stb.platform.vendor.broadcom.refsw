@@ -194,16 +194,3 @@ GL_APICALL void GL_APIENTRY glMultiDrawElementsBaseVertexEXT(GLenum mode,
    multi_draw_elements_base_vertex(mode, count, type, indices, primcount,
          basevertex);
 }
-
-// Note: The "OES" variant of this extension call this function
-// glMultiDrawElementsBaseVertexEXT in the official Khronos extension spec and
-// glMultiDrawElementsBaseVertexOES in the official Khronos gl.xml
-// Providing both "EXT" and "OES" seems safer choice as auto-generated
-// headers will include "OES" suffix (from gl.xml).
-GL_APICALL void GL_APIENTRY glMultiDrawElementsBaseVertexOES(GLenum mode,
-      const GLsizei *count, GLenum type, const void * const *indices,
-      GLsizei primcount, const GLint *basevertex)
-{
-   multi_draw_elements_base_vertex(mode, count, type, indices, primcount,
-         basevertex);
-}

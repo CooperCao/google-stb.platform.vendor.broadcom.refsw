@@ -190,8 +190,6 @@ GLenum GL_APIENTRY glClientWaitSync (GLsync fsync_id, GLbitfield flags,
       GLuint64 timeout)
 {
    PROFILE_FUNCTION_MT("GL");
-
-   GLXX_FENCESYNC_T *fsync_temp = NULL;
    GLenum error = GL_NO_ERROR;
    GLenum result = GL_WAIT_FAILED;
 
@@ -212,50 +210,32 @@ GLenum GL_APIENTRY glClientWaitSync (GLsync fsync_id, GLbitfield flags,
       goto end;
    }
 
+   // this function flushes all render states that are users of this fence
    if (glxx_fencesync_is_signaled(fsync))
    {
       result = GL_ALREADY_SIGNALED;
       goto end;
    }
 
-   int timeout_ms = nanosec_to_trunc_ms(timeout);
-   if (timeout_ms == 0)
+   if (timeout == 0)
    {
-      khrn_fence_flush(fsync->fence);
       result = GL_TIMEOUT_EXPIRED;
       goto end;
    }
 
-   /* get a reference to the object in case it gets deleted while we do not
-    * hold the lock */
-   khrn_mem_acquire(fsync);
-   fsync_temp = fsync;
-
-   v3d_scheduler_deps fence_deps;
-   v3d_scheduler_copy_deps(&fence_deps, khrn_fence_get_deps(fsync->fence));
-
+   /* get a reference of the fence so we can wait for it without a gl lock */
+   khrn_fence *fence_temp = fsync->fence;
+   khrn_fence_refinc(fence_temp);
    glxx_unlock_server_state();
-   bool wait_ok = v3d_scheduler_wait_jobs_timeout(&fence_deps, GLXX_FENCESYNC_SIGNALED_DEPS_STATE, timeout_ms);
-   state = glxx_lock_server_state(OPENGL_ES_3X);
-   if (!state)
-   {
-      khrn_mem_release(fsync_temp);
-      return GL_WAIT_FAILED;
-   }
 
-   if (!wait_ok)
-   {
-      result = GL_TIMEOUT_EXPIRED;
-      goto end;
-   }
-
-   glxx_fencesync_set_signaled(fsync_temp);
-   result = GL_CONDITION_SATISFIED;
+   int timeout_ms = nanosec_to_trunc_ms(timeout);
+   bool res = khrn_fence_wait_timeout(fence_temp, GLXX_FENCESYNC_SIGNALED_DEPS_STATE,
+         timeout_ms);
+   result = res ? GL_CONDITION_SATISFIED : GL_TIMEOUT_EXPIRED;
+   khrn_fence_refdec(fence_temp);
+   return result;
 
 end:
-   if (fsync_temp)
-      khrn_mem_release(fsync_temp);
-
    if (error != GL_NO_ERROR)
    {
       glxx_server_state_set_error(state, error);

@@ -452,6 +452,14 @@ typedef enum NEXUS_LicensedFeature {
     NEXUS_LicensedFeature_eDolbyVision,
     NEXUS_LicensedFeature_eTchPrime,
     NEXUS_LicensedFeature_eItm,
+    NEXUS_LicensedFeature_eDap,
+    NEXUS_LicensedFeature_eDolbyDigital,
+    NEXUS_LicensedFeature_eDolbyDigitalPlus,
+    NEXUS_LicensedFeature_eDolbyAc4,
+    NEXUS_LicensedFeature_eDolbyTrueHd,
+    NEXUS_LicensedFeature_eDolbyMS10_11,
+    NEXUS_LicensedFeature_eDolbyMS12v1,
+    NEXUS_LicensedFeature_eDolbyMS12v2,
     NEXUS_LicensedFeature_eMax
 } NEXUS_LicensedFeature;
 

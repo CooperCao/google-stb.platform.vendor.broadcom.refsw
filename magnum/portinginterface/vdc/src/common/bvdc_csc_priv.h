@@ -604,76 +604,21 @@ extern "C" {
     matrix4x4_mth.ulFractBits = cscmatrix->usCxFractBits;        \
     BVDC_P_CSC_MAKE4X4(matrix4x4_mth.data, cscmatrix)
 
+#if (BVDC_P_SUPPORT_HDDVI)
 void BVDC_P_Csc_GetHdDviTable_isr
     ( BVDC_P_CscCoeffs                *pCsc,
       BAVC_CscMode                     eCscMode );
-
-void BVDC_P_Csc_ToMatrix_isr
-    ( int32_t                          pl32_Matrix[BVDC_CSC_COEFF_COUNT],
-      const BVDC_P_CscCoeffs          *pCsc,
-      uint32_t                         ulShift );
 
 void BVDC_P_Csc_FromMatrix_isr
     ( BVDC_P_CscCoeffs                *pCsc,
       const int32_t                    pl32_Matrix[BVDC_CSC_COEFF_COUNT],
       uint32_t                         ulShift );
+#endif
 
-void BVDC_P_Csc_ToMatrixDvo_isr
+void BVDC_P_Csc_ToMatrix_isr
     ( int32_t                          pl32_Matrix[BVDC_CSC_COEFF_COUNT],
       const BVDC_P_CscCoeffs          *pCsc,
-      uint32_t                         ulShift,
-      bool                             bRgb );
-
-void BVDC_P_Csc_FromMatrixDvo_isr
-    ( BVDC_P_CscCoeffs                *pCsc,
-      const int32_t                    pl32_Matrix[BVDC_CSC_COEFF_COUNT],
-      uint32_t                         ulShift,
-      bool                             bRgb );
-
-void BVDC_P_Csc_ApplyContrast_isr
-    ( int16_t                          sContrast,
-      BVDC_P_CscCoeffs                *pCscCoeffs );
-
-void BVDC_P_Csc_ApplySaturationAndHue_isr
-    ( int16_t                          sSaturation,
-      int16_t                          sHue,
-      BVDC_P_CscCoeffs                *pCscCoeffs );
-
-void BVDC_P_Csc_ApplyBrightness_isr
-    ( int16_t                          sBrightness,
-      BVDC_P_CscCoeffs                *pCscCoeffs );
-
-void BVDC_P_Csc_ApplyAttenuationRGB_isr
-    ( int32_t                          lAttenuationR,
-      int32_t                          lAttenuationG,
-      int32_t                          lAttenuationB,
-      int32_t                          lOffsetR,
-      int32_t                          lOffsetG,
-      int32_t                          lOffsetB,
-      BVDC_P_CscCoeffs                *pCscCoeffs,
-      const BVDC_P_CscCoeffs          *pYCbCrToRGB,
-      const BVDC_P_CscCoeffs          *pRGBToYCbCr,
-      bool                             bUserCsc);
-
-void BVDC_P_Csc_DvoApplyAttenuationRGB_isr
-    ( int32_t                          lAttenuationR,
-      int32_t                          lAttenuationG,
-      int32_t                          lAttenuationB,
-      int32_t                          lOffsetR,
-      int32_t                          lOffsetG,
-      int32_t                          lOffsetB,
-      BVDC_P_CscCoeffs                *pCscCoeffs );
-
-BERR_Code BVDC_P_Csc_ColorTempToAttenuationRGB
-    ( int16_t                          sColorTemp,
-      int32_t                         *plAttenuationR,
-      int32_t                         *plAttenuationG,
-      int32_t                         *plAttenuationB,
-      BVDC_P_CscCoeffs                *pCscCoeffs );
-
-void BVDC_P_Csc_MatrixInverse
-    ( BVDC_P_CscCoeffs                *pCscCoeffs,
-      BVDC_P_CscCoeffs                *pRetInvCscCoeffs );
+      uint32_t                         ulShift );
 
 void BVDC_P_Csc_ApplyYCbCrColor_isr
     ( BVDC_P_CscCoeffs                *pCscCoeffs,

@@ -380,14 +380,18 @@ static int build_psi(unsigned pmtPid, void *buffer, unsigned size, unsigned *pSi
     if (pscan_results->program_info[program].num_audio_pids) {
         unsigned audStreamType;
         switch(pscan_results->program_info[program].audio_pids[0].codec) {
-        case NEXUS_AudioCodec_eMpeg:         audStreamType = 0x4; break;
-        case NEXUS_AudioCodec_eMp3:          audStreamType = 0x4; break;
-        case NEXUS_AudioCodec_eAacAdts:      audStreamType = 0xf; break; /* ADTS */
-        case NEXUS_AudioCodec_eAacPlusAdts:  audStreamType = 0xf; break; /* ADTS */
-        case NEXUS_AudioCodec_eAacLoas:      audStreamType = 0x11; break;/* LOAS */
-        case NEXUS_AudioCodec_eAacPlusLoas:  audStreamType = 0x11; break;/* LOAS */
-        case NEXUS_AudioCodec_eAc3:          audStreamType = 0x81; break;
-        case NEXUS_AudioCodec_eLpcm1394:     audStreamType = 0x83; break;
+        case NEXUS_AudioCodec_eMpeg:
+        case NEXUS_AudioCodec_eMp3:          audStreamType = TS_PSI_ST_13818_3_Audio; break;
+        case NEXUS_AudioCodec_eAacAdts:
+        case NEXUS_AudioCodec_eAacPlusAdts:  audStreamType = TS_PSI_ST_13818_7_AAC; break;
+        case NEXUS_AudioCodec_eAacLoas:
+        case NEXUS_AudioCodec_eAacPlusLoas:  audStreamType = TS_PSI_ST_14496_3_Audio; break;
+        case NEXUS_AudioCodec_eAc3:          audStreamType = TS_PSI_ST_ATSC_AC3; break;
+        case NEXUS_AudioCodec_eLpcm1394:     audStreamType = TS_PSI_ST_IEEE1394_LPCM; break;
+        case NEXUS_AudioCodec_eAc3Plus:      audStreamType = TS_PSI_ST_ATSC_EAC3; break;
+        case NEXUS_AudioCodec_eDtsHd:        audStreamType = TS_PSI_ST_ATSC_DTS_HD; break;
+        case NEXUS_AudioCodec_eAvs:          audStreamType = TS_PSI_ST_AVS_Audio; break;
+        case NEXUS_AudioCodec_eDra:          audStreamType = TS_PSI_ST_DRA_Audio; break;
         default: return BERR_TRACE(NEXUS_NOT_SUPPORTED);
         }
 

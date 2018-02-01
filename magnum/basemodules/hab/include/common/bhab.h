@@ -843,7 +843,7 @@ Returns:
 BERR_Code BHAB_InstallInterruptCallback(
     BHAB_Handle handle,                /* [in] BHAB handle */
     BHAB_DevId eDevId,    /* [in] Device ID */
-    BHAB_IntCallbackFunc fCallBack,    /* [in] Callback function pointer */
+    BHAB_IntCallbackFunc fCallBack_isr,    /* [in] Callback function pointer */
     void * pParm1,                     /* [in] Paramater1 for callback function*/
     int parm2                          /* [in] Paramater2 for callback function*/
 );

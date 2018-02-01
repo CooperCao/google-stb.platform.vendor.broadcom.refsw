@@ -38,7 +38,7 @@
 #include "image_viewer.h"
 #include "image_viewer_priv.h"
 #include "platform.h"
-#include "util_priv.h"
+#include "util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -119,7 +119,12 @@ void image_viewer_view_image(ImageViewerHandle viewer, const char * imagePath)
     const char * fullPath = NULL;
 
     if (!imagePath) goto unload;
-    fullPath = file_manager_find(viewer->createSettings.filer, imagePath);
+
+    fullPath = imagePath;
+    if (imagePath[0] != '/')
+    {
+        fullPath = file_manager_find(viewer->createSettings.filer, imagePath);
+    }
     if (!fullPath) { printf("viewer: image '%s' not found\n", imagePath); goto unload; }
     image_viewer_p_load_image(viewer, fullPath);
     return;

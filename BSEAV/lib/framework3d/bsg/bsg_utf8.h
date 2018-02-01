@@ -118,7 +118,7 @@ public:
 
    static EncodingConstIterator End(const std::vector<unsigned char> &str, eStringEncoding encoding)
    {
-      return EncodingConstIterator(str, str.size(), encoding);
+      return EncodingConstIterator(str, static_cast<uint32_t>(str.size()), encoding);
    }
 
    bool operator==(const EncodingConstIterator &rhs) const

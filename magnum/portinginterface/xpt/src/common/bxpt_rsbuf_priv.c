@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -198,6 +198,7 @@ static int GetBufferIndex(unsigned BaseRegAddr, unsigned WhichInstance)
     return index;
 }
 
+#ifdef BXPT_P_TSIO_BUILT
 unsigned BXPT_P_GetMpodRsBufferIndex(
     unsigned WhichInstance
     )
@@ -210,6 +211,7 @@ unsigned BXPT_P_GetMpodRsBufferIndex(
 #endif
 
 }
+#endif
 
 static BERR_Code AllocateBuffer(
     BXPT_Handle hXpt,
@@ -480,7 +482,7 @@ BERR_Code BXPT_P_RsBuf_Init(
                 totalAllocated += BXPT_P_MINIMUM_BUF_SIZE;
             }
             BDBG_MSG(( "Alloc shared RS for IB parser %u, %u bps", ii, BandwidthConfig->MaxInputRate[ ii ] ));
-            SetupBufferRegs( hXpt, BCHP_XPT_RSBUFF_BASE_POINTER_IBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
+            BXPT_P_SetupShareRsBufferRegs( hXpt, BCHP_XPT_RSBUFF_BASE_POINTER_IBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
             SetBlockout(hXpt, BCHP_XPT_RSBUFF_BO_IBP0, ii, PWR_BO_COUNT);
         }
     }
@@ -506,7 +508,7 @@ BERR_Code BXPT_P_RsBuf_Init(
                 BXPT_P_AllocSharedXcRsBuffer( hXpt );
                 totalAllocated += BXPT_P_MINIMUM_BUF_SIZE;
             }
-            SetupBufferRegs( hXpt, BCHP_XPT_RSBUFF_BASE_POINTER_PBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
+            BXPT_P_SetupShareRsBufferRegs( hXpt, BCHP_XPT_RSBUFF_BASE_POINTER_PBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
             SetBlockout(hXpt, BCHP_XPT_RSBUFF_BO_PBP0, ii, PWR_BO_COUNT);
         }
     }
@@ -540,7 +542,7 @@ BERR_Code BXPT_P_RsBuf_Init(
                 BXPT_P_AllocSharedXcRsBuffer( hXpt );
                 totalAllocated += BXPT_P_MINIMUM_BUF_SIZE;
             }
-            SetupBufferRegs( hXpt, BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
+            BXPT_P_SetupShareRsBufferRegs( hXpt, BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
             SetBlockout(hXpt, BCHP_XPT_RSBUFF_BO_MPOD_IBP0, ii, PWR_BO_COUNT);
         }
     }

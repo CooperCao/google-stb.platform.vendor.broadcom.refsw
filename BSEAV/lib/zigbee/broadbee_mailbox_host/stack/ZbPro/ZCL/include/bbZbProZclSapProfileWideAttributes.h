@@ -252,9 +252,13 @@ typedef struct _ZBPRO_ZCL_ProfileWideCmdReadAttrReqParams_t
     /* Custom parameters. */
 
     /* 16-bit data. */
-
+#ifdef MULTIPLE_ATTRIBUTES_READ
+    uint16_t                                attributeNumber;        /*!< Number of the attributes that are to be read. */
+    ZBPRO_ZCL_AttributeId_t                 attributeId[40];        /*!< Identifier array of the attribute that are to be read. */
+#else
     ZBPRO_ZCL_AttributeId_t                 attributeId;            /*!< Identifier of the attribute that is to be
                                                                         read. */
+#endif
 } ZBPRO_ZCL_ProfileWideCmdReadAttrReqParams_t;
 
 

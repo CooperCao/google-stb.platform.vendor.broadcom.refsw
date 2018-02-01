@@ -150,6 +150,17 @@ static void mem_single_decode(NEXUS_MemoryConfigurationSettings *pSettings)
     }
 }
 
+static void mem_quarter_size_pip(NEXUS_MemoryConfigurationSettings *pSettings)
+{
+    unsigned i, j;
+    for (i=0;i<NEXUS_MAX_VIDEO_DECODERS;i++) {
+        /* start with window 1, not 0 */
+        for (j=1;j<NEXUS_NUM_VIDEO_WINDOWS;j++) {
+            pSettings->display[i].window[j].sizeLimit = NEXUS_VideoWindowSizeLimit_eQuarter;
+        }
+    }
+}
+
 static void mem_no_mvc_decode(NEXUS_MemoryConfigurationSettings *pSettings)
 {
     unsigned i;
@@ -269,12 +280,13 @@ int main(int argc, char **argv)
             "Select config:\n"
             "1) Highest: Everything enabled (default)\n"
             "2) No transcode\n"
-            "3) Single decode (plus #2)\n"
-            "4) No MVC (plus #3)\n"
-            "5) No HEVC, 4K, 10 bit decode (plus #4)\n"
-            "6) Single display (plus #5)\n"
-            "7) 1080p display (plus #6)\n"
-            "8) Lowest: Single decode, single display, no MAD, no capture\n"
+            "3) Quarter sized pip (plus #2)\n"
+            "4) Single decode (plus #3)\n"
+            "5) No MVC (plus #4)\n"
+            "6) No HEVC, 4K, 10 bit decode (plus #5)\n"
+            "7) Single display (plus #6)\n"
+            "8) 1080p display (plus #7\n"
+            "9) Lowest: Single decode, single display, no MAD, no capture\n"
             "q) Quit\n"
             );
         fgets(buf, sizeof(buf), stdin);
@@ -284,26 +296,29 @@ int main(int argc, char **argv)
         platformSettings.openFrontend = false;
         NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
         switch (config) {
-        case 8:
+        case 9:
             /* for minimum, set everything in one function */
             mem_minimum(&memConfigSettings);
             break;
 
         /* the following functions cascade */
-        case 7:
+        case 8:
             mem_1080p_display(&memConfigSettings);
             /* fall through */
-        case 6:
+        case 7:
             mem_single_display(&memConfigSettings);
             /* fall through */
-        case 5:
+        case 6:
             mem_no_hevc_4k_10bit(&memConfigSettings);
             /* fall through */
-        case 4:
+        case 5:
             mem_no_mvc_decode(&memConfigSettings);
             /* fall through */
-        case 3:
+        case 4:
             mem_single_decode(&memConfigSettings);
+            /* fall through */
+        case 3:
+            mem_quarter_size_pip(&memConfigSettings);
             /* fall through */
         case 2:
             mem_no_transcode(&memConfigSettings);

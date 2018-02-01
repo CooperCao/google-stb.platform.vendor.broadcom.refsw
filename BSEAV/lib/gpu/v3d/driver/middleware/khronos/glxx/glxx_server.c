@@ -1,6 +1,7 @@
 /******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
+
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/glxx/glxx_shared.h"
 
@@ -30,46 +31,29 @@
 #include "middleware/khronos/glxx/glxx_tweaker.h"
 
 #include "vcfw/drivers/chip/abstract_v3d.h"
+#include "interface/khronos/common/khrn_client.h"
+#include "middleware/khronos/common/khrn_mem.h"
 
 #include <string.h>
 #include <math.h>
 #include <limits.h>
 
-static bool attribs_are_consistent(GLXX_SERVER_STATE_T *state, GLXX_ATTRIB_T *attribs)
+static VCOS_MUTEX_T gl_lock;
+
+static MEM_HANDLE_T buffer_handle(GLXX_BUFFER_T *buffer)
 {
-   int i;
-   /*
-      If a glBindBuffer call has failed due to an out of memory condition, the client's estimate
-      of which attributes have buffers bound can differ from reality. If this happens, we cause
-      subsequent glDrawArrays() and glDrawElements() calls to fail with GL_OUT_OF_MEMORY.
-   */
-
-   for (i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
-      if (attribs[i].enabled && ((state->bound_buffer.mh_attrib_array[i] == MEM_HANDLE_INVALID) ^ (attribs[i].buffer == 0)))
-         return false;
-
-   return true;
-}
-
-static MEM_HANDLE_T buffer_handle(MEM_HANDLE_T handle)
-{
-   if (handle != MEM_HANDLE_INVALID) {
-      GLXX_BUFFER_T *buffer = (GLXX_BUFFER_T *)mem_lock(handle, NULL);
+   if (buffer != NULL) {
       MEM_HANDLE_T hresult = glxx_buffer_get_storage_handle(buffer);
-
-      mem_unlock(handle);
       return hresult;
    } else
       return MEM_HANDLE_INVALID;
 }
 
-static MEM_HANDLE_T buffer_interlock_offset(MEM_HANDLE_T handle)
+static MEM_HANDLE_T buffer_interlock_offset(GLXX_BUFFER_T *buffer)
 {
-   if (handle != MEM_HANDLE_INVALID) {
-      GLXX_BUFFER_T *buffer = (GLXX_BUFFER_T *)mem_lock(handle, NULL);
+   if (buffer != NULL) {
       uint32_t offset = glxx_buffer_get_interlock_offset(buffer);
       assert(offset<=sizeof(GLXX_BUFFER_T));
-      mem_unlock(handle);
       return offset;
    } else
       return ~0;
@@ -77,7 +61,7 @@ static MEM_HANDLE_T buffer_interlock_offset(MEM_HANDLE_T handle)
 
 static bool valid_frame_buffer(GLXX_SERVER_STATE_T *state)
 {
-   return state->mh_bound_framebuffer != MEM_HANDLE_INVALID;
+   return state->bound_framebuffer != NULL;
 }
 
 // We don't need access to the draw, depth and stencil images. The only things
@@ -87,21 +71,13 @@ KHRN_IMAGE_FORMAT_T glxx_get_draw_image_format(GLXX_SERVER_STATE_T *state)
 {
    KHRN_IMAGE_FORMAT_T result = IMAGE_FORMAT_INVALID;
    if (valid_frame_buffer(state)) {
-      GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)mem_lock(state->mh_bound_framebuffer, NULL);
-
-      MEM_HANDLE_T himage = glxx_attachment_info_get_images(&framebuffer->attachments.color, NULL);
-      if (himage != MEM_HANDLE_INVALID) {
-         KHRN_IMAGE_T *image = (KHRN_IMAGE_T *)mem_lock(himage, NULL);   //TODO is this valid?
+      GLXX_FRAMEBUFFER_T *framebuffer = state->bound_framebuffer;
+      KHRN_IMAGE_T *image = glxx_attachment_info_get_images(&framebuffer->attachments.color, NULL);
+      if (image != NULL)
          result = image->format;
-
-         mem_unlock(himage);
-      }
-      mem_unlock(state->mh_bound_framebuffer);
    } else {
-      KHRN_IMAGE_T *image = (KHRN_IMAGE_T *)mem_lock(state->mh_draw, NULL);
+      KHRN_IMAGE_T *image = state->draw;
       result = image->format;
-
-      mem_unlock(state->mh_draw);
    }
    return result;
 }
@@ -110,11 +86,10 @@ KHRN_IMAGE_FORMAT_T glxx_get_depth_image_format(GLXX_SERVER_STATE_T *state)
 {
    KHRN_IMAGE_FORMAT_T result = IMAGE_FORMAT_INVALID;
    if (valid_frame_buffer(state)) {
-      GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)mem_lock(state->mh_bound_framebuffer, NULL);
-      MEM_HANDLE_T rbhandle = framebuffer->attachments.depth.mh_object;
+      GLXX_FRAMEBUFFER_T *framebuffer = state->bound_framebuffer;
+      GLXX_RENDERBUFFER_T *renderbuffer = framebuffer->attachments.depth.object;
 
-      if (rbhandle != MEM_HANDLE_INVALID) {
-         GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(rbhandle, NULL);
+      if (renderbuffer != NULL) {
          switch (renderbuffer->type) {
          case RB_DEPTH16_T:
             result = DEPTH_16_TF;
@@ -127,15 +102,11 @@ KHRN_IMAGE_FORMAT_T glxx_get_depth_image_format(GLXX_SERVER_STATE_T *state)
          /* default: leave as IMAGE_FORMAT_INVALID */
             break;
          }
-         mem_unlock(rbhandle);
       }
-
-      mem_unlock(state->mh_bound_framebuffer);
-   } else if (state->mh_depth != MEM_HANDLE_INVALID) {
-      KHRN_IMAGE_T *image = (KHRN_IMAGE_T *)mem_lock(state->mh_depth, NULL);
+   } else if (state->depth != NULL) {
+      KHRN_IMAGE_T *image = state->depth;
       if (state->config_depth_bits > 0)
          result = image->format;
-      mem_unlock(state->mh_depth);
    } // else leave as IMAGE_FORMAT_INVALID
    return result;
 }
@@ -144,11 +115,10 @@ static KHRN_IMAGE_FORMAT_T get_stencil_image_format(GLXX_SERVER_STATE_T *state)
 {
    KHRN_IMAGE_FORMAT_T result = IMAGE_FORMAT_INVALID;
    if (valid_frame_buffer(state)) {
-      GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)mem_lock(state->mh_bound_framebuffer, NULL);
-      MEM_HANDLE_T rbhandle = framebuffer->attachments.stencil.mh_object;
+      GLXX_FRAMEBUFFER_T *framebuffer = state->bound_framebuffer;
+      GLXX_RENDERBUFFER_T *renderbuffer = framebuffer->attachments.stencil.object;
 
-      if (rbhandle != MEM_HANDLE_INVALID) {
-         GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(rbhandle, NULL);
+      if (renderbuffer != NULL) {
          switch (renderbuffer->type) {
          case RB_STENCIL_T:
          case RB_DEPTH24_STENCIL8_T:
@@ -158,16 +128,13 @@ static KHRN_IMAGE_FORMAT_T get_stencil_image_format(GLXX_SERVER_STATE_T *state)
          /* default: leave as IMAGE_FORMAT_INVALID */
             break;
          }
-         mem_unlock(rbhandle);
       }
 
-      mem_unlock(state->mh_bound_framebuffer);
       return result;
-   } else if (state->mh_depth != MEM_HANDLE_INVALID) {
-      KHRN_IMAGE_T *image = (KHRN_IMAGE_T *)mem_lock(state->mh_depth, NULL);
+   } else if (state->depth != NULL) {
+      KHRN_IMAGE_T *image = state->depth;
       if (state->config_stencil_bits > 0)
          result = image->format;
-      mem_unlock(state->mh_depth);
    } // else leave as IMAGE_FORMAT_INVALID
    return result;
 }
@@ -196,15 +163,14 @@ uint32_t glxx_get_stencil_size(GLXX_SERVER_STATE_T *state)
    return result;
 }
 
-static MEM_HANDLE_T create_texture(GLenum target)
+static GLXX_TEXTURE_T *create_texture(GLenum target)
 {
-   MEM_HANDLE_T ret = MEM_ALLOC_STRUCT_EX(GLXX_TEXTURE_T, MEM_COMPACT_DISCARD);
-   if (ret == MEM_HANDLE_INVALID) return ret;
+   GLXX_TEXTURE_T *texture = KHRN_MEM_ALLOC_STRUCT(GLXX_TEXTURE_T);
+   if (texture == NULL) return NULL;
 
-   mem_set_term(ret, glxx_texture_term, NULL);
-   glxx_texture_init(mem_lock(ret, NULL), 0, target);
-   mem_unlock(ret);
-   return ret;
+   khrn_mem_set_term(texture, glxx_texture_term);
+   glxx_texture_init(texture, 0, target);
+   return texture;
 }
 
 /*
@@ -213,45 +179,37 @@ static MEM_HANDLE_T create_texture(GLenum target)
    gl11_server_state_init and gl20_server_state_init
 */
 
-bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, MEM_HANDLE_T shared)
+bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
 {
-   int i;
-   MEM_HANDLE_T texture, texture_external, cache;
-   MEM_HANDLE_T texture_cube = MEM_HANDLE_INVALID;
+   GLXX_TEXTURE_T *texture_cube = NULL, *texture, *texture_external;
 
-   state->name = name;
-
-   MEM_ASSIGN(state->mh_shared, shared);
+   KHRN_MEM_ASSIGN(state->shared, shared);
 
    /*
       do texture stuff first so that we have
       the default texture to assign to the texture units
    */
    texture = create_texture(GL_TEXTURE_2D);
-   if (texture == MEM_HANDLE_INVALID)
+   if (texture == NULL)
        return false;
 
-   MEM_ASSIGN(state->mh_default_texture_twod, texture);
-   mem_release(texture);
+   KHRN_MEM_ASSIGN(state->default_texture_twod, texture);
+
    texture_external = create_texture(GL_TEXTURE_EXTERNAL_OES);
-   if (texture_external == MEM_HANDLE_INVALID)
+   if (texture_external == NULL)
        return false;
 
-   MEM_ASSIGN(state->mh_default_texture_external, texture_external);
-   mem_release(texture_external);
-
+   KHRN_MEM_ASSIGN(state->default_texture_external, texture_external);
 
    if(!IS_GL_11(state)) {
       /*
          And the cube map texture too
       */
       texture_cube = create_texture(GL_TEXTURE_CUBE_MAP);
-      if (texture_cube == MEM_HANDLE_INVALID)
+      if (texture_cube == NULL)
          return false;
 
-      MEM_ASSIGN(state->mh_default_texture_cube, texture_cube);
-
-      mem_release(texture_cube);
+      KHRN_MEM_ASSIGN(state->default_texture_cube, texture_cube);
    }
    /*
       now the rest of the structure
@@ -261,21 +219,24 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, MEM_HANDL
 
    state->error = GL_NO_ERROR;
 
-   assert(state->bound_buffer.mh_array == MEM_HANDLE_INVALID);
-   assert(state->bound_buffer.mh_element_array == MEM_HANDLE_INVALID);
+   assert(state->bound_buffer.array_buffer == NULL);
+   assert(state->bound_buffer.element_array_buffer == NULL);
 
    if(IS_GL_11(state)) {
-      for (i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++) {
-         MEM_ASSIGN(state->bound_texture[i].mh_twod, texture);
-         MEM_ASSIGN(state->bound_texture[i].mh_external, texture_external);
+      for (int i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++) {
+         KHRN_MEM_ASSIGN(state->bound_texture[i].twod, texture);
+         KHRN_MEM_ASSIGN(state->bound_texture[i].external, texture_external);
       }
    } else {
-      for (i = 0; i < GL20_CONFIG_MAX_COMBINED_TEXTURE_UNITS; i++) {
-         MEM_ASSIGN(state->bound_texture[i].mh_twod, texture);
-         MEM_ASSIGN(state->bound_texture[i].mh_external, texture_external);
-         MEM_ASSIGN(state->bound_texture[i].mh_cube, texture_cube);
+      for (int i = 0; i < GL20_CONFIG_MAX_COMBINED_TEXTURE_UNITS; i++) {
+         KHRN_MEM_ASSIGN(state->bound_texture[i].twod, texture);
+         KHRN_MEM_ASSIGN(state->bound_texture[i].external, texture_external);
+         KHRN_MEM_ASSIGN(state->bound_texture[i].cube, texture_cube);
       }
    }
+   KHRN_MEM_ASSIGN(texture_cube, NULL);
+   KHRN_MEM_ASSIGN(texture, NULL);
+   KHRN_MEM_ASSIGN(texture_external, NULL);
 
    state->clear_color[0] = 0.0f;
    state->clear_color[1] = 0.0f;
@@ -308,7 +269,6 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, MEM_HANDL
    state->front_face = GL_CCW;
 
    state->hints.generate_mipmap = GL_DONT_CARE;
-   state->hints.stereo_rendering = false;
 
    state->line_width = 1.0f;
 
@@ -363,11 +323,11 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, MEM_HANDL
 
    glxx_update_viewport_internal(state);
 
-   assert(state->mh_draw == MEM_HANDLE_INVALID);
-   assert(state->mh_read == MEM_HANDLE_INVALID);
-   assert(state->mh_depth == MEM_HANDLE_INVALID);
-   assert(state->mh_color_multi == MEM_HANDLE_INVALID);
-   assert(state->mh_ds_multi == MEM_HANDLE_INVALID);
+   assert(state->draw == NULL);
+   assert(state->read == NULL);
+   assert(state->depth == NULL);
+   assert(state->color_multi == NULL);
+   assert(state->ds_multi == NULL);
 
    state->changed_misc = IS_GL_11(state);
    state->changed_light = IS_GL_11(state);
@@ -385,19 +345,29 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, MEM_HANDL
 
    state->made_current = GL_FALSE;
 
-   //discardable and retained so can treat it like VBOs
-   cache = mem_alloc_ex(0, 4, (MEM_FLAG_T)(MEM_FLAG_RESIZEABLE | MEM_FLAG_HINT_GROW | MEM_FLAG_DIRECT | MEM_FLAG_DISCARDABLE | MEM_FLAG_RETAINED),
-      "GLXX_SERVER_STATE_T.cache", MEM_COMPACT_DISCARD);
+   assert(state->bound_renderbuffer == NULL);
+   assert(state->bound_framebuffer == NULL);
 
-   if (!cache)
-      return false;
+   state->alignment.pack = 4;
+   state->alignment.unpack = 4;
 
-   MEM_ASSIGN(state->mh_cache, cache);
+   state->bound_buffer.array_name = 0;
+   state->bound_buffer.element_array_name = 0;
 
-   mem_release(cache);
-
-   assert(state->mh_bound_renderbuffer == MEM_HANDLE_INVALID);
-   assert(state->mh_bound_framebuffer == MEM_HANDLE_INVALID);
+   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++) {
+      state->attrib[i].enabled = GL_FALSE;
+      state->attrib[i].size = 4;
+      state->attrib[i].type = GL_FLOAT;
+      state->attrib[i].normalized = GL_FALSE;
+      state->attrib[i].stride = 0;
+      state->attrib[i].buffer = 0;
+      state->attrib[i].pointer = NULL;
+      state->attrib[i].offset = 0;
+      state->attrib[i].value[0] = 0.0f;
+      state->attrib[i].value[1] = 0.0f;
+      state->attrib[i].value[2] = 0.0f;
+      state->attrib[i].value[3] = 1.0f;
+   }
 
    return true;
 }
@@ -407,16 +377,16 @@ void glxx_server_state_flush(bool wait)
    glxx_hw_finish_context(wait);
 }
 
-GLXX_TEXTURE_T *glxx_server_state_get_texture(GLXX_SERVER_STATE_T *state, GLenum target, GLboolean use_face, MEM_HANDLE_T *handle)
+GLXX_TEXTURE_T *glxx_server_state_get_texture(GLXX_SERVER_STATE_T *state, GLenum target, GLboolean use_face)
 {
-   MEM_HANDLE_T thandle = MEM_HANDLE_INVALID;
+   GLXX_TEXTURE_T *texture = NULL;
 
    switch (target) {
    case GL_TEXTURE_2D:
-      thandle = state->bound_texture[state->active_texture - GL_TEXTURE0].mh_twod;
+      texture = state->bound_texture[state->active_texture - GL_TEXTURE0].twod;
       break;
    case GL_TEXTURE_EXTERNAL_OES:
-      thandle = state->bound_texture[state->active_texture - GL_TEXTURE0].mh_external;
+      texture = state->bound_texture[state->active_texture - GL_TEXTURE0].external;
       break;
    case GL_TEXTURE_CUBE_MAP:
       if (IS_GL_11(state)) {
@@ -425,7 +395,7 @@ GLXX_TEXTURE_T *glxx_server_state_get_texture(GLXX_SERVER_STATE_T *state, GLenum
       }
       else {
          if (!use_face)
-            thandle = state->bound_texture[state->active_texture - GL_TEXTURE0].mh_cube;
+            texture = state->bound_texture[state->active_texture - GL_TEXTURE0].cube;
       }
       break;
    case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
@@ -440,42 +410,38 @@ GLXX_TEXTURE_T *glxx_server_state_get_texture(GLXX_SERVER_STATE_T *state, GLenum
       }
       else {
          if (use_face)
-            thandle = state->bound_texture[state->active_texture - GL_TEXTURE0].mh_cube;
+            texture = state->bound_texture[state->active_texture - GL_TEXTURE0].cube;
       }
       break;
    }
 
-   if (thandle == MEM_HANDLE_INVALID) {
+   if (texture == NULL) {
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
       return NULL;
    }
 
-   if (handle)
-      *handle = thandle;
-
-   return mem_lock(thandle, NULL);
+   return texture;
 }
 
 void glxx_server_state_set_buffers(GLXX_SERVER_STATE_T *state,
-   MEM_HANDLE_T hdraw,
-   MEM_HANDLE_T hread,
-   MEM_HANDLE_T hdepth,
-   MEM_HANDLE_T hcolormulti,
-   MEM_HANDLE_T hdsmulti,
+   KHRN_IMAGE_T *draw,
+   KHRN_IMAGE_T *read,
+   KHRN_IMAGE_T *depth,
+   KHRN_IMAGE_T *color_multi,
+   KHRN_IMAGE_T *ds_multi,
    uint32_t config_depth_bits,
    uint32_t config_stencil_bits)
 {
-   MEM_ASSIGN(state->mh_draw, hdraw);
-   MEM_ASSIGN(state->mh_read, hread);
-   MEM_ASSIGN(state->mh_depth, hdepth);
-   MEM_ASSIGN(state->mh_color_multi, hcolormulti);
-   MEM_ASSIGN(state->mh_ds_multi, hdsmulti);
+   KHRN_MEM_ASSIGN(state->draw, draw);
+   KHRN_MEM_ASSIGN(state->read, read);
+   KHRN_MEM_ASSIGN(state->depth, depth);
+   KHRN_MEM_ASSIGN(state->color_multi, color_multi);
+   KHRN_MEM_ASSIGN(state->ds_multi, ds_multi);
 
    state->config_depth_bits = config_depth_bits;
    state->config_stencil_bits = config_stencil_bits;
 
    if (!state->made_current) {
-      KHRN_IMAGE_T *draw = (KHRN_IMAGE_T *)mem_lock(hdraw, NULL);
       state->scissor.x = 0;
       state->scissor.y = 0;
       state->scissor.width = draw->width;
@@ -485,7 +451,6 @@ void glxx_server_state_set_buffers(GLXX_SERVER_STATE_T *state,
       state->viewport.y = 0;
       state->viewport.width = draw->width;
       state->viewport.height = draw->height;
-      mem_unlock(hdraw);
 
       glxx_update_viewport_internal(state);
 
@@ -499,56 +464,49 @@ void glxx_server_state_set_buffers(GLXX_SERVER_STATE_T *state,
    }
 }
 
-void glxx_server_state_term(MEM_HANDLE_T handle)
+void glxx_server_state_term(void *p)
 {
-   GLXX_SERVER_STATE_T *state = (GLXX_SERVER_STATE_T *)mem_lock(handle, NULL);
-   int i;
+   GLXX_SERVER_STATE_T *state = p;
 
+   glxx_context_gl_lock();
    // We want to make sure that any external buffers modified by this context
    // get updated.
    glxx_server_state_flush(true); /* todo: do we need to wait here? */
+   glxx_context_gl_unlock();
 
-   if (!IS_GL_11(state)) {
-      MEM_ASSIGN(state->mh_program, MEM_HANDLE_INVALID);
+   if (!IS_GL_11(state))
+      KHRN_MEM_ASSIGN(state->program, NULL);
+
+   KHRN_MEM_ASSIGN(state->bound_renderbuffer, NULL);
+   KHRN_MEM_ASSIGN(state->bound_framebuffer, NULL);
+
+   KHRN_MEM_ASSIGN(state->bound_buffer.array_buffer, NULL);
+   KHRN_MEM_ASSIGN(state->bound_buffer.element_array_buffer, NULL);
+
+   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
+      KHRN_MEM_ASSIGN(state->attrib[i].attrib, NULL);
+
+   for (int i = 0; i < GLXX_CONFIG_MAX_TEXTURE_UNITS; i++) {
+      KHRN_MEM_ASSIGN(state->bound_texture[i].twod, NULL);
+      KHRN_MEM_ASSIGN(state->bound_texture[i].external, NULL);
+      KHRN_MEM_ASSIGN(state->bound_texture[i].cube, NULL);
    }
 
-   MEM_ASSIGN(state->mh_bound_renderbuffer, MEM_HANDLE_INVALID);
-   MEM_ASSIGN(state->mh_bound_framebuffer, MEM_HANDLE_INVALID);
+   KHRN_MEM_ASSIGN(state->shared, NULL);
+   KHRN_MEM_ASSIGN(state->default_texture_twod, NULL);
+   KHRN_MEM_ASSIGN(state->default_texture_external, NULL);
+   KHRN_MEM_ASSIGN(state->default_texture_cube, NULL);
 
-   MEM_ASSIGN(state->bound_buffer.mh_array, MEM_HANDLE_INVALID);
-   MEM_ASSIGN(state->bound_buffer.mh_element_array, MEM_HANDLE_INVALID);
-
-   for (i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
-      MEM_ASSIGN(state->bound_buffer.mh_attrib_array[i], MEM_HANDLE_INVALID);
-
-   for (i = 0; i < GLXX_CONFIG_MAX_TEXTURE_UNITS; i++) {
-      MEM_ASSIGN(state->bound_texture[i].mh_twod, MEM_HANDLE_INVALID);
-      MEM_ASSIGN(state->bound_texture[i].mh_external, MEM_HANDLE_INVALID);
-      MEM_ASSIGN(state->bound_texture[i].mh_cube, MEM_HANDLE_INVALID);
-   }
-
-   MEM_ASSIGN(state->mh_shared, MEM_HANDLE_INVALID);
-   MEM_ASSIGN(state->mh_default_texture_twod, MEM_HANDLE_INVALID);
-   MEM_ASSIGN(state->mh_default_texture_external, MEM_HANDLE_INVALID);
-   MEM_ASSIGN(state->mh_default_texture_cube, MEM_HANDLE_INVALID);
-
-   MEM_ASSIGN(state->mh_draw, MEM_HANDLE_INVALID);
-   MEM_ASSIGN(state->mh_read, MEM_HANDLE_INVALID);
-   MEM_ASSIGN(state->mh_depth, MEM_HANDLE_INVALID);
-   MEM_ASSIGN(state->mh_color_multi, MEM_HANDLE_INVALID);
-   MEM_ASSIGN(state->mh_ds_multi, MEM_HANDLE_INVALID);
-
-   if (state->mh_cache != MEM_HANDLE_INVALID) {
-       mem_unretain(state->mh_cache);
-       MEM_ASSIGN(state->mh_cache, MEM_HANDLE_INVALID);
-   }
-
-   mem_unlock(handle);
+   KHRN_MEM_ASSIGN(state->draw, NULL);
+   KHRN_MEM_ASSIGN(state->read, NULL);
+   KHRN_MEM_ASSIGN(state->depth, NULL);
+   KHRN_MEM_ASSIGN(state->color_multi, NULL);
+   KHRN_MEM_ASSIGN(state->ds_multi, NULL);
 }
 
 //TODO are there any other operations which need a valid framebuffer and
 //therefore need to call this function, that I've forgotten about?
-GLenum glxx_check_framebuffer_status (GLXX_SERVER_STATE_T *state, GLenum target)
+GLenum glxx_check_framebuffer_status(GLXX_SERVER_STATE_T *state, GLenum target)
 {
    GLenum result = GL_FRAMEBUFFER_COMPLETE;
 
@@ -556,11 +514,8 @@ GLenum glxx_check_framebuffer_status (GLXX_SERVER_STATE_T *state, GLenum target)
 
    if (target == GL_FRAMEBUFFER) {
       if (valid_frame_buffer(state)) {
-         GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)mem_lock(state->mh_bound_framebuffer, NULL);
-
+         GLXX_FRAMEBUFFER_T *framebuffer = state->bound_framebuffer;
          result = glxx_framebuffer_check_status(framebuffer);
-
-         mem_unlock(state->mh_bound_framebuffer);
       } else {
          // If there is no bound buffer then we are using the
          // window-system-provided framebuffer. This is always complete.
@@ -630,10 +585,8 @@ static GLboolean is_blend_func(GLXX_SERVER_STATE_T *state, GLenum func, GLboolea
           ));
 }
 
-void glBlendFuncSeparate_impl (GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha) // S
+void glxx_server_set_blend_func(GLXX_SERVER_STATE_T *state, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha) // S
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
    if (is_blend_func(state, srcRGB, GL_TRUE) && is_blend_func(state, dstRGB, GL_FALSE) &&
        is_blend_func(state, srcAlpha, GL_TRUE) && is_blend_func(state, dstAlpha, GL_FALSE))
    {
@@ -644,13 +597,24 @@ void glBlendFuncSeparate_impl (GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GL
       state->blend_func.dst_alpha = dstAlpha;
    } else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
-
-   GLXX_UNLOCK_SERVER_STATE();
 }
 
-void glClear_impl (GLbitfield mask)
+GL_API void GL_APIENTRY glBlendFunc(GLenum sfactor, GLenum dfactor)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
+
+   glxx_server_set_blend_func(state, sfactor, dfactor, sfactor, dfactor);
+
+   glxx_unlock_server_state(OPENGL_ES_ANY);
+}
+
+GL_API void GL_APIENTRY glClear(GLbitfield mask)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (mask & ~(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT))
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
@@ -663,7 +627,7 @@ void glClear_impl (GLbitfield mask)
                    state))
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
 
@@ -784,10 +748,11 @@ static uint32_t get_palette_size(GLenum internalformat)
    }
 }
 
-GLboolean glCompressedTexImage2D_impl (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data)
+GL_API void GL_APIENTRY glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid *data)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-   GLboolean res = GL_FALSE;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (target == GL_TEXTURE_EXTERNAL_OES) {
        glxx_server_state_set_error(state, GL_INVALID_ENUM);
@@ -801,8 +766,7 @@ GLboolean glCompressedTexImage2D_impl (GLenum target, GLint level, GLenum intern
    case GL_ETC1_RGB8_OES:
    {
       //TODO check imageSize field is correct
-      MEM_HANDLE_T thandle;
-      GLXX_TEXTURE_T *texture = glxx_server_state_get_texture(state, target, GL_TRUE, &thandle);
+      GLXX_TEXTURE_T *texture = glxx_server_state_get_texture(state, target, GL_TRUE);
 
       state->changed_texunit = true; /* GLES1.1 - may change has_color/has_alpha */
       if (texture) {
@@ -823,10 +787,7 @@ GLboolean glCompressedTexImage2D_impl (GLenum target, GLint level, GLenum intern
          else
          {
             glxx_texture_etc1_sub_image(texture, target, level, 0, 0, width, height, data);
-            res = GL_TRUE;
          }
-
-         mem_unlock(thandle);
       }
       break;
    }
@@ -842,8 +803,7 @@ GLboolean glCompressedTexImage2D_impl (GLenum target, GLint level, GLenum intern
    case GL_PALETTE8_RGB5_A1_OES:
    {
       //TODO check imageSize field is correct
-      MEM_HANDLE_T thandle;
-      GLXX_TEXTURE_T *texture = glxx_server_state_get_texture(state, target, GL_TRUE, &thandle);
+      GLXX_TEXTURE_T *texture = glxx_server_state_get_texture(state, target, GL_TRUE);
       if (texture) {
          if (data == NULL)
             glxx_server_state_set_error(state, GL_INVALID_VALUE);
@@ -873,27 +833,63 @@ GLboolean glCompressedTexImage2D_impl (GLenum target, GLint level, GLenum intern
             else
             {
                glxx_texture_paletted_sub_image(texture, target, level, width, height, (const uint32_t *)palette,
-                  ps, (void *)((uint32_t)data + get_palette_size(internalformat)), imageSize);
-               res = GL_TRUE;
+                  ps, (char *)data + get_palette_size(internalformat), imageSize);
             }
 
             /* destroy the palette now upload complete */
             free(palette);
          }
-
-         mem_unlock(thandle);
       }
       break;
    }
+   default:
+      // Some format we don't recognise
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      break;
+   }
+
+end:
+   glxx_unlock_server_state(OPENGL_ES_ANY);
+}
+
+GL_API void GL_APIENTRY glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const GLvoid *data)
+{
+   UNUSED(target);
+   UNUSED(level);
+   UNUSED(xoffset);
+   UNUSED(yoffset);
+   UNUSED(width);
+   UNUSED(height);
+   UNUSED(imageSize);
+   UNUSED(data);
+
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
+
+   switch (format)
+   {
+   case GL_ETC1_RGB8_OES:
+   case GL_PALETTE4_RGB8_OES:
+   case GL_PALETTE4_RGBA8_OES:
+   case GL_PALETTE4_R5_G6_B5_OES:
+   case GL_PALETTE4_RGBA4_OES:
+   case GL_PALETTE4_RGB5_A1_OES:
+   case GL_PALETTE8_RGB8_OES:
+   case GL_PALETTE8_RGBA8_OES:
+   case GL_PALETTE8_R5_G6_B5_OES:
+   case GL_PALETTE8_RGBA4_OES:
+   case GL_PALETTE8_RGB5_A1_OES:
+      // Cannot specify subimages of paletted textures
+      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+      break;
    default:
       // Some format we don't recognise
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
       break;
    }
 
-end:
-   GLXX_UNLOCK_SERVER_STATE();
-   return res;
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
 static int format_is_copy_compatible(GLenum internalformat, KHRN_IMAGE_FORMAT_T srcformat)
@@ -942,30 +938,25 @@ static GLboolean is_texture_internal_format(GLenum internalformat)
           0;
 }
 
-static MEM_HANDLE_T get_read_image(GLXX_SERVER_STATE_T *state)
+static KHRN_IMAGE_T *get_read_image(GLXX_SERVER_STATE_T *state)
 {
+   KHRN_IMAGE_T *image = NULL;
+
    if (valid_frame_buffer(state)) {
-      GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)mem_lock(state->mh_bound_framebuffer, NULL);
+      GLXX_FRAMEBUFFER_T *framebuffer = state->bound_framebuffer;
+      image = glxx_attachment_info_get_images(&framebuffer->attachments.color, NULL);
+      assert(image != NULL);      //TODO: is this valid?
+   } else
+      image = state->read;
 
-      MEM_HANDLE_T result = glxx_attachment_info_get_images(&framebuffer->attachments.color, NULL);
-
-      assert(result != MEM_HANDLE_INVALID);      //TODO: is this valid?
-
-      mem_unlock(state->mh_bound_framebuffer);
-      return result;
-   } else {
-      return state->mh_read;
-   }
+   return image;
 }
 
-void glCopyTexImage2D_impl (GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border)
+GL_API void GL_APIENTRY glCopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border)
 {
-   MEM_HANDLE_T thandle;
-   GLXX_TEXTURE_T *texture;
-
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   assert(state);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (target == GL_TEXTURE_EXTERNAL_OES) {
        glxx_server_state_set_error(state, GL_INVALID_ENUM);
@@ -978,7 +969,7 @@ void glCopyTexImage2D_impl (GLenum target, GLint level, GLenum internalformat, G
       goto end;
    }
 
-   texture = glxx_server_state_get_texture(state, target, GL_TRUE, &thandle);
+   GLXX_TEXTURE_T *texture = glxx_server_state_get_texture(state, target, GL_TRUE);
    if (!texture) goto end;
 
    if (level < 0 || level > LOG2_MAX_TEXTURE_SIZE)
@@ -997,24 +988,27 @@ void glCopyTexImage2D_impl (GLenum target, GLint level, GLenum internalformat, G
 #endif
    else
    {
-      MEM_HANDLE_T hsrc = get_read_image(state);
-      KHRN_IMAGE_T *src = (KHRN_IMAGE_T *)mem_lock(hsrc, NULL);
+      KHRN_IMAGE_T *src = get_read_image(state);
       if (!format_is_copy_compatible(internalformat, src->format))
          glxx_server_state_set_error(state, GL_INVALID_OPERATION);
       else
       {
          khrn_interlock_read_immediate(&src->interlock);
 
+         /* src image was generated by HW, flush to get good copy */
+         KHRN_IMAGE_WRAP_T src_wrap;
+         khrn_image_lock_wrap(src, &src_wrap);
+         khrn_hw_flush_dcache_range(src_wrap.storage, khrn_image_get_size(src_wrap.format, src_wrap.width, src_wrap.height));
+         khrn_image_unlock_wrap(src);
+
          state->changed_texunit = true; /* GLES1.1 - may change has_color/has_alpha */
 
          if (!glxx_texture_copy_image(texture, target, level, width, height, internalformat, src, x, y))
             glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
       }
-      mem_unlock(hsrc);
    }
-   mem_unlock(thandle);
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
 GLboolean glxx_is_texture_target(GLXX_SERVER_STATE_T *state, GLenum target)
@@ -1036,14 +1030,11 @@ GLboolean glxx_is_texture_target(GLXX_SERVER_STATE_T *state, GLenum target)
    }
 }
 
-void glCopyTexSubImage2D_impl (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height)
+GL_API void GL_APIENTRY glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height)
 {
-   MEM_HANDLE_T thandle;
-   GLXX_TEXTURE_T *texture;
-
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   assert(state);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (target == GL_TEXTURE_EXTERNAL_OES) {
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
@@ -1056,7 +1047,7 @@ void glCopyTexSubImage2D_impl (GLenum target, GLint level, GLint xoffset, GLint 
       goto end;
    }
 
-   texture = glxx_server_state_get_texture(state, target, GL_TRUE, &thandle);
+   GLXX_TEXTURE_T *texture = glxx_server_state_get_texture(state, target, GL_TRUE);
    if (!texture) goto end;
 
    if (!glxx_is_texture_target(state,target))
@@ -1073,11 +1064,16 @@ void glCopyTexSubImage2D_impl (GLenum target, GLint level, GLint xoffset, GLint 
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
    else if (width > 0 && height > 0)
    {
-      MEM_HANDLE_T hsrc = get_read_image(state);
-      KHRN_IMAGE_T *src = (KHRN_IMAGE_T *)mem_lock(hsrc, NULL);
+      KHRN_IMAGE_T *src = get_read_image(state);
       //TODO: check formats are compatible?
 
       khrn_interlock_read_immediate(&src->interlock);
+
+      /* src image was generated by HW, flush to get good copy */
+      KHRN_IMAGE_WRAP_T src_wrap;
+      khrn_image_lock_wrap(src, &src_wrap);
+      khrn_hw_flush_dcache_range(src_wrap.storage, khrn_image_get_size(src_wrap.format, src_wrap.width, src_wrap.height));
+      khrn_image_unlock_wrap(src);
 
       if (x < 0) { xoffset -= x; width += x;  x = 0; }
       if (y < 0) { yoffset -= y; height += y; y = 0; }
@@ -1089,12 +1085,9 @@ void glCopyTexSubImage2D_impl (GLenum target, GLint level, GLint xoffset, GLint 
          if (!glxx_texture_copy_sub_image(texture, target, level, xoffset, yoffset, width, height, src, x, y))
             glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
       }
-
-      mem_unlock(hsrc);
    }
-   mem_unlock(thandle);
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
 /*
@@ -1134,9 +1127,11 @@ static GLboolean is_func(GLenum func)
    Error Checks: Done
 */
 
-void glDepthFunc_impl (GLenum func) // S
+GL_API void GL_APIENTRY glDepthFunc(GLenum func)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (is_func(func))
    {
@@ -1148,7 +1143,7 @@ void glDepthFunc_impl (GLenum func) // S
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
 /*
@@ -1160,16 +1155,18 @@ void glDepthFunc_impl (GLenum func) // S
    Error Checks: Done
 */
 
-void glDepthMask_impl (GLboolean flag) // S
+GL_API void GL_APIENTRY glDepthMask(GLboolean flag)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    state->changed_cfg = true;
    state->depth_mask = clean_boolean(flag);
 
    glxx_tweaker_setdepthmask(&state->tweak_state, flag ? true : false);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
 void glxx_update_color_material(GLXX_SERVER_STATE_T *state)
@@ -1178,17 +1175,17 @@ void glxx_update_color_material(GLXX_SERVER_STATE_T *state)
       int i;
 
       for (i = 0; i < 4; i++) {
-         state->material.ambient[i] = state->copy_of_color[i];
-         state->material.diffuse[i] = state->copy_of_color[i];
+         state->material.ambient[i] = state->attrib[GL11_IX_COLOR].value[i];
+         state->material.diffuse[i] = state->attrib[GL11_IX_COLOR].value[i];
       }
    }
 }
 
 static void set_enabled(GLenum cap, bool enabled)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   assert(state);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    assert(GL11_CONFIG_MAX_PLANES == 1);
    assert(GL11_CONFIG_MAX_LIGHTS == 8);
@@ -1364,26 +1361,26 @@ static void set_enabled(GLenum cap, bool enabled)
       break;
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
-void glDisable_impl (GLenum cap) // S
+GL_API void GL_APIENTRY glDisable(GLenum cap)
 {
    set_enabled(cap, false);
 }
 
-static int translate_max_index(MEM_HANDLE_T handle, const GLvoid *v, GLint size, GLenum type, GLsizei stride)
+static int translate_max_index(GLXX_BUFFER_T *buffer, uintptr_t v, GLint size, GLenum type, GLsizei stride)
 {
-   if (handle != MEM_HANDLE_INVALID) {
-      GLXX_BUFFER_T *buffer = (GLXX_BUFFER_T *)mem_lock(handle, NULL);
-      int attrib_size, actual_stride, offset, buffer_size, result;
+   if (buffer != NULL) {
+      int attrib_size, actual_stride, buffer_size, result;
+      intptr_t offset;
 
       assert(buffer);   // should never be possible to reach here with a deleted or non-existent buffer
       assert(size >= 1 && size <= 4);
 
       attrib_size = khrn_get_type_size(type) * size;
       actual_stride = stride ? stride : attrib_size;
-      offset = (int)v;
+      offset = (intptr_t)v;
       buffer_size = glxx_buffer_get_size(buffer);
 
       assert(actual_stride > 0);
@@ -1398,7 +1395,6 @@ static int translate_max_index(MEM_HANDLE_T handle, const GLvoid *v, GLint size,
          assert(offset +  result    * actual_stride + attrib_size >  buffer_size);
       }
 
-      mem_unlock(handle);
       return result;
    } else
       return INT_MAX;
@@ -1417,11 +1413,11 @@ static int set_attrib_handles(GLXX_SERVER_STATE_T *state, GLXX_ATTRIB_T *attribs
 
    for (i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
       if (attribs[i].enabled && (live & 0xf << (4*i))) {
-         result = _min(result,translate_max_index(state->bound_buffer.mh_attrib_array[i], attribs[i].pointer, attribs[i].size, attribs[i].type, attribs[i].stride));
-         if (state->bound_buffer.mh_attrib_array[i])
-            attrib_handles[i] = buffer_handle(state->bound_buffer.mh_attrib_array[i]);
+         result = _min(result,translate_max_index(state->attrib[i].attrib, attribs[i].offset, attribs[i].size, attribs[i].type, attribs[i].stride));
+         if (state->attrib[i].attrib)
+            attrib_handles[i] = buffer_handle(state->attrib[i].attrib);
          else
-            attrib_handles[i] = state->mh_cache;
+            attrib_handles[i] = MEM_HANDLE_INVALID;
       } else
          attrib_handles[i] = MEM_HANDLE_INVALID;
 
@@ -1434,15 +1430,16 @@ static GLboolean is_index_type(GLenum type)
           type == GL_UNSIGNED_SHORT;
 }
 
-void glDrawElements_impl (GLenum mode, GLsizei count, GLenum type, const void *indices_pointer,
-   GLuint indices_buffer, GLXX_ATTRIB_T *attribs, int *keys, int keys_count, bool secure)
+static void draw_elements (GLXX_SERVER_STATE_T *state, GLenum mode,
+      GLsizei count, GLenum type,
+      GLXX_BUFFER_T *indices, uint32_t indices_offset)
 {
-   MEM_HANDLE_OFFSET_T interlocks[GLXX_CONFIG_MAX_VERTEX_ATTRIBS+1];
+   GLXX_ATTRIB_T *attribs = state->attrib;
+   POINTER_OFFSET_T interlocks[GLXX_CONFIG_MAX_VERTEX_ATTRIBS+1];
    int i, interlock_count;
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
 
    /* SW-5891 glDrawArrays should handle >65536 vertices, fix is implemented for all but triangle fans and line loops  */
-   if(type==0 && ((int)indices_pointer + count) > 65536 && (mode == GL_TRIANGLE_FAN || mode == GL_LINE_LOOP))
+   if(type==0 && ((int)indices_offset + count) > 65536 && (mode == GL_TRIANGLE_FAN || mode == GL_LINE_LOOP))
    {
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
       goto fail_or_done;
@@ -1450,7 +1447,7 @@ void glDrawElements_impl (GLenum mode, GLsizei count, GLenum type, const void *i
 
    INCR_DRIVER_COUNTER(draw_calls);
 
-   if (attribs_are_consistent(state, attribs) && !(type != 0 && ((state->bound_buffer.mh_element_array == MEM_HANDLE_INVALID) ^ (indices_buffer == 0)))) {
+   { /* block kept to avoid changing indentation of every line below */
       bool indices_ok;
       int max_index;
       MEM_HANDLE_T indices_handle;
@@ -1466,47 +1463,31 @@ void glDrawElements_impl (GLenum mode, GLsizei count, GLenum type, const void *i
       max_index = set_attrib_handles(state, attribs, attrib_handles);
 
       if(type==0) {
-         int first = (int)indices_pointer;
+         int first = (int)indices_offset;
          indices_ok = first >= 0 && first < max_index && first + count <= max_index;
+         assert(indices == NULL);
          indices_handle = MEM_HANDLE_INVALID;
       }
       else {
-         if (state->bound_buffer.mh_element_array) {
-            GLXX_BUFFER_T *buffer;
-            int type_size;
-            uint32_t buffer_size;
+         int type_size;
+         uint32_t buffer_size;
 
-            indices_handle = buffer_handle(state->bound_buffer.mh_element_array);
+         assert(indices != NULL);
+         indices_handle = buffer_handle(indices);
 
-            buffer = (GLXX_BUFFER_T *)mem_lock(state->bound_buffer.mh_element_array, NULL);
-            type_size = khrn_get_type_size(type);
-            buffer_size = glxx_buffer_get_size(buffer);
+         type_size = khrn_get_type_size(type);
+         buffer_size = glxx_buffer_get_size(indices);
 
-            // Need to check two things:
-            // - we don't look beyond the index buffer object (the easy bit)
-            // - none of the indices go beyond any vertex buffer object, i.e. max_index
-            // Note that it is assumed that anything not coming from a buffer object is safe.
-            // (The client will have worked out how much data it needs and sent that
-            // much across).
+         // Need to check two things:
+         // - we don't look beyond the index buffer object (the easy bit)
+         // - none of the indices go beyond any vertex buffer object, i.e. max_index
+         // Note that it is assumed that anything not coming from a buffer object is safe.
+         // (The client will have worked out how much data it needs and sent that
+         // much across).
 
-            indices_ok = (uint32_t)indices_pointer <= buffer_size && (uint32_t)indices_pointer + count * type_size <= buffer_size
-               && max_index > 0;
+         indices_ok = indices_offset <= buffer_size && indices_offset + count * type_size <= buffer_size
+            && max_index > 0;
 
-            mem_unlock(state->bound_buffer.mh_element_array);
-         } else {
-            indices_handle = state->mh_cache;
-
-            if (max_index == INT_MAX) {
-               indices_ok = true;
-            } else {
-               /* No index buffer object, so we have to calculate maximum ourselves */
-               /* TODO: the client has probably worked out this information already so */
-               /* could send it down */
-
-               //check vertex attribute buffers have space for at least some vertices
-               indices_ok = max_index > 0;
-            }
-         }
       }
 
 // adjust count to match mode so no degenerate primitives are left on the end
@@ -1552,30 +1533,25 @@ void glDrawElements_impl (GLenum mode, GLsizei count, GLenum type, const void *i
             case GL_TRIANGLES:
             case GL_TRIANGLE_STRIP:
             case GL_TRIANGLE_FAN:
-               for (i = 0; i < keys_count; i++)
-               {
-                  interlocks[i].mh_handle = state->mh_cache;
-                  interlocks[i].offset = keys[i];
-               }
-               interlock_count = keys_count;
+               interlock_count = 0;
                for (i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
                {
-                  if (attribs[i].enabled && state->bound_buffer.mh_attrib_array[i] != MEM_HANDLE_INVALID)
+                  if (attribs[i].enabled && attribs[i].attrib != NULL)
                   {
-                     interlocks[interlock_count].mh_handle = state->bound_buffer.mh_attrib_array[i];
-                     interlocks[interlock_count].offset = buffer_interlock_offset(state->bound_buffer.mh_attrib_array[i]);
+                     interlocks[interlock_count].p = attribs[i].attrib;
+                     interlocks[interlock_count].offset = buffer_interlock_offset(attribs[i].attrib);
                      interlock_count++;
                   }
                }
-               if (type != 0 && state->bound_buffer.mh_element_array != MEM_HANDLE_INVALID)
+               if (type != 0 && indices != NULL)
                {
-                  interlocks[interlock_count].mh_handle = state->bound_buffer.mh_element_array;
-                  interlocks[interlock_count].offset = buffer_interlock_offset(state->bound_buffer.mh_element_array);
+                  interlocks[interlock_count].p = indices;
+                  interlocks[interlock_count].offset = buffer_interlock_offset(indices);
                   interlock_count++;
                }
                assert(interlock_count <= GLXX_CONFIG_MAX_VERTEX_ATTRIBS+1);
-               if (!glxx_hw_draw_triangles(count, type, (int)indices_pointer, state, attribs, indices_handle, attrib_handles,
-                  max_index, interlocks, interlock_count, secure))
+               if (!glxx_hw_draw_triangles(count, type, indices_offset, state, attribs, indices_handle, attrib_handles,
+                  max_index, interlocks, interlock_count))
                   glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
                break;
             default:
@@ -1587,29 +1563,36 @@ void glDrawElements_impl (GLenum mode, GLsizei count, GLenum type, const void *i
       }
       else
          glxx_server_state_set_error(state, GL_INVALID_VALUE);
-   } else
-      glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
+   }
 
 fail_or_done:
-   GLXX_UNLOCK_SERVER_STATE();
+   return;
 }
 
-void glEnable_impl (GLenum cap) // S
+GL_API void GL_APIENTRY glEnable(GLenum cap)
 {
    set_enabled(cap, true);
 }
 
-GLuint glFinish_impl (void)
+void flush_internal(bool wait)
 {
-   glxx_server_state_flush(true);
-   return 0;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (state)
+   {
+      glxx_server_state_flush(wait);
+      glxx_unlock_server_state(OPENGL_ES_ANY);
+   }
 }
 
-void glFlush_impl (void)
+GL_API void GL_APIENTRY glFinish(void)
 {
-   glxx_server_state_flush(false);
+   flush_internal(true);
 }
 
+GL_API void GL_APIENTRY glFlush(void)
+{
+   flush_internal(false);
+}
 
 static GLboolean is_front_face(GLenum mode)
 {
@@ -1628,9 +1611,11 @@ static GLboolean is_front_face(GLenum mode)
    Error Checks: Done
 */
 
-void glFrontFace_impl (GLenum mode) // S
+GL_API void GL_APIENTRY glFrontFace(GLenum mode)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (is_front_face(mode))
    {
@@ -1640,14 +1625,16 @@ void glFrontFace_impl (GLenum mode) // S
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
-void glGenBuffers_impl (GLsizei n, GLuint *buffers)
+GL_API void GL_APIENTRY glGenBuffers(GLsizei n, GLuint *buffers)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
-   GLXX_SHARED_T *shared = (GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL);
+   GLXX_SHARED_T *shared = state->shared;
 
    int32_t i = 0;
 
@@ -1655,38 +1642,42 @@ void glGenBuffers_impl (GLsizei n, GLuint *buffers)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);   // The conformance tests insist...
    else if (buffers)
       while (i < n) {
-         if (glxx_shared_get_buffer(shared, shared->next_buffer, false) == MEM_HANDLE_INVALID)
+         if (glxx_shared_get_buffer(shared, shared->next_buffer, false) == NULL)
             buffers[i++] = shared->next_buffer;
 
          shared->next_buffer++;
       }
 
-   mem_unlock(state->mh_shared);
-
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
-void glGenTextures_impl (GLsizei n, GLuint *textures)
+GL_API void GL_APIENTRY glGenTextures(GLsizei n, GLuint *textures)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   GLXX_SHARED_T *shared = (GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL);
-
-   int32_t i = 0;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (n < 0)
+   {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);   // The conformance tests insist...
-   else if (textures)
+      goto end;
+   }
+
+   GLXX_SHARED_T *shared = state->shared;
+
+   if (textures)
+   {
+      int32_t i = 0;
       while (i < n) {
-         if (glxx_shared_get_texture(shared, shared->next_texture) == MEM_HANDLE_INVALID)
+         if (glxx_shared_get_texture(shared, shared->next_texture) == NULL)
             textures[i++] = shared->next_texture;
 
          shared->next_texture++;
       }
+   }
 
-   mem_unlock(state->mh_shared);
-
-   GLXX_UNLOCK_SERVER_STATE();
+end:
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
 /*
@@ -1695,15 +1686,17 @@ void glGenTextures_impl (GLsizei n, GLuint *textures)
    Current error code(s) NO ERROR GetError
 */
 
-GLenum glGetError_impl (void)
+GL_API GLenum GL_APIENTRY glGetError(void)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return GL_NO_ERROR;
 
    GLenum result = state->error;
 
    state->error = GL_NO_ERROR;
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 
    return result;
 }
@@ -1749,6 +1742,11 @@ GLboolean glxx_is_boolean (GLXX_SERVER_STATE_T *state, GLenum pname)
    case GL_TEXTURE_2D:
    case GL_ALPHA_TEST:
    case GL_COLOR_LOGIC_OP:
+   case GL_VERTEX_ARRAY:
+   case GL_NORMAL_ARRAY:
+   case GL_COLOR_ARRAY:
+   case GL_TEXTURE_COORD_ARRAY:
+   case GL_POINT_SIZE_ARRAY_OES:
       return IS_GL_11(state);
    //gl 2.0 specific booleans
    case GL_SHADER_COMPILER:
@@ -1796,6 +1794,12 @@ GLboolean glxx_is_integer (GLXX_SERVER_STATE_T *state, GLenum pname)
    case GL_RENDERBUFFER_BINDING:
    case GL_MAX_RENDERBUFFER_SIZE:
    case GL_MAX_SAMPLES_EXT:
+   case GL_ARRAY_BUFFER_BINDING:
+   case GL_ELEMENT_ARRAY_BUFFER_BINDING:
+   case GL_IMPLEMENTATION_COLOR_READ_TYPE:
+   case GL_IMPLEMENTATION_COLOR_READ_FORMAT:
+   case GL_UNPACK_ALIGNMENT:
+   case GL_PACK_ALIGNMENT:
       return GL_TRUE;
    //gl 1.1 specific integers
    case GL_MODELVIEW_STACK_DEPTH:
@@ -1821,10 +1825,27 @@ GLboolean glxx_is_integer (GLXX_SERVER_STATE_T *state, GLenum pname)
    case GL_MODELVIEW_MATRIX_FLOAT_AS_INT_BITS_OES:
    case GL_PROJECTION_MATRIX_FLOAT_AS_INT_BITS_OES:
    case GL_TEXTURE_MATRIX_FLOAT_AS_INT_BITS_OES:
+   case GL_CLIENT_ACTIVE_TEXTURE:
+   case GL_VERTEX_ARRAY_SIZE:
+   case GL_VERTEX_ARRAY_TYPE:
+   case GL_VERTEX_ARRAY_STRIDE:
+   case GL_NORMAL_ARRAY_TYPE:
+   case GL_NORMAL_ARRAY_STRIDE:
+   case GL_COLOR_ARRAY_SIZE:
+   case GL_COLOR_ARRAY_TYPE:
+   case GL_COLOR_ARRAY_STRIDE:
+   case GL_TEXTURE_COORD_ARRAY_SIZE:
+   case GL_TEXTURE_COORD_ARRAY_TYPE:
+   case GL_TEXTURE_COORD_ARRAY_STRIDE:
+   case GL_POINT_SIZE_ARRAY_TYPE_OES:
+   case GL_POINT_SIZE_ARRAY_STRIDE_OES:
+   case GL_VERTEX_ARRAY_BUFFER_BINDING:
+   case GL_NORMAL_ARRAY_BUFFER_BINDING:
+   case GL_COLOR_ARRAY_BUFFER_BINDING:
+   case GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING:
+   case GL_POINT_SIZE_ARRAY_BUFFER_BINDING_OES:
       return IS_GL_11(state);
    //gl 2.0 specific integers
-   case GL_ARRAY_BUFFER_BINDING:
-   case GL_ELEMENT_ARRAY_BUFFER_BINDING:
    case GL_TEXTURE_BINDING_CUBE_MAP:
    case GL_STENCIL_BACK_WRITEMASK:
    case GL_STENCIL_BACK_FUNC:
@@ -1849,8 +1870,6 @@ GLboolean glxx_is_integer (GLXX_SERVER_STATE_T *state, GLenum pname)
    case GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS:
    case GL_MAX_TEXTURE_IMAGE_UNITS:
    case GL_MAX_FRAGMENT_UNIFORM_VECTORS:
-   case GL_IMPLEMENTATION_COLOR_READ_TYPE:
-   case GL_IMPLEMENTATION_COLOR_READ_FORMAT:
    case GL_CURRENT_PROGRAM:
       return !IS_GL_11(state);
    default:
@@ -1909,6 +1928,10 @@ GLboolean glxx_is_float (GLXX_SERVER_STATE_T *state, GLenum pname)
    case GL_ALPHA_TEST_REF:
    case GL_SMOOTH_POINT_SIZE_RANGE:
    case GL_SMOOTH_LINE_WIDTH_RANGE:
+   case GL_CURRENT_TEXTURE_COORDS:
+   case GL_CURRENT_COLOR:
+   case GL_CURRENT_NORMAL:
+   case GL_POINT_SIZE:
       return IS_GL_11(state);
    //gl 2.0 specific floats
    case GL_BLEND_COLOR:
@@ -1931,14 +1954,14 @@ GLboolean glxx_is_float (GLXX_SERVER_STATE_T *state, GLenum pname)
    Error Checks: Done
 */
 
-int glGetBooleanv_impl (GLenum pname, GLboolean *params)
+GL_API void GL_APIENTRY glGetBooleanv(GLenum pname, GLboolean *params)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   int result;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (glxx_is_boolean(state, pname))
-      result = glxx_get_boolean_internal(state, pname, params);
+      glxx_get_boolean_internal(state, pname, params);
    else if (glxx_is_integer(state, pname))
    {
       GLint temp[16];
@@ -1949,8 +1972,6 @@ int glGetBooleanv_impl (GLenum pname, GLboolean *params)
 
       for (i = 0; i < count; i++)
          params[i] = temp[i] != 0;
-
-      result = count;
    }
    else if (glxx_is_float(state, pname))
    {
@@ -1962,23 +1983,11 @@ int glGetBooleanv_impl (GLenum pname, GLboolean *params)
 
       for (i = 0; i < count; i++)
          params[i] = temp[i] != 0.0f;
-
-      result = count;
    }
    else
-   {
-      GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-      GLXX_UNLOCK_SERVER_STATE();
-
-      result = 0;
-   }
-
-   GLXX_UNLOCK_SERVER_STATE();
-
-   return result;
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
 /*
@@ -1990,46 +1999,38 @@ int glGetBooleanv_impl (GLenum pname, GLboolean *params)
    BUFFER MAPPED False GetBufferParameteriv
 */
 
-int glGetBufferParameteriv_impl (GLenum target, GLenum pname, GLint *params)
+GL_API void GL_APIENTRY glGetBufferParameteriv(GLenum target, GLenum pname, GLint *params)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
-   MEM_HANDLE_T bhandle;
    GLXX_BUFFER_T *buffer;
-   int result = 0;
 
-   assert(state);
-
-   buffer = glxx_get_bound_buffer(state, target, &bhandle);
+   buffer = glxx_get_bound_buffer(state, target);
 
    if (buffer) {
       switch (pname) {
       case GL_BUFFER_SIZE:
          params[0] = mem_get_size(glxx_buffer_get_storage_handle(buffer));
-         result = 1;
          break;
       case GL_BUFFER_USAGE:
          params[0] = buffer->usage;
-         result = 1;
          break;
       default:
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
          break;
       }
-
-      mem_unlock(bhandle);
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
-
-   return result;
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
-int glGetIntegerv_impl (GLenum pname, GLint *params)
+GL_API void GL_APIENTRY glGetIntegerv(GLenum pname, GLint *params)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   int result;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (glxx_is_boolean(state, pname))
    {
@@ -2041,11 +2042,9 @@ int glGetIntegerv_impl (GLenum pname, GLint *params)
 
       for (i = 0; i < count; i++)
          params[i] = temp[i] ? 1 : 0;
-
-      result = count;
    }
    else if (glxx_is_integer(state, pname))
-      result = glxx_get_integer_internal(state, pname, params);
+      glxx_get_integer_internal(state, pname, params);
    else if (is_small_float_glxx(state, pname))
    {
       GLfloat temp[4];
@@ -2060,8 +2059,6 @@ int glGetIntegerv_impl (GLenum pname, GLint *params)
          if (params[i] < 0)
             params[i] = 0x7fffffff;
       }
-
-      result = count;
    }
    else if (glxx_is_float(state, pname))
    {
@@ -2073,29 +2070,122 @@ int glGetIntegerv_impl (GLenum pname, GLint *params)
 
       for (i = 0; i < count; i++)
          params[i] = float_to_int(temp[i]);
-
-      result = count;
    }
    else
-   {
-
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-      result = 0;
+   glxx_unlock_server_state(OPENGL_ES_ANY);
+}
+
+#define MAX_RENDERER_STRLEN 64
+#define MAX_RENDERERVER_STRLEN 8
+
+GL_API const GLubyte * GL_APIENTRY glGetString(GLenum name)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return NULL;
+
+   const GLubyte *result = NULL;
+
+   static GLubyte renderer[MAX_RENDERER_STRLEN];
+   GLubyte version[MAX_RENDERERVER_STRLEN];
+   switch (name) {
+   case GL_VENDOR:
+#ifndef NDEBUG
+      result = "Broadcom DEBUG";
+#else
+      result = "Broadcom";
+#endif
+      break;
+   case GL_RENDERER:
+      get_core_revision_internal(MAX_RENDERERVER_STRLEN, version);
+      snprintf((char *)renderer, sizeof(renderer), "VideoCore IV HW (V3D-%s)", version);
+      result = renderer;
+      break;
+
+   default:
+      if (IS_GL_11(state)) {
+         switch (name) {
+         case GL_VERSION:
+            result = (const GLubyte *)"OpenGL ES-CM 1.1";
+            break;
+         case GL_EXTENSIONS:
+            result = (const GLubyte *)"GL_OES_compressed_ETC1_RGB8_texture "
+               "GL_OES_compressed_paletted_texture "
+               "GL_OES_texture_npot "
+               "GL_OES_EGL_image "
+               "GL_EXT_discard_framebuffer "
+               "GL_OES_query_matrix "
+               "GL_OES_framebuffer_object "
+               "GL_OES_rgb8_rgba8 "
+               "GL_OES_depth24 "
+               "GL_OES_depth32 "
+               "GL_OES_stencil8 "
+               "GL_OES_draw_texture "
+               "GL_OES_packed_depth_stencil "
+               "GL_EXT_debug_marker "
+               "GL_EXT_multisampled_render_to_texture "
+               "GL_EXT_texture_format_BGRA8888 "
+               "GL_EXT_read_format_bgra "
+#ifdef ANDROID
+               "GL_OES_EGL_image_external "
+#endif
+#ifdef EGL_KHR_fence_sync
+               "GL_OES_EGL_sync "
+#endif
+               ;
+            break;
+         default:
+            glxx_server_state_set_error(state, GL_INVALID_ENUM);
+            result = NULL;
+            break;
+         }
+      }
+      else if (IS_GL_20(state)) {
+         switch (name) {
+         case GL_VERSION:
+            result = (const GLubyte *)"OpenGL ES 2.0";
+            break;
+         case GL_SHADING_LANGUAGE_VERSION:
+            result = (const GLubyte *)"OpenGL ES GLSL ES 1.00";
+            break;
+         case GL_EXTENSIONS:
+            result = (const GLubyte *)"GL_OES_compressed_ETC1_RGB8_texture "
+               "GL_OES_compressed_paletted_texture "
+               "GL_OES_texture_npot "
+               "GL_OES_depth24 "
+               "GL_OES_vertex_half_float "
+               "GL_OES_EGL_image "
+               "GL_EXT_discard_framebuffer "
+               "GL_OES_rgb8_rgba8 "
+               "GL_OES_depth32 "
+               "GL_APPLE_rgb_422 "
+               "GL_OES_packed_depth_stencil "
+               "GL_EXT_debug_marker "
+               "GL_EXT_multisampled_render_to_texture "
+               "GL_EXT_texture_format_BGRA8888 "
+               "GL_EXT_read_format_bgra "
+#ifdef ANDROID
+               "GL_OES_EGL_image_external "
+#endif
+#ifdef EGL_KHR_fence_sync
+               "GL_OES_EGL_sync "
+#endif
+               ;
+            break;
+         default:
+            glxx_server_state_set_error(state, GL_INVALID_ENUM);
+            result = NULL;
+            break;
+         }
+      }
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 
    return result;
 }
-
-//TODO where is glGetString handled? it is not in client/gl.c
-/*
-const GLubyte * glGetString_impl (GLenum name)
-{
-   assert(0);
-}
-*/
 
 /*
    GetTexParameteriv
@@ -2109,79 +2199,67 @@ const GLubyte * glGetString_impl (GLenum name)
 
 int glxx_get_texparameter_internal(GLenum target, GLenum pname, GLint *params)
 {
-   int result = 0;
-   MEM_HANDLE_T thandle;
    GLXX_TEXTURE_T *texture;
 
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return 0;
 
-   assert(state);
+   texture = glxx_server_state_get_texture(state, target, GL_FALSE);
 
-   texture = glxx_server_state_get_texture(state, target, GL_FALSE, &thandle);
-
+   int result = 1;
    if (texture) {
       switch (pname) {
       case GL_TEXTURE_MIN_FILTER:
          params[0] = texture->min;
-         result = 1;
          break;
       case GL_TEXTURE_MAG_FILTER:
          params[0] = texture->mag;
-         result = 1;
          break;
       case GL_TEXTURE_WRAP_S:
          params[0] = texture->wrap.s;
-         result = 1;
          break;
       case GL_TEXTURE_WRAP_T:
          params[0] = texture->wrap.t;
-         result = 1;
          break;
       case GL_GENERATE_MIPMAP:
-         if (IS_GL_11(state) && target != GL_TEXTURE_EXTERNAL_OES) {
+         if (IS_GL_11(state) && target != GL_TEXTURE_EXTERNAL_OES)
             params[0] = texture->generate_mipmap;
-            result = 1;
-         } else {
+         else {
             glxx_server_state_set_error(state, GL_INVALID_ENUM);
             result = 0;
          }
          break;
       case GL_REQUIRED_TEXTURE_IMAGE_UNITS_OES:
          params[0] = 1;
-         result = 1;
          break;
       default:
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
          result = 0;
          break;
       }
-
-      mem_unlock(thandle);
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 
    return result;
 }
 
-int glGetTexParameterfv_impl (GLenum target, GLenum pname, GLfloat *params)
+GL_API void GL_APIENTRY glGetTexParameterfv(GLenum target, GLenum pname, GLfloat *params)
 {
    GLint temp[4];
-   GLuint count = glxx_get_texparameter_internal(target, pname, temp);
+   int count = glxx_get_texparameter_internal(target, pname, temp);
 
    if (count) {
-      unsigned int i;
       assert(count == 1 || count == 4);
-      for(i=0;i<count;i++)
+      for(int i=0;i<count;i++)
          params[i] = (GLfloat)temp[i];
    }
-
-   return count;
 }
 
-int glGetTexParameteriv_impl (GLenum target, GLenum pname, GLint *params)
+GL_API void GL_APIENTRY glGetTexParameteriv(GLenum target, GLenum pname, GLint *params)
 {
-   return glxx_get_texparameter_internal(target, pname, params);
+   glxx_get_texparameter_internal(target, pname, params);
 }
 
 static GLboolean is_hint(GLenum mode)
@@ -2191,11 +2269,11 @@ static GLboolean is_hint(GLenum mode)
           mode == GL_DONT_CARE;
 }
 
-void glHint_impl (GLenum target, GLenum mode)
+GL_API void GL_APIENTRY glHint(GLenum target, GLenum mode)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   assert(state);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (is_hint(mode))
       switch (target) {
@@ -2234,38 +2312,30 @@ void glHint_impl (GLenum target, GLenum mode)
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
          break;
       }
-   else if (target == GL_SIDE_BY_SIDE_STEREO_HINT)
-   {
-      if ((mode == GL_TRUE) || (mode == GL_FALSE))
-         state->hints.stereo_rendering = mode;
-      else
-         glxx_server_state_set_error(state, GL_INVALID_ENUM);
-   }
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
-
-
-
-GLboolean glIsBuffer_impl (GLuint buffer)
+GL_API GLboolean GL_APIENTRY glIsBuffer(GLuint buffer)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return GL_FALSE;
 
-   GLboolean result = glxx_shared_get_buffer((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), buffer, false) != MEM_HANDLE_INVALID;
-   mem_unlock(state->mh_shared);
+   GLboolean result = glxx_shared_get_buffer(state->shared, buffer, false) != NULL;
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 
    return result;
 }
 
-
-GLboolean glIsEnabled_impl (GLenum cap)
+GL_API GLboolean GL_APIENTRY glIsEnabled(GLenum cap)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return GL_FALSE;
 
    GLboolean result;
 
@@ -2286,13 +2356,11 @@ GLboolean glIsEnabled_impl (GLenum cap)
       assert(count == 1);
       break;
    }
-/*
    case GL_VERTEX_ARRAY:
    case GL_NORMAL_ARRAY:
    case GL_COLOR_ARRAY:
-   case GL_TEXTURE_COORD_ARRAY:
    case GL_POINT_SIZE_ARRAY_OES:
-*/
+   case GL_TEXTURE_COORD_ARRAY:
    case GL_NORMALIZE:
    case GL_RESCALE_NORMAL:
    case GL_CLIP_PLANE0:
@@ -2330,7 +2398,7 @@ GLboolean glIsEnabled_impl (GLenum cap)
       break;
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 
    return result;
 }
@@ -2346,14 +2414,15 @@ GLboolean glIsEnabled_impl (GLenum cap)
    Error Checks: Done
 */
 
-GLboolean glIsTexture_impl (GLuint texture)
+GL_API GLboolean GL_APIENTRY glIsTexture(GLuint texture)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return GL_FALSE;
 
-   GLboolean result = glxx_shared_get_texture((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), texture) != MEM_HANDLE_INVALID;
-   mem_unlock(state->mh_shared);
+   GLboolean result = glxx_shared_get_texture(state->shared, texture) != NULL;
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 
    return result;
 }
@@ -2381,11 +2450,11 @@ static GLboolean texture_readpixels_format_type_match(GLenum format, GLenum type
           (format == GL_BGRA_EXT && type == GL_UNSIGNED_BYTE);
 }
 
-void glReadPixels_impl (GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLint alignment, void *pixels)
+GL_API void GL_APIENTRY glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid *pixels)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   assert(state);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if ((width < 0) || (height < 0))
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
@@ -2397,21 +2466,18 @@ void glReadPixels_impl (GLint x, GLint y, GLsizei width, GLsizei height, GLenum 
       glxx_server_state_set_error(state, GL_INVALID_FRAMEBUFFER_OPERATION);
    else
    {
-      MEM_HANDLE_T hsrc;
-      KHRN_IMAGE_T *src;
-      int fbwidth, fbheight;
       uint32_t a, n, s, k;
       char *cpixels;
       KHRN_IMAGE_WRAP_T src_wrap, dst_wrap;
       uint32_t dstx = 0, dsty = 0;
 
-      hsrc = get_read_image(state);
-      src = (KHRN_IMAGE_T *)mem_lock(hsrc, NULL);
-      fbwidth = src->width;
-      fbheight = src->height;
+      KHRN_IMAGE_T *src = get_read_image(state);
+
+      int fbwidth = src->width;
+      int fbheight = src->height;
 
       // Copied from texture.c, get_pixel
-      a = alignment;
+      a = state->alignment.pack;
       n = (format == GL_RGBA) || (format == GL_BGRA_EXT) ? 4 : 3;
       s = 1;
 
@@ -2434,7 +2500,7 @@ void glReadPixels_impl (GLint x, GLint y, GLsizei width, GLsizei height, GLenum 
       if (!src->secure)
       {
          /* src image was generated by HW, flush to get good copy */
-         khrn_hw_flush_dcache_range(src_wrap.storage, src_wrap.height * src_wrap.stride);
+         khrn_hw_flush_dcache_range(src_wrap.storage, khrn_image_get_size(src_wrap.format, src_wrap.width, src_wrap.height));
 
          KHRN_IMAGE_FORMAT_T fmt;
 #ifdef BIG_ENDIAN_CPU
@@ -2462,31 +2528,34 @@ void glReadPixels_impl (GLint x, GLint y, GLsizei width, GLsizei height, GLenum 
       }
 
       khrn_image_unlock_wrap(src);
-      mem_unlock(hsrc);
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
 void glxx_sample_coverage_internal (GLclampf value, GLboolean invert) // S
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    state->changed_backend = true;
    state->sample_coverage.value = clampf(value, 0.0f, 1.0f);
    state->sample_coverage.invert = clean_boolean(invert);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
-void glSampleCoverage_impl (GLclampf value, GLboolean invert)
+GL_API void GL_APIENTRY glSampleCoverage(GLclampf value, GLboolean invert)
 {
    glxx_sample_coverage_internal(value, invert);
 }
 
-void glScissor_impl (GLint x, GLint y, GLsizei width, GLsizei height)
+GL_API void GL_APIENTRY glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (width >= 0 && height >= 0)
    {
@@ -2498,7 +2567,7 @@ void glScissor_impl (GLint x, GLint y, GLsizei width, GLsizei height)
    } else
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
 static GLboolean is_face(GLenum face)
@@ -2508,10 +2577,8 @@ static GLboolean is_face(GLenum face)
           face == GL_FRONT_AND_BACK;
 }
 
-void glStencilFuncSeparate_impl (GLenum face, GLenum func, GLint ref, GLuint mask) // S
+void glxx_server_set_stencil_func(GLXX_SERVER_STATE_T *state, GLenum face, GLenum func, GLint ref, GLuint mask)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
    if (is_face(face) && is_func(func)) {
       if (face == GL_FRONT || face == GL_FRONT_AND_BACK) {
          state->stencil_func.front.func = func;
@@ -2524,10 +2591,20 @@ void glStencilFuncSeparate_impl (GLenum face, GLenum func, GLint ref, GLuint mas
          state->stencil_func.back.ref = ref;
          state->stencil_func.back.mask = mask;
       }
-   } else
+   }
+   else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
+}
 
-   GLXX_UNLOCK_SERVER_STATE();
+GL_API void GL_APIENTRY glStencilFunc(GLenum func, GLint ref, GLuint mask)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
+
+   glxx_server_set_stencil_func(state, GL_FRONT_AND_BACK, func, ref, mask);
+
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
 static GLboolean is_op(GLXX_SERVER_STATE_T *state, GLenum op)
@@ -2544,27 +2621,33 @@ static GLboolean is_op(GLXX_SERVER_STATE_T *state, GLenum op)
           ));
 }
 
-void glStencilMaskSeparate_impl (GLenum face, GLuint mask) // S
+void glxx_server_set_stencil_mask(GLXX_SERVER_STATE_T *state, GLenum face, GLuint mask)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
    if (is_face(face)) {
       if (face == GL_FRONT || face == GL_FRONT_AND_BACK)
          state->stencil_mask.front = mask;
 
       if (face == GL_BACK || face == GL_FRONT_AND_BACK)
          state->stencil_mask.back = mask;
-   } else
+   }
+   else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
-
-   GLXX_UNLOCK_SERVER_STATE();
 }
 
-void glStencilOpSeparate_impl (GLenum face, GLenum fail, GLenum zfail, GLenum zpass) // S
+GL_API void GL_APIENTRY glStencilMask(GLuint mask)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
-   if (is_face(face) && is_op(state,fail) && is_op(state,zfail) && is_op(state,zpass)) {
+   glxx_server_set_stencil_mask(state, GL_FRONT_AND_BACK, mask);
+
+   glxx_unlock_server_state(OPENGL_ES_ANY);
+}
+
+void glxx_server_set_stencil_op(GLXX_SERVER_STATE_T *state, GLenum face, GLenum fail, GLenum zfail, GLenum zpass)
+{
+   if (is_face(face) && is_op(state, fail) && is_op(state, zfail) && is_op(state, zpass)) {
       if (face == GL_FRONT || face == GL_FRONT_AND_BACK) {
          state->stencil_op.front.fail = fail;
          state->stencil_op.front.zfail = zfail;
@@ -2576,10 +2659,20 @@ void glStencilOpSeparate_impl (GLenum face, GLenum fail, GLenum zfail, GLenum zp
          state->stencil_op.back.zfail = zfail;
          state->stencil_op.back.zpass = zpass;
       }
-   } else
+   }
+   else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
+}
 
-   GLXX_UNLOCK_SERVER_STATE();
+GL_API void GL_APIENTRY glStencilOp(GLenum fail, GLenum zfail, GLenum zpass)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
+
+   glxx_server_set_stencil_op(state, GL_FRONT_AND_BACK, fail, zfail, zpass);
+
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
 static GLboolean is_texture_type(GLenum type)
@@ -2615,14 +2708,13 @@ static GLboolean texture_format_type_match(GLenum format, GLenum type)
           0;
 }
 
-GLboolean glTexImage2D_impl (GLenum target, GLint level, GLint internalformat,
-   GLsizei width, GLsizei height, GLint border, GLenum format,
-   GLenum type, GLint alignment, const GLvoid *pixels, bool secure)
+GL_API void GL_APIENTRY glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels)
 {
-   GLboolean res = GL_FALSE;
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
+
    GLenum error = GL_NONE;
-   MEM_HANDLE_T thandle;
    GLXX_TEXTURE_T *texture = NULL;
 
    switch (target) {
@@ -2639,7 +2731,7 @@ GLboolean glTexImage2D_impl (GLenum target, GLint level, GLint internalformat,
        break;
    }
 
-   texture = glxx_server_state_get_texture(state, target, GL_TRUE, &thandle);
+   texture = glxx_server_state_get_texture(state, target, GL_TRUE);
    state->changed_texunit = true; /* GLES1.1 - may change has_color/has_alpha */
 
    if (!texture) goto end;
@@ -2672,19 +2764,14 @@ GLboolean glTexImage2D_impl (GLenum target, GLint level, GLint internalformat,
    else if ((format == GL_RGB_422_APPLE) && ((width & 1) != 0))
       error = GL_INVALID_OPERATION;
 #endif
-   else if (!glxx_texture_image(texture, target, level, width, height, format, type, alignment, pixels, secure))
+   else if (!glxx_texture_image(texture, target, level, width, height, format, type, state->alignment.unpack, pixels, state->secure))
       error = GL_OUT_OF_MEMORY;
-   else
-      res = GL_TRUE;
 
 end:
-   if (texture)
-       mem_unlock(thandle);
    if (error != GL_NONE)
        glxx_server_state_set_error(state, error);
 
-   GLXX_UNLOCK_SERVER_STATE();
-   return res;
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
 static GLboolean is_mag_filter(int i)
@@ -2729,11 +2816,11 @@ static GLboolean is_wrap(GLXX_SERVER_STATE_T *state, GLenum target, int i)
 
 void glxx_texparameter_internal(GLenum target, GLenum pname, const GLint *i)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
-   MEM_HANDLE_T thandle;
-
-   GLXX_TEXTURE_T *texture = glxx_server_state_get_texture(state, target, GL_FALSE, &thandle);      // performs valid target check
+   GLXX_TEXTURE_T *texture = glxx_server_state_get_texture(state, target, GL_FALSE);      // performs valid target check
 
    if (texture) {
       switch (pname) {
@@ -2772,20 +2859,22 @@ void glxx_texparameter_internal(GLenum target, GLenum pname, const GLint *i)
          }
          break;
       case GL_TEXTURE_CROP_RECT_OES:
-         glxx_texture_set_crop_rect(texture, i);
+         if (IS_GL_11(state)) {
+            glxx_texture_set_crop_rect(texture, i);
+         } else {
+            glxx_server_state_set_error(state, GL_INVALID_ENUM);
+         }
          break;
       default:
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
          break;
       }
-
-      mem_unlock(thandle);
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
-void glTexParameterf_impl (GLenum target, GLenum pname, GLfloat param)
+GL_API void GL_APIENTRY glTexParameterf(GLenum target, GLenum pname, GLfloat param)
 {
    GLint iparams[4];
    iparams[0] = (GLint)param;
@@ -2797,7 +2886,7 @@ void glTexParameterf_impl (GLenum target, GLenum pname, GLfloat param)
    glxx_texparameter_internal(target, pname, iparams);
 }
 
-void glTexParameteri_impl (GLenum target, GLenum pname, GLint param)
+GL_API void GL_APIENTRY glTexParameteri(GLenum target, GLenum pname, GLint param)
 {
    GLint iparams[4];
    iparams[0] = param;
@@ -2809,42 +2898,69 @@ void glTexParameteri_impl (GLenum target, GLenum pname, GLint param)
    glxx_texparameter_internal(target, pname, iparams);
 }
 
-void glTexParameterfv_impl (GLenum target, GLenum pname, const GLfloat *params)
+GL_API void GL_APIENTRY glTexParameterfv(GLenum target, GLenum pname, const GLfloat *params)
 {
    if (params)
    {
       GLint iparams[4];
       iparams[0] = (GLint)params[0];
-      if(pname == GL_TEXTURE_CROP_RECT_OES) {
-         int i;
-         for(i=1;i<4;i++) iparams[i] = (GLint)params[i];
+      if (pname == GL_TEXTURE_CROP_RECT_OES) {
+         for (int i = 1; i < 4; i++)
+            iparams[i] = (GLint)params[i];
+      }
+      glxx_texparameter_internal(target, pname, iparams);
+   }
+}
+
+GL_API void GL_APIENTRY glTexParameteriv(GLenum target, GLenum pname, const GLint *params)
+{
+   if (params)
+      glxx_texparameter_internal(target, pname, params);
+}
+
+GL_API void GL_APIENTRY glTexParameterx(GLenum target, GLenum pname, GLfixed param)
+{
+   GLint iparams[4];
+   iparams[0] = (GLint)param;                /* no scaling for enum to fixed */
+
+   if (pname == GL_TEXTURE_CROP_RECT_OES)
+      iparams[1] = iparams[2] = iparams[3] = 0;
+
+   glxx_texparameter_internal(target, pname, iparams);
+}
+
+GL_API void GL_APIENTRY glTexParameterxv(GLenum target, GLenum pname, const GLfixed *params)
+{
+   if (params)
+   {
+      GLint iparams[4];
+      iparams[0] = (GLint)params[0];         /* no scaling for enum to fixed */
+
+      if (pname == GL_TEXTURE_CROP_RECT_OES) {
+         for (int i = 1; i < 4; i++)
+            iparams[i] = (GLint)params[i];   /* no scaling for enum to fixed */
       }
 
       glxx_texparameter_internal(target, pname, iparams);
    }
 }
 
-void glTexParameteriv_impl (GLenum target, GLenum pname, const GLint *params)
+GL_API void GL_APIENTRY glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels)
 {
-   if (params)
-      glxx_texparameter_internal(target, pname, params);
-}
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
-void glTexSubImage2D_impl (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, GLint alignment, const GLvoid *pixels)
-{
-   MEM_HANDLE_T thandle;
    GLXX_TEXTURE_T *texture = NULL;
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-   GLenum error = GL_NONE;
 
-   assert(state);
+   GLenum error = GL_NONE;
 
    if (target == GL_TEXTURE_EXTERNAL_OES) {
       error = GL_INVALID_ENUM;
       goto end;
    }
 
-   texture = glxx_server_state_get_texture(state, target, GL_TRUE, &thandle);
+   texture = glxx_server_state_get_texture(state, target, GL_TRUE);
 
    if (!texture) goto end;
 
@@ -2870,93 +2986,27 @@ void glTexSubImage2D_impl (GLenum target, GLint level, GLint xoffset, GLint yoff
 #endif
    else if (width > 0 && height > 0)
    {
-      if (!glxx_texture_sub_image(texture, target, level, xoffset, yoffset, width, height, format, type, alignment, pixels))
+      if (!glxx_texture_sub_image(texture, target, level, xoffset, yoffset, width, height, format, type, state->alignment.unpack, pixels))
          error = GL_OUT_OF_MEMORY;
    }
 
 end:
-   if (texture)
-      mem_unlock(thandle);
    if (error != GL_NONE)
       glxx_server_state_set_error(state, error);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
-void glintCacheCreate_impl(GLsizei offset)
+static int glxx_find_max(GLXX_BUFFER_T *indices, GLsizei count, GLenum type, uint32_t indices_offset)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   uint8_t * p = ((uint8_t *)mem_lock(state->mh_cache, NULL) + offset);
-
-   khrn_interlock_init((KHRN_INTERLOCK_T *)p);
-
-   mem_unlock(state->mh_cache);
-
-   GLXX_UNLOCK_SERVER_STATE();
-}
-
-void glintCacheDelete_impl(GLsizei offset)
-{
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   uint8_t * p = ((uint8_t *)mem_lock(state->mh_cache, NULL) + offset);
-
-   KHRN_INTERLOCK_T *interlock = (KHRN_INTERLOCK_T *)p;
-   /* wait for the hardware to finish using this cache entry */
-   khrn_interlock_write_immediate(interlock);
-   khrn_interlock_term(interlock);
-
-   mem_unlock(state->mh_cache);
-
-   GLXX_UNLOCK_SERVER_STATE();
-}
-
-void glintCacheData_impl(GLsizei offset, GLsizei length, const GLvoid *data)
-{
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   uint8_t *cache = (uint8_t *)mem_lock(state->mh_cache, NULL);
-
-   khrn_memcpy(cache + offset, data, length);
-
-   mem_unlock(state->mh_cache);
-
-   GLXX_UNLOCK_SERVER_STATE();
-}
-
-GLboolean glintCacheGrow_impl()
-{
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-   int size, result;
-
-   khrn_hw_common_wait();
-
-   size = mem_get_size(state->mh_cache);
-   if (size)
-      size *= 2;
-   else
-      size = 64;
-
-   result = mem_resize_ex(state->mh_cache, size, MEM_COMPACT_DISCARD);
-
-   GLXX_UNLOCK_SERVER_STATE();
-
-   return result;
-}
-
-int glintFindMax_impl(GLsizei count, GLenum type, const void *indices_pointer)
-{
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
    int result = -1;
 
-   if (state->bound_buffer.mh_element_array != MEM_HANDLE_INVALID) {
-      MEM_HANDLE_T indices_handle = buffer_handle(state->bound_buffer.mh_element_array);
+   if (indices != NULL) {
+      MEM_HANDLE_T indices_handle = buffer_handle(indices);
       uint32_t indices_size;
-      uint32_t indices_offset = (uint32_t)indices_pointer;
 
-      indices_pointer = (char *)mem_lock(indices_handle, NULL) + indices_offset;
+      const uint8_t *indices_pointer = mem_lock(indices_handle, NULL);
+      indices_pointer += indices_offset;
 
       if (indices_offset < mem_get_size(indices_handle))
          indices_size = mem_get_size(indices_handle) - indices_offset;
@@ -2980,12 +3030,10 @@ int glintFindMax_impl(GLsizei count, GLenum type, const void *indices_pointer)
       mem_unlock(indices_handle);
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
-
    return result;
 }
 
-void glintGetCoreRevision_impl(GLsizei bufSize, GLubyte *revisionStr)
+void get_core_revision_internal(GLsizei bufSize, GLubyte *revisionStr)
 {
    BEGL_HWInfo info;
 
@@ -2997,9 +3045,11 @@ void glintGetCoreRevision_impl(GLsizei bufSize, GLubyte *revisionStr)
    revisionStr[bufSize - 1] = '\0';
 }
 
-void glDiscardFramebufferEXT_impl(GLenum target, GLsizei numAttachments, const GLenum *attachments)
+GL_APICALL void GL_APIENTRY glDiscardFramebufferEXT(GLenum target, GLsizei numAttachments, const GLenum *attachments)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (target != GL_FRAMEBUFFER)
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
@@ -3061,7 +3111,7 @@ void glDiscardFramebufferEXT_impl(GLenum target, GLsizei numAttachments, const G
          glxx_hw_invalidate_frame(state, color, ds, ds, color, false);
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
 /* OES_framebuffer_object for ES 1.1 and core in ES 2.0 */
@@ -3122,16 +3172,22 @@ static bool is_valid_attachment(GLenum attachment)
    Error Checks: Done
 */
 
-GLboolean glIsRenderbuffer_impl (GLuint renderbuffer)
+GLboolean is_renderbuffer_internal(GLuint renderbuffer)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return GL_FALSE;
 
-   GLboolean result = glxx_shared_get_renderbuffer((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), renderbuffer, false) != MEM_HANDLE_INVALID;
-   mem_unlock(state->mh_shared);
+   GLboolean result = glxx_shared_get_renderbuffer(state->shared, renderbuffer, false) != NULL;
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 
    return result;
+}
+
+GL_APICALL GLboolean GL_APIENTRY glIsRenderbuffer(GLuint renderbuffer)
+{
+   return is_renderbuffer_internal(renderbuffer);
 }
 
 /*
@@ -3149,63 +3205,72 @@ GLboolean glIsRenderbuffer_impl (GLuint renderbuffer)
    Error Checks: Done
 */
 
-
-void glBindRenderbuffer_impl (GLenum target, GLuint renderbuffer)
+void bind_renderbuffer_internal(GLenum target, GLuint renderbuffer)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (target == GL_RENDERBUFFER) {
-      MEM_HANDLE_T handle = MEM_HANDLE_INVALID;
+      GLXX_RENDERBUFFER_T *glxx_renderbuffer = NULL;
 
       if (renderbuffer) {
-         handle = glxx_shared_get_renderbuffer((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), renderbuffer, true);
-         mem_unlock(state->mh_shared);
+         glxx_renderbuffer = glxx_shared_get_renderbuffer(state->shared, renderbuffer, true);
 
-         if (handle == MEM_HANDLE_INVALID) {
+         if (glxx_renderbuffer == NULL) {
             glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
-            GLXX_UNLOCK_SERVER_STATE();
+            glxx_unlock_server_state(OPENGL_ES_ANY);
             return;
          }
       }
 
-      MEM_ASSIGN(state->mh_bound_renderbuffer, handle);
+      KHRN_MEM_ASSIGN(state->bound_renderbuffer, glxx_renderbuffer);
    } else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
-static void detach_renderbuffer(GLXX_FRAMEBUFFER_T *framebuffer, MEM_HANDLE_T handle)
+GL_APICALL void GL_APIENTRY glBindRenderbuffer(GLenum target, GLuint renderbuffer)
 {
-   if (framebuffer->attachments.color.mh_object == handle)
+   bind_renderbuffer_internal(target, renderbuffer);
+}
+
+static void detach_renderbuffer(GLXX_FRAMEBUFFER_T *framebuffer, void *p)
+{
+   if (framebuffer->attachments.color.object == p)
    {
       framebuffer->attachments.color.type = GL_NONE;
       framebuffer->attachments.color.target = 0;
       framebuffer->attachments.color.level = 0;
-      MEM_ASSIGN(framebuffer->attachments.color.mh_object, MEM_HANDLE_INVALID);
+      KHRN_MEM_ASSIGN(framebuffer->attachments.color.object, NULL);
    }
-   if (framebuffer->attachments.depth.mh_object == handle)
+
+   if (framebuffer->attachments.depth.object == p)
    {
       framebuffer->attachments.depth.type = GL_NONE;
       framebuffer->attachments.depth.target = 0;
       framebuffer->attachments.depth.level = 0;
-      MEM_ASSIGN(framebuffer->attachments.depth.mh_object, MEM_HANDLE_INVALID);
+      KHRN_MEM_ASSIGN(framebuffer->attachments.depth.object, NULL);
    }
-   if (framebuffer->attachments.stencil.mh_object == handle)
+
+   if (framebuffer->attachments.stencil.object == p)
    {
       framebuffer->attachments.stencil.type = GL_NONE;
       framebuffer->attachments.stencil.target = 0;
       framebuffer->attachments.stencil.level = 0;
-      MEM_ASSIGN(framebuffer->attachments.stencil.mh_object, MEM_HANDLE_INVALID);
+      KHRN_MEM_ASSIGN(framebuffer->attachments.stencil.object, NULL);
    }
 }
 
-void glDeleteRenderbuffers_impl (GLsizei n, const GLuint *renderbuffers)
+void delete_renderbuffers_internal(GLsizei n, const GLuint *renderbuffers)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
-   GLXX_SHARED_T *shared = (GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL);
+   GLXX_SHARED_T *shared = state->shared;
 
    if (n < 0)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);   // The conformance tests insist...
@@ -3216,21 +3281,18 @@ void glDeleteRenderbuffers_impl (GLsizei n, const GLuint *renderbuffers)
       {
          if (renderbuffers[i])
          {
-            MEM_HANDLE_T handle = glxx_shared_get_renderbuffer(shared, renderbuffers[i], false);
+            GLXX_RENDERBUFFER_T *glxx_renderbuffer = glxx_shared_get_renderbuffer(shared, renderbuffers[i], false);
 
-            if (handle != MEM_HANDLE_INVALID)
+            if (glxx_renderbuffer != NULL)
             {
-               if (state->mh_bound_renderbuffer == handle)
-                  MEM_ASSIGN(state->mh_bound_renderbuffer, MEM_HANDLE_INVALID);
+               if (state->bound_renderbuffer == glxx_renderbuffer)
+                  KHRN_MEM_ASSIGN(state->bound_renderbuffer, NULL);
 
-               if (state->mh_bound_framebuffer != MEM_HANDLE_INVALID)
+               if (state->bound_framebuffer != NULL)
                {
-                  GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)mem_lock(state->mh_bound_framebuffer, NULL);
+                  GLXX_FRAMEBUFFER_T *framebuffer = state->bound_framebuffer;
                   if (framebuffer)
-                  {
-                     detach_renderbuffer(framebuffer, handle);
-                     mem_unlock(state->mh_bound_framebuffer);
-                  }
+                     detach_renderbuffer(framebuffer, glxx_renderbuffer);
                }
 
                glxx_shared_delete_renderbuffer(shared, renderbuffers[i]);
@@ -3239,16 +3301,21 @@ void glDeleteRenderbuffers_impl (GLsizei n, const GLuint *renderbuffers)
       }
    }
 
-   mem_unlock(state->mh_shared);
-
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
-void glGenRenderbuffers_impl (GLsizei n, GLuint *renderbuffers)
+GL_APICALL void GL_APIENTRY glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   delete_renderbuffers_internal(n, renderbuffers);
+}
 
-   GLXX_SHARED_T *shared = (GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL);
+void gen_renderbuffers_internal(GLsizei n, GLuint *renderbuffers)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
+
+   GLXX_SHARED_T *shared = state->shared;
 
    int32_t i = 0;
 
@@ -3256,15 +3323,18 @@ void glGenRenderbuffers_impl (GLsizei n, GLuint *renderbuffers)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);   // The conformance tests insist...
    else if (renderbuffers)
       while (i < n) {
-         if (glxx_shared_get_renderbuffer(shared, shared->next_renderbuffer, false) == MEM_HANDLE_INVALID)
+         if (glxx_shared_get_renderbuffer(shared, shared->next_renderbuffer, false) == NULL)
             renderbuffers[i++] = shared->next_renderbuffer;
 
          shared->next_renderbuffer++;
       }
 
-   mem_unlock(state->mh_shared);
+   glxx_unlock_server_state(OPENGL_ES_ANY);
+}
 
-   GLXX_UNLOCK_SERVER_STATE();
+GL_APICALL void GL_APIENTRY glGenRenderbuffers(GLsizei n, GLuint *renderbuffers)
+{
+   gen_renderbuffers_internal(n, renderbuffers);
 }
 
 static GLboolean is_internal_format(GLenum format)
@@ -3288,10 +3358,12 @@ static GLboolean is_internal_format(GLenum format)
           ;
 }
 
-void glRenderbufferStorageMultisample_impl (GLenum target, GLsizei samples,
-   GLenum internalformat, GLsizei width, GLsizei height, bool secure)
+void renderbuffer_storage_multisample_internal(GLenum target, GLsizei samples,
+   GLenum internalformat, GLsizei width, GLsizei height)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    /* Promote 16 bit depth attachments to 24 bit so that they play nice with stencil 8 */
    if (internalformat == GL_DEPTH_COMPONENT16)
@@ -3299,7 +3371,7 @@ void glRenderbufferStorageMultisample_impl (GLenum target, GLsizei samples,
 
    if (target != GL_RENDERBUFFER)
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
-   else if (state->mh_bound_renderbuffer == MEM_HANDLE_INVALID)
+   else if (state->bound_renderbuffer == NULL)
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
    else if (!is_internal_format(internalformat))
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
@@ -3308,14 +3380,17 @@ void glRenderbufferStorageMultisample_impl (GLenum target, GLsizei samples,
             samples < 0 || samples > GLXX_CONFIG_SAMPLES)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
    else {
-      GLXX_RENDERBUFFER_T *bound_renderbuffer = mem_lock(state->mh_bound_renderbuffer, NULL);
-      if (!glxx_renderbuffer_storage_multisample(bound_renderbuffer, samples, internalformat, width, height, secure))
+      GLXX_RENDERBUFFER_T *bound_renderbuffer = state->bound_renderbuffer;
+      if (!glxx_renderbuffer_storage_multisample(bound_renderbuffer, samples, internalformat, width, height, state->secure))
          glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
-
-      mem_unlock(state->mh_bound_renderbuffer);
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
+}
+
+GL_APICALL void GL_APIENTRY glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height)
+{
+   renderbuffer_storage_multisample_internal(target, 0, internalformat, width, height);
 }
 
 /*
@@ -3346,25 +3421,24 @@ void glRenderbufferStorageMultisample_impl (GLenum target, GLsizei samples,
       GL_STENCIL_INDEX8
 */
 
-int glGetRenderbufferParameteriv_impl (GLenum target, GLenum pname, GLint* params)
+void get_renderbuffer_parameteriv_internal(GLenum target, GLenum pname, GLint* params)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   int result;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (target == GL_RENDERBUFFER) {
-      if (state->mh_bound_renderbuffer != MEM_HANDLE_INVALID) {
-         GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(state->mh_bound_renderbuffer, NULL);
-         KHRN_IMAGE_T *storage = (KHRN_IMAGE_T *)mem_maybe_lock(renderbuffer->mh_storage, NULL);
+      if (state->bound_renderbuffer != NULL) {
+         GLXX_RENDERBUFFER_T *renderbuffer = state->bound_renderbuffer;
+
+         KHRN_IMAGE_T *storage = renderbuffer->storage;
 
          switch (pname) {
          case GL_RENDERBUFFER_WIDTH:
             params[0] = storage ? storage->width : 0;
-            result = 1;
             break;
          case GL_RENDERBUFFER_HEIGHT:
             params[0] = storage ? storage->height : 0;
-            result = 1;
             break;
          case GL_RENDERBUFFER_INTERNAL_FORMAT:
              if (!storage)
@@ -3400,101 +3474,104 @@ int glGetRenderbufferParameteriv_impl (GLenum target, GLenum pname, GLint* param
                    break;
                 }
              }
-             result = 1;
              break;
          case GL_RENDERBUFFER_RED_SIZE:
             params[0] = storage ? khrn_image_get_red_size(storage->format) : 0;
-            result = 1;
             break;
          case GL_RENDERBUFFER_GREEN_SIZE:
             params[0] = storage ? khrn_image_get_green_size(storage->format) : 0;
-            result = 1;
             break;
          case GL_RENDERBUFFER_BLUE_SIZE:
             params[0] = storage ? khrn_image_get_blue_size(storage->format) : 0;
-            result = 1;
             break;
          case GL_RENDERBUFFER_ALPHA_SIZE:
             params[0] = storage ? khrn_image_get_alpha_size(storage->format) : 0;
-            result = 1;
             break;
          case GL_RENDERBUFFER_DEPTH_SIZE:
             params[0] = storage ? khrn_image_get_z_size(storage->format) : 0;
-            result = 1;
             break;
          case GL_RENDERBUFFER_STENCIL_SIZE:
             params[0] = storage ? khrn_image_get_stencil_size(storage->format) : 0;
-            result = 1;
             break;
          case GL_RENDERBUFFER_SAMPLES_EXT:
             params[0] = renderbuffer->samples;
-            result  = 1;
             break;
          default:
             glxx_server_state_set_error(state, GL_INVALID_ENUM);
-            result = 0;
             break;
          }
-
-         mem_maybe_unlock(renderbuffer->mh_storage);
-         mem_unlock(state->mh_bound_renderbuffer);
       } else {
          glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-         result = 0;
       }
    } else {
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
-      result = 0;
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
+}
+
+GL_APICALL void GL_APIENTRY glGetRenderbufferParameteriv(GLenum target, GLenum pname, GLint* params)
+{
+   get_renderbuffer_parameteriv_internal(target, pname, params);
+}
+
+GLboolean is_framebuffer_internal(GLuint framebuffer)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return GL_FALSE;
+
+   GLboolean result = glxx_shared_get_framebuffer(state->shared, framebuffer, false) != NULL;
+
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 
    return result;
 }
 
-GLboolean glIsFramebuffer_impl (GLuint framebuffer)
+GL_APICALL GLboolean GL_APIENTRY glIsFramebuffer(GLuint framebuffer)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   GLboolean result = glxx_shared_get_framebuffer((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), framebuffer, false) != MEM_HANDLE_INVALID;
-   mem_unlock(state->mh_shared);
-
-   GLXX_UNLOCK_SERVER_STATE();
-
-   return result;
+   return is_framebuffer_internal(framebuffer);
 }
 
-void glBindFramebuffer_impl (GLenum target, GLuint framebuffer)
+void bind_framebuffer_internal(GLenum target, GLuint framebuffer)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (target == GL_FRAMEBUFFER) {
-      MEM_HANDLE_T handle = MEM_HANDLE_INVALID;
+      GLXX_FRAMEBUFFER_T *glxx_framebuffer = NULL;
 
       if (framebuffer) {
-         handle = glxx_shared_get_framebuffer((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), framebuffer, true);
-         mem_unlock(state->mh_shared);
+         glxx_framebuffer = glxx_shared_get_framebuffer(state->shared, framebuffer, true);
 
-         if (handle == MEM_HANDLE_INVALID) {
+         if (glxx_framebuffer == NULL) {
             glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
-            GLXX_UNLOCK_SERVER_STATE();
+            glxx_unlock_server_state(OPENGL_ES_ANY);
             return;
          }
       }
 
-      MEM_ASSIGN(state->mh_bound_framebuffer, handle);
+      KHRN_MEM_ASSIGN(state->bound_framebuffer, glxx_framebuffer);
    } else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
-void glDeleteFramebuffers_impl (GLsizei n, const GLuint *framebuffers)
+GL_APICALL void GL_APIENTRY glBindFramebuffer(GLenum target, GLuint framebuffer)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   bind_framebuffer_internal(target, framebuffer);
+}
 
-   GLXX_SHARED_T *shared = (GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL);
+void delete_framebuffers_internal(GLsizei n, const GLuint *framebuffers)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
+
+   GLXX_SHARED_T *shared = state->shared;
 
    if (n < 0)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);   // The conformance tests insist...
@@ -3502,27 +3579,32 @@ void glDeleteFramebuffers_impl (GLsizei n, const GLuint *framebuffers)
       int i;
       for (i = 0; i < n; i++)
          if (framebuffers[i]) {
-            MEM_HANDLE_T handle = glxx_shared_get_framebuffer(shared, framebuffers[i], false);
+            GLXX_FRAMEBUFFER_T *glxx_framebuffer = glxx_shared_get_framebuffer(shared, framebuffers[i], false);
 
-            if (handle != MEM_HANDLE_INVALID) {
-               if (state->mh_bound_framebuffer == handle)
-                  MEM_ASSIGN(state->mh_bound_framebuffer, MEM_HANDLE_INVALID);
+            if (glxx_framebuffer != NULL) {
+               if (state->bound_framebuffer == glxx_framebuffer)
+                  KHRN_MEM_ASSIGN(state->bound_framebuffer, NULL);
 
                glxx_shared_delete_framebuffer(shared, framebuffers[i]);
             }
          }
    }
 
-   mem_unlock(state->mh_shared);
-
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
-void glGenFramebuffers_impl (GLsizei n, GLuint *framebuffers)
+GL_APICALL void GL_APIENTRY glDeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   delete_framebuffers_internal(n, framebuffers);
+}
 
-   GLXX_SHARED_T *shared = (GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL);
+void gen_framebuffers_internal(GLsizei n, GLuint *framebuffers)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
+
+   GLXX_SHARED_T *shared = state->shared;
 
    int32_t i = 0;
 
@@ -3530,135 +3612,156 @@ void glGenFramebuffers_impl (GLsizei n, GLuint *framebuffers)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);   // The conformance tests insist...
    else if (framebuffers)
       while (i < n) {
-         if (glxx_shared_get_framebuffer(shared, shared->next_framebuffer, false) == MEM_HANDLE_INVALID)
+         if (glxx_shared_get_framebuffer(shared, shared->next_framebuffer, false) == NULL)
             framebuffers[i++] = shared->next_framebuffer;
 
          shared->next_framebuffer++;
       }
 
-   mem_unlock(state->mh_shared);
-
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
-GLenum glCheckFramebufferStatus_impl (GLenum target)
+GL_APICALL void GL_APIENTRY glGenFramebuffers(GLsizei n, GLuint *framebuffers)
 {
-   GLenum result;
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   gen_framebuffers_internal(n, framebuffers);
+}
 
-   result = glxx_check_framebuffer_status(state, target);
+GLenum check_framebuffer_status_internal(GLenum target)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return GL_NONE;
 
-   GLXX_UNLOCK_SERVER_STATE();
+   GLenum result = glxx_check_framebuffer_status(state, target);
+
+   glxx_unlock_server_state(OPENGL_ES_ANY);
    return result;
 }
 
-void glFramebufferTexture2DMultisample_impl (GLenum target, GLenum a,
-   GLenum textarget, GLuint texture, GLint level, GLsizei samples, bool secure)
+GL_APICALL GLenum GL_APIENTRY glCheckFramebufferStatus(GLenum target)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   if (target == GL_FRAMEBUFFER && is_valid_attachment(a)) {
-      if (state->mh_bound_framebuffer != MEM_HANDLE_INVALID) {
-         GLXX_ATTACHMENT_INFO_T *attachment;
-         GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)mem_lock(state->mh_bound_framebuffer, NULL);
-
-         assert(framebuffer);
-
-         switch (a) {
-         case GL_COLOR_ATTACHMENT0:
-            attachment = &framebuffer->attachments.color;
-            break;
-         case GL_DEPTH_ATTACHMENT:
-            attachment = &framebuffer->attachments.depth;
-            break;
-         case GL_STENCIL_ATTACHMENT:
-            attachment = &framebuffer->attachments.stencil;
-            break;
-         default:
-            attachment = NULL;
-           UNREACHABLE();
-            break;
-         }
-
-         if (texture) {
-            if (level != 0)
-               glxx_server_state_set_error(state, GL_INVALID_VALUE);
-            else {
-               if (!glxx_is_texture_target(state, textarget))
-                  glxx_server_state_set_error(state, GL_INVALID_ENUM);
-               else if (IS_GL_11(state) && GL_TEXTURE_2D != textarget)
-                  glxx_server_state_set_error(state, GL_INVALID_ENUM);
-               else if (samples < 0 || samples > GLXX_CONFIG_SAMPLES)
-                  glxx_server_state_set_error(state, GL_INVALID_VALUE);
-               else {
-                  MEM_HANDLE_T handle = glxx_shared_get_texture((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), texture);
-                  mem_unlock(state->mh_shared);
-
-                  if (handle == MEM_HANDLE_INVALID)
-                     glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-                  else {
-                     GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(handle, NULL);
-
-                     if ((texture->target == GL_TEXTURE_CUBE_MAP) != (textarget != GL_TEXTURE_2D))
-                        glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-                     else {
-                        attachment->type = GL_TEXTURE;
-                        attachment->target = textarget;
-                        attachment->level = level;
-
-                        /* Clamp the number of samples to 0 (non-multisample) or 4 (multisample)
-                        1 is considerated as multisample in the spec EXT_framebuffer_multisample, revision #7, Issue (2)
-                        (Written based on the wording of the OpenGL 1.5 specification.) */
-                        attachment->samples = samples ? GLXX_CONFIG_SAMPLES : 0;
-
-                        if (samples) {
-                           MEM_HANDLE_T ms_image = glxx_image_create_ms(COL_32_TLBD,
-                              texture->width, texture->height,
-                              IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_ONE, secure);
-
-                           if (ms_image != MEM_HANDLE_INVALID) {
-                              MEM_ASSIGN(texture->mh_ms_image, ms_image);
-                              mem_release(ms_image);
-                              MEM_ASSIGN(attachment->mh_object, handle);
-                           }
-                           else
-                              glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
-                        }
-                        else
-                           MEM_ASSIGN(attachment->mh_object, handle);
-                     }
-                     mem_unlock(handle);
-                  }
-               }
-            }
-         } else {
-            attachment->type = GL_NONE;
-            attachment->target = 0;
-            attachment->level = 0;
-            attachment->samples = 0;
-
-            MEM_ASSIGN(attachment->mh_object, MEM_HANDLE_INVALID);
-         }
-
-         mem_unlock(state->mh_bound_framebuffer);
-      } else
-         glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-   } else
-      glxx_server_state_set_error(state, GL_INVALID_ENUM);
-
-   GLXX_UNLOCK_SERVER_STATE();
+   return check_framebuffer_status_internal(target);
 }
 
-void glFramebufferRenderbuffer_impl (GLenum target, GLenum a, GLenum renderbuffertarget, GLuint renderbuffer)
+void framebuffer_texture2D_multisample_internal(GLenum target, GLenum a,
+   GLenum textarget, GLuint texture, GLint level, GLsizei samples, bool only_attachment0)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
-   assert(state);
+   if (only_attachment0 && a != GL_COLOR_ATTACHMENT0) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   if (target != GL_FRAMEBUFFER || !is_valid_attachment(a)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   if (state->bound_framebuffer == NULL) {
+      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+      goto end;
+   }
+
+   GLXX_ATTACHMENT_INFO_T *attachment;
+   GLXX_FRAMEBUFFER_T *framebuffer = state->bound_framebuffer;
+
+   assert(framebuffer);
+
+   switch (a) {
+   case GL_COLOR_ATTACHMENT0:
+      attachment = &framebuffer->attachments.color;
+      break;
+   case GL_DEPTH_ATTACHMENT:
+      attachment = &framebuffer->attachments.depth;
+      break;
+   case GL_STENCIL_ATTACHMENT:
+      attachment = &framebuffer->attachments.stencil;
+      break;
+   default:
+      attachment = NULL;
+      UNREACHABLE();
+      break;
+   }
+
+   if (texture) {
+      if (level != 0)
+         glxx_server_state_set_error(state, GL_INVALID_VALUE);
+      else {
+         if (!glxx_is_texture_target(state, textarget))
+            glxx_server_state_set_error(state, GL_INVALID_ENUM);
+         else if (IS_GL_11(state) && GL_TEXTURE_2D != textarget)
+            glxx_server_state_set_error(state, GL_INVALID_ENUM);
+         else if (samples < 0 || samples > GLXX_CONFIG_SAMPLES)
+            glxx_server_state_set_error(state, GL_INVALID_VALUE);
+         else {
+            GLXX_TEXTURE_T *glxx_texture = glxx_shared_get_texture(state->shared, texture);
+
+            if (glxx_texture == NULL)
+               glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+            else {
+               if ((glxx_texture->target == GL_TEXTURE_CUBE_MAP) != (textarget != GL_TEXTURE_2D))
+                  glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+               else {
+                  attachment->type = GL_TEXTURE;
+                  attachment->target = textarget;
+                  attachment->level = level;
+
+                  /* Clamp the number of samples to 0 (non-multisample) or 4 (multisample)
+                  1 is considerated as multisample in the spec EXT_framebuffer_multisample, revision #7, Issue (2)
+                  (Written based on the wording of the OpenGL 1.5 specification.) */
+                  attachment->samples = samples ? GLXX_CONFIG_SAMPLES : 0;
+
+                  if (samples) {
+                     KHRN_IMAGE_T *ms_image = glxx_image_create_ms(COL_32_TLBD,
+                        glxx_texture->width, glxx_texture->height,
+                        IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_ONE, state->secure);
+
+                     if (ms_image != NULL) {
+                        KHRN_MEM_ASSIGN(glxx_texture->ms_image, ms_image);
+                        KHRN_MEM_ASSIGN(ms_image, NULL);
+                        KHRN_MEM_ASSIGN(attachment->object, glxx_texture);
+                     }
+                     else
+                        glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
+                  }
+                  else
+                     KHRN_MEM_ASSIGN(attachment->object, glxx_texture);
+               }
+            }
+         }
+      }
+   } else {
+      attachment->type = GL_NONE;
+      attachment->target = 0;
+      attachment->level = 0;
+      attachment->samples = 0;
+
+      KHRN_MEM_ASSIGN(attachment->object, NULL);
+   }
+
+end:
+
+   glxx_unlock_server_state(OPENGL_ES_ANY);
+}
+
+GL_APICALL void GL_APIENTRY glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level)
+{
+   framebuffer_texture2D_multisample_internal(target, attachment, textarget, texture, level, 0, false);
+}
+
+void framebuffer_renderbuffer_internal(GLenum target, GLenum a, GLenum renderbuffertarget, GLuint renderbuffer)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (target == GL_FRAMEBUFFER && is_valid_attachment(a)) {
-      if (state->mh_bound_framebuffer != MEM_HANDLE_INVALID) {
+      if (state->bound_framebuffer != NULL) {
          GLXX_ATTACHMENT_INFO_T *attachment;
-         GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)mem_lock(state->mh_bound_framebuffer, NULL);
+         GLXX_FRAMEBUFFER_T *framebuffer = state->bound_framebuffer;
 
          assert(framebuffer);
 
@@ -3682,23 +3785,18 @@ void glFramebufferRenderbuffer_impl (GLenum target, GLenum a, GLenum renderbuffe
 
          if (renderbuffer) {
             if (renderbuffertarget == GL_RENDERBUFFER) {
-               MEM_HANDLE_T handle = glxx_shared_get_renderbuffer((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), renderbuffer, false);
+               GLXX_RENDERBUFFER_T *glxx_renderbuffer = glxx_shared_get_renderbuffer(state->shared, renderbuffer, false);
 
-               if (handle == MEM_HANDLE_INVALID)
+               if (glxx_renderbuffer == NULL)
                   glxx_server_state_set_error(state, GL_INVALID_OPERATION);
                else {
-                  GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(handle, NULL);
                   attachment->type = GL_RENDERBUFFER;
                   attachment->target = 0;
                   attachment->level = 0;
-                  attachment->samples = renderbuffer->samples;
+                  attachment->samples = glxx_renderbuffer->samples;
 
-                  MEM_ASSIGN(attachment->mh_object, handle);
-
-                  mem_unlock(handle);
+                  KHRN_MEM_ASSIGN(attachment->object, glxx_renderbuffer);
                }
-
-               mem_unlock(state->mh_shared);
             } else
                glxx_server_state_set_error(state, GL_INVALID_ENUM);
          } else {
@@ -3706,16 +3804,19 @@ void glFramebufferRenderbuffer_impl (GLenum target, GLenum a, GLenum renderbuffe
             attachment->target = 0;
             attachment->level = 0;
 
-            MEM_ASSIGN(attachment->mh_object, MEM_HANDLE_INVALID);
+            KHRN_MEM_ASSIGN(attachment->object, NULL);
          }
-
-         mem_unlock(state->mh_bound_framebuffer);
       } else
          glxx_server_state_set_error(state, GL_INVALID_OPERATION);
    } else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
+}
+
+GL_APICALL void GL_APIENTRY glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer)
+{
+   framebuffer_renderbuffer_internal(target, attachment, renderbuffertarget, renderbuffer);
 }
 
 /*
@@ -3727,15 +3828,15 @@ void glFramebufferRenderbuffer_impl (GLenum target, GLenum a, GLenum renderbuffe
    FRAMEBUFFER TEXTURE CUBE MAP FACE +ve X face GetFramebufferParameteriv
 */
 
-int glGetFramebufferAttachmentParameteriv_impl (GLenum target, GLenum attachment, GLenum pname, GLint *params)
+void get_framebuffer_attachment_parameteriv_internal(GLenum target, GLenum attachment, GLenum pname, GLint *params)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   int result;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    if (target == GL_FRAMEBUFFER && is_valid_attachment(attachment)) {
-      if (state->mh_bound_framebuffer != MEM_HANDLE_INVALID) {
-         GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)mem_lock(state->mh_bound_framebuffer, NULL);
+      if (state->bound_framebuffer != NULL) {
+         GLXX_FRAMEBUFFER_T *framebuffer = state->bound_framebuffer;
 
          GLXX_ATTACHMENT_INFO_T *attachmentinfo;
 
@@ -3759,53 +3860,42 @@ int glGetFramebufferAttachmentParameteriv_impl (GLenum target, GLenum attachment
                switch (pname) {
                case GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE:
                   params[0] = GL_RENDERBUFFER;
-                  result = 1;
                   break;
                case GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME:
                {
-                  GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(attachmentinfo->mh_object, NULL);
+                  GLXX_RENDERBUFFER_T *renderbuffer = attachmentinfo->object;
                   params[0] = renderbuffer->name;
-                  result = 1;
-                  mem_unlock(attachmentinfo->mh_object);
                   break;
                }
                case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_SAMPLES_EXT:
                {
-                  GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(attachmentinfo->mh_object, NULL);
+                  GLXX_RENDERBUFFER_T *renderbuffer = attachmentinfo->object;
                   params[0] = renderbuffer->samples;
-                  mem_unlock(attachmentinfo->mh_object);
-                  result = 1;
                   break;
                }
                case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL:
                case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE:
                default:
                   glxx_server_state_set_error(state, GL_INVALID_ENUM);
-                  result = 0;
                }
                break;
             case GL_TEXTURE:
                switch (pname) {
                case GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE:
                   params[0] = GL_TEXTURE;
-                  result = 1;
                   break;
                case GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME:
                {
-                  GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(attachmentinfo->mh_object, NULL);
+                  GLXX_TEXTURE_T *texture = attachmentinfo->object;
                   params[0] = texture->name;
-                  result = 1;
-                  mem_unlock(attachmentinfo->mh_object);
                   break;
                }
                case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL:
                   params[0] = attachmentinfo->level;
-                  result = 1;
                   break;
                case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE:
                   if(IS_GL_11(state)) {
                      glxx_server_state_set_error(state, GL_INVALID_ENUM);
-                     result = 0;
                   }
                   else {
                   //TODO: is this right? We return integers rather than enums
@@ -3825,69 +3915,60 @@ int glGetFramebufferAttachmentParameteriv_impl (GLenum target, GLenum attachment
                         //Unreachable
                        UNREACHABLE();
                      }
-                     result = 1;
                   }
                   break;
                case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_SAMPLES_EXT:
                   {
                      params[0] = attachmentinfo->samples;
-                     result = 1;
                      break;
                   }
                default:
                   glxx_server_state_set_error(state, GL_INVALID_ENUM);
-                  result = 0;
                }
                break;
             case GL_NONE:
                switch (pname) {
                case GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE:
-               case GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME:
                   params[0] = GL_NONE;
-                  result = 1;
                   break;
+               case GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME:
                case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL:
                case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE:
                default:
                   glxx_server_state_set_error(state, GL_INVALID_ENUM);
-                  result = 0;
                }
                break;
             default:
                // Unreachable
-               result = 0;
               UNREACHABLE();
             }
          } else {
             glxx_server_state_set_error(state, GL_INVALID_ENUM);
-            result = 0;
          }
-
-         mem_unlock(state->mh_bound_framebuffer);
       } else {
          glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-         result = 0;
       }
    } else {
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
-      result = 0;
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
-
-   return result;
+   glxx_unlock_server_state(OPENGL_ES_ANY);
 }
 
-void glGenerateMipmap_impl (GLenum target)
+GL_APICALL void GL_APIENTRY glGetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment, GLenum pname, GLint *params)
+{
+   get_framebuffer_attachment_parameteriv_internal(target, attachment, pname, params);
+}
+
+void generate_mipmap_internal(GLenum target)
 {
    GLXX_TEXTURE_T *texture;
-   MEM_HANDLE_T thandle;
    bool invalid_operation;
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
-   assert(state);
-
-   texture = glxx_server_state_get_texture(state, target, GL_FALSE, &thandle);
+   texture = glxx_server_state_get_texture(state, target, GL_FALSE);
 
    if (texture) {
       switch (target) {
@@ -3919,17 +4000,22 @@ void glGenerateMipmap_impl (GLenum target)
          UNREACHABLE();
          break;
       }
-
-      mem_unlock(thandle);
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
+}
+
+GL_APICALL void GL_APIENTRY glGenerateMipmap(GLenum target)
+{
+   generate_mipmap_internal(target);
 }
 
 void glxx_RenderbufferStorageMultisampleEXT_impl(GLenum target, GLsizei samples,
    GLenum internalformat, GLsizei width, GLsizei height, bool secure)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
 
    /* Promote 16 bit depth attachments to 24 bit so that they play nice with stencil 8 */
    if (internalformat == GL_DEPTH_COMPONENT16)
@@ -3937,19 +4023,441 @@ void glxx_RenderbufferStorageMultisampleEXT_impl(GLenum target, GLsizei samples,
 
    if (target != GL_RENDERBUFFER)
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-   else if (state->mh_bound_renderbuffer == MEM_HANDLE_INVALID)
+   else if (state->bound_renderbuffer == NULL)
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
    else if (!is_internal_format(internalformat))
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
    else if (width < 0 || width > GLXX_CONFIG_MAX_RENDERBUFFER_SIZE || height < 0 || height > GLXX_CONFIG_MAX_RENDERBUFFER_SIZE || samples > GLXX_CONFIG_SAMPLES)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
    else {
-      GLXX_RENDERBUFFER_T *bound_renderbuffer = mem_lock(state->mh_bound_renderbuffer, NULL);
+      GLXX_RENDERBUFFER_T *bound_renderbuffer = state->bound_renderbuffer;
       if (!glxx_renderbuffer_storage_multisample(bound_renderbuffer, samples, internalformat, width, height, secure))
          glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
-
-      mem_unlock(state->mh_bound_renderbuffer);
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state(OPENGL_ES_ANY);
+}
+
+static GLboolean is_alignment(GLint param)
+{
+   return param == 1 ||
+      param == 2 ||
+      param == 4 ||
+      param == 8;
+}
+
+GL_API void GL_APIENTRY glPixelStorei(GLenum pname, GLint param)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
+
+   if ((pname == GL_PACK_ALIGNMENT || pname == GL_UNPACK_ALIGNMENT) && (!is_alignment(param)))
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+   else if (param < 0)
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+   else {
+      switch (pname) {
+      case GL_PACK_ALIGNMENT:
+         state->alignment.pack = param;
+         break;
+      case GL_UNPACK_ALIGNMENT:
+         state->alignment.unpack = param;
+         break;
+      default:
+         glxx_server_state_set_error(state, GL_INVALID_ENUM);
+         break;
+      }
+   }
+
+   glxx_unlock_server_state(OPENGL_ES_ANY);
+}
+
+static int calc_length(int max, int size, GLenum type, int stride)
+{
+   if (max >= 0) {
+      int type_size = khrn_get_type_size((int)type);
+
+      return size * type_size + max * (stride ? stride : size * type_size);
+   }
+   else
+      return 0;
+}
+
+typedef struct MERGE_INFO {
+   bool send;
+
+   const char *start;
+   const char *end;
+   GLXX_BUFFER_T *buffer;
+   int offset;
+
+   struct MERGE_INFO *next;
+} MERGE_INFO_T;
+
+static GLXX_BUFFER_T *create_scratch_buffer(const void *data, size_t size);
+
+static int merge_attribs(GLXX_SERVER_STATE_T *state, int max)
+{
+   bool merged = false;
+
+   MERGE_INFO_T merge[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
+   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++) {
+      merge[i].send = state->attrib[i].enabled && state->attrib[i].buffer == 0;
+      merge[i].start = state->attrib[i].pointer;
+      merge[i].end = (const char *)state->attrib[i].pointer + calc_length(max, state->attrib[i].size, state->attrib[i].type, state->attrib[i].stride);
+      merge[i].buffer = NULL;
+      merge[i].offset = 0;
+      merge[i].next = NULL;
+   }
+
+   for (int i = 1; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
+      if (merge[i].send)
+         for (int j = 0; j < i; j++)
+            if (merge[j].send && !merge[j].next) {
+               const char *start = merge[i].start < merge[j].start ? merge[i].start : merge[j].start;
+               const char *end = merge[i].end > merge[j].end ? merge[i].end : merge[j].end;
+
+               if ((uint32_t)(end - start) < (uint32_t)((merge[i].end - merge[i].start) + (merge[j].end - merge[j].start))) {
+                  MERGE_INFO_T *curr;
+
+                  if (merge[i].start < merge[j].start) {
+                     curr = &merge[i];
+                     while (curr->next)
+                        curr = curr->next;
+                     curr->end = end;
+
+                     merge[j].offset = merge[j].start - merge[i].start;
+                     merge[j].next = &merge[i];
+                  }
+                  else {
+                     curr = &merge[j];
+                     while (curr->next)
+                        curr = curr->next;
+                     curr->end = end;
+
+                     merge[i].offset = merge[i].start - merge[j].start;
+                     merge[i].next = &merge[j];
+                  }
+               }
+            }
+
+   /* create merged scratch buffers */
+   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
+      if (merge[i].send && !merge[i].next) {
+         assert(merge[i].offset == 0);
+         merge[i].buffer = create_scratch_buffer(merge[i].start,
+               merge[i].end - merge[i].start);
+         if (merge[i].buffer == NULL)
+            goto end; /* out of memory */
+      }
+
+   /* calculate offsets and assign buffers to merged siblings */
+   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++) {
+      MERGE_INFO_T *curr;
+
+      for (curr = merge[i].next; curr; curr = curr->next)
+      {
+         KHRN_MEM_ASSIGN(merge[i].buffer, curr->buffer);
+         merge[i].offset += curr->offset;
+      }
+
+      merge[i].next = NULL;
+   }
+
+   /* assign merged buffers and calculated offsets to attributes */
+   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
+      if (merge[i].send) {
+         assert(merge[i].buffer != NULL);
+         KHRN_MEM_ASSIGN(state->attrib[i].attrib, merge[i].buffer);
+         state->attrib[i].offset = merge[i].offset;
+      }
+      else
+         assert(merge[i].buffer == NULL);
+
+   merged = true;
+
+end:
+   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
+      KHRN_MEM_ASSIGN(merge[i].buffer, NULL);
+   return merged;
+}
+
+static GLXX_BUFFER_T *create_scratch_buffer(const void *data, size_t size)
+{
+   GLXX_BUFFER_T *buffer;
+
+   buffer = glxx_shared_create_buffer(0);
+
+   if (buffer != NULL)
+   {
+      bool copied = glxx_buffer_data(buffer, size, data, GL_STATIC_DRAW, /*transient=*/true);
+      if (!copied)
+         KHRN_MEM_ASSIGN(buffer, NULL);
+   }
+   return buffer;
+}
+
+bool glxx_is_aligned(GLenum type, size_t value)
+{
+   switch (type) {
+   case GL_BYTE:
+   case GL_UNSIGNED_BYTE:
+      return true;
+   case GL_SHORT:
+   case GL_UNSIGNED_SHORT:
+      return (value & 1) == 0;
+   case GL_FIXED:
+   case GL_FLOAT:
+      return (value & 3) == 0;
+   default:
+      UNREACHABLE();
+      return false;
+   }
+}
+
+static void drawarrays_or_elements(GLenum mode, GLint first, GLsizei count, bool check_type, GLenum type, const GLvoid *indices)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
+
+   GLXX_BUFFER_T *indices_buffer = NULL;
+
+   if (count <= 0)
+   {
+      if (count<0)
+         glxx_server_state_set_error(state, GL_INVALID_VALUE);
+      goto end;
+   }
+
+   if (check_type && !is_index_type(type)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+#if (__mips__) || (__arm__ && __ARM_FEATURE_UNALIGNED != 1)
+   if (!glxx_is_aligned(type, (size_t)indices)) {
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+      goto end;
+   }
+#endif
+
+   bool send_any = false;
+   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++) {
+      send_any |= state->attrib[i].enabled && state->attrib[i].pointer != NULL && state->attrib[i].buffer == 0;
+
+      /* TODO: what should we do if people give us null pointers? */
+      if (state->attrib[i].enabled && state->attrib[i].pointer == NULL && state->attrib[i].buffer == 0)
+         goto end;
+   }
+
+   uint32_t indices_offset;
+   bool send_indices;
+   int max;
+
+   if (type == 0) {
+      indices_offset = first;
+      send_indices = false;
+      max = first + count - 1;
+      indices_buffer = NULL;
+   }
+   else {
+      if (state->bound_buffer.element_array_name != 0 &&
+            state->bound_buffer.element_array_buffer == NULL)
+      {
+         /* inconsistent state */
+         glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
+         goto end;
+      }
+
+      send_indices = state->bound_buffer.element_array_name == 0;
+
+      if (send_indices)
+      {
+         /* copy client-side indices into a scratch buffer */
+         size_t indices_length = count * khrn_get_type_size((int)type);
+         indices_buffer = create_scratch_buffer(indices, indices_length);
+         if (indices_buffer == NULL)
+         {
+            glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
+            goto end;
+         }
+         indices_offset = 0;
+      }
+      else
+      {
+         /* use bound indices buffer */
+         KHRN_MEM_ASSIGN(indices_buffer, state->bound_buffer.element_array_buffer);
+         indices_offset = (uint32_t)(uintptr_t)indices;
+      }
+      max = glxx_find_max(indices_buffer, count, type, indices_offset);
+   }
+
+   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
+   {
+      if (state->attrib[i].enabled && state->attrib[i].buffer != 0 &&
+            state->attrib[i].attrib == NULL)
+      {
+         /*
+            If a glBindBuffer call has failed due to an out of memory condition, the client's estimate
+            of which attributes have buffers bound can differ from reality. If this happens, we cause
+            subsequent glDrawArrays() and glDrawElements() calls to fail with GL_OUT_OF_MEMORY.
+         */
+         glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
+         goto end;
+      }
+   }
+
+   if (merge_attribs(state, max))
+      draw_elements(state, mode, count, type, indices_buffer, indices_offset);
+   else
+      glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
+
+end:
+   /* release a temp refence to scratch buffer containing indices */
+   KHRN_MEM_ASSIGN(indices_buffer, NULL);
+
+   /* release temp refences to scratch buffers containing attributes */
+   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
+      if (state->attrib[i].enabled && state->attrib[i].buffer == 0)
+         KHRN_MEM_ASSIGN(state->attrib[i].attrib, NULL);
+
+   glxx_unlock_server_state(OPENGL_ES_ANY);
+}
+
+GL_API void GL_APIENTRY glDrawArrays(GLenum mode, GLint first, GLsizei count)
+{
+   drawarrays_or_elements(mode, first, count, false, 0, NULL);
+}
+
+GL_API void GL_APIENTRY glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices)
+{
+   drawarrays_or_elements(mode, 0, count, true, type, indices);
+}
+
+GL_API void GL_APIENTRY glGetPointerv(GLenum pname, GLvoid **params)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
+
+   if (IS_GL_20(state)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   switch (pname) {
+   case GL_VERTEX_ARRAY_POINTER:
+      params[0] = (void *)state->attrib[GL11_IX_VERTEX].pointer;
+      break;
+   case GL_NORMAL_ARRAY_POINTER:
+      params[0] = (void *)state->attrib[GL11_IX_NORMAL].pointer;
+      break;
+   case GL_COLOR_ARRAY_POINTER:
+      params[0] = (void *)state->attrib[GL11_IX_COLOR].pointer;
+      break;
+   case GL_TEXTURE_COORD_ARRAY_POINTER:
+      params[0] = (void *)state->attrib[state->client_active_texture - GL_TEXTURE0 + GL11_IX_TEXTURE_COORD].pointer;
+      break;
+   case GL_POINT_SIZE_ARRAY_POINTER_OES:
+      params[0] = (void *)state->attrib[GL11_IX_POINT_SIZE].pointer;
+      break;
+   default:
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      break;
+   }
+
+end:
+   glxx_unlock_server_state(OPENGL_ES_ANY);
+}
+
+static void point_size(GLfloat size) // S
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state)
+      return;
+
+   size = clean_float(size);
+
+   if (size > 0.0f) {
+      if (IS_GL_11(state))
+         state->attrib[GL11_IX_POINT_SIZE].value[0] = size;
+      else
+         state->point_size = size;
+   }
+   else
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+
+   glxx_unlock_server_state(OPENGL_ES_ANY);
+}
+
+GL_API void GL_APIENTRY glPointSize(GLfloat size)
+{
+   point_size(size);
+}
+
+GL_API void GL_APIENTRY glPointSizex(GLfixed size)
+{
+   point_size(fixed_to_float(size));
+}
+
+void glxx_context_gl_create_lock(void)
+{
+   if (vcos_mutex_create(&gl_lock, "GLXX") != VCOS_SUCCESS)
+      exit(EXIT_FAILURE);
+}
+
+void glxx_context_gl_lock(void)
+{
+   vcos_mutex_lock(&gl_lock);
+}
+
+void glxx_context_gl_unlock(void)
+{
+   vcos_mutex_unlock(&gl_lock);
+}
+
+GLXX_SERVER_STATE_T *glxx_lock_server_state(EGL_CONTEXT_TYPE_T type)
+{
+   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+
+   if (thread->opengl.context == NULL)
+      return NULL;
+
+   glxx_context_gl_lock();
+
+   EGL_CONTEXT_T *context = thread->opengl.context;
+
+   vcos_demand(context->state);  // 1->1 mapping for EGL_CONTEXT_T to GLXX_SERVER_STATE_T
+
+   GLXX_SERVER_STATE_T *state = context->state;
+
+   if (!glxx_check_gl_api(state, type)) {
+      glxx_context_gl_unlock();
+      state = NULL;
+   }
+
+   return state;
+}
+
+void glxx_unlock_server_state(EGL_CONTEXT_TYPE_T type)
+{
+   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+
+   if (thread->opengl.context == NULL)
+      return;
+
+   assert(vcos_mutex_is_locked(&gl_lock));
+
+   EGL_CONTEXT_T *context = thread->opengl.context;
+
+   vcos_demand(context->state);  // 1->1 mapping for EGL_CONTEXT_T to GLXX_SERVER_STATE_T
+
+   GLXX_SERVER_STATE_T *state = context->state;
+
+   if (!glxx_check_gl_api(state, type))
+      assert(0);
+
+   glxx_context_gl_unlock();
 }

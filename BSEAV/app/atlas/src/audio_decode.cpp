@@ -170,8 +170,6 @@ eRet CAudioDecode::open(
     int  fifoSize = 0;
     NEXUS_AudioDecoderOpenSettings settings;
 
-    BDBG_ASSERT(NULL != pStc);
-
     if (true == isOpened())
     {
         ret = eRet_InvalidState;
@@ -377,6 +375,9 @@ CSimpleAudioDecode::CSimpleAudioDecode(
     _bPrimer(true),
     _bMaster(false),
     _mixingMode(NEXUS_AudioDecoderMixingMode_eDescription),
+#if BDSP_MS12_SUPPORT
+    _fadeStartLevel(-1),
+#endif
     _windowType(eWindowType_Max),
     _pModel(NULL)
 {
@@ -412,8 +413,6 @@ eRet CSimpleAudioDecode::open(
     int         i      = 0;
 
     NEXUS_SimpleAudioDecoderServerSettings settings;
-
-    BDBG_ASSERT(NULL != pStc);
 
     if (true == isOpened())
     {
@@ -1400,12 +1399,6 @@ error:
     return(ret);
 } /* setVolume */
 
-/* only available in nxclient atlas with BDSP_MS12_SUPPORT */
-eRet CSimpleAudioDecode::setAudioFade(unsigned level, unsigned duration)
-{
-    return(eRet_Ok);
-}
-
 bool CSimpleAudioDecode::getMute()
 {
     NEXUS_SimpleAudioDecoderHandle decoder = getSimpleDecoder();
@@ -2003,7 +1996,435 @@ eRet CSimpleAudioDecode::setStc(CStc * pStc)
     CHECK_NEXUS_ERROR_GOTO("SetStcChannel simple audio decoder failed!", ret, nerror, error);
 
     _pStc = pStc;
+error:
+    return(ret);
+}
+
+#if BDSP_MS12_SUPPORT
+unsigned CSimpleAudioDecode::numPresentations()
+{
+    NEXUS_Error              nerror              = NEXUS_SUCCESS;
+    eRet                     ret                 = eRet_Ok;
+    NEXUS_AudioDecoderStatus decodeStatus;
+    unsigned                 numPresentations = 0;
+
+    nerror = NEXUS_SimpleAudioDecoder_GetStatus(getSimpleDecoder(), &decodeStatus);
+    CHECK_NEXUS_ERROR_GOTO("unable to get simple audio decoder status", ret, nerror, error);
+
+    numPresentations = decodeStatus.codecStatus.ac4.numPresentations;
+
+error:
+    return(numPresentations);
+}
+
+eRet CSimpleAudioDecode::getPresentationStatus(unsigned nIndex, NEXUS_AudioDecoderPresentationStatus * pStatus)
+{
+    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
+    eRet                                   ret                 = eRet_Ok;
+    NEXUS_AudioDecoderPresentationStatus   presentStatus;
+    NEXUS_AudioDecoderStatus               decodeStatus;
+
+    BDBG_ASSERT(NULL != pStatus);
+
+    nerror = NEXUS_SimpleAudioDecoder_GetStatus(getSimpleDecoder(), &decodeStatus);
+    CHECK_NEXUS_ERROR_GOTO("unable to get simple audio decoder status", ret, nerror, error);
+
+    if (decodeStatus.codecStatus.ac4.numPresentations <= nIndex)
+    {
+        ret = eRet_NotAvailable;
+        goto error;
+    }
+
+    if (NEXUS_AudioCodec_eAc4 == decodeStatus.codec)
+    {
+        nerror = NEXUS_SimpleAudioDecoder_GetPresentationStatus(getSimpleDecoder(), nIndex, &presentStatus);
+        CHECK_NEXUS_ERROR_GOTO("unable to get presentation status", ret, nerror, error);
+
+        *pStatus = presentStatus;
+    }
 
 error:
     return(ret);
 }
+
+/* gets the last requested presentation index setting. this may differ from the result returned by
+ * getPresentationCurrent() if the index was recently set but has not yet been changed.
+ */
+unsigned CSimpleAudioDecode::getPresentation(NEXUS_AudioDecoderAc4Program program)
+{
+    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
+    eRet                                   ret                 = eRet_Ok;
+    unsigned                               nIndex              = 0;
+    NEXUS_AudioDecoderStatus               decodeStatus;
+    NEXUS_AudioDecoderCodecSettings        codecSettings;
+
+    if (NEXUS_AudioDecoderAc4Program_eMax == program)
+    {
+        program = NEXUS_AudioDecoderAc4Program_eMain;
+    }
+
+    nerror = NEXUS_SimpleAudioDecoder_GetStatus(getSimpleDecoder(), &decodeStatus);
+    CHECK_NEXUS_ERROR_GOTO("unable to get simple audio decoder status", ret, nerror, error);
+
+    if (NEXUS_AudioCodec_eAc4 != decodeStatus.codec)
+    {
+        BDBG_ERR(("unable to set ac4 language - codec mismatch"));
+        goto error;
+    }
+
+    NEXUS_SimpleAudioDecoder_GetCodecSettings(getSimpleDecoder(), NEXUS_SimpleAudioDecoderSelector_ePrimary, decodeStatus.codec, &codecSettings);
+    nIndex = codecSettings.codecSettings.ac4.programs[program].presentationIndex;
+
+error:
+    return(nIndex);
+}
+
+/* gets the current presentation index. this may differ from the result returned by
+ * getPresentation() if the index was recently set but has not yet been changed.
+ */
+unsigned CSimpleAudioDecode::getPresentationCurrent(NEXUS_AudioDecoderAc4Program program)
+{
+    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
+    eRet                                   ret                 = eRet_Ok;
+    unsigned                               nIndex              = 0;
+    NEXUS_AudioDecoderStatus               decodeStatus;
+    NEXUS_AudioDecoderCodecSettings        codecSettings;
+
+    if (NEXUS_AudioDecoderAc4Program_eMax == program)
+    {
+        program = NEXUS_AudioDecoderAc4Program_eMain;
+    }
+
+    nerror = NEXUS_SimpleAudioDecoder_GetStatus(getSimpleDecoder(), &decodeStatus);
+    CHECK_NEXUS_ERROR_GOTO("unable to get simple audio decoder status", ret, nerror, error);
+
+    if (NEXUS_AudioCodec_eAc4 != decodeStatus.codec)
+    {
+        BDBG_ERR(("unable to set ac4 language - codec mismatch"));
+        goto error;
+    }
+
+    if (NEXUS_AudioDecoderAc4Program_eMain == program)
+    {
+        nIndex = decodeStatus.codecStatus.ac4.currentPresentationIndex;
+    }
+    else
+    {
+        nIndex = decodeStatus.codecStatus.ac4.currentAlternateStereoPresentationIndex;
+    }
+error:
+    return(nIndex);
+}
+
+eRet CSimpleAudioDecode::setPresentation(NEXUS_AudioDecoderPresentationStatus * pStatus)
+{
+    BDBG_ASSERT(NULL != pStatus);
+
+    return(setPresentation(pStatus->status.ac4.index));
+}
+
+eRet CSimpleAudioDecode::setPresentation(unsigned nIndex, NEXUS_AudioDecoderAc4Program program)
+{
+    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
+    eRet                                   ret                 = eRet_Ok;
+    NEXUS_AudioDecoderStatus               decodeStatus;
+    NEXUS_AudioDecoderCodecSettings        codecSettings;
+
+    if (NEXUS_AudioDecoderAc4Program_eMax == program)
+    {
+        program = NEXUS_AudioDecoderAc4Program_eMain;
+    }
+
+    nerror = NEXUS_SimpleAudioDecoder_GetStatus(getSimpleDecoder(), &decodeStatus);
+    CHECK_NEXUS_ERROR_GOTO("unable to get simple audio decoder status", ret, nerror, error);
+
+    if (decodeStatus.codecStatus.ac4.numPresentations <= nIndex)
+    {
+        ret = eRet_NotAvailable;
+        goto error;
+    }
+
+    if (NEXUS_AudioCodec_eAc4 != decodeStatus.codec)
+    {
+        BDBG_ERR(("unable to set ac4 language - codec mismatch"));
+        goto error;
+    }
+
+    NEXUS_SimpleAudioDecoder_GetCodecSettings(getSimpleDecoder(), NEXUS_SimpleAudioDecoderSelector_ePrimary, decodeStatus.codec, &codecSettings);
+    codecSettings.codecSettings.ac4.programs[program].presentationIndex = nIndex;
+    nerror = NEXUS_SimpleAudioDecoder_SetCodecSettings(getSimpleDecoder(), NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
+    CHECK_NEXUS_ERROR_GOTO("unable to set ac4 presentation", ret, nerror, error);
+
+    ret = notifyObservers(eNotify_AudioAc4PresentationChanged, this);
+    CHECK_ERROR_GOTO("unable to notify observers audio ac4 presentation change", ret, error);
+error:
+    return(ret);
+}
+
+eLanguage CSimpleAudioDecode::getLanguage(NEXUS_AudioDecoderAc4Program program)
+{
+    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
+    eRet                                   ret                 = eRet_Ok;
+    eLanguage                              language            = eLanguage_Max;
+    NEXUS_AudioDecoderStatus               decodeStatus;
+    NEXUS_AudioDecoderCodecSettings        codecSettings;
+
+    if (NEXUS_AudioDecoderAc4Program_eMax == program)
+    {
+        program = NEXUS_AudioDecoderAc4Program_eMain;
+    }
+
+    nerror = NEXUS_SimpleAudioDecoder_GetStatus(getSimpleDecoder(), &decodeStatus);
+    CHECK_NEXUS_ERROR_GOTO("unable to get simple audio decoder status", ret, nerror, error);
+
+    if (NEXUS_AudioCodec_eAc4 != decodeStatus.codec)
+    {
+        BDBG_ERR(("unable to set ac4 language - codec mismatch"));
+        goto error;
+    }
+
+    NEXUS_SimpleAudioDecoder_GetCodecSettings(getSimpleDecoder(), NEXUS_SimpleAudioDecoderSelector_ePrimary, decodeStatus.codec, &codecSettings);
+    language = stringToLanguage(codecSettings.codecSettings.ac4.programs[program].languagePreference[0].selection);
+
+error:
+    return(language);
+}
+
+eRet CSimpleAudioDecode::setLanguage(eLanguage language, NEXUS_AudioDecoderAc4Program program)
+{
+    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
+    eRet                                   ret                 = eRet_Ok;
+    NEXUS_AudioDecoderStatus               decodeStatus;
+    NEXUS_AudioDecoderCodecSettings        codecSettings;
+
+    if (NEXUS_AudioDecoderAc4Program_eMax == program)
+    {
+        program = NEXUS_AudioDecoderAc4Program_eMain;
+    }
+
+    nerror = NEXUS_SimpleAudioDecoder_GetStatus(getSimpleDecoder(), &decodeStatus);
+    CHECK_NEXUS_ERROR_GOTO("unable to get simple audio decoder status", ret, nerror, error);
+
+    if (NEXUS_AudioCodec_eAc4 != decodeStatus.codec)
+    {
+        BDBG_ERR(("unable to set ac4 language - codec mismatch"));
+        goto error;
+    }
+
+    NEXUS_SimpleAudioDecoder_GetCodecSettings(getSimpleDecoder(), NEXUS_SimpleAudioDecoderSelector_ePrimary, decodeStatus.codec, &codecSettings);
+    strncpy(codecSettings.codecSettings.ac4.programs[program].languagePreference[0].selection, languageToString(language), NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+    nerror = NEXUS_SimpleAudioDecoder_SetCodecSettings(getSimpleDecoder(), NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
+    CHECK_NEXUS_ERROR_GOTO("unable to set ac4 Language", ret, nerror, error);
+
+    ret = notifyObservers(eNotify_AudioAc4LanguageChanged, this);
+    CHECK_ERROR_GOTO("unable to notify observers audio ac4 Language change", ret, error);
+error:
+    return(ret);
+}
+
+NEXUS_AudioAc4AssociateType CSimpleAudioDecode::getAssociate(NEXUS_AudioDecoderAc4Program program)
+{
+    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
+    eRet                                   ret                 = eRet_Ok;
+    NEXUS_AudioAc4AssociateType            associate           = NEXUS_AudioAc4AssociateType_eMax;
+    NEXUS_AudioDecoderStatus               decodeStatus;
+    NEXUS_AudioDecoderCodecSettings        codecSettings;
+
+    if (NEXUS_AudioDecoderAc4Program_eMax == program)
+    {
+        program = NEXUS_AudioDecoderAc4Program_eMain;
+    }
+
+    nerror = NEXUS_SimpleAudioDecoder_GetStatus(getSimpleDecoder(), &decodeStatus);
+    CHECK_NEXUS_ERROR_GOTO("unable to get simple audio decoder status", ret, nerror, error);
+
+    if (NEXUS_AudioCodec_eAc4 != decodeStatus.codec)
+    {
+        BDBG_ERR(("unable to set ac4 language - codec mismatch"));
+        goto error;
+    }
+
+    NEXUS_SimpleAudioDecoder_GetCodecSettings(getSimpleDecoder(), NEXUS_SimpleAudioDecoderSelector_ePrimary, decodeStatus.codec, &codecSettings);
+    associate = codecSettings.codecSettings.ac4.programs[program].preferredAssociateType;
+
+error:
+    return(associate);
+}
+
+eRet CSimpleAudioDecode::setAssociate(NEXUS_AudioAc4AssociateType associate, NEXUS_AudioDecoderAc4Program program)
+{
+    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
+    eRet                                   ret                 = eRet_Ok;
+    NEXUS_AudioDecoderStatus               decodeStatus;
+    NEXUS_AudioDecoderCodecSettings        codecSettings;
+
+    if (NEXUS_AudioDecoderAc4Program_eMax == program)
+    {
+        program = NEXUS_AudioDecoderAc4Program_eMain;
+    }
+
+    nerror = NEXUS_SimpleAudioDecoder_GetStatus(getSimpleDecoder(), &decodeStatus);
+    CHECK_NEXUS_ERROR_GOTO("unable to get simple audio decoder status", ret, nerror, error);
+
+    if (NEXUS_AudioCodec_eAc4 != decodeStatus.codec)
+    {
+        BDBG_ERR(("unable to set ac4 associate - codec mismatch"));
+        goto error;
+    }
+
+    NEXUS_SimpleAudioDecoder_GetCodecSettings(getSimpleDecoder(), NEXUS_SimpleAudioDecoderSelector_ePrimary, decodeStatus.codec, &codecSettings);
+    codecSettings.codecSettings.ac4.programs[program].preferredAssociateType = associate;
+    nerror = NEXUS_SimpleAudioDecoder_SetCodecSettings(getSimpleDecoder(), NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
+    CHECK_NEXUS_ERROR_GOTO("unable to set ac4 Language", ret, nerror, error);
+
+    ret = notifyObservers(eNotify_AudioAc4AssociateChanged, this);
+    CHECK_ERROR_GOTO("unable to notify observers audio ac4 Language change", ret, error);
+error:
+    return(ret);
+}
+
+ePriority CSimpleAudioDecode::getPriority(NEXUS_AudioDecoderAc4Program program)
+{
+    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
+    eRet                                   ret                 = eRet_Ok;
+    ePriority                              priority            = ePriority_Max;
+    NEXUS_AudioDecoderStatus               decodeStatus;
+    NEXUS_AudioDecoderCodecSettings        codecSettings;
+
+    if (NEXUS_AudioDecoderAc4Program_eMax == program)
+    {
+        program = NEXUS_AudioDecoderAc4Program_eMain;
+    }
+
+    nerror = NEXUS_SimpleAudioDecoder_GetStatus(getSimpleDecoder(), &decodeStatus);
+    CHECK_NEXUS_ERROR_GOTO("unable to get simple audio decoder status", ret, nerror, error);
+
+    if (NEXUS_AudioCodec_eAc4 != decodeStatus.codec)
+    {
+        BDBG_ERR(("unable to set ac4 language - codec mismatch"));
+        goto error;
+    }
+
+    NEXUS_SimpleAudioDecoder_GetCodecSettings(getSimpleDecoder(), NEXUS_SimpleAudioDecoderSelector_ePrimary, decodeStatus.codec, &codecSettings);
+    priority = codecSettings.codecSettings.ac4.programs[program].preferLanguageOverAssociateType ? ePriority_Language : ePriority_Associate;
+
+error:
+    return(priority);
+}
+
+eRet CSimpleAudioDecode::setPriority(ePriority priority, NEXUS_AudioDecoderAc4Program program)
+{
+    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
+    eRet                                   ret                 = eRet_Ok;
+    NEXUS_AudioDecoderStatus               decodeStatus;
+    NEXUS_AudioDecoderCodecSettings        codecSettings;
+
+    if (NEXUS_AudioDecoderAc4Program_eMax == program)
+    {
+        program = NEXUS_AudioDecoderAc4Program_eMain;
+    }
+
+    nerror = NEXUS_SimpleAudioDecoder_GetStatus(getSimpleDecoder(), &decodeStatus);
+    CHECK_NEXUS_ERROR_GOTO("unable to get simple audio decoder status", ret, nerror, error);
+
+    if (NEXUS_AudioCodec_eAc4 != decodeStatus.codec)
+    {
+        BDBG_ERR(("unable to set ac4 associate - codec mismatch"));
+        goto error;
+    }
+
+    NEXUS_SimpleAudioDecoder_GetCodecSettings(getSimpleDecoder(), NEXUS_SimpleAudioDecoderSelector_ePrimary, decodeStatus.codec, &codecSettings);
+    codecSettings.codecSettings.ac4.programs[program].preferLanguageOverAssociateType = (ePriority_Language == priority) ? true : false;
+    nerror = NEXUS_SimpleAudioDecoder_SetCodecSettings(getSimpleDecoder(), NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
+    CHECK_NEXUS_ERROR_GOTO("unable to set ac4 priority", ret, nerror, error);
+
+    ret = notifyObservers(eNotify_AudioAc4PriorityChanged, this);
+    CHECK_ERROR_GOTO("unable to notify observers audio ac4 priority change", ret, error);
+error:
+    return(ret);
+}
+
+void CSimpleAudioDecode::dumpPresentation(unsigned nIndex, bool bForce)
+{
+    eRet ret = eRet_Ok;
+    BDBG_Level level;
+    NEXUS_AudioDecoderPresentationStatus status;
+
+    BKNI_Memset(&status, 0, sizeof(status));
+
+    if (true == bForce)
+    {
+        BDBG_GetModuleLevel("atlas_audio_decode", &level);
+        BDBG_SetModuleLevel("atlas_audio_decode", BDBG_eMsg);
+    }
+
+    ret = getPresentationStatus(nIndex, &status);
+    CHECK_ERROR_GOTO("unable to get presentation", ret, error);
+
+    BDBG_MSG(("Audio AC4 Presentation - index:%d name:%s language:%s", status.status.ac4.index, status.status.ac4.name, status.status.ac4.language));
+
+    if (true == bForce)
+    {
+        BDBG_SetModuleLevel("atlas_audio_decode", level);
+    }
+
+error:
+    ret = notifyObservers(eNotify_AudioAc4PresentationShown, &status);
+    CHECK_ERROR_GOTO("unable to notify observers audio ac4 presentation shown", ret, error);
+
+    return;
+}
+
+int CSimpleAudioDecode::getDialogEnhancement()
+{
+    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
+    eRet                                   ret                 = eRet_Ok;
+    int                                    nDb                 = 0;
+    NEXUS_AudioDecoderStatus               decodeStatus;
+    NEXUS_AudioDecoderCodecSettings        codecSettings;
+
+    nerror = NEXUS_SimpleAudioDecoder_GetStatus(getSimpleDecoder(), &decodeStatus);
+    CHECK_NEXUS_ERROR_GOTO("unable to get simple audio decoder status", ret, nerror, error);
+
+    if (NEXUS_AudioCodec_eAc4 == decodeStatus.codec)
+    {
+        NEXUS_SimpleAudioDecoder_GetCodecSettings(getSimpleDecoder(), NEXUS_SimpleAudioDecoderSelector_ePrimary, decodeStatus.codec, &codecSettings);
+        nDb = codecSettings.codecSettings.ac4.dialogEnhancerAmount;
+    }
+
+error:
+    return(nDb);
+}
+
+eRet CSimpleAudioDecode::setDialogEnhancement(int nDb)
+{
+    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
+    eRet                                   ret                 = eRet_NotSupported;
+    NEXUS_AudioDecoderStatus               decodeStatus;
+    NEXUS_AudioDecoderCodecSettings        codecSettings;
+
+    BDBG_ASSERT(-12 <= nDb);
+    BDBG_ASSERT(12 >= nDb);
+
+    nerror = NEXUS_SimpleAudioDecoder_GetStatus(getSimpleDecoder(), &decodeStatus);
+    CHECK_NEXUS_ERROR_GOTO("unable to get simple audio decoder status", ret, nerror, error);
+
+    if (NEXUS_AudioCodec_eAc4 == decodeStatus.codec)
+    {
+        NEXUS_SimpleAudioDecoder_GetCodecSettings(getSimpleDecoder(), NEXUS_SimpleAudioDecoderSelector_ePrimary, decodeStatus.codec, &codecSettings);
+        codecSettings.codecSettings.ac4.dialogEnhancerAmount = nDb;
+        nerror = NEXUS_SimpleAudioDecoder_SetCodecSettings(getSimpleDecoder(), NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
+        CHECK_NEXUS_ERROR_GOTO("unable to set ac4 dialog enhancement", ret, nerror, error);
+
+        BDBG_MSG(("setting AC-4 Dialog Enhancement:%ddB", nDb));
+
+        ret = notifyObservers(eNotify_AudioAc4DialogEnhancementChanged, &nDb);
+        CHECK_ERROR_GOTO("unable to notify observers audio ac4 dialog enhancement change", ret, error);
+
+        ret = eRet_Ok;
+    }
+
+error:
+    return(ret);
+}
+#endif

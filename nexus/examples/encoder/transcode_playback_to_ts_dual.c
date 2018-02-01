@@ -52,6 +52,7 @@
 #include "nexus_video_adj.h"
 #include "nexus_spdif_output.h"
 #include "nexus_component_output.h"
+#include "nexus_core_utils.h"
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #endif
@@ -540,7 +541,6 @@ again:
         videoEncoderStartConfig.input = displayTranscode[xcodeId];
         videoEncoderStartConfig.stcChannel = stcChannelTranscode[xcodeId];
         {
-            #include "nexus_core_utils.h"
             NEXUS_VideoFormatInfo info;
             NEXUS_VideoFormat_GetInfo(displaySettings.format, &info);
             videoEncoderStartConfig.interlaced = info.interlaced;

@@ -133,7 +133,7 @@ public:
    void AppendGeometry(const GeometryHandle &geom)    { m_geometries.push_back(geom);        }
 
    //! Returns the number of geometries in this scene node.
-   uint32_t NumGeometries() const                     { return m_geometries.size();          }
+   uint32_t NumGeometries() const                     { return static_cast<uint32_t>(m_geometries.size());   }
 
    //! Returns geomertry number n from the list of geometries.
    const GeometryHandle &GetGeometry(uint32_t n) const;

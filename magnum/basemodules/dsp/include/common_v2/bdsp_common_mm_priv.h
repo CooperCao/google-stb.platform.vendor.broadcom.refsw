@@ -65,6 +65,9 @@
 #define BDSP_WriteReg64_isr(hReg, addr, data)  BREG_Write64_isr(hReg, addr, data)
 
 #define BDSP_SIZE_OF_FMMREG                    (BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_ENDADDR - BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_BASEADDR)
+#define BDSP_FMM_WRAP_BIT                      ((BDSP_SIZE_OF_FMMREG == 8)?39:31)
+#define BDSP_FMM_WRAP_MASK                     ((dramaddr_t)0x1<<BDSP_FMM_WRAP_BIT)
+#define BDSP_FMM_ADDR_MASK                     (BDSP_FMM_WRAP_MASK-1)
 #define BDSP_ReadFMMReg(hReg, addr)            ((BDSP_SIZE_OF_FMMREG == 8)? BDSP_ReadReg64(hReg, addr): BDSP_ReadReg32(hReg, addr))
 #define BDSP_WriteFMMReg(hReg, addr, data)     ((BDSP_SIZE_OF_FMMREG == 8)? BDSP_WriteReg64(hReg, addr, data): BDSP_WriteReg32(hReg, addr, data))
 

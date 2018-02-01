@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 #include "bstd.h"
@@ -43,15 +44,12 @@
 #ifndef BHSM_PRIVATE__H
 #define BHSM_PRIVATE__H
 
-
 #define FLASHMAP_VERSION_V1 1
 #define FLASHMAP_VERSION_V2 2
 #define FLASHMAP_VERSION_V3 3
 #define FLASHMAP_VERSION_V4 4
 #define FLASHMAP_VERSION_V5 5
 #define FLASHMAP_VERSION FLASHMAP_VERSION_V5
-
-
 
 typedef struct
 {
@@ -74,6 +72,7 @@ typedef struct BHSM_P_Handle{
        struct BHSM_KeySlotModule *pKeyslots;
        void* pKeyLadders;
        void* pRegionVerification;
+       void* pHmac;
        void* pHash;
        void* pRvRsa;
        void* pRsa;

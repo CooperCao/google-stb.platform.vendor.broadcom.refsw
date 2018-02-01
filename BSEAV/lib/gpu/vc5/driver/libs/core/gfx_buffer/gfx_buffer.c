@@ -19,21 +19,6 @@ void gfx_buffer_mip_dims(
    *mip_depth = gfx_umax(depth >> mip_level, 1);
 }
 
-void gfx_buffer_desc_rebase(
-   uintptr_t *base_addr, GFX_BUFFER_DESC_T *desc)
-{
-   uint32_t min_offset, i;
-
-   assert(desc->num_planes >= 1);
-   min_offset = desc->planes[0].offset;
-   for (i = 1; i != desc->num_planes; ++i)
-      min_offset = gfx_umin(min_offset, desc->planes[i].offset);
-
-   *base_addr += min_offset;
-   for (i = 0; i != desc->num_planes; ++i)
-      desc->planes[i].offset -= min_offset;
-}
-
 static bool fmts_same_block_size_and_dims(GFX_LFMT_T a, GFX_LFMT_T b)
 {
    GFX_LFMT_BASE_DETAIL_T bd_a, bd_b;
@@ -45,8 +30,10 @@ static bool fmts_same_block_size_and_dims(GFX_LFMT_T a, GFX_LFMT_T b)
       (bd_a.block_d == bd_b.block_d);
 }
 
-static bool gfx_buffer_equal_internal(const GFX_BUFFER_DESC_T *lhs,
-   const GFX_BUFFER_DESC_T *rhs, bool permit_diff_fmt)
+static bool gfx_buffer_equal_with_bases_internal(
+   const uint64_t *base_addr_lhs, const GFX_BUFFER_DESC_T *lhs,
+   const uint64_t *base_addr_rhs, const GFX_BUFFER_DESC_T *rhs,
+   bool permit_diff_fmt)
 {
    if ((lhs->width != rhs->width) ||
       (lhs->height != rhs->height) ||
@@ -69,10 +56,8 @@ static bool gfx_buffer_equal_internal(const GFX_BUFFER_DESC_T *lhs,
       else if (lhs_lfmt != rhs_lfmt)
          return false;
 
-      if (lhs->planes[i].region != rhs->planes[i].region)
-         return false;
-
-      if (lhs->planes[i].offset != rhs->planes[i].offset)
+      if (base_addr_lhs[lhs->planes[i].region] + lhs->planes[i].offset !=
+            base_addr_rhs[rhs->planes[i].region] + rhs->planes[i].offset)
          return false;
 
       if ((gfx_lfmt_dims_from_enum(gfx_lfmt_get_dims(&lhs->planes[i].lfmt)) >= 2) &&
@@ -87,36 +72,9 @@ static bool gfx_buffer_equal_internal(const GFX_BUFFER_DESC_T *lhs,
    return true;
 }
 
-bool gfx_buffer_equal(const GFX_BUFFER_DESC_T *lhs,
-   const GFX_BUFFER_DESC_T *rhs)
-{
-   return gfx_buffer_equal_internal(lhs, rhs, false);
-}
-
-bool gfx_buffer_equal_permit_diff_fmt(const GFX_BUFFER_DESC_T *lhs,
-   const GFX_BUFFER_DESC_T *rhs)
-{
-   return gfx_buffer_equal_internal(lhs, rhs, true);
-}
-
-static bool gfx_buffer_equal_with_bases_internal(
-   uintptr_t base_addr_lhs, const GFX_BUFFER_DESC_T *lhs_in,
-   uintptr_t base_addr_rhs, const GFX_BUFFER_DESC_T *rhs_in,
-   bool permit_diff_fmt)
-{
-   GFX_BUFFER_DESC_T lhs = *lhs_in, rhs = *rhs_in;
-
-   /* Rebase so base addresses and descs can be compared independently */
-   gfx_buffer_desc_rebase(&base_addr_lhs, &lhs);
-   gfx_buffer_desc_rebase(&base_addr_rhs, &rhs);
-
-   return (base_addr_lhs == base_addr_rhs) &&
-      gfx_buffer_equal_internal(&lhs, &rhs, permit_diff_fmt);
-}
-
 bool gfx_buffer_equal_with_bases(
-   uintptr_t base_addr_lhs, const GFX_BUFFER_DESC_T *lhs,
-   uintptr_t base_addr_rhs, const GFX_BUFFER_DESC_T *rhs)
+   const uint64_t *base_addr_lhs, const GFX_BUFFER_DESC_T *lhs,
+   const uint64_t *base_addr_rhs, const GFX_BUFFER_DESC_T *rhs)
 {
    return gfx_buffer_equal_with_bases_internal(
       base_addr_lhs, lhs,
@@ -125,8 +83,8 @@ bool gfx_buffer_equal_with_bases(
 }
 
 bool gfx_buffer_equal_with_bases_permit_diff_fmt(
-   uintptr_t base_addr_lhs, const GFX_BUFFER_DESC_T *lhs,
-   uintptr_t base_addr_rhs, const GFX_BUFFER_DESC_T *rhs)
+   const uint64_t *base_addr_lhs, const GFX_BUFFER_DESC_T *lhs,
+   const uint64_t *base_addr_rhs, const GFX_BUFFER_DESC_T *rhs)
 {
    return gfx_buffer_equal_with_bases_internal(
       base_addr_lhs, lhs,
@@ -135,8 +93,8 @@ bool gfx_buffer_equal_with_bases_permit_diff_fmt(
 }
 
 bool gfx_buffer_equal_slice_with_bases_permit_diff_fmt(
-   uintptr_t base_addr_2d, const GFX_BUFFER_DESC_T *desc_2d,
-   uintptr_t base_addr_3d, const GFX_BUFFER_DESC_T *desc_3d)
+   uint64_t base_addr_2d, const GFX_BUFFER_DESC_T *desc_2d,
+   uint64_t base_addr_3d, const GFX_BUFFER_DESC_T *desc_3d)
 {
    assert(gfx_buffer_dims(desc_2d) == 2);
    assert(gfx_buffer_dims(desc_3d) == 3);
@@ -161,13 +119,13 @@ bool gfx_buffer_equal_slice_with_bases_permit_diff_fmt(
       if (plane_2d->pitch != plane_3d->pitch)
          return false;
 
-      uintptr_t addr_2d = base_addr_2d + plane_2d->offset;
-      uintptr_t addr_3d = base_addr_3d + plane_3d->offset;
+      uint64_t addr_2d = base_addr_2d + plane_2d->offset;
+      uint64_t addr_3d = base_addr_3d + plane_3d->offset;
       if (addr_2d < addr_3d)
          return false;
       if (((addr_2d - addr_3d) % plane_3d->slice_pitch) != 0)
          return false;
-      uintptr_t z_in_blocks = (addr_2d - addr_3d) / plane_3d->slice_pitch;
+      uint64_t z_in_blocks = (addr_2d - addr_3d) / plane_3d->slice_pitch;
 
       GFX_LFMT_BASE_DETAIL_T bd;
       gfx_lfmt_base_detail(&bd, plane_3d->lfmt);

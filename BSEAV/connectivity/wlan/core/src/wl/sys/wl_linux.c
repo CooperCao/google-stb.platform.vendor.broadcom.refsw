@@ -198,6 +198,8 @@ typedef const struct si_pub si_t;
 #include <wldev_common.h>
 #endif /* CFG80211 */
 
+#include <wl_linux_vendor.h>
+
 #ifdef DPSTA
 #include <dpsta.h>
 #if defined(STA) && defined(DWDS)
@@ -655,7 +657,14 @@ static int wl_preinit_ioctls(struct net_device *ndev)
 	int ret = 0;
 	char eventmask[WL_EVENTING_MASK_LEN];
 	char iovbuf[WL_EVENTING_MASK_LEN + 12]; /*  Room for "event_msgs" + '\0' + bitvec  */
+	uint32 buf_key_b4_m4 = 1;
 
+	/* Enable buffering of PTK key till EAPOL 4/4 is sent out */
+	bcm_mkiovar("buf_key_b4_m4", (char *)&buf_key_b4_m4, 4, iovbuf, sizeof(iovbuf));
+	ret = wldev_ioctl(ndev, WLC_SET_VAR, iovbuf, sizeof(iovbuf), true);
+	if (unlikely(ret)) {
+		WL_ERROR(("Set buf_key_b4_m4 error (%d)\n", ret));
+	}
 
 	/* Read event_msgs mask */
 	bcm_mkiovar("event_msgs", NULL, 0, iovbuf, sizeof(iovbuf));
@@ -1470,6 +1479,8 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 		WL_ERROR(("wl%d: Error setting sup_m3sec_ok \n", unit));
 	}
 #endif /* DEFAULT_EAPVER_AP */
+
+	wl_vendor_attach(dev, NULL, wl);
 
 	/* register module */
 	if (wlc_module_register(wl->pub, NULL, "linux", wl, NULL, wl_linux_watchdog, NULL, NULL)) {
@@ -2326,6 +2337,7 @@ wl_free(wl_info_t *wl)
 		  wl_cfg80211_detach(wl_get_cfg(NULL));
 #endif /* defined(USE_CFG80211) */
 
+	wl_vendor_detach(wl, NULL);
 	/* free timers */
 	for (t = wl->timers; t; t = next) {
 		next = t->next;
@@ -2462,6 +2474,9 @@ wl_open(struct net_device *dev)
 		return -1;
 	}
 #endif
+
+	wl_vendor_open(dev, NULL, wl);
+
 	return (error? -ENODEV : 0);
 } /* wl_open */
 
@@ -2477,6 +2492,7 @@ wl_close(struct net_device *dev)
 	wl_cfg80211_down(dev);
 #endif
 	wl = WL_INFO_GET(dev);
+	wl_vendor_close(dev, NULL, wl);
 
 	WL_TRACE(("wl%s: wl_close\n", dev->name));
 

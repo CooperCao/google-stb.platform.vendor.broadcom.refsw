@@ -228,31 +228,39 @@ static void connect_hdmi_audio(NEXUS_HdmiOutputHandle hdmi)
 
 static void hotplug_callback(void *pParam, int iParam)
 {
-    NEXUS_HdmiOutputStatus status;
+    NEXUS_Error errCode ;
+    NEXUS_HdmiOutputStatus hdmiOutputStatus;
     NEXUS_HdmiOutputHandle hdmi ;
     NEXUS_DisplayHandle display ;
     NEXUS_DisplaySettings displaySettings;
     NEXUS_HdmiOutputSettings hdmiSettings;
     hotplugCallbackParameters *hotPlugCbParams ;
 
+    BSTD_UNUSED(iParam);
     hotPlugCbParams = (hotplugCallbackParameters *) pParam ;
     hdmi = hotPlugCbParams->hdmiOutput ;
     display = hotPlugCbParams->display ;
 
-    NEXUS_HdmiOutput_GetStatus(hdmi, &status);
+    errCode = NEXUS_HdmiOutput_GetStatus(hdmi, &hdmiOutputStatus);
+    if (errCode)
+    {
+        BDBG_ERR(("Unable to get HdmiOuput Status; Hotplug event not processed")) ;
+        return ;
+    }
+
     /* the app can choose to switch to the preferred format, but it's not required. */
-    if ( !status.connected )
+    if ( !hdmiOutputStatus.connected )
     {
         BDBG_WRN(("No RxDevice Connected")) ;
         return ;
     }
 
     NEXUS_Display_GetSettings(display, &displaySettings);
-    if ( !status.videoFormatSupported[displaySettings.format] )
+    if ( !hdmiOutputStatus.videoFormatSupported[displaySettings.format] )
     {
         BDBG_ERR(("Current format not supported by attached monitor. Switching to preferred format %d",
-            status.preferredVideoFormat)) ;
-        displaySettings.format = status.preferredVideoFormat;
+            hdmiOutputStatus.preferredVideoFormat)) ;
+        displaySettings.format = hdmiOutputStatus.preferredVideoFormat;
     }
     NEXUS_Display_SetSettings(display, &displaySettings);
 
@@ -454,7 +462,7 @@ int main(void)
     NEXUS_PlatformSettings platformSettings;
     NEXUS_DisplaySettings displaySettings;
     NEXUS_HdmiOutputSettings hdmiSettings;
-    NEXUS_HdmiOutputStatus hdmiStatus;
+    NEXUS_HdmiOutputStatus hdmiOutputStatus;
     hotplugCallbackParameters hotPlugCbParams ;
     bool done = false;
     NEXUS_Error rc;
@@ -528,7 +536,6 @@ int main(void)
                                NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
 
     /* bring up display */
-    NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     display = NEXUS_Display_Open(0, &displaySettings);
     window = NEXUS_VideoWindow_Open(display, 0);
@@ -568,9 +575,15 @@ int main(void)
     audioStarted = true;
 
 
-    NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
+    rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiOutputStatus);
+    if (rc)
+    {
+        BDBG_ERR(("Unable to get HdmiOuput Status; exit program")) ;
+        goto shutdown ;
+    }
+
     NEXUS_Display_GetSettings(display, &displaySettings);
-    displaySettings.format = hdmiStatus.preferredVideoFormat;
+    displaySettings.format = hdmiOutputStatus.preferredVideoFormat;
     NEXUS_Display_SetSettings(display, &displaySettings);
 
     while (!done)
@@ -604,7 +617,12 @@ int main(void)
         case 1:
 
             /* get/build a list of formats supported by attached Receiver */
-            NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
+            rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiOutputStatus);
+            if (rc)
+            {
+                BDBG_ERR(("Unable to get HdmiOuput Status; unable to change format")) ;
+                break ;
+            }
 
             /* Display available formats */
             menuIndex = 0;
@@ -614,7 +632,7 @@ int main(void)
             while ( testFormats[i].format )
             {
                 /* if format is supported; add to menu */
-                if ( hdmiStatus.videoFormatSupported[testFormats[i].format] )
+                if ( hdmiOutputStatus.videoFormatSupported[testFormats[i].format] )
                 {
                     testFormats[i].menuEntry = ++ menuIndex ;
                     printf("%2d) %s\n", menuIndex, testFormats[i].name );
@@ -682,7 +700,14 @@ int main(void)
             {
                 NEXUS_HdmiOutputStatus pStatus    ;
 
-                NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &pStatus) ;
+                /* get/build a list of formats supported by attached Receiver */
+                rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiOutputStatus);
+                if (rc)
+                {
+                    BDBG_ERR(("Unable to get HdmiOuput Status; HDCP not started")) ;
+                    break ;
+                }
+
                 if (!pStatus.connected)
                 {
                     BDBG_WRN(("No Receiver Device Available")) ;
@@ -702,6 +727,7 @@ int main(void)
         }
     }
 
+shutdown:
     NEXUS_VideoDecoder_Close(vdecode);
     NEXUS_VideoWindow_Close(window);
 

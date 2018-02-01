@@ -29,7 +29,7 @@ typedef enum backend_reg
    REG_MAGIC_NOP        = REG_MAGIC_BASE + 6,
    REG_MAGIC_TLB        = REG_MAGIC_BASE + 7,
    REG_MAGIC_TLBU       = REG_MAGIC_BASE + 8,
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    REG_MAGIC_TMU        = REG_MAGIC_BASE + 9,
    REG_MAGIC_TMUL       = REG_MAGIC_BASE + 10,
 #endif
@@ -39,7 +39,7 @@ typedef enum backend_reg
    REG_MAGIC_TMUD       = REG_MAGIC_BASE + 11,
    REG_MAGIC_TMUA       = REG_MAGIC_BASE + 12,
    REG_MAGIC_TMUAU      = REG_MAGIC_BASE + 13,
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    REG_MAGIC_VPM        = REG_MAGIC_BASE + 14,
    REG_MAGIC_VPMU       = REG_MAGIC_BASE + 15,
 #endif
@@ -54,7 +54,7 @@ typedef enum backend_reg
    REG_MAGIC_LOG        = REG_MAGIC_BASE + 22,
    REG_MAGIC_SIN        = REG_MAGIC_BASE + 23,
    REG_MAGIC_RSQRT2     = REG_MAGIC_BASE + 24,
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    REG_MAGIC_TMUC       = REG_MAGIC_BASE + 32,
    REG_MAGIC_TMUS       = REG_MAGIC_BASE + 33,
    REG_MAGIC_TMUT       = REG_MAGIC_BASE + 34,

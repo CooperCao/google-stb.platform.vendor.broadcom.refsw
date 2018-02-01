@@ -5,6 +5,7 @@
 #pragma once
 
 #include "DflowScalars.h"
+#include "dflib.h"
 
 namespace bvk {
 
@@ -64,14 +65,12 @@ static inline DflowScalars max(float x, const DflowScalars &y)
 
 static inline DflowScalars max(const DflowScalars &x, int y)
 {
-   auto ys = DflowScalars::ConstantInt(x.GetBuilder(), y);
-   return DflowScalars::CondOp(x > ys, x, ys);
+   return DflowScalars::BinaryOp(DATAFLOW_MAX, x, DflowScalars::ConstantInt(x.GetBuilder(), y));
 }
 
 static inline DflowScalars max(int x, const DflowScalars &y)
 {
-   auto xs = DflowScalars::ConstantInt(y.GetBuilder(), x);
-   return DflowScalars::CondOp(y > xs, y, xs);
+   return DflowScalars::BinaryOp(DATAFLOW_MAX, DflowScalars::ConstantInt(y.GetBuilder(), x), y);
 }
 
 static inline DflowScalars min(const DflowScalars &x, const DflowScalars &y)
@@ -401,11 +400,12 @@ static inline DflowScalars atan(const DflowScalars &yOverX)
    const float PO2   = 1.570796326794f;
    const float PO4   = 0.785398163397f;
 
+   auto x80000000 = DflowScalars::ConstantUInt(builder, 0x80000000);
+
    auto c = DflowScalars::ConstantFloat(builder, 0.0f);
 
-   auto ltZero = yOverX < 0.0f;
-   auto x      = cond(ltZero, -yOverX, yOverX);
-   auto sgnX   = cond(ltZero, -1.0f, 1.0f);
+   auto sgnX = reinterpu(yOverX) & x80000000;
+   auto x    = fabs(yOverX);
 
    // if (x > T3PO8)     { x = -1.0 / x;              c = PO2; }
    // else if (x > TPO8) { x = (x - 1.0) / (x + 1.0); c = PO4; }
@@ -417,16 +417,12 @@ static inline DflowScalars atan(const DflowScalars &yOverX)
    x = cond(gtT3PO8, -recip(x), xElse);
    c = cond(gtT3PO8, PO2, cElse);
 
-   const float R1 = 8.05374449538e-2f;
-   const float R2 = 1.38776856032e-1f;
-   const float R3 = 1.99777106478e-1f;
-   const float R4 = 3.33329491539e-1f;
-
-   auto x2 =  x * x;
-   auto x3 = x2 * x;
-   auto x4 = x2 * x2;
-   auto x6 = x4 * x2;
-   return sgnX * (c + x + (x3 * ((R1 * x6) - (R2 * x4) + (R3 * x2) - R4)));
+   auto z = x * x;
+   return reinterpf(sgnX ^ reinterpu(c + x + x * z *
+                                     (((8.05374449538e-2f  * z
+                                      - 1.38776856032e-1f) * z
+                                      + 1.99777106478e-1f) * z
+                                      - 3.33329491539e-1f)));
 }
 
 DflowScalars inline atan(const DflowScalars &y, const DflowScalars &x)
@@ -446,23 +442,44 @@ DflowScalars inline atan(const DflowScalars &y, const DflowScalars &x)
    // rather than fcmp. Constructing the offset by crazy masking is just because
    // it's fast.
    auto xSgnMask  = reinterpi(x) >> c31;
-   auto yQuadSign = reinterpf((reinterpi(y) & x80000000) | reinterpi(one));
+   auto yQuadSign = reinterpi(y) & x80000000;
 
    // Correct for y/x == #NaN. Ignore 0/0 because results are undefined, so we
    // only need to correct #Inf/#Inf
    auto signBit = (reinterpi(x) ^ reinterpi(y)) & x80000000;
-   auto bothInf = isinf(x) && isinf(y);
-   auto yOnX = cond(bothInf, reinterpf(signBit | reinterpi(one)), y / x);
+   auto bothInf = isinf(x) && (fabs(x) == fabs(y));
+   auto yOnX = cond(bothInf, reinterpf(signBit + reinterpi(one)), y / x);
 
-   auto quadrantOffset = reinterpf(reinterpi(PI) & xSgnMask);
-   quadrantOffset = quadrantOffset * yQuadSign;
+   auto quadrantOffset = reinterpi(PI) & xSgnMask;
+   quadrantOffset = quadrantOffset ^ yQuadSign;
 
-   return quadrantOffset + atan(yOnX);
+   return reinterpf(quadrantOffset) + atan(yOnX);
 }
 
 static inline DflowScalars asin(const DflowScalars &x)
 {
-   return atan(x / sqrt(1.0f - (x * x)));
+   auto &builder = x.GetBuilder();
+
+   auto x80000000 = DflowScalars::ConstantUInt(builder, 0x80000000u);
+
+   auto sgnX = reinterpu(x) & x80000000;
+
+   auto ax = fabs(x);
+
+   auto condition = ax > 0.5f;
+   auto c = cond(condition, 1.570796326794f, 0.0f);
+   auto f = cond(condition, -2.0f, 1.0f);
+   ax = cond(condition, inversesqrt(2.0f / (1.0f - ax)), ax);
+
+   auto z = ax * ax;
+   auto r = ((((4.2163199048E-2f  * z
+              + 2.4181311049E-2f) * z
+              + 4.5470025998E-2f) * z
+              + 7.4953002686E-2f) * z
+              + 1.6666752422E-1f) * z * ax
+              + ax;
+
+   return reinterpf(sgnX ^ reinterpu(c + f * r));
 }
 
 static inline DflowScalars acos(const DflowScalars &x)
@@ -584,152 +601,76 @@ static inline DflowScalars fwidth(const DflowScalars &p)
 static inline DflowScalars packSnorm2x16(const DflowScalars &v)
 {
    assert(v.Size() == 2);
-
-   auto c16        = DflowScalars::ConstantUInt(v.GetBuilder(), 16);
-   auto xFFFF      = DflowScalars::ConstantUInt(v.GetBuilder(), 0xFFFF);
-
-   DflowScalars l = reinterpu(ftoi(round(clamp(v.X(), -1.0f, 1.0f) * 32767.0f)));
-   DflowScalars h = reinterpu(ftoi(round(clamp(v.Y(), -1.0f, 1.0f) * 32767.0f)));
-   return (h << c16) | (l & xFFFF);
+   Dataflow *res = dflib_packSnorm2x16(v[0], v[1]);
+   return DflowScalars(v.GetBuilder(), 1, &res);
 }
 
 static inline DflowScalars unpackSnorm2x16(const DflowScalars &p)
 {
    assert(p.Size() == 1);
-
-   auto c16   = DflowScalars::ConstantUInt(p.GetBuilder(), 16);
-   auto xFFFF = DflowScalars::ConstantUInt(p.GetBuilder(), 0xFFFF);
-   auto x7FFF = DflowScalars::ConstantUInt(p.GetBuilder(), 0x7FFF);
-   auto x8000 = DflowScalars::ConstantUInt(p.GetBuilder(), 0x8000);
-
-   DflowScalars v(p.GetBuilder(), 2);
-
-   DflowScalars u0 = p & xFFFF;
-   DflowScalars u1 = p >> c16;
-
-   // Clamp to [-1:1]. We can't exceed 1, so only clamp below
-   v.SetX(max(itof(reinterpi(u0 & x7FFF) - reinterpi(u0 & x8000)) / 32767.0f, -1.0f));
-   v.SetY(max(itof(reinterpi(u1 & x7FFF) - reinterpi(u1 & x8000)) / 32767.0f, -1.0f));
-   return v;
+   DflowScalars res(p.GetBuilder(), 2);
+   dflib_unpackSnorm2x16(res.Data(), p[0]);
+   return res;
 }
 
 static inline DflowScalars packUnorm2x16(const DflowScalars &v)
 {
    assert(v.Size() == 2);
-
-   auto c16 = DflowScalars::ConstantUInt(v.GetBuilder(), 16);
-
-   DflowScalars l = ftou(round(clamp(v.X(), 0.0f, 1.0f) * 65535.0f));
-   DflowScalars h = ftou(round(clamp(v.Y(), 0.0f, 1.0f) * 65535.0f));
-   return (h << c16) | l;
+   Dataflow *res = dflib_packUnorm2x16(v[0], v[1]);
+   return DflowScalars(v.GetBuilder(), 1, &res);
 }
 
 static inline DflowScalars unpackUnorm2x16(const DflowScalars &p)
 {
    assert(p.Size() == 1);
-
-   auto c16   = DflowScalars::ConstantUInt(p.GetBuilder(), 16);
-   auto xFFFF = DflowScalars::ConstantUInt(p.GetBuilder(), 0xFFFF);
-
-   DflowScalars v(p.GetBuilder(), 2);
-
-   v.SetX(utof(p & xFFFF) / 65535.0f);
-   v.SetY(utof(p >> c16)  / 65535.0f);
-   return v;
+   DflowScalars res(p.GetBuilder(), 2);
+   dflib_unpackUnorm2x16(res.Data(), p[0]);
+   return res;
 }
 
 static inline DflowScalars packHalf2x16(const DflowScalars &v)
 {
    assert(v.Size() == 2);
-
-   return fpack(v.X(), v.Y());
+   Dataflow *res = dflib_packHalf2x16(v[0], v[1]);
+   return DflowScalars(v.GetBuilder(), 1, &res);
 }
 
 static inline DflowScalars unpackHalf2x16(const DflowScalars &p)
 {
    assert(p.Size() == 1);
-
-   DflowScalars v(p.GetBuilder(), 2);
-
-   v.SetX(funpackA(p));
-   v.SetY(funpackB(p));
-   return v;
+   DflowScalars res(p.GetBuilder(), 2);
+   dflib_unpackHalf2x16(res.Data(), p[0]);
+   return res;
 }
 
 static inline DflowScalars packUnorm4x8(const DflowScalars &v)
 {
    assert(v.Size() == 4);
-
-   auto c8  = DflowScalars::ConstantUInt(v.GetBuilder(), 8);
-   auto c16 = DflowScalars::ConstantUInt(v.GetBuilder(), 16);
-   auto c24 = DflowScalars::ConstantUInt(v.GetBuilder(), 24);
-
-   DflowScalars vp = reinterpu(ftoi(round(clamp(v, 0.0f, 1.0f) * 255.0)));
-
-   DflowScalars a(v.GetBuilder(), vp[0]);
-   DflowScalars b(v.GetBuilder(), vp[1]);
-   DflowScalars c(v.GetBuilder(), vp[2]);
-   DflowScalars d(v.GetBuilder(), vp[3]);
-
-   return ((d << c24) | (c << c16) | (b << c8) | a);
+   Dataflow *res = dflib_packUnorm4x8(v[0], v[1], v[2], v[3]);
+   return DflowScalars(v.GetBuilder(), 1, &res);
 }
 
 static inline DflowScalars packSnorm4x8(const DflowScalars &v)
 {
    assert(v.Size() == 4);
-
-   auto c8  = DflowScalars::ConstantUInt(v.GetBuilder(), 8);
-   auto c16 = DflowScalars::ConstantUInt(v.GetBuilder(), 16);
-   auto c24 = DflowScalars::ConstantUInt(v.GetBuilder(), 24);
-   auto xFF = DflowScalars::ConstantUInt(v.GetBuilder(), 0xFF);
-
-   DflowScalars vp = reinterpu(ftoi(round(clamp(v, -1.0f, 1.0f) * 127.0f)));
-
-   DflowScalars a = vp.X() & xFF;
-   DflowScalars b = vp.Y() & xFF;
-   DflowScalars c = vp.Z() & xFF;
-   DflowScalars d = vp.W();
-
-   return ((d << c24) | (c << c16) | (b << c8) | a);
+   Dataflow *res = dflib_packSnorm4x8(v[0], v[1], v[2], v[3]);
+   return DflowScalars(v.GetBuilder(), 1, &res);
 }
 
 static inline DflowScalars unpackUnorm4x8(const DflowScalars &p)
 {
    assert(p.Size() == 1);
-
-   auto c8  = DflowScalars::ConstantUInt(p.GetBuilder(), 8);
-   auto c16 = DflowScalars::ConstantUInt(p.GetBuilder(), 16);
-   auto c24 = DflowScalars::ConstantUInt(p.GetBuilder(), 24);
-   auto xFF = DflowScalars::ConstantUInt(p.GetBuilder(), 0xFF);
-
-   DflowScalars r(p.GetBuilder(), 4);
-
-   r.SetX(utof( p         & xFF) / 255.0f);
-   r.SetY(utof((p >> c8)  & xFF) / 255.0f);
-   r.SetZ(utof((p >> c16) & xFF) / 255.0f);
-   r.SetW(utof((p >> c24))       / 255.0f);
-   return r;
+   DflowScalars res(p.GetBuilder(), 4);
+   dflib_unpackUnorm4x8(res.Data(), p[0]);
+   return res;
 }
 
 static inline DflowScalars unpackSnorm4x8(const DflowScalars &p)
 {
    assert(p.Size() == 1);
-
-   auto c8  = DflowScalars::ConstantUInt(p.GetBuilder(), 8);
-   auto c16 = DflowScalars::ConstantUInt(p.GetBuilder(), 16);
-   auto c24 = DflowScalars::ConstantUInt(p.GetBuilder(), 24);
-   auto xFF = DflowScalars::ConstantUInt(p.GetBuilder(), 0xFF);
-   auto x7F = DflowScalars::ConstantUInt(p.GetBuilder(), 0x7F);
-   auto x80 = DflowScalars::ConstantUInt(p.GetBuilder(), 0x80);
-
-   DflowScalars u(p.GetBuilder(), 4);
-   u.SetX(p & xFF);
-   u.SetY((p >> c8)  & xFF);
-   u.SetZ((p >> c16) & xFF);
-   u.SetW((p >> c24) & xFF);
-
-   // Clamp to [-1:1]. We can't exceed 1, so only clamp below
-   return max(itof(reinterpi(u & x7F) - reinterpi(u & x80)) / 127.0f, -1.0f);
+   DflowScalars res(p.GetBuilder(), 4);
+   dflib_unpackSnorm4x8(res.Data(), p[0]);
+   return res;
 }
 
 static inline DflowScalars maxInVec(const DflowScalars &v)

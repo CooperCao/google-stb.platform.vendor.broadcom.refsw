@@ -141,7 +141,7 @@ static v3d_pixel_format_t maybe_translate_pixel_format_canonical(GFX_LFMT_T lfmt
 #endif
    case GFX_LFMT_BSTC_RGBA_UNORM:
    case GFX_LFMT_BSTCYFLIP_RGBA_UNORM:             return V3D_PIXEL_FORMAT_BSTC;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GFX_LFMT_D32_FLOAT:                        return V3D_PIXEL_FORMAT_D32F;
    case GFX_LFMT_D24X8_UNORM:                      return V3D_PIXEL_FORMAT_D24;
    case GFX_LFMT_D16_UNORM:                        return V3D_PIXEL_FORMAT_D16;
@@ -201,7 +201,7 @@ static GFX_LFMT_T translate_canonical_from_pixel_format(v3d_pixel_format_t pixel
    case V3D_PIXEL_FORMAT_RGBX8:           return GFX_LFMT_R8_G8_B8_X8_UNORM;
 #endif
    case V3D_PIXEL_FORMAT_BSTC:            return GFX_LFMT_BSTC_RGBA_UNORM;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_PIXEL_FORMAT_D32F:            return GFX_LFMT_D32_FLOAT;
    case V3D_PIXEL_FORMAT_D24:             return GFX_LFMT_D24X8_UNORM;
    case V3D_PIXEL_FORMAT_D16:             return GFX_LFMT_D16_UNORM;
@@ -330,7 +330,7 @@ void gfx_lfmt_translate_rt_format(V3D_RT_FORMAT_T *rt_format, GFX_LFMT_T lfmt)
    assert(ok);
 }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 
 GFX_LFMT_T gfx_lfmt_translate_internal_raw_mode(GFX_LFMT_T output_lfmt)
 {
@@ -844,8 +844,10 @@ GFX_LFMT_T gfx_lfmt_translate_from_tmu_type(v3d_tmu_type_t tmu_type, bool srgb)
    case V3D_TMU_TYPE_C_ASTC_12X12:                    lfmt = GFX_LFMT_ASTC12X12_RGBA_UNORM; break;
    case V3D_TMU_TYPE_YCBCR_LUMA:                      not_impl(); break; /* TODO */
    case V3D_TMU_TYPE_YCBCR_420_CHROMA:                not_impl(); break; /* TODO */
+#if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_TMU_TYPE_S8:                              lfmt = GFX_LFMT_R8_UINT; break;
    case V3D_TMU_TYPE_S16:                             lfmt = GFX_LFMT_R16_UINT; break;
+#endif
    case V3D_TMU_TYPE_R32F:                            lfmt = GFX_LFMT_R32_FLOAT; break;
    case V3D_TMU_TYPE_R32I:                            lfmt = GFX_LFMT_R32_INT; break;
    case V3D_TMU_TYPE_R32UI:                           lfmt = GFX_LFMT_R32_UINT; break;

@@ -187,6 +187,7 @@ static uint32_t BPXL_Uif_P_ChooseUbPad(
 
 static void BPXL_Uif_P_AdjustPadding(
     BPXL_Uif_Memory_Info *pMemoryInfo,
+    bool      bEnableXOR,
     uint32_t *pulPaddedW,   /* in UIF blocks*/
     uint32_t *pulPaddedH,   /* in UIF blocks*/
     BPXL_Uif_Swizzling *peswizzling)
@@ -203,6 +204,11 @@ static void BPXL_Uif_P_AdjustPadding(
             uint32_t padded_height_in_ub = BPXL_Uif_P_udiv_round_up(ulPaddedH, BPXL_UIF_UB_H_IN_BLOCKS_2D);
             padded_height_in_ub += BPXL_Uif_P_ChooseUbPad(padded_height_in_ub, pMemoryInfo);
 
+            /* Workaround HWBCM7260-81, the padded height must be an even multiple of UBs */
+#if (BCHP_CHIP == 7260) && (BCHP_VER < BCHP_VER_B0)
+            padded_height_in_ub = (padded_height_in_ub +1) & (~0x1);
+#endif
+
             ulPaddedH = padded_height_in_ub * BPXL_UIF_UB_H_IN_BLOCKS_2D;
             ulPaddedW = BPXL_P_ALIGN_UP(ulPaddedW, BPXL_UIF_UCOL_W_IN_BLOCKS_2D);
 
@@ -211,7 +217,8 @@ static void BPXL_Uif_P_AdjustPadding(
                     * outside of the buffer. Also only enable it if we're wider than a
                     * single UIF column -- XOR mode only affects odd columns, so it's
                     * pointless to enable unless there's more than one column. */
-            if (((padded_height_in_ub % pMemoryInfo->ulPcInUBRows) == 0) &&
+            if (bEnableXOR &&
+                 ((padded_height_in_ub % pMemoryInfo->ulPcInUBRows) == 0) &&
                  (ulPaddedW > BPXL_UIF_UCOL_W_IN_BLOCKS_2D))
             *peswizzling = BPXL_Uif_Swizzling_eUIF_XOR;
 
@@ -271,12 +278,17 @@ void BPXL_Uif_SurfaceCfg(
     uint32_t  ulMipLevel;
     uint32_t ulTotalSize = 0; /* Total size of all mipmap levels plus padding between them */
     uint32_t ulP2Width,ulP2Height;
+    bool bEnableXOR;
 
     BDBG_ASSERT(pSurface);
 
     ulWidth  = pSurface->ulWidth;
     ulHeight = pSurface->ulHeight;
     ulMaxMipLevels = pSurface->ulMipLevel;
+    /* For maximum compatibility of images between M2MC, mipmap M2MC and
+     * V3D, we do not want to use address XOR on images with no additional
+     * miplevels. */
+    bEnableXOR = (pSurface->ulMipLevel != 0);
 
    /* Padding to power-of-2 is always done with level 1 size.
     * 2* is to get back up to level 0 size.
@@ -305,7 +317,7 @@ void BPXL_Uif_SurfaceCfg(
         uint32_t ulMlPadH = BPXL_Uif_P_mipsize(((ulMipLevel >= 2) ? ulP2Height : ulHeight), ulMipLevel);
 
         BPXL_Uif_P_GetSwizzling(ulMlPadW, ulMlPadH, &eSwizzling);
-        BPXL_Uif_P_AdjustPadding(pMemoryInfo, &ulMlPadW, &ulMlPadH, &eSwizzling);
+        BPXL_Uif_P_AdjustPadding(pMemoryInfo, bEnableXOR, &ulMlPadW, &ulMlPadH, &eSwizzling);
         BPXL_Uif_P_Calc_Pitch_and_Size(&ulMlPitch, &ulMLsizes[ulMipLevel], eSwizzling, ulMlPadW, ulMlPadH);
 
           /* Add padding to guarantee page alignment of levels 1 and smaller

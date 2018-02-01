@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -148,19 +148,6 @@ If you want finer-grain control, use the other tspsimgr functions below.
 **/
 BERR_Code tsPsi_getChannelInfo( CHANNEL_INFO_T * pChanInfo, NEXUS_ParserBand band );
 
-#ifdef MPOD_SUPPORT
-int  tsPsi_getProgramInfo( PROGRAM_INFO_T *p_pgInfo, unsigned pg_number, NEXUS_ParserBand parserBand, unsigned char *pmt, unsigned int *pmt_size );
-/**
-Get the timeout counts for PAT and PMT.
-**/
-int tsPsi_getTimeoutCnt( int *patTimeoutCount, int *pmtTimeoutCount );
-
-/**
-Reset the timeout counts for PAT and PMT.
-**/
-void tsPsi_resetTimeoutCnt( void );
-#endif
-
 /**
 Set the timeout values for various blocking operations in tspsimgr.
 **/
@@ -210,6 +197,25 @@ Summary:
 Parse a PMT structure into a PROGRAM_INFO_T structure.
 **/
 void tsPsi_parsePMT(const void *pmt, unsigned pmtSize, PROGRAM_INFO_T *p_programInfo);
+
+#ifdef MPOD_SUPPORT
+int  tsPsi_getProgramInfo( PROGRAM_INFO_T *p_pgInfo, unsigned pg_number, NEXUS_ParserBand parserBand, unsigned char *pmt, unsigned int *pmt_size );
+/**
+Get the timeout counts for PAT and PMT.
+**/
+int tsPsi_getTimeoutCnt( int *patTimeoutCount, int *pmtTimeoutCount );
+
+/**
+Reset the timeout counts for PAT and PMT.
+**/
+void tsPsi_resetTimeoutCnt( void );
+
+
+int tsPsi_getPMT( NEXUS_ParserBand parserBand, const void *p_patBfr, unsigned pat_bfrSize,
+                  unsigned program_number,  unsigned char *pmt, unsigned int *pmt_size, tsPsi_PMT_callback callback,void *context );
+
+#endif
+
 
 #ifdef __cplusplus
 }

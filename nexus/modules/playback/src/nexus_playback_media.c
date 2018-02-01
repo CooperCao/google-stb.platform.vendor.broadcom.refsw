@@ -75,6 +75,19 @@ b_play_suspend_timer(void *playback)
     return;
 }
 
+static bool b_play_is_play_or_slowplay(const NEXUS_PlaybackTrickModeSettings *trickmode_params)
+{
+    switch(trickmode_params->mode) {
+    case NEXUS_PlaybackHostTrickMode_eNone:
+        return  trickmode_params->rate>0 &&  trickmode_params->rate <= NEXUS_NORMAL_PLAY_SPEED;
+    case NEXUS_PlaybackHostTrickMode_eNormal:
+        return  trickmode_params->rate <= NEXUS_NORMAL_PLAY_SPEED; /* eNormal should not be used for reverse */
+    default:
+        /* assuming all other modes are not used for forward play at slow then normal rate (they could however it makes no sense) */
+        return false;
+    }
+}
+
 static void
 b_play_handle_player_error(NEXUS_PlaybackHandle p, bool endofstream /* true of endofstream, false if file error */)
 {
@@ -91,9 +104,8 @@ b_play_handle_player_error(NEXUS_PlaybackHandle p, bool endofstream /* true of e
             return;
         }
     }
-    /* If we are doing normal play speed or slower, then we should wait.
-    This code won't work for a decode skip mode + slow motion which is slower than normal play, but that's unlikely. */
-    if (p->params.timeshifting && (p->state.trickmode_params.rate > 0 && p->state.trickmode_params.rate <= NEXUS_NORMAL_PLAY_SPEED) && p->recordProgressCnt) {
+    /* If we are doing normal play speed or slower, then we should wait. */
+    if (p->params.timeshifting && b_play_is_play_or_slowplay(&p->state.trickmode_params) && p->recordProgressCnt) {
         bmedia_player_pos pos;
         bmedia_player_status status;
 

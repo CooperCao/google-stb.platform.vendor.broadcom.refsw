@@ -394,7 +394,7 @@ static BERR_Code BAUTO_I2C_P_SetCTLChannel(
         divClk = 0x1;
 
     regXSettings.enable = true;
-    regXSettings.data = BCHP_FIELD_DATA(BSCA_CTL_REG, INT_EN, hChn->chnSettings.intMode)
+    regXSettings.data = BCHP_FIELD_DATA(BSCA_CTL_REG, INT_EN, 1) /* BSCA interrupt mode should always be enabled due to hardware requirement. */
                       | BCHP_FIELD_DATA(BSCA_CTL_REG, DTF, ctlSettings->mode)
                       | BCHP_FIELD_DATA(BSCA_CTL_REG, SCL_SEL, ctlReg)
                       | BCHP_FIELD_DATA(BSCA_CTL_REG, DIV_CLK, divClk) ;

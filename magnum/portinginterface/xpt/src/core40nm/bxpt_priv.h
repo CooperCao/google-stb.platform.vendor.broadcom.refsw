@@ -563,6 +563,7 @@ typedef struct BXPT_P_PcrOffset_Impl
     unsigned PidChannelNum;
     unsigned WhichStc;
     bool UseHostPcrs;
+    bool EnableJitterAdjustment;
 }
 BXPT_P_PcrOffset_Impl;
 

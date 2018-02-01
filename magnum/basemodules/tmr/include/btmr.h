@@ -544,13 +544,13 @@ See Also:
 
 ****************************************************************************/
 #if BDBG_DEBUG_BUILD
-BERR_Code BTMR_DestroyTimer_tagged( 
+void BTMR_DestroyTimer_tagged(
     BTMR_TimerHandle hTimer, /* [in] Timer handle from create */
     const char *file, int line
     );
 #define BTMR_DestroyTimer(d) BTMR_DestroyTimer_tagged(d,BSTD_FILE,BSTD_LINE)
 #else
-BERR_Code BTMR_DestroyTimer(
+void BTMR_DestroyTimer(
     BTMR_TimerHandle hTimer  /* [in] Timer handle from create */
     );
 #endif
@@ -695,7 +695,7 @@ See Also:
     BTMR_CreateTimer(), BTMR_StartTimer(), BTMR_StopTimer_isr().
 
 ****************************************************************************/
-BERR_Code BTMR_StopTimer(
+void BTMR_StopTimer(
     BTMR_TimerHandle hTimer /* [in] Timer handle from create */
     );
   
@@ -717,7 +717,7 @@ See Also:
     BTMR_CreateTimer(), BTMR_StopTimer().
 
 ****************************************************************************/
-BERR_Code BTMR_StopTimer_isr(
+void BTMR_StopTimer_isr(
     BTMR_TimerHandle hTimer /* [in] Timer handle from create */
     );
   

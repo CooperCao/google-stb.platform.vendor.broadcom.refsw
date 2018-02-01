@@ -50,9 +50,6 @@ CFLAGS += \
 	-D_GNU_SOURCE \
 	-DHAVE_ZLIB \
 	-DEMBEDDED_SETTOP_BOX=1 \
-	-DGFX_UIF_PAGE_SIZE=4096 \
-	-DGFX_UIF_NUM_BANKS=8 \
-	-DGFX_UIF_XOR_ADDR=16 \
 	-DGLSL_310_SUPPORT \
 	-Wno-unused-function \
 	-Wno-unused-variable \

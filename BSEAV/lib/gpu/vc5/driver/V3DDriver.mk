@@ -128,10 +128,6 @@ CFLAGS += \
 	-D_POSIX_C_SOURCE=200112 \
 	-D_GNU_SOURCE \
 	-DHAVE_ZLIB \
-	-DGFX_DEFAULT_UIF_PAGE_SIZE=4096 \
-	-DGFX_DEFAULT_UIF_NUM_BANKS=8 \
-	-DGFX_DEFAULT_UIF_XOR_ADDR=16 \
-	-DGFX_DEFAULT_DRAM_MAP_MODE=2 \
 	-DKHRN_GLES32_DRIVER=0 \
 	-DV3D_PLATFORM_SIM=0 \
 	-DSECURE_SUPPORT=1 \
@@ -257,7 +253,7 @@ $(foreach src,$(filter %.cpp,$(ALL_SRCS)),$(eval $(call CCompileRule,$(src),$(V3
 ifeq ($(HAS_VULKAN), 1)
 $(LIBDIR)/bcm.json: ./libs/vulkan/driver/bcm.json
 	$(hide)mkdir -p $(LIBDIR)
-	$(hide)sed 's,$${ICD_FILEPATH},$(abspath $(LIBDIR)/libbcmvulkan_icd.so),g' ./libs/vulkan/driver/bcm.json > $(LIBDIR)/bcm.json
+	$(hide)cp $^ $@
 
 $(LIBDIR)/libbcmvulkan_icd.so: $(VULKAN_OBJS)
 	$(hide)echo Linking ... libbcmvulkan_icd.so

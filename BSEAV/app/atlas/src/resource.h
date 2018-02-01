@@ -59,6 +59,7 @@ typedef enum eBoardResource
     eBoardResource_simpleDecodeAudio,
     eBoardResource_stcChannel,
     eBoardResource_pcmPlayback,
+    eBoardResource_simplePcmPlayback,
     eBoardResource_pcmCapture,
     eBoardResource_decodeStill,
     eBoardResource_decodeEs,

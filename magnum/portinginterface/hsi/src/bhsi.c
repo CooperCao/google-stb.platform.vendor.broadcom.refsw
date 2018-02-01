@@ -602,8 +602,8 @@ BERR_Code BHSI_Send(
         _msg = (BHSI_Msg *)hHsi->settings.requestAckBuf;
         if (_msg->size < BHSI_HEAD_SIZE ||
             _msg->size > hHsi->settings.requestAckBufLen) {
-            BDBG_ERR(("%s: Received Message is %u bytes length.\n"
-                      "\tACK buffer: %u <= authorized size <= %u",
+            BDBG_ERR(("%s: Received Message is %u bytes length."
+                      "ACK buffer: %u <= authorized size <= %u",
                       BSTD_FUNCTION, _msg->size,
                       (unsigned)BHSI_HEAD_SIZE, hHsi->settings.requestAckBufLen));
             errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -684,7 +684,7 @@ BERR_Code BHSI_Receive_isrsafe(
     _msg = (BHSI_Msg *)hHsi->settings.responseBuf;
     if (_msg->size < BHSI_HEAD_SIZE ||
         _msg->size > hHsi->settings.responseBufLen) {
-        BDBG_ERR(("%s: Received Message is %u bytes length.\n"
+        BDBG_ERR(("%s: Received Message is %u bytes length."
                   "Response buffer: %u <= authorized size <= %u",
                   BSTD_FUNCTION, _msg->size, (unsigned)BHSI_HEAD_SIZE, hHsi->settings.responseBufLen));
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -752,7 +752,7 @@ BERR_Code BHSI_Ack_isrsafe (
         /* check ack size */
         if (totalLen > hHsi->settings.responseAckBufLen) {
             errCode = BERR_TRACE(BERR_INVALID_PARAMETER) ;
-            BDBG_ERR(("%s: (Ack Message + HSI header) is %u bytes length.\n"
+            BDBG_ERR(("%s: (Ack Message + HSI header) is %u bytes length."
                       "Ack buffer: %u <= authorized size <= %u",
                       BSTD_FUNCTION, totalLen,
                       (unsigned)BHSI_HEAD_SIZE, hHsi->settings.responseAckBufLen));

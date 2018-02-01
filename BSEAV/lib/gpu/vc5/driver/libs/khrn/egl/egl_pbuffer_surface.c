@@ -153,32 +153,31 @@ static EGLint set_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLAttribKHR val
    }
 }
 
-static bool get_attrib(const EGL_SURFACE_T *surface,
-      EGLint attrib, EGLint *value)
+static EGLint get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint *value)
 {
-   const EGL_PBUFFER_SURFACE_T *surf = (EGL_PBUFFER_SURFACE_T *) surface;
+   EGL_PBUFFER_SURFACE_T *surf = (EGL_PBUFFER_SURFACE_T *) surface;
 
    switch (attrib)
    {
    case EGL_LARGEST_PBUFFER:
       *value = surf->largest_pbuffer;
-      return true;
+      return EGL_SUCCESS;
 
    case EGL_TEXTURE_FORMAT:
       *value = surf->texture_format;
-      return true;
+      return EGL_SUCCESS;
 
    case EGL_TEXTURE_TARGET:
       *value = surf->texture_target;
-      return true;
+      return EGL_SUCCESS;
 
    case EGL_MIPMAP_TEXTURE:
       *value = surf->mipmap;     // EGL_FIXME check this
-      return true;
+      return EGL_SUCCESS;
 
    case EGL_MIPMAP_LEVEL:
       *value = surf->current_image;
-      return true;
+      return EGL_SUCCESS;
 
    /* handled by egl_surface_base_get_attrib()
    case EGL_WIDTH:

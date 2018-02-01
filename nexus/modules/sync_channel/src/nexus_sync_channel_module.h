@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2012 Broadcom Corporation
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_SYNC_CHANNEL_MODULE_H__
 #define NEXUS_SYNC_CHANNEL_MODULE_H__
@@ -68,12 +60,6 @@ extern "C" {
 
 /* global handle. there is no global data. */
 extern NEXUS_ModuleHandle g_NEXUS_syncChannelModule;
-
-BERR_Code NEXUS_SYSlib_P_GetTime_isr(void * pvParm1, int iParm2, unsigned long * pulNow);
-BERR_Code NEXUS_SYSlib_P_CreateTimer(void * pvParm1, int iParm2, BSYSlib_Timer_Handle *phTimer);
-void      NEXUS_SYSlib_P_DestroyTimer(void * pvParm1, int iParm2, BSYSlib_Timer_Handle hTimer);
-BERR_Code NEXUS_SYSlib_P_StartTimer_isr(void * pvParm1, int iParm2,  BSYSlib_Timer_Handle hTimer, const BSYSlib_Timer_Settings * psSettings);
-BERR_Code NEXUS_SYSlib_P_CancelTimer_isr(void * pvParm1, int iParm2, BSYSlib_Timer_Handle hTimer);
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SyncChannel);
 

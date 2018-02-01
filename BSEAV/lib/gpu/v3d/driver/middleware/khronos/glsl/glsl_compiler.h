@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "middleware/khronos/common/khrn_mem.h"
 #include "middleware/khronos/gl20/gl20_config.h"
 
 //

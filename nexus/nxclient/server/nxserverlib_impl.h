@@ -307,6 +307,7 @@ struct b_session {
         unsigned global_index;
         bool created_by_encoder;
         NEXUS_VideoWindowHandle window[NEXUS_NUM_VIDEO_WINDOWS][NXCLIENT_MAX_IDS]; /* created on demand */
+        struct b_connect *mosaic_connect[NEXUS_NUM_VIDEO_WINDOWS][NXCLIENT_MAX_IDS];
         NEXUS_VideoWindowHandle parentWindow[NEXUS_NUM_VIDEO_WINDOWS];
         NEXUS_VideoFormatInfo formatInfo;
         nxclient_t crc_client;
@@ -321,7 +322,8 @@ struct b_session {
         struct
         {
             struct b_hdmi_drm_selector selector;
-            bool inputValid;
+            bool eotfValid;
+            bool smdValid;
             NEXUS_HdmiDynamicRangeMasteringInfoFrame input;
 #if NEXUS_HAS_VIDEO_DECODER
             NEXUS_VideoDecoderDynamicRangeMetadataType dynamicMetadataType;
@@ -473,6 +475,7 @@ struct b_client {
     BLST_D_ENTRY(b_client) session_link;
     NEXUS_ClientHandle nexusClient;
     NEXUS_ClientSettings clientSettings;
+    struct nxclient_connect_settings connect_settings;
     nxserver_t server;
     unsigned pid;
     bool ipc; /* created over ipc, not local */
@@ -596,12 +599,17 @@ bool is_transcode_audiodec_request(const struct b_connect *connect);
 bool nxserver_p_video_only_display(struct b_session *session, unsigned displayIndex);
 int nxserver_p_reenable_local_display(nxserver_t server);
 void nxserver_p_disable_local_display(nxserver_t server, unsigned displayIndex);
+bool nxserver_p_allow_grab(nxclient_t client);
 
 typedef unsigned (*get_connect_id_func)(const NxClient_ConnectSettings *pSettings, unsigned i);
 unsigned get_videodecoder_connect_id(const NxClient_ConnectSettings *pSettings, unsigned i);
 unsigned get_audiodecoder_connect_id(const NxClient_ConnectSettings *pSettings, unsigned i);
 unsigned get_audioplayback_connect_id(const NxClient_ConnectSettings *pSettings, unsigned i);
 unsigned get_encoder_connect_id(const NxClient_ConnectSettings *pSettings, unsigned i);
+
+int b_connect_acquire(nxclient_t client, struct b_connect *connect);
+void b_connect_release(nxclient_t client, struct b_connect *connect);
+NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_session *session, const NxClient_DisplaySettings *pSettings);
 
 #if NEXUS_HAS_HDMI_OUTPUT
 void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClient_DisplaySettings * pSettings, bool rxChanged);
@@ -620,5 +628,12 @@ void stc_index_request_init(struct b_connect * connect, struct b_stc_caps * pStc
 int stc_index_acquire(struct b_connect * connect, const struct b_stc_caps * pStcReq);
 void stc_index_release(struct b_connect * connect, int index);
 void nxserver_p_reserve_timebase(NEXUS_Timebase timebase);
+
+/************
+nxserverlib_thermal.c API
+************/
+NEXUS_Error nxserver_p_thermal_init(nxserver_t server);
+void nxserver_p_thermal_uninit(nxserver_t server);
+NEXUS_Error nxserver_get_thermal_status(nxclient_t client, NxClient_ThermalStatus *pStatus);
 
 #endif /* NXSERVERLIB_IMPL_H__ */

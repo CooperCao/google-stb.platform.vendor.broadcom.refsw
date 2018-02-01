@@ -47,7 +47,7 @@ bool glxx_server_tf_install(GLXX_SERVER_STATE_T *state, GLXX_HW_RENDER_STATE_T *
    }
    else
    {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       res = glxx_tf_record_disable(rs);
 #endif
    }
@@ -344,7 +344,7 @@ GL_API void GL_APIENTRY glBeginTransformFeedback(GLenum primitiveMode)
          active->addr = 0;
       }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       active->stream_position = 0;
 #endif
    }

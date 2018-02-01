@@ -135,7 +135,7 @@ int main(int argc, char **argv)
     NEXUS_HdmiOutputStatus hdmiStatus;
 #endif
     unsigned int i = 0, j = 0, statusMax = 0;
-    NEXUS_PidChannelHandle videoPidChannel, audioPidChannel, pcrPidChannel;
+    NEXUS_PidChannelHandle videoPidChannel=NULL, audioPidChannel=NULL, pcrPidChannel=NULL;
     NEXUS_VideoDecoderStartSettings videoProgram;
     NEXUS_AudioDecoderStartSettings audioProgram;
     NEXUS_FrontendIsdbtStatusReady isdbtStatusReady;
@@ -153,7 +153,7 @@ int main(int argc, char **argv)
     unsigned int videoCodec = NEXUS_VideoCodec_eMpeg2;
     unsigned int audioCodec = NEXUS_AudioCodec_eMpeg;
 
-    NEXUS_Error (*RequestAsyncStatus)(NEXUS_FrontendHandle, unsigned int);
+    NEXUS_Error (*RequestAsyncStatus)(NEXUS_FrontendHandle, unsigned int)=NULL;
 
     /* Read command line for freqency, pid and codec information */
 
@@ -489,7 +489,7 @@ int main(int argc, char **argv)
         if (rc) {rc = BERR_TRACE(rc); goto done;}
 
         for (j=0; j < statusMax; j++) {
-            bool ready;
+            bool ready=false;
 
             if (mode == NEXUS_FrontendOfdmMode_eDvbt)
                 ready = dvbtStatusReady.type[j];

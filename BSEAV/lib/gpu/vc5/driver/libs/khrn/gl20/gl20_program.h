@@ -108,7 +108,7 @@ typedef struct GL20_PROGRAM_T_ {
 } GL20_PROGRAM_T;
 
 extern void gl20_program_init(GL20_PROGRAM_T *program, int32_t name);
-extern void gl20_program_term(void *v, size_t size);
+extern void gl20_program_term(void *v);
 
 extern void gl20_program_common_init(GL20_PROGRAM_COMMON_T *common);
 extern void gl20_program_common_term(GL20_PROGRAM_COMMON_T *common);

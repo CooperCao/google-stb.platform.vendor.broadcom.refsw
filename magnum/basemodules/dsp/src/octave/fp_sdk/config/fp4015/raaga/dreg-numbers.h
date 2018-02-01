@@ -1,5 +1,5 @@
 /************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,7 +42,7 @@
 
   Generated for
     - machine architecture: fp4015
-    - binutils release: 6.8
+    - binutils release: 7.0
     - excluded features: MPU_DTCM
 */
 

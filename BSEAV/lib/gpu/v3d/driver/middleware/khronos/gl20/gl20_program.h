@@ -3,8 +3,8 @@
  ******************************************************************************/
 #pragma once
 
-#include "middleware/khronos/common/khrn_mem.h"
 #include "middleware/khronos/gl20/2708/gl20_shader_4.h"
+#include "middleware/khronos/gl20/gl20_shader.h"
 #include "middleware/khronos/glxx/glxx_server.h"
 
 typedef struct {
@@ -30,8 +30,8 @@ typedef struct {
    bool linked;
    bool validated;
 
-   MEM_HANDLE_T mh_vertex;
-   MEM_HANDLE_T mh_fragment;
+   GL20_SHADER_T *vertex;
+   GL20_SHADER_T *fragment;
 
    void *bindings;      /*GL20_BINDING_T*/
    unsigned num_bindings;
@@ -56,7 +56,7 @@ typedef struct {
 } GL20_PROGRAM_T;
 
 extern void gl20_program_init(GL20_PROGRAM_T *program, int32_t name);
-extern void gl20_program_term(MEM_HANDLE_T handle);
+extern void gl20_program_term(void *p);
 
 extern bool gl20_program_bind_attrib(GL20_PROGRAM_T *program, unsigned index, const char *name);
 

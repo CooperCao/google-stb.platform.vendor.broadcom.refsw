@@ -68,8 +68,13 @@ static void httpStreamerDestroy(
     BIP_HttpStreamerHandle hHttpStreamer
     )
 {
+    BIP_Status    rc = BIP_SUCCESS;
+
     if (!hHttpStreamer) return;
     BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hHttpStreamer %p" BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
+
+    rc = BIP_CLASS_REMOVE_INSTANCE( BIP_HttpStreamer, hHttpStreamer );
+    if (rc == BIP_ERR_INVALID_HANDLE) return;   /* Object has already been destroyed (by another thread). */
 
     if (hHttpStreamer->hStreamer) BIP_Streamer_Destroy(hHttpStreamer->hStreamer);
     if (hHttpStreamer->printStatusApi.hArb) BIP_Arb_Destroy(hHttpStreamer->printStatusApi.hArb);
@@ -104,7 +109,6 @@ static void httpStreamerDestroy(
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Destroyed" BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
 
-    BIP_CLASS_REMOVE_INSTANCE( BIP_HttpStreamer, hHttpStreamer );
     BDBG_OBJECT_DESTROY( hHttpStreamer, BIP_HttpStreamer );
     B_Os_Free( hHttpStreamer );
 
@@ -1153,9 +1157,16 @@ BIP_Status BIP_HttpStreamer_ProcessRequest(
     BIP_Status bipStatus = BIP_SUCCESS;
     BIP_ArbHandle hArb;
     BIP_ArbSubmitSettings arbSettings;
+    BIP_HttpStreamerProcessRequestSettings defaultSettings;
 
     bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
     BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
+    if (!pSettings)
+    {
+        BIP_HttpStreamer_GetDefaultProcessRequestSettings(&defaultSettings);
+        pSettings = &defaultSettings;
+    }
 
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
     BIP_SETTINGS_ASSERT(pSettings, BIP_HttpStreamerProcessRequestSettings);
@@ -1184,8 +1195,8 @@ BIP_Status BIP_HttpStreamer_ProcessRequest(
     BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 
     /* Invoke state machine via the Arb Submit API */
-    bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_ProcessRequest" ), error, bipStatus, bipStatus );
+    bipStatus = BIP_Arb_Submit(hArb, &arbSettings, &pSettings->apiSettings);
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_IN_PROGRESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_ProcessRequest" ), error, bipStatus, bipStatus );
 
     BIP_MSG_TRC(( BIP_MSG_PRE_FMT "Started: " BIP_HTTP_STREAMER_PRINTF_FMT
                   BIP_MSG_PRE_ARG, BIP_HTTP_STREAMER_PRINTF_ARG(hHttpStreamer)));

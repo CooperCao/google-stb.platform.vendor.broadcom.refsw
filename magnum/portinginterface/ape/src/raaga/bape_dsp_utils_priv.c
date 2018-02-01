@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -76,7 +76,7 @@ static const BAPE_CodecAttributes g_codecAttributes[] =
     {BAVC_AudioCompressionStd_eAacPlusLoas, BDSP_Algorithm_eDolbyPulseLoasDecode, BDSP_Algorithm_eAacLoasPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC+ LOAS",    BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
 #else
     {BAVC_AudioCompressionStd_eAc3,         BDSP_Algorithm_eAc3Decode,            BDSP_Algorithm_eAc3Passthrough,       BDSP_Algorithm_eAc3Encode,        "AC3",          BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   false,   false},
-    {BAVC_AudioCompressionStd_eAc3Plus,     BDSP_Algorithm_eAc3PlusDecode,        BDSP_Algorithm_eAc3PlusPassthrough,   BDSP_Algorithm_eMax,              "AC3+",         BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   true,    false},
+    {BAVC_AudioCompressionStd_eAc3Plus,     BDSP_Algorithm_eAc3PlusDecode,        BDSP_Algorithm_eAc3PlusPassthrough,   BDSP_Algorithm_eMax,              "AC3+",         BAPE_MultichannelFormat_e7_1, true,  false, false,         true,   false,   true,    false},
     {BAVC_AudioCompressionStd_eAacAdts,     BDSP_Algorithm_eAacAdtsDecode,        BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC ADTS",     BAPE_MultichannelFormat_e5_1, true,  true,  true,          true,   false,   false,   false},
     {BAVC_AudioCompressionStd_eAacLoas,     BDSP_Algorithm_eAacLoasDecode,        BDSP_Algorithm_eAacLoasPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC LOAS",     BAPE_MultichannelFormat_e5_1, true,  true,  true,          true,   false,   false,   false},
     {BAVC_AudioCompressionStd_eAacPlusAdts, BDSP_Algorithm_eAacAdtsDecode,        BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC+ ADTS",    BAPE_MultichannelFormat_e5_1, true,  true,  true,          true,   false,   false,   false},
@@ -117,7 +117,7 @@ static const BAPE_CodecAttributes g_codecAttributes[] =
 #endif
     {BAVC_AudioCompressionStd_eIlbc,        BDSP_Algorithm_eiLBCDecode,           BDSP_Algorithm_eMax,                  BDSP_Algorithm_eiLBCEncode,       "iLbc",         BAPE_MultichannelFormat_e2_0, false, true,  false,         false,  true,    false,   false},
     {BAVC_AudioCompressionStd_eIsac,        BDSP_Algorithm_eiSACDecode,           BDSP_Algorithm_eMax,                  BDSP_Algorithm_eiSACEncode,       "iSac",         BAPE_MultichannelFormat_e2_0, false, true,  false,         false,  true,    false,   false},
-    {BAVC_AudioCompressionStd_eOpus,        BDSP_Algorithm_eOpusDecode,           BDSP_Algorithm_eMax,                  BDSP_Algorithm_eOpusEncode,       "Opus",         BAPE_MultichannelFormat_e2_0, false, true,  false,         false,  true,    false,   false},
+    {BAVC_AudioCompressionStd_eOpus,        BDSP_Algorithm_eOpusDecode,           BDSP_Algorithm_eMax,                  BDSP_Algorithm_eOpusEncode,       "Opus",         BAPE_MultichannelFormat_e7_1, false, true,  false,         false,  true,    false,   false},
     {BAVC_AudioCompressionStd_eAls,         BDSP_Algorithm_eALSDecode,            BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "MPEG4 Als",    BAPE_MultichannelFormat_e5_1, false, true,  false,         false,  false,   false,   false},
     {BAVC_AudioCompressionStd_eAlsLoas,     BDSP_Algorithm_eALSLoasDecode,        BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "MPEG4 Als LOAS",BAPE_MultichannelFormat_e5_1,false, true,  false,         false,  false,   false,   false},
     /* This entry must be last */
@@ -1195,9 +1195,28 @@ BERR_Code BAPE_DSP_P_DeriveTaskStartSettings(
 
     if ( hDspMixer != NULL )
     {
+        BAPE_PathNode *pPostProcessNodes[2];
+        BAPE_ProcessorHandle processor = NULL;
+        unsigned advTsmMode = 0;
         /* Setup Master Mode */
         pStartSettings->masterTask = hDspMixer->hTask;
         pStartSettings->schedulingMode = BDSP_TaskSchedulingMode_eSlave;
+
+        BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(&hDspMixer->pathNode, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eAdvancedTsm, 2, &numFound, pPostProcessNodes);
+        switch (numFound) {
+        case 0:
+            break;
+        case 1:
+            processor = pPostProcessNodes[0]->pHandle;
+            advTsmMode = BAPE_Processor_P_GetAdvancedTsmMode(processor);
+            if ((BAPE_AdvancedTsmMode)advTsmMode == BAPE_AdvancedTsmMode_ePpm) {
+                pStartSettings->ppmCorrection = true;
+            }
+            break;
+        default:
+            BDBG_ERR(("Multiple Advanced TSM postprocesses found downstream from mixer.  This is not supported."));
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
 
         /* Check if MuxOutput is after DSP Mixer */
         BAPE_PathNode_P_FindConsumersByType_isrsafe(&hDspMixer->pathNode, BAPE_PathNodeType_eMuxOutput, 1, &numFound, &pMuxOutput);

@@ -40,17 +40,23 @@ APPS = \
     security_init_app \
     security_skey_app \
     security_keyslot_aes_ecb_app \
+    security_keyslot_aes_ecb_simple \
     security_keyslot_aes_cbc_app \
+    security_keyslot_aes_cbc_simple \
     security_keyslot_aes_cbc_iv_64_app \
+    security_keyslot_aes_cbc_iv_64_simple \
     security_keyslot_des_app \
+    security_keyslot_des_simple \
     security_keyslot_tdes_app \
     security_keyslot_external_keyiv_app \
+    security_keyslot_external_keyiv_multiple_DMA_blocks_app \
     security_keyslot_rc_bits_app \
     security_keyslot_playback_app \
     security_keyladder_otp_askm_key_app \
     security_keyladder_otp_global_key_app \
     security_keyladder_otp_customer_key_app \
     security_keyladder_aes_ecb_app \
+    security_keyladder_aes_ecb_simple \
     security_keyladder_tdes_app \
 
 # Utilities functions that are commonly used by the apps:
@@ -60,14 +66,20 @@ EXTRA_OBJS += security_utils.o
 
 include ../../Makefile.inc
 # Keyslot apps
-$(BINDIR)/security_keyslot_des_app     $(BINDIR)/security_keyslot_des_app:     $(EXTRA_SRC)
-$(BINDIR)/security_keyslot_tdes_app    $(BINDIR)/security_keyslot_tdes_app:    $(EXTRA_SRC)
-$(BINDIR)/security_keyslot_aes_cbc_app $(BINDIR)/security_keyslot_aes_ecb_app: $(EXTRA_SRC)
-$(BINDIR)/security_keyslot_aes_cbc_app $(BINDIR)/security_keyslot_aes_cbc_app: $(EXTRA_SRC)
-$(BINDIR)/security_keyslot_aes_cbc_iv_64_app $(BINDIR)/security_keyslot_aes_cbc_iv_64_app: $(EXTRA_SRC)
-$(BINDIR)/security_keyslot_external_keyiv_app $(BINDIR)/security_keyslot_external_keyiv_app: $(EXTRA_SRC)
-# Keyladder apps
-$(BINDIR)/security_keyladder_aes_ecb_app $(BINDIR)/security_keyladder_aes_ecb_app: $(EXTRA_SRC)
-$(BINDIR)/security_keyladder_otp_askm_key_app $(BINDIR)/security_keyladder_otp_askm_key_app: $(EXTRA_SRC)
-$(BINDIR)/security_keyladder_otp_customer_key_app $(BINDIR)/security_keyladder_otp_customer_key_app: $(EXTRA_SRC)
-$(BINDIR)/security_keyladder_otp_global_key_app $(BINDIR)/security_keyladder_otp_global_key_app: $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_des_app                  $(BINDIR)/security_keyslot_des_app:             $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_des_simple               $(BINDIR)/security_keyslot_des_simple:          $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_tdes_app                 $(BINDIR)/security_keyslot_tdes_app:            $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_aes_ecb_app              $(BINDIR)/security_keyslot_aes_ecb_app:         $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_aes_ecb_simple           $(BINDIR)/security_keyslot_aes_ecb_simple:      $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_aes_cbc_app              $(BINDIR)/security_keyslot_aes_cbc_app:         $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_aes_cbc_simple           $(BINDIR)/security_keyslot_aes_cbc_simple:      $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_aes_cbc_iv_64_app        $(BINDIR)/security_keyslot_aes_cbc_iv_64_app:   $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_aes_cbc_iv_64_simple     $(BINDIR)/security_keyslot_aes_cbc_iv_64_simple:$(EXTRA_SRC)
+$(BINDIR)/security_keyslot_external_keyiv_app       $(BINDIR)/security_keyslot_external_keyiv_app:  $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_external_keyiv_multiple_DMA_blocks_app       $(BINDIR)/security_keyslot_external_keyiv_multiple_DMA_blocks_app:  $(EXTRA_SRC)
+# Keyladder app s
+$(BINDIR)/security_keyladder_aes_ecb_app            $(BINDIR)/security_keyladder_aes_ecb_app:       $(EXTRA_SRC)
+$(BINDIR)/security_keyladder_aes_ecb_simple         $(BINDIR)/security_keyladder_aes_ecb_simple:    $(EXTRA_SRC)
+$(BINDIR)/security_keyladder_otp_askm_key_app       $(BINDIR)/security_keyladder_otp_askm_key_app:  $(EXTRA_SRC)
+$(BINDIR)/security_keyladder_otp_global_key_app     $(BINDIR)/security_keyladder_otp_global_key_app:    $(EXTRA_SRC)
+$(BINDIR)/security_keyladder_otp_customer_key_app   $(BINDIR)/security_keyladder_otp_customer_key_app:  $(EXTRA_SRC)

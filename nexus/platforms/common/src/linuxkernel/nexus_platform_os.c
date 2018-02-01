@@ -709,7 +709,7 @@ error:
 }
 
 NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(unsigned irqNum, 
-    NEXUS_Core_InterruptFunction handler, void *context_ptr, int context_int)
+    NEXUS_Core_InterruptFunction handler_isr, void *context_ptr, int context_int)
 {
     struct NEXUS_Platform_P_IrqMap *nexusMap = NEXUS_Platform_P_IrqMap;
     const char *name=NULL;
@@ -720,7 +720,7 @@ NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(unsigned irqNum,
     unsigned long flags;
     unsigned i;
 
-    if (irqNum>=NUM_IRQS || handler==NULL || !state->started) {
+    if (irqNum>=NUM_IRQS || handler_isr==NULL || !state->started) {
         return BERR_TRACE(-1);
     }
     
@@ -761,7 +761,7 @@ NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(unsigned irqNum,
     
     spin_lock_irqsave(&state->lock, flags);
     entry->name = name;
-    entry->handler = handler;
+    entry->handler = handler_isr;
     entry->context_ptr = context_ptr;
     entry->context_int = context_int;
     entry->special_handler = special_handler;

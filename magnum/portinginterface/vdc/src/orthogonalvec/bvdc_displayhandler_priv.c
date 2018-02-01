@@ -534,7 +534,7 @@ void BVDC_P_FreeITResources_isr
     return;
 }
 
-BERR_Code BVDC_P_AllocITResources
+BERR_Code BVDC_P_AllocITResources_isr
     ( BVDC_P_Resource_Handle           hResource,
       BVDC_Display_Handle              hDisplay,
       BVDC_DisplayId                   eDisplayId,
@@ -557,16 +557,14 @@ BERR_Code BVDC_P_AllocITResources
         /* Scratch registers for MV polling */
         if(hDisplay->ulMVQueryTmpAddr == 0)
         {
-            BKNI_LeaveCriticalSection();
             hDisplay->ulMVQueryAddr = BRDC_GET_MV_BLOCK_REG(hDisplay->eId);
             hDisplay->ulMVQueryTmpAddr = BRDC_AllocScratchReg(hDisplay->hVdc->hRdc);
-            BKNI_EnterCriticalSection();
             if(hDisplay->ulMVQueryTmpAddr == 0)
             {
                 BDBG_ERR(("Not enough scratch registers for Tmp MV query!"));
                 goto fail;
             }
-            BRDC_WriteScratch(hDisplay->hVdc->hRegister, hDisplay->ulMVQueryAddr, 0);
+            BRDC_WriteScratch_isrsafe(hDisplay->hVdc->hRegister, hDisplay->ulMVQueryAddr, 0);
         }
 #else
         BSTD_UNUSED(hDisplay);
@@ -586,7 +584,7 @@ fail:
     return BERR_TRACE(err);
 }
 
-BERR_Code BVDC_P_AllocAnalogChanResources
+BERR_Code BVDC_P_AllocAnalogChanResources_isr
     ( BVDC_P_Resource_Handle           hResource,
       BVDC_DisplayId                   eDisplayId,
       BVDC_P_DisplayAnlgChan          *pstChan,
@@ -1235,7 +1233,7 @@ static BERR_Code BVDC_P_FreeDacResources_isr
     return BERR_TRACE(err);
 }
 
-BERR_Code BVDC_P_AllocDacResources
+BERR_Code BVDC_P_AllocDacResources_isr
     ( BVDC_P_Resource_Handle           hResource,
       BVDC_P_DisplayAnlgChan          *pstChan,
       uint32_t                         ulDacMask )
@@ -1300,7 +1298,7 @@ static uint32_t BVDC_P_Display_GetTg_isr
             BDBG_ASSERT(hDisplay->stAnlgChan_0.ulIt != BVDC_P_HW_ID_INVALID);
             masterTg = hDisplay->stAnlgChan_0.ulIt;
     }
-#if (BVDC_P_SUPPORT_ITU656_OUT != 0)
+#if (BVDC_P_SUPPORT_ITU656_OUT)
     else if(hDisplay->st656Chan.bEnable)
     {
         /* 656 masster mode */
@@ -1367,7 +1365,7 @@ static void BVDC_P_Display_SetupDviTG_isr
     return;
 }
 
-#if (BVDC_P_SUPPORT_ITU656_OUT != 0)
+#if (BVDC_P_SUPPORT_ITU656_OUT)
 static void BVDC_P_Display_Setup656TG_isr
     ( BVDC_Display_Handle              hDisplay,
       BVDC_P_ListInfo                 *pList )
@@ -3680,7 +3678,7 @@ void BVDC_P_Reset656ChanInfo
     return;
 }
 
-#if (BVDC_P_SUPPORT_ITU656_OUT != 0)
+#if (BVDC_P_SUPPORT_ITU656_OUT)
 BERR_Code BVDC_P_Alloc656ChanResources_isr
     ( BVDC_P_Resource_Handle           hResource,
       BVDC_DisplayId                   eDisplayId,
@@ -4061,7 +4059,7 @@ static void BVDC_P_Display_Start656Ctrler_isr
             BCHP_FIELD_DATA(ITU656_DTG_0_DTG_CONFIG, TOGGLE_DVI_DE, 0);
     }
 }
-#endif /* BVDC_P_SUPPORT_ITU656_OUT != 0 */
+#endif /* BVDC_P_SUPPORT_ITU656_OUT */
 
 static void BVDC_P_Display_StartDviCtrler_isr
     ( BVDC_Display_Handle              hDisplay,
@@ -4143,14 +4141,14 @@ static void BVDC_P_Display_StartMicroCtrler_isr
     if(hDisplay->stDviChan.bEnable || hDisplay->stCurInfo.bHdmiRmd)
     {
         BVDC_P_Display_StartAnlgCtrler_isr(hDisplay, pList, false);
-#if (BVDC_P_SUPPORT_ITU656_OUT != 0)
+#if (BVDC_P_SUPPORT_ITU656_OUT)
         BVDC_P_Display_Start656Ctrler_isr(hDisplay, pList);
 #endif
         BVDC_P_Display_StartDviCtrler_isr(hDisplay, pList);
     }
     else if(hDisplay->bAnlgEnable)
     {
-#if (BVDC_P_SUPPORT_ITU656_OUT != 0)
+#if (BVDC_P_SUPPORT_ITU656_OUT)
         BVDC_P_Display_Start656Ctrler_isr(hDisplay, pList);
 #endif
         BVDC_P_Display_StartDviCtrler_isr(hDisplay, pList);
@@ -4160,7 +4158,7 @@ static void BVDC_P_Display_StartMicroCtrler_isr
     {
         BVDC_P_Display_StartAnlgCtrler_isr(hDisplay, pList, false);
         BVDC_P_Display_StartDviCtrler_isr(hDisplay, pList);
-#if (BVDC_P_SUPPORT_ITU656_OUT != 0)
+#if (BVDC_P_SUPPORT_ITU656_OUT)
         BVDC_P_Display_Start656Ctrler_isr(hDisplay, pList);
 #endif
     }
@@ -4194,7 +4192,7 @@ static void BVDC_P_Display_SnapshotTimer_isr
      ****************************************************************/
 
 /* Validation helper functions */
-static BERR_Code BVDC_P_Display_Validate_AnalogChan
+static BERR_Code BVDC_P_Display_Validate_AnalogChan_isr
     ( BVDC_Display_Handle              hDisplay )
 {
     const uint32_t          *pTable;
@@ -4235,12 +4233,16 @@ static BERR_Code BVDC_P_Display_Validate_DviRm
       const BFMT_VideoInfo     *pFmtInfo,
       bool                      bFullRate )
 {
+    BERR_Code                err;
     const uint32_t          *pTable;
     BAVC_VdcDisplay_Info     lRateInfo;
     uint64_t                 ulPixelClkRate;
     const BVDC_P_RateInfo*   pRateInfo;
 
-    if(BVDC_P_GetRmTable_isr(pDispInfo, pFmtInfo, &pTable, bFullRate, &lRateInfo) != BERR_SUCCESS)
+    BKNI_EnterCriticalSection();
+    err = BVDC_P_GetRmTable_isr(pDispInfo, pFmtInfo, &pTable, bFullRate, &lRateInfo);
+    BKNI_LeaveCriticalSection();
+    if(err != BERR_SUCCESS)
     {
         BDBG_ERR(("Failed to get Rate Manager table"));
         return BERR_TRACE(BVDC_ERR_INVALID_HDMI_MODE);
@@ -4263,6 +4265,7 @@ static BERR_Code BVDC_P_Display_Validate_DviRm
         }
     }
 
+    BKNI_EnterCriticalSection();
     (void)BVDC_P_HdmiRmTable_isr(
         pFmtInfo->eVideoFmt,
         ulPixelClkRate,
@@ -4270,6 +4273,7 @@ static BERR_Code BVDC_P_Display_Validate_DviRm
         pDispInfo->stHdmiSettings.eHdmiPixelRepetition,
         pDispInfo->stHdmiSettings.stSettings.eColorComponent,
         &pRateInfo);
+    BKNI_LeaveCriticalSection();
     if (pRateInfo == NULL)
     {
         BDBG_ERR(("Failed to allocate HDMI Rate Manager settings for video format %d(%s), \
@@ -4309,7 +4313,7 @@ static BERR_Code BVDC_P_Display_Validate_DviChan
     return BERR_SUCCESS;
 }
 
-#if (BVDC_P_SUPPORT_ITU656_OUT != 0)
+#if (BVDC_P_SUPPORT_ITU656_OUT)
 static BERR_Code BVDC_P_Display_Validate_656Chan
     ( BVDC_Display_Handle              hDisplay )
 {
@@ -4326,6 +4330,7 @@ static BERR_Code BVDC_P_Display_Validate_656Chan
         return BERR_TRACE(BVDC_ERR_INVALID_656OUT_USE);
     }
 
+    BKNI_EnterCriticalSection();
     bMissingTable |= (BVDC_P_GetRmTable_isr(
         pNewInfo, pNewInfo->pFmtInfo, &pTable, true, &lRateInfo)
         != BERR_SUCCESS);
@@ -4335,6 +4340,8 @@ static BERR_Code BVDC_P_Display_Validate_656Chan
             pNewInfo, pNewInfo->pFmtInfo, &pTable, false, &lRateInfo)
             != BERR_SUCCESS);
     }
+    BKNI_LeaveCriticalSection();
+
     if (bMissingTable)
     {
         BDBG_ERR(("Failed to get Rate Manager table"));
@@ -4526,8 +4533,10 @@ static BERR_Code BVDC_P_Display_Validate_VideoFormat
        (!hDisplay->bAnlgEnable &&  /* or anlog slave with DACs */
        (hDisplay->stAnlgChan_0.bEnable || hDisplay->stAnlgChan_1.bEnable)))
     {
-        if ((err = BVDC_P_Display_Validate_AnalogChan(hDisplay)) !=
-            BERR_SUCCESS)
+        BKNI_EnterCriticalSection();
+        err = BVDC_P_Display_Validate_AnalogChan_isr(hDisplay);
+        BKNI_LeaveCriticalSection();
+        if (err != BERR_SUCCESS)
         {
             return BERR_TRACE(err);
         }
@@ -4545,7 +4554,7 @@ static BERR_Code BVDC_P_Display_Validate_VideoFormat
             {
                 BDBG_MSG(("Realocate Analog resource for chan 0"));
                 BKNI_EnterCriticalSection();
-                err = BVDC_P_AllocAnalogChanResources(hDisplay->hVdc->hResource, hDisplay->eId * 2, &hDisplay->stAnlgChan_0,
+                err = BVDC_P_AllocAnalogChanResources_isr(hDisplay->hVdc->hResource, hDisplay->eId * 2, &hDisplay->stAnlgChan_0,
                             (!(hDisplay->stNewInfo.ulAnlgChan0Mask & BVDC_P_Dac_Mask_SD) && hDisplay->bHdCap) ? true : false ,
                             (hDisplay->stNewInfo.ulAnlgChan0Mask & BVDC_P_Dac_Mask_HD) ? true : false ,
                             ((hDisplay->stNewInfo.ulAnlgChan0Mask & BVDC_P_Dac_Mask_SD) && (BVDC_P_NUM_SHARED_SECAM != 0) && (BFMT_IS_SECAM(pNewInfo->pFmtInfo->eVideoFmt))) ? true : false);
@@ -4555,7 +4564,7 @@ static BERR_Code BVDC_P_Display_Validate_VideoFormat
             {
                 BDBG_MSG(("Realocate Analog resource for chan 1"));
                 BKNI_EnterCriticalSection();
-                err |= BVDC_P_AllocAnalogChanResources(hDisplay->hVdc->hResource, hDisplay->eId * 2 + 1, &hDisplay->stAnlgChan_1,
+                err |= BVDC_P_AllocAnalogChanResources_isr(hDisplay->hVdc->hResource, hDisplay->eId * 2 + 1, &hDisplay->stAnlgChan_1,
                             (!(hDisplay->stNewInfo.ulAnlgChan1Mask & BVDC_P_Dac_Mask_SD) && hDisplay->bHdCap) ? true : false ,
                             (hDisplay->stNewInfo.ulAnlgChan1Mask & BVDC_P_Dac_Mask_HD) ? true : false ,
                             ((hDisplay->stNewInfo.ulAnlgChan1Mask & BVDC_P_Dac_Mask_SD) && (BVDC_P_NUM_SHARED_SECAM != 0) && (BFMT_IS_SECAM(pNewInfo->pFmtInfo->eVideoFmt))) ? true : false);
@@ -4572,7 +4581,7 @@ static BERR_Code BVDC_P_Display_Validate_VideoFormat
             return BERR_TRACE(err);
     }
 
-#if (BVDC_P_SUPPORT_ITU656_OUT != 0)
+#if (BVDC_P_SUPPORT_ITU656_OUT)
     if (hDisplay->st656Chan.bEnable)
     {
         if ((err = BVDC_P_Display_Validate_656Chan(hDisplay)) != BERR_SUCCESS)
@@ -4868,7 +4877,7 @@ static void BVDC_P_Display_Apply_VideoFormat_isr
         BVDC_P_SetupAnalogChan_isr(hDisplay->hVdc->hResource, &hDisplay->stAnlgChan_1, pList);
     }
 
-#if (BVDC_P_SUPPORT_ITU656_OUT != 0)
+#if (BVDC_P_SUPPORT_ITU656_OUT)
     if (hDisplay->st656Chan.bEnable)
     {
         /*
@@ -5904,7 +5913,7 @@ static void BVDC_P_Display_Apply_InputColorSpace_Setting_isr
         BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, &hDisplay->stDviChan, pList );
     }
 
-#if (BVDC_P_SUPPORT_ITU656_OUT != 0)
+#if (BVDC_P_SUPPORT_ITU656_OUT)
     if (hDisplay->st656Chan.bEnable)
     {
         BVDC_P_Vec_Build_656_CSC_isr(hDisplay, pList );
@@ -5940,6 +5949,7 @@ static BERR_Code BVDC_P_Display_Validate_SrcFrameRate_Setting
     /* STG doesn't have RM */
     if (!BVDC_P_DISPLAY_USED_STG(hDisplay->eMasterTg))
     {
+        BKNI_EnterCriticalSection();
         bMissingTable |= (BVDC_P_GetRmTable_isr(
             pNewInfo, pNewInfo->pFmtInfo, &pTable, true, &lRateInfo)
             != BERR_SUCCESS);
@@ -5949,6 +5959,8 @@ static BERR_Code BVDC_P_Display_Validate_SrcFrameRate_Setting
                 pNewInfo, pNewInfo->pFmtInfo, &pTable, false, &lRateInfo)
                 != BERR_SUCCESS);
         }
+        BKNI_LeaveCriticalSection();
+
         if (bMissingTable)
         {
             BDBG_ERR(("Failed to locate Rate Manager Table"));
@@ -6017,7 +6029,7 @@ void BVDC_P_FreeMpaaResources_isr
     return;
 }
 
-BERR_Code BVDC_P_AllocMpaaResources
+BERR_Code BVDC_P_AllocMpaaResources_isr
     ( BVDC_P_Resource_Handle           hResource,
       BVDC_DisplayId                   eDisplayId,
       BVDC_P_DisplayMpaa              *pstChan )
@@ -6045,7 +6057,7 @@ static BERR_Code BVDC_P_Display_Validate_CompMpaa_Setting
     if (hDisplay->stNewInfo.aulEnableMpaaDeci[BVDC_MpaaDeciIf_eComponent])
     {
         BKNI_EnterCriticalSection();
-        err = BVDC_P_AllocMpaaResources(hDisplay->hVdc->hResource,
+        err = BVDC_P_AllocMpaaResources_isr(hDisplay->hVdc->hResource,
             hDisplay->eId, &hDisplay->stMpaaComp);
         BKNI_LeaveCriticalSection();
 
@@ -6275,7 +6287,7 @@ static BERR_Code BVDC_P_Display_Validate_HdmiMpaa_Setting
     if (hDisplay->stNewInfo.aulEnableMpaaDeci[BVDC_MpaaDeciIf_eHdmi])
     {
         BKNI_EnterCriticalSection();
-        err = BVDC_P_AllocMpaaResources(hDisplay->hVdc->hResource,
+        err = BVDC_P_AllocMpaaResources_isr(hDisplay->hVdc->hResource,
             hDisplay->eId, &hDisplay->stMpaaHdmi);
         BKNI_LeaveCriticalSection();
 
@@ -6697,7 +6709,7 @@ static void BVDC_P_Display_Apply_Hdmi_Config_isr
 }
 
 /**************** 656 output enable/disable event handlers **************/
-#if (BVDC_P_SUPPORT_ITU656_OUT != 0)
+#if (BVDC_P_SUPPORT_ITU656_OUT)
 static BERR_Code BVDC_P_Display_Validate_656_Setting
     ( BVDC_Display_Handle              hDisplay )
 {
@@ -6731,7 +6743,6 @@ static BERR_Code BVDC_P_Display_Validate_656_Setting
 #endif
     }
 
-    hDisplay->st656Chan.bEnable = pNewInfo->bEnable656;
     return BERR_SUCCESS;
 }
 
@@ -6786,14 +6797,14 @@ static void BVDC_P_Display_Apply_656_Setting_isr
 
             case BVDC_P_DisplayResource_eDestroy:
                 BVDC_P_TearDown656Chan_isr(hDisplay, pstChan, pList);
-                hDisplay->st656Chan.bEnable = false;
                 hDisplay->e656State = BVDC_P_DisplayResource_eShuttingdown;
                 break;
 
             case BVDC_P_DisplayResource_eShuttingdown:
                 if (pList->bLastExecuted)
                 {
-                    BVDC_P_Free656ChanResources_isr(hDisplay->hVdc->hResource, hDisplay);
+                    if(!hDisplay->st656Chan.bEnable)
+                        BVDC_P_Free656ChanResources_isr(hDisplay->hVdc->hResource, hDisplay);
                     hDisplay->e656State = BVDC_P_DisplayResource_eInactive;
                     hDisplay->stCurInfo.stDirty.stBits.b656Enable = BVDC_P_CLEAN;
                 }
@@ -6809,7 +6820,6 @@ static void BVDC_P_Display_Apply_656_Setting_isr
                 break;
         }
     }
-
     return;
 }
 #endif
@@ -7682,7 +7692,7 @@ static void BVDC_P_Display_Apply_OutputMute_Setting_isr
         BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, &hDisplay->stDviChan, pList );
     }
 
-#if (BVDC_P_SUPPORT_ITU656_OUT != 0)
+#if (BVDC_P_SUPPORT_ITU656_OUT)
     if (hDisplay->st656Chan.bEnable)
     {
         BVDC_P_Vec_Build_656_CSC_isr(hDisplay, pList );
@@ -7856,7 +7866,7 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
         BVDC_P_Display_Apply_HdmiCsc_Setting_isr
     },
 
-#if (BVDC_P_SUPPORT_ITU656_OUT != 0)
+#if (BVDC_P_SUPPORT_ITU656_OUT)
     /* Enable/disable 656 event                                    - index 15 */
     {
         /* Enable/disable 656 ouput.
@@ -7951,6 +7961,15 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
         BVDC_P_Display_Validate_Stg_Setting,
         BVDC_P_Display_Copy_Stg_Setting_isr,
         BVDC_P_Display_Apply_Stg_Setting_isr
+    },
+
+    /* Enable/disable Stg event                                    - index 25 */
+    {
+        /* Enable/disable Stg ouput.
+         */
+        BVDC_P_Display_Validate_StgFilter_Setting,
+        BVDC_P_Display_Copy_StgFilter_Setting_isr,
+        BVDC_P_Display_Apply_StgFilter_Setting_isr
     },
 #endif
 

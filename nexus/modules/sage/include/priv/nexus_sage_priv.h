@@ -48,6 +48,11 @@
 #include "nexus_sage_init.h"
 
 
+typedef enum NEXUS_SageUrrType {
+    NEXUS_SageUrrType_eDisplay,
+    NEXUS_SageUrrType_eTranscode
+}NEXUS_SageUrrType;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -75,8 +80,8 @@ NEXUS_Error NEXUS_SageModule_Standby_priv( bool enabled, const NEXUS_StandbySett
 
 NEXUS_Error NEXUS_Sage_SecureRemap(unsigned memcIndex, const BDTU_RemapSettings *pSettings);
 NEXUS_Error NEXUS_Sage_UpdateHeaps(void);
-NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList);
-void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList);
+NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList, NEXUS_SageUrrType type);
+void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList, NEXUS_SageUrrType type);
 NEXUS_Error NEXUS_Sage_P_SvpEnterS3(void);
 NEXUS_Error NEXUS_Sage_P_SvpInit(NEXUS_SageModuleInternalSettings *internalSettings);
 NEXUS_Error NEXUS_Sage_P_SvpStart(void);
@@ -97,8 +102,18 @@ NEXUS_Error NEXUS_Sage_P_SvpSetRegions(void);
 NEXUS_Error NEXUS_Sage_P_SARMInit(NEXUS_SageModuleSettings *pSettings);
 void NEXUS_Sage_P_SARMUninit(void);
 
+/* All NEXUS_Sage_P_Test_xxx api's are for internal developer testing ONLY */
+/* Not enabled by default (i.e. NOP), they should never impact real SVP code and always have void returns */
 #ifdef NEXUS_SAGE_SVP_TEST
-NEXUS_Error NEXUS_Sage_P_SecureCores_test(const BAVC_CoreList *pCoreList, bool add);
+void NEXUS_Sage_P_Test_Init(void);
+void NEXUS_Sage_P_Test_Term(void);
+void NEXUS_Sage_P_Test_SecureCores(const BAVC_CoreList *pCoreList, bool add, NEXUS_SageUrrType type);
+void NEXUS_Sage_P_Test_UpdateHeaps(uint64_t *start, uint64_t *size, uint8_t count);
+#else
+#define NEXUS_Sage_P_Test_Init()
+#define NEXUS_Sage_P_Test_Term()
+#define NEXUS_Sage_P_Test_SecureCores(a,b,c)
+#define NEXUS_Sage_P_Test_UpdateHeaps(a,b,c)
 #endif
 
 typedef struct NEXUS_SageMemoryBlock {

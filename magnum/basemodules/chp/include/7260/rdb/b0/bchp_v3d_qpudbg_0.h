@@ -44,19 +44,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Jun 27 10:52:40 2017
- *                 Full Compile MD5 Checksum  de13a1e8011803b5a40ab14e4d71d071
+ * Date:           Generated on               Tue Nov 28 10:28:56 2017
+ *                 Full Compile MD5 Checksum  7930997ff30f92bc0a0f9b04259372ea
  *                     (minus title and desc)
- *                 MD5 Checksum               b694fcab41780597392ed5a8f558ad3e
+ *                 MD5 Checksum               529076ce3c73ca0cc2bb667e2bbfd3ae
  *
  * lock_release:   r_1255
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1570
+ *                 RDB.pm                     1777
  *                 unknown                    unknown
- *                 Perl Interpreter           5.014001
+ *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   LOCAL home/pntruong/sbin/combo_header.pl
+ *                 Script Source              home/pt902453/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL home/pt902453/sbin/combo_header.pl
  *
  *
 ********************************************************************************/
@@ -67,7 +67,7 @@
 /***************************************************************************
  *V3D_QPUDBG_0
  ***************************************************************************/
-#define BCHP_V3D_QPUDBG_0_STS1                   0x2130a000 /* [RO][32] QPU Debug Status and Selection 1 */
+#define BCHP_V3D_QPUDBG_0_STS1                   0x2130a000 /* [RW][32] QPU Debug Status and Selection 1 */
 #define BCHP_V3D_QPUDBG_0_STS2                   0x2130a004 /* [RO][32] QPU Debug Status 2 */
 #define BCHP_V3D_QPUDBG_0_ALLSTS                 0x2130a008 /* [RO][32] All QPU Debug Status */
 #define BCHP_V3D_QPUDBG_0_VER                    0x2130a00c /* [RO][32] QPU Debug Version */
@@ -167,9 +167,17 @@
 /***************************************************************************
  *STS1 - QPU Debug Status and Selection 1
  ***************************************************************************/
-/* V3D_QPUDBG_0 :: STS1 :: reserved0 [31:24] */
-#define BCHP_V3D_QPUDBG_0_STS1_reserved0_MASK                      0xff000000
-#define BCHP_V3D_QPUDBG_0_STS1_reserved0_SHIFT                     24
+/* V3D_QPUDBG_0 :: STS1 :: reserved0 [31:28] */
+#define BCHP_V3D_QPUDBG_0_STS1_reserved0_MASK                      0xf0000000
+#define BCHP_V3D_QPUDBG_0_STS1_reserved0_SHIFT                     28
+
+/* V3D_QPUDBG_0 :: STS1 :: SLICE_SELECT [27:26] */
+#define BCHP_V3D_QPUDBG_0_STS1_SLICE_SELECT_MASK                   0x0c000000
+#define BCHP_V3D_QPUDBG_0_STS1_SLICE_SELECT_SHIFT                  26
+
+/* V3D_QPUDBG_0 :: STS1 :: QPU_SELECT [25:24] */
+#define BCHP_V3D_QPUDBG_0_STS1_QPU_SELECT_MASK                     0x03000000
+#define BCHP_V3D_QPUDBG_0_STS1_QPU_SELECT_SHIFT                    24
 
 /* V3D_QPUDBG_0 :: STS1 :: SCOREBOARD_WAIT_STALL [23:23] */
 #define BCHP_V3D_QPUDBG_0_STS1_SCOREBOARD_WAIT_STALL_MASK          0x00800000

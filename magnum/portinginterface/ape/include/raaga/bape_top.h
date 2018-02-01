@@ -196,6 +196,11 @@ BAPE_DecoderHandle2 (stereo data) -/
 Summary:
 Device Settings
 ***************************************************************************/
+typedef struct BAPE_LoudnessSettings
+{
+    BAPE_LoudnessEquivalenceMode loudnessMode;  /* Loudness Equivalence Mode.  Default is BAPE_LoudnessEquivalenceMode_eNone. */
+} BAPE_LoudnessSettings;
+
 typedef struct BAPE_Settings
 {
     unsigned maxDspTasks;               /* Maximum DSP tasks.  One task is required for each decoder and FW Mixer that will run concurrently. */
@@ -223,7 +228,7 @@ typedef struct BAPE_Settings
                                            Independent delay does not affect this number, only different content sources. */
     bool rampPcmSamples;                /* If true (default), PCM samples will be ramped up/down on startup, shutdown, and underflow conditions.
                                           Set to false if you want to disable this feature for testing or verification purposes. */
-    BAPE_LoudnessEquivalenceMode loudnessMode;  /* Loudness Equivalence Mode.  Default is BAPE_LoudnessEquivalenceMode_eNone. */
+    BAPE_LoudnessSettings loudnessSettings;  /* Loudness Equivalence Settings */
     struct {
         BSTD_DeviceOffset baseAddress; /* Physical base address of the lowest physical address region for each MEMC.
             [0] is always 0 and it is assumed to always exist. For [1] and [2], an address of 0 means the MEMC is not populated.
@@ -466,6 +471,24 @@ void BAPE_GetCapabilities(
     );
 
 BAPE_DolbyMSVersion BAPE_GetDolbyMSVersion (void);
+
+/***************************************************************************
+Summary:
+Get the current loudness equivalance settings
+***************************************************************************/
+void BAPE_GetLoudnessMode(
+    BAPE_Handle hApe,
+    BAPE_LoudnessSettings *pSettings /* [out] */
+    );
+
+/***************************************************************************
+Summary:
+Set the loudness equivalance settings after Ape was already initialized
+***************************************************************************/
+BERR_Code BAPE_SetLoudnessMode(
+    BAPE_Handle hApe,
+    BAPE_LoudnessSettings *pSettings /* [out] */
+    );
 
 #if BAPE_DSP_SUPPORT
 /***************************************************************************

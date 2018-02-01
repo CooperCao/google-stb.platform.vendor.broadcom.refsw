@@ -4,7 +4,9 @@
 #include "interface/khronos/common/khrn_int_generic_map.h"
 #include "interface/khronos/common/khrn_int_util.h"
 
-static INLINE uint32_t hash(KHRN_GENERIC_MAP_KEY_T key, uint32_t capacity)
+#include <stdint.h>
+
+static inline uint32_t hash(KHRN_GENERIC_MAP_KEY_T key, uint32_t capacity)
 {
    return (uint32_t)key & (capacity - 1);
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -3032,19 +3032,22 @@ error:
  * original MPD file.
  *****************************************************************************/
 static char *
-B_PlaybackIp_MpegDashCreateAbsoluteUrl(B_PlaybackIpHandle playback_ip, MpegDashRepresentationInfo * representationInfo, char * url)
+B_PlaybackIp_MpegDashCreateAbsoluteUrl(B_PlaybackIpHandle playback_ip, MpegDashRepresentationInfo * representationInfo, char * oldUrl)
 {
-    MpegDashSessionState        * mpegDashSession = playback_ip->mpegDashSessionState;
-    B_PlaybackIpProtocol  protocol;
-    char               * server = NULL;     /* Need to be freed on return. */
-    char               * partialUri;
-    unsigned             port;
-    int                  returnCode;
+    MpegDashSessionState  * mpegDashSession = playback_ip->mpegDashSessionState;
+    B_PlaybackIpProtocol    protocol;
+    char                  * server = NULL;     /* Need to be freed on return. */
+    char                  * partialUri;
+    unsigned                port;
+    int                     returnCode;
+    char                  * thisUrl=oldUrl;
+    char                  * newUrl1=NULL;
+    char                  * newUrl2=NULL;
 
     /* If the resulting URI is not absolute, look for a BaseUrl to prepend to it.   Look for the BaseUrl in
      * the Representation, then the AdaptationSet, then Period, then the MPD.
      */
-    if (!http_absolute_uri(url)) {
+    if (!http_absolute_uri(thisUrl)) {
         MpegDashBaseUrlInfo        * baseUrl;
 
         PRINTMSG_URL(("%s:%d: Non-absolute URI, looking for baseUrl", BSTD_FUNCTION, __LINE__));
@@ -3083,10 +3086,7 @@ B_PlaybackIp_MpegDashCreateAbsoluteUrl(B_PlaybackIpHandle playback_ip, MpegDashR
 
         /* If we found a BaseUrl, apply it to the current URI. */
         if (baseUrl) {
-            char *  newUri;
-
             /* build complete url using baseUrl. */
-
             PRINTMSG_URL(("%s:%d: Found BaseUrl=%p", BSTD_FUNCTION, __LINE__, (void *)baseUrl));
             PRINTMSG_URL(("%s:%d: baseUrl->byteRange=%s", BSTD_FUNCTION, __LINE__, baseUrl->byteRange));
             PRINTMSG_URL(("%s:%d: baseUrl->serviceLocation=%s", BSTD_FUNCTION, __LINE__, baseUrl->serviceLocation));
@@ -3104,40 +3104,41 @@ B_PlaybackIp_MpegDashCreateAbsoluteUrl(B_PlaybackIpHandle playback_ip, MpegDashR
                 }
 
                 PRINTMSG_URL(("%s: Using BaseUrl: %s", BSTD_FUNCTION, baseUrl->childData ));
-                if ((newUri = B_PlaybackIp_MpegDashBuildAbsoluteUri(server, port, partialUri,  url)) == NULL) {
+                if ((newUrl1 = B_PlaybackIp_MpegDashBuildAbsoluteUri(server, port, partialUri,  thisUrl)) == NULL) {
                     BDBG_ERR(("Failed to build URI at %s:%d", BSTD_FUNCTION, __LINE__));
                     goto error;
                 }
-                BKNI_Free(url);
-                url = newUri;
+                thisUrl = newUrl1;
 
-                PRINTMSG_URL(("%s: Used BaseUrl to build Absolute Uri: %s", BSTD_FUNCTION, url ));
+                PRINTMSG_URL(("%s: Used BaseUrl to build Absolute Uri: %s", BSTD_FUNCTION, thisUrl ));
             }
         }
 
         /* If we still have a relative url, build complete url using server ip address & port # */
-        if (!http_absolute_uri( url)) {
-            char *  newUri;
+        if (!http_absolute_uri( thisUrl)) {
 
             /* relative url, build complete url using server ip address & port # */
             PRINTMSG_URL(("%s: media segment URI is not absolute URI, using server and port from MPD URL.", BSTD_FUNCTION));
-            if ((newUri = B_PlaybackIp_MpegDashBuildAbsoluteUri(mpegDashSession->server, mpegDashSession->port, mpegDashSession->uri, url)) == NULL) {
+            if ((newUrl2 = B_PlaybackIp_MpegDashBuildAbsoluteUri(mpegDashSession->server, mpegDashSession->port, mpegDashSession->uri, thisUrl)) == NULL) {
                 BDBG_ERR(("Failed to build URI at %s:%d", BSTD_FUNCTION, __LINE__));
                 goto error;
             }
-            BKNI_Free(url);
-            url = newUri;
+            thisUrl = newUrl2;
 
-            PRINTMSG_URL(("%s: Used MPD server/port/url to build Absolute Uri: %s", BSTD_FUNCTION, url ));
+            PRINTMSG_URL(("%s: Used MPD server/port/url to build Absolute Uri: %s", BSTD_FUNCTION, thisUrl ));
         }
     }
 
     if (server) BKNI_Free(server);
+    if (newUrl1 && newUrl1 != thisUrl) {BKNI_Free( newUrl1);}
+    if (newUrl2 && newUrl2 != thisUrl) {BKNI_Free( newUrl2);}
 
-    return url;
+    return thisUrl;
 
 error:
-    if (server) BKNI_Free(server);
+    if (server)  {BKNI_Free(server );}
+    if (newUrl1) {BKNI_Free(newUrl1);}
+    if (newUrl2) {BKNI_Free(newUrl2);}
 
     return NULL;
 }
@@ -3150,7 +3151,8 @@ error:
 static char *
 B_PlaybackIp_MpegDashCreateAbsoluteUrlForSeek(B_PlaybackIpHandle playback_ip, MpegDashRepresentationSeekContext *representationSeekCtx, MpegDashUrlKind urlKind)
 {
-    char * url = NULL;
+    char * thisUrl = NULL;
+    char * newUrl  = NULL;
 
     MpegDashSegmentBaseInfo      * segmentBase;
     MpegDashSegmentListInfo      * segmentList;
@@ -3204,18 +3206,24 @@ B_PlaybackIp_MpegDashCreateAbsoluteUrlForSeek(B_PlaybackIpHandle playback_ip, Mp
 
         if (listUrl) {
             /* Start by building a URI by substituting the appropriate values into the template. */
-            url = B_PlaybackIp_MpegDashCreateUrlFromTemplate(playback_ip,
-                                                             listUrl,
-                                                             "",
-                                                             0,
-                                                             0,
-                                                             0);
+            thisUrl = B_PlaybackIp_MpegDashCreateUrlFromTemplate(playback_ip,
+                                                                 listUrl,
+                                                                 "",
+                                                                 0,
+                                                                 0,
+                                                                 0);
 
-            PRINTMSG_URL(("%s:%d: After template substitution: url=%s", BSTD_FUNCTION, __LINE__, url));
+            PRINTMSG_URL(("%s:%d: After template substitution: url=%s", BSTD_FUNCTION, __LINE__, thisUrl));
 
-            url = B_PlaybackIp_MpegDashCreateAbsoluteUrl(playback_ip, representationSeekCtx->representationInfo,  url);
+            newUrl = B_PlaybackIp_MpegDashCreateAbsoluteUrl(playback_ip, representationSeekCtx->representationInfo,  thisUrl);
+            if (newUrl != thisUrl && thisUrl)
+            {
+                BKNI_Free(thisUrl);
+            }
+            thisUrl = newUrl;
+            newUrl = NULL;
 
-            PRINTMSG_URL(("%s:%d: After making absolute: url=%s", BSTD_FUNCTION, __LINE__, url));
+            PRINTMSG_URL(("%s:%d: After making absolute: url=%s", BSTD_FUNCTION, __LINE__, thisUrl));
         }
 
     }
@@ -3266,18 +3274,24 @@ B_PlaybackIp_MpegDashCreateAbsoluteUrlForSeek(B_PlaybackIpHandle playback_ip, Mp
             /* Start by building a URI by substituting the appropriate values into the template. */
             PRINTMSG_URL(("%s:%d: TemplateUrl=%s", BSTD_FUNCTION, __LINE__, templateUrl));
 
-            url = B_PlaybackIp_MpegDashCreateUrlFromTemplate(playback_ip,
+            thisUrl = B_PlaybackIp_MpegDashCreateUrlFromTemplate(playback_ip,
                                                              templateUrl,
                                                              representationSeekCtx->representationId,
                                                              segmentNumber,
                                                              representationSeekCtx->representationInfo->bandwidthNumeric,
                                                              representationSeekCtx->segmentTimelineTime);
 
-            PRINTMSG_URL(("%s:%d: After template substitution: url=%s", BSTD_FUNCTION, __LINE__, url));
+            PRINTMSG_URL(("%s:%d: After template substitution: url=%s", BSTD_FUNCTION, __LINE__, thisUrl));
 
-            url = B_PlaybackIp_MpegDashCreateAbsoluteUrl(playback_ip, representationSeekCtx->representationInfo,  url);
+            newUrl = B_PlaybackIp_MpegDashCreateAbsoluteUrl(playback_ip, representationSeekCtx->representationInfo,  thisUrl);
+            if (newUrl != thisUrl && thisUrl)
+            {
+                BKNI_Free(thisUrl);
+            }
+            thisUrl = newUrl;
+            newUrl = NULL;
 
-            PRINTMSG_URL(("%s:%d: After making absolute: url=%s", BSTD_FUNCTION, __LINE__, url));
+            PRINTMSG_URL(("%s:%d: After making absolute: url=%s", BSTD_FUNCTION, __LINE__, thisUrl));
         }
     }
     else
@@ -3286,10 +3300,10 @@ B_PlaybackIp_MpegDashCreateAbsoluteUrlForSeek(B_PlaybackIpHandle playback_ip, Mp
         goto error;
     }
 
-    return url;
+    return thisUrl;
 
 error:
-    /* GARYWASHERE:  if (url) destroy url */
+    /* GARYWASHERE:  if (thisUrl) destroy url */
     return NULL;
 }
 
@@ -7273,8 +7287,8 @@ B_PlaybackIp_MpegDashBuildSegmentBoxPrefix( MpegDashSegmentBuffer  * segmentBuff
 
     PRINTMSG_DOWNLOAD(("%s:%d: Creating trex box... track_ID: %lu, default_sample_description_index:%lu  default_sample_duration:%lu  default_sample_size:%lu  default_sample_flags:%lu",
                        BSTD_FUNCTION, __LINE__,
-                          trackId, trexDefaultSampleDescriptionIndex, trexDefaultSampleDuration, trexDefaultSampleFlags, trexDefaultSampleSize));
-    write_trex_box( fout, trackId, trexDefaultSampleDescriptionIndex, trexDefaultSampleDuration, trexDefaultSampleFlags, trexDefaultSampleSize);
+                          trackId, trexDefaultSampleDescriptionIndex, trexDefaultSampleDuration, trexDefaultSampleSize, trexDefaultSampleFlags));
+    write_trex_box( fout, trackId, trexDefaultSampleDescriptionIndex, trexDefaultSampleDuration, trexDefaultSampleSize, trexDefaultSampleFlags );
 
     /*---------------------------------------------------------------
      *  We've just written the (physically) last box, so do a sanity
@@ -7630,7 +7644,9 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadThread(void *data)
                 }
             }
 
+            /* coverity[var_deref_op: FALSE] */
             PRINTMSG_SUMMARY(( "%s:%d: Started  download: %s", myFuncName, __LINE__, mediaFileSegmentInfo->uri));
+            /* coverity[var_deref_op: FALSE] */
             PRINTMSG_DOWNLOAD(("%s:%d: Started  download: %s", myFuncName, __LINE__, mediaFileSegmentInfo->uri));
 
             if (B_PlaybackIp_MpegDashMediaSegmentDownloadStart(
@@ -7640,6 +7656,7 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadThread(void *data)
                              &playback_ip->socketState.fd,
                              segmentBuffer) == false) {
 
+                /* coverity[var_deref_op: FALSE] */
                 BDBG_ERR(("%s:%d ERROR: Segment Download failed for \"%s\"", myFuncName, __LINE__,mediaFileSegmentInfo->absoluteUri));
 
                 /* GARYWASHERE: need to handle this situation. Probably should give up after several failures. */

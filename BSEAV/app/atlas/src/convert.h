@@ -57,6 +57,7 @@
 #include "power.h"
 #include "videolist.h"
 #include "video_decode.h"
+#include "audio_decode.h"
 #ifdef PLAYBACK_IP_SUPPORT
 #include "b_playback_ip_lib.h"
 #endif
@@ -156,6 +157,12 @@ STRING_TO_ENUM_DECLARE(stringToServerIndexState, eServerIndexState)
 ENUM_TO_MSTRING_DECLARE(serverIndexStateToString, eServerIndexState)
 STRING_TO_ENUM_DECLARE(stringToVideoDynamicRange, eDynamicRange)
 ENUM_TO_MSTRING_DECLARE(videoDynamicRangeToString, eDynamicRange)
+STRING_TO_ENUM_DECLARE(stringToLanguage, eLanguage)
+ENUM_TO_MSTRING_DECLARE(languageToString, eLanguage)
+STRING_TO_ENUM_DECLARE(stringToAssociate, NEXUS_AudioAc4AssociateType)
+ENUM_TO_MSTRING_DECLARE(associateToString, NEXUS_AudioAc4AssociateType)
+STRING_TO_ENUM_DECLARE(stringToPriority, ePriority)
+ENUM_TO_MSTRING_DECLARE(priorityToString, ePriority)
 
 #ifdef __cplusplus
 }

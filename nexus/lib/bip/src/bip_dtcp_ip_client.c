@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -63,6 +63,7 @@ typedef struct BIP_DtcpIpClientFactoryAkeEntry
     BIP_DtcpIpClientFactoryAkeEntryState            state;                      /* AKE Entry state. */
     BIP_DtcpIpClientFactoryHandle                   hDtcpIpClientFactory;       /* Handle of the Parent DtcpIpFactory Object. */
     BIP_Status                                      dtcpIpAkeCompletionStatus;  /* Completion status for the DoAke call to the DTCP/IP library. */
+    B_ThreadHandle                                  hThread;
 } BIP_DtcpIpClientFactoryAkeEntry;
 
 typedef enum BIP_DtcpIpClientFactoryState
@@ -136,6 +137,7 @@ void BIP_DtcpIpClientFactory_Uninit()
         )
     {
         BLST_Q_REMOVE(&hDtcpIpClientFactory->akeEntry_head, hAkeEntry, akeEntry_link);
+        if (hAkeEntry->hThread) B_Thread_Destroy(hAkeEntry->hThread);
         destroyAkeEntry(hAkeEntry);
     }
 
@@ -390,8 +392,7 @@ error:
 static BIP_Status processDtcpIpClientFactoryAkeEntryState_locked( BIP_DtcpIpClientFactoryAkeEntryHandle hAkeEntry, BIP_Arb_ThreadOrigin threadOrigin);
 
 static void doDtcpIpAkeViaArbCallback(
-    void *ctx,
-    int   param
+    void *ctx
     )
 {
     BIP_DtcpIpClientFactoryAkeEntryHandle hAkeEntry = ctx;
@@ -399,7 +400,6 @@ static void doDtcpIpAkeViaArbCallback(
 
     BDBG_ASSERT(hAkeEntry);
     BDBG_OBJECT_ASSERT( hAkeEntry, BIP_DtcpIpClientFactoryAkeEntry );
-    BSTD_UNUSED(param);
 
     B_Mutex_Lock( hAkeEntry->hStateMutex );
     {
@@ -469,20 +469,28 @@ static BIP_Status processDtcpIpClientFactoryAkeEntryState_locked(
          * We are in NewAke state (meaning caller has invoked _DoAke()), we setup to do Ake!
          * Note: the DTCP/IP library will internally do the faster AKE first (VerifyExchKey) before attempting to do "slower" (full) Ake.
          */
-        BIP_CallbackDesc callbackToStartAke;
+        if (hAkeEntry->hThread) B_Thread_Destroy(hAkeEntry->hThread);
+        hAkeEntry->hThread = B_Thread_Create(
+                "BIP_DtcpIpClient_DoAke",   /* Thread Name - Optional */
+                doDtcpIpAkeViaArbCallback,  /* Thread Main Routine */
+                hAkeEntry,                  /* Parameter provided to threadFunction */
+                NULL                        /* Pass NULL for defaults */
+                );
+        if (!hAkeEntry->hThread)
+        {
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hAkeEntry=%p: state=%s: B_Thread_Create() Failed!" BIP_MSG_PRE_ARG,
+                        (void *)hAkeEntry, BIP_ToStr_BIP_DtcpIpClientFactoryAkeEntryState(hAkeEntry->state) ));
+            hAkeEntry->state = BIP_DtcpIpClientFactoryAkeEntryState_eAkeDone;
+            hAkeEntry->dtcpIpAkeCompletionStatus = BIP_ERR_OUT_OF_SYSTEM_MEMORY;
+        }
+        else
+        {
+            hAkeEntry->state = BIP_DtcpIpClientFactoryAkeEntryState_eWaitingForAke;
+            hAkeEntry->dtcpIpAkeCompletionStatus = BIP_INF_IN_PROGRESS;
 
-        /* Since DtcpIp library only provides blocking APIs for AKE, we start that processing via BIP's internal context (Arb Timer/Scheduler Thread). */
-        /* This way we dont block caller's context (which would have blocked the App thread itself). */
-        callbackToStartAke.callback = doDtcpIpAkeViaArbCallback;
-        callbackToStartAke.context  = hAkeEntry;
-        callbackToStartAke.param    = 0;
-        BIP_Arb_AddDeferredCallback( hDtcpIpClientFactory->doAkeApi.hArb, &callbackToStartAke );
-
-        hAkeEntry->state = BIP_DtcpIpClientFactoryAkeEntryState_eWaitingForAke;
-        hAkeEntry->dtcpIpAkeCompletionStatus = BIP_INF_IN_PROGRESS;
-
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hAkeEntry=%p state=%s: Scheduled DoAke processing via BIP Context for serverIp=%s serverPort=%s" BIP_MSG_PRE_ARG,
-                    (void *)hAkeEntry, BIP_ToStr_BIP_DtcpIpClientFactoryAkeEntryState(hAkeEntry->state), BIP_String_GetString(hAkeEntry->hServerIp), BIP_String_GetString(hAkeEntry->hServerPort) ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hAkeEntry=%p state=%s: Scheduled DoAke processing via BIP Context for serverIp=%s serverPort=%s" BIP_MSG_PRE_ARG,
+                        (void *)hAkeEntry, BIP_ToStr_BIP_DtcpIpClientFactoryAkeEntryState(hAkeEntry->state), BIP_String_GetString(hAkeEntry->hServerIp), BIP_String_GetString(hAkeEntry->hServerPort) ));
+        }
     }
 
     if (hAkeEntry->state == BIP_DtcpIpClientFactoryAkeEntryState_eWaitingForAke)

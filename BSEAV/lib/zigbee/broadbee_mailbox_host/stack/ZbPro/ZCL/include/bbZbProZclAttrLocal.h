@@ -50,6 +50,7 @@
 #include "bbZbProZclSapProfileWideAttributes.h"
 #include "bbZbProZclSapManagerClusterBasic.h"
 #include "bbZbProZclSapManagerClusterIdentify.h"
+#include "bbZbProZclSapManagerClusterDiagnostic.h"
 
 /************************* DEFINITIONS **************************************************/
 
@@ -58,10 +59,16 @@
  * \note: use ZBPRO_ZCL_ATTR_DECLARE(clusterId, attrId, ZBPRO_ZCL_AttrDataType, actualType,
  *                                   defaultValue, zbProZclAttrFlagMask, accessFunc)
  */
+#ifdef _CLUSTER_DIAGNOSTIC_
 #define ZBPRO_ZCL_ATTR_DECLARATIONS \
-    ZBPRO_ZCL_CLUSTER_BASIC_ATTR_DECLARATIONS \
-    ZBPRO_ZCL_CLUSTER_IDENTIFY_ATTR_DECLARATIONS \
-
+        ZBPRO_ZCL_CLUSTER_BASIC_ATTR_DECLARATIONS \
+        ZBPRO_ZCL_CLUSTER_IDENTIFY_ATTR_DECLARATIONS \
+        ZBPRO_ZCL_CLUSTER_DIAGNOSTIC_ATTR_DECLARATIONS
+#else
+#define ZBPRO_ZCL_ATTR_DECLARATIONS \
+        ZBPRO_ZCL_CLUSTER_BASIC_ATTR_DECLARATIONS \
+        ZBPRO_ZCL_CLUSTER_IDENTIFY_ATTR_DECLARATIONS
+#endif
 /************************* TYPES *******************************************************/
 
 /**//**

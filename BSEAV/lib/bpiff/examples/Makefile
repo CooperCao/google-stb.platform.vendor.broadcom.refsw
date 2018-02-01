@@ -71,10 +71,6 @@ ifeq ($(APPS),)
 $(error Must define APPS)
 endif
 
-ifneq ($(findstring 2.5, ${MSDRM_PRDY_SDK_VERSION}), 2.5)
-$(error unsupported Playready VERSION = ${MSDRM_PRDY_SDK_VERSION})
-endif
-
 B_REFSW_DEBUG ?= y
 ifeq ($(B_REFSW_DEBUG),y)
 PIFF_INSTALL	:= lib/debug
@@ -103,7 +99,11 @@ endif
 ifeq ($(SAGE_VERSION), 2x)
 PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/$(SAGE_VERSION)
 else
-PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/lib
+    ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
+        PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/Zeus5x/lib
+    else
+        PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/Zeus4x/lib
+    endif
 endif
 
 APP_BINS = $(addprefix ${BPIFF_OBJ_ROOT}/,${APPS})
@@ -122,8 +122,8 @@ ifeq ($(SAGE_SUPPORT), y)
 LDFLAGS += -L$(BSEAV_TOP)/lib/security/sage/srai/lib -lsrai
 LDFLAGS += -L${PRDY_LIB_PATH} -lplayreadypk_host
 else
-LDFLAGS += -L$(BSEAV_TOP)/lib/security/common_drm/lib/${CMNDRM_DIR} -lcmndrm
 LDFLAGS += -L${PRDY_LIB_PATH} -lplayreadypk
+LDFLAGS += $(COMMON_DRM_LIB_LDFLAGS)
 endif
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR) -lcmndrmprdy
 LDFLAGS += $(B_OPENSSL_LDFLAGS)

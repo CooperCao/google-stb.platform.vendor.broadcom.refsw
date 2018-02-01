@@ -223,6 +223,7 @@ eRet CConfig::initResources()
     int         nSurfaceClients      = 1;
     int         nSimpleVideoDecoders = GET_INT(&_cfg, RESOURCE_NUM_SIMPLE_VIDEO_DECODERS);
     int         nSimpleAudioDecoders = GET_INT(&_cfg, RESOURCE_NUM_SIMPLE_AUDIO_DECODERS);
+    int         nSimplePcmPlaybacks  = GET_INT(&_cfg, RESOURCE_NUM_SIMPLE_PCM_PLAYBACKS);
     int         nStillDecoders       = GET_INT(&_cfg, RESOURCE_NUM_STILL_DECODERS);
     int         nStreamers           = GET_INT(&_cfg, RESOURCE_NUM_STREAMERS);
     int         nRemotesIr           = GET_INT(&_cfg, RESOURCE_NUM_REMOTES_IR);
@@ -248,6 +249,7 @@ eRet CConfig::initResources()
     if (0 > nGraphics) { nGraphics = ATLAS_NUM_GRAPHICS; }
     if (0 > nSimpleVideoDecoders) { nSimpleVideoDecoders = ATLAS_NUM_SIMPLE_VIDEO_DECODES; }
     if (0 > nSimpleAudioDecoders) { nSimpleAudioDecoders = audioCapabilities.numDecoders; }
+    if (0 > nSimplePcmPlaybacks) { nSimplePcmPlaybacks = audioCapabilities.numPlaybacks; }
     if (0 > nStillDecoders) { nStillDecoders = NEXUS_NUM_STILL_DECODES; }
     if (0 > nStreamers) { nStreamers = ATLAS_NUM_STREAMERS; }
     if (0 > nRemotesIr) { nRemotesIr = ATLAS_NUM_IR_REMOTES; }
@@ -280,6 +282,7 @@ eRet CConfig::initResources()
     _pResources->add(eBoardResource_simpleDecodeVideo, nSimpleVideoDecoders, "simpleVideoDecode", &_cfg);
     _pResources->add(eBoardResource_decodeAudio, NEXUS_NUM_AUDIO_DECODERS, "audioDecode", &_cfg);
     _pResources->add(eBoardResource_simpleDecodeAudio, nSimpleAudioDecoders, "simpleAudioDecode", &_cfg);
+    _pResources->add(eBoardResource_simplePcmPlayback, nSimplePcmPlaybacks, "simplePcmPlayback", &_cfg);
     _pResources->add(eBoardResource_stcChannel, NEXUS_NUM_STC_CHANNELS, "stcChannel", &_cfg);
     /*
      *_pResources->add(eBoardResource_pcmPlayback, ATLAS_NUM_PCM_PLAYBACKS, "pcmPlayback", &_cfg);

@@ -239,6 +239,9 @@ typedef struct NEXUS_P_MtsifPidChannel *NEXUS_P_MtsifPidChannelHandle;
 static void NEXUS_Frontend_P_PidChannelCallback(void *arg);
 static void NEXUS_Frontend_P_SetPid(NEXUS_P_MtsifPidChannelHandle pidChannel);
 static void NEXUS_Frontend_P_SetPendingPids(void);
+#if NEXUS_TRANSPORT_EXTENSION_TBG
+static void NEXUS_Frontend_P_TbgConfig(void *arg);
+#endif
 
 #define MAX_MTSIF_PID_CHANNELS_PER_CALLBACK 32
 typedef struct NEXUS_FrontendHostMtsifConfig {
@@ -288,29 +291,24 @@ void NEXUS_Frontend_P_EnablePidFiltering(void) {
 #endif
 }
 
-unsigned NEXUS_Frontend_P_CloseAllMtsifPidChannels(void)
+void NEXUS_Frontend_P_CloseAllMtsifPidChannels(void)
 {
 #if NEXUS_HAS_MXT
-    unsigned count = 0;
     NEXUS_P_MtsifPidChannelHandle p;
     while (NULL!=(p=BLST_S_FIRST(&g_NEXUS_Frontend_P_HostMtsifConfig.mtsifPidChannels))) {
         BLST_S_REMOVE_HEAD(&(g_NEXUS_Frontend_P_HostMtsifConfig.mtsifPidChannels), link);
         g_NEXUS_Frontend_P_HostMtsifConfig.demodPidChannelUsed[p->demodIndex] = false;
         BKNI_Free(p);
-        count++;
     }
-    return count;
-#else
-    return 0;
 #endif
 }
 
 void NEXUS_Frontend_P_Uninit(void)
 {
 #if NEXUS_HAS_MXT
-    unsigned count = NEXUS_Frontend_P_CloseAllMtsifPidChannels();
-    if (count) {
-        BDBG_MSG(("Clean up %u stale demod pidchannels", count));
+    if (BLST_S_FIRST(&g_NEXUS_Frontend_P_HostMtsifConfig.mtsifPidChannels)) {
+        NEXUS_Frontend_P_CloseAllMtsifPidChannels();
+        BDBG_MSG(("Clean up stale demod pidchannels"));
     }
 
     if (g_NEXUS_Frontend_P_HostMtsifConfig.pidChannelEventCallback) {
@@ -2080,13 +2078,13 @@ void NEXUS_FrontendModule_P_Print(void)
     }
 
 #if NEXUS_HAS_MXT && (defined BCHP_XPT_FE_MTSIF_RX1_PKT_BAND0_BAND31_DETECT)
-    for (index=0; index<NEXUS_NUM_MTSIF; index++) {
+    for (index=0; index<BXPT_NUM_MTSIF; index++) {
         uint32_t step = BCHP_XPT_FE_MTSIF_RX1_PKT_BAND0_BAND31_DETECT - BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT;
         uint32_t addr = BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT + step*index;
         BREG_Write32(g_pCoreHandles->reg, addr, 0);
     }
     BKNI_Sleep(1);
-    for (index=0; index<NEXUS_NUM_MTSIF; index++) {
+    for (index=0; index<BXPT_NUM_MTSIF; index++) {
         uint32_t step = BCHP_XPT_FE_MTSIF_RX1_PKT_BAND0_BAND31_DETECT - BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT;
         uint32_t addr = BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT + step*index;
         BDBG_MODULE_LOG(nexus_frontend_proc, ("MTSIF_RX%u BAND_DETECT = %08x", index, BREG_Read32(g_pCoreHandles->reg, addr)));
@@ -2550,6 +2548,10 @@ static void NEXUS_Frontend_P_PidChannelCallback(void *arg)
         }
     }while (num==MAX_MTSIF_PID_CHANNELS_PER_CALLBACK);
 
+#if NEXUS_TRANSPORT_EXTENSION_TBG
+    NEXUS_Frontend_P_TbgConfig(NULL);
+#endif
+
     return;
 }
 
@@ -2580,6 +2582,76 @@ static void NEXUS_Frontend_P_SetPendingPids(void)
             pidChannel->mxt = config->mxt;
             pidChannel->state = enabled;
             NEXUS_Frontend_P_SetPid(pidChannel);
+        }
+    }
+}
+#endif
+
+#if NEXUS_TRANSPORT_EXTENSION_TBG
+static void NEXUS_Frontend_P_TbgConfig(void *arg)
+{
+    BMXT_Tbg_GlobalConfig tbgGlobalConfig;
+    BMXT_Tbg_ParserConfig tbgParserConfig;
+    BMXT_Handle mxt = NULL;
+    unsigned i, demodPb, hostPriPb, demodPriPb, demodPidIndex;
+    NEXUS_P_MtsifPidChannelHandle pidChannel;
+    struct NEXUS_TbgHostParserSettings pSettings;
+    BSTD_UNUSED(arg);
+
+    NEXUS_Module_Lock(g_NEXUS_frontendModuleSettings.transport);
+    NEXUS_Tbg_GetHostParserSettings_priv(&pSettings);
+    NEXUS_Module_Unlock(g_NEXUS_frontendModuleSettings.transport);
+
+    if (pSettings.enabled==false) {
+        return;
+    }
+
+    for (i=0; i<NEXUS_NUM_PARSER_BANDS; i++) {
+        if (!pSettings.band[i].changed ||
+            !g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[i].connected ||
+            g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[i].deviceConfig==NULL ||
+            g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[i].deviceConfig->pidfilter==false)
+        {
+            continue;
+        }
+        mxt = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[i].deviceConfig->mxt;
+        hostPriPb = pSettings.band[i].primaryParserBandIndex;
+        demodPb = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[i].demodPb;
+
+        if (hostPriPb!=NEXUS_ParserBand_eInvalid)
+        {
+            BDBG_ASSERT(hostPriPb < NEXUS_NUM_PARSER_BANDS);
+            demodPriPb = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPriPb].demodPb;
+            for (pidChannel = BLST_S_FIRST(&(g_NEXUS_Frontend_P_HostMtsifConfig.mtsifPidChannels)); pidChannel; pidChannel = BLST_S_NEXT(pidChannel, link)) {
+                if (pidChannel->hostIndex==pSettings.band[i].unmappedPidChIndex) {
+                    break;
+                }
+            }
+            demodPidIndex = pidChannel ? pidChannel->demodIndex : 0;
+            if (pidChannel==NULL || demodPb >= NEXUS_NUM_PARSER_BANDS || demodPriPb >= NEXUS_NUM_PARSER_BANDS) {
+                BDBG_WRN(("TBG: Invalid parser setting"));
+                continue;
+            }
+            BMXT_Tbg_GetGlobalConfig(mxt, &tbgGlobalConfig);
+            tbgGlobalConfig.markerTag = pSettings.markerTag;
+            BMXT_Tbg_SetGlobalConfig(mxt, &tbgGlobalConfig);
+
+            BDBG_MSG(("TBG: demodPB%2u pri%2u <- hostPB%2u pri%2u (pid %u:%u)", demodPb, demodPriPb, i, pSettings.band[i].primaryParserBandIndex, demodPidIndex, pidChannel->hostIndex));
+            BMXT_Tbg_GetParserConfig(mxt, demodPb, &tbgParserConfig);
+            tbgParserConfig.enable = true;
+            tbgParserConfig.primaryBandNum = demodPriPb;
+            tbgParserConfig.unmappedPidChNum = demodPidIndex;
+            tbgParserConfig.unmappedMarkerPktAcceptEn = true;
+            tbgParserConfig.btpGenDis = true;
+            BMXT_Tbg_SetParserConfig(mxt, demodPb, &tbgParserConfig);
+        }
+        else {
+            BDBG_MSG(("TBG: demodPB%2u disable", demodPb));
+            BMXT_Tbg_GetParserConfig(mxt, demodPb, &tbgParserConfig);
+            tbgParserConfig.enable = false;
+            tbgParserConfig.unmappedMarkerPktAcceptEn = false;
+            tbgParserConfig.btpGenDis = false;
+            BMXT_Tbg_SetParserConfig(mxt, demodPb, &tbgParserConfig);
         }
     }
 }

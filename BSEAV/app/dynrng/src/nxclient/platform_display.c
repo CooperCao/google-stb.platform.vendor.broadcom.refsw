@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,7 +41,6 @@
 #include "namevalue.h"
 #include "nexus_video_types.h"
 #include "nexus_hdmi_output_extra.h"
-#include "nexus_core_utils.h"
 #include "nxapps_cmdline.h"
 #include "platform.h"
 #include "platform_priv.h"
@@ -50,6 +49,8 @@
 #include "bdbg.h"
 
 BDBG_MODULE(platform_display);
+
+#define ENABLE_ASPECT_RATIO 0
 
 PlatformDisplayHandle platform_display_open(PlatformHandle platform)
 {
@@ -71,22 +72,21 @@ void platform_display_close(PlatformDisplayHandle display)
     BKNI_Free(display);
 }
 
-const PlatformPictureInfo * platform_display_get_picture_info(PlatformDisplayHandle display)
+void platform_display_get_picture_info(PlatformDisplayHandle display, PlatformPictureInfo * pInfo)
 {
-    NEXUS_VideoFormatInfo info;
     BDBG_ASSERT(display);
+    BDBG_ASSERT(pInfo);
     NxClient_GetDisplaySettings(&display->nxSettings);
     display->info.depth = display->nxSettings.hdmiPreferences.colorDepth;
     display->info.dynrng = platform_p_output_dynamic_range_from_nexus(display->nxSettings.hdmiPreferences.drmInfoFrame.eotf,
             display->nxSettings.hdmiPreferences.dolbyVision.outputMode);
     display->info.gamut = platform_p_colorimetry_from_nexus(display->nxSettings.hdmiPreferences.matrixCoefficients);
     display->info.space = platform_p_color_space_from_nexus(display->nxSettings.hdmiPreferences.colorSpace);
-    NEXUS_VideoFormat_GetInfo(display->nxSettings.format, &info);
-    display->info.format.width = info.digitalWidth;
-    display->info.format.height = info.digitalHeight;
-    display->info.format.interlaced = info.interlaced;
-    display->info.format.rate = info.verticalFreq;
-    return &display->info;
+    display->info.sampling = platform_p_color_sampling_from_nexus(display->nxSettings.hdmiPreferences.colorSpace);
+    display->info.format.dropFrame = display->nxSettings.dropFrame == NEXUS_TristateEnable_eEnable;
+    platform_p_picture_format_from_nexus(display->nxSettings.format, &display->info.format);
+    platform_p_aspect_ratio_from_nexus(&display->info.ar, display->nxSettings.aspectRatio, display->nxSettings.sampleAspectRatio.x, display->nxSettings.sampleAspectRatio.y);
+    BKNI_Memcpy(pInfo, &display->info, sizeof(*pInfo));
 }
 
 void platform_display_print_hdmi_drm_settings(PlatformDisplayHandle display, const char *name)
@@ -172,116 +172,82 @@ void platform_display_print_hdmi_status(PlatformDisplayHandle display)
 #endif
 }
 
-static const NEXUS_HdmiDynamicRangeMasteringStaticMetadata SMD_ZERO =
-{
-    NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1,
-    { /* typeSettings */
-        { /* Type1 */
-            { /* MasteringDisplayColorVolume */
-                { 0, 0 }, /* redPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { 0, 0 }, /* greenPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { 0, 0 }, /* bluePrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { 0, 0 }, /* whitePoint (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { 0, 0 }, /* displayLuminance (max, min) units of 1 cd / m2 and 0.0001 cd / m2 respectively */
-            },
-            { /* ContentLightLevel */
-                0, /* maxContentLightLevel units of 1 cd/m2 */
-                0 /* maxFrameAverageLightLevel units of 1 cd/m2 */
-            }
-        }
-    }
-};
-
-static const NEXUS_HdmiDynamicRangeMasteringStaticMetadata SMD_BT709 =
-{
-    NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1,
-    { /* typeSettings */
-        { /* Type1 */
-            { /* MasteringDisplayColorVolume */
-                { SMD_TO_SMPTE_ST2086(0.64), SMD_TO_SMPTE_ST2086(0.33) }, /* redPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { SMD_TO_SMPTE_ST2086(0.30), SMD_TO_SMPTE_ST2086(0.60) }, /* greenPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { SMD_TO_SMPTE_ST2086(0.15), SMD_TO_SMPTE_ST2086(0.06) }, /* bluePrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { SMD_TO_SMPTE_ST2086(0.3127), SMD_TO_SMPTE_ST2086(0.3290) }, /* whitePoint (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { 0, 0 }, /* displayMasteringLuminance (max, min) units of 1 cd / m2 and 0.0001 cd / m2 respectively */
-            },
-            { /* ContentLightLevel */
-                0, /* maxContentLightLevel units of 1 cd/m2 */
-                0 /* maxFrameAverageLightLevel units of 1 cd/m2 */
-            }
-        }
-    }
-};
-
-static const NEXUS_HdmiDynamicRangeMasteringStaticMetadata SMD_BT2020 =
-{
-    NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1,
-    { /* typeSettings */
-        { /* Type1 */
-            { /* MasteringDisplayColorVolume */
-                { SMD_TO_SMPTE_ST2086(0.708), SMD_TO_SMPTE_ST2086(0.292) }, /* redPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { SMD_TO_SMPTE_ST2086(0.170), SMD_TO_SMPTE_ST2086(0.797) }, /* greenPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { SMD_TO_SMPTE_ST2086(0.131), SMD_TO_SMPTE_ST2086(0.046) }, /* bluePrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { SMD_TO_SMPTE_ST2086(0.3127), SMD_TO_SMPTE_ST2086(0.3290) }, /* whitePoint (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { 0, 0 }, /* displayMasteringLuminance (max, min) units of 1 cd / m2 and 0.0001 cd / m2 respectively */
-            },
-            { /* ContentLightLevel */
-                0, /* maxContentLightLevel units of 1 cd/m2 */
-                0 /* maxFrameAverageLightLevel units of 1 cd/m2 */
-            }
-        }
-    }
-};
-
-void platform_display_p_compute_hdmi_drm_metadata(NEXUS_HdmiDynamicRangeMasteringInfoFrame * pInfoFrame)
-{
-    BDBG_ASSERT(pInfoFrame);
-
-    if (pInfoFrame->eotf == NEXUS_VideoEotf_eSdr)
-    {
-        BKNI_Memcpy(&pInfoFrame->metadata, &SMD_ZERO, sizeof(pInfoFrame->metadata));
-    }
-    else if (pInfoFrame->eotf == NEXUS_VideoEotf_eHdr10)
-    {
-        BKNI_Memcpy(&pInfoFrame->metadata, &SMD_BT2020, sizeof(pInfoFrame->metadata));
-    }
-    else if (pInfoFrame->eotf == NEXUS_VideoEotf_eHlg)
-    {
-        BKNI_Memcpy(&pInfoFrame->metadata, &SMD_ZERO, sizeof(pInfoFrame->metadata));
-    }
-    else if (pInfoFrame->eotf == NEXUS_VideoEotf_eInvalid)
-    {
-        BKNI_Memcpy(&pInfoFrame->metadata, &SMD_ZERO, sizeof(pInfoFrame->metadata));
-    }
-    else
-    {
-        BDBG_ERR(("Unrecognized eotf: %u", pInfoFrame->eotf));
-    }
-}
-
-void platform_display_set_dynamic_range(PlatformDisplayHandle display, PlatformDynamicRange dynrng)
+void platform_display_set_picture_info(PlatformDisplayHandle display, const PlatformPictureInfo * pInfo)
 {
     int rc = 0;
 
     BDBG_ASSERT(display);
+    BDBG_ASSERT(pInfo);
 
     NxClient_GetDisplaySettings(&display->nxSettings);
-    platform_p_output_dynamic_range_to_nexus(dynrng, &display->nxSettings.hdmiPreferences.drmInfoFrame.eotf,
+    platform_p_output_dynamic_range_to_nexus(pInfo->dynrng, &display->nxSettings.hdmiPreferences.drmInfoFrame.eotf,
             &display->nxSettings.hdmiPreferences.dolbyVision.outputMode);
-    platform_display_p_compute_hdmi_drm_metadata(&display->nxSettings.hdmiPreferences.drmInfoFrame);
+    /* NOTE: now that VDC handles determining which metadata to send based on input, we don't need to do it anymore */
+    display->nxSettings.format = platform_p_picture_format_to_nexus(&pInfo->format);
+#if ENABLE_ASPECT_RATIO
+    display->nxSettings.aspectRatio = platform_p_aspect_ratio_to_nexus(&pInfo->ar, &display->nxSettings.sampleAspectRatio.x, &display->nxSettings.sampleAspectRatio.y);
+#endif
+    display->nxSettings.dropFrame = pInfo->format.dropFrame ? NEXUS_TristateEnable_eEnable : NEXUS_TristateEnable_eDisable;
+    display->nxSettings.hdmiPreferences.matrixCoefficients = platform_p_colorimetry_to_nexus(pInfo->gamut);
+    display->nxSettings.hdmiPreferences.colorSpace = platform_p_color_space_and_sampling_to_nexus(pInfo->space, pInfo->sampling);
+    display->nxSettings.hdmiPreferences.colorDepth = pInfo->depth;
     rc = NxClient_SetDisplaySettings(&display->nxSettings);
     if (rc) BERR_TRACE(rc);
+#if !BDBG_NO_MSG
+    {
+#define BUF_LEN 128
+        char buf[BUF_LEN];
+        platform_print_picture_info("new display info", pInfo, buf, BUF_LEN);
+        BDBG_MSG((buf));
+    }
+#endif
     platform_display_print_hdmi_drm_settings(display, "new");
 }
 
-void platform_display_set_colorimetry(PlatformDisplayHandle display, PlatformColorimetry colorimetry)
+void platform_display_set_gfx_luminance(PlatformDisplayHandle display, unsigned min, unsigned max)
+{
+    char buf[10];
+    BSTD_UNUSED(display);
+    BKNI_Snprintf(buf, 10, "%u", min);
+    NEXUS_SetEnv("dbv.gfx.luma.min", buf);
+    BKNI_Snprintf(buf, 10, "%u", max);
+    NEXUS_SetEnv("dbv.gfx.luma.max", buf);
+}
+
+void platform_display_set_rendering_priority(PlatformDisplayHandle display, PlatformRenderingPriority renderingPriority)
+{
+    int rc = 0;
+    BDBG_ASSERT(display);
+    NxClient_GetDisplaySettings(&display->nxSettings);
+    display->nxSettings.hdmiPreferences.dolbyVision.priorityMode = platform_p_rendering_priority_to_nexus(renderingPriority);
+    rc = NxClient_SetDisplaySettings(&display->nxSettings);
+    if (rc) BERR_TRACE(rc);
+}
+
+void platform_display_get_picture_quality(PlatformDisplayHandle display, PlatformPictureCtrlSettings * pInfo)
+{
+    BDBG_ASSERT(display);
+    BDBG_ASSERT(pInfo);
+    NxClient_GetPictureQualitySettings(&display->nxPQSettings);
+    display->pictureCtrlSettings.brightness = display->nxPQSettings.graphicsColor.brightness;
+    display->pictureCtrlSettings.contrast   = display->nxPQSettings.graphicsColor.contrast;
+    display->pictureCtrlSettings.hue        = display->nxPQSettings.graphicsColor.hue;
+    display->pictureCtrlSettings.saturation = display->nxPQSettings.graphicsColor.saturation;
+    BKNI_Memcpy(pInfo, &display->pictureCtrlSettings, sizeof(*pInfo));
+}
+
+void platform_display_set_picture_quality(PlatformDisplayHandle display, const PlatformPictureCtrlSettings * pInfo)
 {
     int rc = 0;
 
     BDBG_ASSERT(display);
+    BDBG_ASSERT(pInfo);
 
-    NxClient_GetDisplaySettings(&display->nxSettings);
-    display->nxSettings.hdmiPreferences.matrixCoefficients = platform_p_colorimetry_to_nexus(colorimetry);
-    rc = NxClient_SetDisplaySettings(&display->nxSettings);
+    NxClient_GetPictureQualitySettings(&display->nxPQSettings);
+    display->nxPQSettings.graphicsColor.brightness = pInfo->brightness;
+    display->nxPQSettings.graphicsColor.contrast   = pInfo->contrast;
+    display->nxPQSettings.graphicsColor.hue        = pInfo->hue;
+    display->nxPQSettings.graphicsColor.saturation = pInfo->saturation;
+    rc = NxClient_SetPictureQualitySettings(&display->nxPQSettings);
     if (rc) BERR_TRACE(rc);
-    platform_display_print_hdmi_drm_settings(display, "new");
 }

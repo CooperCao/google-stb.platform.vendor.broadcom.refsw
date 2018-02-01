@@ -187,7 +187,7 @@ int main(void) {
     while (1) {
         NEXUS_PlaypumpStatus status;
         NEXUS_Playpump_GetStatus(playpump, &status);
-        printf("playpump fifo %d\n", status.fifoDepth);
+        printf("playpump fifo %d\n", (unsigned)status.fifoDepth);
         if (status.fifoDepth == 0)
             break;
         BKNI_Sleep(200);

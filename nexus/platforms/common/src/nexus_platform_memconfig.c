@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -70,12 +70,26 @@ BDBG_MODULE(nexus_platform_settings); /* reuse same module as heap config */
 static struct NEXUS_PlatformSpecificOps g_platformSpecificOps;
 
 #if NEXUS_HAS_VIDEO_DECODER || NEXUS_HAS_DISPLAY
-static bool nexus_p_usepicbuf(NEXUS_SecureVideo secure, enum nexus_memconfig_picbuftype picbuftype)
+static bool nexus_p_usepicbuf(NEXUS_SecureVideo secure, NEXUS_SecureVideo secureTranscode, enum nexus_memconfig_picbuftype picbuftype)
 {
+    if (picbuftype == nexus_memconfig_picbuftype_urrt) {
+        return (secureTranscode == NEXUS_SecureVideo_eSecure);
+    }
+
     switch (secure) {
-    case NEXUS_SecureVideo_eUnsecure: return picbuftype == nexus_memconfig_picbuftype_unsecure;
-    case NEXUS_SecureVideo_eSecure:   return picbuftype == nexus_memconfig_picbuftype_secure;
+    case NEXUS_SecureVideo_eUnsecure: return picbuftype == nexus_memconfig_picbuftype_glr;
+    case NEXUS_SecureVideo_eSecure:   return picbuftype == nexus_memconfig_picbuftype_urr;
+    case NEXUS_SecureVideo_eNone:     return false;
     default:                          return true;
+    }
+}
+static const char *nexus_p_picbufname(enum nexus_memconfig_picbuftype picbuftype)
+{
+    switch (picbuftype) {
+    default:
+    case nexus_memconfig_picbuftype_glr: return "GLR picbuf";
+    case nexus_memconfig_picbuftype_urr: return "URR picbuf";
+    case nexus_memconfig_picbuftype_urrt: return "URRT picbuf";
     }
 }
 #endif
@@ -107,16 +121,15 @@ static void NEXUS_P_GetMemoryLayout(struct NEXUS_MemoryLayout *pLayout, const NE
             pLayout->heapIndex.pictureBuffer[i][sec] = NEXUS_MAX_HEAPS;
         }
     }
-    pLayout->heapIndex.pictureBuffer[0][nexus_memconfig_picbuftype_unsecure] = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
-#if NEXUS_NUM_MEMC > 1
-    pLayout->heapIndex.pictureBuffer[1][nexus_memconfig_picbuftype_unsecure] = NEXUS_MEMC1_PICTURE_BUFFER_HEAP;
-#endif
-#if NEXUS_NUM_MEMC > 2
-    pLayout->heapIndex.pictureBuffer[2][nexus_memconfig_picbuftype_unsecure] = NEXUS_MEMC2_PICTURE_BUFFER_HEAP;
-#endif
-    pLayout->heapIndex.pictureBuffer[0][nexus_memconfig_picbuftype_secure] = NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP;
-    pLayout->heapIndex.pictureBuffer[1][nexus_memconfig_picbuftype_secure] = NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP;
-    pLayout->heapIndex.pictureBuffer[2][nexus_memconfig_picbuftype_secure] = NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP;
+    pLayout->heapIndex.pictureBuffer[0][nexus_memconfig_picbuftype_glr] = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+    pLayout->heapIndex.pictureBuffer[1][nexus_memconfig_picbuftype_glr] = NEXUS_MEMC1_PICTURE_BUFFER_HEAP;
+    pLayout->heapIndex.pictureBuffer[2][nexus_memconfig_picbuftype_glr] = NEXUS_MEMC2_PICTURE_BUFFER_HEAP;
+    pLayout->heapIndex.pictureBuffer[0][nexus_memconfig_picbuftype_urr] = NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP;
+    pLayout->heapIndex.pictureBuffer[1][nexus_memconfig_picbuftype_urr] = NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP;
+    pLayout->heapIndex.pictureBuffer[2][nexus_memconfig_picbuftype_urr] = NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP;
+    pLayout->heapIndex.pictureBuffer[0][nexus_memconfig_picbuftype_urrt] = NEXUS_MEMC0_URRT_HEAP;
+    pLayout->heapIndex.pictureBuffer[1][nexus_memconfig_picbuftype_urrt] = NEXUS_MEMC1_URRT_HEAP;
+    pLayout->heapIndex.pictureBuffer[2][nexus_memconfig_picbuftype_urrt] = NEXUS_MEMC2_URRT_HEAP;
 
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
         if (!pPlatformSettings->heap[i].size) continue;
@@ -274,6 +287,7 @@ void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState
             pSettings->videoDecoder[i].maxFormat = NEXUS_VideoFormat_e1080p;
             pSettings->videoDecoder[i].colorDepth = 8;
         }
+        pSettings->videoDecoder[i].secureTranscode = NEXUS_SecureVideo_eNone;
         /* TODO: get codec support from BBOX_XVD */
         BKNI_Memcpy(pSettings->videoDecoder[i].supportedCodecs, structs->xvd.moduleSettings.supportedCodecs, sizeof(pSettings->videoDecoder[i].supportedCodecs));
 #if NEXUS_NUM_MOSAIC_DECODES
@@ -365,9 +379,9 @@ void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState
                 {
                     pSettings->display[i].window[j].deinterlacer = structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].eDeinterlacerMode;
                 }
-                pSettings->display[i].window[j].smoothScaling = structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSmoothScaling;
+                pSettings->display[i].window[j].smoothScaling = (structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].eSclCapBias == BBOX_Vdc_SclCapBias_eSclBeforeCap);
                 pSettings->display[i].window[j].capture =
-                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSmoothScaling ||
+                    (structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].eSclCapBias != BBOX_Vdc_SclCapBias_eAutoDisable) ||
                     structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bPsfMode ||
                     structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSideBySide ||
                     structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bBoxDetect ||
@@ -395,37 +409,38 @@ void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState
             pSettings->videoEncoder[i].interlaced = false;
         }
 #else
-        if (preInitState->boxMode) {
-            unsigned encoderIdx = 0;
-            for (i=0;i<NEXUS_NUM_VIDEO_ENCODERS;i++) {
-               unsigned device, channel;
-               int rc;
-               pSettings->videoEncoder[i].used = false;
-               rc = nexus_p_encoder_device_and_channel(preInitState, i, &device, &channel);
-               if (rc) continue;
-               /* collapse enabled encoder mapping table */
-               if (preInitState->boxConfig.stVce.stInstance[device].uiChannels & (1<<channel)) {
-                   NEXUS_VideoFormatInfo info;
-                   NEXUS_VideoFormat_GetInfo_isrsafe(NEXUS_P_VideoFormat_FromMagnum_isrsafe(preInitState->boxConfig.stVce.stInstance[device].eVideoFormat), &info);
-                   pSettings->videoEncoder[encoderIdx].used = true;
-                   pSettings->videoEncoder[encoderIdx].maxWidth = NEXUS_P_SizeAlign( info.width, preInitState->boxConfig.stVce.stInstance[device].uiPixelAlignment );
-                   pSettings->videoEncoder[encoderIdx].maxHeight = NEXUS_P_SizeAlign( info.height, preInitState->boxConfig.stVce.stInstance[device].uiPixelAlignment );
-                   NEXUS_P_FrameRate_FromRefreshRate_isrsafe(info.verticalFreq * 10, &pSettings->videoEncoder[encoderIdx].maxFrameRate);
-                   pSettings->videoEncoder[encoderIdx].interlaced = ( ( pSettings->videoEncoder[encoderIdx].maxHeight >= 1080 ) && ( pSettings->videoEncoder[encoderIdx].maxHeight <= 1088) ) ? true : false;
-                   encoderIdx++;
-               }
+        BVCE_Channel_MemorySettings memSettings;
+        unsigned device = 0;
+        unsigned encoderIdx = 0;
+
+        BKNI_Memset(&memSettings,0,sizeof(memSettings));
+        memSettings.pstMemoryInfo = &preInitState->memoryInfo;
+
+        for (i=0;i<NEXUS_NUM_VIDEO_ENCODERS;i++) {
+           if (preInitState->boxMode) {
+              unsigned channel;
+              int rc;
+              pSettings->videoEncoder[i].used = false;
+              rc = nexus_p_encoder_device_and_channel(preInitState, i, &device, &channel);
+              if (rc) continue;
+              /* collapse enabled encoder mapping table */
+              if (!(preInitState->boxConfig.stVce.stInstance[device].uiChannels & (1<<channel))) continue;
+           }
+
+           memSettings.uiInstance = device;
+           BVCE_Channel_GetDefaultMemoryBoundsSettings(preInitState->hBox, &memSettings, &structs->vce.channelSettings);
+
+           {
+               NEXUS_VideoFormatInfo info;
+               NEXUS_VideoFormat_GetInfo_isrsafe(NEXUS_P_VideoFormat_FromMagnum_isrsafe(preInitState->boxConfig.stVce.stInstance[device].eVideoFormat), &info);
+               pSettings->videoEncoder[encoderIdx].used = true;
+               pSettings->videoEncoder[encoderIdx].maxWidth = structs->vce.channelSettings.stDimensions.stMax.uiWidth;
+               pSettings->videoEncoder[encoderIdx].maxHeight = structs->vce.channelSettings.stDimensions.stMax.uiHeight;
+               NEXUS_P_FrameRate_FromRefreshRate_isrsafe(info.verticalFreq * 10, &pSettings->videoEncoder[encoderIdx].maxFrameRate);
+               pSettings->videoEncoder[encoderIdx].interlaced = (structs->vce.channelSettings.eInputType == BAVC_ScanType_eInterlaced);
+               encoderIdx++;
            }
         }
-        else {
-           BVCE_Channel_GetDefaultMemoryBoundsSettings(preInitState->hBox, &structs->vce.channelSettings); /* not per channel */
-            for (i=0;i<NEXUS_NUM_VIDEO_ENCODERS;i++) {
-               pSettings->videoEncoder[i].used = true;
-               pSettings->videoEncoder[i].maxWidth = structs->vce.channelSettings.stDimensions.stMax.uiWidth;
-               pSettings->videoEncoder[i].maxHeight = structs->vce.channelSettings.stDimensions.stMax.uiHeight;
-               pSettings->videoEncoder[i].maxFrameRate = NEXUS_VideoFrameRate_e60;
-               pSettings->videoEncoder[i].interlaced = (structs->vce.channelSettings.eInputType == BAVC_ScanType_eInterlaced);
-           }
-       }
 #endif
     }
 #else
@@ -569,8 +584,8 @@ static void nexus_p_add_display_buffers(NEXUS_DisplayHeapSettings *pHeapSettings
 
 static unsigned nexus_p_get_window_heap(const struct NEXUS_MemoryLayout *memoryLayout, unsigned memcIndex, enum nexus_memconfig_picbuftype picbuftype, NEXUS_SecureVideo secure)
 {
-    if ((picbuftype == nexus_memconfig_picbuftype_unsecure && secure != NEXUS_SecureVideo_eSecure) ||
-        (picbuftype == nexus_memconfig_picbuftype_secure && secure != NEXUS_SecureVideo_eUnsecure)) {
+    if ((picbuftype == nexus_memconfig_picbuftype_glr && secure != NEXUS_SecureVideo_eSecure) ||
+        (picbuftype == nexus_memconfig_picbuftype_urr && secure != NEXUS_SecureVideo_eUnsecure)) {
         return memoryLayout->heapIndex.pictureBuffer[memcIndex][picbuftype];
     }
     else {
@@ -585,7 +600,6 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
     int rc = 0;
     unsigned i, memcIndex;
     enum nexus_memconfig_picbuftype sec;
-    BCHP_MemoryInfo memInfo;
 #if NEXUS_HAS_VIDEO_DECODER
     unsigned exclusiveDecoder[NEXUS_MAX_XVD_DEVICES];
 #endif
@@ -596,6 +610,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
         NEXUS_VideoFormat format;
         unsigned height;
     } maxSource = {NEXUS_VideoFormat_eNtsc, 480};
+    bool one_secure_transcode_decoder = false;
 
     if (0) goto err_getsettings; /* prevent warning */
     BSTD_UNUSED(pRtsSettings);
@@ -620,8 +635,6 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
     NEXUS_VideoEncoderModule_GetDefaultInternalSettings(&pConfig->videoEncoder);
 #endif
 
-    BCHP_GetMemoryInfo_PreInit(preInitState->hReg, &memInfo);
-
 #if NEXUS_HAS_VIDEO_DECODER
     BKNI_Memset(&pConfig->videoDecoder.heapSize, 0, sizeof(pConfig->videoDecoder.heapSize));
     BKNI_Memset(pConfig->videoDecoder.avdEnabled, 0, sizeof(pConfig->videoDecoder.avdEnabled));
@@ -640,7 +653,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
             (pSettings->videoDecoder[i].mosaic.maxNumber >= 3 && pSettings->videoDecoder[i].mosaic.maxHeight > 720))
         {
             unsigned avdIndex = pRtsSettings->videoDecoder[i].avdIndex;
-            if (NEXUS_P_VideoDecoderExclusiveMode_isrsafe(preInitState->boxMode, avdIndex) == NEXUS_VideoDecoderExclusiveMode_4K) {
+            if (NEXUS_P_VideoDecoderExclusiveMode_isrsafe(preInitState->boxMode, avdIndex) == NEXUS_VideoDecoderExclusiveMode_e4K) {
                 if (exclusiveDecoder[avdIndex] != NEXUS_NUM_VIDEO_DECODERS) {
                     /* two exclusive decoders not supported */
                     BKNI_Free(structs);
@@ -701,7 +714,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
         structs->xvd.settings.uiAVDInstance = avdIndex;
         structs->xvd.settings.MemcIndex = memcIndex;
         structs->xvd.settings.MemcIndexExtended = secondaryMemcIndex;
-        structs->xvd.settings.pInfo = &memInfo;
+        structs->xvd.settings.pInfo = &preInitState->memoryInfo;
 
         BKNI_Memcpy(structs->xvd.supportedCodecs, mem->supportedCodecs, sizeof(structs->xvd.supportedCodecs));
         NEXUS_VideoFormat_GetInfo_isrsafe(mem->maxFormat, &info);
@@ -754,12 +767,17 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
         }
 
         if (exclusiveDecoder[avdIndex] == NEXUS_NUM_VIDEO_DECODERS || exclusiveDecoder[avdIndex] == index) {
+            bool use_glr = false;
             for (sec=0;sec<nexus_memconfig_picbuftype_max;sec++) {
                 const char *name;
-                if (!nexus_p_usepicbuf(mem->secure, sec)) {
+                if (!nexus_p_usepicbuf(mem->secure, mem->secureTranscode, sec)) {
                     continue;
                 }
-                name = (sec==nexus_memconfig_picbuftype_unsecure)?"picture":"secure picture",
+                if (mem->secureTranscode == NEXUS_SecureVideo_eSecure) {
+                    one_secure_transcode_decoder = true;
+                }
+                name = nexus_p_picbufname(sec);
+                if (sec == nexus_memconfig_picbuftype_glr) use_glr = true;
                 pConfig->pictureBuffer[memcIndex][sec].size += structs->xvd.memConfig.uiPictureHeapSize;
                 BDBG_MSG(("XVD MEMC%u HVD%u idx%u: %s %u", memcIndex, avdIndex, i, name, structs->xvd.memConfig.uiPictureHeapSize));
                 if (structs->xvd.memConfig.uiPictureHeap1Size) {
@@ -773,8 +791,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
             pConfig->videoDecoder.heapSize[avdIndex].secure += structs->xvd.memConfig.uiCabacHeapSize;
             g_NEXUS_platformHandles.estimatedMemory.memc[memcIndex].videoDecoder.secure += structs->xvd.memConfig.uiCabacHeapSize;
 
-            if (!mem->dynamicPictureBuffers &&
-                pConfig->pictureBuffer[memcIndex][nexus_memconfig_picbuftype_unsecure].size) {
+            if (!mem->dynamicPictureBuffers && use_glr) {
                 pConfig->videoDecoder.heapSize[avdIndex].picture += structs->xvd.memConfig.uiPictureHeapSize;
                 pConfig->videoDecoder.heapSize[avdIndex].secondaryPicture += structs->xvd.memConfig.uiPictureHeap1Size;
             }
@@ -793,10 +810,12 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
             pConfig->videoDecoder.avdEnabled[avdIndex] = true;
             pConfig->videoDecoder.avdMapping[index] = avdIndex;
             pConfig->videoDecoder.mfdMapping[index] = pRtsSettings->videoDecoder[index].mfdIndex;
-            pConfig->videoDecoder.avdHeapIndex[avdIndex] = memoryLayout.heapIndex.pictureBuffer[memcIndex][nexus_memconfig_picbuftype_unsecure];
-            pConfig->videoDecoder.secure.avdHeapIndex[avdIndex] = memoryLayout.heapIndex.pictureBuffer[memcIndex][nexus_memconfig_picbuftype_secure];
-            pConfig->videoDecoder.secondaryPictureHeapIndex[avdIndex] = memoryLayout.heapIndex.pictureBuffer[pRtsSettings->avd[avdIndex].secondaryMemcIndex][nexus_memconfig_picbuftype_unsecure];
-            pConfig->videoDecoder.secure.secondaryPictureHeapIndex[avdIndex] = memoryLayout.heapIndex.pictureBuffer[pRtsSettings->avd[avdIndex].secondaryMemcIndex][nexus_memconfig_picbuftype_secure];
+            pConfig->videoDecoder.avdHeapIndex[avdIndex] = memoryLayout.heapIndex.pictureBuffer[memcIndex][nexus_memconfig_picbuftype_glr];
+            pConfig->videoDecoder.secure.avdHeapIndex[avdIndex] = memoryLayout.heapIndex.pictureBuffer[memcIndex][nexus_memconfig_picbuftype_urr];
+            pConfig->videoDecoder.secureTranscode.avdHeapIndex[avdIndex] = memoryLayout.heapIndex.pictureBuffer[memcIndex][nexus_memconfig_picbuftype_urrt];
+            pConfig->videoDecoder.secondaryPictureHeapIndex[avdIndex] = memoryLayout.heapIndex.pictureBuffer[pRtsSettings->avd[avdIndex].secondaryMemcIndex][nexus_memconfig_picbuftype_glr];
+            pConfig->videoDecoder.secure.secondaryPictureHeapIndex[avdIndex] = memoryLayout.heapIndex.pictureBuffer[pRtsSettings->avd[avdIndex].secondaryMemcIndex][nexus_memconfig_picbuftype_urr];
+            pConfig->videoDecoder.secureTranscode.secondaryPictureHeapIndex[avdIndex] = memoryLayout.heapIndex.pictureBuffer[pRtsSettings->avd[avdIndex].secondaryMemcIndex][nexus_memconfig_picbuftype_urrt];
             BKNI_Memcpy(&pConfig->videoDecoder.memory[index], mem, sizeof(pConfig->videoDecoder.memory[index]));
         }
     }
@@ -823,65 +842,136 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
         BVDC_GetDefaultMemConfigSettings(&structs->vdc.memConfigSettings);
         for (i=0;i<BVDC_MAX_DISPLAYS;i++) {
             unsigned j;
+            structs->vdc.memConfigSettings.stDisplay[i].bUsed = false;
             if (i >= NEXUS_NUM_DISPLAYS || !pSettings->display[i].maxFormat) continue;
             for (j=0;j<BVDC_MAX_VIDEO_WINDOWS;j++) {
-                bool bPip = j>0;
-                if (preInitState->boxMode) {
-                    if((preInitState->boxConfig.stVdc.astDisplay[i].astWindow[j].stSizeLimits.ulHeightFraction == 1) ||
-                       (preInitState->boxConfig.stVdc.astDisplay[i].astWindow[j].stSizeLimits.ulWidthFraction == 1))
-                       bPip = false;
-                }
+                bool bPip;
+                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bUsed = false;
                 if (j>=NEXUS_MAX_VIDEO_WINDOWS || !pSettings->display[i].window[j].used) continue;
 
-                structs->vdc.memConfigSettings.stDisplay[i].bUsed = true;
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bUsed = true;
+                if (pSettings->display[i].window[j].sizeLimit == NEXUS_VideoWindowSizeLimit_eQuarter) {
+                    bPip = true;
+                }
+                else if (preInitState->boxMode) {
+                    /* BBOX "fraction" values can be 1,1 or 2,2 or DISREGARD,DISREGARD (which nexus regards as 1,1) */
+                    bPip = (preInitState->boxConfig.stVdc.astDisplay[i].astWindow[j].stSizeLimits.ulHeightFraction == 2) &&
+                       (preInitState->boxConfig.stVdc.astDisplay[i].astWindow[j].stSizeLimits.ulWidthFraction == 2);
+                }
+                else {
+                    bPip = j>0;
+                }
+
+                if (preInitState->boxMode) {
+                    structs->vdc.memConfigSettings.stDisplay[i].bUsed = preInitState->boxConfig.stVdc.astDisplay[i].bAvailable;
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bUsed = preInitState->boxConfig.stVdc.astDisplay[i].astWindow[j].bAvailable;
+                }
+                else {
+                    structs->vdc.memConfigSettings.stDisplay[i].bUsed = true;
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bUsed = true;
+                }
 
                 rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->display[i].maxFormat, &structs->vdc.memConfigSettings.stDisplay[i].eMaxDisplayFormat);
                 if (rc) {rc = BERR_TRACE(rc); goto err_getsettings;}
 
+                /* CAP */
                 memcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j];
-                if (memcIndex >= BBOX_MemcIndex_Invalid || memcIndex >= NEXUS_MAX_MEMC) { rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_getsettings;}
+                if (memcIndex < BBOX_MemcIndex_Invalid) {
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].ulMemcIndex = memcIndex;
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].b5060Convert = pSettings->display[i].window[j].convertAnyFrameRate;
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSlave_24_25_30_Display =
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bLipsync = pSettings->display[i].window[j].precisionLipSync;
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSlave_24_25_30_Display &= (1 == i); /* only display 1 */
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bPip = bPip;
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].b3DMode = pSettings->display[i].window[j].support3d;
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bPsfMode =
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSideBySide =
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bBoxDetect =
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bArbitraryCropping =
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bIndependentCropping = pSettings->display[i].window[j].capture;
+                    if (preInitState->boxMode)
+                        structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].eSclCapBias = preInitState->boxConfig.stVdc.astDisplay[i].astWindow[j].eSclCapBias;
+                    else if(pSettings->display[i].window[j].smoothScaling)
+                        structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].eSclCapBias = BBOX_Vdc_SclCapBias_eSclBeforeCap;
+                    else
+                        structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].eSclCapBias = BBOX_Vdc_SclCapBias_eAuto;
 
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].ulMemcIndex = memcIndex;
-                memcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j];
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].ulMadMemcIndex = memcIndex;
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].b5060Convert = pSettings->display[i].window[j].convertAnyFrameRate;
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSlave_24_25_30_Display =
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bLipsync = pSettings->display[i].window[j].precisionLipSync;
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSlave_24_25_30_Display &= (1 == i); /* only display 1 */
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bPip = bPip;
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].eDeinterlacerMode = pSettings->display[i].window[j].deinterlacer;
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSmoothScaling = pSettings->display[i].window[j].capture || pSettings->display[i].window[j].smoothScaling;
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].b3DMode = pSettings->display[i].window[j].support3d;
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bPsfMode =
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSideBySide =
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bBoxDetect =
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bArbitraryCropping =
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bIndependentCropping = pSettings->display[i].window[j].capture;
-                if (num_mosaic_decoders == 0) {
-                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bMosaicMode = false;
-                }
-                if (pSettings->videoInputs.hdDvi || pSettings->videoInputs.ccir656) {
-                    /* Only set true for non-mfd; never set false. VDC may default to true for other reasons. */
-                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSyncSlip = true;
-                }
-                else {
-                    bool stg = false;
-                    if (preInitState->boxMode) {
-                        stg = preInitState->boxConfig.stVdc.astDisplay[i].stStgEnc.bAvailable;
+                    if (num_mosaic_decoders == 0) {
+                        structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bMosaicMode = false;
                     }
-                    if (((i == 0) && (j==0)) || stg)
-                        structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSyncSlip = false;
+                    if (pSettings->videoInputs.hdDvi || pSettings->videoInputs.ccir656) {
+                        /* Only set true for non-mfd; never set false. VDC may default to true for other reasons. */
+                        structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSyncSlip = true;
+                    }
+                    else {
+                        bool stg = false;
+                        if (preInitState->boxMode) {
+                            stg = preInitState->boxConfig.stVdc.astDisplay[i].stStgEnc.bAvailable;
+                        }
+                        if (((i == 0) && (j == 0)) || stg || pSettings->display[i].window[j].forceSyncLock)
+                            structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSyncSlip = false;
+                    }
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bNonMfdSource = pSettings->videoInputs.hdDvi || pSettings->videoInputs.ccir656 || pSettings->display[i].window[j].mtg;
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].ulAdditionalBufCnt = pSettings->display[i].window[j].userCaptureBufferCount;
                 }
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bNonMfdSource = pSettings->videoInputs.hdDvi || pSettings->videoInputs.ccir656 || pSettings->display[i].window[j].mtg;
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].ulAdditionalBufCnt = pSettings->display[i].window[j].userCaptureBufferCount;
+
+                /* MAD */
+                memcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j];
+                if (memcIndex < BBOX_MemcIndex_Invalid) {
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].ulMadMemcIndex = memcIndex;
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].eDeinterlacerMode = pSettings->display[i].window[j].deinterlacer;
+                }
+
                 rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(maxSource.format, &structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].eMaxSourceFormat);
                 if (rc) {rc = BERR_TRACE(rc); goto err_getsettings;}
-
                 structs->vdc.memConfigSettings.stRdc.ulMemcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.ulRdcMemcIndex;
+
+#if NEXUS_DISPLAY_VIP_SUPPORT/* memconfig for display VIP capture */
+                #define ROUNDUP_MB_SIZE(x)    (((x) + 0xF) & (~0xF))
+                if (g_pPreInitState->boxMode && preInitState->boxConfig.stVdc.astDisplay[i].stStgEnc.bAvailable) {
+                    NEXUS_VideoFormatInfo info;
+                    structs->vdc.memConfigSettings.stDisplay[i].vip.bUsed = true;
+                    structs->vdc.memConfigSettings.stDisplay[i].vip.pstMemoryInfo = &g_pPreInitState->memoryInfo;
+                    /* TODO: move VIP box mode memc assignment to BBOX_VDC */
+                    structs->vdc.memConfigSettings.stDisplay[i].vip.stCfgSettings.ulMemcId =
+                        g_pPreInitState->boxConfig.stVce.stInstance[preInitState->boxConfig.stVdc.astDisplay[i].stStgEnc.ulEncoderCoreId].uiMemcIndex;
+                    structs->vdc.memConfigSettings.stDisplay[i].vip.stCfgSettings.bSupportDecimatedLuma = true;
+                    structs->vdc.memConfigSettings.stDisplay[i].vip.stCfgSettings.bSupportBframes       = true;
+                    NEXUS_VideoFormat_GetInfo_isrsafe(pSettings->display[i].maxFormat, &info);
+                    structs->vdc.memConfigSettings.stDisplay[i].vip.stCfgSettings.bSupportInterlaced =
+                        (info.height == BFMT_1080I_HEIGHT || info.height == BFMT_480P_HEIGHT || info.height == BFMT_576P_HEIGHT)?
+                        true : info.interlaced;
+                    structs->vdc.memConfigSettings.stDisplay[i].vip.stCfgSettings.ulMaxWidth         = ROUNDUP_MB_SIZE(info.digitalWidth);
+                    structs->vdc.memConfigSettings.stDisplay[i].vip.stCfgSettings.ulMaxHeight        = ROUNDUP_MB_SIZE(info.digitalHeight);
+                    BDBG_MSG(("VDC display[%u] VIP: %ux%u%c", i, structs->vdc.memConfigSettings.stDisplay[i].vip.stCfgSettings.ulMaxWidth,
+                        structs->vdc.memConfigSettings.stDisplay[i].vip.stCfgSettings.ulMaxHeight, info.interlaced?'i':'p'));
+                }
+#endif
             }
         }
 
+        for (i=0;i<BBOX_VDC_HDMI_DISPLAY_COUNT;i++) {
+            if(BBOX_MemcIndex_Invalid != preInitState->boxConfig.stMemConfig.stVdcMemcIndex.aulHdmiDisplayCfcMemcIndex[i]) {
+                structs->vdc.memConfigSettings.hdmiDisplayCfc[i].bUsed = true;
+                structs->vdc.memConfigSettings.hdmiDisplayCfc[i].ulMemcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.aulHdmiDisplayCfcMemcIndex[i];
+            }
+            else
+                structs->vdc.memConfigSettings.hdmiDisplayCfc[i].bUsed = false;
+        }
+
+        for (i=0;i<BBOX_VDC_DISPLAY_COUNT;i++) {
+            if((BBOX_MemcIndex_Invalid != preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].ulCmpCfcMemcIndex) ||
+               (BBOX_MemcIndex_Invalid != preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].ulGfdCfcMemcIndex)) {
+                structs->vdc.memConfigSettings.stDisplay[i].cfc.bUsed = true;
+                structs->vdc.memConfigSettings.stDisplay[i].cfc.ulCmpMemcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].ulCmpCfcMemcIndex;
+                structs->vdc.memConfigSettings.stDisplay[i].cfc.ulGfdMemcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].ulGfdCfcMemcIndex;
+            }
+            else
+                structs->vdc.memConfigSettings.stDisplay[i].cfc.bUsed = false;
+        }
+
+        /* SD main window is not used, turn off bLipsync */
+        if(!structs->vdc.memConfigSettings.stDisplay[1].bUsed || !structs->vdc.memConfigSettings.stDisplay[1].stWindow[0].bUsed)
+            structs->vdc.memConfigSettings.stDisplay[0].stWindow[0].bLipsync = false;
         rc = BVDC_GetMemoryConfiguration(&structs->vdc.memConfigSettings, &structs->vdc.memConfig);
         if (rc) {rc = BERR_TRACE(rc); goto err_getsettings;}
 
@@ -899,13 +989,19 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
                 if (j>=NEXUS_MAX_VIDEO_WINDOWS || !pSettings->display[i].window[j].used) continue;
                 for (sec=0;sec<nexus_memconfig_picbuftype_max;sec++) {
                     unsigned heapIndex;
-                    const char *name = (sec==nexus_memconfig_picbuftype_unsecure)?"picture":"secure picture";
+                    const char *name = nexus_p_picbufname(sec);
 
-                    if (!nexus_p_usepicbuf(pSettings->display[i].window[j].secure, sec)) continue;
+                    if (one_secure_transcode_decoder && preInitState->boxConfig.stVdc.astDisplay[i].stStgEnc.bAvailable) {
+                        /* if one decoder is URRT, place all transcode windows in URRT */
+                        if (sec != nexus_memconfig_picbuftype_urrt) continue;
+                    }
+                    else {
+                        if (!nexus_p_usepicbuf(pSettings->display[i].window[j].secure, NEXUS_SecureVideo_eNone, sec)) continue;
+                    }
 
                     /* CAP */
-                    if (structs->vdc.memConfig.stDisplay[i].stWindow[j].ulCapSize) {
-                        memcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j];
+                    memcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j];
+                    if (structs->vdc.memConfig.stDisplay[i].stWindow[j].ulCapSize && memcIndex < BBOX_MemcIndex_Invalid) {
                         BDBG_ASSERT(memcIndex < NEXUS_MAX_MEMC);
                         heapIndex = memoryLayout.heapIndex.pictureBuffer[memcIndex][sec];
                         BDBG_ASSERT(heapIndex < NEXUS_MAX_HEAPS);
@@ -915,8 +1011,8 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
                     }
 
                     /* MAD */
-                    if (structs->vdc.memConfig.stDisplay[i].stWindow[j].ulMadSize) {
-                        memcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j];
+                    memcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j];
+                    if (structs->vdc.memConfig.stDisplay[i].stWindow[j].ulMadSize && memcIndex < BBOX_MemcIndex_Invalid) {
                         BDBG_ASSERT(memcIndex < NEXUS_MAX_MEMC);
                         heapIndex = memoryLayout.heapIndex.pictureBuffer[memcIndex][sec];
                         BDBG_ASSERT(heapIndex < NEXUS_MAX_HEAPS);
@@ -924,6 +1020,16 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
                         BDBG_MSG(("VDC MEMC%d CMP%u V%u MAD: %s %d", memcIndex, i, j, name, structs->vdc.memConfig.stDisplay[i].stWindow[j].ulMadSize));
                         nexus_p_add_display_buffers(&pConfig->display.displayHeapSettings[heapIndex], &structs->vdc.memConfig.stDisplay[i].stWindow[j].stMadHeapSettings);
                     }
+
+#if NEXUS_DISPLAY_VIP_SUPPORT/* memconfig for display VIP capture */
+                    /* VIP */
+                    memcIndex = structs->vdc.memConfigSettings.stDisplay[i].vip.stCfgSettings.ulMemcId;
+                    BDBG_ASSERT(memcIndex < NEXUS_MAX_MEMC);
+                    if (structs->vdc.memConfig.stMemc[memcIndex].ulVipSize) {
+                        pConfig->pictureBuffer[memcIndex][sec].size += structs->vdc.memConfig.stMemc[memcIndex].ulVipSize;
+                        BDBG_MSG(("VDC MEMC%d CMP%u VIP: %s %d", memcIndex, i, name, structs->vdc.memConfig.stMemc[memcIndex].ulVipSize));
+                    }
+#endif
                 }
             }
         }
@@ -977,6 +1083,8 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
            struct {
               unsigned firmware, output, secure, system;
            } heap = {0,0,0,0};
+           /* if one decoder is URRT, place all video encoders in URRT */
+           sec = one_secure_transcode_decoder ? nexus_memconfig_picbuftype_urrt : nexus_memconfig_picbuftype_glr;
 
             if (!pSettings->videoEncoder[i].used) continue;
             rc = nexus_p_encoder_device_and_channel(preInitState, i, &vceIndex, &channel);
@@ -1032,7 +1140,14 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
 
                 deviceMemory[vceIndex] = true;
            }
-           BVCE_Channel_GetDefaultMemoryBoundsSettings(preInitState->hBox, &structs->vce.channelSettings);
+
+           {
+              BVCE_Channel_MemorySettings memSettings;
+              BKNI_Memset(&memSettings,0,sizeof(memSettings));
+              memSettings.pstMemoryInfo = &preInitState->memoryInfo;
+              BVCE_Channel_GetDefaultMemoryBoundsSettings(preInitState->hBox, &memSettings, &structs->vce.channelSettings);
+           }
+
            structs->vce.channelSettings.stDimensions.stMax.uiWidth = pSettings->videoEncoder[i].maxWidth;
            structs->vce.channelSettings.stDimensions.stMax.uiHeight = pSettings->videoEncoder[i].maxHeight;
            structs->vce.channelSettings.eInputType = (pSettings->videoEncoder[i].interlaced? BAVC_ScanType_eInterlaced : BAVC_ScanType_eProgressive);
@@ -1040,11 +1155,11 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
            structs->vce.memSettings.uiInstance = vceIndex;
            structs->vce.memSettings.memcIndex.uiPicture = mainMemcIndex;
            structs->vce.memSettings.memcIndex.uiSecure = mainMemcIndex;
-           structs->vce.memSettings.pstMemoryInfo = &memInfo;
+           structs->vce.memSettings.pstMemoryInfo = &preInitState->memoryInfo;
 
            BVCE_Channel_GetMemoryConfig(preInitState->hBox, &structs->vce.memSettings, &structs->vce.channelSettings, &structs->vce.memConfig);
 
-           pConfig->pictureBuffer[mainMemcIndex][nexus_memconfig_picbuftype_unsecure].size += structs->vce.memConfig.uiPictureMemSize;
+           pConfig->pictureBuffer[mainMemcIndex][sec].size += structs->vce.memConfig.uiPictureMemSize;
            pConfig->videoEncoder.heapSize[vceIndex].general += structs->vce.memConfig.uiGeneralMemSize;
            if (!pSettings->videoEncoder[i].dynamicPictureBuffers) pConfig->videoEncoder.heapSize[vceIndex].picture += structs->vce.memConfig.uiPictureMemSize;
            pConfig->videoEncoder.heapSize[vceIndex].secure += structs->vce.memConfig.uiSecureMemSize;
@@ -1074,7 +1189,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
            pConfig->videoEncoder.heapIndex[vceIndex].output = heap.output;
            pConfig->videoEncoder.heapIndex[vceIndex].secure  = heap.secure;
            pConfig->videoEncoder.heapIndex[vceIndex].system  = heap.system;
-           pConfig->videoEncoder.heapIndex[vceIndex].picture = memoryLayout.heapIndex.pictureBuffer[mainMemcIndex][nexus_memconfig_picbuftype_unsecure];
+           pConfig->videoEncoder.heapIndex[vceIndex].picture = memoryLayout.heapIndex.pictureBuffer[mainMemcIndex][sec];
        }
     }
 #endif
@@ -1089,15 +1204,25 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
         for (j=0;j<NEXUS_MAX_VIDEO_WINDOWS;j++) {
             /* convert per-window memc to heap index */
             unsigned memcIndex;
-            if (pSettings->display[i].maxFormat > 0 && pSettings->display[i].window[j].used) {
-                memcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j];
-                pConfig->display.videoWindowHeapIndex[i][j] = nexus_p_get_window_heap(&memoryLayout, memcIndex, nexus_memconfig_picbuftype_unsecure, pSettings->display[i].window[j].secure);
-                pConfig->display.secure.videoWindowHeapIndex[i][j] = nexus_p_get_window_heap(&memoryLayout, memcIndex, nexus_memconfig_picbuftype_secure, pSettings->display[i].window[j].secure);
+            memcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j];
+            if (pSettings->display[i].maxFormat > 0 && pSettings->display[i].window[j].used && memcIndex < BBOX_MemcIndex_Invalid) {
+                if (one_secure_transcode_decoder && preInitState->boxConfig.stVdc.astDisplay[i].stStgEnc.bAvailable) {
+                    pConfig->display.secureTranscode.videoWindowHeapIndex[i][j] = memoryLayout.heapIndex.pictureBuffer[memcIndex][nexus_memconfig_picbuftype_urrt];
+                }
+                else {
+                    pConfig->display.videoWindowHeapIndex[i][j] = nexus_p_get_window_heap(&memoryLayout, memcIndex, nexus_memconfig_picbuftype_glr, pSettings->display[i].window[j].secure);
+                    pConfig->display.secure.videoWindowHeapIndex[i][j] = nexus_p_get_window_heap(&memoryLayout, memcIndex, nexus_memconfig_picbuftype_urr, pSettings->display[i].window[j].secure);
+                }
             }
             memcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j];
             if (memcIndex != BBOX_MemcIndex_Invalid) {
-                pConfig->display.deinterlacerHeapIndex[i][j] = nexus_p_get_window_heap(&memoryLayout, memcIndex, nexus_memconfig_picbuftype_unsecure, pSettings->display[i].window[j].secure);
-                pConfig->display.secure.deinterlacerHeapIndex[i][j] = nexus_p_get_window_heap(&memoryLayout, memcIndex, nexus_memconfig_picbuftype_secure, pSettings->display[i].window[j].secure);
+                if (one_secure_transcode_decoder && preInitState->boxConfig.stVdc.astDisplay[i].stStgEnc.bAvailable) {
+                    pConfig->display.secureTranscode.deinterlacerHeapIndex[i][j] = memoryLayout.heapIndex.pictureBuffer[memcIndex][nexus_memconfig_picbuftype_urrt];
+                }
+                else {
+                    pConfig->display.deinterlacerHeapIndex[i][j] = nexus_p_get_window_heap(&memoryLayout, memcIndex, nexus_memconfig_picbuftype_glr, pSettings->display[i].window[j].secure);
+                    pConfig->display.secure.deinterlacerHeapIndex[i][j] = nexus_p_get_window_heap(&memoryLayout, memcIndex, nexus_memconfig_picbuftype_urr, pSettings->display[i].window[j].secure);
+                }
             }
         }
     }
@@ -1295,11 +1420,9 @@ NEXUS_Error NEXUS_P_ApplyMemoryConfiguration(const NEXUS_Core_PreInitState *preI
 #endif
 #endif
 
-#if NEXUS_HAS_SAGE
-                if (sec == nexus_memconfig_picbuftype_secure) {
+                if (sec == nexus_memconfig_picbuftype_urr || sec == nexus_memconfig_picbuftype_urrt) {
                     pSettings->heap[heapIndex].memoryType |= NEXUS_MEMORY_TYPE_SECURE;
                 }
-#endif
             }
         }
     }

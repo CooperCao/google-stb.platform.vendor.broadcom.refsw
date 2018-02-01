@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,8 +58,8 @@ BVCE_CHIP = $(BCHP_CHIP)
 
 #### Module Includes ####
 BVCE_INCLUDES += \
-	$(MAGNUM)/portinginterface/vce/include \
-	$(MAGNUM)/portinginterface/vce/src
+    $(MAGNUM)/portinginterface/vce/include \
+    $(MAGNUM)/portinginterface/vce/src
 
 #### Source File(s) ####
 ifeq ($(BVCE_IMG_ONLY),)
@@ -88,7 +88,7 @@ endif # BVCE_IMG_ONLY
 ifeq ($(BVCE_IMG_FILE),)
 ifeq ($(BVCE_IMG_EXTERNAL),)
 # Common image file(s)
-BVCE_SOURCES_LOCAL +=	\
+BVCE_SOURCES_LOCAL +=   \
              $(MAGNUM)/portinginterface/vce/src/bvce_image.c \
              $(MAGNUM)/portinginterface/vce/src/bvce_image_common.c
 
@@ -103,7 +103,7 @@ BVCE_DEFINES += BVCE_USE_CUSTOM_IMAGE
 endif #!BVCE_IMG_EXTERNAL
 else
 # Common image file(s)
-BVCE_SOURCES_LOCAL +=	\
+BVCE_SOURCES_LOCAL +=   \
              $(MAGNUM)/portinginterface/vce/src/bvce_image_file.c
 BVCE_DEFINES += BVCE_USE_FILE_IMAGE=1
 endif
@@ -113,7 +113,7 @@ BVCE_DEBUG_INCLUDES += \
     $(MAGNUM)/portinginterface/vce/src
 
 BVCE_DEBUG_SOURCES += \
-	$(MAGNUM)/portinginterface/vce/src/bvce_debug.c
+    $(MAGNUM)/portinginterface/vce/src/bvce_debug.c
 
 # DEBUG Build Flags
 ifeq ($(BVCE_DUMP_OUTPUT_CDB),y)
@@ -151,6 +151,12 @@ BVCE_DEFINES += BVCE_P_PRERELEASE_TEST_MODE=1
 endif
 ifeq ($(BVCE_ASSERT_ON_WATCHDOG),y)
 BVCE_DEFINES += BVCE_P_ASSERT_ON_WATCHDOG=1
+endif
+ifeq ($(BVCE_PIC_LOOPBACK_TEST_MODE),y)
+BVCE_DEFINES += BVCE_P_PIC_LOOPBACK_TEST_MODE=1
+endif
+ifeq ($(BVDC_MANAGE_VIP),y)
+BVCE_DEFINES += BVCE_P_VDC_MANAGE_VIP=1
 endif
 
 # Remove duplicate sources to fix duplicate linker errors

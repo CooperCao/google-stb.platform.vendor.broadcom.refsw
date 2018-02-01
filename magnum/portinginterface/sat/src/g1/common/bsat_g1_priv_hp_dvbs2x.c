@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -224,7 +224,6 @@ BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
    uint32_t hpconfig, hpcontrol, fnorm, dcorr_threshold, hpoverride, m_n_peak_verify, m_n_receiver_verify, m_n_receiver_lock, val;
    uint32_t frame_length_sample, frof3_sw, hp_dafe, new_state, ignore_phi_from_dafe;
    uint32_t P_hi, P_lo, Q_hi;
-   uint16_t turbo_frame_length = 0;
    uint8_t tfec_symbol_length, n_check, m_peak, plscode, modcod, s2_type, mask, n_check_limit, dafe_average;
    uint8_t peak_verify_n_check, peak_verify_m_peak, rcvr_verify_n_check, rcvr_verify_m_peak, rcvr_lock_n_check, rcvr_lock_m_peak;
    bool bDvbs2Pilot = false, bDvbs2Mode = false, bDvbs2Scan = false;

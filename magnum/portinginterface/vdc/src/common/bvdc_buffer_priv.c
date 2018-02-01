@@ -819,7 +819,8 @@ static void BVDC_P_Buffer_InitPictureNode
     pPicture->pSurface_R           = NULL;
     for (ii=0; ii<BAVC_MOSAIC_MAX; ii++)
     {
-        BVDC_P_Cfc_InitAvcColorSpace(&pPicture->astMosaicColorSpace[ii]);
+        BCFC_InitCfcColorSpace(&pPicture->astMosaicColorSpace[ii]);
+        pPicture->astMosaicColorSpace[ii].pMetaData = (void *)&pPicture->astMosaicMetaData[ii];
     }
 
     pPicture->bValidTimeStampDelay = false;
@@ -966,11 +967,11 @@ BERR_Code BVDC_P_Buffer_Create
             for(; j < BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS; j++) {
                 BDBG_ASSERT(BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS <= BAVC_MOSAIC_MAX);
 #if BVDC_P_DBV_SUPPORT
-                pPicture->astMosaicColorSpace[j].stMetaData.stDbvInput.stHdrMetadata.pData = BKNI_Malloc(BAVC_HDR_METADATA_SIZE_MAX);
-                if(!pPicture->astMosaicColorSpace[j].stMetaData.stDbvInput.stHdrMetadata.pData)
+                pPicture->astMosaicMetaData[j].stDbvInput.stHdrMetadata.pData = BKNI_Malloc(BAVC_HDR_METADATA_SIZE_MAX);
+                if(!pPicture->astMosaicMetaData[j].stDbvInput.stHdrMetadata.pData)
 #elif BVDC_P_TCH_SUPPORT
-                pPicture->astMosaicColorSpace[j].stMetaData.stTchInput.stHdrMetadata.pData = BKNI_Malloc(BAVC_HDR_METADATA_SIZE_MAX);
-                if(!pPicture->astMosaicColorSpace[j].stMetaData.stTchInput.stHdrMetadata.pData)
+                pPicture->astMosaicMetaData[j].stTchInput.stHdrMetadata.pData = BKNI_Malloc(BAVC_HDR_METADATA_SIZE_MAX);
+                if(!pPicture->astMosaicMetaData[j].stTchInput.stHdrMetadata.pData)
 #endif
                 {
                     BDBG_ERR(("Win[%d] failed to allocate HDR metadata buffer[%d]", hWindow->eId, i));
@@ -1000,12 +1001,12 @@ oom_err:
             unsigned j;
             for(j = 0; j < BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS; j++) {
 #if BVDC_P_DBV_SUPPORT
-                if(pPicture->astMosaicColorSpace[j].stMetaData.stDbvInput.stHdrMetadata.pData) {
-                    BKNI_Free(pPicture->astMosaicColorSpace[j].stMetaData.stDbvInput.stHdrMetadata.pData);
+                if(pPicture->astMosaicMetaData[j].stDbvInput.stHdrMetadata.pData) {
+                    BKNI_Free(pPicture->astMosaicMetaData[j].stDbvInput.stHdrMetadata.pData);
                 }
 #elif BVDC_P_TCH_SUPPORT
-                if(pPicture->astMosaicColorSpace[j].stMetaData.stTchInput.stHdrMetadata.pData) {
-                    BKNI_Free(pPicture->astMosaicColorSpace[j].stMetaData.stTchInput.stHdrMetadata.pData);
+                if(pPicture->astMosaicMetaData[j].stTchInput.stHdrMetadata.pData) {
+                    BKNI_Free(pPicture->astMosaicMetaData[j].stTchInput.stHdrMetadata.pData);
                 }
 #endif
             }
@@ -1044,12 +1045,12 @@ BERR_Code BVDC_P_Buffer_Destroy
             unsigned j;
             for(j = 0; j < BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS && hBuffer->hWindow->astMosaicCfc[j].stCapability.stBits.bDbvCmp; j++) {
 #if BVDC_P_DBV_SUPPORT
-                if(pPicture->astMosaicColorSpace[j].stMetaData.stDbvInput.stHdrMetadata.pData) {
-                    BKNI_Free(pPicture->astMosaicColorSpace[j].stMetaData.stDbvInput.stHdrMetadata.pData);
+                if(pPicture->astMosaicMetaData[j].stDbvInput.stHdrMetadata.pData) {
+                    BKNI_Free(pPicture->astMosaicMetaData[j].stDbvInput.stHdrMetadata.pData);
                 }
 #elif BVDC_P_TCH_SUPPORT
-                if(pPicture->astMosaicColorSpace[j].stMetaData.stTchInput.stHdrMetadata.pData) {
-                    BKNI_Free(pPicture->astMosaicColorSpace[j].stMetaData.stTchInput.stHdrMetadata.pData);
+                if(pPicture->astMosaicMetaData[j].stTchInput.stHdrMetadata.pData) {
+                    BKNI_Free(pPicture->astMosaicMetaData[j].stTchInput.stHdrMetadata.pData);
                 }
 #endif
             }
@@ -2091,6 +2092,7 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
             hWindow->hBuffer->pCurReaderBuf->ulBufferId,
             eSrcPolarity, ulTimestampDiff));
 #endif
+        hWindow->hBuffer->pCurWriterBuf->ulCaptureTimestamp = hWindow->hBuffer->ulCurrWriterTimestamp;
         goto done;
     }
 
@@ -2597,6 +2599,7 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextReaderNode_isr
             hWindow->stCurInfo.hSource->hSyncLockCompositor->hDisplay->ulCurrentTs, ulTimestampDiff,
             hWindow->stCurInfo.hSource->ulVertFreq, hWindow->hCompositor->hDisplay->stCurInfo.ulVertFreq));
 #endif
+        hWindow->hBuffer->pCurReaderBuf->ulPlaybackTimestamp = hWindow->hBuffer->ulCurrReaderTimestamp;
         goto done;
     }
 

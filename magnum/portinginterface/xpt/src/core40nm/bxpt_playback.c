@@ -110,21 +110,6 @@ static uint64_t BXPT_Playback_P_ReadAddr(
     return BREG_ReadAddr( PlaybackHandle->hRegister, RegAddr );
 }
 
-BERR_Code BXPT_Playback_GetTotalChannels(
-    BXPT_Handle hXpt,           /* [in] Handle for this transport */
-    unsigned int *TotalChannels     /* [out] The number of playback channels. */
-    )
-{
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hXpt );
-
-    *TotalChannels = hXpt->MaxPlaybacks;
-
-    return( ExitCode );
-}
-
-
 BERR_Code BXPT_Playback_GetChannelDefaultSettings(
     BXPT_Handle hXpt,           /* [in] Handle for this transport */
     unsigned int ChannelNo,         /* [in] Which channel to get defaults from. */
@@ -736,19 +721,6 @@ BERR_Code BXPT_Playback_GetChannelStatus(
     return( ExitCode );
 }
 
-BERR_Code BXPT_Playback_GetCurrentBufferAddress(
-    BXPT_Playback_Handle hPb,   /* [in] Handle for the playback channel */
-    uint32_t *Address                       /* [out] The address read from hardware. */
-    )
-{
-   BSTD_UNUSED( hPb );
-   BSTD_UNUSED( Address );
-
-   /* Not used by Nexus or BPVRLib */
-   BDBG_ERR(("BERR_NOT_SUPPORTED"));
-   return BERR_NOT_SUPPORTED;
-}
-
 BERR_Code BXPT_Playback_GetCurrentDescriptorAddress(
     BXPT_Playback_Handle hPb,   /* [in] Handle for the playback channel */
     BXPT_PvrDescriptor **LastDesc       /* [in] Address of the current descriptor. */
@@ -772,39 +744,6 @@ BERR_Code BXPT_Playback_GetCurrentDescriptorAddress(
     }
 
     return( ExitCode );
-}
-
-BERR_Code BXPT_Playback_CreateDesc(
-    BXPT_Handle hXpt,                       /* [in] Handle for this transport */
-    BXPT_PvrDescriptor * const Desc,        /* [in] Descriptor to initialize */
-    uint8_t *Buffer,                        /* [in] Data buffer. */
-    uint32_t BufferLength,                  /* [in] Size of buffer (in bytes). */
-    bool IntEnable,                         /* [in] Interrupt when done? */
-    bool ReSync,                            /* [in] Re-sync extractor engine? */
-    BXPT_PvrDescriptor * const NextDesc     /* [in] Next descriptor, or NULL */
-    )
-{
-   /* deprecated due to MMA conversion */
-   BSTD_UNUSED(hXpt);
-   BSTD_UNUSED(Desc);
-   BSTD_UNUSED(Buffer);
-   BSTD_UNUSED(BufferLength);
-   BSTD_UNUSED(IntEnable);
-   BSTD_UNUSED(ReSync);
-   BSTD_UNUSED(NextDesc);
-   return BERR_TRACE(BERR_NOT_SUPPORTED);
-}
-
-void BXPT_SetLastDescriptorFlag(
-    BXPT_Handle hXpt,                       /* [in] Handle for this transport */
-    BXPT_PvrDescriptor * const Desc     /* [in] Descriptor to initialize */
-    )
-{
-   /* deprecated due to MMA conversion */
-   BSTD_UNUSED(hXpt);
-   BSTD_UNUSED(Desc);
-   (void)BERR_TRACE(BERR_NOT_SUPPORTED);
-   return;
 }
 
 BERR_Code BXPT_Playback_AddDescriptors(
@@ -1334,39 +1273,6 @@ BERR_Code CalcAndSetBlockout(
         BCHP_FIELD_DATA( XPT_PB0_BLOCKOUT, BO_COUNT, BoCount )
         );
     BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_PB0_BLOCKOUT, Reg );
-
-    return( ExitCode );
-}
-
-
-BERR_Code BXPT_Playback_CheckHeadDescriptor(
-    BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
-    BXPT_PvrDescriptor *Desc,       /* [in] Descriptor to check. */
-    bool *InUse,                    /* [out] Is descriptor in use? */
-    uint32_t *BufferSize            /* [out] Size of the buffer (in bytes). */
-    )
-{
-   BSTD_UNUSED( PlaybackHandle );
-   BSTD_UNUSED( Desc );
-   BSTD_UNUSED( InUse );
-   BSTD_UNUSED( BufferSize );
-   BDBG_ERR(("BERR_NOT_SUPPORTED"));
-   return BERR_NOT_SUPPORTED;
-}
-
-BERR_Code BXPT_Playback_GetTimestampUserBits(
-    BXPT_Playback_Handle hPb,   /* [in] Handle for the playback channel */
-    unsigned int *Bits                          /* [out] The user bits read from hardware. */
-    )
-{
-    uint32_t Reg;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hPb );
-
-    Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_PB0_CTRL4 );
-    *Bits = ( int ) ( BCHP_GET_FIELD_DATA( Reg, XPT_PB0_CTRL4, TIMESTAMP_USER_BITS ) & 0xFF );
 
     return( ExitCode );
 }
@@ -2085,7 +1991,7 @@ bool BXPT_Playback_IsAvailable(
     return true;
 }
 
-
+#if BXPT_HAS_TSMUX
 void BXPT_Playback_InitDescriptorFlags(
     BXPT_PvrDescriptorFlags *flags
     )
@@ -2094,7 +2000,6 @@ void BXPT_Playback_InitDescriptorFlags(
     BKNI_Memset((void *)flags, 0, sizeof( BXPT_PvrDescriptorFlags ));
 }
 
-#if BXPT_HAS_TSMUX
 void BXPT_Playback_SetDescriptorFlags(
     BXPT_Playback_Handle hPb,   /* [in] Handle for the playback channel */
     BXPT_PvrDescriptor *Desc,
@@ -2122,7 +2027,6 @@ void BXPT_Playback_SetDescriptorFlags(
 
     return;
 }
-#endif
 
 unsigned BXPT_Playback_P_GetBandId(
     BXPT_Playback_Handle hPb
@@ -2165,6 +2069,7 @@ void BXPT_Playback_P_SetBandId(
     map = &hXpt->BandMap.Playback[ hPb->ChannelNo ];
     map->VirtualParserBandNum = NewBandId;
 }
+#endif
 
 #if 0
 void BXPT_Playback_PvrDescriptorAdvDefault(

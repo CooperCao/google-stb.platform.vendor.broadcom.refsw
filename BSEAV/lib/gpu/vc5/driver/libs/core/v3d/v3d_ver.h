@@ -20,8 +20,16 @@
 #include "bchp_v3d_hub_ctl.h"
 #define RDB_TECH_VERSION   BCHP_V3D_HUB_CTL_IDENT1_TVER_DEFAULT
 #define RDB_REVISION       BCHP_V3D_HUB_CTL_IDENT1_REV_DEFAULT
+#ifdef BCHP_V3D_HUB_CTL_IDENT3_IPREV_DEFAULT
 #define RDB_SUB_REV        BCHP_V3D_HUB_CTL_IDENT3_IPREV_DEFAULT
-#define RDB_HIDDEN_REV     0
+#else
+#define RDB_SUB_REV        BCHP_V3D_HUB_CTL_IDENT3_SUBREV_DEFAULT
+#endif
+#ifdef BCHP_V3D_HUB_CTL_IDENT3_COMPATREV_DEFAULT
+#define RDB_COMPAT_REV     BCHP_V3D_HUB_CTL_IDENT3_COMPATREV_DEFAULT
+#else
+#define RDB_COMPAT_REV     0
+#endif
 
 #ifdef V3D_TECH_VERSION
 static_assert(V3D_TECH_VERSION == RDB_TECH_VERSION, "Tech version mismatch with RDB");
@@ -41,10 +49,10 @@ static_assert(V3D_SUB_REV == RDB_SUB_REV, "Subrev mismatch with RDB");
 #define V3D_SUB_REV RDB_SUB_REV
 #endif
 
-#ifdef V3D_HIDDEN_REV
-static_assert(V3D_HIDDEN_REV == RDB_HIDDEN_REV, "Hidden rev mismatch with RDB");
+#ifdef V3D_COMPAT_REV
+static_assert(V3D_COMPAT_REV == RDB_COMPAT_REV, "Compat rev mismatch with RDB");
 #else
-#define V3D_HIDDEN_REV RDB_HIDDEN_REV
+#define V3D_COMPAT_REV RDB_COMPAT_REV
 #endif
 
 #else
@@ -59,23 +67,23 @@ static_assert(V3D_HIDDEN_REV == RDB_HIDDEN_REV, "Hidden rev mismatch with RDB");
 #ifndef V3D_SUB_REV
 # error "V3D_SUB_REV is undefined"
 #endif
-#ifndef V3D_HIDDEN_REV
-# error "V3D_HIDDEN_REV is undefined"
+#ifndef V3D_COMPAT_REV
+# error "V3D_COMPAT_REV is undefined"
 #endif
 
 #endif
 
 
-#define V3D_MAKE_VER(TECH_VERSION, REVISION, SUB_REV, HIDDEN_REV) \
-   (((TECH_VERSION) << 24) | ((REVISION) << 16) | ((SUB_REV) << 8) | (HIDDEN_REV))
+#define V3D_MAKE_VER(TECH_VERSION, REVISION, SUB_REV, COMPAT_REV) \
+   (((TECH_VERSION) << 24) | ((REVISION) << 16) | ((SUB_REV) << 8) | (COMPAT_REV))
 #define V3D_EXTRACT_TECH_VERSION(VER) ((VER) >> 24)
 #define V3D_EXTRACT_REVISION(VER) (((VER) >> 16) & 0xff)
 #define V3D_EXTRACT_SUB_REV(VER) (((VER) >> 8) & 0xff)
-#define V3D_EXTRACT_HIDDEN_REV(VER) ((VER) & 0xff)
+#define V3D_EXTRACT_COMPAT_REV(VER) ((VER) & 0xff)
 
-#define V3D_VER (V3D_MAKE_VER(V3D_TECH_VERSION, V3D_REVISION, V3D_SUB_REV, V3D_HIDDEN_REV))
-#define V3D_VER_AT_LEAST(TECH_VERSION, REVISION, SUB_REV, HIDDEN_REV) \
-   (V3D_VER >= V3D_MAKE_VER(TECH_VERSION, REVISION, SUB_REV, HIDDEN_REV))
+#define V3D_VER (V3D_MAKE_VER(V3D_TECH_VERSION, V3D_REVISION, V3D_SUB_REV, V3D_COMPAT_REV))
+#define V3D_VER_AT_LEAST(TECH_VERSION, REVISION, SUB_REV, COMPAT_REV) \
+   (V3D_VER >= V3D_MAKE_VER(TECH_VERSION, REVISION, SUB_REV, COMPAT_REV))
 
 #include "v3d_ver_gen.h"
 

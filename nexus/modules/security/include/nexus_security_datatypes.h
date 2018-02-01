@@ -124,7 +124,6 @@ typedef enum NEXUS_SecurityAlgorithm
 
     /* The 4 algorithms below are only supported for M2M */
     NEXUS_SecurityAlgorithm_eC2,
-    NEXUS_SecurityAlgorithm_eCss,
     NEXUS_SecurityAlgorithm_eM6Ke,
     NEXUS_SecurityAlgorithm_eM6,
 

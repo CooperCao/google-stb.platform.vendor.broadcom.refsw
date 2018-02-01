@@ -420,7 +420,7 @@ const BVDC_P_Features s_VdcFeatures =
 #elif (BCHP_CHIP==7255)
     false,
     /* cmp0   cmp1   cmpb   cmp3   cmp4   cmp5   cmp6 */
-    {  true,  false,  false, false, false, false, false },
+    {  true,  true,  false, false, false, false, false },
 
     /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
     {  true,  false, false, false, false, false, false, false, false, false, true,  true,  false, false, false, false, false, false, false, false, true,  true,  false, false, false, false, false, false },
@@ -742,6 +742,48 @@ BERR_Code BVDC_Open
     pVdc->hRdc       = hRdc;
     pVdc->hTmr       = hTmr;
 
+#if (BVDC_P_CMP_CFC_VER >= 3)
+    /* check BP3 license and code consistency */
+    {
+        bool bBp3Support;
+        bBp3Support = (BERR_SUCCESS == BCHP_HasLicensedFeature_isrsafe(hChip,
+            BCHP_LicensedFeature_eDolbyVision));
+        if((bBp3Support && !BVDC_P_DBV_SUPPORT) ||
+           (!bBp3Support && BVDC_P_DBV_SUPPORT))
+        {
+            BDBG_LOG(("############################"));
+            BDBG_LOG(("#"));
+            BDBG_LOG(("# Dolby Vision license   : %c", bBp3Support? 'Y' : 'N'));
+            BDBG_LOG(("# Dolby Vision SW support: %c", BVDC_P_DBV_SUPPORT? 'Y' : 'N'));
+            if(bBp3Support && !BVDC_P_DBV_SUPPORT) {
+                BDBG_LOG(("# You have DolbyVision license but not source code! "));
+            } else {
+                BDBG_LOG(("# You have DolbyVision source code but not license! "));
+            }
+            BDBG_LOG(("#"));
+            BDBG_LOG(("############################"));
+        }
+
+        bBp3Support = (BERR_SUCCESS == BCHP_HasLicensedFeature_isrsafe(hChip,
+            BCHP_LicensedFeature_eTchPrime));
+        if((bBp3Support && !BVDC_P_TCH_SUPPORT) ||
+           (!bBp3Support && BVDC_P_TCH_SUPPORT))
+        {
+            BDBG_LOG(("############################"));
+            BDBG_LOG(("#"));
+            BDBG_LOG(("# Techni Prime license   : %c", bBp3Support? 'Y' : 'N'));
+            BDBG_LOG(("# Techni Prime SW support: %c", BVDC_P_TCH_SUPPORT? 'Y' : 'N'));
+            if(bBp3Support && !BVDC_P_TCH_SUPPORT) {
+                BDBG_LOG(("# You have Technicolor Prime license but not source code! "));
+            } else {
+                BDBG_LOG(("# You have Technicolor Prime source code but not license! "));
+            }
+            BDBG_LOG(("#"));
+            BDBG_LOG(("############################"));
+        }
+    }
+#endif
+
     /* (1.1) Power managment */
 #ifdef BCHP_PWR_RESOURCE_BVN
     BCHP_PWR_AcquireResource(pVdc->hChip, BCHP_PWR_RESOURCE_BVN);
@@ -822,12 +864,10 @@ BERR_Code BVDC_Open
     /* (4) Create resource */
     BVDC_P_Resource_Create(&pVdc->hResource, pVdc);
 
-    /* Get mosaic coverage table */
-    for(i = 0; i < BVDC_P_MAX_DISPLAY_COUNT; i++)
-    {
-        BVDC_P_MosaicCoverage_Init(&pVdc->stBoxConfig,
-            i, &pVdc->stMosaicCoverageTbl[i]);
-    }
+#ifndef BVDC_FOR_BOOTUPDATER
+    /* Get src/win class table */
+    BVDC_P_SrcWinClass_Init(pVdc);
+#endif
 
 #if BVDC_P_SUPPORT_VIP
     for(i = 0; i < BVDC_P_SUPPORT_VIP; i++)
@@ -992,11 +1032,7 @@ BERR_Code BVDC_Close
     /* [2] Destroy Timer */
     if(hVdc->hTimer)
     {
-        eStatus = BTMR_DestroyTimer(hVdc->hTimer);
-        if (eStatus != BERR_SUCCESS)
-        {
-            return BERR_TRACE(eStatus);
-        }
+        BTMR_DestroyTimer(hVdc->hTimer);
         hVdc->hTimer = NULL;
     }
 
@@ -1093,16 +1129,10 @@ BERR_Code BVDC_Standby
     /* if we get to this point, then nothing is in use and we can power down */
     if(!hVdc->bStandby)
     {
-        BERR_Code eStatus = BERR_SUCCESS;
-
         /* Destroy Timer */
         if(hVdc->hTimer)
         {
-            eStatus = BTMR_DestroyTimer(hVdc->hTimer);
-            if (eStatus != BERR_SUCCESS)
-            {
-                return BERR_TRACE(eStatus);
-            }
+            BTMR_DestroyTimer(hVdc->hTimer);
             hVdc->hTimer = NULL;
         }
 
@@ -1177,23 +1207,38 @@ BERR_Code BVDC_GetMaxMosaicCoverage
     ( BVDC_Handle                      hVdc,
       BVDC_DisplayId                   eDispId,
       uint32_t                         ulRectsCount,
-      uint32_t                        *pulCoverage )
+      BVDC_Display_MosaicCoverage     *pMaxCoverage )
 {
-    uint32_t  ulCoverage = 100;
+    uint32_t  ulCoverageEqual = 100, ulCoverageBL = 0;
 
+    BDBG_ASSERT(ulRectsCount <= BAVC_MOSAIC_MAX);
     if(ulRectsCount)
     {
         BVDC_P_MosaicCanvasCoverage     *pCoverageTbl;
 
         pCoverageTbl = &hVdc->stMosaicCoverageTbl[eDispId];
-        ulCoverage = pCoverageTbl->ulCanvasCoverage[ulRectsCount-1];
+        ulCoverageEqual = pCoverageTbl->aulCanvasCoverageEqual[ulRectsCount-1];
+        ulCoverageBL = pCoverageTbl->aulCanvasCoverageBL[ulRectsCount-1];
     }
 
-    if(pulCoverage)
-        *pulCoverage = ulCoverage;
+    if(pMaxCoverage)
+    {
+        pMaxCoverage->ulMaxCoverageEqual = ulCoverageEqual;
+        pMaxCoverage->ulMaxCoverageBL = ulCoverageBL;
+    }
 
-    BDBG_MSG(("Disp[%d] ulRectsCount: %d, coverage: %d",
-        eDispId, ulRectsCount, ulCoverage));
+    return BERR_SUCCESS;
+}
+
+/***************************************************************************
+ *
+ */
+BERR_Code BVDC_GetMatrixForGfxYCbCr2Rgb_isrsafe
+    ( BAVC_MatrixCoefficients          eMatrixCoeffs,
+      uint32_t                         ulShift,
+      int32_t                         *pulCoeffs)
+{
+	BCFC_GetMatrixForGfxYCbCr2Rgb_isrsafe(eMatrixCoeffs, ulShift, pulCoeffs);
 
     return BERR_SUCCESS;
 }

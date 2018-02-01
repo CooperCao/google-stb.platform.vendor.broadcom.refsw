@@ -91,6 +91,9 @@ typedef struct media_player_create_settings
                                     Includes interlaced/progressive and frame rate, but doesn't work for sub-SD sizes. */
     unsigned maxWidth, maxHeight; /* Use if maxFormat not available for sub-SD sizes. Assumes p60. */
     unsigned userDataBufferSize;
+    struct {
+        unsigned fifoSize;
+    } playback;
 } media_player_create_settings;
 
 enum media_player_audio_primers
@@ -160,7 +163,9 @@ typedef struct media_player_start_settings
         NEXUS_VideoDecoderScanMode scanMode;
         unsigned colorDepth;
         NEXUS_VideoDecoderTimestampMode timestampMode;
+        NEXUS_VideoDecoderProgressiveOverrideMode progressiveOverrideMode;
         NEXUS_VideoFrameRate frameRate;
+        bool virtualized;
     } video;
     NEXUS_TransportType transportType; /* override probe */
     struct {
@@ -178,7 +183,9 @@ typedef struct media_player_start_settings
     NEXUS_SimpleStcChannelSyncMode sync; /* sync mode for simple stc channel */
     NEXUS_StcChannelAutoModeBehavior stcMaster;
     const char  *additional_headers;/* Additional HTTP headers that app wants to include in the outgoing Get Request. Terminate each header with "\0xd\0xa". */
-    NEXUS_PlaybackSettings playbackSettings;
+    struct {
+        unsigned endOfStreamTimeout;
+    } playbackSettings;
     media_player_settings  mediaPlayerSettings;
     bool astm;
     bool forceStopDisconnect; /* Force media player disconnect when stopping */
@@ -210,33 +217,11 @@ void media_player_get_default_start_settings(
     );
 
 /**
-Summary:
-**/
-void media_player_get_default_settings(
-    media_player_settings *psettings
-    );
-/**
 Start playback
 **/
 int media_player_start(
     media_player_t handle,
     const media_player_start_settings *psettings
-    );
-
-/**
-Summary:
-**/
-void media_player_get_settings(
-    media_player_t player,
-    media_player_settings *psettings
-    );
-
-/**
-Summary:
-**/
-int media_player_set_settings(
-    media_player_t player,
-    const media_player_settings *psettings
     );
 
 /**

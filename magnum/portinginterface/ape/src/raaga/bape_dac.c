@@ -688,7 +688,7 @@ static BERR_Code BAPE_Dac_P_Enable(BAPE_OutputPort output)
     if ( handle->rfMode )
     {
         BAPE_GetOutputVolume(output, &volume);
-        switch (handle->deviceHandle->settings.loudnessMode)
+        switch (handle->deviceHandle->settings.loudnessSettings.loudnessMode)
         {
         default:
         case BAPE_LoudnessEquivalenceMode_eNone:
@@ -703,8 +703,8 @@ static BERR_Code BAPE_Dac_P_Enable(BAPE_OutputPort output)
         }
         BDBG_MODULE_MSG(bape_loudness, ("DAC(%d) is configured as RF adding %ddB gain for %s mode",
              handle->index, output->additionalGain,
-             handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
-              handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED"));
+             handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
+              handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED"));
         BAPE_SetOutputVolume(output, &volume);
     }
 

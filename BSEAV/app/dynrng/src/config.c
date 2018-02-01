@@ -46,7 +46,6 @@
 
 static const Config defaultConfig =
 {
-    PlatformInputMethod_eRemote,
     "../etc/dynrng/scenarios/plm",
     "../share/dynrng/streams",
     "../share/dynrng/images",
@@ -70,7 +69,6 @@ void config_p_get_default(ConfigHandle cfg)
 {
     assert(cfg);
     memset(cfg, 0, sizeof(*cfg));
-    cfg->method = defaultConfig.method;
     memcpy(&cfg->osd, &defaultConfig.osd, sizeof(cfg->osd));
     cfg->dbvOutputModeAutoSelection = defaultConfig.dbvOutputModeAutoSelection;
 }
@@ -102,19 +100,7 @@ ConfigHandle config_create(StringMapHandle cfgMap)
 
     for (pair = string_map_cursor_first(cursor); pair; pair = string_map_cursor_next(cursor))
     {
-        if (!strcmp(pair->key, "inputMethod")) {
-            switch (pair->value[0])
-            {
-                case 'c':
-                    cfg->method = PlatformInputMethod_eConsole;
-                    break;
-                default:
-                case 'r':
-                    cfg->method = PlatformInputMethod_eRemote;
-                    break;
-            }
-        }
-        else if (!strcmp(pair->key, "streamsPath")) {
+        if (!strcmp(pair->key, "streamsPath")) {
             cfg->streamsPath = strdup(pair->value);
         }
         else if (!strcmp(pair->key, "imagesPath")) {

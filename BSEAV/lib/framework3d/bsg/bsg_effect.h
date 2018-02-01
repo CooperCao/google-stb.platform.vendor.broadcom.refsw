@@ -307,7 +307,7 @@ public:
    void Read(const char *effect, const std::vector<std::string> &defines = m_defaultDefines);
 
    //! Return the number of render passes in the loaded effect file
-   uint32_t    NumPasses()          const { return m_passes.size(); }
+   uint32_t    NumPasses()          const { return static_cast<uint32_t>(m_passes.size()); }
    //! Return the bsg::Pass object for a particular render pass
    Pass        *GetPass(uint32_t p) const;
    //! Return the sort order for this effect

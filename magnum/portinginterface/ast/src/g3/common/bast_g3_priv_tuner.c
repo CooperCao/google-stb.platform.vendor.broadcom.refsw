@@ -221,7 +221,7 @@ BERR_Code BAST_g3_P_TunerPowerDown(BAST_ChannelHandle h)
    uint8_t i;
 
    /* power down tuner sub-blocks */
-   BAST_g3_P_AndRegister_isrsafe(h, BCHP_SDS_TUNER_PWRUP_R01, ~0x003FFFFF);
+   BAST_g3_P_AndRegister_isrsafe(h, BCHP_SDS_TUNER_PWRUP_R01, ~0x003FFFFB);
 
    if (h->channel == 0)
       inputChannel = BAST_TunerLnaOutputConfig_eIn0;
@@ -233,8 +233,8 @@ BERR_Code BAST_g3_P_TunerPowerDown(BAST_ChannelHandle h)
       (hChn0Impl->tunerLnaSettings.out1 != inputChannel) &&
       (hChn0Impl->tunerLnaSettings.daisy != inputChannel))
    {
-      /* power down RFFE if unused */
-      BAST_g3_P_AndRegister_isrsafe(h, BCHP_SDS_TUNER_PWRUP_R01, ~0x00400000);
+      /* power down RFFE and RFAGC if unused */
+      BAST_g3_P_AndRegister_isrsafe(h, BCHP_SDS_TUNER_PWRUP_R01, ~0x00400004);
    }
 
    /* check if all channels powered down */

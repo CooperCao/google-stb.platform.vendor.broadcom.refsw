@@ -151,7 +151,8 @@ typedef enum bvideo_codec {
     bvideo_codec_rv40,
     bvideo_codec_vp8,
     bvideo_codec_vp9,
-    bvideo_codec_mjpeg
+    bvideo_codec_mjpeg,
+    bvideo_codec_avs2 = 0xD2            /* AVS2 video */
 } bvideo_codec;
 
 #ifdef __cplusplus

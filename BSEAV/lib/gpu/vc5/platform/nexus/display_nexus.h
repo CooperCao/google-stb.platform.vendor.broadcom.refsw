@@ -9,6 +9,8 @@
 #include "berr.h"
 #include "bkni.h"
 
+#include "../common/sched_nexus.h"  // For EventContext
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -18,6 +20,7 @@ typedef struct
 {
    NXPL_DisplayType        displayType;
    BEGL_SchedInterface    *schedIface;
+   EventContext           *eventContext;
 
 #ifdef NXPL_PLATFORM_EXCLUSIVE
    NEXUS_DISPLAYHANDLE  display;
@@ -31,7 +34,9 @@ struct BEGL_SchedInterface;
 struct BEGL_DisplayInterface *CreateDisplayInterface(
       NEXUS_DISPLAYHANDLE display,
       NXPL_DisplayContext *ctx,
-      struct BEGL_SchedInterface *schedIface);
+      struct BEGL_SchedInterface *schedIface,
+      EventContext *eventContext);
+
 void DestroyDisplayInterface(struct BEGL_DisplayInterface *disp);
 
 #ifdef __cplusplus

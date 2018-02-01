@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -188,7 +188,9 @@ BERR_Code BWFE_g3_P_OpenChannel(
 )
 {
    extern const uint32_t BWFE_g3_ChannelIntrID[BWFE_NUM_CHANNELS][BWFE_g3_MaxIntID];
+#if (BWFE_NUM_REF_CHANNELS > 0)
    extern const uint32_t BWFE_g3_RefChannelIntrID[BWFE_NUM_REF_CHANNELS][BWFE_g3_MaxIntID];
+#endif
 
    BERR_Code retCode = BERR_SUCCESS;
    BWFE_ChannelSettings chnSettings;

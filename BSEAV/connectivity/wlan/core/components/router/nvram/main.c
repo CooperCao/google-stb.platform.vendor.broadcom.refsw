@@ -88,7 +88,7 @@ main(int argc, char **argv)
 			nvram_getall(buf, sizeof(buf));
 			for (name = buf; *name; name += strlen(name) + 1)
 				puts(name);
-			size = sizeof(struct nvram_header) + (int) name - (int) buf;
+			size = sizeof(struct nvram_header) + name - buf;
 			if (**argv != 'd')
 				fprintf(stderr, "size: %d bytes (%d left)\n",
 				        size, MAX_NVRAM_SPACE - size);

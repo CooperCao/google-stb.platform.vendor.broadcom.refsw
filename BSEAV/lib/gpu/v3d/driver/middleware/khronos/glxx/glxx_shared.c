@@ -8,32 +8,36 @@
 #include "middleware/khronos/gl20/gl20_shader.h"
 #include "middleware/khronos/glxx/glxx_renderbuffer.h"
 #include "middleware/khronos/glxx/glxx_framebuffer.h"
+#include "middleware/khronos/common/khrn_mem.h"
 
-MEM_HANDLE_T glxx_shared_get_buffer(GLXX_SHARED_T *shared, uint32_t buffer, bool create)
+GLXX_BUFFER_T *glxx_shared_create_buffer(uint32_t buffer)
 {
-   MEM_HANDLE_T handle = khrn_map_lookup(&shared->buffers, buffer);
+   GLXX_BUFFER_T *pbuffer = KHRN_MEM_ALLOC_STRUCT(GLXX_BUFFER_T);                  // check, glxx_buffer_term
+   if (pbuffer != NULL) {
+      khrn_mem_set_term(pbuffer, glxx_buffer_term);
+      glxx_buffer_init(pbuffer, buffer);
+   }
+   return pbuffer;
+}
 
-   if (create && handle == MEM_HANDLE_INVALID) {
-      handle = MEM_ALLOC_STRUCT_EX(GLXX_BUFFER_T, MEM_COMPACT_DISCARD);                  // check, glxx_buffer_term
+GLXX_BUFFER_T *glxx_shared_get_buffer(GLXX_SHARED_T *shared, uint32_t buffer, bool create)
+{
+   GLXX_BUFFER_T *pbuffer = khrn_map_lookup(&shared->buffers, buffer);
+
+   if (create && pbuffer == NULL) {
 
       assert(buffer);
 
-      if (handle != MEM_HANDLE_INVALID) {
-         mem_set_term(handle, glxx_buffer_term, NULL);
-
-         glxx_buffer_init((GLXX_BUFFER_T *)mem_lock(handle, NULL), buffer);
-         mem_unlock(handle);
-
-         if (khrn_map_insert(&shared->buffers, buffer, handle))
-            mem_release(handle);
-         else {
-            mem_release(handle);
-            handle = MEM_HANDLE_INVALID;
-         }
+      pbuffer = glxx_shared_create_buffer(buffer);
+      if (pbuffer != NULL) {
+         if (khrn_map_insert(&shared->buffers, buffer, pbuffer))
+            khrn_mem_release(pbuffer);
+         else
+            KHRN_MEM_ASSIGN(pbuffer, NULL);
       }
    }
 
-   return handle;
+   return pbuffer;
 }
 
 void glxx_shared_delete_buffer(GLXX_SHARED_T *shared, uint32_t buffer)
@@ -42,7 +46,7 @@ void glxx_shared_delete_buffer(GLXX_SHARED_T *shared, uint32_t buffer)
    khrn_map_delete(&shared->buffers, buffer);
 }
 
-MEM_HANDLE_T glxx_shared_get_texture(GLXX_SHARED_T *shared, uint32_t texture)
+GLXX_TEXTURE_T *glxx_shared_get_texture(GLXX_SHARED_T *shared, uint32_t texture)
 {
    return khrn_map_lookup(&shared->textures, texture);
 }
@@ -75,35 +79,31 @@ bool glxx_shared_init(GLXX_SHARED_T *shared)
    return true;
 }
 
-void glxx_shared_term(MEM_HANDLE_T handle)
+void glxx_shared_term(void *p)
 {
-   GLXX_SHARED_T *shared = (GLXX_SHARED_T *)mem_lock(handle, NULL);
-
+   GLXX_SHARED_T *shared = p;
    khrn_map_term(&shared->pobjects);
    khrn_map_term(&shared->textures);
    khrn_map_term(&shared->buffers);
    khrn_map_term(&shared->renderbuffers);
    khrn_map_term(&shared->framebuffers);
-
-   mem_unlock(handle);
 }
 
 uint32_t glxx_shared_create_program(GLXX_SHARED_T *shared)
 {
    uint32_t result = 0;
 
-   MEM_HANDLE_T handle = MEM_ALLOC_STRUCT_EX(GL20_PROGRAM_T, MEM_COMPACT_DISCARD);     // check, gl20_program_term
+   GL20_PROGRAM_T *program = KHRN_MEM_ALLOC_STRUCT(GL20_PROGRAM_T);     // check, gl20_program_term
 
-   if (handle != MEM_HANDLE_INVALID) {
-      mem_set_term(handle, gl20_program_term, NULL);
+   if (program != NULL) {
+      khrn_mem_set_term(program, gl20_program_term);
 
-      gl20_program_init((GL20_PROGRAM_T *)mem_lock(handle, NULL), shared->next_pobject);
-      mem_unlock(handle);
+      gl20_program_init(program, shared->next_pobject);
 
-      if (khrn_map_insert(&shared->pobjects, shared->next_pobject, handle))
+      if (khrn_map_insert(&shared->pobjects, shared->next_pobject, program))
          result = shared->next_pobject++;
 
-      mem_release(handle);
+      KHRN_MEM_ASSIGN(program, NULL);
    }
 
    return result;
@@ -113,76 +113,69 @@ uint32_t glxx_shared_create_shader(GLXX_SHARED_T *shared, uint32_t type)
 {
    uint32_t result = 0;
 
-   MEM_HANDLE_T handle = MEM_ALLOC_STRUCT_EX(GL20_SHADER_T, MEM_COMPACT_DISCARD);   // check, gl20_shader_term
+   GL20_SHADER_T *shader = KHRN_MEM_ALLOC_STRUCT(GL20_SHADER_T);   // check, gl20_shader_term
 
-   if (handle != MEM_HANDLE_INVALID) {
-      mem_set_term(handle, gl20_shader_term, NULL);
+   if (shader != NULL) {
+      khrn_mem_set_term(shader, gl20_shader_term);
 
-      gl20_shader_init((GL20_SHADER_T *)mem_lock(handle, NULL), shared->next_pobject, type);
-      mem_unlock(handle);
+      gl20_shader_init(shader, shared->next_pobject, type);
 
-      if (khrn_map_insert(&shared->pobjects, shared->next_pobject, handle))
+      if (khrn_map_insert(&shared->pobjects, shared->next_pobject, shader))
          result = shared->next_pobject++;
 
-      mem_release(handle);
+      KHRN_MEM_ASSIGN(shader, NULL);
    }
 
    return result;
 }
 
-MEM_HANDLE_T glxx_shared_get_pobject(GLXX_SHARED_T *shared, uint32_t pobject)
+void *glxx_shared_get_pobject(GLXX_SHARED_T *shared, uint32_t pobject)
 {
    return khrn_map_lookup(&shared->pobjects, pobject);
 }
 
-MEM_HANDLE_T glxx_shared_get_renderbuffer(GLXX_SHARED_T *shared, uint32_t renderbuffer, bool create)
+GLXX_RENDERBUFFER_T *glxx_shared_get_renderbuffer(GLXX_SHARED_T *shared, uint32_t renderbuffer, bool create)
 {
-   MEM_HANDLE_T handle = khrn_map_lookup(&shared->renderbuffers, renderbuffer);
+   GLXX_RENDERBUFFER_T *glxx_renderbuffer = khrn_map_lookup(&shared->renderbuffers, renderbuffer);
 
-   if (create && handle == MEM_HANDLE_INVALID) {
-      handle = MEM_ALLOC_STRUCT_EX(GLXX_RENDERBUFFER_T, MEM_COMPACT_DISCARD);       // check, glxx_renderbuffer_term
+   if (create && glxx_renderbuffer == NULL) {
+      glxx_renderbuffer = KHRN_MEM_ALLOC_STRUCT(GLXX_RENDERBUFFER_T);       // check, glxx_renderbuffer_term
 
-      if (handle != MEM_HANDLE_INVALID) {
-         mem_set_term(handle, glxx_renderbuffer_term, NULL);
+      if (glxx_renderbuffer != NULL) {
+         khrn_mem_set_term(glxx_renderbuffer, glxx_renderbuffer_term);
 
-         glxx_renderbuffer_init((GLXX_RENDERBUFFER_T *)mem_lock(handle, NULL), renderbuffer);
-         mem_unlock(handle);
+         glxx_renderbuffer_init(glxx_renderbuffer, renderbuffer);
 
-         if (khrn_map_insert(&shared->renderbuffers, renderbuffer, handle))
-            mem_release(handle);
-         else {
-            mem_release(handle);
-            handle = MEM_HANDLE_INVALID;
-         }
+         if (khrn_map_insert(&shared->renderbuffers, renderbuffer, glxx_renderbuffer))
+            khrn_mem_release(glxx_renderbuffer);
+         else
+            KHRN_MEM_ASSIGN(glxx_renderbuffer, NULL);
       }
    }
 
-   return handle;
+   return glxx_renderbuffer;
 }
 
-MEM_HANDLE_T glxx_shared_get_framebuffer(GLXX_SHARED_T *shared, uint32_t framebuffer, bool create)
+GLXX_FRAMEBUFFER_T *glxx_shared_get_framebuffer(GLXX_SHARED_T *shared, uint32_t framebuffer, bool create)
 {
-   MEM_HANDLE_T handle = khrn_map_lookup(&shared->framebuffers, framebuffer);
+   GLXX_FRAMEBUFFER_T *glxx_framebuffer = khrn_map_lookup(&shared->framebuffers, framebuffer);
 
-   if (create && handle == MEM_HANDLE_INVALID) {
-      handle = MEM_ALLOC_STRUCT_EX(GLXX_FRAMEBUFFER_T, MEM_COMPACT_DISCARD);        // check, glxx_framebuffer_term
+   if (create && glxx_framebuffer == NULL) {
+      glxx_framebuffer = KHRN_MEM_ALLOC_STRUCT(GLXX_FRAMEBUFFER_T);        // check, glxx_framebuffer_term
 
-      if (handle != MEM_HANDLE_INVALID) {
-         mem_set_term(handle, glxx_framebuffer_term, NULL);
+      if (glxx_framebuffer != NULL) {
+         khrn_mem_set_term(glxx_framebuffer, glxx_framebuffer_term);
 
-         glxx_framebuffer_init((GLXX_FRAMEBUFFER_T *)mem_lock(handle, NULL), framebuffer);
-         mem_unlock(handle);
+         glxx_framebuffer_init(glxx_framebuffer, framebuffer);
 
-         if (khrn_map_insert(&shared->framebuffers, framebuffer, handle))
-            mem_release(handle);
-         else {
-            mem_release(handle);
-            handle = MEM_HANDLE_INVALID;
-         }
+         if (khrn_map_insert(&shared->framebuffers, framebuffer, glxx_framebuffer))
+            khrn_mem_release(glxx_framebuffer);
+         else
+            KHRN_MEM_ASSIGN(glxx_framebuffer, NULL);
       }
    }
 
-   return handle;
+   return glxx_framebuffer;
 }
 
 void glxx_shared_delete_pobject(GLXX_SHARED_T *shared, uint32_t pobject)
@@ -200,43 +193,37 @@ void glxx_shared_delete_framebuffer(GLXX_SHARED_T *shared, uint32_t framebuffer)
    khrn_map_delete(&shared->framebuffers, framebuffer);
 }
 
-MEM_HANDLE_T glxx_shared_get_or_create_texture(GLXX_SHARED_T *shared, uint32_t texture, GLenum target, GLenum *error, bool *has_color, bool *has_alpha, bool *complete)
+GLXX_TEXTURE_T *glxx_shared_get_or_create_texture(GLXX_SHARED_T *shared, uint32_t texture, GLenum target, GLenum *error, bool *has_color, bool *has_alpha, bool *complete)
 {
-   MEM_HANDLE_T handle = khrn_map_lookup(&shared->textures, texture);
+   GLXX_TEXTURE_T *glxx_texture = khrn_map_lookup(&shared->textures, texture);
 
    assert(texture);
-   if (handle == MEM_HANDLE_INVALID) {
-      handle = MEM_ALLOC_STRUCT_EX(GLXX_TEXTURE_T, MEM_COMPACT_DISCARD);                 // check, glxx_texture_term
+   if (glxx_texture == NULL) {
+      glxx_texture = KHRN_MEM_ALLOC_STRUCT(GLXX_TEXTURE_T);                 // check, glxx_texture_term
 
-      if (handle != MEM_HANDLE_INVALID) {
-         mem_set_term(handle, glxx_texture_term, NULL);
+      if (glxx_texture != NULL) {
+         khrn_mem_set_term(glxx_texture, glxx_texture_term);
 
-         glxx_texture_init((GLXX_TEXTURE_T *)mem_lock(handle, NULL), texture, target);
-         mem_unlock(handle);
+         glxx_texture_init(glxx_texture, texture, target);
 
-         if (khrn_map_insert(&shared->textures, texture, handle))
-            mem_release(handle);
-         else {
-            mem_release(handle);
-            handle = MEM_HANDLE_INVALID;
-         }
+         if (khrn_map_insert(&shared->textures, texture, glxx_texture))
+            khrn_mem_release(glxx_texture);
+         else
+            KHRN_MEM_ASSIGN(glxx_texture, NULL);
       }
+      else
+         *error = GL_OUT_OF_MEMORY;
 
       *complete = false;
-
-      if (handle == MEM_HANDLE_INVALID)
-         *error = GL_OUT_OF_MEMORY;
    } else {
-      GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(handle, NULL);
-      bool fail = texture->target != target;
-      glxx_texture_has_color_alpha(texture, has_color, has_alpha, complete);
-      mem_unlock(handle);
+      bool fail = glxx_texture->target != target;
+      glxx_texture_has_color_alpha(glxx_texture, has_color, has_alpha, complete);
 
       if (fail) {
          *error = GL_INVALID_OPERATION;
-         handle = MEM_HANDLE_INVALID;
+         glxx_texture = NULL;
       }
    }
 
-   return handle;
+   return glxx_texture;
 }

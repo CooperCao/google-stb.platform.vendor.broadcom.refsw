@@ -68,10 +68,7 @@ static void BVC5_P_SetCounterNamesEx(
    _strncpy(grp->saCounters[index].caUnitName, unit, BVC5_MAX_COUNTER_NAME_LEN);
 
    if (index >= grp->uiTotalCounters)
-   {
       grp->uiTotalCounters = index + 1;
-      grp->uiMaxActiveCounters = index + 1;
-   }
 
    grp->saCounters[index].uiMinValue = minVal;
    grp->saCounters[index].uiMaxValue = maxVal;
@@ -102,7 +99,7 @@ void BVC5_P_InitPerfCounters(
 
    d->uiMaxActiveCounters = BVC5_P_PERF_COUNTER_MAX_HW_CTRS_ACTIVE;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    #include "bvc5_perf_counters_hw_4_0.inc"
 #else
    #include "bvc5_perf_counters_hw_3_x.inc"
@@ -142,7 +139,21 @@ void BVC5_P_InitPerfCounters(
    BVC5_P_SetCounterNamesEx(d, BVC5_P_PERF_HEAP_MEMORY_IN_USE,    "device_heap_memory_in_use", "MB", 0, 1024, 1024 * 1024);
    BVC5_P_SetCounterNamesEx(d, BVC5_P_PERF_HEAP_MEMORY_FREE,      "device_heap_memory_free", "MB", 0, 1024, 1024 * 1024);
 
-   BDBG_ASSERT(d->uiMaxActiveCounters == BVC5_P_PERF_COUNTER_MAX_SCHED_CTRS_ACTIVE);
+   d->uiMaxActiveCounters = BVC5_P_PERF_COUNTER_MAX_SCHED_CTRS_ACTIVE;
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   d = &hVC5->sPerfCounters.sGroupDescs[BVC5_P_PERF_COUNTER_MMU_GROUP];
+
+   _strncpy(d->caName, "MMU Counters", BVC5_MAX_GROUP_NAME_LEN);
+
+   BVC5_P_SetCounterNames(d, BVC5_P_PERF_MMU_TLB_MISSES,   "MMU TLB misses", "misses");
+   BVC5_P_SetCounterNames(d, BVC5_P_PERF_MMU_TLB_HITS,     "MMU TLB hits", "hits");
+   BVC5_P_SetCounterNames(d, BVC5_P_PERF_MMU_TLB_STALLS,   "MMU TLB stalls", "cycles");
+   BVC5_P_SetCounterNames(d, BVC5_P_PERF_MMU_CACHE_MISSES, "MMU Cache misses", "misses");
+   BVC5_P_SetCounterNames(d, BVC5_P_PERF_MMU_CACHE_HITS,   "MMU Cache hits", "hits");
+
+   d->uiMaxActiveCounters = BVC5_P_PERF_COUNTER_MAX_MMU_CTRS_ACTIVE;
+#endif
 
    BVC5_P_GetTime_isrsafe(&now);
    hVC5->sPerfCounters.uiLastCollectionTime = now;
@@ -275,8 +286,8 @@ static BERR_Code BVC5_P_SetPerfCounting(
          BDBG_ASSERT(c == psPerf->uiActiveHwCounters);
          psPerf->uiPCTREShadow = BCHP_FIELD_DATA(V3D_PCTR_PCTRE, CTEN, 1) | ((1 << psPerf->uiActiveHwCounters) - 1);
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-         c = 0;
+         c = 0; /* always reset for assert below */
+#if !V3D_VER_AT_LEAST(4,1,34,0)
          for (i = 0; i < psPerf->sGroupDescs[BVC5_P_PERF_COUNTER_MEM_BW_GROUP].uiTotalCounters; i++)
          {
             if (psPerf->sBwCounters[i].bEnabled)
@@ -301,7 +312,7 @@ static BERR_Code BVC5_P_SetPerfCounting(
       {
          psPerf->bCountersActive = false;
          psPerf->uiPCTREShadow = 0;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
          psPerf->uiGCAPMSelShadow |= BCHP_FIELD_DATA(V3D_GCA_PM_CTRL, PM_CNT_FREEZE, 1);
 #endif
       }
@@ -373,7 +384,7 @@ void BVC5_ChoosePerfCounters(
       /* Clear the counters */
       BKNI_Memset(hVC5->sPerfCounters.uiPCTRShadows, 0, sizeof(hVC5->sPerfCounters.uiPCTRShadows));
    }
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    if (psSelector->uiGroupIndex == BVC5_P_PERF_COUNTER_MEM_BW_GROUP)
    {
       for (i = 0; i < psSelector->uiNumCounters; i++)
@@ -412,6 +423,19 @@ void BVC5_ChoosePerfCounters(
          hVC5->sPerfCounters.sSchedValues[psSelector->uiaCounters[i]].uiValue  = 0;
       }
    }
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   else if (psSelector->uiGroupIndex == BVC5_P_PERF_COUNTER_MMU_GROUP)
+   {
+      BDBG_ASSERT(psSelector->uiNumCounters <= BVC5_P_PERF_COUNTER_MAX_MMU_CTRS_ACTIVE);
+
+      for (i = 0; i < psSelector->uiNumCounters; i++)
+      {
+         BDBG_ASSERT(psSelector->uiaCounters[i] < hVC5->sPerfCounters.sGroupDescs[BVC5_P_PERF_COUNTER_MMU_GROUP].uiTotalCounters);
+         hVC5->sPerfCounters.sMMUValues[psSelector->uiaCounters[i]].bEnabled = psSelector->uiEnable;
+         hVC5->sPerfCounters.sMMUValues[psSelector->uiaCounters[i]].uiValue  = 0;
+      }
+   }
+#endif
 
 error:
    BKNI_ReleaseMutex(hVC5->hModuleMutex);
@@ -587,6 +611,15 @@ uint32_t BVC5_GetPerfCounterData(
          if (psPerf->sSchedValues[i].bEnabled)
             counters++;
       }
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      for (i = 0; i < BVC5_P_PERF_COUNTER_MAX_MMU_CTRS_ACTIVE; i++)
+      {
+         if (psPerf->sMMUValues[i].bEnabled)
+            counters++;
+      }
+#endif
+
       ret = counters;
    }
    else
@@ -612,7 +645,7 @@ uint32_t BVC5_GetPerfCounterData(
             break;
       }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       for (i = 0; i < BVC5_MAX_COUNTERS_PER_GROUP; i++)
       {
          if (psPerf->sBwCounters[i].bEnabled)
@@ -649,6 +682,24 @@ uint32_t BVC5_GetPerfCounterData(
             break;
       }
 
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      for (i = 0; i < BVC5_P_PERF_COUNTER_MAX_MMU_CTRS_ACTIVE; i++)
+      {
+         if (c < uiMaxCounters)
+         {
+            if (psPerf->sMMUValues[i].bEnabled)
+            {
+               psCounters[c].uiGroupIndex = BVC5_P_PERF_COUNTER_MMU_GROUP;
+               psCounters[c].uiCounterIndex = i;
+               psCounters[c].uiValue = psPerf->sMMUValues[i].uiValue;
+               c++;
+            }
+         }
+         else
+            break;
+      }
+#endif
+
       ret = c;
    }
 
@@ -663,6 +714,11 @@ uint32_t BVC5_GetPerfCounterData(
 
       for (i = 0; i < BVC5_P_PERF_COUNTER_MAX_SCHED_CTRS_ACTIVE; i++)
          psPerf->sSchedValues[i].uiValue = 0;
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      for (i = 0; i < BVC5_P_PERF_COUNTER_MAX_MMU_CTRS_ACTIVE; i++)
+         psPerf->sMMUValues[i].uiValue = 0;
+#endif
    }
 
 error:
@@ -686,6 +742,23 @@ void BVC5_P_SchedPerfCounterAdd_isr(
 
    BDBG_LEAVE(BVC5_P_SchedPerfCounterAdd);
 }
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
+void BVC5_P_MMUPerfCounterAdd_isr(
+   BVC5_Handle    hVC5,
+   uint32_t       uiCtr,
+   uint64_t       uiValue)
+{
+   BDBG_ENTER(BVC5_P_MMUPerfCounterAdd);
+
+   BDBG_ASSERT(uiCtr < BVC5_P_PERF_COUNTER_MAX_MMU_CTRS_ACTIVE);
+
+   if (hVC5->sPerfCounters.bCountersActive && hVC5->sPerfCounters.sMMUValues[uiCtr].bEnabled)
+      __sync_fetch_and_add(&hVC5->sPerfCounters.sMMUValues[uiCtr].uiValue, uiValue);
+
+   BDBG_LEAVE(BVC5_P_MMUPerfCounterAdd);
+}
+#endif
 
 void BVC5_P_PerfCountersRemoveClient(
    BVC5_Handle    hVC5,

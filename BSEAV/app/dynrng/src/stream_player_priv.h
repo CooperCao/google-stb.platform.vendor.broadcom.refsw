@@ -54,7 +54,7 @@ typedef BLST_Q_HEAD(StreamSourceList, StreamSource) StreamSourceList;
 
 typedef struct StreamPlayer
 {
-    StreamPlayerCreateSettings createSettings;
+    StreamPlayerPlaySettings playSettings;
     StreamSourceList sources;
     unsigned sourceCount;
     PlatformMediaPlayerHandle platformPlayer;

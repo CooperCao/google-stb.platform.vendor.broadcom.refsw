@@ -125,6 +125,9 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     print_list_option(
     "  -mpeg_type               override media probe", g_transportTypeStrs);
     printf(
+    "  -playback_fifo_size SIZE     use 'm' or 'k' suffix, decimal allowed\n"
+    );
+    printf(
     "  -secure                  use SVP secure picture buffers\n"
     "  -astm\n"
     "  -scan 1080p\n"
@@ -135,6 +138,9 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     );
     print_list_option(
     "  -master", g_stcChannelMasterStrs);
+    printf(
+    "  -mosaic                  pick decoder in new or existing mosaic group\n"
+    );
 }
 
 struct client_state
@@ -543,6 +549,9 @@ int main(int argc, const char **argv)  {
         else if (!strcmp(argv[curarg], "-video_itb") && argc>curarg+1) {
             start_settings.video.itbFifoSize = b_parse_size(argv[++curarg]);
         }
+        else if (!strcmp(argv[curarg], "-playback_fifo_size") && curarg+1 < argc) {
+            create_settings.playback.fifoSize = b_parse_size(argv[++curarg]);
+        }
         else if (!strcmp(argv[curarg], "-audio") && argc>curarg+1) {
             start_settings.audio.pid = strtoul(argv[++curarg], NULL, 0);
         }
@@ -569,6 +578,9 @@ int main(int argc, const char **argv)  {
         }
         else if (!strcmp(argv[curarg], "-master") && argc>curarg+1) {
             start_settings.stcMaster = lookup(g_stcChannelMasterStrs, argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-mosaic")) {
+            start_settings.video.virtualized = true;
         }
         else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
             if (n < 0) {
@@ -893,6 +905,7 @@ static void gui_draw_bar(struct client_state *client)
     NEXUS_Graphics2DFillSettings fillSettings;
     int rc;
 
+    if (!client->surfaceClient) return;
     NEXUS_Graphics2D_GetDefaultFillSettings(&fillSettings);
     fillSettings.surface = client->surface;
     fillSettings.color = BORDER_COLOR;

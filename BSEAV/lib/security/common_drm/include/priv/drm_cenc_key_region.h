@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2015 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: drm_cenc_key_region.h $
- * $brcm_Revision: 2 $
- * $brcm_Date: 4/24/12 4:21p $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- *
  *****************************************************************************/
 #ifndef DRM_CENC_KEY_REGION_H_
 #define DRM_CENC_KEY_REGION_H_
@@ -54,95 +42,140 @@
 #include "common_crypto.h"
 #include "drm_metadata.h"
 
+/******************************************************************************
+ ** FUNCTION:
+ **   DRM_CencKeyRegion_Init
+ **
+ ** DESCRIPTION:
+ **   Initializes the 'KeyRegion' module by fetching the confidential data from
+ **   the rootfs or flash
+ **
+ ** RETURNS:
+ **   Success -- Drm_Success
+ **   Failure -- Other
+ ******************************************************************************/
+DrmRC DRM_CencKeyRegion_Init(void);
 
+/******************************************************************************
+ ** FUNCTION:
+ **   DRM_CencKeyRegion_UnInit
+ **
+ ** DESCRIPTION:
+ **   Clear the key region data from memory
+ **
+ ** RETURNS:
+ **   Success -- Drm_Success
+ **   Failure -- Other
+ ******************************************************************************/
+DrmRC DRM_CencKeyRegion_UnInit(void);
 
-DrmRC
-DRM_CencKeyRegion_Init(void);
-
-
-DrmRC
-DRM_CencKeyRegion_UnInit(void);
-
-
-DrmRC
-DRM_CencKeyRegion_Read(
+/******************************************************************************
+ ** FUNCTION
+ **   DRM_CencKeyRegion_Read
+ **
+ ** DESCRIPTION:
+ **   Extract key region data
+ **
+ ** PARAMETERS:
+ **   pdata [out] - Pointer to output buffer
+ **   offset [in] - Starting offset within static drm_bin_cenc_file_buff
+ **   nbytes [in] - Length of data
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error.
+ **
+ ******************************************************************************/
+DrmRC DRM_CencKeyRegion_Read(
     uint8_t*    pdata,
     uint32_t    offset,
     uint32_t    nbytes);
 
-DrmRC
-DRM_CencKeyRegion_SetCustDrmFilePath(
+/******************************************************************************
+ ** FUNCTION:
+ **   DRM_CencKeyRegion_SetCustDrmFilePath
+ **
+ ** DESCRIPTION:
+ **   Set static char generic_drm_filepath[256]
+ **
+ ** PARAMETERS:
+ **   custom_drm_file_path [in] - New path for drm bin file
+ **
+ ** RETURNS:
+ **   Success -- Drm_Success
+ **   Failure -- Other
+ ******************************************************************************/
+DrmRC DRM_CencKeyRegion_SetCustDrmFilePath(
     char* custom_drm_file_path);
 
 /******************************************************************************
-** FUNCTION
-**   DRM_CencKeyRegion_GetKeyData
-**
-** DESCRIPTION:
-**    Fetch a DRM module's specific DRM data.
-**
-** PARAMETERS:
-**   drm_type - Enum from the 'drm_types_e' (i.e. DRM_NETFLIX)
-**   pBuf	  - the caller should cast the DRM specific data structure
-**   			(found in drm_metadata.h) as a (uint8_t *)&struct and pass it
-**
-** RETURNS:
-**   Drm_Success when the operation is successful or an error.
-**
-******************************************************************************/
-DrmRC
-DRM_CencKeyRegion_GetKeyData(drm_types_e drm_type, uint8_t *pBuf);
+ ** FUNCTION
+ **   DRM_CencKeyRegion_GetKeyData
+ **
+ ** DESCRIPTION:
+ **   Fetch a DRM module's specific DRM data.
+ **
+ ** PARAMETERS:
+ **   drm_type - Enum from the 'drm_types_e' (i.e. DRM_NETFLIX)
+ **   pBuf   - the caller should cast the DRM specific data structure
+ **      (found in drm_metadata.h) as a (uint8_t *)&struct and pass it
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error.
+ **
+ ******************************************************************************/
+DrmRC DRM_CencKeyRegion_GetKeyData(drm_types_e drm_type, uint8_t *pBuf);
 
 /******************************************************************************
-** FUNCTION
-**   DRM_CencKeyRegion_ReadKey2Info
-**
-** DESCRIPTION:
-**    Read flash key2 information
-**
-** PARAMETERS:
-**   pKi - Pointer to sturcture containing the key data.
-**
-** RETURNS:
-**   Drm_Success when the operation is successful or an error.
-**
-******************************************************************************/
+ ** FUNCTION
+ **   DRM_CencKeyRegion_ReadKey2Info
+ **
+ ** DESCRIPTION:
+ **   Read flash key2 information
+ **
+ ** PARAMETERS:
+ **   pKi - Pointer to sturcture containing the key data.
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error.
+ **
+ ******************************************************************************/
 DrmRC DRM_CencKeyRegion_ReadKey2Info(
-		CommonCryptoKeyLadderSettings *pKi);
+    CommonCryptoKeyLadderSettings *pKi);
 
+/******************************************************************************
+ ** FUNCTION
+ **   DRM_CencKeyRegion_SetKeyProvisionType
+ **
+ ** DESCRIPTION:
+ **   Set the provisioning type for way in which the keys will be fetched.
+ **
+ ** PARAMETERS:
+ **   pType
+ **     Type: DrmKeyProvisioningType
+ **     Purpose: Set to either (DrmKeyProvisioningType_eUtv or DrmKeyProvisioningType_eBrcm)
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error.
+ **
+ ******************************************************************************/
+DrmRC DRM_CencKeyRegion_SetKeyProvisionType(DrmKeyProvisioningType pType);
 
-/**********************************************************************************************
-DRM_CencKeyRegion_SetKeyProvisionType
-
-Set the provisioning type for way in which the keys will be fetched.
-
-Input Parameters:
-    provisioningType
-        Type: DrmKeyProvisioningType
-        Purpose: Set to (DrmKeyProvisioningType_eBrcm)
-
-Returns:
-    SUCCESS: Drm_Success
-    FAILURE: other
-**********************************************************************************************/
-DrmRC DRM_CencKeyRegion_SetKeyProvisionType(DrmKeyProvisioningType provisioningType);
-
-
-
-/**********************************************************************************************
-DRM_CencKeyRegion_GetKeyProvisionType
-
-Return the provisioning type
-
-Input Parameters:
-    *provisioningType
-        Type: DrmKeyProvisioningType
-        Purpose: Will be set to (DrmKeyProvisioningType_eBrcm)
-
-Returns:
-    SUCCESS: Drm_Success
-    FAILURE: other
-**********************************************************************************************/
-DrmRC DRM_CencKeyRegion_GetKeyProvisionType(DrmKeyProvisioningType *provisioningType);
+/******************************************************************************
+ ** FUNCTION
+ **   DRM_CencKeyRegion_GetKeyProvisionType
+ **
+ ** DESCRIPTION:
+ **   Set the provisioning type for way in which the keys will be fetched.
+ **
+ ** PARAMETERS:
+ **   pType
+ **     Type: DrmKeyProvisioningType
+ **     Purpose: Set to either (DrmKeyProvisioningType_eUtv or DrmKeyProvisioningType_eBrcm)
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error.
+ **
+ ******************************************************************************/
+DrmRC DRM_CencKeyRegion_GetKeyProvisionType(DrmKeyProvisioningType *pType);
 
 #endif /*DRM_CENC_KEY_REGION_H_*/

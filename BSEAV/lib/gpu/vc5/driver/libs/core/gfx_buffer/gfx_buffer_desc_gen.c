@@ -15,7 +15,7 @@ static void check_usage(gfx_buffer_usage_t usage)
    if (usage & GFX_BUFFER_USAGE_V3D_CUBEMAP)
       assert(usage & GFX_BUFFER_USAGE_V3D_TEXTURE);
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    if (usage & GFX_BUFFER_USAGE_V3D_TLB_RAW)
       assert(usage & GFX_BUFFER_USAGE_V3D_TLB);
 #endif
@@ -40,7 +40,7 @@ size_t gfx_buffer_sprint_usage(char *buf, size_t buf_size, size_t offset,
    HANDLE(V3D_CUBEMAP)
    HANDLE(V3D_RENDER_TARGET)
    HANDLE(V3D_DEPTH_STENCIL)
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    HANDLE(V3D_TLB_RAW)
 #endif
    HANDLE(YFLIP_IF_POSSIBLE)
@@ -152,7 +152,7 @@ static void adjust_lfmt_and_padding(
       if (ml_cfg->uif.ub_noutile)
          swizzling = gfx_lfmt_to_uif_noutile_family(swizzling);
    }
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    else if (usage & GFX_BUFFER_USAGE_V3D_TLB_RAW)
       swizzling = GFX_LFMT_SWIZZLING_UIF;
 #endif
@@ -199,6 +199,9 @@ static void adjust_lfmt_and_padding(
    else
       swizzling = GFX_LFMT_SWIZZLING_RSO;
 
+   if (usage & (GFX_BUFFER_USAGE_M2MC | GFX_BUFFER_USAGE_M2MC_EVEN_UB_HEIGHT))
+      assert(swizzling == GFX_LFMT_SWIZZLING_UIF || swizzling == GFX_LFMT_SWIZZLING_RSO);
+
    /* Figure out padded dims & adjust UIF XOR-ness */
    if (gfx_lfmt_is_uif_family((GFX_LFMT_T)swizzling))
    {
@@ -213,9 +216,16 @@ static void adjust_lfmt_and_padding(
       else if (!single_col)
          /* Pad to a multiple of the page cache size */
          padded_height_in_ub = gfx_uround_up_p2(padded_height_in_ub, PC_IN_UB_ROWS);
+
+      /* The first version of M2MC UIF support only works with an even number of UBs */
+      if (usage & GFX_BUFFER_USAGE_M2MC_EVEN_UB_HEIGHT)
+         padded_height_in_ub = gfx_uround_up_p2(padded_height_in_ub, 2);
+
       *padded_h_in_blocks = padded_height_in_ub * gfx_lfmt_ub_h_in_blocks_2d(bd, swizzling);
 
       bool xor_ok = !ml_cfg->uif.xor_dis &&
+         /* M2MC does not generate or read XOR'd data */
+         !(usage & GFX_BUFFER_USAGE_M2MC) &&
          /* Always ok if there is only one column -- XOR mode only affects odd
           * columns */
          (single_col ||
@@ -286,7 +296,7 @@ static void adjust_lfmt_and_padding(
       if ((usage & (
          GFX_BUFFER_USAGE_V3D_CUBEMAP /* TMU does not support y-flip for cubemaps */
          | GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL /* TLB only supports y-flip for color buffers */
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
          | GFX_BUFFER_USAGE_V3D_TLB_RAW /* Store/load general cannot be y-flipped */
 #endif
          )) ||
@@ -395,16 +405,18 @@ void gfx_buffer_desc_gen_with_ml0_cfg(
    assert((dims >= 3) || (depth == 1));
    if (usage & GFX_BUFFER_USAGE_V3D_CUBEMAP)
       assert(dims == 2);
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    if (usage & GFX_BUFFER_USAGE_V3D_TLB_RAW)
       assert(dims == 2);
 #endif
    assert(num_mip_levels > 0);
    assert(num_mip_levels <= GFX_BUFFER_MAX_MIP_LEVELS);
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    if (usage & GFX_BUFFER_USAGE_V3D_TLB_RAW)
       assert(num_mip_levels == 1);
 #endif
+   if (usage & (GFX_BUFFER_USAGE_M2MC | GFX_BUFFER_USAGE_M2MC_EVEN_UB_HEIGHT))
+      assert(num_mip_levels == 1);
 
    assert(num_planes > 0);
    assert(num_planes <= GFX_BUFFER_MAX_PLANES);
@@ -569,7 +581,7 @@ void gfx_buffer_desc_gen_with_ml0_cfg(
          size_t align = gfx_buffer_get_align(dplane->lfmt, GFX_BUFFER_ALIGN_RECOMMENDED);
          if (usage & GFX_BUFFER_USAGE_V3D_TEXTURE)
             align = gfx_zmax(align,
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
                (mip_level == 0) ? V3D_TMU_CFG0_BASE_PTR_ALIGN :
 #endif
                V3D_TMU_ML_ALIGN);

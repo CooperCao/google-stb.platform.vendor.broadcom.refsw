@@ -125,6 +125,7 @@ static void BBOX_P_PrintBoxConfig
             BDBG_MODULE_MSG(BBOX_CFG, ("            Mtg: %s", (pBoxVdcCap->astSource[i].bMtgCapable == true) ? "true" : "false"));
             BDBG_MODULE_MSG(BBOX_CFG, ("            bpp: %x", pBoxVdcCap->astSource[i].eBpp));
             BDBG_MODULE_MSG(BBOX_CFG, ("            compressed: %s", (pBoxVdcCap->astSource[i].bCompressed == true) ? "true" : "false"));
+            BDBG_MODULE_MSG(BBOX_CFG, ("            class: %d", pBoxVdcCap->astSource[i].eClass));
 
             eColorSpace = pBoxVdcCap->astSource[i].eColorSpace;
             if (eColorSpace == BBOX_VDC_DISREGARD)
@@ -157,7 +158,6 @@ static void BBOX_P_PrintBoxConfig
             BDBG_MODULE_MSG(BBOX_CFG, ("            available: %s", (pBoxVdcCap->astDisplay[i].bAvailable == true) ? "true" : "false"));
             BDBG_MODULE_MSG(BBOX_CFG, ("            max format: %d", pBoxVdcCap->astDisplay[i].eMaxVideoFmt));
             BDBG_MODULE_MSG(BBOX_CFG, ("            max HDMI format: %d", pBoxVdcCap->astDisplay[i].eMaxHdmiDisplayFmt));
-            BDBG_MODULE_MSG(BBOX_CFG, ("            mosaic mode class: %d", pBoxVdcCap->astDisplay[i].eMosaicModeClass));
             if (pBoxVdcCap->astDisplay[i].stStgEnc.ulStgId == BBOX_FTR_INVALID)
             {
                 BDBG_MODULE_MSG(BBOX_CFG, ("            Stg %s:", BBOX_VDC_FTR_INVALID));
@@ -179,7 +179,6 @@ static void BBOX_P_PrintBoxConfig
                 BBOX_Vdc_Resource_Feeder eVfd;
                 BBOX_Vdc_Resource_Scaler eScl;
                 BBOX_Vdc_SclCapBias eSclCapBias;
-                bool bSrcSideDeinterlacer;
 
                 if (pBoxVdcCap->astDisplay[i].astWindow[j].bAvailable == true)
                 {
@@ -224,8 +223,8 @@ static void BBOX_P_PrintBoxConfig
                         }
                     }
 
-                    bSrcSideDeinterlacer = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.bSrcSideDeinterlacer;
-                    BDBG_MODULE_MSG(BBOX_CFG, ("                src side deinterlacer: %s", !bSrcSideDeinterlacer ? "false" : "true"));
+                    BDBG_MODULE_MSG(BBOX_CFG, ("                src side deinterlacer: %s",
+                        !pBoxVdcCap->astDisplay[i].astWindow[j].stResource.bSrcSideDeinterlacer ? "false" : "true"));
 
                     eCap = pBoxVdcCap->astDisplay[i].astWindow[j].stResource.eCap;
                     if (eCap == BBOX_Vdc_Resource_Capture_eUnknown)
@@ -278,7 +277,8 @@ static void BBOX_P_PrintBoxConfig
                         }
                     }
                 }
-            }
+                BDBG_MODULE_MSG(BBOX_CFG, ("        window class: %d", pBoxVdcCap->astDisplay[i].astWindow[j].eClass));
+           }
         }
     }
 
@@ -372,6 +372,7 @@ BERR_Code BBOX_Open
     }
     else
     {
+        BDBG_ERR(("Box mode %d is not supported.", pBoxSettings->ulBoxId));
         goto BBOX_Open_Done;
     }
 

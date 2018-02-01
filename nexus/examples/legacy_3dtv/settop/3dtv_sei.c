@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2008-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,8 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
-******************************************************************************/
+ ******************************************************************************/
 /* Nexus example app: handling of 3DTV SEI frame packing messages. 
    To keep the example minimal, this example only illustrates how to receive and parse the SEI message.
    Refer to the other 3DTV examples on how to configure your platform for 3D. */
@@ -94,7 +93,7 @@ static void callback(void *pContext, int param)
     else {
         valid = status.codecData.mpeg2.valid;
     }
-    printf("   valid %d, format %d\n", status.codecData.avc.valid, status.format);
+    printf("   valid %d, format %d\n", valid, status.format);
 
     /* At this point, the application should set the necessary 3D configuration for its platform, 
        based on the reported 3DTV format. For example, DTVs should configure the video windows; 

@@ -26,14 +26,11 @@ namespace bvk {
 class Linker
 {
 public:
-   using BuildFunc          = std::function<void(const IR_PROGRAM_T &ir, const BINARY_PROGRAM_T &prog)>;
-   using BackendKeyFunc     = std::function<GLSL_BACKEND_CFG_T(const GLSL_PROGRAM_T *prog)>;
-   using OutputIRFunc       = std::function<void(const GLSL_PROGRAM_T *prog)>;
-   using OutputAssemblyFunc = std::function<void(const BINARY_PROGRAM_T *prog)>;
+   using OutputFunc     = std::function<void(const IR_PROGRAM_T *ir, const BINARY_PROGRAM_T *prog)>;
+   using BackendKeyFunc = std::function<GLSL_BACKEND_CFG_T(const GLSL_PROGRAM_T *prog)>;
 
    static void LinkShaders(CompiledShaderHandle shaders[SHADER_FLAVOUR_COUNT],
-                           BackendKeyFunc backendFn,
-                           BuildFunc buildFn, OutputIRFunc irFunc, OutputAssemblyFunc assFunc,
+                           BackendKeyFunc backendFn, OutputFunc outputFn,
                            const std::bitset<V3D_MAX_ATTR_ARRAYS> &attribRBSwaps);
 };
 

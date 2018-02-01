@@ -1446,10 +1446,11 @@ BERR_Code BDSP_Raaga_P_FreeExternalInterrupt(
 {
 	BERR_Code errCode =BERR_SUCCESS;
 	BDSP_RaagaExternalInterrupt *pRaagaExtInterrupt = (BDSP_RaagaExternalInterrupt *)pInterruptHandle;
-	BDSP_Raaga *pRaaga = pRaagaExtInterrupt->pDevice;
+	BDSP_Raaga *pRaaga;
 	BDBG_ENTER(BDSP_Raaga_P_FreeExternalInterrupt);
 
 	BDBG_OBJECT_ASSERT(pRaagaExtInterrupt, BDSP_RaagaExternalInterrupt);
+	pRaaga = (BDSP_Raaga *)pRaagaExtInterrupt->pDevice;
 
 	/* Free-up the interrupt bit */
 	BDBG_MSG(("Freeing up interrupt bit number %d of ESR_SI for dsp %d", pRaagaExtInterrupt->InterruptInfo.bitNum, pRaagaExtInterrupt->dspIndex));

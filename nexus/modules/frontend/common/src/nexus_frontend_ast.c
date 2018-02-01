@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -111,7 +111,7 @@ typedef struct NEXUS_AstModeEntry
 
 static const NEXUS_FrontendSatelliteCodeRate
     g_cr_scan = {0,0,NEXUS_FrontendSatelliteCodeRateMode_eStandard,0},
-    g_cr_1_4 = {1,4,NEXUS_FrontendSatelliteCodeRateMode_eStandard,0},
+    /*g_cr_1_4 = {1,4,NEXUS_FrontendSatelliteCodeRateMode_eStandard,0},*/
     g_cr_1_2 = {1,2,NEXUS_FrontendSatelliteCodeRateMode_eStandard,0},
     g_cr_2_3 = {2,3,NEXUS_FrontendSatelliteCodeRateMode_eStandard,0},
     g_cr_3_4 = {3,4,NEXUS_FrontendSatelliteCodeRateMode_eStandard,0},
@@ -599,7 +599,6 @@ err_lock_event:
 
 NEXUS_FrontendHandle NEXUS_Frontend_P_Ast_Create( const NEXUS_FrontendAstSettings *pSettings )
 {
-    BERR_Code errCode;
     NEXUS_AstDevice *pDevice;
 
     BDBG_ASSERT(NULL != pSettings);
@@ -613,7 +612,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Ast_Create( const NEXUS_FrontendAstSetting
     pDevice = BKNI_Malloc(sizeof(NEXUS_AstDevice));
     if ( NULL == pDevice )
     {
-        errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         return NULL;
     }
     BKNI_Memset(pDevice, 0, sizeof(*pDevice));
@@ -629,7 +628,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Ast_Create( const NEXUS_FrontendAstSetting
     pDevice->frontendHandle = NEXUS_Frontend_P_Create(pDevice);
     if ( NULL == pDevice->frontendHandle )
     {
-        errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         goto err_frontend_handle;
     }
     pDevice->frontendHandle->chip.id = pSettings->astChip;
@@ -1906,7 +1905,9 @@ static NEXUS_Error NEXUS_Frontend_P_Ast_StartSatellitePeakscan(void *handle, con
     NEXUS_AstDevice *pDevice = handle;
     NEXUS_SatellitePeakscanStatus *psStatus = &pDevice->peakscanStatus;
     BERR_Code errCode;
+#if BCHP_CHIP ==7342 || BCHP_CHIP==7340 || BCHP_CHIP==7335 || BCHP_CHIP==7325
     uint8_t buf[8];
+#endif
 
     BDBG_MSG(("NEXUS_Frontend_P_Ast_StartSatellitePeakscan"));
 
@@ -1933,6 +1934,7 @@ static NEXUS_Error NEXUS_Frontend_P_Ast_StartSatellitePeakscan(void *handle, con
         return BERR_TRACE(errCode);
     }
 #else
+
     {
         uint8_t misc_ctl;
         BAST_ReadConfig(pDevice->astChannel, BAST_G3_CONFIG_MISC_CTL, &misc_ctl, BAST_G3_CONFIG_LEN_MISC_CTL);
@@ -1940,7 +1942,6 @@ static NEXUS_Error NEXUS_Frontend_P_Ast_StartSatellitePeakscan(void *handle, con
         BAST_WriteConfig(pDevice->astChannel, BAST_G3_CONFIG_MISC_CTL, &misc_ctl, BAST_G3_CONFIG_LEN_MISC_CTL);
     }
 
-    buf[0]=0;
     errCode = BAST_SetPeakScanSymbolRateRange(pDevice->astChannel,  pSettings->minSymbolRate, pSettings->maxSymbolRate );
     if (errCode != BERR_SUCCESS) {
         BDBG_ERR(("BAST_WriteConfig(BLIND_SCAN_SYM_RATE_MAX) error %#x. Peak scan (blind scan) not initiated", errCode));
@@ -2024,7 +2025,6 @@ static NEXUS_Error NEXUS_Frontend_P_Ast_SatellitePeakscanPsd( void *handle, cons
     NEXUS_AstDevice *pDevice = handle;
     NEXUS_SatellitePeakscanStatus *psStatus = &pDevice->peakscanStatus;
     BERR_Code errCode;
-    uint8_t buf[8];
 
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_AstDevice);
 
@@ -2051,7 +2051,6 @@ static NEXUS_Error NEXUS_Frontend_P_Ast_SatellitePeakscanPsd( void *handle, cons
         BAST_WriteConfig(pDevice->astChannel, BAST_G3_CONFIG_MISC_CTL, &misc_ctl, BAST_G3_CONFIG_LEN_MISC_CTL);
     }
 
-    buf[0]=0;
     errCode = BAST_SetPeakScanSymbolRateRange(pDevice->astChannel, 0, 0);
     if (errCode != BERR_SUCCESS) {
         BDBG_ERR(("BAST_WriteConfig(BLIND_SCAN_SYM_RATE_MAX) error %#x. Peak scan (psd blind scan) not initiated", errCode));
@@ -2100,7 +2099,6 @@ static NEXUS_Error NEXUS_Frontend_P_Ast_SatelliteToneSearch( void *handle, const
     NEXUS_AstDevice *pDevice = handle;
     NEXUS_SatellitePeakscanStatus *psStatus = &pDevice->peakscanStatus;
     BERR_Code errCode;
-    uint8_t buf[8];
 
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_AstDevice);
 
@@ -2124,7 +2122,6 @@ static NEXUS_Error NEXUS_Frontend_P_Ast_SatelliteToneSearch( void *handle, const
         BAST_WriteConfig(pDevice->astChannel, BAST_G3_CONFIG_MISC_CTL, &misc_ctl, BAST_G3_CONFIG_LEN_MISC_CTL);
     }
 
-    buf[0]=0;
     errCode = BAST_SetPeakScanSymbolRateRange(pDevice->astChannel, 0, 0); /* tone search uses 0,0 */
     if (errCode != BERR_SUCCESS) {
         BDBG_ERR(("BAST_WriteConfig() error %#x. Peak scan (tone search) not initiated", errCode));
@@ -2150,7 +2147,7 @@ static NEXUS_Error NEXUS_Frontend_P_Ast_SatelliteToneSearch( void *handle, const
         uint32_t fs;
         uint64_t p, q;
         BERR_Code rc;
-        rc = BAST_GetChannelStatus(pDevice->astChannel, &status);
+        rc = BAST_GetChannelStatus(pDevice->astChannel, &status); if (rc) BERR_TRACE(rc);
 #define DFT_SIZE (512)
         fs = status.sample_clock;
         p = ((uint64_t)fs) * ((uint64_t)512);
@@ -2385,12 +2382,11 @@ tone_step:
 tone_done:
         /* calculate ratio */
         {
-            uint64_t ratio, target_ratio;
+            uint64_t target_ratio;
 #define TONE_SEARCH_RATIO_SCALE (1000)
             uint64_t max_pow = ((uint64_t)psStatus->maxPeakPower)*TONE_SEARCH_RATIO_SCALE;
             uint64_t min_pow = ((uint64_t)psStatus->minPeakPower);
             target_ratio = (((uint64_t)psStatus->minRatio.numerator)*TONE_SEARCH_RATIO_SCALE) / ((uint64_t)psStatus->minRatio.denominator);
-            ratio = max_pow / min_pow;
 
             BDBG_MSG(("target_ratio: %u, min=" BDBG_UINT64_FMT ", max=" BDBG_UINT64_FMT " min=%#x, max=%#x", (unsigned)target_ratio, BDBG_UINT64_ARG(min_pow), BDBG_UINT64_ARG(max_pow), (unsigned)psStatus->minPeakPower, (unsigned)psStatus->maxPeakPower));
             if (max_pow > (min_pow * target_ratio)) {

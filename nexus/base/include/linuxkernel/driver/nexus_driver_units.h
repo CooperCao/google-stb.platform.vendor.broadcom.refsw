@@ -52,8 +52,9 @@
 #define B_IPC_DRIVER_BEGIN(_module,MODULE, api) case NEXUS_IOCTL_NUM(B_IPC_COMPAT_NAME(IOCTL_##MODULE##api)): NEXUS_P_TRACE_MSG((">%s" B_IPC_COMPAT_SELECT("", ":COMPAT"),  #api)); NEXUS_IOCTL_ENTER(api); __in_vararg.varargs_begin = B_IPC_DATA_ALIGN(((uint8_t *)&__in_data->api - (uint8_t *)__in_data) + sizeof(__in_data->api)); __ipc_args.vout_data.varargs_begin = B_IPC_DATA_ALIGN(((uint8_t *)&__out_data->api - (uint8_t *)__out_data) + sizeof(__out_data->api)); {
 #define B_IPC_DRIVER_DATA(type, name) type name;
 #define B_IPC_DRIVER_RECV_IOCTL(_module, api) if(copy_from_user_small(&__ioctl->api.ioctl.in, (void *)arg, sizeof(__ioctl->api.ioctl.in)) !=0) {NEXUS_DRIVER_TRACE(-1);goto err_fault;}
-#define B_IPC_DRIVER_SEND_IOCTL(_module, api) if(copy_to_user_small((void *)arg, &__ioctl->api.ioctl.out, sizeof(__ioctl->api.ioctl.out)) !=0) {NEXUS_DRIVER_TRACE(-1);goto err_fault;}
+#define B_IPC_DRIVER_SEND_IOCTL(_module, api) B_IPC_COMPAT_NAME(api##_done): if(copy_to_user_small((void *)arg, &__ioctl->api.ioctl.out, sizeof(__ioctl->api.ioctl.out)) !=0) {NEXUS_DRIVER_TRACE(-1);goto err_fault;goto B_IPC_COMPAT_NAME(api##_done);}
 #define B_IPC_DRIVER_RESULT(api) B_IOCTL_FIELD(api, out, ret.__retval) = B_IPC_FIELD(api, out, ret.__retval);
+#define B_IPC_DRIVER_CHECK_RETURN_CODE(api) if(B_IOCTL_FIELD(api, out, ret.__retval) != NEXUS_SUCCESS) { /* (void)BERR_TRACE(B_IOCTL_FIELD(api, out, ret.__retval));*/goto B_IPC_COMPAT_NAME(api##_done);}
 #define B_IPC_DRIVER_END(module, api)   NEXUS_P_TRACE_MSG(("<%s" B_IPC_COMPAT_SELECT("", ":COMPAT"), #api)); break;}
 
 #define B_IPC_DRIVER_RECV_FIELD_ADDR(api, arg, field, field_addr) B_IPC_FIELD(api, in, memory.field_addr) = B_IOCTL_FIELD(api, in, memory.field_addr);

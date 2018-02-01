@@ -88,7 +88,7 @@ in    uint  gl_LocalInvocationIndex;  // Value computed later, during compilatio
 
 // Tessellation Control
 in highp int gl_PatchVerticesIn;
-in highp int gl_PrimitiveID;
+in highp int gl_PrimitiveID  = DATAFLOW_GET_PRIMITIVE_ID;
 in highp int gl_InvocationID = DATAFLOW_GET_INVOCATION_ID;
 
 patch out highp float gl_TessLevelOuter[4];
@@ -104,7 +104,7 @@ patch in highp float gl_TessLevelOuter[4];
 patch in highp float gl_TessLevelInner[2];
 
 //Geometry
-in highp int gl_PrimitiveIDIn;
+in highp int gl_PrimitiveIDIn = DATAFLOW_GET_PRIMITIVE_ID;
 
 out highp int gl_PrimitiveID;
 flat out highp int gl_Layer;

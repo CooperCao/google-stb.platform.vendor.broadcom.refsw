@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -2121,7 +2121,7 @@ int GetPidChannelFlag_isrsafe(
     return Reg;
 }
 
-#ifndef BXPT_FOR_BOOTUPDATER
+#if (!B_REFSW_MINIMAL)
 BERR_Code BXPT_P_PauseFilters(
     BXPT_Handle hXpt,
     unsigned int PidChannelNum,
@@ -2183,7 +2183,9 @@ BERR_Code BXPT_P_PauseFilters(
 
     return( ExitCode );
 }
+#endif
 
+#ifndef BXPT_FOR_BOOTUPDATER
 BERR_Code BXPT_Mesg_ClearPidChannelBuffer(
     BXPT_Handle hXpt,                   /* [in] Handle for this transport */
     unsigned int PidChannelNum,             /* [in] Which PID channel buffer we want. */

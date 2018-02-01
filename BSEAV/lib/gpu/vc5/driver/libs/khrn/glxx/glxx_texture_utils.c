@@ -258,6 +258,91 @@ bool glxx_tex_target_is_multisample(GLenum target) {
           target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
 }
 
+static bool tex_target_is_array(enum glxx_tex_target target)
+{
+   switch (target)
+   {
+      case GL_TEXTURE_1D_ARRAY_BRCM:
+      case GL_TEXTURE_CUBE_MAP_ARRAY:
+      case GL_TEXTURE_2D_ARRAY:
+      case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+         return true;
+      case GL_TEXTURE_1D_BRCM:
+      case GL_TEXTURE_BUFFER:
+      case GL_TEXTURE_2D:
+      case GL_TEXTURE_CUBE_MAP:
+      case GL_TEXTURE_EXTERNAL_OES:
+      case GL_TEXTURE_2D_MULTISAMPLE:
+      case GL_TEXTURE_3D:
+         return false;
+      default:
+         unreachable();
+   }
+}
+
+static bool tex_target_is_cube(enum glxx_tex_target target)
+{
+   switch (target)
+   {
+      case GL_TEXTURE_CUBE_MAP_ARRAY:
+      case GL_TEXTURE_CUBE_MAP:
+         return true;
+      case GL_TEXTURE_1D_ARRAY_BRCM:
+      case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      case GL_TEXTURE_1D_BRCM:
+      case GL_TEXTURE_BUFFER:
+      case GL_TEXTURE_2D:
+      case GL_TEXTURE_EXTERNAL_OES:
+      case GL_TEXTURE_2D_ARRAY:
+      case GL_TEXTURE_2D_MULTISAMPLE:
+      case GL_TEXTURE_3D:
+         return false;
+      default:
+         unreachable();
+   }
+}
+
+unsigned glxx_tex_target_num_dimensions(enum glxx_tex_target target)
+{
+   unsigned dim;
+   /* GFX_BUFFER_DESC_T knows only 1D, 2D or 3D images, so:
+    * 1D_ARRAY is just 1D image with depth elements in the array,
+    * 2D_ARRAY is just 2D image with depth elements in the array */
+   switch (target)
+   {
+      case GL_TEXTURE_1D_BRCM:
+      case GL_TEXTURE_1D_ARRAY_BRCM:
+      case GL_TEXTURE_BUFFER:
+         dim = 1;
+         break;
+      case GL_TEXTURE_2D:
+      case GL_TEXTURE_CUBE_MAP:
+      case GL_TEXTURE_EXTERNAL_OES:
+      case GL_TEXTURE_2D_ARRAY:
+      case GL_TEXTURE_2D_MULTISAMPLE:
+      case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      case GL_TEXTURE_CUBE_MAP_ARRAY:
+         dim = 2;
+         break;
+      case GL_TEXTURE_3D:
+         dim = 3;
+         break;
+      default:
+         unreachable();
+         dim = 0;
+   }
+   return dim;
+}
+
+extern void glxx_tex_target_info(unsigned *dims, bool *is_cube, bool *is_array,
+      enum glxx_tex_target tex_target)
+{
+   *dims = glxx_tex_target_num_dimensions(tex_target);
+   *is_cube = tex_target_is_cube(tex_target);
+   *is_array = tex_target_is_array(tex_target);
+}
+
+
 bool glxx_tex_target_has_layers(enum glxx_tex_target target)
 {
    switch(target)
@@ -344,7 +429,7 @@ bool glxx_texture_is_tex_target(const GLXX_SERVER_STATE_T *state, GLenum target)
    bool ok;
    switch(target)
    {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case GL_TEXTURE_1D_BRCM:
       case GL_TEXTURE_1D_ARRAY_BRCM:
 #endif
@@ -357,7 +442,7 @@ bool glxx_texture_is_tex_target(const GLXX_SERVER_STATE_T *state, GLenum target)
          break;
       case GL_TEXTURE_2D_MULTISAMPLE:
       case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case GL_TEXTURE_CUBE_MAP_ARRAY:
 #endif
       case GL_TEXTURE_BUFFER:

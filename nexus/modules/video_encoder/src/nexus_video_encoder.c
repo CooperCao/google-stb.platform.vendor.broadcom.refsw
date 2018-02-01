@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -333,18 +333,16 @@ static NEXUS_Error NEXUS_VideoEncoderModule_P_PostInit(void)
                 if(arcInstance < BVCE_ArcInstance_eMax) {
                     unsigned i;
                     bvce_debug++;
-                    /* convert from "ItbStcOn_DbgXXX" to "ItbStcOn\nDbgXXX\n\n" */
-                    for(i=0;i<sizeof(bvce_debug_line)/sizeof(*bvce_debug_line)-4;i++) {
+                    /* convert from "ItbStcOn_DbgXXX" to "ItbStcOn\0DbgXXX\0\0" */
+                    for(i=0;i<sizeof(bvce_debug_line)/sizeof(*bvce_debug_line)-2;i++) {
                         char ch=bvce_debug[i];
                         if(ch=='\0') {
                             break;
                         }
-                        bvce_debug_line[i] = (ch=='_') ? '\n' : ch;
+                        bvce_debug_line[i] = (ch=='_') ? '\0' : ch;
                     }
-                    bvce_debug_line[i] = '\n';
-                    bvce_debug_line[i+1] = '\n';
-                    bvce_debug_line[i+2] = '\0';
-                    bvce_debug_line[i+3] = '\0'; /* double null terminated command string */
+                    bvce_debug_line[i] = '\0';
+                    bvce_debug_line[i+1] = '\0'; /* double null terminated command string */
                     rc = BVCE_Debug_SendCommand(device->vce, arcInstance, bvce_debug_line);
                     if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);}
                 } else {
@@ -485,6 +483,7 @@ void NEXUS_VideoEncoder_GetDefaultOpenSettings(NEXUS_VideoEncoderOpenSettings *p
 {
     BVCE_Channel_OpenSettings encSettings;
     BVCE_Channel_MemoryBoundsSettings boundSettings;
+    BVCE_Channel_MemorySettings memSettings;
 
     BDBG_ASSERT(pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
@@ -494,7 +493,11 @@ void NEXUS_VideoEncoder_GetDefaultOpenSettings(NEXUS_VideoEncoderOpenSettings *p
     pSettings->maxChannelCount = encSettings.uiMaxNumChannels;
     pSettings->enableDataUnitDetecton = encSettings.stOutput.bEnableDataUnitDetection;
     pSettings->type = encSettings.eMultiChannelMode;
-    BVCE_Channel_GetDefaultMemoryBoundsSettings(g_pCoreHandles->box, &boundSettings);
+
+    BKNI_Memset(&memSettings,0,sizeof(memSettings));
+    memSettings.pstMemoryInfo = &g_pCoreHandles->memoryInfo;
+    BVCE_Channel_GetDefaultMemoryBoundsSettings(g_pCoreHandles->box, &memSettings, &boundSettings);
+
     pSettings->memoryConfig.interlaced = (boundSettings.eInputType == BAVC_ScanType_eInterlaced);
     pSettings->memoryConfig.maxWidth   = boundSettings.stDimensions.stMax.uiWidth;
     pSettings->memoryConfig.maxHeight   = boundSettings.stDimensions.stMax.uiHeight;
@@ -631,20 +634,16 @@ NEXUS_VideoEncoder_Open(unsigned index, const NEXUS_VideoEncoderOpenSettings *pS
         BVCE_Channel_MemoryBoundsSettings channelSettings;
         BVCE_Channel_MemorySettings memSettings;
         BVCE_MemoryConfig memConfig;
-        BCHP_MemoryInfo memoryInfo;
 
-        BVCE_Channel_GetDefaultMemoryBoundsSettings(g_pCoreHandles->box, &channelSettings);
+        BKNI_Memset(&memSettings,0,sizeof(memSettings));
+        memSettings.pstMemoryInfo = &g_pCoreHandles->memoryInfo;
+        memSettings.uiInstance = chanId;
+
+        BVCE_Channel_GetDefaultMemoryBoundsSettings(g_pCoreHandles->box, &memSettings, &channelSettings);
         channelSettings.stDimensions.stMax.uiWidth = pSettings->memoryConfig.maxWidth;
         channelSettings.stDimensions.stMax.uiHeight = pSettings->memoryConfig.maxHeight;
         channelSettings.eInputType = pSettings->memoryConfig.interlaced?BAVC_ScanType_eInterlaced:BAVC_ScanType_eProgressive;
-
-        rc = BCHP_GetMemoryInfo(g_pCoreHandles->chp, &memoryInfo);
-        if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);goto error;}
-        BKNI_Memset(&memSettings,0,sizeof(memSettings));
-        memSettings.pstMemoryInfo = &memoryInfo;
-        memSettings.uiInstance = chanId;
         /* uiPicture, uiSecure aren't populated, since it isn't used */
-
 
         BVCE_Channel_GetMemoryConfig(g_pCoreHandles->box, &memSettings, &channelSettings, &memConfig);
 
@@ -785,31 +784,37 @@ NEXUS_VideoEncoder_GetDefaultStartSettings(NEXUS_VideoEncoderStartSettings *pSet
 
     BVCE_Channel_GetDefaultStartEncodeSettings(g_pCoreHandles->box, &encodeSettings);
 
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_eUnknown ==  (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_eUnknown);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e00 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e00);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e10 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e10);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e1B ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e1B);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e11 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e11);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e12 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e12);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e13 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e13);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e20 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e20);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e21 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e21);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e22 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e22);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e30 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e30);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e31 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e31);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e32 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e32);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e40 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e40);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e41 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e41);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e42 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e42);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e50 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e50);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e51 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e51);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e60 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e60);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_e62 ==       (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_e62);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_eLow ==      (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_eLow);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_eMain ==     (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_eMain);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_eHigh ==     (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_eHigh);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_eHigh1440 == (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_eHigh1440);
-    BDBG_CASSERT(NEXUS_VideoCodecLevel_eMax ==      (NEXUS_VideoCodecLevel)BAVC_VideoCompressionLevel_eMax);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_eUnknown ==  (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_eUnknown);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e00 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e00);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e10 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e10);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e1B ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e1B);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e11 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e11);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e12 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e12);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e13 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e13);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e20 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e20);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e21 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e21);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e22 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e22);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e30 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e30);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e31 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e31);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e32 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e32);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e40 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e40);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e41 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e41);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e42 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e42);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e50 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e50);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e51 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e51);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e60 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e60);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e62 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e62);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_eLow ==      (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_eLow);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_eMain ==     (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_eMain);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_eHigh ==     (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_eHigh);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_eHigh1440 == (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_eHigh1440);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_eL0 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_eL0);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_eL1 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_eL1);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_eL2 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_eL2);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_eL3 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_eL3);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e80 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e80);
+    BDBG_CASSERT(NEXUS_VideoProtocolLevel_e52 ==       (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_e52);
+    BDBG_CWARNING(NEXUS_VideoProtocolLevel_eMax ==     (NEXUS_VideoProtocolLevel)BAVC_VideoCompressionLevel_eMax);
 
     BDBG_CASSERT(NEXUS_VideoCodecProfile_eUnknown ==           (NEXUS_VideoCodecProfile)BAVC_VideoCompressionProfile_eUnknown);
     BDBG_CASSERT(NEXUS_VideoCodecProfile_eSimple ==            (NEXUS_VideoCodecProfile)BAVC_VideoCompressionProfile_eSimple);
@@ -968,6 +973,86 @@ error:
     return rc;
 }
 
+#if NEXUS_DISPLAY_VIP_SUPPORT
+static NEXUS_Error NEXUS_VideoEncoder_P_EnqueueCb_isr(void * context, BAVC_EncodePictureBuffer *picture)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_VideoEncoderHandle encoder = (NEXUS_VideoEncoderHandle) context;
+
+    BDBG_MSG(("Enqueue Picture %p %u", (void *)picture->hLumaBlock, picture->ulPictureId));
+    if(encoder->started)
+    {
+       rc = BVCE_Channel_Picture_Enqueue_isr(encoder->enc, picture);
+    }
+    return rc;
+}
+static NEXUS_Error NEXUS_VideoEncoder_P_DequeueCb_isr(void * context, BAVC_EncodePictureBuffer *picture)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_VideoEncoderHandle encoder = (NEXUS_VideoEncoderHandle) context;
+
+    if(encoder->started) {
+       rc = BVCE_Channel_Picture_Dequeue_isr(encoder->enc, picture);
+    } else {
+       BKNI_Memset(picture,0,sizeof(BAVC_EncodePictureBuffer));
+    }
+
+    BDBG_MSG(("Dequeue Picture %p %u", (void *)picture->hLumaBlock, picture->ulPictureId));
+    return rc;
+}
+
+static void NEXUS_VideoEncoder_P_CloseStcSnapshot(
+    NEXUS_VideoEncoderHandle encoder)
+{
+    if (encoder->snapshot)
+    {
+        NEXUS_Module_Lock(g_NEXUS_VideoEncoder_P_State.config.transport);
+        NEXUS_StcChannel_CloseSnapshot_priv(encoder->snapshot);
+        NEXUS_Module_Unlock(g_NEXUS_VideoEncoder_P_State.config.transport);
+    }
+}
+
+static NEXUS_Error NEXUS_VideoEncoder_P_OpenStcSnapshot(
+    NEXUS_VideoEncoderHandle encoder,
+    const NEXUS_VideoEncoderStartSettings *pSettings,
+    NEXUS_DisplayEncoderSettings * pDisplaySettings)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_StcChannelSnapshotSettings snapshotSettings;
+    NEXUS_StcChannelSnapshotStatus snapshotStatus;
+    unsigned stgIndex;
+
+    stgIndex = NEXUS_Display_GetStgIndex_priv(pSettings->input);
+
+    NEXUS_Module_Lock(g_NEXUS_VideoEncoder_P_State.config.transport);
+    encoder->snapshot = NEXUS_StcChannel_OpenSnapshot_priv(pSettings->stcChannel);
+    if (!encoder->snapshot) {rc=BERR_TRACE(NEXUS_NOT_AVAILABLE); goto error;}
+
+    NEXUS_StcChannel_GetSnapshotSettings_priv(encoder->snapshot, &snapshotSettings);
+    snapshotSettings.triggerIndex = stgIndex;
+    snapshotSettings.mode = NEXUS_StcChannelSnapshotMode_eLegacy;
+    rc = NEXUS_StcChannel_SetSnapshotSettings_priv(encoder->snapshot, &snapshotSettings);
+    if (rc) {rc=BERR_TRACE(rc); goto error;}
+
+    rc = NEXUS_StcChannel_GetSnapshotStatus_priv(encoder->snapshot, &snapshotStatus);
+    if (rc) {rc=BERR_TRACE(rc); goto error;}
+
+    pDisplaySettings->stcSnapshotLoAddr = snapshotStatus.stcLoAddr;
+    pDisplaySettings->stcSnapshotHiAddr = snapshotStatus.stcHiAddr;
+
+    BDBG_MSG(("STCSNAPLO: 0x%x; STCSNAPHI: 0x%x", (uint32_t)(pDisplaySettings->stcSnapshotLoAddr), (uint32_t)(pDisplaySettings->stcSnapshotHiAddr)));
+
+end:
+    NEXUS_Module_Unlock(g_NEXUS_VideoEncoder_P_State.config.transport);
+    return rc;
+
+error:
+    NEXUS_Module_Unlock(g_NEXUS_VideoEncoder_P_State.config.transport);
+    NEXUS_VideoEncoder_P_CloseStcSnapshot(encoder);
+    goto end;
+}
+#endif
+
 NEXUS_Error
 NEXUS_VideoEncoder_Start(NEXUS_VideoEncoderHandle encoder, const NEXUS_VideoEncoderStartSettings *pSettings)
 {
@@ -1008,6 +1093,37 @@ NEXUS_VideoEncoder_Start(NEXUS_VideoEncoderHandle encoder, const NEXUS_VideoEnco
     encoder->startSettings = *pSettings;
 
     NEXUS_Module_Lock(g_NEXUS_VideoEncoder_P_State.config.display);
+    /* currently always allocating the worst case VIP capture size by box mode to prevent dynamic fragmentation;
+       TODO: Shall we alloc based on startSettings? how to avoid mem fragmentation?
+       Shall we alloc at open to save start overhead? Note display is not connected until encode start! */
+#if NEXUS_DISPLAY_VIP_SUPPORT/* start display VIP capture */
+{
+    unsigned deviceId = g_NEXUS_VideoEncoder_P_State.config.vceMapping[encoder->index].device;
+    NEXUS_DisplayEncoderSettings displaySettings;
+
+    BKNI_Memset(&displaySettings, 0, sizeof(NEXUS_DisplayEncoderSettings));
+    displaySettings.enqueueCb_isr = NEXUS_VideoEncoder_P_EnqueueCb_isr;
+    displaySettings.dequeueCb_isr = NEXUS_VideoEncoder_P_DequeueCb_isr;
+    displaySettings.context = encoder;
+    displaySettings.encodeRate = encoder->settings.frameRate;
+
+    rc = NEXUS_VideoEncoder_P_OpenStcSnapshot(encoder, pSettings, &displaySettings);
+    if (rc) {rc=BERR_TRACE(rc); goto error;}
+
+    /* VIP memory allocation; TODO: will move memconfig settings & computation from VCE(encoder) to VDC(display) module; */
+    displaySettings.vip.hHeap = g_pCoreHandles->heap[g_NEXUS_VideoEncoder_P_State.config.heapIndex[deviceId].picture].mma;
+    displaySettings.vip.stMemSettings.ulMemcId    = g_pCoreHandles->boxConfig->stVce.stInstance[deviceId].uiMemcIndex;
+    displaySettings.vip.stMemSettings.bSupportDecimatedLuma = true;
+    displaySettings.vip.stMemSettings.bSupportBframes       = true;
+    displaySettings.vip.stMemSettings.bSupportInterlaced    = pSettings->interlaced;
+    displaySettings.vip.stMemSettings.ulMaxHeight = g_NEXUS_VideoEncoder_P_State.config.videoEncoder[encoder->index].memory.maxHeight;
+    displaySettings.vip.stMemSettings.ulMaxWidth  = g_NEXUS_VideoEncoder_P_State.config.videoEncoder[encoder->index].memory.maxWidth;
+    rc = NEXUS_Display_SetEncoderCallback_priv(pSettings->input, pSettings->window, &displaySettings);
+    if (rc) {rc=BERR_TRACE(rc); goto error;}
+    rc = NEXUS_Display_EnableEncoderCallback_priv(pSettings->input);
+    if (rc) {rc=BERR_TRACE(rc); goto error;}
+}
+#endif
     if(encoder->settings.streamStructure.adaptiveDuration && encoder->settings.streamStructure.duration) {
         const char *resolRamp = NEXUS_GetEnv("STG_ResolutionRampCount");
         if(resolRamp) {
@@ -1086,6 +1202,15 @@ NEXUS_VideoEncoder_Stop( NEXUS_VideoEncoderHandle encoder,const NEXUS_VideoEncod
     rc = BVCE_Channel_StopEncode(encoder->enc, &stopSettings);
     if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);}
 
+#if NEXUS_DISPLAY_VIP_SUPPORT /* stop display VIP capture */
+    NEXUS_Module_Lock(g_NEXUS_VideoEncoder_P_State.config.display);
+    rc = NEXUS_Display_DisableEncoderCallback_priv(encoder->startSettings.input);
+    if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);}
+    rc = NEXUS_Display_SetEncoderCallback_priv(encoder->startSettings.input, NULL, NULL);
+    NEXUS_Module_Unlock(g_NEXUS_VideoEncoder_P_State.config.display);
+    if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);}
+    NEXUS_VideoEncoder_P_CloseStcSnapshot(encoder);
+#endif
     encoder->started = false;
     return;
 }

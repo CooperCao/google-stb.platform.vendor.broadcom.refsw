@@ -291,7 +291,8 @@ static BroadBee_ZHA_Status BroadBee_ZHA_Read_Attributes_Direct_Async(ZBPRO_APS_E
     params->zclObligatoryPart.respWaitTimeout = timeout;
     params->zclObligatoryPart.disableDefaultResp = ZBPRO_ZCL_FRAME_DEFAULT_RESPONSE_ENABLED;
     params->zclObligatoryPart.useDefaultResponse = ZBPRO_ZCL_RESPONSE_TYPE_SPECIFIC;
-    params->attributeId = attributeID;
+    params->attributeNumber = 1;
+    params->attributeId[0] = attributeID;
     reqDescr->callback = My_BroadBee_ZHA_Read_Attributes_Direct_Async_Callback;
 
     ZBPRO_ZCL_ProfileWideCmdReadAttributesReq(reqDescr);

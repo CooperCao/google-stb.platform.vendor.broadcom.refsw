@@ -95,6 +95,10 @@ else
 BCHP_PWR_CTK_SUPPORT=n
 endif
 
+ifeq ($(NEXUS_SHARED_SPI),y)
+BINT_SPI_DISABLED=y
+endif
+
 ##################
 # Module Defines #
 ##################
@@ -135,8 +139,11 @@ ifeq ($(BMEM_DEPRECATED), y)
 NEXUS_CORE_DEFINES += BMEM_DEPRECATED=1
 endif
 
-# TEE Support for ARM audio
+# TEE Support for ARM audio etc
 ifeq ($(NEXUS_ARM_AUDIO_SUPPORT),y)
+NEXUS_TEE_SUPPORT ?= y
+endif
+ifeq ($(NEXUS_TEE_SUPPORT),y)
 NEXUS_CORE_MAGNUM_MODULES += $(MAGNUM)/commonutils/tee/btee.inc
 endif
 

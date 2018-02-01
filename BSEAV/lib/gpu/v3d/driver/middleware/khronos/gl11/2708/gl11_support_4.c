@@ -71,7 +71,7 @@ bool gl11_hw_get_texunit_properties(GLXX_SERVER_STATE_T *state, GLXX_ATTRIB_T *t
       GL11_TEXUNIT_T *texunit = &state->texunits[i];
       GL11_CACHE_TEXUNIT_ABSTRACT_T *texabs = &state->shader.texunits[i];
 
-      MEM_HANDLE_T thandle = MEM_HANDLE_INVALID;
+      GLXX_TEXTURE_T *texture = NULL;
 
       memset(&texabs->props, 0, sizeof(texabs->props));
       memset(&texabs->rgb, 0, sizeof(texabs->rgb));
@@ -79,20 +79,19 @@ bool gl11_hw_get_texunit_properties(GLXX_SERVER_STATE_T *state, GLXX_ATTRIB_T *t
 
       switch (texunit->target_enabled) {
       case GL_TEXTURE_2D:
-          thandle = state->bound_texture[i].mh_twod;
-          break;
+         texture = state->bound_texture[i].twod;
+         break;
       case GL_TEXTURE_EXTERNAL_OES:
-          thandle = state->bound_texture[i].mh_external;
-          break;
+         texture = state->bound_texture[i].external;
+         break;
       case GL_NONE:
-          break;
+         break;
       default:
-          UNREACHABLE();
-          break;
+         UNREACHABLE();
+         break;
       }
 
-      if (thandle != MEM_HANDLE_INVALID) {
-         GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(thandle, NULL);
+      if (texture != NULL) {
          GLXX_TEXTURE_COMPLETENESS_T completeness = glxx_texture_check_complete(texture);
 
          switch (completeness) {
@@ -140,8 +139,6 @@ bool gl11_hw_get_texunit_properties(GLXX_SERVER_STATE_T *state, GLXX_ATTRIB_T *t
             out_of_memory = true;
             break;
          }
-
-         mem_unlock(thandle);
       } else {
          texabs->props.active = false;
       }

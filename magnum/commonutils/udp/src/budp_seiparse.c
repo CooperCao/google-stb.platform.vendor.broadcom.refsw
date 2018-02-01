@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,14 +38,6 @@
  * Module Description:
  *
  ***************************************************************************/
-
-/* For debugging */
-/* #define BUDP_P_GETUD_DUMP 1 */
-#ifdef BUDP_P_GETUD_DUMP
-static const char* BUDP_P_Getud_Filename = "userdata.getud";
-#include <stdio.h>
-#endif
-
 #include "bstd.h"
 #include "bdbg.h"
 #include "bvlc.h"
@@ -62,20 +54,13 @@ BDBG_MODULE(BUDP);
 static size_t FindSeiUserdataStart_isr (
     const uint8_t* userdata, size_t length);
 
-#ifdef BUDP_P_GETUD_DUMP
-static void dump_getud_isr (
-    const BAVC_USERDATA_info* pUserdata_info, size_t offset);
-#endif
-
 /***************************************************************************
 * Static data (tables, etc.)
 ***************************************************************************/
 
-
 /***************************************************************************
 * Implementation of "BUDP_SEIparse_" API functions
 ***************************************************************************/
-
 
 /***************************************************************************
  *
@@ -109,9 +94,8 @@ BERR_Code BUDP_SEIparse (
 
     /* Programming note:  all function parameters are now validated */
 
-
-#ifdef BUDP_P_GETUD_DUMP
-    dump_getud_isr (pUserdata_info, offset);
+#if (BUDP_P_GETUD_DUMP)
+    BUDP_P_dump_getud_isr (pUserdata_info, offset, BUDP_P_Getud_Filename);
 #endif
 
     /* Take care of a special case */
@@ -346,45 +330,4 @@ static size_t FindSeiUserdataStart_isr (
     }
 }
 
-
-#ifdef BUDP_P_GETUD_DUMP
-static void dump_getud_isr (
-    const BAVC_USERDATA_info* pUserdata_info, size_t offset)
-{
-    unsigned int iByte;
-    static FILE* fd = NULL;
-    static unsigned int nPicture;
-    uint8_t* userdata = (uint8_t*)(pUserdata_info->pUserDataBuffer) + offset;
-    uint32_t length   = pUserdata_info->ui32UserDataBufSize - offset;
-
-    /* Initialization */
-    if (fd == NULL)
-    {
-        if ((fd = fopen (BUDP_P_Getud_Filename, "w")) == 0)
-        {
-            fprintf (stderr, "ERROR: could not open %s for debug output\n",
-                BUDP_P_Getud_Filename);
-            return;
-        }
-        fprintf (fd, "getud output format version 1\n");
-        nPicture = 0;
-    }
-
-    fprintf (fd, "\nPic %u LOC %06lx TR %u\n", ++nPicture, 0UL, 0U);
-    fprintf (fd, "PS %d TFF %d RFF %d\n",
-        pUserdata_info->eSourcePolarity,
-        pUserdata_info->bTopFieldFirst,
-        pUserdata_info->bRepeatFirstField);
-    fprintf (fd, "UDBYTES %u\n", length);
-    for (iByte = 0 ; iByte < length ; ++iByte)
-    {
-        fprintf (fd, "%02x", userdata[iByte]);
-        if ((iByte % 16) == 15)
-            putc ('\n', fd);
-        else
-            putc (' ', fd);
-    }
-    if ((iByte % 16) != 15)
-        putc ('\n', fd);
-}
-#endif
+/* End of file */

@@ -938,13 +938,15 @@ NEXUS_Timebase NEXUS_Timebase_Open(unsigned index)
 
 static void NEXUS_Timebase_P_Finalizer(NEXUS_TimebaseHandle timebase)
 {
+    NEXUS_Error rc;
     NEXUS_TimebaseSettings settings;
 
     NEXUS_OBJECT_ASSERT(NEXUS_Timebase, timebase);
 
     /* revert to default known state */
     NEXUS_Timebase_GetDefaultSettings(&settings);
-    NEXUS_Timebase_P_SetSettings(timebase, &settings);
+    rc = NEXUS_Timebase_P_SetSettings(timebase, &settings);
+    if (rc) BERR_TRACE(rc); /* keep going */
 
     /* this may unregister enum variant usage, if that usage was done
     in an unprotected client *after* a protected client already acquired

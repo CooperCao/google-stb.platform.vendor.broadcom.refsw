@@ -23,7 +23,7 @@ typedef struct {
       bool is_16;
       bool is_int;
       bool is_present;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       bool alpha_16_workaround;
 #endif
    } rt[V3D_MAX_RENDER_TARGETS];

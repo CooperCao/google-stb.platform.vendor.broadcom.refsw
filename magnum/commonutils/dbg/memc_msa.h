@@ -145,7 +145,7 @@ static BERR_Code msa_P_Acquire(BREG_Handle reg, unsigned offset)
 static BERR_Code msa_Reset(BREG_Handle reg, unsigned memc)
 {
     BERR_Code rc;
-    unsigned offset;
+    unsigned offset=0;
 
     rc = msa_GetOffset(memc, &offset);
     if(rc!=BERR_SUCCESS) { return BERR_TRACE(rc); }

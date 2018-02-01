@@ -8,24 +8,11 @@
 #include "interface/khronos/egl/egl_int.h"
 
 #include "interface/khronos/common/khrn_client_platform.h"
+#include "middleware/khronos/common/khrn_image.h"
+#include "middleware/khronos/glxx/glxx_texture.h"
 
-typedef enum {
-   WINDOW,
-   PBUFFER,
-   PIXMAP
-} EGL_SURFACE_TYPE_T;
-
-typedef enum {
-   SRGB,
-   LINEAR
-} EGL_SURFACE_COLORSPACE_T;
-
-typedef enum {
-   NONPRE,
-   PRE
-} EGL_SURFACE_ALPHAFORMAT_T;
-
-typedef struct {
+typedef struct
+{
    EGLSurface name;
 
    /*
@@ -103,33 +90,12 @@ typedef struct {
    */
    uint32_t height;
 
-   EGL_SURFACE_ID_T serverbuffer;
-
-   /*
-      context_binding_count
-
-      Invariant:
-
-      (EGL_SURFACE_BINDING_COUNT)
-      If we are current, how many times we are bound to the current context. Otherwise 0.
-   */
-   uint32_t context_binding_count;
    struct CLIENT_THREAD_STATE *thread;    // If we are current, which the EGL client state for the thread are we associated with.
 
 #if EGL_KHR_lock_surface
-   EGLBoolean is_locked;
+   bool is_locked;
    void *mapped_buffer;
 #endif
-
-   /*
-      is_destroyed
-
-      Invariant:
-
-      (EGL_SURFACE_IS_DESTROYED)
-      Iff true, is not a member of the CLIENT_PROCESS_STATE_T.surfaces
-   */
-   bool is_destroyed;
 
    /*
       swap_behavior
@@ -219,6 +185,28 @@ typedef struct {
       pixmap is a valid client-side pixmap handle for pixmap P
    */
    EGLNativePixmapType pixmap;
+
+   bool mipmap;
+   uint32_t back_buffer_index;
+
+   KHRN_IMAGE_T *color[EGL_MAX_BUFFERS];
+   KHRN_IMAGE_T *depth;
+   KHRN_IMAGE_T *ds_multi;
+   KHRN_IMAGE_T *color_multi;
+
+   uint8_t config_depth_bits;   // How many depth bits were requested in config. May not match actual buffer.
+   uint8_t config_stencil_bits; // How many stencil bits were requested in config. May not match actual buffer.
+
+   GLXX_TEXTURE_T *bound_texture;
+   uint32_t swap_interval;
+
+   /* Get the buffer to draw to */
+   KHRN_IMAGE_T *(*get_back_buffer)(void *p);
+   KHRN_IMAGE_T *active_image;
+
+   BEGL_WindowState *native_window_state;
+   KHRN_IMAGE_FORMAT_T colorformat;
+
 } EGL_SURFACE_T;
 
 extern EGLint egl_surface_check_attribs(
@@ -252,9 +240,8 @@ extern EGL_SURFACE_T *egl_surface_create(
    bool mipmap_texture,
    EGLenum texture_format,
    EGLenum texture_target,
-   EGLNativePixmapType pixmap);
-
-extern void egl_surface_free(EGL_SURFACE_T *surface);
+   EGLNativePixmapType pixmap,
+   int *result);
 
 extern EGLBoolean egl_surface_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint *value);
 extern EGLint egl_surface_set_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint value);
@@ -263,4 +250,3 @@ extern EGLint egl_surface_get_render_buffer(EGL_SURFACE_T *surface);
 #if EGL_KHR_lock_surface
 extern EGLint egl_surface_get_mapped_buffer_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint *value);
 #endif
-extern void egl_surface_maybe_free(EGL_SURFACE_T *surface);

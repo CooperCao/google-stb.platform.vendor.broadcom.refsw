@@ -89,14 +89,28 @@ static v3d_tfu_yuv_col_space_t get_tfu_col_space(gfx_buffer_colorimetry_t src_pr
    // NOTE : Work is planned in Nexus/Magnum to allow us to query the actual VDC matrix given
    // the colorimetry enum. For now, just handle what we can. When the matrix query is
    // available, we need to expose it through the platform interface and use that instead which
-   // will involve filling in the matrix coefficients in the V3D_TFU_COMMAND_T
+   // will involve filling in the matrix coefficients in the V3D_TFU_COMMAND_T.
+
+   // These mapping are based on the magnum mappings in s_aAvcMatrixCoeffs_to_Colorimetry
    switch (src_primaries)
    {
-   default                               :
-   case GFX_BUFFER_COLORIMETRY_DEFAULT   : return V3D_TFU_YUV_COL_SPACE_REC601;
-   case GFX_BUFFER_COLORIMETRY_XVYCC_601 : return V3D_TFU_YUV_COL_SPACE_REC601;
-   case GFX_BUFFER_COLORIMETRY_XVYCC_709 :
-   case GFX_BUFFER_COLORIMETRY_BT_709    : return V3D_TFU_YUV_COL_SPACE_REC709;
+   case GFX_BUFFER_COLORIMETRY_DEFAULT               :
+   case GFX_BUFFER_COLORIMETRY_BT_709                :
+   case GFX_BUFFER_COLORIMETRY_XVYCC_709             :
+   case GFX_BUFFER_COLORIMETRY_UNKNOWN               :
+   case GFX_BUFFER_COLORIMETRY_HDMI_FULL_RANGE_YCBCR :
+   case GFX_BUFFER_COLORIMETRY_DVI_FULL_RANGE_RGB    : return V3D_TFU_YUV_COL_SPACE_REC709;
+
+   case GFX_BUFFER_COLORIMETRY_SMPTE_170M            :
+   case GFX_BUFFER_COLORIMETRY_XVYCC_601             :
+   case GFX_BUFFER_COLORIMETRY_BT_470_2_BG           : // Same matrix as BT.601
+   case GFX_BUFFER_COLORIMETRY_FCC                   : return V3D_TFU_YUV_COL_SPACE_REC601;
+
+   // We don't currently have direct support for these, so they all assume BT.601
+   case GFX_BUFFER_COLORIMETRY_BT_2020_NCL           : // Should be BT.2020
+   case GFX_BUFFER_COLORIMETRY_BT_2020_CL            : // Should be BT.2020
+   case GFX_BUFFER_COLORIMETRY_SMPTE_240M            : // Should be Smpte240M
+   default                                           : return V3D_TFU_YUV_COL_SPACE_REC601;
    }
 }
 

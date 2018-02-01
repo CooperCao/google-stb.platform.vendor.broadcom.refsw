@@ -171,11 +171,11 @@ public:
       return (*it).second;
    }
 
-   uint32_t GetNumTextures()                 const { return m_texture.size();                            }
+   uint32_t GetNumTextures()                 const { return static_cast<uint32_t>(m_texture.size());     }
    uint32_t GetTextureForChar(uint32_t ch)   const { return (*m_charInfo.find(ch)).second.GetTexture();  }
 
 private:
-   uint32_t       GetNumChars()            const    { return m_charInfo.size();   }
+   uint32_t       GetNumChars()            const    { return static_cast<uint32_t>(m_charInfo.size());   }
    TextureHandle  GetTexture(uint32_t t)   const    { return m_texture[t];        }
 
    Vec2  GetKerning(uint32_t prev, uint32_t next);

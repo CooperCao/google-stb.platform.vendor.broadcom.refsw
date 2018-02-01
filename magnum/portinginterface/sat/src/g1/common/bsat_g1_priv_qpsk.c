@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -107,7 +107,7 @@ static BERR_Code BSAT_g1_P_QpskInitializeLoopParameters_isr(BSAT_ChannelHandle h
       {0x71EC, 0x083D, 0x080C, 0x0619, 0x49BA, 0x0831},  /* 12000000 <= Fb < 17000000 */
       {0x71EC, 0x0C3D, 0x0C3D, 0x0C3D, 0x49BA, 0x0831},  /* 17000000 <= Fb < 23000000 */
       {0x71EC, 0x0C3D, 0x0C3D, 0x0C3D, 0x49BA, 0x0831},  /* 23000000 <= Fb < 27000000 */
-      {0x71EC, 0x0C3D, 0x0C3D, 0x0C3D, 0x49BA, 0x0831}   /* 27000000 <= Fb < 45000000 */
+      {0x71EC, 0x0C3D, 0x0C3D, 0x0C3D, 0x49BA, 0x0831}   /* 27000000 <= Fb */
    };
 
    static const uint8_t qpsk_damp[7][6] =
@@ -119,7 +119,7 @@ static BERR_Code BSAT_g1_P_QpskInitializeLoopParameters_isr(BSAT_ChannelHandle h
       {0x0C, 0x08, 0x18, 0x18, 0x04, 0x04},  /* 12000000 <= Fb < 17000000 */
       {0x0C, 0x08, 0x08, 0x08, 0x0C, 0x0C},  /* 17000000 <= Fb < 23000000 */
       {0x0C, 0x08, 0x18, 0x18, 0x08, 0x04},  /* 23000000 <= Fb < 27000000 */
-      {0x0C, 0x08, 0x18, 0x18, 0x04, 0x04}   /* 27000000 <= Fb < 45000000 */
+      {0x0C, 0x08, 0x18, 0x18, 0x04, 0x04}   /* 27000000 <= Fb */
    };
 
    /* determine symbol rate range */
@@ -454,7 +454,6 @@ static BERR_Code BSAT_g1_P_QpskSpinvScan1_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val, sts;
-   BERR_Code retCode;
 
    while (1)
    {
@@ -502,8 +501,7 @@ static BERR_Code BSAT_g1_P_QpskSpinvScan1_isr(BSAT_ChannelHandle h)
 
          default:
             BDBG_ERR(("invalid state"));
-            BERR_TRACE(retCode = BSAT_ERR_INVALID_STATE);
-            break;
+            return BSAT_ERR_INVALID_STATE;
       }
    }
 

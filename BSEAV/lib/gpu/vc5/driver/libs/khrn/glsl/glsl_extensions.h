@@ -4,6 +4,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 
 enum glsl_ext {
     /*
@@ -72,4 +73,4 @@ extern enum glsl_ext glsl_ext_lookup(const char *identifier);
 const char *glsl_ext_get_identifier(unsigned ext, unsigned id);
 
 /* Return the stdlib mask needed for all enabled extensions */
-extern int glsl_ext_get_symbol_mask(void);
+extern uint64_t glsl_ext_get_symbol_mask(void);

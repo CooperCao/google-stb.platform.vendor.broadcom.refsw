@@ -493,7 +493,7 @@ const uint32_t BDSP_IMG_pcm_ids_array1[] = {
 	0x3d808410,
 	0x1b418483,
 	0x94140b00,
-	0xa73e0dd7,
+	0xa73e89d7,
 	0x001ffdfa,
 	0x7400030b,
 	0x94221103,

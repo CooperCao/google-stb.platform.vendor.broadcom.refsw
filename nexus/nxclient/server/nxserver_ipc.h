@@ -120,6 +120,7 @@ int  nxclient_p_set_picture_quality_settings(nxclient_ipc_t _client, const NxCli
 int  nxclient_p_get_callback_status(nxclient_ipc_t _client, NxClient_CallbackStatus *pStatus );
 int  nxclient_p_get_audio_status(nxclient_ipc_t _client, NxClient_AudioStatus *pStatus );
 int  nxclient_p_set_client_mode(nxclient_ipc_t _client, const NxClient_ClientModeSettings *pSettings );
+int  nxclient_p_get_thermal_status(nxclient_ipc_t client, NxClient_ThermalStatus *pStatus);
 
 #endif /* NXSERVER_IPC_H__ */
 

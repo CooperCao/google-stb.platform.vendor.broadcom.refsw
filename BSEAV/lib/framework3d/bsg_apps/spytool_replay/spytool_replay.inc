@@ -2,11 +2,11 @@
 # Copyright (C) 2008 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 ###############################################################################
 
-CXXFLAGS += -I$(BSEAV_DIR)/lib/gpu/$(V3D_PREFIX)/tools/$(HOOK_NAME)
+CXXFLAGS += -I$(BSEAV_DIR)/lib/gpu/tools/gpumon_hook
 CXXFLAGS += -I$(BSEAV_DIR)/lib/gpu/$(V3D_PREFIX)/driver
 CXXFLAGS += -I$(BSEAV_DIR)/lib/gpu/$(V3D_PREFIX)/driver/interface/khronos/include
 
-VPATH = $(BSEAV_DIR)/lib/gpu/$(V3D_PREFIX)/tools/$(HOOK_NAME)
+VPATH = $(BSEAV_DIR)/lib/gpu/tools/gpumon_hook
 
 SOURCES =             \
    spytool_replay.cpp \

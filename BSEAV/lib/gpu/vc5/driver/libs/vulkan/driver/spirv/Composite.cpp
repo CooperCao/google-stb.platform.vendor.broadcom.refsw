@@ -19,7 +19,10 @@ namespace bvk {
 
 void LayoutInfo::CaptureMemberLayout(const Module &module, const NodeTypeStruct *node, uint32_t index)
 {
-   module.GetMatrixMemoryLayout(node, index, &m_matrixStride, &m_columnMajor);
+   // Only do anything for matrices and arrays of matrices. This is equivalent
+   // to being decorated with MatrixStride.
+   if (module.GetLiteralMemberDecoration(&m_matrixStride, spv::Decoration::MatrixStride, node, index))
+      m_columnMajor = module.HasMemberDecoration(spv::Decoration::ColMajor, node, index);
 }
 
 void LayoutInfo::CaptureMatrixDetail(const NodeTypeMatrix *mat)
@@ -32,6 +35,45 @@ void LayoutInfo::CaptureMatrixDetail(const NodeTypeMatrix *mat)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// TypeFind
+//
+// Applies an access chain to find the result type
+///////////////////////////////////////////////////////////////////////////////
+TypeFind::TypeFind(DflowBuilder &builder, const NodeType *elem) :
+   m_builder(builder),
+   m_elem(elem)
+{
+}
+
+const NodeType *TypeFind::FindType(DflowBuilder &builder, const NodeType *type,
+                                   const spv::vector<const Node *> &indices)
+{
+   TypeFind visitor(builder, type);
+
+   for (const Node *index : indices)
+      visitor.AcceptElement(index);
+
+   return visitor.m_elem;
+}
+
+void TypeFind::AcceptElement(const Node *indexNode)
+{
+   m_index = indexNode;
+   m_elem->AcceptType(*this);
+}
+
+void TypeFind::Visit(const NodeTypeVector *node) { m_elem = node->GetComponentType()->As<const NodeType *>(); }
+void TypeFind::Visit(const NodeTypeMatrix *node) { m_elem = node->GetColumnType()->As<const NodeType *>();    }
+void TypeFind::Visit(const NodeTypeArray  *node) { m_elem = node->GetElementType()->As<const NodeType *>();   }
+void TypeFind::Visit(const NodeTypeRuntimeArray *node) { m_elem = node->GetElementType()->As<const NodeType *>(); }
+
+void TypeFind::Visit(const NodeTypeStruct *node)
+{
+   uint32_t constIndex = m_builder.RequireConstantInt(m_index);
+   m_elem = node->GetMemberstype()[constIndex]->As<const NodeType *>();
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // MemoryOffset
 //
 // Calculates Dataflow for the memory offset of a dynamically indexed
@@ -40,9 +82,7 @@ void LayoutInfo::CaptureMatrixDetail(const NodeTypeMatrix *mat)
 MemoryOffset::MemoryOffset(DflowBuilder &builder, const NodeType *elem) :
    m_builder(builder),
    m_elem(elem),
-   m_indexNode(nullptr),
-   m_indexIsConstant(false),
-   m_constantIndex(0),
+   m_index(nullptr),
    m_dynOffset(Dflow::ConstantUInt(0)),
    m_constOffset(0)
 {
@@ -72,8 +112,7 @@ Dflow MemoryOffset::Calculate(DflowBuilder &builder, const NodeType *type,
 
 void MemoryOffset::AcceptElement(const Node *indexNode)
 {
-   m_indexNode       = indexNode;
-   m_indexIsConstant = m_builder.ConstantInt(indexNode, &m_constantIndex);
+   m_index = indexNode;
 
    m_elem->AcceptType(*this);
 }
@@ -83,32 +122,30 @@ Dflow MemoryOffset::Result() const
    return m_dynOffset + Dflow::ConstantUInt(m_constOffset);
 }
 
+void MemoryOffset::ApplyIndex(uint32_t stride)
+{
+   uint32_t constIndex;
+   bool isConst = m_builder.ConstantInt(m_index, &constIndex);
+
+   if (isConst)
+      m_constOffset = m_constOffset + constIndex * stride;
+   else
+      m_dynOffset   = m_dynOffset + (m_builder.GetDataflow(m_index)[0].As(DF_UINT) *
+                                      Dflow::ConstantUInt(stride));
+}
+
 void MemoryOffset::Visit(const NodeTypeVector *node)
 {
-   uint32_t stride = m_layoutInfo.RowStride();
-
    m_elem = node->GetComponentType()->As<const NodeType *>();
-
-   if (m_indexIsConstant)
-      m_constOffset = m_constOffset + m_constantIndex * stride;
-   else
-      m_dynOffset   = m_dynOffset + (m_builder.GetDataflow(m_indexNode)[0].As(DF_UINT) *
-                                      Dflow::ConstantUInt(stride));
+   ApplyIndex(m_layoutInfo.RowStride());
 }
 
 void MemoryOffset::Visit(const NodeTypeMatrix *node)
 {
    m_layoutInfo.CaptureMatrixDetail(node);
 
-   uint32_t stride = m_layoutInfo.ColumnStride();
-
    m_elem = node->GetColumnType()->As<const NodeType *>();
-
-   if (m_indexIsConstant)
-      m_constOffset = m_constOffset + m_constantIndex * stride;
-   else
-      m_dynOffset   = m_dynOffset + (m_builder.GetDataflow(m_indexNode)[0].As(DF_UINT) *
-                                       Dflow::ConstantUInt(stride));
+   ApplyIndex(m_layoutInfo.ColumnStride());
 }
 
 void MemoryOffset::VisitArray(const Node *array)
@@ -117,39 +154,31 @@ void MemoryOffset::VisitArray(const Node *array)
    uint32_t stride = 0;
    m_builder.GetModule().GetLiteralDecoration(&stride, spv::Decoration::ArrayStride, array);
 
-   if (m_indexIsConstant)
-      m_constOffset = m_constOffset + m_constantIndex * stride;
-   else
-      m_dynOffset = m_dynOffset + (m_builder.GetDataflow(m_indexNode)[0].As(DF_UINT) *
-                                     Dflow::ConstantUInt(stride));
+   ApplyIndex(stride);
 }
 
 void MemoryOffset::Visit(const NodeTypeArray *node)
 {
    m_elem = node->GetElementType()->As<const NodeType *>();
-
    VisitArray(node);
 }
 
 void MemoryOffset::Visit(const NodeTypeRuntimeArray *node)
 {
    m_elem = node->GetElementType()->As<const NodeType *>();
-
    VisitArray(node);
 }
 
 void MemoryOffset::Visit(const NodeTypeStruct *node)
 {
-   assert(m_indexIsConstant);
+   uint32_t constIndex = m_builder.RequireConstantInt(m_index);
 
-   uint32_t offset;
-   bool     found = m_builder.GetModule().GetLiteralMemberDecoration(&offset, spv::Decoration::Offset,
-                                                                     node, m_constantIndex);
+   uint32_t offset = m_builder.GetModule().RequireLiteralMemberDecoration(spv::Decoration::Offset,
+                                                                          node, constIndex);
 
-   assert(found);
-   m_layoutInfo.CaptureMemberLayout(m_builder.GetModule(), node, m_constantIndex);
+   m_layoutInfo.CaptureMemberLayout(m_builder.GetModule(), node, constIndex);
 
-   m_elem         = node->GetMemberstype()[m_constantIndex]->As<const NodeType *>();
+   m_elem         = node->GetMemberstype()[constIndex]->As<const NodeType *>();
    m_constOffset += offset;
 }
 
@@ -184,8 +213,7 @@ uint32_t ScalarOffsetStatic::Calculate(
 
    for (const Node *i : indices)
    {
-      uint32_t cv;
-      builder.ConstantInt(i, &cv);
+      uint32_t cv = builder.RequireConstantInt(i);
       visitor.AcceptElement(cv);
    }
 
@@ -313,8 +341,7 @@ void MemoryOffsetsOfScalars::Visit(const NodeTypeArray *node)
    uint32_t arrayStride = 0;
    m_builder.GetModule().GetLiteralDecoration(&arrayStride, spv::Decoration::ArrayStride, node);
 
-   uint32_t length;
-   m_builder.ConstantInt(node->GetLength(), &length);
+   uint32_t length = m_builder.RequireConstantInt(node->GetLength());
 
    const NodeType *elemType = node->GetElementType()->As<const NodeType *>();
 
@@ -334,10 +361,8 @@ void MemoryOffsetsOfScalars::Visit(const NodeTypeStruct *node)
    uint32_t memberIndex = 0;
    for (auto &member : members)
    {
-      uint32_t offset;
-      bool     foundOffset = m_builder.GetModule().GetLiteralMemberDecoration(&offset, spv::Decoration::Offset,
-                                                                              node, memberIndex);
-      assert(foundOffset);
+      uint32_t offset = m_builder.GetModule().RequireLiteralMemberDecoration(spv::Decoration::Offset,
+                                                                             node, memberIndex);
 
       LayoutInfo layoutInfo(m_layoutInfo);
       layoutInfo.CaptureMemberLayout(m_builder.GetModule(), node, memberIndex);
@@ -393,9 +418,7 @@ void MemoryLayout::Visit(const NodeTypeMatrix *node)
 void MemoryLayout::Visit(const NodeTypeStruct *node)
 {
    // Indices into structures must be constant
-   uint32_t memberIndex;
-
-   m_builder.ConstantInt(m_indices[m_curIndex], &memberIndex);
+   uint32_t memberIndex = m_builder.RequireConstantInt(m_indices[m_curIndex]);
 
    m_result.CaptureMemberLayout(m_builder.GetModule(), node, memberIndex);
    m_elem   = node->GetMemberstype()[memberIndex]->As<const NodeType *>();
@@ -465,8 +488,7 @@ void ExtractDynamicScalars::Visit(const NodeTypeMatrix *node)
 
 void ExtractDynamicScalars::Visit(const NodeTypeArray *node)
 {
-   uint32_t numElems;
-   m_builder.ConstantInt(node->GetLength(), &numElems);
+   uint32_t numElems = m_builder.RequireConstantInt(node->GetLength());
    auto     elemType = node->GetElementType()->As<const NodeType *>();
    uint32_t elemSize = m_builder.GetNumScalars(elemType);
 
@@ -492,9 +514,8 @@ void ExtractDynamicScalars::Visit(const NodeTypeArray *node)
 
 void ExtractDynamicScalars::Visit(const NodeTypeStruct *node)
 {
-   uint32_t index;
-   m_builder.ConstantInt(m_index, &index);    // Must be a constant
-   uint32_t offset     = m_builder.StructureOffset(node, index);
+   uint32_t index  = m_builder.RequireConstantInt(m_index);
+   uint32_t offset = m_builder.StructureOffset(node, index);
 
    auto     memberType = node->GetMemberstype()[index]->As<const NodeType *>();
    uint32_t numScalars = m_builder.GetNumScalars(memberType);
@@ -667,9 +688,7 @@ void InsertDynamicScalars::Visit(const NodeTypeMatrix *node)
 void InsertDynamicScalars::Visit(const NodeTypeArray *node)
 {
    auto     elemType = node->GetElementType()->As<const NodeType *>();
-   uint32_t numElems;
-
-   m_builder.ConstantInt(node->GetLength(), &numElems);
+   uint32_t numElems = m_builder.RequireConstantInt(node->GetLength());
 
    uint32_t elemSize = m_builder.GetNumScalars(elemType);
    uint32_t offset   = m_curOffset;
@@ -691,8 +710,7 @@ void InsertDynamicScalars::Visit(const NodeTypeStruct *node)
 
    uint32_t offset   = m_curOffset;
    uint32_t memberIx = 0;
-   uint32_t index;
-   m_builder.ConstantInt(m_accessChain[m_curIndex], &index);
+   uint32_t index = m_builder.RequireConstantInt(m_accessChain[m_curIndex]);
 
    for (auto &mt : memberTypes)
    {
@@ -763,7 +781,7 @@ void BlockIndex::Visit(const NodeTypeArray *type)
 {
    const Node *index = m_accessChain[0];
 
-   m_builder.ConstantInt(index, &m_index);
+   m_index = m_builder.RequireConstantInt(index);
 }
 
 void BlockIndex::Visit(const NodeTypeStruct *type)
@@ -774,11 +792,20 @@ void BlockIndex::Visit(const NodeTypeStruct *type)
 ///////////////////////////////////////////////////////////////////////////////
 // IsSSBO
 //
-// For struct or array, extract the constant block index
+// Return whether or not a variable is in an SSBO
 ///////////////////////////////////////////////////////////////////////////////
-bool IsSSBO::Test(const Module &m, const NodeType *type)
+bool IsSSBO::Test(const Module &m, const NodeVariable *v)
 {
+   spv::StorageClass s = v->GetStorageClass();
+   if (s == spv::StorageClass::StorageBuffer)
+      return true;
+   if (s != spv::StorageClass::Uniform)
+      return false;
+
    IsSSBO   visitor(m);
+
+   auto pointerType = v->GetResultType()->As<const NodeTypePointer *>();
+   auto type = pointerType->GetType()->As<const NodeType *>();
 
    type->AcceptType(visitor);
 

@@ -6,25 +6,27 @@
 #include <stdint.h>
 
 typedef enum {
-   OPENGL_ES_11,
-   OPENGL_ES_20,
-   OPENVG
+   OPENGL_ES_NONE = 0,
+   OPENGL_ES_11 = 1 << 0,
+   OPENGL_ES_20 = 1 << 1,
+   OPENGL_ES_ANY = OPENGL_ES_11 | OPENGL_ES_20
 } EGL_CONTEXT_TYPE_T;
 
-// A single colour buffer. Optional ancillary buffers. If triple-buffered,
-// three EGL_SERVER_SURFACE_T's share ancillary buffers
-typedef uint32_t EGL_SURFACE_ID_T;
+typedef enum {
+   WINDOW,
+   PBUFFER,
+   PIXMAP
+} EGL_SURFACE_TYPE_T;
 
-// Either a GLES1.1 or GLES2.0 server state
-typedef uint32_t EGL_GL_CONTEXT_ID_T;
-typedef uint32_t EGL_VG_CONTEXT_ID_T;
-typedef uint32_t EGL_CONTEXT_ID_T;
+typedef enum {
+   SRGB,
+   LINEAR
+} EGL_SURFACE_COLORSPACE_T;
 
-#define EGL_SERVER_NO_SURFACE 0
-#define EGL_SERVER_NO_GL_CONTEXT 0
-#define EGL_SERVER_NO_VG_CONTEXT 0
+typedef enum {
+   NONPRE,
+   PRE
+} EGL_SURFACE_ALPHAFORMAT_T;
 
-#define EGL_SERVER_GL11 1
-#define EGL_SERVER_GL20 2
-
-typedef uint32_t EGL_SYNC_ID_T;
+// Must be enough for triple-buffering (windows) and mipmaps (pbuffers)
+#define EGL_MAX_BUFFERS       12

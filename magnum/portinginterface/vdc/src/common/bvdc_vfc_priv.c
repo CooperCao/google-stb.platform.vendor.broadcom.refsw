@@ -51,11 +51,9 @@
 #include "bvdc_vnet_priv.h"
 #include "bvdc_compositor_priv.h"
 
-
 BDBG_MODULE(BVDC_VFC);
 BDBG_FILE_MODULE(BVDC_DITHER);
 BDBG_OBJECT_ID(BVDC_VFC);
-
 
 #define BVDC_P_MAKE_VFC(pVfc, id, channel_init)                                 \
 {                                                                               \
@@ -214,12 +212,11 @@ static void BVDC_P_Vfc_Init_isr
     return;
 }
 
-
 /***************************************************************************
  * {private}
  *
  */
-void BVDC_P_Vfc_BuildRul_SetEnable_isr
+static void BVDC_P_Vfc_BuildRul_SetEnable_isr
     ( BVDC_P_Vfc_Handle             hVfc,
       BVDC_P_ListInfo              *pList )
 {
@@ -253,7 +250,32 @@ void BVDC_P_Vfc_BuildRul_SetEnable_isr
         hVfc, VFC_0_ENABLE, pList->pulCurrent);
 }
 
+/***************************************************************************
+ * {private}
+ *
+ */
+static void BVDC_P_Vfc_SetEnable_isr
+    ( BVDC_P_Vfc_Handle             hVfc,
+      bool                          bEnable )
+{
+    BDBG_OBJECT_ASSERT(hVfc, BVDC_VFC);
 
+    if(!BVDC_P_VFC_COMPARE_FIELD_DATA(
+        hVfc, VFC_0_ENABLE, ENABLE, bEnable))
+    {
+        hVfc->ulUpdateAll = BVDC_P_RUL_UPDATE_THRESHOLD;
+    }
+
+    /* Turn on/off the scaler. */
+    BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_ENABLE) &= ~(
+        BCHP_MASK(VFC_0_ENABLE, ENABLE));
+
+    BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_ENABLE) |=  (bEnable
+        ? BCHP_FIELD_ENUM(VFC_0_ENABLE, ENABLE, ENABLE)
+        : BCHP_FIELD_ENUM(VFC_0_ENABLE, ENABLE, DISABLE));
+
+    return;
+}
 
 /***************************************************************************
  * {private}
@@ -275,7 +297,7 @@ BERR_Code BVDC_P_Vfc_AcquireConnect_isr
 
     /* init Vfc */
     BVDC_P_Vfc_Init_isr(hVfc);
-    hVfc->stCfc.pColorSpaceOut = &(hWindow->hCompositor->stOutColorSpace);
+    hVfc->stCfc.pColorSpaceExtOut = &(hWindow->hCompositor->stOutColorSpaceExt);
 
     BDBG_LEAVE(BVDC_P_Vfc_AcquireConnect_isr);
     return BERR_TRACE(eResult);
@@ -491,113 +513,5 @@ void BVDC_P_Vfc_SetInfo_isr
     return;
 }
 
-/***************************************************************************
- * {private}
- *
- */
-void BVDC_P_Vfc_SetEnable_isr
-    ( BVDC_P_Vfc_Handle             hVfc,
-      bool                          bEnable )
-{
-    BDBG_OBJECT_ASSERT(hVfc, BVDC_VFC);
-
-    if(!BVDC_P_VFC_COMPARE_FIELD_DATA(
-        hVfc, VFC_0_ENABLE, ENABLE, bEnable))
-    {
-        hVfc->ulUpdateAll = BVDC_P_RUL_UPDATE_THRESHOLD;
-    }
-
-    /* Turn on/off the scaler. */
-    BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_ENABLE) &= ~(
-        BCHP_MASK(VFC_0_ENABLE, ENABLE));
-
-    BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_ENABLE) |=  (bEnable
-        ? BCHP_FIELD_ENUM(VFC_0_ENABLE, ENABLE, ENABLE)
-        : BCHP_FIELD_ENUM(VFC_0_ENABLE, ENABLE, DISABLE));
-
-    return;
-}
-#else
-BERR_Code BVDC_P_Vfc_Create
-    ( BVDC_P_Vfc_Handle            *phVfc,
-      BVDC_P_VfcId                  eVfcId,
-      BVDC_P_Resource_Handle        hResource,
-      BREG_Handle                   hReg )
-{
-    BSTD_UNUSED(phVfc);
-    BSTD_UNUSED(eVfcId);
-    BSTD_UNUSED(hResource);
-    BSTD_UNUSED(hReg);
-    return BERR_SUCCESS;
-}
-
-void BVDC_P_Vfc_Destroy
-    ( BVDC_P_Vfc_Handle             hVfc )
-{
-    BSTD_UNUSED(hVfc);
-    return;
-}
-
-void BVDC_P_Vfc_BuildRul_SetEnable_isr
-    ( BVDC_P_Vfc_Handle             hVfc,
-      BVDC_P_ListInfo              *pList )
-{
-    BSTD_UNUSED(hVfc);
-    BSTD_UNUSED(pList);
-}
-
-void BVDC_P_Vfc_SetInfo_isr
-    ( BVDC_P_Vfc_Handle             hVfc,
-      BVDC_Window_Handle            hWindow,
-      const BVDC_P_PictureNodePtr   pPicture )
-{
-    BSTD_UNUSED(hVfc);
-    BSTD_UNUSED(hWindow);
-    BSTD_UNUSED(pPicture);
-    return;
-}
-
-void BVDC_P_Vfc_SetEnable_isr
-    ( BVDC_P_Vfc_Handle             hVfc,
-      bool                          bEnable )
-{
-    BSTD_UNUSED(hVfc);
-    BSTD_UNUSED(bEnable);
-    return;
-}
 #endif  /* #if (BVDC_P_SUPPORT_VFC) */
-
-#if !(BVDC_P_SUPPORT_VFC)
-
-BERR_Code BVDC_P_Vfc_AcquireConnect_isr
-    ( BVDC_P_Vfc_Handle             hVfc,
-      BVDC_Window_Handle            hWindow )
-{
-    BSTD_UNUSED(hVfc);
-    BSTD_UNUSED(hWindow);
-    return BERR_SUCCESS;
-}
-
-BERR_Code BVDC_P_Vfc_ReleaseConnect_isr
-    ( BVDC_P_Vfc_Handle            *phVfc )
-{
-    BSTD_UNUSED(phVfc);
-    return BERR_SUCCESS;
-}
-
-void BVDC_P_Vfc_BuildRul_isr
-    ( const BVDC_P_Vfc_Handle       hVfc,
-      BVDC_P_ListInfo              *pList,
-      BVDC_P_State                  eVnetState,
-      BVDC_P_PicComRulInfo         *pPicComRulInfo )
-{
-    BSTD_UNUSED(hVfc);
-    BSTD_UNUSED(pList);
-    BSTD_UNUSED(eVnetState);
-    BSTD_UNUSED(pPicComRulInfo);
-    return;
-}
-
-#endif /* #if !(BVDC_P_SUPPORT_VFC) */
-
 /* End of file. */

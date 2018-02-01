@@ -212,8 +212,8 @@ void SysCalls::init() {
 	dispatchTable[SYS_setfsuid] = notImpl;
 	dispatchTable[SYS_setfsgid] = notImpl;
 	dispatchTable[SYS_times] = notImpl;
-	dispatchTable[SYS_setpgid] = notImpl;
-	dispatchTable[SYS_getpgid] = notImpl;
+	dispatchTable[SYS_setpgid] = doSetPgid;
+	dispatchTable[SYS_getpgid] = doGetPgid;
 	dispatchTable[SYS_getsid] = notImpl;
 	dispatchTable[SYS_setsid] = notImpl;
 	dispatchTable[SYS_getgroups] = notImpl;
@@ -342,6 +342,7 @@ void SysCalls::init() {
     dispatchTableExt[EXT_tracelog_start - EXT_SYS_CALL_BASE] = doTraceLogStart;
     dispatchTableExt[EXT_tracelog_stop - EXT_SYS_CALL_BASE] = doTraceLogStop;
     dispatchTableExt[EXT_tracelog_add - EXT_SYS_CALL_BASE] = doTraceLogAdd;
+    dispatchTableExt[EXT_sched_runtask - EXT_SYS_CALL_BASE] = doSchedRunTask;
 
     paramsPagePhys.cpuLocal() = TzMem::allocPage(KERNEL_PID);
     if (paramsPagePhys.cpuLocal() == nullptr) {
@@ -493,7 +494,7 @@ bool SysCalls::strFromUser(const char *userPtr, char *kernelStr, const size_t ma
 
     memcpy(kernelStr, srcPtr, strLen);
 
-    unmap(va, pageCount);
+    unmapNormal(va, pageCount);
 
     return true;
 
@@ -510,7 +511,7 @@ bool SysCalls::ptrArrayFromUser(const char **userArray, char **kernelArray, cons
 
     memcpy(kernelArray, srcPtr, arrayLen*sizeof(const char *));
 
-    unmap(va, pageCount);
+    unmapNormal(va, pageCount);
 
     return true;
 
@@ -622,7 +623,8 @@ TzMem::VirtAddr SysCalls::mapStrToKernel(const char *userStr, size_t maxLen, int
     }
 
     *truncated = (*currStr == 0) ? false : true;
-    *pageCount = npages;
+
+    *pageCount = numPages;
     *strLen = rv+1;
 
     return va;
@@ -679,7 +681,7 @@ TzMem::VirtAddr SysCalls::mapPtrArrayToKernel(const char **userArray, size_t max
         npages++;
     }
 
-    *pageCount = npages;
+    *pageCount = numPages;
     *arrayLen = rv+1;
     return va;
 }

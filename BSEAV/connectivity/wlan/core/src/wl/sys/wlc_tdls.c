@@ -7956,16 +7956,18 @@ wlc_tdls_process_setup_resp(tdls_info_t *tdls, struct scb *scb, struct wlc_frmin
 		}
 	}
 #endif
-	bw = opermode_bw_chspec_map[DOT11_OPER_MODE_CHANNEL_WIDTH(scb_peer->bsscfg->oper_mode)];
-	bw_peer = opermode_bw_chspec_map[DOT11_OPER_MODE_CHANNEL_WIDTH(bi->oper_mode)];
-	common_bw = MIN(bw, bw_peer);
-	cspec = wf_chspec_ctlchan(parent->current_bss->chanspec);
-	cspec = wf_channel2chspec(cspec, common_bw);
-	if (cspec && cspec != scb_peer->bsscfg->current_bss->chanspec) {
-		wlc_bsscfg_set_current_bss_chan(scb_peer->bsscfg, cspec);
-		scb_tdls->base_chanspec =
-			scb_tdls->cur_chanspec =
-			scb_tdls->target_chanspec = cspec;
+	if (TDLS_WB_CAP(tdls)) {
+		bw = opermode_bw_chspec_map[DOT11_OPER_MODE_CHANNEL_WIDTH(scb_peer->bsscfg->oper_mode)];
+		bw_peer = opermode_bw_chspec_map[DOT11_OPER_MODE_CHANNEL_WIDTH(bi->oper_mode)];
+		common_bw = MIN(bw, bw_peer);
+		cspec = wf_chspec_ctlchan(parent->current_bss->chanspec);
+		cspec = wf_channel2chspec(cspec, common_bw);
+		if (cspec && cspec != scb_peer->bsscfg->current_bss->chanspec) {
+			wlc_bsscfg_set_current_bss_chan(scb_peer->bsscfg, cspec);
+			scb_tdls->base_chanspec =
+				scb_tdls->cur_chanspec =
+				scb_tdls->target_chanspec = cspec;
+		}
 	}
 
 	if (WSEC_AES_ENABLED(bsscfg->wsec)) {

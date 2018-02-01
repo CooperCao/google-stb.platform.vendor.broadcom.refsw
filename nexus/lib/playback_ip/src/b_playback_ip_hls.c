@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1717,6 +1717,10 @@ B_PlaybackIp_ParsePlaylistFile(
 
     if (encryptionKeyUri)
         BKNI_Free(encryptionKeyUri);
+    if (mediaFileSegmentInfo) {
+        BDBG_MSG(("%s: freeing mediaFileSegmentInfo entry %p", BSTD_FUNCTION, (void *)mediaFileSegmentInfo));
+        B_PlaybackIp_FreeMediaFileSegmentInfo(mediaFileSegmentInfo);
+    }
     return true;
 
 error:
@@ -2560,13 +2564,13 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
         /* variant playinfo tag is missing, so uri contains the actual playlist */
         if (hlsSession->currentPlaylistFile != NULL) {
             BDBG_MSG(("%s: current file is not a variant playlist file and variant playlist is already created, return", BSTD_FUNCTION));
-            return NULL;
+            goto error;
         }
 
         /* allocate/initialize playlist file structure and return */
         if ( (playlistFileInfo = (PlaylistFileInfo *)BKNI_Malloc(sizeof(PlaylistFileInfo))) == NULL) {
             BDBG_ERR(("%s: Failed to allocate %zu bytes of memory for playlistInfo file structure", BSTD_FUNCTION, sizeof(PlaylistFileInfo)));
-            return NULL;
+            goto error;
         }
         memset(playlistFileInfo, 0, sizeof(PlaylistFileInfo));
         /* build the uri of the playlist file */
@@ -2614,7 +2618,7 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
             /* variant stream info tag: allocate & initialize another playlistInfo entry */
             if ((playlistFileInfo = (PlaylistFileInfo *)BKNI_Malloc(sizeof(PlaylistFileInfo))) == NULL) {
                 BDBG_ERR(("%s: Failed to allocate %d bytes of memory for playlistInfo file structure", BSTD_FUNCTION, (int)sizeof(PlaylistFileInfo)));
-                return NULL;
+                goto error;
             }
             memset(playlistFileInfo, 0, sizeof(PlaylistFileInfo));
             playlistFileInfo->version = PLAYLIST_FILE_COMPATIBILITY_VERSION;
@@ -2753,7 +2757,7 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
             /* media tag: allocate & initialize another altRenditionInfo entry. */
             if ((altRenditionInfo = (AltRenditionInfo *)BKNI_Malloc(sizeof(AltRenditionInfo))) == NULL) {
                 BDBG_ERR(("%s: Failed to allocate %d bytes of memory for altRenditionInfo structure", BSTD_FUNCTION, (int)sizeof(AltRenditionInfo)));
-                return NULL;
+                goto error;
             }
             memset(altRenditionInfo, 0, sizeof(AltRenditionInfo));
             /* parse the attributes of this tag, its format is:
@@ -2882,7 +2886,7 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
             /* variant stream info tag: allocate & initialize another playlistInfo entry */
             if ((playlistFileInfo = (PlaylistFileInfo *)BKNI_Malloc(sizeof(PlaylistFileInfo))) == NULL) {
                 BDBG_ERR(("%s: Failed to allocate %d bytes of memory for playlistInfo file structure", BSTD_FUNCTION, (int)sizeof(PlaylistFileInfo)));
-                return NULL;
+                goto error;
             }
             memset(playlistFileInfo, 0, sizeof(PlaylistFileInfo));
             playlistFileInfo->version = PLAYLIST_FILE_COMPATIBILITY_VERSION;
@@ -4156,6 +4160,7 @@ static B_PlaybackIpError updateAudioDecoderTrickModeState(
     int speedNumerator, speedDenominator;
     NEXUS_AudioDecoderTrickState audioDecoderTrickSettings;
 
+    BKNI_Memset(&audioDecoderTrickSettings, 0, sizeof(audioDecoderTrickSettings));
     speedNumerator = playback_ip->speedNumerator;
     speedDenominator = playback_ip->speedDenominator;
     rate = (float) speedNumerator / speedDenominator;
@@ -5307,6 +5312,7 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
             /* now we have a buffer, pick the next media segment to download, it may be from a different playlist file if our n/w b/w has changed */
             networkBandwidth = B_PlaybackIp_HlsGetCurrentBandwidth(&hlsSession->bandwidthContext);
             BDBG_MSG(("%s:%p network bandwidth %u, position %lu", BSTD_FUNCTION, (void *)playback_ip, networkBandwidth, downloadedSegmentsDuration));
+            /* coverity[sleep: FALSE] */
             if ((mediaFileSegmentInfo = B_PlaybackIp_HlsGetNextMediaSegmentEntry(playback_ip, hlsSession, hlsSession->resetPlaylist ? -1:currentMediaSegmentSequenceNumber, downloadedSegmentsDuration, networkBandwidth, &playlistSwitched)) == NULL) {
                 /* no more segments to download, we keep looping in this thread until playback thread is done feeding and playing all data */
                 /* this is done so that if the user wants to re-seek to a previously played position, we can still support it */
@@ -6484,10 +6490,6 @@ error:
             playback_ip->playback_state != B_PlaybackIpState_eStopped)
     {
         B_PlaybackIpEventIds eventId;
-        if (playback_ip->serverClosed)
-            eventId = B_PlaybackIpEvent_eServerEndofStreamReached;
-        else
-            eventId = B_PlaybackIpEvent_eErrorDuringStreamPlayback;
         eventId = B_PlaybackIpEvent_eServerEndofStreamReached;
         playback_ip->openSettings.eventCallback(playback_ip->openSettings.appCtx, eventId);
     }

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * Module Description:
  *
  **************************************************************************/
 #ifndef NEXUS_SURFACECMP_IMPL_H__
@@ -448,16 +446,17 @@ NEXUS_Error nexus_surface_compositor_p_verify_tunnel(NEXUS_SurfaceCompositorHand
 void nexus_surfacemp_p_convert_coord(const NEXUS_SurfaceRegion *pInputCoord, const NEXUS_SurfaceRegion *pOutputCoord, const NEXUS_Rect *pSrcRect, NEXUS_Rect *pDstRect);
 void nexus_surfacemp_p_clip_rect(const NEXUS_Rect *pBound, const NEXUS_Rect *pSrcRect, NEXUS_Rect *pDstRect);
 void nexus_surfacemp_scale_clipped_rect(const NEXUS_Rect *pSrcRect, const NEXUS_Rect *pSrcClipRect, const NEXUS_Rect *pDstRect, NEXUS_Rect *pDstClipRect);
-    
+
 void nexus_surface_compositor_p_packetspaceavailable(void *context);
 void nexus_surface_compositor_p_checkpoint(void *context);
-void nexus_surface_compositor_p_framebuffer(void *context);
+void nexus_surface_compositor_p_framebuffer_applied(struct NEXUS_SurfaceCompositorDisplay *display);
 void nexus_surface_compositor_p_vsync(void *context);
 void nexus_surface_compositor_p_render_framebuffer(NEXUS_SurfaceCompositorHandle server, struct NEXUS_SurfaceCompositorDisplay *cmpDisplay, struct NEXUS_SurfaceCompositorFramebuffer *framebuffer);
 NEXUS_Error nexus_surface_compositor_p_realloc_framebuffers(NEXUS_SurfaceCompositorHandle server);
 
 void nexus_p_surface_compositor_update_client(NEXUS_SurfaceClientHandle client, unsigned flags);
 void nexus_p_surface_compositor_check_inactive(NEXUS_SurfaceCompositorHandle server);
+void nexus_surface_compositor_p_schedule_inactive_timer(NEXUS_SurfaceCompositorHandle server);
 
 void nexus_surface_compositor_p_release_surfaces(NEXUS_SurfaceCompositorHandle server);
 

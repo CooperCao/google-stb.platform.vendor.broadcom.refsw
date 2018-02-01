@@ -134,6 +134,7 @@ static void print_usage(void)
     printf(
         "  -mdcv.luma.max MAX   units 1 cd / m^2, -1 means from input\n"
         "  -mdcv.luma.min MIN   units 0.0001 cd / m^2, -1 means from input\n"
+        "  -graphics {on|off}\n"
     );
 }
 
@@ -570,6 +571,15 @@ int main(int argc, char **argv)  {
         else if (!strcmp(argv[curarg], "-sdgraphic") && argc>curarg+1) {
             change = true;
             displaySettings.slaveDisplay[0].mode = parse_boolean(argv[++curarg])?NxClient_SlaveDisplayMode_eGraphics:NxClient_SlaveDisplayMode_eReplicated;
+        }
+        else if (!strcmp(argv[curarg], "-graphics") && argc>curarg+1) {
+            bool enabled = parse_boolean(argv[++curarg]);
+            change = true;
+            if (sd) {
+                displaySettings.slaveDisplay[0].graphicsSettings.enabled = enabled;
+            } else {
+                displaySettings.graphicsSettings.enabled = enabled;
+            }
         }
         else if (!strcmp(argv[curarg], "-dropFrame") && curarg+1 < argc) {
             ++curarg;

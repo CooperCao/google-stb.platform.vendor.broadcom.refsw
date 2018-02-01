@@ -265,7 +265,7 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
 
    // Rendering mode config
    r_size += V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;                 // common
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    r_size += V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;                 // color
 #else
    r_size += fb->rt_count * V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;  // color
@@ -278,7 +278,7 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
    r_size += V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;                 // zs clear values
 
    // Initial TLB clear
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    {
       size_t clear_size =
          V3D_CL_TILE_COORDS_SIZE +
@@ -297,7 +297,7 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
    bool fill_ocq_cache = rs->fmem.persist->occlusion_query_list != NULL;
    if (fill_ocq_cache)
       r_size += glxx_fill_ocq_cache_size()
-#if V3D_VER_AT_LEAST(3,3,0,0) && !V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(3,3,0,0) && !V3D_VER_AT_LEAST(4,1,34,0)
          + V3D_CL_TILE_COORDS_SIZE
          + V3D_CL_STORE_GENERAL_SIZE
 #endif
@@ -330,7 +330,7 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
       false, // Coverage
       rs->ez.rcfg_ez_direction,
       rs->ez.rcfg_ez_disable,
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       depth_type,
       rcfg->early_ds_clear
 #else
@@ -340,7 +340,7 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
 #endif
       );
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    {
       V3D_CL_TILE_RENDERING_MODE_CFG_T i;
       i.type = V3D_RCFG_TYPE_COLOR;
@@ -436,12 +436,12 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
          }
       }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       const struct v3d_tlb_ldst_params *ls = &rcfg->rt_ls[b];
 #endif
       v3d_cl_rcfg_clear_colors(&instr, b, clear_colors,
          &fb->color_rt_format[b]
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
          , (ls->memory_format == V3D_MEMORY_FORMAT_RASTER) ? ls->stride : ls->flipy_height_px,
          v3d_memory_format_is_uif(ls->memory_format) ? ls->stride : 0
 #endif
@@ -461,7 +461,7 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
 #endif
 
    // Initial TLB clear
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    for (unsigned i = 0; i != (tile_cfg->double_buffer ? 2 : 1); ++i)
    {
       v3d_cl_tile_coords(&instr, 0, 0);
@@ -559,7 +559,7 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
     #endif
 
       unsigned size = 0
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
          + V3D_CL_NUM_LAYERS_SIZE
 #endif
          + V3D_CL_TILE_BINNING_MODE_CFG_SIZE
@@ -575,7 +575,7 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
       v3d_addr_t start_addr = khrn_fmem_cle_addr(&rs->fmem) - size;
 #endif
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       // this must come before bin mode cfg part
       v3d_cl_num_layers(&instr, num_used_layers);
 #else
@@ -661,6 +661,10 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
 
 void glxx_hw_render_state_rw(GLXX_SERVER_STATE_T *state, GLXX_HW_RENDER_STATE_T *rs)
 {
+   if (state->caps.rasterizer_discard)
+      return;
+   rs->has_rasterization = true;
+
    unsigned i = 0;
    glxx_att_index_t att_index;
    while (glxx_fb_iterate_valid_draw_bufs(state->bound_draw_framebuffer, &i, &att_index))
@@ -687,39 +691,43 @@ static bool create_render_subjob_cl(GLXX_HW_RENDER_STATE_T *rs,
       const struct glxx_hw_supertile_cfg *supertile_cfg,
       uint32_t core, uint32_t num_cores)
 {
-   size_t r_size = V3D_CL_SUPERTILE_COORDS_SIZE *
-      supertile_cfg->frame_w_in_supertiles * supertile_cfg->frame_h_in_supertiles;
-   r_size += V3D_CL_END_RENDER_SIZE;
+   size_t r_size = V3D_CL_END_RENDER_SIZE;
+   if (rs->has_rasterization || rs->num_blits != 0)
+      r_size += V3D_CL_SUPERTILE_COORDS_SIZE * supertile_cfg->frame_w_in_supertiles * supertile_cfg->frame_h_in_supertiles;
 
    uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem, r_size);
    if (!instr)
       return false;
 
-   if (khrn_options.isolate_frame == khrn_fmem_frame_i)
+   if (rs->has_rasterization || rs->num_blits != 0)
    {
-      // isolate requested supertile
-      v3d_cl_supertile_coords(&instr,
-         gfx_umin(khrn_options.isolate_supertile_x, supertile_cfg->frame_w_in_supertiles - 1u),
-         gfx_umin(khrn_options.isolate_supertile_y, supertile_cfg->frame_h_in_supertiles - 1u));
-   }
-   else
-   {
-      uint32_t morton_flags, begin_supertile, end_supertile;
-      v3d_supertile_range(&morton_flags, &begin_supertile, &end_supertile,
-                          num_cores, core,
-                          supertile_cfg->frame_w_in_supertiles, supertile_cfg->frame_h_in_supertiles,
-                          khrn_options.partition_supertiles_in_sw,
-                          khrn_options.all_cores_same_st_order);
+      if (khrn_options.isolate_frame == khrn_fmem_frame_i)
+      {
+         // isolate requested supertile
+         v3d_cl_supertile_coords(&instr,
+            gfx_umin(khrn_options.isolate_supertile_x, supertile_cfg->frame_w_in_supertiles - 1u),
+            gfx_umin(khrn_options.isolate_supertile_y, supertile_cfg->frame_h_in_supertiles - 1u));
+      }
+      else
+      {
+         uint32_t morton_flags, begin_supertile, end_supertile;
+         v3d_supertile_range(&morton_flags, &begin_supertile, &end_supertile,
+                             num_cores, core,
+                             supertile_cfg->frame_w_in_supertiles, supertile_cfg->frame_h_in_supertiles,
+                             khrn_options.partition_supertiles_in_sw,
+                             khrn_options.all_cores_same_st_order);
 
-      GFX_MORTON_STATE_T morton;
-      gfx_morton_init(&morton, supertile_cfg->frame_w_in_supertiles,
-            supertile_cfg->frame_h_in_supertiles, morton_flags);
+         GFX_MORTON_STATE_T morton;
+         gfx_morton_init(&morton, supertile_cfg->frame_w_in_supertiles,
+               supertile_cfg->frame_h_in_supertiles, morton_flags);
 
-      uint32_t x, y;
-      for (unsigned i = 0; gfx_morton_next(&morton, &x, &y, NULL); ++i)
-         if (i >= begin_supertile && i < end_supertile)
-            v3d_cl_supertile_coords(&instr, x, y);
+         uint32_t x, y;
+         for (unsigned i = 0; gfx_morton_next(&morton, &x, &y, NULL); ++i)
+            if (i >= begin_supertile && i < end_supertile)
+               v3d_cl_supertile_coords(&instr, x, y);
+      }
    }
+
    v3d_cl_end_render(&instr);
    khrn_fmem_end_cle(&rs->fmem, instr);
    return true;
@@ -763,7 +771,7 @@ static bool create_render_cls(GLXX_HW_RENDER_STATE_T *rs,
 
    unsigned subindex = 0;
    v3d_addr_range render_common = {0,}; //initialise to stop compiler complaining
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    struct glxx_hw_tile_list_rcfg prev_rcfg;
 #endif
    v3d_subjob *render_subjobs = rs->fmem.br_info.render_subjobs.subjobs;
@@ -777,7 +785,7 @@ static bool create_render_cls(GLXX_HW_RENDER_STATE_T *rs,
                tile_list_fb_ops, layer))
          return false;
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       assert(layer == 0);
 #endif
       /* if we have blits, rcfg for layer 0 can end up being different than
@@ -787,7 +795,7 @@ static bool create_render_cls(GLXX_HW_RENDER_STATE_T *rs,
        * otherwise, one common cl for layer 0 and one common cl for the other
        * layers */
       if (layer == 0
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
             || !glxx_hw_tile_list_rcfgs_equal(&rcfg, &prev_rcfg)
 #endif
          )
@@ -822,7 +830,7 @@ static bool create_render_cls(GLXX_HW_RENDER_STATE_T *rs,
          render_subjobs[subindex].end = subjobs[core].end;
          ++subindex;
       }
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       prev_rcfg = rcfg;
 #endif
    }
@@ -1051,7 +1059,7 @@ void glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
    // we we had any draw commands
    if (rs->clist_start)
    {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       /* write prim counts feedback if we have any prim_gen or prim_written
        * queries that were not written back yet */
       if (rs->last_started_query[GLXX_Q_PRIM_GEN].query ||

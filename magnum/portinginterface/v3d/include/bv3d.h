@@ -173,7 +173,7 @@ See Also:
 ****************************************************************************/
 typedef struct BV3D_Notification
 {
-   uint32_t          uiParam;
+   uint64_t          uiParam;
    uint32_t          uiSync;
    uint32_t          uiOutOfMemory;
    uint64_t          uiJobSequence;
@@ -356,8 +356,8 @@ typedef struct BV3D_Instruction
 {
    BV3D_Operation       eOperation;       /* The opcode for this instruction                   */
    uint32_t             uiArg1;           /* First argument (if appropriate)                   */
-   uint32_t             uiArg2;           /* Second argument (if appropriate)                  */
-   uint32_t             uiCallbackParam;  /* Callback parameter (or 0 if no callback required) */
+   uint64_t             uiArg2;           /* Second argument (if appropriate)                  */
+   uint64_t             uiCallbackParam;  /* Callback parameter (or 0 if no callback required) */
    struct BV3D_Job      *psJob;           /* A pointer to the owning job                       */
 } BV3D_Instruction;
 
@@ -387,7 +387,7 @@ typedef struct BV3D_Job
    uint32_t          uiOverspill;            /* Last overspill block used (recycled if out of mem)       */
    uint64_t          uiSequence;             /* Unique sequence number for this job                      */
    bool              bCollectTimeline;       /* Set when timeline data is wanted                         */
-   uint32_t          uiNotifyCallbackParam;  /* Set internally for notify instruction implementation     */
+   uint64_t          uiNotifyCallbackParam;  /* Set internally for notify instruction implementation     */
    uint64_t          uiNotifySequenceNum;    /* Set internally for notify instruction implementation     */
    uint32_t          uiNotifyFence;          /* Set internally for notify of fence (Android)             */
    BV3D_TimelineData sTimelineData;          /* The timeline data that is being collected                */

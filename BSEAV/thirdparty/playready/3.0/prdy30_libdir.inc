@@ -47,7 +47,15 @@ endif
 
 # Set final path
 ifeq ("$(GCC_GTEQ_485)", "1")
-PRDY30_LIBDIR = thirdparty/playready/3.0/bin/$(ARCH_DIR_PRDY30)/lib/eglibc
+    ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
+        PRDY30_LIBDIR = thirdparty/playready/3.0/bin/$(ARCH_DIR_PRDY30)/Zeus5x/lib/eglibc
+    else
+        PRDY30_LIBDIR = thirdparty/playready/3.0/bin/$(ARCH_DIR_PRDY30)/Zeus4x/lib/eglibc
+    endif
 else
-PRDY30_LIBDIR = thirdparty/playready/3.0/bin/$(ARCH_DIR_PRDY30)/lib
+ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
+    PRDY30_LIBDIR = thirdparty/playready/3.0/bin/$(ARCH_DIR_PRDY30)/Zeus5x/lib
+else
+    PRDY30_LIBDIR = thirdparty/playready/3.0/bin/$(ARCH_DIR_PRDY30)/Zeus4x/lib
+endif
 endif

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -159,11 +159,14 @@ static void httpServerDestroy(
     BIP_HttpServerHandle hHttpServer
     )
 {
+    BIP_Status    rc = BIP_SUCCESS;
+
     if (!hHttpServer) return;
     BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hHttpServer %p" BIP_MSG_PRE_ARG, (void *)hHttpServer ));
 
     /* Remove this httpServer instance from it's class. */
-    BIP_CLASS_REMOVE_INSTANCE(BIP_HttpServer, hHttpServer);
+    rc = BIP_CLASS_REMOVE_INSTANCE(BIP_HttpServer, hHttpServer);
+    if (rc == BIP_ERR_INVALID_HANDLE) return;   /* Object has already been destroyed (by another thread). */
 
     if (hHttpServer->recvRequestApi.hArb) BIP_Arb_Destroy(hHttpServer->recvRequestApi.hArb);
     if (hHttpServer->rejectRequestApi.hArb) BIP_Arb_Destroy(hHttpServer->rejectRequestApi.hArb);
@@ -672,6 +675,7 @@ BIP_Status BIP_HttpServer_StartStreamer(
     BIP_ArbHandle hArb;
     BIP_ArbSubmitSettings arbSettings;
     BIP_HttpServerStartStreamerSettings defaultSettings;
+    BIP_ApiSettings apiSettings;
 
     BDBG_OBJECT_ASSERT( hHttpServer, BIP_HttpServer );
     BIP_SETTINGS_ASSERT(pSettings, BIP_HttpServerStartStreamerSettings);
@@ -701,11 +705,13 @@ BIP_Status BIP_HttpServer_StartStreamer(
     BIP_Arb_GetDefaultSubmitSettings( &arbSettings );
     arbSettings.hObject = hHttpServer;
     arbSettings.arbProcessor = processHttpServerStateFromArb;
-    arbSettings.waitIfBusy = true;;
+    arbSettings.waitIfBusy = true;
+    apiSettings.asyncCallback = pSettings->streamerStartSettings.asyncCallback;
+    apiSettings.pAsyncStatus = pSettings->streamerStartSettings.pAsyncStatus;
 
     /* Invoke state machine via the Arb Submit API */
-    brc = BIP_Arb_Submit(hArb, &arbSettings, NULL);
-    BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpServer_StartStreamer" ), error, brc, brc );
+    brc = BIP_Arb_Submit(hArb, &arbSettings, &apiSettings);
+    BIP_CHECK_GOTO((brc == BIP_SUCCESS || brc == BIP_INF_IN_PROGRESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpServer_StartStreamer" ), error, brc, brc );
 
 error:
     BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: hHttpStreamer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpServer, (void *)hHttpStreamer, BIP_StatusGetText(brc) ));

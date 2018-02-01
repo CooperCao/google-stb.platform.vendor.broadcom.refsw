@@ -140,6 +140,10 @@ typedef uint64_t  ZbProZclAttributeUid_t;
         (((ZbProZclAttributeUid_t)(clusterId)) << 32) |\
         (((ZbProZclAttributeUid_t)(clusterSide)) << 16) |\
         ((ZbProZclAttributeUid_t)(attributeId)))
+
+
+#define CLUSTER_ID(uid)  (((ZbProZclAttributeUid_t)(uid) >> 32) & 0xffff)
+#define ATTR_ID(uid)     ((ZbProZclAttributeUid_t)(uid) & 0xffff)
 /*
  * Validate definition of general case Attribute Uid assembling macro.
  */

@@ -266,10 +266,10 @@ static void convert_async_tfu(
                                false, src_addrs, dst_addr);
    assert(ok);
 
-   bool has_l3c = v3d_scheduler_get_hub_identity()->has_l3c;
+   const V3D_HUB_IDENT_T* hub_ident = v3d_scheduler_get_hub_identity();
    v3d_cache_ops cache_ops =
-      v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, V3D_BARRIER_TFU_READ | V3D_BARRIER_TFU_WRITE, false, has_l3c)
-      | v3d_barrier_cache_cleans(V3D_BARRIER_TFU_WRITE, V3D_BARRIER_MEMORY_READ, false, has_l3c);
+         v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, V3D_BARRIER_TFU_READ | V3D_BARRIER_TFU_WRITE, false, hub_ident)
+       | v3d_barrier_cache_cleans(V3D_BARRIER_TFU_WRITE, V3D_BARRIER_MEMORY_READ, false, hub_ident);
 
    // This path is only claimed if dst is secure in secure context and
    // in unsecure context a secure dst is not allowed.

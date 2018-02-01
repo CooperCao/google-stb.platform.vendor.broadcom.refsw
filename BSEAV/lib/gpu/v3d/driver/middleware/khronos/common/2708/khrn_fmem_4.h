@@ -15,12 +15,12 @@ typedef struct _KHRN_FMEM_TWEAK_T
    uint8_t *special_location;
    uint32_t special_i;
 
-   MEM_HANDLE_OFFSET_T interlock;
+   POINTER_OFFSET_T interlock;
 
    MEM_HANDLE_T ramp_handle;
    uint32_t ramp_i;
 
-   MEM_HANDLE_T sync;
+   void *sync;
 } KHRN_FMEM_TWEAK_T;
 
 typedef struct
@@ -81,15 +81,16 @@ typedef struct KHRN_FMEM
 
 extern KHRN_FMEM_T *khrn_fmem_init(KHRN_INTERLOCK_USER_T interlock_user);
 extern void khrn_fmem_discard(KHRN_FMEM_T *fmem);
+extern void khrn_fmem_flush(KHRN_FMEM_T *fmem);
 extern uint32_t *khrn_fmem_junk(KHRN_FMEM_T *fmem, int size, int align, MEM_LOCK_T *lbh);
 extern uint8_t *khrn_fmem_cle(KHRN_FMEM_T *fmem, int size);
 extern bool khrn_fmem_fix(KHRN_FMEM_T *fmem, uint32_t *location, MEM_HANDLE_T handle, uint32_t offset);
 extern bool khrn_fmem_add_fix(KHRN_FMEM_T *fmem, uint8_t **p, MEM_HANDLE_T handle, uint32_t offset);
 extern bool khrn_fmem_add_special(KHRN_FMEM_T *fmem, uint8_t **p, uint32_t special_i, uint32_t offset);
-extern bool khrn_fmem_interlock(KHRN_FMEM_T *fmem, MEM_HANDLE_T handle, uint32_t offset);
+extern bool khrn_fmem_interlock(KHRN_FMEM_T *fmem, void *p, uint32_t offset);
 extern void khrn_fmem_start_bin(KHRN_FMEM_T *fmem);
 extern bool khrn_fmem_start_render(KHRN_FMEM_T *fmem);
-extern bool khrn_fmem_sync(KHRN_FMEM_T *fmem, MEM_HANDLE_T handle);
+extern bool khrn_fmem_sync(KHRN_FMEM_T *fmem, void *sync);
 
 extern bool khrn_fmem_special(KHRN_FMEM_T *fmem, uint32_t *location, uint32_t special_i, uint32_t offset);
 extern bool khrn_fmem_is_here(KHRN_FMEM_T *fmem, uint8_t *p);
@@ -100,7 +101,7 @@ extern void khrn_fmem_prep_for_job(KHRN_FMEM_T *fmem, uint32_t bin_mem, uint32_t
 extern void khrn_fmem_prep_for_render_only_job(KHRN_FMEM_T *fmem);
 extern void khrn_job_done_fmem(KHRN_FMEM_T *fmem);
 
-static INLINE uint32_t khrn_fmem_get_nmem_n(KHRN_FMEM_T *fmem)
+static inline uint32_t khrn_fmem_get_nmem_n(KHRN_FMEM_T *fmem)
 {
    return fmem->nmem_group.n;
 }

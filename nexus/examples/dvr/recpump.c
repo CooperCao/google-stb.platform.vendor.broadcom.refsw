@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Copyright (C) 2008-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 #include "nexus_platform.h"
 #include "nexus_pid_channel.h"
@@ -76,8 +65,8 @@ static void print_status(NEXUS_RecpumpHandle recpump)
     NEXUS_RecpumpStatus status;
     NEXUS_Recpump_GetStatus(recpump, &status);
     printf("status: RAVE %d\n", status.rave.index);
-    printf("  data:  %u total bytes \tfifo %u/%u\n", (unsigned)status.data.bytesRecorded, status.data.fifoDepth, status.data.fifoSize);
-    printf("  index: %u total bytes \tfifo %u/%u\n", (unsigned)status.index.bytesRecorded, status.index.fifoDepth, status.index.fifoSize);
+    printf("  data:  %u total bytes \tfifo %u/%u\n", (unsigned)status.data.bytesRecorded, (unsigned)status.data.fifoDepth, (unsigned)status.data.fifoSize);
+    printf("  index: %u total bytes \tfifo %u/%u\n", (unsigned)status.index.bytesRecorded, (unsigned)status.index.fifoDepth, (unsigned)status.index.fifoSize);
 }
 
 /* simple parsing of MPEG2 SCT
@@ -131,6 +120,9 @@ int main(void) {
     /* Bring up all modules for a platform in a default configuration for this platform */
     rc = NEXUS_Platform_Init(NULL);
     if (rc) return -1;
+
+    pidChannel[0]=NULL;
+    pidChannel[1]=NULL;
 
     NEXUS_Platform_GetStreamerInputBand(0, &inputBand);
 
@@ -213,7 +205,7 @@ int main(void) {
             rc = NEXUS_Recpump_IndexReadComplete(recpump, n);
             BDBG_ASSERT(!rc);
         }
-        printf("wrote %d data, %d index\n", data_buffer_size, index_buffer_size);
+        printf("wrote %u data, %u index\n", (unsigned)data_buffer_size, (unsigned)index_buffer_size);
         print_status(recpump);
     }
     

@@ -924,3 +924,12 @@ void NEXUS_Platform_P_ConfigureGisbTimeout(void)
 {
 }
 #endif /* BDBG_DEBUG_BUILD && !defined(NEXUS_CPU_ARM) */
+
+#if NEXUS_HAS_SAGE
+bool NEXUS_Platform_P_EnableSageLog(void)
+{
+    const char *pinmux_env = NEXUS_GetEnv("sage_log");
+    /* Only enable pin mux if this is set to 1 */
+    return pinmux_env && (NEXUS_atoi(pinmux_env) == 1);
+}
+#endif

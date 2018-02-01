@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -133,7 +133,6 @@ int BXDM_PictureProvider_Debug_FormatMsg_MFD1_isrsafe(
 {
    const BAVC_MFD_Picture * pMFD;
    BFMT_AspectRatio eAspectRatio=BFMT_AspectRatio_eUnknown;
-   int32_t  i=0;
    int32_t iBytesUsed;
 
    BDBG_ENTER( BXDM_PictureProvider_Debug_FormatMsg_MFD1_isrsafe );
@@ -155,7 +154,7 @@ int BXDM_PictureProvider_Debug_FormatMsg_MFD1_isrsafe(
    iBytesUsed = BKNI_Snprintf(
                   szMessage,
                   uiSize,
-                  "%c%x:[%02x.%03x] id:%03x pts:%08x %s->%s %dx%d->%dx%d %s:%dx%d AQP:%02d fr:%s mr:%s %s%s%s%s%s%s%s%s%s%s%s",
+                  "%c%x:[%02x.%03x] id:%03x pts:%08x %s->%s %dx%d->%dx%d %s:%dx%d AQP:%02d fr:%s mr:%s %s%s%s%s%s%s%s%s%s%s",
                   ( pMFD->bMute ) ? 'M' : ' ',
                   pstEntry->stMetadata.uiVsyncCount,
                   BXDM_PPDF_FORMAT_INSTANCE_ID( pstEntry->stMetadata.uiInstanceID ),
@@ -183,8 +182,7 @@ int BXDM_PictureProvider_Debug_FormatMsg_MFD1_isrsafe(
                   ( pMFD->bLast ) ? " lst" : " ",
                   ( pMFD->bChannelChange) ? " chg" : " ",
                   ( pMFD->bPreChargePicture) ? " pcp" : " ",
-                  ( pMFD->bEndOfChunk) ? " eoc" : " ",
-                  ( 0 != i ) ? " en" : " "
+                  ( pMFD->bEndOfChunk) ? " eoc" : " "
                );
 
    BDBG_LEAVE( BXDM_PictureProvider_Debug_FormatMsg_MFD1_isrsafe );

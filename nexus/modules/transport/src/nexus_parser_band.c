@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -179,9 +179,6 @@ NEXUS_Error NEXUS_ParserBand_P_SetSettings(NEXUS_ParserBandHandle parserBand, co
 
     switch (pSettings->sourceType) {
     case NEXUS_ParserBandSourceType_eInputBand:
-#if NEXUS_TRANSPORT_EXTENSION_TSMF
-    case NEXUS_ParserBandSourceType_eTsmf: /* TSMF source requires inputband to be configured properly */
-#endif
         BDBG_MODULE_MSG(nexus_flow_parser_band, ("connect PB%d to IB%lu", bandHwIndex, pSettings->sourceTypeSettings.inputBand));
         rc = BXPT_SetParserDataSource(pTransport->xpt, bandHwIndex, BXPT_DataSource_eInputBand, pSettings->sourceTypeSettings.inputBand);
         if (rc) {return BERR_TRACE(rc);}
@@ -204,6 +201,26 @@ NEXUS_Error NEXUS_ParserBand_P_SetSettings(NEXUS_ParserBandHandle parserBand, co
         BDBG_MODULE_MSG(nexus_flow_parser_band, ("connect PB%d to mtsif %p", bandHwIndex, (void *)pSettings->sourceTypeSettings.mtsif));
 #endif
         break; /* keep going with the rest of the function. the host PB settings still need to be set */
+
+#if NEXUS_TRANSPORT_EXTENSION_TSMF
+    case NEXUS_ParserBandSourceType_eTsmf:
+    /*
+    TSMF can be received through the legacy input bands or MTSIF (on chips that have it). Some chips support a mix of parsers, some of
+    which support MTSIF and legacy input bands, and others that support MTSIF only. If we are running on one such part, configure the
+    parser's input ONLY if it's one of the parsers that support legacy input. The MTSIF-only parsers ignore it.
+    */
+#ifdef BXPT_NUM_LEGACY_PID_PARSERS
+        if(bandHwIndex >= BXPT_NUM_LEGACY_PID_PARSERS)
+            break;
+#endif
+        BDBG_MODULE_MSG(nexus_flow_parser_band, ("connect PB%d to IB%lu for TSMF", bandHwIndex, pSettings->sourceTypeSettings.inputBand));
+        rc = BXPT_SetParserDataSource(pTransport->xpt, bandHwIndex, BXPT_DataSource_eInputBand, pSettings->sourceTypeSettings.inputBand);
+        if (rc) {return BERR_TRACE(rc);}
+
+        rc = NEXUS_InputBand_P_SetTransportType(pSettings->sourceTypeSettings.inputBand, pSettings->transportType);
+        if (rc) {return BERR_TRACE(rc);}
+        break;
+#endif
 
     default:
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -257,7 +274,7 @@ NEXUS_Error NEXUS_ParserBand_P_SetSettings(NEXUS_ParserBandHandle parserBand, co
         NEXUS_P_HwPidChannel *pidChannel;
         for (pidChannel = BLST_S_FIRST(&pTransport->pidChannels); pidChannel; pidChannel = BLST_S_NEXT(pidChannel, link)) {
             if (pidChannel->parserBand == parserBand) {
-                (void)nexus_p_set_pid_cc(pidChannel, &pidChannel->settings);
+                nexus_p_set_pid_cc(pidChannel, &pidChannel->settings);
             }
         }
     }
@@ -484,7 +501,7 @@ static NEXUS_Error NEXUS_ParserBand_P_Init(unsigned index)
         BINT_DestroyCallback(parserBand->lengthErrorInt);
     }
     NEXUS_OBJECT_DESTROY(NEXUS_ParserBand, parserBand);
-	BKNI_Free(parserBand);
+    BKNI_Free(parserBand);
     pTransport->parserBand[index] = NULL;
     return rc;
 }
@@ -845,14 +862,14 @@ void NEXUS_ParserBand_P_MtsifErrorStatus_priv(unsigned lengthError, unsigned tra
 
 void NEXUS_ParserBand_P_ResetOverflowCounts(NEXUS_ParserBandHandle parserBand)
 {
-	BSTD_UNUSED(parserBand);
+    BSTD_UNUSED(parserBand);
 }
 
 NEXUS_Error NEXUS_ParserBand_P_SetSettings(NEXUS_ParserBandHandle parserBand, const NEXUS_ParserBandSettings *pSettings)
 {
-	BSTD_UNUSED(parserBand);
-	BSTD_UNUSED(pSettings);
-	return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    BSTD_UNUSED(parserBand);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 }
 
 #endif /* NEXUS_NUM_PARSER_BANDS */

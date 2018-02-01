@@ -175,7 +175,7 @@ static int start_decode(struct context *context)
         NEXUS_Platform_GetConfiguration(&platformConfig);
         NEXUS_VideoDecoder_GetDefaultOpenSettings(&videoDecoderopenSettings);
         videoDecoderopenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
-        videoDecoderopenSettings.secureVideo = true;
+        videoDecoderopenSettings.secureVideo = NEXUS_VideoDecoderSecureType_eSecure;
         context->videoDecoder = NEXUS_VideoDecoder_Open(context->index, &videoDecoderopenSettings);
     }
     else

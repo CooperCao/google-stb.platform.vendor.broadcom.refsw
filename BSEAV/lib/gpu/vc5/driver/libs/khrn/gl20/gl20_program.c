@@ -73,11 +73,9 @@ void gl20_program_init(GL20_PROGRAM_T *program, int32_t name)
    program->debug_label = NULL;
 }
 
-void gl20_program_term(void *v, size_t size)
+void gl20_program_term(void *v)
 {
    GL20_PROGRAM_T *program = v;
-
-   unused(size);
 
    free_binding_array(program->bindings, program->num_bindings);
 
@@ -483,7 +481,7 @@ static GLSL_PROGRAM_T *link_graphics(GL20_PROGRAM_T *program)
    for (ShaderFlavour f = SHADER_VERTEX; f <= SHADER_FRAGMENT; f++)
       if (shader[f]) stages[f] = shader[f]->binary;
 
-   ret = glsl_link_program(stages, &source, program->separable);
+   ret = glsl_link_program(stages, &source, program->separable, true);
    if (!ret) {
       /* TODO: This communication by globals is unnecessary */
       gl20_program_save_error(program, glsl_compile_error_get());
@@ -634,7 +632,7 @@ static void write_tf_specs(GLXX_PROGRAM_TFF_POST_LINK_T *tf_post,
          spec->buffer = buffer;
          spec->first = first;
          spec->count = this_count;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
          spec->stream = 0;
 #endif
 

@@ -112,6 +112,14 @@ ZIGBEE_HA_NORMAL_OPERATION_APP_OBJS = \
     $(OBJDIR)/zigbee_ha_normal_operation.o \
     $(COMMON_OBJS)
 
+ZIGBEE_HA_ED_APP_OBJS = \
+    $(OBJDIR)/zigbee_ha_ed.o \
+    $(COMMON_OBJS)
+
+ZIGBEE_HA_COEX_ENABLE_APP_OBJS = \
+    $(OBJDIR)/zigbee_ha_coex_enable.o \
+    $(COMMON_OBJS)
+
 ##########################################################################################
 # Path to the Host source directory relative to the make active directory.
 HOST_PATH = ../../host
@@ -131,9 +139,8 @@ INC_PATHS += $(HOST_PATH)/common/include
 
 C99_FLAGS += -g                 # Debug level: emit full debug information.
 C99_FLAGS += -std=gnu99
-C99_FLAGS += -fpack-struct=4
-C99_FLAGS += -fshort-enums
 #C99_FLAGS += -m32               # 32-bit version
+C99_FLAGS += -Wenum-compare
 
 PRJ_FLAGS += _HOST_           # Build for Broadcom STB host.
 PRJ_FLAGS += __i386__
@@ -163,6 +170,7 @@ PRJ_FLAGS += USE_RF4CE_PROFILE_ZRC1
 PRJ_FLAGS += USE_RF4CE_PROFILE_GDP=1
 PRJ_FLAGS += USE_RF4CE_PROFILE_ZRC2
 PRJ_FLAGS += _ZHA_PROFILE_CIE_DEVICE_IMPLEMENTATION_
+PRJ_FLAGS += MULTIPLE_ATTRIBUTES_READ
 PRJ_FLAGS += _PHY_TEST_HOST_INTERFACE_
 __PRJ_FLAGS = $(addprefix -D, $(PRJ_FLAGS))
 __PRJ_INCS  = $(addprefix -I, $(INC_PATHS))
@@ -171,9 +179,9 @@ CFLAGS += $(__PRJ_INCS) $(C99_FLAGS) $(__PRJ_FLAGS)
 
 #LDFLAGS += -m32
 LDFLAGS += -std=gnu99
-LDFLAGS += -g -Xlinker --no-enum-size-warning
+LDFLAGS += -g
 
-all:   prebuild $(OBJDIR) $(OBJDIR)/zigbee_ha_set_attribute_report_app $(OBJDIR)/zigbee_ha_stb_commissioning_app $(OBJDIR)/zigbee_ha_reset_app
+all:   prebuild $(OBJDIR) $(OBJDIR)/zigbee_ha_set_attribute_report_app $(OBJDIR)/zigbee_ha_stb_commissioning_app $(OBJDIR)/zigbee_ha_reset_app $(OBJDIR)/zigbee_ha_ed_app $(OBJDIR)/zigbee_ha_coex_enable_app
 
 #	$(LD) $(OBJS) -lpthread
 
@@ -210,6 +218,12 @@ $(OBJDIR)/zigbee_ha_stb_commissioning_app: $(ZIGBEE_HA_STB_COMMISSIONING_APP_OBJ
 	$(SILENT)$(CC) $^ -lpthread -o $@ $(LDFLAGS)
 
 $(OBJDIR)/zigbee_ha_normal_operation_app: $(ZIGBEE_HA_NORMAL_OPERATION_APP_OBJS)
+	$(SILENT)$(CC) $^ -lpthread -o $@ $(LDFLAGS)
+
+$(OBJDIR)/zigbee_ha_ed_app: $(ZIGBEE_HA_ED_APP_OBJS)
+	$(SILENT)$(CC) $^ -lpthread -o $@ $(LDFLAGS)
+
+$(OBJDIR)/zigbee_ha_coex_enable_app: $(ZIGBEE_HA_COEX_ENABLE_APP_OBJS)
 	$(SILENT)$(CC) $^ -lpthread -o $@ $(LDFLAGS)
 
 prebuild:

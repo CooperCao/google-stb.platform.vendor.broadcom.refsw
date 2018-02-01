@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -681,7 +681,7 @@ B_PlaybackIp_RtpSessionOpen(
     B_PlaybackIpSocketState *socketState;
     B_PlaybackIpError errorCode = B_ERROR_PROTO;
     struct addrinfo hints;
-    struct addrinfo *addrInfo;
+    struct addrinfo *addrInfo = NULL;
     char portString[16];
     bool ipAddressIsUnicast = false;
 
@@ -898,10 +898,12 @@ B_PlaybackIp_RtpSessionOpen(
     errorCode = B_ERROR_SUCCESS;
 
     BDBG_MSG(("%s: successfully opened the RTP session (fd %d)", BSTD_FUNCTION, socketState->fd));
+    freeaddrinfo(addrInfo);
     return errorCode;
 
 error:
     B_PlaybackIp_RtpSessionClose(playback_ip);
+    freeaddrinfo(addrInfo);
     return errorCode;
 }
 

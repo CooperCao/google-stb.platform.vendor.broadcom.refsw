@@ -2590,22 +2590,19 @@ BERR_Code BI2C_OpenChannel(
             hChn->autoI2c.currentRegOffset = BAUTO_I2C_P_CHX_REG_OFFSET_e0;
 
             BAUTO_I2C_P_GetDefaultTriggerConfig(&hChn->autoI2c.trigConfig);
-            if (hChn->chnSettings.intMode == true)
+#if BCHP_PWR_RESOURCE_HDMI_TX_CLK
+            BCHP_PWR_AcquireResource(hDev->hChip, BCHP_PWR_RESOURCE_HDMI_TX_CLK);
+#endif
+            if ( (hChn->chnSettings.intMode == true) && (hChn->hChnCallback == NULL))
             {
                 /* Register and enable L2 interrupt. */
-                if (hChn->hChnCallback == NULL)
-                {
-#if BCHP_PWR_RESOURCE_HDMI_TX_CLK
-                    BCHP_PWR_AcquireResource(hDev->hChip, BCHP_PWR_RESOURCE_HDMI_TX_CLK);
-#endif
-                    BI2C_CHK_RETCODE( retCode,
-                        BINT_CreateCallback(&(hChn->hChnCallback), hDev->hInterrupt, BCHP_INT_ID_I2C_CH2_DONE_INTR, BAUTO_I2C_P_HandleInterrupt_Isr, (void *) hChn, 0x00)
-                    );
+				BI2C_CHK_RETCODE( retCode,
+					BINT_CreateCallback(&(hChn->hChnCallback), hDev->hInterrupt, BCHP_INT_ID_I2C_CH2_DONE_INTR, BAUTO_I2C_P_HandleInterrupt_Isr, (void *) hChn, 0x00)
+				);
 
-                    /* clear interrupt callback */
-                    BI2C_CHK_RETCODE(retCode, BINT_ClearCallback(hChn->hChnCallback));
-                    BI2C_CHK_RETCODE( retCode, BINT_EnableCallback(hChn->hChnCallback));
-                }
+				/* clear interrupt callback */
+				BI2C_CHK_RETCODE(retCode, BINT_ClearCallback(hChn->hChnCallback));
+				BI2C_CHK_RETCODE( retCode, BINT_EnableCallback(hChn->hChnCallback));
             }
 #endif
         }

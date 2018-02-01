@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -836,7 +836,7 @@ See Also:
 BERR_Code BAOB_InstallCallback(
     BAOB_Handle hDev,                   /* [in] Device handle */
     BAOB_Callback callbackType,         /* [in] Type of callback */
-    BAOB_CallbackFunc pCallback,        /* [in] Function Ptr to callback */
+    BAOB_CallbackFunc pCallback_isr,    /* [in] Function Ptr to callback */
     void *pParam                        /* [in] Generic parameter send on callback */
     );
 

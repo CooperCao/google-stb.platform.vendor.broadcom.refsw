@@ -345,13 +345,17 @@ static void BVDC_P_Mcdi_BuildRul_Madr_NodeInit_isr
     }
 
     /* set bufs addr into reg */
-    BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_0 + ulRegOffset,
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_0 + ulRegOffset, ullPixAddr[0]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_1 + ulRegOffset, ullPixAddr[1]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_2 + ulRegOffset, ullPixAddr[2]);
 #if (BVDC_P_MADR_VER_7 <= BVDC_P_SUPPORT_MADR_VER)
-        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_3 + ulRegOffset, ullPixAddr);
-#else
-        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_2 + ulRegOffset, ullPixAddr);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_3 + ulRegOffset, ullPixAddr[3]);
 #endif
+
 
 
     /* ********* Step 2: QM buffer ********* */
@@ -386,9 +390,14 @@ static void BVDC_P_Mcdi_BuildRul_Madr_NodeInit_isr
     }
 
 
-    BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-        BCHP_MDI_TOP_0_QM_FIELD_MSTART_1 + ulRegOffset,
-        BCHP_MDI_TOP_0_QM_FIELD_MSTART_4 + ulRegOffset, ullQmAddr);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_1 + ulRegOffset, ullQmAddr[0]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_2 + ulRegOffset, ullQmAddr[1]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_3 + ulRegOffset, ullQmAddr[2]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_4 + ulRegOffset, ullQmAddr[3]);
 
 }
 
@@ -1028,9 +1037,14 @@ static void BVDC_P_Mcdi_BuildRul_Mcdi_NodeInit_isr
         }
     }
     /* set bufs addr into reg */
-    BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_0 + ulRegOffset,
-        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_3 + ulRegOffset,ullPixAddr);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_0 + ulRegOffset, ullPixAddr[0]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_1 + ulRegOffset, ullPixAddr[1]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_2 + ulRegOffset, ullPixAddr[2]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_3 + ulRegOffset, ullPixAddr[3]);
 
     /* 7420 x does  not have QM */
     /* Buffer inside each group*/
@@ -1050,9 +1064,14 @@ static void BVDC_P_Mcdi_BuildRul_Mcdi_NodeInit_isr
         ullQmAddr[3] = BVDC_P_ADDR_ALIGN_UP(ullQmAddr[2] + ulQmBufSize, BVDC_P_PITCH_ALIGN);
     }
 
-    BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-        BCHP_MDI_TOP_0_QM_FIELD_MSTART_1 + ulRegOffset,
-        BCHP_MDI_TOP_0_QM_FIELD_MSTART_4 + ulRegOffset, ullQmAddr);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_1 + ulRegOffset, ullQmAddr[0]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_2 + ulRegOffset, ullQmAddr[1]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_3 + ulRegOffset, ullQmAddr[2]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_4 + ulRegOffset, ullQmAddr[3]);
 
     if(!bForceSpatial)
     {
@@ -1063,9 +1082,14 @@ static void BVDC_P_Mcdi_BuildRul_Mcdi_NodeInit_isr
     }
 
 
-    BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-        BCHP_MDI_TOP_0_QM_FIELD_MSTART_5 + ulRegOffset,
-        BCHP_MDI_TOP_0_QM_FIELD_MSTART_0 + ulRegOffset, ullQmAddr);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_5 + ulRegOffset, ullQmAddr[0]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_6 + ulRegOffset, ullQmAddr[1]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_7 + ulRegOffset, ullQmAddr[2]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_0 + ulRegOffset, ullQmAddr[3]);
 
     return;
 }
@@ -1880,9 +1904,14 @@ static void BVDC_P_Mcdi_BuildRul_Mosaic_isr
         ullPixAddr[3] = BVDC_P_BUFFERHEAP_GetDeviceOffset(hMcdi->apHeapNode[ulPictureIdx][3]);
     }
 
-    BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_0 + ulRegOffset,
-        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_3 + ulRegOffset, ullPixAddr);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_0 + ulRegOffset, ullPixAddr[0]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_1 + ulRegOffset, ullPixAddr[1]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_2 + ulRegOffset, ullPixAddr[2]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_3 + ulRegOffset, ullPixAddr[3]);
 
 
     BDBG_MODULE_MSG(BVDC_DEINTERLACER_MOSAIC,
@@ -1908,9 +1937,14 @@ static void BVDC_P_Mcdi_BuildRul_Mosaic_isr
         ullQmAddr[3] = BVDC_P_ADDR_ALIGN_UP(ullQmAddr[2] + ulQmBufSize, BVDC_P_PITCH_ALIGN);
     }
 
-    BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-        BCHP_MDI_TOP_0_QM_FIELD_MSTART_1 + ulRegOffset,
-        BCHP_MDI_TOP_0_QM_FIELD_MSTART_4 + ulRegOffset, ullQmAddr);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_1 + ulRegOffset, ullQmAddr[0]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_2 + ulRegOffset, ullQmAddr[1]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_3 + ulRegOffset, ullQmAddr[2]);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MDI_TOP_0_QM_FIELD_MSTART_4 + ulRegOffset, ullQmAddr[3]);
 
 
     BDBG_MODULE_MSG(BVDC_DEINTERLACER_MOSAIC,("Qm buffer offset %d size "BDBG_UINT64_FMT" "BDBG_UINT64_FMT" "BDBG_UINT64_FMT" "BDBG_UINT64_FMT,
@@ -1933,9 +1967,15 @@ static void BVDC_P_Mcdi_BuildRul_Mosaic_isr
             ullQmAddr[3] = BVDC_P_ADDR_ALIGN_UP(ullQmAddr[2] + ulQmBufSize, BVDC_P_PITCH_ALIGN);
         }
 
-        BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-            BCHP_MDI_TOP_0_QM_FIELD_MSTART_5 + ulRegOffset,
-            BCHP_MDI_TOP_0_QM_FIELD_MSTART_0 + ulRegOffset, ullQmAddr);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_MDI_TOP_0_QM_FIELD_MSTART_5 + ulRegOffset, ullQmAddr[0]);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_MDI_TOP_0_QM_FIELD_MSTART_6 + ulRegOffset, ullQmAddr[1]);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_MDI_TOP_0_QM_FIELD_MSTART_7 + ulRegOffset, ullQmAddr[2]);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_MDI_TOP_0_QM_FIELD_MSTART_0 + ulRegOffset, ullQmAddr[3]);
+
 
 
         BDBG_MODULE_MSG(BVDC_DEINTERLACER_MOSAIC,
@@ -2197,6 +2237,7 @@ void BVDC_P_Mcdi_GetDeinterlacerType_isr
 }
 #endif
 
+#if (BVDC_P_SUPPORT_MTG)
 /***************************************************************************
 *
 */
@@ -2226,5 +2267,6 @@ void BVDC_P_Mcdi_ReadOutPhase_isr
     }
 #endif
 }
+#endif /* BVDC_P_SUPPORT_MTG */
 
 /* End of file. */

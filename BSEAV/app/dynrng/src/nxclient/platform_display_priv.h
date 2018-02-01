@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,6 +49,7 @@ typedef struct PlatformDisplay
 {
     PlatformHandle platform;
     NxClient_DisplaySettings nxSettings;
+    NxClient_PictureQualitySettings nxPQSettings;
     struct
     {
         NEXUS_HdmiOutputHandle alias;
@@ -56,6 +57,7 @@ typedef struct PlatformDisplay
         NEXUS_HdmiOutputExtraStatus extraStatus;
     } hdmi;
     PlatformPictureInfo info;
+    PlatformPictureCtrlSettings pictureCtrlSettings;
 } PlatformDisplay;
 
 #define PRINT_PARAM(X) \

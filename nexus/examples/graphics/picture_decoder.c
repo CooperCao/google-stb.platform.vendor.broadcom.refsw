@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  *****************************************************************************/
 /* Nexus example app: show jpeg image */
 #if NEXUS_HAS_PICTURE_DECODER && NEXUS_HAS_DISPLAY
@@ -228,7 +225,7 @@ int main(int argc, const char *argv[])
                 if ( rc == NEXUS_SUCCESS ) {
                     rc = fread(buffer, 1, size, fin);                             /* read file into the decoder's buffer */
                     if (rc <= 0) {
-                        BDBG_ERR(("unable to read more data rc=%d bytesRemain=%d", rc, bytesRemain));
+                        BDBG_ERR(("unable to read more data rc=%d bytesRemain=%u", rc, (unsigned)bytesRemain));
                         cnt = 999;
                     }
                     rc = NEXUS_PictureDecoder_ReadComplete(pictureDecoder, 0, rc); /* commit data to the decoder */
@@ -303,7 +300,7 @@ int main(int argc, const char *argv[])
 
                 rc = fread(buffer, 1, size, fin);                             /* read file into the decoder's buffer */
                 if (rc < 0) {
-                    BDBG_ERR(("unable to read more data rc=%d bytesRemain=%d", rc, bytesRemain));
+                    BDBG_ERR(("unable to read more data rc=%d bytesRemain=%u", rc, (unsigned)bytesRemain));
                     goto error;
                 }
                 rc = NEXUS_PictureDecoder_ReadComplete(pictureDecoder, 0, rc); /* commit data to the decoder */

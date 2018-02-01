@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 #include "bstd.h"
@@ -46,9 +47,12 @@
 #include "bhsm_otp_key.h"
 #include "bhsm_bsp_msg.h"
 #include "bhsm_rsa.h"
+#ifdef BHSM_DEBUG_BSP
+ #include "bhsm_bsp_debug.h"
+#endif
 
 BDBG_MODULE(BHSM);
-
+BDBG_OBJECT_ID(BHSM_P_Handle);
 
 BHSM_Handle BHSM_Open( const BHSM_ModuleSettings *pSettings )
 {
@@ -59,16 +63,24 @@ BHSM_Handle BHSM_Open( const BHSM_ModuleSettings *pSettings )
     unsigned i = 0;
 
     BDBG_ENTER( BHSM_Open );
-    BSTD_UNUSED( pSettings );
+
+    if( !pSettings ) { BERR_TRACE(BERR_INVALID_PARAMETER); return NULL; }
 
     pHandle = BKNI_Malloc( sizeof(*pHandle) );
     if ( pHandle == NULL ) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); return NULL; }
+
     BKNI_Memset( pHandle, 0, sizeof(*pHandle) );
+    BDBG_OBJECT_SET( pHandle, BHSM_P_Handle );
 
     pHandle->regHandle = pSettings->hReg;
     pHandle->chipHandle = pSettings->hChip;
     pHandle->interruptHandle = pSettings->hInterrupt;
     pHandle->mmaHeap = pSettings->mmaHeap;
+
+   #ifdef BHSM_DEBUG_BSP
+    rc = BHSM_BspDebug_Init( pHandle, NULL );
+    if( rc != BERR_SUCCESS ){ (void)BERR_TRACE( rc ); goto error; }
+   #endif
 
     BKNI_Memset( &bspMsgInit, 0, sizeof(bspMsgInit) );
     rc = BHSM_BspMsg_Init( pHandle, &bspMsgInit );
@@ -101,7 +113,7 @@ BHSM_Handle BHSM_Open( const BHSM_ModuleSettings *pSettings )
     return pHandle;
 
 error:
-    if( pHandle ) BKNI_Free( pHandle );
+    if( pHandle ) BHSM_Close( pHandle );
 
     return NULL;
 }
@@ -109,11 +121,10 @@ error:
 
 BERR_Code BHSM_Close( BHSM_Handle hHsm )
 {
-    BHSM_P_Handle *pHandle = hHsm;
-
     BDBG_ENTER( BHSM_Close );
 
-    if( pHandle == NULL ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    if( !hHsm ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     BHSM_OtpKey_Uninit( hHsm );
     BHSM_Rsa_Uninit( hHsm );
@@ -122,8 +133,12 @@ BERR_Code BHSM_Close( BHSM_Handle hHsm )
     BHSM_KeyLadder_Uninit( hHsm );
     BHSM_Keyslot_Uninit( hHsm );
     BHSM_BspMsg_Uninit( hHsm );
+   #ifdef BHSM_DEBUG_BSP
+    BHSM_BspDebug_Uninit( hHsm );
+   #endif
 
-    BKNI_Free( pHandle );
+    BDBG_OBJECT_DESTROY( hHsm, BHSM_P_Handle );
+    BKNI_Free( hHsm );
 
     BDBG_LEAVE( BHSM_Close );
     return BERR_SUCCESS;
@@ -132,20 +147,37 @@ BERR_Code BHSM_Close( BHSM_Handle hHsm )
 
 void BHSM_GetCapabilities( BHSM_Handle hHsm,  BHSM_ModuleCapabilities *pCaps )
 {
+    BHSM_KeyslotModuleCapabilities keyslotCaps;
+    BERR_Code err;
+    unsigned i;
+
     BDBG_ENTER( BHSM_GetCapabilities );
 
+    if( !hHsm ) { BERR_TRACE(BERR_INVALID_PARAMETER); return; }
     if( !pCaps ) { BERR_TRACE(BERR_INVALID_PARAMETER); return; }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     BKNI_Memset( pCaps, 0, sizeof(*pCaps) );
 
     pCaps->version.zeus.major    = hHsm->bfwVersion.version.zeus.major;
     pCaps->version.zeus.minor    = hHsm->bfwVersion.version.zeus.minor;
     pCaps->version.zeus.subminor = hHsm->bfwVersion.version.zeus.subminor;
-
     pCaps->version.bfw.major    = hHsm->bfwVersion.version.bfw.major;
     pCaps->version.bfw.minor    = hHsm->bfwVersion.version.bfw.minor;
     pCaps->version.bfw.subminor = hHsm->bfwVersion.version.bfw.subminor;
 
+    err = BHSM_P_KeyslotModule_GetCapabilities(hHsm, &keyslotCaps);
+    if( err == BERR_SUCCESS )
+    {
+        for( i = 0; i < BHSM_KeyslotType_eMax; i++ )
+        {
+            pCaps->numKeyslotsForType[i] = keyslotCaps.numKeySlotsForType[i];
+        }
+    }
+    else
+    {
+        BERR_TRACE(err);
+    }
 
     BDBG_LEAVE( BHSM_GetCapabilities );
     return;
@@ -163,6 +195,9 @@ BERR_Code BHSM_Mem32cpy( uint32_t* pDest, const uint8_t* pSrc, unsigned byteSize
     uint32_t *pS = (uint32_t*)pSrc;
     uint32_t *pD = (uint32_t*)pDest;
     unsigned i;
+
+    if( !pDest ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    if( !pSrc ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
     if( byteSize % 4) return BERR_TRACE( BERR_INVALID_PARAMETER );
     if( wordSize == 0) return BERR_TRACE( BERR_INVALID_PARAMETER );

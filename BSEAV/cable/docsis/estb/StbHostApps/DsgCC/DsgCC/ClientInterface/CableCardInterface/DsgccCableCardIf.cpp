@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,9 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
  * Description:
  *		This is the Cablecard Interface object that manage the cablecard operation
  *	and receive any DS packet destined to cablecard.
@@ -92,7 +89,7 @@ typedef struct _IP_HDR
 // debug defines
 //#define IPU_REQ_WAIT       0
 #define ENABLE_IPU_US_TEST 0
-#define SOCKET_REQ_WAIT       0
+#define SOCKET_REQ_WAIT       1
 #define ENABLE_SOCKET_US_TEST 0
 
 //********************** Local Variables *************************************
@@ -140,6 +137,7 @@ BcmCableCardIfThread::BcmCableCardIfThread(BcmOperatingSystem::ThreadPriority in
 	fLastCableCardIpAddress(0),
 	fLastDsgMsgApdu(0)
 {
+	int i;
     fpMutex = BcmOperatingSystemFactory::NewMutexSemaphore("BcmCableCardIfThread mutex");
 
     if (fpMutex == NULL)
@@ -148,12 +146,19 @@ BcmCableCardIfThread::BcmCableCardIfThread(BcmOperatingSystem::ThreadPriority in
     //initialize varibles
     gDsgFlowId = INVALID_FLOW_ID;
     gIpUFlowId = INVALID_FLOW_ID;
-    gSocketFlowId = INVALID_FLOW_ID;
+    //gSocketFlowId = INVALID_FLOW_ID;
     DocsisRangedRegistered = false;
     Remove_Header_Bytes = 0;
     CableCardMacAddress = kAllZerosMac;
     CableCardIpAddress = 0;
-    gUdpTcpSocket = 0;
+    //gUdpTcpSocket = 0;
+     for (i=0; i<MAX_SOCKET_FLOW; i++ )
+     {
+		gSocketFlow[i].SocketFlowId=INVALID_FLOW_ID;
+		gSocketFlow[i].UdpTcpSocket=0;
+		memset(&gSocketFlow[i].Us_sockaddr, 0, sizeof(gSocketFlow[i].Us_sockaddr));
+		memset(&gSocketFlow[i].Us_sock6addr, 0, sizeof(gSocketFlow[i].Us_sock6addr));
+	 }
 
     NumOpenTunnel = 0;
     DhcpOptionLen = 0;
@@ -266,46 +271,63 @@ void BcmCableCardIfThread::ThreadMain(void)
     int buflen = sizeof(packet_buf);
     struct timeval tv;
     int lost_flow_sent=0;
+	int i;
+	bool bsocket = false;
 
     gLogMessageRaw << "\nIn CableCard Socket Flow DS RX Thread - listening on port = 0x" << hex << (int)SocFlowInfo.remote_port_number << dec << endl;
 
     while(1)
     {
-        // if DS_Socket is closed, loop here
-        while ( gUdpTcpSocket == 0)
-        {
-            //gLogMessageRaw << "Socket flow is closed! DS tread is sleeping..." << endl ;
-            pfOperatingSystem->Sleep(1000);     //sleep 1 sec
-        }
-
+	while (!bsocket)
+		{
+			for (i=0;i<MAX_SOCKET_FLOW;i++)
+		{
+				if (gSocketFlow[i].UdpTcpSocket != 0)
+				{
+					bsocket = true;
+				}
+			}
+			if (!bsocket) pfOperatingSystem->Sleep(1000);
+	}
+		bsocket = false;
         // Set 3 sec timeout loop
         tv.tv_sec = 3;
         tv.tv_usec = 0;
-
-        maxfdp1 = gUdpTcpSocket + 1;
-
     	FD_ZERO(&rfds);
-       	FD_SET(gUdpTcpSocket, &rfds);
+        maxfdp1 = gSocketFlow[0].UdpTcpSocket;
+		for (i=0;i<MAX_SOCKET_FLOW;i++)
+		{
+			if (gSocketFlow[i].UdpTcpSocket != 0)
+			{
+			    //cout << "gSocketFlow" << i << " - "<< gSocketFlow[i].SocketFlowId << " - " << gSocketFlow[i].UdpTcpSocket <<" set"<<endl;
+			FD_SET(gSocketFlow[i].UdpTcpSocket, &rfds);
+				if (gSocketFlow[i].UdpTcpSocket > maxfdp1)
+					maxfdp1 = gSocketFlow[i].UdpTcpSocket;
+			}
+		}
 
+		//cout << " maxfdp1 = " << maxfdp1 <<endl;
         // set loop every 3 seconds to handle cases where the flow is deleted and open again
-    	retcode = select(maxfdp1, &rfds, (fd_set *)0, (fd_set *)0, (struct timeval *)&tv);
-
+	retcode = select(maxfdp1 + 1, &rfds, (fd_set *)0, (fd_set *)0, (struct timeval *)&tv);
         // If successful, select() returns the number of ready descriptors that are contained in the bit masks.
         // If the time limit expires, select returns zero and sets errno to EINTR.
         // On failure, it returns -1 and sets errno to one of the following values:
         if( retcode > 0 )
     	{
-            if(FD_ISSET(gUdpTcpSocket, &rfds))
-            {
+			for (i=0;i<MAX_SOCKET_FLOW;i++)
+			{
+				if((FD_ISSET(gSocketFlow[i].UdpTcpSocket, &rfds)) && (gSocketFlow[i].UdpTcpSocket != 0))
+		{
                 // recvfrom should not block now
                 // Upon successful completion, recvfrom() returns the length of the message in bytes.
                 // If no messages are available to be received and the peer has performed an orderly shutdown, recvfrom() returns 0.
                 // Otherwise the function returns -1 and sets errno to indicate the error
                 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                if ( SocFlowInfo.remote_address_type == SF_IPV6)
-                    cnt = recvfrom(gUdpTcpSocket, packet_buf, buflen, 0, (struct sockaddr*)&frominet6, (socklen_t*) &inetsize6);
-                else
-                    cnt = recvfrom(gUdpTcpSocket, packet_buf, buflen, 0, (struct sockaddr*)&frominet, (socklen_t*) &inetsize);
+				    //cout << "FD_ISSET gSocketFlow[i].UdpTcpSocket = " << gSocketFlow[i].UdpTcpSocket <<" is SET"<<endl;
+                    if ( SocFlowInfo.remote_address_type == SF_IPV6)
+		                    cnt = recvfrom(gSocketFlow[i].UdpTcpSocket, packet_buf, buflen, 0, (struct sockaddr*)&frominet6, (socklen_t*) &inetsize6);
+                    else
+		                    cnt = recvfrom(gSocketFlow[i].UdpTcpSocket, packet_buf, buflen, 0, (struct sockaddr*)&frominet, (socklen_t*) &inetsize);
 
                 if( cnt > 0 )
                 {
@@ -319,14 +341,14 @@ void BcmCableCardIfThread::ThreadMain(void)
 
                     // For CableCard Driver, this function block until data is sent out to the POD or timeout.
                     // When the function returns, the packet can always be released
-                    BcmSendDataToPOD( packet_buf, cnt, gSocketFlowId );
+	                    BcmSendDataToPOD( packet_buf, cnt, gSocketFlow[i].SocketFlowId );
                 }
                 else if( cnt == 0 )
                 {
                     // remote TCP socket close
                     if( lost_flow_sent == 0 )
                     {
-                        POD_Api_Lost_Flow_Ind( gSocketFlowId , LOSTFLOW_RTCP_CLOSED );
+		                        POD_Api_Lost_Flow_Ind(gSocketFlow[i].SocketFlowId , LOSTFLOW_RTCP_CLOSED );
                         lost_flow_sent = 1;
                         gLogMessageRaw	<< "gUdpTcpSocket: Remote server closed. Wait for Host to delete flow..." << endl;
                     }
@@ -336,16 +358,17 @@ void BcmCableCardIfThread::ThreadMain(void)
                 {
                     if( lost_flow_sent == 0 )
                     {
-                        POD_Api_Lost_Flow_Ind( gSocketFlowId , LOSTFLOW_SOCKET_RD_ERR );    //socket read error
+	                        POD_Api_Lost_Flow_Ind( gSocketFlow[i].SocketFlowId , LOSTFLOW_SOCKET_RD_ERR );    //socket read error
                         lost_flow_sent = 1;
                     }
                     gLogMessageRaw	<< "gUdpTcpSocket receive error = " << strerror(errno) << endl;
                 }
             }
+			}
         }
         else if (retcode == -1)
         {
-            POD_Api_Lost_Flow_Ind( gSocketFlowId , LOSTFLOW_UNKNOWN );    //unknown or unspecified reason
+       //     POD_Api_Lost_Flow_Ind( gSocketFlowId , LOSTFLOW_UNKNOWN );    //unknown or unspecified reason
             gLogMessageRaw << "select(): " << strerror(errno) << endl;
         }
         else if( retcode == 0 )
@@ -903,6 +926,7 @@ void BcmCableCardIfThread::HandleCardRemovedCleanUp()
 {
 	BcmDsgCableCardClient *pClient;
 	BcmDsgClientCtlThread *pDsgClientCtlThread = BcmDsgClientCtlThread::GetSingletonInstance();
+	int i;
 
     // Always send Shut down Proxy IP_U stack to Ecm
     DsgShutDownProxyIpuStack();
@@ -914,13 +938,18 @@ void BcmCableCardIfThread::HandleCardRemovedCleanUp()
 	CloseAllCableCardClients( pDsgClientCtlThread );
 
     // Closed any opened flows
-    if( gSocketFlowId )
+    for (i=0;i<MAX_SOCKET_FLOW;i++)
     {
-        cout << "Delete Socket Flow." << endl;
-        if( gUdpTcpSocket )
-            close(gUdpTcpSocket);
-        gUdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
-        gSocketFlowId = INVALID_FLOW_ID;
+	    if( gSocketFlow[i].SocketFlowId != 0)
+	{
+            cout << "Delete Socket Flow." << i << endl;
+	        if( gSocketFlow[i].UdpTcpSocket )
+	            close(gSocketFlow[i].UdpTcpSocket);
+	        gSocketFlow[i].UdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+	        gSocketFlow[i].SocketFlowId = INVALID_FLOW_ID;
+			memset(&gSocketFlow[i].Us_sockaddr, 0, sizeof(gSocketFlow[i].Us_sockaddr));
+            memset(&gSocketFlow[i].Us_sock6addr, 0, sizeof(gSocketFlow[i].Us_sock6addr));
+	    }
     }
     if( gIpUFlowId )
     {
@@ -969,11 +998,20 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
 {
     struct sockaddr_in sockaddr_param;
     uint32 myIpaddress;
-    int i, arg = 1;
+    int i,j, arg = 1;
+	int reuse =1;
+	bool bRet = false;
 
     // At this time, this may be private ip address,
     // Need to wait for a non private ip, which means Docsis is on 2-way mode
-    GetEstbIpAddress(&myIpaddress);     //return in network byte order
+    bRet = GetEstbIpAddress(&myIpaddress);     //return in network byte order
+    while (bRet == false)
+    {
+        cout << "Wait for ESTB ip address valid..." << endl;
+		BcmOperatingSystemFactory::ThreadSleep(3000);
+		bRet = GetEstbIpAddress(&myIpaddress);
+	}
+
     #if ( SOCKET_REQ_WAIT )
 	// Wait until the ESTB Ip address changed....
 	while( (myIpaddress & 0x00ffffff) == 0x0064a8c0  )  //x.100.168.192
@@ -990,25 +1028,22 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
     }
     #endif
 
-    // For now, we only support one socket flow
-    if( gUdpTcpSocket )
+
+    for (j = 0;j < MAX_SOCKET_FLOW; j++)
     {
-        // ATP test case 170.1 - step 10
-        uint16 rport;
-        rport = ((uint16)*(pkt_obj_ptr+4) << 8);
-        rport += ((uint16)*(pkt_obj_ptr+5) << 0);
-        if( rport == SocFlowInfo.remote_port_number )
-        {
-            cout << "Request denied, remote port number already in use." << endl;
-            return 0x08;    //0x08 Request denied, local port already in use or invalid
-        }
-        cout << "Only support 1 opened socket flow. Please delete flow before open another one." << endl;
+		if (gSocketFlow[j].UdpTcpSocket == 0)
+			break;
+	}
+	//cout << "gSocketFlow= " << j <<" is free"<<endl;
+	if (j == MAX_SOCKET_FLOW)
+	{
+	    cout << "Only support "<<MAX_SOCKET_FLOW << "opened socket flow. Please delete flow before open another one." << endl;
         return 0x01;    //0x01 Request denied, number of flows exceeded
     }
 
 	//Saved the socket flow id
-	gSocketFlowId  = flowid;
-
+	gSocketFlow[j].SocketFlowId  = flowid;
+	//cout << "gSocketFlow[j].SocketFlowId= " << gSocketFlow[j].SocketFlowId <<endl;
     //clear out the structure first
     memset( (void *)&SocFlowInfo, 0x0, sizeof(CCARD_CONFIGURE_SOCKET_FLOW_APDU) );
 
@@ -1087,7 +1122,7 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
         SocFlowInfo.Var.pNameOrIpv6addr = pkt_obj_ptr;
         pkt_obj_ptr += 16;      //exactly 16 bytes according to CCIF spec.
         SocFlowInfo.connection_timeout = *(pkt_obj_ptr++);  // Number of seconds the Host will attempt to establish a TCP connection
-        return ConfigureIpV6SocketFlow();
+        return ConfigureIpV6SocketFlow(j);
     }
 
     SocFlowInfo.connection_timeout = *(pkt_obj_ptr++);  // Number of seconds the Host will attempt to establish a TCP connection
@@ -1096,7 +1131,7 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
     memset( &sockaddr_param, 0, sizeof(sockaddr_param) );
     sockaddr_param.sin_family = AF_INET;
 
-    gLogMessageRaw << "local port=0x" << hex << (int)SocFlowInfo.local_port_number
+    gLogMessageRaw << " local port=0x" << hex << (int)SocFlowInfo.local_port_number
          << " eSTB PriIp=0x" << (int)htonl(myIpaddress)
          << " remote port=0x" << (int)SocFlowInfo.remote_port_number
          << " ipv4 address=0x" << (int)SocFlowInfo.Var.ipv4_address << dec << endl;
@@ -1112,31 +1147,45 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
         sockaddr_param.sin_port = htons(SocFlowInfo.local_port_number);
 
         // Creating DS sockets
-        if ((gUdpTcpSocket = socket(AF_INET, SOCK_DGRAM, 0/*usually 0 for UDP*/)) < 0)
+        if ((gSocketFlow[j].UdpTcpSocket = socket(AF_INET, SOCK_DGRAM, 0/*usually 0 for UDP*/)) < 0)
         {
             gLogMessageRaw << "BcmCableCardIfThread::HandleSocketFlowConfig "
                 << "dsgcc failed to create DS-UDP socket flow." << endl;
-            gUdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+            gLogMessageRaw << "BcmCableCardIfThread::HandleSocketFlowConfi Socket Error " << strerror(errno) << endl;
+            gSocketFlow[j].UdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+            gSocketFlow[j].SocketFlowId = INVALID_FLOW_ID ;
+			memset(&gSocketFlow[j].Us_sockaddr, 0, sizeof(gSocketFlow[j].Us_sockaddr));
+		    memset(&gSocketFlow[j].Us_sock6addr, 0, sizeof(gSocketFlow[j].Us_sock6addr));
             return 0x02;    //service_type not available
         }
 
+        if (setsockopt(gSocketFlow[j].UdpTcpSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0)
+	{
+		perror("setsockopt(SO_REUSEPORT) failed");
+		}
+
+		//cout << "gSocketFlow[j].UdpTcpSocket= " << gSocketFlow[j].UdpTcpSocket <<endl;
         // bind to the local port
-        if (bind(gUdpTcpSocket, (struct sockaddr *)&sockaddr_param, sizeof(sockaddr_param)) < 0)
+        if (bind(gSocketFlow[j].UdpTcpSocket, (struct sockaddr *)&sockaddr_param, sizeof(sockaddr_param)) < 0)
         {
             gLogMessageRaw << "BcmCableCardIfThread::HandleSocketFlowConfig "
                 << "dsgcc: DS-UDP socket failed to bind!" << endl;
-            close(gUdpTcpSocket);
-            gUdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+            gLogMessageRaw << "BcmCableCardIfThread::HandleSocketFlowConfig bind Error " << strerror(errno) << endl;
+            close(gSocketFlow[j].UdpTcpSocket);
+            gSocketFlow[j].UdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+			gSocketFlow[j].SocketFlowId = INVALID_FLOW_ID ;
+			memset(&gSocketFlow[j].Us_sockaddr, 0, sizeof(gSocketFlow[j].Us_sockaddr));
+		    memset(&gSocketFlow[j].Us_sock6addr, 0, sizeof(gSocketFlow[j].Us_sock6addr));
             return 0x02;    //service_type not available
         }
 
         // Set the socket to be non-blocking.
-        ioctl(gUdpTcpSocket, FIONBIO, &arg);
+        ioctl(gSocketFlow[j].UdpTcpSocket, FIONBIO, &arg);
 
-        gLogMessageRaw << "gUdpTcpSocket(UDP) bind to interface(ip=0x" << hex << htonl(myIpaddress)
+        gLogMessageRaw << " gUdpTcpSocket(UDP) bind to interface(ip=0x" << hex << htonl(myIpaddress)
             << ") and listen on port 0x" << SocFlowInfo.local_port_number << dec << endl;
 
-        gLogMessageRaw << "gUdpTcpSocket(UDP) will send to remote ip=0x" << hex << SocFlowInfo.Var.ipv4_address
+        gLogMessageRaw << " gUdpTcpSocket(UDP) will send to remote ip=0x" << hex << SocFlowInfo.Var.ipv4_address
             << " with remote port 0x" << SocFlowInfo.remote_port_number << dec << endl;
 
     }
@@ -1145,35 +1194,48 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
         int success=0;
 
         // Creating DS sockets
-        if ((gUdpTcpSocket = socket(AF_INET, SOCK_STREAM, 0/*usually 0 for TCP*/)) < 0)
+        if ((gSocketFlow[j].UdpTcpSocket = socket(AF_INET, SOCK_STREAM, 0/*usually 0 for TCP*/)) < 0)
         {
             gLogMessageRaw << "BcmCableCardIfThread::HandleSocketFlowConfig "
                 << "dsgcc failed to create DS-TCP socket flow." << endl;
-            gUdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+            gLogMessageRaw << "BcmCableCardIfThread::HandleSocketFlowConfi Socket Error " << strerror(errno) << endl;
+            gSocketFlow[j].UdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+			gSocketFlow[j].SocketFlowId = INVALID_FLOW_ID ;
+			memset(&gSocketFlow[j].Us_sockaddr, 0, sizeof(gSocketFlow[j].Us_sockaddr));
+		    memset(&gSocketFlow[j].Us_sock6addr, 0, sizeof(gSocketFlow[j].Us_sock6addr));
             return 0x02;    //service_type not available
         }
+
+        if (setsockopt(gSocketFlow[j].UdpTcpSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0)
+	{
+		perror("setsockopt(SO_REUSEPORT) failed");
+		}
 
         // bind to the local port
         sockaddr_param.sin_addr.s_addr = myIpaddress;
         sockaddr_param.sin_port = htons(SocFlowInfo.local_port_number);
-        if (bind(gUdpTcpSocket, (struct sockaddr *)&sockaddr_param, sizeof(sockaddr_param)) < 0)
+        if (bind(gSocketFlow[j].UdpTcpSocket, (struct sockaddr *)&sockaddr_param, sizeof(sockaddr_param)) < 0)
         {
             gLogMessageRaw << "BcmCableCardIfThread::HandleSocketFlowConfig "
                 << "dsgcc: DS-TCP socket failed to bind!" << endl;
-            close(gUdpTcpSocket);
-            gUdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+            gLogMessageRaw << "BcmCableCardIfThread::HandleSocketFlowConfi bind Error " << strerror(errno) << endl;
+            close(gSocketFlow[j].UdpTcpSocket);
+            gSocketFlow[j].UdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+			gSocketFlow[j].SocketFlowId = INVALID_FLOW_ID ;
+			memset(&gSocketFlow[j].Us_sockaddr, 0, sizeof(gSocketFlow[j].Us_sockaddr));
+		    memset(&gSocketFlow[j].Us_sock6addr, 0, sizeof(gSocketFlow[j].Us_sock6addr));
             return 0x02;    //service_type not available
         }
 
         // Set the socket to be non-blocking for handling timeout parameter properly.
-        ioctl(gUdpTcpSocket, FIONBIO, &arg);
+        ioctl(gSocketFlow[j].UdpTcpSocket, FIONBIO, &arg);
 
         // For TCP, use remote Ip address and port number
         sockaddr_param.sin_addr.s_addr = htonl(SocFlowInfo.Var.ipv4_address);
         sockaddr_param.sin_port = htons(SocFlowInfo.remote_port_number);
 
 		// first Connect
-		int rc = connect(gUdpTcpSocket, (struct sockaddr *)&sockaddr_param, sizeof(sockaddr_param));
+		int rc = connect(gSocketFlow[j].UdpTcpSocket, (struct sockaddr *)&sockaddr_param, sizeof(sockaddr_param));
         // If the connection succeeds, zero is returned. On error, -1 is returned, and errno is set appropriately.
         if( rc == 0)
         {
@@ -1194,14 +1256,14 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
                 sock_to.tv_sec = SocFlowInfo.connection_timeout;
                 sock_to.tv_usec = 0;
                 FD_ZERO(&fdwrite);
-                FD_SET(gUdpTcpSocket, &fdwrite);
+                FD_SET(gSocketFlow[j].UdpTcpSocket, &fdwrite);
 
 				// Select returns the number of sockets recently became active.
-                if (0 != select(gUdpTcpSocket+1, NULL, &fdwrite, NULL, &sock_to))
+                if (0 != select(gSocketFlow[j].UdpTcpSocket+1, NULL, &fdwrite, NULL, &sock_to))
 				{
                     /* double check that the connect completed properly */
                     optlen = sizeof(optval);
-                    rc = getsockopt(gUdpTcpSocket, SOL_SOCKET, SO_ERROR, (char*)&optval, &optlen);
+                    rc = getsockopt(gSocketFlow[j].UdpTcpSocket, SOL_SOCKET, SO_ERROR, (char*)&optval, &optlen);
                     if (rc == 0 && optval == 0)
 					{
                         success = 1;
@@ -1220,8 +1282,11 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
         {
             gLogMessageRaw << "BcmCableCardIfThread::HandleSocketFlowConfig "
                 << "dsgcc: DS-TCP socket failed to connect!" << endl;
-            close(gUdpTcpSocket);
-            gUdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+            close(gSocketFlow[j].UdpTcpSocket);
+            gSocketFlow[j].UdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+			gSocketFlow[j].SocketFlowId = INVALID_FLOW_ID ;
+			memset(&gSocketFlow[j].Us_sockaddr, 0, sizeof(gSocketFlow[j].Us_sockaddr));
+		    memset(&gSocketFlow[j].Us_sock6addr, 0, sizeof(gSocketFlow[j].Us_sock6addr));
             return 0x09;    //could not establish TCP connection
         }
     }
@@ -1233,10 +1298,10 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
     }
 
     // Setup upstream socket parameter one time here:
-    memset(&gUs_sockaddr, 0, sizeof(gUs_sockaddr));
-    gUs_sockaddr.sin_addr.s_addr = htonl(SocFlowInfo.Var.ipv4_address);
-    gUs_sockaddr.sin_port = htons(SocFlowInfo.remote_port_number);
-    gUs_sockaddr.sin_family = AF_INET;
+    memset(&gSocketFlow[j].Us_sockaddr.sin_addr, 0, sizeof(gSocketFlow[j].Us_sockaddr.sin_addr));
+    gSocketFlow[j].Us_sockaddr.sin_addr.s_addr = htonl(SocFlowInfo.Var.ipv4_address);
+    gSocketFlow[j].Us_sockaddr.sin_port = htons(SocFlowInfo.remote_port_number);
+    gSocketFlow[j].Us_sockaddr.sin_family = AF_INET;
 
     // if this is the first time, start the receive thread
     if( pfOperatingSystem->GetThreadState() == 0 /*kNotStarted*/ )
@@ -1262,15 +1327,22 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
 //
 unsigned char BcmCableCardIfThread::HandleDeleteFlowRequest( unsigned long flowid )
 {
-    if( flowid == gSocketFlowId )
-    {
-        cout << "Delete Socket Flow." << endl;
-        if( gUdpTcpSocket )
-            close(gUdpTcpSocket);
-        gUdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
-        gSocketFlowId = INVALID_FLOW_ID;
-    }
-    else if( flowid == gIpUFlowId )
+	int i;
+	for (i = 0; i < MAX_SOCKET_FLOW; i++)
+	{
+		if( flowid == gSocketFlow[i].SocketFlowId )
+		{
+			cout << "Delete Socket Flow." << i << "flowid" << flowid << endl;
+			if( gSocketFlow[i].UdpTcpSocket )
+				close(gSocketFlow[i].UdpTcpSocket);
+			gSocketFlow[i].UdpTcpSocket = 0;	// Set to 0 so that the RX thread will not wait for this socket anymore
+			gSocketFlow[i].SocketFlowId = INVALID_FLOW_ID;
+			memset(&gSocketFlow[i].Us_sockaddr, 0, sizeof(gSocketFlow[i].Us_sockaddr));
+			memset(&gSocketFlow[i].Us_sock6addr, 0, sizeof(gSocketFlow[i].Us_sock6addr));
+		}
+	}
+
+	if( flowid == gIpUFlowId )
     {
 		// PR20830:
 		if( (fLastDsgMsgApdu == 0x02) || // Entering_One-Way_mode
@@ -1939,15 +2011,16 @@ void BcmCableCardIfThread::CloseAllCableCardClients( BcmDsgClientCtlThread *pDsg
 }
 
 // IpV6 stuff
-unsigned char BcmCableCardIfThread::ConfigureIpV6SocketFlow( void )
+unsigned char BcmCableCardIfThread::ConfigureIpV6SocketFlow( int i )
 {
     sockaddr_in6 sockaddr_param;
     BcmIpV6Address ipAddress, myIpAddress;
-    int i, arg = 1;
+    int arg = 1;
     struct ifaddrs *ifaddr, *ifa;
     int family, s;
     char host[INET6_ADDRSTRLEN];
-
+	int ipv6only = 1;
+	int reuse = 1;
     ipAddress.Set((const uint8*)SocFlowInfo.Var.pNameOrIpv6addr);
     gLogMessageRaw << "\nFrom CC:Remote ipv6 address=0x" << ipAddress << hex;
     #if 0   //raw print 16 byte ipv6 address
@@ -2039,31 +2112,44 @@ unsigned char BcmCableCardIfThread::ConfigureIpV6SocketFlow( void )
     if( SocFlowInfo.protocol_flag == SF_UDP )
     {
         // Creating DS sockets
-        if ((gUdpTcpSocket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP)) < 0)
+        if ((gSocketFlow[i].UdpTcpSocket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP)) < 0)
         {
             gLogMessageRaw << "BcmCableCardIfThread::HandleSocketFlowConfig "
                 << "dsgcc failed to create DS-UDP ipv6 socket flow." << endl;
-            gUdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+            gLogMessageRaw << "BcmCableCardIfThread::ConfigureIpV6SocketFlow Socket Error " << strerror(errno) << endl;
+            gSocketFlow[i].UdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+			gSocketFlow[i].SocketFlowId = INVALID_FLOW_ID ;
+
             return 0x02;    //service_type not available
         }
 
+        if(setsockopt(gSocketFlow[i].UdpTcpSocket, IPPROTO_IPV6, IPV6_V6ONLY, (void *)&ipv6only, sizeof(ipv6only))< 0)
+        {
+            gLogMessageRaw << "BcmCableCardIfThread::ConfigureIpV6SocketFlow setsockopt Error " << strerror(errno) << endl;
+        }
+		if (setsockopt(gSocketFlow[i].UdpTcpSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0)
+	{
+		perror("setsockopt(SO_REUSEPORT) failed");
+        }
         // bind to the local port
-        if (bind(gUdpTcpSocket, (struct sockaddr *)&sockaddr_param, sizeof(sockaddr_param)) < 0)
+        if (bind(gSocketFlow[i].UdpTcpSocket, (struct sockaddr *)&sockaddr_param, sizeof(sockaddr_param)) < 0)
         {
             perror("DS-UDP ipv6 bind failed");
-            gLogMessageRaw << "BcmCableCardIfThread::HandleSocketFlowConfig " << "errno=" << errno << endl;
-            close(gUdpTcpSocket);
-            gUdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+            gLogMessageRaw << "BcmCableCardIfThread::ConfigureIpV6SocketFlow bind " << strerror(errno) << endl;
+            close(gSocketFlow[i].UdpTcpSocket);
+            gSocketFlow[i].UdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+			gSocketFlow[i].SocketFlowId = INVALID_FLOW_ID ;
+
             return 0x02;    //service_type not available
         }
 
         // Set the socket to be non-blocking.
-        ioctl(gUdpTcpSocket, FIONBIO, &arg);
+        ioctl(gSocketFlow[i].UdpTcpSocket, FIONBIO, &arg);
 
-        gLogMessageRaw << "gUdpTcpSocket(UDP) bind to local(ip=0x" << hex << myIpAddress
+        gLogMessageRaw << " gUdpTcpSocket(UDP) bind to local(ip=0x" << hex << myIpAddress
             << ") and listen on port 0x" << SocFlowInfo.local_port_number << dec << endl;
 
-        gLogMessageRaw << "gUdpTcpSocket(UDP) will send to remote ip=0x" << hex << ipAddress
+        gLogMessageRaw << " gUdpTcpSocket(UDP) will send to remote ip=0x" << hex << ipAddress
             << " with remote port 0x" << SocFlowInfo.remote_port_number << dec << endl;
 
     }
@@ -2072,38 +2158,51 @@ unsigned char BcmCableCardIfThread::ConfigureIpV6SocketFlow( void )
         int success=0;
 
         // Creating DS sockets
-        if ((gUdpTcpSocket = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP)) < 0)
+        if ((gSocketFlow[i].UdpTcpSocket = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP)) < 0)
         {
             gLogMessageRaw << "BcmCableCardIfThread::HandleSocketFlowConfig "
                 << "dsgcc failed to create DS-TCP ipv6 socket flow." << endl;
-            gUdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+            gSocketFlow[i].UdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+			gSocketFlow[i].SocketFlowId = INVALID_FLOW_ID ;
+
             return 0x02;    //service_type not available
         }
 
         gLogMessageRaw << "gUdpTcpSocket(TCP) bind to interface(ip=0x" << hex << myIpAddress
             << ") and listen on port 0x" << SocFlowInfo.local_port_number << dec << endl;
+        if(setsockopt(gSocketFlow[i].UdpTcpSocket, IPPROTO_IPV6, IPV6_V6ONLY, (void *)&ipv6only, sizeof(ipv6only))< 0)
+        {
+            gLogMessageRaw << "BcmCableCardIfThread::ConfigureIpV6SocketFlow setsockopt Error " << strerror(errno) << endl;
+        }
 
-        if (bind(gUdpTcpSocket, (struct sockaddr *)&sockaddr_param, sizeof(sockaddr_param)) < 0)
+		if (setsockopt(gSocketFlow[i].UdpTcpSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0)
+	{
+		perror("setsockopt(SO_REUSEPORT) failed");
+		}
+
+        if (bind(gSocketFlow[i].UdpTcpSocket, (struct sockaddr *)&sockaddr_param, sizeof(sockaddr_param)) < 0)
         {
             perror("DS-TCP ipv6 bind failed");
             gLogMessageRaw << "BcmCableCardIfThread::HandleSocketFlowConfig " << "errno=" << errno << endl;
-            close(gUdpTcpSocket);
-            gUdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+            close(gSocketFlow[i].UdpTcpSocket);
+            gSocketFlow[i].UdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+			gSocketFlow[i].SocketFlowId = INVALID_FLOW_ID ;
+
             return 0x02;    //service_type not available
         }
 
         // Set the socket to be non-blocking for handling timeout parameter properly.
-        ioctl(gUdpTcpSocket, FIONBIO, &arg);
+        ioctl(gSocketFlow[i].UdpTcpSocket, FIONBIO, &arg);
 
         // For TCP, use remote Ip address and port number
         ipAddress.Get((uint8 *) &(sockaddr_param.sin6_addr));   // remote
         sockaddr_param.sin6_port = htons(SocFlowInfo.remote_port_number);
 
-        gLogMessageRaw << "gUdpTcpSocket(TCP) connect to remote(ip=0x" << hex << ipAddress
+        gLogMessageRaw << " gUdpTcpSocket(TCP) connect to remote(ip=0x" << hex << ipAddress
             << ") and remote port 0x" << SocFlowInfo.remote_port_number << dec << endl;
 
 		// first Connect
-		int rc = connect(gUdpTcpSocket, (struct sockaddr *)&sockaddr_param, sizeof(sockaddr_param));
+		int rc = connect(gSocketFlow[i].UdpTcpSocket, (struct sockaddr *)&sockaddr_param, sizeof(sockaddr_param));
         // If the connection succeeds, zero is returned. On error, -1 is returned, and errno is set appropriately.
         if( rc == 0)
         {
@@ -2124,14 +2223,14 @@ unsigned char BcmCableCardIfThread::ConfigureIpV6SocketFlow( void )
                 sock_to.tv_sec = SocFlowInfo.connection_timeout;
                 sock_to.tv_usec = 0;
                 FD_ZERO(&fdwrite);
-                FD_SET(gUdpTcpSocket, &fdwrite);
+                FD_SET(gSocketFlow[i].UdpTcpSocket, &fdwrite);
 
 				// Select returns the number of sockets recently became active.
-                if (0 != select(gUdpTcpSocket+1, NULL, &fdwrite, NULL, &sock_to))
+                if (0 != select(gSocketFlow[i].UdpTcpSocket+1, NULL, &fdwrite, NULL, &sock_to))
 				{
                     /* double check that the connect completed properly */
                     optlen = sizeof(optval);
-                    rc = getsockopt(gUdpTcpSocket, SOL_SOCKET, SO_ERROR, (char*)&optval, &optlen);
+                    rc = getsockopt(gSocketFlow[i].UdpTcpSocket, SOL_SOCKET, SO_ERROR, (char*)&optval, &optlen);
                     if (rc == 0 && optval == 0)
 					{
                         success = 1;
@@ -2143,15 +2242,15 @@ unsigned char BcmCableCardIfThread::ConfigureIpV6SocketFlow( void )
         if( success == 1 )
         {
             /* connect successfull */
-            gLogMessageRaw << "gUdpTcpSocket(TCP) connect to remote ip=0x" << hex << ipAddress
+            gLogMessageRaw << " gUdpTcpSocket(TCP) connect to remote ip=0x" << hex << ipAddress
                 << " with remote port 0x" << SocFlowInfo.remote_port_number << dec << endl;
         }
         else
         {
             gLogMessageRaw << "BcmCableCardIfThread::HandleSocketFlowConfig "
                 << "dsgcc: DS-TCP ipv6 socket failed to connect!" << endl;
-            close(gUdpTcpSocket);
-            gUdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
+            close(gSocketFlow[i].UdpTcpSocket);
+            gSocketFlow[i].UdpTcpSocket = 0;  // Set to 0 so that the RX thread will not wait for this socket anymore
             return 0x09;    //could not establish TCP connection
         }
     }
@@ -2163,10 +2262,10 @@ unsigned char BcmCableCardIfThread::ConfigureIpV6SocketFlow( void )
     }
 
     // Setup upstream socket parameter one time here:
-    memset(&gUs_sock6addr, 0, sizeof(gUs_sock6addr));
-    ipAddress.Get((uint8 *) &(gUs_sock6addr.sin6_addr));   // remote
-    gUs_sock6addr.sin6_port = htons(SocFlowInfo.remote_port_number);
-    gUs_sock6addr.sin6_family = AF_INET6;
+    memset(&gSocketFlow[i].Us_sock6addr.sin6_addr, 0, sizeof(gSocketFlow[i].Us_sock6addr.sin6_addr));
+    ipAddress.Get((uint8 *) &(gSocketFlow[i].Us_sock6addr.sin6_addr));   // remote
+    gSocketFlow[i].Us_sock6addr.sin6_port = htons(SocFlowInfo.remote_port_number);
+    gSocketFlow[i].Us_sock6addr.sin6_family = AF_INET6;
 
     // if this is the first time, start the receive thread
     if( pfOperatingSystem->GetThreadState() == 0 /*kNotStarted*/ )
@@ -2456,32 +2555,51 @@ unsigned char CableCardCallbackSocketFlowConfig( unsigned long flowid, unsigned 
 //
 void CableCardCallbackSendSocketFlowUsData( unsigned long flow_id, unsigned char *pdata, unsigned long len )
 {
+	struct sockaddr_in  Us_sockaddr;
+    struct sockaddr_in6 Us_sock6addr;
+
 	// pad to minimum length
 	if( len < 64 )
 		len = 64;
 
     // Use socket to send out to thru eSTB ip stack
-    if( pgCableCardIf->UdpTcpSocket() /*&& pgCableCardIf->DocsisRangedRegistered*/ )
+    if( pgCableCardIf->UdpTcpSocket(flow_id) /*&& pgCableCardIf->DocsisRangedRegistered*/ )
     {
         // debug
         //if (gTunnelDebugLevel & 0x8)
     	pgCableCardIf->DumpBytes( "US_SocketFlow", pdata, len );
         if( pgCableCardIf->SocketFlowIpType() == SF_IPV6 )
         {
-            gLogMessageRaw << "sendto() using US_socket6" << endl;
-            if( sendto(pgCableCardIf->UdpTcpSocket(), pdata, len, 0,  (struct sockaddr *)&(pgCableCardIf->gUs_sock6addr), sizeof(pgCableCardIf->gUs_sock6addr)) < len )
-            {
-                gLogMessageRaw << "US_socket6 sendto() error: " << errno << endl;
-                POD_Api_Lost_Flow_Ind( flow_id , LOSTFLOW_SOCKET_WR_ERR );    //socket write error
-            }
+            gLogMessageRaw << "sendto() using US_socket6" <<endl;
+            cout << "CableCardCallbackSendSocketFlowUsData socket "<< pgCableCardIf->UdpTcpSocket(flow_id) <<endl;
+			if (pgCableCardIf->UdpTcpSocketUsIpV6Addr(flow_id,&Us_sock6addr))
+			{
+		        gLogMessageRaw << "gUdpTcpSocket(UDP) will send to  remote port 0x" << Us_sock6addr.sin6_port <<endl;
+	            if( sendto(pgCableCardIf->UdpTcpSocket(flow_id), pdata, len, 0,(struct sockaddr *) &Us_sock6addr, sizeof(struct sockaddr_in6)) < len )
+	            {
+	                gLogMessageRaw << "US_socket6 sendto() error: " << errno << endl;
+	                POD_Api_Lost_Flow_Ind( flow_id , LOSTFLOW_SOCKET_WR_ERR );    //socket write error
+	            }
+			}else
+			{
+				cout << "UdpTcpSocketUsIpV6Addr failed "<< endl;
+			}
         }
         else
         {
-    	    if( sendto(pgCableCardIf->UdpTcpSocket(), pdata, len, 0,  (struct sockaddr *)&(pgCableCardIf->gUs_sockaddr), sizeof(pgCableCardIf->gUs_sockaddr)) < len )
-            {
-                gLogMessageRaw << "US_socket sendto() error: " << errno << endl;
-                POD_Api_Lost_Flow_Ind( flow_id , LOSTFLOW_SOCKET_WR_ERR );    //socket write error
-            }
+            cout << "CableCardCallbackSendSocketFlowUsData socket "<< pgCableCardIf->UdpTcpSocket(flow_id) <<endl;
+			if (pgCableCardIf->UdpTcpSocketUsIpV4Addr(flow_id,&Us_sockaddr))
+			{
+		        gLogMessageRaw << "gUdpTcpSocket(UDP) will send to remote port 0x" << Us_sockaddr.sin_port <<endl;
+		    if( sendto(pgCableCardIf->UdpTcpSocket(flow_id), pdata, len, 0, (struct sockaddr *)&Us_sockaddr, sizeof(struct sockaddr_in)) < len )
+	            {
+	                gLogMessageRaw << "US_socket sendto() error: " << errno << endl;
+	                POD_Api_Lost_Flow_Ind( flow_id , LOSTFLOW_SOCKET_WR_ERR );    //socket write error
+	            }
+			}else
+			{
+				cout << "UdpTcpSocketUsIpV4Addr failed "<< endl;
+			}
         }
 
     }
@@ -2809,6 +2927,3 @@ void POD_Api_Lost_Flow_Ind(unsigned long id,unsigned char status)
     return;
 }
 #endif
-
-
-

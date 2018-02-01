@@ -50,11 +50,9 @@ void ClifRecorder::RecordBin(autoclif &ac, const autoclif_addr *tile_alloc_addrs
    {
       ac.bin(core,
          m_info.bin_subjobs.subjobs[core].start, m_info.bin_subjobs.subjobs[core].end,
-         tile_alloc_addrs[core], tile_alloc_size
-#if V3D_VER_AT_LEAST(4,1,34,0)
-         , ac.create_explicit_buf(ssprintf("tile_state_%u", core).c_str(),
+         tile_alloc_addrs[core], tile_alloc_size,
+         ac.create_explicit_buf(ssprintf("tile_state_%u", core).c_str(),
             m_info.details.bin_tile_state_size, V3D_TILE_STATE_ALIGN)
-#endif
          );
    }
    ac.wait_bin_all_cores();

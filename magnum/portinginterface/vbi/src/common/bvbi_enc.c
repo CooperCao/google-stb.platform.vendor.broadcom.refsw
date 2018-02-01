@@ -69,19 +69,17 @@ static BERR_Code BVBI_P_Encode_Get_VBI (
     uint32_t ulSelect_Standard);
 #endif
 
-#if (BVBI_NUM_PTVEC > 0) /** { **/
-#if !B_REFSW_MINIMAL
 static BERR_Code BVBI_P_Encode_656_Set_VBI (
     BVBI_Encode_Handle encodeHandle,
     bool bEnabled,
     uint32_t ulSelect_Standard);
 
+#if !B_REFSW_MINIMAL
 static BERR_Code BVBI_P_Encode_656_Get_VBI (
     BVBI_Encode_Handle encodeHandle,
     bool* pbEnabled,
     uint32_t ulSelect_Standard);
 #endif
-#endif /** } (BVBI_NUM_PTVEC > 0) **/
 
 #if (BVBI_P_HAS_XSER_TT > 0) /** { **/
 
@@ -919,7 +917,6 @@ BERR_Code BVBI_Encode_GetCGMSBstyle(BVBI_Encode_Handle encodeHandle,
 }
 #endif
 
-#if (BVBI_NUM_PTVEC > 0) /** { **/
 
 #if !B_REFSW_MINIMAL
 /***************************************************************************
@@ -990,7 +987,6 @@ BERR_Code BVBI_Encode_656_GetFormat(BVBI_Encode_Handle encodeHandle,
 }
 #endif
 
-#endif /** } (BVBI_NUM_PTVEC > 0) **/
 
 #if (BVBI_P_HAS_XSER_TT > 0) /** { **/
 
@@ -2048,9 +2044,7 @@ BERR_Code BVBI_Encode_GetSCTE(
 }
 #endif /** } (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) **/
 
-#if (BVBI_NUM_PTVEC > 0) /** { **/
 
-#if !B_REFSW_MINIMAL
 BERR_Code BVBI_Encode_656_SetCC(BVBI_Encode_Handle encodeHandle, bool bEnabled)
 {
     return BVBI_P_Encode_656_Set_VBI (encodeHandle, bEnabled, BVBI_P_SELECT_CC);
@@ -2082,7 +2076,7 @@ BERR_Code BVBI_Encode_656_SetMCC(
     return BVBI_P_Encode_656_Set_VBI (
         encodeHandle, bEnabled, BVBI_P_SELECT_MCC);
 }
-#endif
+
 #if (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) /** { **/
 BERR_Code BVBI_Encode_656_SetSCTE(
     BVBI_Encode_Handle encodeHandle, bool bEnabled)
@@ -2129,7 +2123,6 @@ BERR_Code BVBI_Encode_656_GetMCC(
     return BVBI_P_Encode_656_Get_VBI (
         encodeHandle, pbEnabled, BVBI_P_SELECT_MCC);
 }
-#endif
 #if (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) /** { **/
 BERR_Code BVBI_Encode_656_GetSCTE(
     BVBI_Encode_Handle encodeHandle, bool* pbEnabled)
@@ -2138,8 +2131,8 @@ BERR_Code BVBI_Encode_656_GetSCTE(
         encodeHandle, pbEnabled, BVBI_P_SELECT_SCTE);
 }
 #endif /** } (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) **/
+#endif
 
-#endif /** } (BVBI_NUM_PTVEC > 0) **/
 
 #if (BVBI_P_HAS_XSER_TT > 0) /** { **/
 #if !B_REFSW_MINIMAL
@@ -2264,9 +2257,7 @@ static BERR_Code BVBI_P_Encode_Get_VBI(
 }
 #endif
 
-#if (BVBI_NUM_PTVEC > 0) /** { **/
 
-#if !B_REFSW_MINIMAL
 /***************************************************************************
  *
  */
@@ -2335,7 +2326,6 @@ static BERR_Code BVBI_P_Encode_656_Set_VBI(
     BDBG_LEAVE(BVBI_P_Encode_656_Set_VBI);
     return BERR_SUCCESS;
 }
-#endif
 
 #if !B_REFSW_MINIMAL
 /***************************************************************************
@@ -2369,7 +2359,6 @@ static BERR_Code BVBI_P_Encode_656_Get_VBI(
 }
 #endif
 
-#endif /** } (BVBI_NUM_PTVEC > 0) **/
 
 #if (BVBI_P_HAS_XSER_TT > 0) /** { **/
 

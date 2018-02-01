@@ -117,7 +117,7 @@ static void print_full_usage(void)
     );
     printf(
     "  -standby_timeout X \tnumber of seconds to wait for clients to acknowledge standby\n"
-    "  -heap NAME,SIZE    \tNAME is {main|gfx|gfx2|client|video_secure|export|securegfx}. Use M or K suffix for units.\n"
+    "  -heap NAME,SIZE    \tNAME is {main|gfx|gfx2|client|video_secure|export|securegfx|crrt|urrt}. Use M or K suffix for units.\n"
     "  -audio_description \tenable audio description\n"
     "  -persistent_audio \tenable support for persistent simple audio decoders\n"
     "  -loudness [atsc|ebu]\tenable ATSC A/85 or EBU-R128 loudness equivalence.\n"
@@ -174,6 +174,7 @@ static void print_full_usage(void)
     "  -memconfig display,5060=off       \tDon't allocate BVN buffers for 50/60Hz conversion\n"
     "  -memconfig display,hddvi=off      \tDon't allocate BVN buffers for HDMI Rx/HD-DVI\n"
     "  -memconfig display,mtg=off        \tDon't allocate BVN buffers for MTG\n"
+    "  -memconfig display,INDEX,forcesynclock \tforce sync lock on display INDEX pip to save BVN capture buffers\n"
     );
     printf(
     "  -growHeapBlockSize SIZE           \tGrow/shrink on-demand heap with this block size. Use M or K suffix for units.\n"
@@ -193,6 +194,9 @@ static void print_full_usage(void)
     printf(
     "  -file_queued_elements X           \tSet max Nexus DVR file I/O descriptors\n"
     "  -file_threads X                   \tSet total Nexus DVR file I/O threads\n"
+    );
+    printf(
+    "  -thermal_config_file filename     \tFilen containing the thermal configuration\n"
     );
 }
 
@@ -245,19 +249,39 @@ static NEXUS_VideoFormat lookup_format(unsigned width, unsigned height, bool int
     }
 }
 
-static NEXUS_SecureVideo nxserver_p_svpstr(const char *svpstr)
+static NEXUS_Error nxserver_p_svpstr(const char *svpstr, NEXUS_SecureVideo *secure, NEXUS_SecureVideo *secureTranscode)
 {
     bool s = strchr(svpstr, 's') != NULL;
     bool u = strchr(svpstr, 'u') != NULL;
+    bool t = strchr(svpstr, 't') != NULL;
     if (s && u) {
-        return NEXUS_SecureVideo_eBoth;
+        *secure = NEXUS_SecureVideo_eBoth;
     }
     else if (s) {
-        return NEXUS_SecureVideo_eSecure;
+        *secure = NEXUS_SecureVideo_eSecure;
+    }
+    else if (u) {
+        *secure = NEXUS_SecureVideo_eUnsecure;
     }
     else {
-        return NEXUS_SecureVideo_eUnsecure;
+        if (t) {
+            *secure = NEXUS_SecureVideo_eNone;
+        }
+        else {
+            /* for backward compat */
+            *secure = NEXUS_SecureVideo_eUnsecure;
+        }
     }
+    if (t) {
+        if (!secureTranscode) {
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
+        *secureTranscode = NEXUS_SecureVideo_eSecure;
+    }
+    else if (secureTranscode) {
+        *secureTranscode = NEXUS_SecureVideo_eUnsecure;
+    }
+    return NEXUS_SUCCESS;
 }
 
 enum b_dynamic_picbuf
@@ -294,6 +318,7 @@ static void set_dynamic_picture_buffers(NEXUS_MemoryConfigurationSettings *pMemC
 static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSettings, NEXUS_MemoryConfigurationSettings *pMemConfigSettings, const char * const *memconfig_str, unsigned memconfig_str_total)
 {
     unsigned i;
+    NEXUS_Error rc;
     BSTD_UNUSED(pPlatformSettings);
     for (i=0;i<memconfig_str_total;i++) {
         unsigned index, numMosaics, maxWidth, maxHeight;
@@ -303,13 +328,19 @@ static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSett
         }
 #if NEXUS_HAS_VIDEO_DECODER
         else if (sscanf(memconfig_str[i], "videoDecoder,svp,%u,%s", &index, svpstr) == 2 && index < NEXUS_MAX_VIDEO_DECODERS) {
-            NEXUS_SecureVideo secure = nxserver_p_svpstr(svpstr);
+            NEXUS_SecureVideo secure, secureTranscode;
+            rc = nxserver_p_svpstr(svpstr, &secure, &secureTranscode);
+            if (rc) return BERR_TRACE(rc);
             pMemConfigSettings->videoDecoder[index].secure = secure;
+            pMemConfigSettings->videoDecoder[index].secureTranscode = secureTranscode;
         }
         else if (sscanf(memconfig_str[i], "videoDecoder,svp,all,%s", svpstr) == 1) {
-            NEXUS_SecureVideo secure = nxserver_p_svpstr(svpstr);
+            NEXUS_SecureVideo secure, secureTranscode;
+            rc = nxserver_p_svpstr(svpstr, &secure, &secureTranscode);
+            if (rc) return BERR_TRACE(rc);
             for (index=0;index<NEXUS_MAX_VIDEO_DECODERS;index++) {
                 pMemConfigSettings->videoDecoder[index].secure = secure;
+                pMemConfigSettings->videoDecoder[index].secureTranscode = secureTranscode;
             }
         }
         else if (sscanf(memconfig_str[i], "videoDecoder,%u,%u,%u", &index, &maxWidth, &maxHeight) == 3 && index < NEXUS_MAX_VIDEO_DECODERS) {
@@ -328,20 +359,36 @@ static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSett
         else if (!strcmp(memconfig_str[i], "videoDecoder,dynamic")) {
             set_dynamic_picture_buffers(pMemConfigSettings, b_dynamic_picbuf_decoder);
         }
+        else if (!strcmp(memconfig_str[i], "stillDecoder,off")) {
+            for (index=0;index<NEXUS_MAX_STILL_DECODERS;index++) {
+                pMemConfigSettings->stillDecoder[index].used = false;
+            }
+
+        }
 #endif
 #if NEXUS_HAS_DISPLAY && NEXUS_NUM_VIDEO_WINDOWS
         else if (sscanf(memconfig_str[i], "display,%u,%u,%u", &index, &maxWidth, &maxHeight) == 3 && index < NEXUS_MAX_DISPLAYS) {
             pMemConfigSettings->display[index].maxFormat = lookup_format(maxWidth, maxHeight, false /* don't care */);
         }
+        else if (sscanf(memconfig_str[i], "display,%u,forcesynclock", &index) == 1 && index < NEXUS_MAX_DISPLAYS) {
+            unsigned w;
+            for (w=0;w<NEXUS_NUM_VIDEO_WINDOWS;w++) {
+                pMemConfigSettings->display[index].window[w].forceSyncLock = true;
+            }
+        }
         else if (sscanf(memconfig_str[i], "display,svp,%u,%s", &index, svpstr) == 2 && index < NEXUS_MAX_DISPLAYS) {
             unsigned j;
-            NEXUS_SecureVideo secure = nxserver_p_svpstr(svpstr);
+            NEXUS_SecureVideo secure;
+            rc = nxserver_p_svpstr(svpstr, &secure, NULL);
+            if (rc) return BERR_TRACE(rc);
             for (j=0;j<NEXUS_NUM_VIDEO_WINDOWS;j++) {
                 pMemConfigSettings->display[index].window[j].secure = secure;
             }
         }
         else if (sscanf(memconfig_str[i], "display,svp,all,%s", svpstr) == 1) {
-            NEXUS_SecureVideo secure = nxserver_p_svpstr(svpstr);
+            NEXUS_SecureVideo secure;
+            rc = nxserver_p_svpstr(svpstr, &secure, NULL);
+            if (rc) return BERR_TRACE(rc);
             for (index=0;index<NEXUS_MAX_DISPLAYS;index++) {
                 unsigned j;
                 for (j=0;j<NEXUS_NUM_VIDEO_WINDOWS;j++) {
@@ -531,6 +578,19 @@ static int nxserverlib_apply_heap_str(NEXUS_PlatformSettings *pPlatformSettings,
                 BDBG_LOG(("setting main heap[%d] to %dMB", index, size/MB));
                 pPlatformSettings->heap[index].size = size;
             }
+        }
+        else if (!strcmp(name,"crrt")) {
+            int index = nxserver_heap_by_type(pPlatformSettings, NEXUS_HEAP_TYPE_CRRT);
+            if (index != -1) {
+                BDBG_LOG(("setting crrt heap[%d] to %dMB", index, size/MB));
+                pPlatformSettings->heap[index].size = size;
+            }
+        }
+        else if (!strcmp(name,"urrt")) {
+            BDBG_LOG(("setting urrt heaps to %dMB", size/MB));
+            pPlatformSettings->heap[NEXUS_MEMC0_URRT_HEAP].size = size;
+            pPlatformSettings->heap[NEXUS_MEMC1_URRT_HEAP].size = size;
+            pPlatformSettings->heap[NEXUS_MEMC2_URRT_HEAP].size = size;
         }
         else if (!strcmp(name,"export")) {
             int index = nxserver_heap_by_type(pPlatformSettings, NEXUS_HEAP_TYPE_EXPORT_REGION);
@@ -1100,6 +1160,9 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
         }
         else if(!strcmp(argv[curarg], "-file_threads") && curarg+1<argc) {
             cmdline_settings->file.threads = atoi(argv[++curarg]);
+        }
+        else if(!strcmp(argv[curarg], "-thermal_config_file") && curarg+1<argc) {
+            settings->thermal.thermal_config_file = argv[++curarg];
         }
         else {
             fprintf(stderr,"invalid argument %s\n", argv[curarg]);

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,21 +38,12 @@
  * Module Description:
  *
  ***************************************************************************/
-
-/* For debugging */
-/* #define BUDP_P_GETUD_DUMP 1 */
-#ifdef BUDP_P_GETUD_DUMP
-static const char* BUDP_P_Getud_Filename = "userdata.getud";
-#include <stdio.h>
-#endif
-
 #include "bstd.h"
 #include "bdbg.h"
 #include "budp.h"
 #include "budp_jp3dparse.h"
 
 BDBG_MODULE(BUDP);
-
 
 /***************************************************************************
 * Forward declarations of static (private) functions
@@ -61,20 +52,13 @@ BDBG_MODULE(BUDP);
 static size_t FindJp3dStart_isr (
     const uint8_t* userdata, size_t length);
 
-#ifdef BUDP_P_GETUD_DUMP
-static void dump_getud_isr (
-    const BAVC_USERDATA_info* pUserdata_info, size_t offset);
-#endif
-
 /***************************************************************************
 * Static data (tables, etc.)
 ***************************************************************************/
 
-
 /***************************************************************************
 * Implementation of "BUDP_JP3Dparse_" API functions
 ***************************************************************************/
-
 
 /***************************************************************************
  *
@@ -100,8 +84,8 @@ BERR_Code BUDP_JP3Dstart_isr (
 
     /* Programming note:  all function parameters are now validated */
 
-#ifdef BUDP_P_GETUD_DUMP
-    dump_getud_isr (pUserdata_info, offset);
+#if (BUDP_P_GETUD_DUMP)
+    BUDP_P_dump_getud_isr (pUserdata_info, offset, BUDP_P_Getud_Filename);
 #endif
 
     /* Take care of a special case */

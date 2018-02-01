@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -104,11 +104,20 @@
 #define BXPT_P_PLAYBACK_DISABLE_SLOT_WISE_READ 1 /* SW7445-341 */
 #endif
 
+/* See SWSTB-7713 for details. */
+#ifdef BCHP_XPT_MCPB_CH0_CPU_ID_GRAB_CHANNEL
+    #define MCPB_GRAB_CHNL(handle) (BXPT_Playback_P_WriteReg(handle, BCHP_XPT_MCPB_CH0_CPU_ID_GRAB_CHANNEL, 1))
+    #define MCPB_RELEASE_CHNL(handle) (BXPT_Playback_P_WriteReg(handle, BCHP_XPT_MCPB_CH0_CPU_ID_CFG_DONE, 1))
+#else
+    #define MCPB_GRAB_CHNL(handle)
+    #define MCPB_RELEASE_CHNL(handle)
+#endif
+
 #define MCPB_TOP_WRITE( handle, regname, bitfield, val ) \
     { \
         uint32_t LocalReg; \
         LocalReg = BREG_Read32( handle->hRegister, BCHP_##regname ); \
-		BCHP_SET_FIELD_DATA(LocalReg, regname, bitfield, val); \
+        BCHP_SET_FIELD_DATA(LocalReg, regname, bitfield, val); \
         BREG_Write32( handle->hRegister, BCHP_##regname, LocalReg ); \
     };
 
@@ -140,6 +149,10 @@
 #ifdef BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR
 #define BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR
 #endif
+
+static BERR_Code setChannelPacketSettings(BXPT_Playback_Handle hPb, const BXPT_Playback_ChannelPacketSettings *ChannelSettings);
+static BERR_Code setChannelSettings(BXPT_Playback_Handle hPb, const BXPT_Playback_ChannelSettings *ChannelSettings);
+static BERR_Code disablePacketizers(BXPT_Playback_Handle hPb);
 
 static void BXPT_Playback_P_WriteAddr(
     BXPT_Playback_Handle hPb,    /* [in] Handle for the playback channel */
@@ -452,6 +465,8 @@ BERR_Code BXPT_Playback_OpenChannel(
     hPb->PacingCount = 0;
     hPb->PacingLoadNeeded = false;
 
+    MCPB_GRAB_CHNL(hPb);
+
     /* Restore all the stuff they could have changed through the API. */
 #ifdef BCHP_XPT_MCPB_CH0_RUN
     MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_RUN, SET_CLEAR, 0 );
@@ -489,8 +504,11 @@ BERR_Code BXPT_Playback_OpenChannel(
 #endif
 
     /* Now load the defaults they passed in. */
-    BXPT_Playback_SetChannelSettings( hPb, ChannelSettings );
     BXPT_Playback_SetPacingErrorBound(hPb, 1024);
+    ExitCode |= setChannelSettings( hPb, ChannelSettings );
+    MCPB_RELEASE_CHNL(hPb);
+    if(ExitCode)
+        goto Error;
 
     hPb->Opened = true;
     hPb->Running = false;
@@ -498,12 +516,19 @@ BERR_Code BXPT_Playback_OpenChannel(
 
     Done:
     return( ExitCode );
+
+    Error:
+    BXPT_P_ReleaseSubmodule(hPb->vhXpt, BXPT_P_Submodule_eMcpb);
+    return ExitCode;
 }
 
 void BXPT_Playback_CloseChannel(
     BXPT_Playback_Handle hPb /* [in] Handle for the channel to close*/
     )
 {
+    BDBG_ASSERT(hPb);
+    MCPB_GRAB_CHNL(hPb);
+
     if (hPb->mma.descBlock) {
         BMMA_Unlock(hPb->mma.descBlock, hPb->mma.descPtr);
         BMMA_UnlockOffset(hPb->mma.descBlock, hPb->mma.descOffset);
@@ -522,7 +547,8 @@ void BXPT_Playback_CloseChannel(
 #endif
 
     /* Clean up all previous Packetization state, if any. */
-    BXPT_Playback_DisablePacketizers( hPb );
+    (void) disablePacketizers( hPb );
+    MCPB_RELEASE_CHNL(hPb);
     BXPT_P_ReleaseSubmodule(hPb->vhXpt, BXPT_P_Submodule_eMcpb);
 
     hPb->Opened = false;
@@ -532,6 +558,20 @@ void BXPT_Playback_CloseChannel(
 }
 
 BERR_Code BXPT_Playback_SetChannelSettings(
+    BXPT_Playback_Handle hPb,       /* [in] Handle for the playback channel. */
+    const BXPT_Playback_ChannelSettings *ChannelSettings /* [in] New settings to use */
+    )
+{
+    BERR_Code ret;
+
+    BDBG_ASSERT(hPb);
+    MCPB_GRAB_CHNL(hPb);
+    ret = setChannelSettings(hPb, ChannelSettings);
+    MCPB_RELEASE_CHNL(hPb);
+    return ret;
+}
+
+static BERR_Code setChannelSettings(
     BXPT_Playback_Handle hPb,       /* [in] Handle for the playback channel. */
     const BXPT_Playback_ChannelSettings *ChannelSettings /* [in] New settings to use */
     )
@@ -572,7 +612,7 @@ BERR_Code BXPT_Playback_SetChannelSettings(
         BDBG_WRN(( "PacingOffsetAdjustDisable is unsupported on this chip." ));
     }
 
-    BXPT_Playback_SetChannelPacketSettings(hPb, &PacketSettings );
+    ExitCode = setChannelPacketSettings(hPb, &PacketSettings );
 
 #ifdef BCHP_XPT_MCPB_CH0_DMA_DATA_CTRL
     MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_DMA_DATA_CTRL, ENDIAN_CONTROL, hPb->settings.SwapBytes == true ? 1 : 0 );
@@ -604,7 +644,7 @@ BERR_Code BXPT_Playback_SetChannelSettings(
             break;
         default:
             BDBG_ERR(( "Unsupported TimestampMode %u", hPb->settings.TimestampMode ));
-            ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+            ExitCode |= BERR_TRACE( BERR_INVALID_PARAMETER );
             goto Done;
     }
 
@@ -654,7 +694,7 @@ BERR_Code BXPT_Playback_GetChannelSettings(
     return BERR_SUCCESS;
 }
 
-BERR_Code BXPT_Playback_SetChannelPacketSettings(
+static BERR_Code setChannelPacketSettings(
     BXPT_Playback_Handle hPb,                                  /* [in] Handle for the playback channel. */
     const BXPT_Playback_ChannelPacketSettings *ChannelSettings /* [in] New settings to use */
     )
@@ -709,6 +749,20 @@ BERR_Code BXPT_Playback_SetChannelPacketSettings(
 
     Done:
     return( ExitCode );
+}
+
+BERR_Code BXPT_Playback_SetChannelPacketSettings(
+    BXPT_Playback_Handle hPb,                                  /* [in] Handle for the playback channel. */
+    const BXPT_Playback_ChannelPacketSettings *ChannelSettings /* [in] New settings to use */
+    )
+{
+    BERR_Code ret;
+
+    BDBG_ASSERT(hPb);
+    MCPB_GRAB_CHNL(hPb);
+    ret = setChannelPacketSettings(hPb, ChannelSettings);
+    MCPB_RELEASE_CHNL(hPb);
+    return ret;
 }
 
 BERR_Code BXPT_Playback_GetLastCompletedDescriptorAddress(
@@ -814,8 +868,11 @@ BERR_Code BXPT_Playback_AddDescriptors(
     BERR_Code ExitCode = BERR_SUCCESS;
     BXPT_PvrDescriptor *LastDescriptor = hPb->LastDescriptor;
 
+    BDBG_ASSERT(hPb);
     BDBG_ASSERT(FirstDesc);
     DescWords = (uint32_t*)FirstDesc;
+
+    MCPB_GRAB_CHNL(hPb);
 
 #if( BDBG_DEBUG_BUILD == 1 )
 
@@ -896,7 +953,8 @@ BERR_Code BXPT_Playback_AddDescriptors(
             if (ExitCode != BERR_SUCCESS || (memCfg.blockout == 0x3FFFF && !memCfg.roundRobinEn))
             {
                BDBG_ERR(("Descriptor at offset " BDBG_UINT64_FMT " is not on an MEMC that has RTS for playback.", BDBG_UINT64_ARG(DescPhysAddr)));
-               return BERR_TRACE(BERR_NOT_SUPPORTED);
+               ExitCode =  BERR_TRACE(BERR_NOT_SUPPORTED);
+               goto Done;
             }
             break;
          }
@@ -961,6 +1019,8 @@ BERR_Code BXPT_Playback_AddDescriptors(
     }
 
     hPb->LastDescriptor = LastDesc;
+    Done:
+    MCPB_RELEASE_CHNL(hPb);
     return ExitCode;
 }
 
@@ -972,6 +1032,7 @@ BERR_Code BXPT_Playback_StartChannel(
 
     BDBG_ASSERT( hPb );
     BDBG_MSG(( "Starting playback channel %lu", ( unsigned long ) hPb->ChannelNo ));
+    MCPB_GRAB_CHNL(hPb);
 
     if( hPb->Running == true )
     {
@@ -1014,6 +1075,7 @@ BERR_Code BXPT_Playback_StartChannel(
     hPb->Running = true;
 
     Done:
+    MCPB_RELEASE_CHNL(hPb);
     return( ExitCode );
 }
 
@@ -1117,6 +1179,8 @@ BERR_Code BXPT_Playback_SetBitRate(
     uint32_t BitRate            /* [in] Rate, in bits per second. */
     )
 {
+    BERR_Code ret;
+
     BDBG_ASSERT( hPb );
 
     if( BitRate < BXPT_MIN_PLAYBACK_RATE )
@@ -1131,7 +1195,10 @@ BERR_Code BXPT_Playback_SetBitRate(
     }
 
     hPb->BitRate = BitRate;
-    return CalcAndSetBlockout( hPb, BitRate );
+    MCPB_GRAB_CHNL(hPb);
+    ret = CalcAndSetBlockout( hPb, BitRate );
+    MCPB_RELEASE_CHNL(hPb);
+    return ret;
 }
 
 BERR_Code BXPT_Playback_ConfigPacing(
@@ -1142,6 +1209,7 @@ BERR_Code BXPT_Playback_ConfigPacing(
     uint32_t Reg;
 
     BDBG_ASSERT( hPb );
+    MCPB_GRAB_CHNL(hPb);
 
     Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_MCPB_CH0_TMEU_TIMING_CTRL );
     Reg &= ~(
@@ -1166,6 +1234,7 @@ BERR_Code BXPT_Playback_ConfigPacing(
     }
 
     BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_MCPB_CH0_TMEU_TIMING_CTRL, Reg );
+    MCPB_RELEASE_CHNL(hPb);
     return BERR_SUCCESS;
 }
 
@@ -1214,6 +1283,7 @@ BERR_Code BXPT_Playback_PacketizeStream(
     BDBG_ASSERT( hPb );
     BDBG_ASSERT( Cfg );
     BSTD_UNUSED( Context );
+    MCPB_GRAB_CHNL(hPb);
 
     hXpt = (BXPT_Handle) hPb->vhXpt;
 
@@ -1396,10 +1466,24 @@ BERR_Code BXPT_Playback_PacketizeStream(
         }
     }
 
+    MCPB_RELEASE_CHNL(hPb);
     return BERR_SUCCESS;
 }
 
 BERR_Code BXPT_Playback_DisablePacketizers(
+    BXPT_Playback_Handle hPb                    /* [in] Handle for the playback channel */
+    )
+{
+    BERR_Code ret;
+
+    BDBG_ASSERT(hPb);
+    MCPB_GRAB_CHNL(hPb);
+    ret = disablePacketizers(hPb);
+    MCPB_RELEASE_CHNL(hPb);
+    return ret;
+}
+
+static BERR_Code disablePacketizers(
     BXPT_Playback_Handle hPb                    /* [in] Handle for the playback channel */
     )
 {
@@ -1508,6 +1592,7 @@ BERR_Code BXPT_Playback_SetParserConfig(
     BDBG_ASSERT( hPb );
     BDBG_ASSERT( ParserConfig );
     hXpt = (BXPT_Handle) hPb->vhXpt;
+    MCPB_GRAB_CHNL(hPb);
 
     Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_MCPB_CH0_SP_TS_CONFIG );
     Reg &= ~(
@@ -1538,6 +1623,7 @@ BERR_Code BXPT_Playback_SetParserConfig(
     if( ParserConfig->AcceptAdapt00 )
         Reg |= (0x01 << hPb->ChannelNo);
     BREG_Write32( hXpt->hRegister, BCHP_XPT_FULL_PID_PARSER_PBP_ACCEPT_ADAPT_00, Reg );
+    MCPB_RELEASE_CHNL(hPb);
     return BERR_SUCCESS;
 }
 
@@ -1743,6 +1829,12 @@ void BXPT_Playback_P_Init(
 
     BDBG_ASSERT( hXpt );
 
+#ifdef BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL
+    for (ii=0; ii<BXPT_NUM_PLAYBACKS; ii++) {
+        BREG_Write32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_CPU_ID_GRAB_CHANNEL + PB_PARSER_REG_STEPSIZE*ii, 1);
+    }
+#endif
+
     /* Init all MCPB registers to 0, including the RAM-based regs. */
     BREG_Write32( hXpt->hRegister, BCHP_XPT_BUS_IF_SUB_MODULE_SOFT_INIT_DO_MEM_INIT,
         BCHP_FIELD_DATA( XPT_BUS_IF_SUB_MODULE_SOFT_INIT_DO_MEM_INIT, XPT_MCPB_SOFT_INIT_DO_MEM_INIT, 1 ) );
@@ -1817,6 +1909,12 @@ void BXPT_Playback_P_Init(
         hXpt->PacingCounters[ ii ].Allocated = false;
         hXpt->PacingCounters[ ii ].Index = ii;
     }
+
+#ifdef BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL
+    for (ii=0; ii<BXPT_NUM_PLAYBACKS; ii++) {
+        BREG_Write32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_CPU_ID_CFG_DONE + PB_PARSER_REG_STEPSIZE*ii, 1);
+    }
+#endif
 }
 
 /* This API has to be ported to the 40 and 65 nm sets. */
@@ -1987,6 +2085,8 @@ void BXPT_Playback_P_SetBandId(
 
     BXPT_Handle hXpt = (BXPT_Handle) hPb->vhXpt;
 
+    MCPB_GRAB_CHNL(hPb);
+
 #ifdef BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL
     {
         Reg = BREG_Read32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + PB_PARSER_BAND_ID_CTRL_STEPSIZE * hPb->ChannelNo);
@@ -2008,6 +2108,7 @@ void BXPT_Playback_P_SetBandId(
 #endif
 
     hXpt->BandMap.Playback[ hPb->ChannelNo ].VirtualParserBandNum = NewBandId;
+    MCPB_RELEASE_CHNL(hPb);
 }
 
 #if !BXPT_HAS_MULTICHANNEL_PLAYBACK
@@ -2105,6 +2206,7 @@ void BXPT_Playback_GetLTSID(
 #endif
 }
 
+#if 0   /* SWSTB-7671: These APIs aren't used by Nexus. */
 BERR_Code BXPT_Get_SkipRepeatSetting(
     BXPT_Playback_Handle hPb,    /* [in] Handle for the playback channel */
     BXPT_Playback_SkipRepeat *skipRepeatCfg
@@ -2179,6 +2281,7 @@ BERR_Code BXPT_Set_SkipRepeatSetting(
     Done:
     return exitCode;
 }
+#endif
 
 BERR_Code BXPT_Playback_GetLastCompletedDataAddress(
     BXPT_Playback_Handle hPb,                   /* [in] Handle for the playback channel */

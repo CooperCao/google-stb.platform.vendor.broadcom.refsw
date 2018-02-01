@@ -483,7 +483,7 @@ b_mp4_parse_fragment_header(batom_cursor *cursor, b_mp4_fragment_header *header)
 {
     header->timescale = batom_cursor_uint64_be(cursor);
     header->starttime = batom_cursor_uint64_be(cursor);
-    header->fourcc = batom_cursor_uint32_le(cursor);
+    header->fourcc = batom_cursor_uint32_be(cursor);
     return !BATOM_IS_EOF(cursor);
 }
 
@@ -598,7 +598,7 @@ b_mp4_payload_handler_h264(bmp4_fragment_demux_t demux, bmp4_fragment_stream_t s
 
         hdr.header_type = B_MP4_STREAM_VEC_RAI;
         if(stream->track.codec_private.data) {
-            if(stream->track.fragment_header.fourcc == BMEDIA_FOURCC('a','v','c','1')) {
+            if(stream->track.fragment_header.fourcc == BMP4_SAMPLE_AVC_N('1') || stream->track.fragment_header.fourcc == BMP4_SAMPLE_AVC_N('3')) {
                 void *h264_meta;
                 size_t meta_length = batom_len(stream->track.codec_private.data);
                 batom_cursor cursor;
@@ -619,7 +619,7 @@ b_mp4_payload_handler_h264(bmp4_fragment_demux_t demux, bmp4_fragment_stream_t s
                 if(meta_marker==NULL) { (void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto error;}
                 batom_accum_add_atom(stream->frame_accum, meta_marker);
                 batom_release(meta_marker);
-            } else /* fourcc==BMEDIA_FOURCC('H','2','6','4')  */ {
+            } else /* fourcc==BMP4_TYPE('H','2','6','4')  */ {
                 batom_accum_add_atom(stream->frame_accum, stream->track.codec_private.data);
             }
         }
@@ -690,7 +690,7 @@ b_mp4_payload_handler_h265(bmp4_fragment_demux_t demux, bmp4_fragment_stream_t s
         stream->vecs[B_MP4_STREAM_VEC_EOS] = &bmedia_eos_h265;
 
         if(stream->track.codec_private.data) {
-            if(stream->track.fragment_header.fourcc == BMEDIA_FOURCC('h','v','c','1')) {
+            if(stream->track.fragment_header.fourcc == BMP4_TYPE('h','v','c','1')) {
                 batom_cursor cursor;
                 b_mp4_meta_atom_info meta_info;
                 bmedia_h265_meta meta;
@@ -717,7 +717,7 @@ b_mp4_payload_handler_h265(bmp4_fragment_demux_t demux, bmp4_fragment_stream_t s
                 if(meta_marker==NULL) { (void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto error;}
                 batom_accum_add_atom(stream->frame_accum, meta_marker);
                 batom_release(meta_marker);
-            } else /* fourcc==BMEDIA_FOURCC('h','e','v','1') */ {
+            } else /* fourcc==BMP4_TYPE('h','e','v','1') */ {
                 batom_accum_add_atom(stream->frame_accum, stream->track.codec_private.data);
             }
         }
@@ -923,7 +923,7 @@ b_mp4_fragment_stream_track_eos(bmp4_fragment_demux_t demux, bmp4_fragment_strea
         stream->vecs[B_MP4_STREAM_VEC_EOS] = &bmedia_eos_h264;
     } else if(stream->track.payload_handler == b_mp4_payload_handler_h265) {
         stream->vecs[B_MP4_STREAM_VEC_EOS] = &bmedia_eos_h265;
-    } else if( fourcc==BMEDIA_FOURCC('W','V','C','1')) {
+    } else if( fourcc==BMP4_TYPE('W','V','C','1')) {
         stream->vecs[B_MP4_STREAM_VEC_EOS] = &bmedia_eos_vc1;
     } else {
         stream->vecs[B_MP4_STREAM_VEC_EOS] = &bmedia_null_vec;
@@ -983,21 +983,26 @@ b_mp4_fragment_set_handler(bmp4_fragment_demux_t demux, bmp4_fragment_stream_t s
     int rc=0;
     uint32_t fourcc = stream->track.fragment_header.fourcc;
 
-    if(fourcc==BMEDIA_FOURCC('a','v','c','1') || fourcc==BMEDIA_FOURCC('H','2','6','4') ) {
+    switch(fourcc) {
+    case BMP4_TYPE('H','2','6','4'):
+    case BMP4_SAMPLE_AVC:
         stream->track.payload_handler = b_mp4_payload_handler_h264;
-    } else if(fourcc==BMEDIA_FOURCC('h','v','c','1') || fourcc==BMEDIA_FOURCC('h','e','v','1')) {
-        stream->track.payload_handler = b_mp4_payload_handler_h265;
-    } else if(fourcc==BMEDIA_FOURCC('m','p','4','a') || fourcc==BMEDIA_FOURCC('A','A','C','L')) {
-        stream->track.payload_handler = b_mp4_payload_handler_aac;
-    } else if(fourcc==BMEDIA_FOURCC('W','V','C','1')) {
-        stream->track.payload_handler = b_mp4_payload_handler_generic;
-    } else if(fourcc==BMEDIA_FOURCC('W','M','A','P')) {
-        stream->track.payload_handler = b_mp4_payload_handler_wma_pro;
-    } else if(fourcc==BMEDIA_FOURCC('a','c','-','3') ||  fourcc==BMEDIA_FOURCC('e','c','-','3')) {
-        stream->track.payload_handler = b_mp4_payload_handler_generic;
-    } else {
-        BDBG_WRN(("b_mp4_fragment_set_handler:%#lx %#lx  unknown codec " BMEDIA_FOURCC_FORMAT " for track %u", (unsigned long)demux, (unsigned long)stream, BMEDIA_FOURCC_ARG(fourcc), stream->stream_id));
-        rc=-1;
+        break;
+    default:
+        if(fourcc==BMP4_TYPE('h','v','c','1') || fourcc==BMP4_TYPE('h','e','v','1')) {
+            stream->track.payload_handler = b_mp4_payload_handler_h265;
+        } else if(fourcc==BMP4_TYPE('m','p','4','a') || fourcc==BMP4_TYPE('A','A','C','L')) {
+            stream->track.payload_handler = b_mp4_payload_handler_aac;
+        } else if(fourcc==BMP4_TYPE('W','V','C','1')) {
+            stream->track.payload_handler = b_mp4_payload_handler_generic;
+        } else if(fourcc==BMP4_TYPE('W','M','A','P')) {
+            stream->track.payload_handler = b_mp4_payload_handler_wma_pro;
+        } else if(fourcc==BMP4_TYPE('a','c','-','3') ||  fourcc==BMP4_TYPE('e','c','-','3')) {
+            stream->track.payload_handler = b_mp4_payload_handler_generic;
+        } else {
+            BDBG_WRN(("b_mp4_fragment_set_handler:%#lx %#lx  unknown codec " B_MP4_TYPE_FORMAT " for track %u", (unsigned long)demux, (unsigned long)stream, B_MP4_TYPE_ARG(fourcc), stream->stream_id));
+            rc=-1;
+        }
     }
     return rc;
 }
@@ -1153,7 +1158,7 @@ b_mp4_fragment_demux_remux_tracks(bmp4_fragment_demux_t demux)
         if(!min_stream) {
             break;
         }
-        BDBG_MSG(("b_mp4_fragment_demux_remux_tracks:%#lx selected stream (%u:%u) %u:" BMEDIA_FOURCC_FORMAT " %#lx:%u", (unsigned long)demux, i, demux->config.burst_frames, min_stream->track.track_extends.track_ID, BMEDIA_FOURCC_ARG(min_stream->track.fragment_header.fourcc), (unsigned long)min_stream, min_time));
+        BDBG_MSG(("b_mp4_fragment_demux_remux_tracks:%#lx selected stream (%u:%u) %u:" B_MP4_TYPE_FORMAT " %#lx:%u", (unsigned long)demux, i, demux->config.burst_frames, min_stream->track.track_extends.track_ID, B_MP4_TYPE_ARG(min_stream->track.fragment_header.fourcc), (unsigned long)min_stream, min_time));
         rc=b_mp4_fragment_stream_process_frame(demux, min_stream, min_time);
         if(rc==0) {
             i++;

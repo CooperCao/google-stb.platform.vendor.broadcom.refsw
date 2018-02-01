@@ -1,7 +1,7 @@
 #
 # Linux NVRAM Makefile
 #
-# Copyright (C) 2017, Broadcom. All Rights Reserved.
+# Copyright (C) 2017, Broadcom Corporation. All Rights Reserved.
 # 
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -20,14 +20,15 @@
 
 include $(TOP)/.config
 
-CFLAGS	+= -I. -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/../components/shared -I$(SRCBASE)/common/include -Wall -fPIC
+CFLAGS	+= -I. -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/../components/shared -I$(SRCBASE)/common/include -Wall
 #CFLAGS	+= -g -DDEBUG
-CFLAGS	+= -s
+CFLAGS	+= -s -fPIC -lgcc_s
 ifeq ($(CONFIG_RTR_OPTIMIZE_SIZE),y)
 CFLAGS  += -Os
 else
 CFLAGS  += -O2
 endif
+#CFLAGS	+= -DBCMDBG
 LDFLAGS += -L.
 
 ifeq ($(CONFIG_NVRAMD),y)
@@ -36,14 +37,21 @@ CFLAGS += -I$(SRCBASE)/../components/router/shared
 else
 OBJ = nvram_linux.o
 endif
+OBJ += bcmutils.o
 
-vpath %.c $(SRCBASE)/shared/nvram
+vpath %.c $(SRCBASE)/shared/nvram $(SRCBASE)/shared
 
 all: libnvram.so $(if $(CONFIG_NVRAM_UTILITY),nvram) $(if $(CONFIG_NVRAMD),nvramd)
 
+ifneq ($(findstring aarch64,${B_REFSW_ARCH}),)
+LIBDIR := lib64
+else
+LIBDIR := lib
+endif
+
 install: all
-	install -D libnvram.so $(INSTALLDIR)/usr/lib/libnvram.so
-	$(STRIP) $(INSTALLDIR)/usr/lib/libnvram.so
+	install -D libnvram.so $(INSTALLDIR)/$(LIBDIR)/libnvram.so
+	$(STRIP) $(INSTALLDIR)/$(LIBDIR)/libnvram.so
 ifneq ($(CONFIG_NVRAM_UTILITY),)
 	install -D nvram $(INSTALLDIR)/usr/sbin/nvram
 	$(STRIP) $(INSTALLDIR)/usr/sbin/nvram
@@ -56,14 +64,23 @@ ifneq ($(CONFIG_NVRAMD),)
 	$(STRIP) $(INSTALLDIR)/usr/sbin/nvramd
 endif
 
+
+
 clean:
+ifeq ($(CONFIG_NVRAMD),y)
 	rm -f *.o *.a *.so nvram nvramd
+else
+	rm -f *.o *.a *.so nvram
+endif
+
 
 libnvram.so: ${OBJ}
 	$(LD) $(LDFLAGS) -shared -o $@ $^
 
+ifeq ($(CONFIG_NVRAMD),y)
+nvramd: nvramd.o libnvram.so
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS) $(EXTRA_LDFLAGS) -lnvram -L$(TOP)/shared -lrt -pthread
+endif
+
 nvram: main.o libnvram.so
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS) -lnvram
-
-nvramd: nvramd.o
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS) $(EXTRA_LDFLAGS) -lnvram -L$(TOP)/shared -lshared -lrt -pthread

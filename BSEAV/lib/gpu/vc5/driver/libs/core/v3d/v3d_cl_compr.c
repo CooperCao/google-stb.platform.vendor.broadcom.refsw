@@ -14,7 +14,7 @@ bool v3d_cl_has_common_ind_encoding(v3d_cl_compr_type_t type)
 {
    switch (type)
    {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_CL_COMPR_TYPE_PRIM_ID8:
    case V3D_CL_COMPR_TYPE_PRIM_ID32:
    case V3D_CL_COMPR_TYPE_CLIPPED_PRIM:
@@ -41,7 +41,7 @@ uint32_t v3d_cl_compr_size(
       assert(!plist_fmt->d3dpvsf);
       return v3d_cl_compr_xy_tri_packed_size(compr_type);
    }
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    else if(plist_fmt->n_verts > 3)
    {
       return v3d_cl_compr_ind_generic_packed_size(compr_type);
@@ -74,7 +74,7 @@ void v3d_cl_unpack_compr(struct v3d_cl_compr *compr,
       compr->compr_type = tri.type;
       memcpy(&compr->u, &tri.u, sizeof(tri.u));
    }
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    else if(plist_fmt->n_verts > 3)
    {
       V3D_CL_COMPR_IND_GENERIC_T ind;
@@ -143,7 +143,7 @@ void v3d_cl_pack_compr(uint8_t *packed_compr,
       memcpy(&tri.u, &compr->u, sizeof(tri.u));
       v3d_pack_cl_compr_xy_tri(packed_compr, &tri);
    }
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    else if(compr->plist_fmt.n_verts > 3)
    {
       /* Generic compressed indices. The common encodings for this type are not
@@ -209,7 +209,7 @@ void v3d_cl_print_compr(const uint8_t *packed_compr,
       assert(!plist_fmt->d3dpvsf);
       v3d_print_cl_compr_xy_tri(packed_compr, printer);
    }
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    else if(plist_fmt->n_verts > 3)
    {
       v3d_print_cl_compr_ind_generic(packed_compr, printer);

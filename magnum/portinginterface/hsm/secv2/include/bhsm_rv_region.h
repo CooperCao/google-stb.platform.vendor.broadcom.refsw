@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -59,6 +59,7 @@ extern "C"
 
 #define BHSM_RV_REGION_ANY_SUBTYPE_INDEX 0xFF
 
+#if (BHSM_ZEUS_VER_MAJOR >= 5)
 #define BHSM_RV_REGION_STATUS_ENABLED                 (1<<0)
 #define BHSM_RV_REGION_STATUS_AUTH_ENFORCED           (1<<1)
 #define BHSM_RV_REGION_STATUS_SAGE_OWNED              (1<<2)
@@ -72,7 +73,23 @@ extern "C"
 #define BHSM_RV_REGION_STATUS_BG_CHECK_STARTED        (1<<10)
 #define BHSM_RV_REGION_STATUS_BG_CHECK_FINISHED       (1<<11)
 #define BHSM_RV_REGION_STATUS_BG_CHECK_RESULT         (1<<12)
-
+#else
+#define BHSM_RV_REGION_STATUS_REGION_DEFINED          (1<<0)
+#define BHSM_RV_REGION_STATUS_REGION_VERIFIED         (1<<1)
+#define BHSM_RV_REGION_STATUS_AUTH_ENFORCED           (1<<2)
+#define BHSM_RV_REGION_STATUS_SAGE_OWNED              (1<<3)
+#define BHSM_RV_REGION_STATUS_LIVE_MERGE_IN_PROGRESS  (1<<4)
+#define BHSM_RV_REGION_STATUS_LIVE_MERGE_FAIL         (1<<5)
+#define BHSM_RV_REGION_STATUS_LIVE_MERGE_PASS         (1<<6)
+#define BHSM_RV_REGION_STATUS_BG_CHECK_ENABLED        (1<<7)
+#define BHSM_RV_REGION_STATUS_ENABLED                 (1<<8)
+#define BHSM_RV_REGION_STATUS_FAST_CHECK_STARTED      (1<<9)
+#define BHSM_RV_REGION_STATUS_FAST_CHECK_FINISHED     (1<<10)
+#define BHSM_RV_REGION_STATUS_FAST_CHECK_RESULT       (1<<12)
+#define BHSM_RV_REGION_STATUS_BG_CHECK_STARTED        (1<<13)
+#define BHSM_RV_REGION_STATUS_BG_CHECK_FINISHED       (1<<14)
+#define BHSM_RV_REGION_STATUS_BG_CHECK_RESULT         (1<<15)
+#endif
 
 typedef struct BHSM_P_RvRegion* BHSM_RvRegionHandle;
 
@@ -150,34 +167,35 @@ typedef struct
     struct
     {
         BMMA_DeviceOffset address;        /* Valid if "size" is > 0. */
-        unsigned size;                    /* DEPRECATED  TODO ... delete. */
+        unsigned size;                    /* the size of the signature/parameters. */
     }signature;                           /* the signature.  */
 
     struct
     {
         BMMA_DeviceOffset address;
-    }parameters;                          /* DEPRECATED  TODO ... delete*/
+    }parameters;                          /* the paramters.  */
 
     BHSM_RvRsaHandle rvRsaHandle;         /* handle to RV RSA key slot. */
 
-    BHSM_KeyLadderHandle keyLadderHandle; /* sage only. */
-    unsigned keyLadderLayer;              /* sage only. KeyLadder layer to read key from. */
+    BHSM_KeyLadderHandle keyLadderHandle;
+    unsigned keyLadderLayer;
 
     unsigned intervalCheckBandwidth;      /* valid values 0x1 to 0x10*/
     bool     resetOnVerifyFailure;
-    bool     instrCheck;                  /* DEPRECATED  TODO ... delete. */
     bool     backgroundCheck;
     bool     allowRegionDisable;
     bool     enforceAuth;                 /* override MSP OTP for region to force authentication. */
 
     BHSM_RvSignatureType signatureType;     /* [Zeus4 only]. Describes the type of data that is signed. */
     unsigned             signatureVersion;  /* [Zeus4 only]. Signature Version */
+    bool                 instrCheck;        /* [Zeus4 only]. enable instruction checker for the region */
     bool                 codeRelocatable;   /* [Zeus4 only]. Whether this region should have non-relocatable code  */
     uint32_t             marketId;          /* [Zeus4 only]. */
     uint32_t             marketIdMask;      /* [Zeus4 only]. */
     unsigned             epochSelect;       /* [Zeus4 only]. Selected system Epoch index */
     uint32_t             epoch;             /* [Zeus4 only]. */
     uint32_t             epochMask;         /* [Zeus4 only]. */
+    uint32_t             SCBBurstSize;      /* [Zeus4 only]. */
 
 } BHSM_RvRegionSettings;
 
@@ -187,9 +205,13 @@ typedef struct
 {
     bool configured;
     uint32_t status;                      /* Use BHSM_RV_REGION_STATUS* bit make required status. */
-    bool verified; /* DEPRECATED. Use "status" and BHSM_RV_REGION_STATUS* */
 } BHSM_RvRegionStatus;
 
+/* represents the veriication status of all regions */
+typedef struct
+{
+    BHSM_RvRegionStatus region[BHSM_RegionId_eMax];
+} BHSM_RvRegionStatusAll;
 
 /* Allocate a RvRegion. NULL is returned if no resource is available.  */
 BHSM_RvRegionHandle BHSM_RvRegion_Allocate( BHSM_Handle hHsm,
@@ -217,6 +239,11 @@ BERR_Code BHSM_RvRegion_Disable( BHSM_RvRegionHandle handle );
 /* Return the status of a region.  */
 BERR_Code BHSM_RvRegion_GetStatus( BHSM_RvRegionHandle handle,
                                    BHSM_RvRegionStatus *pStatus );
+
+/* Return the status of all regions.  */
+BERR_Code BHSM_RvRegion_QueryAll(BHSM_Handle hHsm,
+                                   BHSM_RvRegionStatusAll *pStatus);
+
 
 /* Return RvRegion information.  */
 BERR_Code BHSM_GetRvRegionInfo( BHSM_RvRegionHandle handle,

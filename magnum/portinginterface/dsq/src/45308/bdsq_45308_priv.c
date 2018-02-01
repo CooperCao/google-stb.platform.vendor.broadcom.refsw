@@ -52,9 +52,9 @@ BDBG_MODULE(bdsq_45308_priv);
 
 
 /* local functions */
-BERR_Code BDSQ_45308_P_InterruptCallback(void *pParm1, int parm2);
-BERR_Code BDSQ_45308_P_SendCommand(BHAB_Handle h, uint32_t *pBuf, uint32_t n);
-BERR_Code BDSQ_45308_P_EnableChannelInterrupt(BDSQ_ChannelHandle h, bool bEnable, uint32_t mask);
+static BERR_Code BDSQ_45308_P_InterruptCallback(void *pParm1, int parm2);
+static BERR_Code BDSQ_45308_P_SendCommand(BHAB_Handle h, uint32_t *pBuf, uint32_t n);
+static BERR_Code BDSQ_45308_P_EnableChannelInterrupt(BDSQ_ChannelHandle h, bool bEnable, uint32_t mask);
 
 
 /******************************************************************************
@@ -70,7 +70,7 @@ BERR_Code BDSQ_45308_P_Open(
 {
    BERR_Code retCode = BERR_SUCCESS;
    BDSQ_Handle hDev;
-   BDSQ_45308_P_Handle *hImplDev;
+   BDSQ_45308_P_Handle *pDevImpl;
    uint32_t numChannels, i;
    BHAB_Handle hHab;
 
@@ -84,10 +84,10 @@ BERR_Code BDSQ_45308_P_Open(
    hDev = (BDSQ_Handle)BKNI_Malloc(sizeof(BDSQ_P_Handle));
    BDBG_ASSERT(hDev);
    BKNI_Memset((void*)hDev, 0, sizeof(BDSQ_P_Handle));
-   hImplDev = (BDSQ_45308_P_Handle *)BKNI_Malloc(sizeof(BDSQ_45308_P_Handle));
-   BDBG_ASSERT(hImplDev);
-   BKNI_Memset((void*)hImplDev, 0, sizeof(BDSQ_45308_P_Handle));
-   hDev->pImpl = (void*)hImplDev;
+   pDevImpl = (BDSQ_45308_P_Handle *)BKNI_Malloc(sizeof(BDSQ_45308_P_Handle));
+   BDBG_ASSERT(pDevImpl);
+   BKNI_Memset((void*)pDevImpl, 0, sizeof(BDSQ_45308_P_Handle));
+   hDev->pImpl = (void*)pDevImpl;
 
    /* allocate heap memory for channel handle pointer */
    hDev->pChannels = (BDSQ_P_ChannelHandle **)BKNI_Malloc(BDSQ_45308_MAX_CHANNELS * sizeof(BDSQ_P_ChannelHandle *));
@@ -96,7 +96,7 @@ BERR_Code BDSQ_45308_P_Open(
 
    /* initialize device handle */
    BKNI_Memcpy((void*)(&(hDev->settings)), (void*)pSettings, sizeof(BDSQ_Settings));
-   hImplDev->hHab = (BHAB_Handle)pReg;
+   pDevImpl->hHab = (BHAB_Handle)pReg;
 
    if (BDSQ_45308_P_GetTotalChannels(hDev, &numChannels) == BERR_SUCCESS)
       hDev->totalChannels = (uint8_t)numChannels;
@@ -120,11 +120,12 @@ BERR_Code BDSQ_45308_P_Close(
    BDSQ_Handle h   /* [in] BDSQ handle */
 )
 {
-   BDSQ_45308_P_Handle *pDevImpl = (BDSQ_45308_P_Handle *)(h->pImpl);
+   BDSQ_45308_P_Handle *pDevImpl;
    uint32_t mask;
    BERR_Code retCode;
 
    BDBG_ASSERT(h);
+   pDevImpl = (BDSQ_45308_P_Handle *)(h->pImpl);
 
    /* disable dsq host interrupts */
    mask = BHAB_45308_HIRQ0_DSQ_MASK;

@@ -42,6 +42,10 @@
 
 BDBG_MODULE(BV3D_P);
 
+/* 7255: ignore until 64bit issues addressed properly */
+#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
+#pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
+
 /* Bin Memory
  *
  * The binner memory is allocated as a single contiguous pool which is subdivided into chunks.

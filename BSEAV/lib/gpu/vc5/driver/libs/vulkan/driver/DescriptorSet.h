@@ -23,28 +23,17 @@ public:
    void Write(const VkWriteDescriptorSet *writeInfo);
    void Copy(const VkCopyDescriptorSet *copyInfo);
 
-   uint32_t   GetImageParam(uint32_t binding, uint32_t element) const;
-   uint32_t   GetSamplerParam(uint32_t binding, uint32_t element) const;
+   uint32_t   GetImageParam   (uint32_t binding, uint32_t element) const;
+   uint32_t   GetSamplerParam (uint32_t binding, uint32_t element) const;
    v3d_addr_t GetBufferAddress(uint32_t binding, uint32_t element) const;
-   uint32_t   GetBufferSize(uint32_t binding, uint32_t element) const;
-   uint32_t   GetBufferRange(uint32_t binding, uint32_t element) const;
-   uint32_t   GetNumLevels(uint32_t binding, uint32_t element) const;
-   VkExtent3D GetTextureSize(uint32_t binding, uint32_t element) const;
+   uint32_t   GetBufferSize   (uint32_t binding, uint32_t element) const;
+   uint32_t   GetBufferRange  (uint32_t binding, uint32_t element) const;
+   uint32_t   GetNumLevels    (uint32_t binding, uint32_t element) const;
+   VkExtent3D GetTextureSize  (uint32_t binding, uint32_t element) const;
 
-   bool HasDynamicOffset(uint32_t binding, uint32_t arrayElement) const
-   {
-      return m_layout->HasDynamicOffset(binding, arrayElement);
-   }
-
-   uint32_t DynamicOffsetIndexFor(uint32_t binding, uint32_t arrayElement) const
-   {
-      return m_layout->DynamicOffsetIndexFor(binding, arrayElement);
-   }
-
-   uint32_t GetNumDynamicOffsetsNeeded() const
-   {
-      return m_layout->GetNumDynamicOffsetsNeeded();
-   }
+   bool     HasDynamicOffset(uint32_t binding)      const { return m_layout->HasDynamicOffset(binding);      }
+   uint32_t DynamicOffsetIndexFor(uint32_t binding) const { return m_layout->DynamicOffsetIndexFor(binding); }
+   uint32_t GetNumDynamicOffsetsNeeded()            const { return m_layout->GetNumDynamicOffsetsNeeded();   }
 
    bool GetDevMemDetails(size_t *offset, size_t *size) const
    {

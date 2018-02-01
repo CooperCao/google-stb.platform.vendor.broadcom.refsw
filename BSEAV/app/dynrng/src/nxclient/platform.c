@@ -37,6 +37,7 @@
  *****************************************************************************/
 #include "nexus_platform_client.h"
 #include "nxclient.h"
+#include "nexus_core_utils.h"
 #include "platform.h"
 #include "platform_priv.h"
 #include "platform_scheduler_priv.h"
@@ -252,9 +253,10 @@ PlatformDynamicRange platform_p_output_dynamic_range_from_nexus(NEXUS_VideoEotf 
 static const char * colorimetryStrings[] =
 {
     "AUTO",
-    "SD/BT601",
-    "HD/BT709",
-    "UHD/BT2020",
+    "BT601",
+    "BT709",
+    "BT2020",
+    "INVALID",
     "UNKNOWN",
     "UNSUPPORTED",
     NULL
@@ -326,9 +328,7 @@ static const char * colorSpaceStrings[] =
 {
     "AUTO",
     "RGB",
-    "YCBCR 420",
-    "YCBCR 422",
-    "YCBCR 444",
+    "YCbCr",
     "INVALID",
     "UNKNOWN",
     "UNSUPPORTED",
@@ -340,7 +340,7 @@ const char * platform_get_color_space_name(PlatformColorSpace colorSpace)
     return colorSpaceStrings[colorSpace];
 }
 
-NEXUS_ColorSpace platform_p_color_space_to_nexus(PlatformColorSpace colorSpace)
+NEXUS_ColorSpace platform_p_color_space_and_sampling_to_nexus(PlatformColorSpace colorSpace, int colorSampling)
 {
     NEXUS_ColorSpace nxColorSpace;
 
@@ -352,14 +352,23 @@ NEXUS_ColorSpace platform_p_color_space_to_nexus(PlatformColorSpace colorSpace)
         case PlatformColorSpace_eRgb:
             nxColorSpace = NEXUS_ColorSpace_eRgb;
             break;
-        case PlatformColorSpace_eYCbCr420:
-            nxColorSpace = NEXUS_ColorSpace_eYCbCr420;
-            break;
-        case PlatformColorSpace_eYCbCr422:
-            nxColorSpace = NEXUS_ColorSpace_eYCbCr422;
-            break;
-        case PlatformColorSpace_eYCbCr444:
-            nxColorSpace = NEXUS_ColorSpace_eYCbCr444;
+        case PlatformColorSpace_eYCbCr:
+            switch (colorSampling)
+            {
+                case 0:
+                    nxColorSpace = NEXUS_ColorSpace_eAuto;
+                    break;
+                case 420:
+                    nxColorSpace = NEXUS_ColorSpace_eYCbCr420;
+                    break;
+                case 422:
+                    nxColorSpace = NEXUS_ColorSpace_eYCbCr422;
+                    break;
+                default:
+                case 444:
+                    nxColorSpace = NEXUS_ColorSpace_eYCbCr444;
+                    break;
+            }
             break;
         case PlatformColorSpace_eInvalid:
         case PlatformColorSpace_eUnknown:
@@ -384,13 +393,9 @@ PlatformColorSpace platform_p_color_space_from_nexus(NEXUS_ColorSpace nxColorSpa
             colorSpace = PlatformColorSpace_eRgb;
             break;
         case NEXUS_ColorSpace_eYCbCr420:
-            colorSpace = PlatformColorSpace_eYCbCr420;
-            break;
         case NEXUS_ColorSpace_eYCbCr422:
-            colorSpace = PlatformColorSpace_eYCbCr422;
-            break;
         case NEXUS_ColorSpace_eYCbCr444:
-            colorSpace = PlatformColorSpace_eYCbCr444;
+            colorSpace = PlatformColorSpace_eYCbCr;
             break;
         case NEXUS_ColorSpace_eMax:
             colorSpace = PlatformColorSpace_eInvalid;
@@ -403,33 +408,66 @@ PlatformColorSpace platform_p_color_space_from_nexus(NEXUS_ColorSpace nxColorSpa
     return colorSpace;
 }
 
+int platform_p_color_sampling_from_nexus(NEXUS_ColorSpace nxColorSpace)
+{
+    int colorSampling;
+
+    switch (nxColorSpace)
+    {
+        case NEXUS_ColorSpace_eAuto:
+            colorSampling = 0;
+            break;
+        case NEXUS_ColorSpace_eRgb:
+            colorSampling = 444;
+            break;
+        case NEXUS_ColorSpace_eYCbCr420:
+            colorSampling = 420;
+            break;
+        case NEXUS_ColorSpace_eYCbCr422:
+            colorSampling = 422;
+            break;
+        case NEXUS_ColorSpace_eYCbCr444:
+            colorSampling = 444;
+            break;
+        case NEXUS_ColorSpace_eMax:
+            colorSampling = -1;
+            break;
+        default:
+            colorSampling = -1;
+            break;
+    }
+
+    return colorSampling;
+}
+
 static const struct {
     unsigned frequency;
+    bool dropFrame;
     NEXUS_VideoFrameRate nexusFramerate;
 } b_verticalfrequency[NEXUS_VideoFrameRate_eMax] = {
 /* array should be sorted by the frequency to facilitate implementations of NEXUS_P_RefreshRate_FromFrameRate_isrsafe and NEXUS_P_FrameRate_FromRefreshRate_isrsafe */
-    { 7493, NEXUS_VideoFrameRate_e7_493},
-    { 7500, NEXUS_VideoFrameRate_e7_5},
-    { 9990, NEXUS_VideoFrameRate_e9_99},
-    {10000, NEXUS_VideoFrameRate_e10},
-    {11988, NEXUS_VideoFrameRate_e11_988},
-    {12000, NEXUS_VideoFrameRate_e12},
-    {12500, NEXUS_VideoFrameRate_e12_5},
-    {14985, NEXUS_VideoFrameRate_e14_985},
-    {15000, NEXUS_VideoFrameRate_e15},
-    {19980, NEXUS_VideoFrameRate_e19_98},
-    {20000, NEXUS_VideoFrameRate_e20},
-    {23976, NEXUS_VideoFrameRate_e23_976},
-    {24000, NEXUS_VideoFrameRate_e24},
-    {25000, NEXUS_VideoFrameRate_e25},
-    {29970, NEXUS_VideoFrameRate_e29_97},
-    {30000, NEXUS_VideoFrameRate_e30},
-    {50000, NEXUS_VideoFrameRate_e50},
-    {59940, NEXUS_VideoFrameRate_e59_94},
-    {60000, NEXUS_VideoFrameRate_e60},
-    {100000, NEXUS_VideoFrameRate_e100},
-    {119880, NEXUS_VideoFrameRate_e119_88},
-    {120000, NEXUS_VideoFrameRate_e120}
+    {  8, true, NEXUS_VideoFrameRate_e7_493},
+    {  8, false, NEXUS_VideoFrameRate_e7_5},
+    { 10, true, NEXUS_VideoFrameRate_e9_99},
+    { 10, false, NEXUS_VideoFrameRate_e10},
+    { 12, true, NEXUS_VideoFrameRate_e11_988},
+    { 12, false, NEXUS_VideoFrameRate_e12},
+    { 13, false, NEXUS_VideoFrameRate_e12_5},
+    { 14, true, NEXUS_VideoFrameRate_e14_985},
+    { 15, false, NEXUS_VideoFrameRate_e15},
+    { 20, true, NEXUS_VideoFrameRate_e19_98},
+    { 20, false, NEXUS_VideoFrameRate_e20},
+    { 24, true, NEXUS_VideoFrameRate_e23_976},
+    { 24, false, NEXUS_VideoFrameRate_e24},
+    { 25, false, NEXUS_VideoFrameRate_e25},
+    { 30, true, NEXUS_VideoFrameRate_e29_97},
+    { 30, false, NEXUS_VideoFrameRate_e30},
+    { 50, false, NEXUS_VideoFrameRate_e50},
+    { 60, true, NEXUS_VideoFrameRate_e59_94},
+    { 60, false, NEXUS_VideoFrameRate_e60},
+    {100, false, NEXUS_VideoFrameRate_e100},
+    {120, true, NEXUS_VideoFrameRate_e119_88},
+    {120, true, NEXUS_VideoFrameRate_e120}
 };
 
 unsigned platform_p_frame_rate_from_nexus(NEXUS_VideoFrameRate frameRate)
@@ -442,6 +480,272 @@ unsigned platform_p_frame_rate_from_nexus(NEXUS_VideoFrameRate frameRate)
     }
     BERR_TRACE(NEXUS_NOT_SUPPORTED);
     return 0; /* NEXUS_VideoFrameRate_eUnknown */
+}
+
+bool platform_p_drop_frame_from_nexus(NEXUS_VideoFrameRate frameRate)
+{
+    unsigned i;
+    for(i=0;i<sizeof(b_verticalfrequency)/sizeof(*b_verticalfrequency);i++) {
+        if (frameRate == b_verticalfrequency[i].nexusFramerate) {
+            return b_verticalfrequency[i].dropFrame;
+        }
+    }
+    BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    return false;
+}
+
+void platform_p_picture_format_from_nexus(NEXUS_VideoFormat format, PlatformPictureFormat * pFormat)
+{
+    NEXUS_VideoFormatInfo info;
+    BDBG_ASSERT(pFormat);
+    NEXUS_VideoFormat_GetInfo(format, &info);
+    pFormat->width = info.width;
+    pFormat->height = info.height;
+    pFormat->interlaced = info.interlaced;
+    pFormat->rate = info.verticalFreq;
+    if (pFormat->rate % 10)
+    {
+        pFormat->dropFrame = true;
+        pFormat->rate *= 1001;
+        pFormat->rate /= 1000;
+    }
+    pFormat->rate /= 10;
+    if (pFormat->rate % 10)
+    {
+        pFormat->rate += 10;
+    }
+    pFormat->rate /= 10;
+}
+
+NEXUS_VideoFormat platform_p_picture_format_to_nexus(const PlatformPictureFormat * pFormat)
+{
+    NEXUS_VideoFormat format = NEXUS_VideoFormat_eUnknown;
+
+    BDBG_ASSERT(pFormat);
+
+    if (pFormat->interlaced)
+    {
+        switch (pFormat->height)
+        {
+            case 1080:
+                switch (pFormat->rate)
+                {
+                    case 50:
+                        format = NEXUS_VideoFormat_e1080i50hz;
+                        break;
+                    case 60:
+                    default:
+                        format = NEXUS_VideoFormat_e1080i;
+                        break;
+                }
+                break;
+            case 576:
+                format = NEXUS_VideoFormat_ePal;
+                break;
+            case 480:
+            default:
+                format = NEXUS_VideoFormat_eNtsc;
+                break;
+        }
+    }
+    else /* progressive */
+    {
+        switch (pFormat->height)
+        {
+            case 480:
+                format = NEXUS_VideoFormat_e480p;
+                break;
+            case 576:
+                format = NEXUS_VideoFormat_e576p;
+                break;
+            case 720:
+                switch (pFormat->rate)
+                {
+                    case 24:
+                        format = NEXUS_VideoFormat_e720p24hz;
+                        break;
+                    case 25:
+                        format = NEXUS_VideoFormat_e720p25hz;
+                        break;
+                    case 30:
+                        format = NEXUS_VideoFormat_e720p30hz;
+                        break;
+                    case 50:
+                        format = NEXUS_VideoFormat_e720p50hz;
+                        break;
+                    case 60:
+                    default:
+                        format = NEXUS_VideoFormat_e720p;
+                        break;
+                }
+                break;
+            case 2160:
+                switch (pFormat->rate)
+                {
+                    case 24:
+                        format = NEXUS_VideoFormat_e3840x2160p24hz;
+                        break;
+                    case 25:
+                        format = NEXUS_VideoFormat_e3840x2160p25hz;
+                        break;
+                    case 30:
+                        format = NEXUS_VideoFormat_e3840x2160p30hz;
+                        break;
+                    case 50:
+                        format = NEXUS_VideoFormat_e3840x2160p50hz;
+                        break;
+                    case 60:
+                    default:
+                        format = NEXUS_VideoFormat_e3840x2160p60hz;
+                        break;
+                }
+                break;
+            case 1080:
+            default:
+                switch (pFormat->rate)
+                {
+                    case 24:
+                        format = NEXUS_VideoFormat_e1080p24hz;
+                        break;
+                    case 25:
+                        format = NEXUS_VideoFormat_e1080p25hz;
+                        break;
+                    case 30:
+                        format = NEXUS_VideoFormat_e1080p30hz;
+                        break;
+                    case 50:
+                        format = NEXUS_VideoFormat_e1080p50hz;
+                        break;
+                    case 60:
+                    default:
+                        format = NEXUS_VideoFormat_e1080p60hz;
+                        break;
+                }
+                break;
+        }
+    }
+
+    return format;
+}
+
+static const char * aspectRatioTypeStrings[] =
+{
+    "AUTO",
+    "DAR",
+    "SAR",
+    "UNSUPPORTED",
+    NULL
+};
+
+const char * platform_get_aspect_ratio_type_name(PlatformAspectRatioType type)
+{
+    return aspectRatioTypeStrings[type];
+}
+
+void platform_p_aspect_ratio_from_nexus(PlatformAspectRatio * pAr, NEXUS_DisplayAspectRatio ar, unsigned x, unsigned y)
+{
+    BDBG_ASSERT(pAr);
+    BKNI_Memset(pAr, 0, sizeof(*pAr));
+    switch (ar)
+    {
+        case NEXUS_DisplayAspectRatio_e16x9:
+            pAr->type = PlatformAspectRatioType_eDisplay;
+            pAr->x = 16;
+            pAr->y = 9;
+            break;
+        case NEXUS_DisplayAspectRatio_e4x3:
+            pAr->type = PlatformAspectRatioType_eDisplay;
+            pAr->x = 4;
+            pAr->y = 3;
+            break;
+        case NEXUS_DisplayAspectRatio_eSar:
+            pAr->type = PlatformAspectRatioType_ePixel;
+            pAr->x = x;
+            pAr->y = y;
+            break;
+        default:
+        case NEXUS_DisplayAspectRatio_eAuto:
+            pAr->type = PlatformAspectRatioType_eAuto;
+            break;
+    }
+}
+
+NEXUS_DisplayAspectRatio platform_p_aspect_ratio_to_nexus(const PlatformAspectRatio * pAr, unsigned * pX, unsigned * pY)
+{
+    NEXUS_DisplayAspectRatio ar;
+
+    BDBG_ASSERT(pAr);
+
+    switch (pAr->type)
+    {
+        case PlatformAspectRatioType_eDisplay:
+            if (pAr->x == 16 && pAr->y == 9)
+            {
+                ar = NEXUS_DisplayAspectRatio_e16x9;
+            }
+            else if (pAr->x == 4 && pAr->y == 3)
+            {
+                ar = NEXUS_DisplayAspectRatio_e4x3;
+            }
+            else
+            {
+                ar = NEXUS_DisplayAspectRatio_eAuto;
+            }
+            break;
+        case PlatformAspectRatioType_ePixel:
+            ar = NEXUS_DisplayAspectRatio_eSar;
+            *pX = pAr->x;
+            *pY = pAr->y;
+            break;
+        default:
+        case PlatformAspectRatioType_eAuto:
+            ar = NEXUS_DisplayAspectRatio_eAuto;
+            break;
+    }
+
+    return ar;
+}
+
+PlatformRenderingPriority platform_p_rendering_priority_from_nexus(NEXUS_HdmiOutputDolbyVisionPriorityMode nxRenderingPriority)
+{
+    PlatformRenderingPriority renderingPriority;
+
+    switch (nxRenderingPriority)
+    {
+        case NEXUS_HdmiOutputDolbyVisionPriorityMode_eVideo:
+            renderingPriority = PlatformRenderingPriority_eVideo;
+            break;
+        case NEXUS_HdmiOutputDolbyVisionPriorityMode_eGraphics:
+            renderingPriority = PlatformRenderingPriority_eGraphics;
+            break;
+        case NEXUS_HdmiOutputDolbyVisionPriorityMode_eAuto:
+        default:
+            renderingPriority = PlatformRenderingPriority_eAuto;
+            break;
+    }
+
+    return renderingPriority;
+}
+
+NEXUS_HdmiOutputDolbyVisionPriorityMode platform_p_rendering_priority_to_nexus(PlatformRenderingPriority renderingPriority)
+{
+    NEXUS_HdmiOutputDolbyVisionPriorityMode nxRenderingPriority;
+
+    switch (renderingPriority)
+    {
+        case PlatformRenderingPriority_eVideo:
+            nxRenderingPriority = NEXUS_HdmiOutputDolbyVisionPriorityMode_eVideo;
+            break;
+        case PlatformRenderingPriority_eGraphics:
+            nxRenderingPriority = NEXUS_HdmiOutputDolbyVisionPriorityMode_eGraphics;
+            break;
+        case PlatformRenderingPriority_eAuto:
+        default:
+            nxRenderingPriority = NEXUS_HdmiOutputDolbyVisionPriorityMode_eAuto;
+            break;
+    }
+
+    return nxRenderingPriority;
 }
 
 void platform_p_hotplug_handler(void * context, int param)
@@ -475,6 +779,24 @@ void platform_get_default_picture_info(PlatformPictureInfo * pInfo)
     pInfo->dynrng = PlatformDynamicRange_eUnknown;
     pInfo->gamut = PlatformColorimetry_eUnknown;
     pInfo->space = PlatformColorSpace_eUnknown;
+}
+
+void platform_print_picture_info(const char * tag, const PlatformPictureInfo * pInfo, char * buf, size_t len)
+{
+    BKNI_Snprintf(buf, len, "%s: %u%c%u%s %s %ux%u %u-bit %s%u %s",
+        tag,
+        pInfo->format.height,
+        pInfo->format.interlaced ? 'i' : 'p',
+        pInfo->format.rate,
+        pInfo->format.dropFrame ? "d" : "",
+        platform_get_aspect_ratio_type_name(pInfo->ar.type),
+        pInfo->ar.x,
+        pInfo->ar.y,
+        pInfo->depth,
+        platform_get_color_space_name(pInfo->space),
+        pInfo->sampling,
+        platform_get_colorimetry_name(pInfo->gamut)
+    );
 }
 
 PlatformSchedulerHandle platform_get_scheduler(PlatformHandle platform)

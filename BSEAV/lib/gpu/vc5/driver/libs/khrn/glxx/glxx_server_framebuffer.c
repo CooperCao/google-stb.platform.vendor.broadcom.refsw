@@ -875,7 +875,7 @@ static bool is_supported_fb_texture2D_textarget(enum glxx_tex_target textarget)
       case GL_TEXTURE_3D:
       case GL_TEXTURE_2D_ARRAY:
       case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case GL_TEXTURE_CUBE_MAP_ARRAY:
 #endif
          return false;
@@ -900,7 +900,7 @@ static bool is_supported_fb_texture2D_multisample_ext_textarget(enum glxx_tex_ta
       case GL_TEXTURE_3D:
       case GL_TEXTURE_2D_ARRAY:
       case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case GL_TEXTURE_CUBE_MAP_ARRAY:
 #endif
          return false;

@@ -56,9 +56,10 @@ export NEXUS_FRONTEND_SUPPORT ?= y
 export NEXUS_FRONTEND_3158  ?= y
 export NEXUS_FRONTEND_315x_OOB ?=y
 export NEXUS_FRONTEND_3461  ?= y
-export NEXUS_FRONTEND_3465  ?= y
+export NEXUS_FRONTEND_3466  ?= y
 export NEXUS_FRONTEND_45216 ?= y
 export NEXUS_FRONTEND_45308 ?= y
+export NEXUS_FRONTEND_45316 ?= y
 #
 # by default, we include the following
 #

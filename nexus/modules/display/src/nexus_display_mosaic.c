@@ -221,8 +221,8 @@ NEXUS_Error NEXUS_VideoWindow_P_ApplyMosaic(NEXUS_VideoWindowHandle window)
         BVDC_MosaicConfiguration mosaic_config;
         unsigned i;
 
-        /* set the zorder of the parent to the min zorder of all mosaics */
-        rc = BVDC_Window_SetZOrder(windowVdc, minzorder);
+        /* set the zorder of the parent to 0 or 1 based on min zorder of all mosaics */
+        rc = BVDC_Window_SetZOrder(windowVdc, minzorder ? 1 : 0);
         if (rc) {return BERR_TRACE(rc);}
 
          /* VDC does not ignore invisible windows, so we must ensure ok values */
@@ -271,6 +271,16 @@ NEXUS_Error NEXUS_VideoWindow_P_ApplyMosaic(NEXUS_VideoWindowHandle window)
 
 void NEXUS_VideoWindow_GetMosaicSettings( NEXUS_VideoWindowHandle window, NEXUS_VideoWindowMosaicSettings *pSettings )
 {
+    NEXUS_VideoWindow_GetMosaicSettings_priv(window, pSettings);
+}
+
+NEXUS_Error NEXUS_VideoWindow_SetMosaicSettings( NEXUS_VideoWindowHandle window, const NEXUS_VideoWindowMosaicSettings *pSettings )
+{
+    return NEXUS_VideoWindow_SetMosaicSettings_priv(window, pSettings);
+}
+
+void NEXUS_VideoWindow_GetMosaicSettings_priv( NEXUS_VideoWindowHandle window, NEXUS_VideoWindowMosaicSettings *pSettings )
+{
     BDBG_OBJECT_ASSERT(window, NEXUS_VideoWindow);
 #if NEXUS_NUM_MOSAIC_DECODES
     *pSettings = window->mosaic.mosaicSettings;
@@ -280,7 +290,7 @@ void NEXUS_VideoWindow_GetMosaicSettings( NEXUS_VideoWindowHandle window, NEXUS_
 #endif
 }
 
-NEXUS_Error NEXUS_VideoWindow_SetMosaicSettings( NEXUS_VideoWindowHandle window, const NEXUS_VideoWindowMosaicSettings *pSettings )
+NEXUS_Error NEXUS_VideoWindow_SetMosaicSettings_priv( NEXUS_VideoWindowHandle window, const NEXUS_VideoWindowMosaicSettings *pSettings )
 {
     BDBG_OBJECT_ASSERT(window, NEXUS_VideoWindow);
 #if NEXUS_NUM_MOSAIC_DECODES

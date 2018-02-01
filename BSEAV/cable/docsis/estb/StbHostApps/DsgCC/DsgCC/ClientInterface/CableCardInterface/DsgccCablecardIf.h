@@ -1,56 +1,46 @@
-//****************************************************************************
-//
-// Copyright (c) 2005-2011 Broadcom Corporation
-//
-// This program is the proprietary software of Broadcom Corporation and/or
-// its licensors, and may only be used, duplicated, modified or distributed
-// pursuant to the terms and conditions of a separate, written license
-// agreement executed between you and Broadcom (an "Authorized License").
-// Except as set forth in an Authorized License, Broadcom grants no license
-// (express or implied), right to use, or waiver of any kind with respect to
-// the Software, and Broadcom expressly reserves all rights in and to the
-// Software and all intellectual property rights therein.  IF YOU HAVE NO
-// AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
-// AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
-// SOFTWARE.  
-//
-// Except as expressly set forth in the Authorized License,
-//
-// 1.     This program, including its structure, sequence and organization,
-// constitutes the valuable trade secrets of Broadcom, and you shall use all
-// reasonable efforts to protect the confidentiality thereof, and to use this
-// information only in connection with your use of Broadcom integrated circuit
-// products.
-//
-// 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
-// "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
-// OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
-// RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
-// IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
-// A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-// ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-// THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-//
-// 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
-// OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
-// INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
-// RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
-// HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
-// EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
-// WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
-// FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-//
-//****************************************************************************
-//
-//  Filename:       DsgccCablecardIf.h
-//  Author:         Kenny Lee
-//  Creation Date:  July 22, 2005
-//
-//****************************************************************************
-//  Description:
-//
-//
-//****************************************************************************
+/****************************************************************************
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
+ * Description:
+ *              This is the Cablecard Interface object that manage the cablecard operation
+ *      and receive any DS packet destined to cablecard.
+ *      This is also the cpp to c interface code where the cablcecard driver will
+ *      call these functions to register the DSG tunnel with the DSGCC
+****************************************************************************/
 
 #ifndef DSGCCCABLECARDIF_H
 #define DSGCCCABLECARDIF_H
@@ -89,6 +79,14 @@ typedef struct _CCARD_CONFIGURE_SOCKET_FLOW_APDU
     uint8 connection_timeout;
 } CCARD_CONFIGURE_SOCKET_FLOW_APDU;
 
+#define     MAX_SOCKET_FLOW     0x08
+typedef struct _CCARD_SOCKET_FLOW
+{
+	unsigned long SocketFlowId;
+    int UdpTcpSocket;
+	struct sockaddr_in  Us_sockaddr;
+    struct sockaddr_in6 Us_sock6addr;
+} CCARD_SOCKET_FLOW;
 typedef struct _CCARD_SOCKET_FLOW_CONNECTION
 {
     uint32  gSocketFlowId;
@@ -174,7 +172,49 @@ public:
     unsigned long GetIpUFlowId(void) { return gIpUFlowId; }
     uint32 GetCableCardIpAddress(void ) { return CableCardIpAddress; }
     void SetCableCardIpAddress( unsigned long ccip ) { CableCardIpAddress = ccip; }
-    int UdpTcpSocket(void) { return gUdpTcpSocket; }
+    int UdpTcpSocket(unsigned long flowid)
+	{
+		int i ;
+		for (i=0;i<MAX_SOCKET_FLOW;i++)
+	    {
+			if (gSocketFlow[i].SocketFlowId == flowid)
+			{
+				return gSocketFlow[i].UdpTcpSocket;
+			}
+		}
+		if (i == MAX_SOCKET_FLOW) return 0;
+	}
+    int  UdpTcpSocketUsIpV6Addr(unsigned long flowid, struct sockaddr_in6 *pSockaddr)
+	{
+		int i ;
+		for (i=0;i<MAX_SOCKET_FLOW;i++)
+	    {
+			if (gSocketFlow[i].SocketFlowId == flowid)
+			{
+				 pSockaddr->sin6_addr = gSocketFlow[i].Us_sock6addr.sin6_addr;
+			     pSockaddr->sin6_port = gSocketFlow[i].Us_sock6addr.sin6_port;
+			     pSockaddr->sin6_family = gSocketFlow[i].Us_sock6addr.sin6_family;
+				 return 1;
+			}
+		}
+		if (i == MAX_SOCKET_FLOW) return 0;
+	}
+	int UdpTcpSocketUsIpV4Addr(unsigned long flowid,struct sockaddr_in *pSockaddr)
+	{
+		int i ;
+		for (i=0;i<MAX_SOCKET_FLOW;i++)
+		{
+			if (gSocketFlow[i].SocketFlowId == flowid)
+			{
+				 pSockaddr->sin_addr = gSocketFlow[i].Us_sockaddr.sin_addr;
+			     pSockaddr->sin_port = gSocketFlow[i].Us_sockaddr.sin_port;
+			     pSockaddr->sin_family = gSocketFlow[i].Us_sockaddr.sin_family;
+				 return 1;
+			}
+		}
+			if (i == MAX_SOCKET_FLOW) return 0;
+	}
+
     unsigned char NumOpenTunnels(void) { return NumOpenTunnel; }
     uint8 SocketFlowIpType(void){ return SocFlowInfo.remote_address_type; }
 
@@ -236,7 +276,7 @@ public:
     void CloseAllCableCardClients( BcmDsgClientCtlThread *pDsgClientCtrl, bool CloseEcmTunnels = true );
 
     // ipv6 support
-    unsigned char ConfigureIpV6SocketFlow( void );
+    unsigned char ConfigureIpV6SocketFlow( int i );
 
     // helper function to clear private variable
     // a modulo 256 counter. Use 16bit 0x5500 as the reset value
@@ -288,19 +328,18 @@ protected:
 
 public:
     // use in CableCardCallbackSendSocketFlowUsData()
-    struct sockaddr_in gUs_sockaddr;
-    struct sockaddr_in6 gUs_sock6addr;
+  //  struct sockaddr_in gUs_sockaddr;
+  //  struct sockaddr_in6 gUs_sock6addr;
 
 private:
 
     unsigned long gDsgFlowId;
     unsigned long gIpUFlowId;
-    unsigned long gSocketFlowId;
+	CCARD_SOCKET_FLOW gSocketFlow[MAX_SOCKET_FLOW];
     BcmMacAddress CableCardMacAddress;
     unsigned short Remove_Header_Bytes;
     bool DocsisRangedRegistered;
     uint32 CableCardIpAddress;
-    int gUdpTcpSocket;
 	uint32 fLastCableCardIpAddress;
 	uint8 fLastDsgMsgApdu;  
 

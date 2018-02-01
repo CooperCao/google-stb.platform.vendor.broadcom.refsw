@@ -32,6 +32,14 @@ TEST=`lsmod|grep spi_drv >/dev/null && echo 1`
 if [ ! -z $TEST ]; then
     rmmod spi_drv || exit;
 fi
+TEST=`lsmod|grep asp_netfilter_drv >/dev/null && echo 1`
+if [ ! -z $TEST ]; then
+    rmmod asp_netfilter_drv || exit;
+fi
+TEST=`lsmod|grep bcm_astra >/dev/null && echo 1`
+if [ ! -z $TEST ]; then
+    rmmod bcm_astra || exit;
+fi
 
 insmod bcmdriver.ko || exit;
 if [ ! -e /dev/brcm0 ]; then
@@ -56,6 +64,11 @@ fi
 if [ -e spi_drv.ko ]; then
 insmod spi_drv.ko
 fi
+
+if [ -e asp_netfilter_drv.ko ]; then
+insmod asp_netfilter_drv.ko
+fi
+
 
 # Start whatever application is requested
 target=$1;

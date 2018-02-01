@@ -85,6 +85,8 @@ b_common_drm_target_clean_all: b_common_drm_target_clean $(B_COMMON_DRM_OTHER_CL
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${BSEAV}/../${B_REFSW_OBJ_DIR}
 NEXUS_BIN_DIR ?= $(B_REFSW_OBJ_ROOT)/nexus/bin
-B_COMMON_DRM_BUILD_FILES += $(B_REFSW_OBJ_ROOT)/BSEAV/lib/common_drm/libcommon_drm.a $(NEXUS_BIN_DIR)/libcmndrm*.so
+
+include $(BSEAV)/lib/security/common_drm/lib/cmndrm_dir.inc
+B_COMMON_DRM_BUILD_FILES += $(B_REFSW_OBJ_ROOT)/BSEAV/lib/common_drm/lib/${CMNDRM_DIR}/libcmndrm*.a $(NEXUS_BIN_DIR)/libcmndrm*.so
 
 endif #B_COMMON_DRM_TARGETS_DEFINED

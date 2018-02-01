@@ -75,6 +75,10 @@ public:
     bool isEncodeSupportedAc3(CSimpleAudioDecode * pAudioDecode, NEXUS_AudioCodec codec);
     bool isEncodeSupportedDts(CSimpleAudioDecode * pAudioDecode, NEXUS_AudioCodec codec);
 
+#if BDSP_MS12_SUPPORT
+    eRet findAc4Presentation(unsigned nIndex, NEXUS_AudioDecoderPresentationStatus * pPresentation);
+#endif
+
 protected:
     CWidgetMenu *        _pAudioMenu;
     CWidgetMenu *        _settings;
@@ -82,6 +86,9 @@ protected:
     CWidgetButton *      _Pid;
     CWidgetLabel *       _PidLabel;
     CWidgetPopupList *   _PidPopup;
+#if BDSP_MS12_SUPPORT
+    CWidgetButton *      _Ac4;
+#endif
     CWidgetButton *      _AudioProcessing;
     CWidgetLabel *       _AudioProcessingLabel;
     CWidgetPopupList *   _AudioProcessingPopup;

@@ -60,7 +60,7 @@ typedef struct
 typedef enum
 {
    // fixed sized states
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    GLXX_CL_STATE_BLEND_ENABLES,
 #else
    GLXX_CL_STATE_BLEND_CFG,
@@ -83,7 +83,7 @@ typedef enum
    GLXX_CL_STATE_NOPERSPECTIVE_FLAGS,
 #endif
    GLXX_CL_STATE_CENTROID_FLAGS,
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    GLXX_CL_STATE_BLEND_CFG,
 #endif
 
@@ -93,7 +93,7 @@ typedef enum
 static const uint8_t GLXX_CL_STATE_SIZE[GLXX_CL_STATE_NUM] =
 {
     // fixed sized states
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    [GLXX_CL_STATE_BLEND_ENABLES]    = V3D_CL_BLEND_ENABLES_SIZE,
 #else
    [GLXX_CL_STATE_BLEND_CFG]        = V3D_CL_BLEND_CFG_SIZE,
@@ -115,7 +115,7 @@ static const uint8_t GLXX_CL_STATE_SIZE[GLXX_CL_STATE_NUM] =
 #if V3D_VER_AT_LEAST(4,1,34,0)
    [GLXX_CL_STATE_NOPERSPECTIVE_FLAGS] = V3D_MAX_VARY_FLAG_WORDS * V3D_CL_VARY_FLAGS_SIZE,
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    [GLXX_CL_STATE_BLEND_CFG]           = GLXX_MAX_RENDER_TARGETS * V3D_CL_BLEND_CFG_SIZE,
 #endif
 };
@@ -181,6 +181,9 @@ typedef struct glxx_hw_render_state
     * Otherwise we will store to both installed_fb.color[] *and*
     * installed_fb.color_ms[]. */
    bool                    color_discard_ms;
+
+   // True if rendering was done without rasterizer discard.
+   bool                    has_rasterization;
 
    glxx_bufstate_t         color_buffer_state[GLXX_MAX_RENDER_TARGETS];
 

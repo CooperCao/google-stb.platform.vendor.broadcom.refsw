@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -80,6 +80,26 @@ typedef struct NEXUS_InputBandSettings
 } NEXUS_InputBandSettings;
 
 /**
+Arm the internal sync generation logic. The circuit works on the arrival of a bit (when in bit serial mode), or a byte (when in parallel mode).
+The skip argument the number of bits/bytes that, when added to packet length, will align the incoming stream to the start of transport
+packet in the hardware. The first internal sync is generated after skip + length bits/bytes are seen. Subsequent syncs are generated after length
+bits/bytes are seen.
+
+Bit versus byte mode is determined by the parallelInput bool in the NEXUS_InputBandSettings structure. The length, or number of bits/bytes between
+syncs, is derived from the packetLength, in the same structure.
+
+If a skip value of 0 is used, sync will be generated once every length bits/bytes. If this API is not called, no sync is generated.
+
+This API can be called multiple times for the same input band. If that happens before skip + length bits/bytes are seen, an error will be returned
+and new values won't be written to hardware. This avoids an incorrect configuration in the hardware. A possible reason for this is loss of the input
+clock or valid signals. Otherwise, the new skip value is used to generate the next sync, per the above.
+**/
+NEXUS_Error NEXUS_InputBand_ArmSyncGeneration(
+    NEXUS_InputBand inputBand,
+    unsigned skip                 /* Number of bits/bytes to skip to align packet sync with the input stream, 0 to 255 */
+    );
+
+/**
 Summary:
 Get current NEXUS_InputBand settings.
 **/
@@ -107,7 +127,6 @@ typedef struct NEXUS_InputBandStatus
     unsigned overflowErrors;    /* The input buffer sits upstream from the parsers. Overflow may indicate an
                                 RTS issue. This error count does not reset. */
 } NEXUS_InputBandStatus;
-
 /**
 Summary:
 Get current status information from the InputBand

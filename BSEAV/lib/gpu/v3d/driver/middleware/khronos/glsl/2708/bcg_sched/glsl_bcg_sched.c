@@ -5,6 +5,8 @@
 #include "middleware/khronos/glsl/glsl_dataflow.h"
 #include "middleware/khronos/glsl/2708/glsl_allocator_4.h"
 #include "interface/khronos/common/khrn_options.h"
+#include "middleware/khronos/common/khrn_mem.h"
+#include "middleware/khronos/common/2708/khrn_prod_4.h"
 
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_dflow.h"
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_dflow_print_visitor.h"
@@ -424,50 +426,43 @@ static void LastGaspVisit(DFlowNode *rootNode, DFlowRecursionOptimizer *recursio
 }
 
 static bool BuildOutput(Scheduler *scheduler, uint32_t type,
-                        MEM_HANDLE_T *mh_code, MEM_HANDLE_T *mh_uniform_map,
+                        MEM_HANDLE_T *mh_code, void **puniform_map,
                         uint32_t *vary_count, uint32_t *vary_map)
 {
-   MEM_HANDLE_T   hcode;
-   MEM_HANDLE_T   huniform_map;
-   bool           ret = true;
-
    // Build the output
-   hcode = mem_alloc_ex(Scheduler_CodeByteSize(scheduler), 8, MEM_FLAG_DIRECT, "shader code", MEM_COMPACT_DISCARD);
-   huniform_map = mem_alloc_ex(Scheduler_UniformsByteSize(scheduler), 4, MEM_FLAG_NONE, "uniform map", MEM_COMPACT_DISCARD);
+   MEM_HANDLE_T hcode = mem_alloc_ex(Scheduler_CodeByteSize(scheduler), 8, MEM_FLAG_DIRECT, "shader code", MEM_COMPACT_DISCARD);
+   if (hcode == MEM_HANDLE_INVALID)
+      return false;
 
-   if (hcode == MEM_HANDLE_INVALID || huniform_map == MEM_HANDLE_INVALID)
+   void *uniform_map = khrn_mem_alloc(Scheduler_UniformsByteSize(scheduler), "uniform map");
+   if (uniform_map == NULL)
    {
-      if (hcode != MEM_HANDLE_INVALID)
-         mem_release(hcode);
-      if (huniform_map != MEM_HANDLE_INVALID)
-         mem_release(huniform_map);
-
-      ret = false;
-   }
-   else
-   {
-      MEM_ASSIGN(*mh_code, hcode);
-      MEM_ASSIGN(*mh_uniform_map, huniform_map);
-
-      Scheduler_WriteCode(scheduler, mem_lock(hcode, NULL), Scheduler_CodeByteSize(scheduler));
-      mem_unlock(hcode);
       mem_release(hcode);
-
-      Scheduler_WriteUniforms(scheduler, mem_lock(huniform_map, NULL), Scheduler_UniformsByteSize(scheduler));
-      mem_unlock(huniform_map);
-      mem_release(huniform_map);
-
-      if (type & GLSL_BACKEND_TYPE_FRAGMENT)
-      {
-         *vary_count = VaryingVector_size(Scheduler_Varyings(scheduler));
-         Scheduler_WriteVaryings(scheduler, vary_map, Scheduler_VaryingsByteSize(scheduler));
-      }
-
-      Scheduler_TransmitOutput(scheduler, type);
-      Scheduler_TransmitInfo(scheduler, type);
+      return false;
    }
 
-   return ret;
+   void *code = mem_lock(hcode, NULL);
+   uint32_t code_size = Scheduler_CodeByteSize(scheduler);
+   Scheduler_WriteCode(scheduler, code, code_size);
+   khrn_hw_flush_dcache_range(code, code_size);
+   mem_unlock(hcode);
+   MEM_ASSIGN(*mh_code, hcode);
+   mem_release(hcode);
+
+   Scheduler_WriteUniforms(scheduler, uniform_map, Scheduler_UniformsByteSize(scheduler));
+   KHRN_MEM_ASSIGN(*puniform_map, uniform_map);
+   khrn_mem_release(uniform_map);
+
+   if (type & GLSL_BACKEND_TYPE_FRAGMENT)
+   {
+      *vary_count = VaryingVector_size(Scheduler_Varyings(scheduler));
+      Scheduler_WriteVaryings(scheduler, vary_map, Scheduler_VaryingsByteSize(scheduler));
+   }
+
+   Scheduler_TransmitOutput(scheduler, type);
+   Scheduler_TransmitInfo(scheduler, type);
+
+   return true;
 }
 
 #ifndef WIN32
@@ -556,7 +551,7 @@ static ResetHelper *InitResetHelper(void **resetHelper)
 }
 
 bool bcg_schedule(Dataflow *root, uint32_t type, bool *allow_thread, Scheduler_Strategy strategy, MEM_HANDLE_T *mh_code,
-                  MEM_HANDLE_T *mh_uniform_map, uint32_t *vary_map, uint32_t *vary_count, void **resetHelper)
+                  void **puniform_map, uint32_t *vary_map, uint32_t *vary_count, void **resetHelper)
 {
    bool                    ret = true;
    bool                    isFragment = type == GLSL_BACKEND_TYPE_FRAGMENT;
@@ -656,7 +651,7 @@ bool bcg_schedule(Dataflow *root, uint32_t type, bool *allow_thread, Scheduler_S
    DumpGraph(rootNode);
 
    if (ret)
-      ret = BuildOutput(&scheduler, type, mh_code, mh_uniform_map, vary_count, vary_map);
+      ret = BuildOutput(&scheduler, type, mh_code, puniform_map, vary_count, vary_map);
 
    //ResetHelper_DeleteNodes(rh);   // Delete our allocated nodes
    Scheduler_Destr(&scheduler);

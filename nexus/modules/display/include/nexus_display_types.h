@@ -346,6 +346,8 @@ typedef struct NEXUS_DisplayMacrovisionTables
     uint8_t cpsTable[33];
 } NEXUS_DisplayMacrovisionTables;
 
+#define NEXUS_VIDEO_INPUT_CRC_FLAG_REPEAT 0x0001
+
 /**
 Summary:
 CRC data for video at the MFD (MPEG feeder)
@@ -364,6 +366,7 @@ typedef struct NEXUS_VideoInputCrcData
                         crc[2] = unused for eCrc32, Cr for eCrc16 and eChecksum
                         crc[3..5] = right eye equivalents of crc[0..2]
                         Unused crc fields are 0xFFFFFFFF. */
+    uint32_t flags; /* see NEXUS_VIDEO_INPUT_CRC_FLAG_XXX macros */
 } NEXUS_VideoInputCrcData;
 
 /**
@@ -499,6 +502,13 @@ typedef enum NEXUS_DeinterlacerMode
     NEXUS_DeinterlacerMode_eMax
 } NEXUS_DeinterlacerMode;
 
+typedef enum NEXUS_VideoWindowSizeLimit
+{
+    NEXUS_VideoWindowSizeLimit_eAuto,
+    NEXUS_VideoWindowSizeLimit_eQuarter,
+    NEXUS_VideoWindowSizeLimit_eMax
+} NEXUS_VideoWindowSizeLimit;
+
 /**
 Init time memory per display.
 Can be set with NEXUS_MemoryConfigurationSettings at init time.
@@ -511,6 +521,10 @@ typedef struct NEXUS_DisplayMemConfig
         NEXUS_DeinterlacerMode deinterlacer;
         bool support3d; /* support duplicating to L/R eye in 3D mode */
         bool capture;
+        bool forceSyncLock; /* advisory setting. if you have two digital sources (main+pip) connected to the same display,
+                            setting this boolean to true on the pip window could save window picture heap allocation with
+                            reasonable picture quality. It's a low cost tradeoff option (the pip might have brief tearing
+                            artifact in case of missed interrupts). */
         bool convertAnyFrameRate; /* conversion between 50Hz and 60Hz inputs/outputs requires extra memory. */
         bool precisionLipSync; /* required if using SyncChannel */
         bool smoothScaling; /* deprecated. equivalent to 'capture' and defaults on where RTS allows. */
@@ -520,6 +534,7 @@ typedef struct NEXUS_DisplayMemConfig
                      If a box mode supports any MTG MFD, every window has this 'mtg' boolean defaulted on which may allocate more capture buffer memory.
                      If you connect an MTG MFD to an MTG window, you get MTG. Otherwise, MTG is off. */
         NEXUS_SecureVideo secure; /* allocate picture buffer memory for unsecure, secure or both */
+        NEXUS_VideoWindowSizeLimit sizeLimit;
     } window[NEXUS_MAX_VIDEO_WINDOWS];
 } NEXUS_DisplayMemConfig;
 
@@ -563,7 +578,7 @@ typedef struct NEXUS_DisplayModuleSettings {
     struct {
         unsigned videoWindowHeapIndex[NEXUS_MAX_DISPLAYS][NEXUS_MAX_VIDEO_WINDOWS]; /* Set the heap index per video window. If >= NEXUS_MAX_HEAPS, then unused. */
         unsigned deinterlacerHeapIndex[NEXUS_MAX_DISPLAYS][NEXUS_MAX_VIDEO_WINDOWS]; /* same as above, but for deinterlacer. */
-    } secure;
+    } secure, secureTranscode;
     unsigned primaryDisplayHeapIndex;    /* The heap given to BVDC_Open for general use.
                                             This is usually the heap index for videoWindowHeapIndex[0][0] i.e HD Main Video window */
     unsigned rdcHeapIndex;               /* The heap used by RDC for RUL's */

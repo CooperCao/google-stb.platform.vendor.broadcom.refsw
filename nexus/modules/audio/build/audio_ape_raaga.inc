@@ -1,5 +1,5 @@
 ##############################################################################
-#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,7 +67,10 @@ ifneq ($(NEXUS_AUDIO_EXTENSION_INC),)
 include $(NEXUS_AUDIO_EXTENSION_INC)
 endif
 ifeq ($(NEXUS_AUDIO_BUFFER_CAPTURE),y)
-include $(NEXUS_TOP)/extensions/audio/buffer_capture/buffer_capture.inc
+include $(NEXUS_TOP)/../rockford/unittests/nexus/audio/buffer_capture/buffer_capture.inc
+endif
+ifeq ($(NEXUS_AUDIO_RAVE_MONITOR),y)
+include $(NEXUS_TOP)/../rockford/unittests/nexus/audio/xpt_monitor/rave_monitor.inc
 endif
 ifeq ($(BDSP_VP6_SUPPORT),y)
 include $(NEXUS_TOP)/extensions/audio/dsp_video_decoder/dsp_video_decoder.inc

@@ -58,13 +58,6 @@ void media_player_get_default_create_settings( media_player_create_settings *pse
     psettings->userDataBufferSize = connectSettings.simpleVideoDecoder[0].decoderCapabilities.userDataBufferSize;
 }
 
-void media_player_get_default_settings(media_player_settings *psettings)
-{
-    psettings->audio.ac3_service_type = UINT_MAX;
-    psettings->audio.language = NULL;
-    psettings->enableDynamicTrackSelection = false;
-}
-
 void media_player_get_default_start_settings( media_player_start_settings *psettings )
 {
     memset(psettings, 0, sizeof(*psettings));
@@ -79,8 +72,10 @@ void media_player_get_default_start_settings( media_player_start_settings *psett
     psettings->sync = NEXUS_SimpleStcChannelSyncMode_eDefaultAdjustmentConcealment;
     psettings->stcMaster = NEXUS_StcChannelAutoModeBehavior_eVideoMaster;
     psettings->transportType = NEXUS_TransportType_eMax; /* no override */
-    NEXUS_Playback_GetDefaultSettings(&psettings->playbackSettings);
-    media_player_get_default_settings(&psettings->mediaPlayerSettings);
+    psettings->playbackSettings.endOfStreamTimeout = 180; /* copied from nexus_playback */
+    psettings->mediaPlayerSettings.audio.ac3_service_type = UINT_MAX;
+    psettings->mediaPlayerSettings.audio.language = NULL;
+    psettings->mediaPlayerSettings.enableDynamicTrackSelection = false;
 }
 
 static void endOfStreamCallback(void *context, int param)
@@ -134,7 +129,10 @@ static media_player_t media_player_p_create(const NxClient_AllocResults *pAllocR
     }
 
     NEXUS_Playpump_GetDefaultOpenSettings(&playpumpOpenSettings);
-    if (psettings->maxHeight <= 576) {
+    if (psettings->playback.fifoSize) {
+        playpumpOpenSettings.fifoSize = psettings->playback.fifoSize;
+    }
+    else if (psettings->maxHeight <= 576) {
         playpumpOpenSettings.fifoSize = 1024*1024;
     }
     player->playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpOpenSettings);
@@ -272,7 +270,7 @@ static int media_player_p_connect(media_player_t player)
             const media_player_create_settings *psettings = &p->create_settings;
             connectSettings.simpleVideoDecoder[i].id = player->master->allocResults.simpleVideoDecoder[i].id;
             connectSettings.simpleVideoDecoder[i].surfaceClientId = psettings->window.surfaceClientId;
-            connectSettings.simpleVideoDecoder[i].windowId = i;
+            connectSettings.simpleVideoDecoder[i].windowId = psettings->window.id+i;
             if (player->create_settings.maxFormat) {
                 connectSettings.simpleVideoDecoder[i].decoderCapabilities.maxFormat = player->create_settings.maxFormat;
             }
@@ -313,6 +311,7 @@ static int media_player_p_connect(media_player_t player)
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.fifoSize = player->start_settings.video.fifoSize;
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.itbFifoSize = player->start_settings.video.itbFifoSize;
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.secureVideo = player->start_settings.video.secure;
+            connectSettings.simpleVideoDecoder[0].decoderCapabilities.virtualized = player->start_settings.video.virtualized;
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.userDataBufferSize = player->create_settings.userDataBufferSize;
             connectSettings.simpleVideoDecoder[0].windowCapabilities.type = player->start_settings.videoWindowType;
         }
@@ -528,31 +527,6 @@ static void parse_url(const char *s, struct url *url)
             url->port = 80; /* default port */
         }
     }
-}
-void media_player_get_settings( media_player_t player, media_player_settings *psettings )
-{
-    *psettings = player->settings;
-}
-
-int media_player_set_settings(media_player_t player, const media_player_settings *psettings)
-{
-    int rc;
-    if(player->bip) {
-        rc = media_player_bip_set_settings(player->bip, psettings);
-        if (rc) return BERR_TRACE(rc);
-
-        player->settings.audio.ac3_service_type = psettings->audio.ac3_service_type;
-
-        if(psettings->audio.language) {
-            if(player->settings.audio.language == NULL) {
-                /* allocate memory first time , size will always be 4 so no reallocation required.*/
-                player->settings.audio.language = BKNI_Malloc((strlen(psettings->audio.language)+1));
-            }
-            BKNI_Memcpy(player->settings.audio.language, psettings->audio.language, strlen(psettings->audio.language)+1 );
-            player->settings.enableDynamicTrackSelection = psettings->enableDynamicTrackSelection;
-        }
-    }
-    return 0;
 }
 
 static int glob_errfunc(const char *epath, int eerrno)
@@ -836,6 +810,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
         playbackSettings.stcTrick = psettings->stcTrick && player->stcChannel;
         playbackSettings.startPaused = psettings->startPaused;
         playbackSettings.frameReverse.gopDepth = psettings->dqtFrameReverse;
+        playbackSettings.endOfStreamTimeout = psettings->playbackSettings.endOfStreamTimeout;
         rc = NEXUS_Playback_SetSettings(player->playback, &playbackSettings);
         if (rc) { rc = BERR_TRACE(rc); goto error; }
 
@@ -916,6 +891,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
         videoProgram.smoothResolutionChange = psettings->smoothResolutionChange;
         videoProgram.settings.crcMode = psettings->crcMode;
         videoProgram.settings.timestampMode = psettings->video.timestampMode;
+        videoProgram.settings.progressiveOverrideMode = psettings->video.progressiveOverrideMode;
         videoProgram.settings.frameRate = psettings->video.frameRate;
         player->videoProgram = videoProgram;
 
@@ -984,6 +960,10 @@ int media_player_start( media_player_t player, const media_player_start_settings
                 settings.codecSettings.ac3Plus.drcMode = settings.codecSettings.ac3Plus.drcModeDownmix = player->start_settings.audio.dolbyDrcMode;
             }
             break;
+        case NEXUS_AudioCodec_eAc4:
+            audioProcessingSettings.dolby.ddre.externalPcmMode = false;
+            player->audioProgram.primary.mixingMode = NEXUS_AudioDecoderMixingMode_eStandalone;
+            break;
             /* only line and rf applies for aac/aacplus, but nexus can validate params */
         case NEXUS_AudioCodec_eAacAdts:
         case NEXUS_AudioCodec_eAacLoas:
@@ -1019,12 +999,6 @@ int media_player_start( media_player_t player, const media_player_start_settings
     if (player->create_settings.audio.usePersistent) {
         player->audioProgram.primary.mixingMode = player->start_settings.audio.mixingMode;
         player->audioProgram.master = player->start_settings.audio.master;
-    }
-
-    /* special start settings based on codec */
-    switch (player->audioProgram.primary.codec) {
-    case NEXUS_AudioCodec_eAc4: player->audioProgram.primary.mixingMode = NEXUS_AudioDecoderMixingMode_eStandalone; break;
-    default: /* just ignore */ break;
     }
 #endif
 

@@ -22,17 +22,11 @@ static uint32_t clear_shader_2[] =
    0xb682d000, 0x3c003187, // mov tlb, r5
 #else
    0xbb800000, 0x3c403186, // nop            ; ldunif
-# if V3D_VER_AT_LEAST(4,0,2,0)
-   0xb682d000, 0x3c203188, // mov tlbu, r5   ; thrsw
-   0xbb800000, 0x3c403186, // nop            ; ldunif
-   0xb682d000, 0x3c003187, // mov tlb, r5
-# else
    0xb682d000, 0x3c003188, // mov tlbu, r5
    0xbb800000, 0x3c403186, // nop            ; ldunif
    0xb682d000, 0x3c203187, // mov tlb, r5    ; thrsw
    0xbb800000, 0x3c003186, // nop
    0xbb800000, 0x3c003186, // nop
-# endif
 #endif
 };
 
@@ -42,9 +36,6 @@ static uint32_t clear_shader_4[] =
    0xbb800000, 0x3c603186, // nop           ; thrsw ; ldunif
    0xb682d000, 0x3c602183, // mov rf3, r5   ; thrsw ; ldunif
    0xb682d000, 0x3c002184, // mov rf4, r5
-# if !V3D_VER_AT_LEAST(4,1,34,0)
-   0xbb800000, 0x3c003186, // nop
-# endif
    0xb68360c0, 0x3c003188, // mov tlbu, rf3
    0xb6836100, 0x3c603187, // mov tlb, rf4  ; ldunif ; thrsw
    0xb682d000, 0x3c403187, // mov tlb, r5   ; ldunif
@@ -53,17 +44,11 @@ static uint32_t clear_shader_4[] =
    0xbb800000, 0x3c403186, // nop; ldunif
    0xb682d000, 0x3c003188, // mov tlbu, r5
    0xbb800000, 0x3c403186, // nop; ldunif
-# if V3D_VER_AT_LEAST(4,0,2,0)
-   0xb682d000, 0x3c603187, // mov tlb, r5; ldunif ; thrsw
-   0xb682d000, 0x3c403187, // mov tlb, r5; ldunif
-   0xb682d000, 0x3c003187, // mov tlb, r5
-# else
    0xb682d000, 0x3c403187, // mov tlb, r5; ldunif
    0xb682d000, 0x3c403187, // mov tlb, r5; ldunif
    0xb682d000, 0x3c203187, // mov tlb, r5; thrsw
    0xbb800000, 0x3c003186, // nop
    0xbb800000, 0x3c003186, // nop
-# endif
 #endif
 };
 

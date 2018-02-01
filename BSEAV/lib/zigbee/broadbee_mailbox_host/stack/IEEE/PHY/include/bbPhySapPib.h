@@ -80,14 +80,11 @@ typedef enum _PhyPibAttributeId_t
     PHY_SYMBOLS_PER_OCTET   = 0x07,     /*!< The number of symbols per octet for the current PHY. The value of this
                                             attribute is stored and returned been multiplied by 10. */
 
-#if defined(RF4CE_TARGET)
     PHY_RSSI                = 0x08,     /*!< The current RSSI value measured each 2 us. */
 
-    PHY_ATTRIBUTES_ID_END   = PHY_RSSI,                 /*!< Last ID of PHY-PIB private attributes. */
-#else
-    PHY_ATTRIBUTES_ID_END   = PHY_SYMBOLS_PER_OCTET,    /*!< Last ID of PHY-PIB private attributes. */
-#endif
+    PHY_COEX_FLAG           = 0x09,     /*!< Broadcom Extension for CoEx enable/disable flag >*/
 
+    PHY_ATTRIBUTES_ID_END   = PHY_COEX_FLAG,    /*!< Last ID of PHY-PIB private attributes. */
 } PhyPibAttributeId_t;
 
 
@@ -216,6 +213,7 @@ typedef struct _PHY_TransmitPower_t
         PHY_ShrDuration_t         phyShrDuration;\
         PHY_SymbolsPerOctetX10_t  phySymbolsPerOctetX10;\
         PHY_RSSI_t                phyRssi;\
+        bool                      phyCoExFlag;\
     }
 
 

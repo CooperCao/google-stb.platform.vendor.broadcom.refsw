@@ -506,16 +506,12 @@ void
 BMRC_Monitor_Close(BMRC_Monitor_Handle hMonitor)
 {
     unsigned i;
-    BERR_Code rc;
     BMRC_Monitor_P_AllocatedRegion *region;
     BMRC_MonitorRegion_Handle userRegion;
 
     BDBG_MSG(("stats: %p full:%u single:%u partial:%u", (void *)hMonitor, hMonitor->stats.updates.full, hMonitor->stats.updates.single, hMonitor->stats.updates.partial));
     for (i=0;i<hMonitor->max_ranges;i++) {
-        rc = BMRC_Checker_Destroy(hMonitor->ahCheckers[i]);
-        if (rc!=BERR_SUCCESS) {
-            BDBG_ERR(("BMRC_Checker_Destroy returned error %#x, ignored", rc));
-        }
+        BMRC_Checker_Destroy(hMonitor->ahCheckers[i]);
     }
     while( NULL !=(region=BLST_AA_TREE_FIRST(BMRC_Monitor_P_AllocatedRegionTree, &hMonitor->regions))) {
         BLST_AA_TREE_REMOVE(BMRC_Monitor_P_AllocatedRegionTree,&hMonitor->regions, region);
@@ -531,33 +527,12 @@ BMRC_Monitor_Close(BMRC_Monitor_Handle hMonitor)
     BKNI_DestroyMutex(hMonitor->pMutex);
     BDBG_OBJECT_DESTROY(hMonitor, BMRC_Monitor);
     BKNI_Free(hMonitor);
-    return;
 }
 
-BERR_Code
+void
 BMRC_Monitor_GetDefaultSettings(BMRC_Monitor_Settings *pDefSettings)
 {
-    if (!pDefSettings)
-    {
-        return BERR_INVALID_PARAMETER;
-    }
-
     *pDefSettings = s_stDefaultSettings;
-
-    return BERR_SUCCESS;
-}
-
-BERR_Code
-BMRC_Monitor_GetSettings(BMRC_Monitor_Handle hMonitor, BMRC_Monitor_Settings *pSettings)
-{
-    if (!pSettings)
-    {
-        return BERR_INVALID_PARAMETER;
-    }
-
-    *pSettings = hMonitor->stSettings;
-
-    return BERR_SUCCESS;
 }
 
 static void
@@ -1231,14 +1206,12 @@ done:
     return;
 }
 
-BERR_Code
+void
 BMRC_Monitor_GetMemoryInterface(BMRC_Monitor_Handle hMonitor, BMRC_MonitorInterface *pInterface)
 {
     pInterface->cnxt = hMonitor;
     pInterface->alloc = BMRC_P_Monitor_Alloc;
     pInterface->free = BMRC_P_Monitor_Free;
-
-    return BERR_SUCCESS;
 }
 
 static void

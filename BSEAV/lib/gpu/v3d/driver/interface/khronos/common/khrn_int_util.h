@@ -7,6 +7,7 @@
 #include <float.h>
 #include <math.h>
 #include <assert.h>
+#include <stdint.h>
 
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/vcos/vcos.h"
@@ -15,23 +16,23 @@
 replacements for videocore intrinsics
 ******************************************************************************/
 
-static INLINE int32_t _bmask(int32_t x, int32_t y)
+static inline int32_t _bmask(int32_t x, int32_t y)
 {
    return x & ((1 << (y & 0x1f)) - 1);
 }
 
-static INLINE int32_t _min(int32_t x, int32_t y)
+static inline int32_t _min(int32_t x, int32_t y)
 {
    return x < y ? x : y;
 }
 
-static INLINE int32_t _max(int32_t x, int32_t y)
+static inline int32_t _max(int32_t x, int32_t y)
 {
    return x > y ? x : y;
 }
 
 #if defined(_MSC_VER)
-static INLINE int32_t _msb(uint32_t x)
+static inline int32_t _msb(uint32_t x)
 {
 #if defined(__clang__)
    return x ? (31 - __builtin_clz(x)) : -1;
@@ -48,12 +49,12 @@ static INLINE int32_t _msb(uint32_t x)
 #endif
 }
 #elif defined(__GNUC__)
-static INLINE int32_t _msb(uint32_t x)
+static inline int32_t _msb(uint32_t x)
 {
    return x ? (31 - __builtin_clz(x)) : -1;
 }
 #else
-static INLINE int32_t _msb(uint32_t x) /* unsigned to get lsr */
+static inline int32_t _msb(uint32_t x) /* unsigned to get lsr */
 {
    int32_t msb = -1;
    while (x != 0) {
@@ -64,7 +65,7 @@ static INLINE int32_t _msb(uint32_t x) /* unsigned to get lsr */
 }
 #endif
 
-static INLINE uint32_t _count(uint32_t x)
+static inline uint32_t _count(uint32_t x)
 {
    uint32_t count = 0;
    while (x != 0) {
@@ -74,7 +75,7 @@ static INLINE uint32_t _count(uint32_t x)
    return count;
 }
 
-static INLINE uint32_t _bitrev(uint32_t x, uint32_t y)
+static inline uint32_t _bitrev(uint32_t x, uint32_t y)
 {
    uint32_t bitrev = 0;
    uint32_t i;
@@ -84,29 +85,29 @@ static INLINE uint32_t _bitrev(uint32_t x, uint32_t y)
    return bitrev;
 }
 
-static INLINE int32_t _adds(int32_t x, int32_t y)
+static inline int32_t _adds(int32_t x, int32_t y)
 {
    int32_t z = x + y;
    return (y > 0) ? ((z < x) ? (int32_t)0x7fffffff : z) : ((z > x) ? (int32_t)0x80000000 : z);
 }
 
-static INLINE int32_t _subs(int32_t x, int32_t y)
+static inline int32_t _subs(int32_t x, int32_t y)
 {
    int32_t z = x - y;
    return (y > 0) ? ((z > x) ? (int32_t)0x80000000 : z) : ((z < x) ? (int32_t)0x7fffffff : z);
 }
 
-static INLINE uint32_t _ror(uint32_t x, uint32_t y)
+static inline uint32_t _ror(uint32_t x, uint32_t y)
 {
    return (x << (32 - y)) | (x >> y);
 }
 
-static INLINE float _minf(float x, float y)
+static inline float _minf(float x, float y)
 {
    return x < y ? x : y;
 }
 
-static INLINE float _maxf(float x, float y)
+static inline float _maxf(float x, float y)
 {
    return x > y ? x : y;
 }
@@ -118,34 +119,34 @@ misc stuff
 #define ARR_COUNT(ARR) (sizeof(ARR) / sizeof(*(ARR)))
 
 /* sign-extend 16-bit value with range [-0x4000, 0xbfff] */
-static INLINE int32_t s_ext_off16(int32_t x)
+static inline int32_t s_ext_off16(int32_t x)
 {
    return ((int32_t)(int16_t)(x - 0x4000)) + 0x4000;
 }
 
-static INLINE bool is_power_of_2(uint32_t x)
+static inline bool is_power_of_2(uint32_t x)
 {
    return (x != 0) && ((x & (x - 1)) == 0);
 }
 
-static INLINE uint32_t next_power_of_2(uint32_t x)
+static inline uint32_t next_power_of_2(uint32_t x)
 {
    return is_power_of_2(x) ? x : (uint32_t)(1 << (_msb(x) + 1));
 }
 
-static INLINE uint32_t round_up(uint32_t x, uint32_t y)
+static inline uint32_t round_up(uint32_t x, uint32_t y)
 {
    assert(is_power_of_2(y));
    return (x + (y - 1)) & ~(y - 1);
 }
 
-static INLINE void *round_up_ptr(void *x, uint32_t y)
+static inline void *round_up_ptr(void *x, uint32_t y)
 {
    assert(is_power_of_2(y));
    return (void *)(((uintptr_t)x + (uintptr_t)(y - 1)) & ~(uintptr_t)(y - 1));
 }
 
-static INLINE uint32_t mod(int32_t x, int32_t y)
+static inline uint32_t mod(int32_t x, int32_t y)
 {
    int32_t m = x % y;
    return (m < 0) ? (m + y) : m;
@@ -153,7 +154,7 @@ static INLINE uint32_t mod(int32_t x, int32_t y)
 
 extern int khrn_get_type_size(int type /* GLenum*/);
 
-static INLINE int find_max(int count, int size, const void *indices)
+static inline int find_max(int count, int size, const void *indices)
 {
    int i;
    int32_t max = -1;
@@ -194,14 +195,14 @@ typedef union {
    uint32_t bits;
 } KHRN_FLOAT_BITS_T;
 
-static INLINE uint32_t float_to_bits(float f)
+static inline uint32_t float_to_bits(float f)
 {
    KHRN_FLOAT_BITS_T t;
    t.f = f;
    return t.bits;
 }
 
-static INLINE float float_from_bits(uint32_t bits)
+static inline float float_from_bits(uint32_t bits)
 {
    KHRN_FLOAT_BITS_T t;
    t.bits = bits;
@@ -214,7 +215,7 @@ input cleaning stuff
 
 #include "interface/khronos/common/khrn_int_util_cr.h"
 
-static INLINE void clean_floats(float *dst, const float *src, uint32_t count)
+static inline void clean_floats(float *dst, const float *src, uint32_t count)
 {
    uint32_t i;
    for (i = 0; i != count; ++i) {
@@ -226,7 +227,7 @@ static INLINE void clean_floats(float *dst, const float *src, uint32_t count)
 float to int conversions
 ******************************************************************************/
 
-static INLINE float r2ni_to_r2n_bias(float f, int32_t shift)
+static inline float r2ni_to_r2n_bias(float f, int32_t shift)
 {
    assert((shift >= -129) && (shift <= 124));
    return f + float_from_bits(((127 - (shift + 2)) << 23) | 0x7fffff);
@@ -240,7 +241,7 @@ static INLINE float r2ni_to_r2n_bias(float f, int32_t shift)
    of 0 and 16 for client-side code
 */
 
-static INLINE int32_t float_to_int_shift(float f, int32_t shift)
+static inline int32_t float_to_int_shift(float f, int32_t shift)
 {
    assert((shift >= 0) && (shift <= 31));
    f *= (float)(uint32_t)(1 << shift);
@@ -255,7 +256,7 @@ static INLINE int32_t float_to_int_shift(float f, int32_t shift)
    saturating, round to nearest
 */
 
-static INLINE int32_t float_to_int(float f)
+static inline int32_t float_to_int(float f)
 {
    return float_to_int_shift(f, 0);
 }
@@ -265,7 +266,7 @@ static INLINE int32_t float_to_int(float f)
    saturating, round to negative inf
 */
 
-static INLINE int32_t float_to_int_floor(float f)
+static inline int32_t float_to_int_floor(float f)
 {
    /*
       special-case handling of small negative floats
@@ -289,7 +290,7 @@ static INLINE int32_t float_to_int_floor(float f)
    saturating, round to zero
 */
 
-static INLINE int32_t float_to_int_zero(float f)
+static inline int32_t float_to_int_zero(float f)
 {
    /* assume float -> int conversion is round to zero */
    if (f < -2.14748365e9f) { return 0x80000000; }
@@ -308,7 +309,7 @@ static INLINE int32_t float_to_int_zero(float f)
    is returned.
 */
 
-static INLINE int32_t float_to_fixed(float f)
+static inline int32_t float_to_fixed(float f)
 {
    return float_to_int_shift(f, 16);
 }
@@ -317,18 +318,18 @@ static INLINE int32_t float_to_fixed(float f)
 exact float tests (in case fp library/hw don't handle denormals correctly)
 ******************************************************************************/
 
-static INLINE bool floats_identical(float x, float y)
+static inline bool floats_identical(float x, float y)
 {
    return float_to_bits(x) == float_to_bits(y);
 }
 
-static INLINE bool is_zero(float f)
+static inline bool is_zero(float f)
 {
    uint32_t u = float_to_bits(f);
    return !(u + u);
 }
 
-static INLINE bool is_le_zero(float f)
+static inline bool is_le_zero(float f)
 {
    uint32_t u = float_to_bits(f);
    return (u & (1 << 31)) || !u;
@@ -387,14 +388,14 @@ extern void khrn_clip_rect2(
    int32_t ax1, int32_t ay1, int32_t aw1, int32_t ah1,
    int32_t bx1, int32_t by1, int32_t bw1, int32_t bh1);
 
-static INLINE bool khrn_ranges_intersect(
+static inline bool khrn_ranges_intersect(
    int32_t x0, int32_t l0,
    int32_t x1, int32_t l1)
 {
    return (x0 < (x1 + l1)) && (x1 < (x0 + l0));
 }
 
-static INLINE bool khrn_rects_intersect(
+static inline bool khrn_rects_intersect(
    int32_t x0, int32_t y0, int32_t w0, int32_t h0,
    int32_t x1, int32_t y1, int32_t w1, int32_t h1)
 {
@@ -405,7 +406,7 @@ static INLINE bool khrn_rects_intersect(
 memory barrier
 ******************************************************************************/
 
-static INLINE void khrn_barrier(void) {
+static inline void khrn_barrier(void) {
 #ifdef __GNUC__
    __sync_synchronize();
 #endif

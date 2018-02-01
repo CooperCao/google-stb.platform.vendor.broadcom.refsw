@@ -82,10 +82,12 @@ extern "C" {
 #define CALLBACK_LUA  "CallbackLua"
 
 /* push return parameter to lua stack and return number of return parameters */
-#define LUA_RETURN(ret)                                      \
-    do {                                                     \
-        lua_pushnumber(pLua, (eRet_Ok == ret) ? 0 : -1);     \
-        return (pThis->getBusyAction()->getNumReturnVals()); \
+#define LUA_RETURN(ret)                                              \
+    do {                                                             \
+        int numRetVals = pThis->getBusyAction()->getNumReturnVals(); \
+        pThis->getBusyAction()->clear();                             \
+        lua_pushnumber(pLua, (eRet_Ok == ret) ? 0 : -1);             \
+        return (numRetVals);                                         \
     } while (0)
 
 BDBG_MODULE(atlas_lua);
@@ -281,6 +283,35 @@ error:
 done:
     LUA_RETURN(err);
 } /* atlasLua_ChannelUnTune */
+
+/* atlas.getCurrentChannelNumber()
+ * Nothing required
+ */
+static int atlasLua_GetCurrentChannelNumber(lua_State * pLua)
+{
+    CLua *    pThis   = getCLua(pLua);
+    CAction * pAction = NULL;
+    eRet      err     = eRet_Ok;
+
+    BDBG_ASSERT(pThis);
+
+    pAction = new CAction(eNotify_GetCurrentChannelNumber, eNotify_CurrentChannel, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_GetCurrentChannelNumber */
 
 #if NEXUS_HAS_FRONTEND
 /* atlas.scanQam(
@@ -2959,6 +2990,407 @@ done:
     LUA_RETURN(err);
 } /* atlasLua_EnableRemoteIr */
 
+#if BDSP_MS12_SUPPORT
+/* atlas.showPresentation()
+ *      --- required ---
+ *      --- optional ---
+ *      none
+ */
+static int atlasLua_ShowPresentation(lua_State * pLua)
+{
+    CLua *    pThis        = getCLua(pLua);
+    eRet      err          = eRet_Ok;
+    CAction * pAction      = NULL;
+    uint8_t   numArgTotal  = lua_gettop(pLua) - 1;
+
+    BDBG_ASSERT(pThis);
+
+    /* check number of lua arguments on stack */
+    if (0 != numArgTotal)
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "wrong number of arguments: none", error);
+    }
+
+    /* create lua action and give it data */
+    pAction = new CAction(eNotify_ShowAudioAc4Presentation, eNotify_AudioAc4PresentationShown, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_ShowPresentation */
+
+/* atlas.nextPresentation()
+ *      --- required ---
+ *      program, 0:main program 1:alternate program
+ *      --- optional ---
+ *      none
+ */
+static int atlasLua_NextPresentation(lua_State * pLua)
+{
+    CLua *    pThis                = getCLua(pLua);
+    eRet      err                  = eRet_Ok;
+    uint8_t   argNum               = 1;
+    uint8_t   numArgTotal          = lua_gettop(pLua) - 1;
+    int       presentation         = 0;
+    int       program              = 0;
+    CAudioDecodeAc4Data * pAc4Data = NULL;
+
+    CDataAction <CAudioDecodeAc4Data> * pAction = NULL;
+
+    BDBG_ASSERT(pThis);
+
+    /* check number of lua arguments on stack */
+    if (1 != numArgTotal)
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "wrong number of arguments: [0:main 1:alt]", error);
+    }
+
+    /* get arguments */
+    program      = luaL_checknumber(pLua, argNum++);
+
+    if ((0 > program) || (1 < program))
+    {
+        LUA_ERROR(pLua, "invalid argument: [0:main 1:alt]", error);
+    }
+
+    pAc4Data = new CAudioDecodeAc4Data;
+    pAc4Data->_program  = (NEXUS_AudioDecoderAc4Program)program;
+
+    /* create lua action and give it data */
+    pAction = new CDataAction <CAudioDecodeAc4Data>(eNotify_NextAudioAc4Presentation, pAc4Data, eNotify_AudioAc4PresentationChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pAc4Data);
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_NextPresentation */
+
+/* atlas.setPresentation()
+ *      --- required ---
+ *      index,   requested ac4 presentation index
+ *      program, 0:main program 1:alternate program
+ *      --- optional ---
+ *      none
+ */
+static int atlasLua_SetPresentation(lua_State * pLua)
+{
+    CLua *    pThis                = getCLua(pLua);
+    eRet      err                  = eRet_Ok;
+    uint8_t   argNum               = 1;
+    uint8_t   numArgTotal          = lua_gettop(pLua) - 1;
+    int       presentation         = 0;
+    int       program              = 0;
+    CAudioDecodeAc4Data * pAc4Data = NULL;
+
+    CDataAction <CAudioDecodeAc4Data> * pAction = NULL;
+
+    BDBG_ASSERT(pThis);
+
+    /* check number of lua arguments on stack */
+    if ((1 > numArgTotal) || (2 < numArgTotal))
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "wrong number of arguments: [presentation index][0:main 1:alt]", error);
+    }
+
+    /* get arguments */
+    presentation = luaL_checknumber(pLua, argNum++);
+    program      = luaL_checknumber(pLua, argNum++);
+
+    if ((0 > presentation) || (0 > program) || (1 < program))
+    {
+        LUA_ERROR(pLua, "invalid argument: [presentation index][0:main 1:alt]", error);
+    }
+
+    pAc4Data = new CAudioDecodeAc4Data;
+    pAc4Data->_program  = (NEXUS_AudioDecoderAc4Program)program;
+    pAc4Data->_presentationIndex = presentation;
+
+    /* create lua action and give it data */
+    pAction = new CDataAction <CAudioDecodeAc4Data>(eNotify_SetAudioAc4Presentation, pAc4Data, eNotify_AudioAc4PresentationChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pAc4Data);
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_SetPresentation */
+
+/* atlas.setLanguage()
+ *      --- required ---
+ *      language,   requested ac4 Language
+ *      program,    0:main program 1:alternate program
+ *      --- optional ---
+ *      none
+ */
+static int atlasLua_SetLanguage(lua_State * pLua)
+{
+    CLua *    pThis                = getCLua(pLua);
+    eRet      err                  = eRet_Ok;
+    uint8_t   argNum               = 1;
+    uint8_t   numArgTotal          = lua_gettop(pLua) - 1;
+    int       lang                 = 0;
+    int       program              = 0;
+    CAudioDecodeAc4Data * pAc4Data = NULL;
+
+    CDataAction <CAudioDecodeAc4Data> * pAction = NULL;
+
+    BDBG_ASSERT(pThis);
+
+    /* check number of lua arguments on stack */
+    if ((1 > numArgTotal) || (2 < numArgTotal))
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "wrong number of arguments: [0:English 1:French 2:German 3:Italian 4:Spanish][0:main 1:alt]", error);
+    }
+
+    /* get arguments */
+    lang    = luaL_checknumber(pLua, argNum++);
+    program = luaL_checknumber(pLua, argNum++);
+
+    if ((eLanguage_English > lang) || (eLanguage_Max <= lang) || (0 > program) || (1 < program))
+    {
+        LUA_ERROR(pLua, "invalid argument: [0:English 1:French 2:German 3:Italian 4:Spanish][0:main 1:alt]", error);
+    }
+
+    pAc4Data = new CAudioDecodeAc4Data;
+    pAc4Data->_program  = (NEXUS_AudioDecoderAc4Program)program;
+    pAc4Data->_language = (eLanguage)lang;
+
+    /* create lua action and give it data */
+    pAction = new CDataAction <CAudioDecodeAc4Data>(eNotify_SetAudioAc4Language, pAc4Data, eNotify_AudioAc4LanguageChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pAc4Data);
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_SetLanguage */
+
+/* atlas.setAssociate()
+ *      --- required ---
+ *      Associate,   requested ac4 Associate
+ *      program,     0:main program 1:alternate program
+ *      --- optional ---
+ *      none
+ */
+static int atlasLua_SetAssociate(lua_State * pLua)
+{
+    CLua *    pThis                = getCLua(pLua);
+    eRet      err                  = eRet_Ok;
+    uint8_t   argNum               = 1;
+    uint8_t   numArgTotal          = lua_gettop(pLua) - 1;
+    int       assoc                = 0;
+    int       program              = 0;
+    CAudioDecodeAc4Data * pAc4Data = NULL;
+
+    CDataAction <CAudioDecodeAc4Data> * pAction = NULL;
+
+    BDBG_ASSERT(pThis);
+
+    /* check number of lua arguments on stack */
+    if ((1 > numArgTotal) || (2 < numArgTotal))
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "wrong number of arguments: [0:NotSpecified 1:VisuallyImpaired 2:HearingImpaired 3:Commentary][0:main 1:alt]", error);
+    }
+
+    /* get arguments */
+    assoc   = luaL_checknumber(pLua, argNum++);
+    program = luaL_checknumber(pLua, argNum++);
+
+    if ((NEXUS_AudioAc4AssociateType_eNotSpecified > assoc) || (NEXUS_AudioAc4AssociateType_eMax <= assoc) || (0 > program) || (1 < program))
+    {
+        LUA_ERROR(pLua, "Invalid arguments: [0:NotSpecified 1:VisuallyImpaired 2:HearingImpaired 3:Commentary][0:main 1:alt]", error);
+    }
+
+    pAc4Data = new CAudioDecodeAc4Data;
+    pAc4Data->_program   = (NEXUS_AudioDecoderAc4Program)program;
+    pAc4Data->_associate = (NEXUS_AudioAc4AssociateType)assoc;
+
+    /* create lua action and give it data */
+    pAction = new CDataAction <CAudioDecodeAc4Data>(eNotify_SetAudioAc4Associate, pAc4Data, eNotify_AudioAc4AssociateChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pAc4Data);
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_SetAssociate */
+
+/* atlas.setPriority()
+ *      --- required ---
+ *      Priority,   requested ac4 Priority
+ *      program,    0:main program 1:alternate program
+ *      --- optional ---
+ *      none
+ */
+static int atlasLua_SetPriority(lua_State * pLua)
+{
+    CLua *    pThis                = getCLua(pLua);
+    eRet      err                  = eRet_Ok;
+    uint8_t   argNum               = 1;
+    uint8_t   numArgTotal          = lua_gettop(pLua) - 1;
+    int       priority             = 0;
+    int       program              = 0;
+    CAudioDecodeAc4Data * pAc4Data = NULL;
+
+    CDataAction <CAudioDecodeAc4Data> * pAction = NULL;
+
+    BDBG_ASSERT(pThis);
+
+    /* check number of lua arguments on stack */
+    if ((1 > numArgTotal) || (2 < numArgTotal))
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "wrong number of arguments: [0:Language 1:Associate Type][0:main 1:alt]", error);
+    }
+
+    /* get arguments */
+    priority = luaL_checknumber(pLua, argNum++);
+    program  = luaL_checknumber(pLua, argNum++);
+
+    if ((ePriority_Language > priority) || (ePriority_Associate < priority) || (0 > program) || (1 < program))
+    {
+        LUA_ERROR(pLua, "Invalid arguments: [0:Language 1:Associate Type][0:main 1:alt]", error);
+    }
+
+    pAc4Data = new CAudioDecodeAc4Data;
+    pAc4Data->_program   = (NEXUS_AudioDecoderAc4Program)program;
+    pAc4Data->_priority  = (ePriority)priority;
+
+    /* create lua action and give it data */
+    pAction = new CDataAction <CAudioDecodeAc4Data>(eNotify_SetAudioAc4Priority, pAc4Data, eNotify_AudioAc4PriorityChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pAc4Data);
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_SetPriority */
+
+/* atlas.setDialogEnhancement()
+ *      --- required ---
+ *      index,   requested ac4 DialogEnhancement index
+ *      --- optional ---
+ *      none
+ */
+static int atlasLua_SetDialogEnhancement(lua_State * pLua)
+{
+    CLua *    pThis        = getCLua(pLua);
+    eRet      err          = eRet_Ok;
+    uint8_t   argNum       = 1;
+    uint8_t   numArgTotal  = lua_gettop(pLua) - 1;
+    int       nDb        = 0;
+    int *     pDb       = NULL;
+
+    CDataAction <int> * pAction = NULL;
+
+    BDBG_ASSERT(pThis);
+
+    /* check number of lua arguments on stack */
+    if (1 != numArgTotal)
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "wrong number of arguments: [-12 - 12]", error);
+    }
+
+    /* get arguments */
+    nDb = luaL_checknumber(pLua, argNum++);
+
+    if ((-12 > nDb) || (12 < nDb))
+    {
+        LUA_ERROR(pLua, "given dB value must be in the range: -12 <= dB <= 12", error);
+    }
+
+    pDb = new int;
+    *pDb = nDb;
+
+    /* create lua action and give it data */
+    pAction = new CDataAction <int>(eNotify_SetAudioAc4DialogEnhancement, pDb, eNotify_AudioAc4DialogEnhancementChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pDb);
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_SetDialogEnhancement */
+#endif
+
 #ifdef CPUTEST_SUPPORT
 /* atlas.setCpuTestLevel(
  *      --- required ---
@@ -3239,6 +3671,47 @@ error:
 done:
     LUA_RETURN(err);
 } /* atlasLua_SwapPip */
+
+/* atlas.getPipState(
+ *      --- required ---
+ *      --- optional ---
+ *      none
+ */
+static int atlasLua_GetPipState(lua_State * pLua)
+{
+    CLua *  pThis       = getCLua(pLua);
+    eRet    err         = eRet_Ok;
+    uint8_t numArgTotal = lua_gettop(pLua) - 1;
+
+    CAction * pAction = NULL;
+
+    BDBG_ASSERT(pThis);
+
+    /* check number of lua arguments on stack */
+    if (0 != numArgTotal)
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "wrong number of arguments: should be 0", error);
+    }
+
+    /* create lua action and give it data */
+    pAction = new CAction(eNotify_GetPipState, eNotify_PipStateChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_GetPipState */
 
 #ifdef DCC_SUPPORT
 /* atlas.ClosedCaptionEnable()
@@ -5085,6 +5558,7 @@ static const struct luaL_Reg atlasLua[] = {
     { "channelDown",                   atlasLua_ChannelDown                           }, /* channel down */
     { "channelTune",                   atlasLua_ChannelTune                           }, /* tune to the given channel */
     { "channelUntune",                 atlasLua_ChannelUnTune                         }, /* UNtune from the current channel */
+    { "getCurrentChannelNumber",       atlasLua_GetCurrentChannelNumber               }, /* get the current channel number */
 #if NEXUS_HAS_FRONTEND
     { "getChannelStats",               atlasLua_GetChannelStats                       }, /* get Channel Status */
     { "scanQam",                       atlasLua_ScanQam                               }, /* scan for qam channels */
@@ -5137,6 +5611,7 @@ static const struct luaL_Reg atlasLua[] = {
 #endif
     { "showPip",                       atlasLua_ShowPip                               }, /* show/hide the pip window */
     { "swapPip",                       atlasLua_SwapPip                               }, /* swap the main and pip window */
+    { "getPipState",                   atlasLua_GetPipState                           }, /* get the state of the pip window */
     { "ipClientTranscodeEnable",       atlasLua_ipClientTranscodeEnable               }, /* enable/disable BIP transcoding for a given client */
     { "ipClientTranscodeProfile",      atlasLua_ipClientTranscodeProfile              }, /* set the BIP transcode profile for a given client */
 #ifdef DCC_SUPPORT
@@ -5179,6 +5654,16 @@ static const struct luaL_Reg atlasLua[] = {
     { "channelStream",                 atlasLua_ChannelStream                         }, /* stream ip channel from playlist */
 #endif /* ifdef PLAYBACK_IP_SUPPORT */
     { "irRemoteEnable",                atlasLua_EnableRemoteIr                        }, /* enable/disable ir remote handling */
+#if BDSP_MS12_SUPPORT
+    //TTTTTTT { "getNumPresentations",           atlasLua_GetNumPresentations                   }, /* get number of available ac4 audio presentations */
+    { "showPresentation",              atlasLua_ShowPresentation                      }, /* show current AC4 audio presentation */
+    { "nextPresentation",              atlasLua_NextPresentation                      }, /* set current AC4 audio to next available presentation */
+    { "setPresentation",               atlasLua_SetPresentation                       }, /* set current AC4 audio presentation */
+    { "setLanguage",                   atlasLua_SetLanguage                           }, /* set current AC4 audio language */
+    { "setAssociate",                  atlasLua_SetAssociate                          }, /* set current AC4 audio associate */
+    { "setPriority",                   atlasLua_SetPriority                           }, /* set current AC4 audio priority */
+    { "setDialogEnhancement",          atlasLua_SetDialogEnhancement                  }, /* set current AC4 audio dialog enhancement level */
+#endif
     { "getConfig",                     atlasLua_GetConfig                             }, /* get configuration variable from atlas.cfg */
     { "setDebugLevel",                 atlasLua_SetDebugLevel                         }, /* set debug level for given module */
     { "runScript",                     atlasLua_RunScript                             }, /* Run given lua script */
@@ -5309,6 +5794,7 @@ CLua::CLua() :
     _threadShell(NULL),
     _shellStarted(false),
     _actionMutex(NULL),
+    _runScriptMutex(NULL),
     _busyEvent(NULL),
     _pWidgetEngine(NULL),
     _busyAction(eNotify_Invalid),
@@ -5320,6 +5806,9 @@ CLua::CLua() :
 
     _actionMutex = B_Mutex_Create(NULL);
     CHECK_PTR_ERROR_GOTO("unable to create mutex", _actionMutex, err, eRet_ExternalError, error);
+
+    _runScriptMutex = B_Mutex_Create(NULL);
+    CHECK_PTR_ERROR_GOTO("unable to create mutex", _runScriptMutex, err, eRet_ExternalError, error);
 
     _busyEvent = B_Event_Create(NULL);
     CHECK_PTR_ERROR_GOTO("unable to create event", _busyEvent, err, eRet_ExternalError, error);
@@ -5339,6 +5828,12 @@ CLua::~CLua()
     {
         B_Event_Destroy(_busyEvent);
         _busyEvent = NULL;
+    }
+
+    if (NULL != _runScriptMutex)
+    {
+        B_Mutex_Destroy(_runScriptMutex);
+        _runScriptMutex = NULL;
     }
 
     if (NULL != _actionMutex)
@@ -5415,6 +5910,20 @@ eRet CLua::uninitialize()
     }
 
     return(ret);
+}
+
+MString CLua::getRunScript()
+{
+    CScopedMutex scopedMutex(_runScriptMutex);
+
+    return(_strRunScript);
+}
+
+void CLua::setRunScript(MString strRunScript)
+{
+    CScopedMutex scopedMutex(_runScriptMutex);
+
+    _strRunScript = strRunScript;
 }
 
 void CLua::addAction(CAction * pAction)
@@ -5592,6 +6101,22 @@ void luaShell(void * pParam)
     {
         char lineLast[256];
         memset(lineLast, 0, sizeof(lineLast));
+
+        /* check to see if a run script command has been received from atlas control */
+        if (0 < pLua->getRunScript().length())
+        {
+            MString strRunScript = "atlas.runScript(\"" + pLua->getRunScript() + "\")";
+
+            lerror  = luaL_loadbuffer(pLua->getLuaState(), strRunScript, strRunScript.length(), "runScript");
+            lerror |= lua_pcall(pLua->getLuaState(), 0, 0, 0);
+            if (lerror)
+            {
+                BDBG_WRN(("LUA error: %s", lua_tostring(pLua->getLuaState(), -1)));
+                lua_pop(pLua->getLuaState(), 1);
+            }
+
+            pLua->setRunScript("");
+        }
 
         fprintf(stdout, "\r%s", prompt);
         fflush(stdout);
@@ -5977,6 +6502,9 @@ void CLua::processNotification(CNotification & notification)
 {
     BDBG_ASSERT(eNotify_Invalid != notification.getId());
 
+    /***
+     *** handle notifications that do NOT push any values to the Lua stack
+     ***/
     switch (notification.getId())
     {
     case eNotify_ChannelStatsShown:
@@ -6028,80 +6556,6 @@ void CLua::processNotification(CNotification & notification)
     break;
 #endif /* NEXUS_HAS_FRONTEND */
 
-#ifdef PLAYBACK_IP_SUPPORT
-    case eNotify_DiscoveredPlaylistsShown:
-    {
-        CPlaylist * pPlaylist = (CPlaylist *)notification.getData();
-        int         nRetVals  = 0;
-
-        /* this notification is a response from an Atlas model class - retrieve return
-         * data and push to the Lua stack for return to the calling Lua function.  Also
-         * update the number of return values. */
-        if (NULL != pPlaylist)
-        {
-            CChannel * pChannel = NULL;
-            if (NULL != (pChannel = pPlaylist->getChannel(0)))
-            {
-                lua_pushlstring(_pLua, pChannel->getHost().s(), pChannel->getHost().length());
-                nRetVals++;
-                lua_pushlstring(_pLua, pPlaylist->getName().s(), pPlaylist->getName().length());
-                nRetVals++;
-            }
-        }
-        else
-        {
-            lua_pushnil(_pLua);
-            nRetVals++;
-            lua_pushnil(_pLua);
-            nRetVals++;
-        }
-
-        /* add 2 to count of return values */
-        _busyAction.setNumReturnVals(_busyAction.getNumReturnVals() + nRetVals);
-    }
-    break;
-
-    case eNotify_PlaylistShown:
-    {
-        CChannelBip * pChannelBip = (CChannelBip *)notification.getData();
-        int           nRetVals    = 0;
-
-        /* this notification is a response from an Atlas model class - retrieve return
-         * data and push to the Lua stack for return to the calling Lua function.  Also
-         * update the number of return values. */
-        if (NULL != pChannelBip)
-        {
-            lua_pushlstring(_pLua, pChannelBip->getUrl().s(), pChannelBip->getUrl().length());
-            nRetVals++;
-        }
-        else
-        {
-            lua_pushnil(_pLua);
-            nRetVals++;
-        }
-
-        /* add 2 to count of return values */
-        _busyAction.setNumReturnVals(_busyAction.getNumReturnVals() + nRetVals);
-    }
-    break;
-#endif /* ifdef PLAYBACK_IP_SUPPORT */
-
-    case eNotify_NetworkWifiConnectState:
-    {
-#ifdef WPA_SUPPLICANT_SUPPORT
-        CWifi * pWifi             = (CWifi *)notification.getData();
-        MString strConnectedState = pWifi->connectedStateToString(pWifi->getConnectedState());
-        int     nRetVals          = 0;
-
-        lua_pushlstring(_pLua, strConnectedState.s(), strConnectedState.length());
-        nRetVals++;
-
-        /* add 1 to count of return values */
-        _busyAction.setNumReturnVals(_busyAction.getNumReturnVals() + nRetVals);
-#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
-    }
-    break;
-
     default:
         break;
     } /* switch */
@@ -6115,6 +6569,138 @@ void CLua::processNotification(CNotification & notification)
         {
             if (notification.getId() == busyNotify)
             {
+                /***
+                 *** handle notifications that DO push values to the Lua stack
+                 ***/
+                switch (notification.getId())
+                {
+#ifdef PLAYBACK_IP_SUPPORT
+                case eNotify_DiscoveredPlaylistsShown:
+                {
+                    CPlaylist * pPlaylist = (CPlaylist *)notification.getData();
+                    int         nRetVals  = 0;
+
+                    /* this notification is a response from an Atlas model class - retrieve return
+                     * data and push to the Lua stack for return to the calling Lua function.  Also
+                     * update the number of return values. */
+                    if (NULL != pPlaylist)
+                    {
+                        CChannel * pChannel = NULL;
+                        if (NULL != (pChannel = pPlaylist->getChannel(0)))
+                        {
+                            lua_pushlstring(_pLua, pChannel->getHost().s(), pChannel->getHost().length());
+                            nRetVals++;
+                            lua_pushlstring(_pLua, pPlaylist->getName().s(), pPlaylist->getName().length());
+                            nRetVals++;
+                        }
+                    }
+                    else
+                    {
+                        lua_pushnil(_pLua);
+                        nRetVals++;
+                        lua_pushnil(_pLua);
+                        nRetVals++;
+                    }
+
+                    /* add 2 to count of return values */
+                    _busyAction.setNumReturnVals(_busyAction.getNumReturnVals() + nRetVals);
+                }
+                break;
+
+                case eNotify_PlaylistShown:
+                {
+                    CChannelBip * pChannelBip = (CChannelBip *)notification.getData();
+                    int           nRetVals    = 0;
+
+                    /* this notification is a response from an Atlas model class - retrieve return
+                     * data and push to the Lua stack for return to the calling Lua function.  Also
+                     * update the number of return values. */
+                    if (NULL != pChannelBip)
+                    {
+                        lua_pushlstring(_pLua, pChannelBip->getUrl().s(), pChannelBip->getUrl().length());
+                        nRetVals++;
+                    }
+                    else
+                    {
+                        lua_pushnil(_pLua);
+                        nRetVals++;
+                    }
+
+                    /* add 2 to count of return values */
+                    _busyAction.setNumReturnVals(_busyAction.getNumReturnVals() + nRetVals);
+                }
+                break;
+#endif /* ifdef PLAYBACK_IP_SUPPORT */
+
+                case eNotify_NetworkWifiConnectState:
+                {
+#ifdef WPA_SUPPLICANT_SUPPORT
+                    CWifi * pWifi             = (CWifi *)notification.getData();
+                    MString strConnectedState = pWifi->connectedStateToString(pWifi->getConnectedState());
+                    int     nRetVals          = 0;
+
+                    lua_pushlstring(_pLua, strConnectedState.s(), strConnectedState.length());
+                    nRetVals++;
+
+                    /* add 1 to count of return values */
+                    _busyAction.setNumReturnVals(_busyAction.getNumReturnVals() + nRetVals);
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
+                }
+                break;
+
+#if BDSP_MS12_SUPPORT
+                case eNotify_AudioAc4PresentationShown:
+                {
+                    NEXUS_AudioDecoderPresentationStatus * pPresentation = (NEXUS_AudioDecoderPresentationStatus *)notification.getData();
+                    int     nRetVals          = 0;
+
+                    if (pPresentation->codec == NEXUS_AudioCodec_eAc4)
+                    {
+                        lua_pushnumber(_pLua, pPresentation->status.ac4.index);
+                        nRetVals++;
+                        lua_pushlstring(_pLua, pPresentation->status.ac4.name, strlen(pPresentation->status.ac4.name));
+                        nRetVals++;
+                        lua_pushlstring(_pLua, pPresentation->status.ac4.language, strlen(pPresentation->status.ac4.language));
+                        nRetVals++;
+                    }
+
+                    /* add to count of return values */
+                    _busyAction.setNumReturnVals(_busyAction.getNumReturnVals() + nRetVals);
+                }
+                break;
+#endif
+                case eNotify_CurrentChannel:
+                {
+                    CChannel * pChannel   = _pModel->getCurrentChannel();
+                    int        nRetVals   = 0;
+                    MString    strChannel = MString(pChannel->getMajor()) + MString(".") + MString(pChannel->getMinor());
+
+                    lua_pushlstring(_pLua, strChannel, strChannel.length());
+                    nRetVals++;
+
+                    /* add to count of return values */
+                    _busyAction.setNumReturnVals(_busyAction.getNumReturnVals() + nRetVals);
+                }
+                break;
+
+                case eNotify_PipStateChanged:
+                {
+                    bool * pPip     = (bool *)notification.getData();
+                    int    nRetVals = 0;
+
+                    lua_pushboolean(_pLua, *pPip);
+                    nRetVals++;
+
+                    /* add to count of return values */
+                    _busyAction.setNumReturnVals(_busyAction.getNumReturnVals() + nRetVals);
+                }
+                break;
+
+                default:
+                    break;
+                }
+
+                /* release pending lua command */
                 B_Event_Set(_busyEvent);
                 break;
             }

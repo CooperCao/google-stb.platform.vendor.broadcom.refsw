@@ -351,6 +351,139 @@ BERR_Code BHAB_45308_InitXp(
    uint8_t x       /* [in] 0=Enable turbo access, 1=Enable DTV access */
 );
 
+
+/***************************************************************************
+Summary:
+   Configure the direction (i.e. input or output) of the GPIO pins under host control.
+Description:
+   The write_mask and read_mask parameters specify the GPIO pins that are
+   to be configured as output and input respectively.  Bit x in the mask
+   corresponds to GPIO pin x.  The BCM453xx has 20 GPIO pins.  GPIO_0,
+   GPIO_1, and GPIO_18 are reserved (i.e. controlled by the firmware).
+   This function must be called prior to calling BHAB_45308_GpioWrite or
+   BHAB_45308_GpioRead.
+   Example:
+   BHAB_45308_GpioConfig(0x21C0, 0x8) configures GPIO_13, GPIO_8, GPIO_7,
+   and GPIO_6 as output, and GPIO_3 as input.
+Returns:
+   BERR_Code
+See Also:
+   BHAB_Open()
+****************************************************************************/
+BERR_Code BHAB_45308_GpioConfig(
+   BHAB_Handle h,       /* [in] BHAB handle */
+   uint32_t write_mask, /* [in] bitmask indicating which host-controlled GPIO pins are output */
+   uint32_t read_mask   /* [in] bitmask indicating which host-controlled GPIO pins are input */
+);
+
+
+/***************************************************************************
+Summary:
+   Set the state of GPIO (output) pins.
+Description:
+   This function has 2 bitmask parameters, pin_mask and state_mask, where
+   bit x in the mask corresponds to GPIO (output) pin x.
+   The pin_mask parameter specifies the GPIO pins whose output state are to
+   be changed.  These pins should have been configured as output in a
+   previous call to BHAB_45308_GpioConfig.  The state_mask parameter
+   specifies the output state (0=low, 1-high) corresponding to each pin set
+   in pin_mask.
+   Example:
+   // configure GPIO_13, GPIO_8, GPIO_7, and GPIO_6 as output, and GPIO_3 as input.
+   BHAB_45308_GpioConfig(0x21C0, 0x8);
+   BHAB_45308_GpioWrite(h, 0xC0, 0x80); // set GPIO_6 low and GPIO_7 high
+   BHAB_45308_GpioWrite(h, 0x2000, 0x2000);  // set GPIO_13 high
+   BHAB_45308_GpioWrite(h, 0x2000, 0);  // set GPIO_13 low
+Returns:
+   BERR_Code
+See Also:
+   BHAB_45308_GpioConfig()
+****************************************************************************/
+BERR_Code BHAB_45308_GpioWrite(
+   BHAB_Handle h,      /* [in] BHAB handle */
+   uint32_t pin_mask,  /* [in] bitmask indicating which output pins are to be controlled */
+   uint32_t state_mask /* [in] state of the output pins specified by pin_mask, 0=low, 1=high */
+);
+
+
+/***************************************************************************
+Summary:
+   Read the state of GPIO (input) pins.
+Description:
+   The pin_mask parameter specifies the GPIO (input) pins to read.  Bit x in
+   the mask corresponds to GPIO pin x.  These pins should have been
+   configured as input in a previous call to BHAB_45308_GpioConfig.  The
+   state of each pin specified in pin_mask will be written in the
+   corresponding bit in pstate_mask.
+   Example:
+   // configure GPIO_13, GPIO_8, GPIO_7, and GPIO_6 as output, and GPIO_3 as input.
+   BHAB_45308_GpioConfig(0x21C0, 0x8);
+   BHAB_45308_GpioRead(0x8, &state_mask); // read GPIO_3
+   Bit 3 in state_mask indicates the state of GPIO_3, i.e. bit 3 = 0 means
+   GPIO_3 is low and bit 3 = 1 means GPIO_3 is high.
+Returns:
+   BERR_Code
+See Also:
+   BHAB_45308_GpioConfig()
+****************************************************************************/
+BERR_Code BHAB_45308_GpioRead(
+   BHAB_Handle h,        /* [in] BHAB handle */
+   uint32_t pin_mask,    /* [in] bitmask indicating which input pins are to be read */
+   uint32_t *pstate_mask /* [out] state of the pins specified by pin_mask, 0=pin is low, 1=pin is high */
+);
+
+
+/***************************************************************************
+Summary:
+   Specifies the GPO pins under host control.
+Description:
+   This function enables and configures GPO pins for host control.  There are
+   15 GPO pins in the BCM453xx.  This function must be called prior to calling
+   BHAB_45308_GpoWrite.  The write_mask parameter specifies the GPO pin(s)
+   that are to be controlled by the host.  The ctl_mask configures the GPO
+   pins specified by write_mask to be either CMOS or open-drain.  Bit x in
+   the mask parameters corresponds to GPO pin x.
+   Example:
+   BHAB_45308_GpoConfig(0x7, 0x5) tells the firmware that GPO_0, GPO_1, and
+   GPO_2 are to be controlled by the host, and GPO_0 and GPO_2 are open-drain
+   and GPO_1 is CMOS.
+Returns:
+   BERR_Code
+See Also:
+   BHAB_Open()
+****************************************************************************/
+BERR_Code BHAB_45308_GpoConfig(
+   BHAB_Handle h,       /* [in] BHAB handle */
+   uint32_t write_mask, /* [in] bitmask indicating which GPO pins are host-controlled */
+   uint32_t ctl_mask    /* [in] GPO configuration bitmask: 0=GPO is CMOS, 1=GPO is open-drain */
+);
+
+
+/***************************************************************************
+Summary:
+   Set the state of GPO pins.
+Description:
+   This function has 2 bitmask parameters, pin_mask and state_mask, where
+   bit x in the mask corresponds to GPO_x.  The pin_mask parameter specifies
+   the GPO pins whose output state are to be changed.  These pins should
+   have been configured in a previous call to BHAB_45308_GpoConfig.  The
+   state_mask parameter specifies the output state (0=low, 1-high)
+   corresponding to each pin set in pin_mask.
+   Example:
+   BHAB_45308_GpoConfig(0x7, 0x5); // GPO_0, GPO_1, GPO_2 are host-controlled
+   BHAB_45308_GpoWrite(0x7, 0x2); // set GPO_0 low, GPO_1 high, GPO_2 low
+   BHAB_45308_GpoWrite(0x1, 0); // only set GPO_0 low
+Returns:
+   BERR_Code
+See Also:
+   BHAB_45308_GpoConfig()
+****************************************************************************/
+BERR_Code BHAB_45308_GpoWrite(
+   BHAB_Handle h,      /* [in] BHAB handle */
+   uint32_t pin_mask,  /* [in] bitmask indicating which GPO pins are to be controlled */
+   uint32_t state_mask /* [in] state of the GPO pins specified by pin_mask, 0=low, 1=high */
+);
+
 #ifdef __cplusplus
 }
 #endif

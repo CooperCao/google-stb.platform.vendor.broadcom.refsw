@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -125,17 +125,15 @@ BERR_Code BSYNClib_AudioSource_SetMute(BSYNClib_AudioSource * psSource, bool bMu
 	psSource->sResults.bMutePending = false;
 
 	/* cancel any pending unmute timer */
-	rc = BSYNClib_Channel_P_CancelTimer_isr(hChn, psSource->psUnmuteTimer);
+	BSYNClib_Channel_P_CancelTimer_isr(hChn, psSource->psUnmuteTimer);
 	BKNI_LeaveCriticalSection();
-	if (rc) goto end;
 
 	/* cancel any pending unconditional unmute timer */
 	if (!bMute)
 	{
 		BKNI_EnterCriticalSection();
-		rc = BSYNClib_Channel_P_CancelTimer_isr(hChn, psSource->psUnconditionalUnmuteTimer);
+		BSYNClib_Channel_P_CancelTimer_isr(hChn, psSource->psUnconditionalUnmuteTimer);
 		BKNI_LeaveCriticalSection();
-		if (rc) goto end;
 	}
 
 	if (psSource->sConfig.bSynchronize && pcbMute->pfSetMute)/* at mute time, no snapshot has been made */

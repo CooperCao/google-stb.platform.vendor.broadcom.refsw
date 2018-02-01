@@ -36,7 +36,7 @@ class TextureData
 public:
    TextureData() :
       m_data(), m_platform(NULL), m_decoder(NULL), m_curIndex(-1), m_oldestBuffer(-1),
-      m_buffersAcquired(0), m_colorMatrix(), m_exitReleaseThread(false),
+      m_buffersAcquired(0), m_colorimetryValid(false), m_exitReleaseThread(false),
       m_glEGLImageTargetTexture2DOESFunc(NULL), m_eglCreateImageKHRFunc(NULL),
       m_eglDestroyImageKHRFunc(NULL)
    {};
@@ -67,10 +67,10 @@ public:
    bool WaitForOldestBufferFenceAndRecycle();
 
 private:
-   void InitializeColorMatrix(uint32_t w, uint32_t h);
    void InitGLExtensions();
    void WaitForM2MCCompletion(uint32_t timeoutMs = 0xFFFFFFFF);
    uint32_t FindSurfaceIndex(NEXUS_SurfaceHandle surf) const;
+   void DetermineColorimetry(NEXUS_MatrixCoefficients nmc);
 
 private:
    struct PerBufferData
@@ -89,8 +89,8 @@ private:
    int32_t                     m_curIndex;
    int32_t                     m_oldestBuffer;
    uint32_t                    m_buffersAcquired;
-   NEXUS_Graphics2DColorMatrix m_colorMatrix;
    BEGL_BufferFormat           m_format;
+   bool                        m_colorimetryValid;
 
    BKNI_EventHandle            m_m2mcDone;
    NEXUS_Graphics2DHandle      m_gfx2d;

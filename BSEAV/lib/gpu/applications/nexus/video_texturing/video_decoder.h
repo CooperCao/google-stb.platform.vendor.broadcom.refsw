@@ -36,7 +36,7 @@ public:
    VideoDecoder(const MediaData &mediaData,
                 std::vector<NEXUS_SurfaceHandle> decodeSurfaces,
                 bool showVideo, bool secure, bool ambisonic, bool stereoAudio,
-                NEXUS_DISPLAYHANDLE nexusDisplay);
+                bool startPaused, NEXUS_DISPLAYHANDLE nexusDisplay);
 
    ~VideoDecoder();
 
@@ -45,6 +45,9 @@ public:
 
    // Stops the decoder and the playback
    void StopPlayback();
+
+   // Advance one frame (if started in paused state)
+   void FrameAdvance();
 
    // Returns the width of the source video data
    uint32_t Width();

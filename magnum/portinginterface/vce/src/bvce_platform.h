@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -123,6 +123,14 @@ typedef struct BVCE_P_GetFeatureInfo
 #error BVCE_P_CORE_FREQUENCY not defined
 #endif
 
+#ifndef BVCE_PLATFORM_P_MAX_B_PICTURES_PROGRESSIVE
+#define BVCE_PLATFORM_P_MAX_B_PICTURES_PROGRESSIVE 2
+#endif
+
+#ifndef BVCE_PLATFORM_P_MAX_B_PICTURES_INTERLACED
+#define BVCE_PLATFORM_P_MAX_B_PICTURES_INTERLACED 2
+#endif
+
 #define BVCE_P_MAX_MEMC 3
 
 extern const BVCE_P_GetFeatureInfo BVCE_P_MemcLUT[BVCE_PLATFORM_P_NUM_ENCODE_INSTANCES];
@@ -214,6 +222,13 @@ typedef struct BVCE_Platform_P_MailboxRegisters
       uint32_t uiBvn2ViceMailboxAddress;
 } BVCE_Platform_P_MailboxRegisters;
 
+typedef struct BVCE_Platform_P_PictureMailboxRegisters
+{
+      uint32_t uiBufferAddress;
+      uint32_t uiInterruptAddress;
+      uint32_t uiInterruptMask;
+} BVCE_Platform_P_PictureMailboxRegisters;
+
 typedef struct BVCE_Platform_P_InterruptMasks
 {
       uint32_t uiWatchdog[BVCE_PLATFORM_P_NUM_ARC_CORES];
@@ -280,6 +295,7 @@ typedef struct BVCE_Platform_P_Config
       BVCE_Platform_P_InterruptSettings stInterrupt;
       BVCE_Platform_P_DebugRegisters stDebug;
       BVCE_Platform_P_MailboxRegisters stMailbox;
+      BVCE_Platform_P_PictureMailboxRegisters stPictureMailbox[BVCE_PLATFORM_P_NUM_OUTPUT_CHANNELS];
       BVCE_Platform_P_PowerSettings stPower;
       BVCE_Platform_P_BoxModeSettings stBox;
 
@@ -353,6 +369,7 @@ BVCE_Platform_P_OverrideChannelDefaultEncodeSettings(
 void
 BVCE_Platform_P_OverrideChannelDefaultMemoryBoundsSettings(
    const BBOX_Handle hBox,
+   const BVCE_Channel_MemorySettings *pstChMemorySettings,
    BVCE_Channel_MemoryBoundsSettings *pstChMemoryBoundsSettings
    );
 
@@ -369,7 +386,7 @@ BVCE_Platform_P_OverrideChannelDimensionBounds(
 #define BVCE_Platform_P_GetTotalChannels( _hBox, _uiInstance, _puiTotalChannels ) { BSTD_UNUSED(_hBox); BSTD_UNUSED(_uiInstance); *(_puiTotalChannels) = BVCE_PLATFORM_P_NUM_ENCODE_CHANNELS; }
 #define BVCE_Platform_P_OverrideChannelDefaultStartEncodeSettings( _hBox, _settings ) { BSTD_UNUSED(_hBox); BSTD_UNUSED(_settings); }
 #define BVCE_Platform_P_OverrideChannelDefaultEncodeSettings( _hBox, _settings ) { BSTD_UNUSED(_hBox); BSTD_UNUSED(_settings); }
-#define BVCE_Platform_P_OverrideChannelDefaultMemoryBoundsSettings( _hBox, _settings ) { BSTD_UNUSED(_hBox); BSTD_UNUSED(_settings); }
+#define BVCE_Platform_P_OverrideChannelDefaultMemoryBoundsSettings( _hBox, _memSettings, _settings ) { BSTD_UNUSED(_hBox); BSTD_UNUSED(_memSettings); BSTD_UNUSED(_settings); }
 #define BVCE_Platform_P_OverrideChannelDimensionBounds( _hBox, _eScanType, _puiWidth, _puiHeight ) { BSTD_UNUSED(_hBox); BSTD_UNUSED(_eScanType); BSTD_UNUSED(_puiWidth); BSTD_UNUSED(_puiHeight); }
 #endif
 

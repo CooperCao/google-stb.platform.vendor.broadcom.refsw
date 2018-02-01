@@ -1,10 +1,10 @@
 /***************************************************************************
-*	   (c)2007-2013 Broadcom Corporation
+* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").	Except as set forth in an Authorized License, Broadcom grants
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
 * no license (express or implied), right to use, or waiver of any kind with respect to the
 * Software, and Broadcom expressly reserves all rights in and to the Software and all
 * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
@@ -13,11 +13,11 @@
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1.	   This program, including its structure, sequence and organization, constitutes the valuable trade
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 * and to use this information only in connection with your use of Broadcom integrated circuit products.
 *
-*	2.	   TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
 * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
 * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
 * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
@@ -26,7 +26,7 @@
 * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 * USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3.	   TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
 * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
 * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
 * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -263,7 +255,7 @@ BERR_Code BCEC_Open(
 
 
 /******************************************************************************
-BERR_Code BCEC_Close
+void BCEC_Close
 Summary: Close the CEC handle
 *******************************************************************************/
 void BCEC_Close(
@@ -272,10 +264,10 @@ void BCEC_Close(
 
 
 /***************************************************************************
-BERR_Code BCEC_GetEventHandle
+void BCEC_GetEventHandle
 Summary: Get the event handle for checking CEC events.
 ****************************************************************************/
-BERR_Code BCEC_GetEventHandle(
+void BCEC_GetEventHandle(
    BCEC_Handle hCEC,			/* [in] HDMI handle */
    BCEC_EventType eEventType,
    BKNI_EventHandle *pBCECEvent /* [out] event handle */
@@ -310,14 +302,10 @@ Input:
 Output:
 	pstCecSettings - returned CEC settings
 
-Returns:
-	BERR_SUCCESS - Successfully retrieve current CEC settings
-	BERR_NOT_INITIALIZED - CEC logical address has not been initialized
-
 See Also:
 	BCEC_SetSettings
 *******************************************************************************/
-BERR_Code BCEC_GetSettings(
+void BCEC_GetSettings(
 	BCEC_Handle hCEC,		  /* [in] CEC handle */
 	BCEC_Settings *pstCecSettings
 )  ;
@@ -353,13 +341,10 @@ Description:
 Input:
 	hCEC - CEC control handle that was previously opened by BCEC_Open.
 
-Returns:
-	BERR_SUCCESS - Successfully retrieve current CEC settings
-
 Output:
 	pstCecMessageStatus - transmitted Cec message status
 *******************************************************************************/
-BERR_Code BCEC_GetTransmitMessageStatus(
+void BCEC_GetTransmitMessageStatus(
 	BCEC_Handle hCEC,	   /* [in] CEC handle */
 	BCEC_MessageStatus *pstCecMessageStatus /* [out] */
 );
@@ -375,13 +360,10 @@ Description:
 Input:
 	hCEC - CEC control handle that was previously opened by BCEC_Open.
 
-Returns:
-	BERR_SUCCESS - Successfully retrieve current CEC settings
-
 Output:
 	pstCecMessageStatus - received Cec message status
 *******************************************************************************/
-BERR_Code BCEC_GetReceivedMessageStatus(
+void BCEC_GetReceivedMessageStatus(
 	BCEC_Handle hCEC,	   /* [in] CEC handle */
 	BCEC_MessageStatus *pstCecMessageStatus /* [out] */
 );
@@ -461,16 +443,11 @@ Input:
 Output:
 	None
 
-Returns:
-	BERR_SUCCESS - Successfully retrieved the stored CEC message.
-	BERR_INVALID_PARAMETER - Invalid function parameter.
-
-
 See Also:
 	o BCEC_RecvMsg
 
 *******************************************************************************/
-BERR_Code BCEC_EnableReceive(
+void BCEC_EnableReceive(
 	BCEC_Handle hCEC	 /* [in] CEC handle */
 ) ;
 
@@ -495,7 +472,7 @@ See Also:
 	o BCEC_XmitMsg
 
 *******************************************************************************/
-BERR_Code BCEC_GetReceivedMessage(
+void BCEC_GetReceivedMessage(
 	BCEC_Handle hCEC,			/* [in] CEC handle */
 	BAVC_HDMI_CEC_MessageData *pRecvMessageData 	/* [out] ptr to storage for received CEC msg */
 ) ;

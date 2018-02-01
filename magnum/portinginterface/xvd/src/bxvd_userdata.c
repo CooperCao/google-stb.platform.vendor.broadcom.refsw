@@ -981,7 +981,7 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
 BERR_Code BXVD_Userdata_InstallInterruptCallback
 (
    BXVD_Userdata_Handle    hUserData,
-   BINT_CallbackFunc       xvdInterruptCallBack,
+   BINT_CallbackFunc       xvdInterruptCallBack_isr,
    void                   *pParm1,
    int                     parm2
    )
@@ -989,7 +989,7 @@ BERR_Code BXVD_Userdata_InstallInterruptCallback
    BDBG_ENTER(BXVD_Userdata_InstallInterruptCallback);
 
    BDBG_ASSERT(hUserData);
-   BDBG_ASSERT(xvdInterruptCallBack);
+   BDBG_ASSERT(xvdInterruptCallBack_isr);
    BSTD_UNUSED(parm2);
 
    /* Check handle type for correctness */
@@ -999,7 +999,7 @@ BERR_Code BXVD_Userdata_InstallInterruptCallback
       return BERR_TRACE(BXVD_ERR_INVALID_HANDLE);
    }
 
-   hUserData->fUserdataCallback_isr = xvdInterruptCallBack;
+   hUserData->fUserdataCallback_isr = xvdInterruptCallBack_isr;
    hUserData->pParm1 = pParm1;
    hUserData->parm2  = parm2;
 
@@ -1015,13 +1015,13 @@ BERR_Code BXVD_Userdata_InstallInterruptCallback
 BERR_Code BXVD_Userdata_UninstallInterruptCallback
 (
    BXVD_Userdata_Handle    hUserData,
-   BINT_CallbackFunc       xvdInterruptCallBack
+   BINT_CallbackFunc       xvdInterruptCallBack_isr
    )
 {
    BDBG_ENTER(BXVD_Userdata_UninstallInterruptCallback);
 
    BDBG_ASSERT(hUserData);
-   BSTD_UNUSED(xvdInterruptCallBack);
+   BSTD_UNUSED(xvdInterruptCallBack_isr);
 
    /* Check handle type for correctness */
    if (hUserData->eHandleType != BXVD_P_HandleType_Userdata)

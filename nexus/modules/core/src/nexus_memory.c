@@ -849,7 +849,14 @@ void NEXUS_Memory_PrintHeaps( void )
         if(status.highWatermark > status.size) {
             status.highWatermark = status.size; /* 100% to avoid obscure number. highWatermark could be much larger than current size if NEXUS_Heap_RemoveRegion_priv was used */
         }
-        NEXUS_Heap_ToString(&status, buf, sizeof(buf));
+        switch (i) {
+        case NEXUS_FIRMWARE_HEAP:
+            BKNI_Snprintf(buf, sizeof(buf), "FIRMWARE");
+            break;
+        default:
+            NEXUS_Heap_ToString(&status, buf, sizeof(buf));
+            break;
+        }
         BDBG_MODULE_LOG(nexus_core, ("%-2u " BDBG_UINT64_FMT " %u 0x%-8x %3d 0x%08lx %3d%% %3d%% %s",
             i, BDBG_UINT64_ARG(status.offset), status.memcIndex, (unsigned)status.size, (unsigned)(status.size/(1024*1024)), (unsigned long)addr,
             size_percentage?(status.size-status.free)/size_percentage:0,

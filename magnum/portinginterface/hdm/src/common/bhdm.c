@@ -687,7 +687,7 @@ Summary: Get the current version of the HDM PI (used to identify the HDM PI) for
 *******************************************************************************/
 const char * BHDM_P_GetVersion(void)
 {
-	static const char Version[] = "BHDM URSR 17.4" ;
+	static const char Version[] = "BHDM URSR 18.1" ;
 	return Version ;
 }
 
@@ -1026,12 +1026,17 @@ BERR_Code BHDM_P_BREG_I2C_Read(
 )
 {
 	BERR_Code rc = BERR_SUCCESS;
-
 #if BHDM_CONFIG_HAS_HDCP22
-	/* make sure polling Auto I2C channels are disabled; prior to the read */
-	BKNI_EnterCriticalSection() ;
-	BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
-	BKNI_LeaveCriticalSection() ;
+	bool  bActivePolling = false ;
+
+	/* disable Auto I2C polling if enabled; prior to the read */
+	bActivePolling = BHDM_AUTO_I2C_P_IsPollingEnabled(hHDMI) ;
+	if (bActivePolling)
+	{
+		BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
+		BKNI_LeaveCriticalSection() ;
+	}
 #endif
 
 	rc = BREG_I2C_Read(hHDMI->hI2cRegHandle, chipAddr, subAddr, pData, length) ;
@@ -1039,9 +1044,12 @@ BERR_Code BHDM_P_BREG_I2C_Read(
 
 #if BHDM_CONFIG_HAS_HDCP22
 	/* re-enable any polling Auto I2C channels that had to be disabled prior to the read */
-	BKNI_EnterCriticalSection() ;
-	BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
-	BKNI_LeaveCriticalSection() ;
+	if (bActivePolling)
+	{
+		BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
+		BKNI_LeaveCriticalSection() ;
+	}
 #endif
 
 	return rc;
@@ -1058,10 +1066,25 @@ BERR_Code BHDM_P_BREG_I2C_ReadNoAddr(
 	BERR_Code rc = BERR_SUCCESS;
 
 #if BHDM_CONFIG_HAS_HDCP22
-	/* make sure polling Auto I2C channels are disabled; prior to the read */
-	BKNI_EnterCriticalSection() ;
-	BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
-	BKNI_LeaveCriticalSection() ;
+	BHDM_AUTO_I2C_CHANNEL eChannel ;
+	bool  bActivePolling = false ;
+
+	for (eChannel = 0 ; eChannel < BHDM_AUTO_I2C_CHANNEL_eMax ; eChannel++)
+	{
+		if (hHDMI->AutoI2CChannel_TriggerConfig[eChannel].activePolling)
+		{
+			bActivePolling = true ;
+			break ;
+		}
+	}
+
+	/* disable Auto I2C polling if enabled prior to the read */
+	if (bActivePolling)
+	{
+		BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
+		BKNI_LeaveCriticalSection() ;
+	}
 #endif
 
 	rc = BREG_I2C_ReadNoAddr(hHDMI->hI2cRegHandle, chipAddr, pData, length) ;
@@ -1069,9 +1092,12 @@ BERR_Code BHDM_P_BREG_I2C_ReadNoAddr(
 
 #if BHDM_CONFIG_HAS_HDCP22
 	/* re-enable any polling Auto I2C channels that had to be disabled prior to the read */
-	BKNI_EnterCriticalSection() ;
-	BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
-	BKNI_LeaveCriticalSection() ;
+	if (bActivePolling)
+	{
+		BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
+		BKNI_LeaveCriticalSection() ;
+	}
 #endif
 
 	return rc;
@@ -1384,7 +1410,7 @@ BERR_Code BHDM_Open(
 	BKNI_LeaveCriticalSection() ;
 
 	/* Reset the EDID for reading */
-	hHDMI->edidStatus = BHDM_EDID_STATE_eInitialize;  /* Set EDID Initialization flag */
+	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eNotInitialized;  /* Set EDID Initialization flag */
 
 
 	/* Create Events for use with Interrupts */
@@ -2353,9 +2379,7 @@ BERR_Code BHDM_Close(
 		BHDM_DisableDisplay(hHDMI);
 	}
 
-	rc = BTMR_StopTimer(hHDMI->TimerHotPlugChange) ;
-	/* if error, dump trace and continue close of HDMI */
-	if (rc) {rc = BERR_TRACE(rc) ;}
+	BTMR_StopTimer(hHDMI->TimerHotPlugChange) ;
 	hHDMI->HpdTimerEnabled = false ;
 
 	BHDM_P_FreeTimers(hHDMI) ;
@@ -3095,17 +3119,24 @@ void BHDM_P_RxDeviceAttached_isr(
 
     hRegister = hHDMI->hRegister ;
     ulOffset = hHDMI->ulOffset ;
+	*bDeviceAttached = false ;
 
 	if (hHDMI->bCrcTestMode)
 	{
 		*bDeviceAttached = true ;
 	}
 	else
-
 	{
-	    Register = BREG_Read32(hRegister, BCHP_HDMI_HOTPLUG_STATUS + ulOffset) ;
-	    *bDeviceAttached =
-	        BCHP_GET_FIELD_DATA(Register, HDMI_HOTPLUG_STATUS, HOTPLUG_STATUS) ;
+		if (!hHDMI->standby)
+		{
+		    Register = BREG_Read32(hRegister, BCHP_HDMI_HOTPLUG_STATUS + ulOffset) ;
+		    *bDeviceAttached =
+		        BCHP_GET_FIELD_DATA(Register, HDMI_HOTPLUG_STATUS, HOTPLUG_STATUS) ;
+		}
+		else
+		{
+			BDBG_WRN(("Cannot determine HDMI Rx device connection status when Tx is powered down")) ;
+		}
 	}
 
     BDBG_LEAVE(BHDM_P_RxDeviceAttached_isr) ;
@@ -3626,6 +3657,14 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 #if BHDM_CONFIG_HAS_HDCP22
 		/* hard reset HDCP_I2C/HDCP SW_INIT first */
 		BHDM_P_ResetHDCPI2C_isr(hHDMI);
+
+#if defined(BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0_WM_DISABLE_MASK)
+		/* disable WR_FIFO to prevent SAGE program FIFO while device being detach - For compliance test issue */
+		Register = BREG_Read32(hRegister, BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 + ulOffset) ;
+			Register &= ~BCHP_MASK(HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0, WM_DISABLE);
+			Register |= BCHP_FIELD_DATA(HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0, WM_DISABLE, 1);
+		BREG_Write32(hRegister, BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 + ulOffset, Register) ;
+#endif
 #endif
 
 		BHDM_P_DisableDisplay_isr(hHDMI) ;
@@ -3659,7 +3698,23 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 		BDBG_LOG(("Tx%d: HotPlug  (Dual Intr): DEVICE CONNECTED", hHDMI->eCoreId)) ;
 		hHDMI->RxDeviceAttached = 1;
 		hHDMI->hotplugInterruptFired = true;
-		hHDMI->edidStatus = BHDM_EDID_STATE_eInitialize;	/* Set Initialize EDID read flag */
+		hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eNotInitialized;	/* Set Initialize EDID read flag */
+
+#if BHDM_CONFIG_HAS_HDCP22
+		/* reset WR_FIFO to prevent AKE_Init message to be sent out - For compliance test issue*/
+		Register = BREG_Read32(hRegister, BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 + ulOffset) ;
+			Register &= ~BCHP_MASK(HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0, FIFO_RESET);
+			Register |= BCHP_FIELD_DATA(HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0, FIFO_RESET, 1);
+		BREG_Write32(hRegister, BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 + ulOffset, Register) ;
+
+#if defined(BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0_WM_DISABLE_MASK)
+		/* enable WR FIFO again - For compliance test issue*/
+		Register = BREG_Read32(hRegister, BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 + ulOffset) ;
+		Register &= ~BCHP_MASK(HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0, WM_DISABLE);
+		Register |= BCHP_FIELD_DATA(HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0, WM_DISABLE, 0);
+		BREG_Write32(hRegister, BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 + ulOffset, Register) ;
+#endif
+#endif
 
 		BHDM_MONITOR_P_HpdChanges_isr(hHDMI) ;
 	}
@@ -3720,7 +3775,7 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 		BDBG_LOG(("Tx%d: HotPlug: DEVICE CONNECTED", hHDMI->eCoreId)) ;
 	}
 
-	hHDMI->edidStatus = BHDM_EDID_STATE_eInitialize;	/* Set Initialize EDID read flag */
+	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eNotInitialized;	/* Set Initialize EDID read flag */
 
 	BHDM_MONITOR_P_HpdChanges_isr(hHDMI) ;
 
@@ -3869,8 +3924,7 @@ void BHDM_P_HandleInterrupt_isr(
 				hHDMI->eCoreId, BHDM_CONFIG_HOTPLUG_DELAY_MS)) ;
 
 			/* stop timer if already running */
-			rc = BTMR_StopTimer_isr(hHDMI->TimerHotPlug) ;
-			if (rc) {rc = BERR_TRACE(rc) ; goto done ;}
+			BTMR_StopTimer_isr(hHDMI->TimerHotPlug) ;
 
 			rc = BTMR_StartTimer_isr(hHDMI->TimerHotPlug,
 				BHDM_P_MILLISECOND * BHDM_CONFIG_HOTPLUG_DELAY_MS) ;
@@ -4886,9 +4940,7 @@ BERR_Code BHDM_P_DestroyTimer(const BHDM_Handle hHDMI, BTMR_TimerHandle timerHan
 	BSTD_UNUSED(timerId) ;
 #endif
 
-
-	rc = BTMR_DestroyTimer(timerHandle) ;
-	if (rc) {rc = BERR_TRACE(rc) ; }
+	BTMR_DestroyTimer(timerHandle) ;
 
 	BDBG_LEAVE(BHDM_P_DestroyTimer) ;
 	return rc ;
@@ -5338,8 +5390,6 @@ BERR_Code BHDM_SetVideoSettings(
 	BDBG_ENTER(BHDM_SetVideoSettings);
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	BKNI_EnterCriticalSection() ;
-
 	/* The analog phy (PLL) settings are identical for 422 12 bits and 444 8 bits */
 	/* set our internal bpp to 8 bits for freq calculations and phy settings */
 	if ((pstVideoSettings->eColorSpace == BAVC_Colorspace_eYCbCr422)
@@ -5389,8 +5439,6 @@ BERR_Code BHDM_SetVideoSettings(
 	}
 
 	BKNI_Memcpy(&hHDMI->DeviceSettings.stVideoSettings, pstVideoSettings, sizeof(BHDM_Video_Settings));
-	BKNI_LeaveCriticalSection() ;
-
 	BDBG_LEAVE(BHDM_SetVideoSettings);
 	return rc;
 

@@ -69,17 +69,33 @@ extern "C" {
 typedef struct PRDY_APP_CONTEXT         *DRM_Prdy_Handle_t;         /* opaque APP Context */
 
 typedef struct DRM_Prdy_DecryptSettings_t {
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityOperation opType;              /* Operation to perfrom */
     NEXUS_SecurityAlgorithm algType;             /* Crypto algorithm */
     NEXUS_SecurityAlgorithmVariant algVariant;   /* Cipher chain mode for selected cipher */
     NEXUS_SecurityKeyType keySlotType;           /* Key destination entry type */
     NEXUS_SecurityTerminationMode termMode;      /* Termination Type for residual block to be ciphered */
+#else
+    NEXUS_CryptographicOperation opType;
+    NEXUS_CryptographicAlgorithm algType;        /* Crypto algorithm */
+    NEXUS_CryptographicAlgorithmMode algVariant; /* Cipher chain mode for selected cipher */
+    NEXUS_KeySlotPolarity keySlotType;           /* Key destination entry type */
+    NEXUS_KeySlotTerminationMode termMode;       /* Termination Type for residual block to be ciphered */
+    NEXUS_KeySlotBlockEntry keySlotEntryType;    /* different for decrypt and encrypt operations */
+#endif
+
     bool enableExtKey;                           /* Flag used to enable external key loading during dma transfer on the key slot.
                                                     true = key will prepend data in the dma descriptors. */
     bool enableExtIv;                            /* Flag used to enable external IV loading during dma transfer on the key slot.
                                                     true = iv will prepend data in the dma descriptors. */
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityAesCounterSize aesCounterSize; /* This member is required for AES counter mode  */
     NEXUS_SecurityCounterMode    aesCounterMode; /* for Zeus 3.0 and later */
+#else
+	unsigned aesCounterSize;                                /* For algorithm modes predicated on a counter, this parameter spcifies
+                                                        the size of the counter in bits. Supported values are 32, 64, 96 and 128 bits.*/
+	NEXUS_CounterMode aesCounterMode;
+#endif
 
 } DRM_Prdy_DecryptSettings_t;
 

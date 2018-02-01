@@ -200,16 +200,13 @@ static void NEXUS_Led_P_ScrollTimerCallback(void *pContext);
 
 NEXUS_Error NEXUS_Led_SetSettings(NEXUS_LedHandle led, const NEXUS_LedSettings *pSettings)
 {
-    BERR_Code rc;
-
     BDBG_OBJECT_ASSERT(led, NEXUS_Led);
 
 #if NEXUS_HAS_SPI
     if (!led->spi)
 #endif
     {
-        rc = BLED_AdjustBrightness(led->led, pSettings->brightness);
-        if (rc) return BERR_TRACE(rc);
+        BLED_AdjustBrightness(led->led, pSettings->brightness);
     }
     if (pSettings->scrollingEnabled) {
         if (!led->scrollTimer && led->total_length) {
@@ -300,6 +297,7 @@ static void NEXUS_Led_P_ScrollTimerCallback(void *pContext)
     NEXUS_LedHandle led = pContext;
     unsigned copy_length;
     unsigned i, idx;
+    NEXUS_Error rc;
 
     BDBG_OBJECT_ASSERT(led, NEXUS_Led);
     led->scrollTimer = NULL; /* just in case we return without rescheduling */
@@ -327,7 +325,8 @@ static void NEXUS_Led_P_ScrollTimerCallback(void *pContext)
     }
     BDBG_MSG(("'%c%c%c%c', total=%d, cur=%d", led->chars[0], led->chars[1], led->chars[2], led->chars[3], led->total_length, led->cur_position));
     led->cur_position++;
-    NEXUS_Led_P_WriteOneDisplayString(led);
+    rc = NEXUS_Led_P_WriteOneDisplayString(led);
+    if (rc) BERR_TRACE(rc); /* keep going */
     
     BDBG_ASSERT(led->settings.scrollingEnabled);
     led->scrollTimer = NEXUS_ScheduleTimer(led->settings.scrollDelay,

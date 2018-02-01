@@ -7,7 +7,7 @@
 
 #include "Module.h"
 #include "Specialization.h"
-#include "DerivedViewportState.h"
+#include "Viewport.h"
 
 #include <cmath>
 #include <algorithm>
@@ -20,8 +20,14 @@
 
 namespace bvk {
 
-static void CreateShaderRecordAttributes(const LinkResult *lr, const VkVertexInputAttributeDescription *attDescs,
-      const VkVertexInputBindingDescription *bindDescs, uint32_t *dstPtr, uint32_t *defaults);
+static void CreateShaderRecordAttributes(
+   const LinkResult *lr,
+   const VkVertexInputAttributeDescription *attDescs,
+   const VkVertexInputBindingDescription *bindDescs,
+#if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
+   uint32_t *defaults,
+#endif
+   uint32_t *dstPtr);
 
 static_assert((V3D_SHADREC_GL_GEOM_PACKED_SIZE & (sizeof(uint32_t) - 1)) == 0,
               "V3D_SHADREC_GL_GEOM_PACKED_SIZE must be a multiple of sizeof(uint32_t)");
@@ -185,10 +191,7 @@ ComputePipeline::ComputePipeline(
    m_uniforms(*this)
 {
    // Set stuff in the base Pipeline class
-   m_flags              = ci->flags;
-   m_basePipelineHandle = ci->basePipelineHandle;
-   m_basePipelineIndex  = ci->basePipelineIndex;
-   m_layout             = ci->layout;
+   m_layout = ci->layout;
 
    // Compile and link shaders
    auto calcBackendKey = [this](const GLSL_PROGRAM_T *program) -> GLSL_BACKEND_CFG_T
@@ -339,9 +342,6 @@ GraphicsPipeline::GraphicsPipeline(
    m_fsUniforms( *this )
 {
    // Set stuff in the base Pipeline class
-   m_flags = ci->flags;
-   m_basePipelineHandle = ci->basePipelineHandle;
-   m_basePipelineIndex = ci->basePipelineIndex;
    m_layout = ci->layout;
 
    // Copy optional parts
@@ -357,7 +357,7 @@ GraphicsPipeline::GraphicsPipeline(
    {
       // Viewport and scissor are only valid if not dynamic
       if (!m_dynamicStateBits.IsSet(VK_DYNAMIC_STATE_VIEWPORT))
-         m_viewport = ci->pViewportState->pViewports[0];
+         m_viewport.Set(ci->pViewportState->pViewports[0]);
 
       if (!m_dynamicStateBits.IsSet(VK_DYNAMIC_STATE_SCISSOR))
          m_scissorRect = ci->pViewportState->pScissors[0];
@@ -380,7 +380,7 @@ GraphicsPipeline::GraphicsPipeline(
    {
       const VkVertexInputAttributeDescription *d = &ci->pVertexInputState->pVertexAttributeDescriptions[i];
       m_vertexAttributeDescriptions[d->location] = *d;
-      if (Formats::NeedsAttributeRBSwap(d->format))
+      if (Formats::NeedsAttributeRBSwap(Formats::GetLFMT(d->format)))
          attributeRBSwaps.set(d->location);
    }
 
@@ -455,12 +455,8 @@ void GraphicsPipeline::CalcSetupCL(const VkGraphicsPipelineCreateInfo *ci, bool 
       {
          float factor = m_depthBiasEnable ? ci->pRasterizationState->depthBiasSlopeFactor : 0.0f;
          float units  = m_depthBiasEnable ? ci->pRasterizationState->depthBiasConstantFactor : 0.0f;
-#if V3D_VER_AT_LEAST(4,1,34,0)
          float clamp  = m_depthBiasEnable ? ci->pRasterizationState->depthBiasClamp : 0.0f;
          v3d_cl_set_depth_offset(&clPtr, factor, units, clamp, m_depthBits);
-#else
-         v3d_cl_set_depth_offset(&clPtr, factor, units, m_depthBits);
-#endif
       }
 
       uint32_t colorWriteMasks = ColorWriteMasks(ci);
@@ -505,11 +501,7 @@ void GraphicsPipeline::CalcSetupCL(const VkGraphicsPipelineCreateInfo *ci, bool 
             sampleMask = (ciM->pSampleMask[0] & 0x1) ? 0xF : 0;
       }
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
       v3d_cl_sample_state(&clPtr, sampleMask, /* Coverage (unused) = */1.0f);
-#else
-      m_sampleMask = sampleMask;
-#endif
 
       ms = ciM->rasterizationSamples != VK_SAMPLE_COUNT_1_BIT;
    }
@@ -530,28 +522,21 @@ void GraphicsPipeline::CalcSetupCL(const VkGraphicsPipelineCreateInfo *ci, bool 
    v3d_cl_write_vary_flags(&clPtr, m_linkResult.m_varyingCentroid,
                            v3d_cl_centroid_flags, v3d_cl_zero_all_centroid_flags);
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
    v3d_cl_write_vary_flags(&clPtr, m_linkResult.m_varyingNoPerspective,
                            v3d_cl_noperspective_flags, v3d_cl_zero_all_noperspective_flags);
-#endif
 
    // When T+G is enabled, not writing a point size should have it default to 1.0
    if (m_linkResult.m_hasTess || m_linkResult.m_hasGeom)
       v3d_cl_point_size(&clPtr, 1.0f);
 
    m_setupCLSize = clPtr - m_setupCL.data();
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   memcpy(m_setupCLCull.data(), m_setupCL.data(), m_setupCLSize);
-   cfg_bits.front_prims = cfg_bits.back_prims = false;
-   clPtr = m_setupCLCull.data();
-   v3d_cl_cfg_bits_indirect(&clPtr, &cfg_bits);
-#endif
 }
 
 GraphicsPipeline::~GraphicsPipeline()
 {
+#if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
    m_devMemHeap->Free(m_attribDefaultsMem);
+#endif
    m_devMemHeap->Free(m_dummyAttribMem);
 }
 
@@ -665,9 +650,7 @@ void GraphicsPipeline::CalcCfgBits(V3D_CL_CFG_BITS_T *cfg_bits,
 static void PackShaderArgs(V3D_SHADER_ARGS_T *args, const ShaderData &data)
 {
    args->threading      = data.threading;
-#if V3D_VER_AT_LEAST(4,1,34,0)
    args->single_seg     = data.singleSeg;
-#endif
    args->addr           = data.shaderMemory.Phys();
    args->propagate_nans = true;
    args->unifs_addr     = GraphicsPipeline::UNIFORM_PATCHTAG;
@@ -743,11 +726,11 @@ void GraphicsPipeline::CreateShaderRecord(bool rasterizerDiscard, bool sampleSha
                           m_linkResult.m_vsOutputWords, zPrePass);
    }
 
+#if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
    // Allocate memory for the attribute defaults. Filled in as attributes are created.
    size_t defaultsSize = m_linkResult.m_attrCount * 4 * sizeof(uint32_t);
    m_devMemHeap->Allocate(&m_attribDefaultsMem, defaultsSize, V3D_ATTR_DEFAULTS_ALIGN);
-
-   uint32_t *defaults = static_cast<uint32_t*>(m_attribDefaultsMem.Ptr());
+#endif
 
    // Make the main shader record
    V3D_SHADREC_GL_MAIN_T srec{};
@@ -778,7 +761,9 @@ void GraphicsPipeline::CreateShaderRecord(bool rasterizerDiscard, bool sampleSha
    srec.cs_input_size          = vpmV[MODE_BIN].input_size;
    srec.vs_output_size         = vpmV[MODE_RENDER].output_size;
    srec.vs_input_size          = vpmV[MODE_RENDER].input_size;
+#if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
    srec.defaults               = m_attribDefaultsMem.Phys();
+#endif
 
    PackShaderArgs(&srec.fs, m_linkResult.m_fs);
    PackShaderArgs(&srec.vs, m_linkResult.m_vps[LinkResult::SHADER_VPS_VS][MODE_RENDER]);
@@ -794,15 +779,22 @@ void GraphicsPipeline::CreateShaderRecord(bool rasterizerDiscard, bool sampleSha
    // Write the attributes into the remaining part of the shader record memory block
    if (m_linkResult.m_attrCount != 0)
    {
-      CreateShaderRecordAttributes(&m_linkResult, m_vertexAttributeDescriptions, m_vertexBindingDescriptions,
-                                   shadrecPtr, defaults);
+      CreateShaderRecordAttributes(
+         &m_linkResult,
+         m_vertexAttributeDescriptions,
+         m_vertexBindingDescriptions,
+#if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
+         (uint32_t*)m_attribDefaultsMem.Ptr(),
+#endif
+         shadrecPtr);
       m_shaderPatchingData.offsetGLAttr = shadrecPtr - baseShadrecPtr;
+
+#if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
+      m_attribDefaultsMem.SyncMemory();
+#endif
    }
    else
       CreateShaderRecordDummyAttribute(shadrecPtr);
-
-
-   m_attribDefaultsMem.SyncMemory();
 }
 
 void GraphicsPipeline::ComputeTnGVPMCfg(v3d_vpm_cfg_v vpmV[2], uint32_t *packedRes, uint32_t vpmSize) const
@@ -862,17 +854,23 @@ void GraphicsPipeline::CreateShaderRecordDummyAttribute(uint32_t *dstPtr)
    attr.vs_num_reads    = 1;
    attr.divisor         = 0;
    attr.stride          = 0;
-#if V3D_VER_AT_LEAST(4,1,34,0)
    attr.max_index       = 0,
-#endif
 
    v3d_pack_shadrec_gl_attr(dstPtr, &attr);
 }
 
-static void CreateShaderRecordAttributes(const LinkResult *lr, const VkVertexInputAttributeDescription *attDescs,
-      const VkVertexInputBindingDescription *bindDescs, uint32_t *dstPtr, uint32_t *defaults)
+static void CreateShaderRecordAttributes(
+   const LinkResult *lr,
+   const VkVertexInputAttributeDescription *attDescs,
+   const VkVertexInputBindingDescription *bindDescs,
+#if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
+   uint32_t *defaults,
+#endif
+   uint32_t *dstPtr)
 {
+#if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
    memset(defaults, 0, lr->m_attrCount * 4 * sizeof(uint32_t));
+#endif
 
    uint32_t csTotalReads = 0;
    uint32_t vsTotalReads = 0;
@@ -905,28 +903,29 @@ static void CreateShaderRecordAttributes(const LinkResult *lr, const VkVertexInp
       const auto &attDesc = attDescs[attrIndex];
       const auto &bindDesc = bindDescs[attDesc.binding];
 
-      GFX_LFMT_T lfmt = Formats::GetLFMT(attDesc.format, Formats::NATURAL);
+      GFX_LFMT_T lfmt   = Formats::GetLFMT(attDesc.format);
+      bool       scaled = Formats::IsScaled(attDesc.format);
 
       V3D_SHADREC_GL_ATTR_T attr;
       attr.addr            = 0;
       attr.size            = gfx_lfmt_num_slots_from_channels(lfmt);
-      attr.type            = Formats::GetAttributeType(attDesc.format);
-      attr.signed_int      = Formats::IsSigned(attDesc.format);
-      attr.normalised_int  = Formats::IsNormalized(attDesc.format);
-      attr.read_as_int     = Formats::IsInteger(attDesc.format);
+      attr.type            = Formats::GetAttributeType(lfmt);
+      attr.signed_int      = gfx_lfmt_contains_int_signed(lfmt) || gfx_lfmt_contains_snorm(lfmt);
+      attr.normalised_int  = gfx_lfmt_contains_unorm(lfmt) || gfx_lfmt_contains_snorm(lfmt);
+      attr.read_as_int     = gfx_lfmt_contains_int(lfmt) && !scaled;
       attr.cs_num_reads    = csNumReads;
       attr.vs_num_reads    = vsNumReads;
       attr.divisor         = bindDesc.inputRate == VK_VERTEX_INPUT_RATE_VERTEX ? 0 : 1;
       attr.stride          = bindDesc.stride;
-#if V3D_VER_AT_LEAST(4,1,34,0)
       attr.max_index       = 0;
-#endif
 
       uint32_t *ptr = dstPtr + (recordCnt * (V3D_SHADREC_GL_ATTR_PACKED_SIZE / sizeof(uint32_t)));
 
       v3d_pack_shadrec_gl_attr(ptr, &attr);
 
-      defaults[4*recordCnt + 3] = Formats::IsInteger(attDesc.format) ? 1 : 0x3f800000; // or 1.0f
+#if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
+      defaults[4*recordCnt + 3] = attr.read_as_int ? 1 : 0x3f800000; // or 1.0f
+#endif
 
       recordCnt++;
    }
@@ -937,46 +936,34 @@ void GraphicsPipeline::BuildUniformSpecial(UniformData &uniforms, uint32_t offse
    VkDynamicState dynamic = VK_DYNAMIC_STATE_MAX_ENUM;
    Uniform uniform {};
 
-   DerivedViewportState derivedState(m_viewport);
-
    switch (special)
    {
    case BACKEND_SPECIAL_UNIFORM_VP_SCALE_X:
-      uniform.f = derivedState.internalScale[0];
+      uniform.f = m_viewport.internalScale[0];
       dynamic = VK_DYNAMIC_STATE_VIEWPORT;
       break;
 
    case BACKEND_SPECIAL_UNIFORM_VP_SCALE_Y:
-      uniform.f = derivedState.internalScale[1];
+      uniform.f = m_viewport.internalScale[1];
       dynamic = VK_DYNAMIC_STATE_VIEWPORT;
       break;
 
    case BACKEND_SPECIAL_UNIFORM_VP_OFFSET_Z:
-      uniform.f = derivedState.internalZOffset;
-      dynamic = VK_DYNAMIC_STATE_VIEWPORT;
-      break;
-
    case BACKEND_SPECIAL_UNIFORM_DEPTHRANGE_NEAR:
-      uniform.f = derivedState.internalDepthRangeNear;
+      uniform.f = m_viewport.depthNear;
       dynamic = VK_DYNAMIC_STATE_VIEWPORT;
       break;
 
    case BACKEND_SPECIAL_UNIFORM_DEPTHRANGE_FAR:
-      uniform.f = derivedState.internalDepthRangeFar;
+      uniform.f = m_viewport.depthFar;
       dynamic = VK_DYNAMIC_STATE_VIEWPORT;
       break;
 
    case BACKEND_SPECIAL_UNIFORM_VP_SCALE_Z:
    case BACKEND_SPECIAL_UNIFORM_DEPTHRANGE_DIFF:
-      uniform.f = derivedState.internalDepthRangeDiff;
+      uniform.f = m_viewport.depthDiff;
       dynamic = VK_DYNAMIC_STATE_VIEWPORT;
       break;
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   case BACKEND_SPECIAL_UNIFORM_SAMPLE_MASK:
-      uniform.u = m_sampleMask;
-      break;
-#endif
 
    default:
       unreachable();
@@ -1025,11 +1012,6 @@ uint32_t GraphicsPipeline::CalcBackendKey(const VkGraphicsPipelineCreateInfo *ci
    const VkPipelineMultisampleStateCreateInfo* multCi = ci->pMultisampleState;
    if (multCi->rasterizationSamples != VK_SAMPLE_COUNT_1_BIT)
       key |= GLSL_SAMPLE_MS;
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   if (multCi->pSampleMask != nullptr && (multCi->pSampleMask[0] & 0xF) != 0xF)
-      key |= GLSL_SAMPLE_MASK;
-#endif
 
    if (multCi->alphaToCoverageEnable)
       key |= GLSL_SAMPLE_ALPHA;

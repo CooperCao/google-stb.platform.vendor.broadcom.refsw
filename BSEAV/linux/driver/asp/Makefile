@@ -34,7 +34,7 @@ ifeq ($(PLATFORM),)
 $(error You must define PLATFORM)
 endif
 
-LINUX=/local/public/users/ssood/build_p/linux/41/linux
+#LINUX=/local/public/users/ssood/build_p/linux/41/linux
 ifeq ($(LINUX),)
 LINUX = /opt/brcm/linux
 endif
@@ -77,7 +77,8 @@ endif
 
 all: $(BCM_OBJ_PATH) biput_asp_netfilter_drv
 	${Q_}${MAKE} -C $(LINUX_OUT) M=$(BCM_OBJ_PATH) modules ARCH=$(B_REFSW_LINUX_ARCH) CROSS_COMPILE=$(B_REFSW_CROSS_COMPILE)
-	${Q_}cp -f $(BCM_OBJ_PATH)/$(ASP_DRV).ko ${B_REFSW_OBJ_ROOT}/nexus/bin
+	${Q_}mkdir -p ${B_REFSW_OBJ_ROOT}/nexus/bin
+	${Q_}cp -f $(BCM_OBJ_PATH)/$(ASP_DRV).ko ${B_REFSW_OBJ_ROOT}/nexus/bin/
 
 clean: $(BCM_OBJ_PATH)
 	${Q_}${MAKE} -C $(LINUX_OUT) M=$(BCM_OBJ_PATH) ARCH=$(B_REFSW_LINUX_ARCH) clean
@@ -93,6 +94,7 @@ $(BCM_OBJ_PATH): $(BCM_OBJ_PATH)/exists
 
 biput_asp_netfilter_drv: biput_asp_netfilter_drv.c
 	arm-linux-gcc biput_asp_netfilter_drv.c -o biput_asp_netfilter_drv
+	${Q_}mkdir -p ${B_REFSW_OBJ_ROOT}/nexus/bin
 	${Q_}rm -f ${B_REFSW_OBJ_ROOT}/nexus/bin/biput_asp_netfilter_drv
-	${Q_}cp -f ./biput_asp_netfilter_drv ${B_REFSW_OBJ_ROOT}/nexus/bin
+	${Q_}cp -f ./biput_asp_netfilter_drv ${B_REFSW_OBJ_ROOT}/nexus/bin/
 	${Q_}rm -f ./biput_asp_netfilter_drv

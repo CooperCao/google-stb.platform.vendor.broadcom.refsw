@@ -43,6 +43,7 @@
 #include "bbox_priv.h"
 #include "bbox_vdc.h"
 #include "bbox_vdc_priv.h"
+#include "bbox_rts_priv.h"
 #include "bbox_priv_modes.h"
 #include "bchp_common.h"
 #include "bchp_memc_arb_0.h"
@@ -75,6 +76,7 @@ static void BBOX_P_Vdc_SetDefaultSourceCapabilities
         pSourceCap->stSizeLimits.ulWidth = BBOX_VDC_DISREGARD;
         pSourceCap->eColorSpace = BBOX_VDC_DISREGARD;
         pSourceCap->eBpp = BBOX_VDC_DISREGARD;
+        pSourceCap->eClass = BBOX_Vdc_SourceClass_eLegacy;
         pSourceCap++;
     }
 }
@@ -105,6 +107,7 @@ static void BBOX_P_Vdc_SetDefaultDisplayCapabilities
             pDisplayCap->astWindow[j].stResource.eVfd = BBOX_VDC_DISREGARD;
             pDisplayCap->astWindow[j].stResource.eScl = BBOX_VDC_DISREGARD;
             pDisplayCap->astWindow[j].eSclCapBias = BBOX_VDC_DISREGARD;
+            pDisplayCap->astWindow[j].eClass = BBOX_Vdc_WindowClass_eLegacy;
         }
         pDisplayCap++;
     }
@@ -196,7 +199,9 @@ BERR_Code BBOX_P_Vdc_SetSourceLimits
       uint32_t                      ulHeight,
       BBOX_Vdc_Colorspace           eColorSpace,
       BBOX_Vdc_Bpp                  eBpp,
-      bool                          bCompressed )
+      bool                          bCompressed,
+      BBOX_Vdc_SourceRateLimit      eRate,
+      BBOX_Vdc_SourceClass          eClass )
 {
     BERR_Code err = BERR_SUCCESS;
 
@@ -219,6 +224,8 @@ BERR_Code BBOX_P_Vdc_SetSourceLimits
         pSourceCap->stSizeLimits.ulHeight = BBOX_VDC_DISREGARD;
         pSourceCap->stSizeLimits.ulWidth = BBOX_VDC_DISREGARD;
         pSourceCap->eColorSpace = BBOX_VDC_DISREGARD;
+        pSourceCap->eRateLimit = eRate;
+        pSourceCap->eClass     = eClass;
     }
     else if (BBOX_P_SRC_IS_HDDVI(eSourceId))
     {
@@ -292,7 +299,8 @@ BERR_Code BBOX_P_Vdc_SetWindowLimits
       BBOX_Vdc_Resource_Scaler       eScl,
       uint32_t                       ulWinWidthFraction,
       uint32_t                       ulWinHeightFraction,
-      BBOX_Vdc_SclCapBias            eSclCapBias )
+      BBOX_Vdc_SclCapBias            eSclCapBias,
+      BBOX_Vdc_WindowClass           eClass )
 {
     BERR_Code err = BERR_SUCCESS;
 
@@ -306,6 +314,7 @@ BERR_Code BBOX_P_Vdc_SetWindowLimits
     pDisplayCap->astWindow[eWinId].eSclCapBias = eSclCapBias;
     pDisplayCap->astWindow[eWinId].stSizeLimits.ulHeightFraction = ulWinHeightFraction;
     pDisplayCap->astWindow[eWinId].stSizeLimits.ulWidthFraction = ulWinWidthFraction;
+    pDisplayCap->astWindow[eWinId].eClass = eClass;
     return err;
 }
 
@@ -381,7 +390,6 @@ BERR_Code BBOX_P_Vdc_ResetDisplayLimits
     pDisplayCap->stStgEnc.ulStgId = BBOX_FTR_INVALID;
     pDisplayCap->stStgEnc.ulEncoderCoreId = BBOX_FTR_INVALID;
     pDisplayCap->stStgEnc.ulEncoderChannel = BBOX_FTR_INVALID;
-    pDisplayCap->eMosaicModeClass = BBOX_VDC_DISREGARD;
 
     return err;
 }
@@ -484,8 +492,6 @@ BERR_Code BBOX_P_Vdc_SelfCheck
 
         for (j=0; j<BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY; j++)
         {
-            BBOX_Vdc_MosaicModeClass eMosaic = pVdcCap->astDisplay[i].eMosaicModeClass;
-            BFMT_VideoFmt eMaxFmt = pVdcCap->astDisplay[i].eMaxVideoFmt;
             bool bDontTestCapVfd;
 
             BDBG_MODULE_MSG(BBOX_SELF_CHECK, ("Display %d: Win%d: %x, Mad%d: %x", i, j,
@@ -568,27 +574,6 @@ BERR_Code BBOX_P_Vdc_SelfCheck
                     eStatus = BERR_INVALID_PARAMETER;
                 }
             }
-
-            if (eMaxFmt < BFMT_VideoFmt_eMaxCount && eMosaic < BBOX_Vdc_MosaicModeClass_eDisregard &&
-                (!(eMosaic >= BBOX_Vdc_MosaicModeClass_eClass2 && BFMT_IS_UHD(eMaxFmt)) &&
-                (!(eMosaic == BBOX_Vdc_MosaicModeClass_eClass1 &&
-                  ((eMaxFmt >= BFMT_VideoFmt_e1080i_50Hz && eMaxFmt <= BFMT_VideoFmt_e1080p_120Hz) ||
-                   (eMaxFmt >= BFMT_VideoFmt_e1080i      && eMaxFmt <= BFMT_VideoFmt_e1080p) ||
-                   (eMaxFmt >= BFMT_VideoFmt_e720p       && eMaxFmt <= BFMT_VideoFmt_e720p_24Hz_3DOU_AS) ||
-                   (eMaxFmt >= BFMT_VideoFmt_e720p_24Hz  && eMaxFmt <= BFMT_VideoFmt_e720p_50Hz) ||
-                   (eMaxFmt == BFMT_VideoFmt_e480p) || (eMaxFmt == BFMT_VideoFmt_e576p_50Hz))))) &&
-                (!(eMosaic == BBOX_Vdc_MosaicModeClass_eClass0 &&
-                   eMaxFmt <= BFMT_VideoFmt_eSECAM_H)))
-            {
-                BFMT_VideoInfo videoFmtInfo;
-                BFMT_GetVideoFormatInfo(eMaxFmt, &videoFmtInfo);
-
-                BDBG_ERR(("Mosaic class %d is not compatible to VDC BOX display %d format %s.",
-                           pVdcCap->astDisplay[i].eMosaicModeClass,
-                           i, videoFmtInfo.pchFormatStr));
-                eStatus = BERR_INVALID_PARAMETER;
-            }
-
         }
 
         for (j=0; j<BBOX_VDC_GFX_WINDOW_COUNT_PER_DISPLAY; j++)
@@ -639,7 +624,7 @@ BERR_Code BBOX_P_Vdc_ValidateBoxModes
 
     if (hBox)
     {
-        uint32_t ulBoxId;
+        uint32_t ulBoxId = hBox->stBoxConfig.stBox.ulBoxId;
         BBOX_Vdc_Capabilities *pstVdcCap = NULL;
         BBOX_MemConfig *pstMemConfig = NULL;
 
@@ -659,19 +644,14 @@ BERR_Code BBOX_P_Vdc_ValidateBoxModes
             goto BBOX_Validate_Done;
         }
 
-        for (ulBoxId=1; ulBoxId<=BBOX_MODES_SUPPORTED; ulBoxId++)
+        /* Set defaults. */
+        BBOX_P_Vdc_SetDefaultCapabilities(pstVdcCap);
+
+        /* Set default config settings  */
+        BBOX_P_SetDefaultMemConfig(pstMemConfig);
+
+        if (ulBoxId != 0)
         {
-            BDBG_MODULE_MSG(BBOX_SELF_CHECK, ("Validating box mode %d", ulBoxId));
-             /* VDC */
-            /* Set defaults. */
-            BBOX_P_Vdc_SetDefaultCapabilities(pstVdcCap);
-
-            eStatus = BBOX_P_ValidateId(ulBoxId);
-            if (eStatus == BBOX_ID_NOT_SUPPORTED)
-            {
-                continue;
-            }
-
             /* Set box specific limits */
             eStatus = BBOX_P_Vdc_SetCapabilities(ulBoxId, pstVdcCap);
             if (eStatus != BERR_SUCCESS)
@@ -684,14 +664,14 @@ BERR_Code BBOX_P_Vdc_ValidateBoxModes
             {
                 goto BBOX_Validate_Done;
             }
+         }
 
-            /* Check memc assignment against BOX config */
-            eStatus = BBOX_P_Vdc_SelfCheck(pstMemConfig, pstVdcCap);
-            if (eStatus != BERR_SUCCESS)
-            {
-                eStatus = BERR_INVALID_PARAMETER;
-                goto BBOX_Validate_Done;
-            }
+        /* Check memc assignment against BOX config */
+        eStatus = BBOX_P_Vdc_SelfCheck(pstMemConfig, pstVdcCap);
+        if (eStatus != BERR_SUCCESS)
+        {
+            eStatus = BERR_INVALID_PARAMETER;
+            goto BBOX_Validate_Done;
         }
 
 BBOX_Validate_Done:

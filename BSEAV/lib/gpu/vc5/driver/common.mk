@@ -1,7 +1,7 @@
 BCHP_V3D_HUB_CTL_H = $(MAGNUM_TOP)/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER)/bchp_v3d_hub_ctl.h
 V3D_TECH_VERSION = $(shell cat $(BCHP_V3D_HUB_CTL_H) | grep BCHP_V3D_HUB_CTL_IDENT1_TVER_DEFAULT | awk '{printf "%d", strtonum($$3)}')
 V3D_REVISION = $(shell cat $(BCHP_V3D_HUB_CTL_H) | grep BCHP_V3D_HUB_CTL_IDENT1_REV_DEFAULT | awk '{printf "%d", strtonum($$3)}')
-V3D_SUB_REV = $(shell cat $(BCHP_V3D_HUB_CTL_H) | grep BCHP_V3D_HUB_CTL_IDENT3_IPREV_DEFAULT | awk '{printf "%d", strtonum($$3)}')
+V3D_SUB_REV = $(shell cat $(BCHP_V3D_HUB_CTL_H) | grep 'BCHP_V3D_HUB_CTL_IDENT3_\\(IP\\|SUB\\)REV_DEFAULT' | awk '{printf "%d", strtonum($$3)}')
 V3D_VER_AT_LEAST_3_3_0 := $(shell expr `printf "%d%2.2d%2.2d\n" $(V3D_TECH_VERSION) $(V3D_REVISION) $(V3D_SUB_REV)` \>= 30300)
 V3D_VER_AT_LEAST_4_1_0 := $(shell expr `printf "%d%2.2d%2.2d\n" $(V3D_TECH_VERSION) $(V3D_REVISION) $(V3D_SUB_REV)` \>= 40100)
 
@@ -11,6 +11,7 @@ COMMON_SRC_FILES :=                                             \
 	libs/khrn/common/khrn_options.c                             \
 	libs/util/dglenum/dglenum.c                                 \
 	libs/util/log/log.c                                         \
+	libs/khrn/glsl/dflib.c													\
 	libs/khrn/glsl/glsl_unique_index_queue.c                    \
 	libs/khrn/glsl/glsl_mem_layout.c                            \
 	libs/khrn/glsl/glsl_symbols.c                               \
@@ -96,7 +97,6 @@ COMMON_SRC_FILES :=                                             \
 	libs/core/lfmt/lfmt_desc_maps.c                             \
 	libs/core/lfmt_translate_gl/lfmt_translate_gl.c             \
 	libs/core/gfx_buffer/gfx_buffer_v3d_tfu_srgb_conversions.c  \
-	libs/core/gfx_buffer/gfx_buffer_uif_config.c                \
 	libs/core/gfx_buffer/gfx_buffer_translate_v3d.c             \
 	libs/core/gfx_buffer/gfx_buffer_compare.c                   \
 	libs/core/gfx_buffer/gfx_buffer_bc.c                        \
@@ -169,6 +169,7 @@ STDLIB_SOURCES :=                                               \
 	stdlib/hyperbolic.glsl                                      \
 	stdlib/image.glsl                                           \
 	stdlib/integer.glsl                                         \
+	stdlib/interpolate.glsl                                     \
 	stdlib/matrix.glsl                                          \
 	stdlib/packing.glsl                                         \
 	stdlib/synchronisation.glsl                                 \
@@ -258,6 +259,7 @@ GLES_SRC_FILES :=                                                          \
 	libs/khrn/egl/egl_image_framebuffer.c                                  \
 	libs/khrn/egl/egl_sync.c                                               \
 	libs/khrn/egl/egl_synckhr.c                                            \
+	libs/khrn/egl/egl_partial_update.c                                     \
 	libs/khrn/egl/egl_proc_address.c                                       \
 	libs/khrn/egl/egl_platform.c                                           \
 	libs/khrn/ext/egl_brcm_perf_counters.c                                 \
@@ -431,4 +433,5 @@ VULKAN_SRC_FILES :=                                                 \
 	../platform/common/memory_drm.c                             \
 	../platform/common/memory_convert.c                         \
 	../platform/common/display_helpers.c                        \
+	../platform/common/perf_event.cpp                           \
 	../platform/common/sched_nexus.c

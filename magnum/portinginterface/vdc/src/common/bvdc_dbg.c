@@ -103,7 +103,7 @@ void BVDC_P_BvnErrorHandler_isr
     return;
 }
 
-#if !defined(B_REFSW_MINIMAL) || defined(BVDC_SUPPORT_BVN_DEBUG)
+#if !defined(B_REFSW_MINIMAL)
 /***************************************************************************
  *
  */
@@ -211,7 +211,7 @@ BERR_Code BVDC_P_DestroyErrCb
 #endif
 
 
-#if !defined(B_REFSW_MINIMAL) || defined(BVDC_SUPPORT_BVN_DEBUG)
+#if !defined(B_REFSW_MINIMAL)
 /***************************************************************************
  *
  */
@@ -237,10 +237,8 @@ void BVDC_Dbg_ClearBvnError
 
     return;
 }
-#endif
 
 
-#if !defined(B_REFSW_MINIMAL) || defined(BVDC_SUPPORT_BVN_DEBUG)
 /***************************************************************************
  *
  */
@@ -267,9 +265,7 @@ void BVDC_Dbg_GetBvnErrorStatus
     }
     return;
 }
-#endif
 
-#if !defined(B_REFSW_MINIMAL) || defined(BVDC_SUPPORT_BVN_DEBUG)
 /***************************************************************************
  *
  */
@@ -444,7 +440,7 @@ void BVDC_Dbg_Source_GetDebugStatus
     return;
 }
 
-#if !defined(B_REFSW_MINIMAL) || defined(BVDC_SUPPORT_BVN_DEBUG)
+#if !defined(B_REFSW_MINIMAL)
 /***************************************************************************
  *
  */
@@ -601,10 +597,8 @@ BERR_Code BVDC_Dbg_MaskBvnErrorCb
     hVdc->abBvnErrMask[eBvnErrModule] = bMaskOff;
     return eStatus;
 }
-#endif
 
 
-#if !defined(B_REFSW_MINIMAL) || defined(BVDC_SUPPORT_BVN_DEBUG)
 /***************************************************************************
  *
  */
@@ -650,7 +644,7 @@ BVDC_Compositor_Handle BVDC_Dbg_GetCompositorHandle
 #endif
 
 
-#if !defined(B_REFSW_MINIMAL) || defined(BVDC_SUPPORT_BVN_DEBUG)
+#if !defined(B_REFSW_MINIMAL)
 /***************************************************************************
  *
  */
@@ -815,10 +809,8 @@ BVDC_Window_Handle BVDC_Dbg_GetWindowHandle
 
     return hWin;
 }
-#endif
 
 
-#if !defined(B_REFSW_MINIMAL) || defined(BVDC_SUPPORT_BVN_DEBUG)
 /***************************************************************************
  *
  */
@@ -838,10 +830,8 @@ BVDC_Source_Handle BVDC_Dbg_Window_GetSourceHandle
 
     return hSrc;
 }
-#endif
 
 
-#if !defined(B_REFSW_MINIMAL) || defined(BVDC_SUPPORT_BVN_DEBUG)
 /***************************************************************************
  *
  */
@@ -869,10 +859,8 @@ uint32_t BVDC_Dbg_Window_GetScalerStatus
 
     return 0;
 }
-#endif
 
 
-#if !defined(B_REFSW_MINIMAL) || defined(BVDC_SUPPORT_BVN_DEBUG)
 /***************************************************************************
  *
  */
@@ -892,10 +880,8 @@ BVDC_Compositor_Handle BVDC_Dbg_Window_GetCompositorHandle
 
     return hCmp;
 }
-#endif
 
 
-#if !defined(B_REFSW_MINIMAL) || defined(BVDC_SUPPORT_BVN_DEBUG)
 /***************************************************************************
  *
  */

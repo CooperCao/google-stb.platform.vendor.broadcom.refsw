@@ -44,7 +44,7 @@ typedef struct Args
 {
     const char * name;
     char * configPath;
-    int scenario;
+    char * scenario;
 } Args, * ArgsHandle;
 
 ArgsHandle args_create(int argc, char **argv);

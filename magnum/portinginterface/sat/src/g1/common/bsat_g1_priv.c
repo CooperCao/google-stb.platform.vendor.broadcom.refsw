@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,13 +50,6 @@ BDBG_MODULE(bsat_g1_priv);
 /* extern bool bEnableDebugLog; */
 
 #if defined(BSAT_HAS_ACM) && defined(BCHP_AFEC_0_BCH_STREAM_ID0_STAT) && !defined(BSAT_EXCLUDE_AFEC)
-static const uint32_t afec_stream_stat_reg[8] = {
-   BCHP_AFEC_BCH_STREAM_ID0_STAT, BCHP_AFEC_BCH_STREAM_ID1_STAT,
-   BCHP_AFEC_BCH_STREAM_ID2_STAT, BCHP_AFEC_BCH_STREAM_ID3_STAT,
-   BCHP_AFEC_BCH_STREAM_ID4_STAT, BCHP_AFEC_BCH_STREAM_ID5_STAT,
-   BCHP_AFEC_BCH_STREAM_ID6_STAT, BCHP_AFEC_BCH_STREAM_ID7_STAT
-};
-
 static const uint32_t afec_pls_ldpc_iter_cnt_reg[8] = {
    BCHP_AFEC_PLS0_LDPC_ITER_CNT, BCHP_AFEC_PLS1_LDPC_ITER_CNT,
    BCHP_AFEC_PLS2_LDPC_ITER_CNT, BCHP_AFEC_PLS3_LDPC_ITER_CNT,
@@ -70,7 +63,6 @@ static const uint32_t afec_pls_bch_decnblk_reg[8] = {
    BCHP_AFEC_PLS4_BCH_DECNBLK, BCHP_AFEC_PLS5_BCH_DECNBLK,
    BCHP_AFEC_PLS6_BCH_DECNBLK, BCHP_AFEC_PLS7_BCH_DECNBLK,
 };
-
 #endif
 
 
@@ -703,9 +695,6 @@ BERR_Code BSAT_g1_P_ResetChannelStatus(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_GetSoftDecisions(BSAT_ChannelHandle h, uint32_t n, int16_t *pI, int16_t *pQ)
 {
    uint32_t val, i;
-#if defined(BSAT_HAS_ACM) && defined(BCHP_SDS_EQ_0_EQSFT_CTL)
-   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-#endif
 
    BDBG_ENTER(BSAT_g1_P_GetSoftDecisions);
 
@@ -742,6 +731,7 @@ BERR_Code BSAT_g1_P_GetSoftDecisions(BSAT_ChannelHandle h, uint32_t n, int16_t *
 BERR_Code BSAT_g1_P_ResetChannel(BSAT_ChannelHandle h, bool bDisableDemod)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+   BSAT_g1_P_Handle *hDev = (BSAT_g1_P_Handle *)(h->pDevice->pImpl);
    BERR_Code retCode;
    uint32_t val;
 
@@ -774,8 +764,11 @@ BERR_Code BSAT_g1_P_ResetChannel(BSAT_ChannelHandle h, bool bDisableDemod)
       }
 
 #ifndef BSAT_EXCLUDE_AFEC
+      val = ~(1 << h->channel);
       BKNI_EnterCriticalSection();
       hChn->bAfecRampEnabled = false;
+      hDev->afecRampChanMask &= val;
+      hDev->afecRampLowThreshChanMask &= val;
       BKNI_LeaveCriticalSection();
 #endif
 
@@ -815,7 +808,7 @@ BERR_Code BSAT_g1_P_ResetChannel(BSAT_ChannelHandle h, bool bDisableDemod)
       }
 #endif
 
-#if (BCHP_CHIP==45308) && (BSAT_CHIP_FAMILY==45316)
+#if ((BCHP_CHIP==45308) && (BSAT_CHIP_FAMILY==45316)) || (BCHP_CHIP==45402)
    if ((h->channel & 1) == 0)
       BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00, ~BCHP_SDS_OI_0_OIFCTL00_fec_sel_MASK, BCHP_SDS_OI_0_OIFCTL00_tfec_afec_sel_MASK);
    else
@@ -1977,7 +1970,10 @@ BERR_Code BSAT_g1_P_GetStreamStatus(BSAT_ChannelHandle h, uint8_t streamId, BSAT
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode = BERR_SUCCESS;
    uint32_t stat = 0, addr, val = 0, shift;
-   int i, pls_idx = -1, sid_idx = -1, mp_idx = -1;
+   int i, pls_idx = -1, mp_idx = -1;
+#if 0
+   int sid_idx = -1;
+#endif
    bool bFound = false, bRetry = false;
    BSAT_Mode mode;
    uint8_t sid, pls = 0, val8;
@@ -2002,7 +1998,9 @@ BERR_Code BSAT_g1_P_GetStreamStatus(BSAT_ChannelHandle h, uint8_t streamId, BSAT
             if (BSAT_g1_P_GetDvbs2ModeFromPls_isrsafe(pls, &mode) == BERR_SUCCESS)
             {
                bFound = true;
+#if 0
                sid_idx = i;
+#endif
                break;
             }
          }

@@ -110,6 +110,18 @@ static const BDSP_P_AlgorithmSupportInfo BDSP_sRaagaAlgorithmSupportInfo[] =
 #ifdef BDSP_DSOLA_SUPPORT
     {BDSP_Algorithm_eDsola, "DSOLA PP", true},
 #endif
+#ifdef BDSP_OPUSDEC_SUPPORT
+    {BDSP_Algorithm_eOpusDecode, "OPUS Decode", true},
+#endif
+#ifdef BDSP_LPCMENC_SUPPORT
+    {BDSP_Algorithm_eLpcmEncode, "LPCM Encode", true},
+#endif
+#ifdef BDSP_MP3ENC_SUPPORT
+    {BDSP_Algorithm_eMpegAudioEncode, "MPEG Audio Encode", true},
+#endif
+#ifdef BDSP_AC4_SUPPORT
+		{BDSP_Algorithm_eAC4Decode, "AC4 Decode", true},
+#endif
 	{BDSP_Algorithm_eMax, "Invalid", false}
 };
 
@@ -384,6 +396,54 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sRaagaAlgorithmCodeInfo[] =
         BDSP_IMG_APP_DSOLA_SIZE,           0,
         /* Code Lib name*/                /* IDS Code Lib name*/
         "/libapp_dsola.so",               "INVALID"
+    },
+    {
+        /* Algorithm */
+        BDSP_Algorithm_eOpusDecode,
+        /* Scratch buffer size */			  /* rom table size */
+        BDSP_IMG_ADEC_OPUS_SCRATCH_SIZE, BDSP_IMG_ADEC_OPUS_TABLES_SIZE,
+        /* interframe size */                    /*  Compressed interframe size */
+        BDSP_IMG_ADEC_OPUS_INTER_FRAME_SIZE, BDSP_IMG_ADEC_OPUS_INTER_FRAME_ENCODED_SIZE,
+        /* Algorithm codeSize*/			   /* IDS codeSize*/
+        BDSP_IMG_ADEC_OPUS_SIZE,            BDSP_IMG_AIDS_WAVFORMATEX_SIZE,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_opus.so",               "/libaids_wavformatex.so"
+    },
+  {
+		/* Algorithm */
+		BDSP_Algorithm_eLpcmEncode,
+		/* Scratch buffer size */		  /* Rom table size */
+		BDSP_IMG_AENC_LPCM_SCRATCH_SIZE, BDSP_IMG_AENC_LPCM_TABLES_SIZE,
+		/* Interframe size */  		  /* Compressed Interframe size */
+		BDSP_IMG_AENC_LPCM_INTER_FRAME_SIZE, BDSP_IMG_AENC_LPCM_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/		  /* IDS codeSize*/
+		BDSP_IMG_AENC_LPCM_SIZE,		    0,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libaenc_lpcm.so",               "INVALID"
+	},
+  {
+		/* Algorithm */
+		BDSP_Algorithm_eMpegAudioEncode,
+		/* Scratch buffer size */		  /* Rom table size */
+		BDSP_IMG_AENC_MP3_SCRATCH_SIZE, BDSP_IMG_AENC_MP3_TABLES_SIZE,
+		/* Interframe size */  		  /* Compressed Interframe size */
+		BDSP_IMG_AENC_MP3_INTER_FRAME_SIZE, BDSP_IMG_AENC_MP3_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/		  /* IDS codeSize*/
+		BDSP_IMG_AENC_MP3_SIZE,		    0,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libaenc_mp3.so",               "INVALID"
+	},
+    {
+        /* Algorithm */
+        BDSP_Algorithm_eAC4Decode,
+        /* Scratch buffer size */         /* Rom table size */
+        BDSP_IMG_ADEC_AC4_SCRATCH_SIZE, BDSP_IMG_ADEC_AC4_TABLES_SIZE,
+        /* Interframe size */         /* Compressed Interframe size */
+        BDSP_IMG_ADEC_AC4_INTER_FRAME_SIZE, BDSP_IMG_ADEC_AC4_INTER_FRAME_ENCODED_SIZE,
+        /* Algorithm codeSize*/       /* IDS codeSize*/
+        BDSP_IMG_ADEC_AC4_SIZE,           BDSP_IMG_AIDS_AC4_SIZE,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_ac4.so",               "/libaids_ac4.so",
     },
     /* This entry must always be last used to derive the unsupported/invalid information */
 	{

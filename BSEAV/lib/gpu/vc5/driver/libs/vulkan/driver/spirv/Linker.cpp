@@ -46,8 +46,7 @@ static void RestoreMaps(int *savedUniformMaps[SHADER_FLAVOUR_COUNT], int *savedB
 }
 
 void Linker::LinkShaders(CompiledShaderHandle shaders[SHADER_FLAVOUR_COUNT],
-                         BackendKeyFunc backendFn,
-                         BuildFunc buildFn, OutputIRFunc irFunc, OutputAssemblyFunc outputAssFunc,
+                         BackendKeyFunc backendFn, OutputFunc outputFn,
                          const std::bitset<V3D_MAX_ATTR_ARRAYS> &attribRBSwaps)
 {
    GLSL_PROGRAM_T *prog;
@@ -61,7 +60,7 @@ void Linker::LinkShaders(CompiledShaderHandle shaders[SHADER_FLAVOUR_COUNT],
 
       // The cast is safe if the handle type just holds the pointer
       // The alternative is to copy all the pointers into a temporary array
-      prog = glsl_link_program(reinterpret_cast<CompiledShader **>(shaders), &notSrc, /*separable=*/false);
+      prog = glsl_link_program(reinterpret_cast<CompiledShader **>(shaders), &notSrc, /*separable=*/false, /*validate=*/false);
    }
 
    if (prog == nullptr)
@@ -81,10 +80,6 @@ void Linker::LinkShaders(CompiledShaderHandle shaders[SHADER_FLAVOUR_COUNT],
       }
    }
 
-   // Invoke any callback to dump the IR
-   if (irFunc)
-      irFunc(prog);
-
    // Replace uniform map with an identity table of 32 entries
    int *savedUniformMaps[SHADER_FLAVOUR_COUNT] = {};
    int *savedBufferMaps[SHADER_FLAVOUR_COUNT]  = {};
@@ -93,18 +88,12 @@ void Linker::LinkShaders(CompiledShaderHandle shaders[SHADER_FLAVOUR_COUNT],
    // Run the backend code generator
    GLSL_BACKEND_CFG_T cfg = backendFn(prog);
    BINARY_PROGRAM_T *binaryProg = glsl_binary_program_from_dataflow(prog->ir, &cfg);
-   if (binaryProg != nullptr)
-   {
-      // Send the binaryProg out to be printed if required
-      if (outputAssFunc)
-         outputAssFunc(binaryProg);
 
-      // Build the link result internals if required
-      if (buildFn)
-         buildFn(*prog->ir, *binaryProg);
+   // Call the callback to process the finished program
+   if (outputFn)
+      outputFn(prog->ir, binaryProg);
 
-      glsl_binary_program_free(binaryProg);
-   }
+   glsl_binary_program_free(binaryProg);
 
    // Restore the uniform maps we replaced earlier
    RestoreMaps(savedUniformMaps, savedBufferMaps, prog);
@@ -112,7 +101,7 @@ void Linker::LinkShaders(CompiledShaderHandle shaders[SHADER_FLAVOUR_COUNT],
    glsl_program_free(prog);
 
    if (binaryProg == nullptr)
-      throw std::runtime_error(std::string("CodeGen Error : ") + glsl_compile_error_get());
+      throw std::runtime_error(std::string("CodeGen Error"));
 }
 
 } // namespace bvk

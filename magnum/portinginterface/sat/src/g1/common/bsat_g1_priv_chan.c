@@ -40,7 +40,7 @@
 #include "bsat.h"
 #include "bsat_priv.h"
 #include "bsat_g1_priv.h"
-#if ((BCHP_CHIP==45216) || (BCHP_CHIP==45308))
+#if ((BCHP_CHIP==45216) || (BCHP_CHIP==45308) || (BCHP_CHIP==45402))
 #include "bchp_stb_chan_ctrl_0.h"
 #else
 #include "bchp_stb_chan_ctrl.h"

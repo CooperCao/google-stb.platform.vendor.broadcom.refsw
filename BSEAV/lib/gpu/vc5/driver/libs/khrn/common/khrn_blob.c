@@ -141,7 +141,7 @@ static bool blob_init(khrn_blob *blob,
 
 // Ownership of res is transferred to blob
 static void blob_init_from_resource(khrn_blob *blob,
-      khrn_resource *res, const GFX_BUFFER_DESC_T *descs,
+      khrn_resource *res, bool foreign, const GFX_BUFFER_DESC_T *descs,
       unsigned num_mip_levels, unsigned num_array_elems,
       unsigned array_pitch,
       gfx_buffer_usage_t blob_usage, bool secure)
@@ -169,7 +169,7 @@ static void blob_init_from_resource(khrn_blob *blob,
 
    blob->res = res;
 
-   blob->foreign_resource = true;
+   blob->foreign_resource = foreign;
 }
 
 static bool blob_init_from_handles(khrn_blob *blob,
@@ -185,14 +185,14 @@ static bool blob_init_from_handles(khrn_blob *blob,
    if (!res)
       return false;
 
-   blob_init_from_resource(blob, res,
+   blob_init_from_resource(blob, res, /*foreign=*/false,
       descs, num_mip_levels, num_array_elems, array_pitch,
       blob_usage, gmem_get_usage(handles[0]) & GMEM_USAGE_SECURE);
 
    return true;
 }
 
-static void blob_term(void *v, size_t size)
+static void blob_term(void *v)
 {
    khrn_blob *blob = v;
    khrn_resource_refdec(blob->res);
@@ -244,7 +244,7 @@ khrn_blob* khrn_blob_create_from_resource(khrn_resource *res,
       return NULL;
 
    khrn_resource_refinc(res);
-   blob_init_from_resource(blob, res, descs, num_mip_levels, num_array_elems,
+   blob_init_from_resource(blob, res, /*foreign=*/true, descs, num_mip_levels, num_array_elems,
                            array_pitch, blob_usage, secure);
    khrn_mem_set_term(blob, blob_term);
 

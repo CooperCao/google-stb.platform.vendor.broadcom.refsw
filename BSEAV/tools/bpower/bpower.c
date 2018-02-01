@@ -233,7 +233,7 @@ int main(
 
     if ( DvfsControl == 1)
     {
-        Bsysperf_DvfsCreateHtml( false /* bIncludeFrequencies */, false /* bMinimalFields */ );
+        Bsysperf_DvfsCreateHtml( true /* bIncludeFrequencies */, false /* bMinimalFields */ );
     }
 
     if ( GovernorSetting )

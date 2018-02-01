@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2011 Broadcom Corporation
+ * Copyright (C) 2008-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  *****************************************************************************/
 #include "nexus_platform.h"
 #include "nexus_pid_channel.h"
@@ -95,6 +84,7 @@ static void overflow_callback(void *context, int param)
 {
     BSTD_UNUSED(param);
     BDBG_ERR(("overflow %s", (const char *)context));
+    BSTD_UNUSED(context);
 }
 
 int main(int argc, char **argv)
@@ -205,7 +195,7 @@ int main(int argc, char **argv)
         BDBG_ASSERT(!rc);
         rc = NEXUS_Recpump_GetIndexBufferWithWrap(recpump, &index_buffer[0], &index_buffer_size[0], &index_buffer[1], &index_buffer_size[1]);
         BDBG_ASSERT(!rc);
-        BDBG_MSG(("got %d+%d data, %d+%d index", data_buffer_size[0], data_buffer_size[1], index_buffer_size[0], index_buffer_size[1]));
+        BDBG_MSG(("got %u+%u data, %u+%u index", (unsigned)data_buffer_size[0], (unsigned)data_buffer_size[1], (unsigned)index_buffer_size[0], (unsigned)index_buffer_size[1]));
 
         /* atomSize doesn't work on GetBufferWithWrap. but because of how we sized the CDB,
         we should always by divisible by CIPHER_BLOCK_SIZE on wrap.
@@ -244,7 +234,7 @@ int main(int argc, char **argv)
             rc = NEXUS_Recpump_IndexReadComplete(recpump, index_buffer_size[0] + index_buffer_size[1]);
             BDBG_ASSERT(!rc);
         }
-        BDBG_WRN(("wrote %d+%d data, %d+%d index", data_buffer_size[0], data_buffer_size[1], index_buffer_size[0], index_buffer_size[1]));
+        BDBG_WRN(("wrote %u+%u data, %u+%u index", (unsigned)data_buffer_size[0], (unsigned)data_buffer_size[1], (unsigned)index_buffer_size[0], (unsigned)index_buffer_size[1]));
     }
     /* loops forever */
 

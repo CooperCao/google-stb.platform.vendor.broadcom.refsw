@@ -7,7 +7,7 @@
 
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 static bool store_general_compatible(GFX_LFMT_T lfmt)
 {
    return !gfx_lfmt_get_yflip(&lfmt) && (gfx_lfmt_is_uif(lfmt) || gfx_lfmt_is_uif_xor(lfmt));
@@ -66,7 +66,7 @@ static bool try_init_blit(
          src_hw_fb->color[blit->color_read_buffer].image->api_fmt :
          src_hw_fb->color_ms[blit->color_read_buffer].image->api_fmt;
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       GFX_LFMT_T src_nonms_lfmt = khrn_image_plane_lfmt_maybe(
          &src_hw_fb->color[blit->color_read_buffer]);
       v3d_pixel_format_t pixel_format = src_nonms_lfmt ?
@@ -111,7 +111,7 @@ static bool try_init_blit(
                   &src_hw_fb->color_rt_format[blit->color_read_buffer]))
                goto not_supported;
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
             /* We always use STORE_GENERAL instructions to do TLB blits.
              * STORE_GENERAL isn't actually fully general... */
 
@@ -147,7 +147,7 @@ static bool try_init_blit(
    }
 
    blit->depth = !!(mask & GL_DEPTH_BUFFER_BIT);
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    if (blit->depth)
    {
       GFX_LFMT_T src_lfmt = khrn_image_plane_lfmt(&src_hw_fb->depth);
@@ -187,7 +187,7 @@ not_supported:
    return false;
 }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 static v3d_pixel_format_t blit_pixel_format(const GLXX_BLIT_T *blit)
 {
    /* try_init_blit() checks all dest color buffers have equivalent pixel
@@ -270,7 +270,7 @@ static bool add_blit_to_rs(GLXX_SERVER_STATE_T *state,
       if (!rs)
          return false;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       if (rs->num_blits == GLXX_RS_MAX_BLITS)
 #else
       if ((rs->num_blits == GLXX_RS_MAX_BLITS) || !blit_compatible(rs, blit))

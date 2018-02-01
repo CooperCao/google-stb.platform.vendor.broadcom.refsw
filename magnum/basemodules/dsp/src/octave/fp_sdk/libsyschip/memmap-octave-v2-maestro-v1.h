@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -76,7 +76,7 @@
  * External software exception request and Host interrupt controller and OBUSFAULT registers  -  0x100 - 0x15b
  * PC trace and Profiling registers                                                           -  0x180 - 0x1cf
  */
-typedef struct __packed
+typedef struct __alwayspacked
 {
 #ifndef DOXYGEN
     volatile uint32_t corectrl_core_enable;                   /* 0x000 */
@@ -176,12 +176,40 @@ typedef struct __packed
 } Misc_Block;
 
 
-#if NUM_CORES == 1 && NUM_SUBSYSTEMS == 1
+#if NUM_CORES == 1 && NUM_SUBSYSTEMS == 1 && !defined(__COMPILE_HEADER__)
 __absolute __align(4)
 extern Misc_Block taddr_Misc_Block;
+
+/* Other cases (!NUM_CORES == 1 || !NUM_SUBSYSTEMS == 1) will have to define
+ * this macro by themselves. */
+#  define MISC_BLOCK    taddr_Misc_Block
 #endif
 
 #endif  /* defined(__FIREPATH__) && !defined(ASMCPP) && !defined(__LINKER_SCRIPT__) */
+
+
+/* Some characteristics */
+#define MISC_BLOCK_NUM_MAILBOXES        16
+#define MISC_BLOCK_NUM_SYS_MAILBOXES    8
+#define MISC_BLOCK_NUM_USR_MAILBOXES    8
+#define MISC_BLOCK_NUM_MUTEXES          12
+#define MISC_BLOCK_NUM_SYS_MUTEXES      4
+#define MISC_BLOCK_NUM_USR_MUTEXES      8
+
+
+/* Field names compatibility layer */
+#define MISC_BLOCK_CORE_ENABLE_FIELD        corectrl_core_enable
+#define MISC_BLOCK_SYS_FLAG_FIELD(sub)      corectrl_sys_flg0_ ## sub
+#define MISC_BLOCK_USR_FLAG_FIELD(sub)      corectrl_usr_flg0_ ## sub
+#define MISC_BLOCK_SYS_MAILBOX_FIELD(n)     corestate_sys_mbx ## n
+#define MISC_BLOCK_USR_MAILBOX_FIELD(n)     corestate_usr_mbx ## n
+#define MISC_BLOCK_SYS_MUTEX_FIELD(n)       corestate_sys_mtx ## n
+#define MISC_BLOCK_USR_MUTEX_FIELD(n)       corestate_usr_mtx ## n
+#define MISC_BLOCK_IRQ_FIELD(sub)           interrupt_irq_ ## sub
+#define MISC_BLOCK_SRQ_FIELD(sub)           interrupt_srq_ ## sub
+#define MISC_BLOCK_DEBUG_FIELD(sub)         interrupt_drq_ ## sub
+#define MISC_BLOCK_FATAL_FIELD(sub)         interrupt_frq_ ## sub
+#define MISC_BLOCK_HOST_INT_FIELD(sub)      interrupt_host_irq_ ## sub
 
 
 /**
@@ -274,6 +302,16 @@ extern Misc_Block taddr_Misc_Block;
 /** @} */
 
 #define MISC_BLOCK_SIZE                                  0x200
+
+
+/**
+ * Misc Block MISC_BLOCK_CORECTRL_CORE_RESET_CAUSE bits.
+ * @{
+ */
+#define MISC_BLOCK_CORECTRL_CORE_RESET_CAUSE_POR         (1 << 0)
+#define MISC_BLOCK_CORECTRL_CORE_RESET_CAUSE_WATCHDOG    (1 << 1)
+#define MISC_BLOCK_CORECTRL_CORE_RESET_CAUSE_DEADLOCK    (1 << 2)
+/** @} */
 
 
 /**

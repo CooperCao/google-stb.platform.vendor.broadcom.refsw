@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -110,6 +110,9 @@ typedef struct EncodeContext
         unsigned audioBitrate;/* bps */
         bool overrideOrientation;
         NEXUS_VideoOrientation orientation;
+        bool secure;
+        bool low_delay;
+        NEXUS_VideoEncoderStreamStructure streamStructure; /* GOP structure */
     } encoderSettings;
     struct {
         unsigned videoPid;
@@ -320,6 +323,8 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
         "  -3d {lr|ou}    output stereoscopic (3D) video\n"
         "  -profile       output video codec profile\n"
         "  -level         output video codec level\n"
+        "  -framesP N     output video N P-frame in a GOP\n"
+        "  -framesB N     output video N B-frame between reference frames\n"
         );
     printf(
         "  -audio         output audio pid (0 for no audio)\n"
@@ -345,6 +350,10 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
         );
     printf(
         "  -passthrough PID[=REMAP] Passthrough PID with optional remap PID. Option can be given %d times.\n", NEXUS_SIMPLE_ENCODER_NUM_PASSTHROUGH_PIDS
+        );
+    printf(
+        "  -secure                  use SVP secure picture buffers\n"
+        "  -low_delay\n"
         );
     nxapps_cmdline_print_usage(cmdline);
     printf(
@@ -452,6 +461,10 @@ static int start_encode(EncodeContext *pContext)
         }
     }
     NEXUS_SimpleEncoder_GetSettings(pContext->hEncoder, &encoderSettings);
+    if (pContext->encoderSettings.low_delay) {
+        encoderSettings.videoEncoder.streamStructure.framesP = 0xFFFFFFFF;
+        encoderSettings.videoEncoder.enableFieldPairing = false;
+    }
     if (pContext->encoderSettings.videoBitrate) {
         encoderSettings.videoEncoder.bitrateMax = pContext->encoderSettings.videoBitrate;
     } else {
@@ -464,6 +477,8 @@ static int start_encode(EncodeContext *pContext)
         pContext->encoderSettings.width  = encoderSettings.video.width;
         pContext->encoderSettings.height = encoderSettings.video.height;
     }
+    encoderSettings.videoEncoder.streamStructure.framesP = pContext->encoderSettings.streamStructure.framesP;
+    encoderSettings.videoEncoder.streamStructure.framesB = pContext->encoderSettings.streamStructure.framesB;
     encoderSettings.video.window.x = pContext->encoderSettings.window_x;
     encoderSettings.video.window.y = pContext->encoderSettings.window_y;
     encoderSettings.video.window.width = pContext->encoderSettings.window_w;
@@ -592,6 +607,9 @@ static int start_encode(EncodeContext *pContext)
     startSettings.output.audio.keyslot = pContext->encoderStartSettings.keyslot;
     for (i=0;i<pContext->encoderStartSettings.num_passthrough;i++) {
         startSettings.output.passthrough[i].keyslot = pContext->encoderStartSettings.keyslot;
+    }
+    if (pContext->encoderSettings.low_delay) {
+        startSettings.output.video.settings.lowDelayPipeline = true;
     }
 
     rc = NEXUS_SimpleEncoder_Start(pContext->hEncoder, &startSettings);
@@ -904,6 +922,14 @@ int main(int argc, const char **argv)  {
         else if (!strcmp(argv[curarg], "-level") && curarg+1 < argc) {
             context.encoderStartSettings.videoCodecLevel = lookup(g_videoCodecLevelStrs, argv[++curarg]);
         }
+        else if (!strcmp(argv[curarg], "-framesP") && curarg+1 < argc) {
+            sscanf(argv[++curarg], "%u", &context.encoderSettings.streamStructure.framesP);
+            printf("framesP = %u\n", context.encoderSettings.streamStructure.framesP);
+        }
+        else if (!strcmp(argv[curarg], "-framesB") && curarg+1 < argc) {
+            sscanf(argv[++curarg], "%u", &context.encoderSettings.streamStructure.framesB);
+            printf("framesB = %u\n", context.encoderSettings.streamStructure.framesB);
+        }
         else if (!strcmp(argv[curarg], "-video_bitrate") && curarg+1 < argc) {
             float rate;
             sscanf(argv[++curarg], "%f", &rate);
@@ -1035,6 +1061,12 @@ int main(int argc, const char **argv)  {
             context.encoderStartSettings.useInitialPts = true;
             context.encoderStartSettings.initialPts = strtoul(argv[++curarg], NULL, 0);
         }
+        else if (!strcmp(argv[curarg], "-secure")) {
+            context.encoderSettings.secure = true;
+        }
+        else if (!strcmp(argv[curarg], "-low_delay")) {
+            context.encoderSettings.low_delay = true;
+        }
         else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
             if (n < 0) {
                 print_usage(&cmdline);
@@ -1107,6 +1139,9 @@ int main(int argc, const char **argv)  {
         NEXUS_SimpleStcChannel_GetSettings(stcChannel, &stcSettings);
         stcSettings.modeSettings.Auto.transportType = probe_results.transportType;
         stcSettings.mode = NEXUS_StcChannelMode_eAuto;
+        if (!realtime) {
+            stcSettings.sync = NEXUS_SimpleStcChannelSyncMode_eNoAdjustmentConcealment;
+        }
         rc = NEXUS_SimpleStcChannel_SetSettings(stcChannel, &stcSettings);
         if (rc) {BDBG_WRN(("unable to set stcsettings")); return -1;}
 
@@ -1145,6 +1180,7 @@ int main(int argc, const char **argv)  {
     else if (context.input_type == input_type_hdmi) {
         connectSettings.simpleVideoDecoder[0].decoderCapabilities.connectType = NxClient_VideoDecoderConnectType_eWindowOnly;
     }
+    connectSettings.simpleVideoDecoder[0].decoderCapabilities.secureVideo = context.encoderSettings.secure;
     connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
     connectSettings.simpleEncoder[0].id = allocResults.simpleEncoder[0].id;
     connectSettings.simpleEncoder[0].nonRealTime = !realtime;
@@ -1165,6 +1201,7 @@ int main(int argc, const char **argv)  {
 
         connectSettings.simpleEncoder[0].encoderCapabilities.maxFrameRate = context.encoderSettings.frameRateEnum;
     }
+    connectSettings.simpleEncoder[0].encoderCapabilities.lowDelay = context.encoderSettings.low_delay;
     rc = NxClient_Connect(&connectSettings, &connectId);
     if (rc) {BDBG_WRN(("unable to connect transcode resources")); return -1;}
 

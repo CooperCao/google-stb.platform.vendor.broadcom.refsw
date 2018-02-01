@@ -415,7 +415,14 @@ int bcmstrnicmp(const char* s1, const char* s2, int cnt);
 #define BCME_GET_AF_FAILED		-59      /* Get p2p AF pkt failed */
 #define BCME_MSCH_NOTREADY		-60		/* scheduler not ready */
 #define BCME_IOV_LAST_CMD		-61		/* last batched iov sub-command */
-#define BCME_LAST   BCME_IOV_LAST_CMD
+#define BCME_MINIPMU_CAL_FAIL           -62             /* MiniPMU cal failed */
+#define BCME_RCAL_FAIL                  -63             /* Rcal failed */
+#define BCME_LPF_RCCAL_FAIL             -64             /* RCCAL failed */
+#define BCME_DACBUF_RCCAL_FAIL          -65             /* RCCAL failed */
+#define BCME_VCOCAL_FAIL                -66             /* VCOCAL failed */
+#define BCME_BANDLOCKED                 -67             /* interface is restricted to a band */
+#define BCME_BAD_IE_DATA                -68             /* Recieved ie with invalid/bad data */
+#define BCME_LAST			BCME_BAD_IE_DATA
 
 #define BCME_NOTENABLED BCME_DISABLED
 
@@ -493,6 +500,13 @@ int bcmstrnicmp(const char* s1, const char* s2, int cnt);
 	"GET ActionFrame failed", \
 	"scheduler not ready", \
 	"Last IOV batched sub-cmd", \
+	"Mini PMU Cal failed", \
+	"R-cal failed", \
+	"LPF RC Cal failed", \
+	"DAC buf RC Cal failed", \
+	"VCO Cal failed", \
+	"band locked", \
+	"Recieved ie with invalid data", \
 }
 
 #ifndef ABS
@@ -1287,6 +1301,8 @@ typedef struct _counter_tbl_t {
 
 void counter_printlog(counter_tbl_t *ctr_tbl);
 #endif /* DEBUG_COUNTER */
+
+typedef bool (*map_pkts_cb_fn)(void *ctx, void *pkt);
 
 #if defined(__GNUC__)
 #define CALL_SITE __builtin_return_address(0)

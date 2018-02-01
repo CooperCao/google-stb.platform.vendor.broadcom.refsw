@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -366,7 +366,8 @@ BERR_Code BAPE_Decoder_Open(
 
     /* MS12 Config A check */
     if ( handle->settings.multichannelFormat == BAPE_MultichannelFormat_e7_1 &&
-         BAPE_P_DolbyCapabilities_MultichannelPcmFormat() != BAPE_MultichannelFormat_e7_1 )
+         BAPE_P_DolbyCapabilities_MultichannelPcmFormat() != BAPE_MultichannelFormat_e7_1 &&
+         BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 )
     {
         BDBG_WRN(("export BDSP_MS12_SUPPORT=A is required for 7.1ch Decoder support"));
         (void)BERR_TRACE(errCode); goto err_settings;
@@ -1583,7 +1584,7 @@ static BERR_Code BAPE_Decoder_P_Start(
             goto err_dfifo_alloc;
         }
 
-        dfifoSettings = BKNI_Malloc(sizeof(BDSP_FmmBufferDescriptor));
+        dfifoSettings = BKNI_Malloc(sizeof(BAPE_DfifoGroupSettings));
         if ( NULL == dfifoSettings ) {
             BDBG_ERR(("Unable to allocate memory for DFIFO Settings"));
             errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -3201,6 +3202,123 @@ BERR_Code BAPE_Decoder_SetSettings(
     return BERR_SUCCESS;
 }
 
+static void BAPE_Decoder_P_GetQueuedOutput(BAPE_DecoderHandle handle, BAPE_DecoderStatus *pStatus)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+    int i;
+
+    for (i = 0; i < BAPE_ConnectorFormat_eMax; i++) {
+        BAPE_PathConnection *pConnection;
+        unsigned bufferDepth = 0;
+
+        pConnection = BLST_SQ_FIRST(&handle->node.connectors[i].connectionList);
+        if (pConnection && pConnection->sfifoGroup) {
+            errCode = BAPE_SfifoGroup_P_GetQueuedBytes(pConnection->sfifoGroup, &bufferDepth);
+            if ( errCode ) {
+                BDBG_ERR(("Unable to get decoder's queued bytes for connector %d", i));
+            }
+            else {
+                switch (i) {
+                case BAPE_ConnectorFormat_eStereo:
+                case BAPE_ConnectorFormat_eMultichannel:
+                case BAPE_ConnectorFormat_eMono:
+                    if (pConnection->format.sampleRate != 0) {
+                        pStatus->queuedOutput = (bufferDepth * 8000) / (pConnection->format.sampleRate * 32 * 2);
+                        return;
+                    }
+                    break;
+                case BAPE_ConnectorFormat_eCompressed:
+                    if (handle->startSettings.codec == BAVC_AudioCompressionStd_eAc3 ||
+                        handle->startSettings.codec == BAVC_AudioCompressionStd_eAc3Plus) {
+                        if (pConnection->format.sampleRate != 0) {
+                            pStatus->queuedOutput = (bufferDepth * 8000) / (pConnection->format.sampleRate * 32 * 2);
+                            return;
+                        }
+                    } else if(handle->startSettings.codec == BAVC_AudioCompressionStd_eDts ||
+                              handle->startSettings.codec == BAVC_AudioCompressionStd_eDtsHd ||
+                              handle->startSettings.codec == BAVC_AudioCompressionStd_eDtsCd) {
+                        if (pStatus->codecStatus.dts.numPcmBlocks != 0 && pConnection->format.sampleRate != 0) {
+                            unsigned frameSize;
+                            unsigned frameTime;
+                            unsigned repPeriod;
+                            unsigned numFrames;
+                            /* frameSize = numblocks * 32;
+                               frameTime = frameSize / baseSR;
+                               repitition period = frameSize * 4;
+                               # of frames = buffer depth / repitaition period;
+                               ms = frametime * number of frames *2 (16bit -> 32bit) */
+
+                            frameSize = pStatus->codecStatus.dts.numPcmBlocks * 32;
+                            frameTime = (frameSize * 1000) / pConnection->format.sampleRate;
+                            repPeriod = frameSize * 4;
+                            numFrames = bufferDepth / repPeriod;
+                            pStatus->queuedOutput = numFrames * frameTime / 2;
+                            return;
+                        }
+                    }
+                    break;
+                case BAPE_ConnectorFormat_eCompressed4x:
+                    if (handle->startSettings.codec == BAVC_AudioCompressionStd_eAc3Plus) {
+                        if (pConnection->format.sampleRate != 0) {
+                            pStatus->queuedOutput = (bufferDepth * 8000 / 4) / ((pConnection->format.sampleRate / 4) * 32 * 2);
+                            return;
+                        }
+                    }
+                    else if(handle->startSettings.codec == BAVC_AudioCompressionStd_eDtsHd) {
+                        if (pStatus->codecStatus.dts.numPcmBlocks != 0 && pConnection->format.sampleRate != 0) {
+                            unsigned frameSize;
+                            unsigned frameTime;
+                            unsigned repPeriod;
+                            unsigned numFrames;
+                            /* frameSize = numblocks * 32;
+                               frameTime = frameSize / baseSR;
+                               repitition period = frameSize * 4;
+                               # of frames = buffer depth / repitaition period;
+                               ms = frametime * number of frames *2 (16bit -> 32bit) */
+
+                            frameSize = pStatus->codecStatus.dts.numPcmBlocks * 32;
+                            frameTime = (frameSize * 1000) / pConnection->format.sampleRate;
+                            repPeriod = frameSize * 4;
+                            numFrames = bufferDepth / repPeriod;
+                            pStatus->queuedOutput = numFrames * frameTime / 2;
+                            return;
+                        }
+                    }
+                    break;
+                case BAPE_ConnectorFormat_eCompressed16x:
+                    if (handle->startSettings.codec == BAVC_AudioCompressionStd_eMlp) {
+                        if (pConnection->format.sampleRate != 0) {
+                            pStatus->queuedOutput = (bufferDepth * 8000 / 16) / ((pConnection->format.sampleRate / 4) * 32 * 2);
+                            return;
+                        }
+                    }
+                    else if(handle->startSettings.codec == BAVC_AudioCompressionStd_eDtsHd) {
+                        if (pStatus->codecStatus.dts.numPcmBlocks != 0 && pConnection->format.sampleRate != 0) {
+                            unsigned frameSize;
+                            unsigned frameTime;
+                            unsigned repPeriod;
+                            unsigned numFrames;
+                            /* frameSize = numblocks * 32;
+                               frameTime = frameSize / baseSR;
+                               repitition period = frameSize * 4;
+                               # of frames = buffer depth / repitaition period;
+                               ms = frametime * number of frames *2 (16bit -> 32bit) */
+
+                            frameSize = pStatus->codecStatus.dts.numPcmBlocks * 32;
+                            frameTime = (frameSize * 1000) / pConnection->format.sampleRate;
+                            repPeriod = frameSize * 4;
+                            numFrames = bufferDepth / repPeriod;
+                            pStatus->queuedOutput = numFrames * frameTime / 2;
+                            return;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    return;
+}
 void BAPE_Decoder_GetStatus(
     BAPE_DecoderHandle handle,
     BAPE_DecoderStatus *pStatus     /* [out] */
@@ -3231,6 +3349,7 @@ void BAPE_Decoder_GetStatus(
         {
             pStatus->halted = handle->halted || handle->startSettings.inputPort->halted;
         }
+        BAPE_Decoder_P_GetQueuedOutput(handle, pStatus);
     }
 }
 

@@ -24,6 +24,10 @@
 #ifndef _LINUX_OSL_PRIV_H_
 #define _LINUX_OSL_PRIV_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define OS_HANDLE_MAGIC		0x1234abcd	/* Magic # to recognize osh */
 #define BCM_MEM_FILENAME_LEN	24		/* Mem. filename length */
 
@@ -178,5 +182,9 @@ struct osl_info {
 	void *sih;
 #endif	/* BCM_BACKPLANE_TIMEOUT */
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _LINUX_OSL_PRIV_H_ */

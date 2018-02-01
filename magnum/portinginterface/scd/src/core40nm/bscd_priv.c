@@ -5744,6 +5744,20 @@ else if(in_channelHandle->currentChannelSettings.eSrcClkFreq == BSCD_ClockFreq_e
 
 		ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_PLL_RESET:BCHP_CLKGEN_PLL_SC0_PLL_RESET;
 
+#if (BCHP_CHIP==7278)
+                ulVal |= 1<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_SHIFT;
+                ulVal |= 1<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_SHIFT;
+                        BREG_Write32(
+                                in_channelHandle->moduleHandle->regHandle,
+                                ulReg, ulVal);
+
+                ulVal &= ~BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_MASK;
+                ulVal &= ~BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_MASK;
+                        BREG_Write32(
+                                in_channelHandle->moduleHandle->regHandle,
+                                ulReg, ulVal);
+
+#else
 
 		BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
 			ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_MASK,
@@ -5758,6 +5772,7 @@ else if(in_channelHandle->currentChannelSettings.eSrcClkFreq == BSCD_ClockFreq_e
 		BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
 			ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_MASK,
 			0<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_SHIFT);
+#endif
 	}
 #else
 

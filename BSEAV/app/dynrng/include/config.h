@@ -43,7 +43,6 @@
 
 typedef struct Config
 {
-    PlatformInputMethod method;
     char * scenariosPath;
     char * streamsPath;
     char * imagesPath;

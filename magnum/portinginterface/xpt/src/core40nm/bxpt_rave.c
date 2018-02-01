@@ -427,21 +427,6 @@ static void SetScdNum(
 #endif
 }
 
-BERR_Code BXPT_Rave_GetTotalChannels(
-    BXPT_Handle hXpt,           /* [in] Handle for this transport instance. */
-    unsigned *TotalChannels     /* [out] The number of RAVE channels supported */
-    )
-{
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BSTD_UNUSED( hXpt );
-    BDBG_ASSERT( TotalChannels );
-
-    *TotalChannels = BXPT_NUM_RAVE_CHANNELS;
-
-    return( ExitCode );
-}
-
 BERR_Code BXPT_Rave_GetChannelDefaultSettings(
     BXPT_Handle hXpt,                           /* [in] Handle for this transport instance */
     unsigned ChannelNo,                         /* [in] Which RAVE instance to get defaults for */
@@ -909,6 +894,7 @@ BERR_Code BXPT_Rave_AllocCx(
     }
 }
 
+#if BXPT_P_HAS_AVS_PLUS_WORKAROUND
 static BERR_Code setupAvsContext(
     BXPT_Rave_Handle hRave,             /* [in] Handle for this RAVE channel */
     BXPT_RaveCx RequestedType,          /* [in] The type of context to allcoate */
@@ -1004,7 +990,6 @@ BERR_Code BXPT_Rave_AllocAvsCxPair(
     BXPT_RaveCx_Handle *ReferenceContext     /* [out] The allocated context */
     )
 {
-#if BXPT_P_HAS_AVS_PLUS_WORKAROUND
     unsigned decodeIndex, referenceIndex;
     unsigned decodeScdNum, referenceScdNum;
 
@@ -1070,7 +1055,7 @@ BERR_Code BXPT_Rave_AllocAvsCxPair(
     SetScdNum( ThisRefCtx, 0, referenceScdNum );
     ThisRefCtx->hAvScd = hRave->ScdTable + referenceScdNum;
 
-    rc = setupAvsContext( hRave, pDecodeCxSettings->RequestedType, &(pDecodeCxSettings->BufferCfg), decodeIndex, DecodeContext );
+   rc = setupAvsContext( hRave, pDecodeCxSettings->RequestedType, &(pDecodeCxSettings->BufferCfg), decodeIndex, DecodeContext );
     if( rc )
     {
         BXPT_Rave_FreeContext( ThisRefCtx );
@@ -1080,28 +1065,8 @@ BERR_Code BXPT_Rave_AllocAvsCxPair(
     ThisDecCtx->hAvScd = hRave->ScdTable + decodeScdNum;
 
     return rc;
-#else
-    BSTD_UNUSED(pReferenceCxSettings);
-    BSTD_UNUSED(setupAvsContext);
-    *ReferenceContext = NULL;
-    return BXPT_Rave_AllocCx(hRave, pDecodeCxSettings, DecodeContext);
+}
 #endif
-}
-
-BERR_Code BXPT_Rave_AllocContext(
-    BXPT_Rave_Handle hRave,             /* [in] Handle for this RAVE channel */
-    BXPT_RaveCx RequestedType,          /* [in] The type of context to allcoate */
-    const BAVC_CdbItbConfig *BufferCfg,       /* [in] Size and alignment for ITB and CDB */
-    BXPT_RaveCx_Handle *Context     /* [out] The allocated context */
-    )
-{
-   /* deprecated due to MMA conversion */
-   BSTD_UNUSED(hRave);
-   BSTD_UNUSED(RequestedType);
-   BSTD_UNUSED(BufferCfg);
-   BSTD_UNUSED(Context);
-   return BERR_TRACE(BERR_NOT_SUPPORTED);
-}
 
 BERR_Code AllocContext_Priv(
     BXPT_Rave_Handle hRave,             /* [in] Handle for this RAVE channel */
@@ -4108,108 +4073,6 @@ BERR_Code BXPT_Rave_AddPidChannel(
     return( ExitCode );
 }
 
-BERR_Code BXPT_Rave_AddBppChannel(
-    BXPT_RaveCx_Handle Context,     /* [in] The context  */
-    unsigned int PidChanNum,        /* [in] Which PID channel to add. */
-    bool UseDecrypted               /* [in] Use decrypted versions of packets on this channel */
-    )
-{
-    BDBG_ASSERT( Context );
-
-    return AddPidChannelToContext( Context, PidChanNum, UseDecrypted );
-}
-
-BERR_Code BXPT_Rave_RemoveAllPidChannels(
-    BXPT_RaveCx_Handle Context
-    )
-{
-    uint32_t Reg, RegAddr, PipeShift, tempReg;
-    unsigned int PidChanNum;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( Context );
-
-#ifdef BCHP_XPT_RAVE_CXMEM_LOi_ARRAY_BASE
-    if( Context->Index < CXMEM_LO_MAX_CONTEXT )
-    {
-        PipeShift = Context->Index * 2;
-        tempReg = 0x03 << PipeShift;
-        for (PidChanNum=0; PidChanNum < BXPT_NUM_PID_CHANNELS; PidChanNum++)
-        {
-            RegAddr = BCHP_XPT_RAVE_CXMEM_LOi_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
-            Reg = BREG_Read32( Context->hReg, RegAddr );
-            Reg &= tempReg;
-
-            if (Reg)
-                ExitCode = BXPT_Rave_RemovePidChannel( Context, PidChanNum );
-        }
-    }
-    else
-    {
-        PipeShift = ( Context->Index - CXMEM_LO_MAX_CONTEXT ) * 2;
-        tempReg = 0x03 << PipeShift;
-        for (PidChanNum=0; PidChanNum < BXPT_NUM_PID_CHANNELS; PidChanNum++)
-        {
-            RegAddr = BCHP_XPT_RAVE_CXMEM_HIi_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
-            Reg = BREG_Read32( Context->hReg, RegAddr );
-            Reg &= tempReg;
-
-            if (Reg)
-                ExitCode = BXPT_Rave_RemovePidChannel( Context, PidChanNum );
-        }
-    }
-#else
-    if( Context->Index < CXMEM_A_MAX_CONTEXT )
-    {
-        PipeShift = Context->Index * 2;
-        tempReg = 0x03 << PipeShift;
-        for (PidChanNum=0; PidChanNum < BXPT_NUM_PID_CHANNELS; PidChanNum++)
-        {
-            RegAddr = BCHP_XPT_RAVE_CXMEM_Ai_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
-            Reg = BREG_Read32( Context->hReg, RegAddr );
-            Reg &= tempReg;
-
-            if (Reg)
-                ExitCode = BXPT_Rave_RemovePidChannel( Context, PidChanNum );
-        }
-    }
-    else if( Context->Index < CXMEM_B_MAX_CONTEXT )
-    {
-        PipeShift = ( Context->Index - CXMEM_A_MAX_CONTEXT ) * 2;
-        tempReg = 0x03 << PipeShift;
-        for (PidChanNum=0; PidChanNum < BXPT_NUM_PID_CHANNELS; PidChanNum++)
-        {
-            RegAddr = BCHP_XPT_RAVE_CXMEM_Bi_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
-            Reg = BREG_Read32( Context->hReg, RegAddr );
-            Reg &= tempReg;
-
-            if (Reg)
-                ExitCode = BXPT_Rave_RemovePidChannel( Context, PidChanNum );
-        }
-    }
-#ifdef BCHP_XPT_RAVE_CXMEM_Ci_ARRAY_BASE
-    else if( Context->Index < CXMEM_C_MAX_CONTEXT )
-    {
-        PipeShift = ( Context->Index - CXMEM_B_MAX_CONTEXT ) * 2;
-        tempReg = 0x03 << PipeShift;
-        for (PidChanNum=0; PidChanNum < BXPT_NUM_PID_CHANNELS; PidChanNum++)
-        {
-            RegAddr = BCHP_XPT_RAVE_CXMEM_Ci_ARRAY_BASE + ( PidChanNum * CXMEM_CHNL_STEPSIZE );
-            Reg = BREG_Read32( Context->hReg, RegAddr );
-            Reg &= tempReg;
-
-            if (Reg)
-                ExitCode = BXPT_Rave_RemovePidChannel( Context, PidChanNum );
-        }
-    }
-#endif
-
-#endif
-
-    return (ExitCode);
-}
-
 BERR_Code BXPT_Rave_RemovePidChannel(
     BXPT_RaveCx_Handle Context,         /* [in] The context  */
     unsigned int PidChanNum         /* [in] Which PID channel to remove. */
@@ -4426,29 +4289,6 @@ void ClearSpidTable(
 #endif
 }
 
-BERR_Code BXPT_Rave_SetTimestampUserBits(
-    BXPT_RaveCx_Handle Ctx,         /* [in] The record context  */
-    unsigned int Bits                   /* [in] The new value for the user bits. */
-    )
-{
-    uint32_t Reg;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( Ctx );
-
-    Reg = BREG_Read32( Ctx->hReg, Ctx->BaseAddr + REC_TS_CTRL_OFFSET );
-    Reg &= ~(
-        BCHP_MASK( XPT_RAVE_CX0_REC_TS_CTRL, TS_USER_BITS )
-    );
-    Reg |= (
-        BCHP_FIELD_DATA( XPT_RAVE_CX0_REC_TS_CTRL, TS_USER_BITS, Bits )
-    );
-    BREG_Write32( Ctx->hReg, Ctx->BaseAddr + REC_TS_CTRL_OFFSET, Reg );
-
-    return( ExitCode );
-}
-
 BERR_Code BXPT_Rave_GetRecordStats(
     BXPT_RaveCx_Handle Ctx,         /* [in] The record context  */
     BXPT_Rave_RecordStats *Stats        /* [out] Record context statistics. */
@@ -4645,56 +4485,6 @@ unsigned BXPT_Rave_GetQueueDepth(
     return( Depth );
 }
 
-BERR_Code BXPT_Rave_GetContextStatus(
-    BXPT_RaveCx_Handle hCtx,
-    BXPT_RaveCx_Status *CxStatus
-    )
-{
-    uint32_t Reg;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hCtx );
-    BDBG_ASSERT( CxStatus );
-
-    Reg = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + AV_MISC_CFG1_OFFSET );
-    CxStatus->ContextEnabled = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_AV_MISC_CONFIG1, CONTEXT_ENABLE ) ? true : false;
-
-    Reg = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + CDB_DEPTH_OFFSET );
-    CxStatus->CdbOverflow = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_AV_CDB_DEPTH, CDB_OVERFLOW ) ? true : false;
-
-    Reg = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + ITB_DEPTH_OFFSET );
-    CxStatus->ItbOverflow = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_AV_ITB_DEPTH, ITB_OVERFLOW ) ? true : false;
-
-    return( ExitCode );
-}
-
-void BXPT_Rave_ClearOverflow(
-    BXPT_RaveCx_Handle hCtx
-    )
-{
-    uint32_t MiscControlReg;
-    uint32_t Reg;
-
-    MiscControlReg = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + AV_MISC_CFG1_OFFSET );
-
-    /* Disable the context while we do this. */
-    Reg = MiscControlReg & ~( BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG1, CONTEXT_ENABLE ) );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_MISC_CFG1_OFFSET, Reg );
-
-    /* Clear the overflow bits for both CDB and ITB */
-    Reg = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + CDB_DEPTH_OFFSET );
-    Reg &= ~( BCHP_MASK( XPT_RAVE_CX0_AV_CDB_DEPTH, CDB_OVERFLOW ) );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + CDB_DEPTH_OFFSET, Reg );
-
-    Reg = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + ITB_DEPTH_OFFSET );
-    Reg &= ~( BCHP_MASK( XPT_RAVE_CX0_AV_ITB_DEPTH, ITB_OVERFLOW ) );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + ITB_DEPTH_OFFSET, Reg );
-
-    /* Put back the original context enable state (whatever that was). */
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_MISC_CFG1_OFFSET, MiscControlReg );
-}
-
 static BERR_Code ClearCxHold(
     BXPT_RaveCx_Handle hCtx
     )
@@ -4808,25 +4598,6 @@ BERR_Code BXPT_Rave_FlushContext(
 
     Done:
     return( ExitCode );
-}
-
-
-BERR_Code BXPT_Rave_GetPictureCount(
-    BXPT_RaveCx_Handle hCtx,
-    unsigned *PictureCount
-    )
-{
-    uint32_t Reg;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hCtx );
-    BDBG_ASSERT( PictureCount );
-
-    Reg = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + PICTURE_CTR_OFFSET );
-    *PictureCount = BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_PIC_CTR, VALUE );
-
-    return ExitCode;
 }
 
 
@@ -6548,16 +6319,6 @@ void FlushPicCounter(
     BREG_Write32( hCtx->hReg, hCtx->BaseAddr + PIC_INC_DEC_CTRL_OFFSET, Reg );
 }
 
-
-BERR_Code BXPT_Rave_GetDefaultThresholds(
-    BXPT_RaveCx_Handle hCtx,
-    BXPT_Rave_ContextThresholds *Thresholds
-    )
-{
-    /* A size of 0 will return the default thresholds. */
-    return BXPT_Rave_ComputeThresholds( hCtx, 0, 0, Thresholds );
-}
-
 BERR_Code BXPT_Rave_ComputeThresholds(
     BXPT_RaveCx_Handle hCtx,
     size_t CdbLength,
@@ -6838,15 +6599,6 @@ BERR_Code BXPT_Rave_ClearSCRegister(
     return ExitCode;
 }
 
-BERR_Code BXPT_Rave_GetContextDefaultSettings(
-    BXPT_Rave_ContextSettings *ContextDefSettings   /* [out] The defaults. */
-    )
-{
-     BKNI_Memset( (void *)ContextDefSettings, 0, sizeof(BXPT_Rave_ContextSettings));
-     /* ContextDefSettings->PesExtSearchMode = BXPT_Rave_PesExtSearchAlways;*/
-     return BERR_SUCCESS;
-}
-
 BERR_Code BXPT_Rave_GetContextConfig(
     BXPT_RaveCx_Handle Context,         /* [in] The context  */
     BXPT_Rave_ContextSettings *Config   /* [out] The Context settings. */
@@ -6946,123 +6698,6 @@ void FreeScds(
     }
 }
 
-/*
-** Internally, the SCD array is accessed as bytes. However, the host MIPS sees this
-** as an array of longs, with each 'byte' mapped to the LSB of each long. For instance,
-** byte[ 2 ] is accesed by the MIPS through the LSB of long[ 2 ].
-*/
-#define GET_SCD_BYTE_ADDR( Base, Offset )   ( Base + 4 * Offset )
-
-BERR_Code BXPT_Rave_GetIpConfig(
-    BXPT_RaveCx_Handle hCtx,        /* [in] Handle for the IP context */
-    BXPT_Rave_IpConfig *IpConfig    /* [out] The IP config params */
-    )
-{
-    uint32_t ScdBytesBase;
-    unsigned ScdNum;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hCtx );
-    BDBG_ASSERT( IpConfig );
-
-    ScdNum = hCtx->hAvScd->ChannelNo;
-    ScdBytesBase = BCHP_XPT_RAVE_DMEMi_ARRAY_BASE + SCD_DMEM_BASE * 4 + ScdNum * SCD_DMEM_SIZE * 4;
-
-    IpConfig->IpHeaderChecksum = ( BREG_Read32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 2 ) ) << 8 ) & 0xFF00;
-    IpConfig->IpHeaderChecksum |= BREG_Read32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 1 )) & 0xFF;
-
-    IpConfig->IpHeaderLength = BREG_Read32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 5 )) & 0xFF;
-
-    IpConfig->NumTsPackets = BREG_Read32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 8 )) & 0xFF;
-
-    IpConfig->SequenceNumIncrement = ( BREG_Read32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 10 ) ) << 8 ) & 0xFF00;
-    IpConfig->SequenceNumIncrement |= BREG_Read32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 9 )) & 0xFF;
-
-    IpConfig->CurrentSequenceNum = ( BREG_Read32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 14 ) ) << 24 ) & 0xFF000000;
-    IpConfig->CurrentSequenceNum |= ( BREG_Read32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 13 ) ) << 16 ) & 0xFF0000;
-    IpConfig->CurrentSequenceNum |= ( BREG_Read32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 12 ) ) << 8 )  & 0xFF00;
-    IpConfig->CurrentSequenceNum |=   BREG_Read32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 11 ))          & 0xFF;
-
-    IpConfig->IsMpegTs = hCtx->IsMpegTs;
-
-    return ExitCode;
-}
-
-BERR_Code BXPT_Rave_SetIpConfig(
-    BXPT_RaveCx_Handle hCtx,            /* [in] Handle for the IP context */
-    const BXPT_Rave_IpConfig *IpConfig  /* [out] The IP config params */
-    )
-{
-    uint32_t ScdBytesBase;
-    uint32_t Reg;
-    uint32_t WrapThreshold;
-    uint8_t PacketSize;
-    unsigned ScdNum;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hCtx );
-    BDBG_ASSERT( IpConfig );
-
-    ScdNum = hCtx->hAvScd->ChannelNo;
-    ScdBytesBase = BCHP_XPT_RAVE_DMEMi_ARRAY_BASE + SCD_DMEM_BASE * 4 + ScdNum * SCD_DMEM_SIZE * 4;
-
-    BREG_Write32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 1 ), IpConfig->IpHeaderChecksum & 0xFF );
-    BREG_Write32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 2 ), ( IpConfig->IpHeaderChecksum >> 8 ) & 0xFF );
-
-    BREG_Write32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 5 ), IpConfig->IpHeaderLength );
-
-    BREG_Write32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 8 ), IpConfig->NumTsPackets );
-
-    BREG_Write32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 9 ), IpConfig->SequenceNumIncrement & 0xFF );
-    BREG_Write32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 10 ), ( IpConfig->SequenceNumIncrement >> 8 ) & 0xFF );
-
-    BREG_Write32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 11 ), IpConfig->CurrentSequenceNum & 0xFF );
-    BREG_Write32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 12 ), ( IpConfig->CurrentSequenceNum >> 8 ) & 0xFF );
-    BREG_Write32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 13 ), ( IpConfig->CurrentSequenceNum >> 16 ) & 0xFF );
-    BREG_Write32( hCtx->hReg, GET_SCD_BYTE_ADDR( ScdBytesBase, 14 ), ( IpConfig->CurrentSequenceNum >> 24 ) & 0xFF );
-
-/* TBD: Ask Sanjeev if there's already a define for the IP frame size. */
-#define IP_FRAME_SIZE   ( 2048 )
-
-    hCtx->IsMpegTs = IpConfig->IsMpegTs;
-    PacketSize = IpConfig->IsMpegTs ? 188 : 130;
-    WrapThreshold = IP_FRAME_SIZE - ( IpConfig->IpHeaderLength + IpConfig->NumTsPackets * PacketSize ) + 1;
-
-    Reg = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + AV_THRESHOLDS_OFFSET );
-    Reg &= ~(
-        BCHP_MASK( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_OVERFLOW_THRESHOLD ) |
-        BCHP_MASK( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_WRAPAROUND_THRESHOLD )
-    );
-    Reg |= (
-        BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_OVERFLOW_THRESHOLD, CTX_IP_OVERFLOW_THRESH ) |
-        BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_THRESHOLDS, CONTEXT_WRAPAROUND_THRESHOLD, WrapThreshold )
-    );
-    BREG_Write32( hCtx->hReg, hCtx->BaseAddr + AV_THRESHOLDS_OFFSET, Reg );
-
-    return ExitCode;
-}
-
-uint8_t *BXPT_Rave_GetCdbBasePtr(
-    BXPT_RaveCx_Handle hCtx
-    )
-{
-   BMMA_DeviceOffset Base;
-    void *Ptr;
-
-    BDBG_ASSERT( hCtx );
-
-    if (!hCtx->externalCdbAlloc) {
-        (void)BERR_TRACE(BERR_NOT_SUPPORTED);
-        return 0;
-    }
-
-    Base = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_BASE_PTR_OFFSET );
-    Ptr = (uint8_t*)hCtx->mma.cdbPtr + (Base - hCtx->mma.cdbOffset); /* convert Base -> cached ptr */
-    return Ptr;
- }
-
 void GetScEnables(
     BXPT_Rave_EsRanges *Range,
     unsigned Mode
@@ -7116,19 +6751,6 @@ void GetScEnables_Indexer(
 }
 
 #define GET_ITB_TYPE(itb) ((itb[0]>>24) & 0xFF)
-
-BERR_Code BXPT_Rave_AllocSoftContext(
-    BXPT_RaveCx_Handle SrcContext,      /* [in] The source context */
-    BXPT_RaveSoftMode DestContextMode,  /* [in] The type of data that the destination should generate. */
-    BXPT_RaveCx_Handle *DestContext     /* [out] The destination (soft) context */
-    )
-{
-   /* deprecated due to MMA conversion */
-   BSTD_UNUSED(SrcContext);
-   BSTD_UNUSED(DestContextMode);
-   BSTD_UNUSED(DestContext);
-   return BERR_TRACE(BERR_NOT_SUPPORTED);
-}
 
 BERR_Code AllocSoftContext_Priv(
     BXPT_RaveCx_Handle SrcContext,      /* [in] The source context */
@@ -8325,135 +7947,6 @@ BERR_Code BXPT_Rave_ResetSoftContext(
     hCtx->SoftRave.StopMarkerInserted = false;
 
     return BXPT_Rave_FlushContext( hCtx );
-}
-
-BERR_Code BXPT_Rave_StopPTS(
-    BXPT_RaveCx_Handle hCtx,
-    uint32_t StopPTS, uint32_t tolerance,
-    void (* StopPTSCb)(void *, uint32_t pts),
-    void * param
-    )
-{
-    if (StopPTS == 0 && hCtx->SoftRave.SpliceStopPTSFlag  == true)
-    {
-    hCtx->SoftRave.splice_stop_PTS = StopPTS;
-        hCtx->SoftRave.splice_stop_PTS_tolerance = 0 ;
-        hCtx->SoftRave.SpliceStopPTSFlag = false;
-        hCtx->SoftRave.SpliceStopPTSCB = NULL;
-        hCtx->SoftRave.SpliceStopPTSCBParam =NULL;
-        hCtx->SoftRave.InsertStopPts = false;
-    }else
-    {
-        hCtx->SoftRave.splice_stop_PTS = StopPTS;
-        hCtx->SoftRave.splice_stop_PTS_tolerance = tolerance ;
-    hCtx->SoftRave.SpliceStopPTSFlag = true;
-    hCtx->SoftRave.SpliceStopPTSCB = StopPTSCb;
-    hCtx->SoftRave.SpliceStopPTSCBParam = param;
-    hCtx->SoftRave.InsertStopPts = true;
-    hCtx->SoftRave.StopMarkerInserted = false;
-    }
-    return BERR_SUCCESS;
-}
-BERR_Code BXPT_Rave_StartPTS(
-    BXPT_RaveCx_Handle hCtx,
-    uint32_t StartPTS,uint32_t tolerance,
-    void (* StartPTSCb)(void *, uint32_t pts),
-    void * param
-    )
-{
-    if (StartPTS == 0 && hCtx->SoftRave.SpliceStartPTSFlag  == true)
-    {
-    hCtx->SoftRave.splice_start_PTS = StartPTS;
-    hCtx->SoftRave.splice_start_PTS_tolerance = 0;
-    hCtx->SoftRave.SpliceStartPTSFlag = false;
-    hCtx->SoftRave.InsertStartPts = false;
-    hCtx->SoftRave.SpliceStartPTSCB = NULL;
-    hCtx->SoftRave.SpliceStartPTSCBParam = NULL;
-    }else
-    {
-    hCtx->SoftRave.splice_start_PTS = StartPTS;
-    hCtx->SoftRave.splice_start_PTS_tolerance = tolerance;
-    hCtx->SoftRave.SpliceStartPTSFlag = true;
-    hCtx->SoftRave.InsertStartPts = true;
-    hCtx->SoftRave.StartMarkerInserted = false;
-    hCtx->SoftRave.SpliceStartPTSCB = StartPTSCb;
-    hCtx->SoftRave.SpliceStartPTSCBParam = param;
-    }
-    BDBG_MSG(("Programming Start PTS %u", StartPTS));
-    return BERR_SUCCESS;
-}
-BERR_Code BXPT_Rave_Monitor_PTS(
-    BXPT_RaveCx_Handle hCtx,
-    uint32_t PTS,uint32_t tolerance,
-    void (* SpliceMonitorPTSCB)(void *, uint32_t pts),
-    void * param
-    )
-{
-    BSTD_UNUSED( param );
-
-    if (PTS == 0 && (hCtx->SoftRave.SpliceMonitorPTSFlag == true) )
-    {
-    hCtx->SoftRave.splice_monitor_PTS = PTS;
-        hCtx->SoftRave.splice_monitor_PTS_tolerance = 0;
-        hCtx->SoftRave.SpliceMonitorPTSFlag = false;
-        hCtx->SoftRave.SpliceMonitorPTSCBParam = NULL;
-        hCtx->SoftRave.SpliceMonitorPTSCB = NULL;
-    }else
-    {
-        hCtx->SoftRave.splice_monitor_PTS = PTS;
-        hCtx->SoftRave.splice_monitor_PTS_tolerance = tolerance;
-    hCtx->SoftRave.SpliceMonitorPTSFlag = true;
-    hCtx->SoftRave.SpliceMonitorPTSCBParam = param;
-    hCtx->SoftRave.SpliceMonitorPTSCB = SpliceMonitorPTSCB;
-    }
-    return BERR_SUCCESS;
-}
-
-BERR_Code BXPT_Rave_Cancel_PTS(  BXPT_RaveCx_Handle hCtx  )
-{
-    hCtx->SoftRave.splice_monitor_PTS = 0;
-    hCtx->SoftRave.SpliceMonitorPTSFlag = false;
-    hCtx->SoftRave.SpliceMonitorPTSCB = NULL;
-    return BERR_SUCCESS;
-}
-
-BERR_Code BXPT_Rave_SetPCROffset(BXPT_RaveCx_Handle hCtx  , uint32_t pcr_offset)
-{
-    hCtx->SoftRave.splice_last_pcr_offset = pcr_offset;
-    return BERR_SUCCESS;
-}
-
-BERR_Code BXPT_Rave_AdjustCdbLength(
-    BXPT_RaveCx_Handle hCtx,
-    size_t CdbLength
-    )
-{
-   BMMA_DeviceOffset Base, Read, Write, Valid;
-    BXPT_Rave_ContextThresholds Thresholds;
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hCtx );
-
-    Base  = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_BASE_PTR_OFFSET );
-    Read  = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_READ_PTR_OFFSET );
-    Write = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_WRITE_PTR_OFFSET );
-    Valid = BREG_ReadAddr( hCtx->hReg, hCtx->BaseAddr + CDB_VALID_PTR_OFFSET );
-
-    /* Sanity check; no can do unless pointers are in reset state */
-    if ( Base && (Base == Read) && (Base == Write) && (Base == Valid) )
-    {
-        BREG_Write32( hCtx->hReg, hCtx->BaseAddr + CDB_END_PTR_OFFSET, Base + CdbLength - 1 );
-
-        BXPT_Rave_GetThresholds( hCtx, &Thresholds );
-        BXPT_Rave_ComputeThresholds( hCtx, CdbLength, 0, &Thresholds );
-        ExitCode = BXPT_Rave_SetThresholds( hCtx, &Thresholds );
-    }
-    else
-    {
-      ExitCode = BXPT_ERR_NO_AVAILABLE_RESOURCES;
-    }
-
-    return ExitCode;
 }
 
 BERR_Code GetNextFreeScd(

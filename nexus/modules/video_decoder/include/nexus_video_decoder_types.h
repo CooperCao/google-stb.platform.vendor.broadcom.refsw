@@ -904,6 +904,7 @@ typedef struct NEXUS_VideoDecoderMemory
     bool dynamicPictureBuffers; /* If true, alloc from picture buffer at start time (specifically, NEXUS_VideoWindow_AddInput).
                                    This allows for video/graphics memory sharing at the risk of OOM due to fragmentation. */
     NEXUS_SecureVideo secure; /* allocate picture buffer memory for unsecure, secure or both */
+    NEXUS_SecureVideo secureTranscode;
 } NEXUS_VideoDecoderMemory;
 
 /**
@@ -953,7 +954,7 @@ typedef struct NEXUS_VideoDecoderModuleSettings
     struct {
         unsigned avdHeapIndex[NEXUS_MAX_XVD_DEVICES]; /* Sets the heap[] index to be used per AVD core for picture data. */
         unsigned secondaryPictureHeapIndex[NEXUS_MAX_XVD_DEVICES]; /* Sets the heap[] index to be used per AVD core for secondary picture data. */
-    } secure;
+    } secure, secureTranscode;
     unsigned hostAccessibleHeapIndex; /* deprecated */
     unsigned mfdMapping[NEXUS_MAX_VIDEO_DECODERS]; /* Maps VideoDecoder handle to MFD block. */
     unsigned avdMapping[NEXUS_MAX_VIDEO_DECODERS]; /* Maps VideoDecoder handle to AVD device. Set to NEXUS_MAX_XVD_DEVICES if unused. */

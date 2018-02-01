@@ -55,6 +55,13 @@ ifeq ($(BCHP_CHIP), 7231)
          BPWR_CHIP_VER_LOWER := a0
      endif
 endif
+ifeq ($(BCHP_CHIP), 7278)
+     ifeq ($(filter $(BCHP_VER_LOWER), b0 b1), $(BCHP_VER_LOWER))
+         BPWR_CHIP_VER_LOWER := b0
+     else
+         BPWR_CHIP_VER_LOWER := a0
+     endif
+endif
 ifeq ($(BCHP_CHIP), 7425)
     ifeq ($(filter $(BCHP_VER_LOWER), b0 b1 b2), $(BCHP_VER_LOWER))
 	BPWR_CHIP_VER_LOWER := b0

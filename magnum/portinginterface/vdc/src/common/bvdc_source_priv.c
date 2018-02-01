@@ -66,6 +66,16 @@ BDBG_OBJECT_ID(BVDC_SRC);
 #ifndef BVDC_FOR_BOOTUPDATER
 
 /****************************************************************************/
+/* Inline helpers                                                           */
+/****************************************************************************/
+#define BVDC_P_SRC_RETURN_IF_ERR(result) \
+    if ( BERR_SUCCESS != (result)) \
+{\
+    return BERR_TRACE(result);  \
+}
+
+#if (BVDC_P_SUPPORT_HDDVI)
+/****************************************************************************/
 /* Number of entries use this to loop, and/or allocate memory.              */
 /****************************************************************************/
 #define BVDC_P_FRT_COUNT_INTERLACED \
@@ -82,15 +92,6 @@ BDBG_OBJECT_ID(BVDC_SRC);
     BAVC_FrameRateCode_##e_frame_rate,                                       \
     ((BVDC_P_BVB_BUS_CLOCK / (vert_freq * 1000)) * (ppt)),                   \
     (#e_frame_rate)                                                          \
-}
-
-/****************************************************************************/
-/* Inline helpers                                                           */
-/****************************************************************************/
-#define BVDC_P_SRC_RETURN_IF_ERR(result) \
-    if ( BERR_SUCCESS != (result)) \
-{\
-    return BERR_TRACE(result);  \
 }
 
 /* Frame rate detection base on clk per vsync */
@@ -123,6 +124,7 @@ static const BVDC_P_FrameRateEntry s_aProFramerateTbl[] =
     BVDC_P_MAKE_FRT(e23_976 , 24, 1001),
     BVDC_P_MAKE_FRT(e24     , 24, 1000)
 };
+#endif /* BVDC_P_SUPPORT_HDDVI */
 
 /* INDEX: By source id, do not put ifdefs and nested ifdefs around these that
 * become impossible to decipher.  The eSourceId != BVDC_P_NULL_SOURCE will
@@ -2533,10 +2535,10 @@ void BVDC_P_Source_BuildRul_isr
     return;
 }
 
-
+#if (BVDC_P_SUPPORT_HDDVI)
 /***************************************************************************
-*
-*/
+ *
+ */
 void BVDC_P_Source_UpdateFrameRate_isr
     ( const BFMT_VideoInfo            *pFmtInfo,
       uint32_t                         ulClkPerVsync,
@@ -2569,6 +2571,7 @@ void BVDC_P_Source_UpdateFrameRate_isr
 
     return;
 }
+#endif
 
 /***************************************************************************
 *
@@ -2692,6 +2695,7 @@ BAVC_FrameRateCode BVDC_P_Source_RefreshRateCode_FromRefreshRate_isrsafe
     return BAVC_FrameRateCode_eUnknown;
 }
 
+#if (BVDC_P_SUPPORT_MTG)
 /***************************************************************************
 * return a BAVC_FrameRateCode that MTG should run at, it will be
 * BAVC_FrameRateCode_e50, BAVC_FrameRateCode_e60, or BAVC_FrameRateCode_e59_94
@@ -2709,6 +2713,8 @@ BAVC_FrameRateCode BVDC_P_Source_MtgRefreshRate_FromFrameRateCode_isrsafe
         return s_aSrcRefreshRate[eFrameRateCode].eMtgRefreshCode;
     }
 }
+#endif /* BVDC_P_SUPPORT_MTG */
+
 
 /***************************************************************************
 *

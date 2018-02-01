@@ -9,6 +9,8 @@
 #include "middleware/khronos/glsl/glsl_compiler.h"
 #include "middleware/khronos/glsl/glsl_fastmem.h"
 
+#include "middleware/khronos/common/khrn_mem.h"
+
 #include <string.h>
 
 void gl20_program_init(GL20_PROGRAM_T *program, int32_t name)
@@ -20,8 +22,8 @@ void gl20_program_init(GL20_PROGRAM_T *program, int32_t name)
       should be shiny and new
    */
 
-   assert(program->mh_vertex == MEM_HANDLE_INVALID);
-   assert(program->mh_fragment == MEM_HANDLE_INVALID);
+   assert(program->vertex == NULL);
+   assert(program->fragment == NULL);
    assert(program->bindings == NULL);
    assert(program->samplers == NULL);
    assert(program->uniforms == NULL);
@@ -85,12 +87,12 @@ static void free_attributes(GL20_PROGRAM_T *program)
    program->num_attributes = 0;
 }
 
-void gl20_program_term(MEM_HANDLE_T handle)
+void gl20_program_term(void *p)
 {
-   GL20_PROGRAM_T *program = (GL20_PROGRAM_T *)mem_lock(handle, NULL);
+   GL20_PROGRAM_T *program = p;
 
-   MEM_ASSIGN(program->mh_vertex, MEM_HANDLE_INVALID);
-   MEM_ASSIGN(program->mh_fragment, MEM_HANDLE_INVALID);
+   KHRN_MEM_ASSIGN(program->vertex, NULL);
+   KHRN_MEM_ASSIGN(program->fragment, NULL);
 
    free_bindings(program);
 
@@ -108,8 +110,6 @@ void gl20_program_term(MEM_HANDLE_T handle)
 
    free(program->info_log);
    program->info_log = NULL;
-
-   mem_unlock(handle);
 }
 
 bool gl20_program_bind_attrib(GL20_PROGRAM_T *program, unsigned index, const char *name)
@@ -185,25 +185,20 @@ void gl20_program_link(GL20_PROGRAM_T *program)
 
    free(program->info_log);
 
-   if ((program->mh_vertex == MEM_HANDLE_INVALID) ||
-       (program->mh_fragment == MEM_HANDLE_INVALID)) goto end;
+   if ((program->vertex == NULL) ||
+       (program->fragment == NULL)) goto end;
 
-   GL20_SHADER_T *vertex = (GL20_SHADER_T *)mem_lock(program->mh_vertex, NULL);
-   GL20_SHADER_T *fragment = (GL20_SHADER_T *)mem_lock(program->mh_fragment, NULL);
+   GL20_SHADER_T *vertex = program->vertex;
+   GL20_SHADER_T *fragment = program->fragment;
 
    if (!vertex->compiled || !fragment->compiled) {
-      mem_unlock(program->mh_fragment);
-      mem_unlock(program->mh_vertex);
       goto end;
    }
 
    slang_program *p = (slang_program *)glsl_fastmem_malloc(sizeof(slang_program), false);
 
-   if (!p) {
-      mem_unlock(program->mh_fragment);
-      mem_unlock(program->mh_vertex);
+   if (!p)
       goto end;
-   }
 
    p->vshader.sourcec = vertex->sourcec;
    p->vshader.sourcev = (const char **)vertex->sourcev;
@@ -215,11 +210,8 @@ void gl20_program_link(GL20_PROGRAM_T *program)
    p->bindings = (slang_binding *)program->bindings;
    p->result = &program->result;
 
-   if (!p->vshader.sourcev || !p->fshader.sourcev) {
-      mem_unlock(program->mh_fragment);
-      mem_unlock(program->mh_vertex);
+   if (!p->vshader.sourcev || !p->fshader.sourcev)
       goto end;
-   }
 
    if (glsl_compile_and_link(p)) {
 
@@ -299,9 +291,6 @@ void gl20_program_link(GL20_PROGRAM_T *program)
    if (program->linked)
       program->info_log = strdup(error_buffer);
 
-   mem_unlock(program->mh_fragment);
-   mem_unlock(program->mh_vertex);
-
 end:
 
    glsl_fastmem_term();
@@ -324,18 +313,13 @@ GLboolean gl20_validate_program(GLXX_SERVER_STATE_T *state, GL20_PROGRAM_T *prog
 
 GLboolean gl20_validate_current_program(GLXX_SERVER_STATE_T *state)
 {
-   GL20_PROGRAM_T *program;
    GLboolean result = GL_TRUE;
 
    if(!IS_GL_11(state)) {
-      if (state->mh_program == MEM_HANDLE_INVALID)
+      if (state->program == NULL)
          return GL_FALSE;   //TODO what should we return here? Does it matter?
 
-      program = (GL20_PROGRAM_T *)mem_lock(state->mh_program, NULL);
-
-      result = gl20_validate_program(state, program);
-
-      mem_unlock(state->mh_program);
+      result = gl20_validate_program(state, state->program);
    }
    return result;
 }

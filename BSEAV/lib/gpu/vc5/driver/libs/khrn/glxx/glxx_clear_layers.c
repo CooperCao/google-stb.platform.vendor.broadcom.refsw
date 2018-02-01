@@ -3,7 +3,7 @@
  ******************************************************************************/
 #include "glxx_clear_layers.h"
 #include "glxx_hw.h"
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 #if V3D_VER_AT_LEAST(4,1,34,0)
 /* .vs
@@ -284,8 +284,9 @@ v3d_addr_t glxx_create_clear_gl_g_shader_record(khrn_fmem *fmem,
    // add the following 2 just to stop v3d_pack_shadrec_gl_main asserting (though they should be ignored )
    main_rec.cs_input_size = (V3D_IN_SEG_ARGS_T){.min_req = 1};
    main_rec.vs_input_size = (V3D_IN_SEG_ARGS_T){.min_req = 1};
-
+#if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
    main_rec.defaults = 0;
+#endif
    main_rec.fs = (V3D_SHADER_ARGS_T){.threading = V3D_THREADING_4,
                    .single_seg = false, .propagate_nans = true,
                    .addr = fshader_addr,

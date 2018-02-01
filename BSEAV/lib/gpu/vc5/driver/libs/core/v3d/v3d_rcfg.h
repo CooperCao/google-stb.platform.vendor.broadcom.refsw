@@ -15,7 +15,7 @@ struct v3d_rt_cfg
 
    uint32_t clear[V3D_MAX_RT_WORDS_PER_SAMPLE];
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    /* stride/flipy_height_px valid after v3d_rcfg_finalise() */
    struct v3d_tlb_ldst_params default_ldst_params;
 
@@ -40,7 +40,7 @@ struct v3d_rcfg
 
    uint32_t tile_w_px, tile_h_px;
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    uint32_t disable_rt_store_mask;
    bool depth_store;
    bool stencil_store;
@@ -51,7 +51,7 @@ struct v3d_rcfg
 
    v3d_depth_type_t depth_type;
    uint32_t depth_clear;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    struct v3d_tlb_ldst_params depth_default_ldst_params;
 #endif
 
@@ -59,11 +59,11 @@ struct v3d_rcfg
    v3d_ez_direction_t ez_direction;
 
    uint8_t stencil_clear;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    struct v3d_tlb_ldst_params separate_stencil_default_ldst_params;
 #endif
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    bool early_ds_clear;
 #endif
 };
@@ -71,7 +71,7 @@ struct v3d_rcfg
 extern void v3d_rcfg_collect(
    struct v3d_rcfg *rcfg,
    const V3D_CL_TILE_RENDERING_MODE_CFG_T *i);
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 extern void v3d_rcfg_finalise(struct v3d_rcfg *rcfg);
 
 static inline bool v3d_rcfg_use_separate_stencil(const struct v3d_rcfg *rcfg)

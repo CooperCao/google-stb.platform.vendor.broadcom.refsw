@@ -1593,14 +1593,9 @@ static void fast_path_convert(
    const CopyAlgorithm_t *alg = find_fast_algorithm(dst, src, width, height, depth);
    assert(alg != NULL && alg->supports(alg, dst, src, width, height));
 
+   unsigned start_us = 0;
    if (log_trace_enabled())
-   {
-      GFX_LFMT_SPRINT(src_desc, src->desc.planes[0].lfmt);
-      GFX_LFMT_SPRINT(dst_desc, dst->desc.planes[0].lfmt);
-      log_trace("Neon conversion : %ux%u, srcPitch=%u, dstPitch=%u, from(%s)->to(%s)",
-                     width, height, src->desc.planes[0].pitch, dst->desc.planes[0].pitch,
-                     src_desc, dst_desc);
-   }
+      start_us = vcos_getmicrosecs();
 
    alg->copy(alg, dst, dst_data, src, src_data, width, height);
 
@@ -1613,6 +1608,17 @@ static void fast_path_convert(
       alg->copy(alg, dst, dst_data, src, src_data, width, height);
    }
 #endif
+
+   if (log_trace_enabled())
+   {
+      unsigned end_us = vcos_getmicrosecs();
+
+      GFX_LFMT_SPRINT(src_desc, src->desc.planes[0].lfmt);
+      GFX_LFMT_SPRINT(dst_desc, dst->desc.planes[0].lfmt);
+      log_trace("Neon conversion : %ux%u, srcPitch=%u, dstPitch=%u, from(%s)->to(%s) took %u us",
+         width, height, src->desc.planes[0].pitch, dst->desc.planes[0].pitch,
+         src_desc, dst_desc, end_us - start_us);
+   }
 }
 
 static v3d_imgconv_methods neon_path =

@@ -65,6 +65,7 @@ BDSP_INCLUDES += $(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)
 # Include standard files
 ifneq ($(BDSP_IMG_ONLY),y)
 BDSP_SOURCES += \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/barm_resident_img_desc.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_fwdownload_priv.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_fwinterface_priv.c \
@@ -74,6 +75,7 @@ BDSP_SOURCES += \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_fw_algo.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_int_priv.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_io_priv.c \
+        $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_capture_priv.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_cit_priv.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_cit_log.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_cit_log_ext.c

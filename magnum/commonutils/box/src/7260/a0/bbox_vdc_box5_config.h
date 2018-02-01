@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,19 +50,12 @@ extern "C" {
 #endif
 
 /* Box mode 5 is similar to Box mode 4 */
-extern BBOX_Rts stBoxRts_UHDp60_box5;
 
 void BBOX_P_Vdc_SetBox5SourceCapabilities
     ( BBOX_Vdc_Source_Capabilities *pSourceCap );
 
 void BBOX_P_Vdc_SetBox5DisplayCapabilities
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap );
-
-void BBOX_P_GetBox5MemConfig
-    ( BBOX_MemConfig *pBoxMemConfig );
-
-void BBOX_P_GetBox5Rts
-    ( BBOX_Rts *pBoxRts );
 
 #ifdef __cplusplus
 }

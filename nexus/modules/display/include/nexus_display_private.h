@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,11 +34,13 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- ******************************************************************************/
+ *
+ **************************************************************************/
 #ifndef NEXUS_DISPLAY_PRIVATE_H__
 #define NEXUS_DISPLAY_PRIVATE_H__
 
 #include "nexus_display.h"
+#include "nexus_hdmi_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,6 +49,31 @@ extern "C" {
 void NEXUS_Display_GetIndex_driver(
     NEXUS_DisplayHandle display,
     unsigned *pDisplayIndex
+    );
+
+typedef struct NEXUS_DisplayPrivateStatus
+{
+    NEXUS_HdmiDynamicRangeMasteringInfoFrame infoFrame;
+} NEXUS_DisplayPrivateStatus;
+
+typedef struct NEXUS_DisplayPrivateSettings
+{
+    NEXUS_CallbackDesc hdrInfoChanged; /* private hdrInfoChanged callback; same semantics as public one */
+} NEXUS_DisplayPrivateSettings;
+
+void NEXUS_Display_GetPrivateSettings(
+    NEXUS_DisplayHandle display,
+    NEXUS_DisplayPrivateSettings *pSettings
+    );
+
+NEXUS_Error NEXUS_Display_SetPrivateSettings(
+    NEXUS_DisplayHandle display,
+    const NEXUS_DisplayPrivateSettings *pSettings
+    );
+
+void NEXUS_Display_GetPrivateStatus(
+    NEXUS_DisplayHandle display,
+    NEXUS_DisplayPrivateStatus *pStatus
     );
 
 #ifdef __cplusplus

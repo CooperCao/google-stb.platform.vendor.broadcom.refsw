@@ -104,6 +104,8 @@ NEXUS_DisplayModule_GetDefaultSettings(const struct NEXUS_Core_PreInitState *pre
         for (i=0;i<NEXUS_MAX_VIDEO_WINDOWS;i++) {
             pSettings->videoWindowHeapIndex[j][i] = NEXUS_MAX_HEAPS; /* unused unless specified */
             pSettings->deinterlacerHeapIndex[j][i] = NEXUS_MAX_HEAPS; /* unused unless specified */
+            pSettings->secure.videoWindowHeapIndex[j][i] = NEXUS_MAX_HEAPS; /* unused unless specified */
+            pSettings->secureTranscode.videoWindowHeapIndex[j][i] = NEXUS_MAX_HEAPS; /* unused unless specified */
         }
         pSettings->cfc.cmpHeapIndex[j] = NEXUS_MAX_HEAPS; /* unused unless specified */
         pSettings->cfc.gfdHeapIndex[j] = NEXUS_MAX_HEAPS; /* unused unless specified */

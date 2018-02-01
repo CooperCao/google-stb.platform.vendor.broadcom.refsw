@@ -210,8 +210,8 @@ int main(int argc, char **argv)
 
     {
         uint8_t pes_buffer[64*1024+32];
-        size_t pes_len=0;
-        size_t data_len=0;
+        unsigned pes_len=0;
+        unsigned data_len=0;
         FILE *fout=fopen("data.pes","w");
         btsm_queue_config tsm_config;
         btsm_queue_t tsm;

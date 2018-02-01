@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -235,7 +235,7 @@ typedef struct NEXUS_AudioPlaybackStatus
     NEXUS_AudioPlaybackStartSettings startSettings;
     NEXUS_AudioRunningState started;
     size_t queuedBytes;
-    size_t fifoSize;
+    size_t fifoSize; /* Will be 1k smaller then requested due to hardware padding */
     size_t playedBytes;
 } NEXUS_AudioPlaybackStatus;
 

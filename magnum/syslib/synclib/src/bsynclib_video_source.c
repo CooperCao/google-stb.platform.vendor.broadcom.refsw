@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -163,17 +163,15 @@ BERR_Code BSYNClib_VideoSource_SetMute(BSYNClib_VideoSource * psSource, bool bMu
 	BKNI_EnterCriticalSection();
 	psSource->sResults.bMutePending = false;
 	/* cancel any pending unmute timer */
-	rc = BSYNClib_Channel_P_CancelTimer_isr(hChn, psSource->psUnmuteTimer);
+	BSYNClib_Channel_P_CancelTimer_isr(hChn, psSource->psUnmuteTimer);
 	BKNI_LeaveCriticalSection();
-	if (rc) goto end;
 
 	/* cancel any pending unconditional unmute timer */
 	if (!bMute)
 	{
 		BKNI_EnterCriticalSection();
-		rc = BSYNClib_Channel_P_CancelTimer_isr(hChn, psSource->psUnconditionalUnmuteTimer);
+		BSYNClib_Channel_P_CancelTimer_isr(hChn, psSource->psUnconditionalUnmuteTimer);
 		BKNI_LeaveCriticalSection();
-		if (rc) goto end;
 	}
 
 	/* handling of video channel change mode is in upper layer software, as what constitutes a
@@ -564,8 +562,7 @@ BERR_Code BSYNClib_VideoSource_P_ProcessConfig_isr(BSYNClib_VideoSource * psSour
 		{
 			unsigned long ulTime;
 
-			rc = hChn->sSettings.cbTime.pfGetTime_isr(hChn->sSettings.cbTime.pvParm1, hChn->sSettings.cbTime.iParm2, &ulTime);
-			if (rc) goto error;
+			hChn->sSettings.cbTime.pfGetTime_isr(hChn->sSettings.cbTime.pvParm1, hChn->sSettings.cbTime.iParm2, &ulTime);
 
 			sInfo.ulDelayNotificationTime = ulTime;
 

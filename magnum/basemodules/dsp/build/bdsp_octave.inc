@@ -53,6 +53,9 @@ BDSP_INCLUDES += $(MAGNUM)/basemodules/dsp/include/common_v2
 # Include standard files
 BDSP_INCLUDES += $(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)
 
+# Include fpsdk sources
+include $(MAGNUM)/basemodules/dsp/build/bdsp_octave_fpsdk.inc
+
 # Include standard files
 ifneq ($(BDSP_IMG_ONLY),y)
 BDSP_SOURCES += \
@@ -72,58 +75,6 @@ BDSP_SOURCES += \
         $(MAGNUM)/basemodules/dsp/src/octave/bdsp_raaga_cit_log_ext.c \
         $(MAGNUM)/basemodules/dsp/src/octave/bdsp_raaga_capture_priv.c
 endif
-
-
-########################################################################
-# Added lines for libdspcontrol integration
-########################################################################
-BDSP_RAAGA_FPSDK_MACH := $(shell echo $(BDSP_RAAGA_FP_VER) | tr '[:lower:]' '[:upper:]' | egrep -o 'FP[0-9]+')
-BDSP_INCLUDES += $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/
-ifneq ($(BDSP_IMG_ONLY),y)
-	BDSP_SOURCES += \
-	    $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/libdspcontrol/src/DSP/DSP.c              \
-	    $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/libdspcontrol/src/DSP/DSP_octave_maestro.c   \
-	    $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/libdspcontrol/src/DSP/DSP_raaga_octave.c   \
-	    $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/libdspcontrol/src/DSP/DSP_raaga_octave_atu.c \
-	    $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/libdspcontrol/src/ENDIANESS.c        \
-	    $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/libdspcontrol/src/TB_common.c        \
-	    $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/libdspcontrol/src/TB_circular.c      \
-	    $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/libdspcontrol/src/UTIL_addr.c
-endif
-
-ifeq (${SYSTEM},linuxemu)
-ifeq (${FIREPATH_BM},y)
-    BDSP_DEFINES += FIREPATH_BM
-    APP_CFLAGS += --std=gnu99 -Wno-pointer-arith
-ifneq ($(BDSP_IMG_ONLY),y)
-    BDSP_SOURCES += $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/libdspcontrol/src/DSP/DSP_raaga_octave_bm.c
-endif
-endif
-
-BDSP_DEFINES += BFPSDK_LIBDSPCONTROL_TARGET_SOC=Raaga$(BDSP_RAAGA_FPSDK_MACH)_bm _DSP_CONTROL_API_
-ifneq ($(BDSP_IMG_ONLY),y)
-    BDSP_SOURCES += \
-	    $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/libdspcontrol/src/DSPLOG.c    \
-	    $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/libdspcontrol/src/OS_file.c   \
-	    $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/libdspcontrol/src/OS_linux.c
-endif
-
-APP_INCLUDES += $(shell /projects/firepath/tools/bin/fp-pkg-config --pkg fp_binutils --print-include)
-APP_LDFLAGS  += $(shell /projects/firepath/tools/bin/fp-pkg-config --pkg fp_binutils --print-lib --32-bit)/system-control-proxy-c.o -lrt
-else
-BDSP_DEFINES += BFPSDK_LIBDSPCONTROL_TARGET_SOC=Raaga$(BDSP_RAAGA_FPSDK_MACH)_si_magnum
-ifneq ($(BDSP_IMG_ONLY),y)
-    BDSP_SOURCES += \
-	    $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/libdspcontrol/src/DSP/DSP_raaga_octave_si.c \
-	    $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/libdspcontrol/src/DSPLOG_stubs.c \
-	    $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/libdspcontrol/src/DSP/DSP_raaga_si.c     \
-	    $(MAGNUM)/basemodules/dsp/src/octave/fp_sdk/libdspcontrol/src/DSP/DSP_raaga_mem_si.c
-endif
-endif
-
-########################################################################
-# Added lines for libdspcontrol integration - end
-########################################################################
 
 # Set CFLAG for Raaga Support
 BDSP_DEFINES += BDSP_RAAGA_SUPPORT=1

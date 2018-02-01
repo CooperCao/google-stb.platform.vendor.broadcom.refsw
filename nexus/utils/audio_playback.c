@@ -410,7 +410,7 @@ int main(int argc, const char *argv[])
                         uint8_t significand[8];
                         short channels, bitrate;
                         int i,e;
-                        uint64_t s;
+                        uint64_t s=0;
 
                         fread(&skip,4,1,pFile);
                         skipLocation = ftell(pFile);

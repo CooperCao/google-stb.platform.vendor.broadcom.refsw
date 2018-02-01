@@ -45,6 +45,7 @@ extern "C" {
 
 NEXUS_Error NEXUS_FilePlay_Lock_priv( NEXUS_FilePlayHandle file );
 void NEXUS_FilePlay_Unlock_priv( NEXUS_FilePlayHandle file );
+bool NEXUS_FileRecord_DirectIo_isrsafe( NEXUS_FileWriteHandle file );
 
 #ifdef __cplusplus
 }

@@ -113,7 +113,7 @@ static void persist_destroy(khrn_fmem_persist* persist)
 
    if (persist->occlusion_query_list)
       glxx_queries_release(persist->occlusion_query_list);
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (persist->prim_counts_query_list)
       glxx_queries_release(persist->prim_counts_query_list);
 #endif
@@ -190,7 +190,7 @@ static void bin_completion(void *data, uint64_t job_id, v3d_sched_job_error erro
       vcos_atomic_store_bool(persist->gpu_aborted, true, VCOS_MEMORY_ORDER_RELAXED);
    }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    /* go through the list of queries and update prim counts queries results */
    if (persist->prim_counts_query_list != NULL)
       glxx_prim_counts_queries_update(persist->prim_counts_query_list, error == V3D_SCHED_JOB_SUCCESS);
@@ -274,7 +274,7 @@ void khrn_fmem_discard(khrn_fmem *fmem)
     * record things as we would have got a completion callback, but without
     * updating results */
    glxx_occlusion_queries_update(fmem->persist->occlusion_query_list, false);
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    glxx_prim_counts_queries_update(fmem->persist->prim_counts_query_list, false);
 #endif
 
@@ -405,7 +405,8 @@ static void get_deps_from_and_release_fences(v3d_scheduler_deps* first_stage_dep
    {
       khrn_fence* fence = (khrn_fence*)khrn_uintptr_vector_item(fences, i);
       assert(!khrn_fence_has_user(fence, NULL));
-      v3d_scheduler_merge_deps(first_stage_deps, &fence->deps);
+      const v3d_scheduler_deps *deps = khrn_fence_get_deps(fence);
+      v3d_scheduler_merge_deps(first_stage_deps, deps);
 
       khrn_fence_refdec(fence);
    }
@@ -501,24 +502,24 @@ static void submit_bin_render(
 #endif
 
    {
-      bool has_l3c = v3d_scheduler_get_hub_identity()->has_l3c;
+      const V3D_HUB_IDENT_T* hub_ident = v3d_scheduler_get_hub_identity();
 
       v3d_barrier_flags bin_flags = fmem->bin_rw_flags;
       v3d_barrier_flags rdr_flags = fmem->render_rw_flags;
 
       // Pre-bin barrier between memory and bin-readers.
-      fmem->br_info.details.bin_cache_ops = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, bin_flags, false, has_l3c);
+      fmem->br_info.details.bin_cache_ops = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, bin_flags, false, hub_ident);
       fmem->br_info.details.bin_cache_ops &= ~V3D_CACHE_CLEAR_VCD; // VCD cache flushed in CL
 
       // Post-bin barrier between bin-writers and memory.
-      fmem->br_info.details.bin_cache_ops |= v3d_barrier_cache_cleans(bin_flags, V3D_BARRIER_MEMORY_READ, false, has_l3c);
+      fmem->br_info.details.bin_cache_ops |= v3d_barrier_cache_cleans(bin_flags, V3D_BARRIER_MEMORY_READ, false, hub_ident);
 
       // Pre-render barrier between memory and render-readers.
-      fmem->br_info.details.render_cache_ops = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, rdr_flags, false, has_l3c);
+      fmem->br_info.details.render_cache_ops = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, rdr_flags, false, hub_ident);
       fmem->br_info.details.render_cache_ops &= ~V3D_CACHE_CLEAR_VCD; // VCD cache flushed in CL
 
       // Post-render barrier between render-writers and memory.
-      fmem->br_info.details.render_cache_ops |= v3d_barrier_cache_cleans(rdr_flags, V3D_BARRIER_MEMORY_READ, false, has_l3c);
+      fmem->br_info.details.render_cache_ops |= v3d_barrier_cache_cleans(rdr_flags, V3D_BARRIER_MEMORY_READ, false, hub_ident);
    }
 
    unsigned bin_index = gfx_log2(KHRN_STAGE_BIN);
@@ -559,15 +560,15 @@ static job_t submit_compute(khrn_fmem* fmem, v3d_scheduler_deps* deps)
    }
 #endif
 
-   bool has_l3c = v3d_scheduler_get_hub_identity()->has_l3c;
+   const V3D_HUB_IDENT_T* hub_ident = v3d_scheduler_get_hub_identity();
 
    // Compute shaders use only render stage.
    assert(fmem->bin_rw_flags == 0);
 
    // Pre-render barrier between memory and compute-readers.
    // Post-render barrier between compute-writers and memory.
-   v3d_cache_ops cache_flushes = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, fmem->render_rw_flags, false, has_l3c);
-   v3d_cache_ops cache_cleans = v3d_barrier_cache_cleans(fmem->render_rw_flags, V3D_BARRIER_MEMORY_READ, false, has_l3c);
+   v3d_cache_ops cache_flushes = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, fmem->render_rw_flags, false, hub_ident);
+   v3d_cache_ops cache_cleans = v3d_barrier_cache_cleans(fmem->render_rw_flags, V3D_BARRIER_MEMORY_READ, false, hub_ident);
    v3d_cache_ops cache_ops = cache_flushes | cache_cleans;
 
    uint64_t job_id;
@@ -591,13 +592,6 @@ static job_t submit_compute(khrn_fmem* fmem, v3d_scheduler_deps* deps)
          fmem->br_info.details.secure,
          render_completion,
          persist);
-    #if KHRN_DEBUG
-      if (!khrn_options.save_crc_enabled)
-    #endif
-      {
-         free(persist->compute_dispatches.data);
-         persist->compute_dispatches.data = NULL;
-      }
    }
 
    return job_id;
@@ -640,9 +634,6 @@ static void khrn_fmem_preprocess_job(void* data)
    if (persist->compute_dispatches.size != 0)
    {
       compute_job_mem* compute_mem = glxx_compute_process_dispatches(&persist->compute_dispatches);
-      free(persist->compute_dispatches.data);
-      persist->compute_dispatches.data = NULL;
-
     #if KHRN_DEBUG
       if (compute_mem)
       {
@@ -667,21 +658,11 @@ static void khrn_fmem_preprocess_job(void* data)
    if (persist->compute_indirect.size != 0)
    {
       glxx_compute_process_indirect_dispatches(&persist->compute_dispatches, &persist->compute_indirect);
-      free(persist->compute_indirect.data);
-      persist->compute_indirect.data = NULL;
 
       v3d_scheduler_update_compute_subjobs(
          persist->compute_subjobs_id,
          khrn_vector_data(v3d_compute_subjob, &persist->compute_dispatches),
          persist->compute_dispatches.size);
-
-    #if KHRN_DEBUG
-      if (!khrn_options.autoclif_enabled && !khrn_options.save_crc_enabled)
-    #endif
-      {
-         free(persist->compute_dispatches.data);
-         persist->compute_dispatches.data = NULL;
-      }
    }
  #endif
 }

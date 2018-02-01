@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
-******************************************************************************/
+ ******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "blst_squeue.h"
@@ -80,14 +79,13 @@ btsm_queue_t
 btsm_queue_create(const btsm_queue_config *config)
 {
     btsm_queue_t  queue;
-    BERR_Code rc;
     unsigned i;
 
     BDBG_ASSERT(config);
     BDBG_MSG_TRACE(("btsm_queue_create"));
 
     queue = BKNI_Malloc(sizeof(*queue)+sizeof(struct b_tsm_queue_entry)*config->length);
-    if(!queue) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto err_alloc;}
+    if(!queue) { (void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto err_alloc;}
     BDBG_OBJECT_INIT(queue, btsm_queue);
     BKNI_Memset(&queue->status, 0, sizeof(queue->status));
     queue->started = false;

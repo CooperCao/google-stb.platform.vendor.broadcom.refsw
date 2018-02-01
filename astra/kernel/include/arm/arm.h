@@ -52,6 +52,7 @@
 namespace arm {
     int cpuId();
     int smpCpuNum();
+    int smpTotalNumCpu();
 };
 
 #endif

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -93,9 +93,8 @@ BERR_Code BSYNClib_MuteControl_ScheduleTask_isr(BSYNClib_Channel_Handle hChn)
 	return rc;
 }
 
-BERR_Code BSYNClib_MuteControl_CancelUnmuteTimers_isr(BSYNClib_Channel_Handle hChn)
+void BSYNClib_MuteControl_CancelUnmuteTimers_isr(BSYNClib_Channel_Handle hChn)
 {
-	BERR_Code rc = BERR_SUCCESS;
 	BSYSlib_List_IteratorHandle hIterator;
 	BSYNClib_VideoSource * psVideoSource;
 	BSYNClib_AudioSource * psAudioSource;
@@ -109,8 +108,7 @@ BERR_Code BSYNClib_MuteControl_CancelUnmuteTimers_isr(BSYNClib_Channel_Handle hC
 	{
 		psVideoSource = (BSYNClib_VideoSource *)BSYSlib_List_Next_isr(hIterator);
 
-		rc = BSYNClib_Channel_P_CancelTimer_isr(hChn, psVideoSource->psUnmuteTimer);
-		if (rc) goto error;
+		BSYNClib_Channel_P_CancelTimer_isr(hChn, psVideoSource->psUnmuteTimer);
 	}
 	BSYSlib_List_ReleaseIterator_isr(hIterator);
 
@@ -119,21 +117,11 @@ BERR_Code BSYNClib_MuteControl_CancelUnmuteTimers_isr(BSYNClib_Channel_Handle hC
 	{
 		psAudioSource = (BSYNClib_AudioSource *)BSYSlib_List_Next_isr(hIterator);
 
-		rc = BSYNClib_Channel_P_CancelTimer_isr(hChn, psAudioSource->psUnmuteTimer);
-		if (rc) goto error;
+		BSYNClib_Channel_P_CancelTimer_isr(hChn, psAudioSource->psUnmuteTimer);
 	}
 	BSYSlib_List_ReleaseIterator_isr(hIterator);
 
-	goto end;
-
-	error:
-	if (hIterator)
-	{
-		BSYSlib_List_ReleaseIterator_isr(hIterator);
-	}
-
-	end:
-	return rc;
+	return;
 }
 
 BERR_Code BSYNClib_MuteControl_StartUnmuteTimers(BSYNClib_Channel_Handle hChn)

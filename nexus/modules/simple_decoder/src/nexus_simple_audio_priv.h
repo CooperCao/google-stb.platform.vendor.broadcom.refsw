@@ -77,6 +77,7 @@ struct NEXUS_SimpleAudioDecoderServer
     BLST_S_ENTRY(NEXUS_SimpleAudioDecoderServer) link;
     BLST_S_HEAD(NEXUS_SimpleAudioPlayback_P_List, NEXUS_SimpleAudioPlayback) playbacks;
     BLST_S_HEAD(NEXUS_SimpleAudioDecoder_P_List, NEXUS_SimpleAudioDecoder) decoders;
+    NEXUS_SimpleAudioDecoderServerSettings masterServerSettings;
 };
 
 NEXUS_SimpleAudioDecoderHandle nexus_simple_audio_decoder_p_first(void);
@@ -101,6 +102,7 @@ struct NEXUS_SimpleAudioDecoder
     bool clientStarted;
     bool suspended;
     NEXUS_SimpleAudioDecoderServerSettings serverSettings;
+    NEXUS_SimpleAudioDecoderServerSettings masterSettings; /* Need to call NEXUS_SimpleAudioDecoder_P_GetServerSettings() before using */
     NEXUS_SimpleAudioDecoderSettings settings;
     struct NEXUS_SimpleAudioDecoder_P_CodecSettingsDecoder codecSettings;
     NEXUS_SimpleAudioDecoderStartSettings startSettings;

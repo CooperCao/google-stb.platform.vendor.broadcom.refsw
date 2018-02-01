@@ -1,47 +1,47 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "nexus_dvb_ci_module.h"
 #include "priv/nexus_core.h"
 #include "bchp_hif_top_ctrl.h"
 #include "bchp_hif_cpu_intr1.h"
 #include "bchp_ebi.h"
 
-BDBG_MODULE(nexus_dvb_ci);
+BDBG_MODULE(nexus_dvb_ebi);
 
 #if !(defined BCHP_EBI_CS_CONFIG_0) && (defined BCHP_EBI_CS_CONFIG_1)
 /* the 3556 does not define EBI_CS_CONFIG_0, only 1 */
@@ -75,12 +75,12 @@ bool NEXUS_DvbCi_P_CardPresent(NEXUS_DvbCiHandle handle)
         NEXUS_GpioStatus statusCd2;
 
         NEXUS_Gpio_GetStatus(handle->openSettings.cd2Pin, &statusCd2);
-        BDBG_MSG(("Checking card presence: CD1=%s, CD2=%s", 
+        BDBG_MSG(("Checking card presence: CD1=%s, CD2=%s",
                   statusCd1.value==NEXUS_GpioValue_eLow?"low":"high",
                   statusCd2.value==NEXUS_GpioValue_eLow?"low":"high"));
         return (statusCd1.value == NEXUS_GpioValue_eLow) && (statusCd2.value == NEXUS_GpioValue_eLow);
     }
-    BDBG_MSG(("Checking card presence: CD1=%s", 
+    BDBG_MSG(("Checking card presence: CD1=%s",
               statusCd1.value==NEXUS_GpioValue_eLow?"low":"high"));
     return statusCd1.value == NEXUS_GpioValue_eLow;
 }
@@ -88,7 +88,12 @@ bool NEXUS_DvbCi_P_CardPresent(NEXUS_DvbCiHandle handle)
 NEXUS_Error NEXUS_DvbCi_P_SetupInterface(NEXUS_DvbCiHandle handle, bool pcmciaMode)
 {
     uint32_t configAddr, baseAddr;
-    uint32_t configValue, baseValue;
+    uint32_t configValue;
+#if (BCHP_CHIP == 7278)
+    uint64_t baseValue;
+#else
+    uint32_t baseValue;
+#endif
 
     switch ( handle->openSettings.ebiChipSelect )
     {
@@ -174,8 +179,11 @@ NEXUS_Error NEXUS_DvbCi_P_SetupInterface(NEXUS_DvbCiHandle handle, bool pcmciaMo
     {
         configValue |= BCHP_FIELD_DATA(EBI_CS_CONFIG_0, le, 1);
     }
-
+#if (BCHP_CHIP == 7278)
+    BREG_Write64(g_pCoreHandles->reg, baseAddr, baseValue);
+#else
     BREG_Write32(g_pCoreHandles->reg, baseAddr, baseValue);
+#endif
     BREG_Write32(g_pCoreHandles->reg, configAddr, configValue);
 
     /* Config transport stream pinmuxes -- this is chip-specific, so it's handled in a separate file. */
@@ -187,7 +195,8 @@ NEXUS_Error NEXUS_DvbCi_P_SetupInterface(NEXUS_DvbCiHandle handle, bool pcmciaMo
         NEXUS_GpioSettings gpioSettings;
         NEXUS_Gpio_GetSettings(handle->openSettings.ebiEnablePin, &gpioSettings);
         gpioSettings.mode = NEXUS_GpioMode_eOutputPushPull;
-#if (BCHP_CHIP == 7435) || (BCHP_CHIP == 7425) || (BCHP_CHIP == 7366) || (BCHP_CHIP == 7445) || (BCHP_CHIP == 7252) || (BCHP_CHIP == 7364) || (BCHP_CHIP == 7439)
+#if (BCHP_CHIP == 7435) || (BCHP_CHIP == 7425) || (BCHP_CHIP == 7366) || (BCHP_CHIP == 7445) || (BCHP_CHIP == 7252) || (BCHP_CHIP == 7364) || (BCHP_CHIP == 7439) ||(BCHP_CHIP == 7260) \
+    ||(BCHP_CHIP == 7268) || (BCHP_CHIP == 7271) || (BCHP_CHIP == 7278)
         gpioSettings.value = handle->openSettings.ebiEnableValue;
 #else
         gpioSettings.value = (pcmciaMode) ? handle->openSettings.ebiEnableValue : !handle->openSettings.ebiEnableValue;
@@ -385,25 +394,25 @@ void NEXUS_DvbCi_P_EnableReadyInterrupt(NEXUS_DvbCiHandle handle, bool enable, N
     if ( handle->openSettings.readyPin )
     {
         NEXUS_GpioSettings gpioSettings;
-    
         /* Setup level interrupt to catch ready being asserted */
         NEXUS_Gpio_GetSettings(handle->openSettings.readyPin, &gpioSettings);
         gpioSettings.mode = NEXUS_GpioMode_eInput;
         if ( enable )
         {
-            BDBG_MSG(("Enabling READY interrupt"));
+            BDBG_WRN(("Enabling READY interrupt"));
             BDBG_ASSERT(NULL != pCallback);
             gpioSettings.interruptMode = NEXUS_GpioInterrupt_eHigh;
             gpioSettings.interrupt = *pCallback;
         }
         else
         {
-            BDBG_MSG(("Disabling READY/IREQ# interrupt"));
+            BDBG_WRN(("Disabling READY/IREQ# interrupt"));
             gpioSettings.interruptMode = NEXUS_GpioInterrupt_eDisabled;
             gpioSettings.interrupt.callback = NULL;
         }
-        NEXUS_Gpio_SetSettings(handle->openSettings.readyPin, &gpioSettings);    
-        NEXUS_Gpio_ClearInterrupt(handle->openSettings.readyPin);
+        NEXUS_Gpio_SetSettings(handle->openSettings.readyPin, &gpioSettings);
+        if ( enable )
+            NEXUS_Gpio_ClearInterrupt(handle->openSettings.readyPin);
     }
     else
     {
@@ -423,7 +432,7 @@ void NEXUS_DvbCi_P_EnableIreqInterrupt(NEXUS_DvbCiHandle handle, bool enable, NE
     if ( handle->openSettings.readyPin )
     {
         NEXUS_GpioSettings gpioSettings;
-    
+
         /* Setup level interrupt to catch ready being asserted */
         NEXUS_Gpio_GetSettings(handle->openSettings.readyPin, &gpioSettings);
         gpioSettings.mode = NEXUS_GpioMode_eInput;
@@ -440,8 +449,9 @@ void NEXUS_DvbCi_P_EnableIreqInterrupt(NEXUS_DvbCiHandle handle, bool enable, NE
             gpioSettings.interruptMode = NEXUS_GpioInterrupt_eDisabled;
             gpioSettings.interrupt.callback = NULL;
         }
-        NEXUS_Gpio_SetSettings(handle->openSettings.readyPin, &gpioSettings);    
-        NEXUS_Gpio_ClearInterrupt(handle->openSettings.readyPin);
+        NEXUS_Gpio_SetSettings(handle->openSettings.readyPin, &gpioSettings);
+        if ( enable )
+            NEXUS_Gpio_ClearInterrupt(handle->openSettings.readyPin);
     }
     else
     {
@@ -492,7 +502,7 @@ void NEXUS_DvbCi_P_EnableCardDetectInterrupt(NEXUS_DvbCiHandle handle, bool enab
     {
         if ( enable )
         {
-            NEXUS_DvbCi_P_EnableExtIrq(handle, handle->openSettings.cd1Interrupt, &handle->cd1IrqCallback, 
+            NEXUS_DvbCi_P_EnableExtIrq(handle, handle->openSettings.cd1Interrupt, &handle->cd1IrqCallback,
                                        insertion?NEXUS_DvbCiPinState_eLow:NEXUS_DvbCiPinState_eHigh, pCallback);
         }
         else
@@ -533,13 +543,13 @@ void NEXUS_DvbCi_P_EnableCardDetectInterrupt(NEXUS_DvbCiHandle handle, bool enab
     {
         if ( enable )
         {
-            NEXUS_DvbCi_P_EnableExtIrq(handle, handle->openSettings.cd2Interrupt, &handle->cd2IrqCallback, 
+            NEXUS_DvbCi_P_EnableExtIrq(handle, handle->openSettings.cd2Interrupt, &handle->cd2IrqCallback,
                                        insertion?NEXUS_DvbCiPinState_eLow:NEXUS_DvbCiPinState_eHigh, pCallback);
         }
         else
         {
             NEXUS_DvbCi_P_DisableExtIrq(handle, handle->openSettings.cd2Interrupt, &handle->cd2IrqCallback);
-        }        
+        }
     }
 }
 
@@ -644,7 +654,7 @@ static void NEXUS_DvbCi_P_SetExtIrqPolarity_isr(unsigned irqNum, NEXUS_DvbCiPinS
 {
     uint32_t reg = BREG_Read32_isr(g_pCoreHandles->reg, BCHP_HIF_TOP_CTRL_EXT_IRQ_LEVEL);
     uint32_t mask=0;
-    
+
     switch ( irqNum )
     {
     #ifdef BCHP_HIF_TOP_CTRL_EXT_IRQ_LEVEL_ext_irq_0_level_MASK
@@ -743,7 +753,7 @@ static void NEXUS_DvbCi_P_SetExtIrqPolarity_isr(unsigned irqNum, NEXUS_DvbCiPinS
     #ifdef BCHP_HIF_TOP_CTRL_EXT_IRQ_LEVEL_ext_irq_31_level_MASK
     case 31: mask = BCHP_HIF_TOP_CTRL_EXT_IRQ_LEVEL_ext_irq_31_level_MASK; break;
     #endif
-    default: 
+    default:
         BDBG_ERR(("Invalid external interrupt %d", irqNum));
         break;
     }
@@ -757,7 +767,7 @@ static void NEXUS_DvbCi_P_SetExtIrqPolarity_isr(unsigned irqNum, NEXUS_DvbCiPinS
         reg &= ~mask;
     }
 
-    BREG_Write32_isr(g_pCoreHandles->reg, BCHP_HIF_TOP_CTRL_EXT_IRQ_LEVEL, reg);    
+    BREG_Write32_isr(g_pCoreHandles->reg, BCHP_HIF_TOP_CTRL_EXT_IRQ_LEVEL, reg);
 }
 
 static unsigned NEXUS_DvbCi_P_GetL1FromExtIrq(unsigned irqNum)

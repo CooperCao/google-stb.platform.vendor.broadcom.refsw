@@ -43,13 +43,11 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define MAX_INPUT_LEN 1024
 typedef struct ScenarioPlayer
 {
     ScenarioPlayerCreateSettings createSettings;
-    FILE * log;
-    char input[MAX_INPUT_LEN];
     Scenario * pScenario;
+    bool aborted;
 } ScenarioPlayer;
 
 bool scenario_player_p_file_filter(const char * path);

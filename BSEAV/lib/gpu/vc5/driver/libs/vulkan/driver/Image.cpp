@@ -82,7 +82,7 @@ static void WriteImageDetails(
       uint32_t           layer)
 {
    s << prefix << "_" << toHandle<VkImage>(const_cast<Image*>(img)) << "_M" << mipLevel;
-   s << (gfx_lfmt_is_3d(img->NaturalLFMT()) ? "_S" : "_A");
+   s << (gfx_lfmt_is_3d(img->LFMT()) ? "_S" : "_A");
    s << layer;
 }
 
@@ -121,7 +121,7 @@ void Image::AdjustDescForTLBLfmt(
 
 // Helper for the image constructor to translate the Vulkan create info into
 // GFX usage flags for gfx_buffer_desc_gen()
-static gfx_buffer_usage_t CalcGfxBufferUsage(VkImageCreateFlags flags, VkFormat format,
+static gfx_buffer_usage_t CalcGfxBufferUsage(VkImageCreateFlags flags, GFX_LFMT_T lfmt,
                                              VkImageTiling tiling, VkImageUsageFlags usage)
 {
    // Map the Vulkan usage flags into GFX flags
@@ -158,10 +158,10 @@ static gfx_buffer_usage_t CalcGfxBufferUsage(VkImageCreateFlags flags, VkFormat 
       // for the transfer operation. Not all transfer operations will use the
       // TLB of course, but we need the image layout/alignments etc to be
       // compatible just in case.
-      if (!Formats::IsCompressed(format) && Formats::HasColor(format))
+      if (!gfx_lfmt_is_compressed(lfmt) && gfx_lfmt_has_color(lfmt))
          gfxUsage |= GFX_BUFFER_USAGE_V3D_RENDER_TARGET;
 
-      if (Formats::HasDepth(format) || Formats::HasStencil(format))
+      if (gfx_lfmt_has_depth(lfmt) || gfx_lfmt_has_stencil(lfmt))
          gfxUsage |= GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL;
 
       // Source transfer flags implies that the image may be used as a blit
@@ -214,10 +214,11 @@ static void CheckValidUsage(const VkImageCreateInfo *ci)
    //       reflected in what is returned by:
    //       PhysicalDevice::GetPhysicalDeviceImageFormatProperties()
 
+   GFX_LFMT_T lfmt = Formats::GetLFMT(ci->format);
+
    // Tiling mode
-   switch (ci->tiling)
+   if (ci->tiling == VK_IMAGE_TILING_LINEAR)
    {
-   case VK_IMAGE_TILING_LINEAR:
       // Spec v1.0.26: 31.4.1 Supported Sample Counts. Linear multi-sampled
       // images are not allowed.
       assert(ci->samples == VK_SAMPLE_COUNT_1_BIT);
@@ -230,13 +231,12 @@ static void CheckValidUsage(const VkImageCreateInfo *ci)
       // Spec v1.0.32: 11.3 Images, depth/stencil linear images are optional.
       // The physical device image format properties will report these formats
       // as not supported for tiling linear usage.
-      assert(!Formats::HasDepth(ci->format) && !Formats::HasStencil(ci->format));
-      break;
-   case VK_IMAGE_TILING_OPTIMAL:
+      assert(!gfx_lfmt_has_depth(lfmt) && !gfx_lfmt_has_stencil(lfmt));
+   }
+   else
+   {
       assert((ci->samples & VK_SAMPLE_COUNT_1_BIT) != 0 ||
              (ci->samples & VK_SAMPLE_COUNT_4_BIT) != 0);
-      break;
-   default: unreachable();
    }
 
    // Trap incompatible cubemap configuration
@@ -252,7 +252,7 @@ static void CheckValidUsage(const VkImageCreateInfo *ci)
    // Multisample config
    if (ci->samples == VK_SAMPLE_COUNT_4_BIT)
    {
-      assert(!Formats::IsCompressed(ci->format));
+      assert(!gfx_lfmt_is_compressed(lfmt));
 
       // Spec v1.0.26:
       // - 31.4.1 Supported Sample Counts. Only 2D, tiling optimal
@@ -302,8 +302,10 @@ Image::Image(
    // that auto binds to a gralloc buffer.
    UseImageCreateInfoExtension(pCreateInfo);
 
+   GFX_LFMT_T fmt = Formats::GetLFMT(pCreateInfo->format);
+
    // Map the Vulkan usage and creation flags into GFX flags
-   gfx_buffer_usage_t gfxUsage = CalcGfxBufferUsage(pCreateInfo->flags, pCreateInfo->format,
+   gfx_buffer_usage_t gfxUsage = CalcGfxBufferUsage(pCreateInfo->flags, fmt,
                                                     pCreateInfo->tiling, pCreateInfo->usage);
 
    // Linear images cannot be transient but the spec does not state that it
@@ -316,11 +318,6 @@ Image::Image(
       m_transient = pCreateInfo->usage & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
    else
       m_transient = false;
-
-   // Map the Vulkan format to the natural LFMT. Any translation into a
-   // different LFMT to handle hardware limitations, is done in the command
-   // buffer command implementations at the point of use.
-   GFX_LFMT_T fmt = Formats::GetLFMT(pCreateInfo->format, Formats::NATURAL);
 
 #ifndef NDEBUG
    CheckValidUsage(pCreateInfo);
@@ -351,7 +348,7 @@ Image::Image(
    // image, indicate to gfx_buffer_gen_desc() that we want to use RSO.
    const bool useRSO = m_externalImage &&
                        gfxUsage == GFX_BUFFER_USAGE_V3D_RENDER_TARGET &&
-                       Formats::HasTLBSupport(pCreateInfo->format) &&
+                       Formats::HasTLBSupport(Formats::GetLFMT(pCreateInfo->format)) &&
                        pCreateInfo->mipLevels == 1 &&
                        pCreateInfo->samples == VK_SAMPLE_COUNT_1_BIT;
 
@@ -403,38 +400,6 @@ Image::Image(
                gfx_lfmt_desc(m_mipDescs[m].planes[0].lfmt));
       }
    }
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   // Underlying hardware format when the native format isn't supported
-   // sufficiently by the hardware on v3.3 and v4.0.2 based devices.
-   //
-   // NOTE: we are interested in preserving the dimensions and swizzling from
-   //       base mipmap lfmt so these can be extracted from either this or the
-   //       native format when necessary.
-   const GFX_LFMT_T hwFmt  = Formats::GetLFMT(pCreateInfo->format, Formats::HW);
-   m_hardwareLFMT  = gfx_lfmt_set_format(m_mipDescs[0].planes[0].lfmt, hwFmt);
-
-   // When the hardware cannot use the native format and the tiling mode is
-   // linear (which allows the memory to be directly viewed by the CPU) we need
-   // to fix up the handling of color components in clears, blits and copies
-   // so that we get the expected Vulkan format even though we are using
-   // a different hardware format internally.
-   //
-   // NOTE: We do not do this for tiling optimal images, to allow us to support
-   //       a mandatory sub-byte 1555 color format without needing specialized
-   //       shaders. However this is potentially incorrect if someone aliases
-   //       the image or uses an image view with a different format. We may have
-   //       to revisit this issue again if we need to certify v3.3 HW.
-   m_keepVulkanComponentOrder = (m_hardwareLFMT != m_mipDescs[0].planes[0].lfmt) &&
-                                (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR);
-
-   // Similarly (but internal to the image/buffer copy implementation) copies to
-   // and from images need to be converted in and out of the internal hardware
-   // format when it is different from the Vulkan format and the image is
-   // created tiling optimal.
-   m_needCopyConversions = (m_hardwareLFMT != m_mipDescs[0].planes[0].lfmt) &&
-                           (pCreateInfo->tiling == VK_IMAGE_TILING_OPTIMAL);
-#endif
 }
 
 Image::~Image() noexcept
@@ -499,7 +464,8 @@ void Image::GetImageSparseMemoryRequirements(
    uint32_t                         *pSparseMemoryRequirementCount,
    VkSparseImageMemoryRequirements  *pSparseMemoryRequirements) noexcept
 {
-   NOT_IMPLEMENTED_YET;
+   /* Valid usage prevents this function from actually being uesd */
+   unreachable();
 }
 
 void Image::GetSubresourceLayout(
@@ -602,12 +568,12 @@ JobID Image::CopyOneImageRegion(
    assert(region.dstSubresource.aspectMask == region.srcSubresource.aspectMask);
 
    // Pull out some useful info about the image formats
-   const auto naturalSrcLFMT  = pSrcImg->NaturalLFMT();
-   const auto naturalDstLFMT  = NaturalLFMT();
-   const bool srcIsCompressed = gfx_lfmt_is_compressed(naturalSrcLFMT);
-   const bool dstIsCompressed = gfx_lfmt_is_compressed(naturalDstLFMT);
-   const bool srcIs3D         = gfx_lfmt_is_3d(naturalSrcLFMT);
-   const bool dstIs3D         = gfx_lfmt_is_3d(naturalDstLFMT);
+   const auto srcLFMT         = pSrcImg->LFMT();
+   const auto dstLFMT         = LFMT();
+   const bool srcIsCompressed = gfx_lfmt_is_compressed(srcLFMT);
+   const bool dstIsCompressed = gfx_lfmt_is_compressed(dstLFMT);
+   const bool srcIs3D         = gfx_lfmt_is_3d(srcLFMT);
+   const bool dstIs3D         = gfx_lfmt_is_3d(dstLFMT);
 
    // The source and dest sample counts must match, we need to multiply
    // the extent and offsets by 2 for 4x multisampled images.
@@ -687,13 +653,13 @@ JobID Image::CopyOneImageRegion(
 
    // We cannot trust the height in the extent or the y offsets will be
    // valid values for 1D images.
-   if (gfx_lfmt_is_1d(naturalSrcLFMT))
+   if (gfx_lfmt_is_1d(srcLFMT))
    {
       extent.height = 1;
       srcOffset.y   = 0;
    }
 
-   if (gfx_lfmt_is_1d(naturalDstLFMT))
+   if (gfx_lfmt_is_1d(dstLFMT))
    {
       extent.height = 1;
       dstOffset.y   = 0;
@@ -708,70 +674,28 @@ JobID Image::CopyOneImageRegion(
       //
       // Note that we do not support D32S8 in the physical device properites.
       case VK_IMAGE_ASPECT_DEPTH_BIT:
-         assert(gfx_lfmt_has_depth(naturalDstLFMT));
+         assert(gfx_lfmt_has_depth(dstLFMT));
          dstConversion = V3D_IMGCONV_CONVERSION_DEPTH_ONLY;
          break;
       case VK_IMAGE_ASPECT_STENCIL_BIT:
-         assert(gfx_lfmt_has_stencil(naturalDstLFMT));
+         assert(gfx_lfmt_has_stencil(dstLFMT));
          dstConversion = V3D_IMGCONV_CONVERSION_STENCIL_ONLY;
          break;
       case VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT:
-         assert(gfx_lfmt_has_depth_stencil(naturalDstLFMT));
+         assert(gfx_lfmt_has_depth_stencil(dstLFMT));
          break;
       case VK_IMAGE_ASPECT_COLOR_BIT:
       {
-         assert(!gfx_lfmt_has_depth(naturalSrcLFMT) && !gfx_lfmt_has_stencil(naturalSrcLFMT));
-         assert(!gfx_lfmt_has_depth(naturalDstLFMT) && !gfx_lfmt_has_stencil(naturalDstLFMT));
+         assert(!gfx_lfmt_has_depth(srcLFMT) && !gfx_lfmt_has_stencil(srcLFMT));
+         assert(!gfx_lfmt_has_depth(dstLFMT) && !gfx_lfmt_has_stencil(dstLFMT));
          // If the formats do not match
-         if (naturalDstLFMT != naturalSrcLFMT)
+         if (dstLFMT != srcLFMT)
          {
             if (!srcIsCompressed && !dstIsCompressed)
             {
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-               // This is horrible... but it passes the CTS tests for the
-               // 1555 and BGRA "special" formats where we have to use
-               // a different internal format supported on the TLB.
-               if (m_needCopyConversions && pSrcImg->m_needCopyConversions)
-               {
-                  // We can't really handle this in general if the components
-                  // in the source and destination internal format are not in
-                  // the same order and the same size.
-                  //
-                  // That needs a two step slow xform, from the internal
-                  // format of the src to its natural and then a reinterpreted
-                  // conversion from the dst natural to the dst internal.
-                  //
-                  // However the only current case of class compatible special
-                  // formats would be a copy between VK_FORMAT_B8G8R8A8_UNORM
-                  // and VK_FORMAT_B8G8R8A8_SRGB. As the component
-                  // ordering is the same in both internal formats
-                  // we can just do a "memcpy".
-                  log_trace("CopyImage: Compatible copy between internal formats");
-                  AdjustDescForCopyCompatibility(&dstDesc, srcDesc);
-               }
-               else if (m_needCopyConversions)
-               {
-                  // Reinterpret the src as the dst natural format and slow
-                  // convert it to the internal format
-                  log_trace("CopyImage: reinterpret src to dst internal copy");
-                  AdjustDescForTLBLfmt(&srcDesc, naturalDstLFMT, false);
-                  AdjustDescForTLBLfmt(&dstDesc, m_hardwareLFMT, false);
-               }
-               else if (pSrcImg->m_needCopyConversions)
-               {
-                  // Reinterpret the dst as the src natural and convert the
-                  // src internal format to it.
-                  log_trace("CopyImage: reinterpret dst to src internal copy");
-                  AdjustDescForTLBLfmt(&srcDesc, pSrcImg->HardwareLFMT(), false);
-                  AdjustDescForTLBLfmt(&dstDesc, naturalSrcLFMT, false);
-               }
-               else
-#endif
-               {
-                  // Easy cases, we just need to do a "memcpy" here.
-                  log_trace("CopyImage: Compatible color copy");
-                  AdjustDescForCopyCompatibility(&dstDesc, srcDesc);
-               }
+               // Easy cases, we just need to do a "memcpy" here.
+               log_trace("CopyImage: Compatible color copy");
+               AdjustDescForCopyCompatibility(&dstDesc, srcDesc);
             }
             else
             {
@@ -816,31 +740,6 @@ JobID Image::CopyOneImageRegion(
                }
             }
          }
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-         else
-         {
-            // The source and destination image formats are the same, but the
-            // images may have different tiling properties. If the format is one
-            // of the special ones where we have to convert to an internal
-            // format for hardware to use then we need to make sure we do the
-            // expected conversions.
-            if (pSrcImg->m_needCopyConversions && m_keepVulkanComponentOrder)
-            {
-               // Do a slow conversion from source in internal hardware format
-               // the destination in natural format
-               AdjustDescForTLBLfmt(&srcDesc, pSrcImg->m_hardwareLFMT, false);
-            }
-            else if (m_needCopyConversions && pSrcImg->m_keepVulkanComponentOrder)
-            {
-               // Do a slow conversion from source natural linear format to
-               // the destination in internal TLB format
-               AdjustDescForTLBLfmt(&dstDesc, m_hardwareLFMT, false);
-            }
-            // The other combinations are just straight copies and therefore
-            // is doesn't actually matter if we use the native or hardware
-            // LFMT as long as it is the same choice for both.
-         }
-#endif
          break;
       }
       default:
@@ -920,8 +819,8 @@ JobID Image::CopyFromImage(Image *pSrcImg, uint32_t regionCount, VkImageCopy *re
    assert(m_samples == pSrcImg->Samples());
 
 #ifndef NDEBUG
-   const GFX_LFMT_T srcLFMT = pSrcImg->NaturalLFMT();
-   const GFX_LFMT_T dstLFMT = NaturalLFMT();
+   const GFX_LFMT_T srcLFMT = pSrcImg->LFMT();
+   const GFX_LFMT_T dstLFMT = LFMT();
    ValidateCopyFormats(srcLFMT, dstLFMT);
 #endif
 
@@ -1033,8 +932,8 @@ JobID Image::CopyOneBufferRegion(
 
    GFX_BUFFER_DESC_T dstDesc = GetDescriptor(region.imageSubresource.mipLevel);
    uint32_t dstImgOffset     = LayerOffset(region.imageSubresource.baseArrayLayer);
-   const bool dstIs3D        = gfx_lfmt_is_3d(NaturalLFMT());
-   const bool dstIs1D        = gfx_lfmt_is_1d(NaturalLFMT());
+   const bool dstIs3D        = gfx_lfmt_is_3d(LFMT());
+   const bool dstIs1D        = gfx_lfmt_is_1d(LFMT());
 
    assert(dstDesc.num_planes == 1); // No planar formats yet
 
@@ -1086,16 +985,6 @@ JobID Image::CopyOneBufferRegion(
    {
       dstArraySize = m_arrayStride;
    }
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   // For tiling optimal images change the destination descriptor to use the
-   // internal TLB format, instead of the natural format. This is so in
-   // formats where we use a different internal format, because of hardware
-   // restrictions, we get the data swizzled into the correct channels by
-   // a slowconv copy.
-   if (m_needCopyConversions)
-      AdjustDescForTLBLfmt(&dstDesc, m_hardwareLFMT, false);
-#endif
 
    struct v3d_imgconv_gmem_tgt srcTarget;
    struct v3d_imgconv_gmem_tgt dstTarget;
@@ -1183,8 +1072,8 @@ JobID Image::CopyToBuffer(
    assert(m_boundMemory != nullptr);
    assert(m_samples == VK_SAMPLE_COUNT_1_BIT); // operation not valid for multisample images
 
-   const bool srcIs1D = gfx_lfmt_is_1d(NaturalLFMT());
-   const bool srcIs3D = gfx_lfmt_is_3d(NaturalLFMT());
+   const bool srcIs1D = gfx_lfmt_is_1d(LFMT());
+   const bool srcIs3D = gfx_lfmt_is_3d(LFMT());
 
    VkDeviceSize  dstMemoryOffset = pDstBuf->GetBoundMemoryOffset();
    DeviceMemory *dstMemory       = pDstBuf->GetBoundMemory();
@@ -1221,7 +1110,7 @@ JobID Image::CopyToBuffer(
          assert(regions[i].imageSubresource.baseArrayLayer == 0);
       }
 
-      if (!IsValidBufferCopyAspect(regions[i].imageSubresource.aspectMask, NaturalLFMT()))
+      if (!IsValidBufferCopyAspect(regions[i].imageSubresource.aspectMask, LFMT()))
          continue;
 
       GFX_LFMT_T dstLFMT = srcDesc.planes[0].lfmt;
@@ -1250,16 +1139,6 @@ JobID Image::CopyToBuffer(
       // Create imgconv source and destination targets and do the copy
       struct v3d_imgconv_gmem_tgt srcTarget;
       struct v3d_imgconv_gmem_tgt dstTarget;
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-      // For tiling optimal images change the source descriptor to use the
-      // internal TLB format, instead of the natural format. This is so in
-      // formats where we use a different internal format, because of hardware
-      // restrictions, we get the channels swizzled back to the correct native
-      // order in the host visible buffer.
-      if (m_needCopyConversions)
-         AdjustDescForTLBLfmt(&srcDesc, m_hardwareLFMT, false);
-#endif
 
       this->InitGMemTarget(&srcTarget, deps, srcDesc, srcImgOffset, regions[i].imageOffset);
 

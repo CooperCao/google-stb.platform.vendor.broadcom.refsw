@@ -53,8 +53,9 @@ typedef struct PlatformPicture
     PlatformPictureInfo info;
 } PlatformPicture;
 
-unsigned platform_picture_p_color_depth_from_pixel_format(NEXUS_PixelFormat format);
+unsigned platform_picture_p_depth_from_pixel_format(NEXUS_PixelFormat format);
 PlatformColorSpace platform_picture_p_color_space_from_pixel_format(NEXUS_PixelFormat format);
+unsigned platform_picture_p_color_sampling_from_pixel_format(NEXUS_PixelFormat format);
 #if NEXUS_HAS_PICTURE_DECODER
 void platform_picture_p_info_from_nexus(PlatformPictureInfo * pInfo, NEXUS_PictureDecoderStatus * pStatus);
 #endif

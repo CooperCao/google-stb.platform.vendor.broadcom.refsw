@@ -128,6 +128,8 @@ typedef struct NEXUS_Core_MagnumHandles
         BDTU_Handle dtu;
     } memc[NEXUS_MAX_HEAPS]; /* index of this array is memc index, which must be < NEXUS_MAX_HEAPS */
     BCHP_MemoryLayout   memoryLayout;
+    BCHP_MemoryInfo memoryInfo;  /* Note this is populated using BCHP_GetMemoryInfo_PreInit, so it may contain wrong information about unpopulated MEMC's.
+                                    You must use other information (e.g. box mode) to qualify which memc are populated */
     BBOX_Handle         box;
     const BBOX_Config  *boxConfig;
 #if NEXUS_ARM_AUDIO_SUPPORT
@@ -227,7 +229,7 @@ BERR_OS_ERROR - An OS error occurred.
 ****************************************************************************/
 BERR_Code NEXUS_Core_ConnectInterrupt(
     unsigned irqNum,
-    NEXUS_Core_InterruptFunction pIsrFunc,
+    NEXUS_Core_InterruptFunction pIsrFunc_isr,
     void *pFuncParam,
     int iFuncParam
     );
@@ -535,6 +537,7 @@ NEXUS_HeapHandle NEXUS_Heap_LookupForOffset_isrsafe(
     NEXUS_Addr offset
     );
 bool NEXUS_P_Core_SecureArchIssue_isrsafe(void);
+void NEXUS_P_HeapInfo_ToString(char *buf, unsigned buf_size, unsigned memcIndex, unsigned heapType, unsigned memoryType);
 
 #ifdef __cplusplus
 }

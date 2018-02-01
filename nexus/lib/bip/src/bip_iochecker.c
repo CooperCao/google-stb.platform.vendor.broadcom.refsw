@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1367,6 +1367,7 @@ BIP_Status BIP_IoCheckerFactory_Init(
         BIP_CHECK_GOTO(( hIoChecker != NULL ), ( "BIP_IoCheckerFactory_Init Failed. Not able to create hIoChecker for pipFd" ), error, BIP_ERR_INTERNAL, rc );
 
         /* enable pipe for POLLIN Never call Enable api to enable pipe, since enable api writes into this pipe to enable an IoChecker.*/
+        /* coverity[missing_lock] */
         hIoChecker->eventMask = POLLIN;
     }
 

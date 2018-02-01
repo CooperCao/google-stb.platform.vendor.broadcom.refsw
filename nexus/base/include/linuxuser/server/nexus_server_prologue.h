@@ -96,7 +96,7 @@ void nexus_driver_recv_addr_cached(void **paddr); /* inplace convert address fro
 #endif
 
 /* nexus_driver_callbacks */
-void nexus_driver_callback_to_driver(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *handle, unsigned id, 
+void nexus_driver_callback_to_driver(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *handle, unsigned id,
     const struct b_objdb_client *client, struct nexus_driver_slave_scheduler *context);
 void nexus_driver_callback_to_user(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *handle, unsigned id);
 void nexus_driver_callback_update(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *old_handle, unsigned id, void *new_handle);
@@ -104,7 +104,7 @@ void nexus_driver_callback_to_driver_commit(struct nexus_driver_module_header *h
 void nexus_driver_callback_to_driver_cancel(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *handle, unsigned id);
 
 struct b_objdb_client;
-void nexus_driver_deactivate_callbacks(void *context, void *object,  const struct b_objdb_client *client);
+void nexus_driver_deactivate_callbacks(void *context, void *object,  const struct b_objdb_client *client, enum b_objdb_cancel_callbacks_action action);
 
 struct nexus_p_server_process_output {
     void *data;

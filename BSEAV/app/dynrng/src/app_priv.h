@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -46,6 +46,21 @@
 #include "stream_player.h"
 #include "scenario_player.h"
 #include "osd.h"
+#if DYNRNG_HAS_CAPTURE
+#include "capture.h"
+#endif
+#if DYNRNG_HAS_CONSOLE
+#include "console.h"
+#endif
+#if DYNRNG_HAS_PLAYLIST
+#include "playlist.h"
+#endif
+#if DYNRNG_HAS_TESTER
+#include "tester.h"
+#endif
+#if DYNRNG_HAS_PQ
+#include "pq.h"
+#endif
 #include <stdbool.h>
 #include <signal.h>
 #include <pthread.h>
@@ -54,48 +69,111 @@ typedef struct App
 {
     ArgsHandle args;
     ConfigHandle cfg;
-    bool done;
-    PlatformHandle platform;
-    PlatformDisplayHandle display;
-    PlatformGraphicsHandle gfx;
-    char gfxFormat[16];
-    char vidFormat[16];
-    PlatformHdmiReceiverHandle rx;
-    PlatformInputHandle input;
-    PlatformModel model;
+
     struct
     {
-        PlatformDynamicRange dynrng;
-        bool dynrngLock;
-    } output;
-    PlatformUsageMode usageMode;
+        PlatformHandle handle;
+        PlatformDisplayHandle display;
+        PlatformGraphicsHandle gfx;
+        PlatformHdmiReceiverHandle rx;
+        PlatformInputHandle input;
+        PlatformModel model; /* what's been committed to hardware */
+        struct
+        {
+            int min;
+            int max;
+        } gfxLuminance;
+        struct
+        {
+            bool dynrngLock;
+            PlatformPictureInfo pictureInfo; /* user settings */
+        } output;
+        PlatformUsageMode usageMode;
+        struct
+        {
+            struct
+            {
+                PlatformDynamicRangeProcessingCapabilities caps;
+                PlatformDynamicRangeProcessingMode mode;
+                PlatformPictureCtrlSettings picCtrl;
+                int hdrPeakBrightness;
+                int sdrPeakBrightness;
+            } vid;
+            struct
+            {
+                PlatformDynamicRangeProcessingCapabilities caps;
+                PlatformDynamicRangeProcessingMode mode;
+                PlatformPictureCtrlSettings picCtrl;
+            } gfx;
+        } processing;
+        PlatformMediaPlayerHandle mediaPlayers[MAX_MOSAICS];
+        PlatformPlayMode playMode;
+        unsigned mosaicCount;
+        PlatformPqSettings pq[MAX_MOSAICS];
+    } platform;
+
     struct
     {
-        struct
-        {
-            PlatformDynamicRangeProcessingCapabilities caps;
-            PlatformDynamicRangeProcessingMode mode;
-        } vid;
-        struct
-        {
-            PlatformDynamicRangeProcessingCapabilities caps;
-            PlatformDynamicRangeProcessingMode mode;
-        } gfx;
-    } processing;
-    FileManagerHandle streamsFiler;
-    FileManagerHandle scenariosFiler;
-    FileManagerHandle imagesFiler;
-    StreamPlayerHandle streamPlayer[MAX_MOSAICS];
-    ScenarioPlayerHandle scenarioPlayer;
-    ImageViewerHandle thumbnail;
-    ImageViewerHandle background;
-    OsdHandle osd;
-    char * prevStreamPaths[MAX_MOSAICS];
-    unsigned streamCount;
-    unsigned layout;
-    unsigned mosaicCount;
-    struct sigaction term;
-    pthread_t uiThread;
+        FileManagerHandle filer;
+        StreamPlayerHandle players[MAX_MOSAICS];
+        char * prevPaths[MAX_MOSAICS];
+        unsigned count;
+    } stream;
+    struct
+    {
+        FileManagerHandle filer;
+        ImageViewerHandle thumbnail;
+        ImageViewerHandle background;
+    } image;
+    struct
+    {
+        FileManagerHandle filer;
+        ScenarioPlayerHandle player;
+        char * name;
+    } scenario;
+    struct
+    {
+        OsdHandle handle;
+        unsigned layout;
+    } osd;
+    struct
+    {
+        bool done;
+        struct sigaction term;
+        pthread_t thread;
+    } ui;
+#if DYNRNG_HAS_CAPTURE
+    struct
+    {
+        CaptureHandle handle;
+    } capture;
+#endif
+#if DYNRNG_HAS_CONSOLE
+    struct
+    {
+        ConsoleHandle handle;
+    } console;
+#endif
+#if DYNRNG_HAS_PLAYLIST
+    struct
+    {
+        FileManagerHandle filer;
+        PlaylistHandle handle;
+        char * name;
+    } playlist;
+#endif
+#if DYNRNG_HAS_TESTER
+    struct
+    {
+        TesterHandle handle;
+    } tester;
+#endif
+#if DYNRNG_HAS_PQ
+    struct
+    {
+        PqHandle handle;
+    } pq;
+#endif
 } App;
 
 void app_p_hotplug_occurred(void * context, int param);
@@ -104,7 +182,7 @@ void app_p_handle_scenario(void * context, Scenario * pScenario);
 void app_p_thumbnail_changed(void * context, PlatformPictureHandle pic);
 void app_p_background_changed(void * context, PlatformPictureHandle pic);
 
-PlatformDynamicRange app_p_compute_output_dynamic_range(AppHandle hApp);
+PlatformDynamicRange app_p_compute_output_dynamic_range(AppHandle app, PlatformDynamicRange requested);
 
 void app_p_update_gfx_processing_model(AppHandle app);
 void app_p_update_vid_processing_model(AppHandle app);
@@ -117,15 +195,22 @@ void app_p_update_model(AppHandle app);
 void app_p_apply_scenario(AppHandle app, const Scenario * pScenario);
 void app_p_set_usage_mode(AppHandle app, PlatformUsageMode usageMode);
 
-void app_p_toggle_processing(void * context, int param);
-void app_p_toggle_vid_processing(void * context, int param);
-void app_p_toggle_gfx_processing(void * context, int param);
-void app_p_toggle_pause(void * context, int param);
+void app_p_toggle_processing(AppHandle app);
+void app_p_toggle_vid_processing(AppHandle app);
+void app_p_toggle_gfx_processing(AppHandle app);
+void app_p_toggle_pause(AppHandle app);
 #if 0
-void app_p_toggle_output_dynamic_range_lock(void * context, int param);
-void app_p_cycle_output_dynamic_range(void * context, int param);
+void app_p_toggle_output_dynamic_range_lock(AppHandle app);
+void app_p_cycle_output_dynamic_range(AppHandle app);
 #endif
-void app_p_run_scenario(void * context, int param);
-void app_p_quit(void * context, int param);
+int app_p_run_scenario_by_number(AppHandle app, int scenarioNum);
+int app_p_run_scenario(AppHandle app, const char * scenarioUrl);
+void app_p_quit(AppHandle app);
+
+void ui_run(AppHandle app);
+int ui_start(AppHandle app);
+void ui_stop(AppHandle app);
+void ui_kill(AppHandle app);
+void ui_wait(AppHandle app);
 
 #endif /* APP_PRIV_H__ */

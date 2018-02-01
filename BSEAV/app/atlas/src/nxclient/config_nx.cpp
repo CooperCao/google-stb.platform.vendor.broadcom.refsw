@@ -113,7 +113,7 @@ eRet CConfigNx::initResources()
     NxClient_GetDefaultAllocSettings(&allocSettings);
     allocSettings.simpleVideoDecoder  = 1 + maxMosaics;
     allocSettings.simpleAudioDecoder  = 1;
-    allocSettings.simpleAudioPlayback = 0;
+    allocSettings.simpleAudioPlayback = 1;
     allocSettings.inputClient         = 2;
     allocSettings.simpleEncoder       = 0;
 
@@ -146,6 +146,11 @@ eRet CConfigNx::initResources()
     if (0 < allocSettings.simpleAudioDecoder)
     {
         _pResources->add(eBoardResource_simpleDecodeAudio, 1, "simpleAudioDecode", &_cfg, 0, _allocResultsMain.simpleAudioDecoder.id);
+    }
+
+    if (0 < allocSettings.simpleAudioPlayback)
+    {
+        _pResources->add(eBoardResource_simplePcmPlayback, 1, "simplePcmPlayback", &_cfg, 0, _allocResultsMain.simpleAudioPlayback[0].id);
     }
 
     _pResources->add(eBoardResource_stcChannel, NEXUS_NUM_STC_CHANNELS, "stcChannel", &_cfg);

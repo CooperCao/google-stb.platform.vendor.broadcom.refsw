@@ -45,12 +45,12 @@ typedef struct
    unsigned num_tex;
    unsigned num_img;
 #endif
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    uint16_t unnorm[(GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS + 15)/16 + 1/*padding for unaligned load*/];
 #endif
 } glxx_hw_image_like_uniforms;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 // Limit of 16 comes from unnorm bitfield having 16-bit words.
 static_assrt(GLXX_CONFIG_MAX_SHADER_TEXTURE_IMAGE_UNITS <= 16);
 #endif

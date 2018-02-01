@@ -222,6 +222,8 @@ typedef struct NEXUS_SimpleEncoderSettings
             bool audio[1];
         } enable;
     } streamMux; /* maps to NEXUS_StreamMuxSettings */
+    bool programChange; /* To change encoder input without stopping encoder output, set this true before stopping the decoders.
+                           Then start a new audio and video decode. Set back to false before doing another decoder stop. */
 } NEXUS_SimpleEncoderSettings;
 
 /**

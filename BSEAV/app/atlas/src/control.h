@@ -99,9 +99,12 @@ public:
             CStc *               pStc);
     virtual eRet stopDecoders(CSimpleVideoDecode * pVideoDecode, CSimpleAudioDecode * pAudioDecode);
     virtual bool checkPower(void) { return(false); }
+#if BDSP_MS12_SUPPORT
     virtual void setMixingMode(eWindowType windowType, NEXUS_AudioDecoderMixingMode mixingMode) { BSTD_UNUSED(windowType); BSTD_UNUSED(mixingMode); }
-    virtual void setAudioFade(bool bPipState) { BSTD_UNUSED(bPipState); }
-
+    virtual void setAudioFade(CSimpleAudioDecode * pAudioDecode, bool bPipState) { BSTD_UNUSED(pAudioDecode); BSTD_UNUSED(bPipState); }
+    virtual eRet setAudioFade(bool bPipState) { BSTD_UNUSED(bPipState); return(eRet_NotSupported); }
+    virtual void waitAudioFadeComplete(CSimpleAudioDecode * pAudioDecode) { BSTD_UNUSED(pAudioDecode); }
+#endif
     eRet             initialize(void * id, CConfig * pConfig, CChannelMgr * pChannelMgr, CWidgetEngine * pWidgetEngine);
     eRet             uninitialize();
     void             processNotification(CNotification & notification);
@@ -155,6 +158,7 @@ public:
     CView *          findView(const char * name);
     void             removeView(CView * pView);
     bool             validateNotification(CNotification & notification, eMode mode);
+    eRet             playbackPcm(const char * strFilename);
 #ifdef CPUTEST_SUPPORT
     eRet setCpuTestLevel(int nLevel);
 #endif

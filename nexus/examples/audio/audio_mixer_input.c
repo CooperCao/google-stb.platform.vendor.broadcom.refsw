@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -117,13 +117,12 @@ static const char *fname = "videos/bugs_toys2_jurassic_q64_cd.mpg";
 
 static NEXUS_PlatformConfiguration platformConfig;
 
-int main(int argc, char **argv)
+int main(void)
 {
     NEXUS_AudioDecoderHandle pcmDecoder[NUMBER_OF_DECODERS];
     NEXUS_AudioDecoderStartSettings audioProgram[NUMBER_OF_DECODERS];
     NEXUS_AudioMixerHandle mixer[NUMBER_OF_MIXERS];
     NEXUS_AudioMixerSettings mixerSettings;
-    NEXUS_AudioMixerInputSettings mixerInputSettings;
     NEXUS_AudioDecoderSettings decoderSettings;
     NEXUS_VideoDecoderHandle videoDecoder;
     NEXUS_VideoDecoderStartSettings videoProgram;
@@ -388,7 +387,7 @@ int main(int argc, char **argv)
             }
             NEXUS_AudioDecoder_GetSettings(pcmDecoder[decoderIndex], &decoderSettings);
             currentVolume = decoderSettings.muted ? 0 : (((decoderSettings.volumeMatrix[0][0]+1)*100)/NEXUS_AUDIO_VOLUME_LINEAR_NORMAL);
-            printf(" Enter a volume % (0-100) for Decoder[%d] (current %d):\n", decoderIndex, currentVolume);
+            printf(" Enter a volume %% (0-100) for Decoder[%d] (current %d):\n", decoderIndex, currentVolume);
             scanf("%d", &tmp);
             if (tmp == 0)
             {
@@ -434,7 +433,7 @@ int main(int argc, char **argv)
                                                 &inputSettings);
                 currentVolume = inputSettings.muted ? 0 : (((inputSettings.volumeMatrix[0][0]+1)*100)/NEXUS_AUDIO_VOLUME_LINEAR_NORMAL);
 
-                printf(" Enter a volume % (0-100) for Decoder[%d] into to Mixer[%d] (current %d):\n", decoderIndex, mixerIndex, currentVolume);
+                printf(" Enter a volume %% (0-100) for Decoder[%d] into to Mixer[%d] (current %d):\n", decoderIndex, mixerIndex, currentVolume);
 
                 scanf("%d", &tmp);
                 if (tmp == 0)
@@ -615,11 +614,12 @@ static void hotplug_callback(void *pParam, int iParam)
     NEXUS_HdmiOutputSettings hdmiSettings;
     hotplugCallbackParameters *hotPlugCbParams ;
 
+    BSTD_UNUSED(iParam);
+
     hotPlugCbParams = (hotplugCallbackParameters *) pParam ;
     hdmi = hotPlugCbParams->hdmiOutput ;
     display = hotPlugCbParams->display ;
 
-    BDBG_ERR(("---hdmi %x", hdmi));
     NEXUS_HdmiOutput_GetStatus(hdmi, &status);
     /* the app can choose to switch to the preferred format, but it's not required. */
     if ( !status.connected )

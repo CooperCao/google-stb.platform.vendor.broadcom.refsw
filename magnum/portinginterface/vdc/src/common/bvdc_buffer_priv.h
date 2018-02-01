@@ -454,13 +454,8 @@ typedef struct BVDC_P_PictureNode
     bool                               abMosaicVisible[BAVC_MOSAIC_MAX];
     BVDC_P_Rect                        astMosaicRect[BAVC_MOSAIC_MAX];
 
-    /* for dolby we might need to have a full BVDC_P_ColorSpace with all matrices here?
-     * or just need to add one or two matrices into BAVC_P_ColorSpace? */
-    BAVC_P_ColorSpace                  astMosaicColorSpace[BAVC_MOSAIC_MAX];
-#if 0 /* might be needed for dlbv */
-    int32_t                            aiMa[12];    /* ColorRange adjusted Ma */
-    int32_t                            aiMb[9];
-#endif
+    BCFC_ColorSpace                    astMosaicColorSpace[BAVC_MOSAIC_MAX]; /* generic CFC color space */
+    BVDC_P_CfcMetaData                 astMosaicMetaData[BAVC_MOSAIC_MAX]; /* MetaData */
     bool                               bContinuous; /* mcvp buffer continuous indicator*/
     BVDC_P_Compression_Settings        stCapCompression;
 

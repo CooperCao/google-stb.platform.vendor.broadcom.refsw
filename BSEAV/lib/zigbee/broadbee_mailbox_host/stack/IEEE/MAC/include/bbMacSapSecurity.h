@@ -79,7 +79,7 @@ typedef enum _MAC_SecurityLevel_t {
     MAC_SECURITY_LEVEL__ENC_MIC_32      = 0x5,      /*!< Security level 'ENC-MIC-32'. */
     MAC_SECURITY_LEVEL__ENC_MIC_64      = 0x6,      /*!< Security level 'ENC-MIC-64'. */
     MAC_SECURITY_LEVEL__ENC_MIC_128     = 0x7,      /*!< Security level 'ENC-MIC-128'. */
-} MAC_SecurityLevel_t;
+} PACKED MAC_SecurityLevel_t;
 
 /**//**
  * \brief   Enumeration for the MAC Key Identifier Mode parameter.

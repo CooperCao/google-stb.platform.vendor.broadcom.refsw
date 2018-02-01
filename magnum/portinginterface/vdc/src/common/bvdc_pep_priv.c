@@ -51,6 +51,31 @@ BDBG_OBJECT_ID(BVDC_PEP);
 #endif
 
 #if(BVDC_P_SUPPORT_HIST)
+/***************************************************************************
+ * This function convert from percentage clip rect (left, right, top, bottom)
+ * and width and height to the actual rect
+ *     offset_x = width * left
+ *     offset_y = height * top
+ *     size_x   = width - (width * left + width * right)
+ *     size_y   = height - (height * top + height * bottom)
+ */
+void BVDC_P_CalculateRect_isr
+    ( const BVDC_ClipRect             *pClipRect,
+      uint32_t                         ulWidth,
+      uint32_t                         ulHeight,
+      bool                             bInterlaced,
+      BVDC_P_Rect                     *pRect )
+{
+    pRect->lLeft    = ulWidth * pClipRect->ulLeft / BVDC_P_CLIPRECT_PERCENT;
+    pRect->lTop     = (ulHeight >> bInterlaced) * pClipRect->ulTop / BVDC_P_CLIPRECT_PERCENT;
+    pRect->ulWidth  = ulWidth -(pRect->lLeft +
+        ulWidth * pClipRect->ulRight / BVDC_P_CLIPRECT_PERCENT);
+    pRect->ulHeight = (ulHeight >> bInterlaced) -
+        (pRect->lTop + (ulHeight >> bInterlaced) * pClipRect->ulBottom / BVDC_P_CLIPRECT_PERCENT);
+
+    return;
+}
+
 /*************************************************************************
  *  {secret}
  *  BVDC_P_Histo_BuildRul_isr
@@ -459,8 +484,8 @@ void BVDC_P_Pep_BuildRul_isr
 
     if(hWindow->pMainCfc)
     {
-        bPqNcl = (hWindow->pMainCfc->stColorSpaceIn.stAvcColorSpace.eColorTF == BAVC_P_ColorTF_eBt2100Pq &&
-                  hWindow->pMainCfc->stColorSpaceIn.stAvcColorSpace.eColorFmt == BAVC_P_ColorFormat_eYCbCr) ? true : false;
+        bPqNcl = (hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.eColorTF == BCFC_ColorTF_eBt2100Pq &&
+                  hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.eColorFmt == BCFC_ColorFormat_eYCbCr) ? true : false;
     }
 
     if(hWindow->bTntAvail && (pCurDirty->stBits.bTntAdjust || (bPqNcl != hWindow->bPqNcl) || bInitial))

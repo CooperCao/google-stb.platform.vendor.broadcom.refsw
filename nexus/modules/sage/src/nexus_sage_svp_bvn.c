@@ -40,6 +40,7 @@
 #include "bdbg.h"
 #include "bkni.h"
 #include "nexus_sage_svp_bvn.h"
+#include "secure_video_command_ids.h"
 
 BDBG_MODULE(BBVN);
 BDBG_FILE_MODULE(BBVN_L1);
@@ -330,10 +331,19 @@ typedef enum BBVN_P_VnetMuxType
 typedef enum
 {
     eRecurseUnknown=0,
-    eRecurseSecure,
+    eRecurseSecureDisplay,
+    eRecurseSecureTranscode,
     eRecurseClear,
-    eRecurseViolation
+    eRecurseViolation,
+    eMaxResViolation
 } BBVN_P_RecurseState;
+
+typedef enum
+{
+    eSecureContentNone,
+    eSecureContentDisplay,
+    eSecureContentTranscode
+} BBVN_P_SecureContentType;
 
 /***************************************************************************
  *
@@ -358,12 +368,12 @@ typedef struct BBVN_P_VnetMux
  */
 typedef struct BBVN_P_PathStatus
 {
-    bool                     bSecuredCt;
+    BBVN_P_SecureContentType bSecuredCt;
     BBVN_P_RecurseState      eViolation;
     BAVC_CoreList            stBvnCores;
     int                      iStrIndex;
     char                     achBvnMap[BBVN_P_BVNMAP_NAME_LEN];
-
+    uint8_t                  depth;
 } BBVN_P_PathStatus;
 
 /***************************************************************************
@@ -731,13 +741,15 @@ static const BBVN_P_VnetMux s_astVnetTerminalMuxes[] =
     BBVN_P_MAKE_VNET_F_TERMINAL_NODE(CRC_0, Terminal, CRC, Back, Terminal, Invalid)
 };
 
+#define MAX_RECURSION_DEPTH 24
+
 /* Chip based loop count optimization. */
 #define BBVN_P_NUM_HDM_MAX    (BBVN_NUM_HDMI_PATH)
 #define BBVN_P_NUM_AIT_MAX    (sizeof(s_aAitCmpIdx)/sizeof(s_aAitCmpIdx[0]))
 #define BBVN_P_NUM_STG_MAX    (sizeof(s_aStgCmpIdx)/sizeof(s_aStgCmpIdx[0]))
 
 #define BBVN_P_MAKE_STG_INFO(stg_id, core_id, channel_id) \
-    {(stg_id), (core_id), (channel_id), BCHP_VEC_CFG_STG_##stg_id##_SOURCE, BAVC_CoreId_eVIP_##channel_id}
+    {(stg_id), (core_id), (channel_id), BCHP_VEC_CFG_STG_##stg_id##_SOURCE, BAVC_CoreId_eVCE_##channel_id}
 
 #define BBVN_P_MAKE_AIT_INFO(ait_id) \
     {(BCHP_VEC_CFG_IT_##ait_id##_SOURCE)}
@@ -785,9 +797,26 @@ static const struct
 #endif
 };
 
+static char SecureContentType2Char(BBVN_P_SecureContentType type)
+{
+    switch(type)
+    {
+        case eSecureContentNone:
+            return 'u';
+        case eSecureContentDisplay:
+            return 'D';
+        case eSecureContentTranscode:
+            return 'T';
+        default:
+            break;
+    }
+    return '?';
+}
+
 /***************************************************************************
- * Main monitoring function.
- */
+* Main monitoring function.
+* Function is guaranteed to exit  upon exhausting the list of possible forward or backward nodes
+*/
 static BERR_Code BBVN_P_TraverseBvn_recursive
     ( BREG_Handle                      hReg,
       const BBVN_P_VnetMux            *pCurMux,
@@ -800,6 +829,21 @@ static BERR_Code BBVN_P_TraverseBvn_recursive
     const BBVN_P_VnetMux *pUpStreamMux = NULL;
     char chSecured = '-';
 
+    BSTD_UNUSED(chSecured);
+
+    if((!pCurMux) || (!pSecureCores) || (!pPath))
+    {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    BDBG_ASSERT(pCurMux->eCoreId <= BAVC_CoreId_eMax);
+
+    if(pPath->depth++ >= MAX_RECURSION_DEPTH)
+    {
+        BDBG_ERR(("[%s] RECURSION ERROR", __FUNCTION__));
+        return BERR_UNKNOWN;
+    }
+
     if(BBVN_P_VnetMuxType_eDisabled != pCurMux->eUpstreamMuxType)
     {
 
@@ -808,33 +852,68 @@ static BERR_Code BBVN_P_TraverseBvn_recursive
             switch(pPath->eViolation)
             {
                 case eRecurseUnknown:
-                    pPath->eViolation=pSecureCores->aeCores[pCurMux->eCoreId] ? eRecurseSecure : eRecurseClear;
+                    if(pSecureCores[secure_video_urrType_eTranscode].aeCores[pCurMux->eCoreId]!=0)
+                    {
+                        pPath->eViolation = eRecurseSecureTranscode;
+                    }
+                    else if(pSecureCores[secure_video_urrType_eDisplay].aeCores[pCurMux->eCoreId]!=0)
+                    {
+                        pPath->eViolation = eRecurseSecureDisplay;
+                    }
+                    else
+                    {
+                        pPath->eViolation = eRecurseClear;
+                    }
                     break;
-                case eRecurseSecure:
-                    if(!pSecureCores->aeCores[pCurMux->eCoreId])
+                case eRecurseSecureDisplay:
+                    if(pSecureCores[secure_video_urrType_eTranscode].aeCores[pCurMux->eCoreId]!=0)
+                    {
+                        pPath->eViolation = eRecurseViolation;
+                    }
+                    else if(pSecureCores[secure_video_urrType_eDisplay].aeCores[pCurMux->eCoreId]==0)
                     {
                         /* Ok to go from unsecure into secure */
-                        pPath->eViolation=eRecurseClear;
+                        pPath->eViolation = eRecurseClear;
+                    }
+                    break;
+                case eRecurseSecureTranscode:
+                    if(pSecureCores[secure_video_urrType_eDisplay].aeCores[pCurMux->eCoreId]!=0)
+                    {
+                        pPath->eViolation = eRecurseViolation;
+                    }
+                    else if(pSecureCores[secure_video_urrType_eTranscode].aeCores[pCurMux->eCoreId]==0)
+                    {
+                        /* Ok to go from unsecure into secure */
+                        pPath->eViolation = eRecurseClear;
                     }
                     break;
                 case eRecurseClear:
-                    if(pSecureCores->aeCores[pCurMux->eCoreId])
+                    if((pSecureCores[secure_video_urrType_eTranscode].aeCores[pCurMux->eCoreId]) ||
+                       (pSecureCores[secure_video_urrType_eDisplay].aeCores[pCurMux->eCoreId]))
                     {
                         /* NOT ok to go from secure to unsecure */
                         pPath->eViolation=eRecurseViolation;
                     }
                     break;
-                default:
+                case eRecurseViolation:
                     break;
+                default:
+                    BDBG_ERR(("INVALID violation state"));
+                    err = BERR_UNKNOWN;
+                    goto ERROR;
             }
 
-            if(pSecureCores->aeCores[pCurMux->eCoreId])
+            if(pSecureCores[secure_video_urrType_eTranscode].aeCores[pCurMux->eCoreId])
             {
-                chSecured = 's';
+                chSecured = SecureContentType2Char(eSecureContentTranscode);
+            }
+            else if(pSecureCores[secure_video_urrType_eDisplay].aeCores[pCurMux->eCoreId])
+            {
+                chSecured = SecureContentType2Char(eSecureContentDisplay);
             }
             else
             {
-                chSecured = 'u';
+                chSecured = SecureContentType2Char(eSecureContentNone);
             }
 
             /* Recording all the cores in this path */
@@ -876,7 +955,7 @@ static BERR_Code BBVN_P_TraverseBvn_recursive
                 if(ulSource == (uint32_t)eVnetBNode)
                 {
                     unsigned i;
-                    for (i=0; i<BBVN_P_VNET_B_NODE_COUNT; i++)
+                    for (i=0; i < BBVN_P_VNET_B_NODE_COUNT; i++)
                     {
                         if(eVnetBNode == s_astVnetBackMuxes[i].nodeType.eBack)
                         {
@@ -914,23 +993,34 @@ static BERR_Code BBVN_P_TraverseBvn_recursive
 
         if(pUpStreamMux)
         {
-            err = BBVN_P_TraverseBvn_recursive(hReg, pUpStreamMux, pSecureCores,pPath);
+            err = BBVN_P_TraverseBvn_recursive(hReg, pUpStreamMux, pSecureCores, pPath);
             if(err != BERR_SUCCESS) goto ERROR;
         }
 
         if(BBVN_P_VnetMuxType_eTerminal == pCurMux->eDownstreamMuxType)
         {
+            BDBG_ASSERT(BBVN_P_BVNMAP_NAME_LEN>=(pPath->iStrIndex+BBVN_P_VNET_NAME_LEN));
             pPath->iStrIndex += BKNI_Snprintf(&pPath->achBvnMap[pPath->iStrIndex],
                 BBVN_P_VNET_NAME_LEN, "%s", pCurMux->achName);
         }
         else if((BBVN_P_VnetF_eDisabled != pCurMux->nodeType.eFront) &&
                 (BBVN_P_VnetB_eDisabled != pCurMux->nodeType.eBack))
         {
+            BDBG_ASSERT(BBVN_P_BVNMAP_NAME_LEN>=(pPath->iStrIndex+BBVN_P_VNET_NAME_LEN));
             pPath->iStrIndex += BKNI_Snprintf(&pPath->achBvnMap[pPath->iStrIndex],
                 BBVN_P_VNET_NAME_LEN, "%s -> ", pCurMux->achName);
-            if(pSecureCores->aeCores[pCurMux->eCoreId])
+
+            /* Identify this path as clear, secureDisplay, or secureTranscode */
+            if(pCurMux->eCoreId != BAVC_CoreId_eInvalid)
             {
-                pPath->bSecuredCt = true;
+                if(pSecureCores[secure_video_urrType_eDisplay].aeCores[pCurMux->eCoreId])
+                {
+                    pPath->bSecuredCt = eRecurseSecureDisplay;
+                }
+                else if(pSecureCores[secure_video_urrType_eTranscode].aeCores[pCurMux->eCoreId])
+                {
+                    pPath->bSecuredCt = eRecurseSecureTranscode;
+                }
             }
         }
     }
@@ -955,7 +1045,7 @@ typedef struct BBVN_P_Monitor_Context
     uint8_t                            aiStgCmpIdx[BBVN_P_NUM_STG_MAX]; /* aiStgCmpIdx[STG_x] = CMP_x */
 
     /* collection of status of all paths */
-    uint8_t                            abCmpSecuredCt[BBVN_P_COMPOSITOR_MAX][BBVN_P_WINDOW_MAX];
+    BBVN_P_SecureContentType           abCmpSecuredCt[BBVN_P_COMPOSITOR_MAX][BBVN_P_WINDOW_MAX];
     uint8_t                            abCmpViolation[BBVN_P_COMPOSITOR_MAX][BBVN_P_WINDOW_MAX];
     uint32_t                           aulCmpHSize[BBVN_P_COMPOSITOR_MAX];
     uint32_t                           aulCmpVSize[BBVN_P_COMPOSITOR_MAX];
@@ -966,8 +1056,8 @@ typedef struct BBVN_P_Monitor_Context
 Helper functions
 ****************************************************************************/
 /***************************************************************************
- * Get Compositor index if go thru decimator
- */
+* Get Compositor index if go thru decimator
+*/
 static void BBVN_P_GetDecimCmpIdx
     ( BREG_Handle                      hReg,
       uint8_t                         *piCmpIdx
@@ -984,8 +1074,8 @@ static void BBVN_P_GetDecimCmpIdx
 }
 
 /***************************************************************************
- * Get Compositor index that drives HDMI
- */
+* Get Compositor index that drives HDMI
+*/
 static void BBVN_P_GetVecSourceCmpIdx
     ( BREG_Handle                      hReg,
       uint32_t                         ulVecSrcMuxAddr,
@@ -1005,17 +1095,17 @@ static void BBVN_P_GetVecSourceCmpIdx
         *piCmpIdx = BBVN_P_INVALID_COMPOSITOR_IDX;
     }
 #else
-        BSTD_UNUSED(piCmpIdx);
-        BSTD_UNUSED(ulVecSrcMuxAddr);
-        *piCmpIdx = BBVN_P_INVALID_COMPOSITOR_IDX;
+     BSTD_UNUSED(piCmpIdx);
+     BSTD_UNUSED(ulVecSrcMuxAddr);
+     *piCmpIdx = BBVN_P_INVALID_COMPOSITOR_IDX;
 #endif
 
     return;
 }
 
 /***************************************************************************
- * Get Compositor index that drives HDMI
- */
+* Get Compositor index that drives HDMI
+*/
 static void BBVN_P_GetHdmCmpIdx
     ( BREG_Handle                      hReg,
       uint8_t                          aiHdmCmpIdx[BBVN_P_NUM_HDM_MAX] /* aiHdmCmpIdx[HDM_x] = CMP_x */
@@ -1033,8 +1123,8 @@ static void BBVN_P_GetHdmCmpIdx
 }
 
 /***************************************************************************
- * Get Compositor index information for STG.
- */
+* Get Compositor index information for STG.
+*/
 static void BBVN_P_GetStgCmpIdx
     ( BREG_Handle                      hReg,
       uint8_t                          aiStgCmpIdx[BBVN_P_NUM_STG_MAX] /* aiStgCmpIdx[STG_x] = CMP_x */
@@ -1052,8 +1142,8 @@ static void BBVN_P_GetStgCmpIdx
 }
 
 /***************************************************************************
- * Get Compositor index information for STG.
- */
+* Get Compositor index information for STG.
+*/
 static void BBVN_P_GetAItCmpIdx
     ( BREG_Handle                      hReg,
       uint8_t                          aiAitCmpIdx[BBVN_P_NUM_AIT_MAX] /* aiAitCmpIdx[IT_x] = CMP_x */
@@ -1071,17 +1161,17 @@ static void BBVN_P_GetAItCmpIdx
 }
 
 /***************************************************************************
- * Get Compositor/Window index information from given VNET Mux of a
- * compositor
- */
+* Get Compositor/Window index information from given VNET Mux of a
+* compositor
+*/
 #define BBVN_P_MAKE_CMP_INFO(cmp_idx, win_idx)      \
      {BCHP_VNET_B_CMP_##cmp_idx##_V##win_idx##_SRC, \
       BCHP_CMP_##cmp_idx##_REG_START - BCHP_CMP_0_REG_START, cmp_idx, win_idx}
 
 /***************************************************************************
- * Get Compositor/Window index information from given VNET Mux of a
- * compositor
- */
+* Get Compositor/Window index information from given VNET Mux of a
+* compositor
+*/
 static bool BBVN_P_GetCmpInfo
     ( BREG_Handle                      hReg,
       uint32_t                         ulCmpVnetAddr,
@@ -1163,7 +1253,7 @@ BERR_Code BBVN_Monitor_Init
     BDBG_ASSERT(BBVN_P_NUM_STG_MAX <= BBVN_NUM_XCODE_PATH);
 
     BDBG_MSG(("Chip configuration NUM_HDMI=%d, NUM_ANALOG=%d, NUM_XCODE=%d",
-        BBVN_P_NUM_HDM_MAX, BBVN_P_NUM_AIT_MAX, BBVN_P_NUM_STG_MAX));
+              BBVN_P_NUM_HDM_MAX, BBVN_P_NUM_AIT_MAX, BBVN_P_NUM_STG_MAX));
 
     /* Create opaque handle */
     hBvn = (BBVN_Monitor_Handle)BKNI_Malloc(sizeof(*hBvn));
@@ -1183,8 +1273,6 @@ BERR_Code BBVN_Monitor_Init
 
     /* Return to user */
     *phBvn = hBvn;
-
-    BDBG_MSG(("BBVN Context size is %d bytes.", sizeof(*hBvn)));
 
 ERROR:
     BDBG_LEAVE(BBVN_Monitor_Init);
@@ -1217,6 +1305,7 @@ Summary:
 BERR_Code BBVN_Monitor_Check
     ( BBVN_Monitor_Handle              hBvnMonitor,     /* [in] A valid BVN Monitor Handle created earlier. */
       const BAVC_CoreList             *pSecureCores,    /* [in] list of secure cores */
+      BBVN_P_MaxResInfo               *pMaxResInfo,     /* [in] MaxRes info for secure encode */
       BBVN_Monitor_Status             *pStatus          /* [out] BVN status */
     )
 {
@@ -1229,18 +1318,23 @@ BERR_Code BBVN_Monitor_Check
 #define BBVN_TESTING (0)
 #endif
 #if BBVN_TESTING
-    BAVC_CoreList stSecureCores, *pSCores = &stSecureCores;
-    BKNI_Memset(pSCores, 0, sizeof(BAVC_CoreList));
-    pSCores->aeCores[BAVC_CoreId_eMFD_0] = true;
-    pSCores->aeCores[BAVC_CoreId_eMVP_0] = true;
-    pSCores->aeCores[BAVC_CoreId_eSCL_0] = true;
-    pSCores->aeCores[BAVC_CoreId_eCAP_0] = true;
-    pSCores->aeCores[BAVC_CoreId_eVFD_0] = true;
+    BAVC_CoreList stSecureCores[secure_video_urrType_eMax], *pSCores = &stSecureCores[0];
+    BKNI_Memset(pSCores, 0, sizeof(*pSCores));
+    pSCores[secure_video_urrType_eDisplay].aeCores[BAVC_CoreId_eMFD_0] = true;
+    pSCores[secure_video_urrType_eDisplay].aeCores[BAVC_CoreId_eMVP_0] = true;
+    pSCores[secure_video_urrType_eDisplay].aeCores[BAVC_CoreId_eSCL_0] = true;
+    pSCores[secure_video_urrType_eDisplay].aeCores[BAVC_CoreId_eCAP_0] = true;
+    pSCores[secure_video_urrType_eDisplay].aeCores[BAVC_CoreId_eVFD_0] = true;
     pSecureCores = pSCores;
 #endif
 
     BDBG_ENTER(BBVN_Monitor_Check);
     BDBG_OBJECT_ASSERT(hBvnMonitor, BBVN_BVN);
+
+    if(!pSecureCores || !pMaxResInfo || !pStatus)
+    {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
 
     /* Cleared out to avoid unitialized new value. */
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
@@ -1248,18 +1342,26 @@ BERR_Code BBVN_Monitor_Check
     BKNI_Memset(hBvnMonitor->abCmpViolation, 0, sizeof(hBvnMonitor->abCmpViolation));
 
     /* For sanity checks to see if pSecureCores */
-    BDBG_MODULE_MSG(BBVN_L3, ("Secure Cores:"));
+    BDBG_MODULE_MSG(BBVN_L3, ("Secure Cores (URR):"));
     for(i = 0; i < BAVC_CoreId_eMax; i++)
     {
-        if(pSecureCores->aeCores[i])
+        if(pSecureCores[secure_video_urrType_eDisplay].aeCores[i])
+        {
+            BDBG_MODULE_MSG(BBVN_L3, ("\t%s(%02d)", g_NEXUS_SvpHwBlockTbl[i].achName, i));
+        }
+    }
+    BDBG_MODULE_MSG(BBVN_L3, ("Secure Cores (URRT):"));
+    for(i = 0; i < BAVC_CoreId_eMax; i++)
+    {
+        if(pSecureCores[secure_video_urrType_eTranscode].aeCores[i])
         {
             BDBG_MODULE_MSG(BBVN_L3, ("\t%s(%02d)", g_NEXUS_SvpHwBlockTbl[i].achName, i));
         }
     }
 
     /* Traverse BVN (bvn only no vec/stg) and mark each CMP_x path
-     *    [1] if it has secure content or not
-     *    [2] if bvn's memory client violation. */
+    *    [1] if it has secure content or not
+    *    [2] if bvn's memory client violation. */
     for (i = 0; i < BBVN_P_TERMINAL_NODE_COUNT; i++)
     {
         uint8_t iCmpIdx, iWinIdx;
@@ -1284,16 +1386,49 @@ BERR_Code BBVN_Monitor_Check
                 }
 
                 BDBG_MODULE_MSG(BBVN_L1,("%s - [%c][%c]", pPath->achBvnMap,
-                    pPath->bSecuredCt ? 's' : 'u', (pPath->eViolation==eRecurseViolation) ? 'y' : 'n'));
+                                SecureContentType2Char(pPath->bSecuredCt),
+                                (pPath->eViolation==eRecurseViolation) ? 'y' : 'n'));
 
                 if(BBVN_P_GetCmpInfo(hBvnMonitor->hReg, pCurMux->ulAddress,
-                    &iCmpIdx, &iWinIdx, &ulHSize, &ulVSize))
+                   &iCmpIdx, &iWinIdx, &ulHSize, &ulVSize))
                 {
                     hBvnMonitor->abCmpSecuredCt[iCmpIdx][iWinIdx] = pPath->bSecuredCt;
                     hBvnMonitor->abCmpViolation[iCmpIdx][iWinIdx] = (pPath->eViolation==eRecurseViolation);
                     /* Records its width & height */
                     hBvnMonitor->aulCmpHSize[iCmpIdx] = ulHSize;
                     hBvnMonitor->aulCmpVSize[iCmpIdx] = ulVSize;
+
+                    /* If this is an encode path, need to make sure MaxRes settings are respected */
+                    if(pPath->bSecuredCt == eSecureContentTranscode)
+                    {
+                        switch(pMaxResInfo->MaxRes_URRT2GLR)
+                        {
+                            case HvdMaxRes_ResAll:
+                                /* Nothing to check */
+                                break;
+                            case HvdMaxRes_ResSD:
+                                if((ulHSize>=1280)||(ulVSize>=720))
+                                {
+                                    hBvnMonitor->abCmpViolation[iCmpIdx][iWinIdx]=eMaxResViolation;
+                                }
+                                break;
+                            case HvdMaxRes_ResHD1280:
+                                if((ulHSize>=1920)||(ulVSize>=1080))
+                                {
+                                    hBvnMonitor->abCmpViolation[iCmpIdx][iWinIdx]=eMaxResViolation;
+                                }
+                                break;
+                            case HvdMaxRes_ResHD1920:
+                                if((ulHSize>1920)||(ulVSize>1080))
+                                {
+                                    hBvnMonitor->abCmpViolation[iCmpIdx][iWinIdx]=eMaxResViolation;
+                                }
+                                break;
+                            default:
+                                BDBG_ERR(("No MaxRes settings"));
+                                break;
+                        }
+                    }
                 }
             }
         }
@@ -1313,17 +1448,16 @@ BERR_Code BBVN_Monitor_Check
             if(i == hBvnMonitor->aiHdmCmpIdx[j])
             {
                 /* HDMI has secured content if either Main or PIP has secured content */
-                if(hBvnMonitor->abCmpSecuredCt[i][0] ||
-                   hBvnMonitor->abCmpSecuredCt[i][1])
+                if(hBvnMonitor->abCmpSecuredCt[i][0] || hBvnMonitor->abCmpSecuredCt[i][1])
                 {
                     pStatus->Hdmi[j].bSecure = true;
                     pStatus->Hdmi[j].ulHSize = hBvnMonitor->aulCmpHSize[i];
                     pStatus->Hdmi[j].ulVSize = hBvnMonitor->aulCmpVSize[i];
                 }
                 BDBG_MSG(("Cmp[%d] (%dx%d) routes '%s' content to Hdmi[%d].", i,
-                    pStatus->Hdmi[j].ulHSize,
-                    pStatus->Hdmi[j].ulVSize,
-                    pStatus->Hdmi[j].bSecure ? "secured" : "non-secured", j));
+                          pStatus->Hdmi[j].ulHSize,
+                          pStatus->Hdmi[j].ulVSize,
+                          pStatus->Hdmi[j].bSecure ? "secured" : "non-secured", j));
             }
         }
         /* (2) Populate ANALOG: status */
@@ -1331,17 +1465,16 @@ BERR_Code BBVN_Monitor_Check
         {
             if(i == hBvnMonitor->aiAitCmpIdx[j])
             {
-                if(hBvnMonitor->abCmpSecuredCt[i][0] ||
-                   hBvnMonitor->abCmpSecuredCt[i][1])
+                if(hBvnMonitor->abCmpSecuredCt[i][0] || hBvnMonitor->abCmpSecuredCt[i][1])
                 {
                     pStatus->Analog[j].bSecure = true;
                     pStatus->Analog[j].ulHSize = hBvnMonitor->aulCmpHSize[i];
                     pStatus->Analog[j].ulVSize = hBvnMonitor->aulCmpVSize[i];
                 }
                 BDBG_MSG(("Cmp[%d] (%dx%d) routes '%s' content to Analog[%d].", i,
-                    pStatus->Analog[j].ulHSize,
-                    pStatus->Analog[j].ulVSize,
-                    pStatus->Analog[j].bSecure ? "secured" : "non-secured", j));
+                          pStatus->Analog[j].ulHSize,
+                          pStatus->Analog[j].ulVSize,
+                          pStatus->Analog[j].bSecure ? "secured" : "non-secured", j));
             }
         }
         /* (3) Populate STG: status */
@@ -1349,8 +1482,7 @@ BERR_Code BBVN_Monitor_Check
         {
             if(i == hBvnMonitor->aiStgCmpIdx[j])
             {
-                if(hBvnMonitor->abCmpSecuredCt[i][0] ||
-                   hBvnMonitor->abCmpSecuredCt[i][1])
+                if(hBvnMonitor->abCmpSecuredCt[i][0] || hBvnMonitor->abCmpSecuredCt[i][1])
                 {
                     pStatus->Xcode[j].bSecure = true;
                     pStatus->Xcode[j].ulHSize = hBvnMonitor->aulCmpHSize[i];
@@ -1359,30 +1491,28 @@ BERR_Code BBVN_Monitor_Check
 
                 /* If video goes thru STG which goes thru VIP report violation
                 * when VIP is not part of pSecureCores list */
-                if(pStatus->Xcode[j].bSecure && !pSecureCores->aeCores[s_aStgCmpIdx[j].eVipCoreId])
+                if(pStatus->Xcode[j].bSecure && !pSecureCores[secure_video_urrType_eTranscode].aeCores[s_aStgCmpIdx[j].eVipCoreId])
                 {
                     hBvnMonitor->abCmpViolation[i][0] = true;
                     hBvnMonitor->abCmpViolation[i][1] = true;
                 }
                 BDBG_MSG(("Cmp[%d] (%dx%d) routes '%s' content to Stg[%d]-> %s.", (uint32_t)i,
-                pStatus->Xcode[j].ulHSize,
-                pStatus->Xcode[j].ulVSize,
-                pStatus->Xcode[j].bSecure ? "secured" : "non-secured", (uint32_t)j,
-                g_NEXUS_SvpHwBlockTbl[s_aStgCmpIdx[j].eVipCoreId].achName));
+                          pStatus->Xcode[j].ulHSize,
+                          pStatus->Xcode[j].ulVSize,
+                          pStatus->Xcode[j].bSecure ? "secured" : "non-secured", (uint32_t)j,
+                          g_NEXUS_SvpHwBlockTbl[s_aStgCmpIdx[j].eVipCoreId].achName));
             }
         }
 
         /* Violation if secured content is routed to non-secured memory clients */
-        if(hBvnMonitor->abCmpViolation[i][0] ||
-           hBvnMonitor->abCmpViolation[i][1])
+        if(hBvnMonitor->abCmpViolation[i][0] || hBvnMonitor->abCmpViolation[i][1])
         {
             pStatus->bViolation = true;
         }
     }
 
     BDBG_MSG(("***************************************************************"));
-    BDBG_MSG(("                    BVN Violation = '%s'",
-        pStatus->bViolation ? "yes" : "no"));
+    BDBG_MSG(("                    BVN Violation = '%s'", pStatus->bViolation ? "yes" : "no"));
     BDBG_MSG(("***************************************************************"));
 
 ERROR:

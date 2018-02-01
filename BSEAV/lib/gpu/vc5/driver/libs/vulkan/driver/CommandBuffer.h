@@ -31,9 +31,6 @@ class CmdComputeJobObj;
 class ColorAspectCommandBuilder;
 class CmdControlListObj;
 class CmdFlushControlListObj;
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-class CmdSecondaryDeferredClipObj;
-#endif
 class CommandReference;
 
 // The command buffer object
@@ -349,11 +346,6 @@ public:
    void RecordSecondaryControlList(const CmdControlListObj &cl);
    void RecordSecondaryControlListFlush(const CmdFlushControlListObj &cl);
 
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   // Dispatched via CmdSecondaryDeferredClipObj to record a secondary command buffer clip
-   void RecordSecondaryDeferredClip(const CmdSecondaryDeferredClipObj &clip);
-#endif
-
    void RecordSecondaryDeferredClear(uint32_t attachmentCount, const VkClearAttachment *pAttachments,
                                      uint32_t rectCount, const VkClearRect *pRects);
 
@@ -445,10 +437,6 @@ private:
    void FlushPrimaryControlList();
    void FlushSecondaryControlList();
    void SplitSecondaryControlList();
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   void InsertClampedClipRecord(int x, int y, int xMax, int yMax);
-#endif
 
    // vkCmdResolveImage helpers
    void ResolveImageRegionTLB(

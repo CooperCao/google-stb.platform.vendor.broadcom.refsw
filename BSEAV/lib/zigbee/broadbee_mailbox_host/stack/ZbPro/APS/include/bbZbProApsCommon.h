@@ -162,7 +162,7 @@
  * \brief Describes the maximum application support layer data unit size (may be fragmented),
  *      shall be appropriate ZBPRO_APS_MaxDuSize_t.
  */
-#define ZBPRO_APS_MAX_DU_SIZE                 50U /* CRITICAL TODO: calculate me */
+#define ZBPRO_APS_MAX_DU_SIZE                 75U
 
 /**//**
  * \brief Maximum value of apsMaxWindowSize as Table 2.26 of the spec says

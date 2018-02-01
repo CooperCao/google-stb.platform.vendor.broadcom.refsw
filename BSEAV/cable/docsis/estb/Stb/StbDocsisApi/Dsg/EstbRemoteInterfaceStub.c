@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -3041,8 +3041,9 @@ int DsgSendCableCardIpUsData( unsigned char *pData, unsigned short len )
 
     // Pad out the buffer to minimum expected reply size.
     if (total_len < kEcmReplyPktSize)
+    {
         total_len = kEcmReplyPktSize;
-
+    }
 	pDsgConfig = (unsigned char *)malloc(total_len);
 
 	if( pDsgConfig == NULL )

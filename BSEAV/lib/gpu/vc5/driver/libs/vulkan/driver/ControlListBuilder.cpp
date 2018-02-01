@@ -62,33 +62,12 @@ void ControlListBuilder::StartBinJobCL(
    binList->SetStart(*m_curDeviceBlock);
    brJob->SetBinStart(binList->Start());
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
    v3d_cl_tile_binning_mode_cfg(CLPtr(),
       v3d_translate_tile_alloc_block_size(initialTileAllocBlockSize),
       v3d_translate_tile_alloc_block_size(tileAllocBlockSize),
       numRenderTargets, maxBpp, multisample,
       /*double_buffer=*/false,
       m_numPixelsX, m_numPixelsY);
-#else
-   // Note: We do not add the binner config item into the master control list at
-   // this point. Instead, we record what needs to be in it and create one only
-   // when the job is queued. This means that we can defer creation of the
-   // tile-state memory area until it's actually needed, and not have lots of
-   // them lying around.
-   brJob->m_binConfig.type = V3D_BCFG_TYPE_PART1;
-   brJob->m_binConfig.u.part1.auto_init_tile_state = true;
-   brJob->m_binConfig.u.part1.tile_alloc_initial_block_size =
-         v3d_translate_tile_alloc_block_size(initialTileAllocBlockSize);
-   brJob->m_binConfig.u.part1.tile_alloc_block_size =
-         v3d_translate_tile_alloc_block_size(tileAllocBlockSize);
-   brJob->m_binConfig.u.part1.w_in_tiles      = m_numTilesX;
-   brJob->m_binConfig.u.part1.h_in_tiles      = m_numTilesY;
-   brJob->m_binConfig.u.part1.num_rts         = numRenderTargets;
-   brJob->m_binConfig.u.part1.max_bpp         = maxBpp;
-   brJob->m_binConfig.u.part1.ms_mode         = multisample;
-   brJob->m_binConfig.u.part1.double_buffer   = false;  // TODO : double buffer
-   brJob->m_binConfig.u.part1.tile_state_addr = 0;    // Filled when queued
-#endif
 
    v3d_cl_clear_vcd_cache(CLPtr());
 
@@ -107,11 +86,7 @@ void ControlListBuilder::InsertNVShaderRenderState(
       bool            updateStencil,
       uint32_t        colorWriteMasks)
 {
-#if V3D_VER_AT_LEAST(4,1,34,0)
    v3d_cl_viewport_offset(CLPtr(), 0, 0, 0, 0);
-#else
-   v3d_cl_viewport_offset(CLPtr(), 0, 0);
-#endif
    v3d_cl_clip(CLPtr(),
          clipRect.offset.x,
          clipRect.offset.y,
@@ -119,11 +94,7 @@ void ControlListBuilder::InsertNVShaderRenderState(
          clipRect.extent.height);
 
    v3d_cl_clipz(CLPtr(), 0.0f, 1.0f);
-#if V3D_VER_AT_LEAST(4,1,34,0)
    v3d_cl_depth_offset(CLPtr(), 0.0f, 0.0f, 1.0f);
-#else
-   v3d_cl_depth_offset(CLPtr(), 0.0f, 1.0f);
-#endif
 
    v3d_cl_zero_all_flatshade_flags(CLPtr());
    v3d_cl_zero_all_centroid_flags(CLPtr());
@@ -169,9 +140,7 @@ void ControlListBuilder::EndBinJobCL(
       // memory to not having memory). Avoid this by ensuring it starts with
       // at least one block.
       V3D_TILE_ALLOC_GRANULARITY;
-#if V3D_VER_AT_LEAST(4,1,34,0)
    brJob->m_brDetails.bin_tile_state_size = m_numTilesX * m_numTilesY * V3D_TILE_STATE_SIZE;
-#endif
 
    // Set binner barrier flags
    const v3d_barrier_flags defaultFlags =
@@ -186,10 +155,10 @@ void ControlListBuilder::EndBinJobCL(
 
    syncFlags |= defaultFlags;
 
-   bool hasL3C = v3d_scheduler_get_hub_identity()->has_l3c;
-   brJob->m_brDetails.bin_cache_ops  = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, syncFlags, false, hasL3C);
+   const V3D_HUB_IDENT_T* hub_ident = v3d_scheduler_get_hub_identity();
+   brJob->m_brDetails.bin_cache_ops  = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, syncFlags, false, hub_ident);
    brJob->m_brDetails.bin_cache_ops &= ~V3D_CACHE_CLEAR_VCD; // VCD cache flushed in the control list
-   brJob->m_brDetails.bin_cache_ops |= v3d_barrier_cache_cleans(syncFlags, V3D_BARRIER_MEMORY_READ, false, hasL3C);
+   brJob->m_brDetails.bin_cache_ops |= v3d_barrier_cache_cleans(syncFlags, V3D_BARRIER_MEMORY_READ, false, hub_ident);
 }
 
 void ControlListBuilder::StartRenderJobCL(
@@ -219,10 +188,8 @@ void ControlListBuilder::InsertInitialTLBClear(
          V3D_DECIMATE_SAMPLE0,
          V3D_PIXEL_FORMAT_SRGB8_ALPHA8,
          /*clear=*/false,
-#if V3D_VER_AT_LEAST(4,1,34,0)
          /*chan_reverse=*/false,
          /*rb_swap=*/false,
-#endif
          /*stride=*/0,
          /*height=*/0,
          /*addr=*/0);
@@ -322,13 +289,13 @@ void ControlListBuilder::EndRenderJobCL(
       |  V3D_BARRIER_QPU_INSTR_READ
       |  V3D_BARRIER_QPU_UNIF_READ;
 
-   bool hasL3C = v3d_scheduler_get_hub_identity()->has_l3c;
+   const V3D_HUB_IDENT_T* hub_ident = v3d_scheduler_get_hub_identity();
    syncFlags |= defaultSyncFlags;
    brJob->m_brDetails.render_cache_ops  = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE,
-                                                                    syncFlags, false, hasL3C);
+                                                                    syncFlags, false, hub_ident);
    brJob->m_brDetails.render_cache_ops &= ~V3D_CACHE_CLEAR_VCD; // VCD cache flushed in the control list
    brJob->m_brDetails.render_cache_ops |= v3d_barrier_cache_cleans(syncFlags, V3D_BARRIER_MEMORY_READ,
-                                                                   false, hasL3C);
+                                                                   false, hub_ident);
 }
 
 void ControlListBuilder::AddTileListBranches(CmdBinRenderJobObj *brJob)

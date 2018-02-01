@@ -52,13 +52,13 @@
 
 #include "bbox_vdc_box1_config.h"
 #include "bbox_vdc_box2_config.h"
-#include "bbox_vdc_box1000_config.h"
-#include "bbox_vdc_box1001_config.h"
+#include "bbox_vdc_box3_config.h"
+#include "bbox_vdc_box4_config.h"
 
 #include "bbox_rts_box1.h"
 #include "bbox_rts_box2.h"
-#include "bbox_rts_box1000.h"
-#include "bbox_rts_box1001.h"
+#include "bbox_rts_box3.h"
+#include "bbox_rts_box4.h"
 
 
 BDBG_MODULE(BBOX_PRIV);
@@ -68,7 +68,7 @@ BERR_Code BBOX_P_ValidateId
     (uint32_t                ulId)
 {
     BERR_Code eStatus = BERR_SUCCESS;
-    if ((ulId != 1000 && ulId != 1001) && (ulId == 0 || ulId > BBOX_MODES_SUPPORTED))
+    if (ulId == 0 || ulId > BBOX_MODES_SUPPORTED)
     {
         eStatus = BBOX_ID_NOT_SUPPORTED;
     }
@@ -88,11 +88,11 @@ void BBOX_P_Vdc_SetSourceCapabilities
         case 2:
             BBOX_P_Vdc_SetBox2SourceCapabilities(pSourceCap);
             break;
-        case 1000:
-            BBOX_P_Vdc_SetBox1000SourceCapabilities(pSourceCap);
+        case 3:
+            BBOX_P_Vdc_SetBox3SourceCapabilities(pSourceCap);
             break;
-        case 1001:
-            BBOX_P_Vdc_SetBox1001SourceCapabilities(pSourceCap);
+        case 4:
+            BBOX_P_Vdc_SetBox4SourceCapabilities(pSourceCap);
             break;
     }
 }
@@ -109,11 +109,11 @@ void BBOX_P_Vdc_SetDisplayCapabilities
         case 2:
             BBOX_P_Vdc_SetBox2DisplayCapabilities(pDisplayCap);
             break;
-        case 1000:
-            BBOX_P_Vdc_SetBox1000DisplayCapabilities(pDisplayCap);
+        case 3:
+            BBOX_P_Vdc_SetBox3DisplayCapabilities(pDisplayCap);
             break;
-        case 1001:
-            BBOX_P_Vdc_SetBox1001DisplayCapabilities(pDisplayCap);
+        case 4:
+            BBOX_P_Vdc_SetBox4DisplayCapabilities(pDisplayCap);
             break;
         }
 }
@@ -130,11 +130,11 @@ void BBOX_P_Vdc_SetDeinterlacerCapabilities
         case 2:
             BBOX_P_Vdc_SetBox2DeinterlacerCapabilities(pDeinterlacerCap);
             break;
-        case 1000:
-            BBOX_P_Vdc_SetBox1000DeinterlacerCapabilities(pDeinterlacerCap);
+        case 3:
+            BBOX_P_Vdc_SetBox3DeinterlacerCapabilities(pDeinterlacerCap);
             break;
-        case 1001:
-            BBOX_P_Vdc_SetBox1001DeinterlacerCapabilities(pDeinterlacerCap);
+        case 4:
+            BBOX_P_Vdc_SetBox4DeinterlacerCapabilities(pDeinterlacerCap);
             break;
     }
 }
@@ -151,11 +151,11 @@ void BBOX_P_Vdc_SetXcodeCapabilities
         case 2:
             BBOX_P_Vdc_SetBox2XcodeCapabilities(pXcodeCap);
             break;
-        case 1000:
-            BBOX_P_Vdc_SetBox1000XcodeCapabilities(pXcodeCap);
+        case 3:
+            BBOX_P_Vdc_SetBox3XcodeCapabilities(pXcodeCap);
             break;
-        case 1001:
-            BBOX_P_Vdc_SetBox1001XcodeCapabilities(pXcodeCap);
+        case 4:
+            BBOX_P_Vdc_SetBox4XcodeCapabilities(pXcodeCap);
             break;
     }
 }
@@ -181,11 +181,11 @@ BERR_Code BBOX_P_SetMemConfig
         case 2:
             BBOX_P_SetBox2MemConfig(pBoxMemConfig);
             break;
-        case 1000:
-            BBOX_P_SetBox1000MemConfig(pBoxMemConfig);
+        case 3:
+            BBOX_P_SetBox3MemConfig(pBoxMemConfig);
             break;
-        case 1001:
-            BBOX_P_SetBox1001MemConfig(pBoxMemConfig);
+        case 4:
+            BBOX_P_SetBox4MemConfig(pBoxMemConfig);
             break;
         default:
             BDBG_ERR(("There is no box mode %d MEMC configuration.", ulBoxId));
@@ -207,11 +207,11 @@ BERR_Code BBOX_P_GetRtsConfig
         case 2:
             BBOX_P_GetBox2Rts(pBoxRts);
             break;
-        case 1000:
-            BBOX_P_GetBox1000Rts(pBoxRts);
+        case 3:
+            BBOX_P_GetBox3Rts(pBoxRts);
             break;
-        case 1001:
-            BBOX_P_GetBox1001Rts(pBoxRts);
+        case 4:
+            BBOX_P_GetBox4Rts(pBoxRts);
             break;
         default:
             BDBG_ERR(("There is no box mode %d RTS configuration.", ulBoxId));

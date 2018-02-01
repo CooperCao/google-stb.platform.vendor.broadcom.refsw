@@ -1,5 +1,5 @@
 ############################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom.
+# Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 # All rights reserved.
 ############################################################
 
@@ -7,5 +7,6 @@ ccflags-y := -Iinclude/drm -I$(M)/include
 
 brcmv3d-y := v3d_drv.o
 brcmv3d-$(CONFIG_DEBUG_FS) += v3d_debugfs.o
+brcmv3d-$(CONFIG_COMPAT) += v3d_ioc32.o
 
 obj-m += brcmv3d.o

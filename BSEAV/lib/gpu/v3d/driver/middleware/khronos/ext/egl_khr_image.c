@@ -13,19 +13,17 @@
 #include "interface/khronos/include/EGL/eglext.h"
 #include "interface/khronos/include/EGL/eglext_brcm.h"
 #include "middleware/khronos/common/2708/khrn_tfconvert_4.h"
+#include "middleware/khronos/common/khrn_mem.h"
 
 /* */
-void egl_image_term(MEM_HANDLE_T handle)
+static void egl_image_term(void *p)
 {
-   EGL_IMAGE_T *egl_image = (EGL_IMAGE_T *)mem_lock(handle, NULL);
-
-   MEM_ASSIGN(egl_image->mh_image, MEM_HANDLE_INVALID);
-
-   mem_unlock(handle);
+   EGL_IMAGE_T *eglimage = p;
+   KHRN_MEM_ASSIGN(eglimage->image, NULL);
 }
 
 /*
-    int eglCreateImageKHR_impl (uint32_t glversion, EGL_CONTEXT_ID_T ctx, EGLenum target, EGLClientBuffer buffer, EGLint texture_level, EGLint *results)
+    int eglCreateImageKHR_impl (EGL_CONTEXT_TYPE_T glversion, EGL_CONTEXT_ID_T ctx, EGLenum target, EGLClientBuffer buffer, EGLint texture_level, EGLint *results)
 
     EGL_BAD_CONTEXT     ctx is not a valid EGLContext handle
     EGL_BAD_PARAMETER   target is not one of the values in Table aaa
@@ -314,17 +312,16 @@ static uint32_t convert_texture_target(EGLenum target)
    }
 }
 
-static MEM_HANDLE_T egl_image_texture_new(GLXX_SHARED_T *shared, EGLenum target, EGLClientBuffer buffer, EGLint texture_level, EGLint *error)
+static KHRN_IMAGE_T *egl_image_texture_new(GLXX_SHARED_T *shared, EGLenum target, EGLClientBuffer buffer, EGLint texture_level, EGLint *error)
 {
-   MEM_HANDLE_T htexture = glxx_shared_get_texture(shared, (uint32_t)buffer);   /* returns invalid for default texture (0) */
+   GLXX_TEXTURE_T *texture = glxx_shared_get_texture(shared, (uint32_t)(uintptr_t)buffer);   /* returns invalid for default texture (0) */
 
-   if (htexture == MEM_HANDLE_INVALID)
+   if (texture == NULL)
    {
       *error = EGL_BAD_PARAMETER;
-      return MEM_HANDLE_INVALID;
+      return NULL;
    }
 
-   GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(htexture, NULL);
    bool is_cube = target != EGL_GL_TEXTURE_2D_KHR;
    switch (texture->target) {
    case GL_TEXTURE_CUBE_MAP:
@@ -344,12 +341,10 @@ static MEM_HANDLE_T egl_image_texture_new(GLXX_SHARED_T *shared, EGLenum target,
       break;
    }
 
-   if (*error != EGL_SUCCESS) {
-      mem_unlock(htexture);
-      return MEM_HANDLE_INVALID;
-   }
+   if (*error != EGL_SUCCESS)
+      return NULL;
 
-   MEM_HANDLE_T res = MEM_HANDLE_INVALID;
+   KHRN_IMAGE_T *image = NULL;
 
    bool base_complete = false;
    GLXX_TEXTURE_COMPLETENESS_T status = glxx_texture_check_complete_levels(texture, base_complete);
@@ -374,7 +369,7 @@ static MEM_HANDLE_T egl_image_texture_new(GLXX_SHARED_T *shared, EGLenum target,
             unsigned num_levels = base_complete ? 1 : glxx_texture_get_mipmap_count(texture);
             if (!glxx_texture_has_images_outside_range(texture, num_levels)) {
                /* At this point we should succeed */
-               MEM_ASSIGN(res, glxx_texture_share_mipmap(texture, convert_texture_target(target), texture_level));
+               KHRN_MEM_ASSIGN(image, glxx_texture_share_mipmap(texture, convert_texture_target(target), texture_level));
 
                /*
                * TODO: should we set the IMAGE_FLAG_BOUND_EGLIMAGE flag
@@ -397,64 +392,55 @@ static MEM_HANDLE_T egl_image_texture_new(GLXX_SHARED_T *shared, EGLenum target,
       UNREACHABLE();
    }
 
-   mem_unlock(htexture);
-
-   return res;
+   return image;
 }
 
-static MEM_HANDLE_T egl_image_renderbuffer_new(GLXX_SHARED_T *shared, EGLClientBuffer buffer, EGLint *error)
+static KHRN_IMAGE_T *egl_image_renderbuffer_new(GLXX_SHARED_T *shared, EGLClientBuffer buffer, EGLint *error)
 {
-   MEM_HANDLE_T hrenderbuffer = glxx_shared_get_renderbuffer(shared, (uint32_t)buffer, false);
-   if (hrenderbuffer == MEM_HANDLE_INVALID)
+   GLXX_RENDERBUFFER_T *renderbuffer = glxx_shared_get_renderbuffer(shared, (uint32_t)(uintptr_t)buffer, false);
+   if (renderbuffer == NULL)
    {
       *error = EGL_BAD_PARAMETER;
-      return MEM_HANDLE_INVALID;
+      return NULL;
    }
 
-   GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(hrenderbuffer, NULL);
-   MEM_HANDLE_T res = MEM_HANDLE_INVALID;
-   if (renderbuffer->mh_storage == MEM_HANDLE_INVALID)
+   KHRN_IMAGE_T *image = NULL;
+   if (renderbuffer->storage == NULL)
       *error = EGL_BAD_PARAMETER;
    else if (!glxx_renderbuffer_unmerge(renderbuffer))
       *error = EGL_BAD_ALLOC;
    else
-      MEM_ASSIGN(res, renderbuffer->mh_storage);
-   mem_unlock(hrenderbuffer);
+      KHRN_MEM_ASSIGN(image, renderbuffer->storage);
 
-   return res;
+   return image;
 }
 
-int eglCreateImageKHR_impl (
-   uint32_t glversion,
-   EGL_CONTEXT_ID_T ctx,
+EGLImageKHR eglCreateImageKHR_impl (
    EGLenum target,
    EGLClientBuffer egl_buffer,
    EGLint texture_level,
-   EGLint *results)
+   EGLint *error)
 {
-   EGLint error = EGL_SUCCESS;
    EGL_SERVER_STATE_T *eglstate = EGL_GET_SERVER_STATE();
-   MEM_HANDLE_T heglimage = MEM_HANDLE_INVALID;
-   MEM_HANDLE_T himage = MEM_HANDLE_INVALID;
+   KHRN_IMAGE_T *image = NULL;
+   *error = EGL_SUCCESS;
 
    /*
     * Preallocate the EGL_IMAGE_T struct and insert it into the map
     */
 
-   heglimage = MEM_ALLOC_STRUCT_EX(EGL_IMAGE_T, MEM_COMPACT_DISCARD);
+   EGL_IMAGE_T *eglimage = KHRN_MEM_ALLOC_STRUCT(EGL_IMAGE_T);
 
-   if (!heglimage || !khrn_map_insert(&eglstate->eglimages, eglstate->next_eglimage, heglimage))
+   if (!eglimage || !khrn_map_insert(&eglstate->eglimages, eglstate->next_eglimage, eglimage))
    {
-      if (heglimage)
-         mem_release(heglimage);
+      if (eglimage)
+         KHRN_MEM_ASSIGN(eglimage, NULL);
 
-      results[0] = 0;
-      results[1] = EGL_BAD_ALLOC;
-      return 2;
+      *error = EGL_BAD_ALLOC;
+      return 0;
    }
 
-   mem_set_term(heglimage, egl_image_term, NULL);
-   mem_release(heglimage);
+   khrn_mem_set_term(eglimage, egl_image_term);
 
    void *native_buffer = NULL;
    bool platform_client_buffer = false;
@@ -465,7 +451,7 @@ int eglCreateImageKHR_impl (
          if we get this far, we know we're dealing with a server-side pixmap
       */
 
-      himage = egl_server_platform_create_pixmap_info((void *)egl_buffer, false);
+      image = egl_server_platform_create_pixmap_info((void *)egl_buffer, false);
 
       break;
    }
@@ -478,26 +464,15 @@ int eglCreateImageKHR_impl (
    case EGL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_KHR:
    case EGL_GL_RENDERBUFFER_KHR:
    {
-      MEM_HANDLE_T hcontext;
-      MEM_HANDLE_T hshared = MEM_HANDLE_INVALID;
-
-      hcontext = khrn_map_lookup(&eglstate->glcontexts, ctx);
-      switch (glversion) {
-      case EGL_SERVER_GL11:
-      case EGL_SERVER_GL20:
+      GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+      if (state == NULL)
       {
-         GLXX_SERVER_STATE_T *glstate = (GLXX_SERVER_STATE_T *)mem_lock(hcontext, NULL);
-
-         hshared = glstate->mh_shared;
-
-         mem_unlock(hcontext);
+         *error = EGL_BAD_MATCH;
          break;
       }
-      default:
-         error = EGL_BAD_MATCH;
-      }
-      if (hshared != MEM_HANDLE_INVALID) {
-         GLXX_SHARED_T *shared = (GLXX_SHARED_T *)mem_lock(hshared, NULL);
+
+      GLXX_SHARED_T *shared = state->shared;
+      if (shared != NULL) {
          switch (target) {
          case EGL_GL_TEXTURE_2D_KHR:
          case EGL_GL_TEXTURE_CUBE_MAP_POSITIVE_X_KHR:
@@ -506,70 +481,63 @@ int eglCreateImageKHR_impl (
          case EGL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_KHR:
          case EGL_GL_TEXTURE_CUBE_MAP_POSITIVE_Z_KHR:
          case EGL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_KHR:
-            himage = egl_image_texture_new(shared, target, egl_buffer, texture_level, &error);
+            image = egl_image_texture_new(shared, target, egl_buffer, texture_level, error);
             break;
          case EGL_GL_RENDERBUFFER_KHR:
-            himage = egl_image_renderbuffer_new(shared, egl_buffer, &error);
+            image = egl_image_renderbuffer_new(shared, egl_buffer, error);
             break;
          default:
             UNREACHABLE();
          }
-         mem_unlock(hshared);
       }
+
+      glxx_unlock_server_state(OPENGL_ES_ANY);
+
       break;
    }
    default:
       native_buffer = egl_server_platform_get_native_buffer(target, egl_buffer);
-      himage = egl_server_platform_image_new(target, native_buffer, &error);
-      if ((himage != MEM_HANDLE_INVALID) && (error == EGL_SUCCESS))
+      image = egl_server_platform_image_new(target, native_buffer, error);
+      if ((image != NULL) && (*error == EGL_SUCCESS))
          platform_client_buffer = true;
       break;
    }
 
-   assert(((himage == MEM_HANDLE_INVALID) && (error != EGL_SUCCESS)) ||
-      ((himage != MEM_HANDLE_INVALID) && (error == EGL_SUCCESS)));
+   assert(((image == NULL) && (*error != EGL_SUCCESS)) ||
+      ((image != NULL) && (*error == EGL_SUCCESS)));
 
-   if (himage != MEM_HANDLE_INVALID) {
-      KHRN_IMAGE_T *image = (KHRN_IMAGE_T *)mem_lock(himage, NULL);
+   if (image != NULL) {
       if (image->flags & (IMAGE_FLAG_BOUND_CLIENTBUFFER|IMAGE_FLAG_BOUND_TEXIMAGE|IMAGE_FLAG_BOUND_EGLIMAGE)) {
          /*
           * Bound to an offscreen buffer, or has an offscreen buffer bound to
           * it, or is already an EGLImage sibling
           */
-         mem_unlock(himage);
-         error = EGL_BAD_ACCESS;
-         himage = MEM_HANDLE_INVALID;
-      } else {
+         *error = EGL_BAD_ACCESS;
+         image = NULL;
+      } else
          image->flags |= IMAGE_FLAG_BOUND_EGLIMAGE;
-         mem_unlock(himage);
-      }
    }
 
-   if (error == EGL_SUCCESS) {
-      EGL_IMAGE_T *egl_image;
-      assert(himage != MEM_HANDLE_INVALID);
+   if (*error == EGL_SUCCESS) {
+      assert(image != NULL);
 
-      egl_image = (EGL_IMAGE_T *)mem_lock(heglimage, NULL);
-      egl_image->target = target;
-      egl_image->native_buffer = native_buffer;
-      egl_image->platform_client_buffer = platform_client_buffer;
+      eglimage->target = target;
+      eglimage->native_buffer = native_buffer;
+      eglimage->platform_client_buffer = platform_client_buffer;
 
-      MEM_ASSIGN(egl_image->mh_image, himage);
-      MEM_ASSIGN(himage, MEM_HANDLE_INVALID);
+      KHRN_MEM_ASSIGN(eglimage->image, image);
+      KHRN_MEM_ASSIGN(image, NULL);
+      KHRN_MEM_ASSIGN(eglimage, NULL);
 
-      mem_unlock(heglimage);
-
-      results[0] = eglstate->next_eglimage++;
+      return (EGLImageKHR)(uintptr_t)eglstate->next_eglimage++;
    } else {
       /*
        * Remove the entry we added to the map
        */
       khrn_map_delete(&eglstate->eglimages, eglstate->next_eglimage);
-      results[0] = 0;
+      KHRN_MEM_ASSIGN(eglimage, NULL);
+      return 0;
    }
-   results[1] = error;
-
-   return 2;
 }
 
 /*
@@ -600,23 +568,13 @@ int eglCreateImageKHR_impl (
 EGLBoolean eglDestroyImageKHR_impl (EGLImageKHR image)
 {
    EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-   uint32_t id = (uint32_t)image;
-   MEM_HANDLE_T heglimage;
 
-   heglimage = khrn_map_lookup(&state->eglimages, (uint32_t)id);
+   EGL_IMAGE_T *eglimage = khrn_map_lookup(&state->eglimages, (uint32_t)(uintptr_t)image);
 
-   if (heglimage) {
-      KHRN_IMAGE_T *image;
-      EGL_IMAGE_T *egl_image = (EGL_IMAGE_T *)mem_lock(heglimage, NULL);
-      MEM_HANDLE_T himage = egl_image->mh_image;
-
-      image = (KHRN_IMAGE_T *)mem_lock(himage, NULL);
-
+   if (eglimage != NULL) {
+      KHRN_IMAGE_T *image = eglimage->image;
       khrn_interlock_write_immediate(&image->interlock);
-
-      mem_unlock(heglimage);
-      mem_unlock(himage);
    }
 
-   return khrn_map_delete(&state->eglimages, id) ? EGL_TRUE : EGL_FALSE;
+   return khrn_map_delete(&state->eglimages, (uint32_t)(uintptr_t)image) ? EGL_TRUE : EGL_FALSE;
 }

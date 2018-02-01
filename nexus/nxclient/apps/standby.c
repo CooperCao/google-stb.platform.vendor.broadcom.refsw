@@ -47,20 +47,68 @@
 #include "binput.h"
 #include "namevalue.h"
 
+#include "nexus_platform.h"
 #if NEXUS_HAS_GPIO
 #include "nexus_gpio.h"
 #endif
+#include "nexus_transport_wakeup.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
 
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <linux/sockios.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <errno.h>
+
 #include "pmlib.h"
 
 BDBG_MODULE(standby);
 
-static bool gpio_enabled = false;
+struct appcontext {
+    bgui_t gui;
+    binput_t input;
+    pthread_t remote_thread_id, cmdline_thread_id;
+    bfont_t font;
+    BKNI_EventHandle event, wakeupEvent;
+    void *pm_ctx;
+    NEXUS_PlatformStandbyMode mode;
+    unsigned total_buttons, focused_button;
+    bool coldBoot;
+    bool done;
+#if NEXUS_HAS_GPIO
+    NEXUS_GpioHandle pin_handle;
+#endif
+    struct {
+        bool ir;
+        bool cec;
+        bool gpio;
+        bool kpd;
+        bool xpt;
+        bool eth;
+        bool moca;
+        int timeout;
+    } wakeups;
+    struct {
+        char if_name[32];
+        char ip_addr[32];
+        char hw_addr[32];
+        bool exists;
+    } eth, moca;
+} g_context;
+
+static const char *g_standby_state[] = {
+    "ACTIVE STANDBY  (S1)",
+    "PASSIVE STANDBY (S2)",
+    "DEEP SLEEP WARM (S3)",
+    "DEEP SLEEP COLD (S5)"
+};
 
 #if NEXUS_HAS_GPIO
 static const char *gpio_type_str[] = {
@@ -72,32 +120,128 @@ static const char *gpio_type_str[] = {
 };
 #endif
 
-struct appcontext {
-    bgui_t gui;
-    binput_t input;
-    pthread_t remote_thread_id, cmdline_thread_id;
-    bfont_t font;
-    BKNI_EventHandle event, wakeupEvent;
-    void *pm_ctx;
-    NEXUS_PlatformStandbyMode mode;
-    unsigned total_buttons, focused_button;
-    int timeout;
-    bool coldBoot;
-    bool done;
-#if NEXUS_HAS_GPIO
-    NEXUS_GpioHandle pin_handle;
-#endif
-} g_context;
+NEXUS_TransportWakeupFilter Filter[18] =
+{
+    { 0x47, 0xFF, 1 },
+    { 0x12, 0xFF, 1 },
+    { 0x34, 0xFF, 1 },
+    { 0x15, 0xFF, 1 },
 
-static const char *g_standby_state[] = {
-    "ACTIVE STANDBY  (S1)",
-    "PASSIVE STANDBY (S2)",
-    "DEEP SLEEP WARM (S3)",
-    "DEEP SLEEP COLD (S5)"
+    { 0x12, 0xFF, 2 },
+    { 0x34, 0xFF, 2 },
+    { 0x03, 0xFF, 2 },
+    { 0x46, 0xFF, 2 },
+    { 0x66, 0xFF, 2 },
+
+    { 0x4F, 0xFF, 3 },
+    { 0x31, 0xFF, 3 },
+    { 0x00, 0xFF, 3 },
+
+    { 0x88, 0xFF, 2 },
+    { 0x77, 0xFF, 2 },
+    { 0x66, 0xFF, 2 },
+    { 0x55, 0xFF, 2 },
+    { 0x44, 0xFF, 2 },
+    { 0x33, 0xFF, 2 }
 };
 
 #define GUI_WIDTH  250
 #define GUI_HEIGHT 50
+
+void getIfInfo(struct appcontext *pContext)
+{
+    struct ifaddrs *ifaddr, *ifa;
+    struct ifreq s;
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (getifaddrs(&ifaddr) == -1) {
+        perror("getifaddrs");
+        return;
+    }
+
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+        char *ip_addr=NULL, *hw_addr=NULL;
+        if (ifa->ifa_addr == NULL)
+            continue;
+
+        if(!strncmp(ifa->ifa_name, pContext->eth.if_name, sizeof(pContext->eth.if_name))) {
+            if (pContext->eth.exists) continue;
+            ip_addr = pContext->eth.ip_addr;
+            hw_addr = pContext->eth.hw_addr;
+            pContext->eth.exists = true;
+        } else if(!strncmp(ifa->ifa_name, pContext->moca.if_name, sizeof(pContext->moca.if_name))) {
+            if (pContext->moca.exists) continue;
+            ip_addr = pContext->moca.ip_addr;
+            hw_addr = pContext->moca.hw_addr;
+            pContext->moca.exists = true;
+        }
+        if(ip_addr && hw_addr) {
+            snprintf(s.ifr_name, IFNAMSIZ, ifa->ifa_name);
+            if (0 == ioctl(fd, SIOCGIFHWADDR, &s)) {
+                snprintf(hw_addr, 32, "%02x:%02x:%02x:%02x:%02x:%02x",
+                        (unsigned char) s.ifr_addr.sa_data[0],
+                        (unsigned char) s.ifr_addr.sa_data[1],
+                        (unsigned char) s.ifr_addr.sa_data[2],
+                        (unsigned char) s.ifr_addr.sa_data[3],
+                        (unsigned char) s.ifr_addr.sa_data[4],
+                        (unsigned char) s.ifr_addr.sa_data[5]);
+            }
+            if (0 == ioctl(fd, SIOCGIFADDR, &s)) {
+                snprintf(ip_addr, 32, "%s", inet_ntoa(((struct sockaddr_in *)&s.ifr_addr)->sin_addr));
+            }
+            printf("    %s :    HwAddr %s     IpAddr %s\n", ifa->ifa_name, hw_addr, ip_addr);
+        }
+    }
+    freeifaddrs(ifaddr);
+    close(fd);
+}
+
+void setWol(struct appcontext *pContext, bool enabled)
+{
+    char buf[256];
+
+    /* Eth WOL */
+    if (pContext->wakeups.eth && pContext->eth.exists) {
+        BKNI_Snprintf(buf, 256, "ethtool -s %s wol %s", pContext->eth.if_name, enabled?"g":"d");
+        system(buf);
+    }
+
+    /* MocA WOL */
+    if (pContext->wakeups.moca && pContext->moca.exists) {
+       if (enabled) {
+            system("mocap set --wom_mode 1");
+            BKNI_Snprintf(buf, 256, "mocap set --wom_magic_mac val %s", pContext->moca.hw_addr);
+            system(buf);
+            system("mocap set --wom_magic_enable 1");
+            system("mocap set --wom_pattern mask 0 0xff 15");
+        } else {
+            system("mocap set --wom_mode 0");
+            system("mocap set --wom_magic_enable 0");
+        }
+    }
+}
+
+int setXptWakeupPacket(struct appcontext *pContext, bool enabled)
+{
+    NEXUS_Error rc=NEXUS_SUCCESS;
+    NEXUS_TransportWakeupSettings xptWakeupSettings;
+
+    if (pContext->wakeups.xpt) {
+        NEXUS_TransportWakeup_GetSettings(&xptWakeupSettings);
+        if(enabled) {
+            BKNI_Memcpy(xptWakeupSettings.filter[0].packet, Filter, sizeof(Filter));
+            NEXUS_Platform_GetStreamerInputBand(0, &xptWakeupSettings.inputBand);
+            xptWakeupSettings.packetLength = sizeof(Filter)/sizeof(Filter[0]);
+            xptWakeupSettings.enabled = true;
+        } else {
+            xptWakeupSettings.enabled = false;
+        }
+        rc = NEXUS_TransportWakeup_SetSettings(&xptWakeupSettings);
+        if (rc) rc = BERR_TRACE(rc);
+    }
+
+    return rc;
+}
 
 static void render_ui(struct appcontext *pContext)
 {
@@ -316,12 +460,21 @@ static void print_wakeup(struct appcontext *pContext)
 {
     NxClient_StandbyStatus standbyStatus;
     NEXUS_Error rc;
+    FILE * fd;
+    int wakeup_count = 0;
 
     if(pContext->focused_button == 0 || !pContext->pm_ctx)
         return;
 
     rc = NxClient_GetStandbyStatus(&standbyStatus);
     if (rc) {BERR_TRACE(rc); return;}
+
+    fd = fopen("/sys/class/net/eth0/device/power/wakeup_count", "r");
+    if (!fd) {
+        printf("Could not open eth wakeup status\n");
+    }
+    fscanf(fd, "%d", &wakeup_count);
+    fclose(fd);
 
     BDBG_WRN(("Wake up Status:\n"
            "IR      : %d\n"
@@ -331,6 +484,7 @@ static void print_wakeup(struct appcontext *pContext)
            "GPIO    : %d\n"
            "KPD     : %d\n"
            "Timeout : %d\n"
+           "WoL     : %d\n"
            "\n",
            standbyStatus.status.wakeupStatus.ir,
            standbyStatus.status.wakeupStatus.uhf,
@@ -338,9 +492,30 @@ static void print_wakeup(struct appcontext *pContext)
            standbyStatus.status.wakeupStatus.cec,
            standbyStatus.status.wakeupStatus.gpio,
            standbyStatus.status.wakeupStatus.keypad,
-           standbyStatus.status.wakeupStatus.timeout));
+           standbyStatus.status.wakeupStatus.timeout,
+           wakeup_count));
 }
 
+int set_pmlib_state(struct appcontext *pContext, bool power_down)
+{
+    struct brcm_pm_state pmlib_state;
+
+    if (!pContext->pm_ctx) return 0;
+
+    brcm_pm_get_status(pContext->pm_ctx, &pmlib_state);
+    pmlib_state.sata_status = !power_down;
+    pmlib_state.tp1_status  = !power_down;
+    pmlib_state.tp2_status  = !power_down;
+    pmlib_state.tp3_status  = !power_down;
+#if PMLIB_VER == 314
+    pmlib_state.srpd_status = power_down?64:0;
+#elif PMLIB_VER == 26
+    pmlib_state.ddr_timeout = power_down?64:0;
+#endif
+    brcm_pm_set_status(pContext->pm_ctx, &pmlib_state);
+
+    return 0;
+}
 
 #define DEFAULT_TIMEOUT 5
 
@@ -349,25 +524,41 @@ static void set_power_state(struct appcontext *pContext)
     NxClient_StandbyStatus standbyStatus;
     NxClient_StandbySettings standbySettings;
     NEXUS_Error rc;
-    unsigned timeout = (pContext->timeout == -1) ? DEFAULT_TIMEOUT : pContext->timeout;
+    unsigned timeout = (pContext->wakeups.timeout == -1) ? DEFAULT_TIMEOUT : pContext->wakeups.timeout;
     unsigned cnt=15;
 
-    printf("Entering %s Mode\n", lookup_name(g_platformStandbyModeStrs, pContext->mode));
+    printf("Setting Mode %s\n", lookup_name(g_platformStandbyModeStrs, pContext->mode));
+
+    if (pContext->mode != NEXUS_PlatformStandbyMode_eOn)
+        setXptWakeupPacket(pContext, true);
+
     NxClient_GetDefaultStandbySettings(&standbySettings);
     standbySettings.settings.mode = pContext->mode;
-    standbySettings.settings.wakeupSettings.ir = true;
-#if NEXUS_HAS_GPIO
-    standbySettings.settings.wakeupSettings.gpio = gpio_enabled;
-#else
-    standbySettings.settings.wakeupSettings.gpio = false;
-#endif
+    standbySettings.settings.wakeupSettings.ir = pContext->wakeups.ir;
+    standbySettings.settings.wakeupSettings.cec = pContext->wakeups.cec;
+    standbySettings.settings.wakeupSettings.gpio = pContext->wakeups.gpio;
+    standbySettings.settings.wakeupSettings.keypad = pContext->wakeups.kpd;
+    standbySettings.settings.wakeupSettings.transport = pContext->wakeups.xpt;
     standbySettings.settings.wakeupSettings.timeout = timeout;
     rc = NxClient_SetStandbySettings(&standbySettings);
     if (rc) {BERR_TRACE(rc); goto done;}
 
-    if(pContext->mode == NEXUS_PlatformStandbyMode_eOn) {
-        return;
+    switch (pContext->mode) {
+        case NEXUS_PlatformStandbyMode_eOn:
+            set_pmlib_state(pContext, false);
+            setWol(pContext, false);
+            setXptWakeupPacket(pContext, false);
+            return;
+        case NEXUS_PlatformStandbyMode_eActive:
+            set_pmlib_state(pContext, true);
+            break;
+        case NEXUS_PlatformStandbyMode_ePassive:
+            setWol(pContext, true);
+            break;
+        default:
+            break;
     }
+
     if (timeout) printf("Timeout %u seconds\n", timeout);
 
     /* Wait for nexus to enter standby */
@@ -405,7 +596,7 @@ static void set_power_state(struct appcontext *pContext)
     print_wakeup(pContext);
 
     NxClient_GetStandbyStatus(&standbyStatus);
-    if(rc == NEXUS_TIMEOUT || standbyStatus.status.wakeupStatus.timeout) {
+    if(rc == NEXUS_TIMEOUT || !standbyStatus.status.wakeupStatus.ir) {
         pContext->mode = NEXUS_PlatformStandbyMode_eOn;
         BKNI_SetEvent(pContext->event);
     }
@@ -419,24 +610,32 @@ static void print_usage(void)
     "Usage: nexus.client standby OPTIONS\n"
     "\n"
     "OPTIONS:\n"
-    "  --help or -h for help\n"
-    "  -timeout X               timeout in seconds\n"
-    "  -prompt  off             disable user prompt.\n"
-    "  -pmlib   off             disable pmlib support.\n");
-#if NEXUS_HAS_GPIO
+    "  --help or -h for help\n");
     printf(
-    "  -p       [s|a|as][0-99]  Wakeup GPIO pin (ex. -p a9)\n"
+    "  -timeout X               Timeout in seconds. Default is 5 seconds\n"
+    "  -ir      off             Disable Ir wakeup. Enabled by default\n"
+    "  -cec     on              Enable Cec wakeup. Disabled by default\n"
+    "  -kpd     on              Enable Keypad wakeup. Disabled by default\n");
+    printf(
+    "  -xpt     on              Enable Transport wakeup. Disabled by default\n"
+    "  -eth     <interface>     Enable Ethernet wakeup on interface. Disabled by default\n"
+    "  -moca    <interface>     Enable Moca wakeup on interface. Disabled by default\n");
+    printf(
+#if NEXUS_HAS_GPIO
+    "  -gpio                    [s|a|as][0-99]  Wakeup GPIO pin (ex. -p a9)\n"
     "                             s=SGPIO, special\n"
     "                             a=AON_GPIO, AonStandard\n"
-    "                             as=AON_SGPIO, AonSpecial\n");
+    "                             as=AON_SGPIO, AonSpecial\n"
 #endif
+    "  -prompt  off             disable user prompt.\n"
+    "  -gui     off             disable gui.\n"
+    "  -pmlib   off             disable pmlib support.\n");
     printf(
     "  -s0                      wake up and exit\n"
     "  -s1                      put system into S1 and exit (unless timeout set)\n"
     "  -s2                      put system into S2 and suspend\n"
     "  -s3                      put system into S3 and suspend\n"
-    "  -s5                      put system into S5 (cold boot) and suspend\n"
-    );
+    "  -s5                      put system into S5 (cold boot) and suspend\n");
 }
 
 int main(int argc, const char **argv)
@@ -448,16 +647,18 @@ int main(int argc, const char **argv)
     struct bgui_settings gui_settings;
     bool gui=true, prompt=true, pmlib=true, exit=false;
 #if NEXUS_HAS_GPIO
-    NEXUS_GpioType gpio_type;
-    unsigned gpio_pin;
+    NEXUS_GpioType gpio_type = 0;
+    unsigned gpio_pin = 0;
     NEXUS_GpioSettings gpioSettings;
 #endif
 
     BKNI_Memset(pContext, 0, sizeof(struct appcontext));
-    pContext->timeout = -1;
     pContext->mode = NEXUS_PlatformStandbyMode_eOn;
     pContext->done = false;
     pContext->total_buttons = sizeof(g_standby_state)/sizeof(g_standby_state[0]);
+
+    pContext->wakeups.ir = true;
+    pContext->wakeups.timeout = -1;
 
     while (argc > curarg) {
         if (!strcmp(argv[curarg], "-h") || !strcmp(argv[curarg], "--help")) {
@@ -465,7 +666,7 @@ int main(int argc, const char **argv)
             return 0;
         }
 #if NEXUS_HAS_GPIO
-        else if (!strcmp(argv[curarg], "-p") && argc>curarg+1) {
+        else if (!strcmp(argv[curarg], "-gpio") && argc>curarg+1) {
             char *gpio_string;
             gpio_pin = strtoul(argv[curarg+1], &gpio_string, 10);
             if (gpio_string == argv[curarg+1]) return 1;
@@ -478,14 +679,38 @@ int main(int argc, const char **argv)
                 else if (gpio_string[0] == 'a')                          gpio_type = NEXUS_GpioType_eAonStandard;
                 else return 1;
             }
-            gpio_enabled = true;
+            pContext->wakeups.gpio = true;
         }
 #endif
         else if (!strcmp(argv[curarg], "-timeout") && argc>curarg+1) {
-            pContext->timeout = atoi(argv[++curarg]);
+            pContext->wakeups.timeout = atoi(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-ir") && argc>curarg+1) {
+            if (!strcmp(argv[++curarg], "off"))
+                pContext->wakeups.ir = false;
+        }
+        else if (!strcmp(argv[curarg], "-cec") && argc>curarg+1) {
+            if (!strcmp(argv[++curarg], "on"))
+                pContext->wakeups.cec = true;
+        }
+        else if (!strcmp(argv[curarg], "-kpd") && argc>curarg+1) {
+            if (!strcmp(argv[++curarg], "on"))
+            pContext->wakeups.kpd = true;
+        }
+        else if (!strcmp(argv[curarg], "-xpt") && argc>curarg+1) {
+            if (!strcmp(argv[++curarg], "on"))
+                pContext->wakeups.xpt = true;
+        }
+        else if (!strcmp(argv[curarg], "-eth") && argc>curarg+1) {
+            pContext->wakeups.eth = true;
+            BKNI_Snprintf(pContext->eth.if_name, 16, argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-moca") && argc>curarg+1) {
+            pContext->wakeups.moca = true;
+            BKNI_Snprintf(pContext->moca.if_name, 16, argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-prompt") && argc>curarg+1) {
-            if (!strcmp(argv[++curarg], "off")) {
+            if (!strcmp(argv[++curarg], "off")){
                 prompt = false;
             }
             else {
@@ -555,7 +780,7 @@ int main(int argc, const char **argv)
     NxClient_UnregisterAcknowledgeStandby(NxClient_RegisterAcknowledgeStandby());
 
 #if NEXUS_HAS_GPIO
-    if (gpio_enabled) {
+    if (pContext->wakeups.gpio) {
         printf("Enabling wakeup GPIO: %s-%d\n", gpio_type_str[gpio_type], gpio_pin);
         NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eAonStandard, &gpioSettings);
         gpioSettings.mode = NEXUS_GpioMode_eInput;
@@ -565,6 +790,16 @@ int main(int argc, const char **argv)
         pContext->pin_handle = NEXUS_Gpio_Open(gpio_type, gpio_pin, &gpioSettings);
     }
 #endif
+
+    if (pContext->wakeups.eth || pContext->wakeups.moca) {
+        getIfInfo(pContext);
+        if (pContext->wakeups.eth && !pContext->eth.exists) {
+            printf("Interface %s not found\n", pContext->eth.if_name);
+        }
+        if (pContext->wakeups.moca && !pContext->moca.exists) {
+            printf("Interface %s not found\n", pContext->moca.if_name);
+        }
+    }
 
     set_power_state(pContext);
 
@@ -628,7 +863,7 @@ int main(int argc, const char **argv)
 
 done:
 #if NEXUS_HAS_GPIO
-    if (gpio_enabled) {
+    if (pContext->wakeups.gpio) {
         NEXUS_Gpio_Close(pContext->pin_handle);
     }
 #endif

@@ -637,9 +637,8 @@ typedef struct BDSP_Raaga_AC4_UserOutput
     uint32_t        ui32PreferredAssociateType;
 
     /* Indicates the type of ID to be expected in the program_identifier field of the Dolby AC-4 bitstream.
-           0 = NONE (Default)
-           1 = PROGRAM_ID_TYPE_SHORT
-           2 = PROGRAM_ID_TYPE_UUID */
+           0 = PROGRAM_ID_TYPE_SHORT
+           1 = PROGRAM_ID_TYPE_UUID */
     uint32_t        ui32PreferredIdentifierType;
 
     /* Identifies the Dolby AC-4 stream that the primary presentation index relates to based on the opted for Preferred Identifier type
@@ -653,6 +652,51 @@ typedef struct BDSP_Raaga_AC4_UserOutput
            0 = No
            1 = Yes (default) */
     uint32_t        ui32PreferAssociateTypeOverLanguage;
+
+	/*PREFERENCE_BASED: Presentations are filtered based on language and associated type. "
+		"The first in the remaining list is selected based on the order in the TOC."
+      BY_INDEX: An explicit presentation is picked based on either its index in the list of "
+		"presentation_info() in the TOC (PI) or its presentation group index (PGI). If there are more than"
+		" one presentation with the same PGI, the first is selected."
+	default: BY_INDEX*/
+	uint32_t		ui32PresentationSelectionMode;
+
+	/*pres_mode=BY_INDEX, set the presentation selection mode: PI/PGI"
+      PI: select by presentation index"
+      PGI: select by presentation group index (first match)"
+      default: PI"	*/
+	uint32_t ui32SelectByPresentationIndex;
+
+	/*flag indicating that the index is only used when matched with given program ID of the stream"
+      0: do not lock to program id"
+      1: lock to program id"
+      default: 0 */
+	uint32_t ui32LockToProgramId;
+
+	/*force A-JOC core decoding"
+		undef: undefined"
+		0: off"
+		1: on"
+		default: off"*/
+	uint32_t  ui32AjocCoreDecode;
+
+	/*activate loudness preserving processing when dialog enhancement is on"
+      undef: undefined"
+      0: off"
+      1: on"
+      default: on"	*/
+	uint32_t ui32LoudPresDialEnh;
+
+	/*set target reference level for DRC metadata output
+	  range: -31 to -7 LKFS
+	  default: value from -out_ref_lev"	*/
+	int32_t i32DrcRefLev;
+
+	/*
+	set the timestamp of the current bitstream segment"
+	default: 0"	*/
+	uint32_t ui32TimestampSeg;
+
 } BDSP_Raaga_AC4_UserOutput;
 
 #define BDSP_RAAGA_AC4_NUM_OUTPUTPORTS      3
@@ -752,6 +796,7 @@ typedef struct BDSP_Raaga_Audio_AC4DecConfigParams
     int32_t i32StreamInfoPresentationNumber;
 
 } BDSP_Raaga_Audio_AC4DecConfigParams;
+
 
 typedef struct  BDSP_Raaga_Audio_WmaConfigParams
 {
@@ -3488,6 +3533,9 @@ typedef struct BDSP_Raaga_Audio_DDPEncConfigParams
 	*/
 	signed int		i32AddBsi[128 + 1];
 
+	/* Enable / Disable Atmos lock [Default : 0 = disabled] */
+    uint32_t    ui32AtmosLockEnabled;
+
 	signed int		i32b_extdrce1;
 
 	signed int		i32extdrce1[7];
@@ -3507,6 +3555,11 @@ typedef struct BDSP_Raaga_Audio_DDPEncConfigParams
 	signed int      downmix_input;
 
 } BDSP_Raaga_Audio_DDPEncConfigParams;
+
+typedef struct BDSP_Raaga_Audio_LpcmEncConfigParams
+{
+    int32_t dummyLpcmEnc;
+}BDSP_Raaga_Audio_LpcmEncConfigParams;
 
 
 extern const BDSP_AudioTaskDatasyncSettings        		BDSP_sDefaultFrameSyncSettings;
@@ -3567,4 +3620,5 @@ extern const BDSP_Raaga_VideoBH264UserConfig            BDSP_sBH264EncodeUserCon
 extern const BDSP_Raaga_Audio_DpcmrConfigParams         BDSP_sDefDpcmrConfigSettings;
 extern const BDSP_Raaga_Audio_DDPEncConfigParams        BDSP_sDefDdpencConfigSettings;
 extern const BDSP_Raaga_Audio_DolbyAacheUserConfig BDSP_sDolbyAacheDefaultUserConfig;
+extern const BDSP_Raaga_Audio_LpcmEncConfigParams BDSP_sDefLpcmEncConfigSettings;
 #endif /*BDSP_RAAGA_FW_SETTINGS_H*/

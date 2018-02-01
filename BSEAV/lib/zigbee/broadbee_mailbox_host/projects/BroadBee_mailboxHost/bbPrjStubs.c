@@ -446,7 +446,7 @@ void RF4CE_ZRC2_PushAttrReqInd(RF4CE_ZRC2_SetAttributesReqParams_t *const indPar
 //void RF4CE_ZRC_GetWakeUpActionCodeReq(RF4CE_ZRC_GetWakeUpActionCodeReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 void Mail_TestEngineAssertLogIdInd(TE_AssertLogIdCommandIndParams_t *const indParams)
 {
-    printf("AssertLogId : %08X\n", indParams->number);
+    printf("DebugLogId : 0x%08x\n", indParams->number);
 }
 //void RF4CE_CounterExpiredInd(RF4CE_PairingReferenceIndParams_t *indication) {}
 //void RF4CE_UnpairInd(RF4CE_PairingReferenceIndParams_t *indication) {}

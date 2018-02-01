@@ -297,6 +297,14 @@ const BBOX_Xvd_Config BBOX_P_Xvd_ConfigLUT[] =
          BBOX_XVD_DECODER_INFO_1080p60_480p30_V1(0, BBOX_XVD_UNUSED, BAVC_VideoBitDepth_e10Bit, 1, 1, BAVC_VideoBitDepth_e8Bit, 2, 2 ),
       }
    },
+
+   {
+      31,
+      {
+         BBOX_XVD_DECODER_INFO_4Kp60_V1(1, 0, BAVC_VideoBitDepth_e10Bit, 0, 0 ),
+         BBOX_XVD_DECODER_INFO_Dual1080p50_V1( 0, BBOX_XVD_UNUSED, BAVC_VideoBitDepth_e10Bit, 1, 1, 2, 2),
+      }
+   },
 };
 
 const size_t BBOX_P_Xvd_ConfigLUT_size = sizeof( BBOX_P_Xvd_ConfigLUT );

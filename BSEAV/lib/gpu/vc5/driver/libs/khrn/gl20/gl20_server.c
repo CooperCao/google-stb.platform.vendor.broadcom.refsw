@@ -194,7 +194,7 @@ static void set_blend_eqn(GLXX_SERVER_STATE_T *state, glxx_blend_cfg *cfg,
 
 static void set_all_blend_eqns(GLXX_SERVER_STATE_T *state, glxx_blend_eqn_t ec, glxx_blend_eqn_t ea)
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    for (unsigned i = 0; i != GLXX_MAX_RENDER_TARGETS; ++i)
       set_blend_eqn(state, &state->blend.rt_cfgs[i], ec, ea);
 #else
@@ -250,7 +250,7 @@ GL_APICALL void GL_APIENTRY glBlendEquation(GLenum mode) // S
    glxx_unlock_server_state();
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 static void blend_equation_separate_i(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
 {
@@ -321,14 +321,14 @@ GL_APICALL void GL_APIENTRY glBlendEquationiOES(GLuint buf, GLenum mode)
 
 GL_APICALL void GL_APIENTRY glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    blend_equation_separate_i(buf, modeRGB, modeAlpha);
 #endif
 }
 
 GL_APICALL void GL_APIENTRY glBlendEquationi(GLuint buf, GLenum mode)
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    blend_equation_i(buf, mode);
 #endif
 }

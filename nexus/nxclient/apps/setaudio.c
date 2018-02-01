@@ -95,6 +95,7 @@ static void print_usage(void)
     printf(
         "  -dac_delay MSEC\n"
         );
+    print_list_option("dac_audio_presentation", g_audioPresentationStrs);
     print_list_option("rfm_channel_mode", g_audioChannelModeStrs);
     printf(
         "  -rfm_delay MSEC\n"
@@ -114,6 +115,7 @@ static void print_usage(void)
         "  -dvAmount {0..%d}  \t Controls the Amount of Volume Leveling (requires Dolby Volume Leveler enabled)\n",
         MAX_DOLBY_LEVELER
         );
+    print_list_option("advancedTsmMode", g_audioAdvancedTsmModeStrs);
     printf(
         "  -dde {on|off}  \tenable MS12 Dolby Dialog Enhancer (requires nxserver -ms12)\n"
         "  -ddeEnhancerLevel {0..%d}  \t Controls the Amount of Content Enhancing (requires Dolby Dialog Enhancer enabled)\n"
@@ -123,6 +125,7 @@ static void print_usage(void)
         );
     printf(
         "  -ms12EncoderFixedOutput {on|off}  \tenable MS12 Dolby Encoder Fixed Output Mode (requires nxserver -ms12)\n"
+        "  -ms12EncoderFixedAtmos {on|off}  \tenable MS12 Dolby Encoder Fixed Atmos (requires nxserver -ms12)\n"
         );
 }
 
@@ -132,36 +135,42 @@ static void print_settings(const NxClient_AudioSettings *pSettings, NxClient_Aud
 {
     printf(
         "NxClient Audio Settings:\n"
-        "dac   %s, %s, %d msec delay\n"
-        "i2s0  %s, %s, %d msec delay\n"
-        "i2s1  %s, %s, %d msec delay\n"
-        "hdmi  %s, %s, %d msec delay\n"
-        "spdif %s, %s, %d msec delay\n"
-        "rfm   %s, %s, %d msec delay\n"
+        "dac   %s, %s, %s, %d msec delay\n"
+        "i2s0  %s, %s, %s, %d msec delay\n"
+        "i2s1  %s, %s, %s, %d msec delay\n"
+        "hdmi  %s, %s, %s, %d msec delay\n"
+        "spdif %s, %s, %s, %d msec delay\n"
+        "rfm   %s, %s, %s, %d msec delay\n"
         "vol   %s%d/%d %s\n",
 
         lookup_name(g_nxclientAudioOutputModeStrs, pSettings->dac.outputMode),
         lookup_name(g_audioChannelModeStrs, pSettings->dac.channelMode),
+        lookup_name(g_audioPresentationStrs, pSettings->dac.presentation),
         pSettings->dac.additionalDelay,
 
         lookup_name(g_nxclientAudioOutputModeStrs, pSettings->i2s[0].outputMode),
         lookup_name(g_audioChannelModeStrs, pSettings->i2s[0].channelMode),
+        lookup_name(g_audioPresentationStrs, pSettings->i2s[0].presentation),
         pSettings->i2s[0].additionalDelay,
 
         lookup_name(g_nxclientAudioOutputModeStrs, pSettings->i2s[1].outputMode),
         lookup_name(g_audioChannelModeStrs, pSettings->i2s[1].channelMode),
+        lookup_name(g_audioPresentationStrs, pSettings->i2s[1].presentation),
         pSettings->i2s[1].additionalDelay,
 
         lookup_name(g_nxclientAudioOutputModeStrs, pSettings->hdmi.outputMode),
         lookup_name(g_audioChannelModeStrs, pSettings->hdmi.channelMode),
+        lookup_name(g_audioPresentationStrs, pSettings->hdmi.presentation),
         pSettings->hdmi.additionalDelay,
 
         lookup_name(g_nxclientAudioOutputModeStrs, pSettings->spdif.outputMode),
         lookup_name(g_audioChannelModeStrs, pSettings->spdif.channelMode),
+        lookup_name(g_audioPresentationStrs, pSettings->spdif.presentation),
         pSettings->spdif.additionalDelay,
 
         lookup_name(g_nxclientAudioOutputModeStrs, pSettings->rfm.outputMode),
         lookup_name(g_audioChannelModeStrs, pSettings->rfm.channelMode),
+        lookup_name(g_audioPresentationStrs, pSettings->rfm.presentation),
         pSettings->rfm.additionalDelay,
 
         pSettings->muted?"muted ":"",
@@ -171,6 +180,7 @@ static void print_settings(const NxClient_AudioSettings *pSettings, NxClient_Aud
     printf(
         "avl                    %s\n"
         "truVolume              %s\n"
+        "advancedTsmMode        %s\n"
         "dv258                  %s\n"
         "dv                     %s\n"
         "dvIntelligentLoudness  %s\n"
@@ -178,9 +188,11 @@ static void print_settings(const NxClient_AudioSettings *pSettings, NxClient_Aud
         "dde                    %s\n"
         "ddeEnhancerLevel       %u\n"
         "ddeSuppressionLevel    %u\n"
-        "ms12EncoderFixedOutput %s\n",
+        "ms12EncoderFixedOutput %s\n"
+        "ms12EncoderFixedAtmos  %s\n",
         pAudioProcessingSettings->avl.enabled?"on":"off",
         pAudioProcessingSettings->truVolume.enabled?"on":"off",
+        lookup_name(g_audioAdvancedTsmModeStrs, pAudioProcessingSettings->advancedTsm.mode),
         pAudioProcessingSettings->dolby.dolbyVolume258.enabled?"on":"off",
         pAudioProcessingSettings->dolby.dolbySettings.volumeLimiter.enableVolumeLimiting?"on":"off",
         pAudioProcessingSettings->dolby.dolbySettings.volumeLimiter.enableIntelligentLoudness?"on":"off",
@@ -188,7 +200,8 @@ static void print_settings(const NxClient_AudioSettings *pSettings, NxClient_Aud
         pAudioProcessingSettings->dolby.dolbySettings.dialogEnhancer.enableDialogEnhancer?"on":"off",
         pAudioProcessingSettings->dolby.dolbySettings.dialogEnhancer.dialogEnhancerLevel,
         pAudioProcessingSettings->dolby.dolbySettings.dialogEnhancer.contentSuppressionLevel,
-        pAudioProcessingSettings->dolby.ddre.fixedEncoderFormat?"on":"off");
+        pAudioProcessingSettings->dolby.ddre.fixedEncoderFormat?"on":"off",
+        pAudioProcessingSettings->dolby.ddre.fixedAtmosOutput?"on":"off");
 }
 
 static void print_status(void)
@@ -316,6 +329,10 @@ int main(int argc, char **argv)  {
             change = true;
             audioSettings.dac.additionalDelay = atoi(argv[++curarg]);
         }
+        else if (!strcmp(argv[curarg], "-dac_audio_presentation") && argc>curarg+1) {
+            change = true;
+            audioSettings.dac.presentation = lookup(g_audioPresentationStrs, argv[++curarg]);
+        }
         else if (!strcmp(argv[curarg], "-i2s0_channel_mode") && curarg+1<argc) {
             change = true;
             audioSettings.i2s[0].channelMode = lookup(g_audioChannelModeStrs, argv[++curarg]);
@@ -324,6 +341,10 @@ int main(int argc, char **argv)  {
             change = true;
             audioSettings.i2s[0].additionalDelay = atoi(argv[++curarg]);
         }
+        else if (!strcmp(argv[curarg], "-i2s0_audio_presentation") && argc>curarg+1) {
+            change = true;
+            audioSettings.i2s[0].presentation = lookup(g_audioPresentationStrs, argv[++curarg]);
+        }
         else if (!strcmp(argv[curarg], "-i2s1_channel_mode") && curarg+1<argc) {
             change = true;
             audioSettings.i2s[1].channelMode = lookup(g_audioChannelModeStrs, argv[++curarg]);
@@ -331,6 +352,10 @@ int main(int argc, char **argv)  {
         else if (!strcmp(argv[curarg], "-i2s1_delay") && curarg+1<argc) {
             change = true;
             audioSettings.i2s[1].additionalDelay = atoi(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-i2s1_audio_presentation") && argc>curarg+1) {
+            change = true;
+            audioSettings.i2s[1].presentation = lookup(g_audioPresentationStrs, argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-rfm_channel_mode") && curarg+1<argc) {
             change = true;
@@ -355,6 +380,10 @@ int main(int argc, char **argv)  {
         else if (!strcmp(argv[curarg], "-truVolume") && curarg+1<argc) {
             processing_change = true;
             audioProcessingSettings.truVolume.enabled = !strcmp(argv[++curarg], "on");
+        }
+        else if (!strcmp(argv[curarg], "-advancedTsmMode") && curarg+1<argc) {
+            processing_change = true;
+            audioProcessingSettings.advancedTsm.mode = lookup(g_audioAdvancedTsmModeStrs, argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-dv258") && curarg+1<argc) {
             processing_change = true;
@@ -400,6 +429,10 @@ int main(int argc, char **argv)  {
         else if (!strcmp(argv[curarg], "-ms12EncoderFixedOutput") && argc>curarg+1) {
             processing_change = true;
             audioProcessingSettings.dolby.ddre.fixedEncoderFormat = !strcmp(argv[++curarg], "on");
+        }
+        else if (!strcmp(argv[curarg], "-ms12EncoderFixedAtmos") && argc>curarg+1) {
+            processing_change = true;
+            audioProcessingSettings.dolby.ddre.fixedAtmosOutput = !strcmp(argv[++curarg], "on");
         }
         else {
             print_usage();

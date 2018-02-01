@@ -58,10 +58,6 @@ BDBG_FILE_MODULE(BVCE_OUTPUT_DESC);
 BDBG_FILE_MODULE(BVCE_OUTPUT_CACHE);
 BDBG_FILE_MODULE(BVCE_OUTPUT_PARSER);
 
-BDBG_OBJECT_ID_DECLARE(BVCE_P_Output_Context);    /* BVCE_Output_Handle */
-BDBG_OBJECT_ID_DECLARE(BVCE_P_Channel_Context);   /* BVCE_Channel_Handle */
-BDBG_OBJECT_ID_DECLARE(BVCE_P_Context);           /* BVCE_Handle */
-
 /**********/
 /* Output */
 /**********/
@@ -193,7 +189,6 @@ BVCE_Output_AllocBuffers(
          return BERR_TRACE( rc );
       }
 
-#ifndef BVCE_PLATFORM_P_SUPPORTS_ITB_NAL
       /* Zero Out Buffer */
       {
          /* Get cached address */
@@ -201,28 +196,23 @@ BVCE_Output_AllocBuffers(
 
          pBufferCached = BVCE_P_Buffer_LockAddress( hVceOutputBuffers->stCDB.hBuffer );
 
-         if ( NULL == pBufferCached )
+         if ( NULL != pBufferCached )
          {
-            BDBG_ERR( ("Error converting getting CDB buffer cached address"));
-            BVCE_Output_FreeBuffers( hVceOutputBuffers );
-            return BERR_TRACE( BERR_UNKNOWN );
+            BKNI_Memset(
+               pBufferCached,
+               0,
+               hVceOutputBuffers->stSettings.stConfig.Cdb.Length
+            );
+
+            BVCE_P_Buffer_FlushCache_isr(
+               hVceOutputBuffers->stCDB.hBuffer,
+               pBufferCached,
+               hVceOutputBuffers->stSettings.stConfig.Cdb.Length
+            );
+
+            BVCE_P_Buffer_UnlockAddress( hVceOutputBuffers->stCDB.hBuffer );
          }
-
-         BKNI_Memset(
-            pBufferCached,
-            0,
-            hVceOutputBuffers->stSettings.stConfig.Cdb.Length
-         );
-
-         BVCE_P_Buffer_FlushCache_isr(
-            hVceOutputBuffers->stCDB.hBuffer,
-            pBufferCached,
-            hVceOutputBuffers->stSettings.stConfig.Cdb.Length
-         );
-
-         BVCE_P_Buffer_UnlockAddress( hVceOutputBuffers->stCDB.hBuffer );
       }
-#endif
    }
 
    if ( 0 != hVceOutputBuffers->stSettings.stConfig.Itb.Length )
@@ -480,7 +470,7 @@ BVCE_Output_Open(
       BKNI_Memset( hVceOutput->stDescriptors.astDescriptorReleaseMetadata, 0, ( hVceOutput->stOpenSettings.uiDescriptorQueueDepth * sizeof( BVCE_P_VideoBufferDescriptorReleaseMetadata ) ) );
 
       /* Allocate metadata buffer descriptors */
-      stAllocSettings.uiSize = ( hVceOutput->stOpenSettings.uiDescriptorQueueDepth * sizeof( BAVC_VideoMetadataDescriptor ) );
+      stAllocSettings.uiSize = ( BVCE_P_MAX_METADATADESCRIPTORS * sizeof( BAVC_VideoMetadataDescriptor ) );
 
       rc = BVCE_P_Buffer_Alloc(
          hVceOutput->stDescriptors.hAllocator,
@@ -1401,9 +1391,8 @@ BVCE_Output_S_CDB_BufferCacheUpdate(
          BVCE_Output_Handle hVceOutput
          )
 {
-#if !BVCE_PLATFORM_P_SUPPORTS_ITB_NAL || BVCE_P_DUMP_OUTPUT_CDB || BVCE_PLATFORM_P_CDB_REQUIRES_BYTESWAP
    void *pAddress;
-#endif
+   void *pBaseAddress;
    unsigned uiLength;
 
    if ( 0 == hVceOutput->state.stBufferCache.uiCDBCacheValidOffset )
@@ -1422,21 +1411,9 @@ BVCE_Output_S_CDB_BufferCacheUpdate(
          uiLength =  hVceOutput->state.stCDBBuffer.stOffset.uiEnd - hVceOutput->state.stBufferCache.uiCDBCacheValidOffset;
       }
 
-#if !BVCE_PLATFORM_P_SUPPORTS_ITB_NAL || BVCE_P_DUMP_OUTPUT_CDB || BVCE_PLATFORM_P_CDB_REQUIRES_BYTESWAP
-#if !BVCE_P_DUMP_OUTPUT_CDB && !BVCE_PLATFORM_P_CDB_REQUIRES_BYTESWAP
-      /* SW7445-163: Only flush the CDB cache if NAL Data Unit detection is enabled or we are dumping the CDB to file */
-      if ( true == hVceOutput->stOpenSettings.bEnableDataUnitDetection )
-#endif
+      pBaseAddress = BVCE_P_Buffer_LockAddress( hVceOutput->hOutputBuffers->stCDB.hBuffer );
+      if ( NULL != pBaseAddress )
       {
-         void *pBaseAddress;
-
-         pBaseAddress = BVCE_P_Buffer_LockAddress( hVceOutput->hOutputBuffers->stCDB.hBuffer );
-         if ( NULL == pBaseAddress )
-         {
-            BDBG_ERR(("Error locking CDB memory"));
-            break;
-         }
-
          pAddress = (void*) ( (uint8_t*) pBaseAddress + ( hVceOutput->state.stBufferCache.uiCDBCacheValidOffset - hVceOutput->state.stCDBBuffer.stOffset.uiBase) );
 
          BVCE_P_Buffer_FlushCache_isr(
@@ -1462,38 +1439,37 @@ BVCE_Output_S_CDB_BufferCacheUpdate(
          }
 #endif
 
-         BVCE_P_Buffer_UnlockAddress( hVceOutput->hOutputBuffers->stCDB.hBuffer );
-
          BDBG_MODULE_MSG(BVCE_OUTPUT_CACHE, ( "CDB Flushed: %p %d bytes",
                      pAddress,
                      uiLength
                      ));
-      }
 
 #if BVCE_P_DUMP_OUTPUT_CDB
-            if ( ( NULL == hVceOutput->hCDBDumpFile ) && ( NULL != hVceOutput->state.hVceCh ) )
-            {
-               static unsigned uiInstance[BVCE_PLATFORM_P_NUM_ENCODE_INSTANCES][BVCE_PLATFORM_P_NUM_ENCODE_CHANNELS];
-               char fname[256];
-               sprintf(fname, "BVCE_OUTPUT_%02d_%02d_%03d.cdb", hVceOutput->state.hVceCh->hVce->stOpenSettings.uiInstance, hVceOutput->state.hVceCh->stOpenSettings.uiInstance, uiInstance[hVceOutput->state.hVceCh->hVce->stOpenSettings.uiInstance][hVceOutput->state.hVceCh->stOpenSettings.uiInstance]);
-               uiInstance[hVceOutput->state.hVceCh->hVce->stOpenSettings.uiInstance][hVceOutput->state.hVceCh->stOpenSettings.uiInstance]++;
+         if ( ( NULL == hVceOutput->hCDBDumpFile ) && ( NULL != hVceOutput->state.hVceCh ) )
+         {
+            static unsigned uiInstance[BVCE_PLATFORM_P_NUM_ENCODE_INSTANCES][BVCE_PLATFORM_P_NUM_ENCODE_CHANNELS];
+            char fname[256];
+            sprintf(fname, "BVCE_OUTPUT_%02d_%02d_%03d.cdb", hVceOutput->state.hVceCh->hVce->stOpenSettings.uiInstance, hVceOutput->state.hVceCh->stOpenSettings.uiInstance, uiInstance[hVceOutput->state.hVceCh->hVce->stOpenSettings.uiInstance][hVceOutput->state.hVceCh->stOpenSettings.uiInstance]);
+            uiInstance[hVceOutput->state.hVceCh->hVce->stOpenSettings.uiInstance][hVceOutput->state.hVceCh->stOpenSettings.uiInstance]++;
 
-               if ( false == BVCE_Debug_P_OpenLog( fname, &hVceOutput->hCDBDumpFile ) )
-               {
-                  BDBG_ERR(("Error Creating BVCE Output CDB Dump File (%s)", fname));
-               }
-            }
-
-            if ( NULL != hVceOutput->hCDBDumpFile )
+            if ( false == BVCE_Debug_P_OpenLog( fname, &hVceOutput->hCDBDumpFile ) )
             {
-               BVCE_Debug_P_WriteLogBuffer_isr(
-                  hVceOutput->hCDBDumpFile,
-                  pAddress,
-                  uiLength
-                  );
+               BDBG_ERR(("Error Creating BVCE Output CDB Dump File (%s)", fname));
             }
+         }
+
+         if ( NULL != hVceOutput->hCDBDumpFile )
+         {
+            BVCE_Debug_P_WriteLogBuffer_isr(
+               hVceOutput->hCDBDumpFile,
+               pAddress,
+               uiLength
+               );
+         }
 #endif
-#endif
+         BVCE_P_Buffer_UnlockAddress( hVceOutput->hOutputBuffers->stCDB.hBuffer );
+      }
+
       hVceOutput->state.stBufferCache.uiCDBCacheValidOffset += uiLength;
       if ( hVceOutput->state.stBufferCache.uiCDBCacheValidOffset >= hVceOutput->state.stCDBBuffer.stOffset.uiEnd )
       {
@@ -1978,6 +1954,14 @@ BVCE_Output_S_ITB_DetectNewFrame(
    BVCE_Output_Handle hVceOutput
    )
 {
+   {
+      unsigned uiWriteOffsetNext = (hVceOutput->state.stITBBuffer.uiIndexWriteOffset + 1) % hVceOutput->stOpenSettings.uiDescriptorQueueDepth;
+      if ( uiWriteOffsetNext == hVceOutput->state.stITBBuffer.uiIndexReadOffset )
+      {
+         return;
+      }
+   }
+
    if ( ( hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiSizeInITB > 0 )
         && ( ( 0 != ( hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].stFrameDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START ) )
              || ( 0 != ( hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].stFrameDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START ) )
@@ -1985,6 +1969,28 @@ BVCE_Output_S_ITB_DetectNewFrame(
    {
       BAVC_VideoBufferDescriptor *pVideoDescriptor = &hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].stFrameDescriptor;
       unsigned uiSizeInITB = hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiSizeInITB;
+
+
+#if BVCE_PLATFORM_P_SUPPORTS_ITB_NAL
+      if ( true == hVceOutput->stOpenSettings.bEnableDataUnitDetection )
+      {
+         switch ( hVceOutput->state.stChannelCache.stStartEncodeSettings.stProtocolInfo.eProtocol )
+         {
+            case BAVC_VideoCompressionStd_eH264:
+            case BAVC_VideoCompressionStd_eH265:
+               if ( ( 0 != ( pVideoDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START ) )
+                    && ( 0 == ( pVideoDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START ) )
+                    && ( 0 == ( pVideoDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOS ) ) )
+               {
+                  BDBG_MSG(("FRAME START w/o corresponding DATA UNIT START and/or EOS"));
+                  return;
+               }
+               break;
+            default:
+               break;
+         }
+      }
+#endif
 
 #ifndef BVCE_PLATFORM_P_SUPPORTS_ITB_EOS
       BVCE_Output_S_ITB_CheckForEOS(pVideoDescriptor);
@@ -2066,9 +2072,9 @@ typedef enum BVCE_OUTPUT_P_ITB_IndexingState
 static
 void
 BVCE_Output_S_ITB_ExtractNALData(
+   BVCE_Output_Handle hVceOutput,
    BAVC_VideoBufferDescriptor *pVideoDescriptor,
-   const void* pITBEntry,
-   BAVC_VideoCompressionStd eProtocol
+   const void* pITBEntry
    )
 {
    BDBG_MODULE_MSG( BVCE_OUTPUT_ITB_INDEX,("     numDataBytes: %u, start: %u, end: %u",
@@ -2078,11 +2084,36 @@ BVCE_Output_S_ITB_ExtractNALData(
                        ));
 
    {
+      BAVC_VideoCompressionStd eProtocol = hVceOutput->state.stChannelCache.stStartEncodeSettings.stProtocolInfo.eProtocol;
       unsigned i;
       unsigned uiEntryType = BVCE_P_ITBEntry_GetEntryType(pITBEntry);
       unsigned uiMaxData = ( BVCE_OUTPUT_P_ITB_IndexingState_eNALDataEntry == uiEntryType ) ? 12 : 8;
       unsigned uiNumBytes = ( 0 != BVCE_P_ITBEntry_GetNalData_NalDataEnd(pITBEntry) ) ? BVCE_P_ITBEntry_GetNalData_NumDataBytes(pITBEntry) : uiMaxData;
+      bool bIsExtractedNALU = false;
+
       BDBG_ASSERT(uiNumBytes <= uiMaxData);
+
+      if ( BVCE_OUTPUT_P_ITB_IndexingState_eNALDataEntry == uiEntryType )
+      {
+         bIsExtractedNALU = true;
+      }
+      else
+      {
+         switch ( eProtocol )
+         {
+         case BAVC_VideoCompressionStd_eH264:
+            if ( uiNumBytes > 1 ) bIsExtractedNALU = true;
+            break;
+
+         case BAVC_VideoCompressionStd_eH265:
+            if ( uiNumBytes > 2 ) bIsExtractedNALU = true;
+            break;
+
+         default:
+            break;
+         }
+      }
+
       for ( i = 0; i < uiNumBytes; i++ )
       {
 #if ((BCHP_CHIP == 7278) && (BCHP_VER == BCHP_VER_A0)) /* 7278 A0 Compatibility */
@@ -2114,10 +2145,41 @@ BVCE_Output_S_ITB_ExtractNALData(
             BDBG_MODULE_MSG( BVCE_OUTPUT_ITB_INDEX,("      Data[%u]: %02x (NALU Type: %u)", i, uiByte, uiDataUnitType ) );
             pVideoDescriptor->uiVideoFlags |= BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START;
             pVideoDescriptor->uiDataUnitType = uiByte;
+
+            if ( false == hVceOutput->state.bExtractedNaluInfoDone )
+            {
+               if ( true == bIsExtractedNALU )
+               {
+                  if ( hVceOutput->state.stExtractedNALUInfo.uiNumExtractedNaluEntries < BAVC_VIDEO_MAX_EXTRACTED_NALU_COUNT )
+                  {
+                     hVceOutput->state.stExtractedNALUInfo.uiNumExtractedNaluEntries++;
+                  }
+                  else
+                  {
+                     hVceOutput->state.bExtractedNaluInfoDone = true;
+                     BDBG_WRN(("Number of Extracted NALUs size too large for metadata descriptor"));
+                  }
+               }
+            }
          }
          else
          {
             BDBG_MODULE_MSG( BVCE_OUTPUT_ITB_INDEX,("      Data[%u]: %02x", i, uiByte) );
+         }
+
+         if ( false == hVceOutput->state.bExtractedNaluInfoDone )
+         {
+            if ( true == bIsExtractedNALU )
+            {
+               if ( hVceOutput->state.stExtractedNALUInfo.astExtractedNALUEntry[hVceOutput->state.stExtractedNALUInfo.uiNumExtractedNaluEntries-1].uiNumValidBytes < BAVC_VIDEO_MAX_EXTRACTED_NALU_SIZE )
+               {
+                  hVceOutput->state.stExtractedNALUInfo.astExtractedNALUEntry[hVceOutput->state.stExtractedNALUInfo.uiNumExtractedNaluEntries-1].auiData[hVceOutput->state.stExtractedNALUInfo.astExtractedNALUEntry[hVceOutput->state.stExtractedNALUInfo.uiNumExtractedNaluEntries-1].uiNumValidBytes++] = uiByte;
+               }
+               else
+               {
+                  BDBG_WRN(("Extracted NALU size too large for metadata descriptor"));
+               }
+            }
          }
       }
    }
@@ -2338,6 +2400,15 @@ BVCE_Output_S_ITB_UpdateIndex(
             case BVCE_OUTPUT_P_ITB_IndexingState_eBaseEntry:
             case BVCE_OUTPUT_P_ITB_IndexingState_eBaseOffsetEntry:
                BVCE_Output_S_ITB_DetectNewFrame( hVceOutput );
+               if ( true == hVceOutput->state.bFirstFrameSeen )
+               {
+                  hVceOutput->state.bExtractedNaluInfoDone = true;
+               }
+               else
+               {
+                  BKNI_Memset( &hVceOutput->state.stExtractedNALUInfo, 0, sizeof(hVceOutput->state.stExtractedNALUInfo));
+               }
+
                pVideoDescriptor = &hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].stFrameDescriptor;
 
                BDBG_MODULE_MSG( BVCE_OUTPUT_ITB_INDEX,("%3d: BASE", hVceOutput->state.stITBBuffer.uiIndexWriteOffset) );
@@ -2392,8 +2463,17 @@ BVCE_Output_S_ITB_UpdateIndex(
 
                if ( 0 != BVCE_P_ITBEntry_GetHDROnly(pITBEntry) )
                {
-                  BDBG_MSG(("[%d][%d] Header Only ITB Seen", hVceOutput->hVce->stOpenSettings.uiInstance, ( NULL != hVceOutput->state.hVceCh ) ? hVceOutput->state.hVceCh->stOpenSettings.uiInstance : 9));
-                  hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].bHeaderOnly = true;
+                  if ( BAVC_VideoCompressionStd_eVP9 != hVceOutput->state.stChannelCache.stStartEncodeSettings.stProtocolInfo.eProtocol )
+                  {
+                     BDBG_MSG(("[%d][%d] Header Only ITB Seen", hVceOutput->hVce->stOpenSettings.uiInstance, ( NULL != hVceOutput->state.hVceCh ) ? hVceOutput->state.hVceCh->stOpenSettings.uiInstance : 9));
+                     hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].bHeaderOnly = true;
+                  }
+                  else
+                  {
+                     BDBG_MSG(("[%d][%d] Show Frame Seen", hVceOutput->hVce->stOpenSettings.uiInstance, ( NULL != hVceOutput->state.hVceCh ) ? hVceOutput->state.hVceCh->stOpenSettings.uiInstance : 9));
+                     pVideoDescriptor->uiVideoFlags &= ~BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DTS_VALID;
+                     pVideoDescriptor->uiVideoFlags |= BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_SHOW_FRAME;
+                  }
                }
                break;
 
@@ -2447,6 +2527,13 @@ BVCE_Output_S_ITB_UpdateIndex(
 
                hVceOutput->state.uiPreviousESCR = pVideoDescriptor->stCommon.uiESCR;
                hVceOutput->state.bPreviousESCRValid = true;
+
+               /* SWSTB-7647: Set hidden frame flag */
+               if ( 0 != ( ( BVCE_P_ITBEntry_GetMetadata(pITBEntry) >> 28 ) & 0x1 ) )
+               {
+                  BDBG_MSG(("[%d][%d] Hidden Frame Seen", hVceOutput->hVce->stOpenSettings.uiInstance, ( NULL != hVceOutput->state.hVceCh ) ? hVceOutput->state.hVceCh->stOpenSettings.uiInstance : 9));
+                  pVideoDescriptor->uiVideoFlags |= BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_HIDDEN_FRAME;
+               }
 
                /* SW7425-4608: Set Ignore frame flag */
                if ( 0 != ( ( BVCE_P_ITBEntry_GetMetadata(pITBEntry) >> 29 ) & 0x1 ) )
@@ -2516,7 +2603,7 @@ BVCE_Output_S_ITB_UpdateIndex(
                                                           BVCE_P_ITBEntry_GetNalAddr_NumStartBytes(pITBEntry)
                                       ));
 
-                  BVCE_Output_S_ITB_ExtractNALData( pVideoDescriptor, pITBEntry, hVceOutput->state.stChannelCache.stStartEncodeSettings.stProtocolInfo.eProtocol );
+                  BVCE_Output_S_ITB_ExtractNALData( hVceOutput, pVideoDescriptor, pITBEntry );
                }
                else
                {
@@ -2529,7 +2616,7 @@ BVCE_Output_S_ITB_UpdateIndex(
                BVCE_Output_S_ITB_ParseEntry( pITBEntry, pVideoDescriptor );
                if ( true == hVceOutput->stOpenSettings.bEnableDataUnitDetection )
                {
-                  BVCE_Output_S_ITB_ExtractNALData( pVideoDescriptor, pITBEntry, hVceOutput->state.stChannelCache.stStartEncodeSettings.stProtocolInfo.eProtocol );
+                  BVCE_Output_S_ITB_ExtractNALData( hVceOutput, pVideoDescriptor, pITBEntry );
                }
                break;
 
@@ -2625,6 +2712,8 @@ BVCE_Output_S_ITB_UpdateIndex(
       BVCE_P_Buffer_UnlockAddress( hVceOutput->hOutputBuffers->stITB.hBuffer );
 
       BVCE_Output_S_ITB_DetectNewFrame( hVceOutput );
+      /* Clear out any partially populated entries since they will be repopulated next time */
+      BKNI_Memset( &hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset], 0, sizeof( BVCE_P_Output_ITB_IndexEntry ) );
    }
 }
 
@@ -2848,7 +2937,7 @@ BVCE_Output_S_DumpDescriptor(
       else
       {
          BVCE_Debug_P_WriteLog_isr( hVceOutput->hDescriptorLog, "count,flags,metadata,extended,frame start,eoc,eos,empty frame,first frame,segment start,offset,length,opts valid,opts,pts valid,pts,escr valid,escr,tpb valid,tpb, shr valid, shr, stc valid, stc" );
-         BVCE_Debug_P_WriteLog_isr( hVceOutput->hDescriptorLog, ",vflags,dts valid,dts,dut start,dut,rai" );
+         BVCE_Debug_P_WriteLog_isr( hVceOutput->hDescriptorLog, ",vflags,dts valid,dts,dut start,dut,rai,hid,shw" );
          BVCE_Debug_P_WriteLog_isr( hVceOutput->hDescriptorLog, "\n" );
       }
    }
@@ -2883,13 +2972,15 @@ BVCE_Output_S_DumpDescriptor(
          pstDescriptor->stCommon.uiSTCSnapshot
          );
 
-      BVCE_Debug_P_WriteLog_isr( hVceOutput->hDescriptorLog, ",0x%08x,%u,%llu,%u,%u,%u",
+      BVCE_Debug_P_WriteLog_isr( hVceOutput->hDescriptorLog, ",0x%08x,%u,%llu,%u,%u,%u,%u,%u",
          pstDescriptor->uiVideoFlags,
          (0 != (pstDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DTS_VALID)),
          pstDescriptor->uiDTS,
          (0 != (pstDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START)),
          pstDescriptor->uiDataUnitType,
-         (0 != (pstDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_RAP))
+         (0 != (pstDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_RAP)),
+         (0 != (pstDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_HIDDEN_FRAME)),
+         (0 != (pstDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_SHOW_FRAME))
          );
 
       BVCE_Debug_P_WriteLog_isr( hVceOutput->hDescriptorLog, "\n" );
@@ -3187,6 +3278,12 @@ BVCE_Output_S_SendMetadataDescriptor(
       {
          BAVC_VideoBufferDescriptor *pVideoDescriptor = NULL;
          BAVC_VideoMetadataDescriptor *pMetadataDescriptor = &hVceOutput->stDescriptors.astMetadataDescriptors[hVceOutput->state.uiMetadataDescriptorWriteOffset];
+
+         if ( ( ( hVceOutput->state.uiMetadataDescriptorWriteOffset + 1 ) % BVCE_P_MAX_METADATADESCRIPTORS ) == hVceOutput->state.uiMetadataDescriptorReadOffset )
+         {
+            BDBG_ERR(("Not enough metadata descriptors!"));
+            return;
+         }
          hVceOutput->state.uiMetadataDescriptorWriteOffset++;
          hVceOutput->state.uiMetadataDescriptorWriteOffset %= BVCE_P_MAX_METADATADESCRIPTORS;
 
@@ -3265,11 +3362,6 @@ BVCE_Output_S_SendMetadataDescriptor(
          }
 
          /* SW7425-3360: Populate Chunk ID */
-         if ( pMetadataDescriptor->stTiming.uiChunkId != pITBIndexEntry->uiChunkId )
-         {
-            BDBG_ASSERT( 0 == ( pITBIndexEntry->stFrameDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOC ) );
-         }
-
          pMetadataDescriptor->uiMetadataFlags |= BAVC_VIDEOMETADATADESCRIPTOR_FLAGS_TIMING_CHUNK_ID_VALID;
          pMetadataDescriptor->stTiming.uiChunkId = pITBIndexEntry->uiChunkId;
          hVceOutput->state.uiPreviousMetadata = pITBIndexEntry->uiMetadata;
@@ -3278,6 +3370,10 @@ BVCE_Output_S_SendMetadataDescriptor(
             hVceOutput->state.hVceCh->stOpenSettings.uiInstance,
             pITBIndexEntry->uiChunkId
          ));
+
+         /* Populate Extracted NALU info */
+         pMetadataDescriptor->stExtractedNALUInfo = hVceOutput->state.stExtractedNALUInfo;
+
          hVceOutput->state.bMetadataSent = true;
 
       #if BVCE_P_TEST_MODE
@@ -3312,7 +3408,16 @@ BVCE_Output_S_SendMetadataDescriptor(
                pstEntry->stMetadata.uiChannel = hVceOutput->stOpenSettings.uiInstance;
                pstEntry->stMetadata.uiTimestamp = 0;
                ( NULL != hVceOutput->hVce->hTimer ) ? BTMR_ReadTimer( hVceOutput->hVce->hTimer, &pstEntry->stMetadata.uiTimestamp ) : 0;
-               pstEntry->data.stMetadataDescriptor = *pMetadataDescriptor;
+               BDBG_CASSERT( (sizeof(pstEntry->data.stMetadataDescriptor) - sizeof(pstEntry->data.stMetadataDescriptor.stExtractedNALUInfo)) == (sizeof(*pMetadataDescriptor) - sizeof(pMetadataDescriptor->stExtractedNALUInfo)) );
+               BKNI_Memcpy( &pstEntry->data.stMetadataDescriptor, pMetadataDescriptor, (sizeof(pstEntry->data.stMetadataDescriptor) - sizeof(pstEntry->data.stMetadataDescriptor.stExtractedNALUInfo)) );
+               {
+                  unsigned i;
+                  for (i = 0; i < BAVC_VIDEO_MAX_EXTRACTED_NALU_COUNT; i++ )
+                  {
+                     pstEntry->data.stMetadataDescriptor.stExtractedNALUInfo.astExtractedNALUEntry[i].uiNumValidBytes = pMetadataDescriptor->stExtractedNALUInfo.astExtractedNALUEntry[i].uiNumValidBytes;
+                  }
+                  pstEntry->data.stMetadataDescriptor.stExtractedNALUInfo.uiNumExtractedNaluEntries = pMetadataDescriptor->stExtractedNALUInfo.uiNumExtractedNaluEntries;
+               }
                BDBG_Fifo_CommitBuffer( &stToken );
             }
          }

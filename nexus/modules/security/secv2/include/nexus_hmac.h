@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -110,7 +110,9 @@ typedef struct NEXUS_HmacResult
 /*
     Create a HMAC context.
 */
-NEXUS_HmacHandle NEXUS_Hmac_Create( void ); /* attr{destructor=NEXUS_Hmac_Destroy} */
+NEXUS_HmacHandle NEXUS_Hmac_Create( /* attr{destructor=NEXUS_Hmac_Destroy} */
+    void
+    );
 /*
     Destroy HMAC context.
 */

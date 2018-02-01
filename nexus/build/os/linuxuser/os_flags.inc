@@ -74,6 +74,12 @@ B_REFSW_TOOLCHAIN_VER_GE_4_8 := y
 endif
 endif
 
+#
+# Default to -Os by default
+#
+B_REFSW_OPTIMIZER_LEVEL ?= s
+NEXUS_INTERNAL_CFLAGS += -O${B_REFSW_OPTIMIZER_LEVEL}
+
 # We use c89 for maximum compatibility across OS's
 # But, we allow overrides for integrating other code
 ifeq ($(NEXUS_C_STD),)

@@ -41,8 +41,10 @@
 #include "bhdm_priv.h"
 #include "bhdm_monitor.h"
 
+#if BDBG_DEBUG_BUILD
 static const char Yes[] = "Yes" ;
 static const char No[] = "No" ;
+#endif
 
 BDBG_MODULE(BHDM_MONITOR) ;
 

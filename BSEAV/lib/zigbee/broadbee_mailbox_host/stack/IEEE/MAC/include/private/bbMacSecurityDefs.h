@@ -127,7 +127,7 @@ SYS_DbgAssertStatic(sizeof(MAC_KeyDescriptor_t) >= 5 && sizeof(MAC_KeyDescriptor
 typedef enum _MAC_DeviceLookupSize_t {
     MAC_DEVICE_LOOKUP_SIZE_4B = 0,                  /*!< DeviceLookupData size is 4 bytes. */
     MAC_DEVICE_LOOKUP_SIZE_8B = 1,                  /*!< DeviceLookupData size is 8 bytes. */
-} MAC_DeviceLookupSize_t;
+} PACKED MAC_DeviceLookupSize_t;
 SYS_DbgAssertStatic(sizeof(MAC_DeviceLookupSize_t) == 1);
 
 /**//**
@@ -222,8 +222,8 @@ typedef struct PACKED _MAC_SecurityLevelDescriptor_t {
                                                                             for which the Exempt flag is set may
                                                                             override the minimum security level. */
 } MAC_SecurityLevelDescriptor_t;
-SYS_DbgAssertStatic(FIELD_SIZE(MAC_SecurityLevelDescriptor_t, mpduSurrId) == 1 &&
-        OFFSETOF(MAC_SecurityLevelDescriptor_t, mpduSurrId) == 0);
+SYS_DbgAssertStatic(FIELD_SIZE(MAC_SecurityLevelDescriptor_t, mpduSurrId) == 1);
+SYS_DbgAssertStatic(OFFSETOF(MAC_SecurityLevelDescriptor_t, mpduSurrId) == 0);
 SYS_DbgAssertStatic(sizeof(MAC_SecurityLevelDescriptor_t) == 2);
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -236,7 +236,7 @@ typedef enum _MAC_KeyLookupSize_t
 {
     MAC_KEY_LOOKUP_SIZE_5B = 0,                 /*!< KeyLookupData size is 5 bytes. */
     MAC_KEY_LOOKUP_SIZE_9B = 1,                 /*!< KeyLookupData size is 9 bytes. */
-} MAC_KeyLookupSize_t;
+} PACKED MAC_KeyLookupSize_t;
 SYS_DbgAssertStatic(sizeof(MAC_KeyLookupSize_t) == 1);
 
 /**//**
@@ -273,10 +273,10 @@ typedef struct PACKED _MAC_KeyIdLookupDescriptor_t {
     MAC_KeyLookupData_t     lookupData;         /*!< Data used to identify the key. Either 9 or 5 least significant
                                                     bytes. */
 } MAC_KeyIdLookupDescriptor_t;
-SYS_DbgAssertStatic(FIELD_SIZE(MAC_KeyIdLookupDescriptor_t, lookupDataSize) == 1 &&
-        OFFSETOF(MAC_KeyIdLookupDescriptor_t, lookupDataSize) == 0);
-SYS_DbgAssertStatic(FIELD_SIZE(MAC_KeyIdLookupDescriptor_t, lookupData) == MAC_KEY_LOOKUP_SIZE_9B_VALUE &&
-        OFFSETOF(MAC_KeyIdLookupDescriptor_t, lookupData) == 1);
+SYS_DbgAssertStatic(FIELD_SIZE(MAC_KeyIdLookupDescriptor_t, lookupDataSize) == 1);
+SYS_DbgAssertStatic(OFFSETOF(MAC_KeyIdLookupDescriptor_t, lookupDataSize) == 0);
+SYS_DbgAssertStatic(FIELD_SIZE(MAC_KeyIdLookupDescriptor_t, lookupData) == MAC_KEY_LOOKUP_SIZE_9B_VALUE);
+SYS_DbgAssertStatic(OFFSETOF(MAC_KeyIdLookupDescriptor_t, lookupData) == 1);
 SYS_DbgAssertStatic(sizeof(MAC_KeyIdLookupDescriptor_t) == 10);
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -301,10 +301,10 @@ typedef struct PACKED _MAC_KeyDeviceDescriptor_t {
         uint8_t         plain;                  /*!< Flattened value of UniqueDevice and Blacklisted. */
     };
 } MAC_KeyDeviceDescriptor_t;
-SYS_DbgAssertStatic(FIELD_SIZE(MAC_KeyDeviceDescriptor_t, deviceDescriptorHandle) == sizeof(MAC_DeviceDescriptorId_t) &&
-        OFFSETOF(MAC_KeyDeviceDescriptor_t, deviceDescriptorHandle) == 0);
-SYS_DbgAssertStatic(FIELD_SIZE(MAC_KeyDeviceDescriptor_t, plain) == 1 &&
-        OFFSETOF(MAC_KeyDeviceDescriptor_t, plain) == sizeof(MAC_DeviceDescriptorId_t));
+SYS_DbgAssertStatic(FIELD_SIZE(MAC_KeyDeviceDescriptor_t, deviceDescriptorHandle) == sizeof(MAC_DeviceDescriptorId_t));
+SYS_DbgAssertStatic(OFFSETOF(MAC_KeyDeviceDescriptor_t, deviceDescriptorHandle) == 0);
+SYS_DbgAssertStatic(FIELD_SIZE(MAC_KeyDeviceDescriptor_t, plain) == 1);
+SYS_DbgAssertStatic(OFFSETOF(MAC_KeyDeviceDescriptor_t, plain) == sizeof(MAC_DeviceDescriptorId_t));
 #if (MAC_aMaxDeviceTableEntries < 256)
 SYS_DbgAssertStatic(sizeof(MAC_KeyDeviceDescriptor_t) == 2);
 #else
@@ -328,8 +328,8 @@ typedef struct PACKED _MAC_KeyUsageDescriptor_t {
         MacMpduSurrId_t         mpduSurrId;             /*!< Combined 8-bit value of Frame Type and Command Id. */
     };
 } MAC_KeyUsageDescriptor_t;
-SYS_DbgAssertStatic(FIELD_SIZE(MAC_KeyUsageDescriptor_t, mpduSurrId) == 1 &&
-        OFFSETOF(MAC_KeyUsageDescriptor_t, mpduSurrId) == 0);
+SYS_DbgAssertStatic(FIELD_SIZE(MAC_KeyUsageDescriptor_t, mpduSurrId) == 1);
+SYS_DbgAssertStatic(OFFSETOF(MAC_KeyUsageDescriptor_t, mpduSurrId) == 0);
 SYS_DbgAssertStatic(sizeof(MAC_KeyUsageDescriptor_t) == 1);
 
 /*--------------------------------------------------------------------------------------------------------------------*/

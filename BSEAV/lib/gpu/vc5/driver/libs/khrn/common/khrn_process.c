@@ -37,9 +37,6 @@ static struct statics {
    gmem_handle_t dummy_ocq_buffer;
 #endif
    bool initialized;
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   V3D_MISCCFG_T misccfg;
-#endif
    char device_name[32];
    char gl11_exts_str[GL11_EXTS_STR_MAX_SIZE];
    char gl3x_exts_str[GL20_EXTS_STR_MAX_SIZE];
@@ -97,13 +94,6 @@ gfx_lfmt_translate_gl_ext_t khrn_get_lfmt_translate_exts(void)
    return statics.lfmt_translate_exts;
 }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-const V3D_MISCCFG_T *khrn_get_hw_misccfg(void)
-{
-   return &statics.misccfg;
-}
-#endif
-
 static void khrn_statics_shutdown(struct statics *s)
 {
    gmem_free(s->dummy_texture_handle);
@@ -125,7 +115,7 @@ static void init_image_unit_default_sampler(GLXX_TEXTURE_SAMPLER_STATE_T *sample
    sampler->compare_mode = GL_NONE;
    sampler->compare_func = GL_LEQUAL;
    sampler->unnormalised_coords = false;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    memset(sampler->border_color, 0, sizeof(sampler->border_color));
 #endif
    sampler->debug_label = NULL;
@@ -179,10 +169,6 @@ static bool khrn_statics_init(struct statics *s)
       (khrn_get_has_astc() ? GFX_LFMT_TRANSLATE_GL_EXT_ASTC : 0);
 
    init_image_unit_default_sampler(&s->image_unit_default_sampler);
-
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   statics.misccfg.ovrtmuout = V3D_VER_AT_LEAST(3,3,0,0);
-#endif
 
    return true;
 

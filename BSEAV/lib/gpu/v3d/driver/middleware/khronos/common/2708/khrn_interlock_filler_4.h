@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Interlock system
-
-FILE DESCRIPTION
-Platform-specific stuff. This should only be included by ../khrn_interlock.h.
-=============================================================================*/
-
-#ifndef KHRN_INTERLOCK_FILLER_4_H
-#define KHRN_INTERLOCK_FILLER_4_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "interface/khronos/common/khrn_int_util.h"
 
@@ -21,7 +12,5 @@ typedef enum {
    KHRN_INTERLOCK_USER_TEMP    = 1 << 30,
    KHRN_INTERLOCK_USER_WRITING = 1 << 31
 } KHRN_INTERLOCK_USER_T;
-static INLINE KHRN_INTERLOCK_USER_T khrn_interlock_user(uint32_t i) { return (KHRN_INTERLOCK_USER_T)(1 << i); }
-static INLINE uint32_t khrn_interlock_render_state_i(KHRN_INTERLOCK_USER_T user) { return _msb(user); }
-
-#endif
+static inline KHRN_INTERLOCK_USER_T khrn_interlock_user(uint32_t i) { return (KHRN_INTERLOCK_USER_T)(1 << i); }
+static inline uint32_t khrn_interlock_render_state_i(KHRN_INTERLOCK_USER_T user) { return _msb(user); }

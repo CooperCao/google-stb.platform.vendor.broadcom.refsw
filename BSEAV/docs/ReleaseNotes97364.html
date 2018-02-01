@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=us-ascii">
 <meta name=Generator content="Microsoft Word 14 (filtered)">
-<title>Broadcom 97364 B0 Phase 17.4 Set-Top Unified Reference Software Release</title>
+<title>Broadcom 97364 B0 Phase 18.1 Set-Top Unified Reference Software Release</title>
 <style>
 <!--
  /* Font Definitions */
@@ -150,7 +150,7 @@ style='color:#0070C0'>Features</span></a></span></p>
 
 <div>
 
-<p><a name=top><strong>Broadcom 97364 B0/C0 Phase 17.4 Set-Top Engineering
+<p><a name=top><strong>Broadcom 97364 B0/C0 Phase 18.1 Set-Top Engineering
 Reference Software Release</strong></a></p>
 
 <p><strong>Release Notes</strong></p>
@@ -159,9 +159,9 @@ Reference Software Release</strong></a></p>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
 
-<p>November 17, 2017</p>
+<p>January 23, 2018</p>
 
-<p>Phase 17.4 Engineering Release </p>
+<p>Phase 18.1 Engineering Release </p>
 
 </blockquote>
 
@@ -194,7 +194,7 @@ Atlas as part of the Reference Software. </p>
 
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal>BOLT&gt; boot -z
-     &lt;network_location&gt;:41-1.14/vmlinuz-initrd-arm </li>
+     &lt;network_location&gt;:41-1.15/vmlinuz-initrd-arm </li>
  <li class=MsoNormal>Please note the following Ethernet port assignment for
      different boards using BOLT. 97364SFF board has no built-in ports,
      therefore you must use eth2 and a USB dongle.</li>
@@ -278,7 +278,7 @@ Atlas as part of the Reference Software. </p>
 
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal>BOLT&gt; flash -noheader
-     &lt;network_location&gt;::41-1.14/vmlinuz-initrd-arm flash1.rootfs0 </li>
+     &lt;network_location&gt;::41-1.15/vmlinuz-initrd-arm flash1.rootfs0 </li>
  <li class=MsoNormal>BOLT&gt; setenv -p STARTUP &quot;boot&nbsp;
      flash1.rootfs0&quot; </li>
  <li class=MsoNormal>BOLT&gt; reboot </li>

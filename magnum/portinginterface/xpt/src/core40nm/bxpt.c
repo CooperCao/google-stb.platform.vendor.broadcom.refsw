@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -891,44 +891,6 @@ BERR_Code BXPT_Resume(
     return BERR_SUCCESS;
 }
 
-void BXPT_GetCapability(
-    BXPT_Handle hXpt,           /* [in] Which transport to get data. */
-    BXPT_Capability *Capability /* [out] Where to put the capability data. */
-    )
-{
-    BSTD_UNUSED( hXpt );
-    BDBG_ASSERT( Capability );
-
-    /*
-    ** Set the values in the caller's structure.
-    */
-#if BXPT_HAS_PLAYBACK_PARSERS
-    Capability->MaxPlaybacks = BXPT_NUM_PLAYBACKS;
-    Capability->MaxPidChannels = BXPT_NUM_PID_CHANNELS;
-#endif
-
-#if BXPT_HAS_IB_PID_PARSERS
-    Capability->MaxPidParsers = BXPT_NUM_PID_PARSERS;
-    Capability->MaxInputBands = BXPT_NUM_INPUT_BANDS;
-#endif
-
-    Capability->MaxTpitPids = BXPT_NUM_TPIT_PIDS;
-
-#if BXPT_HAS_MESG_BUFFERS
-    Capability->MaxFilterBanks = BXPT_NUM_FILTER_BANKS;
-    Capability->MaxFiltersPerBank = BXPT_NUM_FILTERS_PER_BANK;
-#endif
-
-#if BXPT_HAS_PACKETSUB
-    Capability->MaxPacketSubs = BXPT_NUM_PACKETSUBS;
-#endif
-
-#if BXPT_HAS_DPCRS
-    Capability->MaxPcrs = BXPT_NUM_PCRS;
-#endif
-
-    Capability->MaxRaveContexts = BXPT_NUM_RAVE_CONTEXTS;
-}
 #endif /* BXPT_FOR_BOOTUPDATER */
 
 #if BXPT_HAS_IB_PID_PARSERS
@@ -1045,49 +1007,6 @@ BERR_Code BXPT_SetParserConfig(
     return( ExitCode );
 }
 
-#ifndef BXPT_FOR_BOOTUPDATER
-BERR_Code BXPT_GetDefaultInputBandConfig(
-    BXPT_Handle hXpt,                       /* [in] Handle for the transport to access. */
-    unsigned int BandNum,                       /* [in] Which input band to access. */
-    BXPT_InputBandConfig *InputBandConfig   /* [in] The current settings */
-    )
-{
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hXpt );
-    BDBG_ASSERT( InputBandConfig );
-
-    /* Is the parser number within range? */
-    if( BandNum > hXpt->MaxInputBands )
-    {
-        /* Bad parser number. Complain. */
-        BDBG_ERR(( "BandNum %u is out of range!", BandNum ));
-        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
-    else
-    {
-        InputBandConfig->ClockPolSel = BXPT_Polarity_eActiveHigh;
-        InputBandConfig->SyncPolSel = BXPT_Polarity_eActiveHigh;
-        InputBandConfig->DataPolSel = BXPT_Polarity_eActiveHigh;
-        InputBandConfig->ValidPolSel = BXPT_Polarity_eActiveHigh;
-        InputBandConfig->ForceValid = false;
-        InputBandConfig->SyncDetectEn = false;
-        InputBandConfig->LsbFirst = false;
-        InputBandConfig->UseSyncAsValid = false;
-        InputBandConfig->ErrorPolSel = BXPT_Polarity_eActiveHigh;
-        InputBandConfig->EnableErrorInput = false;
-        InputBandConfig->IbPktLength = 188;     /* Default to MPEG */
-
-        if ( BandNum == 8 || BandNum == 9 || BandNum == 10 )
-            InputBandConfig->ParallelInputSel = true;
-        else
-            InputBandConfig->ParallelInputSel = false;
-    }
-
-    return( ExitCode );
-}
-#endif
-
 BERR_Code BXPT_GetInputBandConfig(
     BXPT_Handle hXpt,                       /* [in] Handle for the transport to access. */
     unsigned int BandNum,                       /* [in] Which input band to access. */
@@ -1110,6 +1029,8 @@ BERR_Code BXPT_GetInputBandConfig(
     }
     else
     {
+        BKNI_Memset(InputBandConfig, 0, sizeof(*InputBandConfig));
+
         /* The parser config registers are at consecutive addresses. */
         RegAddr =  BCHP_XPT_FE_IB0_CTRL + ( BandNum * IB_REG_STEPSIZE );
         Reg = BREG_Read32( hXpt->hRegister, RegAddr );
@@ -1235,9 +1156,28 @@ BERR_Code BXPT_SetInputBandConfig(
         );
 
         BREG_Write32( hXpt->hRegister, RegAddr, Reg );
+
+        if(InputBandConfig->SyncGen.Enable)
+        {
+            BDBG_ERR(("Internal sync generation is not supported on this part."));
+            ExitCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
     }
 
     return( ExitCode );
+}
+
+BERR_Code BXPT_ArmSyncGeneration(
+    BXPT_Handle hXpt,
+    unsigned BandNum,
+    unsigned Offset
+    )
+{
+    BSTD_UNUSED(hXpt);
+    BSTD_UNUSED(BandNum);
+    BSTD_UNUSED(Offset);
+    BDBG_ERR(("Internal sync generation is not supported on this part."));
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
 #ifndef BXPT_FOR_BOOTUPDATER
@@ -1376,55 +1316,6 @@ BERR_Code BXPT_SetParserDataSource(
 
     return( ExitCode );
 }
-
-#ifndef BXPT_FOR_BOOTUPDATER
-BERR_Code BXPT_GetParserDataSource(
-    BXPT_Handle hXpt,               /* [in] Handle for this transport */
-    unsigned int ParserNum,             /* [in] Which parser to configure */
-    BXPT_DataSource *DataSource,    /* [out] The data source. */
-    unsigned int *WhichSource           /* [out] Which instance of the source */
-    )
-{
-    uint32_t Reg, RegAddr, InputBits;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hXpt );
-
-    /* Is the parser number within range? */
-    if( ParserNum > hXpt->MaxPidParsers )
-    {
-        /* Bad parser number. Complain. */
-        BDBG_ERR(( "ParserNum %u is out of range!", ParserNum ));
-        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
-    else
-    {
-        /* The parser config registers are at consecutive addresses. */
-        RegAddr = BXPT_P_GetParserCtrlRegAddr( hXpt, ParserNum, BCHP_XPT_FE_MINI_PID_PARSER0_CTRL1 );
-        Reg = BREG_Read32( hXpt->hRegister, RegAddr );
-        InputBits = BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL );
-
-        if( InputBits < 0x10)
-        {
-            *DataSource = BXPT_DataSource_eInputBand;
-            *WhichSource = InputBits;
-        }
-        else if( InputBits >= 0x10 )
-        {
-            #if BXPT_HAS_REMUX
-                *DataSource = BXPT_DataSource_eRemuxFeedback;
-                *WhichSource = InputBits - 0x10;
-            #else
-                BDBG_ERR(( "DataSource %lu is out of range!", InputBits ));
-                ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-            #endif
-        }
-    }
-
-    return( ExitCode );
-}
-#endif
 
 BERR_Code BXPT_SetParserEnable(
     BXPT_Handle hXpt,               /* [in] Handle for this transport */
@@ -2082,59 +1973,6 @@ BERR_Code BXPT_FreePidChannel(
     return( ExitCode );
 }
 
-#ifndef BXPT_FOR_BOOTUPDATER
-void BXPT_FreeAllPidChannels(
-    BXPT_Handle hXpt            /* [in] Handle for this transport */
-    )
-{
-    unsigned int i;
-
-    BDBG_ASSERT( hXpt );
-
-    for( i= 0; i < hXpt->MaxPidChannels; i++ )
-    {
-        /* Must be done BEFORE disabling the PID channel. */
-        BXPT_P_ClearAllPidChannelDestinations( hXpt, i );
-
-        BXPT_DisablePidChannel( hXpt, i );
-        hXpt->PidChannelTable[ i ].IsAllocated = false;
-        hXpt->PidChannelTable[ i ].Pid = 0x2000;
-        hXpt->PidChannelTable[ i ].IsPidChannelConfigured = false;
-#ifdef ENABLE_PLAYBACK_MUX
-        hXpt->PidChannelTable[ i ].MuxEnable = false;
-        hXpt->PidChannelTable[ i ].HasDestination = false;
-#endif /*ENABLE_PLAYBACK_MUX*/
-    }
-}
-
-BERR_Code BXPT_RequestPidChannel(
-    BXPT_Handle hXpt,       /* [Input] Handle for this transport */
-    unsigned int PidChannelNum  /* [Output] The channel number the user wants. */
-    )
-{
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hXpt );
-
-    /* Sanity check on the arguments. */
-    if( PidChannelNum > hXpt->MaxPidChannels )
-    {
-        /* Bad parser band number. Complain. */
-        BDBG_ERR(( "PidChannelNum %lu is out of range!", ( unsigned long ) PidChannelNum ));
-        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
-    else
-    {
-        if( hXpt->PidChannelTable[ PidChannelNum ].IsAllocated == false )
-            hXpt->PidChannelTable[ PidChannelNum ].IsAllocated = true;
-        else
-            ExitCode = BXPT_ERR_PID_ALREADY_ALLOCATED;
-    }
-
-    return( ExitCode );
-}
-#endif /* BXPT_FOR_BOOTUPDATER */
-
 void BXPT_P_ResetTransport(
     BREG_Handle hReg
     )
@@ -2522,97 +2360,6 @@ BERR_Code BXPT_SetPidChannel_CC_Config(
 
 #if BXPT_HAS_PARSER_REMAPPING
 
-void BXPT_GetParserMapping(
-    BXPT_Handle hXpt,           /* [in] Handle for the Transport. */
-    BXPT_ParserBandMapping *ParserMap
-    )
-{
-    uint32_t Reg;
-
-    BDBG_ASSERT( hXpt );
-    BDBG_ASSERT( ParserMap );
-
-    *ParserMap = hXpt->BandMap;
-
-    Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID );
-    ParserMap->FrontEnd[ 0 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER0_BAND_ID );
-    ParserMap->FrontEnd[ 0 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER0_PARSER_SEL ) ? true : false;
-    ParserMap->FrontEnd[ 1 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER1_BAND_ID );
-    ParserMap->FrontEnd[ 1 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER1_PARSER_SEL ) ? true : false;
-    ParserMap->FrontEnd[ 2 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER2_BAND_ID );
-    ParserMap->FrontEnd[ 2 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER2_PARSER_SEL ) ? true : false;
-    ParserMap->FrontEnd[ 3 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER3_BAND_ID );
-    ParserMap->FrontEnd[ 3 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER3_PARSER_SEL ) ? true : false;
-
-    Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID );
-    ParserMap->FrontEnd[ 4 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER4_BAND_ID );
-    ParserMap->FrontEnd[ 4 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER4_PARSER_SEL ) ? true : false;
-    ParserMap->FrontEnd[ 5 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER5_BAND_ID );
-    ParserMap->FrontEnd[ 5 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER5_PARSER_SEL ) ? true : false;
-    ParserMap->FrontEnd[ 6 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER6_BAND_ID );
-    ParserMap->FrontEnd[ 6 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER6_PARSER_SEL ) ? true : false;
-    ParserMap->FrontEnd[ 7 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER7_BAND_ID );
-    ParserMap->FrontEnd[ 7 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER7_PARSER_SEL ) ? true : false;
-
-    Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID );
-    ParserMap->FrontEnd[ 4 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER4_BAND_ID );
-    ParserMap->FrontEnd[ 4 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER4_PARSER_SEL ) ? true : false;
-    ParserMap->FrontEnd[ 5 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER5_BAND_ID );
-    ParserMap->FrontEnd[ 5 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER5_PARSER_SEL ) ? true : false;
-    ParserMap->FrontEnd[ 6 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER6_BAND_ID );
-    ParserMap->FrontEnd[ 6 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER6_PARSER_SEL ) ? true : false;
-    ParserMap->FrontEnd[ 7 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER7_BAND_ID );
-    ParserMap->FrontEnd[ 7 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID, PARSER7_PARSER_SEL ) ? true : false;
-
-#if BXPT_NUM_REMAPPABLE_FE_PARSERS > 8
-    Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_FE_MINI_PID_PARSER8_TO_PARSER11_BAND_ID );
-    ParserMap->FrontEnd[ 8 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER8_TO_PARSER11_BAND_ID, PARSER8_BAND_ID );
-    ParserMap->FrontEnd[ 8 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER8_TO_PARSER11_BAND_ID, PARSER8_PARSER_SEL ) ? true : false;
-    ParserMap->FrontEnd[ 9 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER8_TO_PARSER11_BAND_ID, PARSER9_BAND_ID );
-    ParserMap->FrontEnd[ 9 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER8_TO_PARSER11_BAND_ID, PARSER9_PARSER_SEL ) ? true : false;
-#endif
-#if BXPT_NUM_REMAPPABLE_FE_PARSERS > 10
-    ParserMap->FrontEnd[ 10 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER8_TO_PARSER11_BAND_ID, PARSER10_BAND_ID );
-    ParserMap->FrontEnd[ 10 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER8_TO_PARSER11_BAND_ID, PARSER10_PARSER_SEL ) ? true : false;
-    ParserMap->FrontEnd[ 11 ].VirtualParserBandNum =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER8_TO_PARSER11_BAND_ID, PARSER11_BAND_ID );
-    ParserMap->FrontEnd[ 11 ].VirtualParserIsPlayback =
-        BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER8_TO_PARSER11_BAND_ID, PARSER11_PARSER_SEL ) ? true : false;
-#endif
-
-    /* ToDo: Add playback support. */
-}
-
 BERR_Code BXPT_SetParserMapping(
     BXPT_Handle hXpt,           /* [in] Handle for the Transport. */
     const BXPT_ParserBandMapping *ParserMap
@@ -2897,35 +2644,6 @@ BERR_Code BXPT_IsDataPresent(
     return ExitCode;
 }
 #endif
-
-BERR_Code BXPT_GetLiveLTSID(
-    BXPT_Handle hXpt,
-    unsigned parserNum,
-    unsigned *ltsid
-    )
-{
-    BDBG_ASSERT( hXpt );
-    BDBG_ASSERT( ltsid );
-
-    if( parserNum >= BXPT_NUM_PID_PARSERS )
-    {
-        return BERR_INVALID_PARAMETER;
-    }
-
-#if BXPT_HAS_PARSER_REMAPPING
-    {
-        BXPT_BandMap map;
-
-        /* See SW7425-5193 for the band-to-LTSID mapping. */
-        map = hXpt->BandMap.FrontEnd[ parserNum ];
-        *ltsid = map.VirtualParserIsPlayback ? map.VirtualParserBandNum + 0x40 : map.VirtualParserBandNum;
-    }
-#else
-    *ltsid = parserNum;
-#endif
-
-    return BERR_SUCCESS;
-}
 
 #if BXPT_HAS_MTSIF
 bool BXPT_IsMtsifDecryptionEnabled(

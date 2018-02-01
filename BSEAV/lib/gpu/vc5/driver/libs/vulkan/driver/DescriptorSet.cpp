@@ -80,10 +80,9 @@ void DescriptorSet::WriteImage(const VkWriteDescriptorSet *writeInfo,
       {
          // Only write the sampler if it's not an immutable one. Immutable ones are written
          // during construction.
-         Sampler *s = m_layout->GetImmutableSampler(writeInfo->dstBinding, i);
-         if (s == nullptr)
+         if (!m_layout->HasImmutableSamplers(writeInfo->dstBinding))
          {
-            s = fromHandle<Sampler>(writeInfo->pImageInfo[i].sampler);
+            Sampler *s = fromHandle<Sampler>(writeInfo->pImageInfo[i].sampler);
             s->WriteSamplerRecord(devPtr + physOffset);
 
             V3D_TMU_PARAM1_T p1 = {};
@@ -144,7 +143,7 @@ void DescriptorSet::WriteTexelBuffer(const VkWriteDescriptorSet *writeInfo,
       bv->WriteTextureStateRecord(devPtr);
 
       auto data = reinterpret_cast<uint32_t *>(m_data + sysOffset + i * elemSize);
-      *data     = bv->GetSize() / Formats::NumBytes(bv->GetFormat());
+      *data     = bv->GetNumElems();
    }
 
    gmem_flush_mapped_range(m_devMemHandle, m_devMemOffset + devOffset, devSize);

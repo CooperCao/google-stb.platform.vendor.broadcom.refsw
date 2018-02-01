@@ -81,7 +81,7 @@ extern size_t glxx_indexed_binding_point_get_size(const GLXX_INDEXED_BINDING_POI
 
 extern void glxx_buffer_init(GLXX_BUFFER_T *buffer, uint32_t name);
 extern void glxx_buffer_enable(GLXX_BUFFER_T *buffer);
-extern void glxx_buffer_term(void *v, size_t size);
+extern void glxx_buffer_term(void *v);
 
 extern bool glxx_buffer_data(GLXX_BUFFER_T *buffer, size_t size,
       const void *data, GLenum usage);

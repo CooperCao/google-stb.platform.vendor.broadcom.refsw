@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -78,6 +78,7 @@ struct NEXUS_VideoWindow {
     NEXUS_EventCallbackHandle bufLogCallback;
 #endif
     bool bypassVideoProcessing;
+    NEXUS_VideoDecoderSecureType secureVideo;
 
     NEXUS_SurfaceHandle captureBuffer; /* current surface returned by NEXUS_VideoWindow_CaptureVideoBuffer */
     BVDC_Window_CapturedImage captureImage; /* image from  BVDC_Window_GetBuffer */
@@ -137,6 +138,8 @@ struct NEXUS_VideoWindow {
     {
         NEXUS_DynamicRangeProcessingSettings settings;
         BVDC_Test_Window_ForceCfcConfig cfcConfig;
+        int hdrPeak;
+        int sdrPeak;
     } dynrng;
 #endif
 };

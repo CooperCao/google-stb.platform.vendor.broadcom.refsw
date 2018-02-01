@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,6 +57,8 @@
  *  BVCE_DBG_RSP - Encoder Responses
  *  BVCE_DBG_CDO - CDB Offsets snapshot
  *  BVCE_DBG_ITO - ITB Offsets snapshot
+ *  BVCE_DBG_PNQ - Encode Picture Buffer Info - Queued
+ *  BVCE_DBG_PDQ - Encode Picture Buffer Info - De-Queued
  */
 void
 BVCE_Debug_PrintLogMessageEntry(

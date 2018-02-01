@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1185,6 +1185,7 @@ const uint32_t MCPB_CH_REG_SAVELIST[] = {
     BCHP_XPT_MCPB_CH0_DCPM_PAUSE_AFTER_GROUP_PACKETS_CTRL
 };
 
+#if 0 /* TODO: does not work because HW reset value for status regs appears to be non-zero, e.g. 0xdeaddead */
 /* status registers for state that cannot be restored with a single reg write */
 const uint32_t MCPB_MULT_STATUS_LIST[] =
 {
@@ -1197,10 +1198,11 @@ const uint32_t MCPB_MULT_STATUS_LIST[] =
     BCHP_XPT_MCPB_ARBITER_ZERO_BYTE_TRANS_PRIORITY_STATUS_0_31,
     BCHP_XPT_MCPB_ARBITER_SEND_DCP_ONLY_TRANS_AS_HIGH_PRIORITY_STATUS_0_31
 };
+#define MCPB_MULT_STATUS_LIST_COUNT (sizeof(MCPB_MULT_STATUS_LIST)/sizeof(MCPB_MULT_STATUS_LIST[0]))
+#endif
 
 #define MCPB_TOP_REG_SAVELIST_COUNT (sizeof(MCPB_TOP_REG_SAVELIST)/sizeof(MCPB_TOP_REG_SAVELIST[0]))
 #define MCPB_CH_REG_SAVELIST_COUNT  (sizeof(MCPB_CH_REG_SAVELIST)/sizeof(MCPB_CH_REG_SAVELIST[0]))
-#define MCPB_MULT_STATUS_LIST_COUNT (sizeof(MCPB_MULT_STATUS_LIST)/sizeof(MCPB_MULT_STATUS_LIST[0]))
 
 #define MCPB_STEPSIZE (BCHP_XPT_MCPB_CH1_DMA_DESC_CONTROL - BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL)
 

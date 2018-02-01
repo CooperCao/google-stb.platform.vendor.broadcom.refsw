@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -944,6 +944,7 @@ int main(int argc, const char *argv[])
     NEXUS_PlatformCapabilities platformCap;
     #if NEXUS_HAS_AUDIO
     NEXUS_AudioCapabilities audioCaps;
+    bool allowStereo = true;
     #endif
 #if NEXUS_NUM_HDMI_OUTPUTS
     struct hotplug_context hotplug_context;
@@ -1201,6 +1202,7 @@ int main(int argc, const char *argv[])
     if (opts.common.multichannelAudio) {
         audioDecoderOpenSettings.multichannelFormat = NEXUS_AudioMultichannelFormat_e5_1;
     }
+
     /* Bring up audio decoders and outputs */
     if(opts.common.decodedAudio) {
         audioDecoder = NEXUS_AudioDecoder_Open(0, &audioDecoderOpenSettings);
@@ -1215,43 +1217,6 @@ int main(int argc, const char *argv[])
         BDBG_ASSERT(!rc);
     }
 
-    if (opts.common.audioPid && opts.common.decodedAudio) {
-        if ( audioCaps.numOutputs.dac > 0 ) {
-            rc = NEXUS_AudioOutput_AddInput(
-                NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-                NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
-            BDBG_ASSERT(!rc);
-        }
-        else if ( audioCaps.numOutputs.i2s > 0 ) {
-            rc = NEXUS_AudioOutput_AddInput(
-                NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[0]),
-                NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
-            BDBG_ASSERT(!rc);
-        }
-        else if ( audioCaps.numOutputs.dummy > 0 ) {
-            NEXUS_AudioOutputSettings dummySettings;
-            NEXUS_AudioOutput_GetSettings(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]), &dummySettings);
-            dummySettings.pll = NEXUS_AudioOutputPll_e1;
-            dummySettings.nco = NEXUS_AudioOutputNco_eMax;
-            NEXUS_AudioOutput_SetSettings(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]), &dummySettings);
-            rc = NEXUS_AudioOutput_AddInput(
-                NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]),
-                NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
-            BDBG_ASSERT(!rc);
-        }
-
-        #if NEXUS_HAS_SYNC_CHANNEL
-        if (opts.sync) {
-            NEXUS_SyncChannel_GetSettings(sync, &syncSettings);
-            syncSettings.audioInput[0] = NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo);
-            NEXUS_SyncChannel_SetSettings(sync, &syncSettings);
-        }
-        #endif
-        NEXUS_AudioDecoder_GetSettings(audioDecoder, &audioDecoderSettings);
-        audioDecoderSettings.wideGaThreshold = opts.looseAudioTsm;
-        rc = NEXUS_AudioDecoder_SetSettings(audioDecoder, &audioDecoderSettings);
-        BDBG_ASSERT(!rc);
-    }
     if (opts.common.compressedAudio) {
         audioDecoderOpenSettings.multichannelFormat = NEXUS_AudioMultichannelFormat_eNone;
         audioDecoderOpenSettings.type = NEXUS_AudioDecoderType_ePassthrough;
@@ -1264,8 +1229,129 @@ int main(int argc, const char *argv[])
             rc = NEXUS_AudioDecoder_SetCodecSettings(compressedDecoder, &audioCodecSettings);
             BDBG_ASSERT(!rc);
         }
+    }
 
-        if ( audioCaps.numOutputs.spdif > 0 ) {
+#if NEXUS_NUM_HDMI_OUTPUTS
+    if (opts.common.useHdmiOutput) {
+#if !BDBG_NO_WRN
+        static const char *g_audioConnectorTypeStr[NEXUS_AudioConnectorType_eMax] = { "stereo", "multichannel", "compressed", "compressed 4x", "compressed HBR", "mono" };
+#endif
+        NEXUS_HdmiOutputStatus hdmiStatus;
+        NEXUS_AudioDecoderHandle hdmiDecoder = audioDecoder;
+        NEXUS_AudioConnectorType connectorType = NEXUS_AudioConnectorType_eStereo;
+        NEXUS_AudioInputHandle connector;
+        unsigned pollcnt = 10; /* 1 second = 10 loops of 100 msec */
+
+        while (pollcnt--) {
+            rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
+            BDBG_ASSERT(!rc);
+            if (hdmiStatus.connected) {
+                break;
+            }
+            BKNI_Sleep(100);
+        }
+
+        if (!hdmiStatus.connected) {
+            BDBG_WRN(("HDMI not connected"));
+            /* if we don't know the EDID, output 2 ch pcm */
+            connectorType = NEXUS_AudioDecoderConnectorType_eStereo;
+        }
+        else if ( opts.common.multichannelAudio && hdmiStatus.maxAudioPcmChannels > 2 ) {
+            connectorType = NEXUS_AudioConnectorType_eMultichannel;
+            if (opts.common.audioCodec == NEXUS_AudioCodec_eAc4) {
+                allowStereo = false;
+            }
+        }
+        else if ( opts.common.compressedAudio ) {
+            if ( opts.common.ignore_edid || hdmiStatus.audioCodecSupported[opts.common.audioCodec] ) {
+                /* Codec is directly supported */
+                hdmiDecoder = (opts.common.audioCodec == NEXUS_AudioCodec_eWmaPro) ? audioDecoder:compressedDecoder;
+                switch ( opts.common.audioCodec ) {
+                case NEXUS_AudioCodec_eMlp:
+                    connectorType = NEXUS_AudioConnectorType_eCompressed16x;
+                    break;
+                case NEXUS_AudioCodec_eAc3Plus:
+                    connectorType = NEXUS_AudioConnectorType_eCompressed4x;
+                    break;
+                case NEXUS_AudioCodec_eDtsHd:
+                    {
+                        NEXUS_HdmiOutputBasicEdidData basicEdid;
+                        NEXUS_HdmiOutput_GetBasicEdidData(platformConfig.outputs.hdmi[0], &basicEdid);
+                        if ( basicEdid.edidRevision >= 3 ) {  /* Check for HDMI 1.3 or later */
+                            connectorType = NEXUS_AudioConnectorType_eCompressed16x;      /* Send DTS-HD as MA (should parse stream to select but this is simpler) */
+                        }
+                        else {
+                            connectorType = NEXUS_AudioConnectorType_eCompressed4x;      /* Send DTS-HD as HRA not MA */
+                        }
+                    }
+                    break;
+                default:
+                    connectorType = NEXUS_AudioConnectorType_eCompressed;
+                    break;
+                }
+            }
+            else if ( opts.common.audioCodec == NEXUS_AudioCodec_eAc3Plus && hdmiStatus.audioCodecSupported[NEXUS_AudioCodec_eAc3] ) {
+                /* AC3 is supported, convert ac3+ to ac3. */
+                connectorType = NEXUS_AudioConnectorType_eCompressed;
+            }
+            else if ( opts.common.audioCodec == NEXUS_AudioCodec_eDtsLegacy || opts.common.audioCodec == NEXUS_AudioCodec_eDts ) {
+                if ( hdmiStatus.audioCodecSupported[NEXUS_AudioCodec_eDts] || hdmiStatus.audioCodecSupported[NEXUS_AudioCodec_eDtsHd] ) {
+                    hdmiDecoder = compressedDecoder;
+                    connectorType = NEXUS_AudioConnectorType_eCompressed;
+                }
+            }
+        }
+        else if (!opts.common.decodedAudio) {
+            connectorType = NEXUS_AudioConnectorType_eMax;
+        }
+
+        if ( connectorType == NEXUS_AudioConnectorType_eCompressed16x || connectorType == NEXUS_AudioConnectorType_eCompressed4x ) {
+            BDBG_WRN(("Forcing HD display mode for HBR audio on HDMI"));
+            opts.common.displayFormat = NEXUS_VideoFormat_e1080i;
+            opts.common.useCcir656Output = false;
+            opts.common.useCompositeOutput = false;
+        }
+
+        if (connectorType != NEXUS_AudioConnectorType_eMax && hdmiDecoder != NULL ) {
+            BDBG_WRN(("hdmi audio: decoder %d -> %s", hdmiDecoder==audioDecoder?0:1, g_audioConnectorTypeStr[connectorType]));
+            connector = NEXUS_AudioDecoder_GetConnector(hdmiDecoder, connectorType);
+            if ( NULL == connector ) {
+                /* This decoder doesn't support HBR output.  Try standard compressed instead */
+                if ( connectorType == NEXUS_AudioConnectorType_eCompressed16x || connectorType == NEXUS_AudioConnectorType_eCompressed4x ) {
+                    BDBG_WRN(("hdmi audio: decoder %d -> %s", hdmiDecoder==audioDecoder?0:1, g_audioConnectorTypeStr[NEXUS_AudioConnectorType_eCompressed]));
+                    connector = NEXUS_AudioDecoder_GetConnector(hdmiDecoder, NEXUS_AudioConnectorType_eCompressed);
+                }
+            }
+            if ( NULL != connector ) {
+                rc = NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]), connector);
+                BDBG_ASSERT(!rc);
+#if NEXUS_HAS_SYNC_CHANNEL
+                if (opts.sync) {
+                    NEXUS_SyncChannel_GetSettings(sync, &syncSettings);
+                    if (hdmiDecoder == compressedDecoder && !syncSettings.audioInput[1]) {
+                        syncSettings.audioInput[1] = NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioConnectorType_eCompressed);
+                        NEXUS_SyncChannel_SetSettings(sync, &syncSettings);
+                    }
+                    else if (hdmiDecoder == audioDecoder && connectorType == NEXUS_AudioConnectorType_eMultichannel) {
+                        syncSettings.audioInput[0] = NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eMultichannel);
+                        NEXUS_SyncChannel_SetSettings(sync, &syncSettings);
+                    }
+                    else if (hdmiDecoder == audioDecoder && connectorType == NEXUS_AudioConnectorType_eStereo) {
+                        syncSettings.audioInput[0] = NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo);
+                        NEXUS_SyncChannel_SetSettings(sync, &syncSettings);
+                    }
+                }
+#endif
+            }
+        }
+        else {
+            BDBG_ERR(("HDMI not connected because either connector type is max or decoder is not opened"));
+        }
+    }
+#endif /*NEXUS_NUM_HDMI_OUTPUTS*/
+
+    if ( audioCaps.numOutputs.spdif > 0 ) {
+        if (opts.common.compressedAudio) {
             if ( opts.common.audioCodec == NEXUS_AudioCodec_eAc3Plus || opts.common.audioCodec == NEXUS_AudioCodec_eWmaPro ) {
                 /* These codecs pasthrough as part of decode (ac3+ is transcoded to ac3, wma pro is not transcoded) */
                 if (opts.common.decodedAudio) {
@@ -1307,142 +1393,57 @@ int main(int argc, const char *argv[])
                 }
             }
         }
+        else {
+            if (opts.common.decodedAudio && allowStereo) {
+                BDBG_WRN(("spdif audio: decoder 0 -> stereo"));
+                rc = NEXUS_AudioOutput_AddInput(
+                    NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+                    NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
+                BDBG_ASSERT(!rc);
+            }
+        }
     }
-    else {
-        if (opts.common.decodedAudio && audioCaps.numOutputs.spdif > 0 ) {
-            BDBG_WRN(("spdif audio: decoder 0 -> stereo"));
+
+    if (opts.common.audioPid && opts.common.decodedAudio && allowStereo) {
+        if ( audioCaps.numOutputs.dac > 0 ) {
             rc = NEXUS_AudioOutput_AddInput(
-                NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+                NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
                 NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
             BDBG_ASSERT(!rc);
         }
+        else if ( audioCaps.numOutputs.i2s > 0 ) {
+            rc = NEXUS_AudioOutput_AddInput(
+                NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[0]),
+                NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
+            BDBG_ASSERT(!rc);
+        }
+        else if ( audioCaps.numOutputs.dummy > 0 ) {
+            NEXUS_AudioOutputSettings dummySettings;
+            NEXUS_AudioOutput_GetSettings(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]), &dummySettings);
+            dummySettings.pll = NEXUS_AudioOutputPll_e1;
+            dummySettings.nco = NEXUS_AudioOutputNco_eMax;
+            NEXUS_AudioOutput_SetSettings(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]), &dummySettings);
+            rc = NEXUS_AudioOutput_AddInput(
+                NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]),
+                NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
+            BDBG_ASSERT(!rc);
+        }
+
+        #if NEXUS_HAS_SYNC_CHANNEL
+        if (opts.sync) {
+            NEXUS_SyncChannel_GetSettings(sync, &syncSettings);
+            if (syncSettings.audioInput[0] == NULL) {
+                syncSettings.audioInput[0] = NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo);
+                NEXUS_SyncChannel_SetSettings(sync, &syncSettings);
+            }
+        }
+        #endif
+        NEXUS_AudioDecoder_GetSettings(audioDecoder, &audioDecoderSettings);
+        audioDecoderSettings.wideGaThreshold = opts.looseAudioTsm;
+        rc = NEXUS_AudioDecoder_SetSettings(audioDecoder, &audioDecoderSettings);
+        BDBG_ASSERT(!rc);
     }
     #endif /* NEXUS_HAS_AUDIO */
-
-#if NEXUS_NUM_HDMI_OUTPUTS && NEXUS_HAS_AUDIO
-    if (opts.common.useHdmiOutput)
-    {
-#if !BDBG_NO_WRN
-        static const char *g_audioConnectorTypeStr[NEXUS_AudioConnectorType_eMax] = { "stereo", "multichannel", "compressed", "compressed 4x", "compressed HBR", "mono" };
-#endif
-        NEXUS_HdmiOutputStatus hdmiStatus;
-        NEXUS_AudioDecoderHandle hdmiDecoder = audioDecoder;
-        NEXUS_AudioConnectorType connectorType = NEXUS_AudioConnectorType_eStereo;
-        NEXUS_AudioInputHandle connector;
-        unsigned pollcnt = 10; /* 1 second = 10 loops of 100 msec */
-
-        while (pollcnt--) {
-            rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
-            BDBG_ASSERT(!rc);
-            if (hdmiStatus.connected) {
-                break;
-            }
-            BKNI_Sleep(100);
-        }
-
-        if (!hdmiStatus.connected) {
-            BDBG_WRN(("HDMI not connected"));
-            /* if we don't know the EDID, output 2 ch pcm */
-            connectorType = NEXUS_AudioDecoderConnectorType_eStereo;
-        }
-        else if ( opts.common.multichannelAudio && hdmiStatus.maxAudioPcmChannels > 2 )
-        {
-            connectorType = NEXUS_AudioConnectorType_eMultichannel;
-        }
-        else if ( opts.common.compressedAudio )
-        {
-            if ( opts.common.ignore_edid || hdmiStatus.audioCodecSupported[opts.common.audioCodec] )
-            {
-                /* Codec is directly supported */
-                hdmiDecoder = (opts.common.audioCodec == NEXUS_AudioCodec_eWmaPro) ? audioDecoder:compressedDecoder;
-                switch ( opts.common.audioCodec )
-                {
-                case NEXUS_AudioCodec_eMlp:
-                    connectorType = NEXUS_AudioConnectorType_eCompressed16x;
-                    break;
-                case NEXUS_AudioCodec_eAc3Plus:
-                    connectorType = NEXUS_AudioConnectorType_eCompressed4x;
-                    break;
-                case NEXUS_AudioCodec_eDtsHd:
-                    {
-                        NEXUS_HdmiOutputBasicEdidData basicEdid;
-                        NEXUS_HdmiOutput_GetBasicEdidData(platformConfig.outputs.hdmi[0], &basicEdid);
-                        if ( basicEdid.edidRevision >= 3 )  /* Check for HDMI 1.3 or later */
-                        {
-                            connectorType = NEXUS_AudioConnectorType_eCompressed16x;      /* Send DTS-HD as MA (should parse stream to select but this is simpler) */
-                        }
-                        else
-                        {
-                            connectorType = NEXUS_AudioConnectorType_eCompressed4x;      /* Send DTS-HD as HRA not MA */
-                        }
-                    }
-                    break;
-                default:
-                    connectorType = NEXUS_AudioConnectorType_eCompressed;
-                    break;
-                }
-            }
-            else if ( opts.common.audioCodec == NEXUS_AudioCodec_eAc3Plus && hdmiStatus.audioCodecSupported[NEXUS_AudioCodec_eAc3] )
-            {
-                /* AC3 is supported, convert ac3+ to ac3. */
-                connectorType = NEXUS_AudioConnectorType_eCompressed;
-            }
-            else if ( opts.common.audioCodec == NEXUS_AudioCodec_eDtsLegacy || opts.common.audioCodec == NEXUS_AudioCodec_eDts )
-            {
-                if ( hdmiStatus.audioCodecSupported[NEXUS_AudioCodec_eDts] || hdmiStatus.audioCodecSupported[NEXUS_AudioCodec_eDtsHd] )
-                {
-                    hdmiDecoder = compressedDecoder;
-                    connectorType = NEXUS_AudioConnectorType_eCompressed;
-                }
-            }
-        }
-        else if (!opts.common.decodedAudio) {
-            connectorType = NEXUS_AudioConnectorType_eMax;
-        }
-
-        if ( connectorType == NEXUS_AudioConnectorType_eCompressed16x || connectorType == NEXUS_AudioConnectorType_eCompressed4x )
-        {
-            BDBG_WRN(("Forcing HD display mode for HBR audio on HDMI"));
-            opts.common.displayFormat = NEXUS_VideoFormat_e1080i;
-            opts.common.useCcir656Output = false;
-            opts.common.useCompositeOutput = false;
-        }
-
-        if (connectorType != NEXUS_AudioConnectorType_eMax && hdmiDecoder != NULL ) {
-            BDBG_WRN(("hdmi audio: decoder %d -> %s", hdmiDecoder==audioDecoder?0:1, g_audioConnectorTypeStr[connectorType]));
-            connector = NEXUS_AudioDecoder_GetConnector(hdmiDecoder, connectorType);
-            if ( NULL == connector )
-            {
-                /* This decoder doesn't support HBR output.  Try standard compressed instead */
-                if ( connectorType == NEXUS_AudioConnectorType_eCompressed16x || connectorType == NEXUS_AudioConnectorType_eCompressed4x )
-                {
-                    BDBG_WRN(("hdmi audio: decoder %d -> %s", hdmiDecoder==audioDecoder?0:1, g_audioConnectorTypeStr[NEXUS_AudioConnectorType_eCompressed]));
-                    connector = NEXUS_AudioDecoder_GetConnector(hdmiDecoder, NEXUS_AudioConnectorType_eCompressed);
-                }
-            }
-            if ( NULL != connector )
-            {
-                rc = NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]), connector);
-                BDBG_ASSERT(!rc);
-    #if NEXUS_HAS_SYNC_CHANNEL
-                if (opts.sync)
-                {
-                    NEXUS_SyncChannel_GetSettings(sync, &syncSettings);
-                    if (hdmiDecoder == compressedDecoder && !syncSettings.audioInput[1])
-                    {
-                        syncSettings.audioInput[1] = NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioConnectorType_eCompressed);
-                        NEXUS_SyncChannel_SetSettings(sync, &syncSettings);
-                    }
-                }
-    #endif
-            }
-        }
-        else
-        {
-            BDBG_ERR(("HDMI not connected because either connector type is max or decoder is not opened"));
-        }
-    }
-#endif /*NEXUS_NUM_HDMI_OUTPUTS && NEXUS_HAS_AUDIO*/
 
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     displaySettings.displayType = opts.common.displayType;
@@ -1473,14 +1474,16 @@ int main(int argc, const char *argv[])
         compositeDisplaySettings.format = (videoFormatInfo.verticalFreq == 5000)
             ? NEXUS_VideoFormat_ePal : NEXUS_VideoFormat_eNtsc;
         displaySD = NEXUS_Display_Open(1, &compositeDisplaySettings);
-        rc = NEXUS_Display_AddOutput(displaySD, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
-        if (rc) BERR_TRACE(rc); /* keep going */
+        if(displaySD) {
+            rc = NEXUS_Display_AddOutput(displaySD, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
+            if (rc) BERR_TRACE(rc); /* keep going */
 #if NEXUS_NUM_656_OUTPUTS
-        if (opts.common.useCcir656Output && platformConfig.outputs.ccir656[0] && displaySD) {
-           rc = NEXUS_Display_AddOutput(displaySD, NEXUS_Ccir656Output_GetConnector( platformConfig.outputs.ccir656[0]));
-           if (rc) BERR_TRACE(rc); /* keep going */
-        }
+            if (opts.common.useCcir656Output && platformConfig.outputs.ccir656[0] && displaySD) {
+               rc = NEXUS_Display_AddOutput(displaySD, NEXUS_Ccir656Output_GetConnector( platformConfig.outputs.ccir656[0]));
+               if (rc) BERR_TRACE(rc); /* keep going */
+            }
 #endif
+        }
     }
 #endif
 
@@ -1744,12 +1747,14 @@ int main(int argc, const char *argv[])
     BDBG_ASSERT(!rc);
 #endif
 
-    NEXUS_Display_GetVbiSettings(displaySD?displaySD:display, &displayVbiSettings);
-    displayVbiSettings.vbiSource = NEXUS_VideoDecoder_GetConnector(videoDecoder);
-    displayVbiSettings.closedCaptionEnabled = opts.closedCaptionEnabled;
-    displayVbiSettings.closedCaptionRouting = opts.closedCaptionEnabled;
-    rc = NEXUS_Display_SetVbiSettings(displaySD?displaySD:display, &displayVbiSettings);
-    BDBG_ASSERT(!rc);
+    if(displaySD) {
+        NEXUS_Display_GetVbiSettings(displaySD, &displayVbiSettings);
+        displayVbiSettings.vbiSource = NEXUS_VideoDecoder_GetConnector(videoDecoder);
+        displayVbiSettings.closedCaptionEnabled = opts.closedCaptionEnabled;
+        displayVbiSettings.closedCaptionRouting = opts.closedCaptionEnabled;
+        rc = NEXUS_Display_SetVbiSettings(displaySD, &displayVbiSettings);
+        if (rc) rc = BERR_TRACE(rc);
+    }
 
     /* Open the audio and video pid channels */
     if (opts.common.videoCodec != NEXUS_VideoCodec_eNone && opts.common.videoPid!=0 && opts.common.decodedVideo) {
@@ -2732,7 +2737,6 @@ int main(int argc, const char *argv[])
                         hdmiOutputStatus.monitorName, lookup_name(g_videoFormatStrs, displaySettings.format))) ;
                     break ;
                 }
-
 
                 rc = NEXUS_Display_SetSettings(display, &displaySettings);
                 if (rc) {

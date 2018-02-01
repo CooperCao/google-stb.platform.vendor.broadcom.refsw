@@ -147,6 +147,7 @@ NXSERVERLIB_SRCS := \
     nxserverlib_transport.c \
     nxserverlib_input.c \
     nxserverlib_evdev.c \
+    nxserverlib_thermal.c \
     nxclient_local.c \
     nxclient_common.c \
     $(notdir $(NXCLIENT_SOCKET_INTF)) \

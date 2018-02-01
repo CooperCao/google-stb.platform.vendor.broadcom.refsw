@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,6 +67,7 @@ typedef struct NEXUS_AudioModuleInternalSettings
         NEXUS_ModuleHandle surface; 
         NEXUS_ModuleHandle core;        /* Handle to Core module. See NEXUS_Core_Init. */
         NEXUS_ModuleHandle security;
+        NEXUS_ModuleHandle sage;
     } modules;
 } NEXUS_AudioModuleInternalSettings;
 

@@ -72,6 +72,10 @@ CScreenMain::CScreenMain(
     CScreen("CScreenMain", pWidgetEngine, pConfig, pParent),
     _pLabelScan(NULL),
     _pLabelVolume(NULL),
+#if BDSP_MS12_SUPPORT
+    _pLabelAudioFadeMain(NULL),
+    _pLabelAudioFadePip(NULL),
+#endif
     _rectChannelNum(0, 0, 0, 0),
     _pLabelPip(NULL),
     _pLabelChannelNum(NULL),
@@ -133,11 +137,18 @@ CScreenMain::CScreenMain(
 #ifdef CPUTEST_SUPPORT
     _timerCpuTest(pWidgetEngine, this, 1000),
 #endif
+#if BDSP_MS12_SUPPORT
+    _timerAudioFade(pWidgetEngine, this, 100),
+    _timerAudioFadeShow(pWidgetEngine, this, 1500),
+#endif
     _channelsFound(0),
     _MsgBox(NULL),
     _pPowerMenu(NULL),
     _pKeyboard(NULL),
     _pVbiMenu(NULL),
+#if BDSP_MS12_SUPPORT
+    _pAudioAc4Menu(NULL),
+#endif
     _timerMsgBox(pWidgetEngine, this, 7000)
 #if NEXUS_HAS_FRONTEND
     , _Tuner(NULL),
@@ -444,6 +455,36 @@ eRet CScreenMain::initialize(CModel * pModel)
     _pLabelVolume->setZOrder(32);
     _pLabelVolume->show(false);
 
+#if BDSP_MS12_SUPPORT
+    /* main audio fade widget */
+    _pLabelAudioFadeMain = new CWidgetProgress("CScreenMain::_pLabelAudioFadeMain", getEngine(), this, MRect(50, graphicsHeight - 103, 200, 20), font14);
+    CHECK_PTR_ERROR_GOTO("unable to allocate label widget", _pLabelAudioFadeMain, ret, eRet_OutOfMemory, error);
+    _pLabelAudioFadeMain->setText("Main Audio Fade", bwidget_justify_horiz_center, bwidget_justify_vert_middle);
+    _pLabelAudioFadeMain->setBevel(1);
+    _pLabelAudioFadeMain->setBackgroundFillMode(fill_eGradient);
+    _pLabelAudioFadeMain->setBackgroundGradient(SET_TRANSPARENCY((0xFF676767 - 5 * COLOR_STEP), transparency),
+            SET_TRANSPARENCY(0xFF676767, transparency),
+            SET_TRANSPARENCY((0xFF676767 + 2 * COLOR_STEP), transparency));
+    _pLabelAudioFadeMain->setTextColor(COLOR_EGGSHELL);
+    /* keep AudioFadeMain popup above all other graphics */
+    _pLabelAudioFadeMain->setZOrder(32);
+    _pLabelAudioFadeMain->show(false);
+
+    /* Pip audio fade widget */
+    _pLabelAudioFadePip = new CWidgetProgress("CScreenMain::_pLabelAudioFadePip", getEngine(), this, MRect(50, graphicsHeight - 80, 200, 20), font14);
+    CHECK_PTR_ERROR_GOTO("unable to allocate label widget", _pLabelAudioFadePip, ret, eRet_OutOfMemory, error);
+    _pLabelAudioFadePip->setText("Pip Audio Fade", bwidget_justify_horiz_center, bwidget_justify_vert_middle);
+    _pLabelAudioFadePip->setBevel(1);
+    _pLabelAudioFadePip->setBackgroundFillMode(fill_eGradient);
+    _pLabelAudioFadePip->setBackgroundGradient(SET_TRANSPARENCY((0xFF676767 - 5 * COLOR_STEP), transparency),
+            SET_TRANSPARENCY(0xFF676767, transparency),
+            SET_TRANSPARENCY((0xFF676767 + 2 * COLOR_STEP), transparency));
+    _pLabelAudioFadePip->setTextColor(COLOR_EGGSHELL);
+    /* keep AudioFadePip popup above all other graphics */
+    _pLabelAudioFadePip->setZOrder(32);
+    _pLabelAudioFadePip->show(false);
+#endif
+
     /* main menu */
     menuHeight = 151;
 #ifdef CPUTEST_SUPPORT
@@ -695,6 +736,14 @@ eRet CScreenMain::initialize(CModel * pModel)
     _pVbiMenu->show(false);
     _panelList.add(_pVbiMenu);
 
+#if BDSP_MS12_SUPPORT
+    _pAudioAc4Menu = new CPanelAudioAc4(getWidgetEngine(), this, this, MRect(0, 0, 10, 10), font14);
+    CHECK_PTR_ERROR_GOTO("unable to initialize AudioAc4 menu", _pAudioAc4Menu, ret, eRet_OutOfMemory, error);
+    _pAudioAc4Menu->initialize(pModel, _pConfig);
+    _pAudioAc4Menu->show(false);
+    _panelList.add(_pAudioAc4Menu);
+#endif
+
 #ifdef MPOD_SUPPORT
     _pCableCardMenu = new CPanelCableCard(getWidgetEngine(), this, this, MRect(0, 0, 10, 10), font14);
     CHECK_PTR_ERROR_GOTO("unable to initialize cablecard menu", _pCableCardMenu, ret, eRet_OutOfMemory, error);
@@ -781,6 +830,10 @@ void CScreenMain::uninitialize()
 #ifdef CPUTEST_SUPPORT
     _timerCpuTest.stop();
 #endif
+#if BDSP_MS12_SUPPORT
+    _timerAudioFade.stop();
+    _timerAudioFadeShow.stop();
+#endif
     _timerMsgBox.stop();
     _indicatorList.clear();
 
@@ -793,6 +846,9 @@ void CScreenMain::uninitialize()
 #endif
 #ifdef NETAPP_SUPPORT
     DEL(_pBluetoothMenu);
+#endif
+#if BDSP_MS12_SUPPORT
+    DEL(_pAudioAc4Menu);
 #endif
     DEL(_pVbiMenu);
 #if NEXUS_HAS_FRONTEND
@@ -843,6 +899,10 @@ void CScreenMain::uninitialize()
     DEL(_Display);
     DEL(_Decode);
     DEL(_pMainMenu);
+#if BDSP_MS12_SUPPORT
+    DEL(_pLabelAudioFadePip);
+    DEL(_pLabelAudioFadeMain);
+#endif
     DEL(_pLabelVolume);
     DEL(_pLabelScan);
     DEL(_pLabelConnectionType);
@@ -1151,6 +1211,22 @@ void CScreenMain::processNotification(CNotification & notification)
         }
         else
 #endif /* ifdef CPUTEST_SUPPORT */
+#if BDSP_MS12_SUPPORT
+        if (&_timerAudioFade == pTimer)
+        {
+            updateAudioFadeLevels();
+            _timerAudioFade.start();
+        }
+        else
+        if (&_timerAudioFadeShow == pTimer)
+        {
+            _pLabelAudioFadeMain->show(_pModel->getPipState());
+            _pLabelAudioFadePip->show(_pModel->getPipState());
+
+            _pModel->getPipState() ? _timerAudioFade.start() : _timerAudioFade.stop();
+        }
+        else
+#endif
         if (&_timerMsgBox == pTimer)
         {
             _MsgBox->cancelModal("Cancel");
@@ -1240,6 +1316,19 @@ void CScreenMain::processNotification(CNotification & notification)
         }
     }
     break;
+
+#if BDSP_MS12_SUPPORT
+    case eNotify_AudioAc4DialogEnhancementChanged:
+    {
+        int * pDb = (int *)notification.getData();
+
+        if (NULL != pDb)
+        {
+            setDialogEnhancementProgress(*pDb);
+        }
+    }
+    break;
+#endif
 
 #if NEXUS_HAS_FRONTEND
     case eNotify_ScanStarted:
@@ -1360,6 +1449,12 @@ void CScreenMain::processNotification(CNotification & notification)
 
         /* hide/show buffers panel based on state */
         _pBuffersMenu->show(bOn ? _Buffers->isChecked() : false);
+
+#if BDSP_MS12_SUPPORT
+        /* hide/show audio fade controls based on state */
+        _pLabelAudioFadeMain ->show(bOn ? _pModel->getPipState() : false);
+        _pLabelAudioFadePip ->show(bOn ? _pModel->getPipState() : false);
+#endif
 
         if (false == bOn)
         {
@@ -1528,6 +1623,10 @@ eRet CScreenMain::updatePip()
             _pLabelPip->show(false);
         }
     }
+
+#if BDSP_MS12_SUPPORT
+    _timerAudioFadeShow.start();
+#endif
 
 error:
     return(ret);
@@ -2352,6 +2451,65 @@ void CScreenMain::setVolumeProgress(
     _pLabelVolume->show(true);
 } /* setVolumeProgress */
 
+#if BDSP_MS12_SUPPORT
+void CScreenMain::setAudioFadeProgress(
+        uint8_t progress,
+        eWindowType windowType
+        )
+{
+    char strAudioFade[64];
+
+    BDBG_ASSERT(100 >= progress);
+
+    if (eWindowType_Max == windowType)
+    {
+        windowType = eWindowType_Main;
+    }
+
+    if (eWindowType_Main == windowType)
+    {
+        snprintf(strAudioFade, sizeof(strAudioFade), "Main Audio Level: %3d%%", progress);
+        _pLabelAudioFadeMain->setText(strAudioFade);
+        _pLabelAudioFadeMain->setLevel(PERCENT_TO_UINT16(progress));
+        _pLabelAudioFadeMain->showProgress(true);
+        _pLabelAudioFadeMain->show(true);
+    }
+    else
+    {
+         snprintf(strAudioFade, sizeof(strAudioFade), "PiP Audio Level: %3d%%", progress);
+        _pLabelAudioFadePip->setText(strAudioFade);
+        _pLabelAudioFadePip->setLevel(PERCENT_TO_UINT16(progress));
+        _pLabelAudioFadePip->showProgress(true);
+        _pLabelAudioFadePip->show(true);
+    }
+
+} /* setAudioFadeProgress */
+#endif
+
+#if BDSP_MS12_SUPPORT
+/* convert -12dB to 12dB to 2^16-1 */
+#define DIALOG_DB_TO_UINT16(db)  (((db) + 12) * 65535 / 24)
+
+void CScreenMain::setDialogEnhancementProgress(
+        int     nDb
+        )
+{
+    char strDialogEnhancement[64];
+
+    BDBG_ASSERT(-12 <= nDb);
+    BDBG_ASSERT(12 >= nDb);
+
+    snprintf(strDialogEnhancement, sizeof(strDialogEnhancement), "Dialog Enhancement: %3ddB", nDb);
+    _timerVolume.start(GET_INT(_pCfg, UI_VOLUME_TIMEOUT));
+
+    _pLabelVolume->setText(strDialogEnhancement);
+    _pLabelVolume->setLevel(DIALOG_DB_TO_UINT16(nDb));
+
+    _pLabelVolume->showProgress(true);
+    _pLabelVolume->show(true);
+} /* setDialogEnhancementProgress */
+#endif
+
 void CScreenMain::showMenu(eMenu menu)
 {
     switch (menu)
@@ -2420,6 +2578,12 @@ void CScreenMain::showMenu(eMenu menu)
         showMenu(NULL);
         _pVbiMenu->show(true);
         break;
+#if BDSP_MS12_SUPPORT
+    case eMenu_Audio_Ac4:
+        showMenu(NULL);
+        _pAudioAc4Menu->show(true);
+        break;
+#endif
 #ifdef MPOD_SUPPORT
     case eMenu_CableCard:
         showMenu(NULL);
@@ -2650,6 +2814,9 @@ bool CScreenMain::isVisible()
            _pTunerMenu->isVisible() ||
 #endif /* if NEXUS_HAS_FRONTEND */
            _pVbiMenu->isVisible() ||
+#if BDSP_MS12_SUPPORT
+           _pAudioAc4Menu->isVisible() ||
+#endif
 #ifdef MPOD_SUPPORT
            _pCableCardMenu->isVisible() ||
 #endif
@@ -2696,6 +2863,9 @@ void CScreenMain::showMenu(CWidgetMenu * pMenu)
     _pTunerMenu->show(false);
 #endif /* if NEXUS_HAS_FRONTEND */
     _pVbiMenu->show(false);
+#if BDSP_MS12_SUPPORT
+    _pAudioAc4Menu->show(false);
+#endif
 #ifdef MPOD_SUPPORT
     _pCableCardMenu->show(false);
 #endif
@@ -2726,8 +2896,24 @@ void CScreenMain::updateCpuTestUtilization()
         _CpuTestLabel->setText(MString("CPU Test:") + strCpuUtil, bwidget_justify_horiz_left, bwidget_justify_vert_middle);
     }
 } /* updateCpuTestUtilization */
-
 #endif /* ifdef CPUTEST_SUPPORT */
+
+#if BDSP_MS12_SUPPORT
+void CScreenMain::updateAudioFadeLevels()
+{
+    CSimpleAudioDecode * pAudioDecodeMain = (CSimpleAudioDecode *)_pModel->getSimpleAudioDecode(_pModel->getFullScreenWindowType());
+    CSimpleAudioDecode * pAudioDecodePip  = (CSimpleAudioDecode *)_pModel->getSimpleAudioDecode(_pModel->getPipScreenWindowType());
+
+    if (NULL != pAudioDecodeMain)
+    {
+        setAudioFadeProgress(pAudioDecodeMain->getAudioFade(), _pModel->getPipSwapState() ? eWindowType_Pip : eWindowType_Main);
+    }
+    if (NULL != pAudioDecodePip)
+    {
+        setAudioFadeProgress(pAudioDecodePip->getAudioFade(), _pModel->getPipSwapState() ? eWindowType_Main : eWindowType_Pip);
+    }
+}
+#endif
 
 #if HAS_VID_NL_LUMA_RANGE_ADJ
 eRet CScreenMain::addDynamicRangeIndicator(CSimpleVideoDecode * pVideoDecode)

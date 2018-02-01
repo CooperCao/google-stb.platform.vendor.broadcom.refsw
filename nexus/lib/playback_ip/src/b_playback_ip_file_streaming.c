@@ -1397,6 +1397,7 @@ fileHttpStreamingThread(
     BDBG_ASSERT(fileStreamingHandle);
 
     fileStreamingSettings = &fileStreamingHandle->settings;
+    fileStreamingHandle->data.enableHttpChunkTransferEncoding = fileStreamingHandle->settings.enableHttpChunkTransferEncoding;
     fd = fileStreamingHandle->fd;
     streamingFd = fileStreamingSettings->streamingFd;
 #ifdef B_HAS_DTCP_IP

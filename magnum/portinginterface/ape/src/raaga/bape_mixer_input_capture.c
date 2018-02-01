@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,15 +38,12 @@
  * Module Description: Audio Mixer Interface
  *
  ***************************************************************************/
-
  
 #include "bstd.h"
 #include "bkni.h"
 #include "bape.h"
 #include "bape_priv.h"
 
-
-#if !B_REFSW_MINIMAL
 BDBG_MODULE(bape_mixer_input_capture);
  
 BDBG_OBJECT_ID(BAPE_MixerInputCapture);
@@ -68,83 +65,175 @@ void BAPE_MixerInputCapture_GetDefaultCreateSettings(
     pSettings->hHeap = dspSettings.hHeap;
 }
 
-
-
 BERR_Code BAPE_MixerInputCapture_Create(
     BAPE_Handle hApe,
     const BAPE_MixerInputCaptureCreateSettings *pSettings,
     BAPE_MixerInputCaptureHandle *pMixerInputCaptureHandle   /* [out] */
     )
 {
-	BDSP_AudioCaptureHandle *pCapture;
 	BAPE_MixerInputCapture  *pMxrInputCapture;
 	BDSP_AudioCaptureCreateSettings dspSettings;
+    BDSP_ContextHandle dspContext = NULL;
 	BERR_Code errCode;
-
 	
     BDBG_ASSERT(NULL != pSettings);
 	BDBG_ASSERT(NULL != pMixerInputCaptureHandle);
-    
 
 	/* Malloc handle structure, set object id */
 	pMxrInputCapture = (BAPE_MixerInputCapture *)BKNI_Malloc(sizeof(BAPE_MixerInputCapture));
     if ( NULL == pMxrInputCapture )
     {
         errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        goto err_malloc_stage;
+        goto err_cleanup;
     }
     
     /* Update the capture information using the capture create settings */
     BKNI_Memset(pMxrInputCapture, 0, sizeof(*pMxrInputCapture));
 	BDBG_OBJECT_SET(pMxrInputCapture, BAPE_MixerInputCapture);
-	
-	
+    pMxrInputCapture->input = pSettings->input;
+
 	BDSP_AudioCapture_GetDefaultCreateSettings(&dspSettings);
 	
 	dspSettings.maxChannels = pSettings->maxChannels;
     dspSettings.channelBufferSize = pSettings->channelBufferSize;
 	dspSettings.hHeap = pSettings->hHeap;
 
+    if ( hApe->dspContext )
+    {
+        dspContext = hApe->dspContext;
+    }
+    else if ( hApe->armContext )
+    {
+        dspContext = hApe->armContext;
+    }
 
-	pCapture = &(pMxrInputCapture->hCapture);
-	errCode = BDSP_AudioCapture_Create(hApe->dspContext, &dspSettings, pCapture);
+    if ( !dspContext )
+    {
+        BDBG_ERR(("No available dsp device"));
+        errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
+        goto err_cleanup;
+    }
 
-	*pMixerInputCaptureHandle = pMxrInputCapture;
+    errCode = BDSP_AudioCapture_Create(dspContext, &dspSettings, &(pMxrInputCapture->hCapture));
+    if ( errCode ) { BERR_TRACE(errCode); goto err_cleanup; }
 
+    /* set our input if we received one */
+    pMxrInputCapture->input = pSettings->input;
+
+    *pMixerInputCaptureHandle = pMxrInputCapture;
+
+    return BERR_SUCCESS;
 	
-err_malloc_stage:
-	return errCode;	
-
+err_cleanup:
+    if ( pMxrInputCapture )
+    {
+        BAPE_MixerInputCapture_Destroy(pMxrInputCapture);
+        pMxrInputCapture = NULL;
+    }
+	return errCode;
 }
-
 
 void BAPE_MixerInputCapture_Destroy(
-    BAPE_MixerInputCaptureHandle hMixerInputCapture
+    BAPE_MixerInputCaptureHandle handle
     )
 {
+	BDBG_OBJECT_ASSERT(handle, BAPE_MixerInputCapture);
+    if ( handle->hCapture )
+    {
+        BDSP_AudioCapture_Destroy(handle->hCapture);
+        handle->hCapture = NULL;
+    }
 
-	BDBG_OBJECT_ASSERT(hMixerInputCapture, BAPE_MixerInputCapture);
-	BDSP_AudioCapture_Destroy(hMixerInputCapture->hCapture);
-
-	BDBG_OBJECT_DESTROY(hMixerInputCapture, BAPE_MixerInputCapture);
-	BKNI_Free(hMixerInputCapture);
+	BDBG_OBJECT_DESTROY(handle, BAPE_MixerInputCapture);
+	BKNI_Free(handle);
 }
 
+BERR_Code BAPE_MixerInputCapture_Start(
+    BAPE_MixerInputCaptureHandle handle
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_MixerInputCapture);
+    BDBG_MSG(("Configuring BDSP capture for input %p", (void*)handle->input));
+    if ( handle->input )
+    {
+        unsigned i, dspOutputIndex;
+        BERR_Code errCode;
+        BDSP_StageAudioCaptureSettings capSettings;
+        BAPE_PathConnection *pOutputConnection;
+
+        BDBG_OBJECT_ASSERT(handle->input, BAPE_PathConnector);
+
+        if ( handle->input->hStage == NULL )
+        {
+            BDBG_ERR(("Connector must be associated with a DSP stage"));
+            return BERR_TRACE(BERR_NOT_AVAILABLE);
+        }
+
+        pOutputConnection = BLST_SQ_FIRST(&handle->input->connectionList);
+        if ( pOutputConnection == NULL )
+        {
+            BDBG_ERR(("Must configure and start the path before starting capture"));
+            return BERR_TRACE(BERR_NOT_AVAILABLE);
+        }
+
+        BDSP_Stage_GetDefaultAudioCaptureSettings(&capSettings);
+        capSettings.numChannelPair = BAPE_FMT_P_GetNumChannelPairs_isrsafe(&handle->input->format);
+        BDBG_MSG(("Configuring BDSP capture numChPairs %d", capSettings.numChannelPair));
+        for ( i = 0; i < capSettings.numChannelPair; i++ )
+        {
+            if ( handle->input->pBuffers[i]->pMemory == NULL ||
+                 handle->input->pBuffers[i]->block == NULL )
+            {
+                BDBG_ERR(("No Buffers associated with this connector!!"));
+                return BERR_TRACE(BERR_NOT_AVAILABLE);
+            }
+            capSettings.channelPairInfo[i].outputBuffer.hBlock = handle->input->pBuffers[i]->block;
+            capSettings.channelPairInfo[i].outputBuffer.pAddr = handle->input->pBuffers[i]->pMemory;
+            capSettings.channelPairInfo[i].outputBuffer.offset = handle->input->pBuffers[i]->offset;
+            capSettings.channelPairInfo[i].bufferSize = handle->input->pBuffers[i]->bufferSize;
+            BDBG_MSG(("setting BDSP stage capture ch pair %d to hBlock %p, pAddr %p, offset " BDBG_UINT64_FMT, i, (void*)capSettings.channelPairInfo[i].outputBuffer.hBlock, (void*)capSettings.channelPairInfo[i].outputBuffer.pAddr, BDBG_UINT64_ARG(capSettings.channelPairInfo[i].outputBuffer.offset)));
+        }
+
+        dspOutputIndex = pOutputConnection->dspOutputIndex;
+        errCode = BDSP_Stage_AddAudioCapture(handle->input->hStage, handle->hCapture, dspOutputIndex, &capSettings);
+        if ( errCode )
+        {
+            BDBG_ERR(("Unable to add BDSP audio capture stage"));
+            return BERR_TRACE(errCode);
+        }
+
+        handle->hStage = handle->input->hStage;
+        return BERR_SUCCESS;
+    }
+
+    return BERR_NOT_AVAILABLE;
+}
+
+void BAPE_MixerInputCapture_Stop(
+    BAPE_MixerInputCaptureHandle handle
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_MixerInputCapture);
+
+    if ( handle->hStage )
+    {
+        BDSP_Stage_RemoveAudioCapture(handle->hStage, handle->hCapture);
+    }
+}
 
 BERR_Code BAPE_MixerInputCapture_GetBuffer(
-    BAPE_MixerInputCaptureHandle hMixerInputCapture,
+    BAPE_MixerInputCaptureHandle handle,
     BAPE_BufferDescriptor *pBuffers /* [out] */
     )
 {
 	BERR_Code errCode;
 	BDSP_BufferDescriptor dspBufferDescriptor;
 	unsigned i;
-	
-	
-	BDBG_ASSERT(NULL != hMixerInputCapture);	
+
+    BDBG_ASSERT(NULL != handle);
 	BDBG_ASSERT(NULL != pBuffers);
 
-	errCode = BDSP_AudioCapture_GetBuffer(hMixerInputCapture->hCapture, &dspBufferDescriptor);
+	errCode = BDSP_AudioCapture_GetBuffer(handle->hCapture, &dspBufferDescriptor);
 
 	for(i=0;i<BDSP_AF_P_MAX_CHANNELS;i++)
 	{
@@ -161,16 +250,14 @@ BERR_Code BAPE_MixerInputCapture_GetBuffer(
 }
 
 BERR_Code BAPE_MixerInputCapture_ConsumeData(
-    BAPE_MixerInputCaptureHandle hMixerInputCapture,
+    BAPE_MixerInputCaptureHandle handle,
     unsigned numBytes                   /* Number of bytes read from each buffer */
     )
 {
 	BERR_Code errCode;
 	
-	BDBG_ASSERT(NULL != hMixerInputCapture);
-
-	errCode = BDSP_AudioCapture_ConsumeData(hMixerInputCapture->hCapture, numBytes);
-
+	BDBG_ASSERT(NULL != handle);
+	errCode = BDSP_AudioCapture_ConsumeData(handle->hCapture, numBytes);
 	return errCode;	
 }
 
@@ -179,7 +266,6 @@ BERR_Code	BAPE_ProcessAudioCapture(BDSP_Handle device)
 	BERR_Code errCode;
 
 	errCode = BDSP_ProcessAudioCapture(device);
-
 	return errCode;	
 }
 
@@ -229,28 +315,43 @@ BERR_Code BAPE_MixerInputCapture_Create(
 }
 
 void BAPE_MixerInputCapture_Destroy(
-    BAPE_MixerInputCaptureHandle hMixerInputCapture
+    BAPE_MixerInputCaptureHandle handle
     )
 {
-	BSTD_UNUSED(hMixerInputCapture);
+	BSTD_UNUSED(handle);
+}
+
+BERR_Code BAPE_MixerInputCapture_Start(
+    BAPE_MixerInputCaptureHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_MixerInputCapture_Stop(
+    BAPE_MixerInputCaptureHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
 }
 
 BERR_Code BAPE_MixerInputCapture_GetBuffer(
-    BAPE_MixerInputCaptureHandle hMixerInputCapture,
+    BAPE_MixerInputCaptureHandle handle,
     BAPE_BufferDescriptor *pBuffers /* [out] */
     )
 {
-	BSTD_UNUSED(hMixerInputCapture);
+	BSTD_UNUSED(handle);
     BSTD_UNUSED(pBuffers);
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
 BERR_Code BAPE_MixerInputCapture_ConsumeData(
-    BAPE_MixerInputCaptureHandle hMixerInputCapture,
+    BAPE_MixerInputCaptureHandle handle,
     unsigned numBytes                   /* Number of bytes read from each buffer */
     )
 {
-	BSTD_UNUSED(hMixerInputCapture);
+	BSTD_UNUSED(handle);
     BSTD_UNUSED(numBytes);
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
@@ -274,4 +375,3 @@ BERR_Code BAPE_MixerInputCapture_SetInterruptHandlers(
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 #endif /* #if BAPE_CHIP_MAX_DSP_MIXERS */
-#endif /* #if !B_REFSW_MINIMAL */

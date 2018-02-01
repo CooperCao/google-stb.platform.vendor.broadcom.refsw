@@ -1,40 +1,41 @@
 /******************************************************************************
-* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
-*
-* This program is the proprietary software of Broadcom and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #include "bstd.h"
 #include "bhsm.h"
 #include "bhsm_priv.h"
@@ -58,6 +59,7 @@ typedef struct
     BHSM_KeyLadderSettings settings;
 
 }BHSM_P_KeyLadder;
+
 
 #define MAX_NUM_KEYLADDERS 8 /*TODO ... use BSP define. */
 #define HWKL_INDEX    MAX_NUM_KEYLADDERS
@@ -154,6 +156,7 @@ BHSM_KeyLadderHandle BHSM_KeyLadder_Allocate( BHSM_Handle hHsm,
     BDBG_ENTER( BHSM_KeyLadder_Allocate );
 
     pModule = hHsm->modules.pKeyLadders;
+    if( !pModule ) { BERR_TRACE( BERR_INVALID_PARAMETER ); goto exit;  }
 
     if( (pSettings->index < MAX_NUM_KEYLADDERS) || (pSettings->index == BHSM_HWKL_ID))
     {
@@ -165,6 +168,8 @@ BHSM_KeyLadderHandle BHSM_KeyLadder_Allocate( BHSM_Handle hHsm,
             goto exit;
         }
         pKeyLadder = &(pModule->keyLadders[index]);
+        if( !pKeyLadder ) { BERR_TRACE( BERR_INVALID_PARAMETER ); goto exit;  }
+
         BKNI_Memset( pKeyLadder, 0, sizeof(*pKeyLadder) );
         pKeyLadder->index = index;
         pKeyLadder->owner = pSettings->owner;
@@ -179,6 +184,8 @@ BHSM_KeyLadderHandle BHSM_KeyLadder_Allocate( BHSM_Handle hHsm,
            if( pModule->keyLadders[i].allocated == false )
            {
                pKeyLadder = &pModule->keyLadders[i];
+               if( !pKeyLadder ) { BERR_TRACE( BERR_INVALID_PARAMETER ); goto exit;  }
+
                BKNI_Memset( pKeyLadder, 0, sizeof(*pKeyLadder) );
                pKeyLadder->index = i;
                pKeyLadder->owner = pSettings->owner;
@@ -193,16 +200,20 @@ BHSM_KeyLadderHandle BHSM_KeyLadder_Allocate( BHSM_Handle hHsm,
 
 exit:
 
-    /* no invalidation for HWKL */
-    if(pSettings->index != BHSM_HWKL_ID)
+    if (pKeyLadder)
     {
-        /* Invalid the FWKL of the vklId being used. */
-        BKNI_Memset( &invFwkl, 0, sizeof(invFwkl) );
-        invFwkl.in.vklId = pKeyLadder->index;
-        invFwkl.in.clearAllKeyLayer = 1;
-        invFwkl.in.freeOwnership = 1;
-        BHSM_P_KeyLadder_FwklInvalidate( pKeyLadder->hHsm, &invFwkl );
+        /* no invalidation for HWKL */
+        if(pSettings->index != BHSM_HWKL_ID)
+        {
+            /* Invalid the FWKL of the vklId being used. */
+            BKNI_Memset( &invFwkl, 0, sizeof(invFwkl) );
+            invFwkl.in.vklId = pKeyLadder->index;
+            invFwkl.in.clearAllKeyLayer = 1;
+            invFwkl.in.freeOwnership = 1;
+            BHSM_P_KeyLadder_FwklInvalidate( pKeyLadder->hHsm, &invFwkl );
+        }
     }
+
     BDBG_LEAVE( BHSM_KeyLadder_Allocate );
     return (BHSM_KeyLadderHandle)pKeyLadder;
 }
@@ -264,11 +275,10 @@ BERR_Code BHSM_KeyLadder_SetSettings( BHSM_KeyLadderHandle handle,
 
     BDBG_ENTER( BHSM_KeyLadder_SetSettings );
 
-    /* TODO, check validity/consistency of (some) setings. */
     if( !pSettings )  { return  BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pkeyLadder ) { return  BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
-    if ((pSettings->mode == BHSM_KeyLadderMode_eHwlk) && (pkeyLadder->index != BHSM_HWKL_ID))
+    if ((pSettings->mode == BHSM_KeyLadderMode_eHwlk) && (pkeyLadder->index != HWKL_INDEX))
     {
         return  BERR_TRACE( BERR_INVALID_PARAMETER );
     }
@@ -544,7 +554,11 @@ static BERR_Code  _GenerateRootKey( BHSM_KeyLadderHandle handle, const BHSM_KeyL
         default: { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     }
 
-    keyOffset = (8-(2*(bspConfig.in.keySize+1))); /* offset of key in bytes */
+    keyOffset = (8-(2*(bspConfig.in.keySize+1))); /* offset of key in word */
+    if( keyOffset*4 >= sizeof(bspConfig.in.procIn) ||
+        keyOffset*4 + pKey->ladderKeySize/8 > sizeof(bspConfig.in.procIn) ) {
+        return BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
     BHSM_Mem32cpy( &bspConfig.in.procIn[keyOffset], pKey->ladderKey, (pKey->ladderKeySize/8) );
 
     rc = BHSM_P_KeyLadder_RootConfig( pkeyLadder->hHsm, &bspConfig );
@@ -594,7 +608,12 @@ static BERR_Code  _GenerateLevelKey( BHSM_KeyLadderHandle handle, const BHSM_Key
         default: { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     }
 
-    keyOffset = (8-(2*(bspConfig.in.keySize+1))); /* offset of key in bytes */
+    keyOffset = (8-(2*(bspConfig.in.keySize+1))); /* offset of key in word */
+
+    if( keyOffset*4 >= sizeof(bspConfig.in.procIn) ||
+        keyOffset*4 + pKey->ladderKeySize/8 > sizeof(bspConfig.in.procIn) ) {
+        return BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
     BHSM_Mem32cpy( &bspConfig.in.procIn[keyOffset], pKey->ladderKey, (pKey->ladderKeySize/8) );
 
     rc = BHSM_P_KeyLadder_LayerSet( pKeySlot->hHsm, &bspConfig );
@@ -623,7 +642,7 @@ BERR_Code _RouteEntryKey ( BHSM_KeyLadderHandle handle, const BHSM_P_KeyslotRout
 
     bspConfig.in.blockType = keyslotDetails.blockType ;
     bspConfig.in.entryType = keyslotDetails.polarity;
-    bspConfig.in.keySlotType = keyslotDetails.slotType;
+    bspConfig.in.keySlotType = BHSM_P_ConvertSlotType(keyslotDetails.slotType);
     bspConfig.in.keySlotNumber = keyslotDetails.number;
     bspConfig.in.keyMode = Bsp_KeyMode_eRegular;
 
@@ -665,7 +684,7 @@ BERR_Code _RouteEntryIv( BHSM_KeyLadderHandle handle, const BHSM_P_KeyslotRouteI
 
     bspConfig.in.blockType = keyslotDetails.blockType ;
     bspConfig.in.entryType = keyslotDetails.polarity;
-    bspConfig.in.keySlotType = keyslotDetails.slotType;
+    bspConfig.in.keySlotType = BHSM_P_ConvertSlotType(keyslotDetails.slotType);
     bspConfig.in.keySlotNumber = keyslotDetails.number;
 
     bspConfig.in.vklId = pConf->keyLadderIndex;
@@ -732,7 +751,6 @@ bool BHSM_P_KeyLadder_CheckConfigured( BHSM_KeyLadderHandle handle )
 
     return pkeyLadder->configured;
 }
-
 
 
 #if 0

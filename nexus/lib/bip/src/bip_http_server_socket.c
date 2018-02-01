@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -60,6 +60,7 @@ struct BIP_HttpServerSocketStateNames
     {BIP_HttpServerSocketState_eWaitingForRequestArrival, "WaitingForRequestArrival"},
     {BIP_HttpServerSocketState_eWaitingForRecvRequestApi, "WaitingForRecvRequestApi"},
     {BIP_HttpServerSocketState_eWaitingForStartStreamerApi, "WaitingForStartStreamerApi"},
+    {BIP_HttpServerSocketState_eWaitingForProcessRequestApiCompletion, "WaitingForProcessRequestApiCompletion"},
     {BIP_HttpServerSocketState_eProcessingRequest, "ProcessingRequest"},
     {BIP_HttpServerSocketState_eDestroying, "Destroying"},
     {BIP_HttpServerSocketState_eMax, "MaxState"}
@@ -73,6 +74,8 @@ void BIP_HttpServerSocket_Destroy(
     BIP_HttpServerSocketHandle hHttpServerSocket
     )
 {
+    BIP_Status    rc = BIP_SUCCESS;
+
     BDBG_MSG((    BIP_MSG_PRE_FMT "Destroying: " BIP_HTTP_SERVER_SOCKET_PRINTF_FMT
                   BIP_MSG_PRE_ARG, BIP_HTTP_SERVER_SOCKET_PRINTF_ARG(hHttpServerSocket)));
     BIP_MSG_TRC(( BIP_MSG_PRE_FMT "Destroying: " BIP_HTTP_SERVER_SOCKET_PRINTF_FMT
@@ -81,7 +84,8 @@ void BIP_HttpServerSocket_Destroy(
     if (!hHttpServer || !hHttpServerSocket)
         return;
 
-    BIP_CLASS_REMOVE_INSTANCE(BIP_HttpServerSocket, hHttpServerSocket);
+    rc = BIP_CLASS_REMOVE_INSTANCE(BIP_HttpServerSocket, hHttpServerSocket);
+    if (rc == BIP_ERR_INVALID_HANDLE) return;   /* Object has already been destroyed (by another thread). */
 
     BLST_Q_REMOVE( &hHttpServer->httpServerSocketInUseListHead, hHttpServerSocket, httpServerSocketInUseListNext );
 
@@ -125,7 +129,7 @@ static void requestProcessedCallbackFromHttpStreamer (
 
     BSTD_UNUSED(param);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServerSocket %p: state %s -------------------->" BIP_MSG_PRE_ARG, (void *)hHttpServerSocket, BIP_HTTP_SERVER_SOCKET_STATE(hHttpServerSocket->state) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServerSocket %p:  -------------------->" BIP_MSG_PRE_ARG, (void *)hHttpServerSocket));
 
     rc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpServer, hHttpServerSocket->hHttpServer);
     if (rc != BIP_SUCCESS) { return; }
@@ -141,7 +145,47 @@ static void requestProcessedCallbackFromHttpStreamer (
     BDBG_ASSERT(hHttpServerSocket->hHttpServer);
 
     B_Mutex_Lock(hHttpServerSocket->hHttpServer->hStateMutex);
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServerSocket %p: state %s: requestProcessed is now true! Going to run HttpServerSocketState!" BIP_MSG_PRE_ARG, (void *)hHttpServerSocket, BIP_HTTP_SERVER_SOCKET_STATE(hHttpServerSocket->state) ));
     hHttpServerSocket->requestProcessed = true;
+    B_Mutex_Unlock(hHttpServerSocket->hHttpServer->hStateMutex);
+
+    BIP_CLASS_UNLOCK(BIP_HttpServerSocket, hHttpServerSocket);
+    BIP_CLASS_UNLOCK(BIP_HttpServer, hHttpServerSocket->hHttpServer);
+
+    processHttpServerState( hHttpServerSocket->hHttpServer, hHttpServerSocket, 0, BIP_Arb_ThreadOrigin_eBipCallback);
+
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: <--------------------" BIP_MSG_PRE_ARG));
+    return;
+}
+
+static void processRequestApiCompletionCallbackFromHttpStreamer (
+    void *context,
+    int   param
+    )
+{
+    BIP_Status                  rc;
+    BIP_HttpServerSocketHandle  hHttpServerSocket = context;
+
+    BSTD_UNUSED(param);
+
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServerSocket %p: -------------------->" BIP_MSG_PRE_ARG, (void *)hHttpServerSocket));
+
+    rc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpServer, hHttpServerSocket->hHttpServer);
+    if (rc != BIP_SUCCESS) { return; }
+
+    rc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpServerSocket, hHttpServerSocket);
+    if (rc != BIP_SUCCESS)
+    {
+        BIP_CLASS_UNLOCK(BIP_HttpServer, hHttpServerSocket->hHttpServer);
+        return;
+    }
+
+    BDBG_ASSERT(hHttpServerSocket);
+    BDBG_ASSERT(hHttpServerSocket->hHttpServer);
+
+    B_Mutex_Lock(hHttpServerSocket->hHttpServer->hStateMutex);
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServerSocket %p: state %s: processRequestApiCompleted is now true! Going to run HttpServerSocketState!" BIP_MSG_PRE_ARG, (void *)hHttpServerSocket, BIP_HTTP_SERVER_SOCKET_STATE(hHttpServerSocket->state) ));
+    hHttpServerSocket->processRequestApiCompleted = true;
     B_Mutex_Unlock(hHttpServerSocket->hHttpServer->hStateMutex);
 
     BIP_CLASS_UNLOCK(BIP_HttpServerSocket, hHttpServerSocket);
@@ -158,10 +202,31 @@ static void requestReceivedCallbackFromHttpSocket (
     int   param
     )
 {
+    BIP_Status                  rc;
     BIP_HttpServerSocketHandle hHttpServerSocket = context;
     BSTD_UNUSED(param);
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServerSocket %p: state %s -------------------->" BIP_MSG_PRE_ARG, (void *)hHttpServerSocket, BIP_HTTP_SERVER_SOCKET_STATE(hHttpServerSocket->state) ));
+
+    rc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpServer, hHttpServerSocket->hHttpServer);
+    if (rc != BIP_SUCCESS) { return; }
+
+    rc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpServerSocket, hHttpServerSocket);
+    if (rc != BIP_SUCCESS)
+    {
+        BIP_CLASS_UNLOCK(BIP_HttpServer, hHttpServerSocket->hHttpServer);
+        return;
+    }
+
+    BDBG_ASSERT(hHttpServerSocket);
+    BDBG_ASSERT(hHttpServerSocket->hHttpServer);
+
+    B_Mutex_Lock(hHttpServerSocket->hHttpServer->hStateMutex);
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServerSocket %p: state %s: got callback from HttpSocket! Going to run HttpServerSocketState!" BIP_MSG_PRE_ARG, (void *)hHttpServerSocket, BIP_HTTP_SERVER_SOCKET_STATE(hHttpServerSocket->state) ));
+    B_Mutex_Unlock(hHttpServerSocket->hHttpServer->hStateMutex);
+
+    BIP_CLASS_UNLOCK(BIP_HttpServerSocket, hHttpServerSocket);
+    BIP_CLASS_UNLOCK(BIP_HttpServer, hHttpServerSocket->hHttpServer);
 
     processHttpServerState( hHttpServerSocket->hHttpServer, hHttpServerSocket, 0, BIP_Arb_ThreadOrigin_eBipCallback);
 
@@ -670,8 +735,9 @@ static void processHttpServer_ServerSocketState_Streaming(
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServerSocket %p, current state %s: ENTER ------->"
                 BIP_MSG_PRE_ARG, (void *)hHttpServerSocket , BIP_HTTP_SERVER_SOCKET_STATE(hHttpServerSocket->state) ));
-    if ( BIP_Arb_IsBusy(hHttpServer->startStreamerApi.hArb) == true )
+    if (BIP_Arb_IsNew(hHttpServer->startStreamerApi.hArb))
     {
+        BIP_Arb_AcceptRequest(hHttpServer->startStreamerApi.hArb);
         /* App has called BIP_HttpServer_StartStreamer(), lets do its processing! */
         if ( hHttpServerSocket->state == BIP_HttpServerSocketState_eWaitingForStartStreamerApi )
         {
@@ -697,13 +763,22 @@ static void processHttpServer_ServerSocketState_Streaming(
                 requestSettings.hHttpRequest = hHttpServerSocket->hHttpRequest;
                 requestProcessedCallback.callback = requestProcessedCallbackFromHttpStreamer;
                 requestProcessedCallback.context = hHttpServerSocket;
+                requestSettings.apiSettings.asyncCallback.callback = processRequestApiCompletionCallbackFromHttpStreamer;
+                requestSettings.apiSettings.asyncCallback.context = hHttpServerSocket;
+                requestSettings.apiSettings.pAsyncStatus = &hHttpServerSocket->processRequestApiStatus;
                 completionStatus = BIP_HttpStreamer_ProcessRequest( hHttpServerSocket->hHttpStreamer, hHttpServerSocket->hHttpSocket, &requestProcessedCallback, &requestSettings );
-                if (completionStatus == BIP_SUCCESS)
+                if (completionStatus == BIP_INF_IN_PROGRESS)
+                {
+                    hHttpServerSocket->state = BIP_HttpServerSocketState_eWaitingForProcessRequestApiCompletion;
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServerSocket %p, hHttpStreamer %p: Waiting for HttpStreamer to finish the _ProcessRequest()!"
+                                BIP_MSG_PRE_ARG, (void *)hHttpServerSocket, (void *)hHttpServerSocket->hHttpStreamer ));
+                }
+                else if (completionStatus == BIP_SUCCESS)
                 {
                     hHttpServerSocket->state = BIP_HttpServerSocketState_eProcessingRequest;
                     hHttpServer->stats.numStartedStreamers++;
                     hHttpServer->stats.numSentResponses++;
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServerSocket %p, hHttpStreamer %p: Streamer is Started: 1st Request is handed over!"
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServerSocket %p, hHttpStreamer %p: ProcessRequest() completed in 1st go!"
                                 BIP_MSG_PRE_ARG, (void *)hHttpServerSocket, (void *)hHttpServerSocket->hHttpStreamer ));
                 }
                 else
@@ -728,14 +803,47 @@ static void processHttpServer_ServerSocketState_Streaming(
                         BIP_MSG_PRE_ARG, (void *)hHttpServer, (void *)hHttpServerSocket, BIP_HTTP_SERVER_SOCKET_STATE(hHttpServerSocket->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
         }
-#if 0
-        /* TODO: look into this when async support is added to the streamer. */
-        if (hHttpServer->startStreamerApi.pSettings->api.pAsyncStatus)
-            *hHttpServer->startStreamerApi.pSettings->api.pAsyncStatus = completionStatus;
-#endif
 
         /* Complete the ARB */
-        BIP_Arb_CompleteRequest( hHttpServer->startStreamerApi.hArb, completionStatus);
+        if (completionStatus != BIP_INF_IN_PROGRESS)
+        {
+            BIP_Arb_CompleteRequest( hHttpServer->startStreamerApi.hArb, completionStatus);
+        }
+    }
+
+    if ( hHttpServerSocket->state == BIP_HttpServerSocketState_eWaitingForProcessRequestApiCompletion)
+    {
+        /* Normally, we would get processRequestApiCompletion callback first (which is an asyncApi completion callback). */
+        /* But in some cases, requestProcessed callback may come & run this state machine before processRequestApi callback. */
+        /* This can happen when we ProcessRequest API immediately completes for either HEAD request or gets a failure while setting up streamer. */
+        /* So we have to check for completion of flags set in either callbacks. */
+        if ( hHttpServerSocket->processRequestApiCompleted || hHttpServerSocket->requestProcessed )
+        {
+            completionStatus = hHttpServerSocket->processRequestApiStatus; /* this is filled in by the ARB logic when it invokes the asyncCallback. */
+            hHttpServerSocket->processRequestApiCompleted = false;
+            if (completionStatus == BIP_SUCCESS)
+            {
+                hHttpServerSocket->state = BIP_HttpServerSocketState_eProcessingRequest;
+                hHttpServer->stats.numStartedStreamers++;
+                hHttpServer->stats.numSentResponses++;
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServerSocket %p, hHttpStreamer %p: HttpStreamer_ProcessRequest() API is complete, streaming is started!!"
+                            BIP_MSG_PRE_ARG, (void *)hHttpServerSocket, (void *)hHttpServerSocket->hHttpStreamer));
+            }
+            else
+            {
+                /* Streamer failed to process the 1st message, we treat this as soft error and let app send response via RejectRequest(). */
+                BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpServerSocket %p, hHttpStreamer %p: HttpStreamer_ProcessRequest() Failed: completionStatus: %s"
+                            BIP_MSG_PRE_ARG, (void *)hHttpServerSocket, (void *)hHttpServerSocket->hHttpStreamer, BIP_StatusGetText(completionStatus) ));
+                hHttpServerSocket->state = BIP_HttpServerSocketState_eWaitingForStartStreamerApi;
+            }
+            /* Now complete the Start Streamer API. This may eventually call asyncCompletion callback for app if enabled. */
+            BIP_Arb_CompleteRequest( hHttpServer->startStreamerApi.hArb, completionStatus );
+        }
+        else
+        {
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServerSocket %p, hHttpStreamer %p: HttpStreamer_ProcessRequest() API is NOT yet complete: remaining in this state=%s"
+                        BIP_MSG_PRE_ARG, (void *)hHttpServerSocket, (void *)hHttpServerSocket->hHttpStreamer, BIP_HTTP_SERVER_SOCKET_STATE(hHttpServerSocket->state)));
+        }
     }
 
     /* App hasn't called _StartStreamer, _RejectRequest APIs. */
@@ -816,6 +924,10 @@ void processHttpServerState_ServerSocket(
          */
         BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p, hHttpServerSocket:state %p: %s : ServerDestory case: Changing to Destorying state"
                     BIP_MSG_PRE_ARG, (void *)hHttpServer, (void *)hHttpServerSocket , BIP_HTTP_SERVER_SOCKET_STATE(hHttpServerSocket->state) ));
+        if ( hHttpServerSocket->state == BIP_HttpServerSocketState_eWaitingForProcessRequestApiCompletion)
+        {
+            BIP_Arb_CompleteRequest( hHttpServer->startStreamerApi.hArb, BIP_ERR_ASYNC_API_ABORT );
+        }
         hHttpServerSocket->state = BIP_HttpServerSocketState_eDestroying;
     }
 

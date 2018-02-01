@@ -769,9 +769,7 @@ void BCEC_Close(
 
 #if BCEC_CONFIG_ENABLE_COMPLIANCE_TEST_WORKAROUND
 	if (hCEC->hTimer) {
-		if (BTMR_DestroyTimer(hCEC->hTimer) != BERR_SUCCESS) {
-			BDBG_ERR(("Error destroying timer"));
-		}
+		BTMR_DestroyTimer(hCEC->hTimer);
 		hCEC->hTimer=NULL;
 	}
 #endif
@@ -806,14 +804,12 @@ done:
 BERR_Code BCEC_GetEventHandle
 Summary: Get the event handle for checking CEC events.
 ****************************************************************************/
-BERR_Code BCEC_GetEventHandle(
+void BCEC_GetEventHandle(
    BCEC_Handle hCEC,			/* [in] HDMI handle */
    BCEC_EventType eEventType,
    BKNI_EventHandle *pBCECEvent /* [out] event handle */
 )
 {
-	BERR_Code	   rc = BERR_SUCCESS;
-
 	BDBG_ENTER(BCEC_GetEventHandle) ;
 	BDBG_OBJECT_ASSERT(hCEC, BCEC_P_Handle) ;
 
@@ -823,20 +819,12 @@ BERR_Code BCEC_GetEventHandle(
 		*pBCECEvent = hCEC->BCEC_EventCec_Transmitted ;
 		break ;
 
+	default:
 	case BCEC_EventCec_eReceived:
 		*pBCECEvent = hCEC->BCEC_EventCec_Received ;
 		break ;
-
-	default :
-		BDBG_ERR(("Invalid Event Type: %d", eEventType)) ;
-		rc = BERR_INVALID_PARAMETER ;
-		goto done ;
 	}
-
-
-done:
 	BDBG_LEAVE(BCEC_GetEventHandle) ;
-	return rc ;
 }
 
 
@@ -858,13 +846,11 @@ void BCEC_GetDefaultSettings(
 }
 
 
-BERR_Code BCEC_GetSettings(
+void BCEC_GetSettings(
 	BCEC_Handle hCEC,		  /* [in] CEC handle */
 	BCEC_Settings *pstCecSettings
 )
 {
-	BERR_Code rc = BERR_SUCCESS ;
-
 	BDBG_ENTER(BCEC_GetSettings);
 	BDBG_OBJECT_ASSERT(hCEC, BCEC_P_Handle) ;
 
@@ -888,9 +874,7 @@ BERR_Code BCEC_GetSettings(
 	BDBG_MSG(("BCM%d Device's Physical Addr: %02X %02X", BCHP_CHIP,
 		pstCecSettings->CecPhysicalAddr[0], pstCecSettings->CecPhysicalAddr[1])) ;
 
-
 	BDBG_LEAVE(BCEC_GetSettings);
-	return rc ;
 }
 
 
@@ -1042,13 +1026,11 @@ done:
 }
 
 
-BERR_Code BCEC_GetTransmitMessageStatus(
+void BCEC_GetTransmitMessageStatus(
 	BCEC_Handle hCEC,	   /* [in] CEC handle */
 	BCEC_MessageStatus *pstCecMessageStatus
 )
 {
-	BERR_Code rc = BERR_SUCCESS;
-
 	BDBG_ENTER(BCEC_GetTransmitMessageStatus);
 	BDBG_OBJECT_ASSERT(hCEC, BCEC_P_Handle) ;
 	BDBG_ASSERT(pstCecMessageStatus);
@@ -1061,17 +1043,14 @@ BERR_Code BCEC_GetTransmitMessageStatus(
 	BKNI_LeaveCriticalSection();
 
 	BDBG_LEAVE(BCEC_GetTransmitMessageStatus);
-	return rc;
 }
 
 
-BERR_Code BCEC_GetReceivedMessageStatus(
+void BCEC_GetReceivedMessageStatus(
 	BCEC_Handle hCEC,	   /* [in] CEC handle */
 	BCEC_MessageStatus *pstCecMessageStatus
 )
 {
-	BERR_Code rc = BERR_SUCCESS;
-
 	BDBG_ENTER(BCEC_GetReceivedMessageStatus);
 	BDBG_OBJECT_ASSERT(hCEC, BCEC_P_Handle) ;
 	BDBG_ASSERT(pstCecMessageStatus);
@@ -1084,7 +1063,6 @@ BERR_Code BCEC_GetReceivedMessageStatus(
 	BKNI_LeaveCriticalSection();
 
 	BDBG_LEAVE(BCEC_GetReceivedMessageStatus);
-	return rc;
 }
 
 
@@ -1345,12 +1323,11 @@ done:
 }
 
 
-BERR_Code BCEC_GetReceivedMessage(
+void BCEC_GetReceivedMessage(
 	BCEC_Handle hCEC,			/* [in] HDMI handle */
 	BAVC_HDMI_CEC_MessageData *pRecvMessageData 	/* [out] ptr to storage for received CEC msg */
 )
 {
-	BERR_Code rc = BERR_SUCCESS ;
 	uint8_t cecMessageBuffer[BCEC_CONFIG_P_MAX_MESSAGE_BUFFER];
 	uint8_t i, j ;
 	uint8_t RxCecWordCount ;
@@ -1412,15 +1389,13 @@ BERR_Code BCEC_GetReceivedMessage(
 
 
 	BDBG_LEAVE(BCEC_GetReceivedMessage);
-	return rc ;
 }
 
 
-BERR_Code BCEC_EnableReceive(
+void BCEC_EnableReceive(
 	BCEC_Handle hCEC	 /* [in] HDMI handle */
 )
 {
-	BERR_Code rc = BERR_SUCCESS ;
 	BDBG_ENTER(BCEC_EnableReceive);
 	BDBG_OBJECT_ASSERT(hCEC, BCEC_P_Handle) ;
 
@@ -1430,7 +1405,6 @@ BERR_Code BCEC_EnableReceive(
 	BKNI_LeaveCriticalSection();
 
 	BDBG_LEAVE(BCEC_EnableReceive);
-	return rc ;
 }
 
 
@@ -1512,9 +1486,7 @@ BERR_Code BCEC_Standby(
 
 #if BCEC_CONFIG_ENABLE_COMPLIANCE_TEST_WORKAROUND
 	BTMR_StopTimer(hCEC->hTimer);
-	if (BTMR_DestroyTimer(hCEC->hTimer) != BERR_SUCCESS) {
-		BDBG_ERR(("Error destroying timer"));
-	}
+	BTMR_DestroyTimer(hCEC->hTimer);
 	hCEC->hTimer=NULL;
 #endif
 

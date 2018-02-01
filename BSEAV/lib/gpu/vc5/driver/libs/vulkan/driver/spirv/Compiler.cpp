@@ -99,9 +99,7 @@ void Compiler::FillShaderInterface(ShaderInterface *iface, const DflowBuilder &b
       v->symbol      = sym;
       v->active      = false;
       v->static_use  = builder.HasStaticUse(sym);
-#if V3D_VER_AT_LEAST(4,0,2,0)
       v->flags       = nullptr;
-#endif
 
       v->ids = static_cast<int*>(malloc(sym.GetNumScalars() * sizeof(int)));
       if (v->ids == nullptr)
@@ -201,7 +199,7 @@ CompiledShaderHandle Compiler::TryCompile(DescriptorTables *descriptorTables) co
    // Do the conversion to SSA form
    SSAShaderHandle ir_sh;
    glsl_ssa_convert(ir_sh, entry_block, builder.GetOutputSymbols(), symbol_ids);
-   glsl_ssa_shader_optimise(ir_sh, /* mem_read-only =*/ false, ssa_flattening);
+   glsl_ssa_shader_optimise(ir_sh, ssa_flattening);
 
    glsl_ssa_shader_hoist_loads(ir_sh);
 

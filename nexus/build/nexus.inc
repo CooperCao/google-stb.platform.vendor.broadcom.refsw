@@ -119,14 +119,21 @@ MAGNUM_OS_ABSTRACTION := \
     MAGNUM/bv3d_os.c \
     MAGNUM/bvc5_os.c \
     MAGNUM/brpc_socket.c \
-    MAGNUM/bdbg_os_priv.c
+    MAGNUM/bdbg_os_priv.c \
+    MAGNUM/bperf_counter.c
 endif
 
 ifeq ($(B_REFSW_ANDROID),y)
 MAGNUM_OS_ABSTRACTION += \
     MAGNUM/bv3d_android_fences.c \
-    MAGNUM/bvc5_android_fences.c \
     MAGNUM/bvc5_android_bin_pool_alloc.c
+ifeq ($(LOCAL_LINUX_VERSION_NODASH),4.1)
+MAGNUM_OS_ABSTRACTION += \
+    MAGNUM/bvc5_android_fences.c
+else
+MAGNUM_OS_ABSTRACTION += \
+   MAGNUM/bvc5_linux_fences.c
+endif
 endif
 
 ifneq ($(MAKECMDGOALS),clean)

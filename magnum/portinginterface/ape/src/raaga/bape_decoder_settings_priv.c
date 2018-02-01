@@ -354,11 +354,11 @@ static void BAPE_Decoder_P_GetDefaultMpegSettings(BAPE_DecoderHandle handle)
     BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eMpegAudioDecode, &handle->userConfig.mpeg, sizeof(handle->userConfig.mpeg)));
     handle->mpegSettings.codec = BAVC_AudioCompressionStd_eMpegL2;
     handle->mp3Settings.codec = BAVC_AudioCompressionStd_eMpegL3;
-    if ( handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 )
+    if ( handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 )
     {
         handle->mpegSettings.codecSettings.mpeg.inputReferenceLevel = -24;
     }
-    else if ( handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 )
+    else if ( handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 )
     {
         handle->mpegSettings.codecSettings.mpeg.inputReferenceLevel = -23;
     }
@@ -609,7 +609,7 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    if ( handle->deviceHandle->settings.loudnessMode != BAPE_LoudnessEquivalenceMode_eNone )
+    if ( handle->deviceHandle->settings.loudnessSettings.loudnessMode != BAPE_LoudnessEquivalenceMode_eNone )
     {
         forceDrcModes = true;
     }
@@ -732,7 +732,7 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
 
         handle->userConfig.ddp.sUserOutputCfg[multichOutputPort].i32CompMode = 2;   /* Line mode for multichannel (-31dB) */
 
-        switch (handle->deviceHandle->settings.loudnessMode)
+        switch (handle->deviceHandle->settings.loudnessSettings.loudnessMode)
         {
         case BAPE_LoudnessEquivalenceMode_eAtscA85:
 #if BAPE_DSP_LEGACY_DDP_ALGO
@@ -755,10 +755,10 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
 
         BDBG_MODULE_MSG(bape_loudness,("%s AC3 decoder is configured for %s loudness mode%s",
             (BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 ? "MS-12" : BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eNone ? "Legacy":"MS-10"),
-            (handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
-             handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED"),
-            (handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? ", expected input level -31 expected output level -24" :
-             handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? ", expected input level -23 expected output level -23" : "")));
+            (handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
+             handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED"),
+            (handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? ", expected input level -31 expected output level -24" :
+             handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? ", expected input level -23 expected output level -23" : "")));
         BDBG_MODULE_MSG(bape_loudness,("Stereo i32CompMode %d ", handle->userConfig.ddp.sUserOutputCfg[stereoOutputPort].i32CompMode));
     }
     else
@@ -961,7 +961,7 @@ static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE
     unsigned decodeMode = 0;
     unsigned j;
 
-    if ( handle->deviceHandle->settings.loudnessMode != BAPE_LoudnessEquivalenceMode_eNone )
+    if ( handle->deviceHandle->settings.loudnessSettings.loudnessMode != BAPE_LoudnessEquivalenceMode_eNone )
     {
         forceDrcModes = true;
     }
@@ -1044,7 +1044,7 @@ static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE
         BDBG_MSG(("Loudness Management Active for AC4"));
         BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[multichOutputPort].ui32DrcMode, 1); /* Line mode for multichannel (-31dB) */
 
-        switch (handle->deviceHandle->settings.loudnessMode)
+        switch (handle->deviceHandle->settings.loudnessSettings.loudnessMode)
         {
         case BAPE_LoudnessEquivalenceMode_eAtscA85:
             BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[stereoOutputPort].ui32DrcMode, 4); /* -24dB for stereo */
@@ -1058,10 +1058,10 @@ static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE
         }
 
         BDBG_MODULE_MSG(bape_loudness,("AC4 decoder (Stereo Port) is configured for %s loudness mode%s",
-                                       (handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
-                                        handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED"),
-                                       (handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? ", expected input level -31 expected output level -24" :
-                                        handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? ", expected input level -23 expected output level -23" : "")));
+                                       (handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
+                                        handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED"),
+                                       (handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? ", expected input level -31 expected output level -24" :
+                                        handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? ", expected input level -23 expected output level -23" : "")));
         BDBG_MODULE_MSG(bape_loudness,("Stereo ui32DrcMode %d ", handle->userConfig.ac4.sUserOutputCfg[stereoOutputPort].ui32DrcMode));
     }
     else
@@ -1288,7 +1288,7 @@ static BERR_Code BAPE_Decoder_P_ApplyMs12AacSettings(
 
     /* Force RF mode for loudness equivalence.  This will normalize output level at -20dB.  */
     BDBG_MSG(("Loudness Management Active for Dolby AacHe"));
-    switch ( handle->deviceHandle->settings.loudnessMode )
+    switch ( handle->deviceHandle->settings.loudnessSettings.loudnessMode )
     {
     case BAPE_LoudnessEquivalenceMode_eAtscA85:
         BDBG_MSG(("A/85 Loudness Equivalence Enabled for AAC-HE"));
@@ -1371,10 +1371,10 @@ static BERR_Code BAPE_Decoder_P_ApplyMs12AacSettings(
     }
 
     BDBG_MODULE_MSG(bape_loudness,("MS-12 AAC decoder is configured for %s loudness mode%s",
-        (handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
-         handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED"),
-        (handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? ", expected input level -24 expected output level -24" :
-         handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? ", expected input level -23 expected output level -23" : "")));
+        (handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
+         handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED"),
+        (handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? ", expected input level -24 expected output level -24" :
+         handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? ", expected input level -23 expected output level -23" : "")));
 
     BDBG_MODULE_MSG(bape_loudness,("ui32DefDialnormLevel %d ui32RefDialnormLevel %d ui32LoudnessEquivalenceMode %d",
          handle->userConfig.aac.ui32DefDialnormLevel, handle->userConfig.aac.ui32RefDialnormLevel, handle->userConfig.aac.ui32LoudnessEquivalenceMode));
@@ -1501,7 +1501,7 @@ static BERR_Code BAPE_Decoder_P_ApplyMs10AacSettings(
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    if ( handle->deviceHandle->settings.loudnessMode != BAPE_LoudnessEquivalenceMode_eNone )
+    if ( handle->deviceHandle->settings.loudnessSettings.loudnessMode != BAPE_LoudnessEquivalenceMode_eNone )
     {
         forceDrcModes = true;
     }
@@ -1566,7 +1566,7 @@ static BERR_Code BAPE_Decoder_P_ApplyMs10AacSettings(
         handle->userConfig.aac.sOutPortCfg[multichOutputPort].ui32RfMode = 0;   /* Line mode for multichannel (-31dB) */
 
         /* Force RF mode for loudness equivalence. */
-        switch ( handle->deviceHandle->settings.loudnessMode )
+        switch ( handle->deviceHandle->settings.loudnessSettings.loudnessMode )
         {
         case BAPE_LoudnessEquivalenceMode_eAtscA85:
             BDBG_MSG(("A/85 Loudness Equivalence Enabled for AAC-HE"));
@@ -1594,10 +1594,10 @@ static BERR_Code BAPE_Decoder_P_ApplyMs10AacSettings(
 
         BDBG_MSG(("Loudness Management Active for Dolby Pulse"));
         BDBG_MODULE_MSG(bape_loudness,("Dolby Pulse AAC decoder is configured for %s loudness mode%s",
-             (handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
-              handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED"),
-             (handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? ", expected input level -24 expected output level -24" :
-              handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? ", expected input level -23 expected output level -23" : "")));
+             (handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
+              handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED"),
+             (handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? ", expected input level -24 expected output level -24" :
+              handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? ", expected input level -23 expected output level -23" : "")));
         BDBG_MODULE_MSG(bape_loudness,("ui32DefDialnormLevel %d ui32RfMode %d",
             handle->userConfig.aac.ui32DefDialnormLevel, handle->userConfig.aac.sOutPortCfg[stereoOutputPort].ui32RfMode));
     }
@@ -1779,7 +1779,7 @@ static BERR_Code BAPE_Decoder_P_ApplyLegacyAacSettings(
     /* To simplify setting UserOutputCfg settings for stereo and multichannel we will always have a valid index for
        multichannel and stereo outputs.  The index will be dependent on what outputs are connected but if only one
        output type is connected the values set for index 1 would not be utilized. */
-    switch ( handle->deviceHandle->settings.loudnessMode )
+    switch ( handle->deviceHandle->settings.loudnessSettings.loudnessMode )
     {
     case BAPE_LoudnessEquivalenceMode_eAtscA85:
         BDBG_MSG(("A/85 Loudness Equivalence Enabled for AAC-HE"));
@@ -1866,10 +1866,10 @@ static BERR_Code BAPE_Decoder_P_ApplyLegacyAacSettings(
         break;
     }
     BDBG_MODULE_MSG(bape_loudness,("Legacy AAC decoder is configured for %s loudness mode%s",
-         (handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
-          handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED"),
-         (handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? ", expected input level -24 expected output level -24" :
-          handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? ", expected input level -23 expected output level -23" : "")));
+         (handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
+          handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED"),
+         (handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? ", expected input level -24 expected output level -24" :
+          handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? ", expected input level -23 expected output level -23" : "")));
     BDBG_MODULE_MSG(bape_loudness,("i32InputVolLevel %d i32OutputVolLevel %d ui32LoudnessEquivalenceMode %d",
          handle->userConfig.aac.i32InputVolLevel, handle->userConfig.aac.i32OutputVolLevel, handle->userConfig.aac.ui32LoudnessEquivalenceMode));
 
@@ -1963,7 +1963,7 @@ static BERR_Code BAPE_Decoder_P_ApplyMpegSettings(
 
     BAPE_Decoder_P_GetAFDecoderType(handle, &handle->userConfig.mpeg.eDecoderType);
 
-    switch ( handle->deviceHandle->settings.loudnessMode )
+    switch ( handle->deviceHandle->settings.loudnessSettings.loudnessMode )
     {
     case BAPE_LoudnessEquivalenceMode_eAtscA85:
         BDBG_MSG(("ATSC A/85 Loudness Equivalence Enabled for MPEG"));
@@ -1997,17 +1997,17 @@ static BERR_Code BAPE_Decoder_P_ApplyMpegSettings(
     if ( handle->ddre )
     {
         BDBG_MODULE_MSG(bape_loudness,("MPEG decoder is configured for %s loudness mode.",
-             (handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
-              handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED")));
+             (handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
+              handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED")));
         BDBG_MODULE_MSG(bape_loudness,("DDRE is connected to this decoder, so MPEG output level will be -31 to DDRE and Loudness Equivalence will be handled by DDRE module"));
     }
     else
     {
         BDBG_MODULE_MSG(bape_loudness,("MPEG decoder is configured for %s loudness mode%s",
-             (handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
-              handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED"),
-             (handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? ", expected input level -24 expected output level -24" :
-              handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? ", expected input level -23 expected output level -23" : "")));
+             (handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
+              handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED"),
+             (handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? ", expected input level -24 expected output level -24" :
+              handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? ", expected input level -23 expected output level -23" : "")));
     }
     BDBG_MODULE_MSG(bape_loudness,("i32InputVolLevel %d i32OutputVolLevel %d", handle->userConfig.mpeg.i32InputVolLevel, handle->userConfig.mpeg.i32OutputVolLevel));
 
@@ -2820,6 +2820,9 @@ static BERR_Code BAPE_Decoder_P_ApplyIsacSettings(BAPE_DecoderHandle handle)
 static BERR_Code BAPE_Decoder_P_ApplyOpusSettings(BAPE_DecoderHandle handle)
 {
     BERR_Code errCode;
+    unsigned multichOutputPort = 0;
+    unsigned stereoOutputPort = 0;
+    unsigned monoOutputPort = 0;
 
     errCode = BDSP_Stage_GetSettings(handle->hPrimaryStage, &handle->userConfig.opus, sizeof(handle->userConfig.opus));
     if ( errCode )
@@ -2827,25 +2830,67 @@ static BERR_Code BAPE_Decoder_P_ApplyOpusSettings(BAPE_DecoderHandle handle)
         return BERR_TRACE(errCode);
     }
 
-    handle->userConfig.opus.ui32NumOutPorts = (BAPE_Decoder_P_HasStereoOutput(handle) && BAPE_Decoder_P_HasMonoOutput(handle))?2:1;
+    /* Setup global parameters */
+    BAPE_Decoder_P_GetAFDecoderType(handle, &handle->userConfig.opus.eDecoderType);
 
-    if ( handle->userConfig.opus.ui32NumOutPorts == 2 )
-    {
-        BKNI_Memcpy(&handle->userConfig.opus.sUsrOutputCfg[1], &handle->userConfig.opus.sUsrOutputCfg[0], sizeof(handle->userConfig.opus.sUsrOutputCfg[1]));
+    if ( BAPE_Decoder_P_HasStereoOutput(handle) && BAPE_Decoder_P_HasMonoOutput(handle) && BAPE_Decoder_P_HasMultichannelOutput(handle) ) {
+        BDBG_ERR(("Opus decoder configured with multichannel, stereo and mono outputs.  Only 2 are available"));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    if ( BAPE_Decoder_P_HasMultichannelOutput(handle) ) {
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.opus, ui32NumOutPorts, 1);
+        multichOutputPort = 0;
+        if (BAPE_Decoder_P_HasStereoOutput(handle)) {
+            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.opus, ui32NumOutPorts, 2);
+            stereoOutputPort = 1;
+        }
+        else if ( BAPE_Decoder_P_HasMonoOutput(handle) ) {
+            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.opus, ui32NumOutPorts, 2);
+            monoOutputPort = 1;
+        }
+    }
+    else if ( BAPE_Decoder_P_HasStereoOutput(handle) ) {
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.opus, ui32NumOutPorts, 1);
+        stereoOutputPort = 0;
+        if ( BAPE_Decoder_P_HasMonoOutput(handle) ) {
+            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.opus, ui32NumOutPorts, 2);
+            monoOutputPort = 1;
+        }
+    }
+    else if ( BAPE_Decoder_P_HasMonoOutput(handle) ) {
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.opus, ui32NumOutPorts, 1);
+        monoOutputPort = 0;
+    }
+    else {
+        BDBG_ERR(("%s, No Valid Output Port found!", BSTD_FUNCTION));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    if ( BAPE_Decoder_P_HasMultichannelOutput(handle) ) {
+        BAPE_ChannelMode channelMode;
+        bool lfe;
+
+        /* Determine output mode */
+        lfe = handle->settings.outputLfe;
+        channelMode = BAPE_Decoder_P_GetChannelMode(handle);
+        if ( !BAPE_DSP_P_IsLfePermitted(channelMode) ) {
+            lfe = false;
+        }
+        handle->userConfig.opus.sUsrOutputCfg[multichOutputPort].ui32OutMode = BAPE_DSP_P_ChannelModeToDsp(channelMode);
+        BAPE_DSP_P_GetChannelMatrix(channelMode, lfe, handle->userConfig.opus.sUsrOutputCfg[multichOutputPort].ui32OutputChannelMatrix);
     }
 
     if ( BAPE_Decoder_P_HasStereoOutput(handle) )
     {
-        handle->userConfig.opus.sUsrOutputCfg[0].ui32OutMode = BAPE_DSP_P_ChannelModeToDsp(BAPE_ChannelMode_e2_0);
-        BAPE_DSP_P_GetChannelMatrix(BAPE_ChannelMode_e2_0, false, handle->userConfig.opus.sUsrOutputCfg[0].ui32OutputChannelMatrix);
+        handle->userConfig.opus.sUsrOutputCfg[stereoOutputPort].ui32OutMode = BAPE_DSP_P_ChannelModeToDsp(BAPE_ChannelMode_e2_0);
+        BAPE_DSP_P_GetChannelMatrix(BAPE_ChannelMode_e2_0, false, handle->userConfig.opus.sUsrOutputCfg[stereoOutputPort].ui32OutputChannelMatrix);
     }
+
     if ( BAPE_Decoder_P_HasMonoOutput(handle) )
     {
-        unsigned monoPathId;
-
-        monoPathId = ( handle->userConfig.opus.ui32NumOutPorts == 1 ) ? 0 : 1;
-        handle->userConfig.opus.sUsrOutputCfg[monoPathId].ui32OutMode = BAPE_DSP_P_ChannelModeToDsp(BAPE_ChannelMode_e1_0);
-        BAPE_DSP_P_GetMonoChannelMatrix(handle->userConfig.opus.sUsrOutputCfg[monoPathId].ui32OutputChannelMatrix);
+        handle->userConfig.opus.sUsrOutputCfg[monoOutputPort].ui32OutMode = BAPE_DSP_P_ChannelModeToDsp(BAPE_ChannelMode_e1_0);
+        BAPE_DSP_P_GetMonoChannelMatrix(handle->userConfig.opus.sUsrOutputCfg[monoOutputPort].ui32OutputChannelMatrix);
     }
 
     errCode = BDSP_Stage_SetSettings(handle->hPrimaryStage, &handle->userConfig.opus, sizeof(handle->userConfig.opus));

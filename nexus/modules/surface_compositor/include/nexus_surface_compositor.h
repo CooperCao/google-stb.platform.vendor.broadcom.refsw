@@ -117,6 +117,7 @@ typedef struct NEXUS_SurfaceCompositorDisplaySettings {
     NEXUS_GraphicsSettings graphicsSettings; /* user can apply new graphics settings while surface compositor is active. However, the following
         settings will be overridden: enabled, clip, position, frameBufferCallback */
     bool manualPosition; /* user has set graphicsSettings.position relative to display format. Used to position graphics within TV viewable area. */
+    bool enabled; /* if set to false graphics is disabled on this display */
     NEXUS_DisplayHandle display;
     struct {
         unsigned number; /* number of framebuffers. Default is 2. */
@@ -185,6 +186,7 @@ typedef struct NEXUS_SurfaceCompositorClientSettings
     NEXUS_SurfaceComposition composition;
     bool tunnelCapable; /* deprecated */
     NEXUS_SurfaceCompositorClientDisplaySettings display[NEXUS_MAX_DISPLAYS];
+    bool backendMosaic;
 } NEXUS_SurfaceCompositorClientSettings;
 
 void NEXUS_SurfaceCompositor_GetClientSettings(

@@ -1291,7 +1291,7 @@ wlu_var_getbuf(void *wl, const char *iovar, void *param, int param_len, void **b
 {
 	int len;
 
-	memset(buf, 0, WLC_IOCTL_MAXLEN);
+	memset( buf, 0, sizeof(buf) );
 	strcpy( (char*) buf, iovar);
 
 	/* include the null */

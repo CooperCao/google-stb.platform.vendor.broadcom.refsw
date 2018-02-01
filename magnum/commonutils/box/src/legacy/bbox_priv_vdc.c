@@ -236,7 +236,7 @@ void BBOX_P_SetBox0MemConfig
        (BCHP_CHIP==7364)  || (BCHP_CHIP==7228)  || (BCHP_CHIP==7250)  || \
        (BCHP_CHIP==75635) || (BCHP_CHIP==7586)  || (BCHP_CHIP==73625) || \
        (BCHP_CHIP==75845) || (BCHP_CHIP==74295) || (BCHP_CHIP==73465) || \
-       (BCHP_CHIP==7268))
+       (BCHP_CHIP==7268)  || (BCHP_CHIP==7255))
 
 void BBOX_P_SetBox0MemConfig
     ( BBOX_MemConfig                *pBoxMemConfig )

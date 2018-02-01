@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  BCG's scheduler
-
-FILE DESCRIPTION
-
-=============================================================================*/
-
-#ifndef __GLSL_QPU_INSTR_H__
-#define __GLSL_QPU_INSTR_H__
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include <stdint.h>
 #include "middleware/khronos/glsl/2708/bcg_sched/glsl_qpu_enum.h"
@@ -60,8 +51,8 @@ uint64_t QPUInstr_GetCoding(QPUInstr *self);
 const char *QPUInstr_Disassemble(QPUInstr *self);
 const char *QPUInstr_DisassembleEx(QPUInstr *self, uint32_t numUniforms, const struct Uniform_s *uniforms, uint32_t *curUnif);
 
-static INLINE Register_Enum  QPUInstr_GetAddOutRegister(const QPUInstr *self) { return self->m_addOutReg; }
-static INLINE Register_Enum  QPUInstr_GetMulOutRegister(const QPUInstr *self) { return self->m_mulOutReg; }
+static inline Register_Enum  QPUInstr_GetAddOutRegister(const QPUInstr *self) { return self->m_addOutReg; }
+static inline Register_Enum  QPUInstr_GetMulOutRegister(const QPUInstr *self) { return self->m_mulOutReg; }
 
 bool QPUInstr_HasInvalidReadsForProgramEnd(const QPUInstr *self);
 bool QPUInstr_WritesTo(const QPUInstr *self, Register_Enum reg);
@@ -71,7 +62,7 @@ bool QPUInstr_HasImplicitSBWait(const QPUInstr *self);
 bool QPUInstr_SetAddOutputRegister(QPUInstr *self, Register_Enum reg);   // Writes waddr_add and ws
 bool QPUInstr_SetMulOutputRegister(QPUInstr *self, Register_Enum reg);   // Writes waddr_mul and ws
 
-static INLINE QPUInstr_Type QPUInstr_GetType(const QPUInstr *self) { return self->m_type; }
+static inline QPUInstr_Type QPUInstr_GetType(const QPUInstr *self) { return self->m_type; }
 
 Register_File QPUInstr_GetFreeRegisterBanks(QPUInstr *self);
 
@@ -140,17 +131,17 @@ bool QPUOperand_IsReadable(const QPUOperand *self, int32_t atSlot, const QPUReso
 void QPUOperand_Retire(const QPUOperand *self, QPUResources *res);
 bool QPUOperand_SetUnpack(QPUOperand *self, VirtualUnpack_Enum unpack);
 
-static INLINE QPUOperand_Type     QPUOperand_GetType(const QPUOperand *self)         { return self->m_type;    }
-static INLINE float               QPUOperand_ValueSmallFloat(const QPUOperand *self) { return self->m_sf;      }
-static INLINE int8_t              QPUOperand_ValueSmallInt(const QPUOperand *self)   { return self->m_i8;      }
-static INLINE Register_Enum       QPUOperand_ValueRegister(const QPUOperand *self)   { return self->m_reg;     }
-static INLINE VirtualUnpack_Enum  QPUOperand_GetUnpack(const QPUOperand *self)       { return self->m_unpack;  }
+static inline QPUOperand_Type     QPUOperand_GetType(const QPUOperand *self)         { return self->m_type;    }
+static inline float               QPUOperand_ValueSmallFloat(const QPUOperand *self) { return self->m_sf;      }
+static inline int8_t              QPUOperand_ValueSmallInt(const QPUOperand *self)   { return self->m_i8;      }
+static inline Register_Enum       QPUOperand_ValueRegister(const QPUOperand *self)   { return self->m_reg;     }
+static inline VirtualUnpack_Enum  QPUOperand_GetUnpack(const QPUOperand *self)       { return self->m_unpack;  }
 
-static INLINE bool QPUOperand_IsBypass(const QPUOperand *self)     { return self->m_type == QPUOperand_BYPASS;         }
-static INLINE bool QPUOperand_IsRegister(const QPUOperand *self)   { return self->m_type == QPUOperand_REGISTER;       }
-static INLINE bool QPUOperand_IsSmallInt(const QPUOperand *self)   { return self->m_type == QPUOperand_SMALL_INT;      }
-static INLINE bool QPUOperand_IsSmallFloat(const QPUOperand *self) { return self->m_type == QPUOperand_SMALL_FLOAT;    }
-static INLINE bool QPUOperand_IsSmallConst(const QPUOperand *self) { return QPUOperand_IsSmallInt(self) || QPUOperand_IsSmallFloat(self);    }
+static inline bool QPUOperand_IsBypass(const QPUOperand *self)     { return self->m_type == QPUOperand_BYPASS;         }
+static inline bool QPUOperand_IsRegister(const QPUOperand *self)   { return self->m_type == QPUOperand_REGISTER;       }
+static inline bool QPUOperand_IsSmallInt(const QPUOperand *self)   { return self->m_type == QPUOperand_SMALL_INT;      }
+static inline bool QPUOperand_IsSmallFloat(const QPUOperand *self) { return self->m_type == QPUOperand_SMALL_FLOAT;    }
+static inline bool QPUOperand_IsSmallConst(const QPUOperand *self) { return QPUOperand_IsSmallInt(self) || QPUOperand_IsSmallFloat(self);    }
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -190,34 +181,34 @@ void QPUGenericInstr_Destr(QPUGenericInstr *self);
 void QPUGenericInstr_Assign(QPUGenericInstr *self, const QPUGenericInstr *rhs);
 
 // Operations
-static INLINE QPUInstr_Type   QPUGenericInstr_GetType(QPUGenericInstr *self)                   { return QPUInstr_GetType(&self->m_instr);      }
-static INLINE QPUInstr *      QPUGenericInstr_GetInstruction(QPUGenericInstr *self)            { return &self->m_instr;                        }
-static INLINE const QPUInstr *QPUGenericInstr_GetInstructionConst(const QPUGenericInstr *self) { return &self->m_instr;                    }
-static INLINE uint64_t        QPUGenericInstr_GetCoding(QPUGenericInstr *self)                 { return QPUInstr_GetCoding(&self->m_instr);    }
+static inline QPUInstr_Type   QPUGenericInstr_GetType(QPUGenericInstr *self)                   { return QPUInstr_GetType(&self->m_instr);      }
+static inline QPUInstr *      QPUGenericInstr_GetInstruction(QPUGenericInstr *self)            { return &self->m_instr;                        }
+static inline const QPUInstr *QPUGenericInstr_GetInstructionConst(const QPUGenericInstr *self) { return &self->m_instr;                    }
+static inline uint64_t        QPUGenericInstr_GetCoding(QPUGenericInstr *self)                 { return QPUInstr_GetCoding(&self->m_instr);    }
 
 // Not thread safe
-static INLINE const char     *QPUGenericInstr_Disassemble(QPUGenericInstr *self)               { return QPUInstr_Disassemble(&self->m_instr);  }
+static inline const char     *QPUGenericInstr_Disassemble(QPUGenericInstr *self)               { return QPUInstr_Disassemble(&self->m_instr);  }
 
 Register_File          QPUGenericInstr_GetFreeOutputRegisters(QPUGenericInstr *self);
 
-static INLINE bool QPUGenericInstr_IsFull(const QPUGenericInstr *self)         { return self->m_full;       }
-static INLINE void QPUGenericInstr_SetFull(QPUGenericInstr *self)              { self->m_full = true;       }
+static inline bool QPUGenericInstr_IsFull(const QPUGenericInstr *self)         { return self->m_full;       }
+static inline void QPUGenericInstr_SetFull(QPUGenericInstr *self)              { self->m_full = true;       }
 
-static INLINE bool QPUGenericInstr_AdderUsed(const QPUGenericInstr *self)     { return self->m_adderUsed;  }
-static INLINE bool QPUGenericInstr_MulUsed(const QPUGenericInstr *self)       { return self->m_mulUsed;    }
-static INLINE bool QPUGenericInstr_SigUsed(const QPUGenericInstr *self)       { return self->m_sigUsed;    }
-static INLINE bool QPUGenericInstr_ImmedUsed(const QPUGenericInstr *self)     { return self->m_immedUsed;  }
-static INLINE bool QPUGenericInstr_UnpackUsed(const QPUGenericInstr *self)    { return self->m_unpackUsed; }
+static inline bool QPUGenericInstr_AdderUsed(const QPUGenericInstr *self)     { return self->m_adderUsed;  }
+static inline bool QPUGenericInstr_MulUsed(const QPUGenericInstr *self)       { return self->m_mulUsed;    }
+static inline bool QPUGenericInstr_SigUsed(const QPUGenericInstr *self)       { return self->m_sigUsed;    }
+static inline bool QPUGenericInstr_ImmedUsed(const QPUGenericInstr *self)     { return self->m_immedUsed;  }
+static inline bool QPUGenericInstr_UnpackUsed(const QPUGenericInstr *self)    { return self->m_unpackUsed; }
 
-static INLINE bool QPUGenericInstr_SetAddOutputRegister(QPUGenericInstr *self, Register_Enum reg)       { return QPUInstr_SetAddOutputRegister(&self->m_instr, reg);                    }
-static INLINE bool QPUGenericInstr_SetMulOutputRegister(QPUGenericInstr *self, Register_Enum reg)       { return QPUInstr_SetMulOutputRegister(&self->m_instr, reg);                    }
-static INLINE bool QPUGenericInstr_SetAddOutputRegisterRes(QPUGenericInstr *self, const QPUResource *reg)  { return QPUInstr_SetAddOutputRegister(&self->m_instr, QPUResource_Name(reg));  }
-static INLINE bool QPUGenericInstr_SetMulOutputRegisterRes(QPUGenericInstr *self, const QPUResource *reg)  { return QPUInstr_SetMulOutputRegister(&self->m_instr, QPUResource_Name(reg));  }
+static inline bool QPUGenericInstr_SetAddOutputRegister(QPUGenericInstr *self, Register_Enum reg)       { return QPUInstr_SetAddOutputRegister(&self->m_instr, reg);                    }
+static inline bool QPUGenericInstr_SetMulOutputRegister(QPUGenericInstr *self, Register_Enum reg)       { return QPUInstr_SetMulOutputRegister(&self->m_instr, reg);                    }
+static inline bool QPUGenericInstr_SetAddOutputRegisterRes(QPUGenericInstr *self, const QPUResource *reg)  { return QPUInstr_SetAddOutputRegister(&self->m_instr, QPUResource_Name(reg));  }
+static inline bool QPUGenericInstr_SetMulOutputRegisterRes(QPUGenericInstr *self, const QPUResource *reg)  { return QPUInstr_SetMulOutputRegister(&self->m_instr, QPUResource_Name(reg));  }
 
 // Non-branch interfaces (ALU, LoadImmed & Semaphore)
-static INLINE bool QPUGenericInstr_SetFlags(QPUGenericInstr *self, bool val)                 { return QPUInstr_SetFlags(&self->m_instr, val);         }
-static INLINE bool QPUGenericInstr_SetAddCondition(QPUGenericInstr *self, CondCode_Enum val) { return QPUInstr_SetAddCondition(&self->m_instr, val);  }
-static INLINE bool QPUGenericInstr_SetMulCondition(QPUGenericInstr *self, CondCode_Enum val) { return QPUInstr_SetMulCondition(&self->m_instr, val);  }
+static inline bool QPUGenericInstr_SetFlags(QPUGenericInstr *self, bool val)                 { return QPUInstr_SetFlags(&self->m_instr, val);         }
+static inline bool QPUGenericInstr_SetAddCondition(QPUGenericInstr *self, CondCode_Enum val) { return QPUInstr_SetAddCondition(&self->m_instr, val);  }
+static inline bool QPUGenericInstr_SetMulCondition(QPUGenericInstr *self, CondCode_Enum val) { return QPUInstr_SetMulCondition(&self->m_instr, val);  }
 
 bool QPUGenericInstr_SetPackedMovRegA(QPUGenericInstr *self, const QPUOperand *from, const QPUOperand *to, RegA_Pack_Enum mode);
 bool QPUGenericInstr_SetPackedMovMul(QPUGenericInstr *self, const QPUOperand *from, const QPUOperand *to, Mul_Pack_Enum mode);
@@ -230,7 +221,7 @@ bool QPUGenericInstr_SetUnpack(QPUGenericInstr *self, VirtualUnpack_Enum mode, U
 bool QPUGenericInstr_SetSignal(QPUGenericInstr *self, Sig_Enum sig);
 void QPUGenericInstr_ClearSignal(QPUGenericInstr *self);
 
-static INLINE UnpackSource_Enum QPUGenericInstr_UnpackSrc(const QPUGenericInstr *self) { return self->m_unpackSrc; }
+static inline UnpackSource_Enum QPUGenericInstr_UnpackSrc(const QPUGenericInstr *self) { return self->m_unpackSrc; }
 
 bool QPUGenericInstr_SetAdd(QPUGenericInstr *self, AOP_Enum op, const QPUOperand *leftOperand, const QPUOperand *rightOperand);
 bool QPUGenericInstr_SetMul(QPUGenericInstr *self, MOP_Enum op, const QPUOperand *leftOperand, const QPUOperand *rightOperand);
@@ -252,5 +243,3 @@ bool QPUGenericInstr_SetSemaphore(QPUGenericInstr *self, uint8_t semaphoreNumber
 
 // Branch interfaces
 // TODO
-
-#endif /* __GLSL_QPU_INSTR_H__ */

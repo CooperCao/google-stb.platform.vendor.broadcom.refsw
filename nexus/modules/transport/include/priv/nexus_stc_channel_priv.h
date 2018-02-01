@@ -151,7 +151,7 @@ BERR_Code NEXUS_StcChannel_EnablePidChannel_priv(
 /*
 Disable Output to a specified PID Channel
 */
-BERR_Code NEXUS_StcChannel_DisablePidChannel_priv(
+void NEXUS_StcChannel_DisablePidChannel_priv(
     NEXUS_StcChannelHandle handle,
     NEXUS_PidChannelHandle pidChannel
     );

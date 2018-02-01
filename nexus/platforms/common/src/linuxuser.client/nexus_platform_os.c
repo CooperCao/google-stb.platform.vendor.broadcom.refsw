@@ -348,7 +348,7 @@ static NEXUS_Error NEXUS_Platform_P_StartIpcClient(const NEXUS_ClientAuthenticat
     }
 
     for (i=0;i<NEXUS_PLATFORM_P_NUM_DRIVERS;i++) {
-        unsigned data_size = 4096; /* hardcoded max unix domain socket size */
+        unsigned data_size = NEXUS_P_IPC_BUFFER_SIZE; /* hardcoded max size of fixed size IPC buffer */
         BDBG_MSG(("ipc init %d: %s (%d bytes)", i, g_nexus_client_handlers[i].name, data_size));
 
         g_nexus_client_handlers[i].module = NEXUS_P_Client_InitModule(g_client, i, data_size);

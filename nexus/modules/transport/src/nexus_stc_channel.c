@@ -80,6 +80,7 @@ static void NEXUS_StcChannel_P_Finalizer(NEXUS_StcChannelHandle stcChannel)
 {
     NEXUS_StcChannelSettings settings;
     NEXUS_StcChannelPidChannelEntry * e;
+    NEXUS_Error rc;
 
     BDBG_OBJECT_ASSERT(stcChannel, NEXUS_StcChannel);
 
@@ -94,7 +95,8 @@ static void NEXUS_StcChannel_P_Finalizer(NEXUS_StcChannelHandle stcChannel)
      * auto config while stc channel was open)
      */
     settings.autoConfigTimebase = stcChannel->settings.autoConfigTimebase;
-    (void)NEXUS_StcChannel_SetSettings(stcChannel, &settings);
+    rc = NEXUS_StcChannel_SetSettings(stcChannel, &settings);
+    if (rc) BERR_TRACE(rc); /* keep going */
 
     stcChannel->timebase = NULL;
 
@@ -591,6 +593,7 @@ static NEXUS_Error setPcrOffsetSettings(
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     BXPT_PcrOffset_Settings pcr_offset_settings;
+    bool JitterAdjustmentChange = false;
 
 #if B_REFSW_DSS_SUPPORT
     rc = BXPT_DirecTv_PcrOffset_SetPcrMode(stcChannel->pcrOffset, NEXUS_IS_DSS_MODE(transportType)?BXPT_PcrMode_eDirecTv:BXPT_PcrMode_eMpeg);
@@ -608,6 +611,10 @@ static NEXUS_Error setPcrOffsetSettings(
     pcr_offset_settings.TimestampDisable = false;
     pcr_offset_settings.CountMode = (NEXUS_IS_DSS_MODE(transportType) ||
         (NEXUS_StcChannel_PcrBits_eLegacy!=pSettings->pcrBits))?BXPT_PcrOffset_StcCountMode_eBinary:BXPT_PcrOffset_StcCountMode_eMod300;
+    if (!stcChannel->settings.modeSettings.pcr.disableJitterAdjustment != pcr_offset_settings.EnableJitterAdjustment) {
+        pcr_offset_settings.EnableJitterAdjustment = !stcChannel->settings.modeSettings.pcr.disableJitterAdjustment;
+        JitterAdjustmentChange = true;
+    }
 
     BDBG_ASSERT(pcr_offset_settings.UsePcrTimeBase == true); /* always use PCR */
     pcr_offset_settings.WhichPcr = stcChannel->timebase->hwIndex;
@@ -660,53 +667,21 @@ static NEXUS_Error setPcrOffsetSettings(
     if (pSettings->pcrBits != NEXUS_StcChannel_PcrBits_eLegacy) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto error; }
 #endif
 
-    /*
-     * BXPT_PcrOffset_SetSettings will add the pcr to the pid table for us, but
-     * with hard-coded jitter settings.
-     * if we are in PCR mode, we need to undo what we've done and redo later
-     * steps are:
-     *
-     * 1. disable any offset for pcr pid channel that we have refcnted
-     * 2. call PcrOffset_SetSettings, which will enable the offset with fixed jitter settings
-     * 3. disable the offset entry XPT installed with fixed jitter settings
-     * 4. enable it again with the right settings
-     */
-    if (mode == NEXUS_StcChannelMode_ePcr)
-    {
-        NEXUS_StcChannelPidChannelEntry * e;
-        /* step 1 */
-        e = NEXUS_StcChannel_P_FindPidChannelEntry(stcChannel, pSettings->modeSettings.pcr.pidChannel);
-        if (e)
-        {
-            BXPT_PcrOffset_DisableOffset(stcChannel->pcrOffset, PID_CHANNEL_INDEX(pSettings->modeSettings.pcr.pidChannel));
-        }
-    }
-
-    /* step 2 */
     rc = BXPT_PcrOffset_SetSettings(stcChannel->pcrOffset, &pcr_offset_settings);
     if (rc) { rc = BERR_TRACE(rc); goto error; }
 
-    if (mode == NEXUS_StcChannelMode_ePcr)
-    {
-        NEXUS_StcChannelPidChannelEntry * e;
-        /* step 3 */
-        BXPT_PcrOffset_DisableOffset(stcChannel->pcrOffset, PID_CHANNEL_INDEX(pSettings->modeSettings.pcr.pidChannel));
-
-        /* step 4 */
-        e = NEXUS_StcChannel_P_FindPidChannelEntry(stcChannel, pSettings->modeSettings.pcr.pidChannel);
-        if (e)
-        {
-            BXPT_PcrOffset_EnableOffset(stcChannel->pcrOffset,
-                PID_CHANNEL_INDEX(pSettings->modeSettings.pcr.pidChannel),
-                false,
-                !pSettings->modeSettings.pcr.disableJitterAdjustment);
+    if (JitterAdjustmentChange) {
+        NEXUS_StcChannelPidChannelEntry *e;
+        for (e = BLST_Q_FIRST(&stcChannel->pids); e; e = BLST_Q_NEXT(e, link)) {
+            BXPT_PcrOffset_ApplyPidChannelSettings(stcChannel->pcrOffset, e->pidChannelIndex);
         }
     }
+
 error:
     return rc;
 }
 
-static NEXUS_Error validateSettings(const NEXUS_StcChannelSettings *pSettings)
+static NEXUS_Error nexus_p_stcchannel_validateSettings(const NEXUS_StcChannelSettings *pSettings)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
 
@@ -726,7 +701,7 @@ error:
 }
 
 /* do acquire/release on any resource stored in handle->settings */
-static void doSettingsAccounting(NEXUS_StcChannelHandle stcChannel, const NEXUS_StcChannelSettings *pSettings)
+static void nexus_p_stcchannel_doSettingsAccounting(NEXUS_StcChannelHandle stcChannel, const NEXUS_StcChannelSettings *pSettings)
 {
     NEXUS_PidChannelHandle acq;
     NEXUS_PidChannelHandle rel;
@@ -762,23 +737,22 @@ NEXUS_Error NEXUS_StcChannel_SetSettings(NEXUS_StcChannelHandle stcChannel, cons
 
     BDBG_OBJECT_ASSERT(stcChannel, NEXUS_StcChannel);
 
-    rc = validateSettings(pSettings);
+    rc = nexus_p_stcchannel_validateSettings(pSettings);
     if (rc) { rc = BERR_TRACE(rc); goto error; }
 
     /*
      * This is the release of the previous pcr pid channel from the offset
      * enable pid table, since we unconditionally add the new one to the pid
-     * table even if it hasn't changed.  This must occur before doSettingsAccounting
+     * table even if it hasn't changed.  This must occur before nexus_p_stcchannel_doSettingsAccounting
      * so that we don't lose our grip on the old pid channel before we remove
      * it from the context here
      */
     if (stcChannel->settings.mode == NEXUS_StcChannelMode_ePcr)
     {
-        rc = NEXUS_StcChannel_DisablePidChannel_priv(stcChannel, stcChannel->settings.modeSettings.pcr.pidChannel);
-        if (rc) { rc = BERR_TRACE(rc); goto error; }
+        NEXUS_StcChannel_DisablePidChannel_priv(stcChannel, stcChannel->settings.modeSettings.pcr.pidChannel);
     }
 
-    doSettingsAccounting(stcChannel, pSettings);
+    nexus_p_stcchannel_doSettingsAccounting(stcChannel, pSettings);
 
     timebase = NEXUS_Timebase_Resolve_priv(pSettings->timebase);
     if (!timebase) { rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); goto error; }
@@ -1918,7 +1892,6 @@ BERR_Code NEXUS_StcChannel_EnablePidChannel_priv(
 {
 #ifdef BXPT_HAS_MOSAIC_SUPPORT
     BERR_Code rc;
-    bool enableJitterAdjustment;
 
     NEXUS_ASSERT_MODULE();
     BDBG_OBJECT_ASSERT(pidChannel, NEXUS_PidChannel);
@@ -1926,9 +1899,7 @@ BERR_Code NEXUS_StcChannel_EnablePidChannel_priv(
 
     if (NEXUS_StcChannel_P_AddPidChannel(stcChannel, pidChannel))
     {
-        /* PI calls it JitterEnable even though RDB calls it JITTER_DISABLE */
-        enableJitterAdjustment = !stcChannel->settings.modeSettings.pcr.disableJitterAdjustment;
-        rc = BXPT_PcrOffset_EnableOffset(stcChannel->pcrOffset, PID_CHANNEL_INDEX(pidChannel), false, enableJitterAdjustment);
+        rc = BXPT_PcrOffset_EnableOffset(stcChannel->pcrOffset, PID_CHANNEL_INDEX(pidChannel));
         if (rc) { (void)NEXUS_StcChannel_P_RemovePidChannel(stcChannel, pidChannel); return BERR_TRACE(rc);}
     }
 #else
@@ -1942,7 +1913,7 @@ BERR_Code NEXUS_StcChannel_EnablePidChannel_priv(
 /*
 Disable Output to a specified PID Channel
 */
-BERR_Code NEXUS_StcChannel_DisablePidChannel_priv(
+void NEXUS_StcChannel_DisablePidChannel_priv(
     NEXUS_StcChannelHandle stcChannel,
     NEXUS_PidChannelHandle pidChannel
     )
@@ -1961,7 +1932,6 @@ BERR_Code NEXUS_StcChannel_DisablePidChannel_priv(
     BSTD_UNUSED(pidChannel);
     BSTD_UNUSED(NEXUS_StcChannel_P_RemovePidChannel);
 #endif
-    return BERR_SUCCESS;
 }
 
 void NEXUS_StcChannel_GetIndex_priv( NEXUS_StcChannelHandle stcChannel, unsigned *pIndex )

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -418,6 +418,14 @@ typedef struct BAPE_Device
 #if BAPE_CHIP_MAX_PLLS > 0
     /* PLL Status */
     BAPE_AudioPll   audioPlls[BAPE_CHIP_MAX_PLLS];
+#if BAPE_CHIP_MAX_EXT_MCLKS > 0
+    struct
+    {
+        bool enabled;
+        BAPE_Pll pll;
+        BAPE_MclkRate mclkRate;
+    } extMclkSettings[BAPE_CHIP_MAX_EXT_MCLKS];
+#endif
 #endif
 #if BAPE_CHIP_MAX_NCOS > 0
     /* PLL Status */
@@ -849,6 +857,8 @@ typedef struct BAPE_MixerInputCapture
 #endif
 
     BAPE_MixerInputCaptureInterruptHandlers interrupts;
+    BAPE_PathConnector * input;
+    BDSP_StageHandle hStage;
 
     /* Capture pointer info for all the output capture ports */
 } BAPE_MixerInputCapture;
@@ -2213,6 +2223,14 @@ CRC Stop
 ***************************************************************************/
 void BAPE_Crc_P_Stop(
     BAPE_CrcHandle handle
+    );
+
+/***************************************************************************
+Summary:
+Get Advanced TSM Mode, returns 0 if not configured for Advanced TSM
+***************************************************************************/
+unsigned BAPE_Processor_P_GetAdvancedTsmMode(
+    BAPE_ProcessorHandle handle
     );
 
 #if BAPE_DSP_SUPPORT

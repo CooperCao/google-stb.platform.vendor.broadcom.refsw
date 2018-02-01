@@ -1,0 +1,8 @@
+#!/bin/sh
+
+export LD_PRELOAD=libgpumon_hook.so
+export GPUMonitorDriverDLL=libkhronos.so
+export GPUMonitorCapture=1
+
+# Start whatever application is requested
+exec "$@"

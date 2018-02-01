@@ -94,6 +94,7 @@
 
 #define NEXUS_P_COMPAT_CONVERT_OUT(module,api) __rc = B##api##_ipc_out_compat_out( &__out_data->api, &__compat_out_data->api);if(__rc!=NEXUS_SUCCESS) {__rc=BERR_TRACE(__rc);break;} __compat_vout_data->varargs_begin = ((uint8_t *)&__compat_out_data->api - (uint8_t *)__compat_out_data) + sizeof(__compat_out_data->api);
 #define NEXUS_P_COMPAT_PROCESS(module, api) __rc = nexus_p_driver_##module##_process(__id, __in_data, __vin_data.varargs_begin  + __vin_data.varargs_offset, &__vout_data, module_header, __slave_scheduler);if(__rc!=NEXUS_SUCCESS) {__rc=BERR_TRACE(__rc);break;}  __out_data =  __vout_data.data; __compat_out_data = (void *)((uint8_t *)__compat_vout_data->data + __compat_vout_data->header);
+#define NEXUS_P_COMPAT_CHECK_RETURN_CODE(module, api) if(__out_data->api.ret.__retval != NEXUS_SUCCESS) {__rc=__compat_out_data->api.ret.__retval=/*BERR_TRACE*/(__out_data->api.ret.__retval);break;}
 
 #define NEXUS_P_COMPAT_VARARG_IN_DECLARE(api, arg, type,compat_type) const compat_type *__compat_##arg; type *__##arg;
 #define NEXUS_P_COMPAT_VARARG_IN_PLACE(api, arg, type, compat_type, nelem) if(!__compat_in_data->api.pointer.is_null.arg) { if(compat_in_data_size < __compat_in_data->api.vararg.arg + __compat_in_data->api.args.nelem * sizeof(compat_type)) {__rc=BERR_TRACE(NEXUS_INVALID_PARAMETER); break;} __compat_##arg = (void *)((uint8_t *)__compat_in_data + __compat_in_data->api.vararg.arg);  } else {__compat_##arg = NULL;}

@@ -43,9 +43,7 @@ struct ShaderData : public NonCopyable
    DevMemRange                shaderMemory{};
    bvk::vector<UniformEntry>  uniformMap;
    v3d_threading_t            threading{};
-#if V3D_VER_AT_LEAST(4,1,34,0)
    bool                       singleSeg{};
-#endif
 };
 
 struct AttributeRecord
@@ -117,7 +115,7 @@ public:
    DescriptorTables *GetDescriptorTables(ShaderFlavour flavour) { return &m_descriptorTables[flavour]; }
 
 private:
-   void Build(const IR_PROGRAM_T &irProg, const BINARY_PROGRAM_T &binary);
+   void Build(const IR_PROGRAM_T *irProg, const BINARY_PROGRAM_T *binary);
    void SetInitialFlags(const IR_PROGRAM_T &ir, const BINARY_PROGRAM_T &prog);
    void SetVertexShaderData(const BINARY_PROGRAM_T &prog);
    void SetTnGData(const IR_PROGRAM_T &ir, const BINARY_PROGRAM_T &prog);
@@ -131,7 +129,6 @@ private:
 
 public:
    DevMemHeap       *m_devMemHeap;
-   bool              m_built = false;
    ShaderData        m_vps[SHADER_VPS_COUNT][MODE_COUNT];
    ShaderData        m_fs;
 

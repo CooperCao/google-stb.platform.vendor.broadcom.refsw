@@ -37,13 +37,15 @@
  *****************************************************************************/
 #include "scenario_player.h"
 #include "scenario_player_priv.h"
-#include "name_value_file_parser_priv.h"
+#include "name_value_file_parser.h"
 #include "platform_types.h"
-#include "util_priv.h"
+#include "util.h"
+#include "error.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <unistd.h>
 
 bool scenario_player_file_filter(const char * path)
 {
@@ -79,7 +81,6 @@ ScenarioPlayerHandle scenario_player_create(const ScenarioPlayerCreateSettings *
     if (!player) goto error;
     memset(player, 0, sizeof(*player));
     memcpy(&player->createSettings, pSettings, sizeof(*pSettings));
-    player->log = fopen("dynrng-report.txt", "w");
 
     return player;
 error:
@@ -91,7 +92,6 @@ void scenario_player_destroy(ScenarioPlayerHandle player)
 {
     if (!player) return;
 
-    if (player->log) fclose(player->log);
     free(player);
 }
 
@@ -111,148 +111,92 @@ void scenario_player_p_print(ScenarioPlayerHandle player)
 void scenario_player_p_get_default_scenario(Scenario * pScenario)
 {
     memset(pScenario, 0, sizeof(*pScenario));
-    pScenario->gamut = PlatformColorimetry_eAuto;
-    pScenario->dynrng = PlatformDynamicRange_eAuto;
-    pScenario->processing.vid = PlatformDynamicRangeProcessingMode_eAuto;
-    pScenario->processing.gfx = PlatformDynamicRangeProcessingMode_eAuto;
+    pScenario->pictureInfo.gamut = PlatformColorimetry_eMax;
+    pScenario->pictureInfo.space = PlatformColorSpace_eMax;
+    pScenario->pictureInfo.dynrng = PlatformDynamicRange_eMax;
+    pScenario->pictureInfo.depth = -1;
+    pScenario->pictureInfo.sampling = -1;
+    pScenario->processing.vid = PlatformDynamicRangeProcessingMode_eMax;
+    pScenario->processing.gfx = PlatformDynamicRangeProcessingMode_eMax;
     pScenario->osd = true;
+    pScenario->info = true;
 }
 
 static void scenario_player_p_get_reset_scenario(Scenario * pScenario)
 {
     scenario_player_p_get_default_scenario(pScenario);
-    pScenario->gamut = PlatformColorimetry_e709;
-    pScenario->dynrng = PlatformDynamicRange_eInvalid;
+    pScenario->pictureInfo.gamut = PlatformColorimetry_e709;
+    pScenario->pictureInfo.dynrng = PlatformDynamicRange_eInvalid;
+    pScenario->pictureInfo.space = PlatformColorSpace_eYCbCr;
+    pScenario->pictureInfo.depth = 8;
+    pScenario->pictureInfo.sampling = 444;
+    pScenario->pictureInfo.format.width = 1920;
+    pScenario->pictureInfo.format.height = 1080;
+    pScenario->pictureInfo.format.rate = 6000;
 }
 
-static void scenario_player_p_commit_scenario(ScenarioPlayerHandle player)
+static int scenario_player_p_commit_scenario(ScenarioPlayerHandle player)
 {
     printf("commit\n");
     if (player->createSettings.scenarioChanged.callback)
     {
         player->createSettings.scenarioChanged.callback(player->createSettings.scenarioChanged.context, player->pScenario);
     }
+    return 0;
 }
 
-static void scenario_player_p_handle_reset(ScenarioPlayerHandle player)
+static int scenario_player_p_reset(ScenarioPlayerHandle player)
 {
-    printf("Resetting to known state...\n");
+    printf("Replacing current scenario with reset scenario...\n");
     scenario_player_p_get_reset_scenario(player->pScenario);
     scenario_player_p_commit_scenario(player);
+    return 0;
 }
 
-static void scenario_player_p_handle_waituser(ScenarioPlayerHandle player)
+static int scenario_player_p_sleep(ScenarioPlayerHandle player, unsigned seconds)
 {
-    printf("\n\n\nHit enter to continue; q to stop this scenario: ");
-    fflush(stdout);
-    fgets(player->input, MAX_INPUT_LEN, stdin);
-}
-
-static void scenario_player_p_handle_results(ScenarioPlayerHandle player)
-{
-    int pass = 0;
-    printf("\n\n\nPASS (1) or FAIL (0)> ");
-    fflush(stdout);
-    fgets(player->input, MAX_INPUT_LEN, stdin);
-    switch (player->input[0])
-    {
-        default:
-        case '1':
-            pass = 1;
-            break;
-        case 'q':
-            pass = -1;
-            break;
-        case '0':
-            printf("\n\n\nComment> ");
-            fflush(stdout);
-            fgets(player->input, MAX_INPUT_LEN, stdin);
-            break;
-    }
-    if (pass >= 0 && player->log)
-    {
-        fprintf(player->log, "%s %s", player->pScenario->scenarioPath, pass == 1 ? "PASS" : "FAIL");
-        if (!pass && strlen(player->input))
-        {
-            fprintf(player->log, ": %s", player->input);
-        }
-        fprintf(player->log, "\n");
-    }
-}
-
-static void scenario_player_p_handle_echo(ScenarioPlayerHandle player, char * line)
-{
-    char * s;
-    char * e;
-
     (void)player;
-
-    s = strchr(line, '"');
-    if (s)
-    {
-        e = strrchr(line, '"');
-    }
-    else
-    {
-        s = strchr(line, '\'');
-        e = strrchr(line, '\'');
-    }
-    if (!s)
-    {
-        printf("scenario_player: echo requires that the printable string be quoted\n");
-        return;
-    }
-    if (!e)
-    {
-        printf("scenario_player: end quote symbol missing or mismatched\n");
-        return;
-    }
-    s++;
-    *e-- = 0;
-
-    if (strlen(s))
-    {
-        printf("%s\n", s);
-        fflush(stdout);
-    }
+    printf("Sleeping...\n");
+    sleep(seconds);
+    return 0;
 }
 
-static void scenario_player_p_handle_command(ScenarioPlayerHandle player, const char * line)
+static int scenario_player_p_handle_command(ScenarioPlayerHandle player, const char * line)
 {
     char * commandLine;
     char * command;
+    int result;
 
     commandLine = strdup(line);
     command = strtok(commandLine, " ");
 
-    if (!strcmp(command, "commit"))
+    if (!strcmp(command, "reset"))
     {
-        scenario_player_p_commit_scenario(player);
+        result = scenario_player_p_reset(player);
     }
-    else if (!strcmp(command, "echo"))
+    else if (!strcmp(command, "commit"))
     {
-        scenario_player_p_handle_echo(player, commandLine + strlen(command) + 1);
+        result = scenario_player_p_commit_scenario(player);
     }
-    else if (!strcmp(command, "results"))
+    else if (!strcmp(command, "sleep"))
     {
-        scenario_player_p_handle_results(player);
+        unsigned seconds = atoi(commandLine + strlen(command) + 1);
+        result = scenario_player_p_sleep(player, seconds);
     }
-    else if (!strcmp(command, "waituser"))
+    else
     {
-        scenario_player_p_handle_waituser(player);
-    }
-    else if (!strcmp(command, "reset"))
-    {
-        scenario_player_p_handle_reset(player);
+        result = -ERR_NOT_FOUND;
     }
     if (commandLine) free(commandLine);
+    return result;
 }
 
-static void scenario_player_p_set_variable(ScenarioPlayerHandle player, const char * name, const char * value)
+static int scenario_player_p_set_variable(ScenarioPlayerHandle player, const char * name, const char * value)
 {
     int v;
     Scenario * pScenario = player->pScenario;
     int nlen;
+    int result = 0;
 
     nlen = strlen(name);
 
@@ -331,6 +275,13 @@ static void scenario_player_p_set_variable(ScenarioPlayerHandle player, const ch
             pScenario->osd = false;
         }
     }
+    else if (!strcmp(name, "info"))
+    {
+        if (!strcasecmp(value, "off") || !strtoul(value, NULL, 0))
+        {
+            pScenario->info = false;
+        }
+    }
     else if (!strcmp(name, "forceRestart"))
     {
         if (!strcasecmp(value, "on") || strtoul(value, NULL, 0))
@@ -338,58 +289,91 @@ static void scenario_player_p_set_variable(ScenarioPlayerHandle player, const ch
             pScenario->forceRestart = true;
         }
     }
+    else if (!strcmp(name, "startPaused"))
+    {
+        if (!strcasecmp(value, "on") || strtoul(value, NULL, 0))
+        {
+            pScenario->startPaused = true;
+        }
+    }
+    else if (!strcmp(name, "stcTrick"))
+    {
+        if (!strcasecmp(value, "off") || !strtoul(value, NULL, 0))
+        {
+            pScenario->stcTrick = false;
+        }
+    }
     else if (!strcmp(name, "gamut"))
     {
         if (!strcasecmp(value, "auto"))
         {
-            pScenario->gamut = PlatformColorimetry_eAuto;
+            pScenario->pictureInfo.gamut = PlatformColorimetry_eAuto;
         }
         else if (!strcasecmp(value, "601"))
         {
-            pScenario->gamut = PlatformColorimetry_e601;
+            pScenario->pictureInfo.gamut = PlatformColorimetry_e601;
         }
         else if (!strcasecmp(value, "709"))
         {
-            pScenario->gamut = PlatformColorimetry_e709;
+            pScenario->pictureInfo.gamut = PlatformColorimetry_e709;
         }
         else if (!strcasecmp(value, "2020"))
         {
-            pScenario->gamut = PlatformColorimetry_e2020;
+            pScenario->pictureInfo.gamut = PlatformColorimetry_e2020;
         }
         else
         {
-            pScenario->gamut = (PlatformColorimetry)strtoul(value, NULL, 0);
+            pScenario->pictureInfo.gamut = (PlatformColorimetry)strtoul(value, NULL, 0);
+        }
+    }
+    else if (!strcmp(name, "space"))
+    {
+        if (!strcasecmp(value, "auto"))
+        {
+            pScenario->pictureInfo.space = PlatformColorSpace_eAuto;
+        }
+        else if (!strcasecmp(value, "rgb"))
+        {
+            pScenario->pictureInfo.space = PlatformColorSpace_eRgb;
+        }
+        else if (!strcasecmp(value, "yuv") || !strcasecmp(value, "ycbcr"))
+        {
+            pScenario->pictureInfo.space = PlatformColorSpace_eYCbCr;
+        }
+        else
+        {
+            pScenario->pictureInfo.space = (PlatformColorSpace)strtoul(value, NULL, 0);
         }
     }
     else if (!strcmp(name, "dynrng"))
     {
         if (!strcasecmp(value, "auto"))
         {
-            pScenario->dynrng = PlatformDynamicRange_eAuto;
+            pScenario->pictureInfo.dynrng = PlatformDynamicRange_eAuto;
         }
         else if (!strcasecmp(value, "sdr"))
         {
-            pScenario->dynrng = PlatformDynamicRange_eSdr;
+            pScenario->pictureInfo.dynrng = PlatformDynamicRange_eSdr;
         }
         else if (!strcasecmp(value, "hlg"))
         {
-            pScenario->dynrng = PlatformDynamicRange_eHlg;
+            pScenario->pictureInfo.dynrng = PlatformDynamicRange_eHlg;
         }
         else if (!strcasecmp(value, "hdr10"))
         {
-            pScenario->dynrng = PlatformDynamicRange_eHdr10;
+            pScenario->pictureInfo.dynrng = PlatformDynamicRange_eHdr10;
         }
-        else if (!strcasecmp(value, "dvs"))
+        else if (!strcasecmp(value, "dbv"))
         {
-            pScenario->dynrng = PlatformDynamicRange_eDolbyVision;
+            pScenario->pictureInfo.dynrng = PlatformDynamicRange_eDolbyVision;
         }
         else if (!strcasecmp(value, "disabled"))
         {
-            pScenario->dynrng = PlatformDynamicRange_eInvalid;
+            pScenario->pictureInfo.dynrng = PlatformDynamicRange_eInvalid;
         }
         else
         {
-            pScenario->dynrng = (PlatformDynamicRange)strtoul(value, NULL, 0);
+            pScenario->pictureInfo.dynrng = (PlatformDynamicRange)strtoul(value, NULL, 0);
         }
     }
     else if (!strcmp(name, "layout"))
@@ -399,28 +383,184 @@ static void scenario_player_p_set_variable(ScenarioPlayerHandle player, const ch
             pScenario->layout = v;
         }
     }
+    else if (!strcmp(name, "depth"))
+    {
+        if (sscanf(value, "%d", &v))
+        {
+            switch (v)
+            {
+                case 8:
+                    pScenario->pictureInfo.depth = 8;
+                    break;
+                case 10:
+                    pScenario->pictureInfo.depth = 10;
+                    break;
+                case 12:
+                    pScenario->pictureInfo.depth = 12;
+                    break;
+                default:
+                case 0:
+                    pScenario->pictureInfo.depth = 0;
+                    break;
+            }
+        }
+    }
+    else if (!strcmp(name, "sampling"))
+    {
+        if (sscanf(value, "%d", &v))
+        {
+            switch (v)
+            {
+                case 420:
+                    pScenario->pictureInfo.sampling = 420;
+                    break;
+                case 422:
+                    pScenario->pictureInfo.sampling = 422;
+                    break;
+                default:
+                case 444:
+                    pScenario->pictureInfo.sampling = 444;
+                    break;
+            }
+        }
+    }
+    else if (!strcmp(name, "luminance.gfx.max"))
+    {
+        if (sscanf(value, "%d", &v))
+        {
+            pScenario->gfxLuminance.max = v;
+        }
+    }
+    else if (!strcmp(name, "luminance.gfx.min"))
+    {
+        if (sscanf(value, "%d", &v))
+        {
+            pScenario->gfxLuminance.min = v;
+        }
+    }
+    else if (!strcmp(name, "playmode"))
+    {
+        if (!strcasecmp(value, "default"))
+        {
+            pScenario->playMode = PlatformPlayMode_eDefault;
+        }
+        else if (!strcasecmp(value, "loop"))
+        {
+            pScenario->playMode = PlatformPlayMode_eLoop;
+        }
+        else if (!strcasecmp(value, "once"))
+        {
+            pScenario->playMode = PlatformPlayMode_eOnce;
+        }
+        else
+        {
+            pScenario->playMode = (PlatformPlayMode)strtoul(value, NULL, 0);
+        }
+    }
+    else if (!strcmp(name, "format"))
+    {
+        const char * scan = strchr(value, 'p');
+        if (!scan) scan = strchr(value, 'i');
+        if (scan)
+        {
+            pScenario->pictureInfo.format.height = atoi(value);
+            if (*scan == 'i') pScenario->pictureInfo.format.interlaced = true;
+            else pScenario->pictureInfo.format.interlaced = false;
+            scan++;
+            if (!strcmp(scan, "23.976"))
+            {
+                pScenario->pictureInfo.format.rate = 24;
+                pScenario->pictureInfo.format.dropFrame = true;
+            }
+            else if (!strcmp(scan, "24"))
+            {
+                pScenario->pictureInfo.format.rate = 24;
+                pScenario->pictureInfo.format.dropFrame = false;
+            }
+            else if (!strcmp(scan, "25"))
+            {
+                pScenario->pictureInfo.format.rate = 25;
+                pScenario->pictureInfo.format.dropFrame = false;
+            }
+            else if (!strcmp(scan, "29.97"))
+            {
+                pScenario->pictureInfo.format.rate = 30;
+                pScenario->pictureInfo.format.dropFrame = true;
+            }
+            else if (!strcmp(scan, "30"))
+            {
+                pScenario->pictureInfo.format.rate = 30;
+                pScenario->pictureInfo.format.dropFrame = false;
+            }
+            else if (!strcmp(scan, "50"))
+            {
+                pScenario->pictureInfo.format.rate = 50;
+                pScenario->pictureInfo.format.dropFrame = false;
+            }
+            else if (!strcmp(scan, "59.94"))
+            {
+                pScenario->pictureInfo.format.rate = 60;
+                pScenario->pictureInfo.format.dropFrame = true;
+            }
+            else if (!strcmp(scan, "60"))
+            {
+                pScenario->pictureInfo.format.rate = 60;
+                pScenario->pictureInfo.format.dropFrame = false;
+            }
+        }
+        else
+        {
+            pScenario->pictureInfo.format.height=1080;
+            pScenario->pictureInfo.format.interlaced=false;
+            pScenario->pictureInfo.format.rate=60;
+            pScenario->pictureInfo.format.dropFrame=false;
+        }
+    }
     else
     {
-        printf("scenario_player: unrecognized variable name: '%s', ignored\n", name);
+        result = -ERR_NOT_FOUND;
     }
+    return result;
 }
 
-static void scenario_player_p_handle_nvp(void * ctx, const char * name, const char * value)
+static int scenario_player_p_handle_nvp(void * ctx, const char * name, const char * value)
 {
     ScenarioPlayerHandle player = ctx;
+    int result = 0;
 
     assert(player);
+
+    if (player->aborted) { return -1; }
 
     if (value)
     {
         /* set variable */
-        scenario_player_p_set_variable(player, name, value);
+        result = scenario_player_p_set_variable(player, name, value);
     }
     else
     {
         /* other command */
-        scenario_player_p_handle_command(player, name);
+        result = scenario_player_p_handle_command(player, name);
     }
+
+    if (result == -ERR_NOT_FOUND && player->createSettings.unrecognizedSyntax.callback)
+    {
+        result = player->createSettings.unrecognizedSyntax.callback(player->createSettings.unrecognizedSyntax.context, name, value);
+        if (result < 0)
+        {
+            switch (result)
+            {
+                case -ERR_NOT_FOUND:
+                    printf("Unrecognized scenario syntax: '%s %s'\n", name, value);
+                    break;
+                default:
+                    player->aborted = true;
+                    break;
+            }
+        }
+    }
+
+    return result;
 }
 
 void scenario_player_p_play_scenario(ScenarioPlayerHandle player, Scenario * pScenario, const char * path)
@@ -444,43 +584,45 @@ void scenario_player_p_play_scenario(ScenarioPlayerHandle player, Scenario * pSc
     name_value_file_parser_parse(parser);
 
     /* commit always at end so that explicit commit is not required */
-    scenario_player_p_commit_scenario(player);
-    printf("scenario_player: completed scenario '%s'\n", path);
+    if (!player->aborted)
+    {
+        scenario_player_p_commit_scenario(player);
+        printf("scenario_player: completed scenario '%s'\n", path);
+    }
+    else
+    {
+        printf("scenario_player: aborted scenario '%s'\n", path);
+    }
     player->pScenario = NULL;
 }
 
-static const char * const EXIT_SCENARIO = "exit.txt";
+const char * SCENARIO_PLAYER_EXIT_SCENARIO_NAME = "exit";
 
-void scenario_player_play_scenario(ScenarioPlayerHandle player, int scenarioNumber)
+int scenario_player_play_scenario(ScenarioPlayerHandle player, const char * scenarioName)
 {
+    int result = 0;
     Scenario scenario;
     const char * path;
-    char name[32];
+    char * fullname;
     unsigned i;
 
     assert(player);
 
+    player->aborted = false;
+
+    fullname = malloc(strlen(scenarioName) + 4 + 1);
+    if (!fullname) { printf("scenario_player: out of memory\n"); result = -ERR_OOM; goto end; }
+    strcpy(fullname, scenarioName);
+    strcat(fullname, ".txt");
+
     memset(&scenario, 0, sizeof(scenario));
 
-    switch (scenarioNumber)
+    path = file_manager_find(player->createSettings.filer, fullname);
+    if (!path)
     {
-        case SCENARIO_PLAYER_RESET:
-            printf("scenario player: reset\n");
-            player->pScenario = &scenario;
-            scenario_player_p_handle_reset(player);
-            player->pScenario = NULL;
-            return;
-            break;
-        case SCENARIO_PLAYER_EXIT:
-            printf("scenario player: exit\n");
-            snprintf(name, 32, EXIT_SCENARIO);
-            break;
-        default:
-            snprintf(name, 32, "%d.txt", scenarioNumber);
-            break;
+        if (strcmp(scenarioName, SCENARIO_PLAYER_EXIT_SCENARIO_NAME)) result = -ERR_NOT_FOUND;
+        goto end;
     }
-    path = file_manager_find(player->createSettings.filer, name);
-    if (!path) { if (strcmp(name, EXIT_SCENARIO)) printf("scenario_player: NULL path returned for scenario\n"); return; }
     scenario_player_p_play_scenario(player, &scenario, path);
 
     /* TODO: cache scenarios */
@@ -490,4 +632,19 @@ void scenario_player_play_scenario(ScenarioPlayerHandle player, int scenarioNumb
     {
         if (scenario.streamPaths[i]) free(scenario.streamPaths[i]);
     }
+    if (player->aborted)
+    {
+        player->pScenario = &scenario;
+        scenario_player_p_reset(player);
+        player->pScenario = NULL;
+        result = -ERR_ABORT;
+    }
+end:
+    return result;
+}
+
+void scenario_player_abort(ScenarioPlayerHandle player)
+{
+    assert(player);
+    player->aborted = true;
 }

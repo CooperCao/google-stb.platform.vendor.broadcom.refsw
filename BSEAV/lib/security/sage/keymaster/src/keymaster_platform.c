@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "keymaster_platform.h"
 
@@ -79,8 +80,14 @@ static BERR_Code Keymaster_P_WriteFile(const char * filename, uint8_t *buffer,
 static BERR_Code Keymaster_P_TA_Install(char * ta_bin_filename);
 static ChipType_e Keymaster_P_GetChipType(void);
 
-#define KEYMASTER_TA_NAME_PRODUCTION  "./sage_ta_keymaster.bin"
-#define KEYMASTER_TA_NAME_DEVELOPMENT "./sage_ta_keymaster_dev.bin"
+#ifdef ANDROID
+#define KEYMASTER_TA_PATH "/vendor/bin"
+#else
+#define KEYMASTER_TA_PATH "."
+#endif
+
+#define KEYMASTER_TA_NAME_PRODUCTION  "sage_ta_keymaster.bin"
+#define KEYMASTER_TA_NAME_DEVELOPMENT "sage_ta_keymaster_dev.bin"
 
 
 BERR_Code
@@ -95,7 +102,7 @@ Keymaster_ModuleInit(Keymaster_ModuleId_e module_id,
     BERR_Code sage_rc = BERR_SUCCESS;
     SRAI_ModuleHandle tmpModuleHandle = NULL;
 #if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
-    char * ta_bin_filename;
+    char ta_bin_filename[256];
 #endif
     BDBG_ENTER(Keymaster_ModuleInit);
 
@@ -122,11 +129,30 @@ Keymaster_ModuleInit(Keymaster_ModuleId_e module_id,
     if(platformHandle == NULL)
     {
 #if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
+        char *path = NULL;
+
+        path = getenv("SAGEBIN_PATH");
+        if (!path)
+        {
+            path = KEYMASTER_TA_PATH;
+        }
 
         if(Keymaster_P_GetChipType() == ChipType_eZS)
-            ta_bin_filename = KEYMASTER_TA_NAME_DEVELOPMENT;
-        else
-            ta_bin_filename = KEYMASTER_TA_NAME_PRODUCTION;
+        {
+            if (snprintf(ta_bin_filename, sizeof(ta_bin_filename), "%s/%s", path, KEYMASTER_TA_NAME_DEVELOPMENT) > (int)sizeof(ta_bin_filename))
+            {
+                BDBG_ERR(("%s: path too long", BSTD_FUNCTION));
+                rc = BERR_INVALID_PARAMETER;
+                goto ErrorExit;
+            }
+        } else {
+            if (snprintf(ta_bin_filename, sizeof(ta_bin_filename), "%s/%s", path, KEYMASTER_TA_NAME_PRODUCTION) > (int)sizeof(ta_bin_filename))
+            {
+                BDBG_ERR(("%s: path too long", BSTD_FUNCTION));
+                rc = BERR_INVALID_PARAMETER;
+                goto ErrorExit;
+            }
+        }
 
         sage_rc = Keymaster_P_TA_Install(ta_bin_filename);
 
@@ -506,8 +532,8 @@ static BERR_Code Keymaster_P_WriteFile(const char * filename, uint8_t *buffer,
     fptr = fopen(filename, "w+b");
     if(fptr == NULL)
     {
-        BDBG_ERR(("%s - Error opening file (%s) in 'w+b' mode.  '%s'", BSTD_FUNCTION, filename, strerror(errno)));
-        rc = BERR_OS_ERROR;
+        BDBG_WRN(("%s - Error opening file (%s) in 'w+b' mode.  '%s'", BSTD_FUNCTION, filename, strerror(errno)));
+        rc = BERR_SUCCESS;
         goto ErrorExit;
     }
 
@@ -544,7 +570,7 @@ static BERR_Code Keymaster_P_TA_Install(char * ta_bin_filename)
     rc = Keymaster_P_GetFileSize(ta_bin_filename, &file_size);
     if(rc != BERR_SUCCESS)
     {
-        BDBG_LOG(("%s - Error determine file size of TA bin file", BSTD_FUNCTION));
+        BDBG_ERR(("%s - Error determine file size of TA bin file", BSTD_FUNCTION));
         goto ErrorExit;
     }
 

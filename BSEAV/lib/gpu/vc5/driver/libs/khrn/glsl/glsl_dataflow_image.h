@@ -9,8 +9,6 @@
 
 EXTERN_C_BEGIN
 
-Dataflow *glsl_dataflow_image_pack_data(FormatQualifier f, Dataflow *data[4]);
-
 GLenum glsl_fmt_qualifier_to_gl_enum(FormatQualifier fmt_qual);
 void glsl_calculate_dataflow_image_atomic(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr);
 

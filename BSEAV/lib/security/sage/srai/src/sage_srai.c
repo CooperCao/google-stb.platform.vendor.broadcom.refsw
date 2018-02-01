@@ -1820,7 +1820,7 @@ _srai_is_sdl_valid(
 
     BDBG_ASSERT(sizeof(pHeader->ucSsfVersion) == sizeof(status.framework.version));
 
-    sdlTHLSigShort = *((uint32_t *)(pHeader->ucSsfThlShortSig));
+    BKNI_Memcpy(&sdlTHLSigShort, pHeader->ucSsfThlShortSig, sizeof(sdlTHLSigShort));
 
     if (sdlTHLSigShort != 0) {
         rc = (sdlTHLSigShort == status.framework.THLShortSig);
@@ -1853,8 +1853,30 @@ _srai_is_sdl_valid(
             goto end;
         }
     } else {
+        bool isAlphaSSF = (status.framework.version[2] == 0) && (status.framework.version[3] != 0);
+        bool isAlphaSDK = (pHeader->ucSsfVersion[2] == 0) && (pHeader->ucSsfVersion[3] != 0);
         BDBG_MSG(("%s: SDL THL zero signature indicates Load-Time-Resolution", BSTD_FUNCTION));
-        rc = true;
+        /* Check that any Alpha SSFs are matched with their SDLs and SDLs built from Alpha SDKs are matched with their SSF */
+        if (isAlphaSSF || isAlphaSDK) {
+            rc = (BKNI_Memcmp(pHeader->ucSsfVersion, status.framework.version, sizeof(status.framework.version)) == 0);
+            if (rc != true) {
+                if (isAlphaSSF) {
+                    BDBG_ERR(("%s: The SAGE Alpha Framework does not match the SDK version (%u.%u.%u.%u) of the TA",
+                              BSTD_FUNCTION,
+                              pHeader->ucSsfVersion[0], pHeader->ucSsfVersion[1],
+                              pHeader->ucSsfVersion[2], pHeader->ucSsfVersion[3]));
+                }
+                else {
+                    BDBG_ERR(("%s: The SAGE TA's Alpha SDK version (%u.%u.%u.%u) does not match the Framework",
+                              BSTD_FUNCTION,
+                              pHeader->ucSsfVersion[0], pHeader->ucSsfVersion[1],
+                              pHeader->ucSsfVersion[2], pHeader->ucSsfVersion[3]));
+                }
+                goto end;
+            }
+        } else {
+            rc = true;
+        }
     }
 end:
     return rc;
@@ -2095,8 +2117,22 @@ BERR_Code SRAI_Platform_Install(uint32_t platformId,
 
     BDBG_MSG(("%s Output Status %d \n",BSTD_FUNCTION,container->basicOut[0]));
 
-    if((rc == BERR_SUCCESS) || (container->basicOut[0] == BSAGE_ERR_SDL_ALREADY_LOADED))
-        rc = BERR_SUCCESS;
+    /* If RPC layer had no errors, then pass on the LoadSDL command response error, if applicable */
+    if (rc == BERR_SUCCESS) {
+        switch (container->basicOut[0]) {
+        case BSAGE_ERR_SDL_ALREADY_LOADED:
+        case BERR_SUCCESS:
+            /* Leave rc as success */
+            break;
+        default:
+            BDBG_ERR(("%s: SAGE failed to Load TA, (rc=0x%08x, %s)", BSTD_FUNCTION, container->basicOut[0], BSAGElib_Tools_ReturnCodeToString(container->basicOut[0])));
+            rc = container->basicOut[0];
+            break;
+        }
+    }
+    if (rc != BERR_SUCCESS) {
+        goto end;
+    }
 
     if(platformId != BSAGE_PLATFORM_ID_SECURE_LOGGING
     && platformId != BSAGE_PLATFORM_ID_SYSTEM

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -82,6 +82,8 @@ typedef enum BIP_HttpStreamerState
     BIP_HttpStreamerState_eIdle,                        /* Idle state: streamer object is either just created or is just stopped. */
     BIP_HttpStreamerState_eSetupComplete,               /* Transitional state when HttpStreamer_Start is called before we switch to WaitingForProcessRequestApi. */
     BIP_HttpStreamerState_eWaitingForProcessRequestApi, /* Input, Output, ResponseHeaders are all prepared, now waiting for caller to call ProcessRequest(). */
+    BIP_HttpStreamerState_eWaitingForClientAke,         /* During ProcessRequest() processing, if DTCP/IP is enabled, client hasn't yet completed AKE and thus we are waiting for that completion. */
+    BIP_HttpStreamerState_eStartStreaming,              /* Transitional state indicating that streaming can now be started. State is entered when we successfully exit from WaitingForClientAke state. */
     BIP_HttpStreamerState_eStreaming,                   /* Streamer is now streaming the media. */
     BIP_HttpStreamerState_eStreamingDone,               /* Transitional state: Streamer is now done streaming the media and letting us know via the callback. */
     BIP_HttpStreamerState_eWaitingForStopApi,           /* Streamer reached either EOF or an Error, notified endOfStreaming Callback to app and now waiting for Stop(). */
@@ -112,6 +114,8 @@ typedef struct BIP_HttpStreamer
     BIP_HttpStreamerSettings                    settings;
     BIP_HttpStreamerStartSettings               startSettings;
     BIP_HttpStreamerProcessRequestSettings      processRequestSettings;
+    bool                                        sendPayload;
+    bool                                        successfullResponseSent;
 
     batom_factory_t                             atomFactory;
     batom_pipe_t                                atomPipe;
@@ -126,6 +130,15 @@ typedef struct BIP_HttpStreamer
     bool                                        inactivityTimerActive;
     B_Time                                      inactivityTimerStartTime;
     bool                                        inactivityTimerExpired;
+
+#define BIP_HTTP_STREAMER_DTCP_IP_AKE_TIMER_POLL_INTERVAL_IN_MSEC 100
+    BIP_TimerHandle                             hDtcpIpAkeTimer;                        /* Timer to periodically check the AKE status from the client. */
+    bool                                        dtcpIpAkeTimerActive;
+    B_Time                                      dtcpIpAkeTimerStartTime;
+    bool                                        dtcpIpAkeTimeNoted;
+    B_Time                                      dtcpIpAkeTimerInitialTime;
+    BIP_HttpSocketStatus                        httpSocketStatus;
+    BIP_DtcpIpServerStreamHandle                hDtcpIpServerStream;
 
     struct
     {
@@ -152,6 +165,7 @@ typedef struct BIP_HttpStreamer
         BIP_HttpSocketHandle                    hHttpSocket;
         BIP_CallbackDesc                        requestProcessedCallback;
         BIP_HttpStreamerProcessRequestSettings  settings;
+        bool                                    callbackIssued;
     } processRequest;
     BIP_HttpStreamerRequestInfo                 pendingRequest;
 
@@ -299,6 +313,8 @@ typedef struct BIP_HttpStreamer
     (pObj)->state==BIP_HttpStreamerState_eIdle                  ? "Idle"                            :   \
     (pObj)->state==BIP_HttpStreamerState_eSetupComplete         ? "SetupComplete"                   :   \
     (pObj)->state==BIP_HttpStreamerState_eWaitingForProcessRequestApi ? "WaitingForProcessReqApi"   :   \
+    (pObj)->state==BIP_HttpStreamerState_eWaitingForClientAke   ? "WaitingForClientAke"             :   \
+    (pObj)->state==BIP_HttpStreamerState_eStartStreaming        ? "StartStreaming"                  :   \
     (pObj)->state==BIP_HttpStreamerState_eStreaming             ? "Streaming"                       :   \
     (pObj)->state==BIP_HttpStreamerState_eStreamingDone         ? "StreamingDone"                   :   \
     (pObj)->state==BIP_HttpStreamerState_eWaitingForStopApi     ? "WaitingForStopApi"               :   \

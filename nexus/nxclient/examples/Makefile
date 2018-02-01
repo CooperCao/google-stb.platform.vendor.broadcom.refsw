@@ -41,15 +41,18 @@ APPS = \
     alloc \
     audio_description \
     avs_status \
+    backend_mosaic \
     cec \
     client \
     cloned_memory \
+    decode_source_clip \
     dma \
     playback \
     playback_gui_only \
     playback_decode_only \
     playback_dualaudio \
     playback_pip \
+    playback_startpts \
     tune_qam \
     hddvi \
     display_vbi \
@@ -59,10 +62,16 @@ APPS = \
     shared_handle \
     smooth_video \
     stats_client \
-    status_client
+    status_client \
+    transcode \
+    transcode_programchange
 
 ifeq ($(shell test -f audio_ms12_mixing.c && echo y),y)
 APPS += audio_ms12_mixing
+endif
+
+ifeq ($(shell test -f audio_presentation.c && echo y),y)
+APPS += audio_presentation
 endif
 
 all: $(APPS)

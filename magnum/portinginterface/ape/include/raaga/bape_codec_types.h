@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -674,6 +674,7 @@ typedef struct BAPE_Ac3Status
     BAPE_Ac3DependentFrameChannelMap dependentFrameChannelMap;  /* Dependent Frame channel map for 7.1 streams */
     unsigned                    dialnorm;               /* Current Dialog Normalization value - Possible range 0 to 31 which corresponds to 0 to -31 dB level. */
     unsigned                    previousDialnorm;       /* Previous Dialog Normalization value - Possible range 0 to 31 which corresponds to 0 to -31 dB level. */
+    bool                        atmosDetected;          /* Returns true if atmos metadata is detected.  MS10/11 always returns false */
 } BAPE_Ac3Status;
 
 typedef enum BAPE_Ac4Acmod
@@ -724,6 +725,7 @@ typedef struct BAPE_Ac4Status
     unsigned numPresentations;                                         /* Identifies the number of presentations present in compressed bitstream.
                                                                            Values greater than NEXUS_AUDIO_AC4_MAX_PRESENTATIONS should be ignored. */
     unsigned currentPresentationIndex;                                 /* Index to the current Presentation that is being decoded. */
+    unsigned currentAlternateStereoPresentationIndex;                  /* Index to the current Presentation that is being decoded for alternate stereo. */
     char currentPresentationId[BAPE_AC4_PRESENTATION_ID_LENGTH];    /* Id of the current Presentation that is being decoded. */
     unsigned dialogEnhanceMax;                                         /* Specifies the maximum value that will be honored as
                                                                           a Dialog Enhance Amount Value. Possible range 0 to 12.

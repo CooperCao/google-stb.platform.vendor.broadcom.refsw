@@ -88,7 +88,9 @@ BERR_Code BBOX_P_Vdc_SetSourceLimits
       uint32_t                      ulHeight,
       BBOX_Vdc_Colorspace           eColorSpace,
       BBOX_Vdc_Bpp                  eBpp,
-      bool                          bCompressed );
+      bool                          bCompressed,
+      BBOX_Vdc_SourceRateLimit      eRate,
+      BBOX_Vdc_SourceClass          eClass );
 
 BERR_Code BBOX_P_Vdc_SetDisplayLimits
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap,
@@ -111,7 +113,8 @@ BERR_Code BBOX_P_Vdc_SetWindowLimits
       BBOX_Vdc_Resource_Scaler       eScl,
       uint32_t                       ulWinWidthFraction,
       uint32_t                       ulWinHeightFraction,
-      BBOX_Vdc_SclCapBias            eSclCapBias );
+      BBOX_Vdc_SclCapBias            eSclCapBias,
+      BBOX_Vdc_WindowClass           eClass );
 
 BERR_Code BBOX_P_Vdc_SetDeinterlacerLimits
     ( BBOX_Vdc_Deinterlacer_Capabilities *pDeinterlacerCap,
@@ -153,7 +156,9 @@ BERR_Code BBOX_P_Vdc_ResetXcodeLimits
     BBOX_VDC_DISREGARD, \
     BBOX_Vdc_Colorspace_eDisregard, \
     BBOX_Vdc_Bpp_eDisregard, \
-    false )
+    false, \
+    BBOX_Vdc_SourceRateLimit_e60Hz, \
+    BBOX_Vdc_SourceClass_eLegacy)
 
 #define BBOX_P_VDC_SET_LEGACY_DISPLAY_LIMIT( capabilities, display, mosaicClass ) BBOX_P_Vdc_SetDisplayLimits( \
     capabilities, \
@@ -176,7 +181,8 @@ BERR_Code BBOX_P_Vdc_ResetXcodeLimits
     BBOX_VDC_DISREGARD, \
     BBOX_VDC_DISREGARD, \
     BBOX_VDC_DISREGARD, \
-    BBOX_Vdc_SclCapBias_eDisregard )
+    BBOX_Vdc_SclCapBias_eDisregard, \
+    BBOX_Vdc_WindowClass_eLegacy)
 
 #define BBOX_P_VDC_SET_LEGACY_DEINTERLACER_LIMIT( capabilities, id )   BBOX_P_Vdc_SetDeinterlacerLimits( \
     capabilities, \
@@ -190,7 +196,7 @@ BERR_Code BBOX_P_Vdc_ResetXcodeLimits
     BBOX_VDC_DISREGARD, \
     BBOX_VDC_DISREGARD )
 
-#define BBOX_P_VDC_SET_SRC_LIMIT( capabilities, src, mtg, width, height, colorspace, bpp, compressed ) BBOX_P_Vdc_SetSourceLimits( \
+#define BBOX_P_VDC_SET_SRC_CLASS_LIMIT( capabilities, src, mtg, width, height, colorspace, bpp, compressed, rate, eClass ) BBOX_P_Vdc_SetSourceLimits( \
     capabilities, \
     BAVC_SourceId_e##src, \
     BBOX_P_VDC_##mtg, \
@@ -198,7 +204,12 @@ BERR_Code BBOX_P_Vdc_ResetXcodeLimits
     height, \
     BBOX_Vdc_Colorspace_e##colorspace, \
     BBOX_Vdc_Bpp_e##bpp, \
-    compressed )
+    compressed, \
+    BBOX_Vdc_SourceRateLimit_e##rate, \
+    BBOX_Vdc_SourceClass_e##eClass )
+
+#define BBOX_P_VDC_SET_SRC_LIMIT( capabilities, src, mtg, width, height, colorspace, bpp, compressed ) \
+    BBOX_P_VDC_SET_SRC_CLASS_LIMIT( capabilities, src, mtg, width, height, colorspace, bpp, compressed, 60Hz, Legacy )
 
 #define BBOX_P_VDC_SET_DISPLAY_LIMIT( capabilities, id, fmt, hdmiFmt, stgId, encId, encChan, mosaicClass )  BBOX_P_Vdc_SetDisplayLimits( \
     capabilities, \
@@ -210,7 +221,7 @@ BERR_Code BBOX_P_Vdc_ResetXcodeLimits
     BBOX_Vdc_EncoderChannelId_e##encChan, \
     BBOX_Vdc_MosaicModeClass_e##mosaicClass )
 
-#define BBOX_P_VDC_SET_WINDOW_LIMIT( capabilities, displayId, winId, mad, srcSideDeinterlace, cap, vfd, scl, width, height, sclCapBias )  BBOX_P_Vdc_SetWindowLimits( \
+#define BBOX_P_VDC_SET_WINDOW_CLASS_LIMIT( capabilities, displayId, winId, mad, srcSideDeinterlace, cap, vfd, scl, width, height, sclCapBias, eClass )  BBOX_P_Vdc_SetWindowLimits( \
     capabilities, \
     BBOX_Vdc_Display_e##displayId, \
     BBOX_Vdc_Window_e##winId, \
@@ -221,7 +232,11 @@ BERR_Code BBOX_P_Vdc_ResetXcodeLimits
     BBOX_Vdc_Resource_Scaler_e##scl, \
     width, \
     height, \
-    BBOX_Vdc_SclCapBias_e##sclCapBias )
+    BBOX_Vdc_SclCapBias_e##sclCapBias, \
+    BBOX_Vdc_WindowClass_e##eClass)
+
+#define BBOX_P_VDC_SET_WINDOW_LIMIT( capabilities, displayId, winId, mad, srcSideDeinterlace, cap, vfd, scl, width, height, sclCapBias ) \
+    BBOX_P_VDC_SET_WINDOW_CLASS_LIMIT( capabilities, displayId, winId, mad, srcSideDeinterlace, cap, vfd, scl, width, height, sclCapBias, Legacy )
 
 #define BBOX_P_VDC_SET_DEINTERLACER_LIMIT( capabilities, id, width, height, hsclThreshold )  BBOX_P_Vdc_SetDeinterlacerLimits( \
     capabilities, \

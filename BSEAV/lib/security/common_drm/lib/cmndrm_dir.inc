@@ -82,3 +82,20 @@ endif
 ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),4)
 CMNDRM_DIR := Zeus4x/${BUILD_MODE}
 endif
+
+ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
+CMNDRM_DIR := Zeus5x/${BUILD_MODE}
+endif
+
+# Assist applications with linking with libcmndrm[64].so and libcmndrm_tl
+B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
+
+ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH}) # Link to out-of-source non-SAGE common_drm library based on arch
+COMMON_DRM_LIB_LDFLAGS := -lcmndrm64 -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/lib/${CMNDRM_DIR}
+else
+COMMON_DRM_LIB_LDFLAGS := -lcmndrm -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/lib/${CMNDRM_DIR}
+endif # B_REFSW_ARCH
+
+ifeq ($(SAGE_SUPPORT),y)
+COMMON_DRM_LIB_LDFLAGS += -lcmndrm_tl -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/lib/${CMNDRM_DIR}
+endif

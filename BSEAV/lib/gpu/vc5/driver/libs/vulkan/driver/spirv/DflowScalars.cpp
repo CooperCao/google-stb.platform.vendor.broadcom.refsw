@@ -218,6 +218,67 @@ void DflowScalars::CreateBufferVecLoadDataflow(
    }
 }
 
+static bool ClashingStores(Dataflow *df, const BasicBlockHandle &block)
+{
+   assert(df->flavour == DATAFLOW_VECTOR_LOAD);
+
+   Dataflow *ldAddress = df->d.unary_op.operand;
+
+   // If it's not a raw address then we have no way of knowing if it clashes
+   // with anything
+   if (ldAddress->flavour != DATAFLOW_ADDRESS)
+      return true;
+
+   Dataflow *ldBuffer = ldAddress->d.unary_op.operand;
+
+   for (Dataflow *store = block->GetMemoryAccessChain(); store != nullptr; store = store->d.addr_store.prev)
+   {
+      Dataflow *stAddress = store->d.addr_store.addr;
+
+      // If it's not a raw address then all bets are off
+      if (stAddress->flavour != DATAFLOW_ADDRESS)
+         return true;
+
+      Dataflow *stBuffer = stAddress->d.unary_op.operand;
+
+      // If the store is accessing the same buffer then assume a clash
+      // This is clearly overcautious and could be relaxed by looking at the
+      // regions being affected (give or take a vec4 offset)
+      if (stBuffer->u.buffer.index == ldBuffer->u.buffer.index)
+         return true;
+   }
+
+   return false;
+}
+
+// Large data copies don't rescheule well as the back-end has no information
+// on potential aliasing between memory blocks
+static Dataflow *RetimeLoad(Dataflow **oldLoad, Dataflow **newLoad, Dataflow *dflow, const BasicBlockHandle &block)
+{
+   Dataflow *result = dflow;
+
+   // Look for special case of a direct store of a load which covers the
+   // OpCopyMemory array case, but is not a general solution to reordering
+   // memory operations
+   if (dflow->flavour == DATAFLOW_GET_VEC4_COMPONENT)
+   {
+      Dataflow *df = dflow->d.dependencies[0];
+
+      if (df->flavour == DATAFLOW_VECTOR_LOAD && !ClashingStores(df, block))
+      {
+         if (df != *oldLoad)
+         {
+            *newLoad = glsl_dataflow_construct_vector_load(df->type, df->d.dependencies[0]);
+            *oldLoad = df;
+         }
+
+         result = glsl_dataflow_construct_get_vec4_component(dflow->u.get_vec4_component.component_index, *newLoad, dflow->type);
+      }
+   }
+
+   return result;
+}
+
 void DflowScalars::CreateBufferVecStoreDataflow(
    BufferStoreData *data, const MemAccess &access,
    const Dflow &dynOffset, uint32_t descTableIndex,
@@ -229,7 +290,14 @@ void DflowScalars::CreateBufferVecStoreDataflow(
    // Build the vector to store
    DflowScalars vec(data->GetData().GetBuilder(), 4);
    for (uint32_t i = 0; i < access.GetSize(); i++)
-      vec[i] = data->Pop();
+   {
+      Dataflow *dflow    = data->Pop();
+      Dataflow *load     = nullptr;
+      Dataflow *prevLoad = nullptr;
+
+      // Maybe pull loads forward in time or just return dflow
+      vec[i] = RetimeLoad(&load, &prevLoad, dflow, data->GetBlock());
+   }
 
    // Flush out the store
    Dflow::Atomic(DATAFLOW_ADDRESS_STORE, DF_VOID, addr, Dflow::Vec4(vec), data->GetBlock());
@@ -343,50 +411,34 @@ DflowScalars DflowScalars::ImageSampler(
    assert(elemSize == 1 || elemSize == 2);
 
    DflowScalars result = DflowScalars(builder, numScalars);
-   uint32_t     resIx  = 0;
 
-   // Combined image sampler?
-   if (elemSize == 2)
+   for (uint32_t i = 0; i < numElems; i++)
    {
-      for (uint32_t i = 0; i < numElems; ++i)
-      {
-         DescriptorInfo descInfo(descriptorSet, binding, i);
+      DescriptorInfo descInfo(descriptorSet, binding, i);
 
+      // Combined image sampler?
+      if (elemSize == 2)
+      {
          uint32_t imgTableIndex = builder.GetDescriptorMaps().FindImageEntry(descInfo);
-         result.m_scalars[resIx] = Dflow::Uniform(type.ToDataflowType(0), imgTableIndex);
-         ids[resIx] = imgTableIndex;
-         resIx++;
+         result.m_scalars[i] = Dflow::Uniform(type.ToDataflowType(0), imgTableIndex);
+         ids[i] = imgTableIndex;
 
          uint32_t samplerTableIndex = builder.GetDescriptorMaps().FindSamplerEntry(descInfo);
-         result.m_scalars[resIx] = Dflow::Uniform(DF_SAMPLER, samplerTableIndex);
-         ids[resIx] = samplerTableIndex;
-         resIx++;
+         result.m_scalars[numElems + i] = Dflow::Uniform(DF_SAMPLER, samplerTableIndex);
+         ids[numElems + i] = samplerTableIndex;
       }
-   }
-   // Sampler?
-   else if (elemType.IsSampler())
-   {
-      for (uint32_t i = 0; i < numElems; ++i)
+      else if (elemType.IsSampler())
       {
-         DescriptorInfo descInfo(descriptorSet, binding, i);
-
          uint32_t descTableIndex = builder.GetDescriptorMaps().FindSamplerEntry(descInfo);
-         result.m_scalars[resIx] = Dflow::Uniform(DF_SAMPLER, descTableIndex);
-         ids[resIx] = descTableIndex;
-         resIx++;
+         result.m_scalars[i] = Dflow::Uniform(DF_SAMPLER, descTableIndex);
+         ids[i] = descTableIndex;
       }
-   }
-   // Should be an image
-   else
-   {
-      for (uint32_t i = 0; i < numElems; ++i)
+      else
       {
-         DescriptorInfo descInfo(descriptorSet, binding, i);
-
+         // Should be an image
          uint32_t descTableIndex = builder.GetDescriptorMaps().FindImageEntry(descInfo);
-         result.m_scalars[resIx] = Dflow::Uniform(type.ToDataflowType(0), descTableIndex);
-         ids[resIx] = descTableIndex;
-         resIx++;
+         result.m_scalars[i] = Dflow::Uniform(type.ToDataflowType(0), descTableIndex);
+         ids[i] = descTableIndex;
       }
    }
 

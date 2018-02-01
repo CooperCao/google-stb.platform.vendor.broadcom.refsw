@@ -37,6 +37,14 @@ static const struct intrinsic_info_s intrinsic_info[INTRINSIC_COUNT] = {
    { INTRINSIC_FPACK,          "fpack"          },
    { INTRINSIC_FUNPACKA,       "funpacka"       },
    { INTRINSIC_FUNPACKB,       "funpackb"       },
+   { INTRINSIC_PACKUNORM2X16,  "packunorm2x16"  },
+   { INTRINSIC_PACKSNORM2X16,  "packsnorm2x16"  },
+   { INTRINSIC_PACKUNORM4X8,   "packunorm4x8"   },
+   { INTRINSIC_PACKSNORM4X8,   "packsnorm4x8"   },
+   { INTRINSIC_UNPACKUNORM2X16,"unpackunorm2x16"},
+   { INTRINSIC_UNPACKSNORM2X16,"unpacksnorm2x16"},
+   { INTRINSIC_UNPACKUNORM4X8, "unpackunorm4x8" },
+   { INTRINSIC_UNPACKSNORM4X8, "unpacksnorm4x8" },
    { INTRINSIC_SIN,            "sin"            },
    { INTRINSIC_COS,            "cos"            },
    { INTRINSIC_TAN,            "tan"            },
@@ -237,6 +245,26 @@ static void validate_intrinsic(glsl_intrinsic_index_t intrinsic, ExprChain *args
              glsl_prim_is_base_of_prim_type(args->first->next->expr->type, args->first->expr->type));
       break;
 
+   case INTRINSIC_PACKUNORM2X16:
+   case INTRINSIC_PACKSNORM2X16:
+      assert(args->count == 1);
+      assert(args->first->expr->type == &primitiveTypes[PRIM_VEC2]);
+      break;
+
+   case INTRINSIC_PACKUNORM4X8:
+   case INTRINSIC_PACKSNORM4X8:
+      assert(args->count == 1);
+      assert(args->first->expr->type == &primitiveTypes[PRIM_VEC4]);
+      break;
+
+   case INTRINSIC_UNPACKUNORM2X16:
+   case INTRINSIC_UNPACKSNORM2X16:
+   case INTRINSIC_UNPACKUNORM4X8:
+   case INTRINSIC_UNPACKSNORM4X8:
+      assert(args->count == 1);
+      assert(args->first->expr->type == &primitiveTypes[PRIM_UINT]);
+      break;
+
    case INTRINSIC_CLZ:
       /* genUtype <- intrinsic(genUType); */
       assert(args->count == 1);
@@ -327,6 +355,20 @@ static SymbolType *calculate_functionlike_intrinsic_return_type(glsl_intrinsic_i
    case INTRINSIC_FUNPACKA:
    case INTRINSIC_FUNPACKB:
       return glsl_prim_same_shape_type(defining_arg_type, PRIM_FLOAT);
+
+   case INTRINSIC_PACKUNORM2X16:
+   case INTRINSIC_PACKSNORM2X16:
+   case INTRINSIC_PACKUNORM4X8:
+   case INTRINSIC_PACKSNORM4X8:
+      return &primitiveTypes[PRIM_UINT];
+
+   case INTRINSIC_UNPACKUNORM2X16:
+   case INTRINSIC_UNPACKSNORM2X16:
+      return &primitiveTypes[PRIM_VEC2];
+
+   case INTRINSIC_UNPACKUNORM4X8:
+   case INTRINSIC_UNPACKSNORM4X8:
+      return &primitiveTypes[PRIM_VEC4];
 
    case INTRINSIC_ATOMIC_LOAD:
    case INTRINSIC_ATOMIC_ADD:

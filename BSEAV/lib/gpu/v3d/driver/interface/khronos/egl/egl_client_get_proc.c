@@ -1,7 +1,6 @@
 /******************************************************************************
 *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 ******************************************************************************/
-#include "interface/khronos/common/khrn_client_unmangle.h"
 #include "interface/khronos/include/GLES/gl.h"
 #include "interface/khronos/include/GLES/glext.h"
 #include "interface/khronos/include/GLES2/gl2.h"
@@ -17,10 +16,6 @@
 #include "interface/khronos/common/khrn_client.h"
 
 #include "interface/khronos/egl/egl_int_impl.h"
-
-#if defined(WIN32) || defined(__mips__)
-#include "interface/khronos/common/khrn_int_misc_impl.h"
-#endif
 
 #ifdef KHRONOS_EGL_PLATFORM_OPENWFC
 #include "interface/khronos/wf/wfc_client_stream.h"
@@ -45,14 +40,9 @@ static uint32_t hash_string(const char *s)
    return hash ^ (hash >> 16);
 }
 
-/* Mangle eglGetProcAddress */
-#include "interface/khronos/common/khrn_client_mangle.h"
-
 EGLAPI __eglMustCastToProperFunctionPointerType EGLAPIENTRY
    eglGetProcAddress(const char *procname)
 {
-/* Don't mangle the rest */
-#include "interface/khronos/common/khrn_client_unmangle.h"
    __eglMustCastToProperFunctionPointerType res = (__eglMustCastToProperFunctionPointerType)NULL;
    if (!procname)
       return res;

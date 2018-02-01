@@ -53,6 +53,9 @@ extern bool glxx_tex_target_is_multisample(GLenum target);
 
 extern bool glxx_tex_target_has_layers(enum glxx_tex_target target);
 extern bool glxx_tex_target_has_layers_or_faces(enum glxx_tex_target target);
+extern unsigned glxx_tex_target_num_dimensions(enum glxx_tex_target target);
+extern void glxx_tex_target_info(unsigned *dims, bool *is_cube, bool *is_array,
+      enum glxx_tex_target target);
 
 extern void glxx_choose_copy_format_from_unsized_internalformat(GLenum
       internalformat, GFX_LFMT_T src_lfmt, GFX_LFMT_T
@@ -92,4 +95,6 @@ void glxx_get_pack_unpack_info(const GLXX_PIXEL_STORE_STATE_T
 extern bool glxx_check_buffer_valid_access(const GLXX_BUFFER_T *pixel_buffer,
       const GFX_BUFFER_DESC_T *desc, size_t offset_1, size_t offset_2,
       unsigned num_array_elems, size_t array_pitch);
+
+
 #endif

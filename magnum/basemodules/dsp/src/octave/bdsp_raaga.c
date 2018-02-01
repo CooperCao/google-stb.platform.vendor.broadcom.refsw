@@ -181,8 +181,15 @@ BDSP_RaagaSettings *pSettings	   /* [out] */
     pRaaga->device.getDebugBuffer = BDSP_Raaga_P_GetDebugBuffer;
     pRaaga->device.consumeDebugData = BDSP_Raaga_P_ConsumeDebugData;
     pRaaga->device.getCoreDumpStatus = BDSP_Raaga_P_GetCoreDumpStatus;
-    pRaaga->device.getDownloadStatus= BDSP_Raaga_P_GetDownloadStatus;
+    pRaaga->device.getDownloadStatus = BDSP_Raaga_P_GetDownloadStatus;
     pRaaga->device.initialize = BDSP_Raaga_P_Initialize;
+
+#ifdef BDSP_RAAGA_DEBUG_SERVICE
+    pRaaga->device.runDebugService = BDSP_Raaga_P_RunDebugService;
+#else
+    pRaaga->device.runDebugService = NULL;
+#endif /* BDSP_RAAGA_DEBUG_SERVICE */
+
 #if !B_REFSW_MINIMAL
     pRaaga->device.getDefaultDatasyncSettings = BDSP_P_GetDefaultDatasyncSettings;
 #endif /*!B_REFSW_MINIMAL*/
@@ -340,4 +347,43 @@ BERR_Code BDSP_Raaga_GetMemoryEstimate(
 	}
 	BDBG_LEAVE(BDSP_Raaga_GetMemoryEstimate);
 	return errCode;
+}
+
+/***************************************************************************
+Name        :    BDSP_Raaga_RunDebugService
+Type        :    PI Interface
+
+Input       :    hDsp        -   Device handle.
+                 dspIndex    -   dspIndex where debug service to be run
+
+ Return	    :	 Error Code to return SUCCESS or FAILURE
+
+ Functionality	 :
+	 1) Trigger DBG_service if enabled
+***************************************************************************/
+BERR_Code BDSP_Raaga_RunDebugService(
+    BDSP_Handle hDsp,
+    uint32_t dspIndex
+)
+{
+    BERR_Code   errCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hDsp, BDSP_Device);
+
+    if(hDsp->runDebugService)
+    {
+        errCode = hDsp->runDebugService(hDsp->pDeviceHandle, dspIndex);
+        if(BERR_SUCCESS != errCode)
+        {
+            BDBG_ERR(("Failed to run Debug service"));
+	    BERR_TRACE(BERR_UNKNOWN);
+        }
+    }
+    else
+    {
+        BDBG_ERR(("Debug service is not supported"));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    return errCode;
 }

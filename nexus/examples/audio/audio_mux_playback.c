@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -96,7 +96,7 @@ int main(void)
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_StcChannelHandle stcChannel;
     NEXUS_StcChannelSettings stcSettings;
-    NEXUS_PidChannelHandle audioPidChannel, pcrPidChannel;
+    NEXUS_PidChannelHandle audioPidChannel;
     NEXUS_DisplayHandle display;
     NEXUS_AudioDecoderHandle audioDecoder, audioPassthrough;
     NEXUS_AudioDecoderStartSettings audioProgram;
@@ -220,8 +220,6 @@ int main(void)
     playbackPidSettings.pidTypeSettings.audio.primary = audioDecoder; /* must be told codec for correct handling */
     playbackPidSettings.pidTypeSettings.audio.secondary = audioPassthrough;
     audioPidChannel = NEXUS_Playback_OpenPidChannel(playback, AUDIO_PID, &playbackPidSettings);
-    playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eOther;
-    pcrPidChannel = NEXUS_Playback_OpenPidChannel(playback, PCR_PID, &playbackPidSettings);
 
     NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
 

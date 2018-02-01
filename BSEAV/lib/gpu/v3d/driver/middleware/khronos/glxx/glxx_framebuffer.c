@@ -8,6 +8,8 @@
 
 #include "middleware/khronos/glxx/glxx_texture.h"
 
+#include "middleware/khronos/common/khrn_mem.h"
+
 static void attachment_info_init(GLXX_ATTACHMENT_INFO_T *attachment)
 {
    assert(attachment);
@@ -17,7 +19,7 @@ static void attachment_info_init(GLXX_ATTACHMENT_INFO_T *attachment)
       should be shiny and new
    */
 
-   assert(attachment->mh_object == MEM_HANDLE_INVALID);
+   assert(attachment->object == NULL);
 
    attachment->type = GL_NONE;
    attachment->target = 0;
@@ -43,24 +45,19 @@ static void attachment_info_term(GLXX_ATTACHMENT_INFO_T *attachment)
    if ((attachment->target == GL_TEXTURE_2D) && (attachment->samples != 0))
    {
       // Delete the multisample buffer allocated when attached
-      GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(attachment->mh_object, NULL);
-      if ((texture) && (texture->mh_ms_image != MEM_HANDLE_INVALID))
-         MEM_ASSIGN(texture->mh_ms_image, MEM_HANDLE_INVALID);
-
-      mem_unlock(attachment->mh_object);
+      GLXX_TEXTURE_T *texture = attachment->object;
+      if ((texture) && (texture->ms_image != NULL))
+         KHRN_MEM_ASSIGN(texture->ms_image, NULL);
    }
-   MEM_ASSIGN(attachment->mh_object, MEM_HANDLE_INVALID);
+   KHRN_MEM_ASSIGN(attachment->object, NULL);
 }
 
-void glxx_framebuffer_term(MEM_HANDLE_T handle)
+void glxx_framebuffer_term(void *p)
 {
-   GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)mem_lock(handle, NULL);
-
+   GLXX_FRAMEBUFFER_T *framebuffer = p;
    attachment_info_term(&framebuffer->attachments.color);
    attachment_info_term(&framebuffer->attachments.depth);
    attachment_info_term(&framebuffer->attachments.stencil);
-
-   mem_unlock(handle);
 }
 
 vcos_static_assert(GL_TEXTURE_CUBE_MAP_NEGATIVE_X == GL_TEXTURE_CUBE_MAP_POSITIVE_X + 1);
@@ -69,23 +66,23 @@ vcos_static_assert(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y == GL_TEXTURE_CUBE_MAP_POSITIV
 vcos_static_assert(GL_TEXTURE_CUBE_MAP_POSITIVE_Z == GL_TEXTURE_CUBE_MAP_NEGATIVE_Y + 1);
 vcos_static_assert(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z == GL_TEXTURE_CUBE_MAP_POSITIVE_Z + 1);
 
-MEM_HANDLE_T glxx_attachment_info_get_images(GLXX_ATTACHMENT_INFO_T *attachment, MEM_HANDLE_T *mh_ms_image)
+KHRN_IMAGE_T *glxx_attachment_info_get_images(GLXX_ATTACHMENT_INFO_T *attachment, KHRN_IMAGE_T **ms_image)
 {
-   MEM_HANDLE_T result = MEM_HANDLE_INVALID;
+   KHRN_IMAGE_T *result = NULL;
 
    switch (attachment->type) {
    case GL_NONE:
-      result = MEM_HANDLE_INVALID;
+      result = NULL;
       break;
    case GL_TEXTURE:
    {
-      GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(attachment->mh_object, NULL);
+      GLXX_TEXTURE_T *texture = attachment->object;
 
       switch (attachment->target) {
       case GL_TEXTURE_2D:
          result = glxx_texture_share_mipmap(texture, TEXTURE_BUFFER_TWOD, attachment->level);
-         if (mh_ms_image)
-            *mh_ms_image = texture->mh_ms_image;
+         if (ms_image)
+            *ms_image = texture->ms_image;
          break;
       case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
       case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
@@ -100,17 +97,14 @@ MEM_HANDLE_T glxx_attachment_info_get_images(GLXX_ATTACHMENT_INFO_T *attachment,
       default:
          UNREACHABLE();
       }
-      mem_unlock(attachment->mh_object);
       break;
    }
    case GL_RENDERBUFFER:
    {
-      GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(attachment->mh_object, NULL);
-
-      result = renderbuffer->mh_storage;
-      if (mh_ms_image)
-         *mh_ms_image = renderbuffer->mh_ms_storage;
-      mem_unlock(attachment->mh_object);
+      GLXX_RENDERBUFFER_T *renderbuffer = attachment->object;
+      result = renderbuffer->storage;
+      if (ms_image)
+         *ms_image = renderbuffer->ms_storage;
       break;
    }
    default:
@@ -181,7 +175,7 @@ static ATTACHMENT_STATUS_T attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachm
       return ATTACHMENT_MISSING;
    case GL_RENDERBUFFER:
    {
-      GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(attachment->mh_object, NULL);
+      GLXX_RENDERBUFFER_T *renderbuffer = attachment->object;
       ATTACHMENT_STATUS_T result = ATTACHMENT_BROKEN;
 
       // Multisample?
@@ -203,34 +197,32 @@ static ATTACHMENT_STATUS_T attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachm
       default:
          UNREACHABLE();
       }
-      if (((renderbuffer->mh_storage == MEM_HANDLE_INVALID) && (*samples == 0)) ||     // non-multisample and invalid handle for non-multisample
-          ((renderbuffer->mh_ms_storage == MEM_HANDLE_INVALID) && (*samples != 0)))    // multisample and invalid handle for multisample
+      if (((renderbuffer->storage == NULL) && (*samples == 0)) ||     // non-multisample and invalid handle for non-multisample
+          ((renderbuffer->ms_storage == NULL) && (*samples != 0)))    // multisample and invalid handle for multisample
       {
          *width = 0;
          *height = 0;
       } else {
-         KHRN_IMAGE_T *image = NULL;
          KHRN_IMAGE_FORMAT_T format;
+         KHRN_IMAGE_T *image;
          if ((*samples != 0) && (result != ATTACHMENT_COLOR))   // If it is multisample and depth/stencil buffer
          {
-            image = (KHRN_IMAGE_T *)mem_lock(renderbuffer->mh_ms_storage, NULL);
+            image = renderbuffer->ms_storage;
             *width = image->width / 2;
             *height = image->height / 2;
             *secure = image->secure;
             format = image->format;
-            mem_unlock(renderbuffer->mh_ms_storage);
          }
          else
          {  // if a non-multisample or a colour attachment
             // (colour attachments have a resolve buffer but not depth/stencil attachment)
             // For colour attachment we take the resolved version as it has the correct colour format
             // which is checked by glxx_framebuffer_hw_support few lines below
-            image = (KHRN_IMAGE_T *)mem_lock(renderbuffer->mh_storage, NULL);
+            image = renderbuffer->storage;
             *width = image->width;
             *height = image->height;
             *secure = image->secure;
             format = image->format;
-            mem_unlock(renderbuffer->mh_storage);
          }
 
          format = khrn_image_no_colorspace_format(image->format);
@@ -239,20 +231,18 @@ static ATTACHMENT_STATUS_T attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachm
       }
       if (*width == 0 || *height == 0)
          result = ATTACHMENT_BROKEN;
-      mem_unlock(attachment->mh_object);
       return result;
    }
    case GL_TEXTURE:
    {
-      MEM_HANDLE_T himage = glxx_attachment_info_get_images(attachment, NULL);
+      KHRN_IMAGE_T *image = glxx_attachment_info_get_images(attachment, NULL);
       ATTACHMENT_STATUS_T result = ATTACHMENT_BROKEN;
-      if (himage == MEM_HANDLE_INVALID) {
+      if (image == NULL) {
          *width = 0;
          *height = 0;
          *secure = false;
          *samples = 0;
       } else {
-         KHRN_IMAGE_T *image = (KHRN_IMAGE_T *)mem_lock(himage, NULL);
          KHRN_IMAGE_FORMAT_T format = khrn_image_no_colorspace_format(image->format);
          switch (format)
          {
@@ -294,7 +284,6 @@ static ATTACHMENT_STATUS_T attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachm
          *height = image->height;
          *secure = image->secure;
          *samples = attachment->samples;
-         mem_unlock(himage);
       }
       if (*width == 0 || *height == 0)
          result = ATTACHMENT_BROKEN;

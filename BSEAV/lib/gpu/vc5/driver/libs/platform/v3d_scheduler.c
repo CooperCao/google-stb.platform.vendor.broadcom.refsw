@@ -24,6 +24,7 @@ typedef struct v3d_scheduler
    V3D_HUB_IDENT_T hub_identity;
    V3D_IDENT_T identity;
    uint32_t ddr_map_ver;
+   uint32_t soc_quirks;
    bool wait_after_submit;
    bool dump_node_graph;
    char dump_node_graph_filename[VCOS_PROPERTY_VALUE_MAX];
@@ -52,6 +53,7 @@ void v3d_scheduler_init(void)
    v3d_unpack_hub_ident(&scheduler.hub_identity, info.hubIdent);
    v3d_unpack_ident(&scheduler.identity, info.ident);
    scheduler.ddr_map_ver = info.ddrMapVer;
+   scheduler.soc_quirks = info.socQuirks;
 
    unsigned num_cores = gfx_options_uint32("V3D_LIMIT_CORES", 0);
    if (num_cores)
@@ -295,9 +297,8 @@ uint64_t v3d_scheduler_submit_tfu_job(
    job.secure = secure;
    job.cache_ops = cache_ops;
 
-   // Don't expect the driver to deal with anything other than L3C cache ops
-   // for TFU jobs.
-   assert(!((job.cache_ops) & ~(V3D_CACHE_FLUSH_L3C | V3D_CACHE_CLEAN_L3C)));
+   // Don't expect the driver to deal with anything other than L3C cache ops for TFU jobs.
+   assert(!(job.cache_ops & ~(V3D_CACHE_IF_HAS_L3C(V3D_CACHE_FLUSH_L3C) | V3D_CACHE_IF_HAS_L3C(V3D_CACHE_CLEAN_L3C))));
 
    return submit_job(&job, false);
 }
@@ -719,6 +720,11 @@ uint32_t v3d_scheduler_get_ddr_map_ver(void)
    return scheduler.ddr_map_ver;
 }
 
+uint32_t v3d_scheduler_get_soc_quirks(void)
+{
+   return scheduler.soc_quirks;
+}
+
 bcm_sched_event_id v3d_scheduler_new_event(void)
 {
    return bcm_sched_new_event();
@@ -749,20 +755,8 @@ bool v3d_scheduler_query_event(bcm_sched_event_id event_id)
 
 uint32_t v3d_scheduler_get_compute_shared_mem_size_per_core(void)
 {
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   uint32_t l2t_size = (V3D_L2T_CACHE_LINE_SIZE << scheduler.identity.l2t_way_depth) * scheduler.identity.l2t_ways;
-#else
-   uint32_t l2t_size_in_kb = V3D_VER_AT_LEAST(3,3,0,0) ? 256 : 128;
-
-   // The L2T size is not stored in the ident, but small configurations of
-   // V3D like 7250 and 7260 had a cut down L2T.
-   if (scheduler.identity.num_slices == 1)
-      l2t_size_in_kb = V3D_VER_AT_LEAST(3,3,0,0) ? 32 : 16;
-
-   uint32_t l2t_size = l2t_size_in_kb * 1024;
-#endif
-
    // Use half the L2T size but at least COMPUTE_MIN_SHARED_MEM_PER_CORE.
+   uint32_t l2t_size = v3d_l2t_size_from_ident(&scheduler.identity);
    return gfx_umax(l2t_size / 2, V3D_SCHEDULER_COMPUTE_MIN_SHARED_MEM_PER_CORE);
 }
 

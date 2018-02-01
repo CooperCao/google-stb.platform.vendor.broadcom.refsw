@@ -101,7 +101,7 @@ typedef struct NEXUS_VideoDecoderDisplayConnection
     /* status */
     unsigned parentIndex; /* parentIndex corresponds to the MFD index.
                              For mosaic, it's the parent index. For non-mosaic, it's the decoder index. */
-    bool secureVideo;
+    NEXUS_VideoDecoderSecureType secureVideo;
 } NEXUS_VideoDecoderDisplayConnection;
 
 #if NEXUS_HAS_ASTM
@@ -302,7 +302,7 @@ void NEXUS_VideoDecoder_Clear_priv(NEXUS_VideoDecoderHandle handle);
 typedef enum NEXUS_VideoDecoderExclusiveMode
 {
     NEXUS_VideoDecoderExclusiveMode_eNone,  /* no exclusion, either because 4K not supported or 4K doesn't restrict other channels */
-    NEXUS_VideoDecoderExclusiveMode_4K,     /* if channel 0 is 4K, other channels not available */
+    NEXUS_VideoDecoderExclusiveMode_e4K,     /* if channel 0 is 4K, other channels not available */
     NEXUS_VideoDecoderExclusiveMode_e4Kp60, /* if channel 0 is 4Kp60, other channels not available */
     NEXUS_VideoDecoderExclusiveMode_eMax
 } NEXUS_VideoDecoderExclusiveMode;

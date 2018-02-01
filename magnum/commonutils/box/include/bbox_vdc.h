@@ -1,43 +1,40 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-*
-* This program is the proprietary software of Broadcom and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
-*
-* Module Description:
-*
-***************************************************************************/
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #ifndef BBOX_VDC_H__
 #define BBOX_VDC_H__
@@ -276,6 +273,63 @@ typedef enum
     BBOX_Vdc_MosaicModeClass_eDisregard = BBOX_VDC_DISREGARD
 } BBOX_Vdc_MosaicModeClass;
 
+
+/* Mosaic mode class:
+ *  BBOX_Vdc_SourceClass_e0_0: No limit all-pass
+ *  BBOX_Vdc_SourceClass_e2_1: source class for basic HD
+ *  BBOX_Vdc_SourceClass_e2_2: source class for basic HD 50Hz
+ *  BBOX_Vdc_SourceClass_e3_1: for basic 1080p
+ *  BBOX_Vdc_SourceClass_e3_2: for basic 1080p 50Hz
+ *  BBOX_Vdc_SourceClass_e4_1: for basic 4k full split
+ *  BBOX_Vdc_SourceClass_e4_1_2: for basic 4k full split 50Hz
+ *  BBOX_Vdc_SourceClass_e4_2: for basic 4k full
+ *  BBOX_Vdc_SourceClass_e4_2_2: for basic 4k full 50Hz
+ *
+ * Note: Enum names may change in the future
+ */
+typedef enum
+{
+    BBOX_Vdc_SourceClass_eLegacy = 0,
+    BBOX_Vdc_SourceClass_e0_0,
+    BBOX_Vdc_SourceClass_e2_1,
+    BBOX_Vdc_SourceClass_e2_2,
+    BBOX_Vdc_SourceClass_e3_1,
+    BBOX_Vdc_SourceClass_e3_2,
+    BBOX_Vdc_SourceClass_e4_1,
+    BBOX_Vdc_SourceClass_e4_1_2,
+    BBOX_Vdc_SourceClass_e4_2,
+    BBOX_Vdc_SourceClass_e4_2_2
+} BBOX_Vdc_SourceClass;
+
+/* Mosaic mode class:
+ *  BBOX_Vdc_WindowClass_e0_0: no limit (all-pass)
+ *  BBOX_Vdc_WindowClass_e0_1: no mosaic (all-fail)
+ *  BBOX_Vdc_WindowClass_e1_1: mosaic coverage for SD
+ *  BBOX_Vdc_WindowClass_e1_2: mosaic coverage for SD pip
+ *  BBOX_Vdc_WindowClass_e2_1: coverage for 1080i
+ *  BBOX_Vdc_WindowClass_e3_1: coverage for 1080p
+ *  BBOX_Vdc_WindowClass_e3_2: coverage for 1080p pip
+ *  BBOX_Vdc_WindowClass_e4_1: coverage for 4k
+ *  BBOX_Vdc_WindowClass_e4_2: coverage for 4k pip: Vertical Menu Mode
+ *  BBOX_Vdc_WindowClass_e4_2_2: coverage for 4k pip: Vertical Menu Mode, Horizontal Menu Mode
+ *
+ * Note: Enum names may change in the future
+ */
+typedef enum
+{
+    BBOX_Vdc_WindowClass_eLegacy = 0,
+    BBOX_Vdc_WindowClass_e0_0,
+    BBOX_Vdc_WindowClass_e0_1,
+    BBOX_Vdc_WindowClass_e1_1,
+    BBOX_Vdc_WindowClass_e1_2,
+    BBOX_Vdc_WindowClass_e2_1,
+    BBOX_Vdc_WindowClass_e3_1,
+    BBOX_Vdc_WindowClass_e3_2,
+    BBOX_Vdc_WindowClass_e4_1,
+    BBOX_Vdc_WindowClass_e4_2,
+    BBOX_Vdc_WindowClass_e4_2_2
+} BBOX_Vdc_WindowClass;
+
 typedef enum
 {
     BBOX_Vdc_Display_eDisplay0 = 0,
@@ -338,6 +392,12 @@ typedef enum
     BBOX_Vdc_Deinterlacer_eInvalid = BBOX_FTR_INVALID
 } BBOX_Vdc_DeinterlacerId;
 
+typedef enum
+{
+    BBOX_Vdc_SourceRateLimit_e60Hz = 0,
+    BBOX_Vdc_SourceRateLimit_e50Hz
+} BBOX_Vdc_SourceRateLimit;
+
 typedef struct
 {
     uint32_t                      ulMad;
@@ -373,6 +433,8 @@ Description:
     stSizeLimits - specifies the source's frame buffer size
     eColorSpace - specifies source's colorspace
     eBpp - specifies number of bits per pixel
+    eRateLimit - 50hz only or 60hz system
+    eClass - source class
 See Also:
 ***************************************************************************/
 typedef struct
@@ -383,6 +445,8 @@ typedef struct
     BBOX_Vdc_PictureSizeLimits stSizeLimits;
     BBOX_Vdc_Colorspace        eColorSpace;
     BBOX_Vdc_Bpp               eBpp;
+    BBOX_Vdc_SourceRateLimit   eRateLimit;
+    BBOX_Vdc_SourceClass       eClass;
 } BBOX_Vdc_Source_Capabilities;
 
 /***************************************************************************
@@ -397,8 +461,8 @@ Description:
                    fullscreen size by this number to determine the
                    maximum size for the given window.
     stAvailableResource - indicates shared resource that is available
-    bTntAvailable - indicates if TNT is available for the given window
-    bAnrAvailable - indicates if a ANR is available for the given window
+    eSclCapBias - indicates the bandwidth equation bias
+    eClass - specifies window class used
 
 See Also:
 ***************************************************************************/
@@ -408,6 +472,7 @@ typedef struct
     BBOX_Vdc_WindowSizeLimits  stSizeLimits;
     BBOX_Vdc_ResourceFeature   stResource;
     BBOX_Vdc_SclCapBias        eSclCapBias;
+    BBOX_Vdc_WindowClass       eClass;
 } BBOX_Vdc_Window_Capabilities;
 
 /***************************************************************************
@@ -467,7 +532,7 @@ Summary:
 
 Description:
     bAvailable      - Specifies if deinterlacer is available
-    stPictureLimits - Indicates if a deinterlacer is limited by the
+    stPictureLimits - Indicates if a single context deinterlacer is limited by the
                       given height and width. BBOX_VDC_DISREGARD means
                       the limits  used are imposed by VDC on a per
                       deinterlacer basis.
@@ -514,11 +579,6 @@ Summary:
 ****************************************************************************/
 typedef struct BBOX_Vdc_Capabilities
 {
-    /* This specifies the capabilities available for a given deinterlacer.
-       An element of the array corresponds to a deinterlacer, eg., element 0
-       corresponds to deinterlacer 0. */
-    BBOX_Vdc_Deinterlacer_Capabilities astDeinterlacer[BBOX_VDC_DEINTERLACER_COUNT];
-
     /* This specifies the capabilities available for transcoding. */
     BBOX_Vdc_Xcode_Capabilities stXcode;
 
@@ -530,6 +590,8 @@ typedef struct BBOX_Vdc_Capabilities
        only GFX and HD-DVI have imposed VDC BOX limits. The rest are
        disregarded by VDC. */
     BBOX_Vdc_Source_Capabilities astSource[BAVC_SourceId_eMax];
+
+    BBOX_Vdc_Deinterlacer_Capabilities astDeinterlacer[BBOX_VDC_DEINTERLACER_COUNT];
 
 } BBOX_Vdc_Capabilities;
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -862,6 +862,7 @@ BIP_HttpRequestHandle BIP_HttpRequest_Create(
             &hRequest->createSettings );                   /* Pointer for ownerContext to prevent inadvertent destruction. */
     BIP_CHECK_GOTO(( hRequest->hHeaderList ),     ( "BIP_HttpHeaderList_Create() failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
+    /* coverity[missing_lock] */
     hRequest->deserializeState = deserializeState_eIdle;
     hRequest->serializeState   = serializeState_eIdle;
 

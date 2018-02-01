@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -177,13 +177,13 @@ typedef struct NEXUS_KeySlotInformation
 
 typedef struct NEXUS_KeySlotKey
 {
-    unsigned size;                              /* the key size  **in bytes**. */
+    unsigned size;                              /* the key size in bytes. */
     uint8_t key[NEXUS_KEYSLOT_MAX_KEY_SIZE];    /* the key data. */
 } NEXUS_KeySlotKey;
 
 typedef struct NEXUS_KeySlotIv
 {
-    unsigned size;                              /* the iv size. */
+    unsigned size;                              /* the iv size in bytes. */
     uint8_t iv[NEXUS_KEYSLOT_MAX_IV_SIZE];      /* the iv data. */
 } NEXUS_KeySlotIv;
 

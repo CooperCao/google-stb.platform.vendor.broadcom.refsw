@@ -41,11 +41,12 @@ Implementation Notes:
    with pname set to the current matrix mode
 */
 
-void glQueryMatrixxOES_impl_11 ( GLfixed mantissa[16] )
+GL_API GLbitfield GL_APIENTRY glQueryMatrixxOES(GLfixed mantissa[16], GLint exponent[16])
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-   int count,i;
-   GLfloat temp[16];
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state)
+      return 0xff;
+
    GLenum pname = 0;
 
    switch(state->matrix_mode)
@@ -63,12 +64,18 @@ void glQueryMatrixxOES_impl_11 ( GLfixed mantissa[16] )
          UNREACHABLE();
    }
 
-   count = glxx_get_float_or_fixed_internal(state, pname, temp);
+   GLfloat temp[16];
+   int count = glxx_get_float_or_fixed(state, pname, temp);
 
    assert(count == 16);
 
-   for (i = 0; i < count; i++)
+   for (int i = 0; i < count; i++)
       mantissa[i] = float_to_fixed(temp[i]);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   for (int i = 0; i < 16; i++)
+      exponent[i] = 0;
+
+   glxx_unlock_server_state(OPENGL_ES_11);
+
+   return 0;
 }

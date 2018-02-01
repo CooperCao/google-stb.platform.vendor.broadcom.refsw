@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -363,7 +363,7 @@ B_PlaybackIp_UdpSessionOpen(
 {
     B_PlaybackIpError rc = B_ERROR_PROTO;
     struct addrinfo hints;
-    struct addrinfo *addrInfo;
+    struct addrinfo *addrInfo = NULL;
     char portString[16];
     B_PlaybackIpSocketState *socketState;
 
@@ -428,6 +428,7 @@ B_PlaybackIp_UdpSessionOpen(
 
     rc = B_ERROR_SUCCESS;
 error:
+    freeaddrinfo(addrInfo);
     return rc;
 }
 

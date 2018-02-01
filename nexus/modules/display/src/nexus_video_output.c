@@ -1464,9 +1464,14 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
             NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
             rc = NEXUS_HdmiOutput_ValidateVideoSettings_priv(hdmiOutput, &requested, &preferred) ;
             NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-            if (rc)
+            if (rc == NEXUS_NOT_INITIALIZED)
             {
-                BDBG_WRN(("Unable to validate Color Space/Color Depth Settings; No Change")) ;
+                BDBG_MSG(("EDID not initialized; unable to validate Color Space/Color Depth Settings")) ;
+                /* keep going with requested video settings */
+            }
+            else if (rc)
+            {
+                BDBG_WRN(("Unable to validate Color Space/Color Depth Settings; No Change"))  ;
                 return rc ;
             }
 
@@ -1525,9 +1530,7 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
     NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
     {
         NEXUS_HdmiOutputDisplaySettings stHdmiOutputDisplaySettings ;
-        rc = NEXUS_HdmiOutput_GetDisplaySettings_priv(hdmiOutput, &stHdmiOutputDisplaySettings) ;
-        if (rc) return BERR_TRACE(rc);
-
+        NEXUS_HdmiOutput_GetDisplaySettings_priv(hdmiOutput, &stHdmiOutputDisplaySettings) ;
         if (overrideRequestedSettings) {
             stHdmiOutputDisplaySettings.colorDepth = preferred.colorDepth ;
             stHdmiOutputDisplaySettings.colorSpace = preferred.colorSpace ;

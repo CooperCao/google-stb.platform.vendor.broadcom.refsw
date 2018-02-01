@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -202,8 +202,10 @@ static BERR_Code BAPE_P_InitMsHw(BAPE_Handle handle)
     BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_BURST_0, 0x0);       
     BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_BURST_1, 0x0);       
 
+    #if 0 /* SWSTB-7583 */
     /* Initializing SPDIF cfg */
     BREG_Write32(regHandle, BCHP_AUD_FMM_OP_CTRL_SPDIF_CFG_0, 0xb);
+    #endif
 
     return BERR_SUCCESS;
 }

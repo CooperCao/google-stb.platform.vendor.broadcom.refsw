@@ -216,9 +216,9 @@ BERR_Code BAST_g3_P_InitChannelHandle(BAST_ChannelHandle h)
    hChn->tunerKvcoCntl = 0;
    hChn->tunerVcRefLow = 19;
    hChn->tunerVcRefHigh = 25;
-   hChn->tunerAgcThreshold = 0x4F340040;  /* [31:16] for BB, [15:0] for LNA */
+   hChn->tunerAgcThreshold = 0x00400040;  /* [31:16] for BB, [15:0] for LNA */
    hChn->tunerAgcWinLength = 0x13231323;  /* [31:16] for BB, [15:0] for LNA */
-   hChn->tunerAgcAmpThresh = 0x1010;      /* [12:8] for BB, [4:0] for LNA */
+   hChn->tunerAgcAmpThresh = 0x0909;      /* [12:8] for BB, [4:0] for LNA */
    hChn->tunerAgcLoopCoeff = 0x1414;      /* [12:8] for BB, [4:0] for LNA */
    hChn->tunerDaisyGain = 0x2;   /* default daisy output gain */
    hChn->tempAmbient = 0;

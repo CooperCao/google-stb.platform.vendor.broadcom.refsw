@@ -64,7 +64,7 @@ static void print_usage(void)
 int main(int argc, const char **argv)
 {
     NxClient_JoinSettings joinSettings;
-    bgui_t gui;
+    bgui_t gui=NULL;
     struct bgui_settings gui_settings;
     NEXUS_Error rc;
     int curarg = 1;

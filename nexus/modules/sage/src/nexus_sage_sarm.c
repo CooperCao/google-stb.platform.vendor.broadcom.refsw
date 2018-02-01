@@ -52,6 +52,7 @@
 #include "sarm_module_ids.h"
 #include "nexus_sage_image.h"
 #include "nexus_sage_types.h"
+#include "priv/sarm_common.h"
 #include "sarm_command_ids.h"
 #include "priv/nexus_sage_audio.h"
 #include "sarm_priv.h"
@@ -75,6 +76,7 @@ struct sageSARMInfo {
         uint32_t value;
     } indicationData;
     uint32_t totalStreams;
+    uint32_t sarm_compatible_version;
 };
 
 static struct sageSARMInfo *lHandle;
@@ -231,6 +233,75 @@ void NEXUS_Sage_P_SARMUninit(void)
     lHandle=NULL;
 }
 
+
+
+/*
+ * This routine verifies if SARM version is matching.
+ * Required from SAGE side:
+ * - Major version number must match
+ * - Minor version can mismatch upto compatible minor version
+ * - Host can choose to present itself as up-to-date even if is running
+ *   old version that meets compatible minor version
+ */
+static NEXUS_Error NEXUS_Sage_Sarm_P_Process_Version(void)
+{
+    NEXUS_Error rc = NEXUS_INVALID_PARAMETER;
+
+    /* Present Host current version by default */
+    lHandle->sarm_compatible_version = SARM_VERSION;
+
+    if (SARM_VERSION == (SARM_CONTAINER_SARM_VER(lHandle->sageContainer)))
+    {
+        /* BINGO! Match */
+        BDBG_LOG(("%s: Matching SARM versions: HOST=[%d.%d] <-> SAGE=[%d.%d]",
+                  BSTD_FUNCTION,
+                  SARM_MAJOR_VERSION, SARM_MINOR_VERSION,
+                  SARM_CONTAINER_SARM_MAJOR_VER(lHandle->sageContainer),
+                  SARM_CONTAINER_SARM_MINOR_VER(lHandle->sageContainer)));
+
+        rc = NEXUS_SUCCESS;
+    }
+    else if /* Major version match AND... */
+        ((SARM_MAJOR_VERSION == (SARM_CONTAINER_SARM_MAJOR_VER(lHandle->sageContainer)))
+         /* Host Minor version less than minimum compatible SAGE version */
+         && (SARM_MINOR_VERSION > SARM_CONTAINER_SARM_MIN_VER(lHandle->sageContainer)))
+    {
+        /*
+         * Host is Newer than SAGE, check compatibility
+         * we can live with this situation if we want to
+         * In future you may want to scrutinize this based on version number, features etc.
+         * But, you must know what your are doing, i.e. What SAGE supports and what Host API
+         * looks like.
+         * Examples:
+         * 1. Matching version
+         *    - Both sides support X commands and processes correctly.
+         * 2. Matching Major version, compatible minor version
+         *    - SAGE has an additional command X+1, but since Host API is older compatible,
+         *      things will process correctly, nothing changed in the processing of existing
+         *      X commands, and this Host API does not know about X+1st command.
+         */
+
+        /* Present SARM version for Host same as SAGE to be able to continue */
+        lHandle->sarm_compatible_version = SARM_CONTAINER_SARM_VER(lHandle->sageContainer);
+        BDBG_LOG(("%s: Running in compatibility mode, SARM versions: HOST=[%d.%d] <-> SAGE=[%d.%d]",
+                  BSTD_FUNCTION,
+                  SARM_MAJOR_VERSION, SARM_MINOR_VERSION,
+                  SARM_CONTAINER_SARM_MAJOR_VER(lHandle->sageContainer),
+                  SARM_CONTAINER_SARM_MINOR_VER(lHandle->sageContainer)));
+        rc = NEXUS_SUCCESS;
+    }
+    else
+    {
+        /* At this point we have OLDER Host running with New SAGE */
+        /* We have problem, this can not work */
+        BDBG_ERR(("%s: SARM versions differ: HOST=[%d.%d] <-> SAGE=[%d.%d]",
+                  BSTD_FUNCTION,
+                  SARM_MAJOR_VERSION, SARM_MINOR_VERSION,
+                  SARM_CONTAINER_SARM_MAJOR_VER(lHandle->sageContainer),
+                  SARM_CONTAINER_SARM_MINOR_VER(lHandle->sageContainer)));
+    }
+    return rc;
+}
 
 /* Some of the init needs to be delayed until SAGE is running */
 NEXUS_Error NEXUS_Sage_P_SARMInit(NEXUS_SageModuleSettings *pSettings)
@@ -410,6 +481,7 @@ NEXUS_Error NEXUS_Sage_P_SARMInit(NEXUS_SageModuleSettings *pSettings)
     BDBG_MSG(("Initialized SAGE SARM Module: receivedSageModuleHandle [%p], assignedAsyncId [0x%x]",
               (void*)lHandle->hSagelibRpcModuleHandle, lHandle->uiLastAsyncId));
 
+    rc = NEXUS_Sage_Sarm_P_Process_Version();
 
 EXIT:
     BDBG_MSG(("SAGE SARM init complete (0x%x)", rc));
@@ -547,6 +619,7 @@ NEXUS_SageAudioHandle NEXUS_SageAudio_Open_priv(
     BKNI_Memset(hSageAudio->sageAudioStatus, 0, sizeof(*hSageAudio->sageAudioStatus));
 
     BKNI_Memset(container, 0, sizeof(*container));
+    SARM_CONTAINER_SARM_VER(container) = lHandle->sarm_compatible_version;
     SARM_CONTAINER_ASYNC(container) = lHandle->uiLastAsyncId;
 
     /* Pass the shared memory for status update */
@@ -568,19 +641,21 @@ NEXUS_SageAudioHandle NEXUS_SageAudio_Open_priv(
     }
 
     rc = SARM_CONTAINER_CMD_RC(container);
-    if (rc != NEXUS_SUCCESS)
+    if (rc == NEXUS_SUCCESS)
     {
-        rc = BERR_TRACE(rc);
-        BDBG_ERR(("Failed to Open audio stream to SARM TA (%d)", rc));
+        /* Save SARM ID in the handle */
+        lHandle->totalStreams = SARM_CONTAINER_STREAM_CNT(container);
+        hSageAudio->sarm_id   = SARM_CONTAINER_SARM_ID(container);
+
+        BDBG_LOG(("%s: Opened SARM ID: %d, Total Streams: %d",
+                  BSTD_FUNCTION, hSageAudio->sarm_id, lHandle->totalStreams));
+    }
+    else
+    {
+        BDBG_ERR(("%s: Error (%d) opening stream with SARM",
+                  BSTD_FUNCTION, rc));
         goto end;
     }
-
-    /* Save SARM ID in the handle */
-    lHandle->totalStreams = SARM_CONTAINER_STREAM_CNT(container);
-    hSageAudio->sarm_id   = SARM_CONTAINER_SARM_ID(container);
-
-    BDBG_LOG(("%s: SARM ID: %d, Total Streams: %d",
-              BSTD_FUNCTION, hSageAudio->sarm_id, lHandle->totalStreams));
 
 end:
     if (rc != NEXUS_SUCCESS)
@@ -613,6 +688,7 @@ void NEXUS_SageAudio_Close_priv(
 
     /* Pass the close parameters to SAGE */
     BKNI_Memset(container, 0, sizeof(*container));
+    SARM_CONTAINER_SARM_VER(container) = lHandle->sarm_compatible_version;
     SARM_CONTAINER_SARM_ID(container) = hSageAudio->sarm_id;
 
     rc = BSAGElib_Rai_Module_ProcessCommand(lHandle->hSagelibRpcModuleHandle,
@@ -629,6 +705,7 @@ void NEXUS_SageAudio_Close_priv(
     rc = SARM_CONTAINER_CMD_RC(container);
     if (rc == NEXUS_SUCCESS)
     {
+        lHandle->totalStreams = SARM_CONTAINER_STREAM_CNT(container);
         BDBG_LOG(("%s: Closed stream with SARM ID: %d, Total Streams: %d",
                   BSTD_FUNCTION, hSageAudio->sarm_id, lHandle->totalStreams));
     }
@@ -637,7 +714,6 @@ void NEXUS_SageAudio_Close_priv(
         BDBG_ERR(("%s: Error (%d) closing stream with SARM ID: %d, Total Streams: %d",
                   BSTD_FUNCTION, rc, hSageAudio->sarm_id, lHandle->totalStreams));
     }
-    lHandle->totalStreams = SARM_CONTAINER_STREAM_CNT(container);
 
 end:
     /* Release memory */
@@ -677,13 +753,111 @@ void NEXUS_SageAudio_GetDefaultStartSettings_priv(
     return;
 }
 
+static SARM_AudioCodec_e NEXUS_SageAudio_Get_Codec_priv(NEXUS_AudioCodec codec)
+{
+    SARM_AudioCodec_e s_codec = SARM_AudioCodec_eUnknown;
+    switch (codec)
+    {
+    case NEXUS_AudioCodec_eUnknown:
+        s_codec = SARM_AudioCodec_eUnknown;
+        break;
+    case NEXUS_AudioCodec_eMpeg:
+        s_codec = SARM_AudioCodec_eMpeg;
+        break;
+    case NEXUS_AudioCodec_eMp3:
+        s_codec = SARM_AudioCodec_eMp3;
+        break;
+    case NEXUS_AudioCodec_eAc3:
+        s_codec = SARM_AudioCodec_eAc3;
+        break;
+    case NEXUS_AudioCodec_eAc3Plus:
+        s_codec = SARM_AudioCodec_eAc3Plus;
+        break;
+    case NEXUS_AudioCodec_eAacAdts:
+        s_codec = SARM_AudioCodec_eAacAdts;
+        break;
+    case NEXUS_AudioCodec_eAacLoas:
+        s_codec = SARM_AudioCodec_eAacLoas;
+        break;
+    case NEXUS_AudioCodec_eAacPlusAdts:
+        s_codec = SARM_AudioCodec_eAacPlusAdts;
+        break;
+    case NEXUS_AudioCodec_eAacPlusLoas:
+        s_codec = SARM_AudioCodec_eAacPlusLoas;
+        break;
+    case NEXUS_AudioCodec_eVorbis:
+        s_codec = SARM_AudioCodec_eVorbis;
+        break;
+    case NEXUS_AudioCodec_eOpus:
+        s_codec = SARM_AudioCodec_eOpus;
+        break;
+    case NEXUS_AudioCodec_ePcm:
+        s_codec = SARM_AudioCodec_ePcm;
+        break;
+    case NEXUS_AudioCodec_ePcmWav:
+        s_codec = SARM_AudioCodec_ePcmWav;
+        break;
+    default:
+        BDBG_ERR(("Unsupported Codec=[%d]!", codec));
+        BDBG_ASSERT(0);
+    }
+    return s_codec;
+}
+
+static char* NEXUS_sarm_get_codec_name(SARM_AudioCodec_e codec)
+{
+    switch(codec)
+    {
+    case SARM_AudioCodec_eMpeg:
+        return "MPG";
+    case SARM_AudioCodec_eMp3:
+        return "MP3";
+    case SARM_AudioCodec_eAc3:
+        return "AC3";
+    case SARM_AudioCodec_eAc3Plus:
+        return "AC3+";
+    case SARM_AudioCodec_eAacAdts:
+        return "AAC";
+    case SARM_AudioCodec_eAacPlusAdts:
+        return "AAC+";
+    case SARM_AudioCodec_eAacLoas:
+        return "AAC-LOAS";
+    case SARM_AudioCodec_eAacPlusLoas:
+        return "AAC+-LOAS";
+    case SARM_AudioCodec_eVorbis:
+    case SARM_AudioCodec_ePcm:
+    case SARM_AudioCodec_ePcmWav:
+    case SARM_AudioCodec_eOpus:
+        return "BYPASS";
+    default:
+        return "INVALID";
+    }
+}
+
+static void NEXUS_Sage_P_Fill_ContextMap(SARM_XptContextMap *sarm_map,
+                                         BAVC_XptContextMap *bavc_map)
+{
+    BDBG_ASSERT(sarm_map && bavc_map);
+    sarm_map->CDB_Read = bavc_map->CDB_Read;   /* Address of the coded data buffer READ register */
+    sarm_map->CDB_Base = bavc_map->CDB_Base;   /* Address of the coded data buffer BASE register */
+    sarm_map->CDB_Wrap = bavc_map->CDB_Wrap;   /* Address of the coded data buffer WRAPAROUND register */
+    sarm_map->CDB_Valid = bavc_map->CDB_Valid; /* Address of the coded data buffer VALID register */
+    sarm_map->CDB_End = bavc_map->CDB_End;     /* Address of the coded data buffer END register */
+
+    sarm_map->ITB_Read = bavc_map->ITB_Read;   /* Address of the index table buffer READ register */
+    sarm_map->ITB_Base = bavc_map->ITB_Base;   /* Address of the index table buffer BASE register */
+    sarm_map->ITB_Wrap = bavc_map->ITB_Wrap;   /* Address of the index table buffer WRAPAROUND register */
+    sarm_map->ITB_Valid = bavc_map->ITB_Valid; /* Address of the index table buffer VALID register */
+    sarm_map->ITB_End = bavc_map->ITB_End;     /* Address of the index table buffer END register */
+}
+
 NEXUS_Error NEXUS_SageAudio_Start_priv(NEXUS_SageAudioHandle               hSageAudio,
                                        const NEXUS_SageAudioStartSettings* pSettings)
 {
-    NEXUS_Error                      rc           = NEXUS_INVALID_PARAMETER;
-    BSAGElib_InOutContainer         *container    = lHandle->sageContainer;
-    _P_NEXUS_SageAudioStartSettings *start_params = NULL;
-    NEXUS_RaveStatus                 raveStatus;
+    NEXUS_Error                    rc           = NEXUS_INVALID_PARAMETER;
+    BSAGElib_InOutContainer       *container    = lHandle->sageContainer;
+    SARM_P_SageAudioStartSettings *start_params = NULL;
+    NEXUS_RaveStatus               raveStatus;
 
     BDBG_OBJECT_ASSERT(hSageAudio, NEXUS_SageAudio_P_Context);
 
@@ -698,7 +872,7 @@ NEXUS_Error NEXUS_SageAudio_Start_priv(NEXUS_SageAudioHandle               hSage
     }
 
     /* Allocate and initialize the parameters */
-    start_params = (_P_NEXUS_SageAudioStartSettings*)
+    start_params = (SARM_P_SageAudioStartSettings*)
         BSAGElib_Rai_Memory_Allocate(lHandle->sagelibClientHandle,
                                      sizeof(*start_params),
                                      BSAGElib_MemoryType_Global);
@@ -711,8 +885,8 @@ NEXUS_Error NEXUS_SageAudio_Start_priv(NEXUS_SageAudioHandle               hSage
 
     /* Fill in the start_params */
     BKNI_Memset(start_params, 0, sizeof(*start_params));
-    start_params->codec = pSettings->codec;
-    start_params->routingOnly = pSettings->routingOnly;
+    start_params->codec = (uint32_t)NEXUS_SageAudio_Get_Codec_priv(pSettings->codec);
+    start_params->noMonitoring = (uint32_t)pSettings->routingOnly;
 
     /* Get the context maps */
     NEXUS_Sage_P_Module_Lock_Transport();
@@ -724,7 +898,8 @@ NEXUS_Error NEXUS_SageAudio_Start_priv(NEXUS_SageAudioHandle               hSage
         goto end;
 
     }
-    start_params->inContext = raveStatus.xptContextMap;
+    /* Convert BVAC context map to SAGE */
+    NEXUS_Sage_P_Fill_ContextMap(&start_params->inContext, &raveStatus.xptContextMap);
 
     /* Get the context maps */
     NEXUS_Sage_P_Module_Lock_Transport();
@@ -736,10 +911,12 @@ NEXUS_Error NEXUS_SageAudio_Start_priv(NEXUS_SageAudioHandle               hSage
         goto end;
 
     }
-    start_params->outContext = raveStatus.xptContextMap;
+    /* Convert BVAC context map to SAGE */
+    NEXUS_Sage_P_Fill_ContextMap(&start_params->outContext, &raveStatus.xptContextMap);
 
     /* Pass the start parameters to SAGE */
     BKNI_Memset(container, 0, sizeof(*container));
+    SARM_CONTAINER_SARM_VER(container) = lHandle->sarm_compatible_version;
     SARM_CONTAINER_SARM_ID(container)                     = hSageAudio->sarm_id;
     SARM_CONTAINER_START_PARAMS_BLOCK(container).len      = sizeof(*start_params);
     SARM_CONTAINER_START_PARAMS_BLOCK(container).data.ptr = (uint8_t*)start_params;
@@ -757,6 +934,24 @@ NEXUS_Error NEXUS_SageAudio_Start_priv(NEXUS_SageAudioHandle               hSage
         goto end;
     }
 
+    rc = SARM_CONTAINER_CMD_RC(container);
+    if (rc == NEXUS_SUCCESS)
+    {
+        BDBG_LOG(("%s: Started stream with SARM ID: %d, codec: %s, Total Streams: %d",
+                  BSTD_FUNCTION,
+                  hSageAudio->sarm_id,
+                  NEXUS_sarm_get_codec_name(start_params->codec),
+                  lHandle->totalStreams));
+    }
+    else
+    {
+        BDBG_ERR(("%s: Error (%d) Starting stream with SARM ID: %d, codec: %s, Total Streams: %d",
+                  BSTD_FUNCTION, rc,
+                  hSageAudio->sarm_id,
+                  NEXUS_sarm_get_codec_name(start_params->codec),
+                  lHandle->totalStreams));
+        goto end;
+    }
 end:
     if (start_params)
     {
@@ -778,6 +973,7 @@ NEXUS_Error NEXUS_SageAudio_Stop_priv(NEXUS_SageAudioHandle hSageAudio)
 
     /* Pass the stop parameters to SAGE */
     BKNI_Memset(container, 0, sizeof(*container));
+    SARM_CONTAINER_SARM_VER(container) = lHandle->sarm_compatible_version;
     SARM_CONTAINER_SARM_ID(container) = hSageAudio->sarm_id;
 
     rc = BSAGElib_Rai_Module_ProcessCommand(lHandle->hSagelibRpcModuleHandle,
@@ -791,7 +987,40 @@ NEXUS_Error NEXUS_SageAudio_Stop_priv(NEXUS_SageAudioHandle hSageAudio)
         goto end;
     }
 
+    rc = SARM_CONTAINER_CMD_RC(container);
+    if (rc == NEXUS_SUCCESS)
+    {
+        BDBG_LOG(("%s: Stopped stream with SARM ID: %d, Total Streams: %d",
+                  BSTD_FUNCTION, hSageAudio->sarm_id, lHandle->totalStreams));
+    }
+    else
+    {
+        BDBG_ERR(("%s: Error (%d) stopping stream with SARM ID: %d, Total Streams: %d",
+                  BSTD_FUNCTION, rc, hSageAudio->sarm_id, lHandle->totalStreams));
+        goto end;
+    }
+
 end:
+    {
+        /* Print some statistics */
+        NEXUS_SageAudioStatus status;
+        NEXUS_SageAudio_GetStatus_priv(hSageAudio, &status);
+        BDBG_MSG(("Stopped Audio stream SARM ID=[%d]", hSageAudio->sarm_id));
+        BDBG_MSG(("  Total Frames           : %u", status.numFrames));
+        BDBG_MSG(("  Total ITB Bytes        : %u", status.itbBytes));
+        BDBG_MSG(("  Total CDB Bytes        : %u", status.cdbBytes));
+        BDBG_MSG(("  Zero Bytes             : %u", status.zeroBytes));
+        BDBG_MSG(("  Contiguous Valid Bytes : %u", status.lastSyncBytes));
+        BDBG_MSG(("  No Space Count         : %u", status.noSpaceCount));
+        BDBG_MSG(("  Lost Sync Count        : %u", status.lostSyncCount));
+        BDBG_MSG(("  Congestion Count       : %u", status.congestion));
+        BDBG_MSG(("  ITB Wraps              : %u", status.itbSrcWrap));
+        BDBG_MSG(("  CDB Wrap               : %u", status.cdbSrcWrap));
+        BDBG_MSG(("  Zero Wrap              : %u", status.zeroWrap));
+        BDBG_MSG(("  No full frame miss     : %u", status.noFullFrame));
+        BDBG_MSG(("  Unsupported frame size : %u", status.frameTooLarge));
+        BDBG_MSG(("  Zero Register Read     : %u", status.zeroReg));
+    }
     return rc;
 }
 
@@ -810,6 +1039,9 @@ NEXUS_Error NEXUS_SageAudio_GetStatus_priv(NEXUS_SageAudioHandle  hSageAudio,
         goto end;
     }
     BDBG_OBJECT_ASSERT(hSageAudio, NEXUS_SageAudio_P_Context);
+
+    /* Since Host does not access this memory otherwise, need to flush for fresh data */
+    NEXUS_FlushCache(hSageAudio->sageAudioStatus, sizeof(*hSageAudio->sageAudioStatus));
 
     /* Copy the status memory */
     *sageAudioStatus = *hSageAudio->sageAudioStatus;

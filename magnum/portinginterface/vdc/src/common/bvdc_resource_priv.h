@@ -315,6 +315,9 @@ uint32_t  BVDC_P_Resource_GetHwIdAcquireCntr_isr
  * BVDC_P_Resource_AcquireHwId_isr obtains the very first available instance.
  *
  */
+/* Hush static analysis warnings.  May need to add more conditions or remove
+ * if it is being used more widely. */
+#if (BVDC_P_SUPPORT_STG)
 BERR_Code  BVDC_P_Resource_Reserve_isr
     ( BVDC_P_ResourceEntry             *p1stEntry,
       BVDC_P_ResourceType               eType,
@@ -322,6 +325,7 @@ BERR_Code  BVDC_P_Resource_Reserve_isr
       uint32_t                          ulAcquireId,
       void                            **ppvResourceHandle,
       uint32_t                         *pulHwId );
+#endif
 
 /***************************************************************************
  * {private}

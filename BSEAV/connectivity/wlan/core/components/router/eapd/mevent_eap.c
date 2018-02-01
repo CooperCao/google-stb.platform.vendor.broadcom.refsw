@@ -33,6 +33,7 @@
 #include <shutils.h>
 #include <UdpLib.h>
 #include <security_ipc.h>
+#include <bcmnvram.h>
 
 void
 mevent_app_recv_handler(eapd_wksp_t *nwksp, eapd_cb_t *from, uint8 *pData,
@@ -102,7 +103,7 @@ mevent_app_init(eapd_wksp_t *nwksp)
 
 	memset(&addr, 0, sizeof(struct sockaddr_in));
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = INADDR_ANY;
+	addr.sin_addr.s_addr = EAPD_UDP_SIN_ADDR;
 	addr.sin_port = htons(EAPD_WKSP_MEVENT_UDP_RPORT);
 	if (bind(mevent->appSocket, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
 		EAPD_ERROR("UDP Bind failed, close mevent appSocket %d\n", mevent->appSocket);

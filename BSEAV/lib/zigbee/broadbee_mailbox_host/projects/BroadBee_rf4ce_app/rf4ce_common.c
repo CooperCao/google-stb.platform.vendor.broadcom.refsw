@@ -219,8 +219,10 @@ void BroadBee_SYS_Get_Fw_Rev()
     Get_FW_Rev_Req(&req);
     while(!status);
 
+    printf("\n====================================\n");
     printf("Get FW revision successfully\r\n");
     printf("Major:%d  Minor:%d\n", rev.FwRevMajor, rev.FwRevMinor);
+    printf("====================================\n\n");
 }
 
 

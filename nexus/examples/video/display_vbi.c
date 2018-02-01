@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -72,10 +72,10 @@ int main(int argc, char **argv)
     NEXUS_PlatformSettings platformSettings;
     NEXUS_Error rc;
     NEXUS_VideoFormat format = NEXUS_VideoFormat_eNtsc;
-
-    if (argc > 1 && !strcmp(argv[1], "pal")) {
-        format = NEXUS_VideoFormat_ePal;
-    }
+    NEXUS_DisplayType displayType = NEXUS_DisplayType_eAuto;
+    unsigned displayIndex = 0;
+    NEXUS_DisplayTimingGenerator timingGenerator = NEXUS_DisplayTimingGenerator_ePrimaryInput;
+    int i;
 
     /* Bring up all modules for a platform in a default configuration for this platform */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
@@ -88,25 +88,52 @@ int main(int argc, char **argv)
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
-    NEXUS_Display_GetDefaultSettings(&displaySettings);
-	displaySettings.timingGenerator =
-		NEXUS_DisplayTimingGenerator_ePrimaryInput;
-    displaySettings.displayType = NEXUS_DisplayType_eAuto;
-    displaySettings.format = format;
-    display = NEXUS_Display_Open(0, &displaySettings);
+    for (i=0;i<argc;i++)
+    {
+        if (!strcasecmp(argv[i], "pal"))
+        {
+            format = NEXUS_VideoFormat_ePal;
+        }
+        else if (!strcasecmp(argv[i], "bypass"))
+        {
+            NEXUS_DisplayCapabilities cap;
+            NEXUS_GetDisplayCapabilities(&cap);
 
+            if (cap.display[2].numVideoWindows)
+            {
+                displayType = NEXUS_DisplayType_eBypass;
+                displayIndex = 2;
+                timingGenerator = NEXUS_DisplayTimingGenerator_e656Output;
+            }
+            else
+            {
+                printf("Bypass display is not available.\n");
+                return 0;
+            }
+        }
+    }
+
+    NEXUS_Display_GetDefaultSettings(&displaySettings);
+    displaySettings.timingGenerator = timingGenerator;
+    displaySettings.displayType = displayType;
+    displaySettings.format = format;
+    display = NEXUS_Display_Open(displayIndex, &displaySettings);
+
+    if (displaySettings.timingGenerator  != NEXUS_DisplayTimingGenerator_e656Output)
+    {
 #if NEXUS_NUM_COMPOSITE_OUTPUTS
-    NEXUS_Display_AddOutput(
-		display, 
-			NEXUS_CompositeOutput_GetConnector(
-				platformConfig.outputs.composite[0]));
+        NEXUS_Display_AddOutput(
+            display,
+                NEXUS_CompositeOutput_GetConnector(
+                    platformConfig.outputs.composite[0]));
 #endif
 #if NEXUS_NUM_COMPONENT_OUTPUTS
-    NEXUS_Display_AddOutput(
-		display, 
-			NEXUS_ComponentOutput_GetConnector(
-				platformConfig.outputs.component[0]));
+        NEXUS_Display_AddOutput(
+            display,
+                NEXUS_ComponentOutput_GetConnector(
+                    platformConfig.outputs.component[0]));
 #endif
+    }
 
     NEXUS_Display_GetVbiSettings(display, &displayVbiSettings);
     if (format == NEXUS_VideoFormat_ePal) {
@@ -151,7 +178,7 @@ int main(int argc, char **argv)
         while (1) {
             rc = NEXUS_Display_WriteTeletext(display, &ttData[total], NUM_TT_DATA-total, &num);
             BDBG_ASSERT(!rc);
-            printf(" wrote %d\n", num);
+            printf(" wrote %u\n", (unsigned)num);
             total += num;
             if (total == NUM_TT_DATA) break;
             BKNI_Sleep(10); /* simple flow control */
@@ -175,7 +202,7 @@ int main(int argc, char **argv)
         while (1) {
             rc = NEXUS_Display_WriteClosedCaption(display, &ccData[total], NUM_CC_DATA-total, &num);
             BDBG_ASSERT(!rc);
-            printf(" wrote %d\n", num);
+            printf(" wrote %u\n", (unsigned)num);
             total += num;
             if (total == NUM_CC_DATA) break;
             BKNI_Sleep(10); /* simple flow control */
@@ -237,7 +264,7 @@ int main(int argc, char **argv)
 
     printf("Press ENTER to exit\n");
     getchar();
-    
+
     NEXUS_Display_Close(display);
     NEXUS_Platform_Uninit();
 

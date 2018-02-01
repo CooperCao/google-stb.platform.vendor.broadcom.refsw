@@ -327,47 +327,51 @@ void PrintUsageExit(const char *exe)
    exit(1);
 }
 
-void OutputIRFiles(const GLSL_PROGRAM_T *p)
+void OutputIRFiles(const IR_PROGRAM_T *ir)
 {
-   if (!sQuietMode)
-   {
-      static const char *dbsFilenames[SHADER_FLAVOUR_COUNT] = { "v.dbs", "tc.dbs", "te.dbs",
-                                                                "g.dbs", "f.dbs",  "c.dbs" };
+   static const char *dbsFilenames[SHADER_FLAVOUR_COUNT] = { "v.dbs", "tc.dbs", "te.dbs",
+                                                             "g.dbs", "f.dbs",  "c.dbs" };
 
-      for (int i = 0; i < SHADER_FLAVOUR_COUNT; i++)
-      {
-         if (p->ir->stage[i].ir != NULL)
-            glsl_ir_shader_to_file(p->ir->stage[i].ir, dbsFilenames[i]);
-      }
+   for (int i = 0; i < SHADER_FLAVOUR_COUNT; i++)
+   {
+      if (ir->stage[i].ir != NULL)
+         glsl_ir_shader_to_file(ir->stage[i].ir, dbsFilenames[i]);
    }
 }
 
 void OutputAssembly(const BINARY_PROGRAM_T *bin)
 {
-   if (!sQuietMode && bin)
+   for (uint32_t i = SHADER_VERTEX; i <= SHADER_COMPUTE; i++)
    {
-      for (uint32_t i = SHADER_VERTEX; i <= SHADER_COMPUTE; i++)
-      {
-         ShaderFlavour flav = static_cast<ShaderFlavour>(i);
+      ShaderFlavour flav = static_cast<ShaderFlavour>(i);
 
-         if (flav == SHADER_FRAGMENT)
+      if (flav == SHADER_FRAGMENT)
+      {
+         std::cout << std::endl << "=== fragment assembly" << std::endl;
+         dqasmc_print_basic((uint64_t *)bin->fshader->code,
+            bin->fshader->code_size / sizeof(uint64_t));
+      }
+      else if (bin->vstages[i][0] != NULL)
+      {
+         for (int j = 0; j < MODE_COUNT; j++)
          {
-            std::cout << std::endl << "=== fragment assembly" << std::endl;
-            dqasmc_print_basic((uint64_t *)bin->fshader->code,
-               bin->fshader->code_size / sizeof(uint64_t));
-         }
-         else if (bin->vstages[i][0] != NULL)
-         {
-            for (int j = 0; j < MODE_COUNT; j++)
-            {
-               std::cout << std::endl << "=== " << glsl_shader_flavour_name(flav)
-                         << (j == MODE_BIN ? " (bin)" : "") << " assembly" << std::endl;
-               dqasmc_print_basic((uint64_t *)bin->vstages[i][j]->code,
-                  bin->vstages[i][j]->code_size / sizeof(uint64_t));
-            }
+            std::cout << std::endl << "=== " << glsl_shader_flavour_name(flav)
+                      << (j == MODE_BIN ? " (bin)" : "") << " assembly" << std::endl;
+            dqasmc_print_basic((uint64_t *)bin->vstages[i][j]->code,
+               bin->vstages[i][j]->code_size / sizeof(uint64_t));
          }
       }
-      std::cout << std::endl << std::endl;
+   }
+   std::cout << std::endl << std::endl;
+}
+
+void OutputFn(const IR_PROGRAM_T *ir, const BINARY_PROGRAM_T *bin)
+{
+   if (!sQuietMode)
+   {
+      OutputIRFiles(ir);
+      if (bin)
+         OutputAssembly(bin);
    }
 }
 
@@ -434,7 +438,7 @@ int main(int argc, char *argv[])
    try
    {
       std::bitset<V3D_MAX_ATTR_ARRAYS> attributeRBSwaps;
-      bvk::Linker::LinkShaders(compiledShaders, backendKey, nullptr, OutputIRFiles, OutputAssembly, attributeRBSwaps);
+      bvk::Linker::LinkShaders(compiledShaders, backendKey, OutputFn, attributeRBSwaps);
    }
    catch (std::runtime_error &e)
    {

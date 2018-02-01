@@ -61,10 +61,6 @@ define set_gl_vk_common_local_variables
 		-D_POSIX_C_SOURCE=200112 \
 		-D_GNU_SOURCE \
 		-DHAVE_ZLIB \
-		-DGFX_DEFAULT_UIF_PAGE_SIZE=4096 \
-		-DGFX_DEFAULT_UIF_NUM_BANKS=8 \
-		-DGFX_DEFAULT_UIF_XOR_ADDR=16 \
-		-DGFX_DEFAULT_DRAM_MAP_MODE=2 \
 		-DEMBEDDED_SETTOP_BOX=1 \
 		-DKHRN_GLES32_DRIVER=0 \
 		-DV3D_PLATFORM_SIM=0 \
@@ -191,10 +187,6 @@ LOCAL_CFLAGS := \
 	-D_POSIX_C_SOURCE=200112 \
 	-D_GNU_SOURCE \
 	-DHAVE_ZLIB \
-	-DGFX_DEFAULT_UIF_PAGE_SIZE=4096 \
-	-DGFX_DEFAULT_UIF_NUM_BANKS=8 \
-	-DGFX_DEFAULT_UIF_XOR_ADDR=16 \
-	-DGFX_DEFAULT_DRAM_MAP_MODE=2 \
 	-DEMBEDDED_SETTOP_BOX=1 \
 	-DKHRN_GLES32_DRIVER=0 \
 	-DV3D_PLATFORM_SIM=0 \
@@ -286,7 +278,8 @@ LOCAL_SRC_FILES := \
 	driver/libs/khrn/egl/platform/bcg_abstract/egl_native_fence_sync_android.c \
 	platform/android/sched_android.c \
 	platform/common/sched_nexus.c \
-	platform/android/android_platform_library_loader.c
+	platform/android/android_platform_library_loader.c \
+	platform/common/perf_event.cpp
 
 LOCAL_CPPFLAGS := -std=gnu++0x -fno-rtti -fno-exceptions
 

@@ -169,6 +169,11 @@ void Platform::TerminateDisplay()
    TerminatePlatformDisplay();
 }
 
+void *Platform::GetNativeDisplay()
+{
+   return m_platform->GetNativeDisplay();
+}
+
 void Platform::PushKeyEvent(const KeyEvent &event)
 {
    if (!m_showHUD &&

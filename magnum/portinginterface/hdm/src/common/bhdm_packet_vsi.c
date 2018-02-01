@@ -39,6 +39,9 @@
 #include "bhdm.h"
 #include "bhdm_priv.h"
 #include "bavc.h"
+#if BHDM_DBV_SUPPORT
+#include "bhdm_dbv_priv.h"
+#endif
 
 BDBG_MODULE(BHDM_PACKET_VSI) ;
 
@@ -182,10 +185,9 @@ BERR_Code BHDM_SetVendorSpecificInfoFrame(
 
 done:
 
-    if (pVendorSpecificInfoFrame->bDolbyVisionEnabled)
-    {
-        PacketLength = 24;
-    }
+#if BHDM_DBV_SUPPORT
+    BHDM_DBV_P_UpdateVendorSpecificInfoFrame(hHDMI, pVendorSpecificInfoFrame, &PacketLength);
+#endif
 
 	/* update current device settings with new information on VendorSpecificInfoFrame */
 	BKNI_Memcpy(&hHDMI->DeviceSettings.stVendorSpecificInfoFrame, &NewVSI,

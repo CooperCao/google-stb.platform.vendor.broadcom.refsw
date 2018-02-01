@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -110,6 +110,21 @@ typedef struct BAVC_VideoBufferInfo
       BAVC_VideoCompressionLevel eLevel;
 } BAVC_VideoBufferInfo;
 
+#define BAVC_VIDEO_MAX_EXTRACTED_NALU_SIZE 128
+#define BAVC_VIDEO_MAX_EXTRACTED_NALU_COUNT 3
+
+typedef struct BAVC_VideoExtractedNALUEntries
+{
+   uint8_t auiData[BAVC_VIDEO_MAX_EXTRACTED_NALU_SIZE];
+   unsigned uiNumValidBytes;
+} BAVC_VideoExtractedNALUEntry;
+
+typedef struct BAVC_VideoExtractedNALUInfo
+{
+   BAVC_VideoExtractedNALUEntry astExtractedNALUEntry[BAVC_VIDEO_MAX_EXTRACTED_NALU_COUNT];
+   unsigned uiNumExtractedNaluEntries;
+} BAVC_VideoExtractedNALUInfo;
+
 typedef struct BAVC_VideoMetadataDescriptor
 {
       uint32_t uiMetadataFlags;
@@ -146,6 +161,10 @@ typedef struct BAVC_VideoMetadataDescriptor
             unsigned uiChunkId; /* The FNRT chunk ID for the subsequent frame descriptors */
             unsigned uiEtsDtsOffset; /* The ETS to DTS offset for the encode session as determined by RC */
       } stTiming;
+
+      BAVC_VideoExtractedNALUInfo stExtractedNALUInfo; /* If the video encoder ITB contains NALU data beyond the NAL unit header,
+                                                        * then ALL of the NALU bytes are copied to this data structure. Each array will
+                                                        * start with the NAL unit header. (1 byte for AVC, 2 bytes for HEVC, etc) */
 } BAVC_VideoMetadataDescriptor;
 
 #ifdef __cplusplus

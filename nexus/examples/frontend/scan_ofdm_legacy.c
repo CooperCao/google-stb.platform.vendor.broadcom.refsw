@@ -1,8 +1,7 @@
-
 /******************************************************************************
- *    (c)2008-2013 Broadcom Corporation
+ * Copyright (C) 2008-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  *****************************************************************************/
 /* Example to tune a VSB channel using nexus */
 
@@ -243,7 +231,6 @@ int main(int argc, char **argv)
     NEXUS_FrontendAcquireSettings settings;
     unsigned i;
     unsigned freq = 473;
-    NEXUS_Error rc;
     FILE *pFile, *pFilew;
     char szLineBuf[LINE_BUF_SIZE];
     NEXUS_FrontendOfdmStatus ofdmStatus;
@@ -305,11 +292,7 @@ int main(int argc, char **argv)
 
         start_time = (uint32_t)f_gettime();
         NEXUS_Frontend_TuneOfdm(frontend, &ofdmSettings);
-        rc = BKNI_WaitForEvent(lockCallbackEvent, 10000);
-/*      if (rc) {
-            printf("Not able to get this channel in auto-mode\n");
-        }
-        */
+        BKNI_WaitForEvent(lockCallbackEvent, 10000);
 
         printf("Tuned %d Hz\n", ofdmSettings.frequency);
           

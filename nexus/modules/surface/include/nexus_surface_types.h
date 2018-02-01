@@ -160,6 +160,8 @@ typedef struct NEXUS_StripedSurfaceCreateSettings {
     /* The following are used in NEXUS_StripedSurface_Create along with imageWidth and imageHeight; all other fields should be default values. */
     NEXUS_HeapHandle lumaHeap; /* default zero; It's mutual exclusive with lumaBuffer! Only one can be set at create call! */
     NEXUS_HeapHandle chromaHeap; /* default zero; It's mutual exclusive with chromaBuffer! Only one can be set at create call! */
+
+    NEXUS_MatrixCoefficients matrixCoefficients; /* video color space standard, defaults to eItu_R_BT_709 */
 } NEXUS_StripedSurfaceCreateSettings;
 
 #ifdef __cplusplus

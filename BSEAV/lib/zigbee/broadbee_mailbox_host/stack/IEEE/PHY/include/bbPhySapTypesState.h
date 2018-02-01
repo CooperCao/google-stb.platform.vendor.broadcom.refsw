@@ -87,9 +87,17 @@ enum PHY_Cmd_t {
                                                             command may be deferred in the IEEE-compliant PHY-SAP. */
 };
 SYS_DbgAssertStatic(sizeof(enum PHY_Cmd_t) == 1);
+
+#ifdef _HOST_
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wenum-compare"
+#endif
 SYS_DbgAssertStatic(PHY_CMD__RX_ON == HAL_RADIO_CMD__RX_ON);
 SYS_DbgAssertStatic(PHY_CMD__TRX_OFF == HAL_RADIO_CMD__TRX_OFF);
 SYS_DbgAssertStatic(PHY_CMD__TX_ON == HAL_RADIO_CMD__TX_ON);
+#ifdef _HOST_
+#pragma GCC diagnostic pop
+#endif
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /**//**
@@ -114,12 +122,20 @@ enum PHY_State_t {
     PHY_STATE__TX_ON        = PHY__TX_ON,       /*!< The transceiver is in the transmitter enabled state. */
 };
 SYS_DbgAssertStatic(sizeof(enum PHY_State_t) == 1);
+
+#ifdef _HOST_
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wenum-compare"
+#endif
 SYS_DbgAssertStatic(PHY_STATE__UNDEFINED == HAL_RADIO_STATE__UNDEFINED);
 SYS_DbgAssertStatic(PHY_STATE__BUSY_RX == HAL_RADIO_STATE__BUSY_RX);
 SYS_DbgAssertStatic(PHY_STATE__BUSY_TX == HAL_RADIO_STATE__BUSY_TX);
 SYS_DbgAssertStatic(PHY_STATE__RX_ON == HAL_RADIO_STATE__RX_ON);
 SYS_DbgAssertStatic(PHY_STATE__TRX_OFF == HAL_RADIO_STATE__TRX_OFF);
 SYS_DbgAssertStatic(PHY_STATE__TX_ON == HAL_RADIO_STATE__TX_ON);
+#ifdef _HOST_
+#pragma GCC diagnostic pop
+#endif
 
 #endif /* _BB_PHY_SAP_TYPES_STATE_H */
 

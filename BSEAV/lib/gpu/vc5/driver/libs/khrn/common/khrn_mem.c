@@ -34,7 +34,7 @@ void khrn_mem_release(const void *p)
    if (before_dec == 1)
    {
       if (header->term)
-         header->term((void *)p, header->size);
+         header->term((void *)p);
 
       free(header);
    }

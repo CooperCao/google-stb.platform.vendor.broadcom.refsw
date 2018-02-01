@@ -135,7 +135,7 @@ public:
 
     virtual bool Load(std::string license) OVERRIDE;
 
-    void SetKeyId(std::string keyId) { m_keyId.assign(keyId); }
+    virtual void SetKeyId(std::string keyId) { m_keyId.assign(keyId); }
 
     bool IsValid() { return m_valid; }
 

@@ -157,8 +157,10 @@ NEXUS_AudioMuxOutputHandle NEXUS_AudioMuxOutput_Create(     /* attr{destructor=N
     if ( audioCaps.dsp.codecs[NEXUS_AudioCodec_eLpcm1394].encode )
     {
         /* Default CDB size if 1394 LPCM Encoding is supported needs to be much larger for uncompressed data */
-        cdbLength = 700*1024;
         itbLength = 350*1024;
+        BDSP_SIZE_ALIGN(itbLength);
+        cdbLength = itbLength*2;
+        BDSP_SIZE_ALIGN(cdbLength);
     }
     if ( 0 != pSettings->data.fifoSize )
     {
@@ -168,11 +170,15 @@ NEXUS_AudioMuxOutputHandle NEXUS_AudioMuxOutput_Create(     /* attr{destructor=N
     {
         itbLength = pSettings->index.fifoSize;
     }
-    if ( itbLength < (cdbLength/2) )
+    BDSP_SIZE_ALIGN(itbLength);
+    if ( (itbLength*2) < cdbLength )
     {
-        BDBG_WRN(("Index FIFO Size less than recommended - increasing from %lu to %lu bytes", (unsigned long)itbLength, (unsigned long)cdbLength));
-        itbLength = cdbLength/2;
+        BDBG_WRN(("ITB FIFO Size less than recommended - increasing CDB from %lu to %lu bytes", (unsigned long)cdbLength, (unsigned long)itbLength*2));
+        cdbLength = itbLength*2;
     }
+
+    BDSP_SIZE_ALIGN(cdbLength);
+
 
 #if NEXUS_AUDIO_MUX_USE_RAVE
     /* Setup rave buffer */
@@ -183,7 +189,9 @@ NEXUS_AudioMuxOutputHandle NEXUS_AudioMuxOutput_Create(     /* attr{destructor=N
     raveSettings.config = g_cdbItbCfg;
     NEXUS_GetAudioCapabilities(&audioCaps);
     raveSettings.config.Cdb.Length = cdbLength;
+    raveSettings.config.Cdb.Alignment = BDSP_ADDRESS_ALIGN_CDB
     raveSettings.config.Itb.Length = itbLength;
+    raveSettings.config.Itb.Alignment = BDSP_ADDRESS_ALIGN_ITB
     /* audio mux output CDB/ITB heap assigned here for record type (non-secure) RAVE context. */
     raveSettings.heap = NEXUS_P_DefaultHeap(pSettings->data.heap, NEXUS_DefaultHeapType_eFull);
     BDBG_MSG(("rave setting CDB nexus heap = %p", (void *)raveSettings.heap));

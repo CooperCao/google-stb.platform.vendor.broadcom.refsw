@@ -72,22 +72,22 @@ float atan(float y, float x)
       it's fast.
    */
    int x_sgn_mask = $$reinterpi(x) >> 31;
-   highp float y_quad_sign = $$reinterpf(($$reinterpi(y) & 0x80000000) | $$reinterpi(1.0));
+   highp int y_quad_sign = $$reinterpi(y) & 0x80000000;
 
    /* Correct for y/x == #NaN. Ignore 0/0 because results are undefined, so we
       only need to correct #Inf/#Inf                                          */
    highp float y_on_x;
-   if (__isinf(x) && __isinf(y)) {
+   if (__isinf(x) && abs(x) == abs(y)) {
       int sign_bit = ($$reinterpi(x) ^ $$reinterpi(y)) & 0x80000000;
-      y_on_x = $$reinterpf(sign_bit | $$reinterpi(1.0));
+      y_on_x = $$reinterpf(sign_bit + $$reinterpi(1.0));
    } else {
       y_on_x = y / x;
    }
 
-   highp float quadrant_offset = $$reinterpf($$reinterpi(PI) & x_sgn_mask);
-   quadrant_offset *= y_quad_sign;
+   highp int quadrant_offset = $$reinterpi(PI) & x_sgn_mask;
+   quadrant_offset ^= y_quad_sign;
 
-   return quadrant_offset + atan( y_on_x );
+   return $$reinterpf(quadrant_offset) + atan( y_on_x );
 }
 
 vec2 atan(vec2 y, vec2 x) {
@@ -111,11 +111,9 @@ float atan(float y_over_x)
    const highp float PO4   = 0.785398163397;
    highp float x = y_over_x;
    highp float c = 0.0;
-   highp float sgn_x = 1.0;
-   if (x < 0.0) {
-      x = -x;
-      sgn_x = -1.0;
-   }
+   highp uint sgn_x = $$reinterpu(x) & 0x80000000u;
+
+   x = abs(x);
 
    if (x > T3PO8) {
       x = -1.0/x;
@@ -124,11 +122,11 @@ float atan(float y_over_x)
       x = (x-1.0)/(x+1.0);
       c = PO4;
    }
-   highp float z = x*x;
-   return sgn_x * (c + x + x*z*(  8.05374449538e-2*z*z*z
-                                - 1.38776856032e-1*z*z
-                                + 1.99777106478e-1*z
-                                - 3.33329491539e-1));
+   highp float z  = x*x;
+   return $$reinterpf(sgn_x ^ $$reinterpu(c + x + x*z*(((  8.05374449538e-2  * z
+                                                         - 1.38776856032e-1) * z
+                                                         + 1.99777106478e-1) * z
+                                                         - 3.33329491539e-1)));
 }
 
 vec2 atan(vec2 y_over_x) {
@@ -144,7 +142,27 @@ vec4 atan(vec4 y_over_x) {
 }
 
 float asin(float x) {
-   return atan(x / sqrt(1.0-x*x));
+   const highp float PO2 = 1.570796326794;
+   highp float c = 0.0;
+   highp float f = 1.0;
+   highp uint sgn_x = $$reinterpu(x) & 0x80000000u;
+
+   x = abs(x);
+
+   if (x > 0.5) {
+      c = PO2;
+      f = -2.0;
+      x = inversesqrt(2.0/(1.0-x));
+   }
+   highp float z  = x * x;
+   highp float r = ((((  4.2163199048E-2  * z
+                       + 2.4181311049E-2) * z
+                       + 4.5470025998E-2) * z
+                       + 7.4953002686E-2) * z
+                       + 1.6666752422E-1) * z * x
+                       + x;
+
+   return $$reinterpf(sgn_x ^ $$reinterpu(c + f * r));
 }
 
 vec2 asin(vec2 x) {

@@ -607,7 +607,7 @@ static void avsync_correlation_error( TranscodeContext *pContext )
 	unsigned i, j;
 	uint32_t v_opts, a_opts;
 	uint64_t v_pts, a_pts, v_stc, a_stc;
-	double v_opts2pts, a_opts2pts, error;
+	double v_opts2pts = 0.0, a_opts2pts = 0.0, error;
 	bool validVframe = false, validAframe = false;
 
 	NEXUS_VideoEncoder_GetBuffer(pContext->videoEncoder, &vdesc[0], &size[0], &vdesc[1], &size[1]);
@@ -2038,7 +2038,7 @@ static void updateSystemData(void *context)
  */
 static void xcode_create_systemdata( TranscodeContext  *pContext )
 {
-	uint8_t vidStreamType, audStreamType;
+	uint8_t vidStreamType = 0x0, audStreamType = 0x0;
 	uint16_t audPid = 0;
 	NEXUS_AudioCodec audCodec = NEXUS_AudioCodec_eUnknown;
 
@@ -2104,7 +2104,7 @@ static void videoRecpump_thread(
 	unsigned timeout=0;
 	bool firstTime=true;
 	off_t totalRecordBytes=0;
-	off_t bytesRecordedTillCurrentRai;
+	off_t bytesRecordedTillCurrentRai=0;
 	NEXUS_Error rc;
 
 	/* prepare pat/pmt packets */

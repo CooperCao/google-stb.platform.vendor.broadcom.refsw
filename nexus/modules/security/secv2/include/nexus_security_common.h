@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -91,7 +91,6 @@ typedef enum NEXUS_CryptographicAlgorithm
     NEXUS_CryptographicAlgorithm_eCam256,
     NEXUS_CryptographicAlgorithm_eGhash,
     NEXUS_CryptographicAlgorithm_eC2,             /* pre Zeus5 */
-    NEXUS_CryptographicAlgorithm_eCss,            /* pre Zeus5 */
     NEXUS_CryptographicAlgorithm_eM6Ke,           /* pre Zeus5 */
     NEXUS_CryptographicAlgorithm_eM6S,            /* pre Zeus5 */
     NEXUS_CryptographicAlgorithm_eRc4,            /* pre Zeus5 */

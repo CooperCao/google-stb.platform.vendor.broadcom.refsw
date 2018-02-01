@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -578,6 +578,110 @@ typedef struct BAVC_VDC_HdDvi_Picture
     uint32_t                 ulPixelRepitionFactor;
 
 } BAVC_VDC_HdDvi_Picture;
+
+/***************************************************************************
+Summary:
+    A structure representing a field/frame of data from display to the encoder module.
+
+Description:
+    This structure is typically used to pass buffer from the display module to
+    the encoder module. This should be done for every picture so that the encoder can
+    encode the picture with the appropriate parameters.
+
+    The structure is for encoding.  Notice that both the soft encoder PI
+    VEE and hw encoder PI VCE could consume the structure for encoding.
+
+See Also:
+****************************************************************************/
+typedef struct BAVC_EncodePictureBuffer
+{
+    /* encode picture Y/C buffer */
+    BMMA_Block_Handle    hLumaBlock;
+    uint32_t             ulLumaOffset;
+    BMMA_Block_Handle    hChromaBlock;
+    uint32_t             ulChromaOffset;
+    /* Y/C buffer format: 420; linear or striped */
+    bool                 bStriped;
+
+    /* DCX or not */
+    bool                 bDcx;
+    bool                 bChromaDcx;
+    bool                 b1VLumaDcx;
+    bool                 b2VLumaDcx;
+
+    bool                 bLast;                /* This flag indicates this is the last picture to be encoded */
+    bool                 bChannelChange;       /* This flag indicates this picture is part of a channel change */
+
+    /* Active Format Data (AFD) */
+    struct
+    {
+        bool             bValid;
+        unsigned         uiMode;
+    } stAFD;
+
+    /* Bar Data */
+    struct
+    {
+        BAVC_BarDataType eType;
+        unsigned         uiTopLeft;
+        unsigned         uiBotRight;
+    } stBarData;
+
+    /* 3D Data */
+    BFMT_Orientation     eOrientation;
+
+    /* if striped format, the stripe parameters */
+    unsigned             ulStripeWidth;
+    unsigned             ulLumaNMBY;
+    unsigned             ulChromaNMBY;
+
+    /* picture size */
+    unsigned             ulWidth;
+    unsigned             ulHeight;
+
+    /* capture size in macroblocks: allow padding and sw workarounds */
+    unsigned             ulWidthInMbs;
+    unsigned             ulHeightInMbs;
+
+    /* picture polarity: T/B/F */
+    BAVC_Polarity        ePolarity;
+
+    /* sample aspect ratio x/y */
+    unsigned             ulAspectRatioX;
+    unsigned             ulAspectRatioY;
+
+    /* frame rate */
+    BAVC_FrameRateCode   eFrameRate;
+
+    /* Timestamp Parameters */
+    uint32_t             ulOriginalPTS; /* 32-bit original PTS value (in 45 Khz or 27Mhz?) */
+    uint32_t             ulSTCSnapshotLo; /* lower 32-bit STC snapshot when picture received at the displayable point (in 27Mhz) */
+    uint32_t             ulSTCSnapshotHi; /* high 10-bit STC snapshot when picture received at the displayable point (in 27Mhz) */
+
+    /* Displayable point Picture ID */
+    uint32_t             ulPictureId;
+
+    /* Optional cadence info for PicAFF encode */
+    struct
+    {
+        BAVC_CadenceType  type;
+        BAVC_CadencePhase phase;
+    } stCadence;
+
+    /* Optional 1V/2V decimated luma buffers (share the same MMA block as Y/C buffer) */
+    BMMA_Block_Handle    h1VLumaBlock;/* NULL if unused */
+    uint32_t             ul1VLumaOffset;
+    uint32_t             ul1VLumaNMBY;
+    BMMA_Block_Handle    h2VLumaBlock;/* NULL if unused */
+    uint32_t             ul2VLumaOffset;
+    uint32_t             ul2VLumaNMBY;
+    uint32_t             ulHorizontalDecimationShift;
+
+    /* Optional shifted chroma for interlaced format */
+    BMMA_Block_Handle    hShiftedChromaBlock;/* NULL if unused */
+    uint32_t             ulShiftedChromaOffset;/* for interlaced format */
+    uint32_t             ulShiftedChromaNMBY;
+} BAVC_EncodePictureBuffer;
 
 /***************************************************************************
 Summary:

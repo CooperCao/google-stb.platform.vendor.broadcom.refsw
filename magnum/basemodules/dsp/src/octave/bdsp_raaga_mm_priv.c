@@ -109,7 +109,6 @@ static void BDSP_Raaga_P_CalculateProcessRWMemory(
     BDBG_ENTER(BDSP_Raaga_P_CalculateProcessRWMemory);
     *pMemReqd = 0;
 
-    MemoryRequired += BDSP_IMG_KERNEL_RW_IMG_SIZE;
     MemoryRequired += (BDSP_IMG_USER_PROCESS_SPAWN_MEM_SIZE*BDSP_MAX_NUM_USER_PROCESS);
     MemoryRequired += BDSP_IMG_DEFAULT_MM_PROC_HEAP_SIZE;
     MemoryRequired += BDSP_IMG_INIT_PROCESS_MEM_SIZE;
@@ -271,6 +270,32 @@ void BDSP_Raaga_P_CalculateTaskMemory(
 	BDBG_LEAVE(BDSP_Raaga_P_CalculateTaskMemory);
 }
 
+void BDSP_Raaga_P_CalculateKernelRWMemory(
+    unsigned   *pMemReqd
+)
+{
+  *pMemReqd = BDSP_IMG_KERNEL_RW_IMG_SIZE;
+  *pMemReqd = BDSP_ALIGN_SIZE(*pMemReqd, 4096);/* Align the size to 4k */
+}
+
+void BDSP_Raaga_P_CalculateHostFWsharedRWMemory(
+    BDSP_Raaga *pDevice,
+    unsigned   *pMemReqd
+)
+{
+    unsigned MemoryRequired = 0;
+    BDSP_Raaga_P_CalculateInitMemory(&MemoryRequired);
+    *pMemReqd += MemoryRequired;
+    BDSP_P_CalculateDescriptorMemory(&MemoryRequired);
+    *pMemReqd += MemoryRequired;
+    BDSP_Raaga_P_CalculateDebugMemory(&pDevice->deviceSettings, &MemoryRequired);
+    *pMemReqd += MemoryRequired;
+
+    *pMemReqd += PM_HOST_DEBUG_BUFFER_SIZE; /* debug channel memory for process manager */
+    *pMemReqd = BDSP_ALIGN_SIZE(*pMemReqd, 4096);/* Align the size to 4k */
+}
+
+
 void BDSP_Raaga_P_CalculateDeviceRWMemory(
     BDSP_Raaga *pDevice,
     unsigned    dspIndex,
@@ -281,18 +306,10 @@ void BDSP_Raaga_P_CalculateDeviceRWMemory(
 
     BDBG_ENTER(BDSP_Raaga_P_CalculateDeviceRWMemory);
 
-    BDSP_Raaga_P_CalculateInitMemory(&MemoryRequired);
-    *pMemReqd += MemoryRequired;
-    BDSP_Raaga_P_CalculateDebugMemory(&pDevice->deviceSettings, &MemoryRequired);
-    *pMemReqd += MemoryRequired;
-
     BDSP_Raaga_P_CalculateScratchAndInterStageMemory(pDevice, dspIndex, pDevice->numCorePerDsp, &MemoryRequired, false, NULL);
     *pMemReqd += MemoryRequired;
 
     BDSP_Raaga_P_CalculateProcessRWMemory(&MemoryRequired);
-    *pMemReqd += MemoryRequired;
-
-    BDSP_P_CalculateDescriptorMemory(&MemoryRequired);
     *pMemReqd += MemoryRequired;
 
     *pMemReqd = BDSP_ALIGN_SIZE(*pMemReqd, 4096);/* Align the size to 4k */
@@ -335,7 +352,7 @@ static BERR_Code BDSP_Raaga_P_AssignKernalMemory(
     BDSP_MMA_Memory Memory;
     BDBG_ENTER(BDSP_Raaga_P_AssignKernalMemory);
 
-    errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], BDSP_IMG_KERNEL_RW_IMG_SIZE, &Memory);
+    errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sKernelRWMemoryPool[dspindex], BDSP_IMG_KERNEL_RW_IMG_SIZE, &Memory);
     if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignKernalMemory: Unable to Assign Kernal Memory for dsp %d!!!!",dspindex));
@@ -357,7 +374,7 @@ static BERR_Code BDSP_Raaga_P_ReleaseKernalMemory(
     BERR_Code errCode = BERR_SUCCESS;
     BDBG_ENTER(BDSP_Raaga_P_ReleaseKernalMemory);
 
-    errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
+    errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sKernelRWMemoryPool[dspindex],
 		pDevice->memInfo.KernalMemory[dspindex].ui32Size,
 		&pDevice->memInfo.KernalMemory[dspindex].Buffer);
     if(errCode != BERR_SUCCESS)
@@ -384,7 +401,7 @@ static BERR_Code BDSP_Raaga_P_AssignTargetBufferMemory(
     /* For Shared Target print buffer to bet set in kernel */
     if(pDevice->deviceSettings.debugSettings[BDSP_DebugType_eTargetPrintf].enabled)
     {
-        errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspIndex], pDevice->deviceSettings.debugSettings[BDSP_DebugType_eTargetPrintf].bufferSize, &Memory);
+        errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspIndex], pDevice->deviceSettings.debugSettings[BDSP_DebugType_eTargetPrintf].bufferSize, &Memory);
         if(errCode != BERR_SUCCESS)
         {
             BDBG_ERR(("BDSP_Raaga_P_AssignTargetBufferMemory: Unable to Assign Target buffer Memory for dsp %d!!!!",dspIndex));
@@ -414,7 +431,7 @@ static BERR_Code BDSP_Raaga_P_ReleaseTargetBufferMemory(
 
     if(pDevice->deviceSettings.debugSettings[BDSP_DebugType_eTargetPrintf].enabled)
     {
-        errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspIndex],
+        errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspIndex],
 		    pDevice->memInfo.TargetBufferMemory[dspIndex].ui32Size,
 		    &pDevice->memInfo.TargetBufferMemory[dspIndex].Buffer);
         if(errCode != BERR_SUCCESS)
@@ -427,6 +444,58 @@ static BERR_Code BDSP_Raaga_P_ReleaseTargetBufferMemory(
 
 end:
 	BDBG_LEAVE(BDSP_Raaga_P_ReleaseTargetBufferMemory);
+    return errCode;
+}
+
+static BERR_Code BDSP_Raaga_P_AssignDebugServiceMemory(
+    BDSP_Raaga *pDevice,
+    unsigned dspIndex
+)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+    BDSP_MMA_Memory Memory;
+    BDBG_ENTER(BDSP_Raaga_P_AssignDeubgSerivceMemory);
+
+    /* For Shared Debug service memory used by Debug process for Interactive Deubg Service */
+    {
+        errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspIndex], PM_HOST_DEBUG_BUFFER_SIZE, &Memory);
+        if(errCode != BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_Raaga_P_AssignDeubgSerivceMemory: Unable to Assign Target buffer Memory for dsp %d!!!!",dspIndex));
+            goto end;
+        }
+
+        pDevice->memInfo.DeubgServiceMemory[dspIndex].Buffer   = Memory;
+        pDevice->memInfo.DeubgServiceMemory[dspIndex].ui32Size = PM_HOST_DEBUG_BUFFER_SIZE;
+    }
+
+end:
+	BDBG_LEAVE(BDSP_Raaga_P_AssignDeubgSerivceMemory);
+    return errCode;
+}
+
+static BERR_Code BDSP_Raaga_P_ReleaseDebugServiceMemory(
+    BDSP_Raaga *pDevice,
+    unsigned dspIndex
+)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+    BDBG_ENTER(BDSP_Raaga_P_ReleaseDebugServiceMemory);
+
+    {
+        errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspIndex],
+		    pDevice->memInfo.DeubgServiceMemory[dspIndex].ui32Size,
+		    &pDevice->memInfo.DeubgServiceMemory[dspIndex].Buffer);
+        if(errCode != BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_Raaga_P_ReleaseDebugServiceMemory: Unable to release target buffer Memory for dsp %d!!!!",dspIndex));
+            goto end;
+        }
+    }
+    pDevice->memInfo.DeubgServiceMemory[dspIndex].ui32Size = 0;
+
+end:
+	BDBG_LEAVE(BDSP_Raaga_P_ReleaseDebugServiceMemory);
     return errCode;
 }
 
@@ -447,7 +516,7 @@ static BERR_Code BDSP_Raaga_P_AssignInitMemory(
         goto end;
     }
     ui32Size = BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Command)*BDSP_MAX_FW_TASK_PER_DSP;
-    errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
+    errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex], ui32Size, &Memory);
     if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignInitMemory: Unable to allocate RW memory for CMD QUEUE for dsp %d!!!!",dspindex));
@@ -463,7 +532,7 @@ static BERR_Code BDSP_Raaga_P_AssignInitMemory(
         goto end;
     }
     ui32Size = (BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Response));
-    errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
+    errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex], ui32Size, &Memory);
     if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignInitMemory: Unable to allocate RW memory for GENERIC RESPONSE QUEUE for dsp %d!!!!",dspindex));
@@ -491,7 +560,7 @@ static BERR_Code BDSP_Raaga_P_ReleaseInitMemory(
         BDBG_ERR(("BDSP_Raaga_P_ReleaseInitMemory: Unable to release fifo for CMD QUEUE for dsp %d!!!!",dspindex));
         goto end;
     }
-    errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
+    errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex],
 		pDevice->memInfo.cmdQueueParams[dspindex].ui32Size,
 		&pDevice->memInfo.cmdQueueParams[dspindex].Memory);
     if(errCode != BERR_SUCCESS)
@@ -508,7 +577,7 @@ static BERR_Code BDSP_Raaga_P_ReleaseInitMemory(
         goto end;
     }
 
-	errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
+	  errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex],
 		pDevice->memInfo.genRspQueueParams[dspindex].ui32Size,
 		&pDevice->memInfo.genRspQueueParams[dspindex].Memory);
     if(errCode != BERR_SUCCESS)
@@ -534,7 +603,7 @@ static BERR_Code BDSP_Raaga_P_AssignDescriptorMemory(
     BDBG_ENTER(BDSP_Raaga_P_AssignDescriptorMemory);
 
     ui32Size = (BDSP_MAX_DESCRIPTORS * sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
-    errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
+    errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex], ui32Size, &Memory);
     if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AssignDescriptorMemory: Unable to allocate RW memory for Descriptors for dsp %d!!!!",dspindex));
@@ -556,7 +625,7 @@ static BERR_Code BDSP_Raaga_P_ReleaseDescriptorMemory(
     BERR_Code errCode = BERR_SUCCESS;
     BDBG_ENTER(BDSP_Raaga_P_ReleaseDescriptorMemory);
 
-    errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
+    errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex],
 		pDevice->memInfo.DescriptorMemory[dspindex].ui32Size,
 		&pDevice->memInfo.DescriptorMemory[dspindex].Buffer);
     if(errCode != BERR_SUCCESS)
@@ -614,7 +683,7 @@ static BERR_Code BDSP_Raaga_P_AssignDebugMemory(
 					break;
 			}
 			ui32Size = pDevice->deviceSettings.debugSettings[index].bufferSize;
-			errCode  = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
+			errCode  = BDSP_P_RequestMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex], ui32Size, &Memory);
             if(errCode != BERR_SUCCESS)
 			{
 				BDBG_ERR(("BDSP_Raaga_P_AssignDebugMemory: Unable to allocate RW memory for Debug type %d for dsp %d!!!!",index, dspindex));
@@ -624,6 +693,7 @@ static BERR_Code BDSP_Raaga_P_AssignDebugMemory(
 			pDevice->memInfo.debugQueueParams[dspindex][index].Memory   = Memory;
 		}
 	}
+
 end:
 	BDBG_LEAVE(BDSP_Raaga_P_AssignDebugMemory);
 	return errCode;
@@ -642,7 +712,7 @@ static BERR_Code BDSP_Raaga_P_ReleaseDebugMemory(
 	{
 		if(pDevice->deviceSettings.debugSettings[index].enabled)
 		{
-			errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
+			errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex],
 				pDevice->memInfo.debugQueueParams[dspindex][index].ui32Size,
 				&pDevice->memInfo.debugQueueParams[dspindex][index].Memory);
             if(errCode != BERR_SUCCESS)
@@ -747,6 +817,13 @@ BERR_Code BDSP_Raaga_P_AssignDeviceRWMemory(
         goto end;
     }
 
+    errCode = BDSP_Raaga_P_AssignDescriptorMemory(pDevice, dspindex);
+    if(errCode != BERR_SUCCESS)
+    {
+      BDBG_ERR(("BDSP_Raaga_P_AssignDeviceRWMemory: Unable to Assign Descriptor Memory for dsp %d!!!!",dspindex));
+      goto end;
+    }
+
 	errCode = BDSP_Raaga_P_AssignDebugMemory(pDevice, dspindex);
     if(errCode != BERR_SUCCESS)
 	{
@@ -754,12 +831,12 @@ BERR_Code BDSP_Raaga_P_AssignDeviceRWMemory(
 		goto end;
 	}
 
-	errCode = BDSP_Raaga_P_AssignDescriptorMemory(pDevice, dspindex);
+    errCode = BDSP_Raaga_P_AssignDebugServiceMemory(pDevice, dspindex);
     if(errCode != BERR_SUCCESS)
-	{
-		BDBG_ERR(("BDSP_Raaga_P_AssignDeviceRWMemory: Unable to Assign Descriptor Memory for dsp %d!!!!",dspindex));
-		goto end;
-	}
+    {
+        BDBG_ERR(("BDSP_Raaga_P_AssignDeviceRWMemory: Unable to Assign Debug service Memory for dsp %d!!!!",dspindex));
+        goto end;
+    }
 
     errCode = BDSP_Raaga_P_AssignWorkBufferMemory(pDevice, dspindex);
     if(errCode != BERR_SUCCESS)
@@ -793,6 +870,13 @@ BERR_Code BDSP_Raaga_P_ReleaseDeviceRWMemory(
     if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_ReleaseDeviceRWMemory: Unable to Release target buffer Memory for dsp %d!!!!",dspindex));
+        goto end;
+    }
+
+    errCode = BDSP_Raaga_P_ReleaseDebugServiceMemory(pDevice, dspindex);
+    if(errCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_ReleaseDeviceRWMemory: Unable to Release Debug service Memory for dsp %d!!!!",dspindex));
         goto end;
     }
 

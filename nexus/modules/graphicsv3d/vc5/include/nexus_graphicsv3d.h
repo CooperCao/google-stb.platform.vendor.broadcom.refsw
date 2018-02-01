@@ -103,6 +103,7 @@ typedef struct NEXUS_Graphicsv3dInfo
    uint32_t    uiIdent[NEXUS_GRAPHICSV3D_MAX_CORES * NEXUS_GRAPHICSV3D_MAX_IDENTS];
    uint32_t    uiHubIdent[NEXUS_GRAPHICSV3D_MAX_HUB_IDENTS];
    uint32_t    uiDDRMapVer;
+   uint32_t    uiSocQuirks;
 } NEXUS_Graphicsv3dInfo;
 
 typedef enum NEXUS_Graphicsv3dJobType
@@ -938,6 +939,13 @@ NEXUS_Error NEXUS_Graphicsv3d_QuerySchedEvent(
       bool                          *bEventSet        /* [out] */
       );
 
+/**
+Summary:
+Set frequency scaling percentage for Graphics 3D
+**/
+NEXUS_Error NEXUS_Graphicsv3d_SetFrequencyScaling(
+        unsigned percent                              /* [in] percentage of max frequency */
+        );
 #ifdef __cplusplus
 }
 #endif

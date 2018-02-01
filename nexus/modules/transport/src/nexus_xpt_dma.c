@@ -368,6 +368,7 @@ static NEXUS_Error NEXUS_Dma_P_ApplyJobSettings(
     }
 
     if (pSettings->keySlot == NULL) {
+        /* associate a bypass keyslot with the transfer. */
         ctxSettings.pidChannelNum = NEXUS_PidChannel_GetBypassKeySlotIndex_isrsafe(pSettings->bypassKeySlot);
     }
     else {
@@ -990,11 +991,13 @@ unsigned NEXUS_PidChannel_GetBypassKeySlotIndex_isrsafe(NEXUS_BypassKeySlot bypa
     /* for current ARM systems, BXPT_NUM_PID_CHANNELS is 768 and BXPT_DMA_NUM_PID_CHANNELS is 256,
     so we reserve 1023 and 1022 for clear M2M. but this should adapt if this changes. */
     switch (bypassKeySlot) {
-    default:
+    default: BERR_TRACE(NEXUS_INVALID_PARAMETER); /* pass through to G2GR */
     case NEXUS_BypassKeySlot_eG2GR:
         return BXPT_DMA_NUM_PID_CHANNELS+BXPT_NUM_PID_CHANNELS-1;
     case NEXUS_BypassKeySlot_eGR2R:
         return BXPT_DMA_NUM_PID_CHANNELS+BXPT_NUM_PID_CHANNELS-2;
+    case NEXUS_BypassKeySlot_eGT2T:
+        return BXPT_DMA_NUM_PID_CHANNELS+BXPT_NUM_PID_CHANNELS-3;
     /* if extended, NEXUS_BypassKeySlot_eMax-1 must be the lowest pidChannelIndex for NEXUS_PidChannel_OpenDma_Priv's search to work */
     }
 }

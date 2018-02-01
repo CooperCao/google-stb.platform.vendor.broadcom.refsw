@@ -503,3 +503,12 @@ NEXUS_Error NxClient_SetClientMode( const NxClient_ClientModeSettings *pSettings
     UNLOCK();
     return rc;
 }
+
+NEXUS_Error NxClient_GetThermalStatus( NxClient_ThermalStatus *pStatus )
+{
+    NEXUS_Error rc;
+    LOCK();
+    rc = nxclient_p_get_thermal_status(NXCLIENT_STATE_RESTRICTED, pStatus);
+    UNLOCK();
+    return rc;
+}

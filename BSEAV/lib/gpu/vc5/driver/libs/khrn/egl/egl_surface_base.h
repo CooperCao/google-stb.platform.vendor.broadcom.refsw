@@ -22,11 +22,9 @@ typedef struct
    khrn_image *(*get_back_buffer)(const EGL_SURFACE_T *surface);
 
    /*
-    * See eglSwapbuffers. If preserve, then the new back buffer should be
-    * initialized with the contents of the previous back buffer. May be NULL
-    * in which case back buffer is the same.
+    * See eglSwapbuffers. May be NULL in which case back buffer is the same.
     */
-   egl_result_t (*swap_buffers)(EGL_SURFACE_T *surface, bool preserve);
+   egl_result_t (*swap_buffers)(EGL_SURFACE_T *surface);
 
    /*
     * Set the swap interval (see eglSwapInterval). Can be NULL. It's up to the
@@ -41,10 +39,9 @@ typedef struct
     */
    void (*get_dimensions)(EGL_SURFACE_T *surface, unsigned *width, unsigned *height);
 
-   /* If attrib is not recognised, false is returned and *value is not modified.
-    * Otherwise, true is returned.
+   /* These return an EGL error code. *value is not modified in case of error.
     * If not supplied, egl_surface_base_get_attrib is used. */
-   bool (*get_attrib)(const EGL_SURFACE_T *surface, EGLint attrib, EGLint *value);
+   EGLint (*get_attrib)(EGL_SURFACE_T *surface, EGLint attrib, EGLint *value);
 
    /*
     * init_attrib is for setting attributes during surface creation.
@@ -102,13 +99,18 @@ struct egl_surface_base
    VCOS_MUTEX_T                  lock;
    const EGL_CONFIG_T           *config;
    egl_surface_colorspace_t      gl_colorspace;
-   EGLenum                       swap_behavior;
    bool                          secure;
    EGLenum                       multisample_resolve;
    unsigned                      width;
    unsigned                      height;
    EGLNativeWindowType           native_window;  /* If this surface is attached to a native window, which one? */
    EGLNativePixmapType           native_pixmap;  /* If this surface is attached to a native pixmap, which one? */
+
+   int                          *damage_rects;       /* A malloc'ed list of damage rects, or NULL if none set */
+   int                           num_damage_rects;   /* -1 indicates no regions have been set since last swap */
+   int                           buffer_age;         /* The buffer age to report when queried                 */
+   bool                          buffer_age_queried; /* true if buffer age queried since last swap            */
+   bool                          buffer_age_enabled; /* true if buffer age has ever been requested on surface */
 
    /*
     * The context that this surface is bound to. In other words, context->draw
@@ -138,7 +140,7 @@ extern EGLint egl_surface_base_init(EGL_SURFACE_T *surface,
 extern void egl_surface_base_destroy(EGL_SURFACE_T *surface);
 
 /* Base get_attrib implementation */
-extern bool egl_surface_base_get_attrib(const EGL_SURFACE_T *surface,
+extern EGLint egl_surface_base_get_attrib(EGL_SURFACE_T *surface,
       EGLint attrib, EGLint *value);
 
 /* Base init_attrib implementation */
@@ -165,5 +167,8 @@ extern void egl_surface_base_delete_aux_bufs(EGL_SURFACE_T *surface);
 
 extern khrn_image *egl_surface_base_get_aux_buffer(
       const EGL_SURFACE_T *surface, egl_aux_buf_t which);
+
+/* Called after swap buffers to reset per-swap state in the surface */
+extern void egl_surface_base_swap_done(EGL_SURFACE_T *surface, int new_buffer_age);
 
 #endif /* EGL_SURFACE_BASE_H */

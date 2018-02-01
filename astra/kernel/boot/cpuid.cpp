@@ -37,6 +37,7 @@
  ***************************************************************************/
 
 #include "arm/arm.h"
+#include "config.h"
 
 int arm::cpuId() {
 	register int id;
@@ -48,4 +49,9 @@ int arm::smpCpuNum() {
 	register int num;
 	ARCH_SPECIFIC_SMP_CPU_NUM(num);
 	return num;
+}
+
+int arm::smpTotalNumCpu() {
+	return MAX_NUM_CPUS;
+	//return 1;
 }

@@ -132,7 +132,7 @@ static BERR_Code NEXUS_Platform_P_TeeClientReceiveMessage(void *pClientPrivate, 
     {
         *pLength = 0;
         *pConnection = NULL;
-        return rc == ETIMEDOUT ? BERR_TIMEOUT : BERR_TRACE(BERR_UNKNOWN);
+        return rc == -ENOMSG ? BERR_TIMEOUT : BERR_TRACE(BERR_UNKNOWN);
     }
 
     *pConnection = (void *)hPeer;

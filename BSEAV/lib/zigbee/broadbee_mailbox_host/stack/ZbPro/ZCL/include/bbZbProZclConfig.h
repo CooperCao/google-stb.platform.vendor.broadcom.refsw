@@ -58,8 +58,9 @@
  * \note
  *  This value must be greater than one.
  */
+#ifndef ZBPRO_ZCL_AUTO_RESPONSES_MAX
 #define ZBPRO_ZCL_AUTO_RESPONSES_MAX    4
-
+#endif
 
 #endif /* _BB_ZBPRO_ZCL_CONFIG_H */
 

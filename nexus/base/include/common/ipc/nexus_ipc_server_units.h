@@ -82,7 +82,7 @@
 #define B_IPC_SERVER_COMPLETED(module, api) __rc = NEXUS_SUCCESS ; api##_done: nexus_p_##module##_api_call_completed(__vout_data, &_api##api, __in_data, __out_data);
 #define B_IPC_SERVER_END(module, api) }  break; goto api##_done;
 #define B_IPC_SERVER_PARAM(type, name)  type name;
-#define B_IPC_SERVER_CALL(api, funcname, args) __result = B_IPC_FIELD(api, out, ret.__retval) = funcname args; if(B_IPC_FIELD(api, out, ret.__retval) !=NEXUS_SUCCESS) {__rc=NEXUS_UNKNOWN;};
+#define B_IPC_SERVER_CALL(api, funcname, args) __result = B_IPC_FIELD(api, out, ret.__retval) = funcname args; if(B_IPC_FIELD(api, out, ret.__retval) !=NEXUS_SUCCESS) {__rc=NEXUS_SUCCESS;goto api##_done;};
 #define B_IPC_SERVER_CONSTRUCTOR(module, api, _class, funcname) if(__rc==NEXUS_SUCCESS) {NEXUS_DRIVER_CREATE_OBJECT(module, _class, B_IPC_FIELD(api, out, ret.__retval));}
 #define B_IPC_SERVER_CONSTRUCTOR_ENUM(module, api, _class, funcname) if(__rc==NEXUS_SUCCESS) {NEXUS_DRIVER_CREATE_OBJECT(module, _class, (void *)B_IPC_FIELD(api, out, ret.__retval));}
 #define B_IPC_SERVER_ACQUIRE(module, api, _class, funcname) if(__rc==NEXUS_SUCCESS) {NEXUS_DRIVER_ACQUIRE_OBJECT(module, _class, B_IPC_FIELD(api, out, ret.__retval));}
@@ -133,5 +133,14 @@
 
 #define B_IPC_SERVER_FAKE_HANDLE_NULL(api, arg, type) if(B_IPC_FIELD(api, in, args.arg) != NULL) {__rc = NEXUS_P_SERVER_ERROR_TRACE(NEXUS_INVALID_PARAMETER);goto api##_done;} /* FAKE handles if passed to function that allows NULL handles, must be NULL */
 #define B_IPC_SERVER_FAKE_HANDLE(api, arg, type) BDBG_CASSERT(0); /* If functions can not access NULL as argument, it can't accept FAKE handles */
+
+#define B_IPC_SERVER_CALLBACK_LIST_BEGIN(struct_name) static unsigned NEXUS_P_CallbackIds_##struct_name [] = {
+#define B_IPC_SERVER_CALLBACK_LIST_ID(field, id) id,
+#define B_IPC_SERVER_CALLBACK_LIST_END(struct_name) 0};
+
+
+#define B_IPC_CALLBACK_CONSTRUCTOR_STRUCT_IN_VERIFY(api, struct_name, first_arg) /* do nothing constructor callbacks are unique */
+#define B_IPC_CALLBACK_CLEAR_STRUCT_IN_VERIFY(api, struct_name, first_arg) /* do nothing these callbacks are not used */
+#define B_IPC_CALLBACK_STRUCT_IN_VERIFY(api, struct_name, first_arg) __rc=nexus_driver_verify_callbacks(module_header, (void *)first_arg, NEXUS_P_CallbackIds_##struct_name, __vout_data->client); if(__rc!=NEXUS_SUCCESS) {BDBG_ERR(("%s: can't set callbacks from %s", #api, #struct_name)); goto api##_done;}
 
 /* END OF FILE */

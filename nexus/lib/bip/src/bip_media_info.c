@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -325,6 +325,17 @@ static struct {
     {NEXUS_TransportType_eApe,      bstream_mpeg_type_ape          }
 };
 
+static struct {
+    BIP_MediaInfoTrackType nexus;
+    bmedia_track_type  settop;
+} g_trackType[] = {
+    {BIP_MediaInfoTrackType_eVideo,  bmedia_track_type_video        },
+    {BIP_MediaInfoTrackType_eAudio,  bmedia_track_type_audio        },
+    {BIP_MediaInfoTrackType_ePcr,    bmedia_track_type_pcr          },
+    {BIP_MediaInfoTrackType_ePmt,    bmedia_track_type_other        },
+    {BIP_MediaInfoTrackType_eOther,  bmedia_track_type_other        }
+};
+
 /* Defined as per the specification of ISO 6391-2 code and ISO 639-1 code*/
 typedef struct BIP_MediaInfoLanguageCode
 {
@@ -585,6 +596,14 @@ static NEXUS_TransportType BIP_MediaInfo_ConvertBmediaMpegTypeToNexus(
     BIP_MEDIAINFO_CONVERT( g_mpegType );
 }
 
+static BIP_MediaInfoTrackType    BIP_MediaInfo_ConvertBmediaTrackTypeToBip(
+    bmedia_track_type  settop_value
+    )
+{
+    BIP_MEDIAINFO_CONVERT( g_trackType );
+}
+
+
 static char *addLanguageInIso6392Format(
     const char *pLanguageRecieved
     )
@@ -639,6 +658,7 @@ static BIP_Status addCaptionServiceDescriptors(
             pDescriptor->captionType = BIP_MediaInfoCaptionType_e708;
 
             pDescriptor->descriptor.descriptor708.pLanguage = B_Os_Calloc(1,BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE);
+            /* coverity[leaked_storage: FALSE] */
             BIP_CHECK_GOTO(( pDescriptor->descriptor.descriptor708.pLanguage!=NULL ), ( "Failed to allocate memory (%u bytes) for pDescriptor->descriptor.descriptor708.pLanguage", BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
             memcpy( pDescriptor->descriptor.descriptor708.pLanguage, pTrackMpeg2TS->caption_service.services[i].language, BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE);
 
@@ -674,7 +694,7 @@ static BIP_Status populateMediaInfoTrack(
 {
     BIP_Status       rc = BIP_SUCCESS;
     pMediaInfoTrack->trackId = pTrack->number;
-    pMediaInfoTrack->trackType = pTrack->type;
+    pMediaInfoTrack->trackType = BIP_MediaInfo_ConvertBmediaTrackTypeToBip(pTrack->type);
 
     if(pTrack->type == bmedia_track_type_video)
     {

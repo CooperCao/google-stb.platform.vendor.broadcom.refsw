@@ -664,7 +664,7 @@ void NEXUS_HdmiOutputModule_Print(void)
                 if (hdmiOutput->dbv.state == NEXUS_HdmiOutputDbvState_eEnabled || hdmiOutput->dbv.state == NEXUS_HdmiOutputDbvState_eEnabling)
                 {
                     strOffset += BKNI_Snprintf(pchOutputString+strOffset,
-                        sizeof (pchOutputString) - strOffset, "Dolby Vision") ;
+                        sizeof (pchOutputString) - strOffset, "<Dolby Vision>") ;
 					BDBG_LOG(("%s", pchOutputString)) ;
                 }
                 /* Output Dynamic Range */

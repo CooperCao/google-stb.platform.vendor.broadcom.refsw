@@ -70,6 +70,9 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
         "  --help or -h for help\n"
         "  -n NUM_MOSAICS           default and max is %d\n", MAX_MOSAICS
         );
+    printf(
+        "  -n NUM1+NUM2             decode NUM1 mosaics on main, NUM2 on PIP\n"
+        );
     nxapps_cmdline_print_usage(cmdline);
     printf(
         "  -max WIDTH,HEIGHT        default is 352,288 (CIF)\n"
@@ -118,6 +121,8 @@ static struct {
        } move;
     } mosaic[MAX_MOSAICS];
     unsigned num_mosaics;
+    unsigned num_main_mosaics;
+    unsigned num_pip_mosaics;
     unsigned current;
     bool done;
 } g_app;
@@ -280,11 +285,12 @@ int main(int argc, const char **argv)
     struct nxapps_cmdline cmdline;
     int n;
     pthread_t standby_thread_id;
-    NEXUS_DisplayMaxMosaicCoverage maxCoverage;
+    NEXUS_DisplayMaxMosaicCoverage maxCoverage, maxCoverageBigSmall;
     unsigned coveragePixelsPerMosaic;
 
     memset(file, 0, sizeof(file));
     g_app.num_mosaics = MAX_MOSAICS;
+    g_app.num_main_mosaics = MAX_MOSAICS;
     nxapps_cmdline_init(&cmdline);
     nxapps_cmdline_allow(&cmdline, nxapps_cmdline_type_SurfaceComposition);
     media_player_get_default_create_settings(&create_settings);
@@ -295,7 +301,15 @@ int main(int argc, const char **argv)
             return 0;
         }
         else if (!strcmp(argv[curarg], "-n") && curarg+1 < argc) {
-            g_app.num_mosaics = atoi(argv[++curarg]);
+            char *plus;
+            ++curarg;
+            plus = strchr(argv[curarg], '+');
+            if (plus) {
+                *plus = 0;
+                g_app.num_pip_mosaics = atoi(++plus);
+            }
+            g_app.num_main_mosaics = atoi(argv[curarg]);
+            g_app.num_mosaics = g_app.num_main_mosaics + g_app.num_pip_mosaics;
             if (g_app.num_mosaics > MAX_MOSAICS) {
                 print_usage(&cmdline);
                 return -1;
@@ -353,7 +367,12 @@ int main(int argc, const char **argv)
 
     if (mosaic_pip) {
         /* Override number of mosaics to 2 */
+        if (g_app.num_pip_mosaics) {
+            print_usage(&cmdline);
+            return -1;
+        }
         g_app.num_mosaics = 2;
+        g_app.num_main_mosaics = 2;
     }
 
     if (!file[0].name) {
@@ -386,6 +405,9 @@ int main(int argc, const char **argv)
     if (num_tiles % 2) {
         num_tiles++;
     }
+
+    /* Get bigsmall coverage */
+    NEXUS_Display_GetMaxMosaicCoverage(0xff, g_app.num_mosaics, &maxCoverageBigSmall);
 
     NEXUS_Display_GetMaxMosaicCoverage(0, g_app.num_mosaics, &maxCoverage);
     /* it's the per window coverage that actually matters. not obvious. */
@@ -433,8 +455,16 @@ int main(int argc, const char **argv)
     draw_gui(gui);
 
     create_settings.window.surfaceClientId = bgui_surface_client_id(g_app.gui);
-    rc = media_player_create_mosaics(player, g_app.num_mosaics, &create_settings);
-    if (rc) return -1;
+    if (g_app.num_main_mosaics) {
+        create_settings.window.id = 0;
+        rc = media_player_create_mosaics(player, g_app.num_main_mosaics, &create_settings);
+        if (rc) return -1;
+    }
+    if (g_app.num_pip_mosaics) {
+        create_settings.window.id = g_app.num_main_mosaics;
+        rc = media_player_create_mosaics(&player[g_app.num_main_mosaics], g_app.num_pip_mosaics, &create_settings);
+        if (rc) return -1;
+    }
 
     cur_file = 0;
     for (i=0;i<g_app.num_mosaics;i++) {
@@ -455,6 +485,9 @@ int main(int argc, const char **argv)
         g_app.mosaic[i].start_settings.program = file[cur_file].programindex;
         g_app.mosaic[i].start_settings.stcTrick = false; /* doesn't work for shared STC */
         g_app.mosaic[i].start_settings.audio_primers = audio_primers;
+        if (i >= g_app.num_main_mosaics) {
+            g_app.mosaic[i].start_settings.videoWindowType = NxClient_VideoWindowType_ePip;
+        }
 
         if (create_settings.audio.usePersistent) {
              g_app.mosaic[i].start_settings.audio.mixingMode = NEXUS_AudioDecoderMixingMode_eStandalone;
@@ -511,6 +544,15 @@ int main(int argc, const char **argv)
 
         BKNI_Sleep(1000);
 
+        if(maxCoverageBigSmall.maxCoverage != 0)
+        {
+            /* N mosaics:
+             *      big mosaic size: 4S
+             *      small mosaic size: S
+             * maxCoverage.maxCoverageBigSmall = 4S + (N-1)S = (N+3)S */
+            coveragePixelsPerMosaic = virtualDisplay.width * virtualDisplay.height * maxCoverageBigSmall.maxCoverage / ((g_app.num_mosaics+3)* 100);
+        }
+
         BDBG_WRN(("starting toggle"));
         for (i=0; i<g_app.num_mosaics ; i++) {
             g_app.mosaic[i].rect.width = virtualDisplay.width / g_app.num_mosaics;
@@ -528,9 +570,18 @@ int main(int argc, const char **argv)
         if (gui) draw_gui(gui);
 
         BKNI_Sleep(1000);
-        largeRect.width   = virtualDisplay.width * 2/ g_app.num_mosaics;
-        largeRect.height = virtualDisplay.height * 2 / g_app.num_mosaics;
-        b_adjust_mosaic(coveragePixelsPerMosaic, &largeRect);
+        if(maxCoverageBigSmall.maxCoverage != 0)
+        {
+            largeRect.width   = virtualDisplay.width;
+            largeRect.height = virtualDisplay.height;
+            b_adjust_mosaic(coveragePixelsPerMosaic*4, &largeRect);
+        }
+        else
+        {
+            largeRect.width   = virtualDisplay.width * 2/ g_app.num_mosaics;
+            largeRect.height = virtualDisplay.height * 2 / g_app.num_mosaics;
+            b_adjust_mosaic(coveragePixelsPerMosaic, &largeRect);
+        }
         largeRect.x      = (virtualDisplay.width - largeRect.width) /2 ;
         largeRect.y      = (virtualDisplay.height * 3 /4 - largeRect.height) /2 ;
 
@@ -635,7 +686,14 @@ int main(int argc, const char **argv)
             media_player_stop(g_app.mosaic[i].player);
         }
     }
-    media_player_destroy_mosaics(player, g_app.num_mosaics);
+
+    if (g_app.num_main_mosaics) {
+        media_player_destroy_mosaics(player, g_app.num_main_mosaics);
+    }
+    if (g_app.num_pip_mosaics) {
+        media_player_destroy_mosaics(&player[g_app.num_main_mosaics], g_app.num_pip_mosaics);
+    }
+
     bgui_destroy(g_app.gui);
     binput_close(input);
     g_app.done = true;

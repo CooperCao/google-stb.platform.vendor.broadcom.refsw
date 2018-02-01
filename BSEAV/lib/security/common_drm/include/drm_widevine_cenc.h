@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,15 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
  *****************************************************************************/
 #ifndef DRM_WIDEVINE_CENC_H_
 #define DRM_WIDEVINE_CENC_H_
@@ -53,169 +44,270 @@
 extern "C" {
 #endif
 
-
 typedef struct DRM_WidevineCenc_Settings
 {
     char * key_file;
     DrmCommonInit_t drmCommonInit;
 }DRM_WidevineCenc_Settings;
 
-
 /******************************************************************************
 ** FUNCTION:
-**  DRM_WidevineCenc_GetDefaultParamSettings
+**   DRM_WidevineCenc_GetDefaultParamSettings
 **
 ** DESCRIPTION:
 **   Retrieve the default settings
 **
 ** PARAMETERS:
-** pWidevineParamSettings - pointer to settings structure
+**   pWidevineParamSettings - pointer to settings structure
 **
 ** RETURNS:
-**   void.
+**   void
 **
 ******************************************************************************/
 void DRM_WidevineCenc_GetDefaultParamSettings(
-        DRM_WidevineCenc_Settings *pWidevineCencSettings);
+    DRM_WidevineCenc_Settings *pWidevineCencSettings);
 
-
-/**********************************************************
- * FUNCTION:
- *  DRM_WidevineCenc_Initialize
- *
- * DESCRIPTION:
- *   Fetches the encrypted keybox information and sets the
- *   decryption mode in either TS mode or regular mode
- *
- * RETURN:
- *     Drm_Success or other
-***********************************************************/
+/******************************************************************************
+ ** FUNCTION:
+ **   DRM_WidevineCenc_Initialize
+ **
+ ** DESCRIPTION:
+ **   Reads the bin file specified and loads the credential info
+ **
+ ** PARAMETERS:
+ **   pWidevineCencSettings - pointer to settings structure
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful
+ **
+ ******************************************************************************/
 DrmRC DRM_WidevineCenc_Initialize(
-        DRM_WidevineCenc_Settings *pWidevineCencSettings);
+    DRM_WidevineCenc_Settings *pWidevineCencSettings);
 
-/*
-// Frees the key slots for widevine decryption
-*/
+/******************************************************************************
+ ** FUNCTION:
+ **   DRM_WidevineCenc_Finalize
+ **
+ ** DESCRIPTION:
+ **   Close the WidevineCenc DRM module
+ **
+ ** PARAMETERS:
+ **   void
+ **
+ ** RETURNS:
+ **   void
+ **
+ ******************************************************************************/
 void DRM_WidevineCenc_Finalize(void);
 
-/*
-/// Retrieves the Device ID.
-/// @param[in/out]  pDevID  Pointer to the buffer where the DevID Data will be copied into.
-/// @return Drm_Success if the operation is successful or an error.
-*/
-DrmRC DRM_WidevineCenc_GetDeviceId(uint8_t* pDevID);
-
-/*
-/// Retrieves the Root Key Data.
-/// @param[in/out]  pKeyID      Pointer to the buffer where the Root Key Data will be copied into.
-/// @return Drm_Success if the operation is successful or an error.
-*/
-DrmRC DRM_WidevineCenc_GetKeyData(uint8_t* pKeyID);
-
-/*
- Retrieves the key field of the keybox, namely key data---16 bytes.
- pKey Pointer to the buffer where the key Data will be copied into.
- return Drm_Success if the operation is successful or an error.
-*/
-DrmRC DRM_WidevineCenc_GetKey(uint8_t* pKey);
-
-/*
- Retrieves the rpk field of the keybox, namely key data---16 bytes.
- pRpk Pointer to the buffer where the rpk Data will be copied into.
- return Drm_Success if the operation is successful or an error.
-*/
-DrmRC DRM_WidevineCenc_GetRpk(uint8_t* pKey);
-
-
-/*
- Retrieves magic data -- 4 bytes
- pMagicData Pointer to the buffer where the magic Data will be copied into.
- return Drm_Success if the operation is successful or an error.
-*/
-DrmRC DRM_WidevineCenc_GetMagicData(uint8_t* pMagicData);
-
-/*
- Retrieves CRC data -- 4 bytes
- pCrcData Pointer to the buffer where the CRC Data will be copied into.
- return Drm_Success if the operation is successful or an error.
-*/
-DrmRC DRM_WidevineCenc_GetCrcData(uint8_t* pCrcData);
-
-/* Widevine AESCMAC */
+/******************************************************************************
+ ** FUNCTION
+ **   DRM_WidevineCenc_AesCMAC
+ **
+ ** DESCRIPTION:
+ **   Do an AES CBC/CMAC crypto operation on a buffer (VOD mode only)
+ **
+ ** PARAMETERS:
+ **   pWrappedKey - Wrapped key
+ **   wrappedKeySize - Size of Wrapped key
+ **   pInputBuf   - Input
+ **   inputSize   - Length of input
+ **   pOutBuf     - output
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error.
+ **
+ ******************************************************************************/
 DrmRC DRM_WidevineCenc_AesCMAC(
-            uint8_t *pWrappedKey,
-            uint32_t wrappedKeySize,
-            uint8_t *pCtxMac,
-            uint32_t ctxMacSize,
-            uint8_t  *pOut);
+    uint8_t *pWrappedKey,
+    uint32_t wrappedKeySize,
+    uint8_t *pInputBuf,
+    uint32_t inputSize,
+    uint8_t  *pOutBuf);
 
-/* retrieves whole keybox*/
+/******************************************************************************
+ ** FUNCTION
+ **   DRM_WidevineCenc_GetKeyBox
+ **
+ ** DESCRIPTION:
+ **   Retrieves whole keybox. Otherwise, it returns null.
+ **
+ ** PARAMETERS:
+ **   pKeybox[out] - Pointer to keybox
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error
+ **
+ ******************************************************************************/
 DrmRC DRM_WidevineCenc_GetKeyBox(uint8_t *pKeyBox);
 
-/*
-/// Decrypts the stream received in parameter.
-/// @param[in]      pEnc        Pointer to the buffer of encrypted data
-/// @param[in]          uiSize      Size of the data to decrypt.
-/// @param[in/out]  pDec        Pointer to the buffer where the decrypted data will be copied into.
-/// @param[in]          pIv         IV for CBC decryption
-/// @param[in]      dest_type            Decryption type: in place or to destination.
-/// @param[in]      keyslot         Use Odd/Even Key
-/// @return Drm_Success if the operation is successful or an error.
-*/
-DrmRC DRM_WidevineCenc_Decrypt(uint8_t* pEnc,
-                    uint32_t uiSize,
-                    uint8_t* pDec,
-                    uint8_t* pIv,
-                    DrmDestinationType dest_type,
-                    DrmSecurityKeyType keyslot_type);
-
+/******************************************************************************
+ ** FUNCTION
+ **   DRM_WidevineCenc_GetDeviceId
+ **
+ ** DESCRIPTION:
+ **   Extract 32-byte Device ID from WidevineCenc credential
+ **
+ ** PARAMETERS:
+ **   pDevID [in/out] - Pointer to the buffer where the DevID Data will be copied into
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error
+ **
+ ******************************************************************************/
+DrmRC DRM_WidevineCenc_GetDeviceId(uint8_t* pDevID);
 
 /******************************************************************************
- FUNCTION:
-  DRM_WidevienCenc_Encrypt
-
- DESCRIPTION:
-   Encrypts buffer with the key and IV passed.
-
- PARAMETERS:
-    pSrc[in] - pointer to source buffer.  Must be allocated with a call to
-            NEXUS_Memory_Allocate AND it's length should be 16-byte aligned
-    src_length[in] - length of the source buffer to encrypt.  Must be 16-byte aligned
-    pDst[out] - pointer to destination buffer and must be allocated with a call to
-            NEXUS_Memory_Allocate
-    pKey[in] - pointer to a buffer containing the key to be used
-    pIv[in] - if not used, should be 16-bytes of 0x00's
-
-******************************************************************************/
-DrmRC DRM_WidevienCenc_Encrypt(uint8_t *pSrc,
-                                uint32_t src_length,
-                                uint8_t *pDst,
-                                uint8_t *pKey,
-                                uint8_t *pIv);
-
+ ** FUNCTION
+ **   DRM_Widevine_GetDeviceId
+ **
+ ** DESCRIPTION:
+ **   Extract 32-byte Device ID from Widevine L3 credential
+ **
+ ** PARAMETERS:
+ **   pDevID [in/out] - Pointer to the buffer where the DevID Data will be copied into
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error
+ **
+ ******************************************************************************/
+DrmRC DRM_Widevine_GetDeviceId(uint8_t* pDevID);
 
 /******************************************************************************
- FUNCTION:
-  DRM_WidevienCenc_Decrypt
+ ** FUNCTION
+ **   DRM_WidevineCenc_GetKey
+ **
+ ** DESCRIPTION:
+ **   Extract 16-byte key from WidevineCenc credential
+ **
+ ** PARAMETERS:
+ **   pKey [in/out] - Pointer to the buffer where key data will be copied into
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error
+ **
+ ******************************************************************************/
+DrmRC DRM_WidevineCenc_GetKey(uint8_t* pKey);
 
- DESCRIPTION:
-   Decrypts buffer with the key and IV passed.
+/******************************************************************************
+ ** FUNCTION
+ **   DRM_WidevineCenc_GetRpk
+ **
+ ** DESCRIPTION:
+ **   Extract rpk field of the keybox from WidevineCenc credential
+ **
+ ** PARAMETERS:
+ **   pKey [in/out] - Pointer to the buffer where rpk data will be copied into
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error
+ **
+ ******************************************************************************/
+DrmRC DRM_WidevineCenc_GetRpk(uint8_t* pKey);
 
- PARAMETERS:
-    pSrc[in] - pointer to source buffer.  Must be allocated with a call to
-            NEXUS_Memory_Allocate AND it's length should be 16-byte aligned
-    src_length[in] - length of the source buffer to encrypt.  Must be 16-byte aligned
-    pDst[out] - pointer to destination buffer and must be allocated with a call to
-            NEXUS_Memory_Allocate
-    pKey[in] - pointer to a buffer containing the key to be used
-    pIv[in] - if not used, should be 16-bytes of 0x00's
+/******************************************************************************
+ ** FUNCTION
+ **   DRM_WidevineCenc_GetKeyData
+ **
+ ** DESCRIPTION:
+ **   Extract the 72-byte ID field of the keybox from WidevineCenc credential
+ **
+ ** PARAMETERS:
+ **   pId [in/out] - Pointer to the buffer where keydata data will be copied into
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error
+ **
+ ******************************************************************************/
+DrmRC DRM_WidevineCenc_GetKeyData(uint8_t* pId);
 
-******************************************************************************/
-DrmRC DRM_WidevienCenc_Decrypt(uint8_t *pSrc,
-                                uint32_t src_length,
-                                uint8_t *pDst,
-                                uint8_t *pKey,
-                                uint8_t *pIv);
+/******************************************************************************
+ ** FUNCTION
+ **   DRM_WidevineCenc_GetMagicData
+ **
+ ** DESCRIPTION:
+ **   Extract the 4-byte magic data of the keybox from WidevineCenc credential
+ **
+ ** PARAMETERS:
+ **   pMagicData [in/out] - Pointer to the buffer where magic data will be copied into
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error
+ **
+ ******************************************************************************/
+DrmRC DRM_WidevineCenc_GetMagicData(uint8_t* pMagicData);
+
+/******************************************************************************
+ ** FUNCTION
+ **   DRM_WidevineCenc_GetCrcData
+ **
+ ** DESCRIPTION:
+ **   Extract the 4-byte CRC data of the keybox from WidevineCenc credential
+ **
+ ** PARAMETERS:
+ **   pCrcData [in/out] - Pointer to the buffer where CRC data will be copied into
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error
+ **
+ ******************************************************************************/
+DrmRC DRM_WidevineCenc_GetCrcData(uint8_t* pCrcData);
+
+/******************************************************************************
+ ** FUNCTION
+ **   DRM_WidevineCenc_Encrypt
+ **
+ ** DESCRIPTION:
+ **   Encrypts buffer with the key and IV passed.
+ **
+ ** PARAMETERS:
+ **   pSrc[in] - Pointer to source buffer.  Must be allocated with a call to
+ **              NEXUS_Memory_Allocate AND it's length should be 16-byte aligned.
+ **   src_length[in] - Length of the source buffer to encrypt.  Must be 16-byte aligned.
+ **   pDst[out] - Pointer to destination buffer and must be allocated with
+ **               a call to NEXUS_Memory_Allocate
+ **   pKey[in]  - Pointer to a buffer containing the key to be used
+ **   pIv[in]   - Optional, should be all 0x00's if not used. Pointer to the
+ **               IV used for AES-CBC operations.
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error
+ **
+ ******************************************************************************/
+DrmRC DRM_WidevineCenc_Encrypt(
+    uint8_t *pSrc,
+    uint32_t src_length,
+    uint8_t *pDst,
+    uint8_t *pKey,
+    uint8_t *pIv);
+
+/******************************************************************************
+ ** FUNCTION
+ **   DRM_WidevineCenc_Decrypt
+ **
+ ** DESCRIPTION:
+ **   Decrypts buffer with the key and IV passed.
+ **
+ ** PARAMETERS:
+ **   pSrc[in] - Pointer to source buffer.  Must be allocated with a call to
+ **              NEXUS_Memory_Allocate AND it's length should be 16-byte aligned.
+ **   src_length[in] - Length of the source buffer to decrypt.  Must be 16-byte aligned.
+ **   pDst[out] - Pointer to destination buffer and must be allocated with
+ **               a call to NEXUS_Memory_Allocate
+ **   pKey[in]  - Pointer to a buffer containing the key to be used
+ **   pIv[in]   - Optional, should be all 0x00's if not used. Pointer to the
+ **               IV used for AES-CBC operations.
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful or an error
+ **
+ ******************************************************************************/
+DrmRC DRM_WidevineCenc_Decrypt(
+    uint8_t *pSrc,
+    uint32_t src_length,
+    uint8_t *pDst,
+    uint8_t *pKey,
+    uint8_t *pIv);
 
 #ifdef __cplusplus
 }

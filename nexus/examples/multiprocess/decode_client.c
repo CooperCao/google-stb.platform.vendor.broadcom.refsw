@@ -61,8 +61,6 @@ static void print_usage(void)
     printf(
         "Usage: nexus.client decode_client OPTIONS filename [indexfile]\n"
         "Options:\n"
-        "  -video TRACK_NUM\n"
-        "  -audio TRACK_NUM\n"
         );
 }
 
@@ -99,8 +97,6 @@ int main(int argc, char **argv)  {
     int curarg = 1;
     const char *filename = NULL;
     const char *indexname = NULL;
-    unsigned videoTrack = 0;
-    unsigned audioTrack = 0;
     struct probe_results probe_results;
     NEXUS_PlaybackLoopMode beginningOfStreamAction = NEXUS_PlaybackLoopMode_eLoop;
     NEXUS_PlaybackLoopMode endOfStreamAction = NEXUS_PlaybackLoopMode_eLoop;
@@ -114,12 +110,6 @@ int main(int argc, char **argv)  {
         }
         else if (!strcmp(argv[curarg], "-eof") && curarg+1<argc) {
             endOfStreamAction=lookup(g_endOfStreamActionStrs, argv[++curarg]);
-        }
-        else if (!strcmp(argv[curarg], "-video") && curarg+1<argc) {
-            videoTrack = strtoul(argv[++curarg], NULL, 10);
-        }
-        else if (!strcmp(argv[curarg], "-audio") && curarg+1<argc) {
-            audioTrack = strtoul(argv[++curarg], NULL, 10);
         }
         else if (!filename) {
             filename = argv[curarg];

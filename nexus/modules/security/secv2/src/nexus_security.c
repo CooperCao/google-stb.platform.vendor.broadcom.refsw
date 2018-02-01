@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -63,9 +63,11 @@ static NEXUS_Error _SetPidChannelBypassKeyslot( NEXUS_PidChannelHandle pidChanne
 
     BDBG_CASSERT( (int)NEXUS_BypassKeySlot_eG2GR == (int)BHSM_BypassKeySlot_eG2GR );
     BDBG_CASSERT( (int)NEXUS_BypassKeySlot_eGR2R == (int)BHSM_BypassKeySlot_eGR2R );
+    BDBG_CASSERT( (int)NEXUS_BypassKeySlot_eGT2T == (int)BHSM_BypassKeySlot_eGT2T );
     BDBG_CASSERT( (int)NEXUS_BypassKeySlot_eMax  == (int)BHSM_BypassKeySlot_eInvalid );
 
     NEXUS_Security_GetHsm_priv( &hHsm );
+    if( !hHsm ) { return BERR_TRACE( NEXUS_NOT_INITIALIZED ); }
 
     rc = BHSM_SetPidChannelBypassKeyslot( hHsm, NEXUS_PidChannel_GetIndex_isrsafe(pidChannel), bypassKeySlot );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE(NEXUS_UNKNOWN); }
@@ -89,6 +91,7 @@ void NEXUS_GetPidChannelBypassKeyslot( NEXUS_PidChannelHandle pidChannel, NEXUS_
     *pBypassKeySlot = NEXUS_BypassKeySlot_eMax;
 
     NEXUS_Security_GetHsm_priv( &hHsm );
+    if( !hHsm ) { BERR_TRACE( NEXUS_NOT_INITIALIZED ); return; }
 
     rc = BHSM_GetPidChannelBypassKeyslot( hHsm, NEXUS_PidChannel_GetIndex_isrsafe(pidChannel), &bypassKeySlot );
     if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); return; }

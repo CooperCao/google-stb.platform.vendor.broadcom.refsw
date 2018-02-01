@@ -411,7 +411,7 @@ static int MjpegParser
     if(decoderBufferSize < picSize + sizeof(JPGHdr) + sizeof(MJPGDHTSeg))
     {
         fprintf(stderr, "(%s,%d): JPEG file size[%u] is larger then buffer size[%u]\n",
-            __FUNCTION__, __LINE__, picSize, decoderBufferSize);
+            BSTD_FUNCTION, __LINE__, picSize, decoderBufferSize);
         return -1;
     }
 
@@ -421,18 +421,18 @@ static int MjpegParser
     {
 #if DEBUG
         fprintf(stderr, "(%s,%d): Huffman table doesn't exist! .v4l2_buf.usedbytes[%d]\n",
-            __FUNCTION__, __LINE__, picSize);
+            BSTD_FUNCTION, __LINE__, picSize);
 #endif
         if(picSize == 0)
         {
-            fprintf(stderr, "(%s,%d): v4l2_buf.bytesused is 0; returning error\n",__FUNCTION__, __LINE__);
+            fprintf(stderr, "(%s,%d): v4l2_buf.bytesused is 0; returning error\n",BSTD_FUNCTION, __LINE__);
             return -1;
         }
 
         imageSize = picSize;
         offset = 0;
 #if DEBUG
-        fprintf(stderr, "(%s,%d): fwrite all end; write success\n",__FUNCTION__, __LINE__);
+        fprintf(stderr, "(%s,%d): fwrite all end; write success\n",BSTD_FUNCTION, __LINE__);
 #endif
     }
     else
@@ -444,12 +444,12 @@ static int MjpegParser
         }
 #if DEBUG
         fprintf(stderr, "(%s,%d): Huffman table exists! test_i = %d,FF = %02x,D8 = %02x\n",
-            __FUNCTION__, __LINE__,count,picBuffer[count],picBuffer[count+1]);
+            BSTD_FUNCTION, __LINE__,count,picBuffer[count],picBuffer[count+1]);
 #endif
         imageSize = picSize - count - 1;
         if(imageSize == 0)
         {
-            fprintf(stderr, "(%s,%d): usedbytes == 0, return directly\n",__FUNCTION__, __LINE__);
+            fprintf(stderr, "(%s,%d): usedbytes == 0, return directly\n",BSTD_FUNCTION, __LINE__);
             return -1;
         }
 
@@ -470,7 +470,7 @@ static int MjpegParser
     {
 #if DEBUG
         fprintf(stderr, "(%s,%d): Parsing mjpeg original size[%d], avi header size[%d]\n",
-             __FUNCTION__, __LINE__,sizeof (JPGHdr) + sizeof (MJPGDHTSeg) + imageSize, header);
+             BSTD_FUNCTION, __LINE__,sizeof (JPGHdr) + sizeof (MJPGDHTSeg) + imageSize, header);
 #endif
         BKNI_Memcpy((char*)(decoderBuffer) + sizeof (JPGHdr)+ sizeof (MJPGDHTSeg),(char*)(picBuffer + offset) + header,imageSize - header);
 
@@ -481,7 +481,7 @@ static int MjpegParser
         *pReadDataSize = 0;
 #if DEBUG
         fprintf(stderr, "(%s,%d): Mjpeg header too large! Parsing mjpeg size[%d], header[%d]\n",
-            __FUNCTION__, __LINE__, sizeof(JPGHdr) + sizeof(MJPGDHTSeg) + imageSize, header);
+            BSTD_FUNCTION, __LINE__, sizeof(JPGHdr) + sizeof(MJPGDHTSeg) + imageSize, header);
 #endif
         return -1;
     }
@@ -846,7 +846,7 @@ static int VideoCamera_StartVideoDecode
                                   &jpegDataSize);
          if (rc)
          {
-             fprintf(stderr, "(%s,%d): MjpegParser failed!\n",__FUNCTION__, __LINE__);
+             fprintf(stderr, "(%s,%d): MjpegParser failed!\n",BSTD_FUNCTION, __LINE__);
              return rc;
          }
     }
@@ -854,7 +854,7 @@ static int VideoCamera_StartVideoDecode
     {
          /* Decoding larger buffers requires larger buffers. Modify NEXUS_PictureDecoderOpenSettings * bufferSize */
         fprintf(stderr, "(%s,%d): Captured frame size[%u] is larger then buffer size[%u], not supported in DecodeJpeg\n",
-             __FUNCTION__, __LINE__, capFrameBufSize, (unsigned)bufferSize);
+             BSTD_FUNCTION, __LINE__, capFrameBufSize, (unsigned)bufferSize);
         return -1;
     }
 
@@ -868,7 +868,7 @@ static int VideoCamera_StartVideoDecode
         NEXUS_PictureDecoder_GetStatus(pictureDecoder, decoderStatus);
         if( decoderStatus->state == NEXUS_PictureDecoderState_eError)
         {
-            fprintf(stderr, "(%s,%d): Picture decoding failed !",__FUNCTION__, __LINE__);
+            fprintf(stderr, "(%s,%d): Picture decoding failed !",BSTD_FUNCTION, __LINE__);
             NEXUS_PictureDecoder_Stop(pictureDecoder);
             return -1;
         }
@@ -916,7 +916,7 @@ static int VideoCamera_StartVideoDecode
         NEXUS_PictureDecoder_GetStatus(pictureDecoder, decoderStatus);
         if(decoderStatus->state == NEXUS_PictureDecoderState_eError)
         {
-            fprintf(stderr, "(%s,%d): Picture decoding failed !",__FUNCTION__, __LINE__);
+            fprintf(stderr, "(%s,%d): Picture decoding failed !",BSTD_FUNCTION, __LINE__);
             NEXUS_PictureDecoder_Stop(pictureDecoder);
             return -1;
 
@@ -958,7 +958,7 @@ static int VideoCamera_OpenAudio
     pReadPacketBuffer = (int8_t *)BKNI_Malloc(settings.audio.maxDataLength * sizeof(char));
     if(pReadPacketBuffer == NULL)
     {
-        fprintf(stderr, "(%s,%d): Malloc memory failed!",__FUNCTION__, __LINE__);
+        fprintf(stderr, "(%s,%d): Malloc memory failed!",BSTD_FUNCTION, __LINE__);
         goto fail;
     }
     else
@@ -969,7 +969,7 @@ static int VideoCamera_OpenAudio
     audioFd = open(settings.audio.audioDevName, O_RDONLY);
     if (audioFd < 0)
     {
-        fprintf(stderr, "(%s,%d): Open audio device failed",__FUNCTION__, __LINE__);
+        fprintf(stderr, "(%s,%d): Open audio device failed",BSTD_FUNCTION, __LINE__);
         goto fail1;
     }
     else
@@ -979,30 +979,30 @@ static int VideoCamera_OpenAudio
 
     if (ioctl(audioFd, SNDCTL_DSP_SETFMT, &settings.audio.format) == -1)
     {
-        fprintf(stderr, "(%s,%d): SNDCTL_DSP_SETFMT set format failed",__FUNCTION__, __LINE__);
+        fprintf(stderr, "(%s,%d): SNDCTL_DSP_SETFMT set format failed",BSTD_FUNCTION, __LINE__);
         goto fail2;
     }
 
     if (ioctl(audioFd, SNDCTL_DSP_CHANNELS, &settings.audio.channels) == -1)
     {
-        fprintf(stderr, "(%s,%d):SNDCTL_DSP_CHANNELS set channel failed",__FUNCTION__, __LINE__);
+        fprintf(stderr, "(%s,%d):SNDCTL_DSP_CHANNELS set channel failed",BSTD_FUNCTION, __LINE__);
         goto fail2;
     }
 
     if (ioctl(audioFd, SNDCTL_DSP_SPEED, &settings.audio.speed) == -1)
     {
-        fprintf(stderr, "(%s,%d):SNDCTL_DSP_SPEED set speed failed",__FUNCTION__, __LINE__);
+        fprintf(stderr, "(%s,%d):SNDCTL_DSP_SPEED set speed failed",BSTD_FUNCTION, __LINE__);
         goto fail2;
     }
 
     if (ioctl(audioFd, SNDCTL_DSP_GETBLKSIZE, &fragSize) == -1)
     {
-        fprintf(stderr, "(%s,%d):SNDCTL_DSP_GETBLKSIZE get blksize failed ",__FUNCTION__, __LINE__);
+        fprintf(stderr, "(%s,%d):SNDCTL_DSP_GETBLKSIZE get blksize failed ",BSTD_FUNCTION, __LINE__);
     }
 
     if (ioctl(audioFd, SNDCTL_DSP_SETFRAGMENT, &settings.audio.newFrag) == -1)
     {
-        fprintf(stderr, "(%s,%d):SNDCTL_DSP_SETFRAGMENT set fragment failed ",__FUNCTION__, __LINE__);
+        fprintf(stderr, "(%s,%d):SNDCTL_DSP_SETFRAGMENT set fragment failed ",BSTD_FUNCTION, __LINE__);
     }
 
     return 0;
@@ -1029,7 +1029,7 @@ static int VideoCamera_CloseAudio
 
     if (close(pVideoCamera->audio.audioFd) < 0)
     {
-        fprintf(stderr, "(%s,%d):close audio device failed", __FUNCTION__, __LINE__);
+        fprintf(stderr, "(%s,%d):close audio device failed", BSTD_FUNCTION, __LINE__);
         ret = -1;
     }
     else
@@ -1057,7 +1057,7 @@ static int VideoCamera_CaptureAudioFrame
 
     if (pVideoCamera->audio.audioFd < 0 || pVideoCamera->audio.readPacketBuffer == NULL )
     {
-        fprintf(stderr, "(%s,%d): Must confirm if device open successfully", __FUNCTION__, __LINE__);
+        fprintf(stderr, "(%s,%d): Must confirm if device open successfully", BSTD_FUNCTION, __LINE__);
         return -1;
     }
 
@@ -1073,7 +1073,7 @@ static int VideoCamera_CaptureAudioFrame
         }
         else
         {
-            fprintf(stderr, "(%s,%d): Read device failed",__FUNCTION__, __LINE__);
+            fprintf(stderr, "(%s,%d): Read device failed",BSTD_FUNCTION, __LINE__);
             ret = -1;
         }
     }
@@ -1240,7 +1240,7 @@ static void * HttpStreaming_Output
         {
             BDBG_MSG(("Failed to send %d bytes of channel map data, errno %d", rec_size, errno));
         }
-        BDBG_WRN(("%s: send %d bytes of transcoded data", __FUNCTION__, rec_size));
+        BDBG_WRN(("%s: send %d bytes of transcoded data", BSTD_FUNCTION, rec_size));
 
         /* calling NEXUS_Recpump_DataReadComplete before the XPT HW has actually read the data. this
         is ok because the recpump buffer will generally be empty (wrap around unlikely) */
@@ -1922,7 +1922,11 @@ static int TranscoderLoopback_Start
     windowSettings.position.y = (displayFormatInfo.height-windowSettings.position.height)/2;
     windowSettings.visible = true;
     rc = NEXUS_VideoWindow_SetSettings(pTranscoder->loopback.window, &windowSettings);
-
+    if(rc!=BERR_SUCCESS)
+    {
+        BDBG_ERR(("Failed to set loopback window settings."));
+        return -1;
+    }
 
     BDBG_MSG(("Starting playback."));
     /* start loopback playback of transcoded video */
@@ -2416,7 +2420,6 @@ int main(int argc, char **argv)
     /* VideoCamera driver */
     VideoCamera_FrameInfo        frame;
     int                          i;
-    struct timeval               tv;
 
     /* VideoCamera object */
     VideoCamera                 *pVideoCamera;
@@ -2665,9 +2668,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "Failed to start transcode\n");
         return -1;
     }
-
-    tv.tv_sec = 0;
-    tv.tv_usec = 0;
 
     /* Let PictureDecoder allocate memory */
     printf(" Using PictureDecoder provided buffers...\n");

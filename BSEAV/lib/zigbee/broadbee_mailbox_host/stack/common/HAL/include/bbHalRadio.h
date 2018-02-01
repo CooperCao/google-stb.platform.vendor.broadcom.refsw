@@ -176,9 +176,17 @@ enum HAL_Radio__STATE_Code_t {
     HAL_RADIO_STATE__TX_ON      = 0x09,     /*!< The transceiver is in the transmitter enabled state. */
 };
 SYS_DbgAssertStatic(sizeof(enum HAL_Radio__STATE_Code_t) == 1);
+
+#ifdef _HOST_
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wenum-compare"
+#endif
 SYS_DbgAssertStatic(HAL_RADIO_STATE__RX_ON   == HAL_RADIO_CMD__RX_ON);
 SYS_DbgAssertStatic(HAL_RADIO_STATE__TRX_OFF == HAL_RADIO_CMD__TRX_OFF);
 SYS_DbgAssertStatic(HAL_RADIO_STATE__TX_ON   == HAL_RADIO_CMD__TX_ON);
+#ifdef _HOST_
+#pragma GCC diagnostic pop
+#endif
 /**@}*/
 
 /*--------------------------------------------------------------------------------------------------------------------*/

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1047,7 +1047,6 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open4538(
     NEXUS_FrontendDevice *pFrontendDevice = NULL;
     NEXUS_Error errCode;
     NEXUS_4538Device *pDevice=NULL;
-    bool newDevice = false;
 
     BSTD_UNUSED(index);
 
@@ -1065,7 +1064,6 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open4538(
     if ( NULL == pDevice )
     {
         BDBG_MSG(("Opening new 4538 device at 0x%02x",pSettings->i2cDevice ? pSettings->i2cAddr : pSettings->spiAddr));
-        newDevice = true;
 #if !NEXUS_USE_7445_DBS
         {
             uint16_t chipId=0;
@@ -1161,7 +1159,6 @@ void NEXUS_Frontend_GetDefault4538Settings( NEXUS_4538Settings *pSettings )
 
 NEXUS_FrontendHandle NEXUS_Frontend_Open4538( const NEXUS_4538Settings *pSettings )
 {
-    NEXUS_Error errCode;
     NEXUS_FrontendHandle frontend = NULL;
     NEXUS_4538Device *pDevice = NULL;
     NEXUS_FrontendDevice *pFrontendDevice = NULL;
@@ -1223,7 +1220,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open4538( const NEXUS_4538Settings *pSetting
     frontend = NEXUS_Frontend_P_Ast_Create(&astChannelSettings);
     if ( !frontend )
     {
-        errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+        BERR_TRACE(BERR_NOT_SUPPORTED);
         NEXUS_Frontend_P_4538_CloseCallback(NULL, pDevice); /* Check if channel needs to be closed */
         return NULL;
     }
@@ -1683,6 +1680,7 @@ static void NEXUS_Frontend_P_4538_SpectrumEventCallback(void *pParam)
     BERR_Code rc;
     BDBG_ASSERT(pParam);
     rc = BWFE_GetSaSamples(p4538Device->wfeHandle, p4538Device->spectrumDataPointer);
+    if (rc) BERR_TRACE(rc);
     BKNI_SetEvent(p4538Device->spectrumDataReadyEvent);
 }
 

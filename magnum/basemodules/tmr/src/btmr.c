@@ -160,7 +160,7 @@ BDBG_MODULE(btmr);
 
 /* Forward reference */
 static BERR_Code _BTMR_CreateTimer(BTMR_Handle device, BTMR_TimerHandle *phTimer, const BTMR_TimerSettings *pSettings, const char *file, int line);
-static BERR_Code _BTMR_DestroyTimer(BTMR_TimerHandle timer, const char *file, int line);
+static void _BTMR_DestroyTimer(BTMR_TimerHandle timer, const char *file, int line);
 
 /* There are different entry points for each of the timer handler functions based on whether the timer is a physical or virtual timer.
 ** Rather than make the decision each time the function is called I use a table to use the correct function.
@@ -168,9 +168,9 @@ static BERR_Code _BTMR_DestroyTimer(BTMR_TimerHandle timer, const char *file, in
 */
 typedef struct {
     BERR_Code (*create)(BTMR_Handle device, BTMR_TimerHandle timer, const BTMR_TimerSettings *pSettings);
-    BERR_Code (*destroy_isr)(BTMR_TimerHandle timer);
+    void      (*destroy_isr)(BTMR_TimerHandle timer);
     BERR_Code (*start_isr)(BTMR_TimerHandle timer, unsigned startingValue);
-    BERR_Code (*stop_isr)(BTMR_TimerHandle timer);
+    void      (*stop_isr)(BTMR_TimerHandle timer);
     unsigned (*read_isr)(BTMR_TimerHandle timer);
 } ProcessingFunctions;
 
@@ -425,7 +425,7 @@ static BERR_Code JustStartTimer_isr(BTMR_TimerHandle timer, uint32_t initialValu
 
     /* We only have specific number of bits worth of timer value */
     if (initialValue >= MaxTimerValue) {
-        BDBG_ERR(("BTMR_StartTimer: initial value too large!"));
+        BDBG_ERR(("BTMR_StartTimer: initial value %d too large!", initialValue));
         return BERR_TRACE(BTMR_ERR_TIMEOUT_TOO_LARGE);
     }
 
@@ -462,17 +462,10 @@ static uint32_t JustReadTimer_isr(BTMR_TimerHandle timer)
     return runTime;
 }
 
-static BERR_Code JustStopTimer_isr(BTMR_TimerHandle timer)
+static void JustStopTimer_isr(BTMR_TimerHandle timer)
 {
-    /* Should I let them stop a stopped timer??? */
-    /* We have two choices here: 1) don't let them stop a stopped timer or 2) just say okay and keep going.  */
     if (!timer->running) {
-#if 0
-        BDBG_ERR(("BTMR_StopTimer: timer already stopped!"));
-        return BERR_TRACE(BTMR_ERR_ALREADY_STOPPED);
-#else
-        goto done; /* its already stopped -- success! (this is choice 2) */
-#endif
+        return;
     }
 
     /* We're going to save off the last value of the timer when they stopped it.
@@ -482,9 +475,6 @@ static BERR_Code JustStopTimer_isr(BTMR_TimerHandle timer)
     timer->lastValue = JustReadTimer_isr(timer);
 
     DisableTimer_isr(timer);
-
-  done:
-    return BERR_SUCCESS;
 }
 
 /*
@@ -739,7 +729,7 @@ static BERR_Code phys_CreateTimer(BTMR_Handle device, BTMR_TimerHandle timer, co
     return status;
 }
 
-static BERR_Code phys_DestroyTimer_isr(BTMR_TimerHandle timer)
+static void phys_DestroyTimer_isr(BTMR_TimerHandle timer)
 {
     BTMR_Handle device = timer->device;
     int timerNumber = timer->timerNumber;
@@ -794,18 +784,7 @@ static BERR_Code phys_DestroyTimer_isr(BTMR_TimerHandle timer)
     ReleaseThisTimer_isr(device, timerNumber);
     
     BDBG_MSG(("BTMR_DestroyTimer: Successfully destroyed physical timer!"));
-    return BERR_SUCCESS;
 }
-#if 0
-static BERR_Code phys_DestroyTimer(BTMR_TimerHandle timer)
-{
-    BERR_Code status;
-    BKNI_EnterCriticalSection();
-    status = phys_DestroyTimer_isr(timer);
-    BKNI_LeaveCriticalSection();
-    return status;
-}
-#endif
 
 static BERR_Code phys_StartTimer_isr(BTMR_TimerHandle timer, unsigned startingValue)
 {
@@ -831,7 +810,7 @@ static BERR_Code phys_StartTimer_isr(BTMR_TimerHandle timer, unsigned startingVa
     return JustStartTimer_isr(timer, initial);
 }
 
-static BERR_Code phys_StopTimer_isr(BTMR_TimerHandle timer)
+static void phys_StopTimer_isr(BTMR_TimerHandle timer)
 {
 #if 0 /* exclusive used to mean controlled externally -- now it means not virtual and don't share it */
     /* They are only supposed to call this function IF the timer is NOT exclusive */
@@ -844,10 +823,11 @@ static BERR_Code phys_StopTimer_isr(BTMR_TimerHandle timer)
     /* Stopping a shared timer could mess up the others sharing this timer */
     if (timer->Settings.type == BTMR_Type_eSharedFreeRun) {
         BDBG_ERR(("BTMR_StopTimer: requested STOP operation on shared timer!"));
-        return BERR_TRACE(BTMR_ERR_FREE_RUN_TIMER);
+        BERR_TRACE(BTMR_ERR_FREE_RUN_TIMER);
+        return;
     }
 
-    return JustStopTimer_isr(timer);
+    JustStopTimer_isr(timer);
 }
 
 static unsigned phys_ReadTimer_isr(BTMR_TimerHandle timer)
@@ -1275,7 +1255,7 @@ static BERR_Code virt_CreateTimer(BTMR_Handle device, BTMR_TimerHandle timer, co
     return status;
 }
 
-static BERR_Code virt_DestroyTimer_isr(BTMR_TimerHandle timer)
+static void virt_DestroyTimer_isr(BTMR_TimerHandle timer)
 {
     BTMR_Handle device = timer->device;
 
@@ -1288,29 +1268,7 @@ static BERR_Code virt_DestroyTimer_isr(BTMR_TimerHandle timer)
     BDBG_MSG(("BTMR_DestroyTimer: Successfully destroyed virtual timer!"));
     BLST_D_REMOVE(&device->VirtualCreateList, timer, created);
     device->VirtualCount--;
-
-    return BERR_SUCCESS;
 }
-#if 0
-static BERR_Code virt_DestroyTimer(BTMR_TimerHandle timer)
-{
-    BERR_Code status;
-    BTMR_Handle device = timer->device;
-
-#if 0
-    /* We created some utility timers needed for processing virtual timers. 
-    ** If this is the last virtual timer then we don't need these anymore. 
-    */
-    if (device->VirtualCount == 1)
-        DestroyUtilityTimers(device);
-#endif
-
-    BKNI_EnterCriticalSection();
-    status = virt_DestroyTimer_isr(timer);
-    BKNI_LeaveCriticalSection();
-    return status;
-}
-#endif
 
 static BERR_Code virt_StartTimer_isr(BTMR_TimerHandle timer, unsigned startingValue)
 {
@@ -1352,20 +1310,12 @@ static BERR_Code virt_StartTimer_isr(BTMR_TimerHandle timer, unsigned startingVa
     return BERR_SUCCESS;
 }
 
-static BERR_Code virt_StopTimer_isr(BTMR_TimerHandle timer)
+static void virt_StopTimer_isr(BTMR_TimerHandle timer)
 {
     BTMR_Handle device = timer->device;
-
-    /* Should I let them stop a stopped timer??? */
-    /* We have two choices here: 1) don't let them stop a stopped timer or 2) just say okay and keep going.  */
     if (!timer->running)
     {
-#if 0
-        BDBG_ERR(("BTMR_StopTimer: timer already stopped!"));
-        return BERR_TRACE(BTMR_ERR_ALREADY_STOPPED);
-#else
-        goto done; /* its already stopped -- success! (this is choice 2) */
-#endif
+        return;
     }
  
     timer->lastValue = JustReadVirtualTimer_isr(timer);
@@ -1378,9 +1328,6 @@ static BERR_Code virt_StopTimer_isr(BTMR_TimerHandle timer)
         TakeTimerOffTimeoutQueue_isr(device, timer);
 
     timer->running = false;
-
-  done:
-    return BERR_SUCCESS;
 }
 
 static unsigned virt_ReadTimer_isr(BTMR_TimerHandle timer)
@@ -2170,9 +2117,8 @@ BERR_Code BTMR_CreateTimer(BTMR_Handle device, BTMR_TimerHandle *phTimer, const 
 /* We need to recursively destroy timers.
 ** This can happen when we're destroying the utility timers that are no longer needed after deleting the last virtual timer.
 */
-static BERR_Code _BTMR_DestroyTimer(BTMR_TimerHandle timer, const char *file, int line)
+static void _BTMR_DestroyTimer(BTMR_TimerHandle timer, const char *file, int line)
 {
-    BERR_Code errCode = BERR_SUCCESS;
     BTMR_Handle device;
 
     BDBG_OBJECT_ASSERT(timer, btmr_timer_t);
@@ -2186,7 +2132,7 @@ static BERR_Code _BTMR_DestroyTimer(BTMR_TimerHandle timer, const char *file, in
     {
         BDBG_MSG(("BTMR_DestroyTimer: NOT deleting THE shared timer [still in use by others, count=%d] (at: %s,%d)", device->SharedCount, file, line));
         device->SharedCount--;
-        return BERR_SUCCESS;
+        return;
     }
 
     /* The shared timer reflects the first one to create one, not necessarily the one destroying it */
@@ -2197,24 +2143,21 @@ static BERR_Code _BTMR_DestroyTimer(BTMR_TimerHandle timer, const char *file, in
     }
 
     BKNI_EnterCriticalSection();
-    errCode = timer->functions->destroy_isr(timer);
+    timer->functions->destroy_isr(timer);
     BKNI_LeaveCriticalSection();
 
     /* Mark it as invalid in case he tries to give it to me again (destroy twice, or operation after destroy) */
     /* Note: this probably won't happen as the memory will be reassigned and stepped on, but ... */
     BDBG_OBJECT_DESTROY(timer, btmr_timer_t);
     BKNI_Free(timer);
-
-    return errCode;
 }
 
 #if BDBG_DEBUG_BUILD
-BERR_Code BTMR_DestroyTimer_tagged(BTMR_TimerHandle timer, const char *file, int line)
+void BTMR_DestroyTimer_tagged(BTMR_TimerHandle timer, const char *file, int line)
 #else
-BERR_Code BTMR_DestroyTimer(BTMR_TimerHandle timer)
+void BTMR_DestroyTimer(BTMR_TimerHandle timer)
 #endif
 {
-    BERR_Code errCode = BERR_SUCCESS;
     BTMR_Handle device;
 
     BDBG_ENTER(BTMR_DestroyTimer);
@@ -2227,26 +2170,27 @@ BERR_Code BTMR_DestroyTimer(BTMR_TimerHandle timer)
 #endif
 
     device = timer->device;
-    if (device->in_standby_mode) return BERR_TRACE(BTMR_ERR_STANBY_ACTIVE);
+    if (device->in_standby_mode) BERR_TRACE(BTMR_ERR_STANBY_ACTIVE);
 
     /* You are not allowed to delete a timer from within the count-down or periodic timer's callback function.
     ** This is just a bad thing to do.  Besides, the call-back is running from ISR and this isn't an _isr routine.
     */
     if (timer->processing) {
         BDBG_ERR(("BTMR_DestroyTimer: request to destroy timer from a timer callback operation!"));
-        return BERR_TRACE(BTMR_ERR_DELETE_FROM_ISR);
+        BERR_TRACE(BTMR_ERR_DELETE_FROM_ISR);
+        /* keep going */
     }
 
     BKNI_AcquireMutex(device->create_destroy_mutex);
 #if BDBG_DEBUG_BUILD
-    errCode = _BTMR_DestroyTimer(timer, file, line);
+    _BTMR_DestroyTimer(timer, file, line);
 #else
-    errCode = _BTMR_DestroyTimer(timer, NULL, 0);
+    _BTMR_DestroyTimer(timer, NULL, 0);
 #endif
     BKNI_ReleaseMutex(device->create_destroy_mutex);
 
     BDBG_LEAVE(BTMR_DestroyTimer);
-    return errCode;
+    return;
 }
 
 #if BDBG_DEBUG_BUILD
@@ -2355,14 +2299,14 @@ BERR_Code BTMR_StartTimer(BTMR_TimerHandle timer, unsigned startingValue)
     return result;
 }
 
-BERR_Code BTMR_StopTimer_isr(BTMR_TimerHandle timer)
+void BTMR_StopTimer_isr(BTMR_TimerHandle timer)
 {
     BTMR_Handle device;
 
     BDBG_OBJECT_ASSERT(timer, btmr_timer_t);
 
     device = timer->device;
-    if (device->in_standby_mode) return BERR_TRACE(BTMR_ERR_STANBY_ACTIVE);
+    if (device->in_standby_mode) BERR_TRACE(BTMR_ERR_STANBY_ACTIVE);
 
     /* If this was called from the count-down timer's callback function then we don't actually stop it here.
     ** This could mess up the processing in the interrupt service routines.  So just mark it to be stopped.
@@ -2371,21 +2315,20 @@ BERR_Code BTMR_StopTimer_isr(BTMR_TimerHandle timer)
     if (timer->processing) {
         timer->pleaseStop = true;
         timer->pleaseStart = false; /* if they both stopped AND started in callback, honor the last one */
-        return BERR_SUCCESS;
+        return;
     }
 
     BDBG_MSG(("BTMR_StopTimer: stopping %s timer %d", GetTimerType_isrsafe(&timer->Settings), timer->timerNumber));
-    return timer->functions->stop_isr(timer);
+    timer->functions->stop_isr(timer);
+    return;
 }
-BERR_Code BTMR_StopTimer(BTMR_TimerHandle timer)
+void BTMR_StopTimer(BTMR_TimerHandle timer)
 {
-    BERR_Code result;
     BDBG_ENTER(BTMR_StopTimer);
     BKNI_EnterCriticalSection();
-    result = BTMR_StopTimer_isr(timer);
+    BTMR_StopTimer_isr(timer);
     BKNI_LeaveCriticalSection();
     BDBG_LEAVE(BTMR_StopTimer);
-    return result;
 }
 
 BERR_Code BTMR_ReadTimer_isr(BTMR_TimerHandle timer, unsigned *pValue)

@@ -36,7 +36,7 @@ static uint32_t dataflow_hash(const Dataflow *df)
          hash = p * (hash ^ ((uint32_t)d->u.const_image.is_32bit | (d->u.const_image.location << 1)));
       else if (d->flavour == DATAFLOW_CONST_SAMPLER)
          hash = p * (hash ^ d->u.linkable_value.row);
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       else if (d->flavour == DATAFLOW_SAMPLER_UNNORMS)
          hash = p * (hash ^ d->d.unary_op.operand->u.linkable_value.row);
 #endif
@@ -77,7 +77,7 @@ static bool dataflow_equals(const Dataflow *df0, const Dataflow *df1)
          if (dep0->flavour == DATAFLOW_CONST_SAMPLER &&
             dep0->u.linkable_value.row == dep1->u.linkable_value.row)
             continue; // consider equal if dep0 and dep1 are the same sampler unnorm array
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
          if (dep0->flavour == DATAFLOW_SAMPLER_UNNORMS &&
             dep0->d.unary_op.operand->u.linkable_value.row == dep1->d.unary_op.operand->u.linkable_value.row)
             continue;
@@ -109,7 +109,7 @@ static bool addr_is_read_only(const Dataflow *p) {
    return false;
 }
 
-static Dataflow *dataflow_cse_accept(Map *ctx, Dataflow *df, bool assume_read_only)
+static Dataflow *dataflow_cse_accept(Map *ctx, Dataflow *df)
 {
    if (df == NULL) return NULL;
 
@@ -122,14 +122,14 @@ static Dataflow *dataflow_cse_accept(Map *ctx, Dataflow *df, bool assume_read_on
       case DATAFLOW_CONST:
       case DATAFLOW_CONST_IMAGE:
       case DATAFLOW_CONST_SAMPLER:
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case DATAFLOW_SAMPLER_UNNORMS:
 #endif
       case DATAFLOW_UNIFORM:
       case DATAFLOW_STORAGE_BUFFER:
       case DATAFLOW_BUF_SIZE:
       case DATAFLOW_BUF_ARRAY_LENGTH:
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       case DATAFLOW_IMAGE_INFO_PARAM:
 #endif
          return df;
@@ -152,12 +152,10 @@ static Dataflow *dataflow_cse_accept(Map *ctx, Dataflow *df, bool assume_read_on
 
    // Depth first traversal of the graph
    for (int i = 0; i < df->dependencies_count; i++)
-      df->d.dependencies[i] = dataflow_cse_accept(ctx, df->d.dependencies[i], assume_read_only);
+      df->d.dependencies[i] = dataflow_cse_accept(ctx, df->d.dependencies[i]);
 
-   /* Old versions of the language didn't allow writes, in which case assume everything
-    * is read-only. Otherwise we need to check */
    if (df->flavour == DATAFLOW_VECTOR_LOAD)
-      if (!(assume_read_only || addr_is_read_only(df->d.unary_op.operand))) return df;
+      if (!addr_is_read_only(df->d.unary_op.operand)) return df;
 
    // If we have seen identical node before, use it instead.
    hash = dataflow_hash(df);
@@ -173,15 +171,15 @@ static Dataflow *dataflow_cse_accept(Map *ctx, Dataflow *df, bool assume_read_on
    return df;
 }
 
-static void block_cse(Dataflow **outputs, int n_outputs, bool assume_read_only)
+static void block_cse(Dataflow **outputs, int n_outputs)
 {
    Map *ctx = glsl_map_new();
    for (int i=0; i<n_outputs; i++)
-      outputs[i] = dataflow_cse_accept(ctx, outputs[i], assume_read_only);
+      outputs[i] = dataflow_cse_accept(ctx, outputs[i]);
    glsl_map_delete(ctx);
 }
 
-void glsl_dataflow_cse(SSABlock *block, int n_blocks, bool assume_read_only) {
+void glsl_dataflow_cse(SSABlock *block, int n_blocks) {
    for (int i=0; i<n_blocks; i++)
-      block_cse(block[i].outputs, block[i].n_outputs, assume_read_only);
+      block_cse(block[i].outputs, block[i].n_outputs);
 }

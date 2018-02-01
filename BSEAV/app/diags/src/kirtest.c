@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2013 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 /* Example to get IR remote input using nexus */
 
@@ -54,7 +46,13 @@
 #include <stdio.h>
 #include "prompt.h"
 
+#if (BCHP_CHIP==7278)
+#include "bchp_sun_top_ctrl.h"
+#endif
+
 /*#define COMPATIBILITY_32_BIT_MODE*/
+
+BDBG_MODULE(diags_kir);
 
 static int get_number(void)
 {
@@ -156,6 +154,11 @@ static void bcmKirStartFiltering(NEXUS_IrInputHandle irHandle)
     pattern.filterWord[1].enabled = true;
 #endif
 
+    while (kbhit()) {
+        char c=getc(stdin);
+        BSTD_UNUSED(c);
+    }
+
     NEXUS_IrInput_EnableDataFilter(irHandle, &pattern);
 }
 
@@ -166,13 +169,33 @@ static void bcmKirStopFiltering(NEXUS_IrInputHandle irHandle)
 
 void bcmKirTest (void)
 {
-    NEXUS_IrInputHandle irHandle;
+    NEXUS_IrInputHandle irHandle = NULL;
     NEXUS_IrInputSettings irSettings;
     int enable;
     int channel=0;
     static int running=0;
     static int filtering=0;
     NEXUS_IrInputMode mode = NEXUS_IrInputMode_eCirEchoStar;
+
+#if (BCHP_CHIP==7278)
+    unsigned i;
+    uint32_t reg;
+    uint32_t pin_mux_ctrl[17];
+    for (i=0; i < 17; i++) {
+        NEXUS_Platform_ReadRegister(BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_0+i*4, &pin_mux_ctrl[i]);
+        BDBG_MSG(("PIN_MUX_CTRL_%d: %08x", i, pin_mux_ctrl[i]));
+    }
+
+    reg = pin_mux_ctrl[10];
+    reg &= ~(
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_071)
+        );
+
+    reg |= (
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_071, 2)
+        );
+    NEXUS_Platform_WriteRegister(BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10, reg);
+#endif
 
     while (1)
     {
@@ -192,6 +215,9 @@ void bcmKirTest (void)
                     NEXUS_IrInput_Close(irHandle);
                     running=0;
                 }
+#if (BCHP_CHIP==7278)
+                NEXUS_Platform_WriteRegister(BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10, pin_mux_ctrl[10]);
+#endif
                 return;
 
             case 1:
@@ -210,6 +236,10 @@ void bcmKirTest (void)
                 break;
 
             case 2:
+                if (!running) {
+                    printf("Start IR receiver first.\n");
+                    break;
+                }
                 if (filtering==0) {
                     bcmKirStartFiltering(irHandle);
                     filtering=1;
@@ -240,4 +270,3 @@ void bcmKirTest (void)
 
     return;
 }
-

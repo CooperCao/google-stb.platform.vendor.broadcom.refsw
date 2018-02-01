@@ -1,22 +1,11 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES 2.0 2708 shaders
-=============================================================================*/
-
-#ifndef GL20_SHADER_4_H
-#define GL20_SHADER_4_H
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "middleware/khronos/glxx/glxx_server.h"
 #include "middleware/khronos/glxx/glxx_hw.h"
 #include "middleware/khronos/glxx/2708/glxx_inner_4.h"
-
-
 
 typedef struct
 {
@@ -31,7 +20,7 @@ typedef struct
 
 typedef struct
 {
-   MEM_HANDLE_T mh_blob;
+   void *blob;
    void *nodes[GL20_LINK_RESULT_NODE_COUNT];
    uint32_t vary_count;
 
@@ -47,14 +36,12 @@ extern void gl20_link_result_term(void *v, uint32_t size);
 extern bool gl20_link_result_get_shaders(
    GL20_LINK_RESULT_T *link_result,
    GLXX_HW_SHADER_RECORD_T *shader_out,
-   MEM_HANDLE_T *cunifmap_out,
-   MEM_HANDLE_T *vunifmap_out,
-   MEM_HANDLE_T *funifmap_out,
+   void **cunifmap_out,
+   void **vunifmap_out,
+   void **funifmap_out,
    GLXX_SERVER_STATE_T *state,
    GLXX_ATTRIB_T *attrib,
    uint32_t *mergeable_attribs,
    uint32_t * cattribs_order_out,
    uint32_t * vattribs_order_out,
    bool     * wasInCache);
-
-#endif

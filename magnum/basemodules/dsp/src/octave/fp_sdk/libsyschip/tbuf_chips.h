@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -81,12 +81,11 @@
  * TB_SYNC_TRANSFERS: the function issuing the data transfer returns only
  *                    when all data has been transferred.
  */
-#if defined(CELIVERO) || defined(CELTRIX) || defined(MCPHY) || \
-    (defined(RAAGA) && !defined(__FP4015_ONWARDS__))
+#if defined(MCPHY) || (defined(RAAGA) && !defined(__FP4015_ONWARDS__))
 #  define TB_ASYNC_TRANSFERS
 #elif defined(PIKE) || defined(GENERIC) || \
-      defined(BSP) || defined(LEAP_PHY) || defined(PMC3) || defined(PMC3_2_ICA) || \
-     (defined(RAAGA) && defined(__FP4015_ONWARDS__)) || defined(YELLOWSTONE) || defined(SHASTA)
+      defined(BSP) || defined(LEAP_PHY_BCM3465) || defined(PMC3) || defined(PMC3_2_ICA) || \
+      (defined(RAAGA) && defined(__FP4015_ONWARDS__)) || defined(YELLOWSTONE) || defined(SHASTA)
 #  define TB_SYNC_TRANSFERS
 #elif defined(__COMPILE_HEADER__)
 #  define TB_ASYNC_TRANSFERS    /* fallback choice to avoid the build fail */
@@ -135,11 +134,7 @@
  *                       single transfer.
  */
 #define TB_TRANSFER_UNLIMITED_SIZE      (1024 * 1024 * 1024)    /* 1 GiB, just a random high-enough value */
-#if defined(CELIVERO) || defined(CELTRIX)
-#  define TB_TRANSFER_ALIGNMENT         8
-#  define TB_TRANSFER_SIZE_MULTIPLE     64
-#  define TB_TRANSFER_SIZE_MAX          (64 * 1024)
-#elif defined(RAAGA) && !defined(__FP4015_ONWARDS__)
+#if defined(RAAGA) && !defined(__FP4015_ONWARDS__)
 #  define TB_TRANSFER_ALIGNMENT         1
 #  define TB_TRANSFER_SIZE_MULTIPLE     1
 #  define TB_TRANSFER_SIZE_MAX          ((64 * 1024) - 1)
@@ -159,7 +154,7 @@
 #  define TB_TRANSFER_ALIGNMENT         1               /* We dump (memcpy) data directly to DRAM  */
 #  define TB_TRANSFER_SIZE_MULTIPLE     1               /* through $$, so no transfer constraints  */
 #  define TB_TRANSFER_SIZE_MAX          TB_TRANSFER_UNLIMITED_SIZE
-#elif defined(LEAP_PHY) && defined(__FPM1015__)         /* Shared buffers in SMEM require naturally aligned     */
+#elif defined(LEAP_PHY_BCM3465) && defined(__FPM1015__) /* Shared buffers in SMEM require naturally aligned     */
 #  define TB_TRANSFER_ALIGNMENT         8               /* accesses, enforce dword size/aligment so that memcpy */
 #  define TB_TRANSFER_SIZE_MULTIPLE     8               /* (the one in libfp) will always do the right thing.   */
 #  define TB_TRANSFER_SIZE_MAX          TB_TRANSFER_UNLIMITED_SIZE
@@ -320,19 +315,7 @@ extern TB_shared * TB_shared_services[];
 #  else  /* TARGET_BUFFER_MUX_SERVICES */
 
 
-/*
- * Raaga and Celivero/Celtrix core dump code doesn't use the Target Buffer
- * implementation in libsyschip. These chip just dump their raw memory
- * content in at a specific DDR location and eventually update only
- * the proper TB_shared write pointer. Thus, is not currently possible
- * to properly multiplex core dump data in these chips.
- */
-#    if defined(CELIVERO) || defined(CELTRIX)
-
-TB_SHARED_ATTRS extern TB_shared * const TB_shared_CoreDump;
-TB_SHARED_ATTRS extern TB_shared * const TB_shared_Common;
-
-#    elif defined(RAAGA) && !defined(__FP4015_ONWARDS__)
+#    if defined(RAAGA) && !defined(__FP4015_ONWARDS__)
 
 /* Raaga fp2000 TBs are not const as they can be moved at runtime,
  * see TB_set_*_fifo_addr functions. */
@@ -356,7 +339,7 @@ TB_SHARED_ATTRS extern TB_shared * const TB_shared_Common;
 #define TB_shared_TargetPrint     TB_shared_Common
 #define TB_shared_StatProf        TB_shared_Common
 #define TB_shared_Instrumentation TB_shared_Common
-#if !(defined(CELIVERO) || defined(CELTRIX) || (defined(RAAGA) && !defined(__FP4015_ONWARDS__)))
+#if !(defined(RAAGA) && !defined(__FP4015_ONWARDS__))
 #  define TB_shared_CoreDump      TB_shared_Common
 #endif
 /** @} */
@@ -376,7 +359,7 @@ extern struct TB_shared_mgt_t TB_shared_mgt_Common;
 #define TB_shared_mgt_TargetPrint     TB_shared_mgt_Common
 #define TB_shared_mgt_StatProf        TB_shared_mgt_Common
 #define TB_shared_mgt_Instrumentation TB_shared_mgt_Common
-#if !(defined(CELIVERO) || defined(CELTRIX) ||(defined(RAAGA) && !defined(__FP4015_ONWARDS__)))
+#if !(defined(RAAGA) && !defined(__FP4015_ONWARDS__))
 #  define TB_shared_mgt_CoreDump      TB_shared_mgt_Common
 #endif
 /** @} */

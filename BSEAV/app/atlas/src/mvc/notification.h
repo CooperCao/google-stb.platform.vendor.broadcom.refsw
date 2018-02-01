@@ -54,6 +54,7 @@ typedef enum eNotification
     eNotify_All,
     eNotify_KeyUp,          /* keypress - key pressed up */
     eNotify_KeyDown,        /* keypress - key pressed down */
+    eNotify_KeyClick,       /* keypress - key click event */
     eNotify_VirtualKeyDown, /* keypress - fake remote key pressed down */
 
     eNotify_Tune,                /* command  - tune */
@@ -76,6 +77,7 @@ typedef enum eNotification
     eNotify_ChannelListSave,     /* command  - save channel list */
     eNotify_ChannelListDump,     /* command  - dump channel list */
     eNotify_GetChannelStats,     /* command  - get Channel Stats */
+    eNotify_GetCurrentChannelNumber, /* command  - get the current channel number in full screen */
     eNotify_SetAudioProgram,     /* command  - change current audio pid */
     eNotify_SetAudioProcessing,  /* command  - change audio processing type */
 #ifdef CPUTEST_SUPPORT
@@ -100,6 +102,7 @@ typedef enum eNotification
     eNotify_SetPowerMode,             /* command  - set power mode */
     eNotify_ShowPip,                  /* command  - show/hide pip window */
     eNotify_SwapPip,                  /* command  - swap pip/main windows */
+    eNotify_GetPipState,              /* command  - get state of pip window*/
     eNotify_ClosedCaptionEnable,      /* command  - enable/disable closed caption */
     eNotify_ClosedCaptionMode,        /* command  - set 608/708 closed caption mode */
     eNotify_ipClientTranscodeEnable,  /* command  - enable/disable transcoding in BIP streaming for a given client */
@@ -137,6 +140,15 @@ typedef enum eNotification
 #endif
 #if HAS_GFX_NL_LUMA_RANGE_ADJ
     eNotify_SetPlmGraphics, /* command  - set graphics programmable luma mapping enable/disable */
+#endif
+#if BDSP_MS12_SUPPORT
+    eNotify_ShowAudioAc4Presentation,       /* command  - show the given AC4 audio presentation */
+    eNotify_SetAudioAc4Presentation,        /* command  - set the given AC4 audio presentation */
+    eNotify_NextAudioAc4Presentation,       /* command  - set the given AC4 audio to the next available presentation */
+    eNotify_SetAudioAc4Language,            /* command  - set the given AC4 audio language */
+    eNotify_SetAudioAc4Associate,           /* command  - set the given AC4 audio associate */
+    eNotify_SetAudioAc4Priority,            /* command  - set the given AC4 audio priority */
+    eNotify_SetAudioAc4DialogEnhancement,   /* command  - set the given AC4 audio dialog enhancement level */
 #endif
     eNotify_Debug, /* command  - show debug message */
     eNotify_Exit,  /* command  - exit atlas */
@@ -239,6 +251,14 @@ typedef enum eNotification
     eNotify_DecodeStopped,            /* status   - a video or audio decode has stopped */
     eNotify_DiscoveredPlaylistsShown, /* status   - a discovered playlist has been displayed on console */
     eNotify_PlaylistShown,            /* status   - a playlist contents has been displayed on console */
+#if BDSP_MS12_SUPPORT
+    eNotify_AudioAc4PresentationShown,        /* status   - an audio AC4 presentation has been displayed on console */
+    eNotify_AudioAc4PresentationChanged,      /* status   - the current audio AC4 presentation has been changed */
+    eNotify_AudioAc4LanguageChanged,          /* status   - the current audio AC4 language has been changed */
+    eNotify_AudioAc4AssociateChanged,         /* status   - the current audio AC4 associate has been changed */
+    eNotify_AudioAc4PriorityChanged,          /* status   - the current audio AC4 priority has been changed */
+    eNotify_AudioAc4DialogEnhancementChanged, /* status   - the current audio AC4 dialog enhancement level has been changed */
+#endif
     eNotify_ChannelStatsShown,        /* status   - channel stats has been displayed on console */
 #if RF4CE_SUPPORT
     eNotify_AddRf4ceRemote,

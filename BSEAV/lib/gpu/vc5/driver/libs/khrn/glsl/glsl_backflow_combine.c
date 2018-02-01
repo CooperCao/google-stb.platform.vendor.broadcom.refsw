@@ -9,13 +9,11 @@
 
 #include "libs/util/gfx_util/gfx_util.h"
 
-typedef struct combine_data
-{
-   Map* node_num_dependents;
+typedef struct combine_data {
+   Map *node_num_dependents;
 } combine_data;
 
-static void inc_num_dependents(combine_data* data, Backflow* node)
-{
+static void inc_num_dependents(combine_data *data, Backflow *node) {
    // Only accumulate this information for these node types.
    if (node->type != SPECIAL_VARYING && node->type != SPECIAL_IMUL32)
       return;
@@ -24,40 +22,24 @@ static void inc_num_dependents(combine_data* data, Backflow* node)
    glsl_map_put(data->node_num_dependents, node, (void*)(num + 1));
 }
 
-static unsigned get_num_dependents(combine_data* data, Backflow* node)
-{
+static unsigned get_num_dependents(combine_data *data, Backflow *node) {
    assert(node->type == SPECIAL_VARYING || node->type == SPECIAL_IMUL32);
    return (unsigned)(uintptr_t)glsl_map_get(data->node_num_dependents, node);
 }
 
-static bool is_alu_type(SchedNodeType type) {
-   switch (type) {
-      case ALU_A:
-      case ALU_M:
-         return true;
-      case SPECIAL_THRSW:
-      case SPECIAL_IMUL32:
-      case SPECIAL_VARYING:
-      case SPECIAL_VOID:
-      case SIG:
-         return false;
-   }
-   unreachable();
-}
-
-static bool unpack_abs_invalid(BackflowFlavour f) {
-   switch(f) {
-      case BACKFLOW_VFPACK:
-      case BACKFLOW_ROUND:
-      case BACKFLOW_TRUNC:
-      case BACKFLOW_FLOOR:
-      case BACKFLOW_CEIL:
-      case BACKFLOW_FDX:
-      case BACKFLOW_FDY:
-      case BACKFLOW_FTOIN:
-      case BACKFLOW_FTOIZ:
-      case BACKFLOW_FTOUZ:
-      case BACKFLOW_FTOC:
+static bool unpack_abs_invalid(v3d_qpu_opcode_t op) {
+   switch(op) {
+      case V3D_QPU_OP_VFPACK:
+      case V3D_QPU_OP_FROUND:
+      case V3D_QPU_OP_FTRUNC:
+      case V3D_QPU_OP_FFLOOR:
+      case V3D_QPU_OP_FCEIL:
+      case V3D_QPU_OP_FDX:
+      case V3D_QPU_OP_FDY:
+      case V3D_QPU_OP_FTOIN:
+      case V3D_QPU_OP_FTOIZ:
+      case V3D_QPU_OP_FTOUZ:
+      case V3D_QPU_OP_FTOC:
          return true;
 
       default:
@@ -65,30 +47,32 @@ static bool unpack_abs_invalid(BackflowFlavour f) {
    }
 }
 
-static void dpostv_node_combine_init(Backflow *node, void *data)
-{
+static void dpostv_node_combine_init(Backflow *node, void *data) {
    for (unsigned i = 0; i < BACKFLOW_DEP_COUNT; i++)
-   {
       if (node->dependencies[i] != NULL)
          inc_num_dependents(data, node->dependencies[i]);
-   }
 }
 
 static void dpostv_node_combine(Backflow *node, void *data) {
-   if (node->type == ALU_M && (node->u.alu.op == BACKFLOW_MOV || node->u.alu.op == BACKFLOW_FMOV) && node->magic_write != REG_UNDECIDED && node->cond_setf == SETF_NONE) {
+   if (node->type == ALU && (node->u.alu.op == V3D_QPU_OP_MOV || node->u.alu.op == V3D_QPU_OP_FMOV) &&
+        ((node->magic_write != REG_UNDECIDED && node->cond_setf == SETF_NONE) ||
+         (node->magic_write == REG_UNDECIDED && (node->cond_setf == COND_IFFLAG || node->cond_setf == COND_IFNFLAG))))
+   {
       /* Try to combine the move target with the previous node */
       Backflow *operand = node->dependencies[1];
 
-      if (!is_alu_type(operand->type) && operand->type != SIG && operand->type != SPECIAL_VARYING && operand->type != SPECIAL_IMUL32) return;
+      if (operand->type != ALU && operand->type != SIG && operand->type != SPECIAL_VARYING && operand->type != SPECIAL_IMUL32) return;
 #if V3D_VER_AT_LEAST(4,1,34,0)
       const static v3d_qpu_sigbits_t valid_sigbits = V3D_QPU_SIG_LDUNIF;
 #else
       const static v3d_qpu_sigbits_t valid_sigbits = 0;
 #endif
       if (operand->type == SIG && (operand->u.sigbits & valid_sigbits) == 0) return;
+      if (operand->type == SIG && node->cond_setf != SETF_NONE) return;
 
       /* Only combine varyings or IMUL32 if there is a single consumer. */
-      if ((operand->type == SPECIAL_VARYING || operand->type == SPECIAL_IMUL32) && get_num_dependents(data, operand) > 1)
+      if ((operand->type == SPECIAL_VARYING || operand->type == SPECIAL_IMUL32) &&
+          (get_num_dependents(data, operand) > 1 || node->cond_setf != SETF_NONE))
          return;
 
       if (operand->magic_write != REG_UNDECIDED || operand->dependencies[0] != NULL) return;
@@ -102,11 +86,15 @@ static void dpostv_node_combine(Backflow *node, void *data) {
       /* Can't combine uniform loads with magic targets that also load uniforms */
       if (node->unif_type != BACKEND_UNIFORM_UNASSIGNED && operand->unif_type != BACKEND_UNIFORM_UNASSIGNED) return;
 
+      /* If this node uses flags then it can't combine with a node that already does */
+      if (node->cond_setf != SETF_NONE && operand->dependencies[3]) return;
+
       node->type = operand->type;
-      for (int i=0; i<BACKFLOW_DEP_COUNT; i++) {
-         node->dependencies[i] = operand->dependencies[i];
-      }
-      if (is_alu_type(operand->type)) {
+      for (int i=1; i<BACKFLOW_DEP_COUNT; i++)
+         if (i != 3 || node->cond_setf == SETF_NONE)
+            node->dependencies[i] = operand->dependencies[i];
+
+      if (operand->type == ALU) {
          node->u.alu.op  = operand->u.alu.op;
          node->u.alu.unpack[0] = operand->u.alu.unpack[0];
          node->u.alu.unpack[1] = operand->u.alu.unpack[1];
@@ -137,8 +125,8 @@ static void dpostv_node_combine(Backflow *node, void *data) {
    if (node->dependencies[0]) {
       /* If this is a flag operation, see if we can reduce trips through data */
       Backflow *flag = node->dependencies[0];
-      if (flag->type == ALU_A && flag->u.alu.op == BACKFLOW_FLN) node->dependencies[0] = flag->dependencies[0];
-      if (flag->type == ALU_A && flag->u.alu.op == BACKFLOW_FL) {
+      if (flag->type == ALU && flag->u.alu.op == V3D_QPU_OP_VFLNA) node->dependencies[0] = flag->dependencies[0];
+      if (flag->type == ALU && flag->u.alu.op == V3D_QPU_OP_VFLA) {
          if (node->cond_setf == COND_IFFLAG || node->cond_setf == COND_IFNFLAG) {
             node->cond_setf = (node->cond_setf == COND_IFFLAG) ? COND_IFNFLAG : COND_IFFLAG;
             node->dependencies[0] = flag->dependencies[0];
@@ -146,7 +134,7 @@ static void dpostv_node_combine(Backflow *node, void *data) {
       }
    }
 
-   if (is_alu_type(node->type)) {
+   if (node->type == ALU) {
       if (glsl_sched_node_admits_unpack(node->u.alu.op)) {
          /* Loop over left and right dependencies. 1 = Left, 2 = Right */
          for (int i=1; i<=2; i++) {
@@ -161,7 +149,7 @@ static void dpostv_node_combine(Backflow *node, void *data) {
             /* Bail if the unpack slot is already in use */
             if (node->u.alu.unpack[i-1] != UNPACK_NONE) continue;
 
-            if (operand->type == ALU_M && operand->u.alu.op == BACKFLOW_FMOV) {
+            if (operand->type == ALU && operand->u.alu.op == V3D_QPU_OP_FMOV) {
                /* Merge up with node */
                SchedNodeUnpack unpack_code = operand->u.alu.unpack[0];
 

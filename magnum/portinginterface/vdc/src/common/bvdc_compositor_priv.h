@@ -313,7 +313,7 @@ typedef struct BVDC_P_CompositorContext
     /* Ouptut to VEC. */
     BAVC_FrameRateCode                eSrcFRateCode;
     bool                              bFullRate;
-    BVDC_P_ColorSpace                 stOutColorSpace;
+    BCFC_ColorSpaceExt                stOutColorSpaceExt;
 
 
     /* active windows (declare max).  Could also be dynamically allocated
@@ -326,17 +326,19 @@ typedef struct BVDC_P_CompositorContext
     uint32_t                          ulMosaicAdjust[BVDC_P_MAX_WINDOW_COUNT];
     uint32_t                          ulNLCscCtrl[BVDC_P_MAX_VIDEO_WINS_PER_CMP];  /* V0 and V1, for BlackBoxNLConv */
     bool                              bBypassDviCsc;
+    bool                              bUnknownHdrParm;
+    BAVC_HDMI_DRMInfoFrameType1       stHdrParm;
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
     bool                              bBlendMatrixOn;
 #endif
 #if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_2)
     uint32_t                          aulNLCfg[BVDC_P_MAX_VIDEO_WINS_PER_CMP][BVDC_P_CMP_NL_CFG_REGS]; /* V0 and V1, 8 regs */
 #endif
-    BVDC_P_Cfc_Capability             stCfcCapability[BVDC_P_MAX_VIDEO_WINS_PER_CMP];  /* V0 and V1 */
+    BCFC_Capability                   stCfcCapability[BVDC_P_MAX_VIDEO_WINS_PER_CMP];  /* V0 and V1 */
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
     /* CFC LUT heap */
     BMMA_Heap_Handle                  hCfcHeap; /* must be cpu accessible for LUT fill */
-    BVDC_P_CfcLutLoadListInfo         stCfcLutList; /* for CFC ram table loading */
+    BCFC_LutLoadListInfo              stCfcLutList; /* for CFC ram table loading */
     /* DBV support */
 #if BVDC_P_DBV_SUPPORT
     BVDC_P_DBV_Info                  * pstDbv;
@@ -427,9 +429,9 @@ void BVDC_P_Compositor_SetMBoxMetaData_isr
     const BVDC_P_PictureNode              *pPicture,
     BVDC_Compositor_Handle                hCompositor);
 
-/* configure hCompositor->stOutColorSpace for all cases,
- * plus display->stOutColorSpace and
- * hDisplay->stCfc.stColorSpaceIn.stAvcColorSpace for hdmi out
+/* configure hCompositor->stOutColorSpaceExt for all cases,
+ * plus display->stOutColorSpaceExt and
+ * hDisplay->stCfc.stColorSpaceExtIn.stColorSpace for hdmi out
  *
  * note: CMP always output limited range YCbCr
  *

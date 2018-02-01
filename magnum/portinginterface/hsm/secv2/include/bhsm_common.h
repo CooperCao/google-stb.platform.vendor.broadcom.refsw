@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -65,8 +65,8 @@ typedef enum BHSM_SecurityRegion
 {
     BHSM_SecurityRegion_eGlr,    /* Global region */
     BHSM_SecurityRegion_eCrr,    /* Compressed Data Restricted Region */
-    BHSM_SecurityRegion_eUrr,    /* User Restricted region */
     BHSM_SecurityRegion_eXrr,    /* eXport Restricted Region */
+    BHSM_SecurityRegion_eCrrT,   /* Compressed Data Restricted Region for Transcode */
 
     BHSM_SecurityRegion_eMax
 }BHSM_SecurityRegion;
@@ -102,7 +102,6 @@ typedef enum BHSM_CryptographicAlgorithm
     BHSM_CryptographicAlgorithm_eCam256,
     BHSM_CryptographicAlgorithm_eGhash,
     BHSM_CryptographicAlgorithm_eC2,             /* pre Zeus5 */
-    BHSM_CryptographicAlgorithm_eCss,            /* pre Zeus5 */
     BHSM_CryptographicAlgorithm_eM6Ke,           /* pre Zeus5 */
     BHSM_CryptographicAlgorithm_eM6S,            /* pre Zeus5 */
     BHSM_CryptographicAlgorithm_eRc4,            /* pre Zeus5 */

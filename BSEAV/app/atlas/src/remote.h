@@ -98,6 +98,10 @@ typedef enum eKey
     eKey_JumpFwd,
     eKey_JumpRev,
     eKey_Power,
+    eKey_Fav1,
+    eKey_Fav2,
+    eKey_Fav3,
+    eKey_Fav4,
     /* ascii codes */
     eKey_0,
     eKey_1,

@@ -126,8 +126,8 @@ static void BV3D_P_DebugDumpJob(BV3D_Handle hV3d, BV3D_Job *job)
       BKNI_Printf("    OutOfMemory    = %d\n",     job->uiOutOfMemory);
       BKNI_Printf("    Overspill      = %d\n",     job->uiOverspill);
       BKNI_Printf("    CollectTime    = %d\n",     job->bCollectTimeline ? 1 : 0);
-      BKNI_Printf("    CallbackParam  = %d\n",     job->uiNotifyCallbackParam);
-      BKNI_Printf("    CallbackSeqNum = "  BDBG_UINT64_FMT "",     BDBG_UINT64_ARG(job->uiNotifySequenceNum));
+      BKNI_Printf("    CallbackParam  = " BDBG_UINT64_FMT"\n", BDBG_UINT64_ARG(job->uiNotifyCallbackParam));
+      BKNI_Printf("    CallbackSeqNum = " BDBG_UINT64_FMT,     BDBG_UINT64_ARG(job->uiNotifySequenceNum));
    }
 }
 
@@ -165,24 +165,30 @@ static void BV3D_P_DebugDump(BV3D_Handle hV3d)
    BKNI_Printf("Current Bin Job\n");
    if (!BV3D_P_InstructionIsClear(&hV3d->sBin))
    {
-      BKNI_Printf("Arg1 = %08X, Arg2 = %08X, CallbackParam = %08X\n", hV3d->sBin.uiArg1, hV3d->sBin.uiArg2,
-                                                                      hV3d->sBin.uiCallbackParam);
+      BKNI_Printf("Arg1 = %08X, Arg2 = "BDBG_UINT64_FMT", CallbackParam = "BDBG_UINT64_FMT,
+         hV3d->sBin.uiArg1,
+         BDBG_UINT64_ARG(hV3d->sBin.uiArg2),
+         BDBG_UINT64_ARG(hV3d->sBin.uiCallbackParam));
       BV3D_P_DebugDumpJob(hV3d, hV3d->sBin.psJob);
    }
 
    BKNI_Printf("Current Render Job\n");
    if (!BV3D_P_InstructionIsClear(&hV3d->sRender))
    {
-      BKNI_Printf("Arg1 = %08X, Arg2 = %08X, CallbackParam = %08X\n", hV3d->sRender.uiArg1, hV3d->sRender.uiArg2,
-                                                                      hV3d->sRender.uiCallbackParam);
+      BKNI_Printf("Arg1 = %08X, Arg2 = "BDBG_UINT64_FMT", CallbackParam = "BDBG_UINT64_FMT,
+         hV3d->sRender.uiArg1,
+         BDBG_UINT64_ARG(hV3d->sRender.uiArg2),
+         BDBG_UINT64_ARG(hV3d->sRender.uiCallbackParam));
       BV3D_P_DebugDumpJob(hV3d, hV3d->sRender.psJob);
    }
 
    BKNI_Printf("Current User Job\n");
    if (!BV3D_P_InstructionIsClear(&hV3d->sUser))
    {
-      BKNI_Printf("Arg1 = %08X, Arg2 = %08X, CallbackParam = %08X\n", hV3d->sUser.uiArg1, hV3d->sUser.uiArg2,
-                                                                      hV3d->sUser.uiCallbackParam);
+      BKNI_Printf("Arg1 = %08X, Arg2 = "BDBG_UINT64_FMT", CallbackParam = "BDBG_UINT64_FMT,
+         hV3d->sUser.uiArg1,
+         BDBG_UINT64_ARG(hV3d->sUser.uiArg2),
+         BDBG_UINT64_ARG(hV3d->sUser.uiCallbackParam));
       BV3D_P_DebugDumpJob(hV3d, hV3d->sUser.psJob);
    }
 
@@ -742,7 +748,7 @@ void BV3D_P_InstructionDone(
 }
 
 /***************************************************************************/
-static void BV3D_P_DoClientCallback(BV3D_Handle hV3d, BV3D_Instruction *psInstruction, uint32_t *callbackParam,
+static void BV3D_P_DoClientCallback(BV3D_Handle hV3d, BV3D_Instruction *psInstruction, uint64_t *callbackParam,
                              uint64_t seqNum, bool sync)
 {
    void  (*pCallback)(uint32_t, void *);
@@ -816,7 +822,9 @@ static void BV3D_P_HardwareDone(
    /* Is there a callback?  If so issue notification to client and call-back. */
    if (psInstruction->uiCallbackParam != 0)
    {
-      BDBG_MSG(("Issuing HW CALLBACK(p=%d) to client %d", psInstruction->uiCallbackParam, psInstruction->psJob->uiClientId));
+      BDBG_MSG(("Issuing HW CALLBACK(p="BDBG_UINT64_FMT") to client %d",
+         BDBG_UINT64_ARG(psInstruction->uiCallbackParam),
+         psInstruction->psJob->uiClientId));
       BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->uiCallbackParam,
                               psInstruction->psJob->uiSequence, false);
    }
@@ -824,7 +832,9 @@ static void BV3D_P_HardwareDone(
    /* Is there a notify callback pending? */
    if (psInstruction->psJob->uiNotifyCallbackParam)
    {
-      BDBG_MSG(("Issuing HW NOTIFY CALLBACK(p=%d) to client %d", psInstruction->psJob->uiNotifyCallbackParam, psInstruction->psJob->uiClientId));
+      BDBG_MSG(("Issuing HW NOTIFY CALLBACK(p="BDBG_UINT64_FMT") to client %d",
+         BDBG_UINT64_ARG(psInstruction->psJob->uiNotifyCallbackParam),
+         psInstruction->psJob->uiClientId));
       BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->psJob->uiNotifyCallbackParam,
                               psInstruction->psJob->uiNotifySequenceNum, false);
       psInstruction->psJob->uiNotifyCallbackParam = 0;
@@ -947,7 +957,7 @@ static void BV3D_P_IssueBin(
       if (psInstruction->psJob->bCollectTimeline && psInstruction->psJob->sTimelineData.sBinStart.uiSecs == 0)
          BV3D_P_GetTimeNow(&psInstruction->psJob->sTimelineData.sBinStart);
 
-      BDBG_MSG(("Binner start = 0x%x, end = 0x%x", psInstruction->uiArg1, psInstruction->uiArg2));
+      BDBG_MSG(("Binner start = 0x%x, end = 0x%x", psInstruction->uiArg1, (uint32_t)psInstruction->uiArg2));
       BDBG_MSG(("BPCA = 0x%x, BPCS = 0x%x",
          BREG_Read32(hV3d->hReg, BCHP_V3D_PTB_BPCA), BREG_Read32(hV3d->hReg, BCHP_V3D_PTB_BPCS)));
 
@@ -1002,7 +1012,7 @@ static void BV3D_P_IssueRender(
            psInstruction->psJob->sTimelineData.sRenderStart.uiSecs == 0)
          BV3D_P_GetTimeNow(&psInstruction->psJob->sTimelineData.sRenderStart);
 
-      BDBG_MSG(("Render start = 0x%x, end = 0x%x", psInstruction->uiArg1, psInstruction->uiArg2));
+      BDBG_MSG(("Render start = 0x%x, end = 0x%x", psInstruction->uiArg1, (uint32_t)psInstruction->uiArg2));
 
       BREG_Write32(hV3d->hReg, BCHP_V3D_CLE_CT1CA, psInstruction->uiArg1);
       BREG_Write32(hV3d->hReg, BCHP_V3D_CLE_CT1EA, psInstruction->uiArg2);
@@ -1230,7 +1240,9 @@ static void BV3D_P_IssueInstr(
                      {
                         BV3D_P_IQSetWaiting(hIQ, true);
 
-                        BDBG_MSG(("Issuing SYNC CALLBACK(p=%d) to client %d", psInstruction->uiCallbackParam, psInstruction->psJob->uiClientId));
+                        BDBG_MSG(("Issuing SYNC CALLBACK(p="BDBG_UINT64_FMT") to client %d",
+                           BDBG_UINT64_ARG(psInstruction->uiCallbackParam),
+                           psInstruction->psJob->uiClientId));
 
                         BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->uiCallbackParam,
                                                 psInstruction->psJob->uiSequence, true);
@@ -1257,7 +1269,9 @@ static void BV3D_P_IssueInstr(
                               BV3D_P_BinMemDebugDump(hV3d->hBinMemManager);
                         }*/
 
-                        BDBG_MSG(("Issuing WAIT CALLBACK(p=%d) to client %d", psInstruction->uiCallbackParam, psInstruction->psJob->uiClientId));
+                        BDBG_MSG(("Issuing WAIT CALLBACK(p="BDBG_UINT64_FMT") to client %d",
+                           BDBG_UINT64_ARG(psInstruction->uiCallbackParam),
+                           psInstruction->psJob->uiClientId));
 
                         BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->uiCallbackParam,
                                                 psInstruction->psJob->uiSequence, false);
@@ -1281,7 +1295,9 @@ static void BV3D_P_IssueInstr(
                      void *p;
                      /* The renderer is idle, or working for another client - so issue the notify
                         callback immediately */
-                     BDBG_MSG(("Issuing NOTIFY CALLBACK(p=%d) to client %d", psInstruction->uiCallbackParam, psInstruction->psJob->uiClientId));
+                     BDBG_MSG(("Issuing NOTIFY CALLBACK(p="BDBG_UINT64_FMT") to client %d",
+                        BDBG_UINT64_ARG(psInstruction->uiCallbackParam),
+                        psInstruction->psJob->uiClientId));
 
                      /* signal the fence if provided (probably Android only) */
                      p = (void *)((uintptr_t)psInstruction->uiArg2);
@@ -1315,7 +1331,7 @@ static void BV3D_P_IssueInstr(
 
                case BV3D_Operation_eFenceInstr:
                   {
-                     void *pWaitData = (void *)((uintptr_t)psInstruction->uiArg1);
+                     void *pWaitData = (void *)((uintptr_t)psInstruction->uiArg2);
                      bool bSignalled = false;
 
                      bSignalled = BV3D_P_FenceIsSignalled(hV3d->hFences, pWaitData);

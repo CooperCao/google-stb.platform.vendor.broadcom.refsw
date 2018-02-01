@@ -85,6 +85,9 @@ typedef enum SAGE_IMAGE_FirmwareID
     SAGE_IMAGE_FirmwareID_eSage_TA_SECURE_LOG_Development, /* Development (ZS) chip compatible Secure_log TA */
     SAGE_IMAGE_FirmwareID_eSage_TA_SECURE_LOG,             /* Production (ZB or customer specific) chip compatible Secure_log TA */
     SAGE_IMAGE_FirmwareID_eSage_SECURE_LOG_Certificate,    /* certificate used to enable logging in Secure_log TA */
+    SAGE_IMAGE_FirmwareID_eSage_SECURE_LOG_Certificate1,   /* all certificate(certificate, certificate1,certificate2) can enable secure log,*/
+    SAGE_IMAGE_FirmwareID_eSage_SECURE_LOG_Certificate2,   /* each correspond to its own log buffer, log buffers can be TA's private buffer,*/
+                                                           /* or BRCM common buffer, they can work together, or individually */
     /* Add additional image IDs ABOVE this line */
     SAGE_IMAGE_FirmwareID_Max
 } SAGE_IMAGE_FirmwareID;

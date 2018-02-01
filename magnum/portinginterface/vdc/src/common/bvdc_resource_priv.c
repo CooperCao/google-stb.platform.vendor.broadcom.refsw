@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -792,6 +792,9 @@ static BERR_Code  BVDC_P_Resource_Acquire_isr
 /***************************************************************************
  *
  */
+/* Hush static analysis warnings.  May need to add more conditions or remove
+ * if it is being used more widely. */
+#if (BVDC_P_SUPPORT_STG)
 BERR_Code  BVDC_P_Resource_Reserve_isr
     ( BVDC_P_ResourceEntry             *p1stEntry,
       BVDC_P_ResourceType               eType,
@@ -830,8 +833,8 @@ BERR_Code  BVDC_P_Resource_Reserve_isr
         *pulHwId = pEntry->Id.ulHwId;
 
     return BERR_SUCCESS;
-
 }
+#endif /* BVDC_P_SUPPORT_STG */
 
 /***************************************************************************
  * {private}

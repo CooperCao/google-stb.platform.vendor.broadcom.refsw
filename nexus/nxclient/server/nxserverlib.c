@@ -40,6 +40,9 @@
  *****************************************************************************/
 #include "nxserverlib_impl.h"
 #include "nexus_display_vbi.h"
+#if NEXUS_HAS_DISPLAY
+#include "nexus_display_private.h"
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -83,7 +86,6 @@ static void nxserverlib_p_init_hdmi_drm(struct b_session * session);
 static void nxserver_check_hdcp(struct b_session *session);
 #endif
 
-static NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_session *session, const NxClient_DisplaySettings *pSettings);
 static NEXUS_Error bserver_set_standby_settings(nxserver_t server, const NxClient_StandbySettings *pSettings);
 static void nxserver_p_set_sd_outputs(struct b_session *session, const NxClient_DisplaySettings *pSettings);
 
@@ -161,6 +163,7 @@ nxclient_t NxClient_P_CreateClient(nxserver_t server, const NxClient_JoinSetting
     client->pid = pid;
     client->joinSettings = *pJoinSettings;
     client->joinSettings.name[sizeof(client->joinSettings.name)-1]='\0';
+    client->connect_settings.allow_grab = true;
     BLST_D_INSERT_HEAD(&client->session->clients, client, session_link);
 
     /* if pid 0, this is a local connection */
@@ -197,7 +200,7 @@ nxclient_t NxClient_P_CreateClient(nxserver_t server, const NxClient_JoinSetting
 
         BKNI_Memcpy(client->clientSettings.configuration.heap, server->settings.client.heap, sizeof(client->clientSettings.configuration.heap));
         if (server->settings.client.connect) {
-            rc = server->settings.client.connect(client, &client->joinSettings, &client->clientSettings);
+            rc = server->settings.client.connect(client, &client->joinSettings, &client->clientSettings, &client->connect_settings);
             if (rc) {
                 BDBG_WRN(("client connection refused by server: %d", rc));
                 goto error;
@@ -686,7 +689,7 @@ void NxClient_P_Free(nxclient_t client, const NxClient_AllocResults *pResults)
     }
 }
 
-unsigned get_videodecoder_connect_id(const NxClient_ConnectSettings *pSettings, unsigned i) { return pSettings->simpleVideoDecoder[i].id; }
+unsigned get_videodecoder_connect_id(const NxClient_ConnectSettings *pSettings, unsigned i) { return pSettings->simpleVideoDecoder[i].id == NXCLIENT_CONNECT_BACKEND_MOSAIC ? 0 : pSettings->simpleVideoDecoder[i].id; }
 unsigned get_audiodecoder_connect_id(const NxClient_ConnectSettings *pSettings, unsigned i) { return i==0?pSettings->simpleAudioDecoder.id:0; }
 unsigned get_audioplayback_connect_id(const NxClient_ConnectSettings *pSettings, unsigned i) { return pSettings->simpleAudioPlayback[i].id; }
 unsigned get_encoder_connect_id(const NxClient_ConnectSettings *pSettings, unsigned i) { return pSettings->simpleEncoder[i].id; }
@@ -744,9 +747,9 @@ static NEXUS_Error nxclient_get_surfaceclient_req(nxclient_t client, unsigned su
 }
 
 /* release resources from a connect */
-static void b_connect_release(nxclient_t client, struct b_connect *connect)
+void b_connect_release(nxclient_t client, struct b_connect *connect)
 {
-    struct b_connect *search_connect;
+    struct b_connect *search_connect=NULL;
     nxclient_t search_client;
 
     BDBG_OBJECT_ASSERT(connect, b_connect);
@@ -869,7 +872,7 @@ static int find_matching_reqs(struct b_connect *connect, const NxClient_ConnectS
 }
 
 /* acquires resources for a connect */
-static int b_connect_acquire(nxclient_t client, struct b_connect *connect)
+int b_connect_acquire(nxclient_t client, struct b_connect *connect)
 {
     int rc;
     bool transcode;
@@ -1865,6 +1868,7 @@ static int b_display_format_change(struct b_session *session, const NxClient_Dis
             pGraphicsSettings = &pDisplaySettings->slaveDisplay[i-1].graphicsSettings;
         }
         nxserver_p_apply_graphics_settings(&surface_compositor_settings.display[i].graphicsSettings, pGraphicsSettings);
+        surface_compositor_settings.display[i].enabled = pGraphicsSettings->enabled;
         surface_compositor_settings.display[i].framebuffer.heap = nxserver_p_framebuffer_heap(session, i, pDisplaySettings->secure);
     }
     surface_compositor_settings.allowCompositionBypass = session->server->settings.allowCompositionBypass;
@@ -2019,6 +2023,7 @@ static void nxserver_check_hdcp(struct b_session *session)
     NEXUS_HdmiOutputHdcpStatus hdcpStatus;
     enum nxserver_hdcp_state curr_version_state = session->hdcp.version_state;
 
+
     if (!session->nxclient.displaySettings.hdmiPreferences.enabled) return;
     if (!session->hdmiOutput) return;
 
@@ -2039,6 +2044,7 @@ static void nxserver_check_hdcp(struct b_session *session)
     }
     session->hdcp.level = curr_hdcp_level;
 
+
     /* Skip, if no hdmi receiver available */
     rc = NEXUS_HdmiOutput_GetStatus(session->hdmiOutput, &hdmiStatus);
     if (rc) { BERR_TRACE(rc); goto done; }
@@ -2047,6 +2053,7 @@ static void nxserver_check_hdcp(struct b_session *session)
         if (repeaterClient) {
             repeaterClient->hdcp_level = NxClient_HdcpLevel_eNone;
         }
+
         if (session->hdcp.version_state != nxserver_hdcp_not_pending) {
             session->callbackStatus.hdmiOutputHdcpChanged++;
             session->hdcp.version_state = nxserver_hdcp_not_pending;
@@ -2054,14 +2061,26 @@ static void nxserver_check_hdcp(struct b_session *session)
         goto done;
     }
 
+    rc = NEXUS_HdmiOutput_GetHdcpStatus(hdmiOutput, &hdcpStatus);
+    if (rc) {
+        BERR_TRACE(rc);
+        BKNI_Memset(&hdcpStatus, 0, sizeof(hdcpStatus));
+        hdcpStatus.hdcpState = NEXUS_HdmiOutputHdcpState_eUnauthenticated;
+        hdcpStatus.hdcpError = NEXUS_HdmiOutputHdcpError_eMax; /* unknown, but non-zero */
+    }
+
+
     /* Skip, if no hdcp authentication is desired */
     if (curr_hdcp_level == NxClient_HdcpLevel_eNone) {
         BDBG_MSG(("curr_hdcp_level == NxClient_HdcpLevel_eNone, disable hdcp authentication"));
-        rc = NEXUS_HdmiOutput_DisableHdcpAuthentication(hdmiOutput);
-        if (rc) BDBG_ERR(("NEXUS_HdmiOutput_DisableHdcpAuthentication failed: %d", rc));
-        if (session->hdcp.version_state != nxserver_hdcp_not_pending) {
-            session->callbackStatus.hdmiOutputHdcpChanged++;
-            session->hdcp.version_state = nxserver_hdcp_not_pending;
+        if (is_hdcp_start_complete(&hdcpStatus))
+        {
+            rc = NEXUS_HdmiOutput_DisableHdcpAuthentication(hdmiOutput);
+            if (rc) BDBG_ERR(("NEXUS_HdmiOutput_DisableHdcpAuthentication failed: %d", rc));
+            if (session->hdcp.version_state != nxserver_hdcp_not_pending) {
+                session->callbackStatus.hdmiOutputHdcpChanged++;
+                session->hdcp.version_state = nxserver_hdcp_not_pending;
+            }
         }
         goto done;
     }
@@ -2087,13 +2106,6 @@ static void nxserver_check_hdcp(struct b_session *session)
         session->hdcp.downstream_version = NEXUS_HdmiOutputHdcpVersion_eAuto;
     }
 
-    rc = NEXUS_HdmiOutput_GetHdcpStatus(hdmiOutput, &hdcpStatus);
-    if (rc) {
-        BERR_TRACE(rc);
-        BKNI_Memset(&hdcpStatus, 0, sizeof(hdcpStatus));
-        hdcpStatus.hdcpState = NEXUS_HdmiOutputHdcpState_eUnauthenticated;
-        hdcpStatus.hdcpError = NEXUS_HdmiOutputHdcpError_eMax; /* unknown, but non-zero */
-    }
 
     if ((session->hdcp.version_state == nxserver_hdcp_success) && (!is_hdcp_start_complete(&hdcpStatus))) {
         session->hdcp.version_state = nxserver_hdcp_begin;
@@ -2178,17 +2190,10 @@ static void nxserver_check_hdcp(struct b_session *session)
     case nxserver_hdcp_pending_start:
     case nxserver_hdcp_pending_start_retry:
         if (!is_hdcp_start_complete(&hdcpStatus)) {
-            if (repeaterClient) {
-                BDBG_WRN(("nxserver_check_hdcp: authentication failed in repeater mode. no auto-restart."));
-                repeaterClient->hdcp_level = NxClient_HdcpLevel_eNone;
-                session->hdcp.version_state = nxserver_hdcp_not_pending;
-            }
-            else {
-                initializeHdmiOutputHdcpSettings(session, curr_version_select);
-                rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
-                if (rc) BDBG_ERR(("nxserver_check_hdcp: %s: NEXUS_HdmiOutput_StartHdcpAuthentication failed: %d", g_nxserver_hdcp_str[curr_version_state], rc));
-                session->hdcp.version_state = nxserver_hdcp_pending_start_retry;
-            }
+            initializeHdmiOutputHdcpSettings(session, curr_version_select);
+            rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
+            if (rc) BDBG_ERR(("nxserver_check_hdcp: %s: NEXUS_HdmiOutput_StartHdcpAuthentication failed: %d", g_nxserver_hdcp_str[curr_version_state], rc));
+            session->hdcp.version_state = nxserver_hdcp_pending_start_retry;
             session->callbackStatus.hdmiOutputHdcpChanged++;
         }
         else {
@@ -2206,6 +2211,7 @@ static void nxserver_check_hdcp(struct b_session *session)
     }
 
 done:
+
     if (curr_version_state != session->hdcp.version_state) {
         BDBG_LOG(("nxserver_check_hdcp: *** (%s --> %s)", g_nxserver_hdcp_str[curr_version_state], g_nxserver_hdcp_str[session->hdcp.version_state]));
         if (session->hdcp.version_state == nxserver_hdcp_success) {
@@ -2236,6 +2242,14 @@ static void hotplug_callback_locked(void *pParam, int iParam)
     if (rc!=NEXUS_SUCCESS) {
         return;
     }
+
+    repeaterClient = session->hdmi.repeater.client;
+    if (repeaterClient)
+    {
+        repeaterClient->hdcp_level = NxClient_HdcpLevel_eNone;
+        session->hdcp.version_state = nxserver_hdcp_not_pending;
+    }
+
     if(status.connected) {
         NEXUS_HdmiOutput_GetEdidData(session->hdmiOutput, &edid);
 
@@ -2265,12 +2279,8 @@ static void hotplug_callback_locked(void *pParam, int iParam)
         }
     }
 
-    repeaterClient = session->hdmi.repeater.client;
-    if (repeaterClient) {
-        repeaterClient->hdcp_level = NxClient_HdcpLevel_eNone;
-    }
-
     nxserver_check_hdcp(session);
+
 }
 
 static void hotplug_callback(void *pParam, int iParam)
@@ -2314,6 +2324,23 @@ static void nxserver_p_acquire_release_all_resources(struct b_session *session, 
 }
 
 #if NEXUS_HAS_HDMI_OUTPUT
+static void display_hdr_info_changed(void * context, int param)
+{
+    struct b_session * session = context;
+    NEXUS_DisplayPrivateStatus status;
+
+    BSTD_UNUSED(param);
+
+    BKNI_AcquireMutex(session->server->settings.lock);
+    NEXUS_Display_GetPrivateStatus(session->display[0].display, &status);
+    BKNI_Memcpy(&session->hdmi.drm.input.metadata.typeSettings.type1.contentLightLevel, &status.infoFrame.metadata.typeSettings.type1.contentLightLevel, sizeof(session->hdmi.drm.input.metadata.typeSettings.type1.contentLightLevel));
+    BKNI_Memcpy(&session->hdmi.drm.input.metadata.typeSettings.type1.masteringDisplayColorVolume, &status.infoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume, sizeof(session->hdmi.drm.input.metadata.typeSettings.type1.masteringDisplayColorVolume));
+    session->hdmi.drm.smdValid = true;
+    session->hdmi.drm.dynamicMetadataType = status.infoFrame.metadata.type;
+    nxserverlib_p_apply_hdmi_drm(session, NULL, false);
+    BKNI_ReleaseMutex(session->server->settings.lock);
+}
+
 static void nxserver_hdcp_mute(struct b_session *session)
 {
     int rc;
@@ -2342,7 +2369,6 @@ static void nxserver_hdcp_mute(struct b_session *session)
 static void hdmiOutputHdcpStateChanged(void *pContext, int param)
 {
     struct b_session *session = pContext;
-    nxclient_t repeaterClient;
     nxserver_t server = session->server;
 
     BSTD_UNUSED(param);
@@ -2350,31 +2376,6 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
     BKNI_AcquireMutex(server->settings.lock);
     if (!session->hdmiOutput) goto done;
     if (!session->hdcp.level) goto done;
-
-    repeaterClient = session->hdmi.repeater.client;
-    if (repeaterClient)
-    {
-#if NEXUS_HAS_HDMI_INPUT
-        /* check the authentication state and process accordingly */
-        NEXUS_HdmiInputHdcpStatus hdmiInputHdcpStatus;
-        NEXUS_HdmiInput_HdcpGetStatus(session->hdmiInput, &hdmiInputHdcpStatus) ;
-
-        BDBG_MSG(("%s: RxHDCP version[%d], state [%d]", BSTD_FUNCTION, hdmiInputHdcpStatus.version, hdmiInputHdcpStatus.hdcpState));
-
-        if ((hdmiInputHdcpStatus.hdcpState != NEXUS_HdmiInputHdcpState_eAuthenticated)
-        && (hdmiInputHdcpStatus.hdcpState != NEXUS_HdmiInputHdcpState_eRepeaterAuthenticated))
-        {
-            /****
-            * In repeater mode:
-            *      Not yet authenticated with upstream
-            *      Do not start authentication with downstream if in repeater mode
-            *****/
-            BDBG_MSG(("%s: HDCP2.2 Authentication status with upstream transmitter: UNAUTHENTICATED. Wait for client app to start downstream authentication", BSTD_FUNCTION));
-            repeaterClient->hdcp_level = NxClient_HdcpLevel_eNone;
-        }
-#endif
-    }
-
 
     nxserver_check_hdcp(session);
 done:
@@ -2572,6 +2573,7 @@ static NEXUS_Error nxserver_set_hdmi_input_repeater(nxclient_t client, NEXUS_Hdm
 {
     struct b_session *session = client->session;
     NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_HdmiOutputHdcpStatus hdcpStatus;
     if (!session->hdmiOutput) {
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
@@ -2583,9 +2585,24 @@ static NEXUS_Error nxserver_set_hdmi_input_repeater(nxclient_t client, NEXUS_Hdm
     BSTD_UNUSED(hdmiInput);
     return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 #endif
-    client->hdcp_level = NxClient_HdcpLevel_eMandatory;
-    session->hdcp.version_state = nxserver_hdcp_not_pending;
-    nxserver_check_hdcp(session);
+
+    /* Start downstream authentication if not yet authenticated */
+    if (client)
+    {
+        rc = NEXUS_HdmiOutput_GetHdcpStatus(session->hdmiOutput, &hdcpStatus);
+        if (rc) {
+            BERR_TRACE(rc);
+            BKNI_Memset(&hdcpStatus, 0, sizeof(hdcpStatus));
+            hdcpStatus.hdcpState = NEXUS_HdmiOutputHdcpState_eUnauthenticated;
+            hdcpStatus.hdcpError = NEXUS_HdmiOutputHdcpError_eMax; /* unknown, but non-zero */
+        }
+
+        if (!is_hdcp_start_complete(&hdcpStatus)) {
+            client->hdcp_level = NxClient_HdcpLevel_eMandatory;
+            session->hdcp.version_state = nxserver_hdcp_not_pending;
+            nxserver_check_hdcp(session);
+        }
+    }
     return rc;
 }
 
@@ -2616,10 +2633,6 @@ static void initializeHdmiOutputHdcpSettings(struct b_session *session, NxClient
         BKNI_Memset(&hdmiOutputHdcpSettings.encryptedKeySet, 0, sizeof(hdmiOutputHdcpSettings.encryptedKeySet));
     }
 
-    hdmiOutputHdcpSettings.successCallback.callback = hdmiOutputHdcpStateChanged;
-    hdmiOutputHdcpSettings.successCallback.context = session;
-    hdmiOutputHdcpSettings.failureCallback.callback = hdmiOutputHdcpStateChanged;
-    hdmiOutputHdcpSettings.failureCallback.context = session;
     hdmiOutputHdcpSettings.stateChangedCallback.callback = hdmiOutputHdcpStateChanged;
     hdmiOutputHdcpSettings.stateChangedCallback.context = session;
     rc = NEXUS_HdmiOutput_SetHdcpSettings(session->hdmiOutput, &hdmiOutputHdcpSettings);
@@ -2651,6 +2664,7 @@ void nxserver_get_default_settings(struct nxserver_settings *settings)
     settings->display.display3DSettings.orientation = NEXUS_VideoOrientation_e2D;
     settings->display.format = NEXUS_VideoFormat_eUnknown; /* use HDMI preferred format, else 720p if supported, else SD */
     settings->display.graphicsSettings.alpha = 0xFF;
+    settings->display.graphicsSettings.enabled = true;
     settings->display.graphicsSettings.sourceBlendFactor = NEXUS_CompositorBlendFactor_eSourceAlpha;
     settings->display.graphicsSettings.destBlendFactor = NEXUS_CompositorBlendFactor_eInverseSourceAlpha;
     settings->display.graphicsSettings.constantAlpha = 0xFF;
@@ -2674,12 +2688,8 @@ void nxserver_get_default_settings(struct nxserver_settings *settings)
 #if NEXUS_NUM_VIDEO_ENCODERS
     settings->transcode = nxserver_transcode_on;
 #endif
-    settings->fbsize.width = 1280;
-#if NEXUS_HAS_GFD_VERTICAL_UPSCALE
-    settings->fbsize.height = 720;
-#else
+    settings->fbsize.width = 1920;
     settings->fbsize.height = 1080;
-#endif
     for (i=0;i<NXCLIENT_MAX_SESSIONS;i++) {
         if (i == 0) {
 /* For generic platforms which do not have BCG-like displays */
@@ -2715,6 +2725,7 @@ void nxserver_get_default_settings(struct nxserver_settings *settings)
     settings->standby_timeout = 10;
     /* for now, default to 0: settings->growHeapBlockSize = 8*1024*1024; */
     settings->grab = true;
+    settings->thermal.thermal_config_file = "nxclient/thermal.cfg";
 }
 
 bool nxserver_p_video_only_display(struct b_session *session, unsigned displayIndex)
@@ -2854,7 +2865,7 @@ static int init_session(nxserver_t server, unsigned index)
     session->audioSettings.spdif.transcodeCodec = NEXUS_AudioCodec_eAc3;
     session->audioSettings.rfm.outputMode = NxClient_AudioOutputMode_ePcm;
     session->audioSettings.rfm.transcodeCodec = NEXUS_AudioCodec_eMax;
-
+    NEXUS_AudioModule_GetLoudnessSettings(&session->audioSettings.loudnessSettings);
 
     if (server->settings.externalApp.enabled) {
         if (index != 0) {
@@ -2931,6 +2942,15 @@ static int init_session(nxserver_t server, unsigned index)
         NEXUS_VideoFormat_GetInfo(displaySettings.format, &session->display[session_display_index].formatInfo);
         session->numWindows = NEXUS_NUM_VIDEO_WINDOWS;
         session->window[0].capabilities.deinterlaced = true; /* for now, only one MAD for session 0 main */
+
+        {
+            NEXUS_DisplayPrivateSettings privateSettings;
+            NEXUS_Display_GetPrivateSettings(session->display[session_display_index].display, &privateSettings);
+            privateSettings.hdrInfoChanged.callback = display_hdr_info_changed;
+            privateSettings.hdrInfoChanged.context = session;
+            rc = NEXUS_Display_SetPrivateSettings(session->display[session_display_index].display, &privateSettings);
+            if (rc) { rc = BERR_TRACE(rc); goto error; }
+        }
 
 #if NEXUS_HAS_HDMI_OUTPUT
         if (session->hdmiOutput) {
@@ -3162,7 +3182,7 @@ after_display_open:
         }
     }
 
-    {
+    if (session->display[0].display) {
         /* copy settings already set, then allow NxClient_P_SetDisplaySettings to make changes */
         NxClient_DisplaySettings settings = session->server->settings.display;
         NEXUS_DisplaySettings displaySettings;
@@ -3363,6 +3383,13 @@ nxserver_t nxserverlib_init(const struct nxserver_settings *settings)
 
     NEXUS_Platform_GetStandbySettings(&server->standby.standbySettings.settings);
 
+    rc = nxserver_p_thermal_init(server);
+    if (rc == NEXUS_NOT_AVAILABLE) {
+        BDBG_WRN(("Thermal Monitoring is not supported on this platform"));
+    } else {
+        BDBG_ASSERT(!rc);
+    }
+
     g_server = server;
     return server;
 
@@ -3375,6 +3402,8 @@ void nxserverlib_uninit(nxserver_t server)
 {
     unsigned i;
     NxClient_StandbySettings standbySettings;
+
+    nxserver_p_thermal_uninit(server);
 
     /* Bring server out of standby so that uninit can complete */
     standbySettings.settings.mode = NEXUS_PlatformStandbyMode_eOn;
@@ -3672,7 +3701,7 @@ void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClie
     changed +=
         nxserverlib_p_apply_hdmi_drm_impl(
             session->hdmi.drm.selector.dolbyVision.outputMode,
-            session->hdmi.drm.inputValid,
+            false, /* never track input for DBV */
             sizeof(hdmiOutputSettings.dolbyVision.outputMode),
             &hdmiOutputSettings.dolbyVision.outputMode,
             &dolbyVisionInputMode,
@@ -3682,7 +3711,7 @@ void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClie
     changed +=
         nxserverlib_p_apply_hdmi_drm_impl(
             session->hdmi.drm.selector.dolbyVision.priorityMode,
-            session->hdmi.drm.inputValid,
+            false, /* never track input for DBV */
             sizeof(hdmiOutputSettings.dolbyVision.priorityMode),
             &hdmiOutputSettings.dolbyVision.priorityMode,
             &session->hdmi.drm.dolbyVision.priorityMode,
@@ -3693,7 +3722,7 @@ void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClie
     changed +=
         nxserverlib_p_apply_hdmi_drm_impl(
             session->hdmi.drm.selector.eotf,
-            session->hdmi.drm.inputValid,
+            session->hdmi.drm.eotfValid,
             sizeof(pOutputInfoFrame->eotf),
             &pOutputInfoFrame->eotf,
             &pInputInfoFrame->eotf,
@@ -3703,7 +3732,7 @@ void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClie
     changed +=
         nxserverlib_p_apply_hdmi_drm_impl(
             session->hdmi.drm.selector.mdcv.primaries.red,
-            session->hdmi.drm.inputValid,
+            session->hdmi.drm.smdValid,
             sizeof(pOutputMdcv->redPrimary),
             &pOutputMdcv->redPrimary,
             &pInputMdcv->redPrimary,
@@ -3713,7 +3742,7 @@ void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClie
     changed +=
         nxserverlib_p_apply_hdmi_drm_impl(
             session->hdmi.drm.selector.mdcv.primaries.green,
-            session->hdmi.drm.inputValid,
+            session->hdmi.drm.smdValid,
             sizeof(pOutputMdcv->greenPrimary),
             &pOutputMdcv->greenPrimary,
             &pInputMdcv->greenPrimary,
@@ -3723,7 +3752,7 @@ void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClie
     changed +=
         nxserverlib_p_apply_hdmi_drm_impl(
             session->hdmi.drm.selector.mdcv.primaries.blue,
-            session->hdmi.drm.inputValid,
+            session->hdmi.drm.smdValid,
             sizeof(pOutputMdcv->bluePrimary),
             &pOutputMdcv->bluePrimary,
             &pInputMdcv->bluePrimary,
@@ -3733,7 +3762,7 @@ void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClie
     changed +=
         nxserverlib_p_apply_hdmi_drm_impl(
             session->hdmi.drm.selector.mdcv.whitePoint,
-            session->hdmi.drm.inputValid,
+            session->hdmi.drm.smdValid,
             sizeof(pOutputMdcv->whitePoint),
             &pOutputMdcv->whitePoint,
             &pInputMdcv->whitePoint,
@@ -3743,7 +3772,7 @@ void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClie
     changed +=
         nxserverlib_p_apply_hdmi_drm_impl(
             session->hdmi.drm.selector.mdcv.luminance.max,
-            session->hdmi.drm.inputValid,
+            session->hdmi.drm.smdValid,
             sizeof(pOutputMdcv->luminance.max),
             &pOutputMdcv->luminance.max,
             &pInputMdcv->luminance.max,
@@ -3753,7 +3782,7 @@ void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClie
     changed +=
         nxserverlib_p_apply_hdmi_drm_impl(
             session->hdmi.drm.selector.mdcv.luminance.min,
-            session->hdmi.drm.inputValid,
+            session->hdmi.drm.smdValid,
             sizeof(pOutputMdcv->luminance.min),
             &pOutputMdcv->luminance.min,
             &pInputMdcv->luminance.min,
@@ -3763,7 +3792,7 @@ void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClie
     changed +=
         nxserverlib_p_apply_hdmi_drm_impl(
             session->hdmi.drm.selector.cll.max,
-            session->hdmi.drm.inputValid,
+            session->hdmi.drm.smdValid,
             sizeof(pOutputCll->max),
             &pOutputCll->max,
             &pInputCll->max,
@@ -3773,7 +3802,7 @@ void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClie
     changed +=
         nxserverlib_p_apply_hdmi_drm_impl(
             session->hdmi.drm.selector.cll.maxFrameAverage,
-            session->hdmi.drm.inputValid,
+            session->hdmi.drm.smdValid,
             sizeof(pOutputCll->maxFrameAverage),
             &pOutputCll->maxFrameAverage,
             &pInputCll->maxFrameAverage,
@@ -3922,7 +3951,7 @@ static NEXUS_Error nxserver_p_wait_for_inactive(struct b_session *session)
     return BERR_TRACE(NEXUS_NOT_AVAILABLE);
 }
 
-static NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_session *session, const NxClient_DisplaySettings *pSettings)
+NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_session *session, const NxClient_DisplaySettings *pSettings)
 {
     NEXUS_SurfaceCompositorSettings surface_compositor_settings;
     int rc;
@@ -3991,6 +4020,10 @@ static NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, st
                 pGraphicsSettings = &pSettings->slaveDisplay[i-1].graphicsSettings;
             }
             if (nxserver_p_apply_graphics_settings(&surface_compositor_settings.display[i].graphicsSettings, pGraphicsSettings)) {
+                change = true;
+            }
+            if( surface_compositor_settings.display[i].enabled != pGraphicsSettings->enabled) {
+                surface_compositor_settings.display[i].enabled = pGraphicsSettings->enabled;
                 change = true;
             }
         }
@@ -4473,6 +4506,37 @@ static bool nxserver_p_is_any_delay_change(struct b_session *session, const NxCl
 
     return false;
 }
+
+static bool nxserver_p_is_audio_presentation_change(const NxClient_AudioOutputSettings *pOldOutputSettings, const NxClient_AudioOutputSettings *pNewOutputSettings)
+{
+    return pOldOutputSettings->presentation != pNewOutputSettings->presentation;
+}
+
+static bool nxserver_p_is_any_audio_presentation_change(struct b_session *session, const NxClient_AudioSettings *pSettings)
+{
+    if (session->server->settings.audioOutputs.dacEnabled[0] &&
+        nxserver_p_is_audio_presentation_change(&session->audioSettings.dac, &pSettings->dac)) {
+        return true;
+    }
+
+    if (session->server->settings.audioOutputs.i2sEnabled[0]) {
+        if (nxserverlib_p_audio_i2s0_shares_with_dac(session) == true &&
+            nxserver_p_is_audio_presentation_change(&session->audioSettings.dac, &pSettings->dac)) {
+            return true;
+        }
+        else if (nxserverlib_p_audio_i2s0_shares_with_dac(session) == false &&
+            nxserver_p_is_audio_presentation_change(&session->audioSettings.i2s[0], &pSettings->i2s[0])) {
+            return true;
+        }
+    }
+
+    if (session->server->settings.audioOutputs.i2sEnabled[1] &&
+        nxserver_p_is_audio_presentation_change(&session->audioSettings.i2s[1], &pSettings->i2s[1])) {
+        return true;
+    }
+    /* Currently only supports DAC and I2S  outputs*/
+    return false;
+}
 #endif
 
 static NEXUS_Error NxClient_P_SetSessionAudioSettings(struct b_session *session, const NxClient_AudioSettings *pSettings)
@@ -4579,11 +4643,25 @@ static NEXUS_Error NxClient_P_SetSessionAudioSettings(struct b_session *session,
     }
 #endif
     if (nxserver_p_is_any_mode_change(session, pSettings) ||
-        nxserver_p_is_any_equalizer_change(session, pSettings)) {
+        nxserver_p_is_any_equalizer_change(session, pSettings) ||
+        nxserver_p_is_any_audio_presentation_change(session, pSettings)) {
         reconfig_audio = true;
     }
     else if (nxserver_p_is_any_delay_change(session, pSettings)) {
         restart = true;
+    }
+
+    if (BKNI_Memcmp(&session->audioSettings.loudnessSettings, &pSettings->loudnessSettings, sizeof(pSettings->loudnessSettings)) != 0) {
+        NEXUS_AudioLoudnessSettings loudnessSettings;
+        NEXUS_AudioModule_GetLoudnessSettings(&loudnessSettings);
+        BKNI_Memcpy(&loudnessSettings, &pSettings->loudnessSettings, sizeof(pSettings->loudnessSettings));
+        rc = NEXUS_AudioModule_SetLoudnessSettings(&loudnessSettings);
+        if (rc) {return BERR_TRACE(rc);}
+
+        /* If a full reconfigure is not required at least restart */
+        if (!reconfig_audio) {
+            restart = true;
+        }
     }
 
     if (pSettings != &session->audioSettings) {
@@ -4750,8 +4828,6 @@ static void standby_thread(void *context)
                     if (rc) rc = BERR_TRACE(rc);
 
                     NEXUS_HdmiOutput_GetHdcpSettings(session->hdmiOutput,  &hdmiOutputHdcpSettings);
-                    hdmiOutputHdcpSettings.successCallback.callback = NULL;
-                    hdmiOutputHdcpSettings.failureCallback.callback = NULL;
                     hdmiOutputHdcpSettings.stateChangedCallback.callback = NULL;
                     rc = NEXUS_HdmiOutput_SetHdcpSettings(session->hdmiOutput, &hdmiOutputHdcpSettings);
                     if (rc) rc = BERR_TRACE(rc);
@@ -4858,10 +4934,6 @@ static NEXUS_Error bserver_set_standby_settings(nxserver_t server, const NxClien
                 NEXUS_HdmiOutputHdcpSettings hdmiOutputHdcpSettings;
 
                 NEXUS_HdmiOutput_GetHdcpSettings(session->hdmiOutput,  &hdmiOutputHdcpSettings);
-                hdmiOutputHdcpSettings.successCallback.callback = hdmiOutputHdcpStateChanged;
-                hdmiOutputHdcpSettings.successCallback.context = session;
-                hdmiOutputHdcpSettings.failureCallback.callback = hdmiOutputHdcpStateChanged;
-                hdmiOutputHdcpSettings.failureCallback.context = session;
                 hdmiOutputHdcpSettings.stateChangedCallback.callback = hdmiOutputHdcpStateChanged;
                 hdmiOutputHdcpSettings.stateChangedCallback.context = session;
                 rc = NEXUS_HdmiOutput_SetHdcpSettings(session->hdmiOutput, &hdmiOutputHdcpSettings);
@@ -5395,4 +5467,14 @@ int nxserver_parse_password_file(nxserver_t server, const char *filename)
     server->settings.client_mode = NEXUS_ClientMode_eUntrusted;
     server->settings.certificate = certificate;
     return NEXUS_SUCCESS;
+}
+
+bool nxserver_p_allow_grab(nxclient_t client)
+{
+    return client->server->settings.grab && client->connect_settings.allow_grab;
+}
+
+NEXUS_Error NxClient_P_GetThermalStatus(nxclient_t client, NxClient_ThermalStatus *pStatus)
+{
+    return nxserver_get_thermal_status(client, pStatus);
 }

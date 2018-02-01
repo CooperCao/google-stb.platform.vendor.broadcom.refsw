@@ -5327,7 +5327,7 @@ wlc_phy_txpwr_apply_srom13_2g_bw2040(phy_info_t *pi, chanspec_t chanspec,
 		        tmp_max_pwr, &mcs20_offset_2g);
 
 		wlc_phy_txpwr_srom13_ext_1024qam_convert_mcs_2g(sr13->pp1024qam2g,
-		        chanspec, tmp_max_pwr, &mcs20_offset_2g);
+		        (chanspec & ~WL_CHANSPEC_BW_MASK) | WL_CHANSPEC_BW_20, tmp_max_pwr, &mcs20_offset_2g);
 		/* No shift needed for 2g bw20 ppr mcsexp */
 		wlc_phy_txpwr_ppr_bit_ext_srom13_mcs8to11(pi, &mcs20_offset_2g, 0);
 
@@ -5610,7 +5610,7 @@ wlc_phy_txpwr_apply_srom13(phy_info_t *pi, uint8 band, chanspec_t chanspec,
 			nibbles, tmp_max_pwr, &rate5g.mcs20_offset_5g);
 
 		wlc_phy_txpwr_srom13_ext_1024qam_convert_mcs_5g(sr13->pp1024qam5g[band5g],
-			chanspec, tmp_max_pwr, &rate5g.mcs20_offset_5g);
+			(chanspec & ~WL_CHANSPEC_BW_MASK) | WL_CHANSPEC_BW_20, tmp_max_pwr, &rate5g.mcs20_offset_5g);
 		/* shift band5g + 1 for 5g bw20 ppr mcsexp */
 		wlc_phy_txpwr_ppr_bit_ext_srom13_mcs8to11(pi, &rate5g.mcs20_offset_5g, band5g + 1);
 
@@ -5630,7 +5630,7 @@ wlc_phy_txpwr_apply_srom13(phy_info_t *pi, uint8 band, chanspec_t chanspec,
 				nibbles, tmp_max_pwr, &rate5g.mcs40_offset_5g);
 
 			wlc_phy_txpwr_srom13_ext_1024qam_convert_mcs_5g(sr13->pp1024qam5g[band5g],
-				chanspec, tmp_max_pwr, &rate5g.mcs40_offset_5g);
+				(chanspec & ~WL_CHANSPEC_BW_MASK) | WL_CHANSPEC_BW_40, tmp_max_pwr, &rate5g.mcs40_offset_5g);
 			/* shift band5g + 9 for 5g bw40 ppr mcsexp */
 			wlc_phy_txpwr_ppr_bit_ext_srom13_mcs8to11(pi, &rate5g.mcs40_offset_5g,
 				band5g + 9);

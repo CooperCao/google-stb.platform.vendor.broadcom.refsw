@@ -65,6 +65,7 @@ class CThumb;
 class CSimpleVideoDecode;
 class CAudioDecode;
 class CSimpleAudioDecode;
+class CSimplePcmPlayback;
 class CIrRemote;
 class CPlayback;
 class CRecord;
@@ -140,6 +141,9 @@ public:
     void                                 addSimpleAudioDecode(CSimpleAudioDecode * pSimpleAudioDecode, eWindowType windowType = eWindowType_Main ) { _pSimpleAudioDecode[windowType] = pSimpleAudioDecode; }
     void                                 removeSimpleAudioDecode(eWindowType windowType = eWindowType_Main) { _pSimpleAudioDecode[windowType] = NULL; }
     CSimpleAudioDecode *                 getSimpleAudioDecode(eWindowType windowType = eWindowType_Max) { return((eWindowType_Max == windowType) ? _pSimpleAudioDecode[_fullScreenWindowType] : _pSimpleAudioDecode[windowType]); }
+    void                                 addSimplePcmPlayback(CSimplePcmPlayback * pSimplePcmPlayback) { _pSimplePcmPlayback = pSimplePcmPlayback; }
+    void                                 removeSimplePcmPlayback(void) { _pSimplePcmPlayback = NULL; }
+    CSimplePcmPlayback *                 getSimplePcmPlayback(void) { return(_pSimplePcmPlayback); }
     void                                 swapDecodeVideoWindows(void);
     void                                 swapSimpleAudioDecode(void);
     void                                 addAudioOutput(COutput * pAudioOutput);
@@ -297,6 +301,7 @@ protected:
     eMode                                _mode[eWindowType_Max];
     CSimpleVideoDecode *                 _pSimpleVideoDecode[eWindowType_Max];
     CSimpleAudioDecode *                 _pSimpleAudioDecode[eWindowType_Max];
+    CSimplePcmPlayback *                 _pSimplePcmPlayback;
     CStc *                               _pStc[eWindowType_Max];
     CChannel *                           _currentChannel[eWindowType_Max];
     CChannel *                           _channelTuneInProgress[eWindowType_Max];

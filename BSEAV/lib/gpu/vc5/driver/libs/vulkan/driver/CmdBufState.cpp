@@ -10,7 +10,7 @@
 #include "CommandBuffer.h"
 #include "Framebuffer.h"
 #include "Command.h"
-#include "DerivedViewportState.h"
+#include "Viewport.h"
 #include <cassert>
 #include <algorithm>
 
@@ -100,20 +100,20 @@ VkDeviceSize CmdBufState::VertexBufferBinding::GetBufferSize() const
 
 bool CmdBufState::VertexBufferBinding::CalcMaxIndex(uint32_t &maxIndex,
             const VkVertexInputAttributeDescription &attDesc,
-            const VkVertexInputBindingDescription &bindDesc) const
+            uint32_t stride) const
 {
    uint32_t offset = static_cast<uint32_t>(m_offset + attDesc.offset);
-   uint32_t attribSize = Formats::NumBytes(attDesc.format);
+   uint32_t attribSize = gfx_lfmt_bytes_per_block(Formats::GetLFMT(attDesc.format));
 
    // not enough data for one vertex
    if (attribSize > m_buffer->Size() || offset > (m_buffer->Size() - attribSize))
       return false;
 
    // Any index is valid with a stride of zero
-   if (bindDesc.stride == 0)
+   if (stride == 0)
       maxIndex = std::numeric_limits<uint32_t>::max();
    else
-      maxIndex = static_cast<uint32_t>((m_buffer->Size() - offset - attribSize) / bindDesc.stride);
+      maxIndex = static_cast<uint32_t>((m_buffer->Size() - offset - attribSize) / stride);
    return true;
 }
 
@@ -218,82 +218,39 @@ void CmdBufState::SetStencilReference(VkStencilFaceFlags faceMask, uint32_t refe
    SetDirty(CmdBufState::eStencil);
 }
 
-void CmdBufState::BuildScissorAndViewportCL(
-   CommandBuffer     *cb,
-   const VkRect2D    *scissorRect,
-   const VkViewport  *viewport)
+void CmdBufState::BuildScissorCL(CommandBuffer *cb, const VkRect2D &scissorRect, const Viewport &vp)
 {
-   int scx = scissorRect->offset.x;
-   int scy = scissorRect->offset.y;
-   int scw = scissorRect->extent.width;
-   int sch = scissorRect->extent.height;
+   int scx = scissorRect.offset.x;
+   int scy = scissorRect.offset.y;
+   int scw = scissorRect.extent.width;
+   int sch = scissorRect.extent.height;
 
-   int vpx = std::lround(viewport->x);
-   int vpy = std::lround(viewport->y);
+   int x = std::max({ 0, vp.x, scx });
+   int y = std::max({ 0, vp.y, scy });
 
-   // The Vulkan spec says that the application should move the viewport origin to
-   // the bottom left if using a -ve viewport height. We need to undo that to do the
-   // correct thing.
-   if (viewport->height < 0.0f)
-      vpy = std::lround(viewport->y + viewport->height);
+   int xmax = std::min({ (int)V3D_MAX_CLIP_WIDTH, vp.x + vp.w, scx + scw });
+   int ymax = std::min({ (int)V3D_MAX_CLIP_WIDTH, vp.y + vp.h, scy + sch });
 
-   int vpw = std::lround(viewport->width);
-   int vph = abs(std::lround(viewport->height));   // Ensure +ve height is used here
-
-   float vpNear = viewport->minDepth;
-   float vpFar  = viewport->maxDepth;
-
-   // Calculate intermediate values
-   int x = std::max({ 0, vpx, scx });
-   int y = std::max({ 0, vpy, scy });
-
-   int xmax = std::min({ (int)V3D_MAX_CLIP_WIDTH, vpx + vpw, scx + scw });
-   int ymax = std::min({ (int)V3D_MAX_CLIP_WIDTH, vpy + vph, scy + sch });
-
-#if V3D_VER_AT_LEAST(4,1,34,0)
    if (x >= xmax || y >= ymax)
       v3d_cl_clip(cb->CLPtr(), 0, 0, 0, 0);
    else
       v3d_cl_clip(cb->CLPtr(), x, y, xmax - x, ymax - y);
-#else
-   if (cb->m_td->m_curRenderPassState.framebuffer == NULL)
-   {
-      // If we get here we are in a secondary command buffer where the framebuffer
-      // has not been given in the inheritance info. We can't write the clip record
-      // yet because we have to clamp to the framebuffer size.
-      // We need to break the control list at this point and insert a command in
-      // the command buffer to allow us to patch in the clip record later.
-      cb->SplitSecondaryControlList();
+}
 
-      auto clipObj = cb->NewObject<CmdSecondaryDeferredClipObj>(x, y, xmax, ymax);
-
-      // Add the deferred clip command into the command list. When recorded in a primary,
-      // this command will be converted into a real clip record that takes account of the
-      // framebuffer size.
-      cb->m_commandList.push_back(clipObj);
-   }
-   else
-   {
-      cb->InsertClampedClipRecord(x, y, xmax, ymax);
-   }
-#endif
-
-   DerivedViewportState derivedState(*viewport);
-
+void CmdBufState::BuildViewportCL(CommandBuffer *cb, const Viewport &vp)
+{
    v3d_cl_clipper_xy(cb->CLPtr(),
-      derivedState.internalScale[0],
-      derivedState.internalScale[1]);
+      vp.internalScale[0],
+      vp.internalScale[1]);
 
-   v3d_cl_viewport_offset_from_rect(cb->CLPtr(), vpx, vpy, vpw, vph);
+   v3d_cl_viewport_offset_from_rect(cb->CLPtr(), vp.x, vp.y, vp.w, vp.h);
 
    // Note : NDC space is 0->1 for Z in Vulkan
-   v3d_cl_clipper_z(cb->CLPtr(),
-      derivedState.internalDepthRangeDiff,
-      derivedState.internalZOffset);
+   v3d_cl_clipper_z(cb->CLPtr(), vp.depthDiff, vp.depthNear);
 
    v3d_cl_clipz(cb->CLPtr(),
-      std::min(vpNear, vpFar),
-      std::max(vpNear, vpFar));
+      std::min(vp.depthNear, vp.depthFar),
+      std::max(vp.depthNear, vp.depthFar));
 }
 
 void CmdBufState::BuildStencilCL(
@@ -319,20 +276,11 @@ void CmdBufState::BuildStateUpdateCL(CommandBuffer *cb)
                             m_curBoundPipelines[VK_PIPELINE_BIND_POINT_GRAPHICS]);
    assert(pipe != nullptr);
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
    if (m_dirtyBits.IsSet(eGraphicsPipeline))
-#else
-   if (m_dirtyBits.IsSet(eGraphicsPipeline) || m_dirtyBits.IsSet(eCullEverything))
-#endif
    {
       const uint8_t *setupCL;
       size_t size;
-#if V3D_VER_AT_LEAST(4,1,34,0)
       pipe->GetSetupCL(&setupCL, &size);
-#else
-      pipe->GetSetupCL(m_cullEverything, &setupCL, &size);
-      m_dirtyBits.Clear(eCullEverything);
-#endif
       uint8_t **clPtr = cb->CLPtr(size);
       memcpy(*clPtr, setupCL, size);
       *clPtr += size;
@@ -341,7 +289,10 @@ void CmdBufState::BuildStateUpdateCL(CommandBuffer *cb)
    }
 
    if (m_dirtyBits.IsSet(eViewport) || m_dirtyBits.IsSet(eScissor))
-      BuildScissorAndViewportCL(cb, &m_scissorRect, &m_viewport);
+      BuildScissorCL(cb, m_scissorRect, m_viewport);
+
+   if (m_dirtyBits.IsSet(eViewport))
+      BuildViewportCL(cb, m_viewport);
 
    // Line width
    if (m_dirtyBits.IsSet(eLineWidth))
@@ -351,9 +302,7 @@ void CmdBufState::BuildStateUpdateCL(CommandBuffer *cb)
    if (pipe->GetDepthBiasEnable() && m_dirtyBits.IsSet(eDepthBias))
    {
       v3d_cl_set_depth_offset(cb->CLPtr(), m_depthBiasSlopeFactor, m_depthBiasConstantFactor,
-#if V3D_VER_AT_LEAST(4,1,34,0)
                                            m_depthBiasClamp,
-#endif
                                            pipe->GetDepthBits());
    }
 

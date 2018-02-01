@@ -30,7 +30,7 @@ namespace bvk {
 // Flattens access chains
 //
 // Returns the pointer to the base of the composite (this will usually be a variable)
-// Puts the indexes into the accessChain list
+// Puts the indices into the accessChain list
 static const Node *UnrollAccessChains(const Node *pointer, spv::vector<const Node *> *accessChain)
 {
    assert(accessChain->size() == 0);
@@ -63,20 +63,20 @@ class SharedAccess
 public:
    SharedAccess() = delete;
    SharedAccess(const SharedAccess &) = delete;
-   SharedAccess(DflowBuilder &builder, SymbolHandle symbol, MemLayout *layout, SymbolType *type,
+   SharedAccess(DflowBuilder &builder, SymbolHandle symbol, MemLayout *layout, SymbolTypeHandle type,
                 const spv::vector<const Node *> &accessChain);
 
-   const Dflow &GetOffset() const { return m_offset; }
-   MemLayout   *GetLayout() const { return m_layout; }
-   SymbolType  *GetType()   const { return m_type;   }
+   const Dflow       &GetOffset() const { return m_offset; }
+   MemLayout        *GetLayout()  const { return m_layout; }
+   SymbolTypeHandle  GetType()    const { return m_type;   }
 
 private:
-   Dflow       m_offset;
-   MemLayout  *m_layout = nullptr;
-   SymbolType *m_type   = nullptr;
+   Dflow             m_offset;
+   MemLayout        *m_layout = nullptr;
+   SymbolTypeHandle  m_type;
 };
 
-SharedAccess::SharedAccess(DflowBuilder &builder, SymbolHandle symbol, MemLayout *layout, SymbolType *type, const spv::vector<const Node *> &accessChain)
+SharedAccess::SharedAccess(DflowBuilder &builder, SymbolHandle symbol, MemLayout *layout, SymbolTypeHandle type, const spv::vector<const Node *> &accessChain)
 {
    Dflow offset = Dflow::ConstantUInt(symbol.GetOffset());
 
@@ -89,10 +89,9 @@ SharedAccess::SharedAccess(DflowBuilder &builder, SymbolHandle symbol, MemLayout
       {
       case LAYOUT_PRIM_NONMATRIX:
       {
-         PrimitiveTypeIndex pti = type->u.primitive_type.index;
          offset = offset + index0 * Dflow::ConstantUInt(layout->u.prim_nonmatrix_layout.stride);
-         type   = primitiveTypeSubscriptTypes[pti];
          layout = glsl_mem_prim_nonmatrix_layout(4);
+         type   = type.IndexType();
          break;
       }
 
@@ -102,9 +101,7 @@ SharedAccess::SharedAccess(DflowBuilder &builder, SymbolHandle symbol, MemLayout
          assert(!layout->u.prim_matrix_layout.row_major);
          offset = offset + index0 * Dflow::ConstantUInt(layout->u.prim_matrix_layout.stride);
          layout = glsl_mem_prim_nonmatrix_layout(4);
-
-         PrimitiveTypeIndex pti = glsl_prim_matrix_type_subscript_vector(type->u.primitive_type.index, 1);
-         type = &primitiveTypes[pti];
+         type   = type.MatrixSubscriptVector(1);
          break;
       }
 
@@ -112,7 +109,7 @@ SharedAccess::SharedAccess(DflowBuilder &builder, SymbolHandle symbol, MemLayout
       {
          offset = offset + index0 * Dflow::ConstantUInt(layout->u.array_layout.stride);
          layout = layout->u.array_layout.member_layout;
-         type   = type->u.array_type.member_type;
+         type   = type.GetElementType();
          break;
       }
 
@@ -121,7 +118,7 @@ SharedAccess::SharedAccess(DflowBuilder &builder, SymbolHandle symbol, MemLayout
          uint32_t constIndex = index0.GetConstantInt(); // Must be a constant
          offset = offset + Dflow::ConstantUInt(layout->u.struct_layout.member_offsets[constIndex]);
          layout = &layout->u.struct_layout.member_layouts[constIndex];
-         type   = type->u.struct_type.member[constIndex].type;
+         type   = type.GetStructMemberType(constIndex);
          break;
       }
 
@@ -163,52 +160,76 @@ LoadScalars::LoadScalars(DflowBuilder &builder, BasicBlockHandle block, const No
 {
 }
 
-void LoadScalars::LoadVariable(const DflowScalars &scalars, const NodeType *rootType)
+DflowScalars LoadScalars::SelectScalarsForChain(const DflowScalars &scalars, const NodeType *resType,
+                                                const NodeType *rootType) const
 {
-   if (m_accessChain.size() == 0)
-   {
-      m_result = scalars;
-   }
-   else
-   {
-      if (m_builder.IsConstant(m_accessChain))
-      {
-         uint32_t offset     = ScalarOffsetStatic::Calculate(m_builder, rootType, m_accessChain);
-         uint32_t numScalars = m_builder.GetNumScalars(m_resultType);
-
-         // Slice out the bit we want
-         m_result = scalars.Slice(offset, numScalars);
-      }
-      else
-      {
-         m_result = ExtractDynamicScalars::Calculate(m_builder, scalars, rootType, m_accessChain);
-      }
-   }
-}
-
-void LoadScalars::LoadInputVariable(const DflowScalars &scalars, const NodeType *rootType)
-{
-   DflowScalars s = scalars;
-   for (unsigned i=0; i<s.Size(); i++)
-      s[i] = Dflow::InLoad(s[i]);
-
    if (m_builder.IsConstant(m_accessChain))
    {
       uint32_t offset     = ScalarOffsetStatic::Calculate(m_builder, rootType, m_accessChain);
-      uint32_t numScalars = m_builder.GetNumScalars(m_resultType);
+      uint32_t numScalars = m_builder.GetNumScalars(resType);
 
       // Slice out the bit we want
-      m_result = s.Slice(offset, numScalars);
+      return scalars.Slice(offset, numScalars);
    }
    else
+      return ExtractDynamicScalars::Calculate(m_builder, scalars, rootType, m_accessChain);
+}
+
+// Returns an enclosing type only if it is required for special indexing code
+const NodeType *LoadScalars::GetEnclosingType(const NodeType *rootType)
+{
+   if (m_accessChain.size() == 0)
+      return nullptr;
+
+   // Remove the last link of the access chain and find the type. Restore the chain afterwards
+   const Node *index = m_accessChain.back();
+   m_accessChain.pop_back();
+   const NodeType *enclosingType = TypeFind::FindType(m_builder, rootType, m_accessChain);
+   SymbolTypeHandle sType = m_builder.GetSymbolType(enclosingType);
+
+   bool ret = sType.GetFlavour() == SYMBOL_ARRAY_TYPE &&
+              sType.GetElementType().GetFlavour() == SYMBOL_PRIMITIVE_TYPE &&
+              glsl_prim_is_prim_comb_sampler_type(sType.GetElementType());
+
+   m_accessChain.push_back(index);
+   return ret ? enclosingType : nullptr;
+}
+
+void LoadScalars::LoadVariable(const DflowScalars &scalars, const NodeType *rootType)
+{
+   const NodeType *enclosingType = GetEnclosingType(rootType);
+   if (enclosingType)
    {
-      m_result = ExtractDynamicScalars::Calculate(m_builder, s, rootType, m_accessChain);
+      const Node *index = m_accessChain.back();
+      m_accessChain.pop_back();
+      SymbolTypeHandle sType = m_builder.GetSymbolType(enclosingType);
+      DflowScalars arrScalars = SelectScalarsForChain(scalars, enclosingType, rootType);
+
+      uint32_t count = sType.GetElementCount();
+      uint32_t ix = 0;
+      if (m_builder.ConstantInt(index, &ix))
+         m_result = arrScalars.Swizzle(ix, count + ix);
+      else
+      {
+         m_result = arrScalars.Swizzle(0, count);
+         Dflow indx = m_builder.GetDataflow(index)[0];
+
+         for (uint32_t i = 1; i < count; ++i)
+         {
+            Dflow choose = indx.Equals(i);
+
+            m_result[0] = Dflow::CondOp(choose, arrScalars[i],         m_result[0]);
+            m_result[1] = Dflow::CondOp(choose, arrScalars[count + i], m_result[1]);
+         }
+      }
    }
+   else
+      m_result = SelectScalarsForChain(scalars, m_resultType, rootType);
 }
 
 void LoadScalars::LoadFromMemory(const NodeVariable *var, const NodeType *rootType)
 {
-   bool ssbo = IsSSBO::Test(m_builder.GetModule(), rootType);
+   bool ssbo = IsSSBO::Test(m_builder.GetModule(), var);
 
    uint32_t descriptorSet = m_builder.GetModule().RequireLiteralDecoration(spv::Decoration::DescriptorSet, var);
    uint32_t binding       = m_builder.GetModule().RequireLiteralDecoration(spv::Decoration::Binding,       var);
@@ -241,9 +262,9 @@ void LoadScalars::LoadFromWorkgroup(const NodeVariable *var, const NodeType *roo
    Dflow             addr   = m_builder.WorkgroupAddress();
    SharedAccess      access(m_builder, symbol, layout, type, m_accessChain);
 
-   m_result = DflowScalars(m_builder, access.GetType()->scalar_count);
+   m_result = DflowScalars(m_builder, access.GetType().GetNumScalars());
 
-   glsl_buffer_load_calculate_dataflow(m_block->GetBlock(), m_result.GetDataflowArray(),
+   glsl_buffer_load_calculate_dataflow(m_block->GetBlock(), m_result.Data(),
                                        addr, access.GetOffset(),
                                        access.GetLayout(), access.GetType(), STORAGE_SHARED);
 }
@@ -292,14 +313,16 @@ void LoadScalars::Visit(const NodeVariable *var)
    case spv::StorageClass::Input:
       {
          SymbolHandle symbol = m_builder.GetVariableSymbol(var);
-         if (strncmp(symbol.GetName(), "gl_", 3))
-            LoadInputVariable(m_builder.LoadFromSymbol(m_block, symbol), rootType);
+         DflowScalars scalars = m_builder.LoadFromSymbol(m_block, symbol);
+         if (!strncmp(symbol.GetName(), "gl_", 3))
+            LoadVariable(scalars, rootType);
          else
-            LoadVariable(m_builder.LoadFromSymbol(m_block, symbol), rootType);
+            LoadVariable(DflowScalars::InLoad(scalars), rootType);
       }
       break;
 
    case spv::StorageClass::Uniform:
+   case spv::StorageClass::StorageBuffer:
       LoadFromMemory(var, rootType);
       break;
 
@@ -332,16 +355,11 @@ void LoadScalars::Visit(const NodeFunctionParameter *node)
    LoadVariable(m_builder.LoadFromSymbol(m_block, symbol), TypeOf(node));
 }
 
-void LoadScalars::LoadAccessChain(const Node *node)
+void LoadScalars::Visit(const NodeAccessChain *node)
 {
    const Node *basePointer = UnrollAccessChains(node, &m_accessChain);
 
    basePointer->Accept(*this);
-}
-
-void LoadScalars::Visit(const NodeAccessChain *node)
-{
-   LoadAccessChain(node);
 }
 
 void LoadScalars::Visit(const NodeImageTexelPointer *node)
@@ -390,27 +408,20 @@ StoreScalars::StoreScalars(DflowBuilder &builder, BasicBlockHandle block, const 
 
 void StoreScalars::StoreSymbol(SymbolHandle symbol, const Node *pointer) const
 {
-   if (m_accessChain.size() == 0)
+   auto pointerType = pointer->GetResultType()->As<const NodeTypePointer *>();
+   auto rootType    = pointerType->GetType()->As<const NodeType *>();
+
+   if (m_builder.IsConstant(m_accessChain))
    {
-      m_builder.StoreToSymbol(m_block, symbol, m_scalars);
+      uint32_t offset = ScalarOffsetStatic::Calculate(m_builder, rootType, m_accessChain);
+      m_builder.StoreToSymbol(m_block, symbol, m_scalars, offset);
    }
    else
    {
-      auto pointerType = pointer->GetResultType()->As<const NodeTypePointer *>();
-      auto rootType    = pointerType->GetType()->As<const NodeType *>();
-
-      if (m_builder.IsConstant(m_accessChain))
-      {
-         uint32_t offset = ScalarOffsetStatic::Calculate(m_builder, rootType, m_accessChain);
-         m_builder.StoreToSymbol(m_block, symbol, m_scalars, offset);
-      }
-      else
-      {
-         DflowScalars oldScalars = m_builder.LoadFromSymbol(m_block, symbol);
-         DflowScalars result = InsertDynamicScalars::Calculate(m_builder, oldScalars, rootType,
-                                                               m_accessChain, m_scalars);
-         m_builder.StoreToSymbol(m_block, symbol, result);
-      }
+      DflowScalars oldScalars = m_builder.LoadFromSymbol(m_block, symbol);
+      DflowScalars result = InsertDynamicScalars::Calculate(m_builder, oldScalars, rootType,
+                                                            m_accessChain, m_scalars);
+      m_builder.StoreToSymbol(m_block, symbol, result);
    }
 }
 
@@ -418,7 +429,7 @@ void StoreScalars::StoreToMemory(const NodeVariable *var) const
 {
    const NodeType *rootType = TypeOf(var);
 
-   bool ssbo = IsSSBO::Test(m_builder.GetModule(), rootType);
+   bool ssbo = IsSSBO::Test(m_builder.GetModule(), var);
 
    uint32_t descriptorSet = m_builder.GetModule().RequireLiteralDecoration(spv::Decoration::DescriptorSet, var);
    uint32_t binding       = m_builder.GetModule().RequireLiteralDecoration(spv::Decoration::Binding,       var);
@@ -449,7 +460,7 @@ void StoreScalars::StoreToWorkgroup(const NodeVariable *var) const
    Dflow             addr   = m_builder.WorkgroupAddress();
    SharedAccess      access(m_builder, symbol, layout, type, m_accessChain);
 
-   glsl_buffer_store_calculate_dataflow(m_block->GetBlock(), m_scalars.GetDataflowArray(),
+   glsl_buffer_store_calculate_dataflow(m_block->GetBlock(), m_scalars.Data(),
                                         addr, access.GetOffset(),
                                         access.GetLayout(), access.GetType(), STORAGE_SHARED);
 }
@@ -465,6 +476,7 @@ void StoreScalars::Visit(const NodeVariable *node)
       break;
 
    case spv::StorageClass::Uniform:
+   case spv::StorageClass::StorageBuffer:
       StoreToMemory(node);
       break;
 
@@ -485,16 +497,11 @@ void StoreScalars::Visit(const NodeVariable *node)
    }
 }
 
-void StoreScalars::StoreAccessChain(const Node *node)
+void StoreScalars::Visit(const NodeAccessChain *node)
 {
    const Node *basePointer = UnrollAccessChains(node, &m_accessChain);
 
    basePointer->Accept(*this);
-}
-
-void StoreScalars::Visit(const NodeAccessChain *node)
-{
-   StoreAccessChain(node);
 }
 
 void StoreScalars::Visit(const NodeFunctionParameter *node)
@@ -551,16 +558,11 @@ void AtomicAccess::Visit(const NodeVariable *node)
       m_result = ReadWriteMemory(node);
 }
 
-void AtomicAccess::StoreAccessChain(const Node *chain)
-{
-   const Node *basePointer = UnrollAccessChains(chain, &m_accessChain);
-
-   basePointer->Accept(*this);
-}
-
 void AtomicAccess::Visit(const NodeAccessChain *node)
 {
-   StoreAccessChain(node);
+   const Node *basePointer = UnrollAccessChains(node, &m_accessChain);
+
+   basePointer->Accept(*this);
 }
 
 void AtomicAccess::Visit(const NodeImageTexelPointer *node)
@@ -619,7 +621,7 @@ DflowScalars AtomicAccess::ReadWriteWorkgroup(const NodeVariable *var) const
    SharedAccess      access(m_builder, symbol, layout, type, m_accessChain);
 
    return DflowScalars::AtomicAtAddress(m_atomicOp, m_block, m_vec4,
-                                        addr + access.GetOffset(), SymbolTypeHandle(access.GetType()));
+                                        addr + access.GetOffset(), access.GetType());
 }
 
 DflowScalars AtomicAccess::ReadWriteTexel(const NodeImageTexelPointer *node) const

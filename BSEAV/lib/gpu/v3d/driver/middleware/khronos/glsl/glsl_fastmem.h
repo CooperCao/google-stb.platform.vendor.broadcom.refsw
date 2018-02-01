@@ -1,17 +1,8 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Standalone GLSL compiler
-=============================================================================*/
-#ifndef GLSL_FASTMEM_H
-#define GLSL_FASTMEM_H
-
-#include "middleware/khronos/common/khrn_mem.h"
 #include "middleware/khronos/common/khrn_hw.h"
 
 #include "middleware/khronos/glsl/glsl_errors.h"
@@ -74,15 +65,15 @@ extern Hunk *glsl_fastmem_alloc_hunk(Hunk *next, size_t curBlockSize);
 
    -
 */
-static INLINE void *glsl_fastmem_malloc(size_t count, bool error)
+static inline void *glsl_fastmem_malloc(size_t count, bool error)
 {
    void *v;
 
    /*
-      round count up to next multiple of 4
+      round count up to next multiple of 8
    */
 
-   count = (count + 3) & ~3;
+   count = (count + 7) & ~7;
 
    /*
       allocate a new hunk if necessary
@@ -116,12 +107,10 @@ static INLINE void *glsl_fastmem_malloc(size_t count, bool error)
    return v;
 }
 
-static INLINE char *glsl_fastmem_strdup(const char *s)
+static inline char *glsl_fastmem_strdup(const char *s)
 {
    size_t n = strlen(s) + 1;
    char *d = (char *)glsl_fastmem_malloc(n, true);
    khrn_memcpy(d, s, n);
    return d;
 }
-
-#endif // fastmem_H

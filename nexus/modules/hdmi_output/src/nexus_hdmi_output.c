@@ -1089,7 +1089,7 @@ NEXUS_Error NEXUS_HdmiOutput_GetStatus( NEXUS_HdmiOutputHandle output, NEXUS_Hdm
     /* do not report status until ready */
     if (output->rxState == NEXUS_HdmiOutputState_eMax)
     {
-        BDBG_MSG(("HdmiOutput not initialized ")) ;
+        BDBG_MSG(("HdmiOutput not initialized")) ;
         goto done ;
     }
 
@@ -1105,7 +1105,7 @@ NEXUS_Error NEXUS_HdmiOutput_GetStatus( NEXUS_HdmiOutputHandle output, NEXUS_Hdm
         output->lastReceiverSense = RxSense ;
     }
 
-    if (output->invalidEdid)
+    if (output->edidState == BHDM_EDID_STATE_eInvalid)
     {
         if (!output->invalidEdidReported)
         {
@@ -1204,22 +1204,6 @@ NEXUS_Error NEXUS_HdmiOutput_GetStatus( NEXUS_HdmiOutputHandle output, NEXUS_Hdm
     }
 
 
-    pStatus->eotf = output->drm.outputInfoFrame.eotf;
-
-#if BHDM_HAS_HDMI_20_SUPPORT
-    {
-        BHDM_ScrambleConfig stScrambleConfig ;
-        BHDM_SCDC_GetScrambleConfiguration(output->hdmHandle, &stScrambleConfig) ;
-            pStatus->txHardwareStatus.scrambling = stScrambleConfig.txScrambleEnable ;
-            pStatus->rxHardwareStatus.descrambling = stScrambleConfig.rxStatusFlags_Scramble ;
-
-        output->txHwStatus.scrambling = stScrambleConfig.txScrambleEnable ;
-        output->rxHwStatus.descrambling = stScrambleConfig.rxStatusFlags_Scramble ;
-    }
-#endif
-
-    pStatus->eotf = output->drm.outputInfoFrame.eotf;
-
 done:
     /* always copy txHwStatus counters */
     {
@@ -1281,6 +1265,9 @@ NEXUS_Error NEXUS_HdmiOutput_GetBasicEdidData( NEXUS_HdmiOutputHandle output, NE
         return BERR_TRACE(errCode);
     }
 
+    /* convert magnum to nexus video format */
+    pData->preferredVideoFormat =
+        NEXUS_P_VideoFormat_FromMagnum_isrsafe((BFMT_VideoFmt)pData->preferredVideoFormat);
     return BERR_SUCCESS;
 }
 
@@ -1297,7 +1284,6 @@ NEXUS_Error NEXUS_HdmiOutput_GetEdidBlock( NEXUS_HdmiOutputHandle output, unsign
     {
         return BERR_TRACE(errCode);
     }
-
     return BERR_SUCCESS;
 }
 
@@ -1392,7 +1378,6 @@ NEXUS_Error NEXUS_HdmiOutput_GetEdidData(
         "EDID ERROR" ; /* cannot exceed 13 bytes */
     NEXUS_Error retCode;
     NEXUS_Error errCode = NEXUS_SUCCESS;
-    BFMT_VideoFmt magnumFormat;
     BHDM_EDID_HDRStaticDB hdrdb ;
     BHDM_EDID_VideoCapabilityDataBlock videoCapabilityDB ;
     BHDM_EDID_AudioDescriptor *pstBcmAudioFormats = NULL ;
@@ -1406,7 +1391,7 @@ NEXUS_Error NEXUS_HdmiOutput_GetEdidData(
     BDBG_ASSERT(NULL != pEdid);
 
     BKNI_Memset(pEdid, 0, sizeof(NEXUS_HdmiOutputEdidData)) ;
-    if (output->invalidEdid)
+    if (output->edidState == BHDM_EDID_STATE_eInvalid)
     {
         if (!output->invalidEdidReported)
         {
@@ -1415,132 +1400,121 @@ NEXUS_Error NEXUS_HdmiOutput_GetEdidData(
         }
         pEdid->basicData.preferredVideoFormat = NEXUS_VideoFormat_eVesa640x480p60hz ;
         BKNI_Memcpy(pEdid->basicData.monitorName, InvalidEdidName, sizeof(InvalidEdidName)) ;
+        goto done ;
+    }
+
+    /* Get BASIC EDID data */
+    retCode = NEXUS_HdmiOutput_GetBasicEdidData( output, &pEdid->basicData );
+    if ( retCode ) { BERR_TRACE(retCode); goto done ; }
+
+    pEdid->valid = true ;
+
+    /* Video Capability Data Block - Monitor's Capabilities */
+    retCode = BHDM_EDID_GetVideoCapabilityDB(output->hdmHandle, &videoCapabilityDB) ;
+    if ( retCode )
+    {
+        errCode = BERR_TRACE(retCode);
+    }
+    else if (videoCapabilityDB.valid) /* save supported colorimetries if successfully retrieved from the EDID */
+    {
+        pEdid->videoCapabilitydb.valid = true ;
+        pEdid->videoCapabilitydb.selectableRgb = videoCapabilityDB.bQuantizationSelectatbleRGB ;
+        pEdid->videoCapabilitydb.selectableYcc = videoCapabilityDB.bQuantizationSelectatbleYCC ;
+    }
+
+
+    /* HDMI VSDB */
+    /* These structures are just copies of one another, this should keep them in sync */
+    BDBG_CASSERT(sizeof(NEXUS_HdmiOutputEdidRxHdmiVsdb) == sizeof(BHDM_EDID_RxVendorSpecificDB));
+    retCode = BHDM_EDID_GetHdmiVsdb(output->hdmHandle, (BHDM_EDID_RxVendorSpecificDB *) &pEdid->hdmiVsdb) ;
+    if ( retCode ) { errCode = BERR_TRACE(retCode); }
+
+    /* HDMI Forum VSDB (HF-VSDB) */
+    /* These structures are just copies of one another, this should keep them in sync */
+    BDBG_CASSERT(sizeof(NEXUS_HdmiOutputEdidRxHdmiForumVsdb) == sizeof(BHDM_EDID_RxHfVsdb));
+    retCode = BHDM_EDID_GetHdmiForumVsdb(output->hdmHandle,
+        (BHDM_EDID_RxHfVsdb *) &pEdid->hdmiForumVsdb) ;
+    if ( retCode ) { errCode = BERR_TRACE(retCode); }
+
+    /* HDMI High Dynamic Range Static Metadata DB */
+    retCode = BHDM_EDID_GetHdrStaticMetadatadb(output->hdmHandle, &hdrdb) ;
+    if ( retCode ) { errCode = BERR_TRACE(retCode); }
+    pEdid->hdrdb.valid = hdrdb.valid ;
+    BKNI_Memset(&pEdid->hdrdb.eotfSupported, 0, sizeof(pEdid->hdrdb.eotfSupported));
+    for (i = 0; i < BHDM_EDID_HdrDbEotfSupport_eMax; i++)
+    {
+        NEXUS_VideoEotf eotf;
+        eotf = NEXUS_P_VideoEotf_FromMagnum_isrsafe(i);
+        if (eotf < NEXUS_VideoEotf_eMax)
+        {
+            pEdid->hdrdb.eotfSupported[eotf] = hdrdb.bEotfSupport[i];
+        }
+    }
+
+    /* Audio DB */
+    pstBcmAudioFormats = BKNI_Malloc(sizeof(BHDM_EDID_AudioDescriptor) * BAVC_AudioCompressionStd_eMax) ;
+    if (pstBcmAudioFormats == NULL)
+    {
+        errCode = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY) ;
+        goto done ;
+    }
+
+    retCode = BHDM_EDID_GetSupportedAudioFormats(output->hdmHandle, pstBcmAudioFormats) ;
+    if (retCode)
+    {
+        errCode = BERR_TRACE(retCode) ;
     }
     else
     {
-        /* BASIC EDID data */
-        /* These structures are just copies of one another, this should keep them in sync */
-        BDBG_CASSERT(sizeof(NEXUS_HdmiOutputBasicEdidData) == sizeof(BHDM_EDID_BasicData));
-
-        /* set flag to indicate a valid EDID has been read and parsed */
-        pEdid->valid = true ;
-
-        retCode = BHDM_EDID_GetBasicData(output->hdmHandle, (BHDM_EDID_BasicData *) &pEdid->basicData);
-        if ( retCode ) { errCode = BERR_TRACE(retCode); }
-
-        /* convert magnum to nexus video format */
-        magnumFormat = pEdid->basicData.preferredVideoFormat ;
-        pEdid->basicData.preferredVideoFormat =
-           NEXUS_P_VideoFormat_FromMagnum_isrsafe(magnumFormat) ;
-
-
-        /* Video Capability Data Block - Monitor's Capabilities */
-        retCode = BHDM_EDID_GetVideoCapabilityDB(output->hdmHandle, &videoCapabilityDB) ;
-        if ( retCode )
+        pEdid->audiodb.valid = true ;
+        for (i = 0 ; i < BAVC_AudioCompressionStd_eMax; i++)
         {
-            errCode = BERR_TRACE(retCode);
-        }
-        else if (videoCapabilityDB.valid) /* save supported colorimetries if successfully retrieved from the EDID */
-        {
-            pEdid->videoCapabilitydb.valid = true ;
-            pEdid->videoCapabilitydb.selectableRgb = videoCapabilityDB.bQuantizationSelectatbleRGB ;
-            pEdid->videoCapabilitydb.selectableYcc = videoCapabilityDB.bQuantizationSelectatbleYCC ;
-        }
+            if (!pstBcmAudioFormats[i].Supported)
+                continue ;
 
+            /* Audio Codec */
+            codec = NEXUS_P_AudioCodec_FromMagnum(i) ;
+            if (codec == NEXUS_AudioCodec_eUnknown)
+                continue ;
 
-        /* HDMI VSDB */
-        /* These structures are just copies of one another, this should keep them in sync */
-        BDBG_CASSERT(sizeof(NEXUS_HdmiOutputEdidRxHdmiVsdb) == sizeof(BHDM_EDID_RxVendorSpecificDB));
-        retCode = BHDM_EDID_GetHdmiVsdb(output->hdmHandle, (BHDM_EDID_RxVendorSpecificDB *) &pEdid->hdmiVsdb) ;
-        if ( retCode ) { errCode = BERR_TRACE(retCode); }
+            pEdid->audiodb.audioFormat[codec].supported = true ;
+            pEdid->audiodb.audioFormat[codec].audioChannels = pstBcmAudioFormats[i].AudioChannels ;
 
-        /* HDMI Forum VSDB (HF-VSDB) */
-        /* These structures are just copies of one another, this should keep them in sync */
-        BDBG_CASSERT(sizeof(NEXUS_HdmiOutputEdidRxHdmiForumVsdb) == sizeof(BHDM_EDID_RxHfVsdb));
-        retCode = BHDM_EDID_GetHdmiForumVsdb(output->hdmHandle,
-            (BHDM_EDID_RxHfVsdb *) &pEdid->hdmiForumVsdb) ;
-        if ( retCode ) { errCode = BERR_TRACE(retCode); }
-
-        /* HDMI High Dynamic Range Static Metadata DB */
-        retCode = BHDM_EDID_GetHdrStaticMetadatadb(output->hdmHandle, &hdrdb) ;
-        if ( retCode ) { errCode = BERR_TRACE(retCode); }
-        pEdid->hdrdb.valid = hdrdb.valid ;
-        BKNI_Memset(&pEdid->hdrdb.eotfSupported, 0, sizeof(pEdid->hdrdb.eotfSupported));
-        for (i = 0; i < BHDM_EDID_HdrDbEotfSupport_eMax; i++)
-        {
-            NEXUS_VideoEotf eotf;
-            eotf = NEXUS_P_VideoEotf_FromMagnum_isrsafe(i);
-            if (eotf < NEXUS_VideoEotf_eMax)
+            /* Audio Sample Rates */
+            for (j = 0 ; j < BAVC_AudioSamplingRate_eMax ; j++)
             {
-                pEdid->hdrdb.eotfSupported[eotf] = hdrdb.bEotfSupport[i];
-            }
-        }
-
-        /* Audio DB */
-        pstBcmAudioFormats = BKNI_Malloc(sizeof(BHDM_EDID_AudioDescriptor) * BAVC_AudioCompressionStd_eMax) ;
-        if (pstBcmAudioFormats == NULL)
-        {
-            errCode = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY) ;
-            goto done ;
-        }
-
-        retCode = BHDM_EDID_GetSupportedAudioFormats(output->hdmHandle, pstBcmAudioFormats) ;
-        if (retCode)
-        {
-            errCode = BERR_TRACE(retCode) ;
-        }
-        else
-        {
-            pEdid->audiodb.valid = true ;
-            for (i = 0 ; i < BAVC_AudioCompressionStd_eMax; i++)
-            {
-                if (!pstBcmAudioFormats[i].Supported)
-                    continue ;
-
-                /* Audio Codec */
-                codec = NEXUS_P_AudioCodec_FromMagnum(i) ;
-                if (codec == NEXUS_AudioCodec_eUnknown)
-                    continue ;
-
-                pEdid->audiodb.audioFormat[codec].supported = true ;
-                pEdid->audiodb.audioFormat[codec].audioChannels = pstBcmAudioFormats[i].AudioChannels ;
-
-                /* Audio Sample Rates */
-                for (j = 0 ; j < BAVC_AudioSamplingRate_eMax ; j++)
+                if (pstBcmAudioFormats[i].bSampleRates[j])
                 {
-                    if (pstBcmAudioFormats[i].bSampleRates[j])
-                    {
-                        BDBG_CASSERT(BAVC_AudioSamplingRate_eMax == (BAVC_AudioSamplingRate) NEXUS_AudioSampleRate_eMax) ;
-                        sampleRate = (NEXUS_AudioSampleRate) j ;
-                        pEdid->audiodb.audioFormat[codec].sampleRate[sampleRate] = true ;
-                    }
-                }
-
-                /* Audio Bit Depths/Rate */
-                if (codec == NEXUS_AudioCodec_ePcm) /* PCM - Audio Bit Depths */
-                {
-                    BDBG_CASSERT(BAVC_AudioBits_eMax == (BAVC_AudioBits) NEXUS_AudioBitDepth_eMax) ;
-                    BKNI_Memcpy(
-                        &pEdid->audiodb.audioFormat[codec].dataType.pcm.bitDepth,
-                        &pstBcmAudioFormats[i].dataType.pcm.bBitDepths,
-                        sizeof(pEdid->audiodb.audioFormat[codec].dataType.pcm.bitDepth)) ;
-                }
-                else  /* compressed - Audio Bit Rate */
-                {
-                    /* Bit Rate is 0 for enhanced compression formats e.g. AC3+ */
-                    pEdid->audiodb.audioFormat[codec].dataType.compressed.bitRate
-                        = pstBcmAudioFormats[i].dataType.compressed.BitRate ;
-
-                    pEdid->audiodb.audioFormat[codec].dataType.compressed.formatDependentValue
-                        = pstBcmAudioFormats[i].dataType.compressed.formatDependentValue ;
+                    BDBG_CASSERT(BAVC_AudioSamplingRate_eMax == (BAVC_AudioSamplingRate) NEXUS_AudioSampleRate_eMax) ;
+                    sampleRate = (NEXUS_AudioSampleRate) j ;
+                    pEdid->audiodb.audioFormat[codec].sampleRate[sampleRate] = true ;
                 }
             }
-        }
 
-        /* Supported Video Formats (Preferred Timings, Video DBs, YCbCr 4:2:0 DBs) */
-        retCode = NEXUS_HdmiOutput_P_GetSupportedFormats(output, pEdid->videoFormatSupported) ;
-        if ( retCode ) { errCode = BERR_TRACE(retCode); }
+            /* Audio Bit Depths/Rate */
+            if (codec == NEXUS_AudioCodec_ePcm) /* PCM - Audio Bit Depths */
+            {
+                BDBG_CASSERT(BAVC_AudioBits_eMax == (BAVC_AudioBits) NEXUS_AudioBitDepth_eMax) ;
+                BKNI_Memcpy(
+                    &pEdid->audiodb.audioFormat[codec].dataType.pcm.bitDepth,
+                    &pstBcmAudioFormats[i].dataType.pcm.bBitDepths,
+                    sizeof(pEdid->audiodb.audioFormat[codec].dataType.pcm.bitDepth)) ;
+            }
+            else  /* compressed - Audio Bit Rate */
+            {
+                /* Bit Rate is 0 for enhanced compression formats e.g. AC3+ */
+                pEdid->audiodb.audioFormat[codec].dataType.compressed.bitRate
+                    = pstBcmAudioFormats[i].dataType.compressed.BitRate ;
+
+                pEdid->audiodb.audioFormat[codec].dataType.compressed.formatDependentValue
+                    = pstBcmAudioFormats[i].dataType.compressed.formatDependentValue ;
+            }
+        }
     }
+
+    /* Supported Video Formats (Preferred Timings, Video DBs, YCbCr 4:2:0 DBs) */
+    retCode = NEXUS_HdmiOutput_P_GetSupportedFormats(output, pEdid->videoFormatSupported) ;
+    if ( retCode ) { errCode = BERR_TRACE(retCode); }
 
 done:
     if (pstBcmAudioFormats)
@@ -1796,6 +1770,11 @@ static void NEXUS_HdmiOutput_P_RxRemoved(void *pContext)
     {
         NEXUS_Hdcp2xReceiverIdListData stReceiverIdListData;
 
+        /* make sure all Auto I2c channels are disabled */
+        BKNI_EnterCriticalSection() ;
+            BHDM_AUTO_I2C_SetChannels_isr(output->hdmHandle, false) ;
+        BKNI_LeaveCriticalSection() ;
+
         /* Update RxCaps */
         NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
         errCode = NEXUS_HdmiInput_UpdateHdcp2xRxCaps_priv(output->hdmiInput, false);
@@ -2004,17 +1983,16 @@ static BERR_Code NEXUS_HdmiOutput_P_ReadEdid(NEXUS_HdmiOutputHandle hdmiOutput)
 {
 
     BERR_Code errCode ;
+    BHDM_Status hdmiStatus ;
     unsigned int i = 1 ;
 
-    hdmiOutput->invalidEdid = true ;
     hdmiOutput->invalidEdidReported = false ;
 
     do
     {
-         errCode = BHDM_EDID_Initialize(hdmiOutput->hdmHandle);
+        errCode = BHDM_EDID_Initialize(hdmiOutput->hdmHandle);
         if (errCode == BERR_SUCCESS)
         {
-            hdmiOutput->invalidEdid = false ;
             break ;
         }
 
@@ -2058,6 +2036,9 @@ static BERR_Code NEXUS_HdmiOutput_P_ReadEdid(NEXUS_HdmiOutputHandle hdmiOutput)
     }
 
 done:
+    BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, &hdmiStatus) ;
+    hdmiOutput->edidState = hdmiStatus.edidState ;
+
     return errCode;
 }
 
@@ -2115,6 +2096,9 @@ static void NEXUS_HdmiOutput_P_ScrambleCallback(void *pContext)
         goto done ;
 
     }
+
+	/* enable/disable start Auto I2c based on Scrambling setting */
+	BHDM_SCDC_SetStatusMonitor(hdmiOutput->hdmHandle, scdc.RxScramblerStatus) ;
 
 notifyApp:
     BDBG_LOG(("HDMI Link Scramble Status: %s",
@@ -2321,6 +2305,10 @@ static void NEXUS_HdmiOutput_P_HotPlug_isr(void *context, int param, void *data)
         hdmiOutput->lastHotplugState_isr = NEXUS_HdmiOutputState_eDisconnected ;
         hdmiOutput->forceDisconnect_isr = true ;
         hdmiOutput->edidProcDebugDisplayed = false ;
+
+        if (hdmiOutput->hdcpStarted) {
+            hdmiOutput->pendingDisableAuthentication_isr = true;
+        }
     }
 
     BKNI_SetEvent_isr(hdmiOutput->notifyHotplugEvent) ;
@@ -2481,8 +2469,15 @@ static void NEXUS_HdmiOutput_P_RxSenseTimerExpiration(void *pContext)
                     if (errCode) { errCode = BERR_TRACE(errCode) ; }
                 }
             }
+
+#if BHDM_HAS_HDMI_20_SUPPORT
+            /* make sure all Auto I2c channels are disabled */
+            BKNI_EnterCriticalSection() ;
+                BHDM_AUTO_I2C_SetChannels_isr(output->hdmHandle, false) ;
+            BKNI_LeaveCriticalSection() ;
 #endif
 
+#endif
         }
     }
 
@@ -2545,7 +2540,7 @@ bool NEXUS_HdmiOutput_GetColorimetry_priv(
     NEXUS_ASSERT_MODULE();
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
 
-    if (hdmiOutput->invalidEdid)
+    if (hdmiOutput->edidState == BHDM_EDID_STATE_eInvalid)
     {
         if (!hdmiOutput->invalidEdidReported)
         {
@@ -3076,14 +3071,13 @@ done :
 }
 
 
-NEXUS_Error NEXUS_HdmiOutput_GetDisplaySettings_priv(
+void NEXUS_HdmiOutput_GetDisplaySettings_priv(
     NEXUS_HdmiOutputHandle handle,
     NEXUS_HdmiOutputDisplaySettings *stHdmiOutputDisplaySettings
 )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
     *stHdmiOutputDisplaySettings = handle->displaySettings;
-    return NEXUS_SUCCESS;
 }
 
 NEXUS_Error NEXUS_HdmiOutput_SetDisplaySettings_priv(

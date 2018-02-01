@@ -95,7 +95,7 @@ void NEXUS_SimpleStcChannel_RemoveSyncAudio_priv(NEXUS_SimpleStcChannelHandle ha
 #endif
 
 /* simple_video_decoder_impl */
-NEXUS_Error nexus_simplevideodecoder_p_add_encoder(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_VideoWindowHandle window, NEXUS_SimpleEncoderHandle encoder);
+void nexus_simplevideodecoder_p_add_encoder(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_VideoWindowHandle window, NEXUS_SimpleEncoderHandle encoder);
 void nexus_simplevideodecoder_p_remove_encoder(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_VideoWindowHandle window, NEXUS_SimpleEncoderHandle encoder);
 
 /* internal stop if decoders stopped */
@@ -110,6 +110,7 @@ NEXUS_Error nexus_simpleencoder_p_start_audio(NEXUS_SimpleEncoderHandle handle);
 NEXUS_Error nexus_simpleencoder_p_start_video(NEXUS_SimpleEncoderHandle handle);
 void nexus_simplevideodecoder_p_remove_settings_from_cache(void);
 void nexus_simpleencoder_p_stop_videoencoder(NEXUS_SimpleEncoderHandle handle, bool abort);
+void nexus_simpleencoder_p_beginProgramChange(NEXUS_SimpleEncoderHandle encoder, bool *pSendEos);
 
 void NEXUS_SimpleAudioDecoderModule_P_UnloadDefaultSettings(void);
 

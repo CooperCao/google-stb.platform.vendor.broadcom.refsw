@@ -566,7 +566,7 @@ typedef struct BGRC_Settings
 Summary:
     Gets default settings.
 ****************************************************************************/
-BERR_Code BGRC_GetDefaultSettings(
+void BGRC_GetDefaultSettings(
     BGRC_Settings *pDefSettings
 );
 

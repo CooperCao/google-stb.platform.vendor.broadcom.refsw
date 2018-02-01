@@ -3,7 +3,12 @@
  *****************************************************************************************************/
 
 #include "geometry.h"
+#include <math.h>
 #include <cassert>
+#include <limits>
+#include <algorithm>
+
+#include <stdio.h>
 
 namespace video_texturing
 {
@@ -27,10 +32,10 @@ struct CubeFmt
 };
 
 Geometry::Geometry(bool is360, Format360 format, uint32_t texW, uint32_t texH) :
-   m_indexCount(0), m_modelYRotate(0.0f)
+   m_solidIndexCount(0), m_wfIndexCount(0), m_modelYRotate(0.0f), m_wireframe(false)
 {
    // Get some buffer ids
-   glGenBuffers(2, m_vbos);
+   glGenBuffers(3, m_vbos);
 
    if (!is360)
       MakeFlatRect();
@@ -38,41 +43,43 @@ Geometry::Geometry(bool is360, Format360 format, uint32_t texW, uint32_t texH) :
    {
       switch (format)
       {
-      case FORMAT_ICOSAHEDRON : MakeIcosahedron(); break;
-      case FORMAT_OCTAHEDRON  : MakeOctahedron();  break;
-      default                 : MakeCube(format, texW, texH); break;
+      case FORMAT_ICOSAHEDRON     : MakeIcosahedron(); break;
+      case FORMAT_OCTAHEDRON      : MakeOctahedron();  break;
+      case FORMAT_EQUIRECT_SPHERE : MakeSphere(180); break;
+      default                     : MakeCube(format, texW, texH); break;
       }
    }
 
    // Determine the correct cube rotation about Y for each format
    switch (format)
    {
-   case FORMAT_ICOSAHEDRON  :
-   case FORMAT_OCTAHEDRON   :
-   case FORMAT_FISHEYE      : m_modelYRotate = 180.0f;
-                              break;
-   case FORMAT_EAP          :
-   case FORMAT_EQUIRECT     : m_modelYRotate = 90.0f;
-                              break;
-   case FORMAT_CUBE_32_0    :
-   case FORMAT_CUBE_32_90   :
-   case FORMAT_CUBE_32_270  :
-   case FORMAT_CUBE_32_P270 :
-   case FORMAT_CUBE_43_0    : m_modelYRotate = -90.0f;
-                              break;
-   default                  : assert(0);
+   case FORMAT_ICOSAHEDRON     :
+   case FORMAT_OCTAHEDRON      :
+   case FORMAT_FISHEYE         : m_modelYRotate = 180.0f;
+                                 break;
+   case FORMAT_EAP             :
+   case FORMAT_EQUIRECT        : m_modelYRotate = 90.0f;
+                                 break;
+   case FORMAT_EQUIRECT_SPHERE :
+   case FORMAT_CUBE_32_0       :
+   case FORMAT_CUBE_32_90      :
+   case FORMAT_CUBE_32_270     :
+   case FORMAT_CUBE_32_P270    :
+   case FORMAT_CUBE_43_0       : m_modelYRotate = -90.0f;
+                                 break;
+   default                     : assert(0);
    }
 }
 
 Geometry::~Geometry()
 {
-   glDeleteBuffers(2, m_vbos);
+   glDeleteBuffers(3, m_vbos);
 }
 
 void Geometry::Bind(GLint posLocation, GLint texCoordLocation)
 {
    glBindBuffer(GL_ARRAY_BUFFER, m_vbos[0]);
-   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_vbos[1]);
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_wireframe ? m_vbos[2] : m_vbos[1]);
 
    if (posLocation != -1)
    {
@@ -90,18 +97,42 @@ void Geometry::Bind(GLint posLocation, GLint texCoordLocation)
 
 void Geometry::Draw()
 {
-   glDrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_SHORT, 0);
+   if (m_wireframe)
+      glDrawElements(m_wfPrimitiveType, m_wfIndexCount, GL_UNSIGNED_INT, 0);
+   else
+      glDrawElements(m_solidPrimitiveType, m_solidIndexCount, GL_UNSIGNED_SHORT, 0);
 }
 
-void Geometry::FillBuffers(const std::vector<GLfloat> &vertexData, const std::vector<GLushort> &indices)
+void Geometry::ToggleWireframe()
+{
+   m_wireframe = !m_wireframe;
+}
+
+void Geometry::FillBuffers(const std::vector<GLfloat> &vertexData, const std::vector<GLushort> &solidIndices,
+                           const std::vector<GLuint> &wfIndices)
 {
    glBindBuffer(GL_ARRAY_BUFFER, m_vbos[0]);
    glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(vertexData[0]), vertexData.data(), GL_STATIC_DRAW);
 
    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_vbos[1]);
-   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
+   glBufferData(GL_ELEMENT_ARRAY_BUFFER, solidIndices.size() * sizeof(solidIndices[0]), solidIndices.data(), GL_STATIC_DRAW);
 
-   m_indexCount = indices.size();
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_vbos[2]);
+   glBufferData(GL_ELEMENT_ARRAY_BUFFER, wfIndices.size() * sizeof(wfIndices[0]), wfIndices.data(), GL_STATIC_DRAW);
+
+   m_solidIndexCount = solidIndices.size();
+   assert(m_solidIndexCount <= std::numeric_limits<GLushort>::max());
+
+   m_wfIndexCount = wfIndices.size();
+}
+
+void Geometry::FillBuffers(const std::vector<GLfloat> &vertexData, const std::vector<GLushort> &solidIndices)
+{
+   std::vector<GLuint> wfIndices(solidIndices.size());
+
+   std::copy(solidIndices.begin(), solidIndices.end(), wfIndices.begin());
+
+   FillBuffers(vertexData, solidIndices, wfIndices);
 }
 
 void Geometry::MakeFlatRect()
@@ -120,6 +151,9 @@ void Geometry::MakeFlatRect()
       0, 2, 1,
       1, 2, 3,
    };
+
+   m_solidPrimitiveType = GL_TRIANGLES;
+   m_wfPrimitiveType    = GL_LINES;
 
    FillBuffers(vertexData, indices);
 }
@@ -180,6 +214,9 @@ void Geometry::MakeIcosahedron()
       15, 21, 16,
    };
 
+   m_solidPrimitiveType = GL_TRIANGLES;
+   m_wfPrimitiveType    = GL_LINES;
+
    FillBuffers(vertexData, indices);
 }
 
@@ -216,6 +253,9 @@ void Geometry::MakeOctahedron()
       6, 11,  7,
       7, 12,  8,
    };
+
+   m_solidPrimitiveType = GL_TRIANGLES;
+   m_wfPrimitiveType    = GL_LINES;
 
    FillBuffers(vertexData, indices);
 }
@@ -396,7 +436,104 @@ void Geometry::MakeCube(Format360 format, uint32_t texW, uint32_t texH)
       }
    }
 
+   m_solidPrimitiveType = GL_TRIANGLES;
+   m_wfPrimitiveType    = GL_LINES;
+
    FillBuffers(vertexData, indices);
+}
+
+// Create a sphere with pre-baked texture coordinates appropriate for
+// equirectangular projection (i.e. latitude/longitude mapping)
+void Geometry::MakeSphere(uint32_t divisions)
+{
+   struct vert
+   {
+      GLfloat pos[3];
+      GLfloat tc[2];
+   };
+
+   divisions++;
+
+   std::vector<GLfloat> vertexData;
+   constexpr float twoPI = 2.0f * M_PI;
+
+   uint32_t latDivs = divisions / 2;
+
+   float latAngleStep = twoPI / (float)(latDivs - 1);
+   float longAngleStep = twoPI / (float)(divisions - 1);
+
+   for (uint32_t latStep = 0; latStep < latDivs; latStep++)
+   {
+      float latitude = latStep * latAngleStep * 0.5f - (M_PI / 2.0f);
+
+      for (uint32_t longStep = 0; longStep < divisions; longStep++)
+      {
+         float longitude = longStep * longAngleStep;
+
+         float sliceRadius = cosf(latitude);
+
+         vert v;
+         v.pos[1] = sinf(latitude);
+         v.pos[0] = cosf(longitude) * sliceRadius;
+         v.pos[2] = sinf(longitude) * sliceRadius;
+
+         v.tc[0] = longitude / twoPI;
+         v.tc[1] = 1.0f - ((latitude + M_PI * 0.5f) / M_PI);
+
+         vertexData.emplace_back(v.pos[0]);
+         vertexData.emplace_back(v.pos[1]);
+         vertexData.emplace_back(v.pos[2]);
+         vertexData.emplace_back(v.tc[0]);
+         vertexData.emplace_back(v.tc[1]);
+      }
+   }
+
+   std::vector<GLushort> indices;
+
+   for (uint32_t latStep = 0; latStep < latDivs; latStep++)
+   {
+      uint32_t rowStart0 = latStep * divisions;
+      uint32_t rowStart1 = (latStep + 1) * divisions;
+
+      // Start off the triangle strip
+      indices.emplace_back(rowStart0);
+      indices.emplace_back(rowStart1);
+
+      for (uint32_t longStep = 0; longStep < divisions; longStep++)
+      {
+         indices.emplace_back(rowStart0 + longStep + 1);
+         indices.emplace_back(rowStart1 + longStep + 1);
+      }
+
+      // Replicate the last vertex of the slice twice to create a degenerate triangle and move
+      // us to the start of the next slice
+      indices.emplace_back(rowStart1 + divisions);
+      indices.emplace_back(rowStart1 + divisions);
+   }
+
+   // Make indices for a wireframe linestrip (only used for debug to see the geometry)
+   std::vector<GLuint> wfIndices;
+
+   for (uint32_t latStep = 0; latStep < latDivs; latStep++)
+   {
+      uint32_t rowStart0 = latStep * divisions;
+      uint32_t rowStart1 = (latStep + 1) * divisions;
+
+      for (uint32_t longStep = 0; longStep < divisions; longStep++)
+      {
+         wfIndices.emplace_back(rowStart0 + longStep);
+         wfIndices.emplace_back(rowStart1 + longStep);
+         wfIndices.emplace_back(rowStart1 + longStep);
+         wfIndices.emplace_back(rowStart0 + longStep + 1);
+         wfIndices.emplace_back(rowStart0 + longStep + 1);
+         wfIndices.emplace_back(rowStart0 + longStep);
+      }
+   }
+
+   m_solidPrimitiveType = GL_TRIANGLE_STRIP;
+   m_wfPrimitiveType    = GL_LINE_STRIP;
+
+   FillBuffers(vertexData, indices, wfIndices);
 }
 
 } // namespace

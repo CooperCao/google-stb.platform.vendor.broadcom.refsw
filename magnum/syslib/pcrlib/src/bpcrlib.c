@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -167,12 +167,11 @@ static const BPCRlib_Config pcr_cfg = {
     false /* paired with another channel */
 };
 
-BERR_Code
+void
 BPCRlib_Channel_GetChannelDefSettings(BPCRlib_Handle handle, BPCRlib_ChannelSettings *config)
 {
     BSTD_UNUSED(handle);
     BKNI_Memset(config, 0, sizeof(*config));
-    return BERR_SUCCESS;
 }
 
 BERR_Code

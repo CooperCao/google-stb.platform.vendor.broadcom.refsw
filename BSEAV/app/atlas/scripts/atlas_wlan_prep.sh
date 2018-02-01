@@ -1,6 +1,6 @@
 #!/bin/sh
 #############################################################################
-# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -84,10 +84,10 @@ if [ "${QUIT}" == "true" ]; then
         rmmod wl.ko
     fi
 
-    TEST=`lsmod|grep -w wlan_plat > /dev/null && echo 1`
+    TEST=`lsmod|grep -w wlplat > /dev/null && echo 1`
     if [ ! -z $TEST ]; then
-	echo "rmmod wlan_plat.ko"
-	rmmod wlan_plat.ko
+	echo "rmmod wlplat.ko"
+	rmmod wlplat.ko
     fi
 
     TEST=`lsmod|grep wakeup_drv >/dev/null && echo 1`

@@ -5,7 +5,7 @@
 
 #include "interface/khronos/common/khrn_int_image.h"
 #include "middleware/khronos/common/khrn_interlock.h"
-#include "middleware/khronos/common/khrn_mem.h"
+#include "vcfw/rtos/abstract/rtos_abstract_mem.h"
 #include "interface/khronos/include/EGL/egl.h"
 
 #include <string.h>
@@ -62,7 +62,7 @@ typedef struct {
 
    bool              secure;
 
-   void              *v3dfence;
+   uint64_t          v3dfence;
    void              *platform_pixmap;
 
 } KHRN_IMAGE_T;
@@ -130,28 +130,26 @@ extern void khrn_image_platform_fudge(
    uint32_t *padded_width, uint32_t *padded_height,
    uint32_t *align, KHRN_IMAGE_CREATE_FLAG_T flags);
 
-extern void khrn_image_term(MEM_HANDLE_T handle);
-
-extern MEM_HANDLE_T khrn_image_create_from_storage(KHRN_IMAGE_FORMAT_T format,
+extern KHRN_IMAGE_T *khrn_image_create_from_storage(KHRN_IMAGE_FORMAT_T format,
    uint32_t width, uint32_t height, int32_t stride,
    MEM_HANDLE_T palette_handle, MEM_HANDLE_T storage_handle, uint32_t offset,
    KHRN_IMAGE_CREATE_FLAG_T flags, bool secure); /* just used for setting up usage flags */
 
-extern MEM_HANDLE_T khrn_image_create(KHRN_IMAGE_FORMAT_T format,
+extern KHRN_IMAGE_T *khrn_image_create(KHRN_IMAGE_FORMAT_T format,
    uint32_t width, uint32_t height,
    KHRN_IMAGE_CREATE_FLAG_T flags, bool secure);
 
-extern MEM_HANDLE_T khrn_image_create_dup(const KHRN_IMAGE_T *src,
+extern KHRN_IMAGE_T *khrn_image_create_dup(const KHRN_IMAGE_T *src,
    KHRN_IMAGE_CREATE_FLAG_T flags); /* flags are in addition to implicit flags from src */
 
 extern bool khrn_image_resize(KHRN_IMAGE_T *image, uint32_t width, uint32_t height);
 
-static INLINE void *khrn_image_lock(const KHRN_IMAGE_T *image)
+static inline void *khrn_image_lock(const KHRN_IMAGE_T *image)
 {
    return (uint8_t *)mem_lock(image->mh_storage, NULL) + image->offset;
 }
 
-static INLINE void khrn_image_unlock(const KHRN_IMAGE_T *image)
+static inline void khrn_image_unlock(const KHRN_IMAGE_T *image)
 {
    mem_unlock(image->mh_storage);
 }

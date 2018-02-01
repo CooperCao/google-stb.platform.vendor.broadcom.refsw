@@ -299,11 +299,9 @@ void ColorAspectCommandBuilder::AddTileListLoads()
                ls.flipy,
                ls.decimate,
                ls.pixel_format,
-#if V3D_VER_AT_LEAST(4,1,34,0)
                ls.load_alpha_to_one,
                ls.chan_reverse,
                ls.rb_swap,
-#endif
                ls.stride,
                ls.flipy_height_px,
                ls.addr);
@@ -325,10 +323,8 @@ void ColorAspectCommandBuilder::AddTileListStores()
             ls.decimate,
             ls.pixel_format,
             /*clear=*/false,
-#if V3D_VER_AT_LEAST(4,1,34,0)
             ls.chan_reverse,
             ls.rb_swap,
-#endif
             ls.stride,
             ls.flipy_height_px,
             ls.addr);
@@ -355,19 +351,11 @@ void ColorAspectCommandBuilder::InsertRenderTargetCfg()
          /*depthType=*/V3D_DEPTH_TYPE_32F,
          /*earlyDSClear=*/false);
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
    v3d_cl_tile_rendering_mode_cfg_color(CLPtr(),
          m_v3dRtFormat.bpp, m_v3dRtFormat.type, m_v3dRtFormat.clamp,
          m_v3dRtFormat.bpp, m_v3dRtFormat.type, m_v3dRtFormat.clamp,
          m_v3dRtFormat.bpp, m_v3dRtFormat.type, m_v3dRtFormat.clamp,
          m_v3dRtFormat.bpp, m_v3dRtFormat.type, m_v3dRtFormat.clamp);
-#else
-   v3d_cl_tile_rendering_mode_cfg_color(CLPtr(),
-         m_v3dRtFormat.bpp, m_v3dRtFormat.type,
-         m_v3dRtFormat.bpp, m_v3dRtFormat.type,
-         m_v3dRtFormat.bpp, m_v3dRtFormat.type,
-         m_v3dRtFormat.bpp, m_v3dRtFormat.type);
-#endif
 
    if (m_needsClears)
    {

@@ -55,6 +55,7 @@
 
 BDBG_MODULE(BVDC_XSRC);
 BDBG_FILE_MODULE(BVDC_DITHER);
+BDBG_FILE_MODULE(BVDC_FIR_BYPASS);
 BDBG_OBJECT_ID(BVDC_XSRC);
 
 
@@ -175,7 +176,7 @@ void BVDC_P_Xsrc_Destroy
  * {private}
  *
  */
-void BVDC_P_Xsrc_Init_isr
+static void BVDC_P_Xsrc_Init_isr
     ( BVDC_P_Xsrc_Handle            hXsrc )
 {
     uint32_t  ulReg;
@@ -249,7 +250,33 @@ void BVDC_P_Xsrc_Init_isr
  * {private}
  *
  */
-void BVDC_P_Xsrc_BuildRul_SetEnable_isr
+static void BVDC_P_Xsrc_SetEnable_isr
+    ( BVDC_P_Xsrc_Handle            hXsrc,
+      bool                          bEnable )
+{
+    BDBG_OBJECT_ASSERT(hXsrc, BVDC_XSRC);
+
+    if(!BVDC_P_XSRC_COMPARE_FIELD_DATA(
+        hXsrc, XSRC_0_ENABLE, SCALER_ENABLE, bEnable))
+    {
+        hXsrc->ulUpdateAll = BVDC_P_RUL_UPDATE_THRESHOLD;
+    }
+
+    /* Turn on/off the scaler. */
+    BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_ENABLE) &= ~(
+        BCHP_MASK(XSRC_0_ENABLE, SCALER_ENABLE));
+
+    BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_ENABLE) |=  (bEnable
+        ? BCHP_FIELD_ENUM(XSRC_0_ENABLE, SCALER_ENABLE, ON)
+        : BCHP_FIELD_ENUM(XSRC_0_ENABLE, SCALER_ENABLE, OFF));
+
+    return;
+}
+/***************************************************************************
+ * {private}
+ *
+ */
+static void BVDC_P_Xsrc_BuildRul_SetEnable_isr
     ( BVDC_P_Xsrc_Handle            hXsrc,
       BVDC_P_ListInfo              *pList )
 {
@@ -539,6 +566,7 @@ void BVDC_P_Xsrc_SetInfo_isr
 #if BVDC_P_XSRC_SUPPORT_HSCL
     uint32_t ulDstHSize;               /* Dst width in pixel unit */
     const BVDC_P_FirCoeffTbl *pHorzFirCoeff;
+    bool     bHFir;
 #endif
 
     BDBG_ENTER(BVDC_P_Xsrc_SetInfo_isr);
@@ -592,18 +620,6 @@ void BVDC_P_Xsrc_SetInfo_isr
         /* scaler panscan will be combined with init phase */
         BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_SRC_PIC_HORIZ_PAN_SCAN) &= ~(
             BCHP_MASK(XSRC_0_SRC_PIC_HORIZ_PAN_SCAN, OFFSET));
-
-        BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_CONTROL) &= ~(
-            BCHP_MASK(XSRC_0_HORIZ_CONTROL, FIR_ENABLE          ) |
-            BCHP_MASK(XSRC_0_HORIZ_CONTROL, MASK_HSCL_LONG_LINE ) |
-            BCHP_MASK(XSRC_0_HORIZ_CONTROL, MASK_HSCL_SHORT_LINE) |
-            BCHP_MASK(XSRC_0_HORIZ_CONTROL, STALL_DRAIN_ENABLE  ));
-
-        BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_CONTROL) |=  (
-             BCHP_FIELD_ENUM(XSRC_0_HORIZ_CONTROL, FIR_ENABLE,          ON ) |
-            BCHP_FIELD_ENUM(XSRC_0_HORIZ_CONTROL, MASK_HSCL_LONG_LINE,  ON ) |
-            BCHP_FIELD_ENUM(XSRC_0_HORIZ_CONTROL, MASK_HSCL_SHORT_LINE, ON ) |
-            BCHP_FIELD_ENUM(XSRC_0_HORIZ_CONTROL, STALL_DRAIN_ENABLE,   OFF));
 #endif
         BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_VIDEO_3D_MODE) =
             BCHP_FIELD_DATA(XSRC_0_VIDEO_3D_MODE, BVB_VIDEO,
@@ -651,6 +667,20 @@ void BVDC_P_Xsrc_SetInfo_isr
             /*ulFirHrzStepInit = ulFirHrzStep;*/
 
 #if BVDC_P_XSRC_SUPPORT_HSCL
+           bHFir = ((1<<BVDC_P_NRM_SRC_STEP_F_BITS) != ulNrmHrzStep) || (ulSrcHSize != ulDstHSize);
+           BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_CONTROL) &= ~(
+                BCHP_MASK(XSRC_0_HORIZ_CONTROL, FIR_ENABLE          ) |
+                BCHP_MASK(XSRC_0_HORIZ_CONTROL, MASK_HSCL_LONG_LINE ) |
+                BCHP_MASK(XSRC_0_HORIZ_CONTROL, MASK_HSCL_SHORT_LINE) |
+                BCHP_MASK(XSRC_0_HORIZ_CONTROL, STALL_DRAIN_ENABLE  ));
+
+            BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_CONTROL) |=  (
+                BCHP_FIELD_DATA(XSRC_0_HORIZ_CONTROL, FIR_ENABLE,        bHFir ) |
+                BCHP_FIELD_ENUM(XSRC_0_HORIZ_CONTROL, MASK_HSCL_LONG_LINE,  ON ) |
+                BCHP_FIELD_ENUM(XSRC_0_HORIZ_CONTROL, MASK_HSCL_SHORT_LINE, ON ) |
+                BCHP_FIELD_ENUM(XSRC_0_HORIZ_CONTROL, STALL_DRAIN_ENABLE,   OFF));
+            BDBG_MODULE_MSG(BVDC_FIR_BYPASS, ("xsrc[%d] HFIR_ENABLE %s", hXsrc->eId, bHFir?"ON":"OFF"));
+
             /* set step size and region_0 end */
             BVDC_P_XSRC_SET_HORZ_RATIO(hXsrc, ulFirHrzStep);
             BVDC_P_XSRC_SET_HORZ_REGION02(hXsrc, 0, ulDstHSize, 0);
@@ -795,121 +825,6 @@ void BVDC_P_Xsrc_SetInfo_isr
     BDBG_LEAVE(BVDC_P_Xsrc_SetInfo_isr);
     return;
 }
-
-/***************************************************************************
- * {private}
- *
- */
-void BVDC_P_Xsrc_SetEnable_isr
-    ( BVDC_P_Xsrc_Handle            hXsrc,
-      bool                          bEnable )
-{
-    BDBG_OBJECT_ASSERT(hXsrc, BVDC_XSRC);
-
-    if(!BVDC_P_XSRC_COMPARE_FIELD_DATA(
-        hXsrc, XSRC_0_ENABLE, SCALER_ENABLE, bEnable))
-    {
-        hXsrc->ulUpdateAll = BVDC_P_RUL_UPDATE_THRESHOLD;
-    }
-
-    /* Turn on/off the scaler. */
-    BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_ENABLE) &= ~(
-        BCHP_MASK(XSRC_0_ENABLE, SCALER_ENABLE));
-
-    BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_ENABLE) |=  (bEnable
-        ? BCHP_FIELD_ENUM(XSRC_0_ENABLE, SCALER_ENABLE, ON)
-        : BCHP_FIELD_ENUM(XSRC_0_ENABLE, SCALER_ENABLE, OFF));
-
-    return;
-}
-#else
-BERR_Code BVDC_P_Xsrc_Create
-    ( BVDC_P_Xsrc_Handle           *phXsrc,
-      BVDC_P_XsrcId                 eXsrcId,
-      BVDC_P_Resource_Handle        hResource,
-      BREG_Handle                   hReg )
-{
-    BSTD_UNUSED(phXsrc);
-    BSTD_UNUSED(eXsrcId);
-    BSTD_UNUSED(hResource);
-    BSTD_UNUSED(hReg);
-    return BERR_SUCCESS;
-}
-
-void BVDC_P_Xsrc_Destroy
-    ( BVDC_P_Xsrc_Handle            hXsrc )
-{
-    BSTD_UNUSED(hXsrc);
-    return;
-}
-
-void BVDC_P_Xsrc_Init_isr
-    ( BVDC_P_Xsrc_Handle            hXsrc )
-{
-    BSTD_UNUSED(hXsrc);
-    return;
-}
-
-void BVDC_P_Xsrc_BuildRul_SetEnable_isr
-    ( BVDC_P_Xsrc_Handle            hXsrc,
-      BVDC_P_ListInfo              *pList )
-{
-    BSTD_UNUSED(hXsrc);
-    BSTD_UNUSED(pList);
-}
-
-void BVDC_P_Xsrc_SetInfo_isr
-    ( BVDC_P_Xsrc_Handle            hXsrc,
-      BVDC_Window_Handle            hWindow,
-      const BVDC_P_PictureNodePtr   pPicture )
-{
-    BSTD_UNUSED(hXsrc);
-    BSTD_UNUSED(hWindow);
-    BSTD_UNUSED(pPicture);
-    return;
-}
-
-void BVDC_P_Xsrc_SetEnable_isr
-    ( BVDC_P_Xsrc_Handle            hXsrc,
-      bool                          bEnable )
-{
-    BSTD_UNUSED(hXsrc);
-    BSTD_UNUSED(bEnable);
-    return;
-}
-#endif  /* #if (BVDC_P_SUPPORT_XSRC) || (BVDC_P_SUPPORT_XSRC_MAD_HARD_WIRED) */
-
-#if !(BVDC_P_SUPPORT_XSRC)
-
-BERR_Code BVDC_P_Xsrc_AcquireConnect_isr
-    ( BVDC_P_Xsrc_Handle            hXsrc,
-      BVDC_Source_Handle            hSource )
-{
-    BSTD_UNUSED(hXsrc);
-    BSTD_UNUSED(hSource);
-    return BERR_SUCCESS;
-}
-
-BERR_Code BVDC_P_Xsrc_ReleaseConnect_isr
-    ( BVDC_P_Xsrc_Handle           *phXsrc )
-{
-    BSTD_UNUSED(phXsrc);
-    return BERR_SUCCESS;
-}
-
-void BVDC_P_Xsrc_BuildRul_isr
-    ( const BVDC_P_Xsrc_Handle      hXsrc,
-      BVDC_P_ListInfo              *pList,
-      BVDC_P_State                  eVnetState,
-      BVDC_P_PicComRulInfo         *pPicComRulInfo )
-{
-    BSTD_UNUSED(hXsrc);
-    BSTD_UNUSED(pList);
-    BSTD_UNUSED(eVnetState);
-    BSTD_UNUSED(pPicComRulInfo);
-    return;
-}
-
-#endif /* #if !(BVDC_P_SUPPORT_XSRC) */
+#endif /* BVDC_P_SUPPORT_XSRC */
 
 /* End of file. */

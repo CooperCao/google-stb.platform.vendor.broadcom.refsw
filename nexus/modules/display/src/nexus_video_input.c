@@ -84,6 +84,7 @@ static void NEXUS_VideoInput_P_SourceCallback_isr(void *pParam1, int pParam2, vo
             pData->idrPictureId = pSrcData->ulIdrPicId;
             pData->pictureOrderCount = pSrcData->lPicOrderCnt;
             pData->isField = pSrcData->eSourcePolarity != BAVC_Polarity_eFrame;
+            pData->flags = link->info.mfd.bRepeatField ? NEXUS_VIDEO_INPUT_CRC_FLAG_REPEAT : 0;
 
             if (++link->crc.wptr == link->crc.size) {
                 link->crc.wptr = 0;
@@ -645,31 +646,11 @@ NEXUS_VideoInput_P_HdrInputInfoUpdated(void * context)
 #if NEXUS_HAS_HDMI_OUTPUT && NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_VideoInput_P_Link *link = context;
     NEXUS_VideoWindowHandle windows[NEXUS_NUM_DISPLAYS];
-    NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame ;
     unsigned count;
     unsigned i;
 
     BDBG_MSG(("Update HDR information using VideoInputType: %d",
         link->input->type)) ;
-
-    if (link->input->type == NEXUS_VideoInputType_eDecoder)
-    {
-        BKNI_Memcpy(&drmInfoFrame, &link->drm.inputInfoFrame,
-            sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)) ;
-    }
-#if NEXUS_HAS_HDMI_INPUT
-    else if (link->input->type == NEXUS_VideoInputType_eHdmi)
-    {
-        NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput) ;
-            NEXUS_HdmiInput_GetDrmInfoFrameData_priv(link->input->source, &drmInfoFrame) ;
-        NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput) ;
-    }
-#endif
-    else
-    {
-        BDBG_WRN(("Unsupported HDR Input Type: %d", link->input->type)) ;
-        return ;
-    }
 
     NEXUS_Display_P_GetWindows_priv(link->input, windows, NEXUS_NUM_DISPLAYS, &count);
 
@@ -677,14 +658,86 @@ NEXUS_VideoInput_P_HdrInputInfoUpdated(void * context)
     {
         if (windows[i]->display->hdmi.outputNotify)  /* HDMI Output is attached to this display */
         {
+            NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame = &windows[i]->display->hdmi.hdrInfoChange.infoFrame;
+            if (link->input->type == NEXUS_VideoInputType_eDecoder)
+            {
+                if (pDrmInfoFrame->eotf != link->drm.inputInfoFrame.eotf)
+                {
+                    /*
+                     * new metadata will only come from VDC if it exists and if it has changed
+                     * this means we need to clear it each time the eotf changes,
+                     * but only if we haven't already received the smd from VDC,
+                     * which will come before this function runs *if there is any SMD*
+                     * if there isn't any SMD -> no callback from VDC -> we need to clear it
+                     */
+                    if (!windows[i]->display->hdmi.hdrInfoChange.smdValid)
+                    {
+                        BKNI_Memset(pDrmInfoFrame, 0, sizeof(*pDrmInfoFrame));
+                    }
+                }
+                /*
+                 * only the eotf comes directly from the input itself
+                 */
+                pDrmInfoFrame->eotf = link->drm.inputInfoFrame.eotf;
+            }
+        #if NEXUS_HAS_HDMI_INPUT
+            else if (link->input->type == NEXUS_VideoInputType_eHdmi)
+            {
+                /*
+                 * TODO: need to pass the smd to VDC, and only the eotf goes on to hdmi tx from here
+                 * Currently, this overrides anything from VDC with entire DRMIF from hdmi rx
+                 */
+                NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput) ;
+                    NEXUS_HdmiInput_GetDrmInfoFrameData_priv(link->input->source, pDrmInfoFrame) ;
+                NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput) ;
+            }
+        #endif
+            else
+            {
+                BDBG_WRN(("Unsupported HDR Input Type: %d", link->input->type)) ;
+                return ;
+            }
             NEXUS_VideoOutput_P_SetHdrSettings(windows[i]->display->hdmi.outputNotify,
-                &drmInfoFrame) ;
+                pDrmInfoFrame) ;
         }
     }
 #else
     BSTD_UNUSED(context);
 #endif
 }
+
+static void NEXUS_Display_P_GetWindows_isr(NEXUS_VideoInput videoInput, NEXUS_VideoWindowHandle *pWindowArray, unsigned arraySize, unsigned *numFilled)
+{
+    unsigned i,j;
+
+    BDBG_OBJECT_ASSERT(videoInput, NEXUS_VideoInput);
+
+    *numFilled = 0;
+    for (i=0;i<NEXUS_NUM_DISPLAYS;i++) {
+        for (j=0;j<NEXUS_NUM_VIDEO_WINDOWS;j++) {
+            if (*numFilled == arraySize) return;
+            if (pVideo->displays[i] && pVideo->displays[i]->windows[j].open) {
+                NEXUS_VideoWindowHandle window = &pVideo->displays[i]->windows[j];
+#if NEXUS_NUM_MOSAIC_DECODES
+                NEXUS_VideoWindowHandle mosaicWindow;
+#endif
+                if (window->input == videoInput) {
+                    pWindowArray[(*numFilled)++] = window;
+                }
+#if NEXUS_NUM_MOSAIC_DECODES
+                for (mosaicWindow = BLST_S_FIRST(&window->mosaic.children); mosaicWindow; mosaicWindow = BLST_S_NEXT(mosaicWindow, mosaic.link)) {
+                    if (*numFilled == arraySize) return;
+                    if (mosaicWindow->input == videoInput) {
+                        pWindowArray[(*numFilled)++] = mosaicWindow;
+                    }
+                }
+#endif
+            }
+        }
+    }
+    return;
+}
+
 
 #if NEXUS_NUM_VIDEO_DECODERS
 static void
@@ -694,7 +747,7 @@ NEXUS_VideoInput_P_UpdateHdrInputInfo_isr(NEXUS_VideoInput_P_Link *link)
     NEXUS_TransferCharacteristics preferredTransferChars;
     NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame ;
 
-    BKNI_Memset(&drmInfoFrame, 0 , sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)) ;
+    BKNI_Memset_isr(&drmInfoFrame, 0 , sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)) ;
 
     transferChars = NEXUS_P_TransferCharacteristics_FromMagnum_isrsafe(link->info.mfd.eTransferCharacteristics);
     preferredTransferChars = NEXUS_P_TransferCharacteristics_FromMagnum_isrsafe(link->info.mfd.ePreferredTransferCharacteristics);
@@ -720,11 +773,23 @@ NEXUS_VideoInput_P_UpdateHdrInputInfo_isr(NEXUS_VideoInput_P_Link *link)
         link->info.mfd.ulMaxContentLight,
         link->info.mfd.ulAvgContentLight);
 
-    if (BKNI_Memcmp(&drmInfoFrame, &link->drm.inputInfoFrame, sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)))
+    if (BKNI_Memcmp_isr(&drmInfoFrame, &link->drm.inputInfoFrame, sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)))
     {
-        BDBG_MSG(("Update DRM Packet to use EOTF: %d", drmInfoFrame.eotf)) ;
-        BKNI_Memcpy(&link->drm.inputInfoFrame, &drmInfoFrame, sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)) ;
-        link->drm.inputInfoFrame.eotf = drmInfoFrame.eotf ;
+        NEXUS_VideoWindowHandle windows[NEXUS_NUM_DISPLAYS];
+        unsigned count;
+        unsigned i;
+
+        BDBG_MSG(("Update DRM Packet, EOTF: %d", drmInfoFrame.eotf)) ;
+        BKNI_Memcpy_isr(&link->drm.inputInfoFrame, &drmInfoFrame, sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)) ;
+        BDBG_MSG(("Update HDR information using VideoInputType: %d", link->input->type)) ;
+
+        /* this info comes at isr time before the data goes to VDC,
+         * reset the smd validity to false, if VDC has more SMD, it will update */
+        NEXUS_Display_P_GetWindows_isr(link->input, windows, NEXUS_NUM_DISPLAYS, &count);
+        for (i = 0; i < count; i++)
+        {
+            windows[i]->display->hdmi.hdrInfoChange.smdValid = false;
+        }
         BKNI_SetEvent_isr(link->drm.inputInfoUpdatedEvent);
     }
 }
@@ -777,6 +842,7 @@ NEXUS_VideoInput_P_DecoderDataReady_isr(void *input_, const BAVC_MFD_Picture *pP
     }
 #endif
 
+    /* NEXUS_VideoInput_P_UpdateHdrInputInfo_isr must occur before the picInfo is passed to VDC */
     NEXUS_VideoInput_P_UpdateHdrInputInfo_isr(link);
 
     if(pVideo->verifyTimebase)
@@ -1135,8 +1201,7 @@ NEXUS_VideoInput_Shutdown(NEXUS_VideoInput input)
         const unsigned maxnum = sizeof(window)/sizeof(window[0]);
         unsigned num;
         do {
-            rc = NEXUS_Display_P_GetWindows_priv(input, window, maxnum, &num);
-            if (rc) {rc = BERR_TRACE(rc); goto err_connected;}
+            NEXUS_Display_P_GetWindows_priv(input, window, maxnum, &num);
             for (i=0;i<num;i++) {
                 /* remove in reverse order for faster BVDC_ApplyChanges (usually removes syncslip before synclock) */
                 rc = NEXUS_VideoWindow_RemoveInput(window[num-i-1], input);
@@ -1321,37 +1386,13 @@ NEXUS_Error NEXUS_VideoInput_GetSyncStatus_isr(NEXUS_VideoInput videoInput, NEXU
 }
 #endif /* NEXUS_HAS_SYNC_CHANNEL */
 
-NEXUS_Error NEXUS_Display_P_GetWindows_priv(NEXUS_VideoInput videoInput, NEXUS_VideoWindowHandle *pWindowArray, unsigned arraySize, unsigned *numFilled)
+void NEXUS_Display_P_GetWindows_priv(NEXUS_VideoInput videoInput, NEXUS_VideoWindowHandle *pWindowArray, unsigned arraySize, unsigned *numFilled)
 {
-    unsigned i,j;
-
     NEXUS_ASSERT_MODULE();
-    BDBG_OBJECT_ASSERT(videoInput, NEXUS_VideoInput);
-
-    *numFilled = 0;
-    for (i=0;i<NEXUS_NUM_DISPLAYS;i++) {
-        for (j=0;j<NEXUS_NUM_VIDEO_WINDOWS;j++) {
-            if (*numFilled == arraySize) return 0;
-            if (pVideo->displays[i] && pVideo->displays[i]->windows[j].open) {
-                NEXUS_VideoWindowHandle window = &pVideo->displays[i]->windows[j];
-#if NEXUS_NUM_MOSAIC_DECODES
-                NEXUS_VideoWindowHandle mosaicWindow;
-#endif
-                if (window->input == videoInput) {
-                    pWindowArray[(*numFilled)++] = window;
-                }
-#if NEXUS_NUM_MOSAIC_DECODES
-                for (mosaicWindow = BLST_S_FIRST(&window->mosaic.children); mosaicWindow; mosaicWindow = BLST_S_NEXT(mosaicWindow, mosaic.link)) {
-                    if (*numFilled == arraySize) return 0;
-                    if (mosaicWindow->input == videoInput) {
-                        pWindowArray[(*numFilled)++] = mosaicWindow;
-                    }
-                }
-#endif
-            }
-        }
-    }
-    return 0;
+    BKNI_EnterCriticalSection();
+    NEXUS_Display_P_GetWindows_isr(videoInput, pWindowArray, arraySize, numFilled);
+    BKNI_LeaveCriticalSection();
+    return;
 }
 
 void

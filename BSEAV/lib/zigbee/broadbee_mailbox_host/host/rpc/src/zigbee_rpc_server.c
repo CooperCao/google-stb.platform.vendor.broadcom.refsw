@@ -131,10 +131,10 @@ static void process_rx_message(unsigned int *message_rx, int socket)
         break;
    case RPC_C2S_RF4CE_StartReq:
         /* Add some more stuff to adapt ZRC2.0 and ZRC1.1 */
-        #if defined(USE_RF4CE_PROFILE_ZRC2)
+   #if 0    //#if defined(USE_RF4CE_PROFILE_ZRC2)
         rf4ce_ZRC2_Set_Default_Check_Validation_Period(0);
         rf4ce_ZRC2_Set_Default_Check_Validation_Period(1);
-        #endif
+   #endif
         server_RF4CE_StartReq(&socket_cb[socket].message_rx[0], socket);
         break;
    case RPC_C2S_RF4CE_ZRC1_VendorSpecificReq:

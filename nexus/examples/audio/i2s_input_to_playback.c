@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -109,7 +109,8 @@ static void capture_callback(void *pParam1, int param2)
     printf("Data callback - channel 0x%08x\n", *
     (unsigned)captureCBParams->capture); *
     **/
-    pParam1=pParam1;    /*unused*/
+    captureCBParams=pParam1;
+    BSTD_UNUSED(param2);
     BKNI_SetEvent(captureCBParams->event);
 }
 
@@ -315,10 +316,10 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Unable to open outputCapture channel\n");
         return 0;
     }
-    BDBG_ERR(("Opened in OutputCapture->Memory"));
-    BDBG_ERR((">>>> capture format is %u", ocOpenSettings.format));
-    BDBG_ERR((">>>> capture fifoSize is %u", ocOpenSettings.fifoSize));
-    BDBG_ERR((">>>> capture threshold is %u", ocOpenSettings.threshold));
+    BDBG_LOG(("Opened in OutputCapture->Memory"));
+    BDBG_LOG((">>>> capture format is %u", ocOpenSettings.format));
+    BDBG_LOG((">>>> capture fifoSize is %u", (unsigned)ocOpenSettings.fifoSize));
+    BDBG_LOG((">>>> capture threshold is %u", (unsigned)ocOpenSettings.threshold));
     #else
     NEXUS_AudioInputCapture_GetDefaultOpenSettings(&icOpenSettings);
     icOpenSettings.fifoSize = CAPTURE_BUFFER_SIZE;
@@ -329,10 +330,10 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Unable to open inputCapture channel\n");
         return 0;
     }
-    BDBG_ERR(("Opened in InputCapture->Memory"));
-    BDBG_ERR((">>>> capture format is %u", icOpenSettings.format));
-    BDBG_ERR((">>>> capture fifoSize is %u", icOpenSettings.fifoSize));
-    BDBG_ERR((">>>> capture threshold is %u", icOpenSettings.threshold));
+    BDBG_LOG(("Opened in InputCapture->Memory"));
+    BDBG_LOG((">>>> capture format is %u", icOpenSettings.format));
+    BDBG_LOG((">>>> capture fifoSize is %u", (unsigned)icOpenSettings.fifoSize));
+    BDBG_LOG((">>>> capture threshold is %u", (unsigned)icOpenSettings.threshold));
     #endif
 
     NEXUS_AudioPlayback_GetDefaultOpenSettings(&pbOpenSettings);

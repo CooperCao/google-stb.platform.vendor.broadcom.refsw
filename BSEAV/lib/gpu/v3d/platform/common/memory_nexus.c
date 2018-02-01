@@ -54,8 +54,11 @@ static FILE *sLogFile = NULL;
 
 #define UNUSED(X) X
 
+/*****************************************************************************
+ * Memory interface
+ *****************************************************************************/
 
-static NEXUS_MemoryBlockHandle MemAllocMMA(void *context, size_t numBytes, uint32_t alignment, bool secure)
+static void *MemAlloc(void *context, size_t numBytes, uint32_t alignment, bool secure)
 {
    NXPL_MemoryData               *data = (NXPL_MemoryData*)context;
    NEXUS_MemoryBlockHandle       allocedBlock;
@@ -94,146 +97,29 @@ static NEXUS_MemoryBlockHandle MemAllocMMA(void *context, size_t numBytes, uint3
    return (void *)allocedBlock;
 }
 
-
-/*****************************************************************************
- * Memory interface
- *****************************************************************************/
-
-/* Allocate aligned device memory, and return the cached address, or NULL on failure.*/
-static void *MemAlloc(void *context, size_t numBytes, uint32_t alignment, bool secure)
-{
-   NXPL_MemoryData               *data = (NXPL_MemoryData*)context;
-
-   if (data->useMMA)
-   {
-      void *res = (void *)MemAllocMMA(context, numBytes, alignment, secure);
-      return res;
-   }
-   else
-   {
-      NEXUS_MemoryAllocationSettings settings;
-      void *allocedOffset = NULL;
-
-      NEXUS_Memory_GetDefaultAllocationSettings(&settings);
-
-      settings.alignment = alignment;
-      settings.heap = secure ? data->heapMapSecure.heap : data->heapMap.heap;  /* Use the primary heap */
-
-      NEXUS_Memory_Allocate(numBytes, &settings, &allocedOffset);
-
-#ifdef LOG_MEMORY_PATTERN
-      if (sLogFile)
-         fprintf(sLogFile, "A %u %u = %u\n", numBytes, alignment, (uint32_t)alloced);
-#endif
-
-      if (allocedOffset == NULL)
-      {
-#ifndef NDEBUG
-         NEXUS_MemoryStatus  status;
-         NEXUS_HeapHandle heap = secure ? data->heapMapSecure.heap : data->heapMap.heap;
-
-         NEXUS_Heap_GetStatus(heap, &status);
-
-         printf("Platform layer MemAlloc failed : \n");
-         printf("total heap size = %d\n", status.size);
-         printf("num allocs = %d\n", status.numAllocs);
-         printf("free = %d\n", status.free);
-         printf("largest free block = %d\n", status.largestFreeBlock);
-#endif
-      }
-
-      return allocedOffset;
-   }
-}
-
 /* Free a previously allocated block of device memory. Pass a cached address.*/
 static void MemFree(void *context, void *pCached)
 {
    NXPL_MemoryData *data = (NXPL_MemoryData*)context;
 
-   if (data->useMMA)
-   {
-      NEXUS_MemoryBlockHandle alloced = (NEXUS_MemoryBlockHandle)pCached;
+   NEXUS_MemoryBlockHandle alloced = (NEXUS_MemoryBlockHandle)pCached;
 
 #ifdef LOG_MEMORY_PATTERN
-      if (sLogFile)
-         fprintf(sLogFile, "F %u\n", (uint32_t)alloced);
+   if (sLogFile)
+      fprintf(sLogFile, "F %u\n", (uint32_t)alloced);
 #endif
 
-      /* Under Nexus, this also handles both the unlocks for us. */
+   /* Under Nexus, this also handles both the unlocks for us. */
 
-      /*printf("MemFreeBlock %p\n", handle);*/
-      NEXUS_MemoryBlock_Free(alloced);
-   }
-   else
-   {
-#ifdef LOG_MEMORY_PATTERN
-      if (sLogFile)
-         fprintf(sLogFile, "F %u\n", (uint32_t)pCached);
-#endif
-
-#ifndef NDEBUG
-      if (pCached == 0)
-         printf("NXPL : Trying to free NULL pointer\n");
-#endif
-
-      NEXUS_Memory_Free(pCached);
-   }
-}
-
-static bool IsValidHeapCachedPtr(void *context, void *pCached)
-{
-   bool res = false;
-   NXPL_MemoryData *data = (NXPL_MemoryData*)context;
-
-   if ((pCached >= data->heapMap.heapStartCached) &&
-      (pCached < (data->heapMap.heapStartCached + data->heapMap.heapSize)))
-      res = true;
-
-   return res;
-}
-
-/* Return a physical device memory offset given a cached pointer. Returns 0 on failure.*/
-/* This will work for the primary heap and any extra heaps that may have been registered. */
-static uint32_t MemConvertCachedToPhysical(void *context, void *pCached)
-{
-   NXPL_MemoryData   *data = (NXPL_MemoryData*)context;
-
-#ifndef NDEBUG
-   if (pCached == 0)
-      printf("NXPL : Trying to convert NULL pointer\n");
-#endif
-
-   return data->heapMap.heapStartPhys + ((uintptr_t)pCached - (uintptr_t)data->heapMap.heapStartCached);
-}
-
-/* Return a cached memory pointer given a physical device memory offset. Returns 0 on failure.*/
-static void *MemConvertPhysicalToCached(void *context, uint32_t offset)
-{
-   NXPL_MemoryData   *data = (NXPL_MemoryData*)context;
-
-   return (void*)((uintptr_t)data->heapMap.heapStartCached + (offset - data->heapMap.heapStartPhys));
+   /*printf("MemFreeBlock %p\n", handle);*/
+   NEXUS_MemoryBlock_Free(alloced);
 }
 
 /* Flush the cache for the given address range.*/
 static void MemFlushCache(void *context, void *pCached, size_t numBytes)
 {
-   NXPL_MemoryData   *data = (NXPL_MemoryData*)context;
-
-   if (data->useMMA)
-   {
-      /* dump everything for now */
-      NEXUS_FlushCache(0, ~0);
-   }
-   else
-   {
-      bool              validPtr = IsValidHeapCachedPtr(context, pCached);
-
-      if (!validPtr || numBytes > data->heapMap.heapSize)
-         NEXUS_Memory_FlushCache(data->heapMap.heapStartCached, data->heapMap.heapSize);
-      else
-         NEXUS_Memory_FlushCache(pCached, numBytes);
-   }
+   UNUSED(context);
+   NEXUS_FlushCache(pCached, numBytes);
 }
 
 /* Retrieve some information about the memory system */
@@ -320,25 +206,17 @@ static void DebugHeap(NEXUS_HeapHandle heap)
          status.guardBanding?'y':'n');
 }
 
-/* dummy - feed it through for non MMA */
 static void *MemLock(void *context, void *handle)
 {
    void *res = NULL;
    NXPL_MemoryData   *data = (NXPL_MemoryData*)context;
 
-   if (data->useMMA)
-   {
-      NEXUS_Addr  devPtr;
-      NEXUS_Error err;
+   NEXUS_Addr  devPtr;
+   NEXUS_Error err;
 
-      err = NEXUS_MemoryBlock_Lock((NEXUS_MemoryBlockHandle)handle, &res);
-      if (err != NEXUS_SUCCESS)
-         return NULL;
-   }
-   else
-      res = handle;
+   err = NEXUS_MemoryBlock_Lock((NEXUS_MemoryBlockHandle)handle, &res);
 
-   return res;
+   return (err != NEXUS_SUCCESS) ? NULL : res;
 }
 
 static uintptr_t MemLockOffset(void *context, void *handle)
@@ -346,31 +224,21 @@ static uintptr_t MemLockOffset(void *context, void *handle)
    uintptr_t res = 0;
    NXPL_MemoryData   *data = (NXPL_MemoryData*)context;
 
-   if (data->useMMA)
-   {
-      NEXUS_Addr  devPtr;
-      NEXUS_Error err;
+   NEXUS_Addr  devPtr;
+   NEXUS_Error err;
 
-      err = NEXUS_MemoryBlock_LockOffset((NEXUS_MemoryBlockHandle)handle, &devPtr);
-      if (err != NEXUS_SUCCESS)
-         return 0;
-      res = (uintptr_t)devPtr;
-   }
-   else
-      res = data->heapMap.heapStartPhys + ((uintptr_t)handle - (uintptr_t)data->heapMap.heapStartCached);
+   err = NEXUS_MemoryBlock_LockOffset((NEXUS_MemoryBlockHandle)handle, &devPtr);
 
-   return res;
+   return (err != NEXUS_SUCCESS) ? 0 : (uintptr_t)devPtr;
 }
 
 static void MemUnlock(void *context, void *handle)
 {
    NXPL_MemoryData   *data = (NXPL_MemoryData*)context;
 
-   if (data->useMMA)
-   {
-      NEXUS_MemoryBlock_UnlockOffset((NEXUS_MemoryBlockHandle)handle);
-      NEXUS_MemoryBlock_Unlock((NEXUS_MemoryBlockHandle)handle);
-   }
+   NEXUS_MemoryBlock_UnlockOffset((NEXUS_MemoryBlockHandle)handle);
+   NEXUS_MemoryBlock_Unlock((NEXUS_MemoryBlockHandle)handle);
+
    return;
 }
 
@@ -424,7 +292,7 @@ static void close_gfx(NEXUS_Graphics2DHandle gfx)
 static NEXUS_MemoryBlockHandle alloc_scratch(NXPL_MemoryData *data, NEXUS_Addr *offset)
 {
    /* created as a 2k x strip height with 16bpp as a temp scratch space */
-   NEXUS_MemoryBlockHandle res = MemAllocMMA(data,
+   NEXUS_MemoryBlockHandle res = MemAlloc(data,
       2048 * STRIP_HEIGHT * 2, 4096/*alignment*/, false);
    NEXUS_MemoryBlock_LockOffset(res, offset);
    return res;
@@ -471,16 +339,16 @@ BEGL_MemoryInterface *NXPL_CreateMemInterface(BEGL_HWInterface *hwIface)
 
          memset(data, 0, sizeof(NXPL_MemoryData));
 
-         data->useMMA = false;
+         data->useDynamicMMA = false;
 #ifdef ANDROID
          /* default off */
          property_get(NX_MMA, val, "0");
          if (val[0] == 't' || val[0] == 'T' || val[0] == '1')
-            data->useMMA = true;
+            data->useDynamicMMA = true;
 #else
          val = getenv(NX_MMA);
          if (val && (val[0] == 't' || val[0] == 'T' || val[0] == '1'))
-            data->useMMA = true;
+            data->useDynamicMMA = true;
 #endif
 
          data->heapGrow = BLOCK_SIZE;
@@ -505,12 +373,6 @@ BEGL_MemoryInterface *NXPL_CreateMemInterface(BEGL_HWInterface *hwIface)
          mem->Alloc = MemAlloc;
          mem->Free = MemFree;
          mem->FlushCache = MemFlushCache;
-         if (!data->useMMA)
-         {
-            /* this is only valid when NEXUS maps entire heap */
-            mem->ConvertCachedToPhysical = MemConvertCachedToPhysical;
-            mem->ConvertPhysicalToCached = MemConvertPhysicalToCached;
-         }
          mem->GetInfo = MemGetInfo;
          mem->MemLock = MemLock;
          mem->MemLockOffset = MemLockOffset;
@@ -531,16 +393,16 @@ BEGL_MemoryInterface *NXPL_CreateMemInterface(BEGL_HWInterface *hwIface)
 #ifndef SINGLE_PROCESS
          NEXUS_Platform_GetClientConfiguration(&clientConfig);
 
-         if (data->useMMA)
-            data->heapMap.heap = clientConfig.heap[4];
+#ifndef NXCLIENT_SUPPORT
+         data->heapMap.heap = clientConfig.heap[0];
+#else
+         if (data->useDynamicMMA)
+            data->heapMap.heap = clientConfig.heap[NXCLIENT_DYNAMIC_HEAP];
          else if (clientConfig.mode == NEXUS_ClientMode_eUntrusted)
-            data->heapMap.heap = clientConfig.heap[0];
+            data->heapMap.heap = clientConfig.heap[NXCLIENT_DEFAULT_HEAP];
          else
-#ifdef NXCLIENT_SUPPORT
             /* NEXUS_Platform_GetFramebufferHeap() is not callable under NEXUS_CLIENT_SUPPORT=y */
             data->heapMap.heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
-#else
-            data->heapMap.heap = NULL;
 #endif
 
 #ifdef NXCLIENT_SUPPORT
@@ -651,7 +513,7 @@ NEXUS_HeapHandle NXPL_MemHeap(BEGL_MemoryInterface *mem)
    return NULL;
 }
 
-/* Return the primary memory heap */
+/* Return the secure memory heap */
 __attribute__((visibility("default")))
 NEXUS_HeapHandle NXPL_MemHeapSecure(BEGL_MemoryInterface *mem)
 {

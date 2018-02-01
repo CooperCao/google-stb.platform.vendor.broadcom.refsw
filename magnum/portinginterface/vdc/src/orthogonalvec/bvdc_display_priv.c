@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #include "bstd.h"
@@ -332,6 +331,7 @@ void BVDC_P_Display_Init
 
     /* Init display aspect ratio */
     hDisplay->stNewInfo.eAspectRatio = hDisplay->stNewInfo.pFmtInfo->eAspectRatio;
+    BKNI_EnterCriticalSection();
     BVDC_P_CalcuPixelAspectRatio_isr(
         hDisplay->stNewInfo.eAspectRatio,
         hDisplay->stNewInfo.uiSampleAspectRatioX,
@@ -341,6 +341,7 @@ void BVDC_P_Display_Init
         &hDisplay->ulPxlAspRatio,
         &hDisplay->ulPxlAspRatio_x_y,
         BFMT_Orientation_e2D);
+    BKNI_LeaveCriticalSection();
     hDisplay->stNewInfo.stDirty.stBits.bAspRatio = BVDC_P_DIRTY;
 
     /* Initialize output color space */
@@ -358,7 +359,7 @@ void BVDC_P_Display_Init
      * NOTE: primary and secondary displays will always take HD color space input
      * from compositors; while the bypass display input color space could be SD
      * or HD depends on the VDEC source format. */
-    hDisplay->stNewInfo.eCmpColorimetry = BAVC_P_Colorimetry_eBt709;
+    hDisplay->stNewInfo.eCmpColorimetry = BCFC_Colorimetry_eBt709;
 
     /* Current display rate info, update at least once at initialization */
     hDisplay->stNewInfo.stRateInfo.ulPixelClkRate    = 0;
@@ -910,6 +911,7 @@ void BVDC_P_Display_EnableTriggers_isr
     }
     else if(hDisplay->st656Chan.bEnable)
     {
+
 #if (BVDC_P_SUPPORT_ITU656_OUT)
         /* Re-enable triggers. */
         ulTrigger0 = BREG_Read32_isr(hDisplay->hVdc->hRegister,
@@ -936,9 +938,9 @@ void BVDC_P_Display_EnableTriggers_isr
     }
     else
     {
-            BDBG_ERR((" Invalid timing generator master %d, display id %d",
-                hDisplay->eMasterTg, hDisplay->eId));
-            BDBG_ASSERT(0);
+        BDBG_ERR((" Invalid timing generator master %d, display id %d",
+            hDisplay->eMasterTg, hDisplay->eId));
+        BDBG_ASSERT(0);
     }
 
     BDBG_LEAVE(BVDC_P_Display_EnableTriggers_isr);
@@ -1443,9 +1445,9 @@ static BERR_Code BVDC_P_Display_ValidateDacSettings
                 }
 
                 BDBG_MSG(("D%d Acquire new resource for Chan_%d", hDisplay->eId, (i & 0x1)));
-                err = BVDC_P_AllocITResources(hVdc->hResource, hDisplay, hDisplay->eId * 2 + (i & 0x1), pstChan,
+                err = BVDC_P_AllocITResources_isr(hVdc->hResource, hDisplay, hDisplay->eId * 2 + (i & 0x1), pstChan,
                             hDisplay->stAnlgChan_0.ulIt);
-                err |= BVDC_P_AllocAnalogChanResources(hVdc->hResource, hDisplay->eId * 2 + (i & 0x1), pstChan,
+                err |= BVDC_P_AllocAnalogChanResources_isr(hVdc->hResource, hDisplay->eId * 2 + (i & 0x1), pstChan,
                             (!(ulMask & BVDC_P_Dac_Mask_SD) && hDisplay->bHdCap) ? true : false ,
                             (ulMask & BVDC_P_Dac_Mask_HD) ? true : false ,
                             ((ulMask & BVDC_P_Dac_Mask_SD) && (BVDC_P_NUM_SHARED_SECAM != 0) && (BFMT_IS_SECAM(pNewInfo->pFmtInfo->eVideoFmt))) ? true : false);
@@ -1521,7 +1523,7 @@ static BERR_Code BVDC_P_Display_ValidateDacSettings
                     if(aulNewAnalogChan[i] != 0 && aulCurAnalogChan[i] == 0)
                     {
                         BDBG_MSG(("Display %d Acquire new Dac resource for AnlgChan_%d", hDisplay->eId, (i & 0x1)));
-                        err = BVDC_P_AllocDacResources(hVdc->hResource, pstChan, aulNewAnalogChan[i]);
+                        err = BVDC_P_AllocDacResources_isr(hVdc->hResource, pstChan, aulNewAnalogChan[i]);
                         if(err)
                         {
                             BKNI_LeaveCriticalSection();
@@ -2373,6 +2375,22 @@ void BVDC_P_Vec_BuildVsync_isr
         }
 #endif
 
+        if (pCurInfo->stCallbackSettings.stMask.bHdrInfoFrame)
+        {
+            if(BVDC_P_Display_GetInfoFrame_isr(hDisplay, &pCbData->stInfoFrame.Type1))
+            {
+                pCbData->stMask.bHdrInfoFrame = 1;
+            }
+            else
+            {
+                pCbData->stMask.bHdrInfoFrame = 0;
+            }
+        }
+        else
+        {
+            pCbData->stMask.bHdrInfoFrame = 0;
+        }
+
         if(hDisplay->bCallbackInit)
             hDisplay->bCallbackInit = false;
 
@@ -2536,6 +2554,14 @@ void BVDC_P_Vec_BuildRul_isr
                 applySettingHandler(hDisplay, pList, eFieldPolarity);
             }
         }
+    }
+
+    /* Display prologue callback installed? */
+    if (hDisplay->stCurInfo.stCallbackSettings.pfPrologueCb_isr)
+    {
+        hDisplay->stCurInfo.stCallbackSettings.pfPrologueCb_isr(hDisplay->stCurInfo.pvGenericParm1,
+            hDisplay->stCurInfo.iGenericParm2, NULL);
+
     }
 
 #if (BVDC_P_SUPPORT_STG)
@@ -2845,4 +2871,49 @@ BERR_Code BVDC_P_GetVfFilterSumOfTapsBits_isr
     if (pbOverride)       *pbOverride       = bOverride;
     BDBG_LEAVE(BVDC_P_GetVfFilterSumOfTapsBits_isr);
     return BERR_SUCCESS;
+}
+
+/* get output hdr10 info frame
+ */
+bool BVDC_P_Display_GetInfoFrame_isr(
+    BVDC_Display_Handle           hDisplay,
+    BAVC_HDMI_DRMInfoFrameType1  *pInfoFrame)
+{
+    BVDC_Compositor_Handle hCompositor = hDisplay->hCompositor;
+    BDBG_ASSERT(pInfoFrame);
+    if(!hDisplay->stCurInfo.stHdmiSettings.stSettings.bDolbyVisionEnabled &&
+       hDisplay->stCurInfo.stHdmiSettings.stSettings.eEotf == BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084)
+    {
+        if(hCompositor->bUnknownHdrParm)
+        {
+            if(BKNI_Memcmp_isr(pInfoFrame, &hCompositor->stHdrParm, sizeof(BAVC_HDMI_DRMInfoFrameType1)))
+            {
+                BKNI_Memset_isr(pInfoFrame, 0, sizeof(BAVC_HDMI_DRMInfoFrameType1));
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+#if BVDC_P_DBV_SUPPORT
+        else if(hCompositor->pstDbv && hCompositor->pstDbv->pstCtrlResults && hCompositor->pstDbv->metadataPresent)
+        {
+            return BVDC_P_Display_DbvGetInfoFrame_isr(hDisplay, pInfoFrame);
+        }
+#endif
+        else /* hdr10 in -> hdr10 out pass through */
+        {
+            if(BKNI_Memcmp_isr(pInfoFrame, &hCompositor->stHdrParm, sizeof(BAVC_HDMI_DRMInfoFrameType1)))
+            {
+                BKNI_Memcpy_isr(pInfoFrame, &hCompositor->stHdrParm, sizeof(BAVC_HDMI_DRMInfoFrameType1));
+                return true;
+            }
+        }
+    }
+    else
+    {
+        BKNI_Memset_isr(pInfoFrame, 0, sizeof(BAVC_HDMI_DRMInfoFrameType1));
+    }
+    return false;
 }

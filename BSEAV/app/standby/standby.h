@@ -93,23 +93,15 @@
 #if NEXUS_HAS_PICTURE_DECODER
 #include "nexus_picture_decoder.h"
 #endif
-#if PLAYBACK_IP_SUPPORT
-#include "b_playback_ip_lib.h"
+#if BIP_SUPPORT
+#include "bip.h"
 #endif
 
-
-/* These codes correspond to keys on the OneForAll Remote */
-#define EXIT_IR_CODE 0xD012
-#define S0_IR_CODE 0x600A /*master power*/
-#define S1_IR_CODE 0xF001 /*1*/
-#define S2_IR_CODE 0xE002 /*2*/
-#define S3_IR_CODE 0xD003 /*3*/
-#define S5_IR_CODE 0xB005 /*5*/
-#define SO_IR_CODE 0xE011 /*ok*/
-
-#define S0_UHF_CODE 0x00220373
-
-#define S0_KEYPAD_CODE
+#include "picdecoder.h"
+#include "bgui.h"
+#include "bfont.h"
+#include "binput.h"
+#include "namevalue.h"
 
 
 #if (BCHP_CHIP == 7425) || (BCHP_CHIP == 7435) || (BCHP_CHIP == 7420)
@@ -118,13 +110,19 @@
 
 #define MAX_CONTEXTS 2
 
+#define GUI_WIDTH  250
+#define GUI_HEIGHT 50
+#define PADDING    50
+
 typedef struct B_StandbyNexusHandles {
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_DisplayHandle displayHD, displaySD;
     NEXUS_VideoWindowHandle windowHD[MAX_CONTEXTS];
     NEXUS_VideoWindowHandle windowSD[MAX_CONTEXTS];
     NEXUS_Graphics2DHandle gfx2d;
-    NEXUS_SurfaceHandle framebufferHD, framebufferSD, offscreen;
+    NEXUS_SurfaceHandle framebufferHD, framebufferSD, offscreenHD, offscreenSD;
+    NEXUS_SurfaceHandle menuSurface;
+    NEXUS_SurfaceHandle blitSurface;
     NEXUS_StcChannelHandle stcChannel[MAX_CONTEXTS];
     NEXUS_PidChannelHandle videoPidChannel[MAX_CONTEXTS], audioPidChannel[MAX_CONTEXTS];
     NEXUS_VideoDecoderHandle videoDecoder[MAX_CONTEXTS];
@@ -143,15 +141,11 @@ typedef struct B_StandbyNexusHandles {
     NEXUS_RecpumpHandle recpump[MAX_CONTEXTS];
     NEXUS_RecordHandle record[MAX_CONTEXTS];
 #endif
-#if PLAYBACK_IP_SUPPORT
-    B_PlaybackIpHandle playbackIp[MAX_CONTEXTS];
+#if BIP_SUPPORT
+    BIP_PlayerHandle bipPlayer[MAX_CONTEXTS];
 #endif
-#if NEXUS_HAS_PICTURE_DECODER
-    NEXUS_PictureDecoderHandle pictureDecoder;
-    NEXUS_SurfaceHandle picFrameBuffer, picSurface;
-    NEXUS_PictureDecoderStatus imgStatus;
-    FILE *picFileHandle;
-#endif
+    picdecoder_t picDecoder;
+    NEXUS_SurfaceHandle picSurface;
 #ifdef NEXUS_HAS_VIDEO_ENCODER
     NEXUS_DisplayHandle displayTranscode;
     NEXUS_VideoWindowHandle windowTranscode;
@@ -189,6 +183,12 @@ typedef struct B_StandbyNexusHandles {
     BKNI_EventHandle event, s1Event;
     BKNI_EventHandle checkpointEvent, spaceAvailableEvent;
     BKNI_EventHandle signalLockedEvent;
+
+    BKNI_MutexHandle ui_mutex;
+    bgui_t gui;
+    bfont_t font;
+    binput_t input;
+    pthread_t remote_thread;
 } B_StandbyNexusHandles;
 
 struct opts_t {
@@ -239,6 +239,7 @@ typedef struct B_DeviceState {
     bool encode_started;
     bool graphics2d_started;
     bool stop_graphics2d;
+    NEXUS_Rect blit_rect;
     bool openfe;
     B_InputSource source[MAX_CONTEXTS];
     struct {
@@ -250,15 +251,13 @@ typedef struct B_DeviceState {
     bool exit_app;
     bool timer_wake;
     bool cecDeviceReady;
-#if PLAYBACK_IP_SUPPORT
     bool playbackIpActive[MAX_CONTEXTS];
-    bool playbackIpLiveMode[MAX_CONTEXTS];
-    B_PlaybackIpPsiInfo playbackIpPsi[MAX_CONTEXTS];
     struct url_t url;
-#endif
     struct opts_t opts[MAX_CONTEXTS];
     unsigned num_contexts;
     unsigned gpio_pin;
+    unsigned total_buttons, focused_button;
+    bool gui;
 } B_DeviceState;
 
 
@@ -278,17 +277,29 @@ typedef struct pmlib_state_t
     int flags;
 } pmlib_state_t;
 
+
 int start_app(void);
 void stop_app(void);
+void update_menu();
+void render_ui();
+void stop_decodes(void);
+
+/* io */
+void gpio_open(void);
+void gpio_close(void);
 void ir_open(void);
 void ir_close(void);
-void ir_last_key(unsigned *code, unsigned *codeHigh);
 void uhf_open(void);
 void uhf_close(void);
 void keypad_open(void);
 void keypad_close(void);
+
+/* display */
+void cec_setup(void);
 void display_open(unsigned id);
 void display_close(unsigned id);
+void add_window_input(unsigned id);
+void remove_window_input(unsigned decoder_id);
 void window_open(unsigned window_id, unsigned display_id);
 void window_close(unsigned window_id, unsigned display_id);
 void add_hdmi_output(void);
@@ -305,41 +316,50 @@ void add_spdif_output(unsigned id);
 void remove_spdif_output(unsigned id);
 void add_outputs(void);
 void remove_outputs(void);
+
+/* playback */
 void playback_open(unsigned id);
 void playback_close(unsigned id);
+int playback_setup(unsigned id);
+int playback_start(unsigned id);
+int start_play_context(unsigned id);
+void stop_play_context(unsigned id);
+void playback_stop(unsigned id);
 void record_open(unsigned id);
 void record_close(unsigned id);
+int record_start(unsigned id);
+void record_stop(unsigned id);
+
+/* video */
 void stc_channel_open(unsigned id);
 void stc_channel_close(unsigned id);
-void graphics2d_open(void);
-void graphics2d_close(void);
-void surface_create(void);
-void surface_destroy(void);
-void graphics3d_open(void);
-void graphics3d_close(void);
+void set_max_decode_size(unsigned id);
 void decoder_open(unsigned id);
 void decoder_close(unsigned id);
-void picture_decoder_open(void);
-void picture_decoder_close(void);
-void encoder_open(unsigned id);
-void encoder_close(unsigned decoder_id);
-void add_window_input(unsigned id);
-void remove_window_input(unsigned decoder_id);
-int live_setup(unsigned id);
-int playback_setup(unsigned id);
+void decoder_setup(unsigned id);
 int decode_start(unsigned id);
 void decode_stop(unsigned id);
 int picture_decode_start(void);
 void picture_decode_stop(void);
-int picture_decode_display(void);
+void picture_decoder_open(void);
+void picture_decoder_close(void);
 int encode_start(unsigned id);
 void encode_stop(unsigned id);
+void encoder_open(unsigned id);
+void encoder_close(unsigned decoder_id);
+
+/* graphics */
 int graphics2d_start(void);
 void graphics2d_stop(void);
-int playback_start(unsigned id);
-void playback_stop(unsigned id);
-int record_start(unsigned id);
-void record_stop(unsigned id);
+void graphics2d_create(void);
+void graphics2d_destroy(void);
+
+/* live */
+int live_setup(unsigned id);
+int start_live_context(unsigned id);
+void stop_live_context(unsigned id);
+
+/* frontend */
 void untune_frontend(unsigned id);
 int tune_qam(unsigned id);
 void untune_qam(unsigned id);
@@ -349,10 +369,4 @@ int tune_sat(unsigned id);
 void untune_sat(unsigned id);
 int streamer_start(unsigned id);
 void streamer_stop(unsigned id);
-int start_live_context(unsigned id);
-void stop_live_context(unsigned id);
-int start_play_context(unsigned id);
-void stop_play_context(unsigned id);
-void stop_decodes(void);
-void set_window_scale(bool gfx_enabled);
 #endif

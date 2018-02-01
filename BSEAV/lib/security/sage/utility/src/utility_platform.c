@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "utility_platform.h"
 
@@ -46,7 +47,12 @@
 #include "bkni.h"
 #include "bkni_multi.h"
 
+#include "nexus_security_datatypes.h"
+#if (NEXUS_SECURITY_API_VERSION == 1)
 #include "nexus_otpmsp.h"
+#else
+#include "nexus_otp_msp.h"
+#endif
 
 #include "drm_metadata_tl.h"
 
@@ -79,8 +85,14 @@ static BERR_Code Utility_P_WriteFile(const char * filename, uint8_t *buffer,
 static BERR_Code Utility_P_TA_Install(char * ta_bin_filename);
 static ChipType_e Utility_P_GetChipType(void);
 
-#define UTILITY_TA_NAME_PRODUCTION  "./sage_ta_utility.bin"
-#define UTILITY_TA_NAME_DEVELOPMENT "./sage_ta_utility_dev.bin"
+#ifdef ANDROID
+#define UTILITY_TA_PATH "/vendor/bin"
+#else
+#define UTILITY_TA_PATH "."
+#endif
+
+#define UTILITY_TA_NAME_PRODUCTION  "sage_ta_utility.bin"
+#define UTILITY_TA_NAME_DEVELOPMENT "sage_ta_utility_dev.bin"
 
 
 BERR_Code
@@ -95,7 +107,7 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
     BERR_Code sage_rc = BERR_SUCCESS;
     SRAI_ModuleHandle tmpModuleHandle = NULL;
 #if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
-    char * ta_bin_filename;
+    char ta_bin_filename[256];
 #endif
     BDBG_ENTER(Utility_ModuleInit);
 
@@ -122,11 +134,32 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
     if(platformHandle == NULL)
     {
 #if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
+        char *path = NULL;
+
+        path = getenv("SAGEBIN_PATH");
+        if (!path)
+        {
+            path = UTILITY_TA_PATH;
+        }
 
         if(Utility_P_GetChipType() == ChipType_eZS)
-            ta_bin_filename = UTILITY_TA_NAME_DEVELOPMENT;
+        {
+            if (snprintf(ta_bin_filename, sizeof(ta_bin_filename), "%s/%s", path, UTILITY_TA_NAME_DEVELOPMENT) > (int)sizeof(ta_bin_filename))
+            {
+                BDBG_ERR(("%s: path too long", BSTD_FUNCTION));
+                rc = BERR_INVALID_PARAMETER;
+                goto ErrorExit;
+            }
+        }
         else
-            ta_bin_filename = UTILITY_TA_NAME_PRODUCTION;
+        {
+            if (snprintf(ta_bin_filename, sizeof(ta_bin_filename), "%s/%s", path, UTILITY_TA_NAME_PRODUCTION) > (int)sizeof(ta_bin_filename))
+            {
+                BDBG_ERR(("%s: path too long", BSTD_FUNCTION));
+                rc = BERR_INVALID_PARAMETER;
+                goto ErrorExit;
+            }
+        }
 
         sage_rc = Utility_P_TA_Install(ta_bin_filename);
 
@@ -732,6 +765,7 @@ ErrorExit:
     return rc;
 }
 
+#if (NEXUS_SECURITY_API_VERSION == 1)
 static ChipType_e Utility_P_GetChipType()
 {
 
@@ -756,3 +790,36 @@ static ChipType_e Utility_P_GetChipType()
     }
     return ChipType_eZB;
 }
+#else
+static ChipType_e Utility_P_GetChipType()
+{
+    NEXUS_OtpMspRead readMsp0;
+    NEXUS_OtpMspRead readMsp1;
+    uint32_t Msp0Data;
+    uint32_t Msp1Data;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+#if NEXUS_ZEUS_VERSION < NEXUS_ZEUS_VERSION_CALC(5,0)
+    rc = NEXUS_OtpMsp_Read(233, &readMsp0);
+    if (rc) BERR_TRACE(rc);
+
+    rc = NEXUS_OtpMsp_Read(234, &readMsp1);
+    if (rc) BERR_TRACE(rc);
+#else
+    rc = NEXUS_OtpMsp_Read(224, &readMsp0);
+    if (rc) BERR_TRACE(rc);
+
+    rc = NEXUS_OtpMsp_Read(225, &readMsp1);
+    if (rc) BERR_TRACE(rc);
+#endif
+
+    Msp0Data = readMsp0.data & readMsp0.valid;
+    Msp1Data = readMsp1.data & readMsp1.valid;
+
+    BDBG_MSG(("OTP MSP0 %u OTP MSP1 %u", Msp0Data, Msp1Data));
+
+    if((Msp0Data == OTP_MSP0_VALUE_ZS) && (Msp1Data == OTP_MSP1_VALUE_ZS)) {
+        return ChipType_eZS;
+    }
+    return ChipType_eZB;
+}
+#endif

@@ -379,6 +379,8 @@ gmem_handle_t gmem_from_external_memory(GMEM_TERM_T external_term, void *externa
       item->memory_handle = 0;
    }
 
+   item->external_addr = physOffset;
+
    item->type = GMEM_ALLOC_EXTERNAL;
 
    /* Apply usage flags */
@@ -567,10 +569,10 @@ void gmem_invalidate_mapped_range(
 {
    gmem_validate_cpu_access_range(handle, offset, length);
 
-   // Only sync mapped buffers written by V3D.
    gmem_alloc_item *item = handle;
-   assert(item->cpu_ptr != NULL);
+   assert(item->cpu_ptr != NULL); // Must be mapped
 
+   // Only sync buffers written by V3D.
    if (item->usage_flags & GMEM_USAGE_V3D_WRITE)
    {
       mem_interface_flush_cache(
@@ -587,14 +589,32 @@ void gmem_flush_mapped_range(
 {
    gmem_validate_cpu_access_range(handle, offset, length);
 
-   // Only flush mapped buffers written by CPU.
    gmem_alloc_item *item = (gmem_alloc_item *)handle;
-   assert(item->cpu_ptr != NULL);
+   assert(item->cpu_ptr != NULL); // Must be mapped
 
    mem_interface_flush_cache(
       item->memory_handle,
       (uint8_t *)item->cpu_ptr + offset,
       length);
+}
+
+bool gmem_has_bidi_sync(void)
+{
+   return true;
+}
+
+void gmem_bidi_sync_mapped_buffer(gmem_handle_t handle)
+{
+   gmem_alloc_item *item = gmem_validate_handle(handle);
+   assert(item->cpu_ptr != NULL); // Must be mapped
+   mem_interface_flush_cache(item->memory_handle, item->cpu_ptr, item->size);
+}
+
+void gmem_read_buffer_as_v3d(void *p, gmem_handle_t handle)
+{
+   // Not currently needed on bcg_abstract platform as
+   // gmem_bidi_sync_mapped_buffer will be used instead
+   not_impl();
 }
 
 gmem_handle_t gmem_find_handle_by_addr(v3d_addr_t addr)
@@ -709,4 +729,13 @@ bool gmem_convert_surface(BEGL_SurfaceConversionInfo *info, bool validateOnly)
 
    return s_context.mem_iface.ConvertSurface(s_context.mem_iface.context,
                                              info, validateOnly) == BEGL_Success;
+}
+
+uint64_t gmem_get_external_addr(gmem_handle_t handle)
+{
+   if (handle == GMEM_HANDLE_INVALID)
+      return 0;
+
+   gmem_alloc_item *item = gmem_validate_handle(handle);
+   return item->external_addr;
 }

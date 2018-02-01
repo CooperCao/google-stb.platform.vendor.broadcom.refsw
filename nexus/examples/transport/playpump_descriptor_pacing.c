@@ -77,8 +77,8 @@ void print_recpump_status(NEXUS_RecpumpHandle recpump)
 
     NEXUS_Recpump_GetStatus(recpump, &status);
     printf("status: RAVE %d\n", status.rave.index);
-    printf("  data:  %u total bytes \tfifo %u/%u\n", (unsigned)status.data.bytesRecorded, status.data.fifoDepth, status.data.fifoSize);
-    printf("  index: %u total bytes \tfifo %u/%u\n", (unsigned)status.index.bytesRecorded, status.index.fifoDepth, status.index.fifoSize);
+    printf("  data:  %u total bytes \tfifo %u/%u\n", (unsigned)status.data.bytesRecorded, (unsigned)status.data.fifoDepth, (unsigned)status.data.fifoSize);
+    printf("  index: %u total bytes \tfifo %u/%u\n", (unsigned)status.index.bytesRecorded, (unsigned)status.index.fifoDepth, (unsigned)status.index.fifoSize);
 }
 
 static FILE *inputFile;
@@ -98,6 +98,7 @@ static void playpumpThread(
 	NEXUS_Error rc;
 	NEXUS_PlaypumpWriteCompleteSettings settings;
 
+    BSTD_UNUSED(parm);
 	NEXUS_Playpump_GetDefaultWriteCompleteSettings(&settings);
 	settings.descriptorPacing.pkt2pktDelta = 0x10;
 	while(!feof(inputFile))
@@ -241,7 +242,7 @@ int main(void)
             rc = NEXUS_Recpump_IndexReadComplete(recpump, n);
             BDBG_ASSERT(!rc);
         }
-        printf("wrote %d data, %d index\n", data_buffer_size, index_buffer_size);
+        printf("wrote %u data, %u index\n", (unsigned)data_buffer_size, (unsigned)index_buffer_size);
         print_recpump_status(recpump);
     }
 

@@ -109,6 +109,7 @@ ElfImage::~ElfImage() {
 
 		const int numPages = sections[i]->numPages;
 		TzMem::VirtAddr va = sections[i]->vaddr;
+		TzMem::VirtAddr kva = sections[i]->kva;
 		for (int j=0; j<numPages; j++) {
 			if(userPageTable.isAddrRangeMapped(va,PAGE_SIZE_4K_BYTES)){
 				TzMem::PhysAddr pa = userPageTable.lookUp(va);
@@ -116,11 +117,12 @@ ElfImage::~ElfImage() {
 
 				userPageTable.unmapPage(va);
 
-				pa = kernelPageTable->lookUp(va);
+				pa = kernelPageTable->lookUp(kva);
 				if (pa != nullptr)
-					kernelPageTable->unmapPage(va);
+					kernelPageTable->unmapPage(kva);
 
 				va = (uint8_t *)va + PAGE_SIZE_4K_BYTES;
+				kva = (uint8_t *)kva + PAGE_SIZE_4K_BYTES;
 			}
 		}
 
@@ -168,12 +170,6 @@ void ElfImage::parseImage(int procId,  IFile *file, const char *fileName){
 		entryAddr = (TzMem::VirtAddr)(uintptr_t)ehdr.e_entry;
 
 	status = Valid;
-}
-
-void ElfImage::unmapStackFromKernel() {
-	// Remove the user-space stack's mapping in kernel space.
-	TzMem::VirtAddr stack = ((unsigned char *)stackTopPage - USER_SPACE_STACK_SIZE);
-	kernelUnmap(stack, USER_SPACE_STACK_SIZE/PAGE_SIZE_4K_BYTES);
 }
 
 void *ElfImage::operator new(size_t sz) {
@@ -274,7 +270,7 @@ bool ElfImage::parseLinkerPath(const Elf_Phdr& phdr, IFile *file) {
 		err_msg("%s: Invalid Interpreter path. \n", __FUNCTION__);
 		return false;
 	}
-
+    kernelUnmap(va, InterpSegmentNumPages);
 	//strcpy(Ld_Path, (char *)readAt);
 	//printf("%s ld.so path %s\n",__PRETTY_FUNCTION__,Ld_Path);
 
@@ -287,7 +283,7 @@ bool ElfImage::staticLinkedElf(const Elf_Phdr& phdr, IFile *file, const char *fi
 		int segmentSize = phdr.p_memsz;
 		int fileImgSize = phdr.p_filesz;
 		int segmentFlags = phdr.p_flags;
-		int alignment = phdr.p_align;
+		int alignment = PAGE_SIZE_4K_BYTES;
 
 		int segmentNumUnits = (segmentSize/alignment);
 		if ((segmentNumUnits * alignment) < segmentSize)
@@ -325,6 +321,7 @@ bool ElfImage::staticLinkedElf(const Elf_Phdr& phdr, IFile *file, const char *fi
 
 			ElfSection *section = new ElfSection;
 			section->vaddr = (TzMem::VirtAddr)((unsigned long)userVA & PAGE_MASK);//userVA;
+			section->kva = NULL; //not mapped to kernel
 			section->numPages = segmentNumPages;
 			section->refCount = 1;
 			sections.pushBack(section);
@@ -478,6 +475,7 @@ bool ElfImage::createStack(const Elf_Ehdr& ehdr,  IFile *file) {
 	if (va == nullptr)
 		return false;
 
+	section->kva = va; //this section mapped to kernel
 	sections.pushBack(section);
 	stackTopPage = ((unsigned char *)va + USER_SPACE_STACK_SIZE);
 
@@ -486,7 +484,7 @@ bool ElfImage::createStack(const Elf_Ehdr& ehdr,  IFile *file) {
 }
 
 bool ElfImage::createParamsPages() {
-	TzMem::VirtAddr va = userPageTable.reserveAddrRange((void *)DEFAULT_STACK_ADDR, ParamsBlockSize, PageTable::ScanForward);
+	TzMem::VirtAddr va = userPageTable.reserveAddrRange((void *)USER_STACK_ADDR, ParamsBlockSize, PageTable::ScanForward);
 	if (va == nullptr) {
 		err_msg("Ran out of user virtual address space\n");
 		return false;
@@ -501,6 +499,7 @@ bool ElfImage::createParamsPages() {
 	if (kva == nullptr)
 		return false;
 
+	section->kva = kva; //this section mapped to kernel
 	sections.pushBack(section);
 	paramsStart = kva;
 	paramsStartUser = va;
@@ -550,6 +549,7 @@ int ElfImage::addMmapSection(TzMem::VirtAddr va, int numPages, int accessPerms, 
 
 	ElfSection *section = new ElfSection;
 	section->vaddr = va;
+	section->kva = NULL; // Not mapped to kernel
 	section->numPages = numPages;
 	section->refCount = 1;
 
@@ -591,7 +591,7 @@ bool ElfImage::locateStackAddr(const Elf_Ehdr& ehdr,  IFile *file) {
 	UNUSED(ehdr);
 	UNUSED(file);
 
-	stackAddr = (TzMem::VirtAddr)DEFAULT_STACK_ADDR;
+	stackAddr = (TzMem::VirtAddr)USER_STACK_ADDR;
 	return true;
 
 }

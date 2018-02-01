@@ -12,6 +12,8 @@
 #include "interface/khronos/include/EGL/egl.h"
 #include "interface/khronos/include/EGL/eglext.h"
 
+#include "middleware/khronos/egl/egl_server.h"
+
 #if EGL_BRCM_driver_monitor
 
 EGLAPI EGLBoolean EGLAPIENTRY eglInitDriverMonitorBRCM(EGLDisplay dpy, EGLint hw_bank, EGLint l3c_bank)
@@ -19,17 +21,20 @@ EGLAPI EGLBoolean EGLAPIENTRY eglInitDriverMonitorBRCM(EGLDisplay dpy, EGLint hw
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    EGLBoolean result;
 
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
+
    CLIENT_LOCK();
 
    {
-      CLIENT_PROCESS_STATE_T *process = client_egl_get_process_state(thread, dpy, EGL_TRUE);
+      EGL_SERVER_STATE_T *state = egl_get_process_state(thread, dpy, EGL_TRUE);
 
-      if (process)
+      if (state)
       {
-         if (!process->driver_monitor_inited)
-            process->driver_monitor_inited = eglInitDriverMonitorBRCM_impl(hw_bank, l3c_bank);
+         if (!state->driver_monitor_inited_)
+            state->driver_monitor_inited_ = eglInitDriverMonitorBRCM_impl(hw_bank, l3c_bank);
 
-         if (process->driver_monitor_inited)
+         if (state->driver_monitor_inited_)
          {
             thread->error = EGL_SUCCESS;
             result = EGL_TRUE;
@@ -49,13 +54,13 @@ EGLAPI EGLBoolean EGLAPIENTRY eglInitDriverMonitorBRCM(EGLDisplay dpy, EGLint hw
    return result;
 }
 
-void egl_driver_monitor_term(CLIENT_PROCESS_STATE_T *process)
+void egl_driver_monitor_term(EGL_SERVER_STATE_T *state)
 {
-   if (process->driver_monitor_inited)
+   if (state->driver_monitor_inited_)
    {
       eglTermDriverMonitorBRCM_impl();
 
-      process->driver_monitor_inited = false;
+      state->driver_monitor_inited_ = false;
    }
 }
 
@@ -63,14 +68,17 @@ EGLAPI void EGLAPIENTRY eglGetDriverMonitorXMLBRCM(EGLDisplay dpy, EGLint bufSiz
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
 
+   if (!egl_ensure_init_once())
+      return;
+
    CLIENT_LOCK();
 
    {
-      CLIENT_PROCESS_STATE_T *process = client_egl_get_process_state(thread, dpy, EGL_TRUE);
+      EGL_SERVER_STATE_T *state = egl_get_process_state(thread, dpy, EGL_TRUE);
 
-      if (process)
+      if (state)
       {
-         if (process->driver_monitor_inited && xmlStats != NULL)
+         if (state->driver_monitor_inited_ && xmlStats != NULL)
          {
             eglGetDriverMonitorXMLBRCM_impl(bufSize, xmlStats);
 
@@ -88,14 +96,17 @@ EGLAPI EGLBoolean EGLAPIENTRY eglTermDriverMonitorBRCM(EGLDisplay dpy)
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    EGLBoolean result;
 
+   if (!egl_ensure_init_once())
+      return EGL_FALSE;
+
    CLIENT_LOCK();
 
    {
-      CLIENT_PROCESS_STATE_T *process = client_egl_get_process_state(thread, dpy, EGL_TRUE);
+      EGL_SERVER_STATE_T *state = egl_get_process_state(thread, dpy, EGL_TRUE);
 
-      if (process)
+      if (state)
       {
-         egl_driver_monitor_term(process);
+         egl_driver_monitor_term(state);
 
          thread->error = EGL_SUCCESS;
          result = EGL_TRUE;

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -64,7 +64,6 @@ typedef struct BAPE_MixerInputCaptureInterruptHandlers
     } sampleRate;
 } BAPE_MixerInputCaptureInterruptHandlers;
 
-#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 Mixer Input Capture Create Settings
@@ -74,6 +73,8 @@ typedef struct BAPE_MixerInputCaptureCreateSettings
     unsigned maxChannels;       /* Maximum number of channels to capture.  1 = mono/compressed.  2 = stereo.  6 = 5.1.  Default = 2. */
     size_t channelBufferSize;   /* Channel buffer size in bytes.  Default is 1536kB. */
     BMMA_Heap_Handle hHeap;     /* Memory Heap to use for allocating buffers.  If NULL, the default heap will be used. */
+    BAPE_Connector input;       /* Optional connector associated with capture point. Default is NULL.
+                                   If NULL, BAPE_MixerInputSettings must be used to configure the capture point */
 } BAPE_MixerInputCaptureCreateSettings;
 
 /***************************************************************************
@@ -110,6 +111,22 @@ Destroy an mixer input capture context
 ***************************************************************************/
 void BAPE_MixerInputCapture_Destroy(
     BAPE_MixerInputCaptureHandle hMixerInputCapture
+    );
+
+/***************************************************************************
+Summary:
+Start a mixer input capture context
+***************************************************************************/
+BERR_Code BAPE_MixerInputCapture_Start(
+    BAPE_MixerInputCaptureHandle handle
+    );
+
+/***************************************************************************
+Summary:
+Stop a mixer input capture context
+***************************************************************************/
+void BAPE_MixerInputCapture_Stop(
+    BAPE_MixerInputCaptureHandle handle
     );
 
 /***************************************************************************
@@ -160,5 +177,4 @@ BERR_Code   BAPE_ProcessAudioCapture(
             );
 
 #endif /* BAPE_DSP_SUPPORT */
-#endif /* !B_REFSW_MINIMAL */
 #endif /* #ifndef BAPE_MIXER_INPUT_CAPTURE_H_ */

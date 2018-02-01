@@ -44,20 +44,21 @@
 # this file is included by nexus/platform/common/build/platform_modules.inc
 # you can define your platform's options here
 
-NEXUS_POWER_MANAGEMENT ?= n
+NEXUS_POWER_MANAGEMENT ?= y
 NEXUS_SECURITY_SUPPORT ?= y
 
 NEXUS_ARM_AUDIO_SUPPORT  =y
 BDSP_RAAGA_AUDIO_SUPPORT =n
 BDSP_ARM_ONLY_SOLUTION   =y
+BDSP_MS12_SUPPORT        =C
 
 export NEXUS_FRONTEND_SUPPORT ?= y
 export NEXUS_FRONTEND_3158  ?= y
 export NEXUS_FRONTEND_315x_OOB ?=y
-export NEXUS_FRONTEND_3461  ?= y
-export NEXUS_FRONTEND_3465  ?= y
+export NEXUS_FRONTEND_3466  ?= y
 export NEXUS_FRONTEND_45216 ?= y
 export NEXUS_FRONTEND_45308 ?= y
+export NEXUS_FRONTEND_45316 ?= y
 
 #
 # by default, we include the following

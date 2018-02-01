@@ -504,7 +504,7 @@ BERR_Code BVDC_Window_Create
     {
         /* this makes gfx surface be validated in next ApplyChanges */
         hSource->hGfxFeeder->hWindow = hWindow;
-        hSource->hGfxFeeder->stCfc.pColorSpaceOut = &(hWindow->hCompositor->stOutColorSpace);
+        hSource->hGfxFeeder->stCfc.pColorSpaceExtOut = &(hWindow->hCompositor->stOutColorSpaceExt);
     }
 
     /* Reinitialize context.  But not make it active until apply. */
@@ -1152,36 +1152,6 @@ void BVDC_P_Csc_ApplyYCbCrColor
     BSTD_UNUSED(ulColor0);
     BSTD_UNUSED(ulColor1);
     BSTD_UNUSED(ulColor2);
-}
-
-void BVDC_P_Csc_FromMatrixDvo_isr
-    ( BVDC_P_CscCoeffs                *pCsc,
-      const int32_t                    pl32_Matrix[BVDC_CSC_COEFF_COUNT],
-      uint32_t                         ulShift,
-      bool                             bRgb )
-{
-    BSTD_UNUSED(pCsc);
-    BSTD_UNUSED(pl32_Matrix);
-    BSTD_UNUSED(ulShift);
-    BSTD_UNUSED(bRgb);
-}
-
-void BVDC_P_Csc_DvoApplyAttenuationRGB_isr
-    ( int32_t                          lAttenuationR,
-      int32_t                          lAttenuationG,
-      int32_t                          lAttenuationB,
-      int32_t                          lOffsetR,
-      int32_t                          lOffsetG,
-      int32_t                          lOffsetB,
-      BVDC_P_CscCoeffs                *pCscCoeffs )
-{
-    BSTD_UNUSED(lAttenuationR);
-    BSTD_UNUSED(lAttenuationG);
-    BSTD_UNUSED(lAttenuationB);
-    BSTD_UNUSED(lOffsetR);
-    BSTD_UNUSED(lOffsetG);
-    BSTD_UNUSED(lOffsetB);
-    BSTD_UNUSED(pCscCoeffs);
 }
 
 /***************************************************************************

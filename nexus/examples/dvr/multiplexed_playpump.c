@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -185,7 +185,7 @@ void *decoder_file_thread(void *context)
 
             rc = NEXUS_Playpump_WriteComplete(ft_data->playpump, 0, buffer_size);
             BDBG_ASSERT(!rc);
-            BDBG_MSG(("%p: played %d bytes", context, buffer_size));
+            BDBG_MSG(("%p: played %u bytes", context, (unsigned)buffer_size));
             data_played += buffer_size;
         }
 
@@ -247,7 +247,7 @@ void *message_file_thread(void *context)
 
             rc = NEXUS_Playpump_WriteComplete(ft_data->playpump, 0, buffer_size);
             BDBG_ASSERT(!rc);
-            BDBG_MSG(("%p: played %d bytes", context, buffer_size));
+            BDBG_MSG(("%p: played %u bytes", context, (unsigned)buffer_size));
             data_played += buffer_size;
         }
 
@@ -266,7 +266,7 @@ void *message_file_thread(void *context)
             if (!size) {
                 break;
             }
-            printf("%p processed %d bytes of message data\n", (void*)ft_data, size);
+            printf("%p processed %u bytes of message data\n", (void*)ft_data, (unsigned)size);
             rc = NEXUS_Message_ReadComplete(ft_data->message, size);
             BDBG_ASSERT(!rc);
         }

@@ -159,6 +159,16 @@ typedef enum eRet
 #define NEXUS_UNKNOWN               9  /* unknown */
 #define NEXUS_NOT_AVAILABLE         10 /* no resource available */
 
+typedef enum
+{
+    eLanguage_English,
+    eLanguage_French,
+    eLanguage_German,
+    eLanguage_Italian,
+    eLanguage_Spanish,
+    eLanguage_Max
+} eLanguage;
+
 /*
  * the following atlas error codes and support macros are used thoughout the
  * application to handle atlas api errors, nexus api errors, b_os api errors,
@@ -176,6 +186,14 @@ typedef enum eRet
     do {                     \
         if (NULL != (var)) { \
             free(var);       \
+            (var) = NULL;    \
+        }                    \
+    } while (0)
+
+#define BFRE(var)            \
+    do {                     \
+        if (NULL != (var)) { \
+            BKNI_Free(var);  \
             (var) = NULL;    \
         }                    \
     } while (0)

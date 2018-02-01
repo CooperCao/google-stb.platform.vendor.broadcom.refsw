@@ -1,5 +1,5 @@
-/***************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- ***************************************************************************/
+ **************************************************************************/
 #include "bstd.h"
 #include "bdbg.h"
 #include "bfmt.h"
@@ -168,6 +168,19 @@ void BVDC_P_AcquireStgPwr
         BCHP_PWR_AcquireResource(hDisplay->hVdc->hChip, hDisplay->ulStgPwrId);
         hDisplay->ulStgPwrAcquire++;
     }
+
+    /* acquire VIP power first */
+#ifdef BCHP_PWR_RESOURCE_VIP
+    BDBG_MSG(("Disp[%u]: Acquire BCHP_PWR_RESOURCE_VIP", hDisplay->eId));
+    if(BERR_SUCCESS != BCHP_PWR_AcquireResource(hDisplay->hVdc->hChip, BCHP_PWR_RESOURCE_VIP)) {
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+#ifdef BCHP_PWR_RESOURCE_VIP_SRAM
+    if(BERR_SUCCESS != BCHP_PWR_AcquireResource(hDisplay->hVdc->hChip, BCHP_PWR_RESOURCE_VIP_SRAM)) {
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+#endif
+#endif
 }
 #endif
 
@@ -299,8 +312,6 @@ void BVDC_P_TearDownStgChan_isr
 
 #if (BVDC_P_SUPPORT_STG > 1)
     ulRegOffset = hDisplay->stStgChan.ulStg * sizeof(uint32_t);
-#else
-    BSTD_UNUSED(hDisplay);
 #endif
     /* Disable STG source */
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
@@ -310,7 +321,7 @@ void BVDC_P_TearDownStgChan_isr
 
     /* disable STG timer trigger */
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VIDEO_ENC_STG_0_CONTROL + ulRegOffset);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VIDEO_ENC_STG_0_CONTROL + hDisplay->ulStgRegOffset);
     *pList->pulCurrent++ = 0;
 
 #if BCHP_VEC_CFG_VIP_0_SOURCE
@@ -509,8 +520,6 @@ void BVDC_P_ProgramStgChan_isr
     ulStgRegOffset = hDisplay->ulStgRegOffset;
 
     ulStgId = hDisplay->stStgChan.ulStg;
-
-
 
     pFmtInfo = (hDisplay->pStgFmtInfo == NULL)?hDisplay->stCurInfo.pFmtInfo:hDisplay->pStgFmtInfo;
     ulIsFull3d = (uint32_t)BFMT_IS_3D_MODE(pFmtInfo->eVideoFmt);
@@ -797,12 +806,9 @@ void BVDC_P_ProgrameStgMBox_isr
 #else
         BSTD_UNUSED(bRepeatPol);
 #endif
-#ifdef BVDC_P_SUPPORT_RDC_STC_FLAG
-        BRDC_EnableStcFlag_isr(hDisplay->hVdc->hRdc, hDisplay->stStgChan.ulStg, !hDisplay->hCompositor->bStallStc);
-#else
         BREG_Write32_isr(hDisplay->hVdc->hRegister, BCHP_VIDEO_ENC_STG_0_STC_CONTROL + ulRegOffset,
             BCHP_FIELD_DATA(VIDEO_ENC_STG_0_STC_CONTROL, STC_FLAG_ENABLE, !hDisplay->hCompositor->bStallStc));
-#endif
+
         /* used for NRT mode transcode: default true to freeze STC and not get encoded */
         /* end of ignore picture scanout: no CRC callback in current isr if it's true! */
         hDisplay->hCompositor->bCrcIgnored       = hDisplay->hCompositor->bCrcToIgnore;
@@ -934,6 +940,10 @@ BERR_Code BVDC_P_Display_Validate_Stg_Setting
         /* SWSTB-1281 */
         /* coverity[overrun-local : FALSE] */
         BVDC_P_Vip_Init(hDisplay->hVdc->ahVip[hDisplay->stStgChan.ulStg]);
+
+        /* put VIP in drop mode in case it's uninit */
+        BREG_Write32(hDisplay->hVdc->hRegister, BVDC_P_VIP_RDB(CONFIG) + hDisplay->hVdc->ahVip[hDisplay->stStgChan.ulStg]->ulRegOffset, 0);
+        BREG_Write32(hDisplay->hVdc->hRegister, BVDC_P_VIP_RDB(FW_CONTROL) + hDisplay->hVdc->ahVip[hDisplay->stStgChan.ulStg]->ulRegOffset, 3);
     }
     /* Note, when disabled, VIP will be freed after ApplyChanges and isr programs RUL to put VIP back to auto drain mode */
 #endif
@@ -984,13 +994,12 @@ void BVDC_P_Display_Apply_Stg_Setting_isr
 
     if (pCurInfo->bEnableStg)
     {
-        BVDC_P_TearDownStgChan_isr(hDisplay, pList);
+        /* 1) removed sw_init to avoid missing next timer trigger */
 
         /*
          * 2) Acquire necessary resources and set up the new path
          */
         BDBG_MSG(("BVDC_P_Display_Apply_VideoFormat Display %d allocates resource for STG chan", hDisplay->eId));
-        BVDC_P_SetupStg_isr(hDisplay->ulStgRegOffset, pList);
         BVDC_P_ConnectStgSrc_isr(hDisplay, pList);
 
         /*
@@ -1070,6 +1079,43 @@ void BVDC_P_Display_Apply_Stg_Setting_isr
     return;
 }
 
+BERR_Code BVDC_P_Display_Validate_StgFilter_Setting
+    ( BVDC_Display_Handle              hDisplay )
+{
+    /* Non Real time can not running @ slave mode */
+    if( !hDisplay->stStgChan.bEnable ) {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    return BERR_SUCCESS;
+}
+
+void BVDC_P_Display_Copy_StgFilter_Setting_isr
+    ( BVDC_Display_Handle              hDisplay )
+{
+    hDisplay->stCurInfo.bBypassVideoProcess = hDisplay->stNewInfo.bBypassVideoProcess;
+
+    return;
+}
+
+void BVDC_P_Display_Apply_StgFilter_Setting_isr
+    ( BVDC_Display_Handle              hDisplay,
+      BVDC_P_ListInfo                 *pList,
+      BAVC_Polarity                    eFieldPolarity )
+{
+    BSTD_UNUSED(eFieldPolarity);
+
+    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VIDEO_ENC_STG_0_DOWN_SAMP + hDisplay->ulStgRegOffset);
+    *pList->pulCurrent++ =
+        ((!hDisplay->stCurInfo.bBypassVideoProcess)
+        ? BCHP_FIELD_ENUM(VIDEO_ENC_STG_0_DOWN_SAMP, FILTER_MODE, FILTER3)
+        : BCHP_FIELD_ENUM(VIDEO_ENC_STG_0_DOWN_SAMP, FILTER_MODE, BYPASS)) |
+        BCHP_FIELD_DATA(VIDEO_ENC_STG_0_DOWN_SAMP, DERING_EN, !hDisplay->stCurInfo.bBypassVideoProcess); /* 1 if filter is FILTER_MODE == FILTER3 */
+
+    hDisplay->stCurInfo.stDirty.stBits.bStgFilter = BVDC_P_CLEAN;
+    return;
+}
 #if (BVDC_P_STG_RUL_DELAY_WORKAROUND)
 void BVDC_P_STG_DelayRUL_isr
     ( BVDC_Display_Handle              hDisplay,

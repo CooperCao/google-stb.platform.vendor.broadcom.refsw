@@ -33,7 +33,7 @@ void khrn_fleaky_map_term(KHRN_FLEAKY_MAP_T *fleaky_map)
    }
 }
 
-static INLINE uint32_t hash(uint32_t key, uint32_t capacity)
+static inline uint32_t hash(uint32_t key, uint32_t capacity)
 {
    return key & (capacity - 1);
 }

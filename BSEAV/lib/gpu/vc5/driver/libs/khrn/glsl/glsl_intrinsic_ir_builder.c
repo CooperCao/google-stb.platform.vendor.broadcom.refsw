@@ -9,6 +9,7 @@
 #include "glsl_primitive_types.auto.h"
 #include "glsl_stackmem.h"
 #include "glsl_dataflow_image.h"
+#include "dflib.h"
 
 struct intrinsic_ir_info_s {
    glsl_intrinsic_index_t  intrinsic;
@@ -40,6 +41,14 @@ static const struct intrinsic_ir_info_s intrinsic_ir_info[INTRINSIC_COUNT] = {
    { INTRINSIC_FPACK,          DATAFLOW_FPACK,          2 },
    { INTRINSIC_FUNPACKA,       DATAFLOW_FUNPACKA,       1 },
    { INTRINSIC_FUNPACKB,       DATAFLOW_FUNPACKB,       1 },
+   { INTRINSIC_PACKUNORM2X16,  DATAFLOW_FLAVOUR_COUNT, -1 },
+   { INTRINSIC_PACKSNORM2X16,  DATAFLOW_FLAVOUR_COUNT, -1 },
+   { INTRINSIC_PACKUNORM4X8,   DATAFLOW_FLAVOUR_COUNT, -1 },
+   { INTRINSIC_PACKSNORM4X8,   DATAFLOW_FLAVOUR_COUNT, -1 },
+   { INTRINSIC_UNPACKUNORM2X16,DATAFLOW_FLAVOUR_COUNT, -1 },
+   { INTRINSIC_UNPACKSNORM2X16,DATAFLOW_FLAVOUR_COUNT, -1 },
+   { INTRINSIC_UNPACKUNORM4X8, DATAFLOW_FLAVOUR_COUNT, -1 },
+   { INTRINSIC_UNPACKSNORM4X8, DATAFLOW_FLAVOUR_COUNT, -1 },
    { INTRINSIC_SIN,            DATAFLOW_SIN,            1 },
    { INTRINSIC_COS,            DATAFLOW_COS,            1 },
    { INTRINSIC_TAN,            DATAFLOW_TAN,            1 },
@@ -210,7 +219,7 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
          scalar_values[i] = glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, ok, scalar_values[i], zero);
    }
 #endif
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    if (is_image && array)
    {
       /* HW clamps array index. We need border behaviour.
@@ -305,39 +314,27 @@ static void calculate_dataflow_atomic_op(BasicBlock *ctx, Dataflow **scalar_valu
    ctx->memory_head = scalar_values[0];
 }
 
-static DataflowType intrinsic_df_return_type(glsl_intrinsic_index_t intrinsic,
-                                             Dataflow ***operands,
-                                             int index)
+static DataflowType reinterp_df_type(glsl_intrinsic_index_t intrinsic)
 {
    switch(intrinsic) {
-   case INTRINSIC_FUNPACKA:
-   case INTRINSIC_FUNPACKB:
-   case INTRINSIC_REINTERPF:
-      return DF_FLOAT;
-   case INTRINSIC_FPACK:
-   case INTRINSIC_REINTERPU:
-      return DF_UINT;
-   case INTRINSIC_REINTERPI:
-      return DF_INT;
-   default:
-      return operands[0][index]->type;
+   case INTRINSIC_REINTERPF: return DF_FLOAT;
+   case INTRINSIC_REINTERPU: return DF_UINT;
+   case INTRINSIC_REINTERPI: return DF_INT;
+   default: unreachable();   return DF_INVALID;
    }
 }
 
-static void calculate_dataflow_functionlike_intrinsic(BasicBlock* ctx, Dataflow **scalar_values, Expr *expr) {
+static void calculate_dataflow_functionlike_intrinsic(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr) {
    const glsl_intrinsic_index_t intrinsic   = expr->u.intrinsic.flavour;
    const int                    arg_count   = intrinsic_ir_info[intrinsic].args;
    const DataflowFlavour        flavour     = intrinsic_ir_info[intrinsic].dataflow_flavour;
-   Dataflow ***operand_scalar_values;
-   int        *operand_scalar_count;
-   Dataflow  **dataflow_args;
 
-   operand_scalar_values = glsl_stack_malloc(sizeof(*operand_scalar_values), arg_count);
-   operand_scalar_count  = glsl_stack_malloc(sizeof(*operand_scalar_count),  arg_count);
-   dataflow_args         = glsl_stack_malloc(sizeof(*dataflow_args),         arg_count);
+   Dataflow ***operand_scalar_values = glsl_stack_malloc(sizeof(*operand_scalar_values), arg_count);
+   int        *operand_scalar_count  = glsl_stack_malloc(sizeof(*operand_scalar_count),  arg_count);
+   Dataflow  **dataflow_args         = glsl_stack_malloc(sizeof(*dataflow_args),         arg_count);
 
    ExprChainNode *cur = expr->u.intrinsic.args->first;
-   for(int i=0;i<arg_count;++i) {
+   for(int i=0; i<arg_count; i++) {
       Expr *operand = cur->expr;
       cur = cur->next;
       operand_scalar_values[i] = glsl_stack_malloc(sizeof(*operand_scalar_values[i]), operand->type->scalar_count);
@@ -353,7 +350,7 @@ static void calculate_dataflow_functionlike_intrinsic(BasicBlock* ctx, Dataflow 
 
       if(flavour == DATAFLOW_REINTERP) {
          scalar_values[i] = glsl_dataflow_construct_reinterp(dataflow_args[0],
-                                                             intrinsic_df_return_type(intrinsic,operand_scalar_values,i));
+                                                             reinterp_df_type(intrinsic));
       } else {
          scalar_values[i] = glsl_dataflow_construct_op(flavour, arg_count, dataflow_args);
       }
@@ -368,7 +365,7 @@ static void calculate_dataflow_functionlike_intrinsic(BasicBlock* ctx, Dataflow 
    glsl_stack_free(operand_scalar_values);
 }
 
-void glsl_intrinsic_ir_calculate_dataflow(BasicBlock* ctx, Dataflow **scalar_values, Expr *expr) {
+void glsl_intrinsic_ir_calculate_dataflow(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr) {
    const glsl_intrinsic_index_t intrinsic = expr->u.intrinsic.flavour;
    const int                    arg_count = intrinsic_ir_info[intrinsic].args;
 
@@ -384,6 +381,38 @@ void glsl_intrinsic_ir_calculate_dataflow(BasicBlock* ctx, Dataflow **scalar_val
    case INTRINSIC_ATOMIC_LOAD:
       calculate_dataflow_atomic_load(ctx, scalar_values, expr);
       break;
+   case INTRINSIC_PACKUNORM2X16:
+   case INTRINSIC_PACKSNORM2X16:
+   case INTRINSIC_PACKUNORM4X8:
+   case INTRINSIC_PACKSNORM4X8:
+   {
+      Dataflow *a[4];
+      glsl_expr_calculate_dataflow(ctx, a, expr->u.intrinsic.args->first->expr);
+      switch (intrinsic) {
+      case INTRINSIC_PACKUNORM2X16: scalar_values[0] = dflib_packUnorm2x16(a[0], a[1]); break;
+      case INTRINSIC_PACKSNORM2X16: scalar_values[0] = dflib_packSnorm2x16(a[0], a[1]); break;
+      case INTRINSIC_PACKUNORM4X8:  scalar_values[0] = dflib_packUnorm4x8(a[0], a[1], a[2], a[3]); break;
+      case INTRINSIC_PACKSNORM4X8:  scalar_values[0] = dflib_packSnorm4x8(a[0], a[1], a[2], a[3]); break;
+      default: unreachable();
+      }
+   }
+   break;
+   case INTRINSIC_UNPACKUNORM2X16:
+   case INTRINSIC_UNPACKSNORM2X16:
+   case INTRINSIC_UNPACKUNORM4X8:
+   case INTRINSIC_UNPACKSNORM4X8:
+   {
+      Dataflow *a;
+      glsl_expr_calculate_dataflow(ctx, &a, expr->u.intrinsic.args->first->expr);
+      switch (intrinsic) {
+      case INTRINSIC_UNPACKUNORM2X16: dflib_unpackUnorm2x16(scalar_values, a); break;
+      case INTRINSIC_UNPACKSNORM2X16: dflib_unpackSnorm2x16(scalar_values, a); break;
+      case INTRINSIC_UNPACKUNORM4X8:  dflib_unpackUnorm4x8(scalar_values, a); break;
+      case INTRINSIC_UNPACKSNORM4X8:  dflib_unpackSnorm4x8(scalar_values, a); break;
+      default: unreachable();
+      }
+   }
+   break;
    case INTRINSIC_ATOMIC_ADD:
    case INTRINSIC_ATOMIC_SUB:
    case INTRINSIC_ATOMIC_MIN:

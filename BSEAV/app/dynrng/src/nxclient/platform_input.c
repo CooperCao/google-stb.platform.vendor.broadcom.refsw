@@ -65,73 +65,7 @@ static const char * eventNames[] =
     NULL
 };
 
-static const char * consoleHelp =
-{
-    "\nConsole Help:\n"
-    "  w/s - up/down\n"
-    "  a/d - left/right\n"
-    "  x   - select\n"
-    "  p   - pause\n"
-    "  0-9 - number\n"
-    "  q   - quit\n"
-};
-
-#define MAX_LINE_LEN 256
-bool platform_input_p_get_console_input(PlatformInputHandle input, PlatformInputEvent * pEvent, int * pParam)
-{
-    char line[MAX_LINE_LEN];
-
-    BSTD_UNUSED(input);
-
-    fprintf(stdout, "%s\n", consoleHelp);
-    fprintf(stdout, "[dynrng]$ ");
-    fflush(stdout);
-    if (fgets(line, MAX_LINE_LEN, stdin))
-    {
-        switch (line[0])
-        {
-            case 'w':
-                *pEvent = PlatformInputEvent_eUp;
-                break;
-            case 's':
-                *pEvent = PlatformInputEvent_eDown;
-                break;
-            case 'd':
-                *pEvent = PlatformInputEvent_eRight;
-                break;
-            case 'a':
-                *pEvent = PlatformInputEvent_eLeft;
-                break;
-            case 'p':
-                *pEvent = PlatformInputEvent_ePause;
-                break;
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-            case '5':
-            case '6':
-            case '7':
-            case '8':
-            case '9':
-                *pEvent = PlatformInputEvent_eNumber;
-                *pParam = atoi(line);
-                break;
-            case 'x':
-                *pEvent = PlatformInputEvent_eSelect;
-                break;
-            case 'q':
-                *pEvent = PlatformInputEvent_ePower;
-                break;
-            default:
-                *pEvent = PlatformInputEvent_eUnknown;
-                break;
-        }
-    }
-    return true;
-}
-
-PlatformInputHandle platform_input_open(PlatformHandle platform, PlatformInputMethod method)
+PlatformInputHandle platform_input_open(PlatformHandle platform)
 {
     PlatformInputHandle input;
 
@@ -140,7 +74,6 @@ PlatformInputHandle platform_input_open(PlatformHandle platform, PlatformInputMe
     BKNI_Memset(input, 0, sizeof(*input));
     platform->input = input;
     input->platform = platform;
-    input->method = method;
     input->nxInput = binput_open(NULL);
     BDBG_ASSERT(input->nxInput);
     return input;
@@ -244,26 +177,17 @@ bool platform_input_try(PlatformInputHandle input)
 
     BDBG_ASSERT(input);
 
-    switch (input->method)
-    {
-        case PlatformInputMethod_eConsole:
-            occurred = platform_input_p_get_console_input(input, &event, &param);
-            if (!occurred) goto out;
-            break;
-        default:
-        case PlatformInputMethod_eRemote:
-            occurred = platform_input_p_get_remote_input(input, &event, &param);
-            if (!occurred) goto out;
-            break;
-    }
+    occurred = platform_input_p_get_remote_input(input, &event, &param);
+    if (!occurred) goto out;
+
     if (event == PlatformInputEvent_eUnknown) {
         occurred = false;
         goto out;
     }
     BDBG_MSG(("received '%s' event", eventNames[event]));
-    if (input->eventHandlers[event].callback)
+    if (input->eventHandler.callback)
     {
-        input->eventHandlers[event].callback(input->eventHandlers[event].context, param);
+        input->eventHandler.callback(input->eventHandler.context, event, param);
     }
     else
     {
@@ -274,10 +198,9 @@ out:
     return occurred;
 }
 
-void platform_input_set_event_handler(PlatformInputHandle input, PlatformInputEvent event, PlatformCallback callback, void * callbackContext)
+void platform_input_set_event_handler(PlatformInputHandle input, PlatformInputEventCallback callback, void * callbackContext)
 {
     BDBG_ASSERT(input);
-    BDBG_ASSERT(event < PlatformInputEvent_eMax);
-    input->eventHandlers[event].callback = callback;
-    input->eventHandlers[event].context = callbackContext;
+    input->eventHandler.callback = callback;
+    input->eventHandler.context = callbackContext;
 }

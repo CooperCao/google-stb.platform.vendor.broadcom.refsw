@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2008-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,19 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Platform
-*    Specific APIs to initialze the a board.
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 
 #include "nexus_platform.h"
@@ -152,7 +139,6 @@ int main(int argc, char **argv)
 {
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_Error rc;
-    unsigned hdmiOutputIndex = 0;
     BKNI_EventHandle event;
     unsigned loops;
     NEXUS_HdmiOutputStatus status;
@@ -161,8 +147,8 @@ int main(int argc, char **argv)
     NEXUS_CecStatus cecStatus;
     NEXUS_CecMessage transmitMessage;
 
-
-    if (argc > 1) hdmiOutputIndex = atoi(argv[1]);
+    BSTD_UNUSED(argc);
+    BSTD_UNUSED(argv);
 
     /* Bring up all modules for a platform in a default configuraiton for this platform */
     NEXUS_Platform_Init(NULL);

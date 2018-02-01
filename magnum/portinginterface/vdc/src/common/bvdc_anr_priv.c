@@ -269,6 +269,7 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
     BMMA_DeviceOffset ullBufAddr[4]; /*0: ullTopCapBufAddr, 1: ullTopVfdBufAddr, 2: ullBotCapBufAddr, 3:ullBotVfdBufAddr*/;
 
     BDBG_OBJECT_ASSERT(hAnr, BVDC_ANR);
+    ullBufAddr[0]=ullBufAddr[1]=ullBufAddr[2]=ullBufAddr[3]=0;
     ulRegOffset = hAnr->ulRegOffset;
 
     ulHSize = pPicture->pAnrIn->ulWidth;
@@ -531,9 +532,14 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
     *pList->pulCurrent++ = ulDemoSetting;/* DEMO_SETTING */
     if(!bMemSaving)
     {
-        BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-            BCHP_HD_ANR_MCTF_0_CONT_0_FRAME_OR_TOP_MSTART_0 + ulRegOffset,
-            BCHP_HD_ANR_MCTF_0_CONT_0_BOTTOM_MSTART_1 + ulRegOffset,ullBufAddr);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_HD_ANR_MCTF_0_CONT_0_FRAME_OR_TOP_MSTART_0 + ulRegOffset, ullBufAddr[0]);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_HD_ANR_MCTF_0_CONT_0_FRAME_OR_TOP_MSTART_1 + ulRegOffset, ullBufAddr[1]);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_HD_ANR_MCTF_0_CONT_0_BOTTOM_MSTART_0 + ulRegOffset, ullBufAddr[2]);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_HD_ANR_MCTF_0_CONT_0_BOTTOM_MSTART_1 + ulRegOffset, ullBufAddr[3]);
     }
 
     /* control registers */
@@ -591,9 +597,14 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
 
     if(!bMemSaving)
     {
-        BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-            BCHP_HD_ANR_MCTF_0_CONT_0_FRAME_OR_TOP_MSTART_0 + ulRegOffset,
-            BCHP_HD_ANR_MCTF_0_CONT_0_BOTTOM_MSTART_1 + ulRegOffset,ullBufAddr);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_HD_ANR_MCTF_0_CONT_0_FRAME_OR_TOP_MSTART_0 + ulRegOffset, ullBufAddr[0]);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_HD_ANR_MCTF_0_CONT_0_FRAME_OR_TOP_MSTART_1 + ulRegOffset, ullBufAddr[1]);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_HD_ANR_MCTF_0_CONT_0_BOTTOM_MSTART_0 + ulRegOffset, ullBufAddr[2]);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_HD_ANR_MCTF_0_CONT_0_BOTTOM_MSTART_1 + ulRegOffset, ullBufAddr[3]);
     }
 
     BVDC_P_SUBRUL_START_BLOCK(pList, BCHP_HD_ANR_MCTF_0_CONT_0_DEMO_SETTING, ulRegOffset,
@@ -711,9 +722,15 @@ static void BVDC_P_Anr_BuildRul_Mosaic_isr
             ullBufAddr[0] = ullBufAddr[2] = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[ulChannelId][0]);
             ullBufAddr[1] = ullBufAddr[3] = BVDC_P_ADDR_ALIGN_UP (ullBufAddr[0] + 2*ulBufSize, BVDC_P_PITCH_ALIGN);
         }
-        BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-            BCHP_HD_ANR_MCTF_0_CONT_0_FRAME_OR_TOP_MSTART_0+ulRegOffset,
-            BCHP_HD_ANR_MCTF_0_CONT_0_BOTTOM_MSTART_1 + ulRegOffset,ullBufAddr);
+
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_HD_ANR_MCTF_0_CONT_0_FRAME_OR_TOP_MSTART_0 + ulRegOffset, ullBufAddr[0]);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_HD_ANR_MCTF_0_CONT_0_FRAME_OR_TOP_MSTART_1 + ulRegOffset, ullBufAddr[1]);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_HD_ANR_MCTF_0_CONT_0_BOTTOM_MSTART_0 + ulRegOffset, ullBufAddr[2]);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_HD_ANR_MCTF_0_CONT_0_BOTTOM_MSTART_1 + ulRegOffset, ullBufAddr[3]);
     }
 }
 #endif

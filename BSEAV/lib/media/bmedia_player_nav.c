@@ -252,6 +252,7 @@ bmedia_player_nav_create(bfile_io_read_t fd, const bmedia_player_config *config,
     cfg.boundsCb = bmedia_nav_bp_bounds;
     cfg.firstIndex = -1; /* fifo file may have firstIndex > 0 */
     cfg.changingBounds = config->timeshifting;
+    cfg.normalPlayAlignment = BIO_BLOCK_SIZE;
     
     /* read the first index entry ourselves */
     {

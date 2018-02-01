@@ -46,6 +46,8 @@
 #if NEXUS_HAS_AUDIO
 #include "nexus_audio_decoder.h"
 #include "nexus_spdif_output.h"
+#include "nexus_audio_dac.h"
+#include "nexus_i2s_output.h"
 #include "nexus_audio_playback.h"
 #include "nexus_i2s_input.h"
 #include "nexus_audio_capture.h"
@@ -66,6 +68,7 @@ Client apps will not call it. Therefore, this API is subject to non-backward com
 
 #define NEXUS_MAX_SIMPLE_DECODER_SPDIF_OUTPUTS 2
 #define NEXUS_MAX_SIMPLE_DECODER_HDMI_OUTPUTS 2
+#define NEXUS_MAX_SIMPLE_DECODER_I2S_OUTPUTS 2
 
 /**
 Summary: Simple Audio Decoder Type
@@ -81,6 +84,7 @@ typedef struct NEXUS_SimpleAudioDecoderServer *NEXUS_SimpleAudioDecoderServerHan
 
 typedef struct NEXUS_SimpleAudioDecoderServerSettings
 {
+    NEXUS_SimpleAudioDecoderHandle masterHandle; /* The main master simple audio decoder handle, should remain NULL for anything else */
     NEXUS_SimpleAudioDecoderType type;
     NEXUS_SimpleDecoderDisableMode disableMode;
     NEXUS_AudioDecoderHandle primary;   /* for decode and simul */
@@ -118,6 +122,17 @@ typedef struct NEXUS_SimpleAudioDecoderServerSettings
         NEXUS_AudioCaptureHandle output;
         NEXUS_AudioInputHandle input[NEXUS_MAX_AUDIOCODECS]; /* per codec, specify the final stage to be connected to audio capture. */
     } capture;
+    struct {
+        NEXUS_AudioDacHandle output;
+        NEXUS_AudioInputHandle input;
+        NEXUS_AudioPresentation presentation; /* If alternate stereo and AC4 stream connect to the decoders alternate stereo path, other wise connects to input. */
+    } dac;
+
+    struct {
+        NEXUS_I2sOutputHandle output;
+        NEXUS_AudioInputHandle input;
+        NEXUS_AudioPresentation presentation; /* If alternate stereo and AC4 stream connect to the decoders alternate stereo path, other wise connects to input. */
+    } i2s[NEXUS_MAX_SIMPLE_DECODER_I2S_OUTPUTS];
 } NEXUS_SimpleAudioDecoderServerSettings;
 
 void NEXUS_SimpleAudioDecoder_GetDefaultServerSettings(

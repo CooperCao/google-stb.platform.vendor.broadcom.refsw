@@ -68,14 +68,13 @@ static struct {
 
 static void NEXUS_Watchdog_P_ReadResetHistory(void);
 
-NEXUS_Error NEXUS_Watchdog_P_Init(void)
+void NEXUS_Watchdog_P_Init(void)
 {
     BKNI_Memset(&g_watchdog, 0, sizeof(g_watchdog));
     g_watchdog.stopTimerOnDestroy = true;
     NEXUS_Watchdog_P_ReadResetHistory();
     /* must issue magic stop sequence to get control again */
     NEXUS_Watchdog_StopTimer();
-    return 0;
 }
 
 void NEXUS_Watchdog_P_Uninit(void)
@@ -97,13 +96,12 @@ static void nexus_p_watchdog_isr(void *context, int param)
     BKNI_SetEvent(handle->event);
 }
 
-static NEXUS_Error nexus_watchdog_p_start_callback(void)
+static void nexus_watchdog_p_start_callback(void)
 {
     NEXUS_WatchdogCallbackHandle handle;
     for (handle = BLST_S_FIRST(&g_watchdog.callbacks); handle; handle = BLST_S_NEXT(handle, link)) {
         BINT_EnableCallback(handle->intCallback);
     }
-    return 0;
 }
 
 static void nexus_watchdog_p_stop_callback(void)
@@ -140,8 +138,6 @@ NEXUS_Error NEXUS_Watchdog_SetTimeout(unsigned timeout)
 
 NEXUS_Error NEXUS_Watchdog_StartTimer(void)
 {
-    int rc;
-
     if (g_watchdog.timeout==0) {
         BDBG_ERR(("NEXUS_Watchdog_StartTimer: Timeout value was not previously set"));
         return BERR_TRACE(NEXUS_NOT_INITIALIZED);
@@ -154,8 +150,7 @@ NEXUS_Error NEXUS_Watchdog_StartTimer(void)
     }
 #endif
 
-    rc = nexus_watchdog_p_start_callback();
-    if (rc) return BERR_TRACE(rc);
+    nexus_watchdog_p_start_callback();
 
     /* magic start sequence */
     BREG_Write32(g_NexusCore.publicHandles.reg, BCHP_TIMER_WDCMD, 0xff00);

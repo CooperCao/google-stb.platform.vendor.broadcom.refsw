@@ -261,11 +261,11 @@ static void NEXUS_Display_P_SetSecureGraphics(struct NEXUS_DisplayGraphics *grap
         BKNI_Memset(&coreList, 0, sizeof(coreList));
         coreList.aeCores[BAVC_CoreId_eGFD_0] = true;
         if (secure) {
-            int rc = NEXUS_Sage_AddSecureCores(&coreList);
+            int rc = NEXUS_Sage_AddSecureCores(&coreList, NEXUS_SageUrrType_eDisplay);
             if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);return;}
         }
         else {
-            NEXUS_Sage_RemoveSecureCores(&coreList);
+            NEXUS_Sage_RemoveSecureCores(&coreList, NEXUS_SageUrrType_eDisplay);
         }
         graphics->secure = secure;
 #else

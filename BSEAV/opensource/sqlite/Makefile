@@ -36,11 +36,11 @@
 #   ANY LIMITED REMEDY.
 #
 ###############################################################################
-SHELL:=/bin/bash
-PWD := ${shell pwd}
-OPENSOURCE ?= ${PWD}/../
 THIS_DIR := BSEAV/opensource/sqlite
-B_REFSW_TOP := $(subst /${THIS_DIR},,${CURDIR})
+SHELL:=/bin/bash
+ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+OPENSOURCE ?= ${ROOT_DIR}/../
+B_REFSW_TOP ?= $(subst /${THIS_DIR},,$(ROOT_DIR))
 
 WORKING_DIR := $(B_REFSW_TOP)/$(THIS_DIR)
 BSEAV_TOP := $(B_REFSW_TOP)/BSEAV

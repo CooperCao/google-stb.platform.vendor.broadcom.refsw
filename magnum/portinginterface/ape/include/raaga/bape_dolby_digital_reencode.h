@@ -108,6 +108,8 @@ typedef struct BAPE_DolbyDigitalReencodeSettings
     BAPE_ChannelMode stereoOutputMode;      /* Configure the channel mode for the stereo port. e2_0, e1_0 are valid values. e2_0 is the default. */
     bool fixedEncoderFormat; /* When true, content will be upmixed or downmixed to the
                                 multichannelFormat specified. This control only applies when MS12 is enabled. */
+    bool fixedAtmosOutput;  /* When true, DDP encoder will always indicate Atmos presence, otherise Atmos indication will be
+                               dependent on the stream leading to dropouts.  This control only applies when MS12 is enabled. */
 
 
     /* The following settings are only applied if externalPcmMode = true */

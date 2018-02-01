@@ -25,8 +25,8 @@ extern GLXX_FENCESYNC_T* glxx_fencesync_create(unsigned name,
  * reach state = completed */
 #define GLXX_FENCESYNC_SIGNALED_DEPS_STATE V3D_SCHED_DEPS_COMPLETED
 
-/* the caller must hold the gl lock when calling this */
+/* the caller must hold the gl lock when calling this;
+ * this function flushes all render states that are users of this fence */
 extern bool glxx_fencesync_is_signaled(GLXX_FENCESYNC_T *fsync);
-extern void glxx_fencesync_set_signaled(GLXX_FENCESYNC_T *fsync);
 
 #endif

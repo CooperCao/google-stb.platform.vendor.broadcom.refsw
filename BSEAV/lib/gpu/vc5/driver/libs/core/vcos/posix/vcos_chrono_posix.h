@@ -38,9 +38,9 @@ static inline uint64_t vcos_steady_clock_now_ms(void) { return vcos_linux_clock_
 static inline uint64_t vcos_steady_clock_now_us(void) { return vcos_linux_clock_now_us(CLOCK_MONOTONIC); }
 static inline uint64_t vcos_steady_clock_now_ns(void) { return vcos_linux_clock_now_ns(CLOCK_MONOTONIC); }
 
-static inline uint64_t vcos_high_res_clock_now_ms(void) { return vcos_linux_clock_now_ms(CLOCK_PROCESS_CPUTIME_ID); }
-static inline uint64_t vcos_high_res_clock_now_us(void) { return vcos_linux_clock_now_us(CLOCK_PROCESS_CPUTIME_ID); }
-static inline uint64_t vcos_high_res_clock_now_ns(void) { return vcos_linux_clock_now_ns(CLOCK_PROCESS_CPUTIME_ID); }
+static inline uint64_t vcos_high_res_clock_now_ms(void) { return vcos_linux_clock_now_ms(CLOCK_MONOTONIC); }
+static inline uint64_t vcos_high_res_clock_now_us(void) { return vcos_linux_clock_now_us(CLOCK_MONOTONIC); }
+static inline uint64_t vcos_high_res_clock_now_ns(void) { return vcos_linux_clock_now_ns(CLOCK_MONOTONIC); }
 
 #ifdef __cplusplus
 }

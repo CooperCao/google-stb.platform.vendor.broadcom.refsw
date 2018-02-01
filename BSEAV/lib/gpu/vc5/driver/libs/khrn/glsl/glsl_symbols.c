@@ -432,8 +432,13 @@ PrimitiveTypeIndex glsl_get_scalar_value_type_index(const SymbolType *type, unsi
    switch (type->flavour)
    {
       case SYMBOL_PRIMITIVE_TYPE:
-         assert(primitiveScalarTypeIndices[type->u.primitive_type.index] != PRIMITIVE_TYPE_UNDEFINED);
-         return primitiveScalarTypeIndices[type->u.primitive_type.index];
+         if (glsl_prim_is_prim_comb_sampler_type(type)) {
+            if (n == 0) return glsl_prim_get_image_base_type(type->u.primitive_type.index);
+            else        return PRIM_SAMPLER;
+         } else {
+            assert(primitiveScalarTypeIndices[type->u.primitive_type.index] != PRIMITIVE_TYPE_UNDEFINED);
+            return primitiveScalarTypeIndices[type->u.primitive_type.index];
+         }
 
       case SYMBOL_STRUCT_TYPE:
          for (i = 0; i < type->u.struct_type.member_count; i++)
@@ -456,8 +461,15 @@ PrimitiveTypeIndex glsl_get_scalar_value_type_index(const SymbolType *type, unsi
          return glsl_get_scalar_value_type_index(type->u.block_type.member[i].type, n);
 
       case SYMBOL_ARRAY_TYPE:
-         return glsl_get_scalar_value_type_index(type->u.array_type.member_type,
-                                                 n % type->u.array_type.member_type->scalar_count);
+      {
+         unsigned i;
+         if (glsl_prim_is_prim_comb_sampler_type(type->u.array_type.member_type))
+            i = n / type->u.array_type.member_count;
+         else
+            i = n % type->u.array_type.member_type->scalar_count;
+
+         return glsl_get_scalar_value_type_index(type->u.array_type.member_type, i);
+      }
 
       default:
          unreachable();
@@ -613,8 +625,7 @@ Dataflow **glsl_symbol_get_default_scalar_values(const Symbol *symbol)
          scalar_values[i] = glsl_dataflow_construct_const_value(glsl_prim_index_to_df_type(type_index), 0);
       else {
          if (glsl_prim_is_prim_texture_type(&primitiveTypes[type_index]) ||
-             glsl_prim_is_prim_image_type  (&primitiveTypes[type_index]) ||
-             glsl_prim_is_prim_comb_sampler_type(&primitiveTypes[type_index]))
+             glsl_prim_is_prim_image_type  (&primitiveTypes[type_index]))
          {
             PrimSamplerInfo *psi = glsl_prim_get_image_info(type_index);
             PrimitiveTypeIndex ret_basic_type = primitiveScalarTypeIndices[psi->return_type];
@@ -627,9 +638,8 @@ Dataflow **glsl_symbol_get_default_scalar_values(const Symbol *symbol)
                default: assert(0); type = DF_INVALID;    break;
             }
             scalar_values[i] = glsl_dataflow_construct_const_image(type, -1, false);
-            if (glsl_prim_is_prim_comb_sampler_type(&primitiveTypes[type_index])) {
-               scalar_values[++i]   = glsl_dataflow_construct_linkable_value(DATAFLOW_CONST_SAMPLER, DF_SAMPLER, -1);
-            }
+         } else if (glsl_prim_is_prim_sampler_type(&primitiveTypes[type_index])) {
+            scalar_values[i] = glsl_dataflow_construct_linkable_value(DATAFLOW_CONST_SAMPLER, DF_SAMPLER, -1);
          } else if (glsl_prim_is_prim_atomic_type(&primitiveTypes[type_index]))
             scalar_values[i] = glsl_dataflow_construct_const_uint(0);
       }

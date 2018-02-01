@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -111,20 +111,6 @@ static BMMA_DeviceOffset BXPT_PacketSub_P_ReadAddr_isrsafe(
 
 #define BXPT_PacketSub_P_ReadAddr BXPT_PacketSub_P_ReadAddr_isrsafe
 #define BXPT_PacketSub_P_ReadReg BXPT_PacketSub_P_ReadReg_isrsafe
-
-BERR_Code BXPT_PacketSub_GetTotalChannels(
-    BXPT_Handle hXpt,           /* [in] Handle for this transport */
-    unsigned int *TotalChannels     /* [out] The number of PacketSub channels. */
-    )
-{
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hXpt );
-
-    *TotalChannels = hXpt->MaxPacketSubs;
-
-    return( ExitCode );
-}
 
 BERR_Code BXPT_PacketSub_GetChannelDefaultSettings(
     BXPT_Handle hXpt,           /* [in] Handle for this transport */
@@ -258,21 +244,6 @@ void BXPT_PacketSub_CloseChannel(
 }
 
 
-unsigned int BXPT_PacketSub_GetPidChanNum(
-    BXPT_PacketSub_Handle hPSub     /* [in] Handle for the channel. */
-    )
-{
-    unsigned int PidChannelNum;
-    BXPT_Handle hXpt;                           /* [in] Handle for this transport */
-
-    BDBG_ASSERT( hPSub );
-
-    hXpt = (BXPT_Handle) hPSub->vhXpt;
-    BXPT_AllocPidChannel( hXpt, false, &PidChannelNum );
-
-    return PidChannelNum;
-}
-
 BERR_Code BXPT_PacketSub_SetPidChanNum(
     BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
     unsigned int PidChanNum,        /* [in] Which PID channel to assign the output to. */
@@ -340,29 +311,6 @@ BERR_Code BXPT_PacketSub_SetPidChanNum(
         BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0, Reg );
 #endif
     }
-
-    return( ExitCode );
-}
-
-BERR_Code BXPT_PacketSub_SetForcedOutput(
-    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
-    bool Enable         /* [in] Force output immediately if TRUE */
-    )
-{
-    uint32_t Reg;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hPSub );
-
-    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0 );
-    Reg &= ~(
-        BCHP_MASK( XPT_PSUB_PSUB0_CTRL0, FORCED_OUTPUT_ENABLE )
-        );
-    Reg |= (
-        BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL0, FORCED_OUTPUT_ENABLE, Enable == true ? 1 : 0 )
-        );
-    BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0, Reg );
 
     return( ExitCode );
 }
@@ -726,83 +674,6 @@ BERR_Code BXPT_PacketSub_GetCurrentDescriptorAddress_isrsafe(
    *LastDesc = ( BXPT_PacketSub_Descriptor * ) UserDescAddr;
 
    return( ExitCode );
-}
-
-BERR_Code BXPT_PacketSub_CheckHeadDescriptor(
-    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
-    BXPT_PacketSub_Descriptor *Desc,    /* [in] Descriptor to check. */
-    bool *InUse,                        /* [out] Is descriptor in use? */
-    uint32_t *BufferSize                /* [out] Size of the buffer (in bytes). */
-    )
-{
-    BMMA_DeviceOffset Reg, CurrentDescAddr, CandidateDescPhysAddr;
-    uint32_t ChanBusy;
-
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hPSub );
-
-    /*
-    ** Check if the current descriptor being processed by the
-    ** playback hardware is the first on our hardware list
-    ** (which means this descriptor is still being used)
-    */
-    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT1 );
-
-    CurrentDescAddr = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT1, CURR_DESC_ADDR );
-    CurrentDescAddr <<= 4;  /* Convert to byte-address. */
-
-    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0 );
-    ChanBusy = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT0, BUSY );
-
-    CandidateDescPhysAddr = hPSub->mma.offset + (unsigned)((uint8_t*)Desc - (uint8_t*)hPSub->mma.ptr); /* convert Desc -> offset */
-
-    if( CurrentDescAddr == CandidateDescPhysAddr )
-    {
-        if( ChanBusy )
-        {
-            /* The candidate descriptor is being used by hardware. */
-            *InUse = true;
-        }
-        else
-        {
-            *InUse = false;
-        }
-    }
-    else
-    {
-        /*
-        ** The candidate descriptor isn't being processed. If this is the head descriptor
-        ** we can conclude that the hardware is finished with the descriptor.
-        */
-        *InUse = false;
-    }
-
-    if( *InUse == false )
-    {
-        if( ChanBusy )
-        {
-           BXPT_PacketSub_Descriptor *CachedDescPtr = Desc;
-           *BufferSize = CachedDescPtr->BufferLength;
-        }
-        else
-        {
-            /*
-            ** Since there is valid data in the record channel even after it is stopped,
-            ** we are unable to detect if we are done or not with a specific descriptor
-            ** after the record channel has been halted.
-            ** This check needs to be performed at a higher level
-            */
-            *BufferSize = 0;
-            *InUse = true;
-        }
-    }
-    else
-    {
-        *BufferSize = 0;
-    }
-
-    return( ExitCode );
 }
 
 BERR_Code BXPT_PacketSub_StartChannel(

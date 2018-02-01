@@ -1521,12 +1521,12 @@ BERR_Code BXVD_P_ChipEnable_RevT0(BXVD_Handle hXvd)
    /* Program global IO base register - Outer */
    BXVD_Reg_Write64(hXvd,
                     hXvd->stPlatformInfo.stReg.uiDecode_OuterGlobalIOBase,
-                    (uint64_t)(BCHP_PHYSICAL_OFFSET));
+                    (uint64_t)(BCHP_PHYSICAL_OFFSET)+BXVD_P_STB_REG_BASE);
 
    /* Program global IO base register - Inner */
    BXVD_Reg_Write64(hXvd,
                     hXvd->stPlatformInfo.stReg.uiDecode_InnerGlobalIOBase,
-                    (uint64_t)(BCHP_PHYSICAL_OFFSET));
+                    (uint64_t)(BCHP_PHYSICAL_OFFSET)+BXVD_P_STB_REG_BASE);
 #else
 
    /* Program the relocation base address for outer-loop */

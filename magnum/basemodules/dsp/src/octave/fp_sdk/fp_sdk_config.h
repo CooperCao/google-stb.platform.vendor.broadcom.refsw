@@ -1,5 +1,5 @@
 /************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,12 +51,142 @@
  ************************************************************************/
 
 
+#if defined(__FP4015__) && defined(OFDX_DSP)
+#  include "config/fp4015/ofdx_dsp/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(PMC3_2_ICA_ITCM)
+#  include "config/fpm1015/pmc3_2_ica_itcm/fp_sdk_config.h"
+#endif
+
 #if defined(__FP4015__) && defined(RAAGA)
 #  include "config/fp4015/raaga/fp_sdk_config.h"
 #endif
 
+#if defined(__FPM1015__) && defined(DSLCPE)
+#  include "config/fpm1015/dslcpe/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(VIPER2_TP0)
+#  include "config/fpm1015/viper2_tp0/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(OFDX_RX)
+#  include "config/fpm1015/ofdx_rx/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(PMC3)
+#  include "config/fpm1015/pmc3/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(SAGE)
+#  include "config/fpm1015/sage/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(GENERIC)
+#  include "config/fpm1015/generic/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(PMC3_2_ICA_ROM)
+#  include "config/fpm1015/pmc3_2_ica_rom/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(AVS)
+#  include "config/fpm1015/avs/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(LEAP_SOC)
+#  include "config/fpm1015/leap_soc/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(SMC)
+#  include "config/fpm1015/smc/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(UTP)
+#  include "config/fpm1015/utp/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(PMC3_2_ICA)
+#  include "config/fpm1015/pmc3_2_ica/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(LEAP_PHY_BCM3465)
+#  include "config/fpm1015/leap_phy_bcm3465/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(GFAP_PP)
+#  include "config/fpm1015/gfap_pp/fp_sdk_config.h"
+#endif
+
+#if defined(__FP4015__) && defined(VIPER2_TP1)
+#  include "config/fp4015/viper2_tp1/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(CMTS_PHY)
+#  include "config/fpm1015/cmts_phy/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(LEAP_PHY)
+#  include "config/fpm1015/leap_phy/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(PMC3_2_ITCM)
+#  include "config/fpm1015/pmc3_2_itcm/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(DTP)
+#  include "config/fpm1015/dtp/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(LEAP_PHY_BCM45402)
+#  include "config/fpm1015/leap_phy_bcm45402/fp_sdk_config.h"
+#endif
+
+#if defined(__FP2012__) && defined(MCPHY)
+#  include "config/fp2012/mcphy/fp_sdk_config.h"
+#endif
+
+#if defined(__FP4014__) && defined(PIKE)
+#  include "config/fp4014/pike/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(WOD)
+#  include "config/fpm1015/wod/fp_sdk_config.h"
+#endif
+
+#if defined(__FPM1015__) && defined(GFAP_EP)
+#  include "config/fpm1015/gfap_ep/fp_sdk_config.h"
+#endif
+
 #if !( \
+     (defined(__FP4015__) && defined(OFDX_DSP)) || \
+     (defined(__FPM1015__) && defined(PMC3_2_ICA_ITCM)) || \
      (defined(__FP4015__) && defined(RAAGA)) || \
+     (defined(__FPM1015__) && defined(DSLCPE)) || \
+     (defined(__FPM1015__) && defined(VIPER2_TP0)) || \
+     (defined(__FPM1015__) && defined(OFDX_RX)) || \
+     (defined(__FPM1015__) && defined(PMC3)) || \
+     (defined(__FPM1015__) && defined(SAGE)) || \
+     (defined(__FPM1015__) && defined(GENERIC)) || \
+     (defined(__FPM1015__) && defined(PMC3_2_ICA_ROM)) || \
+     (defined(__FPM1015__) && defined(AVS)) || \
+     (defined(__FPM1015__) && defined(LEAP_SOC)) || \
+     (defined(__FPM1015__) && defined(SMC)) || \
+     (defined(__FPM1015__) && defined(UTP)) || \
+     (defined(__FPM1015__) && defined(PMC3_2_ICA)) || \
+     (defined(__FPM1015__) && defined(LEAP_PHY_BCM3465)) || \
+     (defined(__FPM1015__) && defined(GFAP_PP)) || \
+     (defined(__FP4015__) && defined(VIPER2_TP1)) || \
+     (defined(__FPM1015__) && defined(CMTS_PHY)) || \
+     (defined(__FPM1015__) && defined(LEAP_PHY)) || \
+     (defined(__FPM1015__) && defined(PMC3_2_ITCM)) || \
+     (defined(__FPM1015__) && defined(DTP)) || \
+     (defined(__FPM1015__) && defined(LEAP_PHY_BCM45402)) || \
+     (defined(__FP2012__) && defined(MCPHY)) || \
+     (defined(__FP4014__) && defined(PIKE)) || \
+     (defined(__FPM1015__) && defined(WOD)) || \
+     (defined(__FPM1015__) && defined(GFAP_EP)) || \
      0 )
 #  error "Missing or unsupported chip and/or architecture version definition."
 #endif

@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=us-ascii">
 <meta name=Generator content="Microsoft Word 14 (filtered)">
-<title>Broadcom 97278 A0/B0 Phase 17.4 Set-Top Unified Reference Software
+<title>Broadcom 97278 B0 Phase 18.1 Set-Top Unified Reference Software
 Release (URSR) Release Notes</title>
 <style>
 <!--
@@ -192,32 +192,32 @@ href="#where_to_start"><span style='color:#0070C0'>Where to Start</span></a></sp
 
 <div>
 
-<p><a name=top><strong>Broadcom 97278/7278 A0/B0 Phase 17.4 </strong></a><strong>Set-Top
+<p><a name=top><strong>Broadcom 97278/7278 B0 Phase 18.1 </strong></a><strong>Set-Top
 Unified Reference Software Release Notes</strong></p>
 
 <p><strong>Release Date: </strong></p>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
 
-<p>September 22, 2017</p>
+<p>January 29, 2018</p>
 
-<p>Phase 17.4 Release </p>
+<p>Phase 18.1 Release </p>
 
 </blockquote>
 
 <p><strong>Platforms Supported: </strong></p>
 
-<p class=MsoNormal style='text-indent:.5in'>97278SV BCM7278 A0/B0 Revision</p>
+<p class=MsoNormal style='text-indent:.5in'>97278SV BCM7278 B0 Revision</p>
 
-<p class=MsoNormal style='text-indent:.5in'>97278HB BCM7278 A0/B0 Revision</p>
+<p class=MsoNormal style='text-indent:.5in'>97278HB BCM7278 B0 Revision</p>
 
-<p class=MsoNormal style='text-indent:.5in'>97278VMS BCM7278 A0/B0 Revision</p>
+<p class=MsoNormal style='text-indent:.5in'>97278VMS BCM7278 B0 Revision</p>
 
-<p class=MsoNormal style='text-indent:.5in'>97278IPA BCM7278 A0/B0 Revision</p>
+<p class=MsoNormal style='text-indent:.5in'>97278IPA BCM7278 B0 Revision</p>
 
 <p class=MsoNormal style='text-indent:.5in'>&nbsp;</p>
 
-<p class=MsoNormal><b>BCM7278 A0/B0 Supported boards</b> </p>
+<p class=MsoNormal><b>BCM7278 B0 Supported boards</b> </p>
 
 <table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0>
  <tr>
@@ -274,14 +274,14 @@ as part of the Reference Software. </p>
 
 <p class=MsoNormal>&nbsp;</p>
 
-<p class=MsoNormal><strong>Important Notes Limitations</strong></p>
+<p class=MsoNormal><strong>Important Notes and Limitations</strong></p>
 
 <p class=MsoNormal><span style='color:blue'>In order to prevent confusion, due
 to the variety of configurations for different chip part numbers, BOLT
 bootloader is no longer bundled with the Reference Software release, and should
-be requested separately. For this release, 97278 was tested with BOLT v1.34.</span></p>
-
-<p class=MsoNormal>In URSR 17.4, Audio/DSP supports MS12 v1.3.1:</p>
+be requested separately. For this release, 97278 was tested with BOLT v1.35.</span><span style='color:black'>  Use of TrustZone will require BOLT v1.36, available early 2018.</span></p>
+<br>
+<p class=MsoNormal>In URSR 18.1, Audio/DSP supports MS12 v1.3.1:</p>
 
 <p class=MsoNormal>7278 audio support in this release includes UDC (AC3/DDP)
 [Dolby MS12 license required], AAC/AAC-HE, MPEG and PCMWAV audio decode from TS
@@ -297,17 +297,21 @@ B, C, D. Note that AC4 decoding is not supported in this release.</p>
 <p class=MsoNormal>Security (NEXUS_SECURITY_SUPPORT) support is preliminary in
 this release. &nbsp;BCM7278 uses a new &#8220;secv2&#8221; API.&nbsp; Build
 with NEXUS_SECURITY_SUPPORT=n if necessary.</p>
+<p class=MsoNormal>&nbsp;</p>
 
-<p class=MsoNormal>SAGE (SAGE_SUPPORT) is not supported in this release. </p>
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>HDCP 1.4 is not functional in BCM7278B0.  Will be fixed in B1.</p>
+<p class=MsoNormal>&nbsp;</p>
 
 <p class=MsoNormal>Nexus Power Management (NEXUS_POWER_MANAGEMENT=y) is supported
 in this release, but standby (S1,S2,S3) is not.</p>
 
 <p class=MsoNormal>&nbsp;</p>
 
-<p class=MsoNormal>Nexus Video Encoder (VIDEO_ENCODER_SUPPORT=y) is defaulted on for use with Box Mode 1
- in this release.  Transcoding with audio is supported but has received limited testing.  Current video encoder limitations are shown below in "Known Issues".</p><br>
-
+<p class=MsoNormal>Nexus Video Encoder (VIDEO_ENCODER_SUPPORT=y) is defaulted on for use with Box Modes 1 and 3
+ in this release.  Transcoding with audio is supported but has received limited testing.  A current transcoding limitation is shown below in "Known Issues".</p>
+<p class=MsoNormal>&nbsp;</p>
 
 <p class=MsoNormal>HDR 2.0 features supported in this release:</p>
 
@@ -335,11 +339,58 @@ Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nb
 Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span>HLG --&gt; HDR10 conversion</p>
 
+<p class=MsoListParagraph style='text-indent:-.25in'>&nbsp;</p>
+
+<p class=MsoNormal>SAGE (SAGE_SUPPORT) is preliminary in this release. Defaulted off.  Build with SAGE_SUPPORT=y to enable.
+<p class=MsoNormal style='background:white'><b><span style='font-size:14.0pt;
+color:black'>SAGE 4.0 Alpha 4 Release Notes</span></b></p>
+
+<p class=MsoNormal style='background:white'><span style='color:black'>This is an early engineering release for the 7278B0 ZD and ZB with minimal testing and feature support.&nbsp;</span></p>
+
+<p class=MsoNormal style='background:white'><span style='color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></p>
+
+<p class=MsoNormal style='background:white'><span style='color:black'>Supported Features</span></p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
+Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial PlayReady 2.5, 3.3 and Widevine DRM support.</span></p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
+Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial Secure Video Path (SVP) support.</span></p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
+Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Support for BP3 provisioning.  SAGE is required for BP3 parts.</span></p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
+Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Support
+for HDMI Tx with HDCP 2.2 with limited and basic compliance testing</span></p>
+
+<p class=MsoNormal style='background:white'><span style='color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></p>
+
+<p class=MsoNormal style='background:white'><span style='color:black'>Known
+Issues</span></p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
+Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HDCP
+2.2 Rx is not supported</span></p>
+
+<p class=MsoNormal style='background:white'><span style='color:black'>&nbsp;</span></p>
+
+<p class=MsoNormal style='background:white'><span style='color:black'>Miscellaneous
+Notes</span></p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
+Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Various
+changes made to Nexus Security and HSM PI with the introduction of HSM version
+2.&nbsp; Please note that Nexus security and HSM APIs may change as additional
+features are enabled and tested in SAGE</span></p>
+
+<p class=MsoListParagraph style='margin-left:.25in;text-indent:-.25in'>&nbsp;</p>
+
 <p><strong>Quick Build Instructions</strong></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar -xvjf rootfs-4.1-1.14.tar.bz2 </li>
- <li class=MsoNormal># tar -xvjf stblinux-4.1-1.14.tar.bz2 </li>
+ <li class=MsoNormal># tar -xvjf rootfs-4.9-1.2.tar.bz2 </li>
+ <li class=MsoNormal># tar -xvjf stblinux-4.9-1.2.tar.bz2 </li>
  <li class=MsoNormal># cd rootfs </li>
  <li class=MsoNormal># make vmlinuz-initrd-arm <i>(For 32-bit version of the
      kernel build)</i></li>
@@ -361,9 +412,9 @@ Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nb
 
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal>BOLT&gt; boot -z
-     &lt;network_location&gt;:41-1.14/vmlinuz-initrd-arm </li>
+     &lt;network_location&gt;:49-1.2/vmlinuz-initrd-arm </li>
  <li class=MsoNormal>BOLT&gt; boot -z
-     &lt;network_location&gt;:41-1.14/vmlinuz-initrd-arm64&nbsp; - This command
+     &lt;network_location&gt;:49-1.2/vmlinuz-initrd-arm64&nbsp; - This command
      will boot 64 bit kernel instead of 32 bit kernel. </li>
 </ul>
 
@@ -374,13 +425,13 @@ Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nb
 <p class=MsoNormal>&nbsp;</p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>BOLT&gt; flash &lt;network_location&gt;:41-1.14/vmlinuz-initrd-arm
+ <li class=MsoNormal>BOLT&gt; flash &lt;network_location&gt;:49-1.2/vmlinuz-initrd-arm
      flash0.kernel </li>
 </ul>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><span style='font-size:
 10.0pt;font-family:Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Or BOLT&gt; flash &lt;network_location&gt;:41-1.14/vmlinuz-initrd-arm64
+</span>Or BOLT&gt; flash &lt;network_location&gt;:49-1.2/vmlinuz-initrd-arm64
 flash0.kernel&nbsp; - For 64 bit kernel</p>
 
 <ul style='margin-top:0in' type=disc>
@@ -409,13 +460,12 @@ option 8 for flashing the noninitrd kernel and rootfs to the eMMC flash. </p>
 <p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
 style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Reboot
 the board with &quot;boot emmcflash0.kernel: 'root=/dev/mmcblk0p6 rootwait rw
-bmem=582m@2490m bmem=572m@13764m brcm_cma=256m@13508m'&quot; </p>
+bmem=584m@2488m brcm_cma=256m@2232m bmem=544m@13792m brcm_cma=256m@13536m'&quot; </p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
 style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Set
 the STARTUP or a function key variable to &quot;boot emmcflash0.kernel:
-'root=/dev/mmcblk0p6 rootwait rw bmem=582m@2490m bmem=572m@13764m
-brcm_cma=256m@13508m'&quot; </p>
+'root=/dev/mmcblk0p6 rootwait rw bmem=584m@2488m brcm_cma=256m@2232m bmem=544m@13792m brcm_cma=256m@13536m'&quot; </p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
 style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Reboot
@@ -427,12 +477,12 @@ graphics is not used,<br>
 those statements can be omitted from the boot command.&nbsp; They can be
 adjusted as recommended by messages during Nexus boot.&nbsp; The example given
 is adjusted to work for both Box Mode 1 and Box Mode 2.&nbsp; If 3D graphics is
-used with Box Mode 2, it may be helpful to add another brcm_cma statement in
-MEMC0 memory, such as brcm_cma=256m@2234m.</p>
+used with Box Mode 2, the brcm_cma=256m@2232m is useful. For other box modes, it may be removed.  See BSEAV/lib/gpu/docs/VC5_AppNote_MMU.pdf for more information.</p>
 <p>For BCM97278IPA, with "ZD" chip for internal development, a board issue
 causes the "v7-32" global address map to be selected.  If you don't see the message
 "v7-64 Memory Map Variant detected." and encounter heap allocation problems during Nexus initialization,
-an alternative set of boot parameters, 'bmem=582m@1466m bmem=549m@3547m brcm_cma=256m@3291m' may be needed.</p>
+an alternative set of boot parameters, 'bmem=584m@2488m brcm_cma=256m@2232m bmem=544m@3552m brcm_cma=256m@3296m' may be needed.</p>
+<p><b>Important: brcm_cma regions must be 4MB aligned.</b></p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </p>
 
@@ -467,7 +517,7 @@ options required to build the software. </p>
   <p class=MsoNormal>97278</p>
   </td>
   <td style='padding:0in 0in 0in 0in'>
-  <p class=MsoNormal><b>A0/B0</b></p>
+  <p class=MsoNormal><b>B0</b></p>
   </td>
   <td style='padding:0in 0in 0in 0in'>
   <p class=MsoNormal>See &#8220;Quick Build Instructions&#8221; on how to setup
@@ -488,7 +538,6 @@ black'>At this time box modes are the same for A0 and B0 chip versions.</span></
 <p class=MsoNormal><b><span style='color:#0070C0'><br>
 <strong>The table below contains information about the temporary box modes.&nbsp;
 These box modes were created to address limitations for video encoder (ViCE)
-hardware in BCM7278A0.&nbsp; For B0, Box Mode 1 can be used. </strong></span></b></p>
 
 <p class=MsoNormal><b><span style='color:#0070C0'>&nbsp;</span></b></p>
 
@@ -546,7 +595,7 @@ nexus playback utility and use it to decode and display a UHD stream </span></st
 
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal style='color:black'># tar xvfz
-     refsw_release_97278_20170922.src.tgz </li>
+     refsw_release_97278_20180129.src.tgz </li>
  <li class=MsoNormal style='color:black'>#cd nexus/utils </li>
  <li class=MsoNormal style='color:black'>#make install </li>
 </ul>
@@ -567,7 +616,7 @@ and use it to play UHD stream </span></b></p>
 
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal style='color:black'># tar xvfz
-     refsw_release_97278_20170922.src.tgz</li>
+     refsw_release_97278_20180129.src.tgz</li>
  <li class=MsoNormal style='color:black'>#cd BSEAV/app/atlas/build </li>
  <li class=MsoNormal style='color:black'>#make install </li>
 </ul>
@@ -591,17 +640,6 @@ and use it to play UHD stream </span></b></p>
 </ul>
 
 <p class=MsoNormal><b><span style='color:black'>&nbsp;</span></b></p>
-
-<h1><strong>Known Issues</strong></h1>
-<table class="MsoNormalTable" border="1" cellspacing="0" cellpadding="1" style="left:10px;top:1287px" width="1280px" id="TABLE1A">
-<colgroup><col span="1" style="width: 15%;"><col span="1" style="width: 85%;"></colgroup>
-<tr style="background:#99CCCC">
-<th>Jira Ticket</th>
-<th>Description</th>
-</tr>
-<tr valign="top"><td></td><td></td></tr>
-</table>
-
 
 <h2><a name=features><span style='color:black'>Features </span></a></h2>
 

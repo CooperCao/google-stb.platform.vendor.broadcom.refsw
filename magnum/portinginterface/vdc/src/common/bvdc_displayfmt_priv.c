@@ -1564,6 +1564,7 @@ const uint32_t* BVDC_P_GetDtramTable_isr
 }
 
 
+#if (BVDC_P_SUPPORT_ITU656_OUT)
 /*************************************************************************
  *  {secret}
  *  Returns pointer to appropriate 656Dtram for display modes.
@@ -1587,6 +1588,7 @@ const uint32_t* BVDC_P_Get656DtramTable_isr
 
     return pTable;
 }
+#endif /* BVDC_P_SUPPORT_ITU656_OUT */
 
 #if BVDC_P_NUM_SHARED_SM
 /*************************************************************************

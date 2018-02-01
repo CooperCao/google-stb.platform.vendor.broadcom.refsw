@@ -65,14 +65,24 @@ BMMA_Heap_Handle BVC5_P_GetMMAHeap(
 
 uint32_t BVC5_P_TranslateBinAddress(
    BVC5_Handle hVC5,
-   uint32_t    uiAddr,
+   uint64_t    uiAddr,
    bool        bSecure
 )
 {
+   uint64_t uiTranslatedAddr;
+
    if (!bSecure)
-      return (uint64_t)uiAddr - hVC5->iUnsecureBinTranslation;
+      uiTranslatedAddr = uiAddr - hVC5->iUnsecureBinTranslation;
    else
-      return (uint64_t)uiAddr - hVC5->iSecureBinTranslation;
+      uiTranslatedAddr = uiAddr - hVC5->iSecureBinTranslation;
+
+   if ((uiTranslatedAddr >> 32) != 0)
+   {
+      BDBG_ERR(("translate addr:" BDBG_UINT64_FMT " - " BDBG_UINT64_FMT " = " BDBG_UINT64_FMT, BDBG_UINT64_ARG(uiAddr), BDBG_UINT64_ARG(hVC5->iUnsecureBinTranslation), BDBG_UINT64_ARG(uiTranslatedAddr)));
+      BKNI_Fail();
+   }
+
+   return (uint32_t)(uiTranslatedAddr & 0xffffffff);
 }
 
 /***************************************************************************/
@@ -503,6 +513,11 @@ void BVC5_GetInfo(
    case BCHP_ScbMapVer_eMap8 : pInfo->uiDDRMapVer = 8; break;
    default                   : BDBG_ASSERT(0);
    }
+
+   pInfo->uiSocQuirks = 0;
+#if (BCHP_CHIP == 7260) && (BCHP_VER < BCHP_VER_B0)
+   pInfo->uiSocQuirks |= BVC5_P_SOC_QUIRK_HWBCM_7260_81;
+#endif
 
    BKNI_ReleaseMutex(hVC5->hModuleMutex);
    BDBG_LEAVE(BVC5_GetInfo);

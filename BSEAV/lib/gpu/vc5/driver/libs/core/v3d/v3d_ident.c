@@ -11,30 +11,30 @@
 
 LOG_DEFAULT_CAT("v3d_ident")
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 int v3d_ver_from_ident(const V3D_IDENT_T *ident)
 {
    return V3D_MAKE_VER(
-      ident->v3d_tech_version,
-      ident->v3d_revision,
-      ident->v3d_sub_rev,
-      V3D_HIDDEN_REV); /* Note this is by definition not provided by hardware! */
+      ident->tech_version,
+      ident->revision,
+      ident->sub_rev,
+      0);
 }
 #endif
 
 int v3d_ver_from_hub_ident(const V3D_HUB_IDENT_T *ident)
 {
-   uint32_t v3d_sub_rev = ident->v3d_sub_rev;
-   if ((ident->v3d_tech_version == 3) && (V3D_TECH_VERSION == 3) &&
-      (ident->v3d_revision == 2) && (V3D_REVISION == 2) &&
-      (v3d_sub_rev == 0) && (V3D_SUB_REV == 1))
+   uint32_t sub_rev = ident->sub_rev;
+#if V3D_VER == V3D_MAKE_VER(3,2,1,0)
+   if ((ident->tech_version == 3) && (ident->revision == 2) && (sub_rev == 0))
       /* 3.2.1 (special FPGA build) reports as 3.2.0 in hub; fix this up... */
-      v3d_sub_rev = 1;
+      sub_rev = 1;
+#endif
    return V3D_MAKE_VER(
-      ident->v3d_tech_version,
-      ident->v3d_revision,
-      v3d_sub_rev,
-      V3D_HIDDEN_REV); /* Note this is by definition not provided by hardware! */
+      ident->tech_version,
+      ident->revision,
+      sub_rev,
+      ident->compat_rev);
 }
 
 void v3d_check_ver(int v3d_ver)
@@ -45,11 +45,21 @@ void v3d_check_ver(int v3d_ver)
 
    if (!no_ver_check)
    {
-      demand_msg(v3d_ver == V3D_VER,
-         "V3D version of hardware (%u.%u.%u.%u) does not match what software was compiled with (%u.%u.%u.%u)!",
-         V3D_EXTRACT_TECH_VERSION(v3d_ver), V3D_EXTRACT_REVISION(v3d_ver),
-         V3D_EXTRACT_SUB_REV(v3d_ver), V3D_EXTRACT_HIDDEN_REV(v3d_ver),
-         V3D_TECH_VERSION, V3D_REVISION, V3D_SUB_REV, V3D_HIDDEN_REV);
+      uint32_t hw_tech_version = V3D_EXTRACT_TECH_VERSION(v3d_ver);
+      uint32_t hw_revision = V3D_EXTRACT_REVISION(v3d_ver);
+      uint32_t hw_sub_rev = V3D_EXTRACT_SUB_REV(v3d_ver);
+      uint32_t hw_compat_rev = V3D_EXTRACT_COMPAT_REV(v3d_ver);
+
+      bool compatible =
+         (hw_tech_version == V3D_TECH_VERSION) &&
+         (hw_revision == V3D_REVISION) &&
+         (hw_sub_rev == V3D_SUB_REV) &&
+         (hw_compat_rev >= V3D_COMPAT_REV);
+
+      demand_msg(compatible,
+         "V3D version of hardware (%u.%u.%u.%u) is not compatible with what software was compiled with (%u.%u.%u.%u)!",
+         hw_tech_version, hw_revision, hw_sub_rev, hw_compat_rev,
+         V3D_TECH_VERSION, V3D_REVISION, V3D_SUB_REV, V3D_COMPAT_REV);
    }
 }
 
@@ -58,7 +68,7 @@ void v3d_check_ident(const V3D_IDENT_T *ident, uint32_t core)
    /* v3d_unpack_ident() does a bunch of checking itself, so there isn't much
     * checking left to do here... */
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    v3d_check_ver(v3d_ver_from_ident(ident));
 #endif
 
@@ -88,7 +98,7 @@ size_t v3d_sprint_device_name(char *buf, size_t buf_size, size_t offset, const V
    // <T> is (texture units per core - 1) * 5
 
    const char *vcx;
-   switch (ident->v3d_tech_version)
+   switch (ident->tech_version)
    {
    case 3: vcx = "V";    break;    // VC5
    case 4: vcx = "VI";   break;    // VC6
@@ -99,6 +109,6 @@ size_t v3d_sprint_device_name(char *buf, size_t buf_size, size_t offset, const V
    }
 
    return vcos_safe_sprintf(buf, buf_size, offset, "VideoCore %s HW (V3D-%u%u%u)",
-            vcx, ident->v3d_tech_version + 2,
+            vcx, ident->tech_version + 2,
             ident->num_slices, (ident->num_tmus - 1) * 5);
 }

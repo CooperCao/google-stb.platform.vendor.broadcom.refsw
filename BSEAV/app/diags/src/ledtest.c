@@ -49,6 +49,11 @@
 BDBG_MODULE(diags_led);
 
 #if (BCHP_CHIP==7271) || (BCHP_CHIP==7268)
+#define PINMUX_7271 1
+#define PINMUX_72XX 1
+#endif
+#if (BCHP_CHIP==7278)
+#define PINMUX_7278 1
 #define PINMUX_72XX 1
 #endif
 
@@ -73,7 +78,7 @@ void bcmLedTest(void)
     NEXUS_LedSettings settings;
     unsigned i;
 
-#if PINMUX_72XX
+#if PINMUX_7271
     uint32_t aon_pin_mux_ctrl[5] = {0};
     uint32_t reg;
     NEXUS_Platform_ReadRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0, &aon_pin_mux_ctrl[0]);
@@ -159,6 +164,80 @@ void bcmLedTest(void)
         BDBG_MSG(("PIN_MUX_CTRL_%d: %08x", i, reg));
     }
 #endif
+#if PINMUX_7278
+    uint32_t aon_pin_mux_ctrl[3] = {0};
+    uint32_t reg;
+    NEXUS_Platform_ReadRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0, &aon_pin_mux_ctrl[0]);
+    NEXUS_Platform_ReadRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1, &aon_pin_mux_ctrl[1]);
+    NEXUS_Platform_ReadRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_2, &aon_pin_mux_ctrl[2]);
+
+    for (i=0; i < 3; i++) {
+        BDBG_MSG(("PIN_MUX_CTRL_%d: %08x", i, aon_pin_mux_ctrl[i]));
+    }
+
+    reg = aon_pin_mux_ctrl[0];
+    reg &= ~(
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_00) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_01) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_02) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_03) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_04) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_05) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_06) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_07)
+        );
+
+    reg |= (
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_00, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_01, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_02, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_03, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_04, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_05, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_06, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_07, 1)
+        );
+    NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0, reg);
+
+    reg = aon_pin_mux_ctrl[1];
+    reg &= ~(
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_08) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_09) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_10) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_11) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_12) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_13) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_14) |
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_15)
+        );
+
+    reg |= (
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_08, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_09, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_10, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_11, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_12, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_13, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_14, 1) |
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_15, 1)
+        );
+    NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1, reg);
+
+    reg = aon_pin_mux_ctrl[2];
+    reg &= ~(
+            BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_2, aon_gpio_16)
+        );
+
+    reg |= (
+            BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_2, aon_gpio_16, 1)
+        );
+    NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_2, reg);
+
+    for (i=0; i < 3; i++) {
+        NEXUS_Platform_ReadRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0 + 4*i, &reg);
+        BDBG_MSG(("PIN_MUX_CTRL_%d: %08x", i, reg));
+    }
+#endif
 
     NEXUS_Led_GetDefaultSettings(&settings);
     settings.scrollingEnabled = true;
@@ -181,15 +260,22 @@ void bcmLedTest(void)
         switch(Prompt()) {
             case 0:
 #if PINMUX_72XX
+            {
+                unsigned max_pinmux = 3;
                 NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_pin_mux_ctrl[0]);
                 NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_pin_mux_ctrl[1]);
                 NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_2, aon_pin_mux_ctrl[2]);
+#if PINMUX_7271
+                max_pinmux = 5;
                 NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_pin_mux_ctrl[3]);
+                NEXUS_Platform_WriteRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_4, aon_pin_mux_ctrl[4]);
+#endif
 
-                for (i=0; i < 5; i++) {
+                for (i=0; i < max_pinmux; i++) {
                     NEXUS_Platform_ReadRegister(BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0 + 4*i, &reg);
                     BDBG_MSG(("PIN_MUX_CTRL_%d: %08x", i, reg));
                 }
+            }
 #endif
 
                 return;
@@ -211,10 +297,10 @@ void bcmLedTest(void)
                 break;
 
             case 3:
-                NEXUS_Led_WriteSegments(led, 1, 0xff);
-                NEXUS_Led_WriteSegments(led, 2, 0xff);
-                NEXUS_Led_WriteSegments(led, 3, 0xff);
-                NEXUS_Led_WriteSegments(led, 4, 0xff);
+                NEXUS_Led_WriteSegments(led, 1, 0xffff);
+                NEXUS_Led_WriteSegments(led, 2, 0xffff);
+                NEXUS_Led_WriteSegments(led, 3, 0xffff);
+                NEXUS_Led_WriteSegments(led, 4, 0xffff);
                 break;
 
             case 4:

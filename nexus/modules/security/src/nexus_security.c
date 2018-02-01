@@ -1,40 +1,41 @@
 /******************************************************************************
-* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
-*
-* This program is the proprietary software of Broadcom and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #include "nexus_security_module.h"
 #include "nexus_security_datatypes.h"
 #include "nexus_security.h"
@@ -58,6 +59,7 @@
 
 #if NEXUS_SECURITY_IPLICENSING
  #include "bhsm_ip_licensing.h"
+ #include "bhsm_otpmsp.h"
 #endif
 #include "priv/nexus_security_standby_priv.h"
 
@@ -322,6 +324,16 @@ void NEXUS_SecurityModule_GetDefaultSettings(NEXUS_SecurityModuleSettings *pSett
     #endif
   #endif /* NEXUS_HAS_NSK2HDI */
 
+
+    #if (BHSM_ZEUS_FULL_VERSION == BHSM_ZEUS_VERSION_CALC_3(4,2,2))
+    pSettings->numKeySlotsForType[0] = 10;
+    pSettings->numKeySlotsForType[1] = 4;
+    pSettings->numKeySlotsForType[2] = 6;
+    pSettings->numKeySlotsForType[3] = 10;
+    pSettings->numKeySlotsForType[4] = 2;
+    pSettings->numKeySlotsForType[6] = 2;
+    #endif
+
     #if NEXUS_ENFORCE_REGION_VERIFICATION
     pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eTransport]      = false;
     pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoDecoder]   = true;
@@ -427,20 +439,31 @@ NEXUS_ModuleHandle NEXUS_SecurityModule_Init(const NEXUS_SecurityModuleInternalS
       #if NEXUS_SECURITY_IPLICENSING
         BHSM_Handle     hHsm;
         BHSM_ipLicensingOp_t ipLicensingOp;
+        BHSM_ReadMspIO_t     msp;
 
         NEXUS_Security_GetHsm_priv ( &hHsm );
         if( !hHsm ) { BERR_TRACE(NEXUS_NOT_AVAILABLE); goto err_init; }
 
-        BKNI_Memset( &ipLicensingOp, 0, sizeof(ipLicensingOp) );
+        BKNI_Memset( &msp, 0, sizeof(msp) );
+        msp.readMspEnum = 70;
+        rc = BHSM_ReadMSP( hHsm, &msp );
+        if (rc) { BERR_TRACE(rc); goto err_init; }
 
-        ipLicensingOp.dataSize = NEXUS_SECURITY_IP_LICENCE_SIZE;
-
-        BKNI_Memcpy ( ipLicensingOp.inputBuf, pSettings->ipLicense.data, NEXUS_SECURITY_IP_LICENCE_SIZE );
-
-        if ( BHSM_SetIpLicense ( hHsm, &ipLicensingOp ) != BERR_SUCCESS )
+        /* If enabled by the OTP msp bit */
+        if(  (msp.aucLockMspData[3] & 0x01) && ( msp.aucMspData[3] & 0x01 ) )
         {
-            BERR_TRACE(NEXUS_NOT_SUPPORTED);
-            goto err_init;
+
+            BKNI_Memset(&ipLicensingOp, 0, sizeof(ipLicensingOp));
+
+            ipLicensingOp.dataSize = NEXUS_SECURITY_IP_LICENCE_SIZE;
+
+            BKNI_Memcpy(ipLicensingOp.inputBuf, pSettings->ipLicense.data, NEXUS_SECURITY_IP_LICENCE_SIZE);
+
+            if (BHSM_SetIpLicense(hHsm, &ipLicensingOp) != BERR_SUCCESS)
+            {
+                BERR_TRACE(NEXUS_NOT_SUPPORTED);
+                goto err_init;
+            }
         }
       #else
        BDBG_WRN(("IP Licensing not enabled in build."));
@@ -558,6 +581,8 @@ static BERR_Code NEXUS_Security_P_InitHsm(const NEXUS_SecurityModuleSettings * p
     rc = BHSM_SetPidChannelBypassKeyslot(g_security.hsm, NEXUS_PidChannel_GetBypassKeySlotIndex_isrsafe(NEXUS_BypassKeySlot_eG2GR), NEXUS_BypassKeySlot_eG2GR);
     if (rc) {BERR_TRACE(rc);} /* keep going */
     rc = BHSM_SetPidChannelBypassKeyslot(g_security.hsm, NEXUS_PidChannel_GetBypassKeySlotIndex_isrsafe(NEXUS_BypassKeySlot_eGR2R), NEXUS_BypassKeySlot_eGR2R);
+    if (rc) {BERR_TRACE(rc);} /* keep going */
+    rc = BHSM_SetPidChannelBypassKeyslot(g_security.hsm, NEXUS_PidChannel_GetBypassKeySlotIndex_isrsafe(NEXUS_BypassKeySlot_eGT2T), NEXUS_BypassKeySlot_eGT2T);
     if (rc) {BERR_TRACE(rc);} /* keep going */
 #endif
 
@@ -1118,7 +1143,6 @@ static BCMD_XptM2MSecCryptoAlg_e mapNexus2Hsm_Algorithm( NEXUS_SecurityAlgorithm
         case NEXUS_SecurityAlgorithm_eAes:            return BCMD_XptM2MSecCryptoAlg_eAes128;
         case NEXUS_SecurityAlgorithm_eAes192:         return BCMD_XptM2MSecCryptoAlg_eAes192;
         case NEXUS_SecurityAlgorithm_eC2:             return BCMD_XptM2MSecCryptoAlg_eC2;
-        case NEXUS_SecurityAlgorithm_eCss:            return BCMD_XptM2MSecCryptoAlg_eCss;
         case NEXUS_SecurityAlgorithm_eM6Ke:           return BCMD_XptM2MSecCryptoAlg_eM6KE;
         case NEXUS_SecurityAlgorithm_eM6:             return BCMD_XptM2MSecCryptoAlg_eM6;
         case NEXUS_SecurityAlgorithm_eWMDrmPd:        return BCMD_XptM2MSecCryptoAlg_eWMDrmPd;
@@ -2426,6 +2450,7 @@ static NEXUS_Error NEXUS_SetPidChannelBypassKeyslot_priv( NEXUS_PidChannelHandle
 
     BDBG_CASSERT( (int)NEXUS_BypassKeySlot_eG2GR      == (int)BHSM_BypassKeySlot_eG2GR  );
     BDBG_CASSERT( (int)NEXUS_BypassKeySlot_eGR2R     == (int)BHSM_BypassKeySlot_eGR2R );
+    BDBG_CASSERT( (int)NEXUS_BypassKeySlot_eGT2T     == (int)BHSM_BypassKeySlot_eGT2T );
     BDBG_CASSERT( (int)NEXUS_BypassKeySlot_eMax      == (int)BHSM_BypassKeySlot_eInvalid  );
 
     rc = BHSM_SetPidChannelBypassKeyslot( g_security.hsm, NEXUS_PidChannel_GetIndex_isrsafe(pidChannel), bypassKeySlot );

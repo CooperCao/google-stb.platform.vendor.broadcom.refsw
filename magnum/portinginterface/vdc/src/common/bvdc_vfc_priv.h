@@ -130,7 +130,7 @@ do { \
 #endif
 #endif
 
-/* VNET */
+/* VFC */
 #if (BVDC_P_SUPPORT_VFC)
 #define BVDC_P_Vfc_MuxAddr(VFC)       (BCHP_VNET_F_VFC_0_SRC + (VFC)->eId * sizeof(uint32_t))
 #define BVDC_P_Vfc_PostMuxValue(VFC)  (BCHP_VNET_B_CAP_0_SRC_SOURCE_VFC_0 + (VFC)->eId)
@@ -174,7 +174,7 @@ typedef struct BVDC_P_VfcContext
     BVDC_Window_Handle             hWindow;
 
     /* CFC */
-    BVDC_P_CfcContext              stCfc;
+    BCFC_Context                   stCfc;
     bool                           bCfcDirty; /* cleared only after Cfc_UpdateCfg_isr is called */
 
     uint32_t                       ulPrevWidth;
@@ -189,7 +189,7 @@ typedef struct BVDC_P_VfcContext
     BVDC_P_SubRulContext           SubRul;
 } BVDC_P_VfcContext;
 
-
+#if (BVDC_P_SUPPORT_VFC)
 /***************************************************************************
  * Vfc private functions
  ***************************************************************************/
@@ -212,10 +212,6 @@ BERR_Code BVDC_P_Vfc_AcquireConnect_isr
 BERR_Code BVDC_P_Vfc_ReleaseConnect_isr
     ( BVDC_P_Vfc_Handle            *phVfc );
 
-void BVDC_P_Vfc_BuildRul_SetEnable_isr
-    ( BVDC_P_Vfc_Handle             hVfc,
-      BVDC_P_ListInfo              *pList );
-
 void BVDC_P_Vfc_BuildRul_isr
     ( const BVDC_P_Vfc_Handle       hVfc,
       BVDC_P_ListInfo              *pList,
@@ -230,10 +226,7 @@ void BVDC_P_Vfc_SetInfo_isr
     ( BVDC_P_Vfc_Handle             hVfc,
       BVDC_Window_Handle            hWindow,
       const BVDC_P_PictureNodePtr   pPicture );
-
-void BVDC_P_Vfc_SetEnable_isr
-    ( BVDC_P_Vfc_Handle             hVfc,
-      bool                          bEnable );
+#endif /* BVDC_P_SUPPORT_VFC */
 
 #ifdef __cplusplus
 }

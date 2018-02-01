@@ -238,6 +238,36 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 #endif
             BREG_Write32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0, reg);
             BDBG_MSG(("AON_PIN_CTRL_PIN_MUX_CTRL_0: %08x",reg));
+            reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10);
+            BDBG_MSG(("SUN_TOP_CTRL_PIN_MUX_CTRL_10: %08x",reg));
+            reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_067));
+            reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_067, 0));
+            BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10, reg);
+            BDBG_MSG(("SUN_TOP_CTRL_PIN_MUX_CTRL_10: %08x",reg));
+
+            BDBG_MSG(("Querying GP067_SPI_BSCn"));
+            NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eStandard, &gpioSettings);
+            gpioSettings.mode = NEXUS_GpioMode_eInput;
+            gpio = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 67, &gpioSettings);
+            if (gpio) {
+                NEXUS_Gpio_GetStatus(gpio, &gpioStatus);
+                BDBG_MSG(("GPIO val: %d", gpioStatus.value));
+                NEXUS_Gpio_Close(gpio);
+
+                BDBG_MSG(("setting GPIO high"));
+                NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eStandard, &gpioSettings);
+                gpioSettings.mode = NEXUS_GpioMode_eOutputPushPull;
+                gpioSettings.value = NEXUS_GpioValue_eHigh;
+                gpio = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 67, &gpioSettings);
+                NEXUS_Gpio_Close(gpio);
+
+                NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eStandard, &gpioSettings);
+                gpioSettings.mode = NEXUS_GpioMode_eInput;
+                gpio = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 67, &gpioSettings);
+                NEXUS_Gpio_GetStatus(gpio, &gpioStatus);
+                BDBG_MSG(("GPIO val: %d", gpioStatus.value));
+                NEXUS_Gpio_Close(gpio);
+            }
         }
         else if (hb) {
             reg = BREG_Read32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_2);
@@ -246,38 +276,38 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             reg |= (BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_2, aon_gpio_16, 3));    /* SPI_M_SS0B */
             BREG_Write32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_2, reg);
             BDBG_MSG(("AON_PIN_CTRL_PIN_MUX_CTRL_2: %08x",reg));
-        }
+            reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10);
+            BDBG_MSG(("SUN_TOP_CTRL_PIN_MUX_CTRL_10: %08x",reg));
+            reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_4, gpio_018));
+            reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_4, gpio_018, 0));
+            BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4, reg);
+            BDBG_MSG(("SUN_TOP_CTRL_PIN_MUX_CTRL_4: %08x",reg));
 
-        reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10);
-        BDBG_MSG(("SUN_TOP_CTRL_PIN_MUX_CTRL_10: %08x",reg));
-        reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_067));
-        reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_067, 0));
-        BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10, reg);
-        BDBG_MSG(("SUN_TOP_CTRL_PIN_MUX_CTRL_10: %08x",reg));
-
-        BDBG_MSG(("Querying GP067_SPI_BSCn"));
-        NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eStandard, &gpioSettings);
-        gpioSettings.mode = NEXUS_GpioMode_eInput;
-        gpio = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 67, &gpioSettings);
-        if (gpio) {
-            NEXUS_Gpio_GetStatus(gpio, &gpioStatus);
-            BDBG_MSG(("GPIO val: %d", gpioStatus.value));
-            NEXUS_Gpio_Close(gpio);
-
-            BDBG_MSG(("setting GPIO high"));
-            NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eStandard, &gpioSettings);
-            gpioSettings.mode = NEXUS_GpioMode_eOutputPushPull;
-            gpioSettings.value = NEXUS_GpioValue_eHigh;
-            gpio = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 67, &gpioSettings);
-            NEXUS_Gpio_Close(gpio);
-
+            BDBG_MSG(("Querying GP018_SPI_BSCn"));
             NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eStandard, &gpioSettings);
             gpioSettings.mode = NEXUS_GpioMode_eInput;
-            gpio = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 67, &gpioSettings);
-            NEXUS_Gpio_GetStatus(gpio, &gpioStatus);
-            BDBG_MSG(("GPIO val: %d", gpioStatus.value));
-            NEXUS_Gpio_Close(gpio);
+            gpio = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 18, &gpioSettings);
+            if (gpio) {
+                NEXUS_Gpio_GetStatus(gpio, &gpioStatus);
+                BDBG_MSG(("GPIO val: %d", gpioStatus.value));
+                NEXUS_Gpio_Close(gpio);
+
+                BDBG_MSG(("setting GPIO high"));
+                NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eStandard, &gpioSettings);
+                gpioSettings.mode = NEXUS_GpioMode_eOutputPushPull;
+                gpioSettings.value = NEXUS_GpioValue_eHigh;
+                gpio = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 18, &gpioSettings);
+                NEXUS_Gpio_Close(gpio);
+
+                NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eStandard, &gpioSettings);
+                gpioSettings.mode = NEXUS_GpioMode_eInput;
+                gpio = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 18, &gpioSettings);
+                NEXUS_Gpio_GetStatus(gpio, &gpioStatus);
+                BDBG_MSG(("GPIO val: %d", gpioStatus.value));
+                NEXUS_Gpio_Close(gpio);
+            }
         }
+
     }
 
     {

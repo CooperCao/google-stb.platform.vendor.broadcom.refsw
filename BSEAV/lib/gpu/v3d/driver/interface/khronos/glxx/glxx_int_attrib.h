@@ -1,21 +1,15 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES 1.1 and 2.0 client-side attribute information structure declarations.
-=============================================================================*/
-
-#ifndef GLXX_INT_ATTRIB_H
-#define GLXX_INT_ATTRIB_H
+#pragma once
 
 #include "interface/khronos/include/GLES/gl.h"
 #include "interface/khronos/include/GLES2/gl2.h"
+#include "middleware/khronos/glxx/glxx_buffer.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
 typedef struct {
    GLboolean enabled;
@@ -26,12 +20,12 @@ typedef struct {
    GLsizei stride;
 
    const GLvoid *pointer;
-
+   uintptr_t offset;
+   GLXX_BUFFER_T *attrib;
    GLuint buffer;
 
    GLfloat value[4];
 } GLXX_ATTRIB_T;
-
 
 /* GL 1.1 specific For indexing into arrays of handles/pointers */
 #define GL11_IX_COLOR 1//0
@@ -40,5 +34,3 @@ typedef struct {
 #define GL11_IX_TEXTURE_COORD 3
 #define GL11_IX_POINT_SIZE 7
 #define GL11_IX_MAX_ATTRIBS 8
-
-#endif

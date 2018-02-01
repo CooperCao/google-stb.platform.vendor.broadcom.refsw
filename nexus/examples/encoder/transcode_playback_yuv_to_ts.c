@@ -364,7 +364,7 @@ int main(int argc, const char *argv[]) {
         if ( !bytesRead ) {
             break;
         }
-        BDBG_MSG(("bytesRead=%d for frame=%d" , bytesRead, loopCnt ));
+        BDBG_MSG(("bytesRead=%u for frame=%d" , (unsigned)bytesRead, loopCnt ));
         loopCnt++;
 
         NEXUS_Surface_Flush( pic );
@@ -410,7 +410,7 @@ int main(int argc, const char *argv[]) {
                 bytes+= desc[j][i].length;
                 if(desc[j][i].length > 0x100000)
                 {
-                    BDBG_ERR(("++++ desc[%d][%d] length = 0x%x, offset=0x%x", j,i, desc[j][i].length, desc[j][i].offset));
+                    BDBG_ERR(("++++ desc[%d][%d] length = 0x%x, offset=0x%x", j,i, (unsigned)desc[j][i].length, desc[j][i].offset));
                 }
 
                 }

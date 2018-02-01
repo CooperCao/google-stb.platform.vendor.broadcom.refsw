@@ -79,9 +79,12 @@ static void print_usage(void)
         "  -ignore_num_reorder_frames\n"
     );
     printf(
-        "  -video_cdb SIZE          use 'm' or 'k' suffix, decimal allows\n"
-        "  -video_itb SIZE          use 'm' or 'k' suffix, decimal allows\n"
+        "  -video_cdb SIZE          use 'm' or 'k' suffix, decimal allowed\n"
+        "  -video_itb SIZE          use 'm' or 'k' suffix, decimal allowed\n"
         "  -video_framerate HZ      default video frame rate if not in stream (for example 29.97, 30, 59.94, 60)\n"
+    );
+    printf(
+        "  -playback_fifo_size SIZE     use 'm' or 'k' suffix, decimal allowed\n"
     );
 }
 
@@ -124,7 +127,7 @@ int main(int argc, const char **argv)
     media_player_t player[MAX_DECODES];
     unsigned num_decodes = 0;
     unsigned num_done = 0;
-    unsigned displayIndex;
+    unsigned displayIndex=0;
     unsigned i;
     NEXUS_VideoDecoderCrcMode crcMode = NEXUS_VideoDecoderCrcMode_eDefault;
     media_player_create_settings create_settings;
@@ -198,6 +201,9 @@ int main(int argc, const char **argv)
         }
         else if (!strcmp(argv[curarg], "-video_itb") && curarg+1 < argc) {
             start_settings.video.itbFifoSize = b_parse_size(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-playback_fifo_size") && curarg+1 < argc) {
+            create_settings.playback.fifoSize = b_parse_size(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-video_framerate") && curarg+1 < argc) {
             sscanf(argv[++curarg], "%f", &video_framerate);
@@ -312,6 +318,7 @@ int main(int argc, const char **argv)
             start_settings.crcMode = crcMode;
             start_settings.sync = NEXUS_SimpleStcChannelSyncMode_eOff;
             start_settings.audio.pid = 0; /* no audio */
+            start_settings.playbackSettings.endOfStreamTimeout = 5000; /* 5 seconds */
             rc = media_player_start(player[i], &start_settings);
             if (rc) return rc;
 
@@ -397,8 +404,9 @@ int main(int argc, const char **argv)
                         unsigned i;
                         any = true;
                         for (i=0;i<num;i++) {
-                            fprintf(decoder[j].file, "MFD CRC %u,%u %u,%u right=%u,%u, field=%c\n", data[i].idrPictureId, data[i].pictureOrderCount,
-                                data[i].crc[0], data[i].crc[1], data[i].crc[3], data[i].crc[4], data[i].isField?'y':'n');
+                            fprintf(decoder[j].file, "MFD CRC %u,%u %u,%u right=%u,%u, field=%c%s\n", data[i].idrPictureId, data[i].pictureOrderCount,
+                                data[i].crc[0], data[i].crc[1], data[i].crc[3], data[i].crc[4], data[i].isField?'y':'n',
+                                (data[i].flags & NEXUS_VIDEO_INPUT_CRC_FLAG_REPEAT) ?" repeat":"");
                         }
                     }
                 }

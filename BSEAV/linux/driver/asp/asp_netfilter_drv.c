@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,6 +39,7 @@
 #define ASP_MSG_PRE_FMT  "%d: %s():: "
 #define ASP_MSG_PRE_ARG __LINE__, __FUNCTION__
 
+#include <linux/version.h>
 #include <linux/module.h>   /* For module stuff */
 #include <linux/types.h>    /* For standard types (like size_t) */
 #include <linux/errno.h>    /* For the error values */
@@ -130,11 +131,17 @@ static unsigned int     ASP_Channel_Poll(struct file *, poll_table *);
 #if 0
 static ssize_t          ASP_Channel_Readv(struct kiocb *, const struct iovec *, unsigned long, loff_t);
 #endif
-static unsigned int aspIpv4NetfilterHookCallback(const struct nf_hook_ops *ops, struct sk_buff *pSkb, const struct nf_hook_state *state);
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+static unsigned int aspIpv4NetfilterHookCallback(void *pPriv, struct sk_buff *pSkb, const struct nf_hook_state *state);
 #if 0
-static unsigned int aspIpv4NetfilterHookCallback1(const struct nf_hook_ops *ops, struct sk_buff *pSkb, const struct nf_hook_state *state);
+static unsigned int aspIpv4NetfilterHookCallback1(void *pPriv, struct sk_buff *pSkb, const struct nf_hook_state *state);
 #endif
+static unsigned int aspIpv4NetfilterHookCallback2(void *pPriv, struct sk_buff *pSkb, const struct nf_hook_state *state);
+#else
+static unsigned int aspIpv4NetfilterHookCallback(const struct nf_hook_ops *ops, struct sk_buff *pSkb, const struct nf_hook_state *state);
 static unsigned int aspIpv4NetfilterHookCallback2(const struct nf_hook_ops *ops, struct sk_buff *pSkb, const struct nf_hook_state *state);
+#endif /* LINUX_VERSION_CODE */
 
 
 static const struct file_operations g_aspFileOperations =
@@ -189,7 +196,7 @@ static int ASP_Drv_Init(
     pAspDeviceCtx = (AspDeviceCtx *)kzalloc(sizeof(*pAspDeviceCtx), GFP_KERNEL);
     if (!pAspDeviceCtx)
     {
-        pr_err(ASP_MSG_PRE_FMT "kzalloc() failed for %d bytes!\n", ASP_MSG_PRE_ARG, sizeof(*pAspDeviceCtx));
+        pr_err(ASP_MSG_PRE_FMT "kzalloc() failed for %u bytes!\n", ASP_MSG_PRE_ARG, (unsigned)sizeof(*pAspDeviceCtx));
         return -ENOMEM;
     }
     g_pAspDeviceCtx = pAspDeviceCtx;
@@ -252,7 +259,9 @@ static int ASP_Drv_Init(
         pAspDeviceCtx->ipv4NetFilterHookOps.hooknum = NF_INET_LOCAL_IN;      /* We are only interested in the packets destinated for local interface. */
         pAspDeviceCtx->ipv4NetFilterHookOps.pf = AF_INET;                    /* AF_INET Protocol family. */
         pAspDeviceCtx->ipv4NetFilterHookOps.priority = NF_IP_PRI_FIRST;      /* Set to highest priority. */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,9,0)
         pAspDeviceCtx->ipv4NetFilterHookOps.owner = THIS_MODULE;
+#endif /* LINUX_VERSION_CODE */
         pAspDeviceCtx->ipv4NetFilterHookOps.priv = pAspDeviceCtx;
         err = nf_register_hook(&pAspDeviceCtx->ipv4NetFilterHookOps);
         if ( err != 0)
@@ -330,7 +339,7 @@ static int ASP_Channel_Open(
     pAspChannelCtx = kzalloc(sizeof(*pAspChannelCtx), GFP_KERNEL);
     if (!pAspChannelCtx)
     {
-        pr_err(ASP_MSG_PRE_FMT "kzalloc() failed for %d bytes!\n", ASP_MSG_PRE_ARG, sizeof(*pAspChannelCtx));
+        pr_err(ASP_MSG_PRE_FMT "kzalloc() failed for %u bytes!\n", ASP_MSG_PRE_ARG, (unsigned)sizeof(*pAspChannelCtx));
         return -ENOMEM;
     }
     pAspChannelCtx->pAspDeviceCtx = pAspDeviceCtx;
@@ -352,7 +361,9 @@ static int ASP_Channel_Open(
         pAspDeviceCtx->ipv4NetFilterHookOps2.hooknum = NF_INET_LOCAL_OUT;   /* Pre-routing hook before packets are passed to the input routing logic. */
         pAspDeviceCtx->ipv4NetFilterHookOps2.pf = AF_INET;                    /* AF_INET Protocol family. */
         pAspDeviceCtx->ipv4NetFilterHookOps2.priority = NF_IP_PRI_FIRST;      /* Set to highest priority. */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,9,0)
         pAspDeviceCtx->ipv4NetFilterHookOps2.owner = THIS_MODULE;
+#endif /* LINUX_VERSION_CODE */
         pAspDeviceCtx->ipv4NetFilterHookOps2.priv = pAspDeviceCtx;
         err = nf_register_hook(&pAspDeviceCtx->ipv4NetFilterHookOps2);
         if ( err != 0)
@@ -372,7 +383,9 @@ static int ASP_Channel_Open(
         pAspDeviceCtx->ipv4NetFilterHookOps1.hooknum = NF_INET_PRE_ROUTING;   /* Pre-routing hook before packets are passed to the input routing logic. */
         pAspDeviceCtx->ipv4NetFilterHookOps1.pf = AF_INET;                    /* AF_INET Protocol family. */
         pAspDeviceCtx->ipv4NetFilterHookOps1.priority = NF_IP_PRI_FIRST;      /* Set to highest priority. */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,9,0)
         pAspDeviceCtx->ipv4NetFilterHookOps1.owner = THIS_MODULE;
+#endif /* LINUX_VERSION_CODE */
         pAspDeviceCtx->ipv4NetFilterHookOps1.priv = pAspDeviceCtx;
         err = nf_register_hook(&pAspDeviceCtx->ipv4NetFilterHookOps1);
         if ( err != 0)
@@ -483,6 +496,71 @@ static int processSetSocket5TupleInfo_mutex_held(
             IPv4(pAspChannelCtx->socket5TupleInfo.dstIpAddr[0]), ntohs(pAspChannelCtx->socket5TupleInfo.dstPort),
             IPv4(pAspChannelCtx->socket5TupleInfo.aspIpAddr[0])
            );
+    err = 0;
+    return err;
+}
+
+/*
+ * Process the ASP_DEVICE_IOC_GET_GATEWAY command to lookup the gateway for remote IP address.
+ *
+ * Note: since this function calls copy_from_user, it can sleep during that call. So caller can't hold any spin lock but semaphore/mutex
+ * is fine.
+ *
+ * Returns 0 on success (gateway returned), -ENODEV if no gateway for remote address, -error otherwise.
+ */
+static int processGetGateway_mutex_held(
+    AspChannelCtx   *pAspChannelCtx,
+    unsigned int    cmd,
+    unsigned long   arg
+    )
+{
+    int err = 0;
+    ASP_DeviceGetGateway getGateway;
+    struct rtable *rt;
+
+    if (copy_from_user(&getGateway, (void __user *)(arg), sizeof(ASP_DeviceGetGateway)))
+    {
+        pr_err(ASP_MSG_PRE_FMT "pAspChannelCtx=%p copy_from_user failed for ioctl ASP_DEVICE_IOC_GET_GATEWAY\n",
+                ASP_MSG_PRE_ARG, pAspChannelCtx);
+        return -EFAULT;
+    }
+
+    rt = ip_route_output( &init_net,
+                          getGateway.remoteIpAddr[0],
+                          0,
+                          0,
+                          0);
+    if (IS_ERR(rt))
+    {
+        pr_err(ASP_MSG_PRE_FMT "pAspChannelCtx=%p ip_route_output() failed for IP=%d.%d.%d.%d rc=%ld\n",
+                ASP_MSG_PRE_ARG, pAspChannelCtx, IPv4(getGateway.remoteIpAddr[0]), PTR_ERR(rt));
+        return PTR_ERR(rt);
+    }
+
+    pr_info(ASP_MSG_PRE_FMT "pAspChannelCtx=%p dest=%#x (%d.%d.%d.%d) rt_uses_gateway=%u rt_gateway=%#x (%d.%d.%d.%d)\n",
+            ASP_MSG_PRE_ARG, pAspChannelCtx,
+            getGateway.remoteIpAddr[0],
+            IPv4(getGateway.remoteIpAddr[0]),
+            rt->rt_uses_gateway,
+            rt-> rt_gateway,
+            IPv4((rt->rt_gateway)));
+
+    memset(getGateway.gatewayIpAddr, 0, sizeof getGateway.gatewayIpAddr);
+
+    if (!rt->rt_uses_gateway)
+    {
+        return -ENODEV;     /* No gateway for this address. */
+    }
+
+    getGateway.gatewayIpAddr[0] =  (uint32_t)rt->rt_gateway;
+
+    if (copy_to_user((void __user *)(arg), &getGateway, sizeof(ASP_DeviceGetGateway)))
+    {
+        pr_err(ASP_MSG_PRE_FMT "pAspChannelCtx=%p copy_to_user failed for ioctl ASP_DEVICE_IOC_GET_GATEWAY\n",
+                ASP_MSG_PRE_ARG, pAspChannelCtx);
+        return -EFAULT;
+    }
+
     err = 0;
     return err;
 }
@@ -665,6 +743,10 @@ static long ASP_Channel_Ioctl(
             err = processPktControl_mutex_held(pAspChannelCtx, cmd, arg);
             break;
 
+        case ASP_DEVICE_IOC_GET_GATEWAY:
+            err = processGetGateway_mutex_held(pAspChannelCtx, cmd, arg);
+            break;
+
         default:
             pr_err(ASP_MSG_PRE_FMT "pAspChannelCtx=%p cmd=0x%x cmd_number=%d not supported!\n", ASP_MSG_PRE_ARG, pAspChannelCtx, cmd, _IOC_NR(cmd));
             err = -ENOTTY;
@@ -675,6 +757,7 @@ static long ASP_Channel_Ioctl(
     return (err);
 }
 
+#if 0
 static void printIpv4SocketTupleInfo(
     const char *pString,
     ASP_Socket5TupleInfo *pSocket5TupleInfo
@@ -686,6 +769,7 @@ static void printIpv4SocketTupleInfo(
             IPv4(pSocket5TupleInfo->dstIpAddr[0]), ntohs(pSocket5TupleInfo->dstPort)
             );
 }
+#endif
 
 /*
  * Match the socket 5-tuple related info of a incoming pkt to a ASP Channel's info.
@@ -804,7 +888,11 @@ static uint16_t calculateIncrementalChecksum(uint16_t curCsum, uint32_t curValue
 * Returns NF_STOLEN if pkt is matches with a ASP Channel socket tuple info, NF_ACCEPT otherwise.
  */
 static unsigned int aspIpv4NetfilterHookCallback(
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+    void *pPriv,
+#else
     const struct nf_hook_ops *ops,
+#endif
     struct sk_buff *pSkb,
     const struct nf_hook_state *state
     )
@@ -815,8 +903,14 @@ static unsigned int aspIpv4NetfilterHookCallback(
     AspChannelCtx           *pAspChannelCtx;
     bool                    pktParsed = false;
 
-    if (!pSkb || !ops) return NF_ACCEPT;
+    if (!pSkb) return NF_ACCEPT;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+    if (!pPriv) return NF_ACCEPT;
+    pAspDeviceCtx = pPriv;
+#else
+    if (!ops) return NF_ACCEPT;
     pAspDeviceCtx = ops->priv;
+#endif
 
     /*
      * Check if a packet matches w/ the socket tuple info of any of the currently opened ASP Channels.
@@ -969,7 +1063,7 @@ static unsigned int aspIpv4NetfilterHookCallback(
                 /* This is to work in progress to get the local client working. */
                 struct iphdr *pIpHdr;
                 pIpHdr = (struct iphdr *) skb_network_header(pSkb);
-                if (pIpHdr->saddr == pAspChannelCtx->socket5TupleInfo.aspIpAddr[0])
+                if (pIpHdr->saddr && pIpHdr->saddr == pAspChannelCtx->socket5TupleInfo.aspIpAddr[0])
                 {
                     if (printk_ratelimit()) printk(KERN_INFO "Switching Src IP from saddr %u.%u.%u.%u daddr %u.%u.%u.%u aspdr %u.%u.%u.%u\n",
                             IPv4(pIpHdr->saddr),
@@ -1000,7 +1094,11 @@ static unsigned int aspIpv4NetfilterHookCallback(
 }
 
 static unsigned int aspIpv4NetfilterHookCallback2(
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+    void *pPriv,
+#else
     const struct nf_hook_ops *ops,
+#endif
     struct sk_buff *pSkb,
     const struct nf_hook_state *state
     )
@@ -1011,8 +1109,14 @@ static unsigned int aspIpv4NetfilterHookCallback2(
     AspChannelCtx           *pAspChannelCtx = NULL;
     bool                    pktParsed = false;
 
-    if (!pSkb || !ops) return NF_ACCEPT;
+    if (!pSkb) return NF_ACCEPT;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+    if (!pPriv) return NF_ACCEPT;
+    pAspDeviceCtx = pPriv;
+#else
+    if (!ops) return NF_ACCEPT;
     pAspDeviceCtx = ops->priv;
+#endif
 
     /*
      * Check if a packet matches w/ the socket tuple info of any of the currently opened ASP Channels.
@@ -1107,7 +1211,11 @@ static unsigned int aspIpv4NetfilterHookCallback2(
 
 #if 0
 static unsigned int aspIpv4NetfilterHookCallback1(
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+    void *pPriv,
+#else
     const struct nf_hook_ops *ops,
+#endif
     struct sk_buff *pSkb,
     const struct nf_hook_state *state
     )
@@ -1118,8 +1226,14 @@ static unsigned int aspIpv4NetfilterHookCallback1(
     AspChannelCtx           *pAspChannelCtx = NULL;
     bool                    pktParsed = false;
 
-    if (!pSkb || !ops) return NF_ACCEPT;
+    if (!pSkb) return NF_ACCEPT;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+    if (!pPriv) return NF_ACCEPT;
+    pAspDeviceCtx = pPriv;
+#else
+    if (!ops) return NF_ACCEPT;
     pAspDeviceCtx = ops->priv;
+#endif
 
     /*
      * Check if a packet matches w/ the socket tuple info of any of the currently opened ASP Channels.

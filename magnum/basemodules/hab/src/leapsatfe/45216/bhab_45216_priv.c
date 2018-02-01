@@ -149,9 +149,10 @@ BERR_Code BHAB_45216_P_Open(
 BERR_Code BHAB_45216_P_Close(BHAB_Handle handle)
 {
    BERR_Code retCode = BERR_SUCCESS;
-   BHAB_45216_P_Handle *p45216 = (BHAB_45216_P_Handle *)(handle->pImpl);
+   BHAB_45216_P_Handle *p45216;
 
    BDBG_ASSERT(handle);
+   p45216 = (BHAB_45216_P_Handle *)(handle->pImpl);
 
    /* disable host interrupts */
    retCode = BHAB_45216_P_DisableLeapInterrupts(handle);
@@ -1130,8 +1131,10 @@ BERR_Code BHAB_45216_P_HandleInterrupt_isr(
     BHAB_Handle h /* [in] BHAB handle */
 )
 {
-   BHAB_45216_P_Handle *pImpl = (BHAB_45216_P_Handle *)(h->pImpl);
+   BHAB_45216_P_Handle *pImpl;
+
    BDBG_ASSERT(h);
+   pImpl = (BHAB_45216_P_Handle *)(h->pImpl);
 
    h->settings.interruptEnableFunc(false, h->settings.interruptEnableFuncParam);
    BKNI_SetEvent(pImpl->hApiEvent);

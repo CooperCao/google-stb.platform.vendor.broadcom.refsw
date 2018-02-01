@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -403,6 +403,19 @@ typedef union
 
 /***************************************************************************
 Summary:
+    This structure describes mosaic rectangle configurations.
+***************************************************************************/
+
+typedef struct
+{
+    bool                     bInsideBoundingBox;
+    uint32_t                 ulMaxMosaicRectWidth;
+    BVDC_P_Rect              stBoundingBox;
+
+} BVDC_P_Window_CoverageInfo;
+
+/***************************************************************************
+Summary:
     This structure describes MAD configurations.
 
 Description:
@@ -626,6 +639,9 @@ typedef struct
     /* Windows callback data/settings */
     BVDC_Window_CallbackSettings  stCbSettings;
 
+    int16_t                       sHdrPeakBrightness;
+    int16_t                       sSdrPeakBrightness;
+
 } BVDC_P_Window_Info;
 
 /***************************************************************************
@@ -682,7 +698,7 @@ typedef struct
     uint32_t                      ulChunkId;
     BFMT_Orientation              eDispOrientation;
     uint32_t                      ulChannelId;
-    BAVC_P_ColorSpace             stMosaicColorSpace;
+    BCFC_ColorSpace               stMosaicColorSpace;
 } BVDC_P_Window_MadDelayed;
 
 typedef struct
@@ -972,13 +988,15 @@ typedef struct BVDC_P_WindowContext
      * aEotfInMosaicEotfConvSlot stores the input eotf that this EotfConv slot is for,
      * astMosaicEotfConvSlotCfgList holds the EotfConv configures for each EotfConv slot.
      */
-    BVDC_P_CfcContext            *pMainCfc;
-    BVDC_P_CfcContext            *pDemoCfc;    /* for demo mode */
+    BCFC_Context                 *pMainCfc;
+    BCFC_Context                 *pDemoCfc;    /* for demo mode */
     uint8_t                       ucNumMosaicRects;
     uint8_t                       aucMosaicCfcIdxForRect[BAVC_MOSAIC_MAX]; /* cfcIdx assigned to rect */
-    BVDC_P_CfcContext             astMosaicCfc[BVDC_P_CMP_CFCS]; /* mosaic cfc array */
+    BCFC_Context                  astMosaicCfc[BVDC_P_CMP_CFCS]; /* mosaic cfc array */
     bool                          bCfcDirty; /* cleared only after Cfc_UpdateCfg_isr is really called */
-
+#if BVDC_P_DBV_SUPPORT || BVDC_P_TCH_SUPPORT
+    BAVC_HdrMetadataType          eWriterHdrMetaDataType;
+#endif
     bool                          bSrcSideDeinterlace;
 
     /* Fields for cadence handling. */
@@ -1030,6 +1048,10 @@ typedef struct BVDC_P_WindowContext
     uint64_t                       aullTmpBuf[BVDC_P_WIN_TMP_BUF_SIZE / 8];
 
     bool                           bPqNcl;
+
+    BVDC_P_Window_CoverageInfo     stCoverageInfo;
+    BBOX_Vdc_WindowClass           eWindowClass;
+    const BVDC_WindowClassLimits  *pWindowClassLimit;
 
 } BVDC_P_WindowContext;
 
@@ -1357,7 +1379,7 @@ void BVDC_P_Window_UpdateVideoInputColorSpace_isr(
     const BAVC_MVD_Field            *pMvdFieldData,
     const BAVC_VDC_HdDvi_Picture    *pXvdFieldData,
     BAVC_MatrixCoefficients          eMatrixCoefficients, /* for analogue */
-    BAVC_P_ColorSpace               *pColorSpace );
+    BCFC_ColorSpace                 *pColorSpace );
 
 /* Assign CFC for each mosaic rectangle
  * return true if some mosaic rect's colorSpace changed

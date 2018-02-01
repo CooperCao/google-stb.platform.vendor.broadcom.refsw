@@ -99,26 +99,14 @@ public:
 
       static uint32_t BinRenderJobCounter() { return m_brJobCounter; }
 
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   private:
-      void CreateBinConfigCL();
-#endif
-
    private:
       const CmdBinRenderJobObj *m_cmd;
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-      v3d_addr_t                m_tileStateAddr = 0;
-      gmem_handle_t             m_binCfgHandle = GMEM_HANDLE_INVALID;
-#endif
       static uint32_t           m_brJobCounter;    // Used only for debug functionality
    };
 
    // Main constructor
    CmdBinRenderJobObj(PhysicalDevice *physicalDevice)
      : m_layers(1)
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-     , m_tileStateManager(physicalDevice->TileStateMemoryManager())
-#endif
    {}
 
    // Copy constructor
@@ -153,10 +141,6 @@ public:
    v3d_bin_render_details           m_brDetails = {};
 
    uint32_t                         m_numZPrepassBins = 0;
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_CL_TILE_BINNING_MODE_CFG_T   m_binConfig;
-   TileStateMemory                 &m_tileStateManager;
-#endif
 };
 
 class CmdComputeJobObj : public Command, bvk::NonCopyable
@@ -285,29 +269,6 @@ public:
 public:
    const CommandBuffer *m_secondaryBuffer = nullptr;
 };
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-// Command that manages a deferred clip record when a viewport or scissor
-// is set in a secondary command buffer (if the framebuffer size is unknown).
-// These only exist in secondary command buffers.
-class CmdSecondaryDeferredClipObj : public SecondaryOnlyCommand
-{
-public:
-   CmdSecondaryDeferredClipObj(int x, int y, int maxX, int maxY) :
-      m_x(x), m_y(y), m_maxX(maxX), m_maxY(maxY) {}
-
-   void RecordInPrimary(CommandBuffer &cmdBuf) const
-   {
-      cmdBuf.RecordSecondaryDeferredClip(*this);
-   }
-
-public:
-   int m_x;
-   int m_y;
-   int m_maxX;
-   int m_maxY;
-};
-#endif
 
 // Command that manages a deferred ClearAttachment record when the secondary
 // command buffer is constructed without a known framebuffer.

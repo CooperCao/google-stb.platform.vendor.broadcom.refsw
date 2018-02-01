@@ -45,6 +45,7 @@
 #include "audio_decode_nx.h"
 #include "bluetooth_nx.h"
 #include "audio_capture_nx.h"
+#include "audio_playback_nx.h"
 
 BDBG_MODULE(atlas_main);
 
@@ -187,6 +188,20 @@ error:
     return(pAudioDecode);
 }
 
+CSimplePcmPlayback * CAtlasNx::audioPcmPlaybackCreate()
+{
+    eRet                   ret            = eRet_Ok;
+    CSimplePcmPlaybackNx * pAudioPcmPlayback = NULL;
+
+    pAudioPcmPlayback = (CSimplePcmPlaybackNx *)_pBoardResources->checkoutResource(this, eBoardResource_simplePcmPlayback);
+    CHECK_PTR_ERROR_GOTO("unable to checkout simple pcm playback", pAudioPcmPlayback, ret, eRet_NotAvailable, error);
+
+    /* add audio playback to model for main */
+    _model.addSimplePcmPlayback(pAudioPcmPlayback);
+error:
+    return(pAudioPcmPlayback);
+}
+
 COutputHdmi * CAtlasNx::outputHdmiInitialize(CDisplay * pDisplay)
 {
     eRet          ret         = eRet_Ok;
@@ -271,17 +286,19 @@ void CAtlasNx::audioCaptureUninitialize()
 
 #endif /* NETAPP_SUPPORT */
 
-CVideoWindow * CAtlasNx::videoWindowInitialize(
+eRet CAtlasNx::videoWindowInitialize(
         CDisplay *           pDisplay,
         CSimpleVideoDecode * pVideoDecode,
+        CVideoWindow **      ppVideoWindow,
         eWindowType          windowType
         )
 {
     BSTD_UNUSED(pDisplay);
     BSTD_UNUSED(pVideoDecode);
+    BSTD_UNUSED(ppVideoWindow);
     BSTD_UNUSED(windowType);
 
-    return(NULL);
+    return(eRet_Ok);
 }
 
 void CAtlasNx::videoWindowUninitialize(

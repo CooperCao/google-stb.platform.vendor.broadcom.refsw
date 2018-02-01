@@ -307,7 +307,7 @@ const BDSP_Raaga_Audio_AC4DecConfigParams BDSP_sAC4DecDefaultUserConfig =
               6,
               7
 	    },
-	      0xFFFFFFFF,{0},{0},0,0,{0},1
+	      0xFFFFFFFF,{0},{0},0,0,{0},1,1,1,0,0,1,0,0
         },
         {
             2,                      /*ui32ChannelConfig*/
@@ -328,7 +328,7 @@ const BDSP_Raaga_Audio_AC4DecConfigParams BDSP_sAC4DecDefaultUserConfig =
               6,
               7
 	    },
-	      0xFFFFFFFF,{0},{0},0,0,{0},1
+	      0xFFFFFFFF,{0},{0},0,0,{0},1,1,1,0,0,1,0,0
         },
 	{
             2,                      /*ui32ChannelConfig*/
@@ -349,7 +349,7 @@ const BDSP_Raaga_Audio_AC4DecConfigParams BDSP_sAC4DecDefaultUserConfig =
               6,
               7
 	    },
-	      0xFFFFFFFF,{0},{0},0,0,{0},1
+	      0xFFFFFFFF,{0},{0},0,0,{0},1,1,1,0,0,1,0,0
         }
     },
     3,      /* ui32InputCplxLevel */
@@ -1582,6 +1582,7 @@ const BDSP_Raaga_Audio_DDPEncConfigParams		BDSP_sDefDdpencConfigSettings=
 	0,					/* SPDIF Packing */
 	0,					/* Encoder Variant MS12 or MS11 */
 	{0},				/* Additional Bitstream Information String */
+	0,					/* Atmos Lock */
 	0,
 	{0},				/* drc1 */
 	0,
@@ -1615,4 +1616,9 @@ const BDSP_Raaga_Audio_DolbyAacheUserConfig BDSP_sDolbyAacheDefaultUserConfig =
 			0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },/* Stereo */
 		}
 	}
+};
+
+const BDSP_Raaga_Audio_LpcmEncConfigParams BDSP_sDefLpcmEncConfigSettings =
+{
+  0,/*dummy user config*/
 };

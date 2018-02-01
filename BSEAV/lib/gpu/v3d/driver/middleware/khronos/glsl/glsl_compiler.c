@@ -142,7 +142,7 @@ typedef struct
    dependents but will still need to be packed so that it is available to move into the shaded vertex structure
 */
 
-static INLINE bool requires_forced_packing(Dataflow *dataflow)
+static inline bool requires_forced_packing(Dataflow *dataflow)
 {
    int i;
 
@@ -362,7 +362,7 @@ static void pack_uniform(pack_uniform_t* context, SymbolType* type, bool in_arra
    constants and non-offset linkable values assigned to varyings can't be computed directly into the appropriate row of the VRF
 */
 
-static INLINE bool requires_mov(Dataflow *dataflow)
+static inline bool requires_mov(Dataflow *dataflow)
 {
    DataflowFlavour flavour = dataflow->flavour;
 
@@ -382,7 +382,7 @@ static INLINE bool requires_mov(Dataflow *dataflow)
    }
 }
 
-static INLINE int get_binding(slang_program* program, const char *name)
+static inline int get_binding(slang_program* program, const char *name)
 {
    unsigned int i;
 
@@ -393,7 +393,7 @@ static INLINE int get_binding(slang_program* program, const char *name)
    return -1;
 }
 
-static INLINE int get_attribute_blocks(SymbolType *type)
+static inline int get_attribute_blocks(SymbolType *type)
 {
    assert(type->flavour == SYMBOL_PRIMITIVE_TYPE);
 
@@ -415,7 +415,7 @@ static INLINE int get_attribute_blocks(SymbolType *type)
    }
 }
 
-static INLINE int get_attribute_row_offset(SymbolType *type, int index)
+static inline int get_attribute_row_offset(SymbolType *type, int index)
 {
    assert(type->flavour == SYMBOL_PRIMITIVE_TYPE);
 
@@ -437,7 +437,7 @@ static INLINE int get_attribute_row_offset(SymbolType *type, int index)
    }
 }
 
-static INLINE int get_attribute_mask(SymbolType *type)
+static inline int get_attribute_mask(SymbolType *type)
 {
    assert(type->flavour == SYMBOL_PRIMITIVE_TYPE);
 

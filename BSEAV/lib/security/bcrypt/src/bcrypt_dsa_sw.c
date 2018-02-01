@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2014 Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,8 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+
+ ******************************************************************************/
 #include <stdio.h>
 #include "bstd.h"
 
@@ -115,17 +115,30 @@ BCRYPT_STATUS_eCode BCrypt_DSASw (    BCRYPT_Handle  hBcrypt,
     } ;
 
     BN_CTX *ctx;
+#if !defined(USES_BORINGSSL)
+    BIGNUM *kinv=NULL,*r=NULL,*k=NULL;
+#endif
+
 
     if ((ctx=BN_CTX_new()) == NULL) goto myerr;
+#if !defined(USES_BORINGSSL)
+    if ((r=BN_new()) == NULL) goto myerr;
+    kinv=NULL;
+#endif
+
 
     BDBG_MSG(("Inside BCrypt_DSASw\n"));
     BDBG_ENTER(BCrypt_DSASw);
     BDBG_ASSERT( hBcrypt );
     BCRYPT_P_CHECK_ERR_CODE_CONDITION( errCode, BCRYPT_STATUS_eFAILED,
         (hBcrypt->ulMagicNumber != BCRYPT_P_HANDLE_MAGIC_NUMBER ) );
+
     RAND_seed(rnd_seed, sizeof rnd_seed); /* or OAEP may fail */
 
+
     key = DSA_new();
+
+
 
     if (pInputParam->bDSASign == true)
     {
@@ -134,6 +147,24 @@ BCRYPT_STATUS_eCode BCrypt_DSASw (    BCRYPT_Handle  hBcrypt,
         /* This is for sign */
 
         BCrypt_DSASetPrivKey(key, pInputParam->key);
+
+#if !defined(USES_BORINGSSL)
+        k = BN_bin2bn(pInputParam->key->k.pData, pInputParam->key->k.len, k);
+
+
+        /* Compute r = (g^k mod p) mod q */
+        if (!BN_mod_exp_mont(r,key->g,k,key->p,ctx,
+            (BN_MONT_CTX *)key->method_mont_p)) goto myerr;
+        if (!BN_mod(r,r,key->q,ctx)) goto myerr;
+
+        /* Compute  part of 's = inv(k) (m + xr) mod q' */
+        if ((kinv=BN_mod_inverse(NULL,k,key->q,ctx)) == NULL) goto myerr;
+
+
+        key->kinv= kinv;
+        key->r=r;
+#endif
+
 
         outDataLen = DSA_sign(0, pInputParam->pbDataIn, pInputParam->cbDataIn, pInputParam->sigout, &pInputParam->sigoutlen, key);
 
@@ -199,6 +230,12 @@ BCRYPT_STATUS_eCode BCrypt_DSASw (    BCRYPT_Handle  hBcrypt,
 myerr:
 
     printf("DSA_F_DSA_SIGN_SETUP,ERR_R_BN_LIB\n");
+
+#if !defined(USES_BORINGSSL)
+        if (kinv != NULL) BN_clear_free(kinv);
+        if (r != NULL) BN_clear_free(r);
+        if (k != NULL) BN_clear_free(k);
+#endif
 
 BCRYPT_P_DONE_LABEL:
     DSA_free(key);

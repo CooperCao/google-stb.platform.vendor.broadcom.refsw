@@ -202,6 +202,8 @@ static const BINT_Id IntId[] =
 #endif
 };
 
+static BERR_Code BRFM_P_CRC_BIST(BREG_Handle hRegister, BRFM_EncoderType enc);
+
 /*******************************************************************************
 *
 * Private functions
@@ -371,8 +373,6 @@ static void BRFM_P_SysclkReset(BRFM_Handle hDev)
 #endif
     }
 }
-
-BERR_Code BRFM_P_CRC_BIST(BREG_Handle hRegister, BRFM_EncoderType enc);
 
 #ifdef BCHP_PWR_RESOURCE_RFM
 /* nothing */
@@ -750,7 +750,7 @@ static void BRFM_P_CalculateNicamVolume(int volume, uint16_t *uVal)
 #endif
 
 /* CRC Built-in Self-Test */
-BERR_Code BRFM_P_CRC_BIST(
+static BERR_Code BRFM_P_CRC_BIST(
     BREG_Handle hRegister, /* [in] Register handle */
     BRFM_EncoderType enc   /* [in] Encoder type */
     )
@@ -976,9 +976,8 @@ done:
     return retCode;
 }
 
-BERR_Code BRFM_Close(BRFM_Handle hDev)
+void BRFM_Close(BRFM_Handle hDev)
 {
-    BERR_Code retCode = BERR_SUCCESS;
     unsigned idx;
 
     BDBG_ENTER(BRFM_Close);
@@ -991,8 +990,8 @@ BERR_Code BRFM_Close(BRFM_Handle hDev)
     /* check top-level clock */
     for (idx=0; idx<MAKE_INT_ENUM(Last); idx++) {
         if (hDev->hCallback[idx]) {
-            CHK_RETCODE(retCode, BINT_DisableCallback(hDev->hCallback[idx]));
-            CHK_RETCODE(retCode, BINT_DestroyCallback(hDev->hCallback[idx]));
+            BINT_DisableCallback(hDev->hCallback[idx]);
+            BINT_DestroyCallback(hDev->hCallback[idx]);
             hDev->hCallback[idx] = NULL;
         }
     }
@@ -1003,31 +1002,22 @@ free:
     /* hDev->magicId = 0x00; */ /* clear it to catch improper use */
     BDBG_OBJECT_DESTROY(hDev, BRFM_Handle);
     BKNI_Free((void *) hDev);
-done:
     BDBG_LEAVE(BRFM_Close);
-    return retCode;
 }
 
-BERR_Code BRFM_GetDefaultSettings(BRFM_Settings *pDefSettings, BCHP_Handle hChip    )
+void BRFM_GetDefaultSettings(BRFM_Settings *pDefSettings, BCHP_Handle hChip    )
 {
-    BERR_Code retCode = BERR_SUCCESS;
-
     BSTD_UNUSED(hChip);
     BDBG_ENTER(BRFM_GetDefaultSettings);
-
     *pDefSettings = defDevSettings;
     BDBG_LEAVE(BRFM_GetDefaultSettings);
-    return retCode;
 }
 
-BERR_Code BRFM_GetConfigSettings(BRFM_Handle hDev, BRFM_ConfigSettings *pConfigSettings )
+void BRFM_GetConfigSettings(BRFM_Handle hDev, BRFM_ConfigSettings *pConfigSettings )
 {
-    BERR_Code retCode = BERR_SUCCESS;
-
     BDBG_ENTER(BRFM_GetConfigSettings);
     *pConfigSettings = hDev->configSettings;
     BDBG_LEAVE(BRFM_GetConfigSettings);
-    return retCode;
 }
 
 BERR_Code BRFM_SetConfigSettings(BRFM_Handle hDev, const BRFM_ConfigSettings *pConfigSettings )
@@ -1094,10 +1084,9 @@ done:
     return retCode;
 }
 
-BERR_Code BRFM_DisableRfOutput(BRFM_Handle hDev)
+void BRFM_DisableRfOutput(BRFM_Handle hDev)
 {
     uint32_t ulVal;
-    BERR_Code retCode = BERR_SUCCESS;
 
     BDBG_ENTER(BRFM_DisableRfOutput);
     BDBG_OBJECT_ASSERT(hDev,BRFM_Handle);
@@ -1135,7 +1124,6 @@ BERR_Code BRFM_DisableRfOutput(BRFM_Handle hDev)
     hDev->settings.isOutputEnable = false;
 done:
     BDBG_LEAVE(BRFM_DisableRfOutput);
-    return retCode;
 }
 
 BERR_Code BRFM_SetAudioVolume(BRFM_Handle hDev, int volume)
@@ -1620,32 +1608,22 @@ done:
     return retCode;
 }
 
-BERR_Code BRFM_Standby(BRFM_Handle hDev)
+void BRFM_Standby(BRFM_Handle hDev)
 {
-    BERR_Code rc = BERR_SUCCESS;
-    if (hDev->otpDisabled) {
-        goto done;
+    if (!hDev->otpDisabled) {
+        BRFM_P_SetPowerSaverMode(hDev, true);
     }
-    BRFM_P_SetPowerSaverMode(hDev, true);
-done:
-    return rc;
 }
 
-BERR_Code BRFM_Resume(BRFM_Handle hDev)
+void BRFM_Resume(BRFM_Handle hDev)
 {
-    BERR_Code rc = BERR_SUCCESS;
-    if (hDev->otpDisabled) {
-        goto done;
+    if (!hDev->otpDisabled) {
+        BRFM_P_SetPowerSaverMode(hDev, false);
     }
-    BRFM_P_SetPowerSaverMode(hDev, false);
-done:
-    return rc;
 }
 
-BERR_Code BRFM_GetStatus(BRFM_Handle hDev, BRFM_Status *status)
+void BRFM_GetStatus(BRFM_Handle hDev, BRFM_Status *status)
 {
-    BERR_Code retCode = BERR_SUCCESS;
-
     BDBG_ENTER(BRFM_GetStatus);
     BDBG_OBJECT_ASSERT(hDev,BRFM_Handle);
     if (hDev->otpDisabled) {
@@ -1668,7 +1646,6 @@ BERR_Code BRFM_GetStatus(BRFM_Handle hDev, BRFM_Status *status)
 
 done:
     BDBG_LEAVE(BRFM_GetStatus);
-    return retCode;
 }
 
 BERR_Code BRFM_SetAudioStandard(BRFM_Handle hDev, BRFM_AudioEncoding audioEncoding)

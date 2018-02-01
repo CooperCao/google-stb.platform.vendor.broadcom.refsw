@@ -379,7 +379,38 @@ SYS_STATIC void mmRollbackAlloc(void);
  *  #MM_MAX_BLOCK_ID, the entry point will be shifted to one block. This virtual block #0 will not be used; zero
  *  Block Id is used as the identifier of the Null Block.
  */
-SYS_MEMDEF MmBlock_t    mmBlocksArray[MM_MAX_BLOCK_ID];
+#ifdef USE_EXTENDED_MEMORY
+__attribute__((section(".extend_data"))) MmBlock_t  mmBlocksArray[MM_MAX_BLOCK_ID];
+
+/**//**
+ * \brief   Static array of packed Block Ids used for linking blocks into chains forming memory chunks.
+ * \details This array involves MM_MAX_BLOCK_ID plus one packed block identifiers, or Links. Links from #1 to
+ *  #MM_MAX_BLOCK_ID are used for storing links of corresponding dynamic memory blocks. For example, if the element #N
+ *  of this array is assigned with M, it means that after the block #N the block #M follows. If in the example above the
+ *  element #N is assigned with zero, it means that the block #N is the last one in the corresponding memory chunk.
+ * \details Link #0, corresponding to the Null Block, is used for linking all the free blocks into the global queue of
+ *  free blocks. The Null Block itself is not used and may not be allocated; it means that no busy block may follow it -
+ *  so, that's why the Null-Block's link may be used for different purposes as mentioned here. When a new chunk of
+ *  memory is allocated the free blocks are picked up starting with that one pointed by the link #0. The last free block
+ *  in the pool must point to the Null Block; it means the end of the chain of free blocks (the same as for chains of
+ *  busy blocks). If there are no free blocks in the pool, the link #0 is assigned with zero.
+ */
+__attribute__((section(".extend_data"))) MM_Link_t    mmLinksArray[1 + MM_MAX_BLOCK_ID];
+
+/**//**
+ * \brief   Static array of Size & Status fields of blocks.
+ * \details This array involves MM_MAX_BLOCK_ID values. To enumerate them with the range from 1 to MM_MAX_BLOCK_ID, the
+ *  entry point will be shifted to one block. The value under #0 will not be used, it corresponds to the Null Block
+ *  which is never allocated.
+ * \details When a block is allocated, its actuals size - from 1 to MM_BLOCK_SIZE - is stored in the Size & Status
+ *  field (an allocated block may not have zero size). Additionally, if a block is the leading block of a chunk, its
+ *  flag "Leading Block" in the Size & Status field is set to one. Free blocks have zero in their Size & Status field.
+ * \details Actual size of a block is stored in the Size & Status field bits #0..#6, while the bit #7 stores the Leading
+ *  Block flag.
+ */
+__attribute__((section(".extend_data"))) MmSize_t     mmSizesArray[MM_MAX_BLOCK_ID];
+#else
+SYS_MEMDEF MmBlock_t  mmBlocksArray[MM_MAX_BLOCK_ID];
 
 /**//**
  * \brief   Static array of packed Block Ids used for linking blocks into chains forming memory chunks.
@@ -408,7 +439,7 @@ SYS_MEMDEF MM_Link_t    mmLinksArray[1 + MM_MAX_BLOCK_ID];
  *  Block flag.
  */
 SYS_MEMDEF MmSize_t     mmSizesArray[MM_MAX_BLOCK_ID];
-
+#endif
 /************************* STATIC CONSTANTS ***************************************************************************/
 /**//**
  * \brief   Entry point to the dynamic memory pool.

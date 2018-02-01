@@ -165,7 +165,7 @@ static void ipc_thread(void *context)
     struct ipc_thread_context *thread_context = context;
     struct ipc_server *server = thread_context->server;
     nxclient_ipc_thread id = thread_context->id;
-    int listen_fd;
+    int listen_fd=-1;
     int rc;
     struct nxclient_ipc *client;
     char *dbg_str = id==nxclient_ipc_thread_regular?"regular":"restricted";
@@ -221,6 +221,7 @@ static void ipc_thread(void *context)
                 clients[i] = NULL;
                 fds[i].revents = 0;
                 fds[i].events = POLLIN;
+                BDBG_ASSERT(listen_fd>=0);
                 fds[i].fd = listen_fd;
                 i++;
             }
@@ -675,4 +676,9 @@ int  nxclient_p_get_audio_status(nxclient_ipc_t _client, NxClient_AudioStatus *p
 int  nxclient_p_set_client_mode(nxclient_ipc_t _client, const NxClient_ClientModeSettings *pSettings )
 {
     return NxClient_P_SetClientMode(_client->client, pSettings);
+}
+
+int nxclient_p_get_thermal_status(nxclient_ipc_t client, NxClient_ThermalStatus *pStatus)
+{
+    return NxClient_P_GetThermalStatus(client->client, pStatus);
 }

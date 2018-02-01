@@ -83,7 +83,6 @@ void main( void )
     BREG_Handle             hReg;
     BCHP_Handle             hChip;
     BINT_Handle             hInt;
-    bool                    keyReady = FALSE;
     uint16_t                key;
 
     // Do other initialization, i.e. for BREG, BCHP, etc.
@@ -97,15 +96,10 @@ void main( void )
 
     BKPD_Open (&hKPD, hChip, hReg, hInt, &defSettings);
 
-    // Wait for a key to be hit
-    do
-    {
-        BKPD_IsDataReady (hKPD, &keyReady);
-    }   
-    while (keyReady == FALSE);
+    BKPD_InstallInterruptCallback()
+    wait for callback
 
-    // key is now ready, go read it
-    BKPD_Read (hKPD, &key);
+    BKPD_Read_isrsafe (hKPD, &key);
 
 }
 
@@ -219,7 +213,7 @@ See Also:
     BKPD_Open()
 
 ****************************************************************************/
-BERR_Code BKPD_Close(
+void BKPD_Close(
     BKPD_Handle hDev                    /* [in] Device handle */
     );
 
@@ -236,21 +230,9 @@ See Also:
     BKPD_Open()
 
 ****************************************************************************/
-BERR_Code BKPD_GetDefaultSettings(
+void BKPD_GetDefaultSettings(
     BKPD_Settings *pDefSettings,        /* [out] Returns default setting */
     BCHP_Handle hChip                   /* [in] Chip handle */
-    );
-
-/***************************************************************************
-Summary:
-    This function checks for a key press
-
-Description:
-    This function is used to check for a key press.
-****************************************************************************/
-BERR_Code BKPD_IsDataReady ( 
-    BKPD_Handle         hKpd,           /* [in] Device handle */
-    bool                *ready          /* [out] flag indicating key is pressed */
     );
 
 /***************************************************************************
@@ -263,7 +245,7 @@ Description:
 Returns:
     BKPD_ERR_NO_KEY if there is no key press.
 ****************************************************************************/
-BERR_Code BKPD_Read_isrsafe (
+void BKPD_Read_isrsafe (
     BKPD_Handle         hKpd,           /* [in] Device handle */
     uint16_t            *pData          /* [out] pointer to data read from keypad */
     );
@@ -278,45 +260,13 @@ Summary:
 
 Description:
     This function is used to install an interrupt callback function.
-        
-Returns:
-    BERR_SUCCESS
 ****************************************************************************/
-BERR_Code BKPD_InstallInterruptCallback (
+void BKPD_InstallInterruptCallback (
     BKPD_Handle         hKpd,           /* [in] Device handle */
     BKPD_CallbackFunc   callback_isr,   /* [in] ISR callback function */
     void                *pParm1,        /* [in] application specified parameter */
     int                 parm2           /* [in] application specified parameter */
 );
-
-/***************************************************************************
-Summary:
-    This function uninstalls user-specified interrupt callback function
-
-Description:
-    This function is used to uninstall an interrupt callback function.
-        
-Returns:
-    BERR_SUCCESS
-****************************************************************************/
-BERR_Code BKPD_UnInstallInterruptCallback (
-    BKPD_Handle         hKpd            /* [in] Device handle */
-);
-
-/***************************************************************************
-Summary:
-    This function gets the event handle for BKPD module.
-
-Description:
-    This function is responsible for getting the event handle. The
-    application code should use this function get BKPD's event handle, 
-    which the application should use to pend on.  The KPD ISR will 
-    set the event.
-****************************************************************************/
-BERR_Code BKPD_GetEventHandle(
-    BKPD_Handle         hKpd,           /* [in] Device handle */
-    BKNI_EventHandle    *phEvent        /* [out] Returns event handle */
-    );
 
 #ifdef __cplusplus
 }

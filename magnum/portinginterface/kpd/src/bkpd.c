@@ -43,11 +43,7 @@
 #include "bchp_ldk.h"
 #include "bchp_common.h"
 
-#if (BCHP_CHIP == 7125) || (BCHP_CHIP == 7325) || (BCHP_CHIP == 7335) || (BCHP_CHIP == 7340) || (BCHP_CHIP == 7342) || (BCHP_CHIP == 7400) || \
-    (BCHP_CHIP == 7405) || (BCHP_CHIP == 7408) || (BCHP_CHIP == 7420) || (BCHP_CHIP == 7468) || (BCHP_CHIP == 7550)
-    #include "bchp_irq0.h"
-    #include "bchp_int_id_irq0.h"
-#elif defined(BCHP_UPG_MAIN_AON_IRQ_REG_START)
+#if defined(BCHP_UPG_MAIN_AON_IRQ_REG_START)
     #include "bchp_int_id_upg_main_aon_irq.h"
 #else
     #include "bchp_int_id_irq0_aon.h"
@@ -99,7 +95,6 @@ typedef struct BKPD_P_Handle
     BCHP_Handle         hChip;
     BREG_Handle         hRegister;
     BINT_Handle         hInterrupt;
-    BKNI_EventHandle    hEvent;
     BINT_CallbackHandle hCallback;
     bool                intMode;
     BKPD_CallbackInfo   stCallbackInfo;
@@ -159,8 +154,6 @@ BERR_Code BKPD_Open(
     hDev->hInterrupt = hInterrupt;
     hDev->intMode = pDefSettings->intMode;
 
-    BKPD_CHK_RETCODE( retCode, BKNI_CreateEvent( &(hDev->hEvent) ) );
-
     prescale = pDefSettings->prescale;
     BREG_Write32 (hDev->hRegister, BCHP_LDK_PRESCHI, (uint8_t)(prescale >> 8));
     BREG_Write32 (hDev->hRegister, BCHP_LDK_PRESCLO, (uint8_t)(prescale & 0xff));
@@ -214,19 +207,18 @@ done:
     return( retCode );
 }
 
-BERR_Code BKPD_Close(
+void BKPD_Close(
     BKPD_Handle hDev                    /* Device handle */
     )
 {
-    BERR_Code   retCode = BERR_SUCCESS;
     uint32_t    lval;
 
     BDBG_OBJECT_ASSERT(hDev, BKPD);
 
     if ( hDev->hCallback )
     {
-        BKPD_CHK_RETCODE( retCode, BINT_DisableCallback( hDev->hCallback ) );
-        BKPD_CHK_RETCODE( retCode, BINT_DestroyCallback( hDev->hCallback ) );
+        BINT_DisableCallback( hDev->hCallback );
+        BINT_DestroyCallback( hDev->hCallback );
     }
 
     BKNI_EnterCriticalSection();
@@ -236,73 +228,20 @@ BERR_Code BKPD_Close(
     BREG_Write32 (hDev->hRegister, BCHP_LDK_CONTROL, lval);
     BKNI_LeaveCriticalSection();
 
-    BKNI_DestroyEvent( hDev->hEvent );
     BDBG_OBJECT_DESTROY(hDev, BKPD);
     BKNI_Free( (void *) hDev );
-
-done:
-    return( retCode );
 }
 
-BERR_Code BKPD_GetDefaultSettings(
+void BKPD_GetDefaultSettings(
     BKPD_Settings *pDefSettings,        /* [output] Returns default setting */
     BCHP_Handle hChip                   /* Chip handle */
 )
 {
-    BERR_Code retCode = BERR_SUCCESS;
     BSTD_UNUSED(hChip);
-
     *pDefSettings = defKpdSettings;
-
-    return( retCode );
 }
 
-#if !B_REFSW_MINIMAL
-BERR_Code BKPD_GetEventHandle(
-    BKPD_Handle     hDev,           /* Device handle */
-    BKNI_EventHandle *phEvent       /* [output] Returns event handle */
-    )
-{
-    BERR_Code retCode = BERR_SUCCESS;
-
-    BDBG_OBJECT_ASSERT(hDev, BKPD);
-
-    *phEvent = hDev->hEvent;
-
-    return( retCode );
-}
-
-BERR_Code BKPD_IsDataReady (
-    BKPD_Handle         hKpd,           /* Device handle */
-    bool                *ready          /* flag indicating key is pressed */
-)
-{
-    uint32_t            lval;
-
-    BDBG_OBJECT_ASSERT(hKpd, BKPD);
-
-    #if defined(BCHP_IRQ0_AON_IRQSTAT_ldkirq_MASK)
-        lval = BREG_Read32 (hKpd->hRegister, BCHP_IRQ0_AON_IRQSTAT);
-        *ready = (lval & BCHP_IRQ0_AON_IRQSTAT_ldkirq_MASK) ? true : false;
-    #elif defined(BCHP_IRQ0_AON_IRQSTAT_ldk_irq_MASK)
-        lval = BREG_Read32 (hKpd->hRegister, BCHP_IRQ0_AON_IRQSTAT);
-        *ready = (lval & BCHP_IRQ0_AON_IRQSTAT_ldk_irq_MASK) ? true : false;
-    #elif defined(BCHP_IRQ0_IRQSTAT_ldk_MASK)
-        lval = BREG_Read32 (hKpd->hRegister, BCHP_IRQ0_IRQSTAT);
-        *ready = (lval & BCHP_IRQ0_IRQSTAT_ldk_MASK) ? true : false;
-    #elif defined(BCHP_UPG_MAIN_AON_IRQ_CPU_STATUS_ldk_MASK)
-        lval = BREG_Read32 (hKpd->hRegister,BCHP_UPG_MAIN_AON_IRQ_CPU_STATUS);
-        *ready = (lval & BCHP_UPG_MAIN_AON_IRQ_CPU_STATUS_ldk_MASK) ? true : false;
-    #else
-        lval = BREG_Read32 (hKpd->hRegister, BCHP_IRQ0_IRQSTAT);
-        *ready = (lval & BCHP_IRQ0_IRQSTAT_ldkirq_MASK) ? true : false;
-    #endif
-
-    return BERR_SUCCESS;
-}
-#endif
-
-BERR_Code BKPD_Read_isrsafe(
+void BKPD_Read_isrsafe(
     BKPD_Handle         hKpd,           /* Device handle */
     uint16_t            *pData          /* pointer to data read from keypad */
 )
@@ -314,13 +253,11 @@ BERR_Code BKPD_Read_isrsafe(
     lo = BREG_Read32 (hKpd->hRegister, BCHP_LDK_KEYROW10);
 
     *pData = (((uint16_t)hi) << 8) | ((uint16_t)lo);
-
-    return BERR_SUCCESS;
 }
 
-BERR_Code BKPD_InstallInterruptCallback (
+void BKPD_InstallInterruptCallback (
     BKPD_Handle         hKpd,           /* Device handle */
-    BKPD_CallbackFunc   callback,       /* callback function */
+    BKPD_CallbackFunc   callback_isr,   /* callback function */
     void                *pParm1,        /* application specified parameter */
     int                 parm2           /* application specified parameter */
 )
@@ -328,30 +265,11 @@ BERR_Code BKPD_InstallInterruptCallback (
     BDBG_OBJECT_ASSERT(hKpd, BKPD);
 
     BKNI_EnterCriticalSection();
-    hKpd->stCallbackInfo.cbFunc = callback;
+    hKpd->stCallbackInfo.cbFunc = callback_isr;
     hKpd->stCallbackInfo.pParm1 = pParm1 ;
     hKpd->stCallbackInfo.parm2 = parm2 ;
     BKNI_LeaveCriticalSection();
-
-    return BERR_SUCCESS;
 }
-
-#if !B_REFSW_MINIMAL
-BERR_Code BKPD_UnInstallInterruptCallback (
-    BKPD_Handle         hKpd            /* Device handle */
-)
-{
-    BDBG_OBJECT_ASSERT(hKpd, BKPD);
-
-    BKNI_EnterCriticalSection();
-    hKpd->stCallbackInfo.cbFunc = NULL;
-    hKpd->stCallbackInfo.pParm1 = NULL ;
-    hKpd->stCallbackInfo.parm2 = 0 ;
-    BKNI_LeaveCriticalSection();
-
-    return BERR_SUCCESS;
-}
-#endif
 
 /*******************************************************************************
 *
@@ -385,8 +303,6 @@ static void BKPD_P_HandleInterrupt_Isr
      * Clear keypad interrupt by reading the key registers
      */
     BKPD_Read_isr(hDev, &data);
-
-    BKNI_SetEvent( hDev->hEvent );
 
     return;
 }

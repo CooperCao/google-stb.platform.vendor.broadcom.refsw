@@ -831,6 +831,18 @@ typedef struct NEXUS_Etbg_P_State
 extern NEXUS_Etbg_P_State g_NEXUS_Etbg_P_State;
 #endif
 
+#if NEXUS_TRANSPORT_EXTENSION_TBG
+struct NEXUS_Tbg_P_State {
+    uint8_t markerTag;
+    struct {
+        bool changed;
+        NEXUS_ParserBand primaryBand;
+        unsigned unmappedPidChannel;
+    } band[NEXUS_NUM_PARSER_BANDS];
+};
+extern struct NEXUS_Tbg_P_State g_NEXUS_Tbg_P_State;
+#endif
+
 void NEXUS_Playpump_P_ConsumerStarted(NEXUS_PlaypumpHandle p);
 void NEXUS_Playpump_P_GetOpenSettings(NEXUS_PlaypumpHandle p, NEXUS_PlaypumpOpenSettings *pOpenSettings);
 
@@ -860,7 +872,7 @@ NEXUS_Error NEXUS_DmaJob_P_HwPidChannel_Disconnect(NEXUS_DmaJobHandle handle, NE
 NEXUS_Error NEXUS_DmaJob_P_Wait(NEXUS_DmaJobHandle handle);
 NEXUS_Error NEXUS_P_HwPidChannel_GetStatus(NEXUS_P_HwPidChannel *pidChannel, NEXUS_PidChannelStatus *pStatus);
 unsigned nexus_p_xpt_parser_band(NEXUS_P_HwPidChannel *hwPidChannel);
-NEXUS_Error nexus_p_set_pid_cc(NEXUS_P_HwPidChannel *hwPidChannel, const NEXUS_PidChannelSettings *pSettings);
+void nexus_p_set_pid_cc(NEXUS_P_HwPidChannel *hwPidChannel, const NEXUS_PidChannelSettings *pSettings);
 
 /* create new instance of [SW] NEXUS_PidChannel from existing HW PidChannel , this will link two together */
 NEXUS_PidChannelHandle NEXUS_PidChannel_P_Create(NEXUS_P_HwPidChannel *hwPidChannel);

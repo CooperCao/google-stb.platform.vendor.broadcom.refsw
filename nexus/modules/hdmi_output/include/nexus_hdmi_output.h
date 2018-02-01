@@ -154,8 +154,7 @@ typedef struct NEXUS_HdmiOutputSettings
     NEXUS_ColorSpace colorSpace; /* if not NEXUS_ColorSpace_eAuto , then this value is used instead of the value reported by the HDMI receiver.
                                     if NEXUS_ColorSpace_eAuto or autoColorSpace, a colorspace is chosen based on receiver and transmitter
                                     preferences and capabilities. */
-    unsigned colorDepth; /* default is 8bit standard color depth. 10bit & 12bit deep color are supported with HDMI 1.3 platform only.
-                            if 0, a value is chosen based on receiver and transmitter preferences and capabilities.*/
+    unsigned colorDepth; /* default is 0 (auto) where a color depth (8, 10, or 12) is chosen based on receiver and transmitter preferences and capabilities. */
 
     bool overrideColorRange; /* If true, value of colorRange, rather than the default value based on receiver preferences and capabilities, is used */
     NEXUS_ColorRange colorRange; /* ColorRange to use when overrideColorRange is set */

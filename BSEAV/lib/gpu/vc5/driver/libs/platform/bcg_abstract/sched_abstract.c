@@ -81,8 +81,9 @@ uint32_t bcm_sched_get_num_counter_groups(void)
 {
    uint32_t numGroups = 0;
 
-   if (s_context.sched_iface.GetPerfNumCounterGroups)
-      s_context.sched_iface.GetPerfNumCounterGroups(s_context.sched_iface.context, s_context.session_id, &numGroups);
+   BEGL_SchedPerfCountInterface *pci = &s_context.sched_iface.perf_count_iface;
+   if (pci->GetPerfNumCounterGroups)
+      pci->GetPerfNumCounterGroups(s_context.sched_iface.context, s_context.session_id, &numGroups);
 
    return numGroups;
 }
@@ -92,9 +93,11 @@ bool bcm_sched_enumerate_group_counters(
    struct bcm_sched_counter_group_desc  *group_desc)
 {
    BEGL_SchedStatus status = BEGL_SchedFail;
+   BEGL_SchedPerfCountInterface *pci = &s_context.sched_iface.perf_count_iface;
 
-   if (s_context.sched_iface.GetPerfCounterGroupInfo)
-      status = s_context.sched_iface.GetPerfCounterGroupInfo(s_context.sched_iface.context, s_context.session_id, group, group_desc);
+   if (pci->GetPerfCounterGroupInfo)
+      status = pci->GetPerfCounterGroupInfo(s_context.sched_iface.context, s_context.session_id,
+                                            group, group_desc);
 
    return status == BEGL_SchedSuccess;
 }
@@ -104,8 +107,10 @@ bool bcm_sched_select_group_counters(
 {
    BEGL_SchedStatus status = BEGL_SchedFail;
 
-   if (s_context.sched_iface.ChoosePerfCounters)
-      status = s_context.sched_iface.ChoosePerfCounters(s_context.sched_iface.context, s_context.session_id, selector);
+   BEGL_SchedPerfCountInterface *pci = &s_context.sched_iface.perf_count_iface;
+
+   if (pci->ChoosePerfCounters)
+      status = pci->ChoosePerfCounters(s_context.sched_iface.context, s_context.session_id, selector);
 
    return status == BEGL_SchedSuccess;
 }
@@ -115,8 +120,10 @@ bool bcm_sched_set_counter_collection(
 {
    BEGL_SchedStatus status = BEGL_SchedFail;
 
-   if (s_context.sched_iface.SetPerfCounting)
-      status = s_context.sched_iface.SetPerfCounting(s_context.sched_iface.context, s_context.session_id, state);
+   BEGL_SchedPerfCountInterface *pci = &s_context.sched_iface.perf_count_iface;
+
+   if (pci->SetPerfCounting)
+      status = pci->SetPerfCounting(s_context.sched_iface.context, s_context.session_id, state);
 
    return status == BEGL_SchedSuccess;
 }
@@ -127,8 +134,12 @@ uint32_t bcm_sched_get_counters(
    bool                       reset_counts)
 {
    uint32_t ctrs = 0;
-   if (s_context.sched_iface.GetPerfCounterData)
-      ctrs = s_context.sched_iface.GetPerfCounterData(s_context.sched_iface.context, s_context.session_id, counters, max_counters, reset_counts);
+
+   BEGL_SchedPerfCountInterface *pci = &s_context.sched_iface.perf_count_iface;
+
+   if (pci->GetPerfCounterData)
+      ctrs = pci->GetPerfCounterData(s_context.sched_iface.context, s_context.session_id, counters,
+                                     max_counters, reset_counts);
 
    return ctrs;
 }
@@ -138,8 +149,10 @@ uint32_t bcm_sched_get_num_event_tracks(void)
    uint32_t numTracks = 0;
    uint32_t numEvents = 0;
 
-   if (s_context.sched_iface.GetEventCounts)
-      s_context.sched_iface.GetEventCounts(s_context.sched_iface.context, s_context.session_id, &numTracks, &numEvents);
+   BEGL_SchedEventTrackInterface *eti = &s_context.sched_iface.event_track_iface;
+
+   if (eti->GetEventCounts)
+      eti->GetEventCounts(s_context.sched_iface.context, s_context.session_id, &numTracks, &numEvents);
 
    return numTracks;
 }
@@ -150,8 +163,11 @@ bool bcm_sched_describe_event_track(
 {
    BEGL_SchedStatus status = BEGL_SchedFail;
 
-   if (s_context.sched_iface.GetEventTrackInfo)
-      status = s_context.sched_iface.GetEventTrackInfo(s_context.sched_iface.context, s_context.session_id, track_index, track_desc);
+   BEGL_SchedEventTrackInterface *eti = &s_context.sched_iface.event_track_iface;
+
+   if (eti->GetEventTrackInfo)
+      status = eti->GetEventTrackInfo(s_context.sched_iface.context, s_context.session_id, track_index,
+                                      track_desc);
 
    return status == BEGL_SchedSuccess;
 }
@@ -161,8 +177,10 @@ uint32_t bcm_sched_get_num_events(void)
    uint32_t numTracks = 0;
    uint32_t numEvents = 0;
 
-   if (s_context.sched_iface.GetEventCounts)
-      s_context.sched_iface.GetEventCounts(s_context.sched_iface.context, s_context.session_id, &numTracks, &numEvents);
+   BEGL_SchedEventTrackInterface *eti = &s_context.sched_iface.event_track_iface;
+
+   if (eti->GetEventCounts)
+      eti->GetEventCounts(s_context.sched_iface.context, s_context.session_id, &numTracks, &numEvents);
 
    return numEvents;
 }
@@ -173,8 +191,11 @@ bool bcm_sched_describe_event(
 {
    BEGL_SchedStatus status = BEGL_SchedFail;
 
-   if (s_context.sched_iface.GetEventInfo)
-      status = s_context.sched_iface.GetEventInfo(s_context.sched_iface.context, s_context.session_id, event_index, event_desc);
+   BEGL_SchedEventTrackInterface *eti = &s_context.sched_iface.event_track_iface;
+
+   if (eti->GetEventInfo)
+      status = eti->GetEventInfo(s_context.sched_iface.context, s_context.session_id, event_index,
+                                 event_desc);
 
    return status == BEGL_SchedSuccess;
 }
@@ -186,9 +207,11 @@ bool bcm_sched_describe_event_data(
 {
    BEGL_SchedStatus status = BEGL_SchedFail;
 
-   if (s_context.sched_iface.GetEventDataFieldInfo)
-      status = s_context.sched_iface.GetEventDataFieldInfo(s_context.sched_iface.context, s_context.session_id,
-                                                           event_index, field_index, field_desc);
+   BEGL_SchedEventTrackInterface *eti = &s_context.sched_iface.event_track_iface;
+
+   if (eti->GetEventDataFieldInfo)
+      status = eti->GetEventDataFieldInfo(s_context.sched_iface.context, s_context.session_id,
+                                          event_index, field_index, field_desc);
 
    return status == BEGL_SchedSuccess;
 }
@@ -198,8 +221,10 @@ bool bcm_sched_set_event_collection(
 {
    BEGL_SchedStatus status = BEGL_SchedFail;
 
-   if (s_context.sched_iface.SetEventCollection)
-      status = s_context.sched_iface.SetEventCollection(s_context.sched_iface.context, s_context.session_id, state);
+   BEGL_SchedEventTrackInterface *eti = &s_context.sched_iface.event_track_iface;
+
+   if (eti->SetEventCollection)
+      status = eti->SetEventCollection(s_context.sched_iface.context, s_context.session_id, state);
 
    return status == BEGL_SchedSuccess;
 }
@@ -213,9 +238,11 @@ uint32_t bcm_sched_poll_event_timeline(
    uint32_t         oflow = 0;
    uint32_t         bytesCopied = 0;
 
-   if (s_context.sched_iface.GetEventData)
-      bytesCopied = s_context.sched_iface.GetEventData(s_context.sched_iface.context, s_context.session_id,
-                                                       event_buffer_bytes, event_buffer, &oflow, timestamp_us);
+   BEGL_SchedEventTrackInterface *eti = &s_context.sched_iface.event_track_iface;
+
+   if (eti->GetEventData)
+      bytesCopied = eti->GetEventData(s_context.sched_iface.context, s_context.session_id,
+                                      event_buffer_bytes, event_buffer, &oflow, timestamp_us);
 
    *lost_data = oflow != 0;
 

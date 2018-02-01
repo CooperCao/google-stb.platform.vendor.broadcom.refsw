@@ -235,7 +235,6 @@ typedef struct NEXUS_VideoDecoderExternalTsmData
     void* pDecoderPrivateContext;
 
     DML_DispPicStruct displayPic;
-    BAVC_MFD_Picture *pMFDPicture;
     BAVC_MFD_Picture MFDPicture;
     bool stopped;
 
@@ -721,7 +720,7 @@ void NEXUS_VideoDecoderPrimer_P_Unlink(NEXUS_VideoDecoderPrimerHandle primer, NE
 NEXUS_Error NEXUS_VideoDecoder_P_SetDiscardThreshold_Avd(NEXUS_VideoDecoderHandle videoDecoder);
 
 NEXUS_MemoryBlockHandle NEXUS_VideoDecoder_P_MemoryBlockFromMma(NEXUS_VideoDecoderHandle decoder, BMMA_Block_Handle mma);
-bool nexus_p_use_secure_picbuf(NEXUS_VideoDecoderHandle videoDecoder);
+NEXUS_VideoDecoderSecureType nexus_p_use_picbuf_type(NEXUS_VideoDecoderHandle videoDecoder);
 struct NEXUS_VideoDecoderDevice *nexus_video_decoder_p_any_device(void);
 NEXUS_PicturePolarity NEXUS_P_PicturePolarity_FromMagnum_isrsafe(BAVC_Polarity polarity);
 

@@ -16,11 +16,18 @@ extern "C" {
 
 #define V3D_IDENT_REGISTERS      4
 #define V3D_HUB_IDENT_REGISTERS  4
+
+/* SoC hardware quirks that the driver needs to know about, these must match
+ * the defintions in the Magnum driver bvc5_priv.h
+ */
+#define V3D_SOC_QUIRK_HWBCM7260_81 (1L << 0)
+
 struct v3d_idents
 {
   uint32_t ident[V3D_MAX_CORES * V3D_IDENT_REGISTERS];
   uint32_t hubIdent[V3D_HUB_IDENT_REGISTERS];
   uint32_t ddrMapVer;
+  uint32_t socQuirks;
 };
 extern void v3d_get_info(struct v3d_idents *info);
 

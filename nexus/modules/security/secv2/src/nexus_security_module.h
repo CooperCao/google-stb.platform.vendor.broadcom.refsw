@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,8 +43,6 @@
 #include "nexus_base.h"
 #include "nexus_security_datatypes.h"
 #include "nexus_security.h"
-
-
 #include "nexus_security_init.h"
 #include "nexus_security.h"
 #include "nexus_security_datatypes.h"
@@ -61,7 +59,12 @@
 #include "nexus_security_common.h"
 #include "nexus_regver.h"
 #include "nexus_regver_rsa.h"
-
+#ifdef NEXUS_POWAY_SUPPORT
+ #include "nexus_poway.h"
+#endif
+#ifdef NEXUS_ENCINITAS_SUPPORT
+ #include "nexus_encinitas.h"
+#endif
 #include "priv/nexus_regver_priv.h"
 #include "priv/nexus_core_security.h"
 
@@ -85,6 +88,9 @@ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Hmac);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Hash);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_KeyLadder);
 
+#ifdef NEXUS_POWAY_SUPPORT
+ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Poway);
+#endif
 
 #ifdef __cplusplus
 }

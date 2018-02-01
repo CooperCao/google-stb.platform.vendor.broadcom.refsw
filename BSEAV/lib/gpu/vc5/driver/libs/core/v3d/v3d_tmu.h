@@ -148,30 +148,15 @@ extern GFX_LFMT_T v3d_get_tmu_blend_fmt(
 
 extern uint32_t v3d_tmu_get_num_channels(v3d_tmu_type_t type);
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+/* Return the output type (true=32, false=16) for the specified texture type */
+extern bool v3d_tmu_output_32(v3d_tmu_type_t type, bool shadow);
+#endif
 
-/* Return the output type (true=32, false=16) that is used when
- * !V3D_MISCCFG.ovrtmuout or when (cfg=1 & ltype!=CHILD_IMAGE &
- * output_type=V3D_TMU_OUTPUT_TYPE_AUTO) */
-extern bool v3d_tmu_auto_output_32(v3d_tmu_type_t type, bool shadow);
-
-static inline bool v3d_tmu_output_type_32(v3d_tmu_output_type_t output_type,
-   v3d_tmu_type_t type, bool shadow)
-{
-   switch (output_type)
-   {
-   case V3D_TMU_OUTPUT_TYPE_16:     return false;
-   case V3D_TMU_OUTPUT_TYPE_32:     return true;
-   case V3D_TMU_OUTPUT_TYPE_AUTO:   return v3d_tmu_auto_output_32(type, shadow);
-   default:                         unreachable();
-   }
-}
-
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 /* Get the number of words returned by the TMU for the specified type in cfg=0
  * mode */
-extern uint32_t v3d_tmu_get_word_read_default(
-   v3d_tmu_type_t type, bool misccfg_ovrtmuout);
-
+extern uint32_t v3d_tmu_get_word_read_default(v3d_tmu_type_t type);
 #endif
 
 typedef enum
@@ -180,11 +165,6 @@ typedef enum
    V3D_TMU_OP_CLASS_ATOMIC,
    V3D_TMU_OP_CLASS_CACHE
 } v3d_tmu_op_class_t;
-
-/* Get the maximum number of words that can be returned by the TMU with the
- * specified configuration */
-extern uint32_t v3d_tmu_get_word_read_max(v3d_tmu_op_class_t op, bool is_write,
-   v3d_tmu_type_t type, bool gather, bool output_32);
 
 extern bool v3d_tmu_type_supports_srgb(v3d_tmu_type_t type);
 
@@ -264,15 +244,7 @@ struct v3d_tmu_cfg
    v3d_tmu_wrap_i_t wrap_i;
    GFX_LFMT_BLOCK_T bcolour; /* Border colour. For non-depth types will be in blend format. */
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   bool child_image;
-   /* If !child_image, cx/yoff should be 0 and cwidth/height should match
-    * width/height. */
-   uint32_t cwidth;
-   uint32_t cheight;
-   uint32_t cxoff;
-   uint32_t cyoff;
-
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    /* Just indicates whether or not we expect a bias value to be written */
    bool bias;
 #endif
@@ -295,12 +267,12 @@ struct v3d_tmu_cfg
 struct v3d_tmu_reg_flags
 {
    bool d;
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    bool s, t, r, i, b, dref, off, scm, sfetch, slod;
 #endif
 };
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 extern void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    const struct v3d_tmu_reg_flags *written,
    const V3D_TMU_PARAM0_T *p0,
@@ -312,7 +284,6 @@ extern void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    const uint32_t bcolour[4]); /* May be NULL */
 #else
 extern void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
-   const V3D_MISCCFG_T *misccfg,
    const V3D_TMU_PARAM0_T *p0,
    const V3D_TMU_PARAM1_CFG0_T *p1_cfg0, const V3D_TMU_PARAM1_CFG1_T *p1_cfg1,
    const V3D_TMU_INDIRECT_T *ind);
@@ -326,5 +297,14 @@ extern void v3d_tmu_cfg_collect_general(struct v3d_tmu_cfg *cfg,
 extern void v3d_tmu_get_wh_for_1d_tex_state(uint32_t *w, uint32_t *h,
       uint32_t width_in);
 #endif
+
+static inline uint32_t v3d_tmu_num_result_words(const struct v3d_tmu_cfg *cfg)
+{
+   uint32_t num = 0;
+   for (unsigned i = 0; i != countof(cfg->word_en); ++i)
+      if (cfg->word_en[i])
+         ++num;
+   return num;
+}
 
 EXTERN_C_END

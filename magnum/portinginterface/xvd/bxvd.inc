@@ -1,5 +1,5 @@
 ############################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -91,6 +91,13 @@ ifeq ($(BXVD_ENABLE_DRAM_PERF_INFO),y)
 BXVD_DEFINES += BXVD_P_ENABLE_DRAM_PREF_INFO
 endif
 
+#
+# When true, pass the heap handle to XDM.  XDM will then allocate a BDBG_Fifo.
+#
+ifeq ($(BXVD_ENABLE_BDBG_FIFO),y)
+BXVD_DEFINES += BXVD_ENABLE_BDBG_FIFO
+endif
+
 include $(MAGNUM)/portinginterface/xvd/bxvd_chip.inc
 
 #
@@ -133,6 +140,13 @@ endif
 #
 ifeq ($(BXVD_FW_DEBUG_DRAM_LOGGING),y)
 BXVD_DEFINES += BXVD_P_FW_DEBUG_DRAM_LOGGING
+endif
+
+#
+# Enable PPB grab mode
+#
+ifeq ($(BXVD_DM_ENABLE_PPB_GRAB_MODE),y)
+BXVD_DEFINES += BXVD_DM_ENABLE_PPB_GRAB_MODE
 endif
 
 #### Use DMv2 by default for all platforms

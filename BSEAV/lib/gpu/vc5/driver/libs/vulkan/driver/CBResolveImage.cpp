@@ -21,7 +21,7 @@ void CommandBuffer::ResolveImageRegionTLB(
    bvk::Image *dstImage,
    const VkImageResolve &region)
 {
-   const bool dstIs3D         = gfx_lfmt_is_3d(dstImage->NaturalLFMT());
+   const bool dstIs3D         = gfx_lfmt_is_3d(dstImage->LFMT());
    const uint32_t layerCount  = region.dstSubresource.layerCount;
    const uint32_t dstMipLevel = region.dstSubresource.mipLevel;
 
@@ -81,7 +81,7 @@ void CommandBuffer::ResolveImageRegionTMU(
    blit.dstOffsets[1].y = region.dstOffset.y + region.extent.height;
    blit.dstOffsets[1].z = region.dstOffset.z + region.extent.depth;
 
-   GFX_LFMT_T tmuLFMT = srcImage->HardwareLFMT();
+   GFX_LFMT_T tmuLFMT = srcImage->LFMT();
    VkFilter filter = gfx_lfmt_contains_int(tmuLFMT) ? VK_FILTER_NEAREST : VK_FILTER_LINEAR;
 
    if (srcImage->Extent().width  > V3D_MAX_CLIP_WIDTH  || dstImage->Extent().width  > V3D_MAX_CLIP_WIDTH ||
@@ -116,8 +116,8 @@ void CommandBuffer::CmdResolveImage(
    assert(m_mode == eRECORDING);
    assert(!InRenderPass());
 
-   GFX_LFMT_T srcLFMT = srcImage->NaturalLFMT();
-   GFX_LFMT_T dstLFMT = dstImage->NaturalLFMT();
+   GFX_LFMT_T srcLFMT = srcImage->LFMT();
+   GFX_LFMT_T dstLFMT = dstImage->LFMT();
 
    // Only 2D multi-sampled images are allowed by the spec, see:
    // v1.0.26: 31.4.1 Supported Sample Counts
@@ -215,14 +215,6 @@ void CommandBuffer::CmdResolveImage(
          canUseTLB = false;
       else if ((dstOffset.x % dstOffsetAlignments.x) != 0 || (dstOffset.y % dstOffsetAlignments.y) != 0)
          canUseTLB = false;
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-      // The BRGA (SRGB) format cases where we have to use RGBA internally. If
-      // we are resolving to a linear BGRA image we will have to RB swap the
-      // output using a shader.
-      if (dstImage->KeepVulkanComponentOrder())
-         canUseTLB = false;
-#endif
 
       // The TLB cannot resolve 32bit floating point formats directly, it
       // needs a shader to read the samples and write back the resolved value.

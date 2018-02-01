@@ -163,16 +163,21 @@ static void BVC5_P_PrintBinJobDumpRunInfo(
 
          if (psBinMemArray && psBinMemArray->uiNumBinBlocks > 0)
          {
-            BKNI_Printf("  tile_alloc_addr = 0x%08X, size = %d\n\n",
-                        psBinMemArray->pvBinMemoryBlocks[0]->uiPhysOffset,
+            uint64_t uiBinPhys = psBinMemArray->pvBinMemoryBlocks[0]->uiLockOffset;
+            BKNI_Printf("  tile_alloc_addr = " BDBG_UINT64_FMT ", size = %d\n\n",
+                        BDBG_UINT64_ARG(uiBinPhys),
                         psBinMemArray->pvBinMemoryBlocks[0]->uiNumBytes);
 
             BKNI_Printf("The following command will convert the dump to a clif file (don't run on silicon):\n");
 
-            BKNI_Printf("dump_run b " BDBG_UINT64_FMT " memdump.bin 0x%08X 0x%08X 0x%08X %u toclif\n",
-                        BDBG_UINT64_ARG(hVC5->ulDbgHeapOffset), pJobBin->uiStart[0], pJobBin->uiEnd[0],
-                        psBinMemArray->pvBinMemoryBlocks[0]->uiPhysOffset,
-                        psBinMemArray->pvBinMemoryBlocks[0]->uiNumBytes);
+            /* We can only dump jobs using direct addressing and Nexus heaps */
+            if (psRenderJob->pBase->uiPagetablePhysAddr == 0)
+            {
+               BKNI_Printf("dump_run b " BDBG_UINT64_FMT " memdump.bin 0x%08X 0x%08X 0x%08X %u toclif\n",
+                           BDBG_UINT64_ARG(hVC5->ulDbgHeapOffset), pJobBin->uiStart[0], pJobBin->uiEnd[0],
+                           (uint32_t)(uiBinPhys & 0xffffffff),
+                           psBinMemArray->pvBinMemoryBlocks[0]->uiNumBytes);
+            }
          }
       }
    }
@@ -196,17 +201,21 @@ static void BVC5_P_PrintRenderJobDumpRunInfo(
 
       if (psBinMemArray && psBinMemArray->uiNumBinBlocks > 0)
       {
-         BKNI_Printf("  render job tile_alloc_addr = 0x%08X, size = %d\n\n",
-                     psBinMemArray->pvBinMemoryBlocks[0]->uiPhysOffset,
+         uint64_t uiBinPhys = psBinMemArray->pvBinMemoryBlocks[0]->uiLockOffset;
+         BKNI_Printf("  render job tile_alloc_addr = " BDBG_UINT64_FMT ", size = %d\n\n",
+                     BDBG_UINT64_ARG(uiBinPhys),
                      psBinMemArray->pvBinMemoryBlocks[0]->uiNumBytes);
 
          BKNI_Printf("The following command will convert the dump to a clif file (don't run on silicon):\n");
 
-         BKNI_Printf("dump_run r " BDBG_UINT64_FMT " memdump.bin 0x%08X 0x%08X 0x%08X %u toclif\n",
-                     BDBG_UINT64_ARG(hVC5->ulDbgHeapOffset), pJobRender->uiStart[0], pJobRender->uiEnd[0],
-                     psBinMemArray->pvBinMemoryBlocks[0]->uiPhysOffset,
+         /* We can only dump jobs using direct addressing and Nexus heaps */
+         if (psJob->pBase->uiPagetablePhysAddr == 0)
+         {
+            BKNI_Printf("dump_run r " BDBG_UINT64_FMT " memdump.bin 0x%08X 0x%08X 0x%08X %u toclif\n",
+                        BDBG_UINT64_ARG(hVC5->ulDbgHeapOffset), pJobRender->uiStart[0], pJobRender->uiEnd[0],
+                     (uint32_t)(uiBinPhys & 0xffffffff),
                      psBinMemArray->pvBinMemoryBlocks[0]->uiNumBytes);
-
+         }
       }
    }
 }
@@ -335,7 +344,7 @@ void BVC5_P_DebugDump(
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_HUB_CTL_IDENT0), BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_HUB_CTL_IDENT1),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_HUB_CTL_IDENT2), BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_HUB_CTL_IDENT3),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_ERROR_ERRSTAT),
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_ERROR_DBGE),
 #else
        0,

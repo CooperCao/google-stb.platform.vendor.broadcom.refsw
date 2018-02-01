@@ -75,7 +75,12 @@ typedef struct NEXUS_SimpleVideoDecoderServerSettings
     bool mainWindow;
     int stcIndex; /* used for allocating stc channel once connected to simple stc channel */
     NEXUS_DisplayHandle display[NEXUS_MAX_DISPLAYS]; /* used for closedCaptionRouting */
-    bool mosaic;
+    struct {
+        struct {
+#define NEXUS_MAX_MOSAIC_DECODES 14
+            NEXUS_VideoWindowHandle window[NEXUS_MAX_MOSAIC_DECODES];
+        } display[NEXUS_MAX_DISPLAYS];
+    } backendMosaic;
 } NEXUS_SimpleVideoDecoderServerSettings;
 
 NEXUS_SimpleVideoDecoderServerHandle NEXUS_SimpleVideoDecoderServer_Create( /* attr{destructor=NEXUS_SimpleVideoDecoderServer_Destroy}  */

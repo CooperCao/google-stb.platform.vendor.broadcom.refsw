@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,8 +49,6 @@
 #include "bdbg.h"
 
 BDBG_MODULE(BUDP_dss);
-
-static const bool bByteswap = (BSTD_CPU_ENDIAN == BSTD_ENDIAN_LITTLE);
 
 static BERR_Code ParseDSSData_isr (
     BUDP_Bitread_Context* pReader,
@@ -315,7 +313,7 @@ BERR_Code BUDP_DCCparse_DSS_isr (
     }
 
     /* Prepare to play with bits */
-    BUDP_Bitread_Init_isr (&reader, bByteswap, userdata);
+    BUDP_Bitread_Init_isr (&reader, (BSTD_CPU_ENDIAN == BSTD_ENDIAN_LITTLE), userdata);
 
     /* jump past the first MPEG userdata start code */
     bytesParsedSub = FindMpegUserdataStart_isr (&reader, length);

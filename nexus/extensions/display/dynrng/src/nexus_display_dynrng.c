@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -216,6 +216,52 @@ NEXUS_Error NEXUS_VideoWindow_SetDynamicRangeProcessingSettings(
 
 end:
     return rc;
+}
+
+void NEXUS_VideoWindow_GetTargetPeakBrightness(
+    unsigned windowId,
+    int *psHdrPeak,
+    int *psSdrPeak
+)
+{
+    NEXUS_DisplayHandle display;
+    NEXUS_VideoWindowHandle window;
+
+    display = NEXUS_P_FindHdmiDisplay();
+
+    if (display)
+    {
+        window = NEXUS_P_GetActiveVideoWindow(display, windowId);
+        if (window)
+        {
+            *psHdrPeak = window->dynrng.hdrPeak;
+            *psSdrPeak = window->dynrng.sdrPeak;
+        }
+    }
+}
+
+void NEXUS_VideoWindow_SetTargetPeakBrightness(
+    unsigned windowId,
+    int  sHdrPeak,
+    int  sSdrPeak
+)
+{
+    NEXUS_DisplayHandle display;
+    NEXUS_VideoWindowHandle window;
+
+    display = NEXUS_P_FindHdmiDisplay();
+
+    if (display)
+    {
+        window = NEXUS_P_GetActiveVideoWindow(display, windowId);
+        if (window)
+        {
+            BVDC_Test_Window_SetTargetPeakBrightness(window->vdcState.window, sHdrPeak, sSdrPeak);
+            NEXUS_Display_P_ApplyChanges();
+            window->dynrng.hdrPeak = sHdrPeak;
+            window->dynrng.sdrPeak = sSdrPeak;
+        }
+    }
 }
 
 void NEXUS_Display_GetGraphicsDynamicRangeProcessingCapabilities(

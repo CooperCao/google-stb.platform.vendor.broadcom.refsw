@@ -33,7 +33,7 @@ DataflowChain *glsl_dataflow_chain_append  (DataflowChain *chain, Dataflow *data
 // If node in chain, removes node from chain, else, behaviour undefined.
 DataflowChain *glsl_dataflow_chain_remove_node(DataflowChain *chain, DataflowChainNode *node);
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
 typedef enum {
   IMAGE_INFO_ARR_STRIDE,
   IMAGE_INFO_SWIZZLING,
@@ -54,7 +54,7 @@ typedef enum {
    DATAFLOW_LOGICAL_NOT,
    DATAFLOW_CONST_IMAGE,
    DATAFLOW_CONST_SAMPLER,
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    DATAFLOW_SAMPLER_UNNORMS,
 #endif
    DATAFLOW_FTOI_TRUNC,
@@ -128,6 +128,12 @@ typedef enum {
    DATAFLOW_FUNPACKA,
    DATAFLOW_FUNPACKB,
 
+   DATAFLOW_VFMIN,
+   DATAFLOW_VFMAX,
+   DATAFLOW_VFMUL,
+   DATAFLOW_VITODENF,
+   DATAFLOW_VFMULDENFTOI,
+
    DATAFLOW_ITOF,
    DATAFLOW_UTOF,
    DATAFLOW_CLZ,
@@ -135,7 +141,7 @@ typedef enum {
    // IR texture gadget
    DATAFLOW_VEC4,
    DATAFLOW_TEXTURE,
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
    DATAFLOW_TEXTURE_ADDR,
 #endif
    DATAFLOW_TEXTURE_SIZE,
@@ -169,6 +175,9 @@ typedef enum {
    DATAFLOW_SAMPLE_ID,
    DATAFLOW_NUM_SAMPLES,
 
+   DATAFLOW_SG_LOCAL_IDX,
+   DATAFLOW_SG_ELECT,
+
    DATAFLOW_GET_VERTEX_ID,
    DATAFLOW_GET_INSTANCE_ID,
    DATAFLOW_GET_BASE_INSTANCE,
@@ -183,13 +192,14 @@ typedef enum {
    DATAFLOW_GET_NUMWORKGROUPS_Z,
 
    DATAFLOW_GET_INVOCATION_ID,
+   DATAFLOW_GET_PRIMITIVE_ID,
 
    // Buffer loads and stores
    DATAFLOW_ADDRESS,
    DATAFLOW_BUF_SIZE,
    DATAFLOW_BUF_ARRAY_LENGTH,
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    /* image unit additional params */
    DATAFLOW_IMAGE_INFO_PARAM,
 #endif
@@ -268,7 +278,7 @@ struct _Dataflow
       } cond_op;
 
       struct {
-         Dataflow *addr; /* May be a DATAFLOW_TEXTURE_ADDR (V3D_VER_AT_LEAST(4,0,2,0) only) */
+         Dataflow *addr; /* May be a DATAFLOW_TEXTURE_ADDR (V3D_VER_AT_LEAST(4,1,34,0) only) */
          Dataflow *val;
          Dataflow *cond;
          Dataflow *prev;
@@ -283,7 +293,7 @@ struct _Dataflow
          Dataflow *sampler; /* may be NULL */
       } texture;
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
       struct {
          Dataflow *x;
          Dataflow *y;
@@ -361,7 +371,7 @@ struct _Dataflow
          int in_b;
       } phi;
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
       struct {
          ImageInfoParam param;
       } image_info_param;
@@ -402,7 +412,7 @@ Dataflow *glsl_dataflow_construct_address(Dataflow *operand);
 Dataflow *glsl_dataflow_construct_buf_size(Dataflow *operand, const_value subtract_offset);
 Dataflow *glsl_dataflow_construct_buf_array_length(Dataflow *operand, const_value subtract);
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 Dataflow *glsl_dataflow_construct_sampler_unnorms(Dataflow *operand);
 #endif
 
@@ -414,7 +424,7 @@ void glsl_dataflow_construct_texture_lookup(Dataflow **out, unsigned n_out,
                                             uint32_t bits, Dataflow *image,
                                             Dataflow *coords,
                                             Dataflow *d, Dataflow *b, Dataflow *off, Dataflow *sampler);
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 Dataflow *glsl_dataflow_construct_texture_addr(Dataflow *sampler,
                                                Dataflow *x, Dataflow *y, Dataflow *z,
                                                Dataflow *i);

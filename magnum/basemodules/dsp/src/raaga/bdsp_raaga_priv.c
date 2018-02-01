@@ -997,6 +997,16 @@ void BDSP_Raaga_P_DestroyStage(
 	)
 {
 	BDSP_RaagaStage *pRaagaStage = (BDSP_RaagaStage *)pStageHandle;
+	{
+		BDSP_RaagaCapture *pRaagaCapture;
+		for (pRaagaCapture = BLST_S_FIRST(&pRaagaStage->captureList);
+			pRaagaCapture != NULL;
+			pRaagaCapture = BLST_S_NEXT(pRaagaCapture, node) )
+		{
+			BLST_S_REMOVE(&pRaagaStage->captureList, pRaagaCapture, BDSP_RaagaCapture, node);
+			pRaagaCapture->stageDestroyed = true;
+		}
+	}
 	BDSP_Raaga_P_FreeStageMemory(pRaagaStage);
 	BDBG_OBJECT_DESTROY(pRaagaStage, BDSP_RaagaStage);
 	BKNI_Free(pRaagaStage);
@@ -10946,6 +10956,7 @@ BERR_Code BDSP_Raaga_P_AudioCaptureAddToStage(
 	}
 
 	pRaagaCapture->pStage = pRaagaStage;
+	pRaagaCapture->stageDestroyed = false;
 
 	BKNI_ReleaseMutex(pRaagaCapture->pDevice->captureMutex);
 
@@ -11016,7 +11027,10 @@ void BDSP_Raaga_P_AudioCaptureRemoveFromStage(
 
 	BKNI_AcquireMutex(pRaagaCapture->pDevice->captureMutex);
 	/*BLST_S_REMOVE(&pRaagaStage->captureList, pRaagaCapture, BDSP_RaagaCapture, node);*/
-	BLST_S_REMOVE(&pRaagaCapture->pStage->captureList, pRaagaCapture, BDSP_RaagaCapture, node);
+	if(pRaagaCapture->stageDestroyed != true)
+	{
+		BLST_S_REMOVE(&pRaagaCapture->pStage->captureList, pRaagaCapture, BDSP_RaagaCapture, node);
+	}
 	BKNI_ReleaseMutex(pRaagaCapture->pDevice->captureMutex);
 
 	pRaagaCapture->enabled = false;
@@ -11029,25 +11043,24 @@ static bool BDSP_Raaga_P_CheckAudioCaptureIsReady(
 {
 
 	BDSP_RaagaCapture *pRaagaCapture = pCapHandle;
-	bool retval = false;
-	int j;
+	bool retval = true;
+	int j = 0;
 	dramaddr_t  ui32WriteAddr, ui32StartWriteAddr;
 
-	j = pRaagaCapture->numBuffers - 1;
-
-
-	ui32StartWriteAddr = BREG_Read32(hReg, pRaagaCapture->capPtrs[j].ui32StartWriteAddr);
-	ui32WriteAddr = BREG_Read32(hReg, pRaagaCapture->capPtrs[j].outputBufferPtr.ui32WriteAddr);
-
-	if(ui32WriteAddr >= ui32StartWriteAddr)
+	for(j= 0; j<pRaagaCapture->numBuffers; j++)
 	{
-		retval = true;
-	}
-	else
-	{
-		retval = false;
-	}
+		ui32StartWriteAddr = BREG_Read32(hReg, pRaagaCapture->capPtrs[j].ui32StartWriteAddr);
+		ui32WriteAddr = BREG_Read32(hReg, pRaagaCapture->capPtrs[j].outputBufferPtr.ui32WriteAddr);
 
+		if(ui32WriteAddr >= ui32StartWriteAddr)
+		{
+			retval &= true;
+		}
+		else
+		{
+			retval &= false;
+		}
+	}
 	return retval;
 }
 
@@ -11111,12 +11124,21 @@ BERR_Code BDSP_Raaga_P_ProcessAudioCapture(
 
 								pRaagaCapture->StartCapture = BDSP_Raaga_P_CheckAudioCaptureIsReady(pRaagaCapture,
 																		pRaagaCapture->pStage->pContext->pDevice->regHandle);
-
+								if (true == pRaagaCapture->StartCapture)
+								{
+									BDBG_MSG(("BDSP_Raaga_P_AudioCaptureProcessing: Initilaise the Shadow Read and Last write to Start Write"));
+									for (j = 0; j < pRaagaCapture->numBuffers; j++)
+									{
+										pRaagaCapture->capPtrs[j].shadowRead = BREG_Read32(
+												pRaagaCapture->pStage->pContext->pDevice->regHandle,
+												pRaagaCapture->capPtrs[j].ui32StartWriteAddr);
+										pRaagaCapture->capPtrs[j].lastWrite = pRaagaCapture->capPtrs[j].shadowRead;
+									}
+								}
 							}
 							else
 							{
 								pRaagaCapture->StartCapture = true;
-
 							}
 							if(true == pRaagaCapture->StartCapture)
 							{
@@ -11138,6 +11160,7 @@ BERR_Code BDSP_Raaga_P_ProcessAudioCapture(
 									/* GetBufferDepth of output buffer */
 									opBuffDepth = BDSP_Raaga_P_GetAudioBufferDepthLinear(&pRaagaCapture->capPtrs[j].outputBufferPtr,
 																			pRaagaCapture->capPtrs[j].shadowRead,
+																			&pRaagaCapture->capPtrs[j].lastWrite,
 																			pRaagaCapture->eBuffType,
 																			pRaagaCapture->pStage->pContext->pDevice->regHandle);
 
@@ -11337,6 +11360,7 @@ BERR_Code BDSP_Raaga_P_AudioCaptureConsumeData(
 uint32_t BDSP_Raaga_P_GetAudioBufferDepthLinear(
 	BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *pBuffer,
 	uint32_t ui32ShadowRead,
+	dramaddr_t *pLastWrite,
 	BDSP_AF_P_BufferType eType,
 	BREG_Handle hReg)
 {
@@ -11386,7 +11410,6 @@ uint32_t BDSP_Raaga_P_GetAudioBufferDepthLinear(
 					depth = (ui32EndAddr - ui32ReadAddr) + 1;
 				}
 			}
-
 			break;
 
 		case BDSP_AF_P_BufferType_eRDB:
@@ -11419,6 +11442,7 @@ uint32_t BDSP_Raaga_P_GetAudioBufferDepthLinear(
 			break;
 	}
 
+	*pLastWrite = ui32WriteAddr;
 	return depth;
 }
 
@@ -11535,9 +11559,11 @@ void BDSP_Raaga_P_GetUpdatedShadowReadAndLastWrite(
 			}
 			break;
 		case BDSP_AF_P_BufferType_eFMM:
+#if 0
 			*pLastWrite = BREG_Read32(hReg, pBuffer->ui32WriteAddr);
 			/* Clear the wrap bit */
 			*pLastWrite &= 0x7FFFFFFF;
+#endif
 			baseAddr = BREG_Read32(hReg, pBuffer->ui32BaseAddr);
 			endAddr = BREG_Read32(hReg, pBuffer->ui32EndAddr);
 

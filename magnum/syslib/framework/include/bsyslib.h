@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -184,7 +184,7 @@ Timer cancel delegate.
 Description:
 The system will cancel the timer with the specified handle. 
 */
-typedef BERR_Code (*BSYSlib_Timer_Cancel_isr)
+typedef void (*BSYSlib_Timer_Cancel_isr)
 (
 	void * pvParm1, /* first user context parameter [in] */ 
 	int iParm2, /* second user context parameter [in] */ 
@@ -209,7 +209,7 @@ typedef struct BSYSlib_TimerCallback
 Summary:
 Retrieves the current system time
 */
-typedef BERR_Code (*BSYSlib_GetTime_isr)
+typedef void (*BSYSlib_GetTime_isr)
 (
 	void * pvParm1, /* first user context parameter to the get time function [in] */ 
 	int iParm2, /* second user context parameter to the get time function [in] */ 

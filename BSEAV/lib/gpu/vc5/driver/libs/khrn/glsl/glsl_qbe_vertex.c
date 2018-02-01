@@ -40,7 +40,7 @@ static Backflow *get_win_coord(Backflow *clip, Backflow *recip_w, int i) {
       win = mul(win, recip_w);
 
    if (i == 2) return add(win, tr_special_uniform(BACKEND_SPECIAL_UNIFORM_VP_OFFSET_Z));
-   else        return tr_uop(BACKFLOW_FTOIN, win);
+   else        return tr_uop(V3D_QPU_OP_FTOIN, win);
 }
 
 static Backflow *get_recip_w(Backflow *clip_w) {
@@ -51,11 +51,11 @@ static Backflow *get_recip_w(Backflow *clip_w) {
       return tr_mov_to_reg(REG_MAGIC_RECIP, clip_w);
 }
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 static void vpmw(SchedBlock *b, uint32_t addr, Backflow *param, Backflow *dep, Backflow *final_vpmwt)
 {
-   Backflow *result = tr_binop_io(BACKFLOW_STVPMV, tr_const(addr), param, dep);
+   Backflow *result = tr_binop_io(V3D_QPU_OP_STVPMV, tr_const(addr), param, dep);
    result->age = param->age;
 
 #if V3D_HAS_GFXH1684_FIX
@@ -134,7 +134,7 @@ static Backflow *vpm_write_setup(uint32_t addr)
 {
    assert(addr <= 0x1fff);
    uint32_t value = 1<<24 | 1<<22 | 1<<15 | 2<<13 | (addr & 0x1fff);
-   return tr_uop(BACKFLOW_VPMSETUP, tr_const(value));
+   return tr_uop(V3D_QPU_OP_VPMSETUP, tr_const(value));
 }
 
 /* Write depends on both the previous write and the read from this location */

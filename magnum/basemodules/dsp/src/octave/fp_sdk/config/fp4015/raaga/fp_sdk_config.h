@@ -1,5 +1,5 @@
 /************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -136,6 +136,38 @@
 #define CORE_MPU_NUM_PROTI_REGIONS 4
 #define CORE_MPU_NUM_PROTD_REGIONS 12
 
+/* Instructions / architectural state availability */
+#if 1
+#  define CORE_HAS_MAC_INSTRUCTIONS 1
+#endif
+#if 1
+#  define CORE_HAS_MAC_STATE 1
+#endif
+#if 1
+#  define CORE_HAS_FIR_INSTRUCTIONS 1
+#endif
+#if 1
+#  define CORE_HAS_FIR_STATE 1
+#endif
+#if 1
+#  define CORE_HAS_REED_SOLOMON_INSTRUCTIONS 1
+#endif
+#if 0
+#  define CORE_HAS_REED_SOLOMON_STATE 1
+#endif
+#if 0
+#  define CORE_HAS_TRELLIS_INSTRUCTIONS 1
+#endif
+#if 0
+#  define CORE_HAS_TRELLIS_STATE 1
+#endif
+#if 0
+#  define CORE_HAS_SIMD_BITFIELD_INSTRUCTIONS 1
+#endif
+#if 0
+#  define CORE_HAS_SIMD_BITFIELD_STATE 1
+#endif
+
 /* Core fetched addresses FNSC bitmask */
 #define PC_FETCHING_COMPRESSED_MASK 0
 
@@ -172,6 +204,11 @@
 #  define CORE_HAS_CONFIGURABLE_RESET_VECTOR 1
 #endif
 
+/* Edge or level IRQE sources */
+#define CHIP_IRQE_LEVEL_SOURCES_MASK     0x0000000000000000
+#define CHIP_IRQE_LEVEL_SOURCES_MASK_TOP 0x00000000
+#define CHIP_IRQE_LEVEL_SOURCES_MASK_BOT 0x00000000
+
 /* Enable memory parity checking support  */
 #if 0
 #  define CHIP_HAS_PARITY 1
@@ -201,13 +238,25 @@
 /* VOM support */
 #if 0
 #  define CHIP_HAS_VOM 1
-#endif
 
-#define VOM_ADDRESS_BIT 0
-#define VOM_PAGE_SHIFT  0
-#define VMEM_SIZE       0
-#define VOM_PAGE_SIZE   (1 << VOM_PAGE_SHIFT)
-#define VMEM_PAGES      (VMEM_SIZE / VOM_PAGE_SIZE)
+#  define VOM_PAGE_SHIFT    0
+#  define VOM_PAGE_SIZE     (1 << VOM_PAGE_SHIFT)
+#  define VOM_PAGE_MASK     (VOM_PAGE_SIZE - 1)
+
+#  if 0
+#    define VOM_ADDRESS_BIT 0
+#  endif
+
+#  if 0
+#    define VOM_FLAVOUR_FP2000  1
+#    define VOM_VMEM_SIZE       0
+#    define VOM_VMEM_PAGES      (VOM_VMEM_SIZE / VOM_PAGE_SIZE)
+#  else
+#    define VOM_FLAVOUR_FP2000  0
+#    define VOM_PMEM_SIZE       0
+#    define VOM_PMEM_PAGES      (VOM_PMEM_SIZE / VOM_PAGE_SIZE)
+#  endif
+#endif
 
 /* The chip's cores have an icache that supports prefetching */
 #if 1
@@ -221,6 +270,20 @@
 
 /* Chip class */
 #define CHIP_CLASS_UNKNOWN 1
+
+
+/************************************************************************
+ * SDK and SDK build tools versions
+ ************************************************************************/
+
+/* SDK version - raw and decoded */
+#define SDK_VERSION         0x4278273024
+#define SDK_VERSION_DECODED "snapshot, built 4278-27-30"
+
+/* Tools used for buildind the SDK */
+#define FP_GCC_VERSION      "2.7.8"
+#define FP_BINUTILS_VERSION "7.0"
+#define RALL_VERSION        "2.4.5"
 
 
 /************************************************************************
@@ -242,8 +305,14 @@
 #  endif
 
 /* Use the same stack for IRQ and main threads? */
-#  if 0
-#    define IRQ_USES_APP_STACK 1
+#  if defined(IRQ_USES_APP_STACK)
+#    if IRQ_USES_APP_STACK == 0
+#      undef IRQ_USES_APP_STACK
+#    endif
+#  else
+#    if 0
+#      define IRQ_USES_APP_STACK 1
+#    endif
 #  endif
 #endif
 
@@ -315,8 +384,8 @@
  ************************************************************************/
 
 /* On targets with an MPU, the first data/code region not used by the SDK */
-#define MEMORY_PROTECTION_FIRST_USER_PROTI 4
-#define MEMORY_PROTECTION_FIRST_USER_PROTD 12
+#define MEMORY_PROTECTION_FIRST_USER_PROTI 1
+#define MEMORY_PROTECTION_FIRST_USER_PROTD 8
 
 /* Do we provide the "classic" protection style, where sensitive SDK and
  * read-only data/bss are placed in a protected region, while the rest
@@ -508,8 +577,56 @@
 #  define TX_PREEMPTION_THRESHOLD 1
 #endif
 
+/************************************************************************
+ * FPOS feature selection
+ ************************************************************************/
+
 /* FPOS - maximum size of the ROM filesystem image. */
 #define TX_ROMFS_MAX_SIZE 67108864
+
+/* FPOS support for immediate user interrupts */
+#if defined(FPOS_UIRQ_SUPPORT)
+#  if FPOS_UIRQ_SUPPORT == 0
+#    undef FPOS_UIRQ_SUPPORT
+#  endif
+#else
+#  if 1
+#    define FPOS_UIRQ_SUPPORT 1
+#  endif
+#endif
+
+/* FPOS support for writing to a target buffer (e.g. target prints, coredumps) */
+#if defined(FPOS_TB_SUPPORT)
+#  if FPOS_TB_SUPPORT == 0
+#    undef FPOS_TB_SUPPORT
+#  endif
+#else
+#  if 1
+#    define FPOS_TB_SUPPORT 1
+#  endif
+#endif
+
+/* FPOS support for core dumps */
+#if defined(FPOS_COREDUMP_SUPPORT)
+#  if FPOS_COREDUMP_SUPPORT == 0
+#    undef FPOS_COREDUMP_SUPPORT
+#  endif
+#else
+#  if 1
+#    define FPOS_COREDUMP_SUPPORT 1
+#  endif
+#endif
+
+/* FPOS support for overlays */
+#if defined(FPOS_OVERLAY_SUPPORT)
+#  if FPOS_OVERLAY_SUPPORT == 0
+#    undef FPOS_OVERLAY_SUPPORT
+#  endif
+#else
+#  if 0
+#    define FPOS_OVERLAY_SUPPORT 1
+#  endif
+#endif
 
 
 /************************************************************************
@@ -517,7 +634,7 @@
  ************************************************************************/
 
 #if 1
-#  define FIR_STATE_CONTEXT 1
+#  define FIR_CONTEXT 1
 #endif
 
 #if 1
@@ -533,7 +650,7 @@
 #endif
 
 #if 0
-#  define TRELLIS_STATE_CONTEXT 1
+#  define TRELLIS_CONTEXT 1
 #endif
 
 

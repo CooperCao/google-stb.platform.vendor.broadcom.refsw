@@ -22,64 +22,47 @@ public:
       const VkDescriptorSetLayoutCreateInfo  *pCreateInfo);
 
    // Implementation specific from this point on
-   size_t BytesRequired() const
-   {
-      return m_bytesRequired;
-   }
-
-   size_t DeviceBytesRequired() const
-   {
-      return m_devBytesRequired;
-   }
+   size_t BytesRequired()       const { return m_bytesRequired;    }
+   size_t DeviceBytesRequired() const { return m_devBytesRequired; }
 
    size_t OffsetFor(uint32_t binding, uint32_t arrayElement) const
    {
-      assert(binding < m_numBindings);
+      assert(binding < m_bindings.size());
       auto &b = m_bindings[binding];
       return b.offset + b.bytesPerElement * arrayElement;
    }
 
    size_t DeviceOffsetFor(uint32_t binding, uint32_t arrayElement) const
    {
-      assert(binding < m_numBindings);
+      assert(binding < m_bindings.size());
       auto &b = m_bindings[binding];
       return b.devOffset + b.devBytesPerElement * arrayElement;
    }
 
-   bool HasDynamicOffset(uint32_t binding, uint32_t arrayElement) const
+   bool HasDynamicOffset(uint32_t binding) const
    {
-      assert(binding < m_numBindings);
-      auto &b = m_bindings[binding];
-      return b.isDynamic;
+      assert(binding < m_bindings.size());
+      return m_bindings[binding].isDynamic;
    }
 
-   uint32_t DynamicOffsetIndexFor(uint32_t binding, uint32_t arrayElement) const
+   uint32_t DynamicOffsetIndexFor(uint32_t binding) const
    {
-      assert(binding < m_numBindings);
-      auto &b = m_bindings[binding];
-      return b.dynamicOffset + arrayElement;
+      assert(binding < m_bindings.size());
+      return m_bindings[binding].dynamicOffset;
    }
 
    VkDescriptorType BindingType(uint32_t binding) const
    {
-      assert(binding < m_numBindings);
+      assert(binding < m_bindings.size());
       return m_bindings[binding].descriptorType;
    }
 
-   uint32_t GetNumDynamicOffsetsNeeded() const
-   {
-      return m_numDynamicOffsetsNeeded;
-   }
+   uint32_t GetNumDynamicOffsetsNeeded() const { return m_numDynamicOffsetsNeeded; }
 
-   Sampler *GetImmutableSampler(uint32_t binding, uint32_t samplerIdx) const
+   bool HasImmutableSamplers(uint32_t binding) const
    {
       assert(binding < m_bindings.size());
-      const PerBindingData &pbd = m_bindings[binding];
-
-      if (samplerIdx < pbd.immutableSamplers.size())
-         return pbd.immutableSamplers[samplerIdx];
-
-      return nullptr;
+      return m_bindings[binding].immutableSamplers.size() != 0;
    }
 
    bool WriteImmutableSamplerRecords(uint8_t *sysPtr, size_t devOffset, gmem_handle_t devHandle) const;
@@ -98,7 +81,6 @@ private:
    };
 
    bvk::vector<PerBindingData>      m_bindings; // Keyed off binding id
-   uint32_t                         m_numBindings = 0;
    size_t                           m_bytesRequired = 0;
    size_t                           m_devBytesRequired = 0;
    uint32_t                         m_numDynamicOffsetsNeeded = 0;

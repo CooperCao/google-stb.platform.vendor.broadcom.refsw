@@ -1,7 +1,7 @@
 /*
  * daemon for configuring NVRAM
  *
- * Copyright (C) 2014, Broadcom Corporation
+ * Copyright (C) 2017, Broadcom Corporation
  * All Rights Reserved.
  *
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom Corporation.
  *
- * $Id: nvramd.c 391727 2013-03-19 05:53:54Z $
+ * $Id$
  */
 
 #include <stdio.h>
@@ -27,17 +27,27 @@
 #include <arpa/inet.h>
 #include <sys/mman.h>
 #include <semaphore.h>
+#include <sys/ioctl.h>
+#include <mtd/mtd-user.h>
 
 #include <bcmnvram.h>
 #include <bcmutils.h>
 #include <bcmendian.h>
 #include <bcmtimer.h>
 
-#define NVRAM_FILE		"/tmp/NVRAM.db"
+#define NVRAM_FILE          "/tmp/NVRAM.db"
+#define NVRAM_FLASH         "flash"
+#define SYSFS_DEV           "/dev"
+#define MTD_NAME_PATT       "mtd"
+#define MMCBLK_NAME_PATT    "mmcblk0"
+#define MMCBLK_PATT_SIZE    "Partition size"
+#define MMCBLK_PATT_NAME    "Partition name"
+#define MTD_NAME            "name"
+#define NVRAM_PARTITION     "wlan"
 
 /*Macro Definitions*/
-#define _MALLOC_(x)		calloc(x, sizeof(char))
-#define _MFREE_(buf, size)	free(buf)
+#define _MALLOC_(x)	calloc(x, sizeof(char))
+#define _MFREE_(buf, size) free(buf)
 
 /*the following definition is from wldef.h*/
 #define WL_MID_SIZE_MAX  32
@@ -146,6 +156,8 @@ typedef struct nvramd_info {
 	fd_set rfds;
 	cons_dev_t cons;
 	char *buf;
+	int flash_repo;
+	char *ofile;
 } nvramd_info_t;
 
 nvramd_info_t nvramd_info = {
@@ -155,6 +167,8 @@ nvramd_info_t nvramd_info = {
 	},
 	listen_fd: -1,
 };
+
+#define MMCBLK_SECTOR_SIZE	512
 
 /* internal structure */
 static struct nvram_header nv_header = { 0x48534C46, 0x14, 0x52565344, 0, 0xffffffff };
@@ -229,6 +243,8 @@ static int debug_nvram_level = DBG_NVRAM_SET| DBG_NVRAM_GET| DBG_NVRAM_INFO | DB
 #define DBG_ERROR(fmt, arg...)
 #endif
 
+static int nvramd_set(char *name, char *value);
+
 static void usage(void)
 {
 	printf(" \nnvramd for accesing the nvram data\n"
@@ -239,9 +255,10 @@ static void usage(void)
 		"	-o ofile			-the target nvram repository\n"
 		"	-c commitfile			-the committed text file\n"
 		"	-b backupfile			-the backup text file before committing\n"
+		"	-m				-nvram repository use flash memory\n"
 		"	-h				-usage\n"
 		"\n"
-		"usage: nvramd [-f] [-v] [-h] [-i ifile] [-o ofile]\n");
+		"usage: nvramd [-f] [-v] [-h] [-i ifile] [-o ofile] [-b backupfile]\n");
 	exit(0);
 }
 
@@ -252,17 +269,18 @@ static void * _nvram_file_mmap(char *fname, int size)
 	void *va = NULL;
 
 	if((fd = open(fname, O_CREAT|O_SYNC|O_RDWR, 0644)) < 0) {
-		DBG_ERROR(" nvram: file %s open error\n", NVRAM_FILE);
+		DBG_ERROR(" nvram: file %s open error\n", fname);
 		return 0;
 	}
-	ftruncate(fd, size);
+	if (ftruncate(fd, size) == -1)
+		perror("ftruncate() error");
 
 	va = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, fd, 0);
 	if(va == ((caddr_t) - 1)) {
 		DBG_ERROR(" nvram: mmap errorr\n");
 		return 0;
 	}
-	DBG_INFO("va addr=0x%x %d bytes\n",(uint32)va, ((struct nvram_header*)va)->len);
+	DBG_INFO("va addr=0x%p %d bytes\n", va, ((struct nvram_header*)va)->len);
 	close(fd);
 
 	return va;
@@ -273,16 +291,21 @@ static int _nvram_file_update(void *va, int size)
 {
 	int fd;
 
-	if((fd = open(NVRAM_FILE, O_SYNC|O_RDWR, 0644)) < 0) {
-		DBG_ERROR("file %s open error\n", NVRAM_FILE);
+	if((fd = open(nvramd_info.ofile, O_SYNC|O_RDWR, 0644)) < 0) {
+		DBG_ERROR("file %s open error\n", nvramd_info.ofile);
 		return -1;
 	}
 	/*flush*/
 	DBG_INFO("close file with %d bytes\n",((struct nvram_header*)va)->len);
-	ftruncate(fd,((struct nvram_header*)va)->len);
+	if (ftruncate(fd,((struct nvram_header*)va)->len) == -1)
+		perror("ftruncate() error");
 	msync((caddr_t)va, ((struct nvram_header*)va)->len, MS_SYNC);
 	munmap((caddr_t)va, size);
 	close(fd);
+	if (nvramd_info.ofile) {
+		_MFREE_(nvramd_info.ofile, strlen(nvramd_info.ofile));
+		nvramd_info.ofile = NULL;
+	}
 	return 0;
 }
 
@@ -412,33 +435,211 @@ static void _nvram_free(struct nvram_tuple *t)
 	}
 }
 
+/* returns the CRC8 of the nvram */
+uint8 nvram_calc_crc(struct nvram_header *nvh)
+{
+	struct nvram_header tmp;
+	uint8 crc;
+
+	/* Little-endian CRC8 over ver (bit [15:8]) of crc_ver_init */
+	tmp.crc_ver_init = htol32((nvh->crc_ver_init & NVRAM_CRC_VER_MASK));
+
+	crc = hndcrc8((uint8 *) &tmp + NVRAM_CRC_START_POSITION,
+			1, CRC8_INIT_VALUE);
+
+	/* Continue CRC8 over data bytes */
+	crc = hndcrc8((uint8 *) &nvh[1], nvh->len - sizeof(struct nvram_header), crc);
+	return crc;
+}
+
+static void swap(char *ptr1, char *ptr2)
+{
+    char temp = *ptr1;
+    *ptr1 = *ptr2;
+    *ptr2 = temp;
+}
+
+static int add_default_setting()
+{
+	FILE *fp;
+	char *p;
+	char *delim = " ";
+	char buf[32];
+	int ret = -1;
+	int val = 0;
+	int i, hn, ln, len, token;
+
+	fp = popen("wl sromrev", "r");
+	if (fp) {
+		memset(buf, 0, sizeof(buf));
+		if (fgets(buf, sizeof(buf), fp) != NULL) {
+			if ((p = strtok(buf, delim)) != NULL) {
+				nvramd_set("sromrev", p);
+				ret = 0;
+			}
+		}
+		pclose(fp);
+	}
+	if (ret < 0) {
+		fp = popen("od -x /proc/device-tree/bolt/product-id", "r");
+		if (fp) {
+			memset(buf, 0, sizeof(buf));
+			if (fgets(buf, sizeof(buf), fp) != NULL) {
+				for (token = 0, p = strtok(buf, delim); p != NULL; p = strtok(NULL, delim), token++) {
+					if (token == 1) {
+						swap(p, p+2);
+						swap(p+1, p+3);
+						len = 4;
+						for (i = 0; i < len; i+=2) {
+							hn = p[i] > '9' ? (p[i]|32) - 'a' + 10 : p[i] - '0';
+							ln = p[i+1] > '9' ? (p[i+1]|32) - 'a' + 10 : p[i+1] - '0';
+							val = (val << 8) + ((hn << 4) | ln);
+						}
+
+						switch(val)
+						{
+						case 0x7271:
+							nvramd_set("sromrev", "13");
+							ret = 0;
+							break;
+						}
+					}
+					/* if chip id not found, check if chip id is 5 hex digits format */
+					if (ret < 0 && token == 2) {
+						i = 2;
+						hn = p[i] > '9' ? (p[i]|32) - 'a' + 10 : p[i] - '0';
+						ln = p[i+1] > '9' ? (p[i+1]|32) - 'a' + 10 : p[i+1] - '0';
+						val = (val << 8) + ((hn << 4) | ln);
+						switch(val)
+						{
+						case 0x72712:
+							nvramd_set("sromrev", "13");
+							ret = 0;
+							break;
+						}
+					}
+				}
+			}
+		}
+		pclose(fp);
+	}
+	return ret;
+}
+
+static int mmcblk_open(char *name)
+{
+	int fd = -1;
+	FILE *proc_fp;
+	FILE *pipe_fp;
+	char buf[256];
+	int i;
+	char *delim1 = " ";
+	char *delim2 = "'";
+	char *p;
+	int token;
+	int sector = 0;
+	int ret;
+
+	if ((proc_fp = fopen("/proc/partitions", "r"))) {
+		while (fgets(buf, sizeof(buf), proc_fp)) {
+			p = strstr(buf, MMCBLK_NAME_PATT);
+			if (p == NULL)
+				continue;
+			ret = sscanf(p, MMCBLK_NAME_PATT"p""%d", &i);
+			if (ret == 1) {
+				sprintf(buf, "sgdisk -i=%d %s/%s", i, SYSFS_DEV, MMCBLK_NAME_PATT);
+				pipe_fp = popen(buf, "r");
+				if (pipe_fp) {
+					while (fgets(buf, sizeof(buf), pipe_fp) != NULL) {
+						if (memcmp(buf, MMCBLK_PATT_SIZE, strlen(MMCBLK_PATT_SIZE)) == 0) {
+							for (token = 0, p = strtok(buf, delim1); p != NULL; p = strtok(NULL, delim1), token++) {
+								if (token == 1) {
+									p = strtok(NULL, delim1);
+									sector = atoi(p);
+									break;
+								}
+							}
+						}
+						if (memcmp(buf, MMCBLK_PATT_NAME, strlen(MMCBLK_PATT_NAME)) == 0) {
+							p = strtok(buf, delim2);
+							if (p) {
+								p = strtok(NULL, delim2);
+								if (strstr(p, name)) {
+									nvramd_info.nvinfo.nvram_max_size = MMCBLK_SECTOR_SIZE * sector;
+									printf("found %s partition on %s/%sp%d\n", name, SYSFS_DEV, MMCBLK_NAME_PATT, i);
+									sprintf(buf, "%s/"MMCBLK_NAME_PATT"p""%d", SYSFS_DEV, i);
+									fd = open(buf, O_RDWR);
+									break;
+								}
+							}
+						}
+					}
+					pclose(pipe_fp);
+					if (fd > 0)
+						break;
+				}
+			}
+		}
+		fclose(proc_fp);
+	}
+	return fd;
+}
+
+static int mtd_open(char *name)
+{
+	int fd = -1;
+	FILE *fp;
+	char dev[256];
+	int i;
+
+	if ((fp = fopen("/proc/mtd", "r"))) {
+		while (fgets(dev, sizeof(dev), fp)) {
+			if (sscanf(dev, "mtd%d:", &i) && strstr(dev, name)) {
+				sprintf(dev, "%s/%s%d", SYSFS_DEV, MTD_NAME_PATT, i);
+				printf("found %s partition on %s\n", name, dev);
+				fd = open(dev, O_RDWR);
+				break;
+			}
+		}
+		fclose(fp);
+	}
+	return fd;
+}
+
 static int _nvram_read(void *buf)
 {
-        uint32 *src, *dst;
-        uint i;
+	uint32 *src, *dst;
+	uint i;
 	int ret=0;
 
-        if (!nv_header.magic)
-                return -19; /* -ENODEV */
+	if (!nv_header.magic)
+		return -19; /* -ENODEV */
 
-        src = (uint32 *) &nv_header;
-        dst = (uint32 *) buf;
+	src = (uint32 *) &nv_header;
+	dst = (uint32 *) buf;
 
 	if (((struct nvram_header *)dst)->magic == NVRAM_MAGIC &&
 		((struct nvram_header *)dst)->len != sizeof(struct nvram_header)) {
 		/* nvram exists */
 		DBG_INFO("nvram exist, len=%d\n", ((struct nvram_header *)dst)->len);
 		nv_header.len = ((struct nvram_header *)dst)->len;
+		if (nvram_calc_crc(buf) != (uint8)((struct nvram_header *)dst)->crc_ver_init) {
+			DBG_ERROR("nvram crc error\n");
+			ret = -1;
+		}
 	} else {
 		/* nvram is empty */
 		DBG_INFO("nvram empty\n");
 		nv_header.len = sizeof(struct nvram_header);
-	        for (i = 0; i < sizeof(struct nvram_header); i += 4)
+		for (i = 0; i < sizeof(struct nvram_header); i += 4)
 			*dst++ = *src++;
+		if (add_default_setting() < 0) {
+			DBG_ERROR("cannot add default setting\n");
+		}
 		ret = 0;
 	}
 
-        return ret;
+	return ret;
 }
 
 /* Get the value of an NVRAM variable from harsh table */
@@ -493,6 +694,24 @@ static int nvramd_commit()
 	struct nvram_header *header = nvramd_info.nvinfo.nvh;
 	FILE *ptFile = NULL;
 	char tempfile[256];
+	int nvram_fd = -1;
+	mtd_info_t mtd;
+	struct erase_info_user64 ei64;
+	long long blockstart = -1;
+	long long offs;
+	long long imglen = 0;
+	int badblock = 0;
+	loff_t seek;
+	int ebsize_aligned;
+	int eb;
+	unsigned char *filebuf = NULL;
+	unsigned char *pagebuf = NULL;
+	unsigned char *writebuf = NULL;
+	long long offset = 0;
+	int len;
+	int ret = -1;
+	int writesize = 0;
+	int mtd_dev = 0;
 
 	if (commitfile[0]) {
 		snprintf(tempfile, sizeof(tempfile) - 1, "%s.tmp", commitfile);
@@ -535,6 +754,110 @@ static int nvramd_commit()
 	header->len = ROUNDUP(ptr - (char *) header, 4);
 	sem_post(&mutex);
 
+	header->crc_ver_init = (NVRAM_VERSION << 8);
+	header->crc_ver_init |= nvram_calc_crc(header);
+
+	if (nvramd_info.flash_repo) {
+		if ((nvram_fd = mtd_open(NVRAM_PARTITION)) < 0) {
+			if ((nvram_fd = mmcblk_open(NVRAM_PARTITION)) < 0) {
+				printf("%s nvram partition not found\n", NVRAM_PARTITION);
+				goto err;
+			}
+			writesize = MMCBLK_SECTOR_SIZE;
+		} else {
+			if (ioctl(nvram_fd, MEMGETINFO, &mtd) < 0) {
+				printf("MEMGETINFO ioctl request failed\n");
+				goto err;
+			} else {
+				writesize = mtd.writesize;
+				ebsize_aligned = mtd.erasesize;
+				mtd_dev = 1;
+			}
+		}
+		imglen = header->len;
+		filebuf = (unsigned char *)header;
+		if ((pagebuf = _MALLOC_(writesize)) == NULL) {
+			DBG_ERROR("Failed malloc: %d/%s\n", errno, strerror(errno));
+			goto err;
+		}
+
+		while (imglen > 0 && offset < nvramd_info.nvinfo.nvram_max_size) {
+			if (mtd_dev) {
+				while (blockstart != (offset & (~ebsize_aligned + 1))) {
+					blockstart = offset & (~ebsize_aligned + 1);
+					offs = blockstart;
+					if (mtd.type == MTD_NANDFLASH || mtd.type == MTD_MLCNANDFLASH) {
+						badblock = 0;
+						do {
+							eb = offs / ebsize_aligned;
+							seek = (loff_t)eb * mtd.erasesize;
+							ret = ioctl(nvram_fd, MEMGETBADBLOCK, &seek);
+							if (ret < 0) {
+								DBG_ERROR("MTD get bad block failed\n");
+								goto err;
+							} else if (ret == 1) {
+								badblock = 1;
+								DBG_INFO("Bad block at %llx, "
+										"from %llx will be skipped\n",
+										offs, blockstart);
+							}
+
+							if (badblock) {
+								offset = blockstart + ebsize_aligned;
+							}
+
+							offs +=  ebsize_aligned;
+						} while (offs < blockstart + ebsize_aligned);
+					}
+
+					if (badblock) {
+						goto err;
+					} else {
+						ioctl(nvram_fd, MEMUNLOCK, ei64);
+						ei64.start = (__u64)blockstart;
+						ei64.length = (__u64)mtd.erasesize;
+						ret = ioctl(nvram_fd, MEMERASE64, &ei64);
+						if (ret < 0) {
+							DBG_INFO("MTD Erase failure\n");
+							goto err;
+						}
+					}
+				}
+			}
+
+			if (imglen >= writesize) {
+				imglen -= writesize;
+				writebuf = filebuf;
+			} else {
+				memcpy(pagebuf, filebuf, imglen);
+				memset(pagebuf + imglen, 0, writesize - imglen);
+				writebuf = pagebuf;
+				imglen = 0;
+			}
+			/* Write out data */
+			if (mtd_dev) {
+				eb = offset / mtd.erasesize;
+				offs = offset % mtd.erasesize;
+				/* Seek to the beginning of the eraseblock */
+				seek = (off_t)eb * mtd.erasesize + offs;
+			} else {
+				seek = offset;
+			}
+			len = writesize;
+			if (lseek(nvram_fd, seek, SEEK_SET) != seek) {
+				DBG_ERROR("cannot seek to offset 0x%jx\n", seek);
+				goto err;
+			}
+			ret = write(nvram_fd, writebuf, len);
+			if (ret != len) {
+				DBG_ERROR("cannot write %d bytes to mtd\n", len);
+				goto err;
+			}
+			offset += writesize;
+			filebuf += writesize;
+		}
+	}
+
 	if (ptFile) {
 		fclose(ptFile);
 
@@ -548,8 +871,19 @@ static int nvramd_commit()
 			DBG_COMMIT("Rename %s to %s failed %d/%s!\n", tempfile, commitfile, errno, strerror(errno));
 	}
 
+	ret = 0;
+
 	DBG_COMMIT("header->len=%d\n", header->len);
-	return 0;
+err:
+	if (pagebuf) {
+		_MFREE_(pagebuf, writesize);
+		pagebuf = NULL;
+	}
+
+	if (nvram_fd > 0) {
+		close(nvram_fd);
+	}
+	return ret;
 }
 
 /* nvram variable set */
@@ -657,12 +991,47 @@ nvramd_load_file(char *ifile, char *ofile)
 {
 	nvram_info_t *nv_info = &nvramd_info.nvinfo;
 	struct nvram_header **envh = &nv_info->nvh;
-	int ret;
+	int ret = -1;
+	int nvram_fd = -1;
+	char *nvram_buf = NULL;
+	long start_addr = 0;
+	long ofs, end_addr = 0;
+	long blockstart = 1;
+	int bs, badblock = 0;
+	loff_t seek;
+	int firstblock = 1;
+	int eb;
+	int offs;
+	int eb_size;
+	int rd;
+	int buf_ofs = 0;
+	struct nvram_header *header;
+	mtd_info_t mtd;
+	uint32 imglen = 0;
+	int mtd_dev = 0;
 
-	if (!(*envh = (struct nvram_header *) _nvram_file_mmap(ofile,
-		nvramd_info.nvinfo.nvram_max_size))) {
-		DBG_ERROR("find_envram: out of memory\n");
+	if (!(nvramd_info.ofile = (char *)_MALLOC_(strlen(ofile)))) {
+		DBG_ERROR("Failed malloc: %d/%s\n", errno, strerror(errno));
 		return -12; /* -ENOMEM */
+	} else {
+		strcpy(nvramd_info.ofile, ofile);
+	}
+
+	if (nvramd_info.flash_repo) {
+		if ((nvram_fd = mtd_open(NVRAM_PARTITION)) < 0) {
+			if ((nvram_fd = mmcblk_open(NVRAM_PARTITION)) < 0) {
+				printf("%s nvram partition not found\n", NVRAM_PARTITION);
+				goto err;
+			}
+		} else {
+			if (ioctl(nvram_fd, MEMGETINFO, &mtd) < 0) {
+				printf("MEMGETINFO ioctl request failed\n");
+				goto err;
+			} else {
+				nvramd_info.nvinfo.nvram_max_size = mtd.size;
+				mtd_dev = 1;
+			}
+		}
 	}
 
 	if (*ifile) {
@@ -689,12 +1058,112 @@ nvramd_load_file(char *ifile, char *ofile)
 		}
 	}
 
+	if (!(*envh = (struct nvram_header *) _nvram_file_mmap(ofile,
+		nvramd_info.nvinfo.nvram_max_size))) {
+		DBG_ERROR("find_envram: out of memory\n");
+		return -12; /* -ENOMEM */
+	}
+
+	if (nvramd_info.flash_repo) {
+		nvram_buf = (char *)*envh;
+		if (mtd_dev) {
+			start_addr = 0;
+			end_addr = mtd.size;
+			bs = mtd.writesize;
+			eb_size = mtd.erasesize;
+			for (ofs = start_addr; ofs < end_addr; ofs += bs) {
+				eb = ofs / eb_size;
+				offs = ofs % eb_size;
+				if (mtd.type == MTD_NANDFLASH || mtd.type == MTD_MLCNANDFLASH) {
+					if (blockstart != (ofs & (~eb_size + 1)) || firstblock) {
+						blockstart = ofs & (~eb_size + 1);
+						firstblock = 0;
+						seek = (loff_t)eb * eb_size;
+						if ((badblock = ioctl(nvram_fd, MEMGETBADBLOCK, &seek)) < 0) {
+							DBG_ERROR("ioctl MEMGETBADBLOCK error\n");
+							goto err;
+						}
+					}
+				}
+				if (badblock) {
+					/* skip bad block, increase end_addr */
+					end_addr += eb_size;
+					ofs += eb_size - bs;
+					if (end_addr > mtd.size)
+						end_addr = mtd.size;
+					DBG_INFO("skip bad block %d\n", eb);
+					continue;
+				} else {
+					/* Seek to the beginning of the eraseblock */
+					seek = (off_t)eb * eb_size + offs;
+					if (lseek(nvram_fd, seek, SEEK_SET) != seek) {
+						DBG_ERROR("cannot seek to offset 0x%jx\n", seek);
+						goto err;
+					}
+					rd = 0;
+					if (seek == 0) {
+						ret = read(nvram_fd, nvram_buf+buf_ofs, bs);
+						if (ret > 0) {
+							header = (struct nvram_header *)nvram_buf;
+							if (header->magic == NVRAM_MAGIC) {
+								rd += ret;
+								buf_ofs += ret;
+							} else {
+								break;
+							}
+						}
+					}
+					while (rd < bs) {
+						ret = read(nvram_fd, nvram_buf+buf_ofs, bs);
+						if (ret < 0) {
+							DBG_ERROR("cannot read %d bytes (eraseblock %d, offset %d)\n",
+									  bs, eb, offs);
+							goto err;
+						}
+						rd += ret;
+						buf_ofs += ret;
+					}
+				}
+			}
+		} else {
+			seek = 0;
+			bs = MMCBLK_SECTOR_SIZE;
+			if (lseek(nvram_fd, seek, SEEK_SET) == seek) {
+				ret = read(nvram_fd, nvram_buf+buf_ofs, bs);
+				if (ret > 0) {
+					header = (struct nvram_header *)nvram_buf;
+					if (header->magic == NVRAM_MAGIC) {
+						buf_ofs = ret;
+						imglen = header->len;
+						rd = ret;
+						while (rd < imglen) {
+							ret = read(nvram_fd, nvram_buf+buf_ofs, bs);
+							if (ret < 0) {
+								DBG_ERROR("cannot read %d bytes (offset %d)\n",
+											bs, buf_ofs);
+								goto err;
+							}
+							rd += ret;
+							buf_ofs += ret;
+						}
+					}
+				}
+			}
+		}
+		/* clear data area if wlan partition contains garbage */
+		if (((struct nvram_header *)*envh)->magic != NVRAM_MAGIC)
+			bzero(nvram_buf, nvramd_info.nvinfo.nvram_max_size);
+	}
+
 	if ((ret = _nvram_read(*envh)) == 0 &&
 			((struct nvram_header *)*envh)->magic == NVRAM_MAGIC) {
 		/* empty */
 		nvram_rehash(*envh);
 	}
-
+err:
+	if (nvram_fd > 0) {
+		close(nvram_fd);
+	}
 	return ret;
 }
 
@@ -728,16 +1197,25 @@ static int nvramd_started(int state)
 {
 	int shm_fd;
 	void *attach;
-	int value;
+	int value = 0;
 
 	mkdir("/dev/shm", 0777);
 	if ((shm_fd = shm_open("nvram", O_CREAT|O_RDWR, 0644)) < 0) {
 		DBG_ERROR("nvramd: shm file open error %d/%s\n", errno, strerror(errno));
 		return -1;
 	}
-	ftruncate(shm_fd, sizeof(int));
+	if (ftruncate(shm_fd, sizeof(int)) == -1)
+		perror("ftruncate() error");
 	attach = mmap(NULL, sizeof(int), PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, shm_fd, (off_t)0);
-	*((int *)attach) = state;
+	if (state != -1) {
+		*((int *)attach) = state;
+		value = state;
+	} else {
+		if (*((int *)attach) == 1) {
+			printf("Another instance of this program already running\n");
+			value = -1;
+		}
+	}
 	if (munmap(attach, sizeof(int)))
 		DBG_ERROR("munmap()\n");
 	close(shm_fd);
@@ -790,8 +1268,10 @@ daemonize(unsigned int console_log)
 			close(i);  /* close all descriptors */
 		nvramd_info.cons.devname = "/dev/null";
 		nvramd_info.cons.cns_fd = open(nvramd_info.cons.devname, O_RDWR);
-		dup(nvramd_info.cons.cns_fd);
-		dup(nvramd_info.cons.cns_fd); /* handle standart I/O */
+		if (dup(nvramd_info.cons.cns_fd) == -1)
+			perror("dup() error");
+		if (dup(nvramd_info.cons.cns_fd) == -1)
+			perror("dup() error");
 	}
 
 	umask(027); /* set newly created file permissions */
@@ -916,6 +1396,7 @@ nvramd_proc_client_req()
 						close(i);
 						/* remove from nvramd_info.rfds set */
 						FD_CLR(i, &nvramd_info.rfds);
+
 					} else {
 						if (offset) {
 							rcount += offset;
@@ -946,7 +1427,7 @@ nvramd_proc_client_req()
 									}
 								} else if (!strcmp(&buf[offset], "get")) {
 									if ((resp_msg = nvramd_get(data))) {
-										resp_size = sprintf(buf, resp_msg);
+										resp_size = sprintf(buf, "%s", resp_msg);
 									} else /* not found */
 										resp_size = -1;
 								} else if (!strcmp(&buf[offset], "show")) {
@@ -1017,9 +1498,14 @@ int main(int argc, char **argv)
 			strncpy(commitfile, *++argv, sizeof(commitfile) - 1);
 		} else if (!strcmp(*argv, "-b")) {
 			strncpy(backupfile, *++argv, sizeof(backupfile) - 1);
+		} else if (!strcmp(*argv, "-m")) {
+			nvramd_info.flash_repo = 1;
 		}
 	}
 
+	if (nvramd_started(-1) < 0) {
+		exit(0);
+	}
 	/* create, initialize semaphore */
 	if (sem_init(&mutex, 1, 1) < 0)
 	{
