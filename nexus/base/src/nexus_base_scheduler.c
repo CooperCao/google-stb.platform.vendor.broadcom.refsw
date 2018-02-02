@@ -43,6 +43,7 @@
 #include "blst_squeue.h"
 #include "blst_list.h"
 #include "bkni.h"
+#include "b_objdb.h"
 
 #define BDBG_MSG_TRACE(x) /* BDBG_MSG(x) */
 BDBG_MODULE(nexus_base_scheduler);
@@ -94,6 +95,7 @@ struct NEXUS_CallbackCommon {
     NEXUS_P_CallbackType type;
     NEXUS_P_Scheduler *scheduler;
     bool armed; /* true if callback fired */
+    bool in_armed_list; /* true if IsrCallback copied to armed_list, false if not in list or NEXUS_IsrCallback_Reset was called */
     bool queued; /* true if callback queued, -> callaback in the scheduler list */
     bool stopped; /* true if callback stopped */
     bool deleted; /* true is callback deleted */
@@ -153,6 +155,7 @@ struct NEXUS_P_Scheduler {
     bool exit;
     bool timerDirty;
     bool finished;
+    bool wakeup;
     uint8_t priority; /* used only for debugging */
     BLST_S_HEAD(head_event, NEXUS_EventCallback) events; /* list of events */
     BLST_S_HEAD(head_timer, NEXUS_Timer) timers; /* sorted list of timers */
@@ -440,6 +443,7 @@ NEXUS_P_CallbackCommon_Init(struct NEXUS_CallbackCommon *callback, NEXUS_ModuleH
     NEXUS_CallbackDesc_Init(&callback->desc);
     callback->type = type;
     callback->armed = false;
+    callback->in_armed_list = false;
     callback->queued = false;
     callback->stopped = false;
     callback->deleted = false;
@@ -484,9 +488,6 @@ NEXUS_Module_IsrCallback_Create(NEXUS_ModuleHandle module,  void *interfaceHandl
     BDBG_OBJECT_ASSERT(module, NEXUS_Module);
     BDBG_ASSERT(NEXUS_Module_Assert(module));
     
-    BSTD_UNUSED(pSettings);
-    BSTD_UNUSED(interfaceHandle);
-
     callback = BKNI_Malloc(sizeof(*callback));
     if(!callback) {
         BERR_Code rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
@@ -810,6 +811,7 @@ NEXUS_P_Scheduler_IsrCallbacks(NEXUS_P_Scheduler *scheduler)
         } else if(callback->common.armed) {
             /* add callback into the armed list */
             callback->common.armed = false;
+            callback->common.in_armed_list = true;
             scheduler->isr_callbacks.armed--;
             BLST_S_INSERT_HEAD(&armed_list, callback, list_temp);
         }
@@ -840,7 +842,7 @@ NEXUS_P_Scheduler_IsrCallbacks(NEXUS_P_Scheduler *scheduler)
     for(callback=BLST_S_FIRST(&armed_list);callback;callback=BLST_S_NEXT(callback, list_temp)) {
         NEXUS_Callback callbackFunc = callback->common.desc.callback;
         BDBG_OBJECT_ASSERT(callback, NEXUS_IsrCallback);
-        if(callbackFunc!=NULL) {  /* Cache data from the callback descriptor prior to releasing lock */
+        if(callbackFunc!=NULL && callback->common.in_armed_list) {  /* Cache data from the callback descriptor prior to releasing lock */
             if(!callback->common.stopped) {
                 NEXUS_CallbackDesc desc;
                 NEXUS_P_CALLBACK_STATS_STATE();  
@@ -905,7 +907,7 @@ NEXUS_P_SchedulerGetRequest(NEXUS_P_Scheduler *scheduler, NEXUS_P_SchedulerReque
     NEXUS_LockModule();
     request->timeout = 0;
     request->idle = false;
-    if(scheduler->exit) {
+    if(scheduler->exit || scheduler->wakeup) {
         goto done;
     }
     if(scheduler->status.state == NEXUS_Scheduler_State_eStarting) {
@@ -1145,7 +1147,13 @@ NEXUS_P_Scheduler_Step(NEXUS_P_Scheduler *scheduler, unsigned timeout, NEXUS_P_B
 done:
     status->timeout = 0;
     status->idle = false;
-    status->exit = true;
+    if (scheduler->wakeup) {
+        scheduler->wakeup = false;
+        status->exit = false;
+    }
+    else {
+        status->exit = true;
+    }
     return NEXUS_SUCCESS;
 }
 
@@ -1235,6 +1243,7 @@ NEXUS_P_Scheduler_Init(NEXUS_ModulePriority priority, const char *name, const NE
     scheduler->exit = false;
     scheduler->timerDirty = true;
     scheduler->finished = false;
+    scheduler->wakeup = false;
     scheduler->thread = NULL;
     BLST_S_INIT(&scheduler->events);
     BLST_S_INIT(&scheduler->timers);
@@ -1449,6 +1458,19 @@ NEXUS_P_Base_ExternalScheduler_Step(NEXUS_ModulePriority priority, unsigned time
 
     scheduler = NEXUS_P_Base_State.schedulers[priority];
     return NEXUS_P_Scheduler_Step(scheduler, timeout, status, complete, context);
+}
+
+void
+NEXUS_P_Base_ExternalScheduler_Wakeup(void)
+{
+    unsigned i;
+    for(i=0;i<sizeof(NEXUS_P_Base_State.schedulers)/sizeof(NEXUS_P_Base_State.schedulers[0]);i++) {
+        NEXUS_P_Scheduler *scheduler = NEXUS_P_Base_State.schedulers[i];
+        if (scheduler) {
+            scheduler->wakeup = true;
+            BKNI_SetEvent(scheduler->control);
+        }
+    }
 }
 #endif
 
@@ -1695,4 +1717,49 @@ NEXUS_Error NEXUS_Scheduler_SetState(NEXUS_ModulePriority priority, NEXUS_Schedu
     }
     NEXUS_UnlockModule();
     return rc;
+}
+
+void NEXUS_Module_CancelCallbacks(NEXUS_ModuleHandle module, void *interfaceHandle)
+{
+    struct NEXUS_CallbackCommon *callback;
+
+    /* must verify module is locked to avoid race */
+    BDBG_OBJECT_ASSERT(module, NEXUS_Module);
+    BDBG_ASSERT(NEXUS_Module_Assert(module));
+
+    NEXUS_LockModule();
+
+    /* TODO: improve lookup time by using BLST_AA with interfaceHandle key. also of benefit to Stop/StartCallbacks. */
+    for (callback=BLST_D_FIRST(&NEXUS_P_Base_Scheduler_State.callbacks); callback; callback=BLST_D_NEXT(callback, global_list)) {
+        NEXUS_P_Scheduler *scheduler;
+        if (callback->object != interfaceHandle) continue;
+
+        scheduler = callback->scheduler;
+        /* NOTE: scheduler->callback_lock cannot be acquired here, but this callback could be active. The only solution is for the
+        caller to have already called NEXUS_StopCallbacks, which synchronizes with callback threads. */
+        if(callback->type == NEXUS_P_CallbackType_eTask) {
+            BDBG_OBJECT_ASSERT((NEXUS_TaskCallbackHandle)callback, NEXUS_TaskCallback);
+            if (callback->armed) {
+                callback->armed = false;
+            }
+        }
+        else if(callback->type == NEXUS_P_CallbackType_eIsr) {
+            BDBG_OBJECT_ASSERT((NEXUS_IsrCallbackHandle)callback, NEXUS_IsrCallback);
+            BKNI_EnterCriticalSection();
+            if (callback->armed) {
+                callback->armed = false;
+                BDBG_ASSERT(scheduler->isr_callbacks.armed);
+                scheduler->isr_callbacks.armed--;
+            }
+            ((NEXUS_IsrCallbackHandle)callback)->armed_save = false; /* if it was stopped, don't re-arm when started */
+            callback->in_armed_list = false; /* ignore if copied to local list */
+            BKNI_LeaveCriticalSection();
+        }
+    }
+    NEXUS_UnlockModule();
+
+#if !defined(NEXUS_MODE_proxy) && !defined(NEXUS_MODE_client)
+    /* cancel callbacks already delivered to platform */
+    b_objdb_cancel_callbacks(module, interfaceHandle);
+#endif
 }
