@@ -403,28 +403,50 @@ static int nexus_surfaceclient_p_setvideo( NEXUS_SurfaceClientHandle client )
     /* set zorder */
     for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
         NEXUS_SurfaceClientHandle c, child;
-        unsigned parentZorder = 0;
+        unsigned parentIndex = NEXUS_NUM_VIDEO_WINDOWS; /* wait to learn first parent, which could be 0 or 1 */
+        unsigned parentZorder = 0; /* first parent is zorder 0 */
+        unsigned surfaceClientZorder = 0;
         for (c = BLST_Q_FIRST(&client->server->clients); c; c = BLST_Q_NEXT(c, link)) {
-            unsigned zorder = parentZorder; /* mosaic zorder is relative to the parent */
             for (child = BLST_S_FIRST(&c->children); child; child = BLST_S_NEXT(child, child_link)) {
                 NEXUS_VideoWindowSettings *pWindowSettings;
                 NEXUS_VideoWindowHandle window;
+                unsigned parent, setzorder;
+                bool isMosaic;
                 window = child->window[i];
                 if (!window) continue;
 
+                NEXUS_VideoWindow_GetParentIndex_isrsafe(window, &parent, &isMosaic);
+                if (parentIndex != NEXUS_NUM_VIDEO_WINDOWS && parent != parentIndex) {
+                    /* a change in parentIndex bumps parentZorder, but don't unsupported interleave to
+                    cause collision with graphics zorder (which is NEXUS_NUM_VIDEO_WINDOWS, aka "above video"). */
+                    if (parentZorder+1 == NEXUS_NUM_VIDEO_WINDOWS) {
+                        /* unsupported interleave happens if pip is placed between main mosaics or vice versa. */
+                        BDBG_ERR(("unsupported window zorder interleaving: %d %d %d", parent, parentIndex, parentZorder));
+                    }
+                    else {
+                        ++parentZorder;
+                    }
+                }
+                parentIndex = parent;
+                /* for mosaics, passthrough SurfaceClient zorder and let NEXUS_Display and VDC resolve.
+                for non-mosaics, resolve to only 0 or 1 so that video is always under graphics. */
+                if (isMosaic) {
+                    setzorder = surfaceClientZorder;
+                }
+                else {
+                    setzorder = parentZorder;
+                }
+
                 pWindowSettings = &client->server->windowSettings;
                 NEXUS_VideoWindow_GetSettings_priv(window, pWindowSettings);
-                if (pWindowSettings->zorder != zorder) {
-                    BDBG_MSG(("client %p, child %p, display%d: zorder %d -> %d", (void *)c, (void *)child, i, pWindowSettings->zorder, zorder));
+                if (pWindowSettings->zorder != setzorder) {
+                    BDBG_MSG(("client %p, child %p, display%d: zorder %d -> %d", (void *)c, (void *)child, i, pWindowSettings->zorder, setzorder));
                     changed = true;
-                    pWindowSettings->zorder = zorder;
+                    pWindowSettings->zorder = setzorder;
                     rc = NEXUS_VideoWindow_SetSettings_priv(window, pWindowSettings);
                     if (rc) {rc = BERR_TRACE(rc); goto done;}
                 }
-                zorder++;
-            }
-            if (zorder > parentZorder) {
-                parentZorder++;
+                surfaceClientZorder++;
             }
         }
     }

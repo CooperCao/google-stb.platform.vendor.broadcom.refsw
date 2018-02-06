@@ -5057,6 +5057,9 @@ static NEXUS_Error NEXUS_VideoDecoder_P_InitializeQueue(NEXUS_VideoDecoderHandle
     rc = BXDM_DIH_AddPictureProviderInterface_GetDefaultSettings (&addPictureProviderSettings);
     if(rc!=BERR_SUCCESS) {BDBG_ERR(("BXDM_DIH_AddPictureProviderInterface_GetDefaultSettings Failed "));}
 
+    /* Allow for mosaic mode with appDisplayManagement */
+    addPictureProviderSettings.uiVDCRectangleNumber = videoDecoder->mosaicIndex;
+
     rc = BXDM_DisplayInterruptHandler_AddPictureProviderInterface(displayInterrupt, DisplayManagerLite_isr, videoDecoder, &addPictureProviderSettings);
     if(rc!=BERR_SUCCESS) {BDBG_ERR(("BXDM_DisplayInterruptHandler_AddPictureProviderInterface Failed "));}
 
@@ -5066,13 +5069,6 @@ static NEXUS_Error NEXUS_VideoDecoder_P_InitializeQueue(NEXUS_VideoDecoderHandle
 
     return rc;
 }
-
-#if 0
-{
-    /* Update the Data Structures reqired by application framework*/
-
-}
-#endif
 
 static NEXUS_Error NEXUS_VideoDecoder_P_GetDecodedFrame(
     NEXUS_VideoDecoderHandle videoDecoder

@@ -161,6 +161,7 @@ typedef struct media_player_start_settings
         unsigned colorDepth;
         NEXUS_VideoDecoderTimestampMode timestampMode;
         NEXUS_VideoFrameRate frameRate;
+        bool virtualized;
     } video;
     NEXUS_TransportType transportType; /* override probe */
     struct {

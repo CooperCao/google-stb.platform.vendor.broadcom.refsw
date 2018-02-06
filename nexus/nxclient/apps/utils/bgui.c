@@ -153,6 +153,11 @@ error:
 void bgui_destroy(bgui_t gui)
 {
     unsigned i;
+#if NXCLIENT_SUPPORT
+    if (gui->surfaceClient) {
+        NEXUS_SurfaceClient_Release(gui->surfaceClient);
+    }
+#endif
     if (gui->gfx) {
         NEXUS_Graphics2D_Close(gui->gfx);
     }
@@ -165,9 +170,6 @@ void bgui_destroy(bgui_t gui)
 #if NXCLIENT_SUPPORT
     if (gui->windowMovedEvent) {
         BKNI_DestroyEvent(gui->windowMovedEvent);
-    }
-    if (gui->surfaceClient) {
-        NEXUS_SurfaceClient_Release(gui->surfaceClient);
     }
     if (gui->allocResults.surfaceClient[0].id) {
         NxClient_Free(&gui->allocResults);

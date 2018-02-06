@@ -257,6 +257,12 @@ static void NEXUS_VideoWindow_P_DestroyForSyncLock(NEXUS_VideoWindowHandle windo
             if (!pVideo->displays[d] || !pVideo->displays[d]->windows[i].open) continue;
             w = &pVideo->displays[d]->windows[i];
             if (w->input != recreate->input) continue; /* not expected */
+
+#if NEXUS_NUM_MOSAIC_DECODES
+            /* TODO: we need more logic to recreate a set of mosaics. for now, just skip it. */
+            if (BLST_S_FIRST(&w->mosaic.children)) continue;
+#endif
+
             BDBG_WRN(("  destroying %d.%d", d, i));
             recreate->window[d] = w;
             NEXUS_VideoWindow_P_RemoveInput(w, recreate->input, true);
@@ -2455,3 +2461,16 @@ NEXUS_Error NEXUS_Display_P_GetWindowMemc_isrsafe(unsigned displayIndex, unsigne
     return NEXUS_NOT_AVAILABLE; /* no BERR_TRACE */
 }
 #endif
+
+void NEXUS_VideoWindow_GetParentIndex_isrsafe(NEXUS_VideoWindowHandle window, unsigned *parentIndex, bool *isMosaic)
+{
+#if NEXUS_NUM_MOSAIC_DECODES
+    if (window->mosaic.parent) {
+        *parentIndex = window->mosaic.parent->index;
+        *isMosaic = true;
+        return;
+    }
+#endif
+    *parentIndex = window->index;
+    *isMosaic = false;
+}

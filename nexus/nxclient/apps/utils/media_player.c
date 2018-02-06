@@ -272,7 +272,7 @@ static int media_player_p_connect(media_player_t player)
             const media_player_create_settings *psettings = &p->create_settings;
             connectSettings.simpleVideoDecoder[i].id = player->master->allocResults.simpleVideoDecoder[i].id;
             connectSettings.simpleVideoDecoder[i].surfaceClientId = psettings->window.surfaceClientId;
-            connectSettings.simpleVideoDecoder[i].windowId = i;
+            connectSettings.simpleVideoDecoder[i].windowId = psettings->window.id+i;
             if (player->create_settings.maxFormat) {
                 connectSettings.simpleVideoDecoder[i].decoderCapabilities.maxFormat = player->create_settings.maxFormat;
             }
@@ -313,6 +313,7 @@ static int media_player_p_connect(media_player_t player)
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.fifoSize = player->start_settings.video.fifoSize;
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.itbFifoSize = player->start_settings.video.itbFifoSize;
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.secureVideo = player->start_settings.video.secure;
+            connectSettings.simpleVideoDecoder[0].decoderCapabilities.virtualized = player->start_settings.video.virtualized;
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.userDataBufferSize = player->create_settings.userDataBufferSize;
             connectSettings.simpleVideoDecoder[0].windowCapabilities.type = player->start_settings.videoWindowType;
         }

@@ -135,6 +135,9 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     );
     print_list_option(
     "  -master", g_stcChannelMasterStrs);
+    printf(
+    "  -mosaic                  pick decoder in new or existing mosaic group\n"
+    );
 }
 
 struct client_state
@@ -569,6 +572,9 @@ int main(int argc, const char **argv)  {
         }
         else if (!strcmp(argv[curarg], "-master") && argc>curarg+1) {
             start_settings.stcMaster = lookup(g_stcChannelMasterStrs, argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-mosaic")) {
+            start_settings.video.virtualized = true;
         }
         else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
             if (n < 0) {

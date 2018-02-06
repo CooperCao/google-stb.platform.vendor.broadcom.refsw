@@ -1679,6 +1679,9 @@ void NEXUS_Recpump_Stop(NEXUS_RecpumpHandle r)
     BINT_ClearCallback(r->index.overflow_irq);
     r->actuallyStarted = false;
     r->started = false;
+
+    NEXUS_CancelCallbacks(r);
+
     return;
 }
 

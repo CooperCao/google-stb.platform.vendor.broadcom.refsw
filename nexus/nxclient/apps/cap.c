@@ -80,6 +80,10 @@ static void print_usage(void)
     "  -window_width NUM          Percentage on main display\n"
     "  -window_height NUM         Percentage on main display\n"
     );
+    printf(
+    "  -hd_mosaics                # of HD mosaics supported with main decoder\n"
+    "  -hd_pip_mosaics            # of HD mosaics supported with PIP decoder\n"
+    );
 }
 
 int main(int argc, char **argv)
@@ -135,6 +139,26 @@ int main(int argc, char **argv)
 
             NEXUS_GetVideoDecoderCapabilities(&videoDecoderCap);
             result=videoDecoderCap.numVideoDecoders;
+#endif
+            break;
+        }
+        else if (!strcmp(argv[curarg], "-hd_mosaics")) {
+#if NEXUS_HAS_VIDEO_DECODER
+            NEXUS_VideoDecoderCapabilities videoDecoderCap;
+            NEXUS_GetVideoDecoderCapabilities(&videoDecoderCap);
+            if (videoDecoderCap.memory[0].mosaic.maxHeight >= 720) {
+                result = videoDecoderCap.memory[0].mosaic.maxNumber;
+            }
+#endif
+            break;
+        }
+        else if (!strcmp(argv[curarg], "-hd_pip_mosaics")) {
+#if NEXUS_HAS_VIDEO_DECODER
+            NEXUS_VideoDecoderCapabilities videoDecoderCap;
+            NEXUS_GetVideoDecoderCapabilities(&videoDecoderCap);
+            if (videoDecoderCap.memory[1].mosaic.maxHeight >= 720) {
+                result = videoDecoderCap.memory[1].mosaic.maxNumber;
+            }
 #endif
             break;
         }

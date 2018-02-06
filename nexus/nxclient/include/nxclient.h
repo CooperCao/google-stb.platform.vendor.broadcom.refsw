@@ -262,6 +262,7 @@ typedef struct NxClient_VideoDecoderCapabilities
                                 but do not fail if not available.
                                 If 10, require feeder with >= specified decoder colorDepth to avoid downconvert. */
     } feeder;
+    bool virtualized; /* allow this request to be satisfied in mosaic grouping */
 } NxClient_VideoDecoderCapabilities;
 
 typedef enum NxClient_VideoWindowType

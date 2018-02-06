@@ -59,11 +59,13 @@ struct video_decoder_resource {
     unsigned stcIndex;
 
     struct b_connect *connect;
+    struct b_connect *mosaic_connect[NXCLIENT_MAX_IDS];
     NxClient_ConnectSettings connectSettings; /* copy of settings that were used when created */
     unsigned windowIndex; /* index into connect->client->session->window[] */
     struct b_session *session; /* needed for cleanup after connect/clients are gone */
 };
-#define IS_MOSAIC(connect) ((connect)->settings.simpleVideoDecoder[1].id)
+#define IS_VIRTUALIZED_MOSAIC(connect) ((connect)->settings.simpleVideoDecoder[0].decoderCapabilities.virtualized)
+#define IS_MOSAIC(connect) ((connect)->settings.simpleVideoDecoder[1].id || IS_VIRTUALIZED_MOSAIC(connect))
 
 #ifndef NEXUS_NUM_SID_VIDEO_DECODERS
 #define NEXUS_NUM_SID_VIDEO_DECODERS 0
@@ -80,6 +82,7 @@ static struct {
     struct video_decoder_resource *r;
 } g_decoders[TOTAL_DECODERS];
 static void video_decoder_destroy(struct video_decoder_resource *r);
+static void video_decoder_destroy_for_connect(struct video_decoder_resource *r, struct b_connect *connect);
 
 enum b_cap {
     b_cap_no,
@@ -171,7 +174,7 @@ static enum b_cap video_decoder_p_meets_decoder_cap(struct b_connect *connect, u
         avail_mem = server->settings.memConfigSettings.videoDecoder[index].mosaic.maxNumber *
                     server->settings.memConfigSettings.videoDecoder[index].mosaic.maxWidth *
                     server->settings.memConfigSettings.videoDecoder[index].mosaic.maxHeight;
-        if (needed_mem > avail_mem) {
+        if (!avail_mem || needed_mem > avail_mem) {
             return b_cap_no;
         }
     }
@@ -236,7 +239,13 @@ static void video_decoder_p_find_decoder(struct b_connect *connect, unsigned ass
         if (!connect->client->server->settings.memConfigSettings.videoDecoder[i].used) {
             continue;
         }
-        if (!g_decoders[i].r || !g_decoders[i].r->used) {
+        if (!g_decoders[i].r || !g_decoders[i].r->used || IS_VIRTUALIZED_MOSAIC(connect)) {
+            if (g_decoders[i].r && g_decoders[i].r->used && IS_VIRTUALIZED_MOSAIC(connect)) {
+                /* used decoder must be on same window */
+                if (g_decoders[i].r->connect->settings.simpleVideoDecoder[0].windowCapabilities.type != connect->settings.simpleVideoDecoder[0].windowCapabilities.type) {
+                    continue;
+                }
+            }
             (*pnum_avail)++;
             switch (video_decoder_p_meets_decoder_cap(connect, i, assumed_framerate)) {
             case b_cap_no:
@@ -337,7 +346,7 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
 {
     unsigned index = TOTAL_DECODERS;
     int rc;
-    struct video_decoder_resource *r;
+    struct video_decoder_resource *r = NULL;
     nxserver_t server = connect->client->server;
     struct b_session *session = connect->client->session;
     NEXUS_HeapHandle cdbHeap = NULL;
@@ -445,10 +454,14 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
 
     if (g_decoders[index].r) {
         r = g_decoders[index].r;
-        if (!r->used) {
+        if (r->connect && IS_VIRTUALIZED_MOSAIC(r->connect) && IS_VIRTUALIZED_MOSAIC(connect)) {
+            /* allow virtualized mosaic to be extended */
+        }
+        else if (!r->used) {
             unsigned i;
             /* compare decoder capabilities that are only set at Open, # of mosaics */
             for (i=0;i<NXCLIENT_MAX_IDS;i++) {
+                if (IS_MOSAIC(connect)) break; /* don't know if decoder is mosaic, so must destroy */
                 if ((connect->settings.simpleVideoDecoder[i].id!=0) != (r->connectSettings.simpleVideoDecoder[i].id!=0)) break;
                 if (connect->settings.simpleVideoDecoder[i].id) {
                     NEXUS_VideoDecoderOpenSettings openSettings;
@@ -465,6 +478,7 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
             if (i < NXCLIENT_MAX_IDS) {
                 /* need to recreate for mismatch */
                 video_decoder_destroy(r);
+                r = NULL;
             }
             else {
                 r->used = true;
@@ -480,12 +494,14 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
         }
     }
 
-    r = nx_video_decoder_p_malloc(connect, index);
     if (!r) {
-        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
-        goto err_malloc;
+        r = nx_video_decoder_p_malloc(connect, index);
+        if (!r) {
+            BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+            goto err_malloc;
+        }
+        nxserverlib_p_clear_video_cache();
     }
-    nxserverlib_p_clear_video_cache();
 
     if (!IS_MOSAIC(connect)) {
         /* regular (non-mosaic) */
@@ -538,11 +554,17 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
     }
     else {
         unsigned i;
-
-        for (i=0;i<connect->settings.simpleVideoDecoder[i].id;i++) {
+        for (i=0;i<NXCLIENT_MAX_IDS && connect->settings.simpleVideoDecoder[i].id;i++) {
             NEXUS_VideoDecoderOpenMosaicSettings openSettings;
             NEXUS_VideoDecoderSettings settings;
             unsigned parentIndex, mosaicIndex;
+            for (mosaicIndex=0;mosaicIndex<NXCLIENT_MAX_IDS;mosaicIndex++) {
+                if (!r->handle[mosaicIndex]) break;
+            }
+            if (mosaicIndex == NXCLIENT_MAX_IDS) {
+                rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+                goto error;
+            }
 
             NEXUS_VideoDecoder_GetDefaultOpenMosaicSettings(&openSettings);
             if (connect->settings.simpleVideoDecoder[i].decoderCapabilities.maxWidth &&
@@ -559,15 +581,16 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
             openSettings.openSettings.secureVideo = connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo;
             openSettings.openSettings.cdbHeap = cdbHeap;
             parentIndex = r->index;
-            mosaicIndex = i;
-            r->handle[i] = NEXUS_VideoDecoder_OpenMosaic(parentIndex, mosaicIndex, &openSettings);
-            if (!r->handle[i]) {
+            r->handle[mosaicIndex] = NEXUS_VideoDecoder_OpenMosaic(parentIndex, mosaicIndex, &openSettings);
+            if (!r->handle[mosaicIndex]) {
                 rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
                 goto error;
             }
-            NEXUS_VideoDecoder_GetSettings(r->handle[i], &settings);
+            r->mosaic_connect[mosaicIndex] = connect;
+
+            NEXUS_VideoDecoder_GetSettings(r->handle[mosaicIndex], &settings);
             BDBG_MSG(("  mosaic videoDecoder[%d][%d]: %p, max %dx%d",
-                      index, i, (void*)r->handle[i],
+                      parentIndex, mosaicIndex, (void*)r->handle[mosaicIndex],
                 connect->settings.simpleVideoDecoder[i].decoderCapabilities.maxWidth,
                 connect->settings.simpleVideoDecoder[i].decoderCapabilities.maxHeight));
         }
@@ -585,7 +608,7 @@ err_malloc:
     return NULL;
 }
 
-static void video_decoder_release(struct video_decoder_resource *r)
+static void video_decoder_release(struct video_decoder_resource *r, struct b_connect *connect)
 {
     nxserver_t server = r->session->server;
     BDBG_MSG(("video_decoder_release %p: connect %p, index %d", (void*)r, (void*)r->connect, r->index));
@@ -595,7 +618,7 @@ static void video_decoder_release(struct video_decoder_resource *r)
         r->index >= NEXUS_NUM_VIDEO_DECODERS /* SID or DSP decoder */
         )
     {
-        video_decoder_destroy(r);
+        video_decoder_destroy_for_connect(r, connect);
     }
     else {
         /* cached. by not closing, we have faster start time if the same decoder/window connection is used, which is likely. */
@@ -606,12 +629,36 @@ static void video_decoder_release(struct video_decoder_resource *r)
 
 static void video_decoder_destroy(struct video_decoder_resource *r)
 {
+    video_decoder_destroy_for_connect(r, NULL);
+}
+
+static void video_decoder_destroy_for_connect(struct video_decoder_resource *r, struct b_connect *connect)
+{
     unsigned i;
     nxserver_t server = r->session->server;
+    struct b_connect *remaining_connect = NULL;
 
     BDBG_MSG(("video_decoder_destroy %p: connect %p, index %d", (void*)r, (void*)r->connect, r->index));
-
     BDBG_ASSERT(g_decoders[r->index].r == r);
+
+    if (connect) {
+        for (i=0;i<NXCLIENT_MAX_IDS;i++) {
+            if (r->mosaic_connect[i] == connect) {
+                NEXUS_SimpleVideoDecoderModule_CheckCache(r->session->video.server, NULL, r->handle[i]);
+                NEXUS_VideoDecoder_Close(r->handle[i]);
+                r->handle[i] = NULL;
+                r->mosaic_connect[i] = NULL;
+            }
+            else if (r->mosaic_connect[i]) {
+                remaining_connect = r->mosaic_connect[i];
+            }
+        }
+        if (remaining_connect) {
+            r->connect = remaining_connect;
+            return;
+        }
+    }
+
     g_decoders[r->index].r = NULL;
     for (i=NXCLIENT_MAX_IDS-1;i<=NXCLIENT_MAX_IDS;i--) { /* reverse */
         if (r->handle[i]) {
@@ -684,10 +731,19 @@ static int nxclient_get_surface_client(struct b_connect *connect, nxclient_t cli
 static bool has_window(struct b_connect *connect)
 {
     BDBG_ASSERT(connect->windowIndex < NEXUS_NUM_VIDEO_WINDOWS);
-    return (connect->client->session->window[connect->windowIndex].connect == connect);
+    if (connect->client->session->window[connect->windowIndex].connect == connect) {
+        return true;
+    }
+    if (connect->client->session->display[0].mosaic_connect[0]) {
+        unsigned i;
+        for (i=0;i<NXCLIENT_MAX_IDS;i++) {
+            if (connect->client->session->display[0].mosaic_connect[connect->windowIndex][i] == connect) return true;
+        }
+    }
+    return false;
 }
 
-static int resize_full_screen(struct b_session *session, unsigned displayIndex, unsigned windowIndex, bool visible)
+static int resize_full_screen(struct b_session *session, unsigned displayIndex, unsigned windowIndex, bool mosaic)
 {
     NEXUS_VideoWindowSettings settings;
     NEXUS_VideoWindowHandle window;
@@ -699,12 +755,18 @@ static int resize_full_screen(struct b_session *session, unsigned displayIndex, 
     NEXUS_VideoWindow_GetSettings(window, &settings);
     settings.position.x = 0;
     settings.position.y = 0;
-    settings.position.width = session->display[displayIndex].formatInfo.width;
-    settings.position.height = session->display[displayIndex].formatInfo.height;
-    if (windowIndex) {
-        settings.position.width /= 2;
-        settings.position.height /= 2;
-        settings.position.x = settings.position.width;
+    /* size window to RTS max */
+    settings.position.width = session->display[displayIndex].formatInfo.width * session->server->display.cap.display[displayIndex].window[windowIndex].maxWidthPercentage / 100;
+    settings.position.height = session->display[displayIndex].formatInfo.height * session->server->display.cap.display[displayIndex].window[windowIndex].maxHeightPercentage / 100;
+    /* if not mosaic, don't size PIP greater than quarter screen */
+    if (!mosaic && windowIndex) {
+        if (session->server->display.cap.display[displayIndex].window[windowIndex].maxWidthPercentage > 50) {
+            settings.position.width = session->display[displayIndex].formatInfo.width / 2;
+        }
+        if (session->server->display.cap.display[displayIndex].window[windowIndex].maxHeightPercentage > 50) {
+            settings.position.height = session->display[displayIndex].formatInfo.height / 2;
+        }
+        settings.position.x = session->display[displayIndex].formatInfo.width - settings.position.width;
     }
     else if (session->nxclient.displaySettings.display3DSettings.orientation == NEXUS_VideoOrientation_e3D_LeftRight) {
         settings.position.width /= 2;
@@ -712,7 +774,7 @@ static int resize_full_screen(struct b_session *session, unsigned displayIndex, 
     else if (session->nxclient.displaySettings.display3DSettings.orientation == NEXUS_VideoOrientation_e3D_OverUnder) {
         settings.position.height /= 2;
     }
-    settings.visible = visible;
+    settings.visible = true;
     return NEXUS_VideoWindow_SetSettings(window, &settings);
 }
 
@@ -723,6 +785,7 @@ static int acquire_video_window(struct b_connect *connect, bool grab)
     unsigned index;
     unsigned i, j;
     int rc;
+    unsigned window_index;
 
     if (!session->server->settings.grab) {
         grab = false;
@@ -742,9 +805,9 @@ static int acquire_video_window(struct b_connect *connect, bool grab)
     case NxClient_VideoWindowType_eNone: return 0;
     default: return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
-    if (session->window[index].connect) {
+    if (session->window[index].connect && !(IS_VIRTUALIZED_MOSAIC(session->window[index].connect) && IS_VIRTUALIZED_MOSAIC(connect))) {
         rc = NEXUS_NOT_AVAILABLE;
-        if (grab && connect->client->session->window[index].connect) {
+        if (grab && connect->client->session->window[index].connect && !IS_VIRTUALIZED_MOSAIC(connect->client->session->window[index].connect)) {
             struct b_connect *prev_connect = connect->client->session->window[index].connect;
             BDBG_MSG(("grab video window %d", index));
             release_video_decoders(prev_connect);
@@ -790,29 +853,38 @@ static int acquire_video_window(struct b_connect *connect, bool grab)
 
             if (IS_MOSAIC(connect)) {
                 /* mosaics are not cached */
-                BDBG_ASSERT(!session->display[j].parentWindow[index]);
-                session->display[j].parentWindow[index] = session->display[j].window[index][0];
-                session->display[j].window[index][0] = NULL;
-                NEXUS_SimpleVideoDecoderModule_CheckCache(session->video.server, session->display[j].parentWindow[index], NULL);
-                for (i=0;i<NXCLIENT_MAX_IDS;i++) {
-                    if (!connect->settings.simpleVideoDecoder[i].id) break;
-                    BDBG_ASSERT(!session->display[j].window[index][i]);
-                    session->display[j].window[index][i] = NEXUS_VideoWindow_OpenMosaic(session->display[j].parentWindow[index], i);
-                    if (!session->display[j].window[index][i]) {
+                if (!session->display[j].parentWindow[index]) {
+                    session->display[j].parentWindow[index] = session->display[j].window[index][0];
+                    session->display[j].window[index][0] = NULL;
+                    NEXUS_SimpleVideoDecoderModule_CheckCache(session->video.server, session->display[j].parentWindow[index], NULL);
+                }
+                for (i=0;i<NXCLIENT_MAX_IDS && connect->settings.simpleVideoDecoder[i].id;i++) {
+                    unsigned window_index;
+                    for (window_index=0;window_index<NXCLIENT_MAX_IDS;window_index++) {
+                        if (!session->display[j].window[index][window_index]) break;
+                    }
+                    if (window_index == NXCLIENT_MAX_IDS) {
                         rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
                         goto error;
                     }
+                    session->display[j].window[index][window_index] = NEXUS_VideoWindow_OpenMosaic(session->display[j].parentWindow[index], window_index);
+                    if (!session->display[j].window[index][window_index]) {
+                        rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+                        goto error;
+                    }
+                    session->display[j].mosaic_connect[index][window_index] = connect;
                 }
             }
             if (!connect->settings.simpleVideoDecoder[0].surfaceClientId || IS_MOSAIC(connect)) {
                 /* we need to make full screen and visible if app doesn't use SurfaceCompositor for video window.
                 also, if we're going into mosaic mode, surface compositor assumes the parent window is full screen and visible. */
-                resize_full_screen(session, j, index, true);
+                resize_full_screen(session, j, index, IS_MOSAIC(connect));
             }
         }
     }
 
     /* connect to SurfaceCompositor */
+    window_index = 0;
     for (i=0;i<NXCLIENT_MAX_IDS;i++) {
         NEXUS_SurfaceClientHandle surfaceClient;
         NEXUS_SurfaceCompositorClientSettings settings;
@@ -826,13 +898,23 @@ static int acquire_video_window(struct b_connect *connect, bool grab)
         }
         if (!surfaceClient) continue;
 
+        if (session->display[0].mosaic_connect[connect->windowIndex][0]) {
+            while (window_index<NXCLIENT_MAX_IDS && session->display[0].mosaic_connect[connect->windowIndex][window_index] != connect) window_index++;
+            if (window_index == NXCLIENT_MAX_IDS) {
+                rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                goto error;
+            }
+        }
+
         /*
         For NEXUS_SurfaceCompositorClientSettings.display[].window[INDEX], INDEX must be the AcquireVideoWindow index. It is unchanging in a swap.
         For session->display[].window[INDEX], INDEX is the BVN window, 0 = main, 1 = PIP. It changes in a swap.
         */
         NEXUS_SurfaceCompositor_GetClientSettings(session->surfaceCompositor, surfaceClient, &settings);
         for (j=0;j<NXCLIENT_MAX_DISPLAYS;j++) {
-            NEXUS_VideoWindowHandle window = session->display[j].window[connect->windowIndex][i];
+            NEXUS_VideoWindowHandle window;
+
+            window = session->display[j].window[connect->windowIndex][window_index];
             if (!window) continue;
             if (nxserver_p_video_only_display(session, j)) {
                 continue;
@@ -855,6 +937,8 @@ static int acquire_video_window(struct b_connect *connect, bool grab)
         }
         rc = NEXUS_SurfaceCompositor_SetClientSettings(session->surfaceCompositor, surfaceClient, &settings);
         if (rc) { rc = BERR_TRACE(rc); /* continue */ }
+
+        window_index++;
     }
 
     return 0;
@@ -868,6 +952,7 @@ static void release_video_window(struct b_connect *connect)
 {
     struct b_session *session = connect->client->session;
     unsigned i, j;
+    struct b_connect *remaining_connect = NULL;
 
     BDBG_MSG(("release_video_window: connect %p %d", (void*)connect, connect->windowIndex));
     if (!has_window(connect)) return;
@@ -894,21 +979,27 @@ static void release_video_window(struct b_connect *connect)
             /* destroy mosaic windows */
             if (session->display[j].parentWindow[connect->windowIndex]) {
                 for (i=0;i<NXCLIENT_MAX_IDS;i++) {
-                    if (session->display[j].window[connect->windowIndex][i]) {
+                    if (session->display[j].mosaic_connect[connect->windowIndex][i] == connect) {
                         NEXUS_VideoWindow_Close(session->display[j].window[connect->windowIndex][i]);
                         session->display[j].window[connect->windowIndex][i] = NULL;
+                        session->display[j].mosaic_connect[connect->windowIndex][i] = NULL;
+                    }
+                    else if (session->display[j].mosaic_connect[connect->windowIndex][i]) {
+                        remaining_connect = session->display[j].mosaic_connect[connect->windowIndex][i];
                     }
                 }
 
-                /* change mosaic parent to regular window */
-                session->display[j].window[connect->windowIndex][0] = session->display[j].parentWindow[connect->windowIndex];
-                session->display[j].parentWindow[connect->windowIndex] = NULL;
+                if (!remaining_connect) {
+                    /* if no more mosaics, change mosaic parent to regular window */
+                    session->display[j].window[connect->windowIndex][0] = session->display[j].parentWindow[connect->windowIndex];
+                    session->display[j].parentWindow[connect->windowIndex] = NULL;
+                }
             }
         }
     }
 
-    /* unreserve window */
-    session->window[connect->windowIndex].connect = NULL;
+    /* unreserve or throw ownership of window */
+    session->window[connect->windowIndex].connect = remaining_connect;
     connect->windowIndex = 0; /* don't care */
 }
 
@@ -920,6 +1011,7 @@ void nxserverlib_video_close_windows(struct b_session *session, unsigned local_d
             if (session->display[local_display_index].window[index][i]) {
                 NEXUS_VideoWindow_Close(session->display[local_display_index].window[index][i]);
                 session->display[local_display_index].window[index][i] = NULL;
+                session->display[local_display_index].mosaic_connect[index][i] = NULL;
             }
         }
         if (session->display[local_display_index].parentWindow[index]) {
@@ -971,6 +1063,7 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
     struct video_decoder_resource *r;
     int stcIndex;
     struct b_session *session = connect->client->session;
+    unsigned decoder_index, window_index;
 
     if (!connect->settings.simpleVideoDecoder[0].id) {
         /* no request */
@@ -997,7 +1090,7 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
         if (grab) {
             for (i=0;i<TOTAL_DECODERS;i++) {
                 struct video_decoder_resource *grab_from = g_decoders[i].r;
-                if (grab_from) {
+                if (grab_from && !IS_VIRTUALIZED_MOSAIC(grab_from->connect)) {
                     if (grab_from->connect && grab_from->connect->settings.simpleVideoDecoder[0].windowCapabilities.encoder) {
                         /* never steal from a transcode */
                         continue;
@@ -1030,6 +1123,8 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
 
     req->handles.simpleVideoDecoder[0].r = r;
 
+    decoder_index = 0;
+    window_index = 0;
     for (i=0;i<NXCLIENT_MAX_IDS;i++) {
         NEXUS_SimpleVideoDecoderHandle videoDecoder;
         NEXUS_SimpleVideoDecoderServerSettings settings;
@@ -1042,19 +1137,33 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
             rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
             goto err_set;
         }
-
         videoDecoder = req->handles.simpleVideoDecoder[index].handle;
+
+        if (r->mosaic_connect[0]) {
+            /* find next mosaic decoder/window for this connect */
+            while (decoder_index<NXCLIENT_MAX_IDS && r->mosaic_connect[decoder_index] != connect) decoder_index++;
+            if (decoder_index == NXCLIENT_MAX_IDS) {
+                rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                goto err_set;
+            }
+
+            while (window_index<NXCLIENT_MAX_IDS && session->display[0].mosaic_connect[connect->windowIndex][window_index] != connect) window_index++;
+            if (window_index == NXCLIENT_MAX_IDS) {
+                rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                goto err_set;
+            }
+        }
 
         /* connect regular decoder to simple decoder */
         NEXUS_SimpleVideoDecoder_GetServerSettings(session->video.server, videoDecoder, &settings);
-        settings.videoDecoder = r->handle[i];
+        settings.videoDecoder = r->handle[decoder_index];
         if (has_window(connect)) {
             unsigned j;
             for (j=0;j<NXCLIENT_MAX_DISPLAYS;j++) {
                 if (j>0 && (nxserverlib_p_native_3d_active(session) || nxserverlib_p_dolby_vision_active(session))) {
                     continue;
                 }
-                settings.window[j] = session->display[j].window[connect->windowIndex][i];
+                settings.window[j] = session->display[j].window[connect->windowIndex][window_index];
                 if (settings.window[j]) {
                     NEXUS_SimpleVideoDecoderModule_CheckCache(session->video.server, settings.window[j], settings.videoDecoder);
                     settings.display[j] = session->display[j].display; /* closedCaptionRouting */
@@ -1071,13 +1180,16 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
             rc = BERR_TRACE(rc);
             goto err_set;
         }
+
+        decoder_index++;
+        window_index++;
     }
     return 0;
 
 err_set:
     release_video_decoders(connect);
 err_stcindex:
-    video_decoder_destroy(r);
+    video_decoder_destroy_for_connect(r, connect);
 err_create:
     return rc;
 }
@@ -1152,7 +1264,7 @@ void release_video_decoders(struct b_connect *connect)
                 (void)NEXUS_SimpleVideoDecoder_SetServerSettings(session->video.server, videoDecoder, &settings);
             }
         }
-        video_decoder_release(req->handles.simpleVideoDecoder[0].r);
+        video_decoder_release(req->handles.simpleVideoDecoder[0].r, connect);
         if (stcIndex != -1) {
             video_release_stc_index(connect, stcIndex);
         }
