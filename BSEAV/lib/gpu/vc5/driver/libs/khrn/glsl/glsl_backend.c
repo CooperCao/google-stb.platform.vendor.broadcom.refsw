@@ -1507,7 +1507,8 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
       /* Try an accumulator first then fallback to regfile */
       if (!glsl_sched_node_requires_regfile(node)) {
          if (node_state->remaining_dependents == 0) node_state->reg = REG_MAGIC_NOP;
-         else if (node_state->remaining_dependents == 1) node_state->reg = choose_acc(sched, false, timestamp);
+         else if (node_state->remaining_dependents == 1 && node->type != SPECIAL_VARYING)
+            node_state->reg = choose_acc(sched, false, timestamp);
       }
       if (node_state->reg == REG_UNDECIDED) node_state->reg = choose_regfile(sched, timestamp);
    }
