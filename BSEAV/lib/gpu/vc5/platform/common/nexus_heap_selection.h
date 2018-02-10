@@ -22,15 +22,14 @@ static inline NEXUS_HeapHandle GetDefaultHeap(void)
    NEXUS_ClientConfiguration clientConfig;
    NEXUS_Platform_GetClientConfiguration(&clientConfig);
 
+#ifndef NXCLIENT_SUPPORT
+   return clientConfig.heap[0];
+#else
    /* With refsw NEXUS_OFFSCREEN_SURFACE is the only heap guaranteed to be valid for v3d to use */
    if (clientConfig.mode == NEXUS_ClientMode_eUntrusted)
       return clientConfig.heap[NXCLIENT_DEFAULT_HEAP];
    else
-#ifdef NXCLIENT_SUPPORT
       return NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
-#else
-      /* NEXUS_Platform_GetFramebufferHeap() is not callable under NEXUS_CLIENT_SUPPORT=y */
-   return NULL;
 #endif
 #endif
 }
@@ -40,9 +39,14 @@ static inline NEXUS_HeapHandle GetDynamicHeap(void)
 #ifdef SINGLE_PROCESS
    return NULL;
 #else
+
+#ifndef NXCLIENT_SUPPORT
+   return NULL;
+#else
    NEXUS_ClientConfiguration clientConfig;
    NEXUS_Platform_GetClientConfiguration(&clientConfig);
    return clientConfig.heap[NXCLIENT_DYNAMIC_HEAP];
+#endif
 #endif
 }
 
@@ -51,9 +55,14 @@ static inline NEXUS_HeapHandle GetSecureHeap(void)
 #ifdef SINGLE_PROCESS
    return NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE);
 #else
+
+#ifndef NXCLIENT_SUPPORT
+   return NULL;
+#else
    NEXUS_ClientConfiguration clientConfig;
    NEXUS_Platform_GetClientConfiguration(&clientConfig);
    return clientConfig.heap[NXCLIENT_SECURE_GRAPHICS_HEAP];
+#endif
 #endif
 }
 
