@@ -2498,16 +2498,15 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(
 
         /* We will only end up in MS12 mode if compiled in MS12 mode AND we find DDRE downstream.
            So we will always set ms12 to 1 here. */
+        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32Ms12Flag, 1);
         if ( BAPE_P_DolbyCapabilities_Dapv2() )
         {
             BDBG_MSG(("DAP v2 is supported"));
-            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32Ms12Flag, 1);
             BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32EnableDapv2, handle->settings.enablePostProcessing ? 1 : 0);
         }
         else
         {
             BDBG_MSG(("DAP v2 is NOT supported"));
-            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32Ms12Flag, 0);
             BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32EnableDapv2, 0);
         }
         BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32MixerUserBalance, handle->settings.multiStreamBalance);

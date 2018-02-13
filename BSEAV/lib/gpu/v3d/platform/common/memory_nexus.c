@@ -531,16 +531,16 @@ BEGL_MemoryInterface *NXPL_CreateMemInterface(BEGL_HWInterface *hwIface)
 #ifndef SINGLE_PROCESS
          NEXUS_Platform_GetClientConfiguration(&clientConfig);
 
+#ifndef NXCLIENT_SUPPORT
+         data->heapMap.heap = clientConfig.heap[0];
+#else
          if (data->useMMA)
-            data->heapMap.heap = clientConfig.heap[4];
+            data->heapMap.heap = clientConfig.heap[NXCLIENT_DYNAMIC_HEAP];
          else if (clientConfig.mode == NEXUS_ClientMode_eUntrusted)
-            data->heapMap.heap = clientConfig.heap[0];
+            data->heapMap.heap = clientConfig.heap[NXCLIENT_DEFAULT_HEAP];
          else
-#ifdef NXCLIENT_SUPPORT
             /* NEXUS_Platform_GetFramebufferHeap() is not callable under NEXUS_CLIENT_SUPPORT=y */
             data->heapMap.heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
-#else
-            data->heapMap.heap = NULL;
 #endif
 
 #ifdef NXCLIENT_SUPPORT
