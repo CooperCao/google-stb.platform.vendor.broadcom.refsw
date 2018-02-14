@@ -30,7 +30,7 @@ bool NativeWindowInfo::Init()
       we will have one client per native window. */
    m_clientID = m_allocResults.surfaceClient[0].id;
 #else
-   m_clientID = m_info->clientID;
+   m_clientID = m_info.clientID;
 #endif
 
    m_surfaceClient = NEXUS_SurfaceClient_Acquire(m_clientID);

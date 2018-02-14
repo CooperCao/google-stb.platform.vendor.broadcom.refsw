@@ -63,7 +63,7 @@ extern char bp3_bin_file_path[];
 
 BDBG_MODULE(bp3_main);
 
-#define BP3_HOST_MAX_BUF_SIZE 1280
+#define BP3_HOST_MAX_BUF_SIZE 2048
 
 uint32_t  bp3SessionTokenSize = 0;
 uint8_t  *pBp3SessionToken = NULL;

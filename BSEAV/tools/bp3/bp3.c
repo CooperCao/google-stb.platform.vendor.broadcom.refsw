@@ -215,11 +215,15 @@ static int read_part_number(uint32_t *prodId, uint32_t *securityCode) {
 }
 
 static int read_features(uint32_t *features) {
-  MAP_MEM_START
-  MAP_START(BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eIPLicensing), GlobalSram_IPLicensing_Info_size)
-  memcpy(features, page + addr, GlobalSram_IPLicensing_Info_size * sizeof(uint32_t));
-  MAP_END
-  return MAP_MEM_END
+    int i;
+    MAP_MEM_START
+    MAP_START(BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eIPLicensing), GlobalSram_IPLicensing_Info_size)
+    for(i=0; i< GlobalSram_IPLicensing_Info_size; i++)
+    {
+        *(features+i)= *(volatile uint32_t*)(page + addr + i*4);
+    }
+    MAP_END
+    return MAP_MEM_END
 }
 
 typedef struct _curl_memory_t {
