@@ -51,14 +51,22 @@
 
 BDBG_MODULE(BSAGElib);
 
-#define SAGE_SUSPENDVAL_RUN      0x4F4E4D4C
-#define SAGE_SUSPENDVAL_SLEEP    0x4F567856
-#define SAGE_SUSPENDVAL_RESUME   0x4E345678
-#define SAGE_SUSPENDVAL_RESUMING 0x77347856
-#define SAGE_SUSPENDVAL_S3READY  0x534E8C53
-#define SAGE_SUSPENDVAL_S2READY  0x524E8C52
+#define SAGE_SUSPENDVAL_RUN              0x4F4E4D4C
+#define SAGE_SUSPENDVAL_SLEEP            0x4F567856
+#define SAGE_SUSPENDVAL_RESUME           0x4E345678
+#define SAGE_SUSPENDVAL_RESUMING         0x77347856
+#define SAGE_SUSPENDVAL_S3READY          0x534E8C53
+#define SAGE_SUSPENDVAL_S2READY          0x524E8C52
+#define SAGE_SUSPENDVAL_STANDBYFAIL_RUN  0x544E8C54
+#define SAGE_SUSPENDVAL_STANDBYFAIL_DEAD 0x554E8C55
 
 #define SAGE_SUSPENDADDR BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eSuspend)
+
+/* How to wait for S2 or S3 command */
+#define S2_WAIT_DELAY 5
+#define S2_WAIT_COUNT 200
+#define S3_WAIT_DELAY 10
+#define S3_WAIT_COUNT 3000
 
 /* Local functions */
 #if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
@@ -290,6 +298,7 @@ BSAGElib_P_Standby_S2(
     BSAGElib_RpcCommand command;
     BSAGElib_RpcRemoteHandle hRemote = NULL;
     uint32_t suspendRegValue;
+    uint32_t count;
 
     if (enter) {
         BDBG_MSG(("%s/enter: S2 'passive sleep'", __FUNCTION__));
@@ -330,6 +339,36 @@ BSAGElib_P_Standby_S2(
         }
         /* eat-up remote and remove it when leaving S2 inside the close client */
         hRemote = NULL;
+
+        /* Will be releasing BCHP_PWR resources... wait for OK from sage before continuing */
+        for (count = 0; count < S2_WAIT_COUNT; count++) {
+            suspendRegValue = BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR);
+            if (suspendRegValue == SAGE_SUSPENDVAL_S2READY) {
+                /* Everything is ok */
+                rc = BERR_SUCCESS;
+                goto end;
+            }
+
+            if (suspendRegValue == SAGE_SUSPENDVAL_STANDBYFAIL_RUN) {
+                BDBG_ERR(("SAGE ERROR entering S2"));
+                BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_RUN);
+                rc = BERR_UNKNOWN;
+                goto end;
+            }
+
+            if (suspendRegValue == SAGE_SUSPENDVAL_STANDBYFAIL_DEAD) {
+                /* Note that on a production system, the chip should have reset by now */
+                BDBG_ERR(("SAGE ERROR entering S2. SAGE NO LONGER RUNNING"));
+                rc = BERR_UNKNOWN;
+                goto end;
+            }
+
+            BKNI_Sleep(S2_WAIT_DELAY);
+        }
+
+        /* If here, there was a timeout */
+        BDBG_ERR(("Timeout waiting for SAGE to enter S2 state"));
+        rc = BERR_TIMEOUT;
     }
     else {
         suspendRegValue = BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR);
@@ -367,6 +406,8 @@ BSAGElib_P_Standby_S3(
     BSAGElib_InOutContainer *container = NULL;
     BSAGElib_RpcCommand command;
     BSAGElib_RpcRemoteHandle hRemote = NULL;
+    uint32_t count;
+    uint32_t suspendRegValue;
 
     if (enter) {
         BDBG_MSG(("%s/enter: S3 'deep sleep'", __FUNCTION__));
@@ -407,8 +448,33 @@ BSAGElib_P_Standby_S3(
 
         BDBG_MSG(("%s/enter: Command sent, waiting for SAGE to be ready for S3", __FUNCTION__));
 
-        while (BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR) != SAGE_SUSPENDVAL_S3READY) {
-            BKNI_Sleep(1);
+        for (count = 0; count < S3_WAIT_COUNT; count++) {
+            suspendRegValue = BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR);
+            if (suspendRegValue == SAGE_SUSPENDVAL_S3READY) {
+                /* Everything is ok */
+                break;
+            }
+
+            if (suspendRegValue == SAGE_SUSPENDVAL_STANDBYFAIL_RUN) {
+                BDBG_ERR(("SAGE ERROR entering S3"));
+                BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_RUN);
+                rc = BERR_UNKNOWN;
+                goto end;
+            }
+
+            if (suspendRegValue == SAGE_SUSPENDVAL_STANDBYFAIL_DEAD) {
+                /* Note that on a production system, the chip should have reset by now */
+                BDBG_ERR(("SAGE ERROR entering S3. SAGE NO LONGER RUNNING"));
+                rc = BERR_UNKNOWN;
+                goto end;
+            }
+
+            BKNI_Sleep(S3_WAIT_DELAY);
+        }
+        if (count >= S3_WAIT_COUNT) {
+            BDBG_ERR(("Timeout waiting for SAGE to enter S3"));
+            rc = BERR_TIMEOUT;
+            goto end;
         }
 
         /* Nexus/SecurityModule is going down right after. Nexus/SageModule cleans security related resources */
