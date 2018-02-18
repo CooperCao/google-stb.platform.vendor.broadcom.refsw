@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -2927,7 +2927,7 @@ const uint32_t BDSP_IMG_amr_encode_array1[] = {
 	0xf0050c3f,
 	0xdf43fe47,
 	0xabfeb1f8,
-	0x7250cf44,
+	0x7260cf44,
 	0x3c021807,
 	0xc0031437,
 	0x369f061f,
@@ -4009,7 +4009,7 @@ const uint32_t BDSP_IMG_amr_encode_array1[] = {
 	0xf8ca0a5f,
 	0x51d41837,
 	0x80000016,
-	0x7255aa32,
+	0x7265aa32,
 	0x28d1ffff,
 	0xfd838c07,
 	0x25801407,
@@ -8570,7 +8570,7 @@ const uint32_t BDSP_IMG_amr_encode_array1[] = {
 	0xdeee9c67,
 	0x51cb925f,
 	0x8000003f,
-	0x725fe652,
+	0x726fe652,
 	0x29bf9827,
 	0xcd809607,
 	0x2ea2122f,
@@ -10884,7 +10884,7 @@ const uint32_t BDSP_IMG_amr_encode_array1[] = {
 	0x2a881e77,
 	0x8105024f,
 	0xf8ca1c6f,
-	0x7250a254,
+	0x7260a254,
 	0xdd859807,
 	0x8c028c5f,
 	0x00d1ffff,

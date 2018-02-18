@@ -2080,13 +2080,13 @@ void NEXUS_FrontendModule_P_Print(void)
     }
 
 #if NEXUS_HAS_MXT && (defined BCHP_XPT_FE_MTSIF_RX1_PKT_BAND0_BAND31_DETECT)
-    for (index=0; index<NEXUS_NUM_MTSIF; index++) {
+    for (index=0; index<BXPT_NUM_MTSIF; index++) {
         uint32_t step = BCHP_XPT_FE_MTSIF_RX1_PKT_BAND0_BAND31_DETECT - BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT;
         uint32_t addr = BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT + step*index;
         BREG_Write32(g_pCoreHandles->reg, addr, 0);
     }
     BKNI_Sleep(1);
-    for (index=0; index<NEXUS_NUM_MTSIF; index++) {
+    for (index=0; index<BXPT_NUM_MTSIF; index++) {
         uint32_t step = BCHP_XPT_FE_MTSIF_RX1_PKT_BAND0_BAND31_DETECT - BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT;
         uint32_t addr = BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT + step*index;
         BDBG_MODULE_LOG(nexus_frontend_proc, ("MTSIF_RX%u BAND_DETECT = %08x", index, BREG_Read32(g_pCoreHandles->reg, addr)));

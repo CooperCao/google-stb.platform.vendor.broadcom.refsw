@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -77,7 +77,7 @@ const uint32_t BDSP_IMG_karaoke_code_array1[] = {
 	0xa1885637,
 	0x514d7e67,
 	0x90799999,
-	0x72508f0d,
+	0x72608f0d,
 	0x09282a47,
 	0x39272c47,
 	0x50c7d847,
@@ -1066,7 +1066,7 @@ const uint32_t BDSP_IMG_karaoke_code_array1[] = {
 	0xb100820f,
 	0x577f8867,
 	0x8000000f,
-	0x72542cc1,
+	0x72642cc1,
 	0x25a19307,
 	0xb1d9045f,
 	0x2803881f,

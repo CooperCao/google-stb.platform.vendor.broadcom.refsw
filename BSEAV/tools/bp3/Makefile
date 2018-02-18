@@ -1,5 +1,5 @@
 ###############################################################################################################
-#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,6 +51,7 @@ endif
 # Unified Reference Software path
 NEXUS_TOP ?= ${URSR_TOP}/nexus
 BSEAV_TOP ?= ${URSR_TOP}/BSEAV
+MAGNUM_TOP ?= ${URSR_TOP}/magnum
 SAGE_PUBLIC_TOP ?= ${BSEAV_TOP}/lib/security/sage
 SRAI_TOP ?= ${SAGE_PUBLIC_TOP}/srai
 
@@ -76,6 +77,7 @@ include ${NEXUS_TOP}/platforms/${NEXUS_PLATFORM}/build/platform_app.inc
 include $(BSEAV_TOP)/opensource/zlib/zlib.inc
 include $(BSEAV_TOP)/opensource/openssl/openssl.inc
 include $(BSEAV_TOP)/opensource/curl/curl.inc
+include $(MAGNUM_TOP)/portinginterface/hsm/bhsm_defs.inc
 
 # Application source file list, include path, C flags, and link
 # flags
@@ -90,6 +92,8 @@ APP_CFLAGS += -I${BSEAV_TOP}/lib/security/sage/bp3/utils/
 APP_CFLAGS += -I${BSEAV_TOP}/lib/security/sage/srai/include/
 APP_CFLAGS += -I${BSEAV_TOP}/lib/security/sage/bp3/app/
 APP_CFLAGS += -I${BSEAV_TOP}/lib/security/sage/platforms/include/
+APP_CFLAGS += -DBHSM_ZEUS_VER_MAJOR=$(BHSM_ZEUS_VER_MAJOR) -DBHSM_ZEUS_VER_MINOR=$(BHSM_ZEUS_VER_MINOR)
+
 # allow c++ style comments
 APP_CFLAGS += -std=c99
 

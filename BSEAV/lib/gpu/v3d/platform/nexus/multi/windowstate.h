@@ -29,6 +29,7 @@ public:
    {
       for (unsigned i = 0; i < swapbuffers; i++)
          m_freeQ.Push(std::unique_ptr<nxpl::Bitmap>{});
+      m_maxSwapBuffers = swapbuffers;
       return true;
    }
 
@@ -72,6 +73,11 @@ public:
       return m_secure;
    }
 
+   unsigned GetMaxSwapBuffers() const
+   {
+      return m_maxSwapBuffers;
+   }
+
 private:
    BEGL_WindowHandle                                        m_windowHandle;
    nxpl::NativeWindowInfo                                   m_info;
@@ -82,6 +88,8 @@ private:
    bool                                                     m_secure;
 
    std::unique_ptr<nxpl::Worker>                            m_worker;
+
+   unsigned                                                 m_maxSwapBuffers;
 };
 
 }

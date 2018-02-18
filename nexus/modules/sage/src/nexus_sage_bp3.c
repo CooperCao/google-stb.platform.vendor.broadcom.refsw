@@ -40,6 +40,7 @@
 #include "nexus_sage_module.h"
 #include "priv/nexus_core.h" /* get access to g_pCoreHandles */
 #include "priv/nexus_security_priv.h"
+#include "priv/bsagelib_shared_globalsram.h"
 #include "bhsm.h"
 #include "nexus_sage_image.h"
 #include "priv/nexus_sage_priv.h"
@@ -265,6 +266,10 @@ NEXUS_Error NEXUS_Sage_P_BP3Init(NEXUS_SageModuleSettings *pSettings)
     uint32_t                featureListSize = NEXUS_BP3_NUM_FEATURE_BLOCKS*NEXUS_BP3_FEATURE_BLOCK_BYTE_SIZE;
     uint32_t                index = 0;
     uint32_t                prodOtpData = 0xFFFFFFFF;
+    uint32_t                regAddr = 0;
+    uint32_t                regValue = 0xFFFFFFFF;
+    BREG_Handle             hReg = NULL;
+
 
     if(lHandle)
     {
@@ -515,10 +520,31 @@ NEXUS_Error NEXUS_Sage_P_BP3Init(NEXUS_SageModuleSettings *pSettings)
             {
                 /* Print Feature List for a BP3 enabled part */
                 BDBG_LOG(("1 enabled Feature List:"));
-                BDBG_LOG(("Audio   Feature List 0x%08X", pFeatureList[0]));
-                BDBG_LOG(("Video 0 Feature List 0x%08X", pFeatureList[1]));
-                BDBG_LOG(("Video 1 Feature List 0x%08X", pFeatureList[2]));
-                BDBG_LOG(("Host    Feature List 0x%08X", pFeatureList[3]));
+                /*
+                            BDBG_LOG(("Audio   Feature List 0x%08X", pFeatureList[0]));
+                            BDBG_LOG(("Video 0 Feature List 0x%08X", pFeatureList[1]));
+                            BDBG_LOG(("Video 1 Feature List 0x%08X", pFeatureList[2]));
+                            BDBG_LOG(("Host    Feature List 0x%08X", pFeatureList[3]));
+                            */
+                /* Read feature list from Global SRAM */
+                hReg = g_pCoreHandles->reg;
+                regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3AudioFeatureList0);
+                regValue = BREG_Read32(hReg, regAddr);
+                BDBG_LOG(("Audio   Feature List 0x%08X",~regValue));
+                regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3VideoFeatureList0);
+                regValue = BREG_Read32(hReg, regAddr);
+                BDBG_LOG(("Video 0 Feature List 0x%08X",~regValue));
+                regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3VideoFeatureList1);
+                regValue = BREG_Read32(hReg, regAddr);
+                BDBG_LOG(("Video 1 Feature List 0x%08X",~regValue));
+                regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3HostFeatureList);
+                regValue = BREG_Read32(hReg, regAddr);
+                BDBG_LOG(("Host    Feature List 0x%08X",~regValue));
+                regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3SAGEFeatureList);
+                regValue = BREG_Read32(hReg, regAddr);
+                BDBG_LOG(("SAGE    Feature List 0x%08X",~regValue));
+
+
             }
         }
     }
