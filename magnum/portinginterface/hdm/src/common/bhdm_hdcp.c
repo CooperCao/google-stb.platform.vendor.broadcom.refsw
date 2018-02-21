@@ -3136,8 +3136,24 @@ BERR_Code BHDM_HDCP_UpdateHdcp2xAuthenticationStatus(const BHDM_Handle hHDMI, co
     return BERR_SUCCESS;
 }
 
-
 BERR_Code BHDM_HDCP_EnableHdcp2xEncryption(const BHDM_Handle hHDMI, const bool enable)
+{
+	BERR_Code rc = BERR_SUCCESS;
+
+	BDBG_ENTER(BHDM_HDCP_EnableHdcp2xEncryption);
+	BDBG_OBJECT_ASSERT(hHDMI, HDMI);
+
+	BKNI_EnterCriticalSection();
+		rc = BHDM_HDCP_EnableHdcp2xEncryption_isr(hHDMI, enable);
+		if (rc)	BERR_TRACE(rc);
+	BKNI_LeaveCriticalSection();
+
+    BDBG_LEAVE(BHDM_HDCP_EnableHdcp2xEncryption);
+    return rc;
+}
+
+
+BERR_Code BHDM_HDCP_EnableHdcp2xEncryption_isr(const BHDM_Handle hHDMI, const bool enable)
 {
     BERR_Code rc = BERR_SUCCESS;
     uint32_t Register, ulOffset;
@@ -3145,7 +3161,7 @@ BERR_Code BHDM_HDCP_EnableHdcp2xEncryption(const BHDM_Handle hHDMI, const bool e
     uint8_t uiHdcp2Authenticated ;
     BREG_Handle hRegister;
 
-    BDBG_ENTER(BHDM_HDCP_EnableHdcp2xEncryption);
+    BDBG_ENTER(BHDM_HDCP_EnableHdcp2xEncryption_isr);
     BDBG_OBJECT_ASSERT(hHDMI, HDMI);
 
     hRegister = hHDMI->hRegister;
@@ -3176,15 +3192,13 @@ BERR_Code BHDM_HDCP_EnableHdcp2xEncryption(const BHDM_Handle hHDMI, const bool e
         }
     }
 
-    BKNI_EnterCriticalSection();
-        Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
-            Register &= ~BCHP_MASK(HDMI_HDCP2TX_AUTH_CTL, ENABLE_HDCP2_ENCRYPTION);
-            Register |= BCHP_FIELD_DATA(HDMI_HDCP2TX_AUTH_CTL, ENABLE_HDCP2_ENCRYPTION, enable);
-        BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset, Register) ;
-    BKNI_LeaveCriticalSection();
+    Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
+        Register &= ~BCHP_MASK(HDMI_HDCP2TX_AUTH_CTL, ENABLE_HDCP2_ENCRYPTION);
+        Register |= BCHP_FIELD_DATA(HDMI_HDCP2TX_AUTH_CTL, ENABLE_HDCP2_ENCRYPTION, enable);
+    BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset, Register) ;
 
 done:
-    BDBG_LEAVE(BHDM_HDCP_EnableHdcp2xEncryption);
+    BDBG_LEAVE(BHDM_HDCP_EnableHdcp2xEncryption_isr);
     return rc;
 }
 

@@ -2131,7 +2131,6 @@ static void nxserver_check_hdcp(struct b_session *session)
     switch (hdcpStatus.hdcpState) {
     case NEXUS_HdmiOutputHdcpState_eUnpowered :
     case NEXUS_HdmiOutputHdcpState_eEncryptionEnabled :
-    case NEXUS_HdmiOutputHdcpState_eLinkAuthenticated :
     case NEXUS_HdmiOutputHdcpState_eUnauthenticated :
     case NEXUS_HdmiOutputHdcpState_eR0LinkFailure :
     case NEXUS_HdmiOutputHdcpState_eRepeaterAuthenticationFailure :

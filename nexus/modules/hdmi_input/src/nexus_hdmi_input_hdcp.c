@@ -1183,8 +1183,9 @@ static void NEXUS_HdmiInput_P_SageIndicationCallback_isr(
     unsigned i = g_NEXUS_hdmiInputSageData.indicationWritePtr;
 
     g_NEXUS_hdmiInputSageData.indicationData[i].sageIndication.rpcRemoteHandle = sageRpcHandle;
-    g_NEXUS_hdmiInputSageData.indicationData[i].sageIndication.indication_id = indication_id;
-    g_NEXUS_hdmiInputSageData.indicationData[i].sageIndication.value = value;
+    g_NEXUS_hdmiInputSageData.indicationData[i].sageIndication.sessionId = indication_id;
+    g_NEXUS_hdmiInputSageData.indicationData[i].sageIndication.indication_id = value >> 16;
+    g_NEXUS_hdmiInputSageData.indicationData[i].sageIndication.value = value & 0x0000FFFF;
     g_NEXUS_hdmiInputSageData.indicationData[i].hHDCPlib =
                              (BHDCPlib_Handle) async_argument;
 

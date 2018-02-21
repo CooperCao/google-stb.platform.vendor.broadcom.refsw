@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1095,6 +1095,25 @@ See Also:
 
 *******************************************************************************/
 BERR_Code BHDM_HDCP_EnableHdcp2xEncryption(const BHDM_Handle hHDMI, const bool enable);
+
+
+/******************************************************************************
+Summary:
+	Enable/Disable HDCP 2.x encryption - call in isr context only
+
+Input:
+	hHDMI - The HDMI device handle that the application created earlier
+	during the system initialization sequence.
+
+	enable - "true" to enable, "false" to disable
+
+Returns:
+
+See Also:
+	o BHDM_Handle
+
+*******************************************************************************/
+BERR_Code BHDM_HDCP_EnableHdcp2xEncryption_isr(const BHDM_Handle hHDMI, const bool enable);
 
 
 /******************************************************************************

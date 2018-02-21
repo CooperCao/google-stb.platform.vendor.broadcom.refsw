@@ -197,7 +197,6 @@ typedef struct NEXUS_HdmiOutput
     BHDCPlib_HdcpError hdcp1xError;
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
     NEXUS_HdmiInputHandle hdmiInput;
-    NEXUS_EventCallbackHandle hdcp2xEncryptionEnableCallback;
     NEXUS_EventCallbackHandle hdcp2xReAuthRequestCallback;
     NEXUS_EventCallbackHandle hdcp2xAuthenticationStatusCallback;
     struct {
