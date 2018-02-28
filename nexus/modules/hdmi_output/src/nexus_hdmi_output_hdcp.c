@@ -2051,7 +2051,6 @@ void NEXUS_HdmiOutput_GetHdcpSettings(
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    RESOLVE_ALIAS(handle);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_CallbackDesc_Init(&pSettings->stateChangedCallback);
     NEXUS_CallbackDesc_Init(&pSettings->successCallback);
@@ -2064,12 +2063,8 @@ NEXUS_Error NEXUS_HdmiOutput_SetHdcpSettings(
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    NEXUS_TaskCallback_Set(handle->hdcpFailureCallback, &pSettings->failureCallback);
-    NEXUS_TaskCallback_Set(handle->hdcpStateChangedCallback, &pSettings->stateChangedCallback);
-    NEXUS_TaskCallback_Set(handle->hdcpSuccessCallback, &pSettings->successCallback);
-
-    return NEXUS_SUCCESS ;
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
 NEXUS_Error NEXUS_HdmiOutput_SetHdcpRevokedKsvs(
@@ -2079,11 +2074,9 @@ NEXUS_Error NEXUS_HdmiOutput_SetHdcpRevokedKsvs(
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     BSTD_UNUSED(pRevokedKsvs);
     BSTD_UNUSED(numKsvs);
-
-    return NEXUS_SUCCESS ;
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
 NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
@@ -2091,8 +2084,6 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
@@ -2101,8 +2092,6 @@ NEXUS_Error NEXUS_HdmiOutput_DisableHdcpAuthentication(
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-
     /* silent, is already disabled */
     return NEXUS_SUCCESS ;
 }
@@ -2112,8 +2101,6 @@ NEXUS_Error NEXUS_HdmiOutput_EnableHdcpEncryption(
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
@@ -2122,8 +2109,6 @@ NEXUS_Error NEXUS_HdmiOutput_DisableHdcpEncryption(
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-
     /* silent, is already disabled */
     return NEXUS_SUCCESS ;
 }
@@ -2134,10 +2119,8 @@ NEXUS_Error NEXUS_HdmiOutput_GetHdcpStatus(
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    RESOLVE_ALIAS(handle);
-    BSTD_UNUSED(pStatus);
-
-    return BERR_TRACE(BERR_NOT_SUPPORTED);
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    return NEXUS_SUCCESS;
 }
 
 NEXUS_Error NEXUS_HdmiOutput_HdcpGetDownstreamInfo(
@@ -2146,9 +2129,7 @@ NEXUS_Error NEXUS_HdmiOutput_HdcpGetDownstreamInfo(
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    RESOLVE_ALIAS(handle);
     BSTD_UNUSED(pDownstream);
-
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
@@ -2160,11 +2141,9 @@ NEXUS_Error NEXUS_HdmiOutput_HdcpGetDownstreamKsvs(
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    RESOLVE_ALIAS(handle);
     BSTD_UNUSED(pKsvs);
     BSTD_UNUSED(numDevices);
     BSTD_UNUSED(pNumRead);
-
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
@@ -2179,11 +2158,9 @@ NEXUS_Error NEXUS_HdmiOutput_SetHdcp2xBinKeys(
 )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     BSTD_UNUSED(pBinFileBuffer);
     BSTD_UNUSED(length);
-
-    return NEXUS_SUCCESS ;
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
 NEXUS_Error NEXUS_HdmiOutput_SetRepeaterInput(
@@ -2192,9 +2169,8 @@ NEXUS_Error NEXUS_HdmiOutput_SetRepeaterInput(
 )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     BSTD_UNUSED(input);
-    return NEXUS_SUCCESS ;
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
 NEXUS_Error NEXUS_HdmiOutput_GetHdcp2xReceiverIdListData(
@@ -2203,8 +2179,7 @@ NEXUS_Error NEXUS_HdmiOutput_GetHdcp2xReceiverIdListData(
 )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     BSTD_UNUSED(pReceiverIdListData);
-    return NEXUS_SUCCESS ;
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 #endif
