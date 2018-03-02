@@ -229,6 +229,8 @@ typedef struct NEXUS_HdmiOutput
                 unsigned failCounter;
             } auth;
             unsigned bCapsReadFailureCounter;  /* i2c Read of Rx BCaps register */
+            unsigned bksvReadFailureCounter;
+            unsigned invalidBksvCounter;    /* unable to read Rx Bksv or read invalid/test Bksv */
         } hdcp1x;
 
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)

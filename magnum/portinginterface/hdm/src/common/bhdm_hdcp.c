@@ -288,6 +288,8 @@ BERR_Code BHDM_HDCP_ReadRxBksv(
     uint32_t    Register, ulOffset ;
     uint32_t    BksvRegisterValue ;
     unsigned char   RxBksv[] = { 0x00, 0x01, 0x02, 0x03, 0x04 }; /* LSB...MSB */
+    static const unsigned char   SpecB1RxBksv[] = { 0xcd, 0x1a, 0xf2, 0x1e, 0x51 }; /* LSB...MSB */
+    static const unsigned char   SpecB2RxBksv[] = { 0x01, 0xf4, 0x97, 0x26, 0xe7 }; /* LSB...MSB */
     /*
     **  FYI B1 Bksv Test Value from HDCP Specification
     **     RxBksv[] = { 0xcd, 0x1a, 0xf2, 0x1e, 0x51 };
@@ -341,6 +343,7 @@ BERR_Code BHDM_HDCP_ReadRxBksv(
             {
                 BDBG_ERR(("Tx%d: Bksv I2C read error", hHDMI->eCoreId));
                 rc = BERR_TRACE(BHDM_HDCP_RX_BKSV_I2C_READ_ERROR) ;
+                hHDMI->MonitorStatus.hdcp1x.BksvReadFailures++ ;
                 goto done;
             }
             hHDMI->bHdcpValidBksv = true ;
@@ -362,6 +365,21 @@ BERR_Code BHDM_HDCP_ReadRxBksv(
 
         /* when RxBksv is invalid; force re-reading the RxBksv from the HDMI Rx */
         hHDMI->bHdcpValidBksv = false ;
+        hHDMI->MonitorStatus.hdcp1x.InvalidBksvFailures++ ;
+
+        rc = BERR_TRACE(BHDM_HDCP_RX_BKSV_ERROR) ;
+        goto done ;
+    }
+
+    /* Verify Test RxBksv value is not used */
+    if ((!BKNI_Memcmp(RxBksv, SpecB1RxBksv, BHDM_HDCP_KSV_LENGTH))
+    ||  (!BKNI_Memcmp(RxBksv, SpecB2RxBksv, BHDM_HDCP_KSV_LENGTH)))
+    {
+        BDBG_ERR(("Tx%d RxBksv: " BHDM_DEBUG_KSV_FMT " is a test key; HDCP Spec Keys are not allowed",
+            hHDMI->eCoreId, RxBksv[4], RxBksv[3], RxBksv[2], RxBksv[1], RxBksv[0]));
+
+        hHDMI->bHdcpValidBksv = false ;
+        hHDMI->MonitorStatus.hdcp1x.InvalidBksvFailures++ ;
 
         rc = BERR_TRACE(BHDM_HDCP_RX_BKSV_ERROR) ;
         goto done ;
@@ -407,6 +425,12 @@ BERR_Code BHDM_HDCP_ReadRxBksv(
     BREG_Write32(hRegister, BCHP_HDMI_BKSV1 + ulOffset, Register) ;
 
 done:
+    /* Clear cached BKSV on error condition */
+    if (rc != BERR_SUCCESS)
+    {
+        BKNI_Memset(hHDMI->HDCP_RxKsv, 0, BHDM_HDCP_KSV_LENGTH);
+    }
+
     BDBG_LEAVE(BHDM_HDCP_ReadRxBksv) ;
     return rc ;
 } /* end BHDM_HDCP_ReadRxBksv */
@@ -1792,7 +1816,7 @@ BERR_Code BHDM_HDCP_GetRxCaps(
 	rc = BHDM_P_BREG_I2C_Read(hHDMI, BHDM_HDCP_RX_I2C_ADDR, BHDM_HDCP_RX_BCAPS, pRxCapsReg, 1) ;
 	if (rc)
 	{
-		hHDMI->MonitorStatus.hdcp.BCapsReadFailures++ ;
+		hHDMI->MonitorStatus.hdcp1x.BCapsReadFailures++ ;
 		rc = BERR_TRACE(rc) ;
 		goto done ;
 	}

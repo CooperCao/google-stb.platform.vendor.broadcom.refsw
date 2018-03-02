@@ -61,7 +61,9 @@ typedef struct BHDM_MONITOR_Status
 
     struct
     {
-	    unsigned BCapsReadFailures ;
+		unsigned BCapsReadFailures ;
+		unsigned BksvReadFailures ;
+		unsigned InvalidBksvFailures ;
     } hdcp1x ;
 
 	/* total count of times an unstable format */

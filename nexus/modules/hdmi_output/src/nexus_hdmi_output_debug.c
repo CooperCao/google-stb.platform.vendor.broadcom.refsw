@@ -614,7 +614,10 @@ void NEXUS_HdmiOutputModule_Print(void)
                 hdmiOutput->hdcpMonitor.hdcp1x.auth.failCounter)) ;
             BDBG_LOG(("    BCaps Read Failures: %d",
                 hdmiOutput->hdcpMonitor.hdcp1x.bCapsReadFailureCounter)) ;
-
+            BDBG_LOG(("    BKSV Read Failures: %d",
+                hdmiOutput->hdcpMonitor.hdcp1x.bksvReadFailureCounter)) ;
+            BDBG_LOG(("    Invalid BKSV Detected: %d",
+                hdmiOutput->hdcpMonitor.hdcp1x.invalidBksvCounter)) ;
  #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
             BDBG_LOG(("  2.2 Stats")) ;
             BDBG_LOG(("    Attempts: %5d  Pass: %5d  Fail: %5d",

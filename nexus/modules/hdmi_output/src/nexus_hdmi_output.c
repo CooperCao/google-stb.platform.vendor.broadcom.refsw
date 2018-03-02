@@ -1241,6 +1241,8 @@ done:
             output->txHwStatus.unstableFormatDetectedCounter = txStatus.UnstableFormatDetectedCounter ;
 
             output->hdcpMonitor.hdcp1x.bCapsReadFailureCounter = txStatus.hdcp1x.BCapsReadFailures ;
+            output->hdcpMonitor.hdcp1x.bksvReadFailureCounter = txStatus.hdcp1x.BksvReadFailures ;
+            output->hdcpMonitor.hdcp1x.invalidBksvCounter = txStatus.hdcp1x.InvalidBksvFailures ;
 
             BKNI_Memcpy(&pStatus->txHardwareStatus, &output->txHwStatus,
                 sizeof(NEXUS_HdmiOutputTxHardwareStatus)) ;
