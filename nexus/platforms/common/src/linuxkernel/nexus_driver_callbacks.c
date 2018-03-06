@@ -316,18 +316,6 @@ nexus_driver_run_scheduler(NEXUS_ModulePriority priority, unsigned timeout, bool
     return 0;
 }
 
-void
-nexus_driver_wakeup_scheduler(struct nexus_driver_slave_scheduler *slave)
-{
-    if(slave==NULL) {
-#if NEXUS_BASE_EXTERNAL_SCHEDULER
-        NEXUS_P_Base_ExternalScheduler_Wakeup();
-#endif
-    } else {
-        BKNI_SetEvent(slave->event);
-    }
-}
-
 /* this function is non-blocking and returns available callbacks. */
 unsigned
 nexus_driver_scheduler_dequeue(NEXUS_ModulePriority priority, nexus_driver_callback_desc *desc, unsigned nentries, struct nexus_driver_slave_scheduler *slave, bool compat)

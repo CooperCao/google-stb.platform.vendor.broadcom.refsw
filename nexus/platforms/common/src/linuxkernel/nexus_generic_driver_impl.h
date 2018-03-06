@@ -88,7 +88,6 @@ unsigned nexus_driver_scheduler_dequeue(NEXUS_ModulePriority priority, nexus_dri
 void nexus_driver_deactivate_callbacks(void *context, void *object, const struct b_objdb_client *client, enum b_objdb_cancel_callbacks_action action);
 void nexus_driver_scheduler_lock(void *client, NEXUS_ModulePriority priority, bool lock);
 void nexus_driver_unlock_schedulers(void *client);
-void nexus_driver_wakeup_scheduler(struct nexus_driver_slave_scheduler *slave);
 
 /* nexus_driver_objects */
 struct nexus_driver_object_heap_entry *nexus_driver_module_object_get_newest(struct nexus_driver_module_header *header, unsigned class_no, void *client_id);

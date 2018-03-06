@@ -1151,9 +1151,6 @@ NEXUS_Error NEXUS_P_Base_ExternalScheduler_Step(
     bool (*complete)(void *context),
     void *context
     );
-
-void NEXUS_P_Base_ExternalScheduler_Wakeup(void);
-
 #endif
 
 typedef struct NEXUS_Base_Scheduler_Config  {
