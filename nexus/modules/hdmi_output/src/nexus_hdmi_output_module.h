@@ -145,6 +145,7 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_EventCallbackHandle scrambleEventCallback;
     NEXUS_EventCallbackHandle avRateChangeEventCallback;
     NEXUS_TimerHandle powerTimer;
+    BKNI_EventHandle cecHotplugEvent;
 
     bool pendingDisableAuthentication_isr;
     bool forceSendRxIdList;

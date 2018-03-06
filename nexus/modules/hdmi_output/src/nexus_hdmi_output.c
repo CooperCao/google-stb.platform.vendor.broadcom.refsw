@@ -1986,10 +1986,24 @@ static void NEXUS_HdmiOutput_P_HotplugTimerExpiration(void *pContext)
     /* notify application of hotplug status change */
     NEXUS_TaskCallback_Fire(output->hotplugCallback);
 
+    if (output->cecHotplugEvent)
+    {
+        BKNI_SetEvent(output->cecHotplugEvent);
+    }
+
 done:
     return ;
 }
 
+
+void NEXUS_HdmiOutput_SetCecHotplugHandler_priv(NEXUS_HdmiOutputHandle hdmiOutput, BKNI_EventHandle cecHotplugEvent)
+{
+    BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
+
+    RESOLVE_ALIAS(hdmiOutput);
+    hdmiOutput->cecHotplugEvent = cecHotplugEvent;
+    return;
+}
 
 static BERR_Code NEXUS_HdmiOutput_P_ReadEdid(NEXUS_HdmiOutputHandle hdmiOutput)
 {

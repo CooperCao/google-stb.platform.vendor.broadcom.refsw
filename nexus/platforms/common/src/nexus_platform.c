@@ -927,6 +927,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     BDBG_MSG((">CEC"));
     NEXUS_CecModule_GetDefaultSettings(&state->cecSettings);
     state->cecSettings.common.standbyLevel = NEXUS_ModuleStandbyLevel_eAlwaysOn;
+    state->cecSettings.hdmiOutput = g_NEXUS_platformHandles.hdmiOutput;
     g_NEXUS_platformHandles.cec = NEXUS_CecModule_Init(&state->cecSettings);
     if ( !g_NEXUS_platformHandles.cec) {
         BDBG_ERR(("Unable to init CEC"));
