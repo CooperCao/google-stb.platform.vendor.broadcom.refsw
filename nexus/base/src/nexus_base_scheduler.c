@@ -155,7 +155,6 @@ struct NEXUS_P_Scheduler {
     bool exit;
     bool timerDirty;
     bool finished;
-    bool wakeup;
     uint8_t priority; /* used only for debugging */
     BLST_S_HEAD(head_event, NEXUS_EventCallback) events; /* list of events */
     BLST_S_HEAD(head_timer, NEXUS_Timer) timers; /* sorted list of timers */
@@ -907,7 +906,7 @@ NEXUS_P_SchedulerGetRequest(NEXUS_P_Scheduler *scheduler, NEXUS_P_SchedulerReque
     NEXUS_LockModule();
     request->timeout = 0;
     request->idle = false;
-    if(scheduler->exit || scheduler->wakeup) {
+    if(scheduler->exit) {
         goto done;
     }
     if(scheduler->status.state == NEXUS_Scheduler_State_eStarting) {
@@ -1147,13 +1146,7 @@ NEXUS_P_Scheduler_Step(NEXUS_P_Scheduler *scheduler, unsigned timeout, NEXUS_P_B
 done:
     status->timeout = 0;
     status->idle = false;
-    if (scheduler->wakeup) {
-        scheduler->wakeup = false;
-        status->exit = false;
-    }
-    else {
-        status->exit = true;
-    }
+    status->exit = true;
     return NEXUS_SUCCESS;
 }
 
@@ -1243,7 +1236,6 @@ NEXUS_P_Scheduler_Init(NEXUS_ModulePriority priority, const char *name, const NE
     scheduler->exit = false;
     scheduler->timerDirty = true;
     scheduler->finished = false;
-    scheduler->wakeup = false;
     scheduler->thread = NULL;
     BLST_S_INIT(&scheduler->events);
     BLST_S_INIT(&scheduler->timers);
@@ -1458,19 +1450,6 @@ NEXUS_P_Base_ExternalScheduler_Step(NEXUS_ModulePriority priority, unsigned time
 
     scheduler = NEXUS_P_Base_State.schedulers[priority];
     return NEXUS_P_Scheduler_Step(scheduler, timeout, status, complete, context);
-}
-
-void
-NEXUS_P_Base_ExternalScheduler_Wakeup(void)
-{
-    unsigned i;
-    for(i=0;i<sizeof(NEXUS_P_Base_State.schedulers)/sizeof(NEXUS_P_Base_State.schedulers[0]);i++) {
-        NEXUS_P_Scheduler *scheduler = NEXUS_P_Base_State.schedulers[i];
-        if (scheduler) {
-            scheduler->wakeup = true;
-            BKNI_SetEvent(scheduler->control);
-        }
-    }
 }
 #endif
 
