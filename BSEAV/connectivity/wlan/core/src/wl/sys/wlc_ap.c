@@ -1641,20 +1641,34 @@ wlc_ap_authresp(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg,
 
 	switch (auth_seq) {
 	case 1:
+		/* free all scbs for this sta
+		 * PR38890:Check if scb for the STA already exists, if so then
+		 * free it to resurrect scb from the scratch.
+		 */
 		for (i = 0; i < (int)NBANDS(wlc); i++) {
+			int idx;
+			wlc_bsscfg_t *cfg;
+
 			/* Use band 1 for single band 11a */
 			if (IS_SINGLEBAND_5G(wlc->deviceid, wlc->phy_cap))
 				i = BAND_5G_INDEX;
 
-			scb = wlc_scbfindband(wlc, bsscfg, (struct ether_addr *)&hdr->sa, i);
-			if (scb) {
-				WL_ASSOC(("wl%d: %s: scb for the STA-%s already exists\n",
-				          wlc->pub->unit, __FUNCTION__, sa));
-				/* call early to cleanup any pkts in common q
-				 * for scb before wlc_scbfree; then record
-				 * remaining pktpend cnt.
-				 */
-				wlc_scbfree(wlc, scb);
+			FOREACH_BSS(wlc, idx, cfg) {
+				scb = wlc_scbfindband(wlc, cfg, (struct ether_addr *)&hdr->sa, i);
+				if (scb) {
+					WL_ASSOC(("wl%d: %s: scb for the STA-%s"
+						" already exists\n", wlc->pub->unit, __FUNCTION__,
+						sa));
+#ifdef WLBTAMP
+					if ((scb->bsscfg == cfg) && BSS_BTA_ENAB(wlc, cfg)) {
+						WL_BTA(("wl%d: %s: preserving pre-existing "
+							"BT-AMP peer %s\n",
+							wlc->pub->unit, __FUNCTION__, sa));
+						goto btamp_sanity;
+					}
+#endif /* WLBTAMP */
+					wlc_scbfree(wlc, scb);
+				}
 			}
 		}
 
@@ -1677,6 +1691,10 @@ wlc_ap_authresp(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg,
 		}
 
 		wlc_scb_disassoc_cleanup(wlc, scb);
+
+#ifdef WLBTAMP
+	btamp_sanity:
+#endif /* WLBTAMP */
 
 		/* auth_alg is coming from the STA, not us */
 		scb->auth_alg = (uint8)auth_alg;

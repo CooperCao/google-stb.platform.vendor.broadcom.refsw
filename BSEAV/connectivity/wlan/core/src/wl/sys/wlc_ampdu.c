@@ -2834,7 +2834,7 @@ wlc_ampdu_doiovar(void *hdl, uint32 actionid,
 			ampdu_tx_cfg->rr_retry_limit_tid[i] = (uint8)int_val;
 		break;
 	}
-
+#ifdef AMPDU_NON_AQM
 	case IOV_GVAL(IOV_AMPDU_MFBR):
 		*ret_int_ptr = (int32)ampdu_tx_cfg->mfbr;
 		break;
@@ -2842,7 +2842,7 @@ wlc_ampdu_doiovar(void *hdl, uint32 actionid,
 	case IOV_SVAL(IOV_AMPDU_MFBR):
 		ampdu_tx_cfg->mfbr = bool_val;
 		break;
-
+#endif /* AMPDU_NON_AQM */
 	case IOV_GVAL(IOV_AMPDU_TX_LOWAT):
 		*ret_int_ptr = (int32)ampdu_tx_cfg->tx_rel_lowat;
 		break;
@@ -2850,7 +2850,7 @@ wlc_ampdu_doiovar(void *hdl, uint32 actionid,
 	case IOV_SVAL(IOV_AMPDU_TX_LOWAT):
 		ampdu_tx_cfg->tx_rel_lowat = (uint8)int_val;
 		break;
-
+#ifdef AMPDU_NON_AQM
 	case IOV_SVAL(IOV_AMPDU_MAX_TXFUNFL):
 		ampdu_tx_cfg->tx_max_funl = (uint32)int_val;
 		wlc_ffpld_init(ampdu_tx_cfg);
@@ -2859,7 +2859,7 @@ wlc_ampdu_doiovar(void *hdl, uint32 actionid,
 	case IOV_GVAL(IOV_AMPDU_MAX_TXFUNFL):
 		*ret_int_ptr = (uint32)ampdu_tx_cfg->tx_max_funl;
 		break;
-
+#endif /* AMPDU_NON_AQM */
 #endif /* BCMINTDBG*/
 
 #if defined(BCMINTDBG) || defined(WL_EXPORT_AMPDU_RETRY)
@@ -4552,6 +4552,7 @@ wlc_ampdu_txeval(ampdu_tx_info_t *ampdu_tx, scb_ampdu_tx_t *scb_ampdu,
 	wlc_info_t *wlc = ampdu_tx->wlc;
 	wlc_bsscfg_t *cfg;
 	struct scb *scb;
+        uint16 chspec_bw = CHSPEC_BW(wlc->chanspec);
 
 	ASSERT(scb_ampdu);
 	ASSERT(ini);
@@ -4676,7 +4677,7 @@ wlc_ampdu_txeval(ampdu_tx_info_t *ampdu_tx, scb_ampdu_tx_t *scb_ampdu,
 	if ((in_transit < ampdu_tx_cfg->tx_rel_lowat) ||
 		wlc_ampdu_atf_lowat_release(ampdu_tx, ini) ||
 	    (n_mpdus_to_release == MIN(scb_ampdu->release, ini->ba_wsize)) ||
-	    force || AMPDU_HW_ENAB(wlc->pub) /* || AMPDU_AQM_ENAB(wlc->pub) */ )
+	    force || AMPDU_HW_ENAB(wlc->pub) || ( AMPDU_AQM_ENAB(wlc->pub) && BW_LE40(chspec_bw)))
 	{
 		AMPDU_ATF_INCRSTAT(&AMPDU_ATF_STATS(ini)->inputq, qlen);
 

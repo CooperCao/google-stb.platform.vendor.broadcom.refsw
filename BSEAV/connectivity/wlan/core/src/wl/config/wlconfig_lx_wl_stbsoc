@@ -76,3 +76,10 @@ WLAMSDU_SWDEAGG=0
 
 #Set this to read nvram settings from wlan flash
 NVRAM_FLASH=1
+
+# make sure that only AQM option is enabled
+WLAMPDU_UCODE=0
+WLAMPDU_UCODE_ONLY=0
+WLAMPDU_HW=0
+WLAMPDU_AQM=1
+

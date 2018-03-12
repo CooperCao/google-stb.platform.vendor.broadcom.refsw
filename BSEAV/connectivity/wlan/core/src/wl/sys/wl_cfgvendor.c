@@ -99,7 +99,7 @@ int wl_cfgvendor_send_async_event(struct wiphy *wiphy,
 	u16 kflags;
 	struct sk_buff *skb;
 
-	kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 
 	/* Alloc the SKB for vendor_event */
 #if (defined(CONFIG_ARCH_MSM) && defined(SUPPORT_WDEV_CFG80211_VENDOR_EVENT_ALLOC)) || \
@@ -267,7 +267,7 @@ wl_cfgvendor_send_hotlist_event(struct wiphy *wiphy,
 		   (malloc_len - VENDOR_DATA_OVERHEAD)/sizeof(wifi_gscan_result_t);
 		total = total - iter_cnt_to_send;
 
-		kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+		kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 
 		/* Alloc the SKB for vendor_event */
 #if (defined(CONFIG_ARCH_MSM) && defined(SUPPORT_WDEV_CFG80211_VENDOR_EVENT_ALLOC)) || \
@@ -1014,7 +1014,7 @@ wl_cfgvendor_rtt_evt(void *ctx, void *rtt_data)
 		return;
 	}
 	rtt_cache_list = (struct list_head *)rtt_data;
-	kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	if (list_empty(rtt_cache_list)) {
 #if (defined(CONFIG_ARCH_MSM) && defined(SUPPORT_WDEV_CFG80211_VENDOR_EVENT_ALLOC)) || \
 	LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
@@ -1670,7 +1670,7 @@ static int wl_cfgvendor_nan_parse_args(struct wiphy *wiphy,
 	int ret = BCME_OK;
 	int attr_type;
 	int rem = len;
-	u16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	u16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	const struct nlattr *iter;
 
 	NAN_DBG_ENTER();
@@ -2033,7 +2033,7 @@ int wl_cfgvendor_send_nan_event(struct wiphy *wiphy, struct net_device *dev,
 {
 	int ret = BCME_OK;
 	int buf_len = NAN_EVENT_BUFFER_SIZE;
-	u16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	u16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
 	struct sk_buff *msg;
 
@@ -2950,7 +2950,7 @@ static int wl_cfgvendor_dbg_get_version(struct wiphy *wiphy,
 	const struct nlattr *iter;
 	gfp_t kflags;
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
-	kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	buf_ptr = kzalloc(buf_len, kflags);
 	if (!buf_ptr) {
 		WL_ERR(("failed to allocate the buffer for version n"));
@@ -3089,7 +3089,7 @@ static void wl_cfgvendor_dbg_ring_send_evt(void *ctx,
 		WL_ERR(("ndev is NULL\n"));
 		return;
 	}
-	kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	wiphy = ndev->ieee80211_ptr->wiphy;
 	/* Alloc the SKB for vendor_event */
 #if (defined(CONFIG_ARCH_MSM) && defined(SUPPORT_WDEV_CFG80211_VENDOR_EVENT_ALLOC)) || \
@@ -3121,7 +3121,7 @@ static void wl_cfgvendor_dbg_send_urgent_evt(void *ctx, const void *data,
 		WL_ERR(("ndev is NULL\n"));
 		return;
 	}
-	kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	wiphy = ndev->ieee80211_ptr->wiphy;
 	/* Alloc the SKB for vendor_event */
 #if (defined(CONFIG_ARCH_MSM) && defined(SUPPORT_WDEV_CFG80211_VENDOR_EVENT_ALLOC)) || \
@@ -3267,7 +3267,7 @@ static int wl_cfgvendor_start_mkeep_alive(struct wiphy *wiphy, struct wireless_d
 	const struct nlattr *iter;
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
 	dhd_pub_t *dhd_pub = cfg->pub;
-	gfp_t kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	gfp_t kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 
 	nla_for_each_attr(iter, data, len, rem) {
 		type = nla_type(iter);
@@ -3425,7 +3425,7 @@ wl_cfgvendor_apf_set_filter(struct wiphy *wiphy,
 					ret = -EINVAL;
 					goto exit;
 				}
-				kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+				kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 				program = kzalloc(program_len, kflags);
 				if (unlikely(!program)) {
 					WL_ERR(("%s: can't allocate %d bytes\n",

@@ -1685,6 +1685,14 @@ wlc_ps_allowed(wlc_bsscfg_t *cfg)
 
 	/* disallow PS when one of the following bsscfg specific conditions meets */
 	if (/*!cfg->BSS || */
+#ifdef WOWL
+		/* In some test cases, after waking up with magic packet, system is still in wowl mode 
+		* which makes SW PS state different from MAC PM state so when wlc_watchdog handler kicks in, 
+		* it causes an assert. This will avoid that assert and user level application will have enough 
+		* time to set the WLAN device to non-wowl mode
+		*/
+		WOWL_ACTIVE(wlc->pub) ||
+#endif
 	    !cfg->associated ||
 	    !pm->PMenabled ||
 	    pm->PM_override ||

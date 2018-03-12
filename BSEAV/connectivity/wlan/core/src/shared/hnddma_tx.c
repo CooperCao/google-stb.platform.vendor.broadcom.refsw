@@ -597,7 +597,7 @@ dma64_dd_upd_64_from_struct(dma_info_t *di, dma64dd_t *ddring, dma64dd_t *dd, ui
 			W_SM(&ddring[outidx].ctrl2, BUS_SWAP32(dd->ctrl2 | D64_CTRL2_PARITY));
 		}
 	}
-#if defined(__ARM_ARCH_7A__) && defined(CA7)
+#if (defined(__ARM_ARCH_7A__) && defined(CA7)) || (defined(STB_SOC_WIFI))
 	/* memory barrier before posting the descriptor */
 	DMB();
 #endif

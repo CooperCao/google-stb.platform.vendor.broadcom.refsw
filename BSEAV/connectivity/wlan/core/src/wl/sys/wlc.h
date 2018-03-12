@@ -424,6 +424,7 @@ extern const uint8 prio2fifo[];
 #define DATA_BLOCK_TX_SUPR	(1 << 4) /* wlc_sendq() will block if DATA_BLOCK_TX_SUPR is set */
 #define DATA_BLOCK_TXCHAIN	(1 << 5)
 #define DATA_BLOCK_SPATIAL	(1 << 6)
+#define DATA_BLOCK_MUTX     (1 << 7)
 
 /* Ucode MCTL_WAKE override bits */
 #define WLC_WAKE_OVERRIDE_CLKCTL	0x01

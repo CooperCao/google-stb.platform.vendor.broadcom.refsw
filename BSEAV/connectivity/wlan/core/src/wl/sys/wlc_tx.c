@@ -5178,8 +5178,14 @@ wlc_prep_pdu(wlc_info_t *wlc, struct scb *scb, void *pdu, uint *fifop)
 	}
 
 	/* Something is blocking data packets */
-	if (wlc->block_datafifo & DATA_BLOCK_PS)
+	if (wlc->block_datafifo & ~DATA_BLOCK_JOIN) {
+		if (wlc->block_datafifo & (DATA_BLOCK_TX_SUPR |
+			DATA_BLOCK_TXCHAIN | DATA_BLOCK_SPATIAL | DATA_BLOCK_MUTX)) {
+			WL_ERROR(("wl%d: %s: block_datafifo 0x%x\n",
+				wlc->pub->unit, __FUNCTION__, wlc->block_datafifo));
+		}
 		return BCME_BUSY;
+	}
 
 	/* add the txhdr if not present */
 	if ((pkttag->flags & WLF_TXHDR) == 0)
@@ -11780,6 +11786,7 @@ wlc_txq_alloc(wlc_info_t *wlc, osl_t *osh)
 {
 	wlc_txq_info_t *qi, *p;
 	int i;
+        uint16 chspec_bw = CHSPEC_BW(wlc->chanspec);
 #if defined(TXQ_MUX)
 	uint ac;
 #else
@@ -11874,7 +11881,7 @@ wlc_txq_alloc(wlc_info_t *wlc, osl_t *osh)
 	 * Allocated for all physical queues in the device
 	 */
 	qi->low_txq = wlc_low_txq_alloc(wlc->txqi, wlc_pull_q, wlc, no_hw_fifos,
-		wlc_get_txmaxpkts(wlc), wlc_get_txmaxpkts(wlc)/2);
+		wlc_get_txmaxpkts(wlc), BW_LE40(chspec_bw)? wlc_get_txmaxpkts(wlc)/4: wlc_get_txmaxpkts(wlc)/2);
 
 	if (qi->low_txq == NULL) {
 		WL_ERROR(("wl%d: %s: wlc_low_txq_alloc failed\n", wlc->pub->unit, __FUNCTION__));

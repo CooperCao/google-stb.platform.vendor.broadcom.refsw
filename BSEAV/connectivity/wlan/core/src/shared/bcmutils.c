@@ -4025,6 +4025,7 @@ bcm_bitcount(uint8 *bitmap, uint length)
 	return bitcount;
 }
 
+#ifdef BCMDRIVER
 /*
  * ProcessVars:Takes a buffer of "<var>=<value>\n" lines read from a file and ending in a NUL.
  * also accepts nvram files which are already in the format of <var1>=<value>\0\<var2>=<value2>\0
@@ -4079,6 +4080,7 @@ process_nvram_vars(char *varbuf, unsigned int len)
 
 	return buf_len;
 }
+#endif /* BCMDRIVER */
 
 /* calculate a * b + c */
 void
@@ -4929,7 +4931,8 @@ getbits(const uint8 *addr, uint size, uint stbit, uint nbits)
 	return val;
 }
 
-#ifdef NVRAM_FLASH
+#ifdef BCMDRIVER
+#if defined(NVRAM_FLASH) || defined(BCMNVRAMR)
 char *
 getflashvar(char *vars, const char *name)
 {
@@ -4965,9 +4968,12 @@ getflashintvar(char *vars, const char *name)
 
 	return (bcm_strtoul(val, NULL, 0));
 }
+#endif /*NVRAM_FLASH || BCMNVRAMR */
 
+#if defined(NVRAM_FLASH)
+#if defined(OEM_ANDROID)
 int
-get_num_of_emmc_patt (osl_t *osh, int blkid)
+get_num_of_emmc_patt(osl_t *osh, int blkid)
 {
 	int count = 0;
 	char *buf = NULL;
@@ -5025,7 +5031,6 @@ exit:
 	return count;
 }
 
-#if defined(OEM_ANDROID)
 /*Find path of emmc dev by name (Andriod)*/
 int
 find_emmc_devpath(osl_t *osh, char* flshdevpath, int emmcblk, char *name, int size)
@@ -5370,3 +5375,4 @@ find_wlanflash_dev(osl_t *osh, char *flshdevpath, int size)
 	return err;
 }
 #endif /* NVRAM_FLASH */
+#endif /* BCMDRIVER */

@@ -189,6 +189,8 @@ typedef enum {
 	TOTAL_DESENSE
 } phy_ac_desense_type_t;
 
+#define ACPHY_LESI_OFF_NOISE_THRESH   -25
+
 extern uint8 wlc_phy_rxgainctrl_encode_gain_acphy(phy_info_t *pi, uint8 core, int8 gain_dB,
 	bool trloss, bool lna1byp, uint8 clipgain, uint8 *gidx);
 extern uint8 wlc_phy_get_lna_gain_rout(phy_info_t *pi, uint8 idx,
@@ -252,6 +254,7 @@ extern void wlc_phy_set_srom_eu_edthresh_acphy(phy_info_t *pi);
 void phy_ac_rxgcrs_lesi(phy_ac_rxgcrs_info_t *rxgcrsi, bool on, uint8 delta_halfdB);
 int phy_ac_rxgcrs_iovar_set_lesi(phy_ac_rxgcrs_info_t *rxgcrsi, int32 set_val);
 int phy_ac_rxgcrs_iovar_get_lesi(phy_ac_rxgcrs_info_t *rxgcrsi, int32 *ret_val);
+bool phy_ac_rxgcrs_lesi_off_noise_level(phy_ac_rxgcrs_info_t *rxgcrsi);
 bool phy_ac_rxgcrs_get_lesi(phy_ac_rxgcrs_info_t *rxgcrsi);
 extern void phy_ac_get_fem_rxgains(phy_info_t *pi, int8 *rx_gains);
 extern void phy_ac_get_rxgains_ctrl(phy_info_t *pi, int8 *rx_gains, int8 *input_param);

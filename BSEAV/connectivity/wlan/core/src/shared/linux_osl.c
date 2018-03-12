@@ -190,29 +190,36 @@ static int16 linuxbcmerrormap[] =
 	-ENODATA,		/* BCME_NONRESIDENT */
 	-EINVAL,		/* BCME_SCANREJECT */
 	-EINVAL,		/* BCME_USAGE_ERROR */
-	-EIO,     		/* BCME_IOCTL_ERROR */
+	-EIO,			/* BCME_IOCTL_ERROR */
 	-EIO,			/* BCME_SERIAL_PORT_ERR */
-	-EOPNOTSUPP,	/* BCME_DISABLED, BCME_NOTENABLED */
+	-EOPNOTSUPP,		/* BCME_DISABLED, BCME_NOTENABLED */
 	-EIO,			/* BCME_DECERR */
 	-EIO,			/* BCME_ENCERR */
 	-EIO,			/* BCME_MICERR */
 	-ERANGE,		/* BCME_REPLAY */
 	-EINVAL,		/* BCME_IE_NOTFOUND */
 	-EINVAL,		/* BCME_DATA_NOTFOUND */
-	-EINVAL,        /* BCME_NOT_GC */
-	-EINVAL,        /* BCME_PRS_REQ_FAILED */
-	-EINVAL,        /* BCME_NO_P2P_SE */
-	-EINVAL,        /* BCME_NOA_PND */
-	-EINVAL,        /* BCME_FRAG_Q_FAILED */
-	-EINVAL,        /* BCME_GET_AF_FAILED */
+	-EINVAL,		/* BCME_NOT_GC */
+	-EINVAL,		/* BCME_PRS_REQ_FAILED */
+	-EINVAL,		/* BCME_NO_P2P_SE */
+	-EINVAL,		/* BCME_NOA_PND */
+	-EINVAL,		/* BCME_FRAG_Q_FAILED */
+	-EINVAL,		/* BCME_GET_AF_FAILED */
 	-EINVAL,		/* BCME_MSCH_NOTREADY */
 	-EINVAL,		/* BCME_IOV_LAST_CMD */
+	-EINVAL,		/* BCME_MINIPMU_CAL_FAIL */
+	-EINVAL,		/* BCME_RCAL_FAIL */
+	-EINVAL,		/* BCME_LPF_RCCAL_FAIL */
+	-EINVAL,		/* BCME_DACBUF_RCCAL_FAIL */
+	-EINVAL,		/* BCME_VCOCAL_FAIL */
+	-EINVAL,		/* BCME_BANDLOCKED */
+	-EINVAL,		/* BCME_BAD_IE_DATA */
 
 /* When an new error code is added to bcmutils.h, add os
  * specific error translation here as well
  */
 /* check if BCME_LAST changed since the last time this function was updated */
-#if BCME_LAST != -61
+#if BCME_LAST != -68
 #error "You need to add a OS error translation in the linuxbcmerrormap \
 	for new error code defined in bcmutils.h"
 #endif

@@ -191,6 +191,7 @@ struct phy_ac_rxgcrs_info {
 	/* lesi */
 	int8 lesi;
 	bool lesi_mode;
+        bool lesi_off_noise_th;
 	bool tia_idx_max_eq_init;
 	/* Flag for enabling auto lesiscale cal */
 	bool lesiscalecal_enable;
@@ -5854,6 +5855,7 @@ wlc_phy_crs_min_pwr_cal_acphy(phy_info_t *pi, uint8 crsmin_cal_mode)
 #endif /* WL11ULB */
 
 		PHY_CAL(("%s: cmplx_pwr (%d) =======  %d\n", __FUNCTION__, i, cmplx_pwr_dbm[i]));
+		rxgcrsi->lesi_off_noise_th = cmplx_pwr_dbm[i] >= ACPHY_LESI_OFF_NOISE_THRESH ? TRUE: FALSE;
 		/* out of bound */
 		if ((idxlists[core_count].idx < 0) ||
 		    (idxlists[core_count].idx > (thresh_sz - 1))) {
@@ -9830,6 +9832,16 @@ bool phy_ac_rxgcrs_get_lesi(phy_ac_rxgcrs_info_t *rxgcrsi)
 	}
 	else
 		return rxgcrsi->lesi;
+}
+
+bool phy_ac_rxgcrs_lesi_off_noise_level(phy_ac_rxgcrs_info_t *rxgcrsi)
+{
+	if (phy_ac_rxgcrs_get_lesi(rxgcrsi) == TRUE) {
+		return rxgcrsi->lesi_off_noise_th;
+	}
+	else {
+		return FALSE;
+	}
 }
 
 static uint16
