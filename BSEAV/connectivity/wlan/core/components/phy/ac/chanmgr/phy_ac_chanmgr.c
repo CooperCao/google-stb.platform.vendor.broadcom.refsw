@@ -11604,9 +11604,9 @@ wlc_phy_ac_femctrl_mask_on_band_change(phy_info_t *pi)
 			if ((!(CHIPID(pi->sh->chip) == BCM43602_CHIP_ID ||
 				CHIPID(pi->sh->chip) == BCM43462_CHIP_ID)) &&
 				BF_SROM11_BTCOEX(pi_ac)) {
-#if !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33)))
+#if !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33) || defined(PHY_ACMAJORREV_37)))
 				if (ACMAJORREV_32(pi->pubpi->phy_rev) ||
-					ACMAJORREV_33(pi->pubpi->phy_rev)) {
+					ACMAJORREV_33(pi->pubpi->phy_rev) || ACMAJORREV_37(pi->pubpi->phy_rev)) {
 					if (BOARDFLAGS(GENERIC_PHY_INFO(pi)->boardflags) &
 						BFL2_BT_SHARE_ANT0) {
 						MOD_PHYREG(pi, FemCtrl, enBtSignalsToFEMLut, 0x1);

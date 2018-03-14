@@ -988,6 +988,11 @@ driver_message_dispatch(nas_t *nas, bcm_event_t *dpkt)
 		dbg(nas, "auth type = %d type = %d\n", auth_type, type);
 		if ((auth_type == DOT11_FAST_BSS) && (type == WLC_E_REASSOC_IND)) {
 			dbg(nas, "No need to do anything here for reassociation in case of FBT");
+			/* Flush the nonces to avoid it's reuse */
+			if (sta) {
+				memset(sta->suppl.snonce, 0, NONCE_LEN);
+				memset(sta->suppl.anonce, 0, NONCE_LEN);
+			}
 			return;
 		}
 		if (wpa_driver_assoc_msg(nas->wpa, dpkt, sta) == 0)

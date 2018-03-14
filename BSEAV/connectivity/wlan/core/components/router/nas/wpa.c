@@ -3400,6 +3400,15 @@ wpa_setkeysdone(wpa_t *wpa, nas_sta_t *sta, eapol_header_t *eapol)
 		}
 		return;
 	}
+	if ((key_info & WPA_KEY_REQ) || (key_info & WPA_KEY_ERROR)) {
+		/* Rekey request and MIC failure report must have MIC.
+		 * Check the MIC.
+		 */
+		if ((!(key_info & WPA_KEY_MIC)) || (wpa_check_mic(sta, eapol) == FALSE)) {
+			dbg(wpa->nas, "MIC check failed; ignoring message");
+			return;
+		}
+	}
 	/* The combination of REQ, ERROR, and MIC is the STA's way
 	 * of informing the authenticator of a MIC failure.
 	 */
@@ -3603,7 +3612,7 @@ eapol_sup_process_key(wpa_t *wpa, eapol_header_t *eapol, nas_sta_t *sta)
 					 */
 					if (memcmp(sta->suppl.eapol_temp_ptk,
 						sta->suppl.temp_encr_key,
-						sta->suppl.ptk_len)) {
+						sta->suppl.tk_len)) {
 						UpdatePTK = TRUE;
 					}
 					else {
@@ -3679,7 +3688,7 @@ eapol_sup_process_key(wpa_t *wpa, eapol_header_t *eapol, nas_sta_t *sta)
 		else {
 			memset(sta->suppl.eapol_temp_ptk, 0, sizeof(sta->suppl.eapol_temp_ptk));
 			memcpy(sta->suppl.eapol_temp_ptk, sta->suppl.temp_encr_key,
-				sta->suppl.ptk_len);
+				sta->suppl.tk_len);
 			sta->suppl.pk_state = EAPOL_SUP_PK_DONE;
 		}
 	}

@@ -164,7 +164,7 @@ typedef struct wpa_suppl {
 #ifdef BCMSUPPL
 	/* need to differentiate message 1 and 3 in 4 way handshake */
 	eapol_sup_pk_state_t pk_state;
-	uint8 eapol_temp_ptk[TKIP_PTK_LEN];     /* Temp PTK */
+	uint8 eapol_temp_ptk[TKIP_TK_LEN];		/* Temp PTK */
 #endif /* BCMSUPPL */
 #ifdef WLHOSTFBT
 	supp_ft_t ft_info;
@@ -224,6 +224,7 @@ typedef struct nas_sta {
 #endif /* WLWNM */
 	/* WPA capabilities */
 	uint8 cap[WPA_CAP_LEN];
+	bool auth_retx;         /* If auth frame is retransmitted */
 } nas_sta_t;
 
 /* nas_sta_t flags */

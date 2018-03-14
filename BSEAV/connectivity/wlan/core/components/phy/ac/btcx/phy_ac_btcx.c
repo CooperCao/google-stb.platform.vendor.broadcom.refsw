@@ -903,7 +903,7 @@ phy_ac_btcx_set_mode(phy_type_btcx_ctx_t *ctx, int btc_mode)
 		return BCME_NOTREADY;
 	}
 
-	if (btc_mode == WL_BTC_DISABLE || btc_mode == WL_BTC_DEFAULT) {
+	if (btc_mode == WL_BTC_DISABLE || btc_mode == WL_BTC_DEFAULT ||  ACMAJORREV_37(pi->pubpi->phy_rev)) {
 		WRITE_PHYREG(pi, PktAbortCtrl, pktabortctl);
 		pktabortctl = 0;
 	}

@@ -40,7 +40,7 @@
 struct pend_auth_req_t {
 	bool valid;			/* Processed or not */
 	bool overds;			/* Over the DS or over the air */
-	nas_sta_t *sta;			/* STA MAC */
+	nas_sta_t *sta;			/* NAS STA instance */
 	struct wpa_ft_ies *parse;	/* FT IE */
 	uint8 current_ap[ETH_ALEN];	/* Current AP address to which STA is associated.
 					 * Used only in case of Over the DS
@@ -1018,6 +1018,7 @@ static int32 wpa_ft_process_auth_req(wpa_t *wpa, nas_sta_t *sta, uint8 *data, ui
 	uint32 fbt_overds;
 
 	sta->suppl.ft_info.pmk_r1_name_valid = 0;
+	sta->auth_retx = 0;
 
 	dbg(nas, "FT: Received authentication frame IEs len %d", len);
 
@@ -1048,7 +1049,12 @@ static int32 wpa_ft_process_auth_req(wpa_t *wpa, nas_sta_t *sta, uint8 *data, ui
 	memcpy(wpa->fbt_info.r1_key_holder, buf, FT_R1KH_ID_LEN);
 
 	ftie = (struct rsn_ftie *) parse->ftie;
-	memcpy(sta->suppl.snonce, ftie->snonce, WPA_NONCE_LEN);
+	if (memcmp(sta->suppl.snonce, ftie->snonce, WPA_NONCE_LEN) == 0) {
+		sta->auth_retx = 1;
+		dbg(nas, "Auth frame retransmitted!!");
+		dump(nas, sta->suppl.snonce, WPA_NONCE_LEN);
+		dump(nas, ftie->snonce, WPA_NONCE_LEN);
+	}
 
 	memcpy(sta->suppl.ft_info.r0kh_id, parse->r0kh_id, parse->r0kh_id_len);
 	sta->suppl.ft_info.r0kh_id_len = parse->r0kh_id_len;
@@ -1088,8 +1094,13 @@ static int32 wpa_ft_prepare_auth_resp(wpa_t *wpa, nas_sta_t *sta, uint8 *pmk_r1,
 	int ret;
 
 	/* Get the anonce */
-	memcpy(sta->suppl.anonce, wpa->global_key_counter, NONCE_LEN);
-	wpa_incr_gkc(wpa);
+	if (sta->auth_retx == 0) {
+		/* If SNONCE is different from the previous one, then only get the new ANONCE.
+		 * In case of retry the SNONCE will be same, at that time send the old ANONCE
+		 */
+		memcpy(sta->suppl.anonce, wpa->global_key_counter, NONCE_LEN);
+		wpa_incr_gkc(wpa);
+	}
 
 	dbg(nas, "FT: Received SNonce");
 	dump(nas, sta->suppl.snonce, WPA_NONCE_LEN);
@@ -1201,13 +1212,15 @@ static void wpa_ft_process_ota_auth(wpa_t *wpa, nas_sta_t *sta, uint8 *resp_ies,
 
 	nas_set_fbt_auth_resp(wpa->nas, buf, auth_resp_len);
 
-	/* plumb pairwise key */
-	if (nas_set_key(wpa->nas, &sta->ea, wpa->PTK.tk1,
-		sizeof(wpa->PTK.tk1), 0, 1, 0, 0) < 0) {
-		dbg(wpa->nas, "FT: unicast key rejected by driver, assuming too many "
-			"associated STAs");
-		cleanup_sta(wpa->nas, sta, DOT11_RC_BUSY, 0);
-		return;
+	if (sta->auth_retx == 0) {
+		/* plumb pairwise key */
+		if (nas_set_key(wpa->nas, &sta->ea, wpa->PTK.tk1,
+			sizeof(wpa->PTK.tk1), 0, 1, 0, 0) < 0) {
+			dbg(wpa->nas, "FT: unicast key rejected by driver, assuming too many "
+				"associated STAs");
+			cleanup_sta(wpa->nas, sta, DOT11_RC_BUSY, 0);
+			return;
+		}
 	}
 
 	return;

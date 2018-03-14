@@ -415,7 +415,14 @@ int bcmstrnicmp(const char* s1, const char* s2, int cnt);
 #define BCME_GET_AF_FAILED		-59      /* Get p2p AF pkt failed */
 #define BCME_MSCH_NOTREADY		-60		/* scheduler not ready */
 #define BCME_IOV_LAST_CMD		-61		/* last batched iov sub-command */
-#define BCME_LAST   BCME_IOV_LAST_CMD
+#define BCME_MINIPMU_CAL_FAIL           -62             /* MiniPMU cal failed */
+#define BCME_RCAL_FAIL                  -63             /* Rcal failed */
+#define BCME_LPF_RCCAL_FAIL             -64             /* RCCAL failed */
+#define BCME_DACBUF_RCCAL_FAIL          -65             /* RCCAL failed */
+#define BCME_VCOCAL_FAIL                -66             /* VCOCAL failed */
+#define BCME_BANDLOCKED                 -67             /* interface is restricted to a band */
+#define BCME_BAD_IE_DATA                -68             /* Recieved ie with invalid/bad data */
+#define BCME_LAST			BCME_BAD_IE_DATA
 
 #define BCME_NOTENABLED BCME_DISABLED
 
@@ -493,6 +500,13 @@ int bcmstrnicmp(const char* s1, const char* s2, int cnt);
 	"GET ActionFrame failed", \
 	"scheduler not ready", \
 	"Last IOV batched sub-cmd", \
+	"Mini PMU Cal failed", \
+	"R-cal failed", \
+	"LPF RC Cal failed", \
+	"DAC buf RC Cal failed", \
+	"VCO Cal failed", \
+	"band locked", \
+	"Recieved ie with invalid data", \
 }
 
 #ifndef ABS
@@ -1337,16 +1351,18 @@ extern uint32 sqrt_int(uint32 value);
 #define EMMC_INFO_TMP_FILE "/tmp/emmc_info"
 #define FLASH_DEVICE_NVRAM 2
 
-extern char * getflashvar(char *vars, const char *name);
-extern int getflashintvar(char *vars, const char *name);
 extern int find_wlanflash_dev(osl_t *osh, char *flshdevpath, int size);
 extern int find_nand_devpath(osl_t *osh, char *flshdevpath, char *name, int size);
 extern int find_emmc_devpath(osl_t *osh, char *flshdevpath, int emmcblk, char *name, int size);
 extern int find_emmc_blk_num(osl_t *osh, int *emmcblk_num);
-extern int get_num_of_emmc_patt (osl_t *osh, int blkid);
+extern int get_num_of_emmc_patt(osl_t *osh, int blkid);
 #if !defined(OEM_ANDROID)
 extern void dump_emmc_info(osl_t *osh, char *emmcblk_path, char *file);
 #endif /* !OEM_ANDROID  */
 
 #endif /* NVRAM_FLASH */
+#if defined(NVRAM_FLASH) || defined(BCMNVRAMR)
+extern char * getflashvar(char *vars, const char *name);
+extern int getflashintvar(char *vars, const char *name);
+#endif
 #endif	/* _bcmutils_h_ */

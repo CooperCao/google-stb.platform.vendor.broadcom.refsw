@@ -545,6 +545,8 @@ static void wlc_phy_28nm_radio_pll_logen_pupd_seq(phy_info_t *pi, pll_logen_bloc
 
 #if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
 static void wlc_phy_radio20696_minipmu_pwron_seq(phy_info_t *pi);
+static void wlc_phy_radio20696_minipmu_pwroff_seq(phy_info_t *pi);
+
 static void wlc_phy_radio20696_pwron_seq_phyregs(phy_info_t *pi);
 static void wlc_phy_radio20696_minipmu_cal(phy_info_t *pi);
 static void wlc_phy_radio20696_r_cal(phy_info_t *pi, uint8 mode);
@@ -553,6 +555,7 @@ static void wlc_phy_radio20696_rffe_tune(phy_info_t *pi,
 		const chan_info_radio20696_rffe_t *chan_info_rffe);
 static void wlc_phy_radio20696_upd_band_related_reg(phy_info_t *pi);
 static void wlc_phy_radio20696_pmu_pll_pwrup(phy_info_t *pi);
+
 static void wlc_phy_radio20696_wars(phy_info_t *pi);
 static void wlc_phy_radio20696_refclk_en(phy_info_t *pi);
 static void wlc_phy_radio20696_upd_prfd_values(phy_info_t *pi);
@@ -7618,6 +7621,46 @@ static void wlc_phy_radio20696_minipmu_pwron_seq(phy_info_t *pi)
 		MOD_RADIO_REG_20696(pi, PMU_CFG3, core, vref_select, 0x0);
 	}
 }
+static void wlc_phy_radio20696_minipmu_pwroff_seq(phy_info_t *pi)
+{
+	uint8 core;
+
+	/* Turn on two 1p8LDOs and Bandgap  */
+	MOD_RADIO_REG_20696(pi, BG_OVR1, 1, ovr_bg_pu_bgcore, 0x1);
+	MOD_RADIO_REG_20696(pi, LDO1P8_STAT, 1, ldo1p8_pu, 0x0);
+	MOD_RADIO_REG_20696(pi, LDO1P8_STAT, 3, ldo1p8_pu, 0x0);
+	MOD_RADIO_REG_20696(pi, BG_REG2, 1, bg_pu_bgcore, 0x0);
+	MOD_RADIO_REG_20696(pi, BG_REG2, 1, bg_pu_V2I, 0x0);
+
+	/* Hold RF PLL in reset */
+	MOD_RADIO_PLLREG_20696(pi, PLL_VCOCAL_OVR1, ovr_rfpll_vcocal_rst_n, 0x1);
+	MOD_RADIO_PLLREG_20696(pi, PLL_CFG2, rfpll_rst_n, 0x0);
+	MOD_RADIO_PLLREG_20696(pi, PLL_OVR1, ovr_rfpll_rst_n, 0x1);
+	MOD_RADIO_PLLREG_20696(pi, PLL_VCOCAL1, rfpll_vcocal_rst_n, 0x0);
+
+	FOREACH_CORE(pi, core) {
+		/* Overwrites */
+		MOD_RADIO_REG_20696(pi, PMU_OVR1, core, ovr_wlpmu_ADCldo_pu, 0x1);
+		MOD_RADIO_REG_20696(pi, PMU_OVR1, core, ovr_wlpmu_AFEldo_pu, 0x1);
+		MOD_RADIO_REG_20696(pi, PMU_OVR1, core, ovr_wlpmu_LDO2P1_pu, 0x1);
+		MOD_RADIO_REG_20696(pi, PMU_OVR1, core, ovr_wlpmu_LOGENldo_pu, 0x1);
+		MOD_RADIO_REG_20696(pi, PMU_OVR1, core, ovr_wlpmu_TXldo_pu, 0x1);
+		MOD_RADIO_REG_20696(pi, PMU_OVR1, core, ovr_wlpmu_en, 0x1);
+
+		MOD_RADIO_REG_20696(pi, RX2G_REG4, core, rx_ldo_pu, 0x0);
+		MOD_RADIO_REG_20696(pi, LDO1P65_STAT, core, wlpmu_ldo1p6_pu, 0x0);
+		MOD_RADIO_REG_20696(pi, PMU_CFG1, core, wlpmu_ADCldo_pu, 0x0);
+		MOD_RADIO_REG_20696(pi, PMU_CFG1, core, wlpmu_AFEldo_pu, 0x0);
+		MOD_RADIO_REG_20696(pi, PMU_CFG4, core, wlpmu_LDO2P1_pu, 0x0);
+		MOD_RADIO_REG_20696(pi, PMU_CFG1, core, wlpmu_LOGENldo_pu, 0x0);
+		MOD_RADIO_REG_20696(pi, PMU_CFG1, core, wlpmu_TXldo_pu, 0x0);
+		MOD_RADIO_REG_20696(pi, PMU_CFG4, core, wlpmu_en, 0x0);
+		MOD_RADIO_REG_20696(pi, PMU_CFG3, core, vref_select, 0x1);
+        MOD_RADIO_REG_20696(pi, WLLDO1P8_OVR, 1, ovr_ldo1p8_pu, 0x1);
+        MOD_RADIO_REG_20696(pi, WLLDO1P8_OVR, 3, ovr_ldo1p8_pu, 0x1);
+	}
+}
+
 #endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696)) */
 
 #if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
@@ -8465,6 +8508,13 @@ wlc_phy_switch_radio_acphy(phy_info_t *pi, bool on)
 			}
 		}
 #endif /* !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20691)) */
+#if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20696))
+
+    if (RADIOID(pi->pubpi->radioid) == BCM20696_ID) {
+        /* PD the TX/RX/VCO/..LDO's  */
+        wlc_phy_radio20696_minipmu_pwroff_seq(pi);
+    }
+#endif
 #if !defined(RADIO_ID)  || (defined(RADIO_ID) && defined(RADIO_BCM20693))
 		if (RADIOID_IS(pi->pubpi->radioid, BCM20693_ID)) {
 			if (RADIOMAJORREV(pi) != 3) {

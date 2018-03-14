@@ -28,7 +28,7 @@
 #include <bcmdevs.h>
 #include <sflash.h>
 #include <hndsoc.h>
-#ifdef NVRAM_FLASH
+#if defined(NVRAM_FLASH) || defined(BCMNVRAMR)
 #include <bcmsrom_tbl.h>
 #endif /* NVRAM_FLASH */
 
@@ -52,25 +52,33 @@ typedef struct _vars {
 
 static vars_t *vars = NULL;
 
-#if !defined(BCMDONGLEHOST)
-#define NVRAM_FILE	1
-#endif
-
 #ifdef NVRAM_FLASH
+static void read_wlan_flash(si_t *sih, osl_t *osh,  char **nvramp, int *nvraml);
+static uint8 soc_nvram_calc_crc(struct nvram_header *nvh);
+#endif /* NVRAM_FLASH */
+
+#if defined(NVRAM_FLASH) || defined(BCMNVRAMR)
+#define FILE_PATHLEN	512
+#define NVRAM_FILE_OEM_ANDROID "/hwcfg/nvm.txt"
+#define NVRAM_FILE_DEFAULT "nvram.txt"
+extern char nvram_path[];
+extern char board_nvram_path[];
+
 static int flash_update_nvbuf(osl_t *osh, char *nvram_buf, int *nvramlen, char *flshdev_data, char *pvar, char *pvalue);
 static int flash_add_new_var(osl_t *osh, char *nvram_buf, int *nvramlen, char *pvar, char *pvalue);
 static int flash_modify_var(osl_t *osh, char *nvram_buf,int *nvramlen, char *pvar, char *pvalue);
-static uint8 soc_nvram_calc_crc(struct nvram_header *nvh);
-static void read_wlan_flash(si_t *sih, osl_t *osh,  char **nvramp, int *nvraml);
 static int get_pavar_tbl(const pavars_t **pav, uint32 paparambwver, uint32 sromrev);
 static int pavar_check(osl_t *osh, char *nvram_buf, char *flshdev_data, int32 *value_each_subband, int32 *panum, bool *ispa, char *pvar, char *pvalue);
 static int update_po_value(osl_t *osh, char *nvram_buf, char *pnvvalue, int *nvramlen, uint16 *podata, int32 ponum, int32 value_each_subband);
 static int remove_devpath_var(si_t *sih, char **pvar);
-#endif /* NVRAM_FLASH */
+static int board_nvram_update(si_t *sih, osl_t *osh, char *nvram_buf, int *nvramlen, char *board_tmpbuf, char *board_buf, int board_buflen);
+#endif /* NVRAM_FLASH || BCMNVRAMR */
 
-#ifdef NVRAM_FILE
+#if defined(BCMNVRAMR)
 static int nvram_file_init(void* sih);
-static int initvars_file(si_t *sih, osl_t *osh, char **nvramp, int *nvraml);
+static char* get_default_nvram_filename(void);
+static char* get_board_nvram_filename(void);
+static int initvars_file(si_t *sih, osl_t *osh, char *nvram_file, char **nvramp, int *nvraml);
 #endif
 
 static char *findvar(char *vars_arg, char *lim, const char *name);
@@ -357,39 +365,142 @@ BCMATTACHFN(nvram_init)(void *si)
 #endif /* FLASH */
 
 #if defined(BCMHOSTVARS)
-#if defined(BCMHOSTVARS)
 	/* Honor host supplied variables and make them global */
 	if (_vars != NULL && _varsz != 0)
 		nvram_append(si, _vars, _varsz);
 #endif	
-#endif	
 
-#ifdef NVRAM_FILE
+#if defined(BCMNVRAMR)
 	if ((BUSTYPE(((si_t *)si)->bustype) == PCI_BUS) ||
 		(BUSTYPE(((si_t *)si)->bustype) == SI_BUS)) {
 
 		if (nvram_file_init(si) != 0)
 			return BCME_ERROR;
 	}
-#endif /* NVRAM_FILE */
+#endif /* BCMNVRAMR */
 
 	return 0;
 }
 
-#ifdef NVRAM_FILE
+#if defined(NVRAM_FLASH) || defined(BCMNVRAMR)
+static int board_nvram_update(si_t *sih, osl_t *osh, char *nvram_buf, int *nvramlen, char *board_tmpbuf, char *board_buf, int board_buflen)
+{
+	char *pvar = NULL;
+	char *pvalue = NULL;
+	int err = BCME_OK;
+	int i = 0;
+
+	i = 0;
+	while (i < board_buflen) {
+		pvar = board_tmpbuf+i;
+		pvalue = NULL;
+		if ( pvar && ((i += strlen(pvar)+1) < board_buflen)) {
+			if ((pvalue = strstr(pvar, "="))) {
+				*pvalue = '\0';
+				pvalue++;
+				remove_devpath_var(sih, &pvar);
+				err = flash_update_nvbuf(osh, nvram_buf, nvramlen, board_buf, pvar, pvalue);
+				if (err != BCME_OK)
+					break;
+			}
+		}
+		else
+			break;
+	}
+
+	return err;
+}
+#endif  /* NVRAM_FLASH || BCMNVRAMR */
+
+#if defined(NVRAM_FLASH) || defined(BCMNVRAMR)
+static char*
+get_default_nvram_filename(void)
+{
+	char *filename = NULL;
+
+#if defined(BCMNVRAMR)
+	if (nvram_path[0])
+		filename = nvram_path;
+	else
+#endif /* BCMNVRAMR */
+#if (defined(OEM_ANDROID) && defined(STB_SOC_WIFI))
+		filename = NVRAM_FILE_OEM_ANDROID;
+#else
+		filename = NVRAM_FILE_DEFAULT;
+#endif /* OEM_ANDROID && STB_SOC_WIFI */
+	return filename;
+}
+
+static char*
+get_board_nvram_filename(void)
+{
+	char *filename = NULL;
+
+#if defined(BCMNVRAMR)
+	if (board_nvram_path[0])
+		filename = board_nvram_path;
+#endif /* BCMNVRAMR */
+	return filename;
+}
+#endif /* NVRAM_FLASH || BCMNVRAMR */
+
 static int
 nvram_file_init(void* sih)
 {
 	char *base = NULL, *nvp = NULL, *flvars = NULL;
 	int err = 0, nvlen = 0;
+	char *nvram_file;
+	char *bbase = NULL, *bnvp = NULL;
+	int bnvlen = 0;
+	char *bnv_tmpbuf = NULL;
 
 	/* freed in same function */
 	base = nvp = MALLOC_NOPERSIST(si_osh((si_t *)sih), MAXSZ_NVRAM_VARS);
 	if (base == NULL)
 		return BCME_NOMEM;
 
-	/* Init nvram from nvram file if they exist */
-	err = initvars_file(sih, si_osh((si_t *)sih), &nvp, (int*)&nvlen);
+	nvram_file = get_default_nvram_filename();
+	if (nvram_file) {
+		/* Init nvram from nvram file if they exist */
+		err = initvars_file(sih, si_osh((si_t *)sih), nvram_file,  &nvp, (int*)&nvlen);
+	} else
+		err = BCME_ERROR;
+
+	if (err == 0) {
+		/* load board nvram file if board_nvram_path=filename specified */
+		nvram_file = get_board_nvram_filename();
+		if (nvram_file) {
+			bbase = bnvp = MALLOC_NOPERSIST(si_osh((si_t *)sih), MAXSZ_NVRAM_VARS);
+			if (bnvp == NULL) {
+				err = BCME_NOMEM;
+				goto exit;
+			}
+			/* Init board nvram from board nvram file if they exist */
+			err = initvars_file(sih, si_osh((si_t *)sih), nvram_file,  &bnvp, (int*)&bnvlen);
+			if (err == 0) {
+				if (bnvlen) {
+					bnv_tmpbuf = MALLOC_NOPERSIST(si_osh((si_t *)sih), bnvlen);
+					if (bnv_tmpbuf == NULL) {
+						err = BCME_NOMEM;
+						goto exit;
+					}
+					memcpy(bnv_tmpbuf, bbase, bnvlen);
+					nvp = base;
+					nvlen--; /* initvars_file added one for the null character*/
+					err = board_nvram_update(sih, si_osh((si_t *)sih), nvp, &nvlen, bnv_tmpbuf, bbase, bnvlen);
+					nvp += nvlen;
+					*nvp++ = '\0';
+					nvlen = nvlen+1; /* add one for the null character */
+					if (bnv_tmpbuf)
+						MFREE(si_osh((si_t *)sih), bnv_tmpbuf, bnvlen);
+					if (err != 0) {
+						NVR_MSG(("No valid board NVRAM file present!!!\n"));
+						err = 0;
+					}
+				}
+			}
+		}
+	}
 #ifdef NVRAM_FLASH
 	if (err == 0) {
 		nvp = base;
@@ -415,46 +526,57 @@ nvram_file_init(void* sih)
 
 exit:
 	MFREE(si_osh((si_t *)sih), base, MAXSZ_NVRAM_VARS);
+	if (bbase) {
+		MFREE(si_osh((si_t *)sih), bbase, MAXSZ_NVRAM_VARS);
+	}
 
 	return err;
 }
 
 /** NVRAM file read for pcie NIC's */
 static int
-initvars_file(si_t *sih, osl_t *osh, char **nvramp, int *nvraml)
+initvars_file(si_t *sih, osl_t *osh, char *nvram_file, char **nvramp, int *nvraml)
 {
 #if defined(BCMDRIVER)
 	/* Init nvram from nvram file if they exist */
 	char *nvram_buf = *nvramp;
 	void	*nvram_fp = NULL;
 	int ret = 0, len = 0;
+	char *v = NULL;
+	int32 sromrev = 0;
 
-#if	defined(BCMNVRAMR)
-	extern char nvram_path[];
-	if (nvram_path[0])
-		nvram_fp = (void*)osl_os_open_image(nvram_path);
-	else
-#endif /* BCMNVRAMR */
-#if (defined(OEM_ANDROID) && defined(STB_SOC_WIFI))
-		nvram_fp = (void*)osl_os_open_image("/hwcfg/nvm.txt");
-#else
-		nvram_fp = (void*)osl_os_open_image("nvram.txt");
-#endif /* OEM_ANDROID && STB_SOC_WIFI */
+	nvram_fp = (void*)osl_os_open_image(nvram_file);
 	if (nvram_fp != NULL) {
 		if (!(len = osl_os_get_image_block(nvram_buf, MAXSZ_NVRAM_VARS, nvram_fp))) {
-			NVR_MSG(("Could not read nvram.txt file\n"));
-			ret = -1;
+			NVR_MSG(("Could not read %s file\n", nvram_file));
+			ret = BCME_ERROR;
 			goto exit;
 		}
 	}
 	else {
-		NVR_MSG(("Could not open nvram.txt file\n"));
-		ret = -1;
+		NVR_MSG(("Could not open %s file\n", nvram_file));
+		ret = BCME_ERROR;
 		goto exit;
 	}
 
 	/* process nvram vars if user specified a text file instead of binary */
 	len = process_nvram_vars(nvram_buf, len);
+	if (sih) {
+		v = findvar(nvram_buf, nvram_buf+len, SROMREV_STR);
+		if (v) {
+			sromrev = bcm_atoi(v);
+		}
+		switch(CHIPID(sih->chip)) {
+		case BCM7271_CHIP_ID:
+			if (sromrev < 11) {
+				NVR_MSG(("%s do not have valid sromrev\n", nvram_file));
+				ret = BCME_ERROR;
+			}
+			break;
+		default:
+			break;
+		}
+	}
 
 	nvram_buf += len;
 	*nvram_buf++ = '\0';
@@ -474,9 +596,19 @@ exit:
 int
 nvram_file_read(char **nvramp, int *nvraml)
 {
-	return initvars_file(NULL, NULL, nvramp, nvraml);
+	int err = 0;
+	char *nvram_file;
+
+	nvram_file = get_default_nvram_filename();
+	if (nvram_file) {
+		/* Init nvram from nvram file if they exist */
+		err = initvars_file(NULL, NULL, nvram_file, nvramp, nvraml);
+	} else {
+		NVR_MSG(("No valid NVRAM file present!!!\n"));
+		err = BCME_ERROR;
+	}
+	return err;
 }
-#endif /* NVRAM_FILE */
 
 int
 BCMATTACHFN(nvram_append)(void *si, char *varlst, uint varsz)
@@ -693,7 +825,7 @@ nvram_printall(void)
 }
 #endif /* BCMQT */
 
-#ifdef NVRAM_FLASH
+#if defined(NVRAM_FLASH) || defined(BCMNVRAMR)
 static int
 flash_update_nvbuf(osl_t *osh, char *nvram_buf, int *nvramlen, char *flshdev_data, char *pvar, char *pvalue)
 {
@@ -733,7 +865,7 @@ flash_update_nvbuf(osl_t *osh, char *nvram_buf, int *nvramlen, char *flshdev_dat
 			}
 		}
 		else{
-			if(strcmp(pvar, SROMREV_STR)) /*sromrev var in flash is used to check pa version, so do not override the value from nvram file */
+			if (strcmp(pvar, SROMREV_STR)) /*sromrev var in flash is used to check pa version, so do not override the value from nvram file*/
 				flash_modify_var(osh, nvram_buf, nvramlen, pvar, pvalue);
 		}
 	}
@@ -741,95 +873,6 @@ flash_update_nvbuf(osl_t *osh, char *nvram_buf, int *nvramlen, char *flshdev_dat
 		flash_add_new_var(osh, nvram_buf, nvramlen, pvar, pvalue);
 
 	return err ;
-}
-
-/* returns the CRC8 of the nvram */
-static uint8
-soc_nvram_calc_crc(struct nvram_header *nvh)
-{
-	struct nvram_header tmp;
-	uint8 crc;
-
-	if (!nvh)
-		return 0;
-
-	/* Little-endian CRC8 over the last 11 bytes of the header */
-	tmp.crc_ver_init = htol32((nvh->crc_ver_init & NVRAM_CRC_VER_MASK));
-	crc = hndcrc8((uint8 *) &tmp + NVRAM_CRC_START_POSITION, 1, CRC8_INIT_VALUE);
-	/* Continue CRC8 over data bytes */
-	crc = hndcrc8((uint8 *) &nvh[1], nvh->len - sizeof(struct nvram_header), crc);
-	return crc;
-}
-
-static void
-read_wlan_flash(si_t *sih, osl_t *osh,	char **nvramp, int *nvraml)
-{
-	struct nvram_header *nvh = NULL;
-	char *flshdev_buf = NULL;
-	char *flshdev_tmpbuf = NULL;
-	void *flshdev_fp = NULL;
-	int n = 0, flshdevlen = 0;
-	char flshdevpath[32];
-	char *ptmpdata = NULL;
-	char *pflshdevdata = NULL;
-	int maxdlen = 0;
-	char *pvar = NULL;
-	char *pvalue = NULL;
-	char *nvram_buf = NULL;
-	int len = 0;
-
-	if(!osh || ! nvramp || !nvraml)
-		return;
-
-	nvram_buf = *nvramp;
-	len = *nvraml;
-	memset(flshdevpath,'\0',sizeof(flshdevpath));
-	if (find_wlanflash_dev(osh, flshdevpath,sizeof(flshdevpath)) == BCME_OK
-		&& (flshdev_fp = (void*)osl_os_open_image(flshdevpath))
-		&& (flshdev_buf = MALLOC_NOPERSIST(osh, MAXSZ_NVRAM_VARS))
-		&& (flshdev_tmpbuf = MALLOC_NOPERSIST(osh, MAXSZ_NVRAM_VARS))
-		&& ((flshdevlen = osl_os_get_image_block(flshdev_buf, MAXSZ_NVRAM_VARS, flshdev_fp)) > 0))
-	{
-		nvh = (struct nvram_header*)flshdev_buf;
-		if ((nvh->magic == NVRAM_MAGIC) && (nvh->len >= sizeof(struct nvram_header)) && (soc_nvram_calc_crc(nvh) == (uint8)nvh->crc_ver_init))/*Signature*/
-		{
-			memcpy(flshdev_tmpbuf, flshdev_buf, MAXSZ_NVRAM_VARS);
-			pflshdevdata = FLASHPDATA(flshdev_buf);
-			ptmpdata = FLASHPDATA(flshdev_tmpbuf);
-			maxdlen = (nvh->len) - (ptmpdata - flshdev_tmpbuf);
-			n = 0;
-			while(n < maxdlen){
-				pvar = ptmpdata+n;
-				pvalue = NULL;
-				if( pvar && ((n += strlen(pvar)+1) < maxdlen)){
-					if((pvalue = strstr(pvar, "="))){
-						*pvalue = '\0';
-						pvalue++;
-						remove_devpath_var(sih, &pvar);
-						flash_update_nvbuf(osh, nvram_buf, &len, pflshdevdata, pvar, pvalue);
-					}
-				}
-				else
-					break;
-			}
-		}
-		else
-			NVR_MSG(("Invalid nvram data in wlan flash\n"));
-	}
-	else
-		NVR_MSG(("%s does not exist\n", WIFI_FLASH_PARTITION));
-
-	nvram_buf += len;
-	*nvram_buf++ = '\0';
-	*nvramp = nvram_buf;
-	*nvraml = len+1; /* add one for the null character */
-
-	if (flshdev_fp)
-		osl_os_close_image(flshdev_fp);
-	if (flshdev_buf)
-		MFREE(osh, flshdev_buf, MAXSZ_NVRAM_VARS);
-	if (flshdev_tmpbuf)
-		MFREE(osh, flshdev_tmpbuf, MAXSZ_NVRAM_VARS);
 }
 
 static int
@@ -851,7 +894,6 @@ get_pavar_tbl(const pavars_t **pav, uint32 paparambwver, uint32 sromrev){
 		if (sromrev < 12)
 			*pav = pavars;
 	}
-
 	return err;
 }
 
@@ -879,8 +921,8 @@ pavar_check(osl_t *osh, char *nvram_buf, char *flshdev_data, int32 *value_each_s
 	else
 		*ispa = FALSE;
 
-	if (*ispa){
-		if ((get_pavar_tbl(&pav, paparambwver, sromrev) == BCME_OK ) && ( pav != pavars) && fsromrev && (sromrev == fsromrev)){
+	if (*ispa) {
+		if ((get_pavar_tbl(&pav, paparambwver, sromrev) == BCME_OK ) && (pav != pavars) && fsromrev && (sromrev == fsromrev)) {
 
 			while (pav->phy_type != PHY_TYPE_NULL) {
 				if (!strcmp(pvar, pav->vars)) {
@@ -909,7 +951,7 @@ pavar_check(osl_t *osh, char *nvram_buf, char *flshdev_data, int32 *value_each_s
 				}
 				pav++;
 			}
-			if((len = strlen(pvalue)) && (*panum)){
+			if ((len = strlen(pvalue)) && (*panum)) {
 				char* pabase = NULL;
 				char* patmp = NULL;
 				len++;
@@ -924,9 +966,7 @@ pavar_check(osl_t *osh, char *nvram_buf, char *flshdev_data, int32 *value_each_s
 				if (pabase)
 					MFREE(osh, pabase, len);
 			}
-
 		}
-
 	}
 	else
 		err = BCME_OK;
@@ -1008,7 +1048,6 @@ flash_modify_var(osl_t *osh, char *nvram_buf, int *nvramlen, char *pvar, char *p
 
 	return BCME_OK;
 }
-
 
 static int
 flash_add_new_var(osl_t *osh, char *nvram_buf, int *nvramlen, char *pvar, char *pvalue)
@@ -1093,5 +1132,80 @@ remove_devpath_var(si_t *sih, char **pvar)
 		*pvar += slen; /* Remove devpath */
 
 	return err;
+}
+#endif /* NVRAM_FLASH || BCMNVRAMR */
+
+#ifdef NVRAM_FLASH
+/* returns the CRC8 of the nvram */
+static uint8
+soc_nvram_calc_crc(struct nvram_header *nvh)
+{
+	struct nvram_header tmp;
+	uint8 crc;
+
+	if (!nvh)
+		return 0;
+
+	/* Little-endian CRC8 over the last 11 bytes of the header */
+	tmp.crc_ver_init = htol32((nvh->crc_ver_init & NVRAM_CRC_VER_MASK));
+	crc = hndcrc8((uint8 *) &tmp + NVRAM_CRC_START_POSITION, 1, CRC8_INIT_VALUE);
+	/* Continue CRC8 over data bytes */
+	crc = hndcrc8((uint8 *) &nvh[1], nvh->len - sizeof(struct nvram_header), crc);
+	return crc;
+}
+
+static void
+read_wlan_flash(si_t *sih, osl_t *osh, char **nvramp, int *nvraml)
+{
+	struct nvram_header *nvh = NULL;
+	char *flshdev_buf = NULL;
+	char *flshdev_tmpbuf = NULL;
+	void *flshdev_fp = NULL;
+	int flshdevlen = 0;
+	char flshdevpath[32];
+	char *ptmpdata = NULL;
+	char *pflshdevdata = NULL;
+	int maxdlen = 0;
+	char *nvram_buf = NULL;
+	int len = 0;
+
+	if(!osh || ! nvramp || !nvraml)
+		return;
+
+	nvram_buf = *nvramp;
+	len = *nvraml;
+	memset(flshdevpath,'\0',sizeof(flshdevpath));
+	if (find_wlanflash_dev(osh, flshdevpath,sizeof(flshdevpath)) == BCME_OK
+		&& (flshdev_fp = (void*)osl_os_open_image(flshdevpath))
+		&& (flshdev_buf = MALLOC_NOPERSIST(osh, MAXSZ_NVRAM_VARS))
+		&& (flshdev_tmpbuf = MALLOC_NOPERSIST(osh, MAXSZ_NVRAM_VARS))
+		&& ((flshdevlen = osl_os_get_image_block(flshdev_buf, MAXSZ_NVRAM_VARS, flshdev_fp)) > 0))
+	{
+		nvh = (struct nvram_header*)flshdev_buf;
+		if ((nvh->magic == NVRAM_MAGIC) && (nvh->len >= sizeof(struct nvram_header)) && (soc_nvram_calc_crc(nvh) == (uint8)nvh->crc_ver_init))/*Signature*/
+		{
+			memcpy(flshdev_tmpbuf, flshdev_buf, MAXSZ_NVRAM_VARS);
+			pflshdevdata = FLASHPDATA(flshdev_buf);
+			ptmpdata = FLASHPDATA(flshdev_tmpbuf);
+			maxdlen = (nvh->len) - (ptmpdata - flshdev_tmpbuf);
+			board_nvram_update(sih, osh, nvram_buf, &len, ptmpdata, pflshdevdata, maxdlen);
+		}
+		else
+			NVR_MSG(("Invalid nvram data in wlan flash\n"));
+	}
+	else
+		NVR_MSG(("%s does not exist\n", WIFI_FLASH_PARTITION));
+
+	nvram_buf += len;
+	*nvram_buf++ = '\0';
+	*nvramp = nvram_buf;
+	*nvraml = len+1; /* add one for the null character */
+
+	if (flshdev_fp)
+		osl_os_close_image(flshdev_fp);
+	if (flshdev_buf)
+		MFREE(osh, flshdev_buf, MAXSZ_NVRAM_VARS);
+	if (flshdev_tmpbuf)
+		MFREE(osh, flshdev_tmpbuf, MAXSZ_NVRAM_VARS);
 }
 #endif /* NVRAM_FLASH */

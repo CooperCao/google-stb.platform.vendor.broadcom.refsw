@@ -3214,6 +3214,10 @@ wlc_phy_desense_aci_engine_acphy(phy_info_t *pi)
 		max_rssi = jammer_present ? 85 : 80;	/* more aggressive if jammer present (too many glitches) */
 		/* Always allow LESI to desense (upto lesi off), irrespective of RSSI	*/
 		new_ofdm_desense = MIN(new_ofdm_desense, max_lesi_desense + MAX(0, aci->weakest_rssi + max_rssi));
+		/* Do not desense below LESI-off desense limit if noise level is above threshold */
+		if (phy_ac_rxgcrs_lesi_off_noise_level(pi_ac->rxgcrsi)) {
+			new_ofdm_desense = MAX(new_ofdm_desense, max_lesi_desense);
+		}
 	}
 
 	PHY_ACI(("aci_mode1, old desense = {%d %d}, new = {%d %d}\n",
@@ -5051,7 +5055,6 @@ phy_ac_noise_preempt(phy_ac_noise_info_t *ni, bool enable_preempt, bool EnablePo
 				WRITE_PHYREG_ENTRY(pi, RxMacifMode, 0x0a00)
 				WRITE_PHYREG_ENTRY(pi, BphyAbortExitCtrl, 0x3840)
 				WRITE_PHYREG_ENTRY(pi, PktAbortCounterClr, 0x118)
-				WRITE_PHYREG_ENTRY(pi, BphyAbortExitCtrl, 0x3840)
 				if (CHSPEC_IS2G(pi->radio_chanspec)) {
 					/* Disabling abort during chanest1/2 for JIRA SWWLAN-111232 */
 					WRITE_PHYREG(pi, PktAbortSupportedStates, 0x2a3f);
@@ -5068,7 +5071,7 @@ phy_ac_noise_preempt(phy_ac_noise_info_t *ni, bool enable_preempt, bool EnablePo
 					ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_nominal_clip_th0, 0x4000);
 					ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_low_power_mismatch_th0, 30)
 				}
-				ACPHYREG_BCAST_ENTRY(pi, PREMPT_cck_nominal_clip_th0, 0x2400)
+				ACPHYREG_BCAST_ENTRY(pi, PREMPT_cck_nominal_clip_th0, 0x4c00)
 				ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_nominal_clip_th_hipwr_xtra_bits0,0x3200)
 				ACPHYREG_BCAST_ENTRY(pi, PREMPT_ofdm_nominal_clip_th_hipwr0, 0xffff)
 				ACPHYREG_BCAST_ENTRY(pi, PREMPT_cck_nominal_clip_th_hipwr0, 0xffff)

@@ -753,7 +753,7 @@ not match our unaligned address for < 2.6.24
 #endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)) */
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25))
-#define CAN_SLEEP()	((!in_atomic() && !irqs_disabled()))
+#define CAN_SLEEP()	!in_interrupt()
 #else
 #define CAN_SLEEP()	(FALSE)
 #endif

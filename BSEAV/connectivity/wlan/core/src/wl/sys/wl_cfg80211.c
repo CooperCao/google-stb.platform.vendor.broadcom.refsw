@@ -4013,7 +4013,7 @@ channel_to_chanspec(struct wiphy *wiphy, struct net_device *dev, u32 channel, u3
 	int bw = 0, tmp_bw = 0;
 	int i;
 	u32 tmp_c;
-	u16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	u16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 #define LOCAL_BUF_SIZE	1024
 	buf = (u8 *) kzalloc(LOCAL_BUF_SIZE, kflags);
 	if (!buf) {
@@ -7551,6 +7551,7 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy)
 #if defined(WOWL_DRV_NORELOAD)
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
 	defined(WL_COMPAT_WIRELESS))
+	if (wl_get_drv_status(cfg, CONNECTED, ndev))
 		wl_resume_normalmode();
 #endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) */
 
@@ -7847,10 +7848,10 @@ static s32 wl_cfg80211_suspend(struct wiphy *wiphy)
 #endif
 {
 	s32 err = BCME_OK;
+    struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
+     struct net_device *ndev = bcmcfg_to_prmry_ndev(cfg);
 #ifdef DHD_CLEAR_ON_SUSPEND
-	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
 	struct net_info *iter, *next;
-	struct net_device *ndev = bcmcfg_to_prmry_ndev(cfg);
 	unsigned long flags;
 	if (unlikely(!wl_get_drv_status(cfg, READY, ndev))) {
 		WL_INFORM(("device is not ready : status (%d)\n",
@@ -7885,7 +7886,16 @@ static s32 wl_cfg80211_suspend(struct wiphy *wiphy)
 
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
 	defined(WL_COMPAT_WIRELESS))
-	err = wl_wowlan_config(wiphy, wow);
+	if (wl_get_drv_status(cfg, CONNECTED, ndev))
+        err = wl_wowlan_config(wiphy, wow);
+    else {
+        u32 val;
+        /* Set interface down */
+        val = 0;
+        err = wldev_ioctl(ndev, WLC_DOWN, (void *)&val, sizeof(val), true);
+        if (err < 0)
+            WL_ERR(("set interface up failed, error = %d\n", err));
+        }
 #endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) */
 
 	return err;
@@ -12496,7 +12506,7 @@ static s32 wl_inform_single_bss(struct bcm_cfg80211 *cfg, struct wl_bss_info *bi
 		WL_DBG(("Beacon is larger than buffer. Discarding\n"));
 		return err;
 	}
-	aflags = (in_atomic()) ? GFP_ATOMIC : GFP_KERNEL;
+	aflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	notif_bss_info = kzalloc(sizeof(*notif_bss_info) + sizeof(*mgmt)
 		- sizeof(u8) + WL_BSS_INFO_MAX, aflags);
 	if (unlikely(!notif_bss_info)) {
@@ -16067,8 +16077,14 @@ static void wl_scan_timeout(unsigned long data)
 		dhdp->memdump_enabled = prev_memdump_mode;
 	}
 #endif /* DHD_DEBUG && DHD_FW_COREDUMP */
+
+#ifdef BCMDONGLEHOST
 	msg.event_type = hton32(WLC_E_ESCAN_RESULT);
 	msg.status = hton32(WLC_E_STATUS_TIMEOUT);
+#else
+	msg.event_type = WLC_E_ESCAN_RESULT;
+	msg.status = WLC_E_STATUS_TIMEOUT;
+#endif /* BCMDONGLEHOST */
 	msg.reason = 0xFFFFFFFF;
 	wl_cfg80211_event(ndev, &msg, NULL);
 #ifdef CUSTOMER_HW4_DEBUG
@@ -16228,7 +16244,7 @@ void wl_cfg80211_scan_abort(struct bcm_cfg80211 *cfg)
 	s32 params_size = 0;
 	s32 err = BCME_OK;
 	struct net_device *dev = bcmcfg_to_prmry_ndev(cfg);
-	if (!in_atomic()) {
+	if (!in_interrupt()) {
 		/* Our scan params only need space for 1 channel and 0 ssids */
 		params = wl_cfg80211_scan_alloc_params(cfg, -1, 0, &params_size);
 		if (params == NULL) {
@@ -16297,7 +16313,7 @@ static s32 wl_notify_escan_complete(struct bcm_cfg80211 *cfg,
 				ndev, bcmcfg_to_prmry_ndev(cfg)));
 		dev = ndev;
 	}
-	if (fw_abort && !in_atomic())
+	if (fw_abort && !in_interrupt())
 		wl_cfg80211_scan_abort(cfg);
 	if (timer_pending(&cfg->scan_timeout))
 		del_timer_sync(&cfg->scan_timeout);
@@ -16331,7 +16347,7 @@ static s32 wl_notify_escan_complete(struct bcm_cfg80211 *cfg,
 	wl_clr_drv_status(cfg, SCANNING, dev);
 	spin_unlock_irqrestore(&cfg->cfgdrv_lock, flags);
 #ifdef WL_SDO
-	if (wl_get_p2p_status(cfg, DISC_IN_PROGRESS) && !in_atomic()) {
+	if (wl_get_p2p_status(cfg, DISC_IN_PROGRESS) && !in_interrupt()) {
 		wl_cfg80211_resume_sdo(ndev, cfg);
 	}
 #endif
@@ -17805,7 +17821,7 @@ wl_enq_event(struct bcm_cfg80211 *cfg, struct net_device *ndev, u32 event,
 	if (data)
 		data_len = ntoh32(msg->datalen);
 	evtq_size = sizeof(struct wl_event_q) + data_len;
-	aflags = (in_atomic()) ? GFP_ATOMIC : GFP_KERNEL;
+	aflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	e = kzalloc(evtq_size, aflags);
 	if (unlikely(!e)) {
 		WL_ERR(("event alloc failed\n"));
@@ -19270,7 +19286,7 @@ static void wl_init_eq_lock(struct bcm_cfg80211 *cfg)
 
 static void wl_delay(u32 ms)
 {
-	if (in_atomic() || (ms < jiffies_to_msecs(1))) {
+	if (in_interrupt() || (ms < jiffies_to_msecs(1))) {
 		OSL_DELAY(ms*1000);
 	} else {
 		OSL_SLEEP(ms);
@@ -19443,7 +19459,7 @@ exit:
 s32
 wl_cfg80211_sdo_init(struct bcm_cfg80211 *cfg)
 {
-	u16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	u16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 
 	if (cfg->sdo) {
 		WL_SD(("SDO already initialized\n"));
@@ -19679,7 +19695,7 @@ s32 wl_sd_handle_sd_req(
 	wl_sd_qr_t *sdreq;
 	u8 proto = 0;
 	s32 ret = 0;
-	u16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	u16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	u32 tot_len = len + sizeof(wl_sd_qr_t);
 	u16 version = 0;
 
@@ -19797,7 +19813,7 @@ s32 wl_sd_handle_sd_add_svc(
 	u8 *resp = NULL;
 	u8 *query = NULL;
 	u32 tot_len = len + sizeof(wl_sd_qr_t);
-	u16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	u16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 
 	if (!buf || !len)
 		return -EINVAL;
@@ -19887,7 +19903,7 @@ s32 wl_sd_handle_sd_del_svc(
 	u8 proto = 0;
 	s32 ret = 0;
 	u32 tot_len = len + sizeof(wl_sd_qr_t);
-	u16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	u16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	u16 version = 0;
 
 	if ((bssidx = wl_get_bssidx_by_wdev(cfg, dev->ieee80211_ptr)) < 0) {
@@ -19992,7 +20008,7 @@ s32 wl_sd_handle_sd_find(
 	vndr_ie_setbuf_t *ie_setbuf;
 	vndr_ie_t *vndrie;
 	vndr_ie_buf_t *vndriebuf;
-	u16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	u16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	int tot_len = 0;
 	uint channel = 0;
 
@@ -23141,7 +23157,7 @@ wl_cfg80211_gtk_rekey_notify(struct bcm_cfg80211 *cfg, const u8 *bssid,
 	struct net_device *dev = bcmcfg_to_prmry_ndev(cfg);
 	gfp_t aflags;
 
-	aflags = (in_atomic()) ? GFP_ATOMIC : GFP_KERNEL;
+	aflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 
 	/* GTK rekeying is only for STA */
 	if (dev->ieee80211_ptr->iftype != NL80211_IFTYPE_STATION) {

@@ -554,7 +554,9 @@ module_param(htclkratio, int, 0);
 #if (defined(BCM_DNGL_EMBEDIMAGE) && defined(WL_NVRAM_FILE)) || defined(BCMNVRAMR)
 #define MOD_PARAM_PATHLEN 512
 char nvram_path[MOD_PARAM_PATHLEN] = {0};
+char board_nvram_path[MOD_PARAM_PATHLEN] = {0};
 module_param_string(nvram_path, nvram_path, MOD_PARAM_PATHLEN, 0);
+module_param_string(board_nvram_path, board_nvram_path, MOD_PARAM_PATHLEN, 0);
 #endif /* BCM_DNGL_EMBEDIMAGE && WL_NVRAM_FILE */
 
 /*
@@ -2072,7 +2074,7 @@ wl_module_init(void)
 #ifdef STB_SOC_WIFI
 		stb_devid = wl_stbsoc_get_devid();
 		if (stb_devid == 0)
-			WL_ERROR(("Can't find devid in nvram.txt\n"));
+			WL_ERROR(("Can't find devid in nvram file\n"));
 		else
 			devid = stb_devid;
 #else /* STB_SOC_WIFI */

@@ -2762,7 +2762,7 @@ wl_android_natoe_subcmd_enable(struct net_device *dev, const wl_natoe_sub_cmd_t 
 	int ret = BCME_OK;
 	wl_natoe_ioc_t *natoe_ioc;
 	char *pcmd = command;
-	uint16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	uint16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	uint16 iocsz = sizeof(*natoe_ioc) + WL_NATOE_IOC_BUFSZ;
 	uint16 buflen = WL_NATOE_IOC_BUFSZ;
 	bcm_xtlv_t *pxtlv = NULL;
@@ -2840,7 +2840,7 @@ wl_android_natoe_subcmd_config_ips(struct net_device *dev,
 	wl_natoe_ioc_t *natoe_ioc;
 	char *pcmd = command;
 	char *str;
-	uint16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	uint16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	uint16 iocsz = sizeof(*natoe_ioc) + WL_NATOE_IOC_BUFSZ;
 	uint16 buflen = WL_NATOE_IOC_BUFSZ;
 	bcm_xtlv_t *pxtlv = NULL;
@@ -2960,7 +2960,7 @@ wl_android_natoe_subcmd_config_ports(struct net_device *dev,
 	wl_natoe_ioc_t *natoe_ioc;
 	char *pcmd = command;
 	char *str;
-	uint16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	uint16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	uint16 iocsz = sizeof(*natoe_ioc) + WL_NATOE_IOC_BUFSZ;
 	uint16 buflen = WL_NATOE_IOC_BUFSZ;
 	bcm_xtlv_t *pxtlv = NULL;
@@ -3058,7 +3058,7 @@ wl_android_natoe_subcmd_dbg_stats(struct net_device *dev, const wl_natoe_sub_cmd
 	int ret = BCME_OK;
 	wl_natoe_ioc_t *natoe_ioc;
 	char *pcmd = command;
-	uint16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	uint16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	uint16 iocsz = sizeof(*natoe_ioc) + WL_NATOE_DBG_STATS_BUFSZ;
 	uint16 buflen = WL_NATOE_DBG_STATS_BUFSZ;
 	bcm_xtlv_t *pxtlv = NULL;
@@ -3134,7 +3134,7 @@ wl_android_natoe_subcmd_tbl_cnt(struct net_device *dev, const wl_natoe_sub_cmd_t
 	int ret = BCME_OK;
 	wl_natoe_ioc_t *natoe_ioc;
 	char *pcmd = command;
-	uint16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	uint16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	uint16 iocsz = sizeof(*natoe_ioc) + WL_NATOE_IOC_BUFSZ;
 	uint16 buflen = WL_NATOE_IOC_BUFSZ;
 	bcm_xtlv_t *pxtlv = NULL;
@@ -3803,7 +3803,7 @@ static int wl_android_set_ibss_beacon_ouidata(struct net_device *dev, char *comm
 	vndr_ie_setbuf_t *vndr_ie = NULL;
 	s32 iecount;
 	uint32 pktflag;
-	u16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	u16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	s32 err = BCME_OK;
 
 	/* Check the VSIE (Vendor Specific IE) which was added.
@@ -4458,7 +4458,7 @@ int wl_android_set_ibss_routetable(struct net_device *dev, char *command, int to
 
 	ibss_route_tbl_t *route_tbl = NULL;
 	char *ioctl_buf = NULL;
-	u16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	u16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 	s32 err = BCME_OK;
 	uint32 route_tbl_len;
 	uint32 entries;
@@ -6328,7 +6328,7 @@ wl_genl_send_msg(
 	int pid = 0;
 	u8 *ptr = NULL, *p = NULL;
 	u32 tot_len = sizeof(bcm_event_hdr_t) + subhdr_len + len;
-	u16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	u16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
 
 
 	WL_DBG(("Enter \n"));

@@ -323,4 +323,6 @@ int eapd_preauth_open(eapd_wksp_t *nwksp, eapd_preauth_socket_t *sock);
 int eapd_preauth_close(int drvSocket);
 int eapd_safe_get_conf(char *outval, int outval_size, char *name);
 size_t eapd_message_read(int fd, void *buf, size_t nbytes);
+
+#define EAPD_UDP_SIN_ADDR htonl(INADDR_LOOPBACK)
 #endif /* _EAPD_H_ */

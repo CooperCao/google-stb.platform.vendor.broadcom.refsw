@@ -4617,6 +4617,7 @@ BCMATTACHFN(wlc_bmac_phase1_attach)(uint16 device, osl_t *osh, volatile void *
 
 	bzero((char *)wlc_hw, sizeof(wlc_hw_info_t));
 
+	wlc_hw->osh = osh;
 	wlc_hw->sih = si_attach((uint)device, osh, regsva, bustype, btparam,
 		&wlc_hw->vars, &wlc_hw->vars_size);
 
