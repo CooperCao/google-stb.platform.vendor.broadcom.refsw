@@ -120,6 +120,7 @@ BERR_Code BHSM_Close( BHSM_Handle hHsm )
 
     if( pHandle == NULL ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
+    BHSM_RvRegion_Uninit( hHsm );
     BHSM_HashHmac_Uninit( hHsm );
     BHSM_RvRsa_Uninit( hHsm );
     BHSM_OtpKey_Uninit( hHsm );
@@ -135,43 +136,56 @@ BERR_Code BHSM_Close( BHSM_Handle hHsm )
 }
 
 
-void BHSM_GetCapabilities( BHSM_Handle hHsm, BHSM_ModuleCapabilities *pCaps )
+BERR_Code BHSM_GetCapabilities( BHSM_Handle hHsm,  BHSM_ModuleCapabilities *pCaps )
 {
+    BHSM_KeyslotModuleCapabilities keyslotCaps;
+    BERR_Code rc = BERR_UNKNOWN;
+    unsigned i;
+
     BDBG_ENTER( BHSM_GetCapabilities );
 
-    BSTD_UNUSED( hHsm );
+    if( !hHsm ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    if( !pCaps ) { return  BERR_TRACE(BERR_INVALID_PARAMETER); }
 
     BKNI_Memset( pCaps, 0, sizeof(*pCaps) );
 
+    pCaps->version.zeus.major    = hHsm->bfwVersion.version.zeus.major;
+    pCaps->version.zeus.minor    = hHsm->bfwVersion.version.zeus.minor;
+    pCaps->version.zeus.subminor = hHsm->bfwVersion.version.zeus.subminor;
+    pCaps->version.bfw.major    = hHsm->bfwVersion.version.bfw.major;
+    pCaps->version.bfw.minor    = hHsm->bfwVersion.version.bfw.minor;
+    pCaps->version.bfw.subminor = hHsm->bfwVersion.version.bfw.subminor;
+
+    rc = BHSM_P_KeyslotModule_GetCapabilities(hHsm, &keyslotCaps);
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+
+    for( i = 0; i < BHSM_KeyslotType_eMax; i++ )
+    {
+        pCaps->numKeyslotsForType[i] = keyslotCaps.numKeySlotsForType[i];
+    }
+
     BDBG_LEAVE( BHSM_GetCapabilities );
-    return;
+    return BERR_SUCCESS;
 }
 
 /* Returns true if current BFW is greater than or equal to specified value */
 bool isBfwVersion_GreaterOrEqual ( BHSM_Handle hHsm, unsigned major, unsigned minor, unsigned subMinor )
 {
-    BSTD_UNUSED( hHsm );
-    BSTD_UNUSED( major );
-    BSTD_UNUSED( minor );
-    BSTD_UNUSED( subMinor );
-    BERR_TRACE( BERR_INVALID_PARAMETER ); /* TODO */
-
-#if 0
-    if ( major < hHsm->firmwareVersion.bseck.major )
+    if ( major < hHsm->bfwVersion.version.bfw.major )
     {
         return true;
     }
-    else if ( major == hHsm->firmwareVersion.bseck.major )
+    else if ( major == hHsm->bfwVersion.version.bfw.major )
     {
-        if ( minor < hHsm->firmwareVersion.bseck.minor )
+        if ( minor < hHsm->bfwVersion.version.bfw.minor )
         {
             return true;
         }
-        else if ( minor == hHsm->firmwareVersion.bseck.minor )
+        else if ( minor == hHsm->bfwVersion.version.bfw.minor )
         {
-            return ( subMinor <= hHsm->firmwareVersion.bseck.subMinor );
+            return ( subMinor <= hHsm->bfwVersion.version.bfw.subminor );
         }
     }
-#endif
+
     return false;
 }

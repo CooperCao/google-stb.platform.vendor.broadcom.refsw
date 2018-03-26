@@ -71,7 +71,7 @@ extern "C" {
 
 /*
  * all requests in playback are called synchronously with data flow, so for example
- * we could jump to any position immediatly, without waiting for frame to be decoded
+ * we could jump to any position immediately, without waiting for frame to be decoded
  * while in slowmotion mode. However not desctructive operations, such as pause,
  * frameadvance, play, should be performed asynchronously. In order to allow that
  * we should store command and handle it when it's possible. With such scheme some
@@ -85,7 +85,7 @@ enum b_playback_state {
     eWaitingIo,  /* set when  I/O is in progress and we are waiting completeion */
     eWaitingRecord, /* set when we are waiting for record to notify us about data written to the file */
     eCancelIo, /* state when API request data pump to cancel I/O */
-    eIoCanceled, /* acknowledgement set, if I/O was canceled */
+    eIoCanceled, /* acknowledgment set, if I/O was canceled */
     eAborted,
     eStopping,
     eTimer, /* waiting for callback from b_timer api */
@@ -139,6 +139,7 @@ typedef struct b_trick_settings {
     unsigned force_source_frame_rate;
     unsigned maxFrameRepeat;
     bool simulated_tsm;
+    NEXUS_PlaybackAudioTrickMode audioTrickMode;
 } b_trick_settings;
 
 struct NEXUS_Playback {
@@ -147,7 +148,7 @@ struct NEXUS_Playback {
     bmedia_player_t media_player; /* media player is used to play various container formats */
     BKNI_EventHandle ack_event; /* feedback to public api context that processing has been stopped */
     BKNI_EventHandle playpump_event; /* event from the playpump */
-    NEXUS_EventCallbackHandle playpump_event_callback; /* callback called in responce of playpump_event */
+    NEXUS_EventCallbackHandle playpump_event_callback; /* callback called in response of playpump_event */
     NEXUS_ThreadHandle playpump_thread; /* thread that is used to handle callbacks from playpump */
     BKNI_EventHandle playpump_thread_event; /* event that is used to wakeup playpump thread */
     BLST_S_HEAD(NEXUS_Playback_P_PidChannels, NEXUS_Playback_P_PidChannel) pid_list;
@@ -186,7 +187,7 @@ struct NEXUS_Playback {
         NEXUS_Time fifoLast; /* last time when fifoMarker has changed */
         int fifoMarkerCounter; /* used for frame advance only */
 
-        void (*data_source) (NEXUS_PlaybackHandle p);  /* function called when data may become avaliable in the playback buffer */
+        void (*data_source) (NEXUS_PlaybackHandle p);  /* function called when data may become available in the playback buffer */
         NEXUS_PlaybackTrickModeSettings trickmode_params; /* parameters used for trick mode (fastforward or rewind) */
         bool reset; /* it's set to false, when control enters into the API function,
             code might want set it to true what would
@@ -315,7 +316,6 @@ void b_play_update_location(NEXUS_PlaybackHandle p);
 /* this  function would returnh either position based on PTS (if decoders are connected) or position based on last read location, if there is no connected decoders */
 bmedia_player_pos b_play_correct_position(NEXUS_PlaybackHandle p, const bmedia_player_status *player_status);
 bool b_play_has_connected_decoders(NEXUS_PlaybackHandle p);
-void b_play_handle_read_error(NEXUS_PlaybackHandle p, ssize_t size);
 
 NEXUS_Error b_play_media_handle_loop_condition(NEXUS_PlaybackHandle p, bool is_beginning, NEXUS_PlaybackLoopMode mode, const bmedia_player_bounds *bounds);
 void b_play_media_time_test(void);
@@ -345,16 +345,9 @@ void NEXUS_Playback_P_AbortPlayback(NEXUS_PlaybackHandle p);
 
 /* nexus_playback_decoder functions - abstracts decoder api's */
 NEXUS_Error NEXUS_P_Playback_VideoDecoder_GetStatus(const NEXUS_Playback_P_PidChannel *pid, NEXUS_VideoDecoderStatus *pStatus);
-void        NEXUS_P_Playback_VideoDecoder_GetTrickState(const NEXUS_Playback_P_PidChannel *pid, NEXUS_VideoDecoderTrickState *pState);
-NEXUS_Error NEXUS_P_Playback_VideoDecoder_SetTrickState(const NEXUS_Playback_P_PidChannel *pid, const NEXUS_VideoDecoderTrickState *pState);
 void        NEXUS_P_Playback_VideoDecoder_GetPlaybackSettings(const NEXUS_Playback_P_PidChannel *pid, NEXUS_VideoDecoderPlaybackSettings *pSettings);
 NEXUS_Error NEXUS_P_Playback_VideoDecoder_SetPlaybackSettings(const NEXUS_Playback_P_PidChannel *pid, const NEXUS_VideoDecoderPlaybackSettings *pSettings);
-void        NEXUS_P_Playback_VideoDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid);
 NEXUS_Error NEXUS_P_Playback_AudioDecoder_GetStatus(const NEXUS_Playback_P_PidChannel *pid, NEXUS_AudioDecoderStatus *pStatus, NEXUS_AudioDecoderStatus *pSecondaryStatus);
-void        NEXUS_P_Playback_AudioDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid);
-void        NEXUS_P_Playback_AudioDecoder_GetTrickState(const NEXUS_Playback_P_PidChannel *pid, NEXUS_AudioDecoderTrickState *pState, NEXUS_AudioDecoderTrickState *pSecondaryState);
-NEXUS_Error NEXUS_P_Playback_AudioDecoder_SetTrickState(const NEXUS_Playback_P_PidChannel *pid, const NEXUS_AudioDecoderTrickState *pState);
-NEXUS_Error b_play_getpts(NEXUS_PlaybackHandle p, uint32_t *pts);
 bool b_play_decoders_in_tsm_mode(NEXUS_PlaybackHandle playback);
 const NEXUS_Playback_P_PidChannel *b_play_get_video_decoder(NEXUS_PlaybackHandle playback);
 bool NEXUS_Playback_P_CheckSimpleDecoderSuspended(const NEXUS_Playback_P_PidChannel *pid);

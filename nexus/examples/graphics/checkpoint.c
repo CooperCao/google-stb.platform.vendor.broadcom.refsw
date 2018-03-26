@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 /* Nexus example app: show different ways of using NEXUS_Graphics2D_Checkpoint */
 
@@ -69,7 +58,7 @@
 
 BDBG_MODULE(checkpoint);
 
-void complete(void *data, int unused)
+static void complete(void *data, int unused)
 {
     BSTD_UNUSED(unused);
     BKNI_SetEvent((BKNI_EventHandle)data);
@@ -122,7 +111,7 @@ no_checkpoint(NEXUS_Graphics2DHandle gfx, BKNI_EventHandle event)
 
 
 static void
-run_fill(NEXUS_Graphics2DHandle gfx, NEXUS_SurfaceHandle surface,BKNI_EventHandle event, const NEXUS_SurfaceCreateSettings *createSettings, void (*checkpoint)(NEXUS_Graphics2DHandle gfx, BKNI_EventHandle event), unsigned max_batch)
+run_fill(NEXUS_DisplayHandle display, NEXUS_Graphics2DHandle gfx, NEXUS_SurfaceHandle surface,BKNI_EventHandle event, const NEXUS_SurfaceCreateSettings *createSettings, void (*checkpoint)(NEXUS_Graphics2DHandle gfx, BKNI_EventHandle event), unsigned max_batch)
 {
     NEXUS_Graphics2DFillSettings fillSettings;
     NEXUS_Error rc;
@@ -172,13 +161,15 @@ run_fill(NEXUS_Graphics2DHandle gfx, NEXUS_SurfaceHandle surface,BKNI_EventHandl
             }
             checkpoint(gfx, event);
             BDBG_WRN(("filled %u pixels using batch %u using %u %ux%u fills", pixels, batch, j, width, height));
+
+            NEXUS_Display_SetGraphicsFramebuffer(display, surface);
         }
     }
     return;
 }
 
 static void
-run_copy(NEXUS_Graphics2DHandle gfx, NEXUS_SurfaceHandle surface,BKNI_EventHandle event, const NEXUS_SurfaceCreateSettings *createSettings, void (*checkpoint)(NEXUS_Graphics2DHandle gfx, BKNI_EventHandle event), unsigned max_batch)
+run_copy(NEXUS_DisplayHandle display, NEXUS_Graphics2DHandle gfx, NEXUS_SurfaceHandle surface,BKNI_EventHandle event, const NEXUS_SurfaceCreateSettings *createSettings, void (*checkpoint)(NEXUS_Graphics2DHandle gfx, BKNI_EventHandle event), unsigned max_batch)
 {
     NEXUS_Graphics2DBlitSettings blitSettings;
     NEXUS_Error rc;
@@ -242,6 +233,8 @@ run_copy(NEXUS_Graphics2DHandle gfx, NEXUS_SurfaceHandle surface,BKNI_EventHandl
             }
             checkpoint(gfx, event);
             BDBG_WRN(("copied %u pixels using batch %u using %u %ux%u blits", pixels, batch, j, width, height));
+
+            NEXUS_Display_SetGraphicsFramebuffer(display, surface);
         }
     }
 
@@ -296,7 +289,7 @@ int main(void)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 
@@ -339,8 +332,8 @@ int main(void)
     graphics2DSettings.pollingCheckpoint = false;
     NEXUS_Graphics2D_SetSettings(gfx, &graphics2DSettings);
     fprintf(stderr, "Using async mode with checkpoint\n");
-    run_fill(gfx, surface, event, &createSettings, async_checkpoint, num_blits);
-    run_copy(gfx, surface, event, &createSettings, async_checkpoint, num_blits);
+    run_fill(display, gfx, surface, event, &createSettings, async_checkpoint, num_blits);
+    run_copy(display, gfx, surface, event, &createSettings, async_checkpoint, num_blits);
 
     NEXUS_Graphics2D_GetSettings(gfx, &graphics2DSettings);
     graphics2DSettings.blockedSync = false;
@@ -348,8 +341,8 @@ int main(void)
     graphics2DSettings.pollingCheckpoint = false;
     NEXUS_Graphics2D_SetSettings(gfx, &graphics2DSettings);
     fprintf(stderr, "Using async mode with checkpoint doing 10us busy wait\n");
-    run_fill(gfx, surface, event, &createSettings, async_checkpoint, num_blits);
-    run_copy(gfx, surface, event, &createSettings, async_checkpoint, num_blits);
+    run_fill(display, gfx, surface, event, &createSettings, async_checkpoint, num_blits);
+    run_copy(display, gfx, surface, event, &createSettings, async_checkpoint, num_blits);
 
     NEXUS_Graphics2D_GetSettings(gfx, &graphics2DSettings);
     graphics2DSettings.completionTimeout = 0;
@@ -357,8 +350,8 @@ int main(void)
     graphics2DSettings.pollingCheckpoint = true;
     NEXUS_Graphics2D_SetSettings(gfx, &graphics2DSettings);
     fprintf(stderr,"Using async mode with polling\n");
-    run_fill(gfx, surface, event, &createSettings, poll_checkpoint, num_blits);
-    run_copy(gfx, surface, event, &createSettings, poll_checkpoint, num_blits);
+    run_fill(display, gfx, surface, event, &createSettings, poll_checkpoint, num_blits);
+    run_copy(display, gfx, surface, event, &createSettings, poll_checkpoint, num_blits);
 
     NEXUS_Graphics2D_GetSettings(gfx, &graphics2DSettings);
     graphics2DSettings.completionTimeout = 0;
@@ -366,8 +359,8 @@ int main(void)
     graphics2DSettings.pollingCheckpoint = false;
     NEXUS_Graphics2D_SetSettings(gfx, &graphics2DSettings);
     fprintf(stderr, "Using synchronous mode\n");
-    run_fill(gfx, surface, event, &createSettings, no_checkpoint, 3);
-    run_copy(gfx, surface, event, &createSettings, no_checkpoint, 3);
+    run_fill(display, gfx, surface, event, &createSettings, no_checkpoint, 3);
+    run_copy(display, gfx, surface, event, &createSettings, no_checkpoint, 3);
 
     fprintf(stderr, "Done. Press Enter to exit\n");
     getchar();

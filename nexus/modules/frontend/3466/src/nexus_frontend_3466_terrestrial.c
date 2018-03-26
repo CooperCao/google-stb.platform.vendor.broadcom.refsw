@@ -920,7 +920,7 @@ static NEXUS_Error NEXUS_Frontend_P_3466_GetOfdmAsyncStatus(void *handle, NEXUS_
             NEXUS_Frontend_P_PrintOfdmStatus(pStatus);
         }
         else{
-            BDBG_ERR(("Status not ready. Eror reading status."));
+            BDBG_ERR(("Status not ready. Error reading status."));
             rc = BERR_TRACE(rc); goto done;
         }
 

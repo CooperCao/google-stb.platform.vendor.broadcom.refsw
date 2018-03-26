@@ -217,7 +217,8 @@ typedef struct NEXUS_KeySlotFastInfo
                                           are only associated with KeySlots allocated to perform M2M
                                           operations (engine type NEXUS_SecurityEngine_eM2m  */
     }dma;
-    unsigned keySlotNumber;            /* The keyslot number */
+    unsigned keySlotNumber;            /* The keyslot number. Not supported on SecV2, use function
+                                          NEXUS_KeySlot_GetInformation */
 }NEXUS_KeySlotFastInfo;
 
 /*

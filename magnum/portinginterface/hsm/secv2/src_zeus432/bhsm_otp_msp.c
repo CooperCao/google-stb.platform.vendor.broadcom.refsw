@@ -53,7 +53,7 @@ BERR_Code BHSM_OtpMsp_Write( BHSM_Handle hHsm, BHSM_OtpMspWrite *pParam )
     BHSM_BspMsg_h   hMsg = NULL;
     uint8_t         dataBitLen = 0;
     uint32_t        bit = 1;
-    unsigned char   status;
+    unsigned char   status = ~0;
     BHSM_BspMsgHeader_t header;
 
     BDBG_ENTER( BHSM_OtpMsp_Program );
@@ -118,7 +118,7 @@ BERR_Code BHSM_OtpMsp_Read( BHSM_Handle hHsm, BHSM_OtpMspRead *pParam )
 {
     BERR_Code       rc = BERR_SUCCESS;
     BHSM_BspMsg_h   hMsg = NULL;
-    unsigned char   status;
+    unsigned char   status = ~0;
     BHSM_BspMsgHeader_t header;
 
     BDBG_ENTER( BHSM_OtpMsp_Read );

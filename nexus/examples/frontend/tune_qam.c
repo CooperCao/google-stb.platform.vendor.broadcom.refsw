@@ -143,6 +143,7 @@ static void print_usage(void)
         "  -pcrpid #   PCR PID\n"
         "  -vcodec #   MPEG2=2, AVC=5 (default is MPEG2)\n"
         "  -acodec #   MPEG=1, AAC=3, AACplus=5, AC3=7 (default is AC3)\n"
+        "  -sym    #   symbol rate\n"
             );
     printf(
         "  -timeout #  timeout to wait for lock (in ms, default: %d)\n",
@@ -151,6 +152,11 @@ static void print_usage(void)
     printf(
         "  -cppm       trigger CPPM if tune initially fails\n"
         "  -cppm-wait  wait for CPPM to complete prior to tune\n"
+        );
+    printf(
+        "  -annexa     AnnexA\n"
+        "  -annexb     AnnexB (default)\n"
+        "  -annexc     AnnexC\n"
         );
 }
 
@@ -186,12 +192,14 @@ int main(int argc, char **argv)
     bool done = false;
     bool cppm = false;
     bool waitForCppm = false;
-    int curarg = 1;
+    int curarg = 1, index = 0;
     unsigned  mode = 64;
     unsigned int videoCodec = NEXUS_VideoCodec_eMpeg2;
     unsigned int audioCodec = NEXUS_AudioCodec_eAc3;
     int videoPid = 17, audioPid = 20, pcrPid = -1;
     unsigned maxAcquireTime = MAX_ACQUIRE_TIME;
+    NEXUS_FrontendQamAnnex annex = NEXUS_FrontendQamAnnex_eB;
+    unsigned symRate = 0;
 
     /* Read command line for freqency, pid and codec information */
 
@@ -210,6 +218,18 @@ int main(int argc, char **argv)
                 freq = (unsigned)(f*1000) * 1000;
             else
                 freq = (unsigned)f;
+        }
+        else if (!strcmp(argv[curarg], "-sym") && argc>curarg+1) {
+            const char *s = argv[++curarg];
+            if (strchr(s,'.')) {
+                float n;
+                sscanf(s, "%f", &n);
+                symRate = ((unsigned)(n*100.0))*10000;
+            } else {
+                symRate = atoi(s);
+                if (symRate < 1000000)
+                    symRate *= 1000000;
+            }
         }
         else if (!strcmp(argv[curarg], "-vpid")) {
             if((!strncmp(argv[++curarg], "0X", 2)) || (!strncmp(argv[curarg], "0x", 2))){
@@ -249,6 +269,18 @@ int main(int argc, char **argv)
         }
         else if (!strcmp(argv[curarg], "-timeout")) {
             maxAcquireTime = atoi(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-index")) {
+            index = atoi(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-annexa")) {
+            annex = NEXUS_FrontendQamAnnex_eA;
+        }
+        else if (!strcmp(argv[curarg], "-annexb")) {
+            annex = NEXUS_FrontendQamAnnex_eB;
+        }
+        else if (!strcmp(argv[curarg], "-annexc")) {
+            annex = NEXUS_FrontendQamAnnex_eC;
         }
         else {
             print_usage();
@@ -331,7 +363,8 @@ int main(int argc, char **argv)
     {
         NEXUS_FrontendAcquireSettings settings;
         NEXUS_Frontend_GetDefaultAcquireSettings(&settings);
-        settings.capabilities.qam = true;
+        settings.mode = NEXUS_FrontendAcquireMode_eByIndex;
+        settings.index = index;
         frontend = NEXUS_Frontend_Acquire(&settings);
         if (!frontend) {
             BDBG_ERR(("Unable to find QAM-capable frontend"));
@@ -403,14 +436,40 @@ int main(int argc, char **argv)
             BDBG_ERR(("Incorrect mode %d specified. Defaulting to 64(NEXUS_FrontendQamMode_e64)", mode));
         case 64:
             qamSettings.mode = NEXUS_FrontendQamMode_e64;
-            qamSettings.symbolRate = 5056900;
+            if (!symRate) {
+                switch (annex) {
+                case NEXUS_FrontendQamAnnex_eA:
+                    qamSettings.symbolRate = 6952000;
+                    break;
+                case NEXUS_FrontendQamAnnex_eC:
+                    qamSettings.symbolRate = 5274000;
+                    break;
+                case NEXUS_FrontendQamAnnex_eB:
+                default:
+                    qamSettings.symbolRate = 5056900;
+                    break;
+                }
+            }
             break;
         case 256:
             qamSettings.mode = NEXUS_FrontendQamMode_e256;
-            qamSettings.symbolRate = 5360537;
+            if (!symRate) {
+                switch (annex) {
+                case NEXUS_FrontendQamAnnex_eA:
+                    qamSettings.symbolRate = 6952000;
+                    break;
+                case NEXUS_FrontendQamAnnex_eC:
+                    qamSettings.symbolRate = 5274000;
+                    break;
+                case NEXUS_FrontendQamAnnex_eB:
+                default:
+                    qamSettings.symbolRate = 5360537;
+                    break;
+                }
+            }
             break;
         }
-        qamSettings.annex = NEXUS_FrontendQamAnnex_eB;
+        qamSettings.annex = annex;
         qamSettings.bandwidth = NEXUS_FrontendQamBandwidth_e6Mhz;
         qamSettings.lockCallback.callback = lock_changed_callback;
         qamSettings.lockCallback.context = lockChangedEvent;
@@ -476,7 +535,6 @@ tune:
         BDBG_WRN(("tuning %d MHz... mode = %d", freq/1000000, qamSettings.mode));
         rc = NEXUS_Frontend_TuneQam(frontend, &qamSettings);
         if(rc){rc = BERR_TRACE(rc); goto done;}
-
 
         /* in a real-world app, we don't start decode until we are locked and have scanned for PSI */
         {

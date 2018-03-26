@@ -48,6 +48,8 @@ static cmd_func_t wl_tclas_add;
 static cmd_func_t wl_tclas_del;
 static cmd_func_t wl_tclas_list;
 static cmd_func_t wl_wnm_tfsreq_add;
+static cmd_func_t wl_wnm_tfs_set;
+static cmd_func_t wl_wnm_tfs_term;
 static cmd_func_t wl_wnm_dms_set;
 static cmd_func_t wl_wnm_dms_status;
 static cmd_func_t wl_wnm_dms_term;
@@ -92,6 +94,20 @@ static cmd_t wl_wnm_cmds[] = {
 	"\ttfs_action_code bitfield: 1: delete after match, 2: notify\n"
 	"\ttfs_subelem_id: TFS subelement (0 for none or 1 for previous tclas_add)\n"
 	"\tsend: 0: store element, 1: send all stored elements"
+	},
+	{ "wnm_tfs_set", wl_wnm_tfs_set, -1, WLC_SET_VAR,
+	"set one tfs request element and send tfs request frame\n"
+	"\tUsage: wl wnm_tfs_set <send> <tfs_id> <tfs_action_code> <tclas_proc>\n"
+	"\tsend: 0: store element, 1: send all stored elements"
+	"\ttfs_id: a non-zero value (1 ~ 255)\n"
+	"\ttfs_action_code bitfield: 1: delete after match, 2: notify\n"
+	"\ttclas_proc: TCLAS processing operator for this filter set)\n"
+	},
+	{ "wnm_tfs_term", wl_wnm_tfs_term, -1, WLC_SET_VAR,
+	"delete one tfs request element\n"
+	"\tUsage: wl wnm_tfs_term <del> <tfs_id>\n"
+	"\tdel: 1: delete filter sets"
+	"\ttfs_id: a non-zero value (1 ~ 255)\n"
 	},
 	{ "wnm_dms_set", wl_wnm_dms_set, -1, WLC_SET_VAR,
 	"Optionally add pending DMS desc (after tclas_add) and optionally register all desc\n"
@@ -1000,6 +1016,109 @@ wl_wnm_tfsreq_add(void *wl, cmd_t *cmd, char **argv)
 	buf[buflen++] = tfs_req.tfs_actcode;
 	buf[buflen++] = tfs_req.tfs_subelem_id;
 	buf[buflen++] = tfs_req.send;
+
+	err = wlu_set(wl, WLC_SET_VAR, buf, buflen);
+
+	return err;
+}
+
+static int
+wl_wnm_tfs_set(void *wl, cmd_t *cmd, char **argv)
+{
+	int argc;
+	int err = -1, buflen;
+	wl_tfs_set_t tfs_set;
+
+	UNUSED_PARAMETER(cmd);
+
+	/* arg count */
+	for (argc = 0; argv[argc]; argc++)
+		;
+
+	strcpy(buf, "wnm_tfs_set");
+	buflen = strlen("wnm_tfs_set") + 1;
+
+	if (argc != 5 || *++(argv) == NULL) {
+		printf("Incorrect args provided\n");
+		return BCME_ERROR;
+	}
+
+	tfs_set.send = (uint8)strtoul(*argv++, NULL, 0);
+
+	if (*argv != NULL)
+		tfs_set.tfs_id = (uint8)strtoul(*argv++, NULL, 0);
+	else {
+		printf("Incorrect args provided\n");
+		return BCME_ERROR;
+	}
+
+	if (*argv != NULL)
+		tfs_set.actcode = (uint8)strtoul(*argv++, NULL, 0);
+	else {
+		printf("Incorrect args provided\n");
+		return BCME_ERROR;
+	}
+
+	if (*argv != NULL)
+		tfs_set.tclas_proc = (uint8)strtoul(*argv++, NULL, 0);
+	else {
+		printf("Incorrect args provided\n");
+		return BCME_ERROR;
+	}
+
+	if (tfs_set.tfs_id == 0 ||
+		tfs_set.actcode > 3) {
+		printf("Input args not in range\n");
+		return BCME_ERROR;
+	}
+
+	buf[buflen++] = tfs_set.send;
+	buf[buflen++] = tfs_set.tfs_id;
+	buf[buflen++] = tfs_set.actcode;
+	buf[buflen++] = tfs_set.tclas_proc;
+
+	err = wlu_set(wl, WLC_SET_VAR, buf, buflen);
+
+	return err;
+}
+
+static int
+wl_wnm_tfs_term(void *wl, cmd_t *cmd, char **argv)
+{
+	int argc;
+	int err = -1, buflen;
+	wl_tfs_term_t tfs_term;
+
+	UNUSED_PARAMETER(cmd);
+
+	/* arg count */
+	for (argc = 0; argv[argc]; argc++)
+		;
+
+	strcpy(buf, "wnm_tfs_term");
+	buflen = strlen("wnm_tfs_term") + 1;
+
+	if (argc != 5 || *++(argv) == NULL) {
+		printf("Incorrect args provided\n");
+		return BCME_ERROR;
+	}
+
+	tfs_term.del = (uint8)strtoul(*argv++, NULL, 0);
+
+	if (*argv != NULL)
+		tfs_term.tfs_id = (uint8)strtoul(*argv++, NULL, 0);
+	else {
+		printf("Incorrect args provided\n");
+		return BCME_ERROR;
+	}
+
+	if (tfs_term.tfs_id == 0) {
+		printf("Input args not in range\n");
+		return BCME_ERROR;
+	}
+
+	buf[buflen++] = tfs_term.del;
+	buf[buflen++] = tfs_term.tfs_id;
 
 	err = wlu_set(wl, WLC_SET_VAR, buf, buflen);
 

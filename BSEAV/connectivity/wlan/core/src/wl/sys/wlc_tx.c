@@ -3647,7 +3647,6 @@ wlc_sendpkt(wlc_info_t *wlc, void *sdu, struct wlc_if *wlcif)
 
 	/* check IAPP L2 update frame */
 	if (!wds && BSSCFG_AP(bsscfg) && ETHER_ISMULTI(dst)) {
-
 		if ((ntoh16(eh->ether_type) == ETHER_TYPE_IAPP_L2_UPDATE) &&
 			(WLPKTTAG(sdu)->flags & WLF_HOST_PKT)) {
 			struct ether_addr *src;
@@ -3656,11 +3655,18 @@ wlc_sendpkt(wlc_info_t *wlc, void *sdu, struct wlc_if *wlcif)
 
 			/* cleanup the scb */
 			if ((scb = wlc_scbfindband(wlc, bsscfg, src, bandunit)) != NULL) {
-				WL_INFORM(("wl%d: %s: non-associated station %s\n", wlc->pub->unit,
-					__FUNCTION__, bcm_ether_ntoa(src, eabuf)));
-				wlc_bss_mac_event(wlc, bsscfg, WLC_E_DISASSOC_IND, &scb->ea,
-					WLC_E_STATUS_SUCCESS, DOT11_RC_DISASSOC_LEAVING, 0, 0, 0);
-				wlc_scbfree(wlc, scb);
+#ifdef WLWNM_AP
+				if (WLWNM_ENAB(wlc->pub) &&
+					!WNM_PROXYARP_ENABLED(wlc_wnm_get_cap(wlc, bsscfg))) {
+#endif /* WLWNM_AP */
+					WL_INFORM(("wl%d: %s: non-associated station %s\n", wlc->pub->unit,
+						__FUNCTION__, bcm_ether_ntoa(src, eabuf)));
+					wlc_bss_mac_event(wlc, bsscfg, WLC_E_DISASSOC_IND, &scb->ea,
+						WLC_E_STATUS_SUCCESS, DOT11_RC_DISASSOC_LEAVING, 0, 0, 0);
+					wlc_scbfree(wlc, scb);
+#ifdef WLWNM_AP
+				}
+#endif /* WLWNM_AP */
 			}
 		}
 	}
@@ -3916,6 +3922,12 @@ wlc_sendpkt(wlc_info_t *wlc, void *sdu, struct wlc_if *wlcif)
 	ASSERT(BSSCFGIDX_ISVALID(bsscfgidx));
 	WLPKTTAGBSSCFGSET(sdu, bsscfgidx);
 	WLPKTTAGSCBSET(sdu, scb);
+
+	if(scb && SCB_DISASSOCIATING(scb)) {
+		WL_ASSOC(("wl%d: %s: tossing, while disassociating\n",
+			wlc->pub->unit, __FUNCTION__));
+		goto toss;
+	}
 
 #ifdef	WLCAC
 	if (CAC_ENAB(wlc->pub)) {
@@ -11929,6 +11941,7 @@ wlc_txq_alloc(wlc_info_t *wlc, osl_t *osh)
 {
 	wlc_txq_info_t *qi, *p;
 	int i;
+        uint16 chspec_bw = CHSPEC_BW(wlc->chanspec);
 #if defined(TXQ_MUX)
 	uint ac;
 #else
@@ -12023,7 +12036,7 @@ wlc_txq_alloc(wlc_info_t *wlc, osl_t *osh)
 	 * Allocated for all physical queues in the device
 	 */
 	qi->low_txq = wlc_low_txq_alloc(wlc->txqi, wlc_pull_q, wlc, no_hw_fifos,
-		wlc_get_txmaxpkts(wlc), wlc_get_txmaxpkts(wlc)/2);
+		wlc_get_txmaxpkts(wlc), BW_LE40(chspec_bw)? wlc_get_txmaxpkts(wlc)/4: wlc_get_txmaxpkts(wlc)/2);
 
 	if (qi->low_txq == NULL) {
 		WL_ERROR(("wl%d: %s: wlc_low_txq_alloc failed\n", wlc->pub->unit, __FUNCTION__));

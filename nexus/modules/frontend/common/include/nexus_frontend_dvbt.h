@@ -58,7 +58,7 @@ Summary:
 typedef struct NEXUS_FrontendDvbtTpsStatus
 {
     NEXUS_FrontendOfdmModulation         modulation;             /* Current modulation type */
-    NEXUS_FrontendOfdmTransmissionMode   transmissionMode;       /* Detected trasmission mode */
+    NEXUS_FrontendOfdmTransmissionMode   transmissionMode;       /* Detected transmission mode */
     NEXUS_FrontendOfdmGuardInterval      guardInterval;          /* Detected guard interval */
     NEXUS_FrontendOfdmCodeRate           codeRate;               /* Code rate of the input signal */
     NEXUS_FrontendOfdmHierarchy          hierarchy;              /* Hierarchy of the input signal */

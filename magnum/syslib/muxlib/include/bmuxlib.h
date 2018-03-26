@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #ifndef BMUXLIB_H_
@@ -86,6 +106,19 @@ typedef struct BMUXlib_DoMux_Status
    unsigned uiCompletedDuration;    /* (in milliseconds) media duration completed so far */
 } BMUXlib_DoMux_Status;
 
+typedef struct BMUXlib_CompressedBufferRegisters
+{
+   struct
+   {
+      uint32_t uiRead;  /* Address of the buffer READ register */
+      uint32_t uiBase;  /* Address of the buffer BASE register */
+      uint32_t uiValid; /* Address of the buffer VALID register */
+      uint32_t uiEnd;   /* Address of the buffer END register */
+   } stData,stIndex;
+   bool bReady; /* Set to true when the buffer has been initialized and ready to be consumed.
+                 * Once set to true, it is always true for the duration of the session. */
+} BMUXlib_CompressedBufferRegisters;
+
 typedef struct BMUXlib_CompressedBufferStatus
 {
       /* Note: The following are CACHED addresses.
@@ -96,6 +129,8 @@ typedef struct BMUXlib_CompressedBufferStatus
        */
       BMMA_Block_Handle hFrameBufferBlock; /* The BMMA block for the CDB. */
       BMMA_Block_Handle hMetadataBufferBlock; /* The BMMA block for the metadata (must be cpu accessible) */
+      BMMA_Block_Handle hIndexBufferBlock; /* The BMMA block for the ITB. */
+      BMUXlib_CompressedBufferRegisters stContext; /* The ITB/CDB context registers */
 } BMUXlib_CompressedBufferStatus;
 
 typedef BERR_Code
@@ -122,12 +157,21 @@ typedef BERR_Code
    size_t *puiNumDescriptors1
    );
 
+typedef BERR_Code
+(*BMUXlib_ReadVideoIndex)(
+   void *pvContext,
+   BAVC_VideoBufferDescriptor *astDescriptors, /* Pointer to an array of descriptors. E.g. astDescriptors[0] is the first descriptor */
+   unsigned uiNumDescriptorsMax, /* size of astDescriptors array */
+   unsigned *puiNumDescriptorsRead
+   );
+
 typedef struct BMUXlib_VideoEncoderInterface
 {
       void *pContext;
       BMUXlib_GetVideoBufferDescriptors fGetBufferDescriptors;
       BMUXlib_ConsumeBufferDescriptors fConsumeBufferDescriptors;
       BMUXlib_GetBufferStatus fGetBufferStatus;
+      BMUXlib_ReadVideoIndex fReadIndex;
 
       BAVC_VideoBufferInfo stBufferInfo;
 } BMUXlib_VideoEncoderInterface;

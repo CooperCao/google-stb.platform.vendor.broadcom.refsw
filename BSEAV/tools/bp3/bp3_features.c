@@ -41,18 +41,16 @@
 #include "bp3_features.h"
 
 bp3featuresStruct bp3_features[BP3_FEATURES_NUM] = {
-    {"H264/AVC", 1, 0},
-    {"MPEG-2", 1, 1},
-    {"AVS", 1, 9},
     {"H265 (HEVC)", 1, 19},
-    {"VP9", 1, 20},
     {"Dolby Vision HDR Activation ($)", 1, 65},
     {"Technicolor HDR Activation ($)", 1, 66},
+    {"Technicolor ITM Activation ($)", 1, 67},
+    {"QAM Activation ($)", 1, 68},
     {"CA Multi2", 1, 81},
     {"CA DVB-CSA3", 1, 82},
     {"Post Proc: DAP", 2, 0},
     {"Decode Dolby Digital", 2, 1},
-    {"Decode Dolby Digital Plus", 2, 1},
+    {"Decode Dolby Digital Plus", 2, 2},
     {"Decode AC4", 2, 3},
     {"Decode TrueHD", 2, 4},
     {"MS10/11", 2, 5},

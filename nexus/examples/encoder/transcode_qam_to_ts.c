@@ -340,13 +340,6 @@ static void window_mad(
             scanf("%d", (int*)&windowMadSettings.gameMode);
         }
     }
-    else /* default */
-    {
-        windowMadSettings.deinterlace       = true;
-        windowMadSettings.enable32Pulldown = true;
-        windowMadSettings.enable22Pulldown = true;
-        windowMadSettings.gameMode = NEXUS_VideoWindowGameMode_eOff;
-    }
     NEXUS_VideoWindow_SetMadSettings(hWindow, &windowMadSettings);
 }
 

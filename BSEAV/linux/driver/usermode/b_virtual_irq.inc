@@ -491,3 +491,18 @@ int b_virtual_irq_make_group(const b_virtual_irq_group * group)
 end:
     return result;
 }
+
+bool b_virtual_irq_is_os_managed(b_virtual_irq_line line)
+{
+    bool os_managed = false;
+
+    if (line > b_virtual_irq_line_unused && line < b_virtual_irq_line_max) {
+        int linux_irq = b_virtual_irq_get_linux_irq(line);
+        if (linux_irq > 0) {
+            os_managed = b_os_irq_is_os_managed(linux_irq);
+            if (g_brcm_virq_verbose) PINFO("%s +%s\n", os_managed?"linux":"nexus", b_virtual_irq_get_name(line));
+        }
+    }
+
+    return os_managed;
+}

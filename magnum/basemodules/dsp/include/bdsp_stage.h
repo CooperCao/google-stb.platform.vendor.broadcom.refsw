@@ -430,6 +430,11 @@ void BDSP_AudioCapture_GetDefaultCreateSettings(
     BDSP_AudioCaptureCreateSettings *pSettings  /* [out] */
     );
 
+BERR_Code BDSP_Stage_GetContext(
+    BDSP_StageHandle hStage,
+    BDSP_ContextHandle *pContextHandle /* [out] */
+    );
+
 /***************************************************************************
 Summary:
 Get Datasync settings for a particular task of video Encode type

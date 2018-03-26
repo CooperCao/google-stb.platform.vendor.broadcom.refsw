@@ -71,12 +71,13 @@ typedef enum
 
 BERR_Code
 Keymaster_ModuleInit(Keymaster_ModuleId_e module_id,
-                   const char * drm_bin_filename,
-                   BSAGElib_InOutContainer *container,
-                   SRAI_ModuleHandle *moduleHandle);
+                     const char * drm_bin_filename,
+                     BSAGElib_InOutContainer *container,
+                     SRAI_ModuleHandle *moduleHandle,
+                     SRAI_ModuleHandle *ssdModuleHandle);
 
 BERR_Code
-Keymaster_ModuleUninit(SRAI_ModuleHandle moduleHandle);
+Keymaster_ModuleUninit(SRAI_ModuleHandle moduleHandle, SRAI_ModuleHandle ssdModuleHandle);
 
 
 #ifdef __cplusplus

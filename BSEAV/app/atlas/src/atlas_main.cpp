@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -850,10 +850,10 @@ CSimpleAudioDecode * CAtlas::audioDecodeInitializePip(
     }
 
     return(pAudioDecodePip);
-}
+} /* audioDecodeInitializePip */
 
 CSimplePcmPlayback * CAtlas::audioPcmPlaybackInitialize(
-        COutputHdmi * pOutputHdmi,
+        COutputHdmi *  pOutputHdmi,
         COutputSpdif * pOutputSpdif
         )
 {
@@ -867,7 +867,7 @@ CSimplePcmPlayback * CAtlas::audioPcmPlaybackInitialize(
     pPcmPlayback->setResources(this, _pBoardResources);
     pPcmPlayback->setModel(&_model);
 
-    if (NULL != pOutputHdmi)  { pPcmPlayback->setOutputHdmi(pOutputHdmi); }
+    if (NULL != pOutputHdmi) { pPcmPlayback->setOutputHdmi(pOutputHdmi); }
     if (NULL != pOutputSpdif) { pPcmPlayback->setOutputSpdif(pOutputSpdif); }
 
     ret = pPcmPlayback->open(_pWidgetEngine);
@@ -878,7 +878,7 @@ error:
     if (NULL != pPcmPlayback) { audioPcmPlaybackUninitialize(&pPcmPlayback); }
 done:
     return(pPcmPlayback);
-}
+} /* audioPcmPlaybackInitialize */
 
 void CAtlas::audioDecodeUninitialize(
         CSimpleAudioDecode ** pAudioDecode,
@@ -900,9 +900,7 @@ void CAtlas::audioDecodeUninitialize(
     *pAudioDecode = NULL;
 }
 
-void CAtlas::audioPcmPlaybackUninitialize(
-        CSimplePcmPlayback ** pPcmPlayback
-        )
+void CAtlas::audioPcmPlaybackUninitialize(CSimplePcmPlayback ** pPcmPlayback)
 {
     if ((NULL == pPcmPlayback) || (NULL == *pPcmPlayback))
     {

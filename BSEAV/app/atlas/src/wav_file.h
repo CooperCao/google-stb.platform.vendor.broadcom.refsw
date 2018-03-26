@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,9 +42,9 @@
 #include <string.h>
 
 /**
-NOTE: This API is only example code. It is subject to change and
-is not supported as a standard reference software deliverable.
-**/
+ * NOTE: This API is only example code. It is subject to change and
+ * is not supported as a standard reference software deliverable.
+ **/
 
 #ifdef __cplusplus
 extern "C"
@@ -53,35 +53,35 @@ extern "C"
 
 struct wave_header
 {
-    unsigned long  riff;        /* 'RIFF' */
-    unsigned long  riffCSize;   /* size in bytes of file - 8 */
-    unsigned long  wave;        /* 'WAVE' */
-    unsigned long  fmt;         /* 'fmt ' */
-    unsigned long  headerLen;   /* header length (should be 16 for PCM) */
-    unsigned short format;      /* 1 - pcm */
-    unsigned short channels;    /* 1 - mono, 2 - stereo */
-    unsigned long  samplesSec;  /* samples / second */
-    unsigned long  bytesSec;    /* bytes / second */
-    unsigned short chbits;      /* channels * bits/sample /8 */
-    unsigned short bps;         /* bits per sample (8 or 16) */
+    unsigned long    riff;        /* 'RIFF' */
+    unsigned long    riffCSize;   /* size in bytes of file - 8 */
+    unsigned long    wave;        /* 'WAVE' */
+    unsigned long    fmt;         /* 'fmt ' */
+    unsigned long    headerLen;   /* header length (should be 16 for PCM) */
+    unsigned short   format;      /* 1 - pcm */
+    unsigned short   channels;    /* 1 - mono, 2 - stereo */
+    unsigned long    samplesSec;  /* samples / second */
+    unsigned long    bytesSec;    /* bytes / second */
+    unsigned short   chbits;      /* channels * bits/sample /8 */
+    unsigned short   bps;         /* bits per sample (8 or 16) */
 
     /* Extensible format */
-    unsigned short cbSize;      /* 2 Size of the extension (0 or 22)  */
-    unsigned short validBitsPerSample; /* 2 Number of valid bits  */
-    unsigned short channelMask; /* 4 Speaker position mask  */
-    unsigned char  subFormat[16];  /* SubFormat */
+    unsigned short   cbSize;             /* 2 Size of the extension (0 or 22)  */
+    unsigned short   validBitsPerSample; /* 2 Number of valid bits  */
+    unsigned short   channelMask;        /* 4 Speaker position mask  */
+    unsigned char    subFormat[16];      /* SubFormat */
 
-    unsigned long  dataSig;      /* 'data' */
-    unsigned long  dataLen;      /* length of data */
-    unsigned long  dataStart;    /* start of the data */
+    unsigned long   dataSig;      /* 'data' */
+    unsigned long   dataLen;      /* length of data */
+    unsigned long   dataStart;    /* start of the data */
 };
 
-int read_wave_header(FILE *file, struct wave_header *wh);
+int read_wave_header(FILE * file, struct wave_header * wh);
 
-void get_default_wave_header(struct wave_header *wh);
-int write_wave_header(FILE *file, const struct wave_header *wh);
+void get_default_wave_header(struct wave_header * wh);
+int  write_wave_header(FILE * file, const struct wave_header * wh);
 
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif /* ifndef WAV_FILE_H__ */

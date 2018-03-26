@@ -50,7 +50,7 @@
  */
 #define PSCI_SUCCESS                    STD_SVC_PSCI_SUCCESS
 #define PSCI_NOT_SUPPORTED              STD_SVC_PSCI_NOT_SUPPORTED
-#define PSCI_INVALID_PARAMMETERS        STD_SVC_PSCI_INVALID_PARAMETERS
+#define PSCI_INVALID_PARAMETERS         STD_SVC_PSCI_INVALID_PARAMETERS
 #define PSCI_DENIED                     STD_SVC_PSCI_DENIED
 #define PSCI_ALREADY_ON                 STB_SVC_PSCI_ALREADY_ON
 #define PSCI_ON_PENDING                 STB_SVC_PSCI_ON_PENDING
@@ -60,12 +60,55 @@
 #define PSCI_INVALID_ADDRESS            STB_SVC_PSCI_INVALID_ADDRESS
 
 /*
+ * PSCI power states - original format
+ */
+
+/* Power level */
+#define PSCI_PSTATE_LEVEL_SHIFT	        24
+#define PSCI_PSTATE_LEVEL_MASK	        0x3
+
+#define PSCI_PSTATE_LEVEL_CORE	        0
+#define PSCI_PSTATE_LEVEL_CLUSTER	1
+#define PSCI_PSTATE_LEVEL_SYSTEM	2
+
+/* State type */
+#define PSCI_PSTATE_TYPE_SHIFT	        16
+#define PSCI_PSTATE_TYPE_MASK	        0x1
+
+#define PSCI_PSTATE_TYPE_STANDBY	0
+#define PSCI_PSTATE_TYPE_POWERDOWN	1
+
+/* State ID */
+#define PSCI_PSTATE_ID_SHIFT	        0
+#define PSCI_PSTATE_ID_MASK	        0xffff
+
+#define PSCI_PSTATE_LEVEL(ps)           (((ps) >> PSCI_PSTATE_LEVEL_SHIFT) & PSCI_PSTATE_LEVEL_MASK)
+#define PSCI_PSTATE_TYPE(ps)            (((ps) >> PSCI_PSTATE_TYPE_SHIFT)  & PSCI_PSTATE_TYPE_MASK)
+#define PSCI_PSTATE_ID(ps)              (((ps) >> PSCI_PSTATE_ID_SHIFT)    & PSCI_PSTATE_ID_MASK)
+
+/*
+ * PSCI affinity info
+ */
+#define PSCI_AFFINITY_LEVEL_CORE        0
+#define PSCI_AFFINITY_LEVEL_CLUSTER     1
+#define PSCI_AFFINITY_LEVEL_SYSTEM      2
+
+#define PSCI_AFFINITY_ON                0
+#define PSCI_AFFINITY_OFF               1
+#define PSCI_AFFINITY_ON_PENDING        2
+
+/*
  * PSCI functions
  */
 int psci_init(
     uint32_t num_clusters,
     uint32_t num_cpus,
     uint32_t *cluster_num_cpus);
+
+int psci_cpu_suspend(
+    uint32_t power_state,
+    uintptr_t entry_point,
+    uint64_t context_id);
 
 int psci_cpu_up(void);
 
@@ -75,6 +118,10 @@ int psci_cpu_on(
     uint64_t target_mpidr,
     uintptr_t entry_point,
     uint64_t context_id);
+
+int psci_affinity_info(
+    uint64_t target_mpidr,
+    uint32_t target_level);
 
 int psci_cluster_off(void);
 
@@ -90,10 +137,10 @@ int psci_system_reset(void);
 int get_cpu_index_by_mpidr(uint64_t mpidr);
 
 /* Return the CPU index for the current CPU */
-int get_cpu_index();
+int get_cpu_index(void);
 
 /* Return non-secure entry point and context ID for the current CPU */
-uintptr_t get_nsec_entry_point();
-uint64_t get_nsec_context_id();
+uintptr_t get_nsec_entry_point(void);
+uint64_t get_nsec_context_id(void);
 
 #endif /* _PSCI_H_ */

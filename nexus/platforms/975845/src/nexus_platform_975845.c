@@ -53,17 +53,11 @@ BDBG_MODULE(nexus_platform_975845);
 static void nexus_p_modifyDefaultMemoryConfigurationSettings(NEXUS_MemoryConfigurationSettings *pSettings)
 {
 #if NEXUS_HAS_VIDEO_DECODER
-    int i;
-    for (i=0;i<NEXUS_NUM_VIDEO_DECODERS;i++)
-    {
-        pSettings->videoDecoder[i].supportedCodecs[NEXUS_VideoCodec_eH265] = true;
-    }
     pSettings->videoDecoder[0].colorDepth = 10;
     pSettings->videoDecoder[1].colorDepth = 10;
 #if NEXUS_NUM_STILL_DECODES
     pSettings->stillDecoder[0].used = true;
     pSettings->stillDecoder[0].maxFormat = NEXUS_VideoFormat_e1080p;
-    pSettings->stillDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH265] = true;
 #endif
 #else
     BSTD_UNUSED(pSettings);

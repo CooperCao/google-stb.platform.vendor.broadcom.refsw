@@ -1696,7 +1696,7 @@ const uint32_t BDSP_IMG_tsmcorrection_code_array1[] = {
 	0x27600247,
 	0xb4085f0f,
 	0x706d088c,
-	0x71e0407d,
+	0x71f0407d,
 	0x20807f10,
 	0xfe016597,
 	0x2400cd87,

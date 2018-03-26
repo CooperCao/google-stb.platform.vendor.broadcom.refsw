@@ -542,7 +542,7 @@ struct NEXUS_P_HwPidChannel {
 #endif
 
 /* this is the impl of NEXUS_MessageHandle */
-#ifndef NEXUS_USE_SW_FILTER /* SW message filter uses seperate impl maintained in nexus_message_swfilter.c */
+#ifndef NEXUS_USE_SW_FILTER /* SW message filter uses separate impl maintained in nexus_message_swfilter.c */
 struct NEXUS_Message {
     NEXUS_OBJECT(NEXUS_Message);
     NEXUS_MessageSettings settings;

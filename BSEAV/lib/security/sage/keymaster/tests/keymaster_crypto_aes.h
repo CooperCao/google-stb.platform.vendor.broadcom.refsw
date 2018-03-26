@@ -45,7 +45,7 @@
 #include "keymaster_types.h"
 
 
-BERR_Code km_crypto_aes_tests(KeymasterTl_Handle handle);
+BERR_Code km_crypto_aes_tests(KeymasterTl_Handle handle, bool shortTest);
 
 
 #endif  /* KEYMASTER_CRYPTO_AES_H__ */

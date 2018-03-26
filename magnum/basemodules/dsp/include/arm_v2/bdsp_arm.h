@@ -71,6 +71,7 @@ typedef struct BDSP_ArmSettings
 {
     bool authenticationEnabled; /* If authentication is enabled, all the firmware execs needs to be downloaded at open time and
                                    the DSP must be booted via a separate call to BDSP_Arm_Boot() after HSM has been authenticated. */
+	BDSP_DebugTypeSettings debugSettings[BDSP_DebugType_eLast]; /* Debug information for the different types of debug logs */
     const BIMG_Interface *pImageInterface;      /* Interface to access firmware image. This interface must be
                                                    implemented and the function pointers must be stored here. */
     void **pImageContext;                       /* Context for the Image Interface. This is also provided by

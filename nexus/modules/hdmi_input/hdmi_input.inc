@@ -1,5 +1,5 @@
 ##############################################################################
-#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,12 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-
-##############################################################################/
-#
-# Conditional Options for this Makefile
-#
-
 ######################
 # Define this module #
 ######################
@@ -63,7 +57,8 @@ NEXUS_HDMI_INPUT_SOURCES := \
     $(NEXUS_TOP)/modules/hdmi_input/src/nexus_hdmi_input_debug.c \
     $(NEXUS_TOP)/modules/hdmi_input/src/nexus_hdmi_input.c \
     $(NEXUS_TOP)/modules/hdmi_input/src/nexus_hdmi_input_edid_ram.c \
-    $(NEXUS_TOP)/modules/hdmi_input/src/nexus_hdmi_input_hdcp.c
+    $(NEXUS_TOP)/modules/hdmi_input/src/nexus_hdmi_input_hdcp.c \
+    $(NEXUS_TOP)/modules/hdmi_input/src/nexus_hdmi_input_hdcp_keyloader.c
 
 # thunk layer
 NEXUS_HDMI_INPUT_PRIVATE_INCLUDES += $(NEXUS_TOP)/modules/hdmi_input/src $(NEXUS_SYNCTHUNK_DIR)
@@ -101,4 +96,7 @@ NEXUS_HDMI_INPUT_MAGNUM_MODULES += \
 NEXUS_HDMI_INPUT_DEFINES += NEXUS_HAS_HDCP_2X_SUPPORT
 BHDCPLIB_HDR_SUPPORT := y
 endif
+endif
+ifeq ($(NEXUS_HDMI_INPUT_EXTENSION_SUPPORT),y)
+include $(NEXUS_TOP)/../rockford/unittests/nexus/hdmi_input/extensions/hdmi_input_extn.inc
 endif

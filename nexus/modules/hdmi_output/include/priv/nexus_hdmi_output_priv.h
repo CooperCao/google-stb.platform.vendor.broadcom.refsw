@@ -244,6 +244,10 @@ void NEXUS_HdmiOutput_PrintVendorSpecificInfoFramePacket(void);
 void NEXUS_HdmiOutput_PrintDrmInfoFramePacket(void);
 void NEXUS_HdmiOutput_PrintAcrPacket(void) ;
 
+/* call by NEXUS_Cec */
+void NEXUS_HdmiOutput_SetCecHotplugHandler_priv(NEXUS_HdmiOutputHandle hdmiOutput, BKNI_EventHandle cecHotplugEvent);
+
+
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_HdmiOutput);
 
 #ifdef __cplusplus

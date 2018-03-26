@@ -512,6 +512,14 @@ typedef struct {
     unsigned int rxf1ovfl;
     unsigned int pmqovfl;
     unsigned int rxcrc;
+    unsigned int txnoassoc;
+    unsigned int txrunt;
+    unsigned int rxbadds;
+    unsigned int rxrunt;
+    unsigned int rxnoscb;
+    unsigned int rxbadproto;
+    unsigned int rxbadsrcmac;
+    unsigned int rxbadda;
 } WiFiCounters_t;
 
 typedef char BWL_MAC_ADDRESS[20];

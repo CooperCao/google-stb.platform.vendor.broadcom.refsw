@@ -714,7 +714,7 @@ static void unLockAndFreeBuffer(
 
     if (pBuffer->pBuffer) BMMA_Unlock(pBuffer->hBlock, pBuffer->pBuffer);
     BMMA_UnlockOffset(pBuffer->hBlock, pBuffer->offset);
-    BDBG_WRN(("%s: hNexusHeap=%p hMmaHeap=%p pBuffer=%p offset hi:lo=0x%x:0x%x",
+    BDBG_MSG(("%s: hNexusHeap=%p hMmaHeap=%p pBuffer=%p offset hi:lo=0x%x:0x%x",
                 BSTD_FUNCTION, (void *)pBuffer->hNexusHeap, (void *)pBuffer->hMmaHeap, (void *)pBuffer->pBuffer, (uint32_t)(pBuffer->offset>>32), (uint32_t)pBuffer->offset));
 
     BMMA_Free(pBuffer->hBlock);
@@ -762,7 +762,7 @@ static NEXUS_Error allocateAndLockBuffer(
     BDBG_ASSERT(pBuffer->offset);
     pBuffer->size = pBufferSettings->size;
 
-    BDBG_WRN(("%s: size=%u needCpuAccess=%s hNexusHeap=%p hMmaHeap=%p pBuffer=%p offset hi:lo=0x%x:0x%x",
+    BDBG_MSG(("%s: size=%u needCpuAccess=%s hNexusHeap=%p hMmaHeap=%p pBuffer=%p offset hi:lo=0x%x:0x%x",
                 BSTD_FUNCTION, pBufferSettings->size, needCpuAccess?"Y":"N", (void *)pBuffer->hNexusHeap, (void *)pBuffer->hMmaHeap, (void *)pBuffer->pBuffer, (uint32_t)(pBuffer->offset>>32), (uint32_t)pBuffer->offset));
     rc = NEXUS_SUCCESS;
 error:
@@ -937,6 +937,59 @@ NEXUS_ModuleHandle NEXUS_AspModule_Init(
         configSwitch(g_pCoreHandles->reg);
     }
 
+#if 0
+    /* Test code: take it out after SAGE ASP Module is brought up. */
+    {
+        int lengthInDwords = 2030;
+        unsigned offset;
+        unsigned value;
+        int i;
+
+        offset = 0x18f00a4;
+        BREG_Write32(g_pCoreHandles->reg, offset, 0x1);
+
+        offset = 0x18f9040;
+#define TEST_PATTERN 0x1fffff00
+        BDBG_WRN((">>>>>>>>>>>>>>>>>>>>>>>>>> Writing test patter=%x to SAGE->ASP Msg Buffer", TEST_PATTERN));
+        for (i=0; i<lengthInDwords; i++)
+        {
+            BDBG_WRN(("i=%d offset=0x%x pattern=0x%x", i, offset+i*4, TEST_PATTERN));
+            BREG_Write32(g_pCoreHandles->reg, offset+i*4, TEST_PATTERN);
+        }
+        BDBG_WRN((">>>>>>>>>>>>>> Reading test patter=%x to SAGE->ASP Msg Buffer", TEST_PATTERN));
+        for (i=0; i<lengthInDwords; i++)
+        {
+            value = BREG_Read32(g_pCoreHandles->reg, offset+i*4);
+            if (value != TEST_PATTERN) BDBG_WRN((">>>>>>>>>>>>>>>> Mismatch at offset=%X, value=0x%x", offset+i*4, value));
+        }
+        BDBG_WRN((">>>>>>>>>>>>>>>>>>>>>>>>>> Verified test patter=%x to SAGE->ASP Msg Buffer", TEST_PATTERN));
+    }
+
+    {
+        int lengthInDwords = 2010;
+        unsigned offset;
+        unsigned value;
+        int i;
+
+        offset = 0x18f00a4;
+        BREG_Write32(g_pCoreHandles->reg, offset, 0x1);
+
+        offset = 0x18fd080;
+        BDBG_WRN((">>>>>>>>>>>>>>>>>>>>>>>>>> Writing test patter=%x to ASP->SAGE Msg Buffer", TEST_PATTERN));
+        for (i=0; i<lengthInDwords; i++)
+        {
+            BDBG_WRN(("i=%d offset=0x%x pattern=0x%x", i, offset+i*4, TEST_PATTERN));
+            BREG_Write32(g_pCoreHandles->reg, offset+i*4, TEST_PATTERN);
+        }
+        BDBG_WRN((">>>>>>>>>>>>>> Reading test patter=%x to ASP->SAGE Msg Buffer", TEST_PATTERN));
+        for (i=0; i<lengthInDwords; i++)
+        {
+            value = BREG_Read32(g_pCoreHandles->reg, offset+i*4);
+            if (value != TEST_PATTERN) BDBG_WRN((">>>>>>>>>>>>>>>> Mismatch at offset=%X, value=0x%x", offset+i*4, value));
+        }
+        BDBG_WRN((">>>>>>>>>>>>>>>>>>>>>>>>>> Verified test patter=%x to ASP->SAGE Msg Buffer", TEST_PATTERN));
+    }
+#endif
 
     BDBG_MSG(("%s: Done", BSTD_FUNCTION));
     return g_NEXUS_aspModule;
@@ -1059,11 +1112,11 @@ NEXUS_AspChannelHandle NEXUS_AspChannel_Create(
         BASP_ChannelCreateSettings createSettings;
 
         BASP_Channel_GetDefaultCreateSettings(&createSettings);
-        BDBG_LOG(("Calling BASP_Channel_Create()..."));
+        BDBG_MSG(("Calling BASP_Channel_Create()..."));
         createSettings.channelNumber = channelNum;
         rc = BASP_Channel_Create(g_NEXUS_asp.hContext, &createSettings, &hAspChannel->hChannel);
         BDBG_ASSERT(rc == NEXUS_SUCCESS);
-        BDBG_LOG(("BASP_Channel_Create() was successful. hChannel=%p", (void *)hAspChannel->hChannel));
+        BDBG_MSG(("BASP_Channel_Create() was successful. hChannel=%p", (void *)hAspChannel->hChannel));
     }
 
     hAspChannel->state = NEXUS_AspChannelState_eIdle;
@@ -1098,8 +1151,11 @@ NEXUS_AspChannelHandle NEXUS_AspChannel_Create(
 
     hAspChannel->hStateChangedCallback = NEXUS_IsrCallback_Create(hAspChannel, NULL);
     BDBG_ASSERT(hAspChannel->hStateChangedCallback);
+    NEXUS_CallbackDesc_Init(&hAspChannel->settings.stateChanged);
+
     hAspChannel->hDataReadyCallback = NEXUS_IsrCallback_Create(hAspChannel, NULL);
     BDBG_ASSERT(hAspChannel->hDataReadyCallback);
+    NEXUS_CallbackDesc_Init(&hAspChannel->settings.dataReady);
 
 #if 0
 #include "bchp_xpt_rsbuff.h"
@@ -1170,7 +1226,7 @@ static void NEXUS_AspChannel_P_Finalizer(
         BERR_Code               rc;
         BASP_ChannelCallbacks   callbacks;
 
-        BDBG_WRN(("%s: Disabling BASP messageReady callbacks for channel %p!", BSTD_FUNCTION, (void*)hAspChannel->hChannel));
+        BDBG_MSG(("%s: Disabling BASP messageReady callbacks for channel %p!", BSTD_FUNCTION, (void*)hAspChannel->hChannel));
 
         BASP_Channel_GetCallbacks(hAspChannel->hChannel, &callbacks);
 
@@ -1233,8 +1289,8 @@ static void printStartSettings(
 {
     const NEXUS_AspIpSettings *pIp;
 
-    BDBG_WRN(("%s: startSettings -->", BSTD_FUNCTION));
-    BDBG_WRN(("protocol=%s transportType=%d maxBitRate=%u autoStartStreaming=%s drmType=%d",
+    BDBG_MSG(("%s: startSettings -->", BSTD_FUNCTION));
+    BDBG_MSG(("protocol=%s transportType=%d maxBitRate=%u autoStartStreaming=%s drmType=%d",
                 pSettings->protocol == NEXUS_AspStreamingProtocol_eHttp ? "HTTP" : "UDP/RTP",
                 pSettings->mediaInfoSettings.transportType,
                 pSettings->mediaInfoSettings.maxBitRate,
@@ -1244,20 +1300,20 @@ static void printStartSettings(
 
     if (pSettings->protocol == NEXUS_AspStreamingProtocol_eHttp)
     {
-        BDBG_WRN(("HTTP: version=%d.%d enableChunkTransferEncoding=%s chunkSize=%u " ,
+        BDBG_MSG(("HTTP: version=%d.%d enableChunkTransferEncoding=%s chunkSize=%u " ,
                     pSettings->protocolSettings.http.version.major,
                     pSettings->protocolSettings.http.version.minor,
                     pSettings->protocolSettings.http.enableChunkTransferEncoding?"Y":"N",
                     pSettings->protocolSettings.http.chunkSize
                  ));
-        BDBG_WRN(("TCP: localPort=%d remotePort=%d initialSendSequenceNumber=0x%x initialRecvSequenceNumber0x%x currentAckedNumber=0x%x",
+        BDBG_MSG(("TCP: localPort=%d remotePort=%d initialSendSequenceNumber=0x%x initialRecvSequenceNumber0x%x currentAckedNumber=0x%x",
                     pSettings->protocolSettings.http.tcp.localPort,
                     pSettings->protocolSettings.http.tcp.remotePort,
                     pSettings->protocolSettings.http.tcp.initialSendSequenceNumber,
                     pSettings->protocolSettings.http.tcp.initialRecvSequenceNumber,
                     pSettings->protocolSettings.http.tcp.currentAckedNumber
                  ));
-        BDBG_WRN(("TCP: maxSegmentSize=%u windowScaleValue local=%u remote=%u remoteWindowSize=%u enableTimeStamps=%s timestampEchoValue=%u enableSack=%s",
+        BDBG_MSG(("TCP: maxSegmentSize=%u windowScaleValue local=%u remote=%u remoteWindowSize=%u enableTimeStamps=%s timestampEchoValue=%u enableSack=%s",
                     pSettings->protocolSettings.http.tcp.maxSegmentSize,
                     pSettings->protocolSettings.http.tcp.localWindowScaleValue,
                     pSettings->protocolSettings.http.tcp.remoteWindowScaleValue,
@@ -1286,7 +1342,7 @@ static void printStartSettings(
 
     if (pIp->ipVersion == NEXUS_AspIpVersion_e4)
     {
-        BDBG_WRN(("IP: localIpAddr=%d.%d.%d.%d remoteIpAddr=%d.%d.%d.%d dscp=%d ecn=%u initialIdentification=%u timeToLive=%u",
+        BDBG_MSG(("IP: localIpAddr=%d.%d.%d.%d remoteIpAddr=%d.%d.%d.%d dscp=%d ecn=%u initialIdentification=%u timeToLive=%u",
                     pIp->ver.v4.localIpAddr>>24,
                     pIp->ver.v4.localIpAddr>>16 & 0xff,
                     pIp->ver.v4.localIpAddr>>8 & 0xff,
@@ -1302,7 +1358,7 @@ static void printStartSettings(
                  ));
     }
     {
-        BDBG_WRN(("Eth: localMacAddress=%2x:%2x:%2x:%2x:%2x:%2x remoteMacAddress=%2x:%2x:%2x:%2x:%2x:%2x etherType=0x%x, vlanTag=0x%x",
+        BDBG_MSG(("Eth: localMacAddress=%2x:%2x:%2x:%2x:%2x:%2x remoteMacAddress=%2x:%2x:%2x:%2x:%2x:%2x etherType=0x%x, vlanTag=0x%x",
                     pIp->eth.localMacAddress[0],
                     pIp->eth.localMacAddress[1],
                     pIp->eth.localMacAddress[2],
@@ -1318,7 +1374,7 @@ static void printStartSettings(
                     pIp->eth.etherType, pIp->eth.vlanTag
                     ));
 
-        BDBG_WRN(("Switch: queueNumber=%u ingressBrcmTag=0x%x egressClassId=%u",
+        BDBG_MSG(("Switch: queueNumber=%u ingressBrcmTag=0x%x egressClassId=%u",
                     pIp->eth.networkSwitch.queueNumber,
                     pIp->eth.networkSwitch.ingressBrcmTag,
                     pIp->eth.networkSwitch.egressClassId
@@ -1425,7 +1481,7 @@ NEXUS_Error NEXUS_AspChannel_Start(
         /* Build message payload. */
         pStreamOut = &msg.MessagePayload.ChannelStartStreamOut;
 
-        BDBG_WRN(("%s: !!!!!! TCP Retransmissions is %s!", BSTD_FUNCTION, g_enableTcpRetrans?"enabled":"disabled"));
+        BDBG_MSG(("%s: !!!!!! TCP Retransmissions is %s!", BSTD_FUNCTION, g_enableTcpRetrans?"enabled":"disabled"));
         pStreamOut->ui32RetransmissionEnable = g_enableTcpRetrans;
         pStreamOut->ReTransmissionBuffer.ui32BaseAddrLo = (uint32_t)(hAspChannel->reTransmitFifo.offset & 0xFFFFFFFF);
         pStreamOut->ReTransmissionBuffer.ui32BaseAddrHi = (uint32_t)(hAspChannel->reTransmitFifo.offset>>32);
@@ -1457,7 +1513,7 @@ NEXUS_Error NEXUS_AspChannel_Start(
 #if 1
         if (g_enableTcpCongestionControl)
         {
-            BDBG_WRN(("%s: !!!!!! Enabling TCP Congestion Control Algorithm: Slow Start & Congestion Avoidance!", BSTD_FUNCTION));
+            BDBG_MSG(("%s: !!!!!! Enabling TCP Congestion Control Algorithm: Slow Start & Congestion Avoidance!", BSTD_FUNCTION));
             pStreamOut->ui32CongestionFlowControlEnable |= 1 << BASP_DEBUG_HOOK_CONGESTION_CONTROL_ENABLE_BIT;
         }
 #endif
@@ -1477,7 +1533,7 @@ NEXUS_Error NEXUS_AspChannel_Start(
 
             pStreamOut->ui32RaveContextBaseAddressLo = (uint32_t) (raveContextBaseAddress & 0xFFFFFFFF);
             pStreamOut->ui32RaveContextBaseAddressHi = (uint32_t) (raveContextBaseAddress >> 32);
-            BDBG_WRN(("%s: hAspChannel=%p hRecpump=%p rave_ctx#=%d, baseAddr low=0x%x high=0x%x ", BSTD_FUNCTION,
+            BDBG_MSG(("%s: hAspChannel=%p hRecpump=%p rave_ctx#=%d, baseAddr low=0x%x high=0x%x ", BSTD_FUNCTION,
                         (void *)hAspChannel, (void *)pSettings->modeSettings.streamOut.recpump, status.rave.index,
                         pStreamOut->ui32RaveContextBaseAddressLo, pStreamOut->ui32RaveContextBaseAddressHi
                         ));
@@ -1538,7 +1594,7 @@ NEXUS_Error NEXUS_AspChannel_Start(
 #define NEXUS_ASP_BASE_PID_CHANNEL_NUMBER 1024
         pStreamIn->ui32PidChannel = NEXUS_ASP_BASE_PID_CHANNEL_NUMBER + hAspChannel->channelNum;
 
-        BDBG_WRN(("%s:%p !!!!!! Setting up stream-in channel: pbChannel#=%u pidCh#=%u", BSTD_FUNCTION,
+        BDBG_MSG(("%s:%p !!!!!! Setting up stream-in channel: pbChannel#=%u pidCh#=%u", BSTD_FUNCTION,
                     (void *)hAspChannel, pStreamIn->ui32PlaybackChannelNumber, pStreamIn->ui32PidChannel));
         /* Setup initial data: HTTP Get Request for StreamIn case. */
         pStreamIn->HttpRequestBuffer.ui32BaseAddrLo = (uint32_t) (hAspChannel->writeFifo.offset & 0xFFFFFFFF);
@@ -1650,7 +1706,7 @@ NEXUS_Error NEXUS_AspChannel_Start(
             pCcb->ui32LocalWindowScaleValue = pTcp->localWindowScaleValue;
             if (g_enableTcpSack) pCcb->ui32SackEnable = pTcp->enableSack;
             pCcb->ui32TimeStampEnable = pTcp->enableTimeStamps;
-            BDBG_WRN(("%s: !!!!!! TCP Timestamps are %s!", BSTD_FUNCTION, g_enableTcpTimestamps? "enabled":"disabled"));
+            BDBG_MSG(("%s: !!!!!! TCP Timestamps are %s!", BSTD_FUNCTION, g_enableTcpTimestamps? "enabled":"disabled"));
             if (g_enableTcpTimestamps)
             {
                 pCcb->ui32TimeStampEnable = 1;
@@ -1677,16 +1733,22 @@ NEXUS_Error NEXUS_AspChannel_Start(
 
     if (pSettings->mode == NEXUS_AspStreamingMode_eOut)
     {
+#if 0 /* ******************** Temporary **********************/
         pStreamOut->ui32SwitchQueueNumber = pEth->networkSwitch.queueNumber; /* TODO: enable the loss-less behavior in switch & test this. */
+#else /* ******************** Temporary **********************/
         pStreamOut->ui32SwitchQueueNumber = 0;  /* Currently, ASP will output packets to the queue 0 of its port. */
-        BDBG_WRN(("%s: !!!!!! TODO: Overwriting the ui32SwitchQueueNumber(=%d) to 0 until ACH support is enabled in ASP & Network Switch", BSTD_FUNCTION, pStreamOut->ui32SwitchQueueNumber));
+#endif /* ******************** Temporary **********************/
+        BDBG_MSG(("%s: !!!!!! TODO: Overwriting the ui32SwitchQueueNumber(=%d) to 0 until ACH support is enabled in ASP & Network Switch", BSTD_FUNCTION, pStreamOut->ui32SwitchQueueNumber));
         pStreamOut->ui32SwitchSlotsPerEthernetPacket = 6; /* TODO get this number from FW/HW team & also make sure it gets programmed on each switch port. */
     }
     else if (pSettings->mode == NEXUS_AspStreamingMode_eIn)
     {
+#if 0 /* ******************** Temporary **********************/
         pStreamIn->ui32SwitchQueueNumber = pEth->networkSwitch.queueNumber; /* TODO: enable the loss-less behavior in switch & test this. */
+#else /* ******************** Temporary **********************/
         pStreamIn->ui32SwitchQueueNumber = 0;  /* Currently, ASP will output packets to the queue 0 of its port. */
-        BDBG_WRN(("%s: !!!!!! TODO: Overwriting the ui32SwitchQueueNumber(=%d) to 0 until ACH support is enabled in ASP & Network Switch", BSTD_FUNCTION, pStreamIn->ui32SwitchQueueNumber));
+#endif /* ******************** Temporary **********************/
+        BDBG_MSG(("%s: !!!!!! TODO: Overwriting the ui32SwitchQueueNumber(=%d) to 0 until ACH support is enabled in ASP & Network Switch", BSTD_FUNCTION, pStreamIn->ui32SwitchQueueNumber));
         pStreamIn->ui32SwitchSlotsPerEthernetPacket = 6; /* TODO get this number from FW/HW team & also make sure it gets programmed on each switch port. */
     }
 #if 0
@@ -1706,7 +1768,7 @@ NEXUS_Error NEXUS_AspChannel_Start(
 
         /* Linux provides 32 bit timestamp value. This value needs to be programmed in the upper 32bits of the 48bit register. */
         timestampValue = (uint64_t)pTcp->senderTimestamp <<16;
-        BDBG_WRN(("!!!!! TODO (move this to FW): Program starting timestamp value to EPKT: linux ts=0x%x 64bit shifted value: hi:lo=0x%x:0x%x ....",
+        BDBG_MSG(("!!!!! TODO (move this to FW): Program starting timestamp value to EPKT: linux ts=0x%x 64bit shifted value: hi:lo=0x%x:0x%x ....",
                     pTcp->senderTimestamp, (uint32_t)(timestampValue>>32), (uint32_t)(timestampValue & 0xFFFFFFFF)));
 
         BREG_Write64(g_pCoreHandles->reg, 0x1846480, timestampValue ); /* Debug register to enable setting of the initial timestamp value. */
@@ -1722,56 +1784,63 @@ NEXUS_Error NEXUS_AspChannel_Start(
     /* DTCP/IP related info. */
     if (pSettings->drmType == NEXUS_AspChannelDrmType_eDtcpIp)
     {
-        hAspChannel->hKeySlot = allocAndConfigKeySlot( hAspChannel );
-        pStreamOut->ui32DrmEnabled = true;
-        pStreamOut->ui32PcpPayloadSize = hAspChannel->dtcpIpSettings.pcpPayloadSize/NEXUS_ASP_BLOCK_SIZE;
-        if ( pSettings->protocolSettings.http.enableChunkTransferEncoding &&
-            (pStreamOut->ui32ChunkSize < pStreamOut->ui32PcpPayloadSize ||
-            pStreamOut->ui32ChunkSize % pStreamOut->ui32PcpPayloadSize) )
+        if (pSettings->mode == NEXUS_AspStreamingMode_eOut)
         {
-            /* Chunk doesn't contain integral # of PCPs. FW doesn't support this right now! */
-            BDBG_WRN(("!!! pcpPayloadSize=%u is NOT integral multiple of httpChunkSize=%u, making them equal as FW only supports this mode!!",
-                    pStreamOut->ui32PcpPayloadSize, pStreamOut->ui32ChunkSize));
-            pStreamOut->ui32PcpPayloadSize = pStreamOut->ui32ChunkSize;
+            hAspChannel->hKeySlot = allocAndConfigKeySlot( hAspChannel );
+            pStreamOut->ui32DrmEnabled = true;
+            pStreamOut->ui32PcpPayloadSize = hAspChannel->dtcpIpSettings.pcpPayloadSize/NEXUS_ASP_BLOCK_SIZE;
+            if ( pSettings->protocolSettings.http.enableChunkTransferEncoding &&
+                (pStreamOut->ui32ChunkSize < pStreamOut->ui32PcpPayloadSize ||
+                pStreamOut->ui32ChunkSize % pStreamOut->ui32PcpPayloadSize) )
+            {
+                /* Chunk doesn't contain integral # of PCPs. FW doesn't support this right now! */
+                BDBG_WRN(("!!! pcpPayloadSize=%u is NOT integral multiple of httpChunkSize=%u, making them equal as FW only supports this mode!!",
+                        pStreamOut->ui32PcpPayloadSize, pStreamOut->ui32ChunkSize));
+                pStreamOut->ui32PcpPayloadSize = pStreamOut->ui32ChunkSize;
+            }
+            else {
+                BDBG_MSG(("!!! pcpPayloadSize=%u httpChunkSize=%u!!", pStreamOut->ui32PcpPayloadSize, pStreamOut->ui32ChunkSize));
+            }
+            pStreamOut->DtcpIpInfo.ui32EmiModes = hAspChannel->dtcpIpSettings.emiModes;
+            pStreamOut->DtcpIpInfo.ui32ExchangeKeyLabel = hAspChannel->dtcpIpSettings.exchKeyLabel;
+
+            /* Kx[0:1:2:3] -> Key[b3:b2:b1:b0] */
+            pStreamOut->DtcpIpInfo.ui32ExchangeKeys[0] =
+                (hAspChannel->dtcpIpSettings.exchKey[0] << 24) |
+                (hAspChannel->dtcpIpSettings.exchKey[1] << 16) |
+                (hAspChannel->dtcpIpSettings.exchKey[2] <<  8) |
+                (hAspChannel->dtcpIpSettings.exchKey[3] <<  0) ;
+            pStreamOut->DtcpIpInfo.ui32ExchangeKeys[1] =
+                (hAspChannel->dtcpIpSettings.exchKey[4] << 24) |
+                (hAspChannel->dtcpIpSettings.exchKey[5] << 16) |
+                (hAspChannel->dtcpIpSettings.exchKey[6] <<  8) |
+                (hAspChannel->dtcpIpSettings.exchKey[7] <<  0) ;
+            pStreamOut->DtcpIpInfo.ui32ExchangeKeys[2] =
+                (hAspChannel->dtcpIpSettings.exchKey[8] << 24) |
+                (hAspChannel->dtcpIpSettings.exchKey[9] << 16) |
+                (hAspChannel->dtcpIpSettings.exchKey[10] << 8) |
+                (hAspChannel->dtcpIpSettings.exchKey[11] << 0) ;
+
+            pStreamOut->DtcpIpInfo.ui32C_A2 = 0;
+
+            /* Nonce[0:1:2:3] -> Nc[1][b0:b1:b2:b3], Nonce[4:5:6:7] -> Nc[1][b3:b2:b1:b0] */
+            pStreamOut->DtcpIpInfo.ui32Nc[0] = /* Upper 32bits of the 64bit Nonce. */
+                (hAspChannel->dtcpIpSettings.initialNonce[7] << 24) |
+                (hAspChannel->dtcpIpSettings.initialNonce[6] << 16) |
+                (hAspChannel->dtcpIpSettings.initialNonce[5] <<  8) |
+                (hAspChannel->dtcpIpSettings.initialNonce[4] <<  0) ;
+            pStreamOut->DtcpIpInfo.ui32Nc[1] = /* Lower 32bits of the 64bit Nonce. */
+                (hAspChannel->dtcpIpSettings.initialNonce[3] << 24) |
+                (hAspChannel->dtcpIpSettings.initialNonce[2] << 16) |
+                (hAspChannel->dtcpIpSettings.initialNonce[1] <<  8) |
+                (hAspChannel->dtcpIpSettings.initialNonce[0] <<  0) ;
+
+            pStreamOut->DtcpIpInfo.ui32ASPKeySlot = hAspChannel->extKeyTableSlotIndex + 0x2; /* +2 offset for keySlot. */
         }
-        else {
-            BDBG_WRN(("!!! pcpPayloadSize=%u httpChunkSize=%u!!", pStreamOut->ui32PcpPayloadSize, pStreamOut->ui32ChunkSize));
+        else if (pSettings->mode == NEXUS_AspStreamingMode_eIn)
+        {
+            BDBG_ERR(("!!! FIXME: Ignoring DTCP/IP handling for Stream-in!!"));
         }
-        pStreamOut->DtcpIpInfo.ui32EmiModes = hAspChannel->dtcpIpSettings.emiModes;
-        pStreamOut->DtcpIpInfo.ui32ExchangeKeyLabel = hAspChannel->dtcpIpSettings.exchKeyLabel;
-
-        /* Kx[0:1:2:3] -> Key[b3:b2:b1:b0] */
-        pStreamOut->DtcpIpInfo.ui32ExchangeKeys[0] =
-            (hAspChannel->dtcpIpSettings.exchKey[0] << 24) |
-            (hAspChannel->dtcpIpSettings.exchKey[1] << 16) |
-            (hAspChannel->dtcpIpSettings.exchKey[2] <<  8) |
-            (hAspChannel->dtcpIpSettings.exchKey[3] <<  0) ;
-        pStreamOut->DtcpIpInfo.ui32ExchangeKeys[1] =
-            (hAspChannel->dtcpIpSettings.exchKey[4] << 24) |
-            (hAspChannel->dtcpIpSettings.exchKey[5] << 16) |
-            (hAspChannel->dtcpIpSettings.exchKey[6] <<  8) |
-            (hAspChannel->dtcpIpSettings.exchKey[7] <<  0) ;
-        pStreamOut->DtcpIpInfo.ui32ExchangeKeys[2] =
-            (hAspChannel->dtcpIpSettings.exchKey[8] << 24) |
-            (hAspChannel->dtcpIpSettings.exchKey[9] << 16) |
-            (hAspChannel->dtcpIpSettings.exchKey[10] << 8) |
-            (hAspChannel->dtcpIpSettings.exchKey[11] << 0) ;
-
-        pStreamOut->DtcpIpInfo.ui32C_A2 = 0;
-
-        /* Nonce[0:1:2:3] -> Nc[1][b0:b1:b2:b3], Nonce[4:5:6:7] -> Nc[1][b3:b2:b1:b0] */
-        pStreamOut->DtcpIpInfo.ui32Nc[0] = /* Upper 32bits of the 64bit Nonce. */
-            (hAspChannel->dtcpIpSettings.initialNonce[7] << 24) |
-            (hAspChannel->dtcpIpSettings.initialNonce[6] << 16) |
-            (hAspChannel->dtcpIpSettings.initialNonce[5] <<  8) |
-            (hAspChannel->dtcpIpSettings.initialNonce[4] <<  0) ;
-        pStreamOut->DtcpIpInfo.ui32Nc[1] = /* Lower 32bits of the 64bit Nonce. */
-            (hAspChannel->dtcpIpSettings.initialNonce[3] << 24) |
-            (hAspChannel->dtcpIpSettings.initialNonce[2] << 16) |
-            (hAspChannel->dtcpIpSettings.initialNonce[1] <<  8) |
-            (hAspChannel->dtcpIpSettings.initialNonce[0] <<  0) ;
-
-        pStreamOut->DtcpIpInfo.ui32ASPKeySlot = hAspChannel->extKeyTableSlotIndex + 0x2; /* +2 offset for keySlot. */
     }
 #endif
 
@@ -2082,9 +2151,12 @@ NEXUS_Error NEXUS_AspChannel_GetStatus(
     if (hAspChannel->startSettings.protocol == NEXUS_AspStreamingProtocol_eHttp)
     {
         pStatus->tcpState.finalSendSequenceNumber = hAspChannel->tcpState.finalSendSequenceNumber;
+#if 0 /* ******************** Temporary **********************/
         pStatus->tcpState.finalRecvSequenceNumber = hAspChannel->tcpState.finalRecvSequenceNumber;
+#else /* ******************** Temporary **********************/
         /* TODO: until FW is fixed to return the correct Recv Seq #, we use the original value. */
         pStatus->tcpState.finalRecvSequenceNumber = hAspChannel->startSettings.protocolSettings.tcp.initialRecvSequenceNumber;
+#endif /* ******************** Temporary **********************/
     }
 
     /* ASP FW Stats: FW periodically updates the status buffer in DRAM. */
@@ -2156,7 +2228,7 @@ NEXUS_Error NEXUS_AspChannel_SetDtcpIpSettings(
 
     hAspChannel->dtcpIpSettings = *pSettings;
     {
-        BDBG_WRN(("DTCP/IP Settings: pcpPayloadSize=%u exchKeyLabel=%u emiModes=%u ",
+        BDBG_MSG(("DTCP/IP Settings: pcpPayloadSize=%u exchKeyLabel=%u emiModes=%u ",
                     pSettings->pcpPayloadSize,
                     pSettings->exchKeyLabel,
                     pSettings->emiModes
@@ -2235,8 +2307,9 @@ NEXUS_Error NEXUS_AspChannel_GetReadBufferWithWrap(
     {
         *pBuffer = hAspChannel->pRcvdPayload;
         *pAmount = hAspChannel->rcvdPayloadLength;
+        *pBuffer2 = NULL;
+        *pAmount2 = 0;
         BDBG_MSG(("%s: hAspChannel=%p: pBuffer=%p amount=%u", BSTD_FUNCTION, (void *)hAspChannel, *pBuffer, *pAmount));
-        fflush(stdout);
         return (NEXUS_SUCCESS);
     }
     else
@@ -2354,7 +2427,7 @@ static void processMessage_isr(
     BASP_Fw2Pi_Message                  *pFw2PiMessage
     )
 {
-    BDBG_WRN(("%s: hAspChannel=%p msgType=%d pMessage=%p", BSTD_FUNCTION, (void *)hAspChannel, messageType, (void *)pFw2PiMessage));
+    BDBG_MSG(("%s: hAspChannel=%p msgType=%d pMessage=%p", BSTD_FUNCTION, (void *)hAspChannel, messageType, (void *)pFw2PiMessage));
     switch (messageType)
     {
         case BASP_MessageType_eFw2PiRstNotify:

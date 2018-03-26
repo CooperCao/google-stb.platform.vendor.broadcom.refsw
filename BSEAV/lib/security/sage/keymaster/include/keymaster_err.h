@@ -107,6 +107,8 @@
 #define BSAGE_ERR_KM_ATTESTATION_CHALLENGE_MISSING              BERR_MAKE_CODE(BERR_KM_ID,163)
 #define BSAGE_ERR_KM_KEYMASTER_NOT_CONFIGURED                   BERR_MAKE_CODE(BERR_KM_ID,164)
 #define BSAGE_ERR_KM_VERSION_MISMATCH                           BERR_MAKE_CODE(BERR_KM_ID,199)
+#define BSAGE_ERR_KM_AGAIN                                      BERR_MAKE_CODE(BERR_KM_ID,200)
+#define BSAGE_ERR_KM_RETRY                                      BERR_MAKE_CODE(BERR_KM_ID,201)
 
 
 #endif  /* KEYMASTER_ERR_H__ */

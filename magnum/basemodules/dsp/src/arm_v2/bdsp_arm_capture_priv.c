@@ -339,8 +339,9 @@ BERR_Code BDSP_Arm_P_AudioCaptureGetBuffer(
 {
     BERR_Code errCode = BERR_SUCCESS;
 	BDSP_ArmCapture *pArmCapture = (BDSP_ArmCapture *)pCaptureHandle;
-    uint8_t *pReadPointer=NULL, *pWritePointer = NULL, *pBasePointer = NULL, *pEndPointer=NULL;
+    uint8_t *pReadPointer=NULL, *pWritePointer = NULL, *pEndPointer=NULL;
     unsigned chunk1 = 0,chunk2 = 0, i = 0;
+	unsigned chunk1_lowest = 0;
     BDSP_MMA_Memory Memory;
 
     BDBG_ENTER(BDSP_Arm_P_AudioCaptureGetBuffer);
@@ -355,13 +356,12 @@ BERR_Code BDSP_Arm_P_AudioCaptureGetBuffer(
             Memory = pArmCapture->CapturePointerInfo[i].CaptureBufferMemory;
             pReadPointer = (uint8_t *)pArmCapture->CapturePointerInfo[i].captureBufferPtr.pReadPtr;
             pWritePointer= (uint8_t *)pArmCapture->CapturePointerInfo[i].captureBufferPtr.pWritePtr;
-            pBasePointer = (uint8_t *)pArmCapture->CapturePointerInfo[i].captureBufferPtr.pBasePtr;
             pEndPointer  = (uint8_t *)pArmCapture->CapturePointerInfo[i].captureBufferPtr.pEndPtr;
             if(pReadPointer > pWritePointer)
             {
                 /* Loop Around scenario */
                 chunk1 = pEndPointer   - pReadPointer;
-                chunk2 = pWritePointer - pBasePointer;
+                chunk2 = 0;/* Wrap Around condition is not handled */
                 /*Wrap will always start from Base */
                 pBuffers->buffers[i].wrapBuffer = Memory;
             }
@@ -372,8 +372,13 @@ BERR_Code BDSP_Arm_P_AudioCaptureGetBuffer(
             }
             Memory.pAddr = (void *)pReadPointer;
             pBuffers->buffers[i].buffer = Memory;
+			if(i == 0)
+			{
+				chunk1_lowest = chunk1;
+			}
+			chunk1_lowest = ((chunk1<chunk1_lowest)?chunk1:chunk1_lowest);
         }
-		pBuffers->bufferSize     = chunk1;
+		pBuffers->bufferSize     = chunk1_lowest;
 		pBuffers->wrapBufferSize = chunk2;
     }
 	else

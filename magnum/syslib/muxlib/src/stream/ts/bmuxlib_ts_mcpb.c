@@ -40,6 +40,8 @@
 #include "bmuxlib_list.h"
 #include "bkni.h"
 
+#include "bmuxlib_debug.h"
+#include "bmuxlib_alloc.h"
 #if ( BMUXLIB_TS_MCPB_P_DUMP_TRANSPORT_DESC || BMUXLIB_TS_MCPB_P_DUMP_TRANSPORT_OUTPUT )
 #include <stdio.h>
 #endif
@@ -81,6 +83,8 @@ typedef struct BMUXlib_TS_MCPB_QueueEntry
    unsigned uiSourceDescriptorCount; /* Indicates how many actual source descriptors are represented by this entry */
 } BMUXlib_TS_MCPB_QueueEntry;
 
+BMUXLIB_LIST_DEFINE(BMUXlib_TS_MCPB_QueueEntry)
+
 typedef struct BMUXlib_TS_MCPB_P_PacketFifo
 {
    BMMA_Block_Handle hBlock;
@@ -96,7 +100,7 @@ typedef struct BMUXlib_TS_MCPB_P_Channel_Context
 {
    BMUXlib_TS_MCPB_Handle hMuxMCPB;
    BMUXlib_TS_MCPB_Channel_OpenSettings stSettings;
-   BMUXlib_List_Handle hDescriptorFifo;
+   BMUXLIB_LIST_TYPE(BMUXlib_TS_MCPB_QueueEntry) stDescriptorFifo;
 
    struct
    {
@@ -142,7 +146,22 @@ typedef struct BMUXlib_TS_MCPB_P_TransportMetadata
 } BMUXlib_TS_MCPB_P_TransportMetadata;
 
 #define BMUXLIB_TS_MCPB_P_PUSI_COUNT 2
-#define BMUXLIB_TS_MCPB_P_RAI_EXTENDED_COUNT 512
+#define BMUXLIB_TS_MCPB_P_RAI_EXTENDED_COUNT 128
+
+typedef struct BMUXlib_TS_MCPB_P_BufferContext
+{
+   BMMA_Block_Handle hPUSIBtpBlock[BMUXLIB_TS_MCPB_P_PUSI_COUNT];
+   BMMA_DeviceOffset uiPUSIBtpOffset[BMUXLIB_TS_MCPB_P_PUSI_COUNT];
+   void *pPUSIBtp[BMUXLIB_TS_MCPB_P_PUSI_COUNT];
+   size_t uiPUSIBtpSize;
+
+   BMMA_Block_Handle hRAIExtendedBlock[BMUXLIB_TS_MCPB_P_RAI_EXTENDED_COUNT];
+   BMMA_DeviceOffset uiRAIExtendedOffset[BMUXLIB_TS_MCPB_P_RAI_EXTENDED_COUNT];
+   void *pRAIExtended[BMUXLIB_TS_MCPB_P_RAI_EXTENDED_COUNT];
+   size_t uiRAIExtendedSize;
+   unsigned uiRAIExtendedReadOffset;
+   unsigned uiRAIExtendedWriteOffset;
+} BMUXlib_TS_MCPB_P_BufferContext;
 
 typedef struct BMUXlib_TS_MCPB_P_Context
 {
@@ -150,10 +169,7 @@ typedef struct BMUXlib_TS_MCPB_P_Context
 
    BMUXlib_TS_MCPB_P_Channel_Context *astChannel;
 
-   BMUXlib_List_Handle hDescriptorFreeList;
-   BMUXlib_TS_MCPB_QueueEntry* astQueueEntry;
-
-   BMUXlib_List_Handle* astListQueue;
+   BMUXLIB_LIST_TYPE(BMUXlib_TS_MCPB_QueueEntry)** astListQueue;
 
    struct
    {
@@ -161,32 +177,19 @@ typedef struct BMUXlib_TS_MCPB_P_Context
       BMMA_DeviceOffset uiOffset;
    } stMuxSharedMemory;
 
-   struct
-   {
-      BMMA_Block_Handle hPUSIBtpBlock[BMUXLIB_TS_MCPB_P_PUSI_COUNT];
-      BMMA_DeviceOffset uiPUSIBtpOffset[BMUXLIB_TS_MCPB_P_PUSI_COUNT];
-      void *pPUSIBtp[BMUXLIB_TS_MCPB_P_PUSI_COUNT];
-      size_t uiPUSIBtpSize;
-
-      BMMA_Block_Handle hRAIExtendedBlock[BMUXLIB_TS_MCPB_P_RAI_EXTENDED_COUNT];
-      BMMA_DeviceOffset uiRAIExtendedOffset[BMUXLIB_TS_MCPB_P_RAI_EXTENDED_COUNT];
-      void *pRAIExtended[BMUXLIB_TS_MCPB_P_RAI_EXTENDED_COUNT];
-      size_t uiRAIExtendedSize;
-      unsigned uiRAIExtendedReadOffset;
-      unsigned uiRAIExtendedWriteOffset;
-   } stBuffer;
+   BMUXlib_TS_MCPB_P_BufferContext *pstBuffer;
 
    struct
    {
       BMUXlib_TS_MCPB_P_ProcessNextEntry_State eState;
-      BMUXlib_List_Handle hList;
+      BMUXLIB_LIST_TYPE(BMUXlib_TS_MCPB_QueueEntry)* hList;
       BMUXlib_TS_MCPB_QueueEntry *pstEntry;
    } stProcessEntryInfo;
 
    struct
    {
-      BMUXlib_TS_TransportDescriptor *astTransportDescriptors;
-      BMUXlib_TS_MCPB_P_TransportMetadata *astMetadata;
+      BMUXLIB_P_ENTRY_TYPE( BMUXlib_TS_TransportDescriptor, astTransportDescriptors )
+      BMUXLIB_P_ENTRY_TYPE( BMUXlib_TS_MCPB_P_TransportMetadata, astMetadata )
       unsigned uiSize;
       unsigned uiReadOffset; /* Points to the first descriptor that has been processed */
       unsigned uiPendingOffset; /* Points to the descriptor that is next to be queued to transport */
@@ -214,9 +217,9 @@ typedef struct BMUXlib_TS_MCPB_P_Context
 /***********************************/
 /*     Static Prototypes           */
 /***********************************/
-static int BMUXlib_TS_MCPB_P_CompareDescriptorFifo(const void *pEntryA, const void *pEntryB);
+static int BMUXlib_TS_MCPB_P_CompareDescriptorFifo(const BMUXLIB_LIST_TYPE(BMUXlib_TS_MCPB_QueueEntry)*hDescriptorFifoA, const BMUXLIB_LIST_TYPE(BMUXlib_TS_MCPB_QueueEntry)*hDescriptorFifoB);
 static void BMUXlib_TS_MCPB_P_ReconcileFifoQueue(BMUXlib_TS_MCPB_Handle hMuxMCPB);
-static void BMUXlib_TS_MCPB_P_ConsumeDescriptor(BMUXlib_TS_MCPB_Handle hMuxMCPB, const BMUXlib_TS_MCPB_QueueEntry *pstEntry);
+static void BMUXlib_TS_MCPB_P_ConsumeDescriptor(BMUXlib_TS_MCPB_Handle hMuxMCPB);
 static void BMUXlib_TS_MCPB_P_DumpDescriptor(BMUXlib_TS_MCPB_Handle hMuxMCPB, const BMUXlib_TS_MCPB_QueueEntry *pstEntry,
    const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor, const BMUXlib_TS_MCPB_P_TransportMetadata *pstMetadata);
 static bool BMUXlib_TS_MCPB_P_InsertBuffer(BMUXlib_TS_MCPB_Handle hMuxMCPB, BMUXlib_TS_TransportDescriptor *pstTransportDescriptor,
@@ -235,9 +238,9 @@ static void* BMUXlib_TS_MCPB_P_GetAddress(BMUXlib_TS_MCPB_Handle hMuxMCPB, uint6
 static void BMUXlib_TS_MCPB_P_UpdateCurrentESCR(BMUXlib_TS_MCPB_Channel_Handle hMuxMCPBCh, const BMUXlib_TS_MCPB_QueueEntry *pstEntry);
 static void BMUXlib_TS_MCPB_P_ClearTransportDescriptorFlags(BMUXlib_TS_TransportDescriptor *pstTransportDescriptor);
 static bool BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo(BMUXlib_TS_MCPB_Channel_Handle hMuxMCPBCh,
-   const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor, BMUXlib_TS_MCPB_QueueEntry *apstEntry[2]);
+   const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor, BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry) *apstEntry[2]);
 static bool BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsDirect(BMUXlib_TS_MCPB_Channel_Handle hMuxMCPBCh,
-   const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor, BMUXlib_TS_MCPB_QueueEntry ** pstEntry);
+   const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor, BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry) ** pstListEntry);
 static void BMUXlib_TS_MCPB_P_ProcessCompletedTransportDescriptors(BMUXlib_TS_MCPB_Handle hMuxMCPB);
 static void BMUXlib_TS_MCPB_P_PopulateEntryFromDescriptor(BMUXlib_TS_MCPB_Channel_Handle hMuxMCPBCh,
    const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor, BMUXlib_TS_MCPB_QueueEntry *pstEntry);
@@ -261,7 +264,7 @@ BMUXlib_TS_MCPB_GetDefaultCreateSettings(
 {
    BDBG_ASSERT( pstSettings );
 
-   BKNI_Memset( pstSettings, 0, sizeof( BMUXlib_TS_MCPB_CreateSettings ) );
+   BKNI_Memset( pstSettings, 0, sizeof( *pstSettings ) );
 
    pstSettings->uiMaxNumInputs = 1 + 6 + 1; /* 1 video, 6 audio, 1 system channel */
 }
@@ -273,7 +276,7 @@ BMUXlib_TS_MCPB_Create(
          const BMUXlib_TS_MCPB_CreateSettings *pstSettings
          )
 {
-   BERR_Code rc;
+   BERR_Code rc = BERR_SUCCESS;
    BMUXlib_TS_MCPB_Handle hMuxMCPB = NULL;
 
    BDBG_ENTER( BMUXlib_TS_MCPB_Create );
@@ -283,20 +286,22 @@ BMUXlib_TS_MCPB_Create(
 
    *phMuxMCPB = NULL;
 
-   hMuxMCPB = BKNI_Malloc( sizeof( BMUXlib_TS_MCPB_P_Context ) );
+   hMuxMCPB = BMUXlib_Malloc( sizeof( BMUXlib_TS_MCPB_P_Context ) );
    if ( NULL == hMuxMCPB )
    {
       BDBG_LEAVE( BMUXlib_TS_MCPB_Create );
       return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
    }
 
-   BKNI_Memset( hMuxMCPB, 0, sizeof( BMUXlib_TS_MCPB_P_Context ) );
+   BKNI_Memset( hMuxMCPB, 0, sizeof( *hMuxMCPB ) );
+
+   BMUXLIB_P_CONTEXT_ALLOCATE(BMUXlib_TS_MCPB_P_BufferContext, hMuxMCPB->pstBuffer, alloc_desc_error )
 
    hMuxMCPB->stSettings = *pstSettings;
    hMuxMCPB->uiBytesLeftInPacket = 0;
 
    /* Create List Queue */
-   hMuxMCPB->astListQueue = (BMUXlib_List_Handle*) BKNI_Malloc( sizeof( BMUXlib_List_Handle ) * hMuxMCPB->stSettings.uiMaxNumInputs );
+   hMuxMCPB->astListQueue = (BMUXLIB_LIST_TYPE(BMUXlib_TS_MCPB_QueueEntry)**) BMUXlib_Malloc( sizeof(BMUXLIB_LIST_TYPE(BMUXlib_TS_MCPB_QueueEntry)*) * hMuxMCPB->stSettings.uiMaxNumInputs );
    if ( NULL == hMuxMCPB->astListQueue )
    {
       BMUXlib_TS_MCPB_Destroy( hMuxMCPB );
@@ -305,7 +310,7 @@ BMUXlib_TS_MCPB_Create(
    }
 
    /* Allocate input channels */
-   hMuxMCPB->astChannel = BKNI_Malloc( hMuxMCPB->stSettings.uiMaxNumInputs * sizeof( BMUXlib_TS_MCPB_P_Channel_Context ) );
+   hMuxMCPB->astChannel = BMUXlib_Malloc( hMuxMCPB->stSettings.uiMaxNumInputs * sizeof( *hMuxMCPB->astChannel ) );
    if ( NULL == hMuxMCPB->astChannel )
    {
       BMUXlib_TS_MCPB_Destroy( hMuxMCPB );
@@ -313,98 +318,42 @@ BMUXlib_TS_MCPB_Create(
       return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
    }
 
-   BKNI_Memset( hMuxMCPB->astChannel, 0, hMuxMCPB->stSettings.uiMaxNumInputs * sizeof( BMUXlib_TS_MCPB_P_Channel_Context ) );
-
-#define BMUXLIB_TS_MCPB_P_MAX_DESCRIPTORS 512
+   BKNI_Memset( hMuxMCPB->astChannel, 0, hMuxMCPB->stSettings.uiMaxNumInputs * sizeof( *hMuxMCPB->astChannel ) );
 
    /* Allocate input descriptor FIFOs */
    {
       unsigned i;
-      BMUXlib_List_CreateSettings stListCreateSettings;
-
-      BMUXlib_List_GetDefaultCreateSettings(&stListCreateSettings);
-      stListCreateSettings.eType = BMUXlib_List_Type_eFIFO;
-      stListCreateSettings.uiCount = BMUXLIB_TS_MCPB_P_MAX_DESCRIPTORS;
 
       for ( i = 0; i < hMuxMCPB->stSettings.uiMaxNumInputs; i++ )
       {
-         rc = BMUXlib_List_Create(
-                  &hMuxMCPB->astChannel[i].hDescriptorFifo,
-                  &stListCreateSettings
-                  );
-         if ( BERR_SUCCESS != rc )
-         {
-            BMUXlib_TS_MCPB_Destroy( hMuxMCPB );
-            BDBG_LEAVE( BMUXlib_TS_MCPB_Create );
-            return BERR_TRACE( rc );
-         }
-         hMuxMCPB->astListQueue[i] = hMuxMCPB->astChannel[i].hDescriptorFifo;
-      }
-   }
-
-   /* Allocate free descriptor list */
-   {
-      unsigned i;
-      BMUXlib_List_CreateSettings stListCreateSettings;
-      unsigned uiNumDescriptors = BMUXLIB_TS_MCPB_P_MAX_DESCRIPTORS * hMuxMCPB->stSettings.uiMaxNumInputs;
-
-      BMUXlib_List_GetDefaultCreateSettings(&stListCreateSettings);
-      stListCreateSettings.eType = BMUXlib_List_Type_eStack;
-      stListCreateSettings.uiCount = uiNumDescriptors;
-
-      rc = BMUXlib_List_Create(
-         &hMuxMCPB->hDescriptorFreeList,
-         &stListCreateSettings
-      );
-      if ( BERR_SUCCESS != rc )
-      {
-         BMUXlib_TS_MCPB_Destroy( hMuxMCPB );
-         BDBG_LEAVE( BMUXlib_TS_MCPB_Create );
-         return BERR_TRACE( rc );
-      }
-
-   /* Allocate descriptors */
-      hMuxMCPB->astQueueEntry = (BMUXlib_TS_MCPB_QueueEntry*) BKNI_Malloc( uiNumDescriptors * sizeof( BMUXlib_TS_MCPB_QueueEntry ) );
-      if ( NULL == hMuxMCPB->astQueueEntry )
-      {
-         BMUXlib_TS_MCPB_Destroy( hMuxMCPB );
-         BDBG_LEAVE( BMUXlib_TS_MCPB_Create );
-         return BERR_TRACE( rc );
-      }
-
-      /* Populate descriptor free list */
-      for ( i = 0; i < uiNumDescriptors; i++ )
-      {
-         BMUXlib_List_Push(
-            hMuxMCPB->hDescriptorFreeList,
-            &hMuxMCPB->astQueueEntry[i]
-         );
+         BMUXLIB_LIST_INIT(&hMuxMCPB->astChannel[i].stDescriptorFifo);
+         hMuxMCPB->astListQueue[i] = &hMuxMCPB->astChannel[i].stDescriptorFifo;
       }
    }
 
    /* Allocate PUSI BTP Buffer */
-   hMuxMCPB->stBuffer.uiPUSIBtpSize = BMUXlib_TS_P_TSPacket_MAXSIZE;
+   hMuxMCPB->pstBuffer->uiPUSIBtpSize = BMUXlib_TS_P_TSPacket_MAXSIZE;
    {
       unsigned i;
 
-      for ( i = 0; i < 2; i++ )
+      for ( i = 0; i < BMUXLIB_TS_MCPB_P_PUSI_COUNT; i++ )
       {
-         hMuxMCPB->stBuffer.hPUSIBtpBlock[i] = BMMA_Alloc( hMuxMCPB->stSettings.hMma, hMuxMCPB->stBuffer.uiPUSIBtpSize, 0, 0 );
-         if ( NULL == hMuxMCPB->stBuffer.hPUSIBtpBlock[i] )
+         hMuxMCPB->pstBuffer->hPUSIBtpBlock[i] = BMMA_Alloc( hMuxMCPB->stSettings.hMma, hMuxMCPB->pstBuffer->uiPUSIBtpSize, 0, 0 );
+         if ( NULL == hMuxMCPB->pstBuffer->hPUSIBtpBlock[i] )
          {
             BMUXlib_TS_MCPB_Destroy( hMuxMCPB );
             BDBG_LEAVE( BMUXlib_TS_MCPB_Create );
             return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
          }
-         hMuxMCPB->stBuffer.pPUSIBtp[i] = BMMA_Lock( hMuxMCPB->stBuffer.hPUSIBtpBlock[i] );
-         if ( NULL == hMuxMCPB->stBuffer.pPUSIBtp[i] )
+         hMuxMCPB->pstBuffer->pPUSIBtp[i] = BMMA_Lock( hMuxMCPB->pstBuffer->hPUSIBtpBlock[i] );
+         if ( NULL == hMuxMCPB->pstBuffer->pPUSIBtp[i] )
          {
             BMUXlib_TS_MCPB_Destroy( hMuxMCPB );
             BDBG_LEAVE( BMUXlib_TS_MCPB_Create );
             return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
          }
-         hMuxMCPB->stBuffer.uiPUSIBtpOffset[i] = BMMA_LockOffset( hMuxMCPB->stBuffer.hPUSIBtpBlock[i] );
-         if ( BMUXLIB_TS_P_INVALID_OFFSET == hMuxMCPB->stBuffer.uiPUSIBtpOffset[i] )
+         hMuxMCPB->pstBuffer->uiPUSIBtpOffset[i] = BMMA_LockOffset( hMuxMCPB->pstBuffer->hPUSIBtpBlock[i] );
+         if ( BMUXLIB_TS_P_INVALID_OFFSET == hMuxMCPB->pstBuffer->uiPUSIBtpOffset[i] )
          {
             BMUXlib_TS_MCPB_Destroy( hMuxMCPB );
             BDBG_LEAVE( BMUXlib_TS_MCPB_Create );
@@ -413,64 +362,64 @@ BMUXlib_TS_MCPB_Create(
 
          /* Initialize PUSI BTP */
          BKNI_Memcpy(
-            hMuxMCPB->stBuffer.pPUSIBtp[i],
+            hMuxMCPB->pstBuffer->pPUSIBtp[i],
             &s_stDefaultBTPPacket,
             sizeof( BMUXlib_TS_P_TSPacket )
          );
 
          BMUXlib_TS_P_BTPData_SetControlWord(
-            hMuxMCPB->stBuffer.pPUSIBtp[i],
+            hMuxMCPB->pstBuffer->pPUSIBtp[i],
             BMUXlib_TS_P_MUX_TIMESTAMP_UPDATE_COMMAND_OFFSET,
             BMUXlib_TS_P_MUX_TIMESTAMP_UPDATE_COMMAND /* MTU BTP/BPP op-code*/
             );
       }
 
       BMUXlib_TS_P_BTPData_SetControlWord(
-         hMuxMCPB->stBuffer.pPUSIBtp[0],
+         hMuxMCPB->pstBuffer->pPUSIBtp[0],
          BMUXlib_TS_P_MUX_TIMESTAMP_UPDATE_TIMESTAMP_CTRL_OFFSET,
          BMUXLIB_TS_P_MUX_TIMESTAMP_UPDATE_TIMESTAMP_CTRL_SET_PUSI_IN_NEXT_PKT | BMUXLIB_TS_P_MUX_TIMESTAMP_UPDATE_TIMESTAMP_CTRL_SET_ADAPTATION_FIELD_TO_3 /* SET_PUSI_IN_NEXT_PKT and SET_ADAPTATION_FIELD_TO_3 is valid */
       );
 
       BMUXlib_TS_P_BTPData_SetControlWord(
-         hMuxMCPB->stBuffer.pPUSIBtp[1],
+         hMuxMCPB->pstBuffer->pPUSIBtp[1],
          BMUXlib_TS_P_MUX_TIMESTAMP_UPDATE_TIMESTAMP_CTRL_OFFSET,
          BMUXLIB_TS_P_MUX_TIMESTAMP_UPDATE_TIMESTAMP_CTRL_SET_PUSI_IN_NEXT_PKT | BMUXLIB_TS_P_MUX_TIMESTAMP_UPDATE_TIMESTAMP_CTRL_SET_ADAPTATION_FIELD_TO_3 /* SET_PUSI_IN_NEXT_PKT and SET_ADAPTATION_FIELD_TO_3 is valid */
       );
 
-      for ( i = 0; i < 2; i++ )
+      for ( i = 0; i < BMUXLIB_TS_MCPB_P_PUSI_COUNT; i++ )
       {
          BMMA_FlushCache(
-            hMuxMCPB->stBuffer.hPUSIBtpBlock[i],
-            hMuxMCPB->stBuffer.pPUSIBtp[i],
-            hMuxMCPB->stBuffer.uiPUSIBtpSize
+            hMuxMCPB->pstBuffer->hPUSIBtpBlock[i],
+            hMuxMCPB->pstBuffer->pPUSIBtp[i],
+            hMuxMCPB->pstBuffer->uiPUSIBtpSize
             );
       }
    }
 
    /* Allocate RAI Extended Buffer */
-   hMuxMCPB->stBuffer.uiRAIExtendedSize = 184;
-   hMuxMCPB->stBuffer.uiRAIExtendedReadOffset = 0;
-   hMuxMCPB->stBuffer.uiRAIExtendedWriteOffset = 0;
+   hMuxMCPB->pstBuffer->uiRAIExtendedSize = 184;
+   hMuxMCPB->pstBuffer->uiRAIExtendedReadOffset = 0;
+   hMuxMCPB->pstBuffer->uiRAIExtendedWriteOffset = 0;
    {
       unsigned i;
       for ( i = 0; i < BMUXLIB_TS_MCPB_P_RAI_EXTENDED_COUNT; i++ )
       {
-         hMuxMCPB->stBuffer.hRAIExtendedBlock[i] = BMMA_Alloc( hMuxMCPB->stSettings.hMma, hMuxMCPB->stBuffer.uiRAIExtendedSize, 0, 0 );
-         if ( NULL == hMuxMCPB->stBuffer.hRAIExtendedBlock[i] )
+         hMuxMCPB->pstBuffer->hRAIExtendedBlock[i] = BMMA_Alloc( hMuxMCPB->stSettings.hMma, hMuxMCPB->pstBuffer->uiRAIExtendedSize, 0, 0 );
+         if ( NULL == hMuxMCPB->pstBuffer->hRAIExtendedBlock[i] )
          {
             BMUXlib_TS_MCPB_Destroy( hMuxMCPB );
             BDBG_LEAVE( BMUXlib_TS_MCPB_Create );
             return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
          }
-         hMuxMCPB->stBuffer.pRAIExtended[i] = BMMA_Lock( hMuxMCPB->stBuffer.hRAIExtendedBlock[i] );
-         if ( NULL == hMuxMCPB->stBuffer.pRAIExtended[i] )
+         hMuxMCPB->pstBuffer->pRAIExtended[i] = BMMA_Lock( hMuxMCPB->pstBuffer->hRAIExtendedBlock[i] );
+         if ( NULL == hMuxMCPB->pstBuffer->pRAIExtended[i] )
          {
             BMUXlib_TS_MCPB_Destroy( hMuxMCPB );
             BDBG_LEAVE( BMUXlib_TS_MCPB_Create );
             return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
          }
-         hMuxMCPB->stBuffer.uiRAIExtendedOffset[i] = BMMA_LockOffset( hMuxMCPB->stBuffer.hRAIExtendedBlock[i] );
-         if ( BMUXLIB_TS_P_INVALID_OFFSET == hMuxMCPB->stBuffer.uiRAIExtendedOffset[i] )
+         hMuxMCPB->pstBuffer->uiRAIExtendedOffset[i] = BMMA_LockOffset( hMuxMCPB->pstBuffer->hRAIExtendedBlock[i] );
+         if ( BMUXLIB_TS_P_INVALID_OFFSET == hMuxMCPB->pstBuffer->uiRAIExtendedOffset[i] )
          {
             BMUXlib_TS_MCPB_Destroy( hMuxMCPB );
             BDBG_LEAVE( BMUXlib_TS_MCPB_Create );
@@ -481,24 +430,18 @@ BMUXlib_TS_MCPB_Create(
    }
 
    /* Allocate Output Queue */
-   hMuxMCPB->stOutputQueue.uiSize = 8192;
-   hMuxMCPB->stOutputQueue.astMetadata = (BMUXlib_TS_MCPB_P_TransportMetadata *) BKNI_Malloc( hMuxMCPB->stOutputQueue.uiSize * sizeof( BMUXlib_TS_MCPB_P_TransportMetadata ) );
-   if ( NULL == hMuxMCPB->stOutputQueue.astMetadata )
-   {
-      BMUXlib_TS_MCPB_Destroy( hMuxMCPB );
-      BDBG_LEAVE( BMUXlib_TS_MCPB_Create );
-      return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
-   }
-   BKNI_Memset( hMuxMCPB->stOutputQueue.astMetadata, 0, hMuxMCPB->stOutputQueue.uiSize * sizeof( BMUXlib_TS_MCPB_P_TransportMetadata ) );
+   hMuxMCPB->stOutputQueue.uiSize = 1024;
+   BMUXLIB_P_ENTRY_ALLOCATE(
+         BMUXlib_TS_MCPB_P_TransportMetadata,
+         hMuxMCPB->stOutputQueue.astMetadata,
+         hMuxMCPB->stOutputQueue.uiSize,
+         alloc_desc_error )
 
-   hMuxMCPB->stOutputQueue.astTransportDescriptors = (BMUXlib_TS_TransportDescriptor *) BKNI_Malloc( hMuxMCPB->stOutputQueue.uiSize * sizeof( BMUXlib_TS_TransportDescriptor ) );
-   if ( NULL == hMuxMCPB->stOutputQueue.astTransportDescriptors )
-   {
-      BMUXlib_TS_MCPB_Destroy( hMuxMCPB );
-      BDBG_LEAVE( BMUXlib_TS_MCPB_Create );
-      return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
-   }
-   BKNI_Memset( hMuxMCPB->stOutputQueue.astTransportDescriptors, 0, hMuxMCPB->stOutputQueue.uiSize * sizeof( BMUXlib_TS_TransportDescriptor ) );
+   BMUXLIB_P_ENTRY_ALLOCATE(
+         BMUXlib_TS_TransportDescriptor,
+         hMuxMCPB->stOutputQueue.astTransportDescriptors,
+         hMuxMCPB->stOutputQueue.uiSize,
+         alloc_desc_error )
 
    /* Calculate MUXlib shared block virtual address/physical offset */
    if ( NULL == hMuxMCPB->stSettings.stMuxSharedMemory.hBlock )
@@ -555,9 +498,15 @@ BMUXlib_TS_MCPB_Create(
 #endif
 
    *phMuxMCPB = hMuxMCPB;
+   goto alloc_done;
 
+alloc_desc_error:
+   rc = BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
+   BMUXlib_TS_MCPB_Destroy( hMuxMCPB );
+
+alloc_done:
    BDBG_LEAVE( BMUXlib_TS_MCPB_Create );
-   return BERR_TRACE( BERR_SUCCESS );
+   return BERR_TRACE( rc );
 }
 
 /* BMUXlib_TS_MCPB_Destroy - Frees all system/device memory allocated */
@@ -600,92 +549,82 @@ BMUXlib_TS_MCPB_Destroy(
    }
 
    /* Free Output Queue */
-   if ( NULL != hMuxMCPB->stOutputQueue.astTransportDescriptors )
-   {
-      BKNI_Free( hMuxMCPB->stOutputQueue.astTransportDescriptors );
-      hMuxMCPB->stOutputQueue.astTransportDescriptors = NULL;
-   }
+   BMUXLIB_P_ENTRY_FREE(
+         BMUXlib_TS_TransportDescriptor,
+         hMuxMCPB->stOutputQueue.astTransportDescriptors,
+         hMuxMCPB->stOutputQueue.uiSize )
 
-   if ( NULL != hMuxMCPB->stOutputQueue.astMetadata )
-   {
-      BKNI_Free( hMuxMCPB->stOutputQueue.astMetadata );
-      hMuxMCPB->stOutputQueue.astMetadata = NULL;
-   }
+   BMUXLIB_P_ENTRY_FREE(
+         BMUXlib_TS_MCPB_P_TransportMetadata,
+         hMuxMCPB->stOutputQueue.astMetadata,
+         hMuxMCPB->stOutputQueue.uiSize )
 
    {
       unsigned i;
-      for ( i = 0; i < 512; i++ )
+      for ( i = 0; i < BMUXLIB_TS_MCPB_P_RAI_EXTENDED_COUNT; i++ )
       {
-         if ( NULL != hMuxMCPB->stBuffer.hRAIExtendedBlock[i] )
+         if ( NULL != hMuxMCPB->pstBuffer->hRAIExtendedBlock[i] )
          {
-            if ( BMUXLIB_TS_P_INVALID_OFFSET != hMuxMCPB->stBuffer.uiRAIExtendedOffset[i] )
+            if ( BMUXLIB_TS_P_INVALID_OFFSET != hMuxMCPB->pstBuffer->uiRAIExtendedOffset[i] )
             {
-               BMMA_UnlockOffset( hMuxMCPB->stBuffer.hRAIExtendedBlock[i], hMuxMCPB->stBuffer.uiRAIExtendedOffset[i] );
-               hMuxMCPB->stBuffer.uiRAIExtendedOffset[i] = BMUXLIB_TS_P_INVALID_OFFSET;
+               BMMA_UnlockOffset( hMuxMCPB->pstBuffer->hRAIExtendedBlock[i], hMuxMCPB->pstBuffer->uiRAIExtendedOffset[i] );
+               hMuxMCPB->pstBuffer->uiRAIExtendedOffset[i] = BMUXLIB_TS_P_INVALID_OFFSET;
             }
 
-            if ( NULL != hMuxMCPB->stBuffer.pRAIExtended[i] )
+            if ( NULL != hMuxMCPB->pstBuffer->pRAIExtended[i] )
             {
-               BMMA_Unlock( hMuxMCPB->stBuffer.hRAIExtendedBlock[i], hMuxMCPB->stBuffer.pRAIExtended[i] );
-               hMuxMCPB->stBuffer.pRAIExtended[i] = NULL;
+               BMMA_Unlock( hMuxMCPB->pstBuffer->hRAIExtendedBlock[i], hMuxMCPB->pstBuffer->pRAIExtended[i] );
+               hMuxMCPB->pstBuffer->pRAIExtended[i] = NULL;
             }
 
-            BMMA_Free( hMuxMCPB->stBuffer.hRAIExtendedBlock[i] );
-            hMuxMCPB->stBuffer.hRAIExtendedBlock[i] = NULL;
+            BMMA_Free( hMuxMCPB->pstBuffer->hRAIExtendedBlock[i] );
+            hMuxMCPB->pstBuffer->hRAIExtendedBlock[i] = NULL;
          }
       }
    }
 
    {
       unsigned i;
-      for ( i = 0; i < 2; i++ )
+      for ( i = 0; i < BMUXLIB_TS_MCPB_P_PUSI_COUNT ; i++ )
       {
-         if ( NULL != hMuxMCPB->stBuffer.hPUSIBtpBlock[i] )
+         if ( NULL != hMuxMCPB->pstBuffer->hPUSIBtpBlock[i] )
          {
-            if ( BMUXLIB_TS_P_INVALID_OFFSET != hMuxMCPB->stBuffer.uiPUSIBtpOffset[i] )
+            if ( BMUXLIB_TS_P_INVALID_OFFSET != hMuxMCPB->pstBuffer->uiPUSIBtpOffset[i] )
             {
-               BMMA_UnlockOffset( hMuxMCPB->stBuffer.hPUSIBtpBlock[i], hMuxMCPB->stBuffer.uiPUSIBtpOffset[i] );
-               hMuxMCPB->stBuffer.uiPUSIBtpOffset[i] = BMUXLIB_TS_P_INVALID_OFFSET;
+               BMMA_UnlockOffset( hMuxMCPB->pstBuffer->hPUSIBtpBlock[i], hMuxMCPB->pstBuffer->uiPUSIBtpOffset[i] );
+               hMuxMCPB->pstBuffer->uiPUSIBtpOffset[i] = BMUXLIB_TS_P_INVALID_OFFSET;
             }
 
-            if ( NULL != hMuxMCPB->stBuffer.pPUSIBtp[i] )
+            if ( NULL != hMuxMCPB->pstBuffer->pPUSIBtp[i] )
             {
-               BMMA_Unlock( hMuxMCPB->stBuffer.hPUSIBtpBlock[i], hMuxMCPB->stBuffer.pPUSIBtp[i] );
-               hMuxMCPB->stBuffer.pPUSIBtp[i] = NULL;
+               BMMA_Unlock( hMuxMCPB->pstBuffer->hPUSIBtpBlock[i], hMuxMCPB->pstBuffer->pPUSIBtp[i] );
+               hMuxMCPB->pstBuffer->pPUSIBtp[i] = NULL;
             }
 
-            BMMA_Free( hMuxMCPB->stBuffer.hPUSIBtpBlock[i] );
-            hMuxMCPB->stBuffer.hPUSIBtpBlock[i] = NULL;
+            BMMA_Free( hMuxMCPB->pstBuffer->hPUSIBtpBlock[i] );
+            hMuxMCPB->pstBuffer->hPUSIBtpBlock[i] = NULL;
          }
       }
    }
 
-   if ( NULL != hMuxMCPB->hDescriptorFreeList )
+   /* Allocate input descriptor FIFOs */
    {
-      BMUXlib_List_Destroy( hMuxMCPB->hDescriptorFreeList );
-   }
+      unsigned i;
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry) *pstListEntry;
 
-   if ( NULL != hMuxMCPB->astQueueEntry )
-   {
-      BKNI_Free( hMuxMCPB->astQueueEntry );
-      hMuxMCPB->astQueueEntry = NULL;
+      for ( i = 0; i < hMuxMCPB->stSettings.uiMaxNumInputs; i++ )
+      {
+         while(!BMUXLIB_LIST_ISEMPTY(&hMuxMCPB->astChannel[i].stDescriptorFifo))
+         {
+            BMUXLIB_LIST_REMOVE(&hMuxMCPB->astChannel[i].stDescriptorFifo, &pstListEntry);
+            BKNI_Free(pstListEntry);
+         }
+      }
    }
 
    if ( NULL != hMuxMCPB->astChannel )
    {
-      /* Free input FIFOs */
-      {
-         unsigned i;
-
-         for ( i = 0; i < hMuxMCPB->stSettings.uiMaxNumInputs; i++ )
-         {
-            if ( NULL != hMuxMCPB->astChannel[i].hDescriptorFifo )
-            {
-               BMUXlib_List_Destroy( hMuxMCPB->astChannel[i].hDescriptorFifo );
-               hMuxMCPB->astChannel[i].hDescriptorFifo = NULL;
-            }
-         }
-      }
+      BMUXLIB_P_CONTEXT_FREE(hMuxMCPB->pstBuffer)
 
       BKNI_Free( hMuxMCPB->astChannel );
       hMuxMCPB->astChannel = NULL;
@@ -712,7 +651,7 @@ BMUXlib_TS_MCPB_Channel_GetDefaultOpenSettings(
 {
    BDBG_ASSERT( pstSettings );
 
-   BKNI_Memset( pstSettings, 0, sizeof( BMUXlib_TS_MCPB_Channel_OpenSettings ) );
+   BKNI_Memset( pstSettings, 0, sizeof( *pstSettings ) );
 }
 
 BERR_Code
@@ -832,49 +771,47 @@ BMUXlib_TS_MCPB_Channel_Close(
 /*********************/
 
 static int BMUXlib_TS_MCPB_P_CompareDescriptorFifo(
-   const void *pEntryA,
-   const void *pEntryB
+   const BMUXLIB_LIST_TYPE(BMUXlib_TS_MCPB_QueueEntry)*hDescriptorFifoA,
+   const BMUXLIB_LIST_TYPE(BMUXlib_TS_MCPB_QueueEntry)*hDescriptorFifoB
    )
 {
    int result;
-   const BMUXlib_List_Handle *phDescriptorFifoA = (BMUXlib_List_Handle *) pEntryA;
-   const BMUXlib_List_Handle *phDescriptorFifoB = (BMUXlib_List_Handle *) pEntryB;
-
    BDBG_ENTER( BMUXlib_TS_MCPB_P_CompareDescriptorFifo );
 
-   BDBG_ASSERT( phDescriptorFifoA );
-   BDBG_ASSERT( phDescriptorFifoB );
-   BDBG_ASSERT( *phDescriptorFifoA );
-   BDBG_ASSERT( *phDescriptorFifoB );
+   BDBG_ASSERT( hDescriptorFifoA );
+   BDBG_ASSERT( hDescriptorFifoB );
 
    {
-      BMUXlib_TS_MCPB_QueueEntry *pstEntryA = NULL;
-      BMUXlib_TS_MCPB_QueueEntry *pstEntryB = NULL;
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry) *pstListEntryA = NULL;
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry) *pstListEntryB = NULL;
 
-      if ( false == BMUXlib_List_IsEmpty( *phDescriptorFifoA ) )
+      if ( false == BMUXLIB_LIST_ISEMPTY( hDescriptorFifoA ) )
       {
-         BMUXlib_List_GetHead( *phDescriptorFifoA, (void**) &pstEntryA );
+         BMUXLIB_LIST_FIRST( hDescriptorFifoA, &pstListEntryA );
       }
 
-      if ( false == BMUXlib_List_IsEmpty( *phDescriptorFifoB ) )
+      if ( false == BMUXLIB_LIST_ISEMPTY( hDescriptorFifoB ) )
       {
-         BMUXlib_List_GetHead( *phDescriptorFifoB, (void**) &pstEntryB );
+         BMUXLIB_LIST_FIRST( hDescriptorFifoB, &pstListEntryB );
       }
 
-      if ( ( NULL == pstEntryA ) && ( NULL == pstEntryB ) )
+      if ( ( NULL == pstListEntryA ) && ( NULL == pstListEntryB ) )
       {
          return 0;
       }
-      else if ( NULL == pstEntryA )
+      else if ( NULL == pstListEntryA )
       {
          return 1;
       }
-      else if ( NULL == pstEntryB )
+      else if ( NULL == pstListEntryB )
       {
          return -1;
       }
       else
       {
+         BMUXlib_TS_MCPB_QueueEntry *pstEntryA = BMUXLIB_LIST_ENTRY_DATA(pstListEntryA);
+         BMUXlib_TS_MCPB_QueueEntry *pstEntryB = BMUXLIB_LIST_ENTRY_DATA(pstListEntryB);
+
          int32_t iDeltaESCR = pstEntryA->uiCurrentESCR - pstEntryB->uiCurrentESCR;
 
          if ( iDeltaESCR < 0 )
@@ -1133,8 +1070,8 @@ static bool BMUXlib_TS_MCPB_P_InsertBuffer(
    hMuxMCPB->astChannel[pstMetadata->uiChannelInstance].stState.uiSkippedDescriptorCount = 0;
 
    /* Insert descriptor into output queue */
-   hMuxMCPB->stOutputQueue.astTransportDescriptors[hMuxMCPB->stOutputQueue.uiWriteOffset] = *pstTransportDescriptor;
-   hMuxMCPB->stOutputQueue.astMetadata[hMuxMCPB->stOutputQueue.uiWriteOffset] = *pstMetadata;
+   *hMuxMCPB->stOutputQueue.astTransportDescriptors[hMuxMCPB->stOutputQueue.uiWriteOffset] = *pstTransportDescriptor;
+   *hMuxMCPB->stOutputQueue.astMetadata[hMuxMCPB->stOutputQueue.uiWriteOffset] = *pstMetadata;
 
    hMuxMCPB->stOutputQueue.uiWriteOffset = uiWriteOffsetTemp;
 
@@ -1262,20 +1199,22 @@ BMUXlib_TS_MCPB_P_ClearTransportDescriptorFlags (
 
 static void
 BMUXlib_TS_MCPB_P_ConsumeDescriptor(
-   BMUXlib_TS_MCPB_Handle hMuxMCPB,
-   const BMUXlib_TS_MCPB_QueueEntry *pstEntry
+   BMUXlib_TS_MCPB_Handle hMuxMCPB
    )
 {
-   BMUXlib_TS_MCPB_QueueEntry stEntry;
+   BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry) *pstListEntry = NULL;
+   BMUXlib_TS_MCPB_QueueEntry *pstEntry = NULL;
 
+   BMUXLIB_LIST_REMOVE( hMuxMCPB->stProcessEntryInfo.hList, &pstListEntry );
+   BDBG_ASSERT(pstListEntry);
+   pstEntry = BMUXLIB_LIST_ENTRY_DATA(pstListEntry);
    hMuxMCPB->astChannel[pstEntry->uiChannelInstance].stState.uiQueuedCount-= pstEntry->uiSourceDescriptorCount;
    hMuxMCPB->astChannel[pstEntry->uiChannelInstance].stState.uiPendingCount += pstEntry->uiSourceDescriptorCount;
-   BMUXlib_List_Remove( hMuxMCPB->stProcessEntryInfo.hList, (void**) &stEntry );
-   BMUXlib_List_Push( hMuxMCPB->hDescriptorFreeList, hMuxMCPB->stProcessEntryInfo.pstEntry );
+   BKNI_Free(pstListEntry);
 
    {
       size_t uiNumEntries;
-      BMUXlib_List_GetNumEntries( hMuxMCPB->stProcessEntryInfo.hList, &uiNumEntries );
+      BMUXLIB_LIST_GETNUMENTRIES( hMuxMCPB->stProcessEntryInfo.hList, &uiNumEntries );
       BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_QUEUE, ("[%p] [%d] baseESCR = %08x, currentESCR = %08x (%5d bytes left) - Done (%3d entries)", (void *)hMuxMCPB->stProcessEntryInfo.hList, pstEntry->uiChannelInstance, pstEntry->uiBaseESCR, pstEntry->uiCurrentESCR, pstEntry->uiBytesLeft, (int)uiNumEntries ));
    }
 }
@@ -1297,13 +1236,13 @@ BMUXlib_TS_MCPB_P_InsertBuffer_PESHeaderExtended(
    /* Insert RAI Prefix */
    BDBG_ASSERT( hMuxMCPB );
 
-   BKNI_Memset( &stTransportDescriptor, 0, sizeof( BMUXlib_TS_TransportDescriptor ) );
-   BKNI_Memset( &stMetadata, 0, sizeof( BMUXlib_TS_MCPB_P_TransportMetadata ) );
+   BKNI_Memset( &stTransportDescriptor, 0, sizeof( stTransportDescriptor ) );
+   BKNI_Memset( &stMetadata, 0, sizeof( stMetadata ) );
 
    stTransportDescriptor = pstEntry->stTransportDescriptor;
 
-   stTransportDescriptor.uiBufferOffset = hMuxMCPB->stBuffer.uiRAIExtendedOffset[hMuxMCPB->stBuffer.uiRAIExtendedWriteOffset];
-   pBufferAddress = hMuxMCPB->stBuffer.pRAIExtended[hMuxMCPB->stBuffer.uiRAIExtendedWriteOffset];
+   stTransportDescriptor.uiBufferOffset = hMuxMCPB->pstBuffer->uiRAIExtendedOffset[hMuxMCPB->pstBuffer->uiRAIExtendedWriteOffset];
+   pBufferAddress = hMuxMCPB->pstBuffer->pRAIExtended[hMuxMCPB->pstBuffer->uiRAIExtendedWriteOffset];
 
    /* TODO: Only stuff the PES header if the next ES frame is less than 184-19 bytes */
    /* TODO: Add optional PCR insertion on video PID */
@@ -1339,7 +1278,7 @@ BMUXlib_TS_MCPB_P_InsertBuffer_PESHeaderExtended(
    stMetadata.uiSourceDescriptorCount = pstEntry->uiSourceDescriptorCount;
 
    uiBufferLength = stTransportDescriptor.uiBufferLength;
-   BMMA_FlushCache( hMuxMCPB->stBuffer.hRAIExtendedBlock[hMuxMCPB->stBuffer.uiRAIExtendedWriteOffset], pBufferAddress, uiBufferLength );
+   BMMA_FlushCache( hMuxMCPB->pstBuffer->hRAIExtendedBlock[hMuxMCPB->pstBuffer->uiRAIExtendedWriteOffset], pBufferAddress, uiBufferLength );
 
    bResult = BMUXlib_TS_MCPB_P_InsertBuffer( hMuxMCPB, &stTransportDescriptor, &stMetadata, NULL );
 
@@ -1350,11 +1289,11 @@ BMUXlib_TS_MCPB_P_InsertBuffer_PESHeaderExtended(
       BMUXlib_TS_MCPB_P_DumpDescriptor( hMuxMCPB, pstEntry, &stTransportDescriptor, &stMetadata );
       BMUXlib_TS_MCPB_P_ClearTransportDescriptorFlags( &pstEntry->stTransportDescriptor );
       pstEntry->uiBytesLeft = 0;
-      BMUXlib_TS_MCPB_P_ConsumeDescriptor( hMuxMCPB, pstEntry );
+      BMUXlib_TS_MCPB_P_ConsumeDescriptor( hMuxMCPB );
 
-      hMuxMCPB->stBuffer.uiRAIExtendedWriteOffset++;
-      hMuxMCPB->stBuffer.uiRAIExtendedWriteOffset %= BMUXLIB_TS_MCPB_P_RAI_EXTENDED_COUNT;
-      if ( hMuxMCPB->stBuffer.uiRAIExtendedWriteOffset == hMuxMCPB->stBuffer.uiRAIExtendedReadOffset )
+      hMuxMCPB->pstBuffer->uiRAIExtendedWriteOffset++;
+      hMuxMCPB->pstBuffer->uiRAIExtendedWriteOffset %= BMUXLIB_TS_MCPB_P_RAI_EXTENDED_COUNT;
+      if ( hMuxMCPB->pstBuffer->uiRAIExtendedWriteOffset == hMuxMCPB->pstBuffer->uiRAIExtendedReadOffset )
       {
          BDBG_ERR(("RAI Extended Overflow"));
       }
@@ -1378,20 +1317,20 @@ BMUXlib_TS_MCPB_P_InsertBuffer_PUSIBtp(
    /* Insert PUSI BTP */
    BDBG_ASSERT( hMuxMCPB );
 
-   BKNI_Memset( &stTransportDescriptor, 0, sizeof( BMUXlib_TS_TransportDescriptor ) );
-   BKNI_Memset( &stMetadata, 0, sizeof( BMUXlib_TS_MCPB_P_TransportMetadata ) );
+   BKNI_Memset( &stTransportDescriptor, 0, sizeof( stTransportDescriptor ) );
+   BKNI_Memset( &stMetadata, 0, sizeof( stMetadata ) );
 
    stTransportDescriptor = pstEntry->stTransportDescriptor;
 
    if ( true == pstEntry->bRandomAccessIndication )
    {
-      stTransportDescriptor.uiBufferOffset = hMuxMCPB->stBuffer.uiPUSIBtpOffset[0];
+      stTransportDescriptor.uiBufferOffset = hMuxMCPB->pstBuffer->uiPUSIBtpOffset[0];
    }
    else
    {
-      stTransportDescriptor.uiBufferOffset = hMuxMCPB->stBuffer.uiPUSIBtpOffset[1];
+      stTransportDescriptor.uiBufferOffset = hMuxMCPB->pstBuffer->uiPUSIBtpOffset[1];
    }
-   stTransportDescriptor.uiBufferLength = hMuxMCPB->stBuffer.uiPUSIBtpSize;
+   stTransportDescriptor.uiBufferLength = hMuxMCPB->pstBuffer->uiPUSIBtpSize;
 
    stTransportDescriptor.stTsMuxDescriptorConfig.bPacket2PacketTimestampDeltaValid = true;
    stTransportDescriptor.stTsMuxDescriptorConfig.uiPacket2PacketTimestampDelta = 0;
@@ -1431,7 +1370,7 @@ BMUXlib_TS_MCPB_P_InsertPayload(
    BMUXlib_TS_MCPB_P_TransportMetadata stMetadata;
 
    /* Set Metadata */
-   BKNI_Memset( &stMetadata, 0, sizeof( BMUXlib_TS_MCPB_P_TransportMetadata ) );
+   BKNI_Memset( &stMetadata, 0, sizeof( stMetadata ) );
    stMetadata.eSource = pstEntry->eSource;
    stMetadata.uiChannelInstance = pstEntry->uiChannelInstance;
 
@@ -1454,7 +1393,7 @@ BMUXlib_TS_MCPB_P_InsertPayload(
       /* Remove the descriptor from the FIFO if there are no more bytes left */
       if ( 0 == pstEntry->uiBytesLeft )
       {
-         BMUXlib_TS_MCPB_P_ConsumeDescriptor( hMuxMCPB, pstEntry );
+         BMUXlib_TS_MCPB_P_ConsumeDescriptor( hMuxMCPB );
       }
 
       return true;
@@ -1469,11 +1408,13 @@ BMUXlib_TS_MCPB_P_ReconcileFifoQueue(
    )
 {
    {
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry) *pstListEntry = NULL;
       BMUXlib_TS_MCPB_QueueEntry *pstEntry = NULL;
 
-      if ( false == BMUXlib_List_IsEmpty(hMuxMCPB->astListQueue[0]) )
+      if ( false == BMUXLIB_LIST_ISEMPTY(hMuxMCPB->astListQueue[0]) )
       {
-         BMUXlib_List_GetHead( hMuxMCPB->astListQueue[0], (void**) &pstEntry );
+         BMUXLIB_LIST_FIRST( hMuxMCPB->astListQueue[0], &pstListEntry );
+         pstEntry = BMUXLIB_LIST_ENTRY_DATA(pstListEntry);
       }
 
       if ( ( NULL == pstEntry ) /* Empty List */
@@ -1487,9 +1428,9 @@ BMUXlib_TS_MCPB_P_ReconcileFifoQueue(
          {
             for ( j = 0; j < (hMuxMCPB->stSettings.uiMaxNumInputs-i-1); j++ )
             {
-               if ( BMUXlib_TS_MCPB_P_CompareDescriptorFifo(&hMuxMCPB->astListQueue[j], &hMuxMCPB->astListQueue[j+1]) > 0 )
+               if ( BMUXlib_TS_MCPB_P_CompareDescriptorFifo(hMuxMCPB->astListQueue[j], hMuxMCPB->astListQueue[j+1]) > 0 )
                {
-                  BMUXlib_List_Handle hTempList;
+                  BMUXLIB_LIST_TYPE(BMUXlib_TS_MCPB_QueueEntry) *hTempList;
 
                   hTempList = hMuxMCPB->astListQueue[j+1];
                   hMuxMCPB->astListQueue[j+1] = hMuxMCPB->astListQueue[j];
@@ -1521,20 +1462,22 @@ BMUXlib_TS_MCPB_P_ProcessNextEntry(
       {
          case BMUXlib_TS_MCPB_P_ProcessNextEntry_State_eGetNextDescriptor:
          {
-            BMUXlib_List_Handle hList = hMuxMCPB->astListQueue[0];
+            BMUXLIB_LIST_TYPE(BMUXlib_TS_MCPB_QueueEntry) *hList = hMuxMCPB->astListQueue[0];
             BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_STATE, ("eGetNextDescriptor") );
             BKNI_Memset( &hMuxMCPB->stProcessEntryInfo, 0, sizeof( hMuxMCPB->stProcessEntryInfo ) );
 
             /* Queue all descriptors up until ESCR >= endPacingCounter value */
-            if ( false == BMUXlib_List_IsEmpty( hList ) )
+            if ( false == BMUXLIB_LIST_ISEMPTY( hList ) )
             {
+               BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry) *pstListEntry;
                BMUXlib_TS_MCPB_QueueEntry *pstEntry;
                size_t uiNumEntries;
                signed iESCRDelta;
 
-               BMUXlib_List_GetNumEntries( hList, &uiNumEntries );
+               BMUXLIB_LIST_GETNUMENTRIES( hList, &uiNumEntries );
 
-               BMUXlib_List_GetHead( hList, (void**) &pstEntry );
+               BMUXLIB_LIST_FIRST( hList, &pstListEntry );
+               pstEntry = BMUXLIB_LIST_ENTRY_DATA(pstListEntry);
 
                iESCRDelta = uiEndESCR - pstEntry->uiCurrentESCR;
 
@@ -1619,7 +1562,7 @@ BMUXlib_TS_MCPB_P_ProcessNextEntry(
 
             hMuxMCPB->astChannel[pstEntry->uiChannelInstance].stState.uiSkippedDescriptorCount++;
             pstEntry->uiBytesLeft = 0;
-            BMUXlib_TS_MCPB_P_ConsumeDescriptor( hMuxMCPB, pstEntry );
+            BMUXlib_TS_MCPB_P_ConsumeDescriptor( hMuxMCPB );
             hMuxMCPB->stProcessEntryInfo.eState = BMUXlib_TS_MCPB_P_ProcessNextEntry_State_eDoneWithDescriptor;
          }
             break;
@@ -1649,7 +1592,7 @@ BMUXlib_TS_MCPB_P_ProcessNextEntry(
 
             BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_STATE, ("eProcessPESHeaderPayload") );
 
-            BKNI_Memset( &stTransportDescriptor, 0, sizeof( BMUXlib_TS_TransportDescriptor ) );
+            BKNI_Memset( &stTransportDescriptor, 0, sizeof( stTransportDescriptor ) );
 
             stTransportDescriptor = pstEntry->stTransportDescriptor;
 
@@ -1685,14 +1628,14 @@ BMUXlib_TS_MCPB_P_ProcessNextEntry(
          case BMUXlib_TS_MCPB_P_ProcessNextEntry_State_eProcessPayload:
          {
             BMUXlib_TS_MCPB_QueueEntry *pstEntry = hMuxMCPB->stProcessEntryInfo.pstEntry;
-            BMUXlib_List_Handle hNextList = hMuxMCPB->astListQueue[1];
+            BMUXLIB_LIST_TYPE(BMUXlib_TS_MCPB_QueueEntry)* hNextList = hMuxMCPB->astListQueue[1];
 
             {
                BMUXlib_TS_TransportDescriptor stTransportDescriptor;
 
                BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_STATE, ("eProcessPayload") );
 
-               BKNI_Memset( &stTransportDescriptor, 0, sizeof( BMUXlib_TS_TransportDescriptor ) );
+               BKNI_Memset( &stTransportDescriptor, 0, sizeof( stTransportDescriptor ) );
 
                stTransportDescriptor = pstEntry->stTransportDescriptor;
 
@@ -1700,13 +1643,15 @@ BMUXlib_TS_MCPB_P_ProcessNextEntry(
 
                /* Calculate numBytes to send */
                /* Peek at next descriptor */
-               if ( false == BMUXlib_List_IsEmpty( hNextList ) )
+               if ( false == BMUXLIB_LIST_ISEMPTY( hNextList ) )
                {
+                  BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry) *pstNextListEntry;
                   BMUXlib_TS_MCPB_QueueEntry *pstNextEntry;
                   unsigned uiNextESCR;
                   signed iESCRDelta;
 
-                  BMUXlib_List_GetHead( hNextList, (void**) &pstNextEntry );
+                  BMUXLIB_LIST_FIRST( hNextList, &pstNextListEntry );
+                  pstNextEntry = BMUXLIB_LIST_ENTRY_DATA(pstNextListEntry);
                   uiNextESCR = pstNextEntry->uiCurrentESCR;
                   iESCRDelta = uiEndESCR - uiNextESCR;
 
@@ -1754,7 +1699,7 @@ BMUXlib_TS_MCPB_P_ProcessNextEntry(
             BMUXlib_TS_MCPB_QueueEntry *pstEntry = hMuxMCPB->stProcessEntryInfo.pstEntry;
             size_t uiNumEntries;
             BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_STATE, ("eDoneWithDescriptor") );
-            BMUXlib_List_GetNumEntries( hMuxMCPB->stProcessEntryInfo.hList, &uiNumEntries );
+            BMUXLIB_LIST_GETNUMENTRIES( hMuxMCPB->stProcessEntryInfo.hList, &uiNumEntries );
             if ( 0 != pstEntry->uiBytesLeft )
             {
                BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_QUEUE, ("[%p] [%d] baseESCR = %08x, currentESCR = %08x (%5d bytes left) - Re-Q (%3d entries)", (void *)hMuxMCPB->stProcessEntryInfo.hList, pstEntry->uiChannelInstance, pstEntry->uiBaseESCR, pstEntry->uiCurrentESCR, pstEntry->uiBytesLeft, (int)uiNumEntries ));
@@ -1788,23 +1733,12 @@ BMUXlib_TS_MCPB_P_ScheduleProcessedEntries(
 
    while ( hMuxMCPB->stOutputQueue.uiPendingOffset != hMuxMCPB->stOutputQueue.uiWriteOffset )
    {
-      size_t uiNumTransportDescriptors;
+      size_t uiNumTransportDescriptors = 1;
       size_t uiNumTransportDescriptorsQueued;
-
-      if ( hMuxMCPB->stOutputQueue.uiPendingOffset < hMuxMCPB->stOutputQueue.uiWriteOffset )
-      {
-         /* We can send everything in one call */
-         uiNumTransportDescriptors = hMuxMCPB->stOutputQueue.uiWriteOffset - hMuxMCPB->stOutputQueue.uiPendingOffset;
-      }
-      else
-      {
-         /* We need to send the descriptors in two calls, so handle the 1st one */
-         uiNumTransportDescriptors = hMuxMCPB->stOutputQueue.uiSize - hMuxMCPB->stOutputQueue.uiPendingOffset;
-      }
 
       pTransportInterface->fAddTransportDescriptors(
          pTransportInterface->pContext,
-         &hMuxMCPB->stOutputQueue.astTransportDescriptors[hMuxMCPB->stOutputQueue.uiPendingOffset],
+         hMuxMCPB->stOutputQueue.astTransportDescriptors[hMuxMCPB->stOutputQueue.uiPendingOffset],
          uiNumTransportDescriptors,
          &uiNumTransportDescriptorsQueued
          );
@@ -1961,8 +1895,8 @@ BMUXlib_TS_MCPB_P_ProcessCompletedTransportDescriptors(
          BMUXlib_TS_MCPB_P_TransportMetadata *pstMetadata = NULL;
          BMUXlib_TS_TransportDescriptor *pstTransportDescriptor = NULL;
 
-         pstMetadata = &hMuxMCPB->stOutputQueue.astMetadata[hMuxMCPB->stOutputQueue.uiReadOffset];
-         pstTransportDescriptor = &hMuxMCPB->stOutputQueue.astTransportDescriptors[hMuxMCPB->stOutputQueue.uiReadOffset];
+         pstMetadata = hMuxMCPB->stOutputQueue.astMetadata[hMuxMCPB->stOutputQueue.uiReadOffset];
+         pstTransportDescriptor = hMuxMCPB->stOutputQueue.astTransportDescriptors[hMuxMCPB->stOutputQueue.uiReadOffset];
 
          /* Reclaim any internal buffers */
          switch ( pstMetadata->eSource )
@@ -1993,8 +1927,8 @@ BMUXlib_TS_MCPB_P_ProcessCompletedTransportDescriptors(
 
             case BMUXlib_TS_MCPB_P_SourceType_ePESHeaderExtended:
                hMuxMCPB->astChannel[pstMetadata->uiChannelInstance].stState.uiCompletedCount += pstMetadata->uiSourceDescriptorCount;
-               hMuxMCPB->stBuffer.uiRAIExtendedReadOffset++;
-               hMuxMCPB->stBuffer.uiRAIExtendedReadOffset %= BMUXLIB_TS_MCPB_P_RAI_EXTENDED_COUNT;
+               hMuxMCPB->pstBuffer->uiRAIExtendedReadOffset++;
+               hMuxMCPB->pstBuffer->uiRAIExtendedReadOffset %= BMUXLIB_TS_MCPB_P_RAI_EXTENDED_COUNT;
                break;
 
             default:
@@ -2023,7 +1957,7 @@ BMUXlib_TS_MCPB_P_PopulateEntryFromDescriptor(
    )
 {
    BDBG_ASSERT( pstEntry );
-   BKNI_Memset( pstEntry, 0, sizeof( BMUXlib_TS_MCPB_QueueEntry ) );
+   BKNI_Memset( pstEntry, 0, sizeof( *pstEntry ) );
 
    /* Set the current ESCR value */
    if ( ( NULL != pstTransportDescriptor )
@@ -2106,34 +2040,29 @@ static bool
 BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsDirect(
    BMUXlib_TS_MCPB_Channel_Handle hMuxMCPBCh,
    const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor,
-   BMUXlib_TS_MCPB_QueueEntry ** pstEntry
+   BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry) ** pstListEntry
    )
 {
-   BERR_Code rc = BERR_SUCCESS;
-   BDBG_ASSERT(pstEntry);
-   *pstEntry = NULL;
+   BMUXlib_TS_MCPB_QueueEntry *pstEntry = NULL;
+   BDBG_ASSERT(pstListEntry);
 
-   if ( BMUXlib_List_IsEmpty( hMuxMCPBCh->hMuxMCPB->hDescriptorFreeList ) )
+   *pstListEntry = (BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry)*) BMUXlib_Malloc(sizeof(BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry)));
+
+   if (!*pstListEntry)
    {
       BDBG_WRN(("descriptor free list is empty"));
       return false;
    }
-   rc = BMUXlib_List_Pop( hMuxMCPBCh->hMuxMCPB->hDescriptorFreeList, (void**) pstEntry );
-   if ((BERR_SUCCESS != rc) || (NULL == *pstEntry))
-   {
-      /* in theory, Pop() can only return NULL if there is an error */
-      BERR_TRACE(rc);
-      return false;
-   }
+   BKNI_Memset(*pstListEntry, 0, sizeof(BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry)));
+   pstEntry =  BMUXLIB_LIST_ENTRY_DATA(*pstListEntry);
+   BKNI_Memset( pstEntry, 0, sizeof( BMUXlib_TS_MCPB_QueueEntry ) );
 
-   BKNI_Memset( *pstEntry, 0, sizeof( BMUXlib_TS_MCPB_QueueEntry ) );
+   BMUXlib_TS_MCPB_P_PopulateEntryFromDescriptor( hMuxMCPBCh, pstTransportDescriptor, pstEntry );
 
-   BMUXlib_TS_MCPB_P_PopulateEntryFromDescriptor( hMuxMCPBCh, pstTransportDescriptor, *pstEntry );
+   pstEntry->uiSourceDescriptorCount = 1;
+   pstEntry->eSource = BMUXlib_TS_MCPB_P_SourceType_eInput;
 
-   (*pstEntry)->uiSourceDescriptorCount = 1;
-   (*pstEntry)->eSource = BMUXlib_TS_MCPB_P_SourceType_eInput;
-
-   BMUXlib_TS_MCPB_P_UpdateCurrentESCR( hMuxMCPBCh, *pstEntry );
+   BMUXlib_TS_MCPB_P_UpdateCurrentESCR( hMuxMCPBCh, pstEntry );
 
    return true;
 }
@@ -2142,7 +2071,7 @@ static bool
 BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo(
    BMUXlib_TS_MCPB_Channel_Handle hMuxMCPBCh,
    const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor,
-   BMUXlib_TS_MCPB_QueueEntry *apstEntry[2]
+   BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry) *apstEntry[2]
    )
 {
    BDBG_ASSERT(apstEntry);
@@ -2172,25 +2101,6 @@ BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo(
          BMUXLIB_TS_P_FIFO_FREE( &hMuxMCPBCh->stState.stTSPacketInfo.stFifo )
          ));
       return false;
-   }
-
-   /* Check if there are enough entries free (need 2) */
-   {
-      size_t uiNumAvailable;
-      BMUXlib_List_GetNumEntries( hMuxMCPBCh->hMuxMCPB->hDescriptorFreeList, &uiNumAvailable );
-
-      if ( uiNumAvailable < 2 )
-      {
-         BDBG_MODULE_WRN( BMUXLIB_TS_MCPB_FIFO, ("[read:%6d pktread:%6d write:%6d size:%6d] descriptor free list doesn't contain enough entries (need: %d, free: %d)",
-            hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiRead,
-            hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead,
-            hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiWrite,
-            (int)hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize,
-            2,
-            (int)uiNumAvailable
-         ));
-         return false;
-      }
    }
 
    /* If this is the 1st descriptor being copied to the FIFO, we want to generate an entry using the input descriptor info */
@@ -2230,50 +2140,44 @@ BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo(
       ));
       for ( i = 0; (i < 2) && (0 != BMUXLIB_TS_P_FIFO_PKTDEPTH( &hMuxMCPBCh->stState.stTSPacketInfo.stFifo )); i++ )
       {
-         BERR_Code rc;
-         rc = BMUXlib_List_Pop( hMuxMCPBCh->hMuxMCPB->hDescriptorFreeList, (void**) &apstEntry[i] );
-         /* NOTE: since we check for available entries, this cannot return a NULL pointer
-            unless an error occurs, and that can only happen in a mis-configured queue */
-         if ((BERR_SUCCESS != rc) || (NULL == apstEntry[i]))
-         {
-            BERR_TRACE(rc);
-            return false;
-         }
-
-         BKNI_Memset( apstEntry[i], 0, sizeof( BMUXlib_TS_MCPB_QueueEntry ) );
+         BMUXlib_TS_MCPB_QueueEntry *pstEntry;
+         apstEntry[i] = (BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry)*) BMUXlib_Malloc(sizeof(BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry)));
+         BDBG_ASSERT(apstEntry[i]);
+         BKNI_Memset(apstEntry[i], 0, sizeof(BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry)));
+         pstEntry =  BMUXLIB_LIST_ENTRY_DATA(apstEntry[i]);
 
          if ( 0 == i )
          {
-            *apstEntry[i] = hMuxMCPBCh->stState.stTSPacketInfo.stEntry;
+            *pstEntry = hMuxMCPBCh->stState.stTSPacketInfo.stEntry;
          }
          else
          {
-            BMUXlib_TS_MCPB_P_PopulateEntryFromDescriptor( hMuxMCPBCh, NULL, apstEntry[i] );
+            BMUXlib_TS_MCPB_P_PopulateEntryFromDescriptor( hMuxMCPBCh, NULL, pstEntry );
          }
 
          /* TODO: What do with the descriptor serial number in the log? */
 
          /* Set Source Type to FIFO */
-         apstEntry[i]->eSource = BMUXlib_TS_MCPB_P_SourceType_eFIFO;
+         pstEntry->eSource = BMUXlib_TS_MCPB_P_SourceType_eFIFO;
 
          /* Set Buffer Address */
-         apstEntry[i]->stTransportDescriptor.uiBufferOffset = hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiOffset + hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead;
+         pstEntry->stTransportDescriptor.uiBufferOffset = hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiOffset + hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead;
 
          /* Override buffer address/length/bytes left */
          if ( hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead < hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiWrite )
          {
-            apstEntry[i]->stTransportDescriptor.uiBufferLength = hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiWrite - hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead;
-            apstEntry[i]->uiSourceDescriptorCount = hMuxMCPBCh->stState.stTSPacketInfo.uiSourceDescriptorCount;
+            pstEntry->stTransportDescriptor.uiBufferLength = hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiWrite - hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead;
+            pstEntry->uiSourceDescriptorCount = hMuxMCPBCh->stState.stTSPacketInfo.uiSourceDescriptorCount;
             hMuxMCPBCh->stState.stTSPacketInfo.uiSourceDescriptorCount = 0;
          }
          else
          {
             /* handle FIFO wrap */
-            apstEntry[i]->stTransportDescriptor.uiBufferLength = hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize - hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead;
+            pstEntry->stTransportDescriptor.uiBufferLength = hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize - hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead;
          }
 
          /* Flush the cache */
-         BMMA_FlushCache( hMuxMCPBCh->stState.stTSPacketInfo.stFifo.hBlock, (void*) ( ( (uint8_t *) hMuxMCPBCh->stState.stTSPacketInfo.stFifo.pBuffer ) + hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead ), apstEntry[i]->stTransportDescriptor.uiBufferLength );
+         BMMA_FlushCache( hMuxMCPBCh->stState.stTSPacketInfo.stFifo.hBlock, (void*) ( ( (uint8_t *) hMuxMCPBCh->stState.stTSPacketInfo.stFifo.pBuffer ) + hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead ), pstEntry->stTransportDescriptor.uiBufferLength );
 
          BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_FIFO, ("[read:%6d pktread:%6d write:%6d size:%6d] Sending descriptor[%d] "BDBG_UINT64_FMT" %d bytes for packet %d bytes %d source descriptors",
             hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiRead,
@@ -2281,16 +2185,16 @@ BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo(
             hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiWrite,
             (int)hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize,
             i,
-            BDBG_UINT64_ARG(apstEntry[i]->stTransportDescriptor.uiBufferOffset),
-            (int)apstEntry[i]->stTransportDescriptor.uiBufferLength,
+            BDBG_UINT64_ARG(pstEntry->stTransportDescriptor.uiBufferOffset),
+            (int)pstEntry->stTransportDescriptor.uiBufferLength,
             BMUXLIB_TS_P_FIFO_PKTDEPTH( &hMuxMCPBCh->stState.stTSPacketInfo.stFifo ),
-            apstEntry[i]->uiSourceDescriptorCount
+            pstEntry->uiSourceDescriptorCount
          ));
 
          /* Set Bytes Left */
-         apstEntry[i]->uiBytesLeft = apstEntry[i]->stTransportDescriptor.uiBufferLength;
-         BMUXLIB_TS_P_FIFO_PKTCONSUME( &hMuxMCPBCh->stState.stTSPacketInfo.stFifo, apstEntry[i]->stTransportDescriptor.uiBufferLength );
-         BMUXlib_TS_MCPB_P_UpdateCurrentESCR( hMuxMCPBCh, apstEntry[i] );
+         pstEntry->uiBytesLeft = pstEntry->stTransportDescriptor.uiBufferLength;
+         BMUXLIB_TS_P_FIFO_PKTCONSUME( &hMuxMCPBCh->stState.stTSPacketInfo.stFifo, pstEntry->stTransportDescriptor.uiBufferLength );
+         BMUXlib_TS_MCPB_P_UpdateCurrentESCR( hMuxMCPBCh, pstEntry );
 
          BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_FIFO, ("[read:%6d pktread:%6d write:%6d size:%6d] Sent    descriptor[%d] "BDBG_UINT64_FMT" %d bytes for packet %d bytes %d source descriptors",
             hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiRead,
@@ -2298,10 +2202,10 @@ BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo(
             hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiWrite,
             (int)hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize,
             i,
-            BDBG_UINT64_ARG(apstEntry[i]->stTransportDescriptor.uiBufferOffset),
-            (int)apstEntry[i]->stTransportDescriptor.uiBufferLength,
+            BDBG_UINT64_ARG(pstEntry->stTransportDescriptor.uiBufferOffset),
+            (int)pstEntry->stTransportDescriptor.uiBufferLength,
             BMUXLIB_TS_P_FIFO_PKTDEPTH( &hMuxMCPBCh->stState.stTSPacketInfo.stFifo ),
-            apstEntry[i]->uiSourceDescriptorCount
+            pstEntry->uiSourceDescriptorCount
          ));
       }
    }
@@ -2327,24 +2231,15 @@ BMUXlib_TS_MCPB_Channel_AddTransportDescriptors(
 
    while ( *puiQueuedCount != uiCount )
    {
-      BMUXlib_TS_MCPB_QueueEntry *apstEntry[2] = { NULL, NULL };
+      BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_MCPB_QueueEntry) *apstEntry[2] = { NULL, NULL };
       const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor = &astTransportDescriptors[*puiQueuedCount];
-      size_t uiNumFree;
       unsigned i;
-
-      BMUXlib_List_GetNumFree( hMuxMCPBCh->hDescriptorFifo, &uiNumFree );
-
-      if ( uiNumFree < ( hMuxMCPBCh->stSettings.bIsTS ? 2 : 1 ) )
-      {
-         BDBG_WRN(("descriptor fifo is full (%d/%d) queued", (int)*puiQueuedCount, (int)uiCount));
-         break;
-      }
 
       if ( false == ( hMuxMCPBCh->stSettings.bIsTS
                       ? BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo( hMuxMCPBCh, pstTransportDescriptor, apstEntry )
                       : BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsDirect( hMuxMCPBCh, pstTransportDescriptor, &apstEntry[0] ) ) )
       {
-         BDBG_WRN(("Only (%d/%d) queued", (int)*puiQueuedCount, (int)uiCount));
+         BDBG_WRN(("Only (%d/%d) queued (%d)", (int)*puiQueuedCount, (int)uiCount, hMuxMCPBCh->stSettings.bIsTS));
          break;
       }
 
@@ -2353,12 +2248,8 @@ BMUXlib_TS_MCPB_Channel_AddTransportDescriptors(
          if ( apstEntry[i] != NULL )
          {
             /* Insert the entry into the descriptor FIFO */
-            if ( BERR_SUCCESS != BMUXlib_List_Add( hMuxMCPBCh->hDescriptorFifo, apstEntry[i] ) )
-            {
-               BDBG_ERR(("Fatal Error: Descriptor Fifo is full"));
-               BDBG_ASSERT(0);
-            }
-            BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_QUEUE, ("[%p] Adding baseESCR=%08x (%d bytes)", (void *)hMuxMCPBCh->hDescriptorFifo, apstEntry[0]->uiBaseESCR, apstEntry[i]->uiBytesLeft));
+            BMUXLIB_LIST_ADD( &hMuxMCPBCh->stDescriptorFifo, apstEntry[i] );
+            BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_QUEUE, ("[%p] Adding baseESCR=%08x (%d bytes)", (void *)&hMuxMCPBCh->stDescriptorFifo, BMUXLIB_LIST_ENTRY_DATA(apstEntry[0])->uiBaseESCR, BMUXLIB_LIST_ENTRY_DATA(apstEntry[i])->uiBytesLeft));
          }
       }
 
@@ -2425,7 +2316,7 @@ BMUXlib_TS_MCPB_DoMux(
    while ( 1 )
    {
       /* Make sure there's input data to process */
-      if ( true == BMUXlib_List_IsEmpty( hMuxMCPB->astListQueue[0] ) ) break;
+      if ( true == BMUXLIB_LIST_ISEMPTY( hMuxMCPB->astListQueue[0] ) ) break;
       if ( false == BMUXlib_TS_MCPB_P_ProcessNextEntry( hMuxMCPB, uiEndESCR ) ) break;
    }
 
@@ -2436,7 +2327,7 @@ BMUXlib_TS_MCPB_DoMux(
       unsigned i;
       for( i = 0; i < hMuxMCPB->stSettings.uiMaxNumInputs; i++ )
       {
-         BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_QUEUE, ("[%p] Queued: %d Pending: %d", (void *)hMuxMCPB->astChannel[i].hDescriptorFifo, hMuxMCPB->astChannel[i].stState.uiQueuedCount, hMuxMCPB->astChannel[i].stState.uiPendingCount ));
+         BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_QUEUE, ("[%p] Queued: %d Pending: %d", (void *)&hMuxMCPB->astChannel[i].stDescriptorFifo, hMuxMCPB->astChannel[i].stState.uiQueuedCount, hMuxMCPB->astChannel[i].stState.uiPendingCount ));
       }
    }
    BDBG_LEAVE( BMUXlib_TS_MCPB_DoMux );

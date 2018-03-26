@@ -61,13 +61,6 @@ extern "C"
 
 typedef struct BHSM_P_RvRsa* BHSM_RvRsaHandle;
 
-typedef enum{
-    BHSM_RvRsaRootKey_e0Prime,
-    BHSM_RvRsaRootKey_e0,
-
-    BHSM_RvRsaRootKey_eMax
-}BHSM_RvRsaRootKey_e;
-
 typedef struct
 {
     unsigned rsaKeyId;
@@ -86,9 +79,9 @@ typedef struct
     bool multiTier;
     unsigned  multiTierSourceKeyId;     /* valid if multiTier is true. */
 
-    BHSM_RvRsaRootKey_e rootKey; /* valid if multiTier is NOT true. */
+    BHSM_SigningAuthority rootKey;      /* valid if multiTier is NOT true. */
 
-    BSTD_DeviceOffset keyOffset;  /* offset to key/certificate. */
+    BSTD_DeviceOffset keyOffset;        /* offset to key/certificate. */
 
 } BHSM_RvRsaSettings;
 

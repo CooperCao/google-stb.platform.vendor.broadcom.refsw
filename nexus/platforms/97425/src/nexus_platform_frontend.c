@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -671,7 +671,6 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         #endif
         #if !(defined(NEXUS_PLATFORM_DOCSIS_IB_SUPPORT) || defined(NEXUS_PLATFORM_DOCSIS_PLUS_BCM3128_IB_SUPPORT)) && defined(NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT)
             #if defined(NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT)
-                 unsigned docsisChannel;
                  NEXUS_DocsisOpenDeviceSettings docsisDeviceSettings;
                  NEXUS_DocsisOpenChannelSettings docsisChannelSettings;
                  NEXUS_DocsisDeviceCapabilities docsisDeviceCaps;
@@ -1125,7 +1124,6 @@ done:
 
     st3128DeviceOpenSettings.outOfBand.ifFrequency = 0;
     st3128Settings.outOfBand.openDrain = true;
-    st3128DeviceSettings.outOfBand.outputMode = NEXUS_FrontendOutOfBandOutputMode_eFec;
 
     rc = NEXUS_Frontend_Probe3128(&st3128DeviceOpenSettings, &results);
     if(rc) return BERR_TRACE(BERR_NOT_INITIALIZED);

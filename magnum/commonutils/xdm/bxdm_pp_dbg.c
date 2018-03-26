@@ -1148,7 +1148,7 @@ void BXDM_PPDBG_P_PrintUnifiedPicture_isr(
          bPcrOffsetDiscontinuity = pstPicture->stPicParms.stTSM.stStatic.stPCROffsetXDM.bDiscontinuityOverloaded;
       }
 
-      BDBG_MODULE_MSG( BXDM_PPQM, (" %x:[%02x.%03x]%c%c%c%s,%s,fs:%c%c %s,pts:%08x(%d),off:%04x,j:%3d,pcr:%08x(%d,%d),stc:%08x%c,d:%08x",
+      BDBG_MODULE_MSG( BXDM_PPQM, (" %x:[%02x.%03x]%c%c%c%s,%s,fs:%c%c %s,pts:%08x(%d),off:%04x,j:%3d,pcr:%08x(%d,%d),%s:%08x%c,d:%08x",
                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                              pstPicture->stPicParms.uiPPBIndex & 0xFFF,
@@ -1170,6 +1170,7 @@ void BXDM_PPDBG_P_PrintUnifiedPicture_isr(
                              uiPcrOffset,
                              bPcrOffsetValid,
                              bPcrOffsetDiscontinuity,
+                             ( true == pLocalState->bUsingXPTSTC ) ? "xstc" : "stc",
                              pLocalState->uiStcSnapshot,
                              (hXdmPP->stDMState.stDecode.iStcJitterCorrectionOffset != 0)?'*':' ',
                              pstPicture->stPicParms.stTSM.stDynamic.iStcPtsDifferenceActual

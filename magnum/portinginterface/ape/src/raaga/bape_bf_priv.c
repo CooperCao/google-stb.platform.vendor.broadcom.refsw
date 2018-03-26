@@ -40,6 +40,9 @@
 #include "bkni.h"
 #include "bape.h"
 #include "bape_priv.h"
+
+#if defined BCHP_AUD_FMM_BF_CTRL_REG_START
+
 #include "bchp_aud_fmm_bf_ctrl.h"
 #ifdef BCHP_AUD_FMM_BF_ESR_REG_START
 #include "bchp_aud_fmm_bf_esr.h"
@@ -3544,3 +3547,194 @@ static unsigned BAPE_Bf_P_GetFirstRunningSfifo(BAPE_Handle hApe, const uint32_t 
         return sfifoId;
     }
 }
+
+#else /* stubs */
+
+void BAPE_SfifoGroup_P_GetDefaultCreateSettings(
+    BAPE_SfifoGroupCreateSettings *pSettings    /* [out] */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_SfifoGroup_P_Create(
+    BAPE_Handle deviceHandle,
+    const BAPE_SfifoGroupCreateSettings *pSettings,
+    BAPE_SfifoGroupHandle *pHandle  /* [out] */
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pHandle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_SfifoGroup_P_Destroy(
+    BAPE_SfifoGroupHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_SfifoGroup_P_GetSettings(
+    BAPE_SfifoGroupHandle handle,
+    BAPE_SfifoGroupSettings *pSettings  /* [out] */
+    )
+{
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(handle);
+}
+
+BERR_Code BAPE_SfifoGroup_P_SetSettings(
+    BAPE_SfifoGroupHandle handle,
+    const BAPE_SfifoGroupSettings *pSettings
+    )
+{
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_SfifoGroup_P_Start(
+    BAPE_SfifoGroupHandle handle,
+    bool enableOnly                 /* If true, a separate call to BAPE_SfifoGroup_P_Run_isr is required to
+                                       start data flow.  If false, data flow will start immediately. */
+    )
+{
+    BSTD_UNUSED(enableOnly);
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_SfifoGroup_P_Stop(
+    BAPE_SfifoGroupHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_SfifoGroup_P_Run_isr(
+    BAPE_SfifoGroupHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_SfifoGroup_P_Halt_isr(
+    BAPE_SfifoGroupHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_SfifoGroup_P_SetSampleRate_isr(
+    BAPE_SfifoGroupHandle handle,
+    unsigned sampleRate
+    )
+{
+    BSTD_UNUSED(sampleRate);
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_SfifoGroup_P_GetOutputFciIds_isrsafe(
+    BAPE_SfifoGroupHandle handle,
+    BAPE_FciIdGroup *pFciGroup      /* [out] */
+    )
+{
+    BSTD_UNUSED(pFciGroup);
+    BSTD_UNUSED(handle);
+}
+
+BERR_Code BAPE_SfifoGroup_P_GetBuffer(
+    BAPE_SfifoGroupHandle handle,
+    BAPE_BufferDescriptor *pBuffers      /* [out] */
+    )
+{
+    BSTD_UNUSED(pBuffers);
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_SfifoGroup_P_CommitData(
+    BAPE_SfifoGroupHandle handle,
+    unsigned numBytes                   /* Number of bytes written into the buffer */
+    )
+{
+    BSTD_UNUSED(numBytes);
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_SfifoGroup_P_Flush(
+    BAPE_SfifoGroupHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_SfifoGroup_P_GetQueuedBytes(
+    BAPE_SfifoGroupHandle handle,
+    unsigned *pQueuedBytes
+    )
+{
+    BSTD_UNUSED(pQueuedBytes);
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_SfifoGroup_P_GetReadAddress(
+    BAPE_SfifoGroupHandle handle,
+    unsigned chPair,       /*0,1,2,3*/
+    unsigned bufferNum,     /*0,1*/
+    BMMA_DeviceOffset *pReadPtr
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(chPair);
+    BSTD_UNUSED(bufferNum);
+    BSTD_UNUSED(pReadPtr);
+}
+
+BERR_Code BAPE_SfifoGroup_P_SetFreemarkInterrupt(
+    BAPE_SfifoGroupHandle handle,
+    BINT_CallbackFunc callback_isr,
+    void *pParam1,
+    int param2
+    )
+{
+    BSTD_UNUSED(callback_isr);
+    BSTD_UNUSED(pParam1);
+    BSTD_UNUSED(param2);
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_SfifoGroup_P_RearmFreemarkInterrupt(
+    BAPE_SfifoGroupHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+uint32_t BAPE_SfifoGroup_P_GetHwIndex(
+    BAPE_SfifoGroupHandle handle,
+    BAPE_ChannelPair channelPair
+    )
+{
+    BSTD_UNUSED(channelPair);
+    BSTD_UNUSED(handle);
+    return 0;
+}
+
+uint32_t BAPE_SfifoGroup_P_GetAdaptRateWrcntAddress(
+    BAPE_SfifoGroupHandle handle,
+    BAPE_ChannelPair channelPair
+    )
+{
+    BSTD_UNUSED(channelPair);
+    BSTD_UNUSED(handle);
+    return 0;
+}
+
+#endif

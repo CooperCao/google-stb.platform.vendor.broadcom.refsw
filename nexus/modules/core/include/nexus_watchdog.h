@@ -65,9 +65,7 @@ Timeout values less than 10s may conflict with GISB bus timeouts and are not rec
 
 See NEXUS_WATCHDOG_MIN_TIMEOUT and NEXUS_WATCHDOG_MAX_TIMEOUT for enforced limits.
 ***************************************************************************/
-NEXUS_Error NEXUS_Watchdog_SetTimeout(
-    unsigned timeout    /* timeout value in seconds */
-    );
+#define NEXUS_Watchdog_SetTimeout(TIMEOUT) NEXUS_WatchdogInterface_SetTimeout(NULL, TIMEOUT)
 
 /***************************************************************************
 Summary:
@@ -88,7 +86,7 @@ See Also:
 NEXUS_Watchdog_SetTimeout
 NEXUS_Watchdog_StopTimer
 ***************************************************************************/
-NEXUS_Error NEXUS_Watchdog_StartTimer(void);
+#define NEXUS_Watchdog_StartTimer() NEXUS_WatchdogInterface_StartTimer(NULL)
 
 /***************************************************************************
 Summary:
@@ -97,7 +95,37 @@ Stops the HW watchdog timer.
 Description:
 Stopping the timer does not reset the timeout value.
 ***************************************************************************/
-NEXUS_Error NEXUS_Watchdog_StopTimer(void);
+#define NEXUS_Watchdog_StopTimer() NEXUS_WatchdogInterface_StopTimer(NULL)
+
+/**
+Handle-based watchdog interface that allows Nexus to manage lifecycle.
+If NEXUS_Watchdog_Open(0) is called, then the no-handle functions
+like NEXUS_Watchdog_StartTimer will fail. This allows an app to open watchdog
+and know that no one else will overwrite it.
+**/
+typedef struct NEXUS_Watchdog *NEXUS_WatchdogHandle;
+NEXUS_WatchdogHandle NEXUS_WatchdogInterface_Open( /* attr{destructor=NEXUS_WatchdogInterface_Close} */
+    unsigned index
+    );
+void NEXUS_WatchdogInterface_Close(
+    NEXUS_WatchdogHandle watchdog
+    );
+
+/* see NEXUS_Watchdog_SetTimeout documentation */
+NEXUS_Error NEXUS_WatchdogInterface_SetTimeout(
+    NEXUS_WatchdogHandle watchdog, /* attr{null_allowed=y} */
+    unsigned timeout /* timeout value in seconds */
+    );
+
+/* see NEXUS_Watchdog_StartTimer documentation */
+NEXUS_Error NEXUS_WatchdogInterface_StartTimer(
+    NEXUS_WatchdogHandle watchdog /* attr{null_allowed=y} */
+    );
+
+/* see NEXUS_Watchdog_StopTimer documentation */
+NEXUS_Error NEXUS_WatchdogInterface_StopTimer(
+    NEXUS_WatchdogHandle watchdog /* attr{null_allowed=y} */
+    );
 
 /***************************************************************************
 Summary:

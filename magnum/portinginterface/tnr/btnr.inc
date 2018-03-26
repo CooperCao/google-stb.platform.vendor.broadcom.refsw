@@ -1,5 +1,5 @@
 ############################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -182,6 +182,12 @@ BTNR_INCLUDES += $(MAGNUM)/portinginterface/tnr/include/3472ib/
 BTNR_INCLUDES += $(MAGNUM)/portinginterface/tnr/src/leapnarrowband
 BTNR_SOURCES += $(MAGNUM)/portinginterface/tnr/src/leapnarrowband/3472ib/btnr_3472ib.c
 BTNR_SOURCES += $(MAGNUM)/portinginterface/tnr/src/leapnarrowband/btnr_34xxib_priv.c
+endif
+
+ifneq ($(BTNR_7255_SUPPORT),)
+BTNR_INCLUDES += $(MAGNUM)/portinginterface/tnr/include/7255ib/
+BTNR_SOURCES += $(MAGNUM)/portinginterface/tnr/src/leapnarrowband/7255ib/btnr_7255ib.c
+BTNR_SOURCES += $(MAGNUM)/portinginterface/tnr/src/leapnarrowband/7255ib/btnr_7255ib_priv.c
 endif
 
 ifneq ($(BTNR_7563_SUPPORT),)

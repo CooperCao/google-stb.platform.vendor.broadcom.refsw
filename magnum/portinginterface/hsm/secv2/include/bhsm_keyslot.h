@@ -166,6 +166,15 @@ typedef enum
     BHSM_KeyslotTerminationSolitaryMode_eMax
 } BHSM_KeyslotTerminationSolitaryMode;
 
+/* Select key slot mode.  */
+typedef enum BHSM_KeySlotKeyMode
+{
+    BHSM_KeySlotKeyMode_eRegular,         /* The default and most frequently used. */
+    BHSM_KeySlotKeyMode_eDes56,           /* Generate a 56 bit DES key */
+    BHSM_KeySlotKeyMode_eDvbConformance,  /* Generate a legacy DVB key. */
+    BHSM_KeySlotKeyMode_eMax
+} BHSM_KeySlotKeyMode;
+
 
 typedef struct
 {
@@ -261,6 +270,7 @@ typedef struct
     BHSM_KeyslotTerminationSolitaryMode solitaryMode;   /* Specify how to handle data that is shorter that
                                                            algorithm block size */
     BHSM_Keyslot_IvMode ivMode;                         /* Selects mode for IV pre-processing. Only relevant to algorithm modes that use IVs. */
+    BHSM_KeySlotKeyMode keyMode;                        /* BHSM_KeySlotKeyMode_eRegular is the default and most frequently used */
 
     struct{                                             /* If either "external" options is set to true an external keyslot is reserved. [Default=false].*/
         bool key;                                       /* If true, allow a key to be set via BTP */

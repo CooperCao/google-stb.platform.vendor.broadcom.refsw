@@ -40,7 +40,7 @@
 #define NEXUS_VIDEO_WINDOW_IMPL_H__
 
 #if NEXUS_DISPLAY_EXTENSION_DYNRNG
-#include "nexus_display_dynrng.h"
+#include "nexus_display_dynrng_private.h"
 #endif
 
 void NEXUS_VideoWindow_P_InitState(NEXUS_VideoWindowHandle window, unsigned parentIndex, unsigned index, NEXUS_DisplayHandle display);
@@ -138,8 +138,6 @@ struct NEXUS_VideoWindow {
     {
         NEXUS_DynamicRangeProcessingSettings settings;
         BVDC_Test_Window_ForceCfcConfig cfcConfig;
-        int hdrPeak;
-        int sdrPeak;
     } dynrng;
 #endif
 };

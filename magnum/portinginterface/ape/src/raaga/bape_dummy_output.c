@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2006-2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,6 +45,8 @@
 #include "bape_priv.h"
 
 BDBG_MODULE(bape_dummy_output);
+
+#if BAPE_CHIP_MAX_DUMMYSINKS > 0
 
 BDBG_OBJECT_ID(BAPE_DummyOutput);
 
@@ -436,3 +438,50 @@ BAPE_DummysinkGroupHandle BAPE_DummyOutput_P_GetDummysinkGroup(
 
     return handle->hDummysinkGroup;
 }
+
+#else
+
+void BAPE_DummyOutput_GetDefaultOpenSettings(
+    BAPE_DummyOutputOpenSettings *pSettings       /* [out] */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_DummyOutput_Open(
+    BAPE_Handle deviceHandle,
+    unsigned index,
+    const BAPE_DummyOutputOpenSettings *pSettings,
+    BAPE_DummyOutputHandle *pHandle             /* [out] */
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(index);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pHandle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_DummyOutput_Close(
+    BAPE_DummyOutputHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_DummyOutput_GetOutputPort(
+    BAPE_DummyOutputHandle handle,
+    BAPE_OutputPort *pOutputPort
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pOutputPort);
+    (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_DummyOutput_P_ResumeFromStandby(BAPE_Handle bapeHandle)
+{
+    BSTD_UNUSED(bapeHandle);
+    return BERR_SUCCESS;
+}
+#endif

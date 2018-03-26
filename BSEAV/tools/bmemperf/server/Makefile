@@ -1,5 +1,5 @@
 ###############################################################################
-#   Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#   Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #   This program is the proprietary software of Broadcom and/or its licensors,
 #   and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -143,7 +143,7 @@ else
 endif
 
 bmemperf_server: bmemperf_server.c bmemperf_powerprobe.c bmemperf_powerprobe.h ../common/bmemperf_utils.c ../common/bmemperf_api.c ../common/bmemperf.c ../common/bmemperf_lib.c $(BINDIR)/bmemperf_info.c
-	@echo [Compiling ... $@]
+	@echo [Compiling ... $@ ... $(BINDIR)]
 	@$(CC) $(APP_CFLAGS) -o $(BINDIR)/bmemperf_server bmemperf_server.c bmemperf_powerprobe.c ../common/bmemperf_api.c ../common/bmemperf.c ../common/bmemperf_utils.c ../common/bmemperf_lib.c $(BINDIR)/bmemperf_info.c
 ### if the server built successfully, delete temporary info file; otherwise leave it to help with debugging
 	@test ! -f $(BINDIR)/bmemperf_server || rm -f $(BINDIR)/bmemperf_info.c

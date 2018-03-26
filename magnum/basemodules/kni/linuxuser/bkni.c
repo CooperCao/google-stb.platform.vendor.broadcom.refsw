@@ -79,7 +79,7 @@ static unsigned long BKNI_P_GetMicrosecondTick(void);
 static int BKNI_P_SetTargetTime(struct timespec *target, int timeoutMsec);
 
 /* private mutex init which sets universal attributes */
-static int bkni_p_pthread_cs_init(pthread_mutex_t *mutex)
+static int bkni_p_pthread_mutex_init(pthread_mutex_t *mutex)
 {
 #if !B_REFSW_ANDROID && (defined(__mips__) || defined(__arm__) || defined(__aarch64__))
     pthread_mutexattr_t attr;
@@ -94,11 +94,6 @@ static int bkni_p_pthread_cs_init(pthread_mutex_t *mutex)
 #else
     return pthread_mutex_init(mutex, NULL);
 #endif
-}
-
-static int bkni_p_pthread_mutex_init(pthread_mutex_t *mutex)
-{
-    return pthread_mutex_init(mutex, NULL);
 }
 
 #if BKNI_DEBUG_MUTEX_TRACKING
@@ -580,7 +575,7 @@ BERR_Code BKNI_Init(void)
 
     if (g_refcnt == 0) {
         int rc;
-        rc = bkni_p_pthread_cs_init(&g_csMutex);
+        rc = bkni_p_pthread_mutex_init(&g_csMutex);
         if(rc!=0) {
             result = BERR_TRACE(BERR_OS_ERROR);
             goto done;
@@ -819,7 +814,7 @@ BKNI_Snprintf(char *str, size_t len, const char *fmt, ...)
 }
 
 #if B_REFSW_ANDROID
-#include <cutils/log.h>
+#include <log/log.h>
 #endif
 
 int

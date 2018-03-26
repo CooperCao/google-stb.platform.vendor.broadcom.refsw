@@ -47,15 +47,15 @@ endif
 
 # Set final path
 ifeq ("$(GCC_GTEQ_485)", "1")
+    PRDY30_LIBDIR = thirdparty/playready/3.0/bin/$(ARCH_DIR_PRDY30)/lib/eglibc
+else
+ifneq ($(B_REFSW_ARCH),mipsel-linux)
     ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
-        PRDY30_LIBDIR = thirdparty/playready/3.0/bin/$(ARCH_DIR_PRDY30)/Zeus5x/lib/eglibc
+        PRDY30_LIBDIR = thirdparty/playready/3.0/bin/$(ARCH_DIR_PRDY30)/Zeus5x/lib
     else
-        PRDY30_LIBDIR = thirdparty/playready/3.0/bin/$(ARCH_DIR_PRDY30)/Zeus4x/lib/eglibc
+        PRDY30_LIBDIR = thirdparty/playready/3.0/bin/$(ARCH_DIR_PRDY30)/Zeus4x/lib
     endif
 else
-ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
-    PRDY30_LIBDIR = thirdparty/playready/3.0/bin/$(ARCH_DIR_PRDY30)/Zeus5x/lib
-else
-    PRDY30_LIBDIR = thirdparty/playready/3.0/bin/$(ARCH_DIR_PRDY30)/Zeus4x/lib
+    PRDY30_LIBDIR = thirdparty/playready/3.0/bin/$(ARCH_DIR_PRDY30)/lib
 endif
 endif

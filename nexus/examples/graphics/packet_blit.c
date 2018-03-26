@@ -61,7 +61,7 @@ BDBG_MODULE(packet_blit);
 
 #define VERIFY_BLITS 0
 
-void complete(void *data, int unused)
+static void complete(void *data, int unused)
 {
     BSTD_UNUSED(unused);
     BKNI_SetEvent((BKNI_EventHandle)data);
@@ -102,8 +102,7 @@ int main(void)
     NEXUS_GetDisplayCapabilities(&displayCap);
 
     NEXUS_Display_GetDefaultSettings(&displaySettings);
-    displaySettings.displayType = NEXUS_DisplayType_eAuto;
-    displaySettings.format = NEXUS_VideoFormat_eNtsc;
+    displaySettings.format = NEXUS_VideoFormat_e720p;
     display = NEXUS_Display_Open(0, &displaySettings);
 
 #if NEXUS_NUM_COMPONENT_OUTPUTS
@@ -161,8 +160,6 @@ changing .boundsHeap = platformConfig.heap[1]; */
 #define SIDEBAR_WIDTH 100
     NEXUS_Graphics2D_GetDefaultFillSettings(&fillSettings);
     fillSettings.surface = surface;
-    fillSettings.rect.width = createSettings.width;
-    fillSettings.rect.height = createSettings.height;
     fillSettings.color = 0;
     NEXUS_Graphics2D_Fill(gfx, &fillSettings);
     for (i=0;i<(int)createSettings.height;i+=2) {
@@ -175,11 +172,10 @@ changing .boundsHeap = platformConfig.heap[1]; */
             (((i) % 0xFF) << 8) |
             (((i*2) % 0xFF));
         rc = NEXUS_Graphics2D_Fill(gfx, &fillSettings);
-        if (rc) {
-            rc = NEXUS_Graphics2D_Checkpoint(gfx, NULL);
-            if (rc == NEXUS_GRAPHICS2D_QUEUED) {
-                BKNI_WaitForEvent(checkpointEvent, BKNI_INFINITE);
-            }
+        BDBG_ASSERT(!rc);
+        rc = NEXUS_Graphics2D_Checkpoint(gfx, NULL);
+        if (rc == NEXUS_GRAPHICS2D_QUEUED) {
+            BKNI_WaitForEvent(checkpointEvent, BKNI_INFINITE);
         }
     }
 
@@ -271,4 +267,3 @@ int main(void)
     return -1;
 }
 #endif
-

@@ -1,5 +1,5 @@
 ###############################################################################
-#   Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#   Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #   This program is the proprietary software of Broadcom and/or its licensors,
 #   and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 #   ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #   LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #   ANY LIMITED REMEDY.
-#
 ###############################################################################
 SHELL:=/bin/bash
 PWD := ${shell pwd}
@@ -74,6 +73,7 @@ ifneq ($(B_REFSW_CJSON_IS_EXTERNAL),y)
 		echo "not found; extracting from tarball..."  ${B_CJSON_EXTRACT_REDIR}; \
 		echo ""; \
 		echo "CJSON_SOURCE_DIRECTORY is ${CJSON_SOURCE_DIRECTORY}"; \
+		echo "looking for cjson tarball here: ${CJSON_TAR_PATH}/${CJSON_SOURCE_TARBALL}"; \
 		if [ ! -e "${CJSON_TAR_PATH}/${CJSON_SOURCE_TARBALL}" ]; then \
 			echo "================ Downloading CJSON $(CJSON_VER) tarball  to ${CJSON_TAR_PATH}"; \
 			mkdir -p ${CJSON_TAR_PATH}; \
@@ -82,8 +82,10 @@ ifneq ($(B_REFSW_CJSON_IS_EXTERNAL),y)
 			B_REFSW_CACHE_DIR=${B_REFSW_CACHE_DIR} $(NEXUS_TOP)/../BSEAV/tools/build/fetch.sh ${CJSON_BUILD_DIR}/${CJSON_NAME}.info ${CJSON_TAR_PATH}; \
 		fi ;\
 		if [ -e "${CJSON_TAR_PATH}/${CJSON_SOURCE_TARBALL}" ]; then \
-			echo "================ Extracting CJSON $(CJSON_VER) tarball"; \
+			echo "================ Extracting ${CJSON_TAR_PATH}/${CJSON_SOURCE_TARBALL}  CJSON $(CJSON_VER) tarball"; \
 			(cd ${CJSON_TAR_PATH} && unzip -o ${CJSON_TAR_PATH}/${CJSON_SOURCE_TARBALL} >/dev/null ) ; \
+			echo "================ Patching Using $(abspath ${CJSON_BUILD_DIR})/patch.txt"; \
+            (cd ${CJSON_SOURCE_PATH} && patch < ${CJSON_BUILD_DIR}/patch.txt >/dev/null ) ; \
 		else \
 			echo "Tarball ${CJSON_TAR_PATH}/${CJSON_SOURCE_TARBALL} is missing"; exit 1;\
 		fi ${B_CJSON_EXTRACT_REDIR};\
@@ -98,7 +100,7 @@ BIT64 = $(findstring aarch64,${COMPILER})
 all:source
 	@echo "================ TARGET all: CJSON $(CJSON_VER) ============================="
 	@echo "================ Compiling CJSON $(CJSON_VER) ==============================="
-	@CC=${COMPILER} AR=${ARCHIVER} ${MAKE} ${MAKE_OPTIONS} -C ${CJSON_TAR_PATH}/cJSON-master -j10 ${MAKE_SUFFIX} >/dev/null
+	@CC=${COMPILER} AR=${ARCHIVER} ${MAKE} ${MAKE_OPTIONS} -C ${CJSON_TAR_PATH}/cJSON-$(CJSON_VER) -j10 ${MAKE_SUFFIX} >/dev/null
 	@echo "================ Installing CJSON $(CJSON_VER) to nexus/bin ================="
 	@mkdir -p ${NEXUS_BIN_DIR}
 	@(cd $(CJSON_LIB_FOLDER) && tar cBf - libcjson*.so*) | (cd ${NEXUS_BIN_DIR} && tar xBf -)

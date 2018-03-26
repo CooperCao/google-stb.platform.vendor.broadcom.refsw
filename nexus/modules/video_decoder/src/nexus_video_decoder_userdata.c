@@ -72,6 +72,9 @@ NEXUS_Error NEXUS_VideoDecoder_GetUserDataBuffer(NEXUS_VideoDecoderHandle videoD
     BKNI_LeaveCriticalSection();
 
     videoDecoder->userdata.lastGetBufferSize = *pSize;
+    if (!videoDecoder->settings.userDataEnabled && !videoDecoder->userdata.lastGetBufferSize) {
+        BDBG_WRN(("You must set NEXUS_VideoDecoderSettings.userDataEnabled to enable flow of userdata."));
+    }
     return 0;
 }
 

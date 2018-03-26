@@ -95,8 +95,6 @@ static char* cropStr( char* pStr );
 
 BDBG_OBJECT_ID(BHSM_P_BspMsg);
 
-BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
-
 /* BSP Message Module data. */
 typedef struct BHSM_P_BspMsg_Module_s
 {

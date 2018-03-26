@@ -1,5 +1,5 @@
 ##############################################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,9 +45,15 @@ export MARKET_ID_MASK?=0xFFFFFFFF
 export MARKET_ID_SEL?=0x0
 export EPOCH_SEL=0x0
 export EPOCH=0x0
-export EPOCH_MASK=0xFF
+ifeq ($(BHSM_ZEUS_VER_MAJOR), 5)
+    export EPOCH_MASK=0xFFFFFFFF
+    export SIG_VER=0x2
+else
+    export EPOCH_MASK=0xFF
+    export SIG_VER=0x1
+endif
+
 export SIG_TYPE=0x4
-export SIG_VER=0x1
 
 #Settings specific to AVS Signing.
 #AVS image is extracted from the BOLT binary specified by BOLT_BIN variable above.
@@ -85,7 +91,11 @@ export MEMSYS_KEY2_EXPONENT=0x1
 export KEY2_MARKET_ID?=0x0
 export KEY2_MARKET_ID_SEL?=0x0
 export KEY2_EPOCH?=0x0
-export KEY2_SIG_VER?=0x1
+ifeq ($(BHSM_ZEUS_VER_MAJOR), 5)
+    export KEY2_SIG_VER?=0x2
+else
+    export KEY2_SIG_VER?=0x1
+endif
 export KEY2_SIG_TYPE=0x1
 export KEY2_SIGNING_RIGHT?=0x2
 export KEY2_EXPONENT=0x1

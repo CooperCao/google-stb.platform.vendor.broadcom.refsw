@@ -57,6 +57,12 @@
 #undef min
 #define min(A,B) ((A)<(B)?(A):(B))
 
+static void complete(void *data, int unused)
+{
+    BSTD_UNUSED(unused);
+    BKNI_SetEvent((BKNI_EventHandle)data);
+}
+
 int main(void)
 {
     NEXUS_SurfaceHandle surface;
@@ -74,6 +80,7 @@ int main(void)
 #endif
     NEXUS_Error rc;
     int i;
+    BKNI_EventHandle frameBufferEvent;
 
     /* Bring up all modules for a platform in a default configuration for this platform */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
@@ -81,6 +88,8 @@ int main(void)
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
     NEXUS_GetDisplayCapabilities(&displayCap);
+
+    BKNI_CreateEvent(&frameBufferEvent);
 
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     displaySettings.format = NEXUS_VideoFormat_eNtsc;
@@ -103,7 +112,7 @@ int main(void)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 
@@ -124,6 +133,8 @@ int main(void)
     /* graphicsSettings.position will default to the display size */
     graphicsSettings.clip.width = createSettings.width;
     graphicsSettings.clip.height = createSettings.height;
+    graphicsSettings.frameBufferCallback.callback = complete;
+    graphicsSettings.frameBufferCallback.context = frameBufferEvent;
     rc = NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
     BDBG_ASSERT(!rc);
 
@@ -136,14 +147,21 @@ int main(void)
         unsigned y = rand() % createSettings.height;
         NEXUS_Pixel *buf = (NEXUS_Pixel *)((uint8_t *)mem.buffer+y*mem.pitch);
         buf[x] = rand();
-        if (i%5000==0) {
-            printf(".");
-            fflush(stdout);
-        }
 
         /* flush cached memory */
         NEXUS_Surface_Flush(surface);
+
+        if (i%5000==0) {
+            rc = BKNI_WaitForEvent(frameBufferEvent, 1000);
+            BDBG_ASSERT(!rc);
+            rc = NEXUS_Display_SetGraphicsFramebuffer(display, surface);
+            BDBG_ASSERT(!rc);
+
+            printf(".");
+            fflush(stdout);
+        }
     }
+
     return 0;
 }
 #else /* NEXUS_HAS_DISPLAY */

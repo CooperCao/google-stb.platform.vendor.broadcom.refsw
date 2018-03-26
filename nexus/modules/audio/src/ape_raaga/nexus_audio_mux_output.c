@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,7 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 ***************************************************************************/
-#include "bdsp.h"
 #include "nexus_audio_module.h"
 #include "priv/nexus_audio_mux_output_priv.h"
 
@@ -63,7 +62,7 @@ typedef struct NEXUS_AudioMuxOutput
     } cdb, itb;
     bool started;
     char name[4];   /* MUX */
-#define NEXUS_AUDIO_MUX_OUTPUT_BLOCKS 2
+#define NEXUS_AUDIO_MUX_OUTPUT_BLOCKS 3
     struct {
         BMMA_Block_Handle mmaBlock;
         NEXUS_MemoryBlockHandle block;
@@ -158,9 +157,9 @@ NEXUS_AudioMuxOutputHandle NEXUS_AudioMuxOutput_Create(     /* attr{destructor=N
     {
         /* Default CDB size if 1394 LPCM Encoding is supported needs to be much larger for uncompressed data */
         itbLength = 350*1024;
-        BDSP_SIZE_ALIGN(itbLength);
+        BAPE_SIZE_ALIGN(itbLength);
         cdbLength = itbLength*2;
-        BDSP_SIZE_ALIGN(cdbLength);
+        BAPE_SIZE_ALIGN(cdbLength);
     }
     if ( 0 != pSettings->data.fifoSize )
     {
@@ -170,14 +169,14 @@ NEXUS_AudioMuxOutputHandle NEXUS_AudioMuxOutput_Create(     /* attr{destructor=N
     {
         itbLength = pSettings->index.fifoSize;
     }
-    BDSP_SIZE_ALIGN(itbLength);
+    BAPE_SIZE_ALIGN(itbLength);
     if ( (itbLength*2) < cdbLength )
     {
         BDBG_WRN(("ITB FIFO Size less than recommended - increasing CDB from %lu to %lu bytes", (unsigned long)cdbLength, (unsigned long)itbLength*2));
         cdbLength = itbLength*2;
     }
 
-    BDSP_SIZE_ALIGN(cdbLength);
+    BAPE_SIZE_ALIGN(cdbLength);
 
 
 #if NEXUS_AUDIO_MUX_USE_RAVE
@@ -189,9 +188,9 @@ NEXUS_AudioMuxOutputHandle NEXUS_AudioMuxOutput_Create(     /* attr{destructor=N
     raveSettings.config = g_cdbItbCfg;
     NEXUS_GetAudioCapabilities(&audioCaps);
     raveSettings.config.Cdb.Length = cdbLength;
-    raveSettings.config.Cdb.Alignment = BDSP_ADDRESS_ALIGN_CDB
+    raveSettings.config.Cdb.Alignment = BAPE_ADDRESS_ALIGN_CDB
     raveSettings.config.Itb.Length = itbLength;
-    raveSettings.config.Itb.Alignment = BDSP_ADDRESS_ALIGN_ITB
+    raveSettings.config.Itb.Alignment = BAPE_ADDRESS_ALIGN_ITB
     /* audio mux output CDB/ITB heap assigned here for record type (non-secure) RAVE context. */
     raveSettings.heap = NEXUS_P_DefaultHeap(pSettings->data.heap, NEXUS_DefaultHeapType_eFull);
     BDBG_MSG(("rave setting CDB nexus heap = %p", (void *)raveSettings.heap));
@@ -222,9 +221,9 @@ NEXUS_AudioMuxOutputHandle NEXUS_AudioMuxOutput_Create(     /* attr{destructor=N
 
     mmaHeap = NEXUS_Heap_GetMmaHandle(heap);
 
-    handle->cdb.mmaBlock = BMMA_Alloc(mmaHeap, cdbLength, BDSP_ADDRESS_ALIGN_CDB, NULL);
+    handle->cdb.mmaBlock = BMMA_Alloc(mmaHeap, cdbLength, BAPE_ADDRESS_ALIGN_CDB, NULL);
     if (!handle->cdb.mmaBlock) {BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); goto err_cdb_alloc;}
-    handle->itb.mmaBlock = BMMA_Alloc(mmaHeap, itbLength, BDSP_ADDRESS_ALIGN_ITB, NULL);
+    handle->itb.mmaBlock = BMMA_Alloc(mmaHeap, itbLength, BAPE_ADDRESS_ALIGN_ITB, NULL);
     if (!handle->itb.mmaBlock) {BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); goto err_itb_alloc;}
 #endif
 
@@ -387,7 +386,7 @@ void NEXUS_AudioMuxOutput_GetDefaultStartSettings(
 Summary:
 Start capturing data.  
 
-Decription:
+Description:
 An input must be connected prior to starting.
 
 See Also:
@@ -527,7 +526,7 @@ static NEXUS_MemoryBlockHandle NEXUS_AudioMuxOutput_P_MemoryBlockFromMma(NEXUS_A
     return handle->block[index].block;
 }
 
-NEXUS_Error NEXUS_AudioMuxOutput_GetBufferBlocks_priv(NEXUS_AudioMuxOutputHandle handle, BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock)
+NEXUS_Error NEXUS_AudioMuxOutput_GetBufferBlocks_priv(NEXUS_AudioMuxOutputHandle handle, BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock, BMMA_Block_Handle *phIndexBufferBlock)
 {
     BERR_Code errCode;
     BAVC_AudioBufferStatus bufferStatus;
@@ -540,7 +539,44 @@ NEXUS_Error NEXUS_AudioMuxOutput_GetBufferBlocks_priv(NEXUS_AudioMuxOutputHandle
     }
     *phFrameBufferBlock = bufferStatus.stCommon.hFrameBufferBlock;
     *phMetadataBufferBlock = bufferStatus.stCommon.hMetadataBufferBlock;
+    *phIndexBufferBlock = bufferStatus.stCommon.hIndexBufferBlock;
     return BERR_SUCCESS;
+}
+
+/**
+Summary:
+**/
+NEXUS_Error NEXUS_AudioMuxOutput_GetBufferRegisters_priv(
+    NEXUS_AudioMuxOutputHandle handle,
+    NEXUS_AudioMuxOutputRegisters_priv *pStatus_priv /* [out] */
+    )
+{
+   BERR_Code errCode;
+   BAVC_AudioBufferStatus bufferStatus;
+
+   NEXUS_ASSERT_MODULE();
+   BKNI_Memset(&bufferStatus, 0, sizeof(bufferStatus));
+
+   errCode = BAPE_MuxOutput_GetBufferStatus(handle->muxOutput, &bufferStatus);
+   if ( errCode )
+   {
+       return BERR_TRACE(errCode);
+   }
+
+  pStatus_priv->indexBlock = NEXUS_AudioMuxOutput_P_MemoryBlockFromMma( handle, 2, bufferStatus.stCommon.hIndexBufferBlock );
+
+  pStatus_priv->data.base = bufferStatus.stCommon.stCDB.uiBase;
+  pStatus_priv->data.end = bufferStatus.stCommon.stCDB.uiEnd;
+  pStatus_priv->data.read = bufferStatus.stCommon.stCDB.uiRead;
+  pStatus_priv->data.valid = bufferStatus.stCommon.stCDB.uiValid;
+  pStatus_priv->data.ready = bufferStatus.stCommon.bReady;
+  pStatus_priv->index.base = bufferStatus.stCommon.stITB.uiBase;
+  pStatus_priv->index.end = bufferStatus.stCommon.stITB.uiEnd;
+  pStatus_priv->index.read = bufferStatus.stCommon.stITB.uiRead;
+  pStatus_priv->index.valid = bufferStatus.stCommon.stITB.uiValid;
+  pStatus_priv->index.ready = bufferStatus.stCommon.bReady;
+
+   return BERR_SUCCESS;
 }
 
 /**
@@ -888,7 +924,7 @@ void NEXUS_AudioMuxOutput_GetDefaultStartSettings(
 Summary:
 Start capturing data.  
 
-Decription:
+Description:
 An input must be connected prior to starting.
 
 See Also:
@@ -914,6 +950,19 @@ void NEXUS_AudioMuxOutput_Stop(
     )
 {
     BSTD_UNUSED(handle);
+}
+
+/**
+Summary:
+**/
+NEXUS_Error NEXUS_AudioMuxOutput_GetBufferRegisters_priv(
+    NEXUS_AudioMuxOutputHandle handle,
+    NEXUS_AudioMuxOutputRegisters_priv *pRegisters_priv /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pRegisters_priv);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
 /**

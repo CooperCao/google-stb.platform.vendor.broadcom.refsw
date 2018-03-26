@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -145,6 +145,7 @@ BXPT_PacketSub_ChannelStatus;
 extern "C" {
 #endif
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Return the number of packet substitution channels.
@@ -161,6 +162,7 @@ BERR_Code BXPT_PacketSub_GetTotalChannels(
 	BXPT_Handle hXpt, 	   		/* [in] Handle for this transport */
 	unsigned int *TotalChannels		/* [out] The number of PacketSub channels. */
 	);
+#endif
 
 /***************************************************************************
 Summary:

@@ -52,11 +52,18 @@
  * -----------------------------------------------------
  */
 .macro	handle_sync_exception
-	dbg_halt
+	cmp	w0, #0
+	b.eq	mon_entry_point
 
 	/* Enable the SError interrupt */
 	msr	daifclr, #DAIF_ABT_BIT
 
+	/* Check bit 31 index to check fast SMC */
+	tbz x0, #FUNCID_TYPE_SHIFT , 1f
+	tbz x0, #FUNCID_MBZ_SHIFT , 1f
+	b stimer_configure
+
+1:
 	/* Save LR(x30) which is used */
 	str	x30, [sp, #CTX_GPREGS_OFFSET + CTX_GPREG_LR]
 
@@ -79,8 +86,6 @@
  * ---------------------------------------------------------------------
  */
 .macro	handle_intr_exception label
-	dbg_halt
-
 	/* Enable the SError interrupt */
 	msr	daifclr, #DAIF_ABT_BIT
 
@@ -116,6 +121,11 @@
 	bl	interrupt_proc
 	b	mon_exit
 .endm
+
+#ifdef SMM64
+.section .vectors, "ax"
+	b	mon_entry_point
+#endif
 
 /* -----------------------------------------------------
  * Monitor exception vectors
@@ -340,3 +350,27 @@ func_vectors mon_exit
 	/* Restore saved general purpose registers and return */
 	b	gpregs_context_restore_eret
 endfunc mon_exit
+
+stimer_configure:
+	/* Check bit for function call */
+	ubfx x1, x0, #FUNCID_MBZ_SHIFT, #FUNCID_MBZ_WIDTH
+	tbnz	x1, 1, set_CNTPS_CVAL
+	tbnz	x1, 2, get_CNTPS_CVAL
+	tbnz	x1, 3, set_CNTPS_CTL
+	tbnz	x1, 4, get_CNTPS_CTL
+	eret
+
+set_CNTPS_CVAL:
+	ORR x2, x2, x3, lsl 32
+	msr CNTPS_CVAL_EL1, x2
+	eret
+get_CNTPS_CVAL:
+	mrs x2, CNTPS_CVAL_EL1
+	asr x3, x2, 32
+	eret
+set_CNTPS_CTL:
+	msr CNTPS_CTL_EL1, x2
+	eret
+get_CNTPS_CTL:
+	mrs x2, CNTPS_CTL_EL1
+	eret

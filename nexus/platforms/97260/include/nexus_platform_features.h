@@ -90,8 +90,6 @@ upon the chip usage. See below */
 /* Max Memc's on this chip! */
 #define NEXUS_NUM_MEMC 1
 
-#define NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX 1
-
 #define NEXUS_AVS_MONITOR           0
 
 #define NEXUS_NUM_SPI_CHANNELS 3

@@ -44,7 +44,7 @@
 
 namespace tzutils {
 
-//#define TASK_LOG
+#define TASK_LOG
 
 template <typename T>
 class PriorityQueue {

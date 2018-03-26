@@ -112,6 +112,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].memcIndex = 0;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].subIndex = 1;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = -1;
+    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].memoryType = NEXUS_MemoryType_eApplication; /* cached only */
 
     /* heap[2] Gfx surface for displays 2 and 3. */
@@ -122,6 +123,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
 #else
     pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = pMemory->memoryLayout.memc[1].region[0].size > 512*1024*1024 ? 768 * 1024 * 1024 : -1;
 #endif
+    pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
     pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].memoryType = NEXUS_MemoryType_eApplication; /* cached only */
 
     /* heap[3] used for VCE fw and debug buffer */

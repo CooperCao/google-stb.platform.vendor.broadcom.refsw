@@ -73,7 +73,10 @@ typedef struct App
     struct
     {
         PlatformHandle handle;
-        PlatformDisplayHandle display;
+        struct
+        {
+            PlatformDisplayHandle handle;
+        } display;
         PlatformGraphicsHandle gfx;
         PlatformHdmiReceiverHandle rx;
         PlatformInputHandle input;
@@ -106,17 +109,17 @@ typedef struct App
                 PlatformPictureCtrlSettings picCtrl;
             } gfx;
         } processing;
-        PlatformMediaPlayerHandle mediaPlayers[MAX_MOSAICS];
+        PlatformMediaPlayerHandle mediaPlayers[MAX_STREAMS];
+        unsigned maxStreams;
         PlatformPlayMode playMode;
-        unsigned mosaicCount;
-        PlatformPqSettings pq[MAX_MOSAICS];
+        PlatformPqSettings pq[MAX_STREAMS];
     } platform;
 
     struct
     {
         FileManagerHandle filer;
-        StreamPlayerHandle players[MAX_MOSAICS];
-        char * prevPaths[MAX_MOSAICS];
+        StreamPlayerHandle players[MAX_STREAMS];
+        char * prevPaths[MAX_STREAMS];
         unsigned count;
     } stream;
     struct

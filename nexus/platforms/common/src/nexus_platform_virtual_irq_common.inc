@@ -450,7 +450,7 @@ NEXUS_Error NEXUS_Platform_P_UpdateIntSettings(BINT_Settings *pIntSettings)
         uint32_t virtualL2 = g_NEXUS_Platform_P_VirtualL2GroupBaseAddresses[i];
         if (!virtualL2) continue;
         for (j = 0; ; j++) {
-            const BINT_P_IntMap *L2Register = &localIntMap[j];
+            BINT_P_IntMap *L2Register = &localIntMap[j];
             unsigned k;
             if (L2Register->L1Shift < 0) {
                 break;
@@ -460,6 +460,7 @@ NEXUS_Error NEXUS_Platform_P_UpdateIntSettings(BINT_Settings *pIntSettings)
             }
             if (L2Register->L2RegOffset == virtualL2) {
                 b_virtual_irq_group group;
+                BINT_P_IntMap *L2RegisterUpdate = L2Register;
                 unsigned L1Shift = BINT_MAP_GET_L1SHIFT(L2Register);
                 uint32_t mask = ~L2Register->L2InvalidMask;
                 NEXUS_Platform_P_VirtualL2 virtualL2Index = NEXUS_Platform_P_L2RegisterIndex(virtualL2);
@@ -494,10 +495,19 @@ NEXUS_Error NEXUS_Platform_P_UpdateIntSettings(BINT_Settings *pIntSettings)
                         BDBG_ASSERT(L2Shift <= sizeof(group.lines)/sizeof(group.lines[0]));
                         if (mask & (1 << L2Shift)) {
                             NEXUS_Platform_P_VirtualL2State *virtualL2State = &g_NEXUS_Platform_P_VirtualL2State[virtualL2Index];
+                            bool os_managed = false;
                             BDBG_TRACE_L2(("%#x:%u -> %u %#x", virtualL2, L2Shift, g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine, mask));
                             mask &= ~(1 << L2Shift);
-                            n_virtual++;
-                            group.lines[L2Shift] = g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine;
+                            os_managed = NEXUS_Platform_P_OsManagedIrq(g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine);
+                            BDBG_TRACE_L2(("Linux Managed Irq %d : %s", g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine, os_managed?"true":"false"));
+                            if (!os_managed ||
+                                (g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine == b_virtual_irq_line_gio) ||
+                                (g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine == b_virtual_irq_line_gio_aon)) {
+                                n_virtual++;
+                                group.lines[L2Shift] = g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine;
+                            } else {
+                                 L2RegisterUpdate->L2InvalidMask |= (1 << L2Shift);
+                            }
                             virtualL2State->irqLines[L2Shift] = g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine;
                             if
                             (

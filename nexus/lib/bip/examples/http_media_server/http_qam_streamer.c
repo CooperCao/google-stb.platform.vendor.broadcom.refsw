@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -93,6 +93,7 @@ typedef struct AppCtx
     bool                        printStatus;
     bool                        mtsif;
     bool                        dontReAcquireMediaInfo;
+    bool                        disableAudio;
     BLST_Q_HEAD( streamerListHead, AppStreamerCtx ) streamerListHead; /* List of Streamer Ctx */
 } AppCtx;
 
@@ -118,6 +119,7 @@ typedef struct AppStreamerCtx
     bool                        enableAllPass;
     bool                        enableHwOffload;
     unsigned                    maxDataRate;
+    bool                        disableAudio;
 } AppStreamerCtx;
 
 #define USER_INPUT_BUF_SIZE 64
@@ -162,7 +164,8 @@ void untuneAndReleaseFrontend(
 BIP_Status acquireAndTuneFrontend(
     AppCtx *pAppCtx,
     NEXUS_FrontendHandle *phFrontend,
-    NEXUS_ParserBand *pParserBand
+    NEXUS_ParserBand *pParserBand,
+    bool enableAllPass
     )
 {
     NEXUS_Error                   rc = NEXUS_SUCCESS;
@@ -193,6 +196,7 @@ BIP_Status acquireAndTuneFrontend(
     {
     default:
          BDBG_ERR(("Incorrect mode %d specified. Defaulting to 64(NEXUS_FrontendQamMode_e64)", pAppCtx->mode));
+         break;
     case 64:
          qamSettings.mode = NEXUS_FrontendQamMode_e64;
          qamSettings.symbolRate = 5056900;
@@ -229,11 +233,8 @@ BIP_Status acquireAndTuneFrontend(
         parserBandSettings.sourceTypeSettings.inputBand = userParams.param1;  /* Platform initializes this to input band */
     }
 
-    if (pAppCtx->enableAllPass)
-    {
-       parserBandSettings.allPass = true;
-       parserBandSettings.acceptNullPackets = true;
-    }
+    parserBandSettings.allPass = enableAllPass;
+    parserBandSettings.acceptNullPackets = enableAllPass;
 
     parserBandSettings.transportType = HTTP_SERVER_TRANSPORT_TYPE;
     rc = NEXUS_ParserBand_SetSettings( parserBand, &parserBandSettings );
@@ -400,6 +401,7 @@ static BIP_Status startStreamer(
     BIP_Status bipStatus = BIP_SUCCESS;
     BIP_HttpResponseStatus responseStatus = BIP_HttpResponseStatus_e400_BadRequest;
     BIP_MediaInfoStream *pMediaInfoStream = NULL;
+    bool enableAllPass;
 
     BDBG_ASSERT(pAppStreamerCtx->pAppCtx->hMediaInfo);
     /* Create HttpStreamer. */
@@ -422,21 +424,23 @@ static BIP_Status startStreamer(
     BIP_CHECK_GOTO( (pMediaInfoStream != NULL), ("BIP_MediaInfo_GetStream() Failed"), rejectRequest, BIP_ERR_INTERNAL, bipStatus);
     BIP_Streamer_GetStreamerStreamInfoFromMediaInfo( pMediaInfoStream,&(pAppStreamerCtx->streamerStreamInfo) );
 
+    enableAllPass = pAppStreamerCtx->enableAllPass;
+    if (pAppStreamerCtx->enableHls || pAppStreamerCtx->enableXcode)
+    {
+        /* We cann't use All Pass mode when transcoder is being used as a specific program needs to be decoded & reencoded. */
+        enableAllPass = false;
+    }
     /* Now provide settings for media input source */
     {
         BIP_StreamerTunerInputSettings tunerInputSettings;
 
         /* Acquire & Tune to the frontend so that we can acquire MediaInfo */
-        bipStatus = acquireAndTuneFrontend( pAppStreamerCtx->pAppCtx, &pAppStreamerCtx->hFrontend, &pAppStreamerCtx->parserBand );
+        bipStatus = acquireAndTuneFrontend( pAppStreamerCtx->pAppCtx, &pAppStreamerCtx->hFrontend, &pAppStreamerCtx->parserBand, enableAllPass );
         responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "acquireAndTuneFrontend Failed" ), rejectRequest, bipStatus, bipStatus );
 
         BIP_Streamer_GetDefaultTunerInputSettings(&tunerInputSettings);
-
-        if (pAppStreamerCtx->enableAllPass)
-        {
-           tunerInputSettings.enableAllPass = true;
-        }
+        tunerInputSettings.enableAllPass = enableAllPass;
 
         bipStatus = BIP_HttpStreamer_SetTunerInputSettings( pAppStreamerCtx->hHttpStreamer, pAppStreamerCtx->parserBand, &(pAppStreamerCtx->streamerStreamInfo), &tunerInputSettings );
         responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
@@ -444,7 +448,7 @@ static BIP_Status startStreamer(
     }
 
     /* Now specify the Tracks that should be added for streaming: done here for Tuner inputs */
-    if ( !pAppStreamerCtx->enableAllPass )
+    if (!enableAllPass)
     {
         BIP_MediaInfoTrackGroup *pMediaInfoTrackGroup = NULL;
         BIP_MediaInfoTrack      *pMediaInfoTrack = NULL;
@@ -516,10 +520,17 @@ static BIP_Status startStreamer(
             B_Os_Memset( &streamerTrackInfo, 0, sizeof( streamerTrackInfo ) );
             BIP_Streamer_GetStreamerTrackInfoFromMediaInfo(pMediaInfoTrack, &streamerTrackInfo );
 
+            if ( pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eAudio && pAppStreamerCtx->disableAudio )
+            {
+                BDBG_MSG(( BIP_MSG_PRE_FMT "-disableAudio option is set, so NOT adding audioTrack!" BIP_MSG_PRE_ARG));
+                goto nextTrack;
+            }
+
             bipStatus = BIP_HttpStreamer_AddTrack( pAppStreamerCtx->hHttpStreamer, &streamerTrackInfo, NULL );
             responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_HttpStreamer_AddTrack Failed for track# %d", streamerTrackInfo.trackId ), rejectRequest, bipStatus, bipStatus );
 
+nextTrack:
             if(true == trackGroupPresent)
             {
                 pMediaInfoTrack = pMediaInfoTrack->pNextTrackForTrackGroup;
@@ -567,7 +578,7 @@ static BIP_Status startStreamer(
         if (pAppStreamerCtx->enableDtcpIp)
         {
             streamerOutputSettings.enableDtcpIp = true;
-            streamerOutputSettings.dtcpIpOutput.pcpPayloadLengthInBytes = (1024*1024);
+            streamerOutputSettings.dtcpIpOutput.pcpPayloadLengthInBytes = 10*1024*1024;
             streamerOutputSettings.dtcpIpOutput.akeTimeoutInMs = 2000;
             streamerOutputSettings.dtcpIpOutput.copyControlInfo = B_CCI_eCopyNever;
 
@@ -606,6 +617,7 @@ static BIP_Status startStreamer(
         {
             BIP_Transcode_GetDefaultProfile( &transcodeProfile );
         }
+        transcodeProfile.disableAudio = pAppStreamerCtx->disableAudio;
 
         bipStatus = BIP_HttpStreamer_AddTranscodeProfile( pAppStreamerCtx->hHttpStreamer, &transcodeProfile );
         responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
@@ -708,6 +720,7 @@ static void processHttpRequestEvent(
             pAppStreamerCtx->enableAllPass = pAppCtx->enableAllPass;
             pAppStreamerCtx->maxDataRate = pAppCtx->maxDataRate;
             pAppStreamerCtx->enableHwOffload = pAppCtx->enableHwOffload;
+            pAppStreamerCtx->disableAudio = pAppCtx->disableAudio;
         }
 
         /* Process the received Request, start w/ the Method */
@@ -755,13 +768,10 @@ static void processHttpRequestEvent(
 rejectRequest:
         /* Some error happened, so reject the current hHttpRequest. */
         rejectRequestAndSetResponseHeaders( pAppStreamerCtx->pAppCtx, hHttpRequest, responseStatus );
-        if (pAppStreamerCtx)
-        {
-            if (pAppStreamerCtx->hTarget) BIP_String_Destroy(pAppStreamerCtx->hTarget);
-            pAppStreamerCtx->hTarget = NULL;
-            B_Os_Free(pAppStreamerCtx);
-            pAppStreamerCtx = NULL;
-        }
+        if (pAppStreamerCtx->hTarget) BIP_String_Destroy(pAppStreamerCtx->hTarget);
+        pAppStreamerCtx->hTarget = NULL;
+        B_Os_Free(pAppStreamerCtx);
+        pAppStreamerCtx = NULL;
         /* continue back to the top of the loop. */
     } /* while */
 
@@ -805,7 +815,7 @@ static BIP_Status generateMediaInfoForTunerInput (
     BIP_MediaInfoStream *pMediaInfoStream = NULL;
 
     /* Acquire & Tune to the frontend so that we can acquire MediaInfo */
-    bipStatus = acquireAndTuneFrontend( pAppCtx, &hFrontend, &parserBand );
+    bipStatus = acquireAndTuneFrontend( pAppCtx, &hFrontend, &parserBand, pAppCtx->enableAllPass );
     BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "acquireAndTuneFrontend Failed" ), error, bipStatus, bipStatus );
 
     /* Build a unique info file name for Qam input */
@@ -940,6 +950,7 @@ static BIP_Status initHttpServer(
             httpServerStartSettings.enableDtcpIp = true;
             BIP_DtcpIpServer_GetDefaultStartSettings( &httpServerStartSettings.dtcpIpServer );
             httpServerStartSettings.dtcpIpServer.pAkePort = BIP_String_GetString(pAppCtx->hDtcpIpAkePort);
+            httpServerStartSettings.dtcpIpServer.enableHwOffload = pAppCtx->enableHwOffload;
         }
         bipStatus = BIP_HttpServer_Start( pAppCtx->hHttpServer, &httpServerStartSettings );
         BIP_CHECK_GOTO(( !bipStatus ), ( "BIP_HttpServer_Start Failed" ), error, bipStatus, bipStatus );
@@ -961,6 +972,7 @@ void printUsage( char *pCmdName )
         "  -infoDir         #   Info Files Directory Path (default is /data/info) \n"
         "  -freq            #   frequency in MHz (default is 549 Mhz) \n"
         "  -mode            #   64 = QAM-64, 256 = QAM-256 (default is QAM-256) \n"
+        "  -disableAudio    #   Disable sending audio track (defaults is enabled)\n"
         );
 
     printf(
@@ -981,7 +993,7 @@ void printUsage( char *pCmdName )
             "  -inactivityTimeoutInMs <num> # Timeout in msec (default=60000) after which streamer will Stop/Close streaming context if there is no activity for that long!"
           );
     printf( "  -maxDataRate  <num>          # Maximum data rate for the playback parser band in units of bits per second (default 40000000 (40Mpbs))! \n"
-            "  -srcInputRate <num>          # This sets Maximum input rate taht can be handled by parser band. \n"
+            "  -srcInputRate <num>          # This sets Maximum input rate that can be handled by parser band. \n"
             "  -mtsif                       # This sets parserband input type as mtsif. \n"
             "  -dontReAcquireMediaInfo      # If set, dont rescan the stream to reacquire Media Info. Instead, used the cached MediaInfo from last run.\n"
             );
@@ -1082,6 +1094,10 @@ BIP_Status parseOptions(
         else if ( !strcmp(argv[i], "-dontReAcquireMediaInfo") )
         {
             pAppCtx->dontReAcquireMediaInfo = true;
+        }
+        else if(!strcmp(argv[i], "-disableAudio"))
+        {
+            pAppCtx->disableAudio = true;
         }
         else
         {

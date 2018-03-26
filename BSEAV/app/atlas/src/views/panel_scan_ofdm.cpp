@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -219,7 +219,7 @@ eRet CPanelScanOfdm::initialize(
         /* back button */
         _Back = new CWidgetButton("CPanelScanOfdm::_Back", getEngine(), this, MRect(0, 0, 0, 0), font10);
         CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _Back, ret, eRet_OutOfMemory, error);
-        _Back->setText("Menu");
+        _Back->loadImage("images/back-sm.png");
         _pScanOfdmMenu->addBackButton(_Back);
 
         {
@@ -326,6 +326,24 @@ void CPanelScanOfdm::onClick(bwidget_t widget)
 
         notifyObservers(eNotify_ScanStart, &scanData);
         show(false);
+    }
+    else
+    if (_ModeDVBT == pWidget)
+    {
+        _BandwidthFreqEdit->setText("6000000");
+        _StepFreqEdit->setText("6000000");
+    }
+    else
+    if (_ModeDVBT2 == pWidget)
+    {
+        _BandwidthFreqEdit->setText("8000000");
+        _StepFreqEdit->setText("8000000");
+    }
+    else
+    if (_ModeISDBT == pWidget)
+    {
+        _BandwidthFreqEdit->setText("6000000");
+        _StepFreqEdit->setText("6000000");
     }
 
     return;

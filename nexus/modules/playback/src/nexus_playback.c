@@ -60,6 +60,7 @@ BDBG_OBJECT_ID(NEXUS_Playback);
 static NEXUS_Error bplay_p_frameadvance(NEXUS_PlaybackHandle p, bool forward, bool *restart);
 static void b_play_playpump_read_callback_locked(void *context);
 static NEXUS_Error b_play_playpump_read_callback_guard(void *context);
+static NEXUS_Error b_play_getpts(NEXUS_PlaybackHandle p, uint32_t *pts);
 
 #define HAS_INDEX(p) ((p)->file->file.index)
 
@@ -500,7 +501,7 @@ b_play_decoders_in_tsm_mode(NEXUS_PlaybackHandle playback)
     return true;
 }
 
-NEXUS_Error
+static NEXUS_Error
 b_play_getpts(NEXUS_PlaybackHandle p, uint32_t *pts)
 {
     NEXUS_Error rc;
@@ -1595,6 +1596,7 @@ NEXUS_Playback_TrickMode(NEXUS_PlaybackHandle p, const NEXUS_PlaybackTrickModeSe
     trick_settings.avoid_flush = (params->avoidFlush || !HAS_INDEX(p));
     trick_settings.force_source_frame_rate = mode.force_source_frame_rate;
     trick_settings.maxFrameRepeat = params->maxFrameRepeat;
+    trick_settings.audioTrickMode = params->audioTrickMode;
 
     rc = b_play_trick_set(p, &trick_settings);
     if (rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc); } /* fall through. we need to maintain internal Playback state, even on a bad trick mode setting. */

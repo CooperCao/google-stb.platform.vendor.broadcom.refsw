@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -188,6 +188,39 @@ BSAT_SOURCES += \
 
 endif
 
+
+##############################
+# Handle 45402
+##############################
+ifeq ($(findstring 45402,$(BSAT_CHIP)),45402)
+
+# If chip version not specified, select a default
+ifeq ($(BSAT_45402_VER),)
+BSAT_45402_VER := A0
+endif
+
+BSAT_45402_VER_UPPER := $(strip $(BSAT_45402_VER))
+BSAT_45402_VER_UPPER := $(subst a,A,$(BSAT_45402_VER_UPPER))
+BSAT_45402_VER_UPPER := $(subst b,B,$(BSAT_45402_VER_UPPER))
+BSAT_45402_VER_UPPER := $(subst c,C,$(BSAT_45402_VER_UPPER))
+
+BSAT_45402_VER_LOWER := $(strip $(BSAT_45402_VER))
+BSAT_45402_VER_LOWER := $(subst A,a,$(BSAT_45402_VER_LOWER))
+BSAT_45402_VER_LOWER := $(subst B,b,$(BSAT_45402_VER_LOWER))
+BSAT_45402_VER_LOWER := $(subst C,c,$(BSAT_45402_VER_LOWER))
+
+# Source needs to know which revision
+BSAT_DEFINES += BSAT_45402_VER=BCHP_VER_$(BSAT_45402_VER_UPPER)
+
+BSAT_INCLUDES += \
+	$(MAGNUM)/portinginterface/sat/include/45402 \
+	$(MAGNUM)/portinginterface/sat/src/45402
+
+BSAT_SOURCES += \
+	$(MAGNUM)/portinginterface/sat/src/45402/bsat_45402.c \
+	$(MAGNUM)/portinginterface/sat/src/45402/bsat_45402_priv.c
+
+endif
 
 
 ##############################

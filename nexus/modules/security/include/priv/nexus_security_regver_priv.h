@@ -75,7 +75,7 @@ extern "C"
     authenticate firmware code. In this case, the signing authority (Boardcom or CA vendor) will generate and provide a signature
     (nexus_security_regver_signatures.h) that can be used against a particular firmware image.
     The requirement to authentication a firmware category (rave, audio, video, vice, sid)  will be stipulated in OTP. Once authentication,
-    most regions will be background checked (this is region dependant), thus any modification to the reqion after this will generate a system reset.
+    most regions will be background checked (this is region dependent), thus any modification to the reqion after this will generate a system reset.
 */
 
 
@@ -203,8 +203,8 @@ typedef struct NEXUS_SecurityRegionConfiguration
     bool enableInstructionChecker; /* Required for SAGE/BHSM_SUPPORT_HDDTA */
     bool enableBackgroundChecker;  /* Required for SAGE */
     unsigned scmVersion;           /* Required for BHSM_SUPPORT_HDDTA  */
-    NEXUS_SecurityVirtualKeyladderID  keyLadderId;     /* Requried for SCPU FSBL region */
-    NEXUS_SecurityKeySource           keyLadderLayer;  /* Requried for SCPU FSBL region*/
+    NEXUS_SecurityVirtualKeyladderID  keyLadderId;     /* Required for SCPU FSBL region */
+    NEXUS_SecurityKeySource           keyLadderLayer;  /* Required for SCPU FSBL region*/
     bool                              forceVerification; /* perform Verificaiton on region even if not required by OTP */
 
 } NEXUS_SecurityRegionConfiguration;
@@ -227,7 +227,7 @@ typedef struct NEXUS_SecurityRegionModuleSettings{
 void  NEXUS_Security_GetDefaultRegionVerificationModuleSettings( NEXUS_SecurityRegionModuleSettings *pSettings );
 
 /**
-    Intialise region verification module. Call on platform initialisation.
+    Initialise region verification module. Call on platform initialisation.
 **/
 NEXUS_Error NEXUS_Security_RegionVerification_Init_priv( const NEXUS_SecurityRegionModuleSettings *pSettings );
 
@@ -253,7 +253,7 @@ NEXUS_Error NEXUS_Security_RegionConfig_priv ( NEXUS_SecurityRegverRegionID     
 
 /**
     This function verifies the specified region. Depending on region and system configuration, it will initiate
-    background checking that will result in a system reset if memory withing the region is modified.
+    background checking that will result in a system reset if memory within the region is modified.
 **/
 NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID regionId,
                                                     NEXUS_Addr regionAddress, /* physical address */

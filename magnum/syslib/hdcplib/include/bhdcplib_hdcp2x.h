@@ -173,6 +173,7 @@ See Also:
 typedef struct BHDCPlib_SageIndicationData
 {
 	BSAGElib_RpcRemoteHandle rpcRemoteHandle;
+	uint32_t sessionId;
 	uint32_t indication_id;
 	uint32_t value;
 } BHDCPlib_SageIndicationData;

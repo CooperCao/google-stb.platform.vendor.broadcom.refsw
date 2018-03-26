@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -62,7 +62,7 @@
 #include "b_playback_ip_lib.h"
 #endif
 
-#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION == 1
 #include "nexus_security_datatypes.h"
 #endif
 #if B_HAS_DTCP_IP
@@ -97,7 +97,7 @@ STRING_TO_ENUM_DECLARE(stringToTransportType, NEXUS_TransportType)
 STRING_TO_ENUM_DECLARE(stringToVideoFormat, NEXUS_VideoFormat)
 STRING_TO_ENUM_DECLARE(stringToVideoFormatSD, NEXUS_VideoFormat)
 STRING_TO_ENUM_DECLARE(stringToKey, eKey)
-#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION == 1
 STRING_TO_ENUM_DECLARE(stringToSecurityAlgorithm, NEXUS_SecurityAlgorithm)
 #endif
 
@@ -124,7 +124,7 @@ ENUM_TO_MSTRING_DECLARE(audioAc3ToNumChannelsString, NEXUS_AudioAc3Acmod)
 ENUM_TO_MSTRING_DECLARE(audioAc3LfeToNumChannelsString, NEXUS_AudioAc3Acmod)
 ENUM_TO_MSTRING_DECLARE(audioAacToNumChannelsString, NEXUS_AudioAacAcmod)
 ENUM_TO_MSTRING_DECLARE(audioAacLfeToNumChannelsString, NEXUS_AudioAacAcmod)
-#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION == 1
 ENUM_TO_MSTRING_DECLARE(securityAlgorithmToString, NEXUS_SecurityAlgorithm)
 #endif
 ENUM_TO_MSTRING_DECLARE(playbackTrickToString, ePlaybackTrick)

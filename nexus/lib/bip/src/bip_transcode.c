@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -324,7 +324,6 @@ static BIP_Status prepareTranscodePath(
                 encoderSettings.video.height = hTranscode->transcodeProfile.video.height;
                 encoderSettings.video.interlaced = hTranscode->transcodeProfile.video.startSettings.interlaced;
                 encoderSettings.video.refreshRate = hTranscode->transcodeProfile.video.refreshRate;
-                encoderSettings.video.refreshRate = 30000; /* xcode TODO */
                 encoderSettings.videoEncoder = hTranscode->transcodeProfile.video.settings;
                 encoderSettings.videoEncoder.enableFieldPairing = false; /* xcode TODO */
                 encoderSettings.videoEncoder.variableFrameRate = false; /* xcode TODO */
@@ -846,6 +845,8 @@ void processTranscodeState(
     {
         BIP_Arb_AcceptRequest(hArb);
 
+        /* coverity[sleep: FALSE] */
+        /* This coverity warning is ignored as the NEXUS_SimpleEncoder_Start can internally sleep. */
         hTranscode->completionStatus = updateTranscodeSettings( hTranscode, hTranscode->setSettingsApi.pSettings );
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: SetSettings Arb request is complete : state %s, status=%s"
@@ -905,6 +906,8 @@ void processTranscodeState(
             /* All streaming resources are already setup in the prepared state, so lets start transcode. */
             hTranscode->startSettings = *hTranscode->startApi.pSettings;
 
+            /* coverity[sleep: FALSE] */
+            /* This coverity warning is ignored as the NEXUS_SimpleENcoder_Start can internally sleep. */
             hTranscode->completionStatus = startTranscodePath( hTranscode );
             if ( hTranscode->completionStatus == BIP_SUCCESS )
             {
@@ -1072,6 +1075,7 @@ BIP_TranscodeHandle BIP_Transcode_Create(
     return ( hTranscode );
 
 error:
+    if (hTranscode) transcodeDestroy( hTranscode );
     return ( NULL );
 } /* BIP_Transcode_Create */
 
@@ -1419,9 +1423,9 @@ void BIP_Transcode_PrintStatus(
     BIP_ArbSubmitSettings arbSettings;
 
     BDBG_ASSERT( hTranscode );
+    if ( !hTranscode ) return;
     BDBG_OBJECT_ASSERT( hTranscode, BIP_Transcode );
 
-    if ( !hTranscode ) return;
 
     /* Serialize access to Settings state among another thread calling the same _GetSettings API. */
     hArb = hTranscode->printStatusApi.hArb;

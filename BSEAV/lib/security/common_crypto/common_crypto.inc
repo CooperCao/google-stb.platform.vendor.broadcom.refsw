@@ -50,11 +50,12 @@ include ${NEXUS_TOP}/modules/security/security_defs.inc
 #$(info NEXUS_SECURITY_ZEUS_VERSION_MAJOR=$(NEXUS_SECURITY_ZEUS_VERSION_MAJOR) NEXUS_SECURITY_ZEUS_VERSION_MINOR=$(NEXUS_SECURITY_ZEUS_VERSION_MINOR))
 
 
-ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
+ifeq ($(NEXUS_SECURITY_API_VERSION),2)
     COMMON_CRYPTO_INCLUDES += ${NEXUS_TOP}/modules/security/secv2/include
 else
     COMMON_CRYPTO_INCLUDES += ${NEXUS_TOP}/extensions/security/keyladder/include
 endif
+
 
 ########################################
 # Core 40nm

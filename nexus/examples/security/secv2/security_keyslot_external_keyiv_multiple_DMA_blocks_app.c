@@ -337,7 +337,7 @@ int main(
             blockSettings[i].scatterGatherCryptoStart = ( i == 1 );  /* start scatter gathering from the 1st block. */
             blockSettings[i].scatterGatherCryptoEnd = ( i == ( NUM_DMA_BLOCKS_IN_A_TRANSFER - 1 ) );   /* end scatter gathering crypto at the last block */
 
-            BDBG_LOG( ( "    ======= DMA block[%d] transferring %ld byte data.", i, blockSettings[i].blockSize ) );
+            BDBG_LOG( ( "    ======= DMA block[%d] transferring %u byte data.", i, (unsigned)blockSettings[i].blockSize ) );
         }
 
         rc = NEXUS_DmaJob_ProcessBlocks( dmaJob, blockSettings, NUM_DMA_BLOCKS_IN_A_TRANSFER );

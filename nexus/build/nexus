@@ -41,6 +41,10 @@ if [ ! -z $TEST ]; then
     rmmod bcm_astra || exit;
 fi
 
+if [ ! -e bp3.bin ]; then
+  ./bp3flash.sh -r 2>/dev/null
+fi
+
 insmod bcmdriver.ko || exit;
 if [ ! -e /dev/brcm0 ]; then
 mknod -m a=rw /dev/brcm0 c 30 0
@@ -68,7 +72,6 @@ fi
 if [ -e asp_netfilter_drv.ko ]; then
 insmod asp_netfilter_drv.ko
 fi
-
 
 # Start whatever application is requested
 target=$1;

@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #include "bhab.h"
@@ -137,6 +129,7 @@ uint32_t BHAB_45216_InitHeader(uint8_t cmd, uint8_t chn, uint8_t dir, uint8_t mo
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BHAB_45216_PrintUart()
 ******************************************************************************/
@@ -160,101 +153,10 @@ BERR_Code BHAB_45216_PrintUart(BHAB_Handle h, char *pStr)
       hab[2+i] = (uint32_t)pStr[i];
    return BHAB_45216_P_SendCommand(h, hab, 3+n);
 }
+#endif /* B_REFSW_MINIMAL */
 
 
-/******************************************************************************
- BHAB_45216_GetFlashEventHandle()
-******************************************************************************/
-BERR_Code BHAB_45216_GetFlashEventHandle(
-   BHAB_Handle handle,            /* [in] BHAB handle */
-   BKNI_EventHandle *hEvent       /* [out] flash operation done event handle */
-)
-{
-   *hEvent = ((BHAB_45216_P_Handle *)(handle->pImpl))->hFlashDoneEvent;
-   return BERR_SUCCESS;
-}
-
-
-/******************************************************************************
- BHAB_45216_WriteFlashSector()
-******************************************************************************/
-BERR_Code BHAB_45216_WriteFlashSector(
-   BHAB_Handle h,    /* [in] BHAB handle */
-   uint32_t    addr, /* [in] sector address in flash to program */
-   uint8_t     *pData /* [in] 4096 bytes of data to write to sector */
-)
-{
-   BERR_Code retCode;
-   uint32_t mask, hab[4], bufAddr, i;
-   uint8_t *sectorBuf = NULL;
-
-   if (addr >= (512<<10))
-      return BERR_INVALID_PARAMETER;
-
-   sectorBuf = (uint8_t*)BKNI_Malloc(4<<10);
-   if (sectorBuf == NULL)
-      return BERR_OUT_OF_SYSTEM_MEMORY;
-
-   /* get the address of the flash sector buf in LEAP memory */
-   hab[0] = BHAB_45216_InitHeader(0x05, 0, BHAB_45216_READ, BHAB_45216_MODULE_LEAP);
-   hab[1] = 6; /* FLASH_BUF_ADDR */
-   BHAB_CHK_RETCODE(BHAB_45216_P_SendCommand(h, hab, 4));
-   bufAddr = hab[2];
-
-   /* write sector data */
-   for (i = 0; i < (4<<10); i += 4)
-   {
-      sectorBuf[i+0] = pData[i+3];
-      sectorBuf[i+1] = pData[i+2];
-      sectorBuf[i+2] = pData[i+1];
-      sectorBuf[i+3] = pData[i+0];
-   }
-   BHAB_CHK_RETCODE(BHAB_45216_P_WriteMemory(h, bufAddr, (const uint8_t*)sectorBuf, (4<<10)));
-
-   /* enable the flash done interrupt */
-   mask = BHAB_45216_HIRQ0_FLASH_DONE;
-   BHAB_CHK_RETCODE(BHAB_45216_P_WriteRegister(h, BCHP_LEAP_HOST_L2_MASK_CLEAR0, &mask));
-
-   /* initiate write to flash */
-   hab[0] = BHAB_45216_InitHeader(0x08, 0, 0, 0);
-   hab[1] = addr;
-   retCode = BHAB_45216_P_SendCommand(h, hab, 3);
-
-   done:
-   BKNI_Free((void*)sectorBuf);
-   return retCode;
-}
-
-
-/******************************************************************************
- BHAB_45216_ReadFlash()
-******************************************************************************/
-BERR_Code BHAB_45216_ReadFlash(
-   BHAB_Handle h,    /* [in] BHAB handle */
-   uint32_t    addr, /* [in] offset in flash */
-   uint32_t    n,    /* [in] number of bytes to read */
-   uint8_t     *pBuf /* [out] bytes read from flash */
-)
-{
-   BERR_Code retCode;
-   uint32_t val, flashStatus;
-
-   /* check if flash is busy */
-   BHAB_CHK_RETCODE(BHAB_45216_P_ReadRegister(h, BCHP_LEAP_CTRL_GP27, &flashStatus));
-   if (flashStatus == 0x02000008)
-      return BHAB_ERR_HAB_RESOURCE_BUSY;
-
-   /* set BSPI to control SPI bus */
-   val = 0;
-   BHAB_CHK_RETCODE(BHAB_45216_P_WriteRegister(h, BCHP_BSPI_MAST_N_BOOT_CTRL, &val));
-
-   retCode = BHAB_45216_P_ReadMemory(h, 0xC0000000 | addr, pBuf, n);
-
-   done:
-   return retCode;
-}
-
-
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BHAB_45216_BscWrite()
 ******************************************************************************/
@@ -283,8 +185,10 @@ BERR_Code BHAB_45216_BscWrite(
 
    return retCode;
 }
+#endif /* B_REFSW_MINIMAL */
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BHAB_45216_BscRead()
 ******************************************************************************/
@@ -320,3 +224,4 @@ BERR_Code BHAB_45216_BscRead(
 
    return retCode;
 }
+#endif /* B_REFSW_MINIMAL */

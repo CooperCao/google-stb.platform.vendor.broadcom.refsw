@@ -48,7 +48,12 @@ BDBG_MODULE(bi2c);
 #if BCHP_IRQ0_REG_START
 static const BINT_Id IntId[] =
 {
+#if BSC_AVAILABLE
+    BCHP_INT_ID_iic_irqen
+#endif
+#if BSCA_AVAILABLE
     BCHP_INT_ID_iica_irqen
+#endif
 #if BSCB_AVAILABLE
     ,BCHP_INT_ID_iicb_irqen
 #endif
@@ -69,10 +74,15 @@ static const BINT_Id IntId[] =
     ,BCHP_INT_ID_iicg_irqen
 #endif
 };
-#elif BCHP_UPG_BSC_IRQ_REG_START
+#elif defined(BCHP_UPG_BSC_IRQ_REG_START) || defined(BCHP_HDMI_BSC_INTR2_REG_START)
 static const BINT_Id IntId[] =
 {
+#if BSC_AVAILABLE
+    BCHP_INT_ID_BSC_0
+#endif
+#if BSCA_AVAILABLE
     BCHP_INT_ID_iica
+#endif
 #if BSCB_AVAILABLE
     ,BCHP_INT_ID_iicb
 #endif
@@ -2243,6 +2253,9 @@ static BERR_Code BI2C_P_BscIndexToChannelNum(
     BERR_Code retCode = BERR_SUCCESS;
 
     BSTD_UNUSED(hDev);
+#if (BI2C_MAX_I2C_CHANNELS < 2)
+    BSTD_UNUSED(channelNo);
+#endif
 
     switch (bscIndex)
     {
@@ -2360,6 +2373,7 @@ BERR_Code BI2C_GetChannelDefaultSettings(
     BKNI_Memset(pChnSettings, 0, sizeof(*pChnSettings));
 
     if(channelNo == BI2C_SOFT_I2C_CHANNEL_NUMBER){
+#ifdef BCHP_GIO_REG_START
         pChnSettings->softI2c = true;
 
         pChnSettings->clkRate = BI2C_Clk_eClk400Khz;
@@ -2373,6 +2387,10 @@ BERR_Code BI2C_GetChannelDefaultSettings(
         pChnSettings->gpio.scl.shift = 0;
         pChnSettings->gpio.sda.address = BCHP_GIO_ODEN_LO;
         pChnSettings->gpio.sda.shift = 0;
+#else
+        BDBG_ERR(("%s: Not Supported", BSTD_FUNCTION));
+        retCode = BERR_NOT_SUPPORTED;
+#endif
     }
     else{
         pChnSettings->softI2c = false;
@@ -2500,7 +2518,9 @@ BERR_Code BI2C_OpenChannel(
     BERR_Code           retCode = BERR_SUCCESS;
     BI2C_ChannelHandle  hChn=NULL;
     uint32_t            lval, sleepCount=0;
+#if (BI2C_MAX_I2C_CHANNELS > 1)
     unsigned            offset=0;
+#endif
 
     BDBG_ASSERT( hDev );
     BDBG_OBJECT_ASSERT(hDev, BI2C_P_Handle);
@@ -2596,13 +2616,13 @@ BERR_Code BI2C_OpenChannel(
             if ( (hChn->chnSettings.intMode == true) && (hChn->hChnCallback == NULL))
             {
                 /* Register and enable L2 interrupt. */
-				BI2C_CHK_RETCODE( retCode,
-					BINT_CreateCallback(&(hChn->hChnCallback), hDev->hInterrupt, BCHP_INT_ID_I2C_CH2_DONE_INTR, BAUTO_I2C_P_HandleInterrupt_Isr, (void *) hChn, 0x00)
-				);
+                                BI2C_CHK_RETCODE( retCode,
+                                        BINT_CreateCallback(&(hChn->hChnCallback), hDev->hInterrupt, BCHP_INT_ID_I2C_CH2_DONE_INTR, BAUTO_I2C_P_HandleInterrupt_Isr, (void *) hChn, 0x00)
+                                );
 
-				/* clear interrupt callback */
-				BI2C_CHK_RETCODE(retCode, BINT_ClearCallback(hChn->hChnCallback));
-				BI2C_CHK_RETCODE( retCode, BINT_EnableCallback(hChn->hChnCallback));
+                                /* clear interrupt callback */
+                                BI2C_CHK_RETCODE(retCode, BINT_ClearCallback(hChn->hChnCallback));
+                                BI2C_CHK_RETCODE( retCode, BINT_EnableCallback(hChn->hChnCallback));
             }
 #endif
         }
@@ -2679,6 +2699,7 @@ BERR_Code BI2C_OpenChannel(
         }
     }
     else{
+        #ifdef BCHP_GIO_REG_START
         offset = pChnSettings->gpio.scl.address - BCHP_GIO_ODEN_LO;
         hChn->softI2cBus.scl.mask = (1<<pChnSettings->gpio.scl.shift);
         hChn->softI2cBus.scl.mask = ~hChn->softI2cBus.scl.mask;
@@ -2692,6 +2713,10 @@ BERR_Code BI2C_OpenChannel(
         hChn->softI2cBus.sda.data = BCHP_GIO_DATA_LO+offset;
         hChn->softI2cBus.sda.iodir = BCHP_GIO_IODIR_LO+offset;
         hChn->softI2cBus.sda.oden = BCHP_GIO_ODEN_LO+offset;
+        #else
+        BDBG_ERR(("%s: Not Supported", BSTD_FUNCTION));
+        retCode = BERR_NOT_SUPPORTED;
+        #endif
     }
     *phChn = hChn;
 

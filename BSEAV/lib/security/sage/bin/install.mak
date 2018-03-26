@@ -44,6 +44,12 @@ MY_TOP := $(call THIS_MFILE_DIR_FUNC)
 
 B_REFSW_TOP:= $(abspath $(realpath ${MY_TOP}/../../../../..))
 
+MYCHIP=${BCHP_CHIP}${BCHP_VER}
+# Some chip versions need to be normalized since SAGE binaries are not distinct
+ifeq (${MYCHIP},7278B1)
+MYCHIP = 7278B0
+endif
+
 ifeq ($(SAGE_VERSION), 2x)
 # Supported SAGE secure mode:
 #     Secure mode 1 (default): Disable URR and HDCP enforcement
@@ -57,7 +63,7 @@ ifeq ($(SAGE_SECURE_MODE),)
 SAGE_SECURE_MODE := $(SAGE_SECURE_MODE_DEFAULT)
 endif
 
-SAGE_BL_BINARY_PATH := $(BSEAV)/lib/security/sage/bin/2x/$(BCHP_CHIP)$(BCHP_VER)
+SAGE_BL_BINARY_PATH := $(BSEAV)/lib/security/sage/bin/2x/$(MYCHIP)
 SAGE_APP_BINARY_PATH := $(SAGE_BL_BINARY_PATH)/securemode$(SAGE_SECURE_MODE)
 
 # Search for supported modes for the specified platform
@@ -76,7 +82,7 @@ endif
 
 ifneq ($(SAGE_BINARIES_AVAILABLE),y)
 ifndef SAGE_SECURE_MODE_LIST
-    $(error SAGE 2x not supported on $(BCHP_CHIP)$(BCHP_VER))
+    $(error SAGE 2x not supported on $(MYCHIP))
 endif
 ifeq ($(findstring $(SAGE_SECURE_MODE),$(SAGE_SECURE_MODE_LIST)),)
     $(error SAGE secure mode $(SAGE_SECURE_MODE) is not supported. Update SAGE_SECURE_MODE with a supported mode: $(SAGE_SECURE_MODE_LIST))
@@ -125,7 +131,7 @@ else
 # SAGE secure mode has been DEPRECATED in SAGE 3.x
 #
 
-SAGE_BINARY_PATH = ${SAGE_BINARY_TOP}/$(BCHP_CHIP)$(BCHP_VER)
+SAGE_BINARY_PATH = ${SAGE_BINARY_TOP}/$(MYCHIP)
 
 # Try to see if SAGE firmware is pre-loaded in bin directory
 SAGE_BINARY_TOP  := ${B_REFSW_TOP}/BSEAV/lib/security/sage/bin

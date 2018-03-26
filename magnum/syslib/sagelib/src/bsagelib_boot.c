@@ -100,8 +100,11 @@ typedef enum Bsp_Otp_CmdMsp_e
 } Bsp_Otp_CmdMsp_e ;
 #endif
 
+#if (BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(5,1))
+/* OTP values are deprecated with BW2.10 and should be assumed 1 for any Zeus5 platform */
 #define OTP_SAGE_DECRYPT_ENABLE     Bsp_Otp_CmdMsp_eSageFsblDecryptionEnable
 #define OTP_SAGE_VERIFY_ENABLE      Bsp_Otp_CmdMsp_eSageVerifyEnable
+#endif
 #define OTP_SAGE_SECURE_ENABLE      Bsp_Otp_CmdMsp_eSageSecureEnable
 #define OTP_MARKET_ID_0             Bsp_Otp_CmdMsp_eMarketId0
 #define OTP_MARKET_ID_1             Bsp_Otp_CmdMsp_eMarketId1
@@ -736,11 +739,16 @@ BSAGElib_P_Boot_GetSageOtpMspParams(
     BERR_Code rc = BERR_SUCCESS;
     BSAGElib_Handle hSAGElib = ctx->hSAGElib;
 
+#if (BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(5,1))
     rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SAGE_DECRYPT_ENABLE, &ctx->otp_sage_decrypt_enable, "decrypt_enable");
     if (rc != BERR_SUCCESS) { goto end; }
 
     rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SAGE_VERIFY_ENABLE, &ctx->otp_sage_verify_enable, "verify_enable");
     if (rc != BERR_SUCCESS) { goto end; }
+#else
+    ctx->otp_sage_decrypt_enable=1;
+    ctx->otp_sage_verify_enable=1;
+#endif
 
     rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SAGE_SECURE_ENABLE, &ctx->otp_sage_secure_enable, "secure_enable");
     if (rc != BERR_SUCCESS) { goto end; }
@@ -751,7 +759,7 @@ BSAGElib_P_Boot_GetSageOtpMspParams(
     rc = BSAGElib_P_GetOtp(hSAGElib, OTP_MARKET_ID_1, &ctx->otp_market_id1, "market id1");
     if (rc != BERR_SUCCESS) { goto end; }
 
-#if (ZEUS_VERSION < ZEUS_4_1)
+#if (BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(4,1))
     rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eSystemEpoch, &ctx->otp_system_epoch0, "system epoch 0");
 #else
     rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SYSTEM_EPOCH_0, &ctx->otp_system_epoch0, "epoch");
@@ -801,23 +809,28 @@ end:
 */
 
 #define SAGE_FRAMEWORK_VERSION_CHECK 3
+#if (BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(5,0))
 #define BFW_VERSION_CHECK_MAJOR 4
 #define BFW_VERSION_CHECK_MINOR 1
 #define BFW_VERSION_CHECK_SUBMINOR 3
-
+#else
+#define BFW_VERSION_CHECK_MAJOR 2
+#define BFW_VERSION_CHECK_MINOR 0
+#define BFW_VERSION_CHECK_SUBMINOR 2
+#endif
 static BERR_Code
 BSAGElib_P_Boot_CheckFrameworkBFWVersion(
     BSAGElib_Handle hSAGElib,
     BSAGElib_SageImageHolder *image)
 {
-#if (BHSM_API_VERSION==1)
     BERR_Code rc = BERR_SUCCESS;
     BSAGElib_SageSecureHeader *header = (BSAGElib_SageSecureHeader *)image->header;
-    BHSM_Capabilities_t hsmCaps;
 
     BDBG_MSG(("SAGE Framework version major %d",header->ucSageImageVersion[0]));
     if (header->ucSageImageVersion[0] >= SAGE_FRAMEWORK_VERSION_CHECK)
     {
+#if (BHSM_API_VERSION==1)
+        BHSM_Capabilities_t hsmCaps;
         if( ( rc = BHSM_GetCapabilities(hSAGElib->core_handles.hHsm, &hsmCaps ) ) != BERR_SUCCESS )
         {
             BDBG_ERR(("couldn't read BFW version"));
@@ -825,7 +838,7 @@ BSAGElib_P_Boot_CheckFrameworkBFWVersion(
         }
         else
         {
-            BDBG_MSG(("BFW %d %d %d",hsmCaps.version.firmware.bseck.major, hsmCaps.version.firmware.bseck.minor, hsmCaps.version.firmware.bseck.subMinor));
+            BDBG_MSG(("BFW %d.%d.%d",hsmCaps.version.firmware.bseck.major, hsmCaps.version.firmware.bseck.minor, hsmCaps.version.firmware.bseck.subMinor));
             if ( BFW_VERSION_CHECK_MAJOR < hsmCaps.version.firmware.bseck.major )
             {
                 return rc;
@@ -839,6 +852,26 @@ BSAGElib_P_Boot_CheckFrameworkBFWVersion(
                 else if ( BFW_VERSION_CHECK_MINOR == hsmCaps.version.firmware.bseck.minor )
                 {
                     if ( BFW_VERSION_CHECK_SUBMINOR <= hsmCaps.version.firmware.bseck.subMinor )
+#else
+        BHSM_ModuleCapabilities hsmCaps;
+        BKNI_Memset( &hsmCaps, 0, sizeof(hsmCaps) );
+        BHSM_GetCapabilities(hSAGElib->core_handles.hHsm, &hsmCaps );
+        {
+            BDBG_MSG(("BFW %d.%d.%d",hsmCaps.version.bfw.major, hsmCaps.version.bfw.minor, hsmCaps.version.bfw.subminor));
+            if ( BFW_VERSION_CHECK_MAJOR < hsmCaps.version.bfw.major )
+            {
+                return BERR_SUCCESS;
+            }
+            else if ( BFW_VERSION_CHECK_MAJOR == hsmCaps.version.bfw.major )
+            {
+                if ( BFW_VERSION_CHECK_MINOR < hsmCaps.version.bfw.minor )
+                {
+                    return BERR_SUCCESS;
+                }
+                else if ( BFW_VERSION_CHECK_MINOR == hsmCaps.version.bfw.minor )
+                {
+                    if ( BFW_VERSION_CHECK_SUBMINOR <= hsmCaps.version.bfw.subminor )
+#endif
                     {
                         return rc;
                     }
@@ -852,13 +885,6 @@ BSAGElib_P_Boot_CheckFrameworkBFWVersion(
         }
     }
     return rc;
-#else
-    BSTD_UNUSED( hSAGElib );
-    BSTD_UNUSED( image );
-
-    BDBG_LOG(("%s: TBD not implemented", BSTD_FUNCTION));
-    return 0;
-#endif
 }
 
 static BERR_Code
@@ -1172,8 +1198,14 @@ BSAGElib_P_Boot_ParseSageImage(
            raw_ptr += deviceBlobSize;
            raw_remain -= deviceBlobSize;
 
-           /* move binary up, overwrite unused, other chips' section */
+           /* move binary up, overwrite unused, other chip's section */
            pBottom = BKNI_Malloc(sizeof(BSAGElib_DeviceBottom));
+           if(pBottom == NULL)
+           {
+               BDBG_ERR(("%s - Failure to allocate pBottom", BSTD_FUNCTION));
+               rc = BERR_OUT_OF_DEVICE_MEMORY;
+               goto end;
+           }
            BKNI_Memcpy(pBottom,pFrameworkBottom,sizeof(BSAGElib_DeviceBottom));
            BKNI_Memmove(bin_ptr,raw_ptr,raw_remain);
 
@@ -1357,7 +1389,7 @@ BSAGElib_P_Boot_SetBootParams(
         _BSAGElib_P_Boot_SetBootParam(SageVklMask, sageVklMask);
          BDBG_LOG(("%s:%u BSAGElib_P_Boot_SetBootParam(SageVklMask,0x%08X)", BSTD_FUNCTION,__LINE__,sageVklMask));
    }
- #endif
+#endif
     _BSAGElib_P_Boot_SetBootParam(SageDmaChannel, 0);
 
     /* SAGE Secure Boot */
@@ -2196,7 +2228,25 @@ BSAGElib_Boot_HostReset(
         goto end;
     }
 #else
-    BDBG_ERR(("%s:%u TBD BHSM_RemapVklId support missing",BSTD_FUNCTION,__LINE__));
+     /* SAGE Services parameters - resources */
+    {
+        uint32_t sageVklMask;
+        BHSM_KeyLadderInfo info;
+
+        info.index = 32; /* shift past uint32 if no return value */
+        BHSM_KeyLadder_GetInfo(hSAGElib->vklHandle1, &info);
+        sageVklMask = 1<<info.index;
+
+        info.index = 32;
+        BHSM_KeyLadder_GetInfo(hSAGElib->vklHandle2, &info);
+        sageVklMask |= 1<<info.index;
+
+        if(val != sageVklMask)
+        {
+            BDBG_ERR(("%s - VKL info cannot change", BSTD_FUNCTION));
+            goto end;
+        }
+   }
 #endif
     _BSAGElib_P_Boot_GetBootParam(SageDmaChannel, val);
     if(val!=0)
@@ -2352,10 +2402,12 @@ BSAGElib_Boot_Launch(
     /* Check SAGE Framework compatibility with BFW version */
     rc = BSAGElib_P_Boot_CheckFrameworkBFWVersion(hSAGElib, &frameworkHolder);
     if(rc != BERR_SUCCESS) {
-        BDBG_ERR(("***********************************************************************"));
-        BDBG_ERR(("BOLT with BFW version 4.1.3 or later must be used with SAGE Framework 3.x."));
+        BDBG_ERR(("***************************************************************************"));
+        BDBG_ERR(("BOLT with BFW version %d.%d.%d or later must be used with SAGE Framework %d.x",
+            BFW_VERSION_CHECK_MAJOR, BFW_VERSION_CHECK_MINOR, BFW_VERSION_CHECK_SUBMINOR,
+            frameworkHolder.header->ucSageImageVersion[0]));
         BDBG_ERR(("Please upgrade BOLT."));
-        BDBG_ERR(("***********************************************************************"));
+        BDBG_ERR(("***************************************************************************"));
         goto end;
     }
 

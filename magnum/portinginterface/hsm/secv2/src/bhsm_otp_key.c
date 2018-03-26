@@ -38,11 +38,12 @@
  ******************************************************************************/
 
 #include "bhsm_priv.h"
-#include "bhsm_bsp_msg.h"
+#include "bhsm.h"
 #include "bhsm_otp_key.h"
-#include "bhsm_keyladder.h"
 #include "bsp_types.h"
 #include "bhsm_p_otpmode0.h"
+#include "bhsm_otp_msp.h"
+#include "bhsm_otp_msp_indexes.h"
 
 BDBG_MODULE( BHSM );
 
@@ -51,6 +52,10 @@ typedef struct BHSM_OtpKeyModule
     BHSM_OtpKeyInfo KeyInfo[Bsp_Otp_KeyType_eMax];
     bool cached[Bsp_Otp_KeyType_eMax];
 }BHSM_OtpKeyModule;
+
+
+static bool _isHashValid( BHSM_Handle hHsm, unsigned index ); /* checks if the hash for the specified key is accessible. */
+
 
 BERR_Code BHSM_OtpKey_Init( BHSM_Handle hHsm, BHSM_OtpKeyModuleSettings *pSettings )
 {
@@ -97,14 +102,19 @@ BERR_Code BHSM_OtpKey_GetInfo( BHSM_Handle hHsm, BHSM_OtpKeyInfo *pKeyInfo )
     if(hHsm->modules.pOtpKey->cached[pKeyInfo->index] == false)
     {
         hHsm->modules.pOtpKey->cached[pKeyInfo->index] = true;
+
         /* KeyHash */
-        BKNI_Memset( &keyRead, 0, sizeof(keyRead) );
-        keyRead.in.sectionIndex = pKeyInfo->index;
-        keyRead.in.field = Bsp_Otp_KeyField_eKeyHash;
-        rc = BHSM_P_OtpMode0_KeyMc0Read( hHsm, &keyRead );
-        if( rc != BERR_SUCCESS ) { goto BHSM_P_DONE_LABEL; }
-        BHSM_MemcpySwap( &pKeyInfo->hash[4], &keyRead.out.data[0], 4 );
-        BHSM_MemcpySwap( &pKeyInfo->hash[0], &keyRead.out.data[1], 4 );
+        pKeyInfo->hashValid = _isHashValid( hHsm, pKeyInfo->index );
+        if( pKeyInfo->hashValid )
+        {
+            BKNI_Memset( &keyRead, 0, sizeof(keyRead) );
+            keyRead.in.sectionIndex = pKeyInfo->index;
+            keyRead.in.field = Bsp_Otp_KeyField_eKeyHash;
+            rc = BHSM_P_OtpMode0_KeyMc0Read( hHsm, &keyRead );
+            if( rc != BERR_SUCCESS ) { goto BHSM_P_DONE_LABEL; }
+            BHSM_MemcpySwap( &pKeyInfo->hash[4], &keyRead.out.data[0], 4 );
+            BHSM_MemcpySwap( &pKeyInfo->hash[0], &keyRead.out.data[1], 4 );
+        }
 
         /* KeyId */
         BKNI_Memset( &keyRead, 0, sizeof(keyRead) );
@@ -171,6 +181,14 @@ BERR_Code BHSM_OtpKey_GetInfo( BHSM_Handle hHsm, BHSM_OtpKeyInfo *pKeyInfo )
         if( rc != BERR_SUCCESS ) { goto BHSM_P_DONE_LABEL; }
         if( !keyRead.out.data[0] ) pKeyInfo->rootKeySwapAllow = true;
 
+        /* fixedDeobfuscationEnabled */
+        BKNI_Memset( &keyRead, 0, sizeof(keyRead) );
+        keyRead.in.sectionIndex = pKeyInfo->index;
+        keyRead.in.field = Bsp_Otp_KeyField_eMc0FixedDeobfuscationVariantEnable;
+        rc = BHSM_P_OtpMode0_KeyMc0Read( hHsm, &keyRead );
+        if( rc != BERR_SUCCESS ) { goto BHSM_P_DONE_LABEL; }
+        if( keyRead.out.data[0] ) pKeyInfo->fixedDeobfuscationEnabled = true;
+
         /* deobfuscationEnabled */
         BKNI_Memset( &keyRead, 0, sizeof(keyRead) );
         keyRead.in.sectionIndex = pKeyInfo->index;
@@ -216,4 +234,56 @@ BERR_Code BHSM_OtpKey_Program( BHSM_Handle hHsm, const BHSM_OtpKeyProgram *pKeyC
     hHsm->modules.pOtpKey->cached[pKeyConfig->index] = false;
 
     return 0;
+}
+
+/* check MSP to see if we can read the key Hash */
+static bool _isHashValid( BHSM_Handle hHsm,  unsigned index )
+{
+    unsigned mspIndex = 0xFFFFF;
+    BHSM_OtpMspRead mspRead;
+    BERR_Code rc = BERR_UNKNOWN;
+
+    switch( index ){
+       #ifdef BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_A
+        case 0: { mspIndex = BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_A; break; }
+       #endif
+       #ifdef BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_B
+        case 1: { mspIndex = BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_B; break; }
+       #endif
+       #ifdef BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_C
+        case 2: { mspIndex = BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_C; break; }
+       #endif
+       #ifdef BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_D
+        case 3: { mspIndex = BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_D; break; }
+       #endif
+       #ifdef BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_E
+        case 4: { mspIndex = BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_E; break; }
+       #endif
+       #ifdef BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_F
+        case 5: { mspIndex = BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_F; break; }
+       #endif
+       #ifdef BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_G
+        case 6: { mspIndex = BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_G; break; }
+       #endif
+       #ifdef BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_H
+        case 7: { mspIndex = BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_H; break; }
+       #endif
+        default: { return false; } /* we don't have access to the key's MSP */
+    }
+
+    BKNI_Memset( &mspRead, 0, sizeof(mspRead) );
+    mspRead.index = mspIndex;
+
+    rc = BHSM_OtpMsp_Read( hHsm, &mspRead );
+    if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); return false; }
+
+    #define BHSM_HASH_DISALLOWED_BIT 5
+
+    if( mspRead.valid & (1<<BHSM_HASH_DISALLOWED_BIT) &&
+        mspRead.data  & (1<<BHSM_HASH_DISALLOWED_BIT) )
+    {
+        return false;
+    }
+
+    return true;  /* it available. */
 }

@@ -215,12 +215,16 @@ bool v3d_build_tfu_cmd(V3D_TFU_COMMAND_T *cmd,
                                                                        src_desc, 0);
    if (cmd->src_memory_format == V3D_TFU_IFORMAT_INVALID)
       return false;
+   if (cmd->src_strides[0] > V3D_TFU_MAX_STRIDE)
+      return false;
 
    if (src_desc->num_planes > 1)
    {
       v3d_tfu_iformat_t iformat;
       iformat = gfx_buffer_desc_get_tfu_iformat_and_stride(&cmd->src_strides[1], src_desc, 1);
       if (iformat == V3D_TFU_IFORMAT_INVALID)
+         return false;
+      if (cmd->src_strides[1] > V3D_TFU_MAX_STRIDE)
          return false;
 
       assert(iformat == cmd->src_memory_format);

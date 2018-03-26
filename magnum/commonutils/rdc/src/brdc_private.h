@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -253,7 +253,7 @@ typedef struct BRDC_P_Handle
 
     /* STC flags */
 #ifdef BCHP_RDC_stc_flag_0
-    BRDC_Trigger                       aeStcTrigger[BRDC_MAX_STC_FLAG_COUNT];
+    bool                               abStcFlagUsed[BRDC_MAX_STC_FLAG_COUNT];
 #endif
 
     /* sync */
@@ -355,6 +355,7 @@ void BRDC_P_ReleaseSemaphore_isr
     ( BRDC_Handle                      hRdc,
       BRDC_SlotId                      eSlotId );
 
+#if (BCHP_RDC_sync_0_arm)
 BERR_Code BRDC_P_AcquireSync_isr
     ( BRDC_Handle                      hRdc,
       uint32_t                        *pulId );
@@ -363,14 +364,11 @@ BERR_Code BRDC_P_ReleaseSync_isr
     ( BRDC_Handle                      hRdc,
       uint32_t                         ulId );
 
-BERR_Code BRDC_P_ArmSync_isr
+void BRDC_P_ArmSync_isr
     ( BRDC_Handle                      hRdc,
       uint32_t                         ulSyncId,
       bool                             bArm );
-
-void BRDC_P_DumpSlot_isr
-    ( BRDC_Handle                      hRdc,
-      BRDC_SlotId                      eSlotId );
+#endif
 
 BERR_Code BRDC_P_Slots_SetList_NoArmSync_isr
     ( BRDC_Slot_Handle                *phSlots,

@@ -96,15 +96,7 @@ ifeq ($(USE_TEST_CA_TA), y)
 END_UTILS_OBJS := $(addprefix ${BPIFF_OBJ_ROOT}/,${UTILS_OBJS})
 endif
 
-ifeq ($(SAGE_VERSION), 2x)
-PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/$(SAGE_VERSION)
-else
-    ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
-        PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/Zeus5x/lib
-    else
-        PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/Zeus4x/lib
-    endif
-endif
+PRDY_LIB_PATH := ${BSEAV_TOP}/${CMNDRM_PRDY_LIBDIR}
 
 APP_BINS = $(addprefix ${BPIFF_OBJ_ROOT}/,${APPS})
 ifeq ($(USE_DIF), y)

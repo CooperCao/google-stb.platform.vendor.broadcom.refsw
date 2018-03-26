@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,7 +43,7 @@
 #include "bchp_priv.h"
 
 #include "bchp_common.h"
-#if defined BCHP_V3D_TFU_REG_START
+#if defined BCHP_V3D_TFU_REG_START || BCHP_V3D_TFUV3D_REG_START
 /* VC5 */
 #define USE_VC5 1
 
@@ -65,6 +65,12 @@
 #define V3D_TECH_VERSION   BCHP_V3D_CTL_0_IDENT0_TVER_DEFAULT
 #define V3D_REVISION       BCHP_V3D_CTL_0_IDENT1_REV_DEFAULT
 #define V3D_SUB_REV        BCHP_V3D_CTL_0_IDENT3_IPREV_DEFAULT
+#define V3D_HIDDEN_REV     0
+#elif defined(BCHP_V3D_CTLV3D_REG_START)
+#include "bchp_v3d_ctlv3d.h"
+#define V3D_TECH_VERSION   BCHP_V3D_CTLV3D_IDENT0_TVER_DEFAULT
+#define V3D_REVISION       BCHP_V3D_CTLV3D_IDENT1_REV_DEFAULT
+#define V3D_SUB_REV        BCHP_V3D_CTLV3D_IDENT3_IPREV_DEFAULT
 #define V3D_HIDDEN_REV     0
 #else
 #include "bchp_v3d_ctl.h"
@@ -91,14 +97,20 @@
 #if ( BCHP_CHIP==7445 )
 #include "bchp_v3d_gca.h"
 #endif
+#ifdef BCHP_V3D_TOP_GR_BRIDGE_REG_START
 #include "bchp_v3d_top_gr_bridge.h"
+#endif
 
 #ifdef USE_VC5
 #include "bchp_clkgen.h"
+
+#ifdef BCHP_V3D_HUB_CTL_REG_START
 #include "bchp_v3d_hub_ctl.h"
+#else
+#include "bchp_v3d_hub_ctlv3d.h"
+#endif
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
-#include "bchp_v3d_ctl_0.h"
 #else
 #include "bchp_v3d_ctl.h"
 #endif /* V3D_VER_AT_LEAST */
@@ -123,6 +135,10 @@ BDBG_MODULE(BCHP);
 
 #ifdef BCHP_RAAGA_DSP_MISC_REG_START
 #include "bchp_raaga_dsp_misc.h"
+#endif
+
+#ifdef BCHP_ASP_ARCSS_CTRL_REG_START
+#include "bchp_asp_arcss_ctrl.h"
 #endif
 
 #ifdef BCHP_SUN_TOP_CTRL_SW_INIT_0_SET_xpt_sw_init_MASK
@@ -238,6 +254,33 @@ BDBG_MODULE(BCHP);
 #define BCHP_SUN_TOP_CTRL_SW_INIT_1_SET_DATA ( LEAP_SW_INIT | SID_SW_INIT | VICE20_SW_INIT | VICE21_SW_INIT | V3D_TOP_SW_INIT | HVD2_SW_INIT | ASP_SW_INIT )
 
 #if !defined(EMULATION)
+
+#ifdef BCHP_ASP_ARCSS_CTRL_REG_START
+/* SW workaround to ensure we can hit the Raaga SW_INIT safely */
+static void BCHP_P_ResetAspCore(const BCHP_Handle hChip, const BREG_Handle hReg)
+{
+    uint32_t val;
+    BSTD_UNUSED(hChip);
+
+#ifdef BCHP_ASP_ARCSS_CTRL_WD_TIMER0_CONTROL
+    val = BREG_Read32(hReg,BCHP_ASP_ARCSS_CTRL_WD_TIMER0_CONTROL) ;
+    val = (val & ~(BCHP_MASK(ASP_ARCSS_CTRL_WD_TIMER0_CONTROL, STATUS)   |
+                   BCHP_MASK(ASP_ARCSS_CTRL_WD_TIMER0_CONTROL, INTRT_EN) |
+                   BCHP_MASK(ASP_ARCSS_CTRL_WD_TIMER0_CONTROL, COUNT_EN) ));
+    BREG_Write32(hReg,BCHP_ASP_ARCSS_CTRL_WD_TIMER0_CONTROL, val);
+#endif /* BCHP_ASP_ARCSS_CTRL_WD_TIMER0_CONTROL */
+
+#ifdef BCHP_ASP_ARCSS_CTRL_WD_TIMER1_CONTROL
+    val = BREG_Read32(hReg,BCHP_ASP_ARCSS_CTRL_WD_TIMER1_CONTROL) ;
+    val = (val & ~(BCHP_MASK(ASP_ARCSS_CTRL_WD_TIMER1_CONTROL, STATUS)   |
+                   BCHP_MASK(ASP_ARCSS_CTRL_WD_TIMER1_CONTROL, INTRT_EN) |
+                   BCHP_MASK(ASP_ARCSS_CTRL_WD_TIMER1_CONTROL, COUNT_EN) ));
+    BREG_Write32(hReg,BCHP_ASP_ARCSS_CTRL_WD_TIMER1_CONTROL, val);
+#endif /* BCHP_ASP_ARCSS_CTRL_WD_TIMER1_CONTROL */
+
+    return;
+}
+#endif  /* BCHP_ASP_ARCSS_CTRL_REG_START */
 
 #ifdef BCHP_RAAGA_DSP_MISC_REG_START
 /* SW workaround to ensure we can hit the Raaga SW_INIT safely */
@@ -367,6 +410,7 @@ static void BCHP_P_ResetV3dCore( const BCHP_Handle hChip, const BREG_Handle hReg
     while( BREG_Read32( hReg, BCHP_V3D_GCA_SAFE_SHUTDOWN_ACK) != 0x3 )
     {};
 #endif
+#ifdef BCHP_V3D_TOP_GR_BRIDGE_REG_START
 #ifdef BCHP_V3D_TOP_GR_BRIDGE_SW_INIT_0_SPARE_SW_INIT_SHIFT
     BREG_Write32(hReg, BCHP_V3D_TOP_GR_BRIDGE_SW_INIT_0, BCHP_FIELD_ENUM(V3D_TOP_GR_BRIDGE_SW_INIT_0, SPARE_SW_INIT, ASSERT));
     BREG_Write32(hReg, BCHP_V3D_TOP_GR_BRIDGE_SW_INIT_0, BCHP_FIELD_ENUM(V3D_TOP_GR_BRIDGE_SW_INIT_0, SPARE_SW_INIT, DEASSERT));
@@ -374,11 +418,17 @@ static void BCHP_P_ResetV3dCore( const BCHP_Handle hChip, const BREG_Handle hReg
     BREG_Write32(hReg, BCHP_V3D_TOP_GR_BRIDGE_SW_INIT_0, BCHP_FIELD_ENUM(V3D_TOP_GR_BRIDGE_SW_INIT_0, V3D_CLK_108_SW_INIT, ASSERT));
     BREG_Write32(hReg, BCHP_V3D_TOP_GR_BRIDGE_SW_INIT_0, BCHP_FIELD_ENUM(V3D_TOP_GR_BRIDGE_SW_INIT_0, V3D_CLK_108_SW_INIT, DEASSERT));
 #endif
+#endif
 
 #ifdef USE_VC5
 #if V3D_VER_AT_LEAST(3, 3, 0, 0)
+    #ifdef BCHP_V3D_CTL_0_INT_CLR
     BREG_Write32(hReg, BCHP_V3D_CTL_0_INT_CLR, ~0);
     BREG_Write32(hReg, BCHP_V3D_HUB_CTL_INT_CLR, ~0);
+    #else
+    BREG_Write32(hReg, BCHP_V3D_CTLV3D_INT_CLR, ~0);
+    BREG_Write32(hReg, BCHP_V3D_HUB_CTLV3D_INT_CLR, ~0);
+    #endif
 #endif /* V3D_VER_AT_LEAST */
 #else
     /* VC4 clear any pending interrupts */
@@ -404,6 +454,9 @@ BERR_Code BCHP_Cmn_ResetMagnumCores( const BCHP_Handle hChip )
     BCHP_P_ResetRaagaCore(hChip, hRegister); /* must be done first before all other cores. */
 #endif
     BCHP_P_ResetV3dCore(hChip, hRegister);
+#ifdef BCHP_ASP_ARCSS_CTRL_REG_START
+    BCHP_P_ResetAspCore(hChip, hRegister);
+#endif
 #endif
 
     /* Reset some cores. This is needed to avoid L1 interrupts before BXXX_Open can be called per core. */

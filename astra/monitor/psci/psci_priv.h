@@ -42,17 +42,30 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <config.h>
+#include <spinlock.h>
 
-/* Basic PSCI state defined by SBSA (ARM Server Base System Architecture */
-#define PSCI_STATE_OFF                  0
-#define PSCI_STATE_RUNNING              1
-#define PSCI_STATE_IDLE_STANDBY         2
-#define PSCI_STATE_IDLE_RETENTION       3
-#define PSCI_STATE_SLEEP                4
+/* Power states */
+/* This a superset of states that covers:
+ * - states as defined in PSCI AFFINITY_INFO
+ * - states as defined in PSCI NODE_HW_STATE
+ * - two-step CPU off procedure (detach and power-down)
+ */
+typedef enum psci_state {
+    PSCI_STATE_OFF = 0,
+    PSCI_STATE_OFF_PENDING, /* CPU specific, considered OFF in PSCI */
+    PSCI_STATE_ON_PENDING,
+    PSCI_STATE_ON,
+
+    /* ON states */
+    PSCI_STATE_RUN  = PSCI_STATE_ON,
+    PSCI_STATE_STANDBY,
+    PSCI_STATE_RETENTION,
+
+    PSCI_STATE_MAX
+} psci_state_t;
 
 /* PSCI CPU control block */
 typedef struct psci_cpu {
-    bool     valid;
     uint32_t index;
     uint32_t state;
 
@@ -64,7 +77,6 @@ typedef struct psci_cpu {
 
 /* PSCI cluster control block */
 typedef struct psci_cluster {
-    bool     valid;
     uint32_t index;
     uint32_t state;
 
@@ -77,6 +89,7 @@ typedef struct psci_cluster {
 /* PSCI system control block */
 typedef struct psci_system {
     uint32_t state;
+    spinlock_t lock;
 
     uint32_t num_clusters;
     struct psci_cluster *pclusters[MAX_NUM_CLUSTERS];

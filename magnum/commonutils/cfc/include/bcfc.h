@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,6 +50,7 @@ for CFC.
 #include "bmth_fix.h"
 #include "bmth_fix_matrix.h"
 #include "bchp_common.h"
+#include "bchp_cmp_0.h"
 #ifdef BCHP_HDR_CMP_0_REG_START
 #include "bchp_hdr_cmp_0.h"
 #endif
@@ -340,12 +341,14 @@ typedef struct BCFC_LRangeAdj
 #define BCFC_P_LR_Y_SHIFT           BCHP_HDR_CMP_0_V0_R0_LR_XY_0i_LRA_Y_SHIFT
 #define BCFC_P_LR_SLP_M_SHIFT       BCHP_HDR_CMP_0_V0_R0_LR_SLOPEi_SLOPE_M_SHIFT
 #define BCFC_P_LR_SLP_E_SHIFT       BCHP_HDR_CMP_0_V0_R0_LR_SLOPEi_SLOPE_E_SHIFT
+#define BCFC_P_LR_Y_MASK            BCHP_HDR_CMP_0_V0_R0_LR_XY_0i_LRA_Y_MASK
 
 #elif defined(BCHP_HDR_CMP_0_V0_R0_NL_LR_XY_0i_LRA_X_SHIFT)
 #define BCFC_P_LR_X_SHIFT           BCHP_HDR_CMP_0_V0_R0_NL_LR_XY_0i_LRA_X_SHIFT
 #define BCFC_P_LR_Y_SHIFT           BCHP_HDR_CMP_0_V0_R0_NL_LR_XY_0i_LRA_Y_SHIFT
 #define BCFC_P_LR_SLP_M_SHIFT       BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_SLOPE_M_SHIFT
 #define BCFC_P_LR_SLP_E_SHIFT       BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_SLOPE_E_SHIFT
+#define BCFC_P_LR_Y_MASK            BCHP_HDR_CMP_0_V0_R0_NL_LR_XY_0i_LRA_Y_MASK
 
 #else /* TODO: add support */
 #define BCFC_P_LR_X_SHIFT           0
@@ -720,6 +723,7 @@ const BCFC_Csc3x4 *BCFC_GetCsc3x4_Mc_isrsafe(BCFC_Colorimetry eColorimetry);
 const BCFC_Csc3x3 *BCFC_GetCsc3x3_MbIn_isrsafe(BCFC_Colorimetry eColorimetry);
 const BCFC_Csc3x3 *BCFC_GetCsc3x3_MbOut_isrsafe(BCFC_Colorimetry eColorimetry);
 const BCFC_Csc3x4 *BCFC_GetCsc3x4_Cr0p85Adj_NonBT2020_to_BT2020_isrsafe(void);
+const BCFC_Csc3x4 *BCFC_GetCsc3x4_Cr0p85Adj_BT2020_to_NonBT2020_isrsafe(void);
 const BCFC_Csc3x4 *BCFC_GetCsc3x4_YCbCr_Limited_to_Full_isrsafe(void);
 const BCFC_Csc3x4 *BCFC_GetCsc3x4_Identity_isrsafe(void);
 const BCFC_Csc3x4 *BCFC_GetCsc3x4_BT709_YCbCrtoRGB_isrsafe(void);
@@ -735,7 +739,7 @@ void BCFC_Csc_Mult_isrsafe
 
 /* get the 4x5 matrix to convert gfx YCbCr to RGB
  */
-BERR_Code BCFC_GetMatrixForGfxYCbCr2Rgb_isrsafe
+void BCFC_GetMatrixForGfxYCbCr2Rgb_isrsafe
     ( BAVC_MatrixCoefficients          eMatrixCoeffs,
       uint32_t                         ulShift,
       int32_t                         *pulCoeffs);

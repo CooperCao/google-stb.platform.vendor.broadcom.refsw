@@ -1,48 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bstd.h" /* also includes berr, bdbg, etc */
 #include "bkni.h"
 
+#include "bmuxlib_list.h"
 #include "bmuxlib_output.h"
+#include "bmuxlib_debug.h"
+#include "bmuxlib_alloc.h"
 
 BDBG_MODULE(BMUXLIB_OUTPUT);
 BDBG_FILE_MODULE(BMUXLIB_OUTPUT_DESC);    /* enables descriptor diagnostics */
@@ -57,6 +57,9 @@ BDBG_OBJECT_ID(BMUXlib_Output_Context);
 #define BMUXLIB_OUTPUT_P_SIGNATURE_CREATESETTINGS   0x79858401
 
 #define OUTPUT_ID(x) ((x)->stCreateSettings.uiOutputID)
+
+typedef struct BMUXlib_StorageDescriptor* BMUXlib_StorageDescriptor_Handle;
+BMUXLIB_LIST_DEFINE( BMUXlib_StorageDescriptor_Handle )
 
 typedef struct
 {
@@ -73,24 +76,33 @@ typedef struct BMUXlib_Output_Context
    BMUXlib_Output_CreateSettings stCreateSettings;
 
    /* incoming descriptors ...*/
-   BMUXlib_Output_P_MetaDescriptor *astInDescriptors;
+   struct
+   {
+      BMUXLIB_P_ENTRY_TYPE( BMUXlib_Output_P_MetaDescriptor, astDescriptors )
+
+      unsigned uiReadIndex;
+      unsigned uiQueuedIndex;
+      unsigned uiWriteIndex;
+   } stInput;
 
    /* outgoing vectored descriptors ...
       NOTE: there is one of these for each incoming descriptor - this ensures
       that we have enough space for the worst-case scenario where all incoming
       descriptors are at discontinuous offsets
       This buffer is accessed using the indexes for the input descriptors */
-   BMUXlib_StorageDescriptor *astOutDescriptors;
+   struct
+   {
+      BMUXLIB_P_ENTRY_TYPE(BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_StorageDescriptor_Handle), astDescriptors )
+      unsigned uiReadIndex;
+      unsigned uiWriteIndex;
 
-   size_t uiReadIndex;
-   size_t uiQueuedIndex;
-   size_t uiWriteIndex;
+      BMUXLIB_LIST_TYPE(BMUXlib_StorageDescriptor_Handle) stPendingList;
+      BMUXLIB_LIST_TYPE(BMUXlib_StorageDescriptor_Handle) stQueuedList;
+   } stOutput;
 
    uint64_t uiCurrentOffset;  /* current position within the output stream (0 = start of stream) */
    uint64_t uiEndOffset;      /* offset of the end of the output stream (may or may not be the same as uiCurrentOffset) */
    uint64_t uiExpectedOffset; /* expected offset of next outgoing descriptor to process (discontinuity detection) */
-
-   bool bDescWaiting;         /* output descriptor is waiting to be queued to storage */
 
 #if BDBG_DEBUG_BUILD
    uint32_t uiMaxUsage;
@@ -107,11 +119,7 @@ BMUXlib_Output_GetDefaultCreateSettings(
 
    BDBG_ASSERT( pstSettings );
 
-   BKNI_Memset(
-      pstSettings,
-      0,
-      sizeof ( BMUXlib_Output_CreateSettings )
-      );
+   BKNI_Memset( pstSettings, 0, sizeof ( *pstSettings ) );
 
    pstSettings->uiSignature = BMUXLIB_OUTPUT_P_SIGNATURE_CREATESETTINGS;
    pstSettings->uiCount = 256;
@@ -125,7 +133,7 @@ BMUXlib_Output_Create(
    const BMUXlib_Output_CreateSettings *pstSettings
    )
 {
-   size_t uiAllocationSize;
+   BERR_Code rc = BERR_SUCCESS;
    BMUXlib_Output_Handle hOutput = NULL;
 
    BDBG_ENTER( BMUXlib_Output_Create );
@@ -146,7 +154,7 @@ BMUXlib_Output_Create(
       return BERR_TRACE( BERR_INVALID_PARAMETER );
    }
 
-   hOutput = ( BMUXlib_Output_Handle ) BKNI_Malloc( sizeof( BMUXlib_Output_Context ) );
+   hOutput = ( BMUXlib_Output_Handle ) BMUXlib_Malloc( sizeof( BMUXlib_Output_Context ) );
 
    if ( NULL == hOutput )
    {
@@ -154,47 +162,43 @@ BMUXlib_Output_Create(
       return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
    }
 
-   BKNI_Memset(
-      hOutput,
-      0,
-      sizeof( BMUXlib_Output_Context )
-      );
+   BKNI_Memset( hOutput, 0, sizeof( *hOutput ) );
 
    BDBG_OBJECT_SET(hOutput, BMUXlib_Output_Context);
    hOutput->stCreateSettings = *pstSettings;
 
    /* allocate the incoming descriptor and metadata array ... */
-   uiAllocationSize = sizeof(BMUXlib_Output_P_MetaDescriptor) * hOutput->stCreateSettings.uiCount;
-   hOutput->astInDescriptors = (BMUXlib_Output_P_MetaDescriptor *)BKNI_Malloc(uiAllocationSize);
-   if ( NULL == hOutput->astInDescriptors )
-   {
-      BMUXlib_Output_Destroy( hOutput );
-      BDBG_LEAVE( BMUXlib_Output_Create );
-      return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
-   }
-
-   BKNI_Memset(hOutput->astInDescriptors, 0, uiAllocationSize);
+   BMUXLIB_P_ENTRY_ALLOCATE(
+         BMUXlib_Output_P_MetaDescriptor,
+         hOutput->stInput.astDescriptors,
+         hOutput->stCreateSettings.uiCount,
+         output_alloc_desc_error )
 
    /*
     * Size, allocate and clear the storage descriptor array
     */
-   uiAllocationSize = sizeof(BMUXlib_StorageDescriptor) * hOutput->stCreateSettings.uiCount;
-   hOutput->astOutDescriptors = (BMUXlib_StorageDescriptor *)BKNI_Malloc(uiAllocationSize);
-   if (NULL == hOutput->astOutDescriptors)
-   {
-      BMUXlib_Output_Destroy( hOutput );
-      BDBG_LEAVE( BMUXlib_Output_Create );
-      return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
-   }
-   BKNI_Memset(hOutput->astOutDescriptors, 0, uiAllocationSize);
+   BMUXLIB_P_ENTRY_ALLOCATE(
+         BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_StorageDescriptor_Handle),
+         hOutput->stOutput.astDescriptors,
+         hOutput->stCreateSettings.uiCount,
+         output_alloc_desc_error )
+
+   BMUXLIB_LIST_INIT( &hOutput->stOutput.stPendingList );
+   BMUXLIB_LIST_INIT( &hOutput->stOutput.stQueuedList );
 
    *phOutput = hOutput;
+   goto output_alloc_done;
 
+output_alloc_desc_error:
+   BMUXlib_Output_Destroy( hOutput );
+   rc = BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
+
+output_alloc_done:
    BDBG_LEAVE( BMUXlib_Output_Create );
-   return BERR_SUCCESS;
+   return BERR_TRACE(rc);
 }
 
-BERR_Code
+void
 BMUXlib_Output_Destroy(
    BMUXlib_Output_Handle hOutput
    )
@@ -208,22 +212,25 @@ BMUXlib_Output_Destroy(
                                           hOutput->uiMaxUsage,
                                           (int)hOutput->stCreateSettings.uiCount));
 
-   if ( NULL != hOutput->astInDescriptors )
-   {
-      BKNI_Free(hOutput->astInDescriptors);
-   }
+   BMUXLIB_P_ENTRY_FREE(
+         BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_StorageDescriptor_Handle),
+         hOutput->stOutput.astDescriptors,
+         hOutput->stCreateSettings.uiCount
+         );
 
-   if (NULL != hOutput->astOutDescriptors)
-   {
-      BKNI_Free(hOutput->astOutDescriptors);
-   }
+
+   BMUXLIB_P_ENTRY_FREE(
+         BMUXlib_Output_P_MetaDescriptor,
+         hOutput->stInput.astDescriptors,
+         hOutput->stCreateSettings.uiCount
+         );
 
    BDBG_OBJECT_DESTROY(hOutput, BMUXlib_Output_Context);
    BKNI_Free( hOutput );
 
    BDBG_LEAVE( BMUXlib_Output_Destroy );
 
-   return BERR_TRACE( BERR_SUCCESS );
+   return;
 }
 
 bool
@@ -234,7 +241,7 @@ BMUXlib_Output_IsSpaceAvailable(
    size_t uiTempWriteOffset;
 
    BDBG_OBJECT_ASSERT(hOutput, BMUXlib_Output_Context);
-   uiTempWriteOffset = hOutput->uiWriteIndex;
+   uiTempWriteOffset = hOutput->stInput.uiWriteIndex;
    uiTempWriteOffset++;
 
    if ( uiTempWriteOffset >= hOutput->stCreateSettings.uiCount )
@@ -242,7 +249,7 @@ BMUXlib_Output_IsSpaceAvailable(
       uiTempWriteOffset -= hOutput->stCreateSettings.uiCount;
    }
 
-   return ( uiTempWriteOffset != hOutput->uiReadIndex );
+   return ( uiTempWriteOffset != hOutput->stInput.uiReadIndex );
 }
 
 bool
@@ -251,7 +258,7 @@ BMUXlib_Output_IsDescriptorPendingCompletion(
    )
 {
    BDBG_OBJECT_ASSERT(hOutput, BMUXlib_Output_Context);
-   return ( hOutput->uiReadIndex != hOutput->uiWriteIndex );
+   return ( hOutput->stInput.uiReadIndex != hOutput->stInput.uiWriteIndex );
 }
 
 bool
@@ -260,7 +267,7 @@ BMUXlib_Output_IsDescriptorPendingQueue(
    )
 {
    BDBG_OBJECT_ASSERT(hOutput, BMUXlib_Output_Context);
-   return ( hOutput->uiQueuedIndex != hOutput->uiWriteIndex );
+   return ( hOutput->stInput.uiQueuedIndex != hOutput->stInput.uiWriteIndex );
 }
 
 BERR_Code
@@ -278,7 +285,7 @@ BMUXlib_Output_AddNewDescriptor(
 
    if ( true == BMUXlib_Output_IsSpaceAvailable( hOutput ) )
    {
-      BMUXlib_Output_P_MetaDescriptor *pMetaDesc = &hOutput->astInDescriptors[hOutput->uiWriteIndex];
+      BMUXlib_Output_P_MetaDescriptor *pMetaDesc = hOutput->stInput.astDescriptors[hOutput->stInput.uiWriteIndex];
 
       /* save the original descriptor for supplying back via callback ... */
       pMetaDesc->stDesc = *pstDescriptor;
@@ -327,13 +334,13 @@ BMUXlib_Output_AddNewDescriptor(
          }
          else
          {
-            BKNI_Memset( &pMetaDesc->stCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
+            BKNI_Memset( &pMetaDesc->stCallbackInfo, 0, sizeof( pMetaDesc->stCallbackInfo ) );
          }
 
-         hOutput->uiWriteIndex++;
-         if ( hOutput->uiWriteIndex >= hOutput->stCreateSettings.uiCount )
+         hOutput->stInput.uiWriteIndex++;
+         if ( hOutput->stInput.uiWriteIndex >= hOutput->stCreateSettings.uiCount )
          {
-            hOutput->uiWriteIndex -= hOutput->stCreateSettings.uiCount;
+            hOutput->stInput.uiWriteIndex -= hOutput->stCreateSettings.uiCount;
          }
 #if BDBG_DEBUG_BUILD
          hOutput->uiUsageCount++;
@@ -353,15 +360,17 @@ BMUXlib_Output_AddNewDescriptor(
    return rc;
 }
 
+#define BMUXLIB_OUTPUT_P_MAX_VECTORS_PER_DESC (1 + ( ( BMUXLIB_P_MAX_ALLOC_SIZE - sizeof(BMUXlib_StorageDescriptor) ) / sizeof(BMUXlib_StorageBuffer) ) )
+#define BMUXLIB_OUTPUT_P_STORAGE_DESC_SIZE(_numDesc) ( sizeof(BMUXlib_StorageDescriptor) + sizeof(BMUXlib_StorageBuffer)*(_numDesc-1) )
+
 BERR_Code
 BMUXlib_Output_ProcessNewDescriptors(
    BMUXlib_Output_Handle hOutput
    )
 {
    size_t uiQueuedCount;
-   uint64_t uiExpectedOffset = 0;
-   bool bExpectedWriteOperation = false;
    BERR_Code rc = BERR_SUCCESS;
+   BMUXLIB_LIST_ENTRY_TYPE( BMUXlib_StorageDescriptor_Handle ) *pSDescEntry;
    BMUXlib_StorageDescriptor *pSDesc;
    BMUXlib_StorageObjectInterface *pstStorage = &hOutput->stCreateSettings.stStorage;
 
@@ -369,79 +378,63 @@ BMUXlib_Output_ProcessNewDescriptors(
 
    BDBG_OBJECT_ASSERT(hOutput, BMUXlib_Output_Context);
 
-   /* if a previously created storage descriptor is waiting to be queued, send it first ...*/
-   if (hOutput->bDescWaiting)
+   while (hOutput->stInput.uiQueuedIndex != hOutput->stInput.uiWriteIndex)
    {
-      BDBG_MODULE_MSG(BMUXLIB_OUTPUT_DESC, ("[%2.2d]: Re-Queueing waiting storage descriptor", OUTPUT_ID(hOutput)));
-      pSDesc = &hOutput->astOutDescriptors[hOutput->uiQueuedIndex];
-      rc = pstStorage->pfAddDescriptors(pstStorage->pContext, pSDesc, 1, &uiQueuedCount);
-      hOutput->bDescWaiting = (uiQueuedCount != 1);
-      if (BERR_SUCCESS == rc && !hOutput->bDescWaiting)
+      uint32_t uiCount, uiInputDescriptorCount=0;
+
+      /* Find out how many input descriptors will be written contiguously to the output file */
       {
-         hOutput->uiQueuedIndex += pSDesc->uiVectorCount;
-         if ( hOutput->uiQueuedIndex == hOutput->stCreateSettings.uiCount )
+         unsigned uiCurrentIndex = hOutput->stInput.uiQueuedIndex;
+         uint64_t uiExpectedOffset = 0;
+         bool bExpectedWriteOperation = false;
+         BMUXlib_Output_P_MetaDescriptor *pMetaDesc = hOutput->stInput.astDescriptors[uiCurrentIndex];
+         BMUXlib_Output_StorageDescriptor *pInDesc = &pMetaDesc->stDesc.stStorage;
+
+         uiExpectedOffset = pMetaDesc->uiOffset;
+         bExpectedWriteOperation = pInDesc->bWriteOperation;
+
+         while ( ( uiExpectedOffset == pMetaDesc->uiOffset )
+                 && ( bExpectedWriteOperation == pInDesc->bWriteOperation )
+               )
          {
-            hOutput->uiQueuedIndex -= hOutput->stCreateSettings.uiCount;
+            uiExpectedOffset += pInDesc->uiLength;
+            uiCurrentIndex++;
+            uiCurrentIndex %= hOutput->stCreateSettings.uiCount;
+            uiInputDescriptorCount++;
+
+            if ( uiCurrentIndex ==  hOutput->stInput.uiWriteIndex ) break;
+
+            pMetaDesc = hOutput->stInput.astDescriptors[uiCurrentIndex];
+            pInDesc = &pMetaDesc->stDesc.stStorage;
          }
       }
-   }
-   while (BERR_SUCCESS == rc && !hOutput->bDescWaiting && hOutput->uiQueuedIndex != hOutput->uiWriteIndex)
-   {
-      /* previous queuing operation completed, and there are new descriptors to process ... */
-      uint32_t uiCurrentIndex = hOutput->uiQueuedIndex;    /* index into the waiting output descriptors */
-      uint32_t uiCount, uiNewDescCount;
-      /* determine how many new descriptors are contiguous ... */
-      if ( hOutput->uiQueuedIndex < hOutput->uiWriteIndex )
-      {
-         uiNewDescCount = hOutput->uiWriteIndex - hOutput->uiQueuedIndex;
-      }
-      else
-      {
-         /* new descriptors split around end of buffer, so process those until the end of the buffer ... */
-         uiNewDescCount = hOutput->stCreateSettings.uiCount - hOutput->uiQueuedIndex;
-      }
-      BDBG_MODULE_MSG(BMUXLIB_OUTPUT_DESC, ("[%2.2d]: Processing %d new descriptors", OUTPUT_ID(hOutput), uiNewDescCount));
 
-      for (uiCount = 0; uiCount < uiNewDescCount; uiCount++, uiCurrentIndex++)
+      /* Generate one vectorized output descriptor for all contigious input descriptors */
+      if ( uiInputDescriptorCount > BMUXLIB_OUTPUT_P_MAX_VECTORS_PER_DESC ) uiInputDescriptorCount = BMUXLIB_OUTPUT_P_MAX_VECTORS_PER_DESC;
+      BDBG_MODULE_MSG(BMUXLIB_OUTPUT_DESC, ("[%2.2d]: Processing %d new descriptors", OUTPUT_ID(hOutput), uiInputDescriptorCount));
+
+      /* Get a free storage descriptor handle */
+      if ( hOutput->stOutput.uiReadIndex == ( ( hOutput->stOutput.uiWriteIndex + 1 ) % hOutput->stCreateSettings.uiCount ) ) break; /* We don't have any more storage descriptor handles */
+
+      pSDescEntry = hOutput->stOutput.astDescriptors[hOutput->stOutput.uiWriteIndex];
+      /* Allocate a storage descriptor large enough to hold all of the input descriptors */
+      *BMUXLIB_LIST_ENTRY_DATA(pSDescEntry) = (BMUXlib_StorageDescriptor_Handle) BMUXlib_Malloc(BMUXLIB_OUTPUT_P_STORAGE_DESC_SIZE(uiInputDescriptorCount) );
+      if (NULL == *BMUXLIB_LIST_ENTRY_DATA(pSDescEntry)) break;
+      pSDesc = *BMUXLIB_LIST_ENTRY_DATA(pSDescEntry);
+      BKNI_Memset(pSDesc, 0, BMUXLIB_OUTPUT_P_STORAGE_DESC_SIZE(uiInputDescriptorCount));
+
+      for (uiCount = 0; uiCount < uiInputDescriptorCount; uiCount++)
       {
          /* NOTE: every storage descriptor is created aligned to a queued index boundary
             Storage descriptors are always output one-at-a-time to storage
             Queued Index is updated throughout this loop */
-         BMUXlib_Output_P_MetaDescriptor *pMetaDesc = &hOutput->astInDescriptors[uiCurrentIndex];
+         BMUXlib_Output_P_MetaDescriptor *pMetaDesc = hOutput->stInput.astDescriptors[hOutput->stInput.uiQueuedIndex];
          BMUXlib_Output_StorageDescriptor *pInDesc = &pMetaDesc->stDesc.stStorage;
-         /* if the offset is discontinuous, or the read/write operation changes,
-               then output the current storage descriptor (descriptor is done) */
-         if ((0 != uiCount) && ((pMetaDesc->uiOffset != uiExpectedOffset)
-               || (pInDesc->bWriteOperation != bExpectedWriteOperation)))
-         {
-            /* descriptor to send to storage is the one at the queued index */
-            pSDesc =  &hOutput->astOutDescriptors[hOutput->uiQueuedIndex];
-            rc = pstStorage->pfAddDescriptors(pstStorage->pContext, pSDesc, 1, &uiQueuedCount);
-            if (BERR_SUCCESS != rc)
-            {
-               BDBG_ERR(("[%2.2d]: Queue to storage failed with a return code of %d", OUTPUT_ID(hOutput), rc));
-               break;
-            }
-            hOutput->bDescWaiting = (1 != uiQueuedCount);
-            if (!hOutput->bDescWaiting)
-            {
-               hOutput->uiQueuedIndex += pSDesc->uiVectorCount;
-               /* NOTE: no need to wrap the index here - we know these must be contiguous */
-            }
-            else
-               break;      /* done! */
-         }
-         /* fetch the updated storage descriptor location ... */
-         pSDesc =  &hOutput->astOutDescriptors[hOutput->uiQueuedIndex];
 
-         if (uiCurrentIndex == hOutput->uiQueuedIndex)
+         if ( 0 == uiCount )
          {
-            /* start a new storage descriptor (i.e. fill in the main
-               descriptor information) */
             pSDesc->uiOffset = pMetaDesc->uiOffset;
             pSDesc->bWriteOperation = pInDesc->bWriteOperation;
-            bExpectedWriteOperation = pSDesc->bWriteOperation;
-            pSDesc->uiVectorCount = 0;
          }
 
          /* write the vector entry for this incoming descriptor ... */
@@ -457,37 +450,43 @@ BMUXlib_Output_ProcessNewDescriptors(
             pSDesc->iov[pSDesc->uiVectorCount].pBufferAddress = (void *) ((uint8_t *)BMMA_Lock( pInDesc->hBlock ) + pInDesc->uiBlockOffset );
          }
          pSDesc->iov[pSDesc->uiVectorCount].uiLength = pInDesc->uiLength;
-         uiExpectedOffset = pMetaDesc->uiOffset + pInDesc->uiLength;
 
-         BDBG_MODULE_MSG(BMUXLIB_OUTPUT_DESC, ("[%2.2d]: +Desc[%d]: cb: %p (d: %p), %d bytes %s %p @ "BDBG_UINT64_FMT" (%d) [abs:"BDBG_UINT64_FMT"]: sd: %p, vc:%d",
-            OUTPUT_ID(hOutput), uiCurrentIndex, (void *)(unsigned long)(pMetaDesc->stCallbackInfo.pCallback), pMetaDesc->stCallbackInfo.pCallbackData,
+         BDBG_MODULE_MSG(BMUXLIB_OUTPUT_DESC, ("[%2.2d]: +Desc[%u]: cb: %p (d: %p), %d bytes %s %p @ "BDBG_UINT64_FMT" (%d) [abs:"BDBG_UINT64_FMT"]: sd: %p, vc:%d",
+            OUTPUT_ID(hOutput), hOutput->stInput.uiQueuedIndex, (void *)(unsigned long)(pMetaDesc->stCallbackInfo.pCallback), pMetaDesc->stCallbackInfo.pCallbackData,
             (int)pInDesc->uiLength, (pInDesc->bWriteOperation)?"from":"to", pInDesc->pBufferAddress,
             BDBG_UINT64_ARG(pInDesc->uiOffset), pInDesc->eOffsetFrom, BDBG_UINT64_ARG(pMetaDesc->uiOffset), (void *)pSDesc, pSDesc->uiVectorCount));
 
          pSDesc->uiVectorCount++;
+         hOutput->stInput.uiQueuedIndex++;
+         hOutput->stInput.uiQueuedIndex %= hOutput->stCreateSettings.uiCount;
       } /* end: for each new descriptor */
 
-      if (BERR_SUCCESS == rc && !hOutput->bDescWaiting)
-      {
-         /* output the last descriptor created */
-         pSDesc =  &hOutput->astOutDescriptors[hOutput->uiQueuedIndex];
-         rc = pstStorage->pfAddDescriptors(pstStorage->pContext, pSDesc, 1, &uiQueuedCount);
-         if (BERR_SUCCESS != rc)
-         {
-            BDBG_ERR(("[%2.2d]: Queue to storage failed with a return code of %d", OUTPUT_ID(hOutput), rc));
-            break;
-         }
-         hOutput->bDescWaiting = (1 != uiQueuedCount);
-         if (!hOutput->bDescWaiting)
-         {
-            hOutput->uiQueuedIndex += pSDesc->uiVectorCount;
-            if ( hOutput->uiQueuedIndex == hOutput->stCreateSettings.uiCount )
-            {
-               hOutput->uiQueuedIndex -= hOutput->stCreateSettings.uiCount;
-            }
-         }
-      }
+      BDBG_ASSERT( pSDesc->uiVectorCount == uiInputDescriptorCount );
+
+      /* Add the descriptor to the pending queue */
+      BMUXLIB_LIST_ADD( &hOutput->stOutput.stPendingList, pSDescEntry );
+      hOutput->stOutput.uiWriteIndex++;
+      hOutput->stOutput.uiWriteIndex %= hOutput->stCreateSettings.uiCount;
    } /* end: while descriptors to process */
+
+   /* Queue pending descriptors to the output */
+   while (!BMUXLIB_LIST_ISEMPTY( &hOutput->stOutput.stPendingList ))
+   {
+      BMUXLIB_LIST_REMOVE( &hOutput->stOutput.stPendingList, &pSDescEntry );
+      pSDesc = *BMUXLIB_LIST_ENTRY_DATA(pSDescEntry);
+      rc = pstStorage->pfAddDescriptors(pstStorage->pContext, pSDesc, 1, &uiQueuedCount);
+      if ( (BERR_SUCCESS == rc) && ( 1 == uiQueuedCount ) )
+      {
+         BMUXLIB_LIST_ADD( &hOutput->stOutput.stQueuedList, pSDescEntry );
+      }
+      else
+      {
+         /* Put the output descriptor back to the *beginning* of the pending list */
+         BDBG_MODULE_MSG(BMUXLIB_OUTPUT_DESC, ("[%2.2d]: Re-Queueing waiting storage descriptor", OUTPUT_ID(hOutput)));
+         BMUXLIB_LIST_PUSH( &hOutput->stOutput.stPendingList, pSDescEntry );
+         break;
+      }
+   }
 
    BDBG_LEAVE( BMUXlib_Output_ProcessNewDescriptors );
 
@@ -515,18 +514,23 @@ BERR_Code BMUXlib_Output_ProcessCompletedDescriptors( BMUXlib_Output_Handle hOut
       while ( 0 != uiCompletedCount )
       {
          /* each new descriptor is aligned to an incoming descriptor boundary ... */
-         BMUXlib_StorageDescriptor *pDesc = &hOutput->astOutDescriptors[hOutput->uiReadIndex];
+         BMUXLIB_LIST_ENTRY_TYPE( BMUXlib_StorageDescriptor_Handle ) *pSDescEntry;
+         BMUXlib_StorageDescriptor *pDesc;
+
+         BMUXLIB_LIST_REMOVE( &hOutput->stOutput.stQueuedList, &pSDescEntry );
+         pDesc = *BMUXLIB_LIST_ENTRY_DATA(pSDescEntry);
+
          /* for the number of iov in the descriptor, iterate over the input descriptors
                and invoke the callbacks, and free the required out descriptors memory */
          /* NOTE: We know these must be contiguous, so no need to check for wrap */
 
          for (i = 0; i < pDesc->uiVectorCount; i++)
          {
-            BMUXlib_Output_P_MetaDescriptor *pMetaDesc = &hOutput->astInDescriptors[hOutput->uiReadIndex + i];
+            BMUXlib_Output_P_MetaDescriptor *pMetaDesc = hOutput->stInput.astDescriptors[hOutput->stInput.uiReadIndex];
             BMUXlib_Output_StorageDescriptor *pInDesc = &pMetaDesc->stDesc.stStorage;
 
             BDBG_MODULE_MSG(BMUXLIB_OUTPUT_DESC, ("[%2.2d]: -Desc[%d]: cb: %p (d: %p), %d bytes %s %p @ "BDBG_UINT64_FMT" (%d) [abs:"BDBG_UINT64_FMT"]: sd:%p, vc:%d",
-            OUTPUT_ID(hOutput), (int)(hOutput->uiReadIndex + i), (void *)(unsigned long)pMetaDesc->stCallbackInfo.pCallback, pMetaDesc->stCallbackInfo.pCallbackData,
+            OUTPUT_ID(hOutput), (int)(hOutput->stInput.uiReadIndex + i), (void *)(unsigned long)pMetaDesc->stCallbackInfo.pCallback, pMetaDesc->stCallbackInfo.pCallbackData,
             (int)pInDesc->uiLength, (pInDesc->bWriteOperation)?"from":"to", pInDesc->pBufferAddress,
             BDBG_UINT64_ARG(pInDesc->uiOffset), pInDesc->eOffsetFrom, BDBG_UINT64_ARG(pMetaDesc->uiOffset), (void *)pDesc, i));
 
@@ -539,14 +543,17 @@ BERR_Code BMUXlib_Output_ProcessCompletedDescriptors( BMUXlib_Output_Handle hOut
             {
                pMetaDesc->stCallbackInfo.pCallback(pMetaDesc->stCallbackInfo.pCallbackData, &pMetaDesc->stDesc);
             }
+
+            /* account for the incoming descriptors that made up this output descriptor ... */
+            hOutput->stInput.uiReadIndex++;
+            hOutput->stInput.uiReadIndex %= hOutput->stCreateSettings.uiCount;
          }
-         /* account for the incoming descriptors that made up this output descriptor ... */
-         hOutput->uiReadIndex += pDesc->uiVectorCount;
-         BDBG_ASSERT(hOutput->uiReadIndex <= hOutput->stCreateSettings.uiCount);
-         if ( hOutput->uiReadIndex >= hOutput->stCreateSettings.uiCount )
-         {
-            hOutput->uiReadIndex -= hOutput->stCreateSettings.uiCount;
-         }
+
+         BKNI_Free(*BMUXLIB_LIST_ENTRY_DATA(pSDescEntry));
+         *BMUXLIB_LIST_ENTRY_DATA(pSDescEntry) = 0;
+
+         hOutput->stOutput.uiReadIndex++;
+         hOutput->stOutput.uiReadIndex %= hOutput->stCreateSettings.uiCount;
 
          uiCompletedCount--;
 #if BDBG_DEBUG_BUILD

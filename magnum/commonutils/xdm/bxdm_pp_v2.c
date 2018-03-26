@@ -1286,6 +1286,15 @@ static void BXDM_PP_S_SnapShotFirmwareState_isr(
    else
    {
       pLocalState->uiStcSnapshot = pstDisplayInterruptInfo->astSTC[hXdmPP->stDMConfig.uiSTCIndex].uiValue;
+
+      /* SWSTB-3955: use STC's directly from XPT. */
+
+      if ( true == hXdmPP->stDMConfig.bUseXPTSTC
+           && true == pstDisplayInterruptInfo->astSTCFromXPT[hXdmPP->stDMConfig.uiSTCIndex].bValid )
+      {
+         pLocalState->uiStcSnapshot = pstDisplayInterruptInfo->astSTCFromXPT[hXdmPP->stDMConfig.uiSTCIndex].uiValue;
+         pLocalState->bUsingXPTSTC = true;
+      }
    }
 
    /* SW7405-3085: Channel Synchronization */
@@ -2350,6 +2359,9 @@ BXDM_PP_S_ValidateStartSettings_isr(
     * preprocess these values to simplify the logic in the output module. */
 
    hXdmPP->stDMConfig.stColorOverride = pstStartSettings->stColorOverride;
+
+   /* Specifies whether to use the STC's read from XPT or HVD. */
+   hXdmPP->stDMConfig.bUseXPTSTC = pstStartSettings->bUseXPTSTC;
 
    BDBG_LEAVE(BXDM_PP_S_ValidateStartSettings_isr);
 

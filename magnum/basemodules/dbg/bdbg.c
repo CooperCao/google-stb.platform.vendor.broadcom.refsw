@@ -146,7 +146,7 @@ static void BDBG_P_Dequeue_FreeMemory(void);
 static void BDBG_P_Dequeue_FilterString(char *str);
 
 #ifdef BDBG_ANDROID_LOG
-#include <cutils/log.h>
+#include <log/log.h>
 static android_LogPriority BDBG_P_Level2Android(BDBG_Level level)
 {
   switch ( level ) {

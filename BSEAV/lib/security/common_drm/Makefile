@@ -61,6 +61,8 @@ ifneq ($(filter $(NEXUS_SECURITY_API_VERSION),1 2),$(NEXUS_SECURITY_API_VERSION)
 $(error Unsupported NEXUS_SECURITY_API_VERSION = $(NEXUS_SECURITY_API_VERSION))
 endif
 
+include lib/prdy_libdir.inc
+
 # Convert include paths into single variable
 NEXUS_APP_INCLUDE_PATHS := $(foreach module, $(NEXUS_MODULES), $(NEXUS_$(module)_PUBLIC_INCLUDES))
 NEXUS_APP_DEFINES := $(foreach module, $(NEXUS_MODULES), $(NEXUS_$(module)_DEFINES))
@@ -69,13 +71,6 @@ NEXUS_APP_DEFINES += $(foreach module, $(NEXUS_MODULES),NEXUS_HAS_$(module))
 # Convert magnum includes into the same variable
 NEXUS_APP_INCLUDE_PATHS += $(foreach module, $(MAGNUM_MODULES), $($(module)_INCLUDES))
 NEXUS_APP_DEFINES += $(foreach module, $(MAGNUM_MODULES), $($(module)_DEFINES))
-
-# Set directory based on architecture
-ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux arm-linux), ${B_REFSW_ARCH})
-ARCH_DIR=arm
-else
-ARCH_DIR=mips
-endif
 
 # Define job slots for parallel build dependencies
 NJOBS ?= 1
@@ -143,37 +138,21 @@ PRDY_LDFLAGS += --sysroot=$(ANDROID_LINKER_SYSROOT)
 endif # end of ANDROID_LINKER_SYSROOT
 PRDY_LDFLAGS += -lnexus -llog
 
-ifeq ($(SAGE_VERSION), 2x)
-PRDY_LIB_PATH := ${URSR_TOP}/BSEAV/thirdparty/playready/2.5/bin/${ARCH_DIR}/lib/$(SAGE_VERSION)
-else
-ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
-    PRDY_LIB_PATH := ${URSR_TOP}/BSEAV/thirdparty/playready/2.5/bin/${ARCH_DIR}/Zeus5x/lib
-else
-    PRDY_LIB_PATH := ${URSR_TOP}/BSEAV/thirdparty/playready/2.5/bin/${ARCH_DIR}/Zeus4x/lib
-endif
-endif
+PRDY_LIB_PATH := ${URSR_TOP}/BSEAV/${CMNDRM_PRDY_LIBDIR}
 
-ifeq ($(findstring mips,$(B_REFSW_ARCH)),mips)
-#Adding eglibc support for mips platforms. if the tool chain version is greater than 4.8.5
-GCC_GTEQ_485 := $(shell expr `$(CC) -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40805)
-ifeq "$(GCC_GTEQ_485)" "1"
-PRDY_LDFLAGS += -L${PRDY_LIB_PATH}/eglibc
-else
 PRDY_LDFLAGS += -L${PRDY_LIB_PATH}
-endif
-else
-PRDY_LDFLAGS += -L${PRDY_LIB_PATH}
-endif
+
 ifeq ($(SAGE_SUPPORT),y)
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
-PRDY_LDFLAGS += -lplayreadypk64_host
+  PRDY_LDFLAGS += -lplayreadypk64_host
 else ifeq $(filter ${B_REFSW_ARCH}, arm-linux), ${B_REFSW_ARCH})
-PRDY_LDFLAGS += -lplayreadypk_host
+  PRDY_LDFLAGS += -lplayreadypk_host
 endif
 else
-PRDY_LDFLAGS += -lplayreadypk
+  PRDY_LDFLAGS += -lplayreadypk
 endif # end of SAGE_SUPPORT
 PRDY_LDFLAGS += -ldrmrootfs
+
 else # end of ANDROID_BUILD=y
 CFLAGS += $(B_OPENSSL_CFLAGS)
 PRDY_LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
@@ -217,17 +196,17 @@ COMMON_DRM_TL_DEFINES += ${COMMON_TL_DEFINES}
 endif
 
 #################### ADOBE ################################
-ifeq (${ADOBE_SAGE},OFF)
+ifeq (${ADOBE_NONSAGE},ON)
 ifeq (${ENABLE_ADOBE},y)
 ifeq (${COMMON_DRM_ADOBE},y)
 include drm/adobe/adobe.inc
 COMMON_DRM_SOURCES += ${ADOBE_SOURCES}
 COMMON_DRM_DEFINES += ${ADOBE_DEFINES}
 endif #COMMON_DRM_ADOBE
-else
-#$(warning ADOBE will NOT be compiled !!!)
 endif #ENABLE_ADOBE
-else
+endif #COMMON_DRM_ADOBE
+
+ifeq (${ADOBE_SAGE},ON)
 include drm_tl/adobe/adobe.inc
 COMMON_DRM_TL_INCLUDES += ${ADOBE_INCLUDES}
 COMMON_DRM_TL_SOURCES += ${ADOBE_SOURCES}
@@ -261,13 +240,16 @@ COMMON_DRM_TL_DEFINES += ${PLAYBACK_DEFINES}
 endif
 
 #################### DTCP-IP ################################
-# Include non-SAGE DTCPIP on both SAGE and non-SAGE platforms
+# non-SAGE DTCPIP can be supported on non-SAGE platforms and Zeus4x
+ifeq (${DTCP_IP_NONSAGE},ON)
 ifeq (${COMMON_DRM_DTCPIP},y)
 include drm/dtcp_ip/dtcp_ip.inc
 COMMON_DRM_SOURCES += ${DTCP_IP_SOURCES}
 COMMON_DRM_DEFINES += ${DTCP_IP_DEFINES}
 endif #COMMON_DRM_DTCPIP
+endif
 
+# SAGE DTCPIP support for SAGE platforms
 ifeq (${DTCP_IP_SAGE},ON)
 include drm_tl/dtcp_ip/dtcp_ip.inc
 COMMON_DRM_TL_INCLUDES += ${DTCP_IP_TL_INCLUDES}
@@ -355,7 +337,6 @@ PRDY_BASENAME       := cmndrmprdy
 PRDY_PUBLIC_LIBS    += lib${PRDY_BASENAME}.a lib${PRDY_BASENAME}.so
 PRDY_OBJS           := $(patsubst %.c,%.o, ${PLAYREADY_SOURCES})
 
-include lib/prdy_libdir.inc
 PRDY_FOR_LIB_INSTALL:= ${CMNDRM_PRDY_LIBDIR}
 PRDY_INSTALLED_LIBS := $(addprefix ${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}/, ${PRDY_PUBLIC_LIBS})
 
@@ -461,7 +442,7 @@ ifeq ($(SAGE_SUPPORT),y)
 	@ mkdir -p ${COMMON_DRM_OBJ_ROOT}/lib/${CMNDRM_DIR}
 endif
 
-ifeq (${ADOBE_SAGE},OFF)
+ifeq (${ADOBE_NONSAGE},ON)
 ifeq (${PMC_SAGE},OFF)
 ifeq (${ENABLE_ADOBE},y)
 ifeq (${COMMON_DRM_ADOBE},y)
@@ -477,8 +458,10 @@ ifeq (${COMMON_DRM_WIDEVINE},y)
 endif
 endif
 
+ifeq (${DTCP_IP_NONSAGE},ON)
 ifeq (${COMMON_DRM_DTCPIP},y)
 	@ mkdir -p $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $(dir ${DTCP_IP_SOURCES}))
+endif
 endif
 
 ifeq (${HDCP_SAGE},OFF)
@@ -545,7 +528,6 @@ report:
 	@echo "TL_FLAGS is $(TL_LDFLAGS)"
 	@echo "LDFLAGS is $(LDFLAGS)"
 	@echo "CC: $(CC)"
-	@echo "CC: $(GCC_GTEQ_485)"
 	@echo "toolchain version: $(GCCVERSION)"
 	@echo "$(shell gcc --version | grep ^gcc | sed 's/^.* //g')"
 

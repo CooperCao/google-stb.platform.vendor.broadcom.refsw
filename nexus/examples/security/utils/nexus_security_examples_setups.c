@@ -190,7 +190,6 @@ NEXUS_Error SecurityExampleSetupPlayback ( NEXUS_ExampleSecuritySettings * pSett
 
 NEXUS_Error SecurityExampleSetupPlaybackPidChannels ( NEXUS_ExampleSecuritySettings * pSettings )
 {
-    NEXUS_PlaybackSettings playbackSettings;
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
 
     /* Open the audio and video pid channels */
@@ -243,24 +242,26 @@ NEXUS_Error SecurityExampleSetupRecord4Encrpytion ( NEXUS_ExampleSecuritySetting
     pidSettings.recpumpSettings.pidTypeSettings.video.codec = VIDEO_CODEC;
     NEXUS_Record_AddPidChannel ( pSettings->record, pSettings->videoPidChannel, &pidSettings );
 
+    return 0;
 }
 
 NEXUS_Error SecurityExampleStartPlayback ( NEXUS_ExampleSecuritySettings * pSettings )
 {
     printf ( "\n\nStart playback. \n\n\n" );
-    NEXUS_Playback_Start ( pSettings->playback, pSettings->playfile, NULL );
+    return NEXUS_Playback_Start ( pSettings->playback, pSettings->playfile, NULL );
 }
 
 NEXUS_Error SecurityExampleStartRecord ( NEXUS_ExampleSecuritySettings * pSettings )
 {
     printf ( "\n\n\nStart recording. \n\n\n" );
-    NEXUS_Record_Start ( pSettings->record, pSettings->recordfile );
+    return NEXUS_Record_Start ( pSettings->record, pSettings->recordfile );
 }
 
 NEXUS_Error SecurityExampleSetupDecoders ( NEXUS_ExampleSecuritySettings * pSettings )
 {
     pSettings->audioDecoder = NEXUS_AudioDecoder_Open ( 0, NULL );
     pSettings->videoDecoder = NEXUS_VideoDecoder_Open ( 0, NULL );      /* take default capabilities */
+    return NEXUS_SUCCESS;
 }
 
 NEXUS_Error SecurityExampleStartDecoders ( NEXUS_ExampleSecuritySettings * pSettings )
@@ -285,6 +286,7 @@ NEXUS_Error SecurityExampleStartDecoders ( NEXUS_ExampleSecuritySettings * pSett
     NEXUS_VideoDecoder_Start ( pSettings->videoDecoder, &videoProgram );
     NEXUS_AudioDecoder_Start ( pSettings->audioDecoder, &audioProgram );
 
+    return NEXUS_SUCCESS;
 }
 
 NEXUS_Error SecurityExampleSetupDecodersDisplays ( NEXUS_ExampleSecuritySettings * pSettings )
@@ -294,7 +296,6 @@ NEXUS_Error SecurityExampleSetupDecodersDisplays ( NEXUS_ExampleSecuritySettings
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_DisplaySettings displaySettings;
 #endif
-    NEXUS_PlaybackPidChannelSettings playbackPidSettings;
     NEXUS_Error     rc = 0;
 
 #if NEXUS_NUM_AUDIO_DACS

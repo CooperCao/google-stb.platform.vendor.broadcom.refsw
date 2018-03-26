@@ -36,12 +36,14 @@
 # ANY LIMITED REMEDY.
 #
 #############################################################################
+ADOBE_NONSAGE?=OFF
 ADOBE_SAGE?=ON
+DTCP_IP_NONSAGE?=ON
 DTCP_IP_SAGE?=ON
 HDCP_SAGE?=OFF
 NETFLIX_SAGE?=ON
 WVOEMCRYPTO_SAGE?=ON
 
 #Not supported on Zeus4x common_drm or SAGE
-#OCAP_SAGE?=ON
-#PMC_SAGE?=ON
+#OCAP_SAGE
+#PMC_SAGE

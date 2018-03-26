@@ -343,8 +343,8 @@ int main(int argc, char *argv[])
 	printf( "\n\n\n\n\n\nFile size %d\n", size);
 
 	
-	NEXUS_Memory_Allocate(bufLen, NULL, (void *)&pEncSrc);
-	NEXUS_Memory_Allocate(bufLen, NULL, (void *)&pEncDest);
+	NEXUS_Memory_Allocate(bufLen, NULL, (void **)&pEncSrc);
+	NEXUS_Memory_Allocate(bufLen, NULL, (void **)&pEncDest);
 	BKNI_Memset((void *)pEncSrc,  0, bufLen);
 	BKNI_Memset((void *)pEncDest, 0, bufLen);
 

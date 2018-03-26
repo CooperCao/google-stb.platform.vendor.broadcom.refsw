@@ -114,7 +114,7 @@ void  NEXUS_Rsa_GetDefaultExponentiateSettings(
 /*
     Submit an RSA request for processing.
     Return values:
-        - NEXUS_RSA_PENDING - Request was sucessfully submitted. The request may have been
+        - NEXUS_RSA_PENDING - Request was successfully submitted. The request may have been
                               submitted to HW, or it may be queued internally.
         - NEXUS_UNKNOWN
 */

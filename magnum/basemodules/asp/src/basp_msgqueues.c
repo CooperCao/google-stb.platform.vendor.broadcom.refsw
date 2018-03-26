@@ -401,40 +401,45 @@ BERR_Code BASP_Msgqueue_Write(BASP_MsgqueueHandle hMsgqueue, void *pMsgToSend)
     /* All messages to the ASP must be a specific size. Get the message length for this Msgqueue. */
     msgLen = hMsgqueue->queueMsgSize;
 
-    /* Read the pointer registers into our structure. */
-    BASP_Msgqueue_ReadRegisters_isrsafe(hMsgqueue, &queuePointers);
-
-    /* Is there enough space in the Msgqueue to hold this message? */
-    if (BASP_Msgqueue_Availability(&queuePointers) < msgLen)
+    BKNI_EnterCriticalSection();
     {
-        return BERR_TRACE( BERR_NOT_AVAILABLE );
+        /* Read the pointer registers into our structure. */
+        BASP_Msgqueue_ReadRegisters_isrsafe(hMsgqueue, &queuePointers);
+
+        /* Is there enough space in the Msgqueue to hold this message? */
+        if (BASP_Msgqueue_Availability(&queuePointers) < msgLen)
+        {
+            BKNI_LeaveCriticalSection();
+            return BERR_TRACE( BERR_NOT_AVAILABLE );
+        }
+
+        /* Yes, copy the message to where the Msgqueue's write pointer
+         * is pointing. */
+        offset = queuePointers.write - queuePointers.base;
+        pMsgInMsgqueue = (BASP_MessageHeader*)(hMsgqueue->pBuffer + offset);
+        BKNI_Memcpy(pMsgInMsgqueue, pMsgToSend, msgLen);
+
+        /* Update the message counter and put it in the message header. */
+        pMsgInMsgqueue->ui32MessageCounter = ++(hMsgqueue->nextMessageCount);
+
+        /* TODO: Shouldn't be calling _isr function from non-_isr function! */
+        BASP_P_Buffer_FlushCache_isr(hMsgqueue->hBuffer, hMsgqueue->pBuffer + offset, msgLen);
+
+        /* Print the message to the debug log. */
+        BASP_Msgqueue_Log_isrsafe(hMsgqueue, "Sending ASP Message From Host to Firmware", pMsgInMsgqueue);
+
+        /* Update the queue's write pointer.  But if there's not enough room for
+         * another message, wrap the write pointer around to the start of the buffer. */
+        queuePointers.write += msgLen;
+        if (BASP_Msgqueue_Availability(&queuePointers) < msgLen)
+        {
+            queuePointers.write = queuePointers.base;
+        }
+
+        /* Write the updated write pointer back to it's register. */
+        BREG_Write64_isrsafe(hReg, hMsgqueue->pMsgFifo->ui64Write, queuePointers.write);
     }
-
-    /* Yes, copy the message to where the Msgqueue's write pointer
-     * is pointing. */
-    offset = queuePointers.write - queuePointers.base;
-    pMsgInMsgqueue = (BASP_MessageHeader*)(hMsgqueue->pBuffer + offset);
-    BKNI_Memcpy(pMsgInMsgqueue, pMsgToSend, msgLen);
-
-    /* Update the message counter and put it in the message header. */
-    pMsgInMsgqueue->ui32MessageCounter = ++(hMsgqueue->nextMessageCount);
-
-    /* TODO: Shouldn't be calling _isr function from non-_isr function! */
-    BASP_P_Buffer_FlushCache_isr(hMsgqueue->hBuffer, hMsgqueue->pBuffer + offset, msgLen);
-
-    /* Print the message to the debug log. */
-    BASP_Msgqueue_Log_isrsafe(hMsgqueue, "Sending ASP Message From Host to Firmware", pMsgInMsgqueue);
-
-    /* Update the queue's write pointer.  But if there's not enough room for
-     * another message, wrap the write pointer around to the start of the buffer. */
-    queuePointers.write += msgLen;
-    if (BASP_Msgqueue_Availability(&queuePointers) < msgLen)
-    {
-        queuePointers.write = queuePointers.base;
-    }
-
-    /* Write the updated write pointer back to it's register. */
-    BREG_Write64_isrsafe(hReg, hMsgqueue->pMsgFifo->ui64Write, queuePointers.write);
+    BKNI_LeaveCriticalSection();
 
     /* Set H2FW interrupt */
     BREG_Write32(hReg, BCHP_ASP_ARCSS_HOST_H2FW_L2_HOST_SET,
@@ -636,7 +641,7 @@ BERR_Code BASP_NewAspMessageNotify_isr( BASP_MsgqueueHandle hMsgqueue, BASP_Fw2P
     {
         /* Any other message should be for a channel, so find the channel
            handle and dispatch a callback (if one is registered).  */
-        hChannel =  BASP_P_Channel_GetByChannelIndex_isr( hAsp, messageChannel );
+        hChannel =  BASP_P_Channel_GetByChannelIndex_isr( hAsp, messageType, messageChannel );
 
         if (hChannel == NULL)
         {
@@ -1236,6 +1241,22 @@ BERR_Code BASP_Msgqueue_Log_isrsafe(BASP_MsgqueueHandle hMsgqueue, const char *p
         BDBG_MSG(("  ResponseStatus:  %u"     , pMsg->Message.ResponsePayload.GetDrmConstMessageResponse.ResponseStatus));
         break;
     }
+
+#ifdef BASP_MAX_MUX_CHANNELS
+    case BASP_MessageType_ePi2FwMuxMessage:
+    {
+        BDBG_MSG(("Body               Pi2FwMuxMessage"));
+        BDBG_MSG(("                   ====================="));
+        break;
+    }
+
+    case BASP_MessageType_eFw2PiMuxMessageResp:
+    {
+        BDBG_MSG(("Body               Fw2Pi2MuxMessageResp"));
+        BDBG_MSG(("                   ====================="));
+        break;
+    }
+#endif /* #ifdef BASP_MAX_MUX_CHANNELS */
 
     case BASP_MessageType_ePi2FwFrameConsumed:
     case BASP_MessageType_eFw2PiFrameConsumedResp:

@@ -1186,7 +1186,11 @@ if ((in_channelHandle->currentChannelSettings.scStandard != BSCD_Standard_eEMV19
    return BSCD_P_DF[in_channelHandle->currentChannelSettings.eSrcClkFreq][in_ucDFactor][in_ucFFactor].sc_prescale;
         else if(in_channelHandle->currentChannelSettings.scStandard == BSCD_Standard_eNordig)
                 return BSCD_P_DF[BSCD_ClockFreq_e108MHZ_Nordig][in_ucDFactor][in_ucFFactor].sc_prescale;
+#ifdef USE_IRDETO_V6_CARD
         else return 0x7B;
+#else
+        else return 0x4A;
+#endif
 }else
 return BSCD_P_DF_EMV[in_channelHandle->currentChannelSettings.eSrcClkFreq][in_ucDFactor][in_ucFFactor].sc_prescale;
 }
@@ -1204,7 +1208,11 @@ if ((in_channelHandle->currentChannelSettings.scStandard != BSCD_Standard_eEMV19
    return BSCD_P_DF[in_channelHandle->currentChannelSettings.eSrcClkFreq][in_ucDFactor][in_ucFFactor].sc_bauddiv;
                 else if(in_channelHandle->currentChannelSettings.scStandard == BSCD_Standard_eNordig)
                 return BSCD_P_DF[BSCD_ClockFreq_e108MHZ_Nordig][in_ucDFactor][in_ucFFactor].sc_bauddiv;
+#ifdef USE_IRDETO_V6_CARD
                 else return 20;
+#else
+                else return 32;
+#endif
 }else
 return BSCD_P_DF_EMV[in_channelHandle->currentChannelSettings.eSrcClkFreq][in_ucDFactor][in_ucFFactor].sc_bauddiv;
 }

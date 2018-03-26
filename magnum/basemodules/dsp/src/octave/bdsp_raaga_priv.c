@@ -1735,6 +1735,7 @@ BERR_Code BDSP_Raaga_P_CreateStage(
 #if !B_REFSW_MINIMAL
 	pRaagaStage->stage.removeOutput = BDSP_Raaga_P_RemoveOutput;
 #endif /*!B_REFSW_MINIMAL*/
+	pRaagaStage->stage.getStageContext = BDSP_Raaga_P_StageGetContext;
 
 	pRaagaStage->stage.removeInput = BDSP_Raaga_P_RemoveInput;
 	pRaagaStage->stage.removeAllInputs = BDSP_Raaga_P_RemoveAllInputs;
@@ -2367,6 +2368,22 @@ end:
 	return errCode;
 }
 
+BERR_Code BDSP_Raaga_P_StageGetContext(
+    void *pStageHandle,
+    BDSP_ContextHandle *pContextHandle /* [out] */
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	BDSP_RaagaStage *pRaagaStage = (BDSP_RaagaStage *)pStageHandle;
+
+	BDBG_ENTER(BDSP_Raaga_P_StageGetContext);
+	BDBG_OBJECT_ASSERT(pRaagaStage, BDSP_RaagaStage);
+
+	*pContextHandle = &pRaagaStage->pContext->context;
+	BDBG_LEAVE(BDSP_Raaga_P_StageGetContext);
+	return errCode;
+}
+
 /***********************************************************************
 Name        :   BDSP_Raaga_P_GetStatus
 
@@ -2825,7 +2842,7 @@ BERR_Code BDSP_Raaga_P_ConsumeDebugData(
 	uint32_t ui32Offset, ui32RegOffset;
     dramaddr_t  BaseAddr, ReadAddr, EndAddr;
 
-	BDBG_ENTER(BDSP_Raaga_ConsumeDebugData);
+	BDBG_ENTER(BDSP_Raaga_P_ConsumeDebugData);
     BDBG_ASSERT(pDeviceHandle);
     pDevice = (BDSP_Raaga *)pDeviceHandle;
 
@@ -2881,7 +2898,7 @@ BERR_Code BDSP_Raaga_P_ConsumeDebugData(
 		BEMU_Client_ReleaseMutex(g_hSocketMutex);
 #endif /* FIREPATH_BM */
 	}
-	BDBG_ENTER(BDSP_Raaga_ConsumeDebugData);
+	BDBG_LEAVE(BDSP_Raaga_P_ConsumeDebugData);
 	return errCode;
 }
 

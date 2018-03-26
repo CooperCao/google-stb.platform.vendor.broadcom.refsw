@@ -246,7 +246,7 @@ BERR_Code BHSM_Hash_SubmitData_priv( BHSM_HashHandle handle,
     BERR_Code rc = BERR_SUCCESS;
     unsigned _eAddressOrData = BCMD_HmacSha1_InCmdField_eAddressOrData;
     unsigned _eDataLength = BCMD_HmacSha1_InCmdField_eDataLen;
-    uint8_t status;
+    uint8_t status = ~0;
     BHSM_BspMsgHeader_t header;
     unsigned keySize = BHSM_P_HASH_MIN_KEYSIZE;
     bool writekey = false;
@@ -315,8 +315,11 @@ BERR_Code BHSM_Hash_SubmitData_priv( BHSM_HashHandle handle,
     BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eIncludeKey, (pInstance->settings.appendKey &  pHmacHashSubmitInfo->hashNotHamc) ? 1 : 0);
     BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eIsAddress,  (pHmacHashSubmitInfo->useInlineData) ? 0 : 1);
     BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eShaType,    pInstance->settings.hashType );
+#ifdef BHSM_BUILD_HSM_FOR_SAGE
+    BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eContextId,  BPI_HmacSha1_Context_eHmacSha1CtxSCM +  pInstance->index);
+#else
     BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eContextId,  BPI_HmacSha1_Context_eHmacSha1Ctx0 +  pInstance->index);
-
+#endif
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eKeyLen, keySize );
 

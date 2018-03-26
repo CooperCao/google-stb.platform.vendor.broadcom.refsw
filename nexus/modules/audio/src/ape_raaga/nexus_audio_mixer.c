@@ -123,6 +123,7 @@ NEXUS_AudioMixerHandle NEXUS_AudioMixer_Open(
     int i;
     NEXUS_Error rc=0;
     NEXUS_AudioMixerSettings * defaults = NULL;
+    BAPE_MixerSettings * pMixerSettings = NULL;
     int mixerCount;
 
     mixerCount = min(g_NEXUS_audioModuleData.capabilities.numMixers, NEXUS_NUM_AUDIO_MIXERS);
@@ -166,42 +167,49 @@ NEXUS_AudioMixerHandle NEXUS_AudioMixer_Open(
     /* Setup connector */
     if ( pSettings->mixUsingDsp )
     {
-        BAPE_MixerSettings mixerSettings;
         BAPE_Connector connector;
+
+        pMixerSettings = BKNI_Malloc(sizeof(BAPE_MixerSettings));
+        if ( !pMixerSettings )
+        {
+            BDBG_ERR(("malloc of mixer settings failed"));
+            rc=BERR_TRACE(BERR_NOT_SUPPORTED);
+            goto mixer_create_fail;
+        }
 
         BKNI_Snprintf(pMixer->name, sizeof(pMixer->name), "DSP MIXER");
         NEXUS_AUDIO_INPUT_INIT(&pMixer->connector, NEXUS_AudioInputType_eDspMixer, pMixer);
         NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &pMixer->connector, Open);
         pMixer->connector.pName = pMixer->name;
-        BAPE_Mixer_GetDefaultSettings(&mixerSettings);
-        mixerSettings.type = BAPE_MixerType_eDsp;
-        mixerSettings.dspIndex = pSettings->dspIndex;
-        mixerSettings.multiStreamBalance = (pSettings->multiStreamBalance != 0) ? pSettings->multiStreamBalance : pSettings->dolby.multiStreamBalance;
-        mixerSettings.certificationMode = pSettings->dolby.certificationMode;
-        mixerSettings.enablePostProcessing = pSettings->dolby.enablePostProcessing;
-        mixerSettings.volumeLimiter.enableVolumeLimiting = pSettings->dolby.volumeLimiter.enableVolumeLimiting;
-        mixerSettings.volumeLimiter.enableIntelligentLoudness = pSettings->dolby.volumeLimiter.enableIntelligentLoudness;
-        mixerSettings.volumeLimiter.volumeLimiterAmount = pSettings->dolby.volumeLimiter.volumeLimiterAmount;
-        mixerSettings.dialogEnhancer.enableDialogEnhancer = pSettings->dolby.dialogEnhancer.enableDialogEnhancer;
-        mixerSettings.dialogEnhancer.dialogEnhancerLevel = pSettings->dolby.dialogEnhancer.dialogEnhancerLevel;
-        mixerSettings.dialogEnhancer.contentSuppressionLevel = pSettings->dolby.dialogEnhancer.contentSuppressionLevel;
-        mixerSettings.intelligentEqualizer.enabled = pSettings->dolby.intelligentEqualizer.enabled;
-        mixerSettings.intelligentEqualizer.numBands = pSettings->dolby.intelligentEqualizer.numBands;
-        BKNI_Memcpy(mixerSettings.intelligentEqualizer.band, pSettings->dolby.intelligentEqualizer.band, sizeof(mixerSettings.intelligentEqualizer.band));
-        mixerSettings.mixerSampleRate = pSettings->outputSampleRate;
-        mixerSettings.loopbackMixerEnabled = pSettings->loopbackMixerEnabled;
-        BKNI_Memcpy(mixerSettings.loopbackVolumeMatrix, pSettings->loopbackVolumeMatrix, sizeof(int32_t)*NEXUS_AudioChannel_eMax*NEXUS_AudioChannel_eMax);
-        BKNI_Memcpy(mixerSettings.outputVolume.volume, pSettings->outputVolume, sizeof(uint32_t)*NEXUS_AudioChannel_eMax);
-        mixerSettings.outputVolume.muted = pSettings->outputMuted;
-        mixerSettings.fade.continuousFading = pSettings->dolby.fade.continuousFading;
-        mixerSettings.fade.mainDecodeFade.level = pSettings->mainDecodeFade.level;
-        mixerSettings.fade.mainDecodeFade.type = pSettings->mainDecodeFade.type;
-        mixerSettings.fade.mainDecodeFade.duration = pSettings->mainDecodeFade.duration;
+        BAPE_Mixer_GetDefaultSettings(pMixerSettings);
+        pMixerSettings->type = BAPE_MixerType_eDsp;
+        pMixerSettings->dspIndex = pSettings->dspIndex;
+        pMixerSettings->multiStreamBalance = (pSettings->multiStreamBalance != 0) ? pSettings->multiStreamBalance : pSettings->dolby.multiStreamBalance;
+        pMixerSettings->certificationMode = pSettings->dolby.certificationMode;
+        pMixerSettings->enablePostProcessing = pSettings->dolby.enablePostProcessing;
+        pMixerSettings->volumeLimiter.enableVolumeLimiting = pSettings->dolby.volumeLimiter.enableVolumeLimiting;
+        pMixerSettings->volumeLimiter.enableIntelligentLoudness = pSettings->dolby.volumeLimiter.enableIntelligentLoudness;
+        pMixerSettings->volumeLimiter.volumeLimiterAmount = pSettings->dolby.volumeLimiter.volumeLimiterAmount;
+        pMixerSettings->dialogEnhancer.enableDialogEnhancer = pSettings->dolby.dialogEnhancer.enableDialogEnhancer;
+        pMixerSettings->dialogEnhancer.dialogEnhancerLevel = pSettings->dolby.dialogEnhancer.dialogEnhancerLevel;
+        pMixerSettings->dialogEnhancer.contentSuppressionLevel = pSettings->dolby.dialogEnhancer.contentSuppressionLevel;
+        pMixerSettings->intelligentEqualizer.enabled = pSettings->dolby.intelligentEqualizer.enabled;
+        pMixerSettings->intelligentEqualizer.numBands = pSettings->dolby.intelligentEqualizer.numBands;
+        BKNI_Memcpy(pMixerSettings->intelligentEqualizer.band, pSettings->dolby.intelligentEqualizer.band, sizeof(pMixerSettings->intelligentEqualizer.band));
+        pMixerSettings->mixerSampleRate = pSettings->outputSampleRate;
+        pMixerSettings->loopbackMixerEnabled = pSettings->loopbackMixerEnabled;
+        BKNI_Memcpy(pMixerSettings->loopbackVolumeMatrix, pSettings->loopbackVolumeMatrix, sizeof(int32_t)*NEXUS_AudioChannel_eMax*NEXUS_AudioChannel_eMax);
+        BKNI_Memcpy(pMixerSettings->outputVolume.volume, pSettings->outputVolume, sizeof(uint32_t)*NEXUS_AudioChannel_eMax);
+        pMixerSettings->outputVolume.muted = pSettings->outputMuted;
+        pMixerSettings->fade.continuousFading = pSettings->dolby.fade.continuousFading;
+        pMixerSettings->fade.mainDecodeFade.level = pSettings->mainDecodeFade.level;
+        pMixerSettings->fade.mainDecodeFade.type = pSettings->mainDecodeFade.type;
+        pMixerSettings->fade.mainDecodeFade.duration = pSettings->mainDecodeFade.duration;
         if ( NEXUS_GetEnv("audio_mixer_zereos_disabled") ) {
-            mixerSettings.mixerEnableZeros = false;
+            pMixerSettings->mixerEnableZeros = false;
         }
 
-        rc = BAPE_Mixer_Create(NEXUS_AUDIO_DEVICE_HANDLE, &mixerSettings, &pMixer->dspMixer);
+        rc = BAPE_Mixer_Create(NEXUS_AUDIO_DEVICE_HANDLE, pMixerSettings, &pMixer->dspMixer);
         if ( rc )
         {
             rc = BERR_TRACE(rc);
@@ -214,38 +222,45 @@ NEXUS_AudioMixerHandle NEXUS_AudioMixer_Open(
     }
     else if ( pSettings->intermediate ) /* Fixed "intermediate" HW mixer */
     {
-        BAPE_MixerSettings mixerSettings;
         BAPE_Connector connector;
+
+        pMixerSettings = BKNI_Malloc(sizeof(BAPE_MixerSettings));
+        if ( !pMixerSettings )
+        {
+            BDBG_ERR(("malloc of mixer settings failed"));
+            rc=BERR_TRACE(BERR_NOT_SUPPORTED);
+            goto mixer_create_fail;
+        }
 
         BKNI_Snprintf(pMixer->name, sizeof(pMixer->name), "INT HW MIXER");
         NEXUS_AUDIO_INPUT_INIT(&pMixer->connector, NEXUS_AudioInputType_eIntermediateMixer, pMixer);
         NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &pMixer->connector, Open);
         pMixer->connector.pName = pMixer->name;
-        BAPE_Mixer_GetDefaultSettings(&mixerSettings);
-        mixerSettings.type = BAPE_MixerType_eStandard;
-        mixerSettings.format = BAPE_MixerFormat_eAuto;
+        BAPE_Mixer_GetDefaultSettings(pMixerSettings);
+        pMixerSettings->type = BAPE_MixerType_eStandard;
+        pMixerSettings->format = BAPE_MixerFormat_eAuto;
         if ( pSettings->fixedOutputFormatEnabled )
         {
             switch ( pSettings->fixedOutputFormat )
             {
             case NEXUS_AudioMultichannelFormat_e7_1:
-                mixerSettings.format = BAPE_MixerFormat_ePcm7_1;
+                pMixerSettings->format = BAPE_MixerFormat_ePcm7_1;
                 break;
             case NEXUS_AudioMultichannelFormat_e5_1:
-                mixerSettings.format = BAPE_MixerFormat_ePcm5_1;
+                pMixerSettings->format = BAPE_MixerFormat_ePcm5_1;
                 break;
             case NEXUS_AudioMultichannelFormat_eStereo:
-                mixerSettings.format = BAPE_MixerFormat_ePcmStereo;
+                pMixerSettings->format = BAPE_MixerFormat_ePcmStereo;
                 break;
             default:
             case NEXUS_AudioMultichannelFormat_eMax:
-                mixerSettings.format = BAPE_MixerFormat_eAuto;
+                pMixerSettings->format = BAPE_MixerFormat_eAuto;
                 break;
             }
         }
-        BDBG_MSG(("Intermediate Mixer - create bape mixer, format %lu", (unsigned long)mixerSettings.format));
-        mixerSettings.mixerSampleRate = pSettings->outputSampleRate;
-        rc = BAPE_Mixer_Create(NEXUS_AUDIO_DEVICE_HANDLE, &mixerSettings, &pMixer->imMixer);
+        BDBG_MSG(("Intermediate Mixer - create bape mixer, format %lu", (unsigned long)pMixerSettings->format));
+        pMixerSettings->mixerSampleRate = pSettings->outputSampleRate;
+        rc = BAPE_Mixer_Create(NEXUS_AUDIO_DEVICE_HANDLE, pMixerSettings, &pMixer->imMixer);
         if ( rc )
         {
             rc = BERR_TRACE(rc);
@@ -327,6 +342,11 @@ NEXUS_AudioMixerHandle NEXUS_AudioMixer_Open(
         BKNI_Free(defaults);
     }
 
+    if (pMixerSettings)
+    {
+        BKNI_Free(pMixerSettings);
+    }
+
     /* Success */
     return pMixer;
 
@@ -335,6 +355,10 @@ mixer_create_fail:
     {
         BKNI_Free(defaults);
         defaults = NULL;
+    }
+    if (pMixerSettings)
+    {
+        BKNI_Free(pMixerSettings);
     }
     pMixer->opened = false;
     NEXUS_OBJECT_DESTROY(NEXUS_AudioMixer, pMixer);
@@ -403,13 +427,15 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
     )
 {
     NEXUS_AudioMixerDolbySettings * pOldDolbySettings = NULL;
+    BAPE_MixerSettings * pMixerSettings = NULL;
+    NEXUS_AudioMixerInputSettings * pInputSettings = NULL;
     NEXUS_AudioInputHandle oldMaster, newMaster;
     bool loopbackVolMatrixChanged = false;
     bool outputVolumeChanged = false;
     bool mainDecodeFadeChanged = false;
     unsigned oldSampleRate;
     int oldMultiStreamBalance;
-    NEXUS_Error errCode;
+    NEXUS_Error errCode = NEXUS_SUCCESS;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioMixer);
     BDBG_ASSERT(NULL != pSettings);
@@ -457,10 +483,16 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
     {
         if ( NULL != newMaster )
         {
-            NEXUS_AudioMixerInputSettings inputSettings;
             if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
             {
-                errCode = NEXUS_AudioMixer_GetInputSettings(handle, newMaster, &inputSettings);
+                pInputSettings = BKNI_Malloc(sizeof(NEXUS_AudioMixerInputSettings));
+                if ( !pInputSettings ) {
+                    BDBG_ERR(("malloc of mixer input settings failed"));
+                    errCode=BERR_TRACE(BERR_NOT_SUPPORTED);
+                    goto err_cleanup;
+                }
+
+                errCode = NEXUS_AudioMixer_GetInputSettings(handle, newMaster, pInputSettings);
                 if ( errCode )
                 {
                     BDBG_ERR(("%s Unable to get master inputs Input Volume", BSTD_FUNCTION));
@@ -483,7 +515,7 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
 
             if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
             {
-                errCode = NEXUS_AudioMixer_SetInputSettings(handle, newMaster, &inputSettings);
+                errCode = NEXUS_AudioMixer_SetInputSettings(handle, newMaster, pInputSettings);
                 if ( errCode )
                 {
                     BDBG_ERR(("%s Unable to set master inputs Input Volume", BSTD_FUNCTION));
@@ -499,27 +531,33 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
              oldMultiStreamBalance != pSettings->multiStreamBalance ||
              loopbackVolMatrixChanged || mainDecodeFadeChanged )
         {
-            BAPE_MixerSettings mixerSettings;
-            BAPE_Mixer_GetSettings(handle->dspMixer, &mixerSettings);
-            mixerSettings.multiStreamBalance = (pSettings->multiStreamBalance != 0) ? pSettings->multiStreamBalance : pSettings->dolby.multiStreamBalance;
-            mixerSettings.certificationMode = pSettings->dolby.certificationMode;
-            mixerSettings.enablePostProcessing = pSettings->dolby.enablePostProcessing;
-            mixerSettings.volumeLimiter.enableVolumeLimiting = pSettings->dolby.volumeLimiter.enableVolumeLimiting;
-            mixerSettings.volumeLimiter.enableIntelligentLoudness = pSettings->dolby.volumeLimiter.enableIntelligentLoudness;
-            mixerSettings.volumeLimiter.volumeLimiterAmount = pSettings->dolby.volumeLimiter.volumeLimiterAmount;
-            mixerSettings.dialogEnhancer.enableDialogEnhancer = pSettings->dolby.dialogEnhancer.enableDialogEnhancer;
-            mixerSettings.dialogEnhancer.dialogEnhancerLevel = pSettings->dolby.dialogEnhancer.dialogEnhancerLevel;
-            mixerSettings.dialogEnhancer.contentSuppressionLevel = pSettings->dolby.dialogEnhancer.contentSuppressionLevel;
-            mixerSettings.intelligentEqualizer.enabled = pSettings->dolby.intelligentEqualizer.enabled;
-            mixerSettings.intelligentEqualizer.numBands = pSettings->dolby.intelligentEqualizer.numBands;
-            BKNI_Memcpy(mixerSettings.intelligentEqualizer.band, pSettings->dolby.intelligentEqualizer.band, sizeof(mixerSettings.intelligentEqualizer.band));
-            mixerSettings.fade.continuousFading = pSettings->dolby.fade.continuousFading;
-            mixerSettings.fade.mainDecodeFade.level = pSettings->mainDecodeFade.level;
-            mixerSettings.fade.mainDecodeFade.type = pSettings->mainDecodeFade.type;
-            mixerSettings.fade.mainDecodeFade.duration = pSettings->mainDecodeFade.duration;
-            mixerSettings.mixerSampleRate = pSettings->outputSampleRate;
-            BKNI_Memcpy(mixerSettings.loopbackVolumeMatrix, pSettings->loopbackVolumeMatrix, sizeof(int32_t)*NEXUS_AudioChannel_eMax*NEXUS_AudioChannel_eMax);
-            errCode = BAPE_Mixer_SetSettings(handle->dspMixer, &mixerSettings);
+            pMixerSettings = BKNI_Malloc(sizeof(BAPE_MixerSettings));
+            if ( !pMixerSettings ) {
+                BDBG_ERR(("malloc of mixer settings failed"));
+                errCode=BERR_TRACE(BERR_NOT_SUPPORTED);
+                goto err_cleanup;
+            }
+
+            BAPE_Mixer_GetSettings(handle->dspMixer, pMixerSettings);
+            pMixerSettings->multiStreamBalance = (pSettings->multiStreamBalance != 0) ? pSettings->multiStreamBalance : pSettings->dolby.multiStreamBalance;
+            pMixerSettings->certificationMode = pSettings->dolby.certificationMode;
+            pMixerSettings->enablePostProcessing = pSettings->dolby.enablePostProcessing;
+            pMixerSettings->volumeLimiter.enableVolumeLimiting = pSettings->dolby.volumeLimiter.enableVolumeLimiting;
+            pMixerSettings->volumeLimiter.enableIntelligentLoudness = pSettings->dolby.volumeLimiter.enableIntelligentLoudness;
+            pMixerSettings->volumeLimiter.volumeLimiterAmount = pSettings->dolby.volumeLimiter.volumeLimiterAmount;
+            pMixerSettings->dialogEnhancer.enableDialogEnhancer = pSettings->dolby.dialogEnhancer.enableDialogEnhancer;
+            pMixerSettings->dialogEnhancer.dialogEnhancerLevel = pSettings->dolby.dialogEnhancer.dialogEnhancerLevel;
+            pMixerSettings->dialogEnhancer.contentSuppressionLevel = pSettings->dolby.dialogEnhancer.contentSuppressionLevel;
+            pMixerSettings->intelligentEqualizer.enabled = pSettings->dolby.intelligentEqualizer.enabled;
+            pMixerSettings->intelligentEqualizer.numBands = pSettings->dolby.intelligentEqualizer.numBands;
+            BKNI_Memcpy(pMixerSettings->intelligentEqualizer.band, pSettings->dolby.intelligentEqualizer.band, sizeof(pMixerSettings->intelligentEqualizer.band));
+            pMixerSettings->fade.continuousFading = pSettings->dolby.fade.continuousFading;
+            pMixerSettings->fade.mainDecodeFade.level = pSettings->mainDecodeFade.level;
+            pMixerSettings->fade.mainDecodeFade.type = pSettings->mainDecodeFade.type;
+            pMixerSettings->fade.mainDecodeFade.duration = pSettings->mainDecodeFade.duration;
+            pMixerSettings->mixerSampleRate = pSettings->outputSampleRate;
+            BKNI_Memcpy(pMixerSettings->loopbackVolumeMatrix, pSettings->loopbackVolumeMatrix, sizeof(int32_t)*NEXUS_AudioChannel_eMax*NEXUS_AudioChannel_eMax);
+            errCode = BAPE_Mixer_SetSettings(handle->dspMixer, pMixerSettings);
             if ( errCode )
             {
                 BKNI_Memcpy(&(handle->settings.dolby), pOldDolbySettings, sizeof(NEXUS_AudioMixerDolbySettings));
@@ -532,13 +570,19 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
     {
         if ( oldSampleRate != pSettings->outputSampleRate || outputVolumeChanged )
         {
-            BAPE_MixerSettings mixerSettings;
-            BAPE_Mixer_GetSettings(handle->imMixer, &mixerSettings);
-            mixerSettings.mixerSampleRate = pSettings->outputSampleRate;
-            BKNI_Memcpy(mixerSettings.outputVolume.volume, pSettings->outputVolume, sizeof(uint32_t)*NEXUS_AudioChannel_eMax);
-            mixerSettings.outputVolume.muted = pSettings->outputMuted;
-            BDBG_MSG(("mixer output volume %x, muted %d", mixerSettings.outputVolume.volume[0], mixerSettings.outputVolume.muted));
-            errCode = BAPE_Mixer_SetSettings(handle->imMixer, &mixerSettings);
+            pMixerSettings = BKNI_Malloc(sizeof(BAPE_MixerSettings));
+            if ( !pMixerSettings ) {
+                BDBG_ERR(("malloc of mixer settings failed"));
+                errCode=BERR_TRACE(BERR_NOT_SUPPORTED);
+                goto err_cleanup;
+            }
+
+            BAPE_Mixer_GetSettings(handle->imMixer, pMixerSettings);
+            pMixerSettings->mixerSampleRate = pSettings->outputSampleRate;
+            BKNI_Memcpy(pMixerSettings->outputVolume.volume, pSettings->outputVolume, sizeof(uint32_t)*NEXUS_AudioChannel_eMax);
+            pMixerSettings->outputVolume.muted = pSettings->outputMuted;
+            BDBG_MSG(("mixer output volume %x, muted %d", pMixerSettings->outputVolume.volume[0], pMixerSettings->outputVolume.muted));
+            errCode = BAPE_Mixer_SetSettings(handle->imMixer, pMixerSettings);
             if ( errCode )
             {
                 BKNI_Memcpy(&(handle->settings.dolby), pOldDolbySettings, sizeof(NEXUS_AudioMixerDolbySettings));
@@ -548,20 +592,23 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
         }
     }
 
-    if ( pOldDolbySettings )
-    {
-        BKNI_Free(pOldDolbySettings);
-        pOldDolbySettings = NULL;
-    }
 
     /* Success */
-    return BERR_SUCCESS;
-
+    errCode = NEXUS_SUCCESS;
 err_cleanup:
     if ( pOldDolbySettings )
     {
         BKNI_Free(pOldDolbySettings);
         pOldDolbySettings = NULL;
+    }
+    if ( pMixerSettings )
+    {
+        BKNI_Free(pMixerSettings);
+        pMixerSettings = NULL;
+    }
+    if ( pInputSettings ) {
+        BKNI_Free(pInputSettings);
+        pInputSettings = NULL;
     }
     return errCode;
 }
@@ -672,6 +719,8 @@ NEXUS_Error NEXUS_AudioMixer_AddInput(
 {
     BERR_Code errCode;
     NEXUS_AudioMixerInputNode *pInputNode;
+    BAPE_MixerInputVolume * pInputVolume = NULL;
+    BAPE_MixerInputVolume * pPiVolume = NULL;
 
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioMixer);
@@ -696,9 +745,7 @@ NEXUS_Error NEXUS_AudioMixer_AddInput(
     if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
     {
         BAPE_MixerAddInputSettings addInputSettings;
-        BAPE_MixerInputVolume inputVolume;
         BAPE_MixerHandle mixer;
-        BAPE_MixerInputVolume piVolume;
         BAPE_MixerInputSettings piSettings;
         bool master;
         int i;
@@ -706,12 +753,27 @@ NEXUS_Error NEXUS_AudioMixer_AddInput(
         master = (input == handle->settings.master)?true:false;
         mixer = handle->settings.mixUsingDsp?handle->dspMixer:handle->imMixer;
 
+        pInputVolume = BKNI_Malloc(sizeof(BAPE_MixerInputVolume));
+        if ( !pInputVolume ) {
+            BDBG_ERR(("malloc of mixer input volume failed"));
+            errCode=BERR_TRACE(BERR_NOT_SUPPORTED);
+            goto err_cleanup;
+        }
+
+        pPiVolume = BKNI_Malloc(sizeof(BAPE_MixerInputVolume));
+        if ( !pPiVolume ) {
+            BDBG_ERR(("malloc of mixer input volume failed"));
+            errCode=BERR_TRACE(BERR_NOT_SUPPORTED);
+            goto err_cleanup;
+        }
+
         BAPE_Mixer_GetDefaultAddInputSettings(&addInputSettings);
         addInputSettings.sampleRateMaster = master;
         errCode = BAPE_Mixer_AddInput(mixer, (BAPE_Connector)input->port, &addInputSettings);
         if ( errCode )
         {
-            return BERR_TRACE(errCode);
+            BERR_TRACE(errCode);
+            goto err_cleanup;
         }
 
         pInputNode = BKNI_Malloc(sizeof(NEXUS_AudioMixerInputNode));
@@ -719,21 +781,21 @@ NEXUS_Error NEXUS_AudioMixer_AddInput(
         {
             errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
             BAPE_Mixer_RemoveInput(mixer, (BAPE_Connector)input->port);
-            return errCode;
+            goto err_cleanup;
         }
         BKNI_Memset(pInputNode, 0, sizeof(NEXUS_AudioMixerInputNode));
         pInputNode->input = input;
 
         /* populate Input Volume defaults from APE */
-        BAPE_Mixer_GetInputVolume(mixer, (BAPE_Connector)input->port, &piVolume);
+        BAPE_Mixer_GetInputVolume(mixer, (BAPE_Connector)input->port, pPiVolume);
         for ( i = 0; i < NEXUS_AudioChannel_eMax; i++ )
         {
-            pInputNode->inputSettings.volumeMatrix[i][i] = (int32_t)((int64_t)NEXUS_AUDIO_VOLUME_LINEAR_NORMAL * (int64_t)piVolume.coefficients[i][i]/BAPE_VOLUME_NORMAL);
+            pInputNode->inputSettings.volumeMatrix[i][i] = (int32_t)((int64_t)NEXUS_AUDIO_VOLUME_LINEAR_NORMAL * (int64_t)pPiVolume->coefficients[i][i]/BAPE_VOLUME_NORMAL);
         }
-        pInputNode->inputSettings.muted = piVolume.muted;
-        pInputNode->inputSettings.fade.level = piVolume.fade.level;
-        pInputNode->inputSettings.fade.duration = piVolume.fade.duration;
-        pInputNode->inputSettings.fade.type = piVolume.fade.type;
+        pInputNode->inputSettings.muted = pPiVolume->muted;
+        pInputNode->inputSettings.fade.level = pPiVolume->fade.level;
+        pInputNode->inputSettings.fade.duration = pPiVolume->fade.duration;
+        pInputNode->inputSettings.fade.type = pPiVolume->fade.type;
         if ( handle->settings.intermediate )
         {
             BAPE_Mixer_GetInputSettings(mixer, (BAPE_Connector)input->port, &piSettings);
@@ -743,13 +805,14 @@ NEXUS_Error NEXUS_AudioMixer_AddInput(
 
         /* Because APE mixers default to unity with add input keep nexus in line
            Proper volume should be set afterwards */
-        NEXUS_AudioInput_P_GetDefaultVolume(&inputVolume);
+        NEXUS_AudioInput_P_GetDefaultVolume(pInputVolume);
         /*NEXUS_AudioInput_P_GetVolume(input, &inputVolume);*/
 
-        errCode = NEXUS_AudioMixer_P_SetInputVolume(handle, input, &inputVolume);
+        errCode = NEXUS_AudioMixer_P_SetInputVolume(handle, input, pInputVolume);
         if ( errCode )
         {
-            return BERR_TRACE(errCode);
+            BERR_TRACE(errCode);
+            goto err_cleanup;
         }
     }
 
@@ -772,10 +835,33 @@ NEXUS_Error NEXUS_AudioMixer_AddInput(
                 BKNI_Free(pInputNode);
             }
         }
-        return BERR_TRACE(errCode);
+        BERR_TRACE(errCode);
+        goto err_cleanup;
+    }
+
+    if ( pInputVolume ) {
+        BKNI_Free(pInputVolume);
+        pInputVolume = NULL;
+    }
+
+    if ( pPiVolume ) {
+        BKNI_Free(pPiVolume);
+        pInputVolume = NULL;
     }
 
     return BERR_SUCCESS;
+
+err_cleanup:
+    if ( pInputVolume ) {
+        BKNI_Free(pInputVolume);
+        pInputVolume = NULL;
+    }
+
+    if ( pPiVolume ) {
+        BKNI_Free(pPiVolume);
+        pInputVolume = NULL;
+    }
+    return errCode;
 }
 
 /***************************************************************************

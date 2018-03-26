@@ -38,7 +38,6 @@
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
-
 #include <typedefs.h>
 #include <bcmendian.h>
 #include <linuxver.h>
@@ -54,6 +53,8 @@
 #include <linux/of.h>
 #include <linux/interrupt.h>
 #include <linux/kallsyms.h>
+
+#include <epivers.h>
 
 #define DUMPBUFSZ 1024
 
@@ -84,9 +85,6 @@ osl_attach(void *pdev, uint bustype, bool pkttag)
 {
 	void **osl_cmn = NULL;
 	osl_t *osh;
-
-//HACKHACK
-	/*printk("\n================%s %s\n", __FILE__, __TIME__);*/
 
 	if (!(osh = kmalloc(sizeof(osl_t), GFP_ATOMIC)))
 		return osh;
@@ -225,9 +223,13 @@ static int stbsoc_wlan_probe(struct platform_device *pdev)
 
     ret = device_set_wakeup_enable(&pdev->dev, 1);
     enable_irq_wake(priv->wowl_irq);
+
+	printf("Broadcom BCM7271 Wireless Platform Module\n"
+		"TagInfo:%s\n",
+		EPI_VERSION_TAG);
+
     return 0;
 }
-
 
 static const struct of_device_id stbsoc_wlan_of_match[] = {
     { .compatible = "brcm,bcm7271-wlan" },

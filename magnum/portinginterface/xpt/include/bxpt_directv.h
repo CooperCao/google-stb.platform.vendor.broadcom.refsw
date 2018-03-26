@@ -1,22 +1,39 @@
 /***************************************************************************
- *     Copyright (c) 2003-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Porting interface code for the DirecTV portion of the data transport core. 
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ***************************************************************************/
 
 /*= Module Overview *********************************************************
@@ -149,6 +166,7 @@ BERR_Code BXPT_DirecTv_SetParserBandMode(
 	BXPT_ParserMode Mode	/* [in] Which mode (packet format) is being used. */
 	);
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Set the limits for the PES stream ID.
@@ -191,6 +209,7 @@ void BXPT_DirecTv_SetStartcodeChecking(
 	BXPT_Handle hXpt, 	   	/* [in] Handle for this transport */
 	bool EnableChecking		/* [in] Enable checking, or not. */
 	);
+#endif
 
 /***************************************************************************
 Summary:
@@ -210,42 +229,6 @@ void BXPT_DirecTv_SaveMptFlag(
 	);
 
 #if BXPT_HAS_PID2BUF_MAPPING
-/***************************************************************************
-Summary:
-Use this API only when you need PID to multiple buffer mapping capabilities.
-Pass Message Buffer Number along with the PidChannelNumber.
-Configure for capturing DirecTV Aux or MPT messages.
-
-Description:
-Associate one or more message filters with a given SCID and parser band.
-This function will enable the SCID channel, but will not install an 
-interrupt handler for the message interrupt. The interrupt handler should be
-installed before calling this function.
-
-To select filtering with a CAP address, use MessageType 
-BXPT_DirecTvMessageType_eRegular_CapFilterX, where X is the CAP filter to be
-used. The CAP address is loaded into the filter by calling 
-BXPT_DirecTv_SetCapPattern ()
-
-The caller must allocate a SCID channel before using the function. It should
-NOT be called if the PID channel is already enabled.
-
-Returns:
-    BERR_SUCCESS                - Message capture is setup.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-
-See Also:
-BXPT_AllocPSIFilter, BXPT_GetFilter, BXPT_SetFilter, BXPT_AddFilterToGroup,
-BXPT_StopDirecTvMessageCapture, BXPT_DirecTv_SetCapPattern
-***************************************************************************/
-BERR_Code BXPT_Mesg_StartDirecTvMessageCapture( 
-	BXPT_Handle hXpt, 							/* [in] Handle for this transport */
-	unsigned int PidChannelNum, 					/* [in] Which PID channel. */
-	unsigned int MesgBufferNum,                 /* [in] Which Message Buffer. */
-	BXPT_DirecTvMessageType MessageType,		/* [in] What type of DirecTV messages. */
-	const BXPT_PsiMessageSettings *Settings 	/* [in] PID, band, and filters to use. */
-	);
-
 /***************************************************************************
 Summary:
 Start message capturing with additional configuration options.  

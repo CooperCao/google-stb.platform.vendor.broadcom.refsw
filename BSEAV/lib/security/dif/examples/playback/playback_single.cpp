@@ -45,6 +45,7 @@
 #include "nexus_spdif_output.h"
 #include "nexus_component_output.h"
 #include "nexus_video_adj.h"
+#include "nexus_base_mmap.h"
 
 #include <unistd.h>
 #include <stdio.h>
@@ -83,6 +84,10 @@ BDBG_MODULE(playback_dif_single);
 #endif
 
 #define ZORDER_TOP 10
+
+#ifdef DIF_SCATTER_GATHER
+#define NUM_CIRCULAR_BUF 60
+#endif
 
 #define REPACK_VIDEO_PES_ID 0xE0
 #define REPACK_AUDIO_PES_ID 0xC0
@@ -125,6 +130,14 @@ public:
     uint8_t *pPayload;
     uint8_t *pAudioHeaderBuf;
     uint8_t *pVideoHeaderBuf;
+#ifdef DIF_SCATTER_GATHER
+    uint32_t audio_idx;
+    IBuffer* audioPesBuf[NUM_CIRCULAR_BUF];
+    uint32_t video_idx;
+    IBuffer* videoPesBuf[NUM_CIRCULAR_BUF];
+    IBuffer* audioDecOut[NUM_CIRCULAR_BUF];
+    IBuffer* videoDecOut[NUM_CIRCULAR_BUF];
+#endif
 
     FILE *fp_mp4;
     char* file;
@@ -152,6 +165,7 @@ public:
 
     uint64_t last_video_fragment_time;
     uint64_t last_audio_fragment_time;
+	bool bypassAudio;
 };
 
 AppContext::AppContext()
@@ -160,6 +174,16 @@ AppContext::AppContext()
     pPayload = NULL;
     pAudioHeaderBuf = NULL;
     pVideoHeaderBuf = NULL;
+#ifdef DIF_SCATTER_GATHER
+    audio_idx = 0;
+    video_idx = 0;
+    for (int i = 0; i < NUM_CIRCULAR_BUF; i++) {
+        audioPesBuf[i] = NULL;
+        videoPesBuf[i] = NULL;
+        audioDecOut[i] = NULL;
+        videoDecOut[i] = NULL;
+    }
+#endif
 
     file = NULL;
     parserDrmType = drm_type_eUnknown;
@@ -189,6 +213,7 @@ AppContext::AppContext()
 
     last_video_fragment_time = 0;
     last_audio_fragment_time = 0;
+	bypassAudio = false;
 }
 
 AppContext::~AppContext()
@@ -205,6 +230,22 @@ AppContext::~AppContext()
     if (pPayload) NEXUS_Memory_Free(pPayload);
     if (pAudioHeaderBuf) NEXUS_Memory_Free(pAudioHeaderBuf);
     if (pVideoHeaderBuf) NEXUS_Memory_Free(pVideoHeaderBuf);
+#ifdef DIF_SCATTER_GATHER
+    for (int i = 0; i < NUM_CIRCULAR_BUF; i++) {
+        if (audioPesBuf[i] != NULL) {
+            BufferFactory::DestroyBuffer(audioPesBuf[i]);
+        }
+        if (videoPesBuf[i] != NULL) {
+            BufferFactory::DestroyBuffer(videoPesBuf[i]);
+        }
+        if (audioDecOut[i] != NULL) {
+            BufferFactory::DestroyBuffer(audioDecOut[i]);
+        }
+        if (videoDecOut[i] != NULL) {
+            BufferFactory::DestroyBuffer(videoDecOut[i]);
+        }
+    }
+#endif
 
     if(parser) {
         LOGW(("Destroying parser %p", (void*)parser));
@@ -408,18 +449,33 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 }
 
                 if (pes_header_len > 0) {
+#ifdef DIF_SCATTER_GATHER
+                    if (s_app.videoPesBuf[s_app.video_idx] == NULL) {
+                        s_app.videoPesBuf[s_app.video_idx] = BufferFactory::CreateBuffer(BMEDIA_PES_HEADER_MAX_SIZE + BMP4_MAX_PPS_SPS);
+                    }
+                    s_app.videoPesBuf[s_app.video_idx]->Copy(0, s_app.pVideoHeaderBuf, pes_header_len);
+                    streamer->SubmitScatterGather(
+                        s_app.videoPesBuf[s_app.video_idx]->GetPtr(),
+                        pes_header_len, /* flush= */true);
+#else
                     IBuffer* output =
                         streamer->GetBuffer(pes_header_len);
                     output->Copy(0, s_app.pVideoHeaderBuf, pes_header_len);
                     BufferFactory::DestroyBuffer(output);
+#endif
                     bytes_processed += pes_header_len;
                 }
 
                 if (s_app.video_decode_hdr == 0) {
+#ifdef DIF_SCATTER_GATHER
+                    streamer->SubmitScatterGather(s_app.pAvccHdr,
+                        avcc_hdr_size, /* flush= */true);
+#else
                     IBuffer* output =
                         streamer->GetBuffer(avcc_hdr_size);
                     output->Copy(0, s_app.pAvccHdr, avcc_hdr_size);
                     BufferFactory::DestroyBuffer(output);
+#endif
                     bytes_processed += avcc_hdr_size;
                     s_app.video_decode_hdr = 1;
                 }
@@ -437,12 +493,39 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                     batom_cursor_skip(&frag_info->cursor, entryDataSize);
                 } while (dst_offset < sampleSize);
 
+#ifdef DIF_SCATTER_GATHER
+                // Create secure buffer for decrypt output
+                // Needs flow control
+                if (s_app.videoDecOut[s_app.video_idx] != NULL) {
+                    BufferFactory::DestroyBuffer(s_app.videoDecOut[s_app.video_idx]);
+                }
+                IBuffer* decOutput = BufferFactory::CreateBuffer(sampleSize, NULL, streamer->IsSecure());
+                s_app.videoDecOut[s_app.video_idx] = decOutput;
+                s_app.video_idx++;
+                s_app.video_idx %= NUM_CIRCULAR_BUF;
+                if (s_app.decryptor) {
+                    numOfByteDecrypted = s_app.decryptor->DecryptSample(pSample,
+                        input, decOutput, sampleSize);
+                    streamer->SubmitSample(pSample, input, decOutput);
+                } else {
+                    streamer->SubmitScatterGather(input, true);
+                    numOfByteDecrypted = sampleSize;
+                }
+                if (numOfByteDecrypted != sampleSize)
+                {
+                    LOGE(("%s Failed to decrypt sample, can't continue - %d", BSTD_FUNCTION, __LINE__));
+                    BufferFactory::DestroyBuffer(input);
+                    return -1;
+                }
+                BufferFactory::DestroyBuffer(input);
+#else // DIF_SCATTER_GATHER
                 IBuffer* decOutput = streamer->GetBuffer(sampleSize);
+                // Transfer clear data to destination
+                decOutput->Copy(0, input, sampleSize);
                 if (s_app.decryptor) {
                     numOfByteDecrypted = s_app.decryptor->DecryptSample(pSample,
                         input, decOutput, sampleSize);
                 } else {
-                    decOutput->Copy(0, input, sampleSize);
                     numOfByteDecrypted = sampleSize;
                 }
                 if (numOfByteDecrypted != sampleSize)
@@ -454,6 +537,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 }
                 BufferFactory::DestroyBuffer(input);
                 BufferFactory::DestroyBuffer(decOutput);
+#endif
                 bytes_processed += numOfByteDecrypted;
 
                 break;
@@ -462,6 +546,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
             case BMP4_SAMPLE_ENCRYPTED_AUDIO:
             case BMP4_SAMPLE_MP4A:
             {
+                if (s_app.bypassAudio) return 0;
                 streamer = s_app.audioStreamer;
                 bmedia_pes_info_init(&pes_info, REPACK_AUDIO_PES_ID);
                 frag_duration = s_app.last_audio_fragment_time +
@@ -479,23 +564,65 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 parse_esds_config(s_app.pAudioHeaderBuf + pes_header_len, info_aac, sampleSize);
 
                 if (streamer) {
+#ifdef DIF_SCATTER_GATHER
+                    if (s_app.audioPesBuf[s_app.audio_idx] == NULL) {
+                        s_app.audioPesBuf[s_app.audio_idx] = BufferFactory::CreateBuffer(BMEDIA_PES_HEADER_MAX_SIZE + BMP4_MAX_PPS_SPS + BMEDIA_ADTS_HEADER_SIZE);
+                    }
+                    s_app.audioPesBuf[s_app.audio_idx]->Copy(0, s_app.pAudioHeaderBuf, pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
+#if 0
+    dump_hex("PES", (const char*)s_app.audioPesBuf[s_app.audio_idx]->GetPtr(), pes_header_len, true);
+    dump_hex("ADTS", (const char*)(s_app.audioPesBuf[s_app.audio_idx]->GetPtr() + pes_header_len), BMEDIA_ADTS_HEADER_SIZE, true);
+#endif
+                    streamer->SubmitScatterGather(
+                        s_app.audioPesBuf[s_app.audio_idx]->GetPtr(),
+                        pes_header_len + BMEDIA_ADTS_HEADER_SIZE, !s_app.audioPesBuf[s_app.audio_idx]->IsSecure());
+#else // DIF_SCATTER_GATHER
                     IBuffer* output =
                         streamer->GetBuffer(pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
                     output->Copy(0, s_app.pAudioHeaderBuf, pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
-                    bytes_processed += pes_header_len + BMEDIA_ADTS_HEADER_SIZE;
                     BufferFactory::DestroyBuffer(output);
+#endif // DIF_SCATTER_GATHER
+                    bytes_processed += pes_header_len + BMEDIA_ADTS_HEADER_SIZE;
                 }
 
                 IBuffer* input = BufferFactory::CreateBuffer(sampleSize, (uint8_t*)frag_info->cursor.cursor);
                 batom_cursor_skip(&frag_info->cursor, sampleSize);
 
                 if (streamer) {
+#ifdef DIF_SCATTER_GATHER
+                    // Create secure buffer for decrypt output
+                    // Needs flow control
+                    if (s_app.audioDecOut[s_app.audio_idx] != NULL) {
+                        BufferFactory::DestroyBuffer(s_app.audioDecOut[s_app.audio_idx]);
+                        s_app.audioDecOut[s_app.audio_idx] = NULL;
+                    }
+                    if (s_app.decryptor) {
+                        IBuffer* decOutput = BufferFactory::CreateBuffer(sampleSize, NULL, streamer->IsSecure());
+                        s_app.audioDecOut[s_app.audio_idx] = decOutput;
+                        numOfByteDecrypted = s_app.decryptor->DecryptSample(pSample,
+                            input, decOutput, sampleSize);
+                        streamer->SubmitSample(pSample, input, decOutput);
+                    } else {
+                        streamer->SubmitScatterGather(input, true);
+                        numOfByteDecrypted = sampleSize;
+                    }
+                    s_app.audio_idx++;
+                    s_app.audio_idx %= NUM_CIRCULAR_BUF;
+                    if (numOfByteDecrypted != sampleSize)
+                    {
+                        LOGE(("%s Failed to decrypt sample, can't continue - %d", BSTD_FUNCTION, __LINE__));
+                        BufferFactory::DestroyBuffer(input);
+                        return -1;
+                    }
+                    BufferFactory::DestroyBuffer(input);
+#else // DIF_SCATTER_GATHER
                     IBuffer* decOutput = streamer->GetBuffer(sampleSize);
+                    // Transfer clear data to destination
+                    decOutput->Copy(0, input, sampleSize);
                     if (s_app.decryptor) {
                         numOfByteDecrypted = s_app.decryptor->DecryptSample(pSample,
                             input, decOutput, sampleSize);
                     } else {
-                        decOutput->Copy(0, input, sampleSize);
                         numOfByteDecrypted = sampleSize;
                     }
                     if (numOfByteDecrypted != sampleSize)
@@ -507,8 +634,10 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                     }
                     BufferFactory::DestroyBuffer(input);
                     BufferFactory::DestroyBuffer(decOutput);
+#endif // DIF_SCATTER_GATHER
                     bytes_processed += numOfByteDecrypted;
                 }
+
                 break;
             }
 
@@ -577,7 +706,6 @@ static void wait_for_drain()
         }
     }
     LOGW(("%s: video decoder was drained", BSTD_FUNCTION));
-
     if (s_app.audioDecoder) {
         for (;;) {
             NEXUS_AudioDecoderStatus decoderStatus;
@@ -853,31 +981,42 @@ static void setup_gui()
     }
     NEXUS_VideoWindow_AddInput(s_app.window, NEXUS_VideoDecoder_GetConnector(s_app.videoDecoder));
 
-    /* Bring up audio decoders and outputs */
-    NEXUS_AudioDecoder_GetDefaultOpenSettings(&audioDecoderOpenSettings);
-    if (secure_video)
-    {
-        audioDecoderOpenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
-    }
-    s_app.audioDecoder = NEXUS_AudioDecoder_Open(0, &audioDecoderOpenSettings);
-    if (s_app.audioDecoder == NULL) {
-        exit(EXIT_FAILURE);
-    }
+	if(!s_app.bypassAudio)
+	{
+	    /* Bring up audio decoders and outputs */
+	    NEXUS_AudioDecoder_GetDefaultOpenSettings(&audioDecoderOpenSettings);
+            if (secure_video)
+                audioDecoderOpenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
+	    s_app.audioDecoder = NEXUS_AudioDecoder_Open(0, &audioDecoderOpenSettings);
+	    if (s_app.audioDecoder == NULL) {
+	        exit(EXIT_FAILURE);
+	    }
 #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(s_app.audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+		if (platformConfig.outputs.audioDacs[0])
+		{
+		    NEXUS_AudioOutput_AddInput(
+		        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+		        NEXUS_AudioDecoder_GetConnector(s_app.audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+		}
 #endif
 #if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-        NEXUS_AudioDecoder_GetConnector(s_app.audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+		if (platformConfig.outputs.spdif[0])
+		{
+		    NEXUS_AudioOutput_AddInput(
+		        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+		        NEXUS_AudioDecoder_GetConnector(s_app.audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+		}
 #endif
 #if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-        NEXUS_AudioDecoder_GetConnector(s_app.audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+	    NEXUS_AudioOutput_AddInput(
+	        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+	        NEXUS_AudioDecoder_GetConnector(s_app.audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
 #endif
+	}
+	else
+	{
+		s_app.audioDecoder = NULL;
+	}
 
 }
 
@@ -990,10 +1129,12 @@ static void setup_streamer()
     videoProgram.stcChannel = s_app.stcChannel;
     NEXUS_VideoDecoder_Start(s_app.videoDecoder, &videoProgram);
 
-    audioProgram.pidChannel = s_app.audioPidChannel;
-    audioProgram.stcChannel = s_app.stcChannel;
-    NEXUS_AudioDecoder_Start(s_app.audioDecoder, &audioProgram);
-
+    if (s_app.audioDecoder)
+    {
+        audioProgram.pidChannel = s_app.audioPidChannel;
+        audioProgram.stcChannel = s_app.stcChannel;
+        NEXUS_AudioDecoder_Start(s_app.audioDecoder, &audioProgram);
+    }
 }
 
 static void setup_files()
@@ -1048,6 +1189,17 @@ static void setup_parser()
                 if (drmTypes[i] == s_app.parserDrmType) {
                     drmMatch = true;
                     s_app.parser->SetDrmSchemes(i);
+                    break;
+                } else if (s_app.parserDrmType == drm_type_eWidevine && drmTypes[i] == drm_type_eWidevine3x) {
+                    drmMatch = true;
+                    s_app.parserDrmType = drmTypes[i];
+                    s_app.decryptorDrmType = drmTypes[i];
+                    break;
+                } else if (s_app.parserDrmType == drm_type_eWidevine3x && drmTypes[i] == drm_type_eWidevine) {
+                    drmMatch = true;
+                    s_app.parserDrmType = drmTypes[i];
+                    s_app.decryptorDrmType = drmTypes[i];
+                    break;
                 }
             }
             if (!drmMatch){
@@ -1332,6 +1484,9 @@ int main(int argc, char* argv[])
 #ifndef NEXUS_EXPORT_HEAP
             LOGW(("Export heap is not available"));
 #endif
+        }
+        else if (strcmp(argv[i], "-noAudio") == 0) {
+            s_app.bypassAudio = true;
         }
         else {
             s_app.file = argv[i];

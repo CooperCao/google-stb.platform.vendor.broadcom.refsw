@@ -1353,16 +1353,18 @@ extern uint32 sqrt_int(uint32 value);
 #define EMMC_INFO_TMP_FILE "/tmp/emmc_info"
 #define FLASH_DEVICE_NVRAM 2
 
-extern char * getflashvar(char *vars, const char *name);
-extern int getflashintvar(char *vars, const char *name);
 extern int find_wlanflash_dev(osl_t *osh, char *flshdevpath, int size);
 extern int find_nand_devpath(osl_t *osh, char *flshdevpath, char *name, int size);
 extern int find_emmc_devpath(osl_t *osh, char *flshdevpath, int emmcblk, char *name, int size);
 extern int find_emmc_blk_num(osl_t *osh, int *emmcblk_num);
-extern int get_num_of_emmc_patt (osl_t *osh, int blkid);
+extern int get_num_of_emmc_patt(osl_t *osh, int blkid);
 #if !defined(OEM_ANDROID)
 extern void dump_emmc_info(osl_t *osh, char *emmcblk_path, char *file);
 #endif /* !OEM_ANDROID  */
 
 #endif /* NVRAM_FLASH */
+#if defined(NVRAM_FLASH) || defined(BCMNVRAMR)
+extern char * getflashvar(char *vars, const char *name);
+extern int getflashintvar(char *vars, const char *name);
+#endif
 #endif	/* _bcmutils_h_ */

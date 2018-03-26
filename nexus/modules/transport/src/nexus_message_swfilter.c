@@ -186,7 +186,7 @@ NEXUS_MessageHandle NEXUS_Message_Open(const NEXUS_MessageSettings *pSettings)
         /* alloc from heap just in case app is expecting it. */
         NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
         allocSettings.alignment = 1024;
-        allocSettings.heap = NEXUS_P_DefaultHeap(NULL, NEXUS_DefaultHeapType_eAny);
+        allocSettings.heap = NEXUS_P_DefaultHeap(NULL, NEXUS_DefaultHeapType_eFull);
         rc = NEXUS_Memory_Allocate(pSettings->bufferSize, &allocSettings, &msg->allocatedBuffer); /* default is heap[0] */
         if (rc) {
             rc = BERR_TRACE(rc);
@@ -920,7 +920,7 @@ static void *NEXUS_SwFilter_P_FilterCallback(void *context, size_t msg_size)
             {
                 last_4bytes[i] = * (int8_t *)((uintptr_t)msg->tempBuffer + msg_size - mod4 + i);
             }
-            msg_size -= (mod4); /* take just the multple of 4 */
+            msg_size -= (mod4); /* take just the multiple of 4 */
         }
         if (mod4) { /* copy last 4 padded bytes */
             BKNI_Memcpy((uint8_t *)(uintptr_t)msg->tempBuffer + msg_size, last_4bytes, 4);

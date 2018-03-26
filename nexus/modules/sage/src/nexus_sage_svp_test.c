@@ -261,7 +261,7 @@ static void addClient(unsigned int client, bool add, struct maskInfo *exc, struc
 * TBD on this... to prevent walking list(s) on each core add/remove, generate a
 * local mapping from "core client id" to "memc client id". This should be done
 * offline?
-* Also sets some "intial" values... mainly HVD is allowed non-exclusive access
+* Also sets some "initial" values... mainly HVD is allowed non-exclusive access
 * to all URR's (and CRR in test code).
 */
 static BERR_Code generateCoreMap(void)
@@ -372,17 +372,22 @@ static void dumpArcInfo(void)
 static void dumpGisbViolation(void)
 {
     uint32_t status;
-    uint32_t address;
+    uint64_t address;
     uint32_t master;
+
     master=BREG_Read32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_CAP_MASTER);
+#ifdef BCHP_SUN_GISB_ARB_BP_CAP_HI_ADDR
     address=BREG_Read32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_CAP_ADDR);
+#else
+    address=BREG_Read64(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_CAP_ADDR);
+#endif
     status=BREG_Read32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_CAP_STATUS);
 
     if(status&BCHP_SUN_GISB_ARB_BP_CAP_STATUS_valid_MASK)
     {
-        BDBG_ERR(("GISB %s violation at address 0x%08x. MASTER=0x%08x",
+        BDBG_ERR(("GISB %s violation at address "BDBG_UINT64_FMT". MASTER=0x%08x",
             (status&BCHP_SUN_GISB_ARB_BP_CAP_STATUS_write_MASK) ? "WRITE" : "READ",
-            address, master));
+            BDBG_UINT64_ARG(address), master));
         BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_CAP_CLR, 0x1);
     }
 }
@@ -743,16 +748,16 @@ static NEXUS_Error setArch(enum heapType type)
         switch(local_info.gConfig[type].memc)
         {
             case 0:
-                arcInfo.cntrl=BCHP_MEMC_ARC_0_REG_START+((BCHP_MEMC_ARC_0_ARC_1_CNTRL-BCHP_MEMC_ARC_0_ARC_0_CNTRL)*idx[i]);
+                arcInfo.cntrl=BCHP_MEMC_ARC_0_ARC_1_CNTRL+((BCHP_MEMC_ARC_0_ARC_1_CNTRL-BCHP_MEMC_ARC_0_ARC_0_CNTRL)*idx[i]);
                 break;
 #ifdef BCHP_MEMC_ARC_1_REG_START
             case 1:
-                arcInfo.cntrl=BCHP_MEMC_ARC_1_REG_START+((BCHP_MEMC_ARC_0_ARC_1_CNTRL-BCHP_MEMC_ARC_0_ARC_0_CNTRL)*idx[i]);
+                arcInfo.cntrl=BCHP_MEMC_ARC_0_ARC_1_CNTRL+((BCHP_MEMC_ARC_0_ARC_1_CNTRL-BCHP_MEMC_ARC_0_ARC_0_CNTRL)*idx[i]);
                 break;
 #endif
 #ifdef BCHP_MEMC_ARC_2_REG_START
             case 2:
-                arcInfo.cntrl=BCHP_MEMC_ARC_2_REG_START+((BCHP_MEMC_ARC_0_ARC_1_CNTRL-BCHP_MEMC_ARC_0_ARC_0_CNTRL)*idx[i]);
+                arcInfo.cntrl=BCHP_MEMC_ARC_0_ARC_1_CNTRL+((BCHP_MEMC_ARC_0_ARC_1_CNTRL-BCHP_MEMC_ARC_0_ARC_0_CNTRL)*idx[i]);
                 break;
 #endif
             default:

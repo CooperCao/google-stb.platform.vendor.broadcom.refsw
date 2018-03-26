@@ -131,10 +131,12 @@ ifeq ($(NEXUS_TOP),nexus)
 MAGNUM := magnum
 ROCKFORD := rockford
 BSEAV := BSEAV
+ASTRA := astra
 else
 MAGNUM := $(NEXUS_TOP)/../magnum
 ROCKFORD := $(MAGNUM)/../rockford
 BSEAV := $(MAGNUM)/../BSEAV
+ASTRA := $(MAGNUM)/../astra
 endif
 #
 # Define options for quiet builds

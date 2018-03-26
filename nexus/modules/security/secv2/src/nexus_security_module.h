@@ -59,8 +59,13 @@
 #include "nexus_security_common.h"
 #include "nexus_regver.h"
 #include "nexus_regver_rsa.h"
+#include "nexus_signed_command.h"
+#include "nexus_pcie_window.h"
 #ifdef NEXUS_POWAY_SUPPORT
  #include "nexus_poway.h"
+#endif
+#ifdef NEXUS_DUPLE_KEYLADDER_SUPPORT
+ #include "nexus_duple_keyladder.h"
 #endif
 #ifdef NEXUS_ENCINITAS_SUPPORT
  #include "nexus_encinitas.h"
@@ -91,6 +96,10 @@ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_KeyLadder);
 #ifdef NEXUS_POWAY_SUPPORT
  NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Poway);
 #endif
+#ifdef NEXUS_DUPLE_KEYLADDER_SUPPORT
+ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_DupleKeyladder);
+#endif
+
 
 #ifdef __cplusplus
 }

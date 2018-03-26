@@ -44,17 +44,53 @@
 #include "nexus_hdmi_types.h"
 #include "nexus_hdmi_output_extra.h"
 #include "nexus_video_decoder.h"
+#include "nexus_simple_video_decoder.h"
+#include "nexus_display.h"
+
+#define NUM_CAPTURE_SURFACES 2
 
 typedef struct Platform
 {
     PlatformGraphicsHandle gfx;
-    PlatformMediaPlayerHandle player;
-    PlatformDisplayHandle display;
     PlatformHdmiReceiverHandle rx;
     PlatformInputHandle input;
-    PlatformSchedulerHandle scheduler;
+    PlatformSchedulerHandle schedulers[PLATFORM_SCHEDULER_COUNT];
     NxClient_CallbackThreadSettings callbackThreadSettings;
-    NEXUS_VideoDecoderCapabilities videoCaps;
+    struct
+    {
+        NEXUS_VideoDecoderCapabilities videoCaps;
+        PlatformMediaPlayerHandle players[MAX_STREAMS];
+        struct
+        {
+            NEXUS_SurfaceHandle surfaces[NEXUS_SIMPLE_DECODER_MAX_SURFACES];
+            NEXUS_SurfaceHandle captures[NUM_CAPTURE_SURFACES];
+            unsigned validCaptures;
+            unsigned lastValidCaptures;
+            struct
+            {
+                unsigned startTime;
+                unsigned now;
+                unsigned frames;
+            } performance;
+            PlatformMediaPlayerHandle player;
+        } streams[MAX_STREAMS];
+        unsigned maxStreams; /* total number of simul streams supported on this platform (does not care 4+0, 3+1, 1+1, 1+0, etc.) */
+        struct
+        {
+            unsigned maxStreams; /* total number of simultaneous decode output streams supported per decoder (partially determines 4+0, 3+1, 1+1, 1+0, etc.) */
+        } video[NEXUS_MAX_VIDEO_DECODERS];
+    } media;
+    struct
+    {
+        NEXUS_DisplayCapabilities caps;
+        PlatformDisplayHandle handle;
+        unsigned maxWindows; /* total number of windows supported for the display (partially determines 4+0, 3+1, 1+1, 1+0, etc.) */
+    } display;
+    struct
+    {
+        unsigned main;
+        unsigned pip;
+    } streamId; /* this is not the display window index, but rather a platform stream index including mosaic streams */
 } Platform;
 
 void platform_p_output_dynamic_range_to_nexus(PlatformDynamicRange dynrng, NEXUS_VideoEotf * pEotf, NEXUS_HdmiOutputDolbyVisionMode * pDolbyVision);
@@ -78,5 +114,8 @@ void platform_p_hotplug_handler(void * context, int param);
 void platform_hdmi_receiver_p_hotplug_handler(PlatformHdmiReceiverHandle rx);
 
 bool platform_display_p_is_dolby_vision_supported(PlatformDisplayHandle display);
+void platform_media_player_p_capture_video(PlatformMediaPlayerHandle player);
+void platform_media_player_p_recycle_video(PlatformMediaPlayerHandle player);
+unsigned platform_p_get_time(void);
 
 #endif /* PLATFORM_PRIV_H__ */

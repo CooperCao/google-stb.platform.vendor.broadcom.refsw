@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -81,7 +81,7 @@ public:
     eRet             trigger(CAction * pAction);
     bool             handleInput(char * pLine);
     void             processNotification(CNotification & notification);
-    CAction *        getBusyAction(void)       { return(&_busyAction); }
+    CAction *        getBusyAction(void) { return(&_busyAction); }
     void             setRunScript(MString strRunScript);
     MString          getRunScript(void);
     void             setModel(CModel * pModel) { _pModel = pModel;  }

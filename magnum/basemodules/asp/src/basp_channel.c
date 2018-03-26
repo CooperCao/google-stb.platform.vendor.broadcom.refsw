@@ -117,7 +117,7 @@ void BASP_Channel_Destroy(
     /* Make sure this channel is not running. */
     /* TODO: */
 
-    BDBG_LOG(("hChannel=%p", (void *)hChannel));
+    BDBG_MSG(("hChannel=%p", (void *)hChannel));
 
     /* Unlink from context's channel list. */
     BKNI_EnterCriticalSection();
@@ -126,26 +126,37 @@ void BASP_Channel_Destroy(
     BDBG_OBJECT_DESTROY(hChannel, BASP_P_Channel);
 
     /* Free memory. */
-    BDBG_LOG(("hChannel freeing=%p", (void *)hChannel));
+    BDBG_MSG(("hChannel freeing=%p", (void *)hChannel));
     BKNI_Free(hChannel);
 }
 
 
 /******************************************************************************/
 BASP_ChannelHandle BASP_P_Channel_GetByChannelIndex_isr(
-    BASP_Handle  hAsp,
-    uint32_t channelIndex
+    BASP_Handle         hAsp,
+    BASP_MessageType    messageType,
+    uint32_t            channelIndex
     )
 {
     BASP_ContextHandle hContext;
     BASP_ChannelHandle hChannel;
+    BASP_ContextType   msgContextType;
 
+    msgContextType = BASP_ContextType_eStreaming;
+#ifdef BASP_MAX_MUX_CHANNELS
+    if (messageType == BASP_MessageType_eFw2PiMuxMessageResp)
+    {
+        msgContextType = BASP_ContextType_eMux;
+    }
+#else
+    BSTD_UNUSED(messageType);
+#endif /* #ifdef BASP_MAX_MUX_CHANNELS */
     for ( hContext = BLST_S_FIRST(&hAsp->contextList) ;
         hContext != NULL ;
         hContext = BLST_S_NEXT(hContext, nextContext) )
     {
-        /* If this isn't a streaming context, just skip to the next... */
-        if (hContext->sCreateSettings.type != BASP_ContextType_eStreaming) { continue;}
+        /* If this context doesn't match the message's, just skip to the next... */
+        if (hContext->sCreateSettings.type != msgContextType) { continue;}
 
         for (hChannel = BLST_S_FIRST(&hContext->channelList) ;
              hChannel != NULL ;
@@ -190,7 +201,9 @@ void BASP_Channel_GetCallbacks(
     BDBG_OBJECT_ASSERT(hChannel, BASP_P_Channel);
     BDBG_ASSERT( pCallbacks );
 
+    BKNI_EnterCriticalSection();
     *pCallbacks = hChannel->callbacks;
+    BKNI_LeaveCriticalSection();
 
     BDBG_LEAVE( BASP_Channel_GetCallbacks );
     return;
@@ -210,9 +223,7 @@ BERR_Code BASP_Channel_SetCallbacks(
     BDBG_ASSERT( pCallbacks );
 
     BKNI_EnterCriticalSection();
-
     hChannel->callbacks = *pCallbacks;
-
     BKNI_LeaveCriticalSection();
 
     BDBG_LEAVE( BASP_Channel_SetCallbacks );
@@ -257,9 +268,6 @@ BERR_Code BASP_Channel_ReadMessage_isr(
     BKNI_ASSERT_ISR_CONTEXT();
     BDBG_OBJECT_ASSERT(hChannel, BASP_P_Channel);
 
-    BSTD_UNUSED(pType);
-    BSTD_UNUSED(pMessageLength);
-
     {
         BASP_Fw2Pi_Message *pMsg;
         BASP_MsgqueueHandle hMsgqueue;
@@ -298,13 +306,14 @@ BERR_Code BASP_Channel_ReadMessage_isr(
         if (size > sizeof (BASP_Fw2Pi_Message)) {size = sizeof (BASP_Fw2Pi_Message);}
         BKNI_Memcpy_isr(pMessage, pMsg, size);
 
+        if (pMessageLength) {*pMessageLength = size;}
+
         /* Indicate that message can be removed from queue. */
         rc = BASP_Msgqueue_ReadComplete_isr(hChannel->hContext->hAsp->hMsgqueueFwToHost);
         BERR_TRACE(rc);
     }
 
     return (rc);
-
 }
 
 

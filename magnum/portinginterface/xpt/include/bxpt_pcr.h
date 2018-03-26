@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,7 +43,10 @@
 #define BXPT_PCR_H__
 
 #include "bxpt.h"
+#include "bchp_common.h"
+#ifdef BCHP_XPT_DPCR0_REG_START
 #include "bchp_xpt_dpcr0.h"
+#endif
 
 #ifdef __cplusplus
 extern "C"{
@@ -301,6 +304,7 @@ typedef struct BXPT_PCR_DefSettings
 }
 BXPT_PCR_DefSettings;
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
     Return the number of Pcr channels.
@@ -314,6 +318,7 @@ BERR_Code BXPT_PCR_GetTotalChannels(
     BXPT_Handle hXpt,           /* [in] The transport handle */
     unsigned int *TotalChannels     /* [out] The number of Pcr channels. */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -438,6 +443,7 @@ BERR_Code   BXPT_PCR_GetPhaseError_isr(
     int32_t *p_error
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
     controls modifying the rate of the STC extension counter.
@@ -484,6 +490,7 @@ BERR_Code   BXPT_PCR_GetLastPcr(
     uint32_t *p_pcrHi,            /* [out] Upper bits of PCR*/
     uint32_t *p_pcrLo             /* [out] Bit9-LSB of base bit[0-8]-extension*/
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -501,6 +508,7 @@ BERR_Code   BXPT_PCR_GetLastPcr_isr(
     uint32_t *p_pcrLo
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
     Gets the STC counter values
@@ -515,6 +523,7 @@ BERR_Code   BXPT_PCR_GetStc(
     uint32_t *p_stcHi,           /* [out] Upper bits of STC*/
     uint32_t *p_stcLo            /* [out] bit9-LSB of base bit[0-8]-extension*/
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -552,6 +561,7 @@ BERR_Code   BXPT_PCR_GetfreqRefConfig(
     BXPT_PCR_TimebaseFreqRefConfig  *TimebaseFreqConfig /* [out] Non transport source configuration */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
     Isr version of enabling PCR processing on PCR_PID and putting PCR into
@@ -566,6 +576,7 @@ Returns:
 void BXPT_PCR_RefreshPcrPid_isr(
     BXPT_PCR_Handle hPcr               /*[in] The pcr handle  */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -638,6 +649,7 @@ void BXPT_PCR_SetTimeRefTrackRange(
     BXPT_PCR_RefTrackRange TrackRange
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Set the phase error clamp range for the phase error input to the loop filter
@@ -652,6 +664,7 @@ void BXPT_PCR_SetPhaseErrorClampRange(
     BXPT_PCR_Handle hPcr,
     BXPT_PCR_PhaseErrorClampRange ClampRange
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -660,6 +673,7 @@ Enumeration of all supported interrupts in a Rave context.
 typedef enum BXPT_PCR_IntName
 {
     /* Set whenever a PCR is detected */
+#ifdef BCHP_XPT_DPCR0_REG_START
     BXPT_PCR_IntName_ePhaseCompare = BCHP_XPT_DPCR0_INTR_STATUS_REG_PHASE_CMP_INT_SHIFT,
 
     /* Set whenever 2 consecutive PCR errors are seen in the stream. */
@@ -667,7 +681,12 @@ typedef enum BXPT_PCR_IntName
 
     BXPT_PCR_IntName_eOnePcrError = BCHP_XPT_DPCR0_INTR_STATUS_REG_ONE_PCR_ERROR_SHIFT,
     BXPT_PCR_IntName_ePhaseSaturation = BCHP_XPT_DPCR0_INTR_STATUS_REG_PHASE_SAT_INT_SHIFT,
-
+#else
+    BXPT_PCR_IntName_ePhaseCompare = 0,
+    BXPT_PCR_IntName_eTwoPcrErrors,
+    BXPT_PCR_IntName_eOnePcrError,
+    BXPT_PCR_IntName_ePhaseSaturation,
+#endif
     BXPT_PCR_IntName_eMax   /* Marks the end of the supported interrutps */
 }
 BXPT_PCR_IntName;
@@ -689,11 +708,11 @@ BERR_Code BXPT_PCR_GetIntId(
     BINT_Id *IntId              /* IntId suitable for the BINT module. */
    );
 
-
+#if BXPT_HAS_DPCR_INTEGRATOR_WORKAROUND
 BERR_Code BXPT_PCR_P_Integrator(
     BXPT_Handle hXpt
     );
-
+#endif
 
 #ifdef __cplusplus
 }

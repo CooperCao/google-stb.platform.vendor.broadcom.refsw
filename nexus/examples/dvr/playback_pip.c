@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -79,7 +79,7 @@ BDBG_MODULE(playback_pip_audio_primer);
 #define PIP_AUDIO_CODEC NEXUS_AudioCodec_eAc3
 #else
 #define FILENAME_MAIN    "videos/spider_cc.mpg"
-#define MAIN_TS_TYPE     NEXUS_TransportType_eTs 
+#define MAIN_TS_TYPE     NEXUS_TransportType_eTs
 #define MAIN_VIDEO_PID   0x11
 #define MAIN_VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
 #define MAIN_AUDIO_PID   0x14
@@ -192,7 +192,7 @@ static int start_decode(struct context *context)
     context->audioProgram.codec = context->audioCodec;
     context->audioProgram.pidChannel = context->audioPidChannel;
     context->audioProgram.stcChannel = context->stcChannel;
-    
+
     if ( g_usePrimer ) {
         context->primer = NEXUS_AudioDecoderPrimer_Create(NULL);
         rc = NEXUS_AudioDecoderPrimer_Start( context->primer, &context->audioProgram);
@@ -227,7 +227,7 @@ static int stop_decode(struct context *context) {
     NEXUS_FilePlay_Close( context->file );
 
     NEXUS_VideoDecoder_Close( context->videoDecoder );
-    
+
     return 0;
 }
 
@@ -340,7 +340,7 @@ int main(int argc, char **argv)
     NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
                                NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
 #endif
-        
+
     BKNI_Memset(&context, 0, sizeof(context));
 
     context[0].index = 0;
@@ -373,7 +373,7 @@ int main(int argc, char **argv)
     if (rc) return -1;
     /* start audio */
     index = 0;
-        
+
     if ( g_usePrimer == false ) {
         rc = NEXUS_AudioDecoder_Start(audioDecoder, &context[index].audioProgram);
         BDBG_ASSERT(!rc);
@@ -399,7 +399,7 @@ int main(int argc, char **argv)
             BKNI_Sleep(500);
         }
         BDBG_WRN(("toggle t=%d" , audioTime*2));
-        
+
         if ( g_usePrimer == false ) {
             NEXUS_AudioDecoder_Stop(audioDecoder);
         }
@@ -409,7 +409,7 @@ int main(int argc, char **argv)
             NEXUS_Playback_GetPidChannelSettings(context[index].playback, context[index].audioPidChannel, &playbackPidSettings);
             playbackPidSettings.pidTypeSettings.audio.primary = NULL;
             NEXUS_Playback_SetPidChannelSettings(context[index].playback, context[index].audioPidChannel, &playbackPidSettings);
-        } 
+        }
 
         if (++index == 2) index = 0;
 

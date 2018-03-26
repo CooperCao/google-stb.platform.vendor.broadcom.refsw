@@ -14,16 +14,19 @@
 #define FUNCID_CC_SHIFT			30
 #define FUNCID_OEN_SHIFT		24
 #define FUNCID_NUM_SHIFT		0
+#define FUNCID_MBZ_SHIFT		16
 
 #define FUNCID_TYPE_MASK		0x1
 #define FUNCID_CC_MASK			0x1
 #define FUNCID_OEN_MASK			0x3f
 #define FUNCID_NUM_MASK			0xffff
+#define FUNCID_MBZ_MASK			0xff
 
 #define FUNCID_TYPE_WIDTH		1
 #define FUNCID_CC_WIDTH			1
 #define FUNCID_OEN_WIDTH		6
 #define FUNCID_NUM_WIDTH		16
+#define FUNCID_MBZ_WIDTH			8
 
 #define GET_SMC_CC(id)			((id >> FUNCID_CC_SHIFT) & \
 					 FUNCID_CC_MASK)

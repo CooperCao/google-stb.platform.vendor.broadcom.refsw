@@ -46,8 +46,6 @@
 
 BDBG_MODULE(BHSM);
 
-BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
-
 BERR_Code BHSM_SetMiscBits (
     BHSM_Handle                hHsm,
     BHSM_SetMiscBitsIO_t    *pMiscBits

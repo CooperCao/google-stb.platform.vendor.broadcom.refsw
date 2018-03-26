@@ -615,6 +615,30 @@ NEXUS_Recpump_P_FreeScdIndexer(NEXUS_RecpumpHandle r)
     }
 }
 
+static void nexus_recpump_p_unassign_scd(NEXUS_RecpumpHandle r, NEXUS_Recpump_P_PidChannel *pid)
+{
+    if (pid->assignedScd >= 0) {
+        BXPT_Rave_ScdEntry ScdConfig;
+        BERR_Code rc;
+        /* Detector assigned, but not needed. Disable this detector */
+        BKNI_Memset(&ScdConfig, 0, sizeof(ScdConfig));
+        /* use previous (not new) mapMode to control disable */
+        if (r->scdMapMode == 0) {
+            rc = BXPT_Rave_SetScdUsingPid(r->scdIdx, pid->assignedScd, 0x1fff, &ScdConfig);
+            if (rc) BERR_TRACE(rc); /* keep going */
+        }
+        else if (r->scdMapMode == 1) {
+            ScdConfig.PidChannel = 0x1fff;
+            ScdConfig.EsCount = 2; /* no payload needed, min 2 required */
+            rc = BXPT_Rave_SetScdEntry(r->scdIdx, pid->assignedScd, &ScdConfig);
+            if (rc) BERR_TRACE(rc); /* keep going */
+        }
+        /* then free it */
+        r->scdUsedMap &= ~(1 << pid->assignedScd);
+        pid->assignedScd = -1;
+    }
+}
+
 static NEXUS_Error NEXUS_Recpump_P_ProvisionScdIndexer(NEXUS_RecpumpHandle r)
 {
     NEXUS_Error rc;
@@ -666,21 +690,7 @@ static NEXUS_Error NEXUS_Recpump_P_ProvisionScdIndexer(NEXUS_RecpumpHandle r)
         if (!pid->pidChn) continue;
 
         if (!NEXUS_RECPUMP_PID_IS_INDEX(&pid->settings)) {
-            if (pid->assignedScd >= 0) {
-                /* Detector assigned, but not needed. Disable this detector */
-                BKNI_Memset(&ScdConfig, 0, sizeof(ScdConfig));
-                /* use previous (not new) mapMode to control disable */
-                if (r->scdMapMode == 0) {
-                    BXPT_Rave_SetScdUsingPid(r->scdIdx, pid->assignedScd, 0x1fff, &ScdConfig);
-                }
-                else if (r->scdMapMode == 1) {
-                    ScdConfig.PidChannel = 0x1fff;
-                    BXPT_Rave_SetScdEntry(r->scdIdx, pid->assignedScd, &ScdConfig);
-                }
-                /* then free it */
-                r->scdUsedMap &= ~(1 << pid->assignedScd);
-                pid->assignedScd = -1;
-            }
+            nexus_recpump_p_unassign_scd(r, pid);
             continue;
         }
 
@@ -915,7 +925,7 @@ static void NEXUS_Recpump_P_Finalizer(NEXUS_RecpumpHandle r)
     if (r->tpitIdx) {
         BXPT_Rave_FreeIndexer(r->tpitIdx);
     }
-    NEXUS_Recpump_P_FreeScdIndexer(r);
+    BDBG_ASSERT(!r->scdIdx); /* NEXUS_Recpump_P_FreeScdIndexer was called when last pid removed */
     NEXUS_RaveErrorCounter_Uninit_priv(&r->raveErrors);
     if (r->extra_rave_rec) {
         BXPT_Rave_FreeContext(r->extra_rave_rec);
@@ -1928,7 +1938,9 @@ NEXUS_Error NEXUS_Recpump_RemovePidChannel(NEXUS_RecpumpHandle r, NEXUS_PidChann
     BDBG_ASSERT(pid);
 
     pid->pidChn = NULL;
-    if (r->scdIdx && !BLST_S_FIRST(&r->pid_list)) { /* when all pids were removed free indexer */
+    nexus_recpump_p_unassign_scd(r, pid);
+    if (!BLST_S_FIRST(&r->pid_list)) { /* when all pids were removed free indexer */
+        BDBG_ASSERT(r->scdUsedMap == 0);
         NEXUS_Recpump_P_FreeScdIndexer(r);
     }
 

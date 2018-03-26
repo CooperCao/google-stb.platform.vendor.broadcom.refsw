@@ -959,13 +959,12 @@ BERR_Code BVDC_P_Buffer_Create
         pPicture->hBuffer    = (BVDC_P_Buffer_Handle)pBuffer;
         pPicture->ulBufferId = i;
 
-#if BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS
 #if BVDC_P_DBV_SUPPORT || BVDC_P_TCH_SUPPORT /* alloc DBV or TCH metadata buffer */
         if(hWindow->hCompositor->stCfcCapability[hWindow->eId - BVDC_P_CMP_GET_V0ID(hWindow->hCompositor)].stBits.bDbvToneMapping ||
            hWindow->hCompositor->stCfcCapability[hWindow->eId - BVDC_P_CMP_GET_V0ID(hWindow->hCompositor)].stBits.bTpToneMapping) {
-            unsigned j = 0;
-            for(; j < BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS; j++) {
-                BDBG_ASSERT(BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS <= BAVC_MOSAIC_MAX);
+            unsigned j;
+            for(j = 0; j < BVDC_P_CMP_0_DBVTCH_NUM_CTX; j++) {
+                BDBG_ASSERT(BVDC_P_CMP_0_DBVTCH_NUM_CTX <= BAVC_MOSAIC_MAX);
 #if BVDC_P_DBV_SUPPORT
                 pPicture->astMosaicMetaData[j].stDbvInput.stHdrMetadata.pData = BKNI_Malloc(BAVC_HDR_METADATA_SIZE_MAX);
                 if(!pPicture->astMosaicMetaData[j].stDbvInput.stHdrMetadata.pData)
@@ -980,7 +979,6 @@ BERR_Code BVDC_P_Buffer_Create
             }
         }
 #endif
-#endif
 
         BLST_CQ_INSERT_TAIL(pBuffer->pBufList, pPicture, link);
     }
@@ -994,12 +992,11 @@ oom_err:
     {
         pPicture = BLST_CQ_FIRST(pBuffer->pBufList);
         BLST_CQ_REMOVE_HEAD(pBuffer->pBufList, link);
-#if BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS
 #if BVDC_P_DBV_SUPPORT || BVDC_P_TCH_SUPPORT
         if(hWindow->hCompositor->stCfcCapability[hWindow->eId - BVDC_P_CMP_GET_V0ID(hWindow->hCompositor)].stBits.bDbvToneMapping ||
            hWindow->hCompositor->stCfcCapability[hWindow->eId - BVDC_P_CMP_GET_V0ID(hWindow->hCompositor)].stBits.bTpToneMapping) {
             unsigned j;
-            for(j = 0; j < BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS; j++) {
+            for(j = 0; j < BVDC_P_CMP_0_DBVTCH_NUM_CTX; j++) {
 #if BVDC_P_DBV_SUPPORT
                 if(pPicture->astMosaicMetaData[j].stDbvInput.stHdrMetadata.pData) {
                     BKNI_Free(pPicture->astMosaicMetaData[j].stDbvInput.stHdrMetadata.pData);
@@ -1011,7 +1008,6 @@ oom_err:
 #endif
             }
         }
-#endif
 #endif
         BKNI_Free(pPicture);
     }
@@ -1038,12 +1034,11 @@ BERR_Code BVDC_P_Buffer_Destroy
     {
         pPicture = BLST_CQ_FIRST(hBuffer->pBufList);
         BLST_CQ_REMOVE_HEAD(hBuffer->pBufList, link);
-#if BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS
 #if BVDC_P_DBV_SUPPORT || BVDC_P_TCH_SUPPORT
         /* TODO: mosaic mode */
         {
             unsigned j;
-            for(j = 0; j < BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS && hBuffer->hWindow->astMosaicCfc[j].stCapability.stBits.bDbvCmp; j++) {
+            for(j = 0; j < BVDC_P_CMP_0_DBVTCH_NUM_CTX && hBuffer->hWindow->astMosaicCfc[j].stCapability.stBits.bDbvCmp; j++) {
 #if BVDC_P_DBV_SUPPORT
                 if(pPicture->astMosaicMetaData[j].stDbvInput.stHdrMetadata.pData) {
                     BKNI_Free(pPicture->astMosaicMetaData[j].stDbvInput.stHdrMetadata.pData);
@@ -1055,7 +1050,6 @@ BERR_Code BVDC_P_Buffer_Destroy
 #endif
             }
         }
-#endif
 #endif
         BKNI_Free(pPicture);
     }

@@ -42,9 +42,9 @@
 
 .section ".text"
 
-.global tz_mon_fiq_handler
+.global mon_fiq_handler
 
-tz_mon_fiq_handler:
+mon_fiq_handler:
 
     sub lr, lr, #4 /* the PC to return to after handling this FIQ */
 
@@ -67,7 +67,7 @@ tz_mon_fiq_handler:
 
     pop {r0}
     pop {r1}
-    b call_tz_fiq_handler
+    b call_tz_mon_fiq_handler
 
 save_ns_regs:
     /* If here, we were in normal mode. Clear the NS bit in SCR */
@@ -335,5 +335,5 @@ load_s_regs:
     pop {r1}
     pop {r0}
 
-call_tz_fiq_handler:
-    b   tz_fiq_handler
+call_tz_mon_fiq_handler:
+    b   tz_mon_fiq_handler

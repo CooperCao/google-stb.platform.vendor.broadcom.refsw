@@ -108,7 +108,7 @@ extern "C" {
 
 
 #if defined(RAAGA)
-#  if defined(RAAGA) && defined(__FP4015__)
+#  if defined(RAAGA) && __FP4015__
     /* Rev3000 silicon had 16 entries, and Rev3100 has 128. Just make space for
      * 128, and we'll waste space for the entries where A0 is involved, but
      * there's no point optimising for old silicon (or constructing a separate
@@ -380,9 +380,9 @@ typedef struct DSP_STRUCT
 
 typedef struct
 {
-#if defined(__FP4014_ONWARDS__) || defined(__FPM1015__)
+#if __FP4014_ONWARDS__ || __FPM1015__
     uint32_t host_intc_host_irq;
-#if defined(__FP4014_ONWARDS__) || defined(__FPM1015__)
+#if __FP4014_ONWARDS__ || __FPM1015__
     uint32_t obus_fault;
     uint32_t obus_fault_address;
 #endif

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -70,23 +70,23 @@ public:
     virtual void                            close(void);
     virtual eRet                            start(const char * strFilename);
     virtual eRet                            stop(void);
-    virtual NEXUS_SimpleAudioPlaybackHandle getAudioPlayback(void)    { return(_simplePlayback); }
-    virtual bool                            isOpened(void) { return((NULL != _simplePlayback) ? true : false); }
+    virtual NEXUS_SimpleAudioPlaybackHandle getAudioPlayback(void)      { return(_simplePlayback); }
+    virtual bool                            isOpened(void)              { return((NULL != _simplePlayback) ? true : false); }
     virtual eRet                            connect(unsigned index = 0) { return(eRet_Ok); }
-    virtual void                            disconnect(void) { return; }
-    virtual bool                            isConnected(void) { return((0 == _connectId) ? false : true); }
+    virtual void                            disconnect(void)            { return; }
+    virtual bool                            isConnected(void)           { return((0 == _connectId) ? false : true); }
 
     void            doPlayback(void);
     void            getSettings(NEXUS_SimpleAudioPlaybackServerSettings * pSettings);
     eRet            setSettings(NEXUS_SimpleAudioPlaybackServerSettings * pSettings);
     void            setOutputSpdif(COutputSpdif * pSpdif) { _pSpdif = pSpdif; }
-    COutputSpdif *  getOutputSpdif(void) { return(_pSpdif); }
-    void            setOutputHdmi(COutputHdmi * pHdmi) { _pHdmi = pHdmi; }
-    COutputHdmi *   getOutputHdmi(void) { return(_pHdmi); }
+    COutputSpdif *  getOutputSpdif(void)                  { return(_pSpdif); }
+    void            setOutputHdmi(COutputHdmi * pHdmi)    { _pHdmi = pHdmi; }
+    COutputHdmi *   getOutputHdmi(void)                   { return(_pHdmi); }
     void            destroyThreadPlayback(void);
-    void            setModel(CModel * pModel)             { _pModel = pModel; }
-    CModel *        getModel(void)                        { return(_pModel); }
-    CWidgetEngine * getWidgetEngine(void) { return(_pWidgetEngine); }
+    void            setModel(CModel * pModel) { _pModel = pModel; }
+    CModel *        getModel(void)            { return(_pModel); }
+    CWidgetEngine * getWidgetEngine(void)     { return(_pWidgetEngine); }
     void            setResources(void * id, CBoardResources * pResources);
     void            clearPlaybackQueue(void);
     unsigned        playbackJobCount(void);
@@ -95,24 +95,24 @@ public:
     void            waitForPcmPlaybackToComplete(long timeout = -1);
 
 protected:
-    NEXUS_SimpleAudioPlaybackHandle   _simplePlayback;
-    NEXUS_AudioPlaybackHandle         _audioPlayback;
-    COutputSpdif *                    _pSpdif;
-    COutputHdmi *                     _pHdmi;
-    int                               _startOffset;
-    B_EventHandle                     _jobReadyEvent;
-    B_EventHandle                     _bufferReadyEvent;
-    B_ThreadHandle                    _playbackThread_handle;
-    void *                            _resourceId;
-    unsigned                          _connectId;
-    MAutoList<MString>                _pcmSoundList;
-    bool                              _bRun;
-    bool                              _bLoop;
+    NEXUS_SimpleAudioPlaybackHandle _simplePlayback;
+    NEXUS_AudioPlaybackHandle       _audioPlayback;
+    COutputSpdif *                  _pSpdif;
+    COutputHdmi *                   _pHdmi;
+    int                _startOffset;
+    B_EventHandle      _jobReadyEvent;
+    B_EventHandle      _bufferReadyEvent;
+    B_ThreadHandle     _playbackThread_handle;
+    void *             _resourceId;
+    unsigned           _connectId;
+    MAutoList<MString> _pcmSoundList;
+    bool               _bRun;
+    bool               _bLoop;
 
-    B_MutexHandle                     _mutex;
-    CBoardResources *                 _pBoardResources;
-    CWidgetEngine *                   _pWidgetEngine;
-    CModel *                          _pModel;
+    B_MutexHandle     _mutex;
+    CBoardResources * _pBoardResources;
+    CWidgetEngine *   _pWidgetEngine;
+    CModel *          _pModel;
 };
 
 #ifdef __cplusplus

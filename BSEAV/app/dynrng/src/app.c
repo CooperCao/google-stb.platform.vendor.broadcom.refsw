@@ -59,6 +59,7 @@ PlatformDynamicRange app_p_compute_output_dynamic_range(AppHandle app, PlatformD
 
     assert(app);
 
+    fprintf(stdout, "requested output dynrng: '%s'\n", platform_get_dynamic_range_name(requested));
     if (requested == PlatformDynamicRange_eAuto)
     {
         if (app->cfg->dbvOutputModeAutoSelection && platform_hdmi_receiver_supports_dynamic_range(app->platform.rx, PlatformDynamicRange_eDolbyVision) == PlatformCapability_eSupported)
@@ -79,7 +80,7 @@ PlatformDynamicRange app_p_compute_output_dynamic_range(AppHandle app, PlatformD
         output = requested;
     }
 
-    fprintf(stdout, "Computed '%s' as output dynrng\n", platform_get_dynamic_range_name(output));
+    fprintf(stdout, "computed output dynrng: '%s'\n", platform_get_dynamic_range_name(output));
 
     return output;
 }
@@ -196,10 +197,10 @@ void app_p_update_out_model(AppHandle app)
     {
         /* if local override info does not match model info, try to apply local override to hardware */
         /* Making sure this only happens on change avoids reset of the luma settings done by VDC */
-        platform_display_set_picture_info(app->platform.display, &localInfo);
+        platform_display_set_picture_info(app->platform.display.handle, &localInfo);
     }
     /* copy from hardware to model */
-    platform_display_get_picture_info(app->platform.display, pModelInfo);
+    platform_display_get_picture_info(app->platform.display.handle, pModelInfo);
 #if PRINT_PICTURE_INFO
     app_p_print_out_picture_info(app);
 #endif
@@ -310,7 +311,7 @@ void app_p_update_gfx_model(AppHandle app)
     pModel->info.dynrng = PlatformDynamicRange_eSdr;
     app_p_update_gfx_processing_model(app);
 
-    platform_display_set_picture_quality(app->platform.display, &app->platform.processing.gfx.picCtrl);
+    platform_display_set_picture_quality(app->platform.display.handle, &app->platform.processing.gfx.picCtrl);
 }
 
 void app_p_update_vid_processing_model(AppHandle app)
@@ -379,14 +380,13 @@ void app_p_apply_vid_processing(AppHandle app)
 
     for (w = 0; w < windows; w++)
     {
-        platform_display_get_video_dynamic_range_processing_settings(app->platform.display, w, &settings);
+        platform_display_get_video_dynamic_range_processing_settings(app->platform.display.handle, w, &settings);
         /* turn off all processing, since it will affect when we switch input/output later */
         for (i = 0; i < PlatformDynamicRangeProcessingType_eMax; i++)
         {
             settings.modes[i] = app->platform.processing.vid.mode;
         }
-        platform_display_set_video_dynamic_range_processing_settings(app->platform.display, w, &settings);
-        platform_display_set_video_target_peak_brightness(app->platform.display, w, app->platform.processing.vid.hdrPeakBrightness, app->platform.processing.vid.sdrPeakBrightness);
+        platform_display_set_video_dynamic_range_processing_settings(app->platform.display.handle, w, &settings);
     }
     app_p_update_vid_processing_model(app);
 }
@@ -396,13 +396,13 @@ void app_p_apply_gfx_processing(AppHandle app)
     PlatformDynamicRangeProcessingSettings settings;
     unsigned i;
     assert(app);
-    platform_display_get_graphics_dynamic_range_processing_settings(app->platform.display, &settings);
+    platform_display_get_graphics_dynamic_range_processing_settings(app->platform.display.handle, &settings);
     /* turn off all processing, since it will affect when we switch input/output later */
     for (i = 0; i < PlatformDynamicRangeProcessingType_eMax; i++)
     {
         settings.modes[i] = app->platform.processing.gfx.mode;
     }
-    platform_display_set_graphics_dynamic_range_processing_settings(app->platform.display, &settings);
+    platform_display_set_graphics_dynamic_range_processing_settings(app->platform.display.handle, &settings);
     app_p_update_gfx_processing_model(app);
 }
 
@@ -599,6 +599,8 @@ static int app_p_unrecognized_scenario_syntax(void * context, const char * name,
         capture_handle_scenario_nvp(app->capture.handle, name, value);
     }
 #else
+    (void)name;
+    (void)value;
     (void)app;
 #endif
 #if DYNRNG_HAS_TESTER
@@ -629,16 +631,18 @@ void app_p_scenario_changed(void * context, const Scenario * pScenario)
 
     assert(app);
 
-#if DYNRNG_DBV_CONFORMANCE_MODE
     if (pScenario->usageMode == PlatformUsageMode_eMosaic || pScenario->usageMode == PlatformUsageMode_eMainPip)
     {
-        memcpy(&tmp, pScenario, sizeof(tmp));
-        tmp.usageMode = app->platform.usageMode;
-        pScenario = &tmp;
-    }
-#else
-    (void)tmp;
+#if !DYNRNG_DBV_CONFORMANCE_MODE
+        if (app->platform.maxStreams < 2)
 #endif
+        {
+            memcpy(&tmp, pScenario, sizeof(tmp));
+            tmp.usageMode = app->platform.usageMode;
+            pScenario = &tmp;
+        }
+    }
+
     /* Switching from mosaic to non-non mosaic requires all videos to be stopped so that windows can be reconfigured. */
     if (app->platform.usageMode != pScenario->usageMode || (app->osd.layout != pScenario->layout && pScenario->usageMode == PlatformUsageMode_eMosaic)) {
         if (app->platform.usageMode == PlatformUsageMode_eMosaic || pScenario->usageMode == PlatformUsageMode_eMosaic) {
@@ -663,7 +667,7 @@ void app_p_scenario_changed(void * context, const Scenario * pScenario)
     switch (app->platform.usageMode)
     {
         case PlatformUsageMode_eMosaic:
-            app->stream.count = min(pScenario->streamCount, app->platform.mosaicCount);
+            app->stream.count = min(pScenario->streamCount, app->platform.maxStreams);
             break;
         case PlatformUsageMode_eMainPip:
             app->stream.count = min(pScenario->streamCount, 2);
@@ -699,7 +703,7 @@ void app_p_scenario_changed(void * context, const Scenario * pScenario)
     }
     app->platform.processing.vid.mode = pScenario->processing.vid;
     app->platform.processing.gfx.mode = pScenario->processing.gfx;
-    platform_display_set_gfx_luminance(app->platform.display, pScenario->gfxLuminance.min, pScenario->gfxLuminance.max);
+    platform_display_set_gfx_luminance(app->platform.display.handle, pScenario->gfxLuminance.min, pScenario->gfxLuminance.max);
     app_p_apply_vid_processing(app);
     app_p_apply_gfx_processing(app);
     app_p_update_model(app);
@@ -766,7 +770,8 @@ void app_run(AppHandle app)
 {
     assert(app);
 
-    platform_scheduler_start(platform_get_scheduler(app->platform.handle));
+    platform_scheduler_start(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_GFX));
+    platform_scheduler_start(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_MAIN));
     platform_hdmi_receiver_start(app->platform.rx);
     app_p_run_scenario(app, app->args->scenario);
     osd_flip(app->osd.handle);
@@ -840,7 +845,7 @@ static int app_p_create_graphics(AppHandle app, unsigned width, unsigned height)
     app->platform.gfx = platform_graphics_open(app->platform.handle, fontPath, width, height);
     if (!app->platform.gfx) { rc = -1; goto error; }
 
-    app->platform.mosaicCount = platform_graphics_get_max_mosaic_count(app->platform.gfx);
+    app->platform.maxStreams = platform_get_max_stream_count(app->platform.handle);
 
     osd_get_default_create_settings(&osdCreateSettings);
     osdCreateSettings.theme.textForegroundColor = app->cfg->osd.colors.textFg;
@@ -851,7 +856,7 @@ static int app_p_create_graphics(AppHandle app, unsigned width, unsigned height)
     app->osd.handle = osd_create(&osdCreateSettings);
     if (!app->osd.handle) { rc = -1; goto error; }
 
-    for(i=0; i < app->platform.mosaicCount; i++) {
+    for(i=0; i < app->platform.maxStreams; i++) {
         app->platform.mediaPlayers[i] = platform_media_player_create(app->platform.handle, &app_p_stream_info_changed, app);
         if (!app->platform.mediaPlayers[i]) { rc = -1; goto error; }
         app->stream.players[i] = stream_player_create(app->platform.mediaPlayers[i]);
@@ -866,7 +871,7 @@ error:
 static void app_p_destroy_graphics(AppHandle app)
 {
     unsigned i;
-    for(i=0; i < app->platform.mosaicCount; i++) {
+    for(i=0; i < app->platform.maxStreams; i++) {
         if (app->stream.players[i]) stream_player_destroy(app->stream.players[i]);
         app->stream.players[i] = NULL;
         if (app->stream.prevPaths[i]) free(app->stream.prevPaths[i]);
@@ -885,10 +890,12 @@ static int app_p_osd_resized(AppHandle app, unsigned width, unsigned height)
 {
     int rc = 0;
     printf("osd resize %ux%u\n", width, height);
-    platform_scheduler_stop(platform_get_scheduler(app->platform.handle));
+    platform_scheduler_stop(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_GFX));
+    platform_scheduler_stop(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_MAIN));
     app_p_destroy_graphics(app);
     rc = app_p_create_graphics(app, width, height);
-    platform_scheduler_start(platform_get_scheduler(app->platform.handle));
+    platform_scheduler_start(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_GFX));
+    platform_scheduler_start(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_MAIN));
     return rc;
 }
 
@@ -938,7 +945,7 @@ static void app_p_capture_platform_settings_request_handler(void * context, cons
         (void)stream_player_set_platform_settings(app->stream.players[i], &mpSettings);
     }
 
-    platform_display_set_rendering_priority(app->platform.display, pSettings->renderingPriority);
+    platform_display_set_rendering_priority(app->platform.display.handle, pSettings->renderingPriority);
     app->platform.model.renderingPriority = pSettings->renderingPriority;
 
     memcpy(&app->platform.output.pictureInfo.ar, &pSettings->ar, sizeof(app->platform.output.pictureInfo.ar));
@@ -1000,11 +1007,14 @@ void app_p_input_event_dispatcher(void * context, PlatformInputEvent event, int 
 static int app_p_unrecognized_console_syntax(void * ctx, const char * line)
 {
     AppHandle app = ctx;
-    int result = 0;
+    int result = -ERR_NOT_FOUND;
 
     assert(app);
-    printf("Attempting to run playlist '%s'\n", line);
-    result = playlist_play_list(app->playlist.handle, line);
+    if (app->playlist.handle)
+    {
+        printf("Attempting to run playlist '%s'\n", line);
+        result = playlist_play_list(app->playlist.handle, line);
+    }
     if (result == -ERR_NOT_FOUND)
     {
         printf("Attempting to run scenario '%s'\n", line);
@@ -1077,6 +1087,12 @@ end:
 #endif
 
 #if DYNRNG_HAS_PQ
+static void app_p_update_vid_processing(AppHandle app)
+{
+    assert(app);
+    platform_display_set_video_target_peak_brightness(app->platform.display.handle, 0, app->platform.processing.vid.hdrPeakBrightness, app->platform.processing.vid.sdrPeakBrightness);
+}
+
 static void app_p_pq_platform_settings_request_handler(void * context, const PqSettings * pSettings)
 {
     AppHandle app = context;
@@ -1097,7 +1113,7 @@ static void app_p_pq_platform_settings_request_handler(void * context, const PqS
 
     app->platform.processing.vid.hdrPeakBrightness = pSettings->hdrPeakBrightness;
     app->platform.processing.vid.sdrPeakBrightness = pSettings->sdrPeakBrightness;
-    app_p_apply_vid_processing(app);
+    app_p_update_vid_processing(app);
 
     memcpy(&app->platform.processing.gfx.picCtrl, &pSettings->gfxPicCtrl, sizeof(app->platform.processing.gfx.picCtrl));
     app_p_update_gfx_model(app);
@@ -1150,16 +1166,17 @@ AppHandle app_create(ArgsHandle args)
     if (!app->platform.handle) goto error;
 
     platform_get_default_model(&app->platform.model);
-    app->platform.model.out.info.gamut = PlatformColorimetry_eAuto;
 
     app->platform.input = platform_input_open(app->platform.handle);
     if (!app->platform.input) goto error;
 
-    app->platform.display = platform_display_open(app->platform.handle);
-    if (!app->platform.display) goto error;
+    app->platform.display.handle = platform_display_open(app->platform.handle);
+    if (!app->platform.display.handle) goto error;
 
-    platform_display_get_picture_info(app->platform.display, &app->platform.model.out.info);
+    platform_display_get_picture_info(app->platform.display.handle, &app->platform.model.out.info);
     memcpy(&app->platform.output.pictureInfo, &app->platform.model.out.info, sizeof(app->platform.output.pictureInfo));
+    app->platform.output.pictureInfo.gamut = PlatformColorimetry_eAuto;
+    app->platform.output.pictureInfo.dynrng = PlatformDynamicRange_eAuto;
 
     file_manager_get_default_create_settings(&fileManagerCreateSettings);
     fileManagerCreateSettings.name = STR_STREAMS;
@@ -1253,7 +1270,8 @@ void app_destroy(AppHandle app)
     osd_update_background(app->osd.handle, NULL);
     osd_update_thumbnail(app->osd.handle, NULL);
 
-    platform_scheduler_stop(platform_get_scheduler(app->platform.handle));
+    platform_scheduler_stop(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_GFX));
+    platform_scheduler_stop(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_MAIN));
 
 #if DYNRNG_HAS_TESTER
     if (app->tester.handle)
@@ -1306,8 +1324,8 @@ void app_destroy(AppHandle app)
     app->scenario.player = NULL;
     platform_input_close(app->platform.input);
     app->platform.input = NULL;
-    platform_display_close(app->platform.display);
-    app->platform.display = NULL;
+    platform_display_close(app->platform.display.handle);
+    app->platform.display.handle = NULL;
     platform_close(app->platform.handle);
     app->platform.handle = NULL;
     free(app);

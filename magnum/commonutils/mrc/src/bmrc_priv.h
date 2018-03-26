@@ -51,7 +51,8 @@ extern "C" {
 
 /* chip specific defines */
 #if (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || \
-    (BCHP_CHIP == 7260) || (BCHP_CHIP == 7255)
+    (BCHP_CHIP == 7260) || (BCHP_CHIP == 7255) || \
+    (BCHP_CHIP == 7211)
 #define BMRC_P_MEMC_NUM 1
 
 #define BMRC_P_MEMC_0_CHECKER_COUNT_MAX 8

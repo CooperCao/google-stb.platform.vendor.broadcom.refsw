@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2013 Broadcom Corporation
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 
 #include "nexus_platform.h"
@@ -102,7 +94,7 @@ void *blit_thread(void *context)
     while (!app_data->done) {
         NEXUS_Graphics2DFillSettings fillSettings;
 
-        if (++cnt % 10000 == 0) BKNI_Printf("blit_thread(%d): %d\n", id, cnt);
+        if (++cnt % 10000 == 0) BKNI_Printf("blit_thread(%x): %d\n", id, cnt);
 
         NEXUS_Graphics2D_GetDefaultFillSettings(&fillSettings);
         fillSettings.surface = app_data->surface;
@@ -172,7 +164,7 @@ int main(void)
     app_data.createSettings.width = 720;
     app_data.createSettings.height = 480;
     app_data.createSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
-    app_data.surface = NEXUS_Surface_Create(&app_data.createSettings);
+    app_data.surface = NEXUS_Display_CreateFramebuffer(display, &app_data.createSettings);
 
     /* fill with black. this instance of the blitter is not used in the threads. */
     gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, NULL);

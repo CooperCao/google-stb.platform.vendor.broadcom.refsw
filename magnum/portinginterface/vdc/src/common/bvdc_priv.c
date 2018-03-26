@@ -1,42 +1,39 @@
-/***************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  ***************************************************************************/
 #include "bstd.h"                 /* standard types */
 #include "bkni.h"                 /* memcpy calls */
@@ -209,17 +206,17 @@ static const BVDC_WindowClassLimits sa_WindowClassTble[] =
         /* mosaic rects */
         {
             {{1920, 1080}, 100, 100},
-            {{1920, 1080}, 100, 100},
-            {{1920, 1080}, 100, 100},
-            {{1920, 1080}, 100, 100},
-            {{1920, 1080}, 100, 100},
-            {{1920, 1080}, 100, 100},
-            {{1920, 1080}, 100, 100},
-            {{1920, 1080}, 100, 100},
-            {{1920, 1080}, 100, 100},
-            {{1920, 1080}, 100, 100},
-            {{1920, 1080}, 100, 100},
-            {{1920, 1080}, 100, 100}
+            {{720,   576}, 100, 100},
+            {{720,   576}, 100, 100},
+            {{720,   576}, 100, 100},
+            {{720,   576}, 100, 100},
+            {{720,   576}, 100, 100},
+            {{  0,     0}, 100, 100},
+            {{  0,     0}, 100, 100},
+            {{  0,     0}, 100, 100},
+            {{  0,     0}, 100, 100},
+            {{  0,     0}, 100, 100},
+            {{  0,     0}, 100, 100}
         }
     },
     /* class 0.1 (all fail no mosaic support) */
@@ -600,6 +597,7 @@ void BVDC_P_CompositorDisplay_isr
     BRDC_Slot_UpdateLastRulStatus_isr(hSlot, hList, true);
     BRDC_List_SetNumEntries_isr(hList, 0);
     BVDC_P_ReadListInfo_isr(&stList, hList);
+    stList.hSlot = hSlot;
 
     if((BVDC_P_ItState_eSwitchMode == hDisplay->eItState) ||
         (true == hDisplay->bAlignAdjusting  && !hDisplay->stCurInfo.stAlignCfg.bKeepBvnConnected))
@@ -1100,6 +1098,7 @@ BERR_Code BVDC_P_CheckHeapSettings
     uint32_t   ulWidth, ulHeight;
     uint32_t   ulSDBufSize, ulHDBufSize, ul2HDBufSize, ul4HDBufSize;
     const BVDC_P_FormatInfo  *pVdcFmt;
+    const BFMT_VideoInfo     *pFmtInfo;
 
     /* 0) Check pixel format */
     if(!BVDC_P_VALID_PIXEL_FORMAT(pHeapSettings->ePixelFormat_SD))
@@ -1129,37 +1128,37 @@ BERR_Code BVDC_P_CheckHeapSettings
 
     /* 1) SD buffer format is SD */
     pVdcFmt = BVDC_P_GetFormatInfo_isrsafe(pHeapSettings->eBufferFormat_SD);
-    if( (!pVdcFmt->bSd) &&
-        (pHeapSettings->ulBufferCnt_SD || pHeapSettings->ulBufferCnt_SD_Pip))
+    if(!pVdcFmt->bSd)
     {
-        BDBG_ERR(("SD buffer format is not SD"));
+        pFmtInfo = BFMT_GetVideoFormatInfoPtr(pVdcFmt->eVideoFmt);
+        BDBG_ERR(("SD buffer format (%s) is not SD", pFmtInfo->pchFormatStr));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
     /* 2) HD buffer format is HD */
     pVdcFmt = BVDC_P_GetFormatInfo_isrsafe(pHeapSettings->eBufferFormat_HD);
-    if( (!pVdcFmt->bHd) &&
-        (pHeapSettings->ulBufferCnt_HD || pHeapSettings->ulBufferCnt_HD_Pip))
+    if(!pVdcFmt->bHd)
     {
-        BDBG_ERR(("HD buffer format is not HD"));
+        pFmtInfo = BFMT_GetVideoFormatInfoPtr(pVdcFmt->eVideoFmt);
+        BDBG_ERR(("HD buffer format (%s) is not HD", pFmtInfo->pchFormatStr));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
     /* 3) 2Hd buffer format is HD */
     pVdcFmt = BVDC_P_GetFormatInfo_isrsafe(pHeapSettings->eBufferFormat_2HD);
-    if( (!pVdcFmt->bHd) &&
-        (pHeapSettings->ulBufferCnt_2HD || pHeapSettings->ulBufferCnt_2HD_Pip))
+    if(!pVdcFmt->bHd)
     {
-        BDBG_ERR(("2HD buffer format is not HD"));
+        pFmtInfo = BFMT_GetVideoFormatInfoPtr(pVdcFmt->eVideoFmt);
+        BDBG_ERR(("2HD buffer format (%s) is not HD", pFmtInfo->pchFormatStr));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
     /* 4) 4Hd buffer format is HD */
     pVdcFmt = BVDC_P_GetFormatInfo_isrsafe(pHeapSettings->eBufferFormat_4HD);
-    if( (!pVdcFmt->bHd) &&
-        (pHeapSettings->ulBufferCnt_4HD || pHeapSettings->ulBufferCnt_4HD_Pip))
+    if(!pVdcFmt->bHd)
     {
-        BDBG_ERR(("4HD buffer format is not HD"));
+        pFmtInfo = BFMT_GetVideoFormatInfoPtr(pVdcFmt->eVideoFmt);
+        BDBG_ERR(("4HD buffer format (%s) is not HD", pFmtInfo->pchFormatStr));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -1178,9 +1177,7 @@ BERR_Code BVDC_P_CheckHeapSettings
         pHeapSettings->ePixelFormat_4HD, false, NULL, &ulWidth, &ulHeight);
 
     /* 5) SD buffer < HD buffer */
-    if( (!(ulSDBufSize < ulHDBufSize)) &&
-        (pHeapSettings->ulBufferCnt_SD || pHeapSettings->ulBufferCnt_SD_Pip) &&
-        (pHeapSettings->ulBufferCnt_HD || pHeapSettings->ulBufferCnt_HD_Pip))
+    if(!(ulSDBufSize < ulHDBufSize))
     {
         BDBG_ERR(("HD buffer (0x%d) is not bigger than SD buffer (0x%x)",
             ulHDBufSize, ulSDBufSize));
@@ -1188,18 +1185,14 @@ BERR_Code BVDC_P_CheckHeapSettings
     }
 
     /* 6) HD buffer < 2HD buffer */
-    if( (!(ulHDBufSize < ul2HDBufSize)) &&
-        (pHeapSettings->ulBufferCnt_HD || pHeapSettings->ulBufferCnt_HD_Pip) &&
-        (pHeapSettings->ulBufferCnt_2HD || pHeapSettings->ulBufferCnt_2HD_Pip))
+    if(!(ulHDBufSize < ul2HDBufSize))
     {
         BDBG_ERR(("2HD buffer is not bigger than HD buffer"));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
     /* 7) 2HD buffer < 4HD buffer */
-    if( (!(ul2HDBufSize < ul4HDBufSize)) &&
-        (pHeapSettings->ulBufferCnt_2HD || pHeapSettings->ulBufferCnt_2HD_Pip) &&
-        (pHeapSettings->ulBufferCnt_4HD || pHeapSettings->ulBufferCnt_4HD_Pip))
+    if(!(ul2HDBufSize < ul4HDBufSize))
     {
         BDBG_ERR(("4HD buffer is not bigger than 2HD buffer"));
         return BERR_TRACE(BERR_INVALID_PARAMETER);

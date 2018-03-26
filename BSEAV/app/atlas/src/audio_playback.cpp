@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,7 +44,7 @@
 
 BDBG_MODULE(atlas_audio_playback);
 
-#define CONVERT_TO_NEXUS_LINEAR_VOL(vol,max_vol) (((vol) * (NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN) / (max_vol)) + NEXUS_AUDIO_VOLUME_LINEAR_MIN)
+#define CONVERT_TO_NEXUS_LINEAR_VOL(vol, max_vol)  (((vol) * (NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN) / (max_vol)) + NEXUS_AUDIO_VOLUME_LINEAR_MIN)
 
 static void nexusSimpleAudioPlaybackBufferReady(
         void * context,
@@ -58,7 +58,6 @@ static void nexusSimpleAudioPlaybackBufferReady(
 
     B_Event_Set(event);
 } /* NEXUSSimpleAudioPlaybackBufferComplete */
-
 
 CSimplePcmPlayback::CSimplePcmPlayback(
         const char *     name,
@@ -83,9 +82,7 @@ CSimplePcmPlayback::CSimplePcmPlayback(
 {
 }
 
-eRet CSimplePcmPlayback::open(
-        CWidgetEngine * pWidgetEngine
-        )
+eRet CSimplePcmPlayback::open(CWidgetEngine * pWidgetEngine)
 {
     eRet        ret    = eRet_Ok;
     NEXUS_Error nError = NEXUS_SUCCESS;
@@ -120,26 +117,25 @@ eRet CSimplePcmPlayback::open(
     CHECK_PTR_WARN_GOTO("unable to create audio playback", _audioPlayback, ret, eRet_NotAvailable, error);
 
     NEXUS_SimpleAudioPlayback_GetDefaultServerSettings(&settings);
-    settings.decoder  = _pModel->getSimpleAudioDecode()->getSimpleDecoder();
     settings.playback = _audioPlayback;
 
     /* if an audio spdif resource given, set up audio output */
     if (NULL != _pSpdif)
     {
-        //_pSpdif->connect(NEXUS_AudioPlayback_GetConnector(_audioPlayback));
-        settings.compressed.enabled = true;
+        /* _pSpdif->connect(NEXUS_AudioPlayback_GetConnector(_audioPlayback)); */
+        settings.compressed.enabled         = true;
         settings.compressed.spdifOutputs[0] = _pSpdif->getOutput();
     }
 
     /* if an audio hdmi resource given, set up audio output */
     if (NULL != _pHdmi)
     {
-        //_pHdmi->connect(NEXUS_AudioPlayback_GetConnector(_audioPlayback));
-        settings.compressed.enabled = true;
+        /* _pHdmi->connect(NEXUS_AudioPlayback_GetConnector(_audioPlayback)); */
+        settings.compressed.enabled        = true;
         settings.compressed.hdmiOutputs[0] = _pHdmi->getOutput();
     }
 
-    _simplePlayback = NEXUS_SimpleAudioPlayback_Create(_pModel->getSimpleAudioDecoderServer(), _number, &settings);
+    _simplePlayback = NEXUS_SimpleAudioPlayback_Create(_pModel->getSimpleAudioPlaybackServer(), _number, &settings);
     CHECK_PTR_ERROR_GOTO("unable to create a simple audio playback", _simplePlayback, ret, eRet_OutOfMemory, error);
 
     goto done;
@@ -153,7 +149,7 @@ void CSimplePcmPlayback::getSettings(NEXUS_SimpleAudioPlaybackServerSettings * p
 {
     BDBG_ASSERT(NULL != _simplePlayback);
 
-    NEXUS_SimpleAudioPlayback_GetServerSettings(_pModel->getSimpleAudioDecoderServer(), _simplePlayback, pSettings);
+    NEXUS_SimpleAudioPlayback_GetServerSettings(_pModel->getSimpleAudioPlaybackServer(), _simplePlayback, pSettings);
 }
 
 eRet CSimplePcmPlayback::setSettings(NEXUS_SimpleAudioPlaybackServerSettings * pSettings)
@@ -163,7 +159,7 @@ eRet CSimplePcmPlayback::setSettings(NEXUS_SimpleAudioPlaybackServerSettings * p
 
     BDBG_ASSERT(NULL != _simplePlayback);
 
-    nerror = NEXUS_SimpleAudioPlayback_SetServerSettings(_pModel->getSimpleAudioDecoderServer(), _simplePlayback, pSettings);
+    nerror = NEXUS_SimpleAudioPlayback_SetServerSettings(_pModel->getSimpleAudioPlaybackServer(), _simplePlayback, pSettings);
     CHECK_NEXUS_ERROR_GOTO("unable to set simple audio playback server settings", ret, nerror, error);
 
 error:
@@ -216,6 +212,7 @@ void CSimplePcmPlayback::close()
 static void playbackThread(void * pParam)
 {
     CSimplePcmPlayback * pAudioPlayback = (CSimplePcmPlayback *)pParam;
+
     BDBG_ASSERT(NULL != pParam);
 
     pAudioPlayback->doPlayback();
@@ -272,7 +269,7 @@ MString CSimplePcmPlayback::removePlaybackJob()
 
 eRet CSimplePcmPlayback::start(const char * strFilename)
 {
-    eRet ret = eRet_Ok;
+    eRet        ret    = eRet_Ok;
     NEXUS_Error nerror = NEXUS_SUCCESS;
 
     addPlaybackJob(strFilename);
@@ -297,15 +294,15 @@ done:
  */
 void CSimplePcmPlayback::doPlayback()
 {
-    eRet        ret    = eRet_Ok;
-    NEXUS_Error nerror = NEXUS_SUCCESS;
-    B_Error     berror = B_ERROR_SUCCESS;
+    eRet               ret    = eRet_Ok;
+    NEXUS_Error        nerror = NEXUS_SUCCESS;
+    B_Error            berror = B_ERROR_SUCCESS;
     struct wave_header wave_header;
     NEXUS_SimpleAudioPlaybackStartSettings startSettings;
-    MString strFilename;
-    MString strFilenameLast;
-    FILE * pFile = NULL;
-    int nTimeouts = 0;
+    MString   strFilename;
+    MString   strFilenameLast;
+    FILE *    pFile       = NULL;
+    int       nTimeouts   = 0;
     uint8_t * pCopyBuffer = NULL;
 
     while (1)
@@ -341,7 +338,7 @@ void CSimplePcmPlayback::doPlayback()
             if (NULL != pFile)
             {
                 fclose(pFile);
-                pFile = NULL;
+                pFile           = NULL;
                 strFilenameLast = "";
             }
 
@@ -360,7 +357,7 @@ void CSimplePcmPlayback::doPlayback()
             startSettings.stereo        = (wave_header.channels == 2) ? true : false;
             startSettings.endian        = NEXUS_EndianMode_eLittle;
 
-            _startOffset                = wave_header.dataStart;
+            _startOffset = wave_header.dataStart;
         }
         else
         {
@@ -381,9 +378,9 @@ void CSimplePcmPlayback::doPlayback()
         /* fill playback buffer */
         while (1)
         {
-            void *buffer = NULL;
-            size_t size = 0;
-            int nBytes = 0;
+            void * buffer = NULL;
+            size_t size   = 0;
+            int    nBytes = 0;
 
             if (false == _bRun)
             {
@@ -412,9 +409,9 @@ void CSimplePcmPlayback::doPlayback()
             if (24 == startSettings.bitsPerSample)
             {
                 size_t     calculatedBufferSize = (size / 4) * 3;
-                uint16_t * pBuffer = NULL;
-                int        i = 0;
-                int        bufferSize = 0;
+                uint16_t * pBuffer              = NULL;
+                int        i                    = 0;
+                int        bufferSize           = 0;
 
                 pCopyBuffer = (uint8_t *)BKNI_Malloc(calculatedBufferSize * sizeof(uint8_t));
                 CHECK_PTR_ERROR_GOTO("unable to alloc the copy buffer", pCopyBuffer, ret, eRet_OutOfMemory, error);
@@ -432,16 +429,17 @@ void CSimplePcmPlayback::doPlayback()
                     break;
                 }
 
-                nBytes = 0;
+                nBytes  = 0;
                 pBuffer = (uint16_t *)buffer;
-                for (i = 0; i < (bufferSize / 3); i++) {
-    #if BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG
-                    pBuffer[(i * 2)] = pCopyBuffer[(i*3)] << 8 | pCopyBuffer[(i*3)+1];
+                for (i = 0; i < (bufferSize / 3); i++)
+                {
+#if BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG
+                    pBuffer[(i * 2)]     = pCopyBuffer[(i*3)] << 8 | pCopyBuffer[(i*3)+1];
                     pBuffer[(i * 2) + 1] = pCopyBuffer[(i*3)+2] << 8 | 0x00;
-    #else
-                    pBuffer[(i * 2)] = pCopyBuffer[(i*3)] << 8 | 0x0;
+#else
+                    pBuffer[(i * 2)]     = pCopyBuffer[(i*3)] << 8 | 0x0;
                     pBuffer[(i * 2) + 1] = pCopyBuffer[(i * 3) + 2] << 8 | pCopyBuffer[(i * 3) + 1];
-    #endif
+#endif /* if BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG */
                     nBytes += 4;
                 }
                 BFRE(pCopyBuffer);
@@ -513,15 +511,15 @@ void CSimplePcmPlayback::setResources(
 
 void CSimplePcmPlayback::waitForPcmPlaybackToComplete(long timeout)
 {
-    eRet ret = eRet_Ok;
+    eRet        ret    = eRet_Ok;
     NEXUS_Error nerror = NEXUS_SUCCESS;
-    B_Time timeTimeout;
+    B_Time      timeTimeout;
 
     B_Time_Get(&timeTimeout);
     B_Time_Add(&timeTimeout, timeout);
 
     /* wait until file plays, then stop. we must protect against infinite looping here
-       which can happen if decimated video window is closed before audio plays. */
+     * which can happen if decimated video window is closed before audio plays. */
     while (1)
     {
         B_Time timeCurrent;
@@ -530,7 +528,7 @@ void CSimplePcmPlayback::waitForPcmPlaybackToComplete(long timeout)
         nerror = NEXUS_SimpleAudioPlayback_GetStatus(_simplePlayback, &status);
         CHECK_NEXUS_ERROR_GOTO("unable to get audio playback status", ret, nerror, error);
 
-        //BDBG_MSG(("Waiting for PCM playback to complete. queuedBytes:%d", status.queuedBytes));
+        /* BDBG_MSG(("Waiting for PCM playback to complete. queuedBytes:%d", status.queuedBytes)); */
         B_Time_Get(&timeCurrent);
         if ((-1 != timeout) && (0 > B_Time_Diff(&timeTimeout, &timeCurrent)))
         {
@@ -545,4 +543,4 @@ void CSimplePcmPlayback::waitForPcmPlaybackToComplete(long timeout)
     }
 error:
     return;
-}
+} /* waitForPcmPlaybackToComplete */

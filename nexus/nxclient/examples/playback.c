@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2013 Broadcom Corporation
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- * 
  * Module Description:
- * 
- * Revision History:
- * 
- * $brcm_Log: $
  * 
  **************************************************************************/
 #include "nxclient.h"
@@ -84,7 +76,6 @@ int main(void)
     NEXUS_SimpleAudioDecoderStartSettings audioProgram;
     NEXUS_SimpleStcChannelHandle stcChannel;
     NEXUS_Error rc;
-    NEXUS_SurfaceClientHandle surfaceClient, videoSurfaceClient;
     
     rc = NxClient_Join(NULL);
     if (rc) return -1;
@@ -111,28 +102,15 @@ int main(void)
     rc = NEXUS_Playback_SetSettings(playback, &playbackSettings);
     BDBG_ASSERT(!rc);
     
-    if (allocResults.simpleVideoDecoder[0].id) {
-        videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
-    }
-    if (allocResults.simpleAudioDecoder.id) {
-        audioDecoder = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
-    }
-    if (allocResults.surfaceClient[0].id) {
-        /* surfaceClient is the top-level graphics window in which video will fit.
-        videoSurfaceClient must be "acquired" to associate the video window with surface compositor.
-        Graphics do not have to be submitted to surfaceClient for video to work, but at least an
-        "alpha hole" surface must be submitted to punch video through other client's graphics.
-        Also, the top-level surfaceClient ID must be submitted to NxClient_ConnectSettings below. */
-        surfaceClient = NEXUS_SurfaceClient_Acquire(allocResults.surfaceClient[0].id);
-        videoSurfaceClient = NEXUS_SurfaceClient_AcquireVideoWindow(surfaceClient, 0);
-    }
+    videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
+    audioDecoder = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
     
     NxClient_GetDefaultConnectSettings(&connectSettings);
     connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;
     connectSettings.simpleVideoDecoder[0].surfaceClientId = allocResults.surfaceClient[0].id;
     connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
     rc = NxClient_Connect(&connectSettings, &connectId);
-    if (rc) return BERR_TRACE(rc);
+    BDBG_ASSERT(!rc);
     
     NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&audioProgram);
     NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&videoProgram);
@@ -150,19 +128,16 @@ int main(void)
     videoProgram.settings.pidChannel = NEXUS_Playback_OpenPidChannel(playback, VIDEO_PID, &playbackPidSettings);
     videoProgram.settings.codec = VIDEO_CODEC;
 
-    if (videoProgram.settings.pidChannel) {
-        NEXUS_SimpleVideoDecoder_SetStcChannel(videoDecoder, stcChannel);
-    }
-    if (audioProgram.primary.pidChannel) {
-        NEXUS_SimpleAudioDecoder_SetStcChannel(audioDecoder, stcChannel);
-    }
-    if (videoProgram.settings.pidChannel) {
-        NEXUS_SimpleVideoDecoder_Start(videoDecoder, &videoProgram);
-    }
-    if (audioProgram.primary.pidChannel) {
-        NEXUS_SimpleAudioDecoder_Start(audioDecoder, &audioProgram);
-    }
-    NEXUS_Playback_Start(playback, file, NULL);
+    rc = NEXUS_SimpleVideoDecoder_SetStcChannel(videoDecoder, stcChannel);
+    BDBG_ASSERT(!rc);
+    rc = NEXUS_SimpleAudioDecoder_SetStcChannel(audioDecoder, stcChannel);
+    BDBG_ASSERT(!rc);
+    rc = NEXUS_SimpleVideoDecoder_Start(videoDecoder, &videoProgram);
+    BDBG_ASSERT(!rc);
+    rc = NEXUS_SimpleAudioDecoder_Start(audioDecoder, &audioProgram);
+    BDBG_ASSERT(!rc);
+    rc = NEXUS_Playback_Start(playback, file, NULL);
+    BDBG_ASSERT(!rc);
 
     BDBG_WRN(("Press ENTER to exit"));
     getchar();

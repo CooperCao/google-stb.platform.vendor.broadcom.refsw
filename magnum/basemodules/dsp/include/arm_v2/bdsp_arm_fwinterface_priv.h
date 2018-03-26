@@ -41,6 +41,10 @@
 
 #include "bdsp_arm_priv_include.h"
 
+BERR_Code BDSP_Arm_P_InitZeroSizeMsgQueue(
+    BDSP_P_MsgQueueHandle hMsgQueue,
+    BDSP_MMA_Memory       softFifoMemory
+);
 BERR_Code BDSP_Arm_P_InitMsgQueue(
     BDSP_P_MsgQueueHandle hMsgQueue,
     BDSP_MMA_Memory       softFifoMemory

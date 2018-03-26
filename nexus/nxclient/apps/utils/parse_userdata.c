@@ -152,8 +152,15 @@ int buserdata_parse(buserdata_t handle, NEXUS_SimpleVideoDecoderHandle videoDeco
     const NEXUS_UserDataHeader *pHeader;
     unsigned total;
     int rc;
+    NEXUS_VideoDecoderSettings settings;
 
     total = *pNumRead = 0;
+
+    NEXUS_SimpleVideoDecoder_GetSettings(videoDecoder, &settings);
+    if (!settings.userDataEnabled) {
+        settings.userDataEnabled = true;
+        NEXUS_SimpleVideoDecoder_SetSettings(videoDecoder, &settings);
+    }
 
     rc = NEXUS_SimpleVideoDecoder_ReadUserDataBuffer(videoDecoder, handle->buffer, handle->settings.bufferSize, &size);
     if (rc) return BERR_TRACE(rc);

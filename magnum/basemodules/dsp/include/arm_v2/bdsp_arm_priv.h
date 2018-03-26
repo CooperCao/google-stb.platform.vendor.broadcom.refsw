@@ -40,7 +40,12 @@
 
 #include "bdsp_arm_priv_include.h"
 
-#define BDSP_ARM_NUM_FIFOS 59
+#define BDSP_ARM_NUM_FIFOS    59
+#define BDSP_ARM_NUM_DEBUG_FIFOS 4
+#define BDSP_ARM_DRAM_FIFO    59
+#define BDSP_ARM_UART_FIFO    60
+#define BDSP_ARM_CORE_FIFO    61
+#define BDSP_ARM_TARGET_PRINT_FIFO  62
 
 #define BDSP_ARM_STAGE_TRAVERSE_LOOP_V1_BEGIN(A, B, C, D)                           \
     {                                                                           \
@@ -130,6 +135,7 @@ typedef struct BDSP_Arm_P_DeviceMemoryInfo
     BDSP_P_FwBuffer             softFifo[BDSP_ARM_MAX_DSP];
     BDSP_P_MsgQueueParams       cmdQueueParams[BDSP_ARM_MAX_DSP];
     BDSP_P_MsgQueueParams       genRspQueueParams[BDSP_ARM_MAX_DSP];
+	BDSP_P_MsgQueueParams       debugQueueParams[BDSP_ARM_MAX_DSP][BDSP_DebugType_eLast];
 }BDSP_Arm_P_DeviceMemoryInfo;
 
 typedef struct BDSP_Arm_P_HardwareStatus
@@ -172,6 +178,7 @@ typedef struct BDSP_Arm
 
     BDSP_P_MsgQueueHandle hCmdQueue[BDSP_ARM_MAX_DSP];
     BDSP_P_MsgQueueHandle hGenRespQueue[BDSP_ARM_MAX_DSP];
+	BDSP_P_MsgQueueHandle hDebugQueue[BDSP_ARM_MAX_DSP][BDSP_DebugType_eLast];
 
     BDSP_Arm_P_DeviceMemoryInfo memInfo;
     BDSP_Arm_P_CodeDownloadInfo codeInfo;
@@ -459,6 +466,10 @@ BERR_Code BDSP_Arm_P_GetTsmStatus_isr(
 	void *pStageHandle,
 	BDSP_AudioTaskTsmStatus *pStatusBuffer
 );
+BERR_Code BDSP_Arm_P_StageGetContext(
+    void *pStageHandle,
+    BDSP_ContextHandle *pContextHandle /* [out] */
+);
 void BDSP_Arm_P_GetStatus(
     void *pDeviceHandle,
     BDSP_Status *pStatus
@@ -483,5 +494,22 @@ BERR_Code BDSP_Arm_P_Freeze(
 BERR_Code BDSP_Arm_P_UnFreeze(
 	void *pTaskHandle,
 	const BDSP_AudioTaskUnFreezeSettings *pSettings
+);
+BERR_Code BDSP_Arm_P_GetDebugBuffer(
+    void       			   *pDeviceHandle,
+    BDSP_DebugType 	        debugType,
+    uint32_t 				dspIndex,
+    BDSP_MMA_Memory 	   *pBuffer,
+    size_t 				   *pSize
+);
+BERR_Code BDSP_Arm_P_ConsumeDebugData(
+    void       			   *pDeviceHandle,
+    BDSP_DebugType 	        debugType,
+    uint32_t 				dspIndex,
+    size_t 					bytesConsumed
+);
+BDSP_FwStatus BDSP_Arm_P_GetCoreDumpStatus (
+    void    *pDeviceHandle,
+    uint32_t dspIndex /* [in] Gives the DSP Id for which the core dump status is required */
 );
 #endif /*BDSP_ARM_PRIV_H_*/

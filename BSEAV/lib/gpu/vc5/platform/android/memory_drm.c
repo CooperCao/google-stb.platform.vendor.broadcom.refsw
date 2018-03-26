@@ -26,7 +26,7 @@
 #ifdef ANDROID
 #undef LOG_TAG
 #define LOG_TAG "VC5"
-#include <cutils/log.h>
+#include <log/log.h>
 #include <cutils/properties.h>
 #endif
 

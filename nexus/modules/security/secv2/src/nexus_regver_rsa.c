@@ -144,7 +144,7 @@ NEXUS_Error NEXUS_RegVerRsa_SetSettings( NEXUS_RegVerRsaHandle handle, const NEX
     rvRsaSettings.keyOffset = NEXUS_AddrToOffset( pInstance->pRsaKey );
     rvRsaSettings.multiTier = pSettings->multiTier;
     rvRsaSettings.multiTierSourceKeyId = pSettings->multiTierSourceKeyId;
-    BDBG_CASSERT( (unsigned)NEXUS_RegVerRsaRootKey_eMax == (unsigned)BHSM_RvRsaRootKey_eMax );
+    BDBG_CASSERT( (unsigned)NEXUS_SigningAuthority_eMax == (unsigned)BHSM_SigningAuthority_eMax );
     rvRsaSettings.rootKey = pSettings->rootKey;
 
     rc = BHSM_RvRsa_SetSettings( pInstance->hHsmRvRsaHandle, &rvRsaSettings );

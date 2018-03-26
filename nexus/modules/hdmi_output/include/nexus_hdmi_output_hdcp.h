@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -54,7 +54,7 @@ Summary:
 Enumeration for HDCP An Values
 
 Description:
-The DVI/HDMI transmitter is capable of generating a psuedo-random number (An)
+The DVI/HDMI transmitter is capable of generating a pseudo-random number (An)
 which is used as a initial seed for the HDCP calculations.  This Enumerated
 Type specifies the type of An value which can be generated.
 **/
@@ -301,7 +301,7 @@ typedef struct NEXUS_HdmiOutputHdcpStatus
     bool hdcp1_1Features;           /* Receiver supports HDCP 1.1 features {EESS, Advance Cipher, Enhanced Link Verification} */
     bool fastReauthentication;      /* Receiver can receive un-encrypted video during re-authentication */
 
-    bool hdcp2_2Features;           /* Receiver supports HDCP 2.2 authentication protocol */
+    bool hdcp2_2Features;           /* Deprecated: true if HDMI is currently authenticated with HDCP 2.2 protocol */
     struct {
         bool hdcp1_xDeviceDownstream;   /* From HDCP2.2 spec: when set to 1, indicates present of an HDCP1.x-compliance Device in the topology */
     } hdcp2_2RxInfo;

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,10 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #include "nexus_platform.h"
 #include <stdio.h>
-#if NEXUS_HAS_GRAPHICS2D && NEXUS_HAS_DISPLAY
+#if NEXUS_HAS_GRAPHICS2D
 #include "nexus_surface.h"
 #include "nexus_graphics2d.h"
 #include "bm2mc_packet.h"
@@ -80,21 +79,10 @@ static const uint8_t g_glyph[GLYPH_WIDTH*GLYPH_HEIGHT] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
-void set_event(void *data, int unused)
+static void complete(void *data, int unused)
 {
     BSTD_UNUSED(unused);
     BKNI_SetEvent((BKNI_EventHandle)data);
-}
-
-static void checkpoint(NEXUS_Graphics2DHandle gfx, BKNI_EventHandle event)
-{
-    NEXUS_Error rc;
-
-    rc = NEXUS_Graphics2D_Checkpoint(gfx, NULL);
-    if (rc == NEXUS_GRAPHICS2D_QUEUED) {
-        rc = BKNI_WaitForEvent(event, BKNI_INFINITE);
-    }
-    BDBG_ASSERT(!rc);
 }
 
 int main(void)
@@ -108,7 +96,7 @@ int main(void)
     NEXUS_Graphics2DHandle gfx;
     NEXUS_Graphics2DFillSettings fillSettings;
     NEXUS_Graphics2DSettings gfxSettings;
-    BKNI_EventHandle spaceAvailableEvent, checkpointEvent;
+    BKNI_EventHandle checkpointEvent;
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_VideoFormatInfo info;
@@ -147,7 +135,7 @@ int main(void)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 
@@ -168,19 +156,19 @@ int main(void)
     glyphSurface = NEXUS_Surface_Create(&createSettings);
     NEXUS_Surface_InitPlane(glyphSurface, &glyphPlane);
     NEXUS_Surface_GetMemory(glyphSurface, &mem);
-    BDBG_ASSERT(mem.pitch == GLYPH_WIDTH);
-    BKNI_Memcpy(mem.buffer, g_glyph, mem.pitch * createSettings.height);
+    BDBG_ASSERT(mem.pitch >= GLYPH_WIDTH);
+    for (i=0;i<createSettings.height;i++) {
+        unsigned char *ptr = (unsigned char *)mem.buffer + i * mem.pitch;
+        BKNI_Memcpy(ptr, &g_glyph[GLYPH_WIDTH*i], GLYPH_WIDTH);
+    }
     NEXUS_Surface_Flush(glyphSurface);
 
-    BKNI_CreateEvent(&spaceAvailableEvent);
     BKNI_CreateEvent(&checkpointEvent);
 
     gfx = NEXUS_Graphics2D_Open(0, NULL);
 
     NEXUS_Graphics2D_GetSettings(gfx, &gfxSettings);
-    gfxSettings.packetSpaceAvailable.callback = set_event;
-    gfxSettings.packetSpaceAvailable.context = spaceAvailableEvent;
-    gfxSettings.checkpointCallback.callback = set_event;
+    gfxSettings.checkpointCallback.callback = complete;
     gfxSettings.checkpointCallback.context = checkpointEvent;
     NEXUS_Graphics2D_SetSettings(gfx, &gfxSettings);
 
@@ -193,12 +181,15 @@ int main(void)
     fillSettings.color = 0xFFFFFFFF; /* white background */
     rc = NEXUS_Graphics2D_Fill(gfx, &fillSettings);
     BDBG_ASSERT(!rc);
+    rc = NEXUS_Graphics2D_Checkpoint(gfx, NULL);
+    if (rc == NEXUS_GRAPHICS2D_QUEUED) {
+        rc = BKNI_WaitForEvent(checkpointEvent, 3000);
+        BDBG_ASSERT(!rc);
+    }
 
     NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
     graphicsSettings.enabled = true;
     rc = NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
-    BDBG_ASSERT(!rc);
-    rc = NEXUS_Display_SetGraphicsFramebuffer(display, framebuffer);
     BDBG_ASSERT(!rc);
 
     {
@@ -257,44 +248,53 @@ int main(void)
         BDBG_ASSERT(!rc);
 
         BDBG_WRN(("starting"));
-        for(i=0;;) {
+        for(i=0;i<100;) {
             unsigned x;
             rc = NEXUS_Graphics2D_GetPacketBuffer(gfx, &buffer, &size, 1024);
             BDBG_ASSERT(!rc);
-            if (!size) {
-                /* internal queue is full. wait for space to become available. */
-                BKNI_WaitForEvent(spaceAvailableEvent, 0xffffffff);
-                continue;
-            }
 
             next = buffer;
 
             /* submit 10 characters at a time */
             for (x=0;x<10;x++) {
-            BM2MC_PACKET_PacketBlendBlit *pPacket = next;
-            BM2MC_PACKET_INIT(pPacket, BlendBlit, true);
-            pPacket->src_rect.x = 0;
-            pPacket->src_rect.y = 0;
-            pPacket->src_rect.width = GLYPH_WIDTH;
-            pPacket->src_rect.height = GLYPH_HEIGHT;
-            pPacket->out_point.x = rand() % (info.width/(GLYPH_WIDTH+4)) * (GLYPH_WIDTH+4);
-            pPacket->out_point.y = rand() % (info.height/(GLYPH_HEIGHT+4)) * (GLYPH_HEIGHT+4);
-            pPacket->dst_point.x = pPacket->out_point.x;
-            pPacket->dst_point.y = pPacket->out_point.y;
-            next = ++pPacket;
-
+                BM2MC_PACKET_PacketBlendBlit *pPacket = next;
+                BM2MC_PACKET_INIT(pPacket, BlendBlit, true);
+                pPacket->src_rect.x = 0;
+                pPacket->src_rect.y = 0;
+                pPacket->src_rect.width = GLYPH_WIDTH;
+                pPacket->src_rect.height = GLYPH_HEIGHT;
+                pPacket->out_point.x = 100 + (i%10) * (GLYPH_WIDTH+4);
+                pPacket->out_point.y = 100 + (i/10) * (GLYPH_HEIGHT+4);
+                pPacket->dst_point.x = pPacket->out_point.x;
+                pPacket->dst_point.y = pPacket->out_point.y;
+                next = ++pPacket;
                 i++;
             }
 
             rc = NEXUS_Graphics2D_PacketWriteComplete(gfx, (uint8_t*)next - (uint8_t*)buffer);
             BDBG_ASSERT(!rc);
 
-            if (i && i%50000==0) {
-                checkpoint(gfx, checkpointEvent);
-                BDBG_WRN(("%d blits completed", i));
+            rc = NEXUS_Graphics2D_Checkpoint(gfx, NULL);
+            if (rc == NEXUS_GRAPHICS2D_QUEUED) {
+                rc = BKNI_WaitForEvent(checkpointEvent, 3000);
+                BDBG_ASSERT(!rc);
             }
         }
     }
+
+    rc = NEXUS_Display_SetGraphicsFramebuffer(display, framebuffer);
+    BDBG_ASSERT(!rc);
+
+    BDBG_WRN(("press ENTER to exit"));
+    getchar();
+
+    NEXUS_Display_Close(display);
+    NEXUS_Surface_Destroy(framebuffer);
+    NEXUS_Surface_Destroy(glyphSurface);
+    NEXUS_Graphics2D_Close(gfx);
+    BKNI_DestroyEvent(checkpointEvent);
+    NEXUS_Platform_Uninit();
+
     return 0;
 }
 #else

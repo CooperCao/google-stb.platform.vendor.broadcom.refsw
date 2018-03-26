@@ -71,7 +71,5 @@ NXUTILS_SOURCES := \
 	$(NEXUS_TOP)/nxclient/apps/utils/live_decode.c \
 	$(NEXUS_TOP)/nxclient/apps/utils/live_source.c \
 	$(NEXUS_TOP)/nxclient/apps/utils/media_player.c \
-	$(NEXUS_TOP)/nxclient/apps/utils/media_player_ip.c \
-	$(NEXUS_TOP)/nxclient/apps/utils/media_player_bip.c \
 	$(NEXUS_TOP)/nxclient/apps/utils/brecord_gui.c \
 	$(NEXUS_TOP)/nxclient/apps/utils/nxapps_cmdline.c

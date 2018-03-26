@@ -1287,25 +1287,22 @@ static void nexus_p_check_and_switch_secure(NEXUS_Graphics2DHandle gfx)
 #endif
 }
 
-static void NEXUS_Graphics2D_P_PacketAdvance( void *context )
+static BERR_Code NEXUS_Graphics2D_P_PacketAdvanceStep( struct NEXUS_Graphics2DEngine *engine, bool *secureModeSwitchNeeded)
 {
     BERR_Code rc;
-    struct NEXUS_Graphics2DEngine *engine = context;
     size_t n;
     unsigned i;
     BGRC_Packet_ContextStatus *array = engine->contextStatus;
     NEXUS_Graphics2DHandle gfx;
-    bool secureModeSwitchNeeded;
 
     /* advance all */
     rc = BGRC_Packet_AdvancePackets(engine->grc, NULL);
     if (rc && rc != BGRC_PACKET_MSG_PACKETS_INCOMPLETE) {
-        rc = BERR_TRACE(rc);
-        return;
+        return BERR_TRACE(rc);
     }
 
-    rc = BGRC_Packet_GetContextStatus(engine->grc, array, &n, NEXUS_GRAPHICS2D_MAX_CONTEXTS, &secureModeSwitchNeeded);
-    if (rc) {rc = BERR_TRACE(rc); return;}
+    rc = BGRC_Packet_GetContextStatus(engine->grc, array, &n, NEXUS_GRAPHICS2D_MAX_CONTEXTS, secureModeSwitchNeeded);
+    if (rc) {return BERR_TRACE(rc);}
 
     BDBG_PRINT_OP(("NEXUS_Graphics2D_P_PacketAdvance %d contexts", n));
     for (i=0;i<n;i++) {
@@ -1329,12 +1326,27 @@ static void NEXUS_Graphics2D_P_PacketAdvance( void *context )
             BDBG_ERR(("unexpected checkpoint %p", (void *)gfx));
         }
     }
+    return BERR_SUCCESS;
+}
 
-    /* if a context needs a mode switch, attempt */
-    if (secureModeSwitchNeeded && !nexus_p_switch_secure(engine)) {
-        /* call recursively if we can switch */
-        NEXUS_Graphics2D_P_PacketAdvance(engine);
+static void NEXUS_Graphics2D_P_PacketAdvance( void *context )
+{
+    struct NEXUS_Graphics2DEngine *engine = context;
+
+    for(;;) {
+        bool secureModeSwitchNeeded;
+        BERR_Code rc = NEXUS_Graphics2D_P_PacketAdvanceStep( engine, &secureModeSwitchNeeded);
+        if(rc!=BERR_SUCCESS) {
+            rc = BERR_TRACE(rc); break;
+        }
+        if (secureModeSwitchNeeded && !nexus_p_switch_secure(engine)) {
+            /* if a context needs a mode switch, attempt to continue */
+            continue;
+        } else {
+            break;
+        }
     }
+    return;
 }
 
 NEXUS_Error NEXUS_Graphics2D_Checkpoint( NEXUS_Graphics2DHandle gfx, const NEXUS_CallbackDesc *pCallback )
@@ -1534,7 +1546,7 @@ NEXUS_Error NEXUS_Graphics2DModule_Standby_priv(bool enabled, const NEXUS_Standb
                 bool callbackDisabled=false;
 
                 /* Check if checkpoint was called already. If not then we need to do it to sync blits */
-                /* Disable the task callback first, becuase app is not excepting it and may result in app
+                /* Disable the task callback first, because app is not expecting it and may result in app
                    re-submiting a checkpoint before we decrement the count */
                 if(!gfx->checkpointCount) {
                     NEXUS_TaskCallback_Set(gfx->checkpoint, NULL);

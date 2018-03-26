@@ -200,9 +200,10 @@ int wl_counters_cbfn(void *ctx, const unsigned char *data, unsigned short int ty
                     "May need to use up-to-date wl utility.\n",
                     type, len, (int)sizeof(wl_cnt_wlc_t));
             }
+#if OLDWAY
             PRVALSF(reinit);
 
-#if OLDWAY
+
             /* Display old reinitreason counts */
             if (cnt->reinitreason[0] != INVALID_CNT_VAL) {
                 PRSTR(reinitreason_counts, "reinitreason_counts: ");

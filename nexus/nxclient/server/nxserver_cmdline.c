@@ -126,7 +126,7 @@ static void print_full_usage(void)
     print_list_option("colorSpace",g_colorSpaceStrs);
     printf(
     "  -colorDepth {0|8|10} \t0 is auto\n"
-    "  -dropFrame {enable|disable|track} \tHD display is drop frame, non-drop frame or tracks source (default)\n"
+    "  -dropFrame {enable|disable|track} \tHD display is drop frame (default), non-drop frame or tracks source\n"
     "  -avc51         \tenable AVC Level 5.1 decoding\n"
     "  -frontend off  \tdon't init frontend\n"
     );
@@ -148,10 +148,11 @@ static void print_full_usage(void)
     "  -hdcp {m|o}    \talways run [m]andatory or [o]ptional HDCP for system test\n"
     );
     printf(
-    "  -hdcp_version {auto|hdcp1x|hdcp22} - if hdcp is optional or mandatory, then\n"
-    "          \tauto   - (default) Always authenticate using the highest version supported by HDMI receiver (Content Stream Type 0)\n"
-    "          \thdcp1x - Always authenticate using HDCP 1.x mode (regardless of HDMI Receiver capabilities)\n"
-    "          \thdcp22 - Always authenticate using HDCP 2.2 mode, Content Stream Type 1\n"
+    "  -hdcp_version {auto|hdcp1x|hdcp22type0|hdcp22} - if hdcp is optional or mandatory, then\n"
+    "          \tauto        (default) Authenticate with either HDCP 1.x or HDCP 2.2 (Content Stream Type 0 or 1 depending on connected TV)\n"
+    "          \thdcp1x      Always authenticate using HDCP 1.x mode (regardless of HDMI Receiver capabilities)\n"
+    "          \thdcp22type0 Authenticate with either HDCP 1.x or HDCP 2.2 (Content Stream Type 0)\n"
+    "          \thdcp22      Always authenticate using HDCP 2.2 mode, Content Stream Type 1\n"
     );
     printf(
     "  -spd VENDOR,DESCRIPTION \tSPD vendorName and description to transmit in HDMI SpdInfoFrame.\n"
@@ -167,7 +168,7 @@ static void print_full_usage(void)
     "  -memconfig display,INDEX,MAXWIDTH,MAXHEIGHT\n"
     "  -memconfig videoDecoder,svp,{INDEX|all},{s|u|su} (CANNOT be used w/ -svp or -svp_urr)\n"
     "  -memconfig display,svp,{INDEX|all},{s|u|su} (CANNOT be used w/ -svp or -svp_urr)\n"
-    "  -memconfig videoEncoder,INDEX,MAXWIDTH,MAXHEIGHT\n"
+    "  -memconfig videoEncoder,{INDEX|all},MAXWIDTH,MAXHEIGHT,[i|p]\n"
     );
     printf(
     "  -memconfig display,capture=off    \tDon't allocate BVN buffers for various capture uses\n"
@@ -197,6 +198,12 @@ static void print_full_usage(void)
     );
     printf(
     "  -thermal_config_file filename     \tFilen containing the thermal configuration\n"
+    );
+    printf(
+    "  -hdmi_preemphasis TMDS_RANGE,MINRATE,MAXRATE,PHY_CTL_0,PHY_CTL_1,PHY_CTL_2 (where PHY_CTL_x must be hex, others are decimal)\n"
+    );
+    printf(
+    "  -watchdog                         \tEnable HW watchdog and pet from at least one nxserver thread. If nxserver hangs or is killed, system will reset.\n"
     );
 }
 
@@ -322,7 +329,9 @@ static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSett
     BSTD_UNUSED(pPlatformSettings);
     for (i=0;i<memconfig_str_total;i++) {
         unsigned index, numMosaics, maxWidth, maxHeight;
+        char interlaced;
         char svpstr[32];
+        BSTD_UNUSED(interlaced);
         BSTD_UNUSED(numMosaics);
         if (0) {
         }
@@ -398,9 +407,17 @@ static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSett
         }
 #endif
 #if NEXUS_HAS_VIDEO_ENCODER
-        else if (sscanf(memconfig_str[i], "videoEncoder,%u,%u,%u", &index, &maxWidth, &maxHeight) == 3 && index < NEXUS_MAX_VIDEO_ENCODERS) {
+        else if (sscanf(memconfig_str[i], "videoEncoder,all,%u,%u,%c", &maxWidth, &maxHeight, &interlaced) == 3) {
+            for (index=0;index<NEXUS_MAX_VIDEO_ENCODERS;index++) {
+                pMemConfigSettings->videoEncoder[index].maxWidth = maxWidth;
+                pMemConfigSettings->videoEncoder[index].maxHeight = maxHeight;
+                pMemConfigSettings->videoEncoder[index].interlaced = (interlaced == 'i');
+            }
+        }
+        else if (sscanf(memconfig_str[i], "videoEncoder,%u,%u,%u,%c", &index, &maxWidth, &maxHeight, &interlaced) == 3) {
             pMemConfigSettings->videoEncoder[index].maxWidth = maxWidth;
             pMemConfigSettings->videoEncoder[index].maxHeight = maxHeight;
+            pMemConfigSettings->videoEncoder[index].interlaced = (interlaced == 'i');
         }
         else if (!strcmp(memconfig_str[i], "videoEncoder,dynamic")) {
             set_dynamic_picture_buffers(pMemConfigSettings, b_dynamic_picbuf_encoder);
@@ -1092,10 +1109,14 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
             curarg++;
             if      (!strcmp(argv[curarg],"auto"  ))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eAuto;
             else if (!strcmp(argv[curarg],"hdcp1x"))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eHdcp1x;
+            else if (!strcmp(argv[curarg],"hdcp22type0"))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eAutoHdcp22Type0;
             else if (!strcmp(argv[curarg],"hdcp22"))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eHdcp22;
             else {
                 print_usage();
                 return -1;
+            }
+            if (settings->hdcp.alwaysLevel == NxClient_HdcpLevel_eNone) {
+                settings->hdcp.alwaysLevel = NxClient_HdcpLevel_eMandatory;
             }
         }
         else if (!strcmp(argv[curarg], "-spd") && curarg+1<argc) {
@@ -1163,6 +1184,23 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
         }
         else if(!strcmp(argv[curarg], "-thermal_config_file") && curarg+1<argc) {
             settings->thermal.thermal_config_file = argv[++curarg];
+        }
+        else if(!strcmp(argv[curarg], "-hdmi_preemphasis") && curarg+1<argc) {
+            unsigned index, arg[5];
+            if (sscanf(argv[++curarg], "%u,%u,%u,%x,%x,%x", &index, &arg[0], &arg[1], &arg[2], &arg[3], &arg[4]) != 6 ||
+                index >= NEXUS_HDMI_OUTPUT_TMDS_RANGES) {
+                print_usage();
+                return -1;
+            }
+            settings->hdmiPreEmphasis.set[index] = true;
+            settings->hdmiPreEmphasis.config.tmdsRange[index].minTmdsRate = arg[0];
+            settings->hdmiPreEmphasis.config.tmdsRange[index].maxTmdsRate = arg[1];
+            settings->hdmiPreEmphasis.config.tmdsRange[index].HDMI_TX_PHY_CTL_0 = arg[2];
+            settings->hdmiPreEmphasis.config.tmdsRange[index].HDMI_TX_PHY_CTL_1 = arg[3];
+            settings->hdmiPreEmphasis.config.tmdsRange[index].HDMI_TX_PHY_CTL_2 = arg[4];
+        }
+        else if (!strcmp(argv[curarg], "-watchdog")) {
+            settings->watchdog = true;
         }
         else {
             fprintf(stderr,"invalid argument %s\n", argv[curarg]);
@@ -1390,6 +1428,11 @@ void nxserver_set_client_heaps(struct nxserver_settings *settings, const NEXUS_P
     index = nxserver_heap_by_type(pPlatformSettings, NEXUS_HEAP_TYPE_EXPORT_REGION);
     if (index != -1 && pPlatformSettings->heap[index].size) {
         settings->client.heap[NXCLIENT_EXPORT_HEAP] = platformConfig.heap[index];
+    }
+
+    index = nxserver_heap_by_type(pPlatformSettings, NEXUS_HEAP_TYPE_ARR);
+    if (index != -1 && pPlatformSettings->heap[index].size) {
+        settings->client.heap[NXCLIENT_ARR_HEAP] = platformConfig.heap[index];
     }
 
     /* Untrusted clients will not be able to use the secondary heap (because of simple bounds check), so just don't provide it. */

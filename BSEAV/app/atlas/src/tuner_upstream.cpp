@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -160,9 +160,28 @@ NEXUS_FrontendUpstreamMode CTunerUpstream::getDefaultMode()
     }
 }
 
-void CTunerUpstream::saveScanData(CTunerScanData * pScanData)
+void CTunerUpstream::scanDataSave(CTunerScanData * pScanData)
 {
+    if (NULL == pScanData)
+    {
+        return;
+    }
+
     _scanData = (*((CTunerUpstreamScanData *)pScanData));
+}
+
+eRet CTunerUpstream::scanDataFreqListAdd(uint32_t freq)
+{
+    eRet       ret   = eRet_Ok;
+    uint32_t * pFreq = NULL;
+
+    pFreq = new uint32_t(freq);
+    CHECK_PTR_ERROR_GOTO("unable to allocated frequency", pFreq, ret, eRet_OutOfMemory, error);
+
+    _scanData._freqList.add(pFreq);
+
+error:
+    return(ret);
 }
 
 void CTunerUpstream::doScan()

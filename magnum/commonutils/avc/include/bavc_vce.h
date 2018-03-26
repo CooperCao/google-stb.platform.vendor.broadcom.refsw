@@ -130,7 +130,13 @@ typedef struct BAVC_CompressedBufferStatus
       {
          unsigned uiDepth; /* The amount of data in the buffer (in bytes) */
          unsigned uiSize; /* The total size of the buffer (in bytes). If 0, then the depth is invalid. */
+         uint32_t uiRead;  /* Address of the buffer READ register */
+         uint32_t uiBase;  /* Address of the buffer BASE register */
+         uint32_t uiValid; /* Address of the buffer VALID register */
+         uint32_t uiEnd;   /* Address of the buffer END register */
       } stITB, stCDB;
+      bool bReady; /* Set to true when the buffer has been initialized and ready to be consumed.
+                    * Once set to true, it is always true for the duration of the session. */
 } BAVC_CompressedBufferStatus;
 
 /*************************/

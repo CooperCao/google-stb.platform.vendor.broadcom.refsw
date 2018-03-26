@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -320,6 +320,8 @@ typedef struct ParserConfig
     bool SaveLongPsiMsg;
     bool PsfCrcDis;
     BXPT_PsiMesgModModes PsiMsgMod;
+    BXPT_DataSource DataSource;
+    unsigned int WhichSource;
 }
 ParserConfig;
 
@@ -505,6 +507,10 @@ typedef struct BXPT_P_ContextHandle
 #if BXPT_SW7425_1323_WORKAROUND
     bool BandHoldEn;
     unsigned UpperThreshold;
+#endif
+
+#if BXPT_HAS_HEVD_WORKAROUND
+    bool isHevdVideoContext;
 #endif
 }
 BXPT_P_ContextHandle;
@@ -790,6 +796,7 @@ void BXPT_P_ResetTransport(
     BREG_Handle hReg
     );
 
+#if BXPT_HAS_MESG_L2
 void BXPT_P_Interrupt_MsgVector_isr(
     BXPT_Handle hXpt,               /* [in] Handle for this transport */
     int L1Shift         /* [in] Dummy arg. Not used by this interface. */
@@ -799,6 +806,7 @@ void BXPT_P_Interrupt_MsgOverflowVector_isr(
     BXPT_Handle hXpt,               /* [in] Handle for this transport */
     int L1Shift         /* [in] Dummy arg. Not used by this interface. */
     );
+#endif
 
 void BXPT_P_Interrupt_MsgSw_isr(
     BXPT_Handle hXpt,               /* [in] Handle for this transport */
@@ -854,9 +862,6 @@ Set the configuration for the given secondary PID channel stream filter
 based on various stream id combinations. Used during DVD playback mode.
 ****************************************************************************/
 BERR_Code BXPT_Spid_P_ConfigureChannelFilter(BXPT_Handle hXpt,unsigned int ChannelNum,BXPT_Spid_eChannelFilter Filter);
-
-/* Enable PID2BUFF support. On by default in this sw base. */
-void SetPid2BuffMap(BXPT_Handle hXpt);
 
 bool BXPT_P_InputBandIsSupported(
     unsigned ib

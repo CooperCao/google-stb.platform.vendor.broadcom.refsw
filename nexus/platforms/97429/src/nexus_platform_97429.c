@@ -48,28 +48,7 @@ BDBG_MODULE(nexus_platform_97429);
 
 static void nexus_p_modifyDefaultMemoryConfigurationSettings(NEXUS_MemoryConfigurationSettings *pSettings)
 {
-#if NEXUS_HAS_VIDEO_DECODER
-    unsigned int familyID = BREG_Read32(g_pPreInitState->hReg, BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID);
-
-    if (familyID == 0x07429500) {
-        unsigned int i;
-        for (i=0; i < NEXUS_NUM_VIDEO_DECODERS; ++i) {
-            /* Enable HEVC support for 74295. */
-            pSettings->videoDecoder[i].supportedCodecs[NEXUS_VideoCodec_eH265] = true;
-            /* If you require HEVC 10bit uncomment the line below. This will consume an extra 11MB for video decoder. */
-            /*pSettings->videoDecoder[i].colorDepth = 10;*/
-        }
-
-        for (i=0; i < NEXUS_NUM_STILL_DECODES; ++i) {
-            /* Enable HEVC support for 74295. */
-            pSettings->stillDecoder[i].supportedCodecs[NEXUS_VideoCodec_eH265] = true;
-        }
-
-        BDBG_MSG(("Enabling 1080p HEVC%s decode support",(pSettings->videoDecoder[0].colorDepth==10)?" 10bit":""));
-    }
-#else
     BSTD_UNUSED(pSettings);
-#endif
 }
 
 void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)

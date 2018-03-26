@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -66,6 +66,8 @@ typedef struct BAPE_PlaybackOpenSettings
                                        When an amuont <= this threshold is available, 
                                        an interrupt will be raised. This value should
                                        be a multiple of 256. */    
+    BAPE_MultichannelFormat multichannelFormat;     /* Controls whether the playback channel outputs 2.0, 5.1, or 7.1 data. */
+    bool interleaved;               /* If true, data for a channel pair is interleaved into a single buffer */
 } BAPE_PlaybackOpenSettings;
 
 /***************************************************************************
@@ -141,7 +143,6 @@ typedef struct BAPE_PlaybackStartSettings
     bool isSigned;                          /* If true, data will be treated as signed.  If false, data will be treated as unsigned. */
     bool reverseEndian;                     /* If true, data will be endian-swapped in hardware.  Otherwise, data should match host endian mode. */
     bool loopEnabled;                       /* If true, data will loop continuously without requiring host intervention. */
-    bool interleaved;                       /* If true, data for a channel pair is interleaved into a single buffer */
     unsigned startThreshold;                /* Size in bytes that must be committed to the hardware before data will flow into the mixer.  
                                                Must be a multiple of 256. */    
 } BAPE_PlaybackStartSettings;

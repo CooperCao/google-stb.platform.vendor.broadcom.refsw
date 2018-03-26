@@ -73,13 +73,13 @@ BDBG_OBJECT_ID(BBVN_BVN);
 
 /* Make things look cleaner */
 #define BBVN_P_VNET_F(vnet_f_enum) \
-    BCHP_VNET_F_SCL_0_SRC_SOURCE_##vnet_f_enum
+        BCHP_VNET_F_SCL_0_SRC_SOURCE_##vnet_f_enum
 #define BBVN_P_VNET_B(vnet_b_enum) \
-    BCHP_VNET_B_CAP_0_SRC_SOURCE_##vnet_b_enum
+        BCHP_VNET_B_CAP_0_SRC_SOURCE_##vnet_b_enum
 
 /***************************************************************************
- * Enumeration that defines the front muxes.
- */
+* Enumeration that defines the front muxes.
+*/
 typedef enum
 {
     BBVN_P_VnetF_eDisabled  = BBVN_P_VNET_F(Output_Disabled),
@@ -101,7 +101,9 @@ typedef enum
 #endif
 
     BBVN_P_VnetF_eVideo_0   = BBVN_P_VNET_F(Video_Feeder_0),
+#if (BCHP_VFD_1_REG_START)
     BBVN_P_VnetF_eVideo_1   = BBVN_P_VNET_F(Video_Feeder_1),
+#endif
 #if (BCHP_VFD_2_REG_START)
     BBVN_P_VnetF_eVideo_2   = BBVN_P_VNET_F(Video_Feeder_2),
 #endif
@@ -180,13 +182,15 @@ typedef enum
 } BBVN_P_VnetF;
 
 /***************************************************************************
- * Enumeration that defines the back muxes.
- */
+* Enumeration that defines the back muxes.
+*/
 typedef enum
 {
     BBVN_P_VnetB_eDisabled  = BBVN_P_VNET_B(Output_Disabled),
     BBVN_P_VnetB_eScaler_0  = BBVN_P_VNET_B(Scaler_0),
+#if BCHP_SCL_1_REG_START
     BBVN_P_VnetB_eScaler_1  = BBVN_P_VNET_B(Scaler_1),
+#endif
 #if BCHP_SCL_2_REG_START
     BBVN_P_VnetB_eScaler_2  = BBVN_P_VNET_B(Scaler_2),
 #endif
@@ -279,7 +283,9 @@ typedef enum
 
     BBVN_P_VnetB_eChannel_0 = BBVN_P_VNET_B(Free_Ch_0),
     BBVN_P_VnetB_eChannel_1 = BBVN_P_VNET_B(Free_Ch_1),
+#if (BCHP_VNET_F_FCH_2_SRC)
     BBVN_P_VnetB_eChannel_2 = BBVN_P_VNET_B(Free_Ch_2),
+#endif
 #if (BCHP_VNET_F_FCH_3_SRC)
     BBVN_P_VnetB_eChannel_3 = BBVN_P_VNET_B(Free_Ch_3),
 #endif
@@ -318,8 +324,8 @@ typedef enum
 } BBVN_P_VnetB;
 
 /***************************************************************************
- *
- */
+*
+*/
 typedef enum BBVN_P_VnetMuxType
 {
     BBVN_P_VnetMuxType_eBack = 0,
@@ -335,7 +341,7 @@ typedef enum
     eRecurseSecureTranscode,
     eRecurseClear,
     eRecurseViolation,
-    eMaxResViolation
+    eRecurseMaxResViolation
 } BBVN_P_RecurseState;
 
 typedef enum
@@ -360,7 +366,6 @@ typedef struct BBVN_P_VnetMux
     BBVN_P_VnetMuxType eUpstreamMuxType;
     BBVN_P_VnetMuxType eDownstreamMuxType;
     BAVC_CoreId eCoreId;
-
 } BBVN_P_VnetMux;
 
 /***************************************************************************
@@ -423,7 +428,9 @@ static const BBVN_P_VnetMux s_astVnetFrontMuxes[] =
 #endif
 
     BBVN_P_MAKE_VNET_F_NODE(CAP_0 -> VFD_0, Video_0, CAP_0, CAP_0),
+#if (BCHP_VNET_B_CAP_1_SRC)
     BBVN_P_MAKE_VNET_F_NODE(CAP_1 -> VFD_1, Video_1, CAP_1, CAP_1),
+#endif
 
 #if (BCHP_VNET_B_CAP_2_SRC)
     BBVN_P_MAKE_VNET_F_NODE(CAP_2 -> VFD_2, Video_2, CAP_2, CAP_2),
@@ -513,7 +520,9 @@ static const BBVN_P_VnetMux s_astVnetFrontMuxes[] =
 static const BBVN_P_VnetMux s_astVnetBackMuxes[] =
 {
     BBVN_P_MAKE_VNET_B_NODE(SCL_0, Scaler_0, SCL_0, SCL_0),
+#if (BCHP_VNET_F_SCL_1_SRC)
     BBVN_P_MAKE_VNET_B_NODE(SCL_1, Scaler_1, SCL_1, SCL_1),
+#endif
 #if (BCHP_VNET_F_SCL_2_SRC)
     BBVN_P_MAKE_VNET_B_NODE(SCL_2, Scaler_2, SCL_2, SCL_2),
 #endif
@@ -681,8 +690,9 @@ static const BBVN_P_VnetMux s_astVnetBackMuxes[] =
 
 static const BBVN_P_VnetMux s_astVnetTerminalMuxes[] =
 {
+#if (BCHP_VNET_F_LBOX_0_SRC)
     BBVN_P_MAKE_VNET_B_TERMINAL_NODE(BOX_0, LBOX_0,  Front, Terminal),
-
+#endif
 #if (BCHP_VNET_F_LBOX_1_SRC)
     BBVN_P_MAKE_VNET_B_TERMINAL_NODE(BOX_1, LBOX_1,  Front, Terminal),
 #endif
@@ -746,7 +756,12 @@ static const BBVN_P_VnetMux s_astVnetTerminalMuxes[] =
 /* Chip based loop count optimization. */
 #define BBVN_P_NUM_HDM_MAX    (BBVN_NUM_HDMI_PATH)
 #define BBVN_P_NUM_AIT_MAX    (sizeof(s_aAitCmpIdx)/sizeof(s_aAitCmpIdx[0]))
+#ifdef BCHP_VEC_CFG_STG_0_SOURCE
 #define BBVN_P_NUM_STG_MAX    (sizeof(s_aStgCmpIdx)/sizeof(s_aStgCmpIdx[0]))
+#define BBVN_HAS_STG_ARRAY    (1)
+#else
+#define BBVN_P_NUM_STG_MAX    (0)
+#endif
 
 #define BBVN_P_MAKE_STG_INFO(stg_id, core_id, channel_id) \
     {(stg_id), (core_id), (channel_id), BCHP_VEC_CFG_STG_##stg_id##_SOURCE, BAVC_CoreId_eVCE_##channel_id}
@@ -754,6 +769,7 @@ static const BBVN_P_VnetMux s_astVnetTerminalMuxes[] =
 #define BBVN_P_MAKE_AIT_INFO(ait_id) \
     {(BCHP_VEC_CFG_IT_##ait_id##_SOURCE)}
 
+#ifdef BBVN_HAS_STG_ARRAY
 static const struct
 {
     uint8_t        iStgId;
@@ -781,6 +797,7 @@ static const struct
         , BBVN_P_MAKE_STG_INFO(5, 1, 2)
 #endif
 };
+#endif
 
 static const struct
 {
@@ -818,11 +835,11 @@ static char SecureContentType2Char(BBVN_P_SecureContentType type)
 * Function is guaranteed to exit  upon exhausting the list of possible forward or backward nodes
 */
 static BERR_Code BBVN_P_TraverseBvn_recursive
-    ( BREG_Handle                      hReg,
-      const BBVN_P_VnetMux            *pCurMux,
-      const BAVC_CoreList             *pSecureCores,
-      BBVN_P_PathStatus               *pPath
-    )
+ ( BREG_Handle                      hReg,
+   const BBVN_P_VnetMux            *pCurMux,
+   const BAVC_CoreList             *pSecureCores,
+   BBVN_P_PathStatus               *pPath
+ )
 {
     BERR_Code err = BERR_SUCCESS;
     uint32_t ulSource = 0xffffffff;
@@ -941,9 +958,9 @@ static BERR_Code BBVN_P_TraverseBvn_recursive
         }
 
         /* Look for corresponding SOURCE mux based on SOURCE value using a two-table search.
-           First, is check if SOURCE value is in BBVN_P_VneF or BBVN_P_VnetB enum. If so,
-           using the found enum entry, search for the mux address in the VnetBackNodes or
-           VnetFrontNodes table. */
+        First, is check if SOURCE value is in BBVN_P_VneF or BBVN_P_VnetB enum. If so,
+        using the found enum entry, search for the mux address in the VnetBackNodes or
+        VnetFrontNodes table. */
         if(BBVN_P_VnetMuxType_eBack == pCurMux->eUpstreamMuxType)
         {
             BBVN_P_VnetB eVnetBNode;
@@ -1042,7 +1059,9 @@ typedef struct BBVN_P_Monitor_Context
     BBVN_P_PathStatus                  stPathStatus;
     uint8_t                            aiHdmCmpIdx[BBVN_P_NUM_HDM_MAX]; /* aiHdmCmpIdx[DTG_x] = CMP_x */
     uint8_t                            aiAitCmpIdx[BBVN_P_NUM_AIT_MAX]; /* aiAitCmpIdx[AIT_x] = CMP_x */
+#ifdef BBVN_HAS_STG_ARRAY
     uint8_t                            aiStgCmpIdx[BBVN_P_NUM_STG_MAX]; /* aiStgCmpIdx[STG_x] = CMP_x */
+#endif
 
     /* collection of status of all paths */
     BBVN_P_SecureContentType           abCmpSecuredCt[BBVN_P_COMPOSITOR_MAX][BBVN_P_WINDOW_MAX];
@@ -1122,6 +1141,7 @@ static void BBVN_P_GetHdmCmpIdx
     return;
 }
 
+#ifdef BBVN_HAS_STG_ARRAY
 /***************************************************************************
 * Get Compositor index information for STG.
 */
@@ -1140,6 +1160,7 @@ static void BBVN_P_GetStgCmpIdx
 
     return;
 }
+#endif
 
 /***************************************************************************
 * Get Compositor index information for STG.
@@ -1190,7 +1211,7 @@ static bool BBVN_P_GetCmpInfo
         uint8_t    iCmpIdx;
         uint8_t    iWinIdx;
     } s_aVnetCmpIdx[] = {
-         BBVN_P_MAKE_CMP_INFO(0, 0)
+        BBVN_P_MAKE_CMP_INFO(0, 0)
 #ifdef BCHP_VNET_B_CMP_0_V1_SRC
         ,BBVN_P_MAKE_CMP_INFO(0, 1)
 #endif
@@ -1407,21 +1428,21 @@ BERR_Code BBVN_Monitor_Check
                                 /* Nothing to check */
                                 break;
                             case HvdMaxRes_ResSD:
-                                if((ulHSize>=1280)||(ulVSize>=720))
+                                if((ulHSize>720)||(ulVSize>480))
                                 {
-                                    hBvnMonitor->abCmpViolation[iCmpIdx][iWinIdx]=eMaxResViolation;
+                                    hBvnMonitor->abCmpViolation[iCmpIdx][iWinIdx]=eRecurseMaxResViolation;
                                 }
                                 break;
                             case HvdMaxRes_ResHD1280:
-                                if((ulHSize>=1920)||(ulVSize>=1080))
+                                if((ulHSize>1280)||(ulVSize>720))
                                 {
-                                    hBvnMonitor->abCmpViolation[iCmpIdx][iWinIdx]=eMaxResViolation;
+                                    hBvnMonitor->abCmpViolation[iCmpIdx][iWinIdx]=eRecurseMaxResViolation;
                                 }
                                 break;
                             case HvdMaxRes_ResHD1920:
                                 if((ulHSize>1920)||(ulVSize>1080))
                                 {
-                                    hBvnMonitor->abCmpViolation[iCmpIdx][iWinIdx]=eMaxResViolation;
+                                    hBvnMonitor->abCmpViolation[iCmpIdx][iWinIdx]=eRecurseMaxResViolation;
                                 }
                                 break;
                             default:
@@ -1437,7 +1458,9 @@ BERR_Code BBVN_Monitor_Check
     /* Find out what compositor drives the outputs */
     BBVN_P_GetHdmCmpIdx(hBvnMonitor->hReg, hBvnMonitor->aiHdmCmpIdx);
     BBVN_P_GetAItCmpIdx(hBvnMonitor->hReg, hBvnMonitor->aiAitCmpIdx);
+#ifdef BBVN_HAS_STG_ARRAY
     BBVN_P_GetStgCmpIdx(hBvnMonitor->hReg, hBvnMonitor->aiStgCmpIdx);
+#endif
 
     BDBG_MSG(("***************************************************************"));
     for(i = 0; i < BBVN_P_COMPOSITOR_MAX; i++)
@@ -1477,6 +1500,7 @@ BERR_Code BBVN_Monitor_Check
                           pStatus->Analog[j].bSecure ? "secured" : "non-secured", j));
             }
         }
+#ifdef BBVN_HAS_STG_ARRAY
         /* (3) Populate STG: status */
         for(j = 0; j < BBVN_P_NUM_STG_MAX; j++)
         {
@@ -1503,6 +1527,7 @@ BERR_Code BBVN_Monitor_Check
                           g_NEXUS_SvpHwBlockTbl[s_aStgCmpIdx[j].eVipCoreId].achName));
             }
         }
+#endif
 
         /* Violation if secured content is routed to non-secured memory clients */
         if(hBvnMonitor->abCmpViolation[i][0] || hBvnMonitor->abCmpViolation[i][1])

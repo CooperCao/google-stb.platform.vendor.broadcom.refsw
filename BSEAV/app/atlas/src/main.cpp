@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -118,6 +118,32 @@ eRet initializeNexus()
         if (0 != GET_INT(pCfg, MAXDATARATE_PLAYBACK))
         {
             BDBG_WRN(("Playback max data rate adjustements in atlas.cfg have no effect in nxclient mode.  Use nxserver command line options instead."));
+        }
+
+        /* ensure nxserver is running */
+        {
+            int sysRet = system("pidof nxserver");
+            if (0 != sysRet)
+            {
+                MString strNxServerCmd = "nxserver &";
+
+                /* nxserver is not currently running - start it */
+                joinSettings.timeout = 30;
+
+                /* TODO: there are some atlas build configurations (i.e. BDSP_MS12_SUPPORT)
+                 *       that require additional flags when starting nxserver.  need to
+                 *       add these options here when launching nxserver.
+                 */
+#if BDSP_MS12_SUPPORT
+                strNxServerCmd = "nxserver -ms12 &";
+#endif
+                BDBG_WRN(("=====> Starting %s <=====", strNxServerCmd.s()));
+                sysRet = system(strNxServerCmd);
+                if (-1 == sysRet)
+                {
+                    CHECK_ERROR_GOTO("error starting nxserver", eRet_InvalidState, error);
+                }
+            }
         }
 
         nerror = NxClient_Join(&joinSettings);

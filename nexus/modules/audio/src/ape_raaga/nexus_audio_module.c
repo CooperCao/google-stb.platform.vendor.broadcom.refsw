@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,7 +67,19 @@ BDBG_FILE_MODULE(nexus_audio_memest);
 
 NEXUS_ModuleHandle g_NEXUS_audioModule;
 NEXUS_AudioModuleData g_NEXUS_audioModuleData;
+#if BAPE_DSP_SUPPORT
+  #if BDSP_RAAGA_AUDIO_SUPPORT || BDSP_ARM_AUDIO_SUPPORT
+    static BIMG_Interface g_audioImgInterface;
+    static bool g_audioImgInterfaceInitialized = false;
+  #endif
+#endif
 
+/* PI has to notify NEXUS when a PLL or NCO needs to be verified
+   to transition from ISR to task context */
+static BKNI_EventHandle g_pllVerifyEvent = NULL;
+static NEXUS_EventCallbackHandle g_pllVerifyCallbackHandle = NULL;
+static BKNI_EventHandle g_ncoVerifyEvent = NULL;
+static NEXUS_EventCallbackHandle g_ncoVerifyCallbackHandle = NULL;
 
 /******************************************************************************
 The array to represent the value of volume in hex corresponding to the value
@@ -239,11 +251,6 @@ static void NEXUS_AudioModule_Print(void)
 void NEXUS_AudioModule_GetDefaultSettings(const struct NEXUS_Core_PreInitState *preInitState, NEXUS_AudioModuleSettings *pSettings)
 {
     BAPE_Settings apeSettings;
-#if BAPE_DSP_SUPPORT
-    #if BDSP_RAAGA_AUDIO_SUPPORT
-    BDSP_RaagaSettings raagaSettings;
-    #endif
-#endif
     const char *pEnv;
     unsigned i;
     unsigned num_encoders = 0;
@@ -290,21 +297,37 @@ void NEXUS_AudioModule_GetDefaultSettings(const struct NEXUS_Core_PreInitState *
 
 #if BAPE_DSP_SUPPORT
     #if BDSP_RAAGA_AUDIO_SUPPORT
-    BDSP_Raaga_GetDefaultSettings(&raagaSettings);
-    for ( i = 0; i < NEXUS_AudioDspDebugType_eMax; i++ )
     {
-        pSettings->dspDebugSettings.typeSettings[i].enabled = false;    /* Disable all debug by default */
-        pSettings->dspDebugSettings.typeSettings[i].bufferSize = raagaSettings.debugSettings[i].bufferSize;
-    }
+        BDSP_RaagaSettings raagaSettings;
+        BDSP_Raaga_GetDefaultSettings(&raagaSettings);
+        for ( i = 0; i < NEXUS_AudioDspDebugType_eMax; i++ )
+        {
+            pSettings->dspDebugSettings.typeSettings[i].enabled = false;    /* Disable all debug by default */
+            pSettings->dspDebugSettings.typeSettings[i].bufferSize = raagaSettings.debugSettings[i].bufferSize;
+        }
 
-    for ( i = 0; i < NEXUS_AudioDspAlgorithmType_eMax; i++ )
-    {
-        pSettings->dspAlgorithmSettings.typeSettings[i].count = raagaSettings.maxAlgorithms[i];
+        for ( i = 0; i < NEXUS_AudioDspAlgorithmType_eMax; i++ )
+        {
+            pSettings->dspAlgorithmSettings.typeSettings[i].count = raagaSettings.maxAlgorithms[i];
+        }
     }
     #endif
 
     #if BDSP_ARM_AUDIO_SUPPORT
-    /* TBD - handle ARM case */
+    {
+        BDSP_ArmSettings armSettings;
+        BDSP_Arm_GetDefaultSettings(&armSettings);
+        for ( i = 0; i < NEXUS_AudioDspDebugType_eMax; i++ )
+        {
+            pSettings->softAudioDebugSettings.typeSettings[i].enabled = false;    /* Disable all debug by default */
+            pSettings->softAudioDebugSettings.typeSettings[i].bufferSize = armSettings.debugSettings[i].bufferSize;
+        }
+
+        for ( i = 0; i < NEXUS_AudioDspAlgorithmType_eMax; i++ )
+        {
+            pSettings->softAudioAlgorithmSettings.typeSettings[i].count = armSettings.maxAlgorithms[i];
+        }
+    }
     #endif
 #endif
 }
@@ -329,18 +352,12 @@ static void NEXUS_AudioModule_P_PopulateRaagaOpenSettings(
 {
     unsigned i;
 
-    #if 1
+    if ( g_audioImgInterfaceInitialized )
     {
-        static BIMG_Interface imgInterface;
-        /* TODO: Connect IMG to DSP interface */
-        if ( Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_RAP, &g_NEXUS_audioModuleData.pImageContext, &imgInterface) == NEXUS_SUCCESS )
-        {
-            BDBG_WRN(("FW download used"));
-            raagaSettings->pImageContext = g_NEXUS_audioModuleData.pImageContext;
-            raagaSettings->pImageInterface = &imgInterface;
-        }
+        BDBG_WRN(("(DSP) FW download used"));
+        raagaSettings->pImageContext = g_NEXUS_audioModuleData.pImageContext;
+        raagaSettings->pImageInterface = &g_audioImgInterface;
     }
-    #endif
 
     for ( i = 0; i < NEXUS_AudioDspDebugType_eMax; i++ )
     {
@@ -372,6 +389,48 @@ static void NEXUS_AudioModule_P_PopulateRaagaOpenSettings(
     raagaSettings->NumDsp = boxConfig->stAudio.numDsps;
 }
 #endif
+
+#if BDSP_ARM_AUDIO_SUPPORT
+static void NEXUS_AudioModule_P_PopulateArmOpenSettings(
+    const BBOX_Config *boxConfig,
+    const NEXUS_AudioModuleSettings *pSettings,
+    BDSP_ArmSettings * armSettings /* out */
+    )
+{
+    unsigned i;
+
+    BSTD_UNUSED(boxConfig);
+
+    if ( g_audioImgInterfaceInitialized )
+    {
+        BDBG_WRN(("(ARM) FW download used"));
+        armSettings->pImageContext = g_NEXUS_audioModuleData.pImageContext;
+        armSettings->pImageInterface = &g_audioImgInterface;
+    }
+
+    for ( i = 0; i < NEXUS_AudioDspDebugType_eMax; i++ )
+    {
+        armSettings->debugSettings[i].enabled = pSettings->softAudioDebugSettings.typeSettings[i].enabled;
+        armSettings->debugSettings[i].bufferSize = pSettings->softAudioDebugSettings.typeSettings[i].bufferSize;
+
+        if ( pSettings->softAudioDebugSettings.typeSettings[i].enabled )
+        {
+            BDBG_WRN(("Enabling ARM audio FW debug type %u [%s]", i, (i == NEXUS_AudioDspDebugType_eDramMessage)?"DRAM Message":
+                                                                 (i == NEXUS_AudioDspDebugType_eUartMessage)?"UART Message":
+                                                                 (i == NEXUS_AudioDspDebugType_eCoreDump)?"Core Dump":
+                                                                  "Target Print"));
+        }
+    }
+
+    for ( i = 0; i < NEXUS_AudioDspAlgorithmType_eMax; i++ )
+    {
+        armSettings->maxAlgorithms[i] = pSettings->softAudioAlgorithmSettings.typeSettings[i].count;
+    }
+
+    #if 0
+    armSettings->NumDsp = boxConfig->stAudio.numDsps;
+    #endif
+}
 #endif
 
 #if BDSP_RAAGA_AUDIO_SUPPORT
@@ -395,6 +454,46 @@ static void NEXUS_AudioModule_SetHeap(unsigned heapIndex, unsigned *totalHeaps, 
     (*totalHeaps)++;
 }
 #endif
+#endif
+
+static void NEXUS_AudioModule_P_PllVerifyEventHandler(void *context)
+{
+    BDBG_MSG(("PLL Verify Event Handler"));
+    BAPE_ProcessPllVerifyCallback(context);
+}
+
+static void NEXUS_AudioModule_P_NcoVerifyEventHandler(void *context)
+{
+    BDBG_MSG(("NCO Verify Event Handler"));
+    BAPE_ProcessNcoVerifyCallback(context);
+}
+
+static void NEXUS_AudioModule_P_PiCallback_isrsafe (void *pContext, void* pParam, int iParam, int eventParam)
+{
+    BSTD_UNUSED(pContext);
+    BSTD_UNUSED(pParam);
+
+    switch ( iParam )
+    {
+    case BAPE_CallbackEvent_ePllVerify:
+        BDBG_MSG(("PllVerify ISR callback, pll %d", eventParam));
+        if ( g_pllVerifyEvent )
+        {
+            BKNI_SetEvent_isr(g_pllVerifyEvent);
+        }
+        break;
+    case BAPE_CallbackEvent_eNcoVerify:
+        BDBG_MSG(("NcoVerify ISR callback, nco %d", eventParam));
+        if ( g_ncoVerifyEvent )
+        {
+            BKNI_SetEvent_isr(g_ncoVerifyEvent);
+        }
+        break;
+    default:
+        BDBG_ERR(("Unknown event %d", iParam));
+        break;
+    }
+}
 
 NEXUS_ModuleHandle NEXUS_AudioModule_Init(
     const NEXUS_AudioModuleSettings *pSettings,
@@ -403,20 +502,22 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
 {
     BERR_Code errCode;
     NEXUS_ModuleSettings moduleSettings;
-    BAPE_Settings apeSettings;
+    BAPE_Settings *pApeSettings = NULL;
     #if BAPE_DSP_SUPPORT
     #if BDSP_RAAGA_AUDIO_SUPPORT || BDSP_ARM_AUDIO_SUPPORT
     unsigned fwHeapIndex;
     #endif
     #if BDSP_RAAGA_AUDIO_SUPPORT
-    BDSP_RaagaSettings raagaSettings;
-    BCHP_MemoryInfo memoryInfo;
+    BDSP_RaagaSettings *pRaagaSettings = NULL;
+    BCHP_MemoryInfo *pMemoryInfo = NULL;
     unsigned totalHeaps = 0;
     #endif
     #if BDSP_ARM_AUDIO_SUPPORT
-    BDSP_ArmSettings armSettings;
+    BDSP_ArmSettings *pArmSettings = NULL;
+    BTEE_InstanceStatus *pTeeStatus = NULL;
     #endif
     #endif
+    BAPE_CallbackHandler callbackHandler;
     unsigned heapIndex;
     unsigned i;
 
@@ -471,13 +572,32 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
         BDBG_ERR(("Invalid firmware heap provided."));
         goto err_heap;
     }
+
+    if ( !g_audioImgInterfaceInitialized )
+    {
+        /* TODO: Connect IMG to DSP interface */
+        if ( Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_RAP, &g_NEXUS_audioModuleData.pImageContext, &g_audioImgInterface) == NEXUS_SUCCESS )
+        {
+            g_audioImgInterfaceInitialized = true;
+        }
+        else
+        {
+            BDBG_WRN(("WARNING: Failed to open Audio FW image interface."));
+        }
+    }
     #endif
 
     #if BDSP_RAAGA_AUDIO_SUPPORT
-    BDSP_Raaga_GetDefaultSettings(&raagaSettings);
+    pRaagaSettings = BKNI_Malloc(sizeof(BDSP_RaagaSettings));
+    if ( pRaagaSettings == NULL ) {
+        BDBG_ERR(("Unable to allocate memory for Raaga Settings"));
+        errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto err_dsp;
+    }
+    BDSP_Raaga_GetDefaultSettings(pRaagaSettings);
 
-    NEXUS_AudioModule_P_PopulateRaagaOpenSettings(g_pCoreHandles->boxConfig, pSettings, &raagaSettings);
-    g_NEXUS_audioModuleData.numDsps = raagaSettings.NumDsp;
+    NEXUS_AudioModule_P_PopulateRaagaOpenSettings(g_pCoreHandles->boxConfig, pSettings, pRaagaSettings);
+    g_NEXUS_audioModuleData.numDsps = pRaagaSettings->NumDsp;
     g_NEXUS_audioModuleData.verifyFirmware = false; /*may be updated below.*/
     if ( NEXUS_GetEnv("disable_audio_dsp") ) {
         g_NEXUS_audioModuleData.numDsps = 0;
@@ -496,15 +616,28 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
         UNLOCK_SECURITY();
         #endif
 
-        raagaSettings.authenticationEnabled = g_NEXUS_audioModuleData.verifyFirmware;
+        pRaagaSettings->authenticationEnabled = g_NEXUS_audioModuleData.verifyFirmware;
 
-        BCHP_GetMemoryInfo(g_pCoreHandles->chp, &memoryInfo);
-        raagaSettings.memoryLayout = g_pCoreHandles->memoryLayout;
+        pMemoryInfo = BKNI_Malloc(sizeof(BCHP_MemoryInfo));
+        if ( pMemoryInfo == NULL ) {
+            BDBG_ERR(("Unable to allocate memory for Memory Info"));
+            errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+            goto err_dsp;
+        }
+
+        errCode = BCHP_GetMemoryInfo(g_pCoreHandles->chp, pMemoryInfo);
+        if ( errCode )
+        {
+            (void)BERR_TRACE(errCode);
+            goto err_dsp;
+        }
+
+        pRaagaSettings->memoryLayout = g_pCoreHandles->memoryLayout;
         /* all heaps that DSP is expected to access */
-        NEXUS_AudioModule_SetHeap(NEXUS_MEMC0_MAIN_HEAP, &totalHeaps, &raagaSettings);
-        NEXUS_AudioModule_SetHeap(NEXUS_MEMC0_GRAPHICS_HEAP, &totalHeaps, &raagaSettings);
-        NEXUS_AudioModule_SetHeap(NEXUS_MEMC1_GRAPHICS_HEAP, &totalHeaps, &raagaSettings);
-        NEXUS_AudioModule_SetHeap(NEXUS_MEMC2_GRAPHICS_HEAP, &totalHeaps, &raagaSettings);
+        NEXUS_AudioModule_SetHeap(NEXUS_MEMC0_MAIN_HEAP, &totalHeaps, pRaagaSettings);
+        NEXUS_AudioModule_SetHeap(NEXUS_MEMC0_GRAPHICS_HEAP, &totalHeaps, pRaagaSettings);
+        NEXUS_AudioModule_SetHeap(NEXUS_MEMC1_GRAPHICS_HEAP, &totalHeaps, pRaagaSettings);
+        NEXUS_AudioModule_SetHeap(NEXUS_MEMC2_GRAPHICS_HEAP, &totalHeaps, pRaagaSettings);
 
         BDBG_MSG(("Calling BDSP_Raaga_Open"));
         errCode = BDSP_Raaga_Open(&g_NEXUS_audioModuleData.dspHandle,
@@ -514,7 +647,7 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
                                   g_pCoreHandles->bint,
                                   g_pCoreHandles->tmr,
                                   g_pCoreHandles->box,
-                                  &raagaSettings);
+                                  pRaagaSettings);
         if ( errCode )
         {
             (void)BERR_TRACE(errCode);
@@ -536,33 +669,46 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
     #if BDSP_ARM_AUDIO_SUPPORT
     if ( !NEXUS_GetEnv("disable_arm_audio") )
     {
-        BTEE_InstanceStatus teeStatus;
         BDBG_ASSERT(NULL != g_pCoreHandles->tee);
 
-        /* Check Astra compability */
-        errCode = BTEE_Instance_GetStatus(g_pCoreHandles->tee, &teeStatus);
-        if ( errCode ) { (void)BERR_TRACE(errCode); goto err_dsp; }
+        pTeeStatus = BKNI_Malloc(sizeof(BTEE_InstanceStatus));
+        if ( pTeeStatus == NULL ) {
+            BDBG_ERR(("Unable to allocate memory for Tee Status"));
+            errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+            goto err_arm;
+        }
 
-        BDBG_MSG(("TEE %d, DSP %p, ARM %p", teeStatus.enabled, (void*)g_NEXUS_audioModuleData.dspHandle, (void*)g_NEXUS_audioModuleData.armHandle));
+        /* Check Astra compatibility */
+        errCode = BTEE_Instance_GetStatus(g_pCoreHandles->tee, pTeeStatus);
+        if ( errCode ) { (void)BERR_TRACE(errCode); goto err_arm; }
 
-        BDBG_LOG(("Astra Version %u.%u.%u, Astra Enabled %d", teeStatus.version.major, teeStatus.version.minor, teeStatus.version.build, teeStatus.enabled));
-        if ( teeStatus.enabled /* && version matches bdsp */ )
+        BDBG_MSG(("TEE %d, DSP %p, ARM %p", pTeeStatus->enabled, (void*)g_NEXUS_audioModuleData.dspHandle, (void*)g_NEXUS_audioModuleData.armHandle));
+
+        BDBG_LOG(("Astra Version %u.%u.%u, Astra Enabled %d", pTeeStatus->version.major, pTeeStatus->version.minor, pTeeStatus->version.build, pTeeStatus->enabled));
+        if ( pTeeStatus->enabled /* && version matches bdsp */ )
         {
-            BDSP_Arm_GetDefaultSettings(&armSettings);
-            /* TBDARM - customize ARM settings
-            NEXUS_AudioModule_P_PopulateArmOpenSettings(pSettings, &armSettings); */
-            armSettings.hBteeInstance = g_pCoreHandles->tee;
+            pArmSettings = BKNI_Malloc(sizeof(BDSP_ArmSettings));
+            if ( pArmSettings == NULL ) {
+                BDBG_ERR(("Unable to allocate memory for Arm Settings"));
+                errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+                goto err_arm;
+            }
+
+            BDSP_Arm_GetDefaultSettings(pArmSettings);
+
+            NEXUS_AudioModule_P_PopulateArmOpenSettings(g_pCoreHandles->boxConfig, pSettings, pArmSettings);
+            pArmSettings->hBteeInstance = g_pCoreHandles->tee;
             errCode = BDSP_Arm_Open(&g_NEXUS_audioModuleData.armHandle,
                                     g_pCoreHandles->chp,
                                     g_pCoreHandles->reg,
                                     g_pCoreHandles->heap[fwHeapIndex].mma,
                                     g_pCoreHandles->bint,
                                     g_pCoreHandles->tmr,
-                                    &armSettings);
+                                    pArmSettings);
             if ( errCode )
             {
                 (void)BERR_TRACE(errCode);
-                goto err_dsp;
+                goto err_arm;
             }
         }
         else if ( !g_NEXUS_audioModuleData.dspHandle ) /* if ARM is our only device option, this is a failure. */
@@ -573,26 +719,37 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
         }
     }
     #endif
+#else
+    /* call to eliminate warning - video encode requires the dsp,
+       this is still require, so it cannot be undefined */
+    secureFirmwareAudio(NULL);
 #endif /* BAPE_DSP_SUPPORT */
 
-    BAPE_GetDefaultSettings(&apeSettings);
-    apeSettings.maxDspTasks = pSettings->maxAudioDspTasks;
-    apeSettings.maxIndependentDelay = pSettings->independentDelay ? pSettings->maxIndependentDelay : 0;
-    apeSettings.maxPcmSampleRate = pSettings->maxPcmSampleRate;
-    apeSettings.numPcmBuffers = pSettings->numPcmBuffers;
-    apeSettings.numCompressedBuffers = pSettings->numCompressedBuffers;
-    apeSettings.numCompressed4xBuffers = pSettings->numCompressed4xBuffers;
-    apeSettings.numCompressed16xBuffers = pSettings->numCompressed16xBuffers;
-    apeSettings.numRfEncodedPcmBuffers = pSettings->numRfEncodedPcmBuffers;
-    apeSettings.loudnessSettings.loudnessMode = (BAPE_LoudnessEquivalenceMode)pSettings->loudnessMode;
+    pApeSettings = BKNI_Malloc(sizeof(BAPE_Settings));
+    if ( pApeSettings == NULL ) {
+        BDBG_ERR(("Unable to allocate memory for Bape Settings"));
+        errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto err_ape;
+    }
+
+    BAPE_GetDefaultSettings(pApeSettings);
+    pApeSettings->maxDspTasks = pSettings->maxAudioDspTasks;
+    pApeSettings->maxIndependentDelay = pSettings->independentDelay ? pSettings->maxIndependentDelay : 0;
+    pApeSettings->maxPcmSampleRate = pSettings->maxPcmSampleRate;
+    pApeSettings->numPcmBuffers = pSettings->numPcmBuffers;
+    pApeSettings->numCompressedBuffers = pSettings->numCompressedBuffers;
+    pApeSettings->numCompressed4xBuffers = pSettings->numCompressed4xBuffers;
+    pApeSettings->numCompressed16xBuffers = pSettings->numCompressed16xBuffers;
+    pApeSettings->numRfEncodedPcmBuffers = pSettings->numRfEncodedPcmBuffers;
+    pApeSettings->loudnessSettings.loudnessMode = (BAPE_LoudnessEquivalenceMode)pSettings->loudnessMode;
     for (i=0;i<NEXUS_MAX_MEMC;i++) {
         /* APE is unable to access above region[0] on each MEMC */
-        apeSettings.memc[i].baseAddress = g_pCoreHandles->memoryLayout.memc[i].region[0].addr;
+        pApeSettings->memc[i].baseAddress = g_pCoreHandles->memoryLayout.memc[i].region[0].addr;
     }
 
     if ( NEXUS_GetEnv("audio_ramp_disabled") )
     {
-        apeSettings.rampPcmSamples = false;
+        pApeSettings->rampPcmSamples = false;
     }
 
     BDBG_MSG(("Calling BAPE_Open"));
@@ -605,15 +762,47 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
                         g_pCoreHandles->tmr,
                         g_NEXUS_audioModuleData.dspHandle,
                         g_NEXUS_audioModuleData.armHandle,
-                        &apeSettings);
+                        pApeSettings);
     if ( errCode )
     {
         (void)BERR_TRACE(errCode);
         goto err_ape;
     }
 
-    /* Save Capabilites */
+    /* Save Capabilities */
     NEXUS_P_GetAudioCapabilities(&g_NEXUS_audioModuleData.capabilities);
+
+    errCode = BKNI_CreateEvent(&g_pllVerifyEvent);
+    if ( NULL == g_pllVerifyEvent ) { (void)BERR_TRACE(errCode); goto err_event; }
+    g_pllVerifyCallbackHandle = NEXUS_RegisterEvent(g_pllVerifyEvent, NEXUS_AudioModule_P_PllVerifyEventHandler, g_NEXUS_audioModuleData.apeHandle);
+    if ( NULL == g_pllVerifyCallbackHandle ) { (void)BERR_TRACE(errCode); goto err_callback; }
+
+    errCode = BKNI_CreateEvent(&g_ncoVerifyEvent);
+    if ( NULL == g_ncoVerifyEvent ) { (void)BERR_TRACE(errCode); goto err_event; }
+    g_ncoVerifyCallbackHandle = NEXUS_RegisterEvent(g_ncoVerifyEvent, NEXUS_AudioModule_P_NcoVerifyEventHandler, g_NEXUS_audioModuleData.apeHandle);
+    if ( NULL == g_ncoVerifyCallbackHandle ) { (void)BERR_TRACE(errCode); goto err_callback; }
+
+    /* Register global callbacks */
+    callbackHandler.pContext = g_NEXUS_audioModuleData.apeHandle;
+    callbackHandler.pCallback_isrsafe = NEXUS_AudioModule_P_PiCallback_isrsafe;
+    callbackHandler.iParam = BAPE_CallbackEvent_ePllVerify;
+    errCode = BAPE_RegisterCallback(g_NEXUS_audioModuleData.apeHandle, BAPE_CallbackEvent_ePllVerify, &callbackHandler);
+    if ( errCode )
+    {
+        BDBG_WRN(("Unable to register Pll verify callback"));
+        (void)BERR_TRACE(errCode);
+        goto err_register_pll;
+    }
+    callbackHandler.pContext = g_NEXUS_audioModuleData.apeHandle;
+    callbackHandler.pCallback_isrsafe = NEXUS_AudioModule_P_PiCallback_isrsafe;
+    callbackHandler.iParam = BAPE_CallbackEvent_eNcoVerify;
+    errCode = BAPE_RegisterCallback(g_NEXUS_audioModuleData.apeHandle, BAPE_CallbackEvent_eNcoVerify, &callbackHandler);
+    if ( errCode )
+    {
+        BDBG_WRN(("Unable to register NCO verify callback"));
+        (void)BERR_TRACE(errCode);
+        goto err_register_nco;
+    }
 
     BDBG_MSG(("Calling NEXUS_AudioDecoder_P_Init"));
     errCode = NEXUS_AudioDecoder_P_Init();
@@ -658,6 +847,35 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
     }
 #endif
 
+    #if BAPE_DSP_SUPPORT
+    #if BDSP_RAAGA_AUDIO_SUPPORT
+    if (pRaagaSettings) {
+        BKNI_Free(pRaagaSettings);
+        pRaagaSettings = NULL;
+    }
+    if (pMemoryInfo) {
+        BKNI_Free(pMemoryInfo);
+        pMemoryInfo = NULL;
+    }
+    #endif
+
+    #if BDSP_ARM_AUDIO_SUPPORT
+    if (pArmSettings) {
+        BKNI_Free(pArmSettings);
+        pArmSettings = NULL;
+    }
+    if (pTeeStatus) {
+        BKNI_Free(pTeeStatus);
+        pTeeStatus = NULL;
+    }
+    #endif
+    #endif
+
+    if (pApeSettings) {
+        BKNI_Free(pApeSettings);
+        pApeSettings = NULL;
+    }
+
     NEXUS_UnlockModule();
     return g_NEXUS_audioModule;
 err_debug:
@@ -678,25 +896,67 @@ err_video:
 err_input:
     NEXUS_AudioDecoder_P_Uninit();
 err_decoder:
+    BAPE_UnRegisterCallback(g_NEXUS_audioModuleData.apeHandle, BAPE_CallbackEvent_eNcoVerify, g_NEXUS_audioModuleData.apeHandle);
+err_register_nco:
+    BAPE_UnRegisterCallback(g_NEXUS_audioModuleData.apeHandle, BAPE_CallbackEvent_ePllVerify, g_NEXUS_audioModuleData.apeHandle);
+err_register_pll:
+    if ( g_pllVerifyCallbackHandle )
+    {
+        NEXUS_UnregisterEvent(g_pllVerifyCallbackHandle);
+        g_pllVerifyCallbackHandle = NULL;
+    }
+    if ( g_ncoVerifyCallbackHandle )
+    {
+        NEXUS_UnregisterEvent(g_ncoVerifyCallbackHandle);
+        g_ncoVerifyCallbackHandle = NULL;
+    }
+err_callback:
+    if ( g_pllVerifyEvent )
+    {
+        BKNI_DestroyEvent(g_pllVerifyEvent);
+        g_pllVerifyEvent = NULL;
+    }
+    if ( g_ncoVerifyEvent )
+    {
+        BKNI_DestroyEvent(g_ncoVerifyEvent);
+        g_ncoVerifyEvent = NULL;
+    }
+err_event:
     BAPE_Close(NEXUS_AUDIO_DEVICE_HANDLE);
 err_ape:
+    if (pApeSettings) { BKNI_Free(pApeSettings); pApeSettings = NULL; }
+#if BDSP_ARM_AUDIO_SUPPORT
+err_arm:
+    if (pArmSettings) { BKNI_Free(pArmSettings); pArmSettings = NULL; }
+    if (pTeeStatus) { BKNI_Free(pTeeStatus); pTeeStatus = NULL; }
+#endif
 #if BAPE_DSP_SUPPORT
-    if ( g_NEXUS_audioModuleData.dspHandle )
-    {
-        BDSP_Close(g_NEXUS_audioModuleData.dspHandle);
-    }
     if ( g_NEXUS_audioModuleData.armHandle )
     {
         BDSP_Close(g_NEXUS_audioModuleData.armHandle);
     }
+    if ( g_NEXUS_audioModuleData.dspHandle )
+    {
+        BDSP_Close(g_NEXUS_audioModuleData.dspHandle);
+    }
 err_dsp:
+#if BDSP_RAAGA_AUDIO_SUPPORT
+    if (pRaagaSettings) { BKNI_Free(pRaagaSettings); pRaagaSettings = NULL; }
+    if (pMemoryInfo) { BKNI_Free(pMemoryInfo); pMemoryInfo = NULL; }
+#endif
 #endif
     NEXUS_UnlockModule();
     NEXUS_Module_Destroy(g_NEXUS_audioModule);
 err_heap:
-    if (g_NEXUS_audioModuleData.pImageContext) {
+#if BAPE_DSP_SUPPORT
+    #if BDSP_RAAGA_AUDIO_SUPPORT || BDSP_ARM_AUDIO_SUPPORT
+    if ( g_audioImgInterfaceInitialized ) {
         Nexus_Core_P_Img_Destroy(g_NEXUS_audioModuleData.pImageContext);
+        g_NEXUS_audioModuleData.pImageContext = NULL;
+        g_audioImgInterfaceInitialized = false;
     }
+    #endif
+#endif
 err_module:
     return NULL;
 }
@@ -704,6 +964,30 @@ err_module:
 void NEXUS_AudioModule_Uninit(void)
 {
     NEXUS_LockModule();
+
+    BAPE_UnRegisterCallback(g_NEXUS_audioModuleData.apeHandle, BAPE_CallbackEvent_eNcoVerify, g_NEXUS_audioModuleData.apeHandle);
+    BAPE_UnRegisterCallback(g_NEXUS_audioModuleData.apeHandle, BAPE_CallbackEvent_ePllVerify, g_NEXUS_audioModuleData.apeHandle);
+    if ( g_pllVerifyCallbackHandle )
+    {
+        NEXUS_UnregisterEvent(g_pllVerifyCallbackHandle);
+        g_pllVerifyCallbackHandle = NULL;
+    }
+    if ( g_ncoVerifyCallbackHandle )
+    {
+        NEXUS_UnregisterEvent(g_ncoVerifyCallbackHandle);
+        g_ncoVerifyCallbackHandle = NULL;
+    }
+    if ( g_pllVerifyEvent )
+    {
+        BKNI_DestroyEvent(g_pllVerifyEvent);
+        g_pllVerifyEvent = NULL;
+    }
+    if ( g_ncoVerifyEvent )
+    {
+        BKNI_DestroyEvent(g_ncoVerifyEvent);
+        g_ncoVerifyEvent = NULL;
+    }
+
 #if BDBG_DEBUG_BUILD
     NEXUS_AudioDebug_Uninit();
 #endif
@@ -747,9 +1031,15 @@ void NEXUS_AudioModule_Uninit(void)
     }
    #endif
 
-    if (g_NEXUS_audioModuleData.pImageContext) {
+#if BAPE_DSP_SUPPORT
+    #if BDSP_RAAGA_AUDIO_SUPPORT || BDSP_ARM_AUDIO_SUPPORT
+    if ( g_audioImgInterfaceInitialized ) {
         Nexus_Core_P_Img_Destroy(g_NEXUS_audioModuleData.pImageContext);
+        g_NEXUS_audioModuleData.pImageContext = NULL;
+        g_audioImgInterfaceInitialized = false;
     }
+    #endif
+#endif
 
     NEXUS_UnlockModule();
     NEXUS_Module_Destroy(g_NEXUS_audioModule);
@@ -1087,7 +1377,8 @@ void NEXUS_P_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps)
     pCaps->numInputCaptures = NEXUS_NUM_AUDIO_INPUT_CAPTURES < apeCaps.numInputCaptures ? NEXUS_NUM_AUDIO_INPUT_CAPTURES : apeCaps.numInputCaptures;
     #endif
     #ifdef NEXUS_NUM_AUDIO_MIXERS
-    pCaps->numMixers = NEXUS_NUM_AUDIO_MIXERS < apeCaps.numMixers ? NEXUS_NUM_AUDIO_MIXERS : apeCaps.numMixers;
+    pCaps->numMixers = apeCaps.numHwMixers + apeCaps.numBypassMixers;
+    pCaps->numMixers = NEXUS_NUM_AUDIO_MIXERS < pCaps->numMixers ? NEXUS_NUM_AUDIO_MIXERS : pCaps->numMixers;
     #endif
     pCaps->numVcxos = apeCaps.numVcxos;
     pCaps->numPlls = apeCaps.numPlls;
@@ -1302,7 +1593,9 @@ void NEXUS_AudioModule_GetDefaultUsageSettings(
     )
 {
     NEXUS_AudioModuleSettings amSettings;
+    #if BAPE_DSP_SUPPORT
     unsigned i;
+    #endif
 
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(NEXUS_AudioModuleUsageSettings));
@@ -1363,8 +1656,10 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
     NEXUS_P_AudioMemoryEstimateData * pEstData = NULL;
     bool compressed4xAlgoEnabled = false;
     bool compressed16xAlgoEnabled = false;
+    #if BAPE_DSP_SUPPORT
     bool volumeLevelorEnabled = false;
     unsigned i;
+    #endif
 
     BDBG_ASSERT(NULL != pSettings);
     BDBG_ASSERT(NULL != pEstimate);

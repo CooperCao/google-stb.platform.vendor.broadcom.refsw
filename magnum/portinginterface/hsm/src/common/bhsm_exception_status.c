@@ -44,8 +44,6 @@
 
 BDBG_MODULE(BHSM);
 
-BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
-
 #define UINT64_WORD_HI(a) ((uint32_t)((a)>>32))
 #define UINT64_WORD_LO(a) ((uint32_t)((a)&0xFFFFFFFF))
 

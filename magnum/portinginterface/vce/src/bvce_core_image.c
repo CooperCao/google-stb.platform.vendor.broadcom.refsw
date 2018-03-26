@@ -59,6 +59,8 @@
 #include "bvce_fw_image_rev_3_0_0_2.c"
 #elif ( ( BVCE_P_CORE_MAJOR == 3 ) && ( BVCE_P_CORE_MINOR == 0 ) && ( BVCE_P_CORE_SUBMINOR == 1 ) && ( BVCE_P_CORE_REVISION == 2 ) )
 #include "bvce_fw_image_rev_3_0_1_2.c"
+#elif ( ( BVCE_P_CORE_MAJOR == 3 ) && ( BVCE_P_CORE_MINOR == 0 ) && ( BVCE_P_CORE_SUBMINOR == 2 ) && ( BVCE_P_CORE_REVISION == 2 ) )
+#include "bvce_fw_image_rev_3_0_2_2.c"
 #else
 #error Unrecognized core version
 #endif

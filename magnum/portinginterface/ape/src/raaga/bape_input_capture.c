@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,8 +42,11 @@
 #include "bape.h"
 #include "bape_priv.h"
 #include "bchp_aud_fmm_bf_ctrl.h"
+#include "bape_buffer.h"
 
 BDBG_MODULE(bape_input_capture);
+
+#if BAPE_CHIP_MAX_INPUT_CAPTURES > 0
 
 BDBG_OBJECT_ID(BAPE_InputCapture);
 
@@ -131,7 +134,7 @@ BERR_Code BAPE_InputCapture_Open(
     }
 
     *pHandle = NULL;
-    if ( index >= BAPE_CHIP_MAX_INPUT_CAPTURES )
+    if ( index >= (unsigned)BAPE_CHIP_MAX_INPUT_CAPTURES )
     {
         BDBG_WRN(("This chip can not support more than %u input capture channels", BAPE_CHIP_MAX_DFIFOS));
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -197,7 +200,7 @@ BERR_Code BAPE_InputCapture_Open(
             }
 
             /* Flush once at open to make sure the buffer has been invalidated from the cache. */
-            BMMA_FlushCache(handle->bufferBlock[i], handle->pBuffers[i], handle->bufferSize);
+            BAPE_FLUSHCACHE_ISRSAFE(handle->bufferBlock[i], handle->pBuffers[i], handle->bufferSize);
         }
 
         handle->settings.watermark = pSettings->watermarkThreshold > 0 ? pSettings->watermarkThreshold : handle->bufferSize / 2;
@@ -937,7 +940,6 @@ static BERR_Code BAPE_InputCapture_P_ConfigPathToOutput(
         {
             handle->pMasterConnection = pConnection;
         }
-        handle->sfifoRequired = true;
 
         BAPE_SfifoGroup_P_GetSettings(pConnection->sfifoGroup, &sfifoSettings);
         sfifoSettings.highPriority = (handle->inputPortFormat.sampleRate >= 96000)?true:false;
@@ -1298,3 +1300,151 @@ static void BAPE_InputCapture_P_ClearInterrupts_isr(BAPE_InputCaptureHandle hand
         }
     }
 }
+
+#else
+
+void BAPE_InputCapture_GetDefaultOpenSettings(
+    BAPE_InputCaptureOpenSettings *pSettings
+    )
+{
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+}
+
+BERR_Code BAPE_InputCapture_Open(
+    BAPE_Handle deviceHandle,
+    unsigned index,
+    const BAPE_InputCaptureOpenSettings *pSettings,
+    BAPE_InputCaptureHandle *pHandle                    /* [out] */
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(index);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pHandle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_InputCapture_Close(
+    BAPE_InputCaptureHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+#if !B_REFSW_MINIMAL
+void BAPE_InputCapture_GetSettings(
+    BAPE_InputCaptureHandle handle,
+    BAPE_InputCaptureSettings *pSettings       /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_InputCapture_SetSettings(
+    BAPE_InputCaptureHandle handle,
+    const BAPE_InputCaptureSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_InputCapture_Flush(
+    BAPE_InputCaptureHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+#endif
+
+void BAPE_InputCapture_Flush_isr(
+    BAPE_InputCaptureHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_InputCapture_GetDefaultStartSettings(
+    BAPE_InputCaptureStartSettings *pSettings       /* [out] */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_InputCapture_Start(
+    BAPE_InputCaptureHandle handle,
+    const BAPE_InputCaptureStartSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_InputCapture_Stop(
+    BAPE_InputCaptureHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_InputCapture_GetConnector(
+    BAPE_InputCaptureHandle handle,
+    BAPE_Connector *pConnector /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pConnector);
+}
+
+void BAPE_InputCapture_GetStatus(
+    BAPE_InputCaptureHandle handle,
+    BAPE_InputCaptureStatus *pStatus     /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pStatus);
+}
+
+BERR_Code BAPE_InputCapture_GetBuffer(
+    BAPE_InputCaptureHandle handle,
+    BAPE_BufferDescriptor *pBuffers         /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pBuffers);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_InputCapture_ConsumeData(
+    BAPE_InputCaptureHandle handle,
+    unsigned numBytes                   /* Number of bytes read from the buffer */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(numBytes);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_InputCapture_GetInterruptHandlers(
+    BAPE_InputCaptureHandle handle,
+    BAPE_InputCaptureInterruptHandlers *pInterrupts     /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pInterrupts);
+}
+
+BERR_Code BAPE_InputCapture_SetInterruptHandlers(
+    BAPE_InputCaptureHandle handle,
+    const BAPE_InputCaptureInterruptHandlers *pInterrupts
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pInterrupts);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+#endif

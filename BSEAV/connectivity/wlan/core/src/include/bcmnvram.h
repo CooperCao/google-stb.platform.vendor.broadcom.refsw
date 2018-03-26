@@ -325,7 +325,7 @@ extern uint _varsz;
 #define LINUX_FLASH_POLICY "linux_flash_policy"
 
 #endif /* defined(DUAL_IMAGE||CONFIG_DUAL_IMAGE)||__CONFIG_DUAL_IMAGE_FLASH_SUPPORT__ */
-#ifdef NVRAM_FLASH
+#if defined(NVRAM_FLASH) || defined(BCMNVRAMR)
 #define PA5G_STR "pa5g"
 #define PA2G_STR "pa2g"
 #define SROMREV_STR "sromrev"

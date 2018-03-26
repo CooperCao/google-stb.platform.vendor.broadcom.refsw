@@ -142,7 +142,6 @@ typedef enum
 
 }BHSM_RvSignatureType;
 
-
 typedef struct
 {
     BHSM_RegionId regionId;

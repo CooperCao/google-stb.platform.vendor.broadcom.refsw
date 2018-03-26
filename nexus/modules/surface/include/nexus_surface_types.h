@@ -130,6 +130,9 @@ typedef struct NEXUS_SurfaceCreateSettings
     unsigned paletteMemoryOffset;    /* offset from the start of the paletteMemory to the palette buffer */
     unsigned mipLevel;         /*  mipmap level */
     NEXUS_HeapHandle heap;     /* Optional handle for memory heap. If NULL, the surface and palette will be allocated from the default main heap. */
+    struct {
+        bool graphicsv3d;
+    } compatibility;
 } NEXUS_SurfaceCreateSettings;
 
 /**

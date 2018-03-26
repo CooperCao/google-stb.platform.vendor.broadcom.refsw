@@ -2760,17 +2760,29 @@ BVCE_S_GetMaxDimension(
    unsigned *puiHeight
    )
 {
-   if ( ( BAVC_ScanType_eProgressive == pstStartEncodeSettings->eInputType )
-        || ( 0 == pstStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiWidth )
-        || ( 0 == pstStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiHeight ) )
+   /* By default use the progressive max dimensions */
+   *puiWidth = BVCE_P_ALIGN_DIMENSION(pstStartEncodeSettings->stBounds.stDimensions.stMax.uiWidth);
+   *puiHeight = BVCE_P_ALIGN_DIMENSION(pstStartEncodeSettings->stBounds.stDimensions.stMax.uiHeight);
+
+   /* Use the interlaced max dimensions if they are set and is smaller than the progressive max dimensions */
+   if ( BAVC_ScanType_eInterlaced == pstStartEncodeSettings->eInputType )
    {
-      *puiWidth = BVCE_P_ALIGN_DIMENSION(pstStartEncodeSettings->stBounds.stDimensions.stMax.uiWidth);
-      *puiHeight = BVCE_P_ALIGN_DIMENSION(pstStartEncodeSettings->stBounds.stDimensions.stMax.uiHeight);
-   }
-   else
-   {
-      *puiWidth = BVCE_P_ALIGN_DIMENSION(pstStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiWidth);
-      *puiHeight = BVCE_P_ALIGN_DIMENSION(pstStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiHeight);
+      unsigned uiPixelCount = (*puiWidth) * (*puiHeight);
+      unsigned uiInterlacedPixelCount = BVCE_P_ALIGN_DIMENSION(pstStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiWidth) * BVCE_P_ALIGN_DIMENSION(pstStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiHeight);
+
+      if ( ( 0 != uiInterlacedPixelCount ) && ( uiInterlacedPixelCount < uiPixelCount ) )
+      {
+         *puiWidth = BVCE_P_ALIGN_DIMENSION(pstStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiWidth);
+         *puiHeight = BVCE_P_ALIGN_DIMENSION(pstStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiHeight);
+      }
+
+      /* 1280x720i interlaced is not valid, so we limit it to 720x576i */
+      if ( ( *puiWidth == BVCE_P_ALIGN_DIMENSION(1280) )
+           && ( *puiHeight == BVCE_P_ALIGN_DIMENSION(720) ) )
+      {
+         *puiWidth = BVCE_P_ALIGN_DIMENSION(720);
+         *puiHeight = BVCE_P_ALIGN_DIMENSION(576);
+      }
    }
 }
 
@@ -7829,7 +7841,6 @@ BVCE_S_Channel_Picture_Drop_Dequeue_isr(
      return rc;
   }
 }
-#endif
 
 typedef enum BVCE_P_PictureResult
 {
@@ -7842,6 +7853,81 @@ typedef enum BVCE_P_PictureResult
 
    BVCE_P_PictureResult_eMax
 } BVCE_P_PictureResult;
+
+static const char* const BVCE_S_PolarityFriendlyNameLUT[] =
+{
+      "Top        ",
+      "Bottom     ",
+      "Frame      "
+};
+
+static
+void
+BVCE_Channel_S_Picture_Print_Debug_isr(
+      BVCE_Channel_Handle hVceCh,
+      const BAVC_EncodePictureBuffer *pstPicture,
+      uint32_t uiSTCSnapshotLo,
+      const char *szError,
+      bool bError
+      )
+{
+   const BAVC_EncodePictureBuffer *pstPicturePreviousEncoded = &hVceCh->picture.stState.stPreviousEncoded.stPicture;
+   const BAVC_EncodePictureBuffer *pstPicturePreviousReceived = &hVceCh->picture.stState.stPreviousReceived.stPicture;
+   int iBytes;
+
+   iBytes = BKNI_Snprintf( hVceCh->picture.stState.szMessage, BVCE_CHANNEL_MAX_MESSAGE_SIZE,
+                  "[%d] %s: %s\n"
+                  "         Current     Lst Recv'd  Lst Enq'd  Delta\n"
+                  " PicID : 0x%08x  0x%08x  0x%08x (%4d %4d pic(s))\n"
+                  " PicSTC: 0x%08x  0x%08x  0x%08x (%4d %4d ms)\n"
+                  " EnqSTC: 0x%08x  0x%08x  0x%08x (%4d %4d ms)\n"
+                  " PicPol: %s %s %s\n"
+                  " Recv'd: %d pics\n"
+                  " Enq'd : %d pics\n"
+                  " FRC   : %d pics\n"
+                  " Drop  : %d pics\n",
+                  hVceCh->stOpenSettings.uiInstance,
+                  ( true == bError ) ? "ERROR" : "WARNING",
+                  szError,
+                  pstPicture->ulPictureId,
+                  pstPicturePreviousReceived->ulPictureId,
+                  pstPicturePreviousEncoded->ulPictureId,
+                  pstPicture->ulPictureId - pstPicturePreviousReceived->ulPictureId,
+                  pstPicture->ulPictureId - pstPicturePreviousEncoded->ulPictureId,
+
+                  pstPicture->ulSTCSnapshotLo,
+                  pstPicturePreviousReceived->ulSTCSnapshotLo,
+                  pstPicturePreviousEncoded->ulSTCSnapshotLo,
+                  (pstPicture->ulSTCSnapshotLo - pstPicturePreviousReceived->ulSTCSnapshotLo)/27000,
+                  (pstPicture->ulSTCSnapshotLo - pstPicturePreviousEncoded->ulSTCSnapshotLo)/27000,
+
+                  uiSTCSnapshotLo,
+                  hVceCh->picture.stState.stPreviousReceived.uiSTCSnapshotLo,
+                  hVceCh->picture.stState.stPreviousEncoded.uiSTCSnapshotLo,
+                  (uiSTCSnapshotLo - hVceCh->picture.stState.stPreviousReceived.uiSTCSnapshotLo)/27000,
+                  (uiSTCSnapshotLo - hVceCh->picture.stState.stPreviousEncoded.uiSTCSnapshotLo)/27000,
+
+                  BVCE_S_PolarityFriendlyNameLUT[pstPicture->ePolarity],
+                  BVCE_S_PolarityFriendlyNameLUT[pstPicturePreviousReceived->ePolarity],
+                  BVCE_S_PolarityFriendlyNameLUT[pstPicturePreviousEncoded->ePolarity],
+
+                  hVceCh->picture.stState.stats.uiNumReceived,
+                  hVceCh->picture.stState.stats.uiNumSentToVice,
+                  hVceCh->picture.stState.stats.uiNumDroppedDueToFRC,
+                  hVceCh->picture.stState.stats.uiNumDroppedDueToError
+               );
+   if ( iBytes == BVCE_CHANNEL_MAX_MESSAGE_SIZE ) BDBG_WRN(("Possible Message Truncation"));
+
+   if ( true == bError )
+   {
+      BDBG_ERR(("%s", hVceCh->picture.stState.szMessage));
+   }
+   else
+   {
+      BDBG_WRN(("%s", hVceCh->picture.stState.szMessage));
+   }
+}
+#endif
 
 BERR_Code
 BVCE_Channel_Picture_Enqueue_isr(
@@ -7859,7 +7945,7 @@ BVCE_Channel_Picture_Enqueue_isr(
       BVCE_P_FrameRateConversionSettings stFrameRateConversionSettings;
       uint64_t uiNewPTSin90Khz = 0;
       uint32_t uiCurrentSTCin45Khz = 0;
-      uint32_t uiEnqueueSTCSnapshotLo = 0;
+      uint32_t uiSTCSnapshotLo = 0;
 
       BDBG_ENTER( BVCE_Channel_Picture_Enqueue_isr );
       BVCE_P_FUNCTION_TRACE_ENTER_isr( 1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance );
@@ -7867,7 +7953,7 @@ BVCE_Channel_Picture_Enqueue_isr(
       BDBG_ASSERT( hVceCh );
       BDBG_ASSERT( pstPicture );
 
-      uiEnqueueSTCSnapshotLo = BREG_Read32(
+      uiSTCSnapshotLo = BREG_Read32(
                    hVceCh->hVce->handles.hReg,
                    hVceCh->hVce->stPlatformConfig.stDebug.uiSTC[hVceCh->stOpenSettings.uiInstance]
                    );
@@ -7876,7 +7962,11 @@ BVCE_Channel_Picture_Enqueue_isr(
       if ( ( ( BAVC_ScanType_eProgressive == hVceCh->stStartEncodeSettings.eInputType )
              && ( BAVC_Polarity_eFrame != pstPicture->ePolarity ) )
            || ( ( BAVC_ScanType_eInterlaced == hVceCh->stStartEncodeSettings.eInputType )
-                && ( BAVC_Polarity_eFrame == pstPicture->ePolarity ) ) )
+                && ( BAVC_Polarity_eFrame == pstPicture->ePolarity ) )
+           || ( ( BAVC_ScanType_eInterlaced == hVceCh->stStartEncodeSettings.eInputType ) /* If interlaced, we always want to start with a top field */
+                && ( BAVC_Polarity_eBotField == pstPicture->ePolarity )
+                && ( 0 == hVceCh->picture.stState.stats.uiNumReceived ) )
+           )
       {
          ePictureResult = BVCE_P_PictureResult_eDropDueToPolarity;
       }
@@ -7888,15 +7978,19 @@ BVCE_Channel_Picture_Enqueue_isr(
          stFrameRateConversionSettings.eEffectiveFrameRate = pstPicture->eFrameRate;
 
          /* Keep track of pictures dropped by VDC */
-         if ( ( true == hVceCh->picture.stState.bPreviousPictureIdValid )
-              && ( pstPicture->ulPictureId != hVceCh->picture.stState.uiPreviousPictureId )
-              && ( pstPicture->ulPictureId != ( hVceCh->picture.stState.uiPreviousPictureId + 1 ) ) )
+         if ( ( true == hVceCh->picture.stState.stPreviousReceived.bValid )
+              && ( pstPicture->ulPictureId != hVceCh->picture.stState.stPreviousReceived.stPicture.ulPictureId )
+              && ( pstPicture->ulPictureId != ( hVceCh->picture.stState.stPreviousReceived.stPicture.ulPictureId + 1 ) ) )
          {
-            BDBG_ERR(("[%d] ERROR: Display dropped pictures (%u --> %u)", hVceCh->stOpenSettings.uiInstance, hVceCh->picture.stState.uiPreviousPictureId, pstPicture->ulPictureId));
-            hVceCh->picture.stState.stats.uiNumDroppedDueToError += ( ( pstPicture->ulPictureId - hVceCh->picture.stState.uiPreviousPictureId ) - 1);
+            BVCE_Channel_S_Picture_Print_Debug_isr(
+                  hVceCh,
+                  pstPicture,
+                  uiSTCSnapshotLo,
+                  "Display dropped pictures",
+                  (true == hVceCh->stStartEncodeSettings.bNonRealTimeEncodeMode)
+                  );
+            hVceCh->picture.stState.stats.uiNumDroppedDueToError += ( ( pstPicture->ulPictureId - hVceCh->picture.stState.stPreviousReceived.stPicture.ulPictureId ) - 1);
          }
-         hVceCh->picture.stState.bPreviousPictureIdValid = true;
-         hVceCh->picture.stState.uiPreviousPictureId = pstPicture->ulPictureId;
 
          if ( true == hVceCh->stStartEncodeSettings.bNonRealTimeEncodeMode )
          {
@@ -7905,7 +7999,6 @@ BVCE_Channel_Picture_Enqueue_isr(
             uiNewPTSin90Khz = ( uiNewPTSLocalin90Khz >> 32 ) & 0x1;
             uiNewPTSin90Khz <<= 32;
             uiNewPTSin90Khz |= uiNewPTSLocalin90Khz & 0xFFFFFFFF;
-            hVceCh->picture.stState.uiNextNewPTSIn360Khz += BVCE_P_PI2FW_FrameRate2DeltaPtsLUT[pstPicture->eFrameRate];
          }
          else
          {
@@ -7984,14 +8077,20 @@ BVCE_Channel_Picture_Enqueue_isr(
          else
          {
             /* Check if we've received the same polarity from VDC twice */
-            if ( ( true == hVceCh->picture.stState.bPreviousPolarityReceivedValid )
-                 && ( hVceCh->picture.stState.ePreviousPolarityReceived == pstPicture->ePolarity ) )
+            if ( ( true == hVceCh->picture.stState.stPreviousReceived.bValid )
+                 && ( hVceCh->picture.stState.stPreviousReceived.stPicture.ePolarity == pstPicture->ePolarity )
+                 && ( ( hVceCh->picture.stState.stPreviousReceived.stPicture.ulPictureId + 1 ) == pstPicture->ulPictureId ) )
             {
                /* If we've encoded the same polarity previously, then drop the frame and print an error */
-               if ( ( true == hVceCh->picture.stState.bPreviousPolarityEncodedValid )
-                    && ( pstPicture->ePolarity == hVceCh->picture.stState.ePreviousPolarityEncoded ) )
+               if ( ( true == hVceCh->picture.stState.stPreviousEncoded.bValid )
+                    && ( pstPicture->ePolarity == hVceCh->picture.stState.stPreviousEncoded.stPicture.ePolarity ) )
                {
-                  BDBG_ERR(("[%d] ERROR: Duplicate Polarity received for pic id %u (%u)", hVceCh->stOpenSettings.uiInstance, pstPicture->ulPictureId, hVceCh->picture.stState.stats.uiNumReceived ));
+                  BVCE_Channel_S_Picture_Print_Debug_isr(
+                        hVceCh,
+                        pstPicture,
+                        uiSTCSnapshotLo,
+                        "Duplicate Polarity received",
+                        false);
                   rc = BERR_TRACE(BERR_UNKNOWN);
                   ePictureResult = BVCE_P_PictureResult_eDropDueToPolarity;
                }
@@ -8000,21 +8099,32 @@ BVCE_Channel_Picture_Enqueue_isr(
                   if ( false == hVceCh->stStartEncodeSettings.bNonRealTimeEncodeMode )
                   {
                      /* If we have not encoded the same polarity previously, then encode the frame and print a warning */
-                     BDBG_WRN(("[%d] WARNING: Duplicate Polarity received for pic id %u (%u)", hVceCh->stOpenSettings.uiInstance, pstPicture->ulPictureId, hVceCh->picture.stState.stats.uiNumReceived ));
+                     BVCE_Channel_S_Picture_Print_Debug_isr(
+                           hVceCh,
+                           pstPicture,
+                           uiSTCSnapshotLo,
+                           "Duplicate Polarity received",
+                           false);
                   }
                }
             }
 
-            hVceCh->picture.stState.ePreviousPolarityReceived = pstPicture->ePolarity;
-            hVceCh->picture.stState.bPreviousPolarityReceivedValid = true;
-
-            /* Check if we've encoded the same polarity previously */
-            if ( ( true == hVceCh->picture.stState.bPreviousPolarityEncodedValid )
-                 && ( pstPicture->ePolarity == hVceCh->picture.stState.ePreviousPolarityEncoded ) )
+            if ( BVCE_P_PictureResult_eEncode == ePictureResult )
             {
-               BDBG_ERR(("[%d] ERROR: Duplicate Polarity encoded for pic id %u (%u)", hVceCh->stOpenSettings.uiInstance, pstPicture->ulPictureId, hVceCh->picture.stState.stats.uiNumReceived ));
-               rc = BERR_TRACE(BERR_UNKNOWN);
-               ePictureResult = BVCE_P_PictureResult_eDropDueToPolarity;
+               /* Check if we've encoded the same polarity previously */
+               if ( ( true == hVceCh->picture.stState.stPreviousEncoded.bValid )
+                    && ( pstPicture->ePolarity == hVceCh->picture.stState.stPreviousEncoded.stPicture.ePolarity ) )
+               {
+                  BVCE_Channel_S_Picture_Print_Debug_isr(
+                        hVceCh,
+                        pstPicture,
+                        uiSTCSnapshotLo,
+                        "Duplicate Polarity encoded",
+                        false
+                        );
+                  rc = BERR_TRACE(BERR_UNKNOWN);
+                  ePictureResult = BVCE_P_PictureResult_eDropDueToPolarity;
+               }
             }
          }
 
@@ -8030,7 +8140,10 @@ BVCE_Channel_Picture_Enqueue_isr(
                {
                   if ( false == hVceCh->stStartEncodeSettings.bNonRealTimeEncodeMode )
                   {
-                     BDBG_ERR(("[%d] ERROR: PI LUT full in RT mode for pic id %u (%u) (deltaSTC = %u ms)", hVceCh->stOpenSettings.uiInstance, pstPicture->ulPictureId, hVceCh->picture.stState.stats.uiNumReceived, (pstPicture->ulSTCSnapshotLo - hVceCh->picture.stState.uiPreviousSTCSnapshotLo)/27000));
+                     BDBG_ERR(("[%d] ERROR: PI LUT full in RT mode for pic id %u (%u) (deltaSTC = %u ms elapsed = %u ms)", hVceCh->stOpenSettings.uiInstance, pstPicture->ulPictureId, hVceCh->picture.stState.stats.uiNumReceived,
+                           (pstPicture->ulSTCSnapshotLo - hVceCh->picture.stState.stPreviousEncoded.stPicture.ulSTCSnapshotLo)/27000,
+                           (uiSTCSnapshotLo - hVceCh->picture.stState.stPreviousEncoded.uiSTCSnapshotLo)/27000
+                           ));
                      rc = BERR_TRACE(BERR_UNKNOWN);
                      ePictureResult = BVCE_P_PictureResult_eDropDueToError;
                   }
@@ -8234,8 +8347,8 @@ BVCE_Channel_Picture_Enqueue_isr(
             {
                /* If in RT mode, we should always have space in the FW queue, so we need to drop this picture and report an error */
                BDBG_ERR(("[%d] ERROR: FW Mailbox full in RT mode for pic id %u (%u) (deltaSTC = %u ms elapsed = %u ms)", hVceCh->stOpenSettings.uiInstance, pstPicture->ulPictureId, hVceCh->picture.stState.stats.uiNumReceived,
-                     (pstPicture->ulSTCSnapshotLo - hVceCh->picture.stState.uiPreviousSTCSnapshotLo)/27000,
-                     (uiEnqueueSTCSnapshotLo - hVceCh->picture.stState.uiPreviousEnqueueSTCSnapshotLo)/27000
+                     (pstPicture->ulSTCSnapshotLo - hVceCh->picture.stState.stPreviousEncoded.stPicture.ulSTCSnapshotLo)/27000,
+                     (uiSTCSnapshotLo - hVceCh->picture.stState.stPreviousEncoded.uiSTCSnapshotLo)/27000
                ));
                rc = BERR_TRACE(BERR_UNKNOWN);
                ePictureResult = BVCE_P_PictureResult_eDropDueToError;
@@ -8293,8 +8406,9 @@ BVCE_Channel_Picture_Enqueue_isr(
          case BVCE_P_PictureResult_eEncode:
             hVceCh->picture.stState.stats.uiNumReceived++;
             hVceCh->picture.stState.stats.uiNumSentToVice++;
-            hVceCh->picture.stState.ePreviousPolarityEncoded = pstPicture->ePolarity;
-            hVceCh->picture.stState.bPreviousPolarityEncodedValid = true;
+            hVceCh->picture.stState.stPreviousEncoded.stPicture = *pstPicture;
+            hVceCh->picture.stState.stPreviousEncoded.uiSTCSnapshotLo = uiSTCSnapshotLo;
+            hVceCh->picture.stState.stPreviousEncoded.bValid = true;
             BVCE_P_DEBUG_ENTRY_isr( hVceCh->hVce, ePictureBufferEnqueue, hVceCh->stOpenSettings.uiInstance, hVceCh->picture.stState.stPictureBufferMailbox );
             break;
 
@@ -8303,7 +8417,7 @@ BVCE_Channel_Picture_Enqueue_isr(
             {
                hVceCh->picture.stState.stats.uiNumReceived++;
                hVceCh->picture.stState.stats.uiNumDroppedDueToError++;
-               BDBG_ERR(("Drop due to Polarity Mismatch"));
+               BDBG_WRN(("Drop due to Polarity Mismatch"));
             }
             BVCE_P_DEBUG_ENTRY_isr( hVceCh->hVce, ePictureBufferDropEnqueue, hVceCh->stOpenSettings.uiInstance, *pstPicture );
             break;
@@ -8316,10 +8430,13 @@ BVCE_Channel_Picture_Enqueue_isr(
             break;
       }
 
-      hVceCh->picture.stState.uiPreviousSTCSnapshotLo = pstPicture->ulSTCSnapshotLo;
-
-      hVceCh->picture.stState.uiPreviousEnqueueSTCSnapshotLo = uiEnqueueSTCSnapshotLo;
-      hVceCh->picture.stState.bPreviousEnqueueSTCSnapshotLoValid = true;
+      if ( BVCE_P_PictureResult_eWait != ePictureResult )
+      {
+         hVceCh->picture.stState.uiNextNewPTSIn360Khz += BVCE_P_PI2FW_FrameRate2DeltaPtsLUT[pstPicture->eFrameRate];
+         hVceCh->picture.stState.stPreviousReceived.stPicture = *pstPicture;
+         hVceCh->picture.stState.stPreviousReceived.uiSTCSnapshotLo = uiSTCSnapshotLo;
+         hVceCh->picture.stState.stPreviousReceived.bValid = true;
+      }
 
       return BERR_TRACE( rc );
    }
@@ -8730,60 +8847,6 @@ BVCE_GetA2PDelayInfo(
                uiHeight,
                pstChStartEncodeSettings->uiNumParallelNRTEncodes
             );
-
-#if 1 /* FWVICE2-1087 Workaround to set min A2P delay based on 2 B-pictures */
-            switch ( uiGOPStructure )
-            {
-               case ENCODING_GOP_STRUCT_IBP:
-               case ENCODING_GOP_STRUCT_IBBP_B_REF:
-               case ENCODING_GOP_STRUCT_IBBBP:
-               case ENCODING_GOP_STRUCT_IBBBBBP:
-               case ENCODING_GOP_STRUCT_IBBBBBBBP:
-                  {
-                     uint32_t uiA2PDelayMin_FWVICE2_1087;
-                     uint32_t uiA2PDelayMax_FWVICE2_1087;
-
-                     uiA2PDelayMin_FWVICE2_1087 = BVCE_FW_P_CalcVideoA2Pdelay(
-                        &uiA2PDelayMax_FWVICE2_1087,
-                              uiProtocol,
-                              uiProfile,
-                              uiLevel,
-                              BVCE_P_PI2FW_FrameRateLUT[pstChEncodeSettings->stFrameRate.eFrameRate],
-                              (0 != pstChStartEncodeSettings->stBounds.stBitRate.stLargest.uiMax) ? pstChStartEncodeSettings->stBounds.stBitRate.stLargest.uiMax : pstChEncodeSettings->stBitRate.uiMax,
-                        BVCE_S_EncodeModeLUT( pstChStartEncodeSettings ),
-                        pstChStartEncodeSettings->uiRateBufferDelay,
-                        BVCE_P_PI2FW_FrameRateLUT[pstChStartEncodeSettings->stBounds.stFrameRate.eMin],
-                        BVCE_P_PI2FW_FrameRateLUT[pstChStartEncodeSettings->stBounds.stInputFrameRate.eMin],
-                        0,
-                        pstChEncodeSettings->bITFPEnable,
-                        BVCE_P_InputTypeLUT[pstChStartEncodeSettings->eInputType],
-                        ENCODING_GOP_STRUCT_IBBP,
-                        uiWidth,
-                        uiHeight,
-                        pstChStartEncodeSettings->uiNumParallelNRTEncodes
-                     );
-
-                     if ( uiA2PDelayMin_FWVICE2_1087 > uiA2PDelayMin )
-                     {
-                        if ( uiA2PDelayMax > uiA2PDelayMin_FWVICE2_1087 )
-                        {
-                           BDBG_WRN(("FWVICE2-1087 Workaround: Adjusting min A2P Delay from %u ms to %u ms (new min)",
-                                 uiA2PDelayMin / 27000,
-                                 uiA2PDelayMin_FWVICE2_1087 / 27000));
-                           uiA2PDelayMin = uiA2PDelayMin_FWVICE2_1087;
-                        }
-                        else
-                        {
-                           BDBG_WRN(("FWVICE2-1087 Workaround: Adjusting min A2P Delay from %u ms to %u ms (max)",
-                                 uiA2PDelayMin / 27000,
-                                 uiA2PDelayMax / 27000));
-                           uiA2PDelayMin = uiA2PDelayMax;
-                        }
-                     }
-                  }
-                  break;
-            }
-#endif
          }
 
          pstA2PDelay->uiMin = uiA2PDelayMin;

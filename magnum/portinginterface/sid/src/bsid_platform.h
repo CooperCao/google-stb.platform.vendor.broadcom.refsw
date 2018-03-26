@@ -60,6 +60,7 @@
          (GR bridge is part of the SID block, so exists for all
          parts, although not necessarily in the graphics core) */
 #include "bchp_gfx_gr.h"
+      /* NOTE: SID hardare was removed from 7260 B0 onwards */
 #elif (((BCHP_CHIP==7231)  && (BCHP_VER >= BCHP_VER_B0)) || \
        ((BCHP_CHIP==7429)  && (BCHP_VER >= BCHP_VER_B0)) || \
        ((BCHP_CHIP==74295) && (BCHP_VER >= BCHP_VER_A0)) || \
@@ -73,7 +74,7 @@
        ((BCHP_CHIP==7584)  && (BCHP_VER >= BCHP_VER_A0)) || \
        ((BCHP_CHIP==75845) && (BCHP_VER >= BCHP_VER_A0)) || \
        ((BCHP_CHIP==7586)  && (BCHP_VER >= BCHP_VER_A0)) || \
-       ((BCHP_CHIP==7260)  && (BCHP_VER >= BCHP_VER_A0)) || \
+       ((BCHP_CHIP==7260)  && (BCHP_VER == BCHP_VER_A0)) || \
        ((BCHP_CHIP==7268)  && (BCHP_VER >= BCHP_VER_A0)) || \
        ((BCHP_CHIP==7271)  && (BCHP_VER >= BCHP_VER_A0)) || \
        ((BCHP_CHIP==74371) && (BCHP_VER >= BCHP_VER_A0)))

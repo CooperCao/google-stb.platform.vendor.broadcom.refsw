@@ -352,7 +352,7 @@ int plat_cpu_power_up(
     MMIO32(raddr) |=  BRCMSTB_FIELD_MASK(HIF_CPUBIUCTRL, CPU0_PWR_ZONE_CNTRL_REG, reserved1);
     MMIO32(raddr) |=  BRCMSTB_FIELD_MASK(HIF_CPUBIUCTRL, CPU0_PWR_ZONE_CNTRL_REG, ZONE_MAN_MEM_PWR);
 
-    if (wait_bits_set(raddr, BRCMSTB_FIELD_MASK(HIF_CPUBIUCTRL, CPU0_PWR_ZONE_CNTRL_REG, ZONE_MAN_MEM_PWR)))
+    if (wait_bits_set(raddr, BRCMSTB_FIELD_MASK(HIF_CPUBIUCTRL, CPU0_PWR_ZONE_CNTRL_REG, ZONE_MEM_PWR_STATE)))
         return MON_ERR;
 
     MMIO32(raddr) |=  BRCMSTB_FIELD_MASK(HIF_CPUBIUCTRL, CPU0_PWR_ZONE_CNTRL_REG, ZONE_MAN_CLKEN);
@@ -365,8 +365,15 @@ int plat_cpu_power_up(
 
     /* Program CPU entry point */
     raddr = BRCMSTB_REG_ADDR_WITH_INDEX(HIF_CONTINUATION, STB_BOOT_HI_ADDR0, cpu_index);
-    MMIO32(raddr    ) = entry_point >> 32;
-    MMIO32(raddr + 4) = entry_point & 0xffffffff;
+
+    if (BRCMSTB_RGROUP_REV(HIF_CONTINUATION) == 0) {
+        MMIO32(raddr    ) = entry_point >> 32;
+        MMIO32(raddr + 4) = entry_point & 0xffffffff;
+    }
+    else {
+        /* 64-bit registers */
+        MMIO64(raddr) = entry_point;
+    }
 
     dsb();
 
@@ -374,12 +381,19 @@ int plat_cpu_power_up(
     raddr = BRCMSTB_REG_ADDR(HIF_CPUBIUCTRL, CPU_RESET_CONFIG_REG);
     MMIO32(raddr) &= ~(1 << cpu_index);
 
+    dsb();
     return MON_OK;
 }
 
 int plat_cpu_power_down(uint32_t cpu_index)
 {
     uintptr_t raddr;
+
+    /* Put CPU in reset */
+    raddr = BRCMSTB_REG_ADDR(HIF_CPUBIUCTRL, CPU_RESET_CONFIG_REG);
+    MMIO32(raddr) |= (1 << cpu_index);
+
+    dsb();
 
     /* Turn off CPU power zone */
     raddr = BRCMSTB_REG_ADDR_WITH_INDEX(HIF_CPUBIUCTRL, CPU0_PWR_ZONE_CNTRL_REG, cpu_index);
@@ -391,7 +405,7 @@ int plat_cpu_power_down(uint32_t cpu_index)
     MMIO32(raddr) &= ~BRCMSTB_FIELD_MASK(HIF_CPUBIUCTRL, CPU0_PWR_ZONE_CNTRL_REG, ZONE_MAN_CLKEN);
     MMIO32(raddr) &= ~BRCMSTB_FIELD_MASK(HIF_CPUBIUCTRL, CPU0_PWR_ZONE_CNTRL_REG, ZONE_MAN_MEM_PWR);
 
-    if (wait_bits_clr(raddr, BRCMSTB_FIELD_MASK(HIF_CPUBIUCTRL, CPU0_PWR_ZONE_CNTRL_REG, ZONE_DPG_PWR_STATE)))
+    if (wait_bits_clr(raddr, BRCMSTB_FIELD_MASK(HIF_CPUBIUCTRL, CPU0_PWR_ZONE_CNTRL_REG, ZONE_MEM_PWR_STATE)))
         return MON_ERR;
 
     /* This is actually DPG */
@@ -405,24 +419,6 @@ int plat_cpu_power_down(uint32_t cpu_index)
         return MON_ERR;
 
     dsb();
-
-    /* Put CPU in reset */
-    raddr = BRCMSTB_REG_ADDR(HIF_CPUBIUCTRL, CPU_RESET_CONFIG_REG);
-    MMIO32(raddr) |= (1 << cpu_index);
-
-    return MON_OK;
-}
-
-int plat_system_off(uint32_t last_cpu_index)
-{
-    uintptr_t raddr;
-
-    /* All other CPU's should have already been powered down !!! */
-
-    /* Put last CPU in reset */
-    raddr = BRCMSTB_REG_ADDR(HIF_CPUBIUCTRL, CPU_RESET_CONFIG_REG);
-    MMIO32(raddr) |= (1 << last_cpu_index);
-
     return MON_OK;
 }
 

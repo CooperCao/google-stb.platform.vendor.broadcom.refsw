@@ -86,7 +86,8 @@ BASIC_BUILD_APPS = \
 	thumbnail \
 	transcode \
 	video_as_graphics \
-	wait_for_server
+	wait_for_server \
+	watchdog
 
 # custom build rule needed
 CUSTOM_BUILD_APPS = \
@@ -143,27 +144,6 @@ $(NXCLIENT_P_SHARED_LIB):
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/nxclient/server
 
 B_LIB_TOP = $(NEXUS_TOP)/lib
-
-#
-# playback_ip additions
-#
-ifeq ($(PLAYBACK_IP_SUPPORT),y)
-.PHONY: playback_ip clean_playback_ip
-EXTRA_BUILD_RULES += playback_ip
-EXTRA_CLEAN_RULES += clean_playback_ip
-include $(B_LIB_TOP)/playback_ip/b_playback_ip_lib.inc
-CFLAGS += $(PLAYBACK_IP_CFLAGS)
-LDFLAGS += $(PLAYBACK_IP_LDFLAGS)
-# Add BIP
-include $(NEXUS_TOP)/lib/bip/bip_lib.inc
-CFLAGS += $(BIP_ALL_LIB_CFLAGS)
-LDFLAGS += $(BIP_ALL_LIB_LDFLAGS)
-
-playback_ip:
-	${Q_}$(MAKE) REFSW_BUILD=y -C $(NEXUS_TOP)/lib/bip/build B_NEXUS_API_BUILD_COMPLETED=y install
-clean_playback_ip:
-	${Q_}$(MAKE) REFSW_BUILD=y -C $(NEXUS_TOP)/lib/bip/build clean
-endif
 
 #
 # tr69c additions

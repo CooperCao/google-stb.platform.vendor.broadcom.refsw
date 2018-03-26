@@ -40,13 +40,18 @@ vpath %.S   $(SRC_DIRS)
 vpath %.c   $(SRC_DIRS)
 vpath %.cpp $(SRC_DIRS)
 
+Q_ ?=@
+
 define make-goal
 $1/%.o: %.c
-	$(TZ_ARMGNU)-gcc $(CFLAGS) -c $$< -o $$@
+	@echo [Compile... $$<]
+	$(Q_)$(TZ_ARMGNU)-gcc $(CFLAGS) -c $$< -o $$@
 $1/%.o: %.S
-	$(TZ_ARMGNU)-gcc $(ASFLAGS) -c $$< -o $$@
+	@echo [Assemble... $$<]
+	$(Q_)$(TZ_ARMGNU)-gcc $(ASFLAGS) -c $$< -o $$@
 $1/%.o: %.cpp
-	$(TZ_ARMGNU)-g++ $(CPPFLAGS) -c $$< -o $$@
+	@echo [Compile... $$<]
+	$(Q_)$(TZ_ARMGNU)-g++ $(CPPFLAGS) -c $$< -o $$@
 endef
 
 -include $(DEPS)

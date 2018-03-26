@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -446,8 +446,9 @@ eRet CSimpleAudioDecode::open(
     }
 
     NEXUS_SimpleAudioDecoder_GetDefaultServerSettings(&settings);
-    settings.primary   = _pDecoders[0]->getDecoder();
-    settings.secondary = _pDecoders[1]->getDecoder();
+    settings.primary        = _pDecoders[0]->getDecoder();
+    settings.secondary      = _pDecoders[1]->getDecoder();
+    settings.simplePlayback = _pModel->getSimpleAudioPlaybackServer();
 
     /* if supported daisy chain AVL, dolby vol, and truvolume after decoder */
     _stereoInput = _pDecoders[0]->getConnector(NEXUS_AudioConnectorType_eStereo);
@@ -2003,8 +2004,8 @@ error:
 #if BDSP_MS12_SUPPORT
 unsigned CSimpleAudioDecode::numPresentations()
 {
-    NEXUS_Error              nerror              = NEXUS_SUCCESS;
-    eRet                     ret                 = eRet_Ok;
+    NEXUS_Error              nerror = NEXUS_SUCCESS;
+    eRet                     ret    = eRet_Ok;
     NEXUS_AudioDecoderStatus decodeStatus;
     unsigned                 numPresentations = 0;
 
@@ -2017,12 +2018,15 @@ error:
     return(numPresentations);
 }
 
-eRet CSimpleAudioDecode::getPresentationStatus(unsigned nIndex, NEXUS_AudioDecoderPresentationStatus * pStatus)
+eRet CSimpleAudioDecode::getPresentationStatus(
+        unsigned                               nIndex,
+        NEXUS_AudioDecoderPresentationStatus * pStatus
+        )
 {
-    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
-    eRet                                   ret                 = eRet_Ok;
-    NEXUS_AudioDecoderPresentationStatus   presentStatus;
-    NEXUS_AudioDecoderStatus               decodeStatus;
+    NEXUS_Error nerror = NEXUS_SUCCESS;
+    eRet        ret    = eRet_Ok;
+    NEXUS_AudioDecoderPresentationStatus presentStatus;
+    NEXUS_AudioDecoderStatus             decodeStatus;
 
     BDBG_ASSERT(NULL != pStatus);
 
@@ -2045,18 +2049,18 @@ eRet CSimpleAudioDecode::getPresentationStatus(unsigned nIndex, NEXUS_AudioDecod
 
 error:
     return(ret);
-}
+} /* getPresentationStatus */
 
 /* gets the last requested presentation index setting. this may differ from the result returned by
  * getPresentationCurrent() if the index was recently set but has not yet been changed.
  */
 unsigned CSimpleAudioDecode::getPresentation(NEXUS_AudioDecoderAc4Program program)
 {
-    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
-    eRet                                   ret                 = eRet_Ok;
-    unsigned                               nIndex              = 0;
-    NEXUS_AudioDecoderStatus               decodeStatus;
-    NEXUS_AudioDecoderCodecSettings        codecSettings;
+    NEXUS_Error                     nerror = NEXUS_SUCCESS;
+    eRet                            ret    = eRet_Ok;
+    unsigned                        nIndex = 0;
+    NEXUS_AudioDecoderStatus        decodeStatus;
+    NEXUS_AudioDecoderCodecSettings codecSettings;
 
     if (NEXUS_AudioDecoderAc4Program_eMax == program)
     {
@@ -2077,18 +2081,18 @@ unsigned CSimpleAudioDecode::getPresentation(NEXUS_AudioDecoderAc4Program progra
 
 error:
     return(nIndex);
-}
+} /* getPresentation */
 
 /* gets the current presentation index. this may differ from the result returned by
  * getPresentation() if the index was recently set but has not yet been changed.
  */
 unsigned CSimpleAudioDecode::getPresentationCurrent(NEXUS_AudioDecoderAc4Program program)
 {
-    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
-    eRet                                   ret                 = eRet_Ok;
-    unsigned                               nIndex              = 0;
-    NEXUS_AudioDecoderStatus               decodeStatus;
-    NEXUS_AudioDecoderCodecSettings        codecSettings;
+    NEXUS_Error                     nerror = NEXUS_SUCCESS;
+    eRet                            ret    = eRet_Ok;
+    unsigned                        nIndex = 0;
+    NEXUS_AudioDecoderStatus        decodeStatus;
+    NEXUS_AudioDecoderCodecSettings codecSettings;
 
     if (NEXUS_AudioDecoderAc4Program_eMax == program)
     {
@@ -2114,7 +2118,7 @@ unsigned CSimpleAudioDecode::getPresentationCurrent(NEXUS_AudioDecoderAc4Program
     }
 error:
     return(nIndex);
-}
+} /* getPresentationCurrent */
 
 eRet CSimpleAudioDecode::setPresentation(NEXUS_AudioDecoderPresentationStatus * pStatus)
 {
@@ -2123,12 +2127,15 @@ eRet CSimpleAudioDecode::setPresentation(NEXUS_AudioDecoderPresentationStatus * 
     return(setPresentation(pStatus->status.ac4.index));
 }
 
-eRet CSimpleAudioDecode::setPresentation(unsigned nIndex, NEXUS_AudioDecoderAc4Program program)
+eRet CSimpleAudioDecode::setPresentation(
+        unsigned                     nIndex,
+        NEXUS_AudioDecoderAc4Program program
+        )
 {
-    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
-    eRet                                   ret                 = eRet_Ok;
-    NEXUS_AudioDecoderStatus               decodeStatus;
-    NEXUS_AudioDecoderCodecSettings        codecSettings;
+    NEXUS_Error                     nerror = NEXUS_SUCCESS;
+    eRet                            ret    = eRet_Ok;
+    NEXUS_AudioDecoderStatus        decodeStatus;
+    NEXUS_AudioDecoderCodecSettings codecSettings;
 
     if (NEXUS_AudioDecoderAc4Program_eMax == program)
     {
@@ -2159,15 +2166,15 @@ eRet CSimpleAudioDecode::setPresentation(unsigned nIndex, NEXUS_AudioDecoderAc4P
     CHECK_ERROR_GOTO("unable to notify observers audio ac4 presentation change", ret, error);
 error:
     return(ret);
-}
+} /* setPresentation */
 
 eLanguage CSimpleAudioDecode::getLanguage(NEXUS_AudioDecoderAc4Program program)
 {
-    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
-    eRet                                   ret                 = eRet_Ok;
-    eLanguage                              language            = eLanguage_Max;
-    NEXUS_AudioDecoderStatus               decodeStatus;
-    NEXUS_AudioDecoderCodecSettings        codecSettings;
+    NEXUS_Error                     nerror   = NEXUS_SUCCESS;
+    eRet                            ret      = eRet_Ok;
+    eLanguage                       language = eLanguage_Max;
+    NEXUS_AudioDecoderStatus        decodeStatus;
+    NEXUS_AudioDecoderCodecSettings codecSettings;
 
     if (NEXUS_AudioDecoderAc4Program_eMax == program)
     {
@@ -2188,14 +2195,17 @@ eLanguage CSimpleAudioDecode::getLanguage(NEXUS_AudioDecoderAc4Program program)
 
 error:
     return(language);
-}
+} /* getLanguage */
 
-eRet CSimpleAudioDecode::setLanguage(eLanguage language, NEXUS_AudioDecoderAc4Program program)
+eRet CSimpleAudioDecode::setLanguage(
+        eLanguage                    language,
+        NEXUS_AudioDecoderAc4Program program
+        )
 {
-    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
-    eRet                                   ret                 = eRet_Ok;
-    NEXUS_AudioDecoderStatus               decodeStatus;
-    NEXUS_AudioDecoderCodecSettings        codecSettings;
+    NEXUS_Error                     nerror = NEXUS_SUCCESS;
+    eRet                            ret    = eRet_Ok;
+    NEXUS_AudioDecoderStatus        decodeStatus;
+    NEXUS_AudioDecoderCodecSettings codecSettings;
 
     if (NEXUS_AudioDecoderAc4Program_eMax == program)
     {
@@ -2220,15 +2230,15 @@ eRet CSimpleAudioDecode::setLanguage(eLanguage language, NEXUS_AudioDecoderAc4Pr
     CHECK_ERROR_GOTO("unable to notify observers audio ac4 Language change", ret, error);
 error:
     return(ret);
-}
+} /* setLanguage */
 
 NEXUS_AudioAc4AssociateType CSimpleAudioDecode::getAssociate(NEXUS_AudioDecoderAc4Program program)
 {
-    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
-    eRet                                   ret                 = eRet_Ok;
-    NEXUS_AudioAc4AssociateType            associate           = NEXUS_AudioAc4AssociateType_eMax;
-    NEXUS_AudioDecoderStatus               decodeStatus;
-    NEXUS_AudioDecoderCodecSettings        codecSettings;
+    NEXUS_Error                     nerror    = NEXUS_SUCCESS;
+    eRet                            ret       = eRet_Ok;
+    NEXUS_AudioAc4AssociateType     associate = NEXUS_AudioAc4AssociateType_eMax;
+    NEXUS_AudioDecoderStatus        decodeStatus;
+    NEXUS_AudioDecoderCodecSettings codecSettings;
 
     if (NEXUS_AudioDecoderAc4Program_eMax == program)
     {
@@ -2249,14 +2259,17 @@ NEXUS_AudioAc4AssociateType CSimpleAudioDecode::getAssociate(NEXUS_AudioDecoderA
 
 error:
     return(associate);
-}
+} /* getAssociate */
 
-eRet CSimpleAudioDecode::setAssociate(NEXUS_AudioAc4AssociateType associate, NEXUS_AudioDecoderAc4Program program)
+eRet CSimpleAudioDecode::setAssociate(
+        NEXUS_AudioAc4AssociateType  associate,
+        NEXUS_AudioDecoderAc4Program program
+        )
 {
-    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
-    eRet                                   ret                 = eRet_Ok;
-    NEXUS_AudioDecoderStatus               decodeStatus;
-    NEXUS_AudioDecoderCodecSettings        codecSettings;
+    NEXUS_Error                     nerror = NEXUS_SUCCESS;
+    eRet                            ret    = eRet_Ok;
+    NEXUS_AudioDecoderStatus        decodeStatus;
+    NEXUS_AudioDecoderCodecSettings codecSettings;
 
     if (NEXUS_AudioDecoderAc4Program_eMax == program)
     {
@@ -2281,15 +2294,15 @@ eRet CSimpleAudioDecode::setAssociate(NEXUS_AudioAc4AssociateType associate, NEX
     CHECK_ERROR_GOTO("unable to notify observers audio ac4 Language change", ret, error);
 error:
     return(ret);
-}
+} /* setAssociate */
 
 ePriority CSimpleAudioDecode::getPriority(NEXUS_AudioDecoderAc4Program program)
 {
-    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
-    eRet                                   ret                 = eRet_Ok;
-    ePriority                              priority            = ePriority_Max;
-    NEXUS_AudioDecoderStatus               decodeStatus;
-    NEXUS_AudioDecoderCodecSettings        codecSettings;
+    NEXUS_Error                     nerror   = NEXUS_SUCCESS;
+    eRet                            ret      = eRet_Ok;
+    ePriority                       priority = ePriority_Max;
+    NEXUS_AudioDecoderStatus        decodeStatus;
+    NEXUS_AudioDecoderCodecSettings codecSettings;
 
     if (NEXUS_AudioDecoderAc4Program_eMax == program)
     {
@@ -2310,14 +2323,17 @@ ePriority CSimpleAudioDecode::getPriority(NEXUS_AudioDecoderAc4Program program)
 
 error:
     return(priority);
-}
+} /* getPriority */
 
-eRet CSimpleAudioDecode::setPriority(ePriority priority, NEXUS_AudioDecoderAc4Program program)
+eRet CSimpleAudioDecode::setPriority(
+        ePriority                    priority,
+        NEXUS_AudioDecoderAc4Program program
+        )
 {
-    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
-    eRet                                   ret                 = eRet_Ok;
-    NEXUS_AudioDecoderStatus               decodeStatus;
-    NEXUS_AudioDecoderCodecSettings        codecSettings;
+    NEXUS_Error                     nerror = NEXUS_SUCCESS;
+    eRet                            ret    = eRet_Ok;
+    NEXUS_AudioDecoderStatus        decodeStatus;
+    NEXUS_AudioDecoderCodecSettings codecSettings;
 
     if (NEXUS_AudioDecoderAc4Program_eMax == program)
     {
@@ -2342,11 +2358,14 @@ eRet CSimpleAudioDecode::setPriority(ePriority priority, NEXUS_AudioDecoderAc4Pr
     CHECK_ERROR_GOTO("unable to notify observers audio ac4 priority change", ret, error);
 error:
     return(ret);
-}
+} /* setPriority */
 
-void CSimpleAudioDecode::dumpPresentation(unsigned nIndex, bool bForce)
+void CSimpleAudioDecode::dumpPresentation(
+        unsigned nIndex,
+        bool     bForce
+        )
 {
-    eRet ret = eRet_Ok;
+    eRet       ret = eRet_Ok;
     BDBG_Level level;
     NEXUS_AudioDecoderPresentationStatus status;
 
@@ -2373,15 +2392,15 @@ error:
     CHECK_ERROR_GOTO("unable to notify observers audio ac4 presentation shown", ret, error);
 
     return;
-}
+} /* dumpPresentation */
 
 int CSimpleAudioDecode::getDialogEnhancement()
 {
-    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
-    eRet                                   ret                 = eRet_Ok;
-    int                                    nDb                 = 0;
-    NEXUS_AudioDecoderStatus               decodeStatus;
-    NEXUS_AudioDecoderCodecSettings        codecSettings;
+    NEXUS_Error                     nerror = NEXUS_SUCCESS;
+    eRet                            ret    = eRet_Ok;
+    int                             nDb    = 0;
+    NEXUS_AudioDecoderStatus        decodeStatus;
+    NEXUS_AudioDecoderCodecSettings codecSettings;
 
     nerror = NEXUS_SimpleAudioDecoder_GetStatus(getSimpleDecoder(), &decodeStatus);
     CHECK_NEXUS_ERROR_GOTO("unable to get simple audio decoder status", ret, nerror, error);
@@ -2394,14 +2413,14 @@ int CSimpleAudioDecode::getDialogEnhancement()
 
 error:
     return(nDb);
-}
+} /* getDialogEnhancement */
 
 eRet CSimpleAudioDecode::setDialogEnhancement(int nDb)
 {
-    NEXUS_Error                            nerror              = NEXUS_SUCCESS;
-    eRet                                   ret                 = eRet_NotSupported;
-    NEXUS_AudioDecoderStatus               decodeStatus;
-    NEXUS_AudioDecoderCodecSettings        codecSettings;
+    NEXUS_Error                     nerror = NEXUS_SUCCESS;
+    eRet                            ret    = eRet_NotSupported;
+    NEXUS_AudioDecoderStatus        decodeStatus;
+    NEXUS_AudioDecoderCodecSettings codecSettings;
 
     BDBG_ASSERT(-12 <= nDb);
     BDBG_ASSERT(12 >= nDb);
@@ -2426,5 +2445,6 @@ eRet CSimpleAudioDecode::setDialogEnhancement(int nDb)
 
 error:
     return(ret);
-}
-#endif
+} /* setDialogEnhancement */
+
+#endif /* if BDSP_MS12_SUPPORT */

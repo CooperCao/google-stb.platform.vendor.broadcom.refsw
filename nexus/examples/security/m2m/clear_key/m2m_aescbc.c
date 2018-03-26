@@ -209,9 +209,9 @@ int main(void)
 
     BKNI_CreateEvent( &dmaEvent );  /* create an event. */
 
-    NEXUS_Memory_Allocate( DMA_BLOCK, NULL, (void *)&pSource   );
-    NEXUS_Memory_Allocate( DMA_BLOCK, NULL, (void *)&pIntermediate  );
-    NEXUS_Memory_Allocate( DMA_BLOCK, NULL, (void *)&pDestination );
+    NEXUS_Memory_Allocate( DMA_BLOCK, NULL, (void **)&pSource   );
+    NEXUS_Memory_Allocate( DMA_BLOCK, NULL, (void **)&pIntermediate  );
+    NEXUS_Memory_Allocate( DMA_BLOCK, NULL, (void **)&pDestination );
 
     memset( pSource,   0x22, DMA_BLOCK*sizeof(unsigned char) );
     memset( pIntermediate,  0x33, DMA_BLOCK*sizeof(unsigned char) );

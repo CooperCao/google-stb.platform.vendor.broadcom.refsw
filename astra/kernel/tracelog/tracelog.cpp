@@ -146,7 +146,7 @@ void TraceLog::init(void) {
 
     // Setup filter 0 for Sentinel address range
     STB_REG_WR(STB_MEMC_TRACELOG_FILTER_ADDR_LOWERi_ARRAY_BASE,
-        STB_REG_ADDR(STB_MEMC_SENTINEL_RANGE_START));
+        sentinelEnd);
 
     STB_REG_WR(STB_MEMC_TRACELOG_FILTER_ADDR_UPPERi_ARRAY_BASE,
         sentinelEnd);

@@ -143,8 +143,8 @@ BERR_Code BVDC_P_Hscaler_Create
 
 
     /* Init to the default filter coeffficient tables. */
-    BVDC_P_GetFirCoeffs_isr(&pHscaler->pHorzFirCoeffTbl, NULL);
-    BVDC_P_GetChromaFirCoeffs_isr(&pHscaler->pChromaHorzFirCoeffTbl, NULL);
+    BVDC_P_GetFirCoeffs_isrsafe(&pHscaler->pHorzFirCoeffTbl, NULL);
+    BVDC_P_GetChromaFirCoeffs_isrsafe(&pHscaler->pChromaHorzFirCoeffTbl, NULL);
 
     /* All done. now return the new fresh context to user. */
     *phHscaler = (BVDC_P_Hscaler_Handle)pHscaler;

@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bstd.h"
@@ -58,7 +55,7 @@ void BWFE_g3_Corr_P_CorrDone_isr(void *p, int param)
    BWFE_ChannelHandle h = (BWFE_ChannelHandle)p;
    BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
    BWFE_FUNCT funct;
-   
+
    BSTD_UNUSED(param);
    BWFE_g3_P_DisableTimer_isr(h, BWFE_g3_TimerSelect_e0);
 
@@ -118,6 +115,11 @@ BERR_Code BWFE_g3_Corr_P_SetCorrParams(BWFE_ChannelHandle h, uint32_t freqHz, ui
 
       /* corr_len = floor(2^24/N_Q) * N_Q */
       BMTH_HILO_32TO64_Mul(BWFE_DPM_CORR_LEN / hChn->dpmQddfsN, hChn->dpmQddfsN, &Q_hi, &Q_lo);
+
+   #if (BCHP_CHIP==45308)
+      /* corr_len = floor(corr_ctl_len=4095/256)) * (floor(2^24/N_Q) * N_Q) */
+      BMTH_HILO_64TO64_Mul(Q_hi, Q_lo, 0, 15, &Q_hi, &Q_lo);
+   #endif
    }
 
    BWFE_P_WriteRegister(h, BCHP_WFE_CORE_CORRFCW, fcw);
@@ -140,6 +142,7 @@ BERR_Code BWFE_g3_Corr_P_SetCorrParams(BWFE_ChannelHandle h, uint32_t freqHz, ui
       /* corr interval determined by corrlen0 */
       maxbitpos = BWFE_P_GetMsb(Q_lo);
    }
+
    /* BWFE_DEBUG_CORR(BDBG_MSG(("maxbitpos=%d\n", maxbitpos))); */
    hChn->corrMaxBit = 23 + maxbitpos + 1;    /* add 1 to round up */
 
@@ -175,8 +178,12 @@ BERR_Code BWFE_g3_Corr_P_StartCorrelator(BWFE_ChannelHandle h, uint32_t freqHz, 
    BINT_EnableCallback_isr(hChn->hCorrDoneCb);
    hChn->corrIdleIsr = func;
 
-   /* workaround for missing corr done irq at certain corrlen's - execute callback in 50 us */
-   retCode = BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e0, 50, (BWFE_FUNCT)BWFE_g3_Corr_P_CorrDone_isr);
+   /* corr done timeout for spec analyzer only */
+   if (binSizeHz > 0)
+   {
+      /* workaround for missing corr done irq at certain corrlen's - execute callback in 50 us */
+      retCode = BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e0, 50, (BWFE_FUNCT)BWFE_g3_Corr_P_CorrDone_isr);
+   }
 
    /* start correlator */
    BWFE_P_OrRegister(h, BCHP_WFE_CORE_CORRCTL, 0x00000002);
@@ -201,7 +208,7 @@ BERR_Code BWFE_g3_Corr_P_ReadCorrelator(BWFE_ChannelHandle h, uint8_t slice, uin
 	else
       *corr = (int32_t)(corrLsb << (31 - hChn->corrMaxBit));
    
-   /* BWFE_DEBUG_CORR(BDBG_MSG(("corr:MSB=%08X|LSB=%08X-(%d)->%08X", corrMsb, corrLsb, h->corrMaxBit, *corr))); */
+   /* BWFE_DEBUG_CORR(BDBG_MSG(("corr:MSB=%08X|LSB=%08X-(%d)->%08X", corrMsb, corrLsb, hChn->corrMaxBit, *corr))); */
    return BERR_SUCCESS;
 }
 
@@ -391,7 +398,7 @@ BERR_Code BWFE_g3_Corr_P_CoarseAdjust(BWFE_ChannelHandle h)
    hChn->adjRight = 7;
    hChn->adjLeft = 7;
 
-   /* meas_delay = (delay / 2^32 * pi) / Fs_adc * 1e12(ps) where Fs_adc=5022320000 */
+   /* meas_delay = (delay / 2^32 * pi) / Fs_adc * 1e12(ps) */
    /* rt = rt +/- abs(int(meas_delay/0.2))+1 */
    /* lt = lt +/- abs(int(meas_delay/0.2))-1 */
 
@@ -402,7 +409,11 @@ BERR_Code BWFE_g3_Corr_P_CoarseAdjust(BWFE_ChannelHandle h)
       absDelay = hChn->sliceDelay[0];
 
    BMTH_HILO_32TO64_Mul(absDelay, 314159265 * 5, &P_hi, &P_lo);   /* pi * 1e8 / 0.2 */
+#if 0
    BMTH_HILO_64TO64_Div32(P_hi, P_lo, 502232, &Q_hi, &Q_lo);      /* div by Fs_adc/10000 */
+#else
+   BMTH_HILO_64TO64_Div32(P_hi, P_lo, hChn->adcSampleFreqKhz / 10, &Q_hi, &Q_lo);      /* div by Fs_adc/10000 */
+#endif
    BMTH_HILO_64TO64_Add(Q_hi, Q_lo, 0, 2147483647, &Q_hi, &Q_lo); /* ceil(result) */
    BWFE_DEBUG_CORR(BKNI_Printf("absDelay=%d -> Q=%08X %08X\n", absDelay, Q_hi, Q_lo));
 
@@ -416,15 +427,21 @@ BERR_Code BWFE_g3_Corr_P_CoarseAdjust(BWFE_ChannelHandle h)
       hChn->adjRight = hChn->adjRight + Q_hi;
       hChn->adjLeft = hChn->adjLeft - Q_hi;
    }
+
+   if ((hChn->adjRight > 15) || (hChn->adjLeft > 15))
+   {
+      BDBG_ERR(("delay adjust overflow!"));
+      return BERR_UNKNOWN;
+   }
+
    BWFE_DEBUG_CORR(BKNI_Printf("rt=%d/lt=%d\n", hChn->adjRight, hChn->adjLeft));
    BWFE_g3_Corr_P_CompensateDelay(h, hChn->adjRight, hChn->adjLeft);
 
-#if 0
-   /* re-measure delay */
+   /* re-measure delay and do fine adjustments */
    BWFE_P_EnableDpmPilot(h);  /* enable DPM tone, disable DPM after delay calculations */
    hChn->postCalcDelayFunct = BWFE_g3_Corr_P_FineAdjust;    /* fine adjustment after delay measurement */
    BWFE_g3_Corr_P_StartCorrelator(h, hChn->dpmPilotFreqKhz * 1000, 0, BWFE_g3_Corr_P_CalcDelay);
-#endif
+
    return retCode;
 }
 

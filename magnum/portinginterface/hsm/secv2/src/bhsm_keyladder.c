@@ -644,7 +644,7 @@ BERR_Code _RouteEntryKey ( BHSM_KeyLadderHandle handle, const BHSM_P_KeyslotRout
     bspConfig.in.entryType = keyslotDetails.polarity;
     bspConfig.in.keySlotType = BHSM_P_ConvertSlotType(keyslotDetails.slotType);
     bspConfig.in.keySlotNumber = keyslotDetails.number;
-    bspConfig.in.keyMode = Bsp_KeyMode_eRegular;
+    bspConfig.in.keyMode = keyslotDetails.keyModeBspMapped;
 
     bspConfig.in.modeWords[0] = keyslotDetails.ctrlWord0;
     bspConfig.in.modeWords[1] = keyslotDetails.ctrlWord1;
@@ -708,25 +708,25 @@ static uint8_t _MapCustomerSubMode( BHSM_KeyLadderMode mode )
 {
 
     switch(mode){
-        case BHSM_KeyLadderMode_eCa_64_4:  { return 0x0; }
-        case BHSM_KeyLadderMode_eCp_64_4:  { return 0x1; }
-        case BHSM_KeyLadderMode_eCa_64_5:  { return 0x2; }
-        case BHSM_KeyLadderMode_eCp_64_5:  { return 0x3; }
-        case BHSM_KeyLadderMode_eCa_128_4: { return 0x4; }
-        case BHSM_KeyLadderMode_eCp_128_4: { return 0x5; }
-        case BHSM_KeyLadderMode_eCa_128_5: { return 0x6; }
-        case BHSM_KeyLadderMode_eCp_128_5: { return 0x7; }
-        case BHSM_KeyLadderMode_eCa_64_7:  { return 0x8; }
-        case BHSM_KeyLadderMode_eCa_128_7: { return 0x9; }
-        case BHSM_KeyLadderMode_eCa64_45:  { return 0xa; }
-        case BHSM_KeyLadderMode_eCp64_45:  { return 0xb; }
-        case BHSM_KeyLadderMode_eSageBlDecrypt: { return 0xc; }
-        case BHSM_KeyLadderMode_eSage128_5: { return 0xd; }
-        case BHSM_KeyLadderMode_eSage128_4: { return 0xe; }
-
-        case BHSM_KeyLadderMode_eGeneralPurpose1: { return 0x11; }
-        case BHSM_KeyLadderMode_eGeneralPurpose2: { return 0x12; }
-        case BHSM_KeyLadderMode_eEtsi_5:   { return 0x13; }
+        case BHSM_KeyLadderMode_eCa_64_4:        { return Bsp_CustomerSubMode_eGeneric_Ca_64_4; }
+        case BHSM_KeyLadderMode_eCp_64_4:        { return Bsp_CustomerSubMode_eGeneric_Cp_64_4; }
+        case BHSM_KeyLadderMode_eCa_64_5:        { return Bsp_CustomerSubMode_eGeneric_Ca_64_5; }
+        case BHSM_KeyLadderMode_eCp_64_5:        { return Bsp_CustomerSubMode_eGeneric_Cp_64_5; }
+        case BHSM_KeyLadderMode_eCa_128_4:       { return Bsp_CustomerSubMode_eGeneric_Ca_128_4; }
+        case BHSM_KeyLadderMode_eCp_128_4:       { return Bsp_CustomerSubMode_eGeneric_Cp_128_4; }
+        case BHSM_KeyLadderMode_eCa_128_5:       { return Bsp_CustomerSubMode_eGeneric_Ca_128_5; }
+        case BHSM_KeyLadderMode_eCp_128_5:       { return Bsp_CustomerSubMode_eGeneric_Cp_128_5; }
+        case BHSM_KeyLadderMode_eCa_64_7:        { return Bsp_CustomerSubMode_eGeneric_Ca_64_7; }
+        case BHSM_KeyLadderMode_eCa_128_7:       { return Bsp_CustomerSubMode_eGeneric_Ca_128_7; }
+        case BHSM_KeyLadderMode_eCa64_45:        { return Bsp_CustomerSubMode_eGeneric_Ca_64_45; }
+        case BHSM_KeyLadderMode_eCp64_45:        { return Bsp_CustomerSubMode_eGeneric_Cp_64_45; }
+        case BHSM_KeyLadderMode_eSageBlDecrypt:  { return Bsp_CustomerSubMode_eSageBlDecrypt; }
+        case BHSM_KeyLadderMode_eSage128_5:      { return 0xd; }
+        case BHSM_KeyLadderMode_eSage128_4:      { return 0xe; }
+        case BHSM_KeyLadderMode_eGeneralPurpose1:{ return Bsp_CustomerSubMode_eGeneralPurpose1; }
+        case BHSM_KeyLadderMode_eGeneralPurpose2:{ return Bsp_CustomerSubMode_eGeneralPurpose2; }
+        case BHSM_KeyLadderMode_eEtsi_5:         { return Bsp_CustomerSubMode_eEtsi_5; }
+        case BHSM_KeyLadderMode_eRpmb:           { return Bsp_CustomerSubMode_eRpmb; }
         default: BERR_TRACE( BERR_INVALID_PARAMETER );
     }
 
@@ -751,6 +751,38 @@ bool BHSM_P_KeyLadder_CheckConfigured( BHSM_KeyLadderHandle handle )
 
     return pkeyLadder->configured;
 }
+
+
+uint8_t BHSM_P_KeyLadder_MapRootKeySrc( BHSM_KeyLadderRootType rootKeySrc, unsigned otpIndex )
+{
+
+    switch( rootKeySrc )
+    {
+        case BHSM_KeyLadderRootType_eCustomerKey: { return Bsp_RootKeySrc_eCusKey; }
+        case BHSM_KeyLadderRootType_eOtpDirect:
+        case BHSM_KeyLadderRootType_eOtpAskm:     { return (Bsp_RootKeySrc_eOtpa + otpIndex); }
+        case BHSM_KeyLadderRootType_eGlobalKey:   { return Bsp_RootKeySrc_eAskmGlobalKey; }
+        default: { BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    }
+
+    return 0xFF;  /* invalid type */
+}
+
+
+
+uint8_t BHSM_P_KeyLadder_MapCaVendorIdScope( BHSM_KeyladderCaVendorIdScope caVendorIdScope )
+{
+    switch( caVendorIdScope )
+    {
+        case BHSM_KeyladderCaVendorIdScope_eChipFamily: return 0;
+        case BHSM_KeyladderCaVendorIdScope_eFixed:      return 2;
+        default: BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+
+    return 0xFF;
+}
+
+
 
 
 #if 0

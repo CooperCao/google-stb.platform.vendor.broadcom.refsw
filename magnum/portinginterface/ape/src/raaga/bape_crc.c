@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -275,7 +275,7 @@ BERR_Code BAPE_Crc_Open(
             bufferSettings.bufferSize = BAPE_CRC_BUFFER_SIZE;
         }
 
-        errCode = BAPE_Buffer_Open(&bufferSettings, &bufferHandle);
+        errCode = BAPE_Buffer_Open(deviceHandle, &bufferSettings, &bufferHandle);
         if ( errCode )
         {
             BDBG_ERR(("%s - unable to allocate CRC Buffer", BSTD_FUNCTION));
@@ -763,9 +763,11 @@ BERR_Code BAPE_Crc_GetBuffer(
         size = BAPE_MIN(size, BAPE_Buffer_Read_isr(handle->resources[i].buffer, &(descriptors[i])));
         bufferSize = BAPE_MIN(bufferSize, descriptors[i].bufferSize);
         wrapBufferSize = BAPE_MIN(bufferSize, descriptors[i].wrapBufferSize);
-        /* TBDBMMA need BMMA block here? */
+        pBuffers->buffers[i].block = descriptors[i].block;
         pBuffers->buffers[i].pBuffer = descriptors[i].pBuffer;
+        pBuffers->buffers[i].offset = descriptors[i].offset;
         pBuffers->buffers[i].pWrapBuffer = descriptors[i].pWrapBuffer;
+        pBuffers->buffers[i].wrapOffset = descriptors[i].wrapOffset;
         BDBG_MSG(("read %d bytes, bufferSize %d, wrapBufferSize %d", size, bufferSize, wrapBufferSize));
     }
 
@@ -821,7 +823,7 @@ BERR_Code BAPE_Crc_ConsumeData(
     for ( i = 0; i < handle->settings.numChannelPairs; i++ )
     {
         unsigned retSize;
-        retSize = BAPE_Buffer_Advance_isr(handle->resources[i].buffer, size);
+        retSize = BAPE_Buffer_ReadComplete_isr(handle->resources[i].buffer, size);
 
         if (retSize != size)
         {

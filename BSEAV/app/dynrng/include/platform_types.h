@@ -40,7 +40,7 @@
 
 #include <stdbool.h>
 
-#define MAX_MOSAICS 4
+#define MAX_STREAMS 4
 
 typedef struct Platform * PlatformHandle;
 typedef struct PlatformPicture * PlatformPictureHandle;
@@ -267,7 +267,7 @@ typedef struct PlatformHdmiReceiverModel
 
 typedef struct PlatformModel
 {
-    PlatformPictureModel vid[MAX_MOSAICS];
+    PlatformPictureModel vid[MAX_STREAMS];
     PlatformPictureModel gfx;
     PlatformRenderingPriority renderingPriority;
     PlatformPictureModel out;
@@ -330,5 +330,9 @@ typedef struct PlatformMediaPlayerSettings
     PlatformUsageMode usageMode;
     PlatformPqSettings pqSettings;
 } PlatformMediaPlayerSettings;
+
+#define PLATFORM_SCHEDULER_MAIN 0
+#define PLATFORM_SCHEDULER_GFX 1
+#define PLATFORM_SCHEDULER_COUNT 2
 
 #endif /* PLATFORM_TYPES_H__ */

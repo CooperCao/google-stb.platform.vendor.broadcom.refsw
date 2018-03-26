@@ -56,6 +56,7 @@ APPS = \
     security_keyladder_otp_global_key_app \
     security_keyladder_otp_customer_key_app \
     security_keyladder_aes_ecb_app \
+    security_keyladder_aes_cbc_app \
     security_keyladder_aes_ecb_simple \
     security_keyladder_tdes_app \
 
@@ -79,6 +80,7 @@ $(BINDIR)/security_keyslot_external_keyiv_app       $(BINDIR)/security_keyslot_e
 $(BINDIR)/security_keyslot_external_keyiv_multiple_DMA_blocks_app       $(BINDIR)/security_keyslot_external_keyiv_multiple_DMA_blocks_app:  $(EXTRA_SRC)
 # Keyladder app s
 $(BINDIR)/security_keyladder_aes_ecb_app            $(BINDIR)/security_keyladder_aes_ecb_app:       $(EXTRA_SRC)
+$(BINDIR)/security_keyladder_aes_cbc_app            $(BINDIR)/security_keyladder_aes_cbc_app:       $(EXTRA_SRC)
 $(BINDIR)/security_keyladder_aes_ecb_simple         $(BINDIR)/security_keyladder_aes_ecb_simple:    $(EXTRA_SRC)
 $(BINDIR)/security_keyladder_otp_askm_key_app       $(BINDIR)/security_keyladder_otp_askm_key_app:  $(EXTRA_SRC)
 $(BINDIR)/security_keyladder_otp_global_key_app     $(BINDIR)/security_keyladder_otp_global_key_app:    $(EXTRA_SRC)

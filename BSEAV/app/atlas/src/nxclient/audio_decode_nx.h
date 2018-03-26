@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -72,11 +72,11 @@ public:
     virtual eAudioProcessing getAudioProcessing(void) { return(_audioProcessing); }
     virtual eRet             updateConnectSettings(NxClient_ConnectSettings * pSettings);
 #if BDSP_MS12_SUPPORT
-    virtual int              getAudioFade(void);
-    virtual eRet             setAudioFade(unsigned level = 100, unsigned duration = 3, bool bWait = false);
-    virtual bool             isAudioFadePending(void);
-    virtual eRet             waitAudioFadeComplete(void);
-#endif
+    virtual int  getAudioFade(void);
+    virtual eRet setAudioFade(unsigned level = 100, unsigned duration = 3, bool bWait = false);
+    virtual bool isAudioFadePending(void);
+    virtual eRet waitAudioFadeComplete(void);
+#endif /* if BDSP_MS12_SUPPORT */
 
 protected:
     unsigned _connectId;

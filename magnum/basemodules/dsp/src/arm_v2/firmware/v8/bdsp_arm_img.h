@@ -54,6 +54,7 @@ typedef enum BDSP_ARM_SystemImgId
     BDSP_ARM_SystemImgId_eLibKernalOps,
     BDSP_ARM_SystemImgId_eLibMMClient,
     BDSP_ARM_SystemImgId_eLibStageIO,
+    BDSP_ARM_SystemImgId_eLibDebugControl,
     BDSP_ARM_SystemImgId_eLibMMServer,
     BDSP_ARM_SystemImgId_eMax,
     BDSP_ARM_SystemImgId_eInvalid = 0x7FFFFFFF
@@ -83,6 +84,7 @@ extern const void * BDSP_ARM_IMG_common_ids [];
 extern const void * BDSP_ARM_IMG_kernel_ops [];
 extern const void * BDSP_ARM_IMG_mm_client [];
 extern const void * BDSP_ARM_IMG_stage_io [];
+extern const void * BDSP_ARM_IMG_debug_control [];
 extern const void * BDSP_ARM_IMG_mm_server [];
 
 #ifdef BDSP_MPEG_SUPPORT

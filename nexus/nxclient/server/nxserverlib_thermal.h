@@ -44,10 +44,10 @@
 
 #include "blst_queue.h"
 
-#define MAX_NR_TZONE 16
-#define MAX_NR_CDEV 32
-#define MAX_NR_TRIP 16
-#define MAX_NR_FREQ 5
+#define MAX_NUM_TZONE 16
+#define MAX_NUM_CDEV 32
+#define MAX_NUM_TRIP 16
+#define MAX_NUM_FREQ 5
 
 #define THERMAL_SYSFS "/sys/class/thermal"
 #define CDEV "cooling_device"
@@ -55,11 +55,19 @@
 
 #define CPUFREQ_SYSFS "/sys/devices/system/cpu/cpu0/cpufreq"
 
+#define MAX_NUM_POWER_SAMPLES 20
+
+#define PMU_SYSFS "/sys/class/i2c-adapter/i2c-0/0-0040/iio:device0"
+#define POWER_RAW "in_power2_raw"
+
 typedef struct thermal_data {
-    struct timeval tv;
-    unsigned temp[MAX_NR_TZONE];
-    int cpu_load;
-    double pid_out_pct;
+    unsigned temp[MAX_NUM_TZONE];
+    struct {
+        unsigned idx, total;
+        unsigned samples[MAX_NUM_POWER_SAMPLES];
+        unsigned instant;
+        unsigned average;
+    } power;
 } thermal_data;
 
 typedef struct cooling_device_info {
@@ -86,17 +94,17 @@ typedef struct thermal_zone_info {
     int passive; /* active zone has passive node to force passive mode */
     int num_cooling_devices; /* number of cooling device binded */
     int num_trip_points;
-    trip_point_info tp[MAX_NR_TRIP];
+    trip_point_info tp[MAX_NUM_TRIP];
     unsigned cdev_binding; /* bitmap for attached cdevs */
     /* cdev bind trip points, allow one cdev bind to multiple trips */
-    unsigned trip_binding[MAX_NR_CDEV];
+    unsigned trip_binding[MAX_NUM_CDEV];
 } thermal_zone_info;
 
 typedef struct thermal_info {
     int num_thermal_zones;
     int num_cooling_devices;
-    thermal_zone_info tzi[MAX_NR_TZONE];
-    cooling_device_info cdi[MAX_NR_CDEV];
+    thermal_zone_info tzi[MAX_NUM_TZONE];
+    cooling_device_info cdi[MAX_NUM_CDEV];
 } thermal_info;
 
 /* Cooling Agents */
@@ -115,7 +123,7 @@ typedef struct priority_list {
 
 
 typedef struct cpufreq_info {
-    unsigned avail_freqs[MAX_NR_FREQ];
+    unsigned avail_freqs[MAX_NUM_FREQ];
     unsigned num_p_states;
 } cpufreq_info;
 

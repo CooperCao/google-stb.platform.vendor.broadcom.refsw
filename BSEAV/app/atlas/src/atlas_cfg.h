@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -136,6 +136,7 @@ CConfiguration::Predefined CConfiguration::_predefines[] = {
     ATLAS_DECLARE(AUDIO_DECODER_FADE_LEVEL_FULL,           int,    "80",                        "Level of audio fade for full screen window audio.  Only applicable whem dual audio decoders are available"),
     ATLAS_DECLARE(AUDIO_DECODER_FADE_LEVEL_DECIMATED,      int,    "20",                        "Level of audio fade for decimated screen window audio.  Only applicable whem dual audio decoders are available"),
     ATLAS_DECLARE(AUDIO_PCM_SOUND_CLICK,                   string, "./sounds/click2.wav",       "click sound effect ('none' = disable click)"),
+    ATLAS_DECLARE(SCAN_MAX_TUNERS,                         int,    "8",                         "maximum number of tuners to use for channel scan"),
     ATLAS_DECLARE(TUNE_QAM_TIMEOUT,                        int,    "3000",                      "Length of QAM tune lock timeout in millisecs"),
     ATLAS_DECLARE(TUNE_QAM_STATUS_TIMEOUT,                 int,    "500",                       "Length of QAM tune async status timeout in millisecs"),
     ATLAS_DECLARE(TUNE_QAM_SCAN_TIMEOUT,                   int,    "500",                       "Length of QAM tune lock timeout in millisecs during channel scan"),

@@ -309,6 +309,12 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_XPT[] = {{
     BDBG_STRING("XPT")
 }};
 
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_XPT_CORE[] = {{
+    BCHP_PWR_P_ResourceType_eNonLeaf,
+    BCHP_PWR_RESOURCE_XPT_CORE,
+    BDBG_STRING("XPT_CORE")
+}};
+
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_XPT_PACKETSUB[] = {{
     BCHP_PWR_P_ResourceType_eNonLeaf,
     BCHP_PWR_RESOURCE_XPT_PACKETSUB,
@@ -337,6 +343,12 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_XPT_REMUX[] = {{
     BCHP_PWR_P_ResourceType_eNonLeaf,
     BCHP_PWR_RESOURCE_XPT_REMUX,
     BDBG_STRING("XPT_REMUX")
+}};
+
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_XPT_TSIO[] = {{
+    BCHP_PWR_P_ResourceType_eNonLeaf,
+    BCHP_PWR_RESOURCE_XPT_TSIO,
+    BDBG_STRING("XPT_TSIO")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_XPT_WAKEUP[] = {{
@@ -789,6 +801,12 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_VCXO0_CH_CTRL_CH_1_POST_DIV_HOL
     BDBG_STRING("HW_VCXO0_CH_CTRL_CH_1_POST_DIV_HOLD_CH1")
 }};
 
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_VCXO0_CH_CTRL_CH_2_POST_DIV_HOLD_CH2[] = {{
+    BCHP_PWR_P_ResourceType_eNonLeafHw,
+    BCHP_PWR_HW_VCXO0_CH_CTRL_CH_2_POST_DIV_HOLD_CH2,
+    BDBG_STRING("HW_VCXO0_CH_CTRL_CH_2_POST_DIV_HOLD_CH2")
+}};
+
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_VCXO1_CH_CTRL_CH_0_POST_DIV_HOLD_CH0[] = {{
     BCHP_PWR_P_ResourceType_eNonLeafHw,
     BCHP_PWR_HW_VCXO1_CH_CTRL_CH_0_POST_DIV_HOLD_CH0,
@@ -801,10 +819,22 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_VCXO1_CH_CTRL_CH_1_POST_DIV_HOL
     BDBG_STRING("HW_VCXO1_CH_CTRL_CH_1_POST_DIV_HOLD_CH1")
 }};
 
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_VCXO1_CH_CTRL_CH_2_POST_DIV_HOLD_CH2[] = {{
+    BCHP_PWR_P_ResourceType_eNonLeafHw,
+    BCHP_PWR_HW_VCXO1_CH_CTRL_CH_2_POST_DIV_HOLD_CH2,
+    BDBG_STRING("HW_VCXO1_CH_CTRL_CH_2_POST_DIV_HOLD_CH2")
+}};
+
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_0_POST_DIV_HOLD_CH0[] = {{
     BCHP_PWR_P_ResourceType_eNonLeafHw,
     BCHP_PWR_HW_XPT_CH_CTRL_CH_0_POST_DIV_HOLD_CH0,
     BDBG_STRING("HW_XPT_CH_CTRL_CH_0_POST_DIV_HOLD_CH0")
+}};
+
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_1_POST_DIV_HOLD_CH1[] = {{
+    BCHP_PWR_P_ResourceType_eNonLeafHw,
+    BCHP_PWR_HW_XPT_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
+    BDBG_STRING("HW_XPT_CH_CTRL_CH_1_POST_DIV_HOLD_CH1")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_4_POST_DIV_HOLD_CH4[] = {{
@@ -841,6 +871,18 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_MX_HVDS0_SELECT_HVDS0_CPU_CLOCK_SE
     BCHP_PWR_P_ResourceType_eMux,
     BCHP_PWR_MX_HVDS0_SELECT_HVDS0_CPU_CLOCK_SELECT,
     BDBG_STRING("MX_HVDS0_SELECT_HVDS0_CPU_CLOCK_SELECT")
+}};
+
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_MX_INTERNAL_MUX_SELECT_AUDIO0_OSCREF_CMOS_CLOCK[] = {{
+    BCHP_PWR_P_ResourceType_eMux,
+    BCHP_PWR_MX_INTERNAL_MUX_SELECT_AUDIO0_OSCREF_CMOS_CLOCK,
+    BDBG_STRING("MX_INTERNAL_MUX_SELECT_AUDIO0_OSCREF_CMOS_CLOCK")
+}};
+
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_MX_INTERNAL_MUX_SELECT_AUDIO1_OSCREF_CMOS_CLOCK[] = {{
+    BCHP_PWR_P_ResourceType_eMux,
+    BCHP_PWR_MX_INTERNAL_MUX_SELECT_AUDIO1_OSCREF_CMOS_CLOCK,
+    BDBG_STRING("MX_INTERNAL_MUX_SELECT_AUDIO1_OSCREF_CMOS_CLOCK")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_MX_ITU656_0_MUX_SELECT_VEC_ITU656_0_CLOCK[] = {{
@@ -1008,11 +1050,13 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_VDC_VEC,
     BCHP_PWR_P_Resource_VIP,
     BCHP_PWR_P_Resource_XPT,
+    BCHP_PWR_P_Resource_XPT_CORE,
     BCHP_PWR_P_Resource_XPT_PACKETSUB,
     BCHP_PWR_P_Resource_XPT_PARSER,
     BCHP_PWR_P_Resource_XPT_PLAYBACK,
     BCHP_PWR_P_Resource_XPT_RAVE,
     BCHP_PWR_P_Resource_XPT_REMUX,
+    BCHP_PWR_P_Resource_XPT_TSIO,
     BCHP_PWR_P_Resource_XPT_WAKEUP,
     BCHP_PWR_P_Resource_XPT_XMEMIF,
     BCHP_PWR_P_Resource_HW_AIO,
@@ -1080,14 +1124,17 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_HW_V3D_RESET_RESETD,
     BCHP_PWR_P_Resource_HW_VCXO0_CH_CTRL_CH_0_POST_DIV_HOLD_CH0,
     BCHP_PWR_P_Resource_HW_VCXO0_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
+    BCHP_PWR_P_Resource_HW_VCXO0_CH_CTRL_CH_2_POST_DIV_HOLD_CH2,
     BCHP_PWR_P_Resource_HW_VCXO1_CH_CTRL_CH_0_POST_DIV_HOLD_CH0,
     BCHP_PWR_P_Resource_HW_VCXO1_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
+    BCHP_PWR_P_Resource_HW_VCXO1_CH_CTRL_CH_2_POST_DIV_HOLD_CH2,
     BCHP_PWR_P_Resource_HW_VDAC,
     BCHP_PWR_P_Resource_HW_VEC,
     BCHP_PWR_P_Resource_HW_VEC_SRAM,
     BCHP_PWR_P_Resource_HW_VIP,
     BCHP_PWR_P_Resource_HW_VIP_SRAM,
     BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_0_POST_DIV_HOLD_CH0,
+    BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
     BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_4_POST_DIV_HOLD_CH4,
     BCHP_PWR_P_Resource_HW_XPT_REMUX,
     BCHP_PWR_P_Resource_HW_XPT_WAKEUP,
@@ -1097,6 +1144,8 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_MX_HVDP0_SELECT_HVDP0_SID_CLOCK_SELECT,
     BCHP_PWR_P_Resource_MX_HVDS0_SELECT_HVDS0_CORE_CLOCK_SELECT,
     BCHP_PWR_P_Resource_MX_HVDS0_SELECT_HVDS0_CPU_CLOCK_SELECT,
+    BCHP_PWR_P_Resource_MX_INTERNAL_MUX_SELECT_AUDIO0_OSCREF_CMOS_CLOCK,
+    BCHP_PWR_P_Resource_MX_INTERNAL_MUX_SELECT_AUDIO1_OSCREF_CMOS_CLOCK,
     BCHP_PWR_P_Resource_MX_ITU656_0_MUX_SELECT_VEC_ITU656_0_CLOCK,
     BCHP_PWR_P_Resource_MX_RAAGA_DSP_0_RAAGA0_DSP_SELECT_RAAGA0,
     BCHP_PWR_P_Resource_MX_SMARTCARD_MUX_SELECT_SC0_CLOCK,
@@ -1121,8 +1170,6 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
 
 /* Coded dependencies */
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AIO_CLK[] = {
-    BCHP_PWR_P_Resource_HW_VCXO0_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
-    BCHP_PWR_P_Resource_HW_VCXO1_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
     BCHP_PWR_P_Resource_HW_STB_RAAGA_DSP_0_AIO_RAAGA0_DSP_AIO_RAAGA0,
     BCHP_PWR_P_Resource_HW_AIO_RAAGA0,
     BCHP_PWR_P_Resource_HW_AIO,
@@ -1136,17 +1183,23 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AIO_SRAM[] = {
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AUD_AIO[] = {
-    BCHP_PWR_P_Resource_AIO_SRAM,
     BCHP_PWR_P_Resource_AIO_CLK,
+    BCHP_PWR_P_Resource_AIO_SRAM,
     NULL
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AUD_PLL0[] = {
+    BCHP_PWR_P_Resource_MX_INTERNAL_MUX_SELECT_AUDIO0_OSCREF_CMOS_CLOCK,
+    BCHP_PWR_P_Resource_HW_VCXO0_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
+    BCHP_PWR_P_Resource_HW_VCXO1_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
     BCHP_PWR_P_Resource_HW_AUD_PLL0,
     NULL
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AUD_PLL1[] = {
+    BCHP_PWR_P_Resource_MX_INTERNAL_MUX_SELECT_AUDIO1_OSCREF_CMOS_CLOCK,
+    BCHP_PWR_P_Resource_HW_VCXO0_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
+    BCHP_PWR_P_Resource_HW_VCXO1_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
     BCHP_PWR_P_Resource_HW_AUD_PLL1,
     NULL
 };
@@ -1163,8 +1216,8 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AVD0[] = {
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AVD0_CLK[] = {
-    BCHP_PWR_P_Resource_HW_STB_HVDP0_HVDP0_CPU,
     BCHP_PWR_P_Resource_HW_STB_HVDS0_HVDS0_CPU,
+    BCHP_PWR_P_Resource_HW_STB_HVDP0_HVDP0_CPU,
     NULL
 };
 
@@ -1174,19 +1227,21 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AVD0_PWR[] = {
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_BINT_OPEN[] = {
+    BCHP_PWR_P_Resource_AUD_AIO,
     BCHP_PWR_P_Resource_AVD,
+    BCHP_PWR_P_Resource_GRAPHICS3D,
+    BCHP_PWR_P_Resource_HDMI_RX0_CLK,
+    BCHP_PWR_P_Resource_HDMI_TX0_CLK,
     BCHP_PWR_P_Resource_M2MC,
     BCHP_PWR_P_Resource_RAAGA,
-    BCHP_PWR_P_Resource_XPT,
-    BCHP_PWR_P_Resource_HDMI_TX0_CLK,
     BCHP_PWR_P_Resource_SID,
-    BCHP_PWR_P_Resource_GRAPHICS3D,
     BCHP_PWR_P_Resource_SMARTCARD0,
-    BCHP_PWR_P_Resource_VIP,
-    BCHP_PWR_P_Resource_HDMI_RX0_CLK,
-    BCHP_PWR_P_Resource_VDC,
-    BCHP_PWR_P_Resource_AUD_AIO,
     BCHP_PWR_P_Resource_SMARTCARD1,
+    BCHP_PWR_P_Resource_VDC,
+    BCHP_PWR_P_Resource_VIP,
+    BCHP_PWR_P_Resource_XPT,
+    BCHP_PWR_P_Resource_XPT_CORE,
+    BCHP_PWR_P_Resource_XPT_TSIO,
     NULL
 };
 
@@ -1267,35 +1322,37 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_M2MC_SRAM[] = {
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_MAGNUM_CONTROLLED[] = {
-    BCHP_PWR_P_Resource_AUD_PLL0,
-    BCHP_PWR_P_Resource_HDMI_RX0_SRAM,
-    BCHP_PWR_P_Resource_HDMI_RX0_CLK,
-    BCHP_PWR_P_Resource_SMARTCARD0,
-    BCHP_PWR_P_Resource_GRAPHICS3D,
-    BCHP_PWR_P_Resource_HDMI_TX0_CLK,
-    BCHP_PWR_P_Resource_M2MC,
-    BCHP_PWR_P_Resource_SID_SRAM,
-    BCHP_PWR_P_Resource_SMARTCARD1,
     BCHP_PWR_P_Resource_AUD_AIO,
-    BCHP_PWR_P_Resource_VDC,
-    BCHP_PWR_P_Resource_HDMI_TX0_PHY,
-    BCHP_PWR_P_Resource_VDC_STG0,
-    BCHP_PWR_P_Resource_HDMI_RX0_PHY,
-    BCHP_PWR_P_Resource_VIP,
+    BCHP_PWR_P_Resource_AUD_PLL0,
     BCHP_PWR_P_Resource_AUD_PLL1,
+    BCHP_PWR_P_Resource_AVD,
+    BCHP_PWR_P_Resource_GRAPHICS3D,
+    BCHP_PWR_P_Resource_HDMI_RX0_CLK,
+    BCHP_PWR_P_Resource_HDMI_RX0_PHY,
+    BCHP_PWR_P_Resource_HDMI_RX0_SRAM,
+    BCHP_PWR_P_Resource_HDMI_TX0_CLK,
+    BCHP_PWR_P_Resource_HDMI_TX0_PHY,
+    BCHP_PWR_P_Resource_M2MC,
+    BCHP_PWR_P_Resource_RAAGA,
     BCHP_PWR_P_Resource_SID,
+    BCHP_PWR_P_Resource_SID_SRAM,
+    BCHP_PWR_P_Resource_SMARTCARD0,
+    BCHP_PWR_P_Resource_SMARTCARD1,
+    BCHP_PWR_P_Resource_VDC,
     BCHP_PWR_P_Resource_VDC_HDMI_RX_CLK0,
     BCHP_PWR_P_Resource_VDC_HDMI_TX_PHY0,
+    BCHP_PWR_P_Resource_VDC_STG0,
+    BCHP_PWR_P_Resource_VIP,
     BCHP_PWR_P_Resource_XPT,
-    BCHP_PWR_P_Resource_RAAGA,
-    BCHP_PWR_P_Resource_AVD,
+    BCHP_PWR_P_Resource_XPT_CORE,
+    BCHP_PWR_P_Resource_XPT_TSIO,
     NULL
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_RAAGA[] = {
+    BCHP_PWR_P_Resource_RAAGA0_CLK,
     BCHP_PWR_P_Resource_RAAGA0_DSP,
     BCHP_PWR_P_Resource_RAAGA0_SRAM,
-    BCHP_PWR_P_Resource_RAAGA0_CLK,
     NULL
 };
 
@@ -1354,6 +1411,8 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_VDC[] = {
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_VDC_656_OUT[] = {
+    BCHP_PWR_P_Resource_HW_VCXO0_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
+    BCHP_PWR_P_Resource_HW_VCXO1_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
     BCHP_PWR_P_Resource_HW_STB_VEC_AIO_GFX_VEC_ITU656_0,
     NULL
 };
@@ -1379,8 +1438,6 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_VDC_STG0[] = {
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_VDC_VEC[] = {
-    BCHP_PWR_P_Resource_HW_VCXO0_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
-    BCHP_PWR_P_Resource_HW_VCXO1_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
     BCHP_PWR_P_Resource_HW_BVN_DVPHR0_DVPHT0_VEC,
     BCHP_PWR_P_Resource_HW_AIO_VEC,
     BCHP_PWR_P_Resource_HW_VEC,
@@ -1395,12 +1452,17 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_VIP[] = {
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT[] = {
-    BCHP_PWR_P_Resource_XPT_REMUX,
-    BCHP_PWR_P_Resource_XPT_RAVE,
-    BCHP_PWR_P_Resource_XPT_PLAYBACK,
-    BCHP_PWR_P_Resource_XPT_WAKEUP,
-    BCHP_PWR_P_Resource_XPT_PARSER,
     BCHP_PWR_P_Resource_XPT_PACKETSUB,
+    BCHP_PWR_P_Resource_XPT_PARSER,
+    BCHP_PWR_P_Resource_XPT_PLAYBACK,
+    BCHP_PWR_P_Resource_XPT_RAVE,
+    BCHP_PWR_P_Resource_XPT_REMUX,
+    BCHP_PWR_P_Resource_XPT_WAKEUP,
+    NULL
+};
+
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT_CORE[] = {
+    BCHP_PWR_P_Resource_HW_STB_CORE_XPT_HIF_XPT_CORE,
     NULL
 };
 
@@ -1425,12 +1487,16 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT_RAVE[] = {
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT_REMUX[] = {
-    BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_0_POST_DIV_HOLD_CH0,
-    BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_4_POST_DIV_HOLD_CH4,
     BCHP_PWR_P_Resource_HW_XPT_REMUX,
     BCHP_PWR_P_Resource_HW_XPT_XPT_REMUX,
     BCHP_PWR_P_Resource_HW_STB_CORE_XPT_HIF_XPT_CORE,
     BCHP_PWR_P_Resource_HW_STB_SECSECXPT_XPT_SECPIPELINE_SECXPT,
+    NULL
+};
+
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT_TSIO[] = {
+    BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_0_POST_DIV_HOLD_CH0,
+    BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_4_POST_DIV_HOLD_CH4,
     NULL
 };
 
@@ -1440,8 +1506,6 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT_WAKEUP[] = {
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT_XMEMIF[] = {
-    BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_0_POST_DIV_HOLD_CH0,
-    BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_4_POST_DIV_HOLD_CH4,
     BCHP_PWR_P_Resource_HW_XPT_XPT_REMUX,
     BCHP_PWR_P_Resource_HW_STB_CORE_XPT_HIF_XPT_CORE,
     BCHP_PWR_P_Resource_HW_STB_SECSECXPT_XPT_SECPIPELINE_SECXPT,
@@ -1449,18 +1513,18 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT_XMEMIF[] = {
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_AUD_PLL0[] = {
-    BCHP_PWR_P_Resource_HW_AIO_VEC,
-    BCHP_PWR_P_Resource_HW_AIO,
-    BCHP_PWR_P_Resource_HW_AIO_RAAGA0,
     BCHP_PWR_P_Resource_HW_STB_RAAGA_DSP_0_AIO_RAAGA0_DSP_AIO_RAAGA0,
+    BCHP_PWR_P_Resource_HW_AIO_RAAGA0,
+    BCHP_PWR_P_Resource_HW_AIO,
+    BCHP_PWR_P_Resource_HW_AIO_VEC,
     NULL
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_AUD_PLL1[] = {
+    BCHP_PWR_P_Resource_HW_STB_RAAGA_DSP_0_AIO_RAAGA0_DSP_AIO_RAAGA0,
+    BCHP_PWR_P_Resource_HW_AIO_RAAGA0,
     BCHP_PWR_P_Resource_HW_AIO,
     BCHP_PWR_P_Resource_HW_AIO_VEC,
-    BCHP_PWR_P_Resource_HW_AIO_RAAGA0,
-    BCHP_PWR_P_Resource_HW_STB_RAAGA_DSP_0_AIO_RAAGA0_DSP_AIO_RAAGA0,
     NULL
 };
 
@@ -1510,15 +1574,15 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_CPU_CH_CTRL_CH_5_PO
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_HDMI_RX0_PHY[] = {
-    BCHP_PWR_P_Resource_HW_DVPHR0_SECBUS,
-    BCHP_PWR_P_Resource_HW_DVPHR0,
     BCHP_PWR_P_Resource_HW_BVN_DVPHR0_DVPHT0_VEC,
+    BCHP_PWR_P_Resource_HW_DVPHR0,
+    BCHP_PWR_P_Resource_HW_DVPHR0_SECBUS,
     NULL
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_HDMI_TX0_PHY[] = {
-    BCHP_PWR_P_Resource_HW_DVPHT0,
     BCHP_PWR_P_Resource_HW_BVN_DVPHR0_DVPHT0_VEC,
+    BCHP_PWR_P_Resource_HW_DVPHT0,
     NULL
 };
 
@@ -1538,7 +1602,7 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_SC1_CH_CTRL_CH_0_PO
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_STB_CORE_XPT_HIF_XPT_CORE[] = {
-    BCHP_PWR_P_Resource_DV_XPT_CTRL_CH1_div,
+    BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
     NULL
 };
 
@@ -1549,18 +1613,18 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_STB_HVDP0_HVDP0_COR
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_STB_HVDP0_HVDP0_CPU[] = {
     BCHP_PWR_P_Resource_MX_HVDP0_SELECT_HVDP0_CPU_CLOCK_SELECT,
-    BCHP_PWR_P_Resource_HW_HVD0_SID,
-    BCHP_PWR_P_Resource_HW_STB_HVDS0_HVDS0_CORE,
+    BCHP_PWR_P_Resource_HW_HVD0,
     BCHP_PWR_P_Resource_HW_STB_HVDP0_HVDP0_CORE,
     BCHP_PWR_P_Resource_HW_HVD0_SECBUS,
-    BCHP_PWR_P_Resource_HW_HVD0,
+    BCHP_PWR_P_Resource_HW_HVD0_SID,
+    BCHP_PWR_P_Resource_HW_STB_HVDS0_HVDS0_CORE,
     NULL
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_STB_HVDP0_HVDP0_SID[] = {
     BCHP_PWR_P_Resource_MX_HVDP0_SELECT_HVDP0_SID_CLOCK_SELECT,
-    BCHP_PWR_P_Resource_HW_HVD0_SID,
     BCHP_PWR_P_Resource_HW_SECBUS_SID,
+    BCHP_PWR_P_Resource_HW_HVD0_SID,
     BCHP_PWR_P_Resource_HW_SID,
     NULL
 };
@@ -1572,11 +1636,11 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_STB_HVDS0_HVDS0_COR
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_STB_HVDS0_HVDS0_CPU[] = {
     BCHP_PWR_P_Resource_MX_HVDS0_SELECT_HVDS0_CPU_CLOCK_SELECT,
-    BCHP_PWR_P_Resource_HW_HVD0_SID,
-    BCHP_PWR_P_Resource_HW_STB_HVDS0_HVDS0_CORE,
+    BCHP_PWR_P_Resource_HW_HVD0,
     BCHP_PWR_P_Resource_HW_STB_HVDP0_HVDP0_CORE,
     BCHP_PWR_P_Resource_HW_HVD0_SECBUS,
-    BCHP_PWR_P_Resource_HW_HVD0,
+    BCHP_PWR_P_Resource_HW_HVD0_SID,
+    BCHP_PWR_P_Resource_HW_STB_HVDS0_HVDS0_CORE,
     NULL
 };
 
@@ -1595,7 +1659,7 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_STB_RAAGA_DSP_0_RAA
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_STB_SECSECXPT_XPT_SECPIPELINE_SECXPT[] = {
-    BCHP_PWR_P_Resource_DV_XPT_CTRL_CH1_div,
+    BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
     NULL
 };
 
@@ -1650,6 +1714,11 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_VCXO0_CH_CTRL_CH_1_
     NULL
 };
 
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_VCXO0_CH_CTRL_CH_2_POST_DIV_HOLD_CH2[] = {
+    BCHP_PWR_P_Resource_HW_CTRL_VCXO0_PWRDN_REQ,
+    NULL
+};
+
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_VCXO1_CH_CTRL_CH_0_POST_DIV_HOLD_CH0[] = {
     BCHP_PWR_P_Resource_HW_CTRL_VCXO1_PWRDN_REQ,
     NULL
@@ -1660,8 +1729,18 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_VCXO1_CH_CTRL_CH_1_
     NULL
 };
 
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_VCXO1_CH_CTRL_CH_2_POST_DIV_HOLD_CH2[] = {
+    BCHP_PWR_P_Resource_HW_CTRL_VCXO1_PWRDN_REQ,
+    NULL
+};
+
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_XPT_CH_CTRL_CH_0_POST_DIV_HOLD_CH0[] = {
     BCHP_PWR_P_Resource_DV_XPT_CTRL_CH0_div,
+    NULL
+};
+
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_XPT_CH_CTRL_CH_1_POST_DIV_HOLD_CH1[] = {
+    BCHP_PWR_P_Resource_DV_XPT_CTRL_CH1_div,
     NULL
 };
 
@@ -1697,6 +1776,18 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_MX_HVDS0_SELECT_HVDS0_
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_MX_HVDS0_SELECT_HVDS0_CPU_CLOCK_SELECT[] = {
     BCHP_PWR_P_Resource_HW_AVX_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
     BCHP_PWR_P_Resource_HW_CPU_CH_CTRL_CH_2_POST_DIV_HOLD_CH2,
+    NULL
+};
+
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_MX_INTERNAL_MUX_SELECT_AUDIO0_OSCREF_CMOS_CLOCK[] = {
+    BCHP_PWR_P_Resource_HW_VCXO0_CH_CTRL_CH_2_POST_DIV_HOLD_CH2,
+    BCHP_PWR_P_Resource_HW_VCXO1_CH_CTRL_CH_2_POST_DIV_HOLD_CH2,
+    NULL
+};
+
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_MX_INTERNAL_MUX_SELECT_AUDIO1_OSCREF_CMOS_CLOCK[] = {
+    BCHP_PWR_P_Resource_HW_VCXO0_CH_CTRL_CH_2_POST_DIV_HOLD_CH2,
+    BCHP_PWR_P_Resource_HW_VCXO1_CH_CTRL_CH_2_POST_DIV_HOLD_CH2,
     NULL
 };
 
@@ -1815,11 +1906,13 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     BCHP_PWR_P_Depend_VDC_VEC,
     BCHP_PWR_P_Depend_VIP,
     BCHP_PWR_P_Depend_XPT,
+    BCHP_PWR_P_Depend_XPT_CORE,
     BCHP_PWR_P_Depend_XPT_PACKETSUB,
     BCHP_PWR_P_Depend_XPT_PARSER,
     BCHP_PWR_P_Depend_XPT_PLAYBACK,
     BCHP_PWR_P_Depend_XPT_RAVE,
     BCHP_PWR_P_Depend_XPT_REMUX,
+    BCHP_PWR_P_Depend_XPT_TSIO,
     BCHP_PWR_P_Depend_XPT_WAKEUP,
     BCHP_PWR_P_Depend_XPT_XMEMIF,
     NULL,
@@ -1887,14 +1980,17 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     BCHP_PWR_P_Depend_HW_V3D_RESET_RESETD,
     BCHP_PWR_P_Depend_HW_VCXO0_CH_CTRL_CH_0_POST_DIV_HOLD_CH0,
     BCHP_PWR_P_Depend_HW_VCXO0_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
+    BCHP_PWR_P_Depend_HW_VCXO0_CH_CTRL_CH_2_POST_DIV_HOLD_CH2,
     BCHP_PWR_P_Depend_HW_VCXO1_CH_CTRL_CH_0_POST_DIV_HOLD_CH0,
     BCHP_PWR_P_Depend_HW_VCXO1_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
+    BCHP_PWR_P_Depend_HW_VCXO1_CH_CTRL_CH_2_POST_DIV_HOLD_CH2,
     NULL,
     NULL,
     NULL,
     NULL,
     NULL,
     BCHP_PWR_P_Depend_HW_XPT_CH_CTRL_CH_0_POST_DIV_HOLD_CH0,
+    BCHP_PWR_P_Depend_HW_XPT_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
     BCHP_PWR_P_Depend_HW_XPT_CH_CTRL_CH_4_POST_DIV_HOLD_CH4,
     NULL,
     NULL,
@@ -1904,6 +2000,8 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     BCHP_PWR_P_Depend_MX_HVDP0_SELECT_HVDP0_SID_CLOCK_SELECT,
     BCHP_PWR_P_Depend_MX_HVDS0_SELECT_HVDS0_CORE_CLOCK_SELECT,
     BCHP_PWR_P_Depend_MX_HVDS0_SELECT_HVDS0_CPU_CLOCK_SELECT,
+    BCHP_PWR_P_Depend_MX_INTERNAL_MUX_SELECT_AUDIO0_OSCREF_CMOS_CLOCK,
+    BCHP_PWR_P_Depend_MX_INTERNAL_MUX_SELECT_AUDIO1_OSCREF_CMOS_CLOCK,
     BCHP_PWR_P_Depend_MX_ITU656_0_MUX_SELECT_VEC_ITU656_0_CLOCK,
     BCHP_PWR_P_Depend_MX_RAAGA_DSP_0_RAAGA0_DSP_SELECT_RAAGA0,
     BCHP_PWR_P_Depend_MX_SMARTCARD_MUX_SELECT_SC0_CLOCK,
@@ -2127,11 +2225,17 @@ void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate)
         case BCHP_PWR_HW_VCXO0_CH_CTRL_CH_1_POST_DIV_HOLD_CH1:
             BCHP_PWR_P_HW_VCXO0_CH_CTRL_CH_1_POST_DIV_HOLD_CH1_Control(handle, activate);
             break;
+        case BCHP_PWR_HW_VCXO0_CH_CTRL_CH_2_POST_DIV_HOLD_CH2:
+            BCHP_PWR_P_HW_VCXO0_CH_CTRL_CH_2_POST_DIV_HOLD_CH2_Control(handle, activate);
+            break;
         case BCHP_PWR_HW_VCXO1_CH_CTRL_CH_0_POST_DIV_HOLD_CH0:
             BCHP_PWR_P_HW_VCXO1_CH_CTRL_CH_0_POST_DIV_HOLD_CH0_Control(handle, activate);
             break;
         case BCHP_PWR_HW_VCXO1_CH_CTRL_CH_1_POST_DIV_HOLD_CH1:
             BCHP_PWR_P_HW_VCXO1_CH_CTRL_CH_1_POST_DIV_HOLD_CH1_Control(handle, activate);
+            break;
+        case BCHP_PWR_HW_VCXO1_CH_CTRL_CH_2_POST_DIV_HOLD_CH2:
+            BCHP_PWR_P_HW_VCXO1_CH_CTRL_CH_2_POST_DIV_HOLD_CH2_Control(handle, activate);
             break;
         case BCHP_PWR_HW_VDAC:
             BCHP_PWR_P_HW_VDAC_Control(handle, activate);
@@ -2150,6 +2254,9 @@ void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate)
             break;
         case BCHP_PWR_HW_XPT_CH_CTRL_CH_0_POST_DIV_HOLD_CH0:
             BCHP_PWR_P_HW_XPT_CH_CTRL_CH_0_POST_DIV_HOLD_CH0_Control(handle, activate);
+            break;
+        case BCHP_PWR_HW_XPT_CH_CTRL_CH_1_POST_DIV_HOLD_CH1:
+            BCHP_PWR_P_HW_XPT_CH_CTRL_CH_1_POST_DIV_HOLD_CH1_Control(handle, activate);
             break;
         case BCHP_PWR_HW_XPT_CH_CTRL_CH_4_POST_DIV_HOLD_CH4:
             BCHP_PWR_P_HW_XPT_CH_CTRL_CH_4_POST_DIV_HOLD_CH4_Control(handle, activate);
@@ -2192,6 +2299,12 @@ void BCHP_PWR_P_MUX_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resou
             break;
         case BCHP_PWR_MX_HVDS0_SELECT_HVDS0_CPU_CLOCK_SELECT:
             BCHP_PWR_P_MX_HVDS0_SELECT_HVDS0_CPU_CLOCK_SELECT_Control(handle, mux, set);
+            break;
+        case BCHP_PWR_MX_INTERNAL_MUX_SELECT_AUDIO0_OSCREF_CMOS_CLOCK:
+            BCHP_PWR_P_MX_INTERNAL_MUX_SELECT_AUDIO0_OSCREF_CMOS_CLOCK_Control(handle, mux, set);
+            break;
+        case BCHP_PWR_MX_INTERNAL_MUX_SELECT_AUDIO1_OSCREF_CMOS_CLOCK:
+            BCHP_PWR_P_MX_INTERNAL_MUX_SELECT_AUDIO1_OSCREF_CMOS_CLOCK_Control(handle, mux, set);
             break;
         case BCHP_PWR_MX_ITU656_0_MUX_SELECT_VEC_ITU656_0_CLOCK:
             BCHP_PWR_P_MX_ITU656_0_MUX_SELECT_VEC_ITU656_0_CLOCK_Control(handle, mux, set);
@@ -2277,10 +2390,10 @@ const BCHP_PmapSettings BCHP_PWR_P_DefaultPMapSettings[BCHP_PWR_NUM_P_PMAPSETTIN
     PMAP(CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4, MDIV_CH4, 7),
     PMAP(CLKGEN_PLL_AVX_PLL_DIV, NDIV_INT, 200),
     PMAP(CLKGEN_PLL_AVX_PLL_DIV, PDIV, 3),
-    PMAP(CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_2, MDIV_CH2, 11),
-    PMAP(CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_3, MDIV_CH3, 13),
-    PMAP(CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_4, MDIV_CH4, 9),
-    PMAP(CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_5, MDIV_CH5, 7),
+    PMAP(CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_2, MDIV_CH2, 7),
+    PMAP(CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_3, MDIV_CH3, 8),
+    PMAP(CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_4, MDIV_CH4, 15),
+    PMAP(CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_5, MDIV_CH5, 15),
     PMAP(CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0, 5),
     PMAP(CLKGEN_PLL_RAAGA_PLL_DIV, NDIV_INT, 130),
     PMAP(CLKGEN_PLL_RAAGA_PLL_DIV, PDIV, 2),
@@ -2288,7 +2401,10 @@ const BCHP_PmapSettings BCHP_PWR_P_DefaultPMapSettings[BCHP_PWR_NUM_P_PMAPSETTIN
     PMAP(CLKGEN_PLL_V3D_PLL_DIV, NDIV_INT, 175),
     PMAP(CLKGEN_PLL_V3D_PLL_DIV, PDIV, 3),
     PMAP(CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0, 8),
+    PMAP(CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1, MDIV_CH1, 12),
     PMAP(CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4, MDIV_CH4, 15),
+    PMAP(CLKGEN_PLL_XPT_PLL_DIV, NDIV_INT, 120),
+    PMAP(CLKGEN_PLL_XPT_PLL_DIV, PDIV, 2),
 };
 
 DIVTABLE(DV_AVX_CTRL_CH0_div, 5, 6, 0);
@@ -2302,8 +2418,9 @@ DIVTABLE(DV_CPU_CTRL_CH4_div, -1, -1, 9);
 DIVTABLE(DV_CPU_CTRL_CH5_div, -1, -1, 10);
 DIVTABLE(DV_RAAGA_CTRL_CH0_div, 12, 13, 11);
 DIVTABLE(DV_V3D_CTRL_CH0_div, 15, 16, 14);
-DIVTABLE(DV_XPT_CTRL_CH0_div, -1, -1, 17);
-DIVTABLE(DV_XPT_CTRL_CH4_div, -1, -1, 18);
+DIVTABLE(DV_XPT_CTRL_CH0_div, 20, 21, 17);
+DIVTABLE(DV_XPT_CTRL_CH1_div, 20, 21, 18);
+DIVTABLE(DV_XPT_CTRL_CH4_div, 20, 21, 19);
 
 const BCHP_PWR_P_FreqMap BCHP_PWR_P_FreqMapList[BCHP_PWR_P_NUM_DIVS] = {
     FREQMAP(DV_AVX_CTRL_CH0_div),
@@ -2318,5 +2435,6 @@ const BCHP_PWR_P_FreqMap BCHP_PWR_P_FreqMapList[BCHP_PWR_P_NUM_DIVS] = {
     FREQMAP(DV_RAAGA_CTRL_CH0_div),
     FREQMAP(DV_V3D_CTRL_CH0_div),
     FREQMAP(DV_XPT_CTRL_CH0_div),
+    FREQMAP(DV_XPT_CTRL_CH1_div),
     FREQMAP(DV_XPT_CTRL_CH4_div),
 };

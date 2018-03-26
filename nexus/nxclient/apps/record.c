@@ -333,6 +333,12 @@ static int start_record(struct recordContext *recContext)
         }
     } else {
         recContext->handles.frontend = acquire_frontend(&recContext->settings.tune_settings);
+        if (recContext->settings.tune_settings.source != channel_source_streamer && !recContext->handles.frontend) {
+            /* TODO: there's a race condition between scan and tune. we may get a frontend to scan, but be
+            unable to get it again for tune. to fix, we should not release it. */
+            BDBG_ERR(("unable to acquire frontend"));
+            return -1;
+        }
         rc = tune(recContext->handles.parserBand, recContext->handles.frontend, &recContext->settings.tune_settings, false);
         if (rc) return BERR_TRACE(rc);
     }
@@ -940,7 +946,9 @@ int start_play(NEXUS_RecordHandle record, NEXUS_FifoRecordHandle fifofile, const
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
     NEXUS_FilePlayHandle file;
     NEXUS_SimpleVideoDecoderHandle videoDecoder = NULL;
+#if NEXUS_HAS_AUDIO
     NEXUS_SimpleAudioDecoderHandle audioDecoder = NULL;
+#endif
     NEXUS_SimpleVideoDecoderStartSettings videoProgram;
     NEXUS_SimpleAudioDecoderStartSettings audioProgram;
     NEXUS_SimpleStcChannelHandle stcChannel;
@@ -979,9 +987,11 @@ int start_play(NEXUS_RecordHandle record, NEXUS_FifoRecordHandle fifofile, const
     if (allocResults.simpleVideoDecoder[0].id) {
         videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
     }
+#if NEXUS_HAS_AUDIO
     if (allocResults.simpleAudioDecoder.id) {
         audioDecoder = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
     }
+#endif
 
     NxClient_GetDefaultConnectSettings(&connectSettings);
     connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;

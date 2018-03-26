@@ -103,7 +103,7 @@ void scenario_player_p_print(ScenarioPlayerHandle player)
     assert(player);
     pScenario = player->pScenario;
     printf("current scenario '%s'\n", pScenario->scenarioPath);
-    for(i=0; i<MAX_MOSAICS; i++) {
+    for(i=0; i<MAX_STREAMS; i++) {
         printf("stream%d = '%s'\n", i, pScenario->streamPaths[i]);
     }
 }
@@ -210,7 +210,7 @@ static int scenario_player_p_set_variable(ScenarioPlayerHandle player, const cha
     }
     else if ((nlen > 7) && !strncmp(name, "stream[", 7) && (name[nlen - 1] == ']'))
     {
-        if (sscanf(name + 7, "%d", &v) && (v < MAX_MOSAICS))
+        if (sscanf(name + 7, "%d", &v) && (v < MAX_STREAMS))
         {
             pScenario->streamPaths[v] = set_string(pScenario->streamPaths[v], value);
             if (pScenario->streamPaths[v] && strlen(pScenario->streamPaths[v]))
@@ -628,7 +628,7 @@ int scenario_player_play_scenario(ScenarioPlayerHandle player, const char * scen
     /* TODO: cache scenarios */
     if (scenario.bgPath) free(scenario.bgPath);
     if (scenario.imagePath) free(scenario.imagePath);
-    for (i = 0; i < MAX_MOSAICS; i++)
+    for (i = 0; i < MAX_STREAMS; i++)
     {
         if (scenario.streamPaths[i]) free(scenario.streamPaths[i]);
     }

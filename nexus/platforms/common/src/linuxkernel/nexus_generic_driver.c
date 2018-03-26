@@ -1387,7 +1387,7 @@ static int nexus_driver_server_postinit_lock(void)
         client->client.config.heap[i] = g_pCoreHandles->heap[i].nexus;
     }
 
-    nexus_driver_proc_register_status("mma", g_NEXUS_platformHandles.core, "BMEM_ALLOCATED", NEXUS_Core_DumpHeaps_priv, NULL);
+    nexus_driver_proc_register_status("mma", g_NEXUS_platformHandles.core, "BMEM_ALLOCATED;BMEM_FREE", NEXUS_Core_DumpHeaps_priv, NULL);
     nexus_driver_proc_register_status("kni", g_NEXUS_platformHandles.core, "unused", nexus_driver_print_kni, NULL);
 
     return rc;

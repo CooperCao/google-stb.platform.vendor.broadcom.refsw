@@ -185,7 +185,7 @@ typedef struct BMRC_Monitor_P_Clients {
 typedef struct BMRC_Monitor_P_AllocatedRegion {
     BLST_AA_TREE_ENTRY(BMRC_Monitor_P_AllocatedRegionTree) node; /* tree of regions sorted by address */
     BMMA_DeviceOffset addr;
-    size_t size;
+    unsigned size;
 } BMRC_Monitor_P_AllocatedRegion;
 
 typedef struct BMRC_Monitor_CombinedRegion {
@@ -263,7 +263,7 @@ typedef struct BMRC_P_MonitorContext {
     struct BMRC_Monitor_P_CheckerState checkerState[BMRC_P_MONITOR_MAX_RANGES]; /* since there is no way to get actual state of range checkers, remember them here */
     bool protect_mem_low;
     struct BMRC_P_MonitorClientMap map;
-    size_t last_threshold;
+    unsigned last_threshold;
     size_t allocated; /* number of allocated bytes */
     unsigned partial_update_count;
     struct {
@@ -1174,7 +1174,7 @@ BMRC_P_Monitor_UpdateFull(BMRC_Monitor_Handle hMonitor)
 
     if(1)
     {
-        size_t threshold = hMonitor->last_threshold;
+        unsigned threshold = hMonitor->last_threshold;
         unsigned num_regions = hMonitor->num_combined_regions;
         hMonitor->partial_update_count = 0;
         threshold /= 2;

@@ -412,7 +412,7 @@ int keySlotSetup ( NEXUS_KeySlotHandle keyHandle, NEXUS_SecurityOperation operat
     encrytedCW.bSwapAESKey = false;
     if ( NEXUS_Security_GenerateControlWord ( keyHandle, &encrytedCW ) )
     {
-        printf ( "\nGenerate Control Word failed for Key Slot Handle 0x%p\n", keyHandle );
+        printf ( "\nGenerate Control Word failed for Key Slot. \n" );
         return 1;
     }
 #endif

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -166,6 +166,7 @@ NEXUS_StreamMux_Create( const NEXUS_StreamMuxCreateSettings *pSettings )
 
     BMUXlib_TS_GetDefaultCreateSettings(&muxCreateSettings);
     muxCreateSettings.hMma = g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mma;
+    muxCreateSettings.hReg = g_pCoreHandles->reg;
     muxCreateSettings.stMemoryConfig.uiSystemBufferSize = pSettings->memoryConfiguration.systemBufferSize;
     muxCreateSettings.stMemoryConfig.uiSharedBufferSize = pSettings->memoryConfiguration.sharedBufferSize;
     rc = BMUXlib_TS_Create(&mux->mux, &muxCreateSettings);
@@ -229,7 +230,7 @@ NEXUS_StreamMux_GetDefaultStartSettings(NEXUS_StreamMuxStartSettings *pSettings)
 }
 
 static BERR_Code
-NEXUS_StreamMux_P_AddTransportDescriptors(void *context, const BMUXlib_TS_TransportDescriptor *descriptors, size_t count, size_t *queuedCount)
+NEXUS_StreamMux_P_AddTransportDescriptors(void *context, const BMUXlib_TransportDescriptor *descriptors, size_t count, size_t *queuedCount)
 {
     NEXUS_PlaypumpHandle playpump = context;
     unsigned i;
@@ -280,6 +281,22 @@ NEXUS_StreamMux_P_GetCompletedTransportDescriptors( void *context, size_t *compl
 }
 
 static BERR_Code
+NEXUS_StreamMux_P_GetTransportStatus(void *context, BMUXlib_TransportChannelStatus *status)
+{
+    NEXUS_PlaypumpHandle playpump = context;
+    BERR_Code rc;
+    NEXUS_PlaypumpStatus playpumpStatus;
+
+    NEXUS_ASSERT_MODULE();
+    BDBG_ASSERT(status);
+    BKNI_Memset( status, 0, sizeof(*status));
+    rc = NEXUS_Playpump_GetStatus(playpump, &playpumpStatus);
+    if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
+    status->uiIndex = playpumpStatus.index;
+    return BERR_SUCCESS;
+}
+
+static BERR_Code
 NEXUS_StreamMux_P_GetVideoBufferDescriptors( void *context, const BAVC_VideoBufferDescriptor *descriptors0[], size_t *numDescriptors0, const BAVC_VideoBufferDescriptor *descriptors1[], size_t *numDescriptors1)
 {
     BERR_Code rc;
@@ -299,6 +316,7 @@ NEXUS_StreamMux_P_ConsumeVideoBufferDescriptors( void *context, size_t numDescri
     BERR_Code rc;
     NEXUS_P_StreamMux_VideoEncoderState *state = context;
 
+
     NEXUS_ASSERT_MODULE();
     rc = NEXUS_VideoEncoder_ReadComplete(state->videoEncoder, numDescriptors);
     return BERR_TRACE(rc);
@@ -308,12 +326,41 @@ static BERR_Code
 NEXUS_StreamMux_P_GetVideoBufferStatus( void *context, BMUXlib_CompressedBufferStatus *status)
 {
     NEXUS_P_StreamMux_VideoEncoderState *state = context;
+    NEXUS_VideoEncoderRegisters_priv encoderRegisters;
+
     NEXUS_ASSERT_MODULE();
     BDBG_ASSERT(status);
+    BKNI_Memset(status,0,sizeof(*status));
     NEXUS_Module_Lock(g_NEXUS_StreamMux_P_State.config.videoEncoder);
-    NEXUS_VideoEncoder_GetBufferBlocks_priv(state->videoEncoder, &status->hFrameBufferBlock, &status->hMetadataBufferBlock);
+    NEXUS_VideoEncoder_GetBufferBlocks_priv(state->videoEncoder, &status->hFrameBufferBlock, &status->hMetadataBufferBlock, &status->hIndexBufferBlock);
+    NEXUS_VideoEncoder_GetBufferRegisters_priv(state->videoEncoder, &encoderRegisters);
     NEXUS_Module_Unlock(g_NEXUS_StreamMux_P_State.config.videoEncoder);
+
+    status->stContext.stData.uiBase = encoderRegisters.data.base;
+    status->stContext.stData.uiEnd= encoderRegisters.data.end;
+    status->stContext.stData.uiRead = encoderRegisters.data.read;
+    status->stContext.stData.uiValid = encoderRegisters.data.valid;
+    status->stContext.stIndex.uiBase = encoderRegisters.index.base;
+    status->stContext.stIndex.uiEnd= encoderRegisters.index.end;
+    status->stContext.stIndex.uiRead = encoderRegisters.index.read;
+    status->stContext.stIndex.uiValid = encoderRegisters.index.valid;
+    status->stContext.bReady = encoderRegisters.index.ready;
+
     return BERR_SUCCESS;
+}
+
+static BERR_Code
+NEXUS_StreamMux_P_ReadVideoIndex( void *context, BAVC_VideoBufferDescriptor *descriptors, unsigned uiNumDescriptorsMax, unsigned *puiNumDescriptorsRead)
+{
+    BERR_Code rc;
+    NEXUS_P_StreamMux_VideoEncoderState *state = context;
+
+    NEXUS_ASSERT_MODULE();
+    /* full validation is in NEXUS_VideoEncoder_GetBuffer */
+    NEXUS_ASSERT_STRUCTURE(NEXUS_VideoEncoderDescriptor, BAVC_VideoBufferDescriptor);
+    rc = NEXUS_VideoEncoder_ReadIndex(state->videoEncoder, (NEXUS_VideoEncoderDescriptor*)descriptors, uiNumDescriptorsMax, puiNumDescriptorsRead);
+    BDBG_MSG_TRACE(("ReadVideoIndex:%#x numDescriptors:%u", (unsigned)context, *puiNumDescriptorsRead));
+    return BERR_TRACE(rc);
 }
 
 static BERR_Code
@@ -355,17 +402,32 @@ NEXUS_StreamMux_P_GetAudioBufferStatus(
    BMUXlib_CompressedBufferStatus *status
    )
 {
+    NEXUS_AudioMuxOutputRegisters_priv encoderRegisters;
     NEXUS_P_StreamMux_AudioEncoderState *state = context;
+
     NEXUS_ASSERT_MODULE();
     BDBG_ASSERT(status);
+    BKNI_Memset(status,0,sizeof(*status));
     NEXUS_Module_Lock(g_NEXUS_StreamMux_P_State.config.audio);
-    NEXUS_AudioMuxOutput_GetBufferBlocks_priv(state->audioMuxOutput, &status->hFrameBufferBlock, &status->hMetadataBufferBlock);
+    NEXUS_AudioMuxOutput_GetBufferBlocks_priv(state->audioMuxOutput, &status->hFrameBufferBlock, &status->hMetadataBufferBlock, &status->hIndexBufferBlock);
+    NEXUS_AudioMuxOutput_GetBufferRegisters_priv(state->audioMuxOutput, &encoderRegisters);
     NEXUS_Module_Unlock(g_NEXUS_StreamMux_P_State.config.audio);
+
+    status->stContext.stData.uiBase = encoderRegisters.data.base;
+    status->stContext.stData.uiEnd= encoderRegisters.data.end;
+    status->stContext.stData.uiRead = encoderRegisters.data.read;
+    status->stContext.stData.uiValid = encoderRegisters.data.valid;
+    status->stContext.stIndex.uiBase = encoderRegisters.index.base;
+    status->stContext.stIndex.uiEnd= encoderRegisters.index.end;
+    status->stContext.stIndex.uiRead = encoderRegisters.index.read;
+    status->stContext.stIndex.uiValid = encoderRegisters.index.valid;
+    status->stContext.bReady = encoderRegisters.index.ready;
+
     return BERR_SUCCESS;
 }
 
 static BERR_Code
-NEXUS_StreamMux_P_TS_GetTransportStatus( void *context, BMUXlib_TS_TransportStatus *status)
+NEXUS_StreamMux_P_TS_GetTransportStatus( void *context, BMUXlib_TransportStatus *status)
 {
     NEXUS_StreamMuxHandle mux=context;
     NEXUS_TsMuxStatus tsMuxStatus;
@@ -386,7 +448,7 @@ NEXUS_StreamMux_P_TS_GetTransportStatus( void *context, BMUXlib_TS_TransportStat
 
 
 static BERR_Code
-NEXUS_StreamMux_P_TS_GetTransportSettings(void *context, BMUXlib_TS_TransportSettings *settings)
+NEXUS_StreamMux_P_TS_GetTransportSettings(void *context, BMUXlib_TransportSettings *settings)
 {
     NEXUS_StreamMuxHandle mux=context;
     NEXUS_TsMuxSettings tsMuxSettings;
@@ -406,7 +468,7 @@ NEXUS_StreamMux_P_TS_GetTransportSettings(void *context, BMUXlib_TS_TransportSet
 }
 
 static BERR_Code
-NEXUS_StreamMux_P_TS_SetTransportSettings( void *context, const BMUXlib_TS_TransportSettings *settings)
+NEXUS_StreamMux_P_TS_SetTransportSettings( void *context, const BMUXlib_TransportSettings *settings)
 {
     NEXUS_StreamMuxHandle mux=context;
     NEXUS_TsMuxSettings tsMuxSettings;
@@ -510,10 +572,10 @@ static BERR_Code NEXUS_StreamMux_P_TS_ConsumeUserDataBuffer(void *pvContext, siz
 
 
 static NEXUS_Error
-NEXUS_StreamMux_P_AddPid(BMUXlib_TS_StartSettings *muxStartSettings, NEXUS_PlaypumpHandle playpump, unsigned *channel, NEXUS_Timebase timebase, NEXUS_PidChannelHandle *pidChannel, uint16_t pesId, int pidChannelIndex, NEXUS_Playpump_OpenPidChannelSettings_priv *pidSettings_priv)
+NEXUS_StreamMux_P_AddPid(BMUXlib_Transport_ChannelInterface *astChannelInterface, NEXUS_PlaypumpHandle playpump, unsigned *channel, NEXUS_Timebase timebase, NEXUS_PidChannelHandle *pidChannel, uint16_t pesId, int pidChannelIndex, NEXUS_Playpump_OpenPidChannelSettings_priv *pidSettings_priv)
 {
     NEXUS_PlaypumpSettings settings;
-    BMUXlib_TS_TransportChannelInterface *ch;
+    BMUXlib_Transport_ChannelInterface *ch;
     BERR_Code rc;
 
     if(*channel>=BMUXLIB_TS_MAX_TRANSPORT_INSTANCES) { return BERR_TRACE(NEXUS_NOT_SUPPORTED); }
@@ -542,14 +604,16 @@ NEXUS_StreamMux_P_AddPid(BMUXlib_TS_StartSettings *muxStartSettings, NEXUS_Playp
         NEXUS_OBJECT_REGISTER(NEXUS_PidChannel, *pidChannel, Open);
     }
 
-    ch = muxStartSettings->transport.stChannelInterface+(*channel);
+    ch = astChannelInterface+(*channel);
     if (settings.transportType != NEXUS_TransportType_eEs) {
        (*channel)++;
     }
 
     ch->fAddTransportDescriptors = NEXUS_StreamMux_P_AddTransportDescriptors;
     ch->fGetCompletedTransportDescriptors = NEXUS_StreamMux_P_GetCompletedTransportDescriptors;
+    ch->fGetTransportChannelStatus = NEXUS_StreamMux_P_GetTransportStatus;
     ch->pContext = playpump;
+
     return NEXUS_SUCCESS;
 
 error:
@@ -729,7 +793,7 @@ NEXUS_StreamMux_Start( NEXUS_StreamMuxHandle mux, const NEXUS_StreamMuxStartSett
             mux->muxStartSettings.video[i].uiTransportChannelIndex = channel;
             BDBG_MSG(("NEXUS_StreamMux_Start:%p using channel %u for video[%u]=%#x", (void*)mux, channel, i, video->pid));
             pidSettings_priv.tsPid = video->pid;
-            rc = NEXUS_StreamMux_P_AddPid(&mux->muxStartSettings, video->playpump, &channel, timebase, &pMuxOutput->video[i], video->pesId, video->pidChannelIndex, &pidSettings_priv);
+            rc = NEXUS_StreamMux_P_AddPid(mux->muxStartSettings.transport.stChannelInterface, video->playpump, &channel, timebase, &pMuxOutput->video[i], video->pesId, video->pidChannelIndex, &pidSettings_priv);
             if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto error;}
             mux->muxStartSettings.video[i].uiPID = video->pid;
             mux->muxStartSettings.video[i].uiPESStreamID = video->pesId;
@@ -738,6 +802,7 @@ NEXUS_StreamMux_Start( NEXUS_StreamMuxHandle mux, const NEXUS_StreamMuxStartSett
             mux->muxStartSettings.video[i].stInputInterface.fGetBufferDescriptors = NEXUS_StreamMux_P_GetVideoBufferDescriptors;
             mux->muxStartSettings.video[i].stInputInterface.fConsumeBufferDescriptors = NEXUS_StreamMux_P_ConsumeVideoBufferDescriptors;
             mux->muxStartSettings.video[i].stInputInterface.fGetBufferStatus = NEXUS_StreamMux_P_GetVideoBufferStatus;
+            mux->muxStartSettings.video[i].stInputInterface.fReadIndex = NEXUS_StreamMux_P_ReadVideoIndex;
             {
                NEXUS_PidChannelStatus status;
 
@@ -762,16 +827,16 @@ NEXUS_StreamMux_Start( NEXUS_StreamMuxHandle mux, const NEXUS_StreamMuxStartSett
             if(remapping) {
                 pidSettings_priv.remapping = true;
                 pidSettings_priv.remappedPesId = audio->pesId;
-                rc = NEXUS_StreamMux_P_AddPid(&mux->muxStartSettings, audio->playpump, &channel, timebase, &pMuxOutput->audio[i], basePesId, audio->pidChannelIndex, &pidSettings_priv);
+                rc = NEXUS_StreamMux_P_AddPid(mux->muxStartSettings.transport.stChannelInterface, audio->playpump, &channel, timebase, &pMuxOutput->audio[i], basePesId, audio->pidChannelIndex, &pidSettings_priv);
                 mux->muxStartSettings.audio[i].uiPESStreamID = basePesId;/* to be remapped later by rave */
                 basePesId++;
                 pidSettings_priv.remapping = false; /* clear for consecutive users of pidSettings_priv */
             } else {
-                rc = NEXUS_StreamMux_P_AddPid(&mux->muxStartSettings, audio->playpump, &channel, timebase, &pMuxOutput->audio[i], audio->pesId, audio->pidChannelIndex, &pidSettings_priv);
+                rc = NEXUS_StreamMux_P_AddPid(mux->muxStartSettings.transport.stChannelInterface, audio->playpump, &channel, timebase, &pMuxOutput->audio[i], audio->pesId, audio->pidChannelIndex, &pidSettings_priv);
                 mux->muxStartSettings.audio[i].uiPESStreamID = audio->pesId;
             }
 #else
-            rc = NEXUS_StreamMux_P_AddPid(&mux->muxStartSettings, audio->playpump, &channel, timebase, &pMuxOutput->audio[i], audio->pesId, audio->pidChannelIndex, &pidSettings_priv);
+            rc = NEXUS_StreamMux_P_AddPid(mux->muxStartSettings.transport.stChannelInterface, audio->playpump, &channel, timebase, &pMuxOutput->audio[i], audio->pesId, audio->pidChannelIndex, &pidSettings_priv);
             mux->muxStartSettings.audio[i].uiPESStreamID = audio->pesId;
 #endif
             if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto error;}
@@ -802,7 +867,7 @@ NEXUS_StreamMux_Start( NEXUS_StreamMuxHandle mux, const NEXUS_StreamMuxStartSett
         BDBG_MSG(("NEXUS_StreamMux_Start:%p using channel %u for pcr %#x", (void*)mux, channel,  pSettings->pcr.pid));
         pidSettings_priv.tsPid = 0;
         pidSettings_priv.preserveCC = true;
-        rc = NEXUS_StreamMux_P_AddPid(&mux->muxStartSettings, pSettings->pcr.playpump, &channel, timebase, (settings.transportType == NEXUS_TransportType_eEs)?&pMuxOutput->pcr:NULL, 0, -1, &pidSettings_priv);
+        rc = NEXUS_StreamMux_P_AddPid(mux->muxStartSettings.transport.stChannelInterface, pSettings->pcr.playpump, &channel, timebase, (settings.transportType == NEXUS_TransportType_eEs)?&pMuxOutput->pcr:NULL, 0, -1, &pidSettings_priv);
         if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto error;}
         mux->muxStartSettings.stPCRData.uiPID = pSettings->pcr.pid;
         mux->muxStartSettings.stPCRData.uiInterval = pSettings->pcr.interval;
@@ -1139,4 +1204,3 @@ void NEXUS_StreamMux_GetMemoryConfiguration(const NEXUS_StreamMuxConfiguration *
     BDBG_ASSERT(g_NEXUS_StreamMux_P_State.functionData.NEXUS_StreamMux_GetMemoryConfiguration.cookie == NEXUS_StreamMux_GetMemoryConfiguration);
     return;
 }
-

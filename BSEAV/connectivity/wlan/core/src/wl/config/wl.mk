@@ -894,7 +894,6 @@ ifeq ($(GTKOE),1)
 	endif
 endif
 
-WLFLAGS += -DWAR_USE_MPC2_UNASSOCIATED_S2
 
 ## wl features
 # D11CONF, D11CONF2, D11CONF3, D11CONF4, and D11CONF5 --  bit mask of supported d11 core revs
@@ -2780,6 +2779,12 @@ endif
 #ifdef WL_RXEARLYRC
 ifeq ($(WL_RXEARLYRC),1)
 	WLFLAGS += -DWL_RXEARLYRC
+endif
+#endif
+
+#ifdef ROBUST_DISASSOC_TX
+ifeq ($(ROBUST_DISASSOC_TX),1)
+	WLFLAGS += -DROBUST_DISASSOC_TX
 endif
 #endif
 

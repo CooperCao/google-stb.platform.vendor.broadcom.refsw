@@ -58,8 +58,6 @@
 
 BDBG_MODULE(BHSM);
 
-BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
-
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
  #define BHSM_BYPASS_KEYSLOT_TYPE     ( BCMD_XptSecKeySlot_eType0 )
  #define BHSM_BYPASS_KEYSLOT_NUMBER_g2gr ( BHSM_BypassKeySlot_eG2GR )
@@ -79,8 +77,6 @@ BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
 #endif
 
 #define BHSM_BSP_FW_VERSION_KEYSLOT_MULTIPLE_PID_CHANNELS (4)
-
-BERR_Code  BHSM_InitialiseKeyLadders ( BHSM_Handle hHsm );
 
 static BERR_Code ConfigPidKeyPointerTable ( BHSM_Handle hHsm, BHSM_ConfigPidKeyPointerTableIO_t *pPidChannelConf, bool verbose );
 
@@ -624,7 +620,7 @@ BERR_Code BHSM_InitKeySlot( BHSM_Handle hHsm, BHSM_InitKeySlotIO_t *pInitKeySlot
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eSESSION_INIT_KEYSLOT, &header );
 
     #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
-    pInitKeySlot->unKeySlotType0Num += BHSM_NUM_BYPASS_KEYLSOTS; /* Bypass keyslots will be Type0 */
+    pInitKeySlot->unKeySlotType0Num += BHSM_NUM_BYPASS_KEYSLOTS; /* Bypass keyslots will be Type0 */
     #endif
 
     if( pInitKeySlot->numMulti2KeySlots > BCMD_MULTI2_MAXSYSKEY )
@@ -1102,7 +1098,7 @@ BERR_Code BHSM_FreeCAKeySlot ( /* Zeus 4 */
             BHSM_Handle hHsm,
             BHSM_XptKeySlotIO_t *pKeySlotConf )
 {
-    BHSM_P_CAKeySlotInfo_t *pKeyslot;
+    BHSM_P_CAKeySlotInfo_t *pKeyslot = NULL;
     BERR_Code   errCode = BERR_SUCCESS;
     unsigned    i = 0;
     unsigned    extKsNum = 0;
@@ -1486,7 +1482,7 @@ BERR_Code BHSM_FreeCAKeySlot_v2 ( /* pre Zeus 4 */
             BHSM_Handle hHsm,
             BHSM_KeySlotAllocate_t *pKeySlotConf )
 {
-    BHSM_P_CAKeySlotInfo_t *pKeyslot;
+    BHSM_P_CAKeySlotInfo_t *pKeyslot = NULL;
     BERR_Code   errCode = BERR_SUCCESS;
     BHSM_InvalidateKeyIO_t  resetKeySlot;
 
@@ -3209,7 +3205,7 @@ BERR_Code BHSM_ConfigKeySlotGlobalCntrlWord (
 )
 {
     BERR_Code               errCode              = BERR_SUCCESS;
-    BHSM_P_CAKeySlotInfo_t  *pKeyslot;
+    BHSM_P_CAKeySlotInfo_t  *pKeyslot = NULL;
 
     BDBG_ENTER(BHSM_ConfigKeySlotIDData);
 
@@ -3354,6 +3350,7 @@ BERR_Code  BHSM_SetPidChannelBypassKeyslot(
     BERR_Code rc = BERR_SUCCESS;
     BHSM_BspMsg_h hMsg = NULL;
     BHSM_BspMsgHeader_t header;
+    uint8_t keyslotNumber = 0;
     uint8_t  status = 0;
 
     BDBG_ENTER( BHSM_SetPidChannelBypassKeyslot );
@@ -3371,13 +3368,30 @@ BERR_Code  BHSM_SetPidChannelBypassKeyslot(
         goto BHSM_P_DONE_LABEL;
     }
 
+    switch( bypassKeyslot ) { /* map Bypass type to keyslot number.  */
+        case BHSM_BypassKeySlot_eG2GR: {
+            keyslotNumber = BHSM_BYPASS_KEYSLOT_NUMBER_g2gr;
+            break;
+        }
+        case BHSM_BypassKeySlot_eGR2R: {
+            keyslotNumber = BHSM_BYPASS_KEYSLOT_NUMBER_gr2r;
+            break;
+        }
+        case BHSM_BypassKeySlot_eGT2T: {                        /* GT2T not supported on secv1, use g2gr bypass.  */
+            BDBG_CASSERT( BHSM_NUM_BYPASS_KEYSLOTS == 2 );      /* there are only two bypass keyslot configured.  */
+            keyslotNumber = BHSM_BYPASS_KEYSLOT_NUMBER_g2gr;    /* use the g2gr bypass.  */
+            break;
+        }
+        default: return BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
+    }
+
     BHSM_BspMsg_GetDefaultHeader( &header );
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eSESSION_CONFIG_PIDKEYPOINTERTABLE, &header );
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_KeyPointer_InCmdCfg_eSlotType, BHSM_BYPASS_KEYSLOT_TYPE );
-    BHSM_BspMsg_Pack8( hMsg, BCMD_KeyPointer_InCmdCfg_eSlotNumber, bypassKeyslot );
+    BHSM_BspMsg_Pack8( hMsg, BCMD_KeyPointer_InCmdCfg_eSlotNumber, keyslotNumber );
     BHSM_BspMsg_Pack8( hMsg, BCMD_KeyPointer_InCmdCfg_eSlotTypeB, BHSM_BYPASS_KEYSLOT_TYPE );
-    BHSM_BspMsg_Pack8( hMsg, BCMD_KeyPointer_InCmdCfg_eSlotNumberB, bypassKeyslot );
+    BHSM_BspMsg_Pack8( hMsg, BCMD_KeyPointer_InCmdCfg_eSlotNumberB, keyslotNumber );
     BHSM_BspMsg_Pack8( hMsg, BCMD_KeyPointer_InCmdCfg_eKeyPointerSel,0 );
     BHSM_BspMsg_Pack32( hMsg, BCMD_KeyPointer_InCmdCfg_ePidChan, pidChannelIndex );
 
@@ -3397,7 +3411,7 @@ BERR_Code  BHSM_SetPidChannelBypassKeyslot(
     }
 
     hHsm->mapPidChannelToKeySlot[pidChannelIndex][BHSM_PidChannelType_ePrimary].keySlotType  = BHSM_BYPASS_KEYSLOT_TYPE;
-    hHsm->mapPidChannelToKeySlot[pidChannelIndex][BHSM_PidChannelType_ePrimary].unKeySlotNum = bypassKeyslot;
+    hHsm->mapPidChannelToKeySlot[pidChannelIndex][BHSM_PidChannelType_ePrimary].unKeySlotNum = keyslotNumber;
 
     BHSM_P_DONE_LABEL:
 
@@ -3436,7 +3450,7 @@ BERR_Code  BHSM_GetPidChannelBypassKeyslot(
     *pBypassKeyslot = BHSM_BypassKeySlot_eInvalid;
 
     if( ( keySlotNum == (unsigned)BHSM_BypassKeySlot_eG2GR ) ||
-        ( keySlotNum == (unsigned)BHSM_BypassKeySlot_eGR2R ) )
+        ( keySlotNum == (unsigned)BHSM_BypassKeySlot_eGR2R ) )  /*GT2T will never occur .. it was mapped to G2GR*/
     {
         *pBypassKeyslot = (BHSM_BypassKeySlot_e)keySlotNum;
     }

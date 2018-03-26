@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,13 +49,32 @@ extern "C" {
 #endif
 
 unsigned NEXUS_VideoEncoder_GetIndex_isrsafe(NEXUS_VideoEncoderHandle encoder);
+
+typedef struct NEXUS_VideoEncoderRegisters_priv
+{
+   struct {
+       uint32_t read;  /* Address of the buffer READ register */
+       uint32_t base;  /* Address of the buffer BASE register */
+       uint32_t valid; /* Address of the buffer VALID register */
+       uint32_t end;   /* Address of the buffer END register */
+
+       bool ready; /* Set to true when the buffer has been initialized and ready to be consumed.
+                    * Once set to true, it is always true for the duration of the session. */
+   } data, index;
+} NEXUS_VideoEncoderRegisters_priv;
+
 NEXUS_Error NEXUS_VideoEncoder_GetBufferStatus_priv(
     NEXUS_VideoEncoderHandle handle,
     NEXUS_VideoEncoderStatus *pStatus /* [out] */
     );
 
 NEXUS_Error NEXUS_VideoEncoder_GetBufferBlocks_priv(NEXUS_VideoEncoderHandle encoder,
-    BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock);
+    BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock, BMMA_Block_Handle *phIndexBufferBlock);
+
+NEXUS_Error NEXUS_VideoEncoder_GetBufferRegisters_priv(
+    NEXUS_VideoEncoderHandle handle,
+    NEXUS_VideoEncoderRegisters_priv *pRegisters_priv /* [out] */
+    );
 
 #ifdef __cplusplus
 }

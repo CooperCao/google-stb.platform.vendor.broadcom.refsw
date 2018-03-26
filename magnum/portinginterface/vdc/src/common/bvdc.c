@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -626,12 +626,10 @@ static BERR_Code BVDC_P_CheckBandgapDefSettings
 /***************************************************************************
  *
  */
-BERR_Code BVDC_GetDefaultSettings
+void BVDC_GetDefaultSettings
     ( const BBOX_Handle                hBox,
       BVDC_Settings                   *pDefSettings )
 {
-    BERR_Code err = BERR_SUCCESS;
-
     BDBG_ENTER(BVDC_GetDefaultSettings);
 
     if(pDefSettings)
@@ -648,7 +646,7 @@ BERR_Code BVDC_GetDefaultSettings
     }
 
     BDBG_LEAVE(BVDC_GetDefaultSettings);
-    return err;
+    return;
 }
 
 #if !B_REFSW_MINIMAL
@@ -1233,13 +1231,49 @@ BERR_Code BVDC_GetMaxMosaicCoverage
 /***************************************************************************
  *
  */
-BERR_Code BVDC_GetMatrixForGfxYCbCr2Rgb_isrsafe
+void BVDC_GetMatrixForGfxYCbCr2Rgb_isrsafe
     ( BAVC_MatrixCoefficients          eMatrixCoeffs,
       uint32_t                         ulShift,
       int32_t                         *pulCoeffs)
 {
-	BCFC_GetMatrixForGfxYCbCr2Rgb_isrsafe(eMatrixCoeffs, ulShift, pulCoeffs);
+    BCFC_GetMatrixForGfxYCbCr2Rgb_isrsafe(eMatrixCoeffs, ulShift, pulCoeffs);
 
+    return;
+}
+
+/***************************************************************************
+ *
+ */
+BERR_Code BVDC_GetWindowCapabilities
+    ( BVDC_Handle                      hVdc,
+      BVDC_CompositorId                eCompositorId,
+      BVDC_WindowId                    eWinId,
+      BVDC_Window_Capabilities        *pCapabilities )
+{
+    BDBG_OBJECT_ASSERT(hVdc, BVDC_VDC);
+    if(eWinId > BVDC_WindowId_eAuto || eCompositorId > BVDC_CompositorId_eCompositorMax) {
+        BDBG_ERR(("eWinId = %d, eCmpId = %d", eWinId, eCompositorId));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    } else if(eWinId == BVDC_WindowId_eAuto) {
+        eWinId = BVDC_WindowId_eVideo0; /* default v0 */
+    }
+    if (pCapabilities)
+    {
+        BCFC_Capability stCapability;
+
+        if(eWinId >= BVDC_WindowId_eGfx0 && eWinId < BVDC_WindowId_eAuto) {
+            BVDC_P_GfxFeeder_GetCfcCapabilities(hVdc->hRegister, eCompositorId + BAVC_SourceId_eGfx0 + (eWinId - BVDC_WindowId_eGfx0), &stCapability);
+        } else {
+            BVDC_P_Compositor_GetCfcCapabilities(hVdc->hRegister, eCompositorId, eWinId, &stCapability);
+        }
+        stCapability.stBits.bBlackBoxNLConv = stCapability.stBits.bNL2L && !stCapability.stBits.bMb;
+
+        pCapabilities->bConvColorimetry = stCapability.stBits.bBlackBoxNLConv || stCapability.stBits.bMb;
+        pCapabilities->bConvHdr10 = stCapability.stBits.bLRngAdj || stCapability.stBits.bLMR;
+        pCapabilities->bConvHlg = stCapability.stBits.bLMR;
+        pCapabilities->bTchInput = stCapability.stBits.bTpToneMapping;
+        pCapabilities->bDolby = stCapability.stBits.bDbvToneMapping || stCapability.stBits.bDbvCmp;
+    }
     return BERR_SUCCESS;
 }
 

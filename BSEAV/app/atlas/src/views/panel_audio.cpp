@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -165,7 +165,7 @@ eRet CPanelAudio::initialize(
             CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _Ac4, ret, eRet_OutOfMemory, error);
             _Ac4->setText("AC-4...", bwidget_justify_horiz_left);
             _settings->addButton(_Ac4, "AC-4");
-#endif
+#endif /* if BDSP_MS12_SUPPORT */
 
             /* Audio Processing */
             if ((true == pFeatures->_autoVolume) ||
@@ -326,7 +326,7 @@ eRet CPanelAudio::initialize(
         /* back button */
         _Back = new CWidgetButton("CPanelAudio::_Back", getEngine(), this, MRect(0, 0, 0, 0), font10);
         CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _Back, ret, eRet_OutOfMemory, error);
-        _Back->setText("Menu");
+        _Back->loadImage("images/back-sm.png");
         _pAudioMenu->addBackButton(_Back);
 
         rectPanel.set(50, 50, menuWidth, menuHeight);
@@ -404,7 +404,7 @@ void CPanelAudio::onClick(bwidget_t widget)
         getScreenMain()->showMenu(eMenu_Audio_Ac4);
     }
     else
-#endif
+#endif /* if BDSP_MS12_SUPPORT */
     if ((NULL != _AudioProcessingPopup) && (0 <= _AudioProcessingPopup->getItemListIndex(pWidget->getWidget())))
     {
         CWidgetCheckButton * pButton         = (CWidgetCheckButton *)pWidget;

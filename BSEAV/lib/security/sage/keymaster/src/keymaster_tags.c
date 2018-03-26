@@ -78,50 +78,50 @@ static inline bool km_tag_is_valid(km_tag_value_t *param)
 
     switch (param->tag) {
         /* These will all just drop through as valid */
-    case KM_TAG_PURPOSE :
-    case KM_TAG_ALGORITHM :
-    case KM_TAG_KEY_SIZE :
-    case KM_TAG_BLOCK_MODE :
-    case KM_TAG_DIGEST :
-    case KM_TAG_PADDING :
-    case KM_TAG_CALLER_NONCE :
-    case KM_TAG_MIN_MAC_LENGTH :
-    case KM_TAG_KDF :
-    case KM_TAG_EC_CURVE :
-    case KM_TAG_RSA_PUBLIC_EXPONENT :
-    case KM_TAG_ECIES_SINGLE_HASH_MODE :
-    case KM_TAG_INCLUDE_UNIQUE_ID :
-    case KM_TAG_BLOB_USAGE_REQUIREMENTS :
-    case KM_TAG_BOOTLOADER_ONLY :
-    case KM_TAG_ACTIVE_DATETIME :
-    case KM_TAG_ORIGINATION_EXPIRE_DATETIME :
-    case KM_TAG_USAGE_EXPIRE_DATETIME :
-    case KM_TAG_MIN_SECONDS_BETWEEN_OPS :
-    case KM_TAG_MAX_USES_PER_BOOT :
-    case KM_TAG_ALL_USERS :
-    case KM_TAG_USER_ID :
-    case KM_TAG_USER_SECURE_ID :
-    case KM_TAG_NO_AUTH_REQUIRED :
-    case KM_TAG_USER_AUTH_TYPE :
-    case KM_TAG_AUTH_TIMEOUT :
-    case KM_TAG_ALLOW_WHILE_ON_BODY :
-    case KM_TAG_ALL_APPLICATIONS :
-    case KM_TAG_APPLICATION_ID :
-    case KM_TAG_EXPORTABLE :
-    case KM_TAG_APPLICATION_DATA :
-    case KM_TAG_CREATION_DATETIME :
-    case KM_TAG_ORIGIN :
-    case KM_TAG_ROLLBACK_RESISTANT :
-    case KM_TAG_ROOT_OF_TRUST :
-    case KM_TAG_OS_VERSION :
-    case KM_TAG_OS_PATCHLEVEL :
-    case KM_TAG_UNIQUE_ID :
-    case KM_TAG_ATTESTATION_CHALLENGE :
-    case KM_TAG_ASSOCIATED_DATA :
-    case KM_TAG_NONCE :
-    case KM_TAG_AUTH_TOKEN :
-    case KM_TAG_MAC_LENGTH :
-    case KM_TAG_RESET_SINCE_ID_ROTATION :
+    case SKM_TAG_PURPOSE :
+    case SKM_TAG_ALGORITHM :
+    case SKM_TAG_KEY_SIZE :
+    case SKM_TAG_BLOCK_MODE :
+    case SKM_TAG_DIGEST :
+    case SKM_TAG_PADDING :
+    case SKM_TAG_CALLER_NONCE :
+    case SKM_TAG_MIN_MAC_LENGTH :
+    case SKM_TAG_KDF :
+    case SKM_TAG_EC_CURVE :
+    case SKM_TAG_RSA_PUBLIC_EXPONENT :
+    case SKM_TAG_ECIES_SINGLE_HASH_MODE :
+    case SKM_TAG_INCLUDE_UNIQUE_ID :
+    case SKM_TAG_BLOB_USAGE_REQUIREMENTS :
+    case SKM_TAG_BOOTLOADER_ONLY :
+    case SKM_TAG_ACTIVE_DATETIME :
+    case SKM_TAG_ORIGINATION_EXPIRE_DATETIME :
+    case SKM_TAG_USAGE_EXPIRE_DATETIME :
+    case SKM_TAG_MIN_SECONDS_BETWEEN_OPS :
+    case SKM_TAG_MAX_USES_PER_BOOT :
+    case SKM_TAG_ALL_USERS :
+    case SKM_TAG_USER_ID :
+    case SKM_TAG_USER_SECURE_ID :
+    case SKM_TAG_NO_AUTH_REQUIRED :
+    case SKM_TAG_USER_AUTH_TYPE :
+    case SKM_TAG_AUTH_TIMEOUT :
+    case SKM_TAG_ALLOW_WHILE_ON_BODY :
+    case SKM_TAG_ALL_APPLICATIONS :
+    case SKM_TAG_APPLICATION_ID :
+    case SKM_TAG_EXPORTABLE :
+    case SKM_TAG_APPLICATION_DATA :
+    case SKM_TAG_CREATION_DATETIME :
+    case SKM_TAG_ORIGIN :
+    case SKM_TAG_ROLLBACK_RESISTANT :
+    case SKM_TAG_ROOT_OF_TRUST :
+    case SKM_TAG_OS_VERSION :
+    case SKM_TAG_OS_PATCHLEVEL :
+    case SKM_TAG_UNIQUE_ID :
+    case SKM_TAG_ATTESTATION_CHALLENGE :
+    case SKM_TAG_ASSOCIATED_DATA :
+    case SKM_TAG_NONCE :
+    case SKM_TAG_AUTH_TOKEN :
+    case SKM_TAG_MAC_LENGTH :
+    case SKM_TAG_RESET_SINCE_ID_ROTATION :
         is_valid = true;
         break;
 
@@ -143,8 +143,8 @@ static KM_Tag_Item* km_tag_make_tag_item(km_tag_value_t *tagValuePair, uint32_t 
     BDBG_ASSERT(size);
 
     allocSize = sizeof(KM_Tag_Item) + sizeof(km_tag_value_t);
-    if ((km_tag_get_type(tagValuePair->tag) == KM_BIGNUM) || (km_tag_get_type(tagValuePair->tag) == KM_BYTES)) {
-        if (tagValuePair->value.blob_data_length > KM_TAG_VALUE_BLOB_MAX_SIZE) {
+    if ((km_tag_get_type(tagValuePair->tag) == SKM_BIGNUM) || (km_tag_get_type(tagValuePair->tag) == SKM_BYTES)) {
+        if (tagValuePair->value.blob_data_length > SKM_TAG_VALUE_BLOB_MAX_SIZE) {
             BDBG_ERR(("%s: Blob too large", BSTD_FUNCTION));
             goto err_done;
         }
@@ -167,26 +167,26 @@ static KM_Tag_Item* km_tag_make_tag_item(km_tag_value_t *tagValuePair, uint32_t 
 
     switch (km_tag_get_type(tagValuePair->tag)) {
         /* Group drop through */
-    case KM_ENUM:
-    case KM_ENUM_REP:
-    case KM_UINT:
-    case KM_UINT_REP:
+    case SKM_ENUM:
+    case SKM_ENUM_REP:
+    case SKM_UINT:
+    case SKM_UINT_REP:
         *outTagValuePair = *tagValuePair;
         *size = sizeof(*tagValuePair);
         break;
         /* Group drop through */
-    case KM_ULONG:
-    case KM_ULONG_REP:
-    case KM_DATE:
+    case SKM_ULONG:
+    case SKM_ULONG_REP:
+    case SKM_DATE:
         *outTagValuePair = *tagValuePair;
         *size = sizeof(*tagValuePair);
         break;
-    case KM_BOOL:
+    case SKM_BOOL:
         *outTagValuePair = *tagValuePair;
         *size = sizeof(*tagValuePair);
         break;
-    case KM_BIGNUM:
-    case KM_BYTES:
+    case SKM_BIGNUM:
+    case SKM_BYTES:
         *outTagValuePair = *tagValuePair;
         BKNI_Memcpy(outTagValuePair->blob_data, tagValuePair->blob_data, tagValuePair->value.blob_data_length);
         *size = sizeof(*tagValuePair) + blobSize;
@@ -254,7 +254,7 @@ static KM_Tag_ContextHandle km_tag_dup_context(KM_Tag_ContextHandle handle)
     }
 
     new_handle->current = NULL;
-    new_handle->tag = KM_TAG_INVALID;
+    new_handle->tag = SKM_TAG_INVALID;
     err = BERR_SUCCESS;
 
 done:
@@ -273,29 +273,29 @@ static int km_tag_cmp_tag_value_pair(km_tag_value_t *tagValuePair1, km_tag_value
     if (tagValuePair1->tag == tagValuePair2->tag) {
         switch (km_tag_get_type(tagValuePair1->tag)) {
             /* Group drop through */
-        case KM_ENUM:
-        case KM_ENUM_REP:
-        case KM_UINT:
-        case KM_UINT_REP:
+        case SKM_ENUM:
+        case SKM_ENUM_REP:
+        case SKM_UINT:
+        case SKM_UINT_REP:
             if (tagValuePair1->value.integer == tagValuePair2->value.integer) {
                 result = 0;
             }
             break;
             /* Group drop through */
-        case KM_ULONG:
-        case KM_ULONG_REP:
-        case KM_DATE:
+        case SKM_ULONG:
+        case SKM_ULONG_REP:
+        case SKM_DATE:
             if (tagValuePair1->value.long_integer == tagValuePair2->value.long_integer) {
                 result = 0;
             }
             break;
-        case KM_BOOL:
+        case SKM_BOOL:
             if (tagValuePair1->value.boolean == tagValuePair2->value.boolean) {
                 result = 0;
             }
             break;
-        case KM_BIGNUM:
-        case KM_BYTES:
+        case SKM_BIGNUM:
+        case SKM_BYTES:
             if ((tagValuePair1->value.blob_data_length == tagValuePair2->value.blob_data_length) &&
                 (!BKNI_Memcmp(tagValuePair1->blob_data, tagValuePair2->blob_data, tagValuePair1->value.blob_data_length))) {
                 result = 0;
@@ -377,7 +377,7 @@ BERR_Code KM_Tag_CreateContext(int32_t num_params, uint32_t len, uint8_t *data_b
     }
 
     handle->current = NULL;
-    handle->tag = KM_TAG_INVALID;
+    handle->tag = SKM_TAG_INVALID;
     err = BERR_SUCCESS;
 
 done:
@@ -500,14 +500,14 @@ BERR_Code KM_Tag_ValidateKeyParameters(KM_Tag_ContextHandle handle)
         BDBG_OBJECT_ASSERT(tag_item, KM_Tag_Item);
         tagValuePair = (km_tag_value_t *)tag_item->tagValueData;
         switch (tagValuePair->tag) {
-        case KM_TAG_INVALID:
-        case KM_TAG_AUTH_TOKEN:
-        case KM_TAG_APPLICATION_DATA:
-        case KM_TAG_ATTESTATION_CHALLENGE:
-        case KM_TAG_ORIGIN:
-        case KM_TAG_ROOT_OF_TRUST:
-        case KM_TAG_OS_VERSION:
-        case KM_TAG_OS_PATCHLEVEL:
+        case SKM_TAG_INVALID:
+        case SKM_TAG_AUTH_TOKEN:
+        case SKM_TAG_APPLICATION_DATA:
+        case SKM_TAG_ATTESTATION_CHALLENGE:
+        case SKM_TAG_ORIGIN:
+        case SKM_TAG_ROOT_OF_TRUST:
+        case SKM_TAG_OS_VERSION:
+        case SKM_TAG_OS_PATCHLEVEL:
             err = BERR_INVALID_PARAMETER;
             goto done;
         default:
@@ -550,7 +550,7 @@ static KM_Tag_Item* km_tag_find_from_starting_point(KM_Tag_ContextHandle handle,
 
     if (!tag_item && update_position) {
         handle->current = NULL;
-        handle->tag = KM_TAG_INVALID;
+        handle->tag = SKM_TAG_INVALID;
     }
 
 done:
@@ -585,13 +585,13 @@ km_tag_value_t* KM_Tag_FindNext(KM_Tag_ContextHandle handle)
     if (!km_tag_is_repeatable(handle->tag)) {
         BDBG_ERR(("%s: tag not repeatable (%x)", BSTD_FUNCTION, handle->tag));
         handle->current = NULL;
-        handle->tag = KM_TAG_INVALID;
+        handle->tag = SKM_TAG_INVALID;
         goto done;
     }
-    if (!handle->current || (handle->tag == KM_TAG_INVALID)) {
+    if (!handle->current || (handle->tag == SKM_TAG_INVALID)) {
         BDBG_ERR(("%s: no current search", BSTD_FUNCTION));
         handle->current = NULL;
-        handle->tag = KM_TAG_INVALID;
+        handle->tag = SKM_TAG_INVALID;
         goto done;
     }
 
@@ -644,7 +644,7 @@ km_tag_value_t* KM_Tag_First(KM_Tag_ContextHandle handle)
     BDBG_OBJECT_ASSERT(handle, KM_Tag_Context);
 
     handle->current = BLST_D_FIRST(&handle->tagList);
-    handle->tag = KM_TAG_INVALID;
+    handle->tag = SKM_TAG_INVALID;
 
     if (handle->current) {
         BDBG_OBJECT_ASSERT(handle->current, KM_Tag_Item);
@@ -661,10 +661,10 @@ km_tag_value_t* KM_Tag_Next(KM_Tag_ContextHandle handle)
     BDBG_ASSERT(handle);
     BDBG_OBJECT_ASSERT(handle, KM_Tag_Context);
 
-    if ((handle->tag != KM_TAG_INVALID) || !handle->current) {
+    if ((handle->tag != SKM_TAG_INVALID) || !handle->current) {
         BDBG_ERR(("%s: no current search", BSTD_FUNCTION));
         handle->current = NULL;
-        handle->tag = KM_TAG_INVALID;
+        handle->tag = SKM_TAG_INVALID;
         goto done;
     }
 
@@ -687,7 +687,7 @@ km_tag_value_t* KM_Tag_FindEnum(KM_Tag_ContextHandle handle, km_tag_t tag, uint3
     BDBG_ASSERT(handle);
     BDBG_OBJECT_ASSERT(handle, KM_Tag_Context);
 
-    if ((km_tag_get_type(tag) != KM_ENUM) && (km_tag_get_type(tag) != KM_ENUM_REP)) {
+    if ((km_tag_get_type(tag) != SKM_ENUM) && (km_tag_get_type(tag) != SKM_ENUM_REP)) {
         BDBG_ERR(("%s: tag not enum", BSTD_FUNCTION));
         goto done;
     }
@@ -719,7 +719,7 @@ bool KM_Tag_ContainsInteger(KM_Tag_ContextHandle handle, km_tag_t tag, uint32_t 
     BDBG_ASSERT(handle);
     BDBG_OBJECT_ASSERT(handle, KM_Tag_Context);
 
-    if ((km_tag_get_type(tag) != KM_UINT) && (km_tag_get_type(tag) != KM_UINT_REP)) {
+    if ((km_tag_get_type(tag) != SKM_UINT) && (km_tag_get_type(tag) != SKM_UINT_REP)) {
         BDBG_ERR(("%s: tag not integer", BSTD_FUNCTION));
         goto done;
     }
@@ -746,7 +746,7 @@ bool KM_Tag_ContainsLongInteger(KM_Tag_ContextHandle handle, km_tag_t tag, uint6
     BDBG_ASSERT(handle);
     BDBG_OBJECT_ASSERT(handle, KM_Tag_Context);
 
-    if ((km_tag_get_type(tag) != KM_ULONG) && (km_tag_get_type(tag) != KM_ULONG_REP)) {
+    if ((km_tag_get_type(tag) != SKM_ULONG) && (km_tag_get_type(tag) != SKM_ULONG_REP)) {
         BDBG_ERR(("%s: tag not long", BSTD_FUNCTION));
         goto done;
     }
@@ -763,6 +763,28 @@ bool KM_Tag_ContainsLongInteger(KM_Tag_ContextHandle handle, km_tag_t tag, uint6
 
 done:
     return (tag_item != NULL);
+}
+
+bool KM_Tag_ContainsBool(KM_Tag_ContextHandle handle, km_tag_t tag)
+{
+    KM_Tag_Item *tag_item = NULL;
+    km_tag_value_t *tag_value = NULL;
+
+    BDBG_ASSERT(handle);
+    BDBG_OBJECT_ASSERT(handle, KM_Tag_Context);
+
+    if (km_tag_get_type(tag) != SKM_BOOL) {
+        BDBG_ERR(("%s: tag not bool", BSTD_FUNCTION));
+        goto done;
+    }
+
+    tag_item = km_tag_find_from_starting_point(handle, tag, BLST_D_FIRST(&handle->tagList), false);
+    if (tag_item) {
+        tag_value = (km_tag_value_t *)tag_item->tagValueData;
+    }
+
+done:
+    return (tag_value && tag_value->value.boolean);
 }
 
 uint32_t KM_Tag_Count(KM_Tag_ContextHandle handle, km_tag_t tag)
@@ -813,7 +835,7 @@ BERR_Code KM_Tag_AddEnum(KM_Tag_ContextHandle handle, const km_tag_t tag, const 
     BERR_Code err;
     km_tag_value_t tagValuePair;
 
-    BDBG_ASSERT((km_tag_get_type(tag) == KM_ENUM) || (km_tag_get_type(tag) == KM_ENUM_REP));
+    BDBG_ASSERT((km_tag_get_type(tag) == SKM_ENUM) || (km_tag_get_type(tag) == SKM_ENUM_REP));
     tagValuePair.tag = tag;
     tagValuePair.value.enumerated = enum_value;
     /* coverity[uninit_use_in_call : FALSE] */
@@ -826,7 +848,7 @@ BERR_Code KM_Tag_AddInteger(KM_Tag_ContextHandle handle, const km_tag_t tag, con
     BERR_Code err;
     km_tag_value_t tagValuePair;
 
-    BDBG_ASSERT((km_tag_get_type(tag) == KM_UINT) || (km_tag_get_type(tag) == KM_UINT_REP));
+    BDBG_ASSERT((km_tag_get_type(tag) == SKM_UINT) || (km_tag_get_type(tag) == SKM_UINT_REP));
     tagValuePair.tag = tag;
     tagValuePair.value.integer = integer_value;
     /* coverity[uninit_use_in_call : FALSE] */
@@ -839,7 +861,7 @@ BERR_Code KM_Tag_AddLongInteger(KM_Tag_ContextHandle handle, const km_tag_t tag,
     BERR_Code err;
     km_tag_value_t tagValuePair;
 
-    BDBG_ASSERT((km_tag_get_type(tag) == KM_ULONG) || (km_tag_get_type(tag) == KM_ULONG_REP));
+    BDBG_ASSERT((km_tag_get_type(tag) == SKM_ULONG) || (km_tag_get_type(tag) == SKM_ULONG_REP));
     tagValuePair.tag = tag;
     tagValuePair.value.long_integer = long_int_value;
     /* coverity[uninit_use_in_call : FALSE] */
@@ -852,7 +874,7 @@ BERR_Code KM_Tag_AddDate(KM_Tag_ContextHandle handle, const km_tag_t tag, const 
     BERR_Code err;
     km_tag_value_t tagValuePair;
 
-    BDBG_ASSERT(km_tag_get_type(tag) == KM_DATE);
+    BDBG_ASSERT(km_tag_get_type(tag) == SKM_DATE);
     tagValuePair.tag = tag;
     tagValuePair.value.date_time = date_value;
     /* coverity[uninit_use_in_call : FALSE] */
@@ -865,7 +887,7 @@ BERR_Code KM_Tag_AddBool(KM_Tag_ContextHandle handle, const km_tag_t tag, const 
     BERR_Code err;
     km_tag_value_t tagValuePair;
 
-    BDBG_ASSERT(km_tag_get_type(tag) == KM_BOOL);
+    BDBG_ASSERT(km_tag_get_type(tag) == SKM_BOOL);
     tagValuePair.tag = tag;
     tagValuePair.value.boolean = bool_value;
     /* coverity[uninit_use_in_call : FALSE] */
@@ -878,7 +900,7 @@ BERR_Code KM_Tag_AddBlob(KM_Tag_ContextHandle handle, const km_tag_t tag, const 
     BERR_Code err;
     km_tag_value_t *tagValuePair;
 
-    BDBG_ASSERT((km_tag_get_type(tag) == KM_BYTES) || (km_tag_get_type(tag) == KM_BIGNUM));
+    BDBG_ASSERT((km_tag_get_type(tag) == SKM_BYTES) || (km_tag_get_type(tag) == SKM_BIGNUM));
     BDBG_ASSERT(blob_data);
     if (NEXUS_Memory_Allocate(sizeof(km_tag_value_t) + blob_len, NULL, (void **)&tagValuePair) != NEXUS_SUCCESS) {
         err = BERR_OUT_OF_DEVICE_MEMORY;
@@ -975,18 +997,18 @@ BERR_Code KM_Tag_Serialize(KM_Tag_ContextHandle handle, uint8_t *buffer, uint32_
         tagValuePair = (km_tag_value_t *)tag_item->tagValueData;
         switch (km_tag_get_type(tagValuePair->tag)) {
             /* Group drop through */
-        case KM_ENUM:
-        case KM_ENUM_REP:
-        case KM_UINT:
-        case KM_UINT_REP:
-        case KM_ULONG:
-        case KM_ULONG_REP:
-        case KM_DATE:
-        case KM_BOOL:
+        case SKM_ENUM:
+        case SKM_ENUM_REP:
+        case SKM_UINT:
+        case SKM_UINT_REP:
+        case SKM_ULONG:
+        case SKM_ULONG_REP:
+        case SKM_DATE:
+        case SKM_BOOL:
             size += sizeof(km_tag_value_t);
             break;
-        case KM_BIGNUM:
-        case KM_BYTES:
+        case SKM_BIGNUM:
+        case SKM_BYTES:
             /* Store tag + data length + data */
             size += sizeof(km_tag_value_t);
             size += (tagValuePair->value.blob_data_length + 3ul) & ~3ul;
@@ -1019,20 +1041,20 @@ BERR_Code KM_Tag_Serialize(KM_Tag_ContextHandle handle, uint8_t *buffer, uint32_
         tagValuePair = (km_tag_value_t *)tag_item->tagValueData;
         switch (km_tag_get_type(tagValuePair->tag)) {
             /* Group drop through */
-        case KM_ENUM:
-        case KM_ENUM_REP:
-        case KM_UINT:
-        case KM_UINT_REP:
-        case KM_ULONG:
-        case KM_ULONG_REP:
-        case KM_DATE:
-        case KM_BOOL:
+        case SKM_ENUM:
+        case SKM_ENUM_REP:
+        case SKM_UINT:
+        case SKM_UINT_REP:
+        case SKM_ULONG:
+        case SKM_ULONG_REP:
+        case SKM_DATE:
+        case SKM_BOOL:
             data_size = sizeof(km_tag_value_t);
             BKNI_Memcpy(ptr, &tag_item->tagValueData, data_size);
             ptr += data_size;
             break;
-        case KM_BIGNUM:
-        case KM_BYTES:
+        case SKM_BIGNUM:
+        case SKM_BYTES:
             data_size = sizeof(km_tag_value_t);
             data_size += (tagValuePair->value.blob_data_length + 3ul) & ~3ul;
             /* It doesn't matter that we copy the extra padding bytes */
@@ -1074,7 +1096,7 @@ BERR_Code KM_Tag_SerializeAsTagValueSet(KM_Tag_ContextHandle handle, uint8_t *bu
         goto done;
     }
     size += 2 * sizeof(uint32_t);
-    if (size > KM_TAG_VALUE_BLOCK_SIZE) {
+    if (size > SKM_TAG_VALUE_BLOCK_SIZE) {
         BDBG_ERR(("%s: tag value set too large", BSTD_FUNCTION));
         err = BSAGE_ERR_INTERNAL;
         goto done;
@@ -1174,8 +1196,8 @@ km_tag_value_t* KM_Tag_Dup(km_tag_value_t *tagValuePair)
     uint32_t size = sizeof(km_tag_value_t);
 
     BDBG_ASSERT(tagValuePair);
-    if ((km_tag_get_type(tagValuePair->tag) == KM_BIGNUM) || (km_tag_get_type(tagValuePair->tag) == KM_BYTES)) {
-        if (tagValuePair->value.blob_data_length > KM_TAG_VALUE_BLOB_MAX_SIZE) {
+    if ((km_tag_get_type(tagValuePair->tag) == SKM_BIGNUM) || (km_tag_get_type(tagValuePair->tag) == SKM_BYTES)) {
+        if (tagValuePair->value.blob_data_length > SKM_TAG_VALUE_BLOB_MAX_SIZE) {
             BDBG_ERR(("%s: Blob too large", BSTD_FUNCTION));
             goto done;
         }
@@ -1187,7 +1209,7 @@ km_tag_value_t* KM_Tag_Dup(km_tag_value_t *tagValuePair)
         goto done;
     }
     *new_tag = *tagValuePair;
-    if ((km_tag_get_type(tagValuePair->tag) == KM_BIGNUM) || (km_tag_get_type(tagValuePair->tag) == KM_BYTES)) {
+    if ((km_tag_get_type(tagValuePair->tag) == SKM_BIGNUM) || (km_tag_get_type(tagValuePair->tag) == SKM_BYTES)) {
         BKNI_Memcpy(new_tag->blob_data, tagValuePair->blob_data, tagValuePair->value.blob_data_length);
     }
 

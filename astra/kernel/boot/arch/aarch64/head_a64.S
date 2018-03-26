@@ -39,12 +39,25 @@
 #include "plat_config.h"
 #include "arm.h"
 
+#define ARM_IMAGE_HEADER      0x644d5241  /* ARM image header for 64bit ("ARM\x64") */
+
 .global tz_init
 .global tz_bootstrap
 
 .section ".text.bootstrap"
 
 tz_init:
+
+    /* The image must begin with a ARM image header. This helps
+     * monitor to find the arch mode of astra
+     */
+    .rept 8
+    nop
+    .endr
+    b   tz_bootstrap
+
+    .word   ARM_IMAGE_HEADER
+
 tz_bootstrap:
 	// What EL are we in ?
     mrs x1, CurrentEL

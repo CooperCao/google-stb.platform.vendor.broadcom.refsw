@@ -56,8 +56,6 @@ int main(
 {
     NEXUS_PlatformSettings platformSettings;
     NEXUS_Error   rc;
-    NEXUS_DmaHandle dma;
-    NEXUS_DmaJobSettings jobSettings;
     NEXUS_SecurityKeySlotSettings keySettings;
     NEXUS_SecurityAlgorithmSettings NexusConfig;
     NEXUS_KeySlotHandle keyslotHandle;
@@ -103,7 +101,7 @@ int main(
 
     int           first_dma_bytes = 6;
     int           second_dma_bytes = 42;
-    int           flag = 0, offset = 0, first, last;
+    int           flag = 0, offset = 0, first = 0, last = 0;
 
     /* Platform init */
 

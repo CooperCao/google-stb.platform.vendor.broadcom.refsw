@@ -139,8 +139,7 @@ static uint8_t	sSessionIdBuf[DRM_PRDY_SESSION_ID_LEN];
 int vc1_stream = 0;
 
 /* Use secure buffers for playback if true
-* Secure buffers only apply when SAGE enabled, always false otherwise.
-* Should be FALSE for SAGE_SECURE_MODE=1, and TRUE for SAGE_SECURE_MODE 5/6/9 */
+* Secure buffers only apply when SAGE enabled, always false otherwise.*/
 bool secure_pic_buffers = false;
 
 typedef app_ctx * app_ctx_t;
@@ -1758,6 +1757,7 @@ int main(int argc, char* argv[])
         Also, the top-level surfaceClient ID must be submitted to NxClient_ConnectSettings below. */
         surfaceClient = NEXUS_SurfaceClient_Acquire(allocResults.surfaceClient[0].id);
         videoSurfaceClient = NEXUS_SurfaceClient_AcquireVideoWindow(surfaceClient, 0);
+        BSTD_UNUSED(videoSurfaceClient);
 #ifdef ANDROID
         NxClient_GetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
         comp.zorder = 10;   /* try to stay on top most */

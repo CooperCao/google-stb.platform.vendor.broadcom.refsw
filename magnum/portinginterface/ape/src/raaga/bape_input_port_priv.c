@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -90,17 +90,9 @@ unsigned BAPE_InputPort_P_GetNumConsumersAttached_isrsafe(BAPE_InputPort inputPo
 
 bool BAPE_InputPort_P_HasConsumersAttached_isrsafe(BAPE_InputPort inputPort)
 {
-    BAPE_PathNode * consumer;
-    for ( consumer = BLST_S_FIRST(&inputPort->consumerList);
-        consumer != NULL;
-        consumer = BLST_S_NEXT(consumer, consumerNode) )
-    {
-        if ( consumer )
-        {
-            return true;
-        }
+    if (BLST_S_FIRST(&inputPort->consumerList)){
+        return true;
     }
-
     return false;
 }
 

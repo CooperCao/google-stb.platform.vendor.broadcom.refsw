@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,7 +51,10 @@ Overview
 #include "bavc.h"
 #include "bchp.h"
 #include "berr_ids.h"
+#include "bchp_common.h"
+#ifdef BCHP_XPT_FE_REG_START
 #include "bchp_xpt_fe.h"
+#endif
 
 #include "bxpt_capabilities.h"
 #include "bxpt_capabilities_legacy.h"
@@ -157,7 +160,8 @@ typedef enum BXPT_DataSource
 {
     BXPT_DataSource_eInputBand,         /* External input source. */
     BXPT_DataSource_eRemuxFeedback,     /* Feedback path from remux block. */
-    BXPT_DataSource_ePlayback           /* Data from playback channels */
+    BXPT_DataSource_ePlayback,          /* Data from playback channels */
+    BXPT_DataSource_eNone               /* Unused input */
 }
 BXPT_DataSource;
 
@@ -257,7 +261,11 @@ that the PID parser is not going to be used.
 
 /* In Mbps */
 #define BXPT_MIN_PARSER_RATE    (10000)
-#define BXPT_MAX_PARSER_RATE    (108000000)
+#if BCHP_CHIP == 7278
+    #define BXPT_MAX_PARSER_RATE    (150000000)
+#else
+    #define BXPT_MAX_PARSER_RATE    (108000000)
+#endif
 
 typedef struct BXPT_P_ParserClients
 {
@@ -548,8 +556,7 @@ BXPT_MessageBufferSize;
 /***************************************************************************
 Summary:
 A PSI/SI message filter. The fields of the structure are written to or read
-from the hardware filters by the BXPT_GetFilter() and BXPT_SetFilter()
-calls.
+from the hardware filters by the BXPT_SetFilter() call.
 
 The arrays are read or written using contents of the first byte as the most
 significant bits of the filter, and subsequent bytes containing subsequen
@@ -714,22 +721,6 @@ typedef struct BXPT_ParserBandMapping
     BXPT_BandMap Playback[ BXPT_NUM_PLAYBACKS ];
 }
 BXPT_ParserBandMapping;
-
-/***************************************************************************
-Summary:
-Get the current parser band mapping.
-
-Description:
-Retrieve the current physical to virtual parser band mapping. See the comments
-for the BXPT_ParserBandMapping structure for more information.
-
-Returns:
-    void
-****************************************************************************/
-void BXPT_GetParserMapping(
-    BXPT_Handle hXpt,           /* [in] Handle for the Transport. */
-    BXPT_ParserBandMapping *ParserMap
-    );
 
 /***************************************************************************
 Summary:
@@ -898,25 +889,6 @@ BXPT_Standby
 ****************************************************************************/
 BERR_Code BXPT_Resume(
     BXPT_Handle hXpt
-    );
-
-/***************************************************************************
-Summary:
-Get the capability params for the transport core.
-
-Description:
-The transport core has a certain resources, such as PID channels, that can
-vary in number from one version of the chip to the next. This function returns
-the quantity of each such resource in the device reference by the transport
-handle. See the structure definition for the complete list of info that is
-returned.
-
-Returns:
-    void
-****************************************************************************/
-void BXPT_GetCapability(
-    BXPT_Handle hXpt,           /* [in] Which transport to get data. */
-    BXPT_Capability *Capability /* [out] Where to put the capability data. */
     );
 
 #if BXPT_HAS_IB_PID_PARSERS
@@ -1225,28 +1197,6 @@ BERR_Code BXPT_GetMesgBufferErrorStatus(
 
 /***************************************************************************
 Summary:
-Retrieves the default input band configuration.
-
-Description:
-Read the default settings for the given input band from the chip. Settings
-are returned in the structure that is passed in. See the structure for the
-complete list of supported settings.
-
-Returns:
-    BERR_SUCCESS                - Default config returned.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-
-See Also:
-BXPT_SetInputBandConfig
-****************************************************************************/
-BERR_Code BXPT_GetDefaultInputBandConfig(
-    BXPT_Handle hXpt,                       /* [in] Handle for the transport to access. */
-    unsigned int BandNum,                       /* [in] Which input band to access. */
-    BXPT_InputBandConfig *InputBandConfig   /* [out] The current settings */
-    );
-
-/***************************************************************************
-Summary:
 Retrieves the current input band configuration.
 
 Description:
@@ -1418,33 +1368,6 @@ BERR_Code BXPT_DisablePidChannel(
 
 /***************************************************************************
 Summary:
-Allocate a new PID channel.
-
-Description:
-Allocate an unused PID channel, and return that channel's number. This is
-usefull for cases where the caller needs a PID channel, but hasn't
-determined which PID or parser band that channel will be assigned to.
-
-The caller specifies if the channel must have a message buffer associated
-with it. In some architectures, PID channels exist that don't have message
-buffer support. Channels used solely for audio or video decoding are one
-example.
-
-Returns:
-    BERR_SUCCESS                - PID channel allocated.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-
-See Also:
-BXPT_FreePidChannel, BXPT_FreeAllPidChannels
-***************************************************************************/
-BERR_Code BXPT_AllocPidChannel(
-    BXPT_Handle hXpt,           /* [in] Handle for this transport */
-    bool NeedMessageBuffer,     /* [in] Is a message buffer required? */
-    unsigned int *PidChannelNum     /* [out] The allocated channel number. */
-    );
-
-/***************************************************************************
-Summary:
 Set the PID and parser band for a given PID channel.
 
 Description:
@@ -1607,51 +1530,6 @@ BERR_Code BXPT_FreePidChannel(
     unsigned int PidChannelNum      /* [in] PID channel to free up. */
     );
 
-/***************************************************************************
-Summary:
-Free all allocated PID channels.
-
-Description:
-Release ALL the PID channels associated with the given data transport core.
-Each channel is released. The PID channels must have been previously
-allocated by a call to BXPT_AllocPidChannel().
-
-Returns:
-    void.
-
-See Also:
-BXPT_EnablePidChannel, BXPT_AllocPidChannel
-***************************************************************************/
-void BXPT_FreeAllPidChannels(
-    BXPT_Handle hXpt            /* [in] Handle for this transport */
-    );
-
-/***************************************************************************
-Summary:
-Request allocation of a specific PID channel.
-
-Description:
-In some cases, the user may want to use a specific PID channel. There is no
-way to guarentee which channel BXPT_AllocPidChannel() will return, so this
-function has been added to allow users to 'allocate' a specific PID channel.
-If the request succeedes, the PidChannelNum can be used exactly like a
-PID channel allocated by BXPT_AllocPidChannel(). NOTE: when the user nolonger
-needs the requested PID channel, BXPT_FreePidChannel() should be called to
-tell the porting interface that channel is available for alloc.
-
-Returns:
-    BERR_SUCCESS                    - Read offset has been updated.
-    BERR_INVALID_PARAMETER          - Bad PidChannelNum
-    BXPT_ERR_PID_ALREADY_ALLOCATED  - The channel has already been allocated.
-
-See Also:
-BXPT_AllocPidChannel(), BXPT_FreePidChannel()
-***************************************************************************/
-BERR_Code BXPT_RequestPidChannel(
-    BXPT_Handle hXpt,       /* [in] Handle for this transport */
-    unsigned int PidChannelNum  /* [out] The channel number the user wants. */
-    );
-
 #if BXPT_HAS_MESG_BUFFERS
 
 /***************************************************************************
@@ -1699,28 +1577,6 @@ BERR_Code BXPT_FreePSIFilter(
 
 /***************************************************************************
 Summary:
-Return the filtering arrays for a PSI filter.
-
-Description:
-Retrieve the coefficient, mask, and exclusion byte arrays for a given
-filter. The data is copied into a structure, which was passed in by pointer.
-
-Returns:
-    BERR_SUCCESS                - PID channel configured.
-    BERR_INVALID_PARAMETER      - Bad input parameter.
-
-See Also:
-BXPT_AllocPSIFilter, BXPT_SetFilter
-***************************************************************************/
-BERR_Code BXPT_GetFilter(
-    BXPT_Handle hXpt,           /* [in] Handle for this transport */
-    unsigned int Bank,              /* [in] Which bank the filter belongs to. */
-    unsigned int FilterNum,         /* [in] Which filter to get data from. */
-    BXPT_Filter *Filter         /* [out] Filter data */
-    );
-
-/***************************************************************************
-Summary:
 Load the filtering arrays for a PSI filter.
 
 Description:
@@ -1739,78 +1595,6 @@ BERR_Code BXPT_SetFilter(
     unsigned int Bank,              /* [in] Which bank the filter belongs to. */
     unsigned int FilterNum,         /* [in] Which filter to get data from. */
     const BXPT_Filter *Filter   /* [in] Filter data to be loaded */
-    );
-
-/***************************************************************************
-Summary:
-Change a filter's coefficeint byte.
-
-Description:
-Change a single coefficient byte in a given filter. Caller specifies which
-byte by giving an offset into the filter array; this is the same offset
-the byte had in the BXPT_Filter arrays used to initialize the filter.
-
-Returns:
-    BERR_SUCCESS                - Coeffecient byte changed.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-
-See Also:
-BXPT_AllocPSIFilter, BXPT_GetFilter, BXPT_SetFilter
-***************************************************************************/
-BERR_Code BXPT_ChangeFilterCoefficientByte(
-    BXPT_Handle hXpt,       /* [in] Handle for this transport */
-    unsigned int Bank,          /* [in] Which bank the filter belongs to. */
-    unsigned int FilterNum,     /* [in] Which filter to change. */
-    unsigned int ByteOffset,        /* [in] Which byte in the array to change */
-    uint8_t FilterByte      /* [in] New filter byte to be written. */
-    );
-
-/***************************************************************************
-Summary:
-Change a filter's mask byte.
-
-Description:
-Change a single mask byte in a given filter. Caller specifies which
-byte by giving an offset into the filter array; this is the same offset
-the byte had in the BXPT_Filter arrays used to initialize the filter.
-
-Returns:
-    BERR_SUCCESS                - Mask byte changed.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-
-See Also:
-BXPT_AllocPSIFilter, BXPT_GetFilter, BXPT_SetFilter
-***************************************************************************/
-BERR_Code BXPT_ChangeFilterMaskByte(
-    BXPT_Handle hXpt,       /* [in] Handle for this transport */
-    unsigned int Bank,          /* [in] Which bank the filter belongs to. */
-    unsigned int FilterNum,     /* [in] Which filter to change. */
-    unsigned int ByteOffset,        /* [in] Which byte in the array to change */
-    uint8_t MaskByte        /* [in] New mask byte to be written. */
-    );
-
-/***************************************************************************
-Summary:
-Change a filter's exclusion byte.
-
-Description:
-Change a single exclusion byte in a given filter. Caller specifies which
-byte by giving an offset into the filter array; this is the same offset
-the byte had in the BXPT_Filter arrays used to initialize the filter.
-
-Returns:
-    BERR_SUCCESS                - Exclusion byte changed.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-
-See Also:
-BXPT_AllocPSIFilter, BXPT_GetFilter, BXPT_SetFilter
-***************************************************************************/
-BERR_Code BXPT_ChangeFilterExclusionByte(
-    BXPT_Handle hXpt,       /* [in] Handle for this transport */
-    unsigned int Bank,          /* [in] Which bank the filter belongs to. */
-    unsigned int FilterNum,     /* [in] Which filter to change. */
-    unsigned int ByteOffset,        /* [in] Which byte in the array to change */
-    uint8_t ExclusionByte       /* [in] New exclusion byte to be written. */
     );
 
 /*
@@ -1838,29 +1622,6 @@ BERR_Code BXPT_RemoveFilterFromGroup(
     BXPT_Handle hXpt,               /* [in] Handle for this transport */
     unsigned int FilterNum,                 /* [in] Which filter to remove. */
     BXPT_PsiMessageSettings *Settings   /* [in,out] Filter group to add to. */
-    );
-
-/***************************************************************************
-Summary:
-Remove a filter from a group.
-
-Description:
-Remove a given filter from the group of filters maintained in the Settings
-structure. The filter will no longer be applied to the PID that the group
-is associated with.
-
-Returns:
-    BERR_SUCCESS                - Filter successfully removed to the group.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-
-See Also:
-BXPT_AllocPSIFilter, BXPT_GetFilter, BXPT_SetFilter, BXPT_AddFilterToGroup
-***************************************************************************/
-BERR_Code BXPT_RemoveFilterFromGroupAndBuffer(
-    BXPT_Handle hXpt,               /* [in] Handle for this transport */
-    unsigned int FilterNum,                 /* [in] Which filter to remove. */
-    unsigned int BufferNum,                 /* [in] Which message buffer is using this filter. */
-    BXPT_PsiMessageSettings *Settings   /* [in] Filter group to add to. */
     );
 
 /***************************************************************************
@@ -1964,62 +1725,6 @@ BERR_Code BXPT_CheckBufferWithWrap(
 
 /***************************************************************************
 Summary:
-Check for new data in a message buffer, and copy any new data into the user
-supplied storage location.
-
-Description:
-Check for new messages in the given message buffer.
-If new messages are available, they will be copied into the user supplied
-storage area, up to the number of bytes passed in through the BufferSize
-parameter. On return, BufferSize will indicate how many bytes where actually
-copied in. The user-supplied storage area should be the same size as the
-message buffer, to insure that no data is lost due to insufficient storage.
-
-This call supports the use of duplicated PID channels. In that case, some
-PSI data in the message buffers may be corrupted. If the buffer contains
-PSI data, the data will be validated by checking the length field of each
-PSI message. If any corrupted messages are seen, the message buffer will
-be discarded and this call will not copy any data into the user-supplied
-storage.
-
-If duplicated PIDs are used, this call should be used instead of
-BXPT_CheckBuffer() and BXPT_UpdateReadOffset(). This call can also be used
-for any cases where BXPT_CheckBuffer() and BXPT_UpdateReadOffset() are
-currently used.
-
-Returns:
-    BERR_SUCCESS                - No errors found during the check.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-
-See Also:
-BXPT_AllocPSIFilter, BXPT_GetFilter, BXPT_SetFilter, BXPT_AddFilterToGroup,
-BXPT_SetupPidChannelRecord, BXPT_SetupChannelForPsiMessages
-***************************************************************************/
-BERR_Code BXPT_GetBuffer(
-    BXPT_Handle hXpt,           /* [in] Handle for this transport */
-    unsigned int MesgBuffNum,     /* [in] Message buffer to check. This is same as PidChNum in case of 1-to-1 mapping*/
-    uint8_t *BufferAddr,        /* [out] Address of the buffer. */
-    size_t *BufferSize          /* [in,out] Size of message buffer (on input), size of new messages (on output). */
-    );
-
-/***************************************************************************
-Summary:
-Check for new data in a message buffer, and copy any new data into the user
-supplied storage location.
-
-Description:
-Check BXPT_GetBuffer() for more description. Use this API only in case if you want to
-avoid  BXPT_UpdateReadOffset() entering into critical section.
-***************************************************************************/
-BERR_Code BXPT_GetBuffer_isr(
-    BXPT_Handle hXpt,           /* [in] Handle for this transport */
-    unsigned int MesgBuffNum,     /* [in] Message buffer to check. This is same as PidChNum in case of 1-to-1 mapping*/
-    uint8_t *BufferAddr,        /* [out] Address of the buffer. */
-    size_t *BufferSize          /* [in,out] Size of message buffer (on input), size of new messages (on output). */
-    );
-
-/***************************************************************************
-Summary:
 Update a message buffer's read offset.
 
 Description:
@@ -2062,121 +1767,6 @@ BERR_Code BXPT_UpdateReadOffset_isr(
     BXPT_Handle hXpt,           /* [in] Handle for this transport */
     unsigned int MesgBuffNum,     /* [in] Message buffer to check. This is same as PidChNum in case of 1-to-1 mapping*/
     size_t BytesRead            /* [in] Number of bytes read. */
-    );
-
-/***************************************************************************
-Summary:
-Pause or resume a PES recording session.
-
-Description:
-Pause or resume a PES recording that uses the message buffers. This call,
-unlike BXPT_StopPidChannelRecord(), does not disable the PID channel when the
-record is stopped. If other blocks in the transport core are using this PID
-channel, their data will not be interrupted by this call.
-
-When the PES record is resumed, the associated message buffer will be flushed,
-removing any old stale data.
-
-Returns:
-    BERR_SUCCESS                - Recording pause (or resume) successful.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-
-See Also:
-BXPT_StartPidChannelRecord(), BXPT_StopPidChannelRecord()
-***************************************************************************/
-BERR_Code BXPT_PausePesRecord(
-    BXPT_Handle hXpt,                       /* [in] Handle for this transport */
-    unsigned int MesgBuffNum,     /* [in] Message buffer to check. This is same as PidChNum in case of 1-to-1 mapping*/
-    bool Pause                                /* [in] Enable or disable pause */
-    );
-
-/***************************************************************************
-Summary:
-Pause or resume a PSI capture session.
-
-Description:
-Pause or resume a PSI capture. This call, unlike BXPT_StopPidChannelRecord(),
-does not disable the PID channel when the capture is stopped. If other blocks
-in the transport core are using this PID channel, their data will not be
-interrupted.
-
-When the PSI capture is resumed, the associated message buffer will be flushed,
-removing any old stale data.
-
-Returns:
-    BERR_SUCCESS                - PSI capture pause (or resume) successful.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-
-See Also:
-BXPT_StartPidChannelRecord(), BXPT_StopPidChannelRecord()
-***************************************************************************/
-BERR_Code BXPT_PausePsiCapture(
-    BXPT_Handle hXpt,                       /* [in] Handle for this transport */
-    unsigned int MesgBuffNum,     /* [in] Message buffer to check. This is same as PidChNum in case of 1-to-1 mapping*/
-    bool Pause                                /* [in] Enable or disable pause */
-    );
-
-/***************************************************************************
-Summary:
-Get the current message buffer depth.
-
-Description:
-Compute the total number of unread bytes in the given message buffer,
-including any data that wrapped around the end of the buffer.
-
-Returns:
-    BERR_SUCCESS                    - Depth returned in *BufferDepth.
-    BERR_INVALID_PARAMETER          - Bad PidChannelNum
-
-See Also:
-BXPT_AllocPidChannel(), BXPT_FreePidChannel()
-***************************************************************************/
-BERR_Code BXPT_GetMesgBufferDepth(
-    BXPT_Handle hXpt,               /* [in] Handle for this transport instance */
-    unsigned int PidChannelNum,         /* [in] Which PID channel's buffer to query */
-    size_t *BufferDepth             /* [out] Unread byte count */
-    );
-
-/***************************************************************************
-Summary:
-Get the current message buffer error status.
-
-Description:
-Get the error status of all the message buffers.
-This API should be used with L2 error interrupt to identify the type of error
-and message bufffer which has triggered the error interrupt
-
-Returns:
-    BERR_SUCCESS                    -
-    BERR_INVALID_PARAMETER          - Bad message buffer number
-See Also:
-***************************************************************************/
-BERR_Code BXPT_Mesg_GetErrorStatus(
-    BXPT_Handle hXpt,         /* [in]  Handle for this transport */
-    unsigned MesgBufferNum,   /* [in]  Which buffer to get the status of */
-    bool *ErrorStatus         /* [out] Error status for the message buffer */
-);
-
-/***************************************************************************
-Summary:
-Determine which PID channel is feeding data to a given message buffer.
-
-Description:
-Look up the which PID channel is mapped to the given message buffer. If such
-a channel is found, return it in *PidChannelNum. Otherwise, set *PidChannelNum
-to an invalid PID table index and BXPT_ERR_RESOURCE_NOT_FOUND is returned.
-
-Returns:
-    BERR_SUCCESS                    - PidChannelNum
-    BERR_INVALID_PARAMETER          - Bad MesgBufferNum
-    BXPT_ERR_RESOURCE_NOT_FOUND     - MesgBuffer is not mapped to a PID channel
-
-See Also:
-***************************************************************************/
-BERR_Code BXPT_Mesg_GetPidChannelFromBufferNum(
-    BXPT_Handle hXpt,                               /* [in] Handle for this transport */
-    unsigned int MesgBufferNum,                         /* [in] Which Buffer Number. */
-    unsigned int *PidChannelNum                         /* [out] Which PID channel. */
     );
 
 #endif
@@ -2599,21 +2189,7 @@ unsigned BXPT_GetRsXcInterruptCount(
     );
 #endif
 
-/***************************************************************************
-Summary:
-Return LTSID value associated with the given live parser band.
-
-Returns:
-    BERR_SUCCESS                - ltsid is valid.
-    BERR_INVALID_PARAMETER      - Bad parser parameter
-***************************************************************************/
-BERR_Code BXPT_GetLiveLTSID(
-    BXPT_Handle hXpt,
-    unsigned parserNum,
-    unsigned *ltsid
-    );
-
-
+#ifdef BXPT_ATS_API
 /***************************************************************************
 Summary:
 Reset the hardware ATS counter.
@@ -2673,6 +2249,7 @@ void BXPT_SetBinaryAts(
     BXPT_Handle hXpt,
     uint32_t newAts
     );
+#endif
 
 /*
 ** These functions are called internally.
@@ -2696,28 +2273,13 @@ BERR_Code BXPT_P_DisableFilter(
     unsigned int PidChannelNum
     );
 
-BERR_Code BXPT_P_PauseFilters(
-    BXPT_Handle hXpt,
-    unsigned int PidChannelNum,
-    unsigned FilteringOp,
-    bool Pause
-    );
-
 BERR_Code BXPT_P_EnablePidChannel(
     BXPT_Handle hXpt,
     unsigned int PidChannelNum
     );
 
-bool BXPT_P_CanPowerDown(
-    BXPT_Handle hXpt
-    );
-
 BERR_Code BXPT_P_AllocSharedXcRsBuffer(
     BXPT_Handle hXpt
-    );
-
-int BXPT_P_GetParserRegOffset(
-    int parserIndex
     );
 
 bool BXPT_P_InputBandIsSupported(

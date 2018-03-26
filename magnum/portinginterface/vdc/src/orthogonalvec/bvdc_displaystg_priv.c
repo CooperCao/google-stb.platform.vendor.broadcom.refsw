@@ -282,6 +282,11 @@ void BVDC_P_ConnectStgSrc_isr
     *pList->pulCurrent++ =
             BCHP_FIELD_DATA(VEC_CFG_STG_0_SOURCE, SOURCE, ulCmpSrc);
 
+    /* disable STG repeat polarity */
+    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VIDEO_ENC_STG_0_REPEAT_POLARITY + hDisplay->ulStgRegOffset);
+    *pList->pulCurrent++ = 0;
+
 #if BCHP_VEC_CFG_VIP_0_SOURCE
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VEC_CFG_VIP_0_SOURCE + ulRegOffset);
@@ -293,11 +298,12 @@ void BVDC_P_ConnectStgSrc_isr
     if(hDisplay->stStgChan.ulStcFlag == BRDC_MAX_STC_FLAG_COUNT)
     {
         BDBG_MSG(("Display%u to acquire STC flag(%u) for STG%u with trigger %u", hDisplay->eId, hDisplay->stStgChan.ulStcFlag, hDisplay->stStgChan.ulStg, hDisplay->eTopTrigger));
-        if((hDisplay->stStgChan.ulStcFlag = BRDC_AcquireStcFlag_isr(hDisplay->hVdc->hRdc, hDisplay->stStgChan.ulStg, hDisplay->eTopTrigger))
+        if((hDisplay->stStgChan.ulStcFlag = BRDC_AcquireStcFlag_isr(hDisplay->hVdc->hRdc, hDisplay->stStgChan.ulStg))
             != hDisplay->stStgChan.ulStg)
         {
-            BDBG_ERR(("No STC flag available for display %d STG %d trig %u. Check hardware capability.", hDisplay->eId, hDisplay->stStgChan.ulStg, hDisplay->eTopTrigger));
+            BDBG_ERR(("No STC flag available for display %d STG %d. Check hardware capability.", hDisplay->eId, hDisplay->stStgChan.ulStg));
         }
+        BRDC_ConfigureStcFlag_isr(hDisplay->hVdc->hRdc, hDisplay->stStgChan.ulStg, hDisplay->eTopTrigger);
     }
 #endif
 
@@ -531,8 +537,10 @@ void BVDC_P_ProgramStgChan_isr
         *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VIDEO_ENC_STG_0_BVB_SIZE + ulStgRegOffset);
         *pList->pulCurrent++ =
             BCHP_FIELD_DATA(VIDEO_ENC_STG_0_BVB_SIZE, FULLSIZE_3D, ulIsFull3d) |
-            BCHP_FIELD_DATA(VIDEO_ENC_STG_0_BVB_SIZE, HORIZONTAL, pFmtInfo->ulDigitalWidth) |
-            BCHP_FIELD_DATA(VIDEO_ENC_STG_0_BVB_SIZE, VERTICAL,   pFmtInfo->ulDigitalHeight>>(pFmtInfo->bInterlaced));
+            BCHP_FIELD_DATA(VIDEO_ENC_STG_0_BVB_SIZE, HORIZONTAL,
+                BVDC_P_ALIGN_UP(pFmtInfo->ulDigitalWidth,16)) |
+            BCHP_FIELD_DATA(VIDEO_ENC_STG_0_BVB_SIZE, VERTICAL,
+                BVDC_P_ALIGN_UP(pFmtInfo->ulDigitalHeight,16)>>(pFmtInfo->bInterlaced)); /* MB aligned */
         BDBG_MODULE_MSG(BVDC_CMP_SIZE, ("disp[%d] %d x %d%s%d", hDisplay->eId,
             pFmtInfo->ulDigitalWidth, pFmtInfo->ulDigitalHeight,
             pFmtInfo->bInterlaced? "i" : "p", pCurInfo->ulVertFreq));
@@ -622,7 +630,21 @@ void BVDC_P_ProgrameStgMBox_isr
     if(hDisplay->stCurInfo.bEnableStg)
     {
         /* Picture Id freeze only when NRT && bIgnorePicture */
-        hDisplay->hCompositor->ulPicId += (!hDisplay->hCompositor->bIgnorePicture) || (!pCurInfo->bStgNonRealTime);
+        if(pCurInfo->bStgNonRealTime) {
+            hDisplay->hCompositor->ulPicId += (!hDisplay->hCompositor->bIgnorePicture);
+        } else {/* RT mode uses RUL to increment pic id to counter dropped isr and ensure actual trigger driven pic counting */
+            *pList->pulCurrent++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_0);
+            *pList->pulCurrent++ = BRDC_REGISTER(hDisplay->ulStgPicIdScratchReg);
+            *pList->pulCurrent++ = BRDC_OP_VAR_SUM_IMM_TO_VAR(BRDC_Variable_0, BRDC_Variable_1);
+            *pList->pulCurrent++ = 1;
+            *pList->pulCurrent++ = BRDC_OP_VAR_TO_REG(BRDC_Variable_1);
+            *pList->pulCurrent++ = BRDC_REGISTER(hDisplay->ulStgPicIdScratchReg);
+            #if BRDC_64BIT_SUPPORT
+            hDisplay->hCompositor->ulPicId = (uint32_t)BREG_Read64_isrsafe(hDisplay->hVdc->hRegister, hDisplay->ulStgPicIdScratchReg);
+            #else
+            hDisplay->hCompositor->ulPicId = BREG_Read32_isr(hDisplay->hVdc->hRegister, hDisplay->ulStgPicIdScratchReg);
+            #endif
+        }
 
 #ifdef BCHP_RDC_EOP_ID_256_eop_id_vec_0
         /* NRT mode sync slaved simul STGs should wait for EOP */
@@ -806,6 +828,10 @@ void BVDC_P_ProgrameStgMBox_isr
 #else
         BSTD_UNUSED(bRepeatPol);
 #endif
+#ifdef BVDC_P_SUPPORT_RDC_STC_FLAG
+        BRDC_ConfigureStcFlag_isr(hDisplay->hVdc->hRdc, hDisplay->stStgChan.ulStcFlag, !hDisplay->hCompositor->bStallStc?
+            hDisplay->eTopTrigger : BRDC_Trigger_UNKNOWN);
+#endif
         BREG_Write32_isr(hDisplay->hVdc->hRegister, BCHP_VIDEO_ENC_STG_0_STC_CONTROL + ulRegOffset,
             BCHP_FIELD_DATA(VIDEO_ENC_STG_0_STC_CONTROL, STC_FLAG_ENABLE, !hDisplay->hCompositor->bStallStc));
 
@@ -862,6 +888,15 @@ BERR_Code BVDC_P_AllocStgChanResources_isr
     if (err)
     {
         BDBG_ERR(("No STG block available for display %d %s. Check hardware capability.", hDisplay->eId, bMaster?"master":"slave"));
+    } else {
+        hDisplay->ulStgPicIdScratchReg = BRDC_AllocScratchReg_isr(hDisplay->hVdc->hRdc);
+        if(hDisplay->ulStgPicIdScratchReg == 0)
+        {
+            BDBG_ERR(("Not enough scratch registers for STG pic id tracking!"));
+            err = BERR_INVALID_PARAMETER;
+        } else {
+            BDBG_MSG(("Display %d allocates ulStgPicIdScratchReg 0x%x", hDisplay->eId, hDisplay->ulStgPicIdScratchReg));
+        }
     }
     return BERR_TRACE(err);
 }
@@ -876,6 +911,9 @@ void BVDC_P_FreeStgChanResources_isr
     {
         BVDC_P_Resource_ReleaseHwId_isr(hResource, BVDC_P_ResourceType_eStg, pstStgChan->ulStg);
         pstStgChan->ulStg = BVDC_P_HW_ID_INVALID;
+        if(BERR_SUCCESS != BRDC_FreeScratchReg_isr(hDisplay->hVdc->hRdc, hDisplay->ulStgPicIdScratchReg)) {
+            BDBG_ERR(("Disp%d failed to free stg pic id scratch reg %#x!", hDisplay->eId, hDisplay->ulStgPicIdScratchReg));
+        }
     }
 #ifdef BCHP_PWR_RESOURCE_VDC_STG0
     if(hDisplay->ulStgPwrAcquire != 0)
@@ -1133,7 +1171,12 @@ void BVDC_P_STG_DelayRUL_isr
         BSTD_UNUSED(bMadr);
 #else
         /* only mcvp needs the workaround */
-        if(!bMadr) {
+#if !BVDC_P_SUPPORT_VIP
+        if(!bMadr)
+#else   /* delay EOP trigger for VDC managed VIP in case DCXV needs extra time to finish. */
+        BSTD_UNUSED(bMadr);
+#endif
+        {
             *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
             *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VIDEO_ENC_STG_0_EOP_TRIGGER_DELAY + hDisplay->ulStgRegOffset);
             *pList->pulCurrent++ = 120;

@@ -60,7 +60,7 @@ typedef struct OsdInfoPanel
 {
     BWT_PanelHandle base;
     BWT_TableHandle table;
-    OsdPictureInfoView vid[MAX_MOSAICS];
+    OsdPictureInfoView vid[MAX_STREAMS];
     OsdPictureInfoView gfx;
     OsdPictureInfoView sel;
     OsdPictureInfoView out;
@@ -76,8 +76,8 @@ typedef struct Osd
     unsigned layout;
     BWT_ImageHandle thumbnail;
     BWT_ImageHandle background;
-    unsigned mosaicCount;
-    BWT_VideoWindowHandle window[MAX_MOSAICS];
+    unsigned maxStreamCount;
+    BWT_VideoWindowHandle window[MAX_STREAMS];
     OsdInfoPanel info;
     OsdInfoPanel mosaicInfo;
     OsdInfoPanel pipInfo;

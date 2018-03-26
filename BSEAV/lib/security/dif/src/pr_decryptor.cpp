@@ -523,15 +523,6 @@ uint32_t PlayreadyDecryptor::DecryptSample(
     uint32_t clearSize = 0;
     uint32_t encSize = 0;
     for (i = 0; i < pSample->nbOfEntries; i++) {
-#ifdef USE_PR_DECRYPT_OPAQUE
-        // Transfer clear data
-        // assuming clear data comes first in subsamples
-        if (pSample->entries[i].bytesOfClearData > 0)
-            output->Copy(clearSize + encSize,
-                input->GetPtr() + clearSize + encSize,
-                pSample->entries[i].bytesOfClearData);
-#endif
-
         clearSize += pSample->entries[i].bytesOfClearData;
         encSize += pSample->entries[i].bytesOfEncData;
     }
@@ -539,12 +530,11 @@ uint32_t PlayreadyDecryptor::DecryptSample(
 
     uint8_t *encrypted_buffer = NULL;
 
-#ifdef USE_PR_DECRYPT_OPAQUE
+#ifdef DIF_PR_DECRYPT_OPAQUE
     uint8_t *decrypted_buffer = NULL;
     encrypted_buffer = (uint8_t*)input->GetPtr();
     decrypted_buffer = (uint8_t*)output->GetPtr();
 #else
-    output->Copy(0, input->GetPtr(), sampleSize);
     encrypted_buffer = (uint8_t*)output->GetPtr();
 #endif
 
@@ -560,10 +550,21 @@ uint32_t PlayreadyDecryptor::DecryptSample(
     ctrContext.qwBlockOffset = 0;
     ctrContext.bByteOffset = 0;
 
-    if (encSize == 0) {
+    if (pSample->nbOfEntries == 0) {
         if (playready_iv != 0LL) {
+#ifdef DIF_PR_DECRYPT_OPAQUE
+            NEXUS_DmaJobBlockSettings blockSettings;
+            NEXUS_DmaJob_GetDefaultBlockSettings(&blockSettings);
+            blockSettings.pSrcAddr = encrypted_buffer;
+            blockSettings.pDestAddr = decrypted_buffer;
+            blockSettings.blockSize = sampleSize;
+            blockSettings.cached = false;
+            rc = DRM_Prdy_Reader_DecryptOpaque(m_drmDecryptContext, &ctrContext,
+                (void*)&blockSettings, 1);
+#else
             rc = DRM_Prdy_Reader_Decrypt(m_drmDecryptContext, &ctrContext,
                 encrypted_buffer, sampleSize);
+#endif
             if (rc != DRM_Prdy_ok) {
                 LOGE(("%s: %d Reader_Decrypt failed: 0x%x", BSTD_FUNCTION, __LINE__, rc));
                 return bytes_processed;
@@ -574,6 +575,45 @@ uint32_t PlayreadyDecryptor::DecryptSample(
         return bytes_processed;
     }
 
+#ifdef DIF_PR_DECRYPT_OPAQUE
+    NEXUS_DmaJobBlockSettings* blockSettings;
+    blockSettings = (NEXUS_DmaJobBlockSettings*)BKNI_Malloc(
+        pSample->nbOfEntries * sizeof(NEXUS_DmaJobBlockSettings));
+    if (blockSettings == NULL) {
+        LOGE(("%s: failed to allocate blockSettings", BSTD_FUNCTION));
+        return bytes_processed;
+    }
+
+    for (i = 0; i <  pSample->nbOfEntries; i++) {
+        uint32_t num_clear = pSample->entries[i].bytesOfClearData;
+        uint32_t num_enc = pSample->entries[i].bytesOfEncData;
+
+        encrypted_buffer += num_clear;
+        decrypted_buffer += num_clear;
+
+        NEXUS_DmaJob_GetDefaultBlockSettings(&blockSettings[i]);
+        blockSettings[i].pSrcAddr = encrypted_buffer;
+        blockSettings[i].pDestAddr = decrypted_buffer;
+        blockSettings[i].blockSize = num_enc;
+        blockSettings[i].cached = false;
+
+        encrypted_buffer += num_enc;
+        decrypted_buffer += num_enc;
+    }
+    if (encSize > 0) {
+        ctrContext.qwBlockOffset = 0;
+        ctrContext.bByteOffset = 0;
+        rc = DRM_Prdy_Reader_DecryptOpaque(m_drmDecryptContext, &ctrContext,
+            (void*)blockSettings, pSample->nbOfEntries);
+        if (rc != DRM_Prdy_ok) {
+            LOGE(("%s: %d Reader_DecryptOpaque failed: 0x%x", BSTD_FUNCTION, __LINE__, rc));
+                BKNI_Free(blockSettings);
+                return bytes_processed;
+        }
+    }
+    bytes_processed += sampleSize;
+    BKNI_Free(blockSettings);
+#else // DIF_PR_DECRYPT_OPAQUE
     uint64_t     qwOffset = 0;
 
     for (i = 0; i <  pSample->nbOfEntries; i++) {
@@ -581,21 +621,13 @@ uint32_t PlayreadyDecryptor::DecryptSample(
         uint32_t num_enc = pSample->entries[i].bytesOfEncData;
 
         encrypted_buffer += num_clear;
-#ifdef USE_PR_DECRYPT_OPAQUE
-        decrypted_buffer += num_clear;
-#endif
 
         if (num_enc > 0) {
             ctrContext.qwBlockOffset = qwOffset / 16;
             ctrContext.bByteOffset = qwOffset % 16;
 
-#ifdef USE_PR_DECRYPT_OPAQUE
-            rc = DRM_Prdy_Reader_DecryptOpaque(m_drmDecryptContext, &ctrContext,
-                encrypted_buffer, decrypted_buffer, num_enc);
-#else
             rc = DRM_Prdy_Reader_Decrypt(m_drmDecryptContext, &ctrContext,
                 encrypted_buffer, num_enc);
-#endif
             if (rc != DRM_Prdy_ok) {
                 LOGE(("%s: %d Reader_Decrypt failed: 0x%x", BSTD_FUNCTION, __LINE__, rc));
                 return bytes_processed;
@@ -606,6 +638,7 @@ uint32_t PlayreadyDecryptor::DecryptSample(
         qwOffset += num_enc;
         bytes_processed += num_clear + num_enc;
     }
+#endif // DIF_PR_DECRYPT_OPAQUE
 
     LOGD(("%s: bytes_processed=%u", BSTD_FUNCTION, bytes_processed));
     return bytes_processed;

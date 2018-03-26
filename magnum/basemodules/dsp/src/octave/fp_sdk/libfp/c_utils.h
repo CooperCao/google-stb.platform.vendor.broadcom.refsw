@@ -59,7 +59,7 @@
 
 #ifdef __FIREPATH__
 
-#if defined(__PIC__) && (defined(__FP4015_ONWARDS__) || defined(__FPM1015_ONWARDS__))
+#if defined(__PIC__) && (__FP4015_ONWARDS__ || __FPM1015_ONWARDS__)
 /* On builds using SBA-relative addressing for PIC binaries, we just need the
  * absolute attribute to specify that a data symbol is _NOT_ SBA-relative.
  * Such variables must not be not be in a section marked PID and are shared
@@ -210,7 +210,7 @@
 #endif
 
 /** Functions that should not be dictionary compressed */
-#if defined(__FP4014_ONWARDS__) || defined(__FPM1015_ONWARDS__)
+#if __FP4014_ONWARDS__ || __FPM1015_ONWARDS__
 #  define __nocompress                  /* no-op on non-FP20xx machines */
 #else
 #  define __nocompress                  __attribute__((nocompress))

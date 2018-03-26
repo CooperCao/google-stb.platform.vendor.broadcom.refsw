@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1908,7 +1908,7 @@ static int atlasLua_RecordStart(lua_State * pLua)
     if (4 < numArgTotal)
     {
         /* wrong number of arguments */
-#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION == 1
         LUA_ERROR(pLua, "wrong number of arguments: [fileName] [Path] [Security]\n--Security = {des,3des,aes}", error);
 #else
         LUA_ERROR(pLua, "wrong number of arguments: [fileName][Path]", error);
@@ -2998,10 +2998,10 @@ done:
  */
 static int atlasLua_ShowPresentation(lua_State * pLua)
 {
-    CLua *    pThis        = getCLua(pLua);
-    eRet      err          = eRet_Ok;
-    CAction * pAction      = NULL;
-    uint8_t   numArgTotal  = lua_gettop(pLua) - 1;
+    CLua *    pThis       = getCLua(pLua);
+    eRet      err         = eRet_Ok;
+    CAction * pAction     = NULL;
+    uint8_t   numArgTotal = lua_gettop(pLua) - 1;
 
     BDBG_ASSERT(pThis);
 
@@ -3039,13 +3039,13 @@ done:
  */
 static int atlasLua_NextPresentation(lua_State * pLua)
 {
-    CLua *    pThis                = getCLua(pLua);
-    eRet      err                  = eRet_Ok;
-    uint8_t   argNum               = 1;
-    uint8_t   numArgTotal          = lua_gettop(pLua) - 1;
-    int       presentation         = 0;
-    int       program              = 0;
-    CAudioDecodeAc4Data * pAc4Data = NULL;
+    CLua *                pThis        = getCLua(pLua);
+    eRet                  err          = eRet_Ok;
+    uint8_t               argNum       = 1;
+    uint8_t               numArgTotal  = lua_gettop(pLua) - 1;
+    int                   presentation = 0;
+    int                   program      = 0;
+    CAudioDecodeAc4Data * pAc4Data     = NULL;
 
     CDataAction <CAudioDecodeAc4Data> * pAction = NULL;
 
@@ -3059,15 +3059,15 @@ static int atlasLua_NextPresentation(lua_State * pLua)
     }
 
     /* get arguments */
-    program      = luaL_checknumber(pLua, argNum++);
+    program = luaL_checknumber(pLua, argNum++);
 
     if ((0 > program) || (1 < program))
     {
         LUA_ERROR(pLua, "invalid argument: [0:main 1:alt]", error);
     }
 
-    pAc4Data = new CAudioDecodeAc4Data;
-    pAc4Data->_program  = (NEXUS_AudioDecoderAc4Program)program;
+    pAc4Data           = new CAudioDecodeAc4Data;
+    pAc4Data->_program = (NEXUS_AudioDecoderAc4Program)program;
 
     /* create lua action and give it data */
     pAction = new CDataAction <CAudioDecodeAc4Data>(eNotify_NextAudioAc4Presentation, pAc4Data, eNotify_AudioAc4PresentationChanged, DEFAULT_LUA_EVENT_TIMEOUT);
@@ -3098,13 +3098,13 @@ done:
  */
 static int atlasLua_SetPresentation(lua_State * pLua)
 {
-    CLua *    pThis                = getCLua(pLua);
-    eRet      err                  = eRet_Ok;
-    uint8_t   argNum               = 1;
-    uint8_t   numArgTotal          = lua_gettop(pLua) - 1;
-    int       presentation         = 0;
-    int       program              = 0;
-    CAudioDecodeAc4Data * pAc4Data = NULL;
+    CLua *                pThis        = getCLua(pLua);
+    eRet                  err          = eRet_Ok;
+    uint8_t               argNum       = 1;
+    uint8_t               numArgTotal  = lua_gettop(pLua) - 1;
+    int                   presentation = 0;
+    int                   program      = 0;
+    CAudioDecodeAc4Data * pAc4Data     = NULL;
 
     CDataAction <CAudioDecodeAc4Data> * pAction = NULL;
 
@@ -3126,8 +3126,8 @@ static int atlasLua_SetPresentation(lua_State * pLua)
         LUA_ERROR(pLua, "invalid argument: [presentation index][0:main 1:alt]", error);
     }
 
-    pAc4Data = new CAudioDecodeAc4Data;
-    pAc4Data->_program  = (NEXUS_AudioDecoderAc4Program)program;
+    pAc4Data                     = new CAudioDecodeAc4Data;
+    pAc4Data->_program           = (NEXUS_AudioDecoderAc4Program)program;
     pAc4Data->_presentationIndex = presentation;
 
     /* create lua action and give it data */
@@ -3159,13 +3159,13 @@ done:
  */
 static int atlasLua_SetLanguage(lua_State * pLua)
 {
-    CLua *    pThis                = getCLua(pLua);
-    eRet      err                  = eRet_Ok;
-    uint8_t   argNum               = 1;
-    uint8_t   numArgTotal          = lua_gettop(pLua) - 1;
-    int       lang                 = 0;
-    int       program              = 0;
-    CAudioDecodeAc4Data * pAc4Data = NULL;
+    CLua *                pThis       = getCLua(pLua);
+    eRet                  err         = eRet_Ok;
+    uint8_t               argNum      = 1;
+    uint8_t               numArgTotal = lua_gettop(pLua) - 1;
+    int                   lang        = 0;
+    int                   program     = 0;
+    CAudioDecodeAc4Data * pAc4Data    = NULL;
 
     CDataAction <CAudioDecodeAc4Data> * pAction = NULL;
 
@@ -3187,7 +3187,7 @@ static int atlasLua_SetLanguage(lua_State * pLua)
         LUA_ERROR(pLua, "invalid argument: [0:English 1:French 2:German 3:Italian 4:Spanish][0:main 1:alt]", error);
     }
 
-    pAc4Data = new CAudioDecodeAc4Data;
+    pAc4Data            = new CAudioDecodeAc4Data;
     pAc4Data->_program  = (NEXUS_AudioDecoderAc4Program)program;
     pAc4Data->_language = (eLanguage)lang;
 
@@ -3220,13 +3220,13 @@ done:
  */
 static int atlasLua_SetAssociate(lua_State * pLua)
 {
-    CLua *    pThis                = getCLua(pLua);
-    eRet      err                  = eRet_Ok;
-    uint8_t   argNum               = 1;
-    uint8_t   numArgTotal          = lua_gettop(pLua) - 1;
-    int       assoc                = 0;
-    int       program              = 0;
-    CAudioDecodeAc4Data * pAc4Data = NULL;
+    CLua *                pThis       = getCLua(pLua);
+    eRet                  err         = eRet_Ok;
+    uint8_t               argNum      = 1;
+    uint8_t               numArgTotal = lua_gettop(pLua) - 1;
+    int                   assoc       = 0;
+    int                   program     = 0;
+    CAudioDecodeAc4Data * pAc4Data    = NULL;
 
     CDataAction <CAudioDecodeAc4Data> * pAction = NULL;
 
@@ -3248,7 +3248,7 @@ static int atlasLua_SetAssociate(lua_State * pLua)
         LUA_ERROR(pLua, "Invalid arguments: [0:NotSpecified 1:VisuallyImpaired 2:HearingImpaired 3:Commentary][0:main 1:alt]", error);
     }
 
-    pAc4Data = new CAudioDecodeAc4Data;
+    pAc4Data             = new CAudioDecodeAc4Data;
     pAc4Data->_program   = (NEXUS_AudioDecoderAc4Program)program;
     pAc4Data->_associate = (NEXUS_AudioAc4AssociateType)assoc;
 
@@ -3281,13 +3281,13 @@ done:
  */
 static int atlasLua_SetPriority(lua_State * pLua)
 {
-    CLua *    pThis                = getCLua(pLua);
-    eRet      err                  = eRet_Ok;
-    uint8_t   argNum               = 1;
-    uint8_t   numArgTotal          = lua_gettop(pLua) - 1;
-    int       priority             = 0;
-    int       program              = 0;
-    CAudioDecodeAc4Data * pAc4Data = NULL;
+    CLua *                pThis       = getCLua(pLua);
+    eRet                  err         = eRet_Ok;
+    uint8_t               argNum      = 1;
+    uint8_t               numArgTotal = lua_gettop(pLua) - 1;
+    int                   priority    = 0;
+    int                   program     = 0;
+    CAudioDecodeAc4Data * pAc4Data    = NULL;
 
     CDataAction <CAudioDecodeAc4Data> * pAction = NULL;
 
@@ -3309,9 +3309,9 @@ static int atlasLua_SetPriority(lua_State * pLua)
         LUA_ERROR(pLua, "Invalid arguments: [0:Language 1:Associate Type][0:main 1:alt]", error);
     }
 
-    pAc4Data = new CAudioDecodeAc4Data;
-    pAc4Data->_program   = (NEXUS_AudioDecoderAc4Program)program;
-    pAc4Data->_priority  = (ePriority)priority;
+    pAc4Data            = new CAudioDecodeAc4Data;
+    pAc4Data->_program  = (NEXUS_AudioDecoderAc4Program)program;
+    pAc4Data->_priority = (ePriority)priority;
 
     /* create lua action and give it data */
     pAction = new CDataAction <CAudioDecodeAc4Data>(eNotify_SetAudioAc4Priority, pAc4Data, eNotify_AudioAc4PriorityChanged, DEFAULT_LUA_EVENT_TIMEOUT);
@@ -3341,12 +3341,12 @@ done:
  */
 static int atlasLua_SetDialogEnhancement(lua_State * pLua)
 {
-    CLua *    pThis        = getCLua(pLua);
-    eRet      err          = eRet_Ok;
-    uint8_t   argNum       = 1;
-    uint8_t   numArgTotal  = lua_gettop(pLua) - 1;
-    int       nDb        = 0;
-    int *     pDb       = NULL;
+    CLua *  pThis       = getCLua(pLua);
+    eRet    err         = eRet_Ok;
+    uint8_t argNum      = 1;
+    uint8_t numArgTotal = lua_gettop(pLua) - 1;
+    int     nDb         = 0;
+    int *   pDb         = NULL;
 
     CDataAction <int> * pAction = NULL;
 
@@ -3367,7 +3367,7 @@ static int atlasLua_SetDialogEnhancement(lua_State * pLua)
         LUA_ERROR(pLua, "given dB value must be in the range: -12 <= dB <= 12", error);
     }
 
-    pDb = new int;
+    pDb  = new int;
     *pDb = nDb;
 
     /* create lua action and give it data */
@@ -3389,7 +3389,8 @@ error:
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetDialogEnhancement */
-#endif
+
+#endif /* if BDSP_MS12_SUPPORT */
 
 #ifdef CPUTEST_SUPPORT
 /* atlas.setCpuTestLevel(
@@ -5440,6 +5441,7 @@ static int atlasLua_RunScript(lua_State * pLua)
     CLua *       pThis       = getCLua(pLua);
     const char * strFileName = luaL_checkstring(pLua, 1);
     const char * strPath     = GET_STR(pThis->getCfg(), SCRIPTS_PATH);
+    int          nRetVals    = 0;
 
     if (NULL != strFileName)
     {
@@ -5455,7 +5457,8 @@ static int atlasLua_RunScript(lua_State * pLua)
         if (lerror)
         {
             BDBG_WRN(("LUA error: %s", lua_tostring(pThis->getLuaState(), -1)));
-            lua_pop(pThis->getLuaState(), 1);
+            nRetVals++;
+            //lua_pop(pThis->getLuaState(), 1);
         }
         else
         {
@@ -5463,12 +5466,13 @@ static int atlasLua_RunScript(lua_State * pLua)
             if (lerror)
             {
                 BDBG_WRN(("LUA error: %s", lua_tostring(pThis->getLuaState(), -1)));
-                lua_pop(pThis->getLuaState(), 1);
+                nRetVals++;
+                //lua_pop(pThis->getLuaState(), 1);
             }
         }
     }
 
-    return(0);
+    return(nRetVals);
 } /* atlasLua_RunScript */
 
 static int atlasLua_Debug(lua_State * pLua)
@@ -5524,13 +5528,26 @@ static int atlasLua_Help(lua_State * pLua)
     return(0);
 }
 
+/* allow given exit code to trigger an abnormal exit.  this is used primarily in test
+ * environments where we want to indicate a failure code to the shell. note that the
+ * Lua command must use "atlas.exit([0-255])" to return a code.
+ * calling the shortcut command "exit()" or "exit" will always return 0.
+ */
 static int atlasLua_Exit(lua_State * pLua)
 {
     CLua *    pThis   = getCLua(pLua);
+    int       argNum  = 1;
     CAction * pAction = NULL;
     eRet      err     = eRet_Ok;
+    int       code    = 0;
 
     BDBG_ASSERT(pThis);
+
+    code = lua_tointeger(pLua, argNum);
+    if (0 != code)
+    {
+        exit(code);
+    }
 
     /*
      * save lua event and necessary data
@@ -5655,7 +5672,7 @@ static const struct luaL_Reg atlasLua[] = {
 #endif /* ifdef PLAYBACK_IP_SUPPORT */
     { "irRemoteEnable",                atlasLua_EnableRemoteIr                        }, /* enable/disable ir remote handling */
 #if BDSP_MS12_SUPPORT
-    //TTTTTTT { "getNumPresentations",           atlasLua_GetNumPresentations                   }, /* get number of available ac4 audio presentations */
+    /* TTTTTTT { "getNumPresentations",           atlasLua_GetNumPresentations                   }, / * get number of available ac4 audio presentations * / */
     { "showPresentation",              atlasLua_ShowPresentation                      }, /* show current AC4 audio presentation */
     { "nextPresentation",              atlasLua_NextPresentation                      }, /* set current AC4 audio to next available presentation */
     { "setPresentation",               atlasLua_SetPresentation                       }, /* set current AC4 audio presentation */
@@ -5663,7 +5680,7 @@ static const struct luaL_Reg atlasLua[] = {
     { "setAssociate",                  atlasLua_SetAssociate                          }, /* set current AC4 audio associate */
     { "setPriority",                   atlasLua_SetPriority                           }, /* set current AC4 audio priority */
     { "setDialogEnhancement",          atlasLua_SetDialogEnhancement                  }, /* set current AC4 audio dialog enhancement level */
-#endif
+#endif /* if BDSP_MS12_SUPPORT */
     { "getConfig",                     atlasLua_GetConfig                             }, /* get configuration variable from atlas.cfg */
     { "setDebugLevel",                 atlasLua_SetDebugLevel                         }, /* set debug level for given module */
     { "runScript",                     atlasLua_RunScript                             }, /* Run given lua script */
@@ -6652,7 +6669,7 @@ void CLua::processNotification(CNotification & notification)
                 case eNotify_AudioAc4PresentationShown:
                 {
                     NEXUS_AudioDecoderPresentationStatus * pPresentation = (NEXUS_AudioDecoderPresentationStatus *)notification.getData();
-                    int     nRetVals          = 0;
+                    int nRetVals = 0;
 
                     if (pPresentation->codec == NEXUS_AudioCodec_eAc4)
                     {
@@ -6668,7 +6685,7 @@ void CLua::processNotification(CNotification & notification)
                     _busyAction.setNumReturnVals(_busyAction.getNumReturnVals() + nRetVals);
                 }
                 break;
-#endif
+#endif /* if BDSP_MS12_SUPPORT */
                 case eNotify_CurrentChannel:
                 {
                     CChannel * pChannel   = _pModel->getCurrentChannel();
@@ -6698,7 +6715,7 @@ void CLua::processNotification(CNotification & notification)
 
                 default:
                     break;
-                }
+                } /* switch */
 
                 /* release pending lua command */
                 B_Event_Set(_busyEvent);

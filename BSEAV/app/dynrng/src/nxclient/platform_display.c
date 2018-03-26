@@ -58,7 +58,7 @@ PlatformDisplayHandle platform_display_open(PlatformHandle platform)
     display = BKNI_Malloc(sizeof(*display));
     BDBG_ASSERT(display);
     BKNI_Memset(display, 0, sizeof(*display));
-    platform->display = display;
+    platform->display.handle = display;
     display->platform = platform;
     display->hdmi.alias = NEXUS_HdmiOutput_Open(NEXUS_ALIAS_ID + 0, NULL);
     return display;
@@ -68,7 +68,7 @@ void platform_display_close(PlatformDisplayHandle display)
 {
     if (!display) return;
     NEXUS_HdmiOutput_Close(display->hdmi.alias);
-    display->platform->display = NULL;
+    display->platform->display.handle = NULL;
     BKNI_Free(display);
 }
 
@@ -202,16 +202,6 @@ void platform_display_set_picture_info(PlatformDisplayHandle display, const Plat
     }
 #endif
     platform_display_print_hdmi_drm_settings(display, "new");
-}
-
-void platform_display_set_gfx_luminance(PlatformDisplayHandle display, unsigned min, unsigned max)
-{
-    char buf[10];
-    BSTD_UNUSED(display);
-    BKNI_Snprintf(buf, 10, "%u", min);
-    NEXUS_SetEnv("dbv.gfx.luma.min", buf);
-    BKNI_Snprintf(buf, 10, "%u", max);
-    NEXUS_SetEnv("dbv.gfx.luma.max", buf);
 }
 
 void platform_display_set_rendering_priority(PlatformDisplayHandle display, PlatformRenderingPriority renderingPriority)

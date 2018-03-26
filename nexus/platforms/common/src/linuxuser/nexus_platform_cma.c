@@ -464,7 +464,14 @@ static NEXUS_Error nexus_platform_get_cma_index(const NEXUS_PlatformMemory *pMem
 
 static NEXUS_Error NEXUS_Platform_P_GetCmaRegions(struct nexus_linux_cma_memory_info *linux_cma_info)
 {
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    struct nexus_linux_cma_memory_info_entry *temp;
     unsigned i;
+
+    temp = BKNI_Malloc(sizeof(*temp));
+    if(temp==NULL) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
     BKNI_Memset(linux_cma_info,0,sizeof(*linux_cma_info));
     for (i=0;i<NEXUS_CMA_MAX_INDEX;i++)
     {
@@ -477,19 +484,22 @@ static NEXUS_Error NEXUS_Platform_P_GetCmaRegions(struct nexus_linux_cma_memory_
         for (j=0;j<region;j++)
         {
             int rc = cma_dev_get_region_info(cma_dev, j, &linux_cma_info->entries[i].region_info[j].memcIndex, &linux_cma_info->entries[i].region_info[j].physicalAddress, &linux_cma_info->entries[i].region_info[j].length);
-            if (rc!=0) { return BERR_TRACE(NEXUS_NOT_SUPPORTED);}
+            if (rc!=0) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto done;}
             if (j > 0 && linux_cma_info->entries[i].region_info[j].physicalAddress < linux_cma_info->entries[i].region_info[0].physicalAddress) {
-                /* some versions of linux return in descending order. normalize to ascending. */
+                /* some versions of Linux return in descending order, normalize to ascending. */
                 unsigned k;
-                struct nexus_linux_cma_memory_info_entry temp = linux_cma_info->entries[i];
+                *temp = linux_cma_info->entries[i];
                 for (k=1;k<j+1;k++) {
-                    linux_cma_info->entries[i].region_info[k] = temp.region_info[k-1];
+                    linux_cma_info->entries[i].region_info[k] = temp->region_info[k-1];
                 }
-                linux_cma_info->entries[i].region_info[0] = temp.region_info[j];
+                linux_cma_info->entries[i].region_info[0] = temp->region_info[j];
             }
         }
     }
-    return NEXUS_SUCCESS;
+
+done:
+    BKNI_Free(temp);
+    return rc;
 }
 
 #include "nexus_platform_heaps.c"

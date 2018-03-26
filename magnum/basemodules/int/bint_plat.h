@@ -67,7 +67,10 @@ This can be done using the BINT_GetL1BitMask() routine.
 
 #include "breg_mem.h"
 #include "bint.h"
+#include "bchp_common.h"
+#ifdef BCHP_HIF_CPU_INTR1_REG_START
 #include "bchp_hif_cpu_intr1.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {

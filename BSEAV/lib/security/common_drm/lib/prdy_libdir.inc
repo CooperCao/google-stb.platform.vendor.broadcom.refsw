@@ -50,27 +50,28 @@ BUILD_MODE = retail
 endif
 
 # Set directory for installing lib based on architecture
-ifeq ($(filter ${B_REFSW_ARCH}, arm-linux aarch64-linux), ${B_REFSW_ARCH})
-ARCH_DIR_PRDY=arm
+ifneq ($(B_REFSW_ARCH),mipsel-linux)
+  ARCH_DIR_PRDY=arm
 else
-ARCH_DIR_PRDY=mips
-GCC_GTEQ_485 := $(shell expr `$(CC) -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40805)
+  ARCH_DIR_PRDY=mips
+  GCC_GTEQ_485 := $(shell expr `$(CC) -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40805)
 endif
 
 # Set final path
-ifeq ("$(GCC_GTEQ_485)", "1")
-    ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
-        CMNDRM_PRDY_LIBDIR := thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/Zeus5x/lib/eglibc
-    else
-        CMNDRM_PRDY_LIBDIR := thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/Zeus4x/lib/eglibc
-    endif
+ifeq ($(SAGE_VERSION), 2x)
+    CMNDRM_PRDY_LIBDIR = thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/$(SAGE_VERSION)
 else
+  ifeq ($(ARCH_DIR_PRDY),mips)
+    ifeq ("$(GCC_GTEQ_485)", "1")
+        CMNDRM_PRDY_LIBDIR = thirdparty/playready/2.5/bin/mips/lib/eglibc
+    else
+        CMNDRM_PRDY_LIBDIR = thirdparty/playready/2.5/bin/mips/lib
+    endif
+  else
     ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
         CMNDRM_PRDY_LIBDIR := thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/Zeus5x/lib
     else
         CMNDRM_PRDY_LIBDIR := thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/Zeus4x/lib
     endif
-endif
-ifeq ($(SAGE_VERSION), 2x)
-CMNDRM_PRDY_LIBDIR = thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/$(SAGE_VERSION)
+  endif
 endif

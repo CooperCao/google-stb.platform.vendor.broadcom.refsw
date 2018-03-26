@@ -174,7 +174,7 @@ static void *NxWindowPlatformStateCreate(void *context, void *native)
       {
          DisplayInterface_InitNexusMulti(&window->display_interface,
                &display->fence_interface, &nw->windowInfo, ctx->displayType,
-               nw->numSurfaces, nw->clientID, nw->surfaceClient);
+               nw->numSurfaces, nw->clientID, nw->surfaceClient, ctx->eventContext);
 
          window->native_window = nw;
 
@@ -331,12 +331,12 @@ static bool NxQueryBuffer(void *context, void *display, void* buffer,
 }
 
 BEGL_DisplayInterface *WLPL_CreateNexusDisplayInterface(
-      struct BEGL_SchedInterface *schedIface)
+      struct BEGL_SchedInterface *schedIface, EventContext *eventContext)
 {
    WLPL_NexusDisplay *display = calloc(1, sizeof(*display));
    BEGL_DisplayInterface *iface = NULL;
    if (display)
-      iface = CreateDisplayInterface(NULL, &display->parent, schedIface);
+      iface = CreateDisplayInterface(NULL, &display->parent, schedIface, eventContext);
    if (iface)
    {
       iface->WindowGetInfo                = NxWindowGetInfo;

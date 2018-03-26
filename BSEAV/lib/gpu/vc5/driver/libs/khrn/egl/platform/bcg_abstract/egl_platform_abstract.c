@@ -30,7 +30,7 @@
 
 #ifdef ANDROID
 #include "egl_native_fence_sync_android.h"
-#include <cutils/log.h>
+#include <log/log.h>
 #endif
 
 /* Our platform data, shared only by other BCG platform code */

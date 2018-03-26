@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Frontend AST
 *    Generic routines to control any AST satellite frontend
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #ifndef NEXUS_FRONTEND_AST_H__
@@ -263,7 +255,7 @@ typedef struct NEXUS_AstDevice
     void *customerData;
 #endif
 
-    NEXUS_FrontendCapabilities capabilities; /* copy of capabilites for use in nexus_frontend_ast.c */
+    NEXUS_FrontendCapabilities capabilities; /* copy of capabilities for use in nexus_frontend_ast.c */
     unsigned astChip;
     unsigned channel; /* For multi-demod AST devices, e.g. 4538, this is the channel number associated with this frontend. */
     unsigned diseqcIndex; /* For multi-demod AST devices, e.g. 4538, this is the diseqc output number associated with this frontend. */

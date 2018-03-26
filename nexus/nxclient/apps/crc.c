@@ -79,6 +79,9 @@ static void print_usage(void)
         "  -ignore_num_reorder_frames\n"
     );
     printf(
+        "  -early_picture_delivery\n"
+    );
+    printf(
         "  -video_cdb SIZE          use 'm' or 'k' suffix, decimal allowed\n"
         "  -video_itb SIZE          use 'm' or 'k' suffix, decimal allowed\n"
         "  -video_framerate HZ      default video frame rate if not in stream (for example 29.97, 30, 59.94, 60)\n"
@@ -133,7 +136,7 @@ int main(int argc, const char **argv)
     media_player_create_settings create_settings;
     media_player_start_settings start_settings;
     struct {
-        bool dqt, mdqt, zero_delay_output_mode, iframe_as_rap, ignore_dpb_output_delay, ignore_num_reorder_frames;
+        bool dqt, mdqt, zero_delay_output_mode, iframe_as_rap, ignore_dpb_output_delay, ignore_num_reorder_frames, early_picture_delivery;
     } extra_settings;
     float video_framerate = 0.0;
 
@@ -195,6 +198,9 @@ int main(int argc, const char **argv)
         }
         else if (!strcmp(argv[curarg], "-ignore_num_reorder_frames")) {
             extra_settings.ignore_num_reorder_frames = true;
+        }
+        else if (!strcmp(argv[curarg], "-early_picture_delivery")) {
+            extra_settings.early_picture_delivery = true;
         }
         else if (!strcmp(argv[curarg], "-video_cdb") && curarg+1 < argc) {
             start_settings.video.fifoSize = b_parse_size(argv[++curarg]);
@@ -293,7 +299,8 @@ int main(int argc, const char **argv)
             }
 
             if (extra_settings.zero_delay_output_mode || extra_settings.iframe_as_rap ||
-                extra_settings.ignore_dpb_output_delay || extra_settings.ignore_num_reorder_frames) {
+                extra_settings.ignore_dpb_output_delay || extra_settings.ignore_num_reorder_frames ||
+                extra_settings.early_picture_delivery) {
                 NEXUS_VideoDecoderExtendedSettings extendedSettings;
                 NEXUS_SimpleVideoDecoder_GetExtendedSettings(videoDecoder, &extendedSettings);
                 if (extra_settings.zero_delay_output_mode) {
@@ -307,6 +314,9 @@ int main(int argc, const char **argv)
                 }
                 if (extra_settings.ignore_num_reorder_frames) {
                     extendedSettings.ignoreNumReorderFramesEqZero = true;
+                }
+                if (extra_settings.early_picture_delivery) {
+                    extendedSettings.earlyPictureDeliveryMode = true;
                 }
                 NEXUS_SimpleVideoDecoder_SetExtendedSettings(videoDecoder, &extendedSettings);
             }

@@ -179,6 +179,9 @@
 #ifdef NEXUS_HAS_TOUCHPAD
 #include "nexus_touchpad_init.h"
 #endif
+#if NEXUS_HAS_SIMPLE_AUDIO_PLAYBACK
+#include "nexus_simple_audio_playback_init.h"
+#endif
 #if NEXUS_HAS_SIMPLE_DECODER
 #include "nexus_simple_decoder_init.h"
 #endif
@@ -225,6 +228,13 @@
 #include "priv/nexus_core_standby_priv.h"
 
 #include "bchp_pwr.h"
+#include "bchp_common.h"
+#ifdef BCHP_AVS_TMON_REG_START
+#include "bchp_avs_tmon.h"
+#endif
+#ifdef BCHP_AON_CTRL_REG_START
+#include "bchp_aon_ctrl.h"
+#endif
 
 #if NEXUS_COMPAT_32ABI
 #include "nexus_base_compat.h"
@@ -562,6 +572,9 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #if NEXUS_HAS_SURFACE
         NEXUS_SurfaceModuleSettings surfaceSettings;
 #endif
+#if NEXUS_HAS_SIMPLE_AUDIO_PLAYBACK
+        NEXUS_SimpleAudioPlaybackModuleSettings simpleAudioPlaybackSettings;
+#endif
 #if NEXUS_HAS_SIMPLE_DECODER
         NEXUS_SimpleDecoderModuleSettings simpleDecoderSettings;
 #endif
@@ -594,6 +607,9 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #endif
         NEXUS_ModuleSettings moduleSettings;
     } *state = NULL;
+#if NEXUS_HAS_SIMPLE_AUDIO_PLAYBACK
+    NEXUS_ModuleHandle simpleAudioPlayback;
+#endif
     NEXUS_ModuleHandle handle;
     const NEXUS_Core_PreInitState *preInitState;
 
@@ -672,7 +688,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     NEXUS_Module_GetDefaultSettings(&state->moduleSettings);
 #if BDBG_DEBUG_BUILD
     state->moduleSettings.dbgPrint = NEXUS_Platform_P_Print;
-    state->moduleSettings.dbgModules = "nexus_platform";
+    state->moduleSettings.dbgModules = "nexus_platform;BCHP_PWR";
 #endif
     g_NEXUS_platformModule = NEXUS_Module_Create("platform",  &state->moduleSettings);
     if ( !g_NEXUS_platformModule ) { errCode=BERR_TRACE(errCode); goto err_plaform_module; }
@@ -730,6 +746,10 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     /* Init pinmuxes and vcxo control */
     errCode = NEXUS_Platform_P_InitPinmux();
     if ( errCode!=BERR_SUCCESS ) { errCode=BERR_TRACE(errCode); goto err_postboard; }
+
+    BDBG_MSG((">UUI"));
+    /* Init Universal UART Interface */
+    NEXUS_Platform_P_InitUUI();
 
     /* Start Interrupts */
     BDBG_MSG((">InitInterrupts"));
@@ -959,6 +979,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     BDBG_MSG((">CEC"));
     NEXUS_CecModule_GetDefaultSettings(&state->cecSettings);
     state->cecSettings.common.standbyLevel = NEXUS_ModuleStandbyLevel_eAlwaysOn;
+    state->cecSettings.hdmiOutput = g_NEXUS_platformHandles.hdmiOutput;
     g_NEXUS_platformHandles.cec = NEXUS_CecModule_Init(&state->cecSettings);
     if ( !g_NEXUS_platformHandles.cec) {
         BDBG_ERR(("Unable to init CEC"));
@@ -1461,12 +1482,28 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAll, NEXUS_FileMuxModule_Uninit, NULL);
 #endif
 
+#if NEXUS_HAS_SIMPLE_AUDIO_PLAYBACK
+    BDBG_MSG((">SIMPLE_AUDIO_PLAYBACK"));
+    NEXUS_SimpleAudioPlaybackModule_GetDefaultSettings(&state->simpleAudioPlaybackSettings);
+    state->simpleAudioPlaybackSettings.modules.audio = g_NEXUS_platformHandles.audio;
+    simpleAudioPlayback = NEXUS_SimpleAudioPlaybackModule_Init(&state->simpleAudioPlaybackSettings);
+    if (!simpleAudioPlayback) {
+        BDBG_ERR(("Unable to init Simple Audio Playback"));
+        errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        goto err;
+    }
+    NEXUS_Platform_P_AddModule(simpleAudioPlayback, NEXUS_ModuleStandbyLevel_eAll, NEXUS_SimpleAudioPlaybackModule_Uninit, NULL);
+#endif
+
 #if NEXUS_HAS_SIMPLE_DECODER
     BDBG_MSG((">SIMPLE_DECODER"));
     NEXUS_SimpleDecoderModule_GetDefaultSettings(&state->simpleDecoderSettings);
     state->simpleDecoderSettings.modules.videoDecoder = g_NEXUS_platformHandles.videoDecoder;
     state->simpleDecoderSettings.modules.display = g_NEXUS_platformHandles.display;
     state->simpleDecoderSettings.modules.audio = g_NEXUS_platformHandles.audio;
+#if NEXUS_HAS_SIMPLE_AUDIO_PLAYBACK
+    state->simpleDecoderSettings.modules.simpleAudioPlayback = simpleAudioPlayback;
+#endif
     handle = NEXUS_SimpleDecoderModule_Init(&state->simpleDecoderSettings);
     if (!handle) {
         BDBG_ERR(("Unable to init Simple Decoder"));
@@ -2406,4 +2443,32 @@ NEXUS_Error NEXUS_Platform_GetIdFromObject( NEXUS_AnyObject object, NEXUS_BaseOb
 void NEXUS_Platform_GetFileModuleSettings_driver( NEXUS_FileModuleSettings *pFileModuleSettings )
 {
     *pFileModuleSettings = g_NEXUS_platformSettings.fileModuleSettings;
+}
+
+void NEXUS_Platform_SetOverTempResetThreshold(unsigned overTemp, unsigned parkHigh, unsigned parkLow)
+{
+#if BCHP_AVS_TMON_TEMPERATURE_RESET_THRESHOLD && BCHP_AON_CTRL_SYSTEM_DATA_RAMi_ARRAY_BASE
+    unsigned threshold, value;
+
+
+    /* Set over temp reset threshold */
+    threshold = ((41004000 - overTemp*100)/48705)<<1;
+    value = BREG_Read32(g_pCoreHandles->reg, BCHP_AVS_TMON_TEMPERATURE_RESET_THRESHOLD);
+    value &= ~BCHP_AVS_TMON_TEMPERATURE_RESET_THRESHOLD_threshold_MASK;
+    value |= threshold & BCHP_AVS_TMON_TEMPERATURE_RESET_THRESHOLD_threshold_MASK;
+    BREG_Write32(g_pCoreHandles->reg, BCHP_AVS_TMON_TEMPERATURE_RESET_THRESHOLD, value);
+
+    /* Store the value in AON */
+#define AON_REG_OVERTEMP 11
+    BKNI_EnterCriticalSection();
+    value = BREG_Read32(g_pCoreHandles->reg, BCHP_AON_CTRL_SYSTEM_DATA_RAMi_ARRAY_BASE + (AON_REG_OVERTEMP*4));
+    value &= ~0xFFFFFF;
+    value |= (parkHigh/1000)<<16 | (parkLow/1000)<<8 | (overTemp/1000);
+    BREG_Write32(g_pCoreHandles->reg, BCHP_AON_CTRL_SYSTEM_DATA_RAMi_ARRAY_BASE + (AON_REG_OVERTEMP*4), value);
+    BKNI_LeaveCriticalSection();
+#else
+    BSTD_UNUSED(overTemp);
+    BSTD_UNUSED(parkHigh);
+    BSTD_UNUSED(parkLow);
+#endif
 }

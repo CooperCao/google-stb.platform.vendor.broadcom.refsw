@@ -44,7 +44,6 @@
 #include "brcmstb_priv.h"
 
 #define BCM7268B0_UART_BASE 0xf040c000
-#define BCM7271B0_UART_BASE 0xf040c000
 
 uintptr_t uart_base;
 
@@ -61,10 +60,9 @@ void plat_uart_init(uintptr_t base)
     if (!base) {
         switch (MMIO32(BRCMSTB_CHIP_ID_ADDR)) {
         case 0x72680010:
-            base = BCM7268B0_UART_BASE;
-            break;
         case 0x72710010:
-            base = BCM7271B0_UART_BASE;
+        case 0x72550000:
+            base = BCM7268B0_UART_BASE;
             break;
         default:
             SYS_HALT();

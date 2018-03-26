@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -541,16 +541,13 @@ static void processHttpRequestEvent(
                     {
                         pAppStreamerCtx->enableDtcpIp = true;
                         bipStatus = BIP_String_Trim(hTarget, pTmp, strlen(".dtcpIp") );
+                        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_String_Trim Failed" ), rejectRequest, bipStatus, bipStatus );
                     }
                     if ( (pTmp = strstr( BIP_String_GetString(hTarget), ".tts" )) != NULL )
                     {
                         pAppStreamerCtx->enableTransportTimestamp = true;
                         bipStatus = BIP_String_Trim(hTarget, pTmp, strlen(".tts") );
-                    }
-                    else
-                    {
-                        /* No known extension is present in the URL String, no need to trim it!. */
-                        bipStatus = BIP_SUCCESS;
+                        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_String_Trim Failed" ), rejectRequest, bipStatus, bipStatus );
                     }
                 }
                 responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
@@ -582,8 +579,7 @@ static void processHttpRequestEvent(
 rejectRequest:
         /* Some error happened, so reject the current hHttpRequest. */
         rejectRequestAndSetResponseHeaders( pAppStreamerCtx->pAppCtx, hHttpRequest, responseStatus );
-        if (pAppStreamerCtx)
-            destroyAppStreamerCtx(pAppStreamerCtx);
+        destroyAppStreamerCtx(pAppStreamerCtx);
         pAppStreamerCtx = NULL;
         /* continue back to the top of the loop. */
     } /* while */

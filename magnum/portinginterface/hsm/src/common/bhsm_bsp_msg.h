@@ -70,7 +70,7 @@ Through this interface a BSP client can:
 */
 
 #define BHSM_P_BSP_MSG_SIZE (BCMD_BUFFER_BYTE_SIZE)  /* the maxumum size of a BSP command */
-
+#define BHSM_P_BSP_INVALID_STATUS (0xFF)             /* Indicates an invalid BSP status */
 
 typedef struct BHSM_P_BspMsg* BHSM_BspMsg_h;
 
@@ -159,7 +159,6 @@ BERR_Code BHSM_BspMsg_GetArray( BHSM_BspMsg_h hMsg, unsigned int offset, uint8_t
 #define BHSM_BspMsg_PackArray(hMsg,offset,pData,length) BHSM_BspMsg_PackArray_impl(hMsg,offset,pData,length,#offset)
 #define BHSM_BspMsg_Get8(hMsg,offset,data) BHSM_BspMsg_Get8_impl(hMsg,offset,data, #offset)
 #define BHSM_BspMsg_Get16(hMsg,offset,data) BHSM_BspMsg_Get16_impl(hMsg,offset,data, #offset)
-#define BHSM_BspMsg_Get24(hMsg,offset,data) BHSM_BspMsg_Get24_impl(hMsg,offset,data, #offset)
 #define BHSM_BspMsg_Get32(hMsg,offset,data) BHSM_BspMsg_Get32_impl(hMsg,offset,data, #offset)
 #define BHSM_BspMsg_GetArray(hMsg,offset,data,length) BHSM_BspMsg_GetArray_impl(hMsg,offset,data,length,#offset)
 #else   /*No DEBUG ... NULL the COMMAND*/
@@ -184,7 +183,6 @@ BERR_Code BHSM_BspMsg_Pack32_impl ( BHSM_BspMsg_h hMsg, unsigned int offset, uin
 BERR_Code BHSM_BspMsg_PackArray_impl  ( BHSM_BspMsg_h hMsg, unsigned int offset, uint8_t *pData, unsigned int length, char *pCommand );
 BERR_Code BHSM_BspMsg_Get8_impl( BHSM_BspMsg_h hMsg, unsigned int offset, uint8_t *pData, char *pCommand );
 BERR_Code BHSM_BspMsg_Get16_impl( BHSM_BspMsg_h hMsg, unsigned int offset, uint16_t *pData, char *pCommand );
-BERR_Code BHSM_BspMsg_Get24_impl( BHSM_BspMsg_h hMsg, unsigned int offset, uint32_t *pData, char *pCommand );
 BERR_Code BHSM_BspMsg_Get32_impl( BHSM_BspMsg_h hMsg, unsigned int offset, uint32_t *pData, char *pCommand );
 BERR_Code BHSM_BspMsg_GetArray_impl( BHSM_BspMsg_h hMsg, unsigned int offset, uint8_t  *pData, unsigned int length, char *pCommand );
 

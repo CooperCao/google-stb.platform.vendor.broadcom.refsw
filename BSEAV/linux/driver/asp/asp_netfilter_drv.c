@@ -38,6 +38,9 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #define ASP_MSG_PRE_FMT  "%d: %s():: "
 #define ASP_MSG_PRE_ARG __LINE__, __FUNCTION__
+#if 0
+#define pr_debug pr_info
+#endif
 
 #include <linux/version.h>
 #include <linux/module.h>   /* For module stuff */
@@ -211,7 +214,7 @@ static int ASP_Drv_Init(
             pr_err(ASP_MSG_PRE_FMT "alloc_chrdev_region() failed: err=%d minor device count=%d, deviceName=%s\n", ASP_MSG_PRE_ARG, err, ASP_MINOR_DEVICES_COUNT, ASP_DEVICE_NAME);
             goto error;
         }
-        pr_info(ASP_MSG_PRE_FMT "alloc_chrdev_region(): minor device count=%d, deviceName=%s: major=%d minor=%d\n", ASP_MSG_PRE_ARG, ASP_MINOR_DEVICES_COUNT, ASP_DEVICE_NAME, MAJOR(pAspDeviceCtx->firstDeviceNum), MINOR(pAspDeviceCtx->firstDeviceNum) );
+        pr_debug(ASP_MSG_PRE_FMT "alloc_chrdev_region(): minor device count=%d, deviceName=%s: major=%d minor=%d\n", ASP_MSG_PRE_ARG, ASP_MINOR_DEVICES_COUNT, ASP_DEVICE_NAME, MAJOR(pAspDeviceCtx->firstDeviceNum), MINOR(pAspDeviceCtx->firstDeviceNum) );
     }
 
     /* Now dynamically create the device node in the /dev file system. This is in lieu of calling mknod. */
@@ -232,7 +235,7 @@ static int ASP_Drv_Init(
             pAspDeviceCtx->pDevice = NULL;
             goto error;
         }
-        pr_info(ASP_MSG_PRE_FMT "device_create() success: created in /dev/%s & /sys/class/%s nodes!\n", ASP_MSG_PRE_ARG, ASP_DEVICE_NAME, ASP_DEVICE_NAME);
+        pr_debug(ASP_MSG_PRE_FMT "device_create() success: created in /dev/%s & /sys/class/%s nodes!\n", ASP_MSG_PRE_ARG, ASP_DEVICE_NAME, ASP_DEVICE_NAME);
     }
 
     /* Register this character device w/ Kernel. */
@@ -370,7 +373,6 @@ static int ASP_Channel_Open(
         {
             pr_err(ASP_MSG_PRE_FMT "############################# nf_register_hook() failed to register netfilter callback function: err=%d\n", ASP_MSG_PRE_ARG, err);
         }
-    pr_info(ASP_MSG_PRE_FMT ">>>>>>>>>>>>>>>>>>>>>>>>>>>>> pre-routing hook installed.................>>>>>>>>>>>>>>>>>>>", ASP_MSG_PRE_ARG);
         /* Note: kernel will start calling our hook function at this point. However, since driver initialization hasn't finished, */
         /* the list of ASP Channel contexts would be empty, so packets would just be handled back to the Netfilter logic of Kernel. */
     }
@@ -392,7 +394,6 @@ static int ASP_Channel_Open(
         {
             pr_err(ASP_MSG_PRE_FMT "############################# nf_register_hook() failed to register netfilter callback function: err=%d\n", ASP_MSG_PRE_ARG, err);
         }
-    pr_info(ASP_MSG_PRE_FMT ">>>>>>>>>>>>>>>>>>>>>>>>>>>>> pre-routing hook installed.................>>>>>>>>>>>>>>>>>>>", ASP_MSG_PRE_ARG);
         /* Note: kernel will start calling our hook function at this point. However, since driver initialization hasn't finished, */
         /* the list of ASP Channel contexts would be empty, so packets would just be handled back to the Netfilter logic of Kernel. */
     }
@@ -426,7 +427,7 @@ static int ASP_Channel_Release(
 
     pAspDeviceCtx = g_pAspDeviceCtx;
     pAspChannelCtx = pFile->private_data;
-    pr_info(ASP_MSG_PRE_FMT "pAspChannelCtx=%p curChCount=%d \n", ASP_MSG_PRE_ARG, pAspChannelCtx, atomic_read(&pAspDeviceCtx->curChCount) );
+    pr_debug(ASP_MSG_PRE_FMT "pAspChannelCtx=%p curChCount=%d \n", ASP_MSG_PRE_ARG, pAspChannelCtx, atomic_read(&pAspDeviceCtx->curChCount) );
 
     /* Remove Channel context from the list of channel contexts. */
     spin_lock_bh(&pAspDeviceCtx->lock);
@@ -484,7 +485,7 @@ static int processSetSocket5TupleInfo_mutex_held(
                 ASP_MSG_PRE_ARG, pAspChannelCtx, pAspChannelCtx->socket5TupleInfo.ipVersion, ASP_ChLayer3IpVersion_eMax);
         return -EINVAL;
     }
-    pr_info(ASP_MSG_PRE_FMT "pAspChannelCtx=%p l4Protocol=%s ipVersion=%s srcIp:Port=%d.%d.%d.%d:%u dstIp:Port=%d.%d.%d.%d:%u aspIp=%d.%d.%d.%d \n",
+    pr_debug(ASP_MSG_PRE_FMT "pAspChannelCtx=%p l4Protocol=%s ipVersion=%s srcIp:Port=%d.%d.%d.%d:%u dstIp:Port=%d.%d.%d.%d:%u aspIp=%d.%d.%d.%d \n",
             ASP_MSG_PRE_ARG, pAspChannelCtx,
             pAspChannelCtx->socket5TupleInfo.l4Protocol == ASP_ChLayer4Protocol_eTCP ? "TCP" :
             pAspChannelCtx->socket5TupleInfo.l4Protocol == ASP_ChLayer4Protocol_eUDP ? "UDP" :
@@ -537,7 +538,7 @@ static int processGetGateway_mutex_held(
         return PTR_ERR(rt);
     }
 
-    pr_info(ASP_MSG_PRE_FMT "pAspChannelCtx=%p dest=%#x (%d.%d.%d.%d) rt_uses_gateway=%u rt_gateway=%#x (%d.%d.%d.%d)\n",
+    pr_debug(ASP_MSG_PRE_FMT "pAspChannelCtx=%p dest=%#x (%d.%d.%d.%d) rt_uses_gateway=%u rt_gateway=%#x (%d.%d.%d.%d)\n",
             ASP_MSG_PRE_ARG, pAspChannelCtx,
             getGateway.remoteIpAddr[0],
             IPv4(getGateway.remoteIpAddr[0]),
@@ -545,14 +546,14 @@ static int processGetGateway_mutex_held(
             rt-> rt_gateway,
             IPv4((rt->rt_gateway)));
 
+    getGateway.routeUsesGateway = false;
     memset(getGateway.gatewayIpAddr, 0, sizeof getGateway.gatewayIpAddr);
 
-    if (!rt->rt_uses_gateway)
+    if (rt->rt_uses_gateway)
     {
-        return -ENODEV;     /* No gateway for this address. */
+        getGateway.routeUsesGateway = true;
+        getGateway.gatewayIpAddr[0] =  (uint32_t)rt->rt_gateway;
     }
-
-    getGateway.gatewayIpAddr[0] =  (uint32_t)rt->rt_gateway;
 
     if (copy_to_user((void __user *)(arg), &getGateway, sizeof(ASP_DeviceGetGateway)))
     {
@@ -601,7 +602,7 @@ static int processPktControl_mutex_held(
     atomic_set(&pAspChannelCtx->numPktsToDrop, pktControl.numPktsToDrop);
     atomic_set(&pAspChannelCtx->origNumPktsToDrop, pktControl.numPktsToDrop);
     atomic_set(&pAspChannelCtx->pktPositionToDrop, pktControl.pktPositionToDrop);
-    pr_info(ASP_MSG_PRE_FMT "pAspChannelCtx=%p action=%d  numPktsToDrop=%d pktPositionToDrop=%d\n", ASP_MSG_PRE_ARG, pAspChannelCtx,pktControl.action, pktControl.numPktsToDrop, pktControl.pktPositionToDrop);
+    pr_debug(ASP_MSG_PRE_FMT "pAspChannelCtx=%p action=%d  numPktsToDrop=%d pktPositionToDrop=%d\n", ASP_MSG_PRE_ARG, pAspChannelCtx,pktControl.action, pktControl.numPktsToDrop, pktControl.pktPositionToDrop);
     err = 0;
     return err;
 }
@@ -625,7 +626,7 @@ static int processGetSocket5TupleInfo_locked(
         return -EFAULT;
     }
 
-    pr_info(ASP_MSG_PRE_FMT "pAspChannelCtx=%p l4Protocol=%s ipVersion=%s srcIp:Port=%d.%d.%d.%d:%u dstIp:Port=%d.%d.%d.%d:%u \n",
+    pr_debug(ASP_MSG_PRE_FMT "pAspChannelCtx=%p l4Protocol=%s ipVersion=%s srcIp:Port=%d.%d.%d.%d:%u dstIp:Port=%d.%d.%d.%d:%u \n",
             ASP_MSG_PRE_ARG, pAspChannelCtx,
             pAspChannelCtx->socket5TupleInfo.l4Protocol == ASP_ChLayer4Protocol_eTCP ? "TCP" :
             pAspChannelCtx->socket5TupleInfo.l4Protocol == ASP_ChLayer4Protocol_eUDP ? "UDP" :
@@ -677,7 +678,7 @@ static long ASP_Channel_Ioctl(
         }
         else if (_IOC_DIR(cmd) & _IOC_WRITE)
         {
-            pr_info(ASP_MSG_PRE_FMT "check if arg=0x%lx has correct access & size=%d",
+            pr_debug(ASP_MSG_PRE_FMT "check if arg=0x%lx has correct access & size=%d",
                     ASP_MSG_PRE_ARG, arg, _IOC_SIZE(cmd));
             err = !access_ok(VERIFY_READ, (void __user *)arg, _IOC_SIZE(cmd)); /* Note: it doesn't really seem to verify if user had correct size on "arg" . */
         }
@@ -692,7 +693,7 @@ static long ASP_Channel_Ioctl(
 
     pAspDeviceCtx = g_pAspDeviceCtx;
     pAspChannelCtx = pFile->private_data;
-    pr_info(ASP_MSG_PRE_FMT "pAspChannelCtx=%p cmd=0x%x cmd_num=%d\n", ASP_MSG_PRE_ARG, pAspChannelCtx, cmd, _IOC_NR(cmd));
+    pr_debug(ASP_MSG_PRE_FMT "pAspChannelCtx=%p cmd=0x%x cmd_num=%d\n", ASP_MSG_PRE_ARG, pAspChannelCtx, cmd, _IOC_NR(cmd));
 
     /* Note: we only need to get mutex here & not spin lock. mutex allows us to possibly sleep during the copying */
     /* of arguments between user & kernel space. Also, we avoid the need of spin lock by atomically setting & clearing the */
@@ -753,7 +754,7 @@ static long ASP_Channel_Ioctl(
     }
     mutex_unlock(&pAspChannelCtx->mutex);
 
-    pr_info(ASP_MSG_PRE_FMT "pAspChannelCtx=%p err=%d \n", ASP_MSG_PRE_ARG, pAspChannelCtx, err);
+    pr_debug(ASP_MSG_PRE_FMT "pAspChannelCtx=%p err=%d \n", ASP_MSG_PRE_ARG, pAspChannelCtx, err);
     return (err);
 }
 

@@ -40,9 +40,9 @@
 ######## localisation
 ifeq (${URSR_TOP},)
 ifneq (${NEXUS_TOP},)
-URSR_TOP = ${NEXUS_TOP}/..
+URSR_TOP = $(shell cd ${NEXUS_TOP}/..; pwd)
 else
-URSR_TOP = ../../../../../../..
+URSR_TOP := $(shell cd ../../../../../..; pwd)
 endif
 endif
 
@@ -66,13 +66,28 @@ ifeq ($(NXCLIENT_SUPPORT),y)
 include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
 endif
 
-APP = keymaster_test
+APPS = keymaster_test gatekeeper_test km_concurrent_test
 
-# Add example sources
-SRCS := $(wildcard *.c)
+keymaster_test_SRCS := keymaster_crypto_aes.c \
+                       keymaster_crypto_auth_tests.c \
+                       keymaster_crypto_ec.c \
+                       keymaster_crypto_hmac.c \
+                       keymaster_crypto_rsa.c \
+                       keymaster_crypto_utils.c \
+                       keymaster_keygen.c \
+                       keymaster_key_params.c \
+                       keymaster_test.c
 
+keymaster_test_OBJS := ${keymaster_test_SRCS:.c=.o}
 
-OBJS = ${SRCS:.c=.o}
+gatekeeper_test_SRCS := gatekeeper_test.c
+
+gatekeeper_test_OBJS := ${gatekeeper_test_SRCS:.c=.o}
+
+km_concurrent_test_SRCS := km_concurrent_test.c \
+                           keymaster_key_params.c
+
+km_concurrent_test_OBJS := ${km_concurrent_test_SRCS:.c=.o}
 
 # Host/Sage shared headers
 APP_INCLUDES  = ${BSAGELIB_INCLUDES} \
@@ -129,17 +144,28 @@ export KEYMASTER_OBJDIR
 .PHONY: all clean uninstall install re
 
 
-all: srai prep_keymaster prep_nexus ${APP}
+all: srai prep_keymaster prep_nexus ${APPS}
 
-# Implicit rule for building local apps
-${APP}: openssl ${OBJS}
+keymaster_test: openssl ${keymaster_test_OBJS}
 	@echo [Link... $@]
-	${Q_} ${CC} $(addprefix ${KEYMASTER_OBJDIR}/,${OBJS}) -o ${APP} ${LDFLAGS}
+	$(Q_)${CC} $(addprefix ${KEYMASTER_OBJDIR}/,${keymaster_test_OBJS}) -o ${KEYMASTER_OBJDIR}/$@ ${LDFLAGS}
+
+gatekeeper_test: ${gatekeeper_test_OBJS}
+	@echo [Link... $@]
+	$(Q_)${CC} $(addprefix ${KEYMASTER_OBJDIR}/,${gatekeeper_test_OBJS}) -o ${KEYMASTER_OBJDIR}/$@ ${LDFLAGS}
+
+km_concurrent_test: openssl ${km_concurrent_test_OBJS}
+	@echo [Link... $@]
+	$(Q_)${CC} $(addprefix ${KEYMASTER_OBJDIR}/,${km_concurrent_test_OBJS}) -o ${KEYMASTER_OBJDIR}/$@ ${LDFLAGS}
 
 .PHONY:  openssl
 openssl:
 	@echo [Build..... OpenSSL]
 	$(Q_)$(MAKE) -C $(B_OPENSSL_BUILD_DIR)
+	@echo [ ..... Installing ssl lib ..... ]
+	@install -c -m 0755 $(B_OPENSSL_LIB_INSTALL_DIR)/libssl.so* $(NEXUS_BIN_DIR)
+	@echo [ ..... Installing crypto lib ..... ]
+	@install -c -m 0755 $(B_OPENSSL_LIB_INSTALL_DIR)/libcrypto.so* $(NEXUS_BIN_DIR)
 
 %.o: %.c
 	@echo [Compile... $<]
@@ -149,9 +175,11 @@ openssl:
 	${Q_} ${CC} ${CFLAGS} -c $< -o ${KEYMASTER_OBJDIR}/$@
 
 clean:
-	@echo [Clean... ${APP}]
-	${Q_} rm -f ${OBJS}
-	${Q_} rm -f ${APP}
+	@echo [Clean... ${APPS}]
+	${Q_} rm -f $(addprefix ${KEYMASTER_OBJDIR}/,${keymaster_test_OBJS})
+	${Q_} rm -f $(addprefix ${KEYMASTER_OBJDIR}/,${gatekeeper_test_OBJS})
+	${Q_} rm -f $(addprefix ${KEYMASTER_OBJDIR}/,${km_concurrent_test_OBJS})
+	${Q_} rm -f $(addprefix ${KEYMASTER_OBJDIR}/,${APPS})
 
 srai:
 	make -C ${SRAI_TOP} install
@@ -174,14 +202,14 @@ else
 endif
 
 uninstall:
-	@echo [Uninstall... ${APP}]
-	${Q_} rm -f ${NEXUS_BIN_DIR}/${APP}
+	@echo [Uninstall... ${APPS}]
+	${Q_} $(foreach APP,${APPS},rm -f ${NEXUS_BIN_DIR}/${APP})
 	@echo [Uninstall... SRAI]
 	${Q_} rm -f ${NEXUS_BIN_DIR}/libsrai.*
 
 install:
-	@echo [Installing ${APP}... in ${NEXUS_BIN_DIR}]
-	${Q_} install -m 0755 ${APP} ${NEXUS_BIN_DIR}
+	@echo [Installing ${APPS}... in ${NEXUS_BIN_DIR}]
+	${Q_} install -m 0755 $(addprefix ${KEYMASTER_OBJDIR}/,${APPS}) ${NEXUS_BIN_DIR}
 	@echo [Installing SRAI... in ${NEXUS_BIN_DIR}]
 	${Q_} install -m 0755 ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/sage/srai/* ${NEXUS_BIN_DIR}
 

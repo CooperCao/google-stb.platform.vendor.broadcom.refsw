@@ -132,7 +132,10 @@ void memCopy2d_rgba(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
    else
    {
       /* only for small copies, not to be used as a fallback path */
+      /* invalidate src - cache must NOT be dirty as we don't have proper invalidate */
+      NEXUS_Memory_FlushCache(params->srcCached, params->height * params->stride);
       memcpy(params->dstCached, params->srcCached, params->height * params->stride);
+      /* flush dst */
       NEXUS_Memory_FlushCache(params->dstCached, params->height * params->stride);
    }
 }

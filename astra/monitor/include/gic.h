@@ -57,6 +57,10 @@ int gic_cpuif_init();
 int gic_sec_intr_enable(uint32_t intr_id);
 int gic_sec_intr_disable(uint32_t intr_id);
 
+int gic_sgi_intr_generate(
+    uint32_t intr_id,
+    uint32_t cpu_mask);
+
 uint32_t gic_intr_max();
 uint32_t gic_intr_iid();
 void gic_intr_ack(uint32_t iid);

@@ -40,7 +40,7 @@
 #include "nexus_simple_video_decoder.h"
 #include "nexus_simple_audio_decoder.h"
 #include "nexus_simple_stc_channel.h"
-#endif
+#else
 #include "nexus_platform.h"
 #include "nexus_video_decoder.h"
 #include "nexus_stc_channel.h"
@@ -56,6 +56,7 @@
 #include "nexus_composite_output.h"
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
+#endif
 #endif
 #include "bmmt.h"
 
@@ -162,7 +163,10 @@ int main(int argc, const char *argv[])
         } else if (!strcmp("-tlv_pid",argv[arg]) && argc>arg+1) {
             arg++;
             open_settings.tlv_pid = strtol(argv[arg],NULL,0);
-        }else if (*argv[arg]!='\0' && (*argv[arg]!='-' || argv[arg][1]=='\0'))  {
+        }else if (!strcmp("-loop",argv[arg])) {
+           open_settings.loop = true;
+        }
+        else if (*argv[arg]!='\0' && (*argv[arg]!='-' || argv[arg][1]=='\0'))  {
             switch(file_arg) {
             case 0: strcpy(open_settings.fileName,argv[arg]);
                 break;

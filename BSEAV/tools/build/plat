@@ -40,7 +40,7 @@
 
 echo "Broadcom Reference Software Build Server Config Tool"
 echo "----------------------------------------------------"
-echo "This tool is written for bash, but also works on zsh"
+echo "This tool is written for bash"
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 #echo "DIR=${DIR}"
 echo
@@ -105,6 +105,8 @@ if [ $# -gt 0 ]; then
     unset TOOLCHAIN_SUFFIX
     unset LINUX
     unset LINUX_ROOT
+    unset B_REFSW_BOOTLOADER
+    unset B_REFSW_BOOTLOADER_VER
 
     B_REFSW_OBJ_SUFFIX=$(echo "$@")
 
@@ -216,6 +218,10 @@ if [ ! -z "${NEXUS_PLATFORM}"  -a ! -z "${B_REFSW_OBJ_SUFFIX}"  ]; then
     fi
     export B_REFSW_OBJ_DIR
     echo "B_REFSW_OBJ_DIR=${B_REFSW_OBJ_DIR}"
+fi
+
+if [ ! -z "${NEXUS_PLATFORM}" -a  ! -z  "${B_REFSW_BOOTLOADER_VER}" ] ; then
+     echo "Recommended bootloader $B_REFSW_BOOTLOADER $B_REFSW_BOOTLOADER_VER"
 fi
 
 # End of file

@@ -52,6 +52,7 @@
 #include "error.h"
 
 #define __bootstrap             __attribute__((__section__(".text.bootstrap")))
+#define __boot_params           __attribute__((__section__(".boot_params")))
 #define __xlat_tables           __attribute__((__section__(".xlat_tables")))
 #define __coherent_ram          __attribute__((__section__(".coherent_ram")))
 

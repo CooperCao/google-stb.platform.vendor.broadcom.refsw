@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -588,6 +588,21 @@ static void BCHP_PWR_P_HW_VEC_SRAM_Control(BCHP_Handle handle, bool activate)
     }
     if(!cnt)
         BDBG_ERR(("HW_VEC_SRAM Timeout"));
+}
+
+static void BCHP_PWR_P_MX_656_MUX_SELECT_Control(BCHP_Handle handle, unsigned *mux, bool set)
+{
+    uint32_t reg;
+
+    BDBG_MSG(("MX_656_MUX_SELECT: %s", set?"write":"read"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_ITU656_0_MUX_SELECT);
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_ITU656_0_MUX_SELECT, VEC_ITU656_0_CLOCK, *mux);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_ITU656_0_MUX_SELECT, reg);
+    } else {
+        *mux = BCHP_GET_FIELD_DATA(reg, CLKGEN_ITU656_0_MUX_SELECT, VEC_ITU656_0_CLOCK);
+    }
 }
 
 static void BCHP_PWR_P_HW_ITU656_Control(BCHP_Handle handle, bool activate)

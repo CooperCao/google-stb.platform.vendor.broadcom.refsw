@@ -90,22 +90,22 @@ typedef struct
 {
     uint8_t  askmTdesKlRootKeySwapEnable;
     uint8_t  rootKeySrc; /* enum type Bsp_RootKeySrc_e */
-    uint8_t  hwklOperation; /* enum type Bsp_HwklOp_e */
+    uint8_t  reserved0;
     uint8_t  globalKeyOwnerIdSelect; /* enum type Bsp_OwnerIdSelect_e */
     uint8_t  globalKeyIndex;
-    uint8_t  reserved0;
-    uint8_t  kdfVersion;
     uint8_t  reserved1;
+    uint8_t  kdfVersion;
+    uint8_t  reserved2;
     uint32_t procIn[4];
     uint16_t caVendorId;
-    uint8_t  reserved2;
+    uint8_t  reserved3;
     uint8_t  stbOwnerIdSel; /* enum type Bsp_StbOwnerId_e */
     uint8_t  askmMaskKeySel; /* enum type Bsp_Askm_MaskKeySel_e */
     uint8_t  moduleId;
-    uint8_t  reserved3;
+    uint8_t  reserved4;
     uint8_t  hwklLength; /* enum type Bsp_HwklLength_e */
     uint8_t  hwklDestinationAlg; /* enum type Bsp_KeySlotCryptoAlg_e */
-    uint8_t  reserved4[3];
+    uint8_t  reserved5[3];
 
 }Bsp_Hwkl_RootConfig_InFields_t;
 /*output*/
@@ -121,8 +121,7 @@ typedef struct
 typedef struct
 {
     uint8_t  destinationKeyLayer; /* enum type Bsp_HwklLayer_e */
-    uint8_t  hwklOperation; /* enum type Bsp_HwklOp_e */
-    uint8_t  reserved0[2];
+    uint8_t  reserved0[3];
     uint32_t procIn[4];
 
 }Bsp_Hwkl_LayerSet_InFields_t;

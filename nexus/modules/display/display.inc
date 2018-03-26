@@ -171,6 +171,10 @@ else
 BVDC_DBV_SUPPORT:=n
 endif
 
+ifeq ($(NEXUS_DISPLAY_DYNRNG_EXTENSION_SUPPORT),y)
+include ${NEXUS_TOP}/extensions/display/dynrng/dynrng.inc
+endif
+
 ifneq ($(NEXUS_DISPLAY_EXTENSION_INC),)
 include $(NEXUS_DISPLAY_EXTENSION_INC)
 endif

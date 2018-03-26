@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -97,7 +97,10 @@ public:
             CConfiguration * pCfg
             );
 
-    virtual void saveScanData(CTunerScanData * pScanData);
+    virtual void scanDataSave(CTunerScanData * pScanData);
+    virtual void scanDataDump(void)          { _scanData.dump(); }
+    virtual void scanDataFreqListClear(void) { _scanData._freqList.clear(); }
+    virtual eRet scanDataFreqListAdd(uint32_t freq);
     virtual void doScan(void);
     virtual eRet open(CWidgetEngine * pWidgetEngine);
     virtual void close(void);

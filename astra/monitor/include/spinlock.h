@@ -9,7 +9,7 @@
 
 #ifndef __ASSEMBLY__
 
-#include <types.h>
+#include <stdint.h>
 
 typedef struct spinlock {
 	volatile uint32_t lock;
@@ -23,6 +23,15 @@ void spin_unlock(spinlock_t *lock);
 /* Spin lock definitions for use in assembly */
 #define SPINLOCK_ASM_ALIGN	2
 #define SPINLOCK_ASM_SIZE	4
+
+/*
+ * Reserve space for a spin lock in assembly file.
+ */
+.macro define_asm_spinlock _name:req
+.align	SPINLOCK_ASM_ALIGN
+\_name:
+.space	SPINLOCK_ASM_SIZE
+.endm
 
 #endif
 

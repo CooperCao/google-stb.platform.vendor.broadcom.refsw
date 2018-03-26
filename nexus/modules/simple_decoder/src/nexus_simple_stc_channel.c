@@ -122,6 +122,7 @@ void NEXUS_SimpleStcChannel_GetDefaultSettings( NEXUS_SimpleStcChannelSettings *
         g_default_settings.mode = NEXUS_StcChannelMode_eAuto;
         g_default_settings.modeSettings.highJitter.mode = NEXUS_SimpleStcChannelHighJitterMode_eNone;
         g_default_settings.modeSettings.highJitter.threshold = 300; /* support max jitter of 300msec */
+        g_default_settings.modeSettings.highJitter.trackRange = NEXUS_TimebaseTrackRange_e244ppm;
         g_default_settings.modeSettings.pcr = s.modeSettings.pcr;
         g_default_settings.modeSettings.Auto = s.modeSettings.Auto;
         g_default_settings.modeSettings.host = s.modeSettings.host;
@@ -498,21 +499,19 @@ static void configureHighJitterTimebase(NEXUS_Timebase highJitterTimebase, const
     timebaseSettings->sourceType = NEXUS_TimebaseSourceType_ePcr;
     timebaseSettings->freeze = false;
     timebaseSettings->sourceSettings.pcr.pidChannel = pSettings->modeSettings.pcr.pidChannel;
-    timebaseSettings->sourceSettings.pcr.maxPcrError = pSettings->modeSettings.highJitter.threshold * 183/2;    /* in milliseconds: based on 90Khz clock */
-    timebaseSettings->sourceSettings.pcr.trackRange = NEXUS_TimebaseTrackRange_e244ppm;
+    timebaseSettings->sourceSettings.pcr.maxPcrError = pSettings->modeSettings.highJitter.threshold * 90; /* convert milliseconds to 90Khz clock */
+    timebaseSettings->sourceSettings.pcr.trackRange = pSettings->modeSettings.highJitter.trackRange;
     timebaseSettings->sourceSettings.pcr.jitterCorrection = NEXUS_TristateEnable_eDisable;
     BDBG_MSG(("Configured timebase %lu for highJtter value of %d msec", highJitterTimebase, pSettings->modeSettings.highJitter.threshold));
 }
 
 static void configureHighJitterStc(NEXUS_Timebase highJitterTimebase, const NEXUS_SimpleStcChannelSettings *pSettings, NEXUS_StcChannelSettings *stcChannelSettings)
 {
-    /* Update STC Channel Settings to accomodate Network Jitter */
+    /* Update STC Channel Settings to accommodate Network Jitter */
     stcChannelSettings->timebase = highJitterTimebase;
     stcChannelSettings->mode = NEXUS_StcChannelMode_ePcr; /* Live Mode */
-    /* offset threshold: uses upper 32 bits (183ticks/msec) of PCR clock */
-    stcChannelSettings->modeSettings.pcr.offsetThreshold = pSettings->modeSettings.highJitter.threshold * 183;
-    /* max pcr error: uses upper 32 bits (183ticks/msec) of PCR clock */
-    stcChannelSettings->modeSettings.pcr.maxPcrError =  pSettings->modeSettings.highJitter.threshold * 183;
+    stcChannelSettings->modeSettings.pcr.offsetThreshold = pSettings->modeSettings.highJitter.threshold * 90; /* convert milliseconds to 90Khz clock */
+    stcChannelSettings->modeSettings.pcr.maxPcrError =  pSettings->modeSettings.highJitter.threshold * 90; /* convert milliseconds to 90Khz clock */
     stcChannelSettings->modeSettings.pcr.pidChannel = pSettings->modeSettings.pcr.pidChannel;
     /*  PCR Offset "Jitter Adjustment" is not suitable for use with IP channels Channels, so disable it */
     stcChannelSettings->modeSettings.pcr.disableJitterAdjustment = true;
@@ -546,9 +545,11 @@ static void printStcChannelSettings(NEXUS_SimpleStcChannelHandle handle)
                 handle->settings.modeSettings.highJitter.threshold));
     if (handle->stcChannel) {
         NEXUS_StcChannelSettings stcChannelSettings;
+        unsigned timebaseIndex;
         NEXUS_StcChannel_GetSettings(handle->stcChannel, &stcChannelSettings);
-        BDBG_MSG(("stc: timebase %lu, mode %d, offsetThreshold %d, maxPcrError %d disableJitterAdjustment %d disableTimestampCorrection %d, autoConfigTimebase %d",
-                    stcChannelSettings.timebase,
+        NEXUS_Timebase_GetIndex(stcChannelSettings.timebase, &timebaseIndex);
+        BDBG_MSG(("stc: timebase %u, mode %d, offsetThreshold %d, maxPcrError %d disableJitterAdjustment %d disableTimestampCorrection %d, autoConfigTimebase %d",
+                    timebaseIndex,
                     stcChannelSettings.mode,
                     stcChannelSettings.modeSettings.pcr.offsetThreshold,
                     stcChannelSettings.modeSettings.pcr.maxPcrError,
@@ -631,8 +632,8 @@ static NEXUS_Error NEXUS_SimpleStcChannel_P_SetSettings(NEXUS_SimpleStcChannelHa
     int rc;
     NEXUS_Timebase releaseTimebase = NEXUS_Timebase_eInvalid;
     bool manualTimebaseConfig = false; /* this means SimpleStcChannel will do the "auto config" */
-    NEXUS_SimpleStcChannelDecoderStatus videoStatus;
     bool master = false;
+    bool timebase_selected = false;
 
     NEXUS_StcChannel_GetSettings(stcChannel, &settings);
     /* TODO: reconsider releaseTimebase */
@@ -656,12 +657,17 @@ static NEXUS_Error NEXUS_SimpleStcChannel_P_SetSettings(NEXUS_SimpleStcChannelHa
     }
 
     if (!NEXUS_SimpleStcChannel_P_GetEncoderTimebase(handle, &settings.timebase)) {
-        settings.mode = NEXUS_StcChannelMode_eAuto;
-        settings.autoConfigTimebase = false;
-        goto set_settings;
+        timebase_selected = true;
+    }
+
+    if (pSettings->mode == NEXUS_StcChannelMode_ePcr && allowTimebase0 && pSettings->master) {
+        /* audio and/or video decodes can be master */
+        BDBG_MSG(("%p wants to be master", (void*)handle));
+        master = true;
     }
 
     if (handle->video) {
+        NEXUS_SimpleStcChannelDecoderStatus videoStatus;
         NEXUS_SimpleVideoDecoder_GetStcStatus_priv(handle->video, &videoStatus);
         if (videoStatus.hdDviInput) {
             NEXUS_Timebase_GetSettings(settings.timebase, &timebaseSettings);
@@ -675,19 +681,23 @@ static NEXUS_Error NEXUS_SimpleStcChannel_P_SetSettings(NEXUS_SimpleStcChannelHa
             settings.autoConfigTimebase = false;
             goto set_settings;
         }
-        if (pSettings->mode == NEXUS_StcChannelMode_ePcr && allowTimebase0 && (pSettings->master || videoStatus.mainWindow)) {
-            NEXUS_SimpleStcChannelHandle s;
-            BDBG_MSG(("%p wants to be master: %d, %d", (void*)handle, pSettings->master, videoStatus.mainWindow));
-            for (s=BLST_S_FIRST(&g_simpleStcChannels);s;s=BLST_S_NEXT(s,link)) {
-                if (s == handle) continue;
-                if (s->timebase0) {
-                    BDBG_WRN(("moving SimpleStcChannel %p off of timebase0 for %p", (void*)s, (void*)handle));
-                    rc = NEXUS_SimpleStcChannel_P_SetSettings(s, s->stcChannel, &s->settings, false);
-                    if (rc) return BERR_TRACE(rc);
-                    BDBG_ASSERT(!s->timebase0);
-                }
-            }
+        if (!master && pSettings->mode == NEXUS_StcChannelMode_ePcr && allowTimebase0 && videoStatus.mainWindow) {
+            /* for video, also allow implicit master for main video window */
+            BDBG_MSG(("%p defaults to master as main window", (void*)handle));
             master = true;
+        }
+    }
+
+    if (master) {
+        NEXUS_SimpleStcChannelHandle s;
+        for (s=BLST_S_FIRST(&g_simpleStcChannels);s;s=BLST_S_NEXT(s,link)) {
+            if (s == handle) continue;
+            if (s->timebase0) {
+                BDBG_WRN(("moving SimpleStcChannel %p off of timebase0 for %p", (void*)s, (void*)handle));
+                rc = NEXUS_SimpleStcChannel_P_SetSettings(s, s->stcChannel, &s->settings, false);
+                if (rc) return BERR_TRACE(rc);
+                BDBG_ASSERT(!s->timebase0);
+            }
         }
     }
 
@@ -695,7 +705,9 @@ static NEXUS_Error NEXUS_SimpleStcChannel_P_SetSettings(NEXUS_SimpleStcChannelHa
     switch (pSettings->mode) {
         case NEXUS_StcChannelMode_eAuto:
             /* DVR is freerun, so timebase is a don't care */
-            settings.timebase = NEXUS_Timebase_eInvalid;
+            if (!timebase_selected) {
+                settings.timebase = NEXUS_Timebase_eInvalid;
+            }
             settings.autoConfigTimebase = false;
             break;
         case NEXUS_StcChannelMode_ePcr:
@@ -703,12 +715,14 @@ static NEXUS_Error NEXUS_SimpleStcChannel_P_SetSettings(NEXUS_SimpleStcChannelHa
             switch (pSettings->modeSettings.highJitter.mode) {
                 case NEXUS_SimpleStcChannelHighJitterMode_eNone:
                     /* if no jitter on PCRs, allow main window live decode to drive timebase0, which is used for display/audio outputs */
-                    if (master) {
-                        settings.timebase = NEXUS_Timebase_e0;
-                    }
-                    else {
-                        rc = nexus_stc_channel_p_open_timebase(handle, &settings.timebase);
-                        if (rc) return BERR_TRACE(rc);
+                    if (!timebase_selected) {
+                        if (master) {
+                            settings.timebase = NEXUS_Timebase_e0;
+                        }
+                        else {
+                            rc = nexus_stc_channel_p_open_timebase(handle, &settings.timebase);
+                            if (rc) return BERR_TRACE(rc);
+                        }
                     }
                     /* This is the only case for StcChannel autoConfigTimebase. It will do PCR clock recovery. */
                     settings.autoConfigTimebase = true;
@@ -718,9 +732,11 @@ static NEXUS_Error NEXUS_SimpleStcChannel_P_SetSettings(NEXUS_SimpleStcChannelHa
                         BDBG_ERR(("NEXUS SimpleStcChannelHighJitterMode_eDirect requires caller to specify non-zero highJitterThreshold"));
                         return NEXUS_INVALID_PARAMETER;
                     }
-                    /* must alloc a timebase for high jitter, different from timebase0 which is used for display and audio outputs */
-                    rc = nexus_stc_channel_p_open_timebase(handle, &settings.timebase);
-                    if (rc) return BERR_TRACE(rc);
+                    if (!timebase_selected) {
+                        /* must alloc a timebase for high jitter, different from timebase0 which is used for display and audio outputs */
+                        rc = nexus_stc_channel_p_open_timebase(handle, &settings.timebase);
+                        if (rc) return BERR_TRACE(rc);
+                    }
                     /* manually configure this timebase */
                     NEXUS_Timebase_GetSettings(settings.timebase, &timebaseSettings);
                     configureHighJitterTimebase(settings.timebase, pSettings, &timebaseSettings);
@@ -735,12 +751,14 @@ static NEXUS_Error NEXUS_SimpleStcChannel_P_SetSettings(NEXUS_SimpleStcChannelHa
                     /* we use the same timebase for both decode & display path. */
                     /* However, both timebase & stc channel are configured slightly differently */
                     /* w/ certain jitter settings disabled. */
-                    if (master) {
-                        settings.timebase = NEXUS_Timebase_e0;
-                    }
-                    else {
-                        rc = nexus_stc_channel_p_open_timebase(handle, &settings.timebase);
-                        if (rc) return BERR_TRACE(rc);
+                    if (!timebase_selected) {
+                        if (master) {
+                            settings.timebase = NEXUS_Timebase_e0;
+                        }
+                        else {
+                            rc = nexus_stc_channel_p_open_timebase(handle, &settings.timebase);
+                            if (rc) return BERR_TRACE(rc);
+                        }
                     }
 
                     NEXUS_Timebase_GetSettings(settings.timebase, &timebaseSettings);

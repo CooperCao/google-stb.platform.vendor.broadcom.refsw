@@ -262,6 +262,9 @@ typedef struct BXDM_PictureProvider_P_LocalState
     * others are essentially dropped. */
    uint32_t uiPicturesPromoted;
 
+   /* SWSTB-3955: using STC's directly from XPT. */
+   bool bUsingXPTSTC;
+
 } BXDM_PictureProvider_P_LocalState;
 
 #define BXDM_PictureProvider_P_MAX_EARLY_BEFORE_DROP 3
@@ -494,6 +497,9 @@ typedef struct BXDM_PictureProvider_P_Config
 
    /* SWSTB-3450: to support overriding the color parameters */
    BXDM_PictureProvider_ColorOverride stColorOverride;
+
+   /* Use the STC's read directly from XPT. */
+   bool bUseXPTSTC;
 
 } BXDM_PictureProvider_P_Config;
 

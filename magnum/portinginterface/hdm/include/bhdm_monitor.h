@@ -61,7 +61,9 @@ typedef struct BHDM_MONITOR_Status
 
     struct
     {
-	    unsigned BCapsReadFailures ;
+		unsigned BCapsReadFailures ;
+		unsigned BksvReadFailures ;
+		unsigned InvalidBksvFailures ;
     } hdcp1x ;
 
 	/* total count of times an unstable format */
@@ -73,6 +75,17 @@ typedef struct BHDM_MONITOR_Status
 
 } BHDM_MONITOR_Status ;
 
+
+typedef struct BHDM_MONITOR_TxHwStatusExtra
+{
+	bool PllLocked ;
+	unsigned PllStatus ;
+
+	unsigned ui2cHdcp2VersionReadFailures ;
+	unsigned ui2cHdcp2VersionDataFailures ;
+} BHDM_MONITOR_TxHwStatusExtra ;
+
+
 void BHDM_MONITOR_P_FormatChanges_isr(BHDM_Handle hHDMI)  ;
 void BHDM_MONITOR_P_StatusChanges_isr(BHDM_Handle hHDMI) ;
 void BHDM_MONITOR_P_HpdChanges_isr(BHDM_Handle hHDMI) ;
@@ -82,6 +95,7 @@ void BHDM_MONITOR_P_StartTimers(BHDM_Handle hHDMI) ;
 void BHDM_MONITOR_P_StopTimers_isr(BHDM_Handle hHDMI)  ;
 
 BERR_Code BHDM_MONITOR_GetHwStatusTx(BHDM_Handle hHDMI, BHDM_MONITOR_Status * status) ;
+void BHDM_MONITOR_GetTxHwStatusExtra(BHDM_Handle hHDMI, BHDM_MONITOR_TxHwStatusExtra * stTxHwStatusExtra) ;
 
 
 

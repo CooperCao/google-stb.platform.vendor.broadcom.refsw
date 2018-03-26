@@ -75,6 +75,7 @@ void NEXUS_GetSecurityCapabilities( NEXUS_SecurityCapabilities *pCaps )
     unsigned x = 0;
     BHSM_ModuleCapabilities hsmCaps;
     BHSM_Handle hHsm;
+    BERR_Code rc = BERR_UNKNOWN;
 
     BDBG_ENTER(NEXUS_GetSecurityCapabilities);
 
@@ -82,24 +83,26 @@ void NEXUS_GetSecurityCapabilities( NEXUS_SecurityCapabilities *pCaps )
 
     BKNI_Memset( pCaps, 0, sizeof(*pCaps) );
 
-    for( x = 0; x < NEXUS_KeySlotType_eMax; x++ )
-    {
-        pCaps->numKeySlotsForType[x] = g_security.settings.numKeySlotsForType[x];
-    }
-
-    BKNI_Memset( &hsmCaps, 0, sizeof(hsmCaps) );
     NEXUS_Security_GetHsm_priv( &hHsm );
     if( !hHsm ) { BERR_TRACE( NEXUS_NOT_INITIALIZED ); return; }
 
-    BHSM_GetCapabilities( hHsm,  &hsmCaps );
+    BKNI_Memset( &hsmCaps, 0, sizeof(hsmCaps) );
+    rc = BHSM_GetCapabilities( hHsm,  &hsmCaps );
+    if( rc != BERR_SUCCESS ) { BERR_TRACE( NEXUS_NOT_AVAILABLE ); return; }
 
     pCaps->version.zeus.major    = hsmCaps.version.zeus.major;
     pCaps->version.zeus.minor    = hsmCaps.version.zeus.minor;
     pCaps->version.zeus.subminor = hsmCaps.version.zeus.subminor;
+    pCaps->version.bfw.major     = hsmCaps.version.bfw.major;
+    pCaps->version.bfw.minor     = hsmCaps.version.bfw.minor;
+    pCaps->version.bfw.subminor  = hsmCaps.version.bfw.subminor;
 
-    pCaps->version.bfw.major    = hsmCaps.version.bfw.major;
-    pCaps->version.bfw.minor    = hsmCaps.version.bfw.minor;
-    pCaps->version.bfw.subminor = hsmCaps.version.bfw.subminor;
+    BDBG_CASSERT( (unsigned)NEXUS_KeySlotType_eMax == (unsigned)BHSM_KeyslotType_eMax );
+
+    for( x = 0; x < NEXUS_KeySlotType_eMax; x++ )
+    {
+        pCaps->numKeySlotsForType[x] = hsmCaps.numKeyslotsForType[x];
+    }
 
     BDBG_LEAVE(NEXUS_GetSecurityCapabilities);
     return;
@@ -115,10 +118,20 @@ void NEXUS_SecurityModule_GetDefaultSettings( NEXUS_SecurityModuleSettings *pSet
         pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerBlock] = 4;
         pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerEntry] = 6;
     } else {
+#if defined(NEXUS_HAS_NSK2HDI) && (NEXUS_SECURITY_ZEUS_VERSION_MAJOR < 5)
+        /* Zeus 4 layout */
+        pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerSlot]  = 0;
+        pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerBlock] = 50;
+        pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerEntry] = 0;
+        pSettings->numKeySlotsForType[NEXUS_KeySlotType_eOxford1]  = 32;
+        pSettings->numKeySlotsForType[NEXUS_KeySlotType_eOxford2] = 50;
+        pSettings->numKeySlotsForType[NEXUS_KeySlotType_eOxford3] = 1;
+#else
         /* Zeus 2, 3, and 4.x and 5*/
         pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerSlot]  = 21;
         pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerBlock] = 21;
         pSettings->numKeySlotsForType[NEXUS_KeySlotType_eIvPerEntry] = 6;
+#endif
     }
 
     if ( NEXUS_SECURITY_ZEUS_VERSION_MAJOR >= 5) {
@@ -141,6 +154,7 @@ NEXUS_ModuleHandle NEXUS_SecurityModule_Init( const NEXUS_SecurityModuleInternal
     NEXUS_ModuleSettings moduleSettings;
     NEXUS_SecurityRegionModuleSettings rvSettings;
     BERR_Code rc = NEXUS_SUCCESS;
+    int i;
 
     BDBG_ENTER(NEXUS_SecurityModule_Init);
 
@@ -165,6 +179,11 @@ NEXUS_ModuleHandle NEXUS_SecurityModule_Init( const NEXUS_SecurityModuleInternal
     if (rc) {rc = BERR_TRACE(rc); goto err_init;}
 
     NEXUS_Security_GetDefaultRegionVerificationModuleSettings( &rvSettings );
+
+    for( i = 0; i < NEXUS_SecurityFirmwareType_eMax; i++ ){
+        rvSettings.enforceAuthentication[i] = pSettings->enforceAuthentication[i];
+    }
+
     rc = NEXUS_Security_RegionVerification_Init_priv( &rvSettings ); /* region verification private interface. */
     if (rc) { rc = BERR_TRACE(rc); goto err_init; }
 
@@ -376,10 +395,8 @@ static NEXUS_Error secureFirmwareRave( void )
     void *pRaveFirmware = NULL;
     unsigned raveFirmwareSize = 0;
     NEXUS_Addr regionAddress = 0;
-   #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW /*dump binaries */
     void *pRaveFirmwareDeviceMem = NULL;
     NEXUS_MemoryAllocationSettings memSettings;
-   #endif
 
     BDBG_ENTER(secureFirmwareRave);
 
@@ -391,7 +408,6 @@ static NEXUS_Error secureFirmwareRave( void )
     /* locate Rave Firmware. */
     NEXUS_TransportModule_GetRaveFirmware_isrsafe( &pRaveFirmware, &raveFirmwareSize );
 
-   #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW /*dump binaries */
     NEXUS_Memory_GetDefaultAllocationSettings(&memSettings);
     memSettings.heap = g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].nexus;
     rc = NEXUS_Memory_Allocate( raveFirmwareSize, &memSettings, &pRaveFirmwareDeviceMem );
@@ -399,15 +415,14 @@ static NEXUS_Error secureFirmwareRave( void )
 
     BKNI_Memcpy( pRaveFirmwareDeviceMem, pRaveFirmware, raveFirmwareSize );
     regionAddress =  NEXUS_AddrToOffset( pRaveFirmwareDeviceMem );
-   #endif
 
     rc = NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID_eRave,
                                                  regionAddress,
                                                  raveFirmwareSize );
-   #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW
-    NEXUS_Memory_Free( pRaveFirmwareDeviceMem );
-   #endif
-    if (rc) { return BERR_TRACE(rc); }
+
+    if( pRaveFirmwareDeviceMem ) { NEXUS_Memory_Free( pRaveFirmwareDeviceMem ); }
+
+    if( rc ) { return BERR_TRACE( rc ); }
 
     BDBG_LEAVE(secureFirmwareRave);
     return BERR_SUCCESS;

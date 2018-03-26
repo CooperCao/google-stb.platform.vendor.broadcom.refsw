@@ -39,8 +39,8 @@
 #ifndef _STD_PSCI_H_
 #define _STD_PSCI_H_
 
-#define STD_SVC_PSCI_VERSION_MAJOR      1
-#define STD_SVC_PSCI_VERSION_MINOR      1
+#define STD_SVC_PSCI_VERSION_MAJOR      0
+#define STD_SVC_PSCI_VERSION_MINOR      2
 
 /* Standard service PSCI module bit[15:5] and func bit[4:0] */
 #define STD_SVC_PSCI_MOD_BITS           0x000

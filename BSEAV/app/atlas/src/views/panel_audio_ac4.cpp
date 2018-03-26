@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -77,7 +77,7 @@ CPanelAudioAc4::CPanelAudioAc4(
     _AltPresentationLabel(NULL),
     _AltPresentationPopup(NULL),
     _AltPriority(NULL),
-#endif
+#endif /* if ENABLE_ALTERNATE */
     _Back(NULL)
 {
 }
@@ -100,13 +100,14 @@ eRet CPanelAudioAc4::initialize(
     uint32_t    graphicsWidth  = 0;
     uint32_t    graphicsHeight = 0;
     int         menuWidth      = 260;
+
 #if ENABLE_ALTERNATE
-    int         menuHeight     = 274;
+    int menuHeight = 274;
 #else
-    int         menuHeight     = 154;
+    int menuHeight = 154;
 #endif
-    int         subMenuHeight  = 124;
-    MRect       rectPanel;
+    int   subMenuHeight = 124;
+    MRect rectPanel;
 
     BDBG_ASSERT(NULL != pModel);
     BDBG_ASSERT(NULL != pConfig);
@@ -307,7 +308,7 @@ eRet CPanelAudioAc4::initialize(
 
         _AltSettings->setGeometry(MRect(0, subMenuHeight + 26, menuWidth, subMenuHeight));
     }
-#endif
+#endif /* if ENABLE_ALTERNATE */
 
     rectPanel.set(50, 50, menuWidth, menuHeight);
     setGeometry(rectPanel);
@@ -315,7 +316,7 @@ eRet CPanelAudioAc4::initialize(
     /* back button */
     _Back = new CWidgetButton("CPanelAudioAc4::_Back", getEngine(), this, MRect(0, 0, 0, 0), font10);
     CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _Back, ret, eRet_OutOfMemory, error);
-    _Back->setText("Audio");
+    _Back->loadImage("images/back-sm.png");
     _pAudioMenu->addBackButton(_Back);
 
     _Back->setFocus();
@@ -342,7 +343,7 @@ void CPanelAudioAc4::uninitialize()
     DEL(_AltLanguageLabel);
     DEL(_AltLanguage);
     DEL(_AltSettings);
-#endif
+#endif /* if ENABLE_ALTERNATE */
     DEL(_MainPriority);
     DEL(_MainPresentationPopup);
     DEL(_MainPresentationLabel);
@@ -357,10 +358,13 @@ void CPanelAudioAc4::uninitialize()
     DEL(_pAudioMenu);
 } /* uninitialize */
 
-eRet CPanelAudioAc4::findAc4Presentation(unsigned nIndex, NEXUS_AudioDecoderPresentationStatus * pPresentation)
+eRet CPanelAudioAc4::findAc4Presentation(
+        unsigned                               nIndex,
+        NEXUS_AudioDecoderPresentationStatus * pPresentation
+        )
 {
-    eRet ret = eRet_Ok;
-    CModel *      pModel  = getModel();
+    eRet                 ret          = eRet_Ok;
+    CModel *             pModel       = getModel();
     CSimpleAudioDecode * pAudioDecode = pModel->getSimpleAudioDecode();
 
     BDBG_ASSERT(NULL != pPresentation);
@@ -375,7 +379,7 @@ eRet CPanelAudioAc4::findAc4Presentation(unsigned nIndex, NEXUS_AudioDecoderPres
 
 error:
     return(ret);
-}
+} /* findAc4Presentation */
 
 void CPanelAudioAc4::onClick(bwidget_t widget)
 {
@@ -394,14 +398,14 @@ void CPanelAudioAc4::onClick(bwidget_t widget)
 
     if ((NULL != _MainLanguagePopup) && (0 <= _MainLanguagePopup->getItemListIndex(pWidget->getWidget())))
     {
-        CWidgetCheckButton *                 pButton       = (CWidgetCheckButton *)pWidget;
-        eLanguage                            language      = (eLanguage)pButton->getValue();
-        CAudioDecodeAc4Data                  data;
+        CWidgetCheckButton * pButton  = (CWidgetCheckButton *)pWidget;
+        eLanguage            language = (eLanguage)pButton->getValue();
+        CAudioDecodeAc4Data  data;
 
         BDBG_ASSERT(NULL != pButton);
         BDBG_WRN(("selected audio Ac4Language:%s", pButton->getText().s()));
 
-        data._program = NEXUS_AudioDecoderAc4Program_eMain;
+        data._program  = NEXUS_AudioDecoderAc4Program_eMain;
         data._language = language;
         notifyObservers(eNotify_SetAudioAc4Language, &data);
     }
@@ -409,29 +413,29 @@ void CPanelAudioAc4::onClick(bwidget_t widget)
     else
     if ((NULL != _AltLanguagePopup) && (0 <= _AltLanguagePopup->getItemListIndex(pWidget->getWidget())))
     {
-        CWidgetCheckButton *                 pButton       = (CWidgetCheckButton *)pWidget;
-        eLanguage                            language      = (eLanguage)pButton->getValue();
-        CAudioDecodeAc4Data                  data;
+        CWidgetCheckButton * pButton  = (CWidgetCheckButton *)pWidget;
+        eLanguage            language = (eLanguage)pButton->getValue();
+        CAudioDecodeAc4Data  data;
 
         BDBG_ASSERT(NULL != pButton);
         BDBG_WRN(("selected audio Ac4Language:%s", pButton->getText().s()));
 
-        data._program = NEXUS_AudioDecoderAc4Program_eAlternate;
+        data._program  = NEXUS_AudioDecoderAc4Program_eAlternate;
         data._language = language;
         notifyObservers(eNotify_SetAudioAc4Language, &data);
     }
-#endif
+#endif /* if ENABLE_ALTERNATE */
     else
     if ((NULL != _MainAssociatePopup) && (0 <= _MainAssociatePopup->getItemListIndex(pWidget->getWidget())))
     {
-        CWidgetCheckButton *                 pButton    = (CWidgetCheckButton *)pWidget;
-        NEXUS_AudioAc4AssociateType          associate  = (NEXUS_AudioAc4AssociateType)pButton->getValue();
-        CAudioDecodeAc4Data                  data;
+        CWidgetCheckButton *        pButton   = (CWidgetCheckButton *)pWidget;
+        NEXUS_AudioAc4AssociateType associate = (NEXUS_AudioAc4AssociateType)pButton->getValue();
+        CAudioDecodeAc4Data         data;
 
         BDBG_ASSERT(NULL != pButton);
         BDBG_WRN(("selected audio Ac4Associate:%s", pButton->getText().s()));
 
-        data._program = NEXUS_AudioDecoderAc4Program_eMain;
+        data._program   = NEXUS_AudioDecoderAc4Program_eMain;
         data._associate = associate;
         notifyObservers(eNotify_SetAudioAc4Associate, &data);
     }
@@ -439,31 +443,31 @@ void CPanelAudioAc4::onClick(bwidget_t widget)
     else
     if ((NULL != _AltAssociatePopup) && (0 <= _AltAssociatePopup->getItemListIndex(pWidget->getWidget())))
     {
-        CWidgetCheckButton *                 pButton    = (CWidgetCheckButton *)pWidget;
-        NEXUS_AudioAc4AssociateType          associate  = (NEXUS_AudioAc4AssociateType)pButton->getValue();
-        CAudioDecodeAc4Data                  data;
+        CWidgetCheckButton *        pButton   = (CWidgetCheckButton *)pWidget;
+        NEXUS_AudioAc4AssociateType associate = (NEXUS_AudioAc4AssociateType)pButton->getValue();
+        CAudioDecodeAc4Data         data;
 
         BDBG_ASSERT(NULL != pButton);
         BDBG_WRN(("selected audio Ac4Associate:%s", pButton->getText().s()));
 
-        data._program = NEXUS_AudioDecoderAc4Program_eAlternate;
+        data._program   = NEXUS_AudioDecoderAc4Program_eAlternate;
         data._associate = associate;
         notifyObservers(eNotify_SetAudioAc4Associate, &data);
     }
-#endif
+#endif /* if ENABLE_ALTERNATE */
     else
     if ((NULL != _MainPresentationPopup) && (0 <= _MainPresentationPopup->getItemListIndex(pWidget->getWidget())))
     {
-        CWidgetCheckButton *                 pButton       = (CWidgetCheckButton *)pWidget;
-        unsigned                             nIndex        = (unsigned)pButton->getValue();
-        CAudioDecodeAc4Data                  data;
+        CWidgetCheckButton * pButton = (CWidgetCheckButton *)pWidget;
+        unsigned             nIndex  = (unsigned)pButton->getValue();
+        CAudioDecodeAc4Data  data;
 
         NEXUS_AudioDecoderPresentationStatus presentation;
 
         BDBG_ASSERT(NULL != pButton);
         BDBG_WRN(("selected audio Ac4Presentation:%s", pButton->getText().s()));
 
-        data._program = NEXUS_AudioDecoderAc4Program_eMain;
+        data._program           = NEXUS_AudioDecoderAc4Program_eMain;
         data._presentationIndex = nIndex;
         notifyObservers(eNotify_SetAudioAc4Presentation, &data);
     }
@@ -471,31 +475,31 @@ void CPanelAudioAc4::onClick(bwidget_t widget)
     else
     if ((NULL != _AltPresentationPopup) && (0 <= _AltPresentationPopup->getItemListIndex(pWidget->getWidget())))
     {
-        CWidgetCheckButton *                 pButton       = (CWidgetCheckButton *)pWidget;
-        unsigned                             nIndex        = (unsigned)pButton->getValue();
-        CAudioDecodeAc4Data                  data;
+        CWidgetCheckButton * pButton = (CWidgetCheckButton *)pWidget;
+        unsigned             nIndex  = (unsigned)pButton->getValue();
+        CAudioDecodeAc4Data  data;
 
         NEXUS_AudioDecoderPresentationStatus presentation;
 
         BDBG_ASSERT(NULL != pButton);
         BDBG_WRN(("selected audio Ac4Presentation:%s", pButton->getText().s()));
 
-        data._program = NEXUS_AudioDecoderAc4Program_eAlternate;
+        data._program           = NEXUS_AudioDecoderAc4Program_eAlternate;
         data._presentationIndex = nIndex;
         notifyObservers(eNotify_SetAudioAc4Presentation, &data);
     }
-#endif
+#endif /* if ENABLE_ALTERNATE */
     else
     if ((NULL != _MainPriority) && (_MainPriority == pWidget))
     {
-        CWidgetCheckButton *                 pButton       = (CWidgetCheckButton *)pWidget;
-        ePriority                            priority      = (ePriority)pButton->getValue();
-        CAudioDecodeAc4Data                  data;
+        CWidgetCheckButton * pButton  = (CWidgetCheckButton *)pWidget;
+        ePriority            priority = (ePriority)pButton->getValue();
+        CAudioDecodeAc4Data  data;
 
         BDBG_ASSERT(NULL != pButton);
         BDBG_WRN(("selected audio Ac4Priority:%s", pButton->getText().s()));
 
-        data._program = NEXUS_AudioDecoderAc4Program_eMain;
+        data._program  = NEXUS_AudioDecoderAc4Program_eMain;
         data._priority = _MainPriority->isChecked() ? ePriority_Associate : ePriority_Language;
 
         notifyObservers(eNotify_SetAudioAc4Priority, &data);
@@ -504,19 +508,19 @@ void CPanelAudioAc4::onClick(bwidget_t widget)
     else
     if ((NULL != _AltPriority) && (_AltPriority == pWidget))
     {
-        CWidgetCheckButton *                 pButton       = (CWidgetCheckButton *)pWidget;
-        ePriority                            priority      = (ePriority)pButton->getValue();
-        CAudioDecodeAc4Data                  data;
+        CWidgetCheckButton * pButton  = (CWidgetCheckButton *)pWidget;
+        ePriority            priority = (ePriority)pButton->getValue();
+        CAudioDecodeAc4Data  data;
 
         BDBG_ASSERT(NULL != pButton);
         BDBG_WRN(("selected audio Ac4Priority:%s", pButton->getText().s()));
 
-        data._program = NEXUS_AudioDecoderAc4Program_eAlternate;
+        data._program  = NEXUS_AudioDecoderAc4Program_eAlternate;
         data._priority = _AltPriority->isChecked() ? ePriority_Associate : ePriority_Language;
 
         notifyObservers(eNotify_SetAudioAc4Priority, &data);
     }
-#endif
+#endif /* if ENABLE_ALTERNATE */
     else
     if ((NULL != _Back) && (_Back == pWidget))
     {
@@ -562,15 +566,15 @@ void CPanelAudioAc4::processNotification(CNotification & notification)
             CPid * pPidAudio = pAudioDecode->getPid();
             if ((NULL != pPidAudio) && (NEXUS_AudioCodec_eAc4 == pPidAudio->getAudioCodec()))
             {
-                MRect                                rectPopup        = _MainPresentationPopup->getGeometry();
-                CWidgetCheckButton *                 pButtonMain      = NULL;
+                MRect                rectPopup   = _MainPresentationPopup->getGeometry();
+                CWidgetCheckButton * pButtonMain = NULL;
 #if ENABLE_ALTERNATE
-                CWidgetCheckButton *                 pButtonAlt       = NULL;
+                CWidgetCheckButton * pButtonAlt = NULL;
 #endif
-                unsigned                             i                = 0;
-                unsigned                             mainIndexCurrent = pAudioDecode->getPresentationCurrent(NEXUS_AudioDecoderAc4Program_eMain);
+                unsigned i                = 0;
+                unsigned mainIndexCurrent = pAudioDecode->getPresentationCurrent(NEXUS_AudioDecoderAc4Program_eMain);
 #if ENABLE_ALTERNATE
-                unsigned                             altIndexCurrent  = pAudioDecode->getPresentationCurrent(NEXUS_AudioDecoderAc4Program_eAlternate);
+                unsigned altIndexCurrent = pAudioDecode->getPresentationCurrent(NEXUS_AudioDecoderAc4Program_eAlternate);
 #endif
                 NEXUS_AudioDecoderPresentationStatus presentation;
 
@@ -581,7 +585,7 @@ void CPanelAudioAc4::processNotification(CNotification & notification)
 
                     {
                         NEXUS_AudioDecoderPresentationStatus * pPresentationTmp = NULL;
-                        MString                                strTitle         = MString(presentation.status.ac4.name) + "(" + presentation.status.ac4.language + ")";
+                        MString strTitle = MString(presentation.status.ac4.name) + "(" + presentation.status.ac4.language + ")";
 
                         BDBG_MSG(("adding presentation:%s", strTitle.s()));
                         BDBG_MSG(("     Presentation id: %s", presentation.status.ac4.id));
@@ -598,7 +602,7 @@ void CPanelAudioAc4::processNotification(CNotification & notification)
                         pButtonAlt = _AltPresentationPopup->addButton(strTitle, rectPopup.width(), rectPopup.height());
                         CHECK_PTR_ERROR_GOTO("unable to add ALT AC4 presentation button to popup list", pButtonAlt, ret, eRet_OutOfMemory, error);
                         pButtonAlt->setValue(presentation.status.ac4.index);
-#endif
+#endif /* if ENABLE_ALTERNATE */
                     }
 
                     /* set currently selected presentation */
@@ -611,7 +615,7 @@ void CPanelAudioAc4::processNotification(CNotification & notification)
                     {
                         _AltPresentationPopup->select(altIndexCurrent);
                     }
-#endif
+#endif /* if ENABLE_ALTERNATE */
                 }
             }
         }

@@ -47,6 +47,7 @@
 #include "bavc.h"
 #include "bxvd.h"
 #include "bxdm_pp.h"
+#include "bbox.h"
 
 /*-**************
 Private API for VideoDecoder.
@@ -77,6 +78,16 @@ typedef void (*NEXUS_DigitalVbiDataCallback)(
     NEXUS_VideoInput input,
     bool is608data, /* true if EIA-608 */
     const NEXUS_ClosedCaptionData *pData /* one item of EIA-608 or EIA-708 data. */
+    );
+
+struct NEXUS_VideoDecoderStcSnapshot
+{
+    bool set;
+    unsigned trigger;
+};
+void NEXUS_VideoDecoder_SetStcSnapshot_priv(
+    NEXUS_VideoDecoderHandle handle,
+    const struct NEXUS_VideoDecoderStcSnapshot *pStcSnapshot
     );
 
 /**
@@ -304,10 +315,11 @@ typedef enum NEXUS_VideoDecoderExclusiveMode
     NEXUS_VideoDecoderExclusiveMode_eNone,  /* no exclusion, either because 4K not supported or 4K doesn't restrict other channels */
     NEXUS_VideoDecoderExclusiveMode_e4K,     /* if channel 0 is 4K, other channels not available */
     NEXUS_VideoDecoderExclusiveMode_e4Kp60, /* if channel 0 is 4Kp60, other channels not available */
+    NEXUS_VideoDecoderExclusiveMode_e4K_or_10bit, /* if channel 0 is 4K or 10 bit, other channels not available */
     NEXUS_VideoDecoderExclusiveMode_eMax
 } NEXUS_VideoDecoderExclusiveMode;
 
-NEXUS_VideoDecoderExclusiveMode NEXUS_P_VideoDecoderExclusiveMode_isrsafe(unsigned boxMode, unsigned avdIndex);
+NEXUS_VideoDecoderExclusiveMode NEXUS_P_VideoDecoderExclusiveMode_isrsafe(const BBOX_Config *boxConfig, unsigned avdIndex);
 
 #ifdef __cplusplus
 }

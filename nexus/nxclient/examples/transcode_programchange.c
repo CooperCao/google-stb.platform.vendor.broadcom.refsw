@@ -303,9 +303,6 @@ int main(void)  {
                 if (rc) return rc;
                 BDBG_WRN(("%s -> %s: program change", context.input_filename, OUTPUT_FILENAME));
 
-                rc = NEXUS_SimpleEncoder_Start(context.hEncoder, &context.startSettings);
-                BDBG_ASSERT(!rc);
-
                 rc = NEXUS_SimpleVideoDecoder_Start(context.hVideoDecoder, &context.videoProgram);
                 BDBG_ASSERT(!rc);
                 rc = NEXUS_SimpleAudioDecoder_Start(context.hAudioDecoder, &context.audioProgram);

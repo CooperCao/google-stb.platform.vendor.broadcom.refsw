@@ -537,11 +537,10 @@ NEXUS_Error NEXUS_Security_SetPciERestrictedRange( NEXUS_Addr baseOffset, size_t
     unsigned numMemc = 0;
     size_t addressUpdate = size < 1 ? 0 : size - 1;
 
+    if( index >= BHSM_MAX_PCIE ){ return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
+
     NEXUS_Security_GetHsm_priv( &hHsm );
-    if( !hHsm )
-    {
-        return BERR_TRACE( NEXUS_INVALID_PARAMETER );
-    }
+    if( !hHsm ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
 
     memoryLayout = &g_pCoreHandles->memoryLayout;
 

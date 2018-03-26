@@ -120,10 +120,10 @@ void BBOX_P_Vdc_SetSourceCapabilities
             BBOX_P_Vdc_SetBox5SourceCapabilities(pSourceCap);
             break;
         case 6:
+        case 12: /* similar to box mode 6 */
             BBOX_P_Vdc_SetBox6SourceCapabilities(pSourceCap);
             break;
         case 7: /* similar to box mode 6 except without gfx compression */
-        case 12: /* similar to box mode 7 */
             BBOX_P_Vdc_SetBox6SourceCapabilities(pSourceCap);
             /* this sets gfx compression to false */
             BBOX_P_Vdc_SetBox7SourceCapabilities(pSourceCap);

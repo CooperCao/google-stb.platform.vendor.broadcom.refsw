@@ -41,6 +41,7 @@
 #include "bhdm.h"
 #include "../common/bhdm_priv.h"
 #include "bhdm_scdc.h"
+#include "bchp_aon_ctrl.h"
 
 BDBG_MODULE(BHDM_SCDC) ;
 
@@ -84,7 +85,7 @@ BERR_Code BHDM_SCDC_Initialize(
 
 	/* Inform Rx of Tx SCDC Source Version */
        rc =  BREG_I2C_Write(hHDMI->hI2cRegHandle,
-               BHDM_AUTO_I2C_P_SCDC_SLAVE_ADDR, BHDM_SCDC_SOURCE_VERSION,
+               BHDM_SCDC_I2C_ADDR, BHDM_SCDC_SOURCE_VERSION,
                &uiSourceVersion, 1) ;
        if (rc)
        {
@@ -507,7 +508,7 @@ void BHDM_SCDC_GetScrambleConfiguration(BHDM_Handle hHDMI, BHDM_ScrambleConfig *
 		else
 		{
 			rc = BREG_I2C_Read(hHDMI->hI2cRegHandle,
-				BHDM_AUTO_I2C_P_SCDC_SLAVE_ADDR, BHDM_SCDC_SCRAMBLER_STATUS,
+				BHDM_SCDC_I2C_ADDR, BHDM_SCDC_SCRAMBLER_STATUS,
 				&rxStatusFlags, 1) ;
 			if (rc) {(void)BERR_TRACE(rc); goto done ;}
 			BDBG_MSG(("Rx SCDC Scrambler Status: %x", rxStatusFlags)) ;
@@ -550,32 +551,32 @@ static void BHDM_SCDC_P_ReadStatusUpdates_isr(BHDM_Handle hHDMI)
 	uint8_t slaveAddress, slaveOffset, length ;
 	uint8_t maskBuffer ;
 
-	slaveAddress = BHDM_AUTO_I2C_P_SCDC_SLAVE_ADDR ;
+	slaveAddress = BHDM_SCDC_I2C_ADDR ;
 
 	/* TODO For Bringup process STATUS_UPDATE only; skip RR and CED */
 	/* configure a separate read for the updated data indicated by the status */
-	if (hHDMI->ScdcBuffer[0] & BHDM_AUTO_I2C_P_SCDC_UPDATE0_MASK_STATUS)
+	if (hHDMI->ScdcBuffer[0] & BHDM_SCDC_UPDATE_0_MASK_STATUS_UPDATE)
 	{
-		slaveOffset = BHDM_AUTO_I2C_P_SCDC_STATUS_FLAGS_OFFSET ;
-		length = BHDM_AUTO_I2C_P_SCDC_STATUS_FLAGS_LENGTH ;
+		slaveOffset = BHDM_SCDC_STATUS_FLAGS_0 ;
+		length = BHDM_SCDC_STATUS_FLAGS_0_LENGTH ;
 
-		maskBuffer = BHDM_AUTO_I2C_P_SCDC_UPDATE0_MASK_STATUS ;
+		maskBuffer = BHDM_SCDC_UPDATE_0_MASK_STATUS_UPDATE ;
 		hHDMI->ePendingReadType = BHDM_AUTO_I2C_P_READ_DATA_eSCDC_Status_Flags ;
 	}
-	else if (hHDMI->ScdcBuffer[0] & BHDM_AUTO_I2C_P_SCDC_UPDATE0_MASK_CED)
+	else if (hHDMI->ScdcBuffer[0] & BHDM_SCDC_UPDATE_0_MASK_CED_UPDATE)
 	{
-		slaveOffset = 	BHDM_AUTO_I2C_P_SCDC_CED_OFFSET ;
-		length = BHDM_AUTO_I2C_P_SCDC_CED_LENGTH ;
+		slaveOffset = 	BHDM_SCDC_CED_OFFSET ;
+		length = BHDM_SCDC_CED_LENGTH ;
 
-		maskBuffer = BHDM_AUTO_I2C_P_SCDC_UPDATE0_MASK_CED ;
+		maskBuffer = BHDM_SCDC_UPDATE_0_MASK_CED_UPDATE ;
 		hHDMI->ePendingReadType = BHDM_AUTO_I2C_P_READ_DATA_eSCDC_Err_Det ;
 	}
-	else if (hHDMI->ScdcBuffer[0] & BHDM_AUTO_I2C_P_SCDC_UPDATE0_MASK_RR_Test)
+	else if (hHDMI->ScdcBuffer[0] & BHDM_SCDC_UPDATE_0_MASK_RR_TEST)
 	{
-		slaveOffset = 	BHDM_AUTO_I2C_P_SCDC_TEST_CONFIG_0_OFFSET ;
-		length = BHDM_AUTO_I2C_P_SCDC_TEST_CONFIG_0_LENGTH ;
+		slaveOffset = 	BHDM_SCDC_TEST_CONFIG_0 ;
+		length = BHDM_SCDC_TEST_CONFIG_0_LENGTH ;
 
-		maskBuffer = BHDM_AUTO_I2C_P_SCDC_UPDATE0_MASK_RR_Test ;
+		maskBuffer = BHDM_SCDC_UPDATE_0_MASK_RR_TEST ;
 		hHDMI->ePendingReadType = BHDM_AUTO_I2C_P_READ_DATA_eSCDC_Test_Config_0 ;
 	}
 	else if ((hHDMI->ScdcBuffer[0] == 0) && (hHDMI->ScdcBuffer[1] == 0))
@@ -782,7 +783,7 @@ static void BHDM_SCDC_P_ConfigureScramblingRx(const BHDM_Handle hHDMI)
 	hHDMI->TmdsDisabledForBitClockRatioChange = true ;
 
 	rc =  BREG_I2C_Write(hHDMI->hI2cRegHandle,
-		BHDM_AUTO_I2C_P_SCDC_SLAVE_ADDR, BHDM_SCDC_TMDS_CONFIG,
+		BHDM_SCDC_I2C_ADDR, BHDM_SCDC_TMDS_CONFIG,
 		&ScrambleSettings.rxTmdsConfig, 1) ;
 	if (rc)
 	{
@@ -809,6 +810,8 @@ void BHDM_SCDC_P_ConfigureScramblingTx_isr(
 	BREG_Handle hRegister ;
 	uint32_t Register ;
 	uint32_t ulOffset ;
+	uint32_t SCDCStatusBit ;
+	uint32_t SCDCStatusAddress ;
 
 	hRegister = hHDMI->hRegister ;
 	ulOffset = hHDMI->ulOffset ;
@@ -839,6 +842,15 @@ void BHDM_SCDC_P_ConfigureScramblingTx_isr(
 		Register |= BCHP_FIELD_DATA(
 			HDMI_TX_PHY_TMDS_CLK_WORD_SEL, CLK_WORD_SEL, pstScrambleConfig->clockWordSelect ) ;
 	BREG_Write32(hRegister, BCHP_HDMI_TX_PHY_TMDS_CLK_WORD_SEL + ulOffset, Register) ;
+
+
+	SCDCStatusBit = pstScrambleConfig->txScrambleEnable << 24 ;
+	SCDCStatusAddress = BCHP_AON_CTRL_SYSTEM_DATA_RAMi_ARRAY_BASE + 4 * 11 ;
+
+	Register = BREG_Read32(hRegister, SCDCStatusAddress) ;
+		Register &= 0xFEFFFFFF ;
+		Register |= SCDCStatusBit ;
+	BREG_Write32(hRegister, SCDCStatusAddress, Register) ;
 
 	hHDMI->ScrambleConfig = *pstScrambleConfig ;
 

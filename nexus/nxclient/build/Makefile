@@ -39,7 +39,7 @@
 .PHONY: apps server clean_server clean_apps nexus_headers help
 
 MAKEFLAGS += --no-print-directory
-Q_ = @
+Q_ ?= @
 
 all install clean:
 	${Q_}$(MAKE) -C ../server $@

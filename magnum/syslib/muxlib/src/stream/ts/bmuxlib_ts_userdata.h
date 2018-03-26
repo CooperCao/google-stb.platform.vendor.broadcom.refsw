@@ -66,10 +66,10 @@ extern "C" {
 /* 50ms window in 45kHz (PTS) units */
 #define BMUXLIB_TS_USERDATA_DEFAULT_WINDOW      (50 * 45)
 
-/* max number of segments a single userdata PES can be split into:
-   (header prior to PTS, PTS, DTS(if present), data after PTS)
-   Packets that do not contain a PES will use only one segment */
-#define BMUXLIB_TS_USERDATA_MAX_SEGMENTS        4
+/* Segments are no longer used to split PES packets containing PTS.
+   Instead, the entire 188 byte packet containing the PES header
+   is copied to a local shared buffer */
+#define BMUXLIB_TS_USERDATA_MAX_SEGMENTS        1
 
 /* Userdata requires approx 6 TS packets per video frame
    (max of 1128 bytes per frame for North American VBI, as per
@@ -301,7 +301,7 @@ typedef struct
    (since we are not permitted to modify the incoming userdata in-place) */
 typedef struct
 {
-   uint8_t aPTS[BMUXLIB_PES_PTS_LENGTH];
+   uint8_t aPacket[BMUXLIB_TS_PACKET_LENGTH];
 } BMUXlib_TS_P_UserdataPTSEntry;
 
 /* general status that applies to all userdata */
@@ -327,19 +327,19 @@ typedef struct
 /*  Private Userdata API */
 /*************************/
 
-BERR_Code   BMUXlib_TS_P_UserdataInit(BMUXlib_TS_Handle hMuxTS);
+BERR_Code   BMUXlib_TS_P_UserdataInit(BMUXlib_TS_Legacy_Handle hMuxTS);
 
-BERR_Code   BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Handle hMuxTS);
+BERR_Code   BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Legacy_Handle hMuxTS);
 
-void        BMUXlib_TS_P_Userdata_AddToReleaseQ(BMUXlib_TS_Handle hMuxTS, uint32_t uiUserdataIndex, uint32_t uiLength, uint32_t uiSequenceCount, uint32_t uiDescCount);
+void        BMUXlib_TS_P_Userdata_AddToReleaseQ(BMUXlib_TS_Legacy_Handle hMuxTS, uint32_t uiUserdataIndex, uint32_t uiLength, uint32_t uiSequenceCount, uint32_t uiDescCount);
 
-BERR_Code   BMUXlib_TS_P_Userdata_ProcessReleaseQueues(BMUXlib_TS_Handle hMuxTS);
+BERR_Code   BMUXlib_TS_P_Userdata_ProcessReleaseQueues(BMUXlib_TS_Legacy_Handle hMuxTS);
 
-void        BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS);
+void        BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Legacy_Handle hMuxTS);
 
-bool        BMUXlib_TS_P_Userdata_FindTargetPTS(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_InputMetaData *pInput, BMUXlib_Input_Descriptor *pstDescriptor);
+bool        BMUXlib_TS_P_Userdata_FindTargetPTS(BMUXlib_TS_Legacy_Handle hMuxTS, BMUXlib_TS_P_InputMetaData *pInput, BMUXlib_Input_Descriptor *pstDescriptor);
 
-bool        BMUXLIB_P_Userdata_CheckResources(BMUXlib_TS_Handle hMuxTS);
+bool        BMUXLIB_P_Userdata_CheckResources(BMUXlib_TS_Legacy_Handle hMuxTS);
 
 #ifdef __cplusplus
 }

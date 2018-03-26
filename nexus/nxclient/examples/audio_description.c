@@ -113,9 +113,7 @@ int main(void)
     rc = NEXUS_Playback_SetSettings(playback, &playbackSettings);
     BDBG_ASSERT(!rc);
 
-    if (allocResults.simpleAudioDecoder.id) {
-        audioDecoder = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
-    }
+    audioDecoder = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
 
     NxClient_GetDefaultConnectSettings(&connectSettings);
     connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
@@ -132,9 +130,7 @@ int main(void)
     audioProgram.description.pidChannel = NEXUS_Playback_OpenPidChannel(playback, AUDIO1_PID, &playbackPidSettings);
     audioProgram.description.codec = AUDIO_CODEC;
 
-    if (audioProgram.primary.pidChannel) {
-        NEXUS_SimpleAudioDecoder_SetStcChannel(audioDecoder, stcChannel);
-    }
+    NEXUS_SimpleAudioDecoder_SetStcChannel(audioDecoder, stcChannel);
     rc = NEXUS_SimpleAudioDecoder_Start(audioDecoder, &audioProgram);
     BDBG_ASSERT(!rc);
     rc = NEXUS_Playback_Start(playback, file, NULL);

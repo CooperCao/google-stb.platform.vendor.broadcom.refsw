@@ -13,7 +13,7 @@
 
 #if defined(ANDROID)
 #include <cutils/properties.h>
-#include <cutils/log.h>
+#include <log/log.h>
 #else
 // Back-tracing isn't available in the bionic C library
 #include <execinfo.h>

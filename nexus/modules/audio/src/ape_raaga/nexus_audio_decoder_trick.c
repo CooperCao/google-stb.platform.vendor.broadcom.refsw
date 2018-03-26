@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,7 +42,6 @@
 #include "bpcrlib.h"
 
 BDBG_MODULE(nexus_audio_decoder_trick);
-#define NEXUS_AUDIO_DECODER_P_MAX_DSOLA_RATE  (2 * NEXUS_NORMAL_DECODE_RATE) /* 2x */
 
 void NEXUS_AudioDecoder_GetTrickState(
     NEXUS_AudioDecoderHandle decoder,
@@ -150,7 +149,7 @@ NEXUS_Error NEXUS_AudioDecoder_SetTrickState(
     {
         if (g_NEXUS_audioModuleData.capabilities.dsp.decodeRateControl && !dspMixerAttached)
         {
-            if (pTrickState->rate <= NEXUS_AUDIO_DECODER_P_MAX_DSOLA_RATE && !pause)
+            if (pTrickState->allowDsola && pTrickState->rate <= NEXUS_AUDIO_DECODER_P_MAX_DSOLA_RATE && !pause)
             {
                 dsola = true;
             }
@@ -161,7 +160,14 @@ NEXUS_Error NEXUS_AudioDecoder_SetTrickState(
         }
     }
 
-    if (wasTrick)
+    if (g_NEXUS_audioModuleData.capabilities.dsp.decodeRateControl &&
+        decoder->settings.alwaysEnableDsola &&
+        pTrickState->rate <= NEXUS_AUDIO_DECODER_P_MAX_DSOLA_RATE &&
+        !dspMixerAttached) {
+        dsola = true;
+    }
+
+    if (wasTrick || decoder->settings.alwaysEnableDsola)
     {
         wasDsola = decoder->apeStartSettings.decodeRateControl;
     }
@@ -172,15 +178,21 @@ NEXUS_Error NEXUS_AudioDecoder_SetTrickState(
         flush = true;
     }
 
-    if (!forceStop && !wasForceStopped) /* we were playing or decoder trick mode */
-    {
+    if (!forceStop && !wasForceStopped) { /* we were playing or decoder trick mode */
         flush = false;
-        if ( trick != wasTrick || dsola != wasDsola )
-        {
+        if ( trick != wasTrick ) {
+            if (dsola == wasDsola &&
+                decoder->settings.alwaysEnableDsola) {
+                stop = false;
+            }
+            else {
+                stop = true;
+            }
+        }
+        else if ( dsola != wasDsola ) {
             stop = true;
         }
-        else
-        {
+        else {
             stop = false;
         }
     }
@@ -291,7 +303,7 @@ Summary:
     Advances audio decoder to the target PTS
 Desctiption:
     NEXUS_AudioDecoder_Advance causes audio decoder to drop compressed data,
-    untill it finds data with timestamp greater then target PTS.
+    until it finds data with timestamp greater then target PTS.
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioDecoder_Advance(
     NEXUS_AudioDecoderHandle decoder,             
@@ -384,6 +396,7 @@ void NEXUS_AudioDecoder_P_TrickReset( NEXUS_AudioDecoderHandle decoder)
     decoder->trickState.tsmEnabled = true;
     decoder->trickState.muted = false;
     decoder->trickState.stcTrickEnabled = false;
+    decoder->trickState.allowDsola = true;
     if ( decoder->channel )
     {
         NEXUS_AudioDecoder_ApplySettings_priv(decoder);

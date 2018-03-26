@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -409,9 +409,11 @@ typedef struct NEXUS_AudioModuleSettings
     unsigned heapIndex;                 /* Optional.  If set, the audio buffers will be allocated in this heap by default. */
     unsigned firmwareHeapIndex;         /* Optional.  If set, the DSP Firmware images will be loaded in this heap. */
 
-    NEXUS_AudioDspDebugSettings dspDebugSettings;   /* DSP Debug settings */
+    NEXUS_AudioDspDebugSettings dspDebugSettings;       /* DSP Debug settings */
+    NEXUS_AudioDspDebugSettings softAudioDebugSettings; /* Soft Audio Debug settings */
 
-    NEXUS_AudioDspAlgorithmSettings dspAlgorithmSettings; /* DSP Algorithm settings */
+    NEXUS_AudioDspAlgorithmSettings dspAlgorithmSettings;       /* DSP Algorithm settings */
+    NEXUS_AudioDspAlgorithmSettings softAudioAlgorithmSettings; /* Soft Audio Algorithm settings */
 
     NEXUS_AudioLoudnessEquivalenceMode loudnessMode;    /* Loudness equivalence mode.  Default is
                                                            NEXUS_AudioLoudnessEquivalenceMode_eNone */

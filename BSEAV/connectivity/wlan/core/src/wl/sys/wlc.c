@@ -783,7 +783,7 @@ static const bcm_iovar_t wlc_iovars[] = {
 	},
 #else
 	{"cur_etheraddr", IOV_CUR_ETHERADDR,
-	(IOVF_SET_DOWN), 0, IOVT_BUFFER, ETHER_ADDR_LEN
+	(0), 0, IOVT_BUFFER, ETHER_ADDR_LEN
 	},
 #endif /* EXT_STA || BCMNODOWN */
 	{"perm_etheraddr", IOV_PERM_ETHERADDR,
@@ -1685,6 +1685,14 @@ wlc_ps_allowed(wlc_bsscfg_t *cfg)
 
 	/* disallow PS when one of the following bsscfg specific conditions meets */
 	if (/*!cfg->BSS || */
+            #ifdef WOWL
+            /* In some test cases, after waking up with magic packet, system is still in wowl mode 
+             * which makes SW PS state different from MAC PM state so when wlc_watchdog handler kicks in, 
+             * it causes an assert. This will avoid that assert and user level application will have enough 
+             * time to set the WLAN device to non-wowl mode
+             */ 
+	    WOWL_ACTIVE(wlc->pub) ||
+            #endif
 	    !cfg->associated ||
 	    !pm->PMenabled ||
 	    pm->PM_override ||
@@ -8818,10 +8826,8 @@ wlc_watchdog(void *arg)
 	wlc_radio_upd(wlc);
 #if defined(STA) && !defined(BCMNODOWN)
 	/* if ismpc, driver should be in down state if up/down is allowed */
-#ifndef WAR_USE_MPC2_UNASSOCIATED_S2
 	if (wlc->mpc && wlc_ismpc(wlc))
 		ASSERT(!wlc->pub->up);
-#endif
 #endif /* STA && !BCMNODOWN */
 	/* Please dont add anything here (always mpc stuff should be end) */
 
@@ -12210,9 +12216,6 @@ wlc_doiovar(void *hdl, uint32 actionid,
 		wlc->mpc = bool_val;
 #ifdef STA
 		wlc_radio_mpc_upd(wlc);
-#ifdef WAR_USE_MPC2_UNASSOCIATED_S2
-        wlc_radio_upd(wlc);
-#endif
 
 #ifdef BCMNODOWN
 		/* enable radio immediately upon MPC disable */
@@ -21032,6 +21035,11 @@ wlc_sendnulldata(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, struct ether_addr *da,
 	if ((wlc->block_datafifo & DATA_BLOCK_JOIN) && (AS_IN_PROGRESS_CFG(wlc) == bsscfg)) {
 		WL_ASSOC(("wl%d.%d: %s trying to send null data during JOIN, discard\n",
 			wlc->pub->unit, WLC_BSSCFG_IDX(bsscfg), __FUNCTION__));
+		return FALSE;
+	}
+	if (scb && SCB_DISASSOCIATING(scb)) {
+		WL_ASSOC(("wl%d: %s Discard sending null data while disassociating\n",
+			wlc->pub->unit, __FUNCTION__));
 		return FALSE;
 	}
 #endif /* STA */

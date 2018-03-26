@@ -49,13 +49,22 @@
 tz_fiq_handler:
 
     cpsid   if
-
+	sub lr, lr, #4 /* the PC to return to after handling this FIQ */
     push   {r0}
     push   {r1}
     push   {r2}
+    push   {r3}
+    push   {r4}
     push   {lr}
     bl get_regbase
+
+    /* save Neon registers */
+    bl save_neonregs
+
+    mov r0, r2
     pop    {lr}
+    pop    {r4}
+    pop    {r3}
     pop    {r2}
     pop    {r1}
 
@@ -69,14 +78,19 @@ tz_fiq_handler:
     str     r5, [r0, #20]
     str     r6, [r0, #24]
     str     r7, [r0, #28]
-    str     r8, [r0, #32]
-    str     r9, [r0, #36]
-    str     r10, [r0, #40]
-    str     r11, [r0, #44]
-    str     r12, [r0, #48]
+    mrs     r1, r8_usr
+    str     r1, [r0, #32]
+    mrs     r1, r9_usr
+    str     r1, [r0, #36]
+    mrs     r1, r10_usr
+    str     r1, [r0, #40]
+    mrs     r1, r11_usr
+    str     r1, [r0, #44]
+    mrs     r1, r12_usr
+    str     r1, [r0, #48]
 
     /* Check if SVC handler is interrupted */
-    mrs     r1, spsr_mon
+    mrs     r1, spsr_fiq
     mrs     r2, spsr_svc
     and     r1, #0x1f
     and     r2, #0x1f
@@ -107,7 +121,7 @@ tz_fiq_handler:
      * Save as in normal FIQ handler
      */
 1:
-    mrs     r1, spsr_mon
+    mrs     r1, spsr_fiq
     str     r1, [r0, #64]
 
     and     r1, #0x1f
@@ -146,7 +160,7 @@ tz_fiq_handler:
     msr     sp_svc, r6
 
     mov     r0, #1
-    mrs     r1, spsr_mon
+    mrs     r1, spsr_fiq
     bl      yieldCurrentTask
 
     cpsid   if, #Mode_SVC

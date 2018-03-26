@@ -135,8 +135,7 @@ static uint8_t  sSessionIdBuf[DRM_PRDY_SESSION_ID_LEN];
 int vc1_stream = 0;
 
 /* Use secure buffers for playback if true
-* Secure buffers only apply when SAGE enabled, always false otherwise.
-* Should be FALSE for SAGE_SECURE_MODE=1, and TRUE for SAGE_SECURE_MODE 5/6/9 */
+* Secure buffers only apply when SAGE enabled, always false otherwise.*/
 bool secure_pic_buffers = false;
 
 typedef app_ctx * app_ctx_t;
@@ -1638,6 +1637,11 @@ int main(int argc, char* argv[])
                 memConfigSettings.display[i].window[j].secure = NEXUS_SecureVideo_eSecure;
             }
         }
+    }
+
+    /* Test requires a large amount of secure video buffers, increase the heap size on low memory platforms */
+    if (platformSettings.heap[NEXUS_VIDEO_SECURE_HEAP].size < 64*1024*1024) {
+        platformSettings.heap[NEXUS_VIDEO_SECURE_HEAP].size = 64*1024*1024;
     }
 #endif
     platformSettings.openFrontend = false;

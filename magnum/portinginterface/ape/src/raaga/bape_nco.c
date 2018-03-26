@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -240,16 +240,7 @@ static void BAPE_Nco_UpdateDividers_isr(BAPE_Handle handle, BAPE_Nco nco, uint32
 #error Unknown NCO register layout
 #endif
 
-
-
 void BAPE_P_AttachMixerToNco(BAPE_MixerHandle mixer, BAPE_Nco nco)
-{
-    BKNI_EnterCriticalSection();
-    BAPE_P_AttachMixerToNco_isr(mixer, nco);
-    BKNI_LeaveCriticalSection();
-}
-
-void BAPE_P_AttachMixerToNco_isr(BAPE_MixerHandle mixer, BAPE_Nco nco)
 {
     unsigned ncoIndex = nco - BAPE_Nco_e0;
 
@@ -263,7 +254,9 @@ void BAPE_P_AttachMixerToNco_isr(BAPE_MixerHandle mixer, BAPE_Nco nco)
     BDBG_MSG(("Attaching mixer %p to NCO:%u", (void *)mixer, ncoIndex ));
     BLST_S_INSERT_HEAD(&mixer->deviceHandle->audioNcos[ncoIndex].mixerList, mixer, ncoNode);
     /* Update MCLK source for attached outputs */
+    BKNI_EnterCriticalSection();
     BAPE_P_UpdateNco_isr(mixer->deviceHandle, nco);
+    BKNI_LeaveCriticalSection();
 }
 
 void BAPE_P_DetachMixerFromNco_isrsafe(BAPE_MixerHandle mixer, BAPE_Nco nco)
@@ -459,10 +452,8 @@ BERR_Code BAPE_P_GetNcoConfiguration_isrsafe(BAPE_Handle handle, BAPE_Nco nco, B
     return BERR_SUCCESS;
 }
 
-void BAPE_P_VerifyNcoCallback_isr(void *pParam1, int param2)
+void BAPE_P_VerifyNco(BAPE_Handle handle, BAPE_Nco nco)
 {
-    BAPE_Handle handle = pParam1;
-    BAPE_Nco nco = param2;
     BAPE_Mixer *pMixer, *pAvailableMixer, *pPreviousMixer = NULL;
     BAPE_InputPortObject *pInputPort;
     unsigned currentBaseRate;
@@ -480,14 +471,16 @@ void BAPE_P_VerifyNcoCallback_isr(void *pParam1, int param2)
     /* Walk through each mixer and make sure we have no conflicts */
     pMixer = BLST_S_FIRST(&handle->audioNcos[nco].mixerList);
     while (pMixer != NULL) {
-        unsigned mixerRate;
+        unsigned mixerRate, outputSR;
 
-        if ( BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) == 0 ) {
+        outputSR = BAPE_Mixer_P_GetOutputSampleRate_isrsafe(pMixer);
+
+        if ( outputSR == 0 ) {
             pPreviousMixer = pMixer;
             continue;
         }
 
-        mixerRate = BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer);
+        mixerRate = outputSR;
 
         if ( pMixer->running ) {
             if ( mixerRate != currentBaseRate ) {
@@ -506,20 +499,20 @@ void BAPE_P_VerifyNcoCallback_isr(void *pParam1, int param2)
                             BDBG_WRN(("Moving to Nco %d", i));
                             BAPE_P_DetachMixerFromNco_isrsafe(pMixer, nco);
                             pMixer->mclkSource =  BAPE_MclkSource_eNco0 + i;
-                            BAPE_P_AttachMixerToNco_isr(pMixer, (BAPE_Nco)i);
+                            BAPE_P_AttachMixerToNco(pMixer, (BAPE_Nco)i);
                             pMixer->settings.outputNco = (BAPE_Nco)i;
                             pMixer = pPreviousMixer;
                             break;
                         }
                         else {
                             unsigned testMixerRate = 0;
-                            testMixerRate = BAPE_Mixer_P_GetOutputSampleRate_isr(pAvailableMixer);
+                            testMixerRate = BAPE_Mixer_P_GetOutputSampleRate_isrsafe(pAvailableMixer);
 
                             if (testMixerRate == mixerRate) {
                                 BDBG_WRN(("Moving to Nco %d", i));
                                 BAPE_P_DetachMixerFromNco_isrsafe(pMixer, nco);
                                 pMixer->mclkSource =  BAPE_MclkSource_eNco0 + i;
-                                BAPE_P_AttachMixerToNco_isr(pMixer, (BAPE_Nco)i);
+                                BAPE_P_AttachMixerToNco(pMixer, (BAPE_Nco)i);
                                 pMixer = pPreviousMixer;
                                 break;
                             }
@@ -574,6 +567,7 @@ BERR_Code BAPE_P_UpdateNco_isr(BAPE_Handle handle, BAPE_Nco nco)
     BAPE_Mixer *pMixer;
     BAPE_InputPortObject *pInputPort;
     BERR_Code errCode;
+    bool ncoVerify = false;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Device);
     if ( ncoIndex >= BAPE_CHIP_MAX_NCOS ) {
@@ -589,7 +583,7 @@ BERR_Code BAPE_P_UpdateNco_isr(BAPE_Handle handle, BAPE_Nco nco)
           pMixer = BLST_S_NEXT(pMixer, ncoNode) ) {
         unsigned mixerRate;
 
-        if ( BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) == 0 ) {
+        if ( BAPE_Mixer_P_GetOutputSampleRate_isrsafe(pMixer) == 0 ) {
             continue;
         }
 
@@ -601,39 +595,86 @@ BERR_Code BAPE_P_UpdateNco_isr(BAPE_Handle handle, BAPE_Nco nco)
             BDBG_WRN(("Timebase conflict on NCO %d.  One mixer requests timebase %u another requests timebase %u", nco, outputTimebase, pMixer->settings.outputTimebase));
         }
 
-        mixerRate = BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer);
+        mixerRate = BAPE_Mixer_P_GetOutputSampleRate_isrsafe(pMixer);
 
-        if (pMixer->pathNode.subtype == BAPE_MixerType_eDsp) {
-            mixerRate = 48000;
-        }
-
-        if ( pMixer->running ) {
-            if ( baseRate == 0 ) {
-                baseRate = mixerRate;
-            }
-            else if ( baseRate != mixerRate ) {
-                errCode = BTMR_StartTimer_isr(handle->ncoTimer[nco], 100*100);
-                /* keep the base rate the same, where ever we move the new requets to will get the new sample rate */
-                if (mixerRate == currentBaseRate) {
-                    baseRate = currentBaseRate;
+        #if BAPE_CHIP_MAX_DSP_MIXERS > 0
+        /* prioritize a dsp mixer requiring a Pll in all cases -- unlikely to ever hit this,
+           since DspMixers should be using Plls for the loopback path */
+        if ( pMixer->pathNode.subtype == BAPE_MixerType_eDsp ) {
+            BDBG_MSG(("  DSP Mixer found"));
+            if ( BAPE_DspMixer_P_GetFixedOutputSampleRate_isrsafe(pMixer) != 0 )
+            {
+                mixerRate = BAPE_DspMixer_P_GetFixedOutputSampleRate_isrsafe(pMixer);
+                BDBG_MSG(("    DSP Mixer using fixed output rate %d", mixerRate));
+                if ( baseRate == 0 )
+                {
+                    baseRate = mixerRate;
                 }
             }
         }
-        else if ( idleRate == 0 ) {
-            idleRate = mixerRate;
-        }
-        else if ( idleRate != mixerRate )
-        {
-            errCode = BTMR_StartTimer_isr(handle->ncoTimer[nco], 100*100);
-            /* keep the base rate the same, where ever we move the new requets to will get the new sample rate */
-            if (mixerRate == currentBaseRate) {
-                baseRate = currentBaseRate;
-            }
-        }
+        #endif
     }
 
-    if ( baseRate == 0 )
-    {
+    /* Walk through each mixer and make sure we have no conflicts */
+    for ( pMixer = BLST_S_FIRST(&handle->audioNcos[ncoIndex].mixerList);
+          pMixer != NULL;
+          pMixer = BLST_S_NEXT(pMixer, ncoNode) ) {
+        unsigned mixerRate;
+
+        if ( BAPE_Mixer_P_GetOutputSampleRate_isrsafe(pMixer) == 0 ) {
+            continue;
+        }
+
+        if ( !gotTimebase ) {
+            outputTimebase = pMixer->settings.outputTimebase;
+            gotTimebase = true;
+        }
+        else if (pMixer->settings.outputTimebase != outputTimebase ) {
+            BDBG_WRN(("Timebase conflict on NCO %d.  One mixer requests timebase %u another requests timebase %u", nco, outputTimebase, pMixer->settings.outputTimebase));
+        }
+
+        mixerRate = BAPE_Mixer_P_GetOutputSampleRate_isrsafe(pMixer);
+
+        /*BDBG_MSG(("+mixer running %d, mixerRate %d, baseRate %d, idleRate %d", pMixer->running, mixerRate, baseRate, idleRate));*/
+        if ( pMixer->running ) {
+            /* first running mixer, store the new running baseRate */
+            if ( baseRate == 0 ) {
+                baseRate = mixerRate;
+            }
+
+            /* if our mixerRate doesn't match the current baseRate, verify */
+            if ( baseRate != mixerRate ) {
+                ncoVerify = true;
+            }
+        }
+        else
+        {
+            /* first idle mixer, store requested idleRate */
+            if ( idleRate == 0 ) {
+                idleRate = mixerRate;
+            }
+
+            /* if our mixerRate doesn't match the current idleRate, verify */
+            if ( idleRate != mixerRate ) {
+                ncoVerify = true;
+            }
+        }
+
+        /* if we have a valid baseRate and idleRate and they don't match, verify */
+        if ( baseRate != 0 && idleRate != 0 && idleRate != baseRate )
+        {
+            ncoVerify = true;
+        }
+        /*BDBG_MSG(("-mixer running %d, mixerRate %d, baseRate %d, idleRate %d, ncoVerify %d", pMixer->running, mixerRate, baseRate, idleRate, ncoVerify));*/
+    }
+
+    /* keep the base rate the same, where ever we move the new requets to will get the new sample rate */
+    if ( ncoVerify && baseRate == 0 ) {
+        baseRate = currentBaseRate;
+    }
+
+    /* if no base rate was found (nothing running), but an idle rate is set, use it. */
+    if ( baseRate == 0 && idleRate != 0 ) {
         baseRate = idleRate;
     }
 
@@ -654,17 +695,16 @@ BERR_Code BAPE_P_UpdateNco_isr(BAPE_Handle handle, BAPE_Nco nco)
 
         mixerRate = pInputPort->format.sampleRate;
 
-
         if ( baseRate == 0 ) {
             baseRate = mixerRate;
         }
-        else if ( baseRate != mixerRate ) {
-            errCode = BTMR_StartTimer_isr(handle->ncoTimer[nco], 100*100);
+
+        if ( baseRate != mixerRate ) {
+            ncoVerify = true;
         }
     }
 
-    if ( baseRate != 0 )
-    {
+    if ( baseRate != 0 ) {
         uint32_t oversample;
 
         BDBG_MSG(("Updating NCO %u for base sample rate of %u Hz, timebase %u", nco, baseRate, outputTimebase));
@@ -685,7 +725,7 @@ BERR_Code BAPE_P_UpdateNco_isr(BAPE_Handle handle, BAPE_Nco nco)
 
             BDBG_ASSERT( BAPE_MCLKSOURCE_IS_NCO(pMixer->mclkSource));
 
-            if ( BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) == 0 )
+            if ( BAPE_Mixer_P_GetOutputSampleRate_isrsafe(pMixer) == 0 )
             {
                 /* Skip this mixer if it doesn't have a sample rate yet */
                 continue;
@@ -749,9 +789,23 @@ BERR_Code BAPE_P_UpdateNco_isr(BAPE_Handle handle, BAPE_Nco nco)
             }
         }
     }
+    else if ( baseRate == currentBaseRate && baseRate != 0 )
+    {
+        BDBG_MSG(("Not updating NCO %u rate (no change to rate)", nco));
+    }
     else
     {
-        BDBG_MSG(("Not updating NCO %u rate (unknown)", nco));
+        BDBG_MSG(("Not updating NCO %u rate (rate unknown)", nco));
+    }
+
+    if ( ncoVerify )
+    {
+        BDBG_MSG(("NCO verification required on NCO %d. Sending request via callback", (int)nco));
+        handle->ncoVerify[nco] = true;
+        BAPE_P_HandleCallbackEvent_isrsafe(handle, BAPE_CallbackEvent_eNcoVerify, (int)nco);
+        #if BDBG_DEBUG_BUILD && BAPE_CHIP_TIME_PLL_VERIFY
+        handle->ncoVerifyTime[nco] = bape_get_time();
+        #endif
     }
 
     return BERR_SUCCESS;
@@ -794,12 +848,6 @@ BERR_Code BAPE_Nco_P_ResumeFromStandby(BAPE_Handle bapeHandle)
 /**************************************************************************/
 
 void BAPE_P_AttachMixerToNco(BAPE_MixerHandle mixer, BAPE_Nco nco)
-{
-    BSTD_UNUSED(mixer);
-    BSTD_UNUSED(nco);
-}
-
-void BAPE_P_AttachMixerToNco_isr(BAPE_MixerHandle mixer, BAPE_Nco nco)
 {
     BSTD_UNUSED(mixer);
     BSTD_UNUSED(nco);

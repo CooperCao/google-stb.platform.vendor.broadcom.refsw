@@ -41,6 +41,7 @@
 #include <sys/stat.h>
 #include "bstd.h"
 #include "bkni.h"
+#include "nexus_memory.h"
 
 #include "drm_secure_store.h"
 

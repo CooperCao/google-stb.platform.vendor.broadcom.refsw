@@ -133,6 +133,7 @@ struct tracelog_device {
     void *pTracelogRegs;
     void *pTraceBuff;
     void *pTraceDump;
+    size_t bufOffset;
 };
 
 static char tracelog_mdev_name[16] = "tracelog";
@@ -164,7 +165,6 @@ static int tracelog_mdev_open(
     struct file *file)
 {
     int err = 0;
-
     err = generic_file_open(inode, file);
     if (unlikely(err)) {
         LOGE("Failed to open file!");
@@ -189,7 +189,7 @@ static ssize_t tracelog_mdev_read(
     off_t offset;
     int entries, entryStart, entryEnd;
     int i,lenWritten=0;
-
+    void * tempbuf;
     if (!file || !buf || !loff) {
         LOGE("Invalid argument in tracelog read call");
         return -EINVAL;
@@ -217,9 +217,10 @@ static ssize_t tracelog_mdev_read(
         entryEnd = entries - 1;
     }
     len = (entryEnd - entryStart + 1)* TRACE_ENTRY_ASC_SIZE;
+    tempbuf = tldev->pTraceBuff + tldev->bufOffset;
 
     for (i = entryStart; i <= entryEnd; i++) {
-        uint32_t *data = (uint32_t *)(tldev->pTraceBuff + TRACE_ENTRY_BIN_SIZE * i);
+        uint32_t *data = (uint32_t *)( tempbuf + TRACE_ENTRY_BIN_SIZE * i);
         char *dump = (char *)(tldev->pTraceDump + TRACE_ENTRY_ASC_SIZE * i);
 
         uint32_t valid;
@@ -248,6 +249,9 @@ static ssize_t tracelog_mdev_read(
         /* use new line to terminate each entry */
         dump[49] = '\n';
         lenWritten+=TRACE_ENTRY_ASC_SIZE;
+        tldev->bufOffset +=TRACE_ENTRY_BIN_SIZE;
+        if(tldev->bufOffset >= tldev->traceBuffSize)
+           tldev->bufOffset -= tldev->traceBuffSize ;
     }
     /*LOGE("len=%d lenWritten=%d\n", len, lenWritten);*/
     if (copy_to_user(buf, tldev->pTraceDump + offset, lenWritten))
@@ -326,7 +330,7 @@ int tracelog_init(void)
         err = -ENOMEM;
         goto ERR_EXIT;
     }
-
+    tldev->bufOffset = 0;
     /* register misc device */
     err = misc_register(&tracelog_mdev);
 

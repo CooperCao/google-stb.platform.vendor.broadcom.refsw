@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -87,27 +87,27 @@ protected:
     CWidgetLabel *       _PidLabel;
     CWidgetPopupList *   _PidPopup;
 #if BDSP_MS12_SUPPORT
-    CWidgetButton *      _Ac4;
+    CWidgetButton * _Ac4;
 #endif
-    CWidgetButton *      _AudioProcessing;
-    CWidgetLabel *       _AudioProcessingLabel;
-    CWidgetPopupList *   _AudioProcessingPopup;
-    CWidgetButton *      _Spdif;
-    CWidgetLabel *       _SpdifLabel;
-    CWidgetPopupList *   _SpdifPopup;
-    CWidgetButton *      _Hdmi;
-    CWidgetLabel *       _HdmiLabel;
-    CWidgetPopupList *   _HdmiPopup;
-    CWidgetButton *      _Downmix;
-    CWidgetLabel *       _DownmixLabel;
-    CWidgetPopupList *   _DownmixPopup;
-    CWidgetButton *      _DualMono;
-    CWidgetLabel *       _DualMonoLabel;
-    CWidgetPopupList *   _DualMonoPopup;
-    CWidgetButton *      _Compression;
-    CWidgetLabel *       _CompressionLabel;
-    CWidgetPopupList *   _CompressionPopup;
-    CWidgetButton *      _Back;
+    CWidgetButton *    _AudioProcessing;
+    CWidgetLabel *     _AudioProcessingLabel;
+    CWidgetPopupList * _AudioProcessingPopup;
+    CWidgetButton *    _Spdif;
+    CWidgetLabel *     _SpdifLabel;
+    CWidgetPopupList * _SpdifPopup;
+    CWidgetButton *    _Hdmi;
+    CWidgetLabel *     _HdmiLabel;
+    CWidgetPopupList * _HdmiPopup;
+    CWidgetButton *    _Downmix;
+    CWidgetLabel *     _DownmixLabel;
+    CWidgetPopupList * _DownmixPopup;
+    CWidgetButton *    _DualMono;
+    CWidgetLabel *     _DualMonoLabel;
+    CWidgetPopupList * _DualMonoPopup;
+    CWidgetButton *    _Compression;
+    CWidgetLabel *     _CompressionLabel;
+    CWidgetPopupList * _CompressionPopup;
+    CWidgetButton *    _Back;
 };
 
 #ifdef __cplusplus

@@ -46,7 +46,7 @@
 #endif
 
 
-#if !defined(__FP4015_ONWARDS__)
+#if !__FP4015_ONWARDS__
 #  include "libsyschip/memmap-raaga-fp2000.h"
 #else
 #  include "libsyschip/memmap-raaga-octave.h"

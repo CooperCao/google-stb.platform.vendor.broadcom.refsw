@@ -114,15 +114,9 @@ int main(void)
     rc = NEXUS_Playback_SetSettings(playback, &playbackSettings);
     BDBG_ASSERT(!rc);
 
-    if (track[0].allocResults.simpleVideoDecoder[0].id) {
-        videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(track[0].allocResults.simpleVideoDecoder[0].id);
-    }
-    if (track[1].allocResults.simpleAudioDecoder.id) {
-        audioDecoder[0] = NEXUS_SimpleAudioDecoder_Acquire(track[1].allocResults.simpleAudioDecoder.id);
-    }
-    if (track[2].allocResults.simpleAudioDecoder.id) {
-        audioDecoder[1] = NEXUS_SimpleAudioDecoder_Acquire(track[2].allocResults.simpleAudioDecoder.id);
-    }
+    videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(track[0].allocResults.simpleVideoDecoder[0].id);
+    audioDecoder[0] = NEXUS_SimpleAudioDecoder_Acquire(track[1].allocResults.simpleAudioDecoder.id);
+    audioDecoder[1] = NEXUS_SimpleAudioDecoder_Acquire(track[2].allocResults.simpleAudioDecoder.id);
 
     NxClient_GetDefaultConnectSettings(&connectSettings);
     connectSettings.simpleVideoDecoder[0].id = track[0].allocResults.simpleVideoDecoder[0].id;

@@ -7,7 +7,7 @@
 #include <EGL/egl.h>
 #undef LOG_TAG
 #define LOG_TAG "VC5"
-#include <cutils/log.h>
+#include <log/log.h>
 #include <system/window.h>
 
 #ifdef __cplusplus

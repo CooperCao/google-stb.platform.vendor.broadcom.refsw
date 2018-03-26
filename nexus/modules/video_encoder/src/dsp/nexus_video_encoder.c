@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -705,15 +705,45 @@ NEXUS_VideoEncoder_GetStatus(NEXUS_VideoEncoderHandle encoder, NEXUS_VideoEncode
     return NEXUS_VideoEncoder_GetBufferStatus_priv(encoder, pStatus);
 }
 
-NEXUS_Error NEXUS_VideoEncoder_GetBufferBlocks_priv(NEXUS_VideoEncoderHandle encoder, BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock)
+NEXUS_Error NEXUS_VideoEncoder_GetBufferBlocks_priv(NEXUS_VideoEncoderHandle encoder, BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock, BMMA_Block_Handle *phIndexBufferBlock)
 {
     NEXUS_Error rc;
     LOCK_AUDIO();
-    rc = NEXUS_DspVideoEncoder_GetBufferBlocks_priv(encoder->encoder, phFrameBufferBlock, phMetadataBufferBlock);
+    rc = NEXUS_DspVideoEncoder_GetBufferBlocks_priv(encoder->encoder, phFrameBufferBlock, phMetadataBufferBlock, phIndexBufferBlock);
     UNLOCK_AUDIO();
     if(rc!=BERR_SUCCESS) {
         return BERR_TRACE(rc);
     }
+    return NEXUS_SUCCESS;
+}
+
+NEXUS_Error
+NEXUS_VideoEncoder_GetBufferRegisters_priv(NEXUS_VideoEncoderHandle encoder, NEXUS_VideoEncoderRegisters_priv *pRegisters_priv)
+{
+    NEXUS_Error rc;
+    NEXUS_DspVideoEncoderStatus bufferStatus;
+
+    BDBG_OBJECT_ASSERT(encoder, NEXUS_VideoEncoder);
+    BKNI_Memset(&bufferStatus, 0, sizeof(NEXUS_DspVideoEncoderStatus));
+
+    LOCK_AUDIO();
+    rc = NEXUS_DspVideoEncoder_GetStatus_priv(encoder->encoder, &bufferStatus);
+    UNLOCK_AUDIO();
+    if(rc!=BERR_SUCCESS) {
+        return BERR_TRACE(rc);
+    }
+
+    pRegisters_priv->data.read = bufferStatus.data.read;
+    pRegisters_priv->data.base = bufferStatus.data.base;
+    pRegisters_priv->data.valid = bufferStatus.data.valid;
+    pRegisters_priv->data.end = bufferStatus.data.end;
+    pRegisters_priv->data.ready = bufferStatus.data.ready;
+    pRegisters_priv->index.read = bufferStatus.index.read;
+    pRegisters_priv->index.base = bufferStatus.index.base;
+    pRegisters_priv->index.valid = bufferStatus.index.valid;
+    pRegisters_priv->index.end = bufferStatus.index.end;
+    pRegisters_priv->index.ready = bufferStatus.index.ready;
+
     return NEXUS_SUCCESS;
 }
 
@@ -739,6 +769,11 @@ NEXUS_VideoEncoder_GetBufferStatus_priv(NEXUS_VideoEncoderHandle encoder, NEXUS_
     pStatus->picturesReceived = bufferStatus.picturesReceived;
     pStatus->picturesDroppedFRC = bufferStatus.picturesDroppedFRC;
     pStatus->picturesEncoded = bufferStatus.picturesEncoded;
+
+    pStatus->data.fifoDepth  = bufferStatus.data.fifoDepth;
+    pStatus->data.fifoSize   = bufferStatus.data.fifoSize;
+    pStatus->index.fifoDepth = bufferStatus.index.fifoDepth;
+    pStatus->index.fifoSize  = bufferStatus.index.fifoSize;
 
     return NEXUS_SUCCESS;
 }

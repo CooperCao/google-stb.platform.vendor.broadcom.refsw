@@ -293,11 +293,11 @@ int main(int argc, char *argv[])
         BDBG_ERR(("Failed to open i2c"));
         goto error;
     }
-    BI2C_GetChannelDefaultSettings(i2cHandle, B_I2C_CHANNEL_HDMI, &i2cChanSettings);
+    BI2C_GetChannelDefaultSettings(i2cHandle, NEXUS_I2C_CHANNEL_HDMI_TX, &i2cChanSettings);
 
     i2cChanSettings.clkRate = BI2C_Clk_eClk100Khz;
 
-    rc = BI2C_OpenChannel(i2cHandle, &i2cChanHandle, B_I2C_CHANNEL_HDMI, &i2cChanSettings);
+    rc = BI2C_OpenChannel(i2cHandle, &i2cChanHandle, NEXUS_I2C_CHANNEL_HDMI_TX, &i2cChanSettings);
     if ( rc!=NEXUS_SUCCESS )
     {
         BDBG_ERR(("Failed to open i2c channel "));

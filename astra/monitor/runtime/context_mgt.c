@@ -38,7 +38,7 @@
 
 #include "config.h"
 #include "monitor.h"
-#include "uart.h"
+#include "boot.h"
 #include "context_mgt.h"
 
 void cm_init_context(
@@ -124,7 +124,8 @@ void cm_init_context(
         write_ctx_reg(
             pgpregs_ctx,
             (aarch64) ? CTX_GPREG_X1 : CTX_GPREG_X3,
-            uart_base);
+            uart_base());
+
 }
 
 void cm_switch_context(

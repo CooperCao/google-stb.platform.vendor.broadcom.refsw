@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1225,10 +1225,12 @@ NEXUS_VideoInput_Shutdown(NEXUS_VideoInput input)
     for (i=0;i<NEXUS_NUM_DISPLAYS;i++) {
         if (pVideo->displays[i]) {
             NEXUS_DisplayVbiSettings dispvbiSettings;
+            NEXUS_Error rc;
             NEXUS_Display_GetVbiSettings(pVideo->displays[i], &dispvbiSettings);
             if (dispvbiSettings.vbiSource == input) {
                 dispvbiSettings.vbiSource = NULL;
-                NEXUS_Display_SetVbiSettings(pVideo->displays[i], &dispvbiSettings);
+                rc = NEXUS_Display_SetVbiSettings(pVideo->displays[i], &dispvbiSettings);
+                if (rc) BERR_TRACE(rc); /* keep going */
             }
         }
     }
@@ -1399,8 +1401,8 @@ void
 NEXUS_Display_P_VideoInputDisplayUpdate(NEXUS_DisplayHandle display, NEXUS_VideoWindowHandle window, const NEXUS_DisplaySettings *pSettings)
 {
     NEXUS_VideoInput videoInput = NULL;
-    NEXUS_VideoInput_P_Link *link = NULL;
 #if NEXUS_NUM_VIDEO_DECODERS
+    NEXUS_VideoInput_P_Link *link = NULL;
     bool bRefreshRateDriver = false;
     NEXUS_VideoDecoder_DisplayInformation displayInformation;
 #if NEXUS_NUM_MOSAIC_DECODES
@@ -1417,8 +1419,6 @@ NEXUS_Display_P_VideoInputDisplayUpdate(NEXUS_DisplayHandle display, NEXUS_Video
         BDBG_OBJECT_ASSERT(window, NEXUS_VideoWindow);
         display = window->display;
         videoInput = window->input;
-        if (videoInput)
-            link = videoInput->destination;
         BDBG_OBJECT_ASSERT(videoInput, NEXUS_VideoInput);
     }
     BDBG_ASSERT(pSettings);
@@ -1431,6 +1431,9 @@ NEXUS_Display_P_VideoInputDisplayUpdate(NEXUS_DisplayHandle display, NEXUS_Video
     }
     /* mtgSrc will not be syncLocked, and will update refreshRate with sourceChange */
     displayInformation.refreshRate = display->status.refreshRate / 10;
+    if (videoInput) {
+        link = videoInput->destination;
+    }
     if (link && !link->vdcSourceCallbackData.bMtgSrc) {
         if (link->vdcSourceCallbackData.ulVertRefreshRate == displayInformation.refreshRate) {
             /* this src might not be syncLocked to any display because connected displays are all syncLocked to other src */
@@ -1589,4 +1592,32 @@ void NEXUS_VideoInput_P_CheckFormatChange_isr(void *pParam)
 bool nexus_p_input_is_mtg(NEXUS_VideoInput_P_Link *link)
 {
     return link->mtg == BVDC_Mode_eAuto && link->id <= BAVC_SourceId_eMpegMax && g_pCoreHandles->boxConfig->stVdc.astSource[link->id].bMtgCapable;
+}
+
+void NEXUS_VideoInput_P_UpdateSyncLockDisplay(NEXUS_VideoInput_P_Link *link)
+{
+#if NEXUS_HAS_VIDEO_DECODER
+    struct NEXUS_VideoDecoderStcSnapshot stcSnapshot;
+    uint32_t stcFlag;
+
+    if (link->input->type != NEXUS_VideoInputType_eDecoder) return;
+
+    BKNI_Memset(&stcSnapshot, 0, sizeof(stcSnapshot));
+    BVDC_Source_GetStcFlag(link->sourceVdc, &stcFlag);
+    if(stcFlag < BRDC_MAX_STC_FLAG_COUNT) {
+        /* XPT_PCROFFSET_STC_SNAPSHOT0_CTRL.SNAPSHOT_TRIG_SEL for external trigger for "BVN flag0" starts at 8,
+        then increments, so add offset of 8 to stcFlag, which is the MFD #. */
+        stcSnapshot.trigger = stcFlag + 8;
+        stcSnapshot.set = true;
+    }
+
+    NEXUS_Module_Lock(pVideo->modules.videoDecoder);
+    NEXUS_VideoDecoder_SetStcSnapshot_priv((NEXUS_VideoDecoderHandle)link->input->source, &stcSnapshot);
+    NEXUS_Module_Unlock(pVideo->modules.videoDecoder);
+    return;
+#else
+    BSTD_UNUSED(link);
+    BSTD_UNUSED(window);
+    return;
+#endif
 }

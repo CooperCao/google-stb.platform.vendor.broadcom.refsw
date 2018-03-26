@@ -40,10 +40,7 @@
 use strict;
 use warnings;
 
-use Cwd;
-use Cwd 'abs_path';
-use Sys::Hostname;
-use File::Basename;
+package clkResource;
 
 use Data::Dumper;
 $Data::Dumper::Sortkeys  = 1;
@@ -54,6 +51,18 @@ $Data::Dumper::Terse    = 1;
 my @profiles = ('Standard');
 my $num_profiles = scalar @profiles;
 my $num_pmap_settings = 0;
+
+my $disable_vec_656 = 0;
+my $disable_aud_dac = 0;
+my $num_aud_dacs = 0;
+my $num_aud_plls = 0;
+my $num_vcxo_plls = 0;
+
+my %parent_map;
+
+my %xpt_wakeup = (
+    xpt_core_source => "unknown",
+);
 
 my @nexus_functions = (
         "AIO",
@@ -75,14 +84,12 @@ my @nexus_functions = (
         "XPT",
         "VIP",
         "SECBUS",
-        "AFEC",
-        "AIF",
-        "CHAN",
-        "DSEC",
-        "FSK",
-        "LEAP",
+        "AFEC", "AIF", "CHAN",
+        "DSEC", "FSK", "LEAP",
         "SDS",
-        "ASP"
+        "ASP",
+        "UFE", "DS",
+        "UNCLAIMED" #Used for Plls that are not claimed by anyone
     );
 
 my @div_functions = (
@@ -93,7 +100,7 @@ my @div_functions = (
         "V3D", "V3D0", "V3D1",
         "VICE2", "VICE20", "VICE21",
         "SID", "SID0", "SID1",
-        "XPT", "ASP"
+        "XPT", "ASP", "UFE"
     );
 
 sub is_nexus_function {
@@ -116,39 +123,108 @@ sub is_div_function {
     return 0;
 }
 
-sub verify_tree {
-	my $clk_tree = shift;
+sub new {
+    my $class = shift;
+    my ($resource, $reg, $field, $default) = @_;
 
-	for (sort keys %$clk_tree) {
+    my $self = {
+        _name => get_name($resource),
+        _reg => $reg,
+        _field => $field,
+        _default => $default,
+        _funcs => [],
+        _toplvl => [],
+        _srcs => [],
+        _delay => 0,
+        _pda => "",
+        _polarity => "",
+        _div => "",
+        _mux => 0,
+    };
+    bless($self, $class);
+    return($self);
+}
+
+my @modified_function_list = (
+    "XPT_CORE", "XPT_TSIO", "ITU656",
+    "AUD_PLL0", "AUD_PLL1", "AUD_PLL2"
+);
+
+sub verify_parent {
+    my ($clk_tree, $resource) = @_;
+    my $index = 0;
+
+    for ($index = @{$clk_tree->{$resource}{_funcs}}; $index > 0; $index--) {
+        my $found = 0;
+        my $func = $clk_tree->{$resource}{_funcs}[$index-1];
+        foreach my $parent (@{$parent_map{$resource}}) {
+            if(grep(/\b$func\b/, @{$clk_tree->{$parent}{_funcs}})) {
+                $found = 1;
+                last;
+            }
+        }
+        if($found == 0) {
+            print "    Removing $func from $resource\n";
+            splice(@{$clk_tree->{$resource}{_funcs}}, $index-1, 1);
+            splice(@{$clk_tree->{$resource}{_toplvl}}, $index-1, 1);
+        }
+    }
+}
+
+sub verify_sub_tree {
+    my ($clk_tree, $src, $func) = @_;
+
+    foreach (@{$clk_tree->{$src}{_srcs}}) {
+        if($_ eq "null") {next;}
+        if(exists $clk_tree->{$_}) {
+            if (!grep(/\b$func\b/, @{$clk_tree->{$_}{_funcs}})) {
+                if (grep(/\b$func\b/, @modified_function_list)) {
+                    print "    Adding $func to $_\n";
+                    push(@{$clk_tree->{$_}{_funcs}}, $func);
+                    push(@{$clk_tree->{$_}{_toplvl}}, $func);
+                    verify_parent($clk_tree, $_);
+                } else {
+                    print "    $func Missing in $_\n";
+                }
+                verify_sub_tree($clk_tree, $_, $func);
+            }
+        }
+    }
+}
+
+sub verify_tree {
+    my $clk_tree = shift;
+
+    for (keys %$clk_tree) {
         my $cnt = 0;
 		foreach my $src (@{$clk_tree->{$_}{_srcs}}) {
+            if($src eq "null") {next;}
 			if(exists $clk_tree->{$src}) {
-				# Eliminate node's functions from parents functions.
-				# Do this till we reach null. This will give a list of top level nodes
-				foreach my $func (@{$clk_tree->{$_}{_funcs}}) {
-                    my $index = 0;
-                    foreach my $top (@{$clk_tree->{$src}{_toplvl}}) {
-                        if($top eq $func) {
-                            splice(@{$clk_tree->{$src}{_toplvl}}, $index, 1);
+                foreach my $func (@{$clk_tree->{$_}{_funcs}}) {
+                    if (!grep(/\b$func\b/, @{$clk_tree->{$src}{_funcs}})) {
+                        print "$func : Exists in $_\n";
+                        if (grep(/\b$func\b/, @modified_function_list)) {
+                            print "    Adding $func to $src\n";
+                            push(@{$clk_tree->{$src}{_funcs}}, $func);
+                            push(@{$clk_tree->{$src}{_toplvl}}, $func);
+                            verify_parent($clk_tree, $src);
+                        } else {
+                            print "    $func Missing in $src\n";
                         }
-                        $index++;
-                    }
-					if (!grep(/$func/, @{$clk_tree->{$src}{_funcs}})) {
-						print "$func exists in $_ but not in $src\n";
+                        verify_sub_tree($clk_tree, $src, $func);
 					}
 				}
-			} elsif($src ne "null") {
+			} else {
 				print "$src does not exist in tree. Removing it from $_"."'s source\n";
                 splice(@{$clk_tree->{$_}{_srcs}}, $cnt, 1);
 			}
             $cnt++;
 		}
-	}
+    }
 }
 
 sub get_name {
     my $name = shift;
-
 
     $name =~ s/CLKGEN_//g;
     $name =~ s/ONOFF_//g;
@@ -168,7 +244,6 @@ sub get_name {
 	return $name;
 }
 
-
 sub get_pda {
     my $func = shift;
 
@@ -181,6 +256,125 @@ sub get_pda {
     }
 }
 
+sub verify_resource {
+    my ($clk_tree, $resource, $reg, $field, $default, $reg_desc) = @_;
+
+    if (not defined $resource) {
+        return;
+    }
+    if ($resource =~ /reserved/) {
+        return;
+    }
+
+    # TODO : Figure out how to find the AUD_PLL MUX resource
+    if ($resource =~ /AUDIO(\d)_OSCREF_CMOS_CLOCK/ || $resource =~ /PLLAUDIO(\d)_REFERENCE_CLOCK/) {
+        if (!exists $clk_tree->{$resource}) {
+            if ($1 < $num_aud_plls && $num_vcxo_plls > 1) {
+                print "Adding resource $resource : AUD_PLL$1\n";
+                $clk_tree->{$resource} = clkResource->new($resource, $reg, $field, $default);
+                push(@{$clk_tree->{$resource}{_funcs}}, "AUD_PLL".$1);
+                push(@{$clk_tree->{$resource}{_toplvl}}, "AUD_PLL".$1);
+                push(@{$clk_tree->{$resource}{_srcs}}, "CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_2_POST_DIVIDER_HOLD_CH2");
+                push(@{$clk_tree->{$resource}{_srcs}}, "CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_2_POST_DIVIDER_HOLD_CH2");
+                $clk_tree->{$resource}{_mux} = 2;
+            }
+        }
+    } elsif ($resource =~ /PM_CLOCK_Async_ALIVE_SEL_CLOCK_Async_CG_XPT/ || $resource =~ /PM_PLL_ALIVE_SEL/) {
+        if (!exists $clk_tree->{$resource}) {
+            if ($resource =~ /PM_PLL_ALIVE_SEL/ && $resource !~ /$xpt_wakeup{xpt_core_source}/) {
+                #Save this resource incase we don't know the Xpt core's source yet and need to figure out the keep alive pll later
+                $xpt_wakeup{pll_alive_sel}{$resource}{_reg} = $reg;
+                $xpt_wakeup{pll_alive_sel}{$resource}{_field} = $field;
+                $xpt_wakeup{pll_alive_sel}{$resource}{_default} = $default;
+            } else {
+                print "Adding resource $resource : XPT_WAKEUP\n";
+                $clk_tree->{$resource} = clkResource->new($resource, $reg, $field, $default);
+                push(@{$clk_tree->{$resource}{_funcs}}, "XPT_WAKEUP");
+                push(@{$clk_tree->{$resource}{_toplvl}}, "XPT_WAKEUP");
+                push(@{$clk_tree->{$resource}{_srcs}}, "null");
+                $clk_tree->{$resource}{_polarity} = "HighIsOn";
+            }
+        } else {
+            if ($resource =~ /PM_PLL_ALIVE_SEL/ && $resource !~ /$xpt_wakeup{xpt_core_source}/) {
+                print "Removing resource $resource : $clk_tree->{$resource}{_funcs}\n";
+                delete $clk_tree->{$resource};
+            }
+        }
+    } elsif ($resource =~ /XPT_CORE_CLOCK/) {
+        if (exists $clk_tree->{$resource}) {
+            foreach my $src (@{$clk_tree->{$resource}{_srcs}}) {
+                if ($src =~ /(XPT|SYS)(\d?)_PLL/) {
+                    $xpt_wakeup{xpt_core_source} = $1.$2;
+                }
+            }
+
+            # Try to find a match incase the xpt core source was found after keep alive plls
+            if (exists $xpt_wakeup{pll_alive_sel}) {
+                foreach my $pll (keys %{$xpt_wakeup{pll_alive_sel}}) {
+                    if ($pll =~ /$xpt_wakeup{xpt_core_source}/) {
+                        print "Adding resource $pll : XPT_WAKEUP\n";
+                        $clk_tree->{$pll} = clkResource->new($pll, $xpt_wakeup{pll_alive_sel}{$pll}{_reg}, $xpt_wakeup{pll_alive_sel}{$pll}{_field}, $xpt_wakeup{pll_alive_sel}{$pll}{_default});
+                        push(@{$clk_tree->{$pll}{_funcs}}, "XPT_WAKEUP");
+                        push(@{$clk_tree->{$pll}{_toplvl}}, "XPT_WAKEUP");
+                        push(@{$clk_tree->{$pll}{_srcs}}, "null");
+                        $clk_tree->{$pll}{_polarity} = "HighIsOn";
+                        last;
+                    }
+                }
+            }
+        }
+    } elsif ($resource =~ /PLL_CHANNEL_CTRL_CH/) {
+        foreach (keys %$reg_desc) {
+            if($_ eq $reg) {
+                if (!exists $clk_tree->{$resource}) {
+                    if ($resource =~ /CLOCK_DIS_CH(\d)/) {
+                        print "Adding resource $resource : @{$reg_desc->{$_}{_funcs}}\n";
+                        $clk_tree->{$resource} = clkResource->new($resource, $reg, $field, $default);
+                        push(@{$clk_tree->{$resource}{_funcs}}, @{$reg_desc->{$_}{_funcs}});
+                        push(@{$clk_tree->{$resource}{_toplvl}}, @{$reg_desc->{$_}{_funcs}});
+                        push(@{$clk_tree->{$resource}{_srcs}}, $reg."_MDIV_CH".$1);
+                        $clk_tree->{$resource}{_polarity} = "HighIsOff";
+                    } elsif ($resource =~ /MDIV_CH(\d)/) {
+                        print "Adding resource $resource : @{$reg_desc->{$_}{_funcs}}\n";
+                        $clk_tree->{$resource} = clkResource->new($resource, $reg, $field, $default);
+                        push(@{$clk_tree->{$resource}{_funcs}}, @{$reg_desc->{$_}{_funcs}});
+                        push(@{$clk_tree->{$resource}{_toplvl}}, @{$reg_desc->{$_}{_funcs}});
+                        $reg =~ s/CHANNEL_CTRL_CH_(\d)/DIV/;
+                        push(@{$clk_tree->{$resource}{_srcs}}, $reg."_NDIV_INT");
+                        $clk_tree->{$resource}{_div} = "POSTDIV";
+                    } elsif ($resource =~ /POST_DIVIDER_HOLD_CH(\d)/) {
+                        print "Adding resource $resource : @{$reg_desc->{$_}{_funcs}}\n";
+                        $clk_tree->{$resource} = clkResource->new($resource, $reg, $field, $default);
+                        push(@{$clk_tree->{$resource}{_funcs}}, @{$reg_desc->{$_}{_funcs}});
+                        push(@{$clk_tree->{$resource}{_toplvl}}, @{$reg_desc->{$_}{_funcs}});
+                        push(@{$clk_tree->{$resource}{_srcs}}, $reg."_CLOCK_DIS_CH".$1);
+                        $clk_tree->{$resource}{_polarity} = "HighIsOff";
+                    }
+                } else {
+                    my $new_funcs = join(' ', sort(@{$reg_desc->{$_}{_funcs}}));
+                    my $old_funcs = join(' ', sort(@{$clk_tree->{$resource}{_funcs}}));
+                    if ($new_funcs ne $old_funcs) {
+                        print "Rename resource $resource : @{$clk_tree->{$resource}{_funcs}} ==> @{$reg_desc->{$_}{_funcs}}\n";
+                        @{$clk_tree->{$resource}{_funcs}} = @{$reg_desc->{$_}{_funcs}};
+                        @{$clk_tree->{$resource}{_toplvl}} = @{$reg_desc->{$_}{_funcs}};
+                    }
+                }
+            }
+        }
+    }
+    if (!exists $clk_tree->{$resource}) {
+        if ($resource =~ /CLOCK_DIS_CH/ || $resource =~ /POST_DIVIDER_HOLD_CH/) {
+            print "Adding resource $resource : UNCLAIMED\n";
+            $clk_tree->{$resource} = clkResource->new($resource, $reg, $field, $default);
+            push(@{$clk_tree->{$resource}{_funcs}}, "UNCLAIMED");
+            push(@{$clk_tree->{$resource}{_toplvl}}, "UNCLAIMED");
+            my $src = ($resource =~ /POST_DIVIDER_HOLD_CH(\d)/)?$reg."_CLOCK_DIS_CH".$1:"null";
+            push(@{$clk_tree->{$resource}{_srcs}}, $src);
+            $clk_tree->{$resource}{_polarity} = "HighIsOff";
+        }
+    }
+}
+
 sub rename_function {
     my ($clk, $func) = @_;
     my @func_arr;
@@ -190,8 +384,19 @@ sub rename_function {
         if($clk =~ /DISABLE_XPT_(20P25|27|40P5|54|81)_CLOCK/) {
             $func =~ s/XPT/XPT_REMUX/g;
          } else {
-            $func .= " XPT_REMUX"
+            $func .= " XPT_REMUX";
          }
+         if($clk =~ /XPT_CORE_CLOCK/) {
+            $func .= " XPT_CORE";
+         }
+    }
+    if($clk =~ /VCXO/) {
+        if($func =~ /\bAIO\b/) {
+            $func =~ s/AIO//g;
+        }
+        if($func =~ /\bVEC\b/) {
+            $func =~ s/VEC//g;
+        }
     }
     $func =~ s/\bHVD\b/HVD0/g;
     $func =~ s/\bHVD_PDA(R|W)\b/HVD0_PDA$1/g;
@@ -203,6 +408,7 @@ sub rename_function {
     $func =~ s/\bBVN(.*?)_PDA(R|W)\b/BVN_PDA$2/g;
     $func =~ s/\bXPTWAKEUP\b/XPT_WAKEUP/g;
     $func =~ s/\bAIFSAT\b/AIFSAT0/g;
+    $func =~ s/\bSEC\b//g;
     $func =~ s/OBSERVE//g;
 
     @func_arr = split(/\s+/, $func);
@@ -215,11 +421,13 @@ sub rename_function {
 }
 
 sub parse_rdb_file {
-	my ($file, $clk_tree, $featuredef, $coreprefix) = @_;
+	my ($file, $clk_tree, $featuredef, $reg_desc, $coreprefix) = @_;
 	my ($reg, $field, $resource, $default, $case);
     my $disabled = 0;
     my @files;
+    my %tmp;
 
+    #print "Parsing $file\n";
     open(INFILE,"$file") or die "Can't open input file $file";
 
     foreach (<INFILE>) {
@@ -255,6 +463,7 @@ sub parse_rdb_file {
         } elsif (/\s*union\s*/) {
             $case = "";
 		} elsif (/^field\s*(\w+)/) {
+            verify_resource($clk_tree, $resource, $reg, $field, $default, $reg_desc);
             $field = $1;
             $resource = $reg."_".$field;
             if($case ne "") {
@@ -264,16 +473,12 @@ sub parse_rdb_file {
             $default = $1;
 		} elsif (/^\/\/PMFunction:\s*(.*?)\s*$/) {
             my @func = rename_function($resource, $1);
-			push(@{$clk_tree->{$resource}{_funcs}}, @func);
-			push(@{$clk_tree->{$resource}{_toplvl}}, @func);
-            $clk_tree->{$resource}{_reg} = $reg;
-            $clk_tree->{$resource}{_field} = $field;
-            $clk_tree->{$resource}{_default} = $default;
-			$clk_tree->{$resource}{_name} = get_name($resource);
-            $clk_tree->{$resource}{_delay} = 0;
-            $clk_tree->{$resource}{_pda} = get_pda($1);
-            $clk_tree->{$resource}{_polarity} = "";
-            $clk_tree->{$resource}{_div} = "";
+            if (@func) {
+                $clk_tree->{$resource} = clkResource->new($resource, $reg, $field, $default);
+                push(@{$clk_tree->{$resource}{_funcs}}, @func);
+                push(@{$clk_tree->{$resource}{_toplvl}}, @func);
+                $clk_tree->{$resource}{_pda} = get_pda($1);
+            }
 		} elsif (/^\/\/PMSource(\d*):\s*(.*?)\s*$/) {
             if (exists $clk_tree->{$resource}) {
                 my $indx = $1;
@@ -282,7 +487,13 @@ sub parse_rdb_file {
                     $clk_tree->{$resource}{_mux}++;
                 }
                 $srcs =~ s/\//_/g;
-                push(@{$clk_tree->{$resource}{_srcs}}, split(' ', $srcs));
+                my @src_arr = split(' ', $srcs);
+                push(@{$clk_tree->{$resource}{_srcs}}, @src_arr);
+                foreach my $src (@src_arr) {
+                    if($src ne "null") {
+                        push(@{$parent_map{$src}}, $resource);
+                    }
+                }
             }
 		} elsif (/^\/\/PMDelay:(\d+)\/(\d+)us/) {
             if (exists $clk_tree->{$resource}) {
@@ -314,12 +525,40 @@ sub parse_rdb_file {
                 my($filename, $directory, $suffix) = fileparse($file);
                 push(@files, $directory.$1) if -e $directory.$1;
             }
+        } elsif (/^endtype$/) {
+            verify_resource($clk_tree, $resource, $reg, $field, $reg_desc);
+            undef $resource;
+        } elsif (/^Type_(\w+)\s*(\w+)\s*\+(\d+)/) {
+            $reg = $coreprefix."_".$2;
+            if ($1 =~ /PLL_VCXO(\d)_PLL/) {
+                if($1+1 > $num_vcxo_plls) {
+                    $num_vcxo_plls = $1+1;
+                }
+            }
+        } elsif (/^desc\s*-(.*?)\s*:\s*(.*?)\s*:\s*\((.*?)\)$/) {
+            # Special Processing for these nodes as they may not be tagged correctly in RDB.
+            if ($2 =~ /tsio/ || $3 =~ /tsio/) {
+                push(@{$reg_desc->{$reg}{_funcs}},"XPT_TSIO");
+            } elsif ($2 =~ /itu656/) {
+                push(@{$reg_desc->{$reg}{_funcs}},"ITU656") if($disable_vec_656 == 0);
+            } elsif ($2 =~ /rm_en_pllvcxo/) {
+                push(@{$reg_desc->{$reg}{_funcs}},"ITU656") if($disable_vec_656 == 0);
+                for (my $i = 0; $i < $num_aud_plls; $i++) {
+                    push(@{$reg_desc->{$reg}{_funcs}},"AUD_PLL".$i);
+                }
+            } elsif ($2 =~ /pllaudio(\d)/) {
+                push(@{$reg_desc->{$reg}{_funcs}},"AUD_PLL".$1) if($1 < $num_aud_plls)
+            }
+        } elsif (/^(regset|block)\s*(.*?)\s*AUD_FMM_IOP_(OUT_DAC|PLL)_(\d)/) {
+            my $cnt = $4+1;
+            $num_aud_plls = $cnt if($3 eq "PLL" && $cnt > $num_aud_plls);
+            $num_aud_dacs = $cnt if($3 eq "OUT_DAC" && $cnt > $num_aud_dacs && $disable_aud_dac == 0);
         }
 	}
 
     close(INFILE);
 
-    parse_rdb_file($_, $clk_tree, $featuredef, $coreprefix) foreach (@files);
+    parse_rdb_file($_, $clk_tree, $featuredef, $reg_desc, $coreprefix) foreach (@files);
 }
 
 sub skip_node {
@@ -358,6 +597,21 @@ sub skip_node {
 
 sub generate_top_level_nodes {
 	my ($clk_tree, $functions) = @_;
+
+    for (keys %$clk_tree) {
+		foreach my $src (@{$clk_tree->{$_}{_srcs}}) {
+			if(exists $clk_tree->{$src}) {
+				# Eliminate resource's functions from its parent's functions.
+				# Do this till we reach null. This will give a list of top level nodes
+                for(my $index = @{$clk_tree->{$src}{_toplvl}}; $index > 0; $index--) {
+                    my $func = $clk_tree->{$src}{_toplvl}[$index-1];
+                    if(grep(/\b$func\b/, @{$clk_tree->{$_}{_funcs}})) {
+                        splice(@{$clk_tree->{$src}{_toplvl}}, $index-1, 1)
+                    }
+                }
+			}
+		}
+	}
 
 	for (sort keys %$clk_tree) {
 		if (@{$clk_tree->{$_}{_toplvl}}) {
@@ -740,7 +994,7 @@ sub generate_user_defined_nodes {
             $nodes->{"BINT_OPEN"}{_list}{"AUD_AIO"}++;
             $nodes->{"MAGNUM_CONTROLLED"}{_list}{"AUD_AIO"}++;
 
-            if(has_feature($featuredef, "AUDIO_DAC")) {
+            if($num_aud_dacs > 0) {
                 $nodes->{"AUD_DAC"}{_list}{"HW_AUD_DAC"}++;
                 foreach my $hw_node (keys %{$nodes->{$node}{_list}}) {
                     $nodes->{"HW_AUD_DAC"}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node}
@@ -1874,6 +2128,11 @@ sub generate_bchp_resources_c_file {
     print "Output: $file\n";
 }
 
+use Cwd;
+use Cwd 'abs_path';
+use Sys::Hostname;
+use File::Basename;
+
 sub get_bchp_path {
     my ($chp, $ver) = @_;
     my $cur_dir = abs_path(getcwd);
@@ -1976,16 +2235,15 @@ sub get_rdb_path {
 }
 
 sub main {
-	my (%clk_tree, %functions, %nodes, %hw_desc, %featuredef);
+	my (%clk_tree, %functions, %nodes, %hw_desc, %featuredef, %reg_desc);
     my ($chp, $ver, $dir, $perf, $dbg);
-    my @files;
 
     foreach (@ARGV) {
         if(/^\d\d\d\d\d?$/) {
             $chp = $_;
         }
         if(/^[a-zA-Z]\d$/) {
-            $ver = $_;
+            $ver = uc($_);
         }
         if(/\/project_it\//) {
             $dir = $_;
@@ -1997,7 +2255,10 @@ sub main {
             $dbg = 1;
         }
         if(/nodac/) {
-            $featuredef{"AUDIO_DAC"} = 0;
+            $disable_aud_dac = 1;
+        }
+        if(/no656/) {
+            $disable_vec_656 = 1;
         }
     }
 
@@ -2013,6 +2274,12 @@ sub main {
         $dir = get_rdb_path($chp, $ver);
     }
 
+    if($chp == 7271 || $chp == 7268 || $chp == 7260) {
+        $disable_aud_dac = 1
+    } elsif($chp == 7255) {
+        $disable_vec_656 = 1;
+    }
+
     print "\n\n";
     print "Processing clock tree\n";
     print "Chip    : $chp\n";
@@ -2023,15 +2290,18 @@ sub main {
     }
     print"\n\n";
 
-    my $clkgen_top = $dir."/design/clkgen/rdb/clkgen_top.rdb";
-    my $sys_ctrl_top = $dir."/design/sys_ctrl/rdb/top_ctrl.rdb";
-    my $aud_iop_top = $dir."/design/brahms/iop/rdb/aud_iop_top.rdb";
+    my @files = (
+        "/design/brahms/iop/rdb/aud_iop_top.rdb",
+        "/design/clkgen/rdb/clkgen_top.rdb",
+        "/design/sys_ctrl/rdb/top_ctrl.rdb"
+    );
 
-    push(@files, $clkgen_top) if -e $clkgen_top;
-    push(@files, $sys_ctrl_top) if -e $sys_ctrl_top;
-    push(@files, $aud_iop_top) if -e $aud_iop_top;
+    foreach (@files) {
+        my $file = $dir.$_;
+        parse_rdb_file($file, \%clk_tree, \%featuredef, \%reg_desc, '');
+    }
 
-	parse_rdb_file($_, \%clk_tree, \%featuredef, '')  foreach (@files);
+    print "Found $num_aud_dacs AUD_DACS, $num_aud_plls AUD_PLLS, $num_vcxo_plls VCXO_PLLS\n";
 
 	verify_tree(\%clk_tree);
 
@@ -2051,6 +2321,9 @@ sub main {
 
             open($fh, ">clk.txt") or die "Can't open output file";
             print $fh Dumper (%clk_tree);
+            close $fh;
+            open($fh, ">parent.txt") or die "Can't open output file";
+            print $fh Dumper (%parent_map);
             close $fh;
             open($fh, ">func.txt") or die "Can't open output file";
             print $fh Dumper (%functions);

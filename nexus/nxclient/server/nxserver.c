@@ -369,6 +369,8 @@ void nxserver_uninit(nxserver_t server)
     BDBG_ASSERT(server == g_app.server);
     if (--g_app.refcnt) return;
 
+    /* must shutdown watchdog before nxserver_ipc_uninit destroys clients */
+    nxserverlib_shutdown_watchdog(server);
     nxserver_ipc_uninit();
     nxserverlib_uninit(server);
     BKNI_DestroyMutex(g_app.lock);

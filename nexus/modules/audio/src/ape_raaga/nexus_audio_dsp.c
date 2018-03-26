@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -62,6 +62,10 @@ NEXUS_Error NEXUS_AudioDsp_GetDebugBuffer(
     BDSP_MMA_Memory debugBuffer;
     size_t bufferSize;
     BDSP_Handle hDsp = NULL;
+    unsigned dspOffset;
+    unsigned dspBase = 0;
+    unsigned numCores = 0;
+    NEXUS_AudioCapabilities caps;
 
     if ( !BAPE_DEVICE_DSP_VALID(dspIndex) && !BAPE_DEVICE_ARM_VALID(dspIndex) )
     {
@@ -81,18 +85,29 @@ NEXUS_Error NEXUS_AudioDsp_GetDebugBuffer(
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
+    NEXUS_GetAudioCapabilities(&caps);
+
     if ( g_NEXUS_audioModuleData.dspHandle && BAPE_DEVICE_DSP_VALID(dspIndex) )
     {
         hDsp = g_NEXUS_audioModuleData.dspHandle;
+        dspBase = BAPE_DEVICE_DSP_FIRST;
+        numCores = caps.numDsps;
     }
     else if ( g_NEXUS_audioModuleData.armHandle && BAPE_DEVICE_ARM_VALID(dspIndex) )
     {
         hDsp = g_NEXUS_audioModuleData.armHandle;
+        dspBase = BAPE_DEVICE_ARM_FIRST;
+        numCores = caps.numSoftAudioCores;
+    }
+
+    dspOffset = BAPE_DSP_DEVICE_INDEX(dspIndex, dspBase);
+    if (dspOffset >= numCores) {
+        BDBG_ERR(("Audio Core Index %u not supported(%u)", dspOffset, numCores));
     }
 
     if ( hDsp )
     {
-        errCode = BDSP_GetDebugBuffer(hDsp, (BDSP_DebugType)debugType, dspIndex, &debugBuffer, &bufferSize);
+        errCode = BDSP_GetDebugBuffer(hDsp, (BDSP_DebugType)debugType, dspOffset, &debugBuffer, &bufferSize);
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -137,8 +152,6 @@ NEXUS_Error NEXUS_AudioDsp_DebugReadComplete(
     unsigned numCores = 0;
     NEXUS_AudioCapabilities caps;
 
-    NEXUS_GetAudioCapabilities(&caps);
-
     if ( !BAPE_DEVICE_DSP_VALID(dspIndex) && !BAPE_DEVICE_ARM_VALID(dspIndex) )
     {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -158,6 +171,8 @@ NEXUS_Error NEXUS_AudioDsp_DebugReadComplete(
         BDBG_ERR(("Debug type %u is not enabled.  Please check the settings in NEXUS_AudioModuleSettings.dspDebugSettings.", debugType));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
+
+    NEXUS_GetAudioCapabilities(&caps);
 
     if ( g_NEXUS_audioModuleData.dspHandle && BAPE_DEVICE_DSP_VALID(dspIndex) )
     {
@@ -188,7 +203,69 @@ NEXUS_Error NEXUS_AudioDsp_DebugReadComplete(
 
     return BERR_SUCCESS;
 }
+
+NEXUS_Error NEXUS_AudioDspPrivate_RunDebugService(
+    unsigned dspIndex
+    )
+{
+    #if BDSP_RAAGA_AUDIO_SUPPORT
+    BERR_Code errCode;
+    BDSP_Handle hDsp = NULL;
+    unsigned dspOffset;
+    unsigned dspBase = 0;
+    unsigned numCores = 0;
+    NEXUS_AudioCapabilities caps;
+
+    /* not supported on ARM as of today */
+    if ( BAPE_DEVICE_ARM_VALID(dspIndex) )
+    {
+        return NEXUS_SUCCESS;
+    }
+
+    if ( !BAPE_DEVICE_DSP_VALID(dspIndex) )
+    {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    NEXUS_GetAudioCapabilities(&caps);
+
+    if ( g_NEXUS_audioModuleData.dspHandle && BAPE_DEVICE_DSP_VALID(dspIndex) )
+    {
+        hDsp = g_NEXUS_audioModuleData.dspHandle;
+        dspBase = BAPE_DEVICE_DSP_FIRST;
+        numCores = caps.numDsps;
+    }
+    else if ( g_NEXUS_audioModuleData.armHandle && BAPE_DEVICE_ARM_VALID(dspIndex) )
+    {
+        hDsp = g_NEXUS_audioModuleData.armHandle;
+        dspBase = BAPE_DEVICE_ARM_FIRST;
+        numCores = caps.numSoftAudioCores;
+    }
+
+    dspOffset = BAPE_DSP_DEVICE_INDEX(dspIndex, dspBase);
+    if (dspOffset >= numCores) {
+        BDBG_ERR(("Audio Core Index %u not supported(%u)", dspOffset, numCores));
+    }
+
+    if ( hDsp )
+    {
+        errCode = BDSP_Raaga_RunDebugService(hDsp, dspOffset);
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+    }
+
+    return BERR_SUCCESS;
+
+    #else
+    BSTD_UNUSED(dspIndex);
+    return BERR_SUCCESS;
+    #endif
+}
+
 #else
+
 NEXUS_Error NEXUS_AudioDsp_GetDebugBuffer(
     unsigned dspIndex,
     NEXUS_AudioDspDebugType debugType,
@@ -216,4 +293,11 @@ NEXUS_Error NEXUS_AudioDsp_DebugReadComplete(
     return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 }
 
+NEXUS_Error NEXUS_AudioDspPrivate_RunDebugService(
+    unsigned dspIndex
+    )
+{
+    BSTD_UNUSED(dspIndex);
+    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+}
 #endif

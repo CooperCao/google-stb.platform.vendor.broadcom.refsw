@@ -2620,6 +2620,11 @@ typedef struct BDSP_Raaga_Audio_MixerDapv2ConfigParams
     /* Dapv2 user config might get changed after latest code change for content processing with no channel mixing */
     BDSP_Raaga_Audio_DAPv2UserConfig sDapv2UserConfig;
 
+
+    /* channel mode is locked to 5.1 */
+    /* This Parameter need to be set either 1 or 0 .1-to get the 5.1 output from mixer onwards*/
+    uint32_t    ui32ChannelLockModeEnable;
+
 }BDSP_Raaga_Audio_MixerDapv2ConfigParams;
 
 /* Vocal post process */
@@ -3095,13 +3100,10 @@ typedef struct  BDSP_Raaga_Audio_DpcmrConfigParams
     /*< Compressor profile for generating DRC, default ui32CompressorProfile = 1; */
     /* This Parameter need not to expose at Nexus level since it is fixed for now */
     uint32_t     ui32CompressorProfile;
-   /* encoded channel mode is locked to 5.1 */
-    /* This Parameter need to be set either 1 or 0 .1-to get the 5.1 output from encoder. do a downmix in the PCM Renderer from 7.1 -> 5.1*/
-    uint32_t    ui32ChannelLockModeEnable;
-	/* This parameter should be 0, 1 0r 2, 0: Disables phase90 Filter, 1 enables phase90 Hilbert filter, 2 enables phase90 McGrath filter */
-	uint32_t ui32EnablePhase90Filter;
-	uint32_t ui32Phase90Indicated;
-	uint32_t ui32GaplessAcmodTransition;
+    /* This parameter should be 0, 1 0r 2, 0: Disables phase90 Filter, 1 enables phase90 Hilbert filter, 2 enables phase90 McGrath filter */
+    uint32_t ui32EnablePhase90Filter;
+    uint32_t ui32Phase90Indicated;
+    uint32_t ui32GaplessAcmodTransition;
 }BDSP_Raaga_Audio_DpcmrConfigParams;
 
 
@@ -3522,10 +3524,8 @@ typedef struct BDSP_Raaga_Audio_DDPEncConfigParams
 	/* Enable / Disable SPDIF or HDMI packing [Default : 1 = enabled */
 	unsigned int	ui32SpdifEnable;
 
-
 	/* 0 : MS12 Mode, 1 : MS11 Low Complexity Mode [Default : 0 = MS12 DDP Encoder */
 	unsigned int	ui32EncodeVariant;
-
 
 	/* Additional Bitstream Information String [Default : 0]
 	A maximum of 64 characters can be represented as ASCII converted integers
@@ -3533,26 +3533,46 @@ typedef struct BDSP_Raaga_Audio_DDPEncConfigParams
 	*/
 	signed int		i32AddBsi[128 + 1];
 
-	/* Enable / Disable Atmos lock [Default : 0 = disabled] */
-    uint32_t    ui32AtmosLockEnabled;
 
+	/* Enable / Disable Atmos lock [Default : 0 = disabled] */
+    uint32_t    	ui32AtmosLockEnabled;
+
+
+	/* External DRC data for the first dual mono program   [Default : 0 = disabled] */
 	signed int		i32b_extdrce1;
 
+
+	/* External DRC data. The range is in [-32768, 32767]. Encoder mode
+	8 and mode 9 support external DRC data*/
 	signed int		i32extdrce1[7];
 
+	/* External DRC data for the second dual mono program[Default : 0 = disabled]*/
 	signed int		i32b_extdrce2;
 
+
+	/*External DRC data for the second dual mono program. The range is
+	in [-32768, 32767]. Encoder mode 8 and mode 9 support external DRC data.*/
 	signed int		i32extdrce2[7];
 
-	/* pcm alignment static parameter if 0, disable input PCM alignment to frame boundary (default enabled) */
 
+	/* pcm alignment static parameter.
+	0 = Disable input PCM alignment to frame boundary
+	1 = Enableinput PCM alignment to frame boundary
+	(default 1 =Enabled) */
 	signed int		pcm_aligned_flag;
 
+
+	/*!< Set the flag for converter snroffset functionality,
+	- valid for encoder mode 8,  acmod 21 and  datarate 1152kbps only.
+	It's enbaled  by default. 1: enabled, 0: disabled*/
 	signed int		converter_snr_offset;
 
-	/* indicate if downmix input is present: 1: present 0: absent  */
 
+	/* indicate if downmix input is present or absent
+	1 = Present
+	0 = Absent  [Default : 0 = Absent]*/
 	signed int      downmix_input;
+
 
 } BDSP_Raaga_Audio_DDPEncConfigParams;
 

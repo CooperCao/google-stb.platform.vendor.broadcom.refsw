@@ -46,6 +46,7 @@ Interface decription.
 #define NEXUS_REGION_VERIFICATION_RSA_H__
 
 #include "bstd.h"
+#include "nexus_security_common.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -54,14 +55,9 @@ extern "C"
 
 #define NEXUS_REGVER_RSA_KEY_SIZE 556
 
+
 typedef struct NEXUS_RegVerRsa* NEXUS_RegVerRsaHandle;
 
-typedef enum NEXUS_RegVerRsaRootKey
-{
-    NEXUS_RegVerRsaRootKey_e0Prime,
-    NEXUS_RegVerRsaRootKey_e0,
-    NEXUS_RegVerRsaRootKey_eMax
-}NEXUS_RegVerRsaRootKey;
 
 typedef struct NEXUS_RegVerRsaAllocateSettings
 {
@@ -81,7 +77,7 @@ typedef struct NEXUS_RegVerRsaSettings
 {
     uint8_t rsaKey[NEXUS_REGVER_RSA_KEY_SIZE]; /* Rsa Key */
 
-    NEXUS_RegVerRsaRootKey rootKey;            /* valid if multiTier is NOT true. */
+    NEXUS_SigningAuthority rootKey;            /* valid if multiTier is NOT true. */
     bool      multiTier;
     unsigned  multiTierSourceKeyId;            /* valid if multiTier is true. */
 

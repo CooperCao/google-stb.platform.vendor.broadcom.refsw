@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -46,9 +46,12 @@
 
 BDBG_MODULE(bape_fs_priv);
 
+#if BAPE_CHIP_MAX_FS > 0
+
 #ifdef BCHP_AUD_FMM_OP_CTRL_REG_START
 #include "bchp_aud_fmm_op_ctrl.h"
 #include "bchp_aud_fmm_iop_ctrl.h"
+#endif
 
 unsigned BAPE_P_AllocateFs(BAPE_Handle handle)
 {

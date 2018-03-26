@@ -85,6 +85,10 @@ BASEFLAGS   += -fdata-sections
 BASEFLAGS   += -mgeneral-regs-only
 BASEFLAGS   += -DPLATFORM=$(TZ_PLATFORM)
 
+ifneq (n,$(SMM64))
+BASEFLAGS   += -DSMM64
+endif
+
 WARNFLAGS   := -Werror
 WARNFLAGS   += -Wall
 WARNFLAGS   += -Wextra
@@ -92,10 +96,17 @@ WARNFLAGS   += -Wundef
 WARNFLAGS   += -Wmissing-include-dirs
 WARNFLAGS   += -Wredundant-decls
 
+ifeq (y,$(RELEASE))
+RLSFLAGS    := -DRELEASE
+endif
+
 ifeq (y,$(DEBUG))
 DBGFLAGS    := -DDEBUG
 ifeq (y,$(VERBOSE))
 DBGFLAGS    += -DVERBOSE
+endif
+ifeq (y,$(DSMP))
+DBGFLAGS    += -DDSMP
 endif
 ifeq (y,$(DHALT))
 DBGFLAGS    += -DDHALT
@@ -106,16 +117,16 @@ endif
 endif
 
 ASFLAGS     := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS)
-ASFLAGS     += $(BASEFLAGS) $(WARNFLAGS) $(DBGFLAGS)
+ASFLAGS     += $(BASEFLAGS) $(WARNFLAGS) $(RLSFLAGS) $(DBGFLAGS)
 ASFLAGS     += -Wa,--fatal-warnings
 ASFLAGS     += -D__ASSEMBLY__
 
 CFLAGS      := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS)
-CFLAGS      += $(BASEFLAGS) $(WARNFLAGS) $(DBGFLAGS)
+CFLAGS      += $(BASEFLAGS) $(WARNFLAGS) $(RLSFLAGS) $(DBGFLAGS)
 CFLAGS      += -std=gnu99
 
 CPPFLAGS    := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS)
-CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS) $(DBGFLAGS)
+CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS) $(RLSFLAGS) $(DBGFLAGS)
 CPPFLAGS    += -std=c++11
 CPPFLAGS    += -fno-rtti -fno-exceptions -fno-use-cxa-atexit
 CPPFLAGS    += -D__EXCEPTIONS=0
@@ -143,11 +154,11 @@ $(BIN_DIRS):
 	@mkdir -p $@
 
 $(TZ_OBJ_DIR)/$(TZ_IMG).bin: $(TZ_OBJ_DIR)/$(TZ_IMG).elf
-	$(TZ_ARMGNU)-objcopy $(TZ_OBJ_DIR)/$(TZ_IMG).elf -O binary $(TZ_OBJ_DIR)/$(TZ_IMG).bin
+	$(Q_)$(TZ_ARMGNU)-objcopy $(TZ_OBJ_DIR)/$(TZ_IMG).elf -O binary $(TZ_OBJ_DIR)/$(TZ_IMG).bin
 
 $(TZ_OBJ_DIR)/$(TZ_IMG).elf: $(OBJS) link_$(ARCH)_mon.ld
-	/opt/toolchains/stbgcc-4.8-1.5/bin/aarch64-linux-ld -nostartfiles -static $(OBJS) -Tlink_$(ARCH)_mon.ld -o $@
-	$(TZ_ARMGNU)-ld -nostartfiles -static $(OBJS) $(LDFLAGS) -Tlink_$(ARCH)_mon.ld -o $@
+	@echo [Link... $@]
+	$(Q_)$(TZ_ARMGNU)-ld -nostartfiles -static $(OBJS) $(LDFLAGS) -Tlink_$(ARCH)_mon.ld -o $@
 
 clean:
 	$(RM) -r $(TZ_OBJ_DIR)

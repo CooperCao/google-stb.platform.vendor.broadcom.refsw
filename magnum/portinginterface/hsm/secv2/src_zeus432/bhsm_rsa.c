@@ -41,41 +41,56 @@
 #include "bhsm.h"
 #include "bhsm_priv.h"
 #include "bhsm_rsa.h"
+#include "bhsm_bsp_msg.h"
+#include "bsp_s_user_rsa.h"
+#include "bsp_s_pke.h"
+
+#define BSP_PKE_IN_PROGRESS        (0xA4)
+#define BHSM_POLLING_TIMES         (2000)
+#define BHSM_POLLING_INTERVAL      (100)
+
+typedef struct BHSM_Rsa {
+    BHSM_Handle   hHsm;
+    bool          inUse;                                   /* only one instance allowed.  */
+} BHSM_Rsa;
 
 BDBG_MODULE( BHSM );
 
-
-typedef struct BHSM_Rsa
+BERR_Code BHSM_Rsa_Init(
+    BHSM_Handle hHsm,
+    BHSM_RsaModuleSettings * pSettings )
 {
-    BHSM_Handle hHsm;
-    bool inUse;    /* only one instance allowed.  */
-}BHSM_Rsa;
-
-BERR_Code BHSM_Rsa_Init( BHSM_Handle hHsm, BHSM_RsaModuleSettings *pSettings )
-{
-    BHSM_Rsa *pRsa;
+    BHSM_Rsa     *pRsa;
 
     BDBG_ENTER( BHSM_Rsa_Init );
     BSTD_UNUSED( pSettings );
 
-    if( hHsm->modules.pRsa != NULL ) { return BERR_TRACE(BERR_UNKNOWN); }
+    if( hHsm->modules.pRsa != NULL ) {
+        return BERR_TRACE( BERR_UNKNOWN );
+    }
 
-    pRsa = (BHSM_Rsa*)BKNI_Malloc( sizeof(BHSM_Rsa) );
-    if( !pRsa ){ return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); }
+    pRsa = ( BHSM_Rsa * ) BKNI_Malloc( sizeof( BHSM_Rsa ) );
+    if( !pRsa ) {
+        return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
+    }
 
-    BKNI_Memset( pRsa, 0, sizeof(*pRsa) );
+    BKNI_Memset( pRsa, 0, sizeof( *pRsa ) );
     pRsa->hHsm = hHsm;
-    hHsm->modules.pRsa = (void*)pRsa;
+    hHsm->modules.pRsa = ( void * ) pRsa;
 
     BDBG_ENTER( BHSM_Rsa_Init );
     return BERR_SUCCESS;
 }
 
-void BHSM_Rsa_Uninit( BHSM_Handle hHsm )
+void BHSM_Rsa_Uninit(
+    BHSM_Handle hHsm )
 {
     BDBG_ENTER( BHSM_Rsa_Uninit );
 
-    if( !hHsm->modules.pRsa ) { BERR_TRACE(BERR_UNKNOWN); return; }
+    if( !hHsm->modules.pRsa ) {
+        BERR_TRACE( BERR_UNKNOWN );
+        return;
+    }
 
     BKNI_Free( hHsm->modules.pRsa );
     hHsm->modules.pRsa = NULL;
@@ -84,31 +99,38 @@ void BHSM_Rsa_Uninit( BHSM_Handle hHsm )
     return;
 }
 
-BHSM_RsaHandle BHSM_Rsa_Open( BHSM_Handle hHsm )
+BHSM_RsaHandle BHSM_Rsa_Open(
+    BHSM_Handle hHsm )
 {
-    BHSM_Rsa *pRsa;
+    BHSM_Rsa     *pRsa;
 
     BDBG_ENTER( BHSM_Rsa_Open );
 
-    pRsa = hHsm->modules.pRsa; /* there is only one RSA instance in the system/chip. */
-    if( !pRsa ) { BERR_TRACE(BERR_UNKNOWN); return NULL; }
+    pRsa = hHsm->modules.pRsa;  /* there is only one RSA instance in the system/chip. */
+    if( !pRsa ) {
+        BERR_TRACE( BERR_UNKNOWN );
+        return NULL;
+    }
 
-    if( pRsa->inUse == true) { BERR_TRACE(BERR_NOT_AVAILABLE); return NULL; }
+    if( pRsa->inUse == true ) {
+        BERR_TRACE( BERR_NOT_AVAILABLE );
+        return NULL;
+    }
 
     pRsa->inUse = true;
 
     BDBG_LEAVE( BHSM_Rsa_Open );
-    return (BHSM_RsaHandle)pRsa;
+    return ( BHSM_RsaHandle ) pRsa;
 }
 
-
-void BHSM_Rsa_Close( BHSM_RsaHandle handle )
+void BHSM_Rsa_Close(
+    BHSM_RsaHandle handle )
 {
-    BHSM_Rsa *pRsa = handle;
+    BHSM_Rsa     *pRsa = handle;
 
     BDBG_ENTER( BHSM_Rsa_Close );
 
-    if( !pRsa->inUse ) { BERR_TRACE(BERR_NOT_INITIALIZED); return; }
+    if( !pRsa->inUse ) { BERR_TRACE( BERR_NOT_INITIALIZED ); return; }
 
     pRsa->inUse = false;
 
@@ -116,52 +138,143 @@ void BHSM_Rsa_Close( BHSM_RsaHandle handle )
     return;
 }
 
-
-void  BHSM_Rsa_GetDefaultExponentiateSettings( BHSM_RsaHandle handle, BHSM_RsaExponentiateSettings *pSettings )
+BERR_Code BHSM_Rsa_Exponentiate(
+    BHSM_RsaHandle handle,
+    const BHSM_RsaExponentiateSettings * pSettings )
 {
-
-    BDBG_ENTER( BHSM_Rsa_GetDefaultExponentiateSettings );
-    BSTD_UNUSED( handle );
-    BSTD_UNUSED( pSettings );
-
-    BDBG_LEAVE( BHSM_Rsa_GetDefaultExponentiateSettings );
-    return;
-}
-
-
-
-BERR_Code BHSM_Rsa_Exponentiate( BHSM_RsaHandle handle, const BHSM_RsaExponentiateSettings *pSettings )
-{
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code     rc = BERR_SUCCESS;
+    BHSM_BspMsg_h hMsg = NULL;
+    BHSM_BspMsgHeader_t header;
+    uint8_t       status = 0;
+    uint32_t      counterMeasure = 0;
+    BHSM_Handle   hHsm;
+    uint32_t      keySize = 0;
+    uint8_t      *pData;
 
     BDBG_ENTER( BHSM_Rsa_Exponentiate );
-    BSTD_UNUSED( handle );
-    BSTD_UNUSED( pSettings );
+    hHsm = handle->hHsm;
+
+    if( !pSettings ) { return BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR ); }
+
+    rc = BHSM_BspMsg_Create( hHsm, &hMsg );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+
+    keySize = ( pSettings->keySize == BHSM_RsaKeySize_e1024 ) ? 128 : 256;
+
+    /*Load Modulus */
+    pData = pSettings->rsaData;
+    BHSM_BspMsg_GetDefaultHeader( &header );
+    BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eUSER_RSA, &header );
+    BHSM_BspMsg_Pack8( hMsg, BCMD_User_RSA_InCmdField_eRSASize, pSettings->keySize );
+    BHSM_BspMsg_Pack8( hMsg, BCMD_User_RSA_InCmdField_esubCmdId, BCMD_User_RSA_SubCommand_eLoadModulus );
+    BHSM_BspMsg_PackArray( hMsg, BCMD_User_RSA_InCmdField_eRSAKeyData, pData, keySize );
+
+    rc = BHSM_BspMsg_SubmitCommand( hMsg );
+    if( rc != BERR_SUCCESS ) { rc = BERR_TRACE( BHSM_STATUS_BSP_ERROR ); goto exit; }
+
+    BHSM_BspMsg_Get8( hMsg, BCMD_CommonBufferFields_eStatus, &status );
+
+    /*Load Exponent */
+    pData += keySize;
+    BHSM_BspMsg_GetDefaultHeader( &header );
+    BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eUSER_RSA, &header );
+    BHSM_BspMsg_Pack8( hMsg, BCMD_User_RSA_InCmdField_eRSASize, pSettings->keySize );
+    BHSM_BspMsg_Pack8( hMsg, BCMD_User_RSA_InCmdField_esubCmdId, BCMD_User_RSA_SubCommand_eLoadExponent );
+    BHSM_BspMsg_PackArray( hMsg, BCMD_User_RSA_InCmdField_eRSAKeyData, pData, keySize );
+
+    rc = BHSM_BspMsg_SubmitCommand( hMsg ); /*  send the command to the BSP. */
+    if( rc != BERR_SUCCESS ) { rc = BERR_TRACE( BHSM_STATUS_BSP_ERROR ); goto exit; }
+
+    BHSM_BspMsg_Get8( hMsg, BCMD_CommonBufferFields_eStatus, &status );
+
+    /*Load Base and Start Up */
+    pData += keySize;
+    BHSM_BspMsg_GetDefaultHeader( &header );
+    BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eUSER_RSA, &header );
+    counterMeasure = pSettings->counterMeasure ? 1 : 0;
+    BHSM_BspMsg_Pack8( hMsg, BCMD_User_RSA_InCmdField_eCountermeasure, counterMeasure );
+    BHSM_BspMsg_Pack8( hMsg, BCMD_User_RSA_InCmdField_eRSASize, pSettings->keySize );
+    BHSM_BspMsg_Pack8( hMsg, BCMD_User_RSA_InCmdField_esubCmdId, BCMD_User_RSA_SubCommand_eLoadBaseStartOp );
+    BHSM_BspMsg_PackArray( hMsg, BCMD_User_RSA_InCmdField_eRSAKeyData, pData, keySize );
+
+    rc = BHSM_BspMsg_SubmitCommand( hMsg );
+    if( rc != BERR_SUCCESS ) { rc = BERR_TRACE( BHSM_STATUS_BSP_ERROR ); goto exit; }
+
+    BHSM_BspMsg_Get8( hMsg, BCMD_CommonBufferFields_eStatus, &status );
+
+    /* status here has to be 0xA4 - PKE in Progress */
+    if( status != BSP_PKE_IN_PROGRESS ) {
+        rc = BERR_TRACE( BHSM_STATUS_FAILED );
+        BDBG_ERR( ( "eUSER_RSA BSP ERROR status[%X] ", status ) );
+        goto exit;
+    }
+
+  exit:
+
+    if ( hMsg) { ( void ) BHSM_BspMsg_Destroy( hMsg ); }
 
     BDBG_LEAVE( BHSM_Rsa_Exponentiate );
     return rc;
 }
 
-
-
-void BHSM_Rsa_GetDefaultResult( BHSM_RsaExponentiateResult *pResult )
+BERR_Code BHSM_Rsa_GetResult(
+    BHSM_RsaHandle handle,
+    BHSM_RsaExponentiateResult * pResult )
 {
-    BDBG_ENTER( BHSM_Rsa_GetDefaultResult );
-    BSTD_UNUSED( pResult );
-
-    BDBG_LEAVE( BHSM_Rsa_GetDefaultResult );
-    return;
-}
-
-
-
-BERR_Code BHSM_Rsa_GetResult( BHSM_RsaHandle handle, BHSM_RsaExponentiateResult *pResult )
-{
-    BERR_Code rc = BERR_SUCCESS;
+    unsigned      timeout = BHSM_POLLING_TIMES;
+    BHSM_Handle   hHsm;
+    BERR_Code     rc = BERR_SUCCESS;
+    BHSM_BspMsg_h hMsg = NULL;
+    BHSM_BspMsgHeader_t header;
+    uint8_t       status = 0;
+    uint16_t      outputLength = 0;
 
     BDBG_ENTER( BHSM_Rsa_GetResult );
-    BSTD_UNUSED( handle );
-    BSTD_UNUSED( pResult );
+    hHsm = handle->hHsm;
+    rc = BHSM_BspMsg_Create( hHsm, &hMsg );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+
+    BHSM_BspMsg_GetDefaultHeader( &header );
+
+    /* Poll for command completion.
+     * Poll max for 10 seconds the RSA command completion. */
+    do {
+        BKNI_Sleep( BHSM_POLLING_INTERVAL );
+
+        BHSM_BspMsg_Header( hMsg, BCMD_cmdType_ePKE_Cmd_Poll_Status, &header ); /* reuse message instance */
+        BHSM_BspMsg_Pack8( hMsg, BCMD_User_RSA_InCmdField_esubCmdId, BCMD_PollingCommand_PollingTarget_eUserRSA );
+
+        rc = BHSM_BspMsg_SubmitCommand( hMsg );
+        if( rc != BERR_SUCCESS ) {
+            rc = BERR_TRACE( rc );
+            goto exit;
+        }
+
+        BHSM_BspMsg_Get8( hMsg, BCMD_CommonBufferFields_eStatus, &status );
+    } while( --timeout && ( status == BSP_PKE_IN_PROGRESS ) );
+
+    if( !timeout ) {
+        rc = BERR_TRACE( BHSM_STATUS_TIME_OUT );
+        goto exit;
+    }
+
+    if( status ) {
+        BDBG_ERR( ( "PKE_Cmd_Poll_Status BSP ERROR status[%X] ", status ) );
+        rc = BERR_TRACE( BHSM_STATUS_FAILED );
+        goto exit;
+    }
+
+    /* Read the data from the output buffer. */
+    BHSM_BspMsg_Get16( hMsg, BCMD_User_RSA_OutCmdField_eOutputDataSize, &outputLength );
+
+    if( outputLength > 0 && outputLength <= BHSM_RSA_OUTPUT_SIZE_MAX ) {
+        BHSM_BspMsg_GetArray( hMsg, BCMD_User_RSA_OutCmdField_eOutputData, pResult->data, ( unsigned ) outputLength );
+        pResult->dataLength = outputLength;
+    }
+
+  exit:
+
+    if( hMsg ) { ( void ) BHSM_BspMsg_Destroy( hMsg ); }
 
     BDBG_LEAVE( BHSM_Rsa_GetResult );
     return rc;

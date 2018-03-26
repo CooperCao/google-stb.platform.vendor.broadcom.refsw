@@ -90,6 +90,7 @@
 #include "nexus_rf_audio_encoder.h"
 #include "nexus_spdif_input.h"
 #include "nexus_audio_dsp.h"
+#include "nexus_audio_dsp_private.h"
 #if NEXUS_CVOICE
 #include "nexus_custom_voice.h"
 #endif
@@ -210,6 +211,7 @@ typedef struct NEXUS_AudioDecoder
     BAPE_DecoderStartSettings apeStartSettings;
     void* sageAudioHandle;
     bool sageAudioCapable;
+    bool forceSarmRaveConfiguration;
     bool sageAudioEnabled;
     #if NEXUS_HAS_SAGE
     NEXUS_SageAudioStartSettings sageAudioSettings;
@@ -1087,6 +1089,8 @@ Summary:
                                              ((typ)==NEXUS_AudioInputType_eAnalogDecoder)?NEXUS_ADC_DECODER_INDEX_BASE+(idx):\
                                              ((typ)==NEXUS_AudioInputType_eRfDecoder)?NEXUS_RF_DECODER_INDEX_BASE+(idx):\
                                              (BDBG_ASSERT(0),0))
+
+#define NEXUS_AUDIO_DECODER_P_MAX_DSOLA_RATE  (2 * NEXUS_NORMAL_DECODE_RATE) /* 2x */
 
 /***************************************************************************
 Summary:

@@ -362,6 +362,12 @@ BREG_Handle hRegister, SplashBufInfo *pSplashBufInfo, SplashData* pSplashData)
 			*(pSplashData->pAulReg + 2*ii+1));
     }
 
+#if CFG_SPLASH
+	/* This is the I2C write to reset the scrambling setting
+	 * of the HDMI reciever. */
+	reset_HDMI_receiver_scrambling(pSplashData->uiHdmiChnNum);
+#endif
+
 	/* write our surface addr into RDC scratch registers,
 	 * note that the RUL has been built to pick them up for gfx display */
 	for (ii=0; ii<pSplashData->iNumDisplay; ii++)

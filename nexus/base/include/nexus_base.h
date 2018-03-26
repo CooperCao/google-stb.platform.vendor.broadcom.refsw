@@ -497,7 +497,7 @@ NEXUS_MODULE_SELF must be defined to be a reference to the NEXUS_ModuleHandle fo
 See Also:
 NEXUS_IsrCallback_Set
 **/
-#define NEXUS_IsrCallback_Fire_isr(callback) NEXUS_Module_IsrCallback_Fire_isr(NEXUS_MODULE_SELF, (callback))
+#define NEXUS_IsrCallback_Fire_isr(callback) NEXUS_Module_IsrCallback_Fire_isr(NEXUS_MODULE_SELF, (callback), BDBG_STRING(#callback))
 
 /**
 Summary:
@@ -559,7 +559,8 @@ NEXUS_IsrCallback_Fire_isr
 **/
 void NEXUS_Module_IsrCallback_Fire_isr(
     NEXUS_ModuleHandle module,
-    NEXUS_IsrCallbackHandle callback /* preallocated IsrCallback */
+    NEXUS_IsrCallbackHandle callback, /* preallocated IsrCallback */
+    const char *debug
     );
 
 
@@ -628,7 +629,7 @@ NEXUS_MODULE_SELF must be defined to be a reference to the NEXUS_ModuleHandle fo
 See Also:
 NEXUS_TaskCallback_Set
 **/
-#define NEXUS_TaskCallback_Fire(callback) NEXUS_Module_TaskCallback_Fire(NEXUS_MODULE_SELF, (callback))
+#define NEXUS_TaskCallback_Fire(callback) NEXUS_Module_TaskCallback_Fire(NEXUS_MODULE_SELF, (callback), BDBG_STRING(#callback))
 
 /**
 Summary:
@@ -691,7 +692,8 @@ NEXUS_TaskCallback_Fire
 **/
 void NEXUS_Module_TaskCallback_Fire(
         NEXUS_ModuleHandle module,
-        NEXUS_TaskCallbackHandle callback
+        NEXUS_TaskCallbackHandle callback,
+        const char *debug
         );
 
 

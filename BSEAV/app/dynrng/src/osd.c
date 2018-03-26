@@ -249,7 +249,7 @@ BWT_PanelHandle osd_p_create_video_panel(OsdHandle osd, const BWT_Dimensions * m
     video = BWT_Panel_Create(osd->bwt, &panelSettings);
     assert(video);
 
-    for(i = 0; i < platform_graphics_get_max_mosaic_count(osd->createSettings.gfx); i++) {
+    for(i = 0; i < platform_get_max_stream_count(osd->createSettings.platform); i++) {
         osd->window[i] = osd_p_create_window(osd, &panelSettings.dims, i);
         assert(osd->window[i]);
     }
@@ -312,7 +312,7 @@ OsdHandle osd_create(const OsdCreateSettings * pSettings)
 
     platform_get_default_model(&osd->model);
 
-    osd->mosaicCount = platform_graphics_get_max_mosaic_count(pSettings->gfx);
+    osd->maxStreamCount = platform_get_max_stream_count(pSettings->platform);
 
     osd->main = osd_p_create_main_panel(osd);
     if (!osd->main) goto error;
@@ -332,7 +332,7 @@ OsdHandle osd_create(const OsdCreateSettings * pSettings)
 
     osd->info.base = osd_p_create_info_panel(osd, &osd->info, textHeight, 1);
     if (!osd->info.base) goto error;
-    osd->mosaicInfo.base = osd_p_create_info_panel(osd, &osd->mosaicInfo, textHeight, osd->mosaicCount);
+    osd->mosaicInfo.base = osd_p_create_info_panel(osd, &osd->mosaicInfo, textHeight, osd->maxStreamCount);
     if (!osd->mosaicInfo.base) goto error;
     osd->pipInfo.base = osd_p_create_info_panel(osd, &osd->pipInfo, textHeight, 2);
     if (!osd->pipInfo.base) goto error;
@@ -341,7 +341,7 @@ OsdHandle osd_create(const OsdCreateSettings * pSettings)
 
     osd->usageMode = PlatformUsageMode_eMax;
 
-    osd->renderer = platform_scheduler_add_listener(platform_get_scheduler(osd->createSettings.platform), &osd_p_scheduler_callback, osd);
+    osd->renderer = platform_scheduler_add_listener(platform_get_scheduler(osd->createSettings.platform, PLATFORM_SCHEDULER_GFX), &osd_p_scheduler_callback, osd);
     if (!osd->renderer)
     {
         printf("OSD unavailable\n");
@@ -361,7 +361,7 @@ void osd_destroy(OsdHandle osd)
     pthread_mutex_lock(&osd->lock);
     if (osd->renderer)
     {
-        platform_scheduler_remove_listener(platform_get_scheduler(osd->createSettings.platform), osd->renderer);
+        platform_scheduler_remove_listener(platform_get_scheduler(osd->createSettings.platform, PLATFORM_SCHEDULER_GFX), osd->renderer);
     }
     BWT_Panel_Destroy(osd->main); /* will destroy all children of main */
     BWT_Toolkit_Destroy(osd->bwt);
@@ -373,7 +373,7 @@ void osd_destroy(OsdHandle osd)
 void osd_flip(OsdHandle osd)
 {
     assert(osd);
-    platform_scheduler_wake(platform_get_scheduler(osd->createSettings.platform));
+    platform_scheduler_wake(platform_get_scheduler(osd->createSettings.platform, PLATFORM_SCHEDULER_GFX));
 }
 
 void osd_p_scheduler_callback(void * pContext, int param)
@@ -382,8 +382,11 @@ void osd_p_scheduler_callback(void * pContext, int param)
     assert(osd);
     (void)param;
     pthread_mutex_lock(&osd->lock);
-    BWT_Widget_Render((BWT_WidgetHandle)osd->main);
-    BWT_Toolkit_Submit(osd->bwt);
+    if (BWT_Toolkit_Recycle(osd->bwt))
+    {
+        BWT_Widget_Render((BWT_WidgetHandle)osd->main);
+        BWT_Toolkit_Submit(osd->bwt);
+    }
     pthread_mutex_unlock(&osd->lock);
 }
 
@@ -504,8 +507,8 @@ void osd_set_usage_mode(OsdHandle osd, PlatformUsageMode usageMode, unsigned lay
     BWT_VerticalAlignment vAlign = BWT_VerticalAlignment_eTop;
     BWT_HorizontalAlignment hAlign = BWT_HorizontalAlignment_eLeft;
     unsigned i;
-    unsigned pip = platform_graphics_get_pip_window_id(osd->createSettings.gfx);
-    unsigned full = platform_graphics_get_main_window_id(osd->createSettings.gfx);
+    unsigned pip = platform_get_pip_stream_id(osd->createSettings.platform);
+    unsigned full = platform_get_main_stream_id(osd->createSettings.platform);
     unsigned pig = full;
 
     printf("osd: old usage: %s; new usage: %s\n", usageModeStrings[osd->usageMode], usageModeStrings[usageMode]);
@@ -526,7 +529,7 @@ void osd_set_usage_mode(OsdHandle osd, PlatformUsageMode usageMode, unsigned lay
             if (osd->layout == 1) printf("osd: hiding background\n");
             if (osd->layout == 1 && osd->background) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->background, false);
             printf("osd: removing mosaic windows\n");
-            for (i=0; i<osd->mosaicCount; i++) {
+            for (i=0; i<osd->maxStreamCount; i++) {
                 if (osd->window[i]) BWT_Panel_RemoveChild(osd->video, (BWT_WidgetHandle)osd->window[i]);
             }
             break;
@@ -566,15 +569,15 @@ void osd_set_usage_mode(OsdHandle osd, PlatformUsageMode usageMode, unsigned lay
         case PlatformUsageMode_eMosaic:
             if (layout == 1) printf("osd: showing background\n");
             if (osd->background) BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->background, layout==0?false:true);
-            printf("osd: adding %d mosaic windows in layout %u\n", osd->mosaicCount, layout);
+            printf("osd: adding %d mosaic windows in layout %u\n", osd->maxStreamCount, layout);
             if (layout == 1) {
                 unsigned smallItemScale = 33;
-                if (osd->mosaicCount > 2)
+                if (osd->maxStreamCount > 2)
                 {
-                    smallItemScale = 100 / (osd->mosaicCount - 1);
+                    smallItemScale = 100 / (osd->maxStreamCount - 1);
                 }
-                printf("osd: rendering 1@50%% + %d@%d%% mosaic windows\n", osd->mosaicCount - 1, smallItemScale);
-                for (i = 0; i < osd->mosaicCount; i++) {
+                printf("osd: rendering 1@50%% + %d@%d%% mosaic windows\n", osd->maxStreamCount - 1, smallItemScale);
+                for (i = 0; i < osd->maxStreamCount; i++) {
                     BWT_VideoWindow_SetScale(osd->window[i], i == 0 ? 50 : smallItemScale);
                     vAlign = i==0?BWT_VerticalAlignment_eTop:BWT_VerticalAlignment_eBottom;
                     hAlign = i==0?BWT_VerticalAlignment_eCenter:BWT_HorizontalAlignment_eLeft;
@@ -586,18 +589,18 @@ void osd_set_usage_mode(OsdHandle osd, PlatformUsageMode usageMode, unsigned lay
                 unsigned rows;
                 unsigned row;
 
-                get_mosaic_dims(osd->mosaicCount, &rows, &windows_per_row);
+                get_mosaic_dims(osd->maxStreamCount, &rows, &windows_per_row);
                 if (!windows_per_row || !rows) {
                     printf("osd: error computing mosaic windows per row; usage incomplete\n");
                     break;
                 }
                 printf("osd: rendering %dx%d mosaic windows\n", rows, windows_per_row);
 
-                if (osd->mosaicCount < 2) scale = 50;
+                if (osd->maxStreamCount < 2) scale = 50;
                 else scale = 100 / rows;
 
                 row = 0;
-                for (i = 0; i < osd->mosaicCount; i++) {
+                for (i = 0; i < osd->maxStreamCount; i++) {
                     BWT_VideoWindow_SetScale(osd->window[i], scale);
                     BWT_Panel_AddChild(osd->video, (BWT_WidgetHandle)osd->window[i], quantize_row(row, rows), hAlign);
                     if ((i + 1) % windows_per_row == 0) row++;

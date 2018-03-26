@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -166,13 +166,13 @@ eRet CPanelTuner::initialize(
         /* expand button */
         _pExpand = new CWidgetButton("CPanelTuner::_pExpand", getEngine(), this, MRect(0, 0, 0, 0), font10);
         CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _pExpand, ret, eRet_OutOfMemory, error);
-        _pExpand->setText(">>");
+        _pExpand->loadImage(_bExpandPanel ? "images/collapse-left.png" : "images/expand-right.png");
         _pTunerMenu->addExpandButton(_pExpand);
 
         /* back button */
         _pBack = new CWidgetButton("CPanelTuner::_pBack", getEngine(), this, MRect(0, 0, 0, 0), font10);
         CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _pBack, ret, eRet_OutOfMemory, error);
-        _pBack->setText("Menu");
+        _pBack->loadImage("images/back-sm.png");
         _pTunerMenu->addBackButton(_pBack);
 
         _pBack->setFocus();
@@ -273,7 +273,7 @@ void CPanelTuner::onClick(bwidget_t widget)
     if (_pExpand == pWidget)
     {
         _bExpandPanel = _bExpandPanel ? false : true;
-        _pExpand->setText(_bExpandPanel ? "<<" : ">>");
+        _pExpand->loadImage(_bExpandPanel ? "images/collapse-left.png" : "images/expand-right.png");
         layout();
         startUpdateTimers();
     }

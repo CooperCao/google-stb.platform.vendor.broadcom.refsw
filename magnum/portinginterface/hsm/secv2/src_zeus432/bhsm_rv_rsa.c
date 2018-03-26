@@ -88,7 +88,7 @@ typedef struct BHSM_RvRsaModule
 
 }BHSM_RvRsaModule;
 
-static BHSM_Handle _GetHsmHandle( BHSM_RvRsaHandle handle );
+static BHSM_Handle _RvRsa_GetHsmHandle( BHSM_RvRsaHandle handle );
 static BERR_Code _BspVerifySecondTierKey ( BHSM_Handle hHsm, BHSM_P_RsaKeyConfig *pConfig );
 static BERR_Code _BspInvalidateSecondTierKey ( BHSM_Handle hHsm, BHSM_P_RsaKeyInvalidate *pConfig );
 static BCMD_SecondTierKeyId_e _BspRsaKeyId( unsigned rsaKeyId );
@@ -205,7 +205,7 @@ void BHSM_RvRsa_Free( BHSM_RvRsaHandle handle )
         BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );
         bspConfig.bspRsaKeyId = _BspRsaKeyId( pRvRsa->rsaKeyId );
 
-        rc = _BspInvalidateSecondTierKey( _GetHsmHandle(handle) , &bspConfig );
+        rc = _BspInvalidateSecondTierKey( _RvRsa_GetHsmHandle(handle) , &bspConfig );
         if( rc != BERR_SUCCESS ) { BERR_TRACE( BERR_NOT_AVAILABLE ); /* continue! */ }
 
         BKNI_Memset( pRvRsa, 0, sizeof(*pRvRsa) );
@@ -236,15 +236,15 @@ BERR_Code BHSM_RvRsa_SetSettings( BHSM_RvRsaHandle handle, const BHSM_RvRsaSetti
     else {
 
         switch( pSettings->rootKey ) {
-            case BHSM_RvRsaRootKey_e0Prime:{ bspRsaSet.firstTierKeyType = BCMD_FirstTierKeyId_eKey0Prime; break; }
-            case BHSM_RvRsaRootKey_e0:     { bspRsaSet.firstTierKeyType = BCMD_FirstTierKeyId_eKey0;      break; }
+            case BHSM_SigningAuthority_eBroadcom: { bspRsaSet.firstTierKeyType = BCMD_FirstTierKeyId_eKey0Prime; break; }
+            case BHSM_SigningAuthority_eCaVendor: { bspRsaSet.firstTierKeyType = BCMD_FirstTierKeyId_eKey0;      break; }
             default: { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
         }
     }
     bspRsaSet.keyOffset = (uint32_t)pSettings->keyOffset;
     bspRsaSet.resetChipOnFail = false;
 
-    rc = _BspVerifySecondTierKey( _GetHsmHandle(handle), &bspRsaSet );
+    rc = _BspVerifySecondTierKey( _RvRsa_GetHsmHandle(handle), &bspRsaSet );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
 
     BDBG_LEAVE( BHSM_RvRsa_SetSettings );
@@ -355,7 +355,7 @@ exit:
     return rc;
 }
 
-static BHSM_Handle _GetHsmHandle( BHSM_RvRsaHandle handle )
+static BHSM_Handle _RvRsa_GetHsmHandle( BHSM_RvRsaHandle handle )
 {
     return handle->hHsm;
 }

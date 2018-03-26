@@ -10302,6 +10302,7 @@ typedef struct wlc_dwds_config {
 	uint32		enable;
 	uint32		mode; /**< STA/AP interface */
 	struct ether_addr ea;
+	int32 bssidx;
 } wlc_dwds_config_t;
 
 typedef struct wl_el_set_params_s {
@@ -11474,6 +11475,7 @@ typedef enum wl_interface_type {
 	WL_INTERFACE_TYPE_P2P_GC = 5,
 	WL_INTERFACE_TYPE_P2P_DISC = 6,
 	WL_INTERFACE_TYPE_IBSS = 7,
+	WL_INTERFACE_TYPE_WDS = 8,
 	WL_INTERFACE_TYPE_MAX
 } wl_interface_type_t;
 

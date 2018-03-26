@@ -748,7 +748,7 @@ NEXUS_Error NEXUS_FrontendDevice_Recalibrate(
 
 /**
 Summary:
-Get all the frontend capabilites for the indexed tuner. Asingle tuner can have multiple demod capabilities or could just be used as only a tuner in case of ifdac.
+Get all the frontend capabilities for the indexed tuner. A single tuner can have multiple demod capabilities or could just be used as only a tuner in case of ifdac.
 **/
 void NEXUS_FrontendDevice_GetTunerCapabilities(
     NEXUS_FrontendDeviceHandle handle,

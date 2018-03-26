@@ -115,8 +115,10 @@ int main(int argc, const char *argv[]) {
 #include "namevalue.inc"
 
 BDBG_MODULE(transcode_x);
-BDBG_FILE_MODULE(trnsx_cmds);
-BDBG_FILE_MODULE(contcounter);
+BDBG_FILE_MODULE(trnsx_input);
+BDBG_FILE_MODULE(trnsx_dbg);
+BDBG_FILE_MODULE(trnsx_echo);
+BDBG_FILE_MODULE(trnsx_parse);
 
 #include "media_probe.c"
 
@@ -134,8 +136,7 @@ BDBG_FILE_MODULE(contcounter);
 #endif
 
 /***********************************
- *   PID assignments
- * TODO: this was lifted for stream mux, should these be exposed to the user?
+ *  Default stream mux PID assignments
  */
 #define BTST_MUX_PCR_PID        (0x11)
 #define BTST_MUX_VIDEO_PID      (0x12)
@@ -175,7 +176,7 @@ BDBG_FILE_MODULE(contcounter);
 
 
 /* TODO: this should be based on the system capabilities*/
-#define TRNSX_NUM_ENCODES 4
+#define TRNSX_MAX_SESSIONS 6
 
 typedef enum TRNSX_Source
 {
@@ -195,8 +196,7 @@ static const namevalue_t g_sourceStrs[] = {
 
 typedef enum TRNSX_State
 {
-    TRNSX_State_eUninit=0,
-    TRNSX_State_eClosed,
+    TRNSX_State_eClosed=0,
     TRNSX_State_eOpened,
     TRNSX_State_eRunning,
     TRNSX_State_ePaused,
@@ -206,7 +206,6 @@ typedef enum TRNSX_State
 } TRNSX_State;
 
 static const namevalue_t g_stateStrs[] = {
-    {"uninit", TRNSX_State_eUninit},
     {"closed", TRNSX_State_eClosed},
     {"opened", TRNSX_State_eOpened},
     {"running", TRNSX_State_eRunning},
@@ -319,17 +318,39 @@ static const namevalue_t g_streamMuxInterleaveModeStrs[] = {
     {NULL, 0}
 };
 
+/*
+ * Utils for processing tables.
+ */
+
+unsigned TRNSX_Lookup(const namevalue_t *table, const char *name)
+{
+    unsigned i;
+    for (i=0;table[i].name;i++) {
+        if (!strcasecmp(table[i].name, name)) {
+            return table[i].value;
+        }
+    }
+    return 0;
+}
+
+
+
 #define TRNSX_SIZE_CMD 256
 #define TRNSX_NUM_CMDS 256
+#define TRNSX_MAX_VALUES 16
 
 typedef struct TRSNX_Command
 {
     char    szKey[TRNSX_SIZE_CMD];
 
-    bool    bValid; /* The following contain data. */
+    unsigned    uiNumValues;
 
-   char     szValue[TRNSX_SIZE_CMD];
-   int32_t  iValue;
+    struct
+    {
+        char     szValue[TRNSX_SIZE_CMD];
+        unsigned uiValue;
+
+   } data[TRNSX_MAX_VALUES];
 
 } TRSNX_Command;
 
@@ -339,21 +360,21 @@ typedef struct TRSNX_Command
 #define TRNSX_ELSE_IF_SIZE_T( _pcmd, _szkey, _element )                                     \
     else if (!strcmp(_pcmd->szKey, _szkey ))                                      \
     {                                                                           \
-        if ( _pcmd->bValid ) _element = _pcmd->iValue;                              \
+        if ( _pcmd->uiNumValues ) _element = _pcmd->data[0].uiValue;                              \
         else BKNI_Printf("  current value for %s: %lu\n", _pcmd->szKey, (unsigned long) _element );  \
     }
 
 #define TRNSX_ELSE_IF( _pcmd, _szkey, _element )                                     \
     else if (!strcmp(_pcmd->szKey, _szkey ))                                      \
     {                                                                           \
-        if ( _pcmd->bValid ) _element = _pcmd->iValue;                              \
+        if ( _pcmd->uiNumValues ) _element = _pcmd->data[0].uiValue;                              \
         else BKNI_Printf("  current value for %s: %u\n", _pcmd->szKey, _element );  \
     }
 
 #define TRNSX_ELSE_IF_LOOKUP( _pcmd, _szkey, _element, _list )                      \
     else if (!strcmp(_pcmd->szKey, _szkey ))                                        \
     {                                                                               \
-        if ( _pcmd->bValid ) _element = lookup(_list,_pcmd->szValue);             \
+        if ( _pcmd->uiNumValues ) _element = lookup(_list,_pcmd->data[0].szValue);             \
         else BKNI_Printf("  current value for %s: %d\n", _pcmd->szKey, _element );  \
     }
 
@@ -364,8 +385,9 @@ typedef struct TRSNX_Command
         _bRet = false;                                                                                                                  \
     }                                                                                                                                   \
 
+#define TRNSX_DEFAULT_PARAM_MSG( _bprint ) \
+    if ( _bprint )  BKNI_Printf("  using default values\n");
 
-#define PARAM_MSG BKNI_Printf("using defaults, eventually will add support for setting parameters.\n")
 
 #if 0
 #if  BTST_SUPPORT_FRONTEND
@@ -390,131 +412,131 @@ static void lock_callback(void *context, int param)
 /* Specifies the active command. */
 typedef enum TRNSX_Cmd {
     TRNSX_Cmd_eNone=0,
-    TRNSX_Cmd_eVideoEncoderSetSettings,
+    /* video encoder */
     TRNSX_Cmd_eVideoEncoderOpen,
     TRNSX_Cmd_eVideoEncoderClose,
     TRNSX_Cmd_eVideoEncoderStart,
     TRNSX_Cmd_eVideoEncoderStop,
+    TRNSX_Cmd_eVideoEncoderSetSettings,
     TRNSX_Cmd_eVideoEncoderStatus,
+    /* display */
     TRNSX_Cmd_eDisplayOpen,
     TRNSX_Cmd_eDisplayClose,
     TRNSX_Cmd_eDisplayCustomFormatSettings,
-    TRNSX_Cmd_ePlaybackSetSettings,
+    /* playback */
     TRNSX_Cmd_ePlaybackOpen,
     TRNSX_Cmd_ePlaybackClose,
     TRNSX_Cmd_ePlaybackStart,
     TRNSX_Cmd_ePlaybackStop,
+    TRNSX_Cmd_ePlaybackSetSettings,
+    /* video decoder */
     TRNSX_Cmd_eVideoDecoderOpen,
     TRNSX_Cmd_eVideoDecoderClose,
-    TRNSX_Cmd_eVideoDecoderSetSettings,
     TRNSX_Cmd_eVideoDecoderStart,
     TRNSX_Cmd_eVideoDecoderStop,
+    TRNSX_Cmd_eVideoDecoderSetSettings,
     TRNSX_Cmd_eVideoDecoderStatus,
-    TRNSX_Cmd_ePlaypumpSetSettings,
+    /* playpump */
     TRNSX_Cmd_ePlaypumpOpen,
-    TRNSX_Cmd_eRecordSettings,
+    TRNSX_Cmd_ePlaypumpSetSettings,
+    /* record */
     TRNSX_Cmd_eRecordStart,
     TRNSX_Cmd_eRecordStop,
     TRNSX_Cmd_eRecordPause,
     TRNSX_Cmd_eRecordResume,
+    TRNSX_Cmd_eRecordSettings,
+    /* mux */
     TRNSX_Cmd_eMuxOpen,
     TRNSX_Cmd_eMuxClose,
     TRNSX_Cmd_eMuxStart,
     TRNSX_Cmd_eMuxStop,
+    /* miscellaneous*/
     TRNSX_Cmd_eSession,
+    TRNSX_Cmd_eSelect,
     TRNSX_Cmd_eTranscode,
     TRNSX_Cmd_eSleep,
     TRNSX_Cmd_eMax
 } TRNSX_Cmd;
 
-static const namevalue_t g_cmdStrs[] = {
+static const namevalue_t g_cmdFullnameStrs[] = {
     {"",                        TRNSX_Cmd_eNone},
-    {"video_encoder_set_settings", TRNSX_Cmd_eVideoEncoderSetSettings},
     {"video_encoder_open",      TRNSX_Cmd_eVideoEncoderOpen},
     {"video_encoder_close",     TRNSX_Cmd_eVideoEncoderClose},
     {"video_encoder_start",     TRNSX_Cmd_eVideoEncoderStart},
     {"video_encoder_stop",      TRNSX_Cmd_eVideoEncoderStop},
+    {"video_encoder_set_settings", TRNSX_Cmd_eVideoEncoderSetSettings},
     {"video_encoder_status",    TRNSX_Cmd_eVideoEncoderStatus},
     {"display_open",            TRNSX_Cmd_eDisplayOpen},
     {"display_close",           TRNSX_Cmd_eDisplayClose},
     {"display_custom_format",   TRNSX_Cmd_eDisplayCustomFormatSettings},
-    {"playback_set_settings",   TRNSX_Cmd_ePlaybackSetSettings},
     {"playback_open",           TRNSX_Cmd_ePlaybackOpen},
     {"playback_close",          TRNSX_Cmd_ePlaybackClose},
     {"playback_start",          TRNSX_Cmd_ePlaybackStart},
     {"playback_stop",           TRNSX_Cmd_ePlaybackStop},
+    {"playback_set_settings",   TRNSX_Cmd_ePlaybackSetSettings},
     {"video_decoder_open",      TRNSX_Cmd_eVideoDecoderOpen},
     {"video_decoder_close",     TRNSX_Cmd_eVideoDecoderClose},
-    {"video_decoder_set_settings", TRNSX_Cmd_eVideoDecoderSetSettings},
     {"video_decoder_start",     TRNSX_Cmd_eVideoDecoderStart},
     {"video_decoder_stop",      TRNSX_Cmd_eVideoDecoderStop},
+    {"video_decoder_set_settings", TRNSX_Cmd_eVideoDecoderSetSettings},
     {"video_decoder_status",    TRNSX_Cmd_eVideoDecoderStatus},
+    {"playpump_open",           TRNSX_Cmd_ePlaypumpOpen},
     {"playpump_set_settings",   TRNSX_Cmd_ePlaypumpSetSettings},
-    {"playpump_set_open",       TRNSX_Cmd_ePlaypumpOpen},
-    {"record_settings",         TRNSX_Cmd_eRecordSettings},
     {"record_start",            TRNSX_Cmd_eRecordStart},
     {"record_stop",             TRNSX_Cmd_eRecordStop},
     {"record_pause",            TRNSX_Cmd_eRecordPause},
     {"record_resume",           TRNSX_Cmd_eRecordResume},
+    {"record_settings",         TRNSX_Cmd_eRecordSettings},
     {"mux_open",                TRNSX_Cmd_eMuxOpen},
     {"mux_close",               TRNSX_Cmd_eMuxClose},
     {"mux_start",               TRNSX_Cmd_eMuxStart},
     {"mux_stop",                TRNSX_Cmd_eMuxStop},
     {"session",                 TRNSX_Cmd_eSession},
+    {"select",                  TRNSX_Cmd_eSelect},
     {"transcode",               TRNSX_Cmd_eTranscode},
     {"sleep",                   TRNSX_Cmd_eSleep},
     {NULL, 0}
 };
 
-#if 0
-/* Prefix for the command prompt, reminds the user which command is active. */
-static const namevalue_t g_promptPrefixStrs[] = {
-    {"", TRNSX_Cmd_eNone},
-    /* encoder */
-    {"veSet", TRNSX_Cmd_eVideoEncoderSetSettings},
-    {"veOpen", TRNSX_Cmd_eVideoEncoderOpen},
-    {"veClose", TRNSX_Cmd_eVideoEncoderClose},
-    {"veStart", TRNSX_Cmd_eVideoEncoderStart},
-    {"veStop", TRNSX_Cmd_eVideoEncoderStop},
-    {"veStatus", TRNSX_Cmd_eVideoEncoderStatus },
-    /* display */
-    {"dpopen", TRNSX_Cmd_eDisplayOpen},
+static const namevalue_t g_cmdShortnameStrs[] = {
+    {"",        TRNSX_Cmd_eNone},
+    {"veopen",  TRNSX_Cmd_eVideoEncoderOpen},
+    {"veclose", TRNSX_Cmd_eVideoEncoderClose},
+    {"vestart", TRNSX_Cmd_eVideoEncoderStart},
+    {"vestop",  TRNSX_Cmd_eVideoEncoderStop},
+    {"vess",    TRNSX_Cmd_eVideoEncoderSetSettings},
+    {"vestatus",TRNSX_Cmd_eVideoEncoderStatus},
+    {"dpopen",  TRNSX_Cmd_eDisplayOpen},
     {"dpclose", TRNSX_Cmd_eDisplayClose},
-    {"dpcust", TRNSX_Cmd_eDisplayCustomFormatSettings},
-    /* playback */
-    {"pbSet", TRNSX_Cmd_ePlaybackSetSettings},
-    {"pbOpen", TRNSX_Cmd_ePlaybackOpen},
-    {"pbClose", TRNSX_Cmd_ePlaybackClose},
-    {"pbStart", TRNSX_Cmd_ePlaybackStart},
-    {"psStop", TRNSX_Cmd_ePlaybackStop},
-    /* video decoder */
-    {"vdSet", TRNSX_Cmd_eVideoDecoderSetSettings},
-    {"vdOpen", TRNSX_Cmd_eVideoDecoderOpen},
-    {"vdClose", TRNSX_Cmd_eVideoDecoderClose},
-    {"vdStart", TRNSX_Cmd_eVideoDecoderStart},
-    {"vdStop", TRNSX_Cmd_eVideoDecoderStop},
-    {"vdStatus", TRNSX_Cmd_eVideoDecoderStatus},
-    /* playpump */
-    {"ppSet", TRNSX_Cmd_ePlaypumpSetSettings},
-    {"ppOpen", TRNSX_Cmd_ePlaypumpOpen},
-    /* record */
-    {"recSet", TRNSX_Cmd_eRecordSettings},
-    {"recStart", TRNSX_Cmd_eRecordStart},
-    {"recStop", TRNSX_Cmd_eRecordStop},
-    {"recPause", TRNSX_Cmd_eRecordPause},
-    {"recResume", TRNSX_Cmd_eRecordResume},
-    /* mux */
-    {"muxOpen", TRNSX_Cmd_eMuxOpen},
-    {"muxClose", TRNSX_Cmd_eMuxClose},
-    {"muxStart", TRNSX_Cmd_eMuxStart},
-    {"muxStop", TRNSX_Cmd_eMuxStop},
-    /* assorted */
-    {"session", TRNSX_Cmd_eSession},
-    {"", TRNSX_Cmd_eTranscode},
-    {"sleep", TRNSX_Cmd_eSleep},
+    {"dpcust",  TRNSX_Cmd_eDisplayCustomFormatSettings},
+    {"pbopen",  TRNSX_Cmd_ePlaybackOpen},
+    {"pbclose", TRNSX_Cmd_ePlaybackClose},
+    {"pbstart", TRNSX_Cmd_ePlaybackStart},
+    {"pbstop",  TRNSX_Cmd_ePlaybackStop},
+    {"pbss",    TRNSX_Cmd_ePlaybackSetSettings},
+    {"vdopen",  TRNSX_Cmd_eVideoDecoderOpen},
+    {"vdclose", TRNSX_Cmd_eVideoDecoderClose},
+    {"vdstart", TRNSX_Cmd_eVideoDecoderStart},
+    {"vdstop",  TRNSX_Cmd_eVideoDecoderStop},
+    {"vdss",    TRNSX_Cmd_eVideoDecoderSetSettings},
+    {"vdstatus",TRNSX_Cmd_eVideoDecoderStatus},
+    {"ppopen",  TRNSX_Cmd_ePlaypumpOpen},
+    {"ppss",    TRNSX_Cmd_ePlaypumpSetSettings},
+    {"recstart",TRNSX_Cmd_eRecordStart},
+    {"recstop", TRNSX_Cmd_eRecordStop},
+    {"recpause",TRNSX_Cmd_eRecordPause},
+    {"recresume",TRNSX_Cmd_eRecordResume},
+    {"recss",   TRNSX_Cmd_eRecordSettings},
+    {"mxopen",  TRNSX_Cmd_eMuxOpen},
+    {"mxclose", TRNSX_Cmd_eMuxClose},
+    {"mxstart", TRNSX_Cmd_eMuxStart},
+    {"mxstop",  TRNSX_Cmd_eMuxStop},
+    {"",        TRNSX_Cmd_eSession},
+    {"",        TRNSX_Cmd_eSelect},
+    {"",        TRNSX_Cmd_eTranscode},
+    {"",        TRNSX_Cmd_eSleep},
     {NULL, 0}
 };
-#endif
 
 typedef struct psi_message_t {
     unsigned short pid;
@@ -522,6 +544,48 @@ typedef struct psi_message_t {
     NEXUS_PidChannelHandle pidChannel;
     bool done;
 } psi_message_t;
+
+#if xyz
+/* transcode_ts stream mux user data options.
+ * Which to add to transcod_x? */
+
+if(pTrans->source.eType != TRNSX_Source_eHDMI) {
+    pContext->bEncodeCCUserData = g_bEncodeCC;
+
+    if(pContext->inputSettings.streamMux.userData.enable) {
+        printf("\n PMT pid [0=auto detection]:                           ");
+        pTrans->source.uiPmtPid = getValue(input);
+        printf("\n Do you want all TS user data passed thru? [1=y/0=n]   ");
+        pTrans->streamMux.userData.bRemapPids = (0==getValue(input));
+
+        if( !pTrans->streamMux.userData.bRemapPids )
+        {
+            pTrans->streamMux.userData.numPids = BTST_TS_USER_DATA_ALL;
+        } else {
+            printf("\n How many user data PIDs are passed thru?   ");
+            pTrans->streamMux.userData.numPids = getValue(input);
+            pTrans->streamMux.userData.numPids = (pTrans->streamMux.userData.numPids > NEXUS_MAX_MUX_PIDS) ?
+                NEXUS_MAX_MUX_PIDS : pTrans->streamMux.userData.numPids;
+
+            printf("\n Please enter the input user data PIDs list: ");
+            for(choice=0; choice<(int)pTrans->streamMux.userData.numPids; choice++) {
+                pTrans->source.userData.pids[choice] = getValue(input);
+            }
+            printf("\n Remap the output TS user data PIDs? [1=y/0=n]  ");
+            pTrans->streamMux.userData.bRemapPids = getValue(input);
+
+            for(choice=0; choice<(int)pTrans->streamMux.userData.numPids; choice++) {
+                if(pTrans->streamMux.userData.bRemapPids) {
+                    pTrans->streamMux.userData.pids[choice] = pTrans->streamMux.userData.uiPid+choice;
+                } else {/* no change */
+                    pTrans->streamMux.userData.pids[choice] = pTrans->source.userData.pids[choice];
+                }
+            }
+        }
+    }
+
+#endif
+
 
 typedef struct TRNSX_Transcode
 {
@@ -532,10 +596,10 @@ typedef struct TRNSX_Transcode
     bool        bNonRealTime;
     bool        bEncodeCCData;
 
-    /* Input */
+    /*** Source ***/
     struct
     {
-        TRNSX_Source        eSourceType;
+        TRNSX_Source        eType;
 
         /* common parameters */
         NEXUS_VideoCodec    eVideoCodec;
@@ -548,6 +612,14 @@ typedef struct TRNSX_Transcode
 
         int                 iPcrPid;
         unsigned            uiNumPcr;
+        unsigned            uiPmtPid; /* pContext->inputSettings.pmtPid */
+
+        struct
+        {
+            unsigned            numPids;
+            unsigned            pids[NEXUS_MAX_MUX_PIDS];
+
+        } userData;
 
         bool                bUseStreamAsIndex;
 
@@ -563,9 +635,9 @@ typedef struct TRNSX_Transcode
         NEXUS_FrontendQamMode qamMode;
 #endif
 
-    } input;
+    } source;
 
-    /* Output */
+    /*** Output ***/
     struct
     {
         char    fname[TRNSX_SIZE_FILE_NAME];
@@ -592,7 +664,7 @@ typedef struct TRNSX_Transcode
 
     } record;
 
-    /* Video Decoder */
+    /*** Video Decoder ***/
     struct
     {
         TRNSX_State eState;
@@ -606,10 +678,11 @@ typedef struct TRNSX_Transcode
         NEXUS_VideoDecoderStartSettings startSettings;
     } videoDecoder;
 
-    /* Encoder */
+    /*** Encoder ***/
     struct
     {
         TRNSX_State eState;
+        bool        bEncoderWatchdogged; /* make a noun a verb */
 
         NEXUS_VideoWindowHandle         window;
         NEXUS_VideoEncoderHandle        videoEncoder;
@@ -628,7 +701,7 @@ typedef struct TRNSX_Transcode
 
     } videoEncoder;
 
-    /* File Mux */
+    /*** File Mux ***/
     struct
     {
         bool bSupported;
@@ -646,7 +719,7 @@ typedef struct TRNSX_Transcode
     } fileMux;
 
 
-    /* Stream Mux */
+    /*** Stream Mux ***/
     struct
     {
         bool bSupported;
@@ -661,12 +734,44 @@ typedef struct TRNSX_Transcode
 
         /* how to expose the following to the user?  Add a streammux command? */
         bool        bMCPB;
-        bool        bTsUserDataInput;
         unsigned    uiNumDescs;    /* Mux XPT pb descriptors (when MTU BPP is enabled, worst case < A2P * frameRate * 3) */
-        size_t      numUserDataPids;
+
         bool        bAudioInput;
 
+
 #if NEXUS_HAS_STREAM_MUX
+
+        unsigned    uiPcrPid;
+        unsigned    uiVideoPid;
+        unsigned    uiAudioPid;
+        unsigned    uiPmtPid;
+        unsigned    uiPatPid;
+
+        struct
+        {
+            /* can be set by the user */
+            bool        enable;         /* bTsUserDataInput/g_bTsUserData, Enabled TS layer user data transcode */
+            size_t      numPids;        /* pContext->inputSettings.numUserDataPids */
+            bool        bRemapPids;  /* pContext->bRemapUserDataPid */
+            unsigned    uiBasePid;      /* base PID for remapping. */
+
+            unsigned    uiPid;
+
+            struct
+            {
+                bool            bValid;
+                unsigned        pid;
+                TS_PMT_stream   stPMTStream;
+                int             iLengthDesc;
+                uint8_t         dataDescriptors[188];
+
+            } streams[NEXUS_MAX_MUX_PIDS];
+
+            psi_message_t   psi_message[BTST_MAX_MESSAGE_FILTERS];
+
+        } userData;
+
+
         bool bRemux; /* pContext->bRemux, how is this set?*/
 
         NEXUS_StreamMuxHandle   streamMux;
@@ -694,10 +799,6 @@ typedef struct TRNSX_Transcode
         /* For the output of MUX?  Should this be in the record structure? */
         NEXUS_FileRecordHandle          fileRecord;
 
-        NEXUS_MessageSettings           messageSettings;
-        NEXUS_MessageStartSettings      messageStartSettings;
-        NEXUS_PlaybackPidChannelSettings playbackPidSettings;
-
         /* PSI system data */
         void                     *pat[BTST_PSI_QUEUE_CNT];
         void                     *pmt[BTST_PSI_QUEUE_CNT];
@@ -709,20 +810,16 @@ typedef struct TRNSX_Transcode
         B_ThreadHandle            schedulerThread;
         bool                      systemdataTimerIsStarted;
 
-        NEXUS_MessageHandle       userDataMessage[NEXUS_MAX_MUX_PIDS];
+        /*NEXUS_MessageHandle       userDataMessage[NEXUS_MAX_MUX_PIDS];*/
         NEXUS_PidChannelHandle    pidChannelUserData[NEXUS_MAX_MUX_PIDS];
         NEXUS_PidChannelHandle    pidChannelTranscodeUserData[NEXUS_MAX_MUX_PIDS];
-        bool                      bUserDataStreamValid[NEXUS_MAX_MUX_PIDS];
-        int                       userDataDescLen[NEXUS_MAX_MUX_PIDS];
-        uint8_t                   userDataDescriptors[NEXUS_MAX_MUX_PIDS][188];
-        TS_PMT_stream             userDataStream[NEXUS_MAX_MUX_PIDS];
-        bool                      bRemapUserDataPid;
-        psi_message_t             psi_message[BTST_MAX_MESSAGE_FILTERS];
+
+
 #endif
 
     } streamMux;
 
-    /* Playback */
+    /*** Playback ***/
     struct
     {
         TRNSX_State             eState;
@@ -755,10 +852,10 @@ typedef struct TRNSX_TestContext
     NEXUS_VideoDecoderCapabilities  decoderCapabilities;
 
     bool bInteractive;
-    bool bEcho; /* echo commands from the input file */
 
-    uint32_t         uiSelected;
-    TRNSX_Transcode  transcodes[TRNSX_NUM_ENCODES];
+    unsigned        uiSelected;
+    unsigned        uiMaxSessions;
+    TRNSX_Transcode transcodes[TRNSX_MAX_SESSIONS];
 
     struct
     {
@@ -769,6 +866,13 @@ typedef struct TRNSX_TestContext
 
 
 } TRNSX_TestContext;
+
+/*
+ * Local functions
+ */
+static NEXUS_Error TRNSX_Playback_Start( TRNSX_TestContext *  pCtxt, TRNSX_Transcode * pTrans );
+static NEXUS_Error TRNSX_Playback_Stop( TRNSX_TestContext *  pCtxt, TRNSX_Transcode * pTrans );
+
 
 /*
  * Utilities
@@ -787,74 +891,6 @@ static void print_value_list(const namevalue_t *table)
     printf(" }\n");
 }
 
-#if 0
-static unsigned mylookup(const namevalue_t *table, const char *name)
-{
-    unsigned i;
-    unsigned value;
-    char *endptr;
-    const char *valueName;
-    for (i=0;table[i].name;i++) {
-        if (!strcasecmp(table[i].name, name)) {
-            return table[i].value;
-        }
-    }
-    value = strtol(name, &endptr, 0);
-    if(!endptr || *endptr) { /* if valid, *endptr = '\0' */
-        value = table[0].value;
-    }
-    valueName = lookup_name(table, value);
-    BDBG_MSG(("Unknown cmdline param '%s', using %u as value ('%s')", name, value, valueName?valueName:"unknown"));
-    return value;
-}
-
-/* search for "name=value;" and get the value */
-static unsigned getNameValue(char *input, const namevalue_t list[])
-{
-    char *pToken;
-    scanf("%s", input);
-    pToken = strstr(input, ";");
-    if(pToken) { *pToken = '\0'; }
-    pToken = strstr(input, "=");
-    if (pToken) {
-        /* ignoring "name=" for now */
-        pToken++;
-    }
-    else {
-        pToken = input;
-    }
-    return mylookup(list, pToken);
-}
-
-
-static unsigned getValue(char *input)
-{
-    char *pToken;
-    scanf("%s", input);
-    pToken = strstr(input, ";");
-    if(pToken) { *pToken = '\0'; }
-    pToken = strstr(input, "=");
-    return strtoul(pToken? (pToken+1) : input, NULL, 0);
-}
-
-static const char *getString(char *input)
-{
-    char *pToken;
-    scanf("%s", input);
-    pToken = strstr(input, ";");
-    if(pToken) { *pToken = '\0'; }
-    pToken = strstr(input, "=");
-    return (pToken? (pToken+1) : input);
-}
-#endif
-#if 0
-static void b_print_media_string(const bmedia_probe_stream *stream)
-{
-    char stream_info[512];
-    bmedia_stream_to_string(stream, stream_info, sizeof(stream_info));
-    printf( "Media Probe:\n" "%s\n\n", stream_info);
-}
-#endif
 int TRNSX_MediaProbe(
     TRNSX_Transcode * pTrans,
     const char *filename
@@ -885,32 +921,32 @@ int TRNSX_MediaProbe(
     }
 
 
-    pTrans->input.eVideoCodec = NEXUS_VideoCodec_eUnknown;
-    pTrans->input.eAudioCodec = NEXUS_AudioCodec_eUnknown;
-    pTrans->input.uiNumVideo = 0;
-    pTrans->input.uiNumAudio = 0;
-    pTrans->input.uiNumPcr = 0;
+    pTrans->source.eVideoCodec = NEXUS_VideoCodec_eUnknown;
+    pTrans->source.eAudioCodec = NEXUS_AudioCodec_eUnknown;
+    pTrans->source.uiNumVideo = 0;
+    pTrans->source.uiNumAudio = 0;
+    pTrans->source.uiNumPcr = 0;
 
-    pTrans->input.bUseStreamAsIndex = probe_results.useStreamAsIndex;
+    pTrans->source.bUseStreamAsIndex = probe_results.useStreamAsIndex;
 
-    pTrans->input.eStreamType = probe_results.transportType;
+    pTrans->source.eStreamType = probe_results.transportType;
 
-    pTrans->input.transportTimestampType = probe_results.timestampType;
+    pTrans->source.transportTimestampType = probe_results.timestampType;
 
 
-    pTrans->input.eVideoCodec = probe_results.video[0].codec;
-    pTrans->input.iVideoPid   = probe_results.video[0].pid;
-    pTrans->input.uiNumVideo = probe_results.num_video;
-    pTrans->input.bFileIsValid = ( probe_results.num_video != 0 ); /*TODO: still needed?*/
+    pTrans->source.eVideoCodec = probe_results.video[0].codec;
+    pTrans->source.iVideoPid   = probe_results.video[0].pid;
+    pTrans->source.uiNumVideo = probe_results.num_video;
+    pTrans->source.bFileIsValid = ( probe_results.num_video != 0 ); /*TODO: still needed?*/
 
-    pTrans->input.eAudioCodec = probe_results.audio[0].codec;
-    pTrans->input.iAudioPid   = probe_results.audio[0].pid;
-    pTrans->input.uiNumAudio = probe_results.num_audio;
+    pTrans->source.eAudioCodec = probe_results.audio[0].codec;
+    pTrans->source.iAudioPid   = probe_results.audio[0].pid;
+    pTrans->source.uiNumAudio = probe_results.num_audio;
 
-    pTrans->input.iPcrPid = probe_results.pcr[0].pid;;
-    pTrans->input.uiNumPcr = probe_results.num_pcr;
+    pTrans->source.iPcrPid = probe_results.pcr[0].pid;;
+    pTrans->source.uiNumPcr = probe_results.num_pcr;
 
-    strncpy( pTrans->input.fname, filename, TRNSX_SIZE_FILE_NAME-1 );
+    strncpy( pTrans->source.fname, filename, TRNSX_SIZE_FILE_NAME-1 );
 
 #if 0
     print_input_parameters(pContext);
@@ -952,7 +988,7 @@ int TRNSX_MediaProbe(
     bool foundAudio = false, foundVideo = false;
     FILE *fin;
 
-    pTrans->input.bFileIsValid = false;
+    pTrans->source.bFileIsValid = false;
 
     probe = bmedia_probe_create();
 
@@ -985,33 +1021,33 @@ int TRNSX_MediaProbe(
 
     /*xcodeContext.duration = stream->duration;*/
 
-    pTrans->input.eVideoCodec = NEXUS_VideoCodec_eUnknown;
-    pTrans->input.eAudioCodec = NEXUS_AudioCodec_eUnknown;
+    pTrans->source.eVideoCodec = NEXUS_VideoCodec_eUnknown;
+    pTrans->source.eAudioCodec = NEXUS_AudioCodec_eUnknown;
 
-    pTrans->input.eStreamType = b_mpegtype2nexus(stream->type);
+    pTrans->source.eStreamType = b_mpegtype2nexus(stream->type);
 
-    strncpy( pTrans->input.fname, filename, TRNSX_SIZE_FILE_NAME-1 );
+    strncpy( pTrans->source.fname, filename, TRNSX_SIZE_FILE_NAME-1 );
 
 
     for(track=BLST_SQ_FIRST(&stream->tracks);track;track=BLST_SQ_NEXT(track, link)) {
         switch(track->type) {
             case bmedia_track_type_audio:
                 if(track->info.audio.codec != baudio_format_unknown && !foundAudio) {
-                    pTrans->input.iAudioPid = track->number;
-                    pTrans->input.eAudioCodec = b_audiocodec2nexus(track->info.audio.codec);
+                    pTrans->source.iAudioPid = track->number;
+                    pTrans->source.eAudioCodec = b_audiocodec2nexus(track->info.audio.codec);
                     foundAudio = true;
                 }
                 break;
             case bmedia_track_type_video:
                 if (track->info.video.codec != bvideo_codec_unknown && !foundVideo) {
-                    pTrans->input.iVideoPid = track->number;
-                    pTrans->input.eVideoCodec = b_videocodec2nexus(track->info.video.codec);
-                    pTrans->input.bFileIsValid = true;
+                    pTrans->source.iVideoPid = track->number;
+                    pTrans->source.eVideoCodec = b_videocodec2nexus(track->info.video.codec);
+                    pTrans->source.bFileIsValid = true;
                     foundVideo = true;
                 }
                 break;
             case bmedia_track_type_pcr:
-                pTrans->input.iPcrPid = track->number;
+                pTrans->source.iPcrPid = track->number;
                 break;
             default:
                 break;
@@ -1038,7 +1074,7 @@ done:
 
 static void TRNSX_Print_VideoDecoderStatus( NEXUS_VideoDecoderStatus * pstStatus )
 {
-    BKNI_Printf("  pts =          0x%08x (45 Khz)\n", pstStatus->pts );
+    BKNI_Printf("  pts =          0x%08x // 45 Khz\n", pstStatus->pts );
     BKNI_Printf("  fifoDepth =    0x%08x\n", pstStatus->fifoDepth );
     BKNI_Printf("  fifoSize =     0x%08x\n", pstStatus->fifoSize);
     BKNI_Printf("  queueDepth =   0x%08x\n", pstStatus->queueDepth );
@@ -1066,7 +1102,7 @@ static void TRNSX_Print_VideoEncoderSetSettings(
     BKNI_Printf("  variableFrameRate:   %u\n", pstSettings->variableFrameRate );
     BKNI_Printf("  sparseFrameRate:     %u\n", pstSettings->sparseFrameRate );
     BKNI_Printf("  enableFieldPairing:  %u\n", pstSettings->enableFieldPairing );
-    BKNI_Printf("  frameRate:           %s (NEXUS_VideoFrameRate)\n", lookup_name(g_videoFrameRateStrs, pstSettings->frameRate) );
+    BKNI_Printf("  frameRate:           %s // NEXUS_VideoFrameRate\n", lookup_name(g_videoFrameRateStrs, pstSettings->frameRate) );
     BKNI_Printf("  streamStructure.newGopOnSceneChange: %u\n", pstSettings->streamStructure.newGopOnSceneChange );
     BKNI_Printf("  streamStructure.duration:            %u\n", pstSettings->streamStructure.duration );
     BKNI_Printf("  streamStructure.adaptiveDuration:    %u\n", pstSettings->streamStructure.adaptiveDuration );
@@ -1088,7 +1124,7 @@ static void TRNSX_Print_VideoEncoderOpenSettings(
     BKNI_Printf("  memoryConfig.interlaced: %u\n", pstSettings->memoryConfig.interlaced );
     BKNI_Printf("  memoryConfig.maxWidth:   %u\n", pstSettings->memoryConfig.maxWidth );
     BKNI_Printf("  memoryConfig.maxHeight:  %u\n", pstSettings->memoryConfig.maxHeight );
-    BKNI_Printf("  type:                    %s (NEXUS_VideoEncoderType)\n", lookup_name( g_encoderTypeStrs, pstSettings->type ) );
+    BKNI_Printf("  type:                    %s  // NEXUS_VideoEncoderType\n", lookup_name( g_encoderTypeStrs, pstSettings->type ) );
     BKNI_Printf("  maxChannelCount:         %u\n", pstSettings->maxChannelCount);
     BKNI_Printf("  enableDataUnitDetecton:  %u\n", pstSettings->enableDataUnitDetecton );
     return;
@@ -1105,13 +1141,13 @@ static void TRNSX_Print_VideoEncoderStartSettings(
     BKNI_Printf("  encodeUserData:       %u\n", pstSettings->encodeUserData);
     BKNI_Printf("  encodeBarUserData:    %u\n", pstSettings->encodeBarUserData);
     BKNI_Printf("  adaptiveLowDelayMode: %u\n", pstSettings->adaptiveLowDelayMode);
-    BKNI_Printf("  codec:                %s (NEXUS_VideoCodec)\n",  lookup_name(g_videoCodecStrs, pstSettings->codec) );
-    BKNI_Printf("  profile:              %s (NEXUS_VideoCodecProfile)\n",  lookup_name(g_videoCodecProfileStrs, pstSettings->profile ) );
-    BKNI_Printf("  level:                %s (NEXUS_VideoCodecLevel)\n", lookup_name( g_videoCodecLevelStrs, pstSettings->level ));
+    BKNI_Printf("  codec:                %s  // NEXUS_VideoCodec\n",  lookup_name(g_videoCodecStrs, pstSettings->codec) );
+    BKNI_Printf("  profile:              %s  // NEXUS_VideoCodecProfile\n",  lookup_name(g_videoCodecProfileStrs, pstSettings->profile ) );
+    BKNI_Printf("  level:                %s  // NEXUS_VideoCodecLevel\n", lookup_name( g_videoCodecLevelStrs, pstSettings->level ));
 
-    BKNI_Printf("  bounds.outputFrameRate.min:                 %s (NEXUS_VideoFrameRate)\n", lookup_name(g_videoFrameRateStrs, pstSettings->bounds.outputFrameRate.min));
-    BKNI_Printf("  bounds.outputFrameRate.max:                 %s (NEXUS_VideoFrameRate)\n", lookup_name(g_videoFrameRateStrs, pstSettings->bounds.outputFrameRate.max));
-    BKNI_Printf("  bounds.inputFrameRate.min:                  %s (NEXUS_VideoFrameRate)\n", lookup_name(g_videoFrameRateStrs, pstSettings->bounds.inputFrameRate.min));
+    BKNI_Printf("  bounds.outputFrameRate.min:                 %s  // NEXUS_VideoFrameRate\n", lookup_name(g_videoFrameRateStrs, pstSettings->bounds.outputFrameRate.min));
+    BKNI_Printf("  bounds.outputFrameRate.max:                 %s  // NEXUS_VideoFrameRate\n", lookup_name(g_videoFrameRateStrs, pstSettings->bounds.outputFrameRate.max));
+    BKNI_Printf("  bounds.inputFrameRate.min:                  %s  // NEXUS_VideoFrameRate\n", lookup_name(g_videoFrameRateStrs, pstSettings->bounds.inputFrameRate.min));
     BKNI_Printf("  bounds.inputDimension.max.width:            %u\n", pstSettings->bounds.inputDimension.max.width);
     BKNI_Printf("  bounds.inputDimension.max.height:           %u\n", pstSettings->bounds.inputDimension.max.height);
     BKNI_Printf("  bounds.inputDimension.maxInterlaced.width:  %u\n", pstSettings->bounds.inputDimension.maxInterlaced.width);
@@ -1124,7 +1160,7 @@ static void TRNSX_Print_VideoEncoderStartSettings(
     BKNI_Printf("  rateBufferDelay:                            %u\n", pstSettings->rateBufferDelay);
     BKNI_Printf("  numParallelEncodes:                         %u\n", pstSettings->numParallelEncodes);
     BKNI_Printf("  bypassVideoProcessing:                      %u\n", pstSettings->bypassVideoProcessing);
-    BKNI_Printf("  entropyCoding:                              %s (NEXUS_EntropyCoding)\n", lookup_name( g_entropyCodingStrs, pstSettings->entropyCoding));
+    BKNI_Printf("  entropyCoding:                              %s   // NEXUS_EntropyCoding\n", lookup_name( g_entropyCodingStrs, pstSettings->entropyCoding));
     BKNI_Printf("  hrdModeRateControl.disableFrameDrop:        %u\n", pstSettings->hrdModeRateControl.disableFrameDrop);
     BKNI_Printf("  segmentModeRateControl.enable:              %u\n", pstSettings->segmentModeRateControl.enable);
     BKNI_Printf("  segmentModeRateControl.duration:            %u\n", pstSettings->segmentModeRateControl.duration);
@@ -1138,7 +1174,7 @@ static void TRNSX_Print_VideoEncoderStartSettings(
 
 static void TRNSX_Print_VideoEncoderStopSettings( NEXUS_VideoEncoderStopSettings *  pstSettings )
 {
-    BKNI_Printf("  mode: %s (NEXUS_VideoEncoderStopMode)\n", lookup_name(g_encoderStopModeStrs, pstSettings->mode));
+    BKNI_Printf("  mode: %s  // NEXUS_VideoEncoderStopMode\n", lookup_name(g_encoderStopModeStrs, pstSettings->mode));
     return;
 }
 
@@ -1165,13 +1201,13 @@ static void TRNSX_Print_DisplaySettings(
     NEXUS_DisplaySettings * pstSettings
     )
 {
-    BKNI_Printf("  displayType:         %s (NEXUS_DisplayType)\n", lookup_name(g_displayTypeStrs, pstSettings->displayType));
-    BKNI_Printf("  timingGenerator:     %s (NEXUS_DisplayTimingGenerator)\n", lookup_name(g_displayTimingGeneratorStrs, pstSettings->timingGenerator));
-    BKNI_Printf("  format:              %s (NEXUS_VideoFormat)\n", lookup_name( g_videoFormatStrs, pstSettings->format));
-    BKNI_Printf("  aspectRatio:         %s (NEXUS_DisplayAspectRatio)\n", lookup_name( g_displayAspectRatioStrs, pstSettings->aspectRatio));
+    BKNI_Printf("  displayType:         %s  // NEXUS_DisplayType\n", lookup_name(g_displayTypeStrs, pstSettings->displayType));
+    BKNI_Printf("  timingGenerator:     %s  // NEXUS_DisplayTimingGenerator\n", lookup_name(g_displayTimingGeneratorStrs, pstSettings->timingGenerator));
+    BKNI_Printf("  format:              %s  // NEXUS_VideoFormat\n", lookup_name( g_videoFormatStrs, pstSettings->format));
+    BKNI_Printf("  aspectRatio:         %s  // NEXUS_DisplayAspectRatio\n", lookup_name( g_displayAspectRatioStrs, pstSettings->aspectRatio));
     BKNI_Printf("  sampleAspectRatio.x: %u\n", pstSettings->sampleAspectRatio.x);
     BKNI_Printf("  sampleAspectRatio.y: %u\n", pstSettings->sampleAspectRatio.y);
-    BKNI_Printf("  dropFrame:           %s (NEXUS_TristateEnable)\n", lookup_name( g_tristateEnableStrs, pstSettings->dropFrame));
+    BKNI_Printf("  dropFrame:           %s  // NEXUS_TristateEnable\n", lookup_name( g_tristateEnableStrs, pstSettings->dropFrame));
     return;
 }
 
@@ -1187,68 +1223,121 @@ static void TRNSX_Print_DisplayCustomFormatSettings(
     BKNI_Printf("  height:              %u\n", pstSettings->height);
     BKNI_Printf("  refreshRate:         %u (in 1/1000th Hz)\n", pstSettings->refreshRate);
     BKNI_Printf("  interlaced:          %u\n", pstSettings->interlaced);
-    BKNI_Printf("  aspectRatio:         %s (NEXUS_DisplayAspectRatio)\n", lookup_name( g_displayAspectRatioStrs, pstSettings->aspectRatio));
+    BKNI_Printf("  aspectRatio:         %s  // NEXUS_DisplayAspectRatio\n", lookup_name( g_displayAspectRatioStrs, pstSettings->aspectRatio));
     BKNI_Printf("  sampleAspectRatio.x: %u\n", pstSettings->sampleAspectRatio.x);
     BKNI_Printf("  sampleAspectRatio.y: %u\n", pstSettings->sampleAspectRatio.y);
     BKNI_Printf("  dropFrameAllowed:    %u\n", pstSettings->dropFrameAllowed);
     return;
 }
 
-static void TRNSX_Print_MuxSettings( TRNSX_Transcode * pTrans )
+static void TRNSX_Print_MuxOpenSettings( TRNSX_Transcode * pTrans, bool bDumpParams )
 {
-    BKNI_Printf("  transport:  %s (NEXUS_TransportType)\n", lookup_name(g_transportTypeStrs, pTrans->record.eTransportType));
-    BKNI_Printf("  ivf:        %d\n", pTrans->record.bGenerateIVF);
+    BKNI_Printf("  transport:  %s  // <es,ivf,pes,mp4,ts,fmp4> \n", lookup_name(g_transportTypeStrs, pTrans->record.eTransportType));
+
+    if ( bDumpParams )
+    {
+        BKNI_Printf("                  // for 'es', the buffers will be read directly\n");
+        BKNI_Printf("                  // for 'ivf', 'pes' and 'mp4' the file mux will be used\n");
+        BKNI_Printf("                  // for 'ts' and 'fmp4' the stream mux wil be used\n");
+    }
+
+    if ( pTrans->record.bGenerateIVF ) BKNI_Printf("                   // generating an IVF file\n");
+
+    if ( pTrans->record.eTransportType == NEXUS_TransportType_eTs || bDumpParams )
+    {
+        BKNI_Printf("  -- stream mux settings --\n");
+        BKNI_Printf("  userdata.enable:    %d        // enable user data pass through\n", pTrans->streamMux.userData.enable);
+        BKNI_Printf("  userdata.remappids: %d        // enable remapping of user data PIDs\n", pTrans->streamMux.userData.bRemapPids);
+        BKNI_Printf("  userdata.base_pid:  %x (%d)  // base PID when remapping is enabled\n", pTrans->streamMux.userData.uiBasePid, pTrans->streamMux.userData.uiBasePid);
+        BKNI_Printf("  pcr_pid:            %x (%d)\n", pTrans->streamMux.uiPcrPid, pTrans->streamMux.uiPcrPid);
+        BKNI_Printf("  video_pid:          %x (%d)\n", pTrans->streamMux.uiVideoPid, pTrans->streamMux.uiVideoPid);
+        BKNI_Printf("  pmt_pid:            %x (%d)\n", pTrans->streamMux.uiPmtPid, pTrans->streamMux.uiPmtPid);
+        BKNI_Printf("  pat_pid:            %x (%d)\n", pTrans->streamMux.uiPatPid, pTrans->streamMux.uiPatPid);
+    }
     return;
+
 }
 
-static void TRNSX_Print_StreamMuxStartSettings( NEXUS_StreamMuxStartSettings * pstSettings )
+static void TRNSX_Print_StreamMuxStartSettings(  TRNSX_Transcode * pTrans, bool bDumpParams )
 {
-    BKNI_Printf("  transportType    %s (NEXUS_TransportType)\n", lookup_name( g_transportTypeStrs, pstSettings->transportType ));
-    /*BKNI_Printf("  supportTts       %s (NEXUS_TransportTimestampType)\n", lookup_name( g_transportTimestampTypeStrs, pstSettings->supportTts ));*/
-    BKNI_Printf("  nonRealTimeRate  %u\n", pstSettings->nonRealTimeRate);
-    BKNI_Printf("  servicePeriod    %u\n", pstSettings->servicePeriod);
-    BKNI_Printf("  latencyTolerance %u\n", pstSettings->latencyTolerance);
-    BKNI_Printf("  interleaveMode   %s (NEXUS_StreamMuxInterleaveMode - escr or pts)\n", lookup_name( g_streamMuxInterleaveModeStrs, pstSettings->interleaveMode ));
-    BKNI_Printf("  useInitialPts    %u\n", pstSettings->useInitialPts);
-    BKNI_Printf("  initialPts       %u\n", pstSettings->initialPts);
-    BKNI_Printf("  pcr.interval     %u\n", pstSettings->pcr.interval);
-    BKNI_Printf("  insertPtsOnlyOnFirstKeyFrameOfSegment %u\n", pstSettings->insertPtsOnlyOnFirstKeyFrameOfSegment);
+    if ( pTrans->record.eTransportType == NEXUS_TransportType_eTs
+        || pTrans->record.eTransportType == NEXUS_TransportType_eMp4Fragment
+        || bDumpParams )
+    {
+        NEXUS_StreamMuxStartSettings * pstSettings = &pTrans->streamMux.startSettings;
+
+        BKNI_Printf("  -- stream mux settings --\n");
+        BKNI_Printf("  transportType    %s  // NEXUS_TransportType\n", lookup_name( g_transportTypeStrs, pstSettings->transportType ));
+        /*BKNI_Printf("  supportTts       %s (NEXUS_TransportTimestampType)\n", lookup_name( g_transportTimestampTypeStrs, pstSettings->supportTts ));*/
+        BKNI_Printf("  nonRealTimeRate  %u\n", pstSettings->nonRealTimeRate);
+        BKNI_Printf("  servicePeriod    %u\n", pstSettings->servicePeriod);
+        BKNI_Printf("  latencyTolerance %u\n", pstSettings->latencyTolerance);
+        BKNI_Printf("  interleaveMode   %s  // NEXUS_StreamMuxInterleaveMode - escr or pts\n", lookup_name( g_streamMuxInterleaveModeStrs, pstSettings->interleaveMode ));
+        BKNI_Printf("  useInitialPts    %u\n", pstSettings->useInitialPts);
+        BKNI_Printf("  initialPts       %u\n", pstSettings->initialPts);
+        BKNI_Printf("  pcr.interval     %u\n", pstSettings->pcr.interval);
+        BKNI_Printf("  insertPtsOnlyOnFirstKeyFrameOfSegment %u\n", pstSettings->insertPtsOnlyOnFirstKeyFrameOfSegment);
+    }
+    else
+    {
+        BKNI_Printf("no addtional parameters can be set for transport type of %s\n", lookup_name( g_transportTypeStrs, pTrans->record.eTransportType) );
+    }
+
     return;
 }
 
 static void TRNSX_Print_RecordSettings( TRNSX_Transcode * pTrans )
 {
     BKNI_Printf("  file:       %s\n", pTrans->record.fname);
-    BKNI_Printf("  index file: %s\n", pTrans->record.indexfname);
+    BKNI_Printf("  index file: %s  // need a comment about when the NAV file is generated\n", pTrans->record.indexfname);
     return;
 }
 
 static void TRNSX_Print_PlaybackOpenSettings( TRNSX_Transcode * pTrans )
 {
-    BKNI_Printf("  type:         %s (file/hdmi/qam)\n", lookup_name(g_sourceStrs, pTrans->input.eSourceType));
-    BKNI_Printf("  file:         %s\n", pTrans->input.fname);
-    BKNI_Printf("  video_codec:  %s (NEXUS_VideoCodec)\n", lookup_name( g_videoCodecStrs, pTrans->input.eVideoCodec ));
-    BKNI_Printf("  video_pid:    %x (%d)\n", pTrans->input.iVideoPid, pTrans->input.iVideoPid );
-    BKNI_Printf("  pcr_pid:      %x (%d)\n", pTrans->input.iPcrPid, pTrans->input.iPcrPid );
-    BKNI_Printf("  transport:    %s (NEXUS_TransportType)\n", lookup_name(g_transportTypeStrs,  pTrans->input.eStreamType));
+    unsigned i=0;
+
+    BKNI_Printf("  type:               %s  // <file/hdmi/qam> : source type, cuurently only support file\n", lookup_name(g_sourceStrs, pTrans->source.eType));
+    BKNI_Printf("  file:               %s  // <file_name> : file is probed by default and the following parameters filled in\n", pTrans->source.fname);
+    BKNI_Printf("  video_codec:        %s  // NEXUS_VideoCodec\n", lookup_name( g_videoCodecStrs, pTrans->source.eVideoCodec ));
+    BKNI_Printf("  transport:          %s  // NEXUS_TransportType\n", lookup_name(g_transportTypeStrs,  pTrans->source.eStreamType));
+    BKNI_Printf("  video_pid:          %x (%d)\n", pTrans->source.iVideoPid, pTrans->source.iVideoPid );
+    BKNI_Printf("  pcr_pid:            %x (%d)\n", pTrans->source.iPcrPid, pTrans->source.iPcrPid );
+    BKNI_Printf("  pmt_pid:            %x (%d)\n", pTrans->source.uiPmtPid, pTrans->source.uiPmtPid );
+    BKNI_Printf("  userdata.numPids:   %d       // read only\n", pTrans->source.userData.numPids );
+    do
+    {
+        BKNI_Printf("  userdata.pid[%d]:    %x (%d)", i, pTrans->source.userData.pids[i], pTrans->source.userData.pids[i] );
+        if ( i == 0 ) BKNI_Printf("   // specifed as a comma separated list, i.e. userdata.pid:1,2,3,4...");
+        BKNI_Printf("\n");
+        i++;
+    } while ( i < pTrans->source.userData.numPids );
+
     return;
 }
 
 static void TRNSX_Print_PlaypumpOpenSettings( NEXUS_PlaypumpOpenSettings * pstSettings )
 {
-    BKNI_Printf("  fifoSize:            0x%08x\n", (uint32_t)pstSettings->fifoSize );
+    BKNI_Printf("  fifoSize:            0x%x\n", (uint32_t)pstSettings->fifoSize );
     BKNI_Printf("  numDescriptors:      %u\n", pstSettings->numDescriptors );
     BKNI_Printf("  streamMuxCompatible: %d\n", pstSettings->streamMuxCompatible );
     return;
 }
 
+static void TRNSX_Print_SelectSettings( TRNSX_TestContext *  pCtxt, TRNSX_Transcode * pTrans )
+{
+    BSTD_UNUSED(pTrans);
+    BKNI_Printf("  session:    %d  // select a session to modify\n", pCtxt->uiSelected );
+    return;
+}
+
 static void TRNSX_Print_SessionSettings( TRNSX_TestContext *  pCtxt, TRNSX_Transcode * pTrans )
 {
-    BKNI_Printf("  select:    %d\n", pCtxt->uiSelected );
+    BSTD_UNUSED(pCtxt);
     BKNI_Printf("  -- general settings --\n");
-    BKNI_Printf("  nrt:       %d\n", pTrans->bNonRealTime );
-    BKNI_Printf("  cc:        %d\n", pTrans->bEncodeCCData );
-    BKNI_Printf("  -- stream mux settings --\n");
+    BKNI_Printf("  nrt:       %d  // enable NRT mode, a gobal setting that is applied to the module specify commands\n", pTrans->bNonRealTime );
+    BKNI_Printf("  cc:        %d  // enable CC encoding, a gobal setting that is applied to the module specify commands\n", pTrans->bEncodeCCData );
+    BKNI_Printf("\n  -- stream mux settings --\n");
     BKNI_Printf("  tts_out: %s (NEXUS_TransportTimestampType)\n", lookup_name( g_transportTimestampTypeStrs, pTrans->streamMux.transportTimestampType ));
     return;
 }
@@ -1340,6 +1429,7 @@ static NEXUS_Error TRNSX_Platform_Open(
     TRNSX_TestContext *  pCtxt
     )
 {
+    unsigned i;
     NEXUS_PlatformSettings platformSettings;
 #if SIMUL_DISPLAY
     NEXUS_DisplaySettings displaySettings;
@@ -1355,7 +1445,7 @@ static NEXUS_Error TRNSX_Platform_Open(
 #if x /* TODO: from transcode_ts, also look at the code which retrieves capablities. */
     /* enable frontend if the 1st xcoder needs it for now; not always enable to avoid slow frontend init for other cases;
        TODO: init frontend in case 1st disable but 2nd enables frontend. */
-    platformSettings.openFrontend = (pContext->inputSettings.resource == BTST_RESOURCE_QAM);
+    platformSettings.openFrontend = (pTrans->source.eType == BTST_RESOURCE_QAM);
     /* audio PI supports 4 by default; we need one extra mixers for each transcoders; */
     platformSettings.audioModuleSettings.dspAlgorithmSettings.typeSettings[NEXUS_AudioDspAlgorithmType_eAudioEncode].count = NEXUS_NUM_VIDEO_ENCODERS;
     platformSettings.audioModuleSettings.maxAudioDspTasks += NEXUS_NUM_VIDEO_ENCODERS + 1;/* to support quad xcodes + loopback decode */
@@ -1370,6 +1460,11 @@ static NEXUS_Error TRNSX_Platform_Open(
     NEXUS_GetDisplayCapabilities(&pCtxt->displayCapabilities);
     NEXUS_GetVideoDecoderCapabilities(&pCtxt->decoderCapabilities);
 
+
+    for ( i=0; i<NEXUS_MAX_VIDEO_ENCODERS && i<TRNSX_MAX_SESSIONS; i++ )
+    {
+        pCtxt->uiMaxSessions += (pCtxt->encoderCapabilities.videoEncoder[i].supported) ? 1 : 0;
+    }
 
 #if SIMUL_DISPLAY
     /* Bring up video display and outputs */
@@ -1481,6 +1576,13 @@ static void TRNSX_Record_BufferCopyThread(
                                     pTrans->record.bWaitForEos ));
             }
 
+            /* If the video encoder watchdogs, exit this thread. */
+            if ( pTrans->videoEncoder.bEncoderWatchdogged == true )
+            {
+                bStoppedSignaled = true;
+                bWaitingForEOS = false;
+            }
+
             if ( bStoppedSignaled == true )
             {
                 if (( bWaitingForEOS == false ) || ( uiShutdownTries > 100 ))
@@ -1574,7 +1676,7 @@ static NEXUS_Error TRNSX_Transcode_GetDefaultStreamMuxSettings(
 
     pTrans->streamMux.bMCPB = true;     /* Default to multi channel playback */
     pTrans->streamMux.uiNumDescs = 512;
-    pTrans->streamMux.bTsUserDataInput = false;
+    pTrans->streamMux.userData.enable = false;
     pTrans->streamMux.bAudioInput = false;
     pTrans->streamMux.transportTimestampType = NEXUS_TransportTimestampType_eNone; /* g_TtsOutputType in transcode_ts */
 
@@ -1622,6 +1724,14 @@ static NEXUS_Error TRNSX_Transcode_GetDefaultStreamMuxSettings(
     pTrans->streamMux.startSettings.pcr.interval        = 50; /* 50 msecs */
     pTrans->streamMux.startSettings.insertPtsOnlyOnFirstKeyFrameOfSegment = false; /*g_bOnePtsPerSegment;*/
 
+    /* user data settings */
+
+    pTrans->streamMux.uiPcrPid          = BTST_MUX_PCR_PID;
+    pTrans->streamMux.uiVideoPid        = BTST_MUX_VIDEO_PID;
+    pTrans->streamMux.uiAudioPid        = BTST_MUX_AUDIO_PID;
+    pTrans->streamMux.uiPmtPid          = BTST_MUX_PMT_PID;
+    pTrans->streamMux.uiPatPid          = BTST_MUX_PAT_PID;
+    pTrans->streamMux.userData.uiPid    = BTST_MUX_USER_DATA_PID;
 #else
     BSTD_UNUSED(pTrans);
 #endif
@@ -1638,7 +1748,7 @@ static NEXUS_Error TRNSX_Transcode_GetDefaultSettings(
     BSTD_UNUSED(pCtxt);
     BKNI_Memset( pTrans, 0, sizeof( TRNSX_Transcode ));
 
-    pTrans->input.eSourceType = TRNSX_Source_eFile; /* just support files for now. */
+    pTrans->source.eType = TRNSX_Source_eFile; /* just support files for now. */
 
     /* TODO: how to initialize the following to reasonable values for each platform?
      * Is this the correct place to make these calls?
@@ -1856,56 +1966,337 @@ static NEXUS_Error TRNSX_FileEs_Stop(
  */
 
 
-#if 1
 /*******************************
  * Add system data to stream_mux
  */
-    /* TSHDRBUILDER has one extra byte at the beginning to describe the variable length TS header buffer */
-#define BTST_TS_HEADER_BUF_LENGTH   189
 
 static void TRNSX_StreamMux_RecpumpOverflowCallback(void *context, int param)
 {
     TRNSX_Transcode * pTrans = context;
     BSTD_UNUSED(param);
-    BDBG_ERR(("\n#### %s Context::%d stream mux recpump buffer overflows! ###\n", BSTD_FUNCTION, pTrans->uiIndex));
+    BDBG_ERR(("#### %s Context::%d stream mux recpump buffer overflows! ###", BSTD_FUNCTION, pTrans->uiIndex));
 }
 
-
-static void TRNSX_StreamMux_SystemData_InsertTimer(void *context)
+static void TRNSX_StreamMux_MessageOverflowCallback(void *context, int param)
 {
     TRNSX_Transcode * pTrans = context;
-    uint8_t ccByte;
-
-    ++pTrans->streamMux.ccValue;/* increment CC synchronously with PAT/PMT */
-    ccByte = *((uint8_t*)pTrans->streamMux.pat[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 4); /* the 1st byte of pat/pmt arrays is for TSheader builder use */
-
-    /* need to increment CC value for PAT/PMT packets */
-    ccByte = (ccByte & 0xf0) | (pTrans->streamMux.ccValue & 0xf);
-    *((uint8_t*)pTrans->streamMux.pat[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 4) = ccByte;
-    /* need to flush the cache before set to TS mux hw */
-    NEXUS_Memory_FlushCache((void*)((uint8_t*)pTrans->streamMux.pat[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 4), 1);
-    /* ping pong PAT pointer */
-    pTrans->streamMux.psi[0].pData = (void*)((uint8_t*)pTrans->streamMux.pat[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 1);
-
-    ccByte = *((uint8_t*)pTrans->streamMux.pmt[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 4);
-    ccByte = (ccByte & 0xf0) | (pTrans->streamMux.ccValue & 0xf);
-    *((uint8_t*)pTrans->streamMux.pmt[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 4) = ccByte;
-    NEXUS_Memory_FlushCache((void*)((uint8_t*)pTrans->streamMux.pmt[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 4), 1);
-    /* ping pong PMT pointer */
-    pTrans->streamMux.psi[1].pData = (void*)((uint8_t*)pTrans->streamMux.pmt[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 1);
-
-    NEXUS_StreamMux_AddSystemDataBuffer(pTrans->streamMux.streamMux, &pTrans->streamMux.psi[0]);
-    NEXUS_StreamMux_AddSystemDataBuffer(pTrans->streamMux.streamMux, &pTrans->streamMux.psi[1]);
-    BDBG_MODULE_MSG(contcounter,("Context%d insert PAT&PMT... ccPAT = %x ccPMT=%x", pTrans->uiIndex, *((uint8_t*)pTrans->streamMux.pat[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 4) & 0xf,
-        *((uint8_t*)pTrans->streamMux.pmt[pTrans->streamMux.ccValue  % BTST_PSI_QUEUE_CNT] + 4) & 0xf));
-    if(pTrans->streamMux.systemdataTimerIsStarted)
-    {
-        pTrans->streamMux.systemdataTimer = B_Scheduler_StartTimer(
-            pTrans->streamMux.schedulerSystemdata,pTrans->streamMux.mutexSystemdata, 1000, TRNSX_StreamMux_SystemData_InsertTimer, pTrans);
-        if(pTrans->streamMux.systemdataTimer==NULL) {BDBG_ERR(("schedule timer error %d", NEXUS_OUT_OF_SYSTEM_MEMORY));}
-    }
-    return;
+    BDBG_ERR(("#### %s Context%d message PID[%d] buffer overflows! ###", BSTD_FUNCTION, pTrans->uiIndex, param));
 }
+
+static void TRNSX_StreamMux_PsiMessageCallback(void *context, int param)
+{
+    BSTD_UNUSED(param);
+    BKNI_SetEvent((BKNI_EventHandle)context);
+}
+#define PROGRAM_INFO_LENGTH_OFFSET (TS_PSI_LAST_SECTION_NUMBER_OFFSET+3)
+#define PROGRAM_INFO_LENGTH(buf) (TS_READ_16(&buf[PROGRAM_INFO_LENGTH_OFFSET])&0xFFF)
+#define DESCRIPTOR_BASE(buf) (&buf[TS_PSI_LAST_SECTION_NUMBER_OFFSET+5])
+#define STREAM_BASE(buf) (TS_PSI_LAST_SECTION_NUMBER_OFFSET + 5 + PROGRAM_INFO_LENGTH(buf))
+
+#if 1
+
+static int TS_PMT_P_getStreamByteOffset( const uint8_t *buf, unsigned bfrSize, int streamNum )
+{
+    int byteOffset;
+    int i;
+
+    /* After the last descriptor */
+    byteOffset = STREAM_BASE(buf);
+
+    for (i=0; i < streamNum; i++)
+    {
+        if (byteOffset >= (int)bfrSize || byteOffset >= TS_PSI_MAX_BYTE_OFFSET(buf))
+            return -1;
+        byteOffset += 5 + (TS_READ_16( &buf[byteOffset+3] ) & 0xFFF);
+    }
+
+    return byteOffset;
+}
+
+/* cloned from transcode_ts::add_psi_filter */
+
+int TRNSX_StreamMux_SystemData_AddPsiFilter(
+    TRNSX_TestContext * pCtxt,
+    TRNSX_Transcode * pTrans,
+    unsigned short pid,
+    BKNI_EventHandle event
+    )
+{
+    unsigned i;
+    NEXUS_MessageSettings settings;
+    NEXUS_MessageStartSettings startSettings;
+    NEXUS_Error rc;
+    psi_message_t *msg = NULL;
+
+    BSTD_UNUSED(pCtxt);
+
+    for (i=0;i<BTST_MAX_MESSAGE_FILTERS;i++) {
+        if (!pTrans->streamMux.userData.psi_message[i].message) {
+            msg = &pTrans->streamMux.userData.psi_message[i];
+            break;
+        }
+    }
+    if (!msg) {
+        return -1;
+    }
+    BDBG_MODULE_MSG(trnsx_dbg,("%s:: adding PSI filter[%u] for PID %u", BSTD_FUNCTION, i, pid));
+
+    /*if(pTrans->source.eType == TRNSX_Source_eFile) */
+    {
+        msg->pidChannel = NEXUS_Playback_OpenPidChannel(pTrans->playback.playback, pid, NULL);
+    }
+#if 0
+    else {
+        msg->pidChannel = NEXUS_PidChannel_Open(pContext->parserBand, pid, NULL);
+    }
+#endif
+    BDBG_ASSERT(msg->pidChannel);
+
+    NEXUS_Message_GetDefaultSettings(&settings);
+    settings.dataReady.callback = TRNSX_StreamMux_PsiMessageCallback;
+    settings.dataReady.context = event;
+    msg->message = NEXUS_Message_Open(&settings);
+    msg->pid = pid;
+    msg->done = false;
+
+    NEXUS_Message_GetDefaultStartSettings(msg->message, &startSettings);
+    startSettings.pidChannel = msg->pidChannel;
+    rc = NEXUS_Message_Start(msg->message, &startSettings);
+    BDBG_ASSERT(!rc);
+
+    return 0;
+}
+
+
+/* get TS user data PSI info from input PMT */
+/* cloned from transcode_ts::getUserDataPsiFromPmt */
+static void TRNSX_StreamMux_SystemData_GetUserDataPsiFromPmt(
+    TRNSX_TestContext * pCtxt,
+    TRNSX_Transcode * pTrans
+    )
+{
+    BKNI_EventHandle event;
+    NEXUS_Error rc;
+    unsigned i=0, count = 0, loop = 0;
+    bool bFound = false;
+    bool bStopPlayback=false;
+
+    /* 1) parse input PAT and set up PMT filters if no specified PMT PID;
+     * 2) parse each PMTs to find one with matching video PID;
+     * 3) match selected user data stream PID;
+     * 4) get user data descriptors;
+     */
+
+
+    if( pTrans->source.eType == TRNSX_Source_eFile && pTrans->playback.eState != TRNSX_State_eRunning )
+    {
+        TRNSX_Playback_Start( pCtxt, pTrans );
+        bStopPlayback = true;
+    }
+
+    /* to get input PMT, need to set up message filter */
+    BKNI_CreateEvent(&event);
+
+    BDBG_MODULE_MSG(trnsx_dbg,("%s:: starting PSI filter PID = %u", BSTD_FUNCTION, pTrans->source.uiPmtPid));
+
+    /* if user specified PMT PID, msg[0] is for the PMT; else msg[0] is for PAT; */
+    TRNSX_StreamMux_SystemData_AddPsiFilter(pCtxt, pTrans, pTrans->source.uiPmtPid, event);
+
+    /* Read the PAT/PMT */
+    for (count=0;;count++) {
+        const uint8_t *buffer;
+        size_t size;
+        unsigned programNum, message_length, streamNum;
+        size_t num = NEXUS_MAX_MUX_PIDS;
+
+        if (count == BTST_MAX_MESSAGE_FILTERS) {
+            count = 0;
+            if(++loop > BTST_MAX_MESSAGE_FILTERS) {BDBG_ERR(("%s:: failed to get input user data PMT!", BSTD_FUNCTION)); rc = -1; break;}
+        }
+
+        if (!pTrans->streamMux.userData.psi_message[count].message || pTrans->streamMux.userData.psi_message[count].done) {
+            continue;
+        }
+
+        rc = NEXUS_Message_GetBuffer(pTrans->streamMux.userData.psi_message[count].message, (const void **)&buffer, &size);
+        BDBG_ASSERT(!rc);
+
+        if (!size) {
+            BERR_Code rc = BKNI_WaitForEvent(event, 5 * 1000); /* wait 5 seconds */
+            if (rc == NEXUS_TIMEOUT) {
+                BDBG_WRN(("%s:: no PSI messages", BSTD_FUNCTION));
+                rc = -1;
+                break;
+            }
+            BDBG_ASSERT(!rc);
+            continue;
+        }
+
+        /* We should always get whole PAT's because maxContiguousMessageSize is 4K */
+        message_length = TS_PSI_GET_SECTION_LENGTH(buffer) + 3;
+        BDBG_ASSERT(size >= (size_t)message_length);
+        BDBG_MODULE_MSG(trnsx_dbg,("%s:: message[%u] size = "BDBG_UINT64_FMT", table ID = %u", BSTD_FUNCTION, count, BDBG_UINT64_ARG((uint64_t)size), buffer[0]));
+
+        if (buffer[0] == 0) {
+            /* 1) Program Association Table */
+            BDBG_MODULE_MSG(trnsx_dbg,("%s:: PAT: size=%d", BSTD_FUNCTION, message_length));
+            for (programNum=0;programNum<(unsigned)(TS_PSI_GET_SECTION_LENGTH(buffer)-7)/4;programNum++) {
+                unsigned byteOffset = 8 + programNum*4;
+                unsigned program = TS_READ_16( &buffer[byteOffset] );
+                unsigned short pid = (uint16_t)(TS_READ_16( &buffer[byteOffset+2] ) & 0x1FFF);
+                BDBG_MODULE_MSG(trnsx_dbg,("%s::  program %d: PID %u", BSTD_FUNCTION, program, pid));
+                /* add PMT filters for all programs */
+                TRNSX_StreamMux_SystemData_AddPsiFilter(pCtxt, pTrans, pid, event);
+            }
+        }
+        else if (buffer[0] == 2) { /* PMT */
+            TS_PMT_stream pmtStream;
+
+            /* Program Table */
+            BDBG_MODULE_MSG(trnsx_dbg,("%s:: session:%d found PMT PID[%u]:\nprogram number %d size=%d", BSTD_FUNCTION, pTrans->uiIndex,
+                pTrans->streamMux.userData.psi_message[count].pid, TS_READ_16(&buffer[3]), message_length));
+            /* need to validate the PMT section */
+            if(!TS_PMT_validate(buffer, size)) {BDBG_ERR(("invalid PMT")); goto Done_getUserDataPsi;}
+
+            streamNum = TS_PMT_getNumStreams(buffer, size);
+            BDBG_MODULE_MSG(trnsx_dbg,("%s:: total streams: %d", BSTD_FUNCTION,  streamNum));
+
+            /* 2) search for all streams to match the video PID if no specified PMT PID */
+            if( 0 == pTrans->source.uiPmtPid)
+            {
+                BDBG_MODULE_MSG(trnsx_dbg,("%s:: PMT PID is 0, search PMT table", BSTD_FUNCTION));
+                for (i=0;i<streamNum;i++)
+                {
+                    TS_PMT_getStream(buffer, size, i, &pmtStream);
+                    BDBG_MODULE_MSG(trnsx_dbg,("%s:: \tPID: %d, stream_type: %d", BSTD_FUNCTION, pmtStream.elementary_PID, pmtStream.stream_type));
+                    if(pmtStream.elementary_PID == pTrans->source.iVideoPid)
+                    {
+                        BDBG_MODULE_MSG(trnsx_dbg,("%s:: Found matching video PID!",BSTD_FUNCTION));
+                        break;
+                    }
+                }
+                if(i == streamNum)
+                {
+                    /* not found so continue to next PMT */
+                    BDBG_MODULE_MSG(trnsx_dbg,("%s:: pass:%d did not find PMT table with video PID:%d",BSTD_FUNCTION, count, pTrans->source.iVideoPid ));
+                    goto Done_getUserDataPsi;
+
+                }
+            }
+            bFound = true;/* found PMT */
+
+            /* else, found the matching program */
+            /* 3) search for all streams to extract user data PSI info */
+            for (i=0;i<streamNum;i++) {
+                unsigned streamOffset;
+
+                TS_PMT_getStream(buffer, size, i, &pmtStream);
+
+                /* 2) match user data PID */
+                if(pTrans->streamMux.userData.numPids == BTST_TS_USER_DATA_ALL)
+                {
+                    /* all pass the VBI user data PES streams */
+                    if(pmtStream.stream_type != TS_PSI_ST_13818_1_PrivatePES) continue;
+
+                    if(num == NEXUS_MAX_MUX_PIDS) num = 0;/* start from 0 */
+                    else {
+                        ++num;
+                        if(num >= NEXUS_MAX_MUX_PIDS) break;
+                    }
+                    BDBG_MODULE_MSG(trnsx_dbg,("%s:: \tset source user data PID: %d with elementary_PID: %x (%d)",
+                                            BSTD_FUNCTION, num, pmtStream.elementary_PID,pmtStream.elementary_PID));
+                    pTrans->source.userData.pids[num] = pmtStream.elementary_PID;
+                } else {
+                    for(num=0; num < pTrans->streamMux.userData.numPids; num++) {
+                        /* 3) bingo! save the stream info and stream descriptor */
+                        if(pmtStream.elementary_PID == (uint16_t)pTrans->source.userData.pids[num]) {
+                            break;
+                        }
+                    }
+                    /* not found, check next stream */
+                    if(num == pTrans->streamMux.userData.numPids) continue;
+                }
+
+                /* 4) save user data PSI info */
+                BDBG_MODULE_MSG(trnsx_dbg,("%s:: \tuser data PID: %d, stream_type: %d\n", BSTD_FUNCTION, pmtStream.elementary_PID, pmtStream.stream_type));
+                /* save pmt stream info and remap PID */
+                pTrans->streamMux.userData.streams[num].stPMTStream = pmtStream;
+
+                if(pTrans->streamMux.userData.bRemapPids) {
+                    pTrans->streamMux.userData.streams[num].pid = pTrans->streamMux.userData.uiBasePid+num;
+                    pTrans->streamMux.userData.streams[num].stPMTStream.elementary_PID = pTrans->streamMux.userData.streams[num].pid;
+                } else {
+                    pTrans->streamMux.userData.streams[num].pid = pTrans->streamMux.userData.streams[num].stPMTStream.elementary_PID;
+                }
+                /* save stream descriptor size */
+                streamOffset = TS_PMT_P_getStreamByteOffset(buffer, size, i);
+                pTrans->streamMux.userData.streams[num].iLengthDesc = TS_READ_16(&buffer[streamOffset+3])&0x3FF;
+                BDBG_MODULE_MSG(trnsx_dbg,("%s:: \tdescriptor length: %d\n", BSTD_FUNCTION, pTrans->streamMux.userData.streams[num].iLengthDesc));
+
+                /* sanity check descriptor size */
+                if(pTrans->streamMux.userData.streams[num].iLengthDesc > 188) {
+                BDBG_ERR(("%s:: User data descriptor length %d too long!",BSTD_FUNCTION,  pTrans->streamMux.userData.streams[num].iLengthDesc));
+                    pTrans->streamMux.userData.streams[num].bValid = false;/* invalidate */
+                    goto Done_getUserDataPsi;
+                }
+                BKNI_Memcpy(pTrans->streamMux.userData.streams[num].dataDescriptors,&buffer[streamOffset+5],pTrans->streamMux.userData.streams[num].iLengthDesc);
+                /* mark it valid finally */
+                pTrans->streamMux.userData.streams[num].bValid = true;
+            }
+            if(pTrans->streamMux.userData.numPids == BTST_TS_USER_DATA_ALL) {
+                pTrans->streamMux.userData.numPids = num+1;/* found num of user data streams */
+                BDBG_MODULE_MSG(trnsx_dbg,("%s:: Context%d found "BDBG_UINT64_FMT" user data PIDs to pass through.", BSTD_FUNCTION, pTrans->uiIndex, BDBG_UINT64_ARG((uint64_t)pTrans->streamMux.userData.numPids)));
+            }
+
+        }
+Done_getUserDataPsi:
+        /* XPT HW is configured to pad all messages to 4 bytes. If we are calling NEXUS_Message_ReadComplete
+        based on message length and not the size returned by NEXUS_Message_GetBuffer, then we must add that pad.
+        If we are wrong, NEXUS_Message_ReadComplete will fail. */
+        if (message_length % 4) {
+            message_length += 4 - (message_length % 4);
+        }
+        /* only complete one PMT */
+        rc = NEXUS_Message_ReadComplete(pTrans->streamMux.userData.psi_message[count].message, message_length);
+        BDBG_ASSERT(!rc);
+
+        pTrans->streamMux.userData.psi_message[count].done = true; /* don't parse this table any more */
+
+        /* Only do once. TODO: may periodically watch for updated PMT info. */
+        if(bFound) break;
+    }
+
+    for (i=0;i<BTST_MAX_MESSAGE_FILTERS;i++) {
+        if (pTrans->streamMux.userData.psi_message[i].message) {
+            NEXUS_Message_Close(pTrans->streamMux.userData.psi_message[i].message);
+            pTrans->streamMux.userData.psi_message[i].message = NULL;
+        }
+        if (pTrans->streamMux.userData.psi_message[i].pidChannel) {
+            if(pTrans->source.eType == TRNSX_Source_eFile) {
+                NEXUS_Playback_ClosePidChannel(pTrans->playback.playback, pTrans->streamMux.userData.psi_message[i].pidChannel);
+            }
+            else {
+                NEXUS_PidChannel_Close(pTrans->streamMux.userData.psi_message[i].pidChannel);
+            }
+            pTrans->streamMux.userData.psi_message[i].pidChannel = NULL;
+        }
+    }
+    /* free the event resource */
+    BKNI_DestroyEvent(event);
+
+    if ( bStopPlayback == true )
+    {
+        /* TODO: are there cases when playback should be closed as well? */
+        TRNSX_Playback_Stop( pCtxt, pTrans );
+    }
+
+
+}
+
+/* TSHDRBUILDER has one extra byte at the beginning to describe the variable length TS header buffer */
+#endif
+
+#define BTST_TS_HEADER_BUF_LENGTH   189
 
 void TRNSX_StreamMux_SystemData_AddPatPmt(
     /* TranscodeContext  *pContext,*/
@@ -1940,7 +2331,7 @@ void TRNSX_StreamMux_SystemData_AddPatPmt(
     TS_PSI_header_Init(&psi_header);
     TS_PAT_Init(&patState, &psi_header, pat_pl_buf, BTST_TS_HEADER_BUF_LENGTH);
 
-    TS_PAT_program_Init(&program, 1, BTST_MUX_PMT_PID);
+    TS_PAT_program_Init(&program, 1, pTrans->streamMux.uiPmtPid);
     TS_PAT_addProgram(&patState, &pmtState, &program, pmt_pl_buf, BTST_TS_HEADER_BUF_LENGTH);
 
     if(pcrPid) {
@@ -1956,26 +2347,32 @@ void TRNSX_StreamMux_SystemData_AddPatPmt(
         TS_PMT_stream_Init(&pmt_stream, audStreamType, audPid);
         TS_PMT_addStream(&pmtState, &pmt_stream, &streamNum);
     }
-#if 0
+
     /* add user data PID stream PSI info */
-    if(pContext->inputSettings.bTsUserDataInput && pContext->inputSettings.resource != BTST_RESOURCE_HDMI) {
-        getUserDataPsiFromPmt(pContext);
-        for(i=0; i<NEXUS_MAX_MUX_PIDS; i++) {
-            if(pContext->bUserDataStreamValid[i]) {
-                TS_PMT_addStream(&pmtState, &pContext->userDataStream[i], &streamNum);
+    if(pTrans->streamMux.userData.enable && pTrans->source.eType != TRNSX_Source_eHDMI)
+    {
+        TRNSX_StreamMux_SystemData_GetUserDataPsiFromPmt(pCtxt, pTrans);
+
+        for(i=0; i<NEXUS_MAX_MUX_PIDS; i++)
+        {
+            if(pTrans->streamMux.userData.streams[i].bValid) {
+                TS_PMT_addStream(&pmtState, &pTrans->streamMux.userData.streams[i].stPMTStream, &streamNum);
                 TS_PMT_setDescriptor(&pmtState,
-                    pContext->userDataDescriptors[i],
-                    pContext->userDataDescLen[i],
+                    pTrans->streamMux.userData.streams[i].dataDescriptors,
+                    pTrans->streamMux.userData.streams[i].iLengthDesc,
                     streamNum);
             }
         }
     }
-#endif
+
     TS_PAT_finalize(&patState, &pat_pl_size);
     TS_PMT_finalize(&pmtState, &pmt_pl_size);
-    BDBG_MSG(("\nContext%d output PMT section:", pTrans->uiIndex));
-    for(i=0; i < (int)pmtState.size; i+=8) {
-        BDBG_MSG(("%02x %02x %02x %02x %02x %02x %02x %02x", pmtState.buf[i], pmtState.buf[i+1], pmtState.buf[i+2], pmtState.buf[i+3],
+    BDBG_MODULE_MSG(trnsx_dbg,("%s:: session:%d output PMT section:", BSTD_FUNCTION, pTrans->uiIndex));
+
+    for(i=0; i < (int)pmtState.size; i+=8)
+    {
+        BDBG_MODULE_MSG(trnsx_dbg,("%s:: %02x %02x %02x %02x %02x %02x %02x %02x", BSTD_FUNCTION,
+        pmtState.buf[i], pmtState.buf[i+1], pmtState.buf[i+2], pmtState.buf[i+3],
             pmtState.buf[i+4], pmtState.buf[i+5], pmtState.buf[i+6], pmtState.buf[i+7]));
     }
 
@@ -1986,20 +2383,68 @@ void TRNSX_StreamMux_SystemData_AddPatPmt(
     TS_buildTSHeader(&pidInfo, &pidState, pTrans->streamMux.pat[0], BTST_TS_HEADER_BUF_LENGTH, &buf_used, patState.size, &payload_pked, 1);
     BKNI_Memcpy((uint8_t*)pTrans->streamMux.pat[0] + buf_used, pat_pl_buf, pat_pl_size);
 
-    TS_PID_info_Init(&pidInfo, BTST_MUX_PMT_PID, 1);
+    TS_PID_info_Init(&pidInfo, pTrans->streamMux.uiPmtPid, 1);
     pidInfo.pointer_field = 1;
     TS_PID_state_Init(&pidState);
     TS_buildTSHeader(&pidInfo, &pidState, pTrans->streamMux.pmt[0], BTST_TS_HEADER_BUF_LENGTH, &buf_used, pmtState.size, &payload_pked, 1);
     BKNI_Memcpy((uint8_t*)pTrans->streamMux.pmt[0] + buf_used, pmt_pl_buf, pmt_pl_size);
-    BDBG_MSG(("\nContext%d output PMT packet:", pTrans->uiIndex));
-    for(i=0; i < BTST_TS_HEADER_BUF_LENGTH; i+=8) {
-        BDBG_MSG(("%02x %02x %02x %02x %02x %02x %02x %02x",
-            *((uint8_t*)pTrans->streamMux.pmt[0]+i), *((uint8_t*)pTrans->streamMux.pmt[0]+i+1), *((uint8_t*)pTrans->streamMux.pmt[0]+i+2), *((uint8_t*)pTrans->streamMux.pmt[0]+i+3),
-            *((uint8_t*)pTrans->streamMux.pmt[0]+i+4), *((uint8_t*)pTrans->streamMux.pmt[0]+i+5), *((uint8_t*)pTrans->streamMux.pmt[0]+i+6), *((uint8_t*)pTrans->streamMux.pmt[0]+i+7)));
+
+    BDBG_MODULE_MSG(trnsx_dbg,("%s:: session:%d output PMT packet:", BSTD_FUNCTION, pTrans->uiIndex));
+
+    for(i=0; i < BTST_TS_HEADER_BUF_LENGTH; i+=8)
+    {
+        BDBG_MODULE_MSG(trnsx_dbg,("%s:: %02x %02x %02x %02x %02x %02x %02x %02x", BSTD_FUNCTION,
+            *((uint8_t*)pTrans->streamMux.pmt[0]+i),
+            *((uint8_t*)pTrans->streamMux.pmt[0]+i+1),
+            *((uint8_t*)pTrans->streamMux.pmt[0]+i+2),
+            *((uint8_t*)pTrans->streamMux.pmt[0]+i+3),
+            *((uint8_t*)pTrans->streamMux.pmt[0]+i+4),
+            *((uint8_t*)pTrans->streamMux.pmt[0]+i+5),
+            *((uint8_t*)pTrans->streamMux.pmt[0]+i+6),
+            *((uint8_t*)pTrans->streamMux.pmt[0]+i+7)));
     }
 
 }
 
+static void TRNSX_StreamMux_SystemData_InsertTimer(void *context)
+{
+    TRNSX_Transcode * pTrans = context;
+    uint8_t ccByte;
+
+    ++pTrans->streamMux.ccValue;/* increment CC synchronously with PAT/PMT */
+    ccByte = *((uint8_t*)pTrans->streamMux.pat[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 4); /* the 1st byte of pat/pmt arrays is for TSheader builder use */
+
+    /* need to increment CC value for PAT/PMT packets */
+    ccByte = (ccByte & 0xf0) | (pTrans->streamMux.ccValue & 0xf);
+    *((uint8_t*)pTrans->streamMux.pat[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 4) = ccByte;
+    /* need to flush the cache before set to TS mux hw */
+    NEXUS_Memory_FlushCache((void*)((uint8_t*)pTrans->streamMux.pat[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 4), 1);
+    /* ping pong PAT pointer */
+    pTrans->streamMux.psi[0].pData = (void*)((uint8_t*)pTrans->streamMux.pat[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 1);
+
+    ccByte = *((uint8_t*)pTrans->streamMux.pmt[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 4);
+    ccByte = (ccByte & 0xf0) | (pTrans->streamMux.ccValue & 0xf);
+    *((uint8_t*)pTrans->streamMux.pmt[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 4) = ccByte;
+    NEXUS_Memory_FlushCache((void*)((uint8_t*)pTrans->streamMux.pmt[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 4), 1);
+    /* ping pong PMT pointer */
+    pTrans->streamMux.psi[1].pData = (void*)((uint8_t*)pTrans->streamMux.pmt[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 1);
+
+    NEXUS_StreamMux_AddSystemDataBuffer(pTrans->streamMux.streamMux, &pTrans->streamMux.psi[0]);
+    NEXUS_StreamMux_AddSystemDataBuffer(pTrans->streamMux.streamMux, &pTrans->streamMux.psi[1]);
+
+    BDBG_MODULE_MSG(trnsx_dbg,("%s:: session:%d insert PAT&PMT... ccPAT = %x ccPMT=%x",
+                        BSTD_FUNCTION, pTrans->uiIndex,
+                        *((uint8_t*)pTrans->streamMux.pat[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 4) & 0xf,
+                        *((uint8_t*)pTrans->streamMux.pmt[pTrans->streamMux.ccValue  % BTST_PSI_QUEUE_CNT] + 4) & 0xf));
+
+    if(pTrans->streamMux.systemdataTimerIsStarted)
+    {
+        pTrans->streamMux.systemdataTimer = B_Scheduler_StartTimer(
+            pTrans->streamMux.schedulerSystemdata,pTrans->streamMux.mutexSystemdata, 1000, TRNSX_StreamMux_SystemData_InsertTimer, pTrans);
+        if(pTrans->streamMux.systemdataTimer==NULL) {BDBG_ERR(("schedule timer error %d", NEXUS_OUT_OF_SYSTEM_MEMORY));}
+    }
+    return;
+}
 
 static void TRNSX_StreamMux_SystemData_Open(
     TRNSX_TestContext *  pCtxt,
@@ -2013,6 +2458,12 @@ static void TRNSX_StreamMux_SystemData_Open(
     NEXUS_AudioCodec audCodec = NEXUS_AudioCodec_eUnknown;
 
     BSTD_UNUSED(audCodec);
+
+    BDBG_MODULE_MSG(trnsx_dbg,("%s: playback.eState: %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->playback.eState )));
+
+    /* TODO: add error checking for proper sequencing. */
+    pTrans->streamMux.eState = TRNSX_State_eOpened;
+
 
     for(i=0; i<BTST_PSI_QUEUE_CNT; i++)
     {
@@ -2032,7 +2483,7 @@ static void TRNSX_StreamMux_SystemData_Open(
             case NEXUS_VideoCodec_eVc1SimpleMain: vidStreamType = 0xea; break;
             case NEXUS_VideoCodec_eVp9:           vidStreamType = 0x00; break; /* VP9 in TS doesn't actually work, but this is in place for VCE regression testing */
             default:
-                BDBG_ERR(("Video encoder codec %d is not supported!\n", pTrans->videoEncoder.startSettings.codec));
+                BDBG_ERR(("%s:: video encoder codec %d is not supported!\n", BSTD_FUNCTION, pTrans->videoEncoder.startSettings.codec));
                 BDBG_ASSERT(0);
         }
     }
@@ -2040,12 +2491,12 @@ static void TRNSX_StreamMux_SystemData_Open(
     if(pContext->encodeSettings.bAudioEncode)
     {/* audio transcode */
         audCodec = pContext->encodeSettings.encoderAudioCodec;
-        audPid = BTST_MUX_AUDIO_PID;
+        audPid = pTrans->streamMux.uiAudioPid;
     }
     else if(pContext->inputSettings.bAudioInput)
     {/* audio passthrough */
         audCodec = pContext->inputSettings.eAudioCodec;
-        audPid = BTST_MUX_AUDIO_PID;
+        audPid = pTrans->streamMux.uiAudioPid;
     }
     if(pContext->inputSettings.bAudioInput)
     {
@@ -2065,7 +2516,11 @@ static void TRNSX_StreamMux_SystemData_Open(
     }
 #endif
 
-    TRNSX_StreamMux_SystemData_AddPatPmt( pCtxt, pTrans, (0 != pTrans->streamMux.startSettings.pcr.interval ) ? BTST_MUX_PCR_PID : 0, BTST_MUX_VIDEO_PID, audPid, vidStreamType, audStreamType);
+    TRNSX_StreamMux_SystemData_AddPatPmt(
+                pCtxt, pTrans,
+                (0 != pTrans->streamMux.startSettings.pcr.interval ) ? pTrans->streamMux.uiPcrPid : 0,
+                pTrans->streamMux.uiVideoPid, audPid, vidStreamType, audStreamType);
+
     for(i=0; i<BTST_PSI_QUEUE_CNT; i++)
     {
         if(i > 0)
@@ -2087,8 +2542,9 @@ static void TRNSX_StreamMux_SystemData_Open(
     pTrans->streamMux.psi[1].timestampDelta = 0;
     NEXUS_StreamMux_AddSystemDataBuffer(pTrans->streamMux.streamMux, &pTrans->streamMux.psi[0]);
     NEXUS_StreamMux_AddSystemDataBuffer(pTrans->streamMux.streamMux, &pTrans->streamMux.psi[1]);
-    BDBG_MSG(("insert PAT&PMT... ccPAT = %x ccPMT=%x", *((uint8_t*)pTrans->streamMux.pat[0] + 4) & 0xf,
-        *((uint8_t*)pTrans->streamMux.pmt[0] + 4) & 0xf));
+    BDBG_MODULE_MSG(trnsx_dbg,("%s:: insert PAT&PMT... ccPAT = %x ccPMT=%x", BSTD_FUNCTION,
+                        *((uint8_t*)pTrans->streamMux.pat[0] + 4) & 0xf,
+                        *((uint8_t*)pTrans->streamMux.pmt[0] + 4) & 0xf));
 
 }
 
@@ -2176,7 +2632,6 @@ pidChannelTranscodePcr, pidRemuxPcr;
 pidChannelTranscodePat, pidRemuxPat;
 pidChannelTranscodePmt, pidRemuxPmt;
 finishEvent;
-bTsUserDataInput = g_bTsUserData; TODO: need to expose to user
 numUserDataPids;
 g_muxLatencyTolerance = 20;
 bAudioInput
@@ -2204,17 +2659,15 @@ static void TRNSX_StreamMux_Open(
     TRNSX_Transcode * pTrans
     )
 {
-    /* TODO: add error checking for proper sequencing. */
-    pTrans->streamMux.eState = TRNSX_State_eOpened;
-
     bool bTtsOutput = (NEXUS_TransportTimestampType_eNone != pTrans->streamMux.transportTimestampType);
 
-#if 0
-    NEXUS_Playpump_GetDefaultOpenSettings(&pTrans->streamMux.playpumpOpenSettings);
-    pTrans->streamMux.playpumpOpenSettings.fifoSize = 16384; /* reduce FIFO size allocated for playpump */
-    pTrans->streamMux.playpumpOpenSettings.numDescriptors = pTrans->streamMux.uiNumDescs; /* set number of descriptors */
-    pTrans->streamMux.playpumpOpenSettings.streamMuxCompatible = true;
-#endif
+    BDBG_MODULE_MSG(trnsx_dbg,("%s: streamMux.eState: %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->streamMux.eState )));
+
+    /* initialize with the number of pids specified by the user */
+    pTrans->streamMux.userData.numPids = ( pTrans->source.userData.numPids ) ? pTrans->source.userData.numPids : BTST_TS_USER_DATA_ALL;
+
+    /* TODO: add error checking for proper sequencing. */
+    pTrans->streamMux.eState = TRNSX_State_eOpened;
 
     /*if (pTrans->streamMux.bMCPB)*/
     if ( 1 )
@@ -2277,12 +2730,12 @@ static void TRNSX_StreamMux_Open(
         /* reduce stream mux memory allocation if no TS user data passthru */
         NEXUS_StreamMuxConfiguration streamMuxConfig;
         NEXUS_StreamMux_GetDefaultConfiguration(&streamMuxConfig);
-        if(!pTrans->streamMux.bTsUserDataInput) {
+        if(!pTrans->streamMux.userData.enable) {
             streamMuxConfig.userDataPids = 0;/* remove unnecessary memory allocation */
-        } else if(pTrans->streamMux.numUserDataPids == BTST_TS_USER_DATA_ALL) {
+        } else if(pTrans->streamMux.userData.numPids == BTST_TS_USER_DATA_ALL) {
             streamMuxConfig.userDataPids = NEXUS_MAX_MUX_PIDS;
         } else {
-            streamMuxConfig.userDataPids = pTrans->streamMux.numUserDataPids;
+            streamMuxConfig.userDataPids = pTrans->streamMux.userData.numPids;
         }
         streamMuxConfig.audioPids           = pTrans->streamMux.bAudioInput ? 1 : 0;
         streamMuxConfig.latencyTolerance    = pTrans->streamMux.muxLatencyTolerance;
@@ -2296,12 +2749,12 @@ static void TRNSX_StreamMux_Open(
 #else
     /* reduce stream mux memory allocation if no TS user data passthru */
 
-    if(!pTrans->streamMux.bTsUserDataInput) {
+    if(!pTrans->streamMux.userData.enable) {
         pTrans->streamMux.configuration.userDataPids = 0;/* remove unnecessary memory allocation */
-    } else if(pTrans->streamMux.numUserDataPids == BTST_TS_USER_DATA_ALL) {
+    } else if(pTrans->streamMux.userData.numPids == BTST_TS_USER_DATA_ALL) {
         pTrans->streamMux.configuration.userDataPids = NEXUS_MAX_MUX_PIDS;
     } else {
-        pTrans->streamMux.configuration.userDataPids = pTrans->streamMux.numUserDataPids;
+        pTrans->streamMux.configuration.userDataPids = pTrans->streamMux.userData.numPids;
     }
 
     /* set pCtxt->encodeDelay; A2P delay affects mux resource allocation */
@@ -2313,7 +2766,10 @@ static void TRNSX_StreamMux_Open(
     pTrans->streamMux.configuration.supportTts = (pTrans->streamMux.transportTimestampType != NEXUS_TransportTimestampType_eNone);
 
     NEXUS_StreamMux_GetMemoryConfiguration( &pTrans->streamMux.configuration, &pTrans->streamMux.createSettings.memoryConfiguration );
-
+    BDBG_MODULE_MSG(trnsx_dbg,("%s: videoPids:%d audioPids:%d userDataPids:%d", BSTD_FUNCTION,
+                        pTrans->streamMux.configuration.videoPids,
+                        pTrans->streamMux.configuration.audioPids,
+                        pTrans->streamMux.configuration.userDataPids ));
 #endif
 
     pTrans->streamMux.streamMux = NEXUS_StreamMux_Create(&pTrans->streamMux.createSettings);
@@ -2325,7 +2781,7 @@ static void TRNSX_StreamMux_Open(
     /*if(!pCtxt->bNoVideo) */
     if( 1 )
     {
-        pTrans->streamMux.startSettings.video[0].pid = BTST_MUX_VIDEO_PID;
+        pTrans->streamMux.startSettings.video[0].pid = pTrans->streamMux.uiVideoPid;
         pTrans->streamMux.startSettings.video[0].encoder = pTrans->videoEncoder.videoEncoder;
         pTrans->streamMux.startSettings.video[0].playpump = pTrans->streamMux.playpump; /*pCtxt->playpumpTranscodeVideo;*/
     }
@@ -2349,14 +2805,14 @@ static void TRNSX_StreamMux_Open(
        }
         assert(pCtxt->playpumpTranscodeAudio);
 
-        pTrans->streamMux.startSettings.audio[0].pid = BTST_MUX_AUDIO_PID;
+        pTrans->streamMux.startSettings.audio[0].pid = pTrans->streamMux.uiAudioPid;
         pTrans->streamMux.startSettings.audio[0].muxOutput = pCtxt->audioMuxOutput;
         pTrans->streamMux.startSettings.audio[0].playpump = pCtxt->playpumpTranscodeAudio;
         pTrans->streamMux.startSettings.audio[0].pesPacking = g_audioPesPacking;
     }
 #endif
 
-    pTrans->streamMux.startSettings.pcr.pid         = BTST_MUX_PCR_PID;
+    pTrans->streamMux.startSettings.pcr.pid         = pTrans->streamMux.uiPcrPid;
     pTrans->streamMux.startSettings.pcr.playpump    = pTrans->streamMux.playpump; /*pCtxt->playpumpTranscodePcr;*/
     /* TODO: set after the video encoder starts?  Use pTrans->videoEncoder.settings.encoderDelay? */
     pTrans->streamMux.startSettings.muxDelay        = pTrans->videoEncoder.settings.encoderDelay;
@@ -2404,61 +2860,87 @@ static void TRNSX_StreamMux_Open(
     /*******************************
      *  TS user data pass through setup
      */
-#if 0
-    if(pTrans->streamMux.bTsUserDataInput && pCtxt->inputSettings.resource != BTST_RESOURCE_HDMI) {
-        size_t i;
 
-        NEXUS_Message_GetDefaultSettings(&pTrans->streamMux.messageSettings);
+
+    if(pTrans->streamMux.userData.enable && pTrans->source.eType != TRNSX_Source_eHDMI)
+    {
+        unsigned i;
+        NEXUS_MessageSettings               messageSettings;
+        NEXUS_MessageStartSettings          messageStartSettings;
+        NEXUS_PlaybackPidChannelSettings    playbackPidSettings;
+
+        NEXUS_Message_GetDefaultSettings(&messageSettings);
         /* SCTE 270 spec max TS VBI user data bitrate=270Kbps, 256KB buffer can hold 7.5 seconds;
            worthy user data for video synchronization; TODO: may be reduced if unnecessary */
-        pTrans->streamMux.messageSettings.bufferSize = 512*1024;
-        pTrans->streamMux.messageSettings.maxContiguousMessageSize = 0; /* to support TS capture and in-place operation */
-        pTrans->streamMux.messageSettings.overflow.callback = message_overflow_callback; /* report overflow error */
-        pTrans->streamMux.messageSettings.overflow.context  = pCtxt;
+        messageSettings.bufferSize = 512*1024;
+        messageSettings.maxContiguousMessageSize = 0; /* to support TS capture and in-place operation */
+        messageSettings.overflow.callback = TRNSX_StreamMux_MessageOverflowCallback; /* report overflow error */
+        messageSettings.overflow.context  = pTrans;
 
         /* open source user data PID channels */
-        NEXUS_Playback_GetDefaultPidChannelSettings(&pTrans->streamMux.playbackPidSettings);
-        pTrans->streamMux.playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eOther; /* capture the TS packets with the user data PES */
-        pTrans->streamMux.playbackPidSettings.pidSettings.pidSettings.pidChannelIndex = NEXUS_PID_CHANNEL_OPEN_MESSAGE_CAPABLE;
+        NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
+        playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eOther; /* capture the TS packets with the user data PES */
+        playbackPidSettings.pidSettings.pidSettings.pidChannelIndex = NEXUS_PID_CHANNEL_OPEN_MESSAGE_CAPABLE;
 
-        BDBG_ASSERT(NEXUS_MAX_MUX_PIDS >= pTrans->streamMux.numUserDataPids);
-        for(i = 0; i < pTrans->streamMux.numUserDataPids; i++) {
-            if(pCtxt->bUserDataStreamValid[i]) {
-                pTrans->streamMux.messageSettings.overflow.param = pCtxt->inputSettings.remapUserDataPid[i];
-                BDBG_MSG(("context%d opened message buffer for user data PID %d remapped %d", pTrans->uiIndex,
-                    pCtxt->inputSettings.userDataPid[i], pCtxt->inputSettings.remapUserDataPid[i]));
-                pTrans->streamMux.startSettings.userdata[i].message = NEXUS_Message_Open(&pTrans->streamMux.messageSettings);
+        BDBG_ASSERT(NEXUS_MAX_MUX_PIDS >= pTrans->streamMux.userData.numPids);
+        for(i = 0; i < pTrans->streamMux.userData.numPids; i++)
+        {
+            if(pTrans->streamMux.userData.streams[i].bValid)
+            {
+                messageSettings.overflow.param = pTrans->streamMux.userData.streams[i].pid;
+
+                BDBG_MODULE_MSG(trnsx_dbg,("%s:: session:%d opened message buffer for user data source PID %d record PID %d",
+                            BSTD_FUNCTION,
+                            pTrans->uiIndex,
+                            pTrans->source.userData.pids[i],
+                            pTrans->streamMux.userData.streams[i].pid));
+
+                pTrans->streamMux.startSettings.userdata[i].message = NEXUS_Message_Open(&messageSettings);
                 BDBG_ASSERT(pTrans->streamMux.startSettings.userdata[i].message);
-                pCtxt->userDataMessage[i] = pTrans->streamMux.startSettings.userdata[i].message;
 
-                if(pCtxt->bRemapUserDataPid) {
-                    pTrans->streamMux.playbackPidSettings.pidSettings.pidSettings.remap.enabled = true;
-                    pTrans->streamMux.playbackPidSettings.pidSettings.pidSettings.remap.pid     = pCtxt->inputSettings.remapUserDataPid[i];/* optional PID remap */
+                /*pTrans->streamMux.userDataMessage[i] = pTrans->streamMux.startSettings.userdata[i].message;*/
+
+                if(pTrans->streamMux.userData.bRemapPids) {
+                    playbackPidSettings.pidSettings.pidSettings.remap.enabled = true;
+                    playbackPidSettings.pidSettings.pidSettings.remap.pid     = pTrans->streamMux.userData.streams[i].pid;/* optional PID remap */
+
+                    BDBG_MODULE_MSG(trnsx_dbg,("%s:: session:%d enable userdata PID remapping, record PID: %d(%x)",
+                                               BSTD_FUNCTION,
+                                               pTrans->uiIndex,
+                                               playbackPidSettings.pidSettings.pidSettings.remap.pid,
+                                               playbackPidSettings.pidSettings.pidSettings.remap.pid));
                 }
-                pCtxt->pidChannelUserData[i] = NEXUS_Playback_OpenPidChannel(pCtxt->playback,
-                    pCtxt->inputSettings.userDataPid[i], &pTrans->streamMux.playbackPidSettings);
-                BDBG_ASSERT(pCtxt->pidChannelUserData[i]);
+
+                pTrans->streamMux.pidChannelUserData[i] = NEXUS_Playback_OpenPidChannel(
+                                                        pTrans->playback.playback,
+                                                        pTrans->source.userData.pids[i],
+                                                        &playbackPidSettings);
+
+                BDBG_ASSERT(pTrans->streamMux.pidChannelUserData[i]);
 
                 /* must start message before stream mux starts */
-                NEXUS_Message_GetDefaultStartSettings(pTrans->streamMux.startSettings.userdata[i].message, &pTrans->streamMux.messageStartSettings);
-                pTrans->streamMux.messageStartSettings.format = NEXUS_MessageFormat_eTs;
-                pTrans->streamMux.messageStartSettings.pidChannel = pCtxt->pidChannelUserData[i];
-                NEXUS_Message_Start(pTrans->streamMux.startSettings.userdata[i].message, &pTrans->streamMux.messageStartSettings);
+                NEXUS_Message_GetDefaultStartSettings(pTrans->streamMux.startSettings.userdata[i].message, &messageStartSettings);
+                messageStartSettings.format = NEXUS_MessageFormat_eTs;
+                messageStartSettings.pidChannel = pTrans->streamMux.pidChannelUserData[i];
+                NEXUS_Message_Start(pTrans->streamMux.startSettings.userdata[i].message, &messageStartSettings);
 
                 /* open transcode mux output user data PidChannels out of system data channel */
-                pCtxt->pidChannelTranscodeUserData[i] = NEXUS_Playpump_OpenPidChannel(pTrans->streamMux.playpump, /*pCtxt->playpumpTranscodePcr,*/
-                    pCtxt->inputSettings.remapUserDataPid[i], NULL);
-                BDBG_ASSERT(pCtxt->pidChannelTranscodeUserData[i]);
+                pTrans->streamMux.pidChannelTranscodeUserData[i] = NEXUS_Playpump_OpenPidChannel(
+                                                                        pTrans->streamMux.playpump, /*pCtxt->playpumpTranscodePcr,*/
+                                                                        pTrans->streamMux.userData.streams[i].pid,
+                                                                        NULL);
+                BDBG_ASSERT(pTrans->streamMux.pidChannelTranscodeUserData[i]);
             }
         }
     }
-#endif
+
+
     /* open PidChannels */
     pTrans->streamMux.pidChannelTranscodePcr = NEXUS_Playpump_OpenPidChannel(pTrans->streamMux.playpump /*pCtxt->playpumpTranscodePcr*/, pTrans->streamMux.startSettings.pcr.pid, NULL);
     assert(pTrans->streamMux.pidChannelTranscodePcr);
-    pTrans->streamMux.pidChannelTranscodePmt = NEXUS_Playpump_OpenPidChannel(pTrans->streamMux.playpump /*pCtxt->playpumpTranscodePcr*/, BTST_MUX_PMT_PID, NULL);
+    pTrans->streamMux.pidChannelTranscodePmt = NEXUS_Playpump_OpenPidChannel(pTrans->streamMux.playpump /*pCtxt->playpumpTranscodePcr*/, pTrans->streamMux.uiPmtPid, NULL);
     assert(pTrans->streamMux.pidChannelTranscodePmt);
-    pTrans->streamMux.pidChannelTranscodePat = NEXUS_Playpump_OpenPidChannel(pTrans->streamMux.playpump /*pCtxt->playpumpTranscodePcr*/, BTST_MUX_PAT_PID, NULL);
+    pTrans->streamMux.pidChannelTranscodePat = NEXUS_Playpump_OpenPidChannel(pTrans->streamMux.playpump /*pCtxt->playpumpTranscodePcr*/, pTrans->streamMux.uiPatPid, NULL);
     assert(pTrans->streamMux.pidChannelTranscodePat);
 
 #if 0
@@ -2530,6 +3012,8 @@ static void TRNSX_StreamMux_Close(
     TRNSX_Transcode * pTrans
     )
 {
+    size_t i;
+
     BSTD_UNUSED(pCtxt);
 
     /* TODO: add error checking for proper sequencing. */
@@ -2544,17 +3028,15 @@ static void TRNSX_StreamMux_Close(
     /************************************
      * Bring down transcoder
      */
-#if 0
-    if(pContext->inputSettings.bTsUserDataInput && pContext->inputSettings.resource != BTST_RESOURCE_HDMI) {
-        for(i = 0; i < pContext->inputSettings.numUserDataPids; i++) {
-            if(pContext->bUserDataStreamValid[i]) {
-                NEXUS_Message_Stop(pContext->userDataMessage[i]);
-                NEXUS_Message_Close(pContext->userDataMessage[i]);
+
+    if(pTrans->streamMux.userData.enable && pTrans->source.eType != TRNSX_Source_eHDMI) {
+        for(i = 0; i < pTrans->streamMux.userData.numPids; i++) {
+            if(pTrans->streamMux.userData.streams[i].bValid) {
+                NEXUS_Message_Stop(pTrans->streamMux.startSettings.userdata[i].message /*pTrans->streamMux.userDataMessage[i]*/);
+                NEXUS_Message_Close(pTrans->streamMux.startSettings.userdata[i].message/*pTrans->streamMux.userDataMessage[i]*/);
             }
         }
     }
-#endif
-
 
     if ( pTrans->streamMux.record )
     {
@@ -2579,7 +3061,7 @@ static void TRNSX_StreamMux_Close(
 
     /* This is handle in decode stop/close, does the order matter? */
 #if 0
-    if(pContext->inputSettings.resource == BTST_RESOURCE_FILE && (!g_activeXcodeCount || !g_bSimulXcode))
+    if(pTrans->source.eType == TRNSX_Source_eFile && (!g_activeXcodeCount || !g_bSimulXcode))
     {
         NEXUS_Playback_CloseAllPidChannels(pContext->playback);
         NEXUS_FilePlay_Close(pContext->file);
@@ -2587,7 +3069,7 @@ static void TRNSX_StreamMux_Close(
         NEXUS_Playpump_Close(pContext->playpump);
         pContext->playpump = NULL;
     }
-    else if(pContext->inputSettings.resource == BTST_RESOURCE_QAM)
+    else if(pTrans->source.eType == BTST_RESOURCE_QAM)
     {
         if(pContext->inputSettings.bAudioInput)
             NEXUS_PidChannel_Close(pContext->audioPidChannel);
@@ -2609,7 +3091,7 @@ static void TRNSX_StreamMux_Close(
 
     if(!pContext->bNoVideo) {
 #if NEXUS_HAS_HDMI_INPUT
-        if(pContext->inputSettings.resource == BTST_RESOURCE_HDMI) {
+        if(pTrans->source.eType == TRNSX_Source_eHDMI) {
             NEXUS_VideoInput_Shutdown(NEXUS_HdmiInput_GetVideoConnector(pContext->hdmiInput));
         }
         else
@@ -2672,7 +3154,7 @@ static void TRNSX_StreamMux_Close(
 #if 0
     if(pContext->inputSettings.bAudioInput)
     {
-        if(pContext->encodeSettings.bAudioEncode || (pContext->inputSettings.resource == BTST_RESOURCE_HDMI))
+        if(pContext->encodeSettings.bAudioEncode || (pTrans->source.eType == TRNSX_Source_eHDMI))
         {
             NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioMuxOutput_GetConnector(pContext->audioMuxOutput));
             NEXUS_AudioEncoder_RemoveAllInputs(pContext->audioEncoder);
@@ -2742,12 +3224,12 @@ static void TRNSX_StreamMux_Close(
 
 #if 0
 #if NEXUS_HAS_HDMI_INPUT
-    if(pContext->inputSettings.resource == BTST_RESOURCE_HDMI) {
+    if(pTrans->source.eType == TRNSX_Source_eHDMI) {
         NEXUS_HdmiInput_Close(pContext->hdmiInput);
     }
 #endif
 #if NEXUS_HAS_FRONTEND
-    if(pContext->inputSettings.resource == BTST_RESOURCE_QAM) {
+    if(pTrans->source.eType == BTST_RESOURCE_QAM) {
         NEXUS_ParserBand_Close(pContext->parserBand);
     }
 
@@ -2839,21 +3321,21 @@ static NEXUS_Error TRNSX_StreamMux_Start(
 
         pContext->pidRemuxPcr = NEXUS_PidChannel_Open(pContext->parserBandRemux, pTrans->streamMux.startSettings.pcr.pid, NULL);
         BDBG_ASSERT(pContext->pidRemuxPcr);
-        pContext->pidRemuxPmt = NEXUS_PidChannel_Open(pContext->parserBandRemux, BTST_MUX_PMT_PID, NULL);
+        pContext->pidRemuxPmt = NEXUS_PidChannel_Open(pContext->parserBandRemux, pTrans->streamMux.uiPmtPid, NULL);
         BDBG_ASSERT(pContext->pidRemuxPmt);
-        pContext->pidRemuxPat = NEXUS_PidChannel_Open(pContext->parserBandRemux, BTST_MUX_PAT_PID, NULL);
+        pContext->pidRemuxPat = NEXUS_PidChannel_Open(pContext->parserBandRemux, pTrans->streamMux.uiPatPid, NULL);
         BDBG_ASSERT(pContext->pidRemuxPat);
         /* it seems the null packets would be recorded without explicitly added here as parser band enabled allPass; */
         NEXUS_Record_AddPidChannel(pTrans->streamMux.record, pContext->pidRemuxPcr, NULL);
         NEXUS_Record_AddPidChannel(pTrans->streamMux.record, pContext->pidRemuxPat, NULL);
         NEXUS_Record_AddPidChannel(pTrans->streamMux.record, pContext->pidRemuxPmt, NULL);
-        if(pContext->inputSettings.bTsUserDataInput && pContext->inputSettings.resource != BTST_RESOURCE_HDMI) {
+        if(pTrans->streamMux.userData.enable && pTrans->source.eType != TRNSX_Source_eHDMI) {
             size_t i;
-            BDBG_ASSERT(NEXUS_MAX_MUX_PIDS >= pContext->inputSettings.numUserDataPids);
-            for(i = 0; i < pContext->inputSettings.numUserDataPids; i++) {
-                if(pContext->bUserDataStreamValid[i]) {
+            BDBG_ASSERT(NEXUS_MAX_MUX_PIDS >= pTrans->streamMux.userData.numPids);
+            for(i = 0; i < pTrans->streamMux.userData.numPids; i++) {
+                if(pTrans->streamMux.userData.streams[i].bValid) {
                     NEXUS_Remux_AddPidChannel(pContext->remux, pTrans->streamMux.pidChannelTranscodeUserData[i]);
-                    pContext->pidRemuxUserData[i] = NEXUS_PidChannel_Open(pContext->parserBandRemux, pContext->inputSettings.remapUserDataPid[i], NULL);
+                    pContext->pidRemuxUserData[i] = NEXUS_PidChannel_Open(pContext->parserBandRemux, pTrans->streamMux.userData.streams[i].pid, NULL);
                     NEXUS_Record_AddPidChannel(pTrans->streamMux.record, pContext->pidRemuxUserData[i], NULL);
                 }
             }
@@ -2867,12 +3349,12 @@ static NEXUS_Error TRNSX_StreamMux_Start(
         NEXUS_Record_AddPidChannel(pTrans->streamMux.record, pTrans->streamMux.pidChannelTranscodePcr, NULL);
         NEXUS_Record_AddPidChannel(pTrans->streamMux.record, pTrans->streamMux.pidChannelTranscodePat, NULL);
         NEXUS_Record_AddPidChannel(pTrans->streamMux.record, pTrans->streamMux.pidChannelTranscodePmt, NULL);
-#if 0
-        if(pContext->inputSettings.bTsUserDataInput && pContext->inputSettings.resource != BTST_RESOURCE_HDMI) {
+#if 1
+        if(pTrans->streamMux.userData.enable && pTrans->source.eType != TRNSX_Source_eHDMI) {
             size_t i;
-            BDBG_ASSERT(NEXUS_MAX_MUX_PIDS >= pContext->inputSettings.numUserDataPids);
-            for(i = 0; i < pContext->inputSettings.numUserDataPids; i++) {
-                if(pContext->bUserDataStreamValid[i]) {
+            BDBG_ASSERT(NEXUS_MAX_MUX_PIDS >= pTrans->streamMux.userData.numPids);
+            for(i = 0; i < pTrans->streamMux.userData.numPids; i++) {
+                if(pTrans->streamMux.userData.streams[i].bValid) {
                     NEXUS_Record_AddPidChannel(pTrans->streamMux.record, pTrans->streamMux.pidChannelTranscodeUserData[i], NULL);
                 }
             }
@@ -2922,7 +3404,7 @@ static NEXUS_Error TRNSX_StreamMux_Start(
      * start decoders
      */
 #if 0
-    if((pContext->inputSettings.resource != BTST_RESOURCE_HDMI) && !pContext->bNoStopDecode && !pContext->bNoVideo
+    if((pTrans->source.eType != TRNSX_Source_eHDMI) && !pContext->bNoStopDecode && !pContext->bNoVideo
         && (pContext->contextId == g_simulDecoderMaster || !g_bSimulXcode))
     {
         NEXUS_VideoDecoderExtendedSettings extSettings;
@@ -2975,9 +3457,10 @@ static NEXUS_Error TRNSX_StreamMux_Start(
 #endif
 
     /* Start playback before mux set up PAT/PMT which may depend on PMT user data PSI extraction */
+    /* Handled elsewhere, this can be deleted. */
 
 #if 0
-    if((pContext->inputSettings.resource == BTST_RESOURCE_FILE) && !pContext->bNoStopDecode
+    if((pTrans->source.eType == TRNSX_Source_eFile) && !pContext->bNoStopDecode
         && (pContext->contextId == g_simulDecoderMaster || !g_bSimulXcode))
     {
         NEXUS_Playback_Start(pContext->playback, pContext->file, NULL);
@@ -3018,7 +3501,7 @@ static NEXUS_Error TRNSX_StreamMux_Stop(
     BDBG_ASSERT(pTrans);
 
     /* TODO: add error checking for proper sequencing. */
-    pTrans->streamMux.eState = TRNSX_State_eClosed;
+    pTrans->streamMux.eState = TRNSX_State_eStopped;
 
    /*******************************
     * stop system data scheduler
@@ -3035,7 +3518,7 @@ static NEXUS_Error TRNSX_StreamMux_Stop(
     /**************************************************
      * NOTE: stop sequence should be in front->back order
      */
-    if((pContext->inputSettings.resource == BTST_RESOURCE_FILE) && !pContext->bNoStopDecode)
+    if((pTrans->source.eType == TRNSX_Source_eFile) && !pContext->bNoStopDecode)
     {
         if(pContext->contextId == g_simulDecoderMaster || !g_bSimulXcode) {
             NEXUS_Playback_Stop(pContext->playback);
@@ -3062,7 +3545,7 @@ static NEXUS_Error TRNSX_StreamMux_Stop(
 #if 0
 
      if(!pContext->bNoVideo) {
-         if(pContext->inputSettings.resource != BTST_RESOURCE_HDMI && !pContext->bNoStopDecode) {
+         if(pTrans->source.eType != TRNSX_Source_eHDMI && !pContext->bNoStopDecode) {
              if(pContext->contextId == g_simulDecoderMaster || !g_bSimulXcode)
              NEXUS_VideoDecoder_Stop(pContext->videoDecoder);
          }
@@ -3159,9 +3642,6 @@ static NEXUS_Error TRNSX_StreamMux_Stop(
 #endif
     return rc;
 }
-
-
-#endif /* x */
 
 /*
  * File mux wrappers.
@@ -3524,7 +4004,7 @@ static NEXUS_Error TRNSX_Mux_Stop(
 /*
  * Playback wrappers
  */
-static NEXUS_Error TRNSX_Playback_Init(
+static NEXUS_Error TRNSX_Playback_Open(
     TRNSX_TestContext *  pCtxt,
     TRNSX_Transcode * pTrans
     )
@@ -3533,39 +4013,82 @@ static NEXUS_Error TRNSX_Playback_Init(
 
     BSTD_UNUSED(pCtxt);
 
-    if ( pTrans->playback.eState != TRNSX_State_eOpened )
+    BDBG_MODULE_MSG(trnsx_dbg,("%s: playback.eState: %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->playback.eState )));
+
+    if ( pTrans->playback.eState == TRNSX_State_eClosed )
     {
+        pTrans->playback.playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, NULL);
+        BDBG_ASSERT(pTrans->playback.playpump);
+
+        pTrans->playback.playback = NEXUS_Playback_Create(); /* Calls NEXUS_Playback_GetDefaultSettings(). */
+        BDBG_ASSERT(pTrans->playback.playback);
+
         NEXUS_Playback_GetSettings(pTrans->playback.playback, &pTrans->playback.playbackSettings);
         pTrans->playback.playbackSettings.playpump = pTrans->playback.playpump;
-        pTrans->playback.playbackSettings.playpumpSettings.transportType = (NEXUS_TransportType)pTrans->input.eStreamType;
+        pTrans->playback.playbackSettings.playpumpSettings.transportType = (NEXUS_TransportType)pTrans->source.eStreamType;
         pTrans->playback.playbackSettings.stcChannel = pTrans->videoDecoder.stcChannel;
         NEXUS_Playback_SetSettings(pTrans->playback.playback, &pTrans->playback.playbackSettings);
 
 
-        pTrans->playback.hFilePlay = NEXUS_FilePlay_OpenPosix(pTrans->input.fname, NULL);
+        pTrans->playback.hFilePlay = NEXUS_FilePlay_OpenPosix(pTrans->source.fname, NULL);
 
         if (!pTrans->playback.hFilePlay) {
-            fprintf(stderr, "%s: can't open file:%s\n", BSTD_FUNCTION, pTrans->input.fname);
+            fprintf(stderr, "%s: can't open file:%s\n", BSTD_FUNCTION, pTrans->source.fname);
             return -1;
         }
 
         /* Open the video pid channel */
         NEXUS_Playback_GetDefaultPidChannelSettings(&pTrans->playback.playbackPidSettings);
         pTrans->playback.playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
-        pTrans->playback.playbackPidSettings.pidTypeSettings.video.codec = (NEXUS_VideoCodec)pTrans->input.eVideoCodec; /* must be told codec for correct handling */
+        pTrans->playback.playbackPidSettings.pidTypeSettings.video.codec = (NEXUS_VideoCodec)pTrans->source.eVideoCodec; /* must be told codec for correct handling */
         pTrans->playback.playbackPidSettings.pidTypeSettings.video.index = true;
         pTrans->playback.playbackPidSettings.pidTypeSettings.video.decoder = pTrans->videoDecoder.videoDecoder;
-        pTrans->videoDecoder.videoPidChannel = NEXUS_Playback_OpenPidChannel(pTrans->playback.playback, pTrans->input.iVideoPid, &pTrans->playback.playbackPidSettings);
+        pTrans->videoDecoder.videoPidChannel = NEXUS_Playback_OpenPidChannel(pTrans->playback.playback, pTrans->source.iVideoPid, &pTrans->playback.playbackPidSettings);
 
-        if(pTrans->input.iVideoPid != pTrans->input.iPcrPid)
+        if(pTrans->source.iVideoPid != pTrans->source.iPcrPid)
         {
             pTrans->playback.playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eOther;
-            pTrans->videoDecoder.pcrPidChannel = NEXUS_Playback_OpenPidChannel(pTrans->playback.playback, pTrans->input.iPcrPid, &pTrans->playback.playbackPidSettings);
+            pTrans->videoDecoder.pcrPidChannel = NEXUS_Playback_OpenPidChannel(pTrans->playback.playback, pTrans->source.iPcrPid, &pTrans->playback.playbackPidSettings);
         }
 
     }
 
     pTrans->playback.eState = TRNSX_State_eOpened;
+
+    return rc;
+
+}
+
+static NEXUS_Error TRNSX_Playback_Close(
+    TRNSX_TestContext *  pCtxt,
+    TRNSX_Transcode * pTrans
+    )
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+
+    BSTD_UNUSED(pCtxt);
+
+    BDBG_MODULE_MSG(trnsx_dbg,("%s: playback.eState: %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->playback.eState )));
+
+    if ( pTrans->playback.eState == TRNSX_State_eRunning )
+    {
+        BDBG_ERR(("%s: playback must be stopped before it can be closed.", BSTD_FUNCTION ));
+        rc = NEXUS_UNKNOWN;
+    }
+
+    if ( pTrans->playback.playback )
+    {
+        NEXUS_Playback_Destroy(pTrans->playback.playback);
+        pTrans->playback.playback = NULL;
+    }
+
+    if ( pTrans->playback.playpump )
+    {
+        NEXUS_Playpump_Close(pTrans->playback.playpump);
+        pTrans->playback.playpump = NULL;
+    }
+
+    pTrans->playback.eState = TRNSX_State_eClosed;
 
     return rc;
 
@@ -3578,13 +4101,34 @@ static NEXUS_Error TRNSX_Playback_Start(
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
 
-    TRNSX_Playback_Init( pCtxt, pTrans );
+    TRNSX_Playback_Open( pCtxt, pTrans );
+
+    BDBG_MODULE_MSG(trnsx_dbg,("%s: playback.eState: %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->playback.eState )));
 
     NEXUS_Playback_Start(pTrans->playback.playback, pTrans->playback.hFilePlay, NULL);
+
+    pTrans->playback.eState = TRNSX_State_eRunning;
 
     return rc;
 }
 
+static NEXUS_Error TRNSX_Playback_Stop(
+    TRNSX_TestContext *  pCtxt,
+    TRNSX_Transcode * pTrans
+    )
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+
+    BSTD_UNUSED(pCtxt);
+
+    BDBG_MODULE_MSG(trnsx_dbg,("%s: playback.eState: %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->playback.eState )));
+
+    NEXUS_Playback_Stop(pTrans->playback.playback);
+
+    pTrans->playback.eState = TRNSX_State_eStopped;
+
+    return rc;
+}
 /*
  * Display wrappers
  */
@@ -3679,9 +4223,9 @@ static NEXUS_Error TRNSX_VideoDecoder_Open(
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
 
-    if ( pTrans->videoDecoder.eState != TRNSX_State_eUninit && pTrans->videoDecoder.eState != TRNSX_State_eClosed )
+    if ( pTrans->videoDecoder.eState != TRNSX_State_eClosed )
     {
-        BDBG_ERR(("%s: the decoder is %s. It must be uninit or closed before you can call open.", BSTD_FUNCTION, lookup_name(g_stateStrs ,pTrans->videoDecoder.eState)));
+        BDBG_ERR(("%s: the decoder is %s. It must closed before you can call open.", BSTD_FUNCTION, lookup_name(g_stateStrs ,pTrans->videoDecoder.eState)));
         return NEXUS_NOT_INITIALIZED;
     }
 
@@ -3693,12 +4237,13 @@ static NEXUS_Error TRNSX_VideoDecoder_Open(
 
     pTrans->videoDecoder.videoDecoder = NEXUS_VideoDecoder_Open(pTrans->uiIndex, NULL); /* take default capabilities */
 
+#if 0
     pTrans->playback.playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, NULL);
     BDBG_ASSERT(pTrans->playback.playpump);
 
     pTrans->playback.playback = NEXUS_Playback_Create(); /* Calls NEXUS_Playback_GetDefaultSettings(). */
     BDBG_ASSERT(pTrans->playback.playback);
-
+#endif
     pTrans->videoDecoder.stcChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &pTrans->videoDecoder.stcSettings);
 
     return rc;
@@ -3730,6 +4275,7 @@ static NEXUS_Error TRNSX_VideoDecoder_Close(
 
     /*NEXUS_VideoWindow_RemoveInput(pTrans->videoEncoder.window, NEXUS_VideoDecoder_GetConnector(pTrans->videoDecoder.videoDecoder));*/
 
+    /* TODO: Move the following two close calls to TRNSX_Playback_Close?*/
     NEXUS_Playback_ClosePidChannel(pTrans->playback.playback, pTrans->videoDecoder.videoPidChannel);
     pTrans->videoDecoder.videoPidChannel = NULL;
 
@@ -3750,6 +4296,9 @@ static NEXUS_Error TRNSX_VideoDecoder_Close(
     NEXUS_StcChannel_Close(pTrans->videoDecoder.stcChannel);
     pTrans->videoDecoder.stcChannel = NULL;
 
+    TRNSX_Playback_Close( pCtxt, pTrans );
+
+#if 0
     NEXUS_Playback_Destroy(pTrans->playback.playback);
     pTrans->playback.playback = NULL;
 
@@ -3758,7 +4307,7 @@ static NEXUS_Error TRNSX_VideoDecoder_Close(
 
     /* TODO: what if we just want to switch files without closing playpump? */
     pTrans->playback.eState = TRNSX_State_eClosed;
-
+#endif
     return rc;
 }
 
@@ -3774,7 +4323,7 @@ static NEXUS_Error TRNSX_VideoDecoder_Start(
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
 
-    if ( strlen( pTrans->input.fname ) == 0 )
+    if ( strlen( pTrans->source.fname ) == 0 )
     {
         BDBG_ERR(("%s: you must specify a source file before starting the decoder.", BSTD_FUNCTION ));
         return NEXUS_NOT_INITIALIZED;
@@ -3795,11 +4344,12 @@ static NEXUS_Error TRNSX_VideoDecoder_Start(
         TRNSX_VideoEncoderDisplay_Open( pCtxt, pTrans );
     }
 
-    TRNSX_Playback_Init( pCtxt, pTrans );
+    /* TODO: is this needed here? */
+    TRNSX_Playback_Open( pCtxt, pTrans );
 
     NEXUS_VideoWindow_AddInput(pTrans->videoEncoder.window, NEXUS_VideoDecoder_GetConnector(pTrans->videoDecoder.videoDecoder));
 
-    pTrans->videoDecoder.startSettings.codec = (NEXUS_VideoCodec)pTrans->input.eVideoCodec;
+    pTrans->videoDecoder.startSettings.codec = (NEXUS_VideoCodec)pTrans->source.eVideoCodec;
     pTrans->videoDecoder.startSettings.pidChannel = pTrans->videoDecoder.videoPidChannel;
     pTrans->videoDecoder.startSettings.stcChannel = pTrans->videoDecoder.stcChannel;
 
@@ -3871,6 +4421,19 @@ static NEXUS_Error TRNSX_VideoDecoder_GetStatus(
  * Video Encoder wrappers
  */
 
+static void TRNSX_VideoEncoder_WatchdogHandler (void *context, int param)
+{
+   TRNSX_Transcode * pTrans = (TRNSX_Transcode*) context;
+   BSTD_UNUSED(param);
+
+   /* Simply flag the event for now. */
+   pTrans->videoEncoder.bEncoderWatchdogged = true;
+
+   BDBG_ERR(("%s: encoder watchdog fired.", BSTD_FUNCTION));
+
+   return;
+}
+
 static NEXUS_Error TRNSX_VideoEncoder_SetSettings(
     TRNSX_TestContext *  pCtxt,
     TRNSX_Transcode * pTrans
@@ -3905,13 +4468,18 @@ static NEXUS_Error TRNSX_VideoEncoder_Open(
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
 
-    if ( pTrans->videoEncoder.eState != TRNSX_State_eUninit && pTrans->videoEncoder.eState != TRNSX_State_eClosed )
+    if ( pTrans->videoEncoder.eState != TRNSX_State_eClosed )
     {
-        BDBG_ERR(("%s: the encoder is %s. It must be uninit or closed before you can call open.", BSTD_FUNCTION, lookup_name(g_stateStrs ,pTrans->videoEncoder.eState)));
+        BDBG_ERR(("%s: the encoder is %s. It must be before you can call open.", BSTD_FUNCTION, lookup_name(g_stateStrs ,pTrans->videoEncoder.eState)));
         return NEXUS_NOT_INITIALIZED;
     }
 
     pTrans->videoEncoder.eState = TRNSX_State_eOpened;
+
+
+    pTrans->videoEncoder.openSettings.watchdogCallback.callback = TRNSX_VideoEncoder_WatchdogHandler;
+    pTrans->videoEncoder.openSettings.watchdogCallback.context = pTrans;
+    pTrans->videoEncoder.bEncoderWatchdogged = false;
 
     /* NOTE: must open video encoder before display; otherwise open will init ViCE2 core
      * which might cause encoder display GISB error since encoder display would
@@ -4140,16 +4708,7 @@ static NEXUS_Error TRNSX_Transcode_Open(
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
 
-    /* Error checking.
-     * What pTrans->eState are allowed on entry?
-     */
-    if ( pTrans->eState != TRNSX_State_eClosed &&  pTrans->eState != TRNSX_State_eUninit )
-    {
-        BKNI_Printf("%s: must be in the closed state before calling open, current state is %s\n", BSTD_FUNCTION, lookup_name( g_stateStrs, pTrans->eState ));
-        return NEXUS_NOT_INITIALIZED;
-    }
-
-    if ( !strlen(pTrans->input.fname) )
+    if ( !strlen(pTrans->source.fname) )
     {
         BKNI_Printf("%s: session:%d must specify a source file\n", BSTD_FUNCTION, pTrans->uiIndex );
         return NEXUS_NOT_INITIALIZED;
@@ -4160,15 +4719,6 @@ static NEXUS_Error TRNSX_Transcode_Open(
         BKNI_Printf("%s: session:%d must specify a results file\n", BSTD_FUNCTION, pTrans->uiIndex );
         return NEXUS_NOT_INITIALIZED;
     }
-
-    if ( !strlen(pTrans->record.indexfname) )
-    {
-        BKNI_Printf("%s: session:%d must specify a results index file\n", BSTD_FUNCTION, pTrans->uiIndex );
-        return NEXUS_NOT_INITIALIZED;
-    }
-
-    pTrans->eState = TRNSX_State_eOpened; /* protect with a mutex at the end of the routine? */
-
 
     TRNSX_VideoDecoder_Open( pCtxt, pTrans );
 
@@ -4189,17 +4739,13 @@ static NEXUS_Error TRNSX_Transcode_Start(
  {
     NEXUS_Error rc = NEXUS_SUCCESS;
 
-    BSTD_UNUSED(pCtxt);
-
     BDBG_ENTER(TRNSX_Transcode_Start);
 
-    if ( pTrans->eState != TRNSX_State_eOpened )
-    {
-        BKNI_Printf("must be in the open state before calling start, current state is %s\n", lookup_name( g_stateStrs, pTrans->eState ));
-        return NEXUS_NOT_INITIALIZED;
-    }
+    rc = TRNSX_Transcode_Open( pCtxt, pTrans );
 
-    pTrans->eState = TRNSX_State_eRunning; /* protect with a mutex at the end of the routine? */
+    if ( rc != NEXUS_SUCCESS ) goto done;
+
+    pTrans->eState = TRNSX_State_eRunning;
 
     /* Start video decoder. */
     TRNSX_VideoDecoder_Start( pCtxt, pTrans );
@@ -4215,7 +4761,28 @@ static NEXUS_Error TRNSX_Transcode_Start(
 
     TRNSX_VideoEncoder_Start( pCtxt, pTrans );
 
+done:
+
     BDBG_LEAVE(TRNSX_Transcode_Start);
+
+    return rc;
+
+}
+
+static NEXUS_Error TRNSX_Transcode_Close(
+    TRNSX_TestContext *  pCtxt,
+    TRNSX_Transcode * pTrans
+    )
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+
+    BDBG_ENTER(TRNSX_Transcode_Close);
+
+    TRNSX_VideoDecoder_Close( pCtxt, pTrans );
+
+    TRNSX_VideoEncoder_Close( pCtxt, pTrans );
+
+    BDBG_LEAVE(TRNSX_Transcode_Close);
 
     return rc;
 
@@ -4232,15 +4799,7 @@ static NEXUS_Error TRNSX_Transcode_Stop(
 
     BDBG_ENTER(TRNSX_Transcode_Stop);
 
-    /* TODO: add "sequence" error checking. */
-
-    if ( pTrans->eState != TRNSX_State_eRunning )
-    {
-        BKNI_Printf("must be in the running state before calling stop, current state is %s\n", lookup_name( g_stateStrs, pTrans->eState ));
-        return NEXUS_NOT_INITIALIZED;
-    }
-
-    pTrans->eState = TRNSX_State_eStopped; /* protect with a mutex at the end of the routine? */
+    pTrans->eState = TRNSX_State_eStopped;
 
     /*
      * NOTE: stop sequence should be in front->back order
@@ -4250,40 +4809,13 @@ static NEXUS_Error TRNSX_Transcode_Stop(
     TRNSX_Record_Stop( pCtxt, pTrans );
     TRNSX_Mux_Stop( pCtxt, pTrans );
 
-    NEXUS_Playback_Stop(pTrans->playback.playback);
+    TRNSX_Playback_Stop( pCtxt, pTrans );
 
     TRNSX_VideoDecoder_Stop( pCtxt, pTrans );
 
+    TRNSX_Transcode_Close( pCtxt, pTrans );
+
     BDBG_LEAVE(TRNSX_Transcode_Stop);
-
-    return rc;
-
-}
-
-static NEXUS_Error TRNSX_Transcode_Close(
-    TRNSX_TestContext *  pCtxt,
-    TRNSX_Transcode * pTrans
-    )
-{
-    NEXUS_Error rc = NEXUS_SUCCESS;
-
-    BDBG_ENTER(TRNSX_Transcode_Close);
-
-    /* error checking */
-
-    if ( pTrans->eState != TRNSX_State_eStopped )
-    {
-        BKNI_Printf("must be in the stopped state before calling close, current state is %s\n", lookup_name( g_stateStrs, pTrans->eState ));
-        return NEXUS_NOT_INITIALIZED;
-    }
-
-    pTrans->eState = TRNSX_State_eClosed; /* protect with a mutex at the end of the routine? */
-
-    TRNSX_VideoDecoder_Close( pCtxt, pTrans );
-
-    TRNSX_VideoEncoder_Close( pCtxt, pTrans );
-
-    BDBG_LEAVE(TRNSX_Transcode_Close);
 
     return rc;
 
@@ -4301,12 +4833,12 @@ static void TRNSX_Transcode_Status(
 
     /* Input parameters. */
     BKNI_Printf("input:\n");
-    BKNI_Printf("  source type: %s\n", lookup_name(g_sourceStrs, pTrans->input.eSourceType) );
-    BKNI_Printf("  source file: %s\n", pTrans->input.fname );
-    BKNI_Printf("  stream type: %s\n", lookup_name(g_transportTypeStrs, pTrans->input.eStreamType) );
-    BKNI_Printf("  video codec: %s\n", lookup_name(g_videoCodecStrs, pTrans->input.eVideoCodec) );
-    BKNI_Printf("  video pid: %d\n", pTrans->input.iVideoPid );
-    BKNI_Printf("  PCR pid: %d\n", pTrans->input.iPcrPid );
+    BKNI_Printf("  source type: %s\n", lookup_name(g_sourceStrs, pTrans->source.eType) );
+    BKNI_Printf("  source file: %s\n", pTrans->source.fname );
+    BKNI_Printf("  stream type: %s\n", lookup_name(g_transportTypeStrs, pTrans->source.eStreamType) );
+    BKNI_Printf("  video codec: %s\n", lookup_name(g_videoCodecStrs, pTrans->source.eVideoCodec) );
+    BKNI_Printf("  video pid: %d\n", pTrans->source.iVideoPid );
+    BKNI_Printf("  PCR pid: %d\n", pTrans->source.iPcrPid );
 
     /* Ouput parameters */
     BKNI_Printf("output:\n");
@@ -4356,39 +4888,6 @@ static bool TRNSX_Parse_Input(
     pDst = &szCleaned[0];
     pSrc = pszInput;
 
-#if 0
-    for ( pSrc = pszInput; *pSrc; pSrc++ )
-    {
-        if ( *pSrc == '#' )
-        {
-            /* The beginning of a comment, igonre the rest of the line. */
-            break;
-        }
-        else if ( *pSrc != ' ' && *pSrc != '\n' )
-        {
-            *pDst++ = tolower(*pSrc);
-        }
-    }
-
-    pToken = strstr(szCleaned, ":");
-
-    if ( pToken )
-    {
-        iSize = strcspn( szCleaned, ":" );
-        strncpy( pstCmd->szKey, szCleaned, iSize );
-
-        pstCmd->bValid = true;
-        strcpy( pstCmd->szValue, pToken+1 );
-        pstCmd->iValue = atoi(pstCmd->szValue);
-    }
-    else
-    {
-        strncpy( pstCmd->szKey, szCleaned, TRNSX_SIZE_CMD-1 );
-    }
-#endif
-
-    /*pstCmdSaved = pstCmd;*/
-
     /* Hitting a CR will dump the settings of the currently active comamnd.
      * Need this special case logic since CR's are filtered
      * in the main parsing loop.*/
@@ -4396,57 +4895,77 @@ static bool TRNSX_Parse_Input(
     if( *pszInput == '\n' )
     {
         strcpy( pstCmd->szKey, "CR" );
-        pstCmd->bValid = true;
+        pstCmd->uiNumValues += 1;
         goto done;
     }
 
     /* A clunky way to keep track of state. */
 #define SEARCH_FOR_KEY      0x1
 #define LOAD_KEY            0x2
-#define SEARCH_FOR_VALUE    0x4
-#define LOAD_VALUE          0x8
+#define SEARCH_FOR_VALUE    0x3
+#define LOAD_VALUE          0x4
+#define IS_THERE_A_COMMA    0x5 /* just loaded a value but it could be a comma separated list */
+#define START_OF_STRING     0x6
+#define LOAD_STRING         0x7
 
     uiState = SEARCH_FOR_KEY;
     bStripWhite = false;
 
+    BDBG_MODULE_MSG(trnsx_parse,("%s: input: %s", BSTD_FUNCTION, pszInput ));
+
     for ( pSrc=pszInput, i=0; *pSrc && i < uiNumCmds-1 ; i++ )
     {
+        BDBG_MODULE_MSG(trnsx_parse,("%s: uiState:%d  bStripWhite:%d ", BSTD_FUNCTION, uiState, bStripWhite ));
 
-        /*TODO: where to add error checking for syntax error on the input. */
+        /*TODO: where to add error checking for syntax error on the source. */
 
-        if ( *pSrc == ':' )
+        if ( *pSrc == '"' )
+        {
+            pSrc++;
+            if ( uiState == LOAD_STRING || uiState == START_OF_STRING )
+            {
+                uiState = LOAD_KEY;
+            }
+            else
+            {
+                uiState = START_OF_STRING;
+            }
+        }
+        else if (( *pSrc == ':' ) && ( uiState != LOAD_STRING ))
         {
             pSrc++;
             uiState     = SEARCH_FOR_VALUE;
             bStripWhite = false;
         }
-        else if ( *pSrc == '#' || *pSrc == '\n' )
+        else if (( *pSrc == '#' || *pSrc == '\n' ) && ( uiState != LOAD_STRING ))
         {
             /* The beginning of a comment or the end of the input. */
 
             /* Need to check for zero length, i.e the case of "key:\n"*/
-            if (( strlen( pstCmd->szValue )  != 0 ) && ( uiState == LOAD_VALUE ))
+            if (( strlen( pstCmd->data[pstCmd->uiNumValues].szValue )  != 0 ) && ( uiState == LOAD_VALUE ))
             {
-                pstCmd->bValid = true;
-                /*pstCmd->iValue = atoi(pstCmd->szValue);*/
-                pstCmd->iValue = strtoul(pstCmd->szValue, NULL, 0);
+                pstCmd->data[pstCmd->uiNumValues].uiValue = strtoul(pstCmd->data[pstCmd->uiNumValues].szValue, NULL, 0);
+                pstCmd->uiNumValues += 1;
             }
             break;
         }
-        else if ( *pSrc == ' ' || *pSrc == '\t' || *pSrc == '\r' )
+        else if (( *pSrc == ' ' || *pSrc == '\t' || *pSrc == '\r' ) && ( uiState != LOAD_STRING ))
         {
             pSrc++;
 
             if ( uiState == LOAD_VALUE )
             {
-                /* If white space while loading a value, the end of the value has been reached. */
+                /* If white space while loading a value, the end of the value may have reached;
+                 * it could be a comma separated list.  If the next non-white space character is a
+                 * comma, then there is another value.  If the next non-white space character is NOT a
+                 * comman, then it is the start of the next key. */
 
-                pstCmd->bValid = true;
-                /*pstCmd->iValue = atoi(pstCmd->szValue);*/
-                pstCmd->iValue = strtoul(pstCmd->szValue, NULL, 0);
-                pstCmd++;
+                pstCmd->data[pstCmd->uiNumValues].uiValue = strtoul(pstCmd->data[pstCmd->uiNumValues].szValue, NULL, 0);
+                pstCmd->uiNumValues++;
+                /*pstCmd++;*/
+                pDst        = &pstCmd->data[pstCmd->uiNumValues].szValue[0];
 
-                uiState     = SEARCH_FOR_KEY;
+                uiState     = IS_THERE_A_COMMA;
                 bStripWhite = false;
             }
             else
@@ -4457,19 +4976,55 @@ static bool TRNSX_Parse_Input(
                 bStripWhite = true;
             }
         }
+        else if (( *pSrc == ',' ) && ( uiState != LOAD_STRING ))
+        {
+            pSrc++;
+            if ( uiState == LOAD_VALUE )
+            {
+                /* A comma loading a value, the end of the value has been reached.
+                 * Another value is expected. */
+
+                pstCmd->data[pstCmd->uiNumValues].uiValue = strtoul(pstCmd->data[pstCmd->uiNumValues].szValue, NULL, 0);
+                pstCmd->uiNumValues++;
+                pDst        = &pstCmd->data[pstCmd->uiNumValues].szValue[0];
+
+
+            }
+            else if ( uiState != IS_THERE_A_COMMA )
+            {
+                /* IS_THERE_A_COMMA would be true if there was white space between value and the comma*/
+                BDBG_ERR(("%s:: a comma in the wrong place, parse state is %d", BSTD_FUNCTION, uiState ));
+                BDBG_ERR(("%s:: -%s- -%s- -%d-", BSTD_FUNCTION, pstCmd->szKey, pstCmd->data[pstCmd->uiNumValues].szValue, pstCmd->uiNumValues));
+            }
+            uiState     = SEARCH_FOR_VALUE;
+            bStripWhite = false;
+        }
         else
         {
             bool bFileName = false;
 
-            if ( uiState == SEARCH_FOR_KEY )
+            if ( uiState == IS_THERE_A_COMMA )
+            {
+                /* Since no comma was received, this must be the start of the next key.
+                 * As opposed to the next value in a comma separated list. */
+                pstCmd++;
+                pDst        = &pstCmd->szKey[0];
+                uiState     = LOAD_KEY;
+            }
+            else if ( uiState == SEARCH_FOR_KEY )
             {
                 pDst        = &pstCmd->szKey[0];
                 uiState     = LOAD_KEY;
             }
             else if ( uiState == SEARCH_FOR_VALUE )
             {
-                pDst        = &pstCmd->szValue[0];
+                pDst        = &pstCmd->data[pstCmd->uiNumValues].szValue[0];
                 uiState     = LOAD_VALUE;
+            }
+            else if ( uiState == START_OF_STRING )
+            {
+                pDst        = &pstCmd->data[pstCmd->uiNumValues].szValue[0];
+                uiState     = LOAD_STRING;
             }
             else if ( uiState == LOAD_KEY && bStripWhite == true )
             {
@@ -4484,10 +5039,11 @@ static bool TRNSX_Parse_Input(
 
             if ( uiState == LOAD_VALUE )
             {
-                /* Don't change the case of file names. */
+                /* Don't change the case of file names or strings */
                 bFileName = !strcmp(pstCmd->szKey, "file");
                 bFileName |= !strcmp(pstCmd->szKey, "ifile");
                 bFileName |= !strcmp(pstCmd->szKey, "ofile");
+                bFileName |= ( uiState == LOAD_STRING );
             }
 
             *pDst++ = ( bFileName ) ? *pSrc++ : tolower(*pSrc++);
@@ -4503,16 +5059,16 @@ done:
 #if 0
     for ( pstCmd = pstCmdSaved, i=0; ( strlen(pstCmd->szKey) !=0 ) && i < uiNumCmds-1 ; pstCmd++, i++ )
     {
-        BKNI_Printf("%s::%s (%d) %s %d\n", BSTD_FUNCTION, pstCmd->szKey, pstCmd->bValid, pstCmd->szValue, pstCmd->iValue );
+        BKNI_Printf("%s::%s (%d) %s %d\n", BSTD_FUNCTION, pstCmd->szKey, pstCmd->uiNumValues, pstCmd->data[0].szValue, pstCmd->data[0].uiValue );
     }
 #endif
 #if 0
     /* check if the last command had the proper syntax.
      * Ignore issues with the quit command. */
-    if ( ( strlen(pstCmd->szKey) !=0 && pstCmd->bValid == false )
+    if ( ( strlen(pstCmd->szKey) !=0 && pstCmd->uiNumValues == 0 )
           && (strcmp(pstCmd->szKey, "quit") && strcmp(pstCmd->szKey, "q")) )
     {
-        /*BKNI_Printf("error::%s (%d) %s %d\n", pstCmd->szKey, pstCmd->bValid, pstCmd->szValue, pstCmd->iValue );*/
+        /*BKNI_Printf("error::%s (%d) %s %d\n", pstCmd->szKey, pstCmd->uiNumValues, pstCmd->data[0].szValue, pstCmd->data[0].uiValue );*/
         bSuccess = false;
         BDBG_ERR(("%s: bad syntax: %s", BSTD_FUNCTION, pszInput ));
         BDBG_ERR(("%s: commands need to be of the form key:value", BSTD_FUNCTION ));
@@ -4535,7 +5091,7 @@ static void TRNSX_Command_Execute(
     BDBG_ASSERT(pTrans);
     BDBG_ASSERT(pstCmd);
 
-    BDBG_MODULE_MSG(trnsx_cmds,("%s: executing %s", BSTD_FUNCTION, lookup_name(g_cmdStrs, pTrans->eActiveCmd )));
+    BDBG_MODULE_MSG(trnsx_input,("%s: executing %s", BSTD_FUNCTION, lookup_name(g_cmdFullnameStrs, pTrans->eActiveCmd )));
 
     switch( pTrans->eActiveCmd )
     {
@@ -4561,15 +5117,26 @@ static void TRNSX_Command_Execute(
             break;
 
         case TRNSX_Cmd_eDisplayCustomFormatSettings:
-            /* called in TRNSX_VideoEncoder_Open. */
+            /* Called in TRNSX_VideoEncoder_Open when the displayed has been opened.
+             * If the display is already opened, call immediately */
+
+            if( pTrans->videoEncoder.bCustomDisplaySettings && pTrans->videoEncoder.display )
+            {
+                NEXUS_Error rc = NEXUS_SUCCESS;
+                rc = NEXUS_Display_SetCustomFormatSettings(pTrans->videoEncoder.display, NEXUS_VideoFormat_eCustom2, &pTrans->videoEncoder.customFormatSettings);
+                if ( rc )
+                {
+                    BDBG_ERR(("%s: NEXUS_Display_SetCustomFormatSettings returned: %d", BSTD_FUNCTION, rc));
+                }
+            }
             break;
 
         /*** playback ***/
         case TRNSX_Cmd_ePlaybackSetSettings:    break;
         case TRNSX_Cmd_ePlaybackOpen:       break;
         case TRNSX_Cmd_ePlaybackClose:      break;
-        case TRNSX_Cmd_ePlaybackStart:      TRNSX_Playback_Start( pCtxt, pTrans );          break;
-        case TRNSX_Cmd_ePlaybackStop:       NEXUS_Playback_Stop(pTrans->playback.playback); break;
+        case TRNSX_Cmd_ePlaybackStart:      TRNSX_Playback_Start( pCtxt, pTrans );   break;
+        case TRNSX_Cmd_ePlaybackStop:       TRNSX_Playback_Stop( pCtxt, pTrans );    break;
 
         /*** decoder ***/
         case TRNSX_Cmd_eVideoDecoderSetSettings:    break;
@@ -4581,6 +5148,7 @@ static void TRNSX_Command_Execute(
         case TRNSX_Cmd_eVideoDecoderStatus: TRNSX_VideoDecoder_GetStatus( pCtxt, pTrans ); break;
 
         case TRNSX_Cmd_eSession:    break;
+        case TRNSX_Cmd_eSelect:     break;
         case TRNSX_Cmd_eTranscode:  break;
 
         case TRNSX_Cmd_eRecordSettings:     break;
@@ -4595,7 +5163,13 @@ static void TRNSX_Command_Execute(
         case TRNSX_Cmd_eMuxStop:        TRNSX_Mux_Stop( pCtxt, pTrans );    break;
 
         case TRNSX_Cmd_eSleep:
+            BDBG_MODULE_MSG(trnsx_dbg,("%s: begin sleep", BSTD_FUNCTION));
             BKNI_Sleep( (pTrans->sleep.eUnit == TRNSX_SleepUnit_eSecs) ? pTrans->sleep.uiDuration * 1000 : pTrans->sleep.uiDuration );
+            BDBG_MODULE_MSG(trnsx_dbg,("%s: end sleep", BSTD_FUNCTION));
+            break;
+
+        case TRNSX_Cmd_eNone:
+            /* treat any dangling "end:0" as a NOP */
             break;
 
         default:
@@ -4622,9 +5196,15 @@ static bool TRNSX_Command_ParseParams(
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
     BDBG_ASSERT(pstCmd);
+    bool bPrint;
+    bool bDumpParams;
+    unsigned i;
 
-    bool bPrint = !strcmp(pstCmd->szKey, "CR");
+    bPrint = !strcmp(pstCmd->szKey, "CR");
     bPrint &= pCtxt->bInteractive;
+
+    bDumpParams = !strcmp(pstCmd->szKey, "help");
+    bPrint |= bDumpParams;
 
     switch( pTrans->eActiveCmd )
     {
@@ -4645,7 +5225,7 @@ static bool TRNSX_Command_ParseParams(
             TRNSX_ELSE_IF( pstCmd, "streamstructure.framesb", pTrans->videoEncoder.settings.streamStructure.framesB )
             TRNSX_ELSE_IF( pstCmd, "streamstructure.opengop", pTrans->videoEncoder.settings.streamStructure.openGop )
             TRNSX_ELSE_IF( pstCmd, "encoderdelay", pTrans->videoEncoder.settings.encoderDelay )
-            TRNSX_ERROR( pTrans, pstCmd, g_cmdStrs, bRet )
+            TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
             break;
 
         case TRNSX_Cmd_eVideoEncoderOpen:
@@ -4660,12 +5240,12 @@ static bool TRNSX_Command_ParseParams(
             TRNSX_ELSE_IF_LOOKUP( pstCmd, "type", pTrans->videoEncoder.openSettings.type, g_encoderTypeStrs )
             TRNSX_ELSE_IF( pstCmd, "maxchannelcount", pTrans->videoEncoder.openSettings.maxChannelCount )
             TRNSX_ELSE_IF( pstCmd, "enabledataunitdetecton", pTrans->videoEncoder.openSettings.enableDataUnitDetecton)
-            TRNSX_ERROR( pTrans, pstCmd, g_cmdStrs, bRet )
+            TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
             break;
 
-        case TRNSX_Cmd_eVideoEncoderStatus: break;
+        case TRNSX_Cmd_eVideoEncoderStatus:
         case TRNSX_Cmd_eVideoEncoderClose:
-            if ( bPrint ) PARAM_MSG;
+            TRNSX_DEFAULT_PARAM_MSG( bPrint )
             break;
 
         case TRNSX_Cmd_eVideoEncoderStart:
@@ -4712,7 +5292,7 @@ static bool TRNSX_Command_ParseParams(
             TRNSX_ELSE_IF( pstCmd, "segmentmoderatecontrol.lowertolerance", pTrans->videoEncoder.startSettings.segmentModeRateControl.lowerTolerance)
             TRNSX_ELSE_IF( pstCmd, "memorybandwidthsaving.singlerefp", pTrans->videoEncoder.startSettings.memoryBandwidthSaving.singleRefP)
             TRNSX_ELSE_IF( pstCmd, "memorybandwidthsaving.requiredratchesonly", pTrans->videoEncoder.startSettings.memoryBandwidthSaving.requiredPatchesOnly)
-            TRNSX_ERROR( pTrans, pstCmd, g_cmdStrs, bRet )
+            TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
             break;
 
         case TRNSX_Cmd_eVideoEncoderStop:
@@ -4720,10 +5300,13 @@ static bool TRNSX_Command_ParseParams(
                 TRNSX_Print_VideoEncoderStopSettings( &pTrans->videoEncoder.stopSettings );
             }
             TRNSX_ELSE_IF_LOOKUP( pstCmd, "mode", pTrans->videoEncoder.stopSettings.mode, g_encoderStopModeStrs)
-            TRNSX_ERROR( pTrans, pstCmd, g_cmdStrs, bRet )
+            TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
             break;
 
-        case TRNSX_Cmd_eDisplayClose: break;
+        case TRNSX_Cmd_eDisplayClose:
+            TRNSX_DEFAULT_PARAM_MSG( bPrint )
+            break;
+
         case TRNSX_Cmd_eDisplayOpen:
             if ( bPrint ) {
                 TRNSX_Print_DisplaySettings( &pTrans->videoEncoder.displaySettings );
@@ -4734,7 +5317,7 @@ static bool TRNSX_Command_ParseParams(
             TRNSX_ELSE_IF( pstCmd, "sampleaspectratio.x", pTrans->videoEncoder.displaySettings.sampleAspectRatio.x)
             TRNSX_ELSE_IF( pstCmd, "sampleaspectratio.y", pTrans->videoEncoder.displaySettings.sampleAspectRatio.y)
             TRNSX_ELSE_IF_LOOKUP( pstCmd, "dropframe", pTrans->videoEncoder.displaySettings.dropFrame, g_tristateEnableStrs )
-            TRNSX_ERROR( pTrans, pstCmd, g_cmdStrs, bRet )
+            TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
             break;
 
         case TRNSX_Cmd_eDisplayCustomFormatSettings:
@@ -4751,10 +5334,10 @@ static bool TRNSX_Command_ParseParams(
             TRNSX_ELSE_IF( pstCmd, "dropframeallowed", pTrans->videoEncoder.customFormatSettings.dropFrameAllowed)
             else if (!strcmp(pstCmd->szKey, "refreshrate" ))
             {
-                if ( pstCmd->bValid )
+                if ( pstCmd->uiNumValues )
                 {
-                    pTrans->videoEncoder.customFormatSettings.refreshRate = pstCmd->iValue;
-                    if ( pstCmd->iValue < 1 * 1000 || pstCmd->iValue > 240 * 1000 )
+                    pTrans->videoEncoder.customFormatSettings.refreshRate = pstCmd->data[0].uiValue;
+                    if ( pstCmd->data[0].uiValue < 1 * 1000 || pstCmd->data[0].uiValue > 240 * 1000 )
                     {
                         BDBG_WRN(("Is this value correct? refreshRate is specified in units of in 1/1000th Hz"));
                         BDBG_WRN(("Was expecting something like 60*1000."));
@@ -4763,13 +5346,13 @@ static bool TRNSX_Command_ParseParams(
                 else
                     BKNI_Printf("  current value for %s: %d\n", pstCmd->szKey, pTrans->videoEncoder.customFormatSettings.refreshRate );
             }
-            TRNSX_ERROR( pTrans, pstCmd, g_cmdStrs, bRet )
+            TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
             break;
 
         case TRNSX_Cmd_eVideoDecoderStart:
             /* Set nonRealTime based on the session value. */
             pTrans->videoDecoder.startSettings.nonRealTime = pTrans->bNonRealTime;
-            if ( bPrint ) PARAM_MSG;
+            TRNSX_DEFAULT_PARAM_MSG( bPrint )
             break;
 
         case TRNSX_Cmd_ePlaypumpSetSettings:
@@ -4777,7 +5360,7 @@ static bool TRNSX_Command_ParseParams(
                 BKNI_Printf("  transport:  %s\n", lookup_name( g_transportTypeStrs, pTrans->streamMux.playpumpSettings.transportType ));
             }
             TRNSX_ELSE_IF_LOOKUP( pstCmd, "transport", pTrans->streamMux.playpumpSettings.transportType, g_transportTypeStrs)
-            TRNSX_ERROR( pTrans, pstCmd, g_cmdStrs, bRet )
+            TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
             break;
 
             break;
@@ -4788,73 +5371,75 @@ static bool TRNSX_Command_ParseParams(
             TRNSX_ELSE_IF( pstCmd, "fifoSize", pTrans->streamMux.playpumpOpenSettings.fifoSize)
             TRNSX_ELSE_IF( pstCmd, "numdescriptors", pTrans->streamMux.playpumpOpenSettings.numDescriptors )
             TRNSX_ELSE_IF( pstCmd, "streammuxcompatible", pTrans->streamMux.playpumpOpenSettings.streamMuxCompatible)
-            TRNSX_ERROR( pTrans, pstCmd, g_cmdStrs, bRet )
+            TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
             break;
 
         case TRNSX_Cmd_eVideoDecoderSetSettings:
         case TRNSX_Cmd_eVideoDecoderOpen:
         case TRNSX_Cmd_eVideoDecoderClose:
         case TRNSX_Cmd_eVideoDecoderStop:
-            if ( bPrint ) PARAM_MSG;
+            TRNSX_DEFAULT_PARAM_MSG( bPrint )
             break;
 
-        case TRNSX_Cmd_eVideoDecoderStatus: break;
+        case TRNSX_Cmd_eVideoDecoderStatus:
+            TRNSX_DEFAULT_PARAM_MSG( bPrint )
+            break;
 
-        case TRNSX_Cmd_eSession:
+        case TRNSX_Cmd_eSelect:
             if ( bPrint ) {
-                TRNSX_Print_SessionSettings( pCtxt, pTrans );
+                TRNSX_Print_SelectSettings( pCtxt, pTrans );
             }
-            else if (!strcmp(pstCmd->szKey, "select")) {
-                if ( pstCmd->bValid == false )
+            else if (!strcmp(pstCmd->szKey, "session")) {
+                if ( pstCmd->uiNumValues == 0 )
                 {
                     BKNI_Printf("session %d is selected\n", pCtxt->uiSelected );
                 }
                 else
                 {
-                    if ( pstCmd->iValue == 0 )
+                    if ( (unsigned)pstCmd->data[0].uiValue < pCtxt->uiMaxSessions )
                     {
-                        pCtxt->uiSelected = pstCmd->iValue;
-                        BKNI_Printf("selecting session:%d\n", pstCmd->iValue );
-                    }
-                    else if ( pstCmd->iValue < TRNSX_NUM_ENCODES-1)
-                    {
-                        BKNI_Printf(" currently only support session 0\n");
+                        pCtxt->uiSelected = pstCmd->data[0].uiValue;
+                        /* TODO: need to sort out the session selection and when the pTrans pointer is set in the main loop. */
+                        /* Need for interactive mode when selecting a session for the first time.
+                         * Without this, eActiveCmd for the newly selected session is TRNSX_Cmd_eNone. */
+                        /*pCtxt->transcodes[pCtxt->uiSelected].eActiveCmd = TRNSX_Cmd_eSession;*/
                     }
                     else
                     {
-                        BKNI_Printf("Session selection value %d is out of range, it should be less than %d\n", pstCmd->iValue, TRNSX_NUM_ENCODES );
+                        BKNI_Printf("Session selection value %d is out of range, it should be less than %d\n", pstCmd->data[0].uiValue, pCtxt->uiMaxSessions );
                     }
                 }
+            }
+            TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
+            break;
+
+
+        case TRNSX_Cmd_eSession:
+            if ( bPrint ) {
+                TRNSX_Print_SessionSettings( pCtxt, pTrans );
             }
             TRNSX_ELSE_IF( pstCmd, "nrt", pTrans->bNonRealTime)
             TRNSX_ELSE_IF( pstCmd, "cc", pTrans->bEncodeCCData)
             TRNSX_ELSE_IF_LOOKUP(pstCmd, "tts_out", pTrans->streamMux.transportTimestampType, g_transportTimestampTypeStrs )
-            TRNSX_ERROR( pTrans, pstCmd, g_cmdStrs, bRet )
+            TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
             break;
 
         case TRNSX_Cmd_eTranscode:
             /* TODO: these should be called in TRNSX_Commmand_Execute. */
-            if ( pstCmd->bValid && !strcmp(pstCmd->szKey, "action"))
+            if ( pstCmd->uiNumValues && !strcmp(pstCmd->szKey, "action"))
             {
-                if (!strcmp(pstCmd->szValue, "open")) {
-                    /* Will this will need to change based on the source type. */
-                    TRNSX_Transcode_Open( pCtxt, pTrans );
-                }
-                else if (!strcmp(pstCmd->szValue, "start")) {
+                if (!strcmp(pstCmd->data[0].szValue, "start")) {
                     TRNSX_Transcode_Start( pCtxt, pTrans );
                 }
-                else if (!strcmp(pstCmd->szValue, "stop")) {
+                else if (!strcmp(pstCmd->data[0].szValue, "stop")) {
                     TRNSX_Transcode_Stop( pCtxt, pTrans );
                 }
-                else if (!strcmp(pstCmd->szValue, "close")) {
-                    TRNSX_Transcode_Close( pCtxt, pTrans );
-                }
                 else {
-                    BKNI_Printf("unknown transcode operation: %s\n", pstCmd->szValue );
+                    BKNI_Printf("unknown transcode operation: %s\n", pstCmd->data[0].szValue );
                     bRet = false;
                 }
             }
-            TRNSX_ERROR( pTrans, pstCmd, g_cmdStrs, bRet )
+            TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
             break;
 
         case TRNSX_Cmd_eMuxStart:
@@ -4862,7 +5447,7 @@ static bool TRNSX_Command_ParseParams(
             {
                 case NEXUS_TransportType_eEs:
                     if ( bPrint ) {
-                        BKNI_Printf("transport type of %s does not support any start settings\n", lookup_name( g_transportTypeStrs, pTrans->record.eTransportType) );
+                        TRNSX_Print_StreamMuxStartSettings( pTrans, bDumpParams );
                     }
                     break;
 
@@ -4870,7 +5455,7 @@ static bool TRNSX_Command_ParseParams(
                 case NEXUS_TransportType_eMpeg2Pes:
                 case NEXUS_TransportType_eMp4:
                     if ( bPrint ) {
-                        BKNI_Printf("transport type of %s does not support any start settings\n", lookup_name( g_transportTypeStrs, pTrans->record.eTransportType) );
+                        TRNSX_Print_StreamMuxStartSettings( pTrans, bDumpParams );
                     }
                     break;
 
@@ -4878,7 +5463,7 @@ static bool TRNSX_Command_ParseParams(
                 case NEXUS_TransportType_eTs:
                 case NEXUS_TransportType_eMp4Fragment:
                     if ( bPrint ) {
-                        TRNSX_Print_StreamMuxStartSettings( &pTrans->streamMux.startSettings );
+                        TRNSX_Print_StreamMuxStartSettings( pTrans, bDumpParams );
                     }
                     TRNSX_ELSE_IF_LOOKUP( pstCmd, "transporttype", pTrans->streamMux.startSettings.transportType, g_transportTypeStrs ) /* NEXUS_TransportType */
                     /* The global value for the following isn't applied until mux_open is called, how to reconcile?*/
@@ -4891,7 +5476,7 @@ static bool TRNSX_Command_ParseParams(
                     TRNSX_ELSE_IF( pstCmd, "initialPts", pTrans->streamMux.startSettings.initialPts)
                     TRNSX_ELSE_IF( pstCmd, "pcr.interval", pTrans->streamMux.startSettings.pcr.interval)
                     TRNSX_ELSE_IF( pstCmd, "insertPtsOnlyOnFirstKeyFrameOfSegment", pTrans->streamMux.startSettings.insertPtsOnlyOnFirstKeyFrameOfSegment)
-                    TRNSX_ERROR( pTrans, pstCmd, g_cmdStrs, bRet )
+                    TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
                     break;
 
                 default:
@@ -4903,19 +5488,20 @@ static bool TRNSX_Command_ParseParams(
 
         case TRNSX_Cmd_eMuxStop:
         case TRNSX_Cmd_eMuxClose:
+            TRNSX_DEFAULT_PARAM_MSG( bPrint )
             break;
 
         case TRNSX_Cmd_eMuxOpen:
             if ( bPrint ) {
-                TRNSX_Print_MuxSettings( pTrans );
+                TRNSX_Print_MuxOpenSettings( pTrans, bDumpParams );
             }
             else if (!strcmp(pstCmd->szKey, "transport"))
             {
-                if ( pstCmd->bValid )
+                if ( pstCmd->uiNumValues )
                 {
                     bool bFileMuxError = false;
                     bool bStreamMuxError = false;
-                    TRNSX_TransportType eTransportType = lookup(g_trnsxTransportTypeStrs,pstCmd->szValue);
+                    TRNSX_TransportType eTransportType = lookup(g_trnsxTransportTypeStrs,pstCmd->data[0].szValue);
 
                     pTrans->fileMux.bActive = false;
                     pTrans->streamMux.bActive = false;
@@ -4985,20 +5571,36 @@ static bool TRNSX_Command_ParseParams(
                     BKNI_Printf("  current value for %s: %s\n", pstCmd->szKey, lookup_name(g_transportTypeStrs,pTrans->record.eTransportType ));
                 }
             }
-            TRNSX_ERROR( pTrans, pstCmd, g_cmdStrs, bRet )
+            else if ( pTrans->record.eTransportType == NEXUS_TransportType_eTs )
+            {
+                if ( bPrint ) {
+                    TRNSX_Print_MuxOpenSettings( pTrans, bDumpParams );
+                }
+                TRNSX_ELSE_IF( pstCmd, "userdata.enable", pTrans->streamMux.userData.enable)
+                TRNSX_ELSE_IF( pstCmd, "userdata.remappids", pTrans->streamMux.userData.bRemapPids)
+                TRNSX_ELSE_IF( pstCmd, "userdata.base_pid", pTrans->streamMux.userData.uiBasePid)
+                TRNSX_ELSE_IF( pstCmd, "pcr_pid", pTrans->streamMux.uiPcrPid)
+                TRNSX_ELSE_IF( pstCmd, "video_pid", pTrans->streamMux.uiVideoPid)
+                /*TRNSX_ELSE_IF( pstCmd, "userdata.pid", pTrans->streamMux.userData.uiPid)*/
+                TRNSX_ELSE_IF( pstCmd, "pmt_pid", pTrans->streamMux.uiPmtPid)
+                TRNSX_ELSE_IF( pstCmd, "pat_pid", pTrans->streamMux.uiPatPid)
+                TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
+            }
+            TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
             break;
 
         case TRNSX_Cmd_eRecordStart:
         case TRNSX_Cmd_eRecordPause:
         case TRNSX_Cmd_eRecordResume:
+            TRNSX_DEFAULT_PARAM_MSG( bPrint )
             break;
 
         case TRNSX_Cmd_eRecordStop:
             if ( bPrint ) {
-                BKNI_Printf("  bWaitForEos: %d\n", pTrans->record.bWaitForEos);
+                BKNI_Printf("  bWaitForEos: %d  // wait for EOS before exiting the copy thread\n", pTrans->record.bWaitForEos);
             }
             TRNSX_ELSE_IF( pstCmd, "bwaitforeos", pTrans->record.bWaitForEos)
-            TRNSX_ERROR( pTrans, pstCmd, g_cmdStrs, bRet )
+            TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
             break;
 
         case TRNSX_Cmd_eRecordSettings:
@@ -5007,7 +5609,7 @@ static bool TRNSX_Command_ParseParams(
             }
             else if (!strcmp(pstCmd->szKey, "file"))
             {
-                if ( pstCmd->bValid == false )
+                if ( pstCmd->uiNumValues == 0 )
                 {
                     /*BKNI_Printf("%s: failed to specify a file\n", pstCmd->szKey );*/
                     BKNI_Memset( pTrans->record.fname, 0, sizeof(pTrans->record.fname) );
@@ -5019,7 +5621,7 @@ static bool TRNSX_Command_ParseParams(
 
                     /* TODO: close old file if opening a new one? */
 
-                    strncpy(pTrans->record.fname, pstCmd->szValue, TRNSX_SIZE_FILE_NAME-1);
+                    strncpy(pTrans->record.fname, pstCmd->data[0].szValue, TRNSX_SIZE_FILE_NAME-1);
 
                     /* Create the index file name.
                      * TODO: this should only occur for the correct file types */
@@ -5042,65 +5644,91 @@ static bool TRNSX_Command_ParseParams(
 
                 }
             }
-            TRNSX_ERROR( pTrans, pstCmd, g_cmdStrs, bRet )
+            TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
             break;
 
         case TRNSX_Cmd_ePlaybackSetSettings:
         case TRNSX_Cmd_ePlaybackStart:
         case TRNSX_Cmd_ePlaybackStop:
         case TRNSX_Cmd_ePlaybackClose:
-            if ( bPrint ) PARAM_MSG;
+            TRNSX_DEFAULT_PARAM_MSG( bPrint )
             break;
 
         case TRNSX_Cmd_ePlaybackOpen:
             if ( bPrint ) {
                 TRNSX_Print_PlaybackOpenSettings( pTrans );
             }
-            else if ( (pstCmd->bValid == true ) && !strcmp(pstCmd->szKey, "type"))
+            else if ( (pstCmd->uiNumValues != 0 ) && !strcmp(pstCmd->szKey, "type"))
             {
-                if (!strcmp(pstCmd->szValue, "file"))
+                if (!strcmp(pstCmd->data[0].szValue, "file"))
                 {
-                    pTrans->input.eSourceType = TRNSX_Source_eFile;
+                    pTrans->source.eType = TRNSX_Source_eFile;
                 }
                 else
                 {
                     BKNI_Printf("%s: currently only support the default of file:\n", BSTD_FUNCTION );
-                    pTrans->input.eSourceType = TRNSX_Source_eFile;
+                    pTrans->source.eType = TRNSX_Source_eFile;
                     /* TODO: need to add error handling, when reading from a command file, exit */
                 }
             }
             else if (!strcmp(pstCmd->szKey, "file"))
             {
-                if ( pstCmd->bValid == false )
+                if ( pstCmd->uiNumValues == 0 )
                 {
                     BKNI_Printf("%s: failed to specify a file\n", pstCmd->szKey );
                 }
                 else
                 {
-                    TRNSX_MediaProbe(pTrans, pstCmd->szValue);
+                    TRNSX_MediaProbe(pTrans, pstCmd->data[0].szValue);
 
-                    if ( pTrans->input.bFileIsValid == false )
+                    if ( pTrans->source.bFileIsValid == false )
                     {
-                        BKNI_Printf("%s: failed to open %s\n", pstCmd->szKey, pstCmd->szValue );
+                        BKNI_Printf("%s: failed to open %s\n", pstCmd->szKey, pstCmd->data[0].szValue );
                     }
 
                 }
             }
-            TRNSX_ELSE_IF_LOOKUP( pstCmd, "video_codec",pTrans->input.eVideoCodec, g_videoCodecStrs )
-            TRNSX_ELSE_IF_LOOKUP( pstCmd, "transport",pTrans->input.eStreamType, g_transportTypeStrs )
-            TRNSX_ELSE_IF( pstCmd, "video_pid", pTrans->input.iVideoPid)
-            TRNSX_ELSE_IF( pstCmd, "pcr_pid", pTrans->input.iPcrPid)
-            TRNSX_ERROR( pTrans, pstCmd, g_cmdStrs, bRet )
+            TRNSX_ELSE_IF_LOOKUP( pstCmd, "video_codec",pTrans->source.eVideoCodec, g_videoCodecStrs )
+            TRNSX_ELSE_IF_LOOKUP( pstCmd, "transport",pTrans->source.eStreamType, g_transportTypeStrs )
+            TRNSX_ELSE_IF( pstCmd, "video_pid", pTrans->source.iVideoPid)
+            TRNSX_ELSE_IF( pstCmd, "pcr_pid", pTrans->source.iPcrPid)
+            TRNSX_ELSE_IF( pstCmd, "pmt_pid", pTrans->source.uiPmtPid)
+            else if (!strcmp(pstCmd->szKey, "userdata.pid" ))
+            {
+                if ( pstCmd->uiNumValues )
+                {
+                    BKNI_Memset( pTrans->source.userData.pids, 0, sizeof ( pTrans->source.userData.pids ) );
+
+                    pTrans->source.userData.numPids = pstCmd->uiNumValues;
+
+                    for ( i=0; i < pstCmd->uiNumValues && i < NEXUS_MAX_MUX_PIDS; i++ )
+                    {
+                        pTrans->source.userData.pids[i] = pstCmd->data[i].uiValue;
+                    }
+                }
+                else
+                {
+                    BKNI_Printf("  current value for %s:\n", pstCmd->szKey);
+                    BKNI_Printf("   userdata.numPids:   %d\n", pTrans->source.userData.numPids );
+                    i=0;
+                    do
+                    {
+                        BKNI_Printf("   userdata.pid[%d]:  %x (%d)\n", i, pTrans->source.userData.pids[i], pTrans->source.userData.pids[i] );
+                        i++;
+                    } while ( i < pTrans->source.userData.numPids );
+                }
+            }
+            TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
             break;
 
         case TRNSX_Cmd_eSleep:
             if ( bPrint ) {
-                BKNI_Printf("  unit:     %s\n", lookup_name(g_sleepUnitStrs, pTrans->sleep.eUnit));
+                BKNI_Printf("  unit:     %s  // <secs,msecs> : units of duration, default is secs\n", lookup_name(g_sleepUnitStrs, pTrans->sleep.eUnit));
                 BKNI_Printf("  duration: %d\n", pTrans->sleep.uiDuration);
             }
             TRNSX_ELSE_IF_LOOKUP( pstCmd, "unit",pTrans->sleep.eUnit, g_sleepUnitStrs )
             TRNSX_ELSE_IF( pstCmd, "duration", pTrans->sleep.uiDuration)
-            TRNSX_ERROR( pTrans, pstCmd, g_cmdStrs, bRet )
+            TRNSX_ERROR( pTrans, pstCmd, g_cmdFullnameStrs, bRet )
             break;
 
         default:
@@ -5113,129 +5741,105 @@ static bool TRNSX_Command_ParseParams(
     return bRet;
 }
 
-static void TRNSX_Help(void)
+static void TRNSX_Help( bool bDumpParams )
 {
+    unsigned i;
+    TRNSX_TestContext   stContext;
+    TRNSX_Transcode     stTranscode;
+    TRSNX_Command       stCmd;
+
     /* Can operate in two modes, calling each Nexus command or use defaults, set parameters of interest,
      * then use wrapper routines to make Nexus calls. */
 
-#if 0
-    BKNI_Printf(
-        "session - prints the state of all the sessions\n"
-        "session:<n> - selects session<n>.  All subsequent commands apply to that session.\n"
-        "session:open - creates a session with the default settings\n"
-        "session:start - begins playback and encoding\n"
-        "session:stop -  stops playback and encoding\n"
-        "session:close - closes the session\n"
-        "session:status - prints the sessions' status\n\n"
-        );
-#endif
+    if ( !bDumpParams )
+    {
+        BKNI_Printf(
+            "--- general ---\n"
+            "h, help, ?       - prints this help\n"
+            "p, params        - prints the parameters that can be set for each module level command\n"
+            "file:<file_name> - read comands from a file\n"
+            "-- the following are for interactive mode only\n"
+            "info             - print the platform capabilities\n"
+            "status           - print the status of the currently selected session\n"
+            "enum:<n>         - print Nexus and other enum's\n"
+            "q or quit        - exit the app\n"
+            );
 
-    BKNI_Printf(
-        "-- session --\n"
-        "session <parameters are below> end:0\n"
-        "  - select:<n> : specify which sesssion is active, currently only '0' can be selected\n"
-        "  - nrt:<0,1>  : enable NRT mode. A global flag which must be set before any of the commands below.\n"
-        "  - cc:<0,1>   : encode CC user data. A global flag which must be set before any of the commands below.\n\n"
-        );
+        BKNI_Printf("\n--- module specific commands ---\n");
+    }
+
+    BKNI_Memset( stCmd.szKey, 0, sizeof( stCmd.szKey ));
+    BKNI_Memcpy( stCmd.szKey, "help", sizeof("help") );
+    TRNSX_Transcode_GetDefaultSettings( &stContext, &stTranscode );
+
+    for ( i=1; i < TRNSX_Cmd_eMax; i++ )
+    {
+
+        if ( i == TRNSX_Cmd_eTranscode ) continue; /* hide these for now. */
+
+        switch ( i )
+        {
+            case TRNSX_Cmd_eVideoEncoderOpen:   BKNI_Printf("\n--- video encoder ----\n");  break;
+            case TRNSX_Cmd_eDisplayOpen:        BKNI_Printf("\n--- display ----\n");  break;
+            case TRNSX_Cmd_ePlaybackOpen:       BKNI_Printf("\n--- playback ----\n");  break;
+            case TRNSX_Cmd_eVideoDecoderOpen:   BKNI_Printf("\n--- video decoder ----\n");  break;
+            case TRNSX_Cmd_ePlaypumpOpen:       BKNI_Printf("\n--- playpump ----\n");  break;
+            case TRNSX_Cmd_eRecordStart:        BKNI_Printf("\n--- record ----\n");  break;
+            case TRNSX_Cmd_eMuxOpen:            BKNI_Printf("\n--- mux ----\n");  break;
+            case TRNSX_Cmd_eSession:            BKNI_Printf("\n--- miscellaneous ----\n");  break;
+            default: break;
+        }
+
+        BKNI_Printf("%s",lookup_name(g_cmdFullnameStrs, i ) );
+
+        if ( strcmp(lookup_name(g_cmdShortnameStrs, i ), "") )
+        {
+            BKNI_Printf(" (%s)", lookup_name(g_cmdShortnameStrs, i ) );
+
+        }
+
+        BKNI_Printf(":\n");
+
+        if ( bDumpParams )
+        {
+            stTranscode.eActiveCmd = i;
+            TRNSX_Command_ParseParams( &stContext, &stTranscode, &stCmd );
+            BKNI_Printf("\n");
+        }
+
+    }
 
 
-    BKNI_Printf(
-        "-- encoder --\n"
-        "video_encoder_set_settings (vess) -> NEXUS_VideoEncoder_SetSettings( NEXUS_VideoEncoderSettings )\n"
-        "video_encoder_open (veopen)       -> NEXUS_VideoEncoder_Open( NEXUS_VideoEncoderOpenSettings )\n"
-        );
-
-    BKNI_Printf(
-        "video_encoder_close (veclose)    -> NEXUS_VideoEncoder_Close()\n"
-        "video_encoder_start (vestart)    -> NEXUS_VideoEncoder_Start( NEXUS_VideoEncoderStartSettings )\n"
-        "video_encoder_stop (vestop)      -> NEXUS_VideoEncoder_Stop( NEXUS_VideoEncoderStopSettings )\n"
-        "video_encoder_status (vestatus)  -> NEXUS_VideoEncoder_GetStatus()\n\n"
-        );
-
-    BKNI_Printf(
-        "-- decoder --\n"
-        "video_decoder_set_settings (vdss) -> NEXUS_VideoDecoder_SetSettings( NEXUS_VideoDecoderSettings )\n"
-        "video_decoder_open (vdopen)       -> NEXUS_VideoDecoder_Open( NEXUS_VideoDecoderOpenSettings )\n"
-        );
-
-    BKNI_Printf(
-        "video_decoder_close (vdclose)    -> NEXUS_VideoDecoder_Close()\n"
-        "video_decoder_start (vdstart)    -> NEXUS_VideoDecoder_Start( NEXUS_VideoDecoderStartSettings )\n"
-        "video_decoder_stop (vdstop)      -> NEXUS_VideoDecoder_Stop( NEXUS_VideoDecoderStopSettings )\n\n"
-        );
-
-    BKNI_Printf(
-        "-- playback --\n"
-        "playback_set_settings (pbss) -> NEXUS_Playback_SetSettings( NEXUS_PlaybackSettings )\n"
-        "playback_start (pbstart)     -> NEXUS_Playback_Start( NEXUS_PlaybackStartSettings )\n"
-        "playback_stop (pbstop)       -> NEXUS_Playback_Stop( NEXUS_PlaybackStopSettings )\n"
-        );
-
-    BKNI_Printf(
-        "playback_open (pbopen) <parameters are below> end:0\n"
-        "  - type:<file,qam,hdmi> : currently only supports type of file\n"
-        "  - file:<file_name> : (Note: the file is probed by default and the following parameters filled in).\n"
-        );
-
-    BKNI_Printf(
-        "  - transport:<NEXUS_TransportType>\n"
-        "  - pcr_pid:<n>\n"
-        "  - video_codec:<NEXUS_VideoCodec>\n"
-        "  - video_pid:<n>\n\n"
-        );
-
-    BKNI_Printf(
-        "-- display --\n"
-        "display_open (dpopen)      -> NEXUS_Display_Open( NEXUS_DisplaySettings )\n"
-        "  NEXUS_Display_Open() is not currently exposed, the above settings are applied when video_encoder_open is executed.\n"
-        "display_custom_format (dpcust)  -> NEXUS_Display_SetCustomFormatSettings( NEXUS_DisplayCustomFormatSettings )\n\n"
-        );
-
-    BKNI_Printf(
-        "-- record --\n"
-        "record_settings (recss) <parameters are below> end:0\n"
-        "  - file:<file_name>\n"
-        "record_start (recstart) end:0\n"
-        "record_stop (recstop) bWaitForEos:<0/1> end:0\n"
-        "record_pause (recpause) end:0\n"
-        "record_resume (recresume) end:0\n\n"
-        );
-
-    BKNI_Printf(
-        "-- mux --\n"
-        "mux_open (mxopen) <parameters are below> end:0\n"
-        "  - transport:<es,ivf,pes,mp4,ts,mp4f>\n"
-        "    - for 'es', the buffers will be read directly\n"
-        "    - for 'ivf', 'pes' and 'mp4' the file mux will be used.\n"
-        "    - for 'ts' and 'mp4f' the stream mux wil be used, but it is NOT SUPPORTED yet.\n"
-        "mux_start (mxstart) end:0\n"
-        "mux_stop (mxstop) end:0\n\n"
-        );
-
-    BKNI_Printf(
-        "-- control --\n"
-        "sleep <parameters are below> end:0\n"
-        "  - units:<secs,msecs> : specifies the units of duration, default is secs\n"
-        "  - duration:<n>\n\n"
-        );
-
-    BKNI_Printf(
-        "NOTE: a <CR> will print the contents of the structure associated with the active command.\n\n"
-        );
-
-    BKNI_Printf(
-        "-- general --\n"
-        "info             - print the platform capabilities\n"
-        "status           - print the status of the currently selected session\n"
-        "file:<file_name> - read comands from a file\n"
-        "echo             - echo commands as they are read from a file\n"
-        "enum:<n>         - print Nexus and other enum's\n"
-        "h, help, ?       - prints this help\n"
-        "q or quit        - exit the app\n"
-        );
+    if ( !bDumpParams )
+    {
+        BKNI_Printf("\n--- usage ---\n");
+        BKNI_Printf("TODO: need more info here.\n");
+        BKNI_Printf("In interactive mode, a <CR> will print the current parameters of active command.\n");
+    }
 
     return;
 
+}
+
+static unsigned TRNSX_Is_Input_A_Valid_Command(
+    TRNSX_TestContext *  pCtxt,
+    TRNSX_Transcode * pTrans,
+    TRSNX_Command * pstCmd
+    )
+{
+    unsigned uiReturn=0;
+
+    BSTD_UNUSED(pCtxt);
+
+    uiReturn = TRNSX_Lookup(g_cmdFullnameStrs, pstCmd->szKey );
+    uiReturn |= TRNSX_Lookup(g_cmdShortnameStrs, pstCmd->szKey );
+
+    if ( uiReturn )
+    {
+        pTrans->eActiveCmd = uiReturn;
+    }
+
+    return uiReturn;
 }
 
 int main(int argc, const char *argv[])  {
@@ -5258,20 +5862,22 @@ int main(int argc, const char *argv[])  {
     for (j=0;j<argc;j++)
     {
         if (!strcmp(argv[j], "-h") || !strcmp(argv[j], "-help") || !strcmp(argv[j], "?")) {
-            TRNSX_Help();
-            /*TRNSX_Platform_Close(&stTestContext);*/
+            TRNSX_Help(false);
             return 0;
         }
+        else if (!strcmp(argv[j], "-p") || !strcmp(argv[j], "-params") ) {
+            TRNSX_Help(true);
+            return 0;
+        }
+#if 0
         else if (!strcmp(argv[j], "-simdisp")) {
             /* enable simultaneous display
              * TODO: now to deal with multiple transcodes? */
 
             stTestContext.simulDisplay.bEnabled = true;
         }
-        else if (!strcmp(argv[j], "-echo")) {
-            stTestContext.bEcho = true;
-        }
-        else if (!strcmp(argv[j], "-file")) {
+#endif
+         else if (!strcmp(argv[j], "-file")) {
             if ( hCmdFile )
             {
                 fclose(hCmdFile);
@@ -5293,7 +5899,7 @@ int main(int argc, const char *argv[])  {
      * TODO: cleanup the session initialzation.
      */
 
-    for( i=0; i < TRNSX_NUM_ENCODES; i++ )
+    for( i=0; i < TRNSX_MAX_SESSIONS; i++ )
     {
         pTrans = &stTestContext.transcodes[i];
 
@@ -5331,7 +5937,7 @@ int main(int argc, const char *argv[])  {
             BKNI_Printf("s%d%s%s> ",
                             pTrans->uiIndex,
                             ( pTrans->eActiveCmd == TRNSX_Cmd_eNone ) ? "" : ".",
-                            lookup_name(g_cmdStrs, pTrans->eActiveCmd));
+                            lookup_name(g_cmdFullnameStrs, pTrans->eActiveCmd));
         }
 
         if ( hCmdFile )
@@ -5352,10 +5958,7 @@ int main(int argc, const char *argv[])  {
 
         TRNSX_Parse_Input( szInput, &astCmd[0], TRNSX_NUM_CMDS );
 
-        if ( !stTestContext.bInteractive && stTestContext.bEcho )
-        {
-            BKNI_Printf("input cmd: %s", szInput);
-        }
+        BDBG_MODULE_MSG( trnsx_echo, ("%s: input string: %s", BSTD_FUNCTION, szInput));
 
         for ( j=0; j < TRNSX_NUM_CMDS-1; j++ )
         {
@@ -5366,14 +5969,18 @@ int main(int argc, const char *argv[])  {
             if ( strlen(pstCmd->szKey ) == 0 ) break;
 
             /* For file debug. */
-            if ( !stTestContext.bInteractive ) BDBG_MODULE_MSG(trnsx_cmds,("%s: iValue:%d szValue:%s" , pstCmd->szKey, pstCmd->iValue, pstCmd->szValue ));
+            if ( !stTestContext.bInteractive )
+                BDBG_MODULE_MSG(trnsx_input,("%s: uiValue:%d szValue:%s" , pstCmd->szKey, pstCmd->data[0].uiValue, pstCmd->data[0].szValue ));
 
             if (!strcmp(pstCmd->szKey, "quit") || !strcmp(pstCmd->szKey, "q")) {
                 TRNSX_Platform_Close( &stTestContext );
                 exit(0);
             }
             else if (!strcmp(pstCmd->szKey, "h") || !strcmp(pstCmd->szKey, "help") || !strcmp(pstCmd->szKey, "?")) {
-                TRNSX_Help();
+                TRNSX_Help(false);
+            }
+            else if (!strcmp(pstCmd->szKey, "p") || !strcmp(pstCmd->szKey, "params") ) {
+                TRNSX_Help(true);
             }
             else if (!strcmp(pstCmd->szKey, "info")) {
                 TRNSX_Platform_SystemInfo( &stTestContext );
@@ -5381,9 +5988,12 @@ int main(int argc, const char *argv[])  {
             else if (!strcmp(pstCmd->szKey, "status")) {
                 TRNSX_Transcode_Status( &stTestContext, pTrans ); /* status for this session not all sessions. */
             }
+            else if (!strcmp(pstCmd->szKey, "echo")) {
+                BKNI_Printf("%s\n", pstCmd->data[0].szValue);
+            }
             else if (!strcmp(pstCmd->szKey, "file") && pTrans->eActiveCmd == TRNSX_Cmd_eNone ) /* TODO: cleanup eActiveCmd*/
             {
-                if ( pstCmd->bValid == false )
+                if ( pstCmd->uiNumValues == 0 )
                 {
                     BKNI_Printf("command file: %s\n", szCmdFileName );
                 }
@@ -5394,7 +6004,7 @@ int main(int argc, const char *argv[])  {
                         fclose(hCmdFile);
                         hCmdFile = NULL;
                     }
-                    strncpy(szCmdFileName, pstCmd->szValue, strlen(pstCmd->szValue));
+                    strncpy(szCmdFileName, pstCmd->data[0].szValue, strlen(pstCmd->data[0].szValue));
                     hCmdFile = fopen(szCmdFileName,"r");
 
                     if ( !hCmdFile )  BKNI_Printf("failed to open command file: %s\n", szCmdFileName);
@@ -5404,21 +6014,21 @@ int main(int argc, const char *argv[])  {
 
             /*** Dump enums. ***/
             else if (!strcmp(pstCmd->szKey, "enum")) {
-                if (!strcmp(pstCmd->szValue, "codec"))              { print_value_list(g_videoCodecStrs);           }
-                else if (!strcmp(pstCmd->szValue, "transport"))     { print_value_list(g_transportTypeStrs);        }
-                else if (!strcmp(pstCmd->szValue, "profile"))       { print_value_list(g_videoCodecProfileStrs);    }
-                else if (!strcmp(pstCmd->szValue, "level"))         { print_value_list(g_videoCodecLevelStrs);      }
-                else if (!strcmp(pstCmd->szValue, "framerate"))     { print_value_list(g_videoFrameRateStrs);       }
-                else if (!strcmp(pstCmd->szValue, "format"))        { print_value_list(g_videoFormatStrs);          }
-                else if (!strcmp(pstCmd->szValue, "aspect"))        { print_value_list(g_displayAspectRatioStrs);   }
-                else if (!strcmp(pstCmd->szValue, "encoder_type"))  { print_value_list(g_encoderTypeStrs);        }
-                else if (!strcmp(pstCmd->szValue, "tristate"))      { print_value_list(g_tristateEnableStrs);     }
-                else if (!strcmp(pstCmd->szValue, "entropy"))       { print_value_list(g_entropyCodingStrs);     }
-                else if (!strcmp(pstCmd->szValue, "stop"))          { print_value_list(g_encoderStopModeStrs);     }
-                else if (!strcmp(pstCmd->szValue, "display_type"))  { print_value_list(g_displayTypeStrs);     }
-                else if (!strcmp(pstCmd->szValue, "timestamp"))     { print_value_list(g_transportTimestampTypeStrs);     }
-                else if (!strcmp(pstCmd->szValue, "transxtype"))    { print_value_list(g_trnsxTransportTypeStrs);     }
-                else if (!strcmp(pstCmd->szValue, "timing_generator")) { print_value_list(g_displayTimingGeneratorStrs);     }
+                if (!strcmp(pstCmd->data[0].szValue, "codec"))              { print_value_list(g_videoCodecStrs);           }
+                else if (!strcmp(pstCmd->data[0].szValue, "transport"))     { print_value_list(g_transportTypeStrs);        }
+                else if (!strcmp(pstCmd->data[0].szValue, "profile"))       { print_value_list(g_videoCodecProfileStrs);    }
+                else if (!strcmp(pstCmd->data[0].szValue, "level"))         { print_value_list(g_videoCodecLevelStrs);      }
+                else if (!strcmp(pstCmd->data[0].szValue, "framerate"))     { print_value_list(g_videoFrameRateStrs);       }
+                else if (!strcmp(pstCmd->data[0].szValue, "format"))        { print_value_list(g_videoFormatStrs);          }
+                else if (!strcmp(pstCmd->data[0].szValue, "aspect"))        { print_value_list(g_displayAspectRatioStrs);   }
+                else if (!strcmp(pstCmd->data[0].szValue, "encoder_type"))  { print_value_list(g_encoderTypeStrs);        }
+                else if (!strcmp(pstCmd->data[0].szValue, "tristate"))      { print_value_list(g_tristateEnableStrs);     }
+                else if (!strcmp(pstCmd->data[0].szValue, "entropy"))       { print_value_list(g_entropyCodingStrs);     }
+                else if (!strcmp(pstCmd->data[0].szValue, "stop"))          { print_value_list(g_encoderStopModeStrs);     }
+                else if (!strcmp(pstCmd->data[0].szValue, "display_type"))  { print_value_list(g_displayTypeStrs);     }
+                else if (!strcmp(pstCmd->data[0].szValue, "timestamp"))     { print_value_list(g_transportTimestampTypeStrs);     }
+                else if (!strcmp(pstCmd->data[0].szValue, "transxtype"))    { print_value_list(g_trnsxTransportTypeStrs);     }
+                else if (!strcmp(pstCmd->data[0].szValue, "timing_generator")) { print_value_list(g_displayTimingGeneratorStrs);     }
                 else {
                     BKNI_Printf("enum command: currently supports\n"
                                 "  codec        - video codec\n"
@@ -5469,171 +6079,10 @@ int main(int argc, const char *argv[])  {
                 }
             }
 
-            /*** Session related commands. ***/
-
-            else if (!strcmp(pstCmd->szKey, "session"))
+            /*** Did the user specify a valid command? ***/
+            else if (  TRNSX_Is_Input_A_Valid_Command( &stTestContext, pTrans, pstCmd ) )
             {
-                pTrans->eActiveCmd = TRNSX_Cmd_eSession;
-            }
-
-            /*** transcode wrappers ***/
-            else if (!strcmp(pstCmd->szKey, "transcode"))
-            {
-                pTrans->eActiveCmd = TRNSX_Cmd_eTranscode;
-            }
-
-            /*** sleep related commands. ***/
-
-            else if (!strcmp(pstCmd->szKey, "sleep"))
-            {
-                pTrans->eActiveCmd = TRNSX_Cmd_eSleep;
-            }
-
-            /*** Encoder commands ***/
-
-            /* NEXUS_VideoEncoder_SetSettings */
-            else  if (!strcmp(pstCmd->szKey, "video_encoder_set_settings") || !strcmp(pstCmd->szKey, "vess")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eVideoEncoderSetSettings;
-            }
-
-            /* NEXUS_VideoEncoder_Open */
-            else  if (!strcmp(pstCmd->szKey, "video_encoder_open") || !strcmp(pstCmd->szKey, "veopen")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eVideoEncoderOpen;
-            }
-
-            /* NEXUS_VideoEncoder_Close */
-            else  if (!strcmp(pstCmd->szKey, "video_encoder_close") || !strcmp(pstCmd->szKey, "veclose")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eVideoEncoderClose;
-            }
-
-            /* NEXUS_VideoEncoder_Start */
-            else  if (!strcmp(pstCmd->szKey, "video_encoder_start") || !strcmp(pstCmd->szKey, "vestart")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eVideoEncoderStart;
-            }
-
-            /* NEXUS_VideoEncoder_Stop */
-            else  if (!strcmp(pstCmd->szKey, "video_encoder_stop") || !strcmp(pstCmd->szKey, "vestop")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eVideoEncoderStop;
-            }
-
-            /* NEXUS_VideoEncoder_Stop */
-            else  if (!strcmp(pstCmd->szKey, "video_encoder_status") || !strcmp(pstCmd->szKey, "vestatus")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eVideoEncoderStatus;
-            }
-
-            /*** Decoder commands ***/
-
-            /* NEXUS_VideoDecoder_SetSettings */
-            else  if (!strcmp(pstCmd->szKey, "video_decoder_set_settings") || !strcmp(pstCmd->szKey, "vdss")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eVideoDecoderSetSettings;
-            }
-
-            /* NEXUS_VideoDecoder_Open */
-            else  if (!strcmp(pstCmd->szKey, "video_decoder_open") || !strcmp(pstCmd->szKey, "vdopen")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eVideoDecoderOpen;
-            }
-
-            /* NEXUS_VideoDecoder_Close */
-            else  if (!strcmp(pstCmd->szKey, "video_decoder_close") || !strcmp(pstCmd->szKey, "vdclose")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eVideoDecoderClose;
-            }
-
-            /* NEXUS_VideoDecoder_Start */
-            else  if (!strcmp(pstCmd->szKey, "video_decoder_start") || !strcmp(pstCmd->szKey, "vdstart")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eVideoDecoderStart;
-            }
-
-            /* NEXUS_VideoDecoder_Stop */
-            else  if (!strcmp(pstCmd->szKey, "video_decoder_stop") || !strcmp(pstCmd->szKey, "vdstop")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eVideoDecoderStop;
-            }
-
-            /* NEXUS_VideoDecoder_GetStatus */
-            else  if (!strcmp(pstCmd->szKey, "video_decoder_status") || !strcmp(pstCmd->szKey, "vdstatus")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eVideoDecoderStatus;
-            }
-
-            /*** Playback commands ***/
-
-            /* NEXUS_Playback_SetSettings */
-            else  if (!strcmp(pstCmd->szKey, "playback_set_settings") || !strcmp(pstCmd->szKey, "pbss")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_ePlaybackSetSettings;
-            }
-
-            /* a transcode_x command */
-            else if (!strcmp(pstCmd->szKey, "playback_open") || !strcmp(pstCmd->szKey, "pbopen")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_ePlaybackOpen;
-            }
-
-            /* a transcode_x command */
-            else if (!strcmp(pstCmd->szKey, "playback_close") || !strcmp(pstCmd->szKey, "pbclose")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_ePlaybackClose;
-            }
-
-            /* NEXUS_Playback_Start */
-            else  if (!strcmp(pstCmd->szKey, "playback_start") || !strcmp(pstCmd->szKey, "pbstart")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_ePlaybackStart;
-            }
-
-            /* NEXUS_Playback_Stop */
-            else  if (!strcmp(pstCmd->szKey, "playback_stop") || !strcmp(pstCmd->szKey, "pbstop")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_ePlaybackStop;
-            }
-
-            /*** Display commands ***/
-
-            /* display settingss */
-            else  if (!strcmp(pstCmd->szKey, "display_open") || !strcmp(pstCmd->szKey, "dpopen")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eDisplayOpen;
-            }
-            else  if (!strcmp(pstCmd->szKey, "display_close") || !strcmp(pstCmd->szKey, "dpclose")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eDisplayClose;
-            }
-            /* NEXUS_Display_SetCustomFormatSettings */
-            else  if (!strcmp(pstCmd->szKey, "display_custom_format") || !strcmp(pstCmd->szKey, "dpcust")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eDisplayCustomFormatSettings;
-            }
-
-            /*** Playpump commands ***/
-
-            else  if (!strcmp(pstCmd->szKey, "playpump_open") || !strcmp(pstCmd->szKey, "ppopen")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_ePlaypumpOpen;
-            }
-            else  if (!strcmp(pstCmd->szKey, "playpump_set_settings") || !strcmp(pstCmd->szKey, "ppss")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_ePlaypumpSetSettings;
-            }
-
-            /*** record commands ***/
-
-            else  if (!strcmp(pstCmd->szKey, "record_settings") || !strcmp(pstCmd->szKey, "recss")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eRecordSettings;
-            }
-            else  if (!strcmp(pstCmd->szKey, "record_start") || !strcmp(pstCmd->szKey, "recstart")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eRecordStart;
-            }
-            else  if (!strcmp(pstCmd->szKey, "record_stop") || !strcmp(pstCmd->szKey, "recstop")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eRecordStop;
-            }
-            else  if (!strcmp(pstCmd->szKey, "record_pause") || !strcmp(pstCmd->szKey, "recpause")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eRecordPause;
-            }
-            else  if (!strcmp(pstCmd->szKey, "record_resume") || !strcmp(pstCmd->szKey, "recresume")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eRecordResume;
-            }
-
-            /*** mux commands ***/
-
-            else  if (!strcmp(pstCmd->szKey, "mux_open") || !strcmp(pstCmd->szKey, "mxopen")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eMuxOpen;
-            }
-            else  if (!strcmp(pstCmd->szKey, "mux_close") || !strcmp(pstCmd->szKey, "mxclose")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eMuxClose;
-            }
-            else  if (!strcmp(pstCmd->szKey, "mux_start") || !strcmp(pstCmd->szKey, "mxstart")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eMuxStart;
-            }
-            else  if (!strcmp(pstCmd->szKey, "mux_stop") || !strcmp(pstCmd->szKey, "mxstop")) {
-                pTrans->eActiveCmd = TRNSX_Cmd_eMuxStop;
+                BDBG_MODULE_MSG( trnsx_echo, ("%s: valid command: %s", BSTD_FUNCTION, lookup_name(g_cmdFullnameStrs, pTrans->eActiveCmd )));
             }
 
             /* Unsupported command. */

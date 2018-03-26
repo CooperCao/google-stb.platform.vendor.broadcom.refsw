@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -837,7 +837,7 @@ static NEXUS_Error NEXUS_Frontend_P_Init3255DeviceRPC(NEXUS_3255DeviceHandle dev
             };
         }
     }
-    BDBG_WRN((" RPC is initialized between 3255 and 740x"));
+    BDBG_WRN((" RPC interface between DOCSIS and Host initialized"));
     BRPC_Close_SocketImpl(deviceHandle->rpc_handle);
 
     /* reopen RPC socket to apply normal timeout value*/
@@ -1348,7 +1348,7 @@ next_try:
 /**********************************************************************************
  Summary:
  Private API for closing a frontend handle. It's hooked up to the main
- close funtion pointer in the frontend handle during frontend open.
+ close function pointer in the frontend handle during frontend open.
  **********************************************************************************/
 static void NEXUS_Frontend_P_Close3255Channel(NEXUS_FrontendHandle handle)
 {
@@ -1501,7 +1501,7 @@ static NEXUS_Error NEXUS_Frontend_P_3255Standby(void *handle, bool enabled, cons
 /**********************************************************************************
  Summary:
  Private API for getting QAM status aynchronously. It's hooked up to the main
- getQamAsyncStatus funtion pointer in the frontend handle during frontend open.
+ getQamAsyncStatus function pointer in the frontend handle during frontend open.
  **********************************************************************************/
 static NEXUS_Error NEXUS_Frontend_P_3255_GetAsyncQamStatus(
     void *handle,
@@ -1571,7 +1571,7 @@ static NEXUS_Error NEXUS_Frontend_P_3255_GetAsyncQamStatus(
 /**********************************************************************************
  Summary:
  Private API for requesting QAM status aynchronously. It's hooked up to the main
- requestQamAsyncStatus funtion pointer in the frontend handle during frontend open.
+ requestQamAsyncStatus function pointer in the frontend handle during frontend open.
  **********************************************************************************/
 static NEXUS_Error NEXUS_Frontend_P_3255_RequestAsyncQamStatus(
     void *handle)

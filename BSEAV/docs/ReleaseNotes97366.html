@@ -160,7 +160,7 @@ Software Release</strong></a></p>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
 
-<p>January 23, 2018</p>
+<p>March 1, 2018</p>
 
 <p>Phase 18.1 Release </p>
 
@@ -183,21 +183,21 @@ Atlas as part of the Reference Software. </p>
 <p><strong>Quick Build Instructions</strong></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar -xvjf rootfs-4.1-1.15.tar.bz2 </li>
- <li class=MsoNormal># tar -xvjf stblinux-4.1-1.15.tar.bz2 </li>
+ <li class=MsoNormal># tar -xvjf rootfs-4.1-1.17.tar.bz2 </li>
+ <li class=MsoNormal># tar -xvjf stblinux-4.1-1.17.tar.bz2 </li>
  <li class=MsoNormal># cd rootfs </li>
  <li class=MsoNormal># make vmlinuz-initrd-arm </li>
  <li class=MsoNormal># cd ../linux </li>
  <li class=MsoNormal>export LINUX=`pwd` </li>
- <li class=MsoNormal>tar -C /opt/toolchains -xvjf stbgcc-6.3-1.1.tar.bz2 </li>
- <li class=MsoNormal>PATH=/opt/toolchains/stbgcc-6.3-1.1/bin:$PATH </li>
+ <li class=MsoNormal>tar -C /opt/toolchains -xvjf stbgcc-6.3-1.2.tar.bz2 </li>
+ <li class=MsoNormal>PATH=/opt/toolchains/stbgcc-6.3-1.2/bin:$PATH </li>
  <li class=MsoNormal>export B_REFSW_ARCH=arm-linux </li>
 </ul>
 
 <p><strong>Quick Boot instructions</strong> </p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>BOLT&gt; boot -z <tftp-server-ipaddress>&lt;network_location&gt;:41-1.15/vmlinuz-initrd-arm
+ <li class=MsoNormal>BOLT&gt; boot -z <tftp-server-ipaddress>&lt;network_location&gt;:41-1.17/vmlinuz-initrd-arm
      </li>
  <li class=MsoNormal>Please note the following Ethernet port assignment for
      different boards using BOLT 0.80. 97366SFF board has no built-in ports,
@@ -281,7 +281,7 @@ Atlas as part of the Reference Software. </p>
 <p class=MsoNormal><strong>Set the kernel to autoboot</strong> </p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>BOLT&gt; flash -noheader <tftp-server-ipaddress>&lt;network_location&gt;:4.1-1.15/vmlinuz-initrd-arm
+ <li class=MsoNormal>BOLT&gt; flash -noheader <tftp-server-ipaddress>&lt;network_location&gt;:4.1-1.17/vmlinuz-initrd-arm
      flash1.rootfs0 </li>
  <li class=MsoNormal>BOLT&gt; setenv -p STARTUP &quot;boot&nbsp;
      flash1.rootfs0&quot; </li>

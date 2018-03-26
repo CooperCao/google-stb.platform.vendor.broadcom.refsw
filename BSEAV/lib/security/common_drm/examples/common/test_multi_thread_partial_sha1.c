@@ -87,8 +87,6 @@ int main(int argc, char *argv[])
 
     printf("\n\tMain - Starting test app (%s) ^^^^^^^^^^^^^^^^^^^^^^^\n", argv[1]);
 
-    DRM_KeyRegion_SetCustDrmFilePath( argv[1]);
-
     DRM_Common_BasicInitialize(&commonDrmInit);
 
     printf("\tMain - Opened BCRYPT ^^^^^^^^^^^^^^^^^^^^^^^\n");

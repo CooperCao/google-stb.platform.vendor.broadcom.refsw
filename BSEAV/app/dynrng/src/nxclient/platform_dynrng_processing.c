@@ -38,7 +38,7 @@
 #include "nexus_platform_client.h"
 #include "nexus_platform.h"
 #include "nxclient.h"
-#include "nexus_display_dynrng.h"
+#include "nexus_display_dynrng_private.h"
 #include "platform.h"
 #include "platform_priv.h"
 #include "platform_display_priv.h"
@@ -113,7 +113,7 @@ void platform_display_get_video_dynamic_range_processing_capabilities(PlatformDi
     NEXUS_DynamicRangeProcessingCapabilities caps;
     BSTD_UNUSED(display);
     BDBG_ASSERT(pCapabilities);
-    NEXUS_VideoWindow_GetDynamicRangeProcessingCapabilities(windowId, &caps);
+    NEXUS_VideoWindow_GetDynamicRangeProcessingCapabilities(NEXUS_FindHdmiDisplay(), windowId, &caps);
     platform_display_p_dynamic_range_processing_capabilities_from_nexus(&caps, pCapabilities);
 }
 
@@ -122,7 +122,7 @@ void platform_display_get_video_dynamic_range_processing_settings(PlatformDispla
     NEXUS_DynamicRangeProcessingSettings settings;
     BSTD_UNUSED(display);
     BDBG_ASSERT(pSettings);
-    NEXUS_VideoWindow_GetDynamicRangeProcessingSettings(windowId, &settings);
+    NEXUS_VideoWindow_GetDynamicRangeProcessingSettings(NEXUS_FindHdmiDisplay(), windowId, &settings);
     platform_display_p_dynamic_range_processing_settings_from_nexus(&settings, pSettings);
 }
 
@@ -130,24 +130,26 @@ void platform_display_set_video_dynamic_range_processing_settings(PlatformDispla
 {
     NEXUS_Error rc =  NEXUS_SUCCESS;
     NEXUS_DynamicRangeProcessingSettings settings;
+    unsigned displayId = NEXUS_FindHdmiDisplay();
+
     BSTD_UNUSED(display);
     BDBG_ASSERT(pSettings);
-    NEXUS_VideoWindow_GetDynamicRangeProcessingSettings(windowId, &settings);
+    NEXUS_VideoWindow_GetDynamicRangeProcessingSettings(displayId, windowId, &settings);
     platform_display_p_dynamic_range_processing_settings_to_nexus(pSettings, &settings);
-    rc = NEXUS_VideoWindow_SetDynamicRangeProcessingSettings(windowId, &settings);
+    rc = NEXUS_VideoWindow_SetDynamicRangeProcessingSettings(displayId, windowId, &settings);
     if (rc) { rc = BERR_TRACE(rc); }
 }
 
 void platform_display_get_video_target_peak_brightness(PlatformDisplayHandle display, unsigned windowId, int *hdrPeak, int *sdrPeak)
 {
     BSTD_UNUSED(display);
-    NEXUS_VideoWindow_GetTargetPeakBrightness(windowId, hdrPeak, sdrPeak);
+    NEXUS_VideoWindow_GetTargetPeakBrightness(NEXUS_FindHdmiDisplay(), windowId, hdrPeak, sdrPeak);
 }
 
 void platform_display_set_video_target_peak_brightness(PlatformDisplayHandle display, unsigned windowId, int hdrPeak, int sdrPeak)
 {
     BSTD_UNUSED(display);
-    NEXUS_VideoWindow_SetTargetPeakBrightness(windowId, hdrPeak, sdrPeak);
+    NEXUS_VideoWindow_SetTargetPeakBrightness(NEXUS_FindHdmiDisplay(), windowId, hdrPeak, sdrPeak);
 }
 
 void platform_display_get_graphics_dynamic_range_processing_capabilities(PlatformDisplayHandle display, PlatformDynamicRangeProcessingCapabilities * pCapabilities)
@@ -155,7 +157,7 @@ void platform_display_get_graphics_dynamic_range_processing_capabilities(Platfor
     NEXUS_DynamicRangeProcessingCapabilities caps;
     BSTD_UNUSED(display);
     BDBG_ASSERT(pCapabilities);
-    NEXUS_Display_GetGraphicsDynamicRangeProcessingCapabilities(&caps);
+    NEXUS_Display_GetGraphicsDynamicRangeProcessingCapabilities(NEXUS_FindHdmiDisplay(), &caps);
     platform_display_p_dynamic_range_processing_capabilities_from_nexus(&caps, pCapabilities);
 }
 
@@ -164,7 +166,7 @@ void platform_display_get_graphics_dynamic_range_processing_settings(PlatformDis
     NEXUS_DynamicRangeProcessingSettings settings;
     BSTD_UNUSED(display);
     BDBG_ASSERT(pSettings);
-    NEXUS_Display_GetGraphicsDynamicRangeProcessingSettings(&settings);
+    NEXUS_Display_GetGraphicsDynamicRangeProcessingSettings(NEXUS_FindHdmiDisplay(), &settings);
     platform_display_p_dynamic_range_processing_settings_from_nexus(&settings, pSettings);
 }
 
@@ -172,10 +174,26 @@ void platform_display_set_graphics_dynamic_range_processing_settings(PlatformDis
 {
     NEXUS_Error rc =  NEXUS_SUCCESS;
     NEXUS_DynamicRangeProcessingSettings settings;
+    unsigned displayId = NEXUS_FindHdmiDisplay();
+
     BSTD_UNUSED(display);
     BDBG_ASSERT(pSettings);
-    NEXUS_Display_GetGraphicsDynamicRangeProcessingSettings(&settings);
+    NEXUS_Display_GetGraphicsDynamicRangeProcessingSettings(displayId, &settings);
     platform_display_p_dynamic_range_processing_settings_to_nexus(pSettings, &settings);
-    rc = NEXUS_Display_SetGraphicsDynamicRangeProcessingSettings(&settings);
+    rc = NEXUS_Display_SetGraphicsDynamicRangeProcessingSettings(displayId, &settings);
     if (rc) { rc = BERR_TRACE(rc); }
+}
+
+void platform_display_set_gfx_luminance(PlatformDisplayHandle display, unsigned min, unsigned max)
+{
+    int rc = 0;
+    NEXUS_GraphicsLuminanceBounds bounds;
+    unsigned displayId = NEXUS_FindHdmiDisplay();
+
+    BDBG_ASSERT(display);
+    NEXUS_Display_GetGraphicsLuminanceBounds(displayId, &bounds);
+    bounds.min = min;
+    bounds.max = max;
+    rc = NEXUS_Display_SetGraphicsLuminanceBounds(displayId, &bounds);
+    if (rc) BERR_TRACE(rc);
 }

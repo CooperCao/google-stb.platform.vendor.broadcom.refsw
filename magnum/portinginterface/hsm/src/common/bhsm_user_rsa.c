@@ -49,8 +49,6 @@ BDBG_MODULE(BHSM);
 
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
 
-BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
-
 BERR_Code BHSM_UserRSA(
         BHSM_Handle         hHsm,
         BHSM_UserRSAIO_t    *pRsa

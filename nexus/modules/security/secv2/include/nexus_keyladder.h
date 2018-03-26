@@ -46,7 +46,7 @@
     The root key can be configured by 1 of 3 mechanisms. These are:
       1. OTP Direct. This uses a key programmed into the on chip's OTP (One Time Programmable) memory as the root key.
       2. OTP via ASKM (Advanced Symmetric Key Management). This mechanism diffuses an OTP with CA vendor specific
-         configuration paramters to derive the root key. It allows an OTP key to be used independently by multiple
+         configuration parameters to derive the root key. It allows an OTP key to be used independently by multiple
          CA Vendors.
       3. Global Key. This mechanism derives the root key from a set of "Global Keys" prgrammed on the OTP.
 
@@ -137,15 +137,6 @@ typedef enum NEXUS_KeyladderCaVendorIdScope
     NEXUS_KeyladderCaVendorIdScope_eMax
 }NEXUS_KeyladderCaVendorIdScope;
 
-/* Usually "Regular", allows "Des56" and "DvbConformace" key generation. */
-typedef enum {
-    NEXUS_KeyLadderKeyMode_eRegular,
-    NEXUS_KeyLadderKeyMode_eDes56,
-    NEXUS_KeyLadderKeyMode_eDvbConformance,
-
-    NEXUS_KeyLadderKeyMode_eMax
-}NEXUS_KeyLadderKeyMode;
-
 /* how the ASKM STB owner ID is to be determined */
 typedef enum NEXUS_KeyLadderStbOwnerIdSelect
 {
@@ -190,7 +181,6 @@ typedef struct NEXUS_KeyLadderSettings
     NEXUS_CryptographicAlgorithm algorithm;
     NEXUS_CryptographicOperation operation;
     NEXUS_KeyLadderMode mode;   /* Describes the allowed operations on the keyladder. */
-    NEXUS_KeyLadderKeyMode keyMode; /* Usually "Regular", allows "Des56" and "DvbConformace" key generation. */
 
     struct
     {
@@ -341,7 +331,7 @@ void NEXUS_KeyLadder_GetDefaultChallenge(
     );
 
 /*
-    Challange the keyladder. Can be used to authenticate the STB.
+    Challenge the keyladder. Can be used to authenticate the STB.
 */
 NEXUS_Error NEXUS_KeyLadder_Challenge(
     NEXUS_KeyLadderHandle handle,

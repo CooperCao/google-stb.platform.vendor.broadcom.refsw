@@ -67,11 +67,14 @@
 #define LINUX_EXTRAVERSION(MAJOR,MINOR) ((MAJOR)<<8 | (MINOR))
 #define LINUX_EXTRAVERSION_CODE LINUX_EXTRAVERSION(LINUX_EXTRAVERSION_MAJOR,LINUX_EXTRAVERSION_MINOR)
 
+#ifndef USE_LIBFDT
 #if NEXUS_CPU_ARM || NEXUS_CPU_ARM64
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)) || (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,28) && LINUX_EXTRAVERSION_CODE >= LINUX_EXTRAVERSION(1,13))
 #define USE_LIBFDT 1
 #endif
 #endif
+#endif
+
 #if USE_LIBFDT
 #include "libfdt.h"
 #include <linux/of_fdt.h>
@@ -1196,49 +1199,45 @@ unsigned NEXUS_Platform_P_ReadPMapId(void)
     return NEXUS_Platform_P_ReadDeviceTreeInt("/bolt", "pmap");
 }
 
-static unsigned NEXUS_Platform_P_ParseDeviceTreeCompatible(NEXUS_Platform_P_DtNodeList *nodeList, const char *path, const char *compatible)
+static unsigned NEXUS_Platform_P_ParseDeviceTreeCompatible(const char *compatible, BCHP_PmapSettings *pMapSettings)
 {
     unsigned cnt = 0;
 #if USE_LIBFDT
     int offset;
-    unsigned int len;
-    const char *pathp;
-
-    BSTD_UNUSED(path);
 
     for (offset = fdt_node_offset_by_compatible(initial_boot_params, -1, compatible);
         offset >= 0;
-        offset = fdt_node_offset_by_compatible(initial_boot_params, offset, compatible)) {
-        int prop_offset;
-        NEXUS_Platform_P_DtNode *node = NULL;
+        offset = fdt_node_offset_by_compatible(initial_boot_params, offset, compatible))
+    {
+        if (pMapSettings) {
+            int prop_offset;
+            for (prop_offset = fdt_first_property_offset(initial_boot_params, offset);
+                prop_offset >= 0;
+                prop_offset = fdt_next_property_offset(initial_boot_params, prop_offset))
+            {
+                const char *pname;
+                int *val;
+                unsigned int len;
 
-        pathp = fdt_get_name(initial_boot_params, offset, &len);
-        BDBG_MSG(("Node : %s", pathp));
-        node = BKNI_Malloc(sizeof(NEXUS_Platform_P_DtNode));
-        BLST_Q_INIT(&node->properties);
-        BKNI_Memcpy(node->name, pathp, sizeof(node->name));
-        BLST_Q_INSERT_HEAD(&nodeList->nodes, node, link);
-        cnt++;
-
-        for (prop_offset = fdt_first_property_offset(initial_boot_params, offset);
-            prop_offset >= 0;
-            prop_offset = fdt_next_property_offset(initial_boot_params, prop_offset)) {
-            const char *pname;
-            int *val;
-
-            val = (int*)fdt_getprop_by_offset(initial_boot_params, prop_offset, &pname, &len);
-            if (val != NULL) {
-                NEXUS_Platform_P_DtProperty *prop;
-                if (!BKNI_Memcmp(pname, "compatible", 10) || !BKNI_Memcmp(pname, "name", 4)) {
-                    continue;
+                val = (int*)fdt_getprop_by_offset(initial_boot_params, prop_offset, &pname, &len);
+                if (val != NULL) {
+                    unsigned value = fdt32_to_cpu(*val);
+                    if (!strcmp(pname, "brcm,value")) {
+                        pMapSettings[cnt].value = value;
+                    }
+                    else if (!strcmp(pname, "bit-shift")) {
+                        pMapSettings[cnt].shift = value;
+                    }
+                    else if (!strcmp(pname, "bit-mask")) {
+                        pMapSettings[cnt].mask = value;
+                    }
+                    else if (!strcmp(pname, "reg")) {
+                        pMapSettings[cnt].reg = value;
+                    }
                 }
-                BDBG_MSG(("\tProperty : %s:%x", pname, fdt32_to_cpu(*val)));
-                prop = BKNI_Malloc(sizeof(NEXUS_Platform_P_DtProperty));
-                BKNI_Memcpy(prop->name, pname, sizeof(prop->name));
-                prop->value = fdt32_to_cpu(*val);
-                BLST_Q_INSERT_HEAD(&node->properties, prop, link);
             }
         }
+        cnt++;
     }
 #endif
 
@@ -1250,15 +1249,11 @@ BCHP_PmapSettings * NEXUS_Platform_P_ReadPMapSettings(void)
     char *compat[] = {"brcm,pmap-divider", "brcm,pmap-multiplier", "brcm,pmap-mux"};
     BCHP_PmapSettings *pMapSettings = NULL;
     unsigned cnt = 0, size, i;
-    NEXUS_Platform_P_DtNodeList nodeList;
-    NEXUS_Platform_P_DtNode *node;
 
-    BLST_Q_INIT(&nodeList.nodes);
     for (i=0; i<sizeof(compat)/sizeof(compat[0]); i++) {
-        cnt += NEXUS_Platform_P_ParseDeviceTreeCompatible(&nodeList, NULL, compat[i]);
+        cnt += NEXUS_Platform_P_ParseDeviceTreeCompatible(compat[i], NULL);
     }
     BDBG_MSG(("Found %d compatible nodes", cnt));
-
     if (!cnt) return NULL;
 
     size = (cnt+1)*sizeof(BCHP_PmapSettings); /* One extra to indicate end data */
@@ -1266,42 +1261,17 @@ BCHP_PmapSettings * NEXUS_Platform_P_ReadPMapSettings(void)
     if(!pMapSettings) { BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); return NULL; }
 
     BKNI_Memset(pMapSettings, 0, size);
-
-    i = 0;
-    while(NULL != (node = BLST_Q_FIRST(&nodeList.nodes))) {
-        NEXUS_Platform_P_DtProperty *prop;
-        BDBG_MSG(("Node %s", node->name));
-        while(NULL != (prop = BLST_Q_FIRST(&node->properties))) {
-            BDBG_MSG(("\t%s : %x", prop->name, prop->value));
-            if (!BKNI_Memcmp(prop->name, "brcm,value", 10)) {
-                pMapSettings[i].value = prop->value;
-            } else if (!BKNI_Memcmp(prop->name, "bit-shift", 9)) {
-                pMapSettings[i].shift = prop->value;
-            } else if (!BKNI_Memcmp(prop->name, "bit-mask", 8)) {
-                pMapSettings[i].mask = prop->value;
-            } else if (!BKNI_Memcmp(prop->name, "reg", 3)) {
-                pMapSettings[i].reg = prop->value;
-            } else {
-                BDBG_WRN(("Unknown Device Tree Property"));
-            }
-            BLST_Q_REMOVE_HEAD(&node->properties, link);
-            BKNI_Free(prop);
-        }
-        BLST_Q_REMOVE_HEAD(&nodeList.nodes, link);
-        BKNI_Free(node);
-        i++;
+    cnt = 0;
+    for (i=0; i<sizeof(compat)/sizeof(compat[0]); i++) {
+        cnt += NEXUS_Platform_P_ParseDeviceTreeCompatible(compat[i], &pMapSettings[cnt]);
     }
-    BDBG_ASSERT(cnt==i);
 
     return pMapSettings;
 }
 
-void NEXUS_Platform_P_FreePMapSettings(NEXUS_Core_PreInitState *preInitState)
+void NEXUS_Platform_P_FreePMapSettings(BCHP_PmapSettings *pMapSettings)
 {
-    if (preInitState->pMapSettings) {
-        BKNI_Free(preInitState->pMapSettings);
-        preInitState->pMapSettings = NULL;
-    }
+    BKNI_Free(pMapSettings);
 }
 
 NEXUS_Error NEXUS_Platform_GetStandbyStatus(NEXUS_PlatformStandbyStatus *pStatus)

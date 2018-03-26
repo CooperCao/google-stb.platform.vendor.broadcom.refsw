@@ -47,6 +47,8 @@
 		((mpidr >> MPIDR_AFF2_SHIFT) & MPIDR_AFFLVL_MASK)
 #define MPIDR_AFFLVL3_VAL(mpidr) \
 		((mpidr >> MPIDR_AFF3_SHIFT) & MPIDR_AFFLVL_MASK)
+#define MPIDR_AFFINITY_VAL(mpidr) \
+		(mpidr & MPIDR_AFFINITY_MASK)
 /*
  * The MPIDR_MAX_AFFLVL count starts from 0. Take care to
  * add one while using this macro to define array sizes.

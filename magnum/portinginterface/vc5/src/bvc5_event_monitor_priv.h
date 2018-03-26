@@ -153,8 +153,6 @@ typedef struct BVC5_P_EventMonitor
    bool                    bActive;
    uint32_t                uiSchedTrackNextId;
 
-   uint32_t                uiCyclesPerUs;
-
 #if V3D_VER_AT_LEAST(3,3,0,0)
    BVC5_P_JobQueue         sRenderJobQueueCLE;
    BVC5_P_JobQueue         sRenderJobQueueTLB;

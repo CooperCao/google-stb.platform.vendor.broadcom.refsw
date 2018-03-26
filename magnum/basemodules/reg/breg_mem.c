@@ -82,6 +82,8 @@ static bool BREG_P_isRegisterReadOnly_isrsafe(uint32_t reg) {
 #define BREG_P_REGISTER_RO_64(offset) BREG_P_REGISTER_RO(offset)
 #define BREG_P_REGISTER_RO_16(offset) /* ignore these for now */
 #define BREG_P_REGISTER_CFG_32(offset)
+#define BREG_P_REGISTER_MAN_32(offset)
+#define BREG_P_REGISTER_CAT_32(offset)
 #define BREG_P_REGISTER_CFG_64(offset)
 #define BREG_P_REGISTER_RW_16(offset)
 #define BREG_P_REGISTER_RW_32(offset)
@@ -1002,10 +1004,11 @@ static bool BREG_P_isRegisterAtomic_isrsafe(void *unused, uint32_t reg)
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_PWRON);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_RESET);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_LDO_PWRON);
-#elif (BCHP_CHIP==7271 || BCHP_CHIP==7268 || BCHP_CHIP==7260 || BCHP_CHIP==7278) || BCHP_CHIP==7255
+#elif (BCHP_CHIP==7271 || BCHP_CHIP==7268 || BCHP_CHIP==7260 || BCHP_CHIP==7278 || BCHP_CHIP==7255)
 #include "bchp_clkgen.h"
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO0_PLL_RESET);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO1_PLL_RESET);
+#elif (BCHP_CHIP==7211)
 #elif (BCHP_CHIP==7439 && (BCHP_VER < BCHP_VER_B0))
 #include "bchp_clkgen.h"
 #include "bchp_avs_top_ctrl.h"

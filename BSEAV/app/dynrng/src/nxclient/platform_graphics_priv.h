@@ -44,23 +44,32 @@
 #include "bfont.h"
 #include "nexus_types.h"
 
+#define MAX_SURFACES 4
+
 typedef struct PlatformGraphics
 {
     PlatformHandle platform;
     bgui_t gui;
     bfont_t font;
     struct bgui_settings guiSettings;
-    NEXUS_SurfaceClientHandle video[MAX_MOSAICS];
     unsigned textHeight;
     PlatformRect fbRect;
-    struct {
-        NEXUS_SurfaceClientHandle surfaceClient;
+    struct
+    {
+        NEXUS_SurfaceClientHandle handle;
         unsigned id;
-        unsigned numWindows;
-    } sc[NEXUS_MAX_VIDEO_DECODERS];
-    unsigned mainWindowId;
-    unsigned pipWindowId;
-    unsigned maxMosaics; /* This could differ from MAX_MOSAICS, due to 3+1 config for moasic */
+        NEXUS_SurfaceClientHandle video[MAX_STREAMS];
+        NEXUS_SurfaceCreateSettings surfaceCreateSettings;
+        struct
+        {
+            NEXUS_SurfaceHandle handle;
+            bool submitted;
+        } surfaces[MAX_SURFACES];
+        unsigned submitIndex;
+        unsigned queued;
+        unsigned pushed;
+        BKNI_EventHandle recycledEvent;
+    } surfaceClient;
 } PlatformGraphics;
 
 typedef struct PlatformSurface

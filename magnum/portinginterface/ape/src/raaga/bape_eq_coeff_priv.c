@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1185,7 +1185,9 @@ static void EQ_tan_isrsafe(int32_t f1, int32_t f2, int32_t *fc_a_mant, int32_t *
     EQ_renormalise_isrsafe (&f1, &f1_exp);
     EQ_renormalise_isrsafe (&f2, &f2_exp);
     phase = EQ_div_32_32_isrsafe(f1>>1, f2);
-    phase = phase >> (f2_exp - f1_exp - 1);
+    if (f2_exp > f1_exp) {
+        phase = phase >> (f2_exp - f1_exp - 1);
+    }
     EQ_cos_sin_isrsafe (phase, &cos_val, &sin_val);
 
     EQ_int2fix_isrsafe (sin_val, &sin_mant, &sin_exp);

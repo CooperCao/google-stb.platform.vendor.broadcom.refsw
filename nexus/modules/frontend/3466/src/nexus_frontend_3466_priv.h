@@ -112,6 +112,8 @@ typedef struct NEXUS_3466Device
     uint16_t    spiAddr;
     NEXUS_SpiHandle spiHandle;
     unsigned    numfrontends;
+    uint16_t  chipFamilyId;
+    uint16_t  chipId;
     uint16_t revId;
     bool adsOpenDrain;
     uint8_t lastChannel;

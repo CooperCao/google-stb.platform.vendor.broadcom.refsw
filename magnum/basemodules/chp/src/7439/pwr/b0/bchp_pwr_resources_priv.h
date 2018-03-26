@@ -1,43 +1,41 @@
-/***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ /******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
-* Module Description:
-*
-***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
+
 /***************************************************************
 *
 * This file is auto-generated by generate_chp_pwr.pl, based on
@@ -119,26 +117,28 @@
 #define BCHP_PWR_HW_PLL_HVD_CH5                          0xff00003e
 #define BCHP_PWR_HW_AUD_PLL0                             0xff00003f
 #define BCHP_PWR_HW_AUD_PLL1                             0xff000040
-#define BCHP_PWR_HW_PLL_VCXO_PLL0_CH0                    0xff000041
-#define BCHP_PWR_HW_PLL_VCXO_PLL0_CH1                    0xff000042
-#define BCHP_PWR_HW_PLL_VCXO_PLL0_CH2                    0xff000043
-#define BCHP_PWR_HW_PLL_VCXO_PLL0                        0xff000044
-#define BCHP_PWR_HW_PLL_VCXO_PLL1_CH0                    0xff000045
+#define BCHP_PWR_HW_AUD_PLL2                             0xff000041
+#define BCHP_PWR_HW_PLL_VCXO_PLL0_CH0                    0xff000042
+#define BCHP_PWR_HW_PLL_VCXO_PLL1_CH0                    0xff000043
+#define BCHP_PWR_HW_PLL_VCXO_PLL0_CH1                    0xff000044
+#define BCHP_PWR_HW_PLL_VCXO_PLL0_CH2                    0xff000045
 #define BCHP_PWR_HW_PLL_VCXO_PLL1_CH1                    0xff000046
 #define BCHP_PWR_HW_PLL_VCXO_PLL1_CH2                    0xff000047
-#define BCHP_PWR_HW_PLL_VCXO_PLL1                        0xff000048
-#define BCHP_PWR_HW_PLL_SC0_CH0                          0xff000049
-#define BCHP_PWR_HW_PLL_SC0                              0xff00004a
-#define BCHP_PWR_HW_PLL_SC1_CH0                          0xff00004b
-#define BCHP_PWR_HW_PLL_SC1                              0xff00004c
-#define BCHP_PWR_HW_PLL_SYS_PLL_CH3                      0xff00004d
-#define BCHP_PWR_HW_PLL_SYS_PLL_CH4                      0xff00004e
-#define BCHP_PWR_DV_PLL_HVD_CH0                          0xff00004f
-#define BCHP_PWR_DV_PLL_HVD_CH1                          0xff000050
-#define BCHP_PWR_DV_PLL_HVD_CH2                          0xff000051
-#define BCHP_PWR_DV_PLL_HVD_CH5                          0xff000052
-#define BCHP_PWR_DV_PLL_SYS_PLL_CH3                      0xff000053
-#define BCHP_PWR_DV_PLL_SYS_PLL_CH4                      0xff000054
+#define BCHP_PWR_HW_PLL_VCXO_PLL0                        0xff000048
+#define BCHP_PWR_HW_PLL_VCXO_PLL1                        0xff000049
+#define BCHP_PWR_HW_PLL_SC0_CH0                          0xff00004a
+#define BCHP_PWR_HW_PLL_SC0                              0xff00004b
+#define BCHP_PWR_HW_PLL_SC1_CH0                          0xff00004c
+#define BCHP_PWR_HW_PLL_SC1                              0xff00004d
+#define BCHP_PWR_HW_PLL_SYS_PLL_CH3                      0xff00004e
+#define BCHP_PWR_HW_PLL_SYS_PLL_CH4                      0xff00004f
+#define BCHP_PWR_MX_656_MUX_SELECT                       0xff000050
+#define BCHP_PWR_DV_PLL_HVD_CH0                          0xff000051
+#define BCHP_PWR_DV_PLL_HVD_CH1                          0xff000052
+#define BCHP_PWR_DV_PLL_HVD_CH2                          0xff000053
+#define BCHP_PWR_DV_PLL_HVD_CH5                          0xff000054
+#define BCHP_PWR_DV_PLL_SYS_PLL_CH3                      0xff000055
+#define BCHP_PWR_DV_PLL_SYS_PLL_CH4                      0xff000056
 
 /* This is the link between the public and private interface */
 void BCHP_PWR_P_HW_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, bool activate);
@@ -146,12 +146,12 @@ void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate);
 void BCHP_PWR_P_MUX_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mux, bool set);
 void BCHP_PWR_P_DIV_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set);
 
-#define BCHP_PWR_P_NUM_NONLEAFS     65
-#define BCHP_PWR_P_NUM_NONLEAFSHW   31
-#define BCHP_PWR_P_NUM_LEAFS        47
-#define BCHP_PWR_P_NUM_MUXES        0
-#define BCHP_PWR_P_NUM_DIVS         6
-#define BCHP_PWR_P_NUM_ALLNODES     149
+#define BCHP_PWR_P_NUM_NONLEAFS   66
+#define BCHP_PWR_P_NUM_NONLEAFSHW 32
+#define BCHP_PWR_P_NUM_LEAFS      47
+#define BCHP_PWR_P_NUM_MUXES      1
+#define BCHP_PWR_P_NUM_DIVS       6
+#define BCHP_PWR_P_NUM_ALLNODES   152
 #define BCHP_PWR_NUM_P_PMAPSETTINGS 6
 
 #endif

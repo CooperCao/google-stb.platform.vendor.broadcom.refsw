@@ -1,5 +1,5 @@
 ############################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -225,6 +225,42 @@ BWFE_SOURCES += \
 
 endif
 
+
+##############################
+# Handle 45402
+##############################
+ifeq ($(findstring 45402,$(BWFE_CHIP)),45402)
+
+# If chip version not specified, select a default
+ifeq ($(BWFE_45402_VER),)
+BWFE_45402_VER := A0
+endif
+
+BWFE_45402_VER_UPPER := $(strip $(BWFE_45402_VER))
+BWFE_45402_VER_UPPER := $(subst a,A,$(BWFE_45402_VER_UPPER))
+BWFE_45402_VER_UPPER := $(subst b,B,$(BWFE_45402_VER_UPPER))
+BWFE_45402_VER_UPPER := $(subst c,C,$(BWFE_45402_VER_UPPER))
+
+BWFE_45402_VER_LOWER := $(strip $(BWFE_45402_VER))
+BWFE_45402_VER_LOWER := $(subst A,a,$(BWFE_45402_VER_LOWER))
+BWFE_45402_VER_LOWER := $(subst B,b,$(BWFE_45402_VER_LOWER))
+BWFE_45402_VER_LOWER := $(subst C,c,$(BWFE_45402_VER_LOWER))
+
+# Source needs to know which revision
+BWFE_DEFINES += BWFE_45402_VER=BCHP_VER_$(BWFE_45402_VER_UPPER)
+
+# Module Includes
+BWFE_INCLUDES += \
+	$(MAGNUM)/portinginterface/wfe/include/45402 \
+	$(MAGNUM)/portinginterface/wfe/src/common \
+	$(MAGNUM)/portinginterface/wfe/src/45402
+
+# Module Sources
+BWFE_SOURCES += \
+	$(MAGNUM)/portinginterface/wfe/src/45402/bwfe_45402.c \
+	$(MAGNUM)/portinginterface/wfe/src/45402/bwfe_45402_priv.c
+
+endif
 
 
 ##############################

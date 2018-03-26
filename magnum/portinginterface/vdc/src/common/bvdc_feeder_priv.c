@@ -1,39 +1,39 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -150,7 +150,7 @@ static void BVDC_P_Feeder_BuildMtgRul_isr
  * {private}
  *
  */
-BERR_Code BVDC_P_Feeder_Create
+void BVDC_P_Feeder_Create
     ( BVDC_P_Feeder_Handle            *phFeeder,
       BRDC_Handle                      hRdc,
       const BREG_Handle                hReg,
@@ -162,7 +162,6 @@ BERR_Code BVDC_P_Feeder_Create
       BVDC_P_Resource_Handle           hResource,
       bool                             b3dSrc )
 {
-    BERR_Code              err = BERR_SUCCESS;
     BVDC_P_FeederContext  *pFeeder;
 
     BDBG_ENTER(BVDC_P_Feeder_Create);
@@ -170,15 +169,16 @@ BERR_Code BVDC_P_Feeder_Create
     /* check parameters */
     if(eFeederId >= BVDC_P_FeederId_eUnknown)
     {
-        BDBG_ERR(("Invalid parameter"));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        return;
     }
 
     /* Alloc the window context. */
     pFeeder = (BVDC_P_FeederContext*)(BKNI_Malloc(sizeof(BVDC_P_FeederContext)));
     if(!pFeeder)
     {
-        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        return;
     }
 
     /* Clear out the context and set defaults. */
@@ -344,7 +344,7 @@ BERR_Code BVDC_P_Feeder_Create
     *phFeeder = (BVDC_P_Feeder_Handle)pFeeder;
 
     BDBG_LEAVE(BVDC_P_Feeder_Create);
-    return err;
+    return;
 }
 
 /***************************************************************************
@@ -3478,7 +3478,7 @@ void BVDC_P_Feeder_GetCrc_isr
 
 /*------------------------------------------------------------------------
  * {private}
- * BVDC_P_Feeder_ValidateGfxSurAndRects_isr
+ * BVDC_P_Feeder_ValidateGfxSurAndRects_isrsafe
  *
  * It validates the combination of clip, scaler-out and dest rectangles
  * and surface size.
@@ -3486,7 +3486,7 @@ void BVDC_P_Feeder_GetCrc_isr
  * It could be called by BVDC_P_Feeder_ValidateChanges in user mode,
  * or during RUL build for isr surface.
  */
-BERR_Code BVDC_P_Feeder_ValidateGfxSurAndRects_isr
+BERR_Code BVDC_P_Feeder_ValidateGfxSurAndRects_isrsafe
     ( BVDC_P_SurfaceInfo                *pSur,
       const BVDC_P_ClipRect             *pClipRect,
       const BVDC_P_Rect                 *pSclOutRect )
@@ -3556,7 +3556,7 @@ BERR_Code BVDC_P_Feeder_ValidateChanges
         /* validates the combination of clip, scaler-out and dest rectangles
          * and surface size. */
         BVDC_P_Window_GetNewRectangles( hFeeder->hWindow, &pNewClip, &pNewSclOut, &pNewDst );
-        eResult = BVDC_P_Feeder_ValidateGfxSurAndRects(pNewSur, pNewClip, pNewSclOut);
+        eResult = BVDC_P_Feeder_ValidateGfxSurAndRects_isrsafe(pNewSur, pNewClip, pNewSclOut);
         if (NULL != pfPicCallbackFunc)
         {
             /* allow pfPicCallbackFunc to provide gfx surface later */
@@ -3702,7 +3702,7 @@ void BVDC_P_Feeder_HandleIsrGfxSurface_isr
         /* validate surface size and rectangles, adjust rectangles and do some
          * scale related computation. The intermediate values are stored in
          * CurCfg, and will affect RUL build immediately. */
-        eResult = BVDC_P_Feeder_ValidateGfxSurAndRects_isr(
+        eResult = BVDC_P_Feeder_ValidateGfxSurAndRects_isrsafe(
             pIsrSur, pCurClip, pCurSclOut);
         if (BERR_SUCCESS == eResult)
         {

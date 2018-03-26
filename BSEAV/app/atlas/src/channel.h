@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -142,6 +142,8 @@ public:
 
     virtual CChannel *      createCopy(CChannel * pChannel)           = 0;
     virtual eRet            initialize(PROGRAM_INFO_T * pProgramInfo) = 0;
+    virtual uint32_t        getFrequency(void)                        = 0;
+    virtual void            setFrequency(uint32_t frequency)          = 0;
     virtual bool            verify(PROGRAM_INFO_T * pProgramInfo);
     virtual eRet            tune(void * id, CConfig * pResourceLibrary, bool bWaitForLock, unsigned index = ANY_INDEX) = 0;
     virtual eRet            unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true)    = 0;
@@ -276,7 +278,7 @@ public:
 #ifdef MPOD_SUPPORT
     void     setSourceId(uint32_t sourceId) { _sourceId = sourceId; }
     uint32_t getSourceId(void)              { return(_sourceId); }
-#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION == 1
     void                setKeySlot(NEXUS_KeySlotHandle keySlot) { _keySlot = keySlot; }
     NEXUS_KeySlotHandle getKeySlot(void)                        { return(_keySlot); }
 #endif
@@ -300,7 +302,7 @@ protected:
     unsigned       _programNum;
 #ifdef MPOD_SUPPORT
     uint32_t _sourceId;
-#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION == 1
     NEXUS_KeySlotHandle _keySlot;
 #endif
 #endif /* ifdef MPOD_SUPPORT */

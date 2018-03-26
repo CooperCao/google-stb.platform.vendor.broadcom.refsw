@@ -190,7 +190,11 @@ bool MediaParser::InitParser()
             BMP4_UUID_LENGTH); /*fetch first systemID by default*/
 
         if (memcmp(system_id.data(), kWidevineUUID, sizeof(kWidevineUUID)) == 0) {
+#ifdef ENABLE_WIDEVINE_3x
+            m_drmType = drm_type_eWidevine3x;
+#else
             m_drmType = drm_type_eWidevine;
+#endif
             LOGD(("Widevine System Id was detected"));
         } else if (memcmp(system_id.data(), kPlayreadyUUID, sizeof(kWidevineUUID)) == 0) {
 
@@ -223,7 +227,11 @@ uint8_t MediaParser::GetNumOfDrmSchemes(DrmType drmTypes[], uint8_t arySize) con
         BKNI_Memcpy((void*)system_id.data(),
             parser_context->mp4_mp4.psshSystemId[i].systemId.data, BMP4_UUID_LENGTH);
         if (memcmp(system_id.data(), kWidevineUUID, sizeof(kWidevineUUID)) == 0) {
+#ifdef ENABLE_WIDEVINE_3x
+            drmTypes[i] = drm_type_eWidevine3x;
+#else
             drmTypes[i] = drm_type_eWidevine;
+#endif
             LOGD(("Widevine System Id was detected"));
         } else if (memcmp(system_id.data(), kPlayreadyUUID, sizeof(kWidevineUUID)) == 0) {
             drmTypes[i] = drm_type_ePlayready;
@@ -267,7 +275,11 @@ bool MediaParser::SetDrmSchemes(uint8_t index)
         parser_context->mp4_mp4.psshSystemId[index].systemId.data, BMP4_UUID_LENGTH);
 
         if (memcmp(system_id.data(), kWidevineUUID, sizeof(kWidevineUUID)) == 0) {
+#ifdef ENABLE_WIDEVINE_3x
+            m_drmType = drm_type_eWidevine3x;
+#else
             m_drmType = drm_type_eWidevine;
+#endif
                 LOGD(("Widevine System Id was detected"));
         } else if (memcmp(system_id.data(), kPlayreadyUUID, sizeof(kWidevineUUID)) == 0) {
 

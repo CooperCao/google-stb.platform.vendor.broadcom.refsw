@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -124,6 +124,9 @@ static void print_usage_common(void)
 #if NEXUS_NUM_HDMI_OUTPUTS
         "  -hdmi {on|off}\n"
 #endif
+#if NEXUS_NUM_656_OUTPUTS
+        "  -ccir656 {on|off}\n"
+#endif
         "  -cc {on|off} - enable closed caption routing and output\n"
         "  -probe - use media probe to discover stream format for playback (defaults on if no video or audio pid)\n"
         );
@@ -199,6 +202,7 @@ void print_usage(const char *app)
         "  -max_audio_rate RATE - specify the max decoder output/mixing rate\n"
         "  -playback_fifo_size KBytes - size of the playback buffer, in KBytes\n"
         "  -accurate_seek - enable accurate seek\n"
+        "  -audio_heap {arr, glr} - specify whether to use ARR or GLR memory for compressed audio data\n"
         );
     print_list_option("master", g_stcChannelMasterStrs);
     print_list_option("bof", g_endOfStreamActionStrs);
@@ -252,6 +256,7 @@ static int cmdline_parse_common(int offset, int argc, const char *argv[], struct
         bpcm_file_config_init(&opts->pcm_config);
 #endif
         opts->masterModeTimingGenerator = false;
+        opts->ccir656MasterModeTimingGenerator = false;
         opts->useCcir656Output = false;
         opts->useCompositeOutput = true;
         opts->useComponentOutput = true;
@@ -283,6 +288,9 @@ static int cmdline_parse_common(int offset, int argc, const char *argv[], struct
         }
         else if (!strcmp(argv[i], "-master_mode") && i+1<argc) {
             opts->masterModeTimingGenerator = strcasecmp(argv[++i], "off");
+        }
+        else if (!strcmp(argv[i], "-656_master_mode") && i+1<argc) {
+            opts->ccir656MasterModeTimingGenerator = strcasecmp(argv[++i], "off");
         }
 #if NEXUS_HAS_DISPLAY
         else if ((!strcmp(argv[i], "-ar") || !strcmp(argv[i], "-content_mode")) && i+1<argc) {
@@ -511,6 +519,9 @@ int cmdline_parse(int argc, const char *argv[], struct util_opts_t *opts)
             opts->accurateSeek = true;
         }
 #endif
+        else if (!strcmp(argv[i], "-secure_audio")) {
+            opts->common.secureAudio = true;
+        }
         else if (!strcmp(argv[i], "-master") && i+1<argc) {
             opts->stcChannelMaster=lookup(g_stcChannelMasterStrs, argv[++i]);
         }

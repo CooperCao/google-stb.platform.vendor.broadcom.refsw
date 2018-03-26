@@ -89,8 +89,6 @@ static const BCFC_Csc3x4 s_MC_Lms_to_Ipt = BCFC_MAKE_CSC_3x4
        2.227539,     -2.425537,      0.197998,  128,
        0.402832,      0.178589,     -0.581421,  128 );
 
-
-
 /* --------------------------------------------------------------------
  * DVI CSC clamp
  */
@@ -434,7 +432,7 @@ static void BVDC_P_Csc_Mult_64_isr
 }
 
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2) && (BVDC_P_CMP_CFC_VER != BVDC_P_CFC_VER_5)
-static void BVDC_P_Cfc_InitRamLut(
+static void BVDC_P_Cfc_InitRamLut_isrsafe(
     const BCFC_RamLut             *pRamLut,
     BREG_Handle                    hRegister,
     uint32_t                       ulLutReg,
@@ -457,13 +455,15 @@ void BVDC_P_Window_InitCfcs(
     /* 7271 B0 CMP 0 has 8 mosaic cfcs, but cmp 1 has 6 */
     if(BVDC_CompositorId_eCompositor0 == hCompositor->eId)
     {
-      #if (BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS > 0)
-        for (jj=0; jj<BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS; jj++)
+        hWindow->astMosaicCfc[0].stCapability.ulInts = stCapability.ulInts;
+      #if (BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS > 1)
+        for (jj=1; jj<BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS; jj++)
         {
             hWindow->astMosaicCfc[jj].stCapability.ulInts = stCapability.ulInts;
         }
       #endif
 
+      #if (BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS > 0)
         if (BVDC_P_CMP_CFCS > BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS)
         {
             stCapability.stBits.bLRngAdj = 0;
@@ -479,15 +479,16 @@ void BVDC_P_Window_InitCfcs(
                 hWindow->astMosaicCfc[jj].stCapability.ulInts = stCapability.ulInts;
             }
         }
+      #endif
 
       #if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_2)
         if(iWinInCmp == 0) /* with 7271 A0, only V0 in CMP0 has ram NL2L and L2NL */
         {
             /* ram NL2L for HLG input */
-            BVDC_P_Cfc_InitRamLut(&s_RamLutCtrl_V0_NL2L_Hlg_g12, hCompositor->hVdc->hRegister,
+            BVDC_P_Cfc_InitRamLut_isrsafe(&s_RamLutCtrl_V0_NL2L_Hlg_g12, hCompositor->hVdc->hRegister,
                 BCHP_HDR_CMP_0_V0_NL2L_TF_LUTi_ARRAY_BASE, BCHP_HDR_CMP_0_V0_NL_LUT_CTRL);
             /* ram L2NL for HLG output */
-            BVDC_P_Cfc_InitRamLut(&s_RamLutCtrl_V0_L2NL_Hlg_g12, hCompositor->hVdc->hRegister,
+            BVDC_P_Cfc_InitRamLut_isrsafe(&s_RamLutCtrl_V0_L2NL_Hlg_g12, hCompositor->hVdc->hRegister,
                 BCHP_HDR_CMP_0_V0_L2NL_TF_LUTi_ARRAY_BASE, BCHP_HDR_CMP_0_V0_LN_LUT_CTRL);
         }
       #endif
@@ -532,9 +533,9 @@ void BVDC_P_Vfc_InitCfc_isrsafe
     /* hVfc->stCfc.pLutList = NULL !*/
 
     /* init ram NL2L and L2NL for HLG -> SDR */
-    BVDC_P_Cfc_InitRamLut(&s_RamLutCtrl_VFC_NL2L_Hlg_g12, hRegister,
+    BVDC_P_Cfc_InitRamLut_isrsafe(&s_RamLutCtrl_VFC_NL2L_Hlg_g12, hRegister,
         BCHP_VFC_0_NL2L_TF_LUTi_ARRAY_BASE + hVfc->ulRegOffset, BCHP_VFC_0_NL2L_LUT_CTRL + hVfc->ulRegOffset);
-    BVDC_P_Cfc_InitRamLut(&s_RamLutCtrl_VFC_L2NL_Hlg_g12, hRegister,
+    BVDC_P_Cfc_InitRamLut_isrsafe(&s_RamLutCtrl_VFC_L2NL_Hlg_g12, hRegister,
         BCHP_VFC_0_L2NL_TF_LUTi_ARRAY_BASE + hVfc->ulRegOffset, BCHP_VFC_0_L2NL_LUT_CTRL + hVfc->ulRegOffset);
 #else
     BSTD_UNUSED(hVfc);
@@ -559,7 +560,7 @@ void BVDC_P_GfxFeeder_InitCfc
     if(BAVC_SourceId_eGfx0 == hGfxFeeder->eId)
     {
         /* init ram L2NL for HLG output, must be combined with s_LRangeAdj_GFD_1886_to_hlg */
-        BVDC_P_Cfc_InitRamLut(&s_RamLutCtrl_GFD_L2NL_Hlg_g12, hGfxFeeder->hRegister,
+        BVDC_P_Cfc_InitRamLut_isrsafe(&s_RamLutCtrl_GFD_L2NL_Hlg_g12, hGfxFeeder->hRegister,
             BCHP_GFD_0_L2NL_TF_LUTi_ARRAY_BASE, BCHP_GFD_0_L2NL_LUT_CTRL);
     }
 #endif
@@ -875,7 +876,7 @@ static bool BVDC_P_Display_UpdateCfcColorSpaces_isr(
    Output: RGB value y in U1.24;
    PWL slopeM: S0.24; slopeE: S4.0;
  */
-static uint32_t BVDC_P_NlPwl_Cal(uint32_t x, const BVDC_P_NL_PwlSegments *pwl) {
+static uint32_t BVDC_P_NlPwl_Cal_isrsafe(uint32_t x, const BVDC_P_NL_PwlSegments *pwl) {
     unsigned i;
     uint32_t y=x, signBit = BMTH_P_FIX_SIGN_BIT(BVDC_P_PWL_SLP_E_I_BITS, BVDC_P_PWL_SLP_E_F_BITS);
     int64_t val;
@@ -912,7 +913,7 @@ static uint32_t BVDC_P_NlPwl_Cal(uint32_t x, const BVDC_P_NL_PwlSegments *pwl) {
 }
 
 /* non-linear RGB (U1.24)  to linear RGB(U1.24) (709 or 2020) for nlpwl (used for bkClr computation) */
-uint32_t BVDC_P_Nl_to_Ln_NlPwl(uint32_t in, BCFC_ColorTF eTf) {
+static uint32_t BVDC_P_Nl_to_Ln_NlPwl_isrsafe(uint32_t in, BCFC_ColorTF eTf) {
     uint32_t out;
 
     in = (in > BMTH_FIX_SIGNED_FTOFIX(1.0, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS)) ?
@@ -922,7 +923,7 @@ uint32_t BVDC_P_Nl_to_Ln_NlPwl(uint32_t in, BCFC_ColorTF eTf) {
         (BCFC_ColorTF_eHlg==eTf) ?
             BMTH_FIX_SIGNED_FTOFIX(0.2, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS) :
             BMTH_FIX_SIGNED_FTOFIX(0.02, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS),
-        BVDC_P_NlPwl_Cal(in, &s_Nl2l_Pwl_1886),
+        BVDC_P_NlPwl_Cal_isrsafe(in, &s_Nl2l_Pwl_1886),
         BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS,
         BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS,
         BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS);
@@ -933,14 +934,14 @@ uint32_t BVDC_P_Nl_to_Ln_NlPwl(uint32_t in, BCFC_ColorTF eTf) {
 }
 
 /* linear RGB(U1.24)  to nonlinear RGB(U1.24) (709 or 2020) for nlpwl (used for bkClr computation) */
-uint32_t BVDC_P_Ln_to_Nl_NlPwl(uint32_t in, BCFC_ColorTF eTf) {
+static uint32_t BVDC_P_Ln_to_Nl_NlPwl_isrsafe(uint32_t in, BCFC_ColorTF eTf) {
     uint32_t out;
 
     /* clamp to 0-1 for non xvycc mode, no xvycc nlpwl for now
        only PQ l2nl is applied for now, sel_l2nl = PQ */
     in = (in > BMTH_FIX_SIGNED_FTOFIX(1.0, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS)) ?
             BMTH_FIX_SIGNED_FTOFIX(1.0, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS) : in;
-    out = BVDC_P_NlPwl_Cal(in, (BCFC_ColorTF_eHlg==eTf)? &s_L2nl_Pwl_hlg : &s_L2nl_Pwl_2084);
+    out = BVDC_P_NlPwl_Cal_isrsafe(in, (BCFC_ColorTF_eHlg==eTf)? &s_L2nl_Pwl_hlg : &s_L2nl_Pwl_2084);
     out = (out > BMTH_FIX_SIGNED_FTOFIX(1.0, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS)) ?
             BMTH_FIX_SIGNED_FTOFIX(1.0, BVDC_P_PWL_XY_I_BITS, BVDC_P_PWL_XY_F_BITS) : out;
     return (uint32_t)out;
@@ -992,9 +993,9 @@ uint32_t BVDC_P_Compositor_Update_Canvas_Background_isrsafe
        (BCFC_ColorTF_eBt1886 != hCompositor->stOutColorSpaceExt.stColorSpace.eColorTF)) {
            BCFC_ColorTF eTf = BVDC_P_CMP_DBV_MODE(hCompositor)? BCFC_ColorTF_eBt2100Pq :
                 hCompositor->stOutColorSpaceExt.stColorSpace.eColorTF;
-        llR = (int64_t) BVDC_P_Nl_to_Ln_NlPwl(ucRed   << (BVDC_P_PWL_XY_F_BITS - 8), eTf);
-        llG = (int64_t) BVDC_P_Nl_to_Ln_NlPwl(ucGreen << (BVDC_P_PWL_XY_F_BITS - 8), eTf);
-        llB = (int64_t) BVDC_P_Nl_to_Ln_NlPwl(ucBlue  << (BVDC_P_PWL_XY_F_BITS - 8), eTf);
+        llR = (int64_t) BVDC_P_Nl_to_Ln_NlPwl_isrsafe(ucRed   << (BVDC_P_PWL_XY_F_BITS - 8), eTf);
+        llG = (int64_t) BVDC_P_Nl_to_Ln_NlPwl_isrsafe(ucGreen << (BVDC_P_PWL_XY_F_BITS - 8), eTf);
+        llB = (int64_t) BVDC_P_Nl_to_Ln_NlPwl_isrsafe(ucBlue  << (BVDC_P_PWL_XY_F_BITS - 8), eTf);
     } else {
         llR = (int64_t) (ucRed   << (BVDC_P_PWL_XY_F_BITS - 8));
         llG = (int64_t) (ucGreen << (BVDC_P_PWL_XY_F_BITS - 8));
@@ -1039,9 +1040,9 @@ uint32_t BVDC_P_Compositor_Update_Canvas_Background_isrsafe
        (BCFC_ColorTF_eBt1886 != hCompositor->stOutColorSpaceExt.stColorSpace.eColorTF)) {
        BCFC_ColorTF eTf = BVDC_P_CMP_DBV_MODE(hCompositor)? BCFC_ColorTF_eBt2100Pq :
             hCompositor->stOutColorSpaceExt.stColorSpace.eColorTF;
-        ul0 = BVDC_P_Ln_to_Nl_NlPwl(ul0, eTf);
-        ul1 = BVDC_P_Ln_to_Nl_NlPwl(ul1, eTf);
-        ul2 = BVDC_P_Ln_to_Nl_NlPwl(ul2, eTf);
+        ul0 = BVDC_P_Ln_to_Nl_NlPwl_isrsafe(ul0, eTf);
+        ul1 = BVDC_P_Ln_to_Nl_NlPwl_isrsafe(ul1, eTf);
+        ul2 = BVDC_P_Ln_to_Nl_NlPwl_isrsafe(ul2, eTf);
     }
     ul0 >>= (BVDC_P_PWL_XY_F_BITS - 8);
     ul1 >>= (BVDC_P_PWL_XY_F_BITS - 8);
@@ -1323,8 +1324,8 @@ bool BVDC_P_Window_AssignMosaicCfcToRect_isr(
         for (ii=0; ii<(int)ulMosaicCount; ii++)
         {
           #if BVDC_P_DBV_SUPPORT
-            BVDC_P_CfcMetaData *pPicMetaData = (BVDC_P_CfcMetaData *)pPicture->astMosaicColorSpace[ii].pMetaData;
-            BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hWindow->astMosaicCfc[hWindow->aucMosaicCfcIdxForRect[ii]].stColorSpaceExtIn.stColorSpace.pMetaData;
+            const BVDC_P_CfcMetaData *pPicMetaData = (BVDC_P_CfcMetaData *)pPicture->astMosaicColorSpace[ii].pMetaData;
+            const BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hWindow->astMosaicCfc[hWindow->aucMosaicCfcIdxForRect[ii]].stColorSpaceExtIn.stColorSpace.pMetaData;
           #endif
             pPicColorSpace = &pPicture->astMosaicColorSpace[ii];
             pColorSpace = &hWindow->astMosaicCfc[hWindow->aucMosaicCfcIdxForRect[ii]].stColorSpaceExtIn.stColorSpace;
@@ -1560,9 +1561,8 @@ void BVDC_P_Cfc_UpdateCfg_isr
     bool bTchInput = false;
     bool bRamLutCfgDirty;
 #if BVDC_P_DBV_SUPPORT || BVDC_P_TCH_SUPPORT
-    BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)pColorSpaceIn->pMetaData;
+    const BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)pColorSpaceIn->pMetaData;
 #endif
-
 
     /* check for GFD and DVI_CSC: CL input with SDR/HDR, CL display with SDR/HDR ??? */
 
@@ -1655,7 +1655,7 @@ void BVDC_P_Cfc_UpdateCfg_isr
                            (!bMosaicMode)? &(s_aaCmp0TfConvRamLuts_Tbl[eTfIn][eTfOut]) : &(s_aaCmp0MosaicTfConvRamLuts_Tbl[eTfIn][eTfOut]));
             if (!pCfc->stForceCfg.stBits.bDisableLmr || (NULL == pNewRamLuts->pRamLutLMR))
             {
-                if (pNewRamLuts->pRamLutNL2L != pCurRamLuts->pRamLutNL2L)
+                if (!pCfc->stForceCfg.stBits.bDisableNl2l && (pNewRamLuts->pRamLutNL2L != pCurRamLuts->pRamLutNL2L))
                 {
                     if (pNewRamLuts->pRamLutNL2L)
                     {
@@ -1663,7 +1663,7 @@ void BVDC_P_Cfc_UpdateCfg_isr
                         pCfc->ucRamNL2LRulBuildCntr = BVDC_P_RUL_UPDATE_THRESHOLD;
                     }
                 }
-                if (pNewRamLuts->pRamLutL2NL != pCurRamLuts->pRamLutL2NL)
+                if (!pCfc->stForceCfg.stBits.bDisableL2nl && (pNewRamLuts->pRamLutL2NL != pCurRamLuts->pRamLutL2NL))
                 {
                     if (pNewRamLuts->pRamLutL2NL)
                     {
@@ -1678,8 +1678,11 @@ void BVDC_P_Cfc_UpdateCfg_isr
                         pCfc->ucRamLMRRulBuildCntr = BVDC_P_RUL_UPDATE_THRESHOLD;
                     }
                 }
-                pCfc->stLRangeAdj.pTable = pNewRamLuts->pLRngAdjTable;
-                /*pCfc->stLRangeAdj.ulLRangeAdjCtrl = BCFC_LR_ADJ_LIMIT_DISABLE;*/
+                if (!pCfc->stForceCfg.stBits.bDisableLRangeAdj)
+                {
+                    pCfc->stLRangeAdj.pTable = pNewRamLuts->pLRngAdjTable;
+                    /*pCfc->stLRangeAdj.ulLRangeAdjCtrl = BCFC_LR_ADJ_LIMIT_DISABLE;*/
+                }
                 pCfc->pTfConvRamLuts = pNewRamLuts;
             }
         }
@@ -2066,11 +2069,14 @@ void BVDC_P_Cfc_BuildRulForLRAdjLimit_isr(
  */
 void BVDC_P_Cfc_BuildRulForLRAdj_isr(
     const BCFC_LRangeAdj            *pLRangeAdj,
+    bool                             bDispAdaptation,
+    int16_t                          sHdrPeakBrightness,
     uint32_t                         ulStartReg,
     BVDC_P_ListInfo                 *pList)
 {
     int ii;
     const BCFC_LRangeAdjTable *pTable = (pLRangeAdj->pTable)? pLRangeAdj->pTable : &s_LRangeAdj_Identity;
+    uint32_t ulNewXY=0;
 
     *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(2 * BCFC_LR_ADJ_PTS);
     *pList->pulCurrent++ = BRDC_REGISTER(ulStartReg);
@@ -2080,12 +2086,35 @@ void BVDC_P_Cfc_BuildRulForLRAdj_isr(
     }
     for (ii=0; ii<BCFC_LR_ADJ_PTS; ii++)
     {
-        *pList->pulCurrent++ = pTable->aulLRangeAdjXY[ii];
+        /* when display adaptation is set, need to scale Y1 value with user */
+        /* brightness setting for HDR, normalized at 1000 */
+        if(bDispAdaptation && ii == 1)
+        {
+            uint32_t ulXY = pTable->aulLRangeAdjXY[ii];
+            uint32_t ulY = (ulXY & BCFC_P_LR_Y_MASK) >> BCFC_P_LR_Y_SHIFT;
+            ulY = ulY * sHdrPeakBrightness / BVDC_P_TCH_DEFAULT_HDR_BRIGHTNESS;
+            ulNewXY = (ulXY & ~BCFC_P_LR_Y_MASK) | (ulY << BCFC_P_LR_Y_SHIFT);
+            BDBG_MSG(("Implement display adaption for sUserDisplayBrightness=%d => 0x%x",
+                sHdrPeakBrightness, ulNewXY));
+
+            *pList->pulCurrent++ = ulNewXY;
+        }
+        else
+        {
+            *pList->pulCurrent++ = pTable->aulLRangeAdjXY[ii];
+        }
     }
     BDBG_MODULE_MSG(BVDC_CFC_3,("   LRangeAdj (xy, slope_m_e)[8]:"));
     for (ii=0; ii<BCFC_LR_ADJ_PTS; ii++)
     {
-        BDBG_MODULE_MSG(BVDC_CFC_3,("   (0x%08x, 0x%08x)", pTable->aulLRangeAdjXY[ii], pTable->aulLRangeAdjSlope[ii]));
+        if(bDispAdaptation && ii == 1)
+        {
+            BDBG_MODULE_MSG(BVDC_CFC_3,("   (0x%08x, 0x%08x)", ulNewXY, pTable->aulLRangeAdjSlope[ii]));
+        }
+        else
+        {
+            BDBG_MODULE_MSG(BVDC_CFC_3,("   (0x%08x, 0x%08x)", pTable->aulLRangeAdjXY[ii], pTable->aulLRangeAdjSlope[ii]));
+        }
     }
 }
 
@@ -2095,9 +2124,11 @@ void BVDC_P_Cfc_BuildRulForLRAdj_isr(
 /* init 7271 a0 CMP0 CFC ram lut NL2L for converting HLG to HDR10
  * init 7271 a0 GFD0 CFC ram lut L2NL for converting SDR to HLG (as HLG video bypass)
  * init 7271 b0 VFC  CFC ram lut NL2L for converting HLG to HDR10
+ * note: it will init RamLut registers, should only be called during the CFC's init time
+ * OK from either user mode or _isr mode, but NOT both!
  */
-static void BVDC_P_Cfc_InitRamLut(
-    const BCFC_RamLut             *pRamLut,
+static void BVDC_P_Cfc_InitRamLut_isrsafe(
+    const BCFC_RamLut               *pRamLut,
     BREG_Handle                      hRegister,
     uint32_t                         ulLutReg,
     uint32_t                         ulCtrlReg )
@@ -2381,8 +2412,9 @@ void BVDC_P_Window_BuildCfcRul_isr
     BCFC_ColorSpaceExt *pColorSpaceExtIn;
     BCFC_ColorSpaceExt *pColorSpaceExtOut;
 #if BVDC_P_TCH_SUPPORT
-    BVDC_P_CfcMetaData *pMetaData;
+    const BVDC_P_CfcMetaData *pMetaData;
 #endif
+    bool bDispAdaptation = false;
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_1)
     bool bBypassCfc;
 #endif
@@ -2433,7 +2465,17 @@ void BVDC_P_Window_BuildCfcRul_isr
        pMetaData && BCFC_IS_TCH(pMetaData->stTchInput.stHdrMetadata.eType))
     {
         BVDC_P_Compositor_BuildTchRul_isr(hCompositor, pList);
+        /* Need to set flag for display adaptation if user sets different */
+        /* brightness for HDR.  Default values for LRangeAdj is for brightness */
+        /* level 1000 */
+        if(BCFC_IS_SDR_TO_HDR10(pCfc->stColorSpaceExtIn.stColorSpace.eColorTF, pCfc->pColorSpaceExtOut->stColorSpace.eColorTF) &&
+           hWindow->stCurInfo.sHdrPeakBrightness != BVDC_P_TCH_DEFAULT_HDR_BRIGHTNESS)
+        {
+            bDispAdaptation = true;
+        }
     }
+#else
+    BSTD_UNUSED(bDispAdaptation);
 #endif
 
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_1)
@@ -2713,7 +2755,7 @@ void BVDC_P_Window_BuildCfcRul_isr
                 }
               #endif
                 BDBG_MODULE_MSG(BVDC_CFC_3,("Cmp%d_V%d-Cfc%d LRAdj:", hCompositor->eId, eWinInCmp, ucCfcIdxForRect));
-                BVDC_P_Cfc_BuildRulForLRAdj_isr(&pCfc->stLRangeAdj, ulStartReg, pList);
+                BVDC_P_Cfc_BuildRulForLRAdj_isr(&pCfc->stLRangeAdj, bDispAdaptation, hWindow->stCurInfo.sHdrPeakBrightness, ulStartReg, pList);
 
               #if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_2)
                 ulStartReg += (BCHP_HDR_CMP_0_V0_R0_NL_CSC_CTRL - BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_ARRAY_BASE);
@@ -2885,7 +2927,7 @@ void BVDC_P_Vfc_BuildCfcRul_isr
         ulTmpStartReg = ulStartReg + (BCHP_VFC_0_LRANGE_MIN - BCHP_VFC_0_NL_CSC_CTRL);
         BVDC_P_Cfc_BuildRulForLRAdjLimit_isr(&pCfc->stLRangeAdj, ulTmpStartReg, pList);
         ulTmpStartReg = ulStartReg + (BCHP_VFC_0_NL_LR_SLOPEi_ARRAY_BASE - BCHP_VFC_0_NL_CSC_CTRL);
-        BVDC_P_Cfc_BuildRulForLRAdj_isr(&pCfc->stLRangeAdj, ulTmpStartReg, pList);
+        BVDC_P_Cfc_BuildRulForLRAdj_isr(&pCfc->stLRangeAdj, false, 0, ulTmpStartReg, pList);
     }
 #endif /* if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3) */
 
@@ -2931,29 +2973,14 @@ void BVDC_P_GfxFeeder_BuildCfcRul_isr
 #endif
 
 #if (BVDC_P_CMP_CFC_VER <= BVDC_P_CFC_VER_1)
+    /* GFD output is always limited range YCbCr */
     if ((BVDC_P_RUL_UPDATE_THRESHOLD == pCfc->ucRulBuildCntr) && /* avoid applying stCscSdr2Hdr twice */
         (BCFC_ColorFormat_eRGB == pColorSpaceExtIn->stColorSpace.eColorFmt) &&
         (BCFC_Colorimetry_eBt709 == pColorSpaceExtIn->stColorSpace.eColorimetry) &&
         BCFC_IS_SDR(pColorSpaceExtIn->stColorSpace.eColorTF) &&
-        BCFC_IS_HDR10(pColorSpaceExtOut->stColorSpace.eColorTF))
+        (BCFC_IS_HDR10(pColorSpaceExtOut->stColorSpace.eColorTF) || BCFC_IS_HLG(pColorSpaceExtOut->stColorSpace.eColorTF)))
     {
-        BCFC_Csc3x4  stTmp;
-
-        if (BCFC_NL_SEL_BYPASS != pCfc->ucSelBlackBoxNL)
-        {
-            /* adjust MA with hGfxFeeder->stCscSdr2Hdr */
-            BDBG_MODULE_MSG(BVDC_CFC_2,("Gfd%d-Cfc Apply linearly approximated sdrToHdr to MA", (hGfxFeeder->eId - BAVC_SourceId_eGfx0)));
-            BCFC_Csc_Mult_isrsafe(&(hGfxFeeder->stCscSdr2Hdr.m[0][0]), 4, &(pCfc->pMa->m[0][0]), 4, &(stTmp.m[0][0]));
-            BCFC_Csc_Mult_isrsafe(&(BCFC_GetCsc3x4_BT709_YCbCrtoRGB_isrsafe()->m[0][0]), 4, &(stTmp.m[0][0]), 4, &(pColorSpaceExtIn->stMalt.m[0][0]));
-            pCfc->pMa = &(pColorSpaceExtIn->stMalt);
-        }
-        else
-        {
-            /* adjust MC with hGfxFeeder->stCscSdr2Hdr */
-            BDBG_MODULE_MSG(BVDC_CFC_2,("Gfd%d-Cfc Apply linearly approximated sdrToHdr to MC", (hGfxFeeder->eId - BAVC_SourceId_eGfx0)));
-            BCFC_Csc_Mult_isrsafe(&(pCfc->stMc.m[0][0]), 4, &(BCFC_GetCsc3x4_BT709_YCbCrtoRGB_isrsafe()->m[0][0]), 4, &(stTmp.m[0][0]));
-            BCFC_Csc_Mult_isrsafe(&(stTmp.m[0][0]), 4, &(hGfxFeeder->stCscSdr2Hdr.m[0][0]), 4, &(pCfc->stMc.m[0][0]));
-        }
+        BVDC_P_GfxFeeder_AdjustMcForSdr2Hdr_isr(hGfxFeeder);
     }
 #endif /* #if (BVDC_P_CMP_CFC_VER <= BVDC_P_CFC_VER_1) */
 
@@ -3104,7 +3131,7 @@ void BVDC_P_GfxFeeder_BuildCfcRul_isr
         BDBG_CASSERT(BCHP_GFD_0_LRANGE_LIMIT_EN);
         BVDC_P_Cfc_BuildRulForLRAdjLimit_isr(&pCfc->stLRangeAdj, BCHP_GFD_0_LRANGE_MIN + hGfxFeeder->ulRegOffset, pList);
       #endif
-        BVDC_P_Cfc_BuildRulForLRAdj_isr(&pCfc->stLRangeAdj, ulStartReg, pList);
+        BVDC_P_Cfc_BuildRulForLRAdj_isr(&pCfc->stLRangeAdj, false, 0, ulStartReg, pList);
     }
     else
 #endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2) */
@@ -3445,7 +3472,7 @@ void BVDC_P_Display_BuildCfcRul_isr
         ulTmpStartReg = ulStartReg + (BCHP_DVI_CFC_0_LRANGE_MIN - BCHP_DVI_CFC_0_VEC_HDR_NL_CSC_CTRL);
         BVDC_P_Cfc_BuildRulForLRAdjLimit_isr(&pCfc->stLRangeAdj, ulTmpStartReg, pList);
         ulTmpStartReg = ulStartReg + (BCHP_DVI_CFC_0_NL_LR_SLOPEi_ARRAY_BASE - BCHP_DVI_CFC_0_VEC_HDR_NL_CSC_CTRL);
-        BVDC_P_Cfc_BuildRulForLRAdj_isr(&pCfc->stLRangeAdj, ulTmpStartReg, pList);
+        BVDC_P_Cfc_BuildRulForLRAdj_isr(&pCfc->stLRangeAdj, false, 0, ulTmpStartReg, pList);
 
         /* programming Y, Cb, and Cr clamp
          */

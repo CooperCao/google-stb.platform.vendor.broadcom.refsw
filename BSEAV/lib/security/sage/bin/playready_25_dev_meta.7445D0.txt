@@ -1,3 +1,3 @@
-## SAGE Binary Metadata - SSF 3_2_14
+## SAGE Binary Metadata - SSF 3_2_15
 ## unique_key checksum_type checksum url
-7445D0/dev/sage_ta_playready_25_dev.bin sha1 777fca7462dc0d1b4f60ad8efa2c904de5685750 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_14/7445D0/ZD/sage_ta_playready_25_dev.bin
+7445D0/dev/sage_ta_playready_25_dev.bin sha1 81b83da82b41eb222bd58bd859aef8d92c4c5308 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_15/7445D0/ZD/sage_ta_playready_25_dev.bin

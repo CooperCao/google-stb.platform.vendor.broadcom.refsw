@@ -1,0 +1,183 @@
+diff -ru reredirect-master/Makefile reredirect-master-modified/Makefile
+--- reredirect-master/Makefile	2017-11-28 09:17:49.000000000 -0800
++++ reredirect-master-modified/Makefile	2018-02-09 11:41:50.000000000 -0800
+@@ -1,5 +1,6 @@
+ override CFLAGS+=-Wall -g
+ OBJS=reredirect.o ptrace.o attach.o
++SRCS=$(OBJS:.o=.c)
+ 
+ # Note that because of how Make works, this can be overriden from the
+ # command-line.
+@@ -9,7 +10,9 @@
+ 
+ all: reredirect
+ 
+-reredirect: $(OBJS)
++reredirect: $(SRCS)
++	@echo "[Compiling ...]"
++	$(CC) -o reredirect $(SRCS) $(CFLAGS)
+ 
+ attach.o: reredirect.h ptrace.h
+ reredirect.o: reredirect.h
+diff -ru reredirect-master/ptrace.c reredirect-master-modified/ptrace.c
+--- reredirect-master/ptrace.c	2017-11-28 09:17:49.000000000 -0800
++++ reredirect-master-modified/ptrace.c	2018-02-09 11:44:05.063551848 -0800
+@@ -84,6 +84,8 @@
+ #include "arch/i386.h"
+ #elif defined(__arm__)
+ #include "arch/arm.h"
++#elif defined(__aarch64__)
++#include "arch/aarch64.h"
+ #else
+ #error Unsupported architecture.
+ #endif
+@@ -93,6 +95,10 @@
+     return 0;
+ }
+ 
++#define __NR_dup 23
++#define __NR_open 1024
++#define __NR_dup2 1041
++#define __NR_fork 1079
+ struct syscall_numbers arch_syscall_numbers[] = {
+ #include "arch/default-syscalls.h"
+ };
+@@ -206,7 +212,7 @@
+ int ptrace_save_regs(struct ptrace_child *child) {
+     if (ptrace_advance_to_state(child, ptrace_at_syscall) < 0)
+         return -1;
+-    if (ptrace_command(child, PTRACE_GETREGS, 0, &child->user) < 0)
++    if (ptrace_command(child, PTRACE_GETREGSET, 0, &child->user) < 0)
+         return -1;
+     arch_fixup_regs(child);
+     if (arch_save_syscall(child) < 0)
+@@ -216,7 +222,7 @@
+ 
+ int ptrace_restore_regs(struct ptrace_child *child) {
+     int err;
+-    err = ptrace_command(child, PTRACE_SETREGS, 0, &child->user);
++    err = ptrace_command(child, PTRACE_SETREGSET, 0, &child->user);
+     if (err < 0)
+         return err;
+     return arch_restore_syscall(child);
+@@ -238,8 +244,8 @@
+             return -1;                                                  \
+     } while (0)
+ 
+-    if (arch_set_syscall(child, sysno) < 0)
+-        return -1;
++    if( ptrace_command(child, PTRACE_SYSCALL, 0, sysno) < 0 ) return -1; /* CAD was PTRACE_SET_SYSCALL */
++
+     setreg(syscall_arg0, p0);
+     setreg(syscall_arg1, p1);
+     setreg(syscall_arg2, p2);
+diff -ru reredirect-master/ptrace.h reredirect-master-modified/ptrace.h
+--- reredirect-master/ptrace.h	2017-11-28 09:17:49.000000000 -0800
++++ reredirect-master-modified/ptrace.h	2018-02-09 11:33:21.000000000 -0800
+@@ -52,6 +52,14 @@
+     ptrace_exited
+ };
+ 
++#if 0
++/* added to force compiler to tell us where user_regs_struct is defined originally */
++struct user_regs_struct
++{
++    int i;
++} user_regs_struct;
++#endif
++
+ struct ptrace_child {
+     pid_t pid;
+     enum child_state state;
+@@ -59,7 +67,7 @@
+     int status;
+     int error;
+     unsigned long forked_pid;
+-    struct user user;
++    struct user_regs_struct user;
+     unsigned long saved_syscall;
+ };
+ 
+diff -ru reredirect-master/reredirect.c reredirect-master-modified/reredirect.c
+--- reredirect-master/reredirect.c	2017-11-28 09:17:49.000000000 -0800
++++ reredirect-master-modified/reredirect.c	2018-02-09 11:44:05.063551848 -0800
+@@ -115,6 +115,25 @@
+     fprintf(stderr, "For more information, see /etc/sysctl.d/10-ptrace.conf\n");
+ }
+ 
++#if 0
++int reredirect( pid_t pid, const char *fileo, const char *filee, int *fdo_orig, int *fde_orig ) {
++    int no_restore = 0;
++    int fde = -1;
++    int fdo = -1;
++    int err;
++    unsigned long scratch_page = (unsigned long) -1;
++    struct ptrace_child child;
++    if ( fileo == NULL && filee == NULL ) {
++        no_restore = 1;
++        fdo = *fdo_orig;
++        fde = *fde_orig;
++        *fdo_orig = -1;
++        *fde_orig = -1;
++    } else {
++        fdo = *fdo_orig;
++        fde = *fde_orig;
++    }
++#else
+ int main(int argc, char **argv) {
+     int no_restore = 0;
+     int fde = -1;
+@@ -180,6 +199,8 @@
+         usage_die("No pid specified to attach\n");
+ 
+     pid = atoi(argv[optind]);
++#endif
++    fprintf(stderr, "%s - pid %d; fdo %d; fde %d; fileo (%s); filee(%s); fdo_orig %d; fde_orig %d; no_restore %d \n", __FUNCTION__, pid, fdo, fde, fileo, filee, fdo_orig, fde_orig, no_restore );
+     err = child_attach(pid, &child, &scratch_page);
+     if (err) {
+         fprintf(stderr, "Unable to attach to pid %d: %s\n", pid, strerror(err));
+@@ -187,19 +208,27 @@
+             check_yama_ptrace_scope();
+         exit(1);
+     }
+-    if (fileo)
++    if (fileo) {
+         fdo = child_open(&child, scratch_page, fileo);
+-    if (filee)
++        fprintf(stderr, "%s - fdo %d ... fileo (%s) \n", __FUNCTION__, fdo, fileo );
++    }
++    if (filee) {
+         fde = child_open(&child, scratch_page, filee);
+-    if (fdo >= 0)
++        fprintf(stderr, "%s - fde %d ... filee (%s) \n", __FUNCTION__, fde, filee );
++    }
++    if (fdo >= 0) {
+         fdo_orig = child_dup(&child, fdo, 1, !no_restore);
+-    if (fde >= 0)
++        fprintf(stderr, "%s - fdo_orig %d ... fdo (%d) \n", __FUNCTION__, fdo_orig, fdo );
++    }
++    if (fde >= 0) {
+         fde_orig = child_dup(&child, fde, 2, !no_restore);
++        fprintf(stderr, "%s - fde_orig %d ... fde (%d) \n", __FUNCTION__, fde_orig, fde );
++    }
+     child_detach(&child, scratch_page);
+ 
+     if (!no_restore) {
+-        printf("# Previous state saved. To restore, use:\n");
+-        printf("%s -N -O %d -E %d %d\n", program_invocation_name, fdo_orig, fde_orig, pid);
++        fprintf(stderr, "# Previous state saved. To restore, use:\n");
++        fprintf(stderr, "%s -N -O %d -E %d %d\n", program_invocation_name, fdo_orig, fde_orig, pid);
+     }
+ 
+     return 0;
+diff -ru reredirect-master/reredirect.h reredirect-master-modified/reredirect.h
+--- reredirect-master/reredirect.h	2017-11-28 09:17:49.000000000 -0800
++++ reredirect-master-modified/reredirect.h	2018-02-08 12:22:08.000000000 -0800
+@@ -28,6 +28,7 @@
+ int child_detach(struct ptrace_child *child, child_addr_t scratch_page);
+ int child_open(struct ptrace_child *child, child_addr_t scratch_page, const char *file);
+ int child_dup(struct ptrace_child *child, int file_fd, int orig_fd, int save_orig);
++int reredirect( pid_t pid, const char *fileo, const char *filee, int *fdo_orig, int *fde_orig );
+ 
+ #define __printf __attribute__((format(printf, 1, 2)))
+ void __printf die(const char *msg, ...) __attribute__((noreturn));

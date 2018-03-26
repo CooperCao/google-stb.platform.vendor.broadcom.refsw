@@ -117,8 +117,7 @@ int main(void)
     NEXUS_AudioPlaybackStartSettings settings;
     NEXUS_AudioPlaybackSettings pbSettings;
     NEXUS_AudioCapabilities audioCapabilities;
-    NEXUS_AudioOutputHandle audioDacHandle = NULL;
-    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_DisplayHandle display = NULL;
 
     unsigned i, offset=0;
     int16_t *pBuffer;
@@ -135,13 +134,6 @@ int main(void)
         return 0;
     }
 
-    if (audioCapabilities.numOutputs.dac > 0) {
-        audioDacHandle = NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]);
-    }
-    if (audioCapabilities.numOutputs.spdif > 0) {
-        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(config.outputs.spdif[0]);
-    }
-
     NEXUS_AudioPlayback_GetDefaultOpenSettings(&openSettings);
     openSettings.fifoSize = fifoSize;
     handle = NEXUS_AudioPlayback_Open(0, &openSettings);
@@ -151,15 +143,24 @@ int main(void)
         return 0;
     }
 
-    /* Connect DAC to plaback */
-    if (audioDacHandle) {
-        NEXUS_AudioOutput_AddInput(audioDacHandle,
+    if (config.outputs.audioDacs[0]) {
+        NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]),
                                    NEXUS_AudioPlayback_GetConnector(handle));
     }
-    if (audioSpdifHandle) {
-        NEXUS_AudioOutput_AddInput(audioSpdifHandle,
+    if (config.outputs.spdif[0]) {
+        NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(config.outputs.spdif[0]),
                                    NEXUS_AudioPlayback_GetConnector(handle));
     }
+#if NEXUS_HAS_HDMI_OUTPUT
+    if (config.outputs.hdmi[0]) {
+        NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(config.outputs.hdmi[0]),
+                                   NEXUS_AudioPlayback_GetConnector(handle));
+
+        /* HDMI requires connected video to hear audio */
+        display = NEXUS_Display_Open(0, NULL);
+        NEXUS_Display_AddOutput(display, NEXUS_HdmiOutput_GetVideoConnector(config.outputs.hdmi[0]));
+    }
+#endif
 
     NEXUS_AudioPlayback_GetDefaultStartSettings(&settings);
     settings.sampleRate = 0;    /* Allow changes */
@@ -217,8 +218,11 @@ int main(void)
 
     printf("Stopping playback\n");
     NEXUS_AudioPlayback_Stop(handle);
+    NEXUS_AudioPlayback_Close(handle);
+    if (display) NEXUS_Display_Close(display);
 
     printf("Done\n");
+    NEXUS_Platform_Uninit();
     return 0;
 }
 #else

@@ -58,6 +58,9 @@ typedef enum BHSM_KeyslotType
     BHSM_KeyslotType_eIvPerBlock256, /* MEDIUM keyslot. One IV per Block (CPD/CA/CPS). Suitable for most block mode decryption. */
     BHSM_KeyslotType_eIvPerEntry256, /* LARGE keyslot. One IV per Entry. Required to support a small number of scenarios. */
     BHSM_KeyslotType_eMulti2,        /* Multi2 keyslot is specially handled by different BSP command. */
+    BHSM_KeyslotType_eOxford1,
+    BHSM_KeyslotType_eOxford2,
+    BHSM_KeyslotType_eOxford3,
     BHSM_KeyslotType_eMax
 } BHSM_KeyslotType;
 
@@ -67,6 +70,7 @@ typedef enum BHSM_SecurityRegion
     BHSM_SecurityRegion_eCrr,    /* Compressed Data Restricted Region */
     BHSM_SecurityRegion_eXrr,    /* eXport Restricted Region */
     BHSM_SecurityRegion_eCrrT,   /* Compressed Data Restricted Region for Transcode */
+    BHSM_SecurityRegion_eArr,    /* Auxiliary Restricted Region for Secure Audio/etc. */
 
     BHSM_SecurityRegion_eMax
 }BHSM_SecurityRegion;
@@ -144,5 +148,23 @@ typedef enum
 
     BHSM_HashType_eMax
 }BHSM_HashType;
+
+
+typedef enum
+{
+    BHSM_SigningAuthority_eBroadcom,  /* Broadcom is the signing authority */
+    BHSM_SigningAuthority_eCaVendor,  /* CaVendor is the signing authority */
+
+    BHSM_SigningAuthority_eMax,
+
+    /*DEPRECATED*/
+    BHSM_RvRsaRootKey_e0Prime = BHSM_SigningAuthority_eBroadcom,
+    BHSM_RvRsaRootKey_e0      = BHSM_SigningAuthority_eCaVendor,
+    BHSM_RvRsaRootKey_eMax    = BHSM_SigningAuthority_eMax
+
+}BHSM_SigningAuthority;
+
+#define BHSM_RvRsaRootKey_e BHSM_SigningAuthority
+
 
 #endif

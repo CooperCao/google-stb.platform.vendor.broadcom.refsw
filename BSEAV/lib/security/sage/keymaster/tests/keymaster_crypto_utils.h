@@ -42,6 +42,7 @@
 
 #include "keymaster_types.h"
 #include "keymaster_tl.h"
+#include "gatekeeper_tl.h"
 #include "keymaster_tags.h"
 
 typedef struct KM_CryptoOperation_Settings {
@@ -55,6 +56,13 @@ typedef struct KM_CryptoOperation_Settings {
     KeymasterTl_DataBlock out_data;         /* Must be allocated of correct size before calling (may be NULL) */
     KeymasterTl_DataBlock signature_data;   /* To be provided for verify only */
     km_tag_value_t *out_nonce;              /* Will return nonce from crypto begin */
+
+    /* This section required if auth token must be generated for update/finish */
+    GatekeeperTl_Handle gkHandle;
+    uint32_t uid;                           /* STD UID, not secure UID which is uint64_t */
+    gk_password_handle_t *pass_handle;      /* Password handle */
+    GatekeeperTl_Password *password;        /* Password required to authorize password handle */
+    bool testWrongChallenge;                /* For test only, encode wrong challenge if true */
 } KM_CryptoOperation_Settings;
 
 

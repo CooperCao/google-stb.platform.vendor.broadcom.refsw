@@ -316,7 +316,7 @@ void BKNI_Fail(void)
         printk("BKNI_Fail: Nexus/Magnum has crashed.  Please check the android log with 'logcat NEXUS:*' for more information.\n");
         ticks = (30 * HZ);
 
-        set_current_state(TASK_INTERRUPTIBLE);
+        set_current_state(TASK_UNINTERRUPTIBLE);
         (void)schedule_timeout(ticks);
     }
 #else

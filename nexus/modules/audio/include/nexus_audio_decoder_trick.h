@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: AudioDecoder Trick
 *    API for audio decoder trick-play.
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_AUDIO_DECODER_TRICK_H__
 #define NEXUS_AUDIO_DECODER_TRICK_H__
@@ -88,7 +80,7 @@ Summary:
 
 Description:
     NEXUS_AudioDecoder_Advance causes audio decoder to drop compressed data,
-    untill it finds data with timestamp greater then target PTS.  The decoder
+    until it finds data with timestamp greater then target PTS.  The decoder
     must be in a paused state for this to work.  To pause, call
     NEXUS_AudioDecoder_SetTrickState with a rate value of 0.
 

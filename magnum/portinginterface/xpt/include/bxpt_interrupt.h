@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2003-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -133,6 +133,7 @@ BERR_Code BXPT_Interrupt_DisableMessageInt(
 	int MessageBufferNum		/* [in] Message interrupt to disable. */
 	);
 
+#if !BXPT_HAS_MESG_L2
 /***************************************************************************
 Summary:
 Enable a given CPU Message interrupt, interrupt context version.
@@ -155,6 +156,7 @@ BERR_Code BXPT_Interrupt_EnableMessageInt_isr(
 	void *Parm1,					/* [in] First arg to be passed to callback */
 	int Parm2						/* [in] Second arg to be passed to callback */
 	);
+#endif
 
 /***************************************************************************
 Summary:
@@ -229,6 +231,7 @@ BERR_Code BXPT_Interrupt_DisableMessageOverflowInt(
 	int MessageBufferNum		/* [in] Message interrupt to disable. */
 	);
 
+#if !BXPT_HAS_MESG_L2
 /***************************************************************************
 Summary:
 Enable a given CPU Message Overflow interrupt, interrupt context version.
@@ -251,6 +254,7 @@ BERR_Code BXPT_Interrupt_EnableMessageOverflowInt_isr(
 	void *Parm1,					/* [in] First arg to be passed to callback */
 	int Parm2						/* [in] Second arg to be passed to callback */
 	);
+#endif
 
 /***************************************************************************
 Summary:
@@ -280,4 +284,3 @@ BERR_Code BXPT_Interrupt_DisableMessageOverflowInt_isr(
 #endif /* #ifndef BXPT_INTERRUPT_H__ */
 
 /* end of file */
-

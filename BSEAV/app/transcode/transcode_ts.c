@@ -529,7 +529,6 @@ static bool g_bOnePtsPerSegment = false;
 static bool g_audioPesPacking = false;
 static bool g_bSparseFrameRate = false;
 static bool g_bEnableFieldPairing = true;
-static bool g_bfMP4 = false;
 static bool g_bPrintStatus = false;
 
 static const namevalue_t g_audioChannelFormatStrs[] = {
@@ -5494,12 +5493,8 @@ static void start_transcode(
         BDBG_MSG(("Opened record fifo file."));
     }
     else {
-        NEXUS_FileRecordOpenSettings openSettings;
-        NEXUS_FileRecord_GetDefaultOpenSettings(&openSettings);
-        openSettings.data.filename = pContext->encodeSettings.fname;
-        openSettings.data.directIo = !g_bfMP4;
-        openSettings.index.filename = pContext->indexfname[0]? pContext->indexfname : NULL;
-        pContext->fileTranscode = NEXUS_FileRecord_Open(&openSettings);
+        pContext->fileTranscode = NEXUS_FileRecord_OpenPosix(pContext->encodeSettings.fname,
+            pContext->indexfname[0]? pContext->indexfname : NULL);
     }
     if (!pContext->fileTranscode) {
         fprintf(stderr, "can't create file: %s, %s\n", pContext->encodeSettings.fname, pContext->indexfname);

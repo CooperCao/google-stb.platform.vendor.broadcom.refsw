@@ -90,7 +90,7 @@ static BERR_Code NEXUS_AudioDecoder_P_GetPcrOffset_isr(void *pContext, uint32_t 
 static void NEXUS_AudioDecoder_P_DialnormChanged_isr(void *pParam1, int param2);
 static NEXUS_Error NEXUS_AudioDecoder_P_SetCompressedMute(NEXUS_AudioDecoderHandle decoder, bool muted);
 static NEXUS_Error NEXUS_AudioDecoder_P_SetCompressedEncoderMute(NEXUS_AudioDecoderHandle decoder, bool muted);
-static NEXUS_Error NEXUS_AudioDecoder_P_EnableRaveContexts(NEXUS_AudioDecoderHandle handle);
+static NEXUS_Error NEXUS_AudioDecoder_P_EnableRaveContexts(NEXUS_AudioDecoderHandle handle, NEXUS_AudioDecoderStartSettings * program);
 static void NEXUS_AudioDecoder_P_DisableRaveContexts(NEXUS_AudioDecoderHandle handle, bool flush);
 
 #define LOCK_TRANSPORT()    NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.transport)
@@ -101,7 +101,10 @@ static void NEXUS_AudioDecoder_P_DisableRaveContexts(NEXUS_AudioDecoderHandle ha
 static NEXUS_Error NEXUS_AudioDecoder_P_StartSageAudio(NEXUS_AudioDecoderHandle handle, NEXUS_AudioDecoderStartSettings * program);
 static void NEXUS_AudioDecoder_P_StopSageAudio(NEXUS_AudioDecoderHandle handle, bool destroySage);
 #endif
+#if 0 /* NEXUS_HAS_SAGE && !NEXUS_SAGE_SARM_TEST */
 static bool NEXUS_AudioDecoder_P_CodecSupportsSageAudio(NEXUS_AudioCodec codec);
+static bool NEXUS_AudioDecoder_P_IsArrMemory(NEXUS_HeapHandle heap);
+#endif
 
 #define NEXUS_AUDIO_DECODER_P_PULL_DISCARD_THRESHOLD_MPEG (0x7fffffff / 45) /* 47722 seconds (largest positive int we can represent in 45 KHz domain) */
 #define NEXUS_AUDIO_DECODER_P_PULL_DISCARD_THRESHOLD_DSS (0x7fffffff / 27000) /* 79.5 seconds (largest positive int we can represent in 27 MHz domain) */
@@ -274,6 +277,13 @@ static void NEXUS_AudioDecoder_P_VerifyTimebase(NEXUS_AudioDecoderHandle handle)
     }
 }
 
+#if 0 /* NEXUS_HAS_SAGE && !NEXUS_SAGE_SARM_TEST */
+bool NEXUS_AudioDecoder_P_IsArrMemory(NEXUS_HeapHandle heap)
+{
+    return (heap != NULL && heap == g_pCoreHandles->heap[NEXUS_ARR_HEAP].nexus);
+}
+#endif
+
 /***************************************************************************
 Summary:
 Open an audio decoder of the specified type
@@ -292,6 +302,8 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
     BERR_Code errCode;
     unsigned j;
     NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_HeapHandle srcHeap = NULL;
+    NEXUS_HeapHandle dstHeap = NULL;
 
     NEXUS_GetAudioCapabilities(&audioCapabilities);
 
@@ -488,10 +500,26 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
 
     if ( BAPE_DEVICE_ARM_VALID(decoderOpenSettings.dspIndex) )
     {
-        #if NEXUS_HAS_SAGE && NEXUS_SAGE_SARM_TEST
-        handle->sageAudioCapable = true;
+        #if NEXUS_HAS_SAGE
+          #if NEXUS_SAGE_SARM_TEST
+          BDBG_MSG(("---SAGE CAPABLE (HOST MODE)---"));
+          handle->sageAudioCapable = true;
+          handle->forceSarmRaveConfiguration = true;
+          #else
+          if ( NEXUS_GetEnv("nexus_force_sage_sarm") )
+          {
+              BDBG_MSG(("---SAGE CAPABLE (FORCED)---"));
+              handle->sageAudioCapable = true;
+              handle->forceSarmRaveConfiguration = true;
+          }
+          else if ( g_pCoreHandles->heap[NEXUS_ARR_HEAP].nexus )
+          {
+              BDBG_MSG(("---SAGE CAPABLE---"));
+              handle->sageAudioCapable = true;
+          }
+        #endif
         #else
-        BDBG_WRN(("WARNING: SAGE_SUPPORT disabled! Proceeding with un-secured Audio Support. If you see this message on a production chip, please report to the chip lead!!!"));
+          BDBG_WRN(("WARNING: SAGE_SUPPORT disabled! Proceeding with un-secured Audio Support. If you see this message on a production chip, please report to the chip lead!!!"));
         #endif
     }
 
@@ -592,16 +620,38 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
     }
 
     #if BAPE_DSP_SUPPORT
-    raveSettings.config.Cdb.Alignment = BDSP_ADDRESS_ALIGN_CDB;
-    raveSettings.config.Itb.Alignment = BDSP_ADDRESS_ALIGN_ITB;
+    raveSettings.config.Cdb.Alignment = BAPE_ADDRESS_ALIGN_CDB;
+    raveSettings.config.Itb.Alignment = BAPE_ADDRESS_ALIGN_ITB;
     #endif
 
-    raveSettings.heap = pSettings->cdbHeap;
+    /* If sage audio is enabled, we need to detect configure the source context
+       heap to use what is provided by the application and the destination must
+       always use GLR (default heap) */
+    if ( handle->sageAudioCapable )
+    {
+        /* if we are in host emulation mode, use GLR memory for src context as well */
+        if ( handle->forceSarmRaveConfiguration )
+        {
+            srcHeap = g_pCoreHandles->heap[NEXUS_MEMC0_MAIN_HEAP].nexus;
+            dstHeap = g_pCoreHandles->heap[NEXUS_MEMC0_MAIN_HEAP].nexus;
+        }
+        else
+        {
+            srcHeap = g_pCoreHandles->heap[NEXUS_ARR_HEAP].nexus;
+            dstHeap = pSettings->cdbHeap;
+        }
+    }
+    else
+    {
+        dstHeap = srcHeap = pSettings->cdbHeap;
+    }
 
     LOCK_TRANSPORT();
+    raveSettings.heap = dstHeap;
     handle->dstRaveContext = NEXUS_Rave_Open_priv(&raveSettings);
     if ( handle->sageAudioCapable )
     {
+        raveSettings.heap = srcHeap;
         handle->srcRaveContext = NEXUS_Rave_Open_priv(&raveSettings);
     }
     UNLOCK_TRANSPORT();
@@ -1078,6 +1128,8 @@ NEXUS_Error NEXUS_AudioDecoder_Start(
         break;
     }
 
+    NEXUS_AudioDecoder_P_TrickReset(handle); /* reset trick state on start */
+
     /* Save Program */
     handle->programSettings = *pProgram;
 
@@ -1231,7 +1283,9 @@ NEXUS_Error NEXUS_AudioDecoder_Start(
     if ( pProgram->pidChannel )
     {
         if (!handle->savedRaveContext) {
-            if ( handle->srcRaveContext && NEXUS_AudioDecoder_P_CodecSupportsSageAudio(pProgram->codec) )
+            if ( handle->srcRaveContext && (pProgram->secureAudio == NEXUS_AudioDecoderSecureType_eSecure ||
+                                            handle->forceSarmRaveConfiguration)
+                 /*&& NEXUS_AudioDecoder_P_CodecSupportsSageAudio(pProgram->codec)*/ )
             {
                 BDBG_MSG(("Configure Source RAVE"));
                 errCode = NEXUS_AudioDecoder_P_ConfigureRave(handle->srcRaveContext, pProgram, &pidChannelStatus, handle->isPlayback);
@@ -1585,6 +1639,7 @@ err_start:
     return errCode;
 }
 
+#if 0
 static bool NEXUS_AudioDecoder_P_CodecSupportsSageAudio(NEXUS_AudioCodec codec)
 {
     switch ( codec )
@@ -1605,6 +1660,7 @@ static bool NEXUS_AudioDecoder_P_CodecSupportsSageAudio(NEXUS_AudioCodec codec)
 
     return false;
 }
+#endif
 
 #if NEXUS_HAS_SAGE
 static NEXUS_Error NEXUS_AudioDecoder_P_StartSageAudio(NEXUS_AudioDecoderHandle handle, NEXUS_AudioDecoderStartSettings * program)
@@ -1628,7 +1684,9 @@ static NEXUS_Error NEXUS_AudioDecoder_P_StartSageAudio(NEXUS_AudioDecoderHandle 
         pProgram = &handle->programSettings;
     }
 
-    if ( NEXUS_AudioDecoder_P_CodecSupportsSageAudio(pProgram->codec) )
+    if ( pProgram->secureAudio == NEXUS_AudioDecoderSecureType_eSecure ||
+         handle->forceSarmRaveConfiguration
+         /* && NEXUS_AudioDecoder_P_CodecSupportsSageAudio(pProgram->codec)*/  )
     {
         NEXUS_SageAudioOpenSettings sageAudioOpenSettings;
         NEXUS_SageAudioStartSettings sageAudioSettings;
@@ -1759,7 +1817,7 @@ NEXUS_Error NEXUS_AudioDecoder_Flush(
 
     if ( handle->programSettings.pidChannel )
     {
-        rc = NEXUS_AudioDecoder_P_EnableRaveContexts(handle);
+        rc = NEXUS_AudioDecoder_P_EnableRaveContexts(handle, NULL);
         if ( rc )
         {
             BDBG_ERR(("ERROR: Unable to re-start SAGE Audio context."));
@@ -2633,6 +2691,7 @@ NEXUS_Error NEXUS_AudioDecoder_GetPresentationStatus(
     BDBG_CASSERT(BAPE_AC4_LANGUAGE_NAME_LENGTH == NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
     BDBG_CASSERT(BAPE_AC4_PRESENTATION_NAME_LENGTH == NEXUS_AUDIO_AC4_PRESENTATION_NAME_LENGTH);
     BDBG_CASSERT(NEXUS_AudioAc4AssociateType_eMax == (NEXUS_AudioAc4AssociateType)BAPE_Ac4AssociateType_eMax);
+    BDBG_CASSERT(NEXUS_AudioAc4PresentationType_eMax == (NEXUS_AudioAc4PresentationType)BAPE_Ac4PresentationType_eMax);
 
     BKNI_Memset(pStatus, 0, sizeof(NEXUS_AudioDecoderPresentationStatus));
 
@@ -2655,6 +2714,7 @@ NEXUS_Error NEXUS_AudioDecoder_GetPresentationStatus(
         BKNI_Memcpy(pStatus->status.ac4.id, piPresentationInfo.info.ac4.id, sizeof(char)*NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH);
         pStatus->status.ac4.index = piPresentationInfo.info.ac4.index;
         pStatus->status.ac4.associateType = (NEXUS_AudioAc4AssociateType)piPresentationInfo.info.ac4.associateType;
+        pStatus->status.ac4.presentationType = (NEXUS_AudioAc4PresentationType)piPresentationInfo.info.ac4.presentationType;
         break;
     }
 
@@ -2910,7 +2970,11 @@ NEXUS_Error NEXUS_AudioDecoder_ApplySettings_priv(
        handle->outputLists[NEXUS_AudioConnectorType_eCompressed4x].outputs[0] ||
        handle->outputLists[NEXUS_AudioConnectorType_eCompressed16x].outputs[0])
     {
-        NEXUS_AudioDecoder_P_SetCompressedMute(handle, mute);
+        bool compressedMute = false;
+        if (handle->trickState.rate != NEXUS_NORMAL_DECODE_RATE) {
+            compressedMute = true;
+        }
+        NEXUS_AudioDecoder_P_SetCompressedMute(handle, mute || compressedMute);
     }
     /* Check if there is an AC3/DTS encoder attached to decoder and if so mute the outputs */
     NEXUS_AudioDecoder_P_SetCompressedEncoderMute(handle, mute);
@@ -3294,7 +3358,7 @@ void NEXUS_AudioDecoder_P_Reset(void)
         if ( g_decoders[i] && g_decoders[i]->running && NULL == g_decoders[i]->programSettings.input )
         {
             NEXUS_Error rc;
-            rc = NEXUS_AudioDecoder_P_EnableRaveContexts(g_decoders[i]);
+            rc = NEXUS_AudioDecoder_P_EnableRaveContexts(g_decoders[i], NULL);
             if ( rc )
             {
                 BDBG_ERR(("Unable to re-start Audio Rave contexts."));
@@ -3341,6 +3405,15 @@ static void NEXUS_AudioDecoder_P_Watchdog(void *pParam)
     g_numWatchdogs++;
 
     #if BAPE_DSP_SUPPORT
+
+    #if BDBG_DEBUG_BUILD
+    if ( NEXUS_GetEnv("assert_audio_watchdog") )
+    {
+        BDBG_ERR(("Intentionally generating an assert due to a watchdog interrupt for debug testing."));
+        BDBG_ASSERT(0);
+    }
+    #endif
+
     /* Check if core dump support is enabled.  If so, spin and wait for it to complete. */
     if ( g_NEXUS_audioModuleData.settings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eCoreDump].enabled )
     {
@@ -3775,12 +3848,23 @@ static void NEXUS_AudioDecoder_P_SetDefaultVolume(NEXUS_AudioDecoderHandle handl
     }
 }
 
-static NEXUS_Error NEXUS_AudioDecoder_P_EnableRaveContexts(NEXUS_AudioDecoderHandle handle)
+static NEXUS_Error NEXUS_AudioDecoder_P_EnableRaveContexts(NEXUS_AudioDecoderHandle handle, NEXUS_AudioDecoderStartSettings * program)
 {
     bool sarmModeRequired = false;
+    NEXUS_AudioDecoderStartSettings * pProgram;
 
-    if ( handle->sageAudioCapable &&
-         NEXUS_AudioDecoder_P_CodecSupportsSageAudio(handle->programSettings.codec) )
+    if ( program != NULL )
+    {
+        pProgram = program;
+    }
+    else
+    {
+        pProgram = &handle->programSettings;
+    }
+
+    if ( handle->sageAudioCapable && (pProgram->secureAudio == NEXUS_AudioDecoderSecureType_eSecure ||
+                                      handle->forceSarmRaveConfiguration)
+         /*NEXUS_AudioDecoder_P_CodecSupportsSageAudio(handle->programSettings.codec)*/ )
     {
         sarmModeRequired = true;
 
@@ -3827,7 +3911,9 @@ static void NEXUS_AudioDecoder_P_DisableRaveContexts(NEXUS_AudioDecoderHandle ha
 {
 
     #if NEXUS_AUDIO_RAVE_MONITOR_EXT
-    if ( handle->srcRaveMonitor.monitor && NEXUS_AudioDecoder_P_CodecSupportsSageAudio(handle->programSettings.codec) )
+    if ( handle->srcRaveMonitor.monitor && (handle->programSettings.secureAudio == NEXUS_AudioDecoderSecureType_eSecure ||
+                                            handle->forceSarmRaveConfiguration)
+         /*&& NEXUS_AudioDecoder_P_CodecSupportsSageAudio(handle->programSettings.codec)*/ )
     {
         NEXUS_AudioRaveMonitor_Stop(handle->srcRaveMonitor.monitor);
     }
@@ -3838,7 +3924,9 @@ static void NEXUS_AudioDecoder_P_DisableRaveContexts(NEXUS_AudioDecoderHandle ha
     #endif
 
     LOCK_TRANSPORT();
-    if ( handle->srcRaveContext && NEXUS_AudioDecoder_P_CodecSupportsSageAudio(handle->programSettings.codec) )
+    if ( handle->srcRaveContext && (handle->programSettings.secureAudio == NEXUS_AudioDecoderSecureType_eSecure ||
+                                    handle->forceSarmRaveConfiguration)
+         /*&& NEXUS_AudioDecoder_P_CodecSupportsSageAudio(handle->programSettings.codec)*/ )
     {
         BDBG_MSG(("Disable / Flush Source RAVE"));
         NEXUS_Rave_Disable_priv(handle->srcRaveContext);
@@ -3870,7 +3958,6 @@ NEXUS_Error NEXUS_AudioDecoder_P_Start(NEXUS_AudioDecoderHandle handle)
 
     pProgram = &handle->programSettings;
 
-    if ( handle->programSettings.input || !handle->started || handle->outputLists[NEXUS_AudioConnectorType_eCompressed].outputs[0] != NULL )
     {
         int i;
         NEXUS_AudioOutputList *outputLists = &handle->outputLists[0];
@@ -3974,8 +4061,6 @@ NEXUS_Error NEXUS_AudioDecoder_P_Start(NEXUS_AudioDecoderHandle handle)
         }
     }
 
-    NEXUS_AudioDecoder_P_TrickReset(handle); /* reset trick state on start */
-
     /* Setup StcChannel */
     if ( pProgram->stcChannel )
     {
@@ -4019,7 +4104,21 @@ NEXUS_Error NEXUS_AudioDecoder_P_Start(NEXUS_AudioDecoderHandle handle)
 
     handle->locked = false;
     handle->numFifoOverflows = handle->numFifoUnderflows = 0;
-    #if !NEXUS_AUDIO_RAVE_MONITOR_EXT || !NEXUS_AUDIO_RAVE_MONITOR_CONSUME
+
+    if (handle->settings.alwaysEnableDsola) {
+        bool dspMixerAttached = false;
+        errCode = NEXUS_AudioDecoder_P_IsDspMixerAttached(handle, &dspMixerAttached);
+        if ( !errCode ) {
+            if (g_NEXUS_audioModuleData.capabilities.dsp.decodeRateControl &&
+                handle->settings.alwaysEnableDsola &&
+                handle->trickState.rate <= NEXUS_AUDIO_DECODER_P_MAX_DSOLA_RATE &&
+                !dspMixerAttached) {
+                handle->apeStartSettings.decodeRateControl = true;
+            }
+        }
+    }
+
+#if !NEXUS_AUDIO_RAVE_MONITOR_EXT || !NEXUS_AUDIO_RAVE_MONITOR_CONSUME
     errCode = BAPE_Decoder_Start(handle->channel, &handle->apeStartSettings);
     if ( errCode && !handle->started ) { errCode = BERR_TRACE(errCode); goto err_dec_start; }
     #endif
@@ -4027,7 +4126,7 @@ NEXUS_Error NEXUS_AudioDecoder_P_Start(NEXUS_AudioDecoderHandle handle)
     if ( handle->programSettings.pidChannel )
     {
         NEXUS_Error rc;
-        rc = NEXUS_AudioDecoder_P_EnableRaveContexts(handle);
+        rc = NEXUS_AudioDecoder_P_EnableRaveContexts(handle, &handle->programSettings);
         if ( rc )
         {
             BDBG_ERR(("Unable to start Audio Rave context(s)."));

@@ -143,8 +143,6 @@ int main(void)
         return 1;
     }
 
-    printf( "\nAllocated key slot 0x%p \n", keySlotInt );
-
     /* Set up encryption key */
     NEXUS_Security_GetDefaultAlgorithmSettings( &NexusConfig );
 
@@ -184,8 +182,8 @@ int main(void)
     /* Open DMA handle */
     dma = NEXUS_Dma_Open( 0, NULL );
 
-    NEXUS_Memory_Allocate( DATA_BLOCK_SIZE, NULL, (void *)&pInternalSource );
-    NEXUS_Memory_Allocate( DATA_BLOCK_SIZE, NULL, (void *)&pInternalDestination );
+    NEXUS_Memory_Allocate( DATA_BLOCK_SIZE, NULL, (void **)&pInternalSource );
+    NEXUS_Memory_Allocate( DATA_BLOCK_SIZE, NULL, (void **)&pInternalDestination );
 
     memset( pInternalSource, 0,  DATA_BLOCK_SIZE );
     memset( pInternalDestination,   3,  DATA_BLOCK_SIZE );
@@ -239,8 +237,8 @@ int main(void)
     externalDstSize = DATA_BLOCK_SIZE;
 
     /* Allocate 32 extra bytes for external key and IV */
-    NEXUS_Memory_Allocate( externalSrcSize, NULL, (void *)&pExternalSource );
-    NEXUS_Memory_Allocate( externalDstSize, NULL, (void *)&pExternalDestination );
+    NEXUS_Memory_Allocate( externalSrcSize, NULL, (void **)&pExternalSource );
+    NEXUS_Memory_Allocate( externalDstSize, NULL, (void **)&pExternalDestination );
 
     memset( pExternalSource,      0, externalSrcSize );
     memset( pExternalDestination, 1, externalDstSize );
@@ -254,8 +252,6 @@ int main(void)
         printf("\nAllocate dec keySlotExt failed \n");
         return 1;
     }
-
-    printf("\nAllocated key slot 0x%p \n", keySlotExt);
 
     /* This example enables both external ket and IV.
             Note that external key and IV can be enabled separately */
@@ -288,8 +284,8 @@ int main(void)
     {
         /* Zeus 4 ...  external Key and IV are encapsulated within BTP and inserted in front of DMA tansfer */
         externalKeySize = 188;
-        NEXUS_Memory_Allocate( externalKeySize, NULL, (void *)&pExternalKey );
-        NEXUS_Memory_Allocate( externalKeySize, NULL, (void *)&pExternalKeyShaddow );
+        NEXUS_Memory_Allocate( externalKeySize, NULL, (void **)&pExternalKey );
+        NEXUS_Memory_Allocate( externalKeySize, NULL, (void **)&pExternalKeyShaddow );
         memset( pExternalKey, 0, externalKeySize );
         memset( pExternalKeyShaddow, 0, externalKeySize );
 
@@ -328,8 +324,8 @@ int main(void)
 
         externalKeySize = sizeof(key);
 
-        NEXUS_Memory_Allocate( externalKeySize, NULL, (void *)&pExternalKey );
-        NEXUS_Memory_Allocate( externalKeySize, NULL, (void *)&pExternalKeyShaddow );
+        NEXUS_Memory_Allocate( externalKeySize, NULL, (void **)&pExternalKey );
+        NEXUS_Memory_Allocate( externalKeySize, NULL, (void **)&pExternalKeyShaddow );
         memset( pExternalKey, 0, externalKeySize );
         memset( pExternalKeyShaddow, 0, externalKeySize );
 
@@ -425,7 +421,6 @@ int main(void)
 static void compileBtp( uint8_t *pBtp, external_key_data_t *pBtpData )
 {
     unsigned char *p = pBtp;
-    unsigned x = 0;
     unsigned len = 0;
     unsigned char templateBtp[] =
     {               /* ( 0) */  0x47,
@@ -467,8 +462,6 @@ static void compileBtp( uint8_t *pBtp, external_key_data_t *pBtpData )
     printf ("KEY valid[%d] offset[%d] size[%d]\n",pBtpData->key.valid, pBtpData->key.offset, pBtpData->key.size );
     if( pBtpData->key.valid )
     {
-        x = 0;
-
         p = &pBtp[20];                  /* start of BTP data section . */
         p += (pBtpData->key.offset * 16); /* locate where to write the key within the BTP data section. */
 
@@ -493,8 +486,6 @@ static void compileBtp( uint8_t *pBtp, external_key_data_t *pBtpData )
     printf ("IV valid[%d] offset[%d] size[%d]\n",pBtpData->iv.valid, pBtpData->iv.offset, pBtpData->iv.size );
     if( pBtpData->iv.valid )
     {
-        x = 0;
-
         p = &pBtp[20];                   /* start of BTP data section . */
         p += (pBtpData->iv.offset * 16);  /* move to offset withtin BTP for IV */
 

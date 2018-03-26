@@ -1258,7 +1258,7 @@ BERR_Code AllocContext_Priv(
     return( ExitCode );
 }
 
-BERR_Code BXPT_Rave_EnableContext(
+static BERR_Code BXPT_Rave_EnableContext_nonrec(
     BXPT_RaveCx_Handle Context      /* [in] The context. */
     )
 {
@@ -1291,16 +1291,30 @@ BERR_Code BXPT_Rave_EnableContext(
     );
     BREG_Write32( Context->hReg, Context->BaseAddr + AV_MISC_CFG1_OFFSET, Reg );
 
-    if (Context->avsRefHandle) {
-        if (Context->ItbFormat==BAVC_ItbEsType_eAvsVideo) {
-            BXPT_Rave_EnableContext(Context->avsRefHandle);
-        }
-    }
 
     return( ExitCode );
 }
 
-BERR_Code BXPT_Rave_DisableContext(
+BERR_Code BXPT_Rave_EnableContext(
+    BXPT_RaveCx_Handle Context      /* [in] The context. */
+    )
+{
+    BERR_Code rc;
+
+    rc = BXPT_Rave_EnableContext_nonrec(Context);
+    if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
+
+    if (Context->avsRefHandle) {
+        if (Context->ItbFormat==BAVC_ItbEsType_eAvsVideo) {
+            Context = Context->avsRefHandle;
+            BDBG_ASSERT(!Context->avsRefHandle);
+            rc = BXPT_Rave_EnableContext_nonrec(Context);
+        }
+    }
+    return rc;
+}
+
+static BERR_Code BXPT_Rave_DisableContext_nonrec(
     BXPT_RaveCx_Handle Context      /* [in] The context. */
     )
 {
@@ -1337,11 +1351,23 @@ BERR_Code BXPT_Rave_DisableContext(
     }
 #endif
 
-    if (Context->avsRefHandle) {
-        BXPT_Rave_DisableContext(Context->avsRefHandle);
-    }
-
     return( ExitCode );
+}
+
+BERR_Code BXPT_Rave_DisableContext(
+    BXPT_RaveCx_Handle Context      /* [in] The context. */
+    )
+{
+    BERR_Code rc;
+    rc = BXPT_Rave_DisableContext_nonrec(Context);
+    if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
+
+    if (Context->avsRefHandle) {
+        Context = Context->avsRefHandle;
+        BDBG_ASSERT(!Context->avsRefHandle);
+        rc = BXPT_Rave_DisableContext_nonrec(Context);
+    }
+    return rc;
 }
 
 BERR_Code BXPT_Rave_AllocIndexer(
@@ -3097,7 +3123,7 @@ BERR_Code BXPT_Rave_GetAvConfig(
     return( ExitCode );
 }
 
-BERR_Code BXPT_Rave_SetAvConfig(
+static BERR_Code BXPT_Rave_SetAvConfig_nonrec(
     BXPT_RaveCx_Handle Context,         /* [in] The context. */
     const BXPT_Rave_AvSettings *Config  /* [in] The AV settings. */
     )
@@ -3629,12 +3655,26 @@ BERR_Code BXPT_Rave_SetAvConfig(
     */
     Context->ScOrMode = Config->ScOrMode;
 
-    if (Context->avsRefHandle) {
-        BXPT_Rave_SetAvConfig(Context->avsRefHandle, Config);
-    }
-
     done:
     return( ExitCode );
+}
+
+BERR_Code BXPT_Rave_SetAvConfig(
+    BXPT_RaveCx_Handle Context,         /* [in] The context. */
+    const BXPT_Rave_AvSettings *Config  /* [in] The AV settings. */
+    )
+{
+    BERR_Code rc;
+
+    rc = BXPT_Rave_SetAvConfig_nonrec(Context, Config);
+    if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
+
+    if (Context->avsRefHandle) {
+        Context = Context->avsRefHandle;
+        BDBG_ASSERT(!Context->avsRefHandle);
+        rc = BXPT_Rave_SetAvConfig_nonrec(Context, Config);
+    }
+    return rc;
 }
 
 BERR_Code BXPT_Rave_CheckBuffer(
@@ -4045,7 +4085,7 @@ BERR_Code EnableScdByContext(
     return( ExitCode );
 }
 
-BERR_Code BXPT_Rave_AddPidChannel(
+static BERR_Code BXPT_Rave_AddPidChannel_nonrec(
     BXPT_RaveCx_Handle Context,     /* [in] The context  */
     unsigned int PidChanNum,        /* [in] Which PID channel to add. */
     bool UseDecrypted               /* [in] Use decrypted versions of packets on this channel */
@@ -4066,14 +4106,31 @@ BERR_Code BXPT_Rave_AddPidChannel(
         }
     }
 
-    if (Context->avsRefHandle) {
-        BXPT_Rave_AddPidChannel(Context->avsRefHandle, PidChanNum, UseDecrypted);
-    }
-
     return( ExitCode );
 }
 
-BERR_Code BXPT_Rave_RemovePidChannel(
+BERR_Code BXPT_Rave_AddPidChannel(
+    BXPT_RaveCx_Handle Context,     /* [in] The context  */
+    unsigned int PidChanNum,        /* [in] Which PID channel to add. */
+    bool UseDecrypted               /* [in] Use decrypted versions of packets on this channel */
+    )
+{
+    BERR_Code rc;
+
+    rc = BXPT_Rave_AddPidChannel_nonrec(Context, PidChanNum, UseDecrypted);
+    if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
+
+    if (Context->avsRefHandle) {
+        if (Context->ItbFormat==BAVC_ItbEsType_eAvsVideo) {
+            Context = Context->avsRefHandle;
+            BDBG_ASSERT(!Context->avsRefHandle);
+            rc = BXPT_Rave_AddPidChannel_nonrec(Context, PidChanNum, UseDecrypted);
+        }
+    }
+    return rc;
+}
+
+static BERR_Code BXPT_Rave_RemovePidChannel_nonrec(
     BXPT_RaveCx_Handle Context,         /* [in] The context  */
     unsigned int PidChanNum         /* [in] Which PID channel to remove. */
     )
@@ -4204,12 +4261,26 @@ BERR_Code BXPT_Rave_RemovePidChannel(
         ClearSpidTable( Context, PidChanNum, PipeInUse );
     }
 
-    if (Context->avsRefHandle) {
-        BXPT_Rave_RemovePidChannel(Context->avsRefHandle, PidChanNum);
-    }
-
     Done:
     return( ExitCode );
+}
+
+BERR_Code BXPT_Rave_RemovePidChannel(
+    BXPT_RaveCx_Handle Context,         /* [in] The context  */
+    unsigned int PidChanNum         /* [in] Which PID channel to remove. */
+    )
+{
+    BERR_Code rc;
+
+    rc = BXPT_Rave_RemovePidChannel_nonrec(Context, PidChanNum);
+    if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
+
+    if (Context->avsRefHandle) {
+        Context = Context->avsRefHandle;
+        BDBG_ASSERT(!Context->avsRefHandle);
+        rc = BXPT_Rave_RemovePidChannel_nonrec(Context, PidChanNum);
+    }
+    return rc;
 }
 
 void ClearSpidTable(

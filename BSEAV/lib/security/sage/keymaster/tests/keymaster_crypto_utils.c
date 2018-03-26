@@ -96,19 +96,31 @@ BERR_Code KM_Crypto_Operation(km_purpose_t operation, KM_CryptoOperation_Setting
     bool updateCalled = false;
     uint32_t data_available;
     uint8_t *in_data;
+    km_hw_auth_token_t auth_token;
+    KM_Tag_ContextHandle extra_params = NULL;
 
     if (!settings || !settings->in_data_process_blocks ||
-        ((operation != KM_PURPOSE_ENCRYPT) && (operation != KM_PURPOSE_DECRYPT) &&
-         (operation != KM_PURPOSE_SIGN) && (operation != KM_PURPOSE_VERIFY))) {
+        ((operation != SKM_PURPOSE_ENCRYPT) && (operation != SKM_PURPOSE_DECRYPT) &&
+         (operation != SKM_PURPOSE_SIGN) && (operation != SKM_PURPOSE_VERIFY))) {
         BDBG_ERR(("%s: Invalid parameter to function", BSTD_FUNCTION));
         err = BERR_UNKNOWN;
         goto done;
     }
+    if (settings->gkHandle) {
+        if (!settings->pass_handle || !settings->password) {
+            BDBG_ERR(("%s: Invalid parameter to function", BSTD_FUNCTION));
+            err = BERR_UNKNOWN;
+            goto done;
+        }
+    }
 
-    TEST_FIND_TAG(tag, settings->key_params, KM_TAG_ALGORITHM);
+    memset(&auth_token, 0, sizeof(auth_token));
+    KM_Tag_NewContext(&extra_params);
+
+    TEST_FIND_TAG(tag, settings->key_params, SKM_TAG_ALGORITHM);
     algorithm = (km_algorithm_t)tag->value.enumerated;
     switch (algorithm) {
-    case KM_ALGORITHM_AES:
+    case SKM_ALGORITHM_AES:
         {
             keyslot = km_crypto_aes_allocate_keyslot();
             if (!keyslot) {
@@ -128,14 +140,23 @@ BERR_Code KM_Crypto_Operation(km_purpose_t operation, KM_CryptoOperation_Setting
     beginSettings.hKeyslot = keyslot;
     beginSettings.in_params = settings->begin_params;
     EXPECT_SUCCESS_SILENT(KeymasterTl_CryptoBegin(settings->handle, &beginSettings, &op_handle));
-    if ((operation == KM_PURPOSE_ENCRYPT) && (!settings->out_nonce)) {
+    if ((operation == SKM_PURPOSE_ENCRYPT) && (!settings->out_nonce)) {
         /* No incoming nonce, look to save outgoing nonce */
-        tag = KM_Tag_FindFirst(beginSettings.out_params, KM_TAG_NONCE);
+        tag = KM_Tag_FindFirst(beginSettings.out_params, SKM_TAG_NONCE);
         if (tag) {
             settings->out_nonce = KM_Tag_Dup(tag);
         }
     }
     TEST_DELETE_CONTEXT(beginSettings.out_params);
+
+    if (settings->gkHandle) {
+        /* Generate a token based on the op_handle */
+        if (!settings->testWrongChallenge) {
+            EXPECT_SUCCESS(GatekeeperTl_Verify(settings->gkHandle, settings->uid, op_handle, settings->pass_handle, settings->password, NULL, &auth_token));
+        } else {
+            EXPECT_SUCCESS(GatekeeperTl_Verify(settings->gkHandle, settings->uid, op_handle+1, settings->pass_handle, settings->password, NULL, &auth_token));
+        }
+    }
 
     out_data = settings->out_data.buffer;
     available_space = settings->out_data.size;
@@ -149,6 +170,17 @@ BERR_Code KM_Crypto_Operation(km_purpose_t operation, KM_CryptoOperation_Setting
             /* Only first update gets the params (GCM needs AAD data on first update) */
             updateSettings.in_params = settings->update_params;
         }
+
+        if (settings->gkHandle) {
+            /* We must add the generated auth token to the in_params */
+            if (!updateSettings.in_params) {
+                updateSettings.in_params = extra_params;
+            }
+            if (!KM_Tag_FindFirst(updateSettings.in_params, SKM_TAG_AUTH_TOKEN)) {
+                TEST_TAG_ADD_BYTES(updateSettings.in_params, SKM_TAG_AUTH_TOKEN, sizeof(auth_token), (uint8_t *)&auth_token);
+            }
+        }
+
         updateSettings.in_data.buffer = in_data;
         updateSettings.in_data.size = block_size;
         updateSettings.out_data.size = available_space;
@@ -174,6 +206,15 @@ BERR_Code KM_Crypto_Operation(km_purpose_t operation, KM_CryptoOperation_Setting
             /* If update was not called yet, add update parameters to finish */
             finishSettings.in_params = settings->update_params;
         }
+        if (settings->gkHandle) {
+            /* We must add the generated auth token to the in_params */
+            if (!finishSettings.in_params) {
+                finishSettings.in_params = extra_params;
+            }
+            if (!KM_Tag_FindFirst(finishSettings.in_params, SKM_TAG_AUTH_TOKEN)) {
+                TEST_TAG_ADD_BYTES(finishSettings.in_params, SKM_TAG_AUTH_TOKEN, sizeof(auth_token), (uint8_t *)&auth_token);
+            }
+        }
         finishSettings.in_data.buffer = in_data;
         finishSettings.in_data.size = data_available;
     }
@@ -194,6 +235,7 @@ done:
         /* If crypto finish fails, this will throw an error too */
         (void)KeymasterTl_CryptoAbort(settings->handle, op_handle);
     }
+    TEST_DELETE_CONTEXT(extra_params);
     TEST_FREE_KEYSLOT(keyslot);
     return err;
 }

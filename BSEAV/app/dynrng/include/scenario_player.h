@@ -49,7 +49,7 @@ typedef struct ScenarioPlayer * ScenarioPlayerHandle;
 typedef struct Scenario
 {
     char * scenarioPath;
-    char * streamPaths[MAX_MOSAICS];
+    char * streamPaths[MAX_STREAMS];
     unsigned streamCount;
     char * imagePath;
     char * bgPath;

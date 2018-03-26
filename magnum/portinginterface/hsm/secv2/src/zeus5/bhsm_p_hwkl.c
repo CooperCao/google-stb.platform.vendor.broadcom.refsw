@@ -134,7 +134,6 @@ BERR_Code BHSM_P_Hwkl_RootConfig( BHSM_Handle hHsm, BHSM_P_HwklRootConfig *pPara
     /* pack input parameters */
     pSend->askmTdesKlRootKeySwapEnable = pParam->in.askmTdesKlRootKeySwapEnable;
     pSend->rootKeySrc = pParam->in.rootKeySrc;
-    pSend->hwklOperation = pParam->in.hwklOperation;
     pSend->globalKeyOwnerIdSelect = pParam->in.globalKeyOwnerIdSelect;
     pSend->globalKeyIndex = pParam->in.globalKeyIndex;
     pSend->kdfVersion = pParam->in.kdfVersion;
@@ -193,7 +192,6 @@ BERR_Code BHSM_P_Hwkl_LayerSet( BHSM_Handle hHsm, BHSM_P_HwklLayerSet *pParam )
 
     /* pack input parameters */
     pSend->destinationKeyLayer = pParam->in.destinationKeyLayer;
-    pSend->hwklOperation = pParam->in.hwklOperation;
     BKNI_Memcpy( pSend->procIn, pParam->in.procIn, 16 );
 
     rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspError );

@@ -105,111 +105,111 @@ static BERR_Code km_crypto_rsa_enc_dec_tests(KeymasterTl_Handle handle)
         switch (i) {
         case 0:
             key_size = 1024;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_OAEP);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
             comment = "RSA HW 1024 bit, OAEP, SHA1";
             break;
         case 1:
             key_size = 1024;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_OAEP);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "RSA HW 1024 bit, OAEP, SHA256";
             break;
         case 2:
             key_size = 2048;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_OAEP);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
             comment = "RSA HW 2048 bit, OAEP, SHA1";
             break;
         case 3:
             key_size = 2048;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_OAEP);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "RSA HW 2048 bit, OAEP, SHA256";
             break;
         case 4:
             key_size = 1024;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_PKCS1_1_5_ENCRYPT);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_PKCS1_1_5_ENCRYPT);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             comment = "RSA HW 1024 bit, PKCS1.1.5, NONE";
             break;
         case 5:
             key_size = 2048;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_PKCS1_1_5_ENCRYPT);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_PKCS1_1_5_ENCRYPT);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             comment = "RSA HW 2048 bit, PKCS1.1.5, NONE";
             break;
         case 6:
             key_size = 3072;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_OAEP);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
             comment = "RSA SW 3072 bit, OAEP, SHA1";
             break;
         case 7:
             key_size = 3072;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_OAEP);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "RSA SW 3072 bit, OAEP, SHA256";
             break;
         case 8:
             key_size = 3072;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_PKCS1_1_5_ENCRYPT);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_PKCS1_1_5_ENCRYPT);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             comment = "RSA SW 3072 bit, PKCS1.1.5, NONE";
             break;
         case 9:
             key_size = 768;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_MD5);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_OAEP);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_MD5);
             comment = "RSA 768 bit, OAEP, MD5";
             break;
         case 10:
             key_size = 768;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_OAEP);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
             comment = "RSA 768 bit, OAEP, SHA1";
             break;
         case 11:
             key_size = 768;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_OAEP);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_224);
             comment = "RSA 768 bit, OAEP, SHA224";
             break;
         case 12:
             key_size = 768;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_OAEP);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "RSA 768 bit, OAEP, SHA256";
             break;
         case 13:
             key_size = 1536;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_OAEP);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_384);
             comment = "RSA 1536 bit, OAEP, SHA384";
             break;
         case 14:
             key_size = 1536;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_OAEP);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_512);
             comment = "RSA 1536 bit, OAEP, SHA512";
             break;
         case 15:
             key_size = 768;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_PKCS1_1_5_ENCRYPT);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_PKCS1_1_5_ENCRYPT);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             comment = "RSA 768 bit, PKCS1.1.5, NONE";
             break;
         case 16:
             key_size = 256;
             message = no_padding_message;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             comment = "RSA 256 bit, no padding or digest";
             break;
         case 17:
             key_size = 4096;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_OAEP);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_512);
             comment = "RSA 4096 bit, OAEP, SHA512";
             break;
         default:
@@ -224,7 +224,7 @@ static BERR_Code km_crypto_rsa_enc_dec_tests(KeymasterTl_Handle handle)
         EXPECT_SUCCESS(rsa_gen_keys(&import_key, key_size));
         KeymasterTl_GetDefaultImportKeySettings(&impSettings);
         impSettings.in_key_params = key_params;
-        impSettings.in_key_format = KM_KEY_FORMAT_PKCS8;
+        impSettings.in_key_format = SKM_KEY_FORMAT_PKCS8;
         impSettings.in_key_blob = import_key;
         EXPECT_SUCCESS(KeymasterTl_ImportKey(handle, &impSettings));
 
@@ -234,7 +234,7 @@ static BERR_Code km_crypto_rsa_enc_dec_tests(KeymasterTl_Handle handle)
 
         TEST_ALLOCATE_BLOCK(in_data, strlen(message));
         TEST_ALLOCATE_BLOCK(intermediate_data, key_size / 8);
-        if (KM_Tag_ContainsEnum(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP)) {
+        if (KM_Tag_ContainsEnum(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_OAEP)) {
             /* Do a second encrypt of same data for OAEP padding */
             TEST_ALLOCATE_BLOCK(intermediate_data2, key_size / 8);
             memset(intermediate_data2.buffer, 0xAF, intermediate_data2.size);
@@ -247,14 +247,14 @@ static BERR_Code km_crypto_rsa_enc_dec_tests(KeymasterTl_Handle handle)
         settings.in_data = in_data;
         settings.out_data = intermediate_data;
 
-        EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_ENCRYPT, &settings));
+        EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_ENCRYPT, &settings));
         intermediate_data.size = settings.out_data.size;
         BDBG_LOG(("%s: enc produced %d bytes", BSTD_FUNCTION, settings.out_data.size));
 
         if (intermediate_data2.buffer) {
             /* For OAEP padding, do a second encrypt because the result must be different */
             settings.out_data = intermediate_data2;
-            EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_ENCRYPT, &settings));
+            EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_ENCRYPT, &settings));
             intermediate_data2.size = settings.out_data.size;
 
             if ((intermediate_data.size != intermediate_data2.size) || !memcmp(intermediate_data.buffer, intermediate_data2.buffer, intermediate_data.size)) {
@@ -268,7 +268,7 @@ static BERR_Code km_crypto_rsa_enc_dec_tests(KeymasterTl_Handle handle)
         settings.in_data = intermediate_data;
         settings.out_data = final_data;
 
-        EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_DECRYPT, &settings));
+        EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_DECRYPT, &settings));
         BDBG_LOG(("%s: dec produced %d bytes", BSTD_FUNCTION, settings.out_data.size));
 
         if ((settings.out_data.size != in_data.size) || memcmp(in_data.buffer, settings.out_data.buffer, settings.out_data.size)) {
@@ -373,7 +373,7 @@ static BERR_Code km_crypto_rsa_sign_verify_table_tests(KeymasterTl_Handle handle
         EXPECT_SUCCESS(rsa_gen_keys(&import_key, key_size));
         KeymasterTl_GetDefaultImportKeySettings(&impSettings);
         impSettings.in_key_params = key_params;
-        impSettings.in_key_format = KM_KEY_FORMAT_PKCS8;
+        impSettings.in_key_format = SKM_KEY_FORMAT_PKCS8;
         impSettings.in_key_blob = import_key;
         EXPECT_SUCCESS(KeymasterTl_ImportKey(handle, &impSettings));
         *use_key = impSettings.out_key_blob;
@@ -411,17 +411,17 @@ static BERR_Code km_crypto_rsa_sign_verify_table_tests(KeymasterTl_Handle handle
         for (padding = 0; padding < 3; padding++) {
             switch (padding) {
             case 0:
-                TEST_TAG_ADD_ENUM(begin_params, KM_TAG_PADDING, KM_PAD_NONE);
+                TEST_TAG_ADD_ENUM(begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
                 pad_name = "NONE";
                 rsa_padding = RSA_NO_PADDING;
                 break;
             case 1:
-                TEST_TAG_ADD_ENUM(begin_params, KM_TAG_PADDING, KM_PAD_RSA_PKCS1_1_5_SIGN);
+                TEST_TAG_ADD_ENUM(begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_PKCS1_1_5_SIGN);
                 pad_name = "PKCS1";
                 rsa_padding = RSA_PKCS1_PADDING;
                 break;
             case 2:
-                TEST_TAG_ADD_ENUM(begin_params, KM_TAG_PADDING, KM_PAD_RSA_PSS);
+                TEST_TAG_ADD_ENUM(begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_PSS);
                 pad_name = "PSS";
                 rsa_padding = RSA_PKCS1_PSS_PADDING;
                 break;
@@ -444,7 +444,7 @@ static BERR_Code km_crypto_rsa_sign_verify_table_tests(KeymasterTl_Handle handle
                         /* PSS requires digest */
                         continue;
                     }
-                    TEST_TAG_ADD_ENUM(begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+                    TEST_TAG_ADD_ENUM(begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
                     md = NULL;
                     break;
                 case 1:
@@ -453,7 +453,7 @@ static BERR_Code km_crypto_rsa_sign_verify_table_tests(KeymasterTl_Handle handle
                         continue;
                     }
 #endif
-                    TEST_TAG_ADD_ENUM(begin_params, KM_TAG_DIGEST, KM_DIGEST_MD5);
+                    TEST_TAG_ADD_ENUM(begin_params, SKM_TAG_DIGEST, SKM_DIGEST_MD5);
                     digest_name = "MD5";
                     md = EVP_md5();
                     break;
@@ -463,7 +463,7 @@ static BERR_Code km_crypto_rsa_sign_verify_table_tests(KeymasterTl_Handle handle
                         continue;
                     }
 #endif
-                    TEST_TAG_ADD_ENUM(begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
+                    TEST_TAG_ADD_ENUM(begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
                     digest_name = "SHA1";
                     md = EVP_sha1();
                     break;
@@ -473,7 +473,7 @@ static BERR_Code km_crypto_rsa_sign_verify_table_tests(KeymasterTl_Handle handle
                         continue;
                     }
 #endif
-                    TEST_TAG_ADD_ENUM(begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
+                    TEST_TAG_ADD_ENUM(begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_224);
                     digest_name = "SHA224";
                     md = EVP_sha224();
                     break;
@@ -483,7 +483,7 @@ static BERR_Code km_crypto_rsa_sign_verify_table_tests(KeymasterTl_Handle handle
                         continue;
                     }
 #endif
-                    TEST_TAG_ADD_ENUM(begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+                    TEST_TAG_ADD_ENUM(begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
                     digest_name = "SHA256";
                     md = EVP_sha256();
                     break;
@@ -493,7 +493,7 @@ static BERR_Code km_crypto_rsa_sign_verify_table_tests(KeymasterTl_Handle handle
                         continue;
                     }
 #endif
-                    TEST_TAG_ADD_ENUM(begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
+                    TEST_TAG_ADD_ENUM(begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_384);
                     digest_name = "SHA384";
                     md = EVP_sha384();
                     break;
@@ -503,7 +503,7 @@ static BERR_Code km_crypto_rsa_sign_verify_table_tests(KeymasterTl_Handle handle
                         continue;
                     }
 #endif
-                    TEST_TAG_ADD_ENUM(begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
+                    TEST_TAG_ADD_ENUM(begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_512);
                     digest_name = "SHA512";
                     md = EVP_sha512();
                     if ((key_size == 1024) && (rsa_padding == RSA_PKCS1_PSS_PADDING)) {
@@ -532,7 +532,7 @@ static BERR_Code km_crypto_rsa_sign_verify_table_tests(KeymasterTl_Handle handle
 
                 BDBG_LOG(("%s: Test - %s", BSTD_FUNCTION, comment));
 
-                err = KM_Crypto_Operation(KM_PURPOSE_SIGN, &settings);
+                err = KM_Crypto_Operation(SKM_PURPOSE_SIGN, &settings);
                 if (fail_test) {
                     EXPECT_FAILURE(err);
                 } else {
@@ -546,7 +546,7 @@ static BERR_Code km_crypto_rsa_sign_verify_table_tests(KeymasterTl_Handle handle
                     settings.out_data.buffer = NULL;
                     settings.out_data.size = 0;
 
-                    EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_VERIFY, &settings));
+                    EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_VERIFY, &settings));
                     BDBG_LOG(("%s: verify successful", BSTD_FUNCTION));
 
                     if (md) {
@@ -559,7 +559,7 @@ static BERR_Code km_crypto_rsa_sign_verify_table_tests(KeymasterTl_Handle handle
                         /* Export the key and verify the signature with the public key */
 
                         KeymasterTl_GetDefaultExportKeySettings(&expSettings);
-                        expSettings.in_key_format = KM_KEY_FORMAT_X509;
+                        expSettings.in_key_format = SKM_KEY_FORMAT_X509;
                         expSettings.in_key_blob = *use_key;
                         EXPECT_SUCCESS(KeymasterTl_ExportKey(handle, &expSettings));
 
@@ -589,25 +589,25 @@ static BERR_Code km_crypto_rsa_sign_verify_table_tests(KeymasterTl_Handle handle
 
                     /* Modify source data and check for failure */
                     in_data.buffer[0]++;
-                    EXPECT_FAILURE_CODE(KM_Crypto_Operation(KM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
+                    EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
 
                     /* Modify the signature to check that verify fails */
                     in_data.buffer[0]--;
                     signature.buffer[5]++;
-                    EXPECT_FAILURE_CODE(KM_Crypto_Operation(KM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
+                    EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
 
                     signature.buffer[5]--;
                 }
 
                 BDBG_LOG(("%s: %s success", BSTD_FUNCTION, comment));
 
-                TEST_FIND_TAG(tag, begin_params, KM_TAG_DIGEST);
+                TEST_FIND_TAG(tag, begin_params, SKM_TAG_DIGEST);
                 KM_Tag_Remove(begin_params, tag);
                 KM_Tag_Free(tag);
                 TEST_FREE_BLOCK(in_data);
             }
 
-            TEST_FIND_TAG(tag, begin_params, KM_TAG_PADDING);
+            TEST_FIND_TAG(tag, begin_params, SKM_TAG_PADDING);
             KM_Tag_Remove(begin_params, tag);
             KM_Tag_Free(tag);
         }
@@ -682,15 +682,15 @@ static BERR_Code km_crypto_rsa_sign_verify_misc_tests(KeymasterTl_Handle handle)
         switch (i) {
         case 0:
             key_size = 256;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             message_size = key_size / 8;
             comment = "RSA 256 bit, no padding or digest";
             break;
         case 1:
             key_size = 768;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_PSS);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_PSS);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             md = EVP_sha256();
             rsa_padding = RSA_PKCS1_PSS_PADDING;
             message_size = 1024;
@@ -698,8 +698,8 @@ static BERR_Code km_crypto_rsa_sign_verify_misc_tests(KeymasterTl_Handle handle)
             break;
         case 2:
             key_size = 512;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_PKCS1_1_5_SIGN);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_PKCS1_1_5_SIGN);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             md = EVP_sha256();
             rsa_padding = RSA_PKCS1_PADDING;
             message_size = 1024;
@@ -707,47 +707,47 @@ static BERR_Code km_crypto_rsa_sign_verify_misc_tests(KeymasterTl_Handle handle)
             break;
         case 3:
             key_size = 256;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             message_size = 1024;
             expected_failure = BSAGE_ERR_KM_INVALID_INPUT_LENGTH;
             comment = "RSA 256 bit, no padding or digest";
             break;
         case 4:
             key_size = 512;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_PKCS1_1_5_SIGN);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_PKCS1_1_5_SIGN);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             message_size = key_size / 8 - PKCS1_OVERHEAD;
             comment = "RSA 512 bit, PKCS1, no digest";
             break;
         case 5:
             key_size = 512;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_PKCS1_1_5_SIGN);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_PKCS1_1_5_SIGN);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             message_size = key_size / 8 + 2;
             expected_failure = BSAGE_ERR_KM_INVALID_INPUT_LENGTH;
             comment = "RSA 512 bit, PKCS1, no digest (too long message)";
             break;
         case 6:
             key_size = 256 + 9 * 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_PSS);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_PSS);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             message_size = 1024;
             expected_failure = BSAGE_ERR_KM_INCOMPATIBLE_DIGEST;
             comment = "RSA 328 bit, PSS, SHA256";
             break;
         case 7:
             key_size = 256;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_PKCS7);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_PKCS7);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             message_size = 1024;
             expected_failure = BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE;
             comment = "RSA 256 bit, invalid padding";
             break;
         case 8:
             key_size = 256;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_PSS);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_PSS);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             message_size = 1024;
             /* Should be incompatible digest, but mapping table results in this error */
             expected_failure = BSAGE_ERR_KM_INCOMPATIBLE_ALGORITHM;
@@ -755,22 +755,22 @@ static BERR_Code km_crypto_rsa_sign_verify_misc_tests(KeymasterTl_Handle handle)
             break;
         case 9:
             key_size = 256;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             message_size = 1024;
             expected_failure = BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE;
             comment = "RSA 256 bit, no digest";
             break;
         case 10:
             key_size = 256;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             message_size = key_size / 8 - 1;
             comment = "RSA 256 bit, no padding or digest (short data)";
             break;
         case 11:
             key_size = 256;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             message_size = key_size / 8;
             modifier_list[0] = km_test_remove_sign_verify;
             expected_failure = BSAGE_ERR_KM_INCOMPATIBLE_PURPOSE;
@@ -778,16 +778,16 @@ static BERR_Code km_crypto_rsa_sign_verify_misc_tests(KeymasterTl_Handle handle)
             break;
         case 12:
             key_size = 256;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             message_size = key_size / 8 + 1;
             expected_failure = BSAGE_ERR_KM_INVALID_INPUT_LENGTH;
             comment = "RSA 256 bit, no padding or digest";
             break;
         case 13:
             key_size = 512;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_PKCS1_1_5_SIGN);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_PKCS1_1_5_SIGN);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             md = EVP_sha256();
             rsa_padding = RSA_PKCS1_PADDING;
             message_size = 1024;
@@ -795,8 +795,8 @@ static BERR_Code km_crypto_rsa_sign_verify_misc_tests(KeymasterTl_Handle handle)
             break;
         case 14:
             key_size = 256;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_PKCS1_1_5_SIGN);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_PKCS1_1_5_SIGN);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             rsa_padding = RSA_PKCS1_PADDING;
             message_size = 64 * 1024;
             comment = "RSA 256 bit, PKCS1, NONE, large data";
@@ -804,8 +804,8 @@ static BERR_Code km_crypto_rsa_sign_verify_misc_tests(KeymasterTl_Handle handle)
             break;
         case 15:
             key_size = 512;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_RSA_PKCS1_1_5_SIGN);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_RSA_PKCS1_1_5_SIGN);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             md = EVP_sha256();
             rsa_padding = RSA_PKCS1_PADDING;
             settings.in_data_process_blocks = 4;
@@ -836,7 +836,7 @@ static BERR_Code km_crypto_rsa_sign_verify_misc_tests(KeymasterTl_Handle handle)
         EXPECT_SUCCESS(rsa_gen_keys(&import_key, key_size));
         KeymasterTl_GetDefaultImportKeySettings(&impSettings);
         impSettings.in_key_params = key_params;
-        impSettings.in_key_format = KM_KEY_FORMAT_PKCS8;
+        impSettings.in_key_format = SKM_KEY_FORMAT_PKCS8;
         impSettings.in_key_blob = import_key;
         EXPECT_SUCCESS(KeymasterTl_ImportKey(handle, &impSettings));
 
@@ -853,7 +853,7 @@ static BERR_Code km_crypto_rsa_sign_verify_misc_tests(KeymasterTl_Handle handle)
         settings.in_data = in_data;
         settings.out_data = signature;
 
-        EXPECT_FAILURE_CODE(KM_Crypto_Operation(KM_PURPOSE_SIGN, &settings), expected_failure);
+        EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_SIGN, &settings), expected_failure);
 
         if (expected_failure == BERR_SUCCESS) {
             signature.size = settings.out_data.size;
@@ -864,7 +864,7 @@ static BERR_Code km_crypto_rsa_sign_verify_misc_tests(KeymasterTl_Handle handle)
             settings.out_data.buffer = NULL;
             settings.out_data.size = 0;
 
-            EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_VERIFY, &settings));
+            EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_VERIFY, &settings));
             BDBG_LOG(("%s: verify successful", BSTD_FUNCTION));
 
             if (md) {
@@ -877,7 +877,7 @@ static BERR_Code km_crypto_rsa_sign_verify_misc_tests(KeymasterTl_Handle handle)
                 /* Export the key and verify the signature with the public key */
 
                 KeymasterTl_GetDefaultExportKeySettings(&expSettings);
-                expSettings.in_key_format = KM_KEY_FORMAT_X509;
+                expSettings.in_key_format = SKM_KEY_FORMAT_X509;
                 expSettings.in_key_blob = key;
                 EXPECT_SUCCESS(KeymasterTl_ExportKey(handle, &expSettings));
 
@@ -907,12 +907,12 @@ static BERR_Code km_crypto_rsa_sign_verify_misc_tests(KeymasterTl_Handle handle)
 
             /* Modify source data and check for failure */
             in_data.buffer[0]++;
-            EXPECT_FAILURE_CODE(KM_Crypto_Operation(KM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
+            EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
 
             /* Modify the signature and check that verification fails*/
             in_data.buffer[0]--;
             signature.buffer[5]++;
-            EXPECT_FAILURE_CODE(KM_Crypto_Operation(KM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
+            EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
 
             signature.buffer[5]--;
         }

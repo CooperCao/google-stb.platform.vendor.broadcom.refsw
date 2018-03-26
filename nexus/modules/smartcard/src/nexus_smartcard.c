@@ -328,7 +328,7 @@ static void NEXUS_Smartcard_P_CardInsertedRemoved_isr(BSCD_ChannelHandle channel
     for (index=0; index < BSCD_MAX_SUPPOTED_CHANNELS; index++) {
         if (g_NEXUS_smartcards[index].channelHandle == channelHandle) {
             if ( g_NEXUS_smartcards[index].settings.cardCallback.callback) {
-                NEXUS_Module_IsrCallback_Fire_isr(g_NEXUS_smartcardModule, g_NEXUS_smartcards[index].cardAppCallback);
+                NEXUS_IsrCallback_Fire_isr(g_NEXUS_smartcards[index].cardAppCallback);
             }
         }
     }
@@ -686,7 +686,7 @@ NEXUS_Error NEXUS_Smartcard_ResetCard(NEXUS_SmartcardHandle smartcard, void *pDa
         rc = BSCD_Channel_Receive(smartcard->channelHandle, pData, &readCount, numBytes);
         rc = NEXUS_Smartcard_Translate_Error_Code_priv(rc);
         if(rc == NEXUS_TIMEOUT) {
-            BDBG_WRN(("Timeout occured while reading %d bytes of ATR data. Number of bytes read is %d. Continuing Smartcard reset.", (unsigned)numBytes, (unsigned)readCount));
+            BDBG_WRN(("Timeout occurred while reading %d bytes of ATR data. Number of bytes read is %d. Continuing Smartcard reset.", (unsigned)numBytes, (unsigned)readCount));
         }
         else if (rc != NEXUS_SUCCESS) {
             return BERR_TRACE(rc);

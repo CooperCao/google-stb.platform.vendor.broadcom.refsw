@@ -70,7 +70,7 @@
 #if IS_HOST(DSP_LESS)
 #  error "This module is not suitable for DSP-less builds"
 #endif
-#if !defined(__FP4014_ONWARDS__) && !defined(__FPM1015_ONWARDS__)
+#if !__FP4014_ONWARDS__ && !__FPM1015_ONWARDS__
 #  error "This module is only for Octave and Maestro based systems"
 #endif
 

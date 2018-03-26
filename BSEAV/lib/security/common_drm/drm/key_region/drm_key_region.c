@@ -41,6 +41,7 @@
 #include "bdbg.h"
 #include "bkni.h"
 #include "bkni_multi.h"
+#include "nexus_memory.h"
 
 #include "drm_key_region.h"
 

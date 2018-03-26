@@ -200,11 +200,8 @@ void stream_player_get_platform_settings(StreamPlayerHandle player, PlatformMedi
 
 int stream_player_set_platform_settings(StreamPlayerHandle player, const PlatformMediaPlayerSettings * pSettings)
 {
-    PlatformMediaPlayerSettings oldSettings;
     assert(player);
     assert(pSettings);
-    platform_media_player_get_settings(player->platformPlayer, &oldSettings);
-    if (player->started && pSettings->usageMode != oldSettings.usageMode) { printf("stream_player: can't change usage mode while started\n"); return -1; }
     return platform_media_player_set_settings(player->platformPlayer, pSettings);
 }
 

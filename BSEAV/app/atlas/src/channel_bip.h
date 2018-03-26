@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -106,14 +106,16 @@ public:
     CChannel * createCopy(CChannel * pChannel);
     ~CChannelBip(void);
 
-    virtual eRet    tune(void * id, CConfig * pConfig, bool bWaitForLock, unsigned index = ANY_INDEX);
-    virtual eRet    unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true);
-    virtual eRet    readXML(MXmlElement * xmlElemChannel);
-    virtual void    writeXML(MXmlElement * xmlElemChannel);
-    virtual eRet    sessionOpen(void)  { return((eRet)0); }
-    virtual eRet    sessionSetup(void) { return((eRet)0); }
-    virtual MString getTimeString(void);
-    virtual eRet    setAudioProgram(unsigned pid);
+    virtual eRet     tune(void * id, CConfig * pConfig, bool bWaitForLock, unsigned index = ANY_INDEX);
+    virtual eRet     unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true);
+    virtual eRet     readXML(MXmlElement * xmlElemChannel);
+    virtual void     writeXML(MXmlElement * xmlElemChannel);
+    virtual eRet     sessionOpen(void)  { return((eRet)0); }
+    virtual eRet     sessionSetup(void) { return((eRet)0); }
+    virtual MString  getTimeString(void);
+    virtual eRet     setAudioProgram(unsigned pid);
+    virtual uint32_t getFrequency(void)               { return(0); }
+    virtual void     setFrequency(uint32_t frequency) { return; }
 
 #if 0
     eRet readCompleteUrl(const char * pCompleteUrl);

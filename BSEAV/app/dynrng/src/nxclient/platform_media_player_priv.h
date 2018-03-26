@@ -54,7 +54,7 @@ typedef enum PlatformMediaPlayerState
 
 typedef struct PlatformMediaPlayerContext
 {
-    media_player_t nxPlayerMosaic[MAX_MOSAICS];
+    media_player_t nxPlayerMosaic[MAX_STREAMS];
     media_player_t nxPlayer;
     media_player_t nxPlayerPip;
     media_player_create_settings nxCreateSettings;
@@ -73,6 +73,7 @@ typedef struct PlatformMediaPlayer
     PlatformMediaPlayerState state;
     PlatformMediaPlayerSettings settings;
     bool pipRequired;
+    int streamId;
     struct
     {
         NEXUS_VideoDecoderStreamInformation nx;
@@ -82,5 +83,7 @@ typedef struct PlatformMediaPlayer
 } PlatformMediaPlayer;
 
 void platform_media_player_p_scheduler_callback(void * pContext, int param);
+void platform_media_player_p_capture_video(PlatformMediaPlayerHandle player);
+void platform_media_player_p_recycle_video(PlatformMediaPlayerHandle player);
 
 #endif /* PLATFORM_MEDIA_PLAYER_PRIV_H__ */

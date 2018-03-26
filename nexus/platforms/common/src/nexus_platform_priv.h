@@ -468,22 +468,6 @@ extern const NEXUS_Core_PreInitState *g_pPreInitState;
 
 #include "blst_queue.h"
 
-typedef struct NEXUS_Platform_P_DtProperty {
-    BLST_Q_ENTRY(NEXUS_Platform_P_DtProperty) link;
-    char name[16];
-    unsigned value;
-} NEXUS_Platform_P_DtProperty;
-
-typedef struct NEXUS_Platform_P_DtNode {
-    BLST_Q_ENTRY(NEXUS_Platform_P_DtNode) link;
-    BLST_Q_HEAD(propqueue, NEXUS_Platform_P_DtProperty) properties;
-    char name[16];
-} NEXUS_Platform_P_DtNode;
-
-typedef struct NEXUS_Platform_P_DtNodeList {
-BLST_Q_HEAD(nodequeue, NEXUS_Platform_P_DtNode) nodes;
-} NEXUS_Platform_P_DtNodeList;
-
 /* read box mode from device tree or env variable */
 unsigned NEXUS_Platform_P_ReadBoxMode(void);
 /* read board id from device tree */
@@ -492,7 +476,7 @@ unsigned NEXUS_Platform_P_ReadBoardId(void);
 unsigned NEXUS_Platform_P_ReadPMapId(void);
 /* read pmap settings from device tree */
 BCHP_PmapSettings * NEXUS_Platform_P_ReadPMapSettings(void);
-void NEXUS_Platform_P_FreePMapSettings(NEXUS_Core_PreInitState *preInitState);
+void NEXUS_Platform_P_FreePMapSettings(BCHP_PmapSettings *pMapSettings);
 
 NEXUS_Error NEXUS_Platform_P_SetStandbyExclusionRegion(unsigned heapIndex);
 bool NEXUS_Platform_P_ModuleInStandby(NEXUS_ModuleHandle module);
@@ -541,6 +525,19 @@ Summary:
 Check the environment to see if we should enable SAGE logging
  ***************************************************************************/
 bool NEXUS_Platform_P_EnableSageLog(void);
+
+/***************************************************************************
+Summary:
+Initialize the Universal UART Interface
+ ***************************************************************************/
+void NEXUS_Platform_P_InitUUI(void);
+
+/***************************************************************************
+Summary:
+Platform-specific UART IDs
+ ***************************************************************************/
+struct NEXUS_Platform_P_UartId {const unsigned id;const char *name;};
+extern const struct NEXUS_Platform_P_UartId NEXUS_Platform_P_UartIds[];
 
 #endif /* #ifndef NEXUS_PLATFORM_PRIV_H__ */
 

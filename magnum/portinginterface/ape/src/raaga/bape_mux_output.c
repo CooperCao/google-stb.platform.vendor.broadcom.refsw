@@ -43,6 +43,7 @@
 
 #include "bape.h"
 #include "bape_priv.h"
+#include "bape_buffer.h"
 #include "bchp_common.h"
 
 #ifdef BCHP_XPT_PCROFFSET_REG_START
@@ -251,7 +252,7 @@ BERR_Code BAPE_MuxOutput_Create(
     )
 {
     BAPE_MuxOutputHandle hMuxOutput;
-    BERR_Code errCode;
+    BERR_Code errCode = BERR_SUCCESS;
     BAPE_FMT_Descriptor format;
     BAPE_FMT_Capabilities caps;
     unsigned dspIndex = BAPE_DEVICE_INVALID;
@@ -301,13 +302,15 @@ BERR_Code BAPE_MuxOutput_Create(
            hMuxOutput->deviceHandle->armHandle == NULL ) )
     {
         BDBG_ERR(("ARM device index %u is not available.  This system has %u ARM Audio Processors, arm handle %p.", dspIndex, hMuxOutput->deviceHandle->numArms, (void*)hMuxOutput->deviceHandle->armHandle));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        goto err_device;
     }
 
     if ( dspIndex <= BAPE_DEVICE_DSP_LAST && (dspIndex >= hMuxOutput->deviceHandle->numDsps || hMuxOutput->deviceHandle->dspHandle == NULL ) )
     {
         BDBG_ERR(("DSP %u is not available.  This system has %u DSPs, dsp handle %p.", dspIndex, hMuxOutput->deviceHandle->numDsps, (void*)hMuxOutput->deviceHandle->dspHandle));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        goto err_device;
     }
 
     if ( dspIndex >= BAPE_DEVICE_ARM_FIRST )
@@ -324,7 +327,8 @@ BERR_Code BAPE_MuxOutput_Create(
     if ( dspContext == NULL )
     {
         BDBG_ERR(("No DSP or ARM device available."));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        goto err_device;
     }
 
     hMuxOutput->dspIndex = dspIndex;
@@ -385,7 +389,7 @@ BERR_Code BAPE_MuxOutput_Create(
         errCode = BERR_TRACE(BERR_UNKNOWN);
         goto err_cdb_cached;
     }
-    BMMA_FlushCache_isrsafe(hMuxOutput->createSettings.cdb.block, hMuxOutput->cdb.cached, pSettings->cdb.size);
+    BAPE_FLUSHCACHE_ISRSAFE(hMuxOutput->createSettings.cdb.block, hMuxOutput->cdb.cached, pSettings->cdb.size);
 
     hMuxOutput->itb.offset = BMMA_LockOffset(hMuxOutput->createSettings.itb.block);
     if ( !hMuxOutput->itb.offset )
@@ -400,15 +404,15 @@ BERR_Code BAPE_MuxOutput_Create(
         goto err_cdb_cached;
     }
 
-    BMMA_FlushCache_isrsafe(hMuxOutput->createSettings.itb.block, hMuxOutput->itb.cached, pSettings->itb.size);
+    BAPE_FLUSHCACHE_ISRSAFE(hMuxOutput->createSettings.itb.block, hMuxOutput->itb.cached, pSettings->itb.size);
 
     /* Reset shadow pointers */
     hMuxOutput->descriptorInfo.uiCDBBufferShadowReadOffset = hMuxOutput->cdb.offset;
     hMuxOutput->descriptorInfo.uiITBBufferShadowReadOffset = hMuxOutput->itb.offset;
 
     tempSize = sizeof(BAVC_AudioBufferDescriptor)*pSettings->numDescriptors;
-    BDSP_SIZE_ALIGN(tempSize);
-    hMuxOutput->descriptorInfo.descriptors.block = BMMA_Alloc(hMuxOutput->createSettings.heaps.descriptor, tempSize, BDSP_ADDRESS_ALIGN, NULL);
+    BAPE_SIZE_ALIGN(tempSize);
+    hMuxOutput->descriptorInfo.descriptors.block = BMMA_Alloc(hMuxOutput->createSettings.heaps.descriptor, tempSize, BAPE_ADDRESS_ALIGN, NULL);
     if ( NULL == hMuxOutput->descriptorInfo.descriptors.block )
     {
         errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -422,8 +426,8 @@ BERR_Code BAPE_MuxOutput_Create(
     }
 
     tempSize = sizeof(BAVC_AudioMetadataDescriptor)*BAPE_MUXOUTPUT_MAX_METADATADESCRIPTORS;
-    BDSP_SIZE_ALIGN(tempSize);
-    hMuxOutput->descriptorInfo.metadata.block = BMMA_Alloc(hMuxOutput->createSettings.heaps.descriptor, tempSize, BDSP_ADDRESS_ALIGN, NULL);
+    BAPE_SIZE_ALIGN(tempSize);
+    hMuxOutput->descriptorInfo.metadata.block = BMMA_Alloc(hMuxOutput->createSettings.heaps.descriptor, tempSize, BAPE_ADDRESS_ALIGN, NULL);
     if ( NULL == hMuxOutput->descriptorInfo.metadata.block )
     {
         errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -436,7 +440,7 @@ BERR_Code BAPE_MuxOutput_Create(
         goto err_cache_metadata;
     }
 
-    BMMA_FlushCache_isrsafe(hMuxOutput->descriptorInfo.metadata.block, hMuxOutput->descriptorInfo.metadata.cached, sizeof(BAVC_AudioMetadataDescriptor)*BAPE_MUXOUTPUT_MAX_METADATADESCRIPTORS);
+    BAPE_FLUSHCACHE_ISRSAFE(hMuxOutput->descriptorInfo.metadata.block, hMuxOutput->descriptorInfo.metadata.cached, sizeof(BAVC_AudioMetadataDescriptor)*BAPE_MUXOUTPUT_MAX_METADATADESCRIPTORS);
 
     #if 0
     /* Create Stage Handle */
@@ -467,6 +471,7 @@ err_alloc_descriptors:
 err_cdb_cached:
 err_caps:
 err_format:
+err_device:
     BDBG_OBJECT_DESTROY(hMuxOutput, BAPE_MuxOutput);
     BKNI_Free(hMuxOutput);
 
@@ -545,12 +550,12 @@ BERR_Code BAPE_MuxOutput_P_AllocateStageResources(BAPE_MuxOutputHandle hMuxOutpu
             hMuxOutput->cdb.bufferInterface.end = hMuxOutput->cdb.buffer.ui32EndAddr;
             hMuxOutput->cdb.bufferInterface.read = hMuxOutput->cdb.buffer.ui32ReadAddr;
             hMuxOutput->cdb.bufferInterface.valid = hMuxOutput->cdb.buffer.ui32WriteAddr;
-            hMuxOutput->cdb.bufferInterface.inclusive = false;
+            hMuxOutput->cdb.bufferInterface.config &= ~BAPE_BUFFER_INTERFACE_CFG_INCLUSIVE_MASK;
             hMuxOutput->itb.bufferInterface.base = hMuxOutput->itb.buffer.ui32BaseAddr;
             hMuxOutput->itb.bufferInterface.end = hMuxOutput->itb.buffer.ui32EndAddr;
             hMuxOutput->itb.bufferInterface.read = hMuxOutput->itb.buffer.ui32ReadAddr;
             hMuxOutput->itb.bufferInterface.valid = hMuxOutput->itb.buffer.ui32WriteAddr;
-            hMuxOutput->itb.bufferInterface.inclusive = false;
+            hMuxOutput->itb.bufferInterface.config &= ~BAPE_BUFFER_INTERFACE_CFG_INCLUSIVE_MASK;
         }
         else
         {
@@ -558,12 +563,12 @@ BERR_Code BAPE_MuxOutput_P_AllocateStageResources(BAPE_MuxOutputHandle hMuxOutpu
             hMuxOutput->cdb.bufferInterface.end = hMuxOutput->contextMap.CDB_End;
             hMuxOutput->cdb.bufferInterface.read = hMuxOutput->contextMap.CDB_Read;
             hMuxOutput->cdb.bufferInterface.valid = hMuxOutput->contextMap.CDB_Valid;
-            hMuxOutput->cdb.bufferInterface.inclusive = true;
+            hMuxOutput->cdb.bufferInterface.config |= BAPE_BUFFER_INTERFACE_CFG_INCLUSIVE_MASK;
             hMuxOutput->itb.bufferInterface.base = hMuxOutput->contextMap.ITB_Base;
             hMuxOutput->itb.bufferInterface.end = hMuxOutput->contextMap.ITB_End;
             hMuxOutput->itb.bufferInterface.read = hMuxOutput->contextMap.ITB_Read;
             hMuxOutput->itb.bufferInterface.valid = hMuxOutput->contextMap.ITB_Valid;
-            hMuxOutput->itb.bufferInterface.inclusive = true;
+            hMuxOutput->itb.bufferInterface.config |= BAPE_BUFFER_INTERFACE_CFG_INCLUSIVE_MASK;
         }
 
         /* Update shadow pointers for context to the current read pointer. */
@@ -816,6 +821,8 @@ BERR_Code BAPE_MuxOutput_Start(
     hMuxOutput->state = BAPE_MuxOutputState_Started;
     hMuxOutput->sendEos = false;
     hMuxOutput->sendMetadata = true;
+    errCode = BAPE_MuxOutput_P_ApplyDspSettings(hMuxOutput);
+    if ( errCode ) { BERR_TRACE(errCode); goto cleanup; }
 
     return BERR_SUCCESS;
 cleanup:
@@ -944,7 +951,7 @@ BERR_Code BAPE_MuxOutput_GetBufferDescriptors(
     uiCDBValidOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.valid);
     uiCDBReadOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.read);
 
-    if ( uiCDBEndOffset != 0 && hMuxOutput->cdb.bufferInterface.inclusive )
+    if ( uiCDBEndOffset != 0 && (hMuxOutput->cdb.bufferInterface.config&BAPE_BUFFER_INTERFACE_CFG_INCLUSIVE_MASK) != 0 )
     {
         uiCDBEndOffset += 1; /* end is inclusive */
     }
@@ -1115,7 +1122,7 @@ BERR_Code BAPE_MuxOutput_GetBufferDescriptors(
                                               psOutputDescDetails->uiCDBBufferShadowReadOffset - uiCDBBaseOffset;
 
         /* Invalidate this frame from the cache prior to the host accessing it */
-        BMMA_FlushCache_isrsafe(hMuxOutput->createSettings.cdb.block,
+        BAPE_FLUSHCACHE_ISRSAFE(hMuxOutput->createSettings.cdb.block,
                              (char *)hMuxOutput->cdb.cached + pAudioDescriptor->stCommon.uiOffset,
                              pAudioDescriptor->stCommon.uiLength);
 
@@ -1142,7 +1149,7 @@ BERR_Code BAPE_MuxOutput_GetBufferDescriptors(
                     pWrapBase = hMuxOutput->cdb.cached;
                     wrapLength = uiCDBEndOfFrameOffset - uiCDBBaseOffset;
                     /* Make sure any wraparound data is also invalidated from the cache prior to accessing it. */
-                    BMMA_FlushCache_isrsafe(hMuxOutput->createSettings.cdb.block, pWrapBase, wrapLength);
+                    BAPE_FLUSHCACHE_ISRSAFE(hMuxOutput->createSettings.cdb.block, pWrapBase, wrapLength);
                 }
                 /* This function can not fail.  It will simply create a single segment equal to the
                    entire frame if a parse error occurs */
@@ -1427,7 +1434,7 @@ BERR_Code BAPE_MuxOutput_ConsumeBufferDescriptors(
     uiCDBValidOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.valid);
     uiCDBReadOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.read);
 
-    if ( uiCDBEndOffset != 0 && hMuxOutput->cdb.bufferInterface.inclusive )
+    if ( uiCDBEndOffset != 0 && (hMuxOutput->cdb.bufferInterface.config&BAPE_BUFFER_INTERFACE_CFG_INCLUSIVE_MASK) != 0 )
     {
         uiCDBEndOffset += 1; /* end is inclusive */
     }
@@ -1500,6 +1507,21 @@ BERR_Code BAPE_MuxOutput_GetBufferStatus(
     BKNI_Memset(pBufferStatus, 0, sizeof(*pBufferStatus));
     pBufferStatus->stCommon.hFrameBufferBlock = hMuxOutput->createSettings.cdb.block;
     pBufferStatus->stCommon.hMetadataBufferBlock = hMuxOutput->descriptorInfo.metadata.block;
+    pBufferStatus->stCommon.hIndexBufferBlock = hMuxOutput->createSettings.itb.block;
+
+    if ( BAPE_MuxOutputState_Started == hMuxOutput->state )
+    {
+       pBufferStatus->stCommon.stCDB.uiBase = hMuxOutput->cdb.bufferInterface.base;
+       pBufferStatus->stCommon.stCDB.uiEnd = hMuxOutput->cdb.bufferInterface.end;
+       pBufferStatus->stCommon.stCDB.uiRead = hMuxOutput->cdb.bufferInterface.read;
+       pBufferStatus->stCommon.stCDB.uiValid = hMuxOutput->cdb.bufferInterface.valid;
+       pBufferStatus->stCommon.stITB.uiBase = hMuxOutput->itb.bufferInterface.base;
+       pBufferStatus->stCommon.stITB.uiEnd = hMuxOutput->itb.bufferInterface.end;
+       pBufferStatus->stCommon.stITB.uiRead = hMuxOutput->itb.bufferInterface.read;
+       pBufferStatus->stCommon.stITB.uiValid = hMuxOutput->itb.bufferInterface.valid;
+       pBufferStatus->stCommon.bReady = true;
+    }
+
     /* deprecated */
     pBufferStatus->stCommon.pFrameBufferBaseAddress = hMuxOutput->cdb.cached;
     pBufferStatus->stCommon.pMetadataBufferBaseAddress = hMuxOutput->descriptorInfo.metadata.cached;
@@ -1834,7 +1856,7 @@ static void BAPE_MuxOutput_P_ParseItb(BAPE_MuxOutputHandle hMuxOutput, BAPE_Fram
     uiITBValidOffset= BREG_ReadAddr(hReg, hMuxOutput->itb.bufferInterface.valid);
     uiITBReadOffset= BREG_ReadAddr(hReg, hMuxOutput->itb.bufferInterface.read);
 
-    if ( uiITBEndOffset != 0 && hMuxOutput->itb.bufferInterface.inclusive )
+    if ( uiITBEndOffset != 0 && (hMuxOutput->itb.bufferInterface.config&BAPE_BUFFER_INTERFACE_CFG_INCLUSIVE_MASK) != 0 )
     {
         uiITBEndOffset += 1; /* end is inclusive */
     }
@@ -2448,7 +2470,7 @@ void BAPE_MuxOutput_P_Overflow_isr(BAPE_MuxOutputHandle hMuxOutput)
 
 static void BAPE_MuxOutput_P_CopyToHost(void *pDest, void *pSource, size_t numBytes, BMMA_Block_Handle mmaBlock)
 {
-    BMMA_FlushCache_isrsafe(mmaBlock, pSource, numBytes);
+    BAPE_FLUSHCACHE_ISRSAFE(mmaBlock, pSource, numBytes);
     BKNI_Memcpy(pDest, pSource, numBytes);
 }
 
@@ -2493,7 +2515,7 @@ BERR_Code BAPE_MuxOutput_GetStatus(
             validOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.valid);
             readOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.read);
 
-            if ( endOffset != 0 && hMuxOutput->cdb.bufferInterface.inclusive )
+            if ( endOffset != 0 && (hMuxOutput->cdb.bufferInterface.config&BAPE_BUFFER_INTERFACE_CFG_INCLUSIVE_MASK) != 0 )
             {
                 endOffset += 1; /* end is inclusive */
             }
@@ -2518,7 +2540,7 @@ BERR_Code BAPE_MuxOutput_GetStatus(
             validOffset = BREG_ReadAddr(hReg, hMuxOutput->itb.bufferInterface.valid);
             readOffset = BREG_ReadAddr(hReg, hMuxOutput->itb.bufferInterface.read);
 
-            if ( endOffset != 0 && hMuxOutput->itb.bufferInterface.inclusive )
+            if ( endOffset != 0 && (hMuxOutput->itb.bufferInterface.config&BAPE_BUFFER_INTERFACE_CFG_INCLUSIVE_MASK) != 0 )
             {
                 endOffset += 1; /* end is inclusive */
             }

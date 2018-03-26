@@ -989,7 +989,10 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
 
     if (cfg->minimumSourceFormat != NEXUS_VideoFormat_eUnknown) {
         BFMT_VideoFmt fmt;
-        rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(cfg->minimumSourceFormat, &fmt);
+        if(BBOX_Vdc_SclCapBias_eAutoDisable1080p == g_pCoreHandles->boxConfig->stVdc.astDisplay[window->display->index].astWindow[window->index].eSclCapBias)
+            rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(NEXUS_VideoFormat_e1080p, &fmt);
+        else
+            rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(cfg->minimumSourceFormat, &fmt);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_window;}
         windowCfg.pMinSrcFmt = BFMT_GetVideoFormatInfoPtr(fmt);
     }
@@ -1242,6 +1245,7 @@ NEXUS_VideoWindow_AddInput(NEXUS_VideoWindowHandle window, NEXUS_VideoInput inpu
     }
 #endif
     NEXUS_Display_P_VideoInputDisplayUpdate(NULL, window, &window->display->cfg);
+    NEXUS_VideoInput_P_UpdateSyncLockDisplay(link);
 
 #if NEXUS_NUM_MOSAIC_DECODES
     if (window->mosaic.parent) {

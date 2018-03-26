@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,9 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *****************************************************************************/
+ ******************************************************************************/
 #include "bstd.h"
+#include "bmth.h"
 #include "bast.h"
 #include "bast_priv.h"
 #include "bast_g3_priv.h"
@@ -640,6 +641,7 @@ BERR_Code BAST_g3_Ftm_P_InitDevice_isrsafe(BAST_Handle h)
 {
    BAST_g3_P_FtmDevice *hFtm = (BAST_g3_P_FtmDevice *) &(((BAST_g3_P_Handle *)(h->pImpl))->hFtmDev);
    BERR_Code retCode = BERR_SUCCESS;
+   uint32_t P_hi, P_lo, Q_hi, Q_lo;
    uint32_t mb;
 
    /* init ftm parameters */
@@ -670,6 +672,24 @@ BERR_Code BAST_g3_Ftm_P_InitDevice_isrsafe(BAST_Handle h)
       mb |= (hFtm->txPower << 3) & 0xF8;
       BAST_FTM_WRITE(FTM_PHY_ANA1_0, mb);
    }
+
+   /* setup FSK frequencies */
+   BMTH_HILO_32TO64_Mul(hFtm->txFreqHz, 33554432, &P_hi, &P_lo); /* tx_freq / 108MHz x 2^24 */
+   BMTH_HILO_64TO64_Div32(P_hi, P_lo, 108000000, &Q_hi, &Q_lo);
+   Q_lo = (Q_lo + 1) >> 1;    /* round */
+   mb = -Q_lo & 0xFFFFFF;
+   BAST_FTM_WRITE(FTM_PHY_TX_FCW, mb);
+
+   BMTH_HILO_32TO64_Mul(hFtm->rxFreqHz, 33554432, &P_hi, &P_lo); /* rx_freq / 108MHz x 2^24 */
+   BMTH_HILO_64TO64_Div32(P_hi, P_lo, 108000000, &Q_hi, &Q_lo);
+   Q_lo = (Q_lo + 1) >> 1;    /* round */
+   mb = -Q_lo & 0xFFFFFF;
+   BAST_FTM_WRITE(FTM_PHY_RX_FCW, mb);
+
+   BMTH_HILO_32TO64_Mul(hFtm->txDevHz, 33554432, &P_hi, &P_lo);  /* tx_dev / 108MHz x 2^24 */
+   BMTH_HILO_64TO64_Div32(P_hi, P_lo, 108000000, &Q_hi, &Q_lo);
+   Q_lo = (Q_lo + 1) >> 1;    /* round */
+   BAST_FTM_WRITE(FTM_PHY_TX_DEV, Q_lo);
 
    return retCode;
 }

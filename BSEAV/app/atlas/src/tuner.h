@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -176,6 +176,8 @@ public:
         return(*this);
     } /* = */
 
+    virtual void dump(void);
+
 protected:
     eBoardResource _tunerType;
 public:
@@ -199,7 +201,10 @@ public:
             );
     virtual ~CTuner(void);
 
-    virtual void                     saveScanData(CTunerScanData * pScanData)                     = 0; /* requires implementation by sub class to save tuner specific scan data */
+    virtual void                     scanDataSave(CTunerScanData * pScanData)                     = 0; /* requires implementation by sub class to save tuner specific scan data */
+    virtual void                     scanDataDump(void)                                           = 0; /* requires implementation by sub class to save tuner specific scan data */
+    virtual void                     scanDataFreqListClear(void)                                  = 0; /* requires implementation by sub class to do actual scanning */
+    virtual eRet                     scanDataFreqListAdd(uint32_t freq)                           = 0; /* requires implementation by sub class to do actual scanning */
     virtual void                     doScan(void)                                                 = 0; /* requires implementation by sub class to do actual scanning */
     virtual NEXUS_FrontendLockStatus isLocked(void)                                               = 0; /* requires implementation by sub class to determine lock status */
     virtual void                     unTune(bool bFullUnTune = false)                             = 0; /* requires implementation by sub class to untune */

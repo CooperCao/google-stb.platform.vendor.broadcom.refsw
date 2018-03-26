@@ -47,13 +47,16 @@ static BEGL_Error WlBufferQueue(void *context [[gnu::unused]],
 {
    if (buffer)
    {
-      //auto display = static_cast<WLPL_WaylandDisplay *>(context);
+      auto data = static_cast<WLPL_WaylandDisplay *>(context);
       auto window = static_cast<wlpl::WlWindow *>(platformState);
       std::unique_ptr<wlpl::WlBitmap> bitmap(
             static_cast<wlpl::WlBitmap*>(buffer));
-      static_assert(sizeof(int) == sizeof(void *), "doesn't function as a 64bit compile!");
-      std::unique_ptr<helper::Semaphore> fence(
-            reinterpret_cast<helper::Semaphore*>(fd));
+
+      std::unique_ptr<helper::Semaphore> fence;
+      if (fd != -1)
+         fence = std::move(std::unique_ptr<helper::Semaphore>(static_cast<helper::Semaphore*>(data->hwInterface->FenceGet(data->hwInterface->context, fd))));
+      else
+         fence = std::move(std::unique_ptr<helper::Semaphore>(new helper::Semaphore(1)));
 
       std::unique_ptr<wlpl::DispItem<wlpl::WlBitmap>> dispItem(
             new wlpl::DispItem<wlpl::WlBitmap>(std::move(bitmap),

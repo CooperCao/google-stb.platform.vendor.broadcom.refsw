@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -138,6 +138,7 @@ uint32_t BHAB_7366_InitHeader(uint8_t cmd, uint8_t chn, uint8_t dir, uint8_t mod
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BHAB_7366_PrintUart()
 ******************************************************************************/
@@ -161,6 +162,7 @@ BERR_Code BHAB_7366_PrintUart(BHAB_Handle h, char *pStr)
       hab[2+i] = (uint32_t)pStr[i];
    return BHAB_7366_P_SendCommand(h, hab, 3+n);
 }
+#endif /* B_REFSW_MINIMAL */
 
 
 /******************************************************************************

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,6 +40,7 @@
 #include "bkni.h"
 #include "bdbg.h"
 
+#include "bmuxlib_alloc.h"
 #include "bmuxlib_file_ivf_priv.h"
 
 BDBG_MODULE(BMUXLIB_FILE_IVF_PRIV);
@@ -494,8 +495,8 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
                   BMUXlib_Output_Descriptor stOutputDescriptor;
                   BMUXlib_Output_CompletedCallbackInfo stCompletedCallbackInfo;
 
-                  BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
-                  BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
+                  BKNI_Memset( &stOutputDescriptor, 0, sizeof( stOutputDescriptor ) );
+                  BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( stCompletedCallbackInfo ) );
 
                   stOutputDescriptor.stStorage.bWriteOperation = true;
                   stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eStart;
@@ -631,8 +632,8 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
                BMUXlib_Output_Descriptor stOutputDescriptor;
                BMUXlib_Output_CompletedCallbackInfo stCompletedCallbackInfo;
 
-               BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
-               BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
+               BKNI_Memset( &stOutputDescriptor, 0, sizeof( stOutputDescriptor ) );
+               BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( stCompletedCallbackInfo ) );
 
                stOutputDescriptor.stStorage.bWriteOperation = false;
                stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eEnd;
@@ -671,25 +672,25 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
             unsigned uiWriteOffsetTemp = (hIVFMux->stFrameHeader.uiWriteOffset + 1) % BMUXlib_File_IVF_P_MAX_FRAMES;
 
             BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART( &stInputDescriptor ) );
-            BDBG_ASSERT( sizeof( hIVFMux->stFrameHeader.astFrameHeader[0] ) == BMUXlib_File_IVF_P_FRAME_HEADER_SIZE );
+            BDBG_ASSERT( sizeof( *hIVFMux->stFrameHeader.astFrameHeader[0] ) == BMUXlib_File_IVF_P_FRAME_HEADER_SIZE );
 
             /* Write Frame Header */
             if ( ( true == BMUXlib_Output_IsSpaceAvailable( hIVFMux->hOutput ) )
                  && ( uiWriteOffsetTemp != hIVFMux->stFrameHeader.uiReadOffset ) )
             {
-               BMUXlib_File_IVF_P_FrameHeader *pstFrameHeader = &hIVFMux->stFrameHeader.astFrameHeader[hIVFMux->stFrameHeader.uiWriteOffset];
+               BMUXlib_File_IVF_P_FrameHeader *pstFrameHeader = hIVFMux->stFrameHeader.astFrameHeader[hIVFMux->stFrameHeader.uiWriteOffset];
                BMUXlib_Output_Descriptor stOutputDescriptor;
                BMUXlib_Output_CompletedCallbackInfo stCompletedCallbackInfo;
 
-               BKNI_Memset( pstFrameHeader, 0, BMUXlib_File_IVF_P_FRAME_HEADER_SIZE );
+               BKNI_Memset( pstFrameHeader, 0, sizeof( *pstFrameHeader ) );
 
                BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID( &stInputDescriptor ));
 
                BMUXlib_File_IVF_P_Set32_LE( &pstFrameHeader->auiBytes, BMUXlib_File_IVF_P_FrameHeader_FrameSize_OFFSET, BMUXLIB_INPUT_DESCRIPTOR_FRAMESIZE( &stInputDescriptor ));
                BMUXlib_File_IVF_P_Set64_LE( &pstFrameHeader->auiBytes, BMUXlib_File_IVF_P_FrameHeader_PTS_OFFSET, BMUXLIB_INPUT_DESCRIPTOR_PTS( &stInputDescriptor )/90);
 
-               BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
-               BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
+               BKNI_Memset( &stOutputDescriptor, 0, sizeof( stOutputDescriptor ) );
+               BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( stCompletedCallbackInfo ) );
 
                stOutputDescriptor.stStorage.bWriteOperation = true;
                stOutputDescriptor.stStorage.pBufferAddress = pstFrameHeader->auiBytes;
@@ -726,8 +727,8 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
                BMUXlib_Output_Descriptor stOutputDescriptor;
                BMUXlib_Output_CompletedCallbackInfo stCompletedCallbackInfo;
 
-               BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
-               BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
+               BKNI_Memset( &stOutputDescriptor, 0, sizeof( stOutputDescriptor ) );
+               BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( stCompletedCallbackInfo ) );
 
                stOutputDescriptor.stStorage.bWriteOperation = true;
                stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eEnd;
@@ -788,7 +789,7 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
                /* Set Frame Count */
                BMUXlib_File_IVF_P_Set32_LE( &hIVFMux->stFileHeader.auiBytes, BMUXlib_File_IVF_P_FileHeader_FrameCount_OFFSET, hIVFMux->uiFrameCount );
 
-               BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
+               BKNI_Memset( &stOutputDescriptor, 0, sizeof( stOutputDescriptor ) );
 
                stOutputDescriptor.stStorage.bWriteOperation = true;
                stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eStart;
@@ -828,7 +829,7 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
                /* find an unused entry for the index */
                for (i = 0; i < BMUXlib_File_IVF_P_MAX_FRAMES; i++)
                {
-                  BMUXlib_File_IVF_P_SuperframeIndex *pIndexEntryTemp = &hIVFMux->stSuperframe.aIndexEntries[i];
+                  BMUXlib_File_IVF_P_SuperframeIndex *pIndexEntryTemp = hIVFMux->stSuperframe.aIndexEntries[i];
                   if (0 == pIndexEntryTemp->auiBytes[0])
                   {
                      pIndexEntry = pIndexEntryTemp;
@@ -862,7 +863,7 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
                   BDBG_ASSERT((hIVFMux->stSuperframe.uiSize + BMUXlib_File_IVF_P_FRAME_HEADER_SIZE) == (BMUXlib_Output_GetEndOffset(hIVFMux->hOutput) - hIVFMux->stSuperframe.uiOffset));
                   hIVFMux->stSuperframe.uiSize += uiIdx; /* total size of the superframe includes the index */
 
-                  BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
+                  BKNI_Memset( &stOutputDescriptor, 0, sizeof( stOutputDescriptor ) );
 
                   stOutputDescriptor.stStorage.bWriteOperation = true;
                   stOutputDescriptor.stStorage.pBufferAddress = pIndexEntry->auiBytes;
@@ -894,23 +895,23 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
             unsigned uiWriteOffsetTemp = (hIVFMux->stFrameHeader.uiWriteOffset + 1) % BMUXlib_File_IVF_P_MAX_FRAMES;
 
             BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART( &stInputDescriptor ) );
-            BDBG_ASSERT( sizeof( hIVFMux->stFrameHeader.astFrameHeader[0] ) == BMUXlib_File_IVF_P_FRAME_HEADER_SIZE );
+            BDBG_ASSERT( sizeof( *hIVFMux->stFrameHeader.astFrameHeader[0] ) == BMUXlib_File_IVF_P_FRAME_HEADER_SIZE );
 
             /* Write Frame Header */
             if ( ( true == BMUXlib_Output_IsSpaceAvailable( hIVFMux->hOutput ) )
                  && ( uiWriteOffsetTemp != hIVFMux->stFrameHeader.uiReadOffset ) )
             {
-               BMUXlib_File_IVF_P_FrameHeader *pstFrameHeader = &hIVFMux->stFrameHeader.astFrameHeader[hIVFMux->stFrameHeader.uiWriteOffset];
+               BMUXlib_File_IVF_P_FrameHeader *pstFrameHeader = hIVFMux->stFrameHeader.astFrameHeader[hIVFMux->stFrameHeader.uiWriteOffset];
                BMUXlib_Output_Descriptor stOutputDescriptor;
                BMUXlib_Output_CompletedCallbackInfo stCompletedCallbackInfo;
 
-               BKNI_Memset( pstFrameHeader, 0, BMUXlib_File_IVF_P_FRAME_HEADER_SIZE );
+               BKNI_Memset( pstFrameHeader, 0, sizeof( *pstFrameHeader ) );
 
                BMUXlib_File_IVF_P_Set32_LE( &pstFrameHeader->auiBytes, BMUXlib_File_IVF_P_FrameHeader_FrameSize_OFFSET, hIVFMux->stSuperframe.uiSize);
                BMUXlib_File_IVF_P_Set64_LE( &pstFrameHeader->auiBytes, BMUXlib_File_IVF_P_FrameHeader_PTS_OFFSET, hIVFMux->stSuperframe.uiPTSms);
 
-               BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
-               BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
+               BKNI_Memset( &stOutputDescriptor, 0, sizeof( stOutputDescriptor ) );
+               BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( stCompletedCallbackInfo ) );
 
                stOutputDescriptor.stStorage.bWriteOperation = true;
                stOutputDescriptor.stStorage.pBufferAddress = pstFrameHeader->auiBytes;

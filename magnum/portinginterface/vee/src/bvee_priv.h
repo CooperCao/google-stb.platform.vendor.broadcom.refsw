@@ -66,40 +66,104 @@ BDBG_OBJECT_ID_DECLARE(BVEE_Channel);
 #define BVEE_ITB_ENTRY_TYPE_MUX_ESCR     (0x61)
 #define BVEE_ITB_ENTRY_TYPE_ALGO_INFO    (0x62)
 
-/* (CEILING((PicWidth+(Padding*2))/StripeWidth,1)* StripeWidth)*(CEILING((PicHeight +( Padding *2))/32,1)*32)) */
-#define BVEE_H264_ENCODE_REF_LUMAFRAME_BUF_SIZE         487424
-/* (=(CEILING((PicWidth+(Padding*2))/StripeWidth,1)* StripeWidth)*(CEILING(((PicHeight/2) +( Padding *2))/32,1)*32)) */
-#define BVEE_H264_ENCODE_REF_CHROMAFRAME_BUF_SIZE       286720
-#if      BDSP_ENCODER_ACCELERATOR_SUPPORT
-#define BVEE_H264_ENCODE_REF_LUMASTRIPE_HEIGHT      784  /*672*/
-#define BVEE_H264_ENCODE_REF_CHROMASTRIPE_HEIGHT    784  /*336*/
-/* LUMA FRAME BUF SIZE for HD resolution */
-#define BVEE_H264_ENCODE_REF_LUMAFRAME_BUF_SIZE_HD       1270950
-/* CHROMA FRAME BUF SIZE for HD resolution */
-#define BVEE_H264_ENCODE_REF_CHROMAFRAME_BUF_SIZE_HD     717990
 
-#define BVEE_H264_ENCODE_REF_LUMASTRIPE_HEIGHT_HD      784
-#define BVEE_H264_ENCODE_REF_CHROMASTRIPE_HEIGHT_HD    784
+
+#if 	 BDSP_ENCODER_ACCELERATOR_SUPPORT
+
+/* LUMA FRAME BUF SIZE for HD resolution */
+/*
+As per DRAM map8p0 document, below is size requirement for 720p refernece frame buffers
+
+define STRIPE_WDITH 		256
+define LEFT_RIGHT_PAD	64
+define TOP_BOT_PAD		64
+
+
+Frame Width = ((1280 + LEFT_RIGHT_PAD + STRIPE_WDITH - 1)/STRIPE_WDITH)*STRIPE_WDITH
+	= ((1280 +64 +256 -1)/256)*256 = 1536
+ As per document frame height should be greter than or equal to  (8N+3)*64, N can be smallest integer
+ For N= 1, Frame height = 704 < (720 + 64)
+ For N=2, Frame height = 1216 > (720 + 64)
+
+ Luma Frame size = (1536 * 1216) = 1867776
+
+ define CHROMA_LEFT_RIGHT_PAD	 32
+
+
+ Chroma frame witdth =  ((640 + LEFT_RIGHT_PAD + STRIPE_WDITH - 1)/STRIPE_WDITH)*STRIPE_WDITH
+ = (640+32+256-1)/256 = 768
+
+ Chroma frame height = Luma frame Height = 1216
+ Chroma frame height is same as luma because of vertical interleaving of U and V.
+
+
+ Chroma frame Size = 768*1216 = 933888
+
+*/
+#define BVEE_H264_ENCODE_REF_LUMAFRAME_BUF_SIZE_HD       1867776
+/* CHROMA FRAME BUF SIZE for HD resolution */
+#define BVEE_H264_ENCODE_REF_CHROMAFRAME_BUF_SIZE_HD     933888
+
+
+
+/*
+For 720x480
+
+Frame Width = ((720 + 64 +256 -1)/ 256) *256= 1024
+Frame Height = 704 >( 480+64)
+
+Luma Frame Size = (1024 *704) = 720896
+Chroma Frame Width = ((360 + 32 +256 -1)/ 256) *256 = 512
+Chroma Frame  Height = Luma Frame Height = 704
+
+Chroma Buffer Size = 704*512=360448
+
+
+*/
+
+
+#define BVEE_H264_ENCODE_REF_LUMAFRAME_BUF_SIZE			720896
+/* (=(CEILING((PicWidth+(Padding*2))/StripeWidth,1)* StripeWidth)*(CEILING(((PicHeight/2) +( Padding *2))/32,1)*32)) */
+#define BVEE_H264_ENCODE_REF_CHROMAFRAME_BUF_SIZE		360448
+
+
+#define BVEE_H264_ENCODE_REF_LUMASTRIPE_HEIGHT_HD      1216
+#define BVEE_H264_ENCODE_REF_CHROMASTRIPE_HEIGHT_HD    1216
+
+#define BVEE_H264_ENCODE_REF_LUMASTRIPE_HEIGHT      704
+#define BVEE_H264_ENCODE_REF_CHROMASTRIPE_HEIGHT    704
+
+
 
 #else
+
+
+/* LUMA FRAME BUF SIZE for HD resolution */
+#define BVEE_H264_ENCODE_REF_LUMAFRAME_BUF_SIZE_HD			1126400
+/* CHROMA FRAME BUF SIZE for HD resolution */
+#define BVEE_H264_ENCODE_REF_CHROMAFRAME_BUF_SIZE_HD		630784
+
+#define BVEE_H264_ENCODE_REF_LUMAFRAME_BUF_SIZE			487424
+/* (=(CEILING((PicWidth+(Padding*2))/StripeWidth,1)* StripeWidth)*(CEILING(((PicHeight/2) +( Padding *2))/32,1)*32)) */
+#define BVEE_H264_ENCODE_REF_CHROMAFRAME_BUF_SIZE		286720
+
+
+#define BVEE_H264_ENCODE_REF_LUMASTRIPE_HEIGHT_HD      	784
+#define BVEE_H264_ENCODE_REF_CHROMASTRIPE_HEIGHT_HD    	432
+
 #define BVEE_H264_ENCODE_REF_LUMASTRIPE_HEIGHT      544  /*672*/
 #define BVEE_H264_ENCODE_REF_CHROMASTRIPE_HEIGHT    304  /*336*/
 
-/* LUMA FRAME BUF SIZE for HD resolution */
-#define BVEE_H264_ENCODE_REF_LUMAFRAME_BUF_SIZE_HD          1126400
-/* CHROMA FRAME BUF SIZE for HD resolution */
-#define BVEE_H264_ENCODE_REF_CHROMAFRAME_BUF_SIZE_HD        630784
 
-#define BVEE_H264_ENCODE_REF_LUMASTRIPE_HEIGHT_HD      784
-#define BVEE_H264_ENCODE_REF_CHROMASTRIPE_HEIGHT_HD    432
 #endif
 
 
-#define BVEE_H264_ENCODE_OUTPUT_CDB_SIZE (1024)*(1024)
-#define BVEE_H264_ENCODE_OUTPUT_ITB_SIZE (512)*(1024)
 
-#define BVEE_H264_ENCODE_OUTPUT_CDB_FIFO_NUM    9
-#define BVEE_H264_ENCODE_OUTPUT_ITB_FIFO_NUM    10
+#define	BVEE_H264_ENCODE_OUTPUT_CDB_SIZE (1024)*(1024)
+#define	BVEE_H264_ENCODE_OUTPUT_ITB_SIZE (512)*(1024)
+
+#define	BVEE_H264_ENCODE_OUTPUT_CDB_FIFO_NUM    9
+#define	BVEE_H264_ENCODE_OUTPUT_ITB_FIFO_NUM	10
 
 
 /***************************************************************************

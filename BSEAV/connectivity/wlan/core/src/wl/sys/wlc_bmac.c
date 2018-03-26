@@ -4631,6 +4631,7 @@ BCMATTACHFN(wlc_bmac_phase1_attach)(uint16 device, osl_t *osh, volatile void *
 
 	bzero((char *)wlc_hw, sizeof(wlc_hw_info_t));
 
+	wlc_hw->osh = osh;
 	wlc_hw->sih = si_attach((uint)device, osh, regsva, bustype, btparam,
 		&wlc_hw->vars, &wlc_hw->vars_size);
 
@@ -9068,10 +9069,10 @@ BCMINITFN(wlc_bmac_btc_init)(wlc_hw_info_t *wlc_hw)
 	if (wlc_hw->boardflags & BFL_BTCOEX) {
 		if (wlc_hw->boardflags2 & BFL2_BTCLEGACY) {
 			/* X19 has its special 4 wire which is not using new SECI block */
-			if (CHIPID(wlc_hw->sih->chip) != BCM4331_CHIP_ID)
+			if ((CHIPID(wlc_hw->sih->chip) != BCM4331_CHIP_ID) && (CHIPID(wlc_hw->sih->chip) != BCM7271_CHIP_ID))
 				si_seci_init(wlc_hw->sih, SECI_MODE_LEGACY_3WIRE_WLAN);
-			/* For 7271 3 wire support through gci */
-			if (wlc_hw->boardflags4 & BFL4_BTC3WIRE_VIA_GCI)
+			/* For 7271 3 wire support through gci. Please read 7271 new definition for BFL2_BTC3WIREONLY*/
+			if ((wlc_hw->boardflags2 & BFL2_BTC3WIREONLY))
 				si_gci_init(wlc_hw->sih);
 		} else if (BCMECICOEX_ENAB_BMAC(wlc_hw)) {
 			si_eci_init(wlc_hw->sih);
@@ -16893,7 +16894,7 @@ wlc_bmac_btc_gpio_configure(wlc_hw_info_t *wlc_hw)
 			break;
 		case BCM7271_CHIP_ID:
 			{
-				if (wlc_hw->boardflags4 & BFL4_BTC3WIRE_VIA_GPIO )
+				if ((wlc_hw->boardflags2 & BFL2_BTCLEGACY) && (!(wlc_hw->boardflags2 & BFL2_BTC3WIREONLY)))
 				{
 					WL_INFORM(("%s: Configure GPIO3W method\n", __FUNCTION__));
 					gm = GPIO_BTC3W_OUT_7271;

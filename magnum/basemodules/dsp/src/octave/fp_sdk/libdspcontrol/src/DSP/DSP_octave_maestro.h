@@ -49,9 +49,9 @@
 
 #include "libdspcontrol/DSP.h"
 
-#if defined(__FP4014__)
+#if __FP4014__
 #  include "libsyschip/memmap-octave-v1.h"
-#elif defined(__FP4015_ONWARDS__) || defined(__FPM1015_ONWARDS__)
+#elif __FP4015_ONWARDS__ || __FPM1015_ONWARDS__
 #  include "libsyschip/memmap-octave-v2-maestro-v1.h"
 #else
 #  error "This module targets only Octave and Maestro based systems"
@@ -67,7 +67,7 @@
 /* Octave V1 and Octave V2 / Maestro V1 Misc Block fields names don't match.
  * Let's rename fp4015+/fpm1015+ interesting ones into the old fp4014, where
  * necessary. */
-#if defined(__FP4014__)
+#if __FP4014__
 #  define MISC_BLOCK_CORECTRL_CORE_ENABLE               MISC_BLOCK_CCS_CORE_ENABLE
 
 #  define MISC_BLOCK_CORECTRL_CORE_RESET_CAUSE          MISC_BLOCK_CCS_CORE_RESET_CAUSE

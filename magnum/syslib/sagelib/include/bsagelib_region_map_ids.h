@@ -75,6 +75,7 @@
 #define BSAGElib_RegionId_Urrt1    0x35
 #define BSAGElib_RegionId_Urrt2    0x36
 #define BSAGElib_RegionId_Crrt     0x40
+#define BSAGElib_RegionId_Arr      0x41
 #define BSAGElib_RegionId_Fwrr     0x50
 
 

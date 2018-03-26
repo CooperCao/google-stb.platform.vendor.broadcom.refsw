@@ -102,7 +102,7 @@
 /** @} */
 
 
-#if defined(__FPM1015_ONWARDS__)
+#if __FPM1015_ONWARDS__
 #  include "context_save_maestro.h"
 #elif defined(__FP2006_ONWARDS__)
 #  include "context_save_dsp.h"

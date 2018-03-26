@@ -1502,6 +1502,7 @@ void BVDC_P_Window_Init
     hWindow->eState               = BVDC_P_State_eInactive;
     hWindow->bUserAppliedChanges  = false;
     hWindow->bSyncLockSrc         = false;
+    hWindow->ulTotalBvnDelay      = 0;
     BVDC_P_Window_SetInvalidVnetMode_isr(&(hWindow->stVnetMode));
 
     /* MAD delay sw pipeline reset */
@@ -1734,8 +1735,8 @@ void BVDC_P_Window_Init
     pNewInfo->lOffsetG              = 0;
     pNewInfo->lOffsetB              = 0;
 
-    pNewInfo->sHdrPeakBrightness    = 1000;
-    pNewInfo->sSdrPeakBrightness    = 100;
+    pNewInfo->sHdrPeakBrightness    = BVDC_P_TCH_DEFAULT_HDR_BRIGHTNESS;
+    pNewInfo->sSdrPeakBrightness    = BVDC_P_TCH_DEFAULT_SDR_BRIGHTNESS;
 
     /* Color key attributes */
     pNewInfo->stColorKey.bLumaKey            = false;
@@ -2237,8 +2238,10 @@ static BERR_Code BVDC_P_Window_ValidateCoverage
     eBoxmodeMaxVideoFmt = pBoxConfig->stVdc.astDisplay[eDisplayId].eMaxVideoFmt;
     pBoxMaxFmtInfo = BFMT_GetVideoFormatInfoPtr(eBoxmodeMaxVideoFmt);
 
+    BDBG_ASSERT(pBoxMaxFmtInfo);
     ulBoxMaxFmtWidth  = pBoxMaxFmtInfo->ulWidth;
     ulBoxMaxFmtHeight = pBoxMaxFmtInfo->ulHeight;
+
     BDBG_MODULE_MSG(BVDC_WIN_COV,("Win[%d] windowclass %d, Boxmode Max size: %dx%d",
         hWindow->eId, hWindow->eWindowClass, ulBoxMaxFmtWidth, ulBoxMaxFmtHeight));
 
@@ -2385,9 +2388,12 @@ BERR_Code BVDC_P_Window_ValidateChanges
              * 1080p size or less (includes 1080p120Hz if that display format
              * is allowed) we will use BBOX_Vdc_SclCapBias_eSclBeforeCap.
              * When the display format is larger than 1080p, we will use
-             * BBOX_Vdc_SclCapBias_eAutoDisable. */
-            if((pNewInfo->stDstRect.ulWidth  > BFMT_1080I_WIDTH) ||
-               (pNewInfo->stDstRect.ulHeight > BFMT_1080I_HEIGHT))
+             * BBOX_Vdc_SclCapBias_eAutoDisable. However, if we have live feed
+             * and mosaic mode, we capture so the bias will become sclBeforeCap.
+             */
+            if(((pNewInfo->stDstRect.ulWidth  > BFMT_1080I_WIDTH) ||
+               (pNewInfo->stDstRect.ulHeight > BFMT_1080I_HEIGHT)) &&
+               !pNewInfo->bMosaicMode)
             {
                 /* special case to support Live Feed */
                 pNewInfo->bForceCapture = false;
@@ -5943,9 +5949,15 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
         /* source limit */
         BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, &pPicture->stSclCut,  BDBG_STRING("SCLCUT"), ulWriterHLimit, ulWriterVLimit, 0);
         BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pDnrIn,   BDBG_STRING("DNR"), ulWriterHLimit,ulWriterVLimit, 0);
-        BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pHsclOut, BDBG_STRING("HCL"), ulWriterHLimit, ulWriterVLimit, 0);
-        BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pMadIn,   BDBG_STRING("MAD"), ulWriterHLimit, ulWriterVLimit, 0);
-        BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pAnrIn,   BDBG_STRING("ANR"), ulWriterHLimit, ulWriterVLimit, 0);
+
+        if(BVDC_P_MVP_USED_HSCL(pPicture->stMvpMode))
+            BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pHsclOut, BDBG_STRING("HCL"), ulWriterHLimit, ulWriterVLimit, 0);
+
+        if(BVDC_P_MVP_USED_MAD(pPicture->stMvpMode))
+            BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pMadIn,   BDBG_STRING("MAD"), ulWriterHLimit, ulWriterVLimit, 0);
+
+        if(BVDC_P_MVP_USED_ANR(pPicture->stMvpMode))
+            BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pAnrIn,   BDBG_STRING("ANR"), ulWriterHLimit, ulWriterVLimit, 0);
     }
 
     hWindow->ulNrmHrzSrcStep = BVDC_P_CAL_HRZ_SRC_STEP(
@@ -10582,7 +10594,8 @@ static bool BVDC_P_Window_DecideVnetMode_isr
     BDBG_MODULE_MSG(BVDC_WIN_VNET,(" BypassMcvp %d", pMvpMode->stBits.bUseMvpBypass));
     BDBG_MODULE_MSG(BVDC_WIN_VNET,(" UseAnr %d", pMvpMode->stBits.bUseAnr));
 
-    if(!hWindow->bCapture)
+    /* SWSTB-8410: reconfig only when MVP needs buffer, not in bypass or MVP off*/
+    if((!hWindow->bCapture)&&(pMvpMode->stBits.bUseHscl))
     {
         BVDC_P_MvpMode *pCurMvpMode = &hWindow->stMvpMode;
         bool bMvpDiff = BVDC_P_DIRTY_COMPARE(pMvpMode, pCurMvpMode);
@@ -10744,7 +10757,8 @@ static void BVDC_P_Window_DetermineBufferCount_isr
          * the reader or writer rate gaps is 1, increment the buffer cnt. */
         if ((!hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced || bProgressivePullDown) &&
             !hWindow->hBuffer->bMtgMadDisplay1To1RateRelationship &&
-            !(hWindow->stCurInfo.hSource->bMtgSrc && !BVDC_P_MVP_USED_MAD(hWindow->stMvpMode)))
+            !(hWindow->stCurInfo.hSource->bMtgSrc && !BVDC_P_MVP_USED_MAD(hWindow->stMvpMode)) &&
+            hWindow->bCapture)
         {
             if ((hWindow->hBuffer->eWriterVsReaderRateCode == hWindow->hBuffer->eReaderVsWriterRateCode) || bProgressivePullDown)
             {
@@ -11201,7 +11215,6 @@ static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
             stMadBufRect.ulWidth = BVDC_P_MIN(stMadBufRect.ulWidth,
                     hWindow->stCurResource.hMcvp->ulMaxWidth);
         }
-
         BVDC_P_Window_GetBufSize_isr(hWindow->eId, &stMadBufRect,
             bInterlace, false, false, false,
             pCurInfo->stMadSettings.ePixelFmt,
@@ -11456,7 +11469,7 @@ static void  BVDC_P_Window_CheckBuffers_isr
     /* Both capture and deinterlacer buffers should be released by now */
 
     /* Check capture buffers */
-    if(hWindow->eBufferHeapIdRequest != BVDC_P_BufferHeapId_eUnknown)
+    if(hWindow->bCapture && hWindow->eBufferHeapIdRequest != BVDC_P_BufferHeapId_eUnknown)
     {
         err = BVDC_P_BufferHeap_AllocateBuffers_isr(hWindow->hCapHeap,
             apCapHeapNode, hWindow->ulBufCntNeeded, false,
@@ -11489,53 +11502,56 @@ static void  BVDC_P_Window_CheckBuffers_isr
     }
 
     /* Check pixel buffers */
-    eBufferHeapId = hWindow->eMadPixelHeapId[ulPictureIdx];
-    if(eBufferHeapId != BVDC_P_BufferHeapId_eUnknown)
+    if (BVDC_P_VNET_USED_MVP(hWindow->stVnetMode))
     {
-        err = BVDC_P_BufferHeap_AllocateBuffers_isr(hWindow->hDeinterlacerHeap,
-            apMadPxlHeapNode, hWindow->usMadPixelBufferCnt[ulPictureIdx],
-            hWindow->bContinuous[ulPictureIdx], eBufferHeapId,
-            BVDC_P_BufferHeapId_eUnknown);
-
-        if(err == BERR_OUT_OF_DEVICE_MEMORY)
+        eBufferHeapId = hWindow->eMadPixelHeapId[ulPictureIdx];
+        if(eBufferHeapId != BVDC_P_BufferHeapId_eUnknown)
         {
-            BDBG_ERR(("Win[%d] Check MCVP Pixel buffer : ", hWindow->eId));
-            BDBG_ERR(("App needs to alloc more memory for MCVP Pixel buffers: [%d] %s",
-                hWindow->usMadPixelBufferCnt[ulPictureIdx],
-                BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(eBufferHeapId)));
-            BVDC_P_PRINT_BUF_DEBUG_INSTRUCTION();
+            err = BVDC_P_BufferHeap_AllocateBuffers_isr(hWindow->hDeinterlacerHeap,
+                apMadPxlHeapNode, hWindow->usMadPixelBufferCnt[ulPictureIdx],
+                hWindow->bContinuous[ulPictureIdx], eBufferHeapId,
+                BVDC_P_BufferHeapId_eUnknown);
 
-            bMadPxlBufAllocated = false;
-            bNotEnoughMcvpBuffers = true;
+            if(err == BERR_OUT_OF_DEVICE_MEMORY)
+            {
+                BDBG_ERR(("Win[%d] Check MCVP Pixel buffer : ", hWindow->eId));
+                BDBG_ERR(("App needs to alloc more memory for MCVP Pixel buffers: [%d] %s",
+                    hWindow->usMadPixelBufferCnt[ulPictureIdx],
+                    BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(eBufferHeapId)));
+                BVDC_P_PRINT_BUF_DEBUG_INSTRUCTION();
+
+                bMadPxlBufAllocated = false;
+                bNotEnoughMcvpBuffers = true;
+            }
+            else
+            {
+                bMadPxlBufAllocated = true;
+            }
         }
-        else
-        {
-            bMadPxlBufAllocated = true;
-        }
-    }
 
-    /* Check qm buffers */
-    eBufferHeapId = hWindow->eMadQmHeapId[ulPictureIdx];
-    if(eBufferHeapId != BVDC_P_BufferHeapId_eUnknown)
-    {
-        err = BVDC_P_BufferHeap_AllocateBuffers_isr(hWindow->hDeinterlacerHeap,
-            apMadQmHeapNode, hWindow->usMadQmBufCnt[ulPictureIdx], false,
-            eBufferHeapId, BVDC_P_BufferHeapId_eUnknown);
-
-        if(err == BERR_OUT_OF_DEVICE_MEMORY)
+        /* Check qm buffers */
+        eBufferHeapId = hWindow->eMadQmHeapId[ulPictureIdx];
+        if(eBufferHeapId != BVDC_P_BufferHeapId_eUnknown)
         {
-            BDBG_ERR(("Win[%d] Check MCVP QM buffer : ", hWindow->eId));
-            BDBG_ERR(("App needs to alloc more memory for MCVP QM buffers [%d] %s buffers",
-                hWindow->usMadQmBufCnt[ulPictureIdx],
-                BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(eBufferHeapId)));
-            BVDC_P_PRINT_BUF_DEBUG_INSTRUCTION();
+            err = BVDC_P_BufferHeap_AllocateBuffers_isr(hWindow->hDeinterlacerHeap,
+                apMadQmHeapNode, hWindow->usMadQmBufCnt[ulPictureIdx], false,
+                eBufferHeapId, BVDC_P_BufferHeapId_eUnknown);
 
-            bMadQmBufAllocated = false;
-            bNotEnoughMcvpBuffers = true;
-        }
-        else
-        {
-            bMadQmBufAllocated = true;
+            if(err == BERR_OUT_OF_DEVICE_MEMORY)
+            {
+                BDBG_ERR(("Win[%d] Check MCVP QM buffer : ", hWindow->eId));
+                BDBG_ERR(("App needs to alloc more memory for MCVP QM buffers [%d] %s buffers",
+                    hWindow->usMadQmBufCnt[ulPictureIdx],
+                    BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(eBufferHeapId)));
+                BVDC_P_PRINT_BUF_DEBUG_INSTRUCTION();
+
+                bMadQmBufAllocated = false;
+                bNotEnoughMcvpBuffers = true;
+            }
+            else
+            {
+                bMadQmBufAllocated = true;
+            }
         }
     }
 
@@ -13796,6 +13812,8 @@ void BVDC_P_Window_Reader_isr
                    ((!bLastExecuted) && (BVDC_P_State_eShutDownRul == pCurInfo->eReaderState)))
                 {
                     hCompositor->bInitial = true; /* inform comp to reset */
+                    /* SWSTB-8410 compositor initial needs to reprogram cfc registers */
+                    hWindow->bCfcDirty = BVDC_P_DIRTY;
 #if BVDC_P_SUPPORT_CMP_CLEAR_RECT
                     if(pCurInfo->bMosaicMode)
                     {

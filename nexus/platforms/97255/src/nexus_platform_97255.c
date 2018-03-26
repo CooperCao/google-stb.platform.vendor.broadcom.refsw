@@ -44,11 +44,32 @@ BDBG_MODULE(nexus_platform_97255);
 
 #define MB (1024 * 1024)
 
-static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfigurationSettings *pSettings )
+typedef struct NEXUS_Platform_P_PllChannelConfig {
+    uint32_t postdiv;
+    uint32_t vco;
+    uint32_t pdiv;
+    uint32_t ndiv;
+    uint32_t freq;
+} NEXUS_Platform_P_PllChannelConfig;
+
+static void NEXUS_Platform_P_ReadPllChannel(const char* pllName, const char* pllChannelName, uint32_t pllChannel, uint32_t pllDiv, NEXUS_Platform_P_PllChannelConfig *config)
+{
+    uint32_t reg;
+
+    reg = BREG_Read32(g_pCoreHandles->reg, pllDiv);
+    config->pdiv = (reg >> 10) & 0xf;
+    config->ndiv = reg & 0x1ff;
+    config->vco = 54/config->pdiv * config->ndiv;
+
+    reg = BREG_Read32(g_pCoreHandles->reg, pllChannel);
+    config->postdiv = (reg >> 1) & 0xff;
+    config->freq = config->vco / config->postdiv;
+    BDBG_MSG(("%s - %s\t- div - %2d  - Freq %dMHz ", pllName, pllChannelName, config->postdiv, config->freq));
+}
+
+static void NEXUS_P_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfigurationSettings *pSettings )
 {
 #if NEXUS_HAS_VIDEO_DECODER
-    NEXUS_P_SupportVideoDecoderCodec(pSettings, NEXUS_VideoCodec_eH265);
-    NEXUS_P_SupportVideoDecoderCodec(pSettings, NEXUS_VideoCodec_eVp9);
     NEXUS_P_SupportVideoDecoderCodec(pSettings, NEXUS_VideoCodec_eH264_Mvc);
 
     pSettings->videoDecoder[0].mosaic.maxNumber = 0;
@@ -59,13 +80,14 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
 
 void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 {
-    pOps->modifyDefaultMemoryConfigurationSettings = nexus_p_modifyDefaultMemoryConfigurationSettings;
+    pOps->modifyDefaultMemoryConfigurationSettings = NEXUS_P_modifyDefaultMemoryConfigurationSettings;
 }
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
     /* Main driver heap */
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 128 * MB;
+    pSettings->heap[NEXUS_ARR_HEAP].size = 2 * MB;
 
     if (g_platformMemory.memoryLayout.memc[0].size <= 512 * MB) {
         pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size /= 2;
@@ -74,8 +96,9 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     /* Compressed buffer heap */
     switch(boxMode)
     {
-        /* Box 4 is a UHD mode so we need a larger CRR region. */
+        /* Box 4 and 5 are UHD modes so we need a larger CRR region. */
         case 4:
+        case 5:
         {
             pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 64 * MB;
             break;
@@ -109,6 +132,7 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 {
     char *board;
     NEXUS_PlatformStatus platformStatus;
+    NEXUS_Platform_P_PllChannelConfig config;
 
 #if NEXUS_CPU_ARM64
     const char *mode = "64 bit";
@@ -129,6 +153,9 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
         case 3:
             board = "USFF";
             break;
+        case 4:
+            board = "PCK";
+            break;
         case 6:
             board = "HB";
             break;
@@ -145,7 +172,16 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
     /* Check the selected box mode is compatible with the chip type. */
     switch (platformStatus.chipId) {
         case 0x72554:
-            /* 72554 supports all box modes */
+            /* 72554 supports all box modes, but not all box modes can be used with all pmaps, check SCB freq. */
+
+            NEXUS_Platform_P_ReadPllChannel("PLL SYS0 PLL", "SCB" ,BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2, BCHP_CLKGEN_PLL_SYS0_PLL_DIV, &config);
+
+            if (((config.freq) < 388) && (platformStatus.boxMode == 4)) {
+                BDBG_ERR(("Incorrect combination of box mode and pmap!"));
+                BDBG_ERR(("To use box mode 4 select pmap 5. Or if you need pmap 6 for lower power, use box mode 5."));
+                return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            }
+
             break;
         case 0x72553:
         {
@@ -166,32 +202,11 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
     }
 
 #if 0
-    {
-        uint32_t reg;
-        unsigned postdiv,vco,pdiv,ndiv;
-
-        reg = BREG_Read32(g_pCoreHandles->reg, BCHP_CLKGEN_PLL_AVX_PLL_DIV);
-        pdiv = (reg >> 10) & 0xf;
-        ndiv = reg & 0x1ff;
-        vco = 54/pdiv * ndiv;
-        BDBG_ERR((" PLL AVX PLL  VCO - %dMHz", vco));
-
-        reg = BREG_Read32(g_pCoreHandles->reg, BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_1);
-        postdiv = (reg >> 1) & 0xff;
-        BDBG_ERR((" PLL AVX CTRL CH1 - HVD CPU\t- div - %2d  - Freq %dMHz ", postdiv, vco / postdiv));
-
-        reg = BREG_Read32(g_pCoreHandles->reg, BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_2);
-        postdiv = (reg >> 1) & 0xff;
-        BDBG_ERR((" PLL AVX CTRL CH2 - HVD Core\t- div - %2d  - Freq %dMHz ", postdiv, vco / postdiv));
-
-        reg = BREG_Read32(g_pCoreHandles->reg, BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_3);
-        postdiv = (reg >> 1) & 0xff;
-        BDBG_ERR((" PLL AVX CTRL CH3 - M2MC\t\t- div - %2d  - Freq %dMHz ", postdiv, vco / postdiv));
-
-        reg = BREG_Read32(g_pCoreHandles->reg, BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4);
-        postdiv = (reg >> 1) & 0xff;
-        BDBG_ERR((" PLL AVX CTRL CH4 - V3D\t\t- div - %2d  - Freq %dMHz ", postdiv, vco / postdiv));
-    }
+    /* Debug AV Clock configuration, need to also up the debug level to see console prints */
+    NEXUS_Platform_P_ReadPllChannel("PLL AVX PLL", "HVD CPU" ,BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_1,BCHP_CLKGEN_PLL_AVX_PLL_DIV, &config);
+    NEXUS_Platform_P_ReadPllChannel("PLL AVX PLL", "HVD Core" ,BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_2,BCHP_CLKGEN_PLL_AVX_PLL_DIV, &config);
+    NEXUS_Platform_P_ReadPllChannel("PLL AVX PLL", "M2MC" ,BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_3,BCHP_CLKGEN_PLL_AVX_PLL_DIV, &config);
+    NEXUS_Platform_P_ReadPllChannel("PLL AVX PLL", "V3D" ,BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4,BCHP_CLKGEN_PLL_AVX_PLL_DIV, &config);
 #endif
 
     return NEXUS_SUCCESS;
@@ -200,3 +215,18 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 void NEXUS_Platform_P_UninitBoard(void)
 {
 }
+
+#if BDBG_DEBUG_BUILD
+/* UART IDs for UUI, defined in BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0 */
+const struct NEXUS_Platform_P_UartId NEXUS_Platform_P_UartIds[] =
+{
+    {0,"NO_CPU"},
+    {3,"HVD0_OL"},
+    {4,"HVD0_IL"},
+    {11,"AVS_TOP"},
+    {12,"LEAP"},
+    {14,"DPFE"},
+    {15,"SCPU"},
+    {0,NULL}
+};
+#endif

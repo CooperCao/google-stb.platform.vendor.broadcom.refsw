@@ -325,7 +325,7 @@ int main(int argc, char **argv)
      **/
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
-    platformSettings.transportModuleSettings.maxDataRate.parserBand[NEXUS_ParserBand_e0] = 50 * 1000 * 1000;
+    platformSettings.transportModuleSettings.maxDataRate.parserBand[NEXUS_ParserBand_e0] = 125000000;
     platformSettings.videoDecoderModuleSettings.deferInit = true;
 #if NEXUS_HAS_VIDEO_ENCODER
     platformSettings.videoEncoderSettings.deferInit = true;

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  **************************************************************************/
 #ifndef NEXUS_SIMPLE_DECODER_MODULE_H__
 #define NEXUS_SIMPLE_DECODER_MODULE_H__
@@ -49,7 +46,6 @@
 #include "nexus_simple_video_decoder_primer.h"
 #include "nexus_simple_video_decoder_server.h"
 #include "nexus_simple_audio_decoder.h"
-#include "nexus_simple_audio_playback.h"
 #include "nexus_simple_audio_decoder_server.h"
 #include "nexus_simple_decoder_types.h"
 #include "nexus_simple_encoder.h"
@@ -70,7 +66,6 @@ extern NEXUS_SimpleDecoderModuleSettings g_NEXUS_simpleDecoderModuleSettings;
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SimpleVideoDecoder);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SimpleVideoDecoderServer);
-NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SimpleAudioPlayback);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SimpleAudioDecoder);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SimpleAudioDecoderServer);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SimpleStcChannel);

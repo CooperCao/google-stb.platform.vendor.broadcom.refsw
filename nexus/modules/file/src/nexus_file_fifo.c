@@ -1018,7 +1018,7 @@ b_trim_try_player(NEXUS_FifoRecordHandle file)
     return;
 }
 
-/* this functions return true if trim was successfull and false otherwise */
+/* this functions return true if trim was successful and false otherwise */
 static bool
 b_try_trim_file(struct bfile_out_desc *desc)
 {

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,12 +58,14 @@ public:
     ~CChannelStreamer(void);
     CChannel * createCopy(CChannel * pChannel);
 
-    virtual eRet tune(void * id, CConfig * pConfig, bool bWaitForLock, unsigned index = ANY_INDEX);
-    virtual eRet mapInputBand(CInputBand * pInputBand, CParserBand * pParserBand = NULL);
-    virtual eRet dupParserBand(CParserBand * pParserBand);
-    virtual eRet unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true);
-    virtual eRet readXML(MXmlElement * xmlElemChannel);
-    virtual void writeXML(MXmlElement * xmlElemChannel);
+    virtual eRet     tune(void * id, CConfig * pConfig, bool bWaitForLock, unsigned index = ANY_INDEX);
+    virtual eRet     mapInputBand(CInputBand * pInputBand, CParserBand * pParserBand = NULL);
+    virtual eRet     dupParserBand(CParserBand * pParserBand);
+    virtual eRet     unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true);
+    virtual eRet     readXML(MXmlElement * xmlElemChannel);
+    virtual void     writeXML(MXmlElement * xmlElemChannel);
+    virtual uint32_t getFrequency(void)               { return(0); }
+    virtual void     setFrequency(uint32_t frequency) { return; }
 
     eRet initialize(PROGRAM_INFO_T * pProgramInfo);
 protected:

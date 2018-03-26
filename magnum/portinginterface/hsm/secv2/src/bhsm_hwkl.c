@@ -137,11 +137,6 @@ BERR_Code  BHSM_Keyslot_GenerateHwKlRootKey( BHSM_KeyLadderHandle handle, const 
             return BERR_TRACE( BERR_INVALID_PARAMETER );
         }
     }
-    switch( settings.operation ){
-        case BHSM_CryptographicOperation_eEncrypt:    { bspConfig.in.hwklOperation = 1; break; }
-        case BHSM_CryptographicOperation_eDecrypt:    { bspConfig.in.hwklOperation = 0; break; }
-        default: { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
-    }
 
     if( ( settings.root.type == BHSM_KeyLadderRootType_eOtpAskm ) ||
         ( settings.root.type == BHSM_KeyLadderRootType_eGlobalKey ) )
@@ -202,12 +197,6 @@ BERR_Code  BHSM_Keyslot_GenerateHwKlLevelKey( BHSM_KeyLadderHandle handle, const
     BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );
 
     bspConfig.in.destinationKeyLayer = pKey->level;
-
-    switch( settings.operation ){
-        case BHSM_CryptographicOperation_eEncrypt:    { bspConfig.in.hwklOperation = 1; break; }
-        case BHSM_CryptographicOperation_eDecrypt:    { bspConfig.in.hwklOperation = 0; break; }
-        default: { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
-    }
 
     keyOffset = (sizeof(bspConfig.in.procIn)-(pKey->ladderKeySize/8))/sizeof(uint32_t);
     if( keyOffset*4 >= sizeof(bspConfig.in.procIn) ||

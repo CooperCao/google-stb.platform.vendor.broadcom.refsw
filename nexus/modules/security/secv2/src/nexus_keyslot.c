@@ -228,6 +228,8 @@ void NEXUS_KeySlot_GetSettings( NEXUS_KeySlotHandle handle, NEXUS_KeySlotSetting
     pSettings->regions.source[NEXUS_SecurityRegion_eGlr] = true;
     pSettings->regions.destinationRPipe[NEXUS_SecurityRegion_eGlr] = true;
     pSettings->regions.destinationGPipe[NEXUS_SecurityRegion_eGlr] = true;
+    pSettings->regions.destinationRPipe[NEXUS_SecurityRegion_eCrr] = true;
+    pSettings->regions.destinationGPipe[NEXUS_SecurityRegion_eCrr] = true;
 
     return;
 }
@@ -246,7 +248,7 @@ NEXUS_Error NEXUS_KeySlot_SetSettings( NEXUS_KeySlotHandle handle, const NEXUS_K
 
     BKNI_Memset( &hsmKeyslotSettings, 0, sizeof(hsmKeyslotSettings) );
 
-    for( i = 0; i < BHSM_SecurityRegion_eMax; i++ )
+    for( i = 0; i < NEXUS_SecurityRegion_eMax; i++ )
     {
         hsmKeyslotSettings.regions.source[i]           =  pSettings->regions.source[i];
         hsmKeyslotSettings.regions.destinationRPipe[i] =  pSettings->regions.destinationRPipe[i];
@@ -313,6 +315,7 @@ NEXUS_Error NEXUS_KeySlot_SetEntrySettings( NEXUS_KeySlotHandle handle,
     hsmEntrySettings.counterSize       = pSettings->counterSize;
     hsmEntrySettings.terminationMode   = pSettings->terminationMode;
     hsmEntrySettings.solitaryMode      = pSettings->solitaryMode;
+    hsmEntrySettings.keyMode           = pSettings->keyMode;
     hsmEntrySettings.external.key      = pSettings->external.key;
     hsmEntrySettings.external.iv       = pSettings->external.iv;
     hsmEntrySettings.pesMode           = pSettings->pesMode;
@@ -534,10 +537,12 @@ NEXUS_Error NEXUS_KeySlot_GetInformation( NEXUS_KeySlotHandle handle,
 {
     BERR_Code rcHsm;
     BHSM_KeyslotInfo slotInfo;
-    keySlotInstance_t *pKeySlot = (keySlotInstance_t*)handle->security.data;
+    keySlotInstance_t *pKeySlot = NULL;
 
     if(!handle) { return BERR_TRACE(NEXUS_INVALID_PARAMETER); }
     if(!pInfo) { return BERR_TRACE(NEXUS_INVALID_PARAMETER); }
+
+    pKeySlot = (keySlotInstance_t*)handle->security.data;
 
     rcHsm = BHSM_GetKeySlotInfo( pKeySlot->hsmKeyslotHandle, &slotInfo );
     if( rcHsm != BERR_SUCCESS ){ return BERR_TRACE(rcHsm); }
@@ -573,6 +578,9 @@ static BHSM_KeyslotType _convertSlotTypeToHsm(NEXUS_KeySlotType type)
         case NEXUS_KeySlotType_eIvPerBlock256:  return BHSM_KeyslotType_eIvPerBlock256;
         case NEXUS_KeySlotType_eIvPerEntry256:  return BHSM_KeyslotType_eIvPerEntry256;
         case NEXUS_KeySlotType_eMulti2:         return BHSM_KeyslotType_eMulti2;
+        case NEXUS_KeySlotType_eOxford1:        return BHSM_KeyslotType_eOxford1;
+        case NEXUS_KeySlotType_eOxford2:        return BHSM_KeyslotType_eOxford2;
+        case NEXUS_KeySlotType_eOxford3:        return BHSM_KeyslotType_eOxford3;
         default:
             BDBG_ERR(("Not supported keyslot type %d", type));
             BERR_TRACE( BERR_INVALID_PARAMETER );

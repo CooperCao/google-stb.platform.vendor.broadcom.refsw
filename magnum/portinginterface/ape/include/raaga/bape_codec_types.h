@@ -148,6 +148,33 @@ typedef enum BAPE_Ac4AssociateType
 
 /***************************************************************************
 Summary:
+AC4 Associate type
+***************************************************************************/
+/* 'Main' - A Single multichannel stream usually not shared between presentations. */
+/* 'Music And Effects ' - Presentation contains shared objects with another presentation but distinct Vocal.  Also referred to as Dry Main. */
+/* 'Associate' - Scene description or director's commentary. */
+/* 'Dialog' - Works unison with Music and Effects.  While the Music and Effects stay the same dialog changes out. */
+/* 'DE' - Dialog Enchancement - seperate track to boost dialog using encoded metadata. */
+/* 'HSF' - High Sampling Frequency - 96kHz or 192kHz. */
+/* 'EMDF' - Extensible Metadata Delivery Format - Delivery of metadata not natively supported by the bit stream syntax. */
+
+typedef enum BAPE_Ac4PresentationType
+{
+    BAPE_Ac4PresentationType_eUndefined,
+    BAPE_Ac4PresentationType_eMainOnly,
+    BAPE_Ac4PresentationType_eMainPlusDe,
+    BAPE_Ac4PresentationType_eMainPlusAssociate,
+    BAPE_Ac4PresentationType_eMainPlusDePlusAssociate,
+    BAPE_Ac4PresentationType_eMainPlusHSFExt,
+    BAPE_Ac4PresentationType_eMusicAndEffectsPlusDialog,
+    BAPE_Ac4PresentationType_eMusicAndEffectsPlusDialogPlusAssociate,
+    BAPE_Ac4PresentationType_eEMDFOnly,
+    BAPE_Ac4PresentationType_eArbitrarySubstreamGroups,
+    BAPE_Ac4PresentationType_eMax
+} BAPE_Ac4PresentationType;
+
+/***************************************************************************
+Summary:
 AC4 Codec Settings
 ***************************************************************************/
 #define BAPE_AC4_PRESENTATION_NAME_LENGTH  36

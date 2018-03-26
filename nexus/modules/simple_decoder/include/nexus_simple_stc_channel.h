@@ -75,6 +75,7 @@ typedef struct NEXUS_SimpleStcChannelHighJitterSettings
 {
     NEXUS_SimpleStcChannelHighJitterMode mode;
     unsigned threshold;      /* In msec, threshold for filtering PCR change notifications to decoders. Only applies for NEXUS_SimpleStcChannelHighJitterMode_eDirect. */
+    NEXUS_TimebaseTrackRange trackRange;
 } NEXUS_SimpleStcChannelHighJitterSettings;
 
 /**

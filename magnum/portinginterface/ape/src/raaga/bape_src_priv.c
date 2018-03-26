@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -46,6 +46,8 @@
 #include "bchp_aud_fmm_src_ctrl0.h"
 
 BDBG_MODULE(bape_src_priv);
+
+#if BAPE_CHIP_MAX_SRC_GROUPS > 0
 
 typedef struct BAPE_SrcGroup
 {
@@ -1171,8 +1173,8 @@ void BAPE_SrcGroup_P_UpdateCoefficients_isr(
         {
             regAddr = BCHP_AUD_FMM_SRC_CTRL0_SRC_CFGi_ARRAY_BASE + ((BCHP_AUD_FMM_SRC_CTRL0_SRC_CFGi_ARRAY_ELEMENT_SIZE * (src->srcIds[i])) / 8);
             regVal = BREG_Read32_isr(src->deviceHandle->regHandle, regAddr);
-            regVal = ~(BCHP_MASK(AUD_FMM_SRC_CTRL0_SRC_CFGi, IIR_STEP_SIZE));
-            regVal = ~(BCHP_MASK(AUD_FMM_SRC_CTRL0_SRC_CFGi, WR_BANK_SEL));
+            regVal &= ~(BCHP_MASK(AUD_FMM_SRC_CTRL0_SRC_CFGi, IIR_STEP_SIZE));
+            regVal &= ~(BCHP_MASK(AUD_FMM_SRC_CTRL0_SRC_CFGi, WR_BANK_SEL));
             regVal |= BCHP_FIELD_DATA(AUD_FMM_SRC_CTRL0_SRC_CFGi, IIR_STEP_SIZE, *pStepSize);
             regVal |= BCHP_FIELD_DATA(AUD_FMM_SRC_CTRL0_SRC_CFGi, WR_BANK_SEL, (newBank));
             BREG_Write32_isr(src->deviceHandle->regHandle, regAddr, regVal);
@@ -1180,3 +1182,160 @@ void BAPE_SrcGroup_P_UpdateCoefficients_isr(
     }
 }
 #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */  
+
+#else /* stubs */
+
+typedef struct BAPE_SrcGroup
+{
+    unsigned unused;
+} BAPE_SrcGroup;
+
+/***************************************************************************
+Summary:
+Get Default SRC Group Create Settings
+***************************************************************************/
+void BAPE_SrcGroup_P_GetDefaultCreateSettings(
+    BAPE_SrcGroupCreateSettings *pSettings   /* [out] */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+
+/***************************************************************************
+Summary:
+Create SRC Group
+***************************************************************************/
+BERR_Code BAPE_SrcGroup_P_Create(
+    BAPE_Handle deviceHandle,
+    const BAPE_SrcGroupCreateSettings *pSettings,
+    BAPE_SrcGroupHandle *pHandle        /* [out] */
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pHandle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+
+/***************************************************************************
+Summary:
+Destroy SRC Group
+***************************************************************************/
+void BAPE_SrcGroup_P_Destroy(
+    BAPE_SrcGroupHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+/***************************************************************************
+Summary:
+Get SRC Settings
+***************************************************************************/
+void BAPE_SrcGroup_P_GetSettings(
+    BAPE_SrcGroupHandle handle,
+    BAPE_SrcGroupSettings *pSettings    /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+}
+
+
+/***************************************************************************
+Summary:
+Set SRC Settings
+***************************************************************************/
+BERR_Code BAPE_SrcGroup_P_SetSettings(
+    BAPE_SrcGroupHandle handle,
+    const BAPE_SrcGroupSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+
+/***************************************************************************
+Summary:
+Set SRC Sample Rate (used for Linear mode only)
+***************************************************************************/
+void BAPE_SrcGroup_P_SetSampleRate_isr(
+    BAPE_SrcGroupHandle handle,
+    unsigned inputRate,
+    unsigned outputRate
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(inputRate);
+    BSTD_UNUSED(outputRate);
+}
+
+/***************************************************************************
+Summary:
+Set SRC Mute
+***************************************************************************/
+void BAPE_SrcGroup_P_SetMute_isr(
+    BAPE_SrcGroupHandle handle,
+    bool muted
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(muted);
+}
+
+
+/***************************************************************************
+Summary:
+Start SRC
+***************************************************************************/
+BERR_Code BAPE_SrcGroup_P_Start(
+    BAPE_SrcGroupHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+/***************************************************************************
+Summary:
+Stop SRC
+***************************************************************************/
+void BAPE_SrcGroup_P_Stop(
+    BAPE_SrcGroupHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+#if !B_REFSW_MINIMAL
+/***************************************************************************
+Summary:
+Set Coefficient Index (used for Equalizer mode only)
+***************************************************************************/
+void BAPE_SrcGroup_P_SetCoefficientIndex_isr(
+    BAPE_SrcGroupHandle handle,
+    unsigned index
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(index);
+}
+#endif
+/***************************************************************************
+Summary:
+Get FCI Connection IDs for this group
+***************************************************************************/
+void BAPE_SrcGroup_P_GetOutputFciIds(
+    BAPE_SrcGroupHandle handle,
+    BAPE_FciIdGroup *pFciGroup      /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pFciGroup);
+}
+
+#endif

@@ -63,6 +63,6 @@
 #define VADDR_SIZE                      (1ull << VADDR_SIZE_BITS)
 
 #define MAX_MMAP_REGIONS                32
-#define MAX_XLAT_TABLES                 12
+#define MAX_XLAT_TABLES                 16
 
 #endif /* _CONFIG_H_ */

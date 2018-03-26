@@ -565,9 +565,9 @@ NEXUS_Error NEXUS_Sage_P_BP3Init(NEXUS_SageModuleSettings *pSettings)
             {
                 /* BP3 production part */
                 BDBG_ERR(("#####################################################################"));
-                BDBG_ERR(("%s - bp3.bin doesn't exist and provisioning is disabled",BSTD_FUNCTION));
+                BDBG_ERR(("%s - bp3.bin doesn't exist. ",BSTD_FUNCTION));
+                BDBG_ERR(("%s - provisioned features are disabled",BSTD_FUNCTION));
                 BDBG_ERR(("#####################################################################"));
-                BDBG_ASSERT(0);
             }
             else
             {

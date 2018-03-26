@@ -183,7 +183,7 @@ BERR_Code BDBG_P_PrintError_small_isrsafe(const char *file, unsigned lineno, BER
 }
 
 #ifdef BDBG_ANDROID_LOG
-#include <cutils/log.h>
+#include <log/log.h>
 #endif
 
 void

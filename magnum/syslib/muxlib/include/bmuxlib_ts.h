@@ -1,48 +1,46 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #ifndef BMUXLIB_TS_H_
 #define BMUXLIB_TS_H_
 
 #include "bmuxlib.h"
+#include "bmuxlib_transport.h"
 #include "bavc_xpt.h"
 
 #ifdef __cplusplus
@@ -62,96 +60,6 @@ extern "C" {
  */
 #define BMUXLIB_TS_MAX_SYS_DATA_BR     27000000
 #define BMUXLIB_TS_MIN_A2PDELAY        27000    /* 1ms minimum */
-
-/***********************/
-/* Transport Interface */
-/***********************/
-typedef struct BMUXlib_TS_TransportDescriptor
-{
-   uint64_t uiBufferOffset; /* physical offset of data to be muxed */
-   size_t uiBufferLength; /* length in bytes of data to be muxed */
-
-   BAVC_TsMux_DescConfig stTsMuxDescriptorConfig;
-} BMUXlib_TS_TransportDescriptor;
-
-/* BMUXlib_AddTransportDescriptors -
- * Adds transport descriptors for muxing.
- */
-typedef BERR_Code
-(*BMUXlib_TS_AddTransportDescriptors)(
-         void *pvContext,
-         const BMUXlib_TS_TransportDescriptor *astTransportDescriptors, /* Array of pointers to transport descriptors */
-         size_t uiCount, /* Count of descriptors in array */
-         size_t *puiQueuedCount /* Count of descriptors queued (*puiQueuedCount <= uiCount) */
-         );
-
-/* BMUXlib_GetCompletedTransportDescriptors -
- * Returns the count of transport descriptors completed
- * since the *previous* call to BMUXlib_TS_GetCompletedTransportDescriptors
- */
-typedef BERR_Code
-(*BMUXlib_TS_GetCompletedTransportDescriptors)(
-         void *pvContext,
-         size_t *puiCompletedCount /* Count of descriptors completed */
-         );
-
-typedef struct BMUXlib_TS_TransportSettings
-{
-      /* TODO: Add settings */
-      uint32_t uiMuxDelay; /* in milliseconds */
-
-      /* Each transport channel's pacing counter is seeded with:
-       *   If bNonRealTimeMode=false: STC-uiMuxDelay
-       *   If bNonRealTimeMode=true : uiPacingCounter
-       */
-
-      bool bNonRealTimeMode; /* Non Real Time Mode (NRT/AFAP) */
-
-      struct
-      {
-            unsigned uiPacingCounter; /* in 27Mhz clock ticks */
-      } stNonRealTimeSettings;
-} BMUXlib_TS_TransportSettings;
-
-typedef BERR_Code
-(*BMUXlib_TS_GetTransportSettings)(
-         void *pvContext,
-         BMUXlib_TS_TransportSettings *pstTransportSettings
-         );
-
-typedef BERR_Code
-(*BMUXlib_TS_SetTransportSettings)(
-         void *pvContext,
-         const BMUXlib_TS_TransportSettings *pstTransportSettings
-         );
-
-typedef struct BMUXlib_TS_TransportStatus
-{
-      uint64_t uiSTC; /* 42-bit value in 27 Mhz */
-      uint32_t uiESCR; /* 32-bit value in 27Mhz; */
-      /* TODO: What other status? */
-} BMUXlib_TS_TransportStatus;
-
-typedef BERR_Code
-(*BMUXlib_TS_GetTransportStatus)(
-         void *pvContext,
-         BMUXlib_TS_TransportStatus *pstTransportStatus
-         );
-
-typedef struct BMUXlib_TS_TransportDeviceInterface
-{
-      void *pContext;
-      BMUXlib_TS_GetTransportSettings fGetTransportSettings;
-      BMUXlib_TS_SetTransportSettings fSetTransportSettings;
-      BMUXlib_TS_GetTransportStatus fGetTransportStatus;
-} BMUXlib_TS_TransportDeviceInterface;
-
-typedef struct BMUXlib_TS_TransportChannelInterface
-{
-      void *pContext;
-      BMUXlib_TS_AddTransportDescriptors fAddTransportDescriptors;
-      BMUXlib_TS_GetCompletedTransportDescriptors fGetCompletedTransportDescriptors;
-} BMUXlib_TS_TransportChannelInterface;
 
 /***********************/
 /* User Data Interface */
@@ -207,6 +115,7 @@ typedef struct BMUXlib_TS_CreateSettings
       uint32_t uiSignature; /* [DO NOT MODIFY] Populated by BMUXlib_TS_GetDefaultCreateSettings() */
 
       BMMA_Heap_Handle hMma; /* Required. Must be accessible by the host CPU. */
+      BREG_Handle hReg; /* Required for ASP MUXlib */
 
       BMUXlib_TS_MemoryConfig stMemoryConfig; /* The worst case memory usage for ALL possible mux
                                                * configurations used for this instance of TS Muxlib.
@@ -230,7 +139,7 @@ BMUXlib_TS_Create(
          );
 
 /* BMUXlib_TS_Destroy - Frees all system/device memory allocated */
-BERR_Code
+void
 BMUXlib_TS_Destroy(
          BMUXlib_TS_Handle hMuxTS
          );

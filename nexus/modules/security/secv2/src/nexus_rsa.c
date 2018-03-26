@@ -293,11 +293,17 @@ void _RsaEngine( void *data )
         BKNI_Memset( &hsmParam, 0, sizeof(hsmParam) );
         hsmParam.keySize = _HsmKeySize( pInstance->settings.keySize );
         hsmParam.counterMeasure = pInstance->settings.counterMeasures;
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0)
         hsmParam.rsaData = NEXUS_AddrToOffset( pInstance->pRsaData );
+#else
+        hsmParam.rsaData = pInstance->pRsaData;
+#endif
 
+        NEXUS_Memory_FlushCache( pInstance->pRsaData, NEXUS_RSA_P_DATA_SIZE );
         rc = BHSM_Rsa_Exponentiate( gRsaModuleData.hHsmRsa, &hsmParam );
         if( rc != BERR_SUCCESS ) { BERR_TRACE( NEXUS_SECURITY_HSM_ERROR ); return; }
 
+        BDBG_LOG(( "PRINT FROM [%s] Exponentiated, inProgress ", BSTD_FUNCTION ));
         pInstance->state = NEXUS_P_RsaState_eInProgress;
     }
     else if( pInstance->state == NEXUS_P_RsaState_eInProgress ) { /* Check HSM progress. */
@@ -305,14 +311,15 @@ void _RsaEngine( void *data )
 
         BKNI_Memset( &hsmParam, 0, sizeof(hsmParam) );
 
+        BDBG_LOG(( "PRINT FROM [%s] GettingResult, finished", BSTD_FUNCTION ));
         rc = BHSM_Rsa_GetResult( gRsaModuleData.hHsmRsa, &hsmParam );
         if( rc != BERR_SUCCESS ) { BERR_TRACE( NEXUS_SECURITY_HSM_ERROR ); return; }
 
         BDBG_CASSERT( sizeof(pInstance->result.data) == sizeof(hsmParam.data) );
 
         /* copy back result */
-        BKNI_Memcpy( pInstance->result.data, hsmParam.data, sizeof(pInstance->result.data) );
-        pInstance->result.dataLength = pInstance->result.dataLength;
+        BKNI_Memcpy( pInstance->result.data, hsmParam.data, hsmParam.dataLength /* sizeof(pInstance->result.data)*/ );
+        pInstance->result.dataLength = hsmParam.dataLength /* pInstance->result.dataLength*/;
 
         pInstance->state = NEXUS_P_RsaState_eFinished;
     }

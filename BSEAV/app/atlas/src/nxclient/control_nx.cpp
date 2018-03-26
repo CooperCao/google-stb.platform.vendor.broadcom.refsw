@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -256,17 +256,17 @@ eRet CControlNx::showPip(bool bShow)
 
 #if BDSP_MS12_SUPPORT
         /* start audio fade at 1 for the decimated window. after showing, decimated window audio will
-           then rise up to the requested level */
+         * then rise up to the requested level */
         {
             CSimpleAudioDecode * pAudioDecode = _pModel->getSimpleAudioDecode(_pModel->getPipScreenWindowType());
             if (NULL != pAudioDecode)
             {
                 /* we are showing pip so start it's fade level at 1% so we can ramp up
-                   the volume level gradually once audio source changed notification occurs */
+                 * the volume level gradually once audio source changed notification occurs */
                 pAudioDecode->setAudioFadeStartLevel(1);
             }
         }
-#endif
+#endif /* if BDSP_MS12_SUPPORT */
     }
     else
     {
@@ -280,7 +280,7 @@ eRet CControlNx::showPip(bool bShow)
             CSimpleAudioDecode * pAudioDecode = _pModel->getSimpleAudioDecode(_pModel->getPipScreenWindowType());
             waitAudioFadeComplete(pAudioDecode);
         }
-#endif
+#endif /* if BDSP_MS12_SUPPORT */
 
         eMode mode = _pModel->getMode(pipWinType);
 
@@ -365,12 +365,12 @@ eRet CControlNx::swapPip()
     NxClient_GetDefaultReconfigSettings(&reconfigSettings);
 #if BDSP_MS12_SUPPORT
     /* ms12 mixer supported so we are using 2 audio decoders and crossfading audio between main/pip.
-       no need to swap audio since we will just adjust the fade values of each. */
-    reconfigSettings.command[0].type       = NxClient_ReconfigType_eRerouteVideo;
+     * no need to swap audio since we will just adjust the fade values of each. */
+    reconfigSettings.command[0].type = NxClient_ReconfigType_eRerouteVideo;
 #else
     /* single audio decoder so we need to swap audio too */
-    reconfigSettings.command[0].type       = NxClient_ReconfigType_eRerouteVideoAndAudio;
-#endif
+    reconfigSettings.command[0].type = NxClient_ReconfigType_eRerouteVideoAndAudio;
+#endif /* if BDSP_MS12_SUPPORT */
     reconfigSettings.command[0].connectId1 = _pModel->getConnectId(eWindowType_Main);
     reconfigSettings.command[0].connectId2 = _pModel->getConnectId(eWindowType_Pip);
     nerror = NxClient_Reconfig(&reconfigSettings);
@@ -753,7 +753,7 @@ eRet CControlNx::connectDecoders(
             ((CSimpleAudioDecodeNx *)pAudioDecode)->updateConnectSettings(&settings);
 #if BDSP_MS12_SUPPORT
             /* if we are doing ms12 mixer based audio fading between main/pip, both audio
-               decoders must be persistent */
+             * decoders must be persistent */
             settings.simpleAudioDecoder.decoderCapabilities.type = NxClient_AudioDecoderType_ePersistent;
 #endif
         }
@@ -825,7 +825,10 @@ eRet CControlNx::setWindowGeometry()
 
 #if BDSP_MS12_SUPPORT
 /* if we have dual audio decoders, set master/mixing mode */
-void CControlNx::setMixingMode(eWindowType windowType, NEXUS_AudioDecoderMixingMode mixingMode)
+void CControlNx::setMixingMode(
+        eWindowType                  windowType,
+        NEXUS_AudioDecoderMixingMode mixingMode
+        )
 {
     CSimpleAudioDecode * pAudioDecode = _pModel->getSimpleAudioDecode(windowType);
 
@@ -846,20 +849,24 @@ void CControlNx::setMixingMode(eWindowType windowType, NEXUS_AudioDecoderMixingM
     }
 
     pAudioDecode->setMaster((_pModel->getFullScreenWindowType() == windowType) ? true : false);
-    //pAudioDecode->setMaster((eWindowType_Main == windowType) ? true : false);
+    /* pAudioDecode->setMaster((eWindowType_Main == windowType) ? true : false); */
     pAudioDecode->setMixingMode(mixingMode);
-}
-#endif
+} /* setMixingMode */
+
+#endif /* if BDSP_MS12_SUPPORT */
 
 #if BDSP_MS12_SUPPORT
-void CControlNx::setAudioFade(CSimpleAudioDecode * pAudioDecode, bool bPipState)
+void CControlNx::setAudioFade(
+        CSimpleAudioDecode * pAudioDecode,
+        bool                 bPipState
+        )
 {
-    CSimpleAudioDecode * pAudioDecodeFull = _pModel->getSimpleAudioDecode(_pModel->getFullScreenWindowType());
+    CSimpleAudioDecode * pAudioDecodeFull      = _pModel->getSimpleAudioDecode(_pModel->getFullScreenWindowType());
     CSimpleAudioDecode * pAudioDecodeDecimated = _pModel->getSimpleAudioDecode(_pModel->getPipScreenWindowType());
-    int  duration       = GET_INT(_pCfg, AUDIO_DECODER_FADE_DURATION);
-    int  levelFull      = (true == bPipState) ? GET_INT(_pCfg, AUDIO_DECODER_FADE_LEVEL_FULL) : 100;
-    int  levelDecimated = GET_INT(_pCfg, AUDIO_DECODER_FADE_LEVEL_DECIMATED);
-    eRet ret            = eRet_Ok;
+    int                  duration              = GET_INT(_pCfg, AUDIO_DECODER_FADE_DURATION);
+    int                  levelFull             = (true == bPipState) ? GET_INT(_pCfg, AUDIO_DECODER_FADE_LEVEL_FULL) : 100;
+    int                  levelDecimated        = GET_INT(_pCfg, AUDIO_DECODER_FADE_LEVEL_DECIMATED);
+    eRet                 ret                   = eRet_Ok;
 
     if ((NULL == pAudioDecode) || (NULL == pAudioDecodeFull) || (NULL == pAudioDecodeDecimated))
     {
@@ -876,8 +883,9 @@ void CControlNx::setAudioFade(CSimpleAudioDecode * pAudioDecode, bool bPipState)
         ret = pAudioDecodeDecimated->setAudioFade(levelDecimated, duration);
         CHECK_WARN("error setting PIP audio fade", ret);
     }
-}
-#endif
+} /* setAudioFade */
+
+#endif /* if BDSP_MS12_SUPPORT */
 #if BDSP_MS12_SUPPORT
 /* if we have dual audio decoders, set audio fade. returns eRet_NotSupported if no change was made. */
 eRet CControlNx::setAudioFade(bool bPipState)
@@ -912,8 +920,9 @@ eRet CControlNx::setAudioFade(bool bPipState)
     CHECK_WARN("error setting PIP audio fade", ret);
 
     return(ret);
-}
-#endif
+} /* setAudioFade */
+
+#endif /* if BDSP_MS12_SUPPORT */
 #if BDSP_MS12_SUPPORT
 void CControlNx::waitAudioFadeComplete(CSimpleAudioDecode * pAudioDecode)
 {
@@ -934,5 +943,6 @@ void CControlNx::waitAudioFadeComplete(CSimpleAudioDecode * pAudioDecode)
 
 error:
     return;
-}
-#endif
+} /* waitAudioFadeComplete */
+
+#endif /* if BDSP_MS12_SUPPORT */

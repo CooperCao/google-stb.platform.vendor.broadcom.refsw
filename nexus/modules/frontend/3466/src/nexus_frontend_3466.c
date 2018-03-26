@@ -70,6 +70,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_3466_Standby(void * handle, const NEXU
 static void NEXUS_Frontend_P_3466_Close(NEXUS_FrontendHandle handle);
 static NEXUS_Error NEXUS_FrontendDevice_P_3466_Link(NEXUS_FrontendDeviceHandle parentHandle, NEXUS_FrontendDeviceHandle childHandle, const NEXUS_FrontendDeviceLinkSettings *pSettings);
 static void NEXUS_Frontend_P_3466_SetUserParameters(NEXUS_FrontendHandle handle, const NEXUS_FrontendUserParameters *pParams);
+static void NEXUS_Frontend_P_3466_GetType(void *handle, NEXUS_FrontendType *type);
 /* End of generic function declarations */
 
 #if NEXUS_HAS_GPIO
@@ -351,8 +352,12 @@ NEXUS_Error NEXUS_FrontendDevice_P_Init_3466_Hab(NEXUS_3466Device *pDevice, cons
     rc = BHAB_ReadRegister(pDevice->hab, BCHP_TM_FAMILY_ID, &familyId);
     if(rc){rc = BERR_TRACE(rc);}
 
+    pDevice->chipFamilyId = familyId >> 16;
+
     rc = BHAB_ReadRegister(pDevice->hab, BCHP_TM_PRODUCT_ID, &chipId);
     if(rc){rc = BERR_TRACE(rc);}
+
+    pDevice->chipId = chipId >> 16;
 
     if (pSettings->loadAP)
     {
@@ -855,16 +860,17 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Open3466( const NEXUS_FrontendChannelSetti
     frontend->readSoftDecisions = NEXUS_Frontend_P_3466_ReadSoftDecisions;
     frontend->untune = NEXUS_Frontend_P_3466_UnTune;
     frontend->close = NEXUS_Frontend_P_3466_Close;
+    frontend->getType = NEXUS_Frontend_P_3466_GetType;
 
     frontend->postSetUserParameters = NEXUS_Frontend_P_3466_SetUserParameters;
 
     frontend->standby = NEXUS_Frontend_P_3466_Standby;
 
     /* save channel number in pChannel*/
-#if 0
+#if 1
     /* TODO: Fill out family/chip ID correctly */
-    frontend->chip.familyId = pDevice->chipFamilyId;
-    frontend->chip.id = pDevice->chipId;
+    frontend->chip.familyId = p3466Device->chipFamilyId;
+    frontend->chip.id = p3466Device->chipId;
 #else
     frontend->chip.familyId = 0x3466;
     frontend->chip.id = 0x3466;
@@ -1188,4 +1194,46 @@ static NEXUS_Error NEXUS_FrontendDevice_P_3466_Link(NEXUS_FrontendDeviceHandle p
     }
 done:
     return rc;
+}
+
+static void NEXUS_Frontend_P_3466_GetType(void *handle, NEXUS_FrontendType *type)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    BFEC_SystemVersionInfo  versionInfo;
+    NEXUS_3466Channel *pChannel;
+    NEXUS_3466Device *p3466Device;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3466Channel *)handle;
+    p3466Device = (NEXUS_3466Device *)pChannel->pDevice;
+    BDBG_OBJECT_ASSERT(p3466Device, NEXUS_3466Device);
+
+    rc = BHAB_GetVersionInfo(p3466Device->hab, &versionInfo);
+    if(rc) BERR_TRACE(rc);
+
+    type->chip.familyId = (uint32_t)p3466Device->chipFamilyId;
+    type->chip.id = (uint32_t)p3466Device->chipId;
+    type->chip.version.major = (p3466Device->revId >> 8) + 1;
+    type->chip.version.minor = p3466Device->revId & 0xff;
+    type->chip.bondoutOptions[0] = versionInfo.bondoutOptions[0];
+    type->chip.bondoutOptions[1] = versionInfo.bondoutOptions[1];
+    type->chip.version.buildType = 0;
+    type->chip.version.buildId = 0;
+
+    type->firmwareVersion.major = versionInfo.firmware.majorVersion;
+    type->firmwareVersion.minor = versionInfo.firmware.minorVersion;
+    type->firmwareVersion.buildType = versionInfo.firmware.buildType;
+    type->firmwareVersion.buildId = versionInfo.firmware.buildId;
+
+#if 0
+    if((type->chip.familyId != versionInfo.familyId) || (type->chip.id != versionInfo.chipId)){
+        BDBG_ERR(("Type mismatch while retreiving chip id and family id."));
+        BERR_TRACE(BERR_UNKNOWN); goto done;
+    }
+    if(p3466Device->revId != versionInfo.chipVersion){
+        BDBG_ERR(("Type mismatch while retreiving chip version."));
+        BERR_TRACE(BERR_UNKNOWN); goto done;
+    }
+    done:
+#endif
+    return;
 }

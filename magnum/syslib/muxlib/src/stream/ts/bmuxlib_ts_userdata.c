@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -53,8 +53,8 @@ BDBG_FILE_MODULE(BMUXLIB_TS_UD_SCHED); /* scheduler debug */
 
 static void SkipInputBytes(BMUXlib_TS_P_UserdataInput *pInputData, uint32_t uiByteCount);
 static bool ParsePacket(BMUXlib_TS_P_UserdataInfo *pUserdataInfo);
-static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUserdataInfo);
-static void DropPackets(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUserdataInfo, unsigned uiNumPackets);
+static void QueuePacket(BMUXlib_TS_Legacy_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUserdataInfo);
+static void DropPackets(BMUXlib_TS_Legacy_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUserdataInfo, unsigned uiNumPackets);
 
 #ifdef TS_UD_BAD_PTS_WORKAROUND
 int32_t AdjustTimingDiff(BMUXlib_TS_P_UserdataInfo *pUserdataInfo, int32_t iTimingDiff45kHz);
@@ -64,11 +64,11 @@ int32_t AdjustTimingDiff(BMUXlib_TS_P_UserdataInfo *pUserdataInfo, int32_t iTimi
 *      Private API       *
 *************************/
 
-BERR_Code BMUXlib_TS_P_UserdataInit(BMUXlib_TS_Handle hMuxTS)
+BERR_Code BMUXlib_TS_P_UserdataInit(BMUXlib_TS_Legacy_Handle hMuxTS)
 {
    uint32_t uiUserdataIndex;
    uint32_t uiVideoIndex;
-   BMUXlib_TS_StartSettings *pstStartSettings = &hMuxTS->status.stStartSettings;
+   BMUXlib_TS_StartSettings *pstStartSettings = &hMuxTS->pstSettings->stStartSettings;
 
    /* verify supplied interfaces if userdata PIDs are active...*/
    for (uiUserdataIndex = 0; (uiUserdataIndex < pstStartSettings->uiNumValidUserdataPIDs) && (uiUserdataIndex < BMUXLIB_TS_MAX_USERDATA_PIDS); uiUserdataIndex++)
@@ -76,15 +76,15 @@ BERR_Code BMUXlib_TS_P_UserdataInit(BMUXlib_TS_Handle hMuxTS)
       if ((NULL == pstStartSettings->userdata[uiUserdataIndex].stUserDataInterface.fGetUserDataBuffer)
          || (NULL == pstStartSettings->userdata[uiUserdataIndex].stUserDataInterface.fConsumeUserDataBuffer))
          return BERR_TRACE(BERR_INVALID_PARAMETER);
-      hMuxTS->status.stUserdataStatus.uiNumInputs++;
+      hMuxTS->pstUserdataStatus->stUserdataStatus.uiNumInputs++;
    }
 
    /* initialize each companion video info struct */
    for (uiVideoIndex = 0; (uiVideoIndex < BMUXLIB_TS_MAX_VIDEO_PIDS) && (uiVideoIndex < pstStartSettings->uiNumValidVideoPIDs); uiVideoIndex++)
    {
-      BMUXlib_TS_P_UserdataVideoInfo *pVideoInfo = &hMuxTS->status.stUserdataVideoInfo[uiVideoIndex];
+      BMUXlib_TS_P_UserdataVideoInfo *pVideoInfo = &hMuxTS->pstUserdataStatus->stUserdataVideoInfo[uiVideoIndex];
 
-      BKNI_Memset(pVideoInfo, 0, sizeof(BMUXlib_TS_P_UserdataVideoInfo));
+      BKNI_Memset(pVideoInfo, 0, sizeof(*pVideoInfo));
 
       pVideoInfo->uiPID = pstStartSettings->video[uiVideoIndex].uiPID;
       pVideoInfo->bIgnoreGOP = false;
@@ -93,24 +93,24 @@ BERR_Code BMUXlib_TS_P_UserdataInit(BMUXlib_TS_Handle hMuxTS)
    }
 
    /* for each userdata input, locate the corresponding companion video input and link them */
-   for (uiUserdataIndex = 0; uiUserdataIndex < hMuxTS->status.stUserdataStatus.uiNumInputs; uiUserdataIndex++)
+   for (uiUserdataIndex = 0; uiUserdataIndex < hMuxTS->pstUserdataStatus->stUserdataStatus.uiNumInputs; uiUserdataIndex++)
    {
       uint32_t uiInputIndex;
-      BMUXlib_TS_P_UserdataInfo *pUserdataInfo = &hMuxTS->status.stUserdataInfo[uiUserdataIndex];
+      BMUXlib_TS_P_UserdataInfo *pUserdataInfo = &hMuxTS->pstUserdataStatus->stUserdataInfo[uiUserdataIndex];
 
       /* NOTE: currently, we only support one video input - thus, the companion video PID must
          always be the PID of the first, and only, video input */
       /* if we support multiple video in the future, the companion video PID will come from the userdata start settings */
       uint16_t uiCompanionVideoPID = pstStartSettings->video[0].uiPID; /* pstStartSettings->userdata[uiUserdataIndex].companion_video_PID */
 
-      BKNI_Memset(pUserdataInfo, 0, sizeof(BMUXlib_TS_P_UserdataInfo));
+      BKNI_Memset(pUserdataInfo, 0, sizeof(*pUserdataInfo));
       pUserdataInfo->uiIndex = uiUserdataIndex;
       pUserdataInfo->pUnwrap = (uint8_t *)&hMuxTS->astUserdataUnwrap[uiUserdataIndex];
 
       /* find userdata companion video PID in input metadata array */
-      for (uiInputIndex = 0; uiInputIndex < hMuxTS->status.uiNumInputs; uiInputIndex++)
+      for (uiInputIndex = 0; uiInputIndex < hMuxTS->pstStatus->uiNumInputs; uiInputIndex++)
       {
-         BMUXlib_TS_P_InputMetaData *pInput = &hMuxTS->status.stInputMetaData[uiInputIndex];
+         BMUXlib_TS_P_InputMetaData *pInput = &hMuxTS->pstStatus->stInputMetaData[uiInputIndex];
          /* if this is the companion video for this userdata input, then link to it */
          if (uiCompanionVideoPID == pInput->uiPID)
          {
@@ -129,9 +129,9 @@ BERR_Code BMUXlib_TS_P_UserdataInit(BMUXlib_TS_Handle hMuxTS)
    Returns flag indicating whether userdata should be processed for this descriptor
    or not (true = process userdata).
 */
-bool BMUXlib_TS_P_Userdata_FindTargetPTS(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_InputMetaData *pInput, BMUXlib_Input_Descriptor *pstDescriptor)
+bool BMUXlib_TS_P_Userdata_FindTargetPTS(BMUXlib_TS_Legacy_Handle hMuxTS, BMUXlib_TS_P_InputMetaData *pInput, BMUXlib_Input_Descriptor *pstDescriptor)
 {
-   BMUXlib_TS_P_UserdataStatus *pStatus = &hMuxTS->status.stUserdataStatus;
+   BMUXlib_TS_P_UserdataStatus *pStatus = &hMuxTS->pstUserdataStatus->stUserdataStatus;
    uint32_t uiOPTS = BMUXLIB_INPUT_DESCRIPTOR_ORIGINAL_PTS(pstDescriptor);
    uint32_t uiPTS45kHz = BMUXLIB_TS_P_INPUT_DESCRIPTOR_PTS(hMuxTS, pstDescriptor) >> 1;
    uint32_t uiDTS45kHz = (BMUXLIB_INPUT_DESCRIPTOR_IS_DTS_VALID(pstDescriptor))?
@@ -231,17 +231,17 @@ bool BMUXlib_TS_P_Userdata_FindTargetPTS(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_
                /* Dump the initial video information so that the verification can determine the first video processed
                   and hence can determine the correct timing adjustment */
                {
-                  FILE *hCSVFile = hMuxTS->status.stUserdataStatus.hUserdataCSV;
+                  FILE *hCSVFile = hMuxTS->pstUserdataStatus->stUserdataStatus.hUserdataCSV;
                   /* dump CSV containing: PID, UDindex, bPTSpresent, bDTSpresent, OPTS, ODTS, New PTS, New DTS, Companion Video OPTS */
-                  if (!hMuxTS->status.stUserdataStatus.bUserdataCSVOpened)
+                  if (!hMuxTS->pstUserdataStatus->stUserdataStatus.bUserdataCSVOpened)
                   {
                      char fname[256];
                      sprintf(fname, "BMUXlib_TS_Userdata_%2.2d.csv", hMuxTS->stCreateSettings.uiMuxId);
                      hCSVFile = fopen(fname, "w");
                      if (NULL == hCSVFile)
                         BDBG_ERR(("Error Creating Userdata Dump File (%s)", fname));
-                     hMuxTS->status.stUserdataStatus.hUserdataCSV = hCSVFile;
-                     hMuxTS->status.stUserdataStatus.bUserdataCSVOpened = true;
+                     hMuxTS->pstUserdataStatus->stUserdataStatus.hUserdataCSV = hCSVFile;
+                     hMuxTS->pstUserdataStatus->stUserdataStatus.bUserdataCSVOpened = true;
                      if (hCSVFile != NULL)
                         fprintf(hCSVFile, "index,pid,opts_45khz,new_pts_45khz,dts_present,odts_45khz,new_dts_45khz,vopts\n");
                   }
@@ -300,12 +300,12 @@ bool BMUXlib_TS_P_Userdata_FindTargetPTS(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_
    to processing any userdata.  If we have enough pending Q, then we automatically have
    enough release Q and PTS entries.
    If so, return true, else false */
-bool BMUXLIB_P_Userdata_CheckResources(BMUXlib_TS_Handle hMuxTS)
+bool BMUXLIB_P_Userdata_CheckResources(BMUXlib_TS_Legacy_Handle hMuxTS)
 {
    unsigned uiRequiredPendingEntries = 0;
    size_t uiAvailablePendingEntries;
    unsigned uiUserdataIndex;
-   unsigned uiNumUserdataPIDs = hMuxTS->status.stUserdataStatus.uiNumInputs;
+   unsigned uiNumUserdataPIDs = hMuxTS->pstUserdataStatus->stUserdataStatus.uiNumInputs;
 
    if (0 == uiNumUserdataPIDs)
       return true;      /* if no userdata enabled, we need to always process video data */
@@ -313,14 +313,14 @@ bool BMUXLIB_P_Userdata_CheckResources(BMUXlib_TS_Handle hMuxTS)
    /* Required pending Q entries = num active PIDs * 8 packets per frame, max 3 frames per source frame (allowing for 60->24 conversion) */
    for (uiUserdataIndex = 0; uiUserdataIndex < uiNumUserdataPIDs; uiUserdataIndex++)
    {
-      BMUXlib_TS_UserDataInterface *pInterface = &hMuxTS->status.stStartSettings.userdata[uiUserdataIndex].stUserDataInterface;
-      BMUXlib_TS_P_UserdataInfo *pUserdataInfo = &hMuxTS->status.stUserdataInfo[uiUserdataIndex];
+      BMUXlib_TS_UserDataInterface *pInterface = &hMuxTS->pstSettings->stStartSettings.userdata[uiUserdataIndex].stUserDataInterface;
+      BMUXlib_TS_P_UserdataInfo *pUserdataInfo = &hMuxTS->pstUserdataStatus->stUserdataInfo[uiUserdataIndex];
       BMUXlib_TS_P_UserdataVideoInfo *pCompanionVideo = pUserdataInfo->pCompanionVideo;
 
       if (pCompanionVideo == NULL )
           continue;   /* skip this userdata input if there is no video at all */
 
-      if (hMuxTS->status.stUserdataStatus.uiCurrentVideoPID != pCompanionVideo->uiPID)
+      if (hMuxTS->pstUserdataStatus->stUserdataStatus.uiCurrentVideoPID != pCompanionVideo->uiPID)
          continue;   /* skip this userdata input - does not match companion video */
 
       if (NULL == pInterface->fGetUserDataBuffer)
@@ -367,12 +367,12 @@ bool BMUXLIB_P_Userdata_CheckResources(BMUXlib_TS_Handle hMuxTS)
    change will be sudden change in adjustment factor (OPTS will be discontinuous, but PTS/DTS will not)
 */
 
-#define BMUXLIB_TS_USERDATA_IS_FULL( _pmux, _index ) ( BMUXLIB_LIST_COUNT ( &(_pmux)->stUserdataPendingList[_index] ) >= BMUXLIB_TS_P_DIVIDE_WITH_ROUND_UP((_pmux)->status.stMemoryConfig.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserData][BMUXlib_TS_P_InputType_eSystem].uiCount, (_pmux)->status.stStartSettings.uiNumValidUserdataPIDs) )
+#define BMUXLIB_TS_USERDATA_IS_FULL( _pmux, _index ) ( BMUXLIB_LIST_COUNT ( &(_pmux)->stUserdataPendingList[_index] ) >= BMUXLIB_TS_P_DIVIDE_WITH_ROUND_UP((_pmux)->pstStatus->stMemoryConfig.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserData][BMUXlib_TS_P_InputType_eSystem].uiCount, (_pmux)->pstSettings->stStartSettings.uiNumValidUserdataPIDs) )
 
-BERR_Code BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Handle hMuxTS)
+BERR_Code BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Legacy_Handle hMuxTS)
 {
    BERR_Code rc = BERR_SUCCESS;
-   BMUXlib_TS_P_UserdataStatus *pStatus = &hMuxTS->status.stUserdataStatus;
+   BMUXlib_TS_P_UserdataStatus *pStatus = &hMuxTS->pstUserdataStatus->stUserdataStatus;
    uint32_t uiUserdataIndex;
 
    BDBG_ENTER(BMUXlib_TS_P_Userdata_ProcessInputs);
@@ -382,9 +382,9 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Handle hMuxTS)
    {
       unsigned uiDroppedCount = 0;
 
-      BMUXlib_TS_UserDataInterface *pInterface = &hMuxTS->status.stStartSettings.userdata[uiUserdataIndex].stUserDataInterface;
+      BMUXlib_TS_UserDataInterface *pInterface = &hMuxTS->pstSettings->stStartSettings.userdata[uiUserdataIndex].stUserDataInterface;
       BMUXlib_TS_P_UserdataInput stInputData;
-      BMUXlib_TS_P_UserdataInfo *pUserdataInfo = &hMuxTS->status.stUserdataInfo[uiUserdataIndex];
+      BMUXlib_TS_P_UserdataInfo *pUserdataInfo = &hMuxTS->pstUserdataStatus->stUserdataInfo[uiUserdataIndex];
       BMUXlib_TS_P_UserdataPacketInfo *pPacketInfo = &pUserdataInfo->stPacketInfo;
       BMUXlib_TS_P_UserdataVideoInfo *pCompanionVideo = pUserdataInfo->pCompanionVideo;
 
@@ -482,10 +482,10 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Handle hMuxTS)
          else
          {
             /* check for PID conflict with A/V/PCR PIDs */
-            if (hMuxTS->status.aFoundPIDs[pPacketInfo->uiPID])
+            if (BMUXLIB_TS_PID_ENTRY_IS_SET(hMuxTS->aFoundPIDs, pPacketInfo->uiPID))
             {
                /* PID conflict detected ... */
-               if (pPacketInfo->uiPID == hMuxTS->status.stStartSettings.stPCRData.uiPID)
+               if (pPacketInfo->uiPID == hMuxTS->pstSettings->stStartSettings.stPCRData.uiPID)
                   BDBG_ERR(("Userdata[%d]: Mux does not support PCR on same PID as Userdata: %x (use a separate PID for PCR)", uiUserdataIndex, pPacketInfo->uiPID));
                else
                   BDBG_ERR(("Userdata[%d]: PID %x is aleady in use by Audio or Video input", uiUserdataIndex, pPacketInfo->uiPID));
@@ -498,7 +498,7 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Handle hMuxTS)
             }
             pUserdataInfo->bPIDValid = true;
             pUserdataInfo->uiPID = pPacketInfo->uiPID;
-            hMuxTS->status.aFoundPIDs[pPacketInfo->uiPID] = true;
+            BMUXLIB_TS_PID_ENTRY_SET(hMuxTS->aFoundPIDs, pPacketInfo->uiPID);
          }
          if (!bDropPacket)
          {
@@ -545,17 +545,17 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Handle hMuxTS)
                         uiUserdataIndex, uiNewPTS45kHz, pPacketInfo->uiPTS45kHz));
 #ifdef BMUXLIB_TS_P_TEST_MODE
                      {
-                        FILE *hCSVFile = hMuxTS->status.stUserdataStatus.hUserdataCSV;
+                        FILE *hCSVFile = hMuxTS->pstUserdataStatus->stUserdataStatus.hUserdataCSV;
                         /* dump CSV containing: PID, UDindex, bPTSpresent, bDTSpresent, OPTS, ODTS, New PTS, New DTS, Companion Video OPTS */
-                        if (!hMuxTS->status.stUserdataStatus.bUserdataCSVOpened)
+                        if (!hMuxTS->pstUserdataStatus->stUserdataStatus.bUserdataCSVOpened)
                         {
                            char fname[256];
                            sprintf(fname, "BMUXlib_TS_Userdata_%2.2d.csv", hMuxTS->stCreateSettings.uiMuxId);
                            hCSVFile = fopen(fname, "w");
                            if (NULL == hCSVFile)
                               BDBG_ERR(("Error Creating Userdata Dump File (%s)", fname));
-                           hMuxTS->status.stUserdataStatus.hUserdataCSV = hCSVFile;
-                           hMuxTS->status.stUserdataStatus.bUserdataCSVOpened = true;
+                           hMuxTS->pstUserdataStatus->stUserdataStatus.hUserdataCSV = hCSVFile;
+                           hMuxTS->pstUserdataStatus->stUserdataStatus.bUserdataCSVOpened = true;
                            if (hCSVFile != NULL)
                               fprintf(hCSVFile, "index,pid,opts_45khz,new_pts_45khz,dts_present,odts_45khz,new_dts_45khz,vopts\n");
                         }
@@ -658,9 +658,9 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Handle hMuxTS)
 }
 
 /* SW7425-3250: Release Q entries obtain sequence ID and desc count from source */
-void BMUXlib_TS_P_Userdata_AddToReleaseQ(BMUXlib_TS_Handle hMuxTS, uint32_t uiUserdataIndex, uint32_t uiLength, uint32_t uiSequenceCount, uint32_t uiDescCount)
+void BMUXlib_TS_P_Userdata_AddToReleaseQ(BMUXlib_TS_Legacy_Handle hMuxTS, uint32_t uiUserdataIndex, uint32_t uiLength, uint32_t uiSequenceCount, uint32_t uiDescCount)
 {
-   BMUXlib_TS_P_UserdataInfo *pInfo = &hMuxTS->status.stUserdataInfo[uiUserdataIndex];
+   BMUXlib_TS_P_UserdataInfo *pInfo = &hMuxTS->pstUserdataStatus->stUserdataInfo[uiUserdataIndex];
    BMUXlib_TS_P_UserdataReleaseQ *pReleaseQ = &pInfo->stReleaseQ;
    BMUXlib_TS_P_UserdataReleaseQEntry *pEntry;
 
@@ -693,17 +693,17 @@ void BMUXlib_TS_P_Userdata_AddToReleaseQ(BMUXlib_TS_Handle hMuxTS, uint32_t uiUs
    freed is the sum total of the bytes that make up the source packet, regardless
    of where they actually came from when sent to transport; e.g. PTS can be replaced
    yet the same number of bytes must be freed when the packet is done) */
-BERR_Code BMUXlib_TS_P_Userdata_ProcessReleaseQueues(BMUXlib_TS_Handle hMuxTS)
+BERR_Code BMUXlib_TS_P_Userdata_ProcessReleaseQueues(BMUXlib_TS_Legacy_Handle hMuxTS)
 {
    BERR_Code rc = BERR_SUCCESS;
-   BMUXlib_TS_P_UserdataStatus *pStatus = &hMuxTS->status.stUserdataStatus;
+   BMUXlib_TS_P_UserdataStatus *pStatus = &hMuxTS->pstUserdataStatus->stUserdataStatus;
    uint32_t uiUserdataIndex;
 
    BDBG_ENTER(BMUXlib_TS_P_Userdata_ProcessReleaseQueues);
 
    for (uiUserdataIndex = 0; (uiUserdataIndex < pStatus->uiNumInputs) && (BERR_SUCCESS == rc); uiUserdataIndex++)
    {
-      BMUXlib_TS_P_UserdataInfo *pInfo = &hMuxTS->status.stUserdataInfo[uiUserdataIndex];
+      BMUXlib_TS_P_UserdataInfo *pInfo = &hMuxTS->pstUserdataStatus->stUserdataInfo[uiUserdataIndex];
       BMUXlib_TS_P_UserdataReleaseQ *pReleaseQ = &pInfo->stReleaseQ;
       uint32_t uiTotalBytesToFree = 0;
       bool bDone = false;
@@ -754,7 +754,7 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessReleaseQueues(BMUXlib_TS_Handle hMuxTS)
       } /* end: while not done */
       if (0 != uiTotalBytesToFree)
       {
-         BMUXlib_TS_UserDataInterface *pInterface = &hMuxTS->status.stStartSettings.userdata[uiUserdataIndex].stUserDataInterface;
+         BMUXlib_TS_UserDataInterface *pInterface = &hMuxTS->pstSettings->stStartSettings.userdata[uiUserdataIndex].stUserDataInterface;
 
          BDBG_MODULE_MSG(BMUXLIB_TS_UD_RQ, ("UD[%d]: Freeing %d total bytes", uiUserdataIndex, uiTotalBytesToFree));
 
@@ -783,22 +783,22 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessReleaseQueues(BMUXlib_TS_Handle hMuxTS)
    Scheduling always begins with the input that was ready for processing the last time
    (to avoid favoring any input)
 */
-void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
+void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Legacy_Handle hMuxTS)
 {
-   BMUXlib_TS_P_UserdataStatus *pStatus = &hMuxTS->status.stUserdataStatus;
+   BMUXlib_TS_P_UserdataStatus *pStatus = &hMuxTS->pstUserdataStatus->stUserdataStatus;
    uint32_t uiActiveInputsCount = pStatus->uiNumInputs;
    uint32_t uiUserdataIndex = pStatus->uiCurrentScheduledInput;
    uint32_t uiTSPacketsMuxed = 0;
-   uint32_t uiNextESCR = hMuxTS->status.stPCRInfo.uiNextESCR & 0xFFFFFFFF;
-   uint32_t uiSpaceAvailable = hMuxTS->status.stSystemDataInfo.uiPacketsUntilNextPCR;
-   uint32_t uiTransportChannelIndex = hMuxTS->status.stInput.system.uiTransportChannelIndex;
+   uint32_t uiNextESCR = hMuxTS->pstStatus->stPCRInfo.uiNextESCR & 0xFFFFFFFF;
+   uint32_t uiSpaceAvailable = hMuxTS->pstStatus->stSystemDataInfo.uiPacketsUntilNextPCR;
+   uint32_t uiTransportChannelIndex = hMuxTS->pstStatus->stInput.system.uiTransportChannelIndex;
    bool aDoneFlags[BMUXLIB_TS_MAX_USERDATA_PIDS];
-   uint64_t uiPacket2PacketTimestampDelta = ((uint64_t)BMUXlib_TS_P_TSPacket_MAXSIZE * 8 * 27000000) / hMuxTS->status.stMuxSettings.uiSystemDataBitRate;
+   uint64_t uiPacket2PacketTimestampDelta = ((uint64_t)BMUXlib_TS_P_TSPacket_MAXSIZE * 8 * 27000000) / hMuxTS->pstSettings->stMuxSettings.uiSystemDataBitRate;
 
    BDBG_ENTER(BMUXlib_TS_P_Userdata_SchedulePackets);
    BKNI_Memset(aDoneFlags, 0, sizeof(aDoneFlags)); /* nothing is done yet */
 
-   BDBG_MODULE_MSG(BMUXLIB_TS_UD_SCHED, ("Current PCR ESCR: %u, Next = %u, Packets Available = %u", (uint32_t)(hMuxTS->status.stPCRInfo.uiESCR & 0xFFFFFFFF), uiNextESCR,
+   BDBG_MODULE_MSG(BMUXLIB_TS_UD_SCHED, ("Current PCR ESCR: %u, Next = %u, Packets Available = %u", (uint32_t)(hMuxTS->pstStatus->stPCRInfo.uiESCR & 0xFFFFFFFF), uiNextESCR,
       uiSpaceAvailable));
 
    while (0 != uiActiveInputsCount)
@@ -811,7 +811,7 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
          if (!aDoneFlags[uiUserdataIndex])
          {
             BMUXLIB_LIST_TYPE(BMUXlib_TS_P_UserdataPending) *hPending = &hMuxTS->stUserdataPendingList[uiUserdataIndex];
-            if ((0 == hMuxTS->status.stSystemDataInfo.uiPacketsUntilNextPCR) &&
+            if ((0 == hMuxTS->pstStatus->stSystemDataInfo.uiPacketsUntilNextPCR) &&
                (false == BMUXLIB_LIST_ISEMPTY(hPending)))
                BDBG_WRN(("Insufficient System Data bitrate to insert Userdata packets"));
             if (false == BMUXLIB_LIST_ISEMPTY(hPending) && 0 != uiSpaceAvailable)
@@ -899,7 +899,7 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
                         pMetaDesc = BMUXLIB_LIST_ENTRY_METADATA( pDescEntry );
 
                         /* Populate Transport Meta Data */
-                        BKNI_Memset(pMetaDesc, 0, sizeof(BMUXlib_TS_P_TransportDescriptorMetaData));
+                        BKNI_Memset(pMetaDesc, 0, sizeof(*pMetaDesc));
                         pMetaDesc->eDataType = pUserdata->aSegments[uiSegment].eDataType;
                         pMetaDesc->uiTimestamp = pUserdata->aSegments[uiSegment].uiTimestamp;
                         /* the following ensures that no matter where the data is from when passed to the transport,
@@ -911,7 +911,7 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
                         pMetaDesc->uiSequenceID = uiSequenceCount+uiSegment;
 
                         /* populate transport descriptor */
-                        BKNI_Memset(pDesc, 0, sizeof(BMUXlib_TS_TransportDescriptor));
+                        BKNI_Memset(pDesc, 0, sizeof(*pDesc));
 
                         /* NOTE: userdata packets are scheduled to hardware without ESCR to allow hardware to insert them as required */
                         /* Set Packet 2 Packet Timestamp Delta */
@@ -921,7 +921,7 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
                         /* Set Buffer Info */
                         if ( BMUXlib_TS_P_DataType_eCDB == pMetaDesc->eDataType )
                         {
-                           BMUXlib_TS_P_UserdataInfo *pUserdataInfo = &hMuxTS->status.stUserdataInfo[uiUserdataIndex];
+                           BMUXlib_TS_P_UserdataInfo *pUserdataInfo = &hMuxTS->pstUserdataStatus->stUserdataInfo[uiUserdataIndex];
 
                            BDBG_ASSERT(pUserdata->aSegments[uiSegment].pData == NULL);
 
@@ -991,9 +991,9 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
    /* save the current input ready for scheduling so we can come back to it next time */
    pStatus->uiCurrentScheduledInput = uiUserdataIndex;
    /* adjust system data timing to account for the userdata packets written ... */
-   hMuxTS->status.stSystemDataInfo.uiESCR += (uiPacket2PacketTimestampDelta * uiTSPacketsMuxed);
+   hMuxTS->pstStatus->stSystemDataInfo.uiESCR += (uiPacket2PacketTimestampDelta * uiTSPacketsMuxed);
    /* update space available for use by system data */
-   hMuxTS->status.stSystemDataInfo.uiPacketsUntilNextPCR = uiSpaceAvailable;
+   hMuxTS->pstStatus->stSystemDataInfo.uiPacketsUntilNextPCR = uiSpaceAvailable;
 
    BDBG_LEAVE(BMUXlib_TS_P_Userdata_SchedulePackets);
 }
@@ -1053,7 +1053,7 @@ static bool ParsePacket(BMUXlib_TS_P_UserdataInfo *pUserdataInfo)
 
    /* clear the packet info - nothing found yet!
       NOTE: this also resets bytes_processed to zero */
-   BKNI_Memset(pPacketInfo, 0, sizeof(BMUXlib_TS_P_UserdataPacketInfo));
+   BKNI_Memset(pPacketInfo, 0, sizeof(*pPacketInfo));
 
    /* read the necessary TS header bytes ...*/
    pPacketInfo->uiPID = BMUXLIB_TS_GET_PID(pTSPacket);
@@ -1213,7 +1213,7 @@ int32_t AdjustTimingDiff(BMUXlib_TS_P_UserdataInfo *pUserdataInfo, int32_t iTimi
 /* put the specified packet in the pending queue, breaking it into the necessary pieces to
    allow updated PTS and DTS as required.
 */
-static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUserdataInfo)
+static void QueuePacket(BMUXlib_TS_Legacy_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUserdataInfo)
 {
    BMUXlib_TS_P_UserdataPacketInfo *pPacketInfo = &pUserdataInfo->stPacketInfo;
    uint8_t *pTSPacket = pUserdataInfo->pCurrentPacket;
@@ -1236,18 +1236,18 @@ static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUs
    BMUXLIB_LIST_REMOVE(&hMuxTS->stUserdataFreeList, &pListEntry);
    pEntry = BMUXLIB_LIST_ENTRY_DATA( pListEntry );
    /* clear the entry (ESCR invalid, num segments = 0) */
-   BKNI_Memset(pEntry, 0, sizeof(BMUXlib_TS_P_UserdataPending));
+   BKNI_Memset(pEntry, 0, sizeof(*pEntry));
    /* SW7425-3250: set the starting sequence count for the first segment in the packet */
    pEntry->uiSequenceCount = pUserdataInfo->uiSequenceCount;
 
    if (pPacketInfo->bPTSPresent)
    {
       BMUXLIB_LIST_ENTRY_TYPE( BMUXlib_TS_P_UserdataPTSEntry ) *pPTSEntry;
+      uint8_t *pPacket = NULL;
       uint8_t *pPTS = NULL;
       uint8_t *pDTS = NULL;
       uint32_t uiESCR;
       uint32_t uiAdjustedPTS45kHz = pPacketInfo->uiPTS45kHz;
-      uint8_t uiInitialLength = 0;     /* length of the data up to and including PTS/DTS */
       uint64_t uiNewPTS = (uint64_t)(pPacketInfo->uiPTS45kHz) << 1;
       BMUXlib_TS_P_UserdataVideoInfo *pCompanionVideo = pUserdataInfo->pCompanionVideo;
 
@@ -1265,58 +1265,37 @@ static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUs
 
       pEntry->bESCRValid = true;
       pEntry->uiESCR = uiESCR;
-      /* First segment is packet from start up to beginning of PTS */
-      /* NOTE: for userdata input data, the offset is used, not the pointer to the data
-         (the virtual pointer becomes invalid once this packet is queued)
-         for local, we still need the pointer and not the offset */
-      pEntry->aSegments[pEntry->uiNumSegments].uiOffset = uiPacketOffset;
-      pEntry->aSegments[pEntry->uiNumSegments].pData = (bLocal)?pTSPacket:NULL;
-      pEntry->aSegments[pEntry->uiNumSegments].uiLength = pPacketInfo->uiBytesProcessed;
-      uiInitialLength += pPacketInfo->uiBytesProcessed;
-      pEntry->aSegments[pEntry->uiNumSegments].eDataType = eDataType;
-      pEntry->uiNumSegments++;
+
+      /* There is a PTS in this packet, so we copy it to the local UserdataPTS buffer
+         and modify the PTS/DTS accordingly */
 
       /* obtain a PTS entry for this packet */
       BMUXLIB_LIST_REMOVE(&hMuxTS->stUserdataPTSFreeList, &pPTSEntry);
-      pPTS = BMUXLIB_LIST_ENTRY_DATA( pPTSEntry )->aPTS;
+      pPacket = BMUXLIB_LIST_ENTRY_DATA( pPTSEntry )->aPacket;
+      pPTS = pPacket + pPacketInfo->uiBytesProcessed;
+      pDTS = pPTS + BMUXLIB_PES_PTS_LENGTH;
+
+      /* Copy the packet to the local PTS entry */
+      BKNI_Memcpy( pPacket, pTSPacket, BMUXLIB_TS_PACKET_LENGTH );
+      pUserdataInfo->bUnwrapInUse = false;
 
       /* write updated PTS ...*/
       BMUXLIB_TS_USERDATA_SET_PTS_DTS(pPTS, uiNewPTS);
-      /* Second segment is the PTS */
-      pEntry->aSegments[pEntry->uiNumSegments].pData = pPTS;
-      pEntry->aSegments[pEntry->uiNumSegments].uiOffset = BMUXLIB_TS_P_INVALID_OFFSET;
-      pEntry->aSegments[pEntry->uiNumSegments].uiLength = BMUXLIB_PES_PTS_LENGTH;
-      uiInitialLength += BMUXLIB_PES_PTS_LENGTH;
-      pEntry->aSegments[pEntry->uiNumSegments].eDataType = BMUXlib_TS_P_DataType_eUserdataPTS;
-      pEntry->aSegments[pEntry->uiNumSegments].uiTimestamp = uiNewPTS;
-      pEntry->aSegments[pEntry->uiNumSegments].pPTSEntry = pPTSEntry;
-      pEntry->uiNumSegments++;
 
       if (pPacketInfo->bDTSPresent)
       {
          uint64_t uiNewDTS = (uint64_t)(pPacketInfo->uiDTS45kHz) << 1;
-         /* obtain a PTS entry for the DTS */
-         BMUXLIB_LIST_REMOVE(&hMuxTS->stUserdataPTSFreeList, &pPTSEntry);
-         pDTS = BMUXLIB_LIST_ENTRY_DATA( pPTSEntry )->aPTS;
          /* write updated DTS ...*/
          BMUXLIB_TS_USERDATA_SET_PTS_DTS(pDTS, uiNewDTS);
-         pEntry->aSegments[pEntry->uiNumSegments].pData = pDTS;
-         pEntry->aSegments[pEntry->uiNumSegments].uiOffset = BMUXLIB_TS_P_INVALID_OFFSET;
-         pEntry->aSegments[pEntry->uiNumSegments].uiLength = BMUXLIB_PES_PTS_LENGTH;
-         uiInitialLength += BMUXLIB_PES_PTS_LENGTH;
-         pEntry->aSegments[pEntry->uiNumSegments].eDataType = BMUXlib_TS_P_DataType_eUserdataPTS;
-         pEntry->aSegments[pEntry->uiNumSegments].uiTimestamp = uiNewDTS;
-         pEntry->aSegments[pEntry->uiNumSegments].pPTSEntry = pPTSEntry;
-         pEntry->uiNumSegments++;
       }
 
-      /* Last chunk is the data after the PTS/DTS */
-      BDBG_ASSERT(uiInitialLength <= BMUXLIB_TS_PACKET_LENGTH);
-      pEntry->aSegments[pEntry->uiNumSegments].uiOffset = (bLocal)?BMUXLIB_TS_P_INVALID_OFFSET:(uiPacketOffset + uiInitialLength);
-      pEntry->aSegments[pEntry->uiNumSegments].pData = (bLocal)?(pTSPacket+uiInitialLength):NULL;
-      pEntry->aSegments[pEntry->uiNumSegments].uiLength = BMUXLIB_TS_PACKET_LENGTH - uiInitialLength;
-      pEntry->aSegments[pEntry->uiNumSegments].eDataType = eDataType;
-      pEntry->uiNumSegments++;
+      pEntry->aSegments[0].pData = pPacket;
+      pEntry->aSegments[0].uiOffset = BMUXLIB_TS_P_INVALID_OFFSET;
+      pEntry->aSegments[0].uiLength = BMUXLIB_TS_PACKET_LENGTH;
+      pEntry->aSegments[0].eDataType = BMUXlib_TS_P_DataType_eUserdataPTS;
+      pEntry->aSegments[0].uiTimestamp = uiNewPTS;
+      pEntry->aSegments[0].pPTSEntry = pPTSEntry;
+      pEntry->uiNumSegments = 1;
    }
    else
    {
@@ -1342,7 +1321,7 @@ static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUs
    - dropping partial PES packets prior the the first PES header (startup condition)
    - dropping late PES packets that missed their selection window
 */
-static void DropPackets(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUserdataInfo, unsigned uiNumPackets)
+static void DropPackets(BMUXlib_TS_Legacy_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUserdataInfo, unsigned uiNumPackets)
 {
    unsigned uiBytesToDrop = BMUXLIB_TS_PACKET_LENGTH*uiNumPackets;
    /* skip this TS Packet; not required */

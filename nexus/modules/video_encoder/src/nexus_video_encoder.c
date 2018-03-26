@@ -482,8 +482,6 @@ NEXUS_Error NEXUS_VideoEncoderModule_Standby_priv(bool enabled, const NEXUS_Stan
 void NEXUS_VideoEncoder_GetDefaultOpenSettings(NEXUS_VideoEncoderOpenSettings *pSettings)
 {
     BVCE_Channel_OpenSettings encSettings;
-    BVCE_Channel_MemoryBoundsSettings boundSettings;
-    BVCE_Channel_MemorySettings memSettings;
 
     BDBG_ASSERT(pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
@@ -493,14 +491,10 @@ void NEXUS_VideoEncoder_GetDefaultOpenSettings(NEXUS_VideoEncoderOpenSettings *p
     pSettings->maxChannelCount = encSettings.uiMaxNumChannels;
     pSettings->enableDataUnitDetecton = encSettings.stOutput.bEnableDataUnitDetection;
     pSettings->type = encSettings.eMultiChannelMode;
+    pSettings->memoryConfig.interlaced = g_NEXUS_VideoEncoder_P_State.config.videoEncoder[0].memory.interlaced;
+    pSettings->memoryConfig.maxWidth   = g_NEXUS_VideoEncoder_P_State.config.videoEncoder[0].memory.maxWidth;
+    pSettings->memoryConfig.maxHeight   = g_NEXUS_VideoEncoder_P_State.config.videoEncoder[0].memory.maxHeight;
 
-    BKNI_Memset(&memSettings,0,sizeof(memSettings));
-    memSettings.pstMemoryInfo = &g_pCoreHandles->memoryInfo;
-    BVCE_Channel_GetDefaultMemoryBoundsSettings(g_pCoreHandles->box, &memSettings, &boundSettings);
-
-    pSettings->memoryConfig.interlaced = (boundSettings.eInputType == BAVC_ScanType_eInterlaced);
-    pSettings->memoryConfig.maxWidth   = boundSettings.stDimensions.stMax.uiWidth;
-    pSettings->memoryConfig.maxHeight   = boundSettings.stDimensions.stMax.uiHeight;
     BDBG_CASSERT((int)BVCE_MultiChannelMode_eMulti == (int)NEXUS_VideoEncoderType_eMulti);
     BDBG_CASSERT((int)BVCE_MultiChannelMode_eSingle == (int)NEXUS_VideoEncoderType_eSingle);
     BDBG_CASSERT((int)BVCE_MultiChannelMode_eMultiNRTOnly == (int)NEXUS_VideoEncoderType_eMultiNonRealTime);
@@ -618,6 +612,8 @@ NEXUS_VideoEncoder_Open(unsigned index, const NEXUS_VideoEncoderOpenSettings *pS
     encoder->frame.nexus = NULL;
     encoder->meta.mma = NULL;
     encoder->meta.nexus = NULL;
+    encoder->idx.mma = NULL;
+    encoder->idx.nexus = NULL;
     encoder->debugLog.mma = NULL;
     encoder->debugLog.nexus = NULL;
 
@@ -767,6 +763,11 @@ NEXUS_VideoEncoder_P_Release(NEXUS_VideoEncoderHandle encoder)
         NEXUS_MemoryBlock_Free(encoder->meta.nexus);
         encoder->meta.nexus=NULL;
     }
+    if(encoder->idx.nexus) {
+        NEXUS_OBJECT_UNREGISTER(NEXUS_MemoryBlock, encoder->idx.nexus, Release);
+        NEXUS_MemoryBlock_Free(encoder->idx.nexus);
+        encoder->idx.nexus=NULL;
+    }
     if(encoder->debugLog.nexus) {
         NEXUS_OBJECT_UNREGISTER(NEXUS_MemoryBlock, encoder->debugLog.nexus, Release);
         NEXUS_MemoryBlock_Free(encoder->debugLog.nexus);
@@ -841,10 +842,20 @@ NEXUS_VideoEncoder_GetDefaultStartSettings(NEXUS_VideoEncoderStartSettings *pSet
     pSettings->adaptiveLowDelayMode = encodeSettings.bAdaptiveLowDelayMode;
     pSettings->encodeUserData = false;
     pSettings->encodeBarUserData = true;
-    pSettings->bounds.inputDimension.max.width = encodeSettings.stBounds.stDimensions.stMax.uiWidth;
-    pSettings->bounds.inputDimension.max.height = encodeSettings.stBounds.stDimensions.stMax.uiHeight;
-    pSettings->bounds.inputDimension.maxInterlaced.width = encodeSettings.stBounds.stDimensions.stMaxInterlaced.uiWidth;
-    pSettings->bounds.inputDimension.maxInterlaced.height = encodeSettings.stBounds.stDimensions.stMaxInterlaced.uiHeight;
+
+    pSettings->bounds.inputDimension.max.width = g_NEXUS_VideoEncoder_P_State.config.videoEncoder[0].memory.maxWidth;
+    pSettings->bounds.inputDimension.max.height = g_NEXUS_VideoEncoder_P_State.config.videoEncoder[0].memory.maxHeight;
+    if (g_NEXUS_VideoEncoder_P_State.config.videoEncoder[0].memory.maxHeight == 720 &&
+        !g_NEXUS_VideoEncoder_P_State.config.videoEncoder[0].memory.interlaced) {
+        /* if max is 720p, maxInterlaced is 576i */
+        pSettings->bounds.inputDimension.maxInterlaced.width = 720;
+        pSettings->bounds.inputDimension.maxInterlaced.height = 576;
+    }
+    else {
+        /* if max is 1080i/p, 576i/p or 480i/p, maxInterlaced is the same as max */
+        pSettings->bounds.inputDimension.maxInterlaced.width = g_NEXUS_VideoEncoder_P_State.config.videoEncoder[0].memory.maxWidth;
+        pSettings->bounds.inputDimension.maxInterlaced.height = g_NEXUS_VideoEncoder_P_State.config.videoEncoder[0].memory.maxHeight;
+    }
     pSettings->bounds.bitrate.upper.bitrateMax = encodeSettings.stBounds.stBitRate.stLargest.uiMax;
     pSettings->bounds.bitrate.upper.bitrateTarget = encodeSettings.stBounds.stBitRate.stLargest.uiTarget;
     pSettings->bounds.streamStructure.max.framesP = encodeSettings.stBounds.stGOPStructure.uiNumberOfPFrames;
@@ -908,6 +919,7 @@ NEXUS_VideoEncoder_P_ConvertStartSettings(NEXUS_VideoEncoderHandle encoder, cons
 {
     BERR_Code rc;
     unsigned stcChannelIndex;
+    unsigned maxWidth, maxHeight;
 
     if(pSettings->stcChannel == NULL) {rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);goto error;}
 
@@ -920,11 +932,24 @@ NEXUS_VideoEncoder_P_ConvertStartSettings(NEXUS_VideoEncoderHandle encoder, cons
     startEncodeSettings->bAdaptiveLowDelayMode    = pSettings->adaptiveLowDelayMode;
     startEncodeSettings->uiRateBufferDelay        = pSettings->rateBufferDelay;
     startEncodeSettings->eForceEntropyCoding      = pSettings->entropyCoding;
-    if((pSettings->bounds.inputDimension.max.width > encoder->openSettings.memoryConfig.maxWidth) ||
-       (pSettings->bounds.inputDimension.max.height > encoder->openSettings.memoryConfig.maxHeight)) {
-        BDBG_ERR(("bound size: %ux%u > open settings memory alloc size: %ux%u",
-            pSettings->bounds.inputDimension.max.width, pSettings->bounds.inputDimension.max.height,
-            encoder->openSettings.memoryConfig.maxWidth, encoder->openSettings.memoryConfig.maxHeight));
+    maxWidth = encoder->openSettings.memoryConfig.maxWidth;
+    maxHeight = encoder->openSettings.memoryConfig.maxHeight;
+    if (pSettings->interlaced && maxHeight == 720) {
+        maxWidth = 720;
+        maxHeight = 576;
+    }
+    if(pSettings->interlaced &&
+       (pSettings->bounds.inputDimension.maxInterlaced.width > maxWidth ||
+        pSettings->bounds.inputDimension.maxInterlaced.height > maxHeight)) {
+        BDBG_ERR(("bound size: %ux%ui > open settings memory alloc size: %ux%u",
+            pSettings->bounds.inputDimension.maxInterlaced.width, pSettings->bounds.inputDimension.maxInterlaced.height, maxWidth, maxHeight));
+        rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);goto error;
+    }
+    if(!pSettings->interlaced &&
+       (pSettings->bounds.inputDimension.max.width > maxWidth ||
+        pSettings->bounds.inputDimension.max.height > maxHeight)) {
+        BDBG_ERR(("bound size: %ux%up > open settings memory alloc size: %ux%u",
+            pSettings->bounds.inputDimension.max.width, pSettings->bounds.inputDimension.max.height, maxWidth, maxHeight));
         rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);goto error;
     }
     startEncodeSettings->stBounds.stDimensions.stMax.uiWidth = pSettings->bounds.inputDimension.max.width;
@@ -1344,7 +1369,7 @@ error:
    return rc;
 }
 
-NEXUS_Error NEXUS_VideoEncoder_GetBufferBlocks_priv(NEXUS_VideoEncoderHandle encoder, BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock)
+NEXUS_Error NEXUS_VideoEncoder_GetBufferBlocks_priv(NEXUS_VideoEncoderHandle encoder, BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock, BMMA_Block_Handle *phIndexBufferBlock)
 {
     NEXUS_Error rc;
     BAVC_VideoBufferStatus bufferStatus;
@@ -1355,7 +1380,35 @@ NEXUS_Error NEXUS_VideoEncoder_GetBufferBlocks_priv(NEXUS_VideoEncoderHandle enc
 
     *phFrameBufferBlock = bufferStatus.stCommon.hFrameBufferBlock;
     *phMetadataBufferBlock = bufferStatus.stCommon.hMetadataBufferBlock;
+    *phIndexBufferBlock = bufferStatus.stCommon.hIndexBufferBlock;
     return NEXUS_SUCCESS;
+}
+
+NEXUS_Error
+NEXUS_VideoEncoder_GetBufferRegisters_priv(NEXUS_VideoEncoderHandle encoder, NEXUS_VideoEncoderRegisters_priv *pRegisters_priv)
+{
+    NEXUS_Error rc;
+    BAVC_VideoBufferStatus bufferStatus;
+
+    NEXUS_ASSERT_MODULE();
+    BKNI_Memset(&bufferStatus, 0, sizeof(bufferStatus));
+    rc = BVCE_Channel_Output_GetBufferStatus(encoder->enc, &bufferStatus);
+    if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); goto error;}
+    BDBG_MODULE_MSG(nexus_video_encoder_status, ("base addr@%p : metadata base addr@%p", bufferStatus.stCommon.pFrameBufferBaseAddress, bufferStatus.stCommon.pMetadataBufferBaseAddress));
+    pRegisters_priv->data.read = bufferStatus.stCommon.stCDB.uiRead;
+    pRegisters_priv->data.base = bufferStatus.stCommon.stCDB.uiBase;
+    pRegisters_priv->data.valid = bufferStatus.stCommon.stCDB.uiValid;
+    pRegisters_priv->data.end = bufferStatus.stCommon.stCDB.uiEnd;
+    pRegisters_priv->data.ready = bufferStatus.stCommon.bReady;
+    pRegisters_priv->index.read = bufferStatus.stCommon.stITB.uiRead;
+    pRegisters_priv->index.base = bufferStatus.stCommon.stITB.uiBase;
+    pRegisters_priv->index.valid = bufferStatus.stCommon.stITB.uiValid;
+    pRegisters_priv->index.end = bufferStatus.stCommon.stITB.uiEnd;
+    pRegisters_priv->index.ready = bufferStatus.stCommon.bReady;
+
+    return NEXUS_SUCCESS;
+error:
+    return BERR_TRACE(rc);
 }
 
 NEXUS_Error

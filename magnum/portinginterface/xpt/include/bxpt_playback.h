@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,7 +51,10 @@ Overview
 #if BXPT_HAS_MULTICHANNEL_PLAYBACK
 #else
 #ifndef BXPT_FOR_BOOTUPDATER
+#include "bchp_common.h"
+#ifdef BCHP_XPT_PB0_REG_START
     #include "bchp_xpt_pb0.h"
+#endif
 #endif
 #endif
 
@@ -332,7 +335,9 @@ BXPT_Playback_PackHdr_Config;
 
 #if BXPT_HAS_MULTICHANNEL_PLAYBACK
 typedef struct BXPT_P_GpcInfo *BXPT_Playback_PacingCounter;
+#endif
 
+#if 0   /* SWSTB-8716 and SWSTB-7671: These APIs aren't being used. */
 /*
 The skip/repeat feature allows the pacing counter to be run at a faster or slower rate.
 Depending on the mode, when the pacing counter has incremented a given number of times, it
@@ -607,23 +612,6 @@ BXPT_Playback_ChannelPacketSettings;
 
 /***************************************************************************
 Summary:
-Return the number of playback channels.
-
-Description:
-For the given transport core, return the number of playback channels that is
-supported.
-
-Returns:
-    BERR_SUCCESS                - Retrieved address from hardware.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-****************************************************************************/
-BERR_Code BXPT_Playback_GetTotalChannels(
-    BXPT_Handle hXpt,           /* [in] Handle for this transport */
-    unsigned int *TotalChannels     /* [out] The number of playback channels. */
-    );
-
-/***************************************************************************
-Summary:
 Return the playback channel default settings.
 
 Description:
@@ -709,6 +697,7 @@ BERR_Code BXPT_Playback_GetChannelSettings(
     BXPT_Playback_ChannelSettings *ChannelSettings /* [out] The current settings  */
     );
 
+#ifdef ENABLE_PLAYBACK_MUX
 /***************************************************************************
 Summary:
 Set the current channel packet settings.
@@ -725,6 +714,7 @@ BERR_Code BXPT_Playback_SetChannelPacketSettings(
     BXPT_Playback_Handle hPb,                                  /* [in] Handle for the playback channel. */
     const BXPT_Playback_ChannelPacketSettings *ChannelSettings /* [in] New settings to use */
     );
+#endif
 
 #if FOO
 /***************************************************************************
@@ -784,85 +774,6 @@ BERR_Code BXPT_Playback_GetCurrentDescriptorAddress(
     BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
     BXPT_PvrDescriptor **LastDesc       /* [in] Address of the current descriptor. */
     );
-
-/***************************************************************************
-Summary:
-Return the address of the next byte to written in a Record descriptor buffer.
-
-Description:
-For a given Playback channel, get the address of the next data access to the
-currently used buffer. The access is the next 32 word that will be read.
-
-Returns:
-    BERR_SUCCESS                - Retrieved address from hardware.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-****************************************************************************/
-BERR_Code BXPT_Playback_GetCurrentBufferAddress(
-    BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
-    uint32_t *Address                       /* [out] The address read from hardware. */
-    );
-#endif
-
-/***************************************************************************
-Summary:
-Create a playback linked-list descriptor.
-
-Description:
-Initialize the contents of a playback descriptor. The caller passes in the
-starting address of the buffer that the descriptor will point to, along with
-the length of that buffer.
-
-The caller specifies if an interrupt should be generated when the
-hardware has finished processing the contents of the descriptor's
-buffer. The caller also specifies if the sync extraction engine should
-enter the re-sync state before processing the contents of the buffer.
-
-The memory for the descriptor must be allocated by the caller, and must
-start on a 16-byte boundary.
-
-Since descriptors are usually used in chains, the function allows the
-descriptor's NextDescAddr to be initialized along with the rest of the
-fields. This next descriptor does not have to be initialized itself. The
-address must meet the 16-byte boundary requirement.
-
-Returns:
-    BERR_SUCCESS                - Descriptor initialized successfully.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-****************************************************************************/
-BERR_Code BXPT_Playback_CreateDesc(
-    BXPT_Handle hXpt,                       /* [in] Handle for this transport */
-    BXPT_PvrDescriptor * const Desc,        /* [in] Descriptor to initialize */
-    uint8_t *Buffer,                        /* [in] Data buffer. */
-    uint32_t BufferLength,                  /* [in] Size of buffer (in bytes). */
-    bool IntEnable,                         /* [in] Interrupt when done? */
-    bool ReSync,                            /* [in] Re-sync extractor engine? */
-    BXPT_PvrDescriptor * const NextDesc     /* [in] Next descriptor, or NULL */
-    );
-
-#if BXPT_HAS_MULTICHANNEL_PLAYBACK
-/*
-** Multichannel playback hw supports buffers located above the 4GB boundary.
-*/
-typedef struct
-{
-    BXPT_PvrDescriptor *Desc;        /* [in] Descriptor to initialize */
-    BMMA_DeviceOffset Buffer;               /* [in] Data buffer. */
-    uint32_t BufferLength;                  /* [in] Size of buffer (in bytes). */
-    bool IntEnable;                         /* [in] Interrupt when done? */
-    bool ReSync;                            /* [in] Re-sync extractor engine? */
-    BXPT_PvrDescriptor *NextDesc;    /* [in] Next descriptor, or NULL */
-}
-BXPT_Playback_ExtendedDescSettings;
-
-void BXPT_Playback_GetDefaultDescSettings(
-    BXPT_Handle hXpt,                                   /* [in] Handle for this transport */
-    BXPT_Playback_ExtendedDescSettings *settings        /* [out] Settings. */
-    );
-
-BERR_Code BXPT_Playback_CreateExtendedDesc(
-    BXPT_Handle hXpt,                       /* [in] Handle for this transport */
-    const BXPT_Playback_ExtendedDescSettings *settings /* [in] Settings. */
-    );
 #endif
 
 #ifdef ENABLE_PLAYBACK_MUX
@@ -885,23 +796,6 @@ void BXPT_Playback_SetDescBuf(
     uint32_t BufferLength                   /* [in] Size of buffer (in bytes). */
     );
 #endif /*ENABLE_PLAYBACK_MUX*/
-
-/***************************************************************************
-Summary:
-Mark the descriptor as the last one on a linked list.
-
-Description:
-For the given descriptor, set the flag to indicate that this is the last
-descriptor on a linked-list chain. This function can be used with 4 supported
-types of descriptors: playback, record, startcode detect, and packet sub.
-
-Returns:
-    void
-****************************************************************************/
-void BXPT_SetLastDescriptorFlag(
-    BXPT_Handle hXpt,                       /* [in] Handle for this transport */
-    BXPT_PvrDescriptor * const Desc     /* [in] Descriptor to initialize */
-    );
 
 /***************************************************************************
 Summary:
@@ -1026,46 +920,6 @@ Returns:
 BERR_Code BXPT_Playback_SetBitRate(
     BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
     uint32_t BitRate                        /* [in] Rate, in bits per second. */
-    );
-
-/***************************************************************************
-Summary:
-Determine if this descriptor is on the head of a playback linked list.
-
-Description:
-Determine if the current descriptor being processed by the record channel is
-the first on the channel's chain (which means this descriptor is still being
-used). If the playback channel is still 'busy', the size of the
-descriptor's buffer is also returned.
-
-Returns:
-    BERR_SUCCESS                - Record channel flushed successfully.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-****************************************************************************/
-BERR_Code BXPT_Playback_CheckHeadDescriptor(
-    BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
-    BXPT_PvrDescriptor *Desc,       /* [in] Descriptor to check. */
-    bool *InUse,                    /* [out] Is descriptor in use? */
-    uint32_t *BufferSize            /* [out] Size of the buffer (in bytes). */
-    );
-
-/***************************************************************************
-Summary:
-Return the user bits of the last timestamp seen by the playback engine.
-
-Description:
-In some configurations, the upper 2 bits of the packet's recorded timestamp
-may be user-programmable. This function will return the upper 2 bits of the
-last timestamp seen by the playback engine, shifted down to align with bit
-0.
-
-Returns:
-    BERR_SUCCESS                - Retrieved address from hardware.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-****************************************************************************/
-BERR_Code BXPT_Playback_GetTimestampUserBits(
-    BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
-    unsigned int *Bits                          /* [out] The user bits read from hardware. */
     );
 
 /***************************************************************************
@@ -1339,6 +1193,7 @@ void BXPT_Playback_FreePacingCounter(
     );
 #endif
 
+#if BXPT_HAS_TSMUX
 /***************************************************************************
 Description:
 
@@ -1369,6 +1224,7 @@ void BXPT_Playback_SetDescriptorFlags(
     BXPT_PvrDescriptor *desc,
     const BXPT_PvrDescriptorFlags *flags
     );
+#endif
 
 /***************************************************************************
 Description:
@@ -1401,8 +1257,10 @@ BERR_Code BXPT_Playback_GetLastCompletedDataAddress(
 uint32_t BXPT_Playback_P_ReadReg( BXPT_Playback_Handle PlaybackHandle, uint32_t Pb0RegAddr );
 void BXPT_Playback_P_WriteReg( BXPT_Playback_Handle PlaybackHandle, uint32_t Pb0RegAddr, uint32_t RegVal );
 
+#if BXPT_HAS_TSMUX
 unsigned BXPT_Playback_P_GetBandId( BXPT_Playback_Handle hPb );
 void BXPT_Playback_P_SetBandId( BXPT_Playback_Handle hPb, unsigned NewBandId );
+#endif
 
 #if BXPT_HAS_MULTICHANNEL_PLAYBACK
 void BXPT_Playback_P_Init(

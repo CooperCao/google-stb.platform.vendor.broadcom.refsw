@@ -63,7 +63,7 @@ typedef enum NEXUS_DisplayAspectRatio
 
 /**
 Summary:
-DAC's avaliable for the analog outputs
+DAC's available for the analog outputs
 **/
 typedef enum NEXUS_VideoDac
 {
@@ -505,7 +505,8 @@ typedef enum NEXUS_DeinterlacerMode
 typedef enum NEXUS_VideoWindowSizeLimit
 {
     NEXUS_VideoWindowSizeLimit_eAuto,
-    NEXUS_VideoWindowSizeLimit_eQuarter,
+    NEXUS_VideoWindowSizeLimit_eQuarter, /* reduce memory to quarter screen even though RTS could do full screen */
+    NEXUS_VideoWindowSizeLimit_eFull,  /* increase memory to full screen from legacy settings which defaulted to quarter screen */
     NEXUS_VideoWindowSizeLimit_eMax
 } NEXUS_VideoWindowSizeLimit;
 

@@ -662,7 +662,7 @@ The following comments apply to NEXUS_Display_WriteTeletext and the PAL display 
 
 Teletext goes out on VBI lines 5..24. This is 20 lines.
 The VBI PI has a hardcoded BVBI_TT_MAX_LINES, which is 18. Nexus uses this number.
-The VBI PI's BVBI_TT_Line[0] corresponds to VBI line 5, BVBI_TT_Line[19] correponds to VBI line 24.
+The VBI PI's BVBI_TT_Line[0] corresponds to VBI line 5, BVBI_TT_Line[19] corresponds to VBI line 24.
 VBI line 5 must be skipped because the HW does not support it. TT_START_OFFSET specifies that 1 must be skipped.
     Apparently 5,6&7 had to be skipped on a 3563.
 If VPS is enabled, VBI line 16 must be skipped.

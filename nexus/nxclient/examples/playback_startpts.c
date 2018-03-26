@@ -81,7 +81,7 @@ static void first_pts_passed(void *context, int param)
 }
 #endif
 
-int main(int argc, char **argv)
+int main(void)
 {
     NxClient_AllocSettings allocSettings;
     NxClient_AllocResults allocResults;
@@ -97,15 +97,8 @@ int main(int argc, char **argv)
     NEXUS_SimpleVideoDecoderStartSettings videoProgram;
     NEXUS_SimpleStcChannelHandle stcChannel;
     NEXUS_Error rc;
-    NEXUS_SurfaceClientHandle surfaceClient, videoSurfaceClient;
-    unsigned i = 0;
     NEXUS_VideoDecoderSettings videoDecoderSettings;
     NEXUS_SimpleStcChannelSettings stcSettings;
-
-    if (argc > 1) {
-        /* start at a scenario */
-        i = atoi(argv[1]);
-    }
 
     rc = NxClient_Join(NULL);
     if (rc) return -1;
@@ -133,19 +126,7 @@ int main(int argc, char **argv)
     playbackSettings.playpumpSettings.transportType = TRANSPORT_TYPE;
     NEXUS_Playback_SetSettings(playback, &playbackSettings);
 
-    if (allocResults.simpleVideoDecoder[0].id) {
-        videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
-    }
-    if (allocResults.surfaceClient[0].id) {
-        /* surfaceClient is the top-level graphics window in which video will fit.
-        videoSurfaceClient must be "acquired" to associate the video window with surface compositor.
-        Graphics do not have to be submitted to surfaceClient for video to work, but at least an
-        "alpha hole" surface must be submitted to punch video through other client's graphics.
-        Also, the top-level surfaceClient ID must be submitted to NxClient_ConnectSettings below. */
-        surfaceClient = NEXUS_SurfaceClient_Acquire(allocResults.surfaceClient[0].id);
-        videoSurfaceClient = NEXUS_SurfaceClient_AcquireVideoWindow(surfaceClient, 0);
-        BSTD_UNUSED(videoSurfaceClient);
-    }
+    videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
 
     NxClient_GetDefaultConnectSettings(&connectSettings);
     connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;

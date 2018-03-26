@@ -1388,6 +1388,7 @@ const BDSP_Raaga_Audio_MixerDapv2ConfigParams  BDSP_sDefMixerDapv2ConfigParams =
         -1,                             /*i32DialogEnhancerSpeechConfidence*/
         -1,                             /*i32SurroundCompressorMusicConfidence*/
     },
+    0                                    /*ui32ChannelLockModeEnable*/
 };
 
 const BDSP_Raaga_Audio_VocalPPConfigParams BDSP_sDefVocalPPConfigSettings =
@@ -1539,8 +1540,8 @@ const BDSP_Raaga_Audio_DpcmrConfigParams BDSP_sDefDpcmrConfigSettings=
             1,           /*compressor_profile*/
         0,
         0,
-        0,
         0
+
 };
 
 
@@ -1549,44 +1550,44 @@ const BDSP_Raaga_Audio_DDPEncConfigParams		BDSP_sDefDdpencConfigSettings=
 	{0,1,2,3,4,5,6,7},	/* Input channel routing */
 	8,					/* Encoder Mode */
 	7,					/* Audio Coding Mode */
-	0,					/* Center Mix Level, not set */
+	3,					/* Center Mix Level, not set */
 	31,					/* Dialnorm */
 	31,					/* Dialnorm Channel 2 */
 	0,					/* Dolby Surround Mode */
-	1,					/* LFE Enable*/
+	0,					/* LFE Enable*/
 	0,					/* Evolution Metadata Availability Flag (Mode 8 DDP Only) */
-	0,					/* Surround Mix Level, not set  */
-	1,					/* 90 Degree Phase Shift Filter */
+	3,					/* Surround Mix Level, not set  */
+	0,					/* 90 Degree Phase Shift Filter */
 	640,				/* Datarate */
 	0,					/* Preferred Stereo Downmix Mode (Mode 8 DDP Only) */
-	4,					/* LtRt Center Mix Level (Mode 8 DDP Only), not set  */
-	4,					/* LtRt Surround Mix Level (Mode 8 DDP Only), not set  */
-	4,					/* LoRo Center Mix Level, not set  */
-	4,					/* LoRo Surround Mix Level, not set  */
+	8,					/* LtRt Center Mix Level (Mode 8 DDP Only), not set  */
+	8,					/* LtRt Surround Mix Level (Mode 8 DDP Only), not set  */
+	8,					/* LoRo Center Mix Level, not set  */
+	8,					/* LoRo Surround Mix Level, not set  */
 	0,					/* Dolby EX Mode (Mode 8 DDP Only) */
 	0,					/* Dolby Headphone Mode (Mode 8 DDP Only) */
 	0,					/* A/D Converter Type (Mode 8 DDP Only) */
 	0,					/* Send Audio Production Info */
 	0,					/* Send Audio Production Info Channel 2 */
-	80,					/* Audio production mixing level */
-	80,					/* Audio production mixing level Channel 2 */
+	105,					/* Audio production mixing level */
+	105,					/* Audio production mixing level Channel 2 */
 	1,					/* Copyright flag */
 	1,					/* Original Bitstream flag */
 	0,					/* Bitstream Mode */
-	0,					/* Audio production room type */
-	0,					/* Audio production room type Channel 2 */
+	2,					/* Audio production room type */
+	3,					/* Audio production room type Channel 2 */
 	0,					/* Additional Bitstream Information */
 	0,					/* Dolby Certification Flag */
 	0,					/* Enable Low Complexity Encoding */
 	33,					/* Intelligent loudness payloads only passed through by default */
-	0,					/* SPDIF Packing */
+	1,					/* SPDIF Packing */
 	0,					/* Encoder Variant MS12 or MS11 */
 	{0},				/* Additional Bitstream Information String */
 	0,					/* Atmos Lock */
-	0,
-	{0},				/* drc1 */
-	0,
-	{0},				/* drc2 */
+	0,                  /* External DRC data for the first dual mono program present or not */
+	{0},				/* External DRC data for the first dual mono program */
+	0,					/* External DRC data for the second dual mono program present or not */
+	{0},				/* External DRC data for the second dual mono program */
 	1,                  /* pcm_aligned_flag if 0, disable input PCM alignment to frame boundary (default enabled) */
 	1,                  /* converter_snr_offset (default enabled) */
 	0                   /* '-di' is specified and downmix input exists '*/

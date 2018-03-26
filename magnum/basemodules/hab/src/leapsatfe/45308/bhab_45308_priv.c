@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -692,8 +692,9 @@ BERR_Code BHAB_45308_P_ReadMemory(BHAB_Handle h, uint32_t start_addr, uint8_t *b
 
 #if 0
    bIsRunning = BHAB_45308_P_IsLeapRunning(h);
-   if (bIsRunning && ((addr < BCHP_LEAP_HAB_MEM_WORDi_ARRAY_BASE) || (addr & 0x80000000)))
+   if (bIsRunning && (addr < 0x8000))
    {
+      /* read ROM */
       /* make sure addr and length is 4-byte aligned */
       if ((start_addr & 0x03) || (n & 0x03))
          return BERR_INVALID_PARAMETER;
@@ -771,8 +772,22 @@ BERR_Code BHAB_45308_P_ReadMemory(BHAB_Handle h, uint32_t start_addr, uint8_t *b
          }
 
          BHAB_CHK_RETCODE(BHAB_45308_P_ReadBbsi(h, BCHP_CSR_RBUS_DATA0, i2c_buf, 4));
-         for (j = 0; (j < 4) && (buf_idx < n); j++)
-            buf[buf_idx++] = i2c_buf[j];
+#if 0
+         if ((n - buf_idx) < 4)
+         {
+BDBG_ERR(("BHAB_ReadMemory leftover: %u, %u, %u, %u", i2c_buf[0], i2c_buf[1], i2c_buf[2], buf[3]));
+            buf[buf_idx++] = i2c_buf[3];
+            if (n >= 2)
+               buf[buf_idx++] = i2c_buf[2];
+            if (n >= 3)
+               buf[buf_idx++] = i2c_buf[1];
+         }
+         else
+#endif
+         {
+            for (j = 0; (j < 4) && (buf_idx < n); j++)
+               buf[buf_idx++] = i2c_buf[j];
+         }
       }
    }
 

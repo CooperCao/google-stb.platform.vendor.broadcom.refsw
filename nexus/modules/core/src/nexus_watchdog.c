@@ -58,6 +58,11 @@ struct NEXUS_WatchdogCallback
     BLST_S_ENTRY(NEXUS_WatchdogCallback) link;
 };
 
+struct NEXUS_Watchdog
+{
+    NEXUS_OBJECT(NEXUS_Watchdog);
+};
+
 static struct {
     bool started;
     unsigned timeout;
@@ -66,24 +71,63 @@ static struct {
     bool stopTimerOnDestroy;
 } g_watchdog;
 
+static NEXUS_WatchdogHandle g_watchdogInterface;
+
 static void NEXUS_Watchdog_P_ReadResetHistory(void);
 
 void NEXUS_Watchdog_P_Init(void)
 {
+    NEXUS_Error rc;
     BKNI_Memset(&g_watchdog, 0, sizeof(g_watchdog));
     g_watchdog.stopTimerOnDestroy = true;
     NEXUS_Watchdog_P_ReadResetHistory();
     /* must issue magic stop sequence to get control again */
-    NEXUS_Watchdog_StopTimer();
+    rc = NEXUS_WatchdogInterface_StopTimer(g_watchdogInterface);
+    if (rc) BERR_TRACE(rc); /* keep going */
 }
 
 void NEXUS_Watchdog_P_Uninit(void)
 {
     if(g_watchdog.stopTimerOnDestroy) {
-        NEXUS_Watchdog_StopTimer();
+        NEXUS_Error rc;
+        rc = NEXUS_WatchdogInterface_StopTimer(g_watchdogInterface);
+        if (rc) BERR_TRACE(rc); /* keep going */
     }
     BKNI_Memset(&g_watchdog, 0, sizeof(g_watchdog));
 }
+
+NEXUS_WatchdogHandle NEXUS_WatchdogInterface_Open( unsigned index )
+{
+    if (g_watchdogInterface) {
+        BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        return NULL;
+    }
+    if (index != 0) {
+        BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        return NULL;
+    }
+    g_watchdogInterface = BKNI_Malloc(sizeof(*g_watchdogInterface));
+    if (!g_watchdogInterface) {
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        return NULL;
+    }
+    NEXUS_OBJECT_INIT(NEXUS_Watchdog, g_watchdogInterface);
+    return g_watchdogInterface;
+}
+
+static void NEXUS_Watchdog_P_Finalizer( NEXUS_WatchdogHandle watchdog )
+{
+    if(g_watchdog.stopTimerOnDestroy) {
+        NEXUS_Error rc;
+        rc = NEXUS_WatchdogInterface_StopTimer(watchdog);
+        if (rc) BERR_TRACE(rc); /* keep going */
+    }
+    NEXUS_OBJECT_DESTROY(NEXUS_Watchdog, g_watchdogInterface);
+    BKNI_Free(watchdog);
+    g_watchdogInterface = NULL;
+}
+
+NEXUS_OBJECT_CLASS_MAKE(NEXUS_Watchdog, NEXUS_WatchdogInterface_Close);
 
 static void nexus_p_watchdog_isr(void *context, int param)
 {
@@ -112,8 +156,12 @@ static void nexus_watchdog_p_stop_callback(void)
     }
 }
 
-NEXUS_Error NEXUS_Watchdog_SetTimeout(unsigned timeout)
+NEXUS_Error NEXUS_WatchdogInterface_SetTimeout(NEXUS_WatchdogHandle watchdog, unsigned timeout)
 {
+    if (!watchdog && g_watchdogInterface) {
+        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+    }
+
     if (g_watchdog.started) { /* the HW already protects against this, but it doesn't hurt to stop it in SW */
         BDBG_ERR(("NEXUS_Watchdog_SetTimeout: Timeout cannot be set while timer is counting"));
         return BERR_TRACE(NEXUS_NOT_INITIALIZED);
@@ -136,8 +184,12 @@ NEXUS_Error NEXUS_Watchdog_SetTimeout(unsigned timeout)
     return NEXUS_SUCCESS;
 }
 
-NEXUS_Error NEXUS_Watchdog_StartTimer(void)
+NEXUS_Error NEXUS_WatchdogInterface_StartTimer(NEXUS_WatchdogHandle watchdog)
 {
+    if (!watchdog && g_watchdogInterface) {
+        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+    }
+
     if (g_watchdog.timeout==0) {
         BDBG_ERR(("NEXUS_Watchdog_StartTimer: Timeout value was not previously set"));
         return BERR_TRACE(NEXUS_NOT_INITIALIZED);
@@ -161,8 +213,12 @@ NEXUS_Error NEXUS_Watchdog_StartTimer(void)
     return NEXUS_SUCCESS;
 }
 
-NEXUS_Error NEXUS_Watchdog_StopTimer(void)
+NEXUS_Error NEXUS_WatchdogInterface_StopTimer(NEXUS_WatchdogHandle watchdog)
 {
+    if (!watchdog && g_watchdogInterface) {
+        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+    }
+
     /* allow already-stopped timer to re-issue stop. needed for re-init system. */
     /* magic stop sequence */
     BREG_Write32(g_NexusCore.publicHandles.reg, BCHP_TIMER_WDCMD, 0xee00);

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -98,7 +98,9 @@ BERR_Code BASP_Context_Create(
     BKNI_Memset(hContext, 0, sizeof(*hContext));
     BDBG_OBJECT_SET(hContext, BASP_P_Context);
 
+    BKNI_EnterCriticalSection();
     BLST_S_INSERT_HEAD(&hAsp->contextList, hContext, nextContext);
+    BKNI_LeaveCriticalSection();
 
     hContext->sCreateSettings = *pSettings;
     hContext->hAsp = hAsp;
@@ -129,7 +131,9 @@ void BASP_Context_Destroy(
     BDBG_LOG(("hContext entry =%p", (void *)hContext));
 
     /* Unlink from device's context list. */
+    BKNI_EnterCriticalSection();
     BLST_S_REMOVE(&hContext->hAsp->contextList, hContext, BASP_P_Context, nextContext);
+    BKNI_LeaveCriticalSection();
     BDBG_OBJECT_DESTROY(hContext, BASP_P_Context);
 
     /* Free memory. */

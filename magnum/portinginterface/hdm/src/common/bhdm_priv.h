@@ -78,8 +78,10 @@
 #include "bchp_aon_hdmi_tx.h"
 #include "bchp_hdmi_tx_intr2.h"
 #include "bchp_int_id_hdmi_tx_intr2.h"
+#ifdef BCHP_AON_PM_L2_REG_START
 #include "bchp_int_id_aon_pm_l2.h"
 #include "bchp_int_id_aon_l2.h"
+#endif
 #else
 #include "bchp_hdmi_intr2.h"
 #include "bchp_int_id_hdmi_intr2.h"
@@ -102,7 +104,14 @@
 #include "bhdm_auto_i2c_priv.h"
 #include "bhdm_scdc.h"
 
+#ifdef BCHP_BSC_REG_START
+#include "bchp_bsc.h"
+#include "bott_i2c_rdb_map.h"
+#endif
+
+#ifdef BCHP_BSCA_REG_START
 #include "bchp_bsca.h"
+#endif
 #include "bchp_hdmi_tx_auto_i2c.h"
 #include "bchp_int_id_hdmi_tx_hae_intr2_0.h"
 #include "bchp_int_id_hdmi_tx_scdc_intr2_0.h"
@@ -508,6 +517,7 @@ typedef struct BHDM_P_Handle
 
 	BTMR_TimerHandle TimerStatusMonitor ;
 	BHDM_MONITOR_Status MonitorStatus ;
+	BHDM_MONITOR_TxHwStatusExtra stMonitorTxHwStatusExtra ;
 
 	bool HpdTimerEnabled ;
 #endif

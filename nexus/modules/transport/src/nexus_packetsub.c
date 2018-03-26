@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -409,7 +409,7 @@ NEXUS_Error NEXUS_PacketSub_GetBuffer( NEXUS_PacketSubHandle packetSub, void **p
 {
     BDBG_OBJECT_ASSERT(packetSub, NEXUS_PacketSub);
 
-    /* there must be buffer space and a spare desciptor */
+    /* there must be buffer space and a spare descriptor */
     BKNI_EnterCriticalSection();
     if (!BFIFO_WRITE_AVAILABLE(packetSub->desc.wptr, packetSub->desc.rptr, packetSub->desc.size, 1) ||
         !BFIFO_WRITE_AVAILABLE(packetSub->wptr, packetSub->rptr, packetSub->size, 4)) {

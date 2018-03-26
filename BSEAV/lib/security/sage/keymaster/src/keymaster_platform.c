@@ -92,15 +92,17 @@ static ChipType_e Keymaster_P_GetChipType(void);
 
 BERR_Code
 Keymaster_ModuleInit(Keymaster_ModuleId_e module_id,
-                   const char * drm_bin_filename,
-                   BSAGElib_InOutContainer *container,
-                   SRAI_ModuleHandle *moduleHandle)
+                     const char * drm_bin_filename,
+                     BSAGElib_InOutContainer *container,
+                     SRAI_ModuleHandle *moduleHandle,
+                     SRAI_ModuleHandle *ssdModuleHandle)
 {
     BERR_Code rc = BERR_SUCCESS;
     uint32_t filesize_from_header = 0;
     uint32_t filesize = 0;
     BERR_Code sage_rc = BERR_SUCCESS;
     SRAI_ModuleHandle tmpModuleHandle = NULL;
+    SRAI_ModuleHandle tmpSsdModuleHandle = NULL;
 #if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
     char ta_bin_filename[256];
 #endif
@@ -191,6 +193,19 @@ Keymaster_ModuleInit(Keymaster_ModuleId_e module_id,
     }
 
     Keymaster_ModuleCounter++;
+
+    if (ssdModuleHandle)
+    {
+        /* We need to init the SSD handle - for keymaster but not gatekeeper */
+        rc = SRAI_Module_Init(platformHandle, SSD_ModuleId_eClient, container,
+                              &tmpSsdModuleHandle);
+        if ((rc != BERR_SUCCESS) || (container->basicOut[0] != BERR_SUCCESS))
+        {
+            /* Ignore this error - RPMB will be disabled in Keymaster */
+            BDBG_WRN(("%s: Error initialising SSD Client Module (ignored)", BSTD_FUNCTION));
+            tmpSsdModuleHandle = NULL;
+        }
+    }
 
     /* if module uses a bin file - read it and add it to the container */
     if(drm_bin_filename != NULL)
@@ -310,6 +325,9 @@ Keymaster_ModuleInit(Keymaster_ModuleId_e module_id,
 
     /* success */
     *moduleHandle = tmpModuleHandle;
+    if (ssdModuleHandle) {
+        *ssdModuleHandle = tmpSsdModuleHandle;
+    }
 
 ErrorExit:
 
@@ -326,7 +344,7 @@ ErrorExit:
     BKNI_ReleaseMutex(keymasterMutex);
 
     if (rc != BERR_SUCCESS){
-        Keymaster_ModuleUninit(tmpModuleHandle);
+        Keymaster_ModuleUninit(tmpModuleHandle, tmpSsdModuleHandle);
     }
 
 End:
@@ -335,7 +353,7 @@ End:
 }
 
 BERR_Code
-Keymaster_ModuleUninit(SRAI_ModuleHandle moduleHandle)
+Keymaster_ModuleUninit(SRAI_ModuleHandle moduleHandle, SRAI_ModuleHandle ssdModuleHandle)
 {
     BDBG_ENTER(Keymaster_ModuleUninit);
 
@@ -346,6 +364,11 @@ Keymaster_ModuleUninit(SRAI_ModuleHandle moduleHandle)
     if(moduleHandle != NULL){
         BDBG_MSG(("%s - SRAI_Module_Uninit(%p)", BSTD_FUNCTION, (void *)moduleHandle));
         SRAI_Module_Uninit(moduleHandle);
+    }
+
+    if(ssdModuleHandle != NULL){
+        BDBG_MSG(("%s - SRAI_Module_Uninit(%p)", BSTD_FUNCTION, (void *)ssdModuleHandle));
+        SRAI_Module_Uninit(ssdModuleHandle);
     }
 
     /* sanity check */

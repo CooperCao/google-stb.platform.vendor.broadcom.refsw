@@ -49,5 +49,7 @@ KEYMASTER_INCLUDES := ${KEYMASTER_TOP}/include \
 
 KEYMASTER_SOURCES := ${KEYMASTER_TOP}/src/keymaster_tl.c \
                    ${KEYMASTER_TOP}/src/keymaster_tags.c \
-                   ${KEYMASTER_TOP}/src/keymaster_platform.c
+                   ${KEYMASTER_TOP}/src/keymaster_platform.c \
+                   ${KEYMASTER_TOP}/src/gatekeeper_tl.c
+
 KEYMASTER_LDFLAGS := -lsage_keymaster

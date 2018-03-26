@@ -107,7 +107,7 @@ Description:
 In 3DTV, the default configuration dictates that the left buffer from source is routed
 to the left buffer of the display and the right buffer from source is routed to the
 right buffer of the display.
-This default can be overriden such that either the left or right source buffer is
+This default can be overridden such that either the left or right source buffer is
 routed to both display buffers.
 
 This enum is only effective when both the source and display are configured in 3D.

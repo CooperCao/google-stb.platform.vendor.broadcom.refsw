@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,29 +57,29 @@ typedef enum eNotification
     eNotify_KeyClick,       /* keypress - key click event */
     eNotify_VirtualKeyDown, /* keypress - fake remote key pressed down */
 
-    eNotify_Tune,                /* command  - tune */
-    eNotify_ChUp,                /* command  - change channel up */
-    eNotify_ChDown,              /* command  - change channel down */
-    eNotify_ScanStart,           /* command  - start channel scan */
-    eNotify_ScanStop,            /* command  - stop channel scan */
-    eNotify_PlaybackListDump,    /* command  - dump playback list */
-    eNotify_PlaybackStart,       /* command  - start a playback */
-    eNotify_PlaybackStop,        /* command  - stop a playback */
-    eNotify_PlaybackTrickMode,   /* command  - do trickmode playback */
-    eNotify_SetVolume,           /* command  - change volume level */
-    eNotify_SetMute,             /* command  - change mute state */
-    eNotify_RecordStart,         /* command  - start a record */
-    eNotify_RecordStop,          /* command  - stop a record */
-    eNotify_EncodeStart,         /* command  - start an encode */
-    eNotify_EncodeStop,          /* command  - stop an encode */
-    eNotify_RefreshPlaybackList, /* command  - stop a playback */
-    eNotify_ChannelListLoad,     /* command  - load channel list */
-    eNotify_ChannelListSave,     /* command  - save channel list */
-    eNotify_ChannelListDump,     /* command  - dump channel list */
-    eNotify_GetChannelStats,     /* command  - get Channel Stats */
+    eNotify_Tune,                    /* command  - tune */
+    eNotify_ChUp,                    /* command  - change channel up */
+    eNotify_ChDown,                  /* command  - change channel down */
+    eNotify_ScanStart,               /* command  - start channel scan */
+    eNotify_ScanStop,                /* command  - stop channel scan */
+    eNotify_PlaybackListDump,        /* command  - dump playback list */
+    eNotify_PlaybackStart,           /* command  - start a playback */
+    eNotify_PlaybackStop,            /* command  - stop a playback */
+    eNotify_PlaybackTrickMode,       /* command  - do trickmode playback */
+    eNotify_SetVolume,               /* command  - change volume level */
+    eNotify_SetMute,                 /* command  - change mute state */
+    eNotify_RecordStart,             /* command  - start a record */
+    eNotify_RecordStop,              /* command  - stop a record */
+    eNotify_EncodeStart,             /* command  - start an encode */
+    eNotify_EncodeStop,              /* command  - stop an encode */
+    eNotify_RefreshPlaybackList,     /* command  - stop a playback */
+    eNotify_ChannelListLoad,         /* command  - load channel list */
+    eNotify_ChannelListSave,         /* command  - save channel list */
+    eNotify_ChannelListDump,         /* command  - dump channel list */
+    eNotify_GetChannelStats,         /* command  - get Channel Stats */
     eNotify_GetCurrentChannelNumber, /* command  - get the current channel number in full screen */
-    eNotify_SetAudioProgram,     /* command  - change current audio pid */
-    eNotify_SetAudioProcessing,  /* command  - change audio processing type */
+    eNotify_SetAudioProgram,         /* command  - change current audio pid */
+    eNotify_SetAudioProcessing,      /* command  - change audio processing type */
 #ifdef CPUTEST_SUPPORT
     eNotify_SetCpuTestLevel, /* command  - change cpu test level */
 #endif
@@ -142,14 +142,14 @@ typedef enum eNotification
     eNotify_SetPlmGraphics, /* command  - set graphics programmable luma mapping enable/disable */
 #endif
 #if BDSP_MS12_SUPPORT
-    eNotify_ShowAudioAc4Presentation,       /* command  - show the given AC4 audio presentation */
-    eNotify_SetAudioAc4Presentation,        /* command  - set the given AC4 audio presentation */
-    eNotify_NextAudioAc4Presentation,       /* command  - set the given AC4 audio to the next available presentation */
-    eNotify_SetAudioAc4Language,            /* command  - set the given AC4 audio language */
-    eNotify_SetAudioAc4Associate,           /* command  - set the given AC4 audio associate */
-    eNotify_SetAudioAc4Priority,            /* command  - set the given AC4 audio priority */
-    eNotify_SetAudioAc4DialogEnhancement,   /* command  - set the given AC4 audio dialog enhancement level */
-#endif
+    eNotify_ShowAudioAc4Presentation,     /* command  - show the given AC4 audio presentation */
+    eNotify_SetAudioAc4Presentation,      /* command  - set the given AC4 audio presentation */
+    eNotify_NextAudioAc4Presentation,     /* command  - set the given AC4 audio to the next available presentation */
+    eNotify_SetAudioAc4Language,          /* command  - set the given AC4 audio language */
+    eNotify_SetAudioAc4Associate,         /* command  - set the given AC4 audio associate */
+    eNotify_SetAudioAc4Priority,          /* command  - set the given AC4 audio priority */
+    eNotify_SetAudioAc4DialogEnhancement, /* command  - set the given AC4 audio dialog enhancement level */
+#endif /* if BDSP_MS12_SUPPORT */
     eNotify_Debug, /* command  - show debug message */
     eNotify_Exit,  /* command  - exit atlas */
 
@@ -166,7 +166,8 @@ typedef enum eNotification
     eNotify_ChannelStateChanged,  /* status   - channel state has changed */
     eNotify_DeferredChannel,      /* status   - deferred channel has changed */
     eNotify_ScanStarted,          /* status   - scan has started */
-    eNotify_ScanStopped,          /* status   - scan has stopped */
+    eNotify_ScanStopped,          /* status   - all scan threads have stopped */
+    eNotify_ScanFinish,           /* status   - scan thread has stopped */
     eNotify_ScanProgress,         /* status   - scan percent complete */
     eNotify_PlaybackListChanged,  /* status   - playback list updated */
     eNotify_PlaybackStateChanged, /* status   - playback state has changed */
@@ -258,8 +259,8 @@ typedef enum eNotification
     eNotify_AudioAc4AssociateChanged,         /* status   - the current audio AC4 associate has been changed */
     eNotify_AudioAc4PriorityChanged,          /* status   - the current audio AC4 priority has been changed */
     eNotify_AudioAc4DialogEnhancementChanged, /* status   - the current audio AC4 dialog enhancement level has been changed */
-#endif
-    eNotify_ChannelStatsShown,        /* status   - channel stats has been displayed on console */
+#endif /* if BDSP_MS12_SUPPORT */
+    eNotify_ChannelStatsShown, /* status   - channel stats has been displayed on console */
 #if RF4CE_SUPPORT
     eNotify_AddRf4ceRemote,
     eNotify_DisplayRf4ceRemotes,

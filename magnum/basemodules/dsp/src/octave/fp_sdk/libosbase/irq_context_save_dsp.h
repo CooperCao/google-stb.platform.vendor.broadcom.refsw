@@ -82,7 +82,7 @@ typedef struct TX_fullContext
     /** unused. was irq_r61 on interrupt */
     uint64_t u64Spare;
 #else
-#  if !defined(__FP4014_ONWARDS__)  /* !THREADX_LITE, FP2000 machines */
+#  if !__FP4014_ONWARDS__  /* !THREADX_LITE, FP2000 machines */
     /* Store (duplicates of) previous sp and irq_r61 here to aid with debugging
      * (it keeps the stack pointer chain in tact: see PR16160) */
     /** Stack pointer on interrupt */
@@ -139,10 +139,10 @@ typedef struct TX_fullContext
 #define TX_LOOP_COUNT      (TX_fullContext_commonRegisterContext + CS_registerContext_u64DirLoopCount)
 #define TX_LOOP_START      (TX_fullContext_commonRegisterContext + CS_registerContext_u64DirLoop)
 
-#if defined(__FP2006_ONWARDS__) && !defined(__FP4014_ONWARDS__)
+#if defined(__FP2006_ONWARDS__) && !__FP4014_ONWARDS__
 #  define TX_BitfieldExtractCount   (TX_fullContext_commonRegisterContext + CS_bitFieldExtract_count)
 #  define TX_BitfieldCombineCount   (TX_fullContext_commonRegisterContext + CS_bitFieldCombine_count)
-#elif defined(__FP4014_ONWARDS__)
+#elif __FP4014_ONWARDS__
 #  define TX_Bitfield_bcxm          (TX_fullContext_commonRegisterContext + CS_bitFieldState_bcxm)
 #  define TX_Bitfield_bxr           (TX_fullContext_commonRegisterContext + CS_bitFieldState_bxr)
 #  define TX_Bitfield_bcr           (TX_fullContext_commonRegisterContext + CS_bitFieldState_bcr)

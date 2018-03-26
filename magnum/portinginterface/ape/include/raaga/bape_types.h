@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -319,6 +319,8 @@ typedef struct BAPE_BufferDescriptor
         BMMA_Block_Handle block;    /* BMMA block that this memory is tied to */
         void *pBuffer;              /* Buffer base address prior to wraparound */
         void *pWrapBuffer;          /* Buffer address after wraparound (NULL if no wrap has occurred) */
+        BMMA_DeviceOffset offset;   /* Device offset corresponding to pBuffer */
+        BMMA_DeviceOffset wrapOffset; /* Device offset corresponding to pWrapBuffer */
     } buffers[BAPE_Channel_eMax];
 
     unsigned bufferSize;            /* Buffer size before wraparound in bytes */

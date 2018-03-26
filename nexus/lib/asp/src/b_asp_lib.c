@@ -151,7 +151,7 @@ void B_AspChannel_Destroy(
         NEXUS_AspChannel_GetStatus(hAspChannel->hNexusAspChannel, &nexusStatus);
         hAspChannel->socketState.tcpState.seq = nexusStatus.tcpState.finalSendSequenceNumber;
         hAspChannel->socketState.tcpState.ack = nexusStatus.tcpState.finalRecvSequenceNumber;
-        BDBG_WRN(("%s: Updating TCP State: seq=%u ack=%u", BSTD_FUNCTION, hAspChannel->socketState.tcpState.seq, hAspChannel->socketState.tcpState.ack));
+        BDBG_MSG(("%s: hAspChannel=%p Updating TCP State: seq=%u ack=%u", BSTD_FUNCTION, (void *)hAspChannel, hAspChannel->socketState.tcpState.seq, hAspChannel->socketState.tcpState.ack));
     }
 
     /* Offload connection back to Linux */
@@ -162,7 +162,7 @@ void B_AspChannel_Destroy(
 
     /* Close ASP NetFilter Driver. */
     {
-        BDBG_WRN(("%s: Closing ASP NetFilterDriver fd=%d!", BSTD_FUNCTION, hAspChannel->aspNetFilterDrvFd));
+        BDBG_MSG(("%s: hAspChannel=%p Closing ASP NetFilterDriver socketFd=%d!", BSTD_FUNCTION, (void *)hAspChannel, hAspChannel->aspNetFilterDrvFd));
         if (hAspChannel->aspNetFilterDrvFd) close(hAspChannel->aspNetFilterDrvFd);
     }
 
@@ -170,8 +170,8 @@ void B_AspChannel_Destroy(
     {
         if (hAspChannel->hNexusAspChannel) NEXUS_AspChannel_Destroy(hAspChannel->hNexusAspChannel);
     }
-    BKNI_Free(hAspChannel);
     BDBG_WRN(("%s:%p Done!", BSTD_FUNCTION, (void *)hAspChannel));
+    BKNI_Free(hAspChannel);
 }
 
 static int getSwitchPortNumberForAsp(
@@ -216,6 +216,7 @@ static int getSwitchPortNumberForRemoteNode(
     BSTD_UNUSED(pSocketState);
 
     /* On 7278, remote nodes can be behind one of the externally exposed switch ports such as Port#0 (Gphy), Port#1 (RGMII_1), Port#2 (RGMII_2). */
+    /* Or the remote node can also be on the same host (which requires special routing rules to direct the packets to go via the IMP/wifi ports of switch). */
     /* In addition, a remote can also be indirectly connected via the USB Ethernet or PCIe (WIFI). Since these interfaces are not directly connected to the switch, */
     /* ASP interacts to them via the 2nd System Port (called Wifi System Port on 7278). The 2nd system port is designed for this purpose so that */
     /* all ASP <--> WIFI related traffic can be isolated & possibly handled by separate logic in kernel/user space. In such cases, a network bridge is created between the */
@@ -242,8 +243,22 @@ static int getSwitchPortNumberForRemoteNode(
         rc = B_AspChannel_UpdateInterfaceName(pSocketState, &pSocketState->interfaceName[0]);
         BDBG_ASSERT(rc == 0);
     }
+    else if (pSocketState->remoteOnLocalHost)
+    {
+        /* Remote node happens to be on the same host, so we will instead use the interface corresponding to the remote IP. */
+        /* This is needed because the both the BRCM tag (needed for ASP to send frames to the remote via the switch) & */
+        /* CFP rule (needed for remote's frames to be forwarded to ASP port) need the interface associated with the remote. */
+        /* In all non-local cases, the interface associated w/ either bridge (as found above) or to the local interface is the one */
+        /* used to send/receive frames to the remote. */
+        BKNI_Memcpy(pSocketState->masterInterfaceName, pSocketState->interfaceName, sizeof(pSocketState->interfaceName));
+        pSocketState->masterInterfaceIndex = pSocketState->interfaceIndex;
+        BKNI_Memcpy(pSocketState->interfaceName, pSocketState->remoteInterfaceName, sizeof(pSocketState->interfaceName));
+        pSocketState->interfaceIndex = pSocketState->remoteInterfaceIndex;
+    }
     /* We have name of the real interface. Read its port# from phys_port_name entry of sysfs. */
     {
+        BDBG_MSG(("Looking up switch port name for pInterfaceName=%s masterInterfaceName=%s",
+                    pSocketState->interfaceName, pSocketState->masterInterfaceName));
         snprintf(physPortNameProcEntryName, sizeof(physPortNameProcEntryName)-1, "%s%s%s", "/sys/class/net/", pSocketState->interfaceName, "/phys_port_name");
         fp = fopen(physPortNameProcEntryName, "r");
         BDBG_ASSERT(fp);
@@ -251,10 +266,10 @@ static int getSwitchPortNumberForRemoteNode(
         BDBG_ASSERT(bytesRead >= 2);
         rc = fclose(fp);
         BDBG_ASSERT(rc==0);
-        switchPortNumberForRemoteNode = strtol(physPortNameProcEntryValue+1, NULL, 10);
+        switchPortNumberForRemoteNode = (int)strtol(physPortNameProcEntryValue+1, NULL, 10);
     }
 
-    BDBG_WRN(("pInterfaceName=%s masterInterfaceName=%s procEntryName=%s switchPortNumberForRemoteNode=%d",
+    BDBG_MSG(("pInterfaceName=%s masterInterfaceName=%s procEntryName=%s switchPortNumberForRemoteNode=%d",
                 pSocketState->interfaceName, pSocketState->masterInterfaceName, physPortNameProcEntryName, switchPortNumberForRemoteNode));
 
     return switchPortNumberForRemoteNode;
@@ -293,6 +308,7 @@ B_AspChannelHandle B_AspChannel_Create(
     BDBG_ASSERT(pSettings->mode < B_AspStreamingMode_eMax);
     BDBG_ASSERT(pSettings->protocol < B_AspStreamingProtocol_eMax);
 
+    BDBG_MSG(("%s: socketFd=%d", BSTD_FUNCTION, socketFdToOffload));
     if (pSettings->mode == B_AspStreamingMode_eOut && !pSettings->modeSettings.streamOut.hRecpump)
     {
         BDBG_ERR(("%s: Missing parameter: StreamingOut mode requires pSettings->modeSettings.streamOut.hRecpump!", BSTD_FUNCTION));
@@ -314,14 +330,9 @@ B_AspChannelHandle B_AspChannel_Create(
     hAspChannel = BKNI_Malloc(sizeof(B_AspChannel));
     BDBG_ASSERT(hAspChannel);
     BKNI_Memset(hAspChannel, 0, sizeof(B_AspChannel));
+    hAspChannel->aspNetFilterDrvFd = -1;    /* Indicate that fd is not open. */
 
     hAspChannel->createSettings = *pSettings;
-
-    /* Get the local & remote IP Address: Port info associated with this socket. */
-    {
-        rc = B_AspChannel_GetSocketAddrInfo(socketFdToOffload, &hAspChannel->socketState);
-        CHECK_ERR_NZ_GOTO("B_AspChannel_GetSocketAddrInfo() Failed!", rc, error);
-    }
 
     /* Create Nexus ASP object. */
     {
@@ -330,6 +341,14 @@ B_AspChannelHandle B_AspChannel_Create(
         NEXUS_AspChannel_GetDefaultCreateSettings(&createSettings);
         hAspChannel->hNexusAspChannel = NEXUS_AspChannel_Create(&createSettings);
         CHECK_PTR_GOTO("ASP_CHANNEL_IOC_GET_SOCKET_5TUPLE_INFO ioctl() Failed", hAspChannel->hNexusAspChannel, error);
+    }
+
+    BDBG_WRN(("%s: hAspChannel=%p socketFd=%d hNexusAspChannel=%p", BSTD_FUNCTION, (void *)hAspChannel, socketFdToOffload, (void*)hAspChannel->hNexusAspChannel ));
+
+    /* Get the local & remote IP Address: Port info associated with this socket. */
+    {
+        rc = B_AspChannel_GetSocketAddrInfo(socketFdToOffload, &hAspChannel->socketState);
+        CHECK_ERR_NZ_GOTO("B_AspChannel_GetSocketAddrInfo() Failed!", rc, error);
     }
 
     /* Open ASP NetFilter Driver context & add entry identifying this connection flow. */
@@ -387,7 +406,7 @@ B_AspChannelHandle B_AspChannel_Create(
          * (in the B_AspChannel_Stop().
          */
         hAspChannel->fdMigratedConnx = socketFdToOffload;
-        BDBG_WRN(("%s: Obtained socketState from Linux for socketFd=%d", BSTD_FUNCTION, socketFdToOffload));
+        BDBG_MSG(("%s: Obtained socketState from Linux for socketFd=%d", BSTD_FUNCTION, socketFdToOffload));
     }
 
     /* Now find the network interface name & MAC address (local & remote). */
@@ -413,8 +432,9 @@ B_AspChannelHandle B_AspChannel_Create(
     return (hAspChannel);
 
 error:
-    if (hAspChannel->aspNetFilterDrvFd) close(hAspChannel->aspNetFilterDrvFd);
-    if (hAspChannel) B_AspChannel_Destroy(hAspChannel, NULL);
+    if (hAspChannel->aspNetFilterDrvFd >= 0) close(hAspChannel->aspNetFilterDrvFd);
+    BDBG_ASSERT(hAspChannel);   /* Coverity says that hAspChannel will always be non-NULL here. */
+    B_AspChannel_Destroy(hAspChannel, NULL);
     return (NULL);
 } /* B_AspChannel_Create */
 
@@ -459,7 +479,7 @@ static int buildIngressBrcmTag(
     /* Set the Destination Map[8-0]: 1 bit per port. Port 0 is bit 1 */
     ingressBrcmTag |= 1 << switchPortNumberForRemoteNode;
 
-    BDBG_WRN(("%s: switchQueueNumberForAsp=%d switchPortNumberForRemoteNode=%d ingressBrcmTag=0x%x", BSTD_FUNCTION,
+    BDBG_MSG(("%s: switchQueueNumberForAsp=%d switchPortNumberForRemoteNode=%d ingressBrcmTag=0x%x", BSTD_FUNCTION,
                 switchQueueNumberForAsp, switchPortNumberForRemoteNode, ingressBrcmTag ));
     return ingressBrcmTag;
 } /* buildIngressBrcmTag */
@@ -471,7 +491,7 @@ static B_Error startNexusAsp(
 {
     NEXUS_Error                         nrc;
     NEXUS_AspChannelStartSettings       startSettings;
-    NEXUS_AspStreamingProtocol          streamingProtocol;
+    NEXUS_AspStreamingProtocol          streamingProtocol = NEXUS_AspStreamingProtocol_eTcp;
 
     /* Map B_Asp Settings to NEXUS_Asp Channel settings. */
     if (hAspChannel->createSettings.protocol == B_AspStreamingProtocol_eHttp)
@@ -635,9 +655,10 @@ B_Error B_AspChannel_StartStreaming(
     NEXUS_AspChannelStatus  nexusAspChannelStatus;
 
     BDBG_ASSERT(hAspChannel);
+    BDBG_WRN(("%s: hAspChannel=%p:", BSTD_FUNCTION, (void *)hAspChannel));
     if (hAspChannel->state == B_AspChannelState_eStartedStreaming)
     {
-        BDBG_ERR(("%s: API Sequence Error: B_AspChannel_StartStreaming() is already called!", BSTD_FUNCTION));
+        BDBG_ERR(("%s: hAspChannel=%p: API Sequence Error: B_AspChannel_StartStreaming() is already called!", BSTD_FUNCTION, (void *)hAspChannel));
         return (B_ERROR_INVALID_PARAMETER);
     }
 
@@ -660,6 +681,7 @@ B_Error B_AspChannel_StartStreaming(
         BDBG_ASSERT(rc == B_ERROR_SUCCESS);
     }
     hAspChannel->state = B_AspChannelState_eStartedStreaming;
+    BDBG_WRN(("%s: hAspChannel=%p: Done!", BSTD_FUNCTION, (void *)hAspChannel));
     return (B_ERROR_SUCCESS);
 }
 
@@ -677,13 +699,13 @@ void B_AspChannel_StopStreaming(
     {
         rc = B_AspChannel_DeleteFlowClassificationRuleFromNwSwitch( &hAspChannel->socketState, hAspChannel->switchFlowLabel);
         BDBG_ASSERT(rc == B_ERROR_SUCCESS);
-        BDBG_WRN(("%s:%p Removed CFP Entry!", BSTD_FUNCTION, (void *)hAspChannel));
+        BDBG_MSG(("%s:%p Removed CFP Entry!", BSTD_FUNCTION, (void *)hAspChannel));
     }
 
     /* Stop the channel w/ Nexus. */
     {
         NEXUS_AspChannel_Stop(hAspChannel->hNexusAspChannel);
-        BDBG_WRN(("%s:%p Stopped Nexus ASP Channel!", BSTD_FUNCTION, (void *)hAspChannel));
+        BDBG_MSG(("%s:%p Stopped Nexus ASP Channel!", BSTD_FUNCTION, (void *)hAspChannel));
     }
 
     hAspChannel->state = B_AspChannelState_eIdle;
@@ -752,9 +774,9 @@ B_Error B_AspChannel_PrintStatus(
     NEXUS_AspChannelStatus   *pStatus;
     uint32_t                bitRate = 0;
     uint64_t                diffTimeInUs;
-    NEXUS_RecpumpStatus     recpumpStatus;
+    NEXUS_RecpumpStatus     recpumpStatus = {0};
     NEXUS_RecpumpHandle     hRecpump = NULL;
-    NEXUS_PlaypumpStatus    playpumpStatus;
+    NEXUS_PlaypumpStatus    playpumpStatus = {0};
     NEXUS_PlaypumpHandle    hPlaypump = NULL;
     NEXUS_Error             nrc;
 
@@ -940,14 +962,11 @@ B_Error B_AspChannel_GetWriteBufferWithWrap(
 {
     NEXUS_Error             nrc;
 
-    BSTD_UNUSED(pBuffer2);
-    BSTD_UNUSED(pAmount2);
-
     BDBG_ASSERT(hAspChannel);
     BDBG_ASSERT(pBuffer);
     BDBG_ASSERT(pAmount);
 
-    nrc = NEXUS_AspChannel_GetWriteBufferWithWrap(hAspChannel->hNexusAspChannel, pBuffer, pAmount, NULL, NULL);
+    nrc = NEXUS_AspChannel_GetWriteBufferWithWrap(hAspChannel->hNexusAspChannel, pBuffer, pAmount, pBuffer2, pAmount2);
     BDBG_ASSERT(nrc == NEXUS_SUCCESS);
 
     return B_ERROR_SUCCESS;
@@ -1026,18 +1045,17 @@ B_Error B_AspChannel_GetReadBufferWithWrap(
 {
     NEXUS_Error nrc;
 
-    BSTD_UNUSED(hAspChannel);
-    BSTD_UNUSED(pBuffer);
-    BSTD_UNUSED(pAmount);
-    BSTD_UNUSED(pBuffer2);
-    BSTD_UNUSED(pAmount2);
-
     BDBG_ASSERT(hAspChannel);
 
-    nrc = NEXUS_AspChannel_GetReadBufferWithWrap(hAspChannel->hNexusAspChannel, pBuffer, pAmount, NULL, NULL);
+    nrc = NEXUS_AspChannel_GetReadBufferWithWrap(hAspChannel->hNexusAspChannel, pBuffer, pAmount, pBuffer2, pAmount2);
     if (nrc != NEXUS_SUCCESS)
     {
         *pAmount = 0;
+        BDBG_MSG(("%s: hAspChannel=%p nrc=%d: no data available at this time!", BSTD_FUNCTION, (void *)hAspChannel, nrc));
+    }
+    else
+    {
+        BDBG_MSG(("%s: hAspChannel=%p: buffer mmount=%u available!", BSTD_FUNCTION, (void *)hAspChannel, *pAmount));
     }
     return (B_ERROR_SUCCESS);
 }

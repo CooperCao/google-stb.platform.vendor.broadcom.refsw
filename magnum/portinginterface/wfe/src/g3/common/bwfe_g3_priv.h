@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,30 +45,35 @@
 #if (BCHP_CHIP==7366)
    #include "bwfe_7366_priv.h"
    #define BWFE_EXCLUDE_LIC_TAP_COMPUTER
+   #define BWFE_EXCLUDE_ANALOG_DELAY
 #elif (BCHP_CHIP==7364)
    #include "bwfe_7364_priv.h"
    #define BWFE_EXCLUDE_LIC_TAP_COMPUTER
+   #define BWFE_EXCLUDE_ANALOG_DELAY
 #elif (BCHP_CHIP==45216)
    #include "bwfe_45216_priv.h"
    #define BWFE_EXCLUDE_LIC_TAP_COMPUTER
+   #define BWFE_EXCLUDE_ANALOG_DELAY
 #elif (BCHP_CHIP==4552)
    #include "bwfe_4552_priv.h"
    #define BWFE_EXCLUDE_LIC
    #define BWFE_EXCLUDE_LIC_TAP_COMPUTER
+   #define BWFE_EXCLUDE_ANALOG_DELAY
 #elif (BCHP_CHIP==4554)
    #include "bwfe_4554_priv.h"
    #define BWFE_EXCLUDE_LIC
    #define BWFE_EXCLUDE_LIC_TAP_COMPUTER
-   /*#define BWFE_CALIBRATE_SLICE_DELAY*/
+   #define BWFE_EXCLUDE_ANALOG_DELAY
 #elif (BCHP_CHIP==45308)
    #include "bwfe_45308_priv.h"
    #define BWFE_EXCLUDE_LIC
    #define BWFE_EXCLUDE_LIC_TAP_COMPUTER
-   /*#define BWFE_CALIBRATE_SLICE_DELAY*/
+   #define BWFE_EXCLUDE_ANALOG_DELAY
 #elif (BCHP_CHIP==45402)
    #include "bwfe_45402_priv.h"
    #define BWFE_EXCLUDE_LIC
    #define BWFE_EXCLUDE_LIC_TAP_COMPUTER
+   #define BWFE_EXCLUDE_ANALOG_DELAY
 #else
    #error "unsupported BCHP_CHIP"
 #endif
@@ -254,7 +259,8 @@ BERR_Code BWFE_g3_Corr_P_ScanSpectrum1(BWFE_ChannelHandle h);
 
 /* bwfe_g3_priv_lic.c */
 BERR_Code BWFE_g3_Lic_P_PowerUp(BWFE_ChannelHandle h);
-BERR_Code BWFE_g3_Lic_P_NrDcoTracking(BWFE_ChannelHandle h);
+BERR_Code BWFE_g3_Lic_P_NrDcoTracking1(BWFE_ChannelHandle h);
+BERR_Code BWFE_g3_Lic_P_NrDcoTracking2(BWFE_ChannelHandle h);
 BERR_Code BWFE_g3_Lic_P_PowerDown(BWFE_ChannelHandle h);
 BERR_Code BWFE_g3_Lic_P_ResetTaps(BWFE_ChannelHandle h);
 #ifndef BWFE_EXCLUDE_LIC_TAP_COMPUTER

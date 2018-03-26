@@ -1,39 +1,39 @@
-/***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  ***************************************************************************/
 
 #include "bstd.h"
@@ -455,317 +455,6 @@ BERR_Code BRDC_DBG_GetListEntry(
     BKNI_EnterCriticalSection();
     eErr = BRDC_DBG_GetListEntry_isr(hList, peEntry, aulArgs);
     BKNI_LeaveCriticalSection();
-    return eErr;
-}
-
-/***************************************************************************
- *
- */
-BERR_Code BRDC_DBG_DumpList(
-    BRDC_List_Handle  hList
-    )
-{
-    BERR_Code  eErr = BERR_SUCCESS;
-    BRDC_DBG_ListEntry  eEntry = BRDC_DBG_ListEntry_eCommand;
-    uint32_t            aulArgs[4];
-
-    /* store the list to be dumped */
-    eErr = BERR_TRACE(BRDC_DBG_SetList(hList));
-    if(eErr != BERR_SUCCESS)
-    {
-        /* error */
-        goto done;
-    }
-
-    /* get first entry */
-    eErr = BERR_TRACE(BRDC_DBG_GetListEntry(hList, &eEntry, aulArgs));
-        if(eErr != BERR_SUCCESS)
-    {
-        /* error parsing list */
-        BDBG_ERR(("error parsing list"));
-        goto done;
-    }
-
-    /* traverse until all entries are displayed */
-    while(eEntry != BRDC_DBG_ListEntry_eEnd)
-    {
-        /* display entry */
-        switch(eEntry)
-        {
-        case BRDC_DBG_ListEntry_eCommand:
-            /* which command? */
-            switch(aulArgs[0])
-            {
-            case BRDC_OP_NOP_OPCODE:
-                BDBG_MSG(("++ NOP"));
-                break;
-
-            case BRDC_OP_IMM_TO_REG_OPCODE:
-                BDBG_MSG(("++ IMM TO REG"));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_IMM_TO_REG_OPCODE64:
-                BDBG_MSG(("++ IMM TO REG64"));
-                break;
-            #endif
-
-            case BRDC_OP_VAR_TO_REG_OPCODE:
-                BDBG_MSG(("++ VAR TO REG: (%d)",
-                    aulArgs[1]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_VAR_TO_REG_OPCODE64:
-                BDBG_MSG(("++ VAR TO REG64: (%d)",
-                    aulArgs[1]));
-                break;
-            #endif
-
-            case BRDC_OP_REG_TO_VAR_OPCODE:
-                BDBG_MSG(("++ REG TO VAR: (%d)",
-                    aulArgs[1]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_REG_TO_VAR_OPCODE64:
-                BDBG_MSG(("++ REG TO VAR64: (%d)",
-                    aulArgs[1]));
-                break;
-            #endif
-
-            case BRDC_OP_IMM_TO_VAR_OPCODE:
-                BDBG_MSG(("++ IMM TO VAR: (%d)",
-                    aulArgs[1]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_IMM_TO_VAR_OPCODE64:
-                BDBG_MSG(("++ IMM TO VAR64: (%d)",
-                    aulArgs[1]));
-                break;
-            #endif
-
-            case BRDC_OP_IMMS_TO_REG_OPCODE:
-                BDBG_MSG(("++ IMMS TO REG: (%d)",
-                    aulArgs[1]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_IMMS_TO_REG_OPCODE64:
-                BDBG_MSG(("++ IMMS TO REG64: (%d)",
-                    aulArgs[1]));
-                break;
-            #endif
-
-            case BRDC_OP_IMMS_TO_REGS_OPCODE:
-                BDBG_MSG(("++ IMMS TO REGS: (%d)",
-                    aulArgs[1]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_IMMS_TO_REGS_OPCODE64:
-                BDBG_MSG(("++ IMMS TO REGS64: (%d)",
-                    aulArgs[1]));
-                break;
-            #endif
-
-            case BRDC_OP_REG_TO_REG_OPCODE:
-                BDBG_MSG(("++ REG TO REG: (%d)",
-                    aulArgs[1]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_REG_TO_REG_OPCODE64:
-                BDBG_MSG(("++ REG TO REG64: (%d)",
-                    aulArgs[1]));
-                break;
-            #endif
-
-            case BRDC_OP_REGS_TO_REGS_OPCODE:
-                BDBG_MSG(("++ REGS TO REGS: (%d)",
-                    aulArgs[1]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_REGS_TO_REGS_OPCODE64:
-                BDBG_MSG(("++ REGS TO REGS64: (%d)",
-                    aulArgs[1]));
-                break;
-            #endif
-
-            case BRDC_OP_VAR_AND_VAR_TO_VAR_OPCODE:
-                BDBG_MSG(("++ VAR AND VAR TO VAR: (%d, %d, %d)",
-                    aulArgs[1], aulArgs[2], aulArgs[3]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_VAR_AND_VAR_TO_VAR_OPCODE64:
-                BDBG_MSG(("++ VAR AND VAR TO VAR64: (%d, %d, %d)",
-                    aulArgs[1], aulArgs[2], aulArgs[3]));
-                break;
-            #endif
-
-            case BRDC_OP_VAR_AND_IMM_TO_VAR_OPCODE:
-                BDBG_MSG(("++ VAR AND IMM TO VAR: (%d, %d)",
-                    aulArgs[1], aulArgs[2]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_VAR_AND_IMM_TO_VAR_OPCODE64:
-                BDBG_MSG(("++ VAR AND IMM TO VAR64: (%d, %d)",
-                    aulArgs[1], aulArgs[2]));
-                break;
-            #endif
-
-            case BRDC_OP_VAR_OR_VAR_TO_VAR_OPCODE:
-                BDBG_MSG(("++ VAR OR VAR TO VAR: (%d, %d, %d)",
-                    aulArgs[1], aulArgs[2], aulArgs[3]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_VAR_OR_VAR_TO_VAR_OPCODE64:
-                BDBG_MSG(("++ VAR OR VAR TO VAR64: (%d, %d, %d)",
-                    aulArgs[1], aulArgs[2], aulArgs[3]));
-                break;
-            #endif
-
-            case BRDC_OP_VAR_OR_IMM_TO_VAR_OPCODE:
-                BDBG_MSG(("++ VAR OR IMM TO VAR: (%d, %d)",
-                    aulArgs[1], aulArgs[2]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_VAR_OR_IMM_TO_VAR_OPCODE64:
-                BDBG_MSG(("++ VAR OR IMM TO VAR64: (%d, %d)",
-                    aulArgs[1], aulArgs[2]));
-                break;
-            #endif
-
-            case BRDC_OP_VAR_XOR_VAR_TO_VAR_OPCODE:
-                BDBG_MSG(("++ VAR XOR VAR TO VAR: (%d, %d, %d)",
-                    aulArgs[1], aulArgs[2], aulArgs[3]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_VAR_XOR_VAR_TO_VAR_OPCODE64:
-                BDBG_MSG(("++ VAR XOR VAR TO VAR64: (%d, %d, %d)",
-                    aulArgs[1], aulArgs[2], aulArgs[3]));
-                break;
-            #endif
-
-            case BRDC_OP_VAR_XOR_IMM_TO_VAR_OPCODE:
-                BDBG_MSG(("++ VAR XOR IMM TO VAR: (%d, %d)",
-                    aulArgs[1], aulArgs[2]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_VAR_XOR_IMM_TO_VAR_OPCODE64:
-                BDBG_MSG(("++ VAR XOR IMM TO VAR64: (%d, %d)",
-                    aulArgs[1], aulArgs[2]));
-                break;
-            #endif
-
-            case BRDC_OP_NOT_VAR_TO_VAR_OPCODE:
-                BDBG_MSG(("++ NOT VAR TO VAR: (%d, %d)",
-                    aulArgs[1], aulArgs[2]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_NOT_VAR_TO_VAR_OPCODE64:
-                BDBG_MSG(("++ NOT VAR TO VAR64: (%d, %d)",
-                    aulArgs[1], aulArgs[2]));
-                break;
-            #endif
-
-            case BRDC_OP_VAR_ROR_TO_VAR_OPCODE:
-                BDBG_MSG(("++ VAR ROR TO VAR: (%d, %d, %d)",
-                    aulArgs[1], aulArgs[2], aulArgs[3]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_VAR_ROR_TO_VAR_OPCODE64:
-                BDBG_MSG(("++ VAR ROR TO VAR64: (%d, %d, %d)",
-                    aulArgs[1], aulArgs[2], aulArgs[3]));
-                break;
-            #endif
-
-            case BRDC_OP_VAR_SUM_VAR_TO_VAR_OPCODE:
-                BDBG_MSG(("++ VAR SUM VAR TO VAR: (%d, %d, %d)",
-                    aulArgs[1], aulArgs[2], aulArgs[3]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_VAR_SUM_VAR_TO_VAR_OPCODE64:
-                BDBG_MSG(("++ VAR SUM VAR TO VAR64: (%d, %d, %d)",
-                    aulArgs[1], aulArgs[2], aulArgs[3]));
-                break;
-            #endif
-
-            case BRDC_OP_VAR_SUM_IMM_TO_VAR_OPCODE:
-                BDBG_MSG(("++ VAR SUM IMM TO VAR: (%d, %d)",
-                    aulArgs[1], aulArgs[2]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_VAR_SUM_IMM_TO_VAR_OPCODE64:
-                BDBG_MSG(("++ VAR SUM IMM TO VAR64: (%d, %d)",
-                    aulArgs[1], aulArgs[2]));
-                break;
-            #endif
-
-            case BRDC_OP_COND_SKIP_OPCODE:
-                BDBG_MSG(("++ COND SKIP: (%d)",
-                    aulArgs[1]));
-                break;
-
-            #if BRDC_64BIT_SUPPORT
-            case BRDC_OP_COND_SKIP_OPCODE64:
-                BDBG_MSG(("++ COND SKIP64: (%d)",
-                    aulArgs[1]));
-                break;
-            #endif
-
-            case BRDC_OP_SKIP_OPCODE:
-                BDBG_MSG(("++ SKIP "));
-                break;
-
-            case BRDC_OP_EXIT_OPCODE:
-                BDBG_MSG(("++ EXIT "));
-                break;
-
-            default:
-                /* unknown command */
-                BDBG_ERR(("unknown command"));
-                goto done;
-            }
-            break;
-
-        case BRDC_DBG_ListEntry_eRegister:
-            BDBG_MSG(("REGISTER: %08x", aulArgs[0]));
-            break;
-
-        case BRDC_DBG_ListEntry_eData:
-            BDBG_MSG(("DATA:     %08x", aulArgs[0]));
-            break;
-
-        default:
-            /* unknown */
-            eErr = BERR_TRACE(BERR_UNKNOWN);
-            break;
-        }
-
-        /* get next entry */
-        eErr = BERR_TRACE(BRDC_DBG_GetListEntry(hList, &eEntry, aulArgs));
-        if(eErr != BERR_SUCCESS)
-        {
-            /* error parsing list */
-            BDBG_ERR(("error parsing list"));
-            goto done;
-        }
-    }
-
-done:
     return eErr;
 }
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -137,7 +137,7 @@ public:
     virtual CSimpleAudioDecode * audioDecodeCreate(eWindowType windowType);
     virtual CSimplePcmPlayback * audioPcmPlaybackCreate(void);
     virtual COutputHdmi *        outputHdmiCreate(void);
-    virtual eRet                 videoWindowInitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, CVideoWindow **ppVideoWindow, eWindowType windowType);
+    virtual eRet                 videoWindowInitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, CVideoWindow ** ppVideoWindow, eWindowType windowType);
     virtual void                 videoWindowUninitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, CVideoWindow * pVideoWindow);
     virtual eRet                 mosaicInitialize(void);
     virtual void                 mosaicUninitialize(void);

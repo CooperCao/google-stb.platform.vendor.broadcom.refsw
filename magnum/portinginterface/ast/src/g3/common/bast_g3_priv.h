@@ -1,5 +1,5 @@
-/***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * [File Description:]
- *
- ***************************************************************************/
+ ******************************************************************************/
 #ifndef _BAST_G3_PRIV_H__
 #define _BAST_G3_PRIV_H__
 
@@ -280,6 +277,9 @@ typedef struct
 {
    BAST_FskChannel      txChannel;           /* channel for fsk transmit  */
    BAST_FskChannel      rxChannel;           /* channel for fsk receive  */
+   uint32_t             txFreqHz;            /* transmit frequency in Hz */
+   uint32_t             rxFreqHz;            /* receive frequency in Hz */
+   uint32_t             txDevHz;             /* transmit deviation in Hz */
 #ifndef BAST_ENABLE_GENERIC_FSK
    BAST_FTM_ISR         idle_funct_isr;
    BKNI_EventHandle     event;
@@ -308,9 +308,6 @@ typedef struct
    uint8_t              network_activity;
 #else
    BINT_CallbackHandle  hCallback[32];       /* ftm interrupts callback array */
-   uint32_t             txFreqHz;            /* transmit frequency in Hz */
-   uint32_t             rxFreqHz;            /* receive frequency in Hz */
-   uint32_t             txDevHz;             /* transmit deviation in Hz */
    bool                 bLnbDetected;        /* indicates LNB detection */
    uint16_t             status;
    uint16_t             timecount_max;       /* TC max calculated from N_channel in 0.1ms units */

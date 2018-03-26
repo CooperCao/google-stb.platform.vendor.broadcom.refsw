@@ -42,7 +42,12 @@
 #include "berr.h"
 #include "bdbg.h"
 #include "bpxl.h"
-#include "bchp_m2mc.h"     /* for gfx compression mode */
+#include "bchp_common.h"
+#ifdef BCHP_M2MC_REG_START
+#include "bchp_m2mc.h"     /* for gfx compression mode. */
+#endif
+#include "bpxl_priv.h"
+
 
 typedef struct
 {
@@ -432,6 +437,8 @@ void BPXL_GetBytesPerNPixels_isrsafe(
     unsigned int *puiBytes )
 {
     unsigned int uiBytes = 0;
+    unsigned int ulAlignment = BPXL_IS_YCbCr422_FORMAT(eFormat)?
+        BPXL_P_PITCH_YCBCR422_ALIGNMENT:BPXL_P_PITCH_ALIGNMENT;
 
     /* Check parameter */
     BDBG_ASSERT(puiBytes);
@@ -498,7 +505,7 @@ void BPXL_GetBytesPerNPixels_isrsafe(
         }
     }
 
-    *puiBytes = uiBytes;
+    *puiBytes = BPXL_P_ALIGN_UP(uiBytes, ulAlignment);
     return;
 }
 

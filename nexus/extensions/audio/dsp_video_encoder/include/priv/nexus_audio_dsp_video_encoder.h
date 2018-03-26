@@ -157,6 +157,18 @@ typedef struct NEXUS_DspVideoEncoderStatus
     struct {
         unsigned firmware;
     } version;
+    struct {
+        size_t fifoDepth; /* Current depth of video encoder output fifo in bytes */
+        size_t fifoSize;  /* Size of video encoder output fifo in bytes. This could be less than the OpenSettings fifoSize because of
+                             internal alignment requirements. */
+        uint32_t read;  /* Address of the buffer READ register */
+        uint32_t base;  /* Address of the buffer BASE register */
+        uint32_t valid; /* Address of the buffer VALID register */
+        uint32_t end;   /* Address of the buffer END register */
+
+        bool ready; /* Set to true when the buffer has been initialized and ready to be consumed.
+                     * Once set to true, it is always true for the duration of the session. */
+    } data, index;
 } NEXUS_DspVideoEncoderStatus;
 
 typedef struct NEXUS_DspVideoEncoderPicture {
@@ -202,5 +214,5 @@ void NEXUS_DspVideoEncoder_P_Watchdog_priv(NEXUS_DspVideoEncoderHandle encoder);
 void NEXUS_DspVideoEncoder_SetWatchdogCallback_priv(NEXUS_CallbackDesc *watchdog);
 void NEXUS_DspVideoEncoder_Watchdog_priv(void);
 NEXUS_Error NEXUS_DspVideoEncoder_GetBufferBlocks_priv(NEXUS_DspVideoEncoderHandle encoder,
-    BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock);
+    BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock, BMMA_Block_Handle *phIndexBufferBlock);
 #endif /* NEXUS_AUDIO_DSP_VIDEO_ENCODER_H__ */

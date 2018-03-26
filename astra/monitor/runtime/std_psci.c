@@ -136,7 +136,17 @@ static void do_psci_version(uint64_t *ctx)
 
 static void do_psci_cpu_suspend(uint64_t *ctx)
 {
-    ctx[0] = STD_SVC_PSCI_NOT_SUPPORTED;
+    uint32_t power_state = ctx[1];
+    uintptr_t entry_point = ctx[2];
+    uint64_t context_id = ctx[3];
+    int ret;
+
+    ret = psci_cpu_suspend(
+            power_state,
+            entry_point,
+            context_id);
+
+    ctx[0] = (uint64_t)ret;
 }
 
 static void do_psci_cpu_off(uint64_t *ctx)
@@ -151,7 +161,7 @@ static void do_psci_cpu_off(uint64_t *ctx)
 static void do_psci_cpu_on(uint64_t *ctx)
 {
     uint64_t target_mpidr = ctx[1];
-    uint64_t entry_point = ctx[2];
+    uintptr_t entry_point = ctx[2];
     uint64_t context_id = ctx[3];
     int ret;
 
@@ -165,7 +175,15 @@ static void do_psci_cpu_on(uint64_t *ctx)
 
 static void do_psci_affinity_info(uint64_t *ctx)
 {
-    ctx[0] = STD_SVC_PSCI_NOT_SUPPORTED;
+    uint64_t target_mpidr = ctx[1];
+    uint32_t target_level = ctx[2];
+    int ret;
+
+    ret = psci_affinity_info(
+        target_mpidr,
+        target_level);
+
+    ctx[0] = (uint64_t)ret;
 }
 
 static void do_psci_migrate(uint64_t *ctx)
@@ -175,7 +193,7 @@ static void do_psci_migrate(uint64_t *ctx)
 
 static void do_psci_migrate_info_type(uint64_t *ctx)
 {
-    ctx[0] = STD_SVC_PSCI_NOT_SUPPORTED;
+    ctx[0] = 2;
 }
 
 static void do_psci_migrate_info_up_cpu(uint64_t *ctx)

@@ -102,6 +102,19 @@ typedef enum NEXUS_AudioDecoderLatencyMode
 
 /***************************************************************************
 Summary:
+Audio decoder secure type settings (for CDB/ITB)
+***************************************************************************/
+typedef enum NEXUS_AudioDecoderSecureType
+{
+    NEXUS_AudioDecoderSecureType_eAuto,         /* GLR or CRR - specificed by cdbHeap in NEXUS_AudioDecoderOpenSettings */
+    NEXUS_AudioDecoderSecureType_eSecure,       /* Must be set when the content source is DRM protected, and ARR secure memory is availabe.
+                                                   Host based Audio decoders will use protected memory (ARR) when this is set.
+                                                   Non-host based decoders will use the heap specified by cdbHeap in NEXUS_AudioDecoderOpenSettings. */
+    NEXUS_AudioDecoderSecureType_eMax
+} NEXUS_AudioDecoderSecureType;
+
+/***************************************************************************
+Summary:
 Audio decoder program settings
 ***************************************************************************/
 typedef struct NEXUS_AudioDecoderStartSettings
@@ -133,6 +146,8 @@ typedef struct NEXUS_AudioDecoderStartSettings
                                            Note, setting maxOutputRate = 96000 requires NEXUS_AudioModuleSettings->maxPcmSampleRate to
                                            also be increased to 96000 at Init time. */
     bool karaokeModeEnabled;            /* If true, karaoke postprocess is enabled. */
+    NEXUS_AudioDecoderSecureType secureAudio; /* Specifies whether the source content will be stored in secure ARR memory, which requires
+                                                 Sage Audio processing */
 } NEXUS_AudioDecoderStartSettings;
 
 /***************************************************************************
@@ -536,7 +551,7 @@ typedef struct NEXUS_AudioDecoderStatus
             unsigned numPresentations;                                         /* Identifies the number of presentations present in compressed bitstream.
                                                                                    Values greater than NEXUS_AUDIO_AC4_MAX_PRESENTATIONS should be ignored. */
             unsigned currentPresentationIndex;                                 /* Index to the current Presentation that is being decoded. */
-            unsigned currentAlternateStereoPresentationIndex;                  /* Index to the current Presentation that is being decoded for alternate stereo. */
+            unsigned currentAlternateStereoPresentationIndex;                  /* Index to the current Presentation that is being decoded for alternate stereo. Returns (unsigned) -1 when not in use */
             unsigned dialogEnhanceMax;                                         /* Specifies the maximum value that will be honored as
                                                                                   a Dialog Enhance Amount Value. Possible range 0 to 12.
                                                                                   Values outside of this range should be ignored */
@@ -677,6 +692,33 @@ typedef enum NEXUS_AudioAc4AssociateType
 
 /***************************************************************************
 Summary:
+AC4 Presentation type
+***************************************************************************/
+/* 'Main' - A Single multichannel stream usually not shared between presentations. */
+/* 'Music And Effects ' - Presentation contains shared objects with another presentation but distinct Vocal.  Also referred to as Dry Main. */
+/* 'Associate' - Scene description or director's commentary. */
+/* 'Dialog' - Works unison with Music and Effects.  While the Music and Effects stay the same dialog changes out. */
+/* 'DE' - Dialog Enchancement - seperate track to boost dialog using encoded metadata. */
+/* 'HSF' - High Sampling Frequency - 96kHz or 192kHz. */
+/* 'EMDF' - Extensible Metadata Delivery Format - Delivery of metadata not natively supported by the bit stream syntax. */
+
+typedef enum NEXUS_AudioAc4PresentationType
+{
+    NEXUS_AudioAc4PresentationType_eUndefined,
+    NEXUS_AudioAc4PresentationType_eMainOnly,
+    NEXUS_AudioAc4PresentationType_eMainPlusDe,
+    NEXUS_AudioAc4PresentationType_eMainPlusAssociate,
+    NEXUS_AudioAc4PresentationType_eMainPlusDePlusAssociate,
+    NEXUS_AudioAc4PresentationType_eMainPlusHSFExt,
+    NEXUS_AudioAc4PresentationType_eMusicAndEffectsPlusDialog,
+    NEXUS_AudioAc4PresentationType_eMusicAndEffectsPlusDialogPlusAssociate,
+    NEXUS_AudioAc4PresentationType_eEMDFOnly,
+    NEXUS_AudioAc4PresentationType_eArbitrarySubstreamGroups,
+    NEXUS_AudioAc4PresentationType_eMax
+} NEXUS_AudioAc4PresentationType;
+
+/***************************************************************************
+Summary:
 AC4 Presentation Status
 ***************************************************************************/
 #define NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH      8
@@ -688,6 +730,7 @@ typedef struct NEXUS_AudioDecoderAc4PresentationStatus
     unsigned index;                                                     /* Index of this Presentation */
     char id[NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH];                    /* Unique Identifier for this Presentation */
     NEXUS_AudioAc4AssociateType associateType;                          /* Describes the contents of the Associate (Secondary) portion of this presenation */
+    NEXUS_AudioAc4PresentationType presentationType;                          /* Describes the contents of the presentation */
     char name[NEXUS_AUDIO_AC4_PRESENTATION_NAME_LENGTH];                /* Name/Title of the Presentation */
     char language[NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH];                /* Language of the Presentation */
 } NEXUS_AudioDecoderAc4PresentationStatus;
@@ -720,7 +763,7 @@ typedef struct NEXUS_AudioDecoderTrickState
     bool forceStopped;              /*
                                        If true, decoder will not be permitted to run, otherwise it's allowed.
                                        Settings this to true causes audio decoder to drop all data that is
-                                        coming to audio decoder. This is usefull in video only trickmodes (e.g. fast forward or rewind).
+                                        coming to audio decoder. This is useful in video only trickmodes (e.g. fast forward or rewind).
                                      */
     unsigned rate;                  /* Speed control based on units of NEXUS_NORMAL_DECODE_RATE:
                                         NEXUS_NORMAL_DECODE_RATE*2 = 2x fast-forward.
@@ -733,6 +776,8 @@ typedef struct NEXUS_AudioDecoderTrickState
     bool stcTrickEnabled;           /* Set this true if you are doing STC trick modes. This allows AudioDecoder to properly handle PTS error interrupts. */
     bool stopForTrick;              /* NEXUS_AudioDecoder_SetTrickState should be called twice once with this set to true and then false.
                                        This will allow us to stop all decoders first in case we are going into or out of trick modes */
+    bool allowDsola;                /* If set to false, rates other than NEXUS_NORMAL_DECODE_RATE will not result in DSOLA,
+                                       even if supported by the DSP. */
 } NEXUS_AudioDecoderTrickState;
 
 /***************************************************************************
@@ -867,6 +912,8 @@ typedef struct NEXUS_AudioDecoderSettings
                                                    description will be used. */
 
     NEXUS_AudioDecoderKaraokeSettings karaokeSettings; /* Settings to be passed to the karaoke post process if enabled */
+    bool alwaysEnableDsola; /* If true DSOLA (digital synchronized overlap-add) is always configured for decoder.
+                                default is disabled which only adds the post process during trickplay */
 } NEXUS_AudioDecoderSettings;
 
 /***************************************************************************
@@ -1242,7 +1289,7 @@ typedef struct NEXUS_AudioDecoderAc4Settings
     bool enableAssociateMixing;     /* Enable mixing of associate program */
 
     NEXUS_AudioDecoderAc4PresentationSelectionMode selectionMode;   /* Specifies how the AC4 decoder selects the presentation -
-                                                                       Default setting is eAuto, allowing the decoder to choose based on the presence or absense
+                                                                       Default setting is eAuto, allowing the decoder to choose based on the presence or absence
                                                                        of Presentation Index or Id, followed by the various personalization parameters.;
                                                                        eAuto setting should be used for certification testing */
 

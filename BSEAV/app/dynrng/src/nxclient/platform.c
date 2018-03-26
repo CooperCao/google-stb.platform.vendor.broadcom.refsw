@@ -44,14 +44,17 @@
 #include "bdbg.h"
 #include "bkni.h"
 #include <string.h>
+#include <sys/time.h>
 
 BDBG_MODULE(platform);
 
 PlatformHandle platform_open(const char * appName)
 {
     PlatformHandle platform;
+    PlatformSchedulerCreateSettings schedulerSettings;
     int rc = 0;
     NxClient_JoinSettings joinSettings;
+    unsigned i;
 
     NxClient_GetDefaultJoinSettings(&joinSettings);
     BKNI_Snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "%s", appName);
@@ -62,8 +65,14 @@ PlatformHandle platform_open(const char * appName)
     BDBG_ASSERT(platform);
     BKNI_Memset(platform, 0, sizeof(*platform));
 
-    platform->scheduler = platform_scheduler_p_create(platform);
-    BDBG_ASSERT(platform->scheduler);
+    platform->schedulers[PLATFORM_SCHEDULER_MAIN] = platform_scheduler_p_create(platform, NULL);
+    BDBG_ASSERT(platform->schedulers[PLATFORM_SCHEDULER_MAIN] );
+
+    platform_scheduler_p_get_default_create_settings(&schedulerSettings);
+    schedulerSettings.index = PLATFORM_SCHEDULER_GFX;
+    schedulerSettings.period = 10;
+    platform->schedulers[PLATFORM_SCHEDULER_GFX] = platform_scheduler_p_create(platform, &schedulerSettings);
+    BDBG_ASSERT(platform->schedulers[PLATFORM_SCHEDULER_GFX]);
 
     NxClient_GetDefaultCallbackThreadSettings(&platform->callbackThreadSettings);
     platform->callbackThreadSettings.hdmiOutputHotplug.callback = platform_p_hotplug_handler;
@@ -72,7 +81,37 @@ PlatformHandle platform_open(const char * appName)
     rc = NxClient_StartCallbackThread(&platform->callbackThreadSettings);
     BDBG_ASSERT(!rc);
 
-    NEXUS_GetVideoDecoderCapabilities(&platform->videoCaps);
+    NEXUS_GetVideoDecoderCapabilities(&platform->media.videoCaps);
+    NEXUS_GetDisplayCapabilities(&platform->display.caps);
+
+    for (i=0; i<NEXUS_MAX_VIDEO_DECODERS; i++)
+    {
+        if (platform->media.videoCaps.memory[i].used)
+        {
+            if (platform->media.videoCaps.memory[i].mosaic.maxNumber)
+            {
+                platform->media.video[i].maxStreams = platform->media.videoCaps.memory[i].mosaic.maxNumber;
+            }
+            else
+            {
+                platform->media.video[i].maxStreams = 1;
+            }
+        }
+
+        BDBG_MSG(("decode %d streams %d", i, platform->media.video[i].maxStreams));
+        platform->media.maxStreams += platform->media.video[i].maxStreams;
+        if (platform->media.maxStreams >= MAX_STREAMS)
+        {
+            platform->media.maxStreams = MAX_STREAMS;
+            break;
+        }
+    }
+
+    platform->display.maxWindows = platform->display.caps.display[0].numVideoWindows;
+    BDBG_MSG(("display %d windows %d", 0, platform->display.maxWindows));
+
+    platform->streamId.main = 0;
+    platform->streamId.pip = platform->media.maxStreams - 1;
 
     return platform;
 
@@ -84,7 +123,8 @@ void platform_close(PlatformHandle platform)
 {
     if (!platform) return;
     NxClient_StopCallbackThread();
-    platform_scheduler_p_destroy(platform->scheduler);
+    platform_scheduler_p_destroy(platform->schedulers[PLATFORM_SCHEDULER_GFX]);
+    platform_scheduler_p_destroy(platform->schedulers[PLATFORM_SCHEDULER_MAIN]);
     BKNI_Free(platform);
     NxClient_Uninit();
 }
@@ -763,7 +803,7 @@ void platform_get_default_model(PlatformModel * pModel)
 {
     unsigned i;
     BKNI_Memset(pModel, 0, sizeof(*pModel));
-    for(i=0; i<MAX_MOSAICS; i++) {
+    for(i=0; i<MAX_STREAMS; i++) {
         platform_get_default_picture_info(&pModel->vid[i].info);
         pModel->vid[i].processing = PlatformTriState_eMax;
     }
@@ -799,8 +839,46 @@ void platform_print_picture_info(const char * tag, const PlatformPictureInfo * p
     );
 }
 
-PlatformSchedulerHandle platform_get_scheduler(PlatformHandle platform)
+PlatformSchedulerHandle platform_get_scheduler(PlatformHandle platform, unsigned index)
 {
     BDBG_ASSERT(platform);
-    return platform->scheduler;
+    if (index < PLATFORM_SCHEDULER_COUNT)
+    {
+        return platform->schedulers[index];
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
+unsigned platform_get_main_stream_id(PlatformHandle platform)
+{
+    BDBG_ASSERT(platform);
+    return platform->streamId.main;
+}
+
+unsigned platform_get_pip_stream_id(PlatformHandle platform)
+{
+    BDBG_ASSERT(platform);
+    return platform->streamId.pip;
+}
+
+unsigned platform_get_max_stream_count(PlatformHandle platform)
+{
+    BDBG_ASSERT(platform);
+    return platform->media.maxStreams;
+}
+
+unsigned platform_get_decoder_max_stream_count(PlatformHandle platform, unsigned decoderIndex)
+{
+    BDBG_ASSERT(platform);
+    return platform->media.video[decoderIndex].maxStreams;
+}
+
+unsigned platform_p_get_time(void)
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec*1000 + tv.tv_usec/1000;
 }

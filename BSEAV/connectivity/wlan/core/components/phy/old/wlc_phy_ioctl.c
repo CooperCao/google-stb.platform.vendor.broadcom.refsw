@@ -329,11 +329,12 @@ wlc_phy_ioctl_dispatch(phy_info_t *pi, int cmd, int len, void *arg, bool *ta_ok)
 		}
 
 		long_train_fn = pi->pi_fptr->longtrn;
-		if (long_train_fn)
+		if (long_train_fn) {
 			bcmerror = (*long_train_fn)(pi, val);
-		else
+                }
+		else {
 			PHY_ERROR(("WLC_LONGTRAIN: unsupported phy type\n"));
-
+                }
 			break;
 		}
 

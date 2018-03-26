@@ -37,7 +37,10 @@
  ******************************************************************************/
 
 #include "bcfc.h"
-/*#include <stdio.h>*/
+#include "bchp_gfd_0.h"
+#ifdef BCHP_CMP_1_REG_START
+#include "bchp_cmp_1.h"
+#endif
 
 BDBG_MODULE(BVDC_CFC);
 BDBG_FILE_MODULE(BCFC_1); /* print CFC in and out color space info */
@@ -342,6 +345,11 @@ const BCFC_Csc3x4 *BCFC_GetCsc3x4_Cr0p85Adj_NonBT2020_to_BT2020_isrsafe(void)
     return &s_CscCr0p85Adj_NonBT2020_to_BT2020;
 }
 
+const BCFC_Csc3x4 *BCFC_GetCsc3x4_Cr0p85Adj_BT2020_to_NonBT2020_isrsafe(void)
+{
+    return &s_CscCr0p85Adj_BT2020_to_NonBT2020;
+}
+
 const BCFC_Csc3x4 *BCFC_GetCsc3x4_YCbCr_Limited_to_Full_isrsafe(void)
 {
     return &s_CscYCbCr_Limited_to_Full;
@@ -420,7 +428,7 @@ void BCFC_Csc_Mult_isrsafe
  */
 #define BVDC_P_MAKE_GFX_CX(a) ((a)>>(BCFC_CSC_SW_CX_F_BITS - ulShift))
 #define BVDC_P_MAKE_GFX_CO(o) ((o)>>(BCFC_CSC_SW_CO_F_BITS - ulShift))
-BERR_Code BCFC_GetMatrixForGfxYCbCr2Rgb_isrsafe
+void BCFC_GetMatrixForGfxYCbCr2Rgb_isrsafe
     ( BAVC_MatrixCoefficients          eMatrixCoeffs,
       uint32_t                         ulShift,
       int32_t                         *pulCoeffs)
@@ -445,7 +453,7 @@ BERR_Code BCFC_GetMatrixForGfxYCbCr2Rgb_isrsafe
     }
     *(pulCoeffs + 3*5 + 3) = 1 << ulShift;
 
-    return BERR_SUCCESS;
+    return;
 }
 
 /* --------------------------------------------------------------------
@@ -1207,6 +1215,10 @@ bool BCFC_UpdateCfg_isr
             pCfc->bBypassCfc = false;
             pCfc->ucSelBlackBoxNL = BCFC_NL_SEL_BYPASS;
 
+          #if (defined(BCHP_CMP_1_V0_NL_CSC_CTRL) || defined(BCHP_GFD_0_NL_CSC_CTRL_SEL_CONV_R0_709_RGB_2_2020_RGB)) && !defined(BCHP_CMP_0_V0_NL_CSC_CTRL)
+            BDBG_CASSERT(false);
+          #endif
+
           #if (BCFC_VERSION >= BCFC_VER_1) /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_1) */
           #if BCHP_CMP_0_V0_NL_CSC_CTRL
             /* BT709 CL input / output ??? */
@@ -1262,7 +1274,8 @@ bool BCFC_UpdateCfg_isr
                         }
                     }
                 }
-                else if (BCFC_Colorimetry_eBt2020 == pColorSpaceOut->eColorimetry) /* input is non_bt2020 */
+                else if ((BCFC_Colorimetry_eBt2020 == pColorSpaceOut->eColorimetry) && /* input is non_bt2020 */
+                         (!BCFC_IN_GFD0(pCfc->eId) || !BCFC_IS_HDR10(pColorSpaceOut->eColorTF)))
                 {
                     /* if input is not BT2020, then blockBoxNLConv's input should be BT709 full range RGB */
                     BCFC_Csc_Mult_isrsafe(&(s_BT709_XYZ_to_RGB.m[0][0]), 3, &(pColorSpaceExtIn->stMb.m[0][0]), 3, &(pCfc->stMb.m[0][0]));
@@ -1369,12 +1382,12 @@ bool BCFC_UpdateCfg_isr
                     /* Mc is used for tmp first */
                     if (BCFC_ColorFormat_eRGB == pColorSpaceIn->eColorFmt)
                     {
-                        /* non-BT2020 RGB -> non-BT2020 limited range YCbCr */
+                        /* non-BT2020 RGB -> same colorimetry non-BT2020 limited range YCbCr */
                         BCFC_Csc_Mult_isrsafe(&(s_aCFC_MC_Tbl[pColorSpaceIn->eColorimetry]->m[0][0]), 4, &(pColorSpaceExtIn->stM3x4.m[0][0]), 4, &(pCfc->stMc.m[0][0]));
                     }
                     else
                     {
-                        /* non-BT2020 YCbCr -> non-BT2020 limited range YCbCr */
+                        /* non-BT2020 YCbCr -> same colorimetry non-BT2020 limited range YCbCr */
                         pCfc->stMc = (pColorSpaceIn->eColorRange == BCFC_ColorRange_eFull)? s_CscYCbCr_Full_to_Limited : s_Csc3x4Identity;
                     }
                     /* reverse 0.85 adj applied to non-BT2020 limited range YCbCr */

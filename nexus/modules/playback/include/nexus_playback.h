@@ -84,7 +84,7 @@ typedef struct NEXUS_Playback *NEXUS_PlaybackHandle;
 /**
 Summary:
 NEXUS_PlaybackLoopMode is a value you tell the playback engine what action to take
-when end of file and begining of file is reached.
+when end of file and beginning of file is reached.
 
 Description:
 We implemented loopmode as a callback because the app may take different actions
@@ -125,7 +125,7 @@ typedef struct NEXUS_PlaybackSettings
     NEXUS_SimpleStcChannelHandle simpleStcChannel;
     NEXUS_PlaypumpSettings playpumpSettings;    /* configuration for the playpump. Note that this will overwrite any call to NEXUS_Playpump_SetSettings that you make. */
     NEXUS_PlaybackLoopMode endOfStreamAction;   /* action that shall be taken at the end of stream */
-    NEXUS_PlaybackLoopMode beginningOfStreamAction; /* action that shall be taken at the begining of stream */
+    NEXUS_PlaybackLoopMode beginningOfStreamAction; /* action that shall be taken at the beginning of stream */
     NEXUS_PlaybackErrorHandlingMode playErrorHandling;  /* action should be taken when error encountered while playing stream, this mode is used in either normal or trick play. */
     NEXUS_PlaybackErrorHandlingMode seekErrorHandling;  /* action should be taken when error encountered while executing NEXUS_Playback_Seek function */
     NEXUS_PlaybackErrorHandlingMode trickErrorHandling;  /* action should be taken when error encountered while executing NEXUS_Playback_TrickMode or NEXUS_Playback_Play functions */
@@ -236,6 +236,17 @@ typedef enum NEXUS_PlaybackSkipControl
 
 /*
 Summary:
+Control audio during trick modes
+*/
+typedef enum NEXUS_PlaybackAudioTrickMode
+{
+    NEXUS_PlaybackAudioTrickMode_eAuto,     /* let Nexus decide what happens with audio during a trick mode */
+    NEXUS_PlaybackAudioTrickMode_eDisabled, /* always disable (either mute or stop) audio during a trick mode */
+    NEXUS_PlaybackAudioTrickMode_eMax
+} NEXUS_PlaybackAudioTrickMode;
+
+/*
+Summary:
 All parameters needed to specify a trick mode.
 
 Description:
@@ -301,6 +312,7 @@ typedef struct NEXUS_PlaybackTrickModeSettings
     
     unsigned maxFrameRepeat; /* if zero, there is no max. if non-zero, only repeat pictures this number of times for
                             a minimum smoothness. only used in NEXUS_TsmMode_eSimulated. */
+    NEXUS_PlaybackAudioTrickMode audioTrickMode;
 } NEXUS_PlaybackTrickModeSettings;
 
 /**
@@ -623,7 +635,7 @@ Summary:
 NEXUS_Playback_SetPidChannelSettings is used to change current configuration for the pidChannel opened with NEXUS_Playback_OpenPidChannel
 
 Description:
-Main purpose of the NEXUS_Playback_SetPidChannelSettings is to change decoder assigment.
+Main purpose of the NEXUS_Playback_SetPidChannelSettings is to change decoder assignment.
 **/
 NEXUS_Error NEXUS_Playback_SetPidChannelSettings(
     NEXUS_PlaybackHandle playback,

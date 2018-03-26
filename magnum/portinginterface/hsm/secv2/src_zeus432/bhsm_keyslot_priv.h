@@ -51,13 +51,17 @@ typedef struct{
 } BHSM_KeyslotModuleCapabilities;
 
 typedef struct {
+
+    uint8_t keyModeBspMapped;            /* the KeyMode mapped to BSP*/
     uint32_t ctrlWord0;
     uint32_t ctrlWord1;
     uint32_t ctrlWord2;
     uint32_t ctrlWord3;
 
-    BHSM_KeyslotType slotType;        /* The keyslot TYPE */
-    unsigned number;           /* Only required on SAGE side. Ignored on HOST side. */
+    BHSM_KeyslotType slotType;      /* The keyslot TYPE */
+    unsigned number;                /* Only required on SAGE side. Ignored on HOST side. */
+    BHSM_KeyslotPolarity polarity;  /* odd/even/clear*/
+    BHSM_KeyslotBlockType blockType;/* cps/ca/cpd */
 
     bool externalIvValid;
     unsigned externalIvOffset;
@@ -72,8 +76,9 @@ typedef struct {
         }outputPolarity;
     }sc01;
 
-}BHSM_KeyslotDetails;
+    BHSM_Handle hHsm;
 
+}BHSM_KeyslotDetails;
 
 BERR_Code BHSM_Keyslot_Init( BHSM_Handle hHsm, BHSM_KeyslotModuleSettings *pSettings );
 void BHSM_Keyslot_Uninit( BHSM_Handle hHsm );

@@ -176,7 +176,7 @@ endif # client
 endif # NEXUS_MODE
 endif # cygnus
 ifneq ($(NEXUS_MODE),client)
-ifneq (${B_REFSW_SYSTEM_MODE},SERVER)
+ifeq (${B_REFSW_SYSTEM_MODE},)
 ifneq ($(NEXUS_LOGGER_EXTERNAL),y) # Defined by some systems such as android that have their own loggger implementation
 EXTRA_CLEAN += logger_clean
 EXTRA_INSTALL += logger_install
@@ -191,8 +191,6 @@ NEXUS_EXTRALIBS += $(ASTRA_LIB)
 endif
 endif
 endif
-
-
 
 ifeq ($(SAGE_SUPPORT),y)
 ifeq ($(filter $(NEXUS_MODE),client driver),)
@@ -297,6 +295,12 @@ ASTRA_SYMVERS:=${B_REFSW_OBJ_ROOT}/astra/linux/bcm_astra/$(B_REFSW_ARCH)/Module.
 astra_drv:
 	@echo "[Build..... astra driver]"
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/platforms/common/build -f Makefile.bcm_astra --no-print-directory
+ifeq ($(B_REFSW_ARCH), aarch64-linux)
+	@echo "[Build..... mon64]"
+	${Q_}$(MAKE) -C $(ASTRA)/monitor --no-print-directory
+	@echo "[Build..... astra]"
+	${Q_}$(MAKE) -C $(ASTRA)/user --no-print-directory
+endif
 
 astra: $(ASTRA_LIB)
 
@@ -319,6 +323,10 @@ astra_drv_install: astra_drv ${NEXUS_BIN_DIR}/exists
 
 astra_drv_clean:
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/platforms/common/build -f Makefile.bcm_astra clean > /dev/null
+ifeq ($(B_REFSW_ARCH), aarch64-linux)
+	${Q_}$(MAKE) -C $(ASTRA)/monitor > /dev/null
+	${Q_}$(MAKE) -C $(ASTRA)/user > /dev/null
+endif
 
 # wakeupdriver rules
 .PHONY: wakeupdriver
@@ -358,10 +366,12 @@ spidriver_clean:
 BRCMV3D:=${B_REFSW_OBJ_ROOT}/BSEAV/linux/driver/brcmv3d/$(NEXUS_P_DRIVER_ARCH)/brcmv3d.ko
 BRCMV3D_SYMVERS:=${B_REFSW_OBJ_ROOT}/BSEAV/linux/driver/brcmv3d/$(NEXUS_P_DRIVER_ARCH)/Module.symvers
 
+BRCMV3D_DIR ?= $(BSEAV)/linux/driver/brcmv3d
+
 brcmv3d: ${BRCMV3D}
-${BRCMV3D}: $(BSEAV)/linux/driver/brcmv3d/v3d_drv.c
+${BRCMV3D}: $(BRCMV3D_DIR)/v3d_drv.c
 	@echo "[Build.... brcmv3d DRM driver]"
-	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/brcmv3d B_REFSW_DEBUG=$(B_REFSW_DEBUG) ${NEXUS_P_DRIVER_B_REFSW_ARCH} --no-print-directory
+	${Q_}$(MAKE) -C $(BRCMV3D_DIR) B_REFSW_DEBUG=$(B_REFSW_DEBUG) ${NEXUS_P_DRIVER_B_REFSW_ARCH} --no-print-directory
 
 .PHONY: brcmv3d_clean brcmv3d_install
 brcmv3d_install: brcmv3d ${NEXUS_BIN_DIR}/exists
@@ -369,7 +379,7 @@ brcmv3d_install: brcmv3d ${NEXUS_BIN_DIR}/exists
 	${Q_}$(CP) ${BRCMV3D} ${NEXUS_BIN_DIR}
 	${Q_}$(CP) ${BRCMV3D_SYMVERS} ${NEXUS_OBJ_DIR}/brcmv3d.symvers
 brcmv3d_clean:
-	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/brcmv3d B_REFSW_DEBUG=$(B_REFSW_DEBUG) ${NEXUS_P_DRIVER_B_REFSW_ARCH} clean --no-print-directory > /dev/null
+	${Q_}$(MAKE) -C $(BRCMV3D_DIR) B_REFSW_DEBUG=$(B_REFSW_DEBUG) ${NEXUS_P_DRIVER_B_REFSW_ARCH} clean --no-print-directory > /dev/null
 
 # Zigbee server process
 .PHONY: zigbeeprocess
@@ -508,3 +518,4 @@ else
 	${Q_}$(CP) $(NEXUS_TOP)/build/nxclient.sh ${NEXUS_BIN_DIR}
 	${Q_}chmod +x ${NEXUS_BIN_DIR}/nexus.client ${NEXUS_BIN_DIR}/nxclient.sh
 endif
+	${Q_}$(CP) $(NEXUS_TOP)/build/bp3flash.sh ${NEXUS_BIN_DIR}

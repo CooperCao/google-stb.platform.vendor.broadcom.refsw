@@ -179,44 +179,36 @@ int main(int argc, char **argv)
     rc = NEXUS_Playback_SetSettings(playback, &playbackSettings);
     BDBG_ASSERT(!rc);
 
-    if (allocResults.simpleVideoDecoder[0].id) {
-        videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
-    }
-    if (allocResults.surfaceClient[0].id) {
-        /* surfaceClient is the top-level graphics window in which video will fit.
-        videoSurfaceClient must be "acquired" to associate the video window with surface compositor.
-        Graphics do not have to be submitted to surfaceClient for video to work, but at least an
-        "alpha hole" surface must be submitted to punch video through other client's graphics.
-        Also, the top-level surfaceClient ID must be submitted to NxClient_ConnectSettings below. */
-        surfaceClient = NEXUS_SurfaceClient_Acquire(allocResults.surfaceClient[0].id);
-        videoSurfaceClient = NEXUS_SurfaceClient_AcquireVideoWindow(surfaceClient, 0);
+    videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
 
-        if (graphics) {
-            /* push an alpha 0 surface */
-            NEXUS_SurfaceCreateSettings surfaceCreateSettings;
-            NEXUS_SurfaceMemory mem;
-            NEXUS_Surface_GetDefaultCreateSettings(&surfaceCreateSettings);
-            surfaceCreateSettings.width = 100;
-            surfaceCreateSettings.height = 100;
-            for (i=0;i<MAX_SURFACES;i++) {
-                surface[i] = NEXUS_Surface_Create(&surfaceCreateSettings);
-                NEXUS_Surface_GetMemory(surface[i], &mem);
-                BKNI_Memset(mem.buffer, 0, surfaceCreateSettings.height * mem.pitch);
-                NEXUS_Surface_Flush(surface[i]);
-            }
+    surfaceClient = NEXUS_SurfaceClient_Acquire(allocResults.surfaceClient[0].id);
+    videoSurfaceClient = NEXUS_SurfaceClient_AcquireVideoWindow(surfaceClient, 0);
 
-            BKNI_CreateEvent(&nscEvent);
-            NEXUS_SurfaceClient_GetSettings(surfaceClient, &settings);
-            if (push) {
-                settings.recycled.callback = complete2;
-                settings.recycled.context = nscEvent;
-            }
-            else {
-                settings.displayed.callback = complete2;
-                settings.displayed.context = nscEvent;
-            }
-            NEXUS_SurfaceClient_SetSettings(surfaceClient, &settings);
+    if (graphics) {
+        /* push an alpha 0 surface */
+        NEXUS_SurfaceCreateSettings surfaceCreateSettings;
+        NEXUS_SurfaceMemory mem;
+        NEXUS_Surface_GetDefaultCreateSettings(&surfaceCreateSettings);
+        surfaceCreateSettings.width = 100;
+        surfaceCreateSettings.height = 100;
+        for (i=0;i<MAX_SURFACES;i++) {
+            surface[i] = NEXUS_Surface_Create(&surfaceCreateSettings);
+            NEXUS_Surface_GetMemory(surface[i], &mem);
+            BKNI_Memset(mem.buffer, 0, surfaceCreateSettings.height * mem.pitch);
+            NEXUS_Surface_Flush(surface[i]);
         }
+
+        BKNI_CreateEvent(&nscEvent);
+        NEXUS_SurfaceClient_GetSettings(surfaceClient, &settings);
+        if (push) {
+            settings.recycled.callback = complete2;
+            settings.recycled.context = nscEvent;
+        }
+        else {
+            settings.displayed.callback = complete2;
+            settings.displayed.context = nscEvent;
+        }
+        NEXUS_SurfaceClient_SetSettings(surfaceClient, &settings);
     }
 
     NxClient_GetDefaultConnectSettings(&connectSettings);

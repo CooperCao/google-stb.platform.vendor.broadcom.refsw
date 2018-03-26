@@ -46,7 +46,6 @@
 #include <string.h>
 
 BDBG_MODULE(shared_handle);
-#include "nxapp_prompt.inc"
 
 /**
 Run client twice:

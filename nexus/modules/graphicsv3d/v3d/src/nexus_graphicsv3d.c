@@ -163,7 +163,7 @@ NEXUS_Graphicsv3dModule_Init(
       return BERR_TRACE(NEXUS_INVALID_PARAMETER);
    }
 
-   /* any addresses passed to the kernel must be checked as acessable
+   /* any addresses passed to the kernel must be checked as accessible
       otherwise the kernel silently fails */
    if (!NEXUS_P_CpuAccessibleAddress(userSettings->address))
    {

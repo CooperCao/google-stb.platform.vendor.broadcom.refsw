@@ -50,8 +50,6 @@
 
 BDBG_MODULE(BHSM);
 
-BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
-
 BERR_Code  BHSM_InitialiseKeyLadders ( BHSM_Handle hHsm )
 {
     BERR_Code rc = BERR_SUCCESS;

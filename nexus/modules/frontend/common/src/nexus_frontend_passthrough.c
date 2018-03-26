@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -141,14 +141,13 @@ void NEXUS_Frontend_P_Passthrough_DeviceClose(void *device)
 
 NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_P_OpenPassthrough(void)
 {
-    NEXUS_Error rc;
     NEXUS_FrontendDevice *pFrontendDevice = NULL;
 
     pFrontendDevice = NEXUS_FrontendDevice_P_Create();
-    if (NULL == pFrontendDevice) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto error;}
+    if (NULL == pFrontendDevice) {(void)  BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto error;}
 
     pFrontendDevice->dummyLockCallback = NEXUS_TaskCallback_Create(pFrontendDevice, NULL);
-    if (NULL == pFrontendDevice->dummyLockCallback) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto error; }
+    if (NULL == pFrontendDevice->dummyLockCallback) {(void)  BERR_TRACE(NEXUS_NOT_INITIALIZED); goto error; }
 
     pFrontendDevice->close = NEXUS_Frontend_P_Passthrough_DeviceClose;
     pFrontendDevice->pDevice = pFrontendDevice;
@@ -165,11 +164,10 @@ error:
 NEXUS_FrontendHandle NEXUS_Frontend_P_OpenPassthrough(void *pDevice)
 {
     NEXUS_FrontendHandle frontendHandle = NULL;
-    NEXUS_Error rc;
     unsigned i;
 
     frontendHandle = NEXUS_Frontend_P_Create(pDevice);
-    if (NULL == frontendHandle) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto error;}
+    if (NULL == frontendHandle) {(void) BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto error;}
 
     frontendHandle->pGenericDeviceHandle = pDevice;
 

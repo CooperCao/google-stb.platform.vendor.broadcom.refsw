@@ -187,6 +187,7 @@ static void NEXUS_HdmiOutput_OverrideVideoSettings_priv(
 
         /* set override flag if the override value is different than current setting */
         hdmiOutput->displaySettings.colorSpace = preferred->colorSpace ;
+        hdmiOutput->settings.colorSpace = preferred->colorSpace ;
     }
 
     if (preferred->colorDepth != requested->colorDepth)
@@ -196,6 +197,7 @@ static void NEXUS_HdmiOutput_OverrideVideoSettings_priv(
 
         /* set override flag if the override value is different than current setting */
         hdmiOutput->displaySettings.colorDepth = preferred->colorDepth ;
+        hdmiOutput->settings.colorDepth = preferred->colorDepth ;
     }
 }
 
@@ -595,15 +597,53 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
         localRequested.colorDepth = 8 ;
     }
 
-    /* YCbCr 422/444 requires SCDC support and HF-VSDB Max TMDS Rate > 297 */
-    if ((bUhdFormat)
-    && ((localRequested.colorSpace == NEXUS_ColorSpace_eYCbCr422)
-        || (localRequested.colorSpace == NEXUS_ColorSpace_eYCbCr444))
-    && ((!edid->hdmiForumVsdb.scdc)
-        ||(edid->hdmiForumVsdb.maxTMDSCharacterRate <= BHDM_HDMI_1_4_MAX_RATE)))
+    /* validate 4K UHD settings */
+    if ((bUhdFormat) && (edid->hdmiForumVsdb.valid))
     {
-        BDBG_WRN(("Attached Rx cannot support Color Space YCbCr 422/444; default to YCbCr 4:2:0")) ;
-        localRequested.colorSpace = NEXUS_ColorSpace_eYCbCr420 ;
+        /* YCbCr 422/444 requires SCDC support and HF-VSDB Max TMDS Rate > 297 */
+        if (((localRequested.colorSpace == NEXUS_ColorSpace_eYCbCr422)
+            || (localRequested.colorSpace == NEXUS_ColorSpace_eYCbCr444))
+        && ((!edid->hdmiForumVsdb.scdc)
+            ||(edid->hdmiForumVsdb.maxTMDSCharacterRate <= BHDM_HDMI_1_4_MAX_RATE)))
+        {
+            BDBG_WRN(("Attached Rx %s cannot support Color Space YCbCr 422/444; default to YCbCr 4:2:0",
+                edid->basicData.monitorName)) ;
+            localRequested.colorSpace = NEXUS_ColorSpace_eYCbCr420 ;
+        }
+
+        /* Check YCbCr 420 max color depth  */
+        else if (localRequested.colorSpace == NEXUS_ColorSpace_eYCbCr420)
+        {
+            switch (localRequested.colorDepth)
+            {
+            case 0 :  /* Auto Color depth */
+            case 12 :
+                if (edid->hdmiForumVsdb.deepColor420_36bit)
+                {
+                    localRequested.colorDepth = 12  ;
+                    break ;
+                }
+                /* fall through */
+
+            case 10 :
+                if (edid->hdmiForumVsdb.deepColor420_30bit)
+                {
+                    localRequested.colorDepth = 10  ;
+                    break ;
+                }
+                /* fall through */
+
+            default :
+                localRequested.colorDepth = 8  ;
+            }
+
+            if ((requested->colorDepth != 0 )
+            && (localRequested.colorDepth != requested->colorDepth))
+            {
+                BDBG_WRN(("Attached Rx <%s> cannot support Color Space YCbCr 420 color depth %d; default to color depth %d",
+			edid->basicData.monitorName, requested->colorDepth, localRequested.colorDepth)) ;
+            }
+        }
     }
 
     if (localRequested.colorSpace == NEXUS_ColorSpace_eRgb)

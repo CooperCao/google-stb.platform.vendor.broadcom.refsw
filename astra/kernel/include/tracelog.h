@@ -64,7 +64,7 @@ public:
     inline static void add(uint32_t event, uint32_t index = 0) {
         if (enabled &&
             index < sentinelSize)
-            STB_REG_WR(sentinelBase + index * 4, event);
+            STB_REG_WR((STB_MEMC_SENTINEL_RANGE_END), event);
     }
 
     static void inval(void);

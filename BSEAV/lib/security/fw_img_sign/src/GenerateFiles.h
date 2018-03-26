@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -162,6 +162,28 @@ typedef union SigUnion
 
 struct FwParamStruct
 {
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0)
+  unsigned char SigVersion;
+  unsigned char SigType;
+  unsigned char MarketIDSelect;
+  unsigned char EpochSelect;
+  unsigned char CpuType;
+  unsigned char Reserved0;
+  unsigned char ChipBindingSel;
+  unsigned char Reserved1;
+  unsigned char Reserved2;
+  unsigned char Reserved3;
+  unsigned char Reserved4;
+  unsigned char Reserved5;
+  unsigned int  MarketID;
+  unsigned int  MarketIDMask;
+  unsigned int  Epoch;
+  unsigned int  EpochMask;
+  unsigned int  UpperChipsetBinding;
+  unsigned int  LowerChipsetBinding;
+  unsigned int  UDF1;
+  unsigned int  UDF2;
+#else
   unsigned char Reserved0;
   unsigned char Reserved1;
   unsigned char CpuType;
@@ -183,6 +205,7 @@ struct FwParamStruct
   unsigned char Reserved3;
   unsigned char Reserved4;
 #endif
+#endif
 };
 
 typedef union FwParamUnion
@@ -193,6 +216,28 @@ typedef union FwParamUnion
 
 struct ParamStruct
 {
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0)
+  unsigned char SigVersion;
+  unsigned char SigType;
+  unsigned char MarketIDSelect;
+  unsigned char EpochSelect;
+  unsigned char Reserved0;
+  unsigned char Reserved1;
+  unsigned char ChipBindingSel;
+  unsigned char Reserved2;
+  unsigned char Reserved3;
+  unsigned char Reserved4;
+  unsigned char Reserved5;
+  unsigned char SigningRights;
+  unsigned int  MarketID;
+  unsigned int  MarketIDMask;
+  unsigned int  Epoch;
+  unsigned int  EpochMask;
+  unsigned int  UpperChipsetBinding;
+  unsigned int  LowerChipsetBinding;
+  unsigned int  UDF1;
+  unsigned int  UDF2;
+#else
   unsigned char SigningRights;
   unsigned char Reserved0;
   unsigned char PublicExponent;
@@ -213,6 +258,7 @@ struct ParamStruct
   unsigned char SigType;
   unsigned char Reserved3;
   unsigned char Reserved4;
+#endif
 #endif
 };
 

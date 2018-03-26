@@ -44,8 +44,9 @@ static int v3d_file_client_info(struct seq_file *m, void *data)
 	struct task_struct *task;
 	struct drm_gem_object *obj;
 	struct v3d_alloc_block *itr;
-	int id, num_objs = 0, total_obj_size = 0, cma_blocks = 0, ret, i;
-	bool obj_size_mb = false;
+	int i, id, ret, num_objs = 0, cma_blocks = 0;
+	size_t total_obj_size = 0, shm_size = 0;
+	bool obj_size_mb = false, shm_size_mb = false;
 
 	ret = mutex_lock_interruptible(&dev->struct_mutex);
 	if (ret)
@@ -53,15 +54,25 @@ static int v3d_file_client_info(struct seq_file *m, void *data)
 
 	spin_lock(&file->table_lock);
 	idr_for_each_entry(&file->object_idr, obj, id) {
+		struct v3d_drm_gem_object *v3dobj = to_v3d_obj(obj);
+
 		num_objs++;
 		total_obj_size += obj->size;
+		if (v3dobj->shm_pages)
+			shm_size += obj->size;
 	}
 	spin_unlock(&file->table_lock);
 
 	total_obj_size = total_obj_size / 1024;
-	if (total_obj_size > 2 * 1024) {
-		total_obj_size = total_obj_size / 1024;
+	if (total_obj_size > 32 * 1024) {
+		total_obj_size = (total_obj_size + 1023) / 1024;
 		obj_size_mb = true;
+	}
+
+	shm_size = shm_size / 1024;
+	if (shm_size > 32 * 1024) {
+		shm_size = (shm_size + 1023) / 1024;
+		shm_size_mb = true;
 	}
 
 	for (i = 0; i < MAX_CMA_AREAS; i++) {
@@ -70,23 +81,25 @@ static int v3d_file_client_info(struct seq_file *m, void *data)
 				cma_blocks++;
 		}
 	}
-
 	seq_printf(m,
-		   "%20s %18s %7s %13s %10s\n",
+		   "%19s %18s %7s %10s %10s %10s\n",
 		   "command",
 		   "pagetable phys",
 		   "objects",
-		   "virtual mem",
-		   "CMA mem");
+		   "Virtual",
+		   "SHM pages",
+		   "CMA blocks");
 
 	rcu_read_lock(); /* locks pid_task()->comm */
 	task = pid_task(file->pid, PIDTYPE_PID);
-	seq_printf(m, "%20s %pa %7d %11d%2s %8luMB\n",
+	seq_printf(m, "%19s %pa %7d %8zd%2s %8zd%2s %8luMB\n",
 		   task ? task->comm : "<unknown>",
 		   &fp->hw_vmem.pt_phys,
 		   num_objs,
 		   total_obj_size,
 		   obj_size_mb ? "MB" : "KB",
+		   shm_size,
+		   shm_size_mb ? "MB" : "KB",
 		   cma_blocks * V3D_CMA_ALLOC_BLOCK_SIZE / (1024 * 1024));
 	rcu_read_unlock();
 
@@ -155,7 +168,6 @@ static int v3d_file_cma_info(struct seq_file *m, void *data)
 	mutex_unlock(&dev->struct_mutex);
 	return 0;
 }
-
 static int v3d_file_objs_info(struct seq_file *m, void *data)
 {
 	struct drm_info_node *node = (struct drm_info_node *)m->private;
@@ -180,7 +192,7 @@ static int v3d_file_objs_info(struct seq_file *m, void *data)
 
 		ro = !!(v3d_obj->alloc_flags & V3D_CREATE_HW_READONLY);
 		wc = !!(v3d_obj->alloc_flags & V3D_CREATE_CPU_WRITECOMBINE);
-		ext = !v3d_obj->pages;
+		ext = !v3d_obj->cma_pages && !v3d_obj->shm_pages;
 		anon = !v3d_obj->desc;
 		seq_printf(m, "%10d %10zd 0x%08x %5c %5c %5c %28s\n",
 			   id, obj->size, v3d_obj->hw_virt_addr,
@@ -246,6 +258,9 @@ static int v3d_file_pagetable_raw_info(struct seq_file *m, void *data)
 	struct v3d_drm_file_private *fp = file->driver_priv;
 	int ret;
 
+	if (!fp->hw_vmem.pt_kaddr)
+		return 0;
+
 	ret = mutex_lock_interruptible(&dev->struct_mutex);
 	if (ret)
 		return ret;
@@ -266,6 +281,9 @@ static int v3d_file_pagetable_cooked_info(struct seq_file *m, void *data)
 	struct v3d_drm_file_private *fp = file->driver_priv;
 	const int stride = V3D_HW_PAGE_SIZE >> V3D_HW_SMALLEST_PAGE_SHIFT;
 	int i, ret;
+
+	if (!fp->hw_vmem.pt_kaddr)
+		return 0;
 
 	ret = mutex_lock_interruptible(&dev->struct_mutex);
 	if (ret)

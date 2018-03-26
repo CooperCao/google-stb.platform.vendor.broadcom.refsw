@@ -44,8 +44,7 @@ NXCLIENT_SUPPORT ?= y
 
 USE_CURL ?= y
 
-# This will be turned on after DecryptOpaque is enabled in sage/playready
-USE_PR_DECRYPT_OPAQUE ?= n
+DIF_PR_DECRYPT_OPAQUE ?= y
 
 # Build the name of this makefile, relative to B_REFSW_TOP (used for recipe tracing)
 # Keep this line before any includes!
@@ -100,6 +99,14 @@ endif
 # Custom include paths
 CFLAGS += -I./include
 ifeq ($(WIDEVINE_SUPPORT),y)
+ifeq ($(SAGE_SUPPORT),y)
+WIDEVINE3x_SUPPORT ?= y
+else
+# WV3x is disabled for non-sage until it is implemented
+$(warning WV CENC3x is not available for non-sage!!!!!)
+$(warning Defaulting to WV CENC21)
+WIDEVINE3x_SUPPORT := n
+endif
 ifeq ($(WIDEVINE3x_SUPPORT),y)
 ifneq ($(MAKECMDGOALS),clean)
 include $(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/third_party/widevine/CENC3x/widevine3x.inc
@@ -176,8 +183,8 @@ CFLAGS += -DDRM_64BIT_TARGET=1 -D__arch64__
 endif
 endif
 
-ifeq ($(USE_PR_DECRYPT_OPAQUE), y)
-CFLAGS += -DUSE_PR_DECRYPT_OPAQUE
+ifeq ($(DIF_PR_DECRYPT_OPAQUE), y)
+CFLAGS += -DDIF_PR_DECRYPT_OPAQUE
 endif
 
 ifeq ($(USE_CURL),y)

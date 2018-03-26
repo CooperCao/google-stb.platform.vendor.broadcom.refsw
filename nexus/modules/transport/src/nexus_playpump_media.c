@@ -347,7 +347,7 @@ b_pump_demux_advance_recycle(b_pump_demux_t demux)
 #define B_IO_BLOCK_SIZE 4096
 #define B_IO_BLOCK_LIMIT (4*B_IO_BLOCK_SIZE)
 
-static bool /* this function return true if there any usefull empty space in the playpump FIFO */
+static bool /* this function return true if there any useful empty space in the playpump FIFO */
 b_pump_demux_check_buffer( b_pump_demux_t demux)
 {
     size_t data_left;

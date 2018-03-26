@@ -1335,6 +1335,7 @@ int playback_svp(int argc, char* argv[])
         Also, the top-level surfaceClient ID must be submitted to NxClient_ConnectSettings below. */
         surfaceClient = NEXUS_SurfaceClient_Acquire(allocResults.surfaceClient[0].id);
         videoSurfaceClient = NEXUS_SurfaceClient_AcquireVideoWindow(surfaceClient, 0);
+        BSTD_UNUSED(videoSurfaceClient);
     }
     NxClient_GetDefaultConnectSettings(&connectSettings);
     connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;

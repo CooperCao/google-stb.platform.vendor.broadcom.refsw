@@ -38,6 +38,7 @@
  ******************************************************************************/
 
 #include <string.h>
+#include <time.h>
 
 #include "nexus_memory.h"
 #include "nexus_security_client.h"
@@ -50,6 +51,9 @@
 #include "keymaster_cmd_keys.h"
 #include "keymaster_cmd_crypto.h"
 
+/* When BSAGE_ERR_KM_AGAIN received, give up after this long */
+#define KM_CMD_TIMEOUT_IN_SECONDS 20
+
 #ifdef ANDROID
 #define KEYMASTER_DRM_BIN_DEFAULT_FILEPATH "/hwcfg/drm.bin"
 #else
@@ -61,6 +65,7 @@ BDBG_MODULE(keymaster_tl);
 struct KeymasterTl_Instance {
     BDBG_OBJECT(KeymasterTl_Instance)
     SRAI_ModuleHandle moduleHandle;
+    SRAI_ModuleHandle ssdModuleHandle;
 };
 
 BDBG_OBJECT_ID_DECLARE(KeymasterTl_Instance);
@@ -81,13 +86,26 @@ BDBG_OBJECT_ID(KeymasterTl_Instance);
 #define KM_FREE_BLOCK(ptr)                           if (ptr) { SRAI_Memory_Free(ptr); ptr = NULL; }
 
 
-#define KM_PROCESS_COMMAND(cmd_id)                   err = SRAI_Module_ProcessCommand(handle->moduleHandle, cmd_id, inout); \
-                                                     if ((err != BERR_SUCCESS) || (inout->basicOut[0] != BERR_SUCCESS)) { \
-                                                         BDBG_MSG(("%s: Command failed (%x/%x)", BSTD_FUNCTION, err, inout->basicOut[0])); \
-                                                         if (err == BERR_SUCCESS) { err = inout->basicOut[0]; } \
-                                                         goto done; \
+#define KM_PROCESS_COMMAND(cmd_id)                   while (1) { \
+                                                         time_t start, now; \
+                                                         start = time(NULL); \
+                                                         while (1) { \
+                                                             now = time(NULL); \
+                                                             if (now - start >= KM_CMD_TIMEOUT_IN_SECONDS) { \
+                                                                 err = BERR_UNKNOWN; \
+                                                                 BDBG_ERR(("%s: command %d timed out", BSTD_FUNCTION, cmd_id)); \
+                                                                 goto done; \
+                                                             } \
+                                                             err = SRAI_Module_ProcessCommand(handle->moduleHandle, cmd_id, inout);\
+                                                             if ((err != BERR_SUCCESS) || (inout->basicOut[0] != BERR_SUCCESS)) { \
+                                                                 BDBG_MSG(("%s: Command failed (%x/%x)", BSTD_FUNCTION, err, inout->basicOut[0])); \
+                                                                 if (err == BERR_SUCCESS) { err = inout->basicOut[0]; } \
+                                                                 if (err == BSAGE_ERR_KM_AGAIN) { usleep(10000); continue; } \
+                                                                 goto done;\
+                                                             } else { break; } \
+                                                         } \
+                                                         break; \
                                                      }
-
 
 
 static void _KeymasterTl_ContextDelete(KeymasterTl_Handle hKeymasterTl);
@@ -119,15 +137,17 @@ static KeymasterTl_Handle _KeymasterTl_ContextNew(const char *bin_file_path)
         goto done;
     }
     handle->moduleHandle = NULL;
+    handle->ssdModuleHandle = NULL;
 
     BDBG_OBJECT_SET(handle, KeymasterTl_Instance);
 
     KM_ALLOCATE_CONTAINER();
 
     err = Keymaster_ModuleInit(Keymaster_ModuleId_eKeymaster,
-                             bin_file_path,
-                             inout,
-                             &handle->moduleHandle);
+                               bin_file_path,
+                               inout,
+                               &handle->moduleHandle,
+                               &handle->ssdModuleHandle);
     if (err != BERR_SUCCESS) {
         BDBG_ERR(("%s: Error initializing module (0x%08x)", BSTD_FUNCTION, inout->basicOut[0]));
         goto done;
@@ -147,9 +167,10 @@ done:
 static void _KeymasterTl_ContextDelete(KeymasterTl_Handle handle)
 {
     if (handle) {
-        if (handle->moduleHandle) {
-            Keymaster_ModuleUninit(handle->moduleHandle);
+        if (handle->moduleHandle || handle->ssdModuleHandle) {
+            Keymaster_ModuleUninit(handle->moduleHandle, handle->ssdModuleHandle);
             handle->moduleHandle = NULL;
+            handle->ssdModuleHandle = NULL;
         }
 
         BDBG_OBJECT_DESTROY(handle, KeymasterTl_Instance);
@@ -187,11 +208,31 @@ done:
     return rc;
 }
 
+/* Shutdown the processing in Keymaster */
+static void _KeymasterTl_Shutdown(KeymasterTl_Handle handle)
+{
+    BERR_Code err;
+    BSAGElib_InOutContainer *inout = NULL;
+
+    BDBG_ENTER(_KeymasterTl_Shutdown);
+
+    BDBG_ASSERT(handle);
+    BDBG_OBJECT_ASSERT(handle, KeymasterTl_Instance);
+    KM_ALLOCATE_CONTAINER();
+    KM_PROCESS_COMMAND(KM_CommandId_eShutdown);
+
+done:
+    KM_FREE_CONTAINER();
+    BDBG_LEAVE(_KeymasterTl_Shutdown);
+    return;
+}
+
 void KeymasterTl_Uninit(KeymasterTl_Handle handle)
 {
     BDBG_ENTER(KeymasterTl_Uninit);
 
     BDBG_OBJECT_ASSERT(handle, KeymasterTl_Instance);
+    _KeymasterTl_Shutdown(handle);
     _KeymasterTl_ContextDelete(handle);
 
     BDBG_LEAVE(KeymasterTl_Uninit);
@@ -456,12 +497,12 @@ BERR_Code KeymasterTl_GetKeyCharacteristics(
     KM_CMD_GET_CHARACTERISTICS_IN_PARAMS_LEN = length;
     KM_CMD_GET_CHARACTERISTICS_IN_NUM_PARAMS = (!settings->in_params) ? 0 : KM_Tag_GetNumPairs(settings->in_params);
 
-    KM_ALLOCATE_BLOCK(hw_ptr, KM_TAG_VALUE_BLOCK_SIZE);
+    KM_ALLOCATE_BLOCK(hw_ptr, SKM_TAG_VALUE_BLOCK_SIZE);
     KM_CMD_GET_CHARACTERISTICS_OUT_HW_ENFORCED_PTR = hw_ptr;
-    KM_CMD_GET_CHARACTERISTICS_OUT_HW_ENFORCED_LEN = KM_TAG_VALUE_BLOCK_SIZE;
-    KM_ALLOCATE_BLOCK(sw_ptr, KM_TAG_VALUE_BLOCK_SIZE);
+    KM_CMD_GET_CHARACTERISTICS_OUT_HW_ENFORCED_LEN = SKM_TAG_VALUE_BLOCK_SIZE;
+    KM_ALLOCATE_BLOCK(sw_ptr, SKM_TAG_VALUE_BLOCK_SIZE);
     KM_CMD_GET_CHARACTERISTICS_OUT_SW_ENFORCED_PTR = sw_ptr;
-    KM_CMD_GET_CHARACTERISTICS_OUT_SW_ENFORCED_LEN = KM_TAG_VALUE_BLOCK_SIZE;
+    KM_CMD_GET_CHARACTERISTICS_OUT_SW_ENFORCED_LEN = SKM_TAG_VALUE_BLOCK_SIZE;
 
     KM_PROCESS_COMMAND(KM_CommandId_eGetKeyCharacteristics);
 
@@ -1015,9 +1056,9 @@ BERR_Code KeymasterTl_CryptoBegin(
     KM_CMD_CRYPTO_BEGIN_IN_PARAMS_LEN = length;
     KM_CMD_CRYPTO_BEGIN_IN_NUM_PARAMS = (!settings->in_params) ? 0 : KM_Tag_GetNumPairs(settings->in_params);
 
-    KM_ALLOCATE_BLOCK(ret_params, KM_TAG_VALUE_BLOCK_SIZE);
+    KM_ALLOCATE_BLOCK(ret_params, SKM_TAG_VALUE_BLOCK_SIZE);
     KM_CMD_CRYPTO_BEGIN_OUT_PARAMS_PTR = ret_params;
-    KM_CMD_CRYPTO_BEGIN_OUT_PARAMS_LEN = KM_TAG_VALUE_BLOCK_SIZE;
+    KM_CMD_CRYPTO_BEGIN_OUT_PARAMS_LEN = SKM_TAG_VALUE_BLOCK_SIZE;
     KM_ALLOCATE_BLOCK(op_handle, sizeof(km_operation_handle_t));
     KM_CMD_CRYPTO_BEGIN_OUT_OP_HANDLE_PTR = op_handle;
     KM_CMD_CRYPTO_BEGIN_OUT_OP_HANDLE_LEN = sizeof(km_operation_handle_t);
@@ -1096,9 +1137,9 @@ BERR_Code KeymasterTl_CryptoUpdate(
 
     KM_CMD_CRYPTO_UPDATE_IN_DATA_PTR = settings->in_data.buffer;
     KM_CMD_CRYPTO_UPDATE_IN_DATA_LEN = settings->in_data.size;
-    KM_ALLOCATE_BLOCK(ret_params, KM_TAG_VALUE_BLOCK_SIZE);
+    KM_ALLOCATE_BLOCK(ret_params, SKM_TAG_VALUE_BLOCK_SIZE);
     KM_CMD_CRYPTO_UPDATE_OUT_PARAMS_PTR = ret_params;
-    KM_CMD_CRYPTO_UPDATE_OUT_PARAMS_LEN = KM_TAG_VALUE_BLOCK_SIZE;
+    KM_CMD_CRYPTO_UPDATE_OUT_PARAMS_LEN = SKM_TAG_VALUE_BLOCK_SIZE;
     KM_CMD_CRYPTO_UPDATE_OUT_DATA_PTR = settings->out_data.buffer;
     KM_CMD_CRYPTO_UPDATE_OUT_DATA_LEN = settings->out_data.size;
 
@@ -1184,9 +1225,9 @@ BERR_Code KeymasterTl_CryptoFinish(
         KM_CMD_CRYPTO_FINISH_IN_SIGNATURE_PTR = NULL;
         KM_CMD_CRYPTO_FINISH_IN_SIGNATURE_LEN = 0;
     }
-    KM_ALLOCATE_BLOCK(ret_params, KM_TAG_VALUE_BLOCK_SIZE);
+    KM_ALLOCATE_BLOCK(ret_params, SKM_TAG_VALUE_BLOCK_SIZE);
     KM_CMD_CRYPTO_FINISH_OUT_PARAMS_PTR = ret_params;
-    KM_CMD_CRYPTO_FINISH_OUT_PARAMS_LEN = KM_TAG_VALUE_BLOCK_SIZE;
+    KM_CMD_CRYPTO_FINISH_OUT_PARAMS_LEN = SKM_TAG_VALUE_BLOCK_SIZE;
     if (settings->out_data.size && settings->out_data.buffer) {
         KM_CMD_CRYPTO_FINISH_OUT_DATA_PTR = settings->out_data.buffer;
         KM_CMD_CRYPTO_FINISH_OUT_DATA_LEN = settings->out_data.size;
@@ -1247,5 +1288,43 @@ done:
     KM_FREE_CONTAINER();
     KM_FREE_BLOCK(op_handle);
     BDBG_LEAVE(KeymasterTl_CryptoAbort);
+    return err;
+}
+
+BERR_Code KeymasterTl_GetConfiguration(
+    KeymasterTl_Handle handle,
+    bool *rpmbEnabled,
+    bool *usingVms,
+    uint32_t *hwKeysAvailable)
+{
+    BERR_Code err;
+    BSAGElib_InOutContainer *inout = NULL;
+
+    BDBG_ENTER(KeymasterTl_GetConfiguration);
+
+    if (!handle) {
+        BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
+        goto done;
+    }
+
+    BDBG_OBJECT_ASSERT(handle, KeymasterTl_Instance);
+
+    KM_ALLOCATE_CONTAINER();
+    KM_PROCESS_COMMAND(KM_CommandId_eGetConfiguration);
+    if (rpmbEnabled) {
+        *rpmbEnabled = (bool)KM_CMD_BASIC_GET_CONFIGURATION_OUT_RPMB_EN;
+    }
+    if (usingVms) {
+        *usingVms = (bool)KM_CMD_BASIC_GET_CONFIGURATION_OUT_VMS_EN;
+    }
+    if (hwKeysAvailable) {
+        *hwKeysAvailable = KM_CMD_BASIC_GET_CONFIGURATION_OUT_HW_KEY_TOTAL;
+    }
+    err = BERR_SUCCESS;
+
+done:
+    KM_FREE_CONTAINER();
+    BDBG_LEAVE(KeymasterTl_GetConfiguration);
     return err;
 }

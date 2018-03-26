@@ -13,7 +13,7 @@
 #include <assert.h>
 
 #ifdef ANDROID
-#include <cutils/log.h>
+#include <log/log.h>
 #endif
 
 static BEGL_InitInterface     s_initInterface;

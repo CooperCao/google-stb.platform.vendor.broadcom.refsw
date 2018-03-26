@@ -1,6 +1,7 @@
 #!/bin/sh
 
 export LD_LIBRARY_PATH=.
+RETCODE=0
 
 case $1 in
 install)
@@ -65,7 +66,7 @@ install)
 
 *)
     if [ -e atlas_netapp_prep.sh ]; then
-	source atlas_netapp_prep.sh `pwd`
+	    source atlas_netapp_prep.sh `pwd`
     else
 	if [ -e netapp_target_prep.sh ]; then
 	    source netapp_target_prep.sh `pwd`
@@ -73,12 +74,11 @@ install)
     fi
 
     if [ -e atlas_zigbee_prep.sh ]; then
-	source atlas_zigbee_prep.sh ..
+	    source atlas_zigbee_prep.sh ..
     fi
 
-    WLANPREP=""
     if [ -e atlas_wlan_prep.sh ]; then
-        WLANPREP="atlas_wlan_prep.sh"
+        source atlas_wlan_prep.sh
     fi
 
     # save terminal settings
@@ -87,22 +87,21 @@ install)
     # use the nexus script
 	if ps ax | grep -v grep | grep "nxserver" > /dev/null
 	then
-		echo "--> Start Atlas in NxClient mode <--"
-		nexus.client ${WLANPREP};$*
+		nexus.client $*
 	else
-        # if 32bit mode unload wifi drivers, udhcpc,and wpa supplicant
-        TEST=`uname -m|grep aarch64 >/dev/null && echo 64`
-        if [ "$TEST" != "64" ] && [ ! -z $WLANPREP ]; then
-            ./atlas_wlan_prep.sh -q
-        fi
-
-		echo "--> Start Atlas in Nexus mode <--"
-		nexus ${WLANPREP};$*
+		nexus $*
 	fi
+    RETCODE=$?
 
     # restore terminal settings
     if [ -e term.settings ]; then
         stty `cat ./term.settings`
     fi
+
+    if [ -e atlas_wlan_prep.sh ]; then
+        source atlas_wlan_prep.sh -q
+    fi
+
     ;;
 esac
+exit ${RETCODE}

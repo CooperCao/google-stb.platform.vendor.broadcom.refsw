@@ -37,14 +37,14 @@
  *****************************************************************************/
 #include "bape.h"
 #include "bape_priv.h"
-#if BAPE_CHIP_MAX_DECODERS || BAPE_CHIP_MAX_DSP_MIXERS
+#if BAPE_CHIP_MAX_DECODERS > 0 || BAPE_CHIP_MAX_DSP_MIXERS > 0
 #include "bdsp.h"
 #endif
 
 BDBG_MODULE(bape_dsp_utils);
 
 
-#if BAPE_CHIP_MAX_DECODERS
+#if BAPE_CHIP_MAX_DECODERS > 0
 #define DISABLE_MPEG_DRA_PASSTHRU 0
 
 static const BAPE_CodecAttributes g_codecAttributes[] =
@@ -835,7 +835,141 @@ BERR_Code BAPE_DSP_P_InitFmmInputDescriptor(
     }
 
     return BERR_SUCCESS;
+}
 
+/***************************************************************************
+Summary:
+Init an FMM buffer descriptor from a DRAM buffer
+***************************************************************************/
+BERR_Code BAPE_DSP_P_InitDramFmmInputDescriptor(
+    BAPE_BufferInterface * bufferInterface,
+    BDSP_FmmBufferDescriptor *pDesc
+    )
+{
+    unsigned i, numChannels, numChannelPairs;
+
+    BDBG_ASSERT(NULL != bufferInterface);
+    BDBG_ASSERT(NULL != pDesc);
+
+    BKNI_Memset(pDesc, 0, sizeof(BDSP_FmmBufferDescriptor));
+
+#if 0
+    /* TBD7211 - implement buffer descriptor hooks */
+    numChannels = 1;
+
+    pDesc->numBuffers = numChannels;
+    pDesc->buffers[0].base = BAPE_P_DFIFO_TO_BASEADDR_REG(BAPE_DfifoGroup_P_GetHwIndex(hDfifoGroup, 0));
+    pDesc->buffers[0].end = BAPE_P_DFIFO_TO_ENDADDR_REG(BAPE_DfifoGroup_P_GetHwIndex(hDfifoGroup, 0));
+    pDesc->buffers[0].read = BAPE_P_DFIFO_TO_RDADDR_REG(BAPE_DfifoGroup_P_GetHwIndex(hDfifoGroup, 0));
+    pDesc->buffers[0].write = BAPE_P_DFIFO_TO_WRADDR_REG(BAPE_DfifoGroup_P_GetHwIndex(hDfifoGroup, 0));
+    pDesc->buffers[0].wrpoint = BAPE_P_DFIFO_TO_WRPOINT_REG(BAPE_DfifoGroup_P_GetHwIndex(hDfifoGroup, 0));
+    if ( numChannels > 1 )
+    {
+        /* PCM - Noninterleaved */
+        for ( i = 1; i < numChannels; i++ )
+        {
+            pDesc->buffers[i].base = pDesc->buffers[i-1].base + BAPE_P_RINGBUFFER_STRIDE;
+            pDesc->buffers[i].end = pDesc->buffers[i-1].end + BAPE_P_RINGBUFFER_STRIDE;
+            pDesc->buffers[i].read = pDesc->buffers[i-1].read + BAPE_P_RINGBUFFER_STRIDE;
+            pDesc->buffers[i].write = pDesc->buffers[i-1].write + BAPE_P_RINGBUFFER_STRIDE;
+            pDesc->buffers[i].wrpoint = pDesc->buffers[i-1].wrpoint + BAPE_P_RINGBUFFER_STRIDE;
+        }
+    }
+#else
+    BSTD_UNUSED(i);
+    BSTD_UNUSED(numChannels);
+    BSTD_UNUSED(numChannelPairs);
+#endif
+    return BERR_SUCCESS;
+}
+
+/***************************************************************************
+Summary:
+Add Dram based Output buffer to a stage
+***************************************************************************/
+BERR_Code BAPE_DSP_P_AddDramBuffer(
+    BAPE_PathConnection *pConnection
+    )
+{
+    BERR_Code errCode;
+    unsigned i, numChannels, numChannelPairs, outputIndex;
+    bool pcm;
+    BDSP_FmmBufferDescriptor bufferDesc;
+    BDSP_DataType dataType;
+
+    /* Sanity Checks */
+    BDBG_ASSERT(NULL != pConnection);
+    BDBG_ASSERT(NULL != pConnection->pSource);
+
+    BKNI_Memset(&bufferDesc, 0, sizeof(bufferDesc));
+
+    numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(&pConnection->pSource->format);
+    pcm = BAPE_FMT_P_IsLinearPcm_isrsafe(&pConnection->pSource->format);
+    dataType = BAPE_FMT_P_GetDspDataType_isrsafe(&pConnection->pSource->format);
+
+    if ( pcm )
+    {
+        numChannels = 2*numChannelPairs;
+    }
+    else
+    {
+        BDBG_ASSERT(numChannelPairs == 1);
+        numChannels = 1;
+    }
+
+    if ( pConnection->pSink->type==BAPE_PathNodeType_eMixer )
+    {
+        BAPE_MixerHandle mixer = pConnection->pSink->pHandle;
+        BDBG_ASSERT(NULL != mixer);
+        bufferDesc.delay= mixer->settings.outputDelay;
+    }
+
+    /* Reserve buffers here */
+    if ( pConnection->pSource->useBufferPool )
+    {
+        /* This is safe to call multiple times, it only allocates if need be */
+        errCode = BAPE_P_AllocateInputBuffers(pConnection->pSource->pParent->deviceHandle, pConnection->pSource, BAPE_BufferInterfaceType_eDram);
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+    }
+    BDBG_ASSERT(pConnection->pSource->pBuffers != NULL);
+
+    bufferDesc.numBuffers = numChannels;
+
+    bufferDesc.buffers[0].base = BAPE_P_SFIFO_TO_BASEADDR_REG(BAPE_SfifoGroup_P_GetHwIndex(pConnection->sfifoGroup, 0));
+    bufferDesc.buffers[0].end = BAPE_P_SFIFO_TO_ENDADDR_REG(BAPE_SfifoGroup_P_GetHwIndex(pConnection->sfifoGroup, 0));
+    bufferDesc.buffers[0].read = BAPE_P_SFIFO_TO_RDADDR_REG(BAPE_SfifoGroup_P_GetHwIndex(pConnection->sfifoGroup, 0));
+    bufferDesc.buffers[0].write = BAPE_P_SFIFO_TO_WRADDR_REG(BAPE_SfifoGroup_P_GetHwIndex(pConnection->sfifoGroup, 0));
+    bufferDesc.buffers[0].wrpoint = BAPE_P_SFIFO_TO_WRPOINT_REG(BAPE_SfifoGroup_P_GetHwIndex(pConnection->sfifoGroup, 0));
+    if ( numChannels > 1 )
+    {
+        /* PCM - Noninterleaved */
+        for ( i = 1; i < numChannels; i++ )
+        {
+            bufferDesc.buffers[i].base = bufferDesc.buffers[i-1].base + BAPE_P_RINGBUFFER_STRIDE;
+            bufferDesc.buffers[i].end = bufferDesc.buffers[i-1].end + BAPE_P_RINGBUFFER_STRIDE;
+            bufferDesc.buffers[i].read = bufferDesc.buffers[i-1].read + BAPE_P_RINGBUFFER_STRIDE;
+            bufferDesc.buffers[i].write = bufferDesc.buffers[i-1].write + BAPE_P_RINGBUFFER_STRIDE;
+            bufferDesc.buffers[i].wrpoint = bufferDesc.buffers[i-1].wrpoint + BAPE_P_RINGBUFFER_STRIDE;
+        }
+        bufferDesc.numRateControllers = BAPE_SfifoGroup_P_GetAdaptRateWrcntAddress(pConnection->sfifoGroup, i) == 0xffffffff ? 0 : numChannelPairs;
+        for ( i = 0; i < numChannelPairs; i++ )
+        {
+            /* CITTODO - update rate controllers variable name */
+            bufferDesc.rateControllers[i].wrcnt = BAPE_SfifoGroup_P_GetAdaptRateWrcntAddress(pConnection->sfifoGroup, i);
+        }
+    }
+
+    errCode = BDSP_Stage_AddFmmOutput(pConnection->pSource->hStage, dataType, &bufferDesc, &outputIndex);
+    if ( errCode )
+    {
+        return BERR_TRACE(errCode);
+    }
+    pConnection->dspOutputIndex = outputIndex;
+
+    return BERR_SUCCESS;
 }
 
 /***************************************************************************
@@ -936,124 +1070,130 @@ BERR_Code BAPE_DSP_P_ConfigPathToOutput(
         /* Dropping into the FMM - need to config SFIFO's.  DSP does not use master/slave, it will instead reuse ringbuffers in multiple
            master SFIFOs */
 
-        pcm = BAPE_FMT_P_IsLinearPcm_isrsafe(&pSource->format);
-        numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(&pSource->format);
-
-        BAPE_SfifoGroup_P_GetSettings(pConnection->sfifoGroup, &sfifoSettings);
-        sfifoSettings.highPriority = false; /* TODO: How to handle this on the fly? */
-        sfifoSettings.reverseEndian = false;
-        sfifoSettings.signedData = true;
-        sfifoSettings.wrpointEnabled = true;
-        if ( pcm )
+        if ( pConnection->sfifoGroup )
         {
-            sfifoSettings.dataWidth = 32;
-            sfifoSettings.sampleRepeatEnabled = true;
-            sfifoSettings.interleaveData = false;
-            /* Setup buffers from pool */
-            for ( i = 0; i < numChannelPairs; i++ )
+            pcm = BAPE_FMT_P_IsLinearPcm_isrsafe(&pSource->format);
+            numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(&pSource->format);
+
+            BAPE_SfifoGroup_P_GetSettings(pConnection->sfifoGroup, &sfifoSettings);
+            sfifoSettings.highPriority = false; /* TODO: How to handle this on the fly? */
+            sfifoSettings.reverseEndian = false;
+            sfifoSettings.signedData = true;
+            sfifoSettings.wrpointEnabled = true;
+            if ( pcm )
             {
-                unsigned bufferId = 2*i;
-                BAPE_BufferNode *pBuffer;
-
-                if ( pSource->pParent->type == BAPE_PathNodeType_eDecoder )
+                sfifoSettings.dataWidth = 32;
+                sfifoSettings.sampleRepeatEnabled = true;
+                sfifoSettings.interleaveData = false;
+                /* Setup buffers from pool */
+                for ( i = 0; i < numChannelPairs; i++ )
                 {
-                    BAPE_DecoderHandle decoder;
-                    BAPE_ConnectorFormat connectorFormat;
-                    /* Decoders have the odd property of occasionally sending PCM data on the compressed path when a source
-                       codec can't handle compressed output (e.g. PCM).  If that happens, the DSP will really only populate a
-                       set of data buffers.  So, if you have both actual PCM outputs and fake compressed outputs receiving data
-                       at the same time, you need to setup the fake compressed outputs to actually use the buffer populated on
-                       the PCM path.  Same can also happen for multichannel data. */
-                    decoder = (BAPE_DecoderHandle)pSource->pParent->pHandle;
-                    BDBG_OBJECT_ASSERT(decoder, BAPE_Decoder);
+                    unsigned bufferId = 2*i;
+                    BAPE_BufferNode *pBuffer;
 
-                    /* Determine connector format */
-                    for ( connectorFormat = BAPE_ConnectorFormat_eStereo; connectorFormat < BAPE_ConnectorFormat_eMax; connectorFormat++ )
+                    if ( pSource->pParent->type == BAPE_PathNodeType_eDecoder )
                     {
-                        if ( pSource == &pSource->pParent->connectors[connectorFormat] )
+                        BAPE_DecoderHandle decoder;
+                        BAPE_ConnectorFormat connectorFormat;
+                        /* Decoders have the odd property of occasionally sending PCM data on the compressed path when a source
+                           codec can't handle compressed output (e.g. PCM).  If that happens, the DSP will really only populate a
+                           set of data buffers.  So, if you have both actual PCM outputs and fake compressed outputs receiving data
+                           at the same time, you need to setup the fake compressed outputs to actually use the buffer populated on
+                           the PCM path.  Same can also happen for multichannel data. */
+                        decoder = (BAPE_DecoderHandle)pSource->pParent->pHandle;
+                        BDBG_OBJECT_ASSERT(decoder, BAPE_Decoder);
+
+                        /* Determine connector format */
+                        for ( connectorFormat = BAPE_ConnectorFormat_eStereo; connectorFormat < BAPE_ConnectorFormat_eMax; connectorFormat++ )
                         {
-                            break;
+                            if ( pSource == &pSource->pParent->connectors[connectorFormat] )
+                            {
+                                break;
+                            }
                         }
-                    }
-                    BDBG_ASSERT(connectorFormat < BAPE_ConnectorFormat_eMax);   /* If this fails something has gone seriously wrong */
+                        BDBG_ASSERT(connectorFormat < BAPE_ConnectorFormat_eMax);   /* If this fails something has gone seriously wrong */
 
-                    if ( ((connectorFormat == BAPE_ConnectorFormat_eMultichannel && decoder->stereoOnMultichannel &&
-                          decoder->outputStatus.connectorStatus[BAPE_ConnectorFormat_eStereo].directConnections > 0) ||
-                         ((connectorFormat == BAPE_ConnectorFormat_eCompressed ||
-                           connectorFormat == BAPE_ConnectorFormat_eCompressed4x ||
-                           connectorFormat == BAPE_ConnectorFormat_eCompressed16x) && decoder->stereoOnCompressed &&
-                          (decoder->outputStatus.connectorStatus[BAPE_ConnectorFormat_eStereo].directConnections > 0) )) &&
-                         pSource->pParent->connectors[BAPE_ConnectorFormat_eStereo].pBuffers[i] != NULL )
-                    {
-                        BDBG_MSG(("%s path of decoder %u reusing data buffers from stereo path",
-                                 (connectorFormat == BAPE_ConnectorFormat_eMultichannel)?"Multichannel":"Stereo", decoder->index));
-                        /* Multichannel or Compressed sending same data as stereo path.  Reuse that. */
-                        pBuffer = pSource->pParent->connectors[BAPE_ConnectorFormat_eStereo].pBuffers[i];
-                    }
-                    else if ( ((connectorFormat == BAPE_ConnectorFormat_eCompressed ||
-                                connectorFormat == BAPE_ConnectorFormat_eCompressed4x ||
-                                connectorFormat == BAPE_ConnectorFormat_eCompressed16x) &&
-                               decoder->stereoOnMultichannel && decoder->stereoOnCompressed &&
-                               decoder->outputStatus.connectorStatus[BAPE_ConnectorFormat_eMultichannel].directConnections > 0) &&
-                              pSource->pParent->connectors[BAPE_ConnectorFormat_eMultichannel].pBuffers[i] != NULL )
-                    {
-                        BDBG_MSG(("Compressed path of decoder %u reusing data buffers from multichannel path", decoder->index));
-                        /* Compressed sending same data as stereo data on multichannel path (no direct stereo consumers).  Reuse that. */
-                        pBuffer = pSource->pParent->connectors[BAPE_ConnectorFormat_eMultichannel].pBuffers[i];
+                        if ( ((connectorFormat == BAPE_ConnectorFormat_eMultichannel && decoder->stereoOnMultichannel &&
+                              decoder->outputStatus.connectorStatus[BAPE_ConnectorFormat_eStereo].directConnections > 0) ||
+                             ((connectorFormat == BAPE_ConnectorFormat_eCompressed ||
+                               connectorFormat == BAPE_ConnectorFormat_eCompressed4x ||
+                               connectorFormat == BAPE_ConnectorFormat_eCompressed16x) && decoder->stereoOnCompressed &&
+                              (decoder->outputStatus.connectorStatus[BAPE_ConnectorFormat_eStereo].directConnections > 0) )) &&
+                             pSource->pParent->connectors[BAPE_ConnectorFormat_eStereo].pBuffers[i] != NULL )
+                        {
+                            BDBG_MSG(("%s path of decoder %u reusing data buffers from stereo path",
+                                     (connectorFormat == BAPE_ConnectorFormat_eMultichannel)?"Multichannel":"Stereo", decoder->index));
+                            /* Multichannel or Compressed sending same data as stereo path.  Reuse that. */
+                            pBuffer = pSource->pParent->connectors[BAPE_ConnectorFormat_eStereo].pBuffers[i];
+                        }
+                        else if ( ((connectorFormat == BAPE_ConnectorFormat_eCompressed ||
+                                    connectorFormat == BAPE_ConnectorFormat_eCompressed4x ||
+                                    connectorFormat == BAPE_ConnectorFormat_eCompressed16x) &&
+                                   decoder->stereoOnMultichannel && decoder->stereoOnCompressed &&
+                                   decoder->outputStatus.connectorStatus[BAPE_ConnectorFormat_eMultichannel].directConnections > 0) &&
+                                  pSource->pParent->connectors[BAPE_ConnectorFormat_eMultichannel].pBuffers[i] != NULL )
+                        {
+                            BDBG_MSG(("Compressed path of decoder %u reusing data buffers from multichannel path", decoder->index));
+                            /* Compressed sending same data as stereo data on multichannel path (no direct stereo consumers).  Reuse that. */
+                            pBuffer = pSource->pParent->connectors[BAPE_ConnectorFormat_eMultichannel].pBuffers[i];
+                        }
+                        else
+                        {
+                            pBuffer = pSource->pBuffers[i]; /* Use this connector's buffers */
+                        }
                     }
                     else
                     {
-                        pBuffer = pSource->pBuffers[i]; /* Use this connector's buffers */
+                        pBuffer = pSource->pBuffers[i]; /* Not a decoder, use the connector's buffers */
                     }
-                }
-                else
-                {
-                    pBuffer = pSource->pBuffers[i]; /* Not a decoder, use the connector's buffers */
-                }
 
-                if ( !pBuffer )
-                {
-                    return BERR_TRACE(BERR_NOT_SUPPORTED);
-                }
+                    if ( !pBuffer )
+                    {
+                        return BERR_TRACE(BERR_NOT_SUPPORTED);
+                    }
 
-                sfifoSettings.bufferInfo[bufferId].base = pBuffer->offset;
-                sfifoSettings.bufferInfo[bufferId].length = pBuffer->bufferSize/2;
-                sfifoSettings.bufferInfo[bufferId].wrpoint = sfifoSettings.bufferInfo[bufferId].base+(pBuffer->bufferSize/2)-1;
-                bufferId++;
-                sfifoSettings.bufferInfo[bufferId].base = pBuffer->offset+(pBuffer->bufferSize/2);
-                sfifoSettings.bufferInfo[bufferId].length = pBuffer->bufferSize/2;
-                sfifoSettings.bufferInfo[bufferId].wrpoint = sfifoSettings.bufferInfo[bufferId].base+(pBuffer->bufferSize/2)-1;
+                    sfifoSettings.bufferInfo[bufferId].base = pBuffer->offset;
+                    sfifoSettings.bufferInfo[bufferId].length = pBuffer->bufferSize/2;
+                    sfifoSettings.bufferInfo[bufferId].wrpoint = sfifoSettings.bufferInfo[bufferId].base+(pBuffer->bufferSize/2)-1;
+                    bufferId++;
+                    sfifoSettings.bufferInfo[bufferId].base = pBuffer->offset+(pBuffer->bufferSize/2);
+                    sfifoSettings.bufferInfo[bufferId].length = pBuffer->bufferSize/2;
+                    sfifoSettings.bufferInfo[bufferId].wrpoint = sfifoSettings.bufferInfo[bufferId].base+(pBuffer->bufferSize/2)-1;
+                }
             }
-        }
-        else
-        {
-            sfifoSettings.dataWidth = 16;
-            sfifoSettings.sampleRepeatEnabled = false;
-            sfifoSettings.interleaveData = true;
-            /* Setup buffers from pool */
-            for ( i = 0; i < numChannelPairs; i++ )
+            else
             {
-                unsigned bufferId = 2*i;
-                BAPE_BufferNode *pBuffer = pSource->pBuffers[i];
-                BDBG_ASSERT(NULL != pBuffer);
-                sfifoSettings.bufferInfo[bufferId].block = pBuffer->block;
-                sfifoSettings.bufferInfo[bufferId].pBuffer = pBuffer->pMemory;
-                sfifoSettings.bufferInfo[bufferId].base = pBuffer->offset;
-                sfifoSettings.bufferInfo[bufferId].length = pBuffer->bufferSize;
-                sfifoSettings.bufferInfo[bufferId].wrpoint = pBuffer->offset+pBuffer->bufferSize-1;
-                bufferId++;
-                sfifoSettings.bufferInfo[bufferId].block = NULL;
-                sfifoSettings.bufferInfo[bufferId].pBuffer = NULL;
-                sfifoSettings.bufferInfo[bufferId].base = 0;
-                sfifoSettings.bufferInfo[bufferId].length = 0;
-                sfifoSettings.bufferInfo[bufferId].wrpoint = 0;
+                sfifoSettings.dataWidth = 16;
+                sfifoSettings.sampleRepeatEnabled = false;
+                sfifoSettings.interleaveData = true;
+                /* Setup buffers from pool */
+                for ( i = 0; i < numChannelPairs; i++ )
+                {
+                    unsigned bufferId = 2*i;
+                    BAPE_BufferNode *pBuffer = pSource->pBuffers[i];
+                    BDBG_ASSERT(NULL != pBuffer);
+                    sfifoSettings.bufferInfo[bufferId].block = pBuffer->block;
+                    sfifoSettings.bufferInfo[bufferId].pBuffer = pBuffer->pMemory;
+                    sfifoSettings.bufferInfo[bufferId].base = pBuffer->offset;
+                    sfifoSettings.bufferInfo[bufferId].length = pBuffer->bufferSize;
+                    sfifoSettings.bufferInfo[bufferId].wrpoint = pBuffer->offset+pBuffer->bufferSize-1;
+                    bufferId++;
+                    sfifoSettings.bufferInfo[bufferId].block = NULL;
+                    sfifoSettings.bufferInfo[bufferId].pBuffer = NULL;
+                    sfifoSettings.bufferInfo[bufferId].base = 0;
+                    sfifoSettings.bufferInfo[bufferId].length = 0;
+                    sfifoSettings.bufferInfo[bufferId].wrpoint = 0;
+                }
+            }
+
+            errCode = BAPE_SfifoGroup_P_SetSettings(pConnection->sfifoGroup, &sfifoSettings);
+            if ( errCode )
+            {
+                return BERR_TRACE(errCode);
             }
         }
-
-        errCode = BAPE_SfifoGroup_P_SetSettings(pConnection->sfifoGroup, &sfifoSettings);
-        if ( errCode )
+        else if ( 0 /* TBD7211 - DRAM INTERFACE */ )
         {
-            return BERR_TRACE(errCode);
         }
     }
     /* Other nodes don't require anything done here */

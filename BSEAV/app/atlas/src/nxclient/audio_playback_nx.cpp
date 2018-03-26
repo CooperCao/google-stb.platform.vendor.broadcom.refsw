@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,7 +43,7 @@
 
 BDBG_MODULE(atlas_pcm_playback);
 
-#define CONVERT_TO_NEXUS_LINEAR_VOL(vol,max_vol) (((vol) * (NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN) / (max_vol)) + NEXUS_AUDIO_VOLUME_LINEAR_MIN)
+#define CONVERT_TO_NEXUS_LINEAR_VOL(vol, max_vol)  (((vol) * (NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN) / (max_vol)) + NEXUS_AUDIO_VOLUME_LINEAR_MIN)
 
 CSimplePcmPlaybackNx::CSimplePcmPlaybackNx(
         const char *     name,
@@ -54,14 +54,11 @@ CSimplePcmPlaybackNx::CSimplePcmPlaybackNx(
 {
 }
 
-eRet CSimplePcmPlaybackNx::open(
-        CWidgetEngine * pWidgetEngine
-        )
+eRet CSimplePcmPlaybackNx::open(CWidgetEngine * pWidgetEngine)
 {
     eRet        ret    = eRet_Ok;
     NEXUS_Error nError = NEXUS_SUCCESS;
     int         i      = 0;
-
 
     if (true == isOpened())
     {
@@ -129,10 +126,11 @@ void CSimplePcmPlaybackNx::close()
 
     _pWidgetEngine = NULL;
 } /* close */
+
 eRet CSimplePcmPlaybackNx::connect(unsigned index)
 {
-    eRet ret = eRet_Ok;
-    NEXUS_Error nerror = NEXUS_SUCCESS;
+    eRet                     ret    = eRet_Ok;
+    NEXUS_Error              nerror = NEXUS_SUCCESS;
     NxClient_ConnectSettings connectSettings;
 
     NxClient_GetDefaultConnectSettings(&connectSettings);

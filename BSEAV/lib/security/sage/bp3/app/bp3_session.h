@@ -40,22 +40,23 @@
 #define BSEAV_LIB_SECURITY_SAGE_BP3_APP_BP3_SESSION_H_
 
 #include "nexus_base_types.h"
-#if (NEXUS_SECURITY_API_VERSION == 1)
-#include "nexus_otpmsp.h"
-#include "nexus_read_otp_id.h"
-#else
-#include "nexus_otp_key.h"
-#endif
 
 int bp3_session_start(uint8_t **token, uint32_t *size);
 int bp3_get_otp_id (uint32_t *pOtpIdHigh, uint32_t *pOtpIdLow);
+int bp3_get_chip_info (
+    uint8_t  *pfeatureList,
+    uint32_t  featureListByteSize,
+    uint32_t *pProductID,
+    uint32_t *pSecurityCode,
+    uint32_t *pBondOption,
+    bool     *pProvisioned);
+
 
 int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_t *logSize, uint32_t **status, uint32_t *statusSize);
+int bp3_ta_start();
+void bp3_ta_end();
 
-#if (NEXUS_SECURITY_API_VERSION == 1)
-NEXUS_OtpKeyType find_otp_select(void);
-NEXUS_Error read_otp_id(NEXUS_OtpIdType keyType, uint32_t *otpIdHi, uint32_t *otpIdLo);
-#else
+
 typedef enum BP3_Otp_KeyType
 {
     BP3_OTPKeyTypeA,
@@ -68,9 +69,6 @@ typedef enum BP3_Otp_KeyType
     BP3_OTPKeyTypeH,
     BP3_OTPKeyMax
 } BP3_Otp_KeyType;
-BP3_Otp_KeyType find_otp_select(void);
-NEXUS_Error read_otp_id(unsigned keyIndex, uint32_t *otpIdHi, uint32_t *otpIdLo);
-#endif
 
 #define MAP_MEM_START \
   int memfd = open("/dev/mem", O_RDONLY | O_SYNC); \

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -410,7 +410,10 @@ uint32_t CChannelMgr::filterChannel(CChannel * pChannel)
 /* Add given channel to channel list.  Because the channel manager does not know what type
  * of channel is being added, the caller must allocate the proper subclass of CChannel and
  * pass it in for storage.  The channel manager will then own the channel and will handle its
- * destruction when necessary.
+ * destruction when necessary.  The assigned major/minor channel number may be adjusted based
+ * on if a type/frequency matched channel already exists in the list.  For example, if channel
+ * 4.1 is a QAM channel at 99MHz, and the new channel is also QAM at 99MHz, then it will be
+ * reassigned a channel number of 4.2.
  */
 eRet CChannelMgr::addChannel(CChannel * pChannel)
 {
@@ -420,10 +423,6 @@ eRet CChannelMgr::addChannel(CChannel * pChannel)
     {
         if (0 == winType)
         {
-            BDBG_MSG(("--- ADD NEW CHANNEL TO CH LIST ---"));
-            pChannel->dump();
-            BDBG_MSG(("----------------------------------"));
-
             pChannelNew = pChannel;
         }
         else
@@ -432,17 +431,74 @@ eRet CChannelMgr::addChannel(CChannel * pChannel)
         }
 
         {
+            unsigned   lastMajor = 0;
+            CChannel * pChMajor  = NULL;
+            CChannel * pChMinor  = NULL;
+
             /* serialized access to _channelList */
             CScopedMutex channelListMutex(_mutex);
 
+            /* possibly update channel number if existing channel list contains similar
+             * channel type/frequency */
+            {
+                for (pChMajor = _channelList[winType].first(); pChMajor; pChMajor = _channelList[winType].next())
+                {
+                    if ((pChannelNew->getType() == pChMajor->getType()) &&
+                        (pChannelNew->getFrequency() == pChMajor->getFrequency()))
+                    {
+                        unsigned lastMinor = 1;
+
+                        /* found matching channel type/freq - use major and adjust to next avail minor */
+                        pChannelNew->setMajor(pChMajor->getMajor());
+
+                        /* find last minor */
+                        for (pChMinor = pChMajor; pChMinor; pChMinor = _channelList[winType].next())
+                        {
+                            if ((pChannelNew->getMajor() != pChMinor->getMajor()) ||
+                                (pChannelNew->getType() != pChMinor->getType()) ||
+                                (pChannelNew->getFrequency() != pChMinor->getFrequency()))
+                            {
+                                /* no match - keep searching */
+                                continue;
+                            }
+
+                            lastMinor = MAX(lastMinor, pChMinor->getMinor());
+                        }
+
+                        /* increment to get next available minor */
+                        pChannelNew->setMinor(lastMinor + 1);
+
+                        /* done - found last minor with matching major */
+                        break;
+                    }
+
+                    lastMajor = MAX(lastMajor, pChMajor->getMajor());
+                }
+
+                if (NULL == pChMajor)
+                {
+                    /* did not find matching channel type/freq so use next available major */
+                    pChannelNew->setMajor(lastMajor + 1);
+                    pChannelNew->setMinor(1);
+                }
+            }
+
+            /* add verified channel to channel list */
             _channelList[winType].add(pChannelNew);
+
+            if (0 == winType)
+            {
+                BDBG_WRN(("--- ADD NEW CHANNEL TO CH LIST ---"));
+                pChannelNew->dump(true);
+                BDBG_WRN(("----------------------------------"));
+            }
         }
 
         /* copy channelmgr registered observers to new channel */
         registerObserverList(pChannelNew);
     }
 
-    CChannelMgrListChangedData chListChangedData(pChannel, true);
+    CChannelMgrListChangedData chListChangedData(pChannelNew, true);
     notifyObservers(eNotify_ChannelListChanged, &chListChangedData);
 
     return(eRet_Ok);
@@ -766,7 +822,8 @@ error:
     }
 
     notifyObservers(eNotify_ChannelListChanged);
-    dumpChannelList();
+    BDBG_WRN(("Loaded Channel List:"));
+    dumpChannelList(true);
 
     return(ret);
 } /* loadChannelList */

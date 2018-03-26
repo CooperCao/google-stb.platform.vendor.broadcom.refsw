@@ -53,6 +53,8 @@ static uint8_t *cpuInterface;
 static int numInterruptLines;
 static int numCpuInterfaces;
 
+extern uintptr_t boot_mode;
+
 #define ARM_CORTEX_A15_SECURE_TIMER_IRQ   29
 #define TZ_SECURE_SGI_IRQ   14
 
@@ -73,66 +75,69 @@ static inline uint32_t regRead32(void *location) {
 static void gicDistributorInit(void *va) {
 	distributor = (uint8_t *)va;
 
-	// Extract the interrupt line count and cpu interface count from GICD_TYPER
-	uint32_t typer = regRead32(distributor+GICD_TYPER);
-	numInterruptLines = 32 * ((typer & 0x1f) + 1);
-	numCpuInterfaces = ((typer >> 5) & 0x7) + 1;
+	if (ARMV8_BOOT_MODE != boot_mode) {
+		// Extract the interrupt line count and cpu interface count from GICD_TYPER
+		uint32_t typer = regRead32(distributor+GICD_TYPER);
+		numInterruptLines = 32 * ((typer & 0x1f) + 1);
+		numCpuInterfaces = ((typer >> 5) & 0x7) + 1;
 
-	// Disable the distributor
-	regWrite32(distributor+GICD_CTLR, 0);
+		// Disable the distributor
+		regWrite32(distributor+GICD_CTLR, 0);
 
-	//Assign interrupts to groups:
-	//		Group 0: All secure interrupts meant for us (the TZ OS ).
-	//		Group 1: All normal world interrupts.
-	//
-	// The TZ OS is only interested in one PPI interrupts: Secure clock.
-	uint32_t ppiGroups = ~( 1 << ARM_CORTEX_A15_SECURE_TIMER_IRQ);
-	regWrite32(distributor + GICD_IGROUPR, ppiGroups);
+		//Assign interrupts to groups:
+		//		Group 0: All secure interrupts meant for us (the TZ OS ).
+		//		Group 1: All normal world interrupts.
+		//
+		// The TZ OS is only interested in one PPI interrupts: Secure clock.
+		uint32_t ppiGroups = ~( 1 << ARM_CORTEX_A15_SECURE_TIMER_IRQ);
+		regWrite32(distributor + GICD_IGROUPR, ppiGroups);
 
 
-	for (int i=32; i < numInterruptLines; i+=32) {
-		regWrite32(distributor + GICD_IGROUPR + (i/8), 0xffffffff);
+		for (int i=32; i < numInterruptLines; i+=32) {
+			regWrite32(distributor + GICD_IGROUPR + (i/8), 0xffffffff);
+		}
+
+		// Route all SPIs to the current CPU.
+		uint32_t cpuMask =regRead32(distributor+GICD_ITARGETSR);
+		cpuMask |= (cpuMask << 8);
+		cpuMask |= (cpuMask << 16);
+		for (int i=32; i<numInterruptLines; i+=4)
+			regWrite32(distributor+GICD_ITARGETSR+i, cpuMask);
+
+		// Set all SPIs to level sensitive.
+		for (int i=32; i<numInterruptLines; i+=16)
+			regWrite32(distributor+GICD_ICFGR+(i/4), 0);
+
+		// Set all SPIs to default priority
+		for (int i=32; i<numInterruptLines; i+=4)
+			regWrite32(distributor+GICD_IPRIORITYR+i, 0xa0a0a0a0);
+
+		// Disable all SPIs.
+		for (int i=32; i<numInterruptLines; i+=32)
+			regWrite32(distributor+GICD_ICENABLER+(i/8), 0xffffffff);
+
+		// Enable the distributor
+		regWrite32(distributor+GICD_CTLR, 0x03);
 	}
-
-	// Route all SPIs to the current CPU.
-	uint32_t cpuMask =regRead32(distributor+GICD_ITARGETSR);
-	cpuMask |= (cpuMask << 8);
-	cpuMask |= (cpuMask << 16);
-	for (int i=32; i<numInterruptLines; i+=4)
-		regWrite32(distributor+GICD_ITARGETSR+i, cpuMask);
-
-	// Set all SPIs to level sensitive.
-	for (int i=32; i<numInterruptLines; i+=16)
-		regWrite32(distributor+GICD_ICFGR+(i/4), 0);
-
-	// Set all SPIs to default priority
-	for (int i=32; i<numInterruptLines; i+=4)
-		regWrite32(distributor+GICD_IPRIORITYR+i, 0xa0a0a0a0);
-
-	// Disable all SPIs.
-	for (int i=32; i<numInterruptLines; i+=32)
-		regWrite32(distributor+GICD_ICENABLER+(i/8), 0xffffffff);
-
-	// Enable the distributor
-	regWrite32(distributor+GICD_CTLR, 0x03);
-
 }
 
 static void gicCpuInterfaceinit(void *va = nullptr) {
 	cpuInterface = (uint8_t *)va;
 
-	// Enable all SGIs
-	regWrite32(distributor+GICD_ISENABLER, 0xffff0000);
+	if (ARMV8_BOOT_MODE != boot_mode) {
+		// Enable all SGIs
+		regWrite32(distributor+GICD_ISENABLER, 0xffff0000);
 
-	// Set the default interrupt priority threshold.
-	for (int i=0; i<32; i+=4)
-		regWrite32(distributor+GICD_IPRIORITYR+i, 0xa0a0a0a0);
+		// Set the default interrupt priority threshold.
+		for (int i=0; i<32; i+=4)
+			regWrite32(distributor+GICD_IPRIORITYR+i, 0xa0a0a0a0);
 
-	regWrite32(cpuInterface+GICC_PMR, 0xf8);
-	regWrite32(cpuInterface+GICC_BPR, 0x0);
+		regWrite32(cpuInterface+GICC_PMR, 0xf8);
+		regWrite32(cpuInterface+GICC_BPR, 0x0);
 
-	// Enable the CPU interface.
-	regWrite32(cpuInterface+GICC_CTLR, 0x1B);
+		// Enable the CPU interface.
+		regWrite32(cpuInterface+GICC_CTLR, 0x1B);
+	}
 }
 
 int gicV2Init(void *deviceTree) {

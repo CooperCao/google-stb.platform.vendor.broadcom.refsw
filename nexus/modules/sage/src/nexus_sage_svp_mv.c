@@ -48,15 +48,6 @@ BDBG_MODULE(nexus_sage_svp_mv);
 #ifdef BCHP_IT_0_REG_START
 #include "bchp_it_0.h"
 #endif
-#ifdef BCHP_IT_1_REG_START
-#include "bchp_it_1.h"
-#endif
-#ifdef BCHP_IT_2_REG_START
-#include "bchp_it_2.h"
-#endif
-#ifdef BCHP_IT_3_REG_START
-#include "bchp_it_3.h"
-#endif
 
 static bool MV_detect_sub (BREG_Handle hReg, uint32_t core_offset)
 {

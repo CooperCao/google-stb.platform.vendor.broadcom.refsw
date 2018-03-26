@@ -899,7 +899,7 @@ static NEXUS_Error
 b_pvrfifo_header_init(struct bpvrfifo_header *header)
 {
     NEXUS_Error rc;
-    BDBG_CASSERT(sizeof(header->data) == sizeof(header->data.buf)); /* for proper aligment, size of the header shall be equal to size of the buffer */
+    BDBG_CASSERT(sizeof(header->data) == sizeof(header->data.buf)); /* for proper alignment, size of the header shall be equal to size of the buffer */
     BKNI_Memset(header,0,sizeof(*header));
     rc = BKNI_CreateMutex(&header->lock);
     if (rc) return BERR_TRACE(rc);
@@ -1518,7 +1518,7 @@ b_trim_timer(void *file_)
             timeout = B_TRIM_TRY_TIMER;
             goto done;
         }
-        /* this effectively limits rate of succesful trims to one each B_TRIM_TIMER */
+        /* this effectively limits rate of successful trims to one each B_TRIM_TIMER */
         goto done;
     }
 

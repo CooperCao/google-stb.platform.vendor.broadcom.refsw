@@ -70,7 +70,8 @@ BDBG_MODULE(nexus_sage_svp);
 #define HEAP_OFF_XRR (HEAP_OFF_URR+BCHP_P_MEMC_COUNT)
 #define HEAP_OFF_URRT (HEAP_OFF_XRR+1)
 #define HEAP_OFF_CRRT (HEAP_OFF_URRT+BCHP_P_MEMC_COUNT)
-#define HEAP_OFF_END (HEAP_OFF_CRRT+1)
+#define HEAP_OFF_ARR  (HEAP_OFF_CRRT+1)
+#define HEAP_OFF_END (HEAP_OFF_ARR+1)
 
 #define SAGE_SVP_INDICATION_QUEUE_SIZE 5
 
@@ -78,11 +79,12 @@ BDBG_MODULE(nexus_sage_svp);
 #define SAGE_SVP_DTU_REMAP_SUPPORT (lHandle->apiVer>=0x00020008)
 #define SAGE_SVP_FWRR_SUPPORT (lHandle->apiVer>=0x00020009)
 #define SAGE_SVP_ENCODE_SECURE_SUPPORT (lHandle->apiVer>=0x0002000A)
+#define SAGE_SVP_ARR_SUPPORT (lHandle->apiVer>=0x0002000B)
 
 union sageSvpSharedMem
 {
     BAVC_CoreList coreList;
-    uint64_t heapInfo[HEAP_OFF_END]; /* URR(s) + URRT(s) + CRRT + XRR */
+    uint64_t heapInfo[HEAP_OFF_END]; /* URR(s) + URRT(s) + CRRT + XRR + ARR */
     BDTU_RemapSettings remapSettings;
 };
 
@@ -323,10 +325,14 @@ yourself in the foot if you try to do dynamic urr */
 * everything (i.e. pre-dynamic-urr) and correctly walks through all nexus heaps */
 static NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps_2_5(bool disable)
 {
+    NEXUS_KeySlotHandle scrubbingKeyHandle = 0;
 #if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityKeySlotSettings keySlotSettings;
-    NEXUS_KeySlotHandle scrubbingKeyHandle = 0;
     NEXUS_SecurityKeySlotInfo  keyslotInfo;
+#else
+    NEXUS_KeySlotAllocateSettings keySlotSettings;
+    NEXUS_KeySlotInformation  keyslotInfo;
+#endif
     uint8_t *pDmaMemoryPool = NULL;
     unsigned size = 4*1024;
     /* Actually missed deleting this enum... not needed w/ new code */
@@ -387,10 +393,18 @@ static NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps_2_5(bool disable)
     if((urr==bvn_monitor_Command_eDisable) || (xrr==bvn_monitor_Command_eDisable))
     {
         /* Only need to allocate resources on disable */
+#if (NEXUS_SECURITY_API_VERSION==1)
         NEXUS_Security_GetDefaultKeySlotSettings(&keySlotSettings);
         keySlotSettings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
         keySlotSettings.client = NEXUS_SecurityClientType_eSage;
         scrubbingKeyHandle = NEXUS_Security_AllocateKeySlot(&keySlotSettings);
+#else
+        NEXUS_KeySlot_GetDefaultAllocateSettings(&keySlotSettings);
+        keySlotSettings.useWithDma = true;
+        keySlotSettings.slotType = NEXUS_KeySlotType_eIvPerSlot;
+        keySlotSettings.owner = NEXUS_SecurityCpuContext_eSage;
+        scrubbingKeyHandle = NEXUS_KeySlot_Allocate(&keySlotSettings);
+#endif
         if(scrubbingKeyHandle == NULL)
          {
             rc = NEXUS_UNKNOWN;
@@ -398,9 +412,14 @@ static NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps_2_5(bool disable)
             goto EXIT;
          }
 
+#if (NEXUS_SECURITY_API_VERSION==1)
         NEXUS_Security_GetKeySlotInfo(scrubbingKeyHandle, &keyslotInfo);
         lHandle->sageContainer->basicIn[3] = (int32_t)keyslotInfo.keySlotNumber;
-        BDBG_MSG(("%s - keyslotInfo.keySlotNumber %d", BSTD_FUNCTION, keyslotInfo.keySlotNumber));
+#else
+        NEXUS_KeySlot_GetInformation(scrubbingKeyHandle, &keyslotInfo);
+        lHandle->sageContainer->basicIn[3] = (int32_t)keyslotInfo.slotNumber;
+#endif
+        BDBG_MSG(("%s - keyslotInfo.keySlotNumber %d", BSTD_FUNCTION, lHandle->sageContainer->basicIn[3]));
 
         /* Allocate enough memory for DMA descriptors */
         pDmaMemoryPool=BSAGElib_Rai_Memory_Allocate(lHandle->sagelibClientHandle, size, BSAGElib_MemoryType_Restricted);
@@ -438,15 +457,15 @@ EXIT:
     }
     if(scrubbingKeyHandle)
     {
+#if (NEXUS_SECURITY_API_VERSION==1)
         NEXUS_Security_FreeKeySlot(scrubbingKeyHandle);
+#else
+        NEXUS_KeySlot_Invalidate(scrubbingKeyHandle);
+        NEXUS_KeySlot_Free(scrubbingKeyHandle);
+#endif
     }
 
     return rc;
-#else
-    BSTD_UNUSED( disable );
-    BDBG_ERR(("%s: TBD not supported", BSTD_FUNCTION));
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-#endif
 }
 
 /** Update heap info
@@ -508,6 +527,16 @@ static NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps(bool disable)
             continue;
         }
 
+        if(heapIndex == NEXUS_ARR_HEAP)
+        {
+            start[HEAP_OFF_ARR]=status.offset;
+            if(!disable)
+            {
+                size[HEAP_OFF_ARR]=status.size;
+            }
+            continue;
+        }
+
         if(status.heapType & NEXUS_HEAP_TYPE_EXPORT_REGION)
         {
             start[HEAP_OFF_XRR]=status.offset;
@@ -536,7 +565,7 @@ static NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps(bool disable)
             if((start[HEAP_OFF_URR+status.memcIndex]==0) ||
                 ((size[HEAP_OFF_URR+status.memcIndex]==0) && !(status.memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF)))
             {
-                start[HEAP_OFF_URR+status.memcIndex]=(uint32_t)status.offset;
+                start[HEAP_OFF_URR+status.memcIndex]=status.offset;
             }
 
             if(!(status.memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF))
@@ -557,17 +586,22 @@ static NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps(bool disable)
     lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_SIZE].data.ptr=(uint8_t *)size;
     if(SAGE_SVP_ENCODE_SECURE_SUPPORT)
     {
-        lHandle->sageContainer->basicIn[SECURE_VIDEO_UPDATEHEAPS_IN_COUNT]=HEAP_OFF_END;
-        lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_START].len=sizeof(uint64_t)*HEAP_OFF_END;
-        lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_SIZE].len=sizeof(uint64_t)*HEAP_OFF_END;
+        if(SAGE_SVP_ARR_SUPPORT)
+        {
+            lHandle->sageContainer->basicIn[SECURE_VIDEO_UPDATEHEAPS_IN_COUNT]=HEAP_OFF_END;
+        }
+        else
+        {
+            lHandle->sageContainer->basicIn[SECURE_VIDEO_UPDATEHEAPS_IN_COUNT]=HEAP_OFF_ARR;
+        }
     }
     else
     {
         /* SAGE isn't aware of extra heaps (URRT/CRRT) */
         lHandle->sageContainer->basicIn[SECURE_VIDEO_UPDATEHEAPS_IN_COUNT]=HEAP_OFF_URRT;
-        lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_START].len=sizeof(uint64_t)*HEAP_OFF_URRT;
-        lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_SIZE].len=sizeof(uint64_t)*HEAP_OFF_URRT;
     }
+    lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_START].len=sizeof(uint64_t)*lHandle->sageContainer->basicIn[SECURE_VIDEO_UPDATEHEAPS_IN_COUNT];
+    lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_SIZE].len=sizeof(uint64_t)*lHandle->sageContainer->basicIn[SECURE_VIDEO_UPDATEHEAPS_IN_COUNT];
 
     NEXUS_Sage_P_Test_UpdateHeaps(start, size, HEAP_OFF_END);
 
@@ -663,14 +697,16 @@ static void NEXUS_Sage_P_SvpHandleApiVer(uint32_t sageApiVersion, uint32_t minCo
         case 0x00020006: /* Can handle this, no hdmi/dtu/fwrr */
             BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED! Secure HDMI Rx/Secure DTU remap/FWRR NOT supported"));
             break;
-        case 0x00020007: /* Can handle this, no dtu/fwrr */
-            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED! (2.7)"));
+        case 0x00020007: /* Can handle this, no dtu/fwrr/ARR/xcode */
+            BDBG_WRN(("OLDER SAGE SVP API VERSION DETECTED! Secure DTU remap/FWRR/Xcode/ARR NOT supported"));
             break;
-        case 0x00020008: /* Can handle, but FWRR not supported */
-            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED (2.8)"));
-            break;
+        case 0x00020008: /* Can handle this, no fwrr/ARR/xcode */
+            BDBG_WRN(("OLDER SAGE SVP API VERSION DETECTED! FWRR/xcode/ARR NOT supported"));
         case 0x00020009: /* Can handle, but secure xcode not possible */
-            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED (2.9)"));
+            BDBG_WRN(("OLDER SAGE SVP API VERSION DETECTED! xcode/ARR not supported"));
+            break;
+        case 0x0002000A: /* Can handle, but no ARR */
+            BDBG_WRN(("OLDER SAGE SVP API VERSION DETECTED! ARR not supported"));
             break;
         default:
             if(sageApiVersion>=0x00020009)
@@ -1093,8 +1129,8 @@ NEXUS_Error NEXUS_Sage_P_SvpSetRegions(void)
         NEXUS_Error ret;
 
         if (!heap) continue;
-        ret=NEXUS_Heap_GetStatus(heap, &status);
-        if(ret!=NEXUS_SUCCESS)
+        ret = NEXUS_Heap_GetStatus(heap, &status);
+        if(ret != NEXUS_SUCCESS)
         {
             BDBG_ERR(("Failed to get heap %d info. SKIPPING", i));
             continue;
@@ -1107,7 +1143,7 @@ NEXUS_Error NEXUS_Sage_P_SvpSetRegions(void)
         if(size[status.memcIndex])
         {
             /* Can't have more than one secure picture buffer per memc */
-            rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
             goto EXIT;
         }
 
@@ -1124,6 +1160,23 @@ NEXUS_Error NEXUS_Sage_P_SvpSetRegions(void)
         {
             rc = BERR_TRACE(rc);
             goto EXIT;
+        }
+
+        if(i == NEXUS_ARR_HEAP)
+        {
+            if((status.offset+status.size-1)>>32)
+            {
+                BDBG_ERR(("ARR must be 32bit"));
+                rc = NEXUS_INVALID_PARAMETER;
+                goto EXIT;
+            }
+            rc = NEXUS_SageModule_P_AddRegion(BSAGElib_RegionId_Arr, status.offset, status.size);
+            if (rc != NEXUS_SUCCESS)
+            {
+                rc = BERR_TRACE(rc);
+                goto EXIT;
+            }
+            continue;
         }
 
         if(status.heapType & NEXUS_HEAP_TYPE_CRRT)
@@ -1588,7 +1641,7 @@ static NEXUS_Error NEXUS_Sage_P_EnableHvd(bool enable)
 #endif
     NEXUS_Module_Unlock(lHandle->internalSettings->security);
 
-    if(lHandle->apiVer<0x00020009)
+    if(!SAGE_SVP_FWRR_SUPPORT)
     {
         if(required)
         {

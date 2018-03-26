@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -62,6 +62,8 @@
 #include "widget_edit.h"
 #include "widget_check_button.h"
 
+#define MAX_SCAN_PROGRESS  8
+
 BDBG_MODULE(atlas_screen_main);
 
 CScreenMain::CScreenMain(
@@ -70,7 +72,6 @@ CScreenMain::CScreenMain(
         CWidgetBase *   pParent
         ) :
     CScreen("CScreenMain", pWidgetEngine, pConfig, pParent),
-    _pLabelScan(NULL),
     _pLabelVolume(NULL),
 #if BDSP_MS12_SUPPORT
     _pLabelAudioFadeMain(NULL),
@@ -90,6 +91,8 @@ CScreenMain::CScreenMain(
     _pLabelPlaybackNameShadow(NULL),
     _pLabelDebugName(NULL),
     _pLabelDebugNameShadow(NULL),
+    _pLabelScanResults(NULL),
+    _pLabelScanResultsShadow(NULL),
     _pMainMenu(NULL),
     _Display(NULL),
     _Decode(NULL),
@@ -429,17 +432,51 @@ eRet CScreenMain::initialize(CModel * pModel)
         _pLabelDebugNameShadow->show(false);
     }
 
-    /* scan status widget */
-    _pLabelScan = new CWidgetProgress("CScreenMain::_pLabelScan", getEngine(), this, MRect((graphicsWidth / 2) - 200, graphicsHeight - 100, 400, 25), font14);
-    CHECK_PTR_ERROR_GOTO("unable to allocate label widget", _pLabelScan, ret, eRet_OutOfMemory, error);
-    _pLabelScan->setText("No Scan", bwidget_justify_horiz_center, bwidget_justify_vert_middle);
-    _pLabelScan->setBevel(2);
-    _pLabelScan->setBackgroundFillMode(fill_eGradient);
-    _pLabelScan->setBackgroundGradient(SET_TRANSPARENCY((0xFF676767 - 5 * COLOR_STEP), transparency),
-            SET_TRANSPARENCY(0xFF676767, transparency),
-            SET_TRANSPARENCY((0xFF676767 + 2 * COLOR_STEP), transparency));
-    _pLabelScan->setTextColor(COLOR_EGGSHELL);
-    _pLabelScan->show(false);
+    /* scan results widget */
+    {
+        MRect rectScanResultsName((graphicsWidth / 2) - 200, graphicsHeight - 400, 400, 25);
+
+        _pLabelScanResults = new CWidgetLabel("CScreenMain::_pLabelScanResults", getEngine(), this, rectScanResultsName, font17);
+        CHECK_PTR_ERROR_GOTO("unable to allocate label widget", _pLabelScanResults, ret, eRet_OutOfMemory, error);
+        _pLabelScanResults->setBevel(0);
+        _pLabelScanResults->setBackgroundFillMode(fill_eNone); /* no background so text overlays */
+        _pLabelScanResults->setTextColor(COLOR_GREEN);
+        _pLabelScanResults->setText("Channels Found:", bwidget_justify_horiz_center, bwidget_justify_vert_middle);
+        _pLabelScanResults->show(false);
+
+        rectScanResultsName.moveBy(1, 1);
+
+        _pLabelScanResultsShadow = new CWidgetLabel("CScreenMain::_pLabelScanResultsShadow", getEngine(), this, rectScanResultsName, font17);
+        CHECK_PTR_ERROR_GOTO("unable to allocate label widget", _pLabelScanResultsShadow, ret, eRet_OutOfMemory, error);
+        _pLabelScanResultsShadow->setBevel(0);
+        _pLabelScanResultsShadow->setBackgroundFillMode(fill_eNone); /* no background so text overlays */
+        _pLabelScanResultsShadow->setTextColor(COLOR_BLACK);
+        _pLabelScanResultsShadow->setText("Channels Found:", bwidget_justify_horiz_center, bwidget_justify_vert_middle);
+        _pLabelScanResultsShadow->show(false);
+    }
+
+    /* scan status widgets - limit to 8 */
+    for (int i = 0; i < MAX_SCAN_PROGRESS; i++)
+    {
+        CWidgetProgress * pLabelScan         = NULL;
+        int *             pScanChannelsFound = NULL;
+        MRect             rectScan;
+
+        rectScan.set((graphicsWidth / 2) - 200, graphicsHeight - 100 - (i * 30), 400, 25);
+
+        pLabelScan = new CWidgetProgress("CScreenMain::pLabelScan", getEngine(), this, rectScan, font14);
+        CHECK_PTR_ERROR_GOTO("unable to allocate label widget", pLabelScan, ret, eRet_OutOfMemory, error);
+        pLabelScan->setText("No Scan", bwidget_justify_horiz_center, bwidget_justify_vert_middle);
+        pLabelScan->setBevel(2);
+        pLabelScan->setBackgroundFillMode(fill_eGradient);
+        pLabelScan->setBackgroundGradient(SET_TRANSPARENCY((0xFF676767 - 5 * COLOR_STEP), transparency),
+                SET_TRANSPARENCY(0xFF676767, transparency),
+                SET_TRANSPARENCY((0xFF676767 + 2 * COLOR_STEP), transparency));
+        pLabelScan->setTextColor(COLOR_EGGSHELL);
+        pLabelScan->show(false);
+
+        _scanLabelList.add(pLabelScan);
+    }
 
     /* volume widget */
     _pLabelVolume = new CWidgetProgress("CScreenMain::_pLabelVolume", getEngine(), this, MRect((graphicsWidth / 2) - 200, graphicsHeight - 100, 400, 25), font14);
@@ -483,7 +520,7 @@ eRet CScreenMain::initialize(CModel * pModel)
     /* keep AudioFadePip popup above all other graphics */
     _pLabelAudioFadePip->setZOrder(32);
     _pLabelAudioFadePip->show(false);
-#endif
+#endif /* if BDSP_MS12_SUPPORT */
 
     /* main menu */
     menuHeight = 151;
@@ -661,7 +698,7 @@ eRet CScreenMain::initialize(CModel * pModel)
         /* back button */
         _Back = new CWidgetButton("CScreenMain::_Back", getEngine(), this, MRect(0, 0, 0, 0), font10);
         CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _Back, ret, eRet_OutOfMemory, error);
-        _Back->setText("Hide");
+        _Back->loadImage("images/minimize-sm.png");
         _pMainMenu->addBackButton(_Back);
     }
 
@@ -742,7 +779,7 @@ eRet CScreenMain::initialize(CModel * pModel)
     _pAudioAc4Menu->initialize(pModel, _pConfig);
     _pAudioAc4Menu->show(false);
     _panelList.add(_pAudioAc4Menu);
-#endif
+#endif /* if BDSP_MS12_SUPPORT */
 
 #ifdef MPOD_SUPPORT
     _pCableCardMenu = new CPanelCableCard(getWidgetEngine(), this, this, MRect(0, 0, 10, 10), font14);
@@ -904,11 +941,12 @@ void CScreenMain::uninitialize()
     DEL(_pLabelAudioFadeMain);
 #endif
     DEL(_pLabelVolume);
-    DEL(_pLabelScan);
     DEL(_pLabelConnectionType);
     DEL(_pLabelConnectionStatus);
     DEL(_pLabelPlaybackNameShadow);
     DEL(_pLabelPlaybackName);
+    DEL(_pLabelScanResultsShadow);
+    DEL(_pLabelScanResults);
     DEL(_pLabelDebugNameShadow);
     DEL(_pLabelDebugName);
     DEL(_pLabelPlaybackLength);
@@ -921,6 +959,7 @@ void CScreenMain::uninitialize()
 
     _panelList.clear();
     _channelLabelList.clear();
+    _scanLabelList.clear();
 
     {
         CConnectionStatus * pStatus;
@@ -1226,7 +1265,7 @@ void CScreenMain::processNotification(CNotification & notification)
             _pModel->getPipState() ? _timerAudioFade.start() : _timerAudioFade.stop();
         }
         else
-#endif
+#endif /* if BDSP_MS12_SUPPORT */
         if (&_timerMsgBox == pTimer)
         {
             _MsgBox->cancelModal("Cancel");
@@ -1328,23 +1367,43 @@ void CScreenMain::processNotification(CNotification & notification)
         }
     }
     break;
-#endif
+#endif /* if BDSP_MS12_SUPPORT */
 
 #if NEXUS_HAS_FRONTEND
     case eNotify_ScanStarted:
     {
+        CWidgetProgress * pLabelScan     = NULL;
+        int *             pChannelsFound = NULL;
+
         _channelsFound = 0;
-        _pLabelScan->setLevel(0);
-        _pLabelScan->showProgress(true);
-        _pLabelScan->show(true);
+
+        for (pLabelScan = _scanLabelList.first(); pLabelScan; pLabelScan = _scanLabelList.next())
+        {
+            pLabelScan->setLevel(0);
+            pLabelScan->setText(NULL);
+            pLabelScan->showProgress(true);
+        }
+
+        {
+            MString strScanResults = "Channels Found:";
+            strScanResults += MString(_channelsFound);
+            setScanResultsTitle(strScanResults);
+            showScanResultsTitle(true);
+        }
     }
     break;
 
     case eNotify_ScanStopped:
     {
-        CModel * pModel = getModel();
+        CModel *          pModel     = getModel();
+        CWidgetProgress * pLabelScan = NULL;
 
-        _pLabelScan->show(false);
+        showScanResultsTitle(false);
+
+        for (pLabelScan = _scanLabelList.first(); pLabelScan; pLabelScan = _scanLabelList.next())
+        {
+            pLabelScan->show(false);
+        }
 #ifdef MPOD_SUPPORT
         getModel()->setScanSaveOffer(true);
 #endif
@@ -1386,7 +1445,8 @@ void CScreenMain::processNotification(CNotification & notification)
         CChannelMgrListChangedData * pChListChangedData =
             (CChannelMgrListChangedData *)notification.getData();
 
-        if (NULL != pChListChangedData)
+        /* if scanning show number of channels found */
+        if ((NULL != pChListChangedData) && (eMode_Scan == _pModel->getMode()))
         {
             if ((pChListChangedData->isAdd()) && (NULL != pChListChangedData->getChannel()))
             {
@@ -1395,6 +1455,11 @@ void CScreenMain::processNotification(CNotification & notification)
                  * but that is ok because the count is reset when a scan starts. */
                 _channelsFound++;
             }
+
+            MString strScanResults = "Channels Found:";
+            strScanResults += MString(_channelsFound);
+            setScanResultsTitle(strScanResults);
+            showScanResultsTitle(true);
         }
     }
     break;
@@ -1452,8 +1517,8 @@ void CScreenMain::processNotification(CNotification & notification)
 
 #if BDSP_MS12_SUPPORT
         /* hide/show audio fade controls based on state */
-        _pLabelAudioFadeMain ->show(bOn ? _pModel->getPipState() : false);
-        _pLabelAudioFadePip ->show(bOn ? _pModel->getPipState() : false);
+        _pLabelAudioFadeMain->show(bOn ? _pModel->getPipState() : false);
+        _pLabelAudioFadePip->show(bOn ? _pModel->getPipState() : false);
 #endif
 
         if (false == bOn)
@@ -1602,6 +1667,22 @@ eRet CScreenMain::setDebugTitle(const char * str)
 
     return(eRet_Ok);
 } /* setDebugTitle */
+
+eRet CScreenMain::showScanResultsTitle(bool bShow)
+{
+    _pLabelScanResultsShadow->show(bShow);
+    _pLabelScanResults->show(bShow);
+
+    return(eRet_Ok);
+} /* showScanResultsTitle */
+
+eRet CScreenMain::setScanResultsTitle(const char * str)
+{
+    _pLabelScanResultsShadow->setText(str);
+    _pLabelScanResults->setText(str);
+
+    return(eRet_Ok);
+} /* setScanResultsTitle */
 
 eRet CScreenMain::updatePip()
 {
@@ -2412,16 +2493,48 @@ void CScreenMain::setScanProgress(
         uint8_t  progress
         )
 {
+    MString strTunerName;
     char strScan[64];
+    CWidgetProgress * pLabelScan = NULL;
 
     BDBG_ASSERT(NULL != pTuner);
     BDBG_ASSERT(100 >= progress);
 
-    snprintf(strScan, sizeof(strScan), "Scanning %s%d : %3d%%  Found:%d",
-            pTuner->getName(), pTuner->getNumber(), progress, _channelsFound);
-    _pLabelScan->setText(strScan);
-    _pLabelScan->setLevel(PERCENT_TO_UINT16(progress));
-}
+    strTunerName = pTuner->getName() + MString(pTuner->getNumber());
+
+    /* search for matching widget to update progress */
+    for (pLabelScan = _scanLabelList.first(); pLabelScan; pLabelScan = _scanLabelList.next())
+    {
+        if (-1 == MString(pLabelScan->getText()).find(strTunerName))
+        {
+            continue;
+        }
+
+        snprintf(strScan, sizeof(strScan), "Scanning %s%d : %3d%%", pTuner->getName(), pTuner->getNumber(), progress);
+        pLabelScan->setText(strScan);
+        pLabelScan->setLevel(PERCENT_TO_UINT16(progress));
+        break;
+    }
+
+    if (NULL == pLabelScan)
+    {
+        /* no matching progress widget found - add new one if possible */
+        for (pLabelScan = _scanLabelList.first(); pLabelScan; pLabelScan = _scanLabelList.next())
+        {
+            if (false == MString(pLabelScan->getText()).isEmpty())
+            {
+                continue;
+            }
+
+            snprintf(strScan, sizeof(strScan), "Scanning %s%d : %3d%%", pTuner->getName(), pTuner->getNumber(), progress);
+            pLabelScan->setText(strScan);
+            pLabelScan->setLevel(PERCENT_TO_UINT16(progress));
+            pLabelScan->show(true);
+
+            break;
+        }
+    }
+} /* setScanProgress */
 
 #endif /* NEXUS_HAS_FRONTEND */
 
@@ -2453,7 +2566,7 @@ void CScreenMain::setVolumeProgress(
 
 #if BDSP_MS12_SUPPORT
 void CScreenMain::setAudioFadeProgress(
-        uint8_t progress,
+        uint8_t     progress,
         eWindowType windowType
         )
 {
@@ -2476,23 +2589,21 @@ void CScreenMain::setAudioFadeProgress(
     }
     else
     {
-         snprintf(strAudioFade, sizeof(strAudioFade), "PiP Audio Level: %3d%%", progress);
+        snprintf(strAudioFade, sizeof(strAudioFade), "PiP Audio Level: %3d%%", progress);
         _pLabelAudioFadePip->setText(strAudioFade);
         _pLabelAudioFadePip->setLevel(PERCENT_TO_UINT16(progress));
         _pLabelAudioFadePip->showProgress(true);
         _pLabelAudioFadePip->show(true);
     }
-
 } /* setAudioFadeProgress */
-#endif
+
+#endif /* if BDSP_MS12_SUPPORT */
 
 #if BDSP_MS12_SUPPORT
 /* convert -12dB to 12dB to 2^16-1 */
 #define DIALOG_DB_TO_UINT16(db)  (((db) + 12) * 65535 / 24)
 
-void CScreenMain::setDialogEnhancementProgress(
-        int     nDb
-        )
+void CScreenMain::setDialogEnhancementProgress(int nDb)
 {
     char strDialogEnhancement[64];
 
@@ -2508,7 +2619,8 @@ void CScreenMain::setDialogEnhancementProgress(
     _pLabelVolume->showProgress(true);
     _pLabelVolume->show(true);
 } /* setDialogEnhancementProgress */
-#endif
+
+#endif /* if BDSP_MS12_SUPPORT */
 
 void CScreenMain::showMenu(eMenu menu)
 {
@@ -2583,7 +2695,7 @@ void CScreenMain::showMenu(eMenu menu)
         showMenu(NULL);
         _pAudioAc4Menu->show(true);
         break;
-#endif
+#endif /* if BDSP_MS12_SUPPORT */
 #ifdef MPOD_SUPPORT
     case eMenu_CableCard:
         showMenu(NULL);
@@ -2896,6 +3008,7 @@ void CScreenMain::updateCpuTestUtilization()
         _CpuTestLabel->setText(MString("CPU Test:") + strCpuUtil, bwidget_justify_horiz_left, bwidget_justify_vert_middle);
     }
 } /* updateCpuTestUtilization */
+
 #endif /* ifdef CPUTEST_SUPPORT */
 
 #if BDSP_MS12_SUPPORT
@@ -2913,7 +3026,8 @@ void CScreenMain::updateAudioFadeLevels()
         setAudioFadeProgress(pAudioDecodePip->getAudioFade(), _pModel->getPipSwapState() ? eWindowType_Main : eWindowType_Pip);
     }
 }
-#endif
+
+#endif /* if BDSP_MS12_SUPPORT */
 
 #if HAS_VID_NL_LUMA_RANGE_ADJ
 eRet CScreenMain::addDynamicRangeIndicator(CSimpleVideoDecode * pVideoDecode)

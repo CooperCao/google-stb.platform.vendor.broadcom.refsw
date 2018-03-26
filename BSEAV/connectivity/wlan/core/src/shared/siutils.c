@@ -1976,7 +1976,7 @@ si_gci_3wire_init(si_t *sih)
 void
 si_gci_seci_init(si_t *sih)
 {
-	/* For WL-Coex (#ifdef WLCX_ATLAS) and BT-Coex (BFL4_BTCOEX_OVER_SECI) */
+	/* For WL-Coex (#ifdef WLCX_ATLAS) and BT-Coex !(BFL2_BTCLEGACY) */
 	if (CHIPID(sih->chip) == BCM7271_CHIP_ID) {
 		SI_MSG(("si_gci_seci_init: 7271 configure\n"));
 		/* 7271 Configuration
@@ -3003,15 +3003,16 @@ BCMATTACHFN(si_doattach)(si_info_t *sii, uint devid, osl_t *osh, volatile void *
 
 #if !defined(BCMDONGLEHOST)
 	/* Init nvram from flash if it exists */
-	nvram_init((void *)&(sii->pub));
-
+	if (nvram_init((void *)&(sii->pub))) {
+		SI_ERROR(("si_doattach: nvram_init failed\n"));
+		goto exit;
+	}
 
 	/* Init nvram from sprom/otp if they exist */
 #if defined(STRICT_GCC_WARNINGS) && defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
-
 	{
 		if (srom_var_init(&sii->pub, BUSTYPE(bustype), (void *)regs,
 			sii->osh, vars, varsz)) {
@@ -3279,6 +3280,11 @@ BCMATTACHFN(si_doattach)(si_info_t *sii, uint devid, osl_t *osh, volatile void *
 	return (sii);
 
 exit:
+	if (sii->axi_wrapper) {
+		MFREE(sii->osh, sii->axi_wrapper,
+			(sizeof(axi_wrapper_t) * SI_MAX_AXI_WRAPPERS));
+		sii->axi_wrapper = NULL;
+	}
 #if !defined(BCMDONGLEHOST)
 	if (BUSTYPE(sih->bustype) == PCI_BUS) {
 		if (sii->pch)
@@ -8004,10 +8010,11 @@ BCMINITFN(si_gci_init)(si_t *sih)
 	{
 		si_gci_reset(sih);
 
-		if (sih->boardflags4 & BFL4_BTCOEX_OVER_SECI) {
+        /* see 7271 comments about board flags */
+		if (!(sih->boardflags2 & BFL2_BTCLEGACY)) {
 			si_gci_seci_init(sih);
 		}
-		else if (sih->boardflags4 & BFL4_BTC3WIRE_VIA_GCI) {
+		else if ((sih->boardflags2 & BFL2_BTCLEGACY) && ((sih->boardflags2 & BFL2_BTC3WIREONLY))) {
 			si_gci_3wire_init(sih);
 		}
 

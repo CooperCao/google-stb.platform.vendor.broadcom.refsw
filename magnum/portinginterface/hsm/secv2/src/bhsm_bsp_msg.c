@@ -126,8 +126,6 @@ BDBG_MODULE(BHSMa);
 
 BDBG_OBJECT_ID(BHSM_P_BspMsg);
 
-BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
-
 /* BSP Message Module data. */
 typedef struct BHSM_P_BspMsg_Module_s
 {
@@ -159,7 +157,13 @@ typedef struct BHSM_P_BspMsg
     unsigned     command;
     unsigned     continualMode;
 
-    char mailBox[BHSM_P_MAILBOX_BYTE_SIZE];  /* shaddow mailbox, used for both input and output.*/
+    struct{
+        bool enable;
+        unsigned rsaKeyId;                   /* the RSA keyslot the command is signed against. Valid of "enable" is true. */
+        BSTD_DeviceOffset signatureOffset;   /* memory offset to signature. Valid of "enable" is true. */
+    }signedCommand;
+
+    char mailBox[BHSM_P_MAILBOX_BYTE_SIZE];  /* shadow mailbox, used for both input and output.*/
 
 }BHSM_P_BspMsg;
 
@@ -229,7 +233,7 @@ BERR_Code BHSM_BspMsg_Init( BHSM_Handle hHsm, BHSM_BspMsgInit_t *pParam )
     /* initialise mailbox interface */
     BREG_Write32( hHsm->regHandle, MAILBOX_ILOAD_CONTROL, 0 );
 
-   #ifndef BHSM_BUILD_HSM_FOR_SAGE
+   #ifdef BHSM_BUILD_HSM_FOR_HOST
     #ifdef BCHP_BSP_GLB_CONTROL_GLB_RAAGA_INTR_STATUS /* define may not be available/relevant on legacy platforms */
     BREG_Write32( hHsm->regHandle, BCHP_BSP_GLB_CONTROL_GLB_RAAGA_INTR_STATUS, 0xFFFFFFFFL );
     #endif
@@ -358,6 +362,10 @@ BERR_Code BHSM_BspMsg_Configure( BHSM_BspMsg_h hMsg, BHSM_BspMsgConfigure_t *pPa
     hMsg->command = pParam->command;
     hMsg->continualMode = pParam->continualMode;
 
+    hMsg->signedCommand.enable = pParam->signedCommand.enable;
+    hMsg->signedCommand.rsaKeyId = pParam->signedCommand.rsaKeyId;
+    hMsg->signedCommand.signatureOffset = pParam->signedCommand.signatureOffset;
+
     BDBG_LEAVE( BHSM_BspMsg_Configure );
     return BERR_SUCCESS;
 }
@@ -383,14 +391,18 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg, uint16_t *pBspStatus )
 
     /* set the mailbox header.*/
     pSendHeader = (Bsp_CmdHeader_InFields_t*)&hMsg->mailBox[0];
+
+    BKNI_Memset( pSendHeader, 0, sizeof(*pSendHeader) );
     pSendHeader->ownerId            = hHsm->modules.pBsp->ownerId;
-    pSendHeader->signedFlag         = 0;
-    pSendHeader->secondTierKeyId    = 0;
-    pSendHeader->signCmdAddrMsb     = 0;
-    pSendHeader->signCmdAddr        = 0;
+    if( hMsg->signedCommand.enable )
+    {
+        pSendHeader->signedFlag      = true;
+        pSendHeader->secondTierKeyId = (uint8_t)hMsg->signedCommand.rsaKeyId;
+        pSendHeader->signCmdAddrMsb  = (uint8_t)(hMsg->signedCommand.signatureOffset >> 32);
+        pSendHeader->signCmdAddr     = (uint32_t)(hMsg->signedCommand.signatureOffset & 0xFFFFFFFF);
+    }
     pSendHeader->cmdId              = hMsg->command;
     pSendHeader->cmdComponent       = hMsg->component;
-    pSendHeader->cmdVersion         = 0;
     pSendHeader->cmdGlitch          = (((~hMsg->component)&0xFF) << 8) | ((~hMsg->command)&0xFF);
 
     /* Copy data to mailbox registers. */

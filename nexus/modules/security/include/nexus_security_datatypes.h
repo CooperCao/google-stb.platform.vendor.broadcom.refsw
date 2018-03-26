@@ -158,7 +158,7 @@ typedef enum NEXUS_SecurityAlgorithm
 
 /**
 Summary:
-This enum defines the supported crypto alogrithm variants.
+This enum defines the supported crypto algorithm variants.
 **/
 typedef enum NEXUS_SecurityAlgorithmVariant
 {

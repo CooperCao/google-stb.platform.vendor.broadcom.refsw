@@ -5684,6 +5684,15 @@ int32_t BWL_GetCounters
     SAVPCOUNTERS(rxf1ovfl);
     SAVPCOUNTERS(pmqovfl);
     SAVPCOUNTERS(rxcrc);
+    SAVPCOUNTERS(txnobuf);
+    SAVPCOUNTERS(txnoassoc);
+    SAVPCOUNTERS(txrunt);
+    SAVPCOUNTERS(rxbadds);
+    SAVPCOUNTERS(rxrunt);
+    SAVPCOUNTERS(rxnoscb);
+    SAVPCOUNTERS(rxbadproto);
+    SAVPCOUNTERS(rxbadsrcmac);
+    SAVPCOUNTERS(rxbadda);
 
 BWL_EXIT:
     if (buf != NULL)

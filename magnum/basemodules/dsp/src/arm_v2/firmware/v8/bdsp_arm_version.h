@@ -36,7 +36,7 @@
  * ANY LIMITED REMEDY.
  ******************************************************************************/
 
-/* Commit ID of Astra : 96aebda4bbd1d2581fcae86cd306172b719f2114 */
+/* Commit ID of Astra : a287d802c42fd2f0ae72de3196f59e7b278ffad6 */
 #define BDSP_ARM_MAJOR_VERSION       1
 #define BDSP_ARM_MINOR_VERSION       2
 #define BDSP_ARM_BUILD_VERSION       0

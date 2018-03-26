@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -94,12 +94,12 @@ B_Error B_AspChannel_DeleteFlowClassificationRuleFromNwSwitch(
     }
 
     BKNI_Memset(&ifr, 0, sizeof(ifr));
-    strncpy(ifr.ifr_name, pSocketState->interfaceName, IF_NAMESIZE);
+    strncpy(ifr.ifr_name, pSocketState->interfaceName, IF_NAMESIZE-1);
     ifr.ifr_data = (void *)&rule;
     rc = ioctl(sock, SIOCETHTOOL, &ifr);
     if (rc < 0) BDBG_WRN(("%s: ETHTOOL_GRXCLSRULE ioctl failed: errno=%d", BSTD_FUNCTION, errno));
 
-    BDBG_WRN(("%s: ruleIdx=%d deleted", BSTD_FUNCTION, rule.fs.location));
+    BDBG_MSG(("%s: ruleIdx=%d deleted", BSTD_FUNCTION, rule.fs.location));
 
     close(sock);
     return B_ERROR_SUCCESS;
@@ -165,7 +165,7 @@ int B_AspChannel_AddFlowClassificationRuleToNwSwitch(
     }
 
     BKNI_Memset(&ifr, 0, sizeof(ifr));
-    strncpy(ifr.ifr_name, pSocketState->interfaceName, IF_NAMESIZE);
+    strncpy(ifr.ifr_name, pSocketState->interfaceName, IF_NAMESIZE-1);
     ifr.ifr_data = (void *)&rule;
     rc = ioctl(sock, SIOCETHTOOL, &ifr);
     if (rc < 0)
@@ -173,8 +173,7 @@ int B_AspChannel_AddFlowClassificationRuleToNwSwitch(
         BDBG_ERR(("%s: ioctl() SIOCETHTOOL Failed to add the Classification rule to network switch, errno=%d", BSTD_FUNCTION, errno));
         perror("ioctl: ");
     }
-    BDBG_ASSERT(rc >= 0);
-    BDBG_WRN(("%s: IP:Port local=0x%x:%d, remote=0x%x:%d, switchFwdPort#=%d, switchFwdPortQ#=%d ring_cookie=%d ruleIdx=%d", BSTD_FUNCTION,
+    BDBG_MSG(("%s: IP:Port local=0x%x:%d, remote=0x%x:%d, switchFwdPort#=%d, switchFwdPortQ#=%d ring_cookie=%d ruleIdx=%d", BSTD_FUNCTION,
                 ntohl(rule.fs.h_u.tcp_ip4_spec.ip4src),
                 ntohs(rule.fs.h_u.tcp_ip4_spec.psrc),
                 ntohl(rule.fs.h_u.tcp_ip4_spec.ip4dst),
@@ -184,6 +183,7 @@ int B_AspChannel_AddFlowClassificationRuleToNwSwitch(
                 (int)rule.fs.ring_cookie,
                 rule.fs.location
              ));
+    BDBG_ASSERT(rc >= 0);
 
     *ruleIndex = rule.fs.location;
     close(sock);

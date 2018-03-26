@@ -746,7 +746,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_Xdm_SetFreeze(NEXUS_VideoDecoderHandle videoDec
                 /* the above two modes are here because the user expects a freeze after the first
                 picture is shown anyway (while TSM for the second picture matures).  XVD team says
                 if both FREEZE and "first picture preview" are enabled, "first picture preview" will
-                take precendence...and then freeze will occur on the first picture */
+                take precedence...and then freeze will occur on the first picture */
             case NEXUS_VideoDecoder_ChannelChangeMode_eHoldUntilTsmLock:
                 BDBG_MSG(("Freezing video per sync request"));
                 BKNI_EnterCriticalSection();

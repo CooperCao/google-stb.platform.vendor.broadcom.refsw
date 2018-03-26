@@ -118,12 +118,8 @@ int main(int argc, char **argv)
     rc = NEXUS_Playback_SetSettings(playback, &playbackSettings);
     BDBG_ASSERT(!rc);
 
-    if (allocResults.simpleVideoDecoder[0].id) {
-        videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
-    }
-    if (allocResults.simpleAudioDecoder.id) {
-        audioDecoder = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
-    }
+    videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
+    audioDecoder = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
 
     NxClient_GetDefaultConnectSettings(&connectSettings);
     connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;
@@ -148,18 +144,10 @@ int main(int argc, char **argv)
     videoProgram.settings.pidChannel = NEXUS_Playback_OpenPidChannel(playback, VIDEO_PID, &playbackPidSettings);
     videoProgram.settings.codec = VIDEO_CODEC;
 
-    if (videoProgram.settings.pidChannel) {
-        NEXUS_SimpleVideoDecoder_SetStcChannel(videoDecoder, stcChannel);
-    }
-    if (audioProgram.primary.pidChannel) {
-        NEXUS_SimpleAudioDecoder_SetStcChannel(audioDecoder, stcChannel);
-    }
-    if (videoProgram.settings.pidChannel) {
-        NEXUS_SimpleVideoDecoder_Start(videoDecoder, &videoProgram);
-    }
-    if (audioProgram.primary.pidChannel) {
-        NEXUS_SimpleAudioDecoder_Start(audioDecoder, &audioProgram);
-    }
+    NEXUS_SimpleVideoDecoder_SetStcChannel(videoDecoder, stcChannel);
+    NEXUS_SimpleAudioDecoder_SetStcChannel(audioDecoder, stcChannel);
+    NEXUS_SimpleVideoDecoder_Start(videoDecoder, &videoProgram);
+    NEXUS_SimpleAudioDecoder_Start(audioDecoder, &audioProgram);
     NEXUS_Playback_Start(playback, file, NULL);
 
     nxapp_prompt("exit");

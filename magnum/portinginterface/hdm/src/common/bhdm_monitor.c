@@ -238,7 +238,17 @@ static void BHDM_MONITOR_P_ReadStatus_isr(const BHDM_Handle hHDMI)
 		!(Register & BCHP_MASK(HDMI_TX_PHY_HDMI_TX_PHY_RESET_CTL, TX_1_PWRDN));
 	hHDMI->MonitorStatus.EnabledTMDS_CH0 =
 		!(Register & BCHP_MASK(HDMI_TX_PHY_HDMI_TX_PHY_RESET_CTL, TX_0_PWRDN)) ;
+
+
+	Register = BREG_Read32(hRegister, HDMI_TX_PHY_HDMI_TX_PHY_STATUS + ulOffset) ;
+	hHDMI->MonitorStatus.PllLocked =
+		Register & BCHP_MASK(HDMI_TX_PHY_HDMI_TX_PHY_STATUS, PLL_LOCK) ;
+
+	hHDMI->MonitorStatus.PLLStatus =
+		Register & BCHP_MASK(HDMI_TX_PHY_HDMI_TX_PHY_STATUS, PLL_STAT) ;
+
 #else
+
 	/* 40nm */
 	Register = BREG_Read32(hRegister, BCHP_HDMI_TX_PHY_POWERDOWN_CTL + ulOffset) ;
 	hHDMI->MonitorStatus.EnabledTMDS_Clock =
@@ -250,6 +260,15 @@ static void BHDM_MONITOR_P_ReadStatus_isr(const BHDM_Handle hHDMI)
 		!(Register & BCHP_MASK(HDMI_TX_PHY_POWERDOWN_CTL, TX_1_PWRDN)) ;
 	hHDMI->MonitorStatus.EnabledTMDS_CH0 =
 		!(Register & BCHP_MASK(HDMI_TX_PHY_POWERDOWN_CTL, TX_0_PWRDN)) ;
+
+
+	Register = BREG_Read32(hRegister, BCHP_HDMI_TX_PHY_STATUS + ulOffset) ;
+	hHDMI->stMonitorTxHwStatusExtra.PllLocked =
+		Register & BCHP_MASK(HDMI_TX_PHY_STATUS, PLL_LOCK) ;
+
+	hHDMI->stMonitorTxHwStatusExtra.PllStatus =
+		Register & BCHP_MASK(HDMI_TX_PHY_STATUS, PLL_STAT) ;
+
 #endif
 }
 
@@ -424,4 +443,40 @@ BERR_Code BHDM_MONITOR_GetHwStatusTx(const BHDM_Handle hHDMI, BHDM_MONITOR_Statu
 
 done:
 	return rc ;
+}
+
+
+void BHDM_MONITOR_GetTxHwStatusExtra(const BHDM_Handle hHDMI, BHDM_MONITOR_TxHwStatusExtra *txHwStatusExtra)
+{
+#if BHDM_CONFIG_MONITOR_STATUS_SECONDS
+	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
+
+	BKNI_Memset(txHwStatusExtra, 0, sizeof(*txHwStatusExtra)) ;
+
+	if (!hHDMI->standby)
+	{
+		BKNI_EnterCriticalSection() ;
+			BHDM_MONITOR_P_ReadStatus_isr(hHDMI) ;
+		BKNI_LeaveCriticalSection() ;
+	}
+
+	txHwStatusExtra->PllLocked = hHDMI->stMonitorTxHwStatusExtra.PllLocked ;
+	txHwStatusExtra->PllStatus = hHDMI->stMonitorTxHwStatusExtra.PllStatus ;
+
+	txHwStatusExtra->ui2cHdcp2VersionReadFailures =
+		hHDMI->stMonitorTxHwStatusExtra.ui2cHdcp2VersionReadFailures ;
+
+	txHwStatusExtra->ui2cHdcp2VersionDataFailures =
+		hHDMI->stMonitorTxHwStatusExtra.ui2cHdcp2VersionDataFailures ;
+
+#else
+	BERR_Code rc ;
+
+	BSTD_UNUSED(hHDMI) ;
+	BSTD_UNUSED(TxStatus) ;
+
+	rc = BERR_TRACE(BERR_NOT_AVAILABLE) ;
+#endif
+
+
 }

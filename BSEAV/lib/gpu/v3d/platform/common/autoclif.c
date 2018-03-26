@@ -8,7 +8,7 @@
 
 #ifdef ANDROID
 #define LOG_TAG "V3D"
-#include <cutils/log.h>
+#include <log/log.h>
 #include <cutils/properties.h>
 #include <libgen.h>
 #endif

@@ -60,6 +60,9 @@ B_REFSW_OBJ_ROOT ?= ${BSEAV_DIR}/../${B_REFSW_OBJ_DIR}
 BSG_OBJ_DIR      ?= $(B_REFSW_OBJ_ROOT)/BSEAV/lib/bsg_apps/common
 
 CXXFLAGS += -O2 -DNDEBUG -std=c++0x
+ifeq ($(V3D_PREFIX),vc5)
+	CXXFLAGS += -DBSG_USE_ES3 -DBSG_VC5
+endif
 CXXFLAGS += -I$(BSG_DIR)
 CXXFLAGS += -I$(V3D_DIR)/interface/khronos/include
 

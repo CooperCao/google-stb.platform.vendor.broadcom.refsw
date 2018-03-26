@@ -486,15 +486,6 @@
 #define ARCH_SPECIFIC_GET_SECURE_TIMER_FREQUENCY(rv) asm volatile("mrs %[xt],cntfrq_el0" : [xt] "=r" (rv) : :)
 
 
-#ifdef LEGACY_BL31
-#define ARCH_SPECIFIC_NSWTASK \
-	while (true) { \
-		asm volatile("mov x0, #0x3c000000":::"x0"); \
-		disable_fiq();\
-		asm volatile("smc #0":::); \
-		enable_fiq();\
-	}
-#else
 #define ARCH_SPECIFIC_NSWTASK \
 	while (true) { \
 		asm volatile("mov x0, #0x83000000":::"x0"); \
@@ -503,7 +494,6 @@
 		asm volatile("smc #0":::); \
 		enable_fiq();\
 	}
-#endif
 
 #define ARCH_SPECIFIC_ENABLE_INTERRUPTS { \
 	enable_irq(); \

@@ -74,6 +74,3 @@ Example uses cases:
     blit_client &
     screenshot /mnt/hd/pictures/screenshot.bmp
     picviewer /mnt/hd/pictures/screenshot.bmp
-
-    # IP client (must compiled with PLAYBACK_IP_SUPPORT=y)
-    play http://www.yourserver.com/mystream.mpg

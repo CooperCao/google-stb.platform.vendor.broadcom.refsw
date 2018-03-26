@@ -90,6 +90,7 @@ typedef struct
     SplashTriggerMap* pTrigMap;
     int nAulReg;
     uint32_t* pAulReg;
+    unsigned int uiHdmiChnNum;
 }
 SplashData;
 

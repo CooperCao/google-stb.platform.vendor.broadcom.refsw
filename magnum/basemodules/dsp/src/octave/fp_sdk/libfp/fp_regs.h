@@ -61,7 +61,7 @@
  * This implies, the header/source file which includes this header
  * file needs to include fp-sdk-config.h to get correct behaviour !!!
  * */
-#if !defined(__FPM1015_ONWARDS__)
+#if !__FPM1015_ONWARDS__
 #  define USER_REG_NUM                           (62)
 #else
 #  define USER_REG_NUM                           (16)
@@ -72,7 +72,7 @@
  * Number of predicate registers, not including hardwired ones (e.g. p7).
  */
 /*FIXME: look at the FIXME above*/
-#if !defined(__FPM1015_ONWARDS__)
+#if !__FPM1015_ONWARDS__
 #  define PRED_REG_NUM                           (7)
 #else
 #  define PRED_REG_NUM                           (2)
@@ -80,7 +80,7 @@
 
 
 /* Octave and Maestro architectures don't have banked registers */
-#if !defined(__FPM1015_ONWARDS__) && !defined(__FP4014_ONWARDS__)
+#if !__FPM1015_ONWARDS__ && !__FP4014_ONWARDS__
 
 /**
  * Number of general purpose register in irq bank (irq_r60 and irq_r61).
@@ -101,7 +101,7 @@
 
 
 /* No MAC registers on Maestro for now */
-#if !defined(__FPM1015__)
+#if !__FPM1015__
 
 /**
  * Number of MAC registers.

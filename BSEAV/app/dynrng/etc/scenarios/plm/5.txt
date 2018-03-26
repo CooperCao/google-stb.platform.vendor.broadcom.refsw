@@ -1,3 +1,3 @@
 stream=Lifting_Off_SDR_UHD_HEVC.ts
 image=Avatar.bmp
-bg=desktop_background.brcmLTD.png
+bg=desktop_background.brcmLTD.bmp

@@ -36,14 +36,14 @@
  * ANY LIMITED REMEDY.
  * ***************************************************************************/
 /*
-    Title: ViCE Firmware API definitions (bvce_fw_api.h)
+    Title: ViCE Firmware API definitions (bvce_fw_api_v3.h)
 
     This file defines the interface between the Host and the ViCE firmware.
     It contains definitions for the commands formatting.
 */
 
-#ifndef BVCE_FW_API_H__
-#define BVCE_FW_API_H__
+#ifndef BVCE_FW_API_V3_H__
+#define BVCE_FW_API_V3_H__
 
 /* ==========================  INCLUDES =========================== */
 
@@ -114,7 +114,7 @@ extern "C"
  * Maximum FW binary size is used by VCE PI to allocate its own buffers.
  */
 #define MAX_PICARC_FW_SIZE_IN_BYTES                             0x40000       /* 256 kB */
-#define MAX_MBARC_FW_SIZE_IN_BYTES                              0x8000        /* 32 kB */
+#define MAX_MBARC_FW_SIZE_IN_BYTES                              0xA000        /* 40 kB */
 
 
 /* =====================================================*/
@@ -298,8 +298,6 @@ typedef enum
     VICE_WDOG_TRACE_ENCODE_WAIT_XQ_SHADOW_AFTER                 = 0x0D1,
     VICE_WDOG_TRACE_ENCODE_WAIT_SG_SHADOW                       = 0x0E0,
     VICE_WDOG_TRACE_ENCODE_WAIT_SG_SHADOW_AFTER                 = 0x0E1,
-    VICE_WDOG_TRACE_ENCODE_WAIT_DBLK_SHADOW                     = 0x0F0, /* DBLK is for V2, ILF is for V3 */
-    VICE_WDOG_TRACE_ENCODE_WAIT_DBLK_SHADOW_AFTER               = 0x0F1,
     VICE_WDOG_TRACE_ENCODE_WAIT_ILF_SHADOW                      = 0x0F0,
     VICE_WDOG_TRACE_ENCODE_WAIT_ILF_SHADOW_AFTER                = 0x0F1,
     VICE_WDOG_TRACE_ENCODE_WAIT_XQ_DMA                          = 0x100,
@@ -342,8 +340,6 @@ typedef enum
     VICE_WDOG_TRACE_SCHED_FORCE_INTRA_WAIT_SEND_DINO_AFTER      = 0x241,
     VICE_WDOG_TRACE_HOSTCMD_WAIT_DMA1                           = 0x250,
     VICE_WDOG_TRACE_HOSTCMD_WAIT_DMA1_AFTER                     = 0x251,
-    VICE_WDOG_TRACE_ENCODE_WAIT_DBLK_IDLE                       = 0x260, /* DBLK is for V2, ILF is for V3 */
-    VICE_WDOG_TRACE_ENCODE_WAIT_DBLK_IDLE_AFTER                 = 0x261,
     VICE_WDOG_TRACE_ENCODE_WAIT_ILF_IDLE                        = 0x260,
     VICE_WDOG_TRACE_ENCODE_WAIT_ILF_IDLE_AFTER                  = 0x261,
     VICE_WDOG_TRACE_TELEM_WAIT_DMA5                             = 0x270,
@@ -1357,7 +1353,7 @@ uint32_t maxPictureIntervalIn27MhzTicks, uint32_t *pMaxAllowedBitsPerPicture, ui
 
 uint32_t BVCE_FW_P_Compute_MaxDeeIn27MhzTicks(uint32_t hrdBufferSize, FPNumber_t FP_ticksPerBit);
 void BVCE_FW_P_ComputeRateInTicksPerBit(FPNumber_t *pt_FP_ticksPerBit, uint32_t bitrateBPS);
-uint32_t BVCE_FW_P_Compute_EncodeDelayIn27MHzTicks(uint32_t MinAllowedBvnFrameRate, uint8_t ITFPenable, uint8_t Mode, FrameRate_e MinFrameRateLimit, uint8_t InputType, uint8_t MaxAllowedGopStruct, uint32_t PictureWidthInPels, uint32_t PictureHeightInPels);
+uint32_t BVCE_FW_P_Compute_EncodeDelayIn27MHzTicks(FrameRate_e MinFrameRateLimit, uint8_t InputType, uint8_t MaxAllowedGopStruct);
 FrameRate_e BVCE_FW_P_FrameRateCodeToFrameRate(FrameRateCode_e FrameRateCode);
 
 /* ---- DEBUG ---- */
@@ -1555,4 +1551,4 @@ COMPILE_TIME_ASSERT((BVCE_FW_P_UserData_PacketDescriptor_MAX_LENGTH & 0x3) == 0)
 #endif
 
 
-#endif /* BVCE_FW_API_H__ */
+#endif /* BVCE_FW_API_V3_H__ */

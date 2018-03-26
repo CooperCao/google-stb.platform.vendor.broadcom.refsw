@@ -130,6 +130,10 @@ NEXUS_Error NEXUS_SurfaceCompositor_SwapWindows(NEXUS_SurfaceCompositorHandle ha
         temp = client0->serverSettings.display[i].window[windowId0].window;
         client0->serverSettings.display[i].window[windowId0].window = client1->serverSettings.display[i].window[windowId1].window;
         client1->serverSettings.display[i].window[windowId1].window = temp;
+
+        temp = child0->window[i];
+        child0->window[i] = child1->window[i];
+        child1->window[i] = temp;
     }
 
     state = BKNI_Malloc(sizeof(*state));

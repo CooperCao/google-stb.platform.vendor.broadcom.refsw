@@ -67,10 +67,10 @@ typedef enum
 /*input*/
 typedef struct
 {
-    uint8_t  keySlotNumberIvPerSlot128; /* enum type Bsp_KeySlotType_e */
-    uint8_t  keySlotNumberIvPerBlock128; /* enum type Bsp_KeySlotType_e */
-    uint8_t  keySlotNumberIvPerBlock256; /* enum type Bsp_KeySlotType_e */
-    uint8_t  keySlotNumberIvPerEntry256; /* enum type Bsp_KeySlotType_e */
+    uint8_t  keySlotNumberIvPerSlot128;
+    uint8_t  keySlotNumberIvPerBlock128;
+    uint8_t  keySlotNumberIvPerBlock256;
+    uint8_t  keySlotNumberIvPerEntry256;
 
 }Bsp_KeySlot_Init_InFields_t;
 /*output*/

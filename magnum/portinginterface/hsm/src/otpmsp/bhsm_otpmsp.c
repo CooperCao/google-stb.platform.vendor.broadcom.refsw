@@ -46,8 +46,6 @@
 #define SHA160_BYTE_SIZE (20)
 BDBG_MODULE (BHSM);
 
-BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
-
 BERR_Code BHSM_ProgramOTPPatternSequence (BHSM_Handle hHsm, BHSM_ProgramOtpPatSeqIO_t * pProgOtpPatSeqIO)
 {
     BERR_Code       rc = BERR_SUCCESS;

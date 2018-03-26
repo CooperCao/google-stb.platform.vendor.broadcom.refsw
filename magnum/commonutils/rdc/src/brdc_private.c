@@ -1,42 +1,39 @@
-/***************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  ***************************************************************************/
 
 #include "bstd.h"                /* standard types */
@@ -154,7 +151,7 @@ BERR_Code BRDC_P_SoftReset
     BDBG_CASSERT(BRDC_P_STC_FLAG_COUNT <= BRDC_MAX_STC_FLAG_COUNT);
     for(i = 0; i < BRDC_P_STC_FLAG_COUNT; i++)
     {
-        hRdc->aeStcTrigger[i] = BRDC_Trigger_UNKNOWN;
+        hRdc->abStcFlagUsed[i] = false;
         BRDC_P_Write32(hRdc, BCHP_RDC_stc_flag_0 + i*sizeof(uint32_t), 0);
     }
 #endif
@@ -368,6 +365,90 @@ BERR_Code BRDC_Slot_P_Write_Registers_isr
 
 }
 
+#if BCHP_RDC_desc_0_lock
+static void BRDC_P_DumpSlot_isr
+(
+    BRDC_Handle      hRdc,
+    BRDC_SlotId      eSlotId
+)
+{
+#if (BDBG_DEBUG_BUILD)
+    uint32_t  ulRegOffset;
+    uint32_t  ulRegVal;
+    uint64_t  ulAddr;
+
+    /* determine offset of registers for this slot */
+    ulRegOffset = (BCHP_RDC_desc_1_addr - BCHP_RDC_desc_0_addr) * (eSlotId - BRDC_SlotId_eSlot0);
+
+    /* header */
+    BDBG_MSG(("-------------------------------"));
+
+    /* read and display address register */
+    ulAddr = BREG_ReadAddr_isrsafe(hRdc->hReg, BCHP_RDC_desc_0_addr + ulRegOffset);
+    BDBG_MSG(("RDC_desc_%d_addr", eSlotId));
+    #if BRDC_64BIT_SUPPORT
+    BDBG_MSG(("    addr: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(ulAddr)));
+    #else
+    BDBG_MSG(("    addr: 0x%08x", (uint32_t)ulAddr));
+    #endif
+
+    /* read and display config register */
+    ulRegVal = BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_config + ulRegOffset);
+    BDBG_MSG(("RDC_desc_%d_config", eSlotId));
+    BDBG_MSG(("    trigger_select:  %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, trigger_select)));
+    BDBG_MSG(("    repeat:          %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, repeat)));
+    BDBG_MSG(("    enable:          %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, enable)));
+#if BCHP_RDC_desc_0_config_high_priority_MASK
+    BDBG_MSG(("    hi_priority      %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, high_priority)));
+#endif
+#if BCHP_RDC_desc_0_config_segmented_MASK
+    BDBG_MSG(("    segemented:      %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, segmented)));
+#endif
+#if BCHP_RDC_desc_0_config_done_MASK
+    BDBG_MSG(("    count:           %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, count)));
+    BDBG_MSG(("    done:            %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, done)));
+    BDBG_MSG(("    busy:            %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, busy)));
+    BDBG_MSG(("    error:           %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, error)));
+    BDBG_MSG(("    dropped_trigger: %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, dropped_trigger)));
+    BDBG_MSG(("    lock_rd:         %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, lock_rd)));
+#else
+    BDBG_MSG(("    sync_sel:         %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, sync_sel)));
+    BDBG_MSG(("    count:            %d",
+        BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_count + ulRegOffset)));
+    BDBG_MSG(("    count_direct:     %d",
+        BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_count_direct + ulRegOffset)));
+
+    ulRegVal = BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_status + ulRegOffset);
+    BDBG_MSG(("BRDC_desc_%d_status", eSlotId));
+    BDBG_MSG(("    done:            %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_status, done)));
+    BDBG_MSG(("    busy:            %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_status, busy)));
+    BDBG_MSG(("    bank:            %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_status, bank)));
+#endif
+
+    /* contents of RUL */
+    BDBG_MSG(("See RUL dump for RUL contents."));
+#else
+    BSTD_UNUSED(hRdc);
+    BSTD_UNUSED(eSlotId);
+#endif
+}
+#endif
+
 /***************************************************************************
 Summary:
     Isr function to acquire semaphore from slot.
@@ -476,6 +557,7 @@ void BRDC_P_ReleaseSemaphore_isr
 #endif
 }
 
+#if (BCHP_RDC_sync_0_arm)
 /***************************************************************************
 Summary:
     Acquire a synchronizer from pool
@@ -498,7 +580,6 @@ BERR_Code BRDC_P_AcquireSync_isr
     ( BRDC_Handle                      hRdc,
       uint32_t                        *pulId )
 {
-#if (BRDC_P_MAX_SYNC)
     uint32_t i;
     BERR_Code rc = BERR_SUCCESS;
     BDBG_ENTER(BRDC_P_AcquireSync_isr);
@@ -517,7 +598,7 @@ BERR_Code BRDC_P_AcquireSync_isr
     if(i < BRDC_P_MAX_SYNC) {
         BDBG_MSG(("RDC_sync_%u is acquired", i));
         hRdc->abSyncUsed[i] = true;
-        rc = BRDC_P_ArmSync_isr(hRdc, i, false);
+        BRDC_P_ArmSync_isr(hRdc, i, false);
         *pulId = i;
     } else {
         *pulId = (uint32_t)(-1);
@@ -528,12 +609,6 @@ BERR_Code BRDC_P_AcquireSync_isr
 
     BDBG_LEAVE(BRDC_P_AcquireSync_isr);
     return rc;
-#else
-    BSTD_UNUSED(hRdc);
-    BDBG_ASSERT(pulId);
-    *pulId = 0;
-    return BERR_SUCCESS;
-#endif
 }
 
 /***************************************************************************
@@ -555,7 +630,6 @@ BERR_Code BRDC_P_ReleaseSync_isr
     ( BRDC_Handle                      hRdc,
       uint32_t                         ulId )
 {
-#if (BRDC_P_MAX_SYNC)
     BDBG_ENTER(BRDC_P_ReleaseSync_isr);
 
     BDBG_ASSERT(hRdc);
@@ -566,10 +640,6 @@ BERR_Code BRDC_P_ReleaseSync_isr
     BRDC_P_ArmSync_isr(hRdc, ulId, false);
     hRdc->abSyncUsed[ulId] = false;
     BDBG_LEAVE(BRDC_P_ReleaseSync_isr);
-#else
-    BSTD_UNUSED(hRdc);
-    BSTD_UNUSED(ulId);
-#endif
     return BERR_SUCCESS;
 }
 
@@ -591,19 +661,19 @@ Returns:
 See Also:
     BRDC_P_AcquireSync_isr
 ****************************************************************************/
-BERR_Code BRDC_P_ArmSync_isr
+void BRDC_P_ArmSync_isr
     ( BRDC_Handle                      hRdc,
       uint32_t                         ulSyncId,
       bool                             bArm )
 {
-#if (BRDC_P_MAX_SYNC)
     uint32_t ulReg;
     uint32_t ulAddr;
     BDBG_ENTER(BRDC_P_ArmSync_isr);
 
     BDBG_ASSERT(hRdc);
     if(ulSyncId >= BRDC_P_MAX_SYNC) {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        return;
     }
 
     ulAddr = BCHP_RDC_sync_0_arm + (BCHP_RDC_sync_1_arm - BCHP_RDC_sync_0_arm) * ulSyncId;
@@ -612,94 +682,8 @@ BERR_Code BRDC_P_ArmSync_isr
     BDBG_MSG(("RDC_sync_%u is %s", ulSyncId, bArm? "armed" : "disarmed"));
 
     BDBG_LEAVE(BRDC_P_ArmSync_isr);
-#else
-    BSTD_UNUSED(hRdc);
-    BSTD_UNUSED(ulSyncId);
-    BSTD_UNUSED(bArm);
-#endif
-    return BERR_SUCCESS;
+    return;
 }
-
-void BRDC_P_DumpSlot_isr
-(
-    BRDC_Handle      hRdc,
-    BRDC_SlotId      eSlotId
-)
-{
-#if (BDBG_DEBUG_BUILD)
-    uint32_t  ulRegOffset;
-    uint32_t  ulRegVal;
-    uint64_t  ulAddr;
-
-    /* determine offset of registers for this slot */
-    ulRegOffset = (BCHP_RDC_desc_1_addr - BCHP_RDC_desc_0_addr) * (eSlotId - BRDC_SlotId_eSlot0);
-
-    /* header */
-    BDBG_MSG(("-------------------------------"));
-
-    /* read and display address register */
-    ulAddr = BREG_ReadAddr_isrsafe(hRdc->hReg, BCHP_RDC_desc_0_addr + ulRegOffset);
-    BDBG_MSG(("RDC_desc_%d_addr", eSlotId));
-    #if BRDC_64BIT_SUPPORT
-    BDBG_MSG(("    addr: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(ulAddr)));
-    #else
-    BDBG_MSG(("    addr: 0x%08x", (uint32_t)ulAddr));
-    #endif
-
-    /* read and display config register */
-    ulRegVal = BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_config + ulRegOffset);
-    BDBG_MSG(("RDC_desc_%d_config", eSlotId));
-    BDBG_MSG(("    trigger_select:  %d",
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, trigger_select)));
-    BDBG_MSG(("    repeat:          %d",
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, repeat)));
-    BDBG_MSG(("    enable:          %d",
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, enable)));
-#if BCHP_RDC_desc_0_config_high_priority_MASK
-    BDBG_MSG(("    hi_priority      %d",
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, high_priority)));
 #endif
-#if BCHP_RDC_desc_0_config_segmented_MASK
-    BDBG_MSG(("    segemented:      %d",
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, segmented)));
-#endif
-#if BCHP_RDC_desc_0_config_done_MASK
-    BDBG_MSG(("    count:           %d",
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, count)));
-    BDBG_MSG(("    done:            %d",
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, done)));
-    BDBG_MSG(("    busy:            %d",
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, busy)));
-    BDBG_MSG(("    error:           %d",
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, error)));
-    BDBG_MSG(("    dropped_trigger: %d",
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, dropped_trigger)));
-    BDBG_MSG(("    lock_rd:         %d",
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, lock_rd)));
-#else
-    BDBG_MSG(("    sync_sel:         %d",
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, sync_sel)));
-    BDBG_MSG(("    count:            %d",
-        BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_count + ulRegOffset)));
-    BDBG_MSG(("    count_direct:     %d",
-        BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_count_direct + ulRegOffset)));
-
-    ulRegVal = BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_status + ulRegOffset);
-    BDBG_MSG(("BRDC_desc_%d_status", eSlotId));
-    BDBG_MSG(("    done:            %d",
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_status, done)));
-    BDBG_MSG(("    busy:            %d",
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_status, busy)));
-    BDBG_MSG(("    bank:            %d",
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_status, bank)));
-#endif
-
-    /* contents of RUL */
-    BDBG_MSG(("See RUL dump for RUL contents."));
-#else
-    BSTD_UNUSED(hRdc);
-    BSTD_UNUSED(eSlotId);
-#endif
-}
 
 /* end of file */

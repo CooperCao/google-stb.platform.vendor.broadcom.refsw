@@ -1026,9 +1026,10 @@ uint32_t Playready30Decryptor::DecryptSample(
     LOGD(("%s: sampleSize=%u clearSize=%u encSize=%u", BSTD_FUNCTION, sampleSize, clearSize, encSize));
 
     uint8_t *encrypted_buffer = NULL;
+    uint8_t *decrypted_buffer = NULL;
 
-    output->Copy(0, input->GetPtr(), sampleSize);
-    encrypted_buffer = (uint8_t*)output->GetPtr();
+    encrypted_buffer = (uint8_t*)input->GetPtr();
+    decrypted_buffer = (uint8_t*)output->GetPtr();
 
     // IV
     uint64_t playready_iv = 0LL;
@@ -1042,7 +1043,7 @@ uint32_t Playready30Decryptor::DecryptSample(
     aesCtrInfo.qwBlockOffset = 0;
     aesCtrInfo.bByteOffset = 0;
 
-    if (encSize == 0) {
+    if (pSample->nbOfEntries == 0) {
         if (playready_iv != 0LL) {
             uint32_t encryptedRegionMappings[2];
             encryptedRegionMappings[0] = 0; /* 0 bytes of clear */
@@ -1056,7 +1057,7 @@ uint32_t Playready30Decryptor::DecryptSample(
                 sampleSize,
                 encrypted_buffer,
                 &sampleSize,
-                &encrypted_buffer);
+                &decrypted_buffer);
 
             if (dr != DRM_SUCCESS) {
                 LOGE(("%s: %d Reader_Decrypt failed: 0x%x", BSTD_FUNCTION, __LINE__, (unsigned)dr));
@@ -1087,7 +1088,7 @@ uint32_t Playready30Decryptor::DecryptSample(
         sampleSize,
         encrypted_buffer,
         &sampleSize,
-        &encrypted_buffer);
+        &decrypted_buffer);
 
     BKNI_Free(pEncryptedRegionMappings);
 

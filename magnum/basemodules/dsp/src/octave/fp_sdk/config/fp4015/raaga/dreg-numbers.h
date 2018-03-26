@@ -42,7 +42,7 @@
 
   Generated for
     - machine architecture: fp4015
-    - binutils release: 7.0
+    - binutils release: 7.1
     - excluded features: MPU_DTCM
 */
 

@@ -723,7 +723,15 @@ BERR_Code BVDC_P_MemConfig_GetWindowInfo
             pWinConfigInfo->eFormat = eSrcFormat;
             break;
         case BBOX_Vdc_SclCapBias_eAutoDisable1080p:
-            pWinConfigInfo->eFormat = BFMT_VideoFmt_e1080p;
+            if (pWindow->bMosaicMode)
+            {
+                pWinConfigInfo->eFormat =
+                    (ulSrcSize > ulDispSize) ? eDispFormat : eSrcFormat;
+            }
+            else
+            {
+                pWinConfigInfo->eFormat = BFMT_VideoFmt_e1080p;
+            }
             break;
         case BBOX_Vdc_SclCapBias_eAuto:
         case BBOX_Vdc_SclCapBias_eAutoDisable:

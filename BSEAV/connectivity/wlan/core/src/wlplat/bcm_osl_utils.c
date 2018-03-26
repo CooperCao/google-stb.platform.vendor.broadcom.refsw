@@ -122,12 +122,11 @@ EXPORT_SYMBOL(osl_sleep);
 uint64
 osl_sysuptime_us(void)
 {
-	struct timeval tv;
+	struct timespec ts;
 	uint64 usec;
 
-	do_gettimeofday(&tv);
-	/* tv_usec content is fraction of a second */
-	usec = (uint64)tv.tv_sec * 1000000ul + tv.tv_usec;
+	get_monotonic_boottime(&ts);
+	usec = (uint64)ts.tv_sec * 1000000ul + ts.tv_nsec / 1000;
 	return usec;
 }
 EXPORT_SYMBOL(osl_sysuptime_us);

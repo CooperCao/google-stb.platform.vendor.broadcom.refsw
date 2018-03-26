@@ -135,11 +135,11 @@ int main(void)
     stcChannel = NEXUS_StcChannel_Open(0, NULL);
 
     audioDecoder = NEXUS_AudioDecoder_Open(0, NULL);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+    if (platformConfig.outputs.audioDacs[0]) {
+        NEXUS_AudioOutput_AddInput(
+            NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     display = NEXUS_Display_Open(0, &displaySettings);
 #if NEXUS_NUM_COMPONENT_OUTPUTS
@@ -147,6 +147,9 @@ int main(void)
 #endif
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_Display_AddOutput(display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
+    NEXUS_AudioOutput_AddInput(
+        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
 #endif
 
     window = NEXUS_VideoWindow_Open(display, 0);

@@ -55,8 +55,6 @@
 #include "bxvd.h"
 #include "bxvd_decoder.h"
 #include "nexus_surface.h"
-#include "bgrc.h"
-#include "bgrc_packet.h"
 
 #include "nexus_video_decoder_security.h"
 #if NEXUS_HAS_SAGE
@@ -177,6 +175,8 @@ unsigned NEXUS_VideoDecoderModule_GetFirmwareSize(const struct NEXUS_Core_PreIni
 void NEXUS_VideoDecoderModule_GetDefaultSettings(NEXUS_VideoDecoderModuleSettings *pSettings)
 {
     unsigned i;
+    BXVD_HardwareCapabilities cap;
+
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->watchdogEnabled = true;
 
@@ -205,21 +205,15 @@ void NEXUS_VideoDecoderModule_GetDefaultSettings(NEXUS_VideoDecoderModuleSetting
         pSettings->avdEnabled[i] = true;
     }
 
+    BXVD_GetHardwareCapabilities(NULL, &cap);
     for (i=0;i<NEXUS_VideoCodec_eMax;i++) {
         switch (i) {
         case NEXUS_VideoCodec_eH264_Mvc:
-        case NEXUS_VideoCodec_eH265:
-        case NEXUS_VideoCodec_eVp9:
             /* default off because of memory. platform must default on. */
             break;
-        case NEXUS_VideoCodec_eNone:
-        case NEXUS_VideoCodec_eH264_Svc:
-        case NEXUS_VideoCodec_eMotionJpeg:
-        case NEXUS_VideoCodec_eVp7:
-            /* unsupported */
-            break;
         default:
-            pSettings->supportedCodecs[i] = true;
+            pSettings->supportedCodecs[i] = cap.bCodecSupported[NEXUS_P_VideoCodec_ToMagnum(i, NEXUS_TransportType_eTs)];
+            break;
         }
     }
     pSettings->maxDecodeFormat = NEXUS_VideoFormat_e1080p30hz;
@@ -550,6 +544,7 @@ static NEXUS_Error NEXUS_VideoDecoderModule_P_PostInit(void)
         if (rc) {rc=BERR_TRACE(rc); goto error;}
         vDevice->index = i;
         BXVD_GetHardwareCapabilities(vDevice->xvd, &vDevice->cap);
+        vDevice->exclusiveMode = NEXUS_P_VideoDecoderExclusiveMode_isrsafe(g_pCoreHandles->boxConfig, vDevice->index);
 
         /* register event for task-time execution of xvd watchdog. the watchdog event and isr is device-level, even
         though the BXVD_Interrupt is channel-level. */
@@ -876,14 +871,23 @@ NEXUS_Error NEXUS_VideoDecoder_P_Init_Generic(NEXUS_VideoDecoderHandle videoDeco
     BKNI_Memcpy(videoDecoder->settings.supportedCodecs, raveSettings->supportedCodecs, sizeof(videoDecoder->settings.supportedCodecs));
     NEXUS_CallbackDesc_Init(&videoDecoder->private.settings.streamChanged);
 
-    if (videoDecoder->memconfig.maxWidth > 1920) {
-        /* don't propagate 4K2K from init-time to run-time settings. require app to set. */
+    if (videoDecoder->memconfig.maxWidth > 1920 && videoDecoder->device && videoDecoder->device->exclusiveMode != NEXUS_VideoDecoderExclusiveMode_eNone) {
+        /* don't propagate 4K from init-time to run-time settings if it's an exclusive mode. require app to set. */
         videoDecoder->settings.maxWidth = 1920;
         videoDecoder->settings.maxHeight = 1080;
     }
     else {
         videoDecoder->settings.maxWidth = videoFormatInfo.width;
         videoDecoder->settings.maxHeight = videoFormatInfo.height;
+    }
+    if (videoDecoder->device && videoDecoder->device->exclusiveMode != NEXUS_VideoDecoderExclusiveMode_e4K_or_10bit) {
+        /* don't propagate 10 bit from init-time to run-time settings if it's an exclusive mode. require app to set. */
+        if (videoDecoder->mosaicMode) {
+            videoDecoder->settings.colorDepth = g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].mosaic.colorDepth;
+        }
+        else {
+            videoDecoder->settings.colorDepth = g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].colorDepth;
+        }
     }
 
     return NEXUS_SUCCESS;
@@ -1023,13 +1027,6 @@ static NEXUS_VideoDecoderHandle NEXUS_VideoDecoder_P_Open(int parentIndex, unsig
 
     rc = NEXUS_VideoDecoder_P_Init_Generic(videoDecoder, &raveSettings, pOpenSettings);
     if(rc!=NEXUS_SUCCESS) { rc=BERR_TRACE(rc);goto error; }
-
-    if (videoDecoder->mosaicMode) {
-        videoDecoder->settings.colorDepth = g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].mosaic.colorDepth;
-    }
-    else {
-        videoDecoder->settings.colorDepth = g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].colorDepth;
-    }
 
 #if NEXUS_HAS_SYNC_CHANNEL
     BKNI_Memset(&videoDecoder->sync.status, 0, sizeof(videoDecoder->sync.status));
@@ -1811,9 +1808,11 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
     }
 
 
-    /* prevent dual decode if a channel is in exclusive mode: 4K, MVC or 3 or 4 HD mosaic. */
-    if (NEXUS_P_VideoDecoderExclusiveMode_isrsafe(g_pCoreHandles->boxConfig->stBox.ulBoxId, videoDecoder->device->index) == NEXUS_VideoDecoderExclusiveMode_e4K) {
-        unsigned num4K = 0, numHD = 0, numMvc = 0, num = 0, i;
+    /* prevent dual decode if a channel is in e4K exclusive mode: 4K, MVC or 3 or 4 HD mosaic.
+    e4Kp60 exclusive mode does not have this restriction. */
+    if (videoDecoder->device->exclusiveMode == NEXUS_VideoDecoderExclusiveMode_e4K || videoDecoder->device->exclusiveMode == NEXUS_VideoDecoderExclusiveMode_e4K_or_10bit) {
+        unsigned num4K = 0, numHDMosaic = 0, numMvc = 0, num = 0, i;
+        unsigned num10bit = 0;
         char problem[16] = "";
         for (i=0;i<NEXUS_NUM_XVD_CHANNELS;i++) {
             NEXUS_VideoDecoderHandle v = videoDecoder->device->channel[i];
@@ -1822,15 +1821,19 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
             if (v->settings.supportedCodecs[NEXUS_VideoCodec_eH264_Mvc]) numMvc++;
             res = NEXUS_VideoDecoder_GetDecodeResolution_priv(v->settings.maxWidth, v->settings.maxHeight);
             if (res == BXVD_DecodeResolution_e4K) num4K++;
-            if (res == BXVD_DecodeResolution_eHD) numHD++;
+            if (res == BXVD_DecodeResolution_eHD && v->mosaicMode) numHDMosaic++;
             num++;
+            if (v->settings.colorDepth == 10) num10bit++;
         }
         if (g_NEXUS_videoDecoderModuleSettings.memory[0].mosaic.maxNumber &&
-            numHD >= g_NEXUS_videoDecoderModuleSettings.memory[0].mosaic.maxNumber && num > numHD) {
-            BKNI_Snprintf(problem, sizeof(problem), "%u HD mosaic", g_NEXUS_videoDecoderModuleSettings.memory[0].mosaic.maxNumber);
+            numHDMosaic > 1 && num > numHDMosaic) {
+            BKNI_Snprintf(problem, sizeof(problem), "%u HD mosaic", numHDMosaic);
         }
         else if ((num4K||numMvc) && num > 1) {
             BKNI_Snprintf(problem, sizeof(problem), num4K?"4K":"MVC");
+        }
+        else if (videoDecoder->device->exclusiveMode == NEXUS_VideoDecoderExclusiveMode_e4K_or_10bit && num10bit && num > 1) {
+            BKNI_Snprintf(problem, sizeof(problem), "10 bit");
         }
         if (problem[0]){
             BDBG_ERR(("cannot allocate another decoder on this device while in %s exclusive mode", problem));
@@ -1844,15 +1847,17 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
         channelSettings.bSplitPictureBuffersEnable = true;
     }
     {
-        /* if user passes in zero, revert to default */
+        /* cap the color depth */
         unsigned colorDepth = videoDecoder->settings.colorDepth;
         if (videoDecoder->mosaicMode) {
             if (colorDepth > g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].mosaic.colorDepth) {
+                BDBG_WRN(("reducing color depth %u to supported value", colorDepth));
                 colorDepth = g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].mosaic.colorDepth;
             }
         }
         else {
             if (colorDepth > g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].colorDepth) {
+                BDBG_WRN(("reducing color depth %u to supported value", colorDepth));
                 colorDepth = g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].colorDepth;
             }
         }
@@ -2782,7 +2787,7 @@ static void NEXUS_VideoDecoder_P_CheckStatus(void *context)
     }
 
     /* if HVD0 channel 1 opened, then HVD0 channel 0 cannot be 4Kp60 */
-    if (NEXUS_P_VideoDecoderExclusiveMode_isrsafe(g_pCoreHandles->boxConfig->stBox.ulBoxId, videoDecoder->device->index) == NEXUS_VideoDecoderExclusiveMode_e4Kp60) {
+    if (videoDecoder->device->exclusiveMode == NEXUS_VideoDecoderExclusiveMode_e4Kp60) {
         if (g_NEXUS_videoDecoderXvdDevices[0].channel[1] && g_NEXUS_videoDecoderXvdDevices[0].channel[1]->dec &&
             videoDecoder->last_field.ulSourceVerticalSize > 1088) {
             unsigned refreshRate = NEXUS_P_RefreshRate_FromFrameRate_isrsafe(videoDecoder->last_field.eFrameRateCode);
@@ -3430,6 +3435,40 @@ NEXUS_Error NEXUS_VideoDecoder_P_Start_priv(NEXUS_VideoDecoderHandle videoDecode
         goto err_invalid_stc;
     }
 
+#ifndef B_REFSW_AVD_STC
+#include "bchp_rdc.h"
+#if defined(BCHP_RDC_stc_flag_0_trig_src_sel_MFD_0) && !(BCHP_CHIP == 7260 || BCHP_CHIP == 7268 || BCHP_CHIP == 7271 || (BCHP_CHIP == 7278 && BCHP_VER < BCHP_VER_B1))
+/* STC snapshot available */
+#define B_REFSW_AVD_STC 0
+#else
+/* AVD STC required, STC snapshot not available */
+#define B_REFSW_AVD_STC 1
+#endif
+#endif
+#if !B_REFSW_AVD_STC
+    if (pStartSettings->stcChannel && videoDecoder->stcSnapshot.settings.set) {
+        NEXUS_StcChannelSnapshotSettings settings;
+        NEXUS_StcChannelSnapshotStatus status;
+
+        cfg.stXDMSettings.bUseXPTSTC = true;
+        LOCK_TRANSPORT();
+        videoDecoder->stcSnapshot.handle = NEXUS_StcChannel_OpenSnapshot_priv(pStartSettings->stcChannel);
+        if (!videoDecoder->stcSnapshot.handle) { BERR_TRACE(NEXUS_NOT_AVAILABLE); UNLOCK_TRANSPORT(); goto err_snapshot_stc; }
+
+        NEXUS_StcChannel_GetSnapshotSettings_priv(videoDecoder->stcSnapshot.handle, &settings);
+        settings.triggerIndex = videoDecoder->stcSnapshot.settings.trigger;
+        rc = NEXUS_StcChannel_SetSnapshotSettings_priv(videoDecoder->stcSnapshot.handle, &settings);
+        if (rc) { BERR_TRACE(rc); UNLOCK_TRANSPORT(); goto err_snapshot_stc; }
+
+        NEXUS_StcChannel_GetSnapshotStatus_priv(videoDecoder->stcSnapshot.handle, &status);
+        UNLOCK_TRANSPORT();
+    }
+    else
+#endif
+    {
+        cfg.stXDMSettings.bUseXPTSTC = false;
+    }
+
     /* map the XDM with decoder */
     cfg.eDisplayInterrupt = videoDecoder->xdmIndex + BXVD_DisplayInterrupt_eZero;
 
@@ -3578,6 +3617,15 @@ err_framerate_tomagnum:
         BXDM_DisplayInterruptHandler_RemovePictureProviderInterface(displayInterrupt, DisplayManagerLite_isr, pPrivateContext);
     }
 err_init_queue:
+#if !B_REFSW_AVD_STC
+err_snapshot_stc:
+#endif
+    if (videoDecoder->stcSnapshot.handle) {
+        LOCK_TRANSPORT();
+        NEXUS_StcChannel_CloseSnapshot_priv(videoDecoder->stcSnapshot.handle);
+        UNLOCK_TRANSPORT();
+        videoDecoder->stcSnapshot.handle = NULL;
+    }
 err_invalid_stc:
 err_setptsoffset:
     NEXUS_CancelTimer(videoDecoder->fifoWatchdog.timer);
@@ -3756,6 +3804,12 @@ void NEXUS_VideoDecoder_P_Stop_priv(NEXUS_VideoDecoderHandle videoDecoder)
         BXDM_DisplayInterruptHandler_Handle displayInterrupt = videoDecoder->device->hXdmDih[videoDecoder->xdmIndex + BXVD_DisplayInterrupt_eZero];
 
         BXDM_DisplayInterruptHandler_RemovePictureProviderInterface(displayInterrupt, DisplayManagerLite_isr, pPrivateContext);
+    }
+    if (videoDecoder->stcSnapshot.handle) {
+        LOCK_TRANSPORT();
+        NEXUS_StcChannel_CloseSnapshot_priv(videoDecoder->stcSnapshot.handle);
+        UNLOCK_TRANSPORT();
+        videoDecoder->stcSnapshot.handle = NULL;
     }
 
     NEXUS_VideoDecoder_P_Stop_Priv_Generic_Epilogue(videoDecoder);
@@ -4450,16 +4504,18 @@ static void NEXUS_P_SetVideoDecoderCapabilities(void)
             ++pCapabilities->numVideoDecoders;
             pCapabilities->videoDecoder[i].avdIndex = g_NEXUS_videoDecoderModuleSettings.avdMapping[i];
             pCapabilities->videoDecoder[i].feeder.index = g_NEXUS_videoDecoderModuleSettings.mfdMapping[i];
-            switch (g_pCoreHandles->boxConfig->stVdc.astSource[g_NEXUS_videoDecoderModuleSettings.mfdMapping[i]].eBpp) {
-            case BBOX_Vdc_Bpp_e12bit:
-                pCapabilities->videoDecoder[i].feeder.colorDepth = 12;
-                break;
-            case BBOX_Vdc_Bpp_e10bit:
-                pCapabilities->videoDecoder[i].feeder.colorDepth = 10;
-                break;
-            default:
-                pCapabilities->videoDecoder[i].feeder.colorDepth = 8;
-                break;
+            if (pCapabilities->videoDecoder[i].feeder.index != BBOX_XVD_UNUSED) {
+                switch (g_pCoreHandles->boxConfig->stVdc.astSource[g_NEXUS_videoDecoderModuleSettings.mfdMapping[i]].eBpp) {
+                case BBOX_Vdc_Bpp_e12bit:
+                    pCapabilities->videoDecoder[i].feeder.colorDepth = 12;
+                    break;
+                case BBOX_Vdc_Bpp_e10bit:
+                    pCapabilities->videoDecoder[i].feeder.colorDepth = 10;
+                    break;
+                default:
+                    pCapabilities->videoDecoder[i].feeder.colorDepth = 8;
+                    break;
+                }
             }
         }
     }
@@ -5308,20 +5364,18 @@ static void NEXUS_VideoDecoder_P_ContextToStatus(NEXUS_VideoDecoderHandle decode
     {
         if (BXDM_Picture_BufferType_e10Bit == UnifiedPicture->stBufferInfo.eLumaBufferType)
         {
-            pStatus->surfaceCreateSettings.lumaPixelFormat = BM2MC_PACKET_PixelFormat_eY10;
-            pStatus->surfaceCreateSettings.chromaPixelFormat = BM2MC_PACKET_PixelFormat_eCb10_Cr10;
+            pStatus->surfaceCreateSettings.lumaPixelFormat = NEXUS_PixelFormat_eY10;
+            pStatus->surfaceCreateSettings.chromaPixelFormat = NEXUS_PixelFormat_eCb10_Cr10;
         }
         else
         {
-            pStatus->surfaceCreateSettings.lumaPixelFormat = BM2MC_PACKET_PixelFormat_eY8;
-            pStatus->surfaceCreateSettings.chromaPixelFormat = BM2MC_PACKET_PixelFormat_eCb8_Cr8;
+            pStatus->surfaceCreateSettings.lumaPixelFormat = NEXUS_PixelFormat_eY8;
+            pStatus->surfaceCreateSettings.chromaPixelFormat = NEXUS_PixelFormat_eCb8_Cr8;
         }
     }
     else
     {
-        BM2MC_PACKET_PixelFormat m2mcPxlFmt;
-        BGRC_Packet_ConvertPixelFormat(&m2mcPxlFmt, UnifiedPicture->stBufferInfo.stPixelFormat.ePixelFormat);
-        pStatus->surfaceCreateSettings.lumaPixelFormat = m2mcPxlFmt;
+        pStatus->surfaceCreateSettings.lumaPixelFormat = NEXUS_P_PixelFormat_FromMagnum_isrsafe(UnifiedPicture->stBufferInfo.stPixelFormat.ePixelFormat);
     }
 }
 
@@ -5767,21 +5821,25 @@ void NEXUS_VideoDecoder_Clear_priv(NEXUS_VideoDecoderHandle videoDecoder)
     /* don't clear not private.streamChangedCallback */
 }
 
-NEXUS_VideoDecoderExclusiveMode NEXUS_P_VideoDecoderExclusiveMode_isrsafe(unsigned boxMode, unsigned avdIndex)
+NEXUS_VideoDecoderExclusiveMode NEXUS_P_VideoDecoderExclusiveMode_isrsafe(const BBOX_Config *boxConfig, unsigned avdIndex)
 {
-#if BCHP_CHIP == 7366 || BCHP_CHIP == 7439
-    BSTD_UNUSED(boxMode);
-    /* For these chips, HVD0 4K decode means the second channel is not available */
-    if (avdIndex == 0) {
-        return NEXUS_VideoDecoderExclusiveMode_e4K;
+    if (boxConfig->stBox.ulBoxId) {
+        const BBOX_XVD_Decoder_Usage *usage = &boxConfig->stXvd.stInstance[avdIndex].stDevice.stChannel[0].DecoderUsage;
+        const BBOX_XVD_Decoder_Usage *usage_1 = &boxConfig->stXvd.stInstance[avdIndex].stDevice.stChannel[0].DecoderUsage_1;
+        /* this is a 4K exclusive mode */
+        if (usage->maxResolution == BBOX_XVD_DecodeResolution_e4K && usage_1->maxResolution != BBOX_XVD_UNUSED) {
+            if (usage_1->maxResolution == BBOX_XVD_DecodeResolution_e4K && usage_1->framerate == 30) {
+                /* dual channel mode allows 4Kp30 */
+                return NEXUS_VideoDecoderExclusiveMode_e4Kp60;
+            }
+            else if (usage_1->maxResolution != BBOX_XVD_DecodeResolution_e4K && usage_1->bitDepth != BAVC_VideoBitDepth_e10Bit) {
+                return NEXUS_VideoDecoderExclusiveMode_e4K_or_10bit;
+            }
+            else if (usage_1->maxResolution != BBOX_XVD_DecodeResolution_e4K) {
+                /* dual channel mode does not allow 4K */
+                return NEXUS_VideoDecoderExclusiveMode_e4K;
+            }
+        }
     }
-#elif BCHP_CHIP == 7260
-    if (avdIndex == 0 && boxMode == 4) {
-        return NEXUS_VideoDecoderExclusiveMode_e4Kp60;
-    }
-#else
-    BSTD_UNUSED(boxMode);
-    BSTD_UNUSED(avdIndex);
-#endif
     return NEXUS_VideoDecoderExclusiveMode_eNone;
 }

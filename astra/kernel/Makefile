@@ -135,10 +135,6 @@ WARNFLAGS   += -Werror
 
 OSFLAGS     := -D__TZOS__
 
-ifeq (y,$(BL31))
-KFLAGS      := -DLEGACY_BL31
-endif
-
 ASFLAGS     := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS) $(KFLAGS)
 ASFLAGS     += -g -D__ASSEMBLY__
 
@@ -169,13 +165,16 @@ $(BIN_DIRS):
 	@mkdir -p $@
 
 $(TZ_OBJ_DIR)/$(TZ_LIB).a: $(OBJS)
-	$(TZ_ARMGNU)-ar -cr $@ $(OBJS)
+	@echo "[Archive... $@]"
+	$(Q_)$(TZ_ARMGNU)-ar -cr $@ $(OBJS)
 
 $(TZ_OBJ_DIR)/$(TZ_IMG).bin: $(TZ_OBJ_DIR)/$(TZ_IMG).elf
-	$(TZ_ARMGNU)-objcopy $(TZ_OBJ_DIR)/$(TZ_IMG).elf -O binary $(TZ_OBJ_DIR)/$(TZ_IMG).bin
+	@echo "[Create... $@]"
+	$(Q_)$(TZ_ARMGNU)-objcopy $(TZ_OBJ_DIR)/$(TZ_IMG).elf -O binary $(TZ_OBJ_DIR)/$(TZ_IMG).bin
 
 $(TZ_OBJ_DIR)/$(TZ_IMG).elf: $(OBJS) link_$(ARCH)_tz.ld
-	$(TZ_ARMGNU)-g++ -nostartfiles -static $(OBJS) -Tlink_$(ARCH)_tz.ld -o $@
+	@echo "[Link... $@]"
+	$(Q_)$(TZ_ARMGNU)-g++ -nostartfiles -static $(OBJS) -Tlink_$(ARCH)_tz.ld -o $@
 
 clean:
 	$(RM) -r $(TZ_OBJ_DIR)

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,138 +43,158 @@ BDBG_MODULE(wav_file);
 /* based on nexus/examples/audio/audio_playback.c */
 
 #if BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG
-#define SWAP32( a )  do{a=((a&0xFF)<<24|(a&0xFF00)<<8|(a&0xFF0000)>>8|(a&0xFF000000)>>24);}while(0)
-#define SWAP16( a )  do{a=((a&0xFF)<<8|(a&0xFF00)>>8);}while(0)
+#define SWAP32(a)  do { a = ((a&0xFF)<<24|(a&0xFF00)<<8|(a&0xFF0000)>>8|(a&0xFF000000)>>24); } while (0)
+#define SWAP16(a)  do { a = ((a&0xFF)<<8|(a&0xFF00)>>8); } while (0)
 #else
-#define SWAP32( a )
-#define SWAP16( a )
-#endif
+#define SWAP32(a)
+#define SWAP16(a)
+#endif /* if BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG */
 
-#define READ32(VAL,FILE) do { if (fread(&(VAL),4,1,(FILE)) != 1) goto done; SWAP32(VAL); } while(0)
-#define READ16(VAL,FILE) do { if (fread(&(VAL),2,1,(FILE)) != 1) goto done; SWAP16(VAL); } while(0)
+#define READ32(VAL, FILE)   do { if (fread(&(VAL), 4, 1, (FILE)) != 1) { goto done; } SWAP32(VAL); } while (0)
+#define READ16(VAL, FILE)   do { if (fread(&(VAL), 2, 1, (FILE)) != 1) { goto done; } SWAP16(VAL); } while (0)
 
-#define WRITE32(VAL,FILE) do { SWAP32(VAL); if (fwrite(&(VAL),4,1,(FILE)) != 1) goto done; } while(0)
-#define WRITE16(VAL,FILE) do { SWAP16(VAL); if (fwrite(&(VAL),2,1,(FILE)) != 1) goto done; } while(0)
+#define WRITE32(VAL, FILE)  do { SWAP32(VAL); if (fwrite(&(VAL), 4, 1, (FILE)) != 1) { goto done; } } while (0)
+#define WRITE16(VAL, FILE)  do { SWAP16(VAL); if (fwrite(&(VAL), 2, 1, (FILE)) != 1) { goto done; } } while (0)
 
-#define WAVE_VALUE_RIFF         0x46464952
-#define WAVE_VALUE_WAV          0x45564157
-#define WAVE_VALUE_DATA_CHUNK   0x61746164
-#define WAVE_VALUE_FMT          0x20746d66
+#define WAVE_VALUE_RIFF        0x46464952
+#define WAVE_VALUE_WAV         0x45564157
+#define WAVE_VALUE_DATA_CHUNK  0x61746164
+#define WAVE_VALUE_FMT         0x20746d66
 
-int read_wave_header(FILE *file, struct wave_header *wh)
+int read_wave_header(
+        FILE *               file,
+        struct wave_header * wh
+        )
 {
     memset(wh, 0, sizeof(*wh));
 
-    READ32(wh->riff,file);
-    if (wh->riff != WAVE_VALUE_RIFF) {
+    READ32(wh->riff, file);
+    if (wh->riff != WAVE_VALUE_RIFF)
+    {
         BDBG_MSG(("RAW data file detected."));
         goto done;
     }
-    READ32(wh->riffCSize,file);
-    READ32(wh->wave,file);
-    if (wh->wave != WAVE_VALUE_WAV) {
+    READ32(wh->riffCSize, file);
+    READ32(wh->wave, file);
+    if (wh->wave != WAVE_VALUE_WAV)
+    {
         BDBG_WRN(("Not a WAV file."));
         goto done;
     }
-    READ32(wh->fmt,file);
-    READ32(wh->headerLen,file);
-    READ16(wh->format,file);
-    READ16(wh->channels,file);
-    if (wh->channels > 2) {
+    READ32(wh->fmt, file);
+    READ32(wh->headerLen, file);
+    READ16(wh->format, file);
+    READ16(wh->channels, file);
+    if (wh->channels > 2)
+    {
         BDBG_ERR(("Invalid number of channels (%u) specified.", wh->channels));
         goto done;
     }
-    READ32(wh->samplesSec,file);
-    READ32(wh->bytesSec,file);
-    READ16(wh->chbits,file);
-    READ16(wh->bps,file);
+    READ32(wh->samplesSec, file);
+    READ32(wh->bytesSec, file);
+    READ16(wh->chbits, file);
+    READ16(wh->bps, file);
 
-    if (wh->headerLen == 40 && wh->format == 0xfffe) { /* WAVE_FORMAT_EXTENSIBLE */
-        READ16(wh->cbSize,file);                /* 2 Size of the extension (0 or 22)  */
-        READ16(wh->validBitsPerSample,file);   /* 2 Number of valid bits  */
-        READ32(wh->channelMask,file);         /* 4 Speaker position mask  */
-        fread(&wh->subFormat,16,1,file);            /* SubFormat GUID */
+    if ((wh->headerLen == 40) && (wh->format == 0xfffe)) /* WAVE_FORMAT_EXTENSIBLE */
+    {
+        READ16(wh->cbSize, file);             /* 2 Size of the extension (0 or 22)  */
+        READ16(wh->validBitsPerSample, file); /* 2 Number of valid bits  */
+        READ32(wh->channelMask, file);        /* 4 Speaker position mask  */
+        fread(&wh->subFormat, 16, 1, file);   /* SubFormat GUID */
     }
-    else if (wh->headerLen == 18 && wh->format == 1) { /* oddball WAVE format */
-        READ16(wh->cbSize,file);                /* 2 Size of the extension (0 or 22) ?*/
+    else
+    if ((wh->headerLen == 18) && (wh->format == 1)) /* oddball WAVE format */
+    {
+        READ16(wh->cbSize, file); /* 2 Size of the extension (0 or 22) ?*/
     }
-    else if (wh->headerLen != 16 && wh->format != 1) {
-        BDBG_ERR(("Not PCM data in WAV file. headerLen = %lu, Format 0x%x", wh->headerLen,wh->format));
+    else
+    if ((wh->headerLen != 16) && (wh->format != 1))
+    {
+        BDBG_ERR(("Not PCM data in WAV file. headerLen = %lu, Format 0x%x", wh->headerLen, wh->format));
     }
 
-    for (;;) {
+    for (;; )
+    {
         READ32(wh->dataSig, file);
         READ32(wh->dataLen, file);
 
         /* looking for 'data' chunk */
-        if (wh->dataSig == WAVE_VALUE_DATA_CHUNK) {
+        if (wh->dataSig == WAVE_VALUE_DATA_CHUNK)
+        {
             wh->dataStart = ftell(file);
             break;
         }
-        if (fseek(file, wh->dataLen, SEEK_CUR)) {
+        if (fseek(file, wh->dataLen, SEEK_CUR))
+        {
             BDBG_ERR(("Incomplete chunk found WAV file."));
             goto done;
         }
     }
 
-    return 0;
+    return(0);
 
 done:
     fseek(file, 0, SEEK_SET);
-    return -1;
-}
+    return(-1);
+} /* read_wave_header */
 
-void get_default_wave_header(struct wave_header *wh)
+void get_default_wave_header(struct wave_header * wh)
 {
     memset(wh, 0, sizeof(*wh));
-    wh->riff = WAVE_VALUE_RIFF;
-    wh->wave = WAVE_VALUE_WAV;
-    wh->headerLen = 16;
-    wh->format = 1;
-    wh->channels = 2;
+    wh->riff       = WAVE_VALUE_RIFF;
+    wh->wave       = WAVE_VALUE_WAV;
+    wh->headerLen  = 16;
+    wh->format     = 1;
+    wh->channels   = 2;
     wh->samplesSec = 44100;
-    wh->bytesSec = 0;
-    wh->chbits = 0;
-    wh->bps = 16;
-    wh->dataSig = WAVE_VALUE_DATA_CHUNK;
-    wh->fmt = WAVE_VALUE_FMT;
+    wh->bytesSec   = 0;
+    wh->chbits     = 0;
+    wh->bps        = 16;
+    wh->dataSig    = WAVE_VALUE_DATA_CHUNK;
+    wh->fmt        = WAVE_VALUE_FMT;
 }
 
-int write_wave_header(FILE *file, const struct wave_header *_wh)
+int write_wave_header(
+        FILE *                     file,
+        const struct wave_header * _wh
+        )
 {
 #if BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG
     /* copy to that SWAP macros can work in place */
-    struct wave_header copy = *_wh;
-    struct wave_header *wh = &copy;
+    struct wave_header   copy = *_wh;
+    struct wave_header * wh   = &copy;
 #else
-    const struct wave_header *wh = _wh;
-#endif
+    const struct wave_header * wh = _wh;
+#endif /* if BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG */
 
-    WRITE32(wh->riff,file);
-    WRITE32(wh->riffCSize,file);
-    WRITE32(wh->wave,file);
-    WRITE32(wh->fmt,file);
-    WRITE32(wh->headerLen,file);
-    WRITE16(wh->format,file);
-    WRITE16(wh->channels,file);
-    WRITE32(wh->samplesSec,file);
-    WRITE32(wh->bytesSec,file);
-    WRITE16(wh->chbits,file);
-    WRITE16(wh->bps,file);
-    if (wh->headerLen == 40 && wh->format == 0xfffe) { /* WAVE_FORMAT_EXTENSIBLE */
-        WRITE16(wh->cbSize,file);                /* 2 Size of the extension (0 or 22)  */
-        WRITE16(wh->validBitsPerSample,file);   /* 2 Number of valid bits  */
-        WRITE32(wh->channelMask,file);         /* 4 Speaker position mask  */
-        fwrite(&wh->subFormat,16,1,file);            /* SubFormat GUID */
+    WRITE32(wh->riff, file);
+    WRITE32(wh->riffCSize, file);
+    WRITE32(wh->wave, file);
+    WRITE32(wh->fmt, file);
+    WRITE32(wh->headerLen, file);
+    WRITE16(wh->format, file);
+    WRITE16(wh->channels, file);
+    WRITE32(wh->samplesSec, file);
+    WRITE32(wh->bytesSec, file);
+    WRITE16(wh->chbits, file);
+    WRITE16(wh->bps, file);
+    if ((wh->headerLen == 40) && (wh->format == 0xfffe)) /* WAVE_FORMAT_EXTENSIBLE */
+    {
+        WRITE16(wh->cbSize, file);             /* 2 Size of the extension (0 or 22)  */
+        WRITE16(wh->validBitsPerSample, file); /* 2 Number of valid bits  */
+        WRITE32(wh->channelMask, file);        /* 4 Speaker position mask  */
+        fwrite(&wh->subFormat, 16, 1, file);   /* SubFormat GUID */
     }
-    else if (wh->headerLen == 18 && wh->format == 1) { /* oddball WAVE format */
-        WRITE16(wh->cbSize,file);                /* 2 Size of the extension (0 or 22) ?*/
+    else
+    if ((wh->headerLen == 18) && (wh->format == 1)) /* oddball WAVE format */
+    {
+        WRITE16(wh->cbSize, file); /* 2 Size of the extension (0 or 22) ?*/
     }
     WRITE32(wh->dataSig, file);
     WRITE32(wh->dataLen, file);
-    return 0;
+    return(0);
 
 done:
     fseek(file, 0, SEEK_SET);
-    return -1;
-}
+    return(-1);
+} /* write_wave_header */

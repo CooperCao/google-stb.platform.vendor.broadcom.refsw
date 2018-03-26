@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -556,11 +556,8 @@ static void processHttpRequestEvent(
 rejectRequest:
         /* Some error happened, so reject the current hHttpRequest. */
         rejectRequestAndSetResponseHeaders( pAppStreamerCtx->pAppCtx, hHttpRequest, responseStatus );
-        if (pAppStreamerCtx)
-        {
-            B_Os_Free(pAppStreamerCtx);
-            pAppStreamerCtx = NULL;
-        }
+        B_Os_Free(pAppStreamerCtx);
+        pAppStreamerCtx = NULL;
         /* continue back to the top of the loop. */
     } /* while */
 

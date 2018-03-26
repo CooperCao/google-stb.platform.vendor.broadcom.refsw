@@ -1,42 +1,39 @@
-/***************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  ***************************************************************************/
 
 #include "bstd.h"                /* standard types */
@@ -77,23 +74,6 @@ BDBG_OBJECT_ID(BRDC_RDC);
 BDBG_OBJECT_ID(BRDC_SLT);
 BDBG_OBJECT_ID(BRDC_LST);
 
-/* HW7445-1476, use SW blockout before the fixes in */
-#if (BCHP_CHIP==7445) || (BCHP_CHIP==7145) || (BCHP_CHIP==7366) || (BCHP_CHIP==74371) || \
-    ((BCHP_CHIP==7439) && (BCHP_VER == BCHP_VER_A0))|| \
-    ((BCHP_CHIP==7364) && (BCHP_VER < BCHP_VER_C0))|| \
-    (BCHP_CHIP==7250)|| (BCHP_CHIP==7563)|| (BCHP_CHIP==7543)
-#define BRDC_P_SUPPORT_HW_BLOCKOUT_WORKAROUND              (1)
-#else
-#define BRDC_P_SUPPORT_HW_BLOCKOUT_WORKAROUND              (0)
-#endif
-
-/* Support register udpate blockout by HW? */
-#if (BCHP_RDC_br_0_start_addr && (!BRDC_P_SUPPORT_HW_BLOCKOUT_WORKAROUND))
-#define BRDC_P_SUPPORT_HW_BLOCKOUT         (1)
-#else
-#define BRDC_P_SUPPORT_HW_BLOCKOUT         (0)
-#endif
-
 #ifdef BCHP_RDC_desc_0_tm_snapshot
 #define BRDC_P_SUPPORT_TIMESTAMP           (1)
 #else
@@ -126,7 +106,7 @@ BDBG_OBJECT_ID(BRDC_LST);
 #elif (BCHP_CHIP==7445) && (BCHP_VER>=BCHP_VER_D0) || \
       (BCHP_CHIP==7439) || (BCHP_CHIP==7366) || (BCHP_CHIP==7271) || \
       (BCHP_CHIP==7268) || (BCHP_CHIP==7260) || (BCHP_CHIP==7278) || \
-      (BCHP_CHIP==7255)
+      (BCHP_CHIP==7255) || (BCHP_CHIP==7211)
 /* Chips (version later than or equal to 3.1.0) run at 324Mhz */
 #define BRDC_P_TIMESTAMP_CLOCK_RATE        (324ul)
 #else
@@ -2194,7 +2174,7 @@ static const BRDC_TrigInfo s_aRdcTrigInfo[] =
     BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eVec0Bypass0, 76, vec_hddvi_0_passthr_trig_0),
     BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eVec0Bypass1, 77, vec_hddvi_0_passthr_trig_0),
 
-#elif (BCHP_CHIP==7255)
+#elif (BCHP_CHIP==7255) || (BCHP_CHIP==7211)
 
     BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eCap0Trig0,    0, cap_0_trig_0   ),
     BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eCap0Trig1,    1, cap_0_trig_1   ),
@@ -2236,7 +2216,11 @@ static const BRDC_TrigInfo s_aRdcTrigInfo[] =
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6560Trig1,   -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6561Trig0,   -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6561Trig1,   -1, UNKNOWN        ),
+#ifdef BCHP_M2MC_REG_START
     BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eM2mc0Trig,   72, m2mc_trig_0    ),
+#else
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eM2mc0Trig,   -1, UNKNOWN        ),
+#endif
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eM2mc1Trig,   -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi0Trig0, -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi0Trig1, -1, UNKNOWN        ),
@@ -2276,8 +2260,13 @@ static const BRDC_TrigInfo s_aRdcTrigInfo[] =
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(ePx3d0Trig0,  -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eCmp_0Trig0,  24, vec_source_0_trig_0),
     BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eCmp_0Trig1,  25, vec_source_0_trig_1),
+#if BCHP_CHIP==7255
     BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eCmp_1Trig0,  26, vec_source_1_trig_0),
     BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eCmp_1Trig1,  27, vec_source_1_trig_1),
+#else
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_1Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_1Trig1,  -1, UNKNOWN        ),
+#endif
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig0,  -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig1,  -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig0,  -1, UNKNOWN        ),
@@ -2585,19 +2574,13 @@ BERR_Code BRDC_Resume
 /***************************************************************************
  *
  */
-uint32_t BRDC_P_AllocScratchReg
-    ( BRDC_Handle                      hRdc,
-      const char*                      pchFilename, /* source filename where block is allocated from */
-      int                              iLine )      /* line number in file where allocation occurs */
+uint32_t BRDC_AllocScratchReg_isr
+    ( BRDC_Handle                      hRdc )
 {
     uint32_t ulIndex;
     uint32_t ulReg = 0;
 
-    BDBG_ENTER(BRDC_AllocScratchReg);
-
     BDBG_OBJECT_ASSERT(hRdc, BRDC_RDC);
-
-    BKNI_EnterCriticalSection();
     for(ulIndex = 0; ulIndex <= BRDC_P_SCRATCH_REG_END - BRDC_P_SCRATCH_FIRST_AVAILABLE; ulIndex++)
     {
         if(!hRdc->abScratchRegUsed[ulIndex])
@@ -2607,10 +2590,30 @@ uint32_t BRDC_P_AllocScratchReg
             break;
         }
     }
+    BDBG_MSG(("BRDC AllocScratchReg id %d", ulIndex + BRDC_P_SCRATCH_FIRST_AVAILABLE));
+
+    return ulReg;
+}
+
+/***************************************************************************
+ *
+ */
+uint32_t BRDC_P_AllocScratchReg
+    ( BRDC_Handle                      hRdc,
+      const char*                      pchFilename, /* source filename where block is allocated from */
+      int                              iLine )      /* line number in file where allocation occurs */
+{
+    uint32_t ulReg = 0;
+
+    BDBG_ENTER(BRDC_AllocScratchReg);
+
+    BDBG_OBJECT_ASSERT(hRdc, BRDC_RDC);
+
+    BKNI_EnterCriticalSection();
+    ulReg = BRDC_AllocScratchReg_isr(hRdc);
     BKNI_LeaveCriticalSection();
 
-    BDBG_MSG(("BRDC_AllocScratchReg idx %d in %s at line %d",
-        ulIndex + BRDC_P_SCRATCH_FIRST_AVAILABLE, pchFilename, iLine));
+    BDBG_MSG(("BRDC_AllocScratchReg %#x in %s at line %d", ulReg, pchFilename, iLine));
 #if !(BDBG_DEBUG_BUILD)
     BSTD_UNUSED(pchFilename);
     BSTD_UNUSED(iLine);
@@ -2623,13 +2626,12 @@ uint32_t BRDC_P_AllocScratchReg
 /***************************************************************************
  *
  */
-BERR_Code BRDC_FreeScratchReg
+BERR_Code BRDC_FreeScratchReg_isr
     ( BRDC_Handle                         hRdc,
       uint32_t                            ulReg )
 {
     uint32_t ulIndex;
     BERR_Code err = BERR_SUCCESS;
-    BDBG_ENTER(BRDC_FreeScratchReg);
 
     BDBG_OBJECT_ASSERT(hRdc, BRDC_RDC);
 
@@ -2641,7 +2643,6 @@ BERR_Code BRDC_FreeScratchReg
     }
 
     ulIndex = (ulReg - BRDC_P_SCRATCH_REG_ADDR(BRDC_P_SCRATCH_FIRST_AVAILABLE)) / BRDC_P_SCRATCH_REG_SIZE;
-    BKNI_EnterCriticalSection();
     if(hRdc->abScratchRegUsed[ulIndex])
     {
         hRdc->abScratchRegUsed[ulIndex] = false;
@@ -2649,8 +2650,26 @@ BERR_Code BRDC_FreeScratchReg
     else
     {
         BDBG_ERR(( "Scratch register 0x%x is not in use!", ulReg ));
-        err = BERR_INVALID_PARAMETER;
+        err = BERR_TRACE(BERR_INVALID_PARAMETER);
     }
+
+    return err;
+}
+
+/***************************************************************************
+ *
+ */
+BERR_Code BRDC_FreeScratchReg
+    ( BRDC_Handle                         hRdc,
+      uint32_t                            ulReg )
+{
+    BERR_Code err = BERR_SUCCESS;
+    BDBG_ENTER(BRDC_FreeScratchReg);
+
+    BDBG_OBJECT_ASSERT(hRdc, BRDC_RDC);
+
+    BKNI_EnterCriticalSection();
+    err = BRDC_FreeScratchReg_isr(hRdc, ulReg);
     BKNI_LeaveCriticalSection();
 
     BDBG_LEAVE(BRDC_FreeScratchReg);
@@ -2879,35 +2898,23 @@ BERR_Code BRDC_SetSyncBlockSettings_isr
     return err;
 }
 
+#ifdef BCHP_RDC_stc_flag_0
 /***************************************************************************
  *
  */
 uint32_t BRDC_AcquireStcFlag_isr
     ( BRDC_Handle                      hRdc,
-      uint32_t                         ulPreferredId,
-      BRDC_Trigger                     eTrig )
+      uint32_t                         ulPreferredId )
 {
-#ifdef BCHP_RDC_stc_flag_0
     int i=0;
-    uint32_t ulReg;
-    uint32_t ulAddr;
     BDBG_ENTER(BRDC_AcquireStcFlag_isr);
 
     BDBG_OBJECT_ASSERT(hRdc, BRDC_RDC);
 
-    /* Check if trigger is valid */
-    if ((eTrig < BRDC_Trigger_eMfd0Mtg0 || eTrig > BRDC_Trigger_eMfd5Mtg1) &&
-        (eTrig < BRDC_Trigger_eCmp_0Trig0 || eTrig > BRDC_Trigger_eCmp_6Trig1))
-    {
-        BDBG_ERR(("Invalid trigger %d for STC flag! [%u, %u][%u, %u]", eTrig, BRDC_Trigger_eMfd0Mtg0, BRDC_Trigger_eMfd5Mtg1,
-            BRDC_Trigger_eCmp_0Trig0, BRDC_Trigger_eCmp_6Trig1));
-        goto acquire_error;
-    }
-
     if(ulPreferredId < BRDC_MAX_STC_FLAG_COUNT)
     {
         i = ulPreferredId;
-        if(hRdc->aeStcTrigger[ulPreferredId] != BRDC_Trigger_UNKNOWN)
+        if(hRdc->abStcFlagUsed[ulPreferredId])
         {
             goto used_error;
         }
@@ -2916,35 +2923,20 @@ uint32_t BRDC_AcquireStcFlag_isr
         /* from high to low */
         for(i = BRDC_P_STC_FLAG_COUNT-1; i >= 0; i--)
         {
-            if(hRdc->aeStcTrigger[i] == BRDC_Trigger_UNKNOWN)
+            if(!hRdc->abStcFlagUsed[i])
             {
                 break;
             }
         }
     }
     if(i >= BRDC_P_STC_FLAG_COUNT || i < 0) goto used_error;
-
-    ulAddr = BCHP_RDC_stc_flag_0 + sizeof(uint32_t) * i;
-    hRdc->aeStcTrigger[i] = eTrig;
-    ulReg = BRDC_P_Read32(hRdc, ulAddr);
-    ulReg &= ~BCHP_MASK(RDC_stc_flag_0, trig_src_sel);
-    ulReg |= (
-        BCHP_FIELD_DATA(RDC_stc_flag_0, trig_src_sel, BCHP_RDC_stc_flag_0_trig_src_sel_VEC_SOURCE_0
-            + ((eTrig - BRDC_Trigger_eCmp_0Trig0)>>1)) |
-        BCHP_FIELD_DATA(RDC_stc_flag_0, trig_en, 1));
-    BRDC_P_Write32(hRdc, ulAddr, ulReg);
-    BDBG_MSG(("STC flag %u, trig_sel=%#x, eTrig=%u", i, ulReg, eTrig));
+    hRdc->abStcFlagUsed[i] = true;
+    BDBG_MSG(("stc flag %u is acquired ...", i));
 
     BDBG_LEAVE(BRDC_AcquireStcFlag_isr);
     return (uint32_t)i;
 used_error:
-    BDBG_ERR(("RDC trigger %d for STC flag %u was already acquired!", eTrig, i));
-acquire_error:
-#else
-    BSTD_UNUSED(hRdc);
-    BSTD_UNUSED(ulPreferredId);
-    BSTD_UNUSED(eTrig);
-#endif
+    BDBG_ERR(("RDC STC flags were all acquired!"));
     return BRDC_MAX_STC_FLAG_COUNT;
 }
 
@@ -2955,49 +2947,76 @@ BERR_Code BRDC_ReleaseStcFlag_isr
     ( BRDC_Handle                      hRdc,
       uint32_t                         ulId )
 {
-#ifdef BCHP_RDC_stc_flag_0
     BDBG_ENTER(BRDC_ReleaseStcFlag_isr);
 
     BDBG_OBJECT_ASSERT(hRdc, BRDC_RDC);
     if(BRDC_P_STC_FLAG_COUNT <= ulId) return BERR_TRACE(BERR_INVALID_PARAMETER);
-    hRdc->aeStcTrigger[ulId] = BRDC_Trigger_UNKNOWN;
+    hRdc->abStcFlagUsed[ulId] = false;
     BRDC_P_Write32(hRdc, BCHP_RDC_stc_flag_0 + ulId * sizeof(uint32_t), 0);/* disable */
     BDBG_MSG(("stc flag %u is released ...", ulId));
     BDBG_LEAVE(BRDC_ReleaseStcFlag_isr);
-#else
-    BSTD_UNUSED(hRdc);
-    BSTD_UNUSED(ulId);
-#endif
     return BERR_SUCCESS;
 }
 
 /***************************************************************************
  *
  */
-BERR_Code BRDC_EnableStcFlag_isr
+void BRDC_ConfigureStcFlag_isr
     ( BRDC_Handle                      hRdc,
       uint32_t                         ulId,
-      bool                             bEnable )
+      BRDC_Trigger                     eTrig )
 {
-#ifdef BCHP_RDC_stc_flag_0
+#if defined(BCHP_RDC_stc_flag_0_trig_src_sel_MFD_0)
     uint32_t ulReg;
     uint32_t ulAddr = BCHP_RDC_stc_flag_0 + sizeof(uint32_t) * ulId;
-    BDBG_ENTER(BRDC_EnableStcFlag_isr);
+    BDBG_ENTER(BRDC_ConfigureStcFlag_isr);
 
     BDBG_OBJECT_ASSERT(hRdc, BRDC_RDC);
-    if(BRDC_P_STC_FLAG_COUNT <= ulId) return BERR_TRACE(BERR_INVALID_PARAMETER);
+    if(BRDC_P_STC_FLAG_COUNT <= ulId)
+    {
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        return;
+    }
+
+    /* Check if trigger is valid */
+    if ((eTrig < BRDC_Trigger_eMfd0Mtg0 || eTrig > BRDC_Trigger_eMfd5Mtg1) &&
+        (eTrig < BRDC_Trigger_eCmp_0Trig0 || eTrig > BRDC_Trigger_eCmp_6Trig1) &&
+        (eTrig != BRDC_Trigger_UNKNOWN))
+    {
+        BDBG_ERR(("Invalid trigger %d for STC flag! [%u, %u][%u, %u]", eTrig, BRDC_Trigger_eMfd0Mtg0, BRDC_Trigger_eMfd5Mtg1,
+            BRDC_Trigger_eCmp_0Trig0, BRDC_Trigger_eCmp_6Trig1));
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        return;
+    }
+
     ulReg = BRDC_P_Read32(hRdc, ulAddr);
-    ulReg &= ~BCHP_MASK(RDC_stc_flag_0, trig_en);
-    ulReg |= BCHP_FIELD_DATA(RDC_stc_flag_0, trig_en, bEnable);
+    ulReg &= ~BCHP_MASK(RDC_stc_flag_0, trig_src_sel);
+    if(eTrig == BRDC_Trigger_UNKNOWN) {
+        ulReg = (
+            BCHP_FIELD_DATA(RDC_stc_flag_0, trig_en, 0));
+    } else if(eTrig >= BRDC_Trigger_eCmp_0Trig0) {
+        ulReg |= (
+            BCHP_FIELD_DATA(RDC_stc_flag_0, trig_src_sel, BCHP_RDC_stc_flag_0_trig_src_sel_VEC_SOURCE_0
+                + ((eTrig - BRDC_Trigger_eCmp_0Trig0)>>1)) |
+            BCHP_FIELD_DATA(RDC_stc_flag_0, trig_en, 1));
+    } else { /* MTG source */
+        ulReg |= (
+            BCHP_FIELD_DATA(RDC_stc_flag_0, trig_src_sel, BCHP_RDC_stc_flag_0_trig_src_sel_MFD_0
+                + ((eTrig - BRDC_Trigger_eMfd0Mtg0)>>1)) |
+            BCHP_FIELD_DATA(RDC_stc_flag_0, trig_en, 1));
+    }
     BRDC_P_Write32(hRdc, ulAddr, ulReg);
-    BDBG_LEAVE(BRDC_EnableStcFlag_isr);
+    BDBG_MSG(("STC flag %u, config=%#x, eTrig=%u", ulId, ulReg, eTrig));
+
+    BDBG_LEAVE(BRDC_ConfigureStcFlag_isr);
 #else
     BSTD_UNUSED(hRdc);
     BSTD_UNUSED(ulId);
-    BSTD_UNUSED(bEnable);
+    BSTD_UNUSED(eTrig);
 #endif
-    return BERR_SUCCESS;
+    return;
 }
+#endif
 
 
 /***************************************************************************
@@ -3238,7 +3257,9 @@ BERR_Code BRDC_Slots_Create
     BERR_Code         err   = BERR_SUCCESS;
     uint32_t          i     = 0;
     BRDC_SlotId       eSlotId;
+#if (BCHP_RDC_sync_0_arm)
     uint32_t          ulSyncId;
+#endif
     BRDC_Slot_Handle  hSlot = NULL;
 
     BDBG_ENTER(BRDC_Slots_Create);
@@ -3247,6 +3268,7 @@ BERR_Code BRDC_Slots_Create
     BDBG_OBJECT_ASSERT(hRdc, BRDC_RDC);
 
     /* acquire synchronizer for the group of slots */
+#if (BCHP_RDC_sync_0_arm)
     BKNI_EnterCriticalSection();
     err = BRDC_P_AcquireSync_isr(hRdc, &ulSyncId);
     BKNI_LeaveCriticalSection();
@@ -3255,7 +3277,6 @@ BERR_Code BRDC_Slots_Create
         goto done;
     }
 
-#if (BRDC_P_MAX_SYNC)
     if(ulSyncId >= BRDC_P_MAX_SYNC) {
         BDBG_ERR(( "Unsupported synchronizer %u", ulSyncId ));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -3269,9 +3290,11 @@ BERR_Code BRDC_Slots_Create
         if( !hSlot )
         {
             BDBG_ERR(( "Out of System Memory" ));
+#if (BCHP_RDC_sync_0_arm)
             BKNI_EnterCriticalSection();
             BRDC_P_ReleaseSync_isr(hRdc, ulSyncId);
             BKNI_LeaveCriticalSection();
+#endif
             return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         }
 
@@ -3286,9 +3309,11 @@ BERR_Code BRDC_Slots_Create
         if( err != BERR_SUCCESS )
         {
             BKNI_Free(hSlot);
+#if (BCHP_RDC_sync_0_arm)
             BKNI_EnterCriticalSection();
             BRDC_P_ReleaseSync_isr(hRdc, ulSyncId);
             BKNI_LeaveCriticalSection();
+#endif
             goto done;
         }
 
@@ -3296,9 +3321,11 @@ BERR_Code BRDC_Slots_Create
         {
             BKNI_Free(hSlot);
             err = BERR_TRACE(BRDC_SLOT_ERR_ALL_USED);
+#if (BCHP_RDC_sync_0_arm)
             BKNI_EnterCriticalSection();
             BRDC_P_ReleaseSync_isr(hRdc, ulSyncId);
             BKNI_LeaveCriticalSection();
+#endif
             goto done;
         }
 
@@ -3311,10 +3338,10 @@ BERR_Code BRDC_Slots_Create
         hSlot->ulRegOffset = ((BCHP_RDC_desc_1_addr - BCHP_RDC_desc_0_addr) *
             (eSlotId - BRDC_SlotId_eSlot0));
         hSlot->SlotIntId   = s_aRdcSlotInfo[eSlotId].SlotIntId;
-        hSlot->ulSyncId    = ulSyncId;
 
         /* link synchronizer */
-#if (BRDC_P_MAX_SYNC)
+#if (BCHP_RDC_sync_0_arm)
+        hSlot->ulSyncId    = ulSyncId;
         BRDC_Slot_P_Write32(hSlot, BCHP_RDC_desc_0_config + hSlot->ulRegOffset,
             BCHP_FIELD_DATA(RDC_desc_0_config, sync_sel, ulSyncId));
 #endif
@@ -3360,11 +3387,9 @@ BERR_Code BRDC_Slots_Destroy
     BERR_Code         err = BERR_SUCCESS;
     BRDC_Slot_Handle  hSlot = *phSlot;
     uint32_t          ulSyncId;
-    BRDC_Handle       hRdc;
 
     BDBG_ENTER(BRDC_Slots_Destroy);
     BDBG_OBJECT_ASSERT(hSlot, BRDC_SLT);
-    hRdc = hSlot->hRdc;
     ulSyncId = hSlot->ulSyncId;
 
     for(i = 0; i < ulNum; i++) {
@@ -3400,14 +3425,16 @@ BERR_Code BRDC_Slots_Destroy
     }
 
     /* disarm & release synchronizer */
-    if(ulSyncId != (uint32_t)(-1) && hRdc) {
+#if (BCHP_RDC_sync_0_arm)
+    if(ulSyncId != (uint32_t)(-1) && hSlot->hRdc) {
         BKNI_EnterCriticalSection();
-        err = BRDC_P_ReleaseSync_isr(hRdc, ulSyncId);
+        err = BRDC_P_ReleaseSync_isr(hSlot->hRdc, ulSyncId);
         BKNI_LeaveCriticalSection();
         if(err != BERR_SUCCESS) {
             BDBG_ERR(("Failed to release synchronizer[%u]!", ulSyncId));
         }
     }
+#endif
 
 done:
     BDBG_LEAVE(( "BRDC_Slots_Destroy" ));
@@ -3512,37 +3539,20 @@ done:
     return err;
 }
 
+#if (BCHP_RDC_sync_0_arm)
 /***************************************************************************
  *
  */
-BERR_Code BRDC_Slot_DisarmSync_isr
+void BRDC_Slot_DisarmSync_isr
     ( BRDC_Slot_Handle                 hSlot )
 {
-    BERR_Code  err = BERR_SUCCESS;
     BDBG_ENTER(BRDC_Slot_DisarmSync_isr);
-#if (BRDC_P_MAX_SYNC)
     /* disarm synchronizer linked by this slot */
     BRDC_P_ArmSync_isr(hSlot->hRdc, hSlot->ulSyncId, false);
-#else
-    BSTD_UNUSED(hSlot);
-#endif
     BDBG_LEAVE(BRDC_Slot_DisarmSync_isr);
-    return err;
+    return;
 }
-
-/***************************************************************************
- *
- */
-BERR_Code BRDC_Slot_GetList_isr
-    ( BRDC_Slot_Handle                 hSlot,
-      BRDC_List_Handle                *phList )
-{
-    /* return list handle */
-    *phList = hSlot->hList;
-
-    /* success */
-    return BERR_SUCCESS;
-}
+#endif
 
 /***************************************************************************
  * This function calls the following _isr functions:
@@ -3586,7 +3596,7 @@ BERR_Code BRDC_P_Slots_SetList_NoArmSync_isr
     BRDC_P_DBG_WriteCaptures_isr(&hList->hRdc->captureBuffer, phSlots, hList, ulNum);
 #endif
 
-#if (BRDC_P_MAX_SYNC)
+#if (BCHP_RDC_sync_0_arm)
     /* disarm synchronizer (assume group of slots share the same sycnhronizer) */
     BRDC_P_ArmSync_isr(hList->hRdc, phSlots[0]->ulSyncId, false);
 #endif
@@ -3604,7 +3614,7 @@ BERR_Code BRDC_P_Slots_SetList_NoArmSync_isr
             }
         }
 
-#if (BRDC_P_MAX_SYNC)
+#if (BCHP_RDC_sync_0_arm)
         /* check sync ID mismatch */
         if(phSlots[i]->ulSyncId != phSlots[0]->ulSyncId) {
             BDBG_ERR(("Mismatched syncId: 0:%u vs %u:%u", phSlots[i]->ulSyncId, i, phSlots[i]->ulSyncId));
@@ -3684,7 +3694,7 @@ BERR_Code BRDC_P_Slots_SetList_isr
     if (err != BERR_SUCCESS)
         goto done;
 
-#if (BRDC_P_MAX_SYNC)
+#if (BCHP_RDC_sync_0_arm)
     /* arm synchronizer */
     BRDC_P_ArmSync_isr(hList->hRdc, phSlots[0]->ulSyncId, true);
 #endif
@@ -4152,7 +4162,7 @@ uint32_t BRDC_Slot_RulSetNextAddr_isr
     *pulCurrent++ = BRDC_P_OP_IMM_TO_ADDR();
     *pulCurrent++ = BRDC_REGISTER(BCHP_RDC_desc_0_addr + hSlot->ulRegOffset);
     hList->ulEntries = (uint32_t)(pulCurrent + sizeof(BRDC_P_ADDR_OFFSET(hList->ulAddrOffset))/sizeof(uint32_t)
-#if (BRDC_P_MAX_SYNC)
+#if (BCHP_RDC_sync_0_arm)
         + 3 /* with synchronizer, to add the sync re-arm RUL size */
 #endif
         - pulStart);
@@ -4160,7 +4170,7 @@ uint32_t BRDC_Slot_RulSetNextAddr_isr
     *BRDC_P_ADDR_PTR(pulCurrent) = BRDC_P_ADDR_OFFSET(hList->ulAddrOffset) +
         ((hList->ulEntries + ulBitMask) & (~ulBitMask)) * sizeof(uint32_t);
     pulCurrent = (uint32_t*)(BRDC_P_ADDR_PTR(pulCurrent) + 1);
-#if (BRDC_P_MAX_SYNC) /* have to re-arm the slave slot as hw would disarm the slot once triggered itself; */
+#if (BCHP_RDC_sync_0_arm) /* have to re-arm the slave slot as hw would disarm the slot once triggered itself; */
     *pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pulCurrent++ = BRDC_REGISTER(BCHP_RDC_sync_0_arm + hSlot->ulSyncId * (BCHP_RDC_sync_1_arm - BCHP_RDC_sync_0_arm));
     *pulCurrent   = 1;
@@ -4201,7 +4211,7 @@ BERR_Code BRDC_List_RulSetSlaveListHead_isr
     BRDC_AddrRul_ImmToReg_isr(&pulCurrent,
         BCHP_RDC_desc_0_addr + hSlotSlave->ulRegOffset,
         BRDC_P_ADDR_OFFSET(hListSlave->ulAddrOffset));
-#if (BRDC_P_MAX_SYNC) /* have to re-arm the slave slot as hw would disarm the slot once triggered itself; */
+#if (BCHP_RDC_sync_0_arm) /* have to re-arm the slave slot as hw would disarm the slot once triggered itself; */
     *pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pulCurrent++ = BRDC_REGISTER(BCHP_RDC_sync_0_arm + hSlotSlave->ulSyncId * (BCHP_RDC_sync_1_arm - BCHP_RDC_sync_0_arm));
     *pulCurrent++ = 1;

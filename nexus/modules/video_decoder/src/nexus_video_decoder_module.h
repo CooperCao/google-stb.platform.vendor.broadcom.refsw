@@ -265,6 +265,10 @@ struct NEXUS_VideoDecoder {
     NEXUS_VideoDecoderStartSettings startSettings;
     NEXUS_VideoDecoderExtendedSettings extendedSettings;
     bool skipFlushOnStop;
+    struct {
+        NEXUS_StcChannelSnapshotHandle handle;
+        struct NEXUS_VideoDecoderStcSnapshot settings;
+    } stcSnapshot;
 
     struct {
         BXVD_Userdata_Handle handle;
@@ -512,6 +516,7 @@ struct NEXUS_VideoDecoderDevice {
     struct NEXUS_VideoDecoder *channel[NEXUS_NUM_XVD_CHANNELS];
     BMMA_Heap_Handle mem; /* heap used by AVD */
     struct NEXUS_VideoDecoderDevice *slaveLinkedDevice; /* crosslink to device which has set device->linkedDevice to this one */
+    NEXUS_VideoDecoderExclusiveMode exclusiveMode;
 
     /* image interface */
     void * img_context;

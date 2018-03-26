@@ -38,6 +38,7 @@
 
 /* base modules */
 #include <stdio.h>
+#include <stdlib.h>
 #include <inttypes.h>
 #include "bstd.h"           /* standard types */
 #include "berr.h"           /* error code */
@@ -329,8 +330,6 @@ BASP_InitFwToSageFifo(
     BDBG_LOG(("%s: temporary code to initialize Msg FIFOs between SAGE & ASP FW!!!!!!", BSTD_FUNCTION));
 }
 
-extern char *getenv(const char *name);
-extern unsigned long int strtoul(const char *nptr, char **endptr, int base);
 uint32_t myGetEnv(const char *pName)
 {
     char *pTmp;
@@ -339,7 +338,7 @@ uint32_t myGetEnv(const char *pName)
     pTmp = getenv(pName);
     if (pTmp)
     {
-        value = strtoul(pTmp, NULL, 16);
+        value = (uint32_t)strtoul(pTmp, NULL, 16);
     }
     else
     {

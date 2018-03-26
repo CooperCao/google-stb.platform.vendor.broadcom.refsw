@@ -53,7 +53,7 @@
 #define ENCRYPTED_STREAM_FILE           "videos/recorded_aesecb_clearKey.mpg"
 
 static NEXUS_Error SecurityExampleSecuritySetups ( NEXUS_ExampleSecuritySettings * settings );
-static NEXUS_Error SecurityExampleSetupKeySlotForCPS ( NEXUS_KeySlotHandle keyHandle, unsigned const char *pKeyOdd );
+static NEXUS_Error SecurityExampleSetupKeySlotForCPS ( NEXUS_KeySlotHandle keyHandle, const char *pKeyOdd );
 
 int main ( void )
 {
@@ -148,7 +148,7 @@ static NEXUS_Error SecurityExampleSecuritySetups ( NEXUS_ExampleSecuritySettings
     return NEXUS_SUCCESS;
 }
 
-static NEXUS_Error SecurityExampleSetupKeySlotForCPS ( NEXUS_KeySlotHandle keyHandle, unsigned const char *pKeyOdd )
+static NEXUS_Error SecurityExampleSetupKeySlotForCPS ( NEXUS_KeySlotHandle keyHandle, const char *pKeyOdd )
 {
     NEXUS_SecurityAlgorithmSettings AlgConfig;
     NEXUS_SecurityClearKey key;

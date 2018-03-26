@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -660,7 +660,7 @@ static BERR_Code BAPE_Dac_P_Enable(BAPE_OutputPort output)
     BREG_Write32(handle->deviceHandle->regHandle, regAddr, regVal);
 #endif
 
-    handle->rfMode = BAPE_Mixer_P_GetOutputDataType(output->mixer) == BAPE_DataType_ePcmRf ? true : false;
+    handle->rfMode = BAPE_Mixer_P_GetOutputDataType_isrsafe(output->mixer) == BAPE_DataType_ePcmRf ? true : false;
     if ( handle->rfMode )
     {
         /* Setup peaking filter for RF audio */

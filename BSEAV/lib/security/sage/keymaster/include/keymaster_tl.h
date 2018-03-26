@@ -447,6 +447,23 @@ BERR_Code KeymasterTl_CryptoAbort(
     km_operation_handle_t in_operation_handle);
 
 
+/***************************************************************************
+Summary:
+Get system configuration. Returns whether RPMB storage is enabled, which
+is required to create rollback resistant keys (when rpmbEnabled is true).
+When usingVms is true, RPMB data is being stored in VMS, rather than RPMB.
+When rpmbEnabled is true, hwKeysAvailable will contain how many rollback
+resistant keys are available.
+
+See Also:
+***************************************************************************/
+BERR_Code KeymasterTl_GetConfiguration(
+    KeymasterTl_Handle handle,
+    bool *rpmbEnabled,
+    bool *usingVms,
+    uint32_t *hwKeysAvailable);
+
+
 #ifdef __cplusplus
 }
 #endif

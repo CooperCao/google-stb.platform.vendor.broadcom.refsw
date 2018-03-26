@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 
@@ -42,9 +41,6 @@
 #define BMUXLIB_FILE_PES_PRIV_H__
 
 /* Includes */
-#include "bmuxlib_file_pes.h"
-#include "bmuxlib_input.h"
-
 #ifdef BMUXLIB_PES_P_TEST_MODE
 #include <stdio.h>
 #endif
@@ -190,7 +186,7 @@ typedef struct BMUXlib_File_PES_P_Context
 
    struct
    {
-      BMUXlib_File_PES_P_FrameHeader astFrameHeader[BMUXlib_File_PES_P_MAX_FRAMES];
+      BMUXLIB_P_ENTRY_TYPE( BMUXlib_File_PES_P_FrameHeader, astFrameHeader )
       unsigned uiReadOffset;
       unsigned uiWriteOffset;
    } stFrameHeader;
@@ -201,7 +197,7 @@ typedef struct BMUXlib_File_PES_P_Context
 
    struct
    {
-      BMUXlib_File_PES_P_VP8Header astFrameHeader[BMUXlib_File_PES_P_MAX_FRAMES];
+      BMUXLIB_P_ENTRY_TYPE( BMUXlib_File_PES_P_VP8Header, astFrameHeader )
       unsigned uiReadOffset;
       unsigned uiWriteOffset;
    } stVP8Header;

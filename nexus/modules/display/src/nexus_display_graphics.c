@@ -527,7 +527,7 @@ static NEXUS_Error nexus_p_compression_blit(NEXUS_DisplayHandle display)
         }
         else if (!graphics->compression.cache[i].uncompressed && lru) {
             lru_index = i;
-            lru = 0; /* empty slot prefered over any non-empty, non-match */
+            lru = 0; /* empty slot preferred over any non-empty, non-match */
         }
         else if (graphics->compression.cache[i].cnt < lru) {
             /* for non-empty, non-match, prefer least recently used */

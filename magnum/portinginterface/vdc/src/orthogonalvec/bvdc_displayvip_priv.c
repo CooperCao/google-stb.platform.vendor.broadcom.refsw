@@ -83,6 +83,7 @@
 BDBG_MODULE(BVDC_VIP);
 BDBG_FILE_MODULE(BVDC_VIP_MEM);
 BDBG_FILE_MODULE(BVDC_DISP_VIP);
+BDBG_FILE_MODULE(BVDC_VIP_Q);
 BDBG_OBJECT_ID(BVDC_VIP);
 
 static uint8_t BVDC_P_VIP_CalcNMBY_isr
@@ -532,13 +533,8 @@ BERR_Code BVDC_P_Vip_AllocBuffer
     if ( false == pVipMemSettings->bSupportBframes ) stVceBufferConfig.uiNumberOfBFrames = 0;
 
     /* compute the memory allocation; TODO: there might be runtime switch of DCXV for some workaround;
-       TODO: debug capture probably requires DCXV off; */
-    if ( BCHP_CHIP == 7425 || BCHP_CHIP == 7435 || BCHP_CHIP == 7364 || BCHP_CHIP == 7250 || BCHP_CHIP == 7271 )
-    {
-       hVip->stMemSettings.DcxvEnable = false;
-    } else {
-       hVip->stMemSettings.DcxvEnable = true; /* TODO: must be disabled for MFD display */
-    }
+       debug capture probably requires DCXV off; */
+    hVip->stMemSettings.DcxvEnable = BVDC_P_VIP_DCX_ON;
 
     hVip->stMemSettings.bInterlaced            = pFmtInfo->bInterlaced;
     hVip->stMemSettings.bDecimatedLuma         = pVipMemSettings->bSupportDecimatedLuma;
@@ -912,16 +908,16 @@ void BVDC_P_Vip_GetBuffer_isr
             BLST_SQ_REMOVE_HEAD(&hVip->stCaptureQdecim2v, link);
             BLST_SQ_INSERT_TAIL(&hVip->stDeliverQdecim2v, pBufferDecim2v, link);
         }
-        BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] GET pic[%u][%#x] buf[%d]: %ux%u%c[stc=%#x, %#x][opts=%#x]", hVip->eId, pPicture->ulPictureId,
+        BDBG_MODULE_MSG(BVDC_VIP_Q,("[%d] GET pic[%u][%#x] buf[%d]: %ux%u%c[stc=%#x, %#x][opts=%#x]", hVip->eId, pPicture->ulPictureId,
             pPicture->ulLumaOffset, pBuffer->ulBufferId,
             pPicture->ulWidth, pPicture->ulHeight, (BAVC_Polarity_eFrame==pPicture->ePolarity)?'p':
             ((BAVC_Polarity_eTopField==pPicture->ePolarity)? 'T':'B'),
             pPicture->ulSTCSnapshotHi, pPicture->ulSTCSnapshotLo, pPicture->ulOriginalPTS));
-        BDBG_MODULE_MSG(BVDC_DISP_VIP,("  cadence: type = %d, phase = %d", pPicture->stCadence.type, pPicture->stCadence.phase));
+        BDBG_MODULE_MSG(BVDC_VIP_Q,("  cadence: type = %d, phase = %d", pPicture->stCadence.type, pPicture->stCadence.phase));
         BLST_SQ_REMOVE_HEAD(&hVip->stCaptureQ, link);
         BLST_SQ_INSERT_TAIL(&hVip->stDeliverQ, pBuffer, link);
 #if BVDC_P_DUMP_VIP_PICTURE /* original pic buffer */
-        if(!hVip->bDumped && pPicture->ulPictureId > 0) {/* skip initial 30 pictures in case mute */
+        if(!hVip->bDumped && pPicture->ulOriginalPTS) {/* dump the 1st unmute pictures*/
             void *pY, *pC, *pY1V, *pY2V, *pCshift;
             uint32_t totalStripes = (pPicture->ulWidth + pPicture->ulStripeWidth - 1) / pPicture->ulStripeWidth;
             uint32_t ulLumaBufSize = pPicture->ulLumaNMBY * totalStripes * pPicture->ulStripeWidth * 16;
@@ -934,12 +930,14 @@ void BVDC_P_Vip_GetBuffer_isr
             BMMA_FlushCache_isr(pPicture->hLumaBlock, pY, ulLumaBufSize);
             BMMA_FlushCache_isr(pPicture->hChromaBlock, pC, ulChromaBufSize);
 
-            BDBG_MSG(("stripeWidth = %u", pPicture->ulStripeWidth));
-            BDBG_MSG(("yNMBY       = %u", pPicture->ulLumaNMBY));
-            BDBG_MSG(("cNMBY       = %u", pPicture->ulChromaNMBY));
-            BDBG_MSG(("format      = %ux%u%c", pPicture->ulWidth, pPicture->ulHeight, (BAVC_Polarity_eFrame==pPicture->ePolarity)?'p':'i'));
-            BDBG_MSG(("luma pointer   = %p, offset = %#x, size = %u", pY, pPicture->ulLumaOffset, ulLumaBufSize));
-            BDBG_MSG(("chroma pointer = %p, offset = %#x, size = %u", pC, pPicture->ulChromaOffset, ulChromaBufSize));
+            BDBG_WRN(("=== opts = %#x", pPicture->ulOriginalPTS));
+            BDBG_WRN(("stripeWidth = %u", pPicture->ulStripeWidth));
+            BDBG_WRN(("yNMBY       = %u", pPicture->ulLumaNMBY));
+            BDBG_WRN(("cNMBY       = %u", pPicture->ulChromaNMBY));
+            BDBG_WRN(("stripe      = %u", pPicture->ulStripeWidth));
+            BDBG_WRN(("format      = %ux%u%c", pPicture->ulWidth, pPicture->ulHeight, (BAVC_Polarity_eFrame==pPicture->ePolarity)?'p':'i'));
+            BDBG_WRN(("luma pointer   = %p, offset = %#x, size = %u", pY, pPicture->ulLumaOffset, ulLumaBufSize));
+            BDBG_WRN(("chroma pointer = %p, offset = %#x, size = %u", pC, pPicture->ulChromaOffset, ulChromaBufSize));
             if(hVip->pfY) {
                 fwrite(pY, 1, ulLumaBufSize, hVip->pfY);
                 fclose(hVip->pfY);
@@ -961,14 +959,14 @@ void BVDC_P_Vip_GetBuffer_isr
                 }
             }
             if(hVip->stMemSettings.bDecimatedLuma) {
-                uint32_t ulH1VBufSize = pPicture->ul2H1VLumaNMBY * totalStripes * pPicture->ulStripeWidth * 16;
-                uint32_t ulH2VBufSize = pPicture->ul2H2VLumaNMBY * totalStripes * pPicture->ulStripeWidth * 16;
-                pY1V = (void*)((uint32_t)hVip->pY + pPicture->ul2H1VLumaOffset);
-                pY2V = (void*)((uint32_t)hVip->pY + pPicture->ul2H2VLumaOffset);
-                BDBG_MSG(("2H1V pointer   = %p, offset = %#x, size = %u", pY1V, pPicture->ul2H1VLumaOffset, ulH1VBufSize));
-                BDBG_MSG(("2H2V pointer   = %p, offset = %#x, size = %u", pY2V, pPicture->ul2H2VLumaOffset, ulH2VBufSize));
-                BMMA_FlushCache_isr(pPicture->h2H1VLumaBlock, pY1V, ulH1VBufSize);
-                BMMA_FlushCache_isr(pPicture->h2H2VLumaBlock, pY2V, ulH2VBufSize);
+                uint32_t ulH1VBufSize = pPicture->ul1VLumaNMBY * totalStripes * pPicture->ulStripeWidth * 16;
+                uint32_t ulH2VBufSize = pPicture->ul2VLumaNMBY * totalStripes * pPicture->ulStripeWidth * 16;
+                pY1V = (void*)((uint32_t)hVip->pY + pPicture->ul1VLumaOffset);
+                pY2V = (void*)((uint32_t)hVip->pY + pPicture->ul2VLumaOffset);
+                BDBG_MSG(("2H1V pointer   = %p, offset = %#x, size = %u", pY1V, pPicture->ul1VLumaOffset, ulH1VBufSize));
+                BDBG_MSG(("2H2V pointer   = %p, offset = %#x, size = %u", pY2V, pPicture->ul2VLumaOffset, ulH2VBufSize));
+                BMMA_FlushCache_isr(pPicture->h1VLumaBlock, pY1V, ulH1VBufSize);
+                BMMA_FlushCache_isr(pPicture->h2VLumaBlock, pY2V, ulH2VBufSize);
                 if(hVip->pfY2H1V) {
                     fwrite(pY1V, 1, ulH1VBufSize, hVip->pfY2H1V);
                     fclose(hVip->pfY2H1V);
@@ -990,7 +988,7 @@ void BVDC_P_Vip_GetBuffer_isr
                     }
                 }
             }
-            if(pPicture->ePolarity != BAVC_Polarity_eFrame) {
+            if(BAVC_Polarity_eTopField == pBuffer->stPicture.ePolarity) {
                 pCshift = (void*)((uint32_t)hVip->pY + pPicture->ulShiftedChromaOffset);
                 BMMA_FlushCache_isr(pPicture->hShiftedChromaBlock, pCshift, ulChromaBufSize);
                 BDBG_MSG(("shifted chroma pointer   = %p, offset = %#x, size = %u", pCshift, pPicture->ulShiftedChromaOffset, ulChromaBufSize));
@@ -1030,12 +1028,12 @@ void BVDC_P_Vip_ReturnBuffer_isr
     /* find the matching node */
     if(pPicture->hLumaBlock) {
         for(pBuffer = BLST_SQ_FIRST(&hVip->stDeliverQ); pBuffer; pBuffer= BLST_SQ_NEXT(pBuffer, link)) {
-            BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] to RET pic[%u][%#x:%p] buf[%d]pic[%u][%#x:%p]..",
+            BDBG_MODULE_MSG(BVDC_VIP_Q,("[%d] to RET pic[%u][%#x:%p] buf[%d]pic[%u][%#x:%p]..",
                 hVip->eId, pPicture->ulPictureId, pPicture->ulLumaOffset, (void*)pPicture->hLumaBlock,
                 pBuffer->ulBufferId, pBuffer->stPicture.ulPictureId, pBuffer->stPicture.ulLumaOffset, (void*)pBuffer->stPicture.hLumaBlock));
             if(pBuffer->stPicture.ulLumaOffset == pPicture->ulLumaOffset &&
                pBuffer->stPicture.hLumaBlock   == pPicture->hLumaBlock) {
-                BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] RET pic[%u] buf[%d]..", hVip->eId, pPicture->ulPictureId, pBuffer->ulBufferId));
+                BDBG_MODULE_MSG(BVDC_VIP_Q,("[%d] RET pic[%u] buf[%d]..", hVip->eId, pPicture->ulPictureId, pBuffer->ulBufferId));
                 /* move from deliverQ to freeQ */
                 BLST_SQ_REMOVE(&hVip->stDeliverQ, pBuffer, BVDC_P_VipBufferNode, link);
                 BLST_SQ_INSERT_TAIL(&hVip->stFreeQ, pBuffer, link);
@@ -1046,12 +1044,12 @@ void BVDC_P_Vip_ReturnBuffer_isr
     }
     if(pPicture->hChromaBlock) {
         for(pBufferAssoc = BLST_SQ_FIRST(&hVip->stDeliverQchroma); pBufferAssoc; pBufferAssoc= BLST_SQ_NEXT(pBufferAssoc, link)) {
-            BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] to RET chroma pic[%u][%#x:%p] buf[%d][%#x:%p]..",
+            BDBG_MODULE_MSG(BVDC_VIP_Q,("[%d] to RET chroma pic[%u][%#x:%p] buf[%d][%#x:%p]..",
                 hVip->eId, pPicture->ulPictureId, pPicture->ulChromaOffset, (void*)pPicture->hChromaBlock,
                 pBufferAssoc->ulBufferId, pBufferAssoc->ulOffset, (void*)pBufferAssoc->hBlock));
             if(pBufferAssoc->hBlock == pPicture->hChromaBlock &&
                pBufferAssoc->ulOffset == pPicture->ulChromaOffset) {
-                BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] RET chroma pic[%u] buf[%d]..", hVip->eId, pPicture->ulPictureId, pBufferAssoc->ulBufferId));
+                BDBG_MODULE_MSG(BVDC_VIP_Q,("[%d] RET chroma pic[%u] buf[%d]..", hVip->eId, pPicture->ulPictureId, pBufferAssoc->ulBufferId));
                 /* move from deliverQ to freeQ */
                 BLST_SQ_REMOVE(&hVip->stDeliverQchroma, pBufferAssoc, BVDC_P_VipAssocBufferNode, link);
                 BLST_SQ_INSERT_TAIL(&hVip->stFreeQchroma, pBufferAssoc, link);
@@ -1062,12 +1060,12 @@ void BVDC_P_Vip_ReturnBuffer_isr
     }
     if(pPicture->hShiftedChromaBlock) {
         for(pBufferAssoc = BLST_SQ_FIRST(&hVip->stDeliverQshifted); pBufferAssoc; pBufferAssoc= BLST_SQ_NEXT(pBufferAssoc, link)) {
-            BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] to RET shifted chroma pic[%u][%#x:%p] buf[%d][%#x:%p]..",
+            BDBG_MODULE_MSG(BVDC_VIP_Q,("[%d] to RET shifted chroma pic[%u][%#x:%p] buf[%d][%#x:%p]..",
                 hVip->eId, pPicture->ulPictureId, pPicture->ulShiftedChromaOffset, (void*)pPicture->hShiftedChromaBlock,
                 pBufferAssoc->ulBufferId, pBufferAssoc->ulOffset, (void*)pBufferAssoc->hBlock));
             if(pBufferAssoc->hBlock == pPicture->hShiftedChromaBlock &&
                pBufferAssoc->ulOffset == pPicture->ulShiftedChromaOffset) {
-                BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] RET shifted chroma pic[%u] buf[%d]..", hVip->eId, pPicture->ulPictureId, pBufferAssoc->ulBufferId));
+                BDBG_MODULE_MSG(BVDC_VIP_Q,("[%d] RET shifted chroma pic[%u] buf[%d]..", hVip->eId, pPicture->ulPictureId, pBufferAssoc->ulBufferId));
                 /* move from deliverQ to freeQ */
                 BLST_SQ_REMOVE(&hVip->stDeliverQshifted, pBufferAssoc, BVDC_P_VipAssocBufferNode, link);
                 BLST_SQ_INSERT_TAIL(&hVip->stFreeQshifted, pBufferAssoc, link);
@@ -1078,12 +1076,12 @@ void BVDC_P_Vip_ReturnBuffer_isr
     }
     if(pPicture->h1VLumaBlock) {
         for(pBufferAssoc = BLST_SQ_FIRST(&hVip->stDeliverQdecim1v); pBufferAssoc; pBufferAssoc= BLST_SQ_NEXT(pBufferAssoc, link)) {
-            BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] to RET decim 1v pic[%u][%#x:%p] buf[%d][%#x:%p]..",
+            BDBG_MODULE_MSG(BVDC_VIP_Q,("[%d] to RET decim 1v pic[%u][%#x:%p] buf[%d][%#x:%p]..",
                 hVip->eId, pPicture->ulPictureId, pPicture->ul1VLumaOffset, (void*)pPicture->h1VLumaBlock,
                 pBufferAssoc->ulBufferId, pBufferAssoc->ulOffset, (void*)pBufferAssoc->hBlock));
             if(pBufferAssoc->hBlock == pPicture->h1VLumaBlock &&
                pBufferAssoc->ulOffset == pPicture->ul1VLumaOffset) {
-                BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] RET decim 1v pic[%u] buf[%d]..", hVip->eId, pPicture->ulPictureId, pBufferAssoc->ulBufferId));
+                BDBG_MODULE_MSG(BVDC_VIP_Q,("[%d] RET decim 1v pic[%u] buf[%d]..", hVip->eId, pPicture->ulPictureId, pBufferAssoc->ulBufferId));
                 /* move from deliverQ to freeQ */
                 BLST_SQ_REMOVE(&hVip->stDeliverQdecim1v, pBufferAssoc, BVDC_P_VipAssocBufferNode, link);
                 BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim1v, pBufferAssoc, link);
@@ -1094,12 +1092,12 @@ void BVDC_P_Vip_ReturnBuffer_isr
     }
     if(pPicture->h2VLumaBlock) {
         for(pBufferAssoc = BLST_SQ_FIRST(&hVip->stDeliverQdecim2v); pBufferAssoc; pBufferAssoc= BLST_SQ_NEXT(pBufferAssoc, link)) {
-            BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] to RET decim 2v pic[%u][%#x:%p] buf[%d][%#x:%p]..",
+            BDBG_MODULE_MSG(BVDC_VIP_Q,("[%d] to RET decim 2v pic[%u][%#x:%p] buf[%d][%#x:%p]..",
                 hVip->eId, pPicture->ulPictureId, pPicture->ul2VLumaOffset, (void*)pPicture->h2VLumaBlock,
                 pBufferAssoc->ulBufferId, pBufferAssoc->ulOffset, (void*)pBufferAssoc->hBlock));
             if(pBufferAssoc->hBlock == pPicture->h2VLumaBlock &&
                pBufferAssoc->ulOffset == pPicture->ul2VLumaOffset) {
-                BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] RET decim 2v pic[%u] buf[%d]..", hVip->eId, pPicture->ulPictureId, pBufferAssoc->ulBufferId));
+                BDBG_MODULE_MSG(BVDC_VIP_Q,("[%d] RET decim 2v pic[%u] buf[%d]..", hVip->eId, pPicture->ulPictureId, pBufferAssoc->ulBufferId));
                 /* move from deliverQ to freeQ */
                 BLST_SQ_REMOVE(&hVip->stDeliverQdecim2v, pBufferAssoc, BVDC_P_VipAssocBufferNode, link);
                 BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim2v, pBufferAssoc, link);
@@ -1109,7 +1107,7 @@ void BVDC_P_Vip_ReturnBuffer_isr
         }
     }
     if(!bFound) {
-        BDBG_MODULE_WRN(BVDC_DISP_VIP,("[%d] RET a pic[%u] not found", hVip->eId, pPicture->ulPictureId));
+        BDBG_MODULE_WRN(BVDC_VIP_Q,("[%d] RET a pic[%u] not found", hVip->eId, pPicture->ulPictureId));
     }
 }
 
@@ -1409,7 +1407,6 @@ void BVDC_P_Vip_BuildRul_isr
                     hVip->pCapture->stPicture.ulSTCSnapshotLo, hVip->pCapture->ulBufferId));
             }
         } else {/* if last RUL not executed, free the buffer right away */
-            if(pList->bLastExecuted) hDisplay->hCompositor->ulPicId--; /* backout pic id for slip2lock transition case */
             BDBG_MODULE_MSG(BVDC_DISP_VIP, ("[%u] exec = %d slip2lock = %u skip buf[%u]", hVip->eId,
                 pList->bLastExecuted, hVip->ulSlip2Lock, hVip->pToCapture->ulBufferId));
             BLST_SQ_INSERT_TAIL(&hVip->stFreeQ, hVip->pToCapture, link);

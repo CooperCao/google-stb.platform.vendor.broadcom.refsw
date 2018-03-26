@@ -243,7 +243,7 @@ int update_mac_addr(void)
 
 static void usage(void)
 {
-    printf( "Usage: wlinstall <driver name(optional, wl.ko will be used )> <intefacename(optional,wlan0 will be used ) <name of nvram file(optional)>\n" );
+    printf( "Usage: wlinstall <driver name(optional, wl.ko will be used )> <intefacename(optional,wlan0 will be used ) <name of nvram file(optional)>  <name of plat driver (optional, wlplat.ko)\n" );
 } /* usage */
 
 #define BUF_SIZE 1024
@@ -258,6 +258,14 @@ int main(int argc, char **argv)
     char if_name[256];
     int size=0;
     FILE *fd=NULL;
+
+    if(argc == 2)
+    {
+        if(strcmp("-h", argv[1]) == 0) {
+            usage();
+            return 0;
+        }
+    }
 
     command_buf = (char *)malloc(COMMAND_BUF_SIZE);
     if (command_buf == NULL)
@@ -297,7 +305,7 @@ int main(int argc, char **argv)
 
     /* copy nvram file */
     memset((void*)command_buf,0,COMMAND_BUF_SIZE);
-    if(argc == 4)
+    if(argc >= 4)
     {
         if(strcmp("nvram.txt", argv[3]) != 0)
             snprintf(command_buf, COMMAND_BUF_SIZE,"cp -vf %s nvram.txt",argv[3]);
@@ -350,14 +358,23 @@ int main(int argc, char **argv)
         printf("*** Module wlplat is not loaded\n");
     }
 
+    /* install driver */
     memset((void*)command_buf, 0, COMMAND_BUF_SIZE);
-    snprintf(command_buf, COMMAND_BUF_SIZE,"insmod %s","wlplat.ko");
+    if(argc >= 5)
+    {
+        snprintf(command_buf, COMMAND_BUF_SIZE,"insmod %s",argv[4]);
+    }
+    else
+    {
+        snprintf(command_buf, COMMAND_BUF_SIZE,"insmod %s","wlplat.ko");
+    }
+
     printf("*** Installing driver: %s ***\n",command_buf);
     sleep(1);
     system(command_buf);
 
     memset((void*)if_name,0,sizeof(if_name));
-    if(argc>2)
+    if(argc >= 3)
     {
         snprintf(if_name, sizeof(if_name),"intf_name=%s",argv[2]);
     }
@@ -368,13 +385,13 @@ int main(int argc, char **argv)
 
     /* install driver */
     memset((void*)buf,0,BUF_SIZE);
-    if(argc == 1)
+    if(argc >= 2)
     {
-        snprintf(buf, BUF_SIZE,"%s","wl.ko");
+        snprintf(buf, BUF_SIZE,"%s",argv[1]);
     }
     else
     {
-        snprintf(buf, BUF_SIZE,"%s",argv[1]);
+        snprintf(buf, BUF_SIZE,"%s","wl.ko");
     }
     memset((void*)command_buf,0,COMMAND_BUF_SIZE);
     snprintf(command_buf, COMMAND_BUF_SIZE,"insmod %s %s",buf,if_name);

@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -185,6 +185,41 @@ BDSQ_SOURCES += \
 
 endif
 
+
+##############################
+# Handle 45402
+##############################
+ifeq ($(findstring 45402,$(BDSQ_CHIP)),45402)
+
+# If chip version not specified, select a default
+ifeq ($(BDSQ_45402_VER),)
+BDSQ_45402_VER := A0
+endif
+
+BDSQ_45402_VER_UPPER := $(strip $(BDSQ_45402_VER))
+BDSQ_45402_VER_UPPER := $(subst a,A,$(BDSQ_45402_VER_UPPER))
+BDSQ_45402_VER_UPPER := $(subst b,B,$(BDSQ_45402_VER_UPPER))
+BDSQ_45402_VER_UPPER := $(subst c,C,$(BDSQ_45402_VER_UPPER))
+
+BDSQ_45402_VER_LOWER := $(strip $(BDSQ_45402_VER))
+BDSQ_45402_VER_LOWER := $(subst A,a,$(BDSQ_45402_VER_LOWER))
+BDSQ_45402_VER_LOWER := $(subst B,b,$(BDSQ_45402_VER_LOWER))
+BDSQ_45402_VER_LOWER := $(subst C,c,$(BDSQ_45402_VER_LOWER))
+
+# Source needs to know which revision
+BDSQ_DEFINES += BDSQ_45402_VER=BCHP_VER_$(BDSQ_45402_VER_UPPER)
+
+# Module Includes
+BDSQ_INCLUDES += \
+	$(MAGNUM)/portinginterface/dsq/include/45402 \
+	$(MAGNUM)/portinginterface/dsq/src/45402
+
+# Module Sources
+BDSQ_SOURCES += \
+	$(MAGNUM)/portinginterface/dsq/src/45402/bdsq_45402.c \
+	$(MAGNUM)/portinginterface/dsq/src/45402/bdsq_45402_priv.c
+
+endif
 
 
 ##############################

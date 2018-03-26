@@ -2,7 +2,7 @@
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #define LOG_TAG "V3D"
-#include <cutils/log.h>
+#include <log/log.h>
 #include <cutils/properties.h>
 #include <string.h>
 #include <stdio.h>

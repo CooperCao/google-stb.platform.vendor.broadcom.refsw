@@ -352,7 +352,7 @@ static void set_interval(b_app_context *app, unsigned interval)
 
 static int glob_errfunc(const char *epath, int eerrno)
 {
-    BDBG_ERR(("glob_errfunc %s %d", epath, eerrno));
+    fprintf(stderr,"glob_errfunc %s %d\n", epath, eerrno);
     return -1;
 }
 

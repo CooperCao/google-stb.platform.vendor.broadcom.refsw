@@ -44,6 +44,10 @@
 void BDSP_Arm_P_CalculateInitMemory(
     unsigned *pMemReqd
 );
+void BDSP_Raaga_P_CalculateDebugMemory(
+    BDSP_ArmSettings   *pSettings,
+    unsigned           *pMemReqd
+);
 BERR_Code BDSP_Arm_P_AssignTaskMemory(
 	void *pTask
 );

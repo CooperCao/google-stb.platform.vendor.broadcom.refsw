@@ -244,6 +244,16 @@ bool KM_Tag_ContainsLongInteger(KM_Tag_ContextHandle handle, km_tag_t tag, uint6
 
 /***************************************************************************
 Summary:
+Returns true if the tag is found and is true. Does not update the current
+pointer, like find and find next.
+
+See Also:
+KM_Tag_Find()
+***************************************************************************/
+bool KM_Tag_ContainsBool(KM_Tag_ContextHandle handle, km_tag_t tag);
+
+/***************************************************************************
+Summary:
 Find the number of occurrences of a tag.
 
 See Also:
@@ -384,7 +394,7 @@ km_tag_value_t* KM_Tag_Dup(km_tag_value_t *tagValuePair);
 /* inline helpers */
 static inline km_tag_type_t km_tag_get_type(km_tag_t tag)
 {
-    return ((km_tag_type_t)KM_TAG_MASK_TYPE(tag));
+    return ((km_tag_type_t)SKM_TAG_MASK_TYPE(tag));
 }
 
 static inline bool km_tag_is_repeatable(km_tag_t tag)
@@ -392,9 +402,9 @@ static inline bool km_tag_is_repeatable(km_tag_t tag)
     bool is_repeatable = false;
 
     switch (km_tag_get_type(tag)) {
-    case KM_ENUM_REP:
-    case KM_UINT_REP:
-    case KM_ULONG_REP:
+    case SKM_ENUM_REP:
+    case SKM_UINT_REP:
+    case SKM_ULONG_REP:
         is_repeatable = true;
         break;
 

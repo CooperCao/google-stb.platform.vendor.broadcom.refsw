@@ -102,7 +102,8 @@ $(BIN_DIRS):
 	@mkdir -p $@
 
 $(TZ_OBJ_DIR)/$(TZ_APP).elf: $(DEP_LIBS) $(OBJS)
-	$(TZ_ARMGNU)-g++ $(LDFLAGS) $(patsubst lib%,-l%,$(DEP_LIBS)) $(OBJS) -o $@
+	@echo "[Link... $@]"
+	$(Q_)$(TZ_ARMGNU)-g++ $(LDFLAGS) $(patsubst lib%,-l%,$(DEP_LIBS)) $(OBJS) -o $@
 
 $(DEP_LIBS):
 	$(MAKE) -C $(TZ_TOP)/user/$@

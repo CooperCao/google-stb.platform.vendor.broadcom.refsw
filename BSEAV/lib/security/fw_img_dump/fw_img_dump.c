@@ -46,15 +46,17 @@
 #include "bkni.h"           /* kernel interface */
 
 /* porting interface */
-#if (BCHP_CHIP!=7260 && BCHP_CHIP!=74371 && BCHP_CHIP!=7271 && BCHP_CHIP!=7268 && BCHP_CHIP!=7250 && BCHP_CHIP!=7563 && BCHP_CHIP!=75635 && BCHP_CHIP!=7364)
+#if (BCHP_CHIP!=7260 && BCHP_CHIP!=74371 && BCHP_CHIP!=7271 && BCHP_CHIP!=7268 && BCHP_CHIP!=7250 && BCHP_CHIP!=7563 && BCHP_CHIP!=75635 && BCHP_CHIP!=7364 && BCHP_CHIP!=7255)
 #include "bvce_auth.h"
 #endif
 #include "bxvd_auth.h"
-#if (BCHP_CHIP!=7563 && BCHP_CHIP!=75635)
+#if ((BCHP_CHIP==7260 && BCHP_VER==A0) || (BCHP_CHIP!=7260 && BCHP_CHIP!=7278 && BCHP_CHIP!=7563 && BCHP_CHIP!=75635 && BCHP_CHIP!=7255))
 #include "bsid_auth.h"
 #endif
 #include "bxpt_auth.h"
+#if (BCHP_CHIP!=7255)
 #include "bdsp_auth.h"
+#endif
 
 #include "bimg.h"
 #include "bvce_image.h"
@@ -82,15 +84,17 @@ typedef struct FirmwareDumpEntry
 
 struct FirmwareDumpEntry astFirmwareDumpList[] =
 {
-#if (BCHP_CHIP!=7260 && BCHP_CHIP!=74371 && BCHP_CHIP !=7271 && BCHP_CHIP!=7268 && BCHP_CHIP!=7250 && BCHP_CHIP!=7563 && BCHP_CHIP!=75635 && BCHP_CHIP!=7364)
+#if (BCHP_CHIP!=7260 && BCHP_CHIP!=74371 && BCHP_CHIP !=7271 && BCHP_CHIP!=7268 && BCHP_CHIP!=7250 && BCHP_CHIP!=7563 && BCHP_CHIP!=75635 && BCHP_CHIP!=7364 && BCHP_CHIP!=7255)
 #include "bvce_auth_fw.lst"
 #endif
 #include "bxvd_auth_fw.lst"
-#if (BCHP_CHIP!=7563 && BCHP_CHIP!=75635)
+#if ((BCHP_CHIP==7260 && BCHP_VER==A0) || (BCHP_CHIP!=7260 && BCHP_CHIP!=7278 && BCHP_CHIP!=7563 && BCHP_CHIP!=75635 && BCHP_CHIP!=7255))
 #include "bsid_auth_fw.lst"
 #endif
 #include "bxpt_auth_fw.lst"
+#if (BCHP_CHIP!=7255)
 #include "bdsp_auth_fw.lst"
+#endif
 };
 
 #define xstr(s) str(s)

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -103,14 +103,9 @@ void CTunerSatScanData::dump()
     MListItr <uint32_t> itr(&_freqList);
     uint32_t *          pFreq = NULL;
 
-    BDBG_WRN(("tuner type:%d", getTunerType()));
-    BDBG_WRN(("List of Sat Scan Frequency Requests:"));
-    for (pFreq = (uint32_t *)itr.first(); pFreq; pFreq = (uint32_t *)itr.next())
-    {
-        BDBG_WRN(("freq:%u", *pFreq));
-    }
+    CTunerSatScanData::dump();
 
-    BDBG_WRN(("append to channel list:%d", _appendToChannelList));
+    BDBG_WRN(("mode:%d adc:%d", _mode, _adc));
 }
 
 CTunerSat::CTunerSat(
@@ -384,9 +379,28 @@ static void peakscan_callback(
 
 #endif /* if 0 */
 
-void CTunerSat::saveScanData(CTunerScanData * pScanData)
+void CTunerSat::scanDataSave(CTunerScanData * pScanData)
 {
+    if (NULL == pScanData)
+    {
+        return;
+    }
+
     _scanData = *((CTunerSatScanData *)pScanData);
+}
+
+eRet CTunerSat::scanDataFreqListAdd(uint32_t freq)
+{
+    eRet       ret   = eRet_Ok;
+    uint32_t * pFreq = NULL;
+
+    pFreq = new uint32_t(freq);
+    CHECK_PTR_ERROR_GOTO("unable to allocated frequency", pFreq, ret, eRet_OutOfMemory, error);
+
+    _scanData._freqList.add(pFreq);
+
+error:
+    return(ret);
 }
 
 void CTunerSat::doScan()
@@ -413,7 +427,6 @@ void CTunerSat::doScan()
     /* set the starting major channel number for newly found channels */
     major = _scanData._majorStartNum;
 
-    notifyObserversAsync(eNotify_ScanStarted, &notifyData);
     notifyObserversAsync(eNotify_ScanProgress, &notifyData);
 
     /* loop through all frequencies in given freq list */

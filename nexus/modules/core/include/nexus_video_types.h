@@ -814,6 +814,14 @@ typedef enum NEXUS_SecureVideo
     NEXUS_SecureVideo_eMax
 } NEXUS_SecureVideo;
 
+typedef enum NEXUS_VideoDecoderSecureType
+{
+    NEXUS_VideoDecoderSecureType_eUnsecure,         /* GLR */
+    NEXUS_VideoDecoderSecureType_eSecure,           /* URR */
+    NEXUS_VideoDecoderSecureType_eSecureTranscode,  /* URRT */
+    NEXUS_VideoDecoderSecureType_eMax
+} NEXUS_VideoDecoderSecureType;
+
 #define NEXUS_MAX_VIDEO_DECODERS 6
 #define NEXUS_MAX_STILL_DECODERS 3
 #define NEXUS_MAX_VIDEO_WINDOWS 2

@@ -264,9 +264,21 @@ typedef enum NxClient_HdcpLevel
 
 typedef enum NxClient_HdcpVersion
 {
-    NxClient_HdcpVersion_eAuto,    /* Always authenticate using the highest version supported by HDMI receiver (Content Stream Type 0) */
+    NxClient_HdcpVersion_eAuto,  /* Authenticate with either HDCP 1.x or HDCP 2.2, depending on directly connected device.
+                                      If connected to HDCP 2.2 repeater, select Content Stream Type 0 or 1 depending on connected TV.
+                                      Scenarios:
+                                        STB -> repeater(2.2) -> TV(2.2)   use HDCP 2.2 content stream type 1
+                                        STB -> repeater(2.2) -> TV(1.x)   use HDCP 2.2 content stream type 0
+                                        STB -> repeater(1.x) -> TV(1.x)   use HDCP 1.x
+                                      Requires extra authentication step for HDCP 2.2 content stream type 0.
+                                      This mode cannot be used for HDCP 2.2 compliance testing. */
     NxClient_HdcpVersion_eFollow = NxClient_HdcpVersion_eAuto, /* deprecated */
     NxClient_HdcpVersion_eHdcp1x,  /* Always authenticate using HDCP 1.x mode (regardless of HDMI Receiver capabilities) */
+    NxClient_HdcpVersion_eAutoHdcp22Type0, /* Authenticate with either HDCP 1.x or HDCP 2.2 Content Stream Type 0, depending only on directly connected device.
+                                      Scenarios:
+                                        STB -> repeater(2.2) -> TV(2.2 or 1.x)   use HDCP 2.2 content stream type 0
+                                        STB -> repeater(1.x) -> TV(1.x)          use HDCP 1.x
+                                      Unlike eFollow, this does not require an extra authentication step. */
     NxClient_HdcpVersion_eHdcp22,  /* Always authenticate using HDCP 2.2 mode, Content Stream Type 1 */
     NxClient_HdcpVersion_eMax
 } NxClient_HdcpVersion;
@@ -450,6 +462,7 @@ typedef struct NxClient_CallbackStatus
     unsigned displaySettingsChanged;
     unsigned audioSettingsChanged;
     unsigned coolingAgentChanged;
+    unsigned standbyStateChanged; /* incremented with NxClient_StandbySettings.settings.mode changes */
 } NxClient_CallbackStatus;
 
 /**
@@ -466,6 +479,7 @@ typedef struct NxClient_CallbackThreadSettings
     NEXUS_CallbackDesc displaySettingsChanged; /* called if NxClient_CallbackStatus.displaySettingsChanged increments */
     NEXUS_CallbackDesc audioSettingsChanged; /* called if NxClient_CallbackStatus.audioSettingsChanged increments */
     NEXUS_CallbackDesc coolingAgentChanged;  /* called when the cooling agent changes */
+    NEXUS_CallbackDesc standbyStateChanged;
     unsigned interval; /* polling interval in milliseconds */
 } NxClient_CallbackThreadSettings;
 
@@ -607,6 +621,21 @@ typedef struct NxClient_ThermalStatus
 
 NEXUS_Error NxClient_GetThermalStatus(
     NxClient_ThermalStatus *pStatus
+    );
+
+/**
+Summary:
+If a client calls NxClient_SetWatchdogTimeout, it must call NxClient_SetWatchdogTimeout again
+before that timeout expires, otherwise the box will be reset. Call with timeout 0 to clear a
+client's watchdog. nxserver aggregates all client watchdog requests.
+
+See NEXUS_WATCHDOG_MAX_TIMEOUT in nexus_watchdog.h for the max value.
+
+Because NxClient_SetWatchdogTimeout is per client, if a client crashes with a pending watchdog
+there is no way it can be cleared. Therefore the system will watchdog immediately.
+**/
+NEXUS_Error NxClient_SetWatchdogTimeout(
+    unsigned timeout    /* timeout value in seconds for this client */
     );
 
 #ifdef __cplusplus

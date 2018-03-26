@@ -275,6 +275,7 @@ typedef enum bcmdriver_irq_command {
     bcmdriver_irq_command_status,
     bcmdriver_irq_command_clear,
     bcmdriver_irq_command_mask,
+    bcmdriver_irq_command_control,
     bcmdriver_irq_command_max
 } bcmdriver_irq_command;
 
@@ -289,6 +290,10 @@ typedef struct bcmdriver_irq_control {
             b_virtual_irq_line line;
             bool disable;
         } mask;
+        struct {
+            b_virtual_irq_line line;
+            bool os;
+        } control;
     } data;
 } bcmdriver_irq_control;
 #define BRCM_IOCTL_IRQ_CONTROL _IOW(101, 41, struct bcmdriver_irq_control)

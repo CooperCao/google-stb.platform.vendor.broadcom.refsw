@@ -760,11 +760,11 @@ BERR_Code BXPT_Rave_OpenChannel(
     return ExitCode;
 }
 
+#if BXPT_HAS_RAVE_L2
 void BXPT_Rave_P_EnableInterrupts(
     BXPT_Handle hXpt                                /* [in] Handle for this transport instance */
     )
 {
-#if BXPT_HAS_RAVE_L2
     uint32_t enables = BCHP_XPT_RAVE_CPU_INTR_AGGREGATOR_INTR_W0_STATUS_RAVE_FW_GENERIC_1_INTR_MASK |
         BCHP_XPT_RAVE_CPU_INTR_AGGREGATOR_INTR_W0_STATUS_RAVE_ITB_MIN_DEPTH_THRESH_INTR_MASK |
         BCHP_XPT_RAVE_CPU_INTR_AGGREGATOR_INTR_W0_STATUS_RAVE_CDB_MIN_DEPTH_THRESH_INTR_MASK |
@@ -787,10 +787,8 @@ void BXPT_Rave_P_EnableInterrupts(
 #endif
 
     BREG_Write32( hXpt->hRegister, BCHP_XPT_RAVE_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR, enables );
-#else
-    BSTD_UNUSED( hXpt );
-#endif
 }
+#endif
 
 BERR_Code BXPT_Rave_CloseChannel(
     BXPT_Rave_Handle hRave     /* [in] Handle for this RAVE instance */
@@ -818,6 +816,7 @@ BERR_Code BXPT_Rave_CloseChannel(
     return( ExitCode );
 }
 
+#ifdef BXPT_P_HAS_AVS_PLUS_WORKAROUND
 BERR_Code BXPT_Rave_AllocAvsCxPair(
     BXPT_Rave_Handle hRave,         /* [in] Handle for this RAVE channel */
     const BXPT_Rave_AllocCxSettings *pDecodeCxSettings, /* [in] settings for this RAVE channel allocation */
@@ -830,6 +829,7 @@ BERR_Code BXPT_Rave_AllocAvsCxPair(
     *ReferenceContext = NULL;
     return BXPT_Rave_AllocCx(hRave, pDecodeCxSettings, DecodeContext);
 }
+#endif
 
 void BXPT_Rave_GetDefaultAllocCxSettings(
     BXPT_Rave_AllocCxSettings *pSettings /* [out] default settings */
@@ -3412,7 +3412,12 @@ BERR_Code BXPT_Rave_SetAvConfig(
 #if BXPT_HAS_HEVD_WORKAROUND
     /* Do this only for video, with ES output to the CDB . */
     if( ( !EsFormat || BAVC_ItbEsType_eOTFVideo == ItbFormat) && 0 == OutputFormat )
+    {
         SetWrapPointerForHEVD( Context );
+        Context->isHevdVideoContext = true;
+    }
+    else
+        Context->isHevdVideoContext = false;
 #endif
 
     LoadScRanges( Context, Config->EsRanges );
@@ -4819,7 +4824,10 @@ BERR_Code InitContext(
         BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
 
 #if BXPT_HAS_HEVD_WORKAROUND
-        /* Don't do anything to the CDB */
+        /* Don't do anything to the CDB for video, but update wrap for audio */
+        /* BXPT_Rave_SetAvConfig() will come along later and possibly set this flag. */
+        if(!ThisCtx->isHevdVideoContext)
+            BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
 #else
         BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
 #endif
@@ -5773,7 +5781,9 @@ BERR_Code ResetContextPointers(
     BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_VALID_PTR_OFFSET, Offset );
 
 #if BXPT_HAS_HEVD_WORKAROUND
-    /* Do not alter the CDB wrap */
+    /* Do not alter the CDB wrap for video contexts. Allow for audio. */
+    if(!hCtx->isHevdVideoContext)
+        BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
 #else
     BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
 #endif
@@ -5915,7 +5925,9 @@ BERR_Code BXPT_Rave_ResetContext(
     BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_VALID_PTR_OFFSET, cdbBasePtr );
 
 #if BXPT_HAS_HEVD_WORKAROUND
-    /* Do not alter the CDB wrap */
+    /* Do not alter the CDB wrap for HEVD video contexts. All others should the wrap updated. */
+    if(!hCtx->isHevdVideoContext)
+        BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
 #else
     BREG_WriteAddr( hCtx->hReg, hCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
 #endif
@@ -8221,10 +8233,7 @@ BERR_Code BXPT_Rave_StartPTS(
     BDBG_MSG(("Programming Start PTS %u", StartPTS));
     return BERR_SUCCESS;
 }
-#endif
 
-
-#if (!B_REFSW_MINIMAL)
 BERR_Code BXPT_Rave_Cancel_PTS(  BXPT_RaveCx_Handle hCtx  )
 {
     hCtx->SoftRave.splice_monitor_PTS = 0;

@@ -45,6 +45,7 @@
 #ifndef BHSM_PRIV__H_
 #define BHSM_PRIV__H_
 
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
 
 typedef struct
 {

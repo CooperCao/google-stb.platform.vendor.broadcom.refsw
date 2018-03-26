@@ -77,6 +77,10 @@ typedef unsigned NEXUS_AudioDecoderCodecSettings;
 typedef unsigned NEXUS_AudioDecoderPresentationStatus;
 typedef unsigned NEXUS_AudioDecoderSettings, NEXUS_AudioDecoderDolbyDrcMode;
 typedef unsigned NEXUS_AudioEqualizerStageSettings;
+typedef unsigned NEXUS_AudioAdvancedTsmSettings;
+typedef unsigned NEXUS_AmbisonicSettings;
+typedef unsigned NEXUS_AudioCapabilities;
+typedef unsigned NEXUS_AudioDecoderMixingMode;
 /* indirection needed to ignore compat structs in 32/64 bit bridging */
 #include "priv/nexus_core_audio_compat.h"
 #endif

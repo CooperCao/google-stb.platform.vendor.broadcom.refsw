@@ -485,10 +485,10 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
             for (i=0;i<NXCLIENT_MAX_IDS;i++) {
                 if (IS_MOSAIC_DECODER(connect)) break; /* don't know if decoder is mosaic, so must destroy */
                 if ((connect->settings.simpleVideoDecoder[i].id!=0) != (r->connectSettings.simpleVideoDecoder[i].id!=0)) break;
-                if (!r->handle[i]) break;
                 if (connect->settings.simpleVideoDecoder[i].id) {
                     NEXUS_VideoDecoderOpenSettings openSettings;
                     const NxClient_VideoDecoderCapabilities *cap = &connect->settings.simpleVideoDecoder[i].decoderCapabilities;
+                    if (!r->handle[i]) break;
                     NEXUS_VideoDecoder_GetOpenSettings(r->handle[i], &openSettings);
                     if ((cap->fifoSize && cap->fifoSize != openSettings.fifoSize) ||
                         (cap->itbFifoSize && cap->itbFifoSize != openSettings.itbFifoSize) ||
@@ -1121,7 +1121,7 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
         if (grab) {
             for (i=0;i<TOTAL_DECODERS;i++) {
                 struct video_decoder_resource *grab_from = g_decoders[i].r;
-                if (grab_from && !IS_VIRTUALIZED_MOSAIC(grab_from->connect)) {
+                if (grab_from && (!grab_from->connect || !IS_VIRTUALIZED_MOSAIC(grab_from->connect))) {
                     if (grab_from->connect && grab_from->connect->settings.simpleVideoDecoder[0].windowCapabilities.encoder) {
                         /* never steal from a transcode */
                         continue;
@@ -1200,6 +1200,7 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
                     settings.display[j] = session->display[j].display; /* closedCaptionRouting */
                 }
             }
+#if NEXUS_NUM_MOSAIC_DECODES
             if (connect->settings.simpleVideoDecoder[1].id == NXCLIENT_CONNECT_BACKEND_MOSAIC) {
                 unsigned k;
                 for (j=0;j<NXCLIENT_MAX_DISPLAYS;j++) {
@@ -1209,6 +1210,7 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
                     }
                 }
             }
+#endif
         }
         settings.stcIndex = stcIndex;
         settings.mainWindow = (connect->settings.simpleVideoDecoder[0].windowCapabilities.type == NxClient_VideoWindowType_eMain);

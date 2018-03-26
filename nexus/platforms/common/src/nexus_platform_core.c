@@ -94,10 +94,93 @@ static NEXUS_Error NEXUS_Platform_P_MapRegion(unsigned index, NEXUS_Core_MemoryR
 static void NEXUS_Platform_P_UnmapRegion(NEXUS_Core_MemoryRegion *region);
 static void nexus_platform_p_destroy_runtime_heaps(void);
 
+#if BEXUS_P_TRACELOG_FOR_SECURE_ARCH
+/* when enabled, this code will get be called after detected violation and will print print last captured transactions that are targeting the secure heaps */
+#include "../dbg/memc_tracelog.h"
+static tracelog_CalibrationData tracelog_calibration_data[NEXUS_NUM_MEMC];
+static void NEXUS_Platform_P_TracelogForSecureArch_Setup(unsigned memc)
+{
+    BREG_Handle reg = g_pCoreHandles->reg;
+    unsigned filter=0;
+    unsigned j;
+
+    if(!tracelog_Supported()) {
+        if(memc==0) {
+            BDBG_WRN(("TracelogForSecureArch: TRACELOG is not suppored"));
+        }
+        return;
+    }
+
+    tracelog_Reset(reg, memc);
+    for (j=0;j<2;j++) {
+        unsigned i;
+        for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+            if(g_pCoreHandles->heap[i].nexus) {
+                 NEXUS_MemoryStatus memStatus;
+                 tracelog_MemoryFilter mem;
+                 NEXUS_Error rc;
+
+                 rc = NEXUS_Heap_GetStatus(g_pCoreHandles->heap[i].nexus, &memStatus);
+                 if(rc!=NEXUS_SUCCESS) {
+                     continue;
+                 }
+                 if(memStatus.memoryType & NEXUS_MEMORY_TYPE_SECURE && memStatus.memcIndex==memc) {
+                    /* use first filter for SRR */
+                    if((memStatus.heapType & NEXUS_HEAP_TYPE_SAGE_RESTRICTED_REGION) == NEXUS_HEAP_TYPE_SAGE_RESTRICTED_REGION) {
+                        if(j!=0) {
+                            continue;
+                        }
+                    } else {
+                        if(j==0) {
+                            continue;
+                        }
+                    }
+                    tracelog_GetDefaultMemoryFilter(&mem);
+                    mem.match.address.enabled = true;
+                    mem.match.address.low = memStatus.offset;
+                    mem.match.address.high = memStatus.offset + memStatus.size;
+                    BDBG_LOG(("TracelogForSecureArch MEMC:%u heap:%u filter:%u " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT "", memc, i, filter, BDBG_UINT64_ARG(mem.match.address.low), BDBG_UINT64_ARG(mem.match.address.high)));
+                    tracelog_EnableMemoryFilter(reg, memc, filter, &mem, tracelog_FilterMode_eCapture);
+                    filter++;
+                 }
+            }
+        }
+    }
+
+    tracelog_Start(reg, memc, NULL);
+    tracelog_Calibrate(reg, memc, &tracelog_calibration_data[memc]);
+    return;
+}
+
+static void NEXUS_Platform_P_TracelogForSecureArch_Report(unsigned memc)
+{
+    BREG_Handle reg = g_pCoreHandles->reg;
+    tracelog_Status status;
+
+    if(!tracelog_Supported()) {
+        return;
+    }
+    tracelog_Stop(reg, memc);
+    tracelog_GetStatus(reg, memc, &status);
+    tracelog_PrintStatus(&status);
+    tracelog_PrintLog(reg, memc, NULL, &tracelog_calibration_data[memc]);
+    tracelog_Start(reg, memc, NULL);
+    return;
+}
+#else
+#define NEXUS_Platform_P_TracelogForSecureArch_Report(memc)
+#define NEXUS_Platform_P_TracelogForSecureArch_Setup(memc)
+#endif
+
 static void NEXUS_Platform_P_MemcBsp_isr(void *pParam, int iParam)
 {
     struct NEXUS_Platform_P_MemcBspInterrupts *memcs = pParam;
+    unsigned i;
+
     BSTD_UNUSED(iParam);
+    for(i=0;i<NEXUS_NUM_MEMC;i++) {
+         NEXUS_Platform_P_TracelogForSecureArch_Report(i);
+    }
     BDBG_MSG(("MEMC BSP ISR [%d]", iParam));
     BKNI_SetEvent(memcs->memcEvent);
     return;
@@ -168,6 +251,7 @@ static NEXUS_Error NEXUS_Platform_P_MemcBspInterrupt_Init(struct NEXUS_Platform_
          unsigned j;
          BINT_Id wrchIrq=0;
          BINT_Id archIrq=0;
+         NEXUS_Platform_P_TracelogForSecureArch_Setup(i);
          switch(i) {
 #if defined(BCHP_MEMC_L2_0_0_REG_START)
          case 0:
@@ -244,6 +328,7 @@ static void NEXUS_Platform_P_MemcBspInterrupt_Uninit(struct NEXUS_Platform_P_Mem
 
 #define NEXUS_P_MATCH_REG(reg) case reg: return true
 #define NEXUS_P_MATCH_REG_GROUP(reg,block) do { if (reg>=block##_REG_START && reg<=block##_REG_END) {return true;} } while(0)
+#if NEXUS_HAS_GPIO
 static bool NEXUS_Platform_P_IsGio_isrsafe(uint32_t reg)
 {
 #if defined(BCHP_GIO_REG_START)
@@ -254,13 +339,14 @@ static bool NEXUS_Platform_P_IsGio_isrsafe(uint32_t reg)
 #endif
     return false;
 }
-
+#endif
 static bool NEXUS_Platform_P_IsSystemSharedRegister_isrsafe(uint32_t reg)
 {
     /* this call must occur after shared gpio submodule is initialized */
 #if NEXUS_HAS_GPIO
     return NEXUS_Platform_P_SharedGpioSupported() && NEXUS_Platform_P_IsGio_isrsafe(reg);
 #else
+    BSTD_UNUSED(reg);
     return false;
 #endif
 }
@@ -536,6 +622,7 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
     }
 #endif
     g_coreSettings.os64 = NEXUS_Platform_P_IsOs64();
+    g_coreSettings.pMapSettings = NEXUS_Platform_P_ReadPMapSettings();
 
     /* Initialize core module */
     intr_cfg = BINT_GETSETTINGS();
@@ -543,6 +630,7 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
     intSettings = *intr_cfg;
     errCode = NEXUS_Platform_P_UpdateIntSettings(&intSettings);
     if(errCode!=NEXUS_SUCCESS) {errCode=BERR_TRACE(errCode);goto err_int;}
+
 
     g_NEXUS_platformHandles.core = NEXUS_CoreModule_Init(&g_coreSettings, preInitState, &intSettings);
     if ( !g_NEXUS_platformHandles.core ) {
@@ -597,6 +685,9 @@ void NEXUS_Platform_P_UninitCore(void)
 
     nexus_platform_p_destroy_runtime_heaps();
     NEXUS_CoreModule_Uninit();
+    if (g_coreSettings.pMapSettings) {
+        NEXUS_Platform_P_FreePMapSettings(g_coreSettings.pMapSettings);
+    }
 #if NEXUS_TEE_SUPPORT
     if ( g_coreSettings.teeHandle )
     {
@@ -915,7 +1006,6 @@ const NEXUS_Core_PreInitState *NEXUS_Platform_P_PreInit(void)
     BBOX_GetConfig(preInitState->hBox, &preInitState->boxConfig);
 
     preInitState->pMapId = NEXUS_Platform_P_ReadPMapId();
-    preInitState->pMapSettings = NEXUS_Platform_P_ReadPMapSettings();
 
     rc = BCHP_GetMemoryInfo_PreInit(preInitState->hReg, &preInitState->memoryInfo);
     if (rc) {rc = BERR_TRACE(rc); goto err_chpmeminfo;}
@@ -942,7 +1032,6 @@ void NEXUS_Platform_P_PreUninit(void)
     if (!g_NEXUS_preinit.refcnt || --g_NEXUS_preinit.refcnt) return;
 
     g_pPreInitState = NULL;
-    NEXUS_Platform_P_FreePMapSettings(preInitState);
     BBOX_Close(preInitState->hBox);
     NEXUS_Platform_P_UnmapRegisters(preInitState);
     NEXUS_Platform_P_UninitOSMem();

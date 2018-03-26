@@ -57,9 +57,9 @@ typedef enum BAPE_MixerType
 {
     BAPE_MixerType_eStandard,   /* Mixing and sample rate conversion are permitted */
     BAPE_MixerType_eDsp,        /* Mix using the DSP/Firmware and not the FMM */
+    BAPE_MixerType_eBypass,     /* Bypass mixer for output mixers -- 1 input, 1 output, no SRC */
     BAPE_MixerType_eMax
 } BAPE_MixerType;
-
 
 /***************************************************************************
 Summary:
@@ -249,6 +249,9 @@ typedef struct BAPE_MixerSettings
                                            Default is false. */
         BAPE_FadeSettings mainDecodeFade; /* Fade control for main decode output mixer stage (Main+Associate or Dual Main) */
     } fade;
+    bool fixedEncoderFormat; /* When true, content will be upmixed or downmixed to the
+                                multichannelFormat specified. This control only applies when MS12 is enabled.
+                                This will be popluated by the DDRE settings */
     /* End Dolby MS12 DAP features */
 
     bool mixerEnableZeros;              /* If true if we explictly start the mixer we will start generating zereo's immediately.

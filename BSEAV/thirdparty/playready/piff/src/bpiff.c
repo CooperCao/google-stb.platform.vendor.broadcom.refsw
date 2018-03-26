@@ -629,7 +629,6 @@ int bpiff_parse_sample_enc_extended_box(bpiff_mp4_frag_headers *frag_header, bat
             BKNI_Memset(pSample, 0, sizeof(bpiff_drm_mp4_box_se_sample));
 
             for(i = 0; i < frag_header->samples_enc.sample_count; i++){
-                uint8_t *pIv;
 
                 batom_cursor_copy(cursor, &pSample->iv[15], 1);
                 batom_cursor_copy(cursor, &pSample->iv[14], 1);
@@ -641,8 +640,6 @@ int bpiff_parse_sample_enc_extended_box(bpiff_mp4_frag_headers *frag_header, bat
                 batom_cursor_copy(cursor, &pSample->iv[8], 1);
 
                 BKNI_Memset(&pSample->iv[0], 0, 8);
-
-                pIv = &frag_header->samples_enc.samples[i].iv[0];
 
                 if (frag_header->samples_enc.flags & 0x000002) {
                     pSample->nbOfEntries = batom_cursor_uint16_be(cursor);
@@ -681,6 +678,8 @@ int bpiff_parse_traf(bpiff_mp4_headers *header, bpiff_mp4_frag_headers *frag_hea
     bmp4_trackextendsbox track_extends;
     int rc = -1;
     bool skip_frag = false;
+    uint32_t trackId = 0;
+    uint32_t trackType = 0;
 
     for (i = 0; i < traf.size; i += (box_hdr_size + box.size)) {
         box_hdr_size = bmp4_parse_box(cursor, &box);
@@ -690,9 +689,6 @@ int bpiff_parse_traf(bpiff_mp4_headers *header, bpiff_mp4_frag_headers *frag_hea
         switch (box.type) {
             case BMP4_TRACK_FRAGMENT_HEADER:
             {
-                uint32_t trackId;
-                uint32_t trackType;
-
                 bmp4_parse_track_fragment_header(cursor, &bmp4_frag_hdr);
                 trackId = bmp4_frag_hdr.track_ID;
                 if (trackId < BPIFF_MAX_NB_OF_TRACKS)

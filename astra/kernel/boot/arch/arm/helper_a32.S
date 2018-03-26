@@ -42,6 +42,8 @@
 .arm
 
 .global get_regbase
+.global save_neonregs
+.global restore_neonregs
 
 .section ".text"
 
@@ -57,5 +59,26 @@ get_regbase:
     ldr r2, [r1]
     ldr r1, [r0]
     add r1, r1, r2
+    ldr r2, [r1]
+
+    ldr r3, =_neonRegBaseOffset
+    ldr r1, [r3]
+    ldr r4, [r0]
+    add r1, r1, r4
     ldr r0, [r1]
+
+    mov pc, lr
+
+save_neonregs:
+    vstmia r0!, {d0 - d15}
+    vstmia r0!, {d16 - d31}
+    vmrs r1, fpscr
+    str r1, [r0], #4
+    mov pc, lr
+
+restore_neonregs:
+    vldmia r0!, {d0 - d15}
+    vldmia r0!, {d16 - d31}
+    ldr r1, [r0], #4
+    vmsr fpscr, r1
     mov pc, lr

@@ -46,8 +46,6 @@ BDBG_MODULE(nexus_platform_97278);
 static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfigurationSettings *pSettings )
 {
 #if NEXUS_HAS_VIDEO_DECODER
-    NEXUS_P_SupportVideoDecoderCodec(pSettings, NEXUS_VideoCodec_eH265);
-    NEXUS_P_SupportVideoDecoderCodec(pSettings, NEXUS_VideoCodec_eVp9);
     pSettings->videoDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH264_Mvc] = true;
     switch (g_pPreInitState->boxMode) {
         case 1:
@@ -170,3 +168,27 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 void NEXUS_Platform_P_UninitBoard(void)
 {
 }
+
+#if BDBG_DEBUG_BUILD
+/* UART IDs for UUI, defined in BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0 */
+const struct NEXUS_Platform_P_UartId NEXUS_Platform_P_UartIds[] =
+{
+    {0,"NO_CPU"},
+    {1,"AUDIO_FP0"},
+    {2,"HVD0_OL"},
+    {3,"HVD0_IL"},
+    {4,"HVD0_ILP2"},
+    {5,"HVD1_OL"},
+    {6,"HVD1_IL"},
+    {7,"HVD1_ILP2"},
+    {8,"AUDIO_FP1"},
+    {9,"VICE20_ARC0"},
+    {10,"VICE20_ARC1"},
+    {11,"AVS_TOP"},
+    {12,"ASP_TOP"},
+    {13,"DPFE"},
+    {14,"DPFE1"},
+    {15,"SCPU"},
+    {0,NULL}
+};
+#endif

@@ -35,6 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  ******************************************************************************/
+#include "nexus_base_mmap.h"
 #include "sage_srai.h"
 
 #include "streamer.h"
@@ -53,16 +54,13 @@ BDBG_MODULE(secure_buffer);
 using namespace dif_streamer;
 
 int SecureBuffer::s_nAllocatedSecureBuffers = 0;
+NEXUS_DmaHandle SecureBuffer::s_dmaHandle = NULL;
 
 SecureBuffer::~SecureBuffer()
 {
-    if (m_dmaHandle != NULL) {
-        if (m_dmaJob) {
-            NEXUS_DmaJob_Destroy(m_dmaJob);
-            m_dmaJob = NULL;
-        }
-        NEXUS_Dma_Close(m_dmaHandle);
-        m_dmaHandle = NULL;
+    if (m_dmaJob != NULL && !m_givenDmaJob) {
+        NEXUS_DmaJob_Destroy(m_dmaJob);
+        m_dmaJob = NULL;
     }
 
     if (!m_givenBuffer) {
@@ -74,6 +72,10 @@ SecureBuffer::~SecureBuffer()
     }
 
     if (s_nAllocatedSecureBuffers == 0) {
+        if (s_dmaHandle != NULL) {
+            NEXUS_Dma_Close(s_dmaHandle);
+            s_dmaHandle = NULL;
+        }
         LOGD(("%s: all secure memory released", BSTD_FUNCTION));
         SRAI_Cleanup();
     }
@@ -81,8 +83,8 @@ SecureBuffer::~SecureBuffer()
 
 bool SecureBuffer::Initialize()
 {
-    m_dmaHandle = NULL;
     m_dmaJob = NULL;
+    m_givenDmaJob = false;
 
     if (m_data == NULL) {
         uint8_t *pBuf = NULL;
@@ -96,8 +98,9 @@ bool SecureBuffer::Initialize()
         }
         s_nAllocatedSecureBuffers++;
         m_data = pBuf;
-        LOGD(("%s: secure memory allocated(%d): %p",
-            BSTD_FUNCTION, s_nAllocatedSecureBuffers, (void*)pBuf));
+        LOGD(("%s: SecureBuffer allocated(%d): %p size=%d",
+            BSTD_FUNCTION, s_nAllocatedSecureBuffers,
+            (void*)NEXUS_AddrToOffset(pBuf), m_size));
     }
 
     return true;
@@ -124,18 +127,21 @@ void SecureBuffer::PrivateCopy(void *pDest, const void *pSrc, uint32_t nSize, bo
     LOGV(("%s: dest:%p, src:%p, size:%d", BSTD_FUNCTION, pDest, pSrc, (uint32_t)nSize));
 
     if (m_dmaJob == NULL) {
-        LOGD(("%s: setting up DmaJob", BSTD_FUNCTION));
-        m_dmaHandle = NEXUS_Dma_Open(NEXUS_ANY_ID, NULL);
-        if (m_dmaHandle == NULL) {
-            LOGE(("%s: Failed to NEXUS_Dma_Open !!!", BSTD_FUNCTION));
-            return;
-        }
-
         NEXUS_DmaJobSettings dmaJobSettings;
         NEXUS_DmaJob_GetDefaultSettings(&dmaJobSettings);
         dmaJobSettings.completionCallback.callback = NULL;
         dmaJobSettings.bypassKeySlot = NEXUS_BypassKeySlot_eGR2R;
-        m_dmaJob = NEXUS_DmaJob_Create(m_dmaHandle, &dmaJobSettings);
+
+        if (s_dmaHandle == NULL) {
+            LOGD(("%s: opening Dma", BSTD_FUNCTION));
+            s_dmaHandle = NEXUS_Dma_Open(NEXUS_ANY_ID, NULL);
+            if (s_dmaHandle == NULL) {
+                LOGE(("%s: Failed to NEXUS_Dma_Open !!!", BSTD_FUNCTION));
+                return;
+            }
+        }
+
+        m_dmaJob = NEXUS_DmaJob_Create(s_dmaHandle, &dmaJobSettings);
 
         if (m_dmaJob == NULL) {
             LOGE(("%s: Failed to NEXUS_DmaJob_Create !!!", BSTD_FUNCTION));

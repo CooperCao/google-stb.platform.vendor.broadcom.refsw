@@ -225,7 +225,7 @@ int main( void )
     sleep(2); /* allow data to be printed to console */
 
     #define APP_SIZE  1024
-    NEXUS_Memory_Allocate( APP_SIZE, NULL, (void *)&pSrc );
+    NEXUS_Memory_Allocate( APP_SIZE, NULL, (void **)&pSrc );
     if( pSrc == NULL ) { printf("ERROR: Failed to allocate memory \n"); goto exit; }
     BKNI_Memset( pSrc, 0xEE, APP_SIZE );
     NEXUS_Memory_FlushCache( pSrc, APP_SIZE );

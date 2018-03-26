@@ -55,6 +55,7 @@
 #if BAPE_CHIP_MAX_DECODERS
 #include "bdsp.h"
 #endif
+#include "bape_buffer.h"
 
 BDBG_MODULE(bape_decoder);
 
@@ -395,8 +396,8 @@ BERR_Code BAPE_Decoder_Open(
         BDSP_QueueCreateSettings queueSettings;
 
         tempSize = pSettings->ancillaryDataFifoSize;
-        BDSP_SIZE_ALIGN(tempSize);
-        handle->ancDataDspBlock = BMMA_Alloc(deviceHandle->memHandle, tempSize, BDSP_ADDRESS_ALIGN, NULL);
+        BAPE_SIZE_ALIGN(tempSize);
+        handle->ancDataDspBlock = BMMA_Alloc(deviceHandle->memHandle, tempSize, BAPE_ADDRESS_ALIGN, NULL);
         if ( NULL == handle->ancDataDspBlock )
         {
             errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -431,8 +432,8 @@ BERR_Code BAPE_Decoder_Open(
         }
 
         tempSize = pSettings->ancillaryDataFifoSize;
-        BDSP_SIZE_ALIGN(tempSize);
-        handle->ancDataHostBlock = BMMA_Alloc(deviceHandle->memHandle, tempSize, BDSP_ADDRESS_ALIGN, NULL);
+        BAPE_SIZE_ALIGN(tempSize);
+        handle->ancDataHostBlock = BMMA_Alloc(deviceHandle->memHandle, tempSize, BAPE_ADDRESS_ALIGN, NULL);
         if ( NULL == handle->ancDataHostBlock )
         {
             errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -1380,7 +1381,7 @@ static BERR_Code BAPE_Decoder_P_Start(
     BAPE_DecoderHandle handle
     )
 {
-    BERR_Code errCode;
+    BERR_Code errCode = BERR_SUCCESS;
     unsigned input, output;
     const BAPE_DecoderStartSettings *pSettings;
     BDSP_TaskStartSettings *taskStartSettings = NULL;
@@ -1462,7 +1463,8 @@ static BERR_Code BAPE_Decoder_P_Start(
           pSettings->codec != BAVC_AudioCompressionStd_eAc4 )
     {
         BDBG_ERR(("Alternate Stereo Output is currently only supported for AC4 Audio Codec."));
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+        goto err_alloc;
     }
 
     if ( taskStartSettings->audioTaskDelayMode == BDSP_AudioTaskDelayMode_WD_eLow ||
@@ -1503,6 +1505,10 @@ static BERR_Code BAPE_Decoder_P_Start(
         goto err_stages;
     }
 
+    if (pSettings->codec == BAVC_AudioCompressionStd_eAc4) {
+        taskStartSettings->ppmCorrection = false;
+    }
+
     /* Setup Primary Stage */
     if ( handle->passthrough )
     {
@@ -1532,7 +1538,9 @@ static BERR_Code BAPE_Decoder_P_Start(
             goto err_stages;
         }
     }
-    else /* DFIFO Input */
+    else
+    #if BAPE_CHIP_MAX_DFIFOS > 0
+    /* DFIFO Input */
     {
         unsigned i;
         BDSP_FmmBufferDescriptor *fmmInputDesc = NULL;
@@ -1614,7 +1622,7 @@ static BERR_Code BAPE_Decoder_P_Start(
             dfifoSettings->dataWidth = 16;
         }
 
-        errCode = BAPE_P_AllocateBuffers(handle->deviceHandle, &handle->inputPortFormat, handle->pInputBuffers);
+        errCode = BAPE_P_AllocateBuffers(handle->deviceHandle, &handle->inputPortFormat, BAPE_BufferInterfaceType_eRdb, handle->pInputBuffers);
         if ( errCode ) {
             BKNI_Free(dfifoSettings);
             errCode = BERR_TRACE(errCode);
@@ -1673,6 +1681,15 @@ static BERR_Code BAPE_Decoder_P_Start(
         }
         BKNI_Free(fmmInputDesc);
     }
+    #else
+    {
+        /* TBD7211 - add hooks for DRAM buffer interface -
+           should not be needed for chips that do not have input ports */
+        BDBG_ERR(("Input Ports are not currently supported without DFIFO HW"));
+        errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+        goto err_stages;
+    }
+    #endif
 
     /* Determine stage outputting data to stereo PCM path  */
     hStage = handle->hPrimaryStage;
@@ -2530,13 +2547,6 @@ void BAPE_Decoder_Stop(
     BKNI_LeaveCriticalSection();
 
     BAPE_Decoder_P_Stop(handle);
-
-    /* Temp work around for SWSTB-3311 until we get a DSP fix for maintaining
-       the film standard mode during a decoder stop. */
-    if ( handle->ddre && (NULL == handle->fwMixer || handle->fwMixerMaster == true) )
-    {
-        BAPE_DolbyDigitalReencode_P_SettingsChanged(handle->ddre, NULL);
-    }
 
     /* Reset multistream state */
     handle->ddre = NULL;
@@ -4233,7 +4243,7 @@ static void BAPE_Decoder_P_EncoderOverflow_isr(void *pParam1, int param2)
 
 static BERR_Code BAPE_Decoder_P_DeriveMultistreamLinkage(BAPE_DecoderHandle handle)
 {
-    BAPE_PathNode *pNodes[BAPE_CHIP_MAX_MIXERS];
+    BAPE_PathNode *pNodes[2];
     BAPE_DolbyDigitalReencodeHandle ddre=NULL;
     BAPE_MixerHandle fwMixer=NULL;
     unsigned numFound;
@@ -4408,19 +4418,10 @@ static BERR_Code BAPE_Decoder_P_GetPathDelay_isr(
         ctbInput.eAudioIpSourceType = datasyncSettings.eAudioIpSourceType;
     }
 
-    if ( handle->dspContext == handle->deviceHandle->dspContext )
+    errCode = BDSP_GetAudioDelay_isrsafe(&ctbInput, handle->hPrimaryStage, &bdspDelay);
+    if ( errCode )
     {
-        errCode = BDSP_GetAudioDelay_isrsafe(&ctbInput, handle->hPrimaryStage, &bdspDelay);
-        if ( errCode )
-        {
-            return BERR_TRACE(errCode);
-        }
-    }
-    else
-    {
-        /*TBDARM*/
-        bdspDelay.ui32AudOffset = 128;
-        errCode = BERR_SUCCESS;
+        return BERR_TRACE(errCode);
     }
 
     BDBG_MSG(("Decoder[%d] path delay ui32Threshold %d, ui32BlockTime %d, ui32AudOffset %d", handle->index, bdspDelay.ui32Threshold, bdspDelay.ui32BlockTime, bdspDelay.ui32AudOffset));
@@ -4542,10 +4543,10 @@ BERR_Code BAPE_Decoder_SetDecodeToMemorySettings(
         BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
 
         queueSize = sizeof(uint32_t) * (pSettings->maxBuffers+1);  /* +1 to allow for the DSP's full/empty algo to work */
-        BDSP_SIZE_ALIGN(queueSize);
+        BAPE_SIZE_ALIGN(queueSize);
 
         /* Allocate backing memory for queues */
-        hDecoder->decodeToMem.arqMemBlock = BMMA_Alloc(hDecoder->deviceHandle->memHandle, queueSize, BDSP_ADDRESS_ALIGN, NULL);
+        hDecoder->decodeToMem.arqMemBlock = BMMA_Alloc(hDecoder->deviceHandle->memHandle, queueSize, BAPE_ADDRESS_ALIGN, NULL);
         if ( NULL == hDecoder->decodeToMem.arqMemBlock )
         {
             BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
@@ -4564,7 +4565,7 @@ BERR_Code BAPE_Decoder_SetDecodeToMemorySettings(
             return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         }
 
-        hDecoder->decodeToMem.adqMemBlock = BMMA_Alloc(hDecoder->deviceHandle->memHandle, queueSize, BDSP_ADDRESS_ALIGN, NULL);
+        hDecoder->decodeToMem.adqMemBlock = BMMA_Alloc(hDecoder->deviceHandle->memHandle, queueSize, BAPE_ADDRESS_ALIGN, NULL);
         if ( NULL == hDecoder->decodeToMem.adqMemBlock )
         {
             BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
@@ -4624,9 +4625,9 @@ BERR_Code BAPE_Decoder_SetDecodeToMemorySettings(
             BAPE_DecodeToMemoryNode *pNode = hDecoder->decodeToMem.pNodes+i;
 
             tempSize = sizeof(BDSP_OnDemand_MetaDataInfo);
-            BDSP_SIZE_ALIGN(tempSize);
+            BAPE_SIZE_ALIGN(tempSize);
 
-            pNode->metadataBlock = BMMA_Alloc(hDecoder->deviceHandle->memHandle, tempSize, BDSP_ADDRESS_ALIGN, NULL);
+            pNode->metadataBlock = BMMA_Alloc(hDecoder->deviceHandle->memHandle, tempSize, BAPE_ADDRESS_ALIGN, NULL);
             if ( NULL == pNode->metadataBlock )
             {
                 BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
@@ -4684,7 +4685,7 @@ static void BAPE_Decoder_P_UpdateQueues(BAPE_DecoderHandle hDecoder)
             if ( bufferDesc.bufferSize >= 4 )
             {
                 pAddr = bufferDesc.buffers[0].buffer.pAddr;
-                BMMA_FlushCache(bufferDesc.buffers[0].buffer.hBlock, pAddr, sizeof(uint32_t));
+                BAPE_FLUSHCACHE_ISRSAFE(bufferDesc.buffers[0].buffer.hBlock, pAddr, sizeof(uint32_t));
                 /* TBDBMMA - should this become a uint64_t ? */
                 offset = ((uint32_t*)pAddr)[0];
 
@@ -4699,7 +4700,7 @@ static void BAPE_Decoder_P_UpdateQueues(BAPE_DecoderHandle hDecoder)
                         BLST_Q_REMOVE(&hDecoder->decodeToMem.pendingList, pNode, node);
                         numPending--;
                         /* Translate buffer info */
-                        BMMA_FlushCache(pNode->metadataBlock, pNode->pMetadata, sizeof(BDSP_OnDemand_MetaDataInfo));
+                        BAPE_FLUSHCACHE_ISRSAFE(pNode->metadataBlock, pNode->pMetadata, sizeof(BDSP_OnDemand_MetaDataInfo));
                         pNode->descriptor.filledBytes = pNode->pMetadata->ui32FrameValid ? pNode->pMetadata->ui32ActualBytesFilledInBuffer : 0;
                         pNode->descriptor.sampleRate = pNode->pMetadata->ui32SampleRate;
                         pNode->descriptor.ptsInfo.ui32CurrentPTS = pNode->pMetadata->ui32PTS;
@@ -4926,7 +4927,7 @@ BERR_Code BAPE_Decoder_QueueBuffer(
     pNode->pMetadata->ui32FrameBufBaseAddressLow = (uint32_t)pDescriptor->memoryOffset;
     pNode->pMetadata->ui32FrameBufBaseAddressHigh = (uint32_t)(pDescriptor->memoryOffset>>32);
     pNode->pMetadata->ui32FrameBufferSizeInBytes = (uint32_t)pDescriptor->allocatedBytes;
-    BMMA_FlushCache(pNode->metadataBlock, pNode->pMetadata, sizeof(BDSP_OnDemand_MetaDataInfo));
+    BAPE_FLUSHCACHE_ISRSAFE(pNode->metadataBlock, pNode->pMetadata, sizeof(BDSP_OnDemand_MetaDataInfo));
 
     /* Get slot in DSP queue */
     errCode = BDSP_Queue_GetBuffer(hDecoder->decodeToMem.hARQ, &bufferDesc);
@@ -4936,9 +4937,9 @@ BERR_Code BAPE_Decoder_QueueBuffer(
     }
     BDBG_ASSERT(bufferDesc.bufferSize >= 4);
     pAddr = bufferDesc.buffers[0].buffer.pAddr;
-    BMMA_FlushCache(bufferDesc.buffers[0].buffer.hBlock, pAddr, sizeof(uint32_t));
+    BAPE_FLUSHCACHE_ISRSAFE(bufferDesc.buffers[0].buffer.hBlock, pAddr, sizeof(uint32_t));
     pAddr[0] = (uint32_t)pNode->metadataOffset;
-    BMMA_FlushCache(bufferDesc.buffers[0].buffer.hBlock, pAddr, sizeof(uint32_t));
+    BAPE_FLUSHCACHE_ISRSAFE(bufferDesc.buffers[0].buffer.hBlock, pAddr, sizeof(uint32_t));
 
     /* Commit entry to DSP */
     errCode = BDSP_Queue_CommitData(hDecoder->decodeToMem.hARQ, sizeof(uint32_t));

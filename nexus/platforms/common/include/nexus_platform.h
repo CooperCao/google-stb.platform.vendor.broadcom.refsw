@@ -472,6 +472,16 @@ void NEXUS_Platform_IsLicensedFeatureSupported(
     bool *pSupported
     );
 
+/**
+Summary:
+Set AVS over temperature reset threshold
+**/
+void NEXUS_Platform_SetOverTempResetThreshold(
+    unsigned overTemp, /* Over Temperature threshold in 1000 degree C */
+    unsigned parkHigh, /* Park High Temperature in 1000 degree C */
+    unsigned parkLow   /* Park Low  Temperature in 1000 degree C */
+       );
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

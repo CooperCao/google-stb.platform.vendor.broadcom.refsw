@@ -55,8 +55,11 @@ extern void *_system_link_base;
 extern "C" uintptr_t _regBaseOffset;
 uintptr_t _regBaseOffset;
 
-extern "C" uintptr_t _noenRegBaseOffset;
+extern "C" uintptr_t _neonRegBaseOffset;
 uintptr_t _neonRegBaseOffset;
+
+extern "C" uintptr_t boot_mode;
+uintptr_t boot_mode;
 
 static ObjCacheAllocator<TzTask> allocator;
 static uint32_t nextTaskNum = 0;

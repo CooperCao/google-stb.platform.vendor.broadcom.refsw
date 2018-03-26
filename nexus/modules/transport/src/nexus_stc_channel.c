@@ -181,7 +181,10 @@ NEXUS_StcChannelHandle NEXUS_StcChannel_Open(unsigned index, const NEXUS_StcChan
     /* Only NEXUS_ClientMode_eVerified clients can use NEXUS_Timebase_eInvalid (default timebase) and update it.
     For other clients, they can use the use the default timebase as freerun (eAuto or eHost);
     they cannot use the default timebase for live (ePcr). */
-    stcChannel->modifyDefaultTimebase = (b_objdb_get_client()->mode < NEXUS_ClientMode_eProtected);
+    {
+        const struct b_objdb_client *client = b_objdb_get_client();
+        stcChannel->modifyDefaultTimebase = (!client || client->mode < NEXUS_ClientMode_eProtected);
+    }
 
     BXPT_PcrOffset_GetChannelDefSettings(pTransport->xpt, index, &pcrOffsetDefaults);
     pcrOffsetDefaults.UsePcrTimeBase = true;

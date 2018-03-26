@@ -52,7 +52,7 @@ extern "C" {
 #endif
 
 #ifdef ANDROID
-#include <cutils/log.h>
+#include <log/log.h>
    #define CONSOLE_LOG LOGD
    #define ANDROID_LOGD LOGD
 #else

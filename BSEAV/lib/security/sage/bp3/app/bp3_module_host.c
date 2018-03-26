@@ -176,6 +176,74 @@ end:
 }
 
 
+// Get Chip Information
+BERR_Code SAGE_BP3Module_GetChipInfo (
+    uint8_t  *pBp3Features,
+    uint32_t  featureListByteSize,
+    uint32_t *pProductID,
+    uint32_t *pSecurityCode,
+    uint32_t *pBondOption,
+    bool     *pProvisioned)
+{
+    BERR_Code                rc = BERR_UNKNOWN;
+    BSAGElib_InOutContainer *pSageInOutContainer = NULL;
+
+    if ((pBp3Features == NULL) || (pProductID == NULL) || (pSecurityCode == NULL) || (pBondOption == NULL) || (pProvisioned == NULL))
+    {
+        BDBG_ERR(("%s: Invalid parameter",BSTD_FUNCTION));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+    if (featureListByteSize == 0)
+    {
+        BDBG_ERR(("%s: Invalid feature list size",BSTD_FUNCTION));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+
+    pSageInOutContainer = SRAI_Container_Allocate();
+    if (pSageInOutContainer == NULL)
+    {
+        BDBG_ERR(("%s: Unable to allocate container.",BSTD_FUNCTION));
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
+        goto end;
+    }
+
+    pSageInOutContainer->blocks[0].data.ptr = pBp3Features;
+    pSageInOutContainer->blocks[0].len      = featureListByteSize;
+
+    rc = SRAI_Module_ProcessCommand(hBP3Module,
+                                    BP3_CommandId_eGetChipInfo,
+                                    pSageInOutContainer);
+    if (rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s: Failed to send BP3_CommandId_eGetChipInfo command. %d",BSTD_FUNCTION,rc));
+    }
+
+    rc = pSageInOutContainer->basicOut[0];
+    if (rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s: Failed to get BP3 chip info. %d",BSTD_FUNCTION,rc));
+        goto end;
+    }
+
+    *pProductID     = pSageInOutContainer->basicOut[1];
+    *pSecurityCode  = pSageInOutContainer->basicOut[2];
+    *pBondOption    = pSageInOutContainer->basicOut[2] & 0xFF;
+    *pProvisioned   = (pSageInOutContainer->basicOut[3] == 0) ? false : true;
+
+
+end:
+    if (pSageInOutContainer)
+    {
+        SRAI_Container_Free(pSageInOutContainer);
+        pSageInOutContainer = NULL;
+    }
+    return rc;
+}
+
+
+
 //  Provision BP3 part
 //  Encrypted BP3_CCF file format:
 //      RSA encrypted Session Key

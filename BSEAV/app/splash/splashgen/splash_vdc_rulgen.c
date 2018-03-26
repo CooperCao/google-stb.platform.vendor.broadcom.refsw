@@ -327,6 +327,8 @@ static void WriteSplashInfo(FILE *fp, ModeHandles *pMode)
 			fprintf(fp,"\t},\n");
 	}
 	fprintf(fp,"};\n\n\n");
+
+	fprintf(fp,"#define BSPLASH_HDMI_I2C_CHANNEL\t\t\t %d\n\n", NEXUS_I2C_CHANNEL_HDMI_TX);
 }
 
 
@@ -782,6 +784,24 @@ RegisterNames[]=
 #if (BCHP_CLK_SCRATCH && BCHP_CLK_REVISION)
 	ENT(BCHP_CLK_REVISION, BCHP_CLK_SCRATCH, "BCHP_CLK_..."),
 #endif
+#if BCHP_BSCA_REG_START
+	ENT(BCHP_BSCA_REG_START, BCHP_BSCA_REG_END, "BSCA"),
+#endif
+#if BCHP_BSCB_REG_START
+	ENT(BCHP_BSCB_REG_START, BCHP_BSCB_REG_END, "BSCB"),
+#endif
+#if BCHP_BSCC_REG_START
+	ENT(BCHP_BSCC_REG_START, BCHP_BSCC_REG_END, "BSCC"),
+#endif
+#if BCHP_BSCD_REG_START
+	ENT(BCHP_BSCD_REG_START, BCHP_BSCD_REG_END, "BSCD"),
+#endif
+#if BCHP_BSCE_REG_START
+	ENT(BCHP_BSCE_REG_START, BCHP_BSCE_REG_END, "BSCE"),
+#endif
+#if BCHP_BSCF_REG_START
+	ENT(BCHP_BSCF_REG_START, BCHP_BSCF_REG_END, "BSCF"),
+#endif
 
 	{0, 0, "??"}
 };
@@ -864,7 +884,8 @@ static void DumpFinal(FILE* fp)
 	fprintf (fp, "\tsizeof(s_aTriggerMap)/sizeof(s_aTriggerMap[0]),\n");
 	fprintf (fp, "\t&s_aTriggerMap[0],\n");
 	fprintf (fp, "\tsizeof(s_aulReg)/(2*sizeof(s_aulReg[0])),\n");
-	fprintf (fp, "\ts_aulReg\n");
+	fprintf (fp, "\ts_aulReg,\n");
+	fprintf (fp, "\tBSPLASH_HDMI_I2C_CHANNEL\n");
 	fprintf (fp, "};\n");
 	fprintf (fp, "\n");
 	fprintf (fp, "SplashData* GetSplashData%s(void)\n", s_suffix_string);

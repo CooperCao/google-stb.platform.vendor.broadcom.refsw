@@ -98,6 +98,8 @@ int SAGE_BP3Platform_Init(void)
     /* Customize appSettings, for example if designed to use NxClient API */
     appSettings.generalHeapIndex     = NXCLIENT_FULL_HEAP;
     appSettings.videoSecureHeapIndex = NXCLIENT_VIDEO_SECURE_HEAP;
+    appSettings.exportHeapIndex      = NXCLIENT_EXPORT_HEAP;
+    appSettings.arrHeapIndex         = NXCLIENT_ARR_HEAP;
 
     /* Save/Apply new settings */
     SRAI_SetSettings(&appSettings);

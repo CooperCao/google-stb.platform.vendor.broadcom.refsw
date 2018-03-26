@@ -216,6 +216,7 @@ DrmRC DRM_Common_Initialize(
         goto ErrorExit;
     }
 
+#ifdef NONSAGE_CREDENTIAL_CAPABLE
     /* If a bin file is specified load it, otherwise
      * KeyRegion will read it from flash */
     if(key_file != NULL){
@@ -224,6 +225,7 @@ DrmRC DRM_Common_Initialize(
 
     BDBG_MSG(("%s - Calling 'DRM_KeyRegion_Init' ...", BSTD_FUNCTION));
     rc = DRM_KeyRegion_Init();
+#endif
 
  ErrorExit:
     BDBG_MSG(("%s - Exiting function (init = '%d')", BSTD_FUNCTION, DrmCommon_InitCounter));
@@ -374,10 +376,12 @@ DrmRC DRM_Common_Finalize()
         }
         drmSha1.curr_free_ctx_num = 0;
 
+#ifdef NONSAGE_CREDENTIAL_CAPABLE
         rc = DRM_KeyRegion_UnInit();
         if(rc != Drm_Success){
             BDBG_ERR(("%s - Error uninitializing keyregion", BSTD_FUNCTION));
         }
+#endif
 
         rc = DRM_Common_CloseHandle();
         if(rc != Drm_Success){
@@ -1115,7 +1119,7 @@ static DrmRC DRM_Common_P_DetermineAskmMode(void)
 {
     DrmRC rc = Drm_Success;
     unsigned i = 0;
-    drm_key_binding_t BindStruct;
+    drm_chip_info_t chipInfo;
 
 #if (NEXUS_SECURITY_API_VERSION==1)
 {
@@ -1135,17 +1139,17 @@ static DrmRC DRM_Common_P_DetermineAskmMode(void)
     askmMode = (0x03 & mspStruct.mspDataBuf[3]);
     BDBG_MSG(("%s - askmMode = '0x%2x'", BSTD_FUNCTION, askmMode));
 
-    rc = DRM_KeyBinding_FetchDeviceIds(&BindStruct);
+    rc = DRM_Common_FetchDeviceIds(&chipInfo);
     if(rc != Drm_Success)
     {
         BDBG_ERR(("%s - Error fetching device IDs", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
-    BKNI_Memcpy(arg_buffer, BindStruct.devIdA, 8);
+    BKNI_Memcpy(arg_buffer, chipInfo.devIdA, 8);
     for(i=8; i<16; i++)
     {
-        arg_buffer[i] = BindStruct.devIdA[15-i];
+        arg_buffer[i] = chipInfo.devIdA[15-i];
     }
 
     rc = DRM_Common_SwSha256(arg_buffer, digest, 16);
@@ -1189,18 +1193,17 @@ static DrmRC DRM_Common_P_DetermineAskmMode(void)
         askmMode = (0x03 & mspData[3]);
         BDBG_MSG(("%s - askmMode = '0x%2x'", BSTD_FUNCTION, askmMode));
 
-
-    rc = DRM_KeyBinding_FetchDeviceIds(&BindStruct);
+    rc = DRM_Common_FetchDeviceIds(&chipInfo);
     if(rc != Drm_Success)
     {
         BDBG_ERR(("%s - Error fetching device IDs", BSTD_FUNCTION));
         goto ErrorExit;
     }
 
-    BKNI_Memcpy(arg_buffer, BindStruct.devIdA, 8);
+    BKNI_Memcpy(arg_buffer, chipInfo.devIdA, 8);
     for(i=8; i<16; i++)
     {
-         arg_buffer[i] = BindStruct.devIdA[15-i];
+         arg_buffer[i] = chipInfo.devIdA[15-i];
     }
 
     rc = DRM_Common_SwSha256(arg_buffer, digest, 16);
@@ -2384,44 +2387,9 @@ DrmRC DRM_Common_FetchDeviceIds(drm_chip_info_t *pStruct)
             }
         }
     }//end of for-loop
-
-
 #endif
-
-
-
 
 ErrorExit:
     BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
     return rc;
 }
-
-#if 0
-/* TODO
- * idea is to load a pem file or pem file password from secret store
- * into a 'secret' then to use it to create a DH */
-DrmRC DRM_Common_SwDHFromSecretPem(
-    DrmSecretId id,
-    void * *pHandle)
-{
-    BDBG_ASSERT(drmCommonMutex != NULL);
-    BKNI_AcquireMutex(drmCommonMutex);
-
-    BDBG_MSG(("%s - Entered function", BSTD_FUNCTION));
-
-    DrmRC rc;
-    DrmSecret * secret = DrmSecretFromId(id);
-    if (!secret) {
-        //gnia gnia return blabla bad
-        rc = ;
-    }
-    else {
-        rc = _SwDHInit_LOCKED(secret->id, secret->len, pHandle);
-    }
-
-    BDBG_MSG(("%s - Exiting function", BSTD_FUNCTION));
-
-    BKNI_ReleaseMutex(drmCommonMutex);
-    return rc;
-}
-#endif

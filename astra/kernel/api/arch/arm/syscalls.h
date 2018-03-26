@@ -404,8 +404,10 @@
 #define EXT_tracelog_stop       0xf0009
 #define EXT_tracelog_add        0xf000a
 #define EXT_sched_runtask       0xf000b
+#define EXT_critical_sec_enter  0xf000c
+#define EXT_critical_sec_exit   0xf000d
 
-#define EXT_SYS_CALL_LAST       0xf000c
+#define EXT_SYS_CALL_LAST       0xf000e
 #define NUM_EXT_SYS_CALLS       (EXT_SYS_CALL_LAST - EXT_SYS_CALL_BASE)
 
 #endif /* API_SYSCALLS_H_ */

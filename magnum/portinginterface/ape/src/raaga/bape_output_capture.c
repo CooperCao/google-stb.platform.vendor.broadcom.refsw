@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,8 +43,11 @@
 #include "bkni.h"
 #include "bape.h"
 #include "bape_priv.h"
+#include "bape_buffer.h"
 
 BDBG_MODULE(bape_output_capture);
+
+#if BAPE_CHIP_MAX_OUTPUT_CAPTURES > 0
 
 BDBG_OBJECT_ID(BAPE_OutputCapture);
 
@@ -63,20 +66,31 @@ typedef struct BAPE_OutputCapture
     BMMA_Block_Handle bufferBlock[BAPE_Channel_eMax];
     void *pBuffers[BAPE_Channel_eMax];
     BMMA_DeviceOffset bufferOffset[BAPE_Channel_eMax];
-    BAPE_DfifoGroupHandle dfifoGroup;
-    BAPE_LoopbackGroupHandle loopbackGroup;
-#if BAPE_CHIP_MAX_FS > 0
-    unsigned fs;
-#else
-    BAPE_MclkSource mclkSource;
-    unsigned pllChannel;
-    unsigned mclkFreqToFsRatio;
-#endif
+    BAPE_BufferInterfaceType bufferInterfaceType;
+    BMMA_Block_Handle bufferInterfaceBlock[BAPE_Channel_eMax];
+    BAPE_BufferInterface *pBufferInterface[BAPE_Channel_eMax];
+    BMMA_DeviceOffset bufferInterfaceOffset[BAPE_Channel_eMax];
+    BAPE_BufferGroupHandle bufferGroupHandle;
+    #if BAPE_CHIP_MAX_DFIFOS > 0
+      BAPE_DfifoGroupHandle dfifoGroup;
+    #endif
+    #if BAPE_CHIP_MAX_LOOPBACKS > 0
+      BAPE_LoopbackGroupHandle loopbackGroup;
+    #endif
+    #if BAPE_CHIP_MAX_FS > 0
+      unsigned fs;
+    #else
+      BAPE_MclkSource mclkSource;
+      unsigned pllChannel;
+      unsigned mclkFreqToFsRatio;
+    #endif
     bool enabled;
     char name[7];   /* CAP %d */
 } BAPE_OutputCapture;
 
+#if BAPE_CHIP_MAX_DFIFOS > 0
 static void BAPE_OutputCapture_P_ClearInterrupts_isr(BAPE_OutputCaptureHandle handle);
+#endif
 
 /* Connector callbacks */
 static void BAPE_OutputCapture_P_SetTimingParams_isr(BAPE_OutputPort output, unsigned sampleRate, BAVC_Timebase timebase);
@@ -105,6 +119,22 @@ void BAPE_OutputCapture_GetDefaultOpenSettings(
 
 static void BAPE_OutputCapture_P_FreeBuffer(BAPE_OutputCaptureHandle handle, unsigned idx)
 {
+    if ( handle->bufferInterfaceBlock[idx] )
+    {
+        if ( handle->pBufferInterface[idx] )
+        {
+            BMMA_Unlock(handle->bufferInterfaceBlock[idx], handle->pBufferInterface[idx]);
+            handle->pBufferInterface[idx] = NULL;
+        }
+        if ( handle->bufferInterfaceOffset[idx] )
+        {
+            BMMA_UnlockOffset(handle->bufferInterfaceBlock[idx], handle->bufferInterfaceOffset[idx]);
+            handle->bufferInterfaceOffset[idx] = 0;
+        }
+        BMMA_Free(handle->bufferInterfaceBlock[idx]);
+        handle->bufferInterfaceBlock[idx] = NULL;
+    }
+
     if ( handle->bufferBlock[idx] )
     {
         if ( handle->pBuffers[idx] )
@@ -120,6 +150,74 @@ static void BAPE_OutputCapture_P_FreeBuffer(BAPE_OutputCaptureHandle handle, uns
         BMMA_Free(handle->bufferBlock[idx]);
         handle->bufferBlock[idx] = NULL;
     }
+}
+
+static BERR_Code BAPE_OutputCapture_P_CreateBufferGroup(BAPE_OutputCaptureHandle handle, unsigned numChannelPairs)
+{
+    BERR_Code errCode;
+    unsigned numBuffers;
+
+    numBuffers = numChannelPairs;
+
+    if ( !handle->settings.interleaveData)
+    {
+        numBuffers *= 2;
+    }
+
+    if ( numBuffers > handle->numBuffers )
+    {
+        BDBG_ERR(("Requested %d buffers, but this output capture channel has only %d buffers", (int)numBuffers, (int)handle->numBuffers));
+        return BERR_TRACE(BERR_NOT_AVAILABLE);
+    }
+
+    if ( handle->bufferGroupHandle )
+    {
+        BAPE_BufferGroupStatus bufferGroupStatus;
+
+        BAPE_BufferGroup_GetStatus(handle->bufferGroupHandle, &bufferGroupStatus);
+        if ( bufferGroupStatus.interleaved != handle->settings.interleaveData || numBuffers != bufferGroupStatus.numChannels )
+        {
+            BAPE_BufferGroup_Close(handle->bufferGroupHandle);
+            handle->bufferGroupHandle = NULL;
+        }
+    }
+
+    if ( !handle->bufferGroupHandle )
+    {
+        unsigned i;
+        BAPE_BufferGroupOpenSettings bufferGroupSettings;
+        BAPE_BufferGroup_GetDefaultOpenSettings(&bufferGroupSettings);
+        for (i = 0; i < numChannelPairs; i++)
+        {
+            bufferGroupSettings.buffers[i*2].pInterface = handle->pBufferInterface[i];
+            bufferGroupSettings.buffers[i*2].interfaceBlock = handle->bufferInterfaceBlock[i];
+            bufferGroupSettings.buffers[i*2].interfaceOffset = handle->bufferInterfaceOffset[i];
+            bufferGroupSettings.buffers[i*2].pBuffer = handle->pBuffers[i];
+            if ( !handle->settings.interleaveData )
+            {
+                bufferGroupSettings.buffers[i*2+1].pInterface = handle->pBufferInterface[i+1];
+                bufferGroupSettings.buffers[i*2+1].interfaceBlock = handle->bufferInterfaceBlock[i+1];
+                bufferGroupSettings.buffers[i*2+1].interfaceOffset = handle->bufferInterfaceOffset[i+1];
+                bufferGroupSettings.buffers[i*2+1].pBuffer = handle->pBuffers[i+1];
+            }
+        }
+        bufferGroupSettings.type = BAPE_BufferType_eReadWrite;
+        bufferGroupSettings.bufferSize = handle->bufferSize;
+        bufferGroupSettings.interleaved = handle->settings.interleaveData;
+        bufferGroupSettings.numChannels = numBuffers;
+
+        errCode = BAPE_BufferGroup_Open(handle->deviceHandle, &bufferGroupSettings, &handle->bufferGroupHandle);
+        if ( errCode != BERR_SUCCESS || handle->bufferGroupHandle == NULL )
+        {
+            BDBG_ERR(("ERROR, unable to create buffer interface"));
+            return BERR_TRACE(errCode);
+        }
+
+        /* Flush newly created group in case we had stale data in any of the buffers */
+        BAPE_BufferGroup_Flush(handle->bufferGroupHandle);
+    }
+
+    return BERR_SUCCESS;
 }
 
 BERR_Code BAPE_OutputCapture_Open(
@@ -201,19 +299,16 @@ BERR_Code BAPE_OutputCapture_Open(
     handle->settings.interleaveData = true;
     handle->index = index;
     BAPE_P_InitOutputPort(&handle->outputPort, BAPE_OutputPortType_eOutputCapture, index, handle);
-    maxChannelPairs = BAPE_CHIP_MAX_LOOPBACKS;
-    if ( maxChannelPairs > BAPE_CHIP_MAX_DFIFOS )
-    {
-        maxChannelPairs = BAPE_CHIP_MAX_DFIFOS;
-    }
-    if ( maxChannelPairs > pSettings->numBuffers )
-    {
-        maxChannelPairs = pSettings->numBuffers;
-    }
-    if ( maxChannelPairs > BAPE_ChannelPair_eMax )
-    {
-        maxChannelPairs = BAPE_ChannelPair_eMax;
-    }
+    maxChannelPairs = BAPE_CHIP_MAX_OUTPUT_CAPTURE_CHANNELS/2;
+    #if BAPE_CHIP_MAX_LOOPBACKS > 0
+      maxChannelPairs = BAPE_MIN(maxChannelPairs, BAPE_CHIP_MAX_LOOPBACKS);
+    #endif
+    #if BAPE_CHIP_MAX_DFIFOS > 0
+      maxChannelPairs = BAPE_MIN(maxChannelPairs, BAPE_CHIP_MAX_DFIFOS);
+    #endif
+
+    maxChannelPairs = BAPE_MIN(maxChannelPairs, pSettings->numBuffers);
+    maxChannelPairs = BAPE_MIN(maxChannelPairs, BAPE_ChannelPair_eMax);
     BAPE_FMT_P_EnableSource(&handle->outputPort.capabilities, BAPE_DataSource_eFci);
     BAPE_FMT_P_EnableType(&handle->outputPort.capabilities, BAPE_DataType_ePcmStereo);
     BAPE_FMT_P_EnableType(&handle->outputPort.capabilities, BAPE_DataType_eIec61937);
@@ -229,21 +324,25 @@ BERR_Code BAPE_OutputCapture_Open(
     default:
         break;
     }
+    #if !BAPE_CHIP_AIO_SUPPORT
+    handle->bufferInterfaceType = BAPE_BufferInterfaceType_eDram;
+    BAPE_FMT_P_EnableSource(&handle->outputPort.capabilities, BAPE_DataSource_eHostBuffer);
+    #endif
     handle->outputPort.enable = BAPE_OutputCapture_P_Enable;
     handle->outputPort.disable = BAPE_OutputCapture_P_Disable;
     handle->outputPort.setTimingParams_isr = BAPE_OutputCapture_P_SetTimingParams_isr;
     handle->sampleRate = 0;
     handle->outputPort.muteInMixer = true;
-#if BAPE_CHIP_MAX_FS > 0
-    handle->outputPort.fsTiming = true;
-    handle->outputPort.setFs = BAPE_OutputCapture_P_SetFs;
-    handle->fs = (unsigned)-1;
-#else
-    handle->outputPort.setMclk_isr = BAPE_OutputCapture_P_SetMclk_isr;
-    handle->mclkSource = BAPE_MclkSource_eNone;
-    handle->pllChannel = 0;
-    handle->mclkFreqToFsRatio = BAPE_BASE_PLL_TO_FS_RATIO;
-#endif
+    #if BAPE_CHIP_MAX_FS > 0
+      handle->outputPort.fsTiming = true;
+      handle->outputPort.setFs = BAPE_OutputCapture_P_SetFs;
+      handle->fs = (unsigned)-1;
+    #else
+      handle->outputPort.setMclk_isr = BAPE_OutputCapture_P_SetMclk_isr;
+      handle->mclkSource = BAPE_MclkSource_eNone;
+      handle->pllChannel = 0;
+      handle->mclkFreqToFsRatio = BAPE_BASE_PLL_TO_FS_RATIO;
+    #endif
     BKNI_Snprintf(handle->name, sizeof(handle->name), "CAP %u", index);
     handle->outputPort.pName = handle->name;
 
@@ -262,7 +361,6 @@ BERR_Code BAPE_OutputCapture_Open(
         if ( NULL == handle->pBuffers[i] )
         {
             errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-            BAPE_OutputCapture_P_FreeBuffer(handle, i);
             goto err_buffer;
         }
     
@@ -270,12 +368,45 @@ BERR_Code BAPE_OutputCapture_Open(
         if ( 0 == handle->bufferOffset[i] )
         {
             errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-            BAPE_OutputCapture_P_FreeBuffer(handle, i);
             goto err_buffer;
         }
 
+        BKNI_Memset(handle->pBuffers[i], 0, bufferSize);
         /* Flush once at open to make sure the buffer has been invalidated from the cache. */
-        BMMA_FlushCache(handle->bufferBlock[i], handle->pBuffers[i], bufferSize);
+        BAPE_FLUSHCACHE_ISRSAFE(handle->bufferBlock[i], handle->pBuffers[i], bufferSize);
+
+        if ( handle->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
+        {
+            /* Allocate buffer interface */
+            handle->bufferInterfaceBlock[i] = BMMA_Alloc(handle->hHeap, sizeof(BAPE_BufferInterface), alignment, NULL);
+            if ( NULL == handle->bufferInterfaceBlock[i] )
+            {
+                errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+                goto err_buffer;
+            }
+
+            handle->pBufferInterface[i] = BMMA_Lock(handle->bufferInterfaceBlock[i]);
+            if ( NULL == handle->pBufferInterface[i] )
+            {
+                errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+                goto err_buffer;
+            }
+
+            handle->bufferInterfaceOffset[i] = BMMA_LockOffset(handle->bufferInterfaceBlock[i]);
+            if ( 0 == handle->bufferInterfaceOffset[i] )
+            {
+                errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+                goto err_buffer;
+            }
+
+            BKNI_Memset(handle->pBufferInterface[i], 0, sizeof(BAPE_BufferInterface));
+            handle->pBufferInterface[i]->base = handle->bufferOffset[i];
+            handle->pBufferInterface[i]->read = handle->pBufferInterface[i]->base;
+            handle->pBufferInterface[i]->valid = handle->pBufferInterface[i]->base;
+            handle->pBufferInterface[i]->end = handle->pBufferInterface[i]->base + bufferSize;
+            /* Flush once at open to make sure the buffer interface has been invalidated from the cache. */
+            BAPE_FLUSHCACHE_ISRSAFE(handle->bufferInterfaceBlock[i], handle->pBufferInterface[i], sizeof(BAPE_BufferInterface));
+        }
     }
 
     handle->deviceHandle->outputCaptures[index] = handle;
@@ -286,10 +417,7 @@ BERR_Code BAPE_OutputCapture_Open(
 err_buffer:
     for ( i = 0; i < BAPE_Channel_eMax; i++ )
     {
-        if ( handle->pBuffers[i] )
-        {
-            BAPE_OutputCapture_P_FreeBuffer(handle, i);
-        }
+        BAPE_OutputCapture_P_FreeBuffer(handle, i);
     }
     BDBG_OBJECT_DESTROY(handle, BAPE_OutputCapture);
     BKNI_Free(handle);
@@ -304,14 +432,20 @@ void BAPE_OutputCapture_Close(
     BDBG_OBJECT_ASSERT(handle, BAPE_OutputCapture);
     BDBG_ASSERT(handle->enabled == false);
     BDBG_ASSERT(handle->outputPort.mixer == NULL);
+    #if DFIFOS > 0
     BDBG_ASSERT(NULL == handle->dfifoGroup);
+    #endif
+    #if loopbacks > 0
     BDBG_ASSERT(NULL == handle->loopbackGroup);
+    #endif
+    if ( handle->bufferGroupHandle )
+    {
+        BAPE_BufferGroup_Close(handle->bufferGroupHandle);
+        handle->bufferGroupHandle = NULL;
+    }
     for ( i = 0; i < BAPE_Channel_eMax; i++ )
     {
-        if ( handle->pBuffers[i] )
-        {
-            BAPE_OutputCapture_P_FreeBuffer(handle, i);
-        }
+        BAPE_OutputCapture_P_FreeBuffer(handle, i);
     }
     handle->deviceHandle->outputCaptures[handle->index] = NULL;
     BDBG_OBJECT_DESTROY(handle, BAPE_OutputCapture);
@@ -369,10 +503,24 @@ void BAPE_OutputCapture_Flush_isr(
 {
     BDBG_OBJECT_ASSERT(handle, BAPE_OutputCapture);
     
-    if ( handle->dfifoGroup )
+    #if BAPE_CHIP_MAX_DFIFOS > 0
+    if ( handle->dfifoGroup && handle->bufferInterfaceType == BAPE_BufferInterfaceType_eRdb )
     {
         BAPE_DfifoGroup_P_Flush_isr(handle->dfifoGroup);
         BAPE_OutputCapture_P_ClearInterrupts_isr(handle);
+    }
+    else
+    #endif
+    if ( handle->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
+    {
+        BAPE_BufferGroupStatus bgStatus;
+        BAPE_BufferGroup_GetStatus(handle->bufferGroupHandle, &bgStatus);
+        if ( bgStatus.enabled )
+        {
+            BDBG_WRN(("Cannot flush Capture because the buffer group is running"));
+            return;
+        }
+        BAPE_BufferGroup_Flush(handle->bufferGroupHandle);
     }
 }
 
@@ -381,8 +529,6 @@ BERR_Code BAPE_OutputCapture_GetBuffer(
     BAPE_BufferDescriptor *pBuffers         /* [out] */
     )
 {   
-    BERR_Code errCode;
-
     BDBG_OBJECT_ASSERT(handle, BAPE_OutputCapture);
     BDBG_ASSERT(NULL != pBuffers);
 
@@ -393,11 +539,21 @@ BERR_Code BAPE_OutputCapture_GetBuffer(
         return BERR_SUCCESS;
     }
 
-    BDBG_ASSERT(NULL != handle->dfifoGroup);
-    errCode = BAPE_DfifoGroup_P_GetBuffer(handle->dfifoGroup, pBuffers);
-    if ( errCode )
+    #if BAPE_CHIP_MAX_DFIFOS > 0
+    if ( handle->dfifoGroup && handle->bufferInterfaceType == BAPE_BufferInterfaceType_eRdb )
     {
-        return BERR_TRACE(errCode);
+        BERR_Code errCode;
+        errCode = BAPE_DfifoGroup_P_GetBuffer(handle->dfifoGroup, pBuffers);
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+    }
+    else
+    #endif
+    if ( handle->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
+    {
+        return BERR_TRACE(BAPE_BufferGroup_Read(handle->bufferGroupHandle, pBuffers));
     }
 
     return BERR_SUCCESS;
@@ -408,8 +564,6 @@ BERR_Code BAPE_OutputCapture_ConsumeData(
     unsigned numBytes                   /* Number of bytes read from the buffer */
     )
 {
-    BERR_Code errCode;
-
     BDBG_OBJECT_ASSERT(handle, BAPE_OutputCapture);
 
     if ( !handle->enabled )
@@ -417,15 +571,24 @@ BERR_Code BAPE_OutputCapture_ConsumeData(
         return BERR_SUCCESS;
     }
 
-    BDBG_ASSERT(NULL != handle->dfifoGroup);
-    BKNI_EnterCriticalSection();
-    errCode = BAPE_DfifoGroup_P_CommitData_isr(handle->dfifoGroup, numBytes);
-    BAPE_OutputCapture_P_ClearInterrupts_isr(handle);
-    BKNI_LeaveCriticalSection();
-
-    if ( errCode )
+    #if BAPE_CHIP_MAX_DFIFOS > 0
+    if ( handle->dfifoGroup && handle->bufferInterfaceType == BAPE_BufferInterfaceType_eRdb )
     {
-        return BERR_TRACE(errCode);
+        BERR_Code errCode;
+        BKNI_EnterCriticalSection();
+        errCode = BAPE_DfifoGroup_P_CommitData_isr(handle->dfifoGroup, numBytes);
+        BAPE_OutputCapture_P_ClearInterrupts_isr(handle);
+        BKNI_LeaveCriticalSection();
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+    }
+    else
+    #endif
+    if ( handle->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
+    {
+        return BERR_TRACE(BAPE_BufferGroup_ReadComplete(handle->bufferGroupHandle, numBytes));
     }
 
     return BERR_SUCCESS;
@@ -456,32 +619,35 @@ BERR_Code BAPE_OutputCapture_SetInterruptHandlers(
     const BAPE_OutputCaptureInterruptHandlers *pInterrupts
     )
 {
-    BERR_Code errCode;
-
     BDBG_OBJECT_ASSERT(handle, BAPE_OutputCapture);
     BDBG_ASSERT(NULL != pInterrupts);
 
     if ( handle->enabled )
     {
-        BDBG_ASSERT(NULL != handle->dfifoGroup);
-        /* Install interrupt handlers */
-        errCode = BAPE_DfifoGroup_P_SetFullmarkInterrupt(handle->dfifoGroup,
-                                                         pInterrupts->watermark.pCallback_isr,
-                                                         pInterrupts->watermark.pParam1,
-                                                         pInterrupts->watermark.param2);
-        if ( errCode )
+        #if BAPE_CHIP_MAX_DFIFOS > 0
+        if ( handle->dfifoGroup )
         {
-            return BERR_TRACE(errCode);
+            BERR_Code errCode;
+            /* Install interrupt handlers */
+            errCode = BAPE_DfifoGroup_P_SetFullmarkInterrupt(handle->dfifoGroup,
+                                                             pInterrupts->watermark.pCallback_isr,
+                                                             pInterrupts->watermark.pParam1,
+                                                             pInterrupts->watermark.param2);
+            if ( errCode )
+            {
+                return BERR_TRACE(errCode);
+            }
+            errCode = BAPE_DfifoGroup_P_SetOverflowInterrupt(handle->dfifoGroup,
+                                                             pInterrupts->overflow.pCallback_isr,
+                                                             pInterrupts->overflow.pParam1,
+                                                             pInterrupts->overflow.param2);
+            if ( errCode )
+            {
+                BAPE_DfifoGroup_P_SetFullmarkInterrupt(handle->dfifoGroup, NULL, NULL, 0);
+                return BERR_TRACE(errCode);
+            }
         }
-        errCode = BAPE_DfifoGroup_P_SetOverflowInterrupt(handle->dfifoGroup,
-                                                         pInterrupts->overflow.pCallback_isr,
-                                                         pInterrupts->overflow.pParam1,
-                                                         pInterrupts->overflow.param2);
-        if ( errCode )
-        {
-            BAPE_DfifoGroup_P_SetFullmarkInterrupt(handle->dfifoGroup, NULL, NULL, 0);
-            return BERR_TRACE(errCode);
-        }
+        #endif
     }
 
     handle->interrupts = *pInterrupts;
@@ -491,12 +657,8 @@ BERR_Code BAPE_OutputCapture_SetInterruptHandlers(
 static BERR_Code BAPE_OutputCapture_P_Enable(BAPE_OutputPort output)
 {
     BERR_Code errCode;
-    BAPE_DfifoGroupSettings dfifoSettings;
-    BAPE_LoopbackGroupSettings loopbackSettings;
     BAPE_OutputCaptureHandle handle;
-    BAPE_LoopbackGroupCreateSettings loopbackCreateSettings;
-    BAPE_DfifoGroupCreateSettings dfifoCreateSettings;
-    unsigned numBuffersRequired, i, step, numChannelPairs;
+    unsigned numBuffersRequired, step, numChannelPairs;
 
     BDBG_OBJECT_ASSERT(output, BAPE_OutputPort);
 
@@ -506,7 +668,7 @@ static BERR_Code BAPE_OutputCapture_P_Enable(BAPE_OutputPort output)
     BDBG_ASSERT(false == handle->enabled);
 
     /* Make sure we have enough buffers to satisfy this request */
-    numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(BAPE_Mixer_P_GetOutputFormat(output->mixer));
+    numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer));
     numBuffersRequired = numChannelPairs;
     if ( handle->settings.interleaveData )
     {
@@ -517,6 +679,7 @@ static BERR_Code BAPE_OutputCapture_P_Enable(BAPE_OutputPort output)
         numBuffersRequired *= 2;
         step = 1;
     }
+    BSTD_UNUSED(step);
     if ( numBuffersRequired > handle->numBuffers )
     {
         BDBG_ERR(("To support %u channels %s requires %u buffers but only %u are allocated for OutputCapture %u", 
@@ -525,130 +688,182 @@ static BERR_Code BAPE_OutputCapture_P_Enable(BAPE_OutputPort output)
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    /* Allocate needed loopback resources */
-    BAPE_LoopbackGroup_P_GetDefaultCreateSettings(&loopbackCreateSettings);
-    loopbackCreateSettings.numChannelPairs = numChannelPairs;
-    errCode = BAPE_LoopbackGroup_P_Create(handle->deviceHandle, &loopbackCreateSettings, &handle->loopbackGroup);
-    if ( errCode )
+    #if BAPE_CHIP_MAX_LOOPBACKS > 0 && BAPE_CHIP_MAX_DFIFOS > 0
+    if ( handle->bufferInterfaceType == BAPE_BufferInterfaceType_eRdb )
     {
-        errCode = BERR_TRACE(errCode);
-        goto err_loopback_alloc;
-    }
+        BAPE_LoopbackGroupCreateSettings loopbackCreateSettings;
+        BAPE_LoopbackGroupSettings loopbackSettings;
+        BAPE_DfifoGroupCreateSettings dfifoCreateSettings;
+        BAPE_DfifoGroupSettings dfifoSettings;
+        unsigned i;
 
-    /* Allocate needed DFIFO resources */
-    BAPE_DfifoGroup_P_GetDefaultCreateSettings(&dfifoCreateSettings);
-    dfifoCreateSettings.numChannelPairs = numChannelPairs;
-    errCode = BAPE_DfifoGroup_P_Create(handle->deviceHandle, &dfifoCreateSettings, &handle->dfifoGroup);
-    if ( errCode )
-    {
-        errCode = BERR_TRACE(errCode);
-        goto err_dfifo_alloc;
-    }
-
-    /* Setup and enable the DFIFO first, then Loopback */
-    BAPE_DfifoGroup_P_GetSettings(handle->dfifoGroup, &dfifoSettings);
-    dfifoSettings.highPriority = (BAPE_Mixer_P_GetOutputSampleRate(output->mixer)) >= 96000 ? true : false;
-    BAPE_LoopbackGroup_P_GetCaptureFciIds(handle->loopbackGroup, &dfifoSettings.input);
-    dfifoSettings.interleaveData = handle->settings.interleaveData;
-    dfifoSettings.dataWidth = handle->settings.bitsPerSample;
-    for ( i = 0; i < numBuffersRequired; i++ )
-    {
-        unsigned dfifoBufIndex = i*step;
-        dfifoSettings.bufferInfo[dfifoBufIndex].block = handle->bufferBlock[i];
-        dfifoSettings.bufferInfo[dfifoBufIndex].pBuffer = handle->pBuffers[i];
-        dfifoSettings.bufferInfo[dfifoBufIndex].base = handle->bufferOffset[i];
-        dfifoSettings.bufferInfo[dfifoBufIndex].length = handle->bufferSize;
-        dfifoSettings.bufferInfo[dfifoBufIndex].watermark = handle->settings.watermark;
-    }
-    errCode = BAPE_DfifoGroup_P_SetSettings(handle->dfifoGroup, &dfifoSettings);
-    if ( errCode )
-    {
-        errCode = BERR_TRACE(errCode);
-        goto err_dfifo_settings;
-    }
-
-    /* Configure Loopback */
-    BKNI_EnterCriticalSection();
-    BAPE_LoopbackGroup_P_GetSettings_isr(handle->loopbackGroup, &loopbackSettings);
-#if BAPE_CHIP_MAX_FS > 0
-    loopbackSettings.fs = handle->fs;
-#else
-    loopbackSettings.mclkSource = handle->mclkSource;
-    loopbackSettings.pllChannel = handle->pllChannel;
-    loopbackSettings.mclkFreqToFsRatio = handle->mclkFreqToFsRatio;
-#endif
-    loopbackSettings.input = handle->outputPort.sourceMixerFci;
-    loopbackSettings.resolution = handle->settings.bitsPerSample > 24 ? 24 : handle->settings.bitsPerSample;
-    errCode = BAPE_LoopbackGroup_P_SetSettings_isr(handle->loopbackGroup, &loopbackSettings);
-    BKNI_LeaveCriticalSection();
-    if ( errCode )
-    {
-        errCode = BERR_TRACE(errCode);
-        goto err_loopback_settings;
-    }
-
-    /* Install interrupt handlers */
-    if ( handle->interrupts.watermark.pCallback_isr )
-    {
-        errCode = BAPE_DfifoGroup_P_SetFullmarkInterrupt(handle->dfifoGroup,
-                                                         handle->interrupts.watermark.pCallback_isr,
-                                                         handle->interrupts.watermark.pParam1,
-                                                         handle->interrupts.watermark.param2);
+        /* Allocate needed loopback resources */
+        BAPE_LoopbackGroup_P_GetDefaultCreateSettings(&loopbackCreateSettings);
+        loopbackCreateSettings.numChannelPairs = numChannelPairs;
+        errCode = BAPE_LoopbackGroup_P_Create(handle->deviceHandle, &loopbackCreateSettings, &handle->loopbackGroup);
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
-            goto err_fullmark;
+            goto err_loopback_alloc;
         }
-    }
-    if ( handle->interrupts.overflow.pCallback_isr )
-    {
-        errCode = BAPE_DfifoGroup_P_SetOverflowInterrupt(handle->dfifoGroup,
-                                                         handle->interrupts.overflow.pCallback_isr,
-                                                         handle->interrupts.overflow.pParam1,
-                                                         handle->interrupts.overflow.param2);
+
+        /* Allocate needed DFIFO resources */
+        BAPE_DfifoGroup_P_GetDefaultCreateSettings(&dfifoCreateSettings);
+        dfifoCreateSettings.numChannelPairs = numChannelPairs;
+        errCode = BAPE_DfifoGroup_P_Create(handle->deviceHandle, &dfifoCreateSettings, &handle->dfifoGroup);
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
-            goto err_overflow;
+            goto err_dfifo_alloc;
+        }
+
+        /* Setup and enable the DFIFO first, then Loopback */
+        BAPE_DfifoGroup_P_GetSettings(handle->dfifoGroup, &dfifoSettings);
+        dfifoSettings.highPriority = (BAPE_Mixer_P_GetOutputSampleRate_isrsafe(output->mixer)) >= 96000 ? true : false;
+        BAPE_LoopbackGroup_P_GetCaptureFciIds(handle->loopbackGroup, &dfifoSettings.input);
+        dfifoSettings.interleaveData = handle->settings.interleaveData;
+        dfifoSettings.dataWidth = handle->settings.bitsPerSample;
+        for ( i = 0; i < numBuffersRequired; i++ )
+        {
+            unsigned dfifoBufIndex = i*step;
+            dfifoSettings.bufferInfo[dfifoBufIndex].block = handle->bufferBlock[i];
+            dfifoSettings.bufferInfo[dfifoBufIndex].pBuffer = handle->pBuffers[i];
+            dfifoSettings.bufferInfo[dfifoBufIndex].base = handle->bufferOffset[i];
+            dfifoSettings.bufferInfo[dfifoBufIndex].length = handle->bufferSize;
+            dfifoSettings.bufferInfo[dfifoBufIndex].watermark = handle->settings.watermark;
+        }
+        errCode = BAPE_DfifoGroup_P_SetSettings(handle->dfifoGroup, &dfifoSettings);
+        if ( errCode )
+        {
+            errCode = BERR_TRACE(errCode);
+            goto err_dfifo_settings;
+        }
+
+        /* Configure Loopback */
+        BKNI_EnterCriticalSection();
+        BAPE_LoopbackGroup_P_GetSettings_isr(handle->loopbackGroup, &loopbackSettings);
+    #if BAPE_CHIP_MAX_FS > 0
+        loopbackSettings.fs = handle->fs;
+    #else
+        BDBG_MSG(("Enable Capture - mclkSource %d, pllChannel %d, mclkFreqToFsRatio %d",
+                  handle->mclkSource, handle->pllChannel, handle->mclkFreqToFsRatio));
+        loopbackSettings.mclkSource = handle->mclkSource;
+        loopbackSettings.pllChannel = handle->pllChannel;
+        loopbackSettings.mclkFreqToFsRatio = handle->mclkFreqToFsRatio;
+    #endif
+        loopbackSettings.input = handle->outputPort.sourceMixerFci;
+        loopbackSettings.resolution = handle->settings.bitsPerSample > 24 ? 24 : handle->settings.bitsPerSample;
+        errCode = BAPE_LoopbackGroup_P_SetSettings_isr(handle->loopbackGroup, &loopbackSettings);
+        BKNI_LeaveCriticalSection();
+        if ( errCode )
+        {
+            errCode = BERR_TRACE(errCode);
+            goto err_loopback_settings;
+        }
+
+        /* Install interrupt handlers */
+        if ( handle->interrupts.watermark.pCallback_isr )
+        {
+            errCode = BAPE_DfifoGroup_P_SetFullmarkInterrupt(handle->dfifoGroup,
+                                                             handle->interrupts.watermark.pCallback_isr,
+                                                             handle->interrupts.watermark.pParam1,
+                                                             handle->interrupts.watermark.param2);
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+                goto err_fullmark;
+            }
+        }
+        if ( handle->interrupts.overflow.pCallback_isr )
+        {
+            errCode = BAPE_DfifoGroup_P_SetOverflowInterrupt(handle->dfifoGroup,
+                                                             handle->interrupts.overflow.pCallback_isr,
+                                                             handle->interrupts.overflow.pParam1,
+                                                             handle->interrupts.overflow.param2);
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+                goto err_overflow;
+            }
+        }
+
+        /* Enable DFIFO */
+        errCode = BAPE_DfifoGroup_P_Start(handle->dfifoGroup, false);
+        if ( errCode )
+        {
+            errCode = BERR_TRACE(errCode);
+            goto err_dfifo_start;
+        }
+
+        /* Enable Loopback */
+        errCode = BAPE_LoopbackGroup_P_Start(handle->loopbackGroup);
+        if ( errCode )
+        {
+            errCode = BERR_TRACE(errCode);
+            goto err_loopback_start;
         }
     }
-
-    /* Enable DFIFO */
-    errCode = BAPE_DfifoGroup_P_Start(handle->dfifoGroup, false);
-    if ( errCode )
+    else
+    #endif
+    if ( handle->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
     {
-        errCode = BERR_TRACE(errCode);
-        goto err_dfifo_start;
-    }
-
-    /* Enable Loopback */
-    errCode = BAPE_LoopbackGroup_P_Start(handle->loopbackGroup);
-    if ( errCode )
-    {
-        errCode = BERR_TRACE(errCode);
-        goto err_loopback_start;
+        errCode = BAPE_OutputCapture_P_CreateBufferGroup(handle, numChannelPairs);
+        if ( errCode )
+        {
+            return BERR_TRACE(BERR_UNKNOWN);
+        }
+        /* Link upstream mixer group to our buffer group */
+        BDBG_ASSERT(output->mixer->bufferGroupHandle != NULL);
+        BDBG_ASSERT(handle->bufferGroupHandle != NULL);
+        errCode = BAPE_BufferGroup_LinkOutput(output->mixer->bufferGroupHandle, handle->bufferGroupHandle);
+        if ( errCode )
+        {
+            return BERR_TRACE(BERR_UNKNOWN);
+        }
+        errCode = BAPE_BufferGroup_Enable(handle->bufferGroupHandle, true);
+        if ( errCode )
+        {
+            return BERR_TRACE(BERR_UNKNOWN);
+        }
     }
 
     /* Done */
     handle->enabled = true;
     return BERR_SUCCESS;
 
+#if BAPE_CHIP_MAX_DFIFOS > 0
 err_loopback_start:
-    BAPE_DfifoGroup_P_Stop(handle->dfifoGroup);
+    if ( handle->dfifoGroup )
+    {
+        BAPE_DfifoGroup_P_Stop(handle->dfifoGroup);
+    }
 err_dfifo_start:
-    BAPE_DfifoGroup_P_SetOverflowInterrupt(handle->dfifoGroup, NULL, NULL, 0);
+    if ( handle->dfifoGroup )
+    {
+        BAPE_DfifoGroup_P_SetOverflowInterrupt(handle->dfifoGroup, NULL, NULL, 0);
+    }
 err_overflow:
-    BAPE_DfifoGroup_P_SetFullmarkInterrupt(handle->dfifoGroup, NULL, NULL, 0);
+    if ( handle->dfifoGroup )
+    {
+        BAPE_DfifoGroup_P_SetFullmarkInterrupt(handle->dfifoGroup, NULL, NULL, 0);
+    }
 err_fullmark:
 err_loopback_settings:
 err_dfifo_settings:
-    BAPE_DfifoGroup_P_Destroy(handle->dfifoGroup);
-    handle->dfifoGroup = NULL;
+    if ( handle->dfifoGroup )
+    {
+        BAPE_DfifoGroup_P_Destroy(handle->dfifoGroup);
+        handle->dfifoGroup = NULL;
+    }
 err_dfifo_alloc:
-    BAPE_LoopbackGroup_P_Destroy(handle->loopbackGroup);
-    handle->loopbackGroup = NULL;
+    if ( handle->loopbackGroup )
+    {
+        BAPE_LoopbackGroup_P_Destroy(handle->loopbackGroup);
+        handle->loopbackGroup = NULL;
+    }
 err_loopback_alloc:
     return errCode;
+#endif
 }
 
 static void BAPE_OutputCapture_P_Disable(BAPE_OutputPort output)
@@ -660,11 +875,14 @@ static void BAPE_OutputCapture_P_Disable(BAPE_OutputPort output)
     handle = output->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_OutputCapture);
 
-    if ( handle->loopbackGroup )
+    #if BAPE_CHIP_MAX_LOOPBACKS > 0
+    if ( handle->loopbackGroup &&
+         handle->bufferInterfaceType == BAPE_BufferInterfaceType_eRdb )
     {
         /* Disable Loopback */
         BAPE_LoopbackGroup_P_Stop(handle->loopbackGroup);
 
+        #if BAPE_CHIP_MAX_DFIFOS > 0
         if ( handle->dfifoGroup )
         {
             /* Disable DFIFO */
@@ -677,9 +895,25 @@ static void BAPE_OutputCapture_P_Disable(BAPE_OutputPort output)
             BAPE_DfifoGroup_P_Destroy(handle->dfifoGroup);
             handle->dfifoGroup = NULL;
         }
+        #endif
 
         BAPE_LoopbackGroup_P_Destroy(handle->loopbackGroup);
         handle->loopbackGroup = NULL;
+    }
+    else
+    #endif
+    if ( handle->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
+    {
+        BERR_Code errCode;
+        errCode = BAPE_BufferGroup_Enable(handle->bufferGroupHandle, false);
+        if ( errCode )
+        {
+            BERR_TRACE(BERR_UNKNOWN);
+        }
+        if ( output->mixer && output->mixer->bufferGroupHandle )
+        {
+            BAPE_BufferGroup_UnLinkOutput(output->mixer->bufferGroupHandle, handle->bufferGroupHandle);
+        }
     }
 
     handle->enabled = false;
@@ -699,6 +933,7 @@ static void BAPE_OutputCapture_P_SetFs(BAPE_OutputPort output, unsigned fsNum)
 
     handle->fs = fsNum;
 
+    #if BAPE_CHIP_MAX_LOOPBACKS > 0
     /* Update timing source in loopback */
     if ( handle->loopbackGroup )
     {
@@ -709,21 +944,25 @@ static void BAPE_OutputCapture_P_SetFs(BAPE_OutputPort output, unsigned fsNum)
         BKNI_LeaveCriticalSection();
         BDBG_ASSERT(errCode == BERR_SUCCESS);
     }
+    #endif
 }
 #else
 static void BAPE_OutputCapture_P_SetMclk_isr(BAPE_OutputPort output, BAPE_MclkSource mclkSource, unsigned pllChannel, unsigned mclkFreqToFsRatio)
 {
     BAPE_OutputCaptureHandle handle;
-    BAPE_LoopbackGroupSettings loopbackSettings;
-    BERR_Code errCode;
 
     BDBG_OBJECT_ASSERT(output, BAPE_OutputPort);
 
     handle = output->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_OutputCapture);
 
+    #if BAPE_CHIP_MAX_LOOPBACKS > 0
+    BDBG_MSG(("Set Mclk ISR (output %s) mclkSource %d", output->pName, (int) mclkSource));
     if ( handle->loopbackGroup )
     {
+        BAPE_LoopbackGroupSettings loopbackSettings;
+        BERR_Code errCode;
+
         /* Set Input Parameters */
         BAPE_LoopbackGroup_P_GetSettings_isr(handle->loopbackGroup, &loopbackSettings);
         loopbackSettings.mclkSource = mclkSource;
@@ -736,6 +975,11 @@ static void BAPE_OutputCapture_P_SetMclk_isr(BAPE_OutputPort output, BAPE_MclkSo
     handle->mclkSource = mclkSource;
     handle->pllChannel = pllChannel;
     handle->mclkFreqToFsRatio = mclkFreqToFsRatio;
+    #else
+    BSTD_UNUSED(mclkSource);
+    BSTD_UNUSED(pllChannel);
+    BSTD_UNUSED(mclkFreqToFsRatio);
+    #endif
 }
 #endif
 
@@ -761,14 +1005,133 @@ static void BAPE_OutputCapture_P_SetTimingParams_isr(BAPE_OutputPort output, uns
     }
 }
 
+#if BAPE_CHIP_MAX_DFIFOS > 0
 static void BAPE_OutputCapture_P_ClearInterrupts_isr(BAPE_OutputCaptureHandle handle)
 {
     BDBG_OBJECT_ASSERT(handle, BAPE_OutputCapture);
 
     if ( handle->enabled )
     {
-        BDBG_ASSERT(NULL != handle->dfifoGroup);
-        BAPE_DfifoGroup_P_RearmFullmarkInterrupt_isr(handle->dfifoGroup);
-        BAPE_DfifoGroup_P_RearmOverflowInterrupt_isr(handle->dfifoGroup);
+        if ( handle->dfifoGroup )
+        {
+            BAPE_DfifoGroup_P_RearmFullmarkInterrupt_isr(handle->dfifoGroup);
+            BAPE_DfifoGroup_P_RearmOverflowInterrupt_isr(handle->dfifoGroup);
+        }
     }
 }
+#endif
+
+#else /* BAPE_CHIP_MAX_OUTPUT_CAPTURES */
+
+void BAPE_OutputCapture_GetDefaultOpenSettings(
+    BAPE_OutputCaptureOpenSettings *pSettings       /* [out] */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_OutputCapture_Open(
+    BAPE_Handle deviceHandle,
+    unsigned index,
+    const BAPE_OutputCaptureOpenSettings *pSettings,
+    BAPE_OutputCaptureHandle *pHandle             /* [out] */
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(index);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pHandle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_OutputCapture_Close(
+    BAPE_OutputCaptureHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_OutputCapture_GetSettings(
+    BAPE_OutputCaptureHandle handle,
+    BAPE_OutputCaptureSettings *pSettings       /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_OutputCapture_SetSettings(
+    BAPE_OutputCaptureHandle handle,
+    const BAPE_OutputCaptureSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+#if !B_REFSW_MINIMAL
+void BAPE_OutputCapture_Flush(
+    BAPE_OutputCaptureHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+#endif
+
+void BAPE_OutputCapture_Flush_isr(
+    BAPE_OutputCaptureHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+BERR_Code BAPE_OutputCapture_GetBuffer(
+    BAPE_OutputCaptureHandle handle,
+    BAPE_BufferDescriptor *pBuffers         /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pBuffers);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_OutputCapture_ConsumeData(
+    BAPE_OutputCaptureHandle handle,
+    unsigned numBytes                   /* Number of bytes read from the buffer */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(numBytes);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_OutputCapture_GetOutputPort(
+    BAPE_OutputCaptureHandle handle,
+    BAPE_OutputPort *pOutputPort
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pOutputPort);
+}
+
+void BAPE_OutputCapture_GetInterruptHandlers(
+    BAPE_OutputCaptureHandle handle,
+    BAPE_OutputCaptureInterruptHandlers *pInterrupts    /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pInterrupts);
+}
+
+BERR_Code BAPE_OutputCapture_SetInterruptHandlers(
+    BAPE_OutputCaptureHandle handle,
+    const BAPE_OutputCaptureInterruptHandlers *pInterrupts
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pInterrupts);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+#endif /* BAPE_CHIP_MAX_OUTPUT_CAPTURES */

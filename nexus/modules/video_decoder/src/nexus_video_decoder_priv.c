@@ -1420,7 +1420,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_SetFreeze(NEXUS_VideoDecoderHandle videoDecoder
                 /* the above two modes are here because the user expects a freeze after the first
                 picture is shown anyway (while TSM for the second picture matures).  XVD team says
                 if both FREEZE and "first picture preview" are enabled, "first picture preview" will
-                take precendence...and then freeze will occur on the first picture */
+                take precedence...and then freeze will occur on the first picture */
             case NEXUS_VideoDecoder_ChannelChangeMode_eHoldUntilTsmLock:
                 BDBG_MSG(("Freezing video per sync request"));
                 rc = BXVD_EnableVideoFreeze(videoDecoder->dec);
@@ -2119,4 +2119,20 @@ void NEXUS_VideoDecoderModule_GetStatistics( NEXUS_VideoDecoderModuleStatistics 
     BKNI_EnterCriticalSection();
     *pStats = g_NEXUS_VideoDecoderModuleStatistics;
     BKNI_LeaveCriticalSection();
+}
+
+void NEXUS_VideoDecoder_SetStcSnapshot_priv( NEXUS_VideoDecoderHandle videoDecoder, const struct NEXUS_VideoDecoderStcSnapshot *pStcSnapshot )
+{
+    NEXUS_ASSERT_MODULE();
+    BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
+    if (pStcSnapshot->set != videoDecoder->stcSnapshot.settings.set ||
+        pStcSnapshot->trigger != videoDecoder->stcSnapshot.settings.trigger)
+    {
+        if (videoDecoder->started) {
+            /* internal error. stc snapshot not applied. */
+            BERR_TRACE(NEXUS_NOT_AVAILABLE); /* keep going */
+        }
+        videoDecoder->stcSnapshot.settings = *pStcSnapshot;
+    }
+    return;
 }

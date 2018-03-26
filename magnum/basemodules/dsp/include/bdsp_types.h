@@ -225,6 +225,17 @@ typedef enum BDSP_DebugType
     BDSP_DebugType_eInvalid = 0x7FFFFFFF
 } BDSP_DebugType;
 
+/***************************************************************************
+Summary:
+Debug Type Settings
+***************************************************************************/
+typedef struct BDSP_DebugTypeSettings
+{
+    bool enabled;        /* If true, debug of this type is enabled. */
+    uint32_t bufferSize; /* Size of debug buffer (in bytes) for a particular type of debug.
+                                                        Only required if you want to override the default value. */
+} BDSP_DebugTypeSettings;
+
 typedef struct BDSP_StageCreateSettings
 {
     BDSP_AlgorithmType algoType;

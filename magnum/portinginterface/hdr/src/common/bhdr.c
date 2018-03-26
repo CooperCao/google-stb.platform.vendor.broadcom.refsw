@@ -572,9 +572,12 @@ BERR_Code BHDR_Open(
 		| (uint32_t ) (1 << (36 - 32))   /*  36: pr_audio_sample_sp3_p */
 		| (uint32_t ) (1 << (37 - 32))   /*  37: pr_audio_sample_p */
 		| (uint32_t ) (1 << (38 - 32)) ; /*  38: audio_packet_p */         /* Audio Packets COUNT_2 */
+
 	BHDR_DEBUG_P_ConfigureEventCounter(hHDR, &stEventCounter) ;
 
+	BKNI_EnterCriticalSection() ;
 	BHDR_DEBUG_P_ResetAllEventCounters_isr(hHDR) ;
+	BKNI_LeaveCriticalSection() ;
 
 	Register = BREG_Read32(hRegister, BCHP_HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2 + ulOffset) ;
 		Register &= ~ BCHP_MASK(HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2, I2C_ENABLE) ;
@@ -604,10 +607,12 @@ BERR_Code BHDR_Open(
 	}
 
 	/* clear locked packets  */
-	for (i = 0 ; i < BHDR_P_NUM_PACKETS; i++)
-	{
-		BHDR_CHECK_RC(rc, BHDR_P_ClearPacketRAMLock_isr(hHDR, i)) ;
-	}
+	BKNI_EnterCriticalSection() ;
+		for (i = 0 ; i < BHDR_P_NUM_PACKETS; i++)
+		{
+			BHDR_CHECK_RC(rc, BHDR_P_ClearPacketRAMLock_isr(hHDR, i)) ;
+		}
+	BKNI_LeaveCriticalSection() ;
 
 	/* always start configuration in DVI mode */
 	BKNI_EnterCriticalSection() ;

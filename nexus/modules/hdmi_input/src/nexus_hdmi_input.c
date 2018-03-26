@@ -1055,7 +1055,7 @@ NEXUS_Error NEXUS_HdmiInput_GetDrmInfoFrameData_priv(NEXUS_HdmiInputHandle hdmiI
         goto done ;
     }
 
-    pDrmInfoFrame->eotf = drmInfoFrame.eEOTF ;
+    pDrmInfoFrame->eotf = NEXUS_P_VideoEotf_FromMagnum_isrsafe( drmInfoFrame.eEOTF ) ;
     if (drmInfoFrame.eDescriptorId == BAVC_HDMI_DRM_DescriptorId_eType1)
     {
         pDrmInfoFrame->metadata.type = NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1 ;

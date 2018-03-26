@@ -924,8 +924,9 @@ void mem_copy2d(KHRN_IMAGE_FORMAT_T format, MEM_HANDLE_T hDst, MEM_HANDLE_T hSrc
          if ((conv_format == BEGL_BufferFormat_eA8B8G8R8) ||
              (conv_format == BEGL_BufferFormat_eR5G6B5))
          {
+            mem_flush_cache_range(srcCached, height * stride); /* invalidate src */
             memcpy(dstCached, srcCached, height * stride);
-            mem_flush_cache_range(dstCached, height * stride);
+            mem_flush_cache_range(dstCached, height * stride); /* flush dst */
          }
          else
             assert(0);   /* NO SW PATH FOR YUV */

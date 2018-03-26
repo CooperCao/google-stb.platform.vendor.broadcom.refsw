@@ -1185,7 +1185,7 @@ NEXUS_VideoImageInput_P_Connect(NEXUS_VideoInput_P_Link *link)
 
     imageInput->pLink = link;
     imageInput->source = link->sourceVdc;
-    link->secureVideo = imageInput->settings.secureVideo;
+    link->secureVideo = imageInput->settings.secureVideo ? NEXUS_VideoDecoderSecureType_eSecure : NEXUS_VideoDecoderSecureType_eUnsecure;
 
     if ( imageInput->settings.lowDelayMode )
     {

@@ -1856,7 +1856,9 @@ BERR_Code BXPT_PcrOffset_SetStcSnapshotConfig(
     BDBG_ASSERT( Snapshot );
     BDBG_ASSERT( Config );
 
-    if( BXPT_MAX_EXTERNAL_TRIGS <= Config->ExternalTriggerNum )
+    /* XPT_PCROFFSET_STC_SNAPSHOT0_CTRL.SNAPSHOT_TRIG_SEL for external trigger for "BVN flag0" starts at 8,
+    then increments, so add offset of 8. */
+    if( BXPT_MAX_EXTERNAL_TRIGS+8 <= Config->ExternalTriggerNum )
     {
         BDBG_ERR(( "Invalid external trigger number %d", Config->ExternalTriggerNum ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );

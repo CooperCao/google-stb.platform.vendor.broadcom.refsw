@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,22 +34,9 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
-
 #include "nexus_platform.h"
 #include <stdio.h>
-
 #if NEXUS_HAS_GRAPHICS2D
 #include "nexus_surface.h"
 #include "nexus_graphics2d.h"
@@ -91,7 +78,7 @@ static const uint8_t g_glyph[GLYPH_WIDTH*GLYPH_HEIGHT] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
-void complete(void *data, int unused)
+static void complete(void *data, int unused)
 {
     BSTD_UNUSED(unused);
     BKNI_SetEvent((BKNI_EventHandle)data);
@@ -99,7 +86,7 @@ void complete(void *data, int unused)
 
 int main(void)
 {
-    NEXUS_SurfaceHandle surface, glyphSurface;
+    NEXUS_SurfaceHandle framebuffer, glyphSurface;
     NEXUS_SurfaceCreateSettings createSettings;
     NEXUS_SurfaceMemory mem;
     NEXUS_DisplayHandle display;
@@ -108,7 +95,7 @@ int main(void)
     NEXUS_Graphics2DHandle gfx;
     NEXUS_Graphics2DFillSettings fillSettings;
     NEXUS_Graphics2DSettings gfxSettings;
-    BKNI_EventHandle event;
+    BKNI_EventHandle checkpointEvent;
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_VideoFormatInfo info;
@@ -146,7 +133,7 @@ int main(void)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 
@@ -157,7 +144,7 @@ int main(void)
     createSettings.width = info.width;
     createSettings.height = info.height;
     createSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
-    surface = NEXUS_Surface_Create(&createSettings);
+    framebuffer = NEXUS_Surface_Create(&createSettings);
 
     NEXUS_Surface_GetDefaultCreateSettings(&createSettings);
     createSettings.pixelFormat = NEXUS_PixelFormat_eA8;
@@ -165,21 +152,24 @@ int main(void)
     createSettings.height = GLYPH_HEIGHT;
     glyphSurface = NEXUS_Surface_Create(&createSettings);
     NEXUS_Surface_GetMemory(glyphSurface, &mem);
-    BDBG_ASSERT(mem.pitch == GLYPH_WIDTH);
-    BKNI_Memcpy(mem.buffer, g_glyph, mem.pitch * createSettings.height);
+    BDBG_ASSERT(mem.pitch >= GLYPH_WIDTH);
+    for (i=0;i<createSettings.height;i++) {
+        unsigned char *ptr = (unsigned char *)mem.buffer + i * mem.pitch;
+        BKNI_Memcpy(ptr, &g_glyph[GLYPH_WIDTH*i], GLYPH_WIDTH);
+    }
     NEXUS_Surface_Flush(glyphSurface);
 
-    BKNI_CreateEvent(&event);
+    BKNI_CreateEvent(&checkpointEvent);
 
     gfx = NEXUS_Graphics2D_Open(0, NULL);
 
     NEXUS_Graphics2D_GetSettings(gfx, &gfxSettings);
     gfxSettings.checkpointCallback.callback = complete;
-    gfxSettings.checkpointCallback.context = event;
+    gfxSettings.checkpointCallback.context = checkpointEvent;
     NEXUS_Graphics2D_SetSettings(gfx, &gfxSettings);
 
     NEXUS_Graphics2D_GetDefaultFillSettings(&fillSettings);
-    fillSettings.surface = surface;
+    fillSettings.surface = framebuffer;
     fillSettings.rect.x = 0; /* TODO: rect not needed for whole surface */
     fillSettings.rect.y = 0;
     fillSettings.rect.width = info.width;
@@ -187,12 +177,15 @@ int main(void)
     fillSettings.color = 0xFFFFFFFF; /* white background */
     rc = NEXUS_Graphics2D_Fill(gfx, &fillSettings);
     BDBG_ASSERT(!rc);
+    rc = NEXUS_Graphics2D_Checkpoint(gfx, NULL);
+    if (rc == NEXUS_GRAPHICS2D_QUEUED) {
+        rc = BKNI_WaitForEvent(checkpointEvent, 3000);
+        BDBG_ASSERT(!rc);
+    }
 
     NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
     graphicsSettings.enabled = true;
     rc = NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
-    BDBG_ASSERT(!rc);
-    rc = NEXUS_Display_SetGraphicsFramebuffer(display, surface);
     BDBG_ASSERT(!rc);
 
     {
@@ -201,53 +194,57 @@ int main(void)
         /* set up the blit once. only change output coordinates on each iteration. */
         NEXUS_Graphics2D_GetDefaultBlitSettings(&blitSettings);
         blitSettings.source.surface = glyphSurface;
-        blitSettings.source.rect.x = 0; /* TODO: source.rect not needed for whole surface */
-        blitSettings.source.rect.y = 0;
-        blitSettings.source.rect.width = GLYPH_WIDTH;
-        blitSettings.source.rect.height = GLYPH_HEIGHT;
-        blitSettings.dest.surface = surface;
-        blitSettings.output.surface = surface;
+        blitSettings.dest.surface = framebuffer;
+        blitSettings.output.surface = framebuffer;
         /* blitSettings.output.rect.x and .y set each iteration */
         blitSettings.output.rect.width = GLYPH_WIDTH; /* no scaling */
         blitSettings.output.rect.height = GLYPH_HEIGHT;
-        blitSettings.dest.rect = blitSettings.output.rect; /* required for blend */
         blitSettings.colorOp = NEXUS_BlitColorOp_eUseBlendEquation;
         blitSettings.colorBlend.a = NEXUS_BlendFactor_eSourceColor;
         blitSettings.colorBlend.b = NEXUS_BlendFactor_eSourceAlpha;
         blitSettings.colorBlend.subtract_cd = false;
         blitSettings.colorBlend.c = NEXUS_BlendFactor_eDestinationColor;
         blitSettings.colorBlend.d = NEXUS_BlendFactor_eInverseSourceAlpha;
+        blitSettings.colorBlend.subtract_e = false;
+        blitSettings.colorBlend.e = NEXUS_BlendFactor_eZero;
         blitSettings.alphaOp = NEXUS_BlitAlphaOp_eCopyConstant;
         blitSettings.constantColor = 0xFF0000FF; /* blue, opaque font */
 
         BDBG_WRN(("starting"));
-        for(i=0;;i++) {
-            NEXUS_Error rc;
-
-            blitSettings.output.rect.x = rand() % (info.width/(GLYPH_WIDTH+4)) * (GLYPH_WIDTH+4);
-            blitSettings.output.rect.y = rand() % (info.height/(GLYPH_HEIGHT+4)) * (GLYPH_HEIGHT+4);
-
+        for(i=0;i<100;i++) {
+            blitSettings.output.rect.x = 100 + (i%10) * (GLYPH_WIDTH+4);
+            blitSettings.output.rect.y = 100 + (i/10) * (GLYPH_HEIGHT+4);
+            blitSettings.dest.rect = blitSettings.output.rect; /* required for blend */
             rc = NEXUS_Graphics2D_Blit(gfx, &blitSettings);
-            if (rc) {
-                /* blit can fail because an internal queue is full. wait for all blits to complete, then continue. */
-                rc = NEXUS_Graphics2D_Checkpoint(gfx, NULL);
-                if (rc == NEXUS_GRAPHICS2D_QUEUED) {
-                    BKNI_WaitForEvent(event, 0xffffffff);
-                }
-            }
+            BDBG_ASSERT(!rc);
 
-            if (i && i%50000==0) {
-                BDBG_WRN(("%d blits completed", i));
+            rc = NEXUS_Graphics2D_Checkpoint(gfx, NULL);
+            if (rc == NEXUS_GRAPHICS2D_QUEUED) {
+                rc = BKNI_WaitForEvent(checkpointEvent, 3000);
+                BDBG_ASSERT(!rc);
             }
         }
     }
 
+    rc = NEXUS_Display_SetGraphicsFramebuffer(display, framebuffer);
+    BDBG_ASSERT(!rc);
+
+    BDBG_WRN(("press ENTER to exit"));
+    getchar();
+
+    NEXUS_Display_Close(display);
+    NEXUS_Surface_Destroy(framebuffer);
+    NEXUS_Surface_Destroy(glyphSurface);
+    NEXUS_Graphics2D_Close(gfx);
+    BKNI_DestroyEvent(checkpointEvent);
+    NEXUS_Platform_Uninit();
+
     return 0;
 }
-#else /* NEXUS_HAS_GRAPHICS2D */
+#else
 int main(void)
 {
-    printf("ERROR: NEXUS_Graphics2D not supported\n");
-    return -1;
+    printf("This application is not supported on this platform\n");
+    return 0;
 }
 #endif

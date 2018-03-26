@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,6 +58,12 @@ extern "C" {
     ((hCompositor)->abBlenderUsed[0] && \
      (hCompositor)->stCfcCapability[0].stBits.bCscBlendOut && \
      BCFC_IS_HDR10((hCompositor)->stOutColorSpaceExt.stColorSpace.eColorTF))
+
+/* -------------------------------------------------------------------
+ * default for TCH display brightness
+ */
+#define BVDC_P_TCH_DEFAULT_HDR_BRIGHTNESS 1000
+#define BVDC_P_TCH_DEFAULT_SDR_BRIGHTNESS  100
 
 /* -------------------------------------------------------------------
  * macros that avoid to change auto-generated table files
@@ -202,6 +208,8 @@ void BVDC_P_Cfc_BuildRulForLRAdjLimit_isr(
  */
 void BVDC_P_Cfc_BuildRulForLRAdj_isr(
     const BCFC_LRangeAdj         *pLRangeAdj,
+    bool                          bDispAdaptation,
+    int16_t                       sHdrPeakBrightness,
     uint32_t                      ulStartReg,
     BVDC_P_ListInfo              *pList);
 

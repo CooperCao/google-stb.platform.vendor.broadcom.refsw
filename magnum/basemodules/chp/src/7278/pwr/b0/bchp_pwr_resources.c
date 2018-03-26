@@ -363,6 +363,12 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_XPT[] = {{
     BDBG_STRING("XPT")
 }};
 
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_XPT_CORE[] = {{
+    BCHP_PWR_P_ResourceType_eNonLeaf,
+    BCHP_PWR_RESOURCE_XPT_CORE,
+    BDBG_STRING("XPT_CORE")
+}};
+
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_XPT_PACKETSUB[] = {{
     BCHP_PWR_P_ResourceType_eNonLeaf,
     BCHP_PWR_RESOURCE_XPT_PACKETSUB,
@@ -397,6 +403,18 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_XPT_SRAM[] = {{
     BCHP_PWR_P_ResourceType_eNonLeaf,
     BCHP_PWR_RESOURCE_XPT_SRAM,
     BDBG_STRING("XPT_SRAM")
+}};
+
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_XPT_TSIO[] = {{
+    BCHP_PWR_P_ResourceType_eNonLeaf,
+    BCHP_PWR_RESOURCE_XPT_TSIO,
+    BDBG_STRING("XPT_TSIO")
+}};
+
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_XPT_WAKEUP[] = {{
+    BCHP_PWR_P_ResourceType_eNonLeaf,
+    BCHP_PWR_RESOURCE_XPT_WAKEUP,
+    BDBG_STRING("XPT_WAKEUP")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_XPT_XMEMIF[] = {{
@@ -439,6 +457,12 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_ASP_BVN_DVPHR0_DVPHT0_VEC[] = {
     BCHP_PWR_P_ResourceType_eLeaf,
     BCHP_PWR_HW_ASP_BVN_DVPHR0_DVPHT0_VEC,
     BDBG_STRING("HW_ASP_BVN_DVPHR0_DVPHT0_VEC")
+}};
+
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_ASP_HVD0_HVD1[] = {{
+    BCHP_PWR_P_ResourceType_eLeaf,
+    BCHP_PWR_HW_ASP_HVD0_HVD1,
+    BDBG_STRING("HW_ASP_HVD0_HVD1")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_ASP_SRAM[] = {{
@@ -673,6 +697,18 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_XPT_SRAM[] = {{
     BCHP_PWR_P_ResourceType_eLeaf,
     BCHP_PWR_HW_XPT_SRAM,
     BDBG_STRING("HW_XPT_SRAM")
+}};
+
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_XPT_WAKEUP[] = {{
+    BCHP_PWR_P_ResourceType_eLeaf,
+    BCHP_PWR_HW_XPT_WAKEUP,
+    BDBG_STRING("HW_XPT_WAKEUP")
+}};
+
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_XPT_XPT_CORE_XPT_REMUX[] = {{
+    BCHP_PWR_P_ResourceType_eLeaf,
+    BCHP_PWR_HW_XPT_XPT_CORE_XPT_REMUX,
+    BDBG_STRING("HW_XPT_XPT_CORE_XPT_REMUX")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_XPT_XPT_REMUX[] = {{
@@ -1071,12 +1107,15 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_VICE0,
     BCHP_PWR_P_Resource_VICE0_CLK,
     BCHP_PWR_P_Resource_XPT,
+    BCHP_PWR_P_Resource_XPT_CORE,
     BCHP_PWR_P_Resource_XPT_PACKETSUB,
     BCHP_PWR_P_Resource_XPT_PARSER,
     BCHP_PWR_P_Resource_XPT_PLAYBACK,
     BCHP_PWR_P_Resource_XPT_RAVE,
     BCHP_PWR_P_Resource_XPT_REMUX,
     BCHP_PWR_P_Resource_XPT_SRAM,
+    BCHP_PWR_P_Resource_XPT_TSIO,
+    BCHP_PWR_P_Resource_XPT_WAKEUP,
     BCHP_PWR_P_Resource_XPT_XMEMIF,
     BCHP_PWR_P_Resource_HW_AIO,
     BCHP_PWR_P_Resource_HW_AIO_RAAGA0,
@@ -1085,6 +1124,7 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_HW_ASP,
     BCHP_PWR_P_Resource_HW_ASP_ASPT_ASP_540,
     BCHP_PWR_P_Resource_HW_ASP_BVN_DVPHR0_DVPHT0_VEC,
+    BCHP_PWR_P_Resource_HW_ASP_HVD0_HVD1,
     BCHP_PWR_P_Resource_HW_ASP_SRAM,
     BCHP_PWR_P_Resource_HW_AUD_PLL0,
     BCHP_PWR_P_Resource_HW_AUD_PLL1,
@@ -1165,6 +1205,8 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_4_POST_DIV_HOLD_CH4,
     BCHP_PWR_P_Resource_HW_XPT_REMUX,
     BCHP_PWR_P_Resource_HW_XPT_SRAM,
+    BCHP_PWR_P_Resource_HW_XPT_WAKEUP,
+    BCHP_PWR_P_Resource_HW_XPT_XPT_CORE_XPT_REMUX,
     BCHP_PWR_P_Resource_HW_XPT_XPT_REMUX,
     BCHP_PWR_P_Resource_MX_INTERNAL_MUX_SELECT_AUDIO0_OSCREF_CMOS_CLOCK,
     BCHP_PWR_P_Resource_MX_INTERNAL_MUX_SELECT_AUDIO1_OSCREF_CMOS_CLOCK,
@@ -1201,6 +1243,7 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_ASP[] = {
     BCHP_PWR_P_Resource_HW_ASP,
     BCHP_PWR_P_Resource_HW_ASP_ASPT_ASP_540,
     BCHP_PWR_P_Resource_HW_ASP_BVN_DVPHR0_DVPHT0_VEC,
+    BCHP_PWR_P_Resource_HW_ASP_HVD0_HVD1,
     NULL
 };
 
@@ -1288,6 +1331,8 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_BINT_OPEN[] = {
     BCHP_PWR_P_Resource_VDC,
     BCHP_PWR_P_Resource_VICE,
     BCHP_PWR_P_Resource_XPT,
+    BCHP_PWR_P_Resource_XPT_CORE,
+    BCHP_PWR_P_Resource_XPT_TSIO,
     NULL
 };
 
@@ -1404,7 +1449,9 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_MAGNUM_CONTROLLED[] = 
     BCHP_PWR_P_Resource_VDC_STG1,
     BCHP_PWR_P_Resource_VICE,
     BCHP_PWR_P_Resource_XPT,
+    BCHP_PWR_P_Resource_XPT_CORE,
     BCHP_PWR_P_Resource_XPT_SRAM,
+    BCHP_PWR_P_Resource_XPT_TSIO,
     NULL
 };
 
@@ -1535,6 +1582,12 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT[] = {
     BCHP_PWR_P_Resource_XPT_PLAYBACK,
     BCHP_PWR_P_Resource_XPT_RAVE,
     BCHP_PWR_P_Resource_XPT_REMUX,
+    BCHP_PWR_P_Resource_XPT_WAKEUP,
+    NULL
+};
+
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT_CORE[] = {
+    BCHP_PWR_P_Resource_HW_XPT_XPT_CORE_XPT_REMUX,
     NULL
 };
 
@@ -1561,9 +1614,8 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT_RAVE[] = {
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT_REMUX[] = {
     BCHP_PWR_P_Resource_HW_XPT_REMUX,
     BCHP_PWR_P_Resource_HW_XPT_XPT_REMUX,
+    BCHP_PWR_P_Resource_HW_XPT_XPT_CORE_XPT_REMUX,
     BCHP_PWR_P_Resource_HW_SECBUS_XPT_XPT_REMUX,
-    BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
-    BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_2_POST_DIV_HOLD_CH2,
     NULL
 };
 
@@ -1572,11 +1624,21 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT_SRAM[] = {
     NULL
 };
 
-static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT_XMEMIF[] = {
-    BCHP_PWR_P_Resource_HW_XPT_XPT_REMUX,
-    BCHP_PWR_P_Resource_HW_SECBUS_XPT_XPT_REMUX,
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT_TSIO[] = {
     BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
     BCHP_PWR_P_Resource_HW_XPT_CH_CTRL_CH_2_POST_DIV_HOLD_CH2,
+    NULL
+};
+
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT_WAKEUP[] = {
+    BCHP_PWR_P_Resource_HW_XPT_WAKEUP,
+    NULL
+};
+
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_XPT_XMEMIF[] = {
+    BCHP_PWR_P_Resource_HW_XPT_XPT_REMUX,
+    BCHP_PWR_P_Resource_HW_XPT_XPT_CORE_XPT_REMUX,
+    BCHP_PWR_P_Resource_HW_SECBUS_XPT_XPT_REMUX,
     NULL
 };
 
@@ -1625,6 +1687,7 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_HVD0_HVD0_CORE[] = 
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_HVD0_HVD0_CPU[] = {
     BCHP_PWR_P_Resource_HW_HVD0,
+    BCHP_PWR_P_Resource_HW_ASP_HVD0_HVD1,
     BCHP_PWR_P_Resource_HW_HVD0_HVD0_CORE,
     BCHP_PWR_P_Resource_HW_HVD0_SECBUS,
     BCHP_PWR_P_Resource_HW_HVD_CH_CTRL_CH_1_POST_DIV_HOLD_CH1,
@@ -1637,6 +1700,7 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_HVD1_HVD1_CORE[] = 
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_HVD1_HVD1_CPU[] = {
+    BCHP_PWR_P_Resource_HW_ASP_HVD0_HVD1,
     BCHP_PWR_P_Resource_HW_HVD1,
     BCHP_PWR_P_Resource_HW_HVD1_HVD1_CORE,
     BCHP_PWR_P_Resource_HW_HVD1_SECBUS,
@@ -1896,12 +1960,15 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     BCHP_PWR_P_Depend_VICE0,
     BCHP_PWR_P_Depend_VICE0_CLK,
     BCHP_PWR_P_Depend_XPT,
+    BCHP_PWR_P_Depend_XPT_CORE,
     BCHP_PWR_P_Depend_XPT_PACKETSUB,
     BCHP_PWR_P_Depend_XPT_PARSER,
     BCHP_PWR_P_Depend_XPT_PLAYBACK,
     BCHP_PWR_P_Depend_XPT_RAVE,
     BCHP_PWR_P_Depend_XPT_REMUX,
     BCHP_PWR_P_Depend_XPT_SRAM,
+    BCHP_PWR_P_Depend_XPT_TSIO,
+    BCHP_PWR_P_Depend_XPT_WAKEUP,
     BCHP_PWR_P_Depend_XPT_XMEMIF,
     NULL,
     NULL,
@@ -1909,6 +1976,7 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     NULL,
     NULL,
     BCHP_PWR_P_Depend_HW_ASP_ASPT_ASP_540,
+    NULL,
     NULL,
     NULL,
     BCHP_PWR_P_Depend_HW_AUD_PLL0,
@@ -1991,6 +2059,8 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     NULL,
     NULL,
     NULL,
+    NULL,
+    NULL,
     BCHP_PWR_P_Depend_MX_INTERNAL_MUX_SELECT_AUDIO0_OSCREF_CMOS_CLOCK,
     BCHP_PWR_P_Depend_MX_INTERNAL_MUX_SELECT_AUDIO1_OSCREF_CMOS_CLOCK,
     BCHP_PWR_P_Depend_MX_ITU656_0_MUX_SELECT_VEC_ITU656_0_CLOCK,
@@ -2033,6 +2103,9 @@ void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate)
             break;
         case BCHP_PWR_HW_ASP_BVN_DVPHR0_DVPHT0_VEC:
             BCHP_PWR_P_HW_ASP_BVN_DVPHR0_DVPHT0_VEC_Control(handle, activate);
+            break;
+        case BCHP_PWR_HW_ASP_HVD0_HVD1:
+            BCHP_PWR_P_HW_ASP_HVD0_HVD1_Control(handle, activate);
             break;
         case BCHP_PWR_HW_ASP_SRAM:
             BCHP_PWR_P_HW_ASP_SRAM_Control(handle, activate);
@@ -2274,6 +2347,12 @@ void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate)
         case BCHP_PWR_HW_XPT_SRAM:
             BCHP_PWR_P_HW_XPT_SRAM_Control(handle, activate);
             break;
+        case BCHP_PWR_HW_XPT_WAKEUP:
+            BCHP_PWR_P_HW_XPT_WAKEUP_Control(handle, activate);
+            break;
+        case BCHP_PWR_HW_XPT_XPT_CORE_XPT_REMUX:
+            BCHP_PWR_P_HW_XPT_XPT_CORE_XPT_REMUX_Control(handle, activate);
+            break;
         case BCHP_PWR_HW_XPT_XPT_REMUX:
             BCHP_PWR_P_HW_XPT_XPT_REMUX_Control(handle, activate);
             break;
@@ -2351,15 +2430,17 @@ void BCHP_PWR_P_DIV_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resou
 }
 
 const BCHP_PmapSettings BCHP_PWR_P_DefaultPMapSettings[BCHP_PWR_NUM_P_PMAPSETTINGS] = {
-    PMAP(CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0, 101),
-    PMAP(CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1, MDIV_CH1, 100),
-    PMAP(CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2, MDIV_CH2, 100),
-    PMAP(CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_5, MDIV_CH5, 100),
-    PMAP(CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5, MDIV_CH5, 100),
-    PMAP(CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0, 60),
+    PMAP(CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0, 8),
+    PMAP(CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1, MDIV_CH1, 6),
+    PMAP(CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2, MDIV_CH2, 7),
+    PMAP(CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_5, MDIV_CH5, 6),
+    PMAP(CLKGEN_PLL_NETWORK_PLL_CHANNEL_CTRL_CH_5, MDIV_CH5, 3),
+    PMAP(CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0, 6),
     PMAP(CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1, MDIV_CH1, 8),
     PMAP(CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_2, MDIV_CH2, 15),
-    PMAP(CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4, MDIV_CH4, 100),
+    PMAP(CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4, MDIV_CH4, 7),
+    PMAP(CLKGEN_PLL_XPT_PLL_DIV, NDIV_INT, 120),
+    PMAP(CLKGEN_PLL_XPT_PLL_DIV, PDIV, 2),
 };
 
 DIVTABLE(DV_HVD_CTRL_CH0_div, -1, -1, 0);
@@ -2367,10 +2448,10 @@ DIVTABLE(DV_HVD_CTRL_CH1_div, -1, -1, 1);
 DIVTABLE(DV_HVD_CTRL_CH2_div, -1, -1, 2);
 DIVTABLE(DV_HVD_CTRL_CH5_div, -1, -1, 3);
 DIVTABLE(DV_NETWORK_CTRL_CH5_div, -1, -1, 4);
-DIVTABLE(DV_XPT_CTRL_CH0_div, -1, -1, 5);
-DIVTABLE(DV_XPT_CTRL_CH1_div, -1, -1, 6);
-DIVTABLE(DV_XPT_CTRL_CH2_div, -1, -1, 7);
-DIVTABLE(DV_XPT_CTRL_CH4_div, -1, -1, 8);
+DIVTABLE(DV_XPT_CTRL_CH0_div, 9, 10, 5);
+DIVTABLE(DV_XPT_CTRL_CH1_div, 9, 10, 6);
+DIVTABLE(DV_XPT_CTRL_CH2_div, 9, 10, 7);
+DIVTABLE(DV_XPT_CTRL_CH4_div, 9, 10, 8);
 
 const BCHP_PWR_P_FreqMap BCHP_PWR_P_FreqMapList[BCHP_PWR_P_NUM_DIVS] = {
     FREQMAP(DV_HVD_CTRL_CH0_div),

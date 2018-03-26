@@ -46,7 +46,12 @@ BDBG_MODULE(nexus_playback_trick);
 static void b_play_stc_rate(NEXUS_PlaybackHandle p, unsigned increment, unsigned prescale);
 static void b_play_stc_invalidate(NEXUS_PlaybackHandle p);
 static void NEXUS_Playback_P_AudioDecoder_Advance(const NEXUS_Playback_P_PidChannel *pid, uint32_t video_pts);
-
+static void NEXUS_P_Playback_AudioDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid);
+static void NEXUS_P_Playback_VideoDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid);
+static void NEXUS_P_Playback_AudioDecoder_GetTrickState(const NEXUS_Playback_P_PidChannel *pid, NEXUS_AudioDecoderTrickState *pState, NEXUS_AudioDecoderTrickState *pSecondaryState);
+static NEXUS_Error NEXUS_P_Playback_AudioDecoder_SetTrickState(const NEXUS_Playback_P_PidChannel *pid, const NEXUS_AudioDecoderTrickState *pState);
+static void NEXUS_P_Playback_VideoDecoder_GetTrickState(const NEXUS_Playback_P_PidChannel *pid, NEXUS_VideoDecoderTrickState *pState);
+static NEXUS_Error NEXUS_P_Playback_VideoDecoder_SetTrickState(const NEXUS_Playback_P_PidChannel *pid, const NEXUS_VideoDecoderTrickState *pState);
 
 static void b_play_advance_audio_once(NEXUS_PlaybackHandle p)
 {
@@ -181,7 +186,7 @@ b_play_trick_set_each_audio(NEXUS_PlaybackHandle p, const NEXUS_Playback_P_PidCh
     else {
         /* stc trick modes */
         if (settings->decode_rate != 0) {
-            /* for non-0, we pass down the rate for DSOLA trick modes. */
+            /* for non-0 or normal, we pass down the rate for DSOLA trick modes or normal play. */
             audioState.rate = settings->decode_rate;
         }
         else {
@@ -198,6 +203,7 @@ b_play_trick_set_each_audio(NEXUS_PlaybackHandle p, const NEXUS_Playback_P_PidCh
     if(settings->decode_mode!=NEXUS_VideoDecoderDecodeMode_eAll) {
         audioState.forceStopped = true;
     }
+    audioState.allowDsola = (settings->audioTrickMode == NEXUS_PlaybackAudioTrickMode_eAuto);
 
     /* mute for stc based pause */
     if ((settings->stc_trick && settings->decode_rate == 0)) {
@@ -662,7 +668,7 @@ NEXUS_Error NEXUS_P_Playback_VideoDecoder_GetStatus(const NEXUS_Playback_P_PidCh
     return NEXUS_NOT_AVAILABLE; /* no BERR_TRACE. could be normal. */
 }
 
-void NEXUS_P_Playback_VideoDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid)
+static void NEXUS_P_Playback_VideoDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid)
 {
     /* only apply to one. there will never be >1 at a time. */
     if(pid->cfg.pidTypeSettings.video.decoder) {
@@ -675,7 +681,7 @@ void NEXUS_P_Playback_VideoDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid)
 #endif
 }
 
-void NEXUS_P_Playback_VideoDecoder_GetTrickState(const NEXUS_Playback_P_PidChannel *pid, NEXUS_VideoDecoderTrickState *pState)
+static void NEXUS_P_Playback_VideoDecoder_GetTrickState(const NEXUS_Playback_P_PidChannel *pid, NEXUS_VideoDecoderTrickState *pState)
 {
     if (pid->cfg.pidTypeSettings.video.decoder) {
         NEXUS_VideoDecoder_GetTrickState(pid->cfg.pidTypeSettings.video.decoder, pState);
@@ -691,7 +697,7 @@ void NEXUS_P_Playback_VideoDecoder_GetTrickState(const NEXUS_Playback_P_PidChann
     return;
 }
 
-NEXUS_Error NEXUS_P_Playback_VideoDecoder_SetTrickState(const NEXUS_Playback_P_PidChannel *pid, const NEXUS_VideoDecoderTrickState *pState)
+static NEXUS_Error NEXUS_P_Playback_VideoDecoder_SetTrickState(const NEXUS_Playback_P_PidChannel *pid, const NEXUS_VideoDecoderTrickState *pState)
 {
     /* only apply to one. there will never be >1 at a time. */
     if (pid->cfg.pidTypeSettings.video.decoder) {
@@ -786,7 +792,7 @@ NEXUS_Error NEXUS_P_Playback_AudioDecoder_GetStatus(const NEXUS_Playback_P_PidCh
     return rc;
 }
 
-void NEXUS_P_Playback_AudioDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid)
+static void NEXUS_P_Playback_AudioDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid)
 {
     BSTD_UNUSED(pid);
 #if NEXUS_HAS_AUDIO
@@ -840,7 +846,7 @@ static void NEXUS_Playback_P_AudioDecoder_Advance(const NEXUS_Playback_P_PidChan
 #endif
 }
 
-void NEXUS_P_Playback_AudioDecoder_GetTrickState(const NEXUS_Playback_P_PidChannel *pid, NEXUS_AudioDecoderTrickState *pState, NEXUS_AudioDecoderTrickState *pSecondaryState)
+static void NEXUS_P_Playback_AudioDecoder_GetTrickState(const NEXUS_Playback_P_PidChannel *pid, NEXUS_AudioDecoderTrickState *pState, NEXUS_AudioDecoderTrickState *pSecondaryState)
 {
     BSTD_UNUSED(pid);
 #if NEXUS_HAS_AUDIO
@@ -874,7 +880,7 @@ void NEXUS_P_Playback_AudioDecoder_GetTrickState(const NEXUS_Playback_P_PidChann
     return;
 }
 
-NEXUS_Error NEXUS_P_Playback_AudioDecoder_SetTrickState(const NEXUS_Playback_P_PidChannel *pid, const NEXUS_AudioDecoderTrickState *pState)
+static NEXUS_Error NEXUS_P_Playback_AudioDecoder_SetTrickState(const NEXUS_Playback_P_PidChannel *pid, const NEXUS_AudioDecoderTrickState *pState)
 {
     NEXUS_Error rc=NEXUS_SUCCESS;
     BSTD_UNUSED(pState);

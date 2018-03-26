@@ -1,5 +1,5 @@
-/***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * [File Description:]
- *
- ***************************************************************************/
+ ******************************************************************************/
 #include "bstd.h"
 #include "bmth.h"
 #include "bast.h"
@@ -68,11 +65,9 @@ BERR_Code BAST_g3_P_InitHandleDefault(BAST_Handle h)
    hDev->hFtmDev.txChannel = BAST_FskChannel_e0;
    hDev->hFtmDev.rxChannel = BAST_FskChannel_e0;
    hDev->hFtmDev.txPower = 0xF;
-   #ifdef BAST_ENABLE_GENERIC_FSK
    hDev->hFtmDev.txFreqHz = 2300000;
    hDev->hFtmDev.rxFreqHz = 2300000;
    hDev->hFtmDev.txDevHz = 40000;
-   #endif
 #endif
    hDev->searchRange = 5000000;
 #ifndef BAST_EXCLUDE_BCM3445

@@ -81,6 +81,7 @@ typedef enum BBOX_XVD_DecodeResolution
    _mfdIndex,       \
    _nexusIndex,     \
    BBOX_XVD_DECODER_USAGE_INFO_V1( _bitDepth, _maxResolution, _frameRate ), \
+   { BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED } \
 }
 
 #define BBOX_XVD_DECODER_USAGE_INFO_V1( _bitDepth, _maxResolution, _frameRate ) \
@@ -88,6 +89,29 @@ typedef enum BBOX_XVD_DecodeResolution
    _bitDepth, \
    _maxResolution, \
    _frameRate \
+}
+
+#define BBOX_XVD_DECODER_INFO_V2( _memIndex, _secondaryMemcIndex, _numChannels, \
+                                  _bitDepth0, _maxResolution0, _frameRate0, _bitDepth0_1, _maxResolution0_1, _frameRate0_1, _mfdIndex0, _nexusIndex0,  \
+                                  _bitDepth1, _maxResolution1, _frameRate1, _mfdIndex1, _nexusIndex1,  \
+                                  _bitDepth2, _maxResolution2, _frameRate2, _mfdIndex2, _nexusIndex2 ) \
+{ \
+   _memIndex,           \
+   _secondaryMemcIndex, \
+   _numChannels, \
+   {\
+      BBOX_XVD_CHANNEL_INFO_V2( _bitDepth0, _maxResolution0, _frameRate0, _bitDepth0_1, _maxResolution0_1, _frameRate0_1, _mfdIndex0, _nexusIndex0 ), \
+      BBOX_XVD_CHANNEL_INFO_V1( _bitDepth1, _maxResolution1, _frameRate1, _mfdIndex1, _nexusIndex1 ), \
+      BBOX_XVD_CHANNEL_INFO_V1( _bitDepth2, _maxResolution2, _frameRate2, _mfdIndex2, _nexusIndex2 ), \
+   }\
+}
+
+#define BBOX_XVD_CHANNEL_INFO_V2( _bitDepth, _maxResolution, _frameRate, _bitDepth_1, _maxResolution_1, _frameRate_1, _mfdIndex, _nexusIndex ) \
+{ \
+   _mfdIndex,       \
+   _nexusIndex,     \
+   BBOX_XVD_DECODER_USAGE_INFO_V1( _bitDepth,   _maxResolution,   _frameRate ),   \
+   BBOX_XVD_DECODER_USAGE_INFO_V1( _bitDepth_1, _maxResolution_1, _frameRate_1 ), \
 }
 
 #define BBOX_XVD_DECODER_INFO_4Kp60_V1( _memIndex, _secondaryMemcIndex, _bitDepth, _mfdIndex0, _nexusIndex0) \
@@ -314,6 +338,62 @@ typedef enum BBOX_XVD_DecodeResolution
       BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED) \
 }
 
+
+#define BBOX_XVD_DECODER_INFO_4Kp60_Excl1080p60_1080p60_V2( _memIndex, _secondaryMemcIndex, \
+                                                _bitDepth0, _mfdIndex0, _nexusIndex0, \
+                                                _bitDepth1, _mfdIndex1, _nexusIndex1) \
+{ \
+   BBOX_XVD_DECODER_INFO_V2( \
+      _memIndex, _secondaryMemcIndex, 2, \
+      _bitDepth0, BBOX_XVD_DecodeResolution_e4K, 60, _bitDepth1, BBOX_XVD_DecodeResolution_eHD, 60, _mfdIndex0, _nexusIndex0, \
+      _bitDepth1, BBOX_XVD_DecodeResolution_eHD, 60, _mfdIndex1, _nexusIndex1, \
+      BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED) \
+}
+
+#define BBOX_XVD_DECODER_INFO_4Kp60_Excl1080p30_1080p30_V2( _memIndex, _secondaryMemcIndex, \
+                                                _bitDepth0, _mfdIndex0, _nexusIndex0, \
+                                                _bitDepth1, _mfdIndex1, _nexusIndex1) \
+{ \
+   BBOX_XVD_DECODER_INFO_V2( \
+      _memIndex, _secondaryMemcIndex, 2, \
+      _bitDepth0, BBOX_XVD_DecodeResolution_e4K, 60, _bitDepth1, BBOX_XVD_DecodeResolution_eHD, 30, _mfdIndex0, _nexusIndex0, \
+      _bitDepth1, BBOX_XVD_DecodeResolution_eHD, 30, _mfdIndex1, _nexusIndex1, \
+      BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED) \
+}
+
+#define BBOX_XVD_DECODER_INFO_1080p60_Excl1080p30_1080p30_V2( _memIndex, _secondaryMemcIndex, \
+                                                _bitDepth0, _mfdIndex0, _nexusIndex0, \
+                                                _bitDepth1, _mfdIndex1, _nexusIndex1) \
+{ \
+   BBOX_XVD_DECODER_INFO_V2( \
+      _memIndex, _secondaryMemcIndex, 2, \
+      _bitDepth0, BBOX_XVD_DecodeResolution_eHD, 60, _bitDepth1, BBOX_XVD_DecodeResolution_eHD, 30, _mfdIndex0, _nexusIndex0, \
+      _bitDepth1, BBOX_XVD_DecodeResolution_eHD, 30, _mfdIndex1, _nexusIndex1, \
+      BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED) \
+}
+
+#define BBOX_XVD_DECODER_INFO_4Kp60_Excl4Kp30_1080p60_V2( _memIndex, _secondaryMemcIndex, \
+                                                _bitDepth0, _mfdIndex0, _nexusIndex0, \
+                                                _bitDepth1, _mfdIndex1, _nexusIndex1) \
+{ \
+   BBOX_XVD_DECODER_INFO_V2( \
+      _memIndex, _secondaryMemcIndex, 2, \
+      _bitDepth0, BBOX_XVD_DecodeResolution_e4K, 60, _bitDepth1, BBOX_XVD_DecodeResolution_e4K, 30, _mfdIndex0, _nexusIndex0, \
+      _bitDepth1, BBOX_XVD_DecodeResolution_eHD, 60, _mfdIndex1, _nexusIndex1, \
+      BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED) \
+}
+
+#define BBOX_XVD_DECODER_INFO_4Kp50_Excl1080p25_1080p25_V2( _memIndex, _secondaryMemcIndex, \
+                                                _bitDepth0, _mfdIndex0, _nexusIndex0, \
+                                                _bitDepth1, _mfdIndex1, _nexusIndex1) \
+{ \
+   BBOX_XVD_DECODER_INFO_V2( \
+      _memIndex, _secondaryMemcIndex, 2, \
+      _bitDepth0, BBOX_XVD_DecodeResolution_e4K, 50, _bitDepth1, BBOX_XVD_DecodeResolution_eHD, 25, _mfdIndex0, _nexusIndex0, \
+      _bitDepth1, BBOX_XVD_DecodeResolution_eHD, 25, _mfdIndex1, _nexusIndex1, \
+      BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED) \
+}
+
 typedef struct BBOX_XVD_Decoder_Usage
 {
     BAVC_VideoBitDepth bitDepth; /* 8 or 10 bit */
@@ -334,6 +414,7 @@ typedef struct BBOX_Xvd_Decoder_Config
           uint32_t mfdIndex;
           uint32_t nexusIndex;
           BBOX_XVD_Decoder_Usage DecoderUsage;
+          BBOX_XVD_Decoder_Usage DecoderUsage_1; /* 2nd usage mode for this nexus decoder */
        } stChannel[BBOX_XVD_MAX_CHANNELS]; /* bounded by pDecoderUsage->numChannels */
     } stDevice;
 } BBOX_Xvd_Decoder_Config;

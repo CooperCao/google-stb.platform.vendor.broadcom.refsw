@@ -174,6 +174,17 @@
 #define BMRC_P_MEMC_ADRS_SHIFT 3
 #define BMRC_P_RANGE_ALIGNMENT_MASK ~0x00000007
 
+#if defined(BCHP_MEMC_GEN_0_REG_START)
+#include "bchp_memc_gen_0.h"
+#endif
+#if defined(BCHP_MEMC_GEN_0_CORE_REV_ID_ARCH_REV_ID_DEFAULT) && defined(BCHP_MEMC_GEN_0_CORE_REV_ID_CFG_REV_ID_DEFAULT) && (((BCHP_MEMC_GEN_0_CORE_REV_ID_ARCH_REV_ID_DEFAULT<<4) + BCHP_MEMC_GEN_0_CORE_REV_ID_CFG_REV_ID_DEFAULT) >= 0xB3)
+/* Range checker ADDRESS is in units of 256 bytes */
+#define BMRC_P_MEMC_RANGE_ADRS_SHIFT 8
+#else
+/* Range checker ADDRESS is in units of 8 bytes */
+#define BMRC_P_MEMC_RANGE_ADRS_SHIFT BMRC_P_MEMC_ADRS_SHIFT
+#endif
+
 #define BMRC_P_CHECKER_COUNT_MAX 8
 
 
@@ -1034,14 +1045,26 @@ BERR_Code BMRC_P_Checker_WriteRegs
     /* write range */
     ulReg = 0;
     ulReg |= BMRC_P_FIELD_DATA(ARC_0_ADRS_RANGE_LOW, ADDRESS,
-                             hChecker->ulStart >> BMRC_P_MEMC_ADRS_SHIFT);
+                             (uint32_t)(hChecker->ulStart >> BMRC_P_MEMC_RANGE_ADRS_SHIFT));
     BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_ADRS_RANGE_LOW, ulReg);
+#if defined(BCHP_MEMC_ARC_0_ARC_0_ADRS_RANGE_LOW_MSB)
+    ulReg = 0;
+    ulReg |= BMRC_P_FIELD_DATA(ARC_0_ADRS_RANGE_LOW_MSB, ADDRESS,
+                             ((hChecker->ulStart >> BMRC_P_MEMC_RANGE_ADRS_SHIFT)>>32));
+    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_ADRS_RANGE_LOW_MSB, ulReg);
+#endif
 
     /* subtract 1 from size to get correct end address offset */
     ulReg = 0;
     ulReg |= BMRC_P_FIELD_DATA(ARC_0_ADRS_RANGE_HIGH, ADDRESS,
-                             (hChecker->ulStart + (hChecker->ulSize - 1)) >> BMRC_P_MEMC_ADRS_SHIFT);
+                             (uint32_t)((hChecker->ulStart + (hChecker->ulSize - 1)) >> BMRC_P_MEMC_RANGE_ADRS_SHIFT));
     BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_ADRS_RANGE_HIGH, ulReg);
+#if defined(BCHP_MEMC_ARC_0_ARC_0_ADRS_RANGE_HIGH_MSB)
+    ulReg = 0;
+    ulReg |= BMRC_P_FIELD_DATA(ARC_0_ADRS_RANGE_HIGH_MSB, ADDRESS,
+                             (((hChecker->ulStart + (hChecker->ulSize - 1)) >> BMRC_P_MEMC_RANGE_ADRS_SHIFT)>>32));
+    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_ADRS_RANGE_HIGH_MSB, ulReg);
+#endif
 
     /* write exclusive mode */
     ulReg = 0;

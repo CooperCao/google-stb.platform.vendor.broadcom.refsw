@@ -82,7 +82,8 @@
 #define B_IPC_SERVER_COMPLETED(module, api) __rc = NEXUS_SUCCESS ; api##_done: nexus_p_##module##_api_call_completed(__vout_data, &_api##api, __in_data, __out_data);
 #define B_IPC_SERVER_END(module, api) }  break; goto api##_done;
 #define B_IPC_SERVER_PARAM(type, name)  type name;
-#define B_IPC_SERVER_CALL(api, funcname, args) __result = B_IPC_FIELD(api, out, ret.__retval) = funcname args; if(B_IPC_FIELD(api, out, ret.__retval) !=NEXUS_SUCCESS) {__rc=NEXUS_SUCCESS;goto api##_done;};
+#define B_IPC_SERVER_CALL(api, funcname, args) __result = B_IPC_FIELD(api, out, ret.__retval) = funcname args; __rc=__result;
+#define B_IPC_SERVER_CHECK_RETURN_CODE(api) if(__rc != NEXUS_SUCCESS) {__rc=NEXUS_SUCCESS;goto api##_done;}
 #define B_IPC_SERVER_CONSTRUCTOR(module, api, _class, funcname) if(__rc==NEXUS_SUCCESS) {NEXUS_DRIVER_CREATE_OBJECT(module, _class, B_IPC_FIELD(api, out, ret.__retval));}
 #define B_IPC_SERVER_CONSTRUCTOR_ENUM(module, api, _class, funcname) if(__rc==NEXUS_SUCCESS) {NEXUS_DRIVER_CREATE_OBJECT(module, _class, (void *)B_IPC_FIELD(api, out, ret.__retval));}
 #define B_IPC_SERVER_ACQUIRE(module, api, _class, funcname) if(__rc==NEXUS_SUCCESS) {NEXUS_DRIVER_ACQUIRE_OBJECT(module, _class, B_IPC_FIELD(api, out, ret.__retval));}

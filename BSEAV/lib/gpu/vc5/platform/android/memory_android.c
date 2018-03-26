@@ -15,7 +15,7 @@
 #include <EGL/egl.h>
 #include <ctype.h>
 
-#include <cutils/log.h>
+#include <log/log.h>
 #include <cutils/properties.h>
 #define PRINTF ALOGD
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -71,7 +71,8 @@ using namespace std;
 #define TRACELOG_ENTRY_SIZE 50
 /*32 bit bitMask 'CPUCoresBitMask' is used to save the number of active cores along with their IDs. Hence MAX_NUM_CPU_CORES = 32*/
 #define MAX_NUM_CPU_CORES 32
-#define MAX_NO_ENTRIES_COUNT 10
+#define NUM_CPU_CORES 4
+#define MAX_NO_ENTRIES_COUNT 100
 
 typedef int parseError;
 
@@ -130,6 +131,7 @@ private:
     bool isInitialized;
     fstream *pLogFile;
     int traceLogFD;
+
     map<uint16_t, struct TaskData> tasksMap;
     map<uint8_t, set<uint16_t>> cpuTasksMap;
     map<string, uint8_t> fieldWidthMap;
@@ -184,8 +186,9 @@ int main(int argc, const char *argv[])
     Analyzer *pInstance = new Analyzer();
     int rc;
     set<uint8_t>::iterator coreIt;
-    uint8_t dataFetchIteration = 0;
-    uint8_t sleepDuration = 1;
+    uint32_t dataFetchIteration = 0;
+    /* Capture and parse every 100 ms by default in live mode*/
+    uint32_t sleepDuration = 100 * 1000;
     bool firstIteration = true;
     /*Number of consecutive iterations without entries*/
     uint8_t noEntriesIteration = 0;
@@ -230,7 +233,7 @@ int main(int argc, const char *argv[])
     cout << "\x1B[H";
 
     if (pInstance->inMode == eFILE ) {
-        sleepDuration = pInstance->options.duration;
+        sleepDuration *= pInstance->options.duration * 10;
     }
 
     while (gSignalStatus == eRUNNING) {
@@ -253,7 +256,7 @@ int main(int argc, const char *argv[])
         if (pInstance->inMode == ePIPE ) {
             dataFetchIteration++;
             if (false == firstIteration) {
-                if (dataFetchIteration < pInstance->options.duration) {
+                if (dataFetchIteration < (pInstance->options.duration * 10)) {
                     goto SLEEP;
                 }
                 else
@@ -287,7 +290,7 @@ int main(int argc, const char *argv[])
             pInstance->clearPrevDump();
 
 SLEEP:
-        sleep(sleepDuration);
+        usleep(sleepDuration);
     }
 
     /*To show cursor*/
@@ -464,6 +467,7 @@ void Analyzer::dumpTaskDataToConsole(int cpuID)
         temp.taskInfo.CPUperAccumulated = 0;
         temp.taskInfo.taskLoadAccumalated = 0;
     }
+    cpuTasksMap.clear();
 }
 
 int Analyzer::init()
@@ -566,11 +570,14 @@ int Analyzer::captureEntries()
 {
     size_t rn;
     traceLogFD = open(TRACELOGGER_FILE_PATH, 0);
+
     if (traceLogFD == -1) {
         cout << setw(maxWidth) << "Error in opening " <<  TRACELOGGER_FILE_PATH << endl;
         raise(SIGTERM);
         return -1;
     }
+
+
     logData.clear();
     while ((rn = read(traceLogFD, buf, BUFFSIZE)) > 0) {
         logData.insert(logData.end(), buf, buf + rn);
@@ -582,6 +589,7 @@ int Analyzer::captureEntries()
 
 int Analyzer::getCPUCoresInfo()
 {
+#if 0
     vector<char> cpuInfoLog;
     size_t rn;
     int cpuInfoFD;
@@ -615,6 +623,13 @@ int Analyzer::getCPUCoresInfo()
         }
     }
     cpuInfoLog.clear();
+    return 0;
+#endif
+
+    int i;
+    for (i = 0; i < NUM_CPU_CORES; i++) {
+        cpuCores.insert((uint8_t)i);
+    }
     return 0;
 }
 
@@ -668,7 +683,6 @@ int Analyzer::parseEntries()
         goto DONE;
     }
     memset(pGISBData, 0, sizeof(*pGISBData));
-    cpuTasksMap.clear();
     if (inMode ==ePIPE && logData.data() == NULL) {
         goto DONE;
     }

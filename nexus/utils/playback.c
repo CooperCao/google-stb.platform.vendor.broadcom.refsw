@@ -286,6 +286,7 @@ static void start_audio(const struct util_opts_t *opts, NEXUS_AudioDecoderHandle
 
             NEXUS_AudioDecoder_SetCodecSettings(audioDecoder,&codecSettings);
         }
+
         if(opts->common.decodedAudio) {
             rc = NEXUS_AudioDecoder_Start(audioDecoder, audioProgram);
             BDBG_ASSERT(!rc);
@@ -899,7 +900,10 @@ int main(int argc, const char *argv[])
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_StcChannelHandle stcChannel;
     NEXUS_StcChannelSettings stcSettings;
-    NEXUS_PidChannelHandle videoPidChannel = NULL, audioPidChannel = NULL, pcrPidChannel, videoExtPidChannel=NULL;
+    NEXUS_PidChannelHandle videoPidChannel = NULL, pcrPidChannel, videoExtPidChannel=NULL;
+#if NEXUS_HAS_AUDIO
+    NEXUS_PidChannelHandle audioPidChannel = NULL;
+#endif
     NEXUS_DisplayHandle display;
     NEXUS_DisplaySettings displaySettings;
     NEXUS_DisplayVbiSettings displayVbiSettings;
@@ -1463,7 +1467,17 @@ int main(int argc, const char *argv[])
     if (opts.common.masterModeTimingGenerator) {
         displaySettings.timingGenerator = NEXUS_DisplayTimingGenerator_eHdmiDvo; /* HDMI master mode */
     }
+    else if (opts.common.ccir656MasterModeTimingGenerator) {
+        displaySettings.timingGenerator = NEXUS_DisplayTimingGenerator_e656Output; /* 656 master mode */
+    }
     display = NEXUS_Display_Open(0, &displaySettings);
+
+#if NEXUS_NUM_656_OUTPUTS
+    if (opts.common.useCcir656Output && platformConfig.outputs.ccir656[0] && display) {
+       rc = NEXUS_Display_AddOutput(display, NEXUS_Ccir656Output_GetConnector( platformConfig.outputs.ccir656[0]));
+       if (rc) BERR_TRACE(rc); /* keep going */
+    }
+#endif
 
 #if NEXUS_NUM_COMPOSITE_OUTPUTS
     if (opts.common.useCompositeOutput && platformConfig.outputs.composite[0] && platformCap.display[1].supported && !platformCap.display[1].encoder) {
@@ -1477,12 +1491,6 @@ int main(int argc, const char *argv[])
         if(displaySD) {
             rc = NEXUS_Display_AddOutput(displaySD, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
             if (rc) BERR_TRACE(rc); /* keep going */
-#if NEXUS_NUM_656_OUTPUTS
-            if (opts.common.useCcir656Output && platformConfig.outputs.ccir656[0] && displaySD) {
-               rc = NEXUS_Display_AddOutput(displaySD, NEXUS_Ccir656Output_GetConnector( platformConfig.outputs.ccir656[0]));
-               if (rc) BERR_TRACE(rc); /* keep going */
-            }
-#endif
         }
     }
 #endif
@@ -1777,6 +1785,7 @@ int main(int argc, const char *argv[])
         videoExtPidChannel = NEXUS_Playback_OpenPidChannel(playback, opts.common.extVideoPid, &playbackPidSettings);
     }
 
+#if NEXUS_HAS_AUDIO
     if (opts.common.audioCodec != NEXUS_AudioCodec_eUnknown && opts.common.audioPid!=0 && (opts.common.decodedAudio || compressedDecoder)) {
         NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
         playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
@@ -1796,6 +1805,7 @@ int main(int argc, const char *argv[])
         playbackPidSettings.pidSettings.pidTypeSettings.audio.codec = opts.common.audioCodec;
         audioPidChannel = NEXUS_Playback_OpenPidChannel(playback, opts.common.audioPid, &playbackPidSettings);
     }
+#endif
 
     if (opts.common.pcrPid && opts.common.pcrPid!=opts.common.videoPid && opts.common.pcrPid!=opts.common.audioPid) {
         NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
@@ -1828,6 +1838,10 @@ int main(int argc, const char *argv[])
     audioProgram.pidChannel = audioPidChannel;
     audioProgram.stcChannel = stcChannel;
     audioProgram.maxOutputRate = opts.common.maxAudioRate;
+    if ( opts.common.secureAudio )
+    {
+        audioProgram.secureAudio = NEXUS_AudioDecoderSecureType_eSecure;
+    }
 #endif
 
     /* Start decoders */
@@ -2293,13 +2307,14 @@ int main(int argc, const char *argv[])
                                 vstatus.enhancementFifoDepth * 100 / vstatus.enhancementFifoSize);
                     }
 
-                    printf("video %u/%u (%u%%)%s pts=%#x, stc=%#x (diff %d) fps=%sHz, queueDepth=%d %uKbps, profile %s, level %s\n", vstatus.fifoDepth, vstatus.fifoSize,
+                    printf("video %u/%u (%u%%)%s pts=%#x, stc=%#x (diff %d) fps=%sHz, queueDepth=%d %uKbps %ux%u, profile %s, level %s\n", vstatus.fifoDepth, vstatus.fifoSize,
                         vstatus.fifoSize ? vstatus.fifoDepth * 100 / vstatus.fifoSize : 0,
                         enhancementInfo,
                         vstatus.pts, stc, vstatus.ptsStcDifference,
                         lookup_name(g_videoFrameRateStrs, vstatus.frameRate),
                         vstatus.queueDepth,
                         (decoder_bitrate_video(&video_bitrate, &vstatus) + 500)/1000,
+                        vstatus.source.width, vstatus.source.height,
                         lookup_name(g_videoCodecProfileStrs, vstatus.protocolProfile),
                         lookup_name(g_videoCodecLevelStrs, vstatus.protocolLevel));
 
@@ -2849,8 +2864,17 @@ uninit:
     stop_video(&opts, videoDecoder);
     stop_audio(&opts, audioDecoder, compressedDecoder);
 
+#if NEXUS_HAS_AUDIO
+    if(audioDecoder) {
+        NEXUS_AudioDecoder_Close(audioDecoder);
+    }
+    if(compressedDecoder) {
+        NEXUS_AudioDecoder_Close(compressedDecoder);
+    }
+#endif
     NEXUS_StcChannel_Close(stcChannel);
     NEXUS_Playback_CloseAllPidChannels(playback);
+    NEXUS_VideoDecoder_Close(videoDecoder);
     NEXUS_FilePlay_Close(file);
     NEXUS_Playback_Destroy(playback);
     NEXUS_Playpump_Close(playpump);
@@ -2864,19 +2888,10 @@ uninit:
         }
         NEXUS_Display_Close(displaySD);
     }
-
-    NEXUS_VideoDecoder_Close(videoDecoder);
     if (framebuffer) {
         NEXUS_Surface_Destroy(framebuffer);
     }
-#if NEXUS_HAS_AUDIO
-    if(audioDecoder) {
-        NEXUS_AudioDecoder_Close(audioDecoder);
-    }
-    if(compressedDecoder) {
-        NEXUS_AudioDecoder_Close(compressedDecoder);
-    }
-#endif
+
     BKNI_DestroyEvent(endOfStreamEvent);
     NEXUS_Platform_Uninit();
 

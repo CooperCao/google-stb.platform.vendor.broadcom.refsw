@@ -40,7 +40,6 @@
 
 #include "nexus_types.h"
 #include "nexus_simple_audio_decoder.h"
-#include "nexus_simple_audio_playback.h"
 #include "nexus_simple_decoder_types.h"
 #include "nexus_stc_channel.h"
 #if NEXUS_HAS_AUDIO
@@ -56,6 +55,7 @@
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #endif
+#include "nexus_simple_audio_playback_server.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -133,6 +133,8 @@ typedef struct NEXUS_SimpleAudioDecoderServerSettings
         NEXUS_AudioInputHandle input;
         NEXUS_AudioPresentation presentation; /* If alternate stereo and AC4 stream connect to the decoders alternate stereo path, other wise connects to input. */
     } i2s[NEXUS_MAX_SIMPLE_DECODER_I2S_OUTPUTS];
+
+    NEXUS_SimpleAudioPlaybackServerHandle simplePlayback;
 } NEXUS_SimpleAudioDecoderServerSettings;
 
 void NEXUS_SimpleAudioDecoder_GetDefaultServerSettings(
@@ -169,51 +171,12 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SetServerSettings(
     const NEXUS_SimpleAudioDecoderServerSettings *pSettings
     );
 
-typedef struct NEXUS_SimpleAudioPlaybackServerSettings
-{
-    NEXUS_SimpleAudioDecoderHandle decoder;
-    NEXUS_AudioPlaybackHandle playback;
-    NEXUS_I2sInputHandle i2sInput;
-
-    struct {
-        bool enabled;
-        NEXUS_SpdifOutputHandle spdifOutputs[NEXUS_MAX_SIMPLE_DECODER_SPDIF_OUTPUTS];
-        NEXUS_HdmiOutputHandle hdmiOutputs[NEXUS_MAX_SIMPLE_DECODER_HDMI_OUTPUTS];
-    } compressed;
-} NEXUS_SimpleAudioPlaybackServerSettings;
-
-void NEXUS_SimpleAudioPlayback_GetDefaultServerSettings(
-    NEXUS_SimpleAudioPlaybackServerSettings *pSettings /* [out] */
-    );
-    
-NEXUS_SimpleAudioPlaybackHandle NEXUS_SimpleAudioPlayback_Create( /* attr{destructor=NEXUS_SimpleAudioPlayback_Destroy}  */
+NEXUS_Error NEXUS_SimpleAudioDecoder_MoveServerSettings(
     NEXUS_SimpleAudioDecoderServerHandle server,
-    unsigned index,
-    const NEXUS_SimpleAudioPlaybackServerSettings *pSettings /* attr{null_allowed=y} */
+    NEXUS_SimpleAudioDecoderHandle source,
+    NEXUS_SimpleAudioDecoderHandle destination
     );
-
-void NEXUS_SimpleAudioPlayback_Destroy(
-    NEXUS_SimpleAudioPlaybackHandle handle
-    );
-    
-void NEXUS_SimpleAudioPlayback_GetServerSettings(
-    NEXUS_SimpleAudioDecoderServerHandle server,
-    NEXUS_SimpleAudioPlaybackHandle handle,
-    NEXUS_SimpleAudioPlaybackServerSettings *pSettings /* [out] */
-    );
-
-NEXUS_Error NEXUS_SimpleAudioPlayback_SetServerSettings(
-    NEXUS_SimpleAudioDecoderServerHandle server,
-    NEXUS_SimpleAudioPlaybackHandle handle,
-    const NEXUS_SimpleAudioPlaybackServerSettings *pSettings
-    );    
-    
-
-NEXUS_Error NEXUS_SimpleAudioDecoder_SwapServerSettings( 
-    NEXUS_SimpleAudioDecoderServerHandle server,
-    NEXUS_SimpleAudioDecoderHandle decoder1, 
-    NEXUS_SimpleAudioDecoderHandle decoder2
-    );
+#define NEXUS_SimpleAudioDecoder_SwapServerSettings NEXUS_SimpleAudioDecoder_MoveServerSettings
 
 void NEXUS_SimpleAudioDecoderModule_LoadDefaultSettings(
     NEXUS_AudioDecoderHandle audio

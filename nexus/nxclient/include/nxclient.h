@@ -88,6 +88,7 @@ Garbage collection and handle tracking is done at a process-level, not a thread-
 #define NXCLIENT_DYNAMIC_HEAP            4
 #define NXCLIENT_EXPORT_HEAP             5
 #define NXCLIENT_SECURE_GRAPHICS_HEAP    6
+#define NXCLIENT_ARR_HEAP                7
 
 #define NXCLIENT_NOT_ALLOWED             NEXUS_MAKE_ERR_CODE(0x200, 1)
 

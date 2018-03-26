@@ -84,15 +84,6 @@ static struct b_shared_gpio {
 
 #if B_SHARED_GPIO_OS_SUPPORT >= 5
 #define b_shared_gpio_get_feature_support() b_shared_gpio_check_linux_managed_gpio_irqs()
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
-static irqreturn_t b_shared_gpio_check_linux_l1_isr(int irq, void *dev_id)
-#else
-static irqreturn_t b_shared_gpio_check_linux_l1_isr(int irq, void *dev_id, struct pt_regs *regs)
-#endif
-{
-    disable_irq_nosync(irq);
-    return IRQ_HANDLED;
-}
 
 static bool b_shared_gpio_check_linux_managed_gpio_irqs(void)
 {
@@ -109,25 +100,12 @@ static bool b_shared_gpio_check_linux_managed_gpio_irqs(void)
 
     if (g_shared_gpio_state.settings.gio_linux_irq && g_shared_gpio_state.settings.gio_aon_linux_irq)
     {
-        if (request_irq(g_shared_gpio_state.settings.gio_linux_irq, b_shared_gpio_check_linux_l1_isr, IRQF_TRIGGER_HIGH, "nexus_gpio", &gio) == -EINVAL)
+        linux_managed = b_os_irq_is_os_managed(g_shared_gpio_state.settings.gio_linux_irq);
+        if (g_brcm_gpio_verbose) PINFO("%s +gpio\n", linux_managed?"linux":"nexus");
+        if (!linux_managed)
         {
-            if (g_brcm_gpio_verbose) PINFO("linux +gpio\n");
-            linux_managed = true;
-        }
-        else
-        {
-            if (g_brcm_gpio_verbose) PINFO("nexus +gpio\n");
-            free_irq(g_shared_gpio_state.settings.gio_linux_irq, &gio);
-            if (request_irq(g_shared_gpio_state.settings.gio_aon_linux_irq, b_shared_gpio_check_linux_l1_isr, IRQF_TRIGGER_HIGH, "nexus_gpio", &gio_aon) == -EINVAL)
-            {
-                if (g_brcm_gpio_verbose) PINFO("linux +aon.gpio\n");
-                linux_managed = true;
-            }
-            else
-            {
-                if (g_brcm_gpio_verbose) PINFO("nexus +aon.gpio\n");
-                free_irq(g_shared_gpio_state.settings.gio_aon_linux_irq, &gio_aon);
-            }
+            linux_managed = b_os_irq_is_os_managed(g_shared_gpio_state.settings.gio_aon_linux_irq);
+            if (g_brcm_gpio_verbose) PINFO("%s +aon.gpio\n", linux_managed?"linux":"nexus");
         }
     }
     else

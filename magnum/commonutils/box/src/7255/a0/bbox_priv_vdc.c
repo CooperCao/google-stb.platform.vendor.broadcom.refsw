@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -59,6 +59,7 @@
 #include "bbox_rts_box2.h"
 #include "bbox_rts_box3.h"
 #include "bbox_rts_box4.h"
+#include "bbox_rts_box5.h"
 
 BDBG_MODULE(BBOX_PRIV);
 BDBG_OBJECT_ID(BBOX_BOX_PRIV);
@@ -90,6 +91,7 @@ void BBOX_P_Vdc_SetSourceCapabilities
             BBOX_P_Vdc_SetBox3SourceCapabilities(pSourceCap);
             break;
         case 4:
+        case 5: /* Same as box mode 4 */
             BBOX_P_Vdc_SetBox4SourceCapabilities(pSourceCap);
             break;
     }
@@ -111,6 +113,7 @@ void BBOX_P_Vdc_SetDisplayCapabilities
             BBOX_P_Vdc_SetBox3DisplayCapabilities(pDisplayCap);
             break;
         case 4:
+        case 5: /* Same as box mode 4 */
             BBOX_P_Vdc_SetBox4DisplayCapabilities(pDisplayCap);
             break;
     }
@@ -132,6 +135,7 @@ void BBOX_P_Vdc_SetDeinterlacerCapabilities
             BBOX_P_Vdc_SetBox3DeinterlacerCapabilities(pDeinterlacerCap);
             break;
         case 4:
+        case 5: /* Same as box mode 4 */
             BBOX_P_Vdc_SetBox4DeinterlacerCapabilities(pDeinterlacerCap);
             break;
     }
@@ -153,6 +157,7 @@ void BBOX_P_Vdc_SetXcodeCapabilities
             BBOX_P_Vdc_SetBox3XcodeCapabilities(pXcodeCap);
             break;
         case 4:
+        case 5: /* Same as box mode 4 */
             BBOX_P_Vdc_SetBox4XcodeCapabilities(pXcodeCap);
             break;
     }
@@ -184,6 +189,10 @@ BERR_Code BBOX_P_SetMemConfig
         case 4:
             BBOX_P_SetBox4MemConfig(pBoxMemConfig);
             break;
+        case 5: /* Same as box mode 4  except for box mode RTS name */
+            BBOX_P_SetBox4MemConfig(pBoxMemConfig);
+            BBOX_P_SetBox5MemConfig(pBoxMemConfig);
+            break;
         default:
             BDBG_ERR(("There is no box mode %d MEMC configuration.", ulBoxId));
             eStatus = BBOX_MEM_CFG_UNINITIALIZED;
@@ -209,6 +218,9 @@ BERR_Code BBOX_P_GetRtsConfig
             break;
         case 4:
             BBOX_P_GetBox4Rts(pBoxRts);
+            break;
+        case 5:
+            BBOX_P_GetBox5Rts(pBoxRts);
             break;
         default:
             BDBG_ERR(("There is no box mode %d RTS configuration.", ulBoxId));

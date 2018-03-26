@@ -64,7 +64,8 @@ APPS = \
     stats_client \
     status_client \
     transcode \
-    transcode_programchange
+    transcode_programchange \
+    transcode_with_local_decode
 
 ifeq ($(shell test -f audio_ms12_mixing.c && echo y),y)
 APPS += audio_ms12_mixing

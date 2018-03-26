@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,7 +50,9 @@ static enum {
     state_started_midpoint_pet,
     state_max
 } g_state;
+#if BDBG_DEBUG_BUILD && !B_REFSW_DEBUG_COMPACT_ERR
 static const char *g_stateStr[state_max] = {"stopped","started","started_midpoint_pet"};
+#endif
 
 static void midpoint_callback(void *context, int param)
 {

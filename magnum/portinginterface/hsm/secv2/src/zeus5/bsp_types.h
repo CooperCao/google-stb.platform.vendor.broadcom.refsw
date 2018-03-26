@@ -257,6 +257,7 @@ typedef enum Bsp_KeySlotOwnership_e
 {
     Bsp_KeySlotOwnership_eFree = 0,
     Bsp_KeySlotOwnership_eSage = 1,
+    Bsp_KeySlotOwnership_eReserved1 = 1,
     Bsp_KeySlotOwnership_eShared = 2,
     Bsp_KeySlotOwnership_eMax
 } Bsp_KeySlotOwnership_e;
@@ -302,7 +303,7 @@ typedef enum Bsp_Sc01ModeWordMapping_e
 } Bsp_Sc01ModeWordMapping_e;
 
 
-/* used by components[Crypto KeyLadder Rpmb] */
+/* used by components[Crypto KeyLadder Rpmb Rv] */
 typedef enum Bsp_VklId_e
 {
     Bsp_VklId_e0 = 0,
@@ -317,7 +318,7 @@ typedef enum Bsp_VklId_e
 } Bsp_VklId_e;
 
 
-/* used by components[Crypto KeyLadder] */
+/* used by components[Crypto KeyLadder Rv] */
 typedef enum Bsp_KeyLadderLayer_e
 {
     Bsp_KeyLadderLayer_eKey4 = 4,
@@ -430,15 +431,6 @@ typedef enum Bsp_HwklLength_e
 } Bsp_HwklLength_e;
 
 
-/* used by components[Hwkl] */
-typedef enum Bsp_HwklOp_e
-{
-    Bsp_HwklOp_eDecrypt = 0,
-    Bsp_HwklOp_eEncrypt = 1,
-    Bsp_HwklOp_eMax
-} Bsp_HwklOp_e;
-
-
 /* used by components[Duple Elcajon Hdcp1x Hdcp22 Hwkl KeyLadder] */
 typedef enum Bsp_Askm_MaskKeySel_e
 {
@@ -476,15 +468,6 @@ typedef enum Bsp_Otp_KeyType_e
 
 
 /* used by components[OtpMode0] */
-typedef enum Bsp_Otp_SecondBblHashCmdSubtype_e
-{
-    Bsp_Otp_SecondBblHashCmdSubtype_eProgValidSecondBblHash = 0x0,
-    Bsp_Otp_SecondBblHashCmdSubtype_eDisableSecondBblHash = 0x1,
-    Bsp_Otp_SecondBblHashCmdSubtype_eMax
-} Bsp_Otp_SecondBblHashCmdSubtype_e;
-
-
-/* used by components[OtpMode0] */
 typedef enum Bsp_Otp_Mc0SField_e
 {
     Bsp_Otp_Mc0SField_eRedacted_0 = 0,
@@ -502,7 +485,7 @@ typedef enum Bsp_Otp_KeyField_e
     Bsp_Otp_KeyField_eMc0CustomerMode = 0,
     Bsp_Otp_KeyField_eRedacted_1 = 1,
     Bsp_Otp_KeyField_eMc0RootKeySwapDisallow = 2,
-    Bsp_Otp_KeyField_eRedacted_3 = 3,
+    Bsp_Otp_KeyField_eMc0FixedDeobfuscationVariantEnable = 3,
     Bsp_Otp_KeyField_eMc0DeobfuscationEnable = 4,
     Bsp_Otp_KeyField_eMc0CaKeyLadderDisallow = 5,
     Bsp_Otp_KeyField_eMc0CpKeyLadderDisallow = 6,

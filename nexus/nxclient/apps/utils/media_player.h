@@ -182,11 +182,9 @@ typedef struct media_player_start_settings
     enum media_player_audio_primers audio_primers;
     NEXUS_SimpleStcChannelSyncMode sync; /* sync mode for simple stc channel */
     NEXUS_StcChannelAutoModeBehavior stcMaster;
-    const char  *additional_headers;/* Additional HTTP headers that app wants to include in the outgoing Get Request. Terminate each header with "\0xd\0xa". */
     struct {
         unsigned endOfStreamTimeout;
     } playbackSettings;
-    media_player_settings  mediaPlayerSettings;
     bool astm;
     bool forceStopDisconnect; /* Force media player disconnect when stopping */
     NEXUS_VideoDecoderCrcMode crcMode;

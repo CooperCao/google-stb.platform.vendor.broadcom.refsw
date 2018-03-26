@@ -32,39 +32,31 @@
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/vmalloc.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 9)
 #include <linux/pfn.h>
+#else
+#include <linux/pfn_t.h>
+#endif
 #include <linux/dma-buf.h>
 #include <linux/list.h>
+#include <linux/pagemap.h>
 #include <uapi/drm/brcmv3d_drm.h>
 
-#include <asm/cacheflush.h>
-#include <asm/tlbflush.h>
 #include <asm/barrier.h>
 
 #include "v3d_drv.h"
 
 #define DRIVER_NAME	"brcmv3d"
 #define DRIVER_DESC	"Broadcom V3D GEM provider"
-#define DRIVER_DATE	"20180110"
-#define DRIVER_MAJOR	1
-#define DRIVER_MINOR	1
-#define DRIVER_PATCH    2
+#define DRIVER_DATE	"20180313"
+#define DRIVER_MAJOR	2
+#define DRIVER_MINOR	0
+#define DRIVER_PATCH	0
 
-/*
- * Add a new debug level for verbose information from the memory allocations
- * while we are developing.
- */
-#define DRM_UT_ALLOC 0x100
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 9)
-#define DRM_DEBUG_ALLOC(fmt, args...)				   \
-	do {							    \
-		if (unlikely(drm_debug & DRM_UT_ALLOC))		 \
-			drm_ut_debug_printk(__func__, fmt, ##args);     \
-	} while (0)
-#else
-#define DRM_DEBUG_ALLOC(fmt, ...)					\
-	drm_printk(KERN_DEBUG, DRM_UT_ALLOC, fmt, ##__VA_ARGS__)
-#endif
+static gfp_t shm_mapping_mask;
+
+/* Do not use Broadcom CMA regions even if we find any */
+unsigned int ignore_cma;
 
 /*
  * General helpers
@@ -75,72 +67,6 @@ static inline size_t v3d_nr_hwpages(size_t size)
 		return 0;
 
 	return size >> V3D_HW_PAGE_SHIFT;
-}
-
-static inline bool v3d_alloc_block_full(struct v3d_alloc_block *b)
-{
-	return bitmap_full(b->alloc_map, V3D_CMA_ALLOC_MAP_SIZE);
-}
-
-static int v3d_cmadev_get_mem_unmapped(struct v3d_drm_dev_private *dp,
-				       u64 *addr, int cmadev,
-				       size_t size, size_t align)
-{
-	int err;
-
-	DRM_DEBUG_ALLOC("cma_dev[%d]=0x%pK, size=%zu, align=%zu\n",
-			cmadev, dp->cma_devs[cmadev], size, align);
-
-	if (WARN_ON(cmadev >= dp->nr_cma_devs) ||
-	    WARN_ON(!dp->cma_devs[cmadev]))
-		return -ENOMEM;
-
-	err = cma_dev_get_mem(dp->cma_devs[cmadev], addr, size, align);
-	if (!err) {
-		u64 lastaddr = *addr + size - 1;
-
-		/*
-		 * If the HW cannot address this memory,
-		 * release it and return an error for this cma dev
-		 */
-		if ((lastaddr & ~dp->mmu_dma_mask) != 0) {
-			cma_dev_put_mem(dp->cma_devs[cmadev], *addr, size);
-			return -ENOMEM;
-		}
-	}
-	return err;
-}
-
-static int v3d_cma_get_mem_unmapped(struct v3d_drm_dev_private *dp,
-				    phys_addr_t *phys, int *cmadev,
-				    size_t size, size_t align)
-{
-	int i, err;
-	u64 addr;
-
-	/*
-	 * cmadev contains the preferred device, but if that is out of memory
-	 * try and find something in another device if we have more than one.
-	 */
-	for (i = 0; i < dp->nr_cma_devs; i++) {
-		int dev_nr = (*cmadev + i) % dp->nr_cma_devs;
-
-		err = v3d_cmadev_get_mem_unmapped(dp, &addr, dev_nr,
-						  size, align);
-		if (!err) {
-			*cmadev = dev_nr;
-			*phys = (phys_addr_t)addr;
-			return 0;
-		}
-	}
-	return -ENOMEM;
-}
-
-static inline
-void v3d_cma_put_mem_unmapped(struct v3d_drm_dev_private *dp,
-			      int cmadev, phys_addr_t phys, size_t size)
-{
-	cma_dev_put_mem(dp->cma_devs[cmadev], phys, size);
 }
 
 /*
@@ -161,14 +87,9 @@ void v3d_hw_pagetable_clear_range(u32 *pt, u32 hw_vaddr, size_t size)
 static void v3d_hw_pagetable_map_page(u32 *pt, u32 hw_vaddr,
 				      phys_addr_t hw_physaddr, bool readonly)
 {
-	const int n = V3D_HW_PAGE_SHIFT > V3D_HW_SMALLEST_PAGE_SHIFT ? 16 : 1;
 	loff_t pg_offset = hw_vaddr >> V3D_HW_SMALLEST_PAGE_SHIFT;
 	u32 *page = pt + pg_offset;
-	u32 entry;
-	int i;
-
-	entry = (hw_physaddr >> V3D_HW_SMALLEST_PAGE_SHIFT);
-
+	u32 entry = hw_physaddr >> V3D_HW_SMALLEST_PAGE_SHIFT;
 	/*
 	 * The hardware can potentially handle 40bit physical output addresses
 	 * which when shifted down by the 4K page size occupy the low bits
@@ -185,15 +106,7 @@ static void v3d_hw_pagetable_map_page(u32 *pt, u32 hw_vaddr,
 	else
 		entry |= V3D_HW_DEFAULT_PAGE_FLAGS | V3D_PAGE_FLAG_WRITE;
 
-	/*
-	 * When using 64k "bigpages" we do not have to populate each
-	 * table entry with a different 4K physical page address, but
-	 * it makes it easier to switch the MMU back to 4K pages for debug
-	 * experiments.
-	 */
-	for (i = 0; i < n; i++)
-		*page++ = entry++;
-
+	*page = entry;
 	/* No cache flush for dma coherent memory, but it should be buffered */
 	dma_wmb();
 }
@@ -206,6 +119,10 @@ static int v3d_hw_virtual_mem_init(struct v3d_hw_virtual_mem *hw_vmem,
 	u32 *pt;
 	dma_addr_t dma_handle;
 	int err;
+
+	/* Do nothing if already created */
+	if (hw_vmem->virtual_pool)
+		return 0;
 
 	pool = gen_pool_create(V3D_HW_PAGE_SHIFT, -1);
 	if (!pool)
@@ -256,6 +173,7 @@ static int v3d_hw_virtual_mem_init(struct v3d_hw_virtual_mem *hw_vmem,
 	return 0;
 
 pool_out:
+	DRM_DEBUG_DRIVER("Failed to pagetable from CMA\n");
 	gen_pool_destroy(pool);
 	return err;
 }
@@ -302,57 +220,12 @@ void v3d_hw_virtual_mem_free(struct v3d_hw_virtual_mem *hw_vmem,
 /*
  * v3d_drm_file_private implementation
  */
-static int v3d_drm_file_private_add_block(struct v3d_drm_file_private *fp,
-					  struct v3d_alloc_block **new_block)
-{
-	struct v3d_drm_dev_private *dp = fp->dev->dev_private;
-	int cmadev = fp->next_alloc_device;
-	struct v3d_alloc_block *block;
-	phys_addr_t phys;
-	int err;
-
-	block = kzalloc(sizeof(*block), GFP_KERNEL);
-	if (!block)
-		return -ENOMEM;
-
-	INIT_LIST_HEAD(&block->node);
-
-	/* Try and alloc from the indicated CMA device, but if the device
-	 * is out of memory any device with available memory will be used and
-	 * cmadev updated to reflect which actual device the allocation came
-	 * from.
-	 */
-	err = v3d_cma_get_mem_unmapped(dp, &phys, &cmadev,
-				       V3D_CMA_ALLOC_BLOCK_SIZE,
-				       V3D_CMA_ALLOC_BLOCK_SIZE);
-	if (err)
-		goto block_out;
-
-	block->phys_addr = phys;
-	block->cma_dev = cmadev;
-
-	list_add_tail(&block->node, &fp->alloc_blocks[cmadev]);
-	fp->all_blocks_full[cmadev] = false;
-	fp->next_alloc_device = cmadev;
-
-	DRM_DEBUG_ALLOC("new block @ %pa (%zu bytes)\n",
-			&block->phys_addr,
-			(size_t)V3D_CMA_ALLOC_BLOCK_SIZE);
-
-	*new_block = block;
-	return 0;
-
-block_out:
-	kfree(block);
-	return -ENOMEM;
-}
-
 static struct v3d_drm_file_private *
 v3d_drm_file_private_create(struct drm_device *dev)
 {
 	static u64 magic_ids = 0xdeadc1e500000000ULL;
-	int err, i;
 	struct v3d_drm_file_private *fp;
+	int i;
 
 	fp = kzalloc(sizeof(*fp), GFP_KERNEL);
 	if (!fp)
@@ -360,60 +233,60 @@ v3d_drm_file_private_create(struct drm_device *dev)
 
 	kref_init(&fp->refcount);
 
+	INIT_LIST_HEAD(&fp->dead_pages);
 	INIT_LIST_HEAD(&fp->dead_fp);
-	/* The DRM device struct_mutex is held at this point, so this is safe */
-	fp->magic_id = magic_ids++;
-
 	for (i = 0; i < MAX_CMA_AREAS; i++) {
 		INIT_LIST_HEAD(&fp->alloc_blocks[i]);
 		/* Force a block to be allocated on the first object create */
 		fp->all_blocks_full[i] = true;
 	}
 
-	err = v3d_hw_virtual_mem_init(&fp->hw_vmem, dev);
-	if (err)
-		goto out;
-
+	/* The DRM device struct_mutex is held at this point, so this is safe */
+	fp->magic_id = magic_ids++;
 	fp->dev = dev;
+
+	/*
+	 * virtual memory and pagetable setup deferred to first real use
+	 * to prevent wasting CMA for the Magnum driver open.
+	 */
 	return fp;
-
-out:
-	kfree(fp);
-	return ERR_PTR(err);
-}
-
-static inline void
-v3d_drm_alloc_block_release(struct v3d_drm_file_private *fp,
-			    struct v3d_drm_dev_private *dp,
-			    int dev)
-{
-	struct v3d_alloc_block *itr, *itr_tmp;
-
-	list_for_each_entry_safe(itr, itr_tmp,
-				 &fp->alloc_blocks[dev], node) {
-		DRM_DEBUG_ALLOC("free CMA block @ %pa\n", &itr->phys_addr);
-
-		v3d_cma_put_mem_unmapped(dp, itr->cma_dev, itr->phys_addr,
-					 V3D_CMA_ALLOC_BLOCK_SIZE);
-
-		list_del(&itr->node);
-		kfree(itr);
-	}
 }
 
 static void v3d_drm_file_private_release(struct kref *kref)
 {
 	struct v3d_drm_file_private *fp = (struct v3d_drm_file_private *)kref;
 	struct v3d_drm_dev_private *dp = fp->dev->dev_private;
-	int i;
 
 	DRM_DEBUG_DRIVER("fp=0x%pK\n", fp);
 
 	v3d_hw_virtual_mem_destroy(&fp->hw_vmem, fp->dev);
+	v3d_release_cma_blocks(fp, dp);
 
-	for (i = 0; i < dp->nr_cma_devs; i++) {
-		if (!list_empty(&fp->alloc_blocks[i]))
-			v3d_drm_alloc_block_release(fp, dp, i);
+	if (!list_empty(&fp->dead_pages)) {
+		struct v3d_drm_dead_pages *itr, *itr_tmp;
+		int i;
+
+		list_for_each_entry_safe(itr, itr_tmp,
+					 &fp->dead_pages, node) {
+			DRM_DEBUG_ALLOC("Release %d deferred pages\n",
+					itr->npages);
+
+			list_del(&itr->node);
+
+			/* Emulate drm_gem_put_pages */
+			for (i = 0; i < itr->npages; i++) {
+				set_page_dirty(itr->pages[i]);
+				put_page(itr->pages[i]);
+			}
+
+			kvfree(itr->pages);
+
+			/* Now release the shm file pointer created for the gem
+			 * object backed by these pages
+			 */
+			fput(itr->filp);
+			kfree(itr);
+		}
 	}
 
 	kfree(fp);
@@ -435,48 +308,6 @@ v3d_drm_file_private_unreference(struct v3d_drm_file_private *fp)
 /*
  * v3d_drm_dev_private implementation
  */
-static bool
-v3d_drm_dev_is_cma_device_valid(struct cma_dev *dev)
-{
-	int err;
-	phys_addr_t phys;
-
-	err = cma_dev_get_mem(dev, &phys,
-			      V3D_CMA_ALLOC_BLOCK_SIZE,
-			      V3D_CMA_ALLOC_BLOCK_SIZE);
-
-	if (err) {
-		DRM_DEBUG_DRIVER("Ignoring CMA dev 0x%pK: No free memory\n",
-				 dev);
-		return false;
-	}
-
-#if defined(CONFIG_ARM)
-	{
-		struct page *pg = pfn_to_page(phys >> PAGE_SHIFT);
-
-		/*
-		 * We do not allow allocations from a cma region in lowmem
-		 * on 32-bit ARM as you hit the multiple page mapping with
-		 * different attributes architecture restriction between
-		 * the lowmem kernel mapping and a userspace mapping.
-		 *
-		 * This is no longer an issue on ARM64, where all memory
-		 * has a cached kernel mapping and additional non-cached
-		 * CPU mappings of DMA memory are expected.
-		 */
-		if (pg && !PageHighMem(pg)) {
-			DRM_DEBUG_DRIVER("Ignoring CMA dev 0x%pK: located in lowmem\n", dev);
-			cma_dev_put_mem(dev, phys, V3D_CMA_ALLOC_BLOCK_SIZE);
-			return false;
-		}
-	}
-#endif
-
-	cma_dev_put_mem(dev, phys, V3D_CMA_ALLOC_BLOCK_SIZE);
-	return true;
-}
-
 static
 struct v3d_drm_dev_private *v3d_drm_dev_private_create(struct drm_device *dev)
 {
@@ -491,31 +322,24 @@ struct v3d_drm_dev_private *v3d_drm_dev_private_create(struct drm_device *dev)
 	INIT_LIST_HEAD(&dp->dead_fps);
 	INIT_LIST_HEAD(&dp->dead_clients);
 
-	dp->mmu_dma_mask = dev->dev->coherent_dma_mask;
-	DRM_DEBUG_DRIVER("DMA Mask %#llx\n", dp->mmu_dma_mask);
-
+	DRM_DEBUG_DRIVER("DMA mask = %pa\n", dev->dev->dma_mask);
 	for (i = 0; i < MAX_CMA_AREAS; i++) {
-		struct cma_dev *dev = cma_dev_get_cma_dev(i);
+		struct cma_dev *cma_dev = cma_dev_get_cma_dev(i);
 
-		if (dev) {
-			phys_addr_t base = dev->range.base;
+		if (!ignore_cma && cma_dev) {
+			phys_addr_t base = cma_dev->range.base;
 
-			DRM_DEBUG_DRIVER("Found CMA dev 0x%pK for MEMC%d (base %pa, size 0x%x)\n",
-					 dev, dev->memc, &base,
-					 dev->range.size);
+			if (dma_capable(dev->dev, base, cma_dev->range.size)) {
+				DRM_DEBUG_DRIVER("Found CMA dev 0x%pK for MEMC%d (base %pa, size 0x%x)\n",
+						 cma_dev, cma_dev->memc, &base,
+						 cma_dev->range.size);
 
-			if (v3d_drm_dev_is_cma_device_valid(dev)) {
-				dp->cma_devs[i] = dev;
+				dp->cma_devs[dp->nr_cma_devs] = cma_dev;
 				dp->nr_cma_devs++;
 			}
 		}
 	}
-
-	if (dp->nr_cma_devs)
-		return dp;
-
-	kfree(dp);
-	return ERR_PTR(-ENODEV);
+	return dp;
 }
 
 static
@@ -530,10 +354,8 @@ void v3d_drm_dev_private_flush_dead_clients(struct v3d_drm_dev_private *dp)
 					 &dp->dead_fps, dead_fp) {
 			list_del(&itr->dead_fp);
 			/*
-			 * This will finally cleanup the CMA allocations
-			 * hanging off the file private structure. If the
-			 * hardware is somehow still accessing the memory at
-			 * this point then it is just tough luck.
+			 * This will cleanup remaining allocations hanging off
+			 * the file private structure.
 			 */
 			v3d_drm_file_private_unreference(itr);
 		}
@@ -581,7 +403,7 @@ static void v3d_drm_dev_private_term_client(struct v3d_drm_dev_private *dp,
 
 	INIT_LIST_HEAD(&dead_client->node);
 	dead_client->magic_id = id;
-	list_add_tail(&dp->dead_clients, &dead_client->node);
+	list_add_tail(&dead_client->node, &dp->dead_clients);
 }
 
 /*
@@ -621,6 +443,7 @@ static void v3d_drm_dev_private_release(struct kref *kref)
 	struct v3d_drm_dev_private *dp = (struct v3d_drm_dev_private *)kref;
 
 	if (dp) {
+		DRM_DEBUG_DRIVER("dp=0x%pK\n", dp);
 		v3d_drm_dev_private_flush_dead_clients(dp);
 		kfree(dp);
 	}
@@ -642,164 +465,63 @@ void v3d_drm_dev_private_unreference(struct v3d_drm_dev_private *dp)
 /*
  * GEM object implementation
  */
-static inline void v3d_free_hw_page(struct v3d_page_allocation *page)
+static inline void
+v3d_gem_defer_shm_page_release(struct v3d_drm_gem_object *obj)
 {
-	bitmap_release_region(page->alloc_block->alloc_map,
-			      page->block_page_nr, 0);
-}
+	struct v3d_drm_dead_pages *d;
 
-static void v3d_free_hw_pages(size_t num_pages,
-			      struct v3d_page_allocation *pages)
-{
-	size_t i;
-
-	for (i = 0; i < num_pages; i++) {
-		v3d_free_hw_page(&pages[i]);
-		/*
-		 * TODO: determine if/when we release empty alloc blocks
-		 * back to the system.
+	d = kmalloc(sizeof(*d), GFP_KERNEL);
+	if (d) {
+		DRM_DEBUG_ALLOC("Defer release of obj=0x%pK on fp=0x%pK\n",
+				obj, obj->fp);
+		INIT_LIST_HEAD(&d->node);
+		d->pages = obj->shm_pages;
+		d->npages = obj->base.size >> PAGE_SHIFT;
+		d->filp = get_file(obj->base.filp);
+		list_add_tail(&d->node, &obj->fp->dead_pages);
+	} else {
+		/* The system must be in a very bad way, so release the pages
+		 * anyway and hope for the best
 		 */
-		pages[i].alloc_block = NULL;
+		drm_gem_put_pages(&obj->base, obj->shm_pages, true, false);
 	}
-}
-
-static int v3d_alloc_hw_page(struct v3d_alloc_block *alloc_block,
-			     struct v3d_page_allocation *page)
-{
-	int block_page_nr;
-	phys_addr_t paddr;
-
-	block_page_nr = bitmap_find_free_region(alloc_block->alloc_map,
-						V3D_CMA_ALLOC_MAP_SIZE, 0);
-
-	if (WARN_ON(block_page_nr < 0))
-		return block_page_nr;
-
-	paddr = alloc_block->phys_addr + (block_page_nr << V3D_HW_PAGE_SHIFT);
-	/*
-	 * Get the Linux pfn for this physical address. If there are multiple
-	 * (continuous) CPU pages per HW page then the mmap fault handler will
-	 * calculate the correct sub-page pfn for a page fault from this.
-	 *
-	 * Note: PHYS_PFN macro not yet defined in 4.1 (is in 4.4)
-	 */
-	page->cpu_pfn = paddr >> PAGE_SHIFT;
-	page->alloc_block = alloc_block;
-	page->block_page_nr = block_page_nr;
-	return 0;
-}
-
-static inline int v3d_next_cma_dev(int cur_dev, struct v3d_drm_dev_private *dp)
-{
-	return (cur_dev + 1) % dp->nr_cma_devs;
-}
-
-static void v3d_init_allocation_blocks(struct v3d_drm_file_private *fp,
-				       struct v3d_drm_dev_private *dp,
-				       struct v3d_alloc_block **blocks)
-{
-	int i;
-
-	for (i = 0; i < dp->nr_cma_devs; i++) {
-		blocks[i] = fp->all_blocks_full[i] ?
-				NULL : v3d_first_alloc_block(fp, i);
-	}
-}
-
-static inline bool v3d_is_last_alloc_block(struct v3d_alloc_block *block,
-					   struct v3d_drm_file_private *fp)
-{
-	return list_is_last(&block->node, &fp->alloc_blocks[block->cma_dev]);
-}
-
-static struct v3d_alloc_block *
-v3d_find_alloc_block_with_space(struct v3d_drm_file_private *fp,
-				struct v3d_alloc_block **alloc_blocks)
-{
-	struct v3d_alloc_block *block = alloc_blocks[fp->next_alloc_device];
-
-	while (true) {
-		if (!block || fp->all_blocks_full[block->cma_dev]) {
-			if (v3d_drm_file_private_add_block(fp, &block))
-				return NULL;
-
-			alloc_blocks[block->cma_dev] = block;
-			return block;
-		}
-
-		if (!v3d_alloc_block_full(block))
-			return block;
-
-		if (v3d_is_last_alloc_block(block, fp)) {
-			/* Trigger allocation of a new block */
-			fp->all_blocks_full[block->cma_dev] = true;
-		} else {
-			/* Try the next block in the list for the CMA device */
-			block = list_next_entry(block, node);
-			alloc_blocks[block->cma_dev] = block;
-		}
-	}
-}
-
-static int v3d_allocate_hw_pages(struct v3d_drm_file_private *fp,
-				 size_t num_pages,
-				 struct v3d_page_allocation *pages)
-{
-	struct v3d_drm_dev_private *dp = fp->dev->dev_private;
-	struct v3d_alloc_block *alloc_blocks[MAX_CMA_AREAS];
-	struct v3d_alloc_block *block;
-	int alloc_idx, err;
-
-	if (WARN_ON(!num_pages))
-		return 0;
-
-	v3d_init_allocation_blocks(fp, dp, alloc_blocks);
-
-	for (alloc_idx = 0; alloc_idx < num_pages; alloc_idx++) {
-		block = v3d_find_alloc_block_with_space(fp, alloc_blocks);
-		if (!block)
-			goto out;
-
-		err = v3d_alloc_hw_page(block, &pages[alloc_idx]);
-		if (err)
-			goto out;
-
-		/* Switch CMA device (if more than one) for the next page
-		 * to stripe allocations between memory controllers
-		 */
-		fp->next_alloc_device = v3d_next_cma_dev(block->cma_dev, dp);
-	}
-
-	/*
-	 * If we have just allocated the last free page in the last block
-	 * then flag this so the next object allocation doesn't have to
-	 * traverse the entire block list just to find out there is no
-	 * space available.
-	 */
-	if (v3d_is_last_alloc_block(block, fp) && v3d_alloc_block_full(block))
-		fp->all_blocks_full[block->cma_dev] = true;
-
-	DRM_DEBUG_ALLOC("allocated %zu pages\n", (size_t)num_pages);
-
-	return 0;
-
-out:
-	/*
-	 * Cleanup partially allocated pages
-	 */
-	v3d_free_hw_pages(alloc_idx, pages);
-	return -ENOMEM;
 }
 
 static void v3d_gem_put_pages(struct v3d_drm_gem_object *obj)
 {
-	/* Be safe against cleaning up a partially constructed object */
-	if (obj->pages) {
+	size_t num_pages = obj->base.size >> PAGE_SHIFT;
+
+	if (obj->dma_addrs) {
+		int i;
+
+		for (i = 0; i < num_pages; i++) {
+			if (obj->dma_addrs[i])
+				dma_unmap_page(obj->base.dev->dev,
+					       obj->dma_addrs[i],
+					       PAGE_SIZE, DMA_TO_DEVICE);
+		}
+		kfree(obj->dma_addrs);
+		obj->dma_addrs = NULL;
+	}
+
+	if (obj->cma_pages) {
 		size_t num_pages = v3d_nr_hwpages(obj->base.size);
 
-		v3d_free_hw_pages(num_pages, obj->pages);
-		vfree(obj->pages);
-		obj->pages = NULL;
+		DRM_DEBUG_ALLOC("Free CMA pages for obj=0x%pK\n", obj);
+		v3d_free_cma_pages(num_pages, obj->cma_pages);
+		vfree(obj->cma_pages);
+		obj->cma_pages = NULL;
+	}
+
+	if (obj->shm_pages) {
+		DRM_DEBUG_ALLOC("Free SHM pages for obj=0x%pK\n", obj);
+		if (obj->fp->defer_shm_page_release)
+			v3d_gem_defer_shm_page_release(obj);
+		else
+			drm_gem_put_pages(&obj->base,
+					  obj->shm_pages, true, false);
+
+		obj->shm_pages = NULL;
 	}
 }
 
@@ -811,7 +533,6 @@ static void v3d_gem_free_object(struct drm_gem_object *obj)
 
 	/* Note: this is called with obj->dev->struct_mutex held */
 	drm_gem_free_mmap_offset(obj);
-	drm_gem_object_release(obj);
 
 	if (!WARN_ON(!v3d_obj->fp)) {
 		struct v3d_hw_virtual_mem *hw_vmem;
@@ -822,8 +543,11 @@ static void v3d_gem_free_object(struct drm_gem_object *obj)
 	}
 
 	v3d_obj->hw_virt_addr = 0;
+
 	v3d_gem_put_pages(v3d_obj);
 	v3d_drm_file_private_unreference(v3d_obj->fp);
+
+	drm_gem_object_release(obj);
 
 	kfree(v3d_obj->desc);
 	kfree(v3d_obj);
@@ -834,19 +558,16 @@ static void v3d_gem_add_pages_to_pagetable(struct v3d_drm_gem_object *obj)
 	struct v3d_drm_file_private *fp = obj->fp;
 	const size_t num_pages = v3d_nr_hwpages(obj->base.size);
 	const bool readonly = !!(obj->alloc_flags & V3D_CREATE_HW_READONLY);
+	u32 virt = obj->hw_virt_addr;
 	int i;
 
 	for (i = 0; i < num_pages; i++) {
-		phys_addr_t phys;
-		u32 virt;
-		loff_t phys_pgoff;
-
-		virt = obj->hw_virt_addr + (i << V3D_HW_PAGE_SHIFT);
-		phys_pgoff = obj->pages[i].block_page_nr << V3D_HW_PAGE_SHIFT;
-		phys = obj->pages[i].alloc_block->phys_addr + phys_pgoff;
+		phys_addr_t pa = dma_to_phys(obj->base.dev->dev,
+					     obj->dma_addrs[i]);
 
 		v3d_hw_pagetable_map_page(fp->hw_vmem.pt_kaddr,
-					  virt, phys, readonly);
+					  virt, pa, readonly);
+		virt += V3D_HW_PAGE_SIZE;
 	}
 }
 
@@ -873,15 +594,12 @@ static void v3d_gem_add_extobj_to_pagetable(struct v3d_drm_gem_object *obj,
 
 static int v3d_gem_get_pages(struct v3d_drm_gem_object *obj)
 {
-	struct v3d_page_allocation *pages;
 	struct v3d_drm_file_private *fp = obj->fp;
+	struct v3d_drm_dev_private *dp = fp->dev->dev_private;
+	struct device *dev = obj->base.dev->dev;
 	size_t size = obj->base.size;
 	size_t num_pages = v3d_nr_hwpages(size);
-	int err;
-
-	pages = vmalloc(sizeof(*pages) * num_pages);
-	if (!pages)
-		return -ENOMEM;
+	int i, err;
 
 	/*
 	 * First try and allocate a region in the hardware virtual space
@@ -892,33 +610,94 @@ static int v3d_gem_get_pages(struct v3d_drm_gem_object *obj)
 		goto out;
 	}
 
-	err = v3d_allocate_hw_pages(fp, num_pages, pages);
-	if (err)
-		goto hw_virtual;
+	if (dp->nr_cma_devs) {
+		struct v3d_page_allocation *pages;
 
-	obj->pages = pages;
+		DRM_DEBUG_ALLOC("Allocate CMA pages for obj=0x%pK\n", obj);
+		pages = vmalloc(sizeof(*pages) * num_pages);
+		if (!pages) {
+			err = -ENOMEM;
+			goto free_virtual;
+		}
+
+		err =  v3d_allocate_cma_pages(fp, num_pages, pages);
+		if (err) {
+			vfree(pages);
+			goto free_virtual;
+		}
+
+		obj->cma_pages = pages;
+	} else {
+		DRM_DEBUG_ALLOC("Allocate SHM pages for obj=0x%pK\n", obj);
+		obj->shm_pages = drm_gem_get_pages(&obj->base);
+		if (IS_ERR(obj->shm_pages)) {
+			err = PTR_ERR(obj->shm_pages);
+			obj->shm_pages = NULL;
+			goto free_virtual;
+		}
+	}
+
+	obj->dma_addrs = kmalloc(num_pages * sizeof(*obj->dma_addrs),
+				 GFP_KERNEL);
+
+	if (!obj->dma_addrs) {
+		err = -ENOMEM;
+		goto free_pages;
+	}
+
+	for (i = 0; i < num_pages; i++) {
+		struct page *p;
+
+		if (obj->cma_pages)
+			p = pfn_to_page(obj->cma_pages[i].cpu_pfn);
+		else
+			p = obj->shm_pages[i];
+
+		obj->dma_addrs[i] = dma_map_page(dev, p, 0, PAGE_SIZE,
+						 DMA_TO_DEVICE);
+
+		if (dma_mapping_error(dev, obj->dma_addrs[i])) {
+			for (i = i - 1; i >= 0; --i) {
+				dma_unmap_page(dev, obj->dma_addrs[i],
+					       PAGE_SIZE, DMA_TO_DEVICE);
+			}
+
+			err = -ENOMEM;
+			goto free_addrs;
+		}
+	}
+
 	v3d_gem_add_pages_to_pagetable(obj);
 
 	return 0;
 
-hw_virtual:
+free_addrs:
+	kfree(obj->dma_addrs);
+	obj->dma_addrs = NULL;
+free_pages:
+	if (obj->cma_pages) {
+		v3d_free_cma_pages(num_pages, obj->cma_pages);
+		vfree(obj->cma_pages);
+		obj->cma_pages = NULL;
+	}
+
+	if (obj->shm_pages) {
+		drm_gem_put_pages(&obj->base, obj->shm_pages, false, false);
+		obj->shm_pages = NULL;
+	}
+free_virtual:
 	v3d_hw_virtual_mem_free(&fp->hw_vmem, obj->hw_virt_addr, size);
 	obj->hw_virt_addr = 0;
 out:
-	vfree(pages);
 	return err;
 }
-
-static const struct vm_operations_struct v3d_gem_vm_ops = {
-	.open  = drm_gem_vm_open,
-	.close = drm_gem_vm_close,
-};
 
 static struct drm_gem_object *
 v3d_gem_create(struct drm_device *dev,
 	       struct drm_file *file,
 	       struct drm_v3d_gem_create *args)
 {
+	struct v3d_drm_dev_private *dp = dev->dev_private;
 	struct v3d_drm_file_private *fp = file->driver_priv;
 	struct v3d_drm_gem_object *obj;
 	struct drm_gem_object *gem_object;
@@ -936,7 +715,16 @@ v3d_gem_create(struct drm_device *dev,
 
 	gem_object = &obj->base;
 
-	drm_gem_private_object_init(dev, gem_object, alloc_size);
+	if (dp->nr_cma_devs) {
+		drm_gem_private_object_init(dev, gem_object, alloc_size);
+	} else {
+		err = drm_gem_object_init(dev, gem_object, alloc_size);
+		if (err)
+			goto obj_out;
+
+		mapping_set_gfp_mask(gem_object->filp->f_mapping,
+				     shm_mapping_mask);
+	}
 
 	v3d_drm_file_private_reference(fp);
 	obj->fp = fp;
@@ -951,7 +739,7 @@ v3d_gem_create(struct drm_device *dev,
 
 	err = v3d_gem_get_pages(obj);
 	if (err)
-		goto object_out;
+		goto gemobject_out;
 
 	err = drm_gem_handle_create(file, gem_object, &args->handle);
 	if (err)
@@ -973,10 +761,11 @@ pages_out:
 				obj->hw_virt_addr, gem_object->size);
 
 	v3d_gem_put_pages(obj);
-object_out:
+gemobject_out:
 	v3d_drm_file_private_unreference(obj->fp);
 	drm_gem_object_release(gem_object);
 	kfree(obj->desc);
+obj_out:
 	kfree(obj);
 	return ERR_PTR(err);
 }
@@ -1000,6 +789,15 @@ v3d_gem_create_ext(struct drm_device *dev,
 	 * be an application error.
 	 */
 	if (args->size == 0)
+		return ERR_PTR(-EINVAL);
+
+	/*
+	 * Check the physical address is mappable into the MMU, this should
+	 * only be possible at all on a misconfigured 7260 platform using the
+	 * MEMC0 extension space which the V3D MMU cannot see as it is only
+	 * 32bit capable.
+	 */
+	if (WARN_ON(!dma_capable(dev->dev, args->phys, args->size)))
 		return ERR_PTR(-EINVAL);
 
 	/*
@@ -1086,7 +884,7 @@ static int v3d_gem_map_offset(struct drm_file *file, struct drm_device *dev,
 	 * Don't allow the mapping of external contiguous physical pages
 	 * that have been wrapped as GEM objects to manage the MMU pagetable
 	 */
-	if (!to_v3d_obj(obj)->pages) {
+	if (!to_v3d_obj(obj)->cma_pages && !to_v3d_obj(obj)->shm_pages) {
 		ret = -EPERM;
 		goto unref;
 	}
@@ -1121,18 +919,22 @@ static int v3d_mmu_pagetable_ioctl(struct drm_device *dev, void *data,
 {
 	struct v3d_drm_file_private *fp = file->driver_priv;
 	struct drm_v3d_mmu_pt *args = data;
+	int err;
 
 	if (WARN_ON(!fp))
 		return -EFAULT;
 
 	mutex_lock(&dev->struct_mutex);
 
-	args->pt_phys = fp->hw_vmem.pt_phys;
-	args->va_size = V3D_HW_VIRTUAL_ADDR_SIZE;
+	err = v3d_hw_virtual_mem_init(&fp->hw_vmem, dev);
+	if (!err) {
+		args->pt_phys = fp->hw_vmem.pt_phys;
+		args->va_size = V3D_HW_VIRTUAL_ADDR_SIZE;
+	}
 
 	mutex_unlock(&dev->struct_mutex);
 
-	return 0;
+	return err;
 }
 
 static int v3d_clear_pt_on_close_ioctl(struct drm_device *dev, void *data,
@@ -1173,6 +975,10 @@ static int v3d_mem_total_ioctl(struct drm_device *dev, void *data,
 		if (dp->cma_devs[i])
 			total += dp->cma_devs[i]->range.size;
 	}
+
+	/* TODO: what do we do here for Vulkan ? We cannot report 0 */
+	if (!total)
+		total = 256 * 1024 * 1024;
 
 	args->size = total;
 
@@ -1219,30 +1025,37 @@ static int v3d_client_term_ioctl(struct drm_device *dev, void *data,
 static int v3d_gem_create_ioctl(struct drm_device *dev, void *data,
 				struct drm_file *file)
 {
+	struct v3d_drm_file_private *fp = file->driver_priv;
 	struct drm_gem_object *gem_object;
 	struct drm_v3d_gem_create *args = data;
+	int err;
 
 	DRM_DEBUG_ALLOC("size=%zu\n", (size_t)args->size);
 
 	mutex_lock(&dev->struct_mutex);
 
-	gem_object = v3d_gem_create(dev, file, args);
+	err = v3d_hw_virtual_mem_init(&fp->hw_vmem, dev);
+	if (!err) {
+		gem_object = v3d_gem_create(dev, file, args);
+
+		if (IS_ERR(gem_object)) {
+			DRM_DEBUG_ALLOC("object creation failed\n");
+			err = PTR_ERR(gem_object);
+		}
+	}
 
 	mutex_unlock(&dev->struct_mutex);
 
-	if (IS_ERR(gem_object)) {
-		DRM_DEBUG_ALLOC("object creation failed\n");
-		return PTR_ERR(gem_object);
-	}
-
-	return 0;
+	return err;
 }
 
 static int v3d_gem_create_ext_ioctl(struct drm_device *dev, void *data,
 				    struct drm_file *file)
 {
+	struct v3d_drm_file_private *fp = file->driver_priv;
 	struct drm_gem_object *gem_object;
 	struct drm_v3d_gem_create_ext *args = data;
+	int err;
 
 	DRM_DEBUG_ALLOC("phys=%pa size=%zu\n",
 			&args->phys, (size_t)args->size);
@@ -1252,16 +1065,19 @@ static int v3d_gem_create_ext_ioctl(struct drm_device *dev, void *data,
 
 	mutex_lock(&dev->struct_mutex);
 
-	gem_object = v3d_gem_create_ext(dev, file, args);
+	err = v3d_hw_virtual_mem_init(&fp->hw_vmem, dev);
+	if (!err) {
+		gem_object = v3d_gem_create_ext(dev, file, args);
+
+		if (IS_ERR(gem_object)) {
+			DRM_DEBUG_DRIVER("external object creation failed\n");
+			err = PTR_ERR(gem_object);
+		}
+	}
 
 	mutex_unlock(&dev->struct_mutex);
 
-	if (IS_ERR(gem_object)) {
-		DRM_DEBUG_DRIVER("external object creation failed\n");
-		return PTR_ERR(gem_object);
-	}
-
-	return 0;
+	return err;
 }
 
 static int v3d_gem_mmap_offset_ioctl(struct drm_device *dev, void *data,
@@ -1274,117 +1090,91 @@ static int v3d_gem_mmap_offset_ioctl(struct drm_device *dev, void *data,
 	return v3d_gem_map_offset(file, dev, args->handle, &args->offset);
 }
 
+static int v3d_gem_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
+{
+	struct drm_gem_object *obj = vma->vm_private_data;
+	struct v3d_drm_gem_object *v3d_obj = to_v3d_obj(obj);
+	pgoff_t pgoff;
+	unsigned long pfn;
+	int err;
+
+	mutex_lock(&obj->dev->struct_mutex);
+
+	/* We don't use vmf->pgoff since that has the fake offset: */
+	pgoff = ((unsigned long)vmf->virtual_address -
+				vma->vm_start) >> PAGE_SHIFT;
+	if (v3d_obj->cma_pages)
+		pfn = v3d_obj->cma_pages[pgoff].cpu_pfn;
+	else
+		pfn = page_to_pfn(v3d_obj->shm_pages[pgoff]);
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 9)
+	err = vm_insert_mixed(vma, (unsigned long)vmf->virtual_address, pfn);
+#else
+	err = vm_insert_mixed(vma, (unsigned long)vmf->virtual_address,
+			 __pfn_to_pfn_t(pfn, PFN_DEV));
+#endif
+
+	mutex_unlock(&obj->dev->struct_mutex);
+
+	switch (err) {
+	case 0:
+	case -ERESTARTSYS:
+	case -EINTR:
+	case -EBUSY:
+		/*
+		 * Note: EBUSY  means that another thread has already mapped
+		 *       this page.
+		 */
+		return VM_FAULT_NOPAGE;
+	case -ENOMEM:
+		return VM_FAULT_OOM;
+	default:
+		return VM_FAULT_SIGBUS;
+	}
+}
+
+static const struct vm_operations_struct v3d_gem_vm_ops = {
+	.fault = v3d_gem_fault,
+	.open  = drm_gem_vm_open,
+	.close = drm_gem_vm_close,
+};
+
 static int v3d_drm_gem_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	struct v3d_drm_gem_object *obj;
-	struct drm_device *dev;
-	unsigned long vmsize = vma->vm_end - vma->vm_start;
-	unsigned long remaining = vmsize;
-	unsigned long addr = vma->vm_start;
-	size_t num_hw_pages = v3d_nr_hwpages(vmsize);
-	int hwpg, ret;
+	bool wc;
+	int ret;
 
 	ret = drm_gem_mmap(filp, vma);
 	if (ret)
 		return ret;
 
+	vma->vm_flags &= ~VM_PFNMAP;
+	vma->vm_flags |= VM_MIXEDMAP;
+
 	obj = to_v3d_obj(vma->vm_private_data); /* set by drm_gem_mmap() */
-	dev = obj->base.dev;
 
-	mutex_lock(&dev->struct_mutex);
+	wc = !!(obj->alloc_flags & V3D_CREATE_CPU_WRITECOMBINE);
 
-	if (!(obj->alloc_flags & V3D_CREATE_CPU_WRITECOMBINE)) {
-		/*
-		 * Override the default drm_gem_mmap() page settings to map
-		 * cached (no allocate on write) instead of writecombined
-		 * on ARM and revert it to normal cached memory on ARM64.
-		 *
-		 * Note: this matches the Broadcom STB reference software
-		 * heap mapping. In general we do not want to allocate
-		 * on write for graphics object memory. Mostly we are going
-		 * to be writing large amounts of sequential data into it
-		 * (textures, vertex data etc) and never reading it back.
-		 * But on ARM64 we appear to have no choice in the matter.
-		 *
-		 */
+	DRM_DEBUG_ALLOC("obj=0x%pK vma 0x%lx -> 0x%lx (%s)\n",
+			 obj, vma->vm_start, vma->vm_end,
+			 wc ? "wc" : "cached");
+
+	if (!wc)
 		vma->vm_page_prot = vm_get_page_prot(vma->vm_flags);
-#if defined(CONFIG_ARM)
-		vma->vm_page_prot = __pgprot_modify(vma->vm_page_prot,
-						    L_PTE_MT_MASK,
-						    L_PTE_MT_WRITEBACK);
-#endif
-#if defined(CONFIG_ARM64)
-		vma->vm_page_prot = __pgprot_modify(vma->vm_page_prot,
-						    PTE_ATTRINDX_MASK,
-						    PTE_ATTRINDX(MT_NORMAL) | PTE_PXN | PTE_UXN);
-#endif
-	}
 
-	/*
-	 * Map the entire object up front. If we defer and use a page fault
-	 * handler we seem to hit a problem if the application then tries
-	 * to access the mapping from multiple pthreads, causing two page
-	 * faults to the same page at the same time on different CPUs.
-	 * The result is at least one locked CPU and a very unhappy kernel.
-	 *
-	 * This unfortunately happens regularly with the GLES driver, which
-	 * optimizes texture downloads to device memory on an SMP system by
-	 * splitting the copy and swizzle to our internal texture format
-	 * across multiple threads.
-	 */
-	for (hwpg = 0; hwpg < num_hw_pages; hwpg++) {
-		unsigned long pfn = obj->pages[hwpg].cpu_pfn;
-		unsigned long sz = remaining > V3D_HW_PAGE_SIZE ?
-				   V3D_HW_PAGE_SIZE : remaining;
-
-		ret = remap_pfn_range(vma, addr, pfn, sz, vma->vm_page_prot);
-		if (ret)
-			break;
-		addr += sz;
-		remaining -= sz;
-	}
-
-	mutex_unlock(&dev->struct_mutex);
-	return ret;
+	return 0;
 }
 
 static int v3d_drm_open(struct drm_device *dev, struct drm_file *file)
 {
 	struct v3d_drm_file_private *fp;
 	struct v3d_drm_dev_private *dp;
-	bool created_dp = false;
 	int err;
 
-	/*
-	 * We have to create the driver private structure containing information
-	 * about the available Broadcom CMA devices on an open, not when the
-	 * device is registered. We cannot strictly rely on the two drivers
-	 * being initialized in the right order, i.e. the CMA driver first.
-	 *
-	 * Do not be tempted to think you can use firstopen() to create
-	 * the driver private structure and cma device list, as it
-	 * gets called _after_ the driver open() f_op and we need the
-	 * Broadcom CMA devices available before we call
-	 * v3d_drm_file_private_create() to create the MMU pagetable.
-	 */
-	mutex_lock(&dev->struct_mutex);
-	if (!dev->dev_private) {
-		dp = v3d_drm_dev_private_create(dev);
-		if (!IS_ERR(dp)) {
-			dev->dev_private = dp;
-			created_dp = true;
-			v3d_drm_dev_private_reference(dp);
-			drm_dev_ref(dev);
-			the_drm_device = dev;
-		}
-	} else {
-		dp = dev->dev_private;
-		v3d_drm_dev_private_reference(dp);
-	}
-	mutex_unlock(&dev->struct_mutex);
-
-	if (IS_ERR(dp))
-		return PTR_ERR(dp);
+	dp = dev->dev_private;
+	v3d_drm_dev_private_reference(dp);
 
 	fp = v3d_drm_file_private_create(dev);
 	if (IS_ERR(fp)) {
@@ -1401,21 +1191,35 @@ static int v3d_drm_open(struct drm_device *dev, struct drm_file *file)
 
 	DRM_DEBUG_DRIVER("fp=0x%pK\n", fp);
 
+	/*
+	 * If there is no current master, i.e. this open will become the
+	 * master, flush any dead clients. Either this is being used
+	 * by a Nexus single process app, or NxServer died and is being
+	 * restarted. In both cases we will never get the client termination
+	 * for previous uses, but in those cases the open can only happen after
+	 * or as part of the Nexus/Magnum initialization process which
+	 * resets the hardware. So it is safe to release allocations from
+	 * previous usage.
+	 *
+	 * Note: we cannot use file->is_master as that hasn't been set up
+	 *       yet.
+	 */
+	mutex_lock(&dev->master_mutex);
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 9)
+	if (drm_is_primary_client(file) && !file->minor->master)
+#else
+	if (!dev->master)
+#endif
+		v3d_drm_dev_private_flush_dead_clients(dp);
+
+	mutex_unlock(&dev->master_mutex);
+
 	return 0;
 
 out:
+	DRM_DEBUG_DRIVER("Failed to create file private\n");
 	v3d_drm_dev_private_unreference(dp);
-
-	/* We must clean-up the device private pointer here if we just set it */
-	if (created_dp) {
-		mutex_lock(&dev->struct_mutex);
-		dev->dev_private = NULL;
-		the_drm_device = NULL;
-		drm_dev_unref(dev);
-		v3d_drm_dev_private_unreference(dp);
-		mutex_unlock(&dev->struct_mutex);
-	}
-
 	return err;
 }
 
@@ -1425,6 +1229,8 @@ static void v3d_drm_preclose(struct drm_device *dev, struct drm_file *file)
 	struct v3d_drm_dev_private *dp = dev->dev_private;
 
 	DRM_DEBUG_DRIVER("dp=0x%pK fp=0x%pK\n", dp, fp);
+
+	mutex_lock(&dev->struct_mutex);
 
 	/*
 	 * To prevent issues with the hardware still using pages as a
@@ -1449,6 +1255,27 @@ static void v3d_drm_preclose(struct drm_device *dev, struct drm_file *file)
 		DRM_DEBUG_DRIVER("Disabled pagetable entry clear\n");
 		fp->hw_vmem.clear_entries_on_free = false;
 	}
+
+	/*
+	 * If we have not yet had a termination notification to say it
+	 * is safe to free the remaining GEM object backing pages then
+	 * flag that their release should be deferred.
+	 */
+	fp->defer_shm_page_release = true;
+
+	if (!list_empty(&dp->dead_clients)) {
+		struct v3d_drm_dead_client *itr, *itr_tmp;
+
+		list_for_each_entry_safe(itr, itr_tmp,
+					 &dp->dead_clients, node) {
+			if (itr->magic_id == fp->magic_id) {
+				fp->defer_shm_page_release = false;
+				break;
+			}
+		}
+	}
+
+	mutex_unlock(&dev->struct_mutex);
 }
 
 static void v3d_drm_postclose(struct drm_device *dev, struct drm_file *file)
@@ -1499,45 +1326,48 @@ static void v3d_drm_postclose(struct drm_device *dev, struct drm_file *file)
 	v3d_drm_dev_private_unreference(dp);
 }
 
-static void v3d_drm_lastclose(struct drm_device *dev)
+static int v3d_drm_load(struct drm_device *dev, unsigned long flags)
 {
-	struct v3d_drm_dev_private *dp;
+	struct v3d_drm_dev_private *dp = v3d_drm_dev_private_create(dev);
+
+	if (IS_ERR(dp))
+		return PTR_ERR(dp);
+
+	dev->dev_private = dp;
+	v3d_drm_dev_private_reference(dp);
+	drm_dev_ref(dev);
+	the_drm_device = dev;
+
+	mapping_set_gfp_mask(dev->anon_inode->i_mapping, shm_mapping_mask);
+
+	/* Just so we can clean up on module unload */
+	platform_set_drvdata(dev->platformdev, dev);
+
+	DRM_DEBUG_DRIVER("dp=0x%pK\n", dp);
+
+	return 0;
+}
+
+static int v3d_drm_unload(struct drm_device *dev)
+{
+	struct v3d_drm_dev_private *dp = dev->dev_private;
+
+	DRM_DEBUG_DRIVER("dp=0x%pK\n", dp);
 
 	mutex_lock(&dev->struct_mutex);
 
-	dp = dev->dev_private;
-	DRM_DEBUG_DRIVER("dp=0x%pK\n", dp);
-
-	/* Cleaup the global device pointer used by the exported entrypoint
-	 * used by the v3d Magnum driver when built as a kernel module.
-	 *
-	 * Note: lastclose gets called twice, once on a real "lastclose" of
-	 * of the device and again if the device is unregistered just for good
-	 * measure. So we have to be careful not to unref the device more than
-	 * we should.
-	 */
 	if (the_drm_device) {
 		WARN_ON(dev != the_drm_device);
 		drm_dev_unref(the_drm_device);
+		v3d_drm_dev_private_unreference(dp);
 		the_drm_device = NULL;
 	}
 
 	/* Release the final reference and destroy the structure */
 	v3d_drm_dev_private_unreference(dp);
-
-	/*
-	 * Clear dev_private after the final cleanup as it gets used by
-	 * the "file private" cleanup of any remaining dead clients
-	 */
 	dev->dev_private = NULL;
 
 	mutex_unlock(&dev->struct_mutex);
-}
-
-static int v3d_drm_load(struct drm_device *dev, unsigned long flags)
-{
-	/* Just so we can clean up on module unload */
-	platform_set_drvdata(dev->platformdev, dev);
 	return 0;
 }
 
@@ -1576,10 +1406,10 @@ static const struct file_operations v3d_driver_fops = {
 static struct drm_driver v3d_driver = {
 	.driver_features	= DRIVER_GEM,
 	.load			= v3d_drm_load,
+	.unload			= v3d_drm_unload,
 	.open			= v3d_drm_open,
 	.preclose		= v3d_drm_preclose,
 	.postclose		= v3d_drm_postclose,
-	.lastclose		= v3d_drm_lastclose,
 	.gem_free_object	= v3d_gem_free_object,
 	.gem_vm_ops		= &v3d_gem_vm_ops,
 	.ioctls			= v3d_ioctls,
@@ -1595,14 +1425,20 @@ static struct drm_driver v3d_driver = {
 
 struct v3d_drm_config_data {
 	u64 coherent_dma_mask;
+	gfp_t gfp_mask;
 };
 
 static struct v3d_drm_config_data v3d_v3_3_0_0 = {
-	.coherent_dma_mask = DMA_BIT_MASK(32)
+	.coherent_dma_mask = DMA_BIT_MASK(32),
+	/* Limits memory to < 4GB boundary on aarch64 with CONFIG_ZONE_DMA
+	 * enabled, note that the ARM archs do not use __GFP_DMA32
+	 */
+	.gfp_mask = GFP_USER | __GFP_DMA
 };
 
 static struct v3d_drm_config_data v3d_v3_3_1_0 = {
-	.coherent_dma_mask = DMA_BIT_MASK(40)
+	.coherent_dma_mask = DMA_BIT_MASK(40),
+	.gfp_mask = GFP_HIGHUSER
 };
 
 /* The DT contains the v3d IP version, so map it to a compatible MMU revision */
@@ -1618,13 +1454,8 @@ MODULE_DEVICE_TABLE(of, v3d_drm_of_table);
 static int v3d_drm_probe(struct platform_device *pdev)
 {
 	struct v3d_drm_config_data *config = NULL;
-	bool found_cma_dev = false;
-	int i;
 
 	DRM_DEBUG_DRIVER("Probed brcmv3d driver:\n");
-	DRM_DEBUG_DRIVER("\tHW Page Size: %zu\n", (size_t)V3D_HW_PAGE_SIZE);
-	DRM_DEBUG_DRIVER("\tCMA Alloc Block Size: %zu\n",
-			 (size_t)V3D_CMA_ALLOC_BLOCK_SIZE);
 	DRM_DEBUG_DRIVER("\tHW Virtual Size: 0x%zx\n",
 			 (size_t)V3D_HW_VIRTUAL_ADDR_SIZE);
 
@@ -1646,27 +1477,16 @@ static int v3d_drm_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	for (i = 0; i < MAX_CMA_AREAS; i++) {
-		struct cma_dev *dev = cma_dev_get_cma_dev(i);
+	shm_mapping_mask = config->gfp_mask;
+	DRM_DEBUG_DRIVER("\tGFP Flags: %lx\n", (unsigned long)shm_mapping_mask);
 
-		if (dev) {
-			phys_addr_t base = dev->range.base;
-
-			DRM_DEBUG_DRIVER("Found CMA dev 0x%pK for MEMC%d (base %pa, size 0x%x)\n",
-					 dev, dev->memc, &base,
-					 dev->range.size);
-
-			if (v3d_drm_dev_is_cma_device_valid(dev))
-				found_cma_dev = true;
-		}
-	}
-
-	if (!found_cma_dev) {
-		DRM_DEBUG_DRIVER("No brcm_cma region defined\n");
-		return -ENOMEM;
-	}
-
+	/* The device DMA mask needs to be correct otherwise for 40bit capable
+	 * MMUs the dma mapping code would start creating 32bit compatible
+	 * bounce buffers for allocated pages >4GB, which is not good.
+	 */
 	pdev->dev.coherent_dma_mask = config->coherent_dma_mask;
+	pdev->dev.dma_mask = &pdev->dev.coherent_dma_mask;
+
 	return drm_platform_init(&v3d_driver, pdev);
 }
 
@@ -1691,3 +1511,4 @@ MODULE_AUTHOR("Broadcom Limited.");
 MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_LICENSE("GPL and additional rights");
 MODULE_ALIAS("platform:" DRIVER_NAME);
+module_param_named(ignore_cma, ignore_cma, int, 0400);

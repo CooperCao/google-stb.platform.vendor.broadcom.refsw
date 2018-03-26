@@ -88,10 +88,6 @@ ifeq ($(BINT_RAAGA_DISABLED),y)
 BINT_DEFINES += BINT_RAAGA_DISABLED
 endif
 
-ifeq ($(BINT_SPI_DISABLED),y)
-BINT_DEFINES += BINT_SPI_DISABLED
-endif
-
 ifeq ($(BCHP_DISABLE_IRQ0_SPI),y)
 # For 3548/3556, the linux kernel will access IRQ0_SPI_IRQEN for SPI flash devices.
 # If you are using SPI flash, you must export BCHP_DISABLE_IRQ0_SPI=y to prevent Magnum

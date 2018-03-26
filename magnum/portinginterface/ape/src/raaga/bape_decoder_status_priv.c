@@ -337,8 +337,8 @@ static BERR_Code BAPE_Decoder_P_GetAc4Status(
         {
             pStatus->codecStatus.ac4.currentPresentationId[i] = (handle->streamInfo.ac4.i32ProgramIdentifier[i/sizeof(uint32_t)] >> 8*(3-(i%4))) & 0xff;
         }
-        pStatus->codecStatus.ac4.currentPresentationIndex = handle->streamInfo.ac4.ui32DecodedPresentationIndex;
-        pStatus->codecStatus.ac4.currentAlternateStereoPresentationIndex = pStatus->codecStatus.ac4.currentPresentationIndex;
+        pStatus->codecStatus.ac4.currentPresentationIndex = handle->streamInfo.ac4.ui32DecodedPresentationIndex[BDSP_AC4_OUTPUT_MAIN];
+        pStatus->codecStatus.ac4.currentAlternateStereoPresentationIndex = handle->streamInfo.ac4.ui32DecodedPresentationIndex[BDSP_AC4_OUTPUT_ALTSTEREO];
         pStatus->codecStatus.ac4.dialogEnhanceMax = handle->streamInfo.ac4.ui32DecodedPresentationMaxDialogGain;
 
         BDBG_MSG(("AC4 Stream Info: streamInfoVersion %lu, numPresentations %lu, curPresIdx %lu, deMax %lu",
@@ -476,10 +476,12 @@ BERR_Code BAPE_Decoder_P_GetAc4PresentationInfo(
         }
         pInfo->info.ac4.index = handle->streamInfo.ac4.AC4DECPresentationInfo.ui32PresentationIndex;
         pInfo->info.ac4.associateType = (BAPE_Ac4AssociateType)handle->streamInfo.ac4.AC4DECPresentationInfo.ui32AssociateType;
+        pInfo->info.ac4.presentationType = (BAPE_Ac4PresentationType)handle->streamInfo.ac4.AC4DECPresentationInfo.ui32PresentationType;
         BDBG_MSG(("Presentation Info for idx %lu:", (unsigned long)presentationIndex));
         BDBG_MSG(("  index: %lu", (unsigned long)pInfo->info.ac4.index));
         BDBG_MSG(("  id: %s", pInfo->info.ac4.id));
         BDBG_MSG(("  assocType: %d", pInfo->info.ac4.associateType));
+        BDBG_MSG(("  presType: %d", pInfo->info.ac4.presentationType));
         BDBG_MSG(("  name: %s", pInfo->info.ac4.name));
         BDBG_MSG(("  language: %s", pInfo->info.ac4.language));
     }

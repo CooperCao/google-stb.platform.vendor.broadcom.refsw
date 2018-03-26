@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2011 Broadcom Corporation
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_DISPLAY_EXTENSIONS_H__
 #define NEXUS_DISPLAY_EXTENSIONS_H__
@@ -86,6 +75,10 @@ the entire public API for the Display module, including extensions */
 
 #if NEXUS_DISPLAY_EXTENSION_TOP
 #include "nexus_display_extension_top.h"
+#endif
+
+#if NEXUS_DISPLAY_EXTENSION_DYNRNG
+#include "nexus_display_dynrng_private.h"
 #endif
 
 #endif

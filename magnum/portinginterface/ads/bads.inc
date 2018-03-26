@@ -1,5 +1,5 @@
 ############################################################
-#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -140,6 +140,12 @@ endif
 ifneq ($(BADS_31XX_CHIP),)
 BADS_INCLUDES += $(MAGNUM)/portinginterface/ads/include/
 BADS_SOURCES += $(MAGNUM)/portinginterface/ads/src/8051/bads_31xx_priv.c
+endif
+
+ifneq ($(BADS_7255_SUPPORT),)
+BADS_DEFINES += BADS_7255_SUPPORT
+BADS_SOURCES += $(MAGNUM)/portinginterface/ads/src/leap/7255/bads_7255_priv.c
+BADS_SOURCES += $(MAGNUM)/portinginterface/ads/src/leap/7255/bads_7255.c
 endif
 
 ifneq ($(BADS_7550_SUPPORT),)

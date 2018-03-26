@@ -1,42 +1,39 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 /* base modules */
@@ -45,6 +42,8 @@
 #include "bdbg.h"           /* debug interface */
 #include "bkni.h"           /* kernel interface */
 
+#include "bmuxlib_debug.h"
+#include "bmuxlib_alloc.h"
 #include "bmuxlib_ts.h"
 #include "bmuxlib_ts_priv.h"
 
@@ -63,7 +62,7 @@ BDBG_FILE_MODULE(BMUXLIB_TS_MSP);
 BDBG_FILE_MODULE(BMUXLIB_TS_MEMORY);
 BDBG_FILE_MODULE(BMUXLIB_TS_STATS);
 
-BDBG_OBJECT_ID(BMUXlib_TS_P_Context);
+BDBG_OBJECT_ID(BMUXlib_TS_Legacy_P_Context);
 
 static bool BMUXlib_TS_P_ValidateStartSettings(BMUXlib_TS_StartSettings *pstStartSettings, bool bUseDefaults);
 static bool BMUXlib_TS_P_ValidateMuxSettings(BMUXlib_TS_MuxSettings *pstMuxSettings, BMUXlib_TS_StartSettings *pstStartSetting, bool bUseDefaults);
@@ -77,19 +76,19 @@ static void BMUXlib_TS_P_GetMaxMemoryConfig(const BMUXlib_TS_MuxConfig *astMuxCo
 static void BMUXlib_TS_P_GetDefaultMemorySize(BMUXlib_TS_MemoryConfig *pstMemoryConfig);
 static void BMUXlib_TS_P_GetBufferConfigFromMemoryConfig(const BMUXlib_TS_MemoryConfig *pstMemoryConfig, const BMUXlib_TS_P_MemoryBuffers *pstMemoryBuffers, BMUXlib_TS_P_BufferConfig *pstBufferConfig);
 
-static BERR_Code BMUXlib_TS_P_AllocateMemory(BMUXlib_TS_Handle hMuxTS, BMMA_Heap_Handle hMma, BMUXlib_TS_P_BufferConfig *pstMemoryConfig);
-static void BMUXlib_TS_P_FreeMemory(BMUXlib_TS_Handle hMuxTS, BMMA_Heap_Handle hMma);
-static void BMUXlib_TS_P_ResetResources(BMUXlib_TS_Handle hMuxTS);
-static BERR_Code BMUXlib_TS_P_AllocateResources(BMUXlib_TS_Handle hMuxTS, const BMUXlib_TS_P_MemoryConfig *pstMemoryConfig);
-static void BMUXlib_TS_P_FreeResources(BMUXlib_TS_Handle hMuxTS);
+static BERR_Code BMUXlib_TS_P_AllocateMemory(BMUXlib_TS_Legacy_Handle hMuxTS, BMMA_Heap_Handle hMma, BMUXlib_TS_P_BufferConfig *pstMemoryConfig);
+static void BMUXlib_TS_P_FreeMemory(BMUXlib_TS_Legacy_Handle hMuxTS, BMMA_Heap_Handle hMma);
+static void BMUXlib_TS_P_ResetResources(BMUXlib_TS_Legacy_Handle hMuxTS);
+static BERR_Code BMUXlib_TS_P_AllocateResources(BMUXlib_TS_Legacy_Handle hMuxTS, const BMUXlib_TS_P_MemoryConfig *pstMemoryConfig);
+static void BMUXlib_TS_P_FreeResources(BMUXlib_TS_Legacy_Handle hMuxTS);
 
-static BERR_Code BMUXlib_TS_P_RelocatePreQSystemData(BMUXlib_TS_Handle hMuxTS);
-static BERR_Code BMUXlib_TS_P_SetupMCPB(BMUXlib_TS_Handle hMuxTS);
-static void BMUXlib_TS_P_TeardownMCPB(BMUXlib_TS_Handle hMuxTS);
+static BERR_Code BMUXlib_TS_P_RelocatePreQSystemData(BMUXlib_TS_Legacy_Handle hMuxTS);
+static BERR_Code BMUXlib_TS_P_SetupMCPB(BMUXlib_TS_Legacy_Handle hMuxTS);
+static void BMUXlib_TS_P_TeardownMCPB(BMUXlib_TS_Legacy_Handle hMuxTS);
 
-static void BMUXlib_TS_P_Reset(BMUXlib_TS_Handle hMuxTS);
-static BERR_Code BMUXlib_TS_P_Finish(BMUXlib_TS_Handle hMuxTS, const BMUXlib_TS_FinishSettings *pstFinishSettings);
-static BERR_Code BMUXlib_TS_P_AssignTransportChannel(BMUXlib_TS_Handle hMuxTS, unsigned uiTransportChannelIndex, unsigned uiPID, unsigned uiPIDChannelIndex, bool bIsTS, BMUXlib_TS_TransportChannelInterface *pChannelInterface);
+static void BMUXlib_TS_P_Reset(BMUXlib_TS_Legacy_Handle hMuxTS);
+static BERR_Code BMUXlib_TS_P_Finish(BMUXlib_TS_Legacy_Handle hMuxTS, const BMUXlib_TS_FinishSettings *pstFinishSettings);
+static BERR_Code BMUXlib_TS_P_AssignTransportChannel(BMUXlib_TS_Legacy_Handle hMuxTS, unsigned uiTransportChannelIndex, unsigned uiPID, unsigned uiPIDChannelIndex, bool bIsTS, BMUXlib_TS_TransportChannelInterface *pChannelInterface);
 
 /******************/
 /* Create/Destroy */
@@ -115,7 +114,7 @@ BMUXlib_TS_P_GetMemoryConfigTotal(
    BDBG_ASSERT( pstMemoryConfig );
    BDBG_ASSERT( pstMemoryConfigTotal );
 
-   BKNI_Memset( pstMemoryConfigTotal, 0, sizeof( BMUXlib_TS_P_MemoryConfigTotal ) );
+   BKNI_Memset( pstMemoryConfigTotal, 0, sizeof( *pstMemoryConfigTotal ) );
    {
       BMUXlib_TS_P_MemoryEntryType eMemoryEntryType;
       for ( eMemoryEntryType = 0; eMemoryEntryType < BMUXlib_TS_P_MemoryEntryType_eMax; eMemoryEntryType++ )
@@ -211,7 +210,7 @@ BMUXlib_TS_P_GetMemoryConfig(
    BDBG_ASSERT(pstMuxConfig);
    BDBG_ASSERT(pstMemoryConfig);
 
-   BKNI_Memset( pstMemoryConfig, 0, sizeof( BMUXlib_TS_P_MemoryConfig ) );
+   BKNI_Memset( pstMemoryConfig, 0, sizeof( *pstMemoryConfig ) );
    /* copy the settings, so that we can override invalid settings with defaults */
    stMuxSettings = pstMuxConfig->stMuxSettings;
    stStartSettings = pstMuxConfig->stMuxStartSettings;
@@ -463,9 +462,9 @@ BMUXlib_TS_P_GetMaxMemoryConfig(
    BDBG_ASSERT(uiNumMuxConfig);
    BDBG_ASSERT(pstMemoryConfig);
 
-   BKNI_Memset( pstMemoryConfig, 0, sizeof( BMUXlib_TS_P_MemoryConfig ) );
+   BKNI_Memset( pstMemoryConfig, 0, sizeof( *pstMemoryConfig ) );
 
-   pTempMuxMemConfig = BKNI_Malloc(sizeof(*pTempMuxMemConfig));
+   pTempMuxMemConfig = BMUXlib_Malloc(sizeof(*pTempMuxMemConfig));
    if (!pTempMuxMemConfig) {
       BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
       return;
@@ -515,7 +514,7 @@ BMUXlib_TS_P_GetMaxMemoryConfig(
 /* Memory */
 /**********/
 void
-BMUXlib_TS_GetMemoryConfig(
+BMUXlib_TS_Legacy_GetMemoryConfig(
          const BMUXlib_TS_MuxConfig *pstMuxConfig,
          BMUXlib_TS_MemoryConfig *pstMemoryConfig
          )
@@ -527,9 +526,9 @@ BMUXlib_TS_GetMemoryConfig(
    BDBG_ASSERT(pstMuxConfig);
    BDBG_ASSERT(pstMemoryConfig);
 
-   BKNI_Memset( pstMemoryConfig, 0, sizeof( BMUXlib_TS_MemoryConfig )  );
+   BKNI_Memset( pstMemoryConfig, 0, sizeof( *pstMemoryConfig )  );
 
-   pTempMuxMemConfig = BKNI_Malloc(sizeof(*pTempMuxMemConfig));
+   pTempMuxMemConfig = BMUXlib_Malloc(sizeof(*pTempMuxMemConfig));
    if (!pTempMuxMemConfig) {
       BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
       return;
@@ -578,7 +577,7 @@ BMUXlib_TS_P_GetDefaultMemorySize(
    stMuxConfig.stMuxStartSettings.stPCRData.uiInterval = BMUXLIB_TS_P_NOMINAL_PCR_INTERVAL;
    stMuxConfig.stMuxStartSettings.bSupportTTS = true;
 
-   BMUXlib_TS_GetMemoryConfig(
+   BMUXlib_TS_Legacy_GetMemoryConfig(
       &stMuxConfig,
       pstMemoryConfig
       );
@@ -587,7 +586,7 @@ BMUXlib_TS_P_GetDefaultMemorySize(
 }
 
 void
-BMUXlib_TS_GetDefaultCreateSettings(
+BMUXlib_TS_Legacy_GetDefaultCreateSettings(
          BMUXlib_TS_CreateSettings *pCreateSettings
          )
 {
@@ -595,11 +594,7 @@ BMUXlib_TS_GetDefaultCreateSettings(
 
    BDBG_ASSERT( pCreateSettings );
 
-   BKNI_Memset(
-            pCreateSettings,
-            0,
-            sizeof(BMUXlib_TS_CreateSettings)
-            );
+   BKNI_Memset( pCreateSettings, 0, sizeof(*pCreateSettings) );
 
    pCreateSettings->uiSignature = BMUXLIB_TS_P_SIGNATURE_CREATESETTINGS;
 
@@ -620,7 +615,7 @@ BMUXlib_TS_P_GetBufferConfigFromMemoryConfig(
 {
    BDBG_ENTER(BMUXlib_TS_P_GetBufferConfigFromMemoryConfig);
 
-   BKNI_Memset( pstBufferConfig, 0, sizeof( BMUXlib_TS_P_BufferConfig ) );
+   BKNI_Memset( pstBufferConfig, 0, sizeof( *pstBufferConfig ) );
 
    pstBufferConfig->stBufferInfo[BMUXlib_TS_P_MemoryType_eSystem].uiSize = pstMemoryConfig->uiSystemBufferSize;
    pstBufferConfig->stBufferInfo[BMUXlib_TS_P_MemoryType_eSystem].pBuffer = pstMemoryBuffers->pSystemBuffer;
@@ -633,7 +628,7 @@ BMUXlib_TS_P_GetBufferConfigFromMemoryConfig(
 /* BMUXlib_TS_P_AllocateMemory - Allocates all system/device memory required for mux operation */
 static BERR_Code
 BMUXlib_TS_P_AllocateMemory(
-   BMUXlib_TS_Handle hMuxTS,
+   BMUXlib_TS_Legacy_Handle hMuxTS,
    BMMA_Heap_Handle hMma,
    BMUXlib_TS_P_BufferConfig *pstMemoryConfig
 )
@@ -643,7 +638,7 @@ BMUXlib_TS_P_AllocateMemory(
 
    BDBG_ENTER( BMUXlib_TS_P_AllocateMemory );
 
-   BDBG_OBJECT_ASSERT( hMuxTS, BMUXlib_TS_P_Context );
+   BDBG_OBJECT_ASSERT( hMuxTS, BMUXlib_TS_Legacy_P_Context );
    BDBG_ASSERT( hMma );
    BDBG_ASSERT( pstMemoryConfig );
 
@@ -708,7 +703,7 @@ BMUXlib_TS_P_AllocateMemory(
 
 static void
 BMUXlib_TS_P_FreeMemory(
-   BMUXlib_TS_Handle hMuxTS,
+   BMUXlib_TS_Legacy_Handle hMuxTS,
    BMMA_Heap_Handle hMma
    )
 {
@@ -717,7 +712,7 @@ BMUXlib_TS_P_FreeMemory(
 
    BDBG_ENTER( BMUXlib_TS_P_FreeMemory );
 
-   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_Legacy_P_Context);
 
    BSTD_UNUSED( hMma );
 
@@ -760,19 +755,19 @@ BMUXlib_TS_P_FreeMemory(
 
 static void
 BMUXlib_TS_P_ResetResources(
-   BMUXlib_TS_Handle hMuxTS
+   BMUXlib_TS_Legacy_Handle hMuxTS
    )
 {
    unsigned i;
 
    BDBG_ENTER( BMUXlib_TS_P_ResetResources );
 
-   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_Legacy_P_Context);
 
    /* Available Transport Descriptors */
    BMUXLIB_LIST_INIT( &hMuxTS->stTransportDescriptorFreeList );
 
-   for ( i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount; i++ )
+   for ( i = 0; i < hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount; i++ )
    {
       BMUXLIB_LIST_ADD(
                &hMuxTS->stTransportDescriptorFreeList,
@@ -789,7 +784,7 @@ BMUXlib_TS_P_ResetResources(
    /* PES Headers */
    BMUXLIB_LIST_INIT( &hMuxTS->stPESHeaderFreeList );
 
-   for ( i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_ePESHeader].uiCount; i++ )
+   for ( i = 0; i < hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_ePESHeader].uiCount; i++ )
    {
       BMUXLIB_LIST_ADD(
                &hMuxTS->stPESHeaderFreeList,
@@ -799,7 +794,7 @@ BMUXlib_TS_P_ResetResources(
 
    /* TS Packets */
    BMUXLIB_LIST_INIT( &hMuxTS->stTSPacketFreeList);
-   for ( i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount; i++ )
+   for ( i = 0; i < hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount; i++ )
    {
       BMUXLIB_LIST_ADD(
                &hMuxTS->stTSPacketFreeList,
@@ -809,7 +804,7 @@ BMUXlib_TS_P_ResetResources(
 
    /* BPP Packets */
    BMUXLIB_LIST_INIT( &hMuxTS->stBPPFreeList);
-   for ( i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eBPP].uiCount; i++ )
+   for ( i = 0; i < hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eBPP].uiCount; i++ )
    {
       BMUXLIB_LIST_ADD(
                &hMuxTS->stBPPFreeList,
@@ -819,7 +814,7 @@ BMUXlib_TS_P_ResetResources(
 
    /* MTU BPP Packets */
    BMUXLIB_LIST_INIT( &hMuxTS->stMTUBPPFreeList);
-   for ( i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eMTUBPP].uiCount; i++ )
+   for ( i = 0; i < hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eMTUBPP].uiCount; i++ )
    {
       BMUXLIB_LIST_ADD(
                &hMuxTS->stMTUBPPFreeList,
@@ -829,13 +824,13 @@ BMUXlib_TS_P_ResetResources(
 
    /* System Data */
    BMUXLIB_LIST_INIT( &hMuxTS->stSystemDataFreeList );
-   for (i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eSystemData].uiCount; i++){
+   for (i = 0; i < hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eSystemData].uiCount; i++){
       BMUXLIB_LIST_ADD(&hMuxTS->stSystemDataFreeList, &hMuxTS->astSystemData[i]);
    }
 
    /* Initialize User Data Free List */
    BMUXLIB_LIST_INIT( &hMuxTS->stUserdataFreeList );
-   for (i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserData].uiCount; i++)
+   for (i = 0; i < hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserData].uiCount; i++)
    {
       BMUXLIB_LIST_ADD(&hMuxTS->stUserdataFreeList, &hMuxTS->astUserdataPending[i]);
    }
@@ -849,18 +844,18 @@ BMUXlib_TS_P_ResetResources(
    /* Userdata PTS entries */
    BMUXLIB_LIST_INIT( &hMuxTS->stUserdataPTSFreeList );
 
-   for (i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserDataPTS].uiCount; i++)
+   for (i = 0; i < hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserDataPTS].uiCount; i++)
    {
       BMUXLIB_LIST_ADD(&hMuxTS->stUserdataPTSFreeList, &hMuxTS->astUserdataPTS[i]);
    }
 
    /* Userdata release Q free list */
    {
-      uint32_t uiCount = hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserDataReleaseQ].uiCount;
+      uint32_t uiCount = hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserDataReleaseQ].uiCount;
       if ( 0 != uiCount )
       {
          hMuxTS->pUserdataReleaseQFreeList = hMuxTS->pUserdataReleaseQFreeListBase;
-         BKNI_Memset(hMuxTS->pUserdataReleaseQFreeList, 0, sizeof(BMUXlib_TS_P_UserdataReleaseQEntry) * uiCount);
+         BKNI_Memset(hMuxTS->pUserdataReleaseQFreeList, 0, sizeof(*hMuxTS->pUserdataReleaseQFreeList) * uiCount);
          for (i = 0; i < uiCount-1; i++)
             hMuxTS->pUserdataReleaseQFreeList[i].pNext = &hMuxTS->pUserdataReleaseQFreeList[i+1];
          hMuxTS->pUserdataReleaseQFreeList[i].pNext = NULL;
@@ -908,7 +903,7 @@ BMUXlib_TS_P_ResetResources(
 
 static BERR_Code
 BMUXlib_TS_P_AllocateResources(
-   BMUXlib_TS_Handle hMuxTS,
+   BMUXlib_TS_Legacy_Handle hMuxTS,
    const BMUXlib_TS_P_MemoryConfig *pstMemoryConfig
    )
 {
@@ -916,10 +911,10 @@ BMUXlib_TS_P_AllocateResources(
    uint32_t i;
 
    BDBG_ENTER( BMUXlib_TS_P_AllocateResources );
-   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_Legacy_P_Context);
 
-   hMuxTS->status.stMemoryConfig = *pstMemoryConfig;
-   BMUXlib_TS_P_GetMemoryConfigTotal( &hMuxTS->status.stMemoryConfig, &hMuxTS->status.stMemoryConfigTotal );
+   hMuxTS->pstStatus->stMemoryConfig = *pstMemoryConfig;
+   BMUXlib_TS_P_GetMemoryConfigTotal( &hMuxTS->pstStatus->stMemoryConfig, &hMuxTS->pstStatus->stMemoryConfigTotal );
 
 #if BDBG_DEBUG_BUILD
    {
@@ -943,26 +938,26 @@ BMUXlib_TS_P_AllocateResources(
       {
          BDBG_MODULE_MSG( BMUXLIB_TS_MEMORY, ("Memory Type[%2d]: %5d (%7d/%7d bytes) - %s",
             eMemoryEntryType,
-            (int)hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[eMemoryEntryType].uiCount,
-            (int)hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[eMemoryEntryType].stMemoryConfig.stBufferInfo[0].uiSize,
-            (int)hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[eMemoryEntryType].stMemoryConfig.stBufferInfo[1].uiSize,
+            (int)hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[eMemoryEntryType].uiCount,
+            (int)hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[eMemoryEntryType].stMemoryConfig.stBufferInfo[0].uiSize,
+            (int)hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[eMemoryEntryType].stMemoryConfig.stBufferInfo[1].uiSize,
             BMUXlib_TS_P_MemoryTypeLUT[eMemoryEntryType]
             ));
       }
       BDBG_MODULE_MSG( BMUXLIB_TS_MEMORY, ("Total Memory: %7d/%7d bytes",
-         (int)hMuxTS->status.stMemoryConfigTotal.stMemoryConfig.stBufferInfo[0].uiSize,
-         (int)hMuxTS->status.stMemoryConfigTotal.stMemoryConfig.stBufferInfo[0].uiSize
+         (int)hMuxTS->pstStatus->stMemoryConfigTotal.stMemoryConfig.stBufferInfo[0].uiSize,
+         (int)hMuxTS->pstStatus->stMemoryConfigTotal.stMemoryConfig.stBufferInfo[0].uiSize
          ));
    }
 #endif
 
-   if ( 0 != hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eSystemData].uiCount )
+   if ( 0 != hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eSystemData].uiCount )
    {
       /* Allocate System Data List */
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eSystem],
             BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_SystemData),
-            hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eSystemData].uiCount,
+            hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eSystemData].uiCount,
             hMuxTS->hSystemDataBlock,
             hMuxTS->astSystemData
             );
@@ -973,13 +968,13 @@ BMUXlib_TS_P_AllocateResources(
       }
    } /* end: allocate system data pending list */
 
-   if ( 0 != hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount )
+   if ( 0 != hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount )
    {
       /* Allocate Transport Descriptor Array (system memory) */
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eSystem],
             BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TransportDescriptor),
-            hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount,
+            hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount,
             hMuxTS->hTransportDescriptorBlock,
             hMuxTS->astTransportDescriptor
             );
@@ -988,16 +983,12 @@ BMUXlib_TS_P_AllocateResources(
          BDBG_LEAVE(BMUXlib_TS_P_AllocateResources);
          return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
       }
-      BKNI_Memset(
-               hMuxTS->astTransportDescriptor,
-               0,
-               sizeof( BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TransportDescriptor) ) * hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount
-               );
+      BKNI_Memset( hMuxTS->astTransportDescriptor, 0, sizeof( *hMuxTS->astTransportDescriptor ) * hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount );
 
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eSystem],
             BMUXlib_TS_TransportDescriptor,
-            hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount,
+            hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount,
             hMuxTS->hTransportDescriptorTempBlock,
             hMuxTS->astTransportDescriptorTemp
             );
@@ -1006,16 +997,12 @@ BMUXlib_TS_P_AllocateResources(
          BDBG_LEAVE(BMUXlib_TS_P_AllocateResources);
          return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
       }
-      BKNI_Memset(
-               hMuxTS->astTransportDescriptorTemp,
-               0,
-               sizeof( BMUXlib_TS_TransportDescriptor ) * hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount
-               );
+      BKNI_Memset( hMuxTS->astTransportDescriptorTemp, 0, sizeof( *hMuxTS->astTransportDescriptorTemp ) * hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount );
 
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eSystem],
             BMUXlib_TS_P_TransportDescriptorMetaData,
-            hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount,
+            hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount,
             hMuxTS->hTransportDescriptorMetaDataTempBlock,
             hMuxTS->astTransportDescriptorMetaDataTemp
             );
@@ -1024,20 +1011,16 @@ BMUXlib_TS_P_AllocateResources(
          BDBG_LEAVE(BMUXlib_TS_P_AllocateResources);
          return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
       }
-      BKNI_Memset(
-               hMuxTS->astTransportDescriptorMetaDataTemp,
-               0,
-               sizeof( BMUXlib_TS_P_TransportDescriptorMetaData ) * hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount
-               );
+      BKNI_Memset( hMuxTS->astTransportDescriptorMetaDataTemp, 0, sizeof( *hMuxTS->astTransportDescriptorMetaDataTemp ) * hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount );
    }
 
-   if ( 0 != hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_ePESHeader].uiCount )
+   if ( 0 != hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_ePESHeader].uiCount )
    {
       /* Allocate PES Header Array (device memory) */
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared],
             BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_PESHeader),
-            hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_ePESHeader].uiCount,
+            hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_ePESHeader].uiCount,
             hMuxTS->hPESHeaderBlock,
             hMuxTS->astPESHeader
             );
@@ -1048,13 +1031,13 @@ BMUXlib_TS_P_AllocateResources(
       }
    }
 
-   if ( 0 != hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount )
+   if ( 0 != hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount )
    {
       /* Allocate TS Packet Array (device memory) */
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared],
             BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TSPacket),
-            hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount,
+            hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount,
             hMuxTS->hTSPacketBlock,
             hMuxTS->astTSPacket
             );
@@ -1065,7 +1048,7 @@ BMUXlib_TS_P_AllocateResources(
       }
 
       /* Pre-populate with default TS Packet */
-      for (i = 0; i < hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount; i++ )
+      for (i = 0; i < hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount; i++ )
       {
          BKNI_Memcpy(
                   BMUXLIB_LIST_ENTRY_DATA(&hMuxTS->astTSPacket[i]),
@@ -1075,13 +1058,13 @@ BMUXlib_TS_P_AllocateResources(
       }
    }
 
-   if ( 0 != hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount )
+   if ( 0 != hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount )
    {
       /* Allocate BPP Data Array (device memory) */
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared],
             BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_BPPData),
-            hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eBPP].uiCount,
+            hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eBPP].uiCount,
             hMuxTS->hBPPDataBlock,
             hMuxTS->astBPPData
             );
@@ -1091,13 +1074,13 @@ BMUXlib_TS_P_AllocateResources(
          return BERR_TRACE( BERR_OUT_OF_DEVICE_MEMORY );
       }
 
-      if ( 0 != hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eMTUBPP].uiCount )
+      if ( 0 != hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eMTUBPP].uiCount )
       {
          /* Allocate MTU BPP Data Array (device memory) */
          BMMA_RANGE_ALLOC(
                hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared],
                BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_MTUBPPData),
-               hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eMTUBPP].uiCount,
+               hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eMTUBPP].uiCount,
                hMuxTS->hMTUBPPDataBlock,
                hMuxTS->astMTUBPPData
                );
@@ -1109,7 +1092,7 @@ BMUXlib_TS_P_AllocateResources(
       }
    }
 
-   if ( 0 != hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserData].uiCount )
+   if ( 0 != hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserData].uiCount )
    {
       /* Allocate Userdata Free List
          NOTE: This assumes that there is a fixed amount of userdata
@@ -1118,7 +1101,7 @@ BMUXlib_TS_P_AllocateResources(
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eSystem],
             BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_UserdataPending),
-            hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserData].uiCount,
+            hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserData].uiCount,
             hMuxTS->hUserdataPendingBlock,
             hMuxTS->astUserdataPending
             );
@@ -1132,7 +1115,7 @@ BMUXlib_TS_P_AllocateResources(
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared],
             BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_UserdataPTSEntry),
-            hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserDataPTS].uiCount,
+            hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserDataPTS].uiCount,
             hMuxTS->hUserdataPTSBlock,
             hMuxTS->astUserdataPTS
             );
@@ -1147,7 +1130,7 @@ BMUXlib_TS_P_AllocateResources(
       BMMA_RANGE_ALLOC(
             hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared],
             BMUXlib_TS_P_TSPacket,
-            hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserDataUnwrap].uiCount,
+            hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserDataUnwrap].uiCount,
             hMuxTS->hUserdataUnwrapBlock,
             hMuxTS->astUserdataUnwrap
             );
@@ -1159,7 +1142,7 @@ BMUXlib_TS_P_AllocateResources(
 
       /* userdata release Q (need one entry for each pending segment entry) ... */
       {
-         uint32_t uiCount = hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserDataReleaseQ].uiCount;
+         uint32_t uiCount = hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eUserDataReleaseQ].uiCount;
          BMMA_RANGE_ALLOC(
                hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eSystem],
                BMUXlib_TS_P_UserdataReleaseQEntry,
@@ -1183,13 +1166,13 @@ BMUXlib_TS_P_AllocateResources(
 }
 
 /* move any pre-queued system data into the actual system data queue */
-/* SW7425-4643: This call expects hMuxTS->status.stStartSettings to be set, since
+/* SW7425-4643: This call expects hMuxTS->pstSettings->stStartSettings to be set, since
    the copying of any pre-queued system data will use the PCR PID for validation */
 static BERR_Code
-BMUXlib_TS_P_RelocatePreQSystemData(BMUXlib_TS_Handle hMuxTS)
+BMUXlib_TS_P_RelocatePreQSystemData(BMUXlib_TS_Legacy_Handle hMuxTS)
 {
    BERR_Code rc = BERR_SUCCESS;
-   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_Legacy_P_Context);
 
    /* SW7425-3958: */
    /* Use the allocated system data list: Move any system data queued prior to start to this list buffers */
@@ -1199,7 +1182,7 @@ BMUXlib_TS_P_RelocatePreQSystemData(BMUXlib_TS_Handle hMuxTS)
       BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_SystemData)* pSystemDataEntry;
       BMUXLIB_LIST_FIRST( &hMuxTS->stSystemDataPendingList, &pSystemDataEntry );
       BMUXLIB_LIST_INIT( &hMuxTS->stSystemDataPendingList );
-      hMuxTS->status.bSystemDataPreQ = false;
+      hMuxTS->pstStatus->bSystemDataPreQ = false;
       while ( NULL != pSystemDataEntry )
       {
          size_t uiQueuedCount;
@@ -1230,14 +1213,14 @@ BMUXlib_TS_P_RelocatePreQSystemData(BMUXlib_TS_Handle hMuxTS)
 
 static BERR_Code
 BMUXlib_TS_P_SetupMCPB(
-   BMUXlib_TS_Handle hMuxTS
+   BMUXlib_TS_Legacy_Handle hMuxTS
    )
 {
    BERR_Code rc = BERR_SUCCESS;
    unsigned i, uiPIDIndex;
    unsigned auiNumInputsPerTransportChannelIndex[BMUXLIB_TS_MAX_TRANSPORT_INSTANCES];
 
-   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_Legacy_P_Context);
 
    for ( i = 0; i < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; i++ )
    {
@@ -1245,19 +1228,19 @@ BMUXlib_TS_P_SetupMCPB(
    }
 
    /* Check Video Inputs */
-   for ( uiPIDIndex = 0; (BERR_SUCCESS == rc) && (uiPIDIndex < BMUXLIB_TS_MAX_VIDEO_PIDS) && (uiPIDIndex < hMuxTS->status.stStartSettings.uiNumValidVideoPIDs); uiPIDIndex++ )
+   for ( uiPIDIndex = 0; (BERR_SUCCESS == rc) && (uiPIDIndex < BMUXLIB_TS_MAX_VIDEO_PIDS) && (uiPIDIndex < hMuxTS->pstSettings->stStartSettings.uiNumValidVideoPIDs); uiPIDIndex++ )
    {
-      auiNumInputsPerTransportChannelIndex[hMuxTS->status.stStartSettings.video[uiPIDIndex].uiTransportChannelIndex]++;
+      auiNumInputsPerTransportChannelIndex[hMuxTS->pstSettings->stStartSettings.video[uiPIDIndex].uiTransportChannelIndex]++;
    }
 
    /* Check Audio Inputs */
-   for ( uiPIDIndex = 0; (BERR_SUCCESS == rc) && (uiPIDIndex < BMUXLIB_TS_MAX_AUDIO_PIDS) && (uiPIDIndex < hMuxTS->status.stStartSettings.uiNumValidAudioPIDs); uiPIDIndex++ )
+   for ( uiPIDIndex = 0; (BERR_SUCCESS == rc) && (uiPIDIndex < BMUXLIB_TS_MAX_AUDIO_PIDS) && (uiPIDIndex < hMuxTS->pstSettings->stStartSettings.uiNumValidAudioPIDs); uiPIDIndex++ )
    {
-      auiNumInputsPerTransportChannelIndex[hMuxTS->status.stStartSettings.audio[uiPIDIndex].uiTransportChannelIndex]++;
+      auiNumInputsPerTransportChannelIndex[hMuxTS->pstSettings->stStartSettings.audio[uiPIDIndex].uiTransportChannelIndex]++;
    }
 
    /* Check System Inputs */
-   auiNumInputsPerTransportChannelIndex[hMuxTS->status.stStartSettings.stPCRData.uiTransportChannelIndex]++;
+   auiNumInputsPerTransportChannelIndex[hMuxTS->pstSettings->stStartSettings.stPCRData.uiTransportChannelIndex]++;
 
    /* Create MCPB instance for each transport that has multiple inputs */
    for ( i = 0; ( BERR_SUCCESS == rc) && i < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; i++ )
@@ -1271,10 +1254,10 @@ BMUXlib_TS_P_SetupMCPB(
          stCreateSettings.stMuxSharedMemory.hBlock =  hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
          stCreateSettings.stMuxSharedMemory.uiSize =  hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.size;
          stCreateSettings.uiMaxNumInputs = auiNumInputsPerTransportChannelIndex[i];
-         stCreateSettings.stOutputChannelInterface = hMuxTS->status.stStartSettings.transport.stChannelInterface[i];
+         stCreateSettings.stOutputChannelInterface = hMuxTS->pstSettings->stStartSettings.transport.stChannelInterface[i];
 
          rc = BERR_TRACE( BMUXlib_TS_MCPB_Create(
-            &hMuxTS->status.stOutput.stMCPB[i].hMuxMCPB,
+            &hMuxTS->pstStatus->stOutput.stMCPB[i].hMuxMCPB,
             &stCreateSettings
             ));
       }
@@ -1285,35 +1268,35 @@ BMUXlib_TS_P_SetupMCPB(
 
 static void
 BMUXlib_TS_P_TeardownMCPB(
-   BMUXlib_TS_Handle hMuxTS
+   BMUXlib_TS_Legacy_Handle hMuxTS
    )
 {
    unsigned i,j;
 
    for ( i = 0; i < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; i++ )
    {
-      if ( NULL != hMuxTS->status.stOutput.stMCPB[i].hMuxMCPB )
+      if ( NULL != hMuxTS->pstStatus->stOutput.stMCPB[i].hMuxMCPB )
       {
          for ( j = 0; j < BMUXLIB_TS_MAX_VIDEO_PIDS + BMUXLIB_TS_MAX_AUDIO_PIDS + 1; j++ )
          {
-            if ( NULL != hMuxTS->status.stOutput.stMCPB[i].ahMuxMCPBCh[j] )
+            if ( NULL != hMuxTS->pstStatus->stOutput.stMCPB[i].ahMuxMCPBCh[j] )
             {
-               BMUXlib_TS_MCPB_Channel_Close( hMuxTS->status.stOutput.stMCPB[i].ahMuxMCPBCh[j] );
-               hMuxTS->status.stOutput.stMCPB[i].ahMuxMCPBCh[j] = NULL;
+               BMUXlib_TS_MCPB_Channel_Close( hMuxTS->pstStatus->stOutput.stMCPB[i].ahMuxMCPBCh[j] );
+               hMuxTS->pstStatus->stOutput.stMCPB[i].ahMuxMCPBCh[j] = NULL;
             }
          }
 
          BMUXlib_TS_MCPB_Destroy(
-            hMuxTS->status.stOutput.stMCPB[i].hMuxMCPB
+            hMuxTS->pstStatus->stOutput.stMCPB[i].hMuxMCPB
             );
-         hMuxTS->status.stOutput.stMCPB[i].hMuxMCPB = NULL;
+         hMuxTS->pstStatus->stOutput.stMCPB[i].hMuxMCPB = NULL;
       }
    }
 }
 
 static void
 BMUXlib_TS_P_FreeResources(
-   BMUXlib_TS_Handle hMuxTS
+   BMUXlib_TS_Legacy_Handle hMuxTS
    )
 {
    uint32_t i;
@@ -1333,10 +1316,10 @@ BMUXlib_TS_P_FreeResources(
 
       for ( uiInputIndex = 0; uiInputIndex < BMUXLIB_TS_MAX_INPUT_PIDS; uiInputIndex++ )
       {
-         if ( NULL != hMuxTS->status.stInputMetaData[uiInputIndex].hInput )
+         if ( NULL != hMuxTS->pstStatus->stInputMetaData[uiInputIndex].hInput )
          {
-            BMUXlib_Input_Stop( hMuxTS->status.stInputMetaData[uiInputIndex].hInput );
-            hMuxTS->status.stInputMetaData[uiInputIndex].hInput = NULL;
+            BMUXlib_Input_Stop( hMuxTS->pstStatus->stInputMetaData[uiInputIndex].hInput );
+            hMuxTS->pstStatus->stInputMetaData[uiInputIndex].hInput = NULL;
          }
       }
    }
@@ -1347,7 +1330,7 @@ BMUXlib_TS_P_FreeResources(
 
    for ( i = 0; i < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; i++ )
    {
-      if ( true == hMuxTS->status.stOutput.stTransport[i].bActive )
+      if ( true == hMuxTS->pstStatus->stOutput.stTransport[i].bActive )
       {
          if ( false == BMUXLIB_LIST_ISEMPTY( &hMuxTS->stTransportDescriptorPendingList[i] ) )
          {
@@ -1365,9 +1348,9 @@ BMUXlib_TS_P_FreeResources(
                   &hMuxTS->stTransportDescriptorFreeList,
                   &uiCount
                   );
-         if ( hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount != uiCount )
+         if ( hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount != uiCount )
          {
-            BDBG_MODULE_MSG( BMUXLIB_TS_FINISH, ("All Transport Descriptors have not been freed (%d)", (int)(hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount - uiCount)));
+            BDBG_MODULE_MSG( BMUXLIB_TS_FINISH, ("All Transport Descriptors have not been freed (%d)", (int)(hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor].uiCount - uiCount)));
          }
       }
 
@@ -1376,9 +1359,9 @@ BMUXlib_TS_P_FreeResources(
                   &hMuxTS->stPESHeaderFreeList,
                   &uiCount
                   );
-         if ( hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_ePESHeader].uiCount != uiCount )
+         if ( hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_ePESHeader].uiCount != uiCount )
          {
-            BDBG_MODULE_MSG( BMUXLIB_TS_FINISH, ("All PES Headers have not been freed (%d)", (int)(hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_ePESHeader].uiCount - uiCount)));
+            BDBG_MODULE_MSG( BMUXLIB_TS_FINISH, ("All PES Headers have not been freed (%d)", (int)(hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_ePESHeader].uiCount - uiCount)));
          }
       }
 
@@ -1387,9 +1370,9 @@ BMUXlib_TS_P_FreeResources(
                   &hMuxTS->stTSPacketFreeList,
                   &uiCount
                   );
-         if ( hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount != uiCount )
+         if ( hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount != uiCount )
          {
-            BDBG_MODULE_MSG( BMUXLIB_TS_FINISH, ("All TS Packets have not been freed (%d)", (int)(hMuxTS->status.stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount - uiCount)));
+            BDBG_MODULE_MSG( BMUXLIB_TS_FINISH, ("All TS Packets have not been freed (%d)", (int)(hMuxTS->pstStatus->stMemoryConfigTotal.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportPacket].uiCount - uiCount)));
          }
       }
    }
@@ -1604,7 +1587,7 @@ BMUXlib_TS_P_FreeResources(
 
 static void
 BMUXlib_TS_P_Reset(
-   BMUXlib_TS_Handle hMuxTS
+   BMUXlib_TS_Legacy_Handle hMuxTS
    )
 {
    unsigned i;
@@ -1612,13 +1595,16 @@ BMUXlib_TS_P_Reset(
    BDBG_ENTER( BMUXlib_TS_P_Reset );
 
 #ifdef BMUXLIB_TS_P_TEST_MODE
-   if (NULL != hMuxTS->status.stSystemDataInfo.hCSVFile)
-      fclose(hMuxTS->status.stSystemDataInfo.hCSVFile);
-   if (NULL != hMuxTS->status.stSystemDataInfo.hDataFile)
-      fclose(hMuxTS->status.stSystemDataInfo.hDataFile);
+   if (NULL != hMuxTS->pstStatus->stSystemDataInfo.hCSVFile)
+      fclose(hMuxTS->pstStatus->stSystemDataInfo.hCSVFile);
+   if (NULL != hMuxTS->pstStatus->stSystemDataInfo.hDataFile)
+      fclose(hMuxTS->pstStatus->stSystemDataInfo.hDataFile);
 #endif
 
-   BKNI_Memset( &hMuxTS->status, 0, sizeof( hMuxTS->status ) );
+   BKNI_Memset( hMuxTS->pstStatus, 0, sizeof( *hMuxTS->pstStatus ) );
+   BKNI_Memset( hMuxTS->aFoundPIDs, 0, BMUXLIB_TS_PID_TABLE_SIZE * sizeof(*hMuxTS->aFoundPIDs) );
+   BKNI_Memset( hMuxTS->pstUserdataStatus, 0, sizeof(*hMuxTS->pstUserdataStatus) );
+   BKNI_Memset( hMuxTS->pstSettings, 0, sizeof(*hMuxTS->pstSettings) );
 
    BMUXlib_InputGroup_Stop(hMuxTS->hInputGroup);
 
@@ -1637,28 +1623,28 @@ BMUXlib_TS_P_Reset(
          BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_SystemData)*pstSystemDataBuffer = (BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_SystemData)*) ( (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer + ( hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.size - ( (i+1) * sizeof( BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_SystemData) ) ) ) );
          BMUXLIB_LIST_ADD(&hMuxTS->stSystemDataFreeList, pstSystemDataBuffer);
       }
-      hMuxTS->status.bSystemDataPreQ = true;
+      hMuxTS->pstStatus->bSystemDataPreQ = true;
    }
 
    BMUXlib_TS_GetDefaultMuxSettings(
-            &hMuxTS->status.stMuxSettings
+            &hMuxTS->pstSettings->stMuxSettings
             );
 
    BMUXlib_TS_GetDefaultStartSettings(
-            &hMuxTS->status.stStartSettings
+            &hMuxTS->pstSettings->stStartSettings
             );
 
    BDBG_LEAVE( BMUXlib_TS_P_Reset );
 }
 
 BERR_Code
-BMUXlib_TS_Create(
-         BMUXlib_TS_Handle *phMuxTS,  /* [out] TSMuxer handle returned */
+BMUXlib_TS_Legacy_Create(
+         BMUXlib_TS_Legacy_Handle *phMuxTS,  /* [out] TSMuxer handle returned */
          const BMUXlib_TS_CreateSettings *pstCreateSettings
          )
 {
    BERR_Code rc = BERR_UNKNOWN;
-   BMUXlib_TS_P_Context *pMuxTS;
+   BMUXlib_TS_Legacy_P_Context *pMuxTS;
 
    BDBG_ENTER( BMUXlib_TS_Create );
 
@@ -1684,28 +1670,21 @@ BMUXlib_TS_Create(
    }
 
    /* Allocate MUX TS Context (system memory) */
-   pMuxTS = ( BMUXlib_TS_P_Context* ) BKNI_Malloc( sizeof( BMUXlib_TS_P_Context ) );
-   if ( NULL == pMuxTS )
-   {
-      BDBG_LEAVE(BMUXlib_TS_Create);
-      return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
-   }
+   BMUXLIB_P_CONTEXT_ALLOCATE( BMUXlib_TS_Legacy_P_Context, pMuxTS, alloc_context_error )
+   BDBG_OBJECT_SET(pMuxTS, BMUXlib_TS_Legacy_P_Context);
 
-   /* Zero out the newly allocated context */
-   BKNI_Memset(
-            pMuxTS,
-            0,
-            sizeof( BMUXlib_TS_P_Context )
-            );
+   /* Allocate MUX TS Status (system memory) */
+   BMUXLIB_P_CONTEXT_ALLOCATE( BMUXlib_TS_P_Status, pMuxTS->pstStatus, alloc_error )
+   BMUXLIB_P_CONTEXT_ALLOCATE( BMUXlib_TS_P_UserdataStatusPriv, pMuxTS->pstUserdataStatus, alloc_error )
+   BMUXLIB_P_CONTEXT_ALLOCATE( BMUXlib_TS_P_Settings, pMuxTS->pstSettings, alloc_error )
 
-   BDBG_OBJECT_SET(pMuxTS, BMUXlib_TS_P_Context);
+   pMuxTS->aFoundPIDs = (uint32_t*) BMUXlib_Malloc(BMUXLIB_TS_PID_TABLE_SIZE * sizeof(uint32_t));
+   if ( NULL == pMuxTS->aFoundPIDs ) goto alloc_error;
+
+   BKNI_Memset( pMuxTS->aFoundPIDs, 0, BMUXLIB_TS_PID_TABLE_SIZE * sizeof(*pMuxTS->aFoundPIDs) );
 
    /* Copy user specified settings */
-   BKNI_Memcpy(
-            &pMuxTS->stCreateSettings,
-            pstCreateSettings,
-            sizeof( BMUXlib_TS_CreateSettings )
-            );
+   BKNI_Memcpy( &pMuxTS->stCreateSettings, pstCreateSettings, sizeof( pMuxTS->stCreateSettings ) );
 
    /* Populate BMUXlib_TS_P_MemoryBuffers */
    {
@@ -1720,14 +1699,14 @@ BMUXlib_TS_Create(
    /* Allocate sub heap */
    {
       BMUXlib_TS_P_BufferConfig stMemoryConfig;
-      BKNI_Memset( &stMemoryConfig, 0, sizeof( BMUXlib_TS_P_BufferConfig ) );
+      BKNI_Memset( &stMemoryConfig, 0, sizeof( stMemoryConfig ) );
       BMUXlib_TS_P_GetBufferConfigFromMemoryConfig( &pMuxTS->stCreateSettings.stMemoryConfig, &pMuxTS->stMemoryBuffers, &stMemoryConfig );
 
       rc = BMUXlib_TS_P_AllocateMemory( pMuxTS, pMuxTS->stCreateSettings.hMma, &stMemoryConfig );
 
       if ( BERR_SUCCESS != rc )
       {
-         BMUXlib_TS_Destroy( pMuxTS );
+         BMUXlib_TS_Legacy_Destroy( pMuxTS );
          BDBG_LEAVE(BMUXlib_TS_Create);
          return BERR_TRACE(rc);
       }
@@ -1745,7 +1724,7 @@ BMUXlib_TS_Create(
 
          if ( BERR_SUCCESS != rc )
          {
-            BMUXlib_TS_Destroy( pMuxTS );
+            BMUXlib_TS_Legacy_Destroy( pMuxTS );
             BDBG_LEAVE(BMUXlib_TS_Create);
             return BERR_TRACE(rc);
          }
@@ -1762,7 +1741,7 @@ BMUXlib_TS_Create(
 
       if ( BERR_SUCCESS != rc )
       {
-         BMUXlib_TS_Destroy( pMuxTS );
+         BMUXlib_TS_Legacy_Destroy( pMuxTS );
          BDBG_LEAVE(BMUXlib_TS_Create);
          return BERR_TRACE(rc);
       }
@@ -1773,32 +1752,40 @@ BMUXlib_TS_Create(
 
    /* Provide handle to caller */
    *phMuxTS = pMuxTS;
+   goto alloc_done;
+
+alloc_error:
+   BMUXlib_TS_Legacy_Destroy( pMuxTS );
+
+alloc_context_error:
+   rc = BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
+
+alloc_done:
    BDBG_LEAVE(BMUXlib_TS_Create);
    return BERR_TRACE( BERR_SUCCESS );
 }
 
-BERR_Code
-BMUXlib_TS_Destroy(
-         BMUXlib_TS_Handle hMuxTS
+void
+BMUXlib_TS_Legacy_Destroy(
+         BMUXlib_TS_Legacy_Handle hMuxTS
          )
 {
-   BDBG_ENTER(BMUXlib_TS_Destroy);
+   BDBG_ENTER(BMUXlib_TS_Legacy_Destroy);
 
    /* the following signifies an attempt to free up something that was either
       a) not created by Create()
       b) has already been destroyed
    */
-   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_Legacy_P_Context);
 
    /* SW7425-3642: Stop the mux if it hasn't already been stopped
       - this is necessary since Stop() now frees resources */
    if (BMUXlib_State_eStopped != BMUXLIB_TS_P_GET_MUX_STATE(hMuxTS))
    {
-      BERR_Code rc = BMUXlib_TS_Stop(hMuxTS);
+      BERR_Code rc = BMUXlib_TS_Legacy_Stop(hMuxTS);
       if (rc != BERR_SUCCESS)
       {
-         BDBG_LEAVE(BMUXlib_TS_Destroy);
-         return BERR_TRACE(rc);
+         BDBG_ERR(("Error Force Stopping Mux"));
       }
    }
 
@@ -1839,54 +1826,27 @@ BMUXlib_TS_Destroy(
       }
    }
 
-   /* the following prevents accidental reuse of the context */
-   BDBG_OBJECT_DESTROY(hMuxTS, BMUXlib_TS_P_Context);
-   BKNI_Free ( hMuxTS );
+   if ( NULL != hMuxTS->aFoundPIDs )
+   {
+      BKNI_Free(hMuxTS->aFoundPIDs);
+      hMuxTS->aFoundPIDs = NULL;
+   }
 
-   BDBG_LEAVE(BMUXlib_TS_Destroy);
-   return BERR_TRACE( BERR_SUCCESS );
+   BMUXLIB_P_CONTEXT_FREE( hMuxTS->pstSettings )
+   BMUXLIB_P_CONTEXT_FREE( hMuxTS->pstUserdataStatus )
+   BMUXLIB_P_CONTEXT_FREE( hMuxTS->pstStatus )
+
+   /* the following prevents accidental reuse of the context */
+   BDBG_OBJECT_DESTROY(hMuxTS, BMUXlib_TS_Legacy_P_Context);
+   BMUXLIB_P_CONTEXT_FREE( hMuxTS )
+
+   BDBG_LEAVE(BMUXlib_TS_Legacy_Destroy);
+   return;
 }
 
 /****************/
 /* Mux Settings */
 /****************/
-void
-BMUXlib_TS_GetDefaultMuxSettings(
-         BMUXlib_TS_MuxSettings *pstMuxSettings
-         )
-{
-   BDBG_ENTER( BMUXlib_TS_GetDefaultMuxSettings );
-
-   BDBG_ASSERT( pstMuxSettings );
-
-   BKNI_Memset(
-            pstMuxSettings,
-            0,
-            sizeof( BMUXlib_TS_MuxSettings )
-            );
-
-   pstMuxSettings->uiSignature = BMUXLIB_TS_P_SIGNATURE_MUXSETTINGS;
-   pstMuxSettings->uiSystemDataBitRate = BMUXLIB_TS_P_MUX_SYS_DATA_BR_DEFAULT;
-
-   /* SW7436-1363: Enable all inputs by default */
-   {
-      unsigned i;
-
-      for ( i = 0; i < BMUXLIB_TS_MAX_VIDEO_PIDS; i++ )
-      {
-         pstMuxSettings->stInputEnable.bVideo[i] = true;
-      }
-
-      for ( i = 0; i < BMUXLIB_TS_MAX_AUDIO_PIDS; i++ )
-      {
-         pstMuxSettings->stInputEnable.bAudio[i] = true;
-      }
-   }
-
-   BDBG_LEAVE( BMUXlib_TS_GetDefaultMuxSettings );
-   return;
-}
-
 /* Validate Specified Mux settings
    NOTE: that validation of the system data bitrate requires access to the
    Start Settings
@@ -1955,28 +1915,28 @@ BMUXlib_TS_P_ValidateSystemDataBitrate(BMUXlib_TS_MuxSettings *pstMuxSettings, c
 }
 
 BERR_Code
-BMUXlib_TS_SetMuxSettings(
-         BMUXlib_TS_Handle hMuxTS,
+BMUXlib_TS_Legacy_SetMuxSettings(
+         BMUXlib_TS_Legacy_Handle hMuxTS,
          const BMUXlib_TS_MuxSettings *pstMuxSettings
          )
 {
    BMUXlib_TS_MuxSettings stSettingsCopy;
    BDBG_ENTER( BMUXlib_TS_SetMuxSettings );
 
-   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_Legacy_P_Context);
    BDBG_ASSERT( pstMuxSettings );
    BDBG_ASSERT( BMUXLIB_TS_P_SIGNATURE_MUXSETTINGS == pstMuxSettings->uiSignature );
 
    /* make a copy since Validate() may modify the settings */
    stSettingsCopy = *pstMuxSettings;
-   if (BMUXlib_TS_P_ValidateMuxSettings(&stSettingsCopy, &hMuxTS->status.stStartSettings, false))
+   if (BMUXlib_TS_P_ValidateMuxSettings(&stSettingsCopy, &hMuxTS->pstSettings->stStartSettings, false))
    {
       BDBG_LEAVE( BMUXlib_TS_SetMuxSettings );
       return BERR_TRACE(BERR_INVALID_PARAMETER);
    }
 
    /* if settings validate OK, then store them */
-   hMuxTS->status.stMuxSettings = stSettingsCopy;
+   hMuxTS->pstSettings->stMuxSettings = stSettingsCopy;
 
    /* SW7436-1363: If mux has started, then set the inputs as needed */
    if ( BMUXlib_State_eStopped != BMUXLIB_TS_P_GET_MUX_STATE(hMuxTS) )
@@ -1986,38 +1946,38 @@ BMUXlib_TS_SetMuxSettings(
 
       for ( i = 0; i < BMUXLIB_TS_MAX_VIDEO_PIDS; i++ )
       {
-         uiInputIndex = hMuxTS->status.stInputIndexLUT.uiVideo[i];
+         uiInputIndex = hMuxTS->pstStatus->stInputIndexLUT.uiVideo[i];
 
          if ( uiInputIndex == 0xFFFFFFFF ) continue;
 
          BMUXlib_Input_GetSettings(
-            hMuxTS->status.stInputMetaData[uiInputIndex].hInput,
+            hMuxTS->pstStatus->stInputMetaData[uiInputIndex].hInput,
             &stSettings
          );
 
-         stSettings.bEnable = hMuxTS->status.stMuxSettings.stInputEnable.bVideo[i];
+         stSettings.bEnable = hMuxTS->pstSettings->stMuxSettings.stInputEnable.bVideo[i];
 
          BMUXlib_Input_SetSettings(
-            hMuxTS->status.stInputMetaData[uiInputIndex].hInput,
+            hMuxTS->pstStatus->stInputMetaData[uiInputIndex].hInput,
             &stSettings
          );
       }
 
       for ( i = 0; i < BMUXLIB_TS_MAX_AUDIO_PIDS; i++ )
       {
-         uiInputIndex = hMuxTS->status.stInputIndexLUT.uiAudio[i];
+         uiInputIndex = hMuxTS->pstStatus->stInputIndexLUT.uiAudio[i];
 
          if ( uiInputIndex == 0xFFFFFFFF ) continue;
 
          BMUXlib_Input_GetSettings(
-            hMuxTS->status.stInputMetaData[uiInputIndex].hInput,
+            hMuxTS->pstStatus->stInputMetaData[uiInputIndex].hInput,
             &stSettings
          );
 
-         stSettings.bEnable = hMuxTS->status.stMuxSettings.stInputEnable.bAudio[i];
+         stSettings.bEnable = hMuxTS->pstSettings->stMuxSettings.stInputEnable.bAudio[i];
 
          BMUXlib_Input_SetSettings(
-            hMuxTS->status.stInputMetaData[uiInputIndex].hInput,
+            hMuxTS->pstStatus->stInputMetaData[uiInputIndex].hInput,
             &stSettings
          );
       }
@@ -2028,17 +1988,17 @@ BMUXlib_TS_SetMuxSettings(
 }
 
 BERR_Code
-BMUXlib_TS_GetMuxSettings(
-         BMUXlib_TS_Handle hMuxTS,
+BMUXlib_TS_Legacy_GetMuxSettings(
+         BMUXlib_TS_Legacy_Handle hMuxTS,
          BMUXlib_TS_MuxSettings *pstMuxSettings
          )
 {
    BDBG_ENTER( BMUXlib_TS_GetMuxSettings );
 
-   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_Legacy_P_Context);
    BDBG_ASSERT( pstMuxSettings );
 
-   *pstMuxSettings = hMuxTS->status.stMuxSettings;
+   *pstMuxSettings = hMuxTS->pstSettings->stMuxSettings;
 
    BDBG_LEAVE( BMUXlib_TS_GetMuxSettings );
    return BERR_TRACE( BERR_SUCCESS );
@@ -2047,31 +2007,6 @@ BMUXlib_TS_GetMuxSettings(
 /**************/
 /* Start/Stop */
 /**************/
-void
-BMUXlib_TS_GetDefaultStartSettings(
-         BMUXlib_TS_StartSettings *pstStartSettings
-         )
-{
-   BDBG_ENTER( BMUXlib_TS_GetDefaultStartSettings );
-
-   BDBG_ASSERT( pstStartSettings );
-
-   BKNI_Memset(
-            pstStartSettings,
-            0,
-            sizeof( BMUXlib_TS_StartSettings )
-            );
-
-   pstStartSettings->uiSignature = BMUXLIB_TS_P_SIGNATURE_STARTSETTINGS;
-   pstStartSettings->uiServiceLatencyTolerance = 20;
-   pstStartSettings->uiServicePeriod = BMUXLIB_TS_P_MUX_SERVICE_PERIOD_DEFAULT;
-   pstStartSettings->stPCRData.uiInterval = BMUXLIB_TS_P_MUX_PCR_INTERVAL_DEFAULT;
-   pstStartSettings->uiA2PDelay = BMUXLIB_TS_P_A2PDELAY_DEFAULT;
-
-   BDBG_LEAVE( BMUXlib_TS_GetDefaultStartSettings );
-   return;
-}
-
 /* Validate Start settings that also affect memory calculations
 
    If bUseDefaults set, then erroneous settings will result in a warning and
@@ -2145,7 +2080,7 @@ BMUXlib_TS_P_ValidateStartSettings(BMUXlib_TS_StartSettings *pstStartSettings, b
 
 static BERR_Code
 BMUXlib_TS_P_AssignTransportChannel(
-   BMUXlib_TS_Handle hMuxTS,
+   BMUXlib_TS_Legacy_Handle hMuxTS,
    unsigned uiTransportChannelIndex,
    unsigned uiPID,
    unsigned uiPIDChannelIndex,
@@ -2155,12 +2090,12 @@ BMUXlib_TS_P_AssignTransportChannel(
 {
    BERR_Code rc = BERR_SUCCESS;
 
-   BKNI_Memset( pChannelInterface, 0, sizeof( BMUXlib_TS_TransportChannelInterface ) );
+   BKNI_Memset( pChannelInterface, 0, sizeof( *pChannelInterface ) );
 
-   if ( NULL == hMuxTS->status.stOutput.stMCPB[uiTransportChannelIndex].hMuxMCPB )
+   if ( NULL == hMuxTS->pstStatus->stOutput.stMCPB[uiTransportChannelIndex].hMuxMCPB )
    {
       /* Only one input assigned to this transport channel index, so it is a legacy PB channel, so use it as-is */
-      *pChannelInterface = hMuxTS->status.stStartSettings.transport.stChannelInterface[uiTransportChannelIndex];
+      *pChannelInterface = hMuxTS->pstSettings->stStartSettings.transport.stChannelInterface[uiTransportChannelIndex];
    }
    else
    {
@@ -2169,19 +2104,19 @@ BMUXlib_TS_P_AssignTransportChannel(
 
       BMUXlib_TS_MCPB_Channel_GetDefaultOpenSettings( &stOpenSettings );
       stOpenSettings.bIsTS = bIsTS;
-      stOpenSettings.uiInstance = hMuxTS->status.stOutput.stMCPB[uiTransportChannelIndex].uiNumOpenChannels++;
+      stOpenSettings.uiInstance = hMuxTS->pstStatus->stOutput.stMCPB[uiTransportChannelIndex].uiNumOpenChannels++;
       stOpenSettings.uiPID = uiPID;
       stOpenSettings.uiPIDChannelIndex = uiPIDChannelIndex;
 
       rc = BERR_TRACE( BMUXlib_TS_MCPB_Channel_Open(
-         hMuxTS->status.stOutput.stMCPB[uiTransportChannelIndex].hMuxMCPB,
-         &hMuxTS->status.stOutput.stMCPB[uiTransportChannelIndex].ahMuxMCPBCh[stOpenSettings.uiInstance],
+         hMuxTS->pstStatus->stOutput.stMCPB[uiTransportChannelIndex].hMuxMCPB,
+         &hMuxTS->pstStatus->stOutput.stMCPB[uiTransportChannelIndex].ahMuxMCPBCh[stOpenSettings.uiInstance],
          &stOpenSettings
          ));
 
       if ( BERR_SUCCESS == rc )
       {
-         pChannelInterface->pContext = hMuxTS->status.stOutput.stMCPB[uiTransportChannelIndex].ahMuxMCPBCh[stOpenSettings.uiInstance];
+         pChannelInterface->pContext = hMuxTS->pstStatus->stOutput.stMCPB[uiTransportChannelIndex].ahMuxMCPBCh[stOpenSettings.uiInstance];
          pChannelInterface->fAddTransportDescriptors = (BMUXlib_TS_AddTransportDescriptors) BMUXlib_TS_MCPB_Channel_AddTransportDescriptors;
          pChannelInterface->fGetCompletedTransportDescriptors = (BMUXlib_TS_GetCompletedTransportDescriptors) BMUXlib_TS_MCPB_Channel_GetCompletedTransportDescriptors;
       }
@@ -2192,8 +2127,8 @@ BMUXlib_TS_P_AssignTransportChannel(
 
 /* BMUXlib_TS_Start - Configures the mux HW */
 BERR_Code
-BMUXlib_TS_Start(
-         BMUXlib_TS_Handle hMuxTS,
+BMUXlib_TS_Legacy_Start(
+         BMUXlib_TS_Legacy_Handle hMuxTS,
          const BMUXlib_TS_StartSettings *pstStartSettings
          )
 {
@@ -2201,7 +2136,7 @@ BMUXlib_TS_Start(
 
    BDBG_ENTER( BMUXlib_TS_Start );
 
-   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_Legacy_P_Context);
    BDBG_ASSERT( pstStartSettings );
    BDBG_ASSERT( BMUXLIB_TS_P_SIGNATURE_STARTSETTINGS == pstStartSettings->uiSignature );
 
@@ -2224,14 +2159,14 @@ BMUXlib_TS_Start(
    if ( BMUXlib_State_eStopped == BMUXLIB_TS_P_GET_MUX_STATE(hMuxTS) )
    {
       unsigned uiPIDIndex;
-      bool *pPIDTable = hMuxTS->status.aFoundPIDs;
+      uint32_t *pPIDTable = hMuxTS->aFoundPIDs;
       BMUXlib_Input_Handle aInputTable[BMUXLIB_TS_MAX_VIDEO_PIDS+BMUXLIB_TS_MAX_AUDIO_PIDS];
       BMUXlib_Input_StartSettings stInputStartSettings;
       BMUXlib_TS_P_BufferConfig stMemoryConfigLocal;
       uint32_t uiNumChannels = 0;
 
       /* NOTE: same count is used for both PendingList and MetadataPendingList */
-      BKNI_Memset(hMuxTS->status.aTransportDescriptorPendingListCountTable, 0, sizeof(hMuxTS->status.aTransportDescriptorPendingListCountTable));
+      BKNI_Memset(hMuxTS->pstStatus->aTransportDescriptorPendingListCountTable, 0, sizeof(hMuxTS->pstStatus->aTransportDescriptorPendingListCountTable));
 
       {
          uint32_t uiTransportChannelIndex;
@@ -2239,7 +2174,7 @@ BMUXlib_TS_Start(
          for ( uiTransportChannelIndex = 0; uiTransportChannelIndex < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; uiTransportChannelIndex++ )
          {
             const BMUXlib_TS_TransportChannelInterface *pChannelInterface = &pstStartSettings->transport.stChannelInterface[uiTransportChannelIndex];
-            hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stTimingPending.uiNextExpectedESCR = 0xFFFFFFFF;
+            hMuxTS->pstStatus->stOutput.stTransport[uiTransportChannelIndex].stTimingPending.uiNextExpectedESCR = 0xFFFFFFFF;
             /* count valid channel interfaces */
             if ((NULL != pChannelInterface->fAddTransportDescriptors)
                && (NULL != pChannelInterface->fGetCompletedTransportDescriptors))
@@ -2256,11 +2191,11 @@ BMUXlib_TS_Start(
          return BERR_TRACE(BERR_INVALID_PARAMETER);
       }
 
-      hMuxTS->status.stStartSettings = *pstStartSettings;
+      hMuxTS->pstSettings->stStartSettings = *pstStartSettings;
       /* Validate the start settings
          Note: validate the stored copy, not the user-supplied input
          (since Validate may modify the settings if defaults used for example) */
-      if (BMUXlib_TS_P_ValidateStartSettings(&hMuxTS->status.stStartSettings, false))
+      if (BMUXlib_TS_P_ValidateStartSettings(&hMuxTS->pstSettings->stStartSettings, false))
       {
          BMUXlib_TS_P_FreeResources( hMuxTS );
          BMUXlib_TS_P_Reset( hMuxTS );    /* reset state since Expected ESCRs modified above */
@@ -2270,70 +2205,84 @@ BMUXlib_TS_Start(
       /* Verify the current system data bitrate is sufficient for the specified PCR interval
          => if invalid, set the system data bitrate to min required (i.e override with warning)s
          NOTE: The following must be done prior to the first use of the system data bitrate */
-      BMUXlib_TS_P_ValidateSystemDataBitrate(&hMuxTS->status.stMuxSettings,
-         (const BMUXlib_TS_StartSettings *)&hMuxTS->status.stStartSettings,
-         false);
+      if ( true == BMUXlib_TS_P_ValidateSystemDataBitrate(&hMuxTS->pstSettings->stMuxSettings,
+                        (const BMUXlib_TS_StartSettings *)&hMuxTS->pstSettings->stStartSettings,
+                        false) )
+      {
+         BDBG_ERR(("Something Broke! ... this should not happen! :)"));
+      }
 
-
-      if ( 0 != hMuxTS->status.stStartSettings.stPCRData.uiInterval )
+      if ( 0 != hMuxTS->pstSettings->stStartSettings.stPCRData.uiInterval )
       {
          /* mark the PCR PID as "in-use" */
-         pPIDTable[hMuxTS->status.stStartSettings.stPCRData.uiPID] = true;
-         hMuxTS->status.stPCRInfo.uiIntervalIn27Mhz = BMUXLIB_TS_P_SCALE_MS_TO_27MHZ * hMuxTS->status.stStartSettings.stPCRData.uiInterval;
+         BMUXLIB_TS_PID_ENTRY_SET(pPIDTable, hMuxTS->pstSettings->stStartSettings.stPCRData.uiPID);
+         hMuxTS->pstStatus->stPCRInfo.uiIntervalIn27Mhz = BMUXLIB_TS_P_SCALE_MS_TO_27MHZ * hMuxTS->pstSettings->stStartSettings.stPCRData.uiInterval;
       }
       else
       {
-         hMuxTS->status.stPCRInfo.uiIntervalIn27Mhz = BMUXLIB_TS_P_SCALE_MS_TO_27MHZ * BMUXLIB_TS_P_MUX_PCR_INTERVAL_DEFAULT;
+         hMuxTS->pstStatus->stPCRInfo.uiIntervalIn27Mhz = BMUXLIB_TS_P_SCALE_MS_TO_27MHZ * BMUXLIB_TS_P_MUX_PCR_INTERVAL_DEFAULT;
       }
 
       BMUXlib_TS_P_GetBufferConfigFromMemoryConfig( &hMuxTS->stCreateSettings.stMemoryConfig, &hMuxTS->stMemoryBuffers, &stMemoryConfigLocal );
 
       {
+         BMUXlib_TS_P_TempMemoryConfig *pstTempMemoryConfig = (BMUXlib_TS_P_TempMemoryConfig *) BMUXlib_Malloc(sizeof(BMUXlib_TS_P_TempMemoryConfig));
          /* SW7425-5370: allocate memory to store the current memory config ... */
          /* NOTE: allocated in one block and then sub-allocate */
-         BKNI_Memset(&hMuxTS->status.stTempMemoryConfig, 0, sizeof(hMuxTS->status.stTempMemoryConfig));
-         hMuxTS->status.stTempMemoryConfig.stMuxConfig.stMuxStartSettings = hMuxTS->status.stStartSettings;
-         hMuxTS->status.stTempMemoryConfig.stMuxConfig.stMuxSettings = hMuxTS->status.stMuxSettings;
-         /* Get the current memory config that matches the supplied settings */
-         BMUXlib_TS_P_GetMemoryConfig(&hMuxTS->status.stTempMemoryConfig.stMuxConfig, &hMuxTS->status.stTempMemoryConfig.stMemoryConfig);
+         if ( NULL != pstTempMemoryConfig )
          {
-            BMUXlib_TS_P_MemoryType eMemoryType;
-
-            for ( eMemoryType = 0; (eMemoryType < BMUXlib_TS_P_MemoryType_eMax) && ( BERR_SUCCESS == rc); eMemoryType++ )
-            {
-               if ( stMemoryConfigLocal.stBufferInfo[eMemoryType].uiSize < hMuxTS->status.stTempMemoryConfig.stMemoryConfig.stMemoryConfig.stBufferInfo[eMemoryType].uiSize )
-               {
-                  BDBG_ERR(("Not enough memory of type [%d] for requested configuration. (%d < %d)",
-                     eMemoryType,
-                     (int)stMemoryConfigLocal.stBufferInfo[eMemoryType].uiSize,
-                     (int)hMuxTS->status.stTempMemoryConfig.stMemoryConfig.stMemoryConfig.stBufferInfo[eMemoryType].uiSize
-                     ));
-                  rc = BERR_TRACE( BERR_OUT_OF_DEVICE_MEMORY );
-               }
-            }
-         }
-
-         if ( BERR_SUCCESS == rc )
-         {
-            /* Allocate resources from sub heap */
-            rc = BMUXlib_TS_P_AllocateResources( hMuxTS, &hMuxTS->status.stTempMemoryConfig.stMemoryConfig );
-            if ( BERR_SUCCESS == rc )
+            BKNI_Memset(pstTempMemoryConfig, 0, sizeof(*pstTempMemoryConfig));
+            pstTempMemoryConfig->stMuxConfig.stMuxStartSettings = hMuxTS->pstSettings->stStartSettings;
+            pstTempMemoryConfig->stMuxConfig.stMuxSettings = hMuxTS->pstSettings->stMuxSettings;
+            /* Get the current memory config that matches the supplied settings */
+            BMUXlib_TS_P_GetMemoryConfig(&pstTempMemoryConfig->stMuxConfig, &pstTempMemoryConfig->stMemoryConfig);
             {
                BMUXlib_TS_P_MemoryType eMemoryType;
 
-               for ( eMemoryType = 0; (eMemoryType < BMUXlib_TS_P_MemoryType_eMax); eMemoryType++ )
+               for ( eMemoryType = 0; (eMemoryType < BMUXlib_TS_P_MemoryType_eMax) && ( BERR_SUCCESS == rc); eMemoryType++ )
                {
-                  BKNI_Memset(&hMuxTS->status.stTempMemoryConfig.stRangeAllocatorStatus, 0, sizeof(BMMA_RangeAllocator_Status));
-                  BMMA_RangeAllocator_GetStatus( hMuxTS->stSubHeap[eMemoryType].hMmaRangeAllocator, &hMuxTS->status.stTempMemoryConfig.stRangeAllocatorStatus);
-
-                  BDBG_MODULE_MSG( BMUXLIB_TS_MEMORY, ("[%d] Total Required/Used (Slack): %u/%u (%d)",
-                     eMemoryType,
-                     (int)stMemoryConfigLocal.stBufferInfo[eMemoryType].uiSize,
-                     (int)hMuxTS->status.stTempMemoryConfig.stRangeAllocatorStatus.allocatedSpace,
-                     (int)(stMemoryConfigLocal.stBufferInfo[eMemoryType].uiSize - hMuxTS->status.stTempMemoryConfig.stRangeAllocatorStatus.allocatedSpace)
-                     ));
+                  if ( stMemoryConfigLocal.stBufferInfo[eMemoryType].uiSize < pstTempMemoryConfig->stMemoryConfig.stMemoryConfig.stBufferInfo[eMemoryType].uiSize )
+                  {
+                     BDBG_ERR(("Not enough memory of type [%d] for requested configuration. (%d < %d)",
+                        eMemoryType,
+                        (int)stMemoryConfigLocal.stBufferInfo[eMemoryType].uiSize,
+                        (int)pstTempMemoryConfig->stMemoryConfig.stMemoryConfig.stBufferInfo[eMemoryType].uiSize
+                        ));
+                     rc = BERR_TRACE( BERR_OUT_OF_DEVICE_MEMORY );
+                  }
                }
             }
+
+            if ( BERR_SUCCESS == rc )
+            {
+               /* Allocate resources from sub heap */
+               rc = BMUXlib_TS_P_AllocateResources( hMuxTS, &pstTempMemoryConfig->stMemoryConfig );
+               if ( BERR_SUCCESS == rc )
+               {
+                  BMUXlib_TS_P_MemoryType eMemoryType;
+
+                  for ( eMemoryType = 0; (eMemoryType < BMUXlib_TS_P_MemoryType_eMax); eMemoryType++ )
+                  {
+                     BKNI_Memset(&pstTempMemoryConfig->stRangeAllocatorStatus, 0, sizeof(pstTempMemoryConfig->stRangeAllocatorStatus));
+                     BMMA_RangeAllocator_GetStatus( hMuxTS->stSubHeap[eMemoryType].hMmaRangeAllocator, &pstTempMemoryConfig->stRangeAllocatorStatus);
+
+                     BDBG_MODULE_MSG( BMUXLIB_TS_MEMORY, ("[%d] Total Required/Used (Slack): %u/%u (%d)",
+                        eMemoryType,
+                        (int)stMemoryConfigLocal.stBufferInfo[eMemoryType].uiSize,
+                        (int)pstTempMemoryConfig->stRangeAllocatorStatus.allocatedSpace,
+                        (int)(stMemoryConfigLocal.stBufferInfo[eMemoryType].uiSize - pstTempMemoryConfig->stRangeAllocatorStatus.allocatedSpace)
+                        ));
+                  }
+               }
+            }
+            BKNI_Free(pstTempMemoryConfig);
+         }
+         else
+         {
+            BMUXlib_TS_P_FreeResources( hMuxTS );
+            BMUXlib_TS_P_Reset( hMuxTS );    /* reset state since Expected ESCRs modified above */
+            BDBG_LEAVE( BMUXlib_TS_Start );
+            return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
          }
       }
       if (rc != BERR_SUCCESS)
@@ -2350,34 +2299,34 @@ BMUXlib_TS_Start(
 
          for ( i = 0; i < BMUXLIB_TS_MAX_VIDEO_PIDS; i++ )
          {
-            hMuxTS->status.stInputIndexLUT.uiVideo[i] = 0xFFFFFFFF;
+            hMuxTS->pstStatus->stInputIndexLUT.uiVideo[i] = 0xFFFFFFFF;
          }
 
          for ( i = 0; i < BMUXLIB_TS_MAX_AUDIO_PIDS; i++ )
          {
-            hMuxTS->status.stInputIndexLUT.uiAudio[i] = 0xFFFFFFFF;
+            hMuxTS->pstStatus->stInputIndexLUT.uiAudio[i] = 0xFFFFFFFF;
          }
       }
 
       /* Determine if we need MCPB support */
       BMUXlib_TS_P_SetupMCPB( hMuxTS );
 
-      for ( uiPIDIndex = 0; (BERR_SUCCESS == rc) && (uiPIDIndex < BMUXLIB_TS_MAX_VIDEO_PIDS) && (uiPIDIndex < hMuxTS->status.stStartSettings.uiNumValidVideoPIDs); uiPIDIndex++ )
+      for ( uiPIDIndex = 0; (BERR_SUCCESS == rc) && (uiPIDIndex < BMUXLIB_TS_MAX_VIDEO_PIDS) && (uiPIDIndex < hMuxTS->pstSettings->stStartSettings.uiNumValidVideoPIDs); uiPIDIndex++ )
       {
-         BMUXlib_VideoEncoderInterface *pEncoderInterface = &hMuxTS->status.stStartSettings.video[uiPIDIndex].stInputInterface;
-         uint16_t uiPID = hMuxTS->status.stStartSettings.video[uiPIDIndex].uiPID;
-         unsigned uiPIDChannelIndex = hMuxTS->status.stStartSettings.video[uiPIDIndex].uiPIDChannelIndex;
+         BMUXlib_VideoEncoderInterface *pEncoderInterface = &hMuxTS->pstSettings->stStartSettings.video[uiPIDIndex].stInputInterface;
+         uint16_t uiPID = hMuxTS->pstSettings->stStartSettings.video[uiPIDIndex].uiPID;
+         unsigned uiPIDChannelIndex = hMuxTS->pstSettings->stStartSettings.video[uiPIDIndex].uiPIDChannelIndex;
 
-         BKNI_Memset( &hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs], 0, sizeof( BMUXlib_TS_P_InputMetaData ) );
+         BKNI_Memset( &hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs], 0, sizeof( hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs] ) );
 
          {
-            unsigned uiTransportChannelIndex = hMuxTS->status.stStartSettings.video[uiPIDIndex].uiTransportChannelIndex;
-            BMUXlib_TS_TransportChannelInterface *pChannelInterface = &hMuxTS->status.stOutput.stTransport[hMuxTS->status.stOutput.uiNumTransportChannelsOpen].stChannelInterface;
+            unsigned uiTransportChannelIndex = hMuxTS->pstSettings->stStartSettings.video[uiPIDIndex].uiTransportChannelIndex;
+            BMUXlib_TS_TransportChannelInterface *pChannelInterface = &hMuxTS->pstStatus->stOutput.stTransport[hMuxTS->pstStatus->stOutput.uiNumTransportChannelsOpen].stChannelInterface;
 
             rc = BERR_TRACE( BMUXlib_TS_P_AssignTransportChannel( hMuxTS, uiTransportChannelIndex, uiPID, uiPIDChannelIndex, false, pChannelInterface ) );
             if ( BERR_SUCCESS != rc ) break;
 
-            hMuxTS->status.stInput.video[uiPIDIndex].uiTransportChannelIndex = hMuxTS->status.stOutput.uiNumTransportChannelsOpen++;;
+            hMuxTS->pstStatus->stInput.video[uiPIDIndex].uiTransportChannelIndex = hMuxTS->pstStatus->stOutput.uiNumTransportChannelsOpen++;;
 
             if ( ( NULL == pEncoderInterface->fGetBufferDescriptors )
                  || ( NULL == pEncoderInterface->fGetBufferStatus )
@@ -2396,9 +2345,9 @@ BMUXlib_TS_Start(
          /* SW7425-4643: see if PCR PID is already in use by video/audio
             (the mux does not support PCR on same PID as other data, due
              to hardware limitations with creation of correct CC values) */
-         if (pPIDTable[uiPID])
+         if (BMUXLIB_TS_PID_ENTRY_IS_SET(pPIDTable, uiPID))
          {
-            if (uiPID == hMuxTS->status.stStartSettings.stPCRData.uiPID)
+            if (uiPID == hMuxTS->pstSettings->stStartSettings.stPCRData.uiPID)
                BDBG_ERR(("Video[%d]: Mux does not support PCR on same PID as video input: %x (use a separate PID for PCR)",
                   uiPIDIndex, uiPID));
             else
@@ -2408,83 +2357,83 @@ BMUXlib_TS_Start(
          }
 
          BMUXlib_Input_GetDefaultStartSettings( &stInputStartSettings );
-         hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].hInput = hMuxTS->ahInput[hMuxTS->status.uiNumInputs];
+         hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].hInput = hMuxTS->ahInput[hMuxTS->pstStatus->uiNumInputs];
          stInputStartSettings.eType = BMUXlib_Input_Type_eVideo;
          stInputStartSettings.interface.stVideo = *pEncoderInterface;
          /* SW7425-659: In MTU BPP mode, for video, use frame burst mode so we can calculate the correct PKT2PKT delta */
-         stInputStartSettings.eBurstMode = hMuxTS->status.stStartSettings.bSupportTTS ? BMUXlib_Input_BurstMode_eFrame : BMUXlib_Input_BurstMode_eDescriptor;
-         stInputStartSettings.pMetadata = &hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs];
+         stInputStartSettings.eBurstMode = hMuxTS->pstSettings->stStartSettings.bSupportTTS ? BMUXlib_Input_BurstMode_eFrame : BMUXlib_Input_BurstMode_eDescriptor;
+         stInputStartSettings.pMetadata = &hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs];
          stInputStartSettings.uiMuxId = hMuxTS->stCreateSettings.uiMuxId;
          stInputStartSettings.uiTypeInstance = uiPIDIndex;
          /* by default, this input will be marked as "active" */
-         rc = BERR_TRACE( BMUXlib_Input_Start( hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].hInput,
+         rc = BERR_TRACE( BMUXlib_Input_Start( hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].hInput,
                          &stInputStartSettings
                         ));
          if (BERR_SUCCESS != rc)
             break;
 
-         if ( 0 == hMuxTS->status.stStartSettings.video[uiPIDIndex].uiPESStreamID )
+         if ( 0 == hMuxTS->pstSettings->stStartSettings.video[uiPIDIndex].uiPESStreamID )
          {
             BDBG_WRN(("Video[%d]: Stream ID is invalid. Using %02x instead", uiPIDIndex, 0xE0+uiPIDIndex));
-            hMuxTS->status.stStartSettings.video[uiPIDIndex].uiPESStreamID = 0xE0 + uiPIDIndex;
+            hMuxTS->pstSettings->stStartSettings.video[uiPIDIndex].uiPESStreamID = 0xE0 + uiPIDIndex;
          }
 
-         hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].uiInputIndex = hMuxTS->status.uiNumInputs;
-         hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].uiTransportChannelIndex = hMuxTS->status.stInput.video[uiPIDIndex].uiTransportChannelIndex;
-         hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].uiPID = uiPID;
-         hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].uiPESStreamID = hMuxTS->status.stStartSettings.video[uiPIDIndex].uiPESStreamID;
-         hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].uiPIDIndex = uiPIDIndex;
+         hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].uiInputIndex = hMuxTS->pstStatus->uiNumInputs;
+         hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].uiTransportChannelIndex = hMuxTS->pstStatus->stInput.video[uiPIDIndex].uiTransportChannelIndex;
+         hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].uiPID = uiPID;
+         hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].uiPESStreamID = hMuxTS->pstSettings->stStartSettings.video[uiPIDIndex].uiPESStreamID;
+         hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].uiPIDIndex = uiPIDIndex;
 
          /* setup userdata companion video info */
-         hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].pstUserdata = &hMuxTS->status.stUserdataVideoInfo[uiPIDIndex];
+         hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].pstUserdata = &hMuxTS->pstUserdataStatus->stUserdataVideoInfo[uiPIDIndex];
 
-         hMuxTS->status.stOutput.stTransport[hMuxTS->status.stInput.video[uiPIDIndex].uiTransportChannelIndex].bActive = true;
+         hMuxTS->pstStatus->stOutput.stTransport[hMuxTS->pstStatus->stInput.video[uiPIDIndex].uiTransportChannelIndex].bActive = true;
 
-         aInputTable[hMuxTS->status.uiNumInputs] = hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].hInput;
+         aInputTable[hMuxTS->pstStatus->uiNumInputs] = hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].hInput;
          /* indicate this PID is in use, for later PID collision detection ...*/
-         pPIDTable[uiPID] = true;
+         BMUXLIB_TS_PID_ENTRY_SET(pPIDTable, uiPID);
 
          /* Determine amount of Transport Descriptor Pending List Entries (Video) */
          /* (A single allocation for the lists is done once all count requirements are established) */
-         hMuxTS->status.aTransportDescriptorPendingListCountTable[hMuxTS->status.stInput.video[uiPIDIndex].uiTransportChannelIndex] += BMUXLIB_TS_P_DIVIDE_WITH_ROUND_UP(hMuxTS->status.stMemoryConfig.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor][BMUXlib_TS_P_InputType_eVideo].uiCount, hMuxTS->status.stStartSettings.uiNumValidVideoPIDs);
+         hMuxTS->pstStatus->aTransportDescriptorPendingListCountTable[hMuxTS->pstStatus->stInput.video[uiPIDIndex].uiTransportChannelIndex] += BMUXLIB_TS_P_DIVIDE_WITH_ROUND_UP(hMuxTS->pstStatus->stMemoryConfig.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor][BMUXlib_TS_P_InputType_eVideo].uiCount, hMuxTS->pstSettings->stStartSettings.uiNumValidVideoPIDs);
 
          /* SW7346-1363: Set default input enable mode (video) */
          {
             BMUXlib_Input_Settings stSettings;
 
             BMUXlib_Input_GetSettings(
-               hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].hInput,
+               hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].hInput,
                &stSettings
             );
 
-            stSettings.bEnable = hMuxTS->status.stMuxSettings.stInputEnable.bVideo[uiPIDIndex];
+            stSettings.bEnable = hMuxTS->pstSettings->stMuxSettings.stInputEnable.bVideo[uiPIDIndex];
 
             BMUXlib_Input_SetSettings(
-               hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].hInput,
+               hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].hInput,
                &stSettings
             );
 
-            hMuxTS->status.stInputIndexLUT.uiVideo[uiPIDIndex] = hMuxTS->status.uiNumInputs;
+            hMuxTS->pstStatus->stInputIndexLUT.uiVideo[uiPIDIndex] = hMuxTS->pstStatus->uiNumInputs;
          }
-         hMuxTS->status.uiNumInputs++;
+         hMuxTS->pstStatus->uiNumInputs++;
       }  /* end: for each video input */
 
-      for ( uiPIDIndex = 0; (BERR_SUCCESS == rc) && (uiPIDIndex < BMUXLIB_TS_MAX_AUDIO_PIDS) && (uiPIDIndex < hMuxTS->status.stStartSettings.uiNumValidAudioPIDs); uiPIDIndex++ )
+      for ( uiPIDIndex = 0; (BERR_SUCCESS == rc) && (uiPIDIndex < BMUXLIB_TS_MAX_AUDIO_PIDS) && (uiPIDIndex < hMuxTS->pstSettings->stStartSettings.uiNumValidAudioPIDs); uiPIDIndex++ )
       {
-         BMUXlib_AudioEncoderInterface *pEncoderInterface = &hMuxTS->status.stStartSettings.audio[uiPIDIndex].stInputInterface;
-         uint16_t uiPID = hMuxTS->status.stStartSettings.audio[uiPIDIndex].uiPID;
-         unsigned uiPIDChannelIndex = hMuxTS->status.stStartSettings.audio[uiPIDIndex].uiPIDChannelIndex;
+         BMUXlib_AudioEncoderInterface *pEncoderInterface = &hMuxTS->pstSettings->stStartSettings.audio[uiPIDIndex].stInputInterface;
+         uint16_t uiPID = hMuxTS->pstSettings->stStartSettings.audio[uiPIDIndex].uiPID;
+         unsigned uiPIDChannelIndex = hMuxTS->pstSettings->stStartSettings.audio[uiPIDIndex].uiPIDChannelIndex;
 
-         BKNI_Memset( &hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs], 0, sizeof( BMUXlib_TS_P_InputMetaData ) );
+         BKNI_Memset( &hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs], 0, sizeof( hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs] ) );
 
          {
-            unsigned uiTransportChannelIndex = hMuxTS->status.stStartSettings.audio[uiPIDIndex].uiTransportChannelIndex;
-            BMUXlib_TS_TransportChannelInterface *pChannelInterface = &hMuxTS->status.stOutput.stTransport[hMuxTS->status.stOutput.uiNumTransportChannelsOpen].stChannelInterface;
+            unsigned uiTransportChannelIndex = hMuxTS->pstSettings->stStartSettings.audio[uiPIDIndex].uiTransportChannelIndex;
+            BMUXlib_TS_TransportChannelInterface *pChannelInterface = &hMuxTS->pstStatus->stOutput.stTransport[hMuxTS->pstStatus->stOutput.uiNumTransportChannelsOpen].stChannelInterface;
 
             rc = BMUXlib_TS_P_AssignTransportChannel( hMuxTS, uiTransportChannelIndex, uiPID, uiPIDChannelIndex, false, pChannelInterface );
             if ( BERR_SUCCESS != rc ) break;
 
-            hMuxTS->status.stInput.audio[uiPIDIndex].uiTransportChannelIndex = hMuxTS->status.stOutput.uiNumTransportChannelsOpen++;;
+            hMuxTS->pstStatus->stInput.audio[uiPIDIndex].uiTransportChannelIndex = hMuxTS->pstStatus->stOutput.uiNumTransportChannelsOpen++;;
 
             if ( ( NULL == pEncoderInterface->fGetBufferDescriptors )
                  || ( NULL == pEncoderInterface->fGetBufferStatus )
@@ -2503,9 +2452,9 @@ BMUXlib_TS_Start(
          /* SW7425-4643: see if PCR PID is already in use by video/audio
             (the mux does not support PCR on same PID as other data, due
              to hardware limitations with creation of correct CC values) */
-         if (pPIDTable[uiPID])
+         if (BMUXLIB_TS_PID_ENTRY_IS_SET(pPIDTable, uiPID))
          {
-            if (uiPID == hMuxTS->status.stStartSettings.stPCRData.uiPID)
+            if (uiPID == hMuxTS->pstSettings->stStartSettings.stPCRData.uiPID)
                BDBG_ERR(("Audio[%d]: Mux does not support PCR on same PID as audio input: %x (use a separate PID for PCR)",
                uiPIDIndex, uiPID));
             else
@@ -2515,65 +2464,65 @@ BMUXlib_TS_Start(
          }
 
          BMUXlib_Input_GetDefaultStartSettings( &stInputStartSettings );
-         hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].hInput = hMuxTS->ahInput[hMuxTS->status.uiNumInputs];
+         hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].hInput = hMuxTS->ahInput[hMuxTS->pstStatus->uiNumInputs];
          stInputStartSettings.eType = BMUXlib_Input_Type_eAudio;
          stInputStartSettings.interface.stAudio = *pEncoderInterface;
          stInputStartSettings.eBurstMode = BMUXlib_Input_BurstMode_eFrame;
-         stInputStartSettings.pMetadata = &hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs];
+         stInputStartSettings.pMetadata = &hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs];
          stInputStartSettings.uiMuxId = hMuxTS->stCreateSettings.uiMuxId;
          stInputStartSettings.uiTypeInstance = uiPIDIndex;
          /* by default, this input will be marked as "active" */
-         rc = BERR_TRACE( BMUXlib_Input_Start( hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].hInput,
+         rc = BERR_TRACE( BMUXlib_Input_Start( hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].hInput,
                          &stInputStartSettings
                         ));
          if (BERR_SUCCESS != rc)
             break;
 
-         if ( 0 == hMuxTS->status.stStartSettings.audio[uiPIDIndex].uiPESStreamID )
+         if ( 0 == hMuxTS->pstSettings->stStartSettings.audio[uiPIDIndex].uiPESStreamID )
          {
             BDBG_WRN(("Audio[%d]: Stream ID is invalid. Using %02x instead", uiPIDIndex, 0xC0+uiPIDIndex));
-            hMuxTS->status.stStartSettings.audio[uiPIDIndex].uiPESStreamID = 0xC0 + uiPIDIndex;
+            hMuxTS->pstSettings->stStartSettings.audio[uiPIDIndex].uiPESStreamID = 0xC0 + uiPIDIndex;
          }
 
-         hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].uiInputIndex = hMuxTS->status.uiNumInputs;
-         hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].uiTransportChannelIndex = hMuxTS->status.stInput.audio[uiPIDIndex].uiTransportChannelIndex;
-         hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].uiPID = uiPID;
-         hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].uiPESStreamID = hMuxTS->status.stStartSettings.audio[uiPIDIndex].uiPESStreamID;
-         hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].uiPIDIndex = uiPIDIndex;
+         hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].uiInputIndex = hMuxTS->pstStatus->uiNumInputs;
+         hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].uiTransportChannelIndex = hMuxTS->pstStatus->stInput.audio[uiPIDIndex].uiTransportChannelIndex;
+         hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].uiPID = uiPID;
+         hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].uiPESStreamID = hMuxTS->pstSettings->stStartSettings.audio[uiPIDIndex].uiPESStreamID;
+         hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].uiPIDIndex = uiPIDIndex;
 
-         hMuxTS->status.stOutput.stTransport[hMuxTS->status.stInput.audio[uiPIDIndex].uiTransportChannelIndex].bActive = true;
+         hMuxTS->pstStatus->stOutput.stTransport[hMuxTS->pstStatus->stInput.audio[uiPIDIndex].uiTransportChannelIndex].bActive = true;
 
-         aInputTable[hMuxTS->status.uiNumInputs] = hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].hInput;
+         aInputTable[hMuxTS->pstStatus->uiNumInputs] = hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].hInput;
          /* indicate this PID is in use, for later PID collision detection ...*/
-         pPIDTable[uiPID] = true;
+         BMUXLIB_TS_PID_ENTRY_SET(pPIDTable, uiPID);
 
          /* Determine amount of Transport Descriptor Pending List Entries (Audio) */
          /* (A single allocation for the lists is done once all count requirements are established) */
-         hMuxTS->status.aTransportDescriptorPendingListCountTable[hMuxTS->status.stInput.audio[uiPIDIndex].uiTransportChannelIndex] += BMUXLIB_TS_P_DIVIDE_WITH_ROUND_UP(hMuxTS->status.stMemoryConfig.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor][BMUXlib_TS_P_InputType_eAudio].uiCount, hMuxTS->status.stStartSettings.uiNumValidAudioPIDs);
+         hMuxTS->pstStatus->aTransportDescriptorPendingListCountTable[hMuxTS->pstStatus->stInput.audio[uiPIDIndex].uiTransportChannelIndex] += BMUXLIB_TS_P_DIVIDE_WITH_ROUND_UP(hMuxTS->pstStatus->stMemoryConfig.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor][BMUXlib_TS_P_InputType_eAudio].uiCount, hMuxTS->pstSettings->stStartSettings.uiNumValidAudioPIDs);
 
          /* SW7346-1363: Set default input enable mode (audio) */
          {
             BMUXlib_Input_Settings stSettings;
 
             BMUXlib_Input_GetSettings(
-               hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].hInput,
+               hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].hInput,
                &stSettings
             );
 
-            stSettings.bEnable = hMuxTS->status.stMuxSettings.stInputEnable.bAudio[uiPIDIndex];
+            stSettings.bEnable = hMuxTS->pstSettings->stMuxSettings.stInputEnable.bAudio[uiPIDIndex];
 
             BMUXlib_Input_SetSettings(
-               hMuxTS->status.stInputMetaData[hMuxTS->status.uiNumInputs].hInput,
+               hMuxTS->pstStatus->stInputMetaData[hMuxTS->pstStatus->uiNumInputs].hInput,
                &stSettings
             );
 
-            hMuxTS->status.stInputIndexLUT.uiAudio[uiPIDIndex] = hMuxTS->status.uiNumInputs;
+            hMuxTS->pstStatus->stInputIndexLUT.uiAudio[uiPIDIndex] = hMuxTS->pstStatus->uiNumInputs;
          }
 
-         hMuxTS->status.uiNumInputs++;
+         hMuxTS->pstStatus->uiNumInputs++;
       }  /* end: for each audio input */
 
-      if (0 != hMuxTS->status.uiNumInputs)
+      if (0 != hMuxTS->pstStatus->uiNumInputs)
       {
          /* relocate the pre-queued system data to the main system data pending list,
             and check the PIDs for conflict */
@@ -2583,14 +2532,14 @@ BMUXlib_TS_Start(
          if (BERR_SUCCESS == rc)
          {
             {
-               unsigned uiTransportChannelIndex = hMuxTS->status.stStartSettings.stPCRData.uiTransportChannelIndex;
-               BMUXlib_TS_TransportChannelInterface *pChannelInterface = &hMuxTS->status.stOutput.stTransport[hMuxTS->status.stOutput.uiNumTransportChannelsOpen].stChannelInterface;
-               unsigned uiPIDChannelIndex = hMuxTS->status.stStartSettings.stPCRData.uiPIDChannelIndex;
+               unsigned uiTransportChannelIndex = hMuxTS->pstSettings->stStartSettings.stPCRData.uiTransportChannelIndex;
+               BMUXlib_TS_TransportChannelInterface *pChannelInterface = &hMuxTS->pstStatus->stOutput.stTransport[hMuxTS->pstStatus->stOutput.uiNumTransportChannelsOpen].stChannelInterface;
+               unsigned uiPIDChannelIndex = hMuxTS->pstSettings->stStartSettings.stPCRData.uiPIDChannelIndex;
 
                rc = BMUXlib_TS_P_AssignTransportChannel( hMuxTS, uiTransportChannelIndex, 0, uiPIDChannelIndex, true, pChannelInterface );
                if ( BERR_SUCCESS == rc )
                {
-                  hMuxTS->status.stInput.system.uiTransportChannelIndex = hMuxTS->status.stOutput.uiNumTransportChannelsOpen++;;
+                  hMuxTS->pstStatus->stInput.system.uiTransportChannelIndex = hMuxTS->pstStatus->stOutput.uiNumTransportChannelsOpen++;;
 
                   /* check specified channel for system data is valid ... */
                   if ((NULL == pChannelInterface->fAddTransportDescriptors )
@@ -2604,8 +2553,8 @@ BMUXlib_TS_Start(
 
             /* Determine amount of Transport Descriptor Pending List Entries (System) */
             /* (A single allocation for the lists is done once all count requirements are established) */
-            hMuxTS->status.aTransportDescriptorPendingListCountTable[hMuxTS->status.stInput.system.uiTransportChannelIndex] += hMuxTS->status.stMemoryConfig.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor][BMUXlib_TS_P_InputType_eSystem].uiCount;
-            hMuxTS->status.stOutput.stTransport[hMuxTS->status.stInput.system.uiTransportChannelIndex].bActive = true;
+            hMuxTS->pstStatus->aTransportDescriptorPendingListCountTable[hMuxTS->pstStatus->stInput.system.uiTransportChannelIndex] += hMuxTS->pstStatus->stMemoryConfig.astMemoryEntry[BMUXlib_TS_P_MemoryEntryType_eTransportDescriptor][BMUXlib_TS_P_InputType_eSystem].uiCount;
+            hMuxTS->pstStatus->stOutput.stTransport[hMuxTS->pstStatus->stInput.system.uiTransportChannelIndex].bActive = true;
          }
 
          /* create the input group for the active inputs */
@@ -2613,7 +2562,7 @@ BMUXlib_TS_Start(
          {
             BMUXlib_InputGroup_StartSettings stStartSettings;
             BMUXlib_InputGroup_GetDefaultStartSettings(&stStartSettings);
-            stStartSettings.uiInputCount = hMuxTS->status.uiNumInputs;
+            stStartSettings.uiInputCount = hMuxTS->pstStatus->uiNumInputs;
             stStartSettings.pInputTable = aInputTable;
             rc = BMUXlib_InputGroup_Start(hMuxTS->hInputGroup, &stStartSettings);
             if (BERR_SUCCESS == rc)
@@ -2622,7 +2571,7 @@ BMUXlib_TS_Start(
 
                BMUXlib_InputGroup_GetSettings(hMuxTS->hInputGroup, &stSettings);
                /* set the selector function to be used by InputGroup_GetNextInput() */
-               switch ( hMuxTS->status.stStartSettings.eInterleaveMode )
+               switch ( hMuxTS->pstSettings->stStartSettings.eInterleaveMode )
                {
                   case BMUXlib_TS_InterleaveMode_ePTS:
                      stSettings.fSelector = BMUXlib_InputGroup_DescriptorSelectLowestDTS;
@@ -2646,11 +2595,11 @@ BMUXlib_TS_Start(
                {
                   BMUXLIB_LIST_REMOVE(
                         &hMuxTS->stBPPFreeList,
-                        &hMuxTS->status.pDummyPESBuffer
+                        &hMuxTS->pstStatus->pDummyPESBuffer
                   );
 
                   BKNI_Memcpy(
-                     BMUXLIB_LIST_ENTRY_DATA(hMuxTS->status.pDummyPESBuffer),
+                     BMUXLIB_LIST_ENTRY_DATA(hMuxTS->pstStatus->pDummyPESBuffer),
                      &s_stDummyPESFrame,
                      sizeof( BMUXlib_TS_P_BPPData )
                   );
@@ -2666,11 +2615,11 @@ BMUXlib_TS_Start(
                   {
                      BMUXLIB_LIST_REMOVE(
                            &hMuxTS->stTSPacketFreeList,
-                           &hMuxTS->status.pNullTSPacketBuffer
+                           &hMuxTS->pstStatus->pNullTSPacketBuffer
                            );
 
                      BKNI_Memcpy(
-                        BMUXLIB_LIST_ENTRY_DATA(hMuxTS->status.pNullTSPacketBuffer),
+                        BMUXLIB_LIST_ENTRY_DATA(hMuxTS->pstStatus->pNullTSPacketBuffer),
                         &s_stNullTSPacket,
                         sizeof( BMUXlib_TS_P_TSPacket )
                      );
@@ -2711,37 +2660,15 @@ BMUXlib_TS_Start(
    return rc;
 }
 
-void
-BMUXlib_TS_GetDefaultFinishSettings(
-         BMUXlib_TS_FinishSettings *pstFinishSettings
-         )
-{
-   BDBG_ENTER( BMUXlib_TS_GetDefaultFinishSettings );
-
-   BDBG_ASSERT( pstFinishSettings );
-
-   BKNI_Memset(
-            pstFinishSettings,
-            0,
-            sizeof( BMUXlib_TS_FinishSettings )
-            );
-
-   pstFinishSettings->uiSignature = BMUXLIB_TS_P_SIGNATURE_FINISHSETTINGS;
-   pstFinishSettings->eFinishMode = BMUXlib_FinishMode_ePrepareForStop;
-
-   BDBG_LEAVE( BMUXlib_TS_GetDefaultFinishSettings );
-   return;
-}
-
 BERR_Code
-BMUXlib_TS_Finish(
-         BMUXlib_TS_Handle hMuxTS,
+BMUXlib_TS_Legacy_Finish(
+         BMUXlib_TS_Legacy_Handle hMuxTS,
          const BMUXlib_TS_FinishSettings *pstFinishSettings
          )
 {
    BERR_Code rc = BERR_SUCCESS;
    BDBG_ENTER( BMUXlib_TS_Finish );
-   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_Legacy_P_Context);
 
    rc = BMUXlib_TS_P_Finish(hMuxTS, pstFinishSettings);
 
@@ -2751,14 +2678,14 @@ BMUXlib_TS_Finish(
 
 static BERR_Code
 BMUXlib_TS_P_Finish(
-         BMUXlib_TS_Handle hMuxTS,
+         BMUXlib_TS_Legacy_Handle hMuxTS,
          const BMUXlib_TS_FinishSettings *pstFinishSettings
          )
 {
    BERR_Code rc = BERR_SUCCESS;
    BDBG_ENTER( BMUXlib_TS_P_Finish );
 
-   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_Legacy_P_Context);
    BDBG_ASSERT( pstFinishSettings );
    BDBG_ASSERT( BMUXLIB_TS_P_SIGNATURE_FINISHSETTINGS == pstFinishSettings->uiSignature );
 
@@ -2766,8 +2693,8 @@ BMUXlib_TS_P_Finish(
    {
       case BMUXlib_State_eStarted:
          {
-            hMuxTS->status.stFinishSettings = *pstFinishSettings;
-            switch ( hMuxTS->status.stFinishSettings.eFinishMode )
+            hMuxTS->pstSettings->stFinishSettings = *pstFinishSettings;
+            switch ( hMuxTS->pstSettings->stFinishSettings.eFinishMode )
             {
                case BMUXlib_FinishMode_ePrepareForStop:
                   BDBG_MODULE_MSG( BMUXLIB_TS_FINISH, ("Finishing Input") );
@@ -2799,14 +2726,14 @@ BMUXlib_TS_P_Finish(
 }
 
 BERR_Code
-BMUXlib_TS_Stop(
-         BMUXlib_TS_Handle hMuxTS
+BMUXlib_TS_Legacy_Stop(
+         BMUXlib_TS_Legacy_Handle hMuxTS
          )
 {
    BERR_Code rc = BERR_SUCCESS;
-   BDBG_ENTER( BMUXlib_TS_Stop );
+   BDBG_ENTER( BMUXlib_TS_Legacy_Stop );
 
-   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_Legacy_P_Context);
 
    switch ( BMUXLIB_TS_P_GET_MUX_STATE(hMuxTS) )
    {
@@ -2825,10 +2752,10 @@ BMUXlib_TS_Stop(
 
             for ( uiTransportIndex = 0; uiTransportIndex < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; uiTransportIndex++ )
             {
-               if ( NULL != hMuxTS->status.stOutput.stTransport[uiTransportIndex].stDebug.hDescDumpFile )
+               if ( NULL != hMuxTS->pstStatus->stOutput.stTransport[uiTransportIndex].stDebug.hDescDumpFile )
                {
-                  fclose( hMuxTS->status.stOutput.stTransport[uiTransportIndex].stDebug.hDescDumpFile );
-                  hMuxTS->status.stOutput.stTransport[uiTransportIndex].stDebug.hDescDumpFile = NULL;
+                  fclose( hMuxTS->pstStatus->stOutput.stTransport[uiTransportIndex].stDebug.hDescDumpFile );
+                  hMuxTS->pstStatus->stOutput.stTransport[uiTransportIndex].stDebug.hDescDumpFile = NULL;
                }
             }
          }
@@ -2839,19 +2766,19 @@ BMUXlib_TS_Stop(
 
             for ( uiTransportIndex = 0; uiTransportIndex < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; uiTransportIndex++ )
             {
-               if ( NULL != hMuxTS->status.stOutput.stTransport[uiTransportIndex].stDebug.hPESDumpFile )
+               if ( NULL != hMuxTS->pstStatus->stOutput.stTransport[uiTransportIndex].stDebug.hPESDumpFile )
                {
-                  fclose( hMuxTS->status.stOutput.stTransport[uiTransportIndex].stDebug.hPESDumpFile );
-                  hMuxTS->status.stOutput.stTransport[uiTransportIndex].stDebug.hPESDumpFile = NULL;
+                  fclose( hMuxTS->pstStatus->stOutput.stTransport[uiTransportIndex].stDebug.hPESDumpFile );
+                  hMuxTS->pstStatus->stOutput.stTransport[uiTransportIndex].stDebug.hPESDumpFile = NULL;
                }
             }
          }
 #endif
 #if BMUXLIB_TS_P_DUMP_PCR
-         if ( NULL != hMuxTS->status.stPCRInfo.hPCRFile )
+         if ( NULL != hMuxTS->pstStatus->stPCRInfo.hPCRFile )
          {
-            fclose(hMuxTS->status.stPCRInfo.hPCRFile);
-            hMuxTS->status.stPCRInfo.hPCRFile = NULL;
+            fclose(hMuxTS->pstStatus->stPCRInfo.hPCRFile);
+            hMuxTS->pstStatus->stPCRInfo.hPCRFile = NULL;
          }
 #endif
          break;
@@ -2866,29 +2793,29 @@ BMUXlib_TS_Stop(
    }
 
    /* Return NULL TS Packet and dummy PES frame */
-   if ( NULL != hMuxTS->status.pDummyPESBuffer )
+   if ( NULL != hMuxTS->pstStatus->pDummyPESBuffer )
    {
       BMUXLIB_LIST_ADD(
          &hMuxTS->stBPPFreeList,
-         hMuxTS->status.pDummyPESBuffer
+         hMuxTS->pstStatus->pDummyPESBuffer
       );
-      hMuxTS->status.pDummyPESBuffer = NULL;
+      hMuxTS->pstStatus->pDummyPESBuffer = NULL;
    }
 
-   if ( NULL != hMuxTS->status.pNullTSPacketBuffer )
+   if ( NULL != hMuxTS->pstStatus->pNullTSPacketBuffer )
    {
       BMUXLIB_LIST_ADD(
          &hMuxTS->stTSPacketFreeList,
-         hMuxTS->status.pNullTSPacketBuffer
+         hMuxTS->pstStatus->pNullTSPacketBuffer
       );
-      hMuxTS->status.pNullTSPacketBuffer = NULL;
+      hMuxTS->pstStatus->pNullTSPacketBuffer = NULL;
    }
 
    /* Reset State */
    BMUXlib_TS_P_FreeResources( hMuxTS );
    BMUXlib_TS_P_Reset( hMuxTS );
 
-   BDBG_LEAVE( BMUXlib_TS_Stop );
+   BDBG_LEAVE( BMUXlib_TS_Legacy_Stop );
    return BERR_TRACE( rc );
 }
 
@@ -2932,8 +2859,8 @@ BMUXlib_TS_P_ValidateSystemDataBuffers(
 }
 
 BERR_Code
-BMUXlib_TS_AddSystemDataBuffers(
-         BMUXlib_TS_Handle hMuxTS,
+BMUXlib_TS_Legacy_AddSystemDataBuffers(
+         BMUXlib_TS_Legacy_Handle hMuxTS,
          const BMUXlib_TS_SystemData *astSystemDataBuffer, /* Array of system data buffers */
          size_t uiCount, /* Count of system data buffers in array */
          size_t *puiQueuedCount /* Count of system data buffers queued by muxer (*puiQueuedCount <= uiCount) */
@@ -2944,7 +2871,7 @@ BMUXlib_TS_AddSystemDataBuffers(
 
    BDBG_ASSERT( puiQueuedCount );
    BDBG_ASSERT( astSystemDataBuffer );
-   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_Legacy_P_Context);
 
    *puiQueuedCount = 0;
    rc = BMUXlib_TS_P_ValidateSystemDataBuffers( astSystemDataBuffer, uiCount );
@@ -2959,7 +2886,7 @@ BMUXlib_TS_AddSystemDataBuffers(
 
 BERR_Code
 BMUXlib_TS_P_AddSystemDataBuffers(
-         BMUXlib_TS_Handle hMuxTS,
+         BMUXlib_TS_Legacy_Handle hMuxTS,
          const BMUXlib_TS_SystemData *astSystemDataBuffer, /* Array of system data buffers */
          size_t uiCount, /* Count of system data buffers in array */
          size_t *puiQueuedCount /* Count of system data buffers queued by muxer (*puiQueuedCount <= uiCount) */
@@ -2980,7 +2907,7 @@ BMUXlib_TS_P_AddSystemDataBuffers(
          does not conflict with the PCR pid (from the start settings), or with Audio or Video PIDs
          If PCR PID is zero, start settings have not been set yet, so don't bother checking yet (this is
          being invoked as a pre-Q operation) */
-      if (hMuxTS->status.stStartSettings.stPCRData.uiPID != 0)
+      if (hMuxTS->pstSettings->stStartSettings.stPCRData.uiPID != 0)
       {
          void *pDataBase = BMMA_Lock( astSystemDataBuffer[*puiQueuedCount].hBlock );
          unsigned char *pData = (unsigned char *)((uint8_t *) pDataBase + astSystemDataBuffer[*puiQueuedCount].uiBlockOffset);
@@ -2990,9 +2917,9 @@ BMUXlib_TS_P_AddSystemDataBuffers(
          {
             uint16_t uiPID = ((uint16_t)(pData[1] & 0x1F) << 8) | pData[2];
 
-            if (hMuxTS->status.aFoundPIDs[uiPID])
+            if (BMUXLIB_TS_PID_ENTRY_IS_SET(hMuxTS->aFoundPIDs, uiPID))
             {
-               if (uiPID == hMuxTS->status.stStartSettings.stPCRData.uiPID)
+               if (uiPID == hMuxTS->pstSettings->stStartSettings.stPCRData.uiPID)
                   BDBG_ERR(("Mux does not support PCR on same PID as System Data: %x (use a separate PID for PCR)", uiPID));
                else
                   BDBG_ERR(("System Data PID %x is aleady in use by Audio or Video input", uiPID));
@@ -3015,28 +2942,28 @@ BMUXlib_TS_P_AddSystemDataBuffers(
 
 #ifdef BMUXLIB_TS_P_TEST_MODE
       /* SW7425-3958: do not write data to CSV files if these entries are due to move of data from pre-Q to pending Q */
-      if (false == hMuxTS->status.bSystemDataPreQ )
+      if (false == hMuxTS->pstStatus->bSystemDataPreQ )
       {
          /* Write CSV containing info about system data: offset in data file, length, insertion interval, etc */
          /* system data is written as raw binary data to the data file */
-         FILE *hCSVFile = hMuxTS->status.stSystemDataInfo.hCSVFile;
-         FILE *hDataFile = hMuxTS->status.stSystemDataInfo.hDataFile;
+         FILE *hCSVFile = hMuxTS->pstStatus->stSystemDataInfo.hCSVFile;
+         FILE *hDataFile = hMuxTS->pstStatus->stSystemDataInfo.hDataFile;
 
-         if (!hMuxTS->status.stSystemDataInfo.bCSVOpened)
+         if (!hMuxTS->pstStatus->stSystemDataInfo.bCSVOpened)
          {
             char fname[256];
             sprintf(fname, "BMUXlib_TS_SystemData_%2.2d.csv", hMuxTS->stCreateSettings.uiMuxId);
             hCSVFile = fopen(fname, "w");
             if (NULL == hCSVFile)
                BDBG_ERR(("Error Creating System Data CSV File (%s)", fname));
-            hMuxTS->status.stSystemDataInfo.hCSVFile = hCSVFile;
+            hMuxTS->pstStatus->stSystemDataInfo.hCSVFile = hCSVFile;
             sprintf(fname, "BMUXlib_TS_SystemData_%2.2d.dat", hMuxTS->stCreateSettings.uiMuxId);
             hDataFile = fopen(fname, "wb");
             if (NULL == hDataFile)
                BDBG_ERR(("Error Creating System Data File (%s)", fname));
-            hMuxTS->status.stSystemDataInfo.hDataFile = hDataFile;
+            hMuxTS->pstStatus->stSystemDataInfo.hDataFile = hDataFile;
 
-            hMuxTS->status.stSystemDataInfo.bCSVOpened = true;
+            hMuxTS->pstStatus->stSystemDataInfo.bCSVOpened = true;
 
             if (hCSVFile != NULL)
                fprintf(hCSVFile, "offset, length, insertion_interval\n");
@@ -3059,14 +2986,14 @@ BMUXlib_TS_P_AddSystemDataBuffers(
 }
 
 BERR_Code
-BMUXlib_TS_GetCompletedSystemDataBuffers(
-         BMUXlib_TS_Handle hMuxTS,
+BMUXlib_TS_Legacy_GetCompletedSystemDataBuffers(
+         BMUXlib_TS_Legacy_Handle hMuxTS,
          size_t *puiCompletedCount /* Returns count of system data buffers fully muxed */
          )
 {
    BDBG_ENTER( BMUXlib_TS_GetCompletedSystemDataBuffers );
 
-   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_Legacy_P_Context);
    BDBG_ASSERT( puiCompletedCount );
 
    *puiCompletedCount = BMUXLIB_TS_P_GET_SYS_DATA_COMP_CNT(hMuxTS);
@@ -3080,17 +3007,17 @@ BMUXlib_TS_GetCompletedSystemDataBuffers(
 /* Status */
 /**********/
 void
-BMUXlib_TS_GetStatus(
-   BMUXlib_TS_Handle hMuxTS,
+BMUXlib_TS_Legacy_GetStatus(
+   BMUXlib_TS_Legacy_Handle hMuxTS,
    BMUXlib_TS_Status *pstStatus
    )
 {
    BDBG_ENTER( BMUXlib_TS_GetStatus );
 
-   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_Legacy_P_Context);
    BDBG_ASSERT( pstStatus );
 
-   *pstStatus = hMuxTS->status.stStatus;
+   *pstStatus = hMuxTS->pstStatus->stStatus;
 
    BDBG_LEAVE( BMUXlib_TS_GetStatus );
 }
@@ -3099,8 +3026,8 @@ BMUXlib_TS_GetStatus(
 /* Execute */
 /***********/
 BERR_Code
-BMUXlib_TS_DoMux(
-   BMUXlib_TS_Handle hMuxTS,
+BMUXlib_TS_Legacy_DoMux(
+   BMUXlib_TS_Legacy_Handle hMuxTS,
    BMUXlib_DoMux_Status *pstStatus
    )
 {
@@ -3108,29 +3035,29 @@ BMUXlib_TS_DoMux(
 
    BDBG_ENTER( BMUXlib_TS_DoMux );
 
-   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_Legacy_P_Context);
    BDBG_ASSERT( pstStatus );
 
-   BKNI_Memset( pstStatus, 0, sizeof( BMUXlib_DoMux_Status ) );
+   BKNI_Memset( pstStatus, 0, sizeof( *pstStatus ) );
 
    /* Debug code to print ESCR for current execution */
-   if (NULL != hMuxTS->status.stStartSettings.transport.stDeviceInterface.fGetTransportStatus)
+   if (NULL != hMuxTS->pstSettings->stStartSettings.transport.stDeviceInterface.fGetTransportStatus)
    {
-      hMuxTS->status.stPreviousTransportStatus = hMuxTS->status.stTransportStatus;
+      hMuxTS->pstStatus->stPreviousTransportStatus = hMuxTS->pstStatus->stTransportStatus;
 
-      hMuxTS->status.stStartSettings.transport.stDeviceInterface.fGetTransportStatus(
-               hMuxTS->status.stStartSettings.transport.stDeviceInterface.pContext,
-               &hMuxTS->status.stTransportStatus
+      hMuxTS->pstSettings->stStartSettings.transport.stDeviceInterface.fGetTransportStatus(
+               hMuxTS->pstSettings->stStartSettings.transport.stDeviceInterface.pContext,
+               &hMuxTS->pstStatus->stTransportStatus
                );
 
-      if ( false == hMuxTS->status.stStartSettings.bNonRealTimeMode )
+      if ( false == hMuxTS->pstSettings->stStartSettings.bNonRealTimeMode )
       {
-         if ( true == hMuxTS->status.bTransportStatusValid )
+         if ( true == hMuxTS->pstStatus->bTransportStatusValid )
          {
-            if ( hMuxTS->status.stTransportStatus.uiESCR > hMuxTS->status.stPreviousTransportStatus.uiESCR )
+            if ( hMuxTS->pstStatus->stTransportStatus.uiESCR > hMuxTS->pstStatus->stPreviousTransportStatus.uiESCR )
             {
-               uint32_t uiMaxExpectedMSP = hMuxTS->status.stStartSettings.uiServiceLatencyTolerance + hMuxTS->status.stDoMuxStatus.uiNextExecutionTime;
-               uint32_t uiDeltaESCR = hMuxTS->status.stTransportStatus.uiESCR - hMuxTS->status.stPreviousTransportStatus.uiESCR;
+               uint32_t uiMaxExpectedMSP = hMuxTS->pstSettings->stStartSettings.uiServiceLatencyTolerance + hMuxTS->pstStatus->stDoMuxStatus.uiNextExecutionTime;
+               uint32_t uiDeltaESCR = hMuxTS->pstStatus->stTransportStatus.uiESCR - hMuxTS->pstStatus->stPreviousTransportStatus.uiESCR;
                uiDeltaESCR /= 27000;
 
                if ( uiDeltaESCR > uiMaxExpectedMSP )
@@ -3141,14 +3068,15 @@ BMUXlib_TS_DoMux(
          }
       }
 
-      hMuxTS->status.bTransportStatusValid = true;
+      hMuxTS->pstStatus->bTransportStatusValid = true;
 
       BDBG_MSG(("STC = "BDBG_UINT64_FMT", PACING = %08x",
-               BDBG_UINT64_ARG(hMuxTS->status.stTransportStatus.uiSTC),
-               hMuxTS->status.stTransportStatus.uiESCR
+               BDBG_UINT64_ARG(hMuxTS->pstStatus->stTransportStatus.uiSTC),
+               hMuxTS->pstStatus->stTransportStatus.uiESCR
                ));
    }
 
+#if BMUXLIB_TS_P_ENABLE_STATS
    /* SW7425-5841: Update efficiency statistics - subtract oldest stats */
    {
       BMUXlib_TS_P_DataType eDataType;
@@ -3158,34 +3086,35 @@ BMUXlib_TS_DoMux(
       {
          for ( eSourceType = 0; eSourceType < BMUXlib_TS_P_SourceType_eMax; eSourceType++ )
          {
-            hMuxTS->status.stEfficiencyStats.uiTotalBytesPerInput[eDataType][eSourceType] -= hMuxTS->status.stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->status.stEfficiencyStats.uiIndex];
-            hMuxTS->status.stEfficiencyStats.uiTotalBytesPerDataType[eDataType] -= hMuxTS->status.stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->status.stEfficiencyStats.uiIndex];
-            hMuxTS->status.stEfficiencyStats.uiTotalBytesPerSourceType[eSourceType] -= hMuxTS->status.stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->status.stEfficiencyStats.uiIndex];
-            hMuxTS->status.stEfficiencyStats.uiTotalBytes -= hMuxTS->status.stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->status.stEfficiencyStats.uiIndex];
-            hMuxTS->status.stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->status.stEfficiencyStats.uiIndex] = 0;
+            hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytesPerInput[eDataType][eSourceType] -= hMuxTS->pstStatus->stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->pstStatus->stEfficiencyStats.uiIndex];
+            hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytesPerDataType[eDataType] -= hMuxTS->pstStatus->stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->pstStatus->stEfficiencyStats.uiIndex];
+            hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytesPerSourceType[eSourceType] -= hMuxTS->pstStatus->stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->pstStatus->stEfficiencyStats.uiIndex];
+            hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytes -= hMuxTS->pstStatus->stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->pstStatus->stEfficiencyStats.uiIndex];
+            hMuxTS->pstStatus->stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->pstStatus->stEfficiencyStats.uiIndex] = 0;
          }
       }
-      hMuxTS->status.stEfficiencyStats.uiTotalBytes -= hMuxTS->status.stEfficiencyStats.uiPacketizationOverhead[hMuxTS->status.stEfficiencyStats.uiIndex];
-      hMuxTS->status.stEfficiencyStats.uiPacketizationOverhead[hMuxTS->status.stEfficiencyStats.uiIndex] = 0;
+      hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytes -= hMuxTS->pstStatus->stEfficiencyStats.uiPacketizationOverhead[hMuxTS->pstStatus->stEfficiencyStats.uiIndex];
+      hMuxTS->pstStatus->stEfficiencyStats.uiPacketizationOverhead[hMuxTS->pstStatus->stEfficiencyStats.uiIndex] = 0;
 
-      hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs -= hMuxTS->status.stEfficiencyStats.uiTimeInMs[hMuxTS->status.stEfficiencyStats.uiIndex];
-      hMuxTS->status.stEfficiencyStats.uiTimeInMs[hMuxTS->status.stEfficiencyStats.uiIndex] = hMuxTS->status.stStartSettings.uiServicePeriod;
+      hMuxTS->pstStatus->stEfficiencyStats.uiTotalTimeInMs -= hMuxTS->pstStatus->stEfficiencyStats.uiTimeInMs[hMuxTS->pstStatus->stEfficiencyStats.uiIndex];
+      hMuxTS->pstStatus->stEfficiencyStats.uiTimeInMs[hMuxTS->pstStatus->stEfficiencyStats.uiIndex] = hMuxTS->pstSettings->stStartSettings.uiServicePeriod;
 
-      if ( true == hMuxTS->status.bTransportStatusValid )
+      if ( true == hMuxTS->pstStatus->bTransportStatusValid )
       {
-         uint32_t uiDeltaESCR = hMuxTS->status.stTransportStatus.uiESCR - hMuxTS->status.stPreviousTransportStatus.uiESCR;
+         uint32_t uiDeltaESCR = hMuxTS->pstStatus->stTransportStatus.uiESCR - hMuxTS->pstStatus->stPreviousTransportStatus.uiESCR;
 
-         hMuxTS->status.stEfficiencyStats.uiTimeInMs[hMuxTS->status.stEfficiencyStats.uiIndex] = uiDeltaESCR/27000;
+         hMuxTS->pstStatus->stEfficiencyStats.uiTimeInMs[hMuxTS->pstStatus->stEfficiencyStats.uiIndex] = uiDeltaESCR/27000;
       }
    }
+#endif
 
    /* SW7425-659: Initialize the system data pkt2pkt delta */
-   if ( false == hMuxTS->status.bBTPSent )
+   if ( false == hMuxTS->pstStatus->bBTPSent )
    {
-      uint64_t uiPacket2PacketTimestampDelta = ((uint64_t)BMUXlib_TS_P_TSPacket_MAXSIZE * 8 * 27000000) / hMuxTS->status.stMuxSettings.uiSystemDataBitRate;
+      uint64_t uiPacket2PacketTimestampDelta = ((uint64_t)BMUXlib_TS_P_TSPacket_MAXSIZE * 8 * 27000000) / hMuxTS->pstSettings->stMuxSettings.uiSystemDataBitRate;
 
-      hMuxTS->status.stOutput.stTransport[hMuxTS->status.stInput.system.uiTransportChannelIndex].stPacket2PacketDelta.bValid = true;
-      hMuxTS->status.stOutput.stTransport[hMuxTS->status.stInput.system.uiTransportChannelIndex].stPacket2PacketDelta.uiValue = uiPacket2PacketTimestampDelta;
+      hMuxTS->pstStatus->stOutput.stTransport[hMuxTS->pstStatus->stInput.system.uiTransportChannelIndex].stPacket2PacketDelta.bValid = true;
+      hMuxTS->pstStatus->stOutput.stTransport[hMuxTS->pstStatus->stInput.system.uiTransportChannelIndex].stPacket2PacketDelta.uiValue = uiPacket2PacketTimestampDelta;
    }
 
    if ( ( BMUXlib_State_eStopped != BMUXLIB_TS_P_GET_MUX_STATE(hMuxTS) )
@@ -3202,7 +3131,7 @@ BMUXlib_TS_DoMux(
          /* Make sure all transport descriptors have been consumed */
          for ( uiIndex = 0; uiIndex < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; uiIndex++ )
          {
-            if ( true == hMuxTS->status.stOutput.stTransport[uiIndex].bActive )
+            if ( true == hMuxTS->pstStatus->stOutput.stTransport[uiIndex].bActive )
             {
                if ( false == BMUXLIB_LIST_ISEMPTY( &hMuxTS->stTransportDescriptorPendingList[uiIndex] ) )
                {
@@ -3232,9 +3161,9 @@ BMUXlib_TS_DoMux(
             unsigned uiIndex;
 
              /* Check if EOS seen on all input channels associated with this Transport Channel */
-             for ( uiIndex = 0; uiIndex < hMuxTS->status.uiNumInputs ; uiIndex++ )
+             for ( uiIndex = 0; uiIndex < hMuxTS->pstStatus->uiNumInputs ; uiIndex++ )
              {
-               if ( false == hMuxTS->status.stInputMetaData[uiIndex].bEOSSeen )
+               if ( false == hMuxTS->pstStatus->stInputMetaData[uiIndex].bEOSSeen )
                {
                   bMuxInputComplete = false;
                   break;
@@ -3269,7 +3198,7 @@ BMUXlib_TS_DoMux(
           * inputs that have seen EOS to ensure the they don't cause the non-EOS
           * inputs to stall
           */
-         if ( true == hMuxTS->status.stStartSettings.bNonRealTimeMode )
+         if ( true == hMuxTS->pstSettings->stStartSettings.bNonRealTimeMode )
          {
             bMuxInputComplete &= BMUXlib_TS_P_Flush( hMuxTS, bMuxInputComplete);
          }
@@ -3294,7 +3223,7 @@ BMUXlib_TS_DoMux(
                         &uiNumEntries
                         );
 
-                     bMuxInputComplete &= (uiNumEntries == hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].uiDescriptorsQueued);
+                     bMuxInputComplete &= (uiNumEntries == hMuxTS->pstStatus->stOutput.stTransport[uiTransportChannelIndex].uiDescriptorsQueued);
                   }
                }
             }
@@ -3308,7 +3237,7 @@ BMUXlib_TS_DoMux(
          }
       }
 
-      if ( false == hMuxTS->status.bTransportConfigured )
+      if ( false == hMuxTS->pstStatus->bTransportConfigured )
       {
          BMUXlib_TS_P_ConfigureTransport( hMuxTS );
 
@@ -3316,21 +3245,21 @@ BMUXlib_TS_DoMux(
           * we need to resample the status to ensure subsequent code
           * (E.g. Late ESCR detection) uses a valid value
           */
-         if (NULL != hMuxTS->status.stStartSettings.transport.stDeviceInterface.fGetTransportStatus)
+         if (NULL != hMuxTS->pstSettings->stStartSettings.transport.stDeviceInterface.fGetTransportStatus)
          {
-            hMuxTS->status.stStartSettings.transport.stDeviceInterface.fGetTransportStatus(
-                     hMuxTS->status.stStartSettings.transport.stDeviceInterface.pContext,
-                     &hMuxTS->status.stTransportStatus
+            hMuxTS->pstSettings->stStartSettings.transport.stDeviceInterface.fGetTransportStatus(
+                     hMuxTS->pstSettings->stStartSettings.transport.stDeviceInterface.pContext,
+                     &hMuxTS->pstStatus->stTransportStatus
                      );
 
             BDBG_MSG(("STC = "BDBG_UINT64_FMT", PACING = %08x (After Config)",
-                     BDBG_UINT64_ARG(hMuxTS->status.stTransportStatus.uiSTC),
-                     hMuxTS->status.stTransportStatus.uiESCR
+                     BDBG_UINT64_ARG(hMuxTS->pstStatus->stTransportStatus.uiSTC),
+                     hMuxTS->pstStatus->stTransportStatus.uiESCR
                      ));
          }
       }
 
-      if ( true == hMuxTS->status.bTransportConfigured )
+      if ( true == hMuxTS->pstStatus->bTransportConfigured )
       {
          BMUXlib_TS_P_ScheduleProcessedBuffers( hMuxTS );
       }
@@ -3344,7 +3273,7 @@ BMUXlib_TS_DoMux(
 
       for ( uiTransportIndex = 0; uiTransportIndex < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; uiTransportIndex++ )
       {
-         if ( true == hMuxTS->status.stOutput.stTransport[uiTransportIndex].bActive )
+         if ( true == hMuxTS->pstStatus->stOutput.stTransport[uiTransportIndex].bActive )
          {
 
             size_t uiTransportPending;
@@ -3357,24 +3286,24 @@ BMUXlib_TS_DoMux(
             BDBG_MODULE_MSG(BMUXLIB_TS_PENDING, ("T[%2d]=%08x (ESCR=%08x --> %08x)",
                uiTransportIndex,
                (int)uiTransportPending,
-               hMuxTS->status.stOutput.stTransport[uiTransportIndex].stTimingPending.uiLastStartingESCR,
-               hMuxTS->status.stOutput.stTransport[uiTransportIndex].stTimingPending.uiNextExpectedESCR
+               hMuxTS->pstStatus->stOutput.stTransport[uiTransportIndex].stTimingPending.uiLastStartingESCR,
+               hMuxTS->pstStatus->stOutput.stTransport[uiTransportIndex].stTimingPending.uiNextExpectedESCR
             ));
 
             BDBG_MODULE_MSG(BMUXLIB_TS_QUEUED, ("T[%2d]=%08x (ESCR=%08x --> %08x, PKT2PKT=%08x (%d ms))",
                uiTransportIndex,
                (int)uiTransportPending,
-               hMuxTS->status.stOutput.stTransport[uiTransportIndex].stTimingQueued.uiLastStartingESCR,
-               hMuxTS->status.stOutput.stTransport[uiTransportIndex].stTimingQueued.uiNextExpectedESCR,
-               hMuxTS->status.stOutput.stTransport[uiTransportIndex].stTimingQueued.uiCurrentPacket2PacketTimestampDelta,
-               hMuxTS->status.stOutput.stTransport[uiTransportIndex].stTimingQueued.uiCurrentPacket2PacketTimestampDelta / 27000
+               hMuxTS->pstStatus->stOutput.stTransport[uiTransportIndex].stTimingQueued.uiLastStartingESCR,
+               hMuxTS->pstStatus->stOutput.stTransport[uiTransportIndex].stTimingQueued.uiNextExpectedESCR,
+               hMuxTS->pstStatus->stOutput.stTransport[uiTransportIndex].stTimingQueued.uiCurrentPacket2PacketTimestampDelta,
+               hMuxTS->pstStatus->stOutput.stTransport[uiTransportIndex].stTimingQueued.uiCurrentPacket2PacketTimestampDelta / 27000
             ));
 
             BDBG_MODULE_MSG(BMUXLIB_TS_TRANSPORT, ("T[%2d] added/completed/returned = %08x,%08x,%08x",
                uiTransportIndex,
-               hMuxTS->status.stTransport[uiTransportIndex].uiDescriptorsAdded,
-               hMuxTS->status.stTransport[uiTransportIndex].uiDescriptorsCompleted,
-               hMuxTS->status.stTransport[uiTransportIndex].uiDescriptorsReturned
+               hMuxTS->pstStatus->stTransport[uiTransportIndex].uiDescriptorsAdded,
+               hMuxTS->pstStatus->stTransport[uiTransportIndex].uiDescriptorsCompleted,
+               hMuxTS->pstStatus->stTransport[uiTransportIndex].uiDescriptorsReturned
             ));
          }
       }
@@ -3382,8 +3311,8 @@ BMUXlib_TS_DoMux(
 
    pstStatus->eState = BMUXLIB_TS_P_GET_MUX_STATE(hMuxTS);
 
-   pstStatus->uiNextExecutionTime = hMuxTS->status.stStartSettings.uiServicePeriod + hMuxTS->status.iExecutionTimeAdjustment;
-   hMuxTS->status.iExecutionTimeAdjustment = 0;
+   pstStatus->uiNextExecutionTime = hMuxTS->pstSettings->stStartSettings.uiServicePeriod + hMuxTS->pstStatus->iExecutionTimeAdjustment;
+   hMuxTS->pstStatus->iExecutionTimeAdjustment = 0;
 
    /* SW7425-3684: Update completed duration */
    if ( ( BMUXlib_State_eStopped != BMUXLIB_TS_P_GET_MUX_STATE(hMuxTS) )
@@ -3401,6 +3330,7 @@ BMUXlib_TS_DoMux(
       pstStatus->uiCompletedDuration = stStatus.uiDuration;
    }
 
+#if BMUXLIB_TS_P_ENABLE_STATS
    /* SW7425-5841: Update/Calc/Print efficiency statistics - add newest stats */
    {
       BMUXlib_TS_P_DataType eDataType;
@@ -3410,37 +3340,38 @@ BMUXlib_TS_DoMux(
       {
          for ( eSourceType = 0; eSourceType < BMUXlib_TS_P_SourceType_eMax; eSourceType++ )
          {
-            hMuxTS->status.stEfficiencyStats.uiTotalBytesPerInput[eDataType][eSourceType] += hMuxTS->status.stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->status.stEfficiencyStats.uiIndex];
-            hMuxTS->status.stEfficiencyStats.uiTotalBytesPerDataType[eDataType] += hMuxTS->status.stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->status.stEfficiencyStats.uiIndex];
-            hMuxTS->status.stEfficiencyStats.uiTotalBytesPerSourceType[eSourceType] += hMuxTS->status.stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->status.stEfficiencyStats.uiIndex];
-            hMuxTS->status.stEfficiencyStats.uiTotalBytes += hMuxTS->status.stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->status.stEfficiencyStats.uiIndex];
+            hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytesPerInput[eDataType][eSourceType] += hMuxTS->pstStatus->stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->pstStatus->stEfficiencyStats.uiIndex];
+            hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytesPerDataType[eDataType] += hMuxTS->pstStatus->stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->pstStatus->stEfficiencyStats.uiIndex];
+            hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytesPerSourceType[eSourceType] += hMuxTS->pstStatus->stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->pstStatus->stEfficiencyStats.uiIndex];
+            hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytes += hMuxTS->pstStatus->stEfficiencyStats.uiNumBytes[eDataType][eSourceType][hMuxTS->pstStatus->stEfficiencyStats.uiIndex];
          }
       }
-      hMuxTS->status.stEfficiencyStats.uiTotalBytes += hMuxTS->status.stEfficiencyStats.uiPacketizationOverhead[hMuxTS->status.stEfficiencyStats.uiIndex];
+      hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytes += hMuxTS->pstStatus->stEfficiencyStats.uiPacketizationOverhead[hMuxTS->pstStatus->stEfficiencyStats.uiIndex];
 
-      hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs += hMuxTS->status.stEfficiencyStats.uiTimeInMs[hMuxTS->status.stEfficiencyStats.uiIndex];
+      hMuxTS->pstStatus->stEfficiencyStats.uiTotalTimeInMs += hMuxTS->pstStatus->stEfficiencyStats.uiTimeInMs[hMuxTS->pstStatus->stEfficiencyStats.uiIndex];
 
-      hMuxTS->status.stEfficiencyStats.uiIndex++;
-      hMuxTS->status.stEfficiencyStats.uiIndex %= BMUXLib_TS_P_STATS_MAX_MSP_COUNT;
+      hMuxTS->pstStatus->stEfficiencyStats.uiIndex++;
+      hMuxTS->pstStatus->stEfficiencyStats.uiIndex %= BMUXLib_TS_P_STATS_MAX_MSP_COUNT;
 
-      if ( ( 0 != hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs/1000 ) && ( 0 != hMuxTS->status.stEfficiencyStats.uiTotalBytes ) )
+      if ( ( 0 != hMuxTS->pstStatus->stEfficiencyStats.uiTotalTimeInMs/1000 ) && ( 0 != hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytes ) )
       {
-         hMuxTS->status.stStatus.stAverageBitrate.uiVideo = ( hMuxTS->status.stEfficiencyStats.uiTotalBytesPerInput[BMUXlib_TS_P_DataType_eCDB][BMUXlib_TS_P_SourceType_eVideo] * 8 ) / (hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs/1000);
-         hMuxTS->status.stStatus.stAverageBitrate.uiAudio = ( hMuxTS->status.stEfficiencyStats.uiTotalBytesPerInput[BMUXlib_TS_P_DataType_eCDB][BMUXlib_TS_P_SourceType_eAudio] * 8 ) / (hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs/1000);
-         hMuxTS->status.stStatus.stAverageBitrate.uiSystemData = hMuxTS->status.stEfficiencyStats.uiTotalBytesPerSourceType[BMUXlib_TS_P_SourceType_eSystem] * 8 / (hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs/1000);
-         hMuxTS->status.stStatus.stAverageBitrate.uiUserData = hMuxTS->status.stEfficiencyStats.uiTotalBytesPerSourceType[BMUXlib_TS_P_SourceType_eUserdata] * 8 / (hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs/1000);
-         hMuxTS->status.stStatus.uiEfficiency = (hMuxTS->status.stEfficiencyStats.uiTotalBytesPerInput[BMUXlib_TS_P_DataType_eCDB][BMUXlib_TS_P_SourceType_eVideo] + hMuxTS->status.stEfficiencyStats.uiTotalBytesPerInput[BMUXlib_TS_P_DataType_eCDB][BMUXlib_TS_P_SourceType_eAudio] + hMuxTS->status.stEfficiencyStats.uiTotalBytesPerDataType[BMUXlib_TS_P_DataType_eUserdataPTS] + hMuxTS->status.stEfficiencyStats.uiTotalBytesPerDataType[BMUXlib_TS_P_DataType_eUserdataLocal]) * 100 / hMuxTS->status.stEfficiencyStats.uiTotalBytes;
-         hMuxTS->status.stStatus.uiTotalBytes = hMuxTS->status.stEfficiencyStats.uiTotalBytesWritten;
+         hMuxTS->pstStatus->stStatus.stAverageBitrate.uiVideo = ( hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytesPerInput[BMUXlib_TS_P_DataType_eCDB][BMUXlib_TS_P_SourceType_eVideo] * 8 ) / (hMuxTS->pstStatus->stEfficiencyStats.uiTotalTimeInMs/1000);
+         hMuxTS->pstStatus->stStatus.stAverageBitrate.uiAudio = ( hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytesPerInput[BMUXlib_TS_P_DataType_eCDB][BMUXlib_TS_P_SourceType_eAudio] * 8 ) / (hMuxTS->pstStatus->stEfficiencyStats.uiTotalTimeInMs/1000);
+         hMuxTS->pstStatus->stStatus.stAverageBitrate.uiSystemData = hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytesPerSourceType[BMUXlib_TS_P_SourceType_eSystem] * 8 / (hMuxTS->pstStatus->stEfficiencyStats.uiTotalTimeInMs/1000);
+         hMuxTS->pstStatus->stStatus.stAverageBitrate.uiUserData = hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytesPerSourceType[BMUXlib_TS_P_SourceType_eUserdata] * 8 / (hMuxTS->pstStatus->stEfficiencyStats.uiTotalTimeInMs/1000);
+         hMuxTS->pstStatus->stStatus.uiEfficiency = (hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytesPerInput[BMUXlib_TS_P_DataType_eCDB][BMUXlib_TS_P_SourceType_eVideo] + hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytesPerInput[BMUXlib_TS_P_DataType_eCDB][BMUXlib_TS_P_SourceType_eAudio] + hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytesPerDataType[BMUXlib_TS_P_DataType_eUserdataPTS] + hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytesPerDataType[BMUXlib_TS_P_DataType_eUserdataLocal]) * 100 / hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytes;
+         hMuxTS->pstStatus->stStatus.uiTotalBytes = hMuxTS->pstStatus->stEfficiencyStats.uiTotalBytesWritten;
          BDBG_MODULE_MSG( BMUXLIB_TS_STATS, ("Avg. Bitrate (kbps): V=%5u, A=%3u, S=%2u, U=%3u [%3u%%] ("BDBG_UINT64_FMT")",
-            hMuxTS->status.stStatus.stAverageBitrate.uiVideo/1000,
-            hMuxTS->status.stStatus.stAverageBitrate.uiAudio/1000,
-            hMuxTS->status.stStatus.stAverageBitrate.uiSystemData/1000,
-            hMuxTS->status.stStatus.stAverageBitrate.uiUserData/1000,
-            hMuxTS->status.stStatus.uiEfficiency,
-            BDBG_UINT64_ARG(hMuxTS->status.stStatus.uiTotalBytes)
+            hMuxTS->pstStatus->stStatus.stAverageBitrate.uiVideo/1000,
+            hMuxTS->pstStatus->stStatus.stAverageBitrate.uiAudio/1000,
+            hMuxTS->pstStatus->stStatus.stAverageBitrate.uiSystemData/1000,
+            hMuxTS->pstStatus->stStatus.stAverageBitrate.uiUserData/1000,
+            hMuxTS->pstStatus->stStatus.uiEfficiency,
+            BDBG_UINT64_ARG(hMuxTS->pstStatus->stStatus.uiTotalBytes)
          ) );
       }
    }
+#endif
 
    /* Call MCPB DoMux*( as needed */
    {
@@ -3458,12 +3389,12 @@ BMUXlib_TS_DoMux(
             signed iDeltaESCR = -1;
 
             /* Ignore this transport channel if it is not active */
-            if ( false == hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].bActive ) continue;
+            if ( false == hMuxTS->pstStatus->stOutput.stTransport[uiTransportChannelIndex].bActive ) continue;
 
             if ( BMUXlib_State_eFinishingOutput == BMUXLIB_TS_P_GET_MUX_STATE(hMuxTS) )
             {
                /* When finishing output, do not use system data channel for computing uiEndESCR since PCRs are generated internally based on the input timing */
-               if ( uiTransportChannelIndex == hMuxTS->status.stInput.system.uiTransportChannelIndex ) continue;
+               if ( uiTransportChannelIndex == hMuxTS->pstStatus->stInput.system.uiTransportChannelIndex ) continue;
             }
 
             /* If a transport queue is empty, check of all associated inputs are done */
@@ -3473,11 +3404,11 @@ BMUXlib_TS_DoMux(
                unsigned uiIndex;
 
                /* Ignore this transport channel, if EOS seen on all associated inputs */
-               for ( uiIndex = 0; uiIndex < hMuxTS->status.uiNumInputs ; uiIndex++ )
+               for ( uiIndex = 0; uiIndex < hMuxTS->pstStatus->uiNumInputs ; uiIndex++ )
                {
-                  if ( uiTransportChannelIndex == hMuxTS->status.stInputMetaData[uiIndex].uiTransportChannelIndex )
+                  if ( uiTransportChannelIndex == hMuxTS->pstStatus->stInputMetaData[uiIndex].uiTransportChannelIndex )
                   {
-                     bAllInputsForTransportChannelHasSeenEOS = hMuxTS->status.stInputMetaData[uiIndex].bEOSSeen;
+                     bAllInputsForTransportChannelHasSeenEOS = hMuxTS->pstStatus->stInputMetaData[uiIndex].bEOSSeen;
 
                      if ( false == bAllInputsForTransportChannelHasSeenEOS )
                      {
@@ -3490,12 +3421,12 @@ BMUXlib_TS_DoMux(
 
             if ( true == bEndESCRValid )
             {
-               iDeltaESCR = hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stTimingQueued.uiNextExpectedESCR - uiEndESCR;
+               iDeltaESCR = hMuxTS->pstStatus->stOutput.stTransport[uiTransportChannelIndex].stTimingQueued.uiNextExpectedESCR - uiEndESCR;
             }
 
             if ( iDeltaESCR < 0 )
             {
-               uiEndESCR = hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stTimingQueued.uiNextExpectedESCR;
+               uiEndESCR = hMuxTS->pstStatus->stOutput.stTransport[uiTransportChannelIndex].stTimingQueued.uiNextExpectedESCR;
                bEndESCRValid = true;
             }
          }
@@ -3505,15 +3436,18 @@ BMUXlib_TS_DoMux(
       {
          for ( i = 0; i < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; i++ )
          {
-            if ( NULL != hMuxTS->status.stOutput.stMCPB[i].hMuxMCPB )
+            if ( NULL != hMuxTS->pstStatus->stOutput.stMCPB[i].hMuxMCPB )
             {
-               BMUXlib_TS_MCPB_DoMux( hMuxTS->status.stOutput.stMCPB[i].hMuxMCPB, uiEndESCR );
+               if (BERR_SUCCESS != BMUXlib_TS_MCPB_DoMux( hMuxTS->pstStatus->stOutput.stMCPB[i].hMuxMCPB, uiEndESCR ))
+               {
+                  BDBG_ERR(("Unknown error calling BMUXlib_TS_MCPB_DoMux"));
+               }
             }
          }
       }
    }
 
-   hMuxTS->status.stDoMuxStatus = *pstStatus;
+   hMuxTS->pstStatus->stDoMuxStatus = *pstStatus;
 
    BDBG_LEAVE( BMUXlib_TS_DoMux );
    return BERR_TRACE( rc );

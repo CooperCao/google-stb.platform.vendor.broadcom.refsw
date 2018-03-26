@@ -43,6 +43,7 @@ typedef struct WLPL_WaylandWindow
    SurfaceInterface surface_interface;
    DisplayInterface display_interface;
    DisplayFramework display_framework;
+   uint32_t ageOfLastDequeuedSurface;
 } WLPL_WaylandWindow;
 
 static BEGL_Error WlWindowGetInfo(void *context, void *nativeWindow,
@@ -61,6 +62,8 @@ static BEGL_Error WlWindowGetInfo(void *context, void *nativeWindow,
          info->height = height;
       if (flags & BEGL_WindowInfoSwapChainCount)
          info->swapchain_count = SWAPCHAIN_COUNT;
+      if (flags & BEGL_WindowInfoBackBufferAge)
+         info->backBufferAge = window->ageOfLastDequeuedSurface;
       return BEGL_Success;
    }
    return BEGL_Fail;
@@ -116,7 +119,7 @@ static BEGL_Error WlGetNextSurface(void *context, void *nativeWindow,
       return BEGL_Fail;
 
    *nativeSurface = DisplayFramework_GetNextSurface(&window->display_framework,
-         format, secure, fence);
+         format, secure, fence, &window->ageOfLastDequeuedSurface);
 
    if (*nativeSurface)
    {

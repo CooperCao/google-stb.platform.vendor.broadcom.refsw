@@ -42,7 +42,8 @@
 
 /* utility module IDs  */
 typedef enum Keymaster_ModuleId_e{
-    Keymaster_ModuleId_eKeymaster = 0x01
+    Keymaster_ModuleId_eKeymaster = 0x01,
+    Keymaster_ModuleId_eGatekeeper = 0x02
 }Keymaster_ModuleId_e;
 
 enum {
@@ -68,7 +69,16 @@ enum {
     KM_CommandId_eCryptoGetDataStart       = 0x0013,
     KM_CommandId_eCryptoGetDataComplete    = 0x0014,
     KM_CommandId_eCryptoAbort              = 0x0015,
+    KM_CommandId_eGetConfiguration         = 0x0016,
+    KM_CommandId_eShutdown                 = 0x0017,
     KM_CommandId_eMax
+};
+
+enum {
+    /* Gatekeeper command IDs */
+    KM_CommandId_eGatekeeperEnroll         = 0x0001,
+    KM_CommandId_eGatekeeperVerify         = 0x0002,
+    KM_CommandId_eGatekeeperMax
 };
 
 

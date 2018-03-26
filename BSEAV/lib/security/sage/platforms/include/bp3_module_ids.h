@@ -45,7 +45,9 @@ enum {
     BP3_CommandId_eProcessBP3BinFile = 0x1,     /* called on normal boot */
     BP3_CommandId_eProvisionBp3Ccf = 0x2,       /* called during manufacturing */
     BP3_CommandId_eGenerateSessionToken = 0x03, /* called before CCF creation */
-    BP3_CommandId_eGetChipOtpId = 0x04          /* called to get OTP ID A after getting session token */
+    BP3_CommandId_eGetChipOtpId = 0x04,         /* called to get OTP ID A after getting session token */
+    BP3_CommandId_eGetChipInfo = 0x05           /* called to get provisioned bit, product ID, security code,
+                                                                                          bond option, and feature list */
 };
 
 enum

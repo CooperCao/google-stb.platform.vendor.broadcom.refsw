@@ -1,23 +1,39 @@
 /***************************************************************************
- *     Copyright (c) 2003-2010, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Porting interface code for the DirecTV PVR playback sections of the 
- * data transport core. 
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ***************************************************************************/
 
 /*= Module Overview *********************************************************
@@ -45,8 +61,8 @@ when the channel is opened or BXPT_Playback_SetChannelSettings() is called ).
 The caller should also set BXPT_Playback_ChannelSettings.PacketLength 
 appropriately.  
 ****************************************************************************/
-#define BXPT_PB_SYNC_DIRECTV		( 0x1 )
-#define BXPT_PB_SYNC_DIRECTV_BLIND	( 0x6 )
+#define BXPT_PB_SYNC_DIRECTV        ( 0x1 )
+#define BXPT_PB_SYNC_DIRECTV_BLIND  ( 0x6 )
 
 /***************************************************************************
 Summary:
@@ -61,10 +77,11 @@ Returns:
     BERR_INVALID_PARAMETER      - Bad input parameter
 ***************************************************************************/
 BERR_Code BXPT_DirecTvPlayback_SetParserBandMode( 
-	BXPT_Playback_Handle PlaybackHandle,	/* [in] Handle for the playback channel */
-	BXPT_ParserMode Mode					/* [in] Which mode (packet format) is being used. */
-	);
+    BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
+    BXPT_ParserMode Mode                    /* [in] Which mode (packet format) is being used. */
+    );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Get the SyncIn and SyncOut thresholds for the playback sync extractor.
@@ -85,10 +102,11 @@ See Also:
 BXPT_DirecTvPlayback_SetSyncThresholds
 ****************************************************************************/
 BERR_Code BXPT_DirecTvPlayback_GetSyncThresholds( 
-	BXPT_Playback_Handle PlaybackHandle,	/* [in] Handle for the playback channel */
-	unsigned int *SyncInCount,			/* [out] In-sync threshold. */
-	unsigned int *SyncOutCount			/* [out] Out-of-sync threshold. */
-	);
+    BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
+    unsigned int *SyncInCount,          /* [out] In-sync threshold. */
+    unsigned int *SyncOutCount          /* [out] Out-of-sync threshold. */
+    );
+#endif
 
 /***************************************************************************
 Summary:
@@ -110,10 +128,10 @@ See Also:
 BXPT_DirecTvPlayback_GetSyncThresholds
 ****************************************************************************/
 BERR_Code BXPT_DirecTvPlayback_SetSyncThresholds( 
-	BXPT_Playback_Handle PlaybackHandle,	/* [in] Handle for the playback channel */
-	unsigned int SyncInCount,			/* [in] In-sync threshold. */
-	unsigned int SyncOutCount			/* [in] Out-of-sync threshold. */
-	);
+    BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
+    unsigned int SyncInCount,           /* [in] In-sync threshold. */
+    unsigned int SyncOutCount           /* [in] Out-of-sync threshold. */
+    );
 
 #ifdef __cplusplus
 }
@@ -122,5 +140,3 @@ BERR_Code BXPT_DirecTvPlayback_SetSyncThresholds(
 #endif /* #ifndef BXPT_DIRECTV_PLAYBACK_H__ */
 
 /* end of file */
-
-

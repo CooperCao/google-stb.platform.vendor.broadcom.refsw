@@ -82,6 +82,7 @@ typedef struct
     uint32_t lastSyncBytes;    /* Bytes since last sync WORD was found */
     uint32_t lostSyncCount;    /* Number of times Sync frame was lost */
     uint32_t noSpaceCount;     /* No space in destination bump */
+    uint32_t noReadData;       /* Nothing to read in source */
     uint32_t congestion;       /* Destination is not draining, congestion */
     uint32_t cdbSrcWrap;       /* Wrap flip stats */
     uint32_t zeroWrap;         /* count for when wrap pointer is zero */

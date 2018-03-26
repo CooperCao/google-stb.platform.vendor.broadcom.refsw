@@ -4,6 +4,6 @@ stream[2]=Guardians_SDR_HD_AVC.mp4
 stream[3]=Underdog_HDR_HD_VP9.webm
 processing.vid=off
 image=Avatar.bmp
-bg=desktop_background.brcmLTD.png
+bg=desktop_background.brcmLTD.bmp
 usage=mosaic
 layout=1

@@ -44,6 +44,7 @@
 #include "bxvd_platform.h"
 #include "bxvd_priv.h"
 #include "bxvd_dip.h"
+#include "bxvd_reg.h"
 
 #if (BXVD_CHIP != 'N') && (BXVD_CHIP != 'T')
 #include "bchp_decode_ip_shim_0.h"
@@ -372,6 +373,79 @@ BXVD_DisplayInterruptProvider_S_PictureDataReady_isr(
 
    BXVD_P_SAVE_DIP_INFO_STC(hXvdDipCh, (*displayInfo));
 
+
+#ifdef BCHP_XPT_PCROFFSET_STC_SNAPSHOT0
+   {
+      /*
+       * SWSTB-3955: STC's read directly from XPT.
+       */
+      BXVD_Handle hXvd;
+      BXVD_ChannelHandle hXvdCh;
+
+      for ( i=0; i < hXvdDipCh->stDisplayInterruptInfo.uiSTCCount; i++ )
+      {
+         hXvdDipCh->stDisplayInterruptInfo.astSTCFromXPT[i].bValid = false;
+      }
+
+      /* Walk through the list of XVD channels.  Only read
+       * the STC snapshot for the active channels. */
+
+      hXvd = hXvdDipCh->stChannelSettings.hXvd;
+
+      if ( hXvd )
+      {
+         for ( i=0; i < BXVD_MAX_VIDEO_CHANNELS; i++ )
+         {
+            uint32_t uiOffset = 0;
+
+            hXvdCh = hXvd->ahChannel[i];
+
+            if ( hXvdCh && hXvdCh->eDecoderState == BXVD_P_DecoderState_eActive )
+            {
+               switch( hXvdCh->sDecodeSettings.eSTC )
+               {
+                  case 0: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT0; break;
+                  case 1: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT1; break;
+                  case 2: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT2; break;
+                  case 3: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT3; break;
+#ifdef BCHP_XPT_PCROFFSET_STC_SNAPSHOT4
+                  case 4: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT4; break;
+#ifdef BCHP_XPT_PCROFFSET_STC_SNAPSHOT5
+                  case 5: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT5; break;
+#ifdef BCHP_XPT_PCROFFSET_STC_SNAPSHOT6
+                  case 6: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT6; break;
+                  case 7: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT7; break;
+#ifdef BCHP_XPT_PCROFFSET_STC_SNAPSHOT8
+                  case 8: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT8; break;
+                  case 9: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT9; break;
+                  case 10: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT10; break;
+                  case 11: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT11; break;
+#ifdef BCHP_XPT_PCROFFSET_STC_SNAPSHOT12
+                  case 12: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT12; break;
+                  case 13: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT13; break;
+                  case 14: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT14; break;
+                  case 15: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT15; break;
+#endif
+#endif
+#endif
+#endif
+#endif
+                  default:
+                     uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT0;
+                     BERR_TRACE(BERR_INVALID_PARAMETER);
+                     break;
+
+               }
+
+               hXvdDipCh->stDisplayInterruptInfo.astSTCFromXPT[hXvdCh->sDecodeSettings.eSTC].uiValue = BXVD_Reg_Read32_isr( hXvdDipCh->stChannelSettings.hXvd, uiOffset );
+               hXvdDipCh->stDisplayInterruptInfo.astSTCFromXPT[hXvdCh->sDecodeSettings.eSTC].bValid = true;
+
+            }
+         }
+      }
+   }
+#endif
+
 #if 0
    /* Enable to see the STCs that are being captured by FW */
    {
@@ -595,6 +669,20 @@ BXVD_DisplayInterruptProvider_P_OpenChannel(
       return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
    }
 
+
+   /* SWSTB-3955: STC's read directly from XPT. */
+
+   pXvdDipCh->stDisplayInterruptInfo.astSTCFromXPT = ( BXDM_QualifiedValue * ) BKNI_Malloc( sizeof ( BXDM_QualifiedValue ) * pXvdDipCh->stDisplayInterruptInfo.uiSTCCount );
+   if ( NULL == pXvdDipCh->stDisplayInterruptInfo.astSTCFromXPT )
+   {
+      BXVD_DisplayInterruptProvider_P_CloseChannel( pXvdDipCh );
+      return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
+   }
+   else
+   {
+      BKNI_Memset( pXvdDipCh->stDisplayInterruptInfo.astSTCFromXPT, 0, sizeof( BXDM_QualifiedValue ) * pXvdDipCh->stDisplayInterruptInfo.uiSTCCount );
+   }
+
    /* TODO: Validate the channel settings */
    pXvdDipCh->stChannelSettings = *pstXvdDipChSettings;
 
@@ -637,6 +725,11 @@ BXVD_DisplayInterruptProvider_P_CloseChannel(
       BXVD_DisplayInterruptProvider_S_TeardownInterrupts( hXvdDipCh );
 
       BKNI_Free( hXvdDipCh->stDisplayInterruptInfo.astSTC );
+
+      /* SWSTB-3955: STC's read directly from XPT. */
+      if ( hXvdDipCh->stDisplayInterruptInfo.astSTCFromXPT )
+         BKNI_Free( hXvdDipCh->stDisplayInterruptInfo.astSTCFromXPT );
+
       BKNI_Free( hXvdDipCh );
    }
 

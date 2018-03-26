@@ -42,15 +42,14 @@
 #include "bsp_types.h"
 #include "bhsm_bsp_msg.h"
 #include "bhsm_otp_msp.h"
+#include "bhsm_otp_priv.h"
 #include "bhsm_p_otpmsp.h"
-#include "bhsm_p_otpmisc.h"
 
 BDBG_MODULE( BHSM );
 
 BERR_Code BHSM_OtpMsp_Write( BHSM_Handle hHsm, BHSM_OtpMspWrite *pParam )
 {
     BHSM_P_OtpMspProg bspParam;
-    BHSM_P_OtpMiscProgPatternSet bspPattern;
     unsigned i;
     BERR_Code rc = BERR_UNKNOWN;
 
@@ -58,17 +57,7 @@ BERR_Code BHSM_OtpMsp_Write( BHSM_Handle hHsm, BHSM_OtpMspWrite *pParam )
 
     if( !pParam ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
-    BKNI_Memset( &bspPattern, 0, sizeof(bspPattern) );
-    bspPattern.in.patternArray[0] = 0xBC32F4AC;
-    bspPattern.in.patternArray[1] = 0xD18616B6;
-    bspPattern.in.patternArray[2] = 0x9FEB4D54;
-    bspPattern.in.patternArray[3] = 0x4A27BF4A;
-    bspPattern.in.patternArray[4] = 0xCF1C3178;
-    bspPattern.in.patternArray[5] = 0xE2DB98A0;
-    bspPattern.in.patternArray[6] = 0x24F64BBA;
-    bspPattern.in.patternArray[7] = 0x7698E712;
-    bspPattern.in.patternArray[8] = 0x0000F48D;
-    rc = BHSM_P_OtpMisc_ProgPatternSet( hHsm, &bspPattern );
+    rc = BHSM_Otp_EnableProgram_priv( hHsm, !BHSM_OTP_CACHE_PROGRAM_REQUEST );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
 
     BKNI_Memset( &bspParam, 0, sizeof(bspParam) );

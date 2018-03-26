@@ -38,7 +38,7 @@
  ******************************************************************************/
 
 /***************************************************************************************
-Interface decription.
+Interface description.
 
 The NEXUS Keyslot API enables the allocation and configuration of a keyslot resource.
 
@@ -157,8 +157,22 @@ typedef enum NEXUS_KeySlotType
     NEXUS_KeySlotType_eIvPerBlock256, /* MEDIUM keyslot. One IV per Block (CPD/CA/CPS). Suitable for most block mode decryption. */
     NEXUS_KeySlotType_eIvPerEntry256, /* LARGE keyslot. One IV per Entry. Required to support a small number of scenarios. */
     NEXUS_KeySlotType_eMulti2,        /* Multi2 keyslot is specially handled by different BSP command. */
+    NEXUS_KeySlotType_eOxford1,
+    NEXUS_KeySlotType_eOxford2,
+    NEXUS_KeySlotType_eOxford3,
     NEXUS_KeySlotType_eMax
 } NEXUS_KeySlotType;
+
+/*
+    Select key slot mode.
+*/
+typedef enum NEXUS_KeySlotKeyMode
+{
+    NEXUS_KeySlotKeyMode_eRegular,         /* The default and most frequently used. */
+    NEXUS_KeySlotKeyMode_eDes56,           /* Generate a 56 bit DES key */
+    NEXUS_KeySlotKeyMode_eDvbConformance,  /* Generate a legacy DVB key. */
+    NEXUS_KeySlotKeyMode_eMax
+} NEXUS_KeySlotKeyMode;
 
 
 typedef struct NEXUS_KeySlotAllocateSettings
@@ -223,7 +237,7 @@ typedef struct NEXUS_KeySlotSettings
 
 } NEXUS_KeySlotSettings;
 
-/* The configuration paramters specific to a key Enrty. */
+/* The configuration parameters specific to a key Enrty. */
 typedef struct NEXUS_KeySlotEntrySettings
 {
     NEXUS_CryptographicAlgorithm algorithm;
@@ -234,6 +248,7 @@ typedef struct NEXUS_KeySlotEntrySettings
     NEXUS_KeySlotTerminationMode terminationMode;       /* Specify how to handle data that is not a multiple of
                                                           * algorithm block size */
     NEXUS_KeySlotTerminationSolitaryMode solitaryMode;   /* Specify how to handle data that is shorter that algorithm block size */
+    NEXUS_KeySlotKeyMode keyMode;                        /* NEXUS_KeySlotKeyMode_eRegular is the default and most frequently used mode. */
 
     struct{                                              /* If either "external" options is set to true an external keyslot is reserved. [Default=false].*/
         bool key;                                        /* If true, allow a key to be set via BTP (broadcom Transport Packet) */
@@ -333,7 +348,7 @@ void  NEXUS_KeySlot_GetSettings(
 
 /*
 Description:
-    Set keyslot configuration. These configuration paramters apply the all keyslot entries..
+    Set keyslot configuration. These configuration parameters apply the all keyslot entries..
 */
 NEXUS_Error NEXUS_KeySlot_SetSettings(
     NEXUS_KeySlotHandle handle,

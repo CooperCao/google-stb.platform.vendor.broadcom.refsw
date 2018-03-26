@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,18 +58,19 @@
 BDBG_MODULE(bape);
 BDBG_FILE_MODULE(bape_algos);
 BDBG_FILE_MODULE(bape_mem);
+BDBG_FILE_MODULE(bape_pll);
 
 BDBG_OBJECT_ID(BAPE_Device);
 BDBG_OBJECT_ID(BAPE_BufferNode);
 
+#if BAPE_CHIP_AIO_SUPPORT
 #if BCHP_PWR_SUPPORT
 static BERR_Code BAPE_P_StandbyAIO(BAPE_Handle handle);
 #endif
 static BERR_Code BAPE_P_ResetAIO(BAPE_Handle handle);
 static BERR_Code BAPE_P_InitFmmSw(BAPE_Handle handle);
 static BERR_Code BAPE_P_InitFmmHw(BAPE_Handle handle);
-static BERR_Code BAPE_P_InitTimers(BAPE_Handle handle);
-static void BAPE_P_DestroyTimers(BAPE_Handle handle);
+#endif
 static unsigned BAPE_P_CalculateBufferSize(const BAPE_Settings * pSettings, unsigned pool, unsigned baseBufferSize);
 static unsigned BAPE_P_GetNumberOfBuffers(const BAPE_Settings * pSettings, unsigned pool);
 
@@ -186,7 +187,7 @@ static unsigned BAPE_P_CalculateBufferSize(
         break;
     }
 
-    BDSP_SIZE_ALIGN(bufferSize);
+    BAPE_SIZE_ALIGN(bufferSize);
 
     return bufferSize;
 }
@@ -240,8 +241,26 @@ static void BAPE_P_BufferNode_Free(BAPE_BufferNode *pNode)
         BMMA_Free(pNode->block);
         pNode->block = NULL;
     }
+    #if BAPE_CHIP_DRAM_BUFFER_MANAGEMENT
+    if ( pNode->bufferInterfaceBlock )
+    {
+        if ( pNode->bufferInterfaceOffset )
+        {
+            BMMA_UnlockOffset(pNode->bufferInterfaceBlock, pNode->bufferInterfaceOffset);
+            pNode->bufferInterfaceOffset = 0;
+        }
+        if ( pNode->pBufferInterface )
+        {
+            BMMA_Unlock(pNode->bufferInterfaceBlock, pNode->pBufferInterface);
+            pNode->pBufferInterface = NULL;
+        }
+        BMMA_Free(pNode->bufferInterfaceBlock);
+        pNode->bufferInterfaceBlock = NULL;
+    }
+    #endif
     BDBG_OBJECT_DESTROY(pNode, BAPE_BufferNode);
     BKNI_Free(pNode);
+    pNode = NULL;
 }
 
 BERR_Code BAPE_Open(
@@ -281,7 +300,7 @@ BERR_Code BAPE_Open(
     if ( NULL == handle )
     {
         errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        goto err_handle;
+        goto err_cleanup;
     }
     /* Initialize structure */
     BKNI_Memset(handle, 0, sizeof(BAPE_Device));
@@ -295,14 +314,21 @@ BERR_Code BAPE_Open(
     handle->dspHandle = dspHandle;
     #else
     BSTD_UNUSED(dspHandle);
+    handle->dspHandle = NULL;
     #endif
     #if BDSP_ARM_AUDIO_SUPPORT
     handle->armHandle = armHandle;
     #else
     BSTD_UNUSED(armHandle);
+    handle->armHandle = NULL;
     #endif
     handle->settings = *pSettings;
     BLST_S_INIT(&handle->mixerList);
+    for ( i = 0; i < BAPE_MAX_BUFFER_POOLS; i++ )
+    {
+        BLST_S_INIT(&handle->buffers[i].freeList);
+        BLST_S_INIT(&handle->buffers[i].allocatedList);
+    }
 
     if ( false == pSettings->rampPcmSamples )
     {
@@ -313,32 +339,45 @@ BERR_Code BAPE_Open(
 #ifdef BCHP_PWR_RESOURCE_AUD_AIO
     BCHP_PWR_AcquireResource(chpHandle, BCHP_PWR_RESOURCE_AUD_AIO);
 #endif
-#ifdef BCHP_PWR_RESOURCE_AUD_PLL0
-    BCHP_PWR_AcquireResource(chpHandle, BCHP_PWR_RESOURCE_AUD_PLL0);
-#endif
-#ifdef BCHP_PWR_RESOURCE_AUD_PLL1
-    BCHP_PWR_AcquireResource(chpHandle, BCHP_PWR_RESOURCE_AUD_PLL1);
-#endif
-#ifdef BCHP_PWR_RESOURCE_AUD_PLL2
-    BCHP_PWR_AcquireResource(chpHandle, BCHP_PWR_RESOURCE_AUD_PLL2);
-#endif
 
+    #if BAPE_CHIP_AIO_SUPPORT
     errCode = BAPE_P_InitFmmSw(handle);
-    if ( errCode )
-    {
-        goto err_fmm;
-    }
+    if ( errCode ) { goto err_cleanup; }
 
     errCode = BAPE_P_InitFmmHw(handle);
-    if ( errCode )
+    if ( errCode ) { goto err_cleanup; }
+    #endif
+
+    #if BAPE_CHIP_MAX_PLLS > 0
+    for ( i = 0; i < BAPE_CHIP_MAX_PLLS; i++ )
     {
-        goto err_fmm;
+        errCode = BAPE_P_PllPower(handle, (BAPE_Pll)i, true);
+        if ( errCode ) { goto err_cleanup; }
     }
+      #if BAPE_CHIP_DYNAMIC_PLL_POWER
+      {
+        i = 0;
+        #if BAPE_CHIP_DSP_REQUIRES_PLL
+        if ( handle->dspHandle )
+        {
+            /* leave Pll0 enabled for the DSP */
+            i = 1;
+        }
+        #endif
+        for ( ; i < BAPE_CHIP_MAX_PLLS; i++ )
+        {
+            /* we have to turn the PLLs OFF here if dynamic support is requested */
+            errCode = BAPE_P_PllPower(handle, (BAPE_Pll)i, false);
+            if ( errCode ) { goto err_cleanup; }
+        }
+      }
+      #endif
+    #endif
 
     errCode = BAPE_P_InitInterrupts(handle);
     if ( errCode )
     {
-        goto err_interrupt;
+        goto err_cleanup;
     }
 
     /* Buffer Allocations */
@@ -355,8 +394,6 @@ BERR_Code BAPE_Open(
         {
             BAPE_DataSource_eDspBuffer, BAPE_DataSource_eHostBuffer, BAPE_DataSource_eDfifo, BAPE_DataSource_eFci, BAPE_DataSource_eMax
         };
-        BLST_S_INIT(&handle->buffers[i].freeList);
-        BLST_S_INIT(&handle->buffers[i].allocatedList);
         BAPE_FMT_P_InitCapabilities(&handle->buffers[i].capabilities, validSources, &validTypes[i][0]);
         bufferSize = BAPE_P_CalculateBufferSize(pSettings, i, BAPE_P_COMPUTE_RBUF_SIZE(pSettings->maxIndependentDelay));
         numBuffers = BAPE_P_GetNumberOfBuffers(pSettings, i);
@@ -375,28 +412,57 @@ BERR_Code BAPE_Open(
             if ( NULL == pNode )
             {
                 errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-                goto err_buffer;
+                goto err_cleanup;
             }
-            pNode->block = BMMA_Alloc(memHandle, bufferSize, BDSP_ADDRESS_ALIGN, NULL);
+            #if BAPE_CHIP_DRAM_BUFFER_MANAGEMENT
+            {
+                unsigned allocSize;
+                /* Allocate buffer interface */
+                allocSize = sizeof(BAPE_BufferInterface);
+                BAPE_SIZE_ALIGN(allocSize);
+                pNode->bufferInterfaceBlock = BMMA_Alloc(memHandle, allocSize, BAPE_ADDRESS_ALIGN, NULL);
+                if ( NULL == pNode->bufferInterfaceBlock )
+                {
+                    errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+                    BAPE_P_BufferNode_Free(pNode);
+                    goto err_cleanup;
+                }
+                pNode->pBufferInterface = BMMA_Lock(pNode->bufferInterfaceBlock);
+                if ( NULL == pNode->pBufferInterface )
+                {
+                    errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+                    BAPE_P_BufferNode_Free(pNode);
+                    goto err_cleanup;
+                }
+                pNode->bufferInterfaceOffset = BMMA_LockOffset(pNode->bufferInterfaceBlock);
+                if ( 0 == pNode->bufferInterfaceOffset )
+                {
+                    errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+                    BAPE_P_BufferNode_Free(pNode);
+                    goto err_cleanup;
+                }
+            }
+            #endif
+            pNode->block = BMMA_Alloc(memHandle, bufferSize, BAPE_ADDRESS_ALIGN, NULL);
             if ( NULL == pNode->block )
             {
                 errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
                 BAPE_P_BufferNode_Free(pNode);
-                goto err_buffer;
+                goto err_cleanup;
             }
             pNode->pMemory = BMMA_Lock(pNode->block);
             if ( NULL == pNode->pMemory )
             {
                 errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
                 BAPE_P_BufferNode_Free(pNode);
-                goto err_buffer;
+                goto err_cleanup;
             }
             pNode->offset = BMMA_LockOffset(pNode->block);
             if ( 0 == pNode->offset )
             {
                 errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
                 BAPE_P_BufferNode_Free(pNode);
-                goto err_buffer;
+                goto err_cleanup;
             }
             BDBG_OBJECT_SET(pNode, BAPE_BufferNode);
             BDBG_MSG(("Created Buffer Node %p in pool %u", (void *)pNode, i));
@@ -426,7 +492,7 @@ BERR_Code BAPE_Open(
         if ( errCode )
         {
             (void)BERR_TRACE(errCode);
-            goto err_context;
+            goto err_cleanup;
         }
 
         #if BDBG_DEBUG_BUILD
@@ -488,7 +554,7 @@ BERR_Code BAPE_Open(
         if ( errCode )
         {
             (void)BERR_TRACE(errCode);
-            goto err_arm_context;
+            goto err_cleanup;
         }
 
         #if BDBG_DEBUG_BUILD
@@ -534,16 +600,6 @@ BERR_Code BAPE_Open(
     #endif
 #endif
 
-
-#if BAPE_CHIP_MAX_PLLS > 0 || BAPE_CHIP_MAX_NCOS > 0
-    errCode = BAPE_P_InitTimers(handle);
-    if ( errCode )
-    {
-        (void)BERR_TRACE(errCode);
-        goto err_timer;
-    }
-#endif
-
     handle->bStandby = false;
 
     /* Success */
@@ -551,58 +607,39 @@ BERR_Code BAPE_Open(
 
     return BERR_SUCCESS;
 
-#if BAPE_CHIP_MAX_PLLS > 0 || BAPE_CHIP_MAX_NCOS > 0
-err_timer:
-    BAPE_P_DestroyTimers(handle);
-#endif
-#if BAPE_DSP_SUPPORT
-#if BDSP_ARM_AUDIO_SUPPORT
-    if ( handle->armContext )
+err_cleanup:
+    if ( handle )
     {
-        BDSP_Context_Destroy(handle->armContext);
-        handle->armContext = NULL;
-    }
-err_arm_context:
-#endif
-#if BDSP_RAAGA_AUDIO_SUPPORT
-    if ( handle->dspContext )
-    {
-        BDSP_Context_Destroy(handle->dspContext);
-        handle->dspContext = NULL;
-    }
-err_context:
-#endif
-#endif
-err_buffer:
-    /* Remove and free all buffers and nodes */
-    for ( i = 0; i < BAPE_MAX_BUFFER_POOLS; i++ )
-    {
-        while ( (pNode = BLST_S_FIRST(&handle->buffers[i].freeList)) )
+        #if BAPE_DSP_SUPPORT
+        #if BDSP_RAAGA_AUDIO_SUPPORT
+        if ( handle->dspContext )
         {
-            BLST_S_REMOVE_HEAD(&handle->buffers[i].freeList, node);
-            BAPE_P_BufferNode_Free(pNode);
+            BDSP_Context_Destroy(handle->dspContext);
+            handle->dspContext = NULL;
         }
+        #endif
+        #endif
+
+        /* Remove and free all buffers and nodes */
+        for ( i = 0; i < BAPE_MAX_BUFFER_POOLS; i++ )
+        {
+            while ( (pNode = BLST_S_FIRST(&handle->buffers[i].freeList)) )
+            {
+                BLST_S_REMOVE_HEAD(&handle->buffers[i].freeList, node);
+                BAPE_P_BufferNode_Free(pNode);
+            }
+        }
+        BAPE_P_UninitInterrupts(handle);
+        BDBG_OBJECT_DESTROY(handle, BAPE_Device);
+        BKNI_Free(handle);
+        handle = NULL;
+
+        #ifdef BCHP_PWR_RESOURCE_AUD_AIO
+        BCHP_PWR_ReleaseResource(chpHandle, BCHP_PWR_RESOURCE_AUD_AIO);
+        #endif
     }
-    BAPE_P_UninitInterrupts(handle);
-err_interrupt:
-err_fmm:
-    BDBG_OBJECT_DESTROY(handle, BAPE_Device);
-    BKNI_Free(handle);
-err_handle:
     *pHandle = NULL;
 
-#ifdef BCHP_PWR_RESOURCE_AUD_PLL0
-    BCHP_PWR_ReleaseResource(chpHandle, BCHP_PWR_RESOURCE_AUD_PLL0);
-#endif
-#ifdef BCHP_PWR_RESOURCE_AUD_PLL1
-    BCHP_PWR_ReleaseResource(chpHandle, BCHP_PWR_RESOURCE_AUD_PLL1);
-#endif
-#ifdef BCHP_PWR_RESOURCE_AUD_PLL2
-    BCHP_PWR_ReleaseResource(chpHandle, BCHP_PWR_RESOURCE_AUD_PLL2);
-#endif
-#ifdef BCHP_PWR_RESOURCE_AUD_AIO
-    BCHP_PWR_ReleaseResource(chpHandle, BCHP_PWR_RESOURCE_AUD_AIO);
-#endif
     return errCode;
 }
 
@@ -835,11 +872,13 @@ void BAPE_Close(
         handle->armContext = NULL;
     }
 #endif
+#if BDSP_RAAGA_AUDIO_SUPPORT
     if ( handle->dspContext )
     {
         BDSP_Context_Destroy(handle->dspContext);
         handle->dspContext = NULL;
     }
+#endif
 #endif
 
 #if BDBG_DEBUG_BUILD
@@ -877,10 +916,6 @@ void BAPE_Close(
     BDBG_MODULE_MSG(bape_mem, ("*** ---------------------------------------- ***"));
 #endif
 
-#if BAPE_CHIP_MAX_PLLS > 0 || BAPE_CHIP_MAX_NCOS > 0
-    BAPE_P_DestroyTimers(handle);
-#endif
-
     for ( i = 0; i < BAPE_MAX_BUFFER_POOLS; i++ )
     {
         while ( (pNode = BLST_S_FIRST(&handle->buffers[i].freeList)) )
@@ -897,21 +932,26 @@ void BAPE_Close(
         }
     }
 
+    #if BAPE_CHIP_AIO_SUPPORT
     BAPE_P_UninitIopSw(handle);
     BAPE_P_UninitSrcSw(handle);
     BAPE_P_UninitDpSw(handle);
     BAPE_P_UninitBfSw(handle);
+    #endif
     BAPE_P_UninitInterrupts(handle);
 
-#ifdef BCHP_PWR_RESOURCE_AUD_PLL0
-    BCHP_PWR_ReleaseResource(handle->chpHandle, BCHP_PWR_RESOURCE_AUD_PLL0);
-#endif
-#ifdef BCHP_PWR_RESOURCE_AUD_PLL1
-    BCHP_PWR_ReleaseResource(handle->chpHandle, BCHP_PWR_RESOURCE_AUD_PLL1);
-#endif
-#ifdef BCHP_PWR_RESOURCE_AUD_PLL2
-    BCHP_PWR_ReleaseResource(handle->chpHandle, BCHP_PWR_RESOURCE_AUD_PLL2);
-#endif
+    #if BAPE_CHIP_MAX_PLLS > 0
+    {
+        BERR_Code errCode;
+        unsigned i;
+        for ( i = 0; i < BAPE_CHIP_MAX_PLLS; i++ )
+        {
+            errCode = BAPE_P_PllPower(handle, (BAPE_Pll)i, false);
+            if ( errCode ) { BDBG_ERR(("Unable to close audio pll %d", (int)i)); BERR_TRACE(errCode); }
+        }
+    }
+    #endif
+
 #ifdef BCHP_PWR_RESOURCE_AUD_AIO
     BCHP_PWR_ReleaseResource(handle->chpHandle, BCHP_PWR_RESOURCE_AUD_AIO);
 #endif
@@ -978,8 +1018,8 @@ unsigned BAPE_P_GetProfessionalSampleRateCstatCode_isr(unsigned sampleRate)
     }
 }
 
+#if BAPE_CHIP_AIO_SUPPORT
 /**************************************************************************/
-
 static BERR_Code BAPE_P_InitFmmSw(BAPE_Handle handle)
 {
     BERR_Code errCode;
@@ -1173,58 +1213,7 @@ static BERR_Code BAPE_P_InitFmmHw(BAPE_Handle handle)
 
     return BERR_SUCCESS;
 }
-
-static BERR_Code BAPE_P_InitTimers(BAPE_Handle handle)
-{
-    BTMR_TimerSettings timerSettings;
-    int i;
-    BERR_Code errCode;
-
-    #if BAPE_CHIP_MAX_PLLS > 0
-    for(i = 0; i < BAPE_CHIP_MAX_PLLS; i++) {
-        BTMR_GetDefaultTimerSettings(&timerSettings);
-        timerSettings.type = BTMR_Type_eCountDown;
-        timerSettings.cb_isr = BAPE_P_VerifyPllCallback_isr;
-        timerSettings.pParm1 = (void *)handle;
-        timerSettings.parm2 = i;
-        errCode = BTMR_CreateTimer(handle->tmrHandle, &handle->pllTimer[i], &timerSettings);
-        if ( errCode ) return BERR_TRACE(errCode);
-    }
-    #endif
-    #if BAPE_CHIP_MAX_NCOS > 0
-    for(i = 0; i < BAPE_CHIP_MAX_NCOS; i++) {
-        BTMR_GetDefaultTimerSettings(&timerSettings);
-        timerSettings.type = BTMR_Type_eCountDown;
-        timerSettings.cb_isr = BAPE_P_VerifyNcoCallback_isr;
-        timerSettings.pParm1 = (void *)handle;
-        timerSettings.parm2 = i;
-        errCode = BTMR_CreateTimer(handle->tmrHandle, &handle->ncoTimer[i], &timerSettings);
-        if ( errCode ) return BERR_TRACE(errCode);
-    }
-    #endif
-   return BERR_SUCCESS;
-}
-static void BAPE_P_DestroyTimers(BAPE_Handle handle)
-{
-    int i;
-    #if BAPE_CHIP_MAX_PLLS > 0
-    for(i = 0; i < BAPE_CHIP_MAX_PLLS; i++) {
-        if (handle->pllTimer[i] != NULL) {
-            BTMR_DestroyTimer (handle->pllTimer[i]);
-            handle->pllTimer[i] = NULL;
-        }
-    }
-    #endif
-    #if BAPE_CHIP_MAX_NCOS > 0
-    for(i = 0; i < BAPE_CHIP_MAX_NCOS; i++) {
-        if (handle->ncoTimer[i] != NULL) {
-            BTMR_DestroyTimer (handle->ncoTimer[i]);
-            handle->ncoTimer[i] = NULL;
-        }
-    }
-    #endif
-}
-
+#endif
 
 void BAPE_GetInterruptHandlers(
     BAPE_Handle handle,
@@ -1277,10 +1266,12 @@ BERR_Code BAPE_ProcessWatchdogInterruptStop(
     if ( handle->dspContext || handle->armContext )
     {
         BERR_Code errCode;
-        unsigned i, numFound;
+        int i;
+        unsigned numFound;
         BAPE_PathNode *pNode;
         BAPE_MixerHandle hMixer;
 
+        #if BAPE_CHIP_MAX_DECODERS > 0
         /* Stop all running decoders */
         for ( i = 0; i < BAPE_CHIP_MAX_DECODERS; i++ )
         {
@@ -1298,6 +1289,8 @@ BERR_Code BAPE_ProcessWatchdogInterruptStop(
                 handle->decoderWatchdogInfo[i].state = BAPE_DecoderState_eMax;
             }
         }
+        #endif
+        #if BAPE_CHIP_MAX_PLAYBACKS > 0
         /* If we have playback/inputcapture feeding DSP mixer, we need to stop that as well */
         for ( i = 0; i < BAPE_CHIP_MAX_PLAYBACKS; i++)
         {
@@ -1312,6 +1305,8 @@ BERR_Code BAPE_ProcessWatchdogInterruptStop(
                 }
             }
         }
+        #endif
+        #if BAPE_CHIP_MAX_INPUT_CAPTURES > 0
         for ( i = 0; i < BAPE_CHIP_MAX_INPUT_CAPTURES; i++)
         {
             if ( handle->inputCaptures[i] && handle->inputCaptures[i]->running )
@@ -1325,6 +1320,7 @@ BERR_Code BAPE_ProcessWatchdogInterruptStop(
                 }
             }
         }
+        #endif
         /* If we have any explicitly started DSP mixers, stop them now */
         for ( hMixer = BLST_S_FIRST(&handle->mixerList);
               hMixer != NULL;
@@ -1390,6 +1386,7 @@ BERR_Code BAPE_ProcessWatchdogInterruptResume(
                 }
             }
         }
+        #if BAPE_CHIP_MAX_PLAYBACKS > 0
         /* If we have playback/inputcapture feeding DSP mixer, we need to stop that as well */
         for ( i = 0; i < BAPE_CHIP_MAX_PLAYBACKS; i++)
         {
@@ -1403,6 +1400,8 @@ BERR_Code BAPE_ProcessWatchdogInterruptResume(
                 }
             }
         }
+        #endif
+        #if BAPE_CHIP_MAX_INPUT_CAPTURES > 0
         for ( i = 0; i < BAPE_CHIP_MAX_INPUT_CAPTURES; i++)
         {
             if ( handle->inputCaptureWatchdogInfo[i].restartRequired )
@@ -1415,6 +1414,8 @@ BERR_Code BAPE_ProcessWatchdogInterruptResume(
                 }
             }
         }
+        #endif
+        #if BAPE_CHIP_MAX_DECODERS > 0
         /* Reset all decoder state */
         for ( i = 0; i < BAPE_CHIP_MAX_DECODERS; i++ )
         {
@@ -1442,12 +1443,14 @@ BERR_Code BAPE_ProcessWatchdogInterruptResume(
                 }
             }
         }
+        #endif
     }
 #endif
 
     return BERR_SUCCESS;
 }
 
+#if BAPE_CHIP_AIO_SUPPORT
 static BERR_Code BAPE_P_ResetAIO(BAPE_Handle handle)
 {
     #ifdef BCHP_SUN_TOP_CTRL_SW_RESET
@@ -1547,10 +1550,7 @@ static BERR_Code BAPE_P_StandbyFmmHw(BAPE_Handle handle)
 
     return BERR_SUCCESS;
 }
-#endif /* BCHP_PWR_SUPPORT*/
 
-
-#ifdef BCHP_PWR_SUPPORT
 static BERR_Code BAPE_P_ResumeFmmHw(BAPE_Handle handle)
 {
     BERR_Code errCode;
@@ -1605,20 +1605,20 @@ static BERR_Code BAPE_P_ResumeFmmHw(BAPE_Handle handle)
 
     return BERR_SUCCESS;
 }
-#endif /* BCHP_PWR_SUPPORT*/
+#endif /* BCHP_PWR_SUPPORT */
+#endif /* BAPE_CHIP_AIO_SUPPORT */
 
 BERR_Code BAPE_Standby(
     BAPE_Handle handle,                 /* [in] AP device handle */
     BAPE_StandbySettings *pSettings     /* [in] standby settings */
 )
 {
-#ifdef BCHP_PWR_SUPPORT
     unsigned i;
-#endif
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Device);
 
     BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(i);
 
 #ifdef BCHP_PWR_SUPPORT
     /* check that all channels have been stopped */
@@ -1652,9 +1652,6 @@ BERR_Code BAPE_Standby(
         }
     }
 #endif
-#if BAPE_CHIP_MAX_PLLS > 0 || BAPE_CHIP_MAX_NCOS > 0
-    BAPE_P_DestroyTimers(handle);
-#endif
 
     /* if we reach here, then no channels are active. we can power down */
     if (!handle->bStandby)
@@ -1663,19 +1660,25 @@ BERR_Code BAPE_Standby(
 
         handle->bStandby = true;
 
+        #if BAPE_CHIP_AIO_SUPPORT
         /* Prepare to go into standby. */
         errCode = BAPE_P_StandbyFmmHw(handle);
         if ( errCode ) return BERR_TRACE(errCode);
+        #else
+        BSTD_UNUSED(errCode);
+        #endif
 
-#ifdef BCHP_PWR_RESOURCE_AUD_PLL0
-        BCHP_PWR_ReleaseResource(handle->chpHandle, BCHP_PWR_RESOURCE_AUD_PLL0);
-#endif
-#ifdef BCHP_PWR_RESOURCE_AUD_PLL1
-        BCHP_PWR_ReleaseResource(handle->chpHandle, BCHP_PWR_RESOURCE_AUD_PLL1);
-#endif
-#ifdef BCHP_PWR_RESOURCE_AUD_PLL2
-        BCHP_PWR_ReleaseResource(handle->chpHandle, BCHP_PWR_RESOURCE_AUD_PLL2);
-#endif
+        #if BAPE_CHIP_MAX_PLLS > 0
+        for ( i = 0; i < BAPE_CHIP_MAX_PLLS; i++ )
+        {
+            if ( handle->pllState[i] == BAPE_ResourceState_eAcquired )
+            {
+                errCode = BAPE_P_PllPower(handle, (BAPE_Pll)i, false);
+                if ( errCode ) { BDBG_ERR(("Unable to standby audio pll %d", (int)i)); BERR_TRACE(errCode); }
+            }
+        }
+        #endif
+
 #ifdef BCHP_PWR_RESOURCE_AUD_AIO
         BCHP_PWR_ReleaseResource(handle->chpHandle, BCHP_PWR_RESOURCE_AUD_AIO);
 #endif
@@ -1699,36 +1702,45 @@ BERR_Code BAPE_Resume(
 #ifdef BCHP_PWR_RESOURCE_AUD_AIO
         BCHP_PWR_AcquireResource(handle->chpHandle, BCHP_PWR_RESOURCE_AUD_AIO);
 #endif
-#ifdef BCHP_PWR_RESOURCE_AUD_PLL0
-        BCHP_PWR_AcquireResource(handle->chpHandle, BCHP_PWR_RESOURCE_AUD_PLL0);
-#endif
-#ifdef BCHP_PWR_RESOURCE_AUD_PLL1
-        BCHP_PWR_AcquireResource(handle->chpHandle, BCHP_PWR_RESOURCE_AUD_PLL1);
-#endif
-#ifdef BCHP_PWR_RESOURCE_AUD_PLL2
-        BCHP_PWR_AcquireResource(handle->chpHandle, BCHP_PWR_RESOURCE_AUD_PLL2);
-#endif
 
         {
+            int i;
             BERR_Code   errCode;
+
+            BSTD_UNUSED(i);
 
             /* Put the FMM hardware into the "initial" state... the state that
              * BAPE_Open() leaves things in.
              */
+            #if BAPE_CHIP_AIO_SUPPORT
             errCode = BAPE_P_InitFmmHw(handle);
             if ( errCode ) return BERR_TRACE(errCode);
+            #endif
 
             /* Recreate and enable the APE global interrupts. */
             errCode = BAPE_P_InitInterrupts(handle);
             if ( errCode ) return BERR_TRACE(errCode);
 
+            #if BAPE_CHIP_MAX_PLLS > 0
+            for ( i = 0; i < BAPE_CHIP_MAX_PLLS; i++ )
+            {
+                errCode = BAPE_P_PllPower(handle, (BAPE_Pll)i, true);
+                if ( errCode ) { BDBG_ERR(("Unable to resume audio pll %d", (int)i)); BERR_TRACE(errCode); }
+
+                if ( BLST_S_EMPTY(&handle->audioPlls[i].inputList) &&
+                     BLST_S_EMPTY(&handle->audioPlls[i].mixerList) )
+                {
+                    errCode = BAPE_P_PllPower(handle, (BAPE_Pll)i, false);
+                    if ( errCode ) { BDBG_ERR(("Unable to power off audio pll %d", (int)i)); BERR_TRACE(errCode); }
+                }
+            }
+            #endif
+
+            #if BAPE_CHIP_AIO_SUPPORT
             /* Now bring inputs and outputs into their "open" (but "unstarted") state. */
             errCode = BAPE_P_ResumeFmmHw(handle);
             if ( errCode ) return BERR_TRACE(errCode);
-#if BAPE_CHIP_MAX_PLLS > 0 || BAPE_CHIP_MAX_NCOS > 0
-            errCode = BAPE_P_InitTimers(handle);
-            if ( errCode ) return BERR_TRACE(errCode);
-#endif
+            #endif
         }
     }
 #endif
@@ -1789,8 +1801,14 @@ void BAPE_GetCapabilities(
     pCaps->numOutputs.spdif = BAPE_CHIP_MAX_SPDIF_OUTPUTS;
     #endif
 
-    #ifdef BAPE_CHIP_MAX_MIXERS
-    pCaps->numMixers = BAPE_CHIP_MAX_MIXERS;
+    #ifdef BAPE_CHIP_MAX_HW_MIXERS
+    pCaps->numHwMixers = BAPE_CHIP_MAX_HW_MIXERS;
+    #endif
+    #ifdef BAPE_CHIP_MAX_DSP_MIXERS
+    pCaps->numDspMixers = BAPE_CHIP_MAX_DSP_MIXERS;
+    #endif
+    #ifdef BAPE_CHIP_MAX_BYPASS_MIXERS
+    pCaps->numBypassMixers = BAPE_CHIP_MAX_BYPASS_MIXERS;
     #endif
     #ifdef BAPE_CHIP_MAX_DECODERS
     pCaps->numDecoders = BAPE_CHIP_MAX_DECODERS;
@@ -2014,6 +2032,214 @@ BERR_Code BAPE_SetLoudnessMode(
     BDBG_ASSERT(NULL != pSettings);
     hApe->settings.loudnessSettings = *pSettings;
     return BERR_SUCCESS;
+}
+
+/***************************************************************************
+Summary:
+Register a Callback for an event. Multiple clients per event are allowed.
+***************************************************************************/
+BERR_Code BAPE_RegisterCallback(
+    BAPE_Handle hApe,
+    BAPE_CallbackEvent event,
+    BAPE_CallbackHandler *pCallback
+    )
+{
+    int i;
+
+    BDBG_OBJECT_ASSERT(hApe, BAPE_Device);
+
+    if ( event >= BAPE_CallbackEvent_eMax )
+    {
+        BDBG_ERR(("event must be valid"));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    if ( pCallback ==  NULL )
+    {
+        BDBG_ERR(("pCallback must be valid"));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    if ( pCallback->pContext == NULL )
+    {
+        BDBG_ERR(("pContext must be valid"));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    /* make sure we aren't already registered */
+    for ( i = 0; i < BAPE_MAX_CALLBACKCLIENTS; i++ )
+    {
+        if ( hApe->callbacks[event].client[i].pContext == pCallback->pContext )
+        {
+            BKNI_EnterCriticalSection();
+            hApe->callbacks[event].client[i] = *pCallback;
+            BKNI_LeaveCriticalSection();
+            return BERR_SUCCESS;
+        }
+    }
+
+    /* register new client */
+    for ( i = 0; i < BAPE_MAX_CALLBACKCLIENTS; i++ )
+    {
+        if ( hApe->callbacks[event].client[i].pContext == NULL )
+        {
+            BKNI_EnterCriticalSection();
+            hApe->callbacks[event].client[i] = *pCallback;
+            BKNI_LeaveCriticalSection();
+            return BERR_SUCCESS;
+        }
+    }
+
+    BDBG_ERR(("Unable to find a free slot for this client"));
+    return BERR_TRACE(BERR_NOT_AVAILABLE);
+}
+
+/***************************************************************************
+Summary:
+Un-Register a Callback for an event.
+***************************************************************************/
+void BAPE_UnRegisterCallback(
+    BAPE_Handle hApe,
+    BAPE_CallbackEvent event,
+    void *pContext
+    )
+{
+    int i;
+
+    BDBG_OBJECT_ASSERT(hApe, BAPE_Device);
+
+    if ( event >= BAPE_CallbackEvent_eMax )
+    {
+        BDBG_ERR(("event must be valid"));
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        return;
+    }
+    if ( pContext ==  NULL )
+    {
+        BDBG_ERR(("pContext must be valid"));
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        return;
+    }
+
+    /* search the whole array in case there are duplicate entries
+       (although this should be impossible) */
+    for ( i = 0; i < BAPE_MAX_CALLBACKCLIENTS; i++ )
+    {
+        if ( hApe->callbacks[event].client[i].pContext == pContext )
+        {
+            BKNI_EnterCriticalSection();
+            BKNI_Memset(&(hApe->callbacks[event].client[i]), 0, sizeof(BAPE_CallbackHandler));
+            BKNI_LeaveCriticalSection();
+        }
+    }
+}
+
+void BAPE_ProcessPllVerifyCallback(
+    BAPE_Handle hApe
+    )
+{
+    int i;
+
+    BSTD_UNUSED(hApe);
+    BSTD_UNUSED(i);
+
+    #if BAPE_CHIP_MAX_PLLS > 0
+    BDBG_OBJECT_ASSERT(hApe, BAPE_Device);
+
+    BDBG_MODULE_MSG(bape_pll, ("Pll Verify Callback received"));
+    for ( i = 0; i < BAPE_CHIP_MAX_PLLS; i++ )
+    {
+        #if BDBG_DEBUG_BUILD && BAPE_CHIP_TIME_PLL_VERIFY
+        uint64_t duration;
+        bool stateChange = false;
+        #endif
+
+        if ( hApe->pllVerify[i] )
+        {
+            BKNI_Sleep(BAPE_CHIP_CLOCK_VERIFY_TIMEOUT); /* delay n ms to make sure conflicts are resolved */
+            BDBG_MODULE_MSG(bape_pll, ("Verifying no conflicts for PLL %d", i));
+            BAPE_P_VerifyPll(hApe, (BAPE_Pll)i);
+            hApe->pllVerify[i] = false;
+            #if BDBG_DEBUG_BUILD && BAPE_CHIP_TIME_PLL_VERIFY
+            stateChange = true;
+            #endif
+        }
+
+        #if BDBG_DEBUG_BUILD && BAPE_CHIP_TIME_PLL_VERIFY
+        if ( stateChange )
+        {
+            duration = bape_get_time() - hApe->pllVerifyTime[i];
+            hApe->pllVerifyTime[i] = 0;
+            BDBG_ERR(("It took %d us complete verification on Pll %d", (int)duration, i));
+        }
+        #endif
+    }
+    #endif
+}
+
+void BAPE_ProcessNcoVerifyCallback(
+    BAPE_Handle hApe
+    )
+{
+    int i;
+
+    BSTD_UNUSED(hApe);
+    BSTD_UNUSED(i);
+
+    #if BAPE_CHIP_MAX_NCOS > 0
+    BDBG_OBJECT_ASSERT(hApe, BAPE_Device);
+
+    BDBG_MODULE_MSG(bape_pll, ("Nco Verify Callback received"));
+    for ( i = 0; i < BAPE_CHIP_MAX_NCOS; i++ )
+    {
+        #if BDBG_DEBUG_BUILD && BAPE_CHIP_TIME_PLL_VERIFY
+        uint64_t duration;
+        bool stateChange = false;
+        #endif
+
+        if ( hApe->ncoVerify[i] )
+        {
+            BKNI_Sleep(BAPE_CHIP_CLOCK_VERIFY_TIMEOUT); /* delay n ms to make sure conflicts are resolved */
+            BDBG_MODULE_MSG(bape_pll, ("Verifying no conflicts for NCO %d", i));
+            BAPE_P_VerifyNco(hApe, (BAPE_Nco)i);
+            hApe->ncoVerify[i] = false;
+            #if BDBG_DEBUG_BUILD && BAPE_CHIP_TIME_PLL_VERIFY
+            stateChange = true;
+            #endif
+        }
+
+        #if BDBG_DEBUG_BUILD && BAPE_CHIP_TIME_PLL_VERIFY
+        if ( stateChange )
+        {
+            duration = bape_get_time() - hApe->ncoVerifyTime[i];
+            hApe->ncoVerifyTime[i] = 0;
+            BDBG_ERR(("It took %d us complete verification on NCO %d", (int)duration, i));
+        }
+        #endif
+    }
+    #endif
+}
+
+void BAPE_P_HandleCallbackEvent_isrsafe(
+    BAPE_Handle handle,
+    BAPE_CallbackEvent event,
+    int eventParam
+    )
+{
+    int i;
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_Device);
+
+    for ( i = 0; i < BAPE_MAX_CALLBACKCLIENTS; i++ )
+    {
+        if ( handle->callbacks[event].client[i].pContext != NULL &&
+             handle->callbacks[event].client[i].pCallback_isrsafe != NULL )
+        {
+            (void)handle->callbacks[event].client[i].pCallback_isrsafe(
+                handle->callbacks[event].client[i].pContext,
+                handle->callbacks[event].client[i].pParam,
+                handle->callbacks[event].client[i].iParam,
+                eventParam);
+        }
+    }
 }
 
 #if BAPE_DSP_SUPPORT

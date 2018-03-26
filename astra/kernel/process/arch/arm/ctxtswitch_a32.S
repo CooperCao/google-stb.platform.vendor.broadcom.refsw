@@ -50,8 +50,10 @@ contextSwitch:
     cmp r1, #1
     bne 2b
 #endif
+    mov r2, r1
+    bl restore_neonregs
 
-    mov r0, r1
+    mov r0, r2
     ldr r1, [r0, #4]
     ldr r2, [r0, #8]
     ldr r3, [r0, #12]

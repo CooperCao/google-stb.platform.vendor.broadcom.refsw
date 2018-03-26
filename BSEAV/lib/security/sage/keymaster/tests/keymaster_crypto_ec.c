@@ -86,150 +86,150 @@ static BERR_Code km_crypto_ec_sign_verify_test(KeymasterTl_Handle handle)
         EXPECT_SUCCESS(KM_Tag_NewContext(&begin_params));
 
         settings.begin_params = begin_params;
-        TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
+        TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
 
         switch (i) {
         case 0:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 224));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             comment = "EC 224 NONE";
             data_size = 224 / 8;
             break;
         case 1:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 224));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "EC 224 SHA256";
             data_size = 1024;
             break;
         case 2:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 224));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_384);
             comment = "EC 224 SHA384";
             data_size = 1024;
             break;
         case 3:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 224));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             comment = "EC 224 NONE, large data";
             data_size = 64 * 1024;
             break;
         case 4:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 224));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
             comment = "EC 224 SHA1";
             data_size = 1024;
             break;
         case 5:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 224));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_224);
             comment = "EC 224 SHA224";
             data_size = 1024;
             break;
         case 6:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 224));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "EC 224 SHA256";
             data_size = 1024;
             break;
         case 7:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 224));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_384);
             comment = "EC 224 SHA384";
             data_size = 1024;
             break;
         case 8:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 224));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_512);
             comment = "EC 224 SHA512";
             data_size = 1024;
             break;
         case 9:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 256));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
             comment = "EC 256 SHA1";
             data_size = 1024;
             break;
         case 10:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 256));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_224);
             comment = "EC 256 SHA224";
             data_size = 1024;
             break;
         case 11:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 256));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "EC 256 SHA256";
             data_size = 1024;
             break;
         case 12:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 256));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_384);
             comment = "EC 256 SHA384";
             data_size = 1024;
             break;
         case 13:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 256));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_512);
             comment = "EC 256 SHA512";
             data_size = 1024;
             break;
         case 14:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 384));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
             comment = "EC 384 SHA1";
             data_size = 1024;
             break;
         case 15:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 384));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_224);
             comment = "EC 384 SHA224";
             data_size = 1024;
             break;
         case 16:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 384));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "EC 384 SHA256";
             data_size = 1024;
             break;
         case 17:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 384));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_384);
             comment = "EC 384 SHA384";
             data_size = 1024;
             break;
         case 18:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 384));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_512);
             comment = "EC 384 SHA512";
             data_size = 1024;
             break;
         case 19:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 521));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
             comment = "EC 521 SHA1";
             data_size = 1024;
             break;
         case 20:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 521));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_224);
             comment = "EC 521 SHA224";
             data_size = 1024;
             break;
         case 21:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 521));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "EC 521 SHA256";
             data_size = 1024;
             break;
         case 22:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 521));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_384);
             comment = "EC 521 SHA384";
             data_size = 1024;
             break;
         case 23:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 521));
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_512);
             comment = "EC 521 SHA512";
             data_size = 1024;
             break;
@@ -252,7 +252,7 @@ static BERR_Code km_crypto_ec_sign_verify_test(KeymasterTl_Handle handle)
         settings.in_data = in_data;
         settings.out_data = out_data;
 
-        EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_SIGN, &settings));
+        EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_SIGN, &settings));
 
         if (settings.out_data.size == 0) {
             BDBG_ERR(("NO SIGNATURE GENERATED FAILED: %s", comment));
@@ -265,14 +265,14 @@ static BERR_Code km_crypto_ec_sign_verify_test(KeymasterTl_Handle handle)
         settings.out_data.size = 0;
         settings.signature_data = signature_data;
 
-        EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_VERIFY, &settings));
+        EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_VERIFY, &settings));
 
         settings.signature_data.buffer[0]++;
-        EXPECT_FAILURE_CODE(KM_Crypto_Operation(KM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
+        EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
 
         settings.signature_data.buffer[0]--;
         settings.in_data.buffer[0]++;
-        EXPECT_FAILURE_CODE(KM_Crypto_Operation(KM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
+        EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
 
         BDBG_LOG(("%s: %s success", BSTD_FUNCTION, comment));
 
@@ -319,28 +319,28 @@ static BERR_Code km_crypto_ec_generate_fails(KeymasterTl_Handle handle)
             break;
         case 1:
             EXPECT_SUCCESS(KM_Tag_NewContext(&key_params));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_ALGORITHM, KM_ALGORITHM_EC);
-            TEST_TAG_ADD_INTEGER(key_params, KM_TAG_KEY_SIZE, 190);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_SIGN);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_VERIFY);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_MD5);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
-            TEST_TAG_ADD_BOOL(key_params, KM_TAG_ALL_USERS, true);
-            TEST_TAG_ADD_BOOL(key_params, KM_TAG_NO_AUTH_REQUIRED, true);
-            TEST_TAG_ADD_BOOL(key_params, KM_TAG_ALL_APPLICATIONS, true);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_ALGORITHM, SKM_ALGORITHM_EC);
+            TEST_TAG_ADD_INTEGER(key_params, SKM_TAG_KEY_SIZE, 190);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_PURPOSE, SKM_PURPOSE_SIGN);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_PURPOSE, SKM_PURPOSE_VERIFY);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_MD5);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_224);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_384);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_512);
+            TEST_TAG_ADD_BOOL(key_params, SKM_TAG_ALL_USERS, true);
+            TEST_TAG_ADD_BOOL(key_params, SKM_TAG_NO_AUTH_REQUIRED, true);
+            TEST_TAG_ADD_BOOL(key_params, SKM_TAG_ALL_APPLICATIONS, true);
             comment = "EC Invalid key size";
             expected_err = BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE;
             break;
         case 2:
             EXPECT_SUCCESS(km_test_new_params_with_ec_defaults(&key_params, 224));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             km_test_remove_curve(key_params);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_EC_CURVE, KM_EC_CURVE_P_256);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_EC_CURVE, SKM_EC_CURVE_P_256);
             comment = "EC Mismatched key size";
             expected_err = BERR_INVALID_PARAMETER;
             break;

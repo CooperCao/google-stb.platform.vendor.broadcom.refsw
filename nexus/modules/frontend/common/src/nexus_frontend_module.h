@@ -317,8 +317,6 @@ typedef struct NEXUS_FrontendDevice {
     BLST_D_ENTRY(NEXUS_FrontendDevice) node; /* This is used to create g_frontendDeviceList using g_frontendList in NEXUS_FrontendModule_Standby_priv() */
     BLST_D_HEAD(deviceChildList, NEXUS_FrontendDevice) deviceChildList;
 
-    unsigned tripwire;
-
     unsigned familyId; /* Chip's family Id. In hex, e.g. 0x3128. */
     void *pDevice;     /* Chip specific device handle. */
     struct NEXUS_FrontendDevice *parent;

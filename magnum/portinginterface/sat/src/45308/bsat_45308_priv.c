@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -2358,6 +2358,8 @@ BERR_Code BSAT_45308_P_ScanSpectrum(BSAT_ChannelHandle h, BSAT_ScanSpectrumSetti
        (pSettings->resBw > BSAT_ResBw_e10mhz) || (pSettings->vidBw > BSAT_VidBw_e10khz))
       return BERR_INVALID_PARAMETER;
 
+   BSAT_45308_CHK_RETCODE(BSAT_45308_P_EnableChannelInterrupt(h, true, BHAB_45308_CHAN_IRQ_ACQ_DONE));
+
    hab[0] = BHAB_45308_InitHeader(0x35, h->channel, BHAB_45308_WRITE, BHAB_45308_MODULE_SAT);
    hab[1] = pSettings->adcSelect;
    hab[2] = pSettings->startFreq;
@@ -2380,7 +2382,7 @@ BERR_Code BSAT_45308_P_GetSpectrumStatus(BSAT_ChannelHandle h, BSAT_SpectrumStat
 {
    BSAT_45308_P_Handle *pImpl = (BSAT_45308_P_Handle *)(h->pDevice->pImpl);
    BERR_Code retCode;
-   uint32_t hab[7], addr, i;
+   uint32_t hab[7], addr, i, nBytesToRead;
    uint8_t buf[4];
 
    BDBG_ENTER(BSAT_45308_P_GetSpectrumStatus);
@@ -2402,21 +2404,26 @@ BERR_Code BSAT_45308_P_GetSpectrumStatus(BSAT_ChannelHandle h, BSAT_SpectrumStat
    pStatus->freqStep = hab[4];
    addr = (hab[5] & 0x7FFFFFFF) + 0x80000;
 
+   if (pStatus->numSamples & 0x3)
+      nBytesToRead = (pStatus->numSamples & ~0x3) + 4;
+   else
+      nBytesToRead = pStatus->numSamples;
+
    if (pStatus->bValid)
    {
-      BSAT_45308_CHK_RETCODE(BHAB_ReadMemory(pImpl->hHab, addr, (uint8_t *)pSamples, pStatus->numSamples));
-   }
-
-   for (i = 0; i < pStatus->numSamples; i += 4)
-   {
-      buf[0] = pSamples[i];
-      buf[1] = pSamples[i+1];
-      buf[2] = pSamples[i+2];
-      buf[3] = pSamples[i+3];
-      pSamples[i+3] = buf[0];
-      pSamples[i+2] = buf[1];
-      pSamples[i+1] = buf[2];
-      pSamples[i+0] = buf[3];
+      BSAT_45308_CHK_RETCODE(BHAB_ReadMemory(pImpl->hHab, addr, (uint8_t *)pSamples, nBytesToRead));
+/* BDBG_ERR(("GetSpectrumStatus: numSamples=%u, nBytesToRead=%u, freqStep=%u, addr=0x%X\n", pStatus->numSamples, nBytesToRead, pStatus->freqStep, addr)); */
+      for (i = 0; i < nBytesToRead; i += 4)
+      {
+         buf[0] = pSamples[i];
+         buf[1] = pSamples[i+1];
+         buf[2] = pSamples[i+2];
+         buf[3] = pSamples[i+3];
+         pSamples[i+3] = buf[0];
+         pSamples[i+2] = buf[1];
+         pSamples[i+1] = buf[2];
+         pSamples[i+0] = buf[3];
+      }
    }
 
    done:

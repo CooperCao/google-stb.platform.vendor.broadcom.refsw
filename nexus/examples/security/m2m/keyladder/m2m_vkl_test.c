@@ -83,7 +83,7 @@ NEXUS_Error GenerateRouteKey(NEXUS_VirtualKeyLadderHandle vklHandle, NEXUS_KeySl
 
 	/* get VKL info from handle */
 	NEXUS_Security_GetVKLInfo(vklHandle, &vklInfo);
-    printf("\nVKL Handle is %p  for VKL %d\n", (void *)vklHandle, vklInfo.vkl);
+    printf("\nVKL Handle is %p  for VKL %d\n", (void **)vklHandle, vklInfo.vkl);
 
 	/* Load session key  - key3 */
 	NEXUS_Security_GetDefaultSessionKeySettings(&decryptSessionkey);
@@ -166,9 +166,9 @@ void startM2MDMATask(NEXUS_KeySlotHandle encKeyHandle, NEXUS_KeySlotHandle decKe
 	/* and DMA event */
 	BKNI_CreateEvent(&dmaEvent);
 
-	NEXUS_Memory_Allocate(DMA_BLOCK, NULL, (void *)&pSrc);
-	NEXUS_Memory_Allocate(DMA_BLOCK, NULL, (void *)&pDest);
-	NEXUS_Memory_Allocate(DMA_BLOCK, NULL, (void *)&pDest2);
+	NEXUS_Memory_Allocate(DMA_BLOCK, NULL, (void **)&pSrc);
+	NEXUS_Memory_Allocate(DMA_BLOCK, NULL, (void **)&pDest);
+	NEXUS_Memory_Allocate(DMA_BLOCK, NULL, (void **)&pDest2);
 
 	memset(pSrc, 0, DMA_BLOCK*sizeof(unsigned char));
 	memset(pDest, 0, DMA_BLOCK*sizeof(unsigned char));

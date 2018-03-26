@@ -46,8 +46,6 @@
 
 BDBG_MODULE(media_player);
 
-struct media_player_ip;
-
 BDBG_OBJECT_ID(media_player);
 
 void media_player_get_default_create_settings( media_player_create_settings *psettings )
@@ -73,9 +71,6 @@ void media_player_get_default_start_settings( media_player_start_settings *psett
     psettings->stcMaster = NEXUS_StcChannelAutoModeBehavior_eVideoMaster;
     psettings->transportType = NEXUS_TransportType_eMax; /* no override */
     psettings->playbackSettings.endOfStreamTimeout = 180; /* copied from nexus_playback */
-    psettings->mediaPlayerSettings.audio.ac3_service_type = UINT_MAX;
-    psettings->mediaPlayerSettings.audio.language = NULL;
-    psettings->mediaPlayerSettings.enableDynamicTrackSelection = false;
 }
 
 static void endOfStreamCallback(void *context, int param)
@@ -113,12 +108,6 @@ static media_player_t media_player_p_create(const NxClient_AllocResults *pAllocR
     player->create_settings = *psettings;
     player->allocResults = *pAllocResults;
     player->allocIndex = allocIndex;
-
-    /* Check whether to use playback_ip or BIP.*/
-    if(getenv("use_pbip"))
-    {
-        player->usePbip = true;
-    }
 
     if (mosaic) {
         NxClient_AllocSettings allocSettings;
@@ -179,16 +168,6 @@ static media_player_t media_player_p_create(const NxClient_AllocResults *pAllocR
             BDBG_WRN(("audio decoder not available"));
         }
     }
-
-    if(player->usePbip)
-    {
-        player->ip = media_player_ip_create(player);
-    }
-    else
-    {
-        player->bip = media_player_bip_create(player);;
-    }
-    /* if we can't create, proceed without IP support */
 
     return player;
 
@@ -611,27 +590,8 @@ int media_player_start( media_player_t player, const media_player_start_settings
     parse_url(psettings->stream_url, &url);
 
     if (!strcasecmp(url.scheme, "http") || !strcasecmp(url.scheme, "https") || !strcasecmp(url.scheme, "udp") || !strcasecmp(url.scheme, "rtp")) {
-        if(player->usePbip) {
-            if (!player->ip) {
-                BDBG_ERR(("%s: not supported. Rebuild with PLAYBACK_IP_SUPPORT=y", url.scheme));
-                return NEXUS_NOT_SUPPORTED;
-            }
-            rc = media_player_ip_start(player->ip, psettings, &url);
-            if (rc) return BERR_TRACE(rc);
-        }
-        else
-        {
-            if (!player->bip) {
-                BDBG_ERR(("%s: not supported. Rebuild with PLAYBACK_IP_SUPPORT=y", psettings->stream_url));
-                return NEXUS_NOT_SUPPORTED;
-            }
-            rc = media_player_bip_start(player->bip, psettings, psettings->stream_url);
-            if (rc) return BERR_TRACE(rc);
-
-            media_player_bip_get_color_depth(player->bip, &player->colorDepth);
-        }
-        player->ipActive = true;
-        player->started = true; /* set started true here since we need to unwrap the resources even if rest of the code like videoDecoder/audioDecoder start failed.*/
+        BDBG_ERR(("%s: not supported. See nexus/lib/bip/examples", url.scheme));
+        return NEXUS_NOT_SUPPORTED;
     }
     else {
         struct dvr_crypto_settings settings;
@@ -1028,18 +988,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
     }
 #endif
 
-    if (player->ipActive) {
-        if(player->usePbip) {
-            media_player_ip_start_playback(player->ip);
-            if (rc) { rc = BERR_TRACE(rc); goto error; }
-        }
-        else
-        {
-            media_player_bip_start_play(player->bip);
-            if (rc) { rc = BERR_TRACE(rc); goto error; }
-        }
-    }
-    else {
+    {
         BDBG_MSG(("starting nexus playback"));
         rc = NEXUS_Playback_Start(player->playback, player->file, NULL);
         if (rc) {
@@ -1082,36 +1031,7 @@ void media_player_stop(media_player_t player)
         dvr_crypto_destroy(player->crypto);
     }
 
-    if (player->ipActive) {
-        if(player->usePbip) {
-            media_player_ip_stop(player->ip);
-        }
-        else {
-            media_player_bip_stop(player->bip);
-        }
-
-        /* Reset cached data.*/
-        if (player->videoProgram.settings.enhancementPidChannel)
-        {
-            player->videoProgram.settings.enhancementPidChannel = NULL;
-        }
-        if (player->videoProgram.settings.pidChannel)
-        {
-            player->videoProgram.settings.pidChannel = NULL;
-        }
-#if NEXUS_HAS_AUDIO
-        if (player->audioProgram.primary.pidChannel)
-        {
-            player->audioProgram.primary.pidChannel = NULL;
-        }
-#endif
-        if(player->colorDepth)
-        {
-            player->colorDepth = 0;
-        }
-        player->ipActive = false;
-    }
-    else {
+    {
         /* regular file playback case */
         if (player->playback) {
             NEXUS_Playback_Stop(player->playback);
@@ -1213,6 +1133,9 @@ int media_player_ac4_status( media_player_t player, int action )
             NEXUS_SimpleAudioDecoder_SetCodecSettings(player->audioDecoder,NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
         }
     }
+#else
+    BSTD_UNUSED(player);
+    BSTD_UNUSED(action);
 #endif
       return 0;
 }
@@ -1284,14 +1207,6 @@ void media_player_destroy(media_player_t player)
     if (player->stcChannel) {
         NEXUS_SimpleStcChannel_Destroy(player->stcChannel);
     }
-    if (player->ip) {
-        if(player->usePbip) {
-            media_player_ip_destroy(player->ip);
-        }
-        else{
-            media_player_bip_destroy(player->bip);
-        }
-    }
     if(player->settings.audio.language) {
         BKNI_Free(player->settings.audio.language);
     }
@@ -1329,14 +1244,6 @@ int media_player_trick( media_player_t player, int rate)
     BDBG_OBJECT_ASSERT(player, media_player);
     if (!player->started) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
-    }
-    if (player->ipActive) {
-        if(player->usePbip) {
-            return media_ip_player_trick(player->ip, rate);
-        }
-        else {
-            return media_player_bip_trick(player->bip, rate);
-        }
     }
 
     if (player->start_settings.index_url) {
@@ -1414,11 +1321,6 @@ int media_player_frame_advance( media_player_t player, bool forward )
     if (!player->started) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
-    if (player->ipActive) {
-        if(player->usePbip) return BERR_TRACE(NEXUS_NOT_AVAILABLE);
-
-        return media_player_bip_frame_advance(player->bip, forward);
-    }
     if (player->start_settings.stcTrick) {
         unsigned i;
         /* For stc trick, the decoder must see the frame, then we can advance.
@@ -1449,14 +1351,6 @@ int media_player_frame_advance( media_player_t player, bool forward )
 
 int media_player_get_playback_status( media_player_t player, NEXUS_PlaybackStatus *pstatus )
 {
-    if (player->ipActive) {
-        if(player->usePbip) {
-            return media_player_ip_get_playback_status(player->ip, pstatus);
-        }
-        else {
-            return media_player_bip_status(player->bip, pstatus);
-        }
-    }
     return NEXUS_Playback_GetStatus(player->playback, pstatus);
 }
 
@@ -1474,14 +1368,6 @@ int media_player_seek( media_player_t player, int offset, int whence )
 {
     NEXUS_PlaybackStatus status;
     int rc;
-    if (player->ipActive) {
-        if(player->usePbip) {
-            return media_ip_player_seek(player->ip, offset, whence);
-        }
-        else {
-            return media_player_bip_seek(player->bip, offset, whence);
-        }
-    }
     rc = NEXUS_Playback_GetStatus(player->playback, &status);
     if (rc) return BERR_TRACE(rc);
     switch (whence) {
@@ -1530,12 +1416,6 @@ int media_player_get_set_tr69c_info(void *context, enum b_tr69c_type type, union
     int rc;
     switch (type)
     {
-        case b_tr69c_type_get_playback_ip_status:
-            if (player->ipActive) {
-                rc = media_player_ip_get_set_tr69c_info(player->ip, type, info);
-                if (rc) return BERR_TRACE(rc);
-            }
-            break;
         case b_tr69c_type_get_playback_status:
             rc = NEXUS_Playback_GetStatus(player->playback, &info->playback_status);
             if (rc) return BERR_TRACE(rc);

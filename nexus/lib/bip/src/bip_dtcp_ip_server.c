@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -870,14 +870,17 @@ void processDtcpIpServerState(
                 DtcpAppLib_CloseStream(hDtcpIpStream);
                 bipStatus = BIP_ERR_OUT_OF_SYSTEM_MEMORY;
             }
-            hStream->hDtcpIpAke = hDtcpIpAke;
-            hStream->hDtcpIpStream = hDtcpIpStream;
-            BDBG_OBJECT_SET( hStream, BIP_DtcpIpServerStream );
-            BLST_Q_INSERT_TAIL(&hDtcpIpServer->streamHead, hStream, streamLink);
-            bipStatus = BIP_SUCCESS;
-            *hDtcpIpServer->openStreamApi.phStream = hStream;
+            else
+            {
+                hStream->hDtcpIpAke = hDtcpIpAke;
+                hStream->hDtcpIpStream = hDtcpIpStream;
+                BDBG_OBJECT_SET( hStream, BIP_DtcpIpServerStream );
+                BLST_Q_INSERT_TAIL(&hDtcpIpServer->streamHead, hStream, streamLink);
+                bipStatus = BIP_SUCCESS;
+                *hDtcpIpServer->openStreamApi.phStream = hStream;
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: BIP_DtcpIpServer_OpenStream(): Opened Stream, hStream=%p hDtcpIpAke=%p hDtcpIpAke=%p" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, (void *)hStream, (void *)hStream->hDtcpIpStream, (void *)hStream->hDtcpIpAke));
+            }
         }
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: BIP_DtcpIpServer_OpenStream(): Opened Stream, hStream=%p hDtcpIpAke=%p hDtcpIpAke=%p" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, (void *)hStream, (void *)hStream->hDtcpIpStream, (void *)hStream->hDtcpIpAke));
         BIP_Arb_CompleteRequest( hDtcpIpServer->openStreamApi.hArb, bipStatus );
     }
     else if (BIP_Arb_IsNew(hArb = hDtcpIpServer->closeStreamApi.hArb))
@@ -887,9 +890,9 @@ void processDtcpIpServerState(
         DtcpAppLib_CloseStream(hDtcpIpServer->closeStreamApi.hStream->hDtcpIpStream);
         BLST_Q_REMOVE(&hDtcpIpServer->streamHead, hDtcpIpServer->closeStreamApi.hStream, streamLink);
         BDBG_OBJECT_DESTROY( hDtcpIpServer->closeStreamApi.hStream, BIP_DtcpIpServerStream );
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: BIP_DtcpIpServer_CloseStream(): Closed Stream, hStream=%p " BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, (void *)hDtcpIpServer->closeStreamApi.hStream ));
         B_Os_Free(hDtcpIpServer->closeStreamApi.hStream);
         BIP_Arb_CompleteRequest( hDtcpIpServer->closeStreamApi.hArb, BIP_SUCCESS );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: BIP_DtcpIpServer_CloseStream(): Closed Stream, hStream=%p " BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, (void *)hDtcpIpServer->closeStreamApi.hStream ));
     }
     else if (BIP_Arb_IsNew(hArb = hDtcpIpServer->getStatusApi.hArb))
     {

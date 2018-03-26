@@ -291,9 +291,9 @@ endif
 
 ifeq ($(NXCLIENT_SUPPORT),y)
 .PHONY: nxclient clean_nxclient
-nxclient: nexus
+nxclient: $(filter ippblibs nexus, ${SUBLIBS})
 	$(B_TRACE_RECIPE_BEGIN)
-	${Q_}${MAKE} -C $(NEXUS_TOP)/nxclient server
+	${Q_}${MAKE} -C $(NEXUS_TOP)/nxclient B_NEXUS_API_BUILD_COMPLETED=y server
 	$(B_TRACE_RECIPE_END)
 
 clean_nxclient:

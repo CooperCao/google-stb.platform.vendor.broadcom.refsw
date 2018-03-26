@@ -38,7 +38,7 @@
 /******************************************************************************
  * Module : SAGE - Sage Remote Application Interface (SRAI)
  *          API declaration.
- * 
+ *
  * Module Description:
  *          SAGE remote Application Interface (SRAI) is a helper library which allows communication between
  *          Common DRM Application and its counterpart running on the SAGE system.
@@ -46,7 +46,7 @@
  *          the Host SoC, in order to trigger routines (process commands).
  *          From the Host, a Common DRM modules remotely manage SAGE in order to initialize platforms,
  *          modules and process module commands.
- * 
+ *
  *****************************************************************************/
 
 
@@ -90,12 +90,19 @@ typedef struct SRAI_Module *SRAI_ModuleHandle;
  *
  * See: SRAI_Memory_Allocate()
  */
-#define SRAI_MEMORY_SAGE_SIDE_ACCESS 0x1
+#define SRAI_MEMORY_CRR 0x1
 #define SRAI_MEMORY_HOST_SIDE_ACCESS 0x2
-#define SRAI_MEMOTY_SAGE_EXPORT_ACCESS 0x4
-#define SRAI_MemoryType_SagePrivate (SRAI_MEMORY_SAGE_SIDE_ACCESS)
-#define SRAI_MemoryType_Shared  (SRAI_MEMORY_HOST_SIDE_ACCESS | SRAI_MEMORY_SAGE_SIDE_ACCESS)
-#define SRAI_MemoryType_SageExport (SRAI_MEMOTY_SAGE_EXPORT_ACCESS)
+#define SRAI_MEMORY_SAGE_EXPORT_ACCESS 0x4
+#define SRAI_MEMORY_SAGE_ARR 0x8
+#define SRAI_MemoryType_Crr (SRAI_MEMORY_CRR)
+#define SRAI_MemoryType_Shared  (SRAI_MEMORY_HOST_SIDE_ACCESS | SRAI_MEMORY_CRR)
+#define SRAI_MemoryType_SageExport (SRAI_MEMORY_SAGE_EXPORT_ACCESS)
+#define SRAI_MemoryType_Arr (SRAI_MEMORY_SAGE_ARR)
+
+/* old defines for legacy support */
+#define SRAI_MEMORY_SAGE_SIDE_ACCESS SRAI_MEMORY_CRR
+#define SRAI_MemoryType_SagePrivate SRAI_MemoryType_Crr
+
 typedef uint32_t SRAI_MemoryType;
 
 /*
@@ -118,6 +125,10 @@ typedef struct SRAI_Settings {
      * in order to implement a export region feature, preventing the Host CPU to access data in it */
     uint32_t exportHeapIndex;
 
+    /* index to use in NEXUS_ClientConfiguration::heap[] array for arr region (restricted) memory
+     * this type of memory is only accessible from SAGE and M2M,
+     * in order to implement a arr region feature, preventing the Host CPU to access data in it */
+    uint32_t arrHeapIndex;
 } SRAI_Settings;
 
 /*

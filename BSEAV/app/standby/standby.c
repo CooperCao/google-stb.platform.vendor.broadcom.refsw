@@ -112,9 +112,12 @@ int set_pmlib_state(const pmlib_state_t *state)
 
 
     pmlib_state.sata_status = state->sata;
+
+#if (BCHP_CHIP != 7255)
     pmlib_state.tp1_status = state->tp1;
     pmlib_state.tp2_status = state->tp2;
     pmlib_state.tp3_status = state->tp3;
+#endif
 #if PMLIB_VER == 314
     pmlib_state.srpd_status = state->ddr?0:64;
 #elif PMLIB_VER == 26

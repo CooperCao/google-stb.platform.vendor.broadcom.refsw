@@ -140,7 +140,7 @@ typedef struct SampleInfo {
 
     /* The following values are only meaningfull if flag & 0x000002 is true */
     uint16_t nbOfEntries;
-    uint8_t size;
+    uint32_t size;
     uint64_t offset;
     bmp4_drm_mp4_box_se_entry entries[BMP4_MAX_ENTRIES_PER_SAMPLE];
 

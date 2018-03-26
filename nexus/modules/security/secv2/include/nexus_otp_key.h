@@ -41,7 +41,7 @@
 
 /**
 These functions read parameters related to specifice OTP keys.
-There are ~9 OTP Keys (number dependent on the chip). The "index" paramter
+There are ~9 OTP Keys (number dependent on the chip). The "index" parameter
 identifies a particular OTP key.
 **/
 
@@ -64,7 +64,9 @@ extern "C"
 */
 typedef struct NEXUS_OtpKeyInfo
 {
+    bool    hashValid;                        /* true if following "hash" parameter is valid */
     uint8_t hash[NEXUS_OTP_KEY_HASH_LENGTH];  /* Hash of OTP key */
+
     uint8_t id[NEXUS_OTP_KEY_ID_LENGTH];      /* OTP KeyId */
 
     unsigned blackBoxId;
@@ -74,7 +76,9 @@ typedef struct NEXUS_OtpKeyInfo
     bool     gp2KeyLadderAllow; /* General Purpose keyladder 2 allowed. */
     bool     sageKeyLadderAllow; /* OTP key can be used from SAGE. */
     bool     rootKeySwapAllow;   /* OTP root key could be swapped. */
-    bool     deobfuscationEnabled; /* OTP key is obfuscated.  */
+    bool     deobfuscationEnabled; /* OTP key is obfuscated. */
+    bool     fixedDeobfuscationEnabled; /* If true, OTP key obfuscation is fixed for all parts.
+                                           If false, it's chip family specific. */
     unsigned customerMode;
 
 }NEXUS_OtpKeyInfo;

@@ -86,7 +86,6 @@ static uint8_t _MapKeyLadderMode( BHSM_KeyLadderMode mode ); /* Customer Sub mod
 static uint8_t _MapGlobalKeyOwnerIdSelect( BHSM_KeyLadderGlobalKeyOwnerIdSelect owner );
 static uint8_t _MapKeySize( unsigned sizeInBits  );
 static uint8_t _MapTestKeySel( BHSM_KeyladderCaVendorIdScope  scope );
-static uint8_t _MapKeyMode( BHSM_KeyLadderKeyMode keyMode );
 static uint8_t _MapSc01Mode( BHSM_KeyslotPolarity useEntry );
 static uint8_t _MapPolarity( BHSM_KeyslotPolarity polarity );
 static uint8_t  _MapModuleId( BHSM_KeyLadderMode mode ); /* Get moduleId from ladder mode. */
@@ -199,7 +198,11 @@ BHSM_KeyLadderHandle BHSM_KeyLadder_Allocate( BHSM_Handle hHsm, const BHSM_KeyLa
             }
         }
 
-        if( !pKeyLadder ) { BERR_TRACE( BERR_NOT_AVAILABLE ); return NULL; }
+        if( !pKeyLadder ) {
+            BDBG_ERR(("%s requested index[0x%02X] max[0x%02X]", BSTD_FUNCTION, pSettings->index, MAX_NUM_KEYLADDERS ));
+            BERR_TRACE( BERR_NOT_AVAILABLE );
+            return NULL;
+        }
     }
     else
     {
@@ -329,8 +332,6 @@ BERR_Code BHSM_KeyLadder_GenerateLevelKey( BHSM_KeyLadderHandle handle, const BH
 
     moduleId =   (pSettings->mode == BHSM_KeyLadderMode_eHwlk) ? pSettings->hwkl.moduleId : _MapModuleId( pSettings->mode );
 
-    BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eModuleID, moduleId );
-
     if( pSettings->root.type == BHSM_KeyLadderRootType_eOtpAskm ||
         pSettings->root.type == BHSM_KeyLadderRootType_eGlobalKey )
     {
@@ -341,6 +342,8 @@ BERR_Code BHSM_KeyLadder_GenerateLevelKey( BHSM_KeyLadderHandle handle, const BH
         BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eTestKeySel, _MapTestKeySel(pSettings->root.askm.caVendorIdScope) );
 #ifdef BHSM_BUILD_HSM_FOR_SAGE
         BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eModuleID,   pSettings->root.askm.sageModuleId ? pSettings->root.askm.sageModuleId : moduleId );
+#else
+        BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eModuleID, moduleId );
 #endif
 
         if( pSettings->root.type == BHSM_KeyLadderRootType_eGlobalKey )
@@ -349,9 +352,9 @@ BERR_Code BHSM_KeyLadder_GenerateLevelKey( BHSM_KeyLadderHandle handle, const BH
             BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eOwnerIDSelect, _MapGlobalKeyOwnerIdSelect(pSettings->root.globalKey.owner) );
         }
     }
-
-    if (pKey->level == 3) {
-        if( pSettings->root.type == BHSM_KeyLadderRootType_eCustomerKey )
+    else if( pSettings->root.type == BHSM_KeyLadderRootType_eCustomerKey )
+    {
+        if( pKey->level == 3)
         {
             uint8_t cusKeySelect;
 
@@ -362,24 +365,25 @@ BERR_Code BHSM_KeyLadder_GenerateLevelKey( BHSM_KeyLadderHandle handle, const BH
             cusKeySelect |= (pSettings->root.customerKey.low.decrypt?1:0) << 6;
             cusKeySelect |= (pSettings->root.customerKey.enableSwizzle0a?1:0) << 7;
             BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eCusKeySelL, cusKeySelect );
+            BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKeyVarL, pSettings->root.customerKey.low.keyVar );
 
             if (pSettings->root.customerKey.enableSwizzle0a) {
                 BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eOwnerIDSelect, _MapGlobalKeyOwnerIdSelect(pSettings->root.customerKey.cusKeySwizzle0aVariant) );
                 BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKey2GenVersion, (uint8_t)pSettings->root.customerKey.cusKeySwizzle0aVersion );
                 BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eSTBOwnerIDSel, (uint8_t)pSettings->root.askm.stbOwnerSelect );
                 BHSM_BspMsg_Pack16( hMsg, BCMD_GenKey_InCmd_eCAVendorID, (uint16_t)pSettings->root.askm.caVendorId );
+                BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eModuleID,   pSettings->root.askm.sageModuleId ? pSettings->root.askm.sageModuleId : moduleId );
             }
 
-            BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKeyVarL, pSettings->root.customerKey.low.keyVar );
             cusKeySelect =  (pSettings->root.customerKey.high.keyIndex & 0x3F);
             cusKeySelect |= (pSettings->root.customerKey.high.decrypt?1:0) << 6;
             BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eCusKeySelH, cusKeySelect );
             BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKeyVarH, pSettings->root.customerKey.high.keyVar );
         }
-    }
-    else {
-        if( pSettings->root.type == BHSM_KeyLadderRootType_eCustomerKey )
+        else
         {
+            BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eModuleID,   _MapModuleId( pSettings->mode ) );
+
             BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eSwizzle1IndexSel, 0 );
             BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eSwizzleType, 0 );
             BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eCusKeySelL, 0 );
@@ -389,6 +393,10 @@ BERR_Code BHSM_KeyLadder_GenerateLevelKey( BHSM_KeyLadderHandle handle, const BH
             BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eCusKeySelH, 0 );
             BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKeyVarH, 0 );
         }
+    }
+    else
+    {
+     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eModuleID,   _MapModuleId( pSettings->mode ) );
     }
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eVKLID, pkeyLadder->index );
@@ -400,7 +408,6 @@ BERR_Code BHSM_KeyLadder_GenerateLevelKey( BHSM_KeyLadderHandle handle, const BH
     BHSM_BspMsg_PackArray( hMsg, cmd_ladderKey, pKey->ladderKey, (pKey->ladderKeySize /8) );
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKeySize, _MapKeySize(pKey->ladderKeySize) );
-    BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKeyMode, _MapKeyMode(pSettings->keyMode) );
 
     if( pKey->route.destination == BHSM_KeyLadderDestination_eKeyslotKey ||
         pKey->route.destination == BHSM_KeyLadderDestination_eKeyslotIv  ||
@@ -412,6 +419,8 @@ BERR_Code BHSM_KeyLadder_GenerateLevelKey( BHSM_KeyLadderHandle handle, const BH
         BKNI_Memset( &keySlot, 0, sizeof(keySlot) );
         rc = BHSM_P_Keyslot_GetDetails( pKey->route.keySlot.handle, pKey->route.keySlot.entry, &keySlot );
         if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+
+        BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKeyMode, keySlot.keyModeBspMapped );
 
         BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eSC01ModeWordMapping, _MapSc01Mode(keySlot.sc01.useEntry) );
         BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eGPipeSC01Value, _MapPolarity(keySlot.sc01.outputPolarity.gPipe) );
@@ -447,10 +456,9 @@ BERR_Code BHSM_KeyLadder_GenerateLevelKey( BHSM_KeyLadderHandle handle, const BH
     if( rc != BERR_SUCCESS ) { BERR_TRACE(rc); goto _exit; }
 
     BHSM_BspMsg_Get8( hMsg, BCMD_CommonBufferFields_eStatus, &status );
-    if( status != 0 )
-    {
-        rc = BHSM_STATUS_BSP_ERROR;
+    if( status != 0 ) {
         BDBG_ERR(("%s BSP status[0x%02X] error", BSTD_FUNCTION, status ));
+        rc = BERR_TRACE(BHSM_STATUS_BSP_ERROR);
         goto _exit;
     }
 
@@ -469,7 +477,7 @@ BERR_Code BHSM_KeyLadder_Invalidate( BHSM_KeyLadderHandle handle, const BHSM_Key
     BERR_Code           rc = BERR_SUCCESS;
     BHSM_BspMsg_h       hMsg = NULL;
     BHSM_BspMsgHeader_t header;
-    uint8_t status;
+    uint8_t status = ~0;
 
     BDBG_ENTER( BHSM_KeyLadder_Invalidate );
 
@@ -503,7 +511,7 @@ BERR_Code BHSM_KeyLadder_Invalidate( BHSM_KeyLadderHandle handle, const BHSM_Key
     BHSM_BspMsg_Get8( hMsg, BCMD_CommonBufferFields_eStatus, &status );
     if( status != 0 ) {
         BDBG_ERR(("%s BSP error status[0x%02X]. index[%d] )", BSTD_FUNCTION, status, pKeyLadder->index ));
-        rc = BHSM_STATUS_BSP_ERROR;
+        rc = BERR_TRACE(BHSM_STATUS_BSP_ERROR);
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -550,7 +558,7 @@ static BERR_Code _GetKeyLadderOwner( BHSM_Handle hHsm, unsigned index, BHSM_Secu
     BHSM_BspMsgHeader_t header;
     uint8_t allocation = 0;
     uint8_t association = 0;
-    uint8_t status;
+    uint8_t status = ~0;
 
     BDBG_ENTER( _GetKeyLadderOwner );
     if( index >= MAX_NUM_KEYLADDERS ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
@@ -570,10 +578,9 @@ static BERR_Code _GetKeyLadderOwner( BHSM_Handle hHsm, unsigned index, BHSM_Secu
     if( rc != BERR_SUCCESS ) { BERR_TRACE(rc); goto _exit; }
 
     BHSM_BspMsg_Get8( hMsg, BCMD_CommonBufferFields_eStatus, &status );
-    if( status != 0 )
-    {
-        rc = BHSM_STATUS_BSP_ERROR;
+    if( status != 0 ) {
         BDBG_ERR(("%s BSP status[0x%02X] error", BSTD_FUNCTION, status ));
+        rc = BERR_TRACE(BHSM_STATUS_BSP_ERROR);
         goto _exit;
     }
 
@@ -717,6 +724,7 @@ static uint8_t  _MapKeyLadderMode( BHSM_KeyLadderMode mode ) /* Customer Sub mod
         case BHSM_KeyLadderMode_eEtsi_5:           { return BCMD_CustomerSubMode_eETSI_5; }
         case BHSM_KeyLadderMode_eScte52Ca_5:       { return BCMD_CustomerSubMode_eSCTE52_CA_5; }
         case BHSM_KeyLadderMode_eHwlk:             { return BCMD_CustomerSubMode_eHWKL; }
+        case BHSM_KeyLadderMode_eRpmb:             { return BCMD_CustomerSubMode_eRPMB; }
         default: { BERR_TRACE( BERR_INVALID_PARAMETER ); }
     }
 
@@ -746,6 +754,7 @@ static uint8_t  _MapModuleId( BHSM_KeyLadderMode mode ) /* Get moduleId from lad
         case BHSM_KeyLadderMode_eGeneralPurpose2:  { return 16; }
         case BHSM_KeyLadderMode_eEtsi_5:           { return 19; }
         case BHSM_KeyLadderMode_eScte52Ca_5:       { return 24; }
+        case BHSM_KeyLadderMode_eRpmb:             { return 39; }
         case BHSM_KeyLadderMode_eHwlk:             { return 0xFF; } /* don't care. */
         default: { BERR_TRACE( BERR_INVALID_PARAMETER ); }
     }
@@ -791,20 +800,6 @@ static uint8_t  _MapTestKeySel( BHSM_KeyladderCaVendorIdScope  scope )
     }
 
     return (uint8_t)scope;
-}
-
-
-static uint8_t _MapKeyMode( BHSM_KeyLadderKeyMode keyMode )
-{
-    switch( keyMode )
-    {
-        case BHSM_KeyLadderKeyMode_eRegular:        { return 0; }
-        case BHSM_KeyLadderKeyMode_eDes56:          { return 1; }
-        case BHSM_KeyLadderKeyMode_eDvbConformance: { return 4; }
-        default: { BERR_TRACE( BERR_INVALID_PARAMETER ); }
-    }
-
-    return (uint8_t)keyMode;
 }
 
 

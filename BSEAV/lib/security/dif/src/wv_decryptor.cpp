@@ -430,13 +430,6 @@ uint32_t WidevineDecryptor::DecryptSample(
     uint32_t clearSize = 0;
     uint32_t encSize = 0;
     for (i = 0; i < pSample->nbOfEntries; i++) {
-        // Transfer clear data: (SWSECDRM-1256)
-        // assuming clear data comes first in subsamples
-        if (pSample->entries[i].bytesOfClearData > 0)
-            output->Copy(clearSize + encSize,
-                input->GetPtr() + clearSize + encSize,
-                pSample->entries[i].bytesOfClearData);
-
         subsamples.push_back(cdm::SubsampleEntry(pSample->entries[i].bytesOfClearData, pSample->entries[i].bytesOfEncData));
         clearSize += pSample->entries[i].bytesOfClearData;
         encSize += pSample->entries[i].bytesOfEncData;

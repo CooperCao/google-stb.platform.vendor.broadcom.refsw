@@ -60,6 +60,10 @@ static void NEXUS_Display_P_UndriveVideoDecoder( NEXUS_DisplayHandle display );
 void
 NEXUS_Display_GetDefaultSettings(NEXUS_DisplaySettings *pSettings)
 {
+    BVDC_Settings vdcCfg;
+
+    /* Use PI's defaults. */
+    BVDC_GetDefaultSettings(NULL, &vdcCfg);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     /* normally nexus prefers default values which also happen to be zero. but eAuto was added to the end of the list
     so that the beginning of the list can track with VDC */
@@ -68,7 +72,9 @@ NEXUS_Display_GetDefaultSettings(NEXUS_DisplaySettings *pSettings)
     pSettings->format = NEXUS_VideoFormat_eNtsc;
     pSettings->aspectRatio = NEXUS_DisplayAspectRatio_eAuto; /* This needs to be eAuto. If the user changes the format to 720p et al. but not
                                                                 the aspectRatio, they will likely expect the display a/r to change. */
-    pSettings->dropFrame = NEXUS_TristateEnable_eNotSet;
+    pSettings->dropFrame = (BAVC_FrameRateCode_e60 != vdcCfg.eDisplayFrameRate)
+        ? NEXUS_TristateEnable_eEnable : NEXUS_TristateEnable_eDisable;
+
     pSettings->timebase = NEXUS_Timebase_eInvalid;
     pSettings->vecIndex = -1;
     pSettings->display3DSettings.overrideOrientation = false;
@@ -116,7 +122,8 @@ NEXUS_Error NEXUS_Display_P_Align( NEXUS_DisplayHandle display, NEXUS_DisplayHan
 
     NEXUS_OBJECT_ASSERT(NEXUS_Display, display);
 
-    BVDC_Display_GetAlignment(display->displayVdc, &hTargetDisplay, &sAlignSettings);
+    mrc = BVDC_Display_GetAlignment(display->displayVdc, &hTargetDisplay, &sAlignSettings);
+    if (mrc!=BERR_SUCCESS) { rc = BERR_TRACE(mrc);goto end;}
 
     if (target)
     {
@@ -882,7 +889,8 @@ static BERR_Code nexus_p_install_display_cb(NEXUS_DisplayHandle display)
     BVDC_Display_CallbackSettings settings;
     BERR_Code rc;
 
-    BVDC_Display_GetCallbackSettings(display->displayVdc, &settings);
+    rc = BVDC_Display_GetCallbackSettings(display->displayVdc, &settings);
+    if (rc) return BERR_TRACE(rc);
     settings.stMask.bRateChange = 1;
     settings.stMask.bCrc = (display->cfg.crcQueueSize != 0);
     settings.stMask.bPerVsync = 1; /* needed for HDMI crc */
@@ -895,9 +903,6 @@ static BERR_Code nexus_p_install_display_cb(NEXUS_DisplayHandle display)
         settings.stMask.bStgPictureId = 1;
         BDBG_MSG(("Display %u enables STG display callback.", display->index));
     }
-#if NEXUS_P_USE_PROLOGUE_BUFFER
-    settings.pfPrologueCb_isr = NEXUS_DisplayPrologueCb_isr;
-#endif
 #endif
 
     rc = BVDC_Display_SetCallbackSettings(display->displayVdc, &settings);
@@ -941,12 +946,10 @@ static void nexus_p_uninstall_display_cb(NEXUS_DisplayHandle display)
     BVDC_Display_CallbackSettings settings;
     BERR_Code rc;
 
-    BVDC_Display_GetCallbackSettings(display->displayVdc, &settings);
+    rc = BVDC_Display_GetCallbackSettings(display->displayVdc, &settings);
+    if (rc) rc = BERR_TRACE(rc);
     settings.stMask.bRateChange = 0;
     settings.stMask.bCrc = 0;
-#if NEXUS_P_USE_PROLOGUE_BUFFER
-    settings.pfPrologueCb_isr = NULL;
-#endif
     rc = BVDC_Display_SetCallbackSettings(display->displayVdc, &settings);
     if (rc) rc = BERR_TRACE(rc);
 
@@ -976,7 +979,8 @@ NEXUS_Display_P_Open(NEXUS_DisplayHandle display, unsigned displayIndex, const N
     BDBG_MODULE_MSG(nexus_flow_display, ("open %p, index %d, type %d",
         (void *)display, displayIndex, pSettings->displayType));
 
-    BVDC_Compositor_GetDefaultSettings(vdcCmpId, &vdcCmpSettings);
+    rc = BVDC_Compositor_GetDefaultSettings(vdcCmpId, &vdcCmpSettings);
+    if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_compositor;}
     /* CFC LUT heap */
     if(NEXUS_MAX_HEAPS != pVideo->moduleSettings.cfc.cmpHeapIndex[displayIndex]) {
         vdcCmpSettings.hCfcHeap = g_pCoreHandles->heap[pVideo->moduleSettings.cfc.cmpHeapIndex[displayIndex]].mma;
@@ -992,7 +996,8 @@ NEXUS_Display_P_Open(NEXUS_DisplayHandle display, unsigned displayIndex, const N
         rc = BVDC_Compositor_Create(pVideo->vdc, &display->compositor, vdcCmpId, &vdcCmpSettings);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_compositor;}
         vdcDisplayId = BVDC_DisplayId_eDisplay0;
-        BVDC_Display_GetDefaultSettings(vdcDisplayId, &vdcDisplayCfg);
+        rc = BVDC_Display_GetDefaultSettings(vdcDisplayId, &vdcDisplayCfg);
+        if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_display;}
         display->timingGenerator = vdcDisplayCfg.eMasterTg = BVDC_DisplayTg_eDviDtg;
         vdcDisplayCfg.bModifiedSync = bModifiedSync;
         rc = BVDC_Display_Create(display->compositor, &display->displayVdc, vdcDisplayId, &vdcDisplayCfg);
@@ -1004,7 +1009,8 @@ NEXUS_Display_P_Open(NEXUS_DisplayHandle display, unsigned displayIndex, const N
         rc = BVDC_Compositor_Create(pVideo->vdc, &display->compositor, vdcCmpId, &vdcCmpSettings);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_compositor;}
 
-        BVDC_Display_GetDefaultSettings(BVDC_DisplayId_eDisplay2, &vdcDisplayCfg);
+        rc = BVDC_Display_GetDefaultSettings(BVDC_DisplayId_eDisplay2, &vdcDisplayCfg);
+        if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_display;}
 
         if (pSettings->timingGenerator < NEXUS_DisplayTimingGenerator_eAuto) {
             display->timingGenerator = vdcDisplayCfg.eMasterTg = pSettings->timingGenerator;
@@ -1036,7 +1042,8 @@ NEXUS_Display_P_Open(NEXUS_DisplayHandle display, unsigned displayIndex, const N
         rc = BVDC_Compositor_Create(pVideo->vdc, &display->compositor, vdcCmpId, &vdcCmpSettings);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_compositor;}
 
-        BVDC_Display_GetDefaultSettings(BVDC_DisplayId_eDisplay0+vecIndex, &vdcDisplayCfg);
+        rc = BVDC_Display_GetDefaultSettings(BVDC_DisplayId_eDisplay0+vecIndex, &vdcDisplayCfg);
+        if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_display;}
         if (timingGenerator < NEXUS_DisplayTimingGenerator_eAuto) {
             BDBG_CASSERT(NEXUS_DisplayTimingGenerator_eEncoder == (NEXUS_DisplayTimingGenerator)BVDC_DisplayTg_eStg);
             vdcDisplayCfg.eMasterTg = (BVDC_DisplayTg)timingGenerator;
@@ -2395,7 +2402,8 @@ NEXUS_Error NEXUS_Display_SetStgSettings( NEXUS_DisplayHandle display, const NEX
 
     NEXUS_OBJECT_ASSERT(NEXUS_Display, display);
 
-    BVDC_Display_GetStgConfiguration(display->displayVdc, &enabled, &vdcSettings);
+    rc = BVDC_Display_GetStgConfiguration(display->displayVdc, &enabled, &vdcSettings);
+    if (rc) return BERR_TRACE(rc);
     vdcSettings.bNonRealTime = pSettings->nonRealTime;
     if (display->timingGenerator == NEXUS_DisplayTimingGenerator_eEncoder) {
         enabled = true;
@@ -2486,7 +2494,8 @@ NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, N
 #endif
 
 #if NEXUS_DISPLAY_USE_VIP
-        BVDC_Display_GetStgConfiguration(display->displayVdc, &stgEnabled, &vdcSettings);
+        rc = BVDC_Display_GetStgConfiguration(display->displayVdc, &stgEnabled, &vdcSettings);
+        if (rc) return BERR_TRACE(rc);
         vdcSettings.ulStcSnapshotLoAddr = pSettings->stcSnapshotLoAddr;
         vdcSettings.ulStcSnapshotHiAddr = pSettings->stcSnapshotHiAddr;
         vdcSettings.vip.hHeap = pSettings->vip.hHeap;
@@ -2589,8 +2598,6 @@ NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, N
         rc = BVDC_Display_SetArtificialVsync(display->displayVdc, true, pSettings->extIntAddress, 1<<pSettings->extIntBitNum);
         if (rc) return BERR_TRACE(rc);
 #endif
-        rc = BVDC_ApplyChanges(pVideo->vdc);
-        if (rc) return BERR_TRACE(rc);
     } else {
         /* Reclaim all buffers that encoder might be holding. Note: soft encoder should have been stopped up to this point. */
         BKNI_EnterCriticalSection();
@@ -2721,16 +2728,18 @@ NEXUS_Error NEXUS_Display_EnableEncoderCallback_priv(NEXUS_DisplayHandle display
     BERR_Code rc = NEXUS_SUCCESS;
     BVDC_Display_CallbackSettings settings;
 
-    BVDC_Display_GetCallbackSettings(display->displayVdc, &settings);
+    BKNI_EnterCriticalSection();
+    display->encoder.callbackEnabled = true;
+    BKNI_LeaveCriticalSection();
+
+    rc = BVDC_Display_GetCallbackSettings(display->displayVdc, &settings);
+    if (rc) return BERR_TRACE(rc);
     settings.stMask.bPerVsync = 1;
+    settings.pfPrologueCb_isr = NEXUS_DisplayPrologueCb_isr;
     rc = BVDC_Display_SetCallbackSettings(display->displayVdc, &settings);
     if (rc) return BERR_TRACE(rc);
     rc = BVDC_ApplyChanges(pVideo->vdc);
     if (rc) return BERR_TRACE(rc);
-
-    BKNI_EnterCriticalSection();
-    display->encoder.callbackEnabled = true;
-    BKNI_LeaveCriticalSection();
 
     return rc;
 }
@@ -2744,8 +2753,10 @@ NEXUS_Error NEXUS_Display_DisableEncoderCallback_priv(NEXUS_DisplayHandle displa
     display->encoder.callbackEnabled = false;
     BKNI_LeaveCriticalSection();
 
-    BVDC_Display_GetCallbackSettings(display->displayVdc, &settings);
+    rc = BVDC_Display_GetCallbackSettings(display->displayVdc, &settings);
+    if (rc) return BERR_TRACE(rc);
     settings.stMask.bPerVsync = 0;
+    settings.pfPrologueCb_isr = NULL;
     rc = BVDC_Display_SetCallbackSettings(display->displayVdc, &settings);
     if (rc) return BERR_TRACE(rc);
     rc = BVDC_ApplyChanges(pVideo->vdc);

@@ -267,6 +267,34 @@ NEXUS_Error NEXUS_SimpleEncoder_VideoReadComplete(
 
 /**
 Summary:
+The mux manager (or other consumer) will call this API to get encoded pictures from the NEXUS_VideoEncoder
+Populates one video encoder descriptor for each frame into the provided NEXUS_VideoEncoderDescriptor array.
+Each frame will only be returned once. I.e. Subsequent calls to ReadIndex will return only descriptors that
+weren't read previously.
+
+The video encoder descriptors provide a way for the caller to obtain metadata such as the originalPTS to
+PTS relationship. NEXUS_VideoEncoderDescriptor.offset points to the start of the video frame relative to
+the beginning of the data buffer and NEXUS_VideoEncoderDescriptor.length indicates the total length of the
+video frame, however, the video frame is NOT necessarily contiguous because it may have wrapped in the
+circular data buffer.
+
+This API does not modify the index/data pointers, so can be called in conjunction with any other consumer.
+To prevent video buffer overflows, there must be a consumer of the index/data such as NEXUS_StreamMux,
+NEXUS_FileMux, any other consumer that calls NEXUS_SimpleEncoder_[GetVideoBuffer/VideoReadComplete], or
+updates the video index/data pointers directly.
+
+The index is implemented as a circular FIFO, so will always return the newest descriptors when called.
+To ensure no descriptors are missed, ReadIndex must be called periodically and repeatedly until *pRead < size.
+**/
+NEXUS_Error NEXUS_SimpleEncoder_ReadVideoIndex(
+    NEXUS_SimpleEncoderHandle handle,
+    NEXUS_VideoEncoderDescriptor *pBuffer, /* attr{nelem=size;nelem_out=pRead} [out] pointer to NEXUS_VideoEncoderDescriptor structs */
+    unsigned size, /* max number of NEXUS_VideoEncoderPicture elements in pBuffer */
+    unsigned *pRead /* [out] number of NEXUS_VideoEncoderPicture elements read */
+    );
+
+/**
+Summary:
 Get an audio encoder buffer if outputting to memory
 **/
 NEXUS_Error NEXUS_SimpleEncoder_GetAudioBuffer(

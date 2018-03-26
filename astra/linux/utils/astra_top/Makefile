@@ -47,7 +47,17 @@
 #
 ################################################################/
 ASTRA_TOP_DIR ?= $(shell /bin/pwd)
+# TZ arch defaults to 64-bit ARM
+TZ_ARCH ?= Arm64
+
+# Astra_Top obj root is derived from refsw obj root if defined
+ifneq (,$(B_REFSW_OBJ_ROOT))
+OBJ_ROOT := $(B_REFSW_OBJ_ROOT)/astra
+else ifneq (,$(B_REFSW_OBJ_DIR))
+OBJ_ROOT := $(ASTRA_TOP_DIR)/../../../../$(B_REFSW_OBJ_DIR)/astra
+endif
 OBJ_ROOT ?= $(ASTRA_TOP_DIR)/../../../../obj$(TZ_ARCH)/astra
+
 ASTRA_TOP_OBJ_DIR ?= $(OBJ_ROOT)/linux/utils/astra_top
 
 ifeq ($(TZ_ARCH),Arm64)
@@ -55,6 +65,8 @@ ifeq ($(TZ_ARCH),Arm64)
 else ifeq ($(TZ_ARCH),Arm32)
 	G++ = arm-linux-g++
 endif
+
+
 
 #
 # Targets

@@ -90,6 +90,7 @@ my $kernel_arch = 0;
 my $new_mips = 0;
 my $kernel_chip = $chip;
 my $kernel_rev = $revision;
+my $bootloader_type;
 
 # Check if revision is valid for given chip
 sub checkRevision {
@@ -260,6 +261,7 @@ foreach my $platform ($dom->findnodes('/plat/platforms/platform')) {
             $kernel_chip = $platform->findnodes('./kernel_chip')->to_literal();
             $kernel_rev = $platform->findnodes('./kernel_rev')->to_literal();
         }
+
     }
 
     if ($valid_chip) { last; }
@@ -421,6 +423,36 @@ foreach my $arg (@ARGV) {
             push(@config,"export B_REFSW_OS=linuxuser\n");
         }
     }
+}
+
+my $bootloader_version_set = 0;
+my $bootloader_version;
+
+foreach my $bootloader ($dom->findnodes('/plat/bootloaders/bootloader')) {
+    if ($bootloader->findnodes('./@default')->to_literal() !~ /^\s*$/) {
+        my @bootloader_variants = split /,/, $bootloader->findnodes('./@default')->to_literal();
+        foreach my $default_bootloader (@bootloader_variants) {
+            # Allow Family ID & revision to be used in default list for exceptions to normal rules for generations of chips
+            if ($default_bootloader eq "$kernel_chip$kernel_rev") {
+                $bootloader_type = $bootloader->findnodes('./@type')->to_literal();
+                $bootloader_version = $bootloader->to_literal();
+                # Fast escape from double loop, to make sure we choose chip override before normal family rules
+                $bootloader_version_set = 1;
+                last;
+            }
+            if ($default_bootloader eq $karch) {
+                $bootloader_type = $bootloader->findnodes('./@type')->to_literal();
+                $bootloader_version = $bootloader->to_literal();
+                last;
+            }
+        }
+        if ($bootloader_version_set =~ 1) { last; }
+    }
+}
+
+if ($bootloader_version) {
+    push(@config,"export B_REFSW_BOOTLOADER_VER=$bootloader_version\n");
+    push(@config,"export B_REFSW_BOOTLOADER=$bootloader_type\n");
 }
 
 # Push environment to STDOUT to pass to bash wrapper

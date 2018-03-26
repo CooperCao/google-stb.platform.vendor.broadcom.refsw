@@ -437,9 +437,6 @@ again:
 
     /* enable deinterlacer to improve quality */
     NEXUS_VideoWindow_GetMadSettings(window, &windowMadSettings);
-    windowMadSettings.deinterlace = true;
-    windowMadSettings.enable22Pulldown = true;
-    windowMadSettings.enable32Pulldown = true;
     NEXUS_VideoWindow_SetMadSettings(window, &windowMadSettings);
 
 #if NEXUS_HAS_AUDIO_MUX_OUTPUT_TEST
@@ -608,9 +605,6 @@ again:
 
     /* enable deinterlacer to improve quality */
     NEXUS_VideoWindow_GetMadSettings(windowTranscode, &windowMadSettings);
-    windowMadSettings.deinterlace = true;
-    windowMadSettings.enable22Pulldown = true;
-    windowMadSettings.enable32Pulldown = true;
     NEXUS_VideoWindow_SetMadSettings(windowTranscode, &windowMadSettings);
 
     /* connect same decoder to the encoder display;

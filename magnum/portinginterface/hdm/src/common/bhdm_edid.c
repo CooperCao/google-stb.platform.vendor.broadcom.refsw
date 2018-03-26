@@ -4331,6 +4331,7 @@ BERR_Code BHDM_EDID_Initialize(
 					if (hHDMI->AttachedEDID.MonitorName[offset] == '\n')
 					{
 						hHDMI->AttachedEDID.MonitorName[offset] = '\0' ;
+						hHDMI->AttachedEDID.BasicData.monitorName[offset] = '\0' ;
 						break ;
 					}
 				}

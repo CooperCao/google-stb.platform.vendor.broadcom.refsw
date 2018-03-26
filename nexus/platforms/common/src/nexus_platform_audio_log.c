@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,22 +51,25 @@ BDBG_MODULE(nexus_platform_audio_log);
 
 #if NEXUS_HAS_AUDIO && NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA
 #include "nexus_audio.h"
+#include "nexus_audio_dsp_private.h"
 #define NEXUS_PLATFORM_AUDIO_LOG 1
 #endif
 
 #if NEXUS_PLATFORM_AUDIO_LOG
+#include "bape.h"
 static bool g_audioLogThreadDone;
 static pthread_t g_audioLogThread;
 
 static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
 {
-    unsigned dsp, type;
+    unsigned dev, devType, type;
     const char *pEnv;
+    char *pCoreFileName = "audio_core";
     const void *pBuffer;
     size_t bufferSize;
     NEXUS_Error errCode;
     NEXUS_AudioCapabilities audioCaps;
-    unsigned numDsps = 0;
+    unsigned numDevices;
 
     struct
     {
@@ -75,21 +78,23 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
         {
             FILE *pFile;
             unsigned index;
-        } dsp[NEXUS_NUM_AUDIO_DSP];
+        } dsp[BAPE_DEVICE_DSP_NUM];
+        struct
+        {
+            FILE *pFile;
+            unsigned index;
+        } arm[BAPE_DEVICE_ARM_NUM];
     } debugData[NEXUS_AudioDspDebugType_eMax];
 
     BKNI_Memset(&debugData, 0, sizeof(debugData));
     BSTD_UNUSED(pParam);
 
     NEXUS_GetAudioCapabilities(&audioCaps);
-    if ( audioCaps.numDsps > 0 )
-    {
-        numDsps = audioCaps.numDsps;
-    }
 
     /* Initialize */
     for ( type = 0; type < NEXUS_AudioDspDebugType_eMax; type++ )
     {
+        pEnv = NULL;
         switch ( type )
         {
         case NEXUS_AudioDspDebugType_eDramMessage:
@@ -110,8 +115,9 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
             pEnv = NEXUS_GetEnv("audio_core_file");
             if ( NULL == pEnv && NEXUS_GetEnv("audio_logs_enabled") )
             {
-                pEnv = "audio_core";
+                pEnv = pCoreFileName;
             }
+            pCoreFileName = (char*)pEnv;
             break;
         case NEXUS_AudioDspDebugType_eTargetPrint:
             pEnv = NEXUS_GetEnv("audio_target_print_file");
@@ -125,25 +131,64 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
         {
             debugData[type].enabled = true;
 
-            for ( dsp = 0; dsp < numDsps; dsp++ )
-            {        
-#define AUDIO_LOG_PATH_MAX 128
-                char pathname[AUDIO_LOG_PATH_MAX];
-                if ( type == NEXUS_AudioDspDebugType_eCoreDump )
+            for ( devType = 0; devType < BAPE_DEVICE_TYPE_MAX; devType++ )
+            {
+                FILE * pFile = NULL;
+                const char *devTypeName;
+
+                switch ( devType )
                 {
-                    snprintf(pathname, sizeof(pathname), "%s.%u.0", pEnv, dsp);
+                case BAPE_DEVICE_TYPE_DSP:
+                    devTypeName = "dsp";
+                    numDevices = audioCaps.numDsps;
+                    break;
+                case BAPE_DEVICE_TYPE_ARM:
+                    devTypeName = "arm";
+                    numDevices = audioCaps.numSoftAudioCores;
+                    break;
+                default:
+                    devTypeName = "";
+                    BDBG_ERR(("Invalid Device Type"));
+                    return NULL;
+                    break; /* unreachable */
                 }
-                else
+
+                for ( dev = 0; dev < numDevices; dev++ )
                 {
-                    snprintf(pathname, sizeof(pathname), "%s.%u", pEnv, dsp);
+    #define AUDIO_LOG_PATH_MAX 128
+                    char pathname[AUDIO_LOG_PATH_MAX];
+                    if ( type == NEXUS_AudioDspDebugType_eCoreDump )
+                    {
+                        snprintf(pathname, sizeof(pathname), "%s.%s.%u.0", pEnv, devTypeName, dev);
+                    }
+                    else
+                    {
+                        snprintf(pathname, sizeof(pathname), "%s.%s.%u", pEnv, devTypeName, dev);
+                    }
+                    /* coverity[tainted_string] */
+                    pFile = fopen(pathname, "wb+");
+                    if ( NULL == pFile )
+                    {
+                        goto exit;
+                    }
+
+                    switch ( devType )
+                    {
+                    case BAPE_DEVICE_TYPE_DSP:
+                        debugData[type].dsp[dev].pFile = pFile;
+                        debugData[type].dsp[dev].index = 0;
+                        break;
+                    case BAPE_DEVICE_TYPE_ARM:
+                        debugData[type].arm[dev].pFile = pFile;
+                        debugData[type].arm[dev].index = 0;
+                        break;
+                    default:
+                        BDBG_ERR(("Invalid Device Type"));
+                        return NULL;
+                        break; /* unreachable */
+                    }
                 }
-                /* coverity[tainted_string] */
-                debugData[type].dsp[dsp].pFile = fopen(pathname, "wb+");
-                if ( NULL == debugData[type].dsp[dsp].pFile )
-                {
-                    goto exit;
-                }
-            }    
+            }
         }
     }
 
@@ -153,38 +198,142 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
         {
             if ( debugData[type].enabled )
             {
-                for ( dsp = 0; dsp < numDsps; dsp++ )
+                for ( devType = 0; devType < BAPE_DEVICE_TYPE_MAX; devType++ )
                 {
-                    bool logged=false;
-                    do
-                    {
-                        errCode = NEXUS_AudioDsp_GetDebugBuffer(dsp, type, &pBuffer, &bufferSize);
-                        if ( errCode != BERR_SUCCESS || bufferSize == 0 )
-                        {
-                            break;
-                        }
-                        (void)fwrite(pBuffer, bufferSize, 1, debugData[type].dsp[dsp].pFile);
-                        fflush(debugData[type].dsp[dsp].pFile);
-                        NEXUS_AudioDsp_DebugReadComplete(dsp, type, bufferSize);
-                        BDBG_MSG(("Wrote %u bytes of debug type %u", (unsigned)bufferSize, type));
-                        logged = true;
-                    } while ( 1 );
+                    FILE * pFile = NULL;
+                    unsigned index = 0;
+                    unsigned offset = 0;
 
-                    if ( logged == true && type == NEXUS_AudioDspDebugType_eCoreDump )
+                    switch ( devType )
                     {
-                        char pathname[AUDIO_LOG_PATH_MAX];
-                        /* Increment file name for each core dump */
-                        fclose(debugData[type].dsp[dsp].pFile);
-                        debugData[type].dsp[dsp].index++;
-                        snprintf(pathname, sizeof(pathname), "%s.%u.%u", NEXUS_GetEnv("audio_core_file"), dsp, debugData[type].dsp[dsp].index);
-                        BDBG_MSG(("Opening audio core dump file %s", pathname));
-                        /* coverity[tainted_string] */
-                        debugData[type].dsp[dsp].pFile = fopen(pathname, "wb+");
-                        if ( NULL == debugData[type].dsp[dsp].pFile )
+                    case BAPE_DEVICE_TYPE_DSP:
+                        numDevices = audioCaps.numDsps;
+                        break;
+                    case BAPE_DEVICE_TYPE_ARM:
+                        numDevices = audioCaps.numSoftAudioCores;
+                        break;
+                    default:
+                        BDBG_ERR(("Invalid Device Type"));
+                        goto exit;
+                        break; /* unreachable */
+                    }
+
+                    for ( dev = 0; dev < numDevices; dev++ )
+                    {
+                        const char *devTypeName;
+                        bool logged=false;
+
+                        switch ( devType )
                         {
-                            BDBG_ERR(("Unable to open audio debug logfile %s", pathname));
-                            goto exit;
+                        case BAPE_DEVICE_TYPE_DSP:
+                            devTypeName = "dsp";
+                            pFile = debugData[type].dsp[dev].pFile;
+                            index = debugData[type].dsp[dev].index;
+                            break;
+                        case BAPE_DEVICE_TYPE_ARM:
+                            devTypeName = "arm";
+                            pFile = debugData[type].arm[dev].pFile;
+                            index = debugData[type].arm[dev].index;
+                            offset = BAPE_DEVICE_ARM_FIRST;
+                            break;
+                        default:
+                            devTypeName = "";
+                            BDBG_ERR(("Invalid Device Type"));
+                            return NULL;
+                            break; /* unreachable */
                         }
+
+                        do
+                        {
+                            errCode = NEXUS_AudioDsp_GetDebugBuffer(dev+offset, type, &pBuffer, &bufferSize);
+                            if ( errCode != BERR_SUCCESS || bufferSize == 0 )
+                            {
+                                break;
+                            }
+                            (void)fwrite(pBuffer, bufferSize, 1, pFile);
+                            fflush(pFile);
+                            NEXUS_AudioDsp_DebugReadComplete(dev+offset, type, bufferSize);
+                            BDBG_MSG(("Wrote %u bytes of debug type %u", (unsigned)bufferSize, type));
+                            logged = true;
+                        } while ( 1 );
+
+                        if ( logged == true && type == NEXUS_AudioDspDebugType_eCoreDump )
+                        {
+                            char pathname[AUDIO_LOG_PATH_MAX];
+                            /* Increment file name for each core dump */
+                            fclose(pFile);
+                            index++;
+                            snprintf(pathname, sizeof(pathname), "%s.%s.%u.%u", pCoreFileName, devTypeName, dev, index);
+                            BDBG_MSG(("Opening audio core dump file %s", pathname));
+                            /* coverity[tainted_string] */
+                            pFile = fopen(pathname, "wb+");
+                            if ( NULL == pFile )
+                            {
+                                BDBG_ERR(("Unable to open audio debug logfile %s", pathname));
+                                goto exit;
+                            }
+
+                            switch ( devType )
+                            {
+                            case BAPE_DEVICE_TYPE_DSP:
+                                debugData[type].dsp[dev].index = index;
+                                debugData[type].dsp[dev].pFile = pFile;
+                                break;
+                            case BAPE_DEVICE_TYPE_ARM:
+                                debugData[type].arm[dev].index = index;
+                                debugData[type].arm[dev].pFile = pFile;
+                                break;
+                            default:
+                                BDBG_ERR(("Invalid Device Type"));
+                                return NULL;
+                                break; /* unreachable */
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /* global debug processes */
+        for ( devType = 0; devType < BAPE_DEVICE_TYPE_MAX; devType++ )
+        {
+            switch ( devType )
+            {
+            case BAPE_DEVICE_TYPE_DSP:
+                numDevices = audioCaps.numDsps;
+                break;
+            case BAPE_DEVICE_TYPE_ARM:
+                numDevices = audioCaps.numSoftAudioCores;
+                break;
+            default:
+                BDBG_ERR(("Invalid Device Type"));
+                goto exit;
+                break; /* unreachable */
+            }
+
+            for ( dev = 0; dev < numDevices; dev++ )
+            {
+                unsigned offset = 0;
+
+                switch ( devType )
+                {
+                case BAPE_DEVICE_TYPE_DSP:
+                    break;
+                case BAPE_DEVICE_TYPE_ARM:
+                    offset = BAPE_DEVICE_ARM_FIRST;
+                    break;
+                default:
+                    BDBG_ERR(("Invalid Device Type"));
+                    goto exit;
+                    break; /* unreachable */
+                }
+
+                if ( NEXUS_GetEnv("audio_debug_service_enabled") )
+                {
+                    errCode = NEXUS_AudioDspPrivate_RunDebugService(dev+offset);
+                    if ( errCode != BERR_SUCCESS )
+                    {
+                        break;
                     }
                 }
             }
@@ -195,12 +344,41 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
 exit:
     for ( type = 0; type < NEXUS_AudioDspDebugType_eMax; type++ )
     {
-        for ( dsp = 0; dsp < NEXUS_NUM_AUDIO_DSP; dsp++ )
+        for ( devType = 0; devType < BAPE_DEVICE_TYPE_MAX; devType++ )
         {
-            if ( NULL != debugData[type].dsp[dsp].pFile )
+            switch ( devType )
             {
-                fclose(debugData[type].dsp[dsp].pFile);
-                debugData[type].dsp[dsp].pFile = NULL;
+            case BAPE_DEVICE_TYPE_DSP:
+                numDevices = audioCaps.numDsps;
+                break;
+            case BAPE_DEVICE_TYPE_ARM:
+                numDevices = audioCaps.numSoftAudioCores;
+                break;
+            default:
+                BDBG_ERR(("Invalid Device Type"));
+                break;
+            }
+
+            for ( dev = 0; dev < numDevices; dev++ )
+            {
+                FILE * pFile = NULL;
+
+                switch ( devType )
+                {
+                case BAPE_DEVICE_TYPE_DSP:
+                    pFile = debugData[type].dsp[dev].pFile;
+                    break;
+                case BAPE_DEVICE_TYPE_ARM:
+                    pFile = debugData[type].arm[dev].pFile;
+                    break;
+                default:
+                    break;
+                }
+
+                if ( pFile != NULL )
+                {
+                    fclose(pFile);
+                }
             }
         }
     }
@@ -217,7 +395,8 @@ NEXUS_Error NEXUS_Platform_P_InitAudioLog(void)
          NEXUS_GetEnv("audio_debug_file") ||
          NEXUS_GetEnv("audio_core_file") ||
          NEXUS_GetEnv("audio_target_print_file") ||
-         NEXUS_GetEnv("audio_logs_enabled") )
+         NEXUS_GetEnv("audio_logs_enabled") ||
+         NEXUS_GetEnv("audio_debug_service_enabled") )
     {
         if ( pthread_create(&g_audioLogThread, NULL, NEXUS_Platform_P_AudioLogThread, NULL) )
         {

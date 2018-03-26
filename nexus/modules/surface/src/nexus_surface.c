@@ -42,6 +42,11 @@
 #include "nexus_client_resources.h"
 #include "priv/nexus_surface_module_local.h"
 
+#include "bchp_common.h"
+#ifndef BCHP_V3D_TFU_REG_START
+#define V3D_IS_VC4 1
+#endif
+
 BDBG_MODULE(nexus_surface);
 
 #define BDBG_MSG_TRACE(x) /* BDBG_MSG(x) */
@@ -247,6 +252,17 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
         BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return NULL;
     }
+    if (pCreateSettings->compatibility.graphicsv3d) {
+        switch (pCreateSettings->pixelFormat) {
+        case NEXUS_PixelFormat_eA8_B8_G8_R8:
+        case NEXUS_PixelFormat_eX8_B8_G8_R8:
+        case NEXUS_PixelFormat_eR5_G6_B5:
+            break;
+        default:
+            BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            return NULL;
+        }
+    }
 
     rc = NEXUS_CLIENT_RESOURCES_ACQUIRE(surface,Count,NEXUS_ANY_ID);
     if (rc) { rc = BERR_TRACE(rc); return NULL; }
@@ -290,6 +306,34 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
     }
 
     if (pixel_format != BPXL_eUIF_R8_G8_B8_A8) {
+#if V3D_IS_VC4
+        if (pCreateSettings->compatibility.graphicsv3d) {
+            /* VC4 V3D surface must have internal allocation to enforce all this,
+            pitch must be multiple of 16 bytes,
+            ulBufSize must allow last line to be read in 64 pixel blocks. */
+            unsigned n, pixel_block;
+
+            if (pCreateSettings->pMemory || pCreateSettings->pixelMemory) {
+                BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                goto error;
+            }
+            if (pCreateSettings->pitch % 16) { /* if user sets, must be multiple of 16 */
+                BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                goto error;
+            }
+            n = surface->plane.ulPitch % 16;
+            if (n) {
+                surface->plane.ulPitch += 16 - n;
+                surface->plane.ulBufSize = surface->plane.ulHeight * surface->plane.ulPitch;
+            }
+            pixel_block = BPXL_BITS_PER_PIXEL(pixel_format) / 8 * 64;
+            n = surface->plane.ulPitch % pixel_block;
+            if (n) {
+                surface->plane.ulBufSize += pixel_block - n;
+            }
+        }
+        else
+#endif
         if(pCreateSettings->pitch) {
             if (pCreateSettings->pitch < surface->plane.ulPitch) {
                 rc = BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -338,6 +382,12 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
         if (alignment_in_bytes && (sz % alignment_in_bytes)) {
             sz += alignment_in_bytes - (sz % alignment_in_bytes);
         }
+#if V3D_IS_VC4
+        /* VC4 V3D surface pitch must be have front alignment of 4096 and back alignment of 512 bytes. MMA uses one number for both. */
+        if (pCreateSettings->compatibility.graphicsv3d && alignment_in_bytes < 4096) {
+            alignment_in_bytes = 4096;
+        }
+#endif
         surface->plane.hPixels = BMMA_Alloc(heap, sz, alignment_in_bytes, &mmaSettings);
         if (!surface->plane.hPixels) {
             rc = ((heapStatus.memoryType & NEXUS_MEMORY_TYPE_DYNAMIC)==NEXUS_MEMORY_TYPE_DYNAMIC) ?
@@ -353,7 +403,7 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
     if (BPXL_IS_PALETTE_FORMAT(pixel_format)) {
         surface->plane.ulNumPaletteEntries = BPXL_NUM_PALETTE_ENTRIES(pixel_format);
         if (pCreateSettings->pPaletteMemory) {
-            uint32_t offset;
+            NEXUS_Addr offset;
             offset = NEXUS_AddrToOffset(pCreateSettings->pPaletteMemory);
             if ( 0 == offset )
             {

@@ -88,6 +88,8 @@ void TzTimers::secondaryCpuInit() {
 
 	TimerEntry::init();
 	timers.cpuLocal().init();
+
+	GIC::intrEnable(Arch::Timer::irqNum());
 }
 
 void TzTimers::TimerEntry::init() {

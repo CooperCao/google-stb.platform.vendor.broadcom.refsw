@@ -451,4 +451,8 @@ void BVC5_P_HardwarePLLDisable(
    BVC5_Handle hVC5
 );
 
+uint32_t BVC5_P_GetClockSpeed(
+   BVC5_Handle hVC5
+);
+
 #endif /* BVC5_HARDWARE_H__ */

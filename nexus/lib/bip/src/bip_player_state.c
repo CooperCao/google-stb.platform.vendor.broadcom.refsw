@@ -6180,11 +6180,15 @@ static BIP_Status createAspChannelAndSendHttpRequest(
     /* Send HTTP Request using AspChannel. */
     {
         void *pHttpReqBuf;
-        unsigned httpReqBufSize;
+        unsigned httpReqBufSize = 0;
+        void *pHttpReqBuf1;
+        unsigned httpReqBufSize1 = 0;
 
         /* Get Buffer where HTTP Request will be written into. */
-        rc = B_AspChannel_GetWriteBufferWithWrap(hPlayer->hAspChannel, &pHttpReqBuf, &httpReqBufSize, NULL, NULL);
+        rc = B_AspChannel_GetWriteBufferWithWrap(hPlayer->hAspChannel, &pHttpReqBuf, &httpReqBufSize, &pHttpReqBuf1, &httpReqBufSize1);
         BDBG_ASSERT(rc==0);
+        BSTD_UNUSED(pHttpReqBuf1);
+        BSTD_UNUSED(httpReqBufSize1);
         BDBG_MSG(("pHttpReqBuf=%p size=%u", pHttpReqBuf, httpReqBufSize));
         BKNI_Memset(pHttpReqBuf, 0, httpReqBufSize);
 
@@ -6218,9 +6222,14 @@ static BIP_Status checkForHttpResponse(
     B_Error     rc;
     const void *pHttpRespBuf;
     unsigned    httpRespBufSize;
+    const void *pHttpRespBuf1;
+    unsigned    httpRespBufSize1;
+
+    BSTD_UNUSED(pHttpRespBuf1);
+    BSTD_UNUSED(httpRespBufSize1);
 
     /* Check if ASP has received any data from network. */
-    rc = B_AspChannel_GetReadBufferWithWrap(hPlayer->hAspChannel, &pHttpRespBuf, &httpRespBufSize, NULL, NULL);
+    rc = B_AspChannel_GetReadBufferWithWrap(hPlayer->hAspChannel, &pHttpRespBuf, &httpRespBufSize, &pHttpRespBuf1, &httpRespBufSize1);
     BDBG_ASSERT(rc==B_ERROR_SUCCESS);
 
     if (httpRespBufSize)

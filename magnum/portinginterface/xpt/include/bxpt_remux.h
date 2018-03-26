@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -338,6 +338,7 @@ BERR_Code BXPT_Remux_AddPidChannelToRemux(
     unsigned int PidChannelNum          /* [in] Which PID channel. */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Include the given PID channel in the remux input, using the R-Pipe feed.
@@ -354,6 +355,7 @@ BERR_Code BXPT_Remux_AddRPipePidChannelToRemux(
     BXPT_RemuxInput RemuxInput,         /* [in] Which remux input */
     unsigned int PidChannelNum          /* [in] Which PID channel. */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -373,6 +375,7 @@ BERR_Code BXPT_Remux_RemovePidChannelFromRemux(
     unsigned int PidChannelNum          /* [in] Which PID channel. */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Is the given PID channel enabled for remuxing?
@@ -407,6 +410,7 @@ BERR_Code BXPT_Remux_RemoveAllPidChannel(
     BXPT_Remux_Handle RemuxHandle,  /* [in] Handle for the remux channel */
     BXPT_RemuxInput RemuxInput          /* [in] Which remux input */
     );
+#endif
 
 /***************************************************************************
 Summary:

@@ -249,9 +249,11 @@ BERR_Code BWFE_g3_P_OpenChannel(
    chG3->dgsClipCtlPong = 0;
    chG3->dgsClipCountPing = 0;
    chG3->dgsClipCountPong = 0;
+#ifndef BWFE_EXCLUDE_ANALOG_DELAY
    chG3->adjRight = 7;
    chG3->adjLeft = 7;
    chG3->prevDelay = 0;
+#endif
 #ifdef BWFE_HYBRID_ADC
    chG3->equRuntimeMs = 20;
    chG3->equTapMask = 0x6;
@@ -394,7 +396,7 @@ BERR_Code BWFE_g3_P_CloseChannel(BWFE_ChannelHandle h)
 ******************************************************************************/
 BERR_Code BWFE_g3_P_ResetChannel(BWFE_ChannelHandle h)
 {
-#ifdef BWFE_CALIBRATE_SLICE_DELAY
+#ifndef BWFE_EXCLUDE_ANALOG_DELAY
    BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
 #endif
    BERR_Code retCode = BERR_SUCCESS;
@@ -419,7 +421,7 @@ BERR_Code BWFE_g3_P_ResetChannel(BWFE_ChannelHandle h)
    /* apply config parameters */
    BWFE_g3_P_UpdateChannelConfig(h);
 
-#ifdef BWFE_CALIBRATE_SLICE_DELAY
+#ifndef BWFE_EXCLUDE_ANALOG_DELAY
    /* run delay calibration on first power up */
    if (hChn->prevDelay == 0)
    {
@@ -472,7 +474,7 @@ BERR_Code BWFE_g3_P_Reset(BWFE_Handle h)
          BWFE_P_InitAdc(h->pChannels[i]);
       #endif
 
-      #ifdef BWFE_CALIBRATE_SLICE_DELAY
+      #ifndef BWFE_EXCLUDE_ANALOG_DELAY
          /* configure dpm pilot frequency */
          BWFE_P_SetDpmPilotFreq(h->pChannels[i], BWFE_DEF_FC_DPM_KHZ);
          BWFE_P_GetDpmPilotFreq(h->pChannels[i], &freqKhz);
@@ -1272,6 +1274,7 @@ BERR_Code BWFE_g3_P_CalibrateAnalogDelay(BWFE_ChannelHandle h)
 
    return retCode;
 #else
+   BSTD_UNUSED(h);
    return BERR_NOT_SUPPORTED;
 #endif
 }
@@ -1297,6 +1300,8 @@ BERR_Code BWFE_g3_P_GetAnalogDelay(BWFE_ChannelHandle h, uint32_t *pCorrDelay)
    #endif
    return retCode;
 #else
+   BSTD_UNUSED(h);
+   BSTD_UNUSED(pCorrDelay);
    return BERR_NOT_SUPPORTED;
 #endif
 }
@@ -1327,6 +1332,8 @@ BERR_Code BWFE_g3_P_CompensateDelay(BWFE_ChannelHandle h, uint32_t *pSliceAdjust
    BWFE_P_WriteRegister(h, BCHP_WFE_ANA_ADC_CNTL10, val);
    return retCode;
 #else
+   BSTD_UNUSED(h);
+   BSTD_UNUSED(pSliceAdjust);
    return BERR_NOT_SUPPORTED;
 #endif
 }

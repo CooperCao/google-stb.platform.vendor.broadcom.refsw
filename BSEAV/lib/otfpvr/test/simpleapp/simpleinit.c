@@ -1,28 +1,48 @@
 /***************************************************************************
- *	   Copyright (c) 2004-2013, Broadcom Corporation
- *	   All Rights Reserved
- *	   Confidential Property of Broadcom Corporation
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *	THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *	AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *	EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $  
- * 
  ***************************************************************************/
 
 /* Used for the interrupt decoupling tasks */
 #include <msgQLib.h>
 #include <taskLib.h>
- 
+
 #include "simpleinit.h"
 
 #include "bchp_hif_cpu_intr1.h" /* Interrupt IDs */
@@ -88,10 +108,10 @@ static void PictureReady_isr(void *pvSourceHandle, int iParm2, void *pvFieldData
 #ifndef MAX_INT_MSG
 #define MAX_INT_MSG			32
 #endif
-#ifndef INT_MSG_START_ID	
+#ifndef INT_MSG_START_ID
 #define INT_MSG_START_ID	1234
 #endif
-#ifndef INT_MSG_END_ID		
+#ifndef INT_MSG_END_ID
 #define INT_MSG_END_ID		6789
 #endif
 
@@ -113,7 +133,7 @@ static void PictureReady_isr(void *pvSourceHandle, int iParm2, void *pvFieldData
 #define B_DAC_C_0  	BVDC_Dac_4
 #define B_DAC_YC_C_0 BVDC_Dac_5
 #define B_DAC_YC_Y_0 BVDC_Dac_6
-	
+
 #define B_DAC_C_1  	BVDC_Dac_3
 #endif
 
@@ -143,7 +163,7 @@ static void PictureReady_isr(void *pvSourceHandle, int iParm2, void *pvFieldData
 
 
 /*---------------------------------------------------
-	Local types 
+	Local types
   ---------------------------------------------------*/
 
 /*---------------------------------------------------
@@ -250,7 +270,7 @@ struct
 	MpegIntercept_Handle	hMI[MAX_MI];
 } sVideoData;
 
-struct 
+struct
 {
 	/* Base Modules */
 	BCHP_Handle			hBCHP;
@@ -265,7 +285,7 @@ struct
 #if BCHP_CHIP == 7400
     BMEM_Handle         hBMEM_XVD[2];
 #endif
-	
+
 	/* UPG Modules */
 	BI2C_Handle			hBI2C;
 	BI2C_ChannelHandle	hBI2C_Chan[BI2C_MAX_I2C_CHANNELS];
@@ -286,7 +306,7 @@ struct
 	BKPD_Handle			hBKPD;
 
 	BLED_Handle			hBLED;
-	
+
 	/* Porting Interface Modules */
 	BVDC_Handle			hBVDC;
 	BRDC_Handle			hBRDC;
@@ -313,7 +333,7 @@ struct
     BMEM_Handle	        ahBMEM_XVD_CHPmem[2];
     BMEM_Handle         hBMEM_XVD_FWmem;
     BMEM_Handle         ahBMEM_XVD[2];
-#endif     
+#endif
 #if BCHP_CHIP==7401
     BHSM_Handle         hBHSM;
 #endif
@@ -339,9 +359,9 @@ void MpegIntercept_CopyFieldData_isr(MpegIntercept_Handle	hMI, BAVC_MVD_Field*  
 BERR_Code InitApp(void)
 {
 	BERR_Code	status = BERR_SUCCESS;
-	
+
 	memset(&sAppData, 0, sizeof(sAppData));
-	
+
 	if (status == BERR_SUCCESS)
 		status = InitSystem();
 
@@ -349,7 +369,7 @@ BERR_Code InitApp(void)
 	{
 		InitVideoData();
 	}
-		
+
 	BERR_TRACE(status);
 	return status;
 }
@@ -379,7 +399,7 @@ BERR_Code InitSystem(void)
 
 
     int ii;
-	
+
 	/*	Initialize KernelInterface */
 	if (status == BERR_SUCCESS)
 		status = BKNI_Init();
@@ -423,8 +443,8 @@ BERR_Code InitSystem(void)
 
 #endif
         status = BINT_Open(&sAppData.hBINT, sAppData.hBREG, pINTSettings, NULL);
-	}       
-	
+	}
+
 	/*	Initialize MemoryManager(s) */
 	GetHeapConfig(&heapStart, &heapOffset, &heapSize, &heapXvdSize, &heapAlignment);
 
@@ -443,7 +463,7 @@ BERR_Code InitSystem(void)
 	if (status == BERR_SUCCESS)
         stHeapSettings.uiAlignment = heapAlignment;
         stHeapSettings.eBookKeeping = BMEM_BOOKKEEPING_LOCAL;
-        
+
 		status = BMEM_Heap_Create(
             sAppData.hBMEM_ModuleHandle,
             (void*)heapStart,
@@ -456,7 +476,7 @@ BERR_Code InitSystem(void)
 
 #if (BCHP_CHIP == 7400)
 if (status == BERR_SUCCESS) {
-#if 0        
+#if 0
             status = BMEM_Heap_GetDefaultSettings(&stHeapSettings);
 
             stHeapSettings.uiAlignment = 4;
@@ -470,12 +490,12 @@ if (status == BERR_SUCCESS) {
                 &stHeapSettings,
                 &sAppData.hBMEM_XVD_FWmem
                 );
-		
+
             status = BMEM_Heap_GetDefaultSettings(&stHeapSettings);
 
             stHeapSettings.uiAlignment = 0;
             stHeapSettings.eBookKeeping = BMEM_BOOKKEEPING_SYSTEM;
-	
+
             status = BMEM_Heap_Create(
                 sAppData.hBMEM_ModuleHandle,
                 (void*)0xA3E00000,
@@ -489,17 +509,17 @@ if (status == BERR_SUCCESS) {
             heapStart += heapXvdSize;
             heapOffset += heapXvdSize;
             heapSize -= heapXvdSize;
-			
-            BXVD_GetDefaultSettings(&cfg);            
-	
+
+            BXVD_GetDefaultSettings(&cfg);
+
             stHeapSettings.uiAlignment = 8;
             stHeapSettings.pCachedAddress = NULL;
             stHeapSettings.flush = NULL;
             stHeapSettings.flush_isr = NULL;
             stHeapSettings.eBookKeeping = BMEM_BookKeeping_eSystem;	/* These can not be accessed via the CPU on the 7400 */
             stHeapSettings.eSafetyConfig = BMEM_SafetyConfig_eFastest;	/* These can not be accessed via the CPU on the 7400 */
-	
-	
+
+
             /* Memory heap for 16-bit DDR_1: 1-on-1 mapping, 256-byte aligned */
             status = BMEM_Heap_Create(sAppData.hBMEM_ModuleHandle, (void *)0x60000000, 0x60000000, (64*1024*1024),
                                       &stHeapSettings, &sAppData.ahBMEM_XVD_CHPmem[0]);
@@ -508,7 +528,7 @@ if (status == BERR_SUCCESS) {
             /* Memory heap for 16-bit DDR_2: 1-on-1 mapping, 256-byte aligned */
             status = BMEM_Heap_Create(sAppData.hBMEM_ModuleHandle, (void *)0x70000000, 0x70000000, (64*1024*1024),
                                       &stHeapSettings, &sAppData.ahBMEM_XVD_CHPmem[1]);
-				
+
 }
         if (status == BERR_SUCCESS) {
             status = BMEM_Heap_GetDefaultSettings(&stHeapSettings);
@@ -534,10 +554,10 @@ if (status == BERR_SUCCESS) {
 
         status = BTMR_GetDefaultSettings(&settings);
 
-        if (status == BERR_SUCCESS) 
+        if (status == BERR_SUCCESS)
             status = BTMR_Open(&sAppData.hBTMR, sAppData.hBCHP, sAppData.hBREG, sAppData.hBINT, &settings);
     }
-		
+
 	/* Configure PIN muxing */
 	if (status == BERR_SUCCESS)
 		status = ConfigurePinMux();
@@ -558,7 +578,7 @@ if (status == BERR_SUCCESS) {
 
 	/*	VDC */
 	if (status == BERR_SUCCESS)
-		status = BVDC_GetDefaultSettings(&VDCSettings);
+		BVDC_GetDefaultSettings(&VDCSettings);
 
 #if (BCHP_CHIP == 7400)
     VDCSettings.bVecSwap = false;
@@ -580,7 +600,7 @@ if (status == BERR_SUCCESS) {
 	/* IRB */
 	if (status == BERR_SUCCESS)
 		status = BIRB_GetDefaultSettings(&IRBSettings, sAppData.hBCHP);
-    
+
     if (status == BERR_SUCCESS)
     	status = BIRB_Open( &sAppData.hBIRB,sAppData.hBCHP, sAppData.hBREG, sAppData.hBINT, &IRBSettings);
 
@@ -617,10 +637,10 @@ if (status == BERR_SUCCESS) {
 	/* HDM */
 	if (status == BERR_SUCCESS)
 		status = BHDM_GetDefaultSettings(&HDMSettings);
-	
+
 	if (status == BERR_SUCCESS)
-		status = BHDM_Open(&sAppData.hBHDM, sAppData.hBCHP, sAppData.hBREG, sAppData.hBINT, sAppData.hBI2C_Reg[3], &HDMSettings);			
-		
+		status = BHDM_Open(&sAppData.hBHDM, sAppData.hBCHP, sAppData.hBREG, sAppData.hBINT, sAppData.hBI2C_Reg[3], &HDMSettings);
+
     /* open PCR channels */
     for(ii = 0; ii < BXPT_P_MAX_PCRS && status == BERR_SUCCESS; ii++)
     {
@@ -687,10 +707,10 @@ if (status == BERR_SUCCESS) {
             status = BHSM_GetChannelDefaultSettings(sAppData.hBHSM, BHSM_HwModule_eCmdInterface1, &hsmch_config);
         if (status == BERR_SUCCESS)
             status = BHSM_Channel_Open(sAppData.hBHSM, &BHSM_ChannelHandle[BHSM_HwModule_eCmdInterface1], BHSM_HwModule_eCmdInterface1, &hsmch_config);
-        if (status == BERR_SUCCESS)   
+        if (status == BERR_SUCCESS)
             status = BHSM_Channel_Open(sAppData.hBHSM, &BHSM_ChannelHandle[BHSM_HwModule_eCmdInterface2], BHSM_HwModule_eCmdInterface2, &hsmch_config);
 
-        /*for everything to work correctly please preserve these bits until 
+        /*for everything to work correctly please preserve these bits until
           noted otherwise*/
         setMiscBitsIO.setMiscBitsSubCmd = BCMD_SetMiscBitsSubCmd_eRaveBits;
         setMiscBitsIO.bEnableWriteIMem = 1;
@@ -699,7 +719,7 @@ if (status == BERR_SUCCESS) {
         setMiscBitsIO.bEnableEncBypass = 0;
         setMiscBitsIO.bDisableClear = 1;
 
-        if (status == BERR_SUCCESS)   
+        if (status == BERR_SUCCESS)
             status = BHSM_SetMiscBits (sAppData.hBHSM, &setMiscBitsIO);
     }while(0);
 
@@ -708,7 +728,7 @@ if (status == BERR_SUCCESS) {
 
 	/* XVD */
 	if (status == BERR_SUCCESS)
-#if BCHP_CHIP == 7400		
+#if BCHP_CHIP == 7400
         cfg.hFrmMemory = sAppData.hBMEM;
 		status = BXVD_Open(&sAppData.hBXVD[0], sAppData.hBCHP, sAppData.hBREG, sAppData.hBMEM_XVD[0], sAppData.ahBMEM_XVD_CHPmem[0], sAppData.hBINT, &cfg );
         cfg.uiAVDInstance = 1;
@@ -721,13 +741,13 @@ if (status == BERR_SUCCESS) {
 
     if (status == BERR_SUCCESS) {
         status = OpenRapDevice();
-    }       
+    }
 
 	if (status != BERR_SUCCESS)
 		BDBG_ERR(("InitSystem: failed error %d", (int)status));
     else
         BDBG_WRN(("InitSystem: success"));
-	
+
 	return status;
 }
 
@@ -745,7 +765,7 @@ OpenRapDevice(void)
 	sRapCfg.pImgContext = BRAP_IMG_Context;
 
 	sRapCfg.bSupportAlgos[BRAP_DSPCHN_AudioType_eMpeg] = true;
-	sRapCfg.bSupportAlgos[BRAP_DSPCHN_AudioType_eAac] = true; 
+	sRapCfg.bSupportAlgos[BRAP_DSPCHN_AudioType_eAac] = true;
 	sRapCfg.bSupportAlgos[BRAP_DSPCHN_AudioType_eAacSbr] = true;
     sRapCfg.bSupportAlgos[BRAP_DSPCHN_AudioType_eAc3] = true;
 	sRapCfg.bSupportAlgos[BRAP_DSPCHN_AudioType_eAc3Plus] = true;
@@ -770,7 +790,7 @@ BERR_Code OpenAudDevice(void)
  /***********************************************************************
  *
  *  OpenI2cDevice()
- * 
+ *
  *  Open I2C device and create I2C reg handle
  *
  ***********************************************************************/
@@ -788,9 +808,9 @@ BERR_Code OpenI2cDevice(void)
 	for (i=0; i < BI2C_MAX_I2C_CHANNELS; i++)
 	{
     	status = BI2C_GetChannelDefaultSettings(sAppData.hBI2C, i, &defChnSettings );
-    	
+
     	defChnSettings.clkRate = BI2C_Clk_eClk100Khz;
-	    
+
 	    status = BI2C_OpenChannel(sAppData.hBI2C, &sAppData.hBI2C_Chan[i], i, &defChnSettings);
 	    status = BI2C_CreateI2cRegHandle (sAppData.hBI2C_Chan[i], &sAppData.hBI2C_Reg[i]);
 	}
@@ -801,7 +821,7 @@ BERR_Code OpenI2cDevice(void)
  /***********************************************************************
  *
  *  OpenSpiDevice()
- * 
+ *
  *  Open SPI device and create SPI reg handle
  *
  ***********************************************************************/
@@ -811,7 +831,7 @@ BERR_Code OpenSpiDevice(void)
 	BERR_Code 				status = BERR_SUCCESS;
 	uint32_t				i;
 
-    status = BSPI_Open(&sAppData.hBSPI, sAppData.hBCHP, 
+    status = BSPI_Open(&sAppData.hBSPI, sAppData.hBCHP,
     						sAppData.hBREG, sAppData.hBINT, NULL);
 
 
@@ -829,7 +849,7 @@ BERR_Code OpenSpiDevice(void)
  /***********************************************************************
  *
  *  OpenIcpDevice()
- * 
+ *
  *  Open ICP device.
  *
  ***********************************************************************/
@@ -839,9 +859,9 @@ BERR_Code OpenIcpDevice(void)
 	unsigned int			i;
     BICP_ChannelSettings	defChnSettings;
 
-    status = BICP_Open(&sAppData.hBICP, sAppData.hBCHP, 
+    status = BICP_Open(&sAppData.hBICP, sAppData.hBCHP,
     						sAppData.hBREG, sAppData.hBINT, NULL);
-    						
+
 	for (i=0; i < MAX_ICP_CHANNELS; i++)
 	{
 	    status = BICP_GetChannelDefaultSettings(sAppData.hBICP, i, &defChnSettings);
@@ -859,22 +879,22 @@ BERR_Code OpenIcpDevice(void)
 BERR_Code CloseAndReopenGIO(void)
 {
 	BERR_Code status = BERR_SUCCESS;
-	
+
 	/* Must already be opened for this test */
 	if (sAppData.hBGIO == NULL)
 		status = BERR_INVALID_PARAMETER;
-	
+
 	/* Close the module */
 	if (status == BERR_SUCCESS)
 		status = BGIO_Close(sAppData.hBGIO);
-	
+
 	/* Re-open */
 	if (status == BERR_SUCCESS)
 	{
 		sAppData.hBGIO = NULL;
 		status = BGIO_Open(&sAppData.hBGIO, sAppData.hBCHP, sAppData.hBREG);
 	}
-			
+
 	return status;
 }
 
@@ -887,22 +907,22 @@ BERR_Code CloseAndReopenGIO(void)
 BERR_Code CloseAndReopenURT(void)
 {
 	BERR_Code status = BERR_SUCCESS;
-	
+
 	/* Must already be opened for this test */
 	if (sAppData.hBURT == NULL)
 		status = BERR_INVALID_PARAMETER;
-	
+
 	/* Close the module */
 	if (status == BERR_SUCCESS)
 		status = BURT_Close(sAppData.hBURT);
-	
+
 	/* Re-open */
 	if (status == BERR_SUCCESS)
 	{
 		sAppData.hBURT = NULL;
 		status = BURT_Open(&sAppData.hBURT, sAppData.hBCHP, sAppData.hBREG, sAppData.hBINT, NULL);
 	}
-				
+
 	return status;
 }
 #endif
@@ -921,7 +941,7 @@ void bcmMapL1Ints (void)
 {
 	FN_L1_ISR	f;
 	void*		v;
-	
+
 	#define UL unsigned long
 	f = (FN_L1_ISR)BINT_Isr;
 
@@ -929,50 +949,50 @@ void bcmMapL1Ints (void)
 	v = (void *)sAppData.hBINT;
 
 	/* XPT Interrupt */
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_XPT_MSG_STAT_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_XPT_MSG_STAT_CPU_INTR, f,
 						v, INT1_ID_XPT_MSG_STAT_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_XPT_FE_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_XPT_FE_CPU_INTR, f,
 						v, INT1_ID_XPT_FE_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_XPT_PCR_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_XPT_PCR_CPU_INTR, f,
 						v, INT1_ID_XPT_PCR_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_XPT_RAV_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_XPT_RAV_CPU_INTR, f,
 						v, INT1_ID_XPT_RAV_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_XPT_STATUS_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_XPT_STATUS_CPU_INTR, f,
 						v, INT1_ID_XPT_STATUS_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_XPT_OVFL_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_XPT_OVFL_CPU_INTR, f,
 						v, INT1_ID_XPT_OVFL_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_XPT_MSG_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_XPT_MSG_CPU_INTR, f,
 						v, INT1_ID_XPT_MSG_CPU_INTR);
 
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_BSP_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_BSP_CPU_INTR, f,
 						v, INT1_ID_BSP_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_AIO_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_AIO_CPU_INTR, f,
 						v, INT1_ID_AIO_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_GFX_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_GFX_CPU_INTR, f,
 						v, INT1_ID_GFX_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_HDMI_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_HDMI_CPU_INTR, f,
 						v, INT1_ID_HDMI_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_RPTD_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_RPTD_CPU_INTR, f,
 						v, INT1_ID_RPTD_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_VEC_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_VEC_CPU_INTR, f,
 						v, INT1_ID_VEC_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_BVNB_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_BVNB_CPU_INTR, f,
 						v, INT1_ID_BVNB_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_BVNF_CPU_INTR_0, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_BVNF_CPU_INTR_0, f,
 						v, INT1_ID_BVNF_CPU_INTR_0);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_BVNF_CPU_INTR_1, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_BVNF_CPU_INTR_1, f,
 						v, INT1_ID_BVNF_CPU_INTR_1);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_BVNF_CPU_INTR_2, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_BVNF_CPU_INTR_2, f,
 						v, INT1_ID_BVNF_CPU_INTR_2);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_BVNF_CPU_INTR_3, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_BVNF_CPU_INTR_3, f,
 						v, INT1_ID_BVNF_CPU_INTR_3);
 
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_RFM_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_RFM_CPU_INTR, f,
 						v, INT1_ID_RFM_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_MC_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_MC_CPU_INTR, f,
 						v, INT1_ID_MC_CPU_INTR);
 	/* AVD0 */
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_AVD0_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_AVD0_CPU_INTR, f,
 						v, INT1_ID_AVD0_CPU_INTR);
 #if BCHP_CHIP == 7400
 	/* AVD1 */
@@ -984,22 +1004,22 @@ void bcmMapL1Ints (void)
 	 */
 
 	/* UPG/BSC/SPI interrupts */
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_UPG_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_UPG_CPU_INTR, f,
 						v, INT1_ID_UPG_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_UPG_BSC_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_UPG_BSC_CPU_INTR, f,
 						v, INT1_ID_UPG_BSC_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_UPG_SPI_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_UPG_SPI_CPU_INTR, f,
 						v, INT1_ID_UPG_SPI_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_UPG_SC_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_UPG_SC_CPU_INTR, f,
 						v, INT1_ID_UPG_SC_CPU_INTR);
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_UPG_TMR_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_UPG_TMR_CPU_INTR, f,
 						v, INT1_ID_UPG_TMR_CPU_INTR);
-	
+
 	/* SATA */
-//	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_PCI_SATA_CPU_INTR, f, 
+//	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_PCI_SATA_CPU_INTR, f,
 //						v, INT1_ID_PCI_SATA_CPU_INTR);
 	/* UHF */
-	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_UHF1_CPU_INTR, f, 
+	CPUINT1_ConnectIsr_vxWorks((unsigned long)INT1_ID_UHF1_CPU_INTR, f,
 						v, INT1_ID_UHF1_CPU_INTR);
 }
 
@@ -1249,25 +1269,25 @@ GetBXPT_Rave(void)
 BERR_Code InitUPGModules(void)
 {
 	BERR_Code	status = BERR_SUCCESS;
-	
+
 	if (status == BERR_SUCCESS)
 		status = OpenI2cDevice();
-	
+
 	if (status == BERR_SUCCESS)
 		status = OpenSpiDevice();
-	
+
 	if (status == BERR_SUCCESS)
 		status = OpenIcpDevice();
-		
-		
+
+
 	return status;
 }
 
 /*------------------------------------------------------------
-	stubs to avoid compile errors 
+	stubs to avoid compile errors
 ------------------------------------------------------------*/
 void InitAudioData(void)
-{	
+{
 }
 
 void
@@ -1307,7 +1327,7 @@ BERR_Code TestVideoDisplayForFormat(uint32_t uDecoder, BFMT_VideoFmt vidfmt, boo
 	/* Set video to requested format */
 	if (uDecoder ==0 && status == BERR_SUCCESS)
 		status = SetDisplayFormat(BVDC_CompositorId_eCompositor0, vidfmt, true);
-   
+
 	if (status == BERR_SUCCESS)
 		status = MakeMpegSrc(BVDC_CompositorId_eCompositor0, srcwndId, uDecoder, &src);
 
@@ -1341,7 +1361,7 @@ static void bsettop_p_init_pinmuxes_b0(BREG_Handle hReg)
 			BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_002)
 			);
 
-	reg |= 
+	reg |=
 #if BCM_BOARD == 97400
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_002, 0) /* GPIO_002 -> POD_EN */
 #else
@@ -1388,14 +1408,14 @@ static void bsettop_p_init_pinmuxes_b0(BREG_Handle hReg)
 #else
 	BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_3, gpio_013, 0 )	 /* POD_CD1 */
 #endif
-	; 
+	;
 
 	BREG_Write32(hReg,
 				 BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3,
 				 reg);
 
 	/* GPIO 014..023 */
-	reg = 
+	reg =
 #if BCM_BOARD == 97400
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_4, gpio_014, 4 ) | /* IRQ4 [Slot 2] */
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_4, gpio_015, 2 ) | /* IRQ5 [Diseqc] */
@@ -1428,7 +1448,7 @@ static void bsettop_p_init_pinmuxes_b0(BREG_Handle hReg)
 				 reg);
 
 	/* GPIO 024..033 */
-	reg = 
+	reg =
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_5, gpio_024, 1 ) | /* VI0_656_CLK */
 #if BCM_BOARD == 97400
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_5, gpio_025, 1 ) | /* MPOD_SCLK */
@@ -1453,7 +1473,7 @@ static void bsettop_p_init_pinmuxes_b0(BREG_Handle hReg)
 				 reg);
 
 	/* GPIO 034..043 */
-	reg = 
+	reg =
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_6, gpio_034, 2 ) | /* PPKT_IN_DATA3 */
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_6, gpio_035, 2 ) | /* PPKT_IN_DATA4 */
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_6, gpio_036, 2 ) | /* PPKT_IN_DATA5 */
@@ -1471,7 +1491,7 @@ static void bsettop_p_init_pinmuxes_b0(BREG_Handle hReg)
 				 reg);
 
 	/* GPIO 044..053 */
-	reg = 
+	reg =
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_7, gpio_044, 4 ) | /* NDS_SC_AUX1 */
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_7, gpio_045, 4 ) | /* NDS_SC_VCTRL1 */
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_7, gpio_046, 4 ) | /* SC_IO_2 */
@@ -1489,7 +1509,7 @@ static void bsettop_p_init_pinmuxes_b0(BREG_Handle hReg)
 				 reg);
 
 	/* GPIO 054..064 */
-	reg = 
+	reg =
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_8, gpio_054, 1 ) | /* PKT_ERROR3 */
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_8, gpio_055, 2 ) | /* VI0_656_D0 */
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_8, gpio_056, 2 ) | /* VI0_656_D1 */
@@ -1508,7 +1528,7 @@ static void bsettop_p_init_pinmuxes_b0(BREG_Handle hReg)
 				 reg);
 
 	/* GPIO 065..078 */
-	reg = 
+	reg =
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_065, 1 ) | /* PKT_CLK_2 */
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_066, 1 ) | /* PKT_CLK_3 */
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_9, gpio_067, 1 ) | /* PKT_CLK_4 */
@@ -1530,7 +1550,7 @@ static void bsettop_p_init_pinmuxes_b0(BREG_Handle hReg)
 				 reg);
 
 	/* GPIO 079..088 */
-	reg = 
+	reg =
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_079, 1 ) | /* PKT_SYNC4 */
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_080, 1 ) | /* PKT_SYNC5 */
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_10, gpio_081, 1 ) | /* SC_IO_1 */
@@ -1548,7 +1568,7 @@ static void bsettop_p_init_pinmuxes_b0(BREG_Handle hReg)
 				 reg);
 
 	/* GPIO 089..098 */
-	reg = 
+	reg =
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_11, gpio_089, 1 ) | /* GP_LED_KD_3 */
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_11, gpio_090, 1 ) | /* GP_LED_LS_0 */
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_11, gpio_091, 1 ) | /* GP_LED_LS_1 */
@@ -1566,7 +1586,7 @@ static void bsettop_p_init_pinmuxes_b0(BREG_Handle hReg)
 				 reg);
 
 	/* GPIO 099..109 */
-	reg = 
+	reg =
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_12, gpio_099, 1 ) | /* GP_LED_LD_4 */
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_12, gpio_100, 1 ) | /* GP_LED_LD_5 */
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_12, gpio_101, 1 ) | /* GP_LED_LD_6 */
@@ -1590,7 +1610,7 @@ static void bsettop_p_init_pinmuxes_b0(BREG_Handle hReg)
 
 	reg = reg & BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_13, byp_sys9_clk);
 
-	reg |= 
+	reg |=
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_13, gpio_110, 3 ) | /* NDS_SC_AUX1_2 */
 		BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_13, gpio_111, 3 ) | /* NDS_SC_VCTRL_2 */
 #if BCM_BOARD == 97400
@@ -1718,7 +1738,7 @@ BERR_Code ConfigurePinMux(void)
 #endif
 #if (BCHP_CHIP == 7400)
     // settop implementation
-    
+
 	/* Reseet is triggered on a rising-edge pulse.  Must write 0,1 */
 	BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_SW_RESET, 0);
 	BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_SW_RESET, BCHP_SUN_TOP_CTRL_SW_RESET_ext_sys_reset_1shot_MASK);
@@ -2046,7 +2066,7 @@ BVDC_Compositor_Handle GetCompositor(BVDC_CompositorId theCompositor)
     {
 
 #if BCHP_CHIP == 7401
-      	if (BERR_SUCCESS == BVDC_Compositor_Create(GetBVDC(), &sVideoData.hCompositor[theCompositor], theCompositor)) {        
+	if (BERR_SUCCESS == BVDC_Compositor_Create(GetBVDC(), &sVideoData.hCompositor[theCompositor], theCompositor)) {
 #endif
 #if BCHP_CHIP == 7400
     	if (BERR_SUCCESS == BVDC_Compositor_Create(GetBVDC(), &sVideoData.hCompositor[theCompositor], BVDC_CompositorId_eCompositor0+theCompositor, NULL))        {
@@ -2074,7 +2094,7 @@ BVDC_Display_Handle GetDisplay(BVDC_CompositorId theCompositor)
             BVDC_Display_Create(compositor, &sVideoData.hDisplay[theCompositor]);
 #endif
 #if BCHP_CHIP == 7400
-            BVDC_Display_Create(compositor, &sVideoData.hDisplay[theCompositor], BVDC_DisplayId_eDisplay1, NULL);            
+            BVDC_Display_Create(compositor, &sVideoData.hDisplay[theCompositor], BVDC_DisplayId_eDisplay1, NULL);
 #endif
         }
     }
@@ -2217,7 +2237,7 @@ bool MpegIntercept_CapturePending_isr(
 				)
 {
 	BDBG_ASSERT(hMI);
-	
+
 	return hMI->bCapturePending;
 }
 
@@ -2237,28 +2257,28 @@ void MpegIntercept_CopyFieldData_isr(
 	{
 		/* Get minimum of the pitches of our buffer and the decoder buffer */
 		minStride = (pFieldData->ulRowStride < hMI->stFrameBuffer.uiLumaRowStride) ? pFieldData->ulRowStride : hMI->stFrameBuffer.uiLumaRowStride;
-		
+
 		/* Get minimum of the heights of our buffer and  the decoder buffer */
 		minHeight = (pFieldData->ulSourceVerticalSize < hMI->stFrameBuffer.uiRequestedHeight) ? pFieldData->ulSourceVerticalSize : hMI->stFrameBuffer.uiRequestedHeight;
-		
+
 		/* Do macroblock row-by-row copy (to match up row starts) */
 		for (row = 0; row < minHeight/32; row++)
 		{
 			BKNI_Memcpy(
-				(char*)hMI->stFrameBuffer.pucChromaAddr + row * hMI->stFrameBuffer.uiChromaRowStride, 
-				(char*)pFieldData->pChrominanceFrameBufferAddress + row * pFieldData->ulRowStride, 
+				(char*)hMI->stFrameBuffer.pucChromaAddr + row * hMI->stFrameBuffer.uiChromaRowStride,
+				(char*)pFieldData->pChrominanceFrameBufferAddress + row * pFieldData->ulRowStride,
 				minStride);
 		}
 
 		for (row = 0; row < minHeight/16; row++)
 		{
 			BKNI_Memcpy(
-				(char*)hMI->stFrameBuffer.pucLumaAddr + row * hMI->stFrameBuffer.uiLumaRowStride, 
-				(char*)pFieldData->pLuminanceFrameBufferAddress + row * pFieldData->ulRowStride,   
+				(char*)hMI->stFrameBuffer.pucLumaAddr + row * hMI->stFrameBuffer.uiLumaRowStride,
+				(char*)pFieldData->pLuminanceFrameBufferAddress + row * pFieldData->ulRowStride,
 				minStride);
 		}
-				
-		
+
+
 		hMI->captureErr = BERR_SUCCESS;
 	}
 	else
@@ -2266,8 +2286,7 @@ void MpegIntercept_CopyFieldData_isr(
 		/* Size did not match allocated frame buffer */
 		hMI->captureErr = BERR_INVALID_PARAMETER;
 	}
-	
+
 	/* Clear the flag */
 	hMI->bCapturePending = false;
 }
-

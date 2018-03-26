@@ -790,6 +790,7 @@ static BERR_Code tracelog_GetStatus(BREG_Handle reg, unsigned memc, tracelog_Sta
     BSTD_UNUSED(offset);
     BSTD_UNUSED(memc);
 
+    BKNI_Memset(status, 0, sizeof(*status));
 #ifdef BCHP_MEMC_TRACELOG_0_0_REG_START
     rc = tracelog_P_GetOffset(memc, &offset);
     if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
@@ -909,7 +910,7 @@ static int tracelog_P_FormatMemcSizeAndComamnd(char *buf, size_t size, uint8_t c
     case 2: name="Cache"; linear=true; break;
     case 3: name="Block16";break;
     case 4: name="Block32";break;
-    case 5: name="Reaster";break;
+    case 5: name="Raster";break;
     case 6: name="Group";break;
     case 7: return BKNI_Snprintf(buf, size, "Non-Data");
     default: return BKNI_Snprintf(buf, size, "Undefined(%u) %u", (unsigned)command, (unsigned)burstSize);
@@ -1494,12 +1495,15 @@ static BERR_Code tracelog_Calibrate(BREG_Handle reg, unsigned memc, tracelog_Cal
         for(tmp=0,i=1;i<sizeof(clock)/sizeof(clock[0]);i++) {
             unsigned diff = clock[i] - clock[i-1];
             tmp += diff;
-            BDBG_LOG(("clock:%#x diff:%u freq(%u,%u)", (unsigned)clock[i], diff, (unsigned)((diff*(uint64_t)1000*1000)/delay_us), (unsigned)((tmp*1000*1000)/(delay_us*i))));
+            BDBG_MSG(("clock:%#x diff:%u freq(%u,%u)", (unsigned)clock[i], diff, (unsigned)((diff*(uint64_t)1000*1000)/delay_us), (unsigned)((tmp*1000*1000)/(delay_us*i))));
         }
         data->frequency = (unsigned)((tmp*1000*1000)/total_time);
         data->valid = data->frequency > 1000;
-        BDBG_LOG(("freq:%u ticks:%u time:%u", data->frequency, (unsigned)tmp, total_time));
+        BDBG_MSG(("freq:%u ticks:%u time:%u", data->frequency, (unsigned)tmp, total_time));
+        if(!data->valid) {
+            BDBG_ERR(("tracelog_Calibrate should be called after tracelog_Start"));
+        }
     }
 #endif
-    return BERR_SUCCESS;
+    return data->valid ? BERR_SUCCESS : BERR_TRACE(BERR_NOT_SUPPORTED);
 }

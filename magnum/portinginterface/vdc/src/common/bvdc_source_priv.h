@@ -564,6 +564,10 @@ typedef struct BVDC_P_SourceContext
     BVDC_Display_Handle       hDspTimebaseLocked;
     BAVC_Timebase             eTimeBase;
 #endif
+
+#ifdef BVDC_P_SUPPORT_RDC_STC_FLAG
+    uint32_t                  ulStcFlag; /* STC flag to trigger decoder STC snapshot */
+#endif
 } BVDC_P_SourceContext;
 
 

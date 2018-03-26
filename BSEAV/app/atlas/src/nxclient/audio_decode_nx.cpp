@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -475,8 +475,10 @@ eRet CSimpleAudioDecodeNx::updateConnectSettings(NxClient_ConnectSettings * pSet
     pSettings->simpleAudioDecoder.id = getNumber();
 
 #ifndef BDSP_MS12_SUPPORT
-    /* no ms12 mixer and single audio decoder so we will need a primer for non-live channels like playback */
-    /* set primer if we are connecting to a window that is not fullscreen. */
+    /*
+     * no ms12 mixer and single audio decoder so we will need a primer for non-live channels like playback
+     * set primer if we are connecting to a window that is not fullscreen.
+     */
     pSettings->simpleAudioDecoder.primer = (_pModel->getFullScreenWindowType() == getWindowType()) ? false : true;
 #endif
 
@@ -501,18 +503,23 @@ int CSimpleAudioDecodeNx::getAudioFade()
 error:
     return(level);
 } /* getAudioFade */
-#endif
+
+#endif /* if BDSP_MS12_SUPPORT */
 
 #if BDSP_MS12_SUPPORT
 /* level:0-100, duration:3-60000 msecs - note that setting audio fade before a previous request completes
-   will interrupt the previous request.  if you want any previous fade requests to complete first, see
-   waitAudioFadeComplete(). */
-eRet CSimpleAudioDecodeNx::setAudioFade(unsigned level, unsigned duration, bool bWait)
+ * will interrupt the previous request.  if you want any previous fade requests to complete first, see
+ * waitAudioFadeComplete(). */
+eRet CSimpleAudioDecodeNx::setAudioFade(
+        unsigned level,
+        unsigned duration,
+        bool     bWait
+        )
 {
     eRet ret = eRet_Ok;
 
     NEXUS_SimpleAudioDecoderHandle decoder = getSimpleDecoder();
-    NEXUS_Error nerror                     = NEXUS_SUCCESS;
+    NEXUS_Error                    nerror  = NEXUS_SUCCESS;
 
     BDBG_ASSERT(100 >= level);
     BDBG_ASSERT((3 <= duration) && (60000 >= duration));
@@ -563,16 +570,17 @@ done:
 error:
     return(ret);
 } /* setAudioFade */
-#endif
+
+#endif /* if BDSP_MS12_SUPPORT */
 
 #if BDSP_MS12_SUPPORT
 bool CSimpleAudioDecodeNx::isAudioFadePending()
 {
-    eRet                           ret                  = eRet_Timeout;
-    NEXUS_SimpleAudioDecoderHandle decoder              = getSimpleDecoder();
-    NEXUS_Error                    nerror               = NEXUS_SUCCESS;
-    bool                           bPending             = false;
-    NEXUS_AudioProcessorStatus     processorStatus;
+    eRet ret                               = eRet_Timeout;
+    NEXUS_SimpleAudioDecoderHandle decoder = getSimpleDecoder();
+    NEXUS_Error                    nerror  = NEXUS_SUCCESS;
+    bool bPending                          = false;
+    NEXUS_AudioProcessorStatus processorStatus;
 
     nerror = NEXUS_SimpleAudioDecoder_GetProcessorStatus(decoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, NEXUS_AudioPostProcessing_eFade, &processorStatus);
     if (NEXUS_SUCCESS != nerror)
@@ -587,20 +595,21 @@ bool CSimpleAudioDecodeNx::isAudioFadePending()
 
 done:
     return(bPending);
-}
-#endif
+} /* isAudioFadePending */
+
+#endif /* if BDSP_MS12_SUPPORT */
 
 #if BDSP_MS12_SUPPORT
 /* audio fade requests are not queued.  if a fade request occurs before a previous request
-   completes, it will interrupt the previous request.  this method will allow you to wait
-   until a previous fade request completes before starting a new one (if that's what you want to do).
-   audio decode should be started before calling this function.
-*/
+ * completes, it will interrupt the previous request.  this method will allow you to wait
+ * until a previous fade request completes before starting a new one (if that's what you want to do).
+ * audio decode should be started before calling this function.
+ */
 eRet CSimpleAudioDecodeNx::waitAudioFadeComplete()
 {
-    eRet                           ret                  = eRet_Ok;
-    NEXUS_Error                    nerror               = NEXUS_SUCCESS;
-    NEXUS_SimpleAudioDecoderHandle decoder              = getSimpleDecoder();
+    eRet                           ret     = eRet_Ok;
+    NEXUS_Error                    nerror  = NEXUS_SUCCESS;
+    NEXUS_SimpleAudioDecoderHandle decoder = getSimpleDecoder();
     NEXUS_AudioProcessorStatus     processorStatus;
 
     if (false == isStarted())
@@ -616,8 +625,8 @@ eRet CSimpleAudioDecodeNx::waitAudioFadeComplete()
         if (!nerror && processorStatus.status.fade.active)
         {
             BDBG_MSG(("%s nerror:%d type:%d active:%d remain:%d level:%d%%",
-                __FUNCTION__, nerror, processorStatus.type, processorStatus.status.fade.active,
-                processorStatus.status.fade.remaining, processorStatus.status.fade.level));
+                      __FUNCTION__, nerror, processorStatus.type, processorStatus.status.fade.active,
+                      processorStatus.status.fade.remaining, processorStatus.status.fade.level));
         }
 
         if (nerror)
@@ -628,5 +637,6 @@ eRet CSimpleAudioDecodeNx::waitAudioFadeComplete()
     while (nerror != NEXUS_SUCCESS || processorStatus.type == NEXUS_AudioPostProcessing_eMax || processorStatus.status.fade.active);
 
     return(ret);
-}
-#endif
+} /* waitAudioFadeComplete */
+
+#endif /* if BDSP_MS12_SUPPORT */

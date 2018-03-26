@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -2906,6 +2906,50 @@ DRM_Prdy_Error_e DRM_Prdy_DeleteSecureStore(void);
  ***********************************************************************************/
 DRM_Prdy_Error_e DRM_Prdy_GetSecureStoreHash(
 		uint8_t				*pSecureStoreHash );
+/***********************************************************************************
+ * Function: DRM_Prdy_DeleteSecureStore_Ex()
+ *
+ * Description:
+ * DRM_Prdy_DeleteSecureStore is used to delete a corrupted Secure Store file,
+ * whose path is specified in DstrHDSPath.
+ *
+ * Maps to:
+ *  Drm_DeleteSecureStore
+ *
+ * Parameters:
+ *
+ * Returns:
+ *   On Success:   DRM_Prdy_ok
+ *   On Failure:   any other error code.
+ *
+ * Note:
+ *
+ ***********************************************************************************/
+DRM_Prdy_Error_e DRM_Prdy_DeleteSecureStore_Ex(const char     *pDstrHDSPath);
+
+/***********************************************************************************
+ * Function: DRM_Prdy_GetSecureStoreHash_Ex()
+ *
+ * Description:
+ * DRM_Prdy_GetSecureStoreHash is used to retrieve a hash of the secure store whose path
+ * is specified in DstrHDSPath.
+ *
+ * Maps to:
+ *  Drm_GetSecureStoreHash
+ *
+ * Parameters:
+ *  pPrdyContext:    [in] A valid DRM_Prdy_Context
+ *
+ * Returns:
+ *   On Success:   DRM_Prdy_ok
+ *   On Failure:   any other error code.
+ *
+ * Note:
+ *
+ ***********************************************************************************/
+DRM_Prdy_Error_e DRM_Prdy_GetSecureStoreHash_Ex(
+                    const char     *pDstrHDSPath,
+                    uint8_t             *pSecureStoreHash );
 
 /***********************************************************************************
  * Function: DRM_Prdy_DeleteKeyStore()

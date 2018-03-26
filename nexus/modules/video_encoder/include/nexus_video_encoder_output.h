@@ -139,10 +139,19 @@ Populates one video encoder descriptor for each frame into the provided NEXUS_Vi
 Each frame will only be returned once. I.e. Subsequent calls to ReadIndex will return only descriptors that
 weren't read previously.
 
+The video encoder descriptors provide a way for the caller to obtain metadata such as the originalPTS to
+PTS relationship. NEXUS_VideoEncoderDescriptor.offset points to the start of the video frame relative to
+the beginning of the data buffer and NEXUS_VideoEncoderDescriptor.length indicates the total length of the
+video frame, however, the video frame is NOT necessarily contiguous because it may have wrapped in the
+circular data buffer.
+
 This API does not modify the index/data pointers, so can be called in conjunction with any other consumer.
+To prevent video buffer overflows, there must be a consumer of the index/data such as NEXUS_StreamMux,
+NEXUS_FileMux, any other consumer that calls NEXUS_VideoEncoder_[GetBuffer/ReadComplete], or
+updates the video index/data pointers directly.
 
 The index is implemented as a circular FIFO, so will always return the newest descriptors when called.
-To ensure no descriptors are missed, ReadIndex must be called periodically and repeatedly until  *pRead < size.
+To ensure no descriptors are missed, ReadIndex must be called periodically and repeatedly until *pRead < size.
 **/
 NEXUS_Error NEXUS_VideoEncoder_ReadIndex(
     NEXUS_VideoEncoderHandle handle,

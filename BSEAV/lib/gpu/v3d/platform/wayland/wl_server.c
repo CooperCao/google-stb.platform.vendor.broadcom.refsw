@@ -4,6 +4,7 @@
 #include "wl_server.h"
 
 #include "wayland_nexus_server.h"
+#include "nexus_platform.h"
 
 #include <wayland-server.h>
 #include <EGL/egl.h>
@@ -36,7 +37,10 @@ static WlBufferMemory *CreateWlBufferMemory(NEXUS_HeapHandle heap,
       void *ptr;
       err = NEXUS_MemoryBlock_Lock(memory->handle, &ptr);
       if (err == NEXUS_SUCCESS)
+      {
+         NEXUS_FlushCache(ptr, size);
          memory->settings.cachedAddr = ptr;
+      }
       else
          fprintf(stderr, "%s: unable to lock\n", __FUNCTION__);
       memory->settings.format = format;

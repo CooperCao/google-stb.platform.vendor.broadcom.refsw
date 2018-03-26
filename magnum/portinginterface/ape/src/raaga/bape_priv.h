@@ -49,6 +49,7 @@
 #include "blst_squeue.h"
 #include "bape_chip_priv.h"
 #include "bape_reg_priv.h"
+/*#include "bape_buffer.h"*/
 #include "blst_queue.h"
 #if defined BCHP_HDMI_RCVR_CTRL_REG_START
 #include "bchp_hdmi_rcvr_ctrl.h"
@@ -68,6 +69,9 @@
 #elif defined BCHP_AUD_FMM_IOP_IN_SPDIF_0_REG_START
 #include "bchp_aud_fmm_iop_in_spdif_0.h"
 #endif
+
+/* Defines */
+#define BAPE_MAX_CALLBACKCLIENTS    5
 
 /* Debug objects */
 BDBG_OBJECT_ID_DECLARE(BAPE_Device);
@@ -153,7 +157,7 @@ typedef struct BAPE_L3Interrupt
 Summary:
 Invalid DSP Mixer Input
 ***************************************************************************/
-#define BAPE_DSPMIXER_INPUT_INVALID ((unsigned)-1)
+#define BAPE_MIXER_INPUT_INDEX_INVALID ((unsigned)-1)
 
 /***************************************************************************
 Summary:
@@ -196,10 +200,10 @@ Init FCI ID Group
 #define BAPE_FciIdGroup_Init_isrsafe(pGroup) \
 do \
 { \
-    unsigned i; \
-    for ( i = 0; i < BAPE_ChannelPair_eMax; i++ ) \
+    unsigned q; \
+    for ( q = 0; q < BAPE_ChannelPair_eMax; q++ ) \
     { \
-        (pGroup)->ids[i] = BAPE_FCI_ID_INVALID; \
+        (pGroup)->ids[q] = BAPE_FCI_ID_INVALID; \
     } \
 } while (0)
 
@@ -271,6 +275,11 @@ FCI Splitter Group Handle
 ***************************************************************************/
 typedef struct BAPE_FciSplitterOutputGroup *BAPE_FciSplitterOutputGroupHandle;
 
+
+typedef struct BAPE_Buffer *BAPE_BufferHandle;
+
+typedef struct BAPE_BufferGroup *BAPE_BufferGroupHandle;
+
 /***************************************************************************
 Summary:
 Decoder State
@@ -287,6 +296,55 @@ typedef enum BAPE_DecoderState
     BAPE_DecoderState_eMax
 } BAPE_DecoderState;
 
+typedef enum BAPE_BufferInterfaceType
+{
+    BAPE_BufferInterfaceType_eRdb,
+    BAPE_BufferInterfaceType_eDram,
+    BAPE_BufferInterfaceType_eMax
+} BAPE_BufferInterfaceType;
+
+#define BAPE_BUFFER_INTERFACE_CFG_INCLUSIVE_SHIFT       (0)
+#define BAPE_BUFFER_INTERFACE_CFG_INCLUSIVE_MASK        (1<<BAPE_BUFFER_INTERFACE_CFG_INCLUSIVE_SHIFT)
+
+#define BAPE_BUFFER_INTERFACE_CTRL_ENABLE_SHIFT         (0)
+#define BAPE_BUFFER_INTERFACE_CTRL_ENABLE_MASK          (1<<BAPE_BUFFER_INTERFACE_CTRL_ENABLE_SHIFT)
+
+#define BAPE_BUFFER_INTERFACE_ENABLED(ctl) ((ctl & BAPE_BUFFER_INTERFACE_CTRL_ENABLE_MASK) != 0)
+typedef struct BAPE_BufferInterface
+{
+    BMMA_Block_Handle block;
+    BMMA_DeviceOffset base;
+    BMMA_DeviceOffset end;
+    BMMA_DeviceOffset read;
+    BMMA_DeviceOffset valid;
+    BMMA_DeviceOffset watermark; /* Consumption may start when watermark reaches this level. May be 0.
+                                    Consumer will set to 0 when watermark is reached */
+    uint32_t             config; /* Configuration bits */
+    uint32_t             control; /* Control bits */
+    volatile int32_t     lock; /* lock field for spin lock to protect enable->disable sequence */
+} BAPE_BufferInterface;
+
+#define BAPE_BUFFER_ASSERT_INTERFACE_VALID(b,e,r,v) \
+{ \
+    BDBG_ASSERT(e > b); \
+    BDBG_ASSERT(r >= b); \
+    BDBG_ASSERT(v >= b); \
+    BDBG_ASSERT(r <= e); \
+    BDBG_ASSERT(v <= e); \
+}
+
+/* BAPE_BufferInterface usage -
+   This interface, when used across devices, must be allocated in BMMA.
+   Before values are read and after values are written, Cache must be flushed.
+
+   Control bits -
+   CTRL_ENABLE - enable/disable consumption. Consumers must check this bit before
+   reading data or moving the read pointer. Consumer should treat this bit as read only.
+
+   Config bits -
+   CFG_INCLUSIVE - if set, end address is included.
+*/
+
 /***************************************************************************
 Summary:
 Buffer Node
@@ -298,12 +356,25 @@ typedef struct BAPE_BufferNode
     BMMA_Block_Handle block;
     void *pMemory;
     BMMA_DeviceOffset offset;
+    BAPE_BufferInterfaceType bufferInterfaceType;
+    BMMA_Block_Handle bufferInterfaceBlock;
+    BAPE_BufferInterface * pBufferInterface;
+    BMMA_DeviceOffset bufferInterfaceOffset;
     unsigned bufferSize;
     bool allocated;
     uint8_t poolIndex;
 } BAPE_BufferNode;
 
 #include "bape_fmt_priv.h"
+
+typedef enum BAPE_ResourceState
+{
+    BAPE_ResourceState_eReleased,
+    BAPE_ResourceState_eAcquiring, /* some resources require ISR -> non-ISR transitions which take time */
+    BAPE_ResourceState_eAcquired,
+    BAPE_ResourceState_eReleasing, /* some resources require ISR -> non-ISR transitions which take time */
+    BAPE_ResourceState_eMax
+} BAPE_ResourceState;
 
 /***************************************************************************
 Summary:
@@ -340,12 +411,15 @@ typedef struct BAPE_Device
 #endif
     } buffers[BAPE_MAX_BUFFER_POOLS];
 
+#if BAPE_DSP_SUPPORT
     /* Software resource allocation */
-#if BAPE_CHIP_MAX_DECODERS > 0
     BDSP_ContextHandle       dspContext;
     BDSP_ContextHandle       armContext;
     unsigned                 numDsps;
     unsigned                 numArms;
+#endif
+
+#if BAPE_CHIP_MAX_DECODERS > 0
     BAPE_DecoderHandle       decoders[BAPE_CHIP_MAX_DECODERS];
     struct
     {
@@ -426,17 +500,34 @@ typedef struct BAPE_Device
         BAPE_MclkRate mclkRate;
     } extMclkSettings[BAPE_CHIP_MAX_EXT_MCLKS];
 #endif
+    BAPE_ResourceState pllState[BAPE_CHIP_MAX_PLLS];
+    bool pllVerify[BAPE_CHIP_MAX_PLLS];
+    #if BDBG_DEBUG_BUILD && BAPE_CHIP_TIME_PLL_VERIFY
+    uint64_t pllVerifyTime[BAPE_CHIP_MAX_PLLS];
+    #endif
 #endif
 #if BAPE_CHIP_MAX_NCOS > 0
     /* PLL Status */
     BAPE_AudioNco   audioNcos[BAPE_CHIP_MAX_NCOS];
+    bool ncoVerify[BAPE_CHIP_MAX_NCOS];
+    #if BDBG_DEBUG_BUILD && BAPE_CHIP_TIME_PLL_VERIFY
+    uint64_t ncoVerifyTime[BAPE_CHIP_MAX_PLLS];
+    #endif
 #endif
 
     /* Groups */
+#if BAPE_CHIP_MAX_SFIFO_GROUPS > 0
     BAPE_SfifoGroupHandle     sfifoGroups[BAPE_CHIP_MAX_SFIFO_GROUPS];
+#endif
+#if BAPE_CHIP_MAX_DFIFO_GROUPS > 0
     BAPE_DfifoGroupHandle     dfifoGroups[BAPE_CHIP_MAX_DFIFO_GROUPS];
+#endif
+#if BAPE_CHIP_MAX_SRC_GROUPS > 0
     BAPE_SrcGroupHandle       srcGroups[BAPE_CHIP_MAX_SRC_GROUPS];
+#endif
+#if BAPE_CHIP_MAX_MIXER_GROUPS > 0
     BAPE_MixerGroupHandle     mixerGroups[BAPE_CHIP_MAX_MIXER_GROUPS];
+#endif
 #if BAPE_CHIP_MAX_LOOPBACK_GROUPS > 0
     BAPE_LoopbackGroupHandle  loopbackGroups[BAPE_CHIP_MAX_LOOPBACK_GROUPS];
 #endif
@@ -459,27 +550,51 @@ typedef struct BAPE_Device
     BINT_CallbackHandle isrBfEsr2;
     BINT_CallbackHandle isrBfEsr3;
     BINT_CallbackHandle isrBfEsr4;
+#if BAPE_CHIP_MAX_SFIFOS > 0
     BAPE_L3Interrupt sourceRbufFreemark[BAPE_CHIP_MAX_SFIFOS];
+#endif
+#if BAPE_CHIP_MAX_DFIFOS > 0
     BAPE_L3Interrupt destRbufFullmark[BAPE_CHIP_MAX_DFIFOS];
     BAPE_L3Interrupt destRbufOverflow[BAPE_CHIP_MAX_DFIFOS];
+#endif
+
+    /* Callbacks */
+    struct
+    {
+        BAPE_CallbackHandler client[BAPE_MAX_CALLBACKCLIENTS];
+    } callbacks[BAPE_CallbackEvent_eMax];
 
     /* Hardware resource allocation map */
+#if BAPE_CHIP_MAX_SFIFOS > 0
     bool sfifoAllocated[BAPE_CHIP_MAX_SFIFOS];
+#endif
+#if BAPE_CHIP_MAX_DFIFOS > 0
     bool dfifoAllocated[BAPE_CHIP_MAX_DFIFOS];
+#endif
+#if BAPE_CHIP_MAX_SRCS > 0
     bool srcAllocated[BAPE_CHIP_MAX_SRCS];
+#endif
 #ifdef BAPE_CHIP_MAX_SRC_COEFF_CHUNKS
     bool srcCoeffAllocated[BAPE_CHIP_MAX_SRC_COEFF_CHUNKS];
 #endif
-    bool mixerAllocated[BAPE_CHIP_MAX_MIXERS];
+#if (BAPE_CHIP_MAX_HW_MIXERS > 0) || (BAPE_CHIP_MAX_BYPASS_MIXERS > 0)
+    bool mixerAllocated[BAPE_CHIP_MAX_HW_MIXERS+BAPE_CHIP_MAX_BYPASS_MIXERS];
+#endif
+#if BAPE_CHIP_MAX_MIXER_PLAYBACKS > 0
     bool playbackAllocated[BAPE_CHIP_MAX_MIXER_PLAYBACKS];
+#endif
+#if BAPE_CHIP_MAX_DUMMYSINKS > 0
     bool dummysinkAllocated[BAPE_CHIP_MAX_DUMMYSINKS];
+#endif
 #if BAPE_CHIP_MAX_LOOPBACKS > 0
     bool loopbackAllocated[BAPE_CHIP_MAX_LOOPBACKS];
 #endif
 #if BAPE_CHIP_MAX_FS > 0
     bool fsAllocated[BAPE_CHIP_MAX_FS];
 #endif
+#if BAPE_CHIP_MAX_ADAPTRATE_CONTROLLERS > 0
     bool adaptRateAllocated[BAPE_CHIP_MAX_ADAPTRATE_CONTROLLERS];
+#endif
 #if BAPE_CHIP_MAX_CRCS > 0
     bool crcAllocated[BAPE_CHIP_MAX_CRCS];
 #endif
@@ -491,8 +606,10 @@ typedef struct BAPE_Device
 #endif
 
     /* Usage Tracking for DP Playback */
+#if BAPE_CHIP_MAX_MIXER_PLAYBACKS > 0
     BAPE_FciId playbackFci[BAPE_CHIP_MAX_MIXER_PLAYBACKS];
     uint8_t playbackReferenceCount[BAPE_CHIP_MAX_MIXER_PLAYBACKS];
+#endif
 
     /* Interrupts */
     BAPE_InterruptHandlers interrupts;
@@ -530,6 +647,7 @@ typedef struct BAPE_PathConnector
     BLST_SQ_HEAD(ConnectionList, BAPE_PathConnection) connectionList;
     /* Buffer resources if useBufferBool is true */
     BAPE_BufferNode *pBuffers[BAPE_ChannelPair_eMax];
+    BAPE_BufferGroupHandle bufferGroupHandle;
     /* Name */
     const char *pName;
 } BAPE_PathConnector;
@@ -723,6 +841,9 @@ typedef struct BAPE_PathConnection
     BAPE_SfifoGroupHandle       sfifoGroup;
     BAPE_SrcGroupHandle         srcGroup;
 
+    /* DRAM Resources */
+    BAPE_BufferGroupHandle bufferGroupHandle;
+
 #if BAPE_DSP_SUPPORT
     /* Buffers for DSP mixer/Echo Canceller connections */
     BDSP_InterTaskBufferHandle hInterTaskBuffer;
@@ -788,6 +909,15 @@ typedef struct BAPE_MixerInterface {
     BERR_Code (*getStatus)          (BAPE_MixerHandle hMixer, BAPE_MixerStatus *pStatus);
 } BAPE_MixerInterface ;
 
+
+typedef enum BAPE_TaskState
+{
+    BAPE_TaskState_eStopped, /* Task is not running */
+    BAPE_TaskState_eStarting,/* Task is in a state of preparing to start but Task Started not yet called */
+    BAPE_TaskState_eStarted, /* Task is fully started */
+    BAPE_TaskState_eMax
+} BAPE_TaskState;
+
 /***************************************************************************
 Summary:
 Mixer Structure
@@ -808,10 +938,15 @@ typedef struct BAPE_Mixer
     unsigned numOutputConnections;  /* Number of output connections.  Used when connecting a standard mixer to another FMM node such as eq or mixer. */
     BAPE_PathNode pathNode;
     BAPE_MclkSource mclkSource;
-    BAPE_MixerGroupHandle mixerGroups[BAPE_CHIP_MAX_MIXERS];
+    #if BAPE_CHIP_MAX_MIXER_GROUPS > 0
+    BAPE_MixerGroupHandle mixerGroups[BAPE_CHIP_MAX_MIXER_GROUPS];
+    #endif
+    BAPE_BufferGroupHandle bufferGroupHandle;
     BAPE_Handle deviceHandle;
     BAPE_MixerSettings settings;
+    BAPE_MixerType mixerType;
     BAPE_Connector master;
+    #if BAPE_CHIP_MAX_MIXER_INPUTS > 0
     BAPE_Connector inputs[BAPE_CHIP_MAX_MIXER_INPUTS];
     BAPE_MixerInputCaptureHandle inputCaptures[BAPE_CHIP_MAX_MIXER_INPUTS];
     bool inputMuted[BAPE_CHIP_MAX_MIXER_INPUTS];
@@ -819,12 +954,15 @@ typedef struct BAPE_Mixer
     BAPE_MixerInputVolume inputVolume[BAPE_CHIP_MAX_MIXER_INPUTS];
     BAPE_MixerInputSettings inputSettings[BAPE_CHIP_MAX_MIXER_INPUTS];
     BAPE_CrcHandle crcs[BAPE_CHIP_MAX_MIXER_INPUTS];
+    #endif
     BAPE_StereoMode stereoMode; /* For HDMI on IOP devices.  We may need to adjust the input channel pairs to swap left and
                                    right or put just left or right on both channels.  Using the crossbar introduces issues
                                    with Sony TVs because the channel status would be invalid. */
 #if BAPE_CHIP_MAX_DSP_MIXERS > 0
-    bool taskStarted;
+    BAPE_TaskState taskState;
+    #if BAPE_CHIP_MAX_MIXER_INPUTS > 0
     BDSP_InterTaskBufferHandle hInterTaskBuffers[BAPE_CHIP_MAX_MIXER_INPUTS];
+    #endif
     BDSP_TaskHandle hTask;
     BDSP_StageHandle hMixerStage, hSrcStage;
     BDSP_AF_P_sOpSamplingFreq sampleRateMap;
@@ -854,11 +992,13 @@ typedef struct BAPE_MixerInputCapture
 
 #if BAPE_DSP_SUPPORT
     BDSP_AudioCaptureHandle hCapture;
+    BDSP_StageHandle hStage;
+    BDSP_ContextHandle hDeviceContext;
+    BDSP_AudioCaptureCreateSettings dspSettings;
 #endif
 
     BAPE_MixerInputCaptureInterruptHandlers interrupts;
     BAPE_PathConnector * input;
-    BDSP_StageHandle hStage;
 
     /* Capture pointer info for all the output capture ports */
 } BAPE_MixerInputCapture;
@@ -1222,9 +1362,19 @@ unsigned BAPE_P_GetProfessionalSampleRateCstatCode_isr(unsigned sampleRate);
 
 /***************************************************************************
 Summary:
-Create a "Standard" mixer
+Create a "Standard(HW)" mixer
 ***************************************************************************/
 BERR_Code BAPE_StandardMixer_P_Create(
+    BAPE_Handle deviceHandle,
+    const BAPE_MixerSettings *pSettings,
+    BAPE_MixerHandle *pHandle               /* [out] */
+    );
+
+/***************************************************************************
+Summary:
+Create a "Bypass" mixer
+***************************************************************************/
+BERR_Code BAPE_BypassMixer_P_Create(
     BAPE_Handle deviceHandle,
     const BAPE_MixerSettings *pSettings,
     BAPE_MixerHandle *pHandle               /* [out] */
@@ -1287,6 +1437,19 @@ BERR_Code BAPE_Mixer_P_PrintDownstreamNodes(BAPE_PathNode *pPathNode);
 
 /***************************************************************************
 Summary:
+returns true if there is a DDRE downstream from this DSP mixer
+***************************************************************************/
+bool BAPE_DspMixer_P_DdrePresentDownstream_isrsafe(BAPE_MixerHandle handle);
+
+/***************************************************************************
+Summary:
+returns fixed samplerate if requested or required by DDRE. returns 0 when
+fixed output samplerate not required.
+***************************************************************************/
+unsigned BAPE_DspMixer_P_GetFixedOutputSampleRate_isrsafe(BAPE_MixerHandle handle);
+
+/***************************************************************************
+Summary:
 Print a representation of the audio filter graph (for all downstream
 PathNodes).
 ***************************************************************************/
@@ -1296,22 +1459,19 @@ const char *BAPE_Mixer_P_MclkSourceToText_isrsafe(BAPE_MclkSource mclkSource);
 Summary:
 Get a mixer's output data type
 ***************************************************************************/
-#define BAPE_Mixer_P_GetOutputDataType_isr BAPE_Mixer_P_GetOutputDataType
-#define BAPE_Mixer_P_GetOutputDataType(hMix) ((hMix)->pathNode.connectors[0].format.type)
+#define BAPE_Mixer_P_GetOutputDataType_isrsafe(hMix) ((hMix)->pathNode.connectors[0].format.type)
 
 /***************************************************************************
 Summary:
 Get a mixer's output data type
 ***************************************************************************/
-#define BAPE_Mixer_P_GetOutputFormat_isr BAPE_Mixer_P_GetOutputFormat
-#define BAPE_Mixer_P_GetOutputFormat(hMix) ((const BAPE_FMT_Descriptor *)&(hMix)->pathNode.connectors[0].format)
+#define BAPE_Mixer_P_GetOutputFormat_isrsafe(hMix) ((const BAPE_FMT_Descriptor *)&(hMix)->pathNode.connectors[0].format)
 
 /***************************************************************************
 Summary:
 Get a mixer's output sample rate
 ***************************************************************************/
-#define BAPE_Mixer_P_GetOutputSampleRate_isr BAPE_Mixer_P_GetOutputSampleRate
-#define BAPE_Mixer_P_GetOutputSampleRate(hMix) ((hMix)->pathNode.connectors[0].format.sampleRate)
+#define BAPE_Mixer_P_GetOutputSampleRate_isrsafe(hMix) ((hMix)->pathNode.connectors[0].format.sampleRate)
 
 /***************************************************************************
 Summary:
@@ -1327,10 +1487,20 @@ void BAPE_StandardMixer_P_SfifoStarted(BAPE_MixerHandle handle, BAPE_PathConnect
 
 /***************************************************************************
 Summary:
+PLL Power On/Off control - outside of ISR context -
+directly interacts with BCHP_PWR
+***************************************************************************/
+BERR_Code BAPE_P_PllPower(BAPE_Handle deviceHandle, BAPE_Pll pll, bool enable);
+
+#if BDBG_DEBUG_BUILD && BAPE_CHIP_TIME_PLL_VERIFY
+uint64_t bape_get_time(void);
+#endif
+
+/***************************************************************************
+Summary:
 Attach a mixer to a PLL
 ***************************************************************************/
 void BAPE_P_AttachMixerToPll(BAPE_MixerHandle mixer, BAPE_Pll pll);
-void BAPE_P_AttachMixerToPll_isr(BAPE_MixerHandle mixer, BAPE_Pll pll);
 
 /***************************************************************************
 Summary:
@@ -1361,20 +1531,19 @@ BERR_Code BAPE_P_UpdatePll_isr(BAPE_Handle handle, BAPE_Pll pll);
 Summary:
 Verify that after updates shared Plls aren't running a different rates
 ***************************************************************************/
-void BAPE_P_VerifyPllCallback_isr(void *pParam1, int param2);
+void BAPE_P_VerifyPll(BAPE_Handle handle, BAPE_Pll pll);
 
 /***************************************************************************
 Summary:
 Verify that after updates shared NCOs aren't running a different rates
 ***************************************************************************/
-void BAPE_P_VerifyNcoCallback_isr(void *pParam1, int param2);
+void BAPE_P_VerifyNco(BAPE_Handle handle, BAPE_Nco nco);
 
 /***************************************************************************
 Summary:
 Attach a mixer to a NCO
 ***************************************************************************/
 void BAPE_P_AttachMixerToNco(BAPE_MixerHandle mixer, BAPE_Nco nco);
-void BAPE_P_AttachMixerToNco_isr(BAPE_MixerHandle mixer, BAPE_Nco nco);
 
 /***************************************************************************
 Summary:
@@ -1421,6 +1590,7 @@ Allocate buffers from the resource pool
 BERR_Code BAPE_P_AllocateBuffers(
     BAPE_Handle deviceHandle,
     const BAPE_FMT_Descriptor *pDesc,
+    BAPE_BufferInterfaceType type,
     BAPE_BufferNode *pBuffers[BAPE_ChannelPair_eMax]
     );
 
@@ -1490,7 +1660,7 @@ void BAPE_P_ReleaseUnusedPathResources(BAPE_Handle handle);
 Summary:
 Allocate Input Buffers from the resource pool
 ***************************************************************************/
-BERR_Code BAPE_P_AllocateInputBuffers(BAPE_Handle handle, BAPE_Connector input);
+BERR_Code BAPE_P_AllocateInputBuffers(BAPE_Handle handle, BAPE_Connector input, BAPE_BufferInterfaceType type);
 
 /***************************************************************************
 Summary:
@@ -1879,9 +2049,16 @@ typedef struct BAPE_Playback
     BMMA_Block_Handle block[BAPE_Channel_eMax];
     BMMA_DeviceOffset offset[BAPE_Channel_eMax];
     void *pBuffer[BAPE_Channel_eMax];
+    BAPE_BufferInterfaceType bufferInterfaceType;
+    BMMA_Block_Handle bufferInterfaceBlock[BAPE_Channel_eMax];
+    BMMA_DeviceOffset bufferInterfaceOffset[BAPE_Channel_eMax];
+    BAPE_BufferInterface * pBufferInterface[BAPE_Channel_eMax];
+    BAPE_BufferGroupHandle bufferGroupHandle;
+    BTMR_Handle interruptTimer;
     BAPE_PlaybackSettings settings;
     unsigned bufferSize;
     unsigned numBuffers;
+    bool interleaved;
     unsigned threshold;
     unsigned bufferDepth;   /* Required for pre-start buffer fills (used in looparound mode) */
     BAPE_PlaybackInterruptHandlers interrupts;
@@ -2087,15 +2264,6 @@ typedef enum BAPE_MuxOutputState
     BAPE_MuxOutputState_Max
 } BAPE_MuxOutputState;
 
-typedef struct BAPE_BufferInterface
-{
-    BMMA_DeviceOffset base;
-    BMMA_DeviceOffset end;
-    BMMA_DeviceOffset read;
-    BMMA_DeviceOffset valid;
-    bool     inclusive; /* If true the end address is included */
-} BAPE_BufferInterface;
-
 typedef struct BAPE_MuxOutput
 {
     BDBG_OBJECT(BAPE_MuxOutput)
@@ -2251,7 +2419,11 @@ void BAPE_P_PopulateSupportedBAVCAlgos(
 #endif
 #endif
 
-
+void BAPE_P_HandleCallbackEvent_isrsafe(
+    BAPE_Handle handle,
+    BAPE_CallbackEvent event,
+    int eventParam
+    );
 
 /* These must be after definition of path types above */
 #if BAPE_DSP_SUPPORT

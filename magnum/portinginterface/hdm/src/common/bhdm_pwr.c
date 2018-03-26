@@ -1,5 +1,5 @@
-/***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- ***************************************************************************/
+ *****************************************************************************/
 
 #include "bhdm.h"
 #include "bhdm_priv.h"
@@ -272,7 +269,7 @@ BERR_Code BHDM_Resume(
 
 	if (!hHDMI->standby)
 	{
-		BDBG_LOG(("Tx%d: Not in standby", hHDMI->eCoreId));
+		BDBG_MSG(("Tx%d: Not in standby", hHDMI->eCoreId));
 		goto done ;
 	}
 

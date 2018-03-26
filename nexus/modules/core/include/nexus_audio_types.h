@@ -389,7 +389,7 @@ Many audio outputs require a PLL to generate their clock.  By default,
 all outputs will use the PLL0, unless 1) a different "defaultPll" has been
 specified in the NEXUS_AudioModuleSettings.defaultPll during the call to
 NEXUS_AudioModule_Init(), or 2) the PLL used by an output has been
-specifed in the NEXUS_AudioOutputSettings for that output.  You
+specified in the NEXUS_AudioOutputSettings for that output.  You
 will need to use multiple PLLs if you have outputs that require different
 sampling rates from one another.  For example, if you have a decoder
 outputting 48kHz on I2S and another decoder outputting 44.1kHz on SPDIF,

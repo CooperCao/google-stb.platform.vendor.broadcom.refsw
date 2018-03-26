@@ -305,7 +305,7 @@ $(ATLAS_BIN_DIR):
 all: $(ATLAS_BIN_DIR) $(APP)
 	${Q_}$(CP) -f $(APP) $(ATLAS_BIN_DIR)
 
-clean: api-clean playback_ip_lib_clean lib-clean nxclient-clean $(LUA_CLEAN) clean-dvrlib clean-pod-driver clean-podlibs clean-dsgcclib clean-cdllib clean-estb-cfglibs clean-dcclib clean-snmp-agent clean-snmp-proxy clean-silib clean-atlas clean-perftools $(PMLIB_CLEAN)
+clean: api-clean playback_ip_lib_clean lib-clean nxclient-clean $(LUA_CLEAN) clean-dvrlib clean-pod-driver clean-podlibs clean-dsgcclib clean-cdllib clean-estb-cfglibs clean-dcclib clean-snmp-agent clean-snmp-proxy clean-silib clean-atlas clean-perftools clean-bp3 $(PMLIB_CLEAN)
 
 dist-clean: clean dist-clean-netapp dist-clean-openssl
 	@echo [Clean..... libraries]
@@ -792,8 +792,7 @@ APP_OBJECTS += \
 	video_decode_nx.o
 ifeq ($(CABLECARD_SUPPORT),y)
 APP_OBJECTS += \
-	tuner_oob_nx.o \
-	tuner_upstream_nx.o
+	tuner_oob_nx.o
 endif
 endif
 
@@ -1042,7 +1041,7 @@ vpath %.cpp $(VPATH)
 vpath %.c $(VPATH)
 
 # Implicit rule for building local app
-$(APP): api lib playback_ip_lib nxclient dvrlib pod-driver podlibs dsgcclib cdllib estb-cfglibs dcclib snmp-agent snmp-proxy silib netapp perftools $(PMLIB_BUILD) $(LIBJPEG_BUILD) $(LUA_BUILD) $(WPA_SUPPLICANT_BUILD) wlan $(ATLAS_ODIR) build_date $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS))
+$(APP): api lib playback_ip_lib nxclient dvrlib pod-driver podlibs dsgcclib cdllib estb-cfglibs dcclib snmp-agent snmp-proxy silib netapp perftools bp3 $(PMLIB_BUILD) $(LIBJPEG_BUILD) $(LUA_BUILD) $(WPA_SUPPLICANT_BUILD) wlan $(ATLAS_ODIR) build_date $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS))
 	@echo [Linking... $(notdir $@)]
 	${Q_}$(CXX) -o $@ $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS)) $(filter-out -lsettop,$(LDFLAGS)) $(LIBS)
 
@@ -1338,6 +1337,25 @@ clean-perftools:
 endif
 
 #######################
+##### BP3 provisioning app
+#######################
+ifeq ($(BP3_SUPPORT),y)
+ifeq ($(SAGE_SUPPORT),y)
+BP3_DIR = $(BSEAV)/tools/bp3
+
+bp3: api
+	${Q_}$(MAKE) NXCLIENT_SUPPORT=$(NXCLIENT_SUPPORT) -C $(BP3_DIR) install
+clean-bp3:
+	${Q_}$(MAKE) NXCLIENT_SUPPORT=$(NXCLIENT_SUPPORT) -C $(BP3_DIR) clean
+endif
+else
+bp3:
+#intentionally left empty
+clean-bp3:
+#intentionally left empty
+endif
+
+#######################
 ##### BDSP_MS12_SUPPORT
 #######################
 ifeq ($(BDSP_MS12_SUPPORT),y)
@@ -1509,6 +1527,15 @@ ifeq ($(ESTB_CFG_SUPPORT),y)
 endif
 ifeq ($(DCC_SUPPORT),y)
 	${Q_}$(CP) -fr $(NEXUS_BIN_DIR)/libb_dcc.so $(STAGING_DIR)
+endif
+ifeq ($(BP3_SUPPORT),y)
+ifeq ($(SAGE_SUPPORT),y)
+	${Q_}$(CP) $(NEXUS_BIN_DIR)/bp3 $(STAGING_DIR)
+	${Q_}$(CP) -du --preserve=links $(NEXUS_BIN_DIR)/libsrai*.so* $(STAGING_DIR)
+	${Q_}$(CP) -du --preserve=links $(NEXUS_BIN_DIR)/libz*.so* $(STAGING_DIR)
+	${Q_}$(CP) -du --preserve=links $(NEXUS_BIN_DIR)/libcurl*.so* $(STAGING_DIR)
+	${Q_}$(CP) -du --preserve=links $(NEXUS_BIN_DIR)/libcjson*.so* $(STAGING_DIR)
+endif
 endif
 	${Q_}$(CP) $(APP) $(STAGING_DIR)
 

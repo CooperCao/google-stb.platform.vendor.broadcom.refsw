@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ******************************************************************************/
 #ifndef _BAST_G3_H__
 #define _BAST_G3_H__
 
@@ -125,19 +142,18 @@ See Also:
 #define BAST_G3_CONFIG_LEN_DEBUG3                4
 #define BAST_G3_CONFIG_DFT_MIN_N                 0x002D
 #define BAST_G3_CONFIG_LEN_DFT_MIN_N             1
+#define BAST_G3_CONFIG_FSK_TX_FREQ_HZ            0x002E /* FSK transmit frequency in Hz */
+#define BAST_G3_CONFIG_LEN_FSK_TX_FREQ_HZ        4
+#define BAST_G3_CONFIG_FSK_RX_FREQ_HZ            0x002F /* FSK receive frequency in Hz */
+#define BAST_G3_CONFIG_LEN_FSK_RX_FREQ_HZ        4
+#define BAST_G3_CONFIG_FSK_TX_DEV_HZ             0x0030 /* FSK frequency deviation in Hz */
+#define BAST_G3_CONFIG_LEN_FSK_TX_DEV_HZ         4
 
 #ifdef BAST_ENABLE_GENERIC_FSK
 #define BAST_G3_CONFIG_FSK_TX_POWER       BAST_G3_CONFIG_FTM_TX_POWER
 #define BAST_G3_CONFIG_LEN_FSK_TX_POWER   BAST_G3_CONFIG_LEN_FTM_TX_POWER
 #define BAST_G3_CONFIG_FSK_CH_SELECT      BAST_G3_CONFIG_FTM_CH_SELECT
 #define BAST_G3_CONFIG_LEN_FSK_CH_SELECT  BAST_G3_CONFIG_LEN_FTM_CH_SELECT
-
-#define BAST_G3_CONFIG_FSK_TX_FREQ_HZ            0x002D /* FSK transmit frequency in Hz */
-#define BAST_G3_CONFIG_LEN_FSK_TX_FREQ_HZ        4
-#define BAST_G3_CONFIG_FSK_RX_FREQ_HZ            0x002E /* FSK receive frequency in Hz */
-#define BAST_G3_CONFIG_LEN_FSK_RX_FREQ_HZ        4
-#define BAST_G3_CONFIG_FSK_TX_DEV_HZ             0x002F /* FSK frequency deviation in Hz */
-#define BAST_G3_CONFIG_LEN_FSK_TX_DEV_HZ         4
 #endif
 
 
@@ -472,7 +488,7 @@ Description:
 Returns:
    BERR_Code
 See Also:
-   BAST_Open()
+   BAST_g3_GetInterruptCount
 ****************************************************************************/
 void BAST_g3_ResetInterruptCounters(
    BAST_ChannelHandle h   /* [in] BAST channel handle */
@@ -487,7 +503,7 @@ Description:
 Returns:
    BERR_Code
 See Also:
-   BAST_Open()
+   BAST_g3_ResetInterruptCounters
 ****************************************************************************/
 BERR_Code BAST_g3_GetInterruptCount(
    BAST_ChannelHandle h,   /* [in] BAST channel handle */
@@ -504,7 +520,7 @@ Description:
 Returns:
    BERR_Code
 See Also:
-   BAST_Open()
+   N/A
 ****************************************************************************/
 BERR_Code BAST_g3_GetTraceBuffer(
    BAST_ChannelHandle h,        /* [in] BAST channel handle */
@@ -512,6 +528,7 @@ BERR_Code BAST_g3_GetTraceBuffer(
 );
 
 
+#ifdef BAST_ENABLE_GENERIC_FSK
 /***************************************************************************
 Summary:
    This function listens for an fsk packet of specified length.
@@ -520,11 +537,60 @@ Description:
 Returns:
    BERR_Code
 See Also:
-   BAST_Open()
+   N/A
 ****************************************************************************/
 BERR_Code BAST_g3_ListenFsk(
    BAST_Handle h,  /* [in] BAST handle */
    uint8_t n       /* [in] length of data expected */
+);
+#endif
+
+
+/***************************************************************************
+Summary:
+   This function enables or disables the FSK carrier.
+Description:
+   This function enables or disables the FSK carrier.
+Returns:
+   BERR_Code
+See Also:
+   N/A
+****************************************************************************/
+BERR_Code BAST_g3_EnableFskCarrier(
+   BAST_Handle h,    /* [in] BAST handle */
+   bool bEnable      /* [in] true=enable, false=disable */
+);
+
+
+/******************************************************************************
+Summary:
+   Tuner AGC select
+Description:
+   This enum selects the tuner AGC.
+See Also:
+   BAST_g3_FreezeTunerAgc
+******************************************************************************/
+typedef enum BAST_TunerAgc
+{
+   BAST_TunerAgc_eRF = 0,  /* RF AGC */
+   BAST_TunerAgc_eBB       /* BB AGC */
+} BAST_TunerAgc;
+
+
+/***************************************************************************
+Summary:
+   This function freezes the tuner AGC integrators.
+Description:
+   This function freezes the tuner AGC integrators.
+Returns:
+   BERR_Code
+See Also:
+   BAST_TunerAgc
+****************************************************************************/
+BERR_Code BAST_g3_FreezeTunerAgc(
+   BAST_ChannelHandle h,      /* [in] BAST channel handle */
+   BAST_TunerAgc which_agc,   /* [in] AGC select */
+   bool bFreeze               /* [in] true = freeze, false = unfreeze */
 );
 
 

@@ -1,5 +1,5 @@
-/***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,12 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *   FIR (Finite Impulse Response) filter coefficients for horizontal and
- *   vertical scalings.
- *
- ***************************************************************************/
+ ******************************************************************************/
 #include "bstd.h"
 #include "bvdc_scaler_priv.h"
 #include "bvdc_hscaler_priv.h"
@@ -5065,7 +5060,7 @@ static const BVDC_P_FirCoeffTbl s_aVertCoeffTbl[] =
  * Return the coeffs table, so that we won't need to expose it as
  * global.
  */
-void BVDC_P_GetChromaFirCoeffs_isr
+void BVDC_P_GetChromaFirCoeffs_isrsafe
     ( const BVDC_P_FirCoeffTbl      **ppHorzFirCoeffTbl,
       const BVDC_P_FirCoeffTbl      **ppVertFirCoeffTbl )
 {

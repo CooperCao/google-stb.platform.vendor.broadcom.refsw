@@ -603,7 +603,7 @@ NEXUS_Error NEXUS_VideoInput_P_SetVbiState( NEXUS_VideoInput videoInput )
                 changed = true;
             }
         }
-        if (changed) { /* avoid unecessary work */
+        if (changed) { /* avoid unnecessary work */
             rc = NEXUS_VideoDecoder_SetDisplayConnection_priv((NEXUS_VideoDecoderHandle)videoInput->source, &decoderConnect);
         }
         else {

@@ -35,11 +35,13 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
+ * API Description:
+ *
  ******************************************************************************
  *
  *                            Do Not Edit Directly
  * Auto-Generated from RTS environment:
- *   at: Mon Jan 22 17:09:41 2018 GMT
+ *   at: Tue Mar  6 18:02:01 2018 GMT
  *   by: ar924196
  *   for: Box UHDp60_or_DualHDPiP_HTrefresh
  *         MemC 0 (32-bit DDR4@1200MHz) w/388MHz clock
@@ -59,7 +61,7 @@
 
 #include "bbox.h"  /* located in /magnum/commonutils/box/include directory */
 
-static const uint32_t aulMemc0_20180122170941_UHDp60_or_DualHDPiP_HTrefresh[] = {
+static const uint32_t aulMemc0_20180306180201_UHDp60_or_DualHDPiP_HTrefresh[] = {
            0x002b0003,  /*   0: XPT_WR_RS 1780ns */
            0x8082c025,  /*   1: XPT_WR_XC RR 5720ns */
            0x8097e016,  /*   2: XPT_WR_CDB RR 6270ns */
@@ -166,10 +168,10 @@ static const uint32_t aulMemc0_20180122170941_UHDp60_or_DualHDPiP_HTrefresh[] = 
            0x3ffff0ff,  /* 103: UNASSIGNED off */
            0x3ffff0ff,  /* 104: UNASSIGNED off */
            0x3ffff0ff,  /* 105: UNASSIGNED off */
-           0x00426006,  /* 106: BVN_MFD0 2743ns */
-           0x0013c000,  /* 107: BVN_MFD0_1 822ns */
-           0x00426007,  /* 108: BVN_MFD1 2743ns */
-           0x00426008,  /* 109: BVN_MFD1_1 2743ns */
+           0x003fb006,  /* 106: BVN_MFD0 2633ns */
+           0x00130000,  /* 107: BVN_MFD0_1 789ns */
+           0x003fb007,  /* 108: BVN_MFD1 2633ns */
+           0x003fb008,  /* 109: BVN_MFD1_1 2633ns */
            0x3ffff0ff,  /* 110: UNASSIGNED off */
            0x3ffff0ff,  /* 111: UNASSIGNED off */
            0x3ffff0ff,  /* 112: UNASSIGNED off */
@@ -319,22 +321,22 @@ static const uint32_t aulMemc0_20180122170941_UHDp60_or_DualHDPiP_HTrefresh[] = 
          };
 
 
-static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20180122170941_UHDp60_or_DualHDPiP_HTrefresh[] = {
+static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20180306180201_UHDp60_or_DualHDPiP_HTrefresh[] = {
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG,      0x80340905}, /* HVD0_PFRI (gHVC_2k) 236520.00 ns/40 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_FILTER_CTRL, 0x4000023d}, /* d: 4; p: 573.55625 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH0,     0x000014a0}, /* 5280 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH1,     0x00000c60}  /* 60% * 5280 */
 };
 
-static const uint32_t* const paulMemc_box7[] = { &aulMemc0_20180122170941_UHDp60_or_DualHDPiP_HTrefresh[0]};
+static const uint32_t* const paulMemc_box7[] = { &aulMemc0_20180306180201_UHDp60_or_DualHDPiP_HTrefresh[0]};
 
 const BBOX_Rts stBoxRts_UHDp60_or_DualHDPiP_HTrefresh_box7 = {
-  "20180122170941_UHDp60_or_DualHDPiP_HTrefresh_box7",
+  "20180306180201_UHDp60_or_DualHDPiP_HTrefresh_box7",
   7260,
   7,
   1,
   256,
   (const uint32_t**)&paulMemc_box7[0],
   4,
-  stBoxRts_PfriClient_20180122170941_UHDp60_or_DualHDPiP_HTrefresh
+  stBoxRts_PfriClient_20180306180201_UHDp60_or_DualHDPiP_HTrefresh
 };

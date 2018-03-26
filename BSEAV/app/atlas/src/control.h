@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -100,11 +100,17 @@ public:
     virtual eRet stopDecoders(CSimpleVideoDecode * pVideoDecode, CSimpleAudioDecode * pAudioDecode);
     virtual bool checkPower(void) { return(false); }
 #if BDSP_MS12_SUPPORT
-    virtual void setMixingMode(eWindowType windowType, NEXUS_AudioDecoderMixingMode mixingMode) { BSTD_UNUSED(windowType); BSTD_UNUSED(mixingMode); }
-    virtual void setAudioFade(CSimpleAudioDecode * pAudioDecode, bool bPipState) { BSTD_UNUSED(pAudioDecode); BSTD_UNUSED(bPipState); }
-    virtual eRet setAudioFade(bool bPipState) { BSTD_UNUSED(bPipState); return(eRet_NotSupported); }
+    virtual void setMixingMode(
+            eWindowType                  windowType,
+            NEXUS_AudioDecoderMixingMode mixingMode
+            ) { BSTD_UNUSED(windowType); BSTD_UNUSED(mixingMode); }
+    virtual void setAudioFade(
+            CSimpleAudioDecode * pAudioDecode,
+            bool                 bPipState
+            ) { BSTD_UNUSED(pAudioDecode); BSTD_UNUSED(bPipState); }
+    virtual eRet setAudioFade(bool bPipState)                             { BSTD_UNUSED(bPipState); return(eRet_NotSupported); }
     virtual void waitAudioFadeComplete(CSimpleAudioDecode * pAudioDecode) { BSTD_UNUSED(pAudioDecode); }
-#endif
+#endif /* if BDSP_MS12_SUPPORT */
     eRet             initialize(void * id, CConfig * pConfig, CChannelMgr * pChannelMgr, CWidgetEngine * pWidgetEngine);
     eRet             uninitialize();
     void             processNotification(CNotification & notification);
@@ -220,6 +226,9 @@ protected:
     MList <CChannel>      _recordingChannels;
     MList <CChannel>      _encodingChannels;
     bool                  _bIgnoreNextKeypress;
+#if NEXUS_HAS_FRONTEND
+    MList <CTuner> _scanTunerList;
+#endif
 #if HAS_VID_NL_LUMA_RANGE_ADJ
     MList <CSimpleVideoDecode> _plmVideoDecodeList;
     CTimer                     _timerPlmVerify;

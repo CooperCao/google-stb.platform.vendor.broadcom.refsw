@@ -47,12 +47,26 @@
 
 BDBG_MODULE(platform_scheduler);
 
-PlatformSchedulerHandle platform_scheduler_p_create(PlatformHandle platform)
+void platform_scheduler_p_get_default_create_settings(PlatformSchedulerCreateSettings * pSettings)
+{
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    pSettings->period = 100;
+}
+
+PlatformSchedulerHandle platform_scheduler_p_create(PlatformHandle platform, const PlatformSchedulerCreateSettings * pSettings)
 {
     PlatformSchedulerHandle scheduler;
     scheduler = BKNI_Malloc(sizeof(*scheduler));
     BDBG_ASSERT(scheduler);
     BKNI_Memset(scheduler, 0, sizeof(*scheduler));
+    if (pSettings)
+    {
+        BKNI_Memcpy(&scheduler->createSettings, pSettings, sizeof(*pSettings));
+    }
+    else
+    {
+        platform_scheduler_p_get_default_create_settings(&scheduler->createSettings);
+    }
 
     BKNI_CreateMutex(&scheduler->mutex);
 
@@ -86,7 +100,7 @@ void platform_scheduler_p_destroy(PlatformSchedulerHandle scheduler)
     }
 
     BKNI_DestroyEvent(scheduler->wake);
-    scheduler->platform->scheduler = NULL;
+    scheduler->platform->schedulers[scheduler->createSettings.index] = NULL;
     BKNI_DestroyMutex(scheduler->mutex);
     BKNI_Free(scheduler);
 }
@@ -181,7 +195,7 @@ void * platform_scheduler_p_thread(void * context)
 
         if (scheduler->wake)
         {
-            rc = BKNI_WaitForEvent(scheduler->wake, 100);
+            rc = BKNI_WaitForEvent(scheduler->wake, scheduler->createSettings.period);
             if (rc == BERR_OS_ERROR)
             {
                 BDBG_ERR(("Error waiting for scheduler wake event"));

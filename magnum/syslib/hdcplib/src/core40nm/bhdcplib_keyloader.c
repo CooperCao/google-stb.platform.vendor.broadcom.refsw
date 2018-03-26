@@ -50,6 +50,25 @@
 
 #define BHDCPLib_KEY_OFFSET 0x80
 
+/* Following macros are also defined in nexus_hdmi_input_hdcp_keyloader.c.
+ * Both places must have the same definitions. */
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0)
+
+#define BCRYPT_ALG_GLOBAL_KEY          (0x02)
+#define BCRYPT_ALG_OTP_KEY_DIRECT      (0x81)
+
+#define BCRYPT_MASK_KEY2_CHIP_FAMILY   (0x0)
+#define BCRYPT_MASK_KEY2_FIXED         (0x1)
+
+#define BCRYPT_STB_OWNER_ID_OTP        (0x0)
+#define BCRYPT_STB_OWNER_ID_ONE        (0x1)
+
+#define BCRYPT_GLOBAL_OWNER_ID_MSP0    (0x0)
+#define BCRYPT_GLOBAL_OWNER_ID_MSP1    (0x1)
+#define BCRYPT_GLOBAL_OWNER_ID_ONE     (0x2)
+
+#endif  /* BHSM_ZEUS_VERSION */
+
 BDBG_MODULE(BHDCPLIB_KEYLOADER) ;
 
 
@@ -104,13 +123,76 @@ BERR_Code BHDCPlib_FastLoadEncryptedHdcpKeys(
     uint32_t otpKeyIndex;
 
     BKNI_Memset( &hdcpConf, 0, sizeof(hdcpConf) );
+    switch( hHDCPlib->stHdcpConfiguration.TxKeySet.TxKeyStructure[0].Alg )
+    {
+        case BCRYPT_ALG_GLOBAL_KEY:
+            {
+            uint32_t tmp;
+            uint8_t maskKey2;
+            uint8_t stbOwnerId;
+            uint8_t globalOwnerId;
 
-    otpKeyIndex = hHDCPlib->stHdcpConfiguration.TxKeySet.TxKeyStructure[0].CaDataLo;
-    BREG_LE32( otpKeyIndex );
+            hdcpConf.root.type = BHSM_KeyLadderRootType_eGlobalKey;
+            hdcpConf.root.askm.caVendorId = (hHDCPlib->stHdcpConfiguration.TxKeySet.TxKeyStructure[0].CaDataHi)>>16;
+
+            /* TCaDataLo is filled with following four bytes:
+             *   Mask Key2 select (MSB) | STB Owner ID Select | Global Owner ID Select | Global Key Index (LSB)
+             */
+            tmp = hHDCPlib->stHdcpConfiguration.TxKeySet.TxKeyStructure[0].TCaDataLo;
+            maskKey2 = tmp >> 24;
+            switch( maskKey2 )
+            {
+                case BCRYPT_MASK_KEY2_CHIP_FAMILY:
+                    hdcpConf.root.askm.caVendorIdScope = BHSM_KeyladderCaVendorIdScope_eChipFamily; break;
+                case BCRYPT_MASK_KEY2_FIXED:
+                    hdcpConf.root.askm.caVendorIdScope = BHSM_KeyladderCaVendorIdScope_eFixed;      break;
+                default:
+                    BDBG_ERR(( "Invalid maskKey2: 0x%x", maskKey2 ));
+                    return BERR_TRACE( BERR_INVALID_PARAMETER );
+            }
+
+            stbOwnerId = (tmp >> 16)&0xff;
+            switch( stbOwnerId )
+            {
+                case BCRYPT_STB_OWNER_ID_OTP:
+                    hdcpConf.root.askm.stbOwnerSelect = BHSM_KeyLadderStbOwnerIdSelect_eOtp; break;
+                case BCRYPT_STB_OWNER_ID_ONE:
+                    hdcpConf.root.askm.stbOwnerSelect = BHSM_KeyLadderStbOwnerIdSelect_eOne; break;
+                default:
+                    BDBG_ERR(( "Invalid stbOwnerId: 0x%x", stbOwnerId ));
+                    return BERR_TRACE( BERR_INVALID_PARAMETER );
+            }
+
+            globalOwnerId = (tmp >> 8)&0xff;
+            switch( globalOwnerId )
+            {
+                case BCRYPT_GLOBAL_OWNER_ID_MSP0:
+                    hdcpConf.root.globalKey.owner = BHSM_KeyLadderGlobalKeyOwnerIdSelect_eMsp0; break;
+                case BCRYPT_GLOBAL_OWNER_ID_MSP1:
+                    hdcpConf.root.globalKey.owner = BHSM_KeyLadderGlobalKeyOwnerIdSelect_eMsp1; break;
+                case BCRYPT_GLOBAL_OWNER_ID_ONE:
+                    hdcpConf.root.globalKey.owner = BHSM_KeyLadderGlobalKeyOwnerIdSelect_eOne;  break;
+                default:
+                    BDBG_ERR(( "Invalid globalOwnerId: 0x%x", globalOwnerId ));
+                    return BERR_TRACE( BERR_INVALID_PARAMETER );
+            }
+
+            hdcpConf.root.globalKey.index = tmp & 0xff;
+            }
+            break;
+        case BCRYPT_ALG_OTP_KEY_DIRECT:
+            otpKeyIndex = hHDCPlib->stHdcpConfiguration.TxKeySet.TxKeyStructure[0].CaDataLo;
+            BREG_LE32( otpKeyIndex );
+
+            hdcpConf.root.type = BHSM_KeyLadderRootType_eOtpDirect;
+            hdcpConf.root.otpKeyIndex = otpKeyIndex;
+            break;
+        default:
+            BDBG_ERR(( "Invalid Alg: 0x%x", hHDCPlib->stHdcpConfiguration.TxKeySet.TxKeyStructure[0].Alg ));
+			return BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
 
     hdcpConf.algorithm = BHSM_CryptographicAlgorithm_e3DesAba;
-    hdcpConf.root.type = BHSM_KeyLadderRootType_eOtpDirect;
-    hdcpConf.root.otpKeyIndex = otpKeyIndex;
 
 	for( i =0; i< BAVC_HDMI_HDCP_N_PRIVATE_KEYS; i++ )
     {

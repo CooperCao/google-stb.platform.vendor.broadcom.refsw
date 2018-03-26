@@ -37,7 +37,9 @@
  ******************************************************************************/
 
 #include "bchp_common.h"
+#ifdef BCHP_AON_CTRL_REG_START
 #include "bchp_aon_ctrl.h"
+#endif
 
 /* TEMP code to set address map */
 static void BDTU_P_ReadMappingInfo(BREG_Handle reg, unsigned memcIndex, BDTU_MappingInfo *pInfo)

@@ -1009,7 +1009,7 @@ Summary:
 ****************************************************************************/
 typedef enum BXVD_STC
 {
-   BXVD_STC_eZero,
+   BXVD_STC_eZero=0,
    BXVD_STC_eOne,
    BXVD_STC_eTwo,
    BXVD_STC_eThree,
@@ -1021,6 +1021,10 @@ typedef enum BXVD_STC
    BXVD_STC_eNine,
    BXVD_STC_eTen,
    BXVD_STC_eEleven,
+   BXVD_STC_eTwelve,
+   BXVD_STC_eThirteen,
+   BXVD_STC_eFourteen,
+   BXVD_STC_eFifteen,
 
    BXVD_STC_eMax
 } BXVD_STC;
@@ -2861,13 +2865,9 @@ BERR_Code BXVD_ProcessWatchdogRestartDecoder
  Description:
     Using the specified video decoder handle, determine the supported
     video compression standards.
-
- Returns:
-    BERR_SUCCESS  Hardware capabilities determined successfully.
-    BXVD_ERR_INVALID_HANDLE: BXVD Handle not valid.
 **************************************************************************/
 
-BERR_Code BXVD_GetHardwareCapabilities
+void BXVD_GetHardwareCapabilities
 (
    BXVD_Handle hXvd,                 /* [in] XVD context handle */
    BXVD_HardwareCapabilities *pCap   /* [out] Decoder Video protocol capabilities */

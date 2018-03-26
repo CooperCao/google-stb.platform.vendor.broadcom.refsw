@@ -57,7 +57,7 @@ Summary:
 ****************************************************************************/
 typedef struct NEXUS_FrontendIsdbtTmccStatus
 {
-    NEXUS_FrontendOfdmTransmissionMode   transmissionMode;       /* Detected trasmission mode */
+    NEXUS_FrontendOfdmTransmissionMode   transmissionMode;       /* Detected transmission mode */
     NEXUS_FrontendOfdmGuardInterval      guardInterval;          /* Detected guard interval */
     bool                                 ews;                    /* If true, the EWS (Emergency Warning System) Indicator is present */
     bool                                 partialReception;       /* If true, the signal is partially received */

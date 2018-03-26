@@ -112,7 +112,7 @@ what is being notified.
 **/
 typedef struct NEXUS_Graphicsv3dNotification
 {
-   uint32_t                         uiParam;          /* The notification parameter that was part of the job */
+   uint64_t                         uiParam;          /* The notification parameter that was part of the job */
    uint32_t                         uiSync;           /* 1 if this a synchronous notification, 0 otherwise   */
    uint32_t                         uiOutOfMemory;    /* Did the core run out of memory during the job?      */
    uint64_t                         uiJobSequence;    /* The sequence number of the job                      */

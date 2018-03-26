@@ -462,3 +462,23 @@ void SysCalls::doSchedRunTask(TzTask *currTask) {
     currTask->writeUserReg(TzTask::UserRegs::r0, 0);
     resumeCurrentTask();
 }
+
+void SysCalls::doCriticalSecEnter(TzTask *currTask) {
+    UNUSED(currTask);
+#if 0
+    unsigned int timeInNanoSec= currTask->userReg(TzTask::UserRegs::r0);
+    if (timeInNanoSec > TzTask::MAX_CRITICAL_SECTION_TIME) {
+        currTask->writeUserReg(TzTask::UserRegs::r0, -EINVAL);
+        return;
+    }
+    currTask->enterCriticalSection(timeInNanoSec);
+#endif
+
+    currTask->writeUserReg(TzTask::UserRegs::r0, 0);
+}
+
+void SysCalls::doCriticalSecExit(TzTask *currTask) {
+    UNUSED(currTask);
+    //int rv = currTask->exitCriticalSection();
+    currTask->writeUserReg(TzTask::UserRegs::r0, 0);
+}

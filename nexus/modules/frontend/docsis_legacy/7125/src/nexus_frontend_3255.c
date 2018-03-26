@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -541,7 +541,7 @@ static NEXUS_Error NEXUS_Frontend_P_InitRPC(NEXUS_3255 *pDevice)
             };
         }
     }
-    BDBG_WRN((" RPC is initialized between 3255 and 740x"));
+    BDBG_WRN((" RPC interface between DOCSIS and Host initialized"));
     BRPC_Close_SocketImpl(pDevice->rpc_handle);
 
     /* reopen RPC socket to apply normal timeout value*/

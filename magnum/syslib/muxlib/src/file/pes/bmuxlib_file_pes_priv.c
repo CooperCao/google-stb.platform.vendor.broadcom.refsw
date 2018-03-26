@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,6 +41,10 @@
 #include "bkni.h"
 #include "bdbg.h"
 
+#include "bmuxlib_input.h"
+#include "bmuxlib_debug.h"
+#include "bmuxlib_alloc.h"
+#include "bmuxlib_file_pes.h"
 #include "bmuxlib_file_pes_priv.h"
 
 BDBG_MODULE(BMUXLIB_FILE_PES_PRIV);
@@ -449,8 +453,8 @@ BERR_Code BMUXlib_File_PES_P_ProcessInputDescriptors(BMUXlib_File_PES_Handle hPE
                BMUXlib_Output_Descriptor stOutputDescriptor;
                BMUXlib_Output_CompletedCallbackInfo stCompletedCallbackInfo;
 
-               BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
-               BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
+               BKNI_Memset( &stOutputDescriptor, 0, sizeof( stOutputDescriptor ) );
+               BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( stCompletedCallbackInfo ) );
 
                stOutputDescriptor.stStorage.bWriteOperation = false;
                stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eCurrent;
@@ -491,20 +495,21 @@ BERR_Code BMUXlib_File_PES_P_ProcessInputDescriptors(BMUXlib_File_PES_Handle hPE
             unsigned uiWriteOffsetTemp = (hPESMux->stFrameHeader.uiWriteOffset + 1) % BMUXlib_File_PES_P_MAX_FRAMES;
 
             BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART( &stInputDescriptor ) );
-            BDBG_ASSERT( sizeof( hPESMux->stFrameHeader.astFrameHeader[0] ) == BMUXlib_File_PES_P_FRAME_HEADER_SIZE );
+            BDBG_ASSERT( sizeof( *hPESMux->stFrameHeader.astFrameHeader[0] ) == BMUXlib_File_PES_P_FRAME_HEADER_SIZE );
 
             /* Write Frame Header */
             if ( ( true == BMUXlib_Output_IsSpaceAvailable( hPESMux->hOutput ) )
                  && ( uiWriteOffsetTemp != hPESMux->stFrameHeader.uiReadOffset ) )
             {
-               BMUXlib_File_PES_P_FrameHeader *pstFrameHeader = &hPESMux->stFrameHeader.astFrameHeader[hPESMux->stFrameHeader.uiWriteOffset];
+               BMUXlib_File_PES_P_FrameHeader *pstFrameHeader = hPESMux->stFrameHeader.astFrameHeader[hPESMux->stFrameHeader.uiWriteOffset];
 
                *pstFrameHeader = s_stDefaultPESHeader;
 
                hPESMux->uiFrameSize = BMUXLIB_INPUT_DESCRIPTOR_FRAMESIZE( &stInputDescriptor );
                hPESMux->uiBytesLeftInFrame = BMUXLIB_INPUT_DESCRIPTOR_FRAMESIZE( &stInputDescriptor );
 
-               if ( BAVC_VideoCompressionStd_eVP8 == hPESMux->eProtocol )
+               if ( ( BAVC_VideoCompressionStd_eVP8 == hPESMux->eProtocol )
+                    || ( BAVC_VideoCompressionStd_eVP9 == hPESMux->eProtocol ) )
                {
                   /* VP8 requires a VP8 header followed by the frame data.  Since VP8 doesn't have start code emulation prevention,
                    * the frame may need to be split into multiple PES packets each containaing a valid length in the PES header */
@@ -532,8 +537,8 @@ BERR_Code BMUXlib_File_PES_P_ProcessInputDescriptors(BMUXlib_File_PES_Handle hPE
                   BMUXlib_Output_Descriptor stOutputDescriptor;
                   BMUXlib_Output_CompletedCallbackInfo stCompletedCallbackInfo;
 
-                  BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
-                  BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
+                  BKNI_Memset( &stOutputDescriptor, 0, sizeof( stOutputDescriptor ) );
+                  BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( stCompletedCallbackInfo ) );
 
                   stOutputDescriptor.stStorage.bWriteOperation = true;
                   stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eCurrent;
@@ -556,7 +561,8 @@ BERR_Code BMUXlib_File_PES_P_ProcessInputDescriptors(BMUXlib_File_PES_Handle hPE
                      hPESMux->stFrameHeader.uiWriteOffset = uiWriteOffsetTemp;
                      hPESMux->uiFrameCount++;
 
-                     if ( BAVC_VideoCompressionStd_eVP8 == hPESMux->eProtocol )
+                     if ( ( BAVC_VideoCompressionStd_eVP8 == hPESMux->eProtocol )
+                          || ( BAVC_VideoCompressionStd_eVP9 == hPESMux->eProtocol ) )
                      {
                         /* Each frame in VP8 requires a special BRCM specific VP8 header */
                         BDBG_MODULE_MSG(BMUX_PES_STATE, ("eGenerateFrameHeader --> eGenerateVP8Header"));
@@ -578,13 +584,13 @@ BERR_Code BMUXlib_File_PES_P_ProcessInputDescriptors(BMUXlib_File_PES_Handle hPE
             unsigned uiWriteOffsetTemp = (hPESMux->stVP8Header.uiWriteOffset + 1) % BMUXlib_File_PES_P_MAX_FRAMES;
 
             BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART( &stInputDescriptor ) );
-            BDBG_ASSERT( sizeof( hPESMux->stVP8Header.astFrameHeader[0] ) == BMUXlib_File_PES_P_VP8_HEADER_SIZE );
+            BDBG_ASSERT( sizeof( *hPESMux->stVP8Header.astFrameHeader[0] ) == BMUXlib_File_PES_P_VP8_HEADER_SIZE );
 
             /* Write Frame Header */
             if ( ( true == BMUXlib_Output_IsSpaceAvailable( hPESMux->hOutput ) )
                  && ( uiWriteOffsetTemp != hPESMux->stVP8Header.uiReadOffset ) )
             {
-               BMUXlib_File_PES_P_VP8Header *pstVP8Header = &hPESMux->stVP8Header.astFrameHeader[hPESMux->stVP8Header.uiWriteOffset];
+               BMUXlib_File_PES_P_VP8Header *pstVP8Header = hPESMux->stVP8Header.astFrameHeader[hPESMux->stVP8Header.uiWriteOffset];
 
                *pstVP8Header = s_stDefaultVP8Header;
 
@@ -594,8 +600,8 @@ BERR_Code BMUXlib_File_PES_P_ProcessInputDescriptors(BMUXlib_File_PES_Handle hPE
                   BMUXlib_Output_Descriptor stOutputDescriptor;
                   BMUXlib_Output_CompletedCallbackInfo stCompletedCallbackInfo;
 
-                  BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
-                  BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
+                  BKNI_Memset( &stOutputDescriptor, 0, sizeof( stOutputDescriptor ) );
+                  BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( stCompletedCallbackInfo ) );
 
                   stOutputDescriptor.stStorage.bWriteOperation = true;
                   stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eCurrent;
@@ -629,14 +635,14 @@ BERR_Code BMUXlib_File_PES_P_ProcessInputDescriptors(BMUXlib_File_PES_Handle hPE
          {
             unsigned uiWriteOffsetTemp = (hPESMux->stFrameHeader.uiWriteOffset + 1) % BMUXlib_File_PES_P_MAX_FRAMES;
 
-            BDBG_ASSERT( sizeof( hPESMux->stFrameHeader.astFrameHeader[0] ) == BMUXlib_File_PES_P_FRAME_HEADER_SIZE );
+            BDBG_ASSERT( sizeof( *hPESMux->stFrameHeader.astFrameHeader[0] ) == BMUXlib_File_PES_P_FRAME_HEADER_SIZE );
 
             /* Write Frame Header */
             if ( ( true == BMUXlib_Output_IsSpaceAvailable( hPESMux->hOutput ) )
                  && ( uiWriteOffsetTemp != hPESMux->stFrameHeader.uiReadOffset ) )
             {
                bool bEOS = false;
-               BMUXlib_File_PES_P_FrameHeader *pstFrameHeader = &hPESMux->stFrameHeader.astFrameHeader[hPESMux->stFrameHeader.uiWriteOffset];
+               BMUXlib_File_PES_P_FrameHeader *pstFrameHeader = hPESMux->stFrameHeader.astFrameHeader[hPESMux->stFrameHeader.uiWriteOffset];
 
                *pstFrameHeader = s_stDefaultPESHeader;
 
@@ -656,8 +662,8 @@ BERR_Code BMUXlib_File_PES_P_ProcessInputDescriptors(BMUXlib_File_PES_Handle hPE
                   BMUXlib_Output_Descriptor stOutputDescriptor;
                   BMUXlib_Output_CompletedCallbackInfo stCompletedCallbackInfo;
 
-                  BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
-                  BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
+                  BKNI_Memset( &stOutputDescriptor, 0, sizeof( stOutputDescriptor ) );
+                  BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( stCompletedCallbackInfo ) );
 
                   stOutputDescriptor.stStorage.bWriteOperation = true;
                   stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eCurrent;
@@ -715,8 +721,8 @@ BERR_Code BMUXlib_File_PES_P_ProcessInputDescriptors(BMUXlib_File_PES_Handle hPE
                   uiLength = hPESMux->uiBytesLeftInDescriptor;
                }
 
-               BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
-               BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
+               BKNI_Memset( &stOutputDescriptor, 0, sizeof( stOutputDescriptor ) );
+               BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( stCompletedCallbackInfo ) );
 
                stOutputDescriptor.stStorage.bWriteOperation = true;
                stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eCurrent;
@@ -811,8 +817,8 @@ BERR_Code BMUXlib_File_PES_P_ProcessInputDescriptors(BMUXlib_File_PES_Handle hPE
                BMUXlib_Output_Descriptor stOutputDescriptor;
                BMUXlib_Output_CompletedCallbackInfo stCompletedCallbackInfo;
 
-               BKNI_Memset( &stOutputDescriptor, 0, sizeof( BMUXlib_Output_Descriptor ) );
-               BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( BMUXlib_Output_CompletedCallbackInfo ) );
+               BKNI_Memset( &stOutputDescriptor, 0, sizeof( stOutputDescriptor ) );
+               BKNI_Memset( &stCompletedCallbackInfo, 0, sizeof( stCompletedCallbackInfo ) );
 
                stOutputDescriptor.stStorage.bWriteOperation = true;
                stOutputDescriptor.stStorage.eOffsetFrom = BMUXlib_Output_OffsetReference_eCurrent;

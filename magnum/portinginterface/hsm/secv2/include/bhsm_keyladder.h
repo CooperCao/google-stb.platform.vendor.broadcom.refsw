@@ -90,39 +90,30 @@ typedef struct BHSM_KeyLadderAllocateSettings
 /* Describes how the keyladder is to behave. */
 typedef enum BHSM_KeyLadderMode
 {
-    BHSM_KeyLadderMode_eCa_64_4   = 0x00,      /* Generates 64 bit key that must be routed to a CP block from level 4. */
-    BHSM_KeyLadderMode_eCp_64_4   = 0x01,      /* Generates 64 bit key that must be routed to a CA block from level 4. */
-    BHSM_KeyLadderMode_eCa_64_5   = 0x02,
-    BHSM_KeyLadderMode_eCp_64_5   = 0x03,
-    BHSM_KeyLadderMode_eCa_128_4  = 0x04,
-    BHSM_KeyLadderMode_eCp_128_4  = 0x05,
-    BHSM_KeyLadderMode_eCa_128_5  = 0x06,
-    BHSM_KeyLadderMode_eCp_128_5  = 0x07,
-    BHSM_KeyLadderMode_eCa_64_7   = 0x08,
-    BHSM_KeyLadderMode_eCa_128_7  = 0x09,
-    BHSM_KeyLadderMode_eCa64_45   = 0x0a,
-    BHSM_KeyLadderMode_eCp64_45   = 0x0b,
-    BHSM_KeyLadderMode_eSageBlDecrypt = 0x0c,
-    BHSM_KeyLadderMode_eSage128_5       = 0x0d,
-    BHSM_KeyLadderMode_eSage128_4       = 0x0e,
-    BHSM_KeyLadderMode_eGeneralPurpose1 = 0x11,
-    BHSM_KeyLadderMode_eGeneralPurpose2 = 0x12,
-    BHSM_KeyLadderMode_eEtsi_5          = 0x13,
+    BHSM_KeyLadderMode_eCa_64_4,      /* Generates 64 bit key that must be routed to a CP block from level 4. */
+    BHSM_KeyLadderMode_eCp_64_4,      /* Generates 64 bit key that must be routed to a CA block from level 4. */
+    BHSM_KeyLadderMode_eCa_64_5,
+    BHSM_KeyLadderMode_eCp_64_5,
+    BHSM_KeyLadderMode_eCa_128_4,
+    BHSM_KeyLadderMode_eCp_128_4,
+    BHSM_KeyLadderMode_eCa_128_5,
+    BHSM_KeyLadderMode_eCp_128_5,
+    BHSM_KeyLadderMode_eCa_64_7,
+    BHSM_KeyLadderMode_eCa_128_7,
+    BHSM_KeyLadderMode_eCa64_45,
+    BHSM_KeyLadderMode_eCp64_45,
+    BHSM_KeyLadderMode_eSageBlDecrypt,
+    BHSM_KeyLadderMode_eSage128_5,
+    BHSM_KeyLadderMode_eSage128_4,
+    BHSM_KeyLadderMode_eGeneralPurpose1,
+    BHSM_KeyLadderMode_eGeneralPurpose2,
+    BHSM_KeyLadderMode_eEtsi_5,
     BHSM_KeyLadderMode_eScte52Ca_5,
     BHSM_KeyLadderMode_eHwlk,
+    BHSM_KeyLadderMode_eRpmb,
     /* more to come */
     BHSM_KeyLadderMode_eMax
 } BHSM_KeyLadderMode;
-
-
-/* Usually "Regular", allows "Des56" and "DvbConformace" key generation. */
-typedef enum {
-    BHSM_KeyLadderKeyMode_eRegular,
-    BHSM_KeyLadderKeyMode_eDes56,
-    BHSM_KeyLadderKeyMode_eDvbConformance,
-
-    BHSM_KeyLadderKeyMode_eMax
-}BHSM_KeyLadderKeyMode;
 
 
 /* the different menchanisms for gererating a KeyLadder root key. */
@@ -195,7 +186,6 @@ typedef struct
     BHSM_CryptographicAlgorithm algorithm; /* the algorithm to use on the keyladder */
     BHSM_CryptographicOperation operation; /* encrypt or decrypt  */
     BHSM_KeyLadderMode mode;               /* Describes the allowed operations on the keyladder. */
-    BHSM_KeyLadderKeyMode keyMode;         /* Usually "Regular", allows "Des56" and "DvbConformace" key generation. */
     unsigned numLevels;                    /* NOT USED ***DEPRECATED**. Will be removed. */
 
     struct

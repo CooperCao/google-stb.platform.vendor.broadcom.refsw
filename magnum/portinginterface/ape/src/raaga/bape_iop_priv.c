@@ -44,12 +44,12 @@
 #include "bape_priv.h"
 #include "bchp_aud_fmm_bf_ctrl.h"
 
+BDBG_MODULE(bape_iop_priv);
+BDBG_FILE_MODULE(bape_fci);
+
+#if BAPE_CHIP_MAX_LOOPBACKS > 0
 #ifdef BCHP_AUD_FMM_IOP_LOOPBACK_0_REG_START
 #include "bchp_aud_fmm_iop_loopback_0.h"
-#endif
-
-#ifdef BCHP_AUD_FMM_IOP_DUMMYSINK_0_REG_START
-#include "bchp_aud_fmm_iop_dummysink_0.h"
 #endif
 
 #if defined BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_NCO_0 || defined BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen0
@@ -59,17 +59,6 @@
     #define BAPE_LB_MCLKCFG_NCO_CONSTRUCT_PARAM(idx) NCO_##idx
 #endif
 #endif
-
-#if defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_NCO_0 || defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen0
-#if defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen0
-    #define BAPE_DS_MCLKCFG_NCO_CONSTRUCT_PARAM(idx) Mclk_gen##idx
-#else
-    #define BAPE_DS_MCLKCFG_NCO_CONSTRUCT_PARAM(idx) NCO_##idx
-#endif
-#endif
-
-BDBG_MODULE(bape_iop_priv);
-BDBG_FILE_MODULE(bape_fci);
 
 typedef struct BAPE_LoopbackGroup
 {
@@ -81,20 +70,9 @@ typedef struct BAPE_LoopbackGroup
     BAPE_LoopbackGroupSettings settings;
 } BAPE_LoopbackGroup;
 
-typedef struct BAPE_DummysinkGroup
-{
-    bool allocated;
-    bool started;
-    unsigned numChannelPairs;
-    BAPE_Handle deviceHandle;
-    uint32_t dummysinkIds[BAPE_ChannelPair_eMax];   
-    BAPE_DummysinkGroupSettings settings;
-} BAPE_DummysinkGroup;
-
 #ifdef BCHP_AUD_FMM_IOP_CTRL_FCI_CFGi_ARRAY_BASE
-/* Typical STB */
+    /* Typical STB */
     #define GET_LOOPBACK_STREAM_ID(idx) ((idx)+BAPE_CHIP_MAX_OUTPUT_PORTS)  /* Loopback output stream ID is always first after the O/P streams */
-    #define GET_DUMMYSINK_STREAM_ID(idx) ((idx)+BAPE_CHIP_MAX_OUTPUT_PORTS+BAPE_CHIP_MAX_LOOPBACKS) /* Dummysink follows loopbacks */
     #define GET_LOOPBACK_CAPTURE_ID(idx) ((idx))        /* Loopback capture is first on all chips */
 #elif defined BCHP_AUD_FMM_IOP_LOOPBACK_0_REG_START
     /* 7429-style chips don't use streams */
@@ -104,9 +82,43 @@ typedef struct BAPE_DummysinkGroup
 
 static BERR_Code BAPE_LoopbackGroup_P_OpenHw( BAPE_LoopbackGroupHandle hLoopbackGroup );
 static void BAPE_Loopback_P_SetGroup(BAPE_Handle deviceHandle, uint32_t loopback, uint32_t group, uint32_t numChannelPairs);
+#endif /* BAPE_CHIP_MAX_LOOPBACKS */
+
+#if BAPE_CHIP_MAX_DUMMYSINKS > 0
+#ifdef BCHP_AUD_FMM_IOP_DUMMYSINK_0_REG_START
+#include "bchp_aud_fmm_iop_dummysink_0.h"
+#endif
+
+#if defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_NCO_0 || defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen0
+#if defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen0
+    #define BAPE_DS_MCLKCFG_NCO_CONSTRUCT_PARAM(idx) Mclk_gen##idx
+#else
+    #define BAPE_DS_MCLKCFG_NCO_CONSTRUCT_PARAM(idx) NCO_##idx
+#endif
+#endif
+
+#ifdef BCHP_AUD_FMM_IOP_CTRL_FCI_CFGi_ARRAY_BASE
+    /* Typical STB */
+    #define GET_DUMMYSINK_STREAM_ID(idx) ((idx)+BAPE_CHIP_MAX_OUTPUT_PORTS+BAPE_CHIP_MAX_LOOPBACKS) /* Dummysink follows loopbacks */
+#elif defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_REG_START
+    /* 7429-style chips don't use streams */
+#else
+    #error Unknown Dummysink register layout
+#endif
+
+typedef struct BAPE_DummysinkGroup
+{
+    bool allocated;
+    bool started;
+    unsigned numChannelPairs;
+    BAPE_Handle deviceHandle;
+    uint32_t dummysinkIds[BAPE_ChannelPair_eMax];
+    BAPE_DummysinkGroupSettings settings;
+} BAPE_DummysinkGroup;
 
 static BERR_Code BAPE_DummysinkGroup_P_OpenHw( BAPE_DummysinkGroupHandle hDummySinkGroup );
 static void BAPE_Dummysink_P_SetGroup(BAPE_Handle deviceHandle, uint32_t dummysink, uint32_t group, uint32_t numChannelPairs);
+#endif /* BAPE_CHIP_MAX_DUMMYSINKS */
 
 #ifdef BCHP_AUD_FMM_MS_CTRL_REG_START
 static BERR_Code BAPE_P_InitMsHw(BAPE_Handle handle)
@@ -274,6 +286,8 @@ BERR_Code BAPE_P_InitIopSw(BAPE_Handle    handle)
     BERR_Code errCode;
     unsigned i;
 
+    BSTD_UNUSED(i);
+
     /* Initialize PLLs */
     BDBG_MSG(("Initializing PLLs"));
     errCode = BAPE_P_InitPllSw(handle);
@@ -282,6 +296,7 @@ BERR_Code BAPE_P_InitIopSw(BAPE_Handle    handle)
         return BERR_TRACE(errCode);
     }
 
+    #if BAPE_CHIP_MAX_LOOPBACKS > 0
     /* Allocate Loopback Groups */
     /* Setup Group Handles */
     BDBG_MSG(("Allocating %u Loopback Groups", BAPE_CHIP_MAX_LOOPBACK_GROUPS));
@@ -295,7 +310,9 @@ BERR_Code BAPE_P_InitIopSw(BAPE_Handle    handle)
     {
         handle->loopbackGroups[i] = handle->loopbackGroups[0] + i;
     }
+    #endif
 
+    #if BAPE_CHIP_MAX_DUMMYSINKS > 0
     BDBG_MSG(("Allocating %u Dummysink Groups", BAPE_CHIP_MAX_DUMMYSINK_GROUPS));
     handle->dummysinkGroups[0] = BKNI_Malloc(BAPE_CHIP_MAX_DUMMYSINK_GROUPS*sizeof(BAPE_DummysinkGroup));
     if ( NULL == handle->dummysinkGroups[0] )
@@ -308,16 +325,21 @@ BERR_Code BAPE_P_InitIopSw(BAPE_Handle    handle)
     {
         handle->dummysinkGroups[i] = handle->dummysinkGroups[0] + i;
     }
+    #endif
 
     return BERR_SUCCESS;
 
+#if BAPE_CHIP_MAX_DUMMYSINKS > 0
 err_alloc_dummysink:
+    #if BAPE_CHIP_MAX_LOOPBACKS > 0
     if ( handle->loopbackGroups[0] )
     {
         BKNI_Free(handle->loopbackGroups[0]);
         BKNI_Memset(handle->loopbackGroups, 0, sizeof(handle->loopbackGroups));
     }
+    #endif
     return errCode;
+#endif
 }
 
 
@@ -325,6 +347,8 @@ BERR_Code BAPE_P_InitIopHw(BAPE_Handle    handle)
 {
     BERR_Code errCode;
     unsigned i;
+
+    BSTD_UNUSED(i);
 
     /* Initialize PLLs */
     BDBG_MSG(("Initializing PLLs"));
@@ -373,17 +397,21 @@ BERR_Code BAPE_P_InitIopHw(BAPE_Handle    handle)
     }
 #endif
 
-    /* Initialize each dummysink to default (ungrouped) operation */
+    #if BAPE_CHIP_MAX_LOOPBACKS > 0
+    /* Initialize each loopback to default (ungrouped) operation */
     for ( i = 0; i < BAPE_CHIP_MAX_LOOPBACKS; i++ )
     {
         BAPE_Loopback_P_SetGroup(handle, i, i, 1);
     }
+    #endif
 
+    #if BAPE_CHIP_MAX_DUMMYSINKS > 0
     /* Initialize each dummysink to default (ungrouped) operation */
     for ( i = 0; i < BAPE_CHIP_MAX_DUMMYSINKS; i++ )
     {
         BAPE_Dummysink_P_SetGroup(handle, i, i, 1);
     }
+    #endif
 
     return BERR_SUCCESS;
 }
@@ -392,16 +420,20 @@ void BAPE_P_UninitIopSw(BAPE_Handle handle)
 {
     BDBG_OBJECT_ASSERT(handle, BAPE_Device);
 
+    #if BAPE_CHIP_MAX_LOOPBACKS > 0
     if ( handle->loopbackGroups[0] )
     {
         BKNI_Free(handle->loopbackGroups[0]);
         BKNI_Memset(handle->loopbackGroups, 0, sizeof(handle->loopbackGroups));
     }
+    #endif
+    #if BAPE_CHIP_MAX_DUMMYSINKS > 0
     if ( handle->dummysinkGroups[0] )
     {
         BKNI_Free(handle->dummysinkGroups[0]);
         BKNI_Memset(handle->dummysinkGroups, 0, sizeof(handle->dummysinkGroups));
     }
+    #endif
 }
 
 
@@ -775,6 +807,7 @@ BERR_Code BAPE_Iop_P_SetStreamSettings(
 #endif
 }
 
+#if BAPE_CHIP_MAX_LOOPBACKS > 0
 void BAPE_LoopbackGroup_P_GetDefaultCreateSettings(BAPE_LoopbackGroupCreateSettings *pSettings  /* [out] */ )
 {
     BDBG_ASSERT(NULL != pSettings);
@@ -1283,7 +1316,9 @@ static BERR_Code BAPE_LoopbackGroup_P_OpenHw( BAPE_LoopbackGroupHandle hLoopback
 
     return BERR_SUCCESS;
 }
+#endif /* BAPE_CHIP_MAX_LOOPBACKS */
 
+#if BAPE_CHIP_MAX_DUMMYSINKS > 0
 void BAPE_DummysinkGroup_P_GetDefaultCreateSettings(BAPE_DummysinkGroupCreateSettings *pSettings  /* [out] */ )
 {
     BDBG_ASSERT(NULL != pSettings);
@@ -1807,3 +1842,4 @@ static void BAPE_Dummysink_P_SetGroup(BAPE_Handle deviceHandle, uint32_t dummysi
     }
 #endif
 }
+#endif /* BAPE_CHIP_MAX_DUMMYSINKS */

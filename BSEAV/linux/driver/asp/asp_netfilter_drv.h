@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -127,6 +127,7 @@ typedef struct ASP_ChannelPktControl
 typedef struct ASP_DeviceGetGateway
 {
     uint32_t                    remoteIpAddr[4];
+    uint32_t                    routeUsesGateway;
     uint32_t                    gatewayIpAddr[4];
 } ASP_DeviceGetGateway;
 #define ASP_DEVICE_IOC_GET_GATEWAY                  _IOWR(ASP_DEVICE_MAGIC_TYPE, 7, ASP_DeviceGetGateway)

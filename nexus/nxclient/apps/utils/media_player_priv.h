@@ -61,9 +61,6 @@
 #include "bstd.h"
 #include "bkni.h"
 
-typedef struct media_player_ip *media_player_ip_t;
-typedef struct media_player_bip *media_player_bip_t;
-
 struct media_player
 {
     BDBG_OBJECT(media_player)
@@ -95,10 +92,6 @@ struct media_player
     NEXUS_SimpleVideoDecoderStartSettings videoProgram;
     NEXUS_SimpleAudioDecoderStartSettings audioProgram;
     media_player_settings settings;
-    bool usePbip;           /* if env variable use_pbip is set then we will set this to true and use playback_ip instead of bip.*/
-    media_player_ip_t ip;
-    media_player_bip_t bip;
-    bool ipActive;  /* true if start used ip; all subsequent calls routed to media_player_ip/media_player_bip based on usePbip flag. */
     dvr_crypto_t crypto;
     unsigned colorDepth;
     bool stcTrick;
@@ -115,31 +108,5 @@ struct url {
     unsigned port;
     char path[256]; /* contains "/path?query_string#fragment_id" */
 };
-
-/* prototypes to keep IP and no IP in sync */
-media_player_ip_t media_player_ip_create(media_player_t parent);
-void media_player_ip_destroy(media_player_ip_t player);
-int media_player_ip_start(media_player_ip_t player, const media_player_start_settings *psettings, const struct url *url);
-int media_player_ip_start_playback(media_player_ip_t player);
-void media_player_ip_stop(media_player_ip_t player);
-int media_ip_player_trick(media_player_ip_t player, int rate);
-int media_player_ip_get_playback_status(media_player_ip_t player, NEXUS_PlaybackStatus *pstatus);
-int media_ip_player_seek(media_player_ip_t player, int offset, int whence);
-#if B_REFSW_TR69C_SUPPORT
-int media_player_ip_get_set_tr69c_info(void *context, enum b_tr69c_type type, union b_tr69c_info *info);
-#endif
-
-/* prototypt fot to keep bip and no IP in sync. */
-media_player_bip_t media_player_bip_create(media_player_t parent);
-void media_player_bip_destroy( media_player_bip_t player);
-int media_player_bip_start(media_player_bip_t player, const media_player_start_settings *psettings, const char *url);
-void media_player_bip_get_color_depth(media_player_bip_t player, unsigned *pColorDepth);
-int media_player_bip_start_play(media_player_bip_t player);
-int media_player_bip_set_settings(media_player_bip_t player, const media_player_settings *psettings);
-void media_player_bip_stop(media_player_bip_t player);
-int media_player_bip_status(media_player_bip_t player, NEXUS_PlaybackStatus *pstatus);
-int media_player_bip_seek( media_player_bip_t player, int offset, int whence );
-int media_player_bip_trick( media_player_bip_t player, int rate);
-int media_player_bip_frame_advance( media_player_bip_t player, bool forward);
 
 #endif /* MEDIA_PLAYER_PRIV_H__ */

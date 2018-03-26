@@ -46,7 +46,7 @@
 #include "fp_sdk_config.h"
 #include "dreg-numbers.h"
 
-#if !(defined(__FP4015_ONWARDS__) || defined(__FPM1015_ONWARDS__)) && !defined(__COMPILE_HEADER__)
+#if !(__FP4015__ || __FPM1015__) && !defined(__COMPILE_HEADER__)
 #  error "Inconsistent build: including memmap-octave-v2-maestro-v1.h on an unsupported machine"
 #endif
 
@@ -199,6 +199,7 @@ extern Misc_Block taddr_Misc_Block;
 
 /* Field names compatibility layer */
 #define MISC_BLOCK_CORE_ENABLE_FIELD        corectrl_core_enable
+#define MISC_BLOCK_CORE_RESET_VECTOR_FIELD  corectrl_subsystem_reset_vector
 #define MISC_BLOCK_SYS_FLAG_FIELD(sub)      corectrl_sys_flg0_ ## sub
 #define MISC_BLOCK_USR_FLAG_FIELD(sub)      corectrl_usr_flg0_ ## sub
 #define MISC_BLOCK_SYS_MAILBOX_FIELD(n)     corestate_sys_mbx ## n
@@ -381,7 +382,7 @@ extern Misc_Block taddr_Misc_Block;
  * @{
  */
 ASSERT(PROTI_TOP_ADDRESS_MASK == PROTD_TOP_ADDRESS_MASK, "Error: PROTI_TOP_ADDRESS_MASK != PROTD_TOP_ADDRESS_MASK")
-#  define ADDR_TO_PROT_TOP(addr)            ((addr) == 0 ? 0 : ((addr) - 1) & PROTI_TOP_ADDRESS_MASK)
+#  define ADDR_TO_PROT_TOP(addr)        ((addr) == 0 ? 0 : ((addr) - 1) & PROTI_TOP_ADDRESS_MASK)
 /** @} */
 
 #  if CORE_HAS_DREG_FEATURE_MPU_ICA || CORE_HAS_DREG_FEATURE_MPU_DCA
@@ -394,7 +395,7 @@ ASSERT(PROTI_TOP_ADDRESS_MASK == PROTD_TOP_ADDRESS_MASK, "Error: PROTI_TOP_ADDRE
 /** @} */
 #  endif /* CORE_HAS_DREG_FEATURE_MPU_DCA */
 
-#  if CORE_HAS_DREG_FEATURE_MPU_ICA || CORE_HAS_DREG_FEATURE_MPU_DCA
+#  if CORE_HAS_DREG_FEATURE_MPU_DTCM
 /**
  * Linker scripts macros for marking DTCM protection regions boundaries.
  * They require the taddr_dtcm_prot and tsize_dtcm_prot symbols to be defined to work properly.
@@ -413,7 +414,7 @@ ASSERT(PROTI_TOP_ADDRESS_MASK == PROTD_TOP_ADDRESS_MASK, "Error: PROTI_TOP_ADDRE
 #    define ASSERT_DTCM_PROT_REGION_ALIGNED(what)   ASSERT(IS_MULTIPLE_OF_POW2((what), DTCM_PROT_REGION_SIZE), \
                                                            STRINGIFY(what is not aligned to DTCM region size))
 /** @} */
-#  endif
+#  endif /* CORE_HAS_DREG_FEATURE_MPU_DTCM */
 #endif  /* defined(__LINKER_SCRIPT__) */
 
 
@@ -451,7 +452,7 @@ extern char __user_scenario_dtcm_mask_bot, __user_scenario_dtcm_mask_top;
 #    define CLASSIC_PROT_PROTD_TOP    (DIR_PROTD_BOT_0 + 2 * CLASSIC_MEMORY_PROTECTION_PROTD_REGION)
 /** @} */
 
-/* The SDK configuration mechanism set this to a negative number on purpose if something is wrong */
+/* The SDK configuration mechanism sets this to a negative number on purpose if something is wrong */
 #    if CLASSIC_MEMORY_PROTECTION_PROTD_REGION < 0 && !defined(__COMPILE_HEADER__)
        /* Disable this check on DSL chips for the moment, as they use a different scheme */
 #      if !CHIP_CLASS_DSL

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -76,6 +76,7 @@ typedef struct AppCtx
     unsigned                    inactivityTimeoutInMs;
     bool                        enableContinousPlay;
     bool                        disableTrickmode;
+    bool                        disableAudio;
     bool                        enablePacing;
     bool                        enableDtcpIp;
     B_CCI_T                     dtcpIpCopyControlInfo;
@@ -116,6 +117,7 @@ typedef struct AppStreamerCtx
     unsigned                    trackGroupId;         /* For MPEG2-TS this specifies the program_number. */
     bool                        enableContinousPlay;
     bool                        disableTrickmode;
+    bool                        disableAudio;
     bool                        enablePacing;
     bool                        enableDtcpIp;
     bool                        enableSlaveMode;
@@ -416,7 +418,7 @@ static BIP_Status startStreamer(
             fileInputSettings.enableHwPacing = true;
         }
 
-        if (pAppStreamerCtx->enableAllPass)
+        if (pAppStreamerCtx->enableAllPass && !pAppStreamerCtx->enableXcode && !pAppStreamerCtx->enableHls)
         {
             fileInputSettings.enableAllPass = true;
         }
@@ -438,8 +440,13 @@ static BIP_Status startStreamer(
      * For AV type media file streaming, app should provide individual tracks to the streamer.
      * This allows streamer to insert the PSI information in the HTTP Response. In addition, this is
      * required if app enables HW pacing or doesn't set the enableAllPass flag in the FileInputSettings above.
+     * However, user may set the enableAllPass cmdline option, however, it can't be honored & thus ignored if
+     * incoming request requires us to transcode. This is true when client is requesting a URL w/ either
+     * .xcode flag or with .m3u8 flag (for HLS).
      */
-    if ( !pAppStreamerCtx->enableAllPass && pMediaInfoStream->transportType != NEXUS_TransportType_eUnknown )
+    if ( pMediaInfoStream->transportType != NEXUS_TransportType_eUnknown &&
+         (!pAppStreamerCtx->enableAllPass || pAppStreamerCtx->enableHls || pAppStreamerCtx->enableXcode)
+       )
     {
         BIP_MediaInfoTrackGroup *pMediaInfoTrackGroup = NULL;
         BIP_MediaInfoTrack      *pMediaInfoTrack = NULL;
@@ -503,18 +510,24 @@ static BIP_Status startStreamer(
             B_Os_Memset( &streamerTrackInfo, 0, sizeof( streamerTrackInfo ) );
             BIP_Streamer_GetStreamerTrackInfoFromMediaInfo(pMediaInfoTrack, &streamerTrackInfo );
 
+            if ( pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eAudio && pAppStreamerCtx->disableAudio )
+            {
+                BDBG_MSG(( BIP_MSG_PRE_FMT "-disableAudio option is set, so NOT adding audioTrack!" BIP_MSG_PRE_ARG));
+                goto nextTrack;
+            }
+
             if ( pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eVideo
-                 && ( pMediaInfoStream->transportType == NEXUS_TransportType_eTs )
-                 && ( pMediaInfoTrack->info.video.codec != NEXUS_VideoCodec_eH264_Svc )
-                 && ( pMediaInfoTrack->info.video.codec != NEXUS_VideoCodec_eH264_Mvc )
-                 && ( pMediaInfoTrack->parsedPayload )
-                 && ( pAppStreamerCtx->disableTrickmode == false))
+                    && ( pMediaInfoStream->transportType == NEXUS_TransportType_eTs )
+                    && ( pMediaInfoTrack->info.video.codec != NEXUS_VideoCodec_eH264_Svc )
+                    && ( pMediaInfoTrack->info.video.codec != NEXUS_VideoCodec_eH264_Mvc )
+                    && ( pMediaInfoTrack->parsedPayload )
+                    && ( pAppStreamerCtx->disableTrickmode == false))
             {
                 hNavFileAbsolutePathName = buildNavFileName( BIP_String_GetString( pAppStreamerCtx->pAppCtx->hInfoDirectoryPath), BIP_String_GetString(pAppStreamerCtx->hMediaFileAbsolutePathName), streamerTrackInfo.trackId);
                 responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
                 BIP_CHECK_GOTO( (hNavFileAbsolutePathName != NULL), ("BIP_String_CreateFromPrintf() Failed"), rejectRequest, BIP_ERR_CREATE_FAILED, bipStatus);
                 streamerTrackInfo.info.video.pMediaNavFileAbsolutePathName = BIP_String_GetString( hNavFileAbsolutePathName );
-             }
+            }
 
             bipStatus = BIP_HttpStreamer_AddTrack( pAppStreamerCtx->hHttpStreamer, &streamerTrackInfo, NULL );
             responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
@@ -525,6 +538,7 @@ static BIP_Status startStreamer(
             }
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_HttpStreamer_AddTrack Failed for track# %d", streamerTrackInfo.trackId ), rejectRequest, bipStatus, bipStatus );
 
+nextTrack:
             if (true == trackGroupPresent)
             {
                 pMediaInfoTrack = pMediaInfoTrack->pNextTrackForTrackGroup;
@@ -586,6 +600,7 @@ static BIP_Status startStreamer(
             {
                 BIP_Transcode_GetDefaultProfile( &transcodeProfile );
             }
+            transcodeProfile.disableAudio = pAppStreamerCtx->disableAudio;
 
             bipStatus = BIP_HttpStreamer_AddTranscodeProfile( pAppStreamerCtx->hHttpStreamer, &transcodeProfile );
             responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
@@ -598,6 +613,7 @@ static BIP_Status startStreamer(
                 /* NOTE: this is being commented out as some 480p profile encode profile default settings are not yet set correctly and thus players are not playing the initial ~10sec worth of frames. */
             {
                 BIP_Transcode_GetDefaultProfileFor_480p30_AVC_AAC_MPEG2_TS( &transcodeProfile );
+                transcodeProfile.disableAudio = pAppStreamerCtx->disableAudio;
                 bipStatus = BIP_HttpStreamer_AddTranscodeProfile( pAppStreamerCtx->hHttpStreamer, &transcodeProfile );
                 responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
                 BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_HttpStreamer_AddTranscodeProfile Failed" ), rejectRequest, bipStatus, bipStatus );
@@ -605,6 +621,7 @@ static BIP_Status startStreamer(
             /* Add a 720p profile. */
             {
                 BIP_Transcode_GetDefaultProfileFor_720p30_AVC_AAC_MPEG2_TS( &transcodeProfile );
+                transcodeProfile.disableAudio = pAppStreamerCtx->disableAudio;
                 bipStatus = BIP_HttpStreamer_AddTranscodeProfile( pAppStreamerCtx->hHttpStreamer, &transcodeProfile );
                 responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
                 BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_HttpStreamer_AddTranscodeProfile Failed" ), rejectRequest, bipStatus, bipStatus );
@@ -817,6 +834,7 @@ static void processHttpRequestEvent(
             /* Copy Global Settings into Streamer instance. */
             pAppStreamerCtx->enableContinousPlay = pAppCtx->enableContinousPlay;
             pAppStreamerCtx->disableTrickmode = pAppCtx->disableTrickmode;
+            pAppStreamerCtx->disableAudio = pAppCtx->disableAudio;
             /*Initialize enablePacing from pAppCtx->enablePacing, if URL provides enablePacing flag then parseUrl will overwrite it.*/
             pAppStreamerCtx->enablePacing = pAppCtx->enablePacing;
             pAppStreamerCtx->enableSlaveMode = pAppCtx->enableSlaveMode;
@@ -892,21 +910,19 @@ static void processHttpRequestEvent(
                     {
                         pAppStreamerCtx->enableXcode = true;
                         bipStatus = BIP_String_Trim( pAppStreamerCtx->hMediaFileAbsolutePathName, pTmp, strlen(".xcode") );
+                        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_String_Trim Failed" ), rejectRequest, bipStatus, bipStatus );
                     }
                     if ( (pTmp = strstr( BIP_String_GetString( pAppStreamerCtx->hMediaFileAbsolutePathName), ".dtcpIp" )) != NULL )
                     {
                         pAppStreamerCtx->enableDtcpIp = true;
                         bipStatus = BIP_String_Trim( pAppStreamerCtx->hMediaFileAbsolutePathName, pTmp, strlen(".dtcpIp") );
+                        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_String_Trim Failed" ), rejectRequest, bipStatus, bipStatus );
                     }
                     if ( (pTmp = strstr( BIP_String_GetString( pAppStreamerCtx->hMediaFileAbsolutePathName), ".tts" )) != NULL )
                     {
                         pAppStreamerCtx->enableTransportTimestamp = true;
                         bipStatus = BIP_String_Trim( pAppStreamerCtx->hMediaFileAbsolutePathName, pTmp, strlen(".tts") );
-                    }
-                    else
-                    {
-                        /* No known extension is present in the URL String, no need to trim it!. */
-                        bipStatus = BIP_SUCCESS;
+                        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_String_Trim Failed" ), rejectRequest, bipStatus, bipStatus );
                     }
                 }
                 responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
@@ -955,18 +971,17 @@ static void processHttpRequestEvent(
 rejectRequest:
         /* Some error happened, so reject the current hHttpRequest. */
         rejectRequestAndSetResponseHeaders( pAppStreamerCtx->pAppCtx, hHttpRequest, responseStatus );
-        if (pAppStreamerCtx)
-            destroyAppStreamerCtx(pAppStreamerCtx);
+        destroyAppStreamerCtx(pAppStreamerCtx);
         pAppStreamerCtx = NULL;
         /* continue back to the top of the loop. */
     } /* while */
 
 error:
-    if(hTarget)
+    if (hTarget)
     {
         BIP_String_Destroy(hTarget);
     }
-    if(hInfoFileAbsolutePathName)
+    if (hInfoFileAbsolutePathName)
     {
         BIP_String_Destroy(hInfoFileAbsolutePathName);
     }
@@ -1043,11 +1058,6 @@ static BIP_Status generateNav(
             }
         }
         pMediaInfoTrack = pMediaInfoTrack->pNextTrackForStream;
-    }
-
-    if(hAbsoluteNavFileName)
-    {
-        BIP_String_Destroy(hAbsoluteNavFileName);
     }
 
 error:
@@ -1365,7 +1375,8 @@ static void printUsage(
             "  -pace            #   Pace streaming content using Playback Channel\n"
             "  -trackGroupId    #   Use a particular program in MPTS case (defaults to 1st program)\n"
           );
-    printf( "  -disableTrickmode#   Enable server for trickmode support (defaults is not disabled)\n"
+    printf( "  -disableTrickmode#   Disable trickmode support in server (defaults is enabled)\n"
+            "  -disableAudio    #   Disable sending audio track (defaults is enabled)\n"
             "  -dontAddAvInfo   #   Dont insert AV Track Info in the HTTP Response (default: Insert it)\n"
             "  -dontAddContentLength #   Dont insert HTTP Content-Length header in the HTTP Response (default: Insert it)\n"
             "  -slave           #   Start Server in slave mode (Client in Nexus Multi-Process)\n"
@@ -1493,6 +1504,10 @@ BIP_Status parseOptions(
         else if(!strcmp(argv[i], "-disableTrickmode"))
         {
             pAppCtx->disableTrickmode = true;
+        }
+        else if(!strcmp(argv[i], "-disableAudio"))
+        {
+            pAppCtx->disableAudio = true;
         }
         else if ( !strcmp(argv[i], "-dontAddAvInfo") )
         {

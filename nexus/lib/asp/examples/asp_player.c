@@ -447,9 +447,11 @@ int main(int argc, char *argv[])
     {
         void *pHttpReqBuf;
         unsigned httpReqBufSize;
+        void *pHttpReqBuf1;
+        unsigned httpReqBufSize1;
 
         /* Get Buffer where HTTP Request will be written into. */
-        rc = B_AspChannel_GetWriteBufferWithWrap(hAspCh, &pHttpReqBuf, &httpReqBufSize, NULL, NULL);
+        rc = B_AspChannel_GetWriteBufferWithWrap(hAspCh, &pHttpReqBuf, &httpReqBufSize, &pHttpReqBuf1, &httpReqBufSize1);
         BDBG_ASSERT(rc==0);
         BDBG_WRN(("pHttpReqBuf=%p size=%u", pHttpReqBuf, httpReqBufSize));
         BKNI_Memset(pHttpReqBuf, 0, httpReqBufSize);
@@ -467,10 +469,14 @@ int main(int argc, char *argv[])
     {
         const void *pHttpRespBuf;
         unsigned httpRespBufSize;
+        const void *pHttpRespBuf1;
+        unsigned httpRespBufSize1;
 
         /* Check if ASP has received any data from network. */
-        rc = B_AspChannel_GetReadBufferWithWrap(hAspCh, &pHttpRespBuf, &httpRespBufSize, NULL, NULL);
+        rc = B_AspChannel_GetReadBufferWithWrap(hAspCh, &pHttpRespBuf, &httpRespBufSize, &pHttpRespBuf1, &httpRespBufSize1);
         BDBG_ASSERT(rc==B_ERROR_SUCCESS);
+        BSTD_UNUSED(pHttpRespBuf1);
+        BSTD_UNUSED(httpRespBufSize1);
 
         if (httpRespBufSize)
         {

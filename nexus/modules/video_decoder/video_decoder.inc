@@ -179,6 +179,10 @@ endif
 ifeq ($(B_REFSW_DSS_SUPPORT),y)
 NEXUS_VIDEO_DECODER_DEFINES += B_REFSW_DSS_SUPPORT=1
 endif
+ifeq ($(B_REFSW_AVD_STC),y)
+# Nexus defaults to AVD STC or STC snapshot as required, but this provides an override.
+NEXUS_VIDEO_DECODER_DEFINES += B_REFSW_AVD_STC=1
+endif
 
 #####################
 # Module Extensions #

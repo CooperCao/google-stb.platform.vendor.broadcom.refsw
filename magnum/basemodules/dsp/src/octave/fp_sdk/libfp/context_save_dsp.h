@@ -139,7 +139,7 @@ typedef struct CS_mRegContext
 {
     /** The MREG data. */
     CS_mRegInfo mRegInfo;
-#  ifdef __FP4014_ONWARDS__
+#  if __FP4014_ONWARDS__
     /** The MSRs */
     uint64_t    u64Msr[MSR_SIZE_IN_UINT64S * 4];
 #  else
@@ -153,7 +153,7 @@ typedef struct CS_mRegContext
 
 #ifdef SIMD_BITFIELD_CONTEXT
 
-#  ifdef __FP4014_ONWARDS__
+#  if __FP4014_ONWARDS__
 typedef struct CS_bitFieldState
 {
     uint64_t bcxm;
@@ -227,7 +227,7 @@ typedef struct CS_trellisState
 typedef struct CS_firState
 {
     /** @{ */
-#ifdef __FP4014_ONWARDS__
+#if __FP4014_ONWARDS__
     uint64_t state[4];
 #else
     uint64_t u64x;
@@ -262,7 +262,7 @@ typedef struct CS_registerContext
     /** MAC regs and MSR. */
     CS_mRegContext mReg;
 #endif
-#ifdef __FP4014_ONWARDS__
+#if __FP4014_ONWARDS__
     uint64_t u64DirLoopAddr;
     uint64_t u64DirLoopCount;
     uint64_t u64DirLoopStart;
@@ -331,7 +331,7 @@ typedef struct CS_FullVolatileContext
 #define CS_dirLoopCount                         (CS_registerContext_u64DirLoopCount)
 #define CS_dirLoopStart                         (CS_registerContext_u64DirLoopStart)
 
-#ifdef __FP4014_ONWARDS__
+#if __FP4014_ONWARDS__
 #  define CS_bitFieldState_bcxm                 (CS_registerContext_bitFieldState + CS_bitFieldState_bcxm)
 #  define CS_bitFieldState_bxr                  (CS_registerContext_bitFieldState + CS_bitFieldState_bxr)
 #  define CS_bitFieldState_bcr                  (CS_registerContext_bitFieldState + CS_bitFieldState_bcr)

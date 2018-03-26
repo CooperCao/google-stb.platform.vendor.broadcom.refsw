@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -119,6 +119,7 @@ typedef struct BAPE_DebugOutputStatus
 #if BAPE_CHIP_MAX_MAI_OUTPUTS > 0 
     BAPE_DebugDigitalOutputStatus hdmi[BAPE_CHIP_MAX_MAI_OUTPUTS];
 #endif
+    unsigned unused; /* allow compilation with no members */
 } BAPE_DebugOutputStatus;
 
 typedef struct BAPE_DebugOutputVolume
@@ -145,6 +146,7 @@ typedef struct BAPE_DebugVolumeStatus
 #if BAPE_CHIP_MAX_I2S_OUTPUTS > 0
     BAPE_DebugOutputVolume i2s[BAPE_CHIP_MAX_I2S_OUTPUTS];
 #endif
+    unsigned unused; /* allow compilation with no members */
 } BAPE_DebugVolumeStatus;
 
 

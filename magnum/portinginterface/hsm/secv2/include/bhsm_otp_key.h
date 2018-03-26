@@ -67,7 +67,9 @@ typedef struct BHSM_OtpKeyInfo
     unsigned index;                 /* Identify the OTP Key, Index 0 refers to OTP "Key A" */
 
     /*OUT*/
+    bool    hashValid;                       /* true if following "hash" parameter is valid */
     uint8_t hash[BHSM_OTP_KEY_HASH_LENGTH];  /* Hash of OTP key */
+
     uint8_t id[BHSM_OTP_KEY_ID_LENGTH];      /* OTP KeyId */
 
     unsigned blackBoxId;
@@ -77,7 +79,8 @@ typedef struct BHSM_OtpKeyInfo
     bool     gp2KeyLadderAllow; /* General Purpose keyladder 2 allowed. */
     bool     sageKeyLadderAllow; /* OTP key can be used from SAGE. */
     bool     rootKeySwapAllow;   /* OTP root key could be swapped. */
-    bool     deobfuscationEnabled; /* */
+    bool     fixedDeobfuscationEnabled; /* OTP key obfuscation is fixed, not chip family specific. */
+    bool     deobfuscationEnabled; /*OTP key obfuscation enabled. */
     unsigned customerMode;
 
 }BHSM_OtpKeyInfo;

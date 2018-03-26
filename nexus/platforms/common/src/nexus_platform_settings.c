@@ -100,6 +100,17 @@ static void NEXUS_Platform_P_ApplyHeapStaticMapping(unsigned *memoryType, unsign
     }
 
 }
+
+#if NEXUS_HAS_SAGE || (BCHP_CHIP == 7271 || BCHP_CHIP == 7268)
+static void NEXUS_Platform_P_ApplyHeapPlacementPriority(unsigned *priority, unsigned defaultPriority)
+{
+    if(*priority==0) {
+        *priority = defaultPriority;
+    }
+    return;
+}
+#endif
+
 static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSettings)
 {
     unsigned i;
@@ -159,7 +170,7 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
 #else
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].alignment = 2 * 1024 * 1024;
 #endif
-    pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.first = true;
+    NEXUS_Platform_P_ApplyHeapPlacementPriority(&pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.priority, 1);
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.sage = true;
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.tag[0] = 'S';
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.tag[1] = 'R';
@@ -170,11 +181,14 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
     pSettings->heap[NEXUS_FIRMWARE_HEAP].memcIndex = 0;
     pSettings->heap[NEXUS_FIRMWARE_HEAP].memoryType = NEXUS_MEMORY_TYPE_MANAGED | NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED;
 #if BCHP_CHIP == 7271 || BCHP_CHIP == 7268
-    pSettings->heap[NEXUS_FIRMWARE_HEAP].placement.first = true;
+    NEXUS_Platform_P_ApplyHeapPlacementPriority(&pSettings->heap[NEXUS_FIRMWARE_HEAP].placement.priority, 1);
     pSettings->heap[NEXUS_FIRMWARE_HEAP].placement.region.valid = true;
     pSettings->heap[NEXUS_FIRMWARE_HEAP].placement.region.base = 0;
     pSettings->heap[NEXUS_FIRMWARE_HEAP].placement.region.length = 512 * 1024 * 1024;
 #endif
+    pSettings->heap[NEXUS_ARR_HEAP].memoryType = NEXUS_MemoryType_eSecure;
+    pSettings->heap[NEXUS_ARR_HEAP].alignment = 2 * 1024 * 1024;
+    pSettings->heap[NEXUS_ARR_HEAP].heapType |= NEXUS_HEAP_TYPE_ARR;
 
     for(i=0;i<NEXUS_MAX_HEAPS;i++) {
         size_t aligned_size;
@@ -781,6 +795,9 @@ NEXUS_HeapHandle NEXUS_Platform_GetFramebufferHeap(unsigned displayIndex)
         return NULL;
     }
 #else
+    if (displayIndex == NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE) {
+        return NULL;
+    }
     return NEXUS_Platform_P_GetFramebufferHeap(displayIndex);
 #endif
 }

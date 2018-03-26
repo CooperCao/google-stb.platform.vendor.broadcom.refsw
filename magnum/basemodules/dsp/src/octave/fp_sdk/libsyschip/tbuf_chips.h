@@ -81,11 +81,11 @@
  * TB_SYNC_TRANSFERS: the function issuing the data transfer returns only
  *                    when all data has been transferred.
  */
-#if defined(MCPHY) || (defined(RAAGA) && !defined(__FP4015_ONWARDS__))
+#if defined(MCPHY) || (defined(RAAGA) && !__FP4015_ONWARDS__)
 #  define TB_ASYNC_TRANSFERS
 #elif defined(PIKE) || defined(GENERIC) || \
       defined(BSP) || defined(LEAP_PHY_BCM3465) || defined(PMC3) || defined(PMC3_2_ICA) || \
-      (defined(RAAGA) && defined(__FP4015_ONWARDS__)) || defined(YELLOWSTONE) || defined(SHASTA)
+      (defined(RAAGA) && __FP4015_ONWARDS__) || defined(YELLOWSTONE) || defined(SHASTA)
 #  define TB_SYNC_TRANSFERS
 #elif defined(__COMPILE_HEADER__)
 #  define TB_ASYNC_TRANSFERS    /* fallback choice to avoid the build fail */
@@ -106,7 +106,7 @@
  * TB_SIZE_SET_BY_HOST: whether the size of the target buffer may be dynamically
  *                      set by the host.
  */
-#if defined(RAAGA) && defined(__FP4015__)
+#if defined(RAAGA) && __FP4015__
 #  define TB_SIZE_SET_BY_HOST
 #endif
 
@@ -134,11 +134,11 @@
  *                       single transfer.
  */
 #define TB_TRANSFER_UNLIMITED_SIZE      (1024 * 1024 * 1024)    /* 1 GiB, just a random high-enough value */
-#if defined(RAAGA) && !defined(__FP4015_ONWARDS__)
+#if defined(RAAGA) && !__FP4015_ONWARDS__
 #  define TB_TRANSFER_ALIGNMENT         1
 #  define TB_TRANSFER_SIZE_MULTIPLE     1
 #  define TB_TRANSFER_SIZE_MAX          ((64 * 1024) - 1)
-#elif defined(RAAGA) && defined(__FP4015_ONWARDS__)
+#elif defined(RAAGA) && __FP4015_ONWARDS__
 #  define TB_TRANSFER_ALIGNMENT         1
 #  define TB_TRANSFER_SIZE_MULTIPLE     1
 #  define TB_TRANSFER_SIZE_MAX          TB_TRANSFER_UNLIMITED_SIZE
@@ -150,21 +150,21 @@
 #  define TB_TRANSFER_ALIGNMENT         1                       /* the DSP stores TB data into a shared memory.        */
 #  define TB_TRANSFER_SIZE_MULTIPLE     1                       /* TODO: change once we switch to DMA-based transfers. */
 #  define TB_TRANSFER_SIZE_MAX          TB_TRANSFER_UNLIMITED_SIZE
-#elif defined(BSP) && defined(__FPM1015__)
+#elif defined(BSP) && __FPM1015__
 #  define TB_TRANSFER_ALIGNMENT         1               /* We dump (memcpy) data directly to DRAM  */
 #  define TB_TRANSFER_SIZE_MULTIPLE     1               /* through $$, so no transfer constraints  */
 #  define TB_TRANSFER_SIZE_MAX          TB_TRANSFER_UNLIMITED_SIZE
-#elif defined(LEAP_PHY_BCM3465) && defined(__FPM1015__) /* Shared buffers in SMEM require naturally aligned     */
+#elif defined(LEAP_PHY_BCM3465) && __FPM1015__ /* Shared buffers in SMEM require naturally aligned     */
 #  define TB_TRANSFER_ALIGNMENT         8               /* accesses, enforce dword size/aligment so that memcpy */
 #  define TB_TRANSFER_SIZE_MULTIPLE     8               /* (the one in libfp) will always do the right thing.   */
 #  define TB_TRANSFER_SIZE_MAX          TB_TRANSFER_UNLIMITED_SIZE
-#elif (defined(PMC3) || defined(PMC3_2_ICA)) && defined(__FPM1015__)
+#elif (defined(PMC3) || defined(PMC3_2_ICA)) && __FPM1015__
 #  define TB_TRANSFER_ALIGNMENT         1               /* FIXME: Assume no restrictions in accessing the DRAM  */
 #  define TB_TRANSFER_SIZE_MULTIPLE     1               /* for now, we might have to limit ourselves.           */
 #  define TB_TRANSFER_SIZE_MAX          TB_TRANSFER_UNLIMITED_SIZE
-#elif defined(GENERIC) && defined(__FPM1015_ONWARDS__)
-#  define TB_TRANSFER_ALIGNMENT         1               /* Allocate shared buffers in DCMEM, thus use memcpy for     */
-#  define TB_TRANSFER_SIZE_MULTIPLE     1               /* transfers. TODO: switch to DMA when it becomes available? */
+#elif defined(GENERIC)
+#  define TB_TRANSFER_ALIGNMENT         1               /* Allocate shared buffers in DRAM, thus use memcpy for transfers. */
+#  define TB_TRANSFER_SIZE_MULTIPLE     1               /* TODO: switch to a fake DMA to make things interesting? */
 #  define TB_TRANSFER_SIZE_MAX          TB_TRANSFER_UNLIMITED_SIZE
 #elif defined(__COMPILE_HEADER__)
 #  define TB_TRANSFER_ALIGNMENT         1               /* fallback values    */
@@ -250,7 +250,7 @@ extern "C" {
 #  define TB_SHARED_BUFF_ATTRS
 #endif
 
-#if defined(RAAGA) && defined(__FP4015_ONWARDS__)
+#if defined(RAAGA) && __FP4015_ONWARDS__
 #  define TB_SHARED_ATTRS __shared
 
 #  if !defined(TARGET_BUFFER_MUX_SERVICES)
@@ -315,14 +315,14 @@ extern TB_shared * TB_shared_services[];
 #  else  /* TARGET_BUFFER_MUX_SERVICES */
 
 
-#    if defined(RAAGA) && !defined(__FP4015_ONWARDS__)
+#    if defined(RAAGA) && !__FP4015_ONWARDS__
 
 /* Raaga fp2000 TBs are not const as they can be moved at runtime,
  * see TB_set_*_fifo_addr functions. */
 TB_SHARED_ATTRS extern TB_shared * TB_shared_CoreDump;
 TB_SHARED_ATTRS extern TB_shared * TB_shared_Common;
 
-#    elif defined(RAAGA) && defined(__FP4015_ONWARDS__)
+#    elif defined(RAAGA) && __FP4015_ONWARDS__
 
 /* Drop the const because of TLFIREPATH-4292 */
 TB_SHARED_ATTRS extern TB_shared *TB_shared_Common;
@@ -339,7 +339,7 @@ TB_SHARED_ATTRS extern TB_shared * const TB_shared_Common;
 #define TB_shared_TargetPrint     TB_shared_Common
 #define TB_shared_StatProf        TB_shared_Common
 #define TB_shared_Instrumentation TB_shared_Common
-#if !(defined(RAAGA) && !defined(__FP4015_ONWARDS__))
+#if !(defined(RAAGA) && !__FP4015_ONWARDS__)
 #  define TB_shared_CoreDump      TB_shared_Common
 #endif
 /** @} */
@@ -359,7 +359,7 @@ extern struct TB_shared_mgt_t TB_shared_mgt_Common;
 #define TB_shared_mgt_TargetPrint     TB_shared_mgt_Common
 #define TB_shared_mgt_StatProf        TB_shared_mgt_Common
 #define TB_shared_mgt_Instrumentation TB_shared_mgt_Common
-#if !(defined(RAAGA) && !defined(__FP4015_ONWARDS__))
+#if !(defined(RAAGA) && !__FP4015_ONWARDS__)
 #  define TB_shared_mgt_CoreDump      TB_shared_mgt_Common
 #endif
 /** @} */
@@ -376,7 +376,7 @@ extern struct TB_shared_mgt_t TB_shared_mgt_Common;
 /* --------- *
  * Functions *
  * --------- */
-#if defined(RAAGA) && !defined(__FP4015_ONWARDS__)
+#if defined(RAAGA) && !__FP4015_ONWARDS__
 
 /* Define which DMA channel is used for TB transfers */
 #define TB_RAAGA_DMA_CHANNEL    DMA_Q_CODE_BG

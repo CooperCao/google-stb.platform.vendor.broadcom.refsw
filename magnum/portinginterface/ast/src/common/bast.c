@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2005-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "bstd.h"
 #include "bast.h"
@@ -111,6 +128,7 @@ BERR_Code BAST_CloseChannel(
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BAST_GetDevice()
 ******************************************************************************/
@@ -149,6 +167,7 @@ BERR_Code BAST_ResetChannel(
    else
       return BERR_NOT_SUPPORTED;
 }
+#endif
 
 
 /******************************************************************************
@@ -194,6 +213,7 @@ BERR_Code BAST_GetApVersion(
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BAST_SetTmConfig()
 ******************************************************************************/
@@ -275,6 +295,7 @@ BERR_Code BAST_GetGpio(
    else
       return BERR_NOT_SUPPORTED;
 }
+#endif
 
 
 /******************************************************************************
@@ -406,6 +427,7 @@ BERR_Code BAST_EnableDiseqcLnb(
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BAST_EnableVsenseInterrupts()
 ******************************************************************************/
@@ -420,6 +442,7 @@ BERR_Code BAST_EnableVsenseInterrupts(
    else
       return BERR_NOT_SUPPORTED;
 }
+#endif
 
 
 /******************************************************************************
@@ -462,6 +485,7 @@ BERR_Code BAST_ResetDiseqc(
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BERR_Code BAST_ResetFtm()
 ******************************************************************************/
@@ -509,6 +533,7 @@ BERR_Code BAST_WriteFtm(
    else
       return BERR_NOT_SUPPORTED;
 }
+#endif
 
 
 /******************************************************************************
@@ -592,6 +617,8 @@ BERR_Code BAST_GetSoftDecisionBuf(
    return (h->pDevice->settings.api.GetSoftDecisionBuf(h, pI, pQ));
 }
 
+
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BERR_Code BAST_ReadAgc()
 ******************************************************************************/
@@ -657,6 +684,7 @@ BERR_Code BAST_FreezeEq(
    else
       return BERR_NOT_SUPPORTED;
 }
+#endif
 
 
 /******************************************************************************
@@ -810,6 +838,7 @@ BERR_Code BAST_GetDiseqcEventHandle(
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BAST_GetDiseqcVsenseEventHandles()
 ******************************************************************************/
@@ -825,6 +854,7 @@ BERR_Code BAST_GetDiseqcVsenseEventHandles(
    else
       return BERR_NOT_SUPPORTED;
 }
+#endif
 
 
 /******************************************************************************
@@ -866,6 +896,7 @@ BERR_Code BAST_AbortAcq(
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BAST_ConfigLna()
 ******************************************************************************/
@@ -910,6 +941,7 @@ BERR_Code BAST_ConfigAgc(
    else
       return BERR_NOT_SUPPORTED;
 }
+#endif
 
 
 /******************************************************************************
@@ -972,6 +1004,7 @@ BERR_Code BAST_GetPeakScanEventHandle(
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BAST_EnableStatusInterrupts()
 ******************************************************************************/
@@ -1000,6 +1033,7 @@ BERR_Code BAST_GetStatusEventHandle(
    else
       return BERR_NOT_SUPPORTED;
 }
+#endif
 
 
 /******************************************************************************
@@ -1078,6 +1112,7 @@ BERR_Code BAST_GetTunerLnaStatus(
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BAST_EnableSpurCanceller()
 ******************************************************************************/
@@ -1092,6 +1127,7 @@ BERR_Code BAST_EnableSpurCanceller(
    else
       return BERR_NOT_SUPPORTED;
 }
+#endif
 
 
 /******************************************************************************
@@ -1109,6 +1145,7 @@ BERR_Code BAST_SetSearchRange(
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BAST_GetSearchRange()
 ******************************************************************************/
@@ -1140,6 +1177,7 @@ BERR_Code BAST_SetAmcScramblingSeq(
    else
       return BERR_NOT_SUPPORTED;
 }
+#endif
 
 
 /******************************************************************************
@@ -1157,6 +1195,7 @@ BERR_Code BAST_GetSignalDetectStatus(
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BAST_SetTunerFilter()
 ******************************************************************************/
@@ -1170,6 +1209,7 @@ BERR_Code BAST_SetTunerFilter(
    else
       return BERR_NOT_SUPPORTED;
 }
+#endif
 
 
 /******************************************************************************
@@ -1247,6 +1287,7 @@ BERR_Code BAST_SetNetworkSpec(
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BAST_GetNetworkSpec()
 ******************************************************************************/
@@ -1260,10 +1301,11 @@ BERR_Code BAST_GetNetworkSpec(
    else
       return BERR_NOT_SUPPORTED;
 }
+#endif
 
 
 /******************************************************************************
- BAST_SetNetworkSpec()
+ BAST_SetFskChannel()
 ******************************************************************************/
 BERR_Code BAST_SetFskChannel(
    BAST_Handle     h,               /* [in] BAST device handle */
@@ -1278,8 +1320,9 @@ BERR_Code BAST_SetFskChannel(
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
- BAST_GetNetworkSpec()
+ BAST_GetFskChannel()
 ******************************************************************************/
 BERR_Code BAST_GetFskChannel(
    BAST_Handle     h,               /* [in] BAST device handle */
@@ -1292,6 +1335,7 @@ BERR_Code BAST_GetFskChannel(
    else
       return BERR_NOT_SUPPORTED;
 }
+#endif
 
 
 /******************************************************************************
@@ -1334,6 +1378,7 @@ BERR_Code BAST_GetAdcSelect(BAST_ChannelHandle h, uint8_t *pAdcSelect, uint8_t *
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BAST_GetPeakScanSymbolRateRange()
 ******************************************************************************/  
@@ -1363,9 +1408,11 @@ BERR_Code BAST_GetVersionInfo(
    else
       return BERR_NOT_SUPPORTED;   
 }
+#endif
 #endif /* BAST_EXCLUDE_API_TABLE */
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BAST_MultU32U32()
 ******************************************************************************/
@@ -1446,5 +1493,5 @@ void BAST_DivU64U32(uint32_t A_hi, uint32_t A_lo, uint32_t B, uint32_t *Q_hi, ui
       }
    }   
 }
-
+#endif
 

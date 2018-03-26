@@ -103,7 +103,7 @@ endif
 ifeq ($(BDSP_RAAGA_DEBUG_SERVICE), y)
     include $(MAGNUM)/basemodules/dsp/build/bdsp_debug_service.inc
 endif
-
+BDSP_DEFINES += __$(BDSP_RAAGA_FPSDK_MACH)__=1
 ########################################################################
 # Added lines for libdspcontrol integration - end
 ########################################################################

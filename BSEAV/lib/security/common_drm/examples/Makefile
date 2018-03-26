@@ -85,6 +85,12 @@ ifeq ($(NXCLIENT_SUPPORT),y)
 include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
 endif
 
+ifeq ($(filter $(target), dtcp_ip hdcp_rx hdcp_tx ocap pmc secure_store widevine_cenc), $(target))
+ifeq ($(filter $(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),1 2 3 4),$(NEXUS_SECURITY_ZEUS_VERSION_MAJOR))
+else
+$(error Non-SAGE common_drm Adobe, DTCPIP, Netflix, Widevine, HDCP, OCAP, PMC APIs are not supported with NEXUS_SECURITY_ZEUS_VERSION_MAJOR = ${NEXUS_SECURITY_ZEUS_VERSION_MAJOR})
+endif
+endif
 
 TARGET_OBJS = $(addprefix  ${target}/, ${OBJS})
 APP_BINS = $(APPS)
@@ -114,15 +120,7 @@ endif
 # Link with common_drm libraries
 LDFLAGS += $(COMMON_DRM_LIB_LDFLAGS)
 
-ifeq ($(SAGE_VERSION), 2x)
-PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/$(SAGE_VERSION)
-else
-    ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),5)
-        PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/Zeus5x/lib
-    else
-        PRDY_LIB_PATH := ${BSEAV_TOP}/thirdparty/playready/2.5/bin/${ARCH_DIR_PRDY}/Zeus4x/lib
-    endif
-endif
+PRDY_LIB_PATH := $(BSEAV_TOP)/${CMNDRM_PRDY_LIBDIR}
 
 PLAYREADY_LIB_PATH :=
 ifeq ($(filter $(target), playready playready_svp urr_toggling), $(target))
@@ -138,11 +136,7 @@ LDFLAGS += -L${PRDY_LIB_PATH} -lplayreadypk_host
 PLAYREADY_LIB_PATH = ${CP} -pv ${PRDY_LIB_PATH}/libplayreadypk_host.so  ${NEXUS_BIN_DIR}
 endif
 else
-ifeq "$(GCC_GTEQ_485)" "1"
-LDFLAGS +=  -L${PRDY_LIB_PATH}/eglibc -lplayreadypk
-else
 LDFLAGS +=  -L${PRDY_LIB_PATH} -lplayreadypk
-endif
 PLAYREADY_LIB_PATH = ${CP} -pv ${PRDY_LIB_PATH}/libplayreadypk.so  ${NEXUS_BIN_DIR}
 endif
 endif
@@ -247,10 +241,6 @@ else
 	cp -f ${PRDY_LIB_PATH}/libplayreadypk_host.so  ${NEXUS_BIN_DIR}
 endif
 else
-ifeq "$(GCC_GTEQ_485)" "1"
-	cp -f ${PRDY_LIB_PATH}/eglibc/libplayreadypk.so  ${NEXUS_BIN_DIR}
-else
 	cp -f ${PRDY_LIB_PATH}/libplayreadypk.so  ${NEXUS_BIN_DIR}
-endif
 endif
 endif

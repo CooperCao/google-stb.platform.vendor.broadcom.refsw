@@ -52,7 +52,7 @@
 
 #define DEBUG_PRINT_ARRAY(description_txt,in_size,in_ptr) {             \
     int x_offset;                                                       \
-    printf("[%s][%ld]", description_txt, in_size );                      \
+    printf("[%s][%u]", description_txt, (unsigned)in_size );                      \
     for( x_offset = 0; x_offset < (int)(in_size); x_offset++ )          \
     {                                                                   \
         if( x_offset%16 == 0 ) { printf("\n"); }                        \
@@ -173,8 +173,8 @@ int main(int argc, char **argv)
     /* and DMA event */
     BKNI_CreateEvent(&dmaEvent);
 
-    NEXUS_Memory_Allocate( sizeof(plaintext), NULL, (void *)&pSrc );
-    NEXUS_Memory_Allocate( sizeof(plaintext), NULL, (void *)&pDest );
+    NEXUS_Memory_Allocate( sizeof(plaintext), NULL, (void **)&pSrc );
+    NEXUS_Memory_Allocate( sizeof(plaintext), NULL, (void **)&pDest );
 
 	BKNI_Memcpy( pSrc, plaintext, sizeof(plaintext) );
 	BKNI_Memset( pDest, 0, sizeof(plaintext) );

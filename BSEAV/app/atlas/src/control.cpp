@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -263,7 +263,7 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
                 nDb += 3; /* INCREMENT 3dB */
 
                 if (-12 > nDb) { nDb = -12; }
-                if (12 < nDb)  { nDb = 12; }
+                if (12 < nDb) { nDb = 12; }
 
                 ret = pAudioDecode->setDialogEnhancement(nDb);
                 CHECK_ERROR_GOTO("error setting ac4 dialog enhancement level", ret, error);
@@ -271,7 +271,7 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
         }
         else
         if (MString(GET_STR(_pCfg, VOLUME_KEY_MODE)).lower() == "volume")
-#endif
+#endif /* if BDSP_MS12_SUPPORT */
         {
             int32_t vol       = getVolume();
             int     vol_steps = GET_INT(_pCfg, VOLUME_STEPS);
@@ -299,7 +299,7 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
                 nDb -= 3; /* DECREMENT 3dB */
 
                 if (-12 > nDb) { nDb = -12; }
-                if (12 < nDb)  { nDb = 12; }
+                if (12 < nDb) { nDb = 12; }
 
                 ret = pAudioDecode->setDialogEnhancement(nDb);
                 CHECK_ERROR_GOTO("error setting ac4 dialog enhancement level", ret, error);
@@ -307,7 +307,7 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
         }
         else
         if (MString(GET_STR(_pCfg, VOLUME_KEY_MODE)).lower() == "volume")
-#endif
+#endif /* if BDSP_MS12_SUPPORT */
         {
             int32_t vol       = getVolume();
             int     vol_steps = GET_INT(_pCfg, VOLUME_STEPS);
@@ -612,7 +612,7 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
             pLua->setRunScript("fav1.lua");
         }
     }
-        break;
+    break;
     case eKey_Fav2:
     {
         CLua * pLua = (CLua *)findView("lua");
@@ -621,7 +621,7 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
             pLua->setRunScript("fav2.lua");
         }
     }
-        break;
+    break;
     case eKey_Fav3:
     {
         CLua * pLua = (CLua *)findView("lua");
@@ -630,7 +630,7 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
             pLua->setRunScript("fav3.lua");
         }
     }
-        break;
+    break;
     case eKey_Fav4:
     {
         CLua * pLua = (CLua *)findView("lua");
@@ -639,7 +639,7 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
             pLua->setRunScript("fav4.lua");
         }
     }
-        break;
+    break;
 
     default:
         break;
@@ -896,6 +896,7 @@ bool CControl::validateNotification(
         break;
         case eNotify_ScanStop:
         case eNotify_ScanStopped:
+        case eNotify_ScanFinish:
             bValid = true;
             break;
         default:
@@ -1012,7 +1013,7 @@ void CControl::processNotification(CNotification & notification)
             _pModel->setCurrentChannel(pChannel);
         }
     }
-        break;
+    break;
 
     case eNotify_ChDown:
         channelDown();
@@ -1200,7 +1201,6 @@ void CControl::processNotification(CNotification & notification)
             BDBG_WRN(("channel list XML version MISmatch (%s)", pLoadData->_strFileName.s()));
         }
 
-        _pChannelMgr->dumpChannelList(true);
         tuneChannel();
     }
     break;
@@ -1548,25 +1548,50 @@ void CControl::processNotification(CNotification & notification)
     break;
 
 #if NEXUS_HAS_FRONTEND
-    case eNotify_ScanStopped:
+    case eNotify_ScanFinish:
     {
         CTunerScanNotificationData * pScanData       = (CTunerScanNotificationData *)notification.getData();
         CBoardResources *            pBoardResources = _pConfig->getBoardResources();
+        CTuner *                     pTuner          = NULL;
 
-        /* the scan is done - check tuner back in */
-        BDBG_ASSERT(NULL != pScanData->getTuner());
-        pBoardResources->checkinResource(pScanData->getTuner());
-
-        _pModel->setMode(eMode_Invalid);
-
-        if (false == pScanData->getAppendToChannelList())
+        /* remove tuner from scan tuner list - we are only done if the list is empty */
+        for (pTuner = _scanTunerList.first(); pTuner; pTuner = _scanTunerList.next())
         {
-            /* channel list was replaced so set a new current channel */
-            _pModel->setCurrentChannel(_pChannelMgr->getFirstChannel());
+            if (pTuner == pScanData->getTuner())
+            {
+                _scanTunerList.remove(pTuner);
+                break;
+            }
         }
 
-        _pChannelMgr->dumpChannelList(true);
-        tuneChannel();
+        /* the scan is done - check tuner back in */
+        pTuner = pScanData->getTuner();
+        BDBG_ASSERT(NULL != pTuner);
+        pTuner->release();
+
+        /* cannot close pTuner here because pTuner still needs the widget engine internally
+         * to clean up its callback registration. pTuner will technically remain open, but
+         * that only means that it keeps a pointer to the widget engine which is fine.
+         */
+        /* pTuner->close(); */
+
+        pBoardResources->checkinResource(pTuner);
+        pTuner = NULL;
+
+        if (0 == _scanTunerList.total())
+        {
+            _pModel->setMode(eMode_Invalid);
+            _pModel->setScanStartState(false);
+
+            if (false == pScanData->getAppendToChannelList())
+            {
+                /* channel list was replaced so set a new current channel */
+                _pModel->setCurrentChannel(_pChannelMgr->getFirstChannel());
+            }
+
+            _pChannelMgr->dumpChannelList(true);
+            tuneChannel();
+        }
     }
     break;
 #endif /* if NEXUS_HAS_FRONTEND */
@@ -2273,8 +2298,8 @@ errorBluetooth:
 
     case eNotify_SetAudioAc4Presentation:
     {
-        CSimpleAudioDecode *                   pAudioDecode = _pModel->getSimpleAudioDecode();
-        CAudioDecodeAc4Data *                  pAc4Data     = (CAudioDecodeAc4Data *)notification.getData();
+        CSimpleAudioDecode *  pAudioDecode = _pModel->getSimpleAudioDecode();
+        CAudioDecodeAc4Data * pAc4Data     = (CAudioDecodeAc4Data *)notification.getData();
 
         BDBG_ASSERT(NULL != pAc4Data);
 
@@ -2287,9 +2312,9 @@ errorBluetooth:
 
     case eNotify_NextAudioAc4Presentation:
     {
-        CSimpleAudioDecode *  pAudioDecode     = _pModel->getSimpleAudioDecode();
-        CAudioDecodeAc4Data * pAc4Data         = (CAudioDecodeAc4Data *)notification.getData();
-        unsigned              index            = 0;
+        CSimpleAudioDecode *  pAudioDecode = _pModel->getSimpleAudioDecode();
+        CAudioDecodeAc4Data * pAc4Data     = (CAudioDecodeAc4Data *)notification.getData();
+        unsigned              index        = 0;
 
         BDBG_ASSERT(NULL != pAc4Data);
 
@@ -2311,8 +2336,8 @@ errorBluetooth:
 
     case eNotify_SetAudioAc4Language:
     {
-        CSimpleAudioDecode *                   pAudioDecode = _pModel->getSimpleAudioDecode();
-        CAudioDecodeAc4Data *                  pAc4Data     = (CAudioDecodeAc4Data *)notification.getData();
+        CSimpleAudioDecode *  pAudioDecode = _pModel->getSimpleAudioDecode();
+        CAudioDecodeAc4Data * pAc4Data     = (CAudioDecodeAc4Data *)notification.getData();
 
         BDBG_ASSERT(NULL != pAc4Data);
 
@@ -2325,8 +2350,8 @@ errorBluetooth:
 
     case eNotify_SetAudioAc4Associate:
     {
-        CSimpleAudioDecode *                   pAudioDecode = _pModel->getSimpleAudioDecode();
-        CAudioDecodeAc4Data *                  pAc4Data     = (CAudioDecodeAc4Data *)notification.getData();
+        CSimpleAudioDecode *  pAudioDecode = _pModel->getSimpleAudioDecode();
+        CAudioDecodeAc4Data * pAc4Data     = (CAudioDecodeAc4Data *)notification.getData();
 
         BDBG_ASSERT(NULL != pAc4Data);
 
@@ -2339,8 +2364,8 @@ errorBluetooth:
 
     case eNotify_SetAudioAc4Priority:
     {
-        CSimpleAudioDecode *                   pAudioDecode = _pModel->getSimpleAudioDecode();
-        CAudioDecodeAc4Data *                  pAc4Data     = (CAudioDecodeAc4Data *)notification.getData();
+        CSimpleAudioDecode *  pAudioDecode = _pModel->getSimpleAudioDecode();
+        CAudioDecodeAc4Data * pAc4Data     = (CAudioDecodeAc4Data *)notification.getData();
 
         BDBG_ASSERT(NULL != pAc4Data);
 
@@ -2353,8 +2378,8 @@ errorBluetooth:
 
     case eNotify_SetAudioAc4DialogEnhancement:
     {
-        CSimpleAudioDecode *                   pAudioDecode = _pModel->getSimpleAudioDecode();
-        int *                                  pDb          = (int *)notification.getData();
+        CSimpleAudioDecode * pAudioDecode = _pModel->getSimpleAudioDecode();
+        int *                pDb          = (int *)notification.getData();
 
         BDBG_ASSERT(NULL != pDb);
         BDBG_MSG(("setting dialog enhancement level:%ddB", *pDb));
@@ -2363,11 +2388,11 @@ errorBluetooth:
         CHECK_ERROR_GOTO("unable to set ac4 dialog enhancement", ret, error);
     }
     break;
-#endif
+#endif /* if BDSP_MS12_SUPPORT */
 
     case eNotify_Debug:
     {
-        eRet ret = eRet_Ok;
+        eRet      ret          = eRet_Ok;
         MString * pStringDebug = (MString *)notification.getData();
 
         /* This debug notification can be used to test atlas features during development */
@@ -2390,7 +2415,7 @@ done:
 #include <sys/stat.h>
 eRet CControl::playbackPcm(const char * strFilename)
 {
-    eRet ret = eRet_NotAvailable;
+    eRet                 ret          = eRet_NotAvailable;
     CSimplePcmPlayback * pPcmPlayback = _pModel->getSimplePcmPlayback();
 
     if (NULL == pPcmPlayback)
@@ -2400,7 +2425,7 @@ eRet CControl::playbackPcm(const char * strFilename)
 
     {
         struct stat buffer;
-        if (stat (strFilename, &buffer) != 0)
+        if (stat(strFilename, &buffer) != 0)
         {
             BDBG_WRN(("PCM playback failed - file not found"));
             return(ret);
@@ -2418,7 +2443,7 @@ eRet CControl::playbackPcm(const char * strFilename)
 
 error:
     return(ret);
-}
+} /* playbackPcm */
 
 /* the given channel is copied and added to the channel list if it passes filters */
 eRet CControl::addChannelToChList(CChannel * pChannel)
@@ -2575,6 +2600,7 @@ eRet CControl::unTuneChannel(
         ret = pChannel->unTune(_pConfig, bFullUnTune);
         CHECK_ERROR_GOTO("unable to unTune!", ret, error);
 
+        BDBG_WRN(("UNtuning Channel:%s windowType:%d", pChannel->getName().s(), windowType));
         pChannel->dump(true);
     }
     else
@@ -2644,7 +2670,7 @@ eRet CControl::tuneChannel(
         pChannel->setModel(_pModel);
         pChannel->setWidgetEngine(_pWidgetEngine);
 
-        BDBG_MSG(("tuning channel:%s windowType:%d", pChannel->getName().s(), windowType));
+        BDBG_WRN(("Tuning Channel:%s windowType:%d", pChannel->getName().s(), windowType));
         pChannel->dump(true);
 
         _pModel->setChannelTuneInProgress(pChannel, windowType);
@@ -3203,7 +3229,7 @@ eRet CControl::recordStart(CRecordData * pRecordData)
     eWindowType          windowType      = eWindowType_Main;
     MString              indexName;
 
-#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION == 1
     NEXUS_SecurityAlgorithm algo = NEXUS_SecurityAlgorithm_eMax;
 #endif
 
@@ -3268,7 +3294,7 @@ eRet CControl::recordStart(CRecordData * pRecordData)
             DEL(video);
         }
 
-#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION == 1
         if (pRecordData->_security)
         {
             algo = stringToSecurityAlgorithm(pRecordData->_security);
@@ -3307,7 +3333,7 @@ eRet CControl::recordStart(CRecordData * pRecordData)
     pVideoPid = pRecord->getPid(0, ePidType_Video);
     if (pVideoPid)
     {
-#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION == 1
         if (algo < NEXUS_SecurityAlgorithm_eMax)
         {
             pVideoPid->encrypt(algo, NULL, true);
@@ -3353,7 +3379,7 @@ eRet CControl::recordStart(CRecordData * pRecordData)
     pAudioPid = pRecord->getPid(0, ePidType_Audio);
     if (pAudioPid)
     {
-#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION == 1
         if (algo < NEXUS_SecurityAlgorithm_eMax)
         {
             pAudioPid->encrypt(algo, NULL, true);
@@ -3941,37 +3967,93 @@ eRet CControl::scanTuner(CTunerScanData * pScanData)
         }
     }
 
-    /* check out tuner to use for scan */
-    pTuner = (CTuner *)pBoardResources->checkoutResource(_id, pScanData->getTunerType());
-    CHECK_PTR_ERROR_GOTO("No tuner available - scan failed!", pTuner, ret, eRet_NotAvailable, errorNoTuner);
-
-    BDBG_ASSERT(true == pTuner->isFrontend());
-    pTuner->setConfig(_pConfig);
-
-    if (false == pScanData->_appendToChannelList)
     {
-        /* we are replacing current channel list so clear it */
-        _pChannelMgr->clearChannelList();
-    }
+        /* check out tuner to use for scan */
+        while (NULL != (pTuner = (CTuner *)pBoardResources->checkoutResource(_id, pScanData->getTunerType())))
+        {
+            if (_scanTunerList.total() == GET_INT(_pCfg, SCAN_MAX_TUNERS))
+            {
+                break;
+            }
 
-    /* scan for channels - note that scan() will dynamically allocate found channel objects and
-     * return them to the specified callback routine.  this is an asynchronous call so it will
-     * return immediately. */
-    ret = pTuner->open(getWidgetEngine());
-    CHECK_ERROR_GOTO("unable to open tuner", ret, error);
+            _scanTunerList.add(pTuner);
 
-    ret = pTuner->scan(this, pScanData, addChannelCallback, (void *)this);
-    CHECK_ERROR_GOTO("unable to scan with tuner", ret, error);
+            /* copy existing scan data and clear out freq list - we will reassign freqs to scan
+             * later (based on how many tuners that are available) */
+            pTuner->scanDataSave(pScanData);
+            pTuner->scanDataFreqListClear();
+        }
 
-    _pModel->setMode(eMode_Scan);
-    goto done;
+        if (_scanTunerList.total() == 0)
+        {
+            BDBG_ERR(("No tuner available - scan failed!"));
+            goto errorNoTuner;
+        }
 
+        /* divide scan frequecies between avail tuners */
+        {
+            uint32_t * pFreq = NULL;
+
+            pTuner = _scanTunerList.first();
+
+            for (pFreq = pScanData->_freqList.first(); pFreq; pFreq = pScanData->_freqList.next())
+            {
+                /* pass out freqs by cycling thru available tuners */
+                pTuner->scanDataFreqListAdd(*pFreq);
+
+                pTuner = _scanTunerList.next();
+                if (NULL == pTuner)
+                {
+                    pTuner = _scanTunerList.first();
+                }
+            }
+        }
+
+        _pModel->setScanStartState(true);
+
+        {
+            if (false == pScanData->_appendToChannelList)
+            {
+                /* we are replacing current channel list so clear it */
+                _pChannelMgr->clearChannelList();
+            }
+
+            for (pTuner = _scanTunerList.first(); pTuner; pTuner = _scanTunerList.next())
+            {
+                BDBG_ASSERT(true == pTuner->isFrontend());
+                pTuner->setConfig(_pConfig);
+
+                /* scan for channels - note that scan() will dynamically allocate found channel objects and
+                 * return them to the specified callback routine.  this is an asynchronous call so it will
+                 * return immediately. */
+                ret = pTuner->open(getWidgetEngine());
+                CHECK_ERROR_GOTO("unable to open tuner", ret, error);
+
+                ret = pTuner->acquire();
+                CHECK_ERROR_GOTO("unable to acquire tuner", ret, done);
+
+                pTuner->scanDataDump();
+                BDBG_ERR((""));
+
+                ret = pTuner->scan(this, NULL, addChannelCallback, (void *)this);
+                CHECK_ERROR_GOTO("unable to scan with tuner", ret, error);
+            }
+        }
+
+        _pModel->setMode(eMode_Scan);
+        goto done;
 error:
-    if (NULL != pTuner)
-    {
-        pTuner->close();
-        pBoardResources->checkinResource(pTuner);
+        for (pTuner = _scanTunerList.first(); pTuner; pTuner = _scanTunerList.next())
+        {
+            pTuner->release();
+            pTuner->close();
+            pBoardResources->checkinResource(pTuner);
+            pTuner = NULL;
+        }
+
+        _scanTunerList.clear();
     }
+
 errorNoTuner:
     tuneChannel();
 
@@ -5254,7 +5336,7 @@ eRet CControl::swapPip()
         CSimpleAudioDecode * pAudioDecodeFullScreen = _pModel->getSimpleAudioDecode();
         CSimpleAudioDecode * pAudioDecodeDecimated  = _pModel->getSimpleAudioDecode(_pModel->getPipScreenWindowType());
 
-        NEXUS_SimpleAudioDecoder_SwapServerSettings(
+        NEXUS_SimpleAudioDecoder_MoveServerSettings(
                 _pModel->getSimpleAudioDecoderServer(),
                 pAudioDecodeFullScreen->getSimpleDecoder(),
                 pAudioDecodeDecimated->getSimpleDecoder());
@@ -5670,7 +5752,7 @@ eRet CControl::stopDecoders(
         CSimpleAudioDecode * pAudioDecode
         )
 {
-    eRet ret = eRet_Ok;
+    eRet                 ret          = eRet_Ok;
     CSimplePcmPlayback * pPcmPlayback = _pModel->getSimplePcmPlayback();
 
 #if HAS_VID_NL_LUMA_RANGE_ADJ
@@ -5725,7 +5807,7 @@ eRet CControl::setGraphicsDynamicRange(CChannel * pChannel)
         }
     }
 
-    //TTTTTTTTT BDBG_MSG(("set gfx plm:%s", (true == pChannel->isGraphicsPlmEnabled()) ? "true" : "false"));
+    /* TTTTTTTTT BDBG_MSG(("set gfx plm:%s", (true == pChannel->isGraphicsPlmEnabled()) ? "true" : "false")); */
     pGraphics->setPlm(pChannel->isGraphicsPlmEnabled());
 
 error:

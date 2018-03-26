@@ -75,19 +75,21 @@ vpath %.c $(APP_TOP)/utils:$(APP_TOP)/app:$(NEXUS_TOP)/modules/sage/src/linuxuse
 # include cross-compiler definitions
 include ${NEXUS_TOP}/platforms/${NEXUS_PLATFORM}/build/platform_app.inc
 include $(BSEAV_TOP)/opensource/zlib/zlib.inc
-include $(BSEAV_TOP)/opensource/openssl/openssl.inc
+#include $(BSEAV_TOP)/opensource/openssl/openssl.inc
 include $(BSEAV_TOP)/opensource/curl/curl.inc
+include $(BSEAV_TOP)/opensource/cjson/cjson.inc
 include $(MAGNUM_TOP)/portinginterface/hsm/bhsm_defs.inc
 
 # Application source file list, include path, C flags, and link
 # flags
-APP_SOURCES = ./bp3.c ./bp3_features.c
+LIB_SOURCES = bp3_host.c quick_ssdp.c civetweb.c
+APP_SOURCES = bp3.c bp3_features.c
 
 APP_CFLAGS = -DWITH_POSIX -Wno-pedantic -Wno-variadic-macros -fPIC -I$(APP_TOP)/app -I${APP_TOP}/utils
 
 # This is the minimum needed to compile and link with Nexus
 APP_CFLAGS += ${NEXUS_CFLAGS} $(addprefix -I,${NEXUS_APP_INCLUDE_PATHS})  $(addprefix -D,${NEXUS_APP_DEFINES})
-APP_CFLAGS += $(B_OPENSSL_CFLAGS) $(CURL_CFLAGS)
+APP_CFLAGS += $(B_OPENSSL_CFLAGS) $(CURL_CFLAGS) -I$(CJSON_LIB_FOLDER) $(CJSON_CFLAGS)
 APP_CFLAGS += -I${BSEAV_TOP}/lib/security/sage/bp3/utils/
 APP_CFLAGS += -I${BSEAV_TOP}/lib/security/sage/srai/include/
 APP_CFLAGS += -I${BSEAV_TOP}/lib/security/sage/bp3/app/
@@ -97,10 +99,11 @@ APP_CFLAGS += -DBHSM_ZEUS_VER_MAJOR=$(BHSM_ZEUS_VER_MAJOR) -DBHSM_ZEUS_VER_MINOR
 # allow c++ style comments
 APP_CFLAGS += -std=c99
 
-APP_OBJS := ${$(notdir SRCS):.c=.o} ${APP_SOURCES:.c=.o}
+LIB_OBJS := ${$(notdir SRCS):.c=.o} ${LIB_SOURCES:.c=.o}
+APP_OBJS := ${APP_SOURCES:.c=.o}
 
-APP_LDFLAGS = -L$(abspath ${B_REFSW_OBJ_ROOT}/nexus/bin) -lsrai $(NEXUS_LDFLAGS) -lm
-APP_LDFLAGS += $(B_OPENSSL_LDFLAGS) $(CURL_LDFLAGS) $(ZLIB_LDFLAGS)
+APP_LDFLAGS = -L$(abspath ${B_REFSW_OBJ_ROOT}/nexus/bin) -lsrai $(NEXUS_LDFLAGS) -lm -lbp3_host
+APP_LDFLAGS += $(B_OPENSSL_LDFLAGS) $(CURL_LDFLAGS) $(ZLIB_LDFLAGS) $(CJSON_LDFLAGS)
 
 ifeq ($(NXCLIENT_SUPPORT),y)
 include $(NEXUS_TOP)/nxclient/include/nxclient.inc
@@ -111,30 +114,59 @@ else
 APP_LDFLAGS += $(NEXUS_LD_LIBRARIES)
 endif
 OUTPUT_DIR = $(B_REFSW_OBJ_ROOT)/BSEAV/tools/bp3/
+LIB_OBJECTS = $(addprefix $(OUTPUT_DIR), $(LIB_OBJS))
 OBJECTS = $(addprefix $(OUTPUT_DIR), $(APP_OBJS))
 APP = $(OUTPUT_DIR)bp3
+LIB = $(OUTPUT_DIR)libbp3_host.so
 APPCONFIGFILE = bp3.provision.config
 
-all: curl $(APP)
-
-srai:
-	@make -C ${SRAI_TOP} install
-
-$(APP): srai folders $(OBJECTS)
-	@echo [Linking... $(notdir $@)]
-	@$(CC) -o $@ $(OBJECTS) $(APP_LDFLAGS)
-
-curl:
-	@make -j -C ${BSEAV_TOP}/opensource/openssl
-	@make -j -C ${BSEAV_TOP}/opensource/curl install_to_nexus_bin
-	@echo [Installing CURL related libraries in ${NEXUS_BIN_DIR}]
-	@if ls ${B_REFSW_OBJ_ROOT}/target/usr/local/lib/libz* > /dev/null 2>&1 ; then install -m 0755 ${B_REFSW_OBJ_ROOT}/target/usr/local/lib/libz* ${NEXUS_BIN_DIR}; fi
-	${Q_} install -m 0755 ${B_REFSW_OBJ_ROOT}/target/usr/local/lib/libcrypto* ${NEXUS_BIN_DIR}
-	${Q_} install -m 0755 ${B_REFSW_OBJ_ROOT}/target/usr/local/lib/libssl* ${NEXUS_BIN_DIR}
+all: $(APP)
 
 $(OUTPUT_DIR)%.o: %.c
 	@echo [Compile... $(notdir $<)]
 	@$(CC) -c -o $@ $< $(APP_CFLAGS)
+
+srai:
+	@$(MAKE) -C ${SRAI_TOP} install
+
+# "order only" prerequisite rule so OBJECTS wait for libs to be built (for make -j option)
+$(OBJECTS):  | srai folders curl cjson
+
+nexus:
+	@echo [Build..... Nexus]
+	${Q_}$(MAKE) -C $(NEXUS_TOP)/build
+ifeq ($(NXCLIENT_SUPPORT),y)
+	${Q_}$(MAKE) -C $(NEXUS_TOP)/nxclient server
+endif
+
+clean-nexus:
+	@echo [Clean..... Nexus]
+	${Q_}$(MAKE) -C $(NEXUS_TOP)/build clean
+
+$(LIB): $(LIB_OBJECTS)
+	@echo [Linking... $@]
+	@$(CC) -shared -o $@ $(LIB_OBJECTS)
+	$(Q_)$(CP) -f $(LIB) ${NEXUS_BIN_DIR}
+
+$(APP): nexus $(OBJECTS) $(LIB)
+	@echo [Linking... $(notdir $@)]
+	@$(CC) -o $@ $(OBJECTS) $(APP_LDFLAGS)
+
+include $(BSEAV)/opensource/openssl/b_openssl_targets.inc
+
+openssl: b_openssl_target_build
+
+clean-openssl: b_openssl_target_clean_all
+
+curl: openssl
+	@echo [Build..... curl]
+	@$(MAKE) -j -C ${BSEAV_TOP}/opensource/curl install_to_nexus_bin
+	@echo [Installing CURL related libraries in ${NEXUS_BIN_DIR}]
+	@if ls ${B_REFSW_OBJ_ROOT}/target/usr/local/lib/libz* > /dev/null 2>&1 ; then install -m 0755 ${B_REFSW_OBJ_ROOT}/target/usr/local/lib/libz* ${NEXUS_BIN_DIR}; fi
+
+cjson:
+	@echo [Build..... cjson]
+	@$(MAKE) -j -C ${BSEAV_TOP}/opensource/cjson
 
 install: all
 	@echo [Installing to ... ${NEXUS_BIN_DIR}]
@@ -144,8 +176,10 @@ install: all
 folders:
 	@$(MKDIR) $(OUTPUT_DIR)
 
-clean:
-	make -C ${SRAI_TOP} clean
-	@make -C ${BSEAV_TOP}/opensource/openssl clean
-	@make -C ${BSEAV_TOP}/opensource/curl clean
+clean: clean-nexus
+	$(MAKE) -C ${SRAI_TOP} clean
+	@$(MAKE) -C ${BSEAV_TOP}/opensource/curl clean
+	@$(MAKE) -C ${BSEAV_TOP}/opensource/cjson clean
 	-${RM} -rf $(OUTPUT_DIR)
+
+distclean:  clean-openssl clean

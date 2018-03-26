@@ -300,6 +300,14 @@ ifndef BCHP_CHIP
         endif
     endif
 
+    ifeq ($(NEXUS_PLATFORM),97211)
+        BCHP_CHIP := 7211
+        ifndef BCHP_VER
+        $(warning Defaulting to BCHP_VER=A0)
+        BCHP_VER := A0
+        endif
+    endif
+
     ifeq ($(NEXUS_PLATFORM),97250)
         BCHP_CHIP := 7250
         ifndef BCHP_VER

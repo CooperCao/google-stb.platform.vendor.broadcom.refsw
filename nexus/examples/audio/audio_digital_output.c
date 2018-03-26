@@ -58,7 +58,7 @@
 #include "nexus_core_utils.h"
 
 #if NEXUS_HAS_PLAYBACK
-#define ENABLE_PLAYBACK     0
+#define ENABLE_PLAYBACK     1
 #if ENABLE_PLAYBACK
 #include "nexus_playback.h"
 #include "nexus_file.h"
@@ -76,7 +76,7 @@ BDBG_MODULE(audio_digital_output) ;
 
 /* the following define the input file and its characteristics -- these will vary by input file */
 #if ENABLE_PLAYBACK
-static const char *fname = "/mnt/streams/streamer/bugs_toys2_jurassic_q64_cd.mpg";
+static const char *fname = "videos/bugs_toys2_jurassic_q64_cd.mpg";
 #endif
 #define TRANSPORT_TYPE NEXUS_TransportType_eTs
 #define VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
@@ -104,7 +104,6 @@ static void initializeHdmiOutputHdcpSettings(void);
 static void hdmiOutputHdcpStateChanged(void *pContext, int param);
 static void hotplug_callback(void *pParam, int iParam);
 #endif
-
 
 static NEXUS_PlatformConfiguration platformConfig;
 static NEXUS_AudioDecoderHandle pcmDecoder, compressedDecoder;
@@ -140,6 +139,7 @@ int main(void)
     NEXUS_SpdifOutputSettings spdifSettings;
     NEXUS_AudioCapabilities audioCapabilities;
     NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioI2sHandle = NULL;
     NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
     NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
     bool mute = false;
@@ -167,6 +167,11 @@ int main(void)
     if (audioCapabilities.numOutputs.dac > 0)
     {
         audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.i2s > 0)
+    {
+        audioI2sHandle = NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[0]);
     }
 
     if (audioCapabilities.numOutputs.spdif > 0)
@@ -265,6 +270,10 @@ int main(void)
     /* Output PCM to DAC, SPDIF, and HDMI by default */
     if (audioDacHandle) {
         NEXUS_AudioOutput_AddInput(audioDacHandle,
+                                   NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+    if (audioI2sHandle) {
+        NEXUS_AudioOutput_AddInput(audioI2sHandle,
                                    NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     }
     if (audioSpdifHandle) {
@@ -641,20 +650,55 @@ int main(void)
         }
     }
     
-    NEXUS_VideoDecoder_Close(videoDecoder);
-    NEXUS_VideoWindow_Close(window);
+    if ( !pcm )
+    {
+        NEXUS_AudioDecoder_Stop(compressedDecoder);
+    }
+    NEXUS_AudioDecoder_Stop(pcmDecoder);
+    NEXUS_VideoDecoder_Stop(videoDecoder);
 
-    /* stop/remove HDMI callbacks associated with display, 
-    so those callbacks do not access display once it is removed */
-#if NEXUS_HAS_HDMI_OUTPUT
-    NEXUS_StopCallbacks(platformConfig.outputs.hdmi[0]);
+    NEXUS_Playback_Stop(playback);
+
+#if ENABLE_PLAYBACK
+    NEXUS_Playback_Stop(playback);
+    NEXUS_Playback_CloseAllPidChannels(playback);
+    NEXUS_FilePlay_Close(file);
+    NEXUS_Playback_Destroy(playback);
+    NEXUS_Playpump_Close(playpump);
 #endif
-    NEXUS_Display_Close(display);
+
+    if (audioHdmiHandle)
+    {
+        NEXUS_AudioOutput_RemoveAllInputs(audioHdmiHandle);
+    }
+    if (audioSpdifHandle)
+    {
+        NEXUS_AudioOutput_RemoveAllInputs(audioSpdifHandle);
+    }
+    if (audioDacHandle)
+    {
+        NEXUS_AudioOutput_RemoveAllInputs(audioDacHandle);
+    }
+    if (audioI2sHandle)
+    {
+        NEXUS_AudioOutput_RemoveAllInputs(audioI2sHandle);
+    }
 
     NEXUS_AudioDecoder_Close(pcmDecoder);
     NEXUS_AudioDecoder_Close(compressedDecoder);
+
+    NEXUS_VideoDecoder_Close(videoDecoder);
+    NEXUS_VideoWindow_Close(window);
+
+    /* stop/remove HDMI callbacks associated with display,
+    so those callbacks do not access display once it is removed */
+    NEXUS_StopCallbacks(platformConfig.outputs.hdmi[0]);
+    NEXUS_Display_Close(display);
+
+    #if !ENABLE_PLAYBACK
     NEXUS_PidChannel_Close(videoPidChannel);
     NEXUS_PidChannel_Close(audioPidChannel);
+    #endif
     NEXUS_Platform_Uninit();
 
     return 0;

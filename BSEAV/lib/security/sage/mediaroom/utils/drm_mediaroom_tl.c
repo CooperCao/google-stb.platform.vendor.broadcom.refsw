@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,7 +57,11 @@
 #include "drm_common_swcrypto_types.h"
 
 #include "nexus_memory.h"
+#if (NEXUS_SECURITY_API_VERSION == 1)
 #include "nexus_otpmsp.h"
+#else
+#include "nexus_otp_msp.h"
+#endif
 
 #include "bsagelib_types.h"
 #include "sage_srai.h"
@@ -759,7 +763,7 @@ ErrorExit:
 #define OTP_MSP0_VALUE_ZB (0x3E)
 #define OTP_MSP1_VALUE_ZB (0x3F)
 
-
+#if (NEXUS_SECURITY_API_VERSION == 1)
 ChipType_e DRM_Mediaroom_GetChipType()
 {
 
@@ -782,6 +786,39 @@ ChipType_e DRM_Mediaroom_GetChipType()
     }
     return ChipType_eZB;
 }
+#else
+ChipType_e DRM_Mediaroom_GetChipType()
+{
+    NEXUS_OtpMspRead readMsp0;
+    NEXUS_OtpMspRead readMsp1;
+    uint32_t Msp0Data;
+    uint32_t Msp1Data;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+#if NEXUS_ZEUS_VERSION < NEXUS_ZEUS_VERSION_CALC(5,0)
+    rc = NEXUS_OtpMsp_Read(233, &readMsp0);
+    if (rc) BERR_TRACE(rc);
+
+    rc = NEXUS_OtpMsp_Read(234, &readMsp1);
+    if (rc) BERR_TRACE(rc);
+#else
+    rc = NEXUS_OtpMsp_Read(224, &readMsp0);
+    if (rc) BERR_TRACE(rc);
+
+    rc = NEXUS_OtpMsp_Read(225, &readMsp1);
+    if (rc) BERR_TRACE(rc);
+#endif
+
+    Msp0Data = readMsp0.data & readMsp0.valid;
+    Msp1Data = readMsp1.data & readMsp1.valid;
+
+    BDBG_MSG(("OTP MSP0 %u OTP MSP1 %u", Msp0Data, Msp1Data));
+
+    if((Msp0Data == OTP_MSP0_VALUE_ZS) && (Msp1Data == OTP_MSP1_VALUE_ZS)) {
+        return ChipType_eZS;
+    }
+    return ChipType_eZB;
+}
+#endif
 
 
 DrmRC

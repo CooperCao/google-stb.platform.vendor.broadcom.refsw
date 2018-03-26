@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -74,6 +74,18 @@ typedef void *BDSP_Handle;
 #include "bape_echo_canceller.h"
 #include "bape_crc.h"
 #include "bape_debug.h"
+
+#if BAPE_DSP_SUPPORT
+#define BAPE_SIZE_ALIGN(x)      BDSP_SIZE_ALIGN(x)
+#define BAPE_ADDRESS_ALIGN      BDSP_ADDRESS_ALIGN
+#define BAPE_ADDRESS_ALIGN_CDB  BDSP_ADDRESS_ALIGN_CDB
+#define BAPE_ADDRESS_ALIGN_ITB  BDSP_ADDRESS_ALIGN_ITB
+#else
+#define BAPE_SIZE_ALIGN(x)      { x=x; }
+#define BAPE_ADDRESS_ALIGN      32
+#define BAPE_ADDRESS_ALIGN_CDB  8 /* CDB is aligned to 2^8 Bytes*/
+#define BAPE_ADDRESS_ALIGN_ITB  7 /* ITB is aligned to 2^7 Bytes*/
+#endif
 
 /*=************************ Module Overview ********************************
 APE (Audio Processing Engine) is a porting interface (PI) module that
@@ -180,12 +192,22 @@ BAPE_DecoderHandle2 (stereo data) -/
 
 #define BAPE_DEVICE_DSP_FIRST   ((unsigned)0)
 #define BAPE_DEVICE_DSP_LAST    ((unsigned)5)
+#define BAPE_DEVICE_DSP_NUM     (BAPE_DEVICE_DSP_LAST - BAPE_DEVICE_DSP_FIRST)
 #define BAPE_DEVICE_ARM_FIRST   ((unsigned)6)
 #define BAPE_DEVICE_ARM_LAST    ((unsigned)10)
+#define BAPE_DEVICE_ARM_NUM     (BAPE_DEVICE_ARM_LAST - BAPE_DEVICE_ARM_FIRST)
 #define BAPE_DEVICE_INVALID     ((unsigned)-1)
 
+#if BDSP_RAAGA_AUDIO_SUPPORT
 #define BAPE_DEVICE_DSP_VALID(d)    (d < BAPE_DEVICE_DSP_LAST)
+#else
+#define BAPE_DEVICE_DSP_VALID(d) (false)
+#endif
+#if BDSP_ARM_AUDIO_SUPPORT
 #define BAPE_DEVICE_ARM_VALID(d)    (d >= BAPE_DEVICE_ARM_FIRST && d < BAPE_DEVICE_ARM_LAST)
+#else
+#define BAPE_DEVICE_ARM_VALID(d)    (false)
+#endif
 #define BAPE_DSP_DEVICE_INDEX(idx, base) ((idx>=base)?(idx-base):0)
 
 #define BAPE_DEVICE_TYPE_DSP    ((unsigned)0)
@@ -407,7 +429,9 @@ typedef struct BAPE_Capabilities
     unsigned numCrcs;                   /* Number of CRC objects */
     unsigned numSrcs;                   /* Number of SRC objects */
     unsigned numStcs;                   /* Number of STC objects */
-    unsigned numMixers;               /* Number of Mixers */
+    unsigned numHwMixers;               /* Number of HW Mixers */
+    unsigned numDspMixers;              /* Number of DSP Mixers */
+    unsigned numBypassMixers;           /* Number of Bypass Mixers */
     unsigned numEqualizerStages;        /* Max number of active equalizer stages */
 
     unsigned numDevices[BAPE_DEVICE_TYPE_MAX]; /* Number of audio Devices by type */
@@ -488,6 +512,65 @@ Set the loudness equivalance settings after Ape was already initialized
 BERR_Code BAPE_SetLoudnessMode(
     BAPE_Handle hApe,
     BAPE_LoudnessSettings *pSettings /* [out] */
+    );
+
+/***************************************************************************
+Summary:
+Generic Callback Handler
+***************************************************************************/
+typedef struct BAPE_CallbackHandler
+{
+    void (*pCallback_isrsafe)(void *pContext, void* pParam, int iParam, int eventParam);
+    void *pContext; /* uniquely identifies the caller */
+    void *pParam;
+    int iParam;
+} BAPE_CallbackHandler;
+
+/***************************************************************************
+Summary:
+Generic Callback Events
+***************************************************************************/
+typedef enum BAPE_CallbackEvent
+{
+    BAPE_CallbackEvent_ePllVerify,
+    BAPE_CallbackEvent_eNcoVerify,
+    BAPE_CallbackEvent_eMax
+} BAPE_CallbackEvent;
+
+/***************************************************************************
+Summary:
+Register a Callback for an event. Multiple clients per event are allowed.
+***************************************************************************/
+BERR_Code BAPE_RegisterCallback(
+    BAPE_Handle hApe,
+    BAPE_CallbackEvent event,
+    BAPE_CallbackHandler *pCallback
+    );
+
+/***************************************************************************
+Summary:
+Un-Register a Callback for an event.
+***************************************************************************/
+void BAPE_UnRegisterCallback(
+    BAPE_Handle hApe,
+    BAPE_CallbackEvent event,
+    void *pContext
+    );
+
+/***************************************************************************
+Summary:
+Process Pll Verify event Callback.
+***************************************************************************/
+void BAPE_ProcessPllVerifyCallback(
+    BAPE_Handle hApe
+    );
+
+/***************************************************************************
+Summary:
+Process Nco Verify event Callback.
+***************************************************************************/
+void BAPE_ProcessNcoVerifyCallback(
+    BAPE_Handle hApe
     );
 
 #if BAPE_DSP_SUPPORT

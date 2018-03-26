@@ -186,6 +186,7 @@ void BVDC_P_Drain_Release
     /* Sanity check and get context */
     BDBG_OBJECT_ASSERT(hResource, BVDC_RES);
 
+    BKNI_EnterCriticalSection();
     if(pDrain->eVnetFDrainType != BVDC_P_ResourceType_eInvalid)
     {
         BVDC_P_Resource_ReleaseHwId_isr(hResource,
@@ -197,6 +198,7 @@ void BVDC_P_Drain_Release
         BVDC_P_Resource_ReleaseHwId_isr(hResource,
             pDrain->eVnetBDrainType, pDrain->ulVnetBDrainId);
     }
+    BKNI_LeaveCriticalSection();
 
     return;
 }

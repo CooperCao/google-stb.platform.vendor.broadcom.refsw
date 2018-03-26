@@ -751,6 +751,7 @@ static BERR_Code setChannelPacketSettings(
     return( ExitCode );
 }
 
+#ifdef ENABLE_PLAYBACK_MUX
 BERR_Code BXPT_Playback_SetChannelPacketSettings(
     BXPT_Playback_Handle hPb,                                  /* [in] Handle for the playback channel. */
     const BXPT_Playback_ChannelPacketSettings *ChannelSettings /* [in] New settings to use */
@@ -764,6 +765,7 @@ BERR_Code BXPT_Playback_SetChannelPacketSettings(
     MCPB_RELEASE_CHNL(hPb);
     return ret;
 }
+#endif
 
 BERR_Code BXPT_Playback_GetLastCompletedDescriptorAddress(
     BXPT_Playback_Handle hPb,   /* [in] Handle for the playback channel */
@@ -796,65 +798,6 @@ BERR_Code BXPT_Playback_GetLastCompletedDescriptorAddress(
     *LastCompletedDesc = ( BXPT_PvrDescriptor * ) UserSpaceDescAddr;
     return( ExitCode );
 }
-
-#if (!B_REFSW_MINIMAL)
-void BXPT_Playback_GetDefaultDescSettings(
-    BXPT_Handle hXpt,                                   /* [in] Handle for this transport */
-    BXPT_Playback_ExtendedDescSettings *settings        /* [out] Settings. */
-    )
-{
-    BDBG_ASSERT( hXpt );
-    BSTD_UNUSED( hXpt );
-    BDBG_ASSERT( settings );
-
-    /* Zero is a good default for all the members */
-    BKNI_Memset( (void *) settings, 0, sizeof( *settings ) );
-}
-
-BERR_Code BXPT_Playback_CreateExtendedDesc(
-    BXPT_Handle hXpt,                       /* [in] Handle for this transport */
-    const BXPT_Playback_ExtendedDescSettings *settings /* [in] Settings. */
-    )
-{
-    /* deprecated due to MMA conversion */
-    BSTD_UNUSED(hXpt);
-    BSTD_UNUSED(settings);
-    return BERR_TRACE(BERR_NOT_SUPPORTED);
-}
-
-BERR_Code BXPT_Playback_CreateDesc(
-    BXPT_Handle hXpt,                       /* [in] Handle for this transport */
-    BXPT_PvrDescriptor * const Desc,        /* [in] Descriptor to initialize */
-    uint8_t *Buffer,                        /* [in] Data buffer. */
-    uint32_t BufferLength,                  /* [in] Size of buffer (in bytes). */
-    bool IntEnable,                         /* [in] Interrupt when done? */
-    bool ReSync,                            /* [in] Re-sync extractor engine? */
-    BXPT_PvrDescriptor * const NextDesc     /* [in] Next descriptor, or NULL */
-    )
-{
-    /* deprecated due to MMA conversion */
-    BSTD_UNUSED(hXpt);
-    BSTD_UNUSED(Desc);
-    BSTD_UNUSED(Buffer);
-    BSTD_UNUSED(BufferLength);
-    BSTD_UNUSED(IntEnable);
-    BSTD_UNUSED(ReSync);
-    BSTD_UNUSED(NextDesc);
-    return BERR_TRACE(BERR_NOT_SUPPORTED);
-}
-
-void BXPT_SetLastDescriptorFlag(
-    BXPT_Handle hXpt,                       /* [in] Handle for this transport */
-    BXPT_PvrDescriptor * const Desc     /* [in] Descriptor to initialize */
-    )
-{
-    /* deprecated due to MMA conversion */
-    BSTD_UNUSED(hXpt);
-    BSTD_UNUSED(Desc);
-    (void)BERR_TRACE(BERR_NOT_SUPPORTED);
-    return;
-}
-#endif
 
 BERR_Code BXPT_Playback_AddDescriptors(
     BXPT_Playback_Handle hPb,   /* [in] Handle for the playback channel */
@@ -913,6 +856,7 @@ BERR_Code BXPT_Playback_AddDescriptors(
         /* cycle through all descriptors and set force_resync flag */
         BXPT_PvrDescriptor *CurrDesc = FirstDesc;
         BXPT_PvrDescriptor *HeadDesc = FirstDesc;
+        BMMA_DeviceOffset nextDescAddr;
 
         do {
             BMMA_FlushCache(hPb->mma.descBlock, CurrDesc, sizeof (*CurrDesc));
@@ -927,7 +871,14 @@ BERR_Code BXPT_Playback_AddDescriptors(
             }
 
             BMMA_FlushCache(hPb->mma.descBlock, CurrDesc, sizeof (*CurrDesc));
-            CurrDesc = (BXPT_PvrDescriptor*)((uint8_t*)hPb->mma.descPtr + (DescWords[2] - hPb->mma.descOffset)); /* convert DescWords[2] -> cached ptr */
+#if BXPT_HAS_MCPB_VER_3
+            nextDescAddr = CurrDesc->NextDescAddrHi;
+            nextDescAddr <<= 32;
+            nextDescAddr += CurrDesc->NextDescAddr;
+#else
+            nextDescAddr = CurrDesc->NextDescAddr;
+#endif
+            CurrDesc = (BXPT_PvrDescriptor*)((uint8_t*)hPb->mma.descPtr + (nextDescAddr - hPb->mma.descOffset)); /* convert DescWords[2] -> cached ptr */
         }
         while (CurrDesc != HeadDesc);
     }
@@ -2043,6 +1994,7 @@ void BXPT_Playback_SetDescriptorFlags(
     return;
 }
 
+#if BXPT_HAS_TSMUX
 unsigned BXPT_Playback_P_GetBandId(
     BXPT_Playback_Handle hPb
     )
@@ -2055,23 +2007,6 @@ unsigned BXPT_Playback_P_GetBandId(
 #else
     /* RESUME SW7425-5193 here, then port to 65 and 40 nm code.*/
     return (unsigned) BCHP_GET_FIELD_DATA( BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_MCPB_CH0_SP_PARSER_CTRL ),
-        XPT_MCPB_CH0_SP_PARSER_CTRL, PB_PARSER_BAND_ID );
-#endif
-}
-
-unsigned int BXPT_PB_P_GetPbBandId(
-    BXPT_Handle hXpt,
-    unsigned int Band
-    )
-{
-#ifdef BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL
-    uint32_t Reg;
-
-    Reg = BREG_Read32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + PB_PARSER_BAND_ID_CTRL_STEPSIZE * Band);
-    return (unsigned) BCHP_GET_FIELD_DATA(Reg, XPT_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_BAND_ID);
-#else
-    uint32_t RegAddr = BCHP_XPT_MCPB_CH0_SP_PARSER_CTRL + ( Band * PB_PARSER_REG_STEPSIZE );
-    return (unsigned) BCHP_GET_FIELD_DATA( BREG_Read32( hXpt->hRegister, RegAddr ),
         XPT_MCPB_CH0_SP_PARSER_CTRL, PB_PARSER_BAND_ID );
 #endif
 }
@@ -2110,6 +2045,25 @@ void BXPT_Playback_P_SetBandId(
     hXpt->BandMap.Playback[ hPb->ChannelNo ].VirtualParserBandNum = NewBandId;
     MCPB_RELEASE_CHNL(hPb);
 }
+#endif
+
+unsigned int BXPT_PB_P_GetPbBandId(
+    BXPT_Handle hXpt,
+    unsigned int Band
+    )
+{
+#ifdef BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL
+    uint32_t Reg;
+
+    Reg = BREG_Read32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + PB_PARSER_BAND_ID_CTRL_STEPSIZE * Band);
+    return (unsigned) BCHP_GET_FIELD_DATA(Reg, XPT_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_BAND_ID);
+#else
+    uint32_t RegAddr = BCHP_XPT_MCPB_CH0_SP_PARSER_CTRL + ( Band * PB_PARSER_REG_STEPSIZE );
+    return (unsigned) BCHP_GET_FIELD_DATA( BREG_Read32( hXpt->hRegister, RegAddr ),
+        XPT_MCPB_CH0_SP_PARSER_CTRL, PB_PARSER_BAND_ID );
+#endif
+}
+
 
 #if !BXPT_HAS_MULTICHANNEL_PLAYBACK
 
@@ -2128,19 +2082,6 @@ BERR_Code BXPT_Playback_GetChannelStatus(
     return BERR_NOT_SUPPORTED;
 }
 
-BERR_Code BXPT_Playback_GetCurrentBufferAddress(
-    BXPT_Playback_Handle hPb,   /* [in] Handle for the playback channel */
-    uint32_t *Address                       /* [out] The address read from hardware. */
-    )
-{
-    BSTD_UNUSED( hPb );
-    BSTD_UNUSED( Address );
-
-    /* Not used by Nexus or BPVRLib */
-    BDBG_ERR(("BERR_NOT_SUPPORTED"));
-    return BERR_NOT_SUPPORTED;
-}
-
 BERR_Code BXPT_Playback_GetCurrentDescriptorAddress(
     BXPT_Playback_Handle hPb,   /* [in] Handle for the playback channel */
     BXPT_PvrDescriptor **LastDesc       /* [in] Address of the current descriptor. */
@@ -2154,33 +2095,20 @@ BERR_Code BXPT_Playback_GetCurrentDescriptorAddress(
     return BERR_NOT_SUPPORTED;
 }
 
-BERR_Code BXPT_Playback_CheckHeadDescriptor(
-    BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
-    BXPT_PvrDescriptor *Desc,       /* [in] Descriptor to check. */
-    bool *InUse,                    /* [out] Is descriptor in use? */
-    uint32_t *BufferSize            /* [out] Size of the buffer (in bytes). */
-    )
-{
-    BSTD_UNUSED( PlaybackHandle );
-    BSTD_UNUSED( Desc );
-    BSTD_UNUSED( InUse );
-    BSTD_UNUSED( BufferSize );
-    BDBG_ERR(("BERR_NOT_SUPPORTED"));
-    return BERR_NOT_SUPPORTED;
-}
-
-BERR_Code BXPT_Playback_GetTimestampUserBits(
-    BXPT_Playback_Handle hPb,   /* [in] Handle for the playback channel */
-    unsigned int *Bits                          /* [out] The user bits read from hardware. */
-    )
-{
-    BSTD_UNUSED( hPb );
-    BSTD_UNUSED( Bits );
-    BDBG_ERR(("BERR_NOT_SUPPORTED"));
-    return BERR_NOT_SUPPORTED;
-}
-
 /** End of decprecated APIs. */
+#endif
+
+#ifdef BXPT_HAS_TSMUX
+void BXPT_Playback_P_SetPacingCount(
+    BXPT_Playback_Handle hPb,                   /* [in] Handle for the playback channel */
+    unsigned PacingLoadMap,
+    unsigned PacingCount
+    )
+{
+    BSTD_UNUSED(hPb);
+    BSTD_UNUSED(PacingLoadMap);
+    BSTD_UNUSED(PacingCount);
+}
 #endif
 
 void BXPT_Playback_GetLTSID(

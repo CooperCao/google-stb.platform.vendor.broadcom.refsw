@@ -40,8 +40,6 @@
 #include "priv/nexus_core.h"
 #include "priv/nexus_rave_priv.h"
 #include "nexus_surface.h"
-#include "bgrc.h"
-#include "bgrc_packet.h"
 
 BDBG_MODULE(nexus_video_decoder_extra);
 
@@ -238,20 +236,18 @@ NEXUS_Error NEXUS_VideoDecoder_P_GetStripedSurfaceCreateSettings( NEXUS_VideoDec
     {
         if (BAVC_VideoBitDepth_e10Bit == pPicture->eBitDepth)
         {
-            pCreateSettings->lumaPixelFormat = BM2MC_PACKET_PixelFormat_eY10;
-            pCreateSettings->chromaPixelFormat = BM2MC_PACKET_PixelFormat_eCb10_Cr10;
+            pCreateSettings->lumaPixelFormat = NEXUS_PixelFormat_eY10;
+            pCreateSettings->chromaPixelFormat = NEXUS_PixelFormat_eCb10_Cr10;
         }
         else
         {
-            pCreateSettings->lumaPixelFormat = BM2MC_PACKET_PixelFormat_eY8;
-            pCreateSettings->chromaPixelFormat = BM2MC_PACKET_PixelFormat_eCb8_Cr8;
+            pCreateSettings->lumaPixelFormat = NEXUS_PixelFormat_eY8;
+            pCreateSettings->chromaPixelFormat = NEXUS_PixelFormat_eCb8_Cr8;
         }
     }
     else
     {
-        BM2MC_PACKET_PixelFormat m2mcPxlFmt;
-        BGRC_Packet_ConvertPixelFormat(&m2mcPxlFmt, pPicture->ePxlFmt);
-        pCreateSettings->lumaPixelFormat = m2mcPxlFmt;
+        pCreateSettings->lumaPixelFormat = NEXUS_P_PixelFormat_FromMagnum_isrsafe(pPicture->ePxlFmt);
     }
 
     pCreateSettings->matrixCoefficients = NEXUS_P_MatrixCoefficients_FromMagnum_isrsafe(pPicture->eMatrixCoefficients);

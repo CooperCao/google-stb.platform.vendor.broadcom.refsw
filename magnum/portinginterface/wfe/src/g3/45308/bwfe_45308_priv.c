@@ -1,40 +1,39 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bwfe.h"
 #include "bwfe_priv.h"
@@ -531,19 +530,52 @@ BERR_Code BWFE_P_SetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
    BERR_Code retCode = BERR_SUCCESS;
    BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
    uint32_t P_hi, P_lo, Q_hi, Q_lo;
+   uint32_t freqDacPllKhz, pilotQddfsM, pilotQddfsN;
    uint32_t gcd, fcw, thr, Q;
    uint16_t n;
    uint8_t p;
 
-   /* DAC pll fixed at 4779MHz */
+   /* DAC pll = f_xtal / p * 2 * n = 4779MHz */
    p = 4;
    n = 177;
+   freqDacPllKhz = (n << 1) * BWFE_XTAL_FREQ_KHZ / p;
+
    BWFE_P_ReadModifyWriteRegister(h, BCHP_WFE_ANA_DPM_DAC_R04, ~0x001EFFC0, p << 17 | n << 6);
    BWFE_P_AndRegister(h, BCHP_WFE_ANA_DPM_DAC_R06, ~0x00008000);  /* select pilot output to vco */
 
-   /* calculate QDDFS ratio */
-   hChn->dpmQddfsM = freqKhz * 184;
-   hChn->dpmQddfsN = BWFE_DEF_FS_ADC_KHZ * n;
+   /* calculate QDDFS ratio for pilot: (f_dpm * n0) / (fs_adc * n1) */
+   pilotQddfsM = freqKhz * 184;
+   pilotQddfsN = hChn->adcSampleFreqKhz * n;
+
+   /* remove common divider */
+   gcd = BWFE_P_GCF(pilotQddfsM, pilotQddfsN);
+   if (gcd > 1)
+   {
+      pilotQddfsM /= gcd;
+      pilotQddfsN /= gcd;
+   }
+   pilotQddfsM = pilotQddfsM % pilotQddfsN;
+
+   /*BKNI_Printf("BWFE_P_SetDpmPilotFreq(%d KHz): pilotQddfsM=%d, pilotQddfsN=%d\n", freqKhz, pilotQddfsM, pilotQddfsN);*/
+
+   BMTH_HILO_32TO64_Mul(2147483648UL, 2, &P_hi, &P_lo);    /* 2^intbw where intbw=32 matches rtl word length */
+   BMTH_HILO_64TO64_Div32(P_hi, P_lo, pilotQddfsN, &Q_hi, &Q_lo);  /* QDDFS_N is positive */
+   Q = Q_lo;      /* Q = floor(2^intbw / QDDFS_N) where intbw=32 */
+
+   BMTH_HILO_32TO64_Mul(pilotQddfsM, Q, &P_hi, &P_lo);
+   fcw = P_lo;    /* fcw = QDDFS_M * Q */
+
+   BMTH_HILO_32TO64_Mul(pilotQddfsN, Q, &P_hi, &P_lo);
+   thr = P_lo;    /* thr = QDDFS_N * Q mod 2^intbw where intbw=32 */
+
+   /* program pilot fcw */
+   BWFE_P_WriteRegister(h, BCHP_WFE_ANA_DPM_DAC_R02, fcw);
+   BWFE_P_WriteRegister(h, BCHP_WFE_ANA_DPM_DAC_R03, thr);
+
+   /* calculate QDDFS ratio for corr: f_dpm / fs_adc */
+   hChn->dpmPilotFreqKhz = freqKhz;
+   hChn->dpmQddfsM = hChn->dpmPilotFreqKhz * BWFE_LIC_L;
+   hChn->dpmQddfsN = hChn->adcSampleFreqKhz;
 
    /* remove common divider */
    gcd = BWFE_P_GCF(hChn->dpmQddfsM, hChn->dpmQddfsN);
@@ -552,23 +584,11 @@ BERR_Code BWFE_P_SetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
       hChn->dpmQddfsM /= gcd;
       hChn->dpmQddfsN /= gcd;
    }
+
+   /* wrap M_Q/N_Q to <= 1.0 for actual DDFS sample rate ratio */
    hChn->dpmQddfsM = hChn->dpmQddfsM % hChn->dpmQddfsN;
-   /*BKNI_Printf("BWFE_P_SetDpmPilotFreq(%d KHz): dpmQddfsN=%d, dpmQddfsM=%d\n", freqKhz, hChn->dpmQddfsN, hChn->dpmQddfsM);*/
 
-   BMTH_HILO_32TO64_Mul(2147483648UL, 2, &P_hi, &P_lo);    /* 2^intbw where intbw=32 matches rtl word length */
-   BMTH_HILO_64TO64_Div32(P_hi, P_lo, hChn->dpmQddfsN, &Q_hi, &Q_lo);  /* QDDFS_N is positive */
-   Q = Q_lo;      /* Q = floor(2^intbw / QDDFS_N) where intbw=32 */
-
-   BMTH_HILO_32TO64_Mul(hChn->dpmQddfsM, Q, &P_hi, &P_lo);
-   fcw = P_lo;    /* fcw = QDDFS_M * Q */
-
-   BMTH_HILO_32TO64_Mul(hChn->dpmQddfsN, Q, &P_hi, &P_lo);
-   thr = P_lo;    /* thr = QDDFS_N * Q mod 2^intbw where intbw=32 */
-
-   BWFE_P_WriteRegister(h, BCHP_WFE_ANA_DPM_DAC_R02, fcw);
-   BWFE_P_WriteRegister(h, BCHP_WFE_ANA_DPM_DAC_R03, thr);
-
-   hChn->dpmPilotFreqKhz = freqKhz;
+   /*BKNI_Printf("BWFE_P_SetDpmPilotFreq(%d KHz): dpmQddfsM=%d, dpmQddfsN=%d\n", freqKhz, hChn->dpmQddfsM, hChn->dpmQddfsN);*/
 
    return retCode;
 }
@@ -664,6 +684,11 @@ BERR_Code BWFE_P_InitAdc(BWFE_ChannelHandle h)
    BWFE_P_WriteRegister(h, BCHP_WFE_ANA_ADC_CNTL11, 0x45480000);  /* ISBUF in regulator mode */
    BWFE_P_WriteRegister(h, BCHP_WFE_ANA_ADC_CNTL12, 0x00006020);  /* 6020 to set CK5G_dly_cntl_1p5 = 1000 */
    BWFE_P_WriteRegister(h, BCHP_WFE_ANA_ADC_CNTL13, 0x0A952A54);
+
+#ifndef BWFE_EXCLUDE_ANALOG_DELAY
+   /* adjusted coarse-fine timing */
+   BWFE_g3_Corr_P_CompensateDelay(h, hChn->adjRight, hChn->adjLeft);
+#endif
 
 #if 0
    /* low power adc settings */

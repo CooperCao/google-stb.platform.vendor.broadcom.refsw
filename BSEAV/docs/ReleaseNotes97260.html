@@ -1,116 +1,97 @@
 <html>
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=us-ascii">
-<title>Broadcom 97260 A0 Phase 18.1 Set-Top Unified Reference Software
+<title>Broadcom 97260 A0/B0 Phase 18.1 Set-Top Unified Reference Software
 Release (URSR) Release Notes</title>
 </head>
 
 <body lang=EN-US link=blue vlink=purple>
 
-<div class=WordSection1>
+<h1>
+  <a name="_top"><strong>
+      Broadcom 97260 A0/B0 Phase 18.1
+  </strong></a>
+  <strong>
+    Unified Set-Top Reference Software Release Notes
+  </strong>
+</h1>
 
-<h1 style='margin-left:15.0pt'><span style='font-size:12.0pt'>Index</span></h1>
-
-<p style='margin-left:15.0pt'><span style='color:#0070C0'><a href="#features"><span
-style='color:#0070C0'>Features</span></a></span></p>
-
-<p style='margin-left:15.0pt'><span style='color:#0070C0'><a
-href="#where_to_start"><span style='color:#0070C0'>Where to Start</span></a></span></p>
-
-<div>
-
-<p><a name=top><strong>Broadcom 97260 A0 Phase 18.1 </strong></a><strong>Unified Set-Top
-Reference Software Release Notes</strong></p>
-
-<p><strong>Release Date: </strong></p>
+<h2><strong>Release Date: </strong></h2>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
-
-<p>January 23, 2018</p>
+<p>March 1, 2018</p>
 <p>Phase 18.1 Release </p>
 
 </blockquote>
 
-<p><strong>Platforms Supported: </strong></p>
-<ul style='margin-top:0in' type=disc>
-<li>972603/4SV - BCM72603/4 A0</li>
-<li>97260SV - BCM7260 A0</li>
-<li>972603/4SFF_HB - BCM72603/4 A0</li>
-<li>972603/4USFF - BCM72603/4 A0</li>
-<li>97260USFF - BCM7260 A0</li>
-<li>972603/4DV - BCM72603/4 A0</li>
+<h2>Index</h2>
+<ul>
+  <li><a href="#important">Important notes</a></li>
+  <li><a href="#platforms">Supported Platforms</a></li>
+  <li><a href="#where_to_start">Where to Start</a></li>
+  <ul>
+    <li><a href="#linux">Linux kernel and root file system build instructions</a></li>
+    <li><a href="#atlas">Atlas complication instructions</a></li>
+    <li><a href="#boot">System boot instructions</a></li>
+    <li><a href="#run">Runtime instructions</a></li>
+  </ul>
+  <li><a href="#features">Features</a></li>
 </ul>
 
-<p>&nbsp;</p>
-
-<p >Please also be aware that 7260 supports a 64 bit ARM CPU. The supplied kernel comes in 32bit and 64
+<h2><a name="important">Important notes&nbsp</a><a href="#top">(Top)</a></h2>
+<p><strong>
+  URSR 18.1 is the first release which contains support for 7260 B0. The B0 adds a number of new features to 7260 family including advanced HDR support and RAAGA-AX support for transcoding
+</strong></p>
+<p> Please be aware that 7260 contains a 64 bit ARM CPU. The supplied kernel comes in 32bit and 64
 bit flavors. The BOLT bootloader is common to 32 and 64-bit, and can boot both of the kernels.
 Please refer to &#8220;Reference software 64 bit Migration Application Note&#8221; for more
-details.</p>
-<p >&nbsp;</p>
+details.
+</p>
 
-<p><a name="where_to_start"><strong>Where To Start</strong></a><br>
-<a href="#top"><b><span style='color:windowtext'>(Top)</span></b></a></p>
+<p><strong>Platforms Supported: </strong></p>
+<ul style='margin-top:0in' type=disc>
+<li>972603/4SV - BCM72603/4 A0/B0</li>
+<li>97260SV - BCM7260 A0/B0</li>
+<li>972603/4SFF_HB - BCM72603/4 A0/B0</li>
+<li>972603/4USFF - BCM72603/4 A0/B0</li>
+<li>97260USFF - BCM7260 A0/B0</li>
+<li>972603/4DV - BCM72603/4 A0/B0</li>
+</ul>
+
+<h2><a name="where_to_start">Where To Start&nbsp</a><a href="#top">(Top)</a></h2>
 
 <p >Read BroadcomReferencePlatformSetup.pdf for an overview.<br>
 Read Atlas_User_Guide.pdf for information on configuring the Linux environment
 on your Build Server and Set-Top, and information on building and installing
 Atlas as part of the Reference Software. </p>
 
-<p >&nbsp;</p>
-<p><strong>Quick Build Instructions</strong></p>
+<h3><a name="linux"><b>Linux kernel and root file system build instructions&nbsp</a></b><a href="#top">(Top)</a></h3>
 
 <ul style='margin-top:0in' type=disc>
- <li ># tar -xvjf rootfs-4.9-1.2.tar.bz2 </li>
- <li ># tar -xvjf stblinux-4.9-1.2.tar.bz2 </li>
- <li ># cd rootfs </li>
- <li ># make vmlinuz-initrd-arm <i>(For 32-bit version of
-     the kernel build)</i></li>
- <li ># make vmlinuz-initrd-arm64 <i>(For 64-bit version of the
-     kernel build)</i></li>
- <li ># cd ../linux </li>
- <li >export LINUX=`pwd` </li>
- <li >tar -C /opt/toolchains -xvjf stbgcc-6.3-1.1.tar.bz2 </li>
- <li >PATH=/opt/toolchains/ stbgcc-6.3-1.1/bin:$PATH </li>
- <li >export B_REFSW_ARCH=arm-linux </li>
- <li >or export B_REFSW_ARCH=aarch64-linux (For compiling the code with 64 bit toolchain)</li>
+ <li># tar -xjf stbgcc-6.3-1.2.tar.bz2 -C /opt/toolchains</li>
+ <li># export PATH=/opt/toolchains/stbgcc-6.3-1.2/bin:$PATH </li>
+ <li># tar -xvjf rootfs-4.9-1.4.tar.bz2 </li>
+ <li># tar -xvjf stblinux-4.9-1.4.tar.bz2 </li>
+ <li># cd rootfs </li>
+ <li># make defaults-arm64</li>
+ <li># make images</li>
+ <li># export LINUX=`readlink -f ../linux` </li>
 </ul>
 
-<p >&nbsp;</p>
-
-<p><strong>Quick Boot instructions</strong></p>
+<h3><a name="atlas"<b>Instructions to build atlas the Nexus sample UI application&nbsp</b></a><a href="#top">(Top)</a></h3>
 
 <ul style='margin-top:0in' type=disc>
- <li >BOLT&gt; boot &lt;network_location&gt;:49-1.2/vmlinuz-initrd-arm
-     </li>
- <li >BOLT&gt; boot &lt;network_location&gt;:49-1.2/vmlinuz-initrd-arm64&nbsp; - This command
-     will boot 64 bit kernel instead of 32 bit kernel. </li>
+ <li> # tar xvfz refsw_release_97260_20180301.src.tgz</li>
+ <li> # export B_REFSW_ARCH=aarch64-linux</li>
+ <li> # export NEXUS_PLATFORM=97260</li>
+ <li> # export BCHP_VER=B0</li>
+ <li> # make -C BSEAV/app/atlas/build install </li>
 </ul>
 
-<p  style='margin-left:.5in'>&nbsp;</p>
-
-<p ><strong>Set the kernel to autoboot</strong> </p>
-<ul style='margin-top:0in' type=disc>
- <li >BOLT&gt; flash &lt;network_location&gt;:49-1.2/vmlinuz-initrd-arm flash0.kernel </li>
- <li >Or BOLT&gt; flash &lt;network_location&gt;:49-1.2/vmlinuz-initrd-arm64 flash0.kernel - For 64-bit kernel</li>
- <li >BOLT&gt; setenv -p STARTUP &quot;boot flash0.kernel:&quot; </li>
- <li >BOLT&gt; reboot</li>
-</ul>
-
-<p >&nbsp;</p>
-
-<p ><b>How to set a board to autoboot with kernel and ubifs
-rootfs and binaries into the flash:</b></p>
+<h3><a name="boot"><b>Boot instructions&nbsp</b></a><a href="#top">(Top)</a></h3>
 
 <ul style='margin-top:0in' type=disc>
- <li>Boot with vmlinuz-initrd kernel. </li>
- <li>Run &quot;stbutil&quot; </li>
- <li>Select option 1 for flashing the noninitrd kernel to the flash. Again run &quot;stbutil&quot; and select 2 to flash rootfs into the flash.</li>
- <li>Reboot the board with &quot;boot flash0.kernel 'ubi.mtd=flash1.rootfs0 rootfstype=ubifs root=ubi0:rootfs rw'&quot;</li>
- <li>In case you want to run any application on the startup then, copy the application binaries in /data/bin of the flash. Copy the streams in /data/media. Create
-     /root/rc.user and put the commands you want to run after the boot. Save the file.</li>
- <li>Set the STARTUP variable to &quot;boot flash0.kernel 'ubi.mtd=flash1.rootfs0 rootfstype=ubifs root=ubi0:rootfs rw'&quot;</li>
- <li>Reboot the board.</li>
+ <li >BOLT&gt; boot &lt;network_location&gt;:49-1.4/vmlinuz-initrd-arm64&nbsp;</li>
 </ul>
 
 <p><strong>Following is the list of boards that are supported and the
@@ -139,7 +120,7 @@ options required to build the software. </strong></p>
   <p >97260</p>
   </td>
   <td >
-  <p ><b>A0</b></p>
+  <p ><b>A0/B0</b></p>
   </td>
   <td >
   <p >&nbsp;See &#8220;Quick Build Instructions&#8221; on how to
@@ -148,69 +129,33 @@ options required to build the software. </strong></p>
  </tr>
 </table>
 
-<p>
-  <strong>
+<p><strong>
     There are multiple box modes available which contain the RTS to support the different variants and features of this chip.<br>
     Information on the available box modes has been moved to a <span style='color:#0070C0'><a href="7260A0_box_mode_comparison.html"><span style='color:#0070C0'>new HTML table</a></span>.</p>
-  </strong>
-</p>
+</strong></p>
 
-<p ><strong>Instructions to build nexus playback utility and use
-it to decode and display HEVC 4Kx2k@60p 10bit stream </strong></p>
+<h3><a name="run"><b>Runtime instructions&nbsp</b></a><a href="#top">(Top)</a></h3>
 
 <ul style='margin-top:0in' type=disc>
- <li ># tar xvfz refsw_release_97260_20180123.src.tgz </li>
- <li >#cd nexus/utils </li>
- <li >#make install </li>
+ <li >Connect the UHD TV via HDMI.</li>
+ <li >Mount the USB/SATA containing the streams as /data/videos.</li>
 </ul>
 
 <ul style='margin-top:0in' type=disc>
- <li >Connect UHD 4K TV to HDMI </li>
- <li >#export B_REFSW_BOXMODE=4</li>
- <li >#nexus playback -display_format 3840x2160p60 -component
-     off -max_video 3840,2160 -probe &lt;stream_name &gt;</li>
+ <li> Use the following commands to run atlas after extracting
+     the tarball from obj.97260.B0/BSEAV/bin dir.</li>
+ <li> # export B_REFSW_BOXMODE=4 </li>
+ <li> # start install </li>
+ <li> # start atlas </li>
+ <li> From the menu, select Playback -&gt; stream name. </li>
 </ul>
 
-<p ><b>Instructions to build atlas and use it to play HEVC 4Kx2k
-stream </b></p>
-
-<ul style='margin-top:0in' type=disc>
- <li ># tar xvfz refsw_release_97260_20180123.src.tgz</li>
- <li >#cd BSEAV/app/atlas/build </li>
- <li >#make install </li>
-</ul>
-
-<ul style='margin-top:0in' type=disc>
- <li >Connect UHD 4K TV to HDMI</li>
- <li >Mount the USB/SATA containing the 4kX2k stream as
-     /data/videos </li>
-</ul>
-
-<ul style='margin-top:0in' type=disc>
- <li >Run the following commands to run atlas after extracting
-     the tarball from obj.97260/BSEAV/bin dir.</li>
- <li >#export B_REFSW_BOXMODE=4 </li>
- <li >#start install </li>
- <li >#start atlas </li>
- <li >From the menu, select Playback -&gt; 4kp60 stream. </li>
- <li >Using the remote control for the board, select Menu -&gt;
-     Display -&gt; Format -&gt; 2160p 60Hz. You should be able to see the
-     stream playback in 4Kp60 display format.</li>
-</ul>
-
-<h2>
-<a name="features">
-Features
-</a></h2>
-<p class=MsoNormal><a href="#_top">(Top)</a></p>
+<h2><a name="features">Features&nbsp</a><a href="#top">(Top)</a></h2>
 <p>
   <strong>
     Information on Features has been consolidated in the <span style='color:#0070C0'><a href="ReleaseNotes.html"><span style='color:#0070C0'>generic ReleaseNotes.html</a></span>.</p>
   </strong>
 </p>
 
-</div>
-
 </body>
-
 </html>

@@ -257,5 +257,6 @@ void BWT_Toolkit_Destroy(BWT_ToolkitHandle bwt);
 unsigned BWT_Toolkit_GetTextHeight(BWT_ToolkitHandle bwt);
 const BWT_Dimensions * BWT_Toolkit_GetFramebufferDimensions(BWT_ToolkitHandle bwt);
 void BWT_Toolkit_Submit(BWT_ToolkitHandle bwt);
+bool BWT_Toolkit_Recycle(BWT_ToolkitHandle bwt);
 
 #endif /* BWT_H__ */

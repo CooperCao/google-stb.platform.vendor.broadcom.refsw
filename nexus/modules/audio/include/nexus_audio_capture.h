@@ -241,7 +241,7 @@ void NEXUS_AudioCapture_GetDefaultStartSettings(
 Summary:
 Start capturing data.  
 
-Decription:
+Description:
 An input must be connected prior to starting.
 
 See Also:

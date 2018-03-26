@@ -85,7 +85,9 @@ int main(int argc, char *argv[])
 
     printf("\n\tMain - Starting test app (%s) ^^^^^^^^^^^^^^^^^^^^^^^\n", argv[1]);
 
+#ifdef NONSAGE_PLATFORM
     DRM_KeyRegion_SetCustDrmFilePath( argv[1]);
+#endif
 
     BKNI_Memset((uint8_t*)&commonDrmInit, 0x00, sizeof(DrmCommonInit_t));
 

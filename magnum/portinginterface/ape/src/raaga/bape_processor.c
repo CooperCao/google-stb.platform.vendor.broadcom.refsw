@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -322,11 +322,14 @@ BERR_Code BAPE_Processor_SetSettings(
         handle->settings = *pSettings;
     }
 
+    #if 0 /* We need to be able to change on the fly for AC4,
+        some decoder tasks may still have ppmCorrection enabled */
     /* If we are running and a set settings call occured for
        Advanced TSM wait until next restart of the path to apply. */
     if (handle->allocated && handle->type == BAPE_PostProcessorType_eAdvancedTsm) {
         return BERR_SUCCESS;
     }
+    #endif
 
     errCode = BAPE_Processor_P_ApplyDspSettings(handle);
     if ( errCode )
@@ -476,7 +479,7 @@ void BAPE_Processor_GetConnector(
         break;
     }
 
-    if ( pConnector == NULL )
+    if ( *pConnector == NULL )
     {
         BDBG_ERR(("BAPE_Processor type %d does not support connector format %d", handle->type, format));
         BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -738,7 +741,8 @@ static BERR_Code BAPE_Processor_P_ApplyAdvancedTsmSettings(BAPE_ProcessorHandle 
     currentTsmMode = userConfig.ui32TsmCorrectionMode;
 
     BDBG_MSG(("Applying AdvancedTsm settings for Processor module %p.", (void *)handle));
-    requestedMode = handle->settings.settings.advTsm.mode;
+    requestedMode = handle->settings.settings.advTsm.forceBypass ? BAPE_AdvancedTsmMode_eOff : handle->settings.settings.advTsm.mode;
+
     if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 && requestedMode == BAPE_AdvancedTsmMode_eDsola ) {
         BDBG_WRN(("Advanced TSM Mode DSOLA not supported for MS12, force to PPM."));
         requestedMode = BAPE_AdvancedTsmMode_ePpm;

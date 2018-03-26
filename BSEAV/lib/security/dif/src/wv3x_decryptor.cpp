@@ -554,10 +554,6 @@ uint32_t Widevine3xDecryptor::DecryptSample(
     }
     LOGD(("%s: sampleSize=%u clearSize=%u encSize=%u", BSTD_FUNCTION, sampleSize, clearSize, encSize));
 
-    // DMA Transfer to the destination buffer
-    if (output->IsSecure()) {
-        output->Copy(0, input->GetPtr(), sampleSize);
-    }
     encrypted_buffer = (uint8_t*)input->GetPtr();
 
     if (encSize == 0) {
@@ -703,8 +699,9 @@ void Widevine3xDecryptor::onMessage(
     Cdm::MessageType message_type,
     const std::string& message)
 {
-    LOGW(("%s: session_id=%s type=%d message(%d)=%s", BSTD_FUNCTION,
-        session_id.c_str(), message_type, (uint32_t)message.size(), message.c_str()));
+    LOGW(("%s: session_id=%s type=%d message size=%d", BSTD_FUNCTION,
+        session_id.c_str(), message_type, (uint32_t)message.size()));
+    dump_hex("onMessage", message.data(), message.size());
     m_sessionId = session_id;
     m_messageType = message_type;
     m_keyMessage = message;

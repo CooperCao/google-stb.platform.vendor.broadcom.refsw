@@ -40,8 +40,8 @@
 *    Generic APIs for audio outputs from an audio mixer.
 *
 ***************************************************************************/
-#ifndef NEXUS_AUDIO_MIXER_OUTPUT_PRIV_H__
-#define NEXUS_AUDIO_MIXER_OUTPUT_PRIV_H__
+#ifndef NEXUS_AUDIO_MIXER_PRIV_H__
+#define NEXUS_AUDIO_MIXER_PRIV_H__
 
 #include "nexus_types.h"
 #include "nexus_audio_types.h"
@@ -63,4 +63,4 @@ bool NEXUS_AudioMixer_IsInputMaster_priv(
 }
 #endif
 
-#endif /* #ifndef NEXUS_AUDIO_MIXER_OUTPUT_PRIV_H__ */
+#endif /* #ifndef NEXUS_AUDIO_MIXER_PRIV_H__ */

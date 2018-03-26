@@ -45,7 +45,6 @@
 #include "bchp_common.h"
 #include "bchp_sun_top_ctrl.h"
 #include "bchp_memc_offsets_priv.h"
-#include "bchp_aon_ctrl.h"
 
 BDBG_MODULE(BCHP);
 
@@ -1153,6 +1152,9 @@ bool BCHP_SkipInitialReset(BCHP_Handle chp)
 /* BP3 Do NOT Modify Start */
 #if defined(BCHP_SCPU_GLOBALRAM_REG_START)
 #include "bchp_scpu_globalram.h"
+#if (defined BHSM_ZEUS_VER_MAJOR) && (defined BCHP_SAGE_SUPPORT)
+#include "priv/bsagelib_shared_globalsram.h"
+#endif
 struct BCHP_P_LicenseLeaf {
     BCHP_LicensedFeature feature;
     unsigned bit;
@@ -1166,17 +1168,25 @@ struct BCHP_P_LicenseNode {
 
 #endif /* #if defined(BCHP_SCPU_GLOBALRAM_REG_START) */
 
+#if (BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_END>255) /* Zeus 5.x or above */
+#define BCHP_P_SAGE_IPLICENSING_BASE_OFFSET 0x22
+#else
+#define BCHP_P_SAGE_IPLICENSING_BASE_OFFSET 0x14
+#endif
+#define BCHP_P_SAGE_IPLICENSING_HOST_OFFSET  (BCHP_P_SAGE_IPLICENSING_BASE_OFFSET+3)
+#define BCHP_P_SAGE_IPLICENSING_AUDIO_OFFSET (BCHP_P_SAGE_IPLICENSING_BASE_OFFSET+2)
+
 BERR_Code BCHP_HasLicensedFeature_isrsafe(BCHP_Handle chp, BCHP_LicensedFeature feature)
 {
 #if defined(BCHP_SCPU_GLOBALRAM_REG_START)
-    static const struct BCHP_P_LicenseLeaf BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs23[] = {
+    static const struct BCHP_P_LicenseLeaf BCHP_P_SCPU_GLOBALRAM_DMEM_LeafsHost[] = {
         {BCHP_LicensedFeature_eMacrovision, 0},
         {BCHP_LicensedFeature_eDolbyVision, 1},
         {BCHP_LicensedFeature_eTchPrime, 2},
         {BCHP_LicensedFeature_eItm, 3}
     };
 
-    static const struct BCHP_P_LicenseLeaf BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs22[] = {
+    static const struct BCHP_P_LicenseLeaf BCHP_P_SCPU_GLOBALRAM_DMEM_LeafsAudio[] = {
         {BCHP_LicensedFeature_eDap, 0},
         {BCHP_LicensedFeature_eDolbyDigital, 1},
         {BCHP_LicensedFeature_eDolbyDigitalPlus, 2},
@@ -1189,18 +1199,23 @@ BERR_Code BCHP_HasLicensedFeature_isrsafe(BCHP_Handle chp, BCHP_LicensedFeature 
 
     static const struct BCHP_P_LicenseNode BCHP_P_LicenseNodes[] = {
         {
-            BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_BASE + 23*4,
-            sizeof(BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs23)/sizeof(BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs23[0]),
-            BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs23
+            BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_BASE + BCHP_P_SAGE_IPLICENSING_HOST_OFFSET*4,
+            sizeof(BCHP_P_SCPU_GLOBALRAM_DMEM_LeafsHost)/sizeof(BCHP_P_SCPU_GLOBALRAM_DMEM_LeafsHost[0]),
+            BCHP_P_SCPU_GLOBALRAM_DMEM_LeafsHost
         },
         {
-            BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_BASE + 22*4,
-            sizeof(BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs22)/sizeof(BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs22[0]),
-            BCHP_P_SCPU_GLOBALRAM_DMEM_Leafs22
+            BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_BASE + BCHP_P_SAGE_IPLICENSING_AUDIO_OFFSET*4,
+            sizeof(BCHP_P_SCPU_GLOBALRAM_DMEM_LeafsAudio)/sizeof(BCHP_P_SCPU_GLOBALRAM_DMEM_LeafsAudio[0]),
+            BCHP_P_SCPU_GLOBALRAM_DMEM_LeafsAudio
         }
     };
     unsigned node;
     BDBG_OBJECT_ASSERT(chp, BCHP);
+#if (defined BHSM_ZEUS_VER_MAJOR) && (defined BCHP_SAGE_SUPPORT)
+    BDBG_CASSERT(GlobalSram_IPLicensing_Info==BCHP_P_SAGE_IPLICENSING_BASE_OFFSET);
+    BDBG_CASSERT(BSAGElib_GlobalSram_eBP3HostFeatureList==BCHP_P_SAGE_IPLICENSING_HOST_OFFSET);
+    BDBG_CASSERT(BSAGElib_GlobalSram_eBP3AudioFeatureList0==BCHP_P_SAGE_IPLICENSING_AUDIO_OFFSET);
+#endif
     for(node=0;node<sizeof(BCHP_P_LicenseNodes)/sizeof(BCHP_P_LicenseNodes[0]);node++) {
         unsigned i;
         unsigned n = BCHP_P_LicenseNodes[node].leafs;

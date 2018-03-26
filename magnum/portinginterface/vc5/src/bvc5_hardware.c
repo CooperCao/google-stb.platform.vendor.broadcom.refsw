@@ -2129,6 +2129,7 @@ void BVC5_P_HardwareGetInfo(
 {
    uint32_t uiCoreIndex;
    uint32_t *pCur;
+   uint32_t rate;
 
    /* Power on all cores */
    BVC5_P_HardwarePowerAcquire(hVC5, ~0u);
@@ -2156,15 +2157,9 @@ void BVC5_P_HardwareGetInfo(
    *pCur++ = BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_HUB_CTL_IDENT2);
    *pCur++ = BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_HUB_CTL_IDENT3);
 
-#ifdef BCHP_PWR_SUPPORT
-   {
-      BERR_Code err;
-      unsigned rate;
-      err = BCHP_PWR_GetClockRate(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D, &rate);
-      if (err == BERR_SUCCESS)
-         BDBG_WRN(("GPU Clock speed: %u MHz\n", rate / (1000 * 1000)));
-   }
-#endif
+   rate = BVC5_P_GetClockSpeed(hVC5);
+   if (rate != 1)
+      BDBG_WRN(("GPU Clock speed: %u MHz\n", rate));
 
    /* Power off all cores */
    BVC5_P_HardwarePowerRelease(hVC5, ~0u);
@@ -2563,12 +2558,6 @@ void BVC5_P_HardwareStandby(
 
       BVC5_P_HardwarePowerRelease(hVC5, ~0u);
 
-      /* on platforms with PLL_CH, hold it open using reference count for performance reasons.
-         To allow for standby, it needs decrementing a 2nd time to allow sleep */
-#ifdef BCHP_PWR_RESOURCE_GRAPHICS3D_PLL_CH
-      BCHP_PWR_ReleaseResource(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D_PLL_CH);
-#endif
-
       if (!hVC5->sOpenParams.bUsePowerGating)
       {
          BVC5_P_HardwareBPCMPowerDown(hVC5);
@@ -2586,11 +2575,6 @@ void BVC5_P_HardwareResume(
    if (hVC5->bInStandby)
    {
       BDBG_MSG(("VC5 leaving standby"));
-
-      /* on platforms with PLL_CH, hold it open using reference count for performance reasons. */
-#ifdef BCHP_PWR_RESOURCE_GRAPHICS3D_PLL_CH
-      BCHP_PWR_AcquireResource(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D_PLL_CH);
-#endif
 
       if (!hVC5->sOpenParams.bUsePowerGating)
       {
@@ -2751,7 +2735,7 @@ static uint64_t BVC5_P_GetData_isr(
    uint64_t val;
    val = (uint64_t)BVC5_P_ReadRegister_isr(hVC5, uiCoreIndex, uiRegLO);
    val = val | ((uint64_t)BVC5_P_ReadRegister_isr(hVC5, uiCoreIndex, uiRegHI) << 32);
-   return val / hVC5->sEventMonitor.uiCyclesPerUs;
+   return val / hVC5->uiCyclesPerUs;
 }
 
 static uint64_t BVC5_P_GetNonCoreData_isr(
@@ -2764,7 +2748,7 @@ static uint64_t BVC5_P_GetNonCoreData_isr(
    /* Must read the LO part first as this latches the HI result */
    val = (uint64_t)BVC5_P_ReadNonCoreRegister_isr(hVC5, uiRegLO);
    val = val | ((uint64_t)BVC5_P_ReadNonCoreRegister_isr(hVC5, uiRegHI) << 32);
-   return val / hVC5->sEventMonitor.uiCyclesPerUs;
+   return val / hVC5->uiCyclesPerUs;
 }
 
 #define GetStats_isr(res, counterRegS, counterRegE)\
@@ -2900,4 +2884,21 @@ uint64_t BVC5_P_GetEventTimestamp(
    uint64_t val = 0;
    BVC5_P_GetTime_isrsafe(&val);
    return val;
+}
+
+uint32_t BVC5_P_GetClockSpeed(
+   BVC5_Handle hVC5
+   )
+{
+   uint32_t res = 1; /* timestamps will be in clock cycles */
+#ifdef BCHP_PWR_SUPPORT
+   BERR_Code err;
+   unsigned rate;
+
+   err = BCHP_PWR_GetClockRate(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D, &rate);
+   if (err == BERR_SUCCESS)
+      res = rate / (1000 * 1000);
+#endif
+
+   return res;
 }

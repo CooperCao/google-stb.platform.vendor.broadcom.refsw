@@ -114,8 +114,12 @@ BERR_Code BAPE_MixerInputCapture_Create(
         goto err_cleanup;
     }
 
-    errCode = BDSP_AudioCapture_Create(dspContext, &dspSettings, &(pMxrInputCapture->hCapture));
+    pMxrInputCapture->hDeviceContext = dspContext;
+
+    errCode = BDSP_AudioCapture_Create(pMxrInputCapture->hDeviceContext, &dspSettings, &(pMxrInputCapture->hCapture));
     if ( errCode ) { BERR_TRACE(errCode); goto err_cleanup; }
+
+    pMxrInputCapture->dspSettings = dspSettings;
 
     /* set our input if we received one */
     pMxrInputCapture->input = pSettings->input;
@@ -160,6 +164,7 @@ BERR_Code BAPE_MixerInputCapture_Start(
         BERR_Code errCode;
         BDSP_StageAudioCaptureSettings capSettings;
         BAPE_PathConnection *pOutputConnection;
+        BDSP_ContextHandle pDeviceContext;
 
         BDBG_OBJECT_ASSERT(handle->input, BAPE_PathConnector);
 
@@ -174,6 +179,26 @@ BERR_Code BAPE_MixerInputCapture_Start(
         {
             BDBG_ERR(("Must configure and start the path before starting capture"));
             return BERR_TRACE(BERR_NOT_AVAILABLE);
+        }
+
+        errCode = BDSP_Stage_GetContext(handle->input->hStage, &pDeviceContext);
+        if ( errCode ) { return BERR_TRACE(errCode); }
+
+        if ( !pDeviceContext )
+        {
+            BDBG_ERR(("Invalid device context returned by BDSP"));
+            return BERR_TRACE(BERR_NOT_AVAILABLE);
+        }
+
+        if ( pDeviceContext != handle->hDeviceContext )
+        {
+            BDSP_AudioCapture_Destroy(handle->hCapture);
+            handle->hCapture = NULL;
+
+            handle->hDeviceContext = pDeviceContext;
+
+            errCode = BDSP_AudioCapture_Create(handle->hDeviceContext, &handle->dspSettings, &(handle->hCapture));
+            if ( errCode ) { return BERR_TRACE(errCode); }
         }
 
         BDSP_Stage_GetDefaultAudioCaptureSettings(&capSettings);

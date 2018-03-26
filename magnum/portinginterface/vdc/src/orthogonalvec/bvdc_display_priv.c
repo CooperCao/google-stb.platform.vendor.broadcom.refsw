@@ -368,6 +368,9 @@ void BVDC_P_Display_Init
     hDisplay->stNewInfo.bFullRate =
         BVDC_P_IS_FULL_FRAMRATE(hDisplay->hVdc->stSettings.eDisplayFrameRate);
 
+    hDisplay->stNewInfo.eDropFrame = (!hDisplay->stNewInfo.bFullRate)
+        ? BVDC_Mode_eOn : BVDC_Mode_eOff;
+
     /* the bFormat dirty bit covers the above info */
     hDisplay->stNewInfo.stDirty.stBits.bTiming = BVDC_P_DIRTY;
     hDisplay->stNewInfo.stDirty.stBits.bAcp    = BVDC_P_DIRTY;
@@ -929,8 +932,13 @@ void BVDC_P_Display_EnableTriggers_isr
         ulTrigger1 &= ~BCHP_ITU656_DTG_0_DTG_TRIGGER_1_ENABLE_MASK;
         if(bEnable)
         {
+#if (BVDC_P_SUPPORT_IT_VER >= 2)
+            ulTrigger1 |= (hDisplay->stCurInfo.pFmtInfo->bInterlaced || (1 != hDisplay->stCurInfo.ulTriggerModuloCnt))
+                ? BCHP_ITU656_DTG_0_DTG_TRIGGER_1_ENABLE_MASK : 0;
+#else
             ulTrigger1 |= (hDisplay->stCurInfo.pFmtInfo->bInterlaced)
                 ? BCHP_ITU656_DTG_0_DTG_TRIGGER_1_ENABLE_MASK : 0;
+#endif
         }
         BREG_Write32(hDisplay->hVdc->hRegister,
             BCHP_ITU656_DTG_0_DTG_TRIGGER_1, ulTrigger1);

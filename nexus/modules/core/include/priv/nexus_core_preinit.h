@@ -55,7 +55,6 @@ typedef struct NEXUS_Core_PreInitState {
         void *pRegAddress;
     } privateState;
     unsigned pMapId;
-    BCHP_PmapSettings *pMapSettings;
     BCHP_MemoryInfo memoryInfo;
 } NEXUS_Core_PreInitState;
 

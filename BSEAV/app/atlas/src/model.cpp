@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -85,8 +85,10 @@ CModel::CModel(const char * strName) :
     _pAudioCapture(NULL),
     _simpleVideoDecoderServer(NULL),
     _simpleAudioDecoderServer(NULL),
+    _simpleAudioPlaybackServer(NULL),
     _simpleEncoderServer(NULL),
-    _dynamicRangeLast(eDynamicRange_Unknown)
+    _dynamicRangeLast(eDynamicRange_Unknown),
+    _bScanStarted(false)
 #ifdef CPUTEST_SUPPORT
     , _pCpuTest(NULL)
 #endif
@@ -110,10 +112,11 @@ CModel::CModel(const char * strName) :
         _connectId[i]             = 0;
     }
 #ifndef NXCLIENT_SUPPORT
-    _simpleVideoDecoderServer = NEXUS_SimpleVideoDecoderServer_Create();
-    _simpleAudioDecoderServer = NEXUS_SimpleAudioDecoderServer_Create();
-    _simpleEncoderServer      = NEXUS_SimpleEncoderServer_Create();
-#endif
+    _simpleVideoDecoderServer  = NEXUS_SimpleVideoDecoderServer_Create();
+    _simpleAudioDecoderServer  = NEXUS_SimpleAudioDecoderServer_Create();
+    _simpleAudioPlaybackServer = NEXUS_SimpleAudioPlaybackServer_Create();
+    _simpleEncoderServer       = NEXUS_SimpleEncoderServer_Create();
+#endif /* ifndef NXCLIENT_SUPPORT */
 
     _irRemoteList.clear();
 #if NEXUS_HAS_UHF_INPUT
@@ -127,8 +130,9 @@ CModel::~CModel()
 #ifndef NXCLIENT_SUPPORT
     NEXUS_SimpleVideoDecoderServer_Destroy(_simpleVideoDecoderServer);
     NEXUS_SimpleAudioDecoderServer_Destroy(_simpleAudioDecoderServer);
+    NEXUS_SimpleAudioPlaybackServer_Destroy(_simpleAudioPlaybackServer);
     NEXUS_SimpleEncoderServer_Destroy(_simpleEncoderServer);
-#endif
+#endif /* ifndef NXCLIENT_SUPPORT */
 }
 
 void CModel::addDisplay(CDisplay * pDisplay)
@@ -496,6 +500,18 @@ void CModel::setDeferredChannelNum(
         notifyObservers(eNotify_DeferredChannel, &windowType);
     }
 } /* setDeferredChannelNum */
+
+void CModel::setScanStartState(bool bStarted)
+{
+    if (_bScanStarted == bStarted)
+    {
+        return;
+    }
+
+    _bScanStarted = bStarted;
+
+    notifyObservers((true == _bScanStarted) ? eNotify_ScanStarted : eNotify_ScanStopped);
+}
 
 /* send keyDown event to registered observers.  this circumvents the bwidget
  * keyDown handling heirarchy where keys are sent to the currently focused window

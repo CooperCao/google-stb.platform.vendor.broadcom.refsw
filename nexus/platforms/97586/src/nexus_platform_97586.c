@@ -119,10 +119,6 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
     unsigned boxMode = g_pPreInitState->boxMode;
     unsigned i;
 #if NEXUS_HAS_VIDEO_DECODER
-    for (i=0;i<NEXUS_NUM_VIDEO_DECODERS;i++)
-    {
-        pSettings->videoDecoder[i].supportedCodecs[NEXUS_VideoCodec_eH265] = true;
-    }
     pSettings->videoDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH264_Mvc] = true;
     switch (boxMode)
     {
@@ -170,7 +166,6 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
     pSettings->stillDecoder[0].used = true;
     pSettings->stillDecoder[0].maxFormat = NEXUS_VideoFormat_e1080p;
     /* this is needed since Atlas tries to use the first iframe of 4K stream as thumb-nail */
-    pSettings->stillDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH265] = true;
 #endif /* NEXUS_NUM_STILL_DECODES */
 #else
     BSTD_UNUSED(boxMode);

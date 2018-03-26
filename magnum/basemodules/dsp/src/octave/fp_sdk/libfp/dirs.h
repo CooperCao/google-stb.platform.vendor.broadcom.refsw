@@ -300,7 +300,7 @@
 /** @} */
 
 
-#ifdef __FP2012__
+#if __FP2012__
 
 /* FP2012 pcache */
 #define DIR_PCACHE               DIR_PCACHE_CONTROL
@@ -315,7 +315,7 @@
   the user won't need to fiddle with it...
  */
 #ifndef DOXYGEN
-#ifdef __FP2008_ONWARDS__
+#if __FP2008_ONWARDS__
 #  ifdef  __FP2012_ONWARDS__
 #    define DICT_TABLE_SIZE       192
 #    define DIR_DICT_TABLE_PTR    DIR_DICTOP_TABLE_PTR
@@ -366,7 +366,7 @@ static inline uint64_t get_totc(void)
 }
 
 
-#if defined(__FP4014_ONWARDS__) || defined(__FPM1015_ONWARDS__)
+#if __FP4014_ONWARDS__ || __FPM1015_ONWARDS__
 /**
  * Set the value of the hardware TOTC timer.
  */
@@ -396,7 +396,7 @@ __alwaysinline
 static inline void set_totc_comp1(uint64_t interrupt_time)
 {
     __fp_dirw_l(interrupt_time, DIR_TIME_COMP1);
-#if defined(__FP4014_ONWARDS__) || defined(__FPM1015_ONWARDS__)
+#if __FP4014_ONWARDS__ || __FPM1015_ONWARDS__
     // DIRW_NOTE: a BARRIERFE is required to force the update.
     __fp_barrierfe();
 #endif
@@ -418,7 +418,7 @@ __alwaysinline
 static inline void set_totc_comp2(uint64_t interrupt_time)
 {
     __fp_dirw_l(interrupt_time, DIR_TIME_COMP2);
-#if defined(__FP4014_ONWARDS__) || defined(__FPM1015_ONWARDS__)
+#if __FP4014_ONWARDS__ || __FPM1015_ONWARDS__
     // DIRW_NOTE: a BARRIERFE is required to force the update.
     __fp_barrierfe();
 #endif
@@ -452,7 +452,7 @@ __alwaysinline
 static inline void set_usrc_comp1(uint64_t interrupt_time)
 {
     __fp_dirw_l(interrupt_time, DIR_TIME_COMP3);
-#if defined(__FP4014_ONWARDS__) || defined(__FPM1015_ONWARDS__)
+#if __FP4014_ONWARDS__ || __FPM1015_ONWARDS__
     // DIRW_NOTE: a BARRIERFE is required to force the update.
     __fp_barrierfe();
 #endif

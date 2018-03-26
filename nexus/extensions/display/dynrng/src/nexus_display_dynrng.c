@@ -108,16 +108,16 @@ static void NEXUS_P_DynamicRangeProcessingSettingsToMagnum(
     }
 }
 
-static NEXUS_DisplayHandle NEXUS_P_FindHdmiDisplay(void)
+unsigned NEXUS_FindHdmiDisplay(void)
 {
-    NEXUS_DisplayHandle display = NULL;
+    unsigned display = 0;
     unsigned i;
 
     for (i = 0; i < NEXUS_NUM_DISPLAYS; i++)
     {
         if (pVideo->displays[i] && pVideo->displays[i]->hdmi.outputNotify)
         {
-            display = pVideo->displays[i];
+            display = i;
             break;
         }
     }
@@ -138,31 +138,38 @@ static NEXUS_VideoWindowHandle NEXUS_P_GetActiveVideoWindow(NEXUS_DisplayHandle 
 }
 
 void NEXUS_VideoWindow_GetDynamicRangeProcessingCapabilities(
+    unsigned displayId,
     unsigned windowId,
     NEXUS_DynamicRangeProcessingCapabilities * pCapabilities
 )
 {
     NEXUS_DisplayHandle display;
-    NEXUS_VideoWindowHandle window;
     BVDC_Window_Capabilities vdcCaps;
 
     BDBG_ASSERT(pCapabilities);
     BKNI_Memset(pCapabilities, 0, sizeof(*pCapabilities));
 
-    display = NEXUS_P_FindHdmiDisplay();
+    if (displayId >= NEXUS_NUM_DISPLAYS || windowId > 1) {
+        BDBG_ERR(("DisplayId %u windowId %u is not supported!", displayId, windowId));
+        return;
+    }
+
+    display = pVideo->displays[displayId];
 
     if (display)
     {
-        window = NEXUS_P_GetActiveVideoWindow(display, windowId);
-        if (window)
-        {
-            BVDC_Window_GetCapabilities(window->vdcState.window, &vdcCaps);
-            NEXUS_P_DynamicRangeProcessingCapabilitiesFromMagnum(pCapabilities, &vdcCaps);
+        if (windowId >= pVideo->cap.display[display->index].numVideoWindows) {
+            BERR_TRACE(BERR_NOT_SUPPORTED);
+            return;
         }
+        BVDC_GetWindowCapabilities(pVideo->vdc, display->index + BVDC_CompositorId_eCompositor0,
+            windowId + BVDC_WindowId_eVideo0, &vdcCaps);
+        NEXUS_P_DynamicRangeProcessingCapabilitiesFromMagnum(pCapabilities, &vdcCaps);
     }
 }
 
 void NEXUS_VideoWindow_GetDynamicRangeProcessingSettings(
+    unsigned displayId,
     unsigned windowId,
     NEXUS_DynamicRangeProcessingSettings * pSettings
 )
@@ -172,7 +179,11 @@ void NEXUS_VideoWindow_GetDynamicRangeProcessingSettings(
 
     BDBG_ASSERT(pSettings);
 
-    display = NEXUS_P_FindHdmiDisplay();
+    if (displayId >= NEXUS_NUM_DISPLAYS || windowId > 1) {
+        BDBG_ERR(("DisplayId %u windowId %u is not supported!", displayId, windowId));
+        return;
+    }
+    display = pVideo->displays[displayId];
 
     if (display)
     {
@@ -185,6 +196,7 @@ void NEXUS_VideoWindow_GetDynamicRangeProcessingSettings(
 }
 
 NEXUS_Error NEXUS_VideoWindow_SetDynamicRangeProcessingSettings(
+    unsigned displayId,
     unsigned windowId,
     const NEXUS_DynamicRangeProcessingSettings * pSettings
 )
@@ -195,7 +207,11 @@ NEXUS_Error NEXUS_VideoWindow_SetDynamicRangeProcessingSettings(
 
     BDBG_ASSERT(pSettings);
 
-    display = NEXUS_P_FindHdmiDisplay();
+    if (displayId >= NEXUS_NUM_DISPLAYS || windowId > 1) {
+        BDBG_ERR(("DisplayId %u windowId %u is not supported!", displayId, windowId));
+        return NEXUS_NOT_SUPPORTED;
+    }
+    display = pVideo->displays[displayId];
 
     if (display)
     {
@@ -219,6 +235,7 @@ end:
 }
 
 void NEXUS_VideoWindow_GetTargetPeakBrightness(
+    unsigned displayId,
     unsigned windowId,
     int *psHdrPeak,
     int *psSdrPeak
@@ -227,20 +244,24 @@ void NEXUS_VideoWindow_GetTargetPeakBrightness(
     NEXUS_DisplayHandle display;
     NEXUS_VideoWindowHandle window;
 
-    display = NEXUS_P_FindHdmiDisplay();
+    if (displayId >= NEXUS_NUM_DISPLAYS || windowId > 1) {
+        BDBG_ERR(("DisplayId %u windowId %u is not supported!", displayId, windowId));
+        return;
+    }
+    display = pVideo->displays[displayId];
 
     if (display)
     {
         window = NEXUS_P_GetActiveVideoWindow(display, windowId);
         if (window)
         {
-            *psHdrPeak = window->dynrng.hdrPeak;
-            *psSdrPeak = window->dynrng.sdrPeak;
+            BVDC_Test_Window_GetTargetPeakBrightness(window->vdcState.window, (int16_t *)psHdrPeak, (int16_t *)psSdrPeak);
         }
     }
 }
 
 void NEXUS_VideoWindow_SetTargetPeakBrightness(
+    unsigned displayId,
     unsigned windowId,
     int  sHdrPeak,
     int  sSdrPeak
@@ -249,7 +270,11 @@ void NEXUS_VideoWindow_SetTargetPeakBrightness(
     NEXUS_DisplayHandle display;
     NEXUS_VideoWindowHandle window;
 
-    display = NEXUS_P_FindHdmiDisplay();
+    if (displayId >= NEXUS_NUM_DISPLAYS || windowId > 1) {
+        BDBG_ERR(("DisplayId %u windowId %u is not supported!", displayId, windowId));
+        return;
+    }
+    display = pVideo->displays[displayId];
 
     if (display)
     {
@@ -258,13 +283,12 @@ void NEXUS_VideoWindow_SetTargetPeakBrightness(
         {
             BVDC_Test_Window_SetTargetPeakBrightness(window->vdcState.window, sHdrPeak, sSdrPeak);
             NEXUS_Display_P_ApplyChanges();
-            window->dynrng.hdrPeak = sHdrPeak;
-            window->dynrng.sdrPeak = sSdrPeak;
         }
     }
 }
 
 void NEXUS_Display_GetGraphicsDynamicRangeProcessingCapabilities(
+    unsigned displayId,
     NEXUS_DynamicRangeProcessingCapabilities * pCapabilities
 )
 {
@@ -274,16 +298,22 @@ void NEXUS_Display_GetGraphicsDynamicRangeProcessingCapabilities(
     BDBG_ASSERT(pCapabilities);
     BKNI_Memset(pCapabilities, 0, sizeof(*pCapabilities));
 
-    display = NEXUS_P_FindHdmiDisplay();
+    if (displayId >= NEXUS_NUM_DISPLAYS) {
+        BDBG_ERR(("DisplayId %u is not supported!", displayId));
+        return;
+    }
+    display = pVideo->displays[displayId];
 
-    if (display && display->graphics.windowVdc)
+    if (display)
     {
-        BVDC_Window_GetCapabilities(display->graphics.windowVdc, &vdcCaps);
+        BVDC_GetWindowCapabilities(pVideo->vdc, display->index + BVDC_CompositorId_eCompositor0,
+            display->index + BVDC_WindowId_eGfx0, &vdcCaps);
         NEXUS_P_DynamicRangeProcessingCapabilitiesFromMagnum(pCapabilities, &vdcCaps);
     }
 }
 
 void NEXUS_Display_GetGraphicsDynamicRangeProcessingSettings(
+    unsigned displayId,
     NEXUS_DynamicRangeProcessingSettings * pSettings
 )
 {
@@ -292,7 +322,11 @@ void NEXUS_Display_GetGraphicsDynamicRangeProcessingSettings(
     BDBG_ASSERT(pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 
-    display = NEXUS_P_FindHdmiDisplay();
+    if (displayId >= NEXUS_NUM_DISPLAYS) {
+        BDBG_ERR(("DisplayId %u is not supported!", displayId));
+        return;
+    }
+    display = pVideo->displays[displayId];
 
     if (display)
     {
@@ -301,6 +335,7 @@ void NEXUS_Display_GetGraphicsDynamicRangeProcessingSettings(
 }
 
 NEXUS_Error NEXUS_Display_SetGraphicsDynamicRangeProcessingSettings(
+    unsigned displayId,
     const NEXUS_DynamicRangeProcessingSettings * pSettings
 )
 {
@@ -309,7 +344,11 @@ NEXUS_Error NEXUS_Display_SetGraphicsDynamicRangeProcessingSettings(
 
     BDBG_ASSERT(pSettings);
 
-    display = NEXUS_P_FindHdmiDisplay();
+    if (displayId >= NEXUS_NUM_DISPLAYS) {
+        BDBG_ERR(("DisplayId %u is not supported!", displayId));
+        return NEXUS_NOT_SUPPORTED;
+    }
+    display = pVideo->displays[displayId];
 
     if (display && display->graphics.windowVdc)
     {
@@ -322,6 +361,57 @@ NEXUS_Error NEXUS_Display_SetGraphicsDynamicRangeProcessingSettings(
             GET_PROC_STR(&display->graphics.dynrng.settings, Plm),
             GET_PROC_STR(&display->graphics.dynrng.settings, DolbyVision),
             GET_PROC_STR(&display->graphics.dynrng.settings, TechnicolorPrime)));
+    }
+
+end:
+    return rc;
+}
+
+void NEXUS_Display_GetGraphicsLuminanceBounds(
+    unsigned displayId,
+    NEXUS_GraphicsLuminanceBounds * pBounds
+)
+{
+    NEXUS_DisplayHandle display;
+
+    BDBG_ASSERT(pBounds);
+    BKNI_Memset(pBounds, 0, sizeof(*pBounds));
+
+    if (displayId >= NEXUS_NUM_DISPLAYS) {
+        BDBG_ERR(("DisplayId %u is not supported!", displayId));
+        return;
+    }
+    display = pVideo->displays[displayId];
+
+    if (display)
+    {
+        BKNI_Memcpy(pBounds, &display->graphics.dynrng.luminanceBounds, sizeof(*pBounds));
+    }
+}
+
+NEXUS_Error NEXUS_Display_SetGraphicsLuminanceBounds(
+    unsigned displayId,
+    const NEXUS_GraphicsLuminanceBounds * pBounds
+)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_DisplayHandle display;
+
+    BDBG_ASSERT(pBounds);
+
+    if (displayId >= NEXUS_NUM_DISPLAYS) {
+        BDBG_ERR(("DisplayId %u is not supported!", displayId));
+        return NEXUS_NOT_SUPPORTED;
+    }
+    display = pVideo->displays[displayId];
+
+    if (display && display->graphics.source)
+    {
+        rc = BVDC_Source_SetGfxLuminance(display->graphics.source, pBounds->min, pBounds->max);
+        if (rc) { rc = BERR_TRACE(rc); goto end; }
+        NEXUS_Display_P_ApplyChanges();
+        BKNI_Memcpy(&display->graphics.dynrng.luminanceBounds, pBounds, sizeof(*pBounds));
+        BDBG_MSG(("Graphics luminance bounds: (%u, %u)", display->graphics.dynrng.luminanceBounds.min, display->graphics.dynrng.luminanceBounds.max));
     }
 
 end:

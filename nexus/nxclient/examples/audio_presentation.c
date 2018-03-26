@@ -105,21 +105,17 @@ int main(void)
     rc = NxClient_Alloc(&allocSettings, &allocResults);
     if (rc) return BERR_TRACE(rc);
 
-    if (allocResults.simpleAudioDecoder.id) {
-        audioDecoder = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
-    }
+    videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
+    audioDecoder = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
 
     NxClient_GetDefaultConnectSettings(&connectSettings);
     connectSettings.simpleAudioDecoder.decoderCapabilities.type = NxClient_AudioDecoderType_ePersistent;
     connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
-    if (allocResults.simpleVideoDecoder[0].id) {
-        videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
-        connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;
-        connectSettings.simpleVideoDecoder[0].surfaceClientId = allocResults.surfaceClient[0].id;
-        connectSettings.simpleVideoDecoder[0].windowId = 0;
-        connectSettings.simpleVideoDecoder[0].decoderCapabilities.supportedCodecs[videoCodec] = true;
-        connectSettings.simpleVideoDecoder[0].windowCapabilities.type = NxClient_VideoWindowType_eMain;
-    }
+    connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;
+    connectSettings.simpleVideoDecoder[0].surfaceClientId = allocResults.surfaceClient[0].id;
+    connectSettings.simpleVideoDecoder[0].windowId = 0;
+    connectSettings.simpleVideoDecoder[0].decoderCapabilities.supportedCodecs[videoCodec] = true;
+    connectSettings.simpleVideoDecoder[0].windowCapabilities.type = NxClient_VideoWindowType_eMain;
     rc = NxClient_Connect(&connectSettings, &connectId);
     if (rc) return BERR_TRACE(rc);
 

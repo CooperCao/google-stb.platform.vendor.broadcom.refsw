@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,13 +40,14 @@
  ***************************************************************************/
 #include "bape.h"
 #include "bape_priv.h"
-#include "bape_eq_coeff_priv.h"
 
 BDBG_MODULE(bape_equalizer);
 
-BDBG_OBJECT_ID(BAPE_Equalizer);
+#if defined BCHP_AUD_FMM_SRC_CTRL0_SRC_CFGi_SRC_TYPE_IIR && BAPE_CHIP_MAX_EQUALIZERS > 0
 
-#ifdef BCHP_AUD_FMM_SRC_CTRL0_SRC_CFGi_SRC_TYPE_IIR
+#include "bape_eq_coeff_priv.h"
+
+BDBG_OBJECT_ID(BAPE_Equalizer);
 
 #define BAPE_MAX_STAGES_PER_EQUALIZER   BAPE_CHIP_MAX_SRCS   /* Increase if required,with SRCs availability assured since a few stages can be packed into single SRC */
 #define BAPE_P_MAX_CASCADED_SRCS_PER_EQUALIZER    BAPE_CHIP_MAX_SRCS

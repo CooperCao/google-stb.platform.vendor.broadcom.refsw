@@ -167,6 +167,7 @@ typedef struct NEXUS_Core_Settings
         NEXUS_Error (*secure_remap)(unsigned memcIndex, const BDTU_RemapSettings *pSettings);
     } cma;
     bool os64;
+    BCHP_PmapSettings *pMapSettings;
 } NEXUS_Core_Settings;
 
 /***************************************************************************

@@ -928,6 +928,7 @@ BERR_Code BDSP_Raaga_P_CreateStage(
 	pStage->stage.addQueueInput = BDSP_Raaga_P_AddQueueInput;
 #endif /*!B_REFSW_MINIMAL*/
 	pStage->stage.addQueueOutput = BDSP_Raaga_P_AddQueueOutput;
+	pStage->stage.getStageContext = BDSP_Raaga_P_StageGetContext;
 	if (BDSP_ContextType_eVideoEncode == pStage->pContext->settings.contextType)
 	{
 		pStage->stage.getVideoEncodeDatasyncSettings = BDSP_Raaga_P_GetVideoEncodeDatasyncSettings;
@@ -10156,6 +10157,10 @@ BERR_Code BDSP_Raaga_P_PutPicture_isr(
 		/*updating read ptr in the handle*/
 		pRaagaTask->hRDQueue->ui32ReadAddr = ui32dramReadAddr;
 	}
+#if defined BDSP_INTR_MODE_AX_VIDEO_ENCODE
+    BDSP_Write32_isr(pRaagaTask->hRDQueue->hRegister,BCHP_RAAGA_DSP_ESR_SI_MASK_CLEAR,0xffffffff );/* Unmask interrupt */
+    BDSP_Write32_isr(pRaagaTask->hRDQueue->hRegister, BCHP_RAAGA_DSP_ESR_SI_INT_SET,0x04);/* Set go bit interrupt */
+#endif
 
 	end:
 	return err;
@@ -10836,6 +10841,22 @@ end:
 	BDBG_LEAVE(BDSP_Raaga_P_SendScmCommand);
 	return ret;
 
+}
+
+BERR_Code BDSP_Raaga_P_StageGetContext(
+    void *pStageHandle,
+    BDSP_ContextHandle *pContextHandle /* [out] */
+    )
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	BDSP_RaagaStage *pRaagaStage = (BDSP_RaagaStage *)pStageHandle;
+
+	BDBG_ENTER(BDSP_Raaga_P_StageGetContext);
+	BDBG_OBJECT_ASSERT(pRaagaStage, BDSP_RaagaStage);
+
+	*pContextHandle = &pRaagaStage->pContext->context;
+	BDBG_LEAVE(BDSP_Raaga_P_StageGetContext);
+	return errCode;
 }
 
 /***********************************************************************

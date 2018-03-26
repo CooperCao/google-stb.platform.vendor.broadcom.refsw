@@ -80,6 +80,12 @@ typedef struct
 
     uint32_t     continualMode;
 
+    struct{
+        bool enable;
+        unsigned rsaKeyId;                   /* the Rsa Slot that the command is signed against. */
+        BSTD_DeviceOffset signatureOffset;   /* memory offset to signature. Valid of "enable" is true. */
+    }signedCommand;
+
 } BHSM_BspMsgConfigure_t;
 
 

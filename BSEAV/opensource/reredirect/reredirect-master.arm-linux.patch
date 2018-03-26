@@ -1,0 +1,110 @@
+diff -ru reredirect-master/Makefile reredirect-master-modified/Makefile
+--- reredirect-master/Makefile	2017-11-28 09:17:49.000000000 -0800
++++ reredirect-master-modified/Makefile	2018-02-02 16:20:05.999990201 -0800
+@@ -1,5 +1,6 @@
+-override CFLAGS+=-Wall -g
++override CFLAGS+=-Wall -g -fPIC
+ OBJS=reredirect.o ptrace.o attach.o
++SRCS=$(OBJS:.o=.c)
+ 
+ # Note that because of how Make works, this can be overriden from the
+ # command-line.
+@@ -7,9 +8,11 @@
+ # e.g. install to /usr with `make PREFIX=/usr`
+ PREFIX=/usr/local
+ 
+-all: reredirect
++all: libreredirect.so
+ 
+-reredirect: $(OBJS)
++libreredirect.so: $(SRCS)
++	@echo "[Compiling ...]"
++	$(CC) -o libreredirect.so -shared $(SRCS) $(CFLAGS)
+ 
+ attach.o: reredirect.h ptrace.h
+ reredirect.o: reredirect.h
+diff -ru reredirect-master/reredirect.c reredirect-master-modified/reredirect.c
+--- reredirect-master/reredirect.c	2017-11-28 09:17:49.000000000 -0800
++++ reredirect-master-modified/reredirect.c	2018-02-02 17:00:05.162225230 -0800
+@@ -115,6 +115,25 @@
+     fprintf(stderr, "For more information, see /etc/sysctl.d/10-ptrace.conf\n");
+ }
+ 
++#if 1
++int reredirect( pid_t pid, const char *fileo, const char *filee, int *fdo_orig, int *fde_orig ) {
++    int no_restore = 0;
++    int fde = -1;
++    int fdo = -1;
++    int err;
++    unsigned long scratch_page = (unsigned long) -1;
++    struct ptrace_child child;
++    if ( fileo == NULL && filee == NULL ) {
++        no_restore = 1;
++        fdo = *fdo_orig;
++        fde = *fde_orig;
++        *fdo_orig = -1;
++        *fde_orig = -1;
++    } else {
++        fdo = *fdo_orig;
++        fde = *fde_orig;
++    }
++#else
+ int main(int argc, char **argv) {
+     int no_restore = 0;
+     int fde = -1;
+@@ -180,6 +199,8 @@
+         usage_die("No pid specified to attach\n");
+ 
+     pid = atoi(argv[optind]);
++#endif
++    fprintf(stderr, "%s - pid %d; fdo %d; fde %d; fileo (%s); filee(%s); fdo_orig %d; fde_orig %d; no_restore %d \n", __FUNCTION__, pid, fdo, fde, fileo, filee, *fdo_orig, *fde_orig, no_restore );
+     err = child_attach(pid, &child, &scratch_page);
+     if (err) {
+         fprintf(stderr, "Unable to attach to pid %d: %s\n", pid, strerror(err));
+@@ -187,19 +208,27 @@
+             check_yama_ptrace_scope();
+         exit(1);
+     }
+-    if (fileo)
++    if (fileo) {
+         fdo = child_open(&child, scratch_page, fileo);
+-    if (filee)
++        fprintf(stderr, "%s - fdo %d ... fileo (%s) \n", __FUNCTION__, fdo, fileo );
++    }
++    if (filee) {
+         fde = child_open(&child, scratch_page, filee);
+-    if (fdo >= 0)
+-        fdo_orig = child_dup(&child, fdo, 1, !no_restore);
+-    if (fde >= 0)
+-        fde_orig = child_dup(&child, fde, 2, !no_restore);
++        fprintf(stderr, "%s - fde %d ... filee (%s) \n", __FUNCTION__, fde, filee );
++    }
++    if (fdo >= 0) {
++        *fdo_orig = child_dup(&child, fdo, 1, !no_restore);
++        fprintf(stderr, "%s - fdo_orig %d ... fdo (%d) \n", __FUNCTION__, *fdo_orig, fdo );
++    }
++    if (fde >= 0) {
++        *fde_orig = child_dup(&child, fde, 2, !no_restore);
++        fprintf(stderr, "%s - fde_orig %d ... fde (%d) \n", __FUNCTION__, *fde_orig, fde );
++    }
+     child_detach(&child, scratch_page);
+ 
+     if (!no_restore) {
+-        printf("# Previous state saved. To restore, use:\n");
+-        printf("%s -N -O %d -E %d %d\n", program_invocation_name, fdo_orig, fde_orig, pid);
++        fprintf(stderr, "# Previous state saved. To restore, use:\n");
++        fprintf(stderr, "%s -N -O %d -E %d %d\n", program_invocation_name, *fdo_orig, *fde_orig, pid);
+     }
+ 
+     return 0;
+diff -ru reredirect-master/reredirect.h reredirect-master-modified/reredirect.h
+--- reredirect-master/reredirect.h	2017-11-28 09:17:49.000000000 -0800
++++ reredirect-master-modified/reredirect.h	2018-02-02 16:05:19.324536930 -0800
+@@ -28,6 +28,7 @@
+ int child_detach(struct ptrace_child *child, child_addr_t scratch_page);
+ int child_open(struct ptrace_child *child, child_addr_t scratch_page, const char *file);
+ int child_dup(struct ptrace_child *child, int file_fd, int orig_fd, int save_orig);
++int reredirect( pid_t pid, const char *fileo, const char *filee, int *fdo_orig, int *fde_orig );
+ 
+ #define __printf __attribute__((format(printf, 1, 2)))
+ void __printf die(const char *msg, ...) __attribute__((noreturn));

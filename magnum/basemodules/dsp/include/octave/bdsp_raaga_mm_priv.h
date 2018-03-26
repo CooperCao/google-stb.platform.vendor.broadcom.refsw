@@ -44,7 +44,6 @@
 #define BDSP_ATU_VIRTUAL_RO_MEM_START_ADDR   (0x0)		 /* RO memory mapped to addr : 0x0 */
 #define BDSP_ATU_VIRTUAL_RW_MEM_START_ADDR   (0x10000000) /* RW memory mapped to addr : 0x10000000 (256MB)*/
 
-#define BDSP_MIN_DEBUG_BUFFER_SIZE 0
 #define BDSP_TARGET_BUF_MEM_SIZE (4*1024*1024)
 
 #define BDSP_MAX_INTERTASKBUFFER_INPUT_TO_MIXER         4

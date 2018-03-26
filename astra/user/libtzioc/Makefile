@@ -94,7 +94,8 @@ $(BIN_DIRS):
 	@mkdir -p $@
 
 $(TZ_OBJ_DIR)/$(TZ_LIB).so: $(OBJS)
-	$(TZ_ARMGNU)-g++ $(LDFLAGS) $(OBJS) -o $@
+	@echo "[Link... $@]"
+	$(Q_)$(TZ_ARMGNU)-g++ $(LDFLAGS) $(OBJS) -o $@
 
 clean:
 	$(RM) -r $(TZ_OBJ_DIR)

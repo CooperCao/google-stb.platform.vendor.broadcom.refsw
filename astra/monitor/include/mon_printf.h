@@ -45,11 +45,36 @@
 #define ANSI_GREEN  "\e[32;1m"
 #define ANSI_RESET  "\e[0m"
 
+#ifdef DSMP
+#include <arch_helpers.h>
+#define MPIDR (unsigned int)MPIDR_AFFINITY_VAL(read_mpidr())
+#endif
+
+#ifdef RELEASE
+#define SYS_MSG(fmt, ...)  mon_printf("MON64: " fmt ANSI_RESET "\n", ##__VA_ARGS__)
+#define ERR_MSG(fmt, ...)  mon_printf("MON64: " fmt ANSI_RESET "\n", ##__VA_ARGS__)
+#define WARN_MSG(fmt, ...) mon_printf("MON64: " fmt ANSI_RESET "\n", ##__VA_ARGS__)
+#define INFO_MSG(fmt, ...)
+#else
+#ifdef DSMP
+#define SYS_MSG(fmt, ...)  mon_printf(ANSI_GREEN  "[%x] SYSTEM: "  fmt ANSI_RESET "\n", MPIDR, ##__VA_ARGS__)
+#define ERR_MSG(fmt, ...)  mon_printf(ANSI_RED    "[%x] ERROR: "   fmt ANSI_RESET "\n", MPIDR, ##__VA_ARGS__)
+#define WARN_MSG(fmt, ...) mon_printf(ANSI_YELLOW "[%x] WARNING: " fmt ANSI_RESET "\n", MPIDR, ##__VA_ARGS__)
+#define INFO_MSG(fmt, ...) mon_printf(ANSI_BLUE   "[%x] INFO: "    fmt ANSI_RESET "\n", MPIDR, ##__VA_ARGS__)
+#else
+#define SYS_MSG(fmt, ...)  mon_printf(ANSI_GREEN  "SYSTEM: "  fmt ANSI_RESET "\n", ##__VA_ARGS__)
 #define ERR_MSG(fmt, ...)  mon_printf(ANSI_RED    "ERROR: "   fmt ANSI_RESET "\n", ##__VA_ARGS__)
 #define WARN_MSG(fmt, ...) mon_printf(ANSI_YELLOW "WARNING: " fmt ANSI_RESET "\n", ##__VA_ARGS__)
 #define INFO_MSG(fmt, ...) mon_printf(ANSI_BLUE   "INFO: "    fmt ANSI_RESET "\n", ##__VA_ARGS__)
+#endif
+#endif
+
 #ifdef DEBUG
-#define DBG_MSG(fmt, ...)  mon_printf(ANSI_GREEN  "DEBUG: "   fmt ANSI_RESET "\n", ##__VA_ARGS__)
+#ifdef DSMP
+#define DBG_MSG(fmt, ...)  mon_printf("[%x] DEBUG: " fmt "\n", MPIDR, ##__VA_ARGS__)
+#else
+#define DBG_MSG(fmt, ...)  mon_printf("DEBUG: " fmt "\n", ##__VA_ARGS__)
+#endif
 #else
 #define DBG_MSG(fmt, ...)
 #endif

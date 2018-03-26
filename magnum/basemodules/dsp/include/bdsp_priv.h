@@ -162,7 +162,7 @@ typedef struct BDSP_Stage
 #endif /*!B_REFSW_MINIMAL*/
     BERR_Code (*getVideoEncodeDatasyncSettings)(void *pStageHandle, BDSP_VideoEncodeTaskDatasyncSettings *pSettings);
     BERR_Code (*setVideoEncodeDatasyncSettings)(void *pStageHandle, const BDSP_VideoEncodeTaskDatasyncSettings *pSettings);
-
+    BERR_Code (*getStageContext)(void *pStageHandle, BDSP_ContextHandle *pContextHandle);
 }BDSP_Stage;
 
 

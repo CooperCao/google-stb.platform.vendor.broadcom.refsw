@@ -463,7 +463,7 @@ b_play_media_send_atom(NEXUS_PlaybackHandle p)
     return;
 keep_waiting:
     p->state.state = eWaitingPlayback;
-    p->state.data_source = b_play_media_send_atom; /* schedule to call us when space is avaliable */
+    p->state.data_source = b_play_media_send_atom; /* schedule to call us when space is available */
     return;
 }
 
@@ -541,7 +541,7 @@ b_play_media_send_meta(NEXUS_PlaybackHandle p)
                 }
             }
 
-            BKNI_Memcpy(vaddr, &segment, sizeof(segment)); /* vaddr might be not alligned, therefore use temporary buffer */
+            BKNI_Memcpy(vaddr, &segment, sizeof(segment)); /* vaddr might be not aligned, therefore use temporary buffer */
             BDBG_MSG_FLOW(("segment at %#lx %#lx %lu(%lu)", (unsigned long)vaddr, (unsigned long)segment.signature, (unsigned long)segment.offset, (unsigned long)segment.length));
             /* Can't be in eWaitingPlayback or we risk a deadlock from playpump callback. */
             p->state.state = eTransition;
@@ -599,7 +599,7 @@ b_play_media_send_meta(NEXUS_PlaybackHandle p)
     return;
 keep_waiting:
     p->state.state = eWaitingPlayback;
-    p->state.data_source = b_play_media_send_meta; /* schedule to call us when space is avaliable */
+    p->state.data_source = b_play_media_send_meta; /* schedule to call us when space is available */
     return;
 }
 
@@ -632,7 +632,7 @@ b_play_media_send_eos(NEXUS_PlaybackHandle p)
     return;
 keep_waiting:
     p->state.state = eWaitingPlayback;
-    p->state.data_source = b_play_media_send_eos; /* schedule to call us when space is avaliable */
+    p->state.data_source = b_play_media_send_eos; /* schedule to call us when space is available */
     return;
 }
 

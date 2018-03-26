@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,14 +43,14 @@
 
 BDBG_MODULE(BVDC_GFX_TBL);
 
+#if (BVDC_P_CMP_CFC_VER <= BVDC_P_CFC_VER_1)
 /*---------------------------------------------------------------------
-The orginal instruction from Richard W:
+The orginal instruction from Richard W for SDR BT709 GFX RGB to HDR10 BT2020-NCL YCbCr:
                                          R'_709        16
 HDR10_Y'CbCr = step3 * step2 * step1 * [ G'_709 ] + [ 128 ]
                                          B'_709       128
 
 step1 =
-
       0.000833725490196079       0.00280470588235294      0.000283137254901961
      -0.000449302376695451      -0.00151148193703004       0.00196078431372549
        0.00196078431372549      -0.00178099179727771     -0.000179792516447778
@@ -64,14 +64,12 @@ luma_scale_factor = 0.000304541078031848 * slider + 0.440165761116297
 slider ranges from 0 to 1023.
 
 slide_position_for_default =
-
    223
 
 Default Cb_scale_factor = 0.65
 Default Cr_scale_factor = 0.85
 
 step3 =
-
                        219      -0.00252115460170543        0.0164946438489872
        2.8421709430404e-14          195.900707915213         -1.84105828906519
        6.3948846218409e-14          2.84071541916847          126.661162200751
@@ -129,9 +127,13 @@ static const int32_t s_iM[3][3][3] = DR_MAKE_M(
 #define DR_MAKE_O(x) \
     BMTH_FIX_SIGNED_FTOFIX(x, BCFC_CSC_SW_CO_I_BITS, BCFC_CSC_SW_CO_F_BITS)
 
-/* Calculate special SDR to HDR CSC adjustment for GFX
- */
-void BVDC_P_GfxFeeder_CalculateSdr2HdrCsc_isr
+/* BT2020-NCL YCbCr to BT709 YcbCr with Cr 0.85 scale down */
+static const BCFC_Csc3x4 s_YCbCr_Bt2020_to_Bt709 = BCFC_MAKE_CSC_3x4
+    (  1.000000,   0.000015, -0.000130,    0.014753,
+       0.000000,   1.143195,  0.016617,  -20.455953,
+       0.000000,  -0.021793,  1.502906,  -61.582478 );
+
+void BVDC_P_GfxFeeder_AdjustMcForSdr2Hdr_isr
     ( BVDC_P_GfxFeeder_Handle      hGfxFeeder )
 {
     int32_t iSlider;
@@ -139,85 +141,184 @@ void BVDC_P_GfxFeeder_CalculateSdr2HdrCsc_isr
     BVDC_P_GfxFeederCfgInfo *pCurCfg = &(hGfxFeeder->stCurCfgInfo);
     BCFC_Csc3x4 *pCsc = &hGfxFeeder->stCscSdr2Hdr;
 
-    /* YScl range: [0.440165761116297, 0.751711283942877504], default: 0.508078421517399104
-     *   0.000304541078031848 * 1023 + 0.440165761116297 = 0.751711283942877504
-     *   0.000304541078031848 * 223 + 0.440165761116297 = 0.508078421517399104
-     * Y positive step:
-     *   0.751711283942877504 - 0.508078421517399104 = 0.2436328624254784
-     *   step = (0.2436328624254784 / 0x7FFF) * 0x8000 = 0.24364029773729899628284554582354
-     * Y negative step:
-     *   step = ((0.000304541078031848 * 223) / 0x8000) * 0x8000 = 0.067912660401102104
-     * where " * 0x8000 " is for more accuracy, it is compensated by "-15" in sYSlider << (DR_F_BITS - 15);
-     */
-    if (pCurCfg->stSdrGfx2HdrAdj.sYSlider < 0)
+    if (hGfxFeeder->stCfc.pColorSpaceExtOut && BCFC_IS_HDR10(hGfxFeeder->stCfc.pColorSpaceExtOut->stColorSpace.eColorTF))
     {
-        /* (0x8000 - abs(sYSlider)) / 0x8000 in fixed point with DR_F_BITS frac bits */
-        iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sYSlider) << (DR_F_BITS-15);
-        iYScl = DR_MUL(DR_MAKE_E(0.067912660401102104), iSlider) + DR_MAKE_E(0.440165761116297);
+        /* Calculate special SDR BT709 RGB to HDR10/HLG BT2020-NCL YCbCr matrix for GFX */
+
+        /* YScl range: [0.440165761116297, 0.751711283942877504], default: 0.508078421517399104
+         *   0.000304541078031848 * 1023 + 0.440165761116297 = 0.751711283942877504
+         *   0.000304541078031848 * 223 + 0.440165761116297 = 0.508078421517399104
+         * Y positive step:
+         *   0.751711283942877504 - 0.508078421517399104 = 0.2436328624254784
+         *   step = (0.2436328624254784 / 0x7FFF) * 0x8000 = 0.24364029773729899628284554582354
+         * Y negative step:
+         *   step = ((0.000304541078031848 * 223) / 0x8000) * 0x8000 = 0.067912660401102104
+         * where " * 0x8000 " is for more accuracy, it is compensated by "-15" in sYSlider << (DR_F_BITS - 15);
+         */
+        if (pCurCfg->stSdrGfx2HdrAdj.sYSlider < 0)
+        {
+            /* (0x8000 - abs(sYSlider)) / 0x8000 in fixed point with DR_F_BITS frac bits */
+            iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sYSlider) << (DR_F_BITS-15);
+            iYScl = DR_MUL(DR_MAKE_E(0.067912660401102104), iSlider) + DR_MAKE_E(0.440165761116297);
+        }
+        else
+        {
+            /* sYSlider / 0x8000 in fixed point with DR_F_BITS frac bits */
+            iSlider = pCurCfg->stSdrGfx2HdrAdj.sYSlider << (DR_F_BITS-15);
+            iYScl = DR_MUL(DR_MAKE_E(0.24364029773729899628284554582354), iSlider) + DR_MAKE_E(0.508078421517399104);
+        }
+
+        /* CbScl range: [0.4, 1.0], default: 0.65
+         * Cb positive step:
+         *   step = ((1.0 - 0.65) / 0x7FFF) * 0x8000 = 0.35001068147831659901730399487289
+         * Cb negative step:
+         *   step = ((0.65 - 0.4) / 0x8000) * 0x8000 = 0.25
+         * where "* 0x8000" is for more accuracy, it is compensated by "-15" in sCbSlider << (DR_F_BITS - 15);
+         */
+        if (pCurCfg->stSdrGfx2HdrAdj.sCbSlider < 0)
+        {
+            /* (0x8000 - abs(sCbSlider)) / 0x8000 in fixed point with DR_F_BITS frac bits */
+            iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sCbSlider) << (DR_F_BITS-15);
+            iCbScl = DR_MUL(DR_MAKE_E(0.25), iSlider) + DR_MAKE_E(0.4);
+        }
+        else
+        {
+            /* sCbSlider / 0x8000 in fixed point with DR_F_BITS frac bits */
+            iSlider = pCurCfg->stSdrGfx2HdrAdj.sCbSlider << (DR_F_BITS-15);
+            iCbScl = DR_MUL(DR_MAKE_E(0.35001068147831659901730399487289), iSlider) + DR_MAKE_E(0.65);
+        }
+
+        /* CrScl range: [0.5, 1.0]. default: 0.85
+         * Cr positive step:
+         *   step = ((1.0 - 0.85) / 0x7FFF) * 0x8000 = 0.15000457777642139957884456923124
+         * Cr negative step:
+         *   step = ((0.85 - 0.5) / 0x8000) * 0x8000 = 0.35
+         * where "* 0x8000" is for more accuracy, it is compensated by "-15" in sCrSlider << (DR_F_BITS - 15);
+         */
+        if (pCurCfg->stSdrGfx2HdrAdj.sCrSlider < 0)
+        {
+            /* (0x8000 + abs(sCrSlider)) / 0x8000 in fixed point with DR_F_BITS frac bits */
+            iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sCrSlider) << (DR_F_BITS-15);
+            iCrScl = DR_MUL(DR_MAKE_E(0.35), iSlider) + DR_MAKE_E(0.5);
+        }
+        else
+        {
+            /* sCrSlider / 0x8000 in fixed point with DR_F_BITS frac bits */
+            iSlider = pCurCfg->stSdrGfx2HdrAdj.sCrSlider << (DR_F_BITS-15);
+            iCrScl = DR_MUL(DR_MAKE_E(0.15000457777642139957884456923124), iSlider) + DR_MAKE_E(0.85);
+        }
+
+        pCsc->m[0][0] = DR_MUL(iYScl,s_iM[0][0][0]) + DR_MUL(iCbScl,s_iM[0][1][0]) + DR_MUL(iCrScl,s_iM[0][2][0]);
+        pCsc->m[0][1] = DR_MUL(iYScl,s_iM[0][0][1]) + DR_MUL(iCbScl,s_iM[0][1][1]) + DR_MUL(iCrScl,s_iM[0][2][1]);
+        pCsc->m[0][2] = DR_MUL(iYScl,s_iM[0][0][2]) + DR_MUL(iCbScl,s_iM[0][1][2]) + DR_MUL(iCrScl,s_iM[0][2][2]);
+
+        pCsc->m[1][0] = DR_MUL(iYScl,s_iM[1][0][0]) + DR_MUL(iCbScl,s_iM[1][1][0]) + DR_MUL(iCrScl,s_iM[1][2][0]);
+        pCsc->m[1][1] = DR_MUL(iYScl,s_iM[1][0][1]) + DR_MUL(iCbScl,s_iM[1][1][1]) + DR_MUL(iCrScl,s_iM[1][2][1]);
+        pCsc->m[1][2] = DR_MUL(iYScl,s_iM[1][0][2]) + DR_MUL(iCbScl,s_iM[1][1][2]) + DR_MUL(iCrScl,s_iM[1][2][2]);
+
+        pCsc->m[2][0] = DR_MUL(iYScl,s_iM[2][0][0]) + DR_MUL(iCbScl,s_iM[2][1][0]) + DR_MUL(iCrScl,s_iM[2][2][0]);
+        pCsc->m[2][1] = DR_MUL(iYScl,s_iM[2][0][1]) + DR_MUL(iCbScl,s_iM[2][1][1]) + DR_MUL(iCrScl,s_iM[2][2][1]);
+        pCsc->m[2][2] = DR_MUL(iYScl,s_iM[2][0][2]) + DR_MUL(iCbScl,s_iM[2][1][2]) + DR_MUL(iCrScl,s_iM[2][2][2]);
+
+        pCsc->m[0][3] = DR_MAKE_O(16.0);
+        pCsc->m[1][3] = DR_MAKE_O(128.0);
+        pCsc->m[2][3] = DR_MAKE_O(128.0);
+
+        if (BCFC_IS_BT2020(hGfxFeeder->stCfc.pColorSpaceExtOut->stColorSpace.eColorimetry))
+        {
+            hGfxFeeder->stCfc.stMc = hGfxFeeder->stCscSdr2Hdr;
+        }
+        else
+        {
+            /* TODO: handle Smpte170M and Bt470_BG better */
+            BCFC_Csc_Mult_isrsafe(&(s_YCbCr_Bt2020_to_Bt709.m[0][0]), 4, &(hGfxFeeder->stCscSdr2Hdr.m[0][0]), 4, &(hGfxFeeder->stCfc.stMc.m[0][0]));
+        }
     }
-    else
+    else /* HLG output */
     {
-        /* sYSlider / 0x8000 in fixed point with DR_F_BITS frac bits */
-        iSlider = pCurCfg->stSdrGfx2HdrAdj.sYSlider << (DR_F_BITS-15);
-        iYScl = DR_MUL(DR_MAKE_E(0.24364029773729899628284554582354), iSlider) + DR_MAKE_E(0.508078421517399104);
+        /* Adjust Mc directly */
+        const BCFC_Csc3x4 *pOrgCsc = &hGfxFeeder->stCfc.stMc;
+
+        /* Y Scl range: [0.65, 0.95], default: 0.75
+         * Y positive step:
+         *   step = ((0.95 - 0.75) / 0x7FFF) * 0x8000 = 0.20000610370189519943845942564165
+         * Y negative step:
+         *   step = ((0.75 - 0.65) / 0x8000) * 0x8000 = 0.1
+         * where "* 0x8000" is for more accuracy, it is compensated by "-15" in sSlider << (DR_F_BITS - 15);
+         */
+        if (pCurCfg->stSdrGfx2HdrAdj.sYSlider < 0)
+        {
+            /* (0x8000 - abs(sYSlider)) / 0x8000 in fixed point with DR_F_BITS frac bits */
+            iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sYSlider) << (DR_F_BITS-15);
+            iYScl = DR_MUL(DR_MAKE_E(0.1), iSlider) + DR_MAKE_E(0.65);
+        }
+        else
+        {
+            /* sYSlider / 0x8000 in fixed point with DR_F_BITS frac bits */
+            iSlider = pCurCfg->stSdrGfx2HdrAdj.sYSlider << (DR_F_BITS-15);
+            iYScl = DR_MUL(DR_MAKE_E(0.20000610370189519943845942564165), iSlider) + DR_MAKE_E(0.75);
+        }
+
+        /* Cb Scl range: [0.65, 0.95], default: 0.75
+         * Cb positive step:
+         *   step = ((0.95 - 0.75) / 0x7FFF) * 0x8000 = 0.20000610370189519943845942564165
+         * Cb negative step:
+         *   step = ((0.75 - 0.65) / 0x8000) * 0x8000 = 0.1
+         * where "* 0x8000" is for more accuracy, it is compensated by "-15" in sSlider << (DR_F_BITS - 15);
+         */
+        if (pCurCfg->stSdrGfx2HdrAdj.sCbSlider < 0)
+        {
+            /* (0x8000 - abs(sCbSlider)) / 0x8000 in fixed point with DR_F_BITS frac bits */
+            iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sCbSlider) << (DR_F_BITS-15);
+            iCbScl = DR_MUL(DR_MAKE_E(0.1), iSlider) + DR_MAKE_E(0.65);
+        }
+        else
+        {
+            /* sCbSlider / 0x8000 in fixed point with DR_F_BITS frac bits */
+            iSlider = pCurCfg->stSdrGfx2HdrAdj.sCbSlider << (DR_F_BITS-15);
+            iCbScl = DR_MUL(DR_MAKE_E(0.20000610370189519943845942564165), iSlider) + DR_MAKE_E(0.75);
+        }
+
+        /* Cr Scl range: [0.65, 0.95], default: 0.75
+         * Cr positive step:
+         *   step = ((0.95 - 0.75) / 0x7FFF) * 0x8000 = 0.20000610370189519943845942564165
+         * Cr negative step:
+         *   step = ((0.75 - 0.65) / 0x8000) * 0x8000 = 0.1
+         * where "* 0x8000" is for more accuracy, it is compensated by "-15" in sSlider << (DR_F_BITS - 15);
+         */
+        if (pCurCfg->stSdrGfx2HdrAdj.sCrSlider < 0)
+        {
+            /* (0x8000 - abs(sCrSlider)) / 0x8000 in fixed point with DR_F_BITS frac bits */
+            iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sCrSlider) << (DR_F_BITS-15);
+            iCrScl = DR_MUL(DR_MAKE_E(0.1), iSlider) + DR_MAKE_E(0.65);
+        }
+        else
+        {
+            /* sCrSlider / 0x8000 in fixed point with DR_F_BITS frac bits */
+            iSlider = pCurCfg->stSdrGfx2HdrAdj.sCrSlider << (DR_F_BITS-15);
+            iCrScl = DR_MUL(DR_MAKE_E(0.20000610370189519943845942564165), iSlider) + DR_MAKE_E(0.75);
+        }
+
+        pCsc->m[0][0] = DR_MUL(iYScl,pOrgCsc->m[0][0]);
+        pCsc->m[0][1] = DR_MUL(iYScl,pOrgCsc->m[0][1]);
+        pCsc->m[0][2] = DR_MUL(iYScl,pOrgCsc->m[0][2]);
+
+        pCsc->m[1][0] = DR_MUL(iCbScl,pOrgCsc->m[1][0]);
+        pCsc->m[1][1] = DR_MUL(iCbScl,pOrgCsc->m[1][1]);
+        pCsc->m[1][2] = DR_MUL(iCbScl,pOrgCsc->m[1][2]);
+
+        pCsc->m[2][0] = DR_MUL(iCrScl,pOrgCsc->m[2][0]);
+        pCsc->m[2][1] = DR_MUL(iCrScl,pOrgCsc->m[2][1]);
+        pCsc->m[2][2] = DR_MUL(iCrScl,pOrgCsc->m[2][2]);
+
+        pCsc->m[0][3] = DR_MAKE_O(16.0);
+        pCsc->m[1][3] = DR_MAKE_O(128.0);
+        pCsc->m[2][3] = DR_MAKE_O(128.0);
+
+        hGfxFeeder->stCfc.stMc = hGfxFeeder->stCscSdr2Hdr;
     }
-
-    /* CbScl range: [0.4, 1.0], default: 0.65
-     * Cb positive step:
-     *   step = ((1.0 - 0.65) / 0x7FFF) * 0x8000 = 0.35001068147831659901730399487289
-     * Cb negative step:
-     *   step = ((0.65 - 0.4) / 0x8000) * 0x8000 = 0.25
-     * where "* 0x8000" is for more accuracy, it is compensated by "-15" in sCbSlider << (DR_F_BITS - 15);
-     */
-    if (pCurCfg->stSdrGfx2HdrAdj.sCbSlider < 0)
-    {
-        /* (0x8000 - abs(sCbSlider)) / 0x8000 in fixed point with DR_F_BITS frac bits */
-        iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sCbSlider) << (DR_F_BITS-15);
-        iCbScl = DR_MUL(DR_MAKE_E(0.25), iSlider) + DR_MAKE_E(0.4);
-    }
-    else
-    {
-        /* sCbSlider / 0x8000 in fixed point with DR_F_BITS frac bits */
-        iSlider = pCurCfg->stSdrGfx2HdrAdj.sCbSlider << (DR_F_BITS-15);
-        iCbScl = DR_MUL(DR_MAKE_E(0.35001068147831659901730399487289), iSlider) + DR_MAKE_E(0.65);
-    }
-
-    /* CrScl range: [0.5, 1.0]. default: 0.85
-     * Cr positive step:
-     *   step = ((1.0 - 0.85) / 0x7FFF) * 0x8000 = 0.15000457777642139957884456923124
-     * Cr negative step:
-     *   step = ((0.85 - 0.5) / 0x8000) * 0x8000 = 0.35
-     * where "* 0x8000" is for more accuracy, it is compensated by "-15" in sCrSlider << (DR_F_BITS - 15);
-     */
-    if (pCurCfg->stSdrGfx2HdrAdj.sCrSlider < 0)
-    {
-        /* (0x8000 + abs(sCrSlider)) / 0x8000 in fixed point with DR_F_BITS frac bits */
-        iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sCrSlider) << (DR_F_BITS-15);
-        iCrScl = DR_MUL(DR_MAKE_E(0.35), iSlider) + DR_MAKE_E(0.5);
-    }
-    else
-    {
-        /* sCrSlider / 0x8000 in fixed point with DR_F_BITS frac bits */
-        iSlider = pCurCfg->stSdrGfx2HdrAdj.sCrSlider << (DR_F_BITS-15);
-        iCrScl = DR_MUL(DR_MAKE_E(0.15000457777642139957884456923124), iSlider) + DR_MAKE_E(0.85);
-    }
-
-    pCsc->m[0][0] = DR_MUL(iYScl,s_iM[0][0][0]) + DR_MUL(iCbScl,s_iM[0][1][0]) + DR_MUL(iCrScl,s_iM[0][2][0]);
-    pCsc->m[0][1] = DR_MUL(iYScl,s_iM[0][0][1]) + DR_MUL(iCbScl,s_iM[0][1][1]) + DR_MUL(iCrScl,s_iM[0][2][1]);
-    pCsc->m[0][2] = DR_MUL(iYScl,s_iM[0][0][2]) + DR_MUL(iCbScl,s_iM[0][1][2]) + DR_MUL(iCrScl,s_iM[0][2][2]);
-
-    pCsc->m[1][0] = DR_MUL(iYScl,s_iM[1][0][0]) + DR_MUL(iCbScl,s_iM[1][1][0]) + DR_MUL(iCrScl,s_iM[1][2][0]);
-    pCsc->m[1][1] = DR_MUL(iYScl,s_iM[1][0][1]) + DR_MUL(iCbScl,s_iM[1][1][1]) + DR_MUL(iCrScl,s_iM[1][2][1]);
-    pCsc->m[1][2] = DR_MUL(iYScl,s_iM[1][0][2]) + DR_MUL(iCbScl,s_iM[1][1][2]) + DR_MUL(iCrScl,s_iM[1][2][2]);
-
-    pCsc->m[2][0] = DR_MUL(iYScl,s_iM[2][0][0]) + DR_MUL(iCbScl,s_iM[2][1][0]) + DR_MUL(iCrScl,s_iM[2][2][0]);
-    pCsc->m[2][1] = DR_MUL(iYScl,s_iM[2][0][1]) + DR_MUL(iCbScl,s_iM[2][1][1]) + DR_MUL(iCrScl,s_iM[2][2][1]);
-    pCsc->m[2][2] = DR_MUL(iYScl,s_iM[2][0][2]) + DR_MUL(iCbScl,s_iM[2][1][2]) + DR_MUL(iCrScl,s_iM[2][2][2]);
-
-    pCsc->m[0][3] = DR_MAKE_O(16.0);
-    pCsc->m[1][3] = DR_MAKE_O(128.0);
-    pCsc->m[2][3] = DR_MAKE_O(128.0);
 }
+#endif
 
 /****************************************************************
  *  GFD HSCL coefficients
@@ -590,7 +691,7 @@ static uint32_t *BVDC_P_GetVsclFilterCoefficients_Auto_isr(
     else if( ulOutSize >= 3 * ulSrcSize ) /* 1to3: 720p -> 4k */
         return (uint32_t *) &s_paulVsclFirCoeffTbl[11];
     else if( ulOutSize >= 2 * ulSrcSize ) /* 1to2: 1080p -> 4k */
-        return (uint32_t *) s_paulVsclFirCoeffTbl[11];
+        return (uint32_t *) &s_paulVsclFirCoeffTbl[11];
     else if( ulOutSize >= ulSrcSize )
         return (uint32_t *) s_aulVsclFirCoeff_Smooth_1toN;
     else if( ulOutSize * 12 >= ulSrcSize * 16 )  /* rounding to 9/16 */

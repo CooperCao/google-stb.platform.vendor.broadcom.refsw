@@ -52,6 +52,4 @@ void uart_uninit(void);
 int uart_putc(int c);
 int uart_getc(void);
 
-extern uintptr_t uart_base;
-
 #endif /* _UART_H_ */

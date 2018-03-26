@@ -38,13 +38,22 @@
 #############################################################################
 
 COMMON_INCLUDES = ./include/drm_common.h
-COMMON_SOURCES = ./drm/common/drm_common.c \
-                 ./drm/key_region/drm_key_region.c \
+COMMON_SOURCES = ./drm/common/drm_common.c
+
+# KeyRegion, KeyBinding, SecureStore, and CencKeyRegion only supported on Zeus1-Zeus4
+ifeq ($(filter $(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),1 2 3 4),$(NEXUS_SECURITY_ZEUS_VERSION_MAJOR))
+COMMON_DEFINES = -DNONSAGE_CREDENTIAL_CAPABLE
+
+COMMON_SOURCES += ./drm/key_region/drm_key_region.c \
                  ./drm/key_region/drm_key_binding.c \
                  ./drm/secure_store/drm_secure_store.c
 
+ifeq (${WVOEMCRYPTO_SAGE},OFF)
 ifeq (${COMMON_DRM_WIDEVINE},y)
 COMMON_SOURCES += ./drm/cenc_key_region/drm_cenc_key_region.c
-endif
+endif # WVOEMCRYPTO_SAGE
+endif # COMMON_DRM_WIDEVINE
 
+else
 COMMON_DEFINES =
+endif # NEXUS_SECURITY_ZEUS_VERSION_MAJOR

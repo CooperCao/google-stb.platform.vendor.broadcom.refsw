@@ -58,7 +58,7 @@
 #define BDSP_Raaga_AVLStatus                BDSP_Raaga_Audio_AvlPPStatusInfo
 #define BDSP_Raaga_MixerDapv2PPStatus       BDSP_Raaga_Audio_MixerDapv2StatusInfo
 #define BDSP_Raaga_TsmCorrectionPPStatus    BDSP_Raaga_Audio_TsmCorrectionPPStatusInfo
-
+#define BDSP_Raaga_AC4Status                BDSP_Raaga_Audio_AC4StreamInfo
 /*********************************************************************
 Summary:
     This structure defines all the stream information parameters of
@@ -1424,6 +1424,9 @@ represents the time in 8 seconds increments.
 #define AC4_DEC_PRESENTATION_NAME_LENGTH                     (36>>2)
 #define AC4_DEC_PRESENTATION_LANGUAGE_LENGTH                 (8>>2)
 #define AC4_DEC_PROGRAM_IDENTIFIER_LENGTH                    (20>>2)
+#define BDSP_AC4_OUTPUT_MAIN        0
+#define BDSP_AC4_OUTPUT_ALTSTEREO   1
+#define BDSP_AC4_NUM_OUTPUTS        2
 typedef struct BDSP_Raaga_Audio_AC4PresentationInfo
 {
     /*  Presentation index of the presentation */
@@ -1449,7 +1452,7 @@ typedef struct BDSP_Raaga_Audio_AC4PresentationInfo
     uint32_t    ui32PresentationName[AC4_DEC_PRESENTATION_NAME_LENGTH];
 
     /* Indicates the program identifier for the presentation.
-	The Personalized-program universal unique ID is populated in the array in big endian fashion */
+    The Personalized-program universal unique ID is populated in the array in big endian fashion */
     int32_t     i32ProgramIdentifier[AC4_DEC_PROGRAM_IDENTIFIER_LENGTH];
 
     /*  Extended presentation metadata is availability */
@@ -1463,6 +1466,20 @@ typedef struct BDSP_Raaga_Audio_AC4PresentationInfo
 
     /*  Extended presentation metadata payloads */
     uint32_t    ui32ExtPresentationMd[AC4_DEC_EXT_PRESENTATION_MD_LENGTH];
+
+    /* Presentation Config Type */
+    /*{ AC4TOC_PRESENTATION_CONFIG_UNDEFINED = 0
+     *  AC4TOC_PRESENTATION_CONFIG_SINGLE_SUBSTREAM
+     *  AC4TOC_PRESENTATION_CONFIG_MAIN_PLUS_DE
+     *  AC4TOC_PRESENTATION_CONFIG_MAIN_PLUS_ASSOCIATE
+     *  AC4TOC_PRESENTATION_CONFIG_MAIN_PLUS_DE_PLUS_ASSOCIATE
+     *  AC4TOC_PRESENTATION_CONFIG_MAIN_PLUS_HSF_EXT
+     *  AC4TOC_PRESENTATION_CONFIG_MUSIC_AND_EFFECTS_PLUS_DIALOG
+     *  AC4TOC_PRESENTATION_CONFIG_MUSIC_AND_EFFECTS_PLUS_DIALOG_PLUS_ASSOCIATE
+     *  AC4TOC_PRESENTATION_CONFIG_EMDF_ONLY
+     *  AC4TOC_PRESENTATION_CONFIG_ARBITRARY_SUBSTREAM_GROUPS
+     *  } */
+    uint32_t ui32PresentationType;
 }BDSP_Raaga_Audio_AC4PresentationInfo;
 
 
@@ -1578,7 +1595,7 @@ typedef struct BDSP_Raaga_Audio_AC4StreamInfo
     uint32_t    ui32StreamInfoChanged;
 
     /*  Decoded presentation index in the current frame */
-    uint32_t    ui32DecodedPresentationIndex;
+    uint32_t    ui32DecodedPresentationIndex[BDSP_AC4_NUM_OUTPUTS];
 
     /*  Maximum dialog gain of the decoded presentation */
     uint32_t    ui32DecodedPresentationMaxDialogGain;

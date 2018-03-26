@@ -50,7 +50,7 @@ void BDSP_Arm_P_CalculateInitMemory(
     /*Memory for Soft Registers used for HOST/FW communication*/
     *pMemReqd += (4*sizeof(dramaddr_t));
     /*Memory for Soft Fifo created for Arm. */
-    *pMemReqd += BDSP_ARM_NUM_FIFOS*(4*sizeof(dramaddr_t));
+    *pMemReqd += (BDSP_ARM_NUM_FIFOS+BDSP_ARM_NUM_DEBUG_FIFOS)*(4*sizeof(dramaddr_t));
     /*Memory for Command Queue, accounting for maximun commands per task(10) for max (12) tasks in a single DSP*/
     *pMemReqd += (BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Command)*BDSP_MAX_FW_TASK_PER_DSP);
     /* Memory for Generic Response Queue, Maximum of (10) responses from the DSP */
@@ -58,6 +58,52 @@ void BDSP_Arm_P_CalculateInitMemory(
 
     BDBG_MSG(("Init Memory = %d",*pMemReqd));
     BDBG_LEAVE(BDSP_Arm_P_CalculateInitMemory);
+}
+
+void BDSP_Arm_P_CalculateDebugMemory(
+    BDSP_ArmSettings   *pSettings,
+    unsigned           *pMemReqd
+)
+{
+    unsigned index= 0;
+    unsigned MemoryRequired = 0;
+    BDBG_ENTER(BDSP_Arm_P_CalculateDebugMemory);
+
+    for (index = 0; index < BDSP_DebugType_eLast; index++)
+    {
+        if(pSettings->debugSettings[index].enabled)
+        {
+            MemoryRequired += pSettings->debugSettings[index].bufferSize;
+        }
+        else
+        {
+            MemoryRequired += BDSP_MIN_DEBUG_BUFFER_SIZE;
+        }
+
+#if 0
+        if(BDSP_DebugType_eTargetPrintf == index)
+        {
+            /* For Shared Target print buffer to bet set in kernel
+             * In case of Target Print We need 2 buffers, one for application and one to set in firmware
+             * This will be removed when there is new API support in fp_sdk to read directly from Target print buffer */
+            if(pSettings->debugSettings[index].enabled)
+            {
+                MemoryRequired += pSettings->debugSettings[index].bufferSize;
+            }
+            else
+            {
+                /* Make sure you are not allocating any memory. If you add any Memory here we should assign equal memory as well.
+                 * Otherwise, Kernel memory alignment will change  */
+                MemoryRequired +=  BDSP_MIN_DEBUG_BUFFER_SIZE;
+            }
+        }
+#endif /* This Code is required for Octave and not on ARM*/
+    }
+
+
+    *pMemReqd = MemoryRequired;
+    BDBG_MSG(("Debug Memory = %d",MemoryRequired));
+    BDBG_LEAVE(BDSP_Arm_P_CalculateDebugMemory);
 }
 
 static void BDSP_Arm_P_CalculateScratchAndInterStageMemory(
@@ -223,10 +269,8 @@ void BDSP_Arm_P_CalculateDeviceRWMemory(
     BDSP_Arm_P_CalculateInitMemory(&MemoryRequired);
     *pMemReqd += MemoryRequired;
 
-#if 0
     BDSP_Arm_P_CalculateDebugMemory(&pDevice->deviceSettings, &MemoryRequired);
     *pMemReqd += MemoryRequired;
-#endif
 
     BDSP_Arm_P_CalculateScratchAndInterStageMemory(pDevice, dspIndex, pDevice->numCorePerDsp, &MemoryRequired, false, NULL);
     *pMemReqd += MemoryRequired;
@@ -304,7 +348,7 @@ static BERR_Code BDSP_Arm_P_AssignInitMemory(
     pDevice->memInfo.CfgRegisters[dspindex].ui32Size = ui32Size;
     pDevice->memInfo.CfgRegisters[dspindex].Buffer   = Memory;
 
-    ui32Size = BDSP_ARM_NUM_FIFOS*(4*sizeof(dramaddr_t));
+    ui32Size = (BDSP_ARM_NUM_FIFOS+BDSP_ARM_NUM_DEBUG_FIFOS)*(4*sizeof(dramaddr_t));
     errCode  = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
     if(errCode != BERR_SUCCESS)
     {
@@ -465,6 +509,94 @@ end:
 	return errCode;
 }
 
+static BERR_Code BDSP_Arm_P_AssignDebugMemory(
+    BDSP_Arm *pDevice,
+    unsigned dspindex
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	uint32_t ui32Size = 0, index =0;
+	BDSP_MMA_Memory Memory;
+	BDBG_ENTER(BDSP_Arm_P_AssignDebugMemory);
+
+	for(index = 0; index < BDSP_DebugType_eLast;index++)
+	{
+		/* For Debug Infrastructure, the FIFOs have been pre defined compile time in rdbvars
+			 No need to have call a resource manager call to get fifo
+			59 - DRAM
+			60 - UART
+			61 - CORE
+			62 - TARGET PRINT
+		*/
+		switch(index)
+		{
+			case BDSP_DebugType_eDramMsg:
+				pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BDSP_ARM_DRAM_FIFO;
+				break;
+			case BDSP_DebugType_eUart:
+				pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BDSP_ARM_UART_FIFO;
+				break;
+			case BDSP_DebugType_eCoreDump:
+				pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BDSP_ARM_CORE_FIFO;
+				break;
+			case BDSP_DebugType_eTargetPrintf:
+				pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BDSP_ARM_TARGET_PRINT_FIFO;
+				break;
+			default:
+				break;
+		}
+		if(pDevice->deviceSettings.debugSettings[index].enabled)
+		{
+			ui32Size = pDevice->deviceSettings.debugSettings[index].bufferSize;
+			errCode  = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
+            if(errCode != BERR_SUCCESS)
+			{
+				BDBG_ERR(("BDSP_Arm_P_AssignDebugMemory: Unable to allocate RW memory for Debug type %d for dsp %d!!!!",index, dspindex));
+				goto end;
+			}
+		}
+		else
+		{
+			ui32Size = BDSP_MIN_DEBUG_BUFFER_SIZE;
+		}
+		pDevice->memInfo.debugQueueParams[dspindex][index].ui32Size = ui32Size;
+		pDevice->memInfo.debugQueueParams[dspindex][index].Memory	= Memory;
+	}
+end:
+	BDBG_LEAVE(BDSP_Arm_P_AssignDebugMemory);
+	return errCode;
+}
+
+static BERR_Code BDSP_Arm_P_ReleaseDebugMemory(
+    BDSP_Arm *pDevice,
+    unsigned dspindex
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	unsigned index =0;
+	BDBG_ENTER(BDSP_Arm_P_ReleaseDebugMemory);
+
+	for(index = 0; index < BDSP_DebugType_eLast;index++)
+	{
+		if(pDevice->deviceSettings.debugSettings[index].enabled)
+		{
+			errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
+				pDevice->memInfo.debugQueueParams[dspindex][index].ui32Size,
+				&pDevice->memInfo.debugQueueParams[dspindex][index].Memory);
+            if(errCode != BERR_SUCCESS)
+			{
+				BDBG_ERR(("BDSP_Arm_P_ReleaseDebugMemory: Unable to release RW memory for Debug type %d for dsp %d!!!!",index,dspindex));
+				goto end;
+			}
+			pDevice->memInfo.debugQueueParams[dspindex][index].ui32Size	= 0;
+			pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BDSP_FIFO_INVALID;
+		}
+	}
+end:
+	BDBG_LEAVE(BDSP_Arm_P_ReleaseDebugMemory);
+	return errCode;
+}
+
 static BERR_Code BDSP_Arm_P_AssignWorkBufferMemory(
     BDSP_Arm *pDevice,
     unsigned dspindex
@@ -536,14 +668,12 @@ BERR_Code BDSP_Arm_P_AssignDeviceRWMemory(
         goto end;
     }
 
-#if 0
     errCode = BDSP_Arm_P_AssignDebugMemory(pDevice, dspindex);
     if(errCode)
     {
         BDBG_ERR(("BDSP_Arm_P_AssignDeviceRWMemory: Unable to Assign Debug Memory for dsp %d!!!!",dspindex));
         goto end;
     }
-#endif
 
     errCode = BDSP_Arm_P_AssignDescriptorMemory(pDevice, dspindex);
     if(errCode)
@@ -580,14 +710,13 @@ BERR_Code BDSP_Arm_P_ReleaseDeviceRWMemory(
         goto end;
     }
 
-#if 0
     errCode = BDSP_Arm_P_ReleaseDebugMemory(pDevice, dspindex);
     if(errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Arm_P_ReleaseDeviceRWMemory: Unable to Release Debug Memory for dsp %d!!!!",dspindex));
         goto end;
     }
-#endif
+
 	errCode = BDSP_Arm_P_ReleaseDescriptorMemory(pDevice, dspindex);
     if(errCode != BERR_SUCCESS)
 	{

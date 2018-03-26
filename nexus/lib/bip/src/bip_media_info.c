@@ -2061,6 +2061,7 @@ static BIP_Status BIP_MediaInfo_RetriveMetaDataFromInfoFile(
     BIP_CHECK_GOTO(( rc == BIP_SUCCESS || rc == BIP_INF_MEDIA_INFO_VERSION_MISMATCH), ( "BIP_MediaInfo_PopulateMediaInfoFromXmlTree failed" ), error, rc, rc );
 
 error:
+    if (xmlElemParsed) {BIP_Xml_Destroy(xmlElemParsed);}
     if (fp){ fclose( fp );}
     else if (fd >= 0){ close( fd ); }
 

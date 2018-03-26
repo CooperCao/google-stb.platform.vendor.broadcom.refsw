@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -60,11 +60,13 @@ BERR_Code BXPT_P_XcBuf_Shutdown(
     BXPT_Handle hXpt            /* [in] Handle for this transport */
     );
 
+#ifdef BXPT_IS_CORE40NM
 void BXPT_XcBuf_P_EnablePlaybackPausing(
     BXPT_Handle hXpt,
     unsigned PbChannelNum,
     bool PauseEn
     );
+#endif
 
 #if BXPT_HAS_PIPELINE_ERROR_REPORTING
 BERR_Code BXPT_P_XcBuf_ReportOverflows(

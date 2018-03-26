@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -284,7 +284,7 @@ Invoke this function to make some necessary configuration changes when the conne
 **/
 NEXUS_Error NEXUS_HdmiInput_ConfigureAfterHotPlug(
     NEXUS_HdmiInputHandle handle,
-    bool status /* True - connection up, False - connnection down */
+    bool status /* True - connection up, False - connection down */
     );
 
 /**

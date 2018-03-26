@@ -9,7 +9,7 @@
 #include "V3DPlatformBase.h"
 #include "V3DPlatformAndroid.h"
 
-#include <cutils/log.h>
+#include <log/log.h>
 
 #include "v3d_scheduler.h"
 #include "Fence.h"

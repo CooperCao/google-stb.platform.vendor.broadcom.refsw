@@ -66,7 +66,6 @@ static void NEXUS_Frontend_P_3466_ResetQamStatus(void *handle);
 static NEXUS_Error NEXUS_Frontend_P_3466_ReadSoftDecisions(void *handle, NEXUS_FrontendSoftDecision *pDecisions, size_t length, size_t *pNumRead);
 static void NEXUS_Frontend_P_3466_Close(NEXUS_FrontendHandle handle);
 static NEXUS_Error NEXUS_Frontend_P_3466_GetFastStatus(void *handle, NEXUS_FrontendFastStatus *pStatus);
-static void NEXUS_Frontend_P_3466_GetType(void *handle, NEXUS_FrontendType *type);
 static NEXUS_Error NEXUS_Frontend_P_3466_Standby_Cable(void *handle, bool enabled, const NEXUS_StandbySettings *pSettings);
 /* End of cable-specific function declarations */
 
@@ -250,7 +249,6 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3466_Cable(const NEXUS_FrontendChannelSe
     frontendHandle->getQamScanStatus = NEXUS_Frontend_P_3466_GetQamScanStatus;
 
     frontendHandle->reapplyTransportSettings = NEXUS_Frontend_P_3466_ReapplyTransportSettings;
-    frontendHandle->getType = NEXUS_Frontend_P_3466_GetType;
 #if 0
     frontendHandle->requestSpectrumData = NEXUS_Frontend_P_3466_RequestSpectrumAnalyzerData;
     frontendHandle->standby = NEXUS_Frontend_P_3466_Standby;
@@ -1002,10 +1000,4 @@ static NEXUS_Error NEXUS_Frontend_P_3466_GetFastStatus(void *handle, NEXUS_Front
         rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
 done:
     return rc;
-}
-
-static void NEXUS_Frontend_P_3466_GetType(void *handle, NEXUS_FrontendType *type)
-{
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(type);
 }

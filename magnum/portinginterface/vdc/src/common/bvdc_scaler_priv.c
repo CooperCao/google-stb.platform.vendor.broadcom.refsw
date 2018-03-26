@@ -104,8 +104,8 @@ BERR_Code BVDC_P_Scaler_Create
     pScaler->hReg = hReg;
 
     /* Init to the default filter coeffficient tables. */
-    BVDC_P_GetFirCoeffs_isr(&pScaler->pHorzFirCoeffTbl, &pScaler->pVertFirCoeffTbl);
-    BVDC_P_GetChromaFirCoeffs_isr(&pScaler->pChromaHorzFirCoeffTbl, &pScaler->pChromaVertFirCoeffTbl);
+    BVDC_P_GetFirCoeffs_isrsafe(&pScaler->pHorzFirCoeffTbl, &pScaler->pVertFirCoeffTbl);
+    BVDC_P_GetChromaFirCoeffs_isrsafe(&pScaler->pChromaHorzFirCoeffTbl, &pScaler->pChromaVertFirCoeffTbl);
 
     /* Scaler reset address */
     pScaler->ulResetRegAddr = BCHP_MMISC_SW_INIT;

@@ -1964,6 +1964,7 @@ BVCE_Output_S_ITB_DetectNewFrame(
 
    if ( ( hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiSizeInITB > 0 )
         && ( ( 0 != ( hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].stFrameDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START ) )
+             || ( 0 != ( hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].stFrameDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOS ) )
              || ( 0 != ( hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].stFrameDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START ) )
       ))
    {
@@ -2258,7 +2259,6 @@ BVCE_Output_S_ITB_ParseEntry(
          break;
 
       case BVCE_OUTPUT_P_ITB_IndexingState_eEOSEntry:
-         pVideoDescriptor->stCommon.uiFlags |= BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START;
          pVideoDescriptor->stCommon.uiFlags |= BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_ESCR_VALID;
          pVideoDescriptor->stCommon.uiESCR = BVCE_P_ITBEntry_GetEOSESCR(pITBEntry);
 
@@ -3917,9 +3917,13 @@ BVCE_Output_S_ReadIndex_HandleFrameDone(
                if ( true == hVceOutput->state.stReadIndex.bPreviousDTSValid )
                {
                   uint32_t uiCurrentDTS = hVceOutput->state.stReadIndex.stVideoDescriptor.uiDTS >> 1;
-                  if ( ( uiCurrentDTS - hVceOutput->state.stReadIndex.uiPreviousDTS ) > ( 45000 * 2 ) )
+                  if ( ( (int32_t) ( uiCurrentDTS - hVceOutput->state.stReadIndex.uiPreviousDTS ) ) > ( 45000 * 2 ) )
                   {
-                     BDBG_ERR(("ReadIndex Overflow Detected!"));
+                     BDBG_ERR(("ReadIndex Overflow Detected! (0x%08x - 0x%08x = %d)",
+                           uiCurrentDTS,
+                           hVceOutput->state.stReadIndex.uiPreviousDTS,
+                           ( uiCurrentDTS - hVceOutput->state.stReadIndex.uiPreviousDTS )
+                     ));
                   }
                }
                hVceOutput->state.stReadIndex.uiPreviousDTS = hVceOutput->state.stReadIndex.stVideoDescriptor.uiDTS >> 1;
@@ -4113,6 +4117,8 @@ BVCE_Output_S_GetBufferStatus_impl(
       BDBG_ASSERT( pBufferStatus->stCommon.hMetadataBufferBlock );
       BDBG_ASSERT( pBufferStatus->stCommon.hIndexBufferBlock );
 
+      BVCE_Output_S_CheckCabacReady( hVceOutput );
+      if ( true == hVceOutput->state.bCabacInitializedShadow )
       {
          uint64_t uiBaseOffset, uiEndOffset, uiValidOffset, uiReadOffset;
 
@@ -4193,6 +4199,16 @@ BVCE_Output_S_GetBufferStatus_impl(
          {
             pBufferStatus->stCommon.stITB.uiDepth = (uiEndOffset - uiReadOffset) + (uiValidOffset - uiBaseOffset);
          }
+
+         pBufferStatus->stCommon.stCDB.uiRead = hVceOutput->stRegisters.CDB_Read;
+         pBufferStatus->stCommon.stCDB.uiBase = hVceOutput->stRegisters.CDB_Base;
+         pBufferStatus->stCommon.stCDB.uiValid = hVceOutput->stRegisters.CDB_Valid;
+         pBufferStatus->stCommon.stCDB.uiEnd = hVceOutput->stRegisters.CDB_End;
+         pBufferStatus->stCommon.stITB.uiRead = hVceOutput->stRegisters.ITB_Read;
+         pBufferStatus->stCommon.stITB.uiBase = hVceOutput->stRegisters.ITB_Base;
+         pBufferStatus->stCommon.stITB.uiValid = hVceOutput->stRegisters.ITB_Valid;
+         pBufferStatus->stCommon.stITB.uiEnd = hVceOutput->stRegisters.ITB_End;
+         pBufferStatus->stCommon.bReady = true;
       }
    }
 
@@ -4241,7 +4257,7 @@ BVCE_Output_S_Flush(
 {
    BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
 
-   if ( BVCE_P_Output_BufferAccessMode_eDirect != hVceOutput->state.eBufferAccessMode )
+   if ( BVCE_P_Output_BufferAccessMode_eDescriptor == hVceOutput->state.eBufferAccessMode )
    {
       const BAVC_VideoBufferDescriptor *astDescriptors[2];
       size_t uiNumDescriptors[2];

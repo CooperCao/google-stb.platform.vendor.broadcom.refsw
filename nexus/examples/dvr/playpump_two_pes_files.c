@@ -157,14 +157,14 @@ int main(void)
     audioProgram.codec = AUDIO_CODEC;
     audioProgram.pidChannel = audioPidChannel;
     audioProgram.stcChannel = stcChannel;
-    
+
     /* bring up video decoder and display */
     display = NEXUS_Display_Open(0, NULL);
     window = NEXUS_VideoWindow_Open(display, 0);
 
 #if NEXUS_NUM_COMPONENT_OUTPUTS
     NEXUS_Display_AddOutput(display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
-#endif 
+#endif
 #if NEXUS_NUM_COMPOSITE_OUTPUTS
     NEXUS_Display_AddOutput(display, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
 #endif
@@ -173,13 +173,13 @@ int main(void)
     rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
     if ( !rc && hdmiStatus.connected )
     {
-        /* If current display format is not supported by monitor, switch to monitor's preferred format. 
+        /* If current display format is not supported by monitor, switch to monitor's preferred format.
            If other connected outputs do not support the preferred format, a harmless error will occur. */
         NEXUS_Display_GetSettings(display, &displaySettings);
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 
@@ -195,6 +195,13 @@ int main(void)
             NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
             NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     }
+#if NEXUS_NUM_HDMI_OUTPUTS
+    /* Send raw PCM data to HDMI */
+    NEXUS_AudioOutput_AddInput(
+        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+#endif
+
     NEXUS_AudioDecoder_Start(audioDecoder, &audioProgram);
 
     while (1) {
@@ -225,7 +232,7 @@ int main(void)
         if (vbuffer_size) {
             if (vbuffer_size > MAX_READ)
                 vbuffer_size = MAX_READ;
-          
+
             nVideo = fread(vbuffer, 1, vbuffer_size, vfile);
 
             if (nVideo < 0) goto error;

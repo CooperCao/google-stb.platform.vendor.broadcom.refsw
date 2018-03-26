@@ -91,133 +91,133 @@ static BERR_Code km_crypto_hmac_sign_verify_test(KeymasterTl_Handle handle)
         EXPECT_SUCCESS(KM_Tag_NewContext(&begin_params));
 
         settings.begin_params = begin_params;
-        TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
+        TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
 
         switch (i) {
         case 0:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 160));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 160);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 160);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
             comment = "HMAC 160 160 SHA1";
             break;
         case 1:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 224));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 224);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_224);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 224);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_224);
             comment = "HMAC 224 224 SHA 224";
             break;
         case 2:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 256));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 256);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "HMAC 256 256 SHA 256";
             break;
         case 3:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 512));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 160);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 160);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
             comment = "HMAC 512 160 SHA1";
             break;
         case 4:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 512));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 224);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_224);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 224);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_224);
             comment = "HMAC 512 224 SHA 224";
             break;
         case 5:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 512));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 256);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "HMAC 512 256 SHA 256";
             break;
         case 6:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 512));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 384);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_384);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 384);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_384);
             comment = "HMAC 512 384 SHA 384";
             break;
         case 7:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 224));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 256);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_512);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_512);
             comment = "HMAC 224 SHA 512";
             break;
         case 8:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 512));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 512);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_512);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 512);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_512);
             comment = "HMAC 512 SHA 512";
             break;
         case 9:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 224));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_MD5);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 128);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_MD5);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_MD5);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 128);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_MD5);
             comment = "HMAC MD5";
             break;
         case 10:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 512));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 64);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_512);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 64);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_512);
             comment = "HMAC 512 SHA 512, MAC 64";
             break;
         case 11:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 8));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 64);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 64);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
             comment = "HMAC 8 SHA1, MAC 64";
             break;
         case 12:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 128));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_MD5);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 64);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_MD5);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_MD5);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 64);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_MD5);
             comment = "HMAC 128 MD5, MAC 160";
             break;
         case 13:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 128));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 160);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 160);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
             comment = "HMAC 128 SHA1, MAC 160";
             break;
         case 14:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 128));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 160);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_224);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_224);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 160);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_224);
             comment = "HMAC 128 SHA224, MAC 160";
             break;
         case 15:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 128));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 160);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 160);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "HMAC 128 SHA224, MAC 160";
             break;
         case 16:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 128));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 160);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_384);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_384);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 160);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_384);
             comment = "HMAC 128 SHA384, MAC 160";
             break;
         case 17:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 128));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 160);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_512);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_512);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 160);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_512);
             comment = "HMAC 128 SHA512, MAC 160";
             break;
         default:
@@ -239,7 +239,7 @@ static BERR_Code km_crypto_hmac_sign_verify_test(KeymasterTl_Handle handle)
         settings.in_data = in_data;
         settings.out_data = out_data;
 
-        EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_SIGN, &settings));
+        EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_SIGN, &settings));
 
         BDBG_LOG(("%s: signature %d bytes (%d bits)", BSTD_FUNCTION, settings.out_data.size, settings.out_data.size * 8));
         if (settings.out_data.size == 0) {
@@ -255,14 +255,14 @@ static BERR_Code km_crypto_hmac_sign_verify_test(KeymasterTl_Handle handle)
 
         km_test_remove_mac_length(settings.begin_params);
 
-        EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_VERIFY, &settings));
+        EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_VERIFY, &settings));
 
         settings.signature_data.buffer[0]++;
-        EXPECT_FAILURE_CODE(KM_Crypto_Operation(KM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
+        EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
 
         settings.signature_data.buffer[0]--;
         settings.in_data.buffer[0]++;
-        EXPECT_FAILURE_CODE(KM_Crypto_Operation(KM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
+        EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
 
         BDBG_LOG(("%s: %s success", BSTD_FUNCTION, comment));
 
@@ -303,59 +303,59 @@ static BERR_Code km_crypto_hmac_generate_fails(KeymasterTl_Handle handle)
         switch (i) {
         case 0:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, key_size));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA1);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA1);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "HMAC Multi Digest";
             expected_err = BSAGE_ERR_KM_UNSUPPORTED_DIGEST;
             break;
         case 1:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, key_size));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_NONE);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_NONE);
             comment = "HMAC Invalid Digest";
             expected_err = BSAGE_ERR_KM_UNSUPPORTED_DIGEST;
             break;
         case 2:
             EXPECT_SUCCESS(KM_Tag_NewContext(&key_params));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_ALGORITHM, KM_ALGORITHM_HMAC);
-            TEST_TAG_ADD_INTEGER(key_params, KM_TAG_KEY_SIZE, key_size);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_SIGN);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_VERIFY);
-            TEST_TAG_ADD_INTEGER(key_params, KM_TAG_MIN_MAC_LENGTH, 48);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_ALGORITHM, SKM_ALGORITHM_HMAC);
+            TEST_TAG_ADD_INTEGER(key_params, SKM_TAG_KEY_SIZE, key_size);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_PURPOSE, SKM_PURPOSE_SIGN);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_PURPOSE, SKM_PURPOSE_VERIFY);
+            TEST_TAG_ADD_INTEGER(key_params, SKM_TAG_MIN_MAC_LENGTH, 48);
 
-            TEST_TAG_ADD_BOOL(key_params, KM_TAG_ALL_USERS, true);
-            TEST_TAG_ADD_BOOL(key_params, KM_TAG_NO_AUTH_REQUIRED, true);
-            TEST_TAG_ADD_BOOL(key_params, KM_TAG_ALL_APPLICATIONS, true);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_BOOL(key_params, SKM_TAG_ALL_USERS, true);
+            TEST_TAG_ADD_BOOL(key_params, SKM_TAG_NO_AUTH_REQUIRED, true);
+            TEST_TAG_ADD_BOOL(key_params, SKM_TAG_ALL_APPLICATIONS, true);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "HMAC Min Mac Size too small";
             expected_err = BSAGE_ERR_KM_UNSUPPORTED_MIN_MAC_LENGTH;
             break;
         case 3:
             EXPECT_SUCCESS(KM_Tag_NewContext(&key_params));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_ALGORITHM, KM_ALGORITHM_HMAC);
-            TEST_TAG_ADD_INTEGER(key_params, KM_TAG_KEY_SIZE, key_size);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_SIGN);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_VERIFY);
-            TEST_TAG_ADD_INTEGER(key_params, KM_TAG_MIN_MAC_LENGTH, 130);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_ALGORITHM, SKM_ALGORITHM_HMAC);
+            TEST_TAG_ADD_INTEGER(key_params, SKM_TAG_KEY_SIZE, key_size);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_PURPOSE, SKM_PURPOSE_SIGN);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_PURPOSE, SKM_PURPOSE_VERIFY);
+            TEST_TAG_ADD_INTEGER(key_params, SKM_TAG_MIN_MAC_LENGTH, 130);
 
-            TEST_TAG_ADD_BOOL(key_params, KM_TAG_ALL_USERS, true);
-            TEST_TAG_ADD_BOOL(key_params, KM_TAG_NO_AUTH_REQUIRED, true);
-            TEST_TAG_ADD_BOOL(key_params, KM_TAG_ALL_APPLICATIONS, true);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_BOOL(key_params, SKM_TAG_ALL_USERS, true);
+            TEST_TAG_ADD_BOOL(key_params, SKM_TAG_NO_AUTH_REQUIRED, true);
+            TEST_TAG_ADD_BOOL(key_params, SKM_TAG_ALL_APPLICATIONS, true);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "HMAC Min Mac Size non octet";
             expected_err = BSAGE_ERR_KM_UNSUPPORTED_MIN_MAC_LENGTH;
             break;
         case 4:
             EXPECT_SUCCESS(KM_Tag_NewContext(&key_params));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_ALGORITHM, KM_ALGORITHM_HMAC);
-            TEST_TAG_ADD_INTEGER(key_params, KM_TAG_KEY_SIZE, key_size);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_SIGN);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_VERIFY);
-            TEST_TAG_ADD_INTEGER(key_params, KM_TAG_MIN_MAC_LENGTH, 384);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_ALGORITHM, SKM_ALGORITHM_HMAC);
+            TEST_TAG_ADD_INTEGER(key_params, SKM_TAG_KEY_SIZE, key_size);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_PURPOSE, SKM_PURPOSE_SIGN);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_PURPOSE, SKM_PURPOSE_VERIFY);
+            TEST_TAG_ADD_INTEGER(key_params, SKM_TAG_MIN_MAC_LENGTH, 384);
 
-            TEST_TAG_ADD_BOOL(key_params, KM_TAG_ALL_USERS, true);
-            TEST_TAG_ADD_BOOL(key_params, KM_TAG_NO_AUTH_REQUIRED, true);
-            TEST_TAG_ADD_BOOL(key_params, KM_TAG_ALL_APPLICATIONS, true);
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_BOOL(key_params, SKM_TAG_ALL_USERS, true);
+            TEST_TAG_ADD_BOOL(key_params, SKM_TAG_NO_AUTH_REQUIRED, true);
+            TEST_TAG_ADD_BOOL(key_params, SKM_TAG_ALL_APPLICATIONS, true);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "HMAC Min Mac Size too long";
             expected_err = BSAGE_ERR_KM_UNSUPPORTED_MIN_MAC_LENGTH;
             break;
@@ -405,43 +405,43 @@ static BERR_Code km_crypto_hmac_sign_fails(KeymasterTl_Handle handle)
         EXPECT_SUCCESS(KM_Tag_NewContext(&begin_params));
 
         settings.begin_params = begin_params;
-        TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
+        TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
 
         switch (i) {
         case 0:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 128));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 264);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
-            purpose = KM_PURPOSE_SIGN;
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 264);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
+            purpose = SKM_PURPOSE_SIGN;
             comment = "HMAC mac length too large";
             expected_err = BSAGE_ERR_KM_UNSUPPORTED_MAC_LENGTH;
             break;
         case 1:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 128));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 30);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 30);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "HMAC mac length too small";
-            purpose = KM_PURPOSE_SIGN;
+            purpose = SKM_PURPOSE_SIGN;
             expected_err = BSAGE_ERR_KM_UNSUPPORTED_MAC_LENGTH;
             break;
         case 2:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 256));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 256);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 256);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "HMAC encrypt";
-            purpose = KM_PURPOSE_ENCRYPT;
+            purpose = SKM_PURPOSE_ENCRYPT;
             expected_err = BSAGE_ERR_KM_UNSUPPORTED_PURPOSE;
             break;
         case 3:
             EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&key_params, 128));
-            TEST_TAG_ADD_ENUM(key_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, 65);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_DIGEST, KM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_ENUM(key_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, 65);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_DIGEST, SKM_DIGEST_SHA_2_256);
             comment = "HMAC invalid mac length";
-            purpose = KM_PURPOSE_SIGN;
+            purpose = SKM_PURPOSE_SIGN;
             expected_err = BSAGE_ERR_KM_UNSUPPORTED_MAC_LENGTH;
             break;
         default:
@@ -485,8 +485,8 @@ done:
     return err;
 }
 
-BERR_Code km_crypto_sign_vector_test(KeymasterTl_Handle handle, KeymasterTl_DataBlock in_key,
-                                     KeymasterTl_DataBlock message, km_digest_t digest, KeymasterTl_DataBlock expected_mac)
+static BERR_Code km_crypto_sign_vector_test(KeymasterTl_Handle handle, KeymasterTl_DataBlock in_key,
+                                            KeymasterTl_DataBlock message, km_digest_t digest, KeymasterTl_DataBlock expected_mac)
 {
 
     BERR_Code err;
@@ -496,6 +496,7 @@ BERR_Code km_crypto_sign_vector_test(KeymasterTl_Handle handle, KeymasterTl_Data
     KeymasterTl_ImportKeySettings impSettings;
 
     memset(&out_data, 0, sizeof(out_data));
+    memset(&impSettings, 0, sizeof(impSettings));
 
     BDBG_LOG(("----------------------- %s -----------------------", BSTD_FUNCTION));
     KM_CryptoOperation_GetDefaultSettings(&settings);
@@ -504,18 +505,18 @@ BERR_Code km_crypto_sign_vector_test(KeymasterTl_Handle handle, KeymasterTl_Data
 
     KeymasterTl_GetDefaultImportKeySettings(&impSettings);
     EXPECT_SUCCESS(km_test_new_params_with_hmac_defaults(&impSettings.in_key_params, in_key.size * 8));
-    impSettings.in_key_format = KM_KEY_FORMAT_RAW;
+    impSettings.in_key_format = SKM_KEY_FORMAT_RAW;
     impSettings.in_key_blob = in_key;
-    TEST_TAG_ADD_ENUM(impSettings.in_key_params, KM_TAG_DIGEST, digest);
+    TEST_TAG_ADD_ENUM(impSettings.in_key_params, SKM_TAG_DIGEST, digest);
     EXPECT_SUCCESS(KeymasterTl_ImportKey(handle, &impSettings));
 
 
     settings.in_key = impSettings.out_key_blob;
 
     EXPECT_SUCCESS(KM_Tag_NewContext(&begin_params));
-    TEST_TAG_ADD_ENUM(begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-    TEST_TAG_ADD_INTEGER(begin_params, KM_TAG_MAC_LENGTH, expected_mac.size * 8);
-    TEST_TAG_ADD_ENUM(begin_params, KM_TAG_DIGEST, digest);
+    TEST_TAG_ADD_ENUM(begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+    TEST_TAG_ADD_INTEGER(begin_params, SKM_TAG_MAC_LENGTH, expected_mac.size * 8);
+    TEST_TAG_ADD_ENUM(begin_params, SKM_TAG_DIGEST, digest);
     settings.begin_params = begin_params;
 
     settings.key_params = impSettings.in_key_params;
@@ -525,7 +526,7 @@ BERR_Code km_crypto_sign_vector_test(KeymasterTl_Handle handle, KeymasterTl_Data
     settings.in_data = message;
     settings.out_data = out_data;
 
-    EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_SIGN, &settings));
+    EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_SIGN, &settings));
 
 
     if (memcmp(out_data.buffer, expected_mac.buffer, expected_mac.size) != 0) {
@@ -536,13 +537,11 @@ BERR_Code km_crypto_sign_vector_test(KeymasterTl_Handle handle, KeymasterTl_Data
 
     BDBG_LOG(("%s: success", BSTD_FUNCTION));
 
-
-    TEST_FREE_BLOCK(out_data);
-    TEST_DELETE_CONTEXT(begin_params);
     err = BERR_SUCCESS;
 
 done:
-
+    TEST_FREE_BLOCK(impSettings.out_key_blob);
+    TEST_DELETE_CONTEXT(impSettings.in_key_params);
     TEST_FREE_BLOCK(out_data);
     TEST_DELETE_CONTEXT(begin_params);
     return err;
@@ -604,22 +603,22 @@ static BERR_Code km_crypto_hmac_vectors(KeymasterTl_Handle handle)
                     case 0 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_224_expected));
                         memcpy(expected.buffer, sha_224_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_224;
+                        digest = SKM_DIGEST_SHA_2_224;
                         break;
                     case 1 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_256_expected));
                         memcpy(expected.buffer, sha_256_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_256;
+                        digest = SKM_DIGEST_SHA_2_256;
                         break;
                     case 2 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_384_expected));
                         memcpy(expected.buffer, sha_384_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_384;
+                        digest = SKM_DIGEST_SHA_2_384;
                         break;
                     case 3 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_512_expected));
                         memcpy(expected.buffer, sha_512_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_512;
+                        digest = SKM_DIGEST_SHA_2_512;
                         break;
                     }
                     EXPECT_SUCCESS(km_crypto_sign_vector_test(handle, key_data, message, digest, expected));
@@ -666,22 +665,22 @@ static BERR_Code km_crypto_hmac_vectors(KeymasterTl_Handle handle)
                     case 0 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_224_expected));
                         memcpy(expected.buffer, sha_224_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_224;
+                        digest = SKM_DIGEST_SHA_2_224;
                         break;
                     case 1 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_256_expected));
                         memcpy(expected.buffer, sha_256_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_256;
+                        digest = SKM_DIGEST_SHA_2_256;
                         break;
                     case 2 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_384_expected));
                         memcpy(expected.buffer, sha_384_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_384;
+                        digest = SKM_DIGEST_SHA_2_384;
                         break;
                     case 3 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_512_expected));
                         memcpy(expected.buffer, sha_512_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_512;
+                        digest = SKM_DIGEST_SHA_2_512;
                         break;
                     }
                     EXPECT_SUCCESS(km_crypto_sign_vector_test(handle, key_data, message, digest, expected));
@@ -726,22 +725,22 @@ static BERR_Code km_crypto_hmac_vectors(KeymasterTl_Handle handle)
                     case 0 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_224_expected));
                         memcpy(expected.buffer, sha_224_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_224;
+                        digest = SKM_DIGEST_SHA_2_224;
                         break;
                     case 1 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_256_expected));
                         memcpy(expected.buffer, sha_256_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_256;
+                        digest = SKM_DIGEST_SHA_2_256;
                         break;
                     case 2 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_384_expected));
                         memcpy(expected.buffer, sha_384_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_384;
+                        digest = SKM_DIGEST_SHA_2_384;
                         break;
                     case 3 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_512_expected));
                         memcpy(expected.buffer, sha_512_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_512;
+                        digest = SKM_DIGEST_SHA_2_512;
                         break;
                     }
                     EXPECT_SUCCESS(km_crypto_sign_vector_test(handle, key_data, message, digest, expected));
@@ -790,22 +789,22 @@ static BERR_Code km_crypto_hmac_vectors(KeymasterTl_Handle handle)
                     case 0 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_224_expected));
                         memcpy(expected.buffer, sha_224_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_224;
+                        digest = SKM_DIGEST_SHA_2_224;
                         break;
                     case 1 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_256_expected));
                         memcpy(expected.buffer, sha_256_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_256;
+                        digest = SKM_DIGEST_SHA_2_256;
                         break;
                     case 2 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_384_expected));
                         memcpy(expected.buffer, sha_384_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_384;
+                        digest = SKM_DIGEST_SHA_2_384;
                         break;
                     case 3 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_512_expected));
                         memcpy(expected.buffer, sha_512_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_512;
+                        digest = SKM_DIGEST_SHA_2_512;
                         break;
                     }
                     EXPECT_SUCCESS(km_crypto_sign_vector_test(handle, key_data, message, digest, expected));
@@ -846,22 +845,22 @@ static BERR_Code km_crypto_hmac_vectors(KeymasterTl_Handle handle)
                     case 0 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_224_expected));
                         memcpy(expected.buffer, sha_224_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_224;
+                        digest = SKM_DIGEST_SHA_2_224;
                         break;
                     case 1 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_256_expected));
                         memcpy(expected.buffer, sha_256_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_256;
+                        digest = SKM_DIGEST_SHA_2_256;
                         break;
                     case 2 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_384_expected));
                         memcpy(expected.buffer, sha_384_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_384;
+                        digest = SKM_DIGEST_SHA_2_384;
                         break;
                     case 3 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_512_expected));
                         memcpy(expected.buffer, sha_512_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_512;
+                        digest = SKM_DIGEST_SHA_2_512;
                         break;
                     }
                     EXPECT_SUCCESS(km_crypto_sign_vector_test(handle, key_data, message, digest, expected));
@@ -909,22 +908,22 @@ static BERR_Code km_crypto_hmac_vectors(KeymasterTl_Handle handle)
                     case 0 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_224_expected));
                         memcpy(expected.buffer, sha_224_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_224;
+                        digest = SKM_DIGEST_SHA_2_224;
                         break;
                     case 1 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_256_expected));
                         memcpy(expected.buffer, sha_256_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_256;
+                        digest = SKM_DIGEST_SHA_2_256;
                         break;
                     case 2 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_384_expected));
                         memcpy(expected.buffer, sha_384_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_384;
+                        digest = SKM_DIGEST_SHA_2_384;
                         break;
                     case 3 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_512_expected));
                         memcpy(expected.buffer, sha_512_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_512;
+                        digest = SKM_DIGEST_SHA_2_512;
                         break;
                     }
                     EXPECT_SUCCESS(km_crypto_sign_vector_test(handle, key_data, message, digest, expected));
@@ -974,22 +973,22 @@ static BERR_Code km_crypto_hmac_vectors(KeymasterTl_Handle handle)
                     case 0 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_224_expected));
                         memcpy(expected.buffer, sha_224_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_224;
+                        digest = SKM_DIGEST_SHA_2_224;
                         break;
                     case 1 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_256_expected));
                         memcpy(expected.buffer, sha_256_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_256;
+                        digest = SKM_DIGEST_SHA_2_256;
                         break;
                     case 2 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_384_expected));
                         memcpy(expected.buffer, sha_384_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_384;
+                        digest = SKM_DIGEST_SHA_2_384;
                         break;
                     case 3 :
                         TEST_ALLOCATE_BLOCK(expected, sizeof(sha_512_expected));
                         memcpy(expected.buffer, sha_512_expected, expected.size);
-                        digest = KM_DIGEST_SHA_2_512;
+                        digest = SKM_DIGEST_SHA_2_512;
                         break;
                     }
                     EXPECT_SUCCESS(km_crypto_sign_vector_test(handle, key_data, message, digest, expected));

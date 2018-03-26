@@ -49,6 +49,8 @@ BHSM_DEFINES += BHSM_API_VERSION=2
 ifeq ($(BHSM_BUILD_HSM_FOR_SAGE),y)
     BHSM_DEFINES += BHSM_BUILD_HSM_FOR_SAGE=1
     _BHSM_BUILD_HSM_FOR_SAGE=y
+else
+    BHSM_DEFINES += BHSM_BUILD_HSM_FOR_HOST=1
 endif
 
 ifeq ($(BHSM_BUILD_HSM_FOR_NOS),y)
@@ -69,6 +71,10 @@ endif
 
 ifeq ($(BHSM_ELCAJON_SUPPORT),y)
     BHSM_DEFINES += BHSM_ELCAJON_SUPPORT=1
+endif
+
+ifeq ($(BHSM_SUPPORT_REGION_RESIZE), ON)
+    BHSM_DEFINES += BHSM_SUPPORT_REGION_RESIZE=1
 endif
 
 # Define this module
@@ -112,6 +118,7 @@ ifneq ($(HSM_SOURCE_AVAILABLE),n)
             BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_elcajon.c
         endif
         BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_rv.c
+        BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_pcie_window.c
 
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_bsp_msg.c
@@ -130,6 +137,8 @@ ifneq ($(HSM_SOURCE_AVAILABLE),n)
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_rv_rsa.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_rv_region.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_hwkl.c
+        BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_signed_command.c
+        BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_otp_priv.c
         ifeq ($(BHSM_DEBUG_BSP),y)
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/zeus5/bhsm_p_debug_load_data.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_bsp_debug.c
@@ -149,7 +158,10 @@ ifneq ($(HSM_SOURCE_AVAILABLE),n)
             BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/bhsm_encinitas.c
             BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_encinitas_restricted.c
         endif
-
+        ifeq ($(BHSM_DUPLE_SUPPORT),y)
+            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/bhsm_duple_keyladder.c
+            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/zeus5/bhsm_p_duple_restricted.c
+        endif
     else
 
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm.c

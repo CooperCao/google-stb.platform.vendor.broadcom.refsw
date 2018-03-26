@@ -258,6 +258,11 @@ struct nxserver_settings
     struct {
         char *thermal_config_file;
     } thermal;
+    struct {
+        bool set[NEXUS_HDMI_OUTPUT_TMDS_RANGES];
+        NEXUS_HdmiOutputPreEmphasisConfiguration config;
+    } hdmiPreEmphasis;
+    bool watchdog; /* enable HW watchdog from at least one nxserver thread. this means if nxserver hangs or is killed, the system will reset. */
 };
 
 /* Capture some cmdline settings which are parsed and applied to NEXUS_PlatformSettings and
@@ -312,7 +317,7 @@ int nxserverlib_set_server_alpha(nxclient_t client, unsigned alpha);
 void nxserverlib_get_astm_settings(NEXUS_AstmSettings *pSettings);
 void nxserverlib_set_astm_settings(const NEXUS_AstmSettings *pSettings);
 #endif
-
+void nxserverlib_shutdown_watchdog(nxserver_t server);
 
 /* nxserver_cmdline.c */
 int nxserver_parse_cmdline(int argc, char **argv,
@@ -414,6 +419,7 @@ void NxClient_P_GetSurfaceClientComposition(nxclient_t client, unsigned surfaceC
 NEXUS_Error NxClient_P_SetSurfaceClientComposition(nxclient_t client, unsigned surfaceClientId, const NEXUS_SurfaceComposition *pComposition);
 
 NEXUS_Error NxClient_P_GetThermalStatus(nxclient_t client, NxClient_ThermalStatus *pStatus);
+NEXUS_Error NxClient_P_SetWatchdogTimeout(nxclient_t client, unsigned timeout);
 
 /* local server calls for client control */
 struct nxclient_status

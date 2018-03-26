@@ -36,14 +36,14 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-#include "nexus_platform.h"
-#include <stdio.h>
-
 #if NEXUS_HAS_ETBG
-#include "nexus_frontend.h"
-#include "nexus_parser_band.h"
-#include "nexus_tsmf.h"
-#include "nexus_etbg.h"
+#ifdef NXCLIENT_SUPPORT
+#include "nxclient.h"
+#include "nexus_simple_video_decoder.h"
+#include "nexus_simple_audio_decoder.h"
+#include "nexus_simple_stc_channel.h"
+#else
+#include "nexus_platform.h"
 #include "nexus_video_decoder.h"
 #include "nexus_stc_channel.h"
 #include "nexus_display.h"
@@ -59,7 +59,12 @@
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #endif
-
+#endif
+#include "nexus_frontend.h"
+#include "nexus_parser_band.h"
+#include "nexus_tsmf.h"
+#include "nexus_etbg.h"
+#include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -82,7 +87,7 @@ BDBG_MODULE(tsmf_mmt_live);
 
 
 #define MAX_PACKAGES 8
-#define NUM_BANDS_IN_GROUP  3
+#define NUM_BANDS_IN_GROUP  4
 #define RELATIVE_TS_NUM 1
 typedef struct band_config
 {
@@ -121,6 +126,7 @@ int main(int argc, char **argv)
     band_config input_config[NUM_BANDS_IN_GROUP] = {
        {true, 40, 4},
        {false, 40, 4},
+       {false, 40, 4},
        {false,  40, 4}
     };
     input_band input[NUM_BANDS_IN_GROUP];
@@ -133,7 +139,21 @@ int main(int argc, char **argv)
     NEXUS_PidChannelHandle framePidChnl;
     NEXUS_TsmfSettings tsmfSettings;
     NEXUS_FrontendQamStatus qamStatus;
-
+#ifdef NXCLIENT_SUPPORT
+    NxClient_JoinSettings joinSettings;
+    NxClient_AllocSettings allocSettings;
+    NxClient_AllocResults allocResults;
+    NxClient_ConnectSettings connectSettings;
+    unsigned connectId;
+    NEXUS_SimpleStcChannelHandle simpleStcChannel;
+    NEXUS_SimpleVideoDecoderHandle simpleVideoDecoder;
+    NEXUS_SimpleVideoDecoderStartSettings simpleVideoProgram;
+    NEXUS_SimpleAudioDecoderHandle simpleAudioDecoder;
+    NEXUS_SimpleAudioDecoderStartSettings simpleAudioProgram;
+    NEXUS_SimpleAudioDecoderSettings simpleAudioDecoderSettings;
+    NEXUS_MemoryAllocationSettings memSettings;
+    NEXUS_ClientConfiguration clientConfig;
+#else
     NEXUS_StcChannelHandle stcChannel;
     NEXUS_StcChannelSettings stcSettings;
     NEXUS_DisplayHandle display;
@@ -142,6 +162,13 @@ int main(int argc, char **argv)
     NEXUS_VideoDecoderHandle videoDecoder;
     NEXUS_AudioDecoderHandle audioDecoder;
     NEXUS_AudioDecoderOpenSettings audioDecoderOpenSettings;
+    NEXUS_AudioDecoderSettings audioDecoderSettings;
+    NEXUS_VideoDecoderStartSettings videoProgram;
+    NEXUS_AudioDecoderStartSettings audioProgram;
+#endif
+    NEXUS_VideoDecoderSettings videoDecoderSettings;
+    NEXUS_RemuxSettings rmxSettings;
+    NEXUS_Etbg_OpenSettings etbgOpenSettings;
     NEXUS_Error rc;
     bmmt_t mmt = NULL;
     bmmt_open_settings open_settings;
@@ -160,12 +187,8 @@ int main(int argc, char **argv)
     bmmt_mp_table mp_table[MAX_PACKAGES];
     btlv_am_table am_table;
     btlv_ip_address ip_addr;
-    NEXUS_VideoDecoderSettings videoDecoderSettings;
-    NEXUS_AudioDecoderSettings audioDecoderSettings;
     NEXUS_FrontendAcquireSettings acquireSettings;
     NEXUS_PidChannelHandle videoPidChannel, audioPidChannel;
-    NEXUS_VideoDecoderStartSettings videoProgram;
-    NEXUS_AudioDecoderStartSettings audioProgram;
     bool acquired = true;
     unsigned i = 0;
     int curarg = 1;
@@ -191,26 +214,35 @@ int main(int argc, char **argv)
         curarg++;
     }
 
+#ifdef NXCLIENT_SUPPORT
+    NxClient_GetDefaultJoinSettings(&joinSettings);
+    snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "%s", argv[0]);
+    rc = NxClient_Join(&joinSettings);
+    if (rc) return -1;
+#else
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
-
     for( i = 0; i < NEXUS_NUM_PARSER_BANDS; i++ )
     {
-        platformSettings.transportModuleSettings.maxDataRate.parserBand[ i ] = 108000000;
+        platformSettings.transportModuleSettings.maxDataRate.parserBand[ i ] = 125000000;
     }
     rc = NEXUS_Platform_Init(&platformSettings);
     if (rc) return -1;
-
-    hRmx = NEXUS_Remux_Open(NEXUS_ANY_ID, NULL);
+#endif
+    NEXUS_Remux_GetDefaultSettings(&rmxSettings);
+    hRmx = NEXUS_Remux_Open(NEXUS_ANY_ID, &rmxSettings);
     BDBG_ASSERT( hRmx );
+
     NEXUS_Remux_GetDefaultParserBandwidth(&remuxParserBandwidth);
-    remuxParserBandwidth.maxDataRate = 108000000;
+    remuxParserBandwidth.maxDataRate = 125000000;
     remuxParserBandwidth.parserBand = NEXUS_ParserBand_e0;
     NEXUS_Remux_SetParserBandwidth(hRmx,&remuxParserBandwidth);
 
     rc = NEXUS_Remux_Start(hRmx);
     BDBG_ASSERT(!rc);
 
-    hEtbg = NEXUS_Etbg_Open( NULL );
+    NEXUS_Etbg_GetDefaultOpenSettings( &etbgOpenSettings);
+
+    hEtbg = NEXUS_Etbg_Open( &etbgOpenSettings );
     BDBG_ASSERT( hEtbg );
     NEXUS_PidChannel_GetDefaultSettings(&pidChannelOpenSettings);
     pidChannelOpenSettings.continuityCountEnabled = false;
@@ -218,7 +250,15 @@ int main(int argc, char **argv)
     for (i=0;i<NUM_BANDS_IN_GROUP;i++)
     {
         NEXUS_FrontendQamSettings qamSettings;
+        #ifdef NXCLIENT_SUPPORT
+        NEXUS_FrontendAcquireSettings frontendAcquireSettings;
+        NEXUS_Frontend_GetDefaultAcquireSettings(&frontendAcquireSettings);
+        frontendAcquireSettings.capabilities.qam = true;
+        input[i].frontend = NEXUS_Frontend_Acquire(&frontendAcquireSettings);
+        BDBG_ASSERT((input[i].frontend));
+        #else
         input[i].frontend = platformConfig.frontend[i];
+        #endif
         BKNI_CreateEvent(&input[i].lockChanged);
         input[i].tsmf = NEXUS_Tsmf_Open( NEXUS_TSMF_INDEX(NEXUS_TsmfType_eBackend, i), NULL );
         BDBG_ASSERT(input[i].tsmf);
@@ -278,6 +318,40 @@ int main(int argc, char **argv)
     BDBG_ASSERT( !rc );
     NEXUS_Etbg_GetGroupSettings(hEtbg, &groupSettings);
     parserBand = groupSettings.primary;
+
+#ifdef NXCLIENT_SUPPORT
+simpleStcChannel = NEXUS_SimpleStcChannel_Create(NULL);
+    NxClient_GetDefaultAllocSettings(&allocSettings);
+    allocSettings.simpleVideoDecoder = 1;
+    allocSettings.surfaceClient = 1;
+    allocSettings.simpleAudioDecoder = 1;
+    rc = NxClient_Alloc(&allocSettings, &allocResults);
+    if (rc) {BDBG_WRN(("unable to alloc AV decode resources")); return -1;}
+    NxClient_GetDefaultConnectSettings(&connectSettings);
+    connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;
+    connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxWidth = 3840;
+    connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxHeight = 2160;
+    connectSettings.simpleVideoDecoder[0].surfaceClientId =  allocResults.surfaceClient[0].id;
+    connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxFormat = NEXUS_VideoFormat_e3840x2160p60hz;
+    connectSettings.simpleVideoDecoder[0].decoderCapabilities.supportedCodecs[NEXUS_VideoCodec_eH265] = true;
+    connectSettings.simpleVideoDecoder[0].windowCapabilities.type = NxClient_VideoWindowType_eMain;
+    connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
+    rc = NxClient_Connect(&connectSettings, &connectId);
+    if (rc) {BDBG_WRN(("unable to connect transcode resources")); return -1;}
+    simpleVideoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
+    NEXUS_SimpleVideoDecoder_GetSettings(simpleVideoDecoder,&videoDecoderSettings);
+    videoDecoderSettings.maxWidth = 3840;
+    videoDecoderSettings.maxHeight = 2160;
+    videoDecoderSettings.discardThreshold = 10*45000;
+    NEXUS_SimpleVideoDecoder_SetSettings(simpleVideoDecoder,&videoDecoderSettings);
+    NEXUS_SimpleVideoDecoder_SetStcChannel(simpleVideoDecoder, simpleStcChannel);
+    simpleAudioDecoder = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
+    NEXUS_SimpleAudioDecoder_SetStcChannel(simpleAudioDecoder, simpleStcChannel);
+    NEXUS_SimpleAudioDecoder_GetSettings(simpleAudioDecoder,&simpleAudioDecoderSettings);
+    simpleAudioDecoderSettings.primary.discardThreshold = 10*1000;
+    simpleAudioDecoderSettings.secondary.discardThreshold = 10*1000;
+    NEXUS_SimpleAudioDecoder_SetSettings(simpleAudioDecoder,&simpleAudioDecoderSettings);
+#else
     /**
       * Open display and add outputs
       **/
@@ -350,6 +424,7 @@ int main(int argc, char **argv)
     stcSettings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eFirstAvailable;
     rc = NEXUS_StcChannel_SetSettings(stcChannel, &stcSettings);
     if(rc){rc = BERR_TRACE(rc); goto done;}
+#endif
     /**
       *  mmt module instantiation
       **/
@@ -568,11 +643,20 @@ int main(int argc, char **argv)
             video_stream = bmmt_stream_open(mmt,&video_stream_settings);
             BDBG_ASSERT(video_stream);
             videoPidChannel = bmmt_stream_get_pid_channel(video_stream);
+            #ifdef NXCLIENT_SUPPORT
+            NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&simpleVideoProgram);
+            simpleVideoProgram.settings.codec = NEXUS_VideoCodec_eH265;
+            simpleVideoProgram.settings.pidChannel = videoPidChannel;
+            simpleVideoProgram.maxHeight = 2160;
+            simpleVideoProgram.maxWidth = 3860;
+            NEXUS_SimpleVideoDecoder_Start(simpleVideoDecoder,&simpleVideoProgram);
+            #else
             NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
             videoProgram.codec = NEXUS_VideoCodec_eH265;
             videoProgram.pidChannel = videoPidChannel;
             videoProgram.stcChannel = stcChannel;
             NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
+            #endif
         }
         else
         {
@@ -622,11 +706,18 @@ int main(int argc, char **argv)
             audio_stream = bmmt_stream_open(mmt,&audio_stream_settings);
             BDBG_ASSERT(audio_stream);
             audioPidChannel = bmmt_stream_get_pid_channel(audio_stream);
+            #ifdef NXCLIENT_SUPPORT
+            NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&simpleAudioProgram);
+            simpleAudioProgram.primary.codec = NEXUS_AudioCodec_eAacLoas;
+            simpleAudioProgram.primary.pidChannel = audioPidChannel;
+            NEXUS_SimpleAudioDecoder_Start(simpleAudioDecoder,&simpleAudioProgram);
+            #else
             NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
             audioProgram.codec = NEXUS_AudioCodec_eAacLoas;
             audioProgram.pidChannel = audioPidChannel;
             audioProgram.stcChannel = stcChannel;
             NEXUS_AudioDecoder_Start(audioDecoder, &audioProgram);
+            #endif
         }
         else
         {
@@ -643,16 +734,29 @@ done_mmt:
 
     BDBG_WRN(("Press any key to exit the app"));
     getchar();
+    #ifdef NXCLIENT_SUPPORT
+    NEXUS_SimpleAudioDecoder_Stop(simpleAudioDecoder);
+    #else
     NEXUS_AudioDecoder_Stop(audioDecoder);
+    #endif
+    #ifdef NXCLIENT_SUPPORT
+    NEXUS_SimpleVideoDecoder_Stop(simpleVideoDecoder);
+    #else
     NEXUS_VideoDecoder_Stop(videoDecoder);
+    #endif
     bmmt_stop(mmt);
     bmmt_close(mmt);
 done:
+    #ifdef NXCLIENT_SUPPORT
+    NxClient_Disconnect(connectId);
+    NxClient_Free(&allocResults);
+    #else
     if(window)NEXUS_VideoWindow_RemoveAllInputs(window);
     if(window)NEXUS_VideoWindow_Close(window);
     if(display)NEXUS_Display_Close(display);
     if(videoDecoder)NEXUS_VideoDecoder_Close(videoDecoder);
     if(audioDecoder)NEXUS_AudioDecoder_Close(audioDecoder);
+    #endif
     if (hRmx)
     {
        NEXUS_Remux_Stop(hRmx);
@@ -668,14 +772,18 @@ done:
           BKNI_DestroyEvent(input[i].lockChanged);
           NEXUS_Tsmf_Close(input[i].tsmf);
     }
+    #ifdef NXCLIENT_SUPPORT
+    NxClient_Uninit();
+    #else
     NEXUS_Platform_Uninit();
+    #endif
     return 0;
 }
 
-#else  /* if NEXUS_HAS_FRONTEND && NEXUS_HAS_VIDEO_DECODER */
+#else  /* NEXUS_HAS_ETBG */
 int main(void)
 {
     printf("ERROR: This platform doesn't include tsmf.inc \n");
     return -1;
 }
-#endif /* if NEXUS_HAS_FRONTEND && NEXUS_HAS_VIDEO_DECODER */
+#endif

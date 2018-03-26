@@ -163,7 +163,7 @@ b_play_read_callback(void *context)
     }
 }
 
-void
+static void
 b_play_handle_read_error(NEXUS_PlaybackHandle p, ssize_t size)
 {
     BSTD_UNUSED(size);
@@ -464,7 +464,7 @@ b_play_send_packet(NEXUS_PlaybackHandle p)
     return;
 keep_waiting:
     p->state.state = eWaitingPlayback;
-    p->state.data_source = b_play_send_packet; /* schedule to call us when space is avaliable */
+    p->state.data_source = b_play_send_packet; /* schedule to call us when space is available */
     return;
 }
 
@@ -538,7 +538,7 @@ b_play_send_frame(NEXUS_PlaybackHandle p)
 
 keep_waiting:
     p->state.state = eWaitingPlayback;
-    p->state.data_source = b_play_send_frame; /* call us when space is avaliable */
+    p->state.data_source = b_play_send_frame; /* call us when space is available */
     return;
 }
 

@@ -46,11 +46,7 @@ BDBG_MODULE(nexus_platform_973625);
 
 static void nexus_p_modifyDefaultMemoryConfigurationSettings(NEXUS_MemoryConfigurationSettings *pSettings)
 {
-#if NEXUS_HAS_VIDEO_DECODER && defined(NEXUS_PLATFORM_973625)
-    pSettings->videoDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH265] = true;
-#else
     BSTD_UNUSED(pSettings);
-#endif
 }
 
 void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)

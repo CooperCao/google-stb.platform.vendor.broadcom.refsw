@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
-******************************************************************************/
+ ******************************************************************************/
 /*
  * Nexus example app: single playback 4k hevc video decode routed to HDMI with
  * HDR signaling.
@@ -345,8 +342,6 @@ static void usage(void)
     fprintf(stdout, "  -c videoCodec Optional. Specifies the video codec to decode.  Defaults to hevc.  Allowed values are: hevc, mpeg, avc.\n");
 }
 
-static const char * unknownString = "unknown";
-
 typedef struct
 {
     const char * name;
@@ -381,6 +376,9 @@ static NEXUS_VideoCodec parseVideoCodec(const char * codecStr)
     return codec;
 }
 
+#if BDBG_DEBUG_BUILD && !B_REFSW_DEBUG_COMPACT_ERR
+static const char * unknownString = "unknown";
+
 static const char * getVideoCodecName(NEXUS_VideoCodec codec)
 {
     const VideoCodecMapEntry * e;
@@ -397,6 +395,7 @@ static const char * getVideoCodecName(NEXUS_VideoCodec codec)
 
     return name;
 }
+#endif
 
 typedef struct
 {
@@ -429,6 +428,7 @@ static NEXUS_TransportType parseTransportType(const char * typeStr)
     return type;
 }
 
+#if BDBG_DEBUG_BUILD && !B_REFSW_DEBUG_COMPACT_ERR
 static const char * getTransportTypeName(NEXUS_TransportType type)
 {
     const TransportTypeMapEntry * e;
@@ -445,6 +445,7 @@ static const char * getTransportTypeName(NEXUS_TransportType type)
 
     return name;
 }
+#endif
 
 static NEXUS_Error parseArgs(int argc, char * argv[], Args * args)
 {

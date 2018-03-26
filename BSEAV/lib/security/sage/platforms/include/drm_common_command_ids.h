@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -76,7 +76,7 @@ typedef enum DrmWVOemCrypto_CommandId_e
 
     /* APIs for v9 support */
     DrmWVOEMCrypto_CommandId_eUpdateUsageTable         = 23,
-    DrmWVOEMCrypto_CommandId_eDeactivateUsageEntry     = 24,
+    DrmWVOEMCrypto_CommandId_eDeactivateUsageEntry_V12 = 24,
     DrmWVOEMCrypto_CommandId_eReportUsage              = 25,
     DrmWVOEMCrypto_CommandId_eDeleteUsageEntry         = 26,
     DrmWVOEMCrypto_CommandId_eDeleteUsageTable         = 27,
@@ -92,7 +92,33 @@ typedef enum DrmWVOemCrypto_CommandId_e
     /* APIs for v11 Support */
     DrmWVOEMCrypto_CommandId_eDecryptCENC              = 33,
     DrmWVOEMCrypto_CommandId_eSecurityPatchLevel       = 34,
-    DrmWVOEMCrypto_CommandId_eLoadKeys                 = 35,
+    DrmWVOEMCrypto_CommandId_eLoadKeys_V11_or_V12      = 35,
+
+    /* APIs for v12 Support */
+    DrmWVOEMCrypto_CommandId_eGetProvisioningMethod    = 36,
+    DrmWVOEMCrypto_CommandId_eGetOEMPublicCertificate  = 37,
+    DrmWVOEMCrypto_CommandId_eRewrapDeviceRSAKey30     = 38,
+
+    /* APIs for v13 Support */
+    DrmWVOEMCrypto_CommandId_eSupportedCertificates    = 39,
+    DrmWVOEMCrypto_CommandId_eIsSRMUpdateSupported     = 40,
+    DrmWVOEMCrypto_CommandId_eGetCurrentSRMVersion     = 41,
+    DrmWVOEMCrypto_CommandId_eLoadSRM                  = 42,
+    DrmWVOEMCrypto_CommandId_eLoadKeys                 = 43,
+    DrmWVOEMCrypto_CommandId_eRemoveSRM                = 44,
+    DrmWVOEMCrypto_CommandId_eCreateUsageTableHeader   = 45,
+    DrmWVOEMCrypto_CommandId_eLoadUsageTableHeader     = 46,
+    DrmWVOEMCrypto_CommandId_eCreateNewUsageEntry      = 47,
+    DrmWVOEMCrypto_CommandId_eLoadUsageEntry           = 48,
+    DrmWVOEMCrypto_CommandId_eUpdateUsageEntry         = 49,
+    DrmWVOEMCrypto_CommandId_eDeactivateUsageEntry     = 50,
+    DrmWVOEMCrypto_CommandId_eShrinkUsageTableHeader   = 51,
+    DrmWVOEMCrypto_CommandId_eMoveEntry                = 52,
+    DrmWVOEMCrypto_CommandId_eCopyOldUsageEntry        = 53,
+    DrmWVOEMCrypto_CommandId_eCreateOldUsageEntry      = 54,
+    DrmWVOEMCrypto_CommandId_eIsMgnInitialized         = 55,
+    DrmWVOEMCrypto_CommandId_eNoWritePending           = 56,
+    DrmWVOEMCrypto_CommandId_eIsSsdReady               = 57,
 
     DrmWVOEMCrypto_CommandId_eMax
 }DrmWVOemCrypto_CommandId_e;

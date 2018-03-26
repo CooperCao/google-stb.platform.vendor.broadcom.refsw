@@ -318,9 +318,9 @@ void NEXUS_SecurityModule_GetDefaultSettings(NEXUS_SecurityModuleSettings *pSett
     pSettings->numKeySlotsForType[0]= 0;
     pSettings->numKeySlotsForType[1]= 32;
     pSettings->numKeySlotsForType[2]= 0;
-    pSettings->numKeySlotsForType[3]= 52;
+    pSettings->numKeySlotsForType[3]= 50;
     pSettings->numKeySlotsForType[4]= 1;
-    pSettings->numKeySlotsForType[5]= 51;
+    pSettings->numKeySlotsForType[5]= 50;
     #endif
   #endif /* NEXUS_HAS_NSK2HDI */
 
@@ -555,7 +555,7 @@ static BERR_Code NEXUS_Security_P_InitHsm(const NEXUS_SecurityModuleSettings * p
     keyslot_io.bMulti2SysKey     = pSettings->enableMulti2Key;
     keyslot_io.numMulti2KeySlots = pSettings->numMulti2KeySlots;
 
-    /* For API backward compatability */
+    /* For API backward compatibility */
     if( keyslot_io.bMulti2SysKey && (keyslot_io.numMulti2KeySlots == 0) )
     {
         keyslot_io.numMulti2KeySlots = BCMD_MULTI2_MAXSYSKEY;

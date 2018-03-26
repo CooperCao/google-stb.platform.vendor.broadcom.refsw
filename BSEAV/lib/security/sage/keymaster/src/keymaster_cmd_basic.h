@@ -56,5 +56,10 @@
 #define KM_CMD_BASIC_ADD_RNG_ENTROPY_IN_DATA_LEN        inout->blocks[0].len
 #define KM_CMD_BASIC_ADD_RNG_ENTROPY_IN_DATA_PTR        inout->blocks[0].data.ptr
 
+/* inout parameters for the get configuration call */
+#define KM_CMD_BASIC_GET_CONFIGURATION_OUT_RPMB_EN      inout->basicOut[1]
+#define KM_CMD_BASIC_GET_CONFIGURATION_OUT_VMS_EN       inout->basicOut[2]
+#define KM_CMD_BASIC_GET_CONFIGURATION_OUT_HW_KEY_TOTAL inout->basicOut[3]
+
 
 #endif  /* KEYMASTER_CMD_BASIC_H__ */

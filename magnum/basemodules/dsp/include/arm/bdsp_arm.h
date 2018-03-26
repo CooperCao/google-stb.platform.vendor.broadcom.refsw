@@ -67,9 +67,7 @@ typedef struct BDSP_ArmSettings
     unsigned maxAlgorithms[BDSP_AlgorithmType_eMax] ;
 	BTEE_InstanceHandle hBteeInstance;
 
-#ifdef SR_REMOVE  /*SR_TBD */
-    BDSP_Arm_DebugTypeSettings debugSettings[BDSP_Arm_DebugType_eLast]; /* Debug information for the different types of debug logs */
-#endif
+    BDSP_DebugTypeSettings debugSettings[BDSP_DebugType_eLast]; /* Debug information for the different types of debug logs */
 } BDSP_ArmSettings;
 
 /***************************************************************************

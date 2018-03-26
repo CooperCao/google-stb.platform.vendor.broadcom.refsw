@@ -1329,14 +1329,12 @@ BERR_Code BVDC_Window_GetDeinterlaceConfiguration
 /***************************************************************************
  *
  */
-BERR_Code BVDC_Window_GetDeinterlaceDefaultConfiguration
-    ( const BVDC_Window_Handle         hWindow,
-      BVDC_Deinterlace_Settings       *pMadSettings )
+void BVDC_Window_GetDeinterlaceDefaultConfiguration
+    ( BVDC_Deinterlace_Settings       *pMadSettings )
 {
     BDBG_ENTER(BVDC_Window_GetDeinterlaceDefaultConfiguration);
     /* sanity check input parameter as much as we can */
     BDBG_ASSERT(pMadSettings);
-    BSTD_UNUSED(hWindow);
 
     /* Get static default */
     BVDC_P_Mvp_Init_Default(
@@ -1355,7 +1353,6 @@ BERR_Code BVDC_Window_GetDeinterlaceDefaultConfiguration
         pMadSettings->pLowAngles);
 
     BDBG_LEAVE(BVDC_Window_GetDeinterlaceDefaultConfiguration);
-    return BERR_SUCCESS;
 }
 
 /***************************************************************************
@@ -3736,23 +3733,11 @@ BERR_Code BVDC_Window_GetCapabilities
 {
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    if (pCapabilities)
-    {
-        BVDC_Compositor_Handle hCompositor = hWindow->hCompositor;
-        int iWinInCmp = hWindow->eId - BVDC_P_CMP_GET_V0ID(hCompositor);
-        BCFC_Capability stCapability;
-
-        stCapability.ulInts = hCompositor->stCfcCapability[iWinInCmp].ulInts;
-        stCapability.stBits.bBlackBoxNLConv = stCapability.stBits.bNL2L && !stCapability.stBits.bMb;
-
-        pCapabilities->bConvColorimetry = stCapability.stBits.bBlackBoxNLConv || stCapability.stBits.bMb;
-        pCapabilities->bConvHdr10 = stCapability.stBits.bLRngAdj || stCapability.stBits.bLMR;
-        pCapabilities->bConvHlg = stCapability.stBits.bLMR;
-        pCapabilities->bTchInput = stCapability.stBits.bTpToneMapping;
-        pCapabilities->bDolby = stCapability.stBits.bDbvToneMapping || stCapability.stBits.bDbvCmp;
-    }
-
-    return BERR_SUCCESS;
+    return BVDC_GetWindowCapabilities(hWindow->hCompositor->hVdc, hWindow->hCompositor->eId,
+        (hWindow->eId < BVDC_P_WindowId_eComp0_G0)? (hWindow->eId - BVDC_P_CMP_GET_V0ID(hWindow->hCompositor)) :
+         ((hWindow->eId == BVDC_P_WindowId_eComp0_G1)? BVDC_WindowId_eGfx1 :
+         ((hWindow->eId == BVDC_P_WindowId_eComp0_G2)? BVDC_WindowId_eGfx2 : BVDC_WindowId_eGfx0)),
+        pCapabilities);
 }
 
 #ifndef BVDC_FOR_BOOTUPDATER

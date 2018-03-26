@@ -145,6 +145,111 @@ BDBG_FILE_MODULE(BVDC_FIR_BYPASS);
 
 /***************************************************************************
  * {private}
+ *
+ */
+void BVDC_P_GfxFeeder_GetCfcCapabilities
+    ( BREG_Handle                      hRegister,
+      BAVC_SourceId                    eGfdId,
+      BCFC_Capability                 *pCapability )
+{
+    uint32_t ulRegOffset = 0;
+
+    BKNI_Memset((void*)pCapability, 0x0, sizeof(pCapability));
+    pCapability->stBits.bMc = 1;
+
+    switch(eGfdId)
+    {
+        case BAVC_SourceId_eGfx0:
+            ulRegOffset = 0;         \
+            break;
+#ifdef BCHP_GFD_1_REG_START
+        case BAVC_SourceId_eGfx1:
+            ulRegOffset = BCHP_GFD_1_REG_START - BCHP_GFD_0_REG_START;         \
+            break;
+#endif
+#ifdef BCHP_GFD_2_REG_START
+        case BAVC_SourceId_eGfx2:
+            ulRegOffset = BCHP_GFD_2_REG_START - BCHP_GFD_0_REG_START;         \
+            break;
+#endif
+#ifdef BCHP_GFD_3_REG_START
+        case BAVC_SourceId_eGfx3:
+            ulRegOffset = BCHP_GFD_3_REG_START - BCHP_GFD_0_REG_START;         \
+            break;
+#endif
+#ifdef BCHP_GFD_4_REG_START
+        case BAVC_SourceId_eGfx4:
+            ulRegOffset = BCHP_GFD_4_REG_START - BCHP_GFD_0_REG_START;         \
+            break;
+#endif
+#ifdef BCHP_GFD_5_REG_START
+        case BAVC_SourceId_eGfx5:
+            ulRegOffset = BCHP_GFD_5_REG_START - BCHP_GFD_0_REG_START;         \
+            break;
+#endif
+#ifdef BCHP_GFD_6_REG_START
+        case BAVC_SourceId_eGfx6:
+            ulRegOffset = BCHP_GFD_6_REG_START - BCHP_GFD_0_REG_START;         \
+            break;
+#endif
+        default:
+            BDBG_ERR(("Need to handle BAVC_SourceId_eGfx%d", eGfdId));
+            BDBG_ASSERT(0);
+            break;
+    }
+
+#if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_3)
+
+#ifdef BCHP_GFD_0_HW_CONFIGURATION
+    pCapability->stBits.bMc = 1;
+    if (BAVC_SourceId_eGfx0 == eGfdId)
+    {
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_1)
+        pCapability->stBits.bMa = 1;
+        pCapability->stBits.bNL2L = 1;
+        pCapability->stBits.bL2NL = 1;
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
+        pCapability->stBits.bRamNL2L = 1;
+        pCapability->stBits.bRamL2NL = 1;
+        pCapability->stBits.bMb = 1;
+        pCapability->stBits.bLRngAdj = 1;
+
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
+        {
+        uint32_t ulHdrHwCfg = BREG_Read32(hRegister,
+            BCHP_GFD_0_HDR_HW_CONFIGURATION + ulRegOffset);
+        pCapability->stBits.bRamLutScb = BVDC_P_GET_FIELD(
+            ulHdrHwCfg, GFD_0_HDR_HW_CONFIGURATION, LUT_SCB_PRESENT);
+        pCapability->stBits.bLMR = BVDC_P_GET_FIELD(
+            ulHdrHwCfg, GFD_0_HDR_HW_CONFIGURATION, CFC_LMR_PRESENT);
+        pCapability->stBits.bAlphaDiv = BVDC_P_GET_FIELD(
+            ulHdrHwCfg, GFD_0_HDR_HW_CONFIGURATION, ALPHA_DIV_PRESENT);
+        pCapability->stBits.bCscBlendIn = BVDC_P_GET_FIELD(
+            ulHdrHwCfg, GFD_0_HDR_HW_CONFIGURATION, CSC_BLD_IN_PRESENT);
+        pCapability->stBits.bCscBlendOut = BVDC_P_GET_FIELD(
+            ulHdrHwCfg, GFD_0_HDR_HW_CONFIGURATION, CSC_BLD_OUT_PRESENT);
+        pCapability->stBits.bDbvToneMapping = BVDC_P_GET_FIELD(
+            ulHdrHwCfg, GFD_0_HDR_HW_CONFIGURATION, CFC_DLBV_CVM_PRESENT);
+        pCapability->stBits.bTpToneMapping = BVDC_P_GET_FIELD(
+            ulHdrHwCfg, GFD_0_HDR_HW_CONFIGURATION, CFC_TP_PRESENT);
+        }
+#endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3) */
+#endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2) */
+#endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_1) */
+    }
+#endif
+#endif /* (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_3) */
+
+#if (BVDC_P_CMP_CFC_VER < BVDC_P_CFC_VER_3)
+    BSTD_UNUSED(hRegister);
+    BSTD_UNUSED(ulRegOffset);
+#endif
+
+    return;
+}
+
+/***************************************************************************
+ * {private}
  * BVDC_P_GfxFeeder_Create
  *
  * Called by BVDC_P_Source_Create to create gfx feeder specific context
@@ -288,35 +393,9 @@ BERR_Code BVDC_P_GfxFeeder_Create
 #else
     BSTD_UNUSED(bSupport3D);
 #endif
-    pGfxFeeder->stCfc.stCapability.stBits.bMc = 1;
-    if (BAVC_SourceId_eGfx0 == pGfxFeeder->eId)
-    {
-#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_1)
-        pGfxFeeder->stCfc.stCapability.stBits.bMa = 1;
-        pGfxFeeder->stCfc.stCapability.stBits.bNL2L = 1;
-        pGfxFeeder->stCfc.stCapability.stBits.bL2NL = 1;
-#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
-        pGfxFeeder->stCfc.stCapability.stBits.bRamNL2L = 1;
-        pGfxFeeder->stCfc.stCapability.stBits.bRamL2NL = 1;
-        pGfxFeeder->stCfc.stCapability.stBits.bMb = 1;
-        pGfxFeeder->stCfc.stCapability.stBits.bLRngAdj = 1;
 
-#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
-        { /* TODO: bandrews - someone from VDC team please fix the way you like it */
-        uint32_t ulHdrHwCfg = BREG_Read32(pGfxFeeder->hRegister,
-            BCHP_GFD_0_HDR_HW_CONFIGURATION + pGfxFeeder->ulRegOffset);
-        pGfxFeeder->stCfc.stCapability.stBits.bRamLutScb = 1;
-        pGfxFeeder->stCfc.stCapability.stBits.bLMR = 1;
-        pGfxFeeder->stCfc.stCapability.stBits.bAlphaDiv = 1;
-        pGfxFeeder->stCfc.stCapability.stBits.bCscBlendIn = 1;
-        pGfxFeeder->stCfc.stCapability.stBits.bCscBlendOut = 1;
-        pGfxFeeder->stCfc.stCapability.stBits.bDbvToneMapping = BVDC_P_GET_FIELD(
-            ulHdrHwCfg, GFD_0_HDR_HW_CONFIGURATION, CFC_DLBV_CVM_PRESENT);
-        }
-#endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3) */
-#endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2) */
-#endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_1) */
-    }
+    /* get cfc capabilities */
+    BVDC_P_GfxFeeder_GetCfcCapabilities(hRegister, eGfdId, &pGfxFeeder->stCfc.stCapability);
 
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_6)
     pGfxFeeder->ulVertLineBuf =
@@ -1078,6 +1157,7 @@ BERR_Code BVDC_P_GfxFeeder_ValidateChanges
         pNewDirty->stBits.bSdrGfx2HdrAdj = BVDC_P_DIRTY;
     }
     if((pNewDirty->stBits.bSdrGfx2HdrAdj) ||
+       (pNewDirty->stBits.bLuminance) ||
        (pWinNewInfo->stDirty.stBits.bCscAdjust) ||
        (pWinNewInfo->sHue                  != pWinCurInfo->sHue           ) ||
        (pWinNewInfo->sContrast             != pWinCurInfo->sContrast      ) ||
@@ -2051,7 +2131,7 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForEnableCtrl_isr
     }
 #endif
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
-    ulEnClrMtrx       = hGfxFeeder->stCfc.stCapability.stBits.bCscBlendOut? ulEnAlphaDiv : stFlags.bNeedColorSpaceConv;
+    ulEnClrMtrx       = hGfxFeeder->stCfc.stCapability.stBits.bCscBlendIn? ulEnAlphaDiv : stFlags.bNeedColorSpaceConv;
 #if BVDC_P_DBV_SUPPORT
     if (hGfxFeeder->hWindow && hGfxFeeder->bDbvEnabled &&
         hGfxFeeder->hWindow->hCompositor->hDisplay->stCurInfo.stHdmiSettings.stSettings.bBlendInIpt)
@@ -2074,14 +2154,14 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForEnableCtrl_isr
         /*
                  none of these functions are needed, GSCL_ENABLE can be turned off
                  GFD_0_GSCL_CFG. HCLIP_ENABLE
-    ·            GFD_0_GSCL_CFG. VCLIP_ENABLE
-    ·            GFD_0_GSCL_CFG. IOBUF_ENABLE
-    ·            GFD_0_GSCL_CFG. VSCL_ENABLE
-    ·            GFD_0_DEJAGGING. VERT_DEJAGGING
-    ·            GFD_0_DERINGING. HORIZ_ALPHA_DERINGING
-    ·            GFD_0_DERINGING. HORIZ_CHROMA_DERINGING
-    ·            GFD_0_DERINGING. HORIZ_LUMA_DERINGING
-    ·            GFD_0_CTRL. HFIR_ENABLE
+                 GFD_0_GSCL_CFG. VCLIP_ENABLE
+                 GFD_0_GSCL_CFG. IOBUF_ENABLE
+                 GFD_0_GSCL_CFG. VSCL_ENABLE
+                 GFD_0_DEJAGGING. VERT_DEJAGGING
+                 GFD_0_DERINGING. HORIZ_ALPHA_DERINGING
+                 GFD_0_DERINGING. HORIZ_CHROMA_DERINGING
+                 GFD_0_DERINGING. HORIZ_LUMA_DERINGING
+                 GFD_0_CTRL. HFIR_ENABLE
                  */
         bEnVscl   = stFlags.bNeedVertScale;
         bEnDejag  = stFlags.bEnDejag;
@@ -2093,8 +2173,8 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForEnableCtrl_isr
 
         *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
         *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_GSCL_CFG ) + ulRulOffset;
-        /* HCLIP controls the alpha clipping circuit in GFD’s HSCL dering block */
-        /* VCLIP controls the alpha clipping circuit in GFD’s VSCL dejag block */
+        /* HCLIP controls the alpha clipping circuit in GFD's HSCL dering block */
+        /* VCLIP controls the alpha clipping circuit in GFD's VSCL dejag block */
         *pulRulCur++ =
             BCHP_FIELD_DATA( GFD_0_GSCL_CFG, BAVG_BLK_SIZE, pCurCfg-> ulVsclBlkAvgSize ) |
             BCHP_FIELD_DATA( GFD_0_GSCL_CFG, HCLIP_ENABLE,  bEnDering )                  |
@@ -2332,17 +2412,18 @@ void BVDC_P_GfxFeeder_UpdateState_isr
     /* resolve color conversion state */
     if (hGfxFeeder->hWindow)
     {
-        if (hGfxFeeder->stCurCfgInfo.stDirty.stBits.bSdrGfx2HdrAdj)
-        {
-            BVDC_P_GfxFeeder_CalculateSdr2HdrCsc_isr(hGfxFeeder);
-        }
-
         if ( stCurDirty.stBits.bCsc ||
-             hGfxFeeder->hWindow->hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace )
+             hGfxFeeder->hWindow->hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace ||
+             hGfxFeeder->stCurCfgInfo.stDirty.stBits.bLuminance)
         {
             if (stCurDirty.stBits.bCsc)
             {
                 BVDC_P_GfxFeeder_UpdateGfxInputColorSpace_isr(pCurSur, &hGfxFeeder->stCfc.stColorSpaceExtIn);
+            }
+            if (hGfxFeeder->stCurCfgInfo.stDirty.stBits.bLuminance)
+            {
+                hGfxFeeder->stCfc.stColorSpaceExtIn.stColorSpace.stHdrParm.ulMinDispMasteringLuma = hGfxFeeder->stCurCfgInfo.stLuminance.ulMin;
+                hGfxFeeder->stCfc.stColorSpaceExtIn.stColorSpace.stHdrParm.ulMaxDispMasteringLuma = hGfxFeeder->stCurCfgInfo.stLuminance.ulMax;
             }
 #if BVDC_P_DBV_SUPPORT
             if(hGfxFeeder->stCfc.stCapability.stBits.bDbvToneMapping) {

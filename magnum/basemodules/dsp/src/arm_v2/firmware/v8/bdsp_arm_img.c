@@ -58,6 +58,7 @@ static void *BDSP_ARM_IMG_P_GetArray(unsigned imgId)
         case BDSP_ARM_SystemImgId_eLibMMClient:                return BDSP_ARM_IMG_mm_client;
         case BDSP_ARM_SystemImgId_eLibStageIO:                 return BDSP_ARM_IMG_stage_io;
         case BDSP_ARM_SystemImgId_eLibMMServer:                return BDSP_ARM_IMG_mm_server;
+        case BDSP_ARM_SystemImgId_eLibDebugControl:            return BDSP_ARM_IMG_debug_control;
 #ifdef BDSP_MPEG_SUPPORT
         case BDSP_ARM_IMG_ID_CODE(BDSP_Algorithm_eMpegAudioDecode):             return BDSP_ARM_IMG_adec_mpeg1;
         case BDSP_ARM_IMG_ID_TABLE(BDSP_Algorithm_eMpegAudioDecode):            return BDSP_ARM_IMG_adec_mpeg1_tables;

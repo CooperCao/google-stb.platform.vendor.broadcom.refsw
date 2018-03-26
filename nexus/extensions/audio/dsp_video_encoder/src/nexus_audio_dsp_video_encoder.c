@@ -233,6 +233,21 @@ NEXUS_Error NEXUS_DspVideoEncoder_Start_priv(NEXUS_DspVideoEncoderHandle encoder
     encoder->veeStartSettings.nonRealTime = startSettings->nonRealTime;
     encoder->veeStartSettings.codec = NEXUS_P_VideoCodec_ToMagnum(startSettings->codec, NEXUS_TransportType_eEs);
     rc = NEXUS_P_FrameRate_ToMagnum_isrsafe(startSettings->framerate, &encoder->veeStartSettings.frameRate);
+
+    /* TODO: please fill in the supported profiles; what about level? */
+    switch(startSettings->profile) {
+    case BAVC_VideoCompressionProfile_eBaseline:
+        encoder->veeStartSettings.eProfileIDC = BVEE_VideoH264Profile_eBaseline;
+        break;
+    case BAVC_VideoCompressionProfile_eMain:
+        encoder->veeStartSettings.eProfileIDC = BVEE_VideoH264Profile_eMain;
+        break;
+    case BAVC_VideoCompressionProfile_eHigh:
+        encoder->veeStartSettings.eProfileIDC = BVEE_VideoH264Profile_eFRExtProfileHigh;
+        break;
+    default:
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
     encoder->veeStartSettings.ui32EncodPicWidth = startSettings->width;
     encoder->veeStartSettings.ui32EncodPicHeight = startSettings->height;
     encoder->veeStartSettings.ui32TargetBitRate = startSettings->bitrate;
@@ -395,7 +410,7 @@ error:
     return rc;
 }
 
-NEXUS_Error NEXUS_DspVideoEncoder_GetBufferBlocks_priv(NEXUS_DspVideoEncoderHandle encoder, BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock)
+NEXUS_Error NEXUS_DspVideoEncoder_GetBufferBlocks_priv(NEXUS_DspVideoEncoderHandle encoder, BMMA_Block_Handle *phFrameBufferBlock, BMMA_Block_Handle *phMetadataBufferBlock, BMMA_Block_Handle *phIndexBufferBlock)
 {
     NEXUS_Error rc;
     BAVC_VideoBufferStatus bufferStatus;
@@ -406,6 +421,7 @@ NEXUS_Error NEXUS_DspVideoEncoder_GetBufferBlocks_priv(NEXUS_DspVideoEncoderHand
 
     *phFrameBufferBlock = bufferStatus.stCommon.hFrameBufferBlock;
     *phMetadataBufferBlock = bufferStatus.stCommon.hMetadataBufferBlock;
+    *phIndexBufferBlock = bufferStatus.stCommon.hMetadataBufferBlock;
     return NEXUS_SUCCESS;
 }
 
@@ -460,6 +476,22 @@ NEXUS_Error NEXUS_DspVideoEncoder_GetStatus_priv(NEXUS_DspVideoEncoderHandle enc
         }
         pStatus->metadataBufferBlock = encoder->meta.nexus;
     }
+    pStatus->data.fifoDepth  = bufferStatus.stCommon.stCDB.uiDepth;
+    pStatus->data.fifoSize   = bufferStatus.stCommon.stCDB.uiSize;
+    pStatus->index.fifoDepth = bufferStatus.stCommon.stITB.uiDepth;
+    pStatus->index.fifoSize  = bufferStatus.stCommon.stITB.uiSize;
+
+    pStatus->data.read = bufferStatus.stCommon.stCDB.uiRead;
+    pStatus->data.base = bufferStatus.stCommon.stCDB.uiBase;
+    pStatus->data.valid = bufferStatus.stCommon.stCDB.uiValid;
+    pStatus->data.end = bufferStatus.stCommon.stCDB.uiEnd;
+    pStatus->data.ready = bufferStatus.stCommon.bReady;
+    pStatus->index.read = bufferStatus.stCommon.stITB.uiRead;
+    pStatus->index.base = bufferStatus.stCommon.stITB.uiBase;
+    pStatus->index.valid = bufferStatus.stCommon.stITB.uiValid;
+    pStatus->index.end = bufferStatus.stCommon.stITB.uiEnd;
+    pStatus->index.ready = bufferStatus.stCommon.bReady;
+
     return NEXUS_SUCCESS;
 
 error:

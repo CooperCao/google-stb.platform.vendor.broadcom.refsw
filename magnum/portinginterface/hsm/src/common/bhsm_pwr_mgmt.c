@@ -44,8 +44,6 @@
 
 BDBG_MODULE(BHSM);
 
-BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
-
 BERR_Code BHSM_PwrMgmt ( BHSM_Handle  hHsm,
                          BHSM_PwrMgmtIO_t    *pPwrMgmt )
 {

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -52,6 +52,11 @@ extern NEXUS_AudioDecoderHandle g_decoders[NEXUS_NUM_AUDIO_DECODERS];
 void NEXUS_AudioDebug_GetOutputStatus(void);
 void NEXUS_AudioDebug_P_PrintDigitalOutputStatus(BAPE_DebugDigitalOutputStatus *status);
 
+#if BAPE_CHIP_MAX_I2S_OUTPUTS || BAPE_CHIP_MAX_SPDIF_OUTPUTS || BAPE_CHIP_MAX_MAI_OUTPUTS || BAPE_CHIP_MAX_DACS
+  #define NEXUS_AUDIO_OUTPUTS_ENABLED     1
+#else
+  #define NEXUS_AUDIO_OUTPUTS_ENABLED     0
+#endif
 
 void NEXUS_AudioDebug_P_PrintDigitalOutputStatus(BAPE_DebugDigitalOutputStatus *status)
 {
@@ -577,6 +582,7 @@ void NEXUS_AudioDebug_GetOutputStatus()
     errCode = BAPE_Debug_GetStatus( g_NEXUS_audioModuleData.debugHandle,
                                     BAPE_DebugSourceType_eOutput,
                                     &status);
+    BSTD_UNUSED(i);
 
     if ( errCode == BERR_SUCCESS)
     {
@@ -950,8 +956,7 @@ static void NEXUS_AudioDebug_PrintGraph(void)
 
 #define PRINT_FORMAT_COEFF(base, ptr, val) val>0?(ptr += BKNI_Snprintf(ptr, sizeof(base)-(ptr-base),"%06x ", val)):(ptr += BKNI_Snprintf(ptr, sizeof(base)-(ptr-base),"   *   "))
 
-
-
+#if NEXUS_AUDIO_OUTPUTS_ENABLED
 static void NEXUS_AudioDebug_P_PrintOutputVolume(BAPE_DebugOutputVolume *debugVolume)
 {
     char volumePrint[60];
@@ -1006,6 +1011,7 @@ static void NEXUS_AudioDebug_P_PrintOutputVolume(BAPE_DebugOutputVolume *debugVo
     }
     BDBG_LOG((" "));
 }
+#endif
 
 static void NEXUS_AudioDebug_PrintVolume(void)
 {

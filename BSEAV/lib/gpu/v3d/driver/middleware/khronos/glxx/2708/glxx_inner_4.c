@@ -24,7 +24,7 @@
 #include "middleware/khronos/common/khrn_mem.h"
 
 #if defined(ANDROID)
-#include <cutils/log.h>
+#include <log/log.h>
 #endif
 
 /*************************************************************

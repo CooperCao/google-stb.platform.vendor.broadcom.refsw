@@ -56,9 +56,21 @@ $(if $(B_REFSW_ARCH),,    $(error ERROR: B_REFSW_ARCH is not defined))
 B_NET_SNMP_TOOLCHAIN_ARCH ?= $(B_REFSW_ARCH)
 NET_SNMP_CONFIG_CFLAGS  := -O2 -fPIC -DNET_SNMP_MAX_WRITE_SIZE=65536
 
-all : source
+ifeq ($(BINDIR),)
+ifeq ($(B_REFSW_OBJ_DIR),)
+BINDIR = $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/nexus/bin
+else
+BINDIR = $(NEXUS_TOP)/../$(B_REFSW_OBJ_DIR)/nexus/bin
+endif
+endif
+
+all : ${BINDIR}/exists source
 
 .PHONY: all clean
+
+${BINDIR}/exists:
+	@echo [mkdir $(BINDIR)/exists]
+	@mkdir -p $@
 
 B_NET_SNMP_EXTRACT_REDIR :=
 
@@ -123,7 +135,7 @@ all : source
 			--with-persistent-directory="/var/net_snmp" > /dev/null 2>&1 ; \
 		echo "================ Configuring NET_SNMP $(NET_SNMP_VER) complete ===================="; \
 		echo "================ Patching    NET_SNMP $(NET_SNMP_VER) ============================="; \
-		(cd $(NET_SNMP_TAR_PATH)/$(NET_SNMP_NAME2) && patch -p1 < $(WORKING_DIR)/net_snmp-$(NET_SNMP_VER).patch); \
+		(cd $(NET_SNMP_TAR_PATH)/$(NET_SNMP_NAME2) && patch -p1 < $(WORKING_DIR)/net_snmp-$(NET_SNMP_VER).$(B_REFSW_ARCH).patch); \
 	else \
 		echo "================ NET_SNMP $(NET_SNMP_VER) already configured ======================"; \
 	fi

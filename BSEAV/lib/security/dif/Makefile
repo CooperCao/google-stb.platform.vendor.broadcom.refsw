@@ -69,6 +69,14 @@ endif
 
 SECURITY_TOP := $(BSEAV_TOP)/lib/security
 COMMON_DRM_TOP := $(SECURITY_TOP)/common_drm
+ifeq ($(SAGE_SUPPORT),y)
+WIDEVINE3x_SUPPORT ?= y
+else
+# WV3x is disabled for non-sage until it is implemented
+$(warning WV CENC3x is not available for non-sage!!!!!)
+$(warning Defaulting to WV CENC21)
+WIDEVINE3x_SUPPORT := n
+endif
 ifeq ($(WIDEVINE3x_SUPPORT),y)
 WIDEVINE_CENC_DIR := $(SECURITY_TOP)/third_party/widevine/CENC3x
 else

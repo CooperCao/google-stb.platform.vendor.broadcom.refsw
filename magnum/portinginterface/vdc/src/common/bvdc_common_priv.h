@@ -40,6 +40,7 @@
 
 #include "bkni.h"
 #include "bavc_hdmi.h"
+#include "brdc.h"
 #include "bchp_fmisc.h"
 #include "bchp_vfd_0.h"
 
@@ -2155,7 +2156,6 @@ extern "C" {
 #ifndef BVDC_P_MANAGE_VIP
 #define BVDC_P_MANAGE_VIP                     (1) /* VDC owns VIP */
 #endif
-#define BVDC_P_SUPPORT_RDC_STC_FLAG           (1) /* RDC STC flags */
 
 #elif (BCHP_CHIP==7255)
 #define BVDC_P_SUPPORT_XSRC                   (0) /* Number of stand alone XSRC HW */
@@ -2286,7 +2286,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_STG                    (0) /* STG HW */
 #define BVDC_P_SUPPORT_STG_VER                (4)
 #define BVDC_P_MANAGE_VIP                     (0) /* VDC owns VIP */
-#define BVDC_P_SUPPORT_RDC_STC_FLAG           (1) /* RDC STC flags */
 
 #elif (BCHP_CHIP==7278)
 
@@ -2443,10 +2442,13 @@ extern "C" {
 #ifndef BVDC_P_MANAGE_VIP
 #define BVDC_P_MANAGE_VIP                     (0) /* TODO: VDC owns VIP */
 #endif
-#define BVDC_P_SUPPORT_RDC_STC_FLAG           (1) /* RDC STC flags */
 
 #else
     #error "Port required for VDC."
+#endif
+
+#ifdef BCHP_RDC_stc_flag_0
+#define BVDC_P_SUPPORT_RDC_STC_FLAG           (1) /* RDC STC flags */
 #endif
 
 /* Checking assumes memory is continous, possible problem when there is
@@ -2458,6 +2460,13 @@ extern "C" {
 #define BVDC_P_SUPPORT_VIP                    (BVDC_P_SUPPORT_STG) /* VIP HW */
 #else
 #define BVDC_P_SUPPORT_VIP                    (0)
+#endif
+
+/* handful ViCE hw transcode chips had DCXV */
+#if BVDC_VIP_DCX_OFF || ( (BCHP_CHIP != 7445) && (BCHP_CHIP != 7439) && (BCHP_CHIP != 7366) && (BCHP_CHIP != 7278) )
+#define BVDC_P_VIP_DCX_ON                     (0)
+#else
+#define BVDC_P_VIP_DCX_ON                     (1)
 #endif
 
 #define BVDC_P_NUM_SHARED_MPAA                (1)
@@ -2492,6 +2501,12 @@ extern "C" {
 #define BVDC_P_TCH_SUPPORT (1)
 #else
 #define BVDC_P_TCH_SUPPORT (0)
+#endif
+
+#if BVDC_P_DBV_SUPPORT || BVDC_P_TCH_SUPPORT
+#define BVDC_P_CMP_0_DBVTCH_NUM_CTX          (1) /* single context DBV&TCH support */
+#else
+#define BVDC_P_CMP_0_DBVTCH_NUM_CTX          (0) /* no DBV&TCH support */
 #endif
 
 /***************************************************************************
@@ -3226,9 +3241,10 @@ DCX macro
 #define BVDC_P_MADR_PICSIZE_WORKAROUND         (1)
 #endif
 /* SW7439-5 MCVP is used in xcode path */
-#if ( BVDC_P_SUPPORT_STG  && \
+#if (( BVDC_P_SUPPORT_STG  && \
     ((BVDC_P_SUPPORT_MADR && (BVDC_P_SUPPORT_MADR_VER < 6)) || \
-    (BVDC_P_SUPPORT_MCVP && (BVDC_P_SUPPORT_MCVP_VER < 5))))
+    (BVDC_P_SUPPORT_MCVP && (BVDC_P_SUPPORT_MCVP_VER < 5)))) || \
+    BVDC_P_SUPPORT_VIP)
 /* HW7425-1244/1255 MADR scb cycle incomplete */
 #define BVDC_P_STG_RUL_DELAY_WORKAROUND        (1)
 #endif
@@ -3718,6 +3734,9 @@ typedef struct
     /* PsF: mark the playback RUL size; if ISR is missed, chop the RUL size
        to not to scanout consecutive 1080p from MFD and capture; */
     uint32_t     ulPsfMark;
+
+    /* to disarm RDC synchronizer for HDMI hdr metadata toggling */
+    BRDC_Slot_Handle hSlot;
 } BVDC_P_ListInfo;
 
 /* CFC Versions
@@ -4072,6 +4091,7 @@ typedef struct BVDC_P_VipContext         *BVDC_P_Vip_Handle;
 #undef BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT
 #undef BVDC_P_CMP_CFC_VER
 
+#undef BVDC_P_CMP_0_DBVTCH_NUM_CTX
 #undef BVDC_P_CMP_0_MOSAIC_CFCS
 #undef BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS
 #undef BVDC_P_CMP_i_MOSAIC_CFCS
@@ -4150,6 +4170,7 @@ typedef struct BVDC_P_VipContext         *BVDC_P_Vip_Handle;
 
 #define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (0)
+#define BVDC_P_CMP_0_DBVTCH_NUM_CTX           (0)
 
 #undef BVDC_P_MAX_4HD_BUFFER_COUNT
 #undef BVDC_P_MAX_2HD_BUFFER_COUNT

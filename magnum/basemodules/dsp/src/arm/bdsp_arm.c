@@ -67,22 +67,18 @@ void BDSP_Arm_GetDefaultSettings(
 	pSettings->maxAlgorithms[BDSP_AlgorithmType_eSecurity] = BDSP_ARM_MAX_ZERO_CTXT;
 
 
-#if 0
-    uint32_t i;
-
-
-
     /* All debug features will be disabled by default */
-    pSettings->debugSettings[BDSP_Arm_DebugType_eUart].enabled = false;
-    pSettings->debugSettings[BDSP_Arm_DebugType_eDramMsg].enabled = false;
-    pSettings->debugSettings[BDSP_Arm_DebugType_eCoreDump].enabled = false;
-    pSettings->debugSettings[BDSP_Arm_DebugType_eTargetPrintf].enabled = false;
+    pSettings->debugSettings[BDSP_DebugType_eUart].enabled = false;
+    pSettings->debugSettings[BDSP_DebugType_eDramMsg].enabled = false;
+    pSettings->debugSettings[BDSP_DebugType_eCoreDump].enabled = false;
+    pSettings->debugSettings[BDSP_DebugType_eTargetPrintf].enabled = false;
 
-    pSettings->debugSettings[BDSP_Arm_DebugType_eUart].bufferSize = 0x1000; /* 4 KB by default */
-    pSettings->debugSettings[BDSP_Arm_DebugType_eDramMsg    ].bufferSize = 0x40000; /* 256 KB by default */
-    pSettings->debugSettings[BDSP_Arm_DebugType_eCoreDump].bufferSize = 0x80000; /* 512 KB by default */
-    pSettings->debugSettings[BDSP_Arm_DebugType_eTargetPrintf].bufferSize = 0x40000; /* 256 KB by default */
+    pSettings->debugSettings[BDSP_DebugType_eUart].bufferSize = 0; /* 0 KB by default */
+    pSettings->debugSettings[BDSP_DebugType_eDramMsg].bufferSize = 0; /* 0 KB by default */
+    pSettings->debugSettings[BDSP_DebugType_eCoreDump].bufferSize = 0; /* 0 KB by default */
+    pSettings->debugSettings[BDSP_DebugType_eTargetPrintf].bufferSize = 0; /* 0 KB by default */
 
+#if 0
     /*initialized to "0" to make sure that the initialization is done properly. Testing cant be done unless a new algoType is explicitly initialized */
     for(i=0;i < BDSP_AlgorithmType_eMax; i++){
         pSettings->maxAlgorithms[i]= 0;

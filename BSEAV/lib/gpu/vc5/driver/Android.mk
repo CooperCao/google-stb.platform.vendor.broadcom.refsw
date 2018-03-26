@@ -52,7 +52,8 @@ define set_gl_vk_common_local_variables
 		$(ANDROID_TOP)/frameworks/native/libs/nativebase/include \
 		$(BSEAV_TOP)/../magnum/portinginterface/vc5/include \
 		$(BSEAV_TOP)/../magnum/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER) \
-		$(BSEAV_TOP)/linux/driver/brcmv3d/include/uapi/drm
+		$(BSEAV_TOP)/linux/driver/brcmv3d/include/uapi/drm \
+		$(ANDROID_TOP)/system/core/liblog/include
 
 	LOCAL_CFLAGS := \
 		-fpic -DPIC \
@@ -131,7 +132,7 @@ define set_gl_vk_common_local_variables
 	LOCAL_SHARED_LIBRARIES += libnxwrap
 	LOCAL_SHARED_LIBRARIES += libnxclient
 	LOCAL_SHARED_LIBRARIES += libsync
-	LOCAL_SHARED_LIBRARIES += libstdc++
+	LOCAL_SHARED_LIBRARIES += libc++
 
 	# Bind references to global functions to the definitions within the khronos
 	# library. This in particular means eglGetProcAddress will always return the
@@ -179,6 +180,10 @@ LOCAL_C_INCLUDES := \
 	$(V3D_DRIVER_TOP_ABS_PATH)/driver/libs/khrn/include \
 	$(BSEAV_TOP)/../magnum/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER) \
 	$(BSEAV_TOP)/../magnum/portinginterface/vc5/include
+
+ifeq ($(BOARD_VNDK_VERSION),current)
+LOCAL_HEADER_LIBRARIES := liblog_headers
+endif
 
 LOCAL_CFLAGS := \
 	-fpic -DPIC \
@@ -267,6 +272,10 @@ LOCAL_C_INCLUDES += \
 	$(DGLENUM_INTERMEDIATE_REL_PATH) \
 	$(GLSL_INTERMEDIATE_REL_PATH)
 
+ifeq ($(BOARD_VNDK_VERSION),current)
+LOCAL_HEADER_LIBRARIES := liblog_headers
+endif
+
 LOCAL_SRC_FILES := \
 	$(addprefix driver/, $(COMMON_SRC_FILES) $(GLES_SRC_FILES)) \
 	platform/android/default_android.c \
@@ -326,6 +335,10 @@ LOCAL_C_INCLUDES += \
 	$(V3D_DRIVER_TOP_ABS_PATH)/driver/libs/vulkan/driver/spirv \
 	$(V3D_DRIVER_TOP_ABS_PATH)/driver/libs/vulkan/driver/platforms \
 	$(ANDROID_TOP)/frameworks/native/vulkan/include
+
+ifeq ($(BOARD_VNDK_VERSION),current)
+LOCAL_HEADER_LIBRARIES := liblog_headers
+endif
 
 LOCAL_SRC_FILES := \
 	$(addprefix driver/, $(COMMON_SRC_FILES) $(VULKAN_SRC_FILES)) \

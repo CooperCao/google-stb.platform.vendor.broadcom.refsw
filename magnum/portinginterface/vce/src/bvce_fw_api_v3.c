@@ -279,10 +279,14 @@ BVCE_FW_P_CalcVideoA2Pdelay(
     uint32_t   ptsDtsDelayOffset = 0;
     uint32_t encodingDelays, A2PdelayIn27MHzTicks, maxAllowedBitsPerPicture;
     uint32_t   maxPictureIntervalIn27MhzTicks = 0;
-    FrameRate_e FrameRate, MinFrameRateLimit,MinAllowedBvnFrameRate;
+    FrameRate_e FrameRate, MinFrameRateLimit;
 
     BSTD_UNUSED( FrameRate );
     BSTD_UNUSED( MultiChannelEnable );
+    BSTD_UNUSED( MinAllowedBvnFrameRateCode );
+    BSTD_UNUSED( ITFPenable );
+    BSTD_UNUSED( PictureWidthInPels );
+    BSTD_UNUSED( PictureHeightInPels );
 
     /* Initialize output parameters */
     delayEndToEndIn27MhzTicks = 0;
@@ -291,7 +295,6 @@ BVCE_FW_P_CalcVideoA2Pdelay(
     hrdBufferSize = 0;
     FrameRate = BVCE_FW_P_FrameRateCodeToFrameRate(FrameRateCode);
     MinFrameRateLimit = BVCE_FW_P_FrameRateCodeToFrameRate(MinFrameRateCodeLimit);
-    MinAllowedBvnFrameRate = BVCE_FW_P_FrameRateCodeToFrameRate(MinAllowedBvnFrameRateCode);
 
     /* Convert min frame rate to inverse  */
     maxPictureIntervalIn27MhzTicks = BVCE_FW_P_ConvertFrameRate(MinFrameRateLimit, &FP_inverse);
@@ -343,7 +346,7 @@ BVCE_FW_P_CalcVideoA2Pdelay(
     }
 
     /* add max pre-encoding and encoding delays */
-    encodingDelays = BVCE_FW_P_Compute_EncodeDelayIn27MHzTicks(MinAllowedBvnFrameRate, ITFPenable, Mode, MinFrameRateLimit, InputType, MaxAllowedGopStruct, PictureWidthInPels, PictureHeightInPels);
+    encodingDelays = BVCE_FW_P_Compute_EncodeDelayIn27MHzTicks(MinFrameRateLimit, InputType, MaxAllowedGopStruct);
 
     if ((MaxAllowedGopStruct == ENCODING_GOP_STRUCT_IBP) ||
         (MaxAllowedGopStruct == ENCODING_GOP_STRUCT_IBBP) ||
@@ -379,238 +382,6 @@ BVCE_FW_P_CalcVideoA2Pdelay(
     return(A2PdelayIn27MHzTicks);
 }
 #endif
-
-/***********************************************************************
-*  BVCE_FW_P_Compute_EncodeDelayIn27MHzTicks() - Computes PreEncode and
-*  Encode Delay in units expressed as 27 MHz clock ticks
-************************************************************************/
-uint32_t
-BVCE_FW_P_Compute_EncodeDelayIn27MHzTicks(
-        uint32_t    MinAllowedBvnFrameRate,
-        uint8_t     ITFPenable,
-        uint8_t     Mode,
-        FrameRate_e MinFrameRateLimit,
-        uint8_t     InputType,
-        uint8_t     MaxAllowedGopStruct,
-        uint32_t    PictureWidthInPels,
-        uint32_t    PictureHeightInPels
-    )
-{
-    uint32_t vipdelay = 0;
-    uint32_t mbpdelay = 0;
-    uint32_t vipItfpDelay = 0;
-    uint32_t reorderDelay = 0;
-    uint32_t mbpCmeDelay = 0;
-    uint32_t PictureIntervalIn27MhzTicks = 0;
-    uint32_t pixelsPerFrame = 0;
-    FPNumber_t FP_temp;
-
-
-    PictureIntervalIn27MhzTicks = BVCE_FW_P_ConvertFrameRate(MinFrameRateLimit, &FP_temp);
-    if(Mode == ENCODER_MODE_LOW_DELAY)
-    {
-        mbpCmeDelay = PictureIntervalIn27MhzTicks + LOW_DELAY_ADDITIVE_DELAY_IN_27MHZ;
-    }
-    else
-    {
-
-        /* compute Encode Delay based on BVN Rate */
-        switch(MinAllowedBvnFrameRate)
-        {
-        /* stored as 100xFrameRate */
-        case ENCODING_FRAME_RATE_6000:
-            /* need BVN picture interval in 27 MHZ ticks */
-            vipItfpDelay = INVERSE_FRAMERATE_6000_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_5994:
-            vipItfpDelay = INVERSE_FRAMERATE_5994_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_5000:
-            vipItfpDelay = INVERSE_FRAMERATE_5000_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_3000:
-            vipItfpDelay = INVERSE_FRAMERATE_3000_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_2997:
-            vipItfpDelay = INVERSE_FRAMERATE_2997_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_2500:
-            vipItfpDelay = INVERSE_FRAMERATE_2500_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_2400:
-            vipItfpDelay = INVERSE_FRAMERATE_2400_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_2397/*.6*/:
-            vipItfpDelay = INVERSE_FRAMERATE_2397_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_2000:
-            vipItfpDelay = INVERSE_FRAMERATE_2000_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_1998:
-            vipItfpDelay = INVERSE_FRAMERATE_1998_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_1500:
-            vipItfpDelay = INVERSE_FRAMERATE_1500_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_1498:
-            vipItfpDelay = INVERSE_FRAMERATE_1498_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_1250:
-            vipItfpDelay = INVERSE_FRAMERATE_1250_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_1000:
-            vipItfpDelay = INVERSE_FRAMERATE_1000_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_0749:
-            vipItfpDelay = INVERSE_FRAMERATE_0749_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_0750:
-            vipItfpDelay = INVERSE_FRAMERATE_0750_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_1198:
-            vipItfpDelay = INVERSE_FRAMERATE_1198_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_1200:
-            vipItfpDelay = INVERSE_FRAMERATE_1200_IN_27MHZ_TICKS;
-            break;
-        case ENCODING_FRAME_RATE_0999:
-            vipItfpDelay = INVERSE_FRAMERATE_0999_IN_27MHZ_TICKS;
-            break;
-        default:
-#ifdef BCHP_CHIP
-            BDBG_ASSERT(!"unsupported BVN frame rate");
-            return 0;
-#else
-#if defined(CEB2APP) || defined (VICE_FW_CMODEL_APP)
-            assert(!"unsupported BVN frame rate");
-#else
-            ASSERT(!"unsupported BVN frame rate");
-#endif
-            break;
-#endif
-        }
-
-        vipdelay = vipItfpDelay;
-
-        /* Scale Delay to b 4x BVN rate based on ITFP enable flag for interlace */
-        if((ITFPenable == 1) && (InputType == ENCODER_INPUT_TYPE_INTERLACED))
-        {
-            vipItfpDelay <<= 2;
-        }
-
-        /* Add Reorder Delay based on max allowed gopstruct and minFrameRate Limit by scaling 1/MinFrameRateLimit */
-        if(MaxAllowedGopStruct == ENCODING_GOP_STRUCT_IBBP)
-        {
-            /* Only support B structure GOP*/
-            if(ITFPenable == 1)
-            {
-                if((InputType == ENCODER_INPUT_TYPE_PROGRESSIVE)&& (MinFrameRateLimit == ENCODING_FRAME_RATE_6000))
-                {
-                    /* scale by 5 */
-                    reorderDelay = (PictureIntervalIn27MhzTicks << 2) + PictureIntervalIn27MhzTicks;
-                }
-                else
-                {
-                    /* scale by 3 */
-                    reorderDelay = (PictureIntervalIn27MhzTicks << 1) + PictureIntervalIn27MhzTicks;
-                }
-            }
-            else
-            {
-                /* scale by 2 */
-                reorderDelay <<= 1;
-            }
-        }
-        else
-        {
-            reorderDelay  = 0;
-        }
-
-
-        /* compute MBP delay in 27 MHZ ticks using RESOLUTION_T0_27MHZ_MBPDELAY = (27e6/30)*(1/(1920*1088) */
-        FP_temp.mantissa = RESOLUTION_T0_27MHZ_MBPDELAY_MANT;
-        FP_temp.exponent = RESOLUTION_T0_27MHZ_MBPDELAY_EXP;
-        pixelsPerFrame = UMULT16(PictureWidthInPels, PictureHeightInPels);
-        mbpCmeDelay = RcU32ScaleFP(FP_temp, pixelsPerFrame, 1);
-
-        mbpdelay = mbpCmeDelay;
-
-        if (InputType == ENCODER_INPUT_TYPE_INTERLACED)
-        {
-            if (PictureWidthInPels <= HORIZONTAL_SIZE_IN_PELS_HD)
-            {
-                /* CME delay = 2*alpha/30 for resolution less than HD */
-                mbpCmeDelay = (mbpCmeDelay << 1);
-            }
-            if(MaxAllowedGopStruct == ENCODING_GOP_STRUCT_IBBP)
-            {
-                mbpCmeDelay = (mbpCmeDelay << 1);
-            }
-        }
-        else if (InputType == ENCODER_INPUT_TYPE_PROGRESSIVE)
-        {
-            if(MaxAllowedGopStruct == ENCODING_GOP_STRUCT_I)
-            {
-                /* scale for cme according to gop struct */
-                if (PictureWidthInPels <= HORIZONTAL_SIZE_IN_PELS_SD)
-                {
-                    if (MinFrameRateLimit == ENCODING_FRAME_RATE_3000)
-                    {
-                        /* CME delay = (2*alpha)/30 */
-                        mbpCmeDelay = (mbpCmeDelay << 1);
-                    }
-                }
-            }
-            else if((MaxAllowedGopStruct == ENCODING_GOP_STRUCT_IBBP) || (MaxAllowedGopStruct == ENCODING_GOP_STRUCT_IP) || (MaxAllowedGopStruct == ENCODING_GOP_STRUCT_INFINITE_IP))
-            {
-                /* scale for cme according to gop struct */
-                if (PictureWidthInPels <= HORIZONTAL_SIZE_IN_PELS_SD)
-                {
-                    if (MinFrameRateLimit == ENCODING_FRAME_RATE_3000)
-                    {
-                        /* CME delay = (4*alpha)/30 */
-                        mbpCmeDelay = (mbpCmeDelay << 2);
-                    }
-                    else if (MinFrameRateLimit == ENCODING_FRAME_RATE_6000)
-                    {
-                        /* CME delay = (2*alpha)/30 */
-                        mbpCmeDelay = (mbpCmeDelay << 1);
-                    }
-                }
-                else
-                {
-                     if (MinFrameRateLimit == ENCODING_FRAME_RATE_3000)
-                     {
-                        /* CME delay = (2*alpha)/30 */
-                        mbpCmeDelay = (mbpCmeDelay << 1);
-
-                     }
-                }
-            }
-
-            /* Add additional delay of 1/BVNframerate for IBBP Gop structure */
-            if (MaxAllowedGopStruct == ENCODING_GOP_STRUCT_IBBP)
-            {
-                mbpCmeDelay += vipdelay;
-
-                if (MinFrameRateLimit == ENCODING_FRAME_RATE_3000)
-                {
-                    mbpCmeDelay += vipdelay;
-                }
-
-            }
-
-        }
-
-        /* Add the MBP delay of alpha/30 */
-        mbpCmeDelay += mbpdelay;
-
-        /* accumulate total */
-        mbpCmeDelay += vipItfpDelay + reorderDelay;
-    }
-
-    return(mbpCmeDelay);
-}
 
 /***********************************************************************
 *  Compute_DeeIn27MhzTicks() - Compute max supported end to end delay
@@ -1971,6 +1742,7 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
 #define PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE                        (10)*2
 
 #define PREPROCESSOR_PIC_QUEUE_SIZE 4
+#endif /* defined(BCHP_CHIP) || defined(CEB2APP) || defined(VICE_FW_CMODEL_APP) */
 
 /* Progressive */
 #define    	IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE    5
@@ -2016,6 +1788,8 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
 #define		I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE             (8)
 #define		I3BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE                           (10)*2
 
+
+#if defined(BCHP_CHIP) || defined(CEB2APP) || defined (VICE_FW_CMODEL_APP)
 
 #if PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE > PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE
 #define PREPROCESSOR_MAX_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE
@@ -2587,7 +2361,6 @@ static uint32_t bvceV3EpmCalcStripeBufferSize(uint32_t PictureWidthInPels, uint3
 
 }
 
-
 /*********************************************************************
 *  FrameRate_e BVCE_FW_P_FrameRateCodeToFramRate( FrameRateCode_e FrameRateCode )
 *
@@ -2677,3 +2450,88 @@ FrameRate_e BVCE_FW_P_FrameRateCodeToFrameRate( FrameRateCode_e FrameRateCode )
 }
 
 #endif /* defined(BCHP_CHIP) || defined(CEB2APP) || defined(VICE_FW_CMODEL_APP) */
+
+
+/***********************************************************************
+*  BVCE_FW_P_Compute_EncodeDelayIn27MHzTicks() - Computes PreEncode and
+*  Encode Delay in units expressed as 27 MHz clock ticks
+************************************************************************/
+uint32_t
+BVCE_FW_P_Compute_EncodeDelayIn27MHzTicks(
+        FrameRate_e MinFrameRateLimit,
+        uint8_t     InputType,
+        uint8_t     MaxAllowedGopStruct
+    )
+{
+    FPNumber_t FP_temp;
+    uint32_t encoderDelay = 0;
+    uint32_t PictureIntervalIn27MhzTicks = 0;
+    uint16_t numOrigPicBuffs = 0;
+
+    PictureIntervalIn27MhzTicks = BVCE_FW_P_ConvertFrameRate(MinFrameRateLimit, &FP_temp);
+
+    /* Compute encoderDelay based on max allowed gopstruct and minFrameRate Limit by scaling 1/MinFrameRateLimit */
+    if(InputType == ENCODER_INPUT_TYPE_PROGRESSIVE)
+    {
+      switch (MaxAllowedGopStruct)
+      {
+      case	ENCODING_GOP_STRUCT_I:
+      case	ENCODING_GOP_STRUCT_IP:
+      case	ENCODING_GOP_STRUCT_INFINITE_IP:
+	numOrigPicBuffs = IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+	break;
+      case	ENCODING_GOP_STRUCT_IBP:
+	numOrigPicBuffs = I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+	break;
+      case	ENCODING_GOP_STRUCT_IBBP:
+	numOrigPicBuffs = I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+	break;
+      case	ENCODING_GOP_STRUCT_IBBP_B_REF:
+	numOrigPicBuffs = I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+	break;
+      case	ENCODING_GOP_STRUCT_IBBBP:
+	numOrigPicBuffs = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+	break;
+      case	ENCODING_GOP_STRUCT_IBBBBBP:
+	numOrigPicBuffs = I5BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+	break;
+      case	ENCODING_GOP_STRUCT_IBBBBBBBP:
+	numOrigPicBuffs = I7BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+	break;
+      default:
+	numOrigPicBuffs = I7BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+	break;
+      }
+    }
+    else
+    { /* Interlaced input */
+      switch (MaxAllowedGopStruct)
+      {
+      case	ENCODING_GOP_STRUCT_I:
+      case	ENCODING_GOP_STRUCT_IP:
+      case	ENCODING_GOP_STRUCT_INFINITE_IP:
+	/* Divide by 2 to get per frame */
+	numOrigPicBuffs = IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
+	break;
+      case	ENCODING_GOP_STRUCT_IBP:
+	numOrigPicBuffs = I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
+	break;
+      case	ENCODING_GOP_STRUCT_IBBP:
+	numOrigPicBuffs = I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
+	break;
+      case	ENCODING_GOP_STRUCT_IBBP_B_REF:
+	numOrigPicBuffs = I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
+	break;
+      case	ENCODING_GOP_STRUCT_IBBBP:
+	numOrigPicBuffs = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
+	break;
+      default:
+	numOrigPicBuffs = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
+	break;
+      }
+    }
+
+    encoderDelay = U32xU16MULTIPLY(PictureIntervalIn27MhzTicks, numOrigPicBuffs);
+
+    return(encoderDelay);
+}

@@ -261,8 +261,8 @@ BERR_Code  BHDM_AUTO_I2C_P_AllocateResources(const BHDM_Handle hHDMI)
 	/* SCDC  */
 	/*************/
 	rc = BHDM_AUTO_I2C_P_ConfigureReadChannel(hHDMI,
-		BHDM_AUTO_I2C_MODE_ePollScdcUpdate0, BHDM_AUTO_I2C_P_SCDC_SLAVE_ADDR,
-		BHDM_AUTO_I2C_P_SCDC_UPDATE0_OFFSET, 2) ;
+		BHDM_AUTO_I2C_MODE_ePollScdcUpdate0,
+		BHDM_SCDC_I2C_ADDR, BHDM_SCDC_UPDATE_0, 2) ;
 	if (rc) { (void)BERR_TRACE(rc) ; goto done ;}
 
 	/************/

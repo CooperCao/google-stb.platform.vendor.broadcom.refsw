@@ -135,7 +135,7 @@ Broadcom 7250 B0 Set-Top Unified Software Release 18.1
   <td width="52%" valign=top style='width:52.74%;padding:0pt 5.4pt 0pt 5.4pt'>
   <p class=MsoTocHeading>Release Date:</p>
   <p style='margin-top:0pt;margin-right:0pt;margin-bottom:0pt;margin-left:1.75pt;
-  margin-bottom:.0001pt'>January 23, 2018</p>
+  margin-bottom:.0001pt'>March 1, 2018</p>
   <p style='margin-top:0cm;margin-right:0cm;margin-bottom:0cm;margin-left:1.75pt;
   margin-bottom:.0001pt'>Phase 18.1 Release</p>
   <p class=MsoTocHeading>Platforms Supported:</p>
@@ -174,10 +174,10 @@ Build Instructions to create an initrd 7250b0 Linux Kernel Image
 <li>
 Extract toolchain, root filesystem and Linux kernel tar balls:
 <ul type=none><li><pre>
-tar -C /opt/toolchains -xf stbgcc-6.3-1.1.tar.bz2
-export PATH=/opt/toolchains/stbgcc-6.3-1.1/bin:$PATH
-tar -xf rootfs-4.1-1.15.tar.bz2
-tar -xf stblinux-4.1-1.15.tar.bz2
+tar -C /opt/toolchains -xf stbgcc-6.3-1.2.tar.bz2
+export PATH=/opt/toolchains/stbgcc-6.3-1.2/bin:$PATH
+tar -xf rootfs-4.1-1.17.tar.bz2
+tar -xf stblinux-4.1-1.17.tar.bz2
 cd rootfs
 make vmlinuz-initrd-arm
 </pre></li></ul>
@@ -206,7 +206,7 @@ export LINUX=`pwd`
 Set up PATH environment variable to point to tool chain:
 </li>
 <ul type=none><li><pre>
-export PATH=/opt/toolchains/stbgcc-6.3-1.1/bin:$PATH
+export PATH=/opt/toolchains/stbgcc-6.3-1.2/bin:$PATH
 </pre></li></ul>
 </ul>
 
@@ -229,7 +229,7 @@ Build and Usage Instructions for Atlas
 <li>
 Extract reference software tar ball:
 <ul type=none><li><pre>
-tar -xf refsw_release_unified_20180123.src.tgz
+tar -xf refsw_release_unified_20180301.tgz
 </pre></li></ul>
 </li>
 </ul>

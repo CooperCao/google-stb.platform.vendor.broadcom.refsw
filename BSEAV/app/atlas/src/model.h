@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,6 +48,7 @@
 #include "remote.h"
 #include "nexus_simple_video_decoder_server.h"
 #include "nexus_simple_audio_decoder_server.h"
+#include "nexus_simple_audio_playback_server.h"
 #include "nexus_simple_encoder_server.h"
 #include "video_decode_types.h"
 
@@ -174,6 +175,8 @@ public:
     void                                 setIpClientTranscodeProfile(int xcodeProfile) { _ipTranscodeProfile = xcodeProfile; }
     bool                                 getPipSwapState(void) { return(_bPipSwapped); }
     void                                 setPipSwapState(bool bPipSwapped) { _bPipSwapped = bPipSwapped; }
+    bool                                 getScanStartState(void) { return(_bScanStarted); }
+    void                                 setScanStartState(bool bStarted);
     bool                                 getScanSaveOffer(void) { return(_bScanSaveOffer); }
     void                                 setScanSaveOffer(bool bOffer) { _bScanSaveOffer = bOffer; }
     CChannel *                           getCurrentChannel(eWindowType windowType = eWindowType_Max) { return((eWindowType_Max == windowType) ? _currentChannel[_fullScreenWindowType] : _currentChannel[windowType]); }
@@ -206,6 +209,7 @@ public:
     void                                 setConnectId(uint32_t connectId, eWindowType windowType = eWindowType_Max);
     NEXUS_SimpleVideoDecoderServerHandle getSimpleVideoDecoderServer(void) { return(_simpleVideoDecoderServer); }
     NEXUS_SimpleAudioDecoderServerHandle getSimpleAudioDecoderServer(void) { return(_simpleAudioDecoderServer); }
+    NEXUS_SimpleAudioPlaybackServerHandle getSimpleAudioPlaybackServer(void) { return(_simpleAudioPlaybackServer); }
     NEXUS_SimpleEncoderServerHandle      getSimpleEncoderServer(void) { return(_simpleEncoderServer); }
     eDynamicRange                        getLastDynamicRange(void) { return(_dynamicRangeLast); }
     void                                 setLastDynamicRange(eDynamicRange dynamicRange) { _dynamicRangeLast = dynamicRange; }
@@ -329,8 +333,10 @@ protected:
     unsigned                             _connectId[eWindowType_Max];
     NEXUS_SimpleVideoDecoderServerHandle _simpleVideoDecoderServer;
     NEXUS_SimpleAudioDecoderServerHandle _simpleAudioDecoderServer;
+    NEXUS_SimpleAudioPlaybackServerHandle _simpleAudioPlaybackServer;
     NEXUS_SimpleEncoderServerHandle      _simpleEncoderServer;
     eDynamicRange                        _dynamicRangeLast;
+    bool                                 _bScanStarted;
 #ifdef CPUTEST_SUPPORT
     CCpuTest *                           _pCpuTest;
 #endif

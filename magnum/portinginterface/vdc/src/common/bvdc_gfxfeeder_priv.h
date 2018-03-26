@@ -127,11 +127,12 @@ typedef union BVDC_P_GfxDirtyBits
         uint32_t                 bDemoMode                : 1;
         uint32_t                 bOrientation             : 1;
         uint32_t                 bSdrGfx2HdrAdj           : 1;
+        uint32_t                 bLuminance               : 1;
 
         /* confugure and surface combined dirty bits */
         uint32_t                 bClipOrOut               : 1;
-        uint32_t                 bCsc                     : 1;
-        uint32_t                 bPxlFmt                  : 1; /* 16 */
+        uint32_t                 bCsc                     : 1; /* 16 */
+        uint32_t                 bPxlFmt                  : 1;
         uint32_t                 bSurOffset               : 1;
         uint32_t                 bSurface                 : 1;
         uint32_t                 bPaletteTable            : 1;
@@ -227,6 +228,11 @@ typedef struct BVDC_P_GfxFeederCfgInfo
 
     /* adjust to linear approximation of sdr gfx to hdr conversion */
     BVDC_Source_SdrGfxToHdrApproximationAdjust stSdrGfx2HdrAdj;
+    struct
+    {
+        unsigned ulMin;
+        unsigned ulMax;
+    } stLuminance;
 } BVDC_P_GfxFeederCfgInfo;
 
 /*-------------------------------------------------------------------------
@@ -469,10 +475,12 @@ BERR_Code BVDC_P_GfxFeeder_DecideVsclFirCoeff_isr
       uint32_t              ulOutSize,
       uint32_t **           paulCoeff );
 
-/* Calculate special SDR to HDR CSC adjustment for GFX
+#if (BVDC_P_CMP_CFC_VER <= BVDC_P_CFC_VER_1)
+/* Adjust Mc for SDR to HDR10/HLG CSC
  */
-void BVDC_P_GfxFeeder_CalculateSdr2HdrCsc_isr
+void BVDC_P_GfxFeeder_AdjustMcForSdr2Hdr_isr
     ( BVDC_P_GfxFeeder_Handle      hGfxFeeder );
+#endif
 
 /* init GFD CFC
  */
@@ -491,6 +499,10 @@ void BVDC_P_GfxFeeder_BuildCfcRul_isr
     ( BVDC_P_GfxFeeder_Handle          hGfxFeeder,
       BVDC_P_ListInfo                 *pList);
 
+void BVDC_P_GfxFeeder_GetCfcCapabilities
+    ( BREG_Handle                      hRegister,
+      BAVC_SourceId                    eGfdId,
+      BCFC_Capability                 *pCapability );
 #ifdef __cplusplus
 }
 #endif

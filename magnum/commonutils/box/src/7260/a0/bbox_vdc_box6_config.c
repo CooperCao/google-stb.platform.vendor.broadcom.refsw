@@ -54,8 +54,8 @@ BDBG_OBJECT_ID(BBOX_VDC_BOX_PRIV_BOX6);
 void BBOX_P_Vdc_SetBox6SourceCapabilities
     ( BBOX_Vdc_Source_Capabilities *pSourceCap )
 {
-    BBOX_P_VDC_SET_SRC_LIMIT(pSourceCap, Mpeg0,  MTG_DISABLE,  BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard, 10bit, false);
-    BBOX_P_VDC_SET_SRC_LIMIT(pSourceCap, Mpeg1,  MTG_DISABLE,  BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard, 8bit, false);
+    BBOX_P_VDC_SET_SRC_CLASS_LIMIT(pSourceCap, Mpeg0,  MTG_DISABLE,  BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard, 10bit, false, 60Hz, 4_2);
+    BBOX_P_VDC_SET_SRC_CLASS_LIMIT(pSourceCap, Mpeg1,  MTG_DISABLE,  BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard, 8bit, false, 60Hz, 3_1);
     BBOX_P_VDC_SET_SRC_LIMIT(pSourceCap, Gfx0,   MTG_DISABLE,  BFMT_1080P_WIDTH,   BFMT_1080P_HEIGHT,  RGB,       8bit,  false);
     BBOX_P_VDC_SET_SRC_LIMIT(pSourceCap, Gfx1,   MTG_DISABLE,  420,                200,                RGB,       8bit,  false);
 }
@@ -64,11 +64,11 @@ void BBOX_P_Vdc_SetBox6DisplayCapabilities
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap )
 {
     BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display0, 3840x2160p_50Hz, 3840x2160p_50Hz, Invalid, Invalid, Invalid, Class4);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Video0, HD,      false, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable1080p);
+        BBOX_P_VDC_SET_WINDOW_CLASS_LIMIT(pDisplayCap, Display0, Video0, HD,      false, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable1080p, 0_1);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Gfx0,   INVALID, false, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
 
     BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display1, 480p,            480p,            0,       Invalid, Invalid, Disregard);
-        BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1, Video0, INVALID, false, Unknown,   Unknown,   Unknown,   BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
+        BBOX_P_VDC_SET_WINDOW_CLASS_LIMIT(pDisplayCap, Display1, Video0, INVALID, false, Unknown,   Unknown,   Unknown,   BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard, 0_1);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1, Gfx0,   INVALID, false, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
 }
 
@@ -82,5 +82,5 @@ void BBOX_P_Vdc_SetBox6DeinterlacerCapabilities
 void BBOX_P_Vdc_SetBox6XcodeCapabilities
     ( BBOX_Vdc_Xcode_Capabilities *pXcodeCap )
 {
-    BBOX_P_VDC_SET_XCODE_LIMIT(pXcodeCap, 0, 1);
+    BBOX_P_VDC_SET_XCODE_LIMIT(pXcodeCap, 0, BBOX_VDC_DISREGARD);
 }

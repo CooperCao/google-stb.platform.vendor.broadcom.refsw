@@ -1639,6 +1639,7 @@ BDBG_FILE_MODULE(nexus_trace_${module});
 
         print $fout "    B_IPC_SERVER_TRACE((\"<%s(%d):$code->{TRACE}{RESULT}{FORMAT} $code->{TRACE}{FORMAT}\", \"$funcname\", __rc $code->{TRACE}{RESULT}{ARG} $code->{TRACE}{ARG}))\n";
         bapi_util::print_code($fout, $code->{SERVER}{CALLBACK_POST}, $tab);
+        print $fout "    B_IPC_SERVER_CHECK_RETURN_CODE($api)\n";
         bapi_util::print_code($fout, $code->{SERVER}{PROCESS}, $tab);
         bapi_util::print_code($fout, $code->{SERVER}{SEND}, $tab);
         bapi_util::print_code($fout, $code->{SERVER}{SEND_VARARG}, $tab);

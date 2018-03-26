@@ -47,7 +47,10 @@
 #include "nexus_platform_priv.h"
 #include "priv/nexus_core.h"
 #include "bkni.h"
+#include "bchp_common.h"
+#ifdef BCHP_HIF_CPU_INTR1_REG_START
 #include "bchp_hif_cpu_intr1.h"
+#endif
 
 BDBG_MODULE(nexus_platform_interrupt);
 

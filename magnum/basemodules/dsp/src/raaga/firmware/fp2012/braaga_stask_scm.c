@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -681,7 +681,7 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x27b24227,
 	0x2196720f,
 	0x888c7e17,
-	0x62c015c3,
+	0x62b015c3,
 	0x53da31d7,
 	0x50fbeb9b,
 	0xc8004207,
@@ -852,7 +852,7 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x26a4944f,
 	0xd8800847,
 	0xabfb31f8,
-	0x71d05013,
+	0x71c05013,
 	0x21a8262f,
 	0x88800e0f,
 	0x230131ff,

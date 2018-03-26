@@ -5275,7 +5275,6 @@ typedef struct
     BMMA_Heap_Handle             hCfcHeap;
     uint32_t                     ulMinLuminance;
     uint32_t                     ulMaxLuminance;
-    /* TODO: remove previous min/max after support of VSVDB byte passing is added */
     uint8_t                      aucVsvdbBytes[0x1A];
 } BVDC_Display_HdmiSettings;
 
@@ -5455,13 +5454,12 @@ Output:
     pDefSettings - A reference to default settings structure.
 
 Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.
-    BERR_SUCCESS - Successfully get VDC default settings.
+    None.
 
 See Also:
     BVDC_Open.
 **************************************************************************/
-BERR_Code BVDC_GetDefaultSettings
+void BVDC_GetDefaultSettings
     ( const BBOX_Handle                hBox,
       BVDC_Settings                   *pDefSettings );
 
@@ -5766,11 +5764,10 @@ Output:
     *pulCoeffs - An int32_t array that holds the 4x5 matrix coeffs.
 
 Returns:
-    BERR_SUCCESS - Successfully gets the matrix
 
 See Also:
 **************************************************************************/
-BERR_Code BVDC_GetMatrixForGfxYCbCr2Rgb_isrsafe
+void BVDC_GetMatrixForGfxYCbCr2Rgb_isrsafe
     ( BAVC_MatrixCoefficients          eMatrixCoeffs,
       uint32_t                         ulShift,
       int32_t                         *pulCoeffs);
@@ -5839,6 +5836,34 @@ See Also:
 BERR_Code BVDC_Heap_Destroy
     ( BVDC_Heap_Handle                 hHeap );
 
+
+/***************************************************************************
+Summary:
+    Get the window's capabilities of a compositor.
+
+Description:
+    This function gets the window's capabilities without window handle.
+
+Input:
+    hVdc - VDC handle.
+    eCompositorId - Compositor ID.
+    eWinId - Window ID.
+
+Output:
+    pCapabilities - point to the window capabilities structure.
+
+Returns:
+    BERR_INVALID_PARAMETER - Invalid function parameters.
+    BERR_SUCCESS - Function succeed
+
+See Also:
+    BVDC_Window_Capabilities
+**************************************************************************/
+BERR_Code BVDC_GetWindowCapabilities
+    ( BVDC_Handle                      hVdc,
+      BVDC_CompositorId                eCompositorId,
+      BVDC_WindowId                    eWinId,
+      BVDC_Window_Capabilities        *pCapabilities );
 
 /***************************************************************************
  * Video & Graphics Compositor
@@ -6181,7 +6206,6 @@ See Also:
 BERR_Code BVDC_Compositor_GetCapabilities
     ( BVDC_Compositor_Handle           hCompositor,
       BVDC_Compositor_Capabilities    *pCapabilities );
-
 
 /***************************************************************************
  * Video/Gfx Window
@@ -7102,9 +7126,8 @@ See Also:
     BVDC_Window_GetDeinterlaceConfiguration
 
 **************************************************************************/
-BERR_Code BVDC_Window_GetDeinterlaceDefaultConfiguration
-    ( const BVDC_Window_Handle         hWindow,
-      BVDC_Deinterlace_Settings       *pMadSettings );
+void BVDC_Window_GetDeinterlaceDefaultConfiguration
+    (BVDC_Deinterlace_Settings       *pMadSettings );
 
 /***************************************************************************
 Summary:
@@ -10450,6 +10473,29 @@ BERR_Code BVDC_Source_GetSize
 
 /***************************************************************************
 Summary:
+    This function gets the MFD source's STC flag ID from RDC/BVN.
+
+Description:
+
+Input:
+    hSource - A valid MFD source handle created earlier.
+
+Output:
+    pulStcFlag - The STC flag id of the source.
+
+Returns:
+    BERR_INVALID_PARAMETER - Invalid function parameters.
+    BERR_SUCCESS - Successfully get the STC flag of the source.
+
+See Also:
+    BRDC_AcquireStcFlag_isr
+**************************************************************************/
+BERR_Code BVDC_Source_GetStcFlag
+    ( const BVDC_Source_Handle         hSource,
+      uint32_t                        *pulStcFlag );
+
+/***************************************************************************
+Summary:
     This function sets the video format of a video source.
 
 Description:
@@ -11457,6 +11503,33 @@ See Also:
 BERR_Code BVDC_Source_SetSdrGfxToHdrApproximationAdjust
     ( BVDC_Source_Handle               hSource,
       const BVDC_Source_SdrGfxToHdrApproximationAdjust *pSdrGfxToHdrApproxAdj);
+
+/***************************************************************************
+Summary:
+    Sets the min and max luminance computed from the input graphics source.
+
+Description:
+
+    This setting will not be applied until a call to BVDC_ApplyChanges is
+    made.
+
+Input:
+    hSource - The source device to modify.
+    ulMin - the min luminance of the input graphics surface
+    ulMax - the max luminance of the input graphics surface
+
+Output:
+
+Returns:
+    BERR_INVALID_PARAMETER - hSource is not a valid source handle.
+    BERR_SUCCESS - Successfully recorded graphics min,max luminance.
+
+See Also:
+    BVDC_Display_HdmiSettings, BVDC_Display_SetHdmiSettings
+****************************************************************************/
+BERR_Code BVDC_Source_SetGfxLuminance
+    ( BVDC_Source_Handle               hSource,
+      unsigned ulMin, unsigned ulMax);
 
 /***************************************************************************
 Summary:

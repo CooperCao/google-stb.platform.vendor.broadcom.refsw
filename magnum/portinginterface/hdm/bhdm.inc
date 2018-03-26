@@ -146,3 +146,8 @@ ifeq ($(BHDM_DBV_SUPPORT),y)
 BHDM_DEFINES += BHDM_DBV_SUPPORT=1
 BHDM_SOURCES += $(MAGNUM)/portinginterface/hdm/src/commond/bhdm_dbv_priv.c
 endif
+
+# Module Dependencies
+ifeq ($(BCHP_CHIP),7211)
+include $(MAGNUM)/portinginterface/ott/bott.inc
+endif

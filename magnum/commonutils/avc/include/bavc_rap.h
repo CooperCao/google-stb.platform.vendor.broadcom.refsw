@@ -155,7 +155,7 @@ typedef struct BAVC_AudioMetadataDescriptor
     {
         struct
         {
-            uint8_t auiASC[BAVC_AUDIO_SPECIFIC_CONFIG_MAX_LENGTH];  /* Audio Specific Config from ISO 11496-3 */
+            uint8_t auiASC[BAVC_AUDIO_SPECIFIC_CONFIG_MAX_LENGTH];  /* Audio Specific Config from ISO 14496-3 */
             unsigned uiASCLengthBits; /* Length In Bits */
             unsigned uiASCLengthBytes;/* Length In Bytes - Since this is a bitfield extra bytes will be 0 filled */
         } stAac;                      /* Applies for BAVC_AudioCompressionStd_eAacAdts, BAVC_AudioCompressionStd_eAacLoas,

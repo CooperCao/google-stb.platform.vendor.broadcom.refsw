@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=us-ascii">
 <meta name=Generator content="Microsoft Word 14 (filtered)">
-<title>Broadcom 97278 B0 Phase 18.1 Set-Top Unified Reference Software
+<title>Broadcom 97278 B0/B1 Phase 18.1 Set-Top Unified Reference Software
 Release (URSR) Release Notes</title>
 <style>
 <!--
@@ -14,6 +14,9 @@ Release (URSR) Release Notes</title>
 @font-face
 	{font-family:Calibri;
 	panose-1:2 15 5 2 2 2 4 3 2 4;}
+@font-face
+	{font-family:Tahoma;
+	panose-1:2 11 6 4 3 5 4 4 2 4;}
  /* Style Definitions */
  p.MsoNormal, li.MsoNormal, div.MsoNormal
 	{margin:0in;
@@ -90,6 +93,12 @@ span.Heading1Char
 	font-family:"Cambria","serif";
 	color:#365F91;
 	font-weight:bold;}
+span.Heading2Char
+	{mso-style-name:"Heading 2 Char";
+	mso-style-link:"Heading 2";
+	font-family:"Cambria","serif";
+	color:#4F81BD;
+	font-weight:bold;}
 span.Heading4Char
 	{mso-style-name:"Heading 4 Char";
 	mso-style-link:"Heading 4";
@@ -155,12 +164,6 @@ span.gmailmsg
 	{mso-style-name:gmailmsg;}
 span.gmail-m-5047815134937865191gmailmsg
 	{mso-style-name:gmail-m_-5047815134937865191gmailmsg;}
-span.Heading2Char
-	{mso-style-name:"Heading 2 Char";
-	mso-style-link:"Heading 2";
-	font-family:"Cambria","serif";
-	color:#4F81BD;
-	font-weight:bold;}
 .MsoChpDefault
 	{font-size:10.0pt;}
 @page WordSection1
@@ -192,14 +195,14 @@ href="#where_to_start"><span style='color:#0070C0'>Where to Start</span></a></sp
 
 <div>
 
-<p><a name=top><strong>Broadcom 97278/7278 B0 Phase 18.1 </strong></a><strong>Set-Top
-Unified Reference Software Release Notes</strong></p>
+<p><a name=top><strong>Broadcom 97278/7278 B0/B1 Phase 18.1 Set-Top Unified
+Reference Software Release Notes</strong></a></p>
 
 <p><strong>Release Date: </strong></p>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
 
-<p>January 29, 2018</p>
+<p>March 1, 2018</p>
 
 <p>Phase 18.1 Release </p>
 
@@ -207,17 +210,17 @@ Unified Reference Software Release Notes</strong></p>
 
 <p><strong>Platforms Supported: </strong></p>
 
-<p class=MsoNormal style='text-indent:.5in'>97278SV BCM7278 B0 Revision</p>
+<p class=MsoNormal style='text-indent:.5in'>97278SV BCM7278 B0/B1 Revision</p>
 
-<p class=MsoNormal style='text-indent:.5in'>97278HB BCM7278 B0 Revision</p>
+<p class=MsoNormal style='text-indent:.5in'>97278HB BCM7278 B0/B1 Revision</p>
 
-<p class=MsoNormal style='text-indent:.5in'>97278VMS BCM7278 B0 Revision</p>
+<p class=MsoNormal style='text-indent:.5in'>97278VMS BCM7278 B0/B1 Revision</p>
 
-<p class=MsoNormal style='text-indent:.5in'>97278IPA BCM7278 B0 Revision</p>
+<p class=MsoNormal style='text-indent:.5in'>97278IPA BCM7278 B0/B1 Revision</p>
 
 <p class=MsoNormal style='text-indent:.5in'>&nbsp;</p>
 
-<p class=MsoNormal><b>BCM7278 B0 Supported boards</b> </p>
+<p class=MsoNormal><b>BCM7278 B0/B1 Supported boards</b> </p>
 
 <table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0>
  <tr>
@@ -268,25 +271,27 @@ Note&#8221; for more details.</a></p>
 <a href="#top"><b><span style='color:windowtext'>(Top)</span></b></a></p>
 
 <p class=MsoNormal>Read BroadcomReferencePlatformSetup.pdf for an overview.<br>
-Read Atlas_User_Guide.pdf for information on configuring the Linux environment on
-your Build Server and Set-Top, and information on building and installing Atlas
-as part of the Reference Software. </p>
+Read Atlas_User_Guide.pdf for information on configuring the Linux environment
+on your Build Server and Set-Top, and information on building and installing
+Atlas as part of the Reference Software. </p>
 
 <p class=MsoNormal>&nbsp;</p>
 
 <p class=MsoNormal><strong>Important Notes and Limitations</strong></p>
 
 <p class=MsoNormal><span style='color:blue'>In order to prevent confusion, due
-to the variety of configurations for different chip part numbers, BOLT
-bootloader is no longer bundled with the Reference Software release, and should
-be requested separately. For this release, 97278 was tested with BOLT v1.35.</span><span style='color:black'>  Use of TrustZone will require BOLT v1.36, available early 2018.</span></p>
-<br>
+to the variety of configurations for different chip part numbers, BOLT bootloader
+is no longer bundled with the Reference Software release, and should be
+requested separately. For this release, 97278 was tested with BOLT v1.38.</span></p>
+
+<p class=MsoNormal>&nbsp;</p>
+
 <p class=MsoNormal>In URSR 18.1, Audio/DSP supports MS12 v1.3.1:</p>
 
-<p class=MsoNormal>7278 audio support in this release includes UDC (AC3/DDP)
-[Dolby MS12 license required], AAC/AAC-HE, MPEG and PCMWAV audio decode from TS
-or ES content, as well as Dolby MS12 processing associated with MS12 Configs A,
-B, C, D. Note that AC4 decoding is not supported in this release.</p>
+<p class=MsoNormal>7278 audio support in this release includes UDC (AC3/DDP),
+AC4 [Dolby MS12 license required], AAC/AAC-HE, MPEG and PCMWAV audio decode
+from TS or ES content, as well as Dolby MS12 processing associated with MS12
+Configs A, B, C, D.</p>
 
 <p class=MsoNormal>7278 audio support also includes AAC stereo encoder.</p>
 
@@ -294,23 +299,18 @@ B, C, D. Note that AC4 decoding is not supported in this release.</p>
 
 <p class=MsoNormal>&nbsp;</p>
 
-<p class=MsoNormal>Security (NEXUS_SECURITY_SUPPORT) support is preliminary in
-this release. &nbsp;BCM7278 uses a new &#8220;secv2&#8221; API.&nbsp; Build
-with NEXUS_SECURITY_SUPPORT=n if necessary.</p>
-<p class=MsoNormal>&nbsp;</p>
+<p class=MsoNormal>BCM7278 uses a new &#8220;secv2&#8221; API.&nbsp; Build with
+NEXUS_SECURITY_SUPPORT=n if necessary.</p>
 
 <p class=MsoNormal>&nbsp;</p>
 
-<p class=MsoNormal>HDCP 1.4 is not functional in BCM7278B0.  Will be fixed in B1.</p>
-<p class=MsoNormal>&nbsp;</p>
-
-<p class=MsoNormal>Nexus Power Management (NEXUS_POWER_MANAGEMENT=y) is supported
-in this release, but standby (S1,S2,S3) is not.</p>
+<p class=MsoNormal>HDCP 1.4 is not functional in BCM7278B0. Fixed in B1.</p>
 
 <p class=MsoNormal>&nbsp;</p>
 
-<p class=MsoNormal>Nexus Video Encoder (VIDEO_ENCODER_SUPPORT=y) is defaulted on for use with Box Modes 1 and 3
- in this release.  Transcoding with audio is supported but has received limited testing.  A current transcoding limitation is shown below in "Known Issues".</p>
+<p class=MsoNormal>Nexus Video Encoder (VIDEO_ENCODER_SUPPORT=y) is defaulted
+on for use with Box Modes 1 and 3 in this release.</p>
+
 <p class=MsoNormal>&nbsp;</p>
 
 <p class=MsoNormal>HDR 2.0 features supported in this release:</p>
@@ -341,37 +341,45 @@ Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nb
 
 <p class=MsoListParagraph style='text-indent:-.25in'>&nbsp;</p>
 
-<p class=MsoNormal>SAGE (SAGE_SUPPORT) is preliminary in this release. Defaulted off.  Build with SAGE_SUPPORT=y to enable.
 <p class=MsoNormal style='background:white'><b><span style='font-size:14.0pt;
 color:black'>SAGE 4.0 Alpha 4 Release Notes</span></b></p>
 
-<p class=MsoNormal style='background:white'><span style='color:black'>This is an early engineering release for the 7278B0 ZD and ZB with minimal testing and feature support.&nbsp;</span></p>
+<p class=MsoNormal style='background:white'><span style='color:black'>This is
+an engineering release for the 7278B0/B1 ZD and ZB with limited testing and
+feature support.&nbsp;</span></p>
 
-<p class=MsoNormal style='background:white'><span style='color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></p>
+<p class=MsoNormal style='background:white'><span style='color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></p>
 
-<p class=MsoNormal style='background:white'><span style='color:black'>Supported Features</span></p>
-
-<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial PlayReady 2.5, 3.3 and Widevine DRM support.</span></p>
-
-<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial Secure Video Path (SVP) support.</span></p>
+<p class=MsoNormal style='background:white'><span style='color:black'>Supported
+Features</span></p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Support for BP3 provisioning.  SAGE is required for BP3 parts.</span></p>
+Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial
+PlayReady 2.5, 3.3 and Widevine DRM support. (May require a patch, see Known
+Issues.)</p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
+Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial
+Secure Video Path (SVP) support.</p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
 Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Support
-for HDMI Tx with HDCP 2.2 with limited and basic compliance testing</span></p>
+for BP3 provisioning. SAGE is required for BP3 parts.</p>
 
-<p class=MsoNormal style='background:white'><span style='color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></p>
+<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
+Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Support
+for HDMI Tx with HDCP 2.2 with limited and basic compliance testing</p>
+
+<p class=MsoNormal style='background:white'><span style='color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></p>
 
 <p class=MsoNormal style='background:white'><span style='color:black'>Known
 Issues</span></p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
 Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HDCP
-2.2 Rx is not supported</span></p>
+2.2 Rx is not supported</p>
 
 <p class=MsoNormal style='background:white'><span style='color:black'>&nbsp;</span></p>
 
@@ -382,116 +390,397 @@ Notes</span></p>
 Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Various
 changes made to Nexus Security and HSM PI with the introduction of HSM version
 2.&nbsp; Please note that Nexus security and HSM APIs may change as additional
-features are enabled and tested in SAGE</span></p>
+features are enabled and tested in SAGE</p>
 
 <p class=MsoListParagraph style='margin-left:.25in;text-indent:-.25in'>&nbsp;</p>
 
-<p><strong>Quick Build Instructions</strong></p>
+<p class=MsoNormal><b><span style='color:#0070C0'>&nbsp;</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:14.0pt;
+color:black'>Release Notes for ASP in URSR 18.1</span></b></p>
+
+<p class=MsoNormal><b><span style='color:#0070C0'>&nbsp;</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>Steps to enable ASP support in
+NEXUS:</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>&nbsp;</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>Steps to build:</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>1.</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></b><b><span
+style='font-size:10.0pt;font-family:"Tahoma","sans-serif";color:#222222'>Set
+following addition build flag:</span></b></p>
+
+<p class=MsoNormal style='text-indent:.5in;background:white'><b><span
+style='font-size:10.0pt;font-family:"Courier New";color:#222222'>export
+NEXUS_ASP_SUPPORT</span></b></p>
+
+<p class=MsoNormal style='text-indent:.5in;background:white'><b><span
+style='font-size:10.0pt;font-family:"Tahoma","sans-serif";color:#222222'>&nbsp;</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>2.</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></b><b><span
+style='font-size:10.0pt;font-family:"Tahoma","sans-serif";color:#222222'>Run
+plat script as following:</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Courier New";color:#222222'>source BSEAV/tools/build/plat 97278 B1</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Courier New";color:#222222'>and make sure following environment
+variables get set:</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Courier New";color:#222222'>NEXUS_PLATFORM=97278</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Courier New";color:#222222'>BCHP_VER=B1</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Courier New";color:#222222'>B_REFSW_DEBUG=</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Courier New";color:#222222'>B_REFSW_ARCH=aarch64-linux</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Courier New";color:#222222'>B_REFSW_OS=linuxuser</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Courier New";color:#222222'>LINUX=/opt/brcm/linux-4.9-1.4/arm64</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Courier New";color:#222222'>Toolchain found at
+/opt/toolchains/stbgcc-6.3-1.2/bin/aarch64-linux-gcc</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>&nbsp;</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>3.</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></b><b><span
+style='font-size:10.0pt;font-family:"Tahoma","sans-serif";color:#222222'>Build
+the ASP Driver, it will be copied in the obj.97278.B1/nexus/bin directory!</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Courier New";color:#222222'>cd BSEAV/linux/driver/asp</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Courier New";color:#222222'>make all</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>&nbsp;</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>4.</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></b><b><span
+style='font-size:10.0pt;font-family:"Tahoma","sans-serif";color:#222222'>Build
+http_file_streamer example app, it will build nexus &amp; all needed libraries
+into obj.97278.B0/nexus/bin directory</span></b></p>
+
+<p class=MsoNormal style='margin-left:1.0in;background:white'><b><span
+style='font-size:10.0pt;font-family:"Courier New";color:#222222'>cd
+nexus/lib/bip/examples/http_file_streamer</span></b></p>
+
+<p class=MsoNormal style='margin-left:1.0in;background:white'><b><span
+style='font-size:10.0pt;font-family:"Courier New";color:#222222'>make all</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>&nbsp;</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>Steps to run:</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>1.</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></b><b><span
+style='font-size:10.0pt;font-family:"Tahoma","sans-serif";color:#222222'>Ensure
+BOLT version of 1.37 is flashed on the 97278 board.</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>&nbsp;</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>2.</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></b><b><span
+style='font-size:10.0pt;font-family:"Tahoma","sans-serif";color:#222222'>Use
+the 4.9-1.4 Linux kernel. The CONFIG_NETFILTER option must be enabled.</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>&nbsp;</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>3.</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></b><b><span
+style='font-size:10.0pt;font-family:"Tahoma","sans-serif";color:#222222'>Mount
+the nexus/bin directory via NFS or copy all the binary files to the STB.</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>&nbsp;</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>4.</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></b><b><span
+style='font-size:10.0pt;font-family:"Tahoma","sans-serif";color:#222222'>Copy
+any media files into the /data/videos directory of the STB.</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>&nbsp;</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>5.</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></b><b><span
+style='font-size:10.0pt;font-family:"Tahoma","sans-serif";color:#222222'>Connect
+the STB to a local area network via the gphy Gigabit Ethernet port and have one
+or more network clients (STB, Linux or Windows PC) also connected on that
+network.</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>&nbsp;</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>6.</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></b><b><span
+style='font-size:10.0pt;font-family:"Tahoma","sans-serif";color:#222222'>Run
+http_file_streamer app w/ following options (use &#8211;h option to see the
+help):</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Courier New";color:#222222'>nexus http_file_streamer
+-enableHwOffload &#8211;loop -inactivityTimeoutInMs 12000 -dontAddContentLength
+-enableAllPass -maxDataRate 40000000 -disableTrickmode</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>&nbsp;</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>7.</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></b><b><span
+style='font-size:10.0pt;font-family:"Tahoma","sans-serif";color:#222222'>From a
+network client&nbsp;(STB, Linux or Windows PC), run either wget or an ip player
+(nexus/lib/bip/example/player example) to pull the content from the STB
+streamer:</span></b></p>
+
+<p class=MsoNormal style='margin-left:1.0in;background:white'><b><span
+style='font-size:10.0pt;font-family:"Courier New";color:#222222'>wget &#8211;O
+&lt;outputFile.ts&gt;&nbsp;<a href="http://%3Cserver%27s/" target="_blank"><span
+style='color:#1155CC'>http://&lt;Server&#8217;s</span></a>&nbsp;IP&gt;:&lt;Server&#8217;s
+Port&gt;/&lt;Target file name&gt;</span></b></p>
+
+<p class=MsoNormal style='margin-left:1.0in;background:white'><b><span
+style='font-size:10.0pt;font-family:"Courier New";color:#222222'>e.g. wget
+&#8211;O test.ts&nbsp;<a href="http://192.168.2.10:81/test.ts" target="_blank"><span
+style='color:#1155CC'>http://192.168.2.10:81/test.ts</span></a></span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>&nbsp;</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>Supported Features:</span></b></p>
+
+<p class=MsoNormal style='margin-left:83.25pt;text-indent:-.25in;background:
+white'><b><span style='font-size:10.0pt;font-family:Symbol;color:#222222'>&middot;</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></b><b><span style='font-size:10.0pt;font-family:"Tahoma","sans-serif";
+color:#222222'>Streaming out of content from Hard Drive, Tuner, or IP frontends
+to network clients w/o DTCP/IP encryption.</span></b></p>
+
+<p class=MsoNormal style='margin-left:83.25pt;text-indent:-.25in;background:
+white'><b><span style='font-size:10.0pt;font-family:Symbol;color:#222222'>&middot;</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></b><b><span style='font-size:10.0pt;font-family:"Tahoma","sans-serif";
+color:#222222'>Supported media formats: MPEG2 TS</span></b></p>
+
+<p class=MsoNormal style='margin-left:83.25pt;text-indent:-.25in;background:
+white'><b><span style='font-size:10.0pt;font-family:Symbol;color:#222222'>&middot;</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></b><b><span style='font-size:10.0pt;font-family:"Tahoma","sans-serif";
+color:#222222'>Supported Max throughput via ASP: 640Mpbs</span></b></p>
+
+<p class=MsoNormal style='margin-left:83.25pt;text-indent:-.25in;background:
+white'><b><span style='font-size:10.0pt;font-family:Symbol;color:#222222'>&middot;</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></b><b><span style='font-size:10.0pt;font-family:"Tahoma","sans-serif";
+color:#222222'>Max ASP Channels: 16</span></b></p>
+
+<p class=MsoNormal style='margin-left:83.25pt;text-indent:-.25in;background:
+white'><b><span style='font-size:10.0pt;font-family:Symbol;color:#222222'>&middot;</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></b><b><span style='font-size:10.0pt;font-family:"Tahoma","sans-serif";
+color:#222222'>Nexus build mode: User Mode, NxClient Mode</span></b></p>
+
+<p class=MsoNormal style='margin-left:1.0in;background:white'><b><span
+style='font-size:10.0pt;font-family:"Tahoma","sans-serif";color:#222222'>&nbsp;</span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Tahoma","sans-serif";color:#222222'>Pending Features (still under
+development):</span></b></p>
+
+<p class=MsoNormal style='margin-left:83.25pt;text-indent:-.25in;background:
+white'><b><span style='font-size:10.0pt;font-family:Symbol;color:#222222'>&middot;</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></b><b><span style='font-size:10.0pt;font-family:"Tahoma","sans-serif";
+color:#222222'>Streaming of DTCP/IP Encrypted content via ASP</span></b></p>
+
+<p class=MsoNormal style='margin-left:83.25pt;text-indent:-.25in;background:
+white'><b><span style='font-size:10.0pt;font-family:Symbol;color:#222222'>&middot;</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></b><b><span style='font-size:10.0pt;font-family:"Tahoma","sans-serif";
+color:#222222'>Stream-in: receiving of incoming stream via ASP</span></b></p>
+
+<p class=MsoNormal style='margin-left:83.25pt;text-indent:-.25in;background:
+white'><b><span style='font-size:10.0pt;font-family:Symbol;color:#222222'>&middot;</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></b><b><span style='font-size:10.0pt;font-family:"Tahoma","sans-serif";
+color:#222222'>Streaming out of non-MPEG2 TS containers including HLS, MPEG
+DASH, etc.</span></b></p>
+
+<p class=MsoNormal style='margin-left:83.25pt;text-indent:-.25in;background:
+white'><b><span style='font-size:10.0pt;font-family:Symbol;color:#222222'>&middot;</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></b><b><span style='font-size:10.0pt;font-family:"Tahoma","sans-serif";
+color:#222222'>Playback from local host using ASP</span></b></p>
+
+<p class=MsoNormal style='margin-left:83.25pt;text-indent:-.25in;background:
+white'><b><span style='font-size:10.0pt;font-family:Symbol;color:#222222'>&middot;</span></b><b><span
+style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></b><b><span style='font-size:10.0pt;font-family:"Tahoma","sans-serif";
+color:#222222'>Nexus in Kernel mode</span></b></p>
+
+<p class=MsoNormal><b><span style='color:#0070C0'>&nbsp;</span></b></p>
+
+<p><strong><span style='color:#0070C0'>Quick Build Instructions (general)</span></strong></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal># tar -xvjf rootfs-4.9-1.2.tar.bz2 </li>
- <li class=MsoNormal># tar -xvjf stblinux-4.9-1.2.tar.bz2 </li>
- <li class=MsoNormal># cd rootfs </li>
- <li class=MsoNormal># make vmlinuz-initrd-arm <i>(For 32-bit version of the
-     kernel build)</i></li>
- <li class=MsoNormal># make vmlinuz-initrd-arm64 <i>(For 64-bit version of the
-     kernel build)</i></li>
- <li class=MsoNormal># cd ../linux </li>
- <li class=MsoNormal>export LINUX=`pwd` </li>
- <li class=MsoNormal>tar -C /opt/toolchains -xvjf stbgcc-6.3-1.1.tar.bz2 </li>
- <li class=MsoNormal>PATH=/opt/toolchains/ stbgcc-6.3-1.1/bin:$PATH </li>
- <li class=MsoNormal>export B_REFSW_ARCH=arm-linux </li>
- <li class=MsoNormal>or <span style='font-size:7.0pt;color:black'>&nbsp;<span
-     class=apple-converted-space>&nbsp;</span></span><span style='color:black'><span
-     style='orphans: auto;text-align:start;widows: 1;-webkit-text-stroke-width: 0px;
-     word-spacing:0px'>export B_REFSW_ARCH=aarch64-linux (For compiling the
-     code with 64 bit toolchain)</span></span></li>
+ <li class=MsoNormal style='color:#0070C0'><b># tar -xvjf
+     rootfs-4.9-1.4.tar.bz2 </b></li>
+ <li class=MsoNormal style='color:#0070C0'><b># tar -xvjf
+     stblinux-4.9-1.4.tar.bz2 </b></li>
+ <li class=MsoNormal style='color:#0070C0'><b># cd rootfs </b></li>
+ <li class=MsoNormal style='color:#0070C0'><b># make vmlinuz-initrd-arm <i>(For
+     32-bit version of the kernel build)</i></b></li>
+ <li class=MsoNormal style='color:#0070C0'><b># make vmlinuz-initrd-arm64 <i>(For
+     64-bit version of the kernel build)</i></b></li>
+ <li class=MsoNormal style='color:#0070C0'><b># cd ../linux </b></li>
+ <li class=MsoNormal style='color:#0070C0'><b>export LINUX=`pwd` </b></li>
+ <li class=MsoNormal style='color:#0070C0'><b>tar -C /opt/toolchains -xvjf
+     stbgcc-6.3-1.2.tar.bz2 </b></li>
+ <li class=MsoNormal style='color:#0070C0'><b>PATH=/opt/toolchains/
+     stbgcc-6.3-1.2/bin:$PATH </b></li>
+ <li class=MsoNormal style='color:#0070C0'><b>export B_REFSW_ARCH=arm-linux </b></li>
+ <li class=MsoNormal style='color:#0070C0'><b>or </b><b><span style='font-size:
+     7.0pt;color:black'>&nbsp;<span class=apple-converted-space>&nbsp;</span></span></b><b><span
+     style='color:black'><span style='orphans: auto;text-align:start;
+     widows: 1;-webkit-text-stroke-width: 0px;word-spacing:0px'>export
+     B_REFSW_ARCH=aarch64-linux (For compiling the code with 64 bit toolchain)</span></span></b></li>
 </ul>
 
-<p><strong>Quick Boot instructions</strong></p>
+<p><strong><span style='color:#0070C0'>Quick Boot instructions</span></strong></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>BOLT&gt; boot -z
-     &lt;network_location&gt;:49-1.2/vmlinuz-initrd-arm </li>
- <li class=MsoNormal>BOLT&gt; boot -z
-     &lt;network_location&gt;:49-1.2/vmlinuz-initrd-arm64&nbsp; - This command
-     will boot 64 bit kernel instead of 32 bit kernel. </li>
+ <li class=MsoNormal style='color:#0070C0'><b>BOLT&gt; boot -z
+     &lt;network_location&gt;:49-1.4/vmlinuz-initrd-arm </b></li>
+ <li class=MsoNormal style='color:#0070C0'><b>BOLT&gt; boot -z
+     &lt;network_location&gt;:49-1.4/vmlinuz-initrd-arm64&nbsp; - This command
+     will boot 64 bit kernel instead of 32 bit kernel. </b></li>
 </ul>
 
-<p class=MsoNormal style='margin-left:.5in'>&nbsp;</p>
+<p class=MsoNormal style='margin-left:.5in'><b><span style='color:#0070C0'>&nbsp;</span></b></p>
 
-<p class=MsoNormal><strong>Set the kernel to autoboot</strong> </p>
+<p class=MsoNormal><strong><span style='color:#0070C0'>Set the kernel to
+autoboot</span></strong><b><span style='color:#0070C0'> </span></b></p>
 
-<p class=MsoNormal>&nbsp;</p>
+<p class=MsoNormal><b><span style='color:#0070C0'>&nbsp;</span></b></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>BOLT&gt; flash &lt;network_location&gt;:49-1.2/vmlinuz-initrd-arm
-     flash0.kernel </li>
+ <li class=MsoNormal style='color:#0070C0'><b>BOLT&gt; flash
+     &lt;network_location&gt;:49-1.4/vmlinuz-initrd-arm flash0.kernel </b></li>
 </ul>
 
-<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-size:
-10.0pt;font-family:Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Or BOLT&gt; flash &lt;network_location&gt;:49-1.2/vmlinuz-initrd-arm64
-flash0.kernel&nbsp; - For 64 bit kernel</p>
+<p class=MsoListParagraph style='text-indent:-.25in'><b><span style='font-size:
+10.0pt;font-family:Symbol;color:#0070C0'>&middot;</span></b><b><span
+style='font-size:7.0pt;color:#0070C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><span style='color:#0070C0'>Or BOLT&gt; flash
+&lt;network_location&gt;:49-1.4/vmlinuz-initrd-arm64 flash0.kernel&nbsp; - For
+64 bit kernel</span></b></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal>BOLT&gt; setenv -p STARTUP &quot;boot -z
-     flash0.kernel:&quot; </li>
- <li class=MsoNormal>BOLT&gt; reboot</li>
+ <li class=MsoNormal style='color:#0070C0'><b>BOLT&gt; setenv -p STARTUP
+     &quot;boot -z flash0.kernel:&quot; </b></li>
+ <li class=MsoNormal style='color:#0070C0'><b>BOLT&gt; reboot</b></li>
 </ul>
 
-<p class=MsoNormal>&nbsp;</p>
+<p class=MsoNormal><b><span style='color:#0070C0'>&nbsp;</span></b></p>
 
-<p class=MsoNormal><b>How to set a board to autoboot with kernel and ubifs
-rootfs and binaries into the flash:</b></p>
+<p class=MsoNormal><b><span style='color:#0070C0'>How to set a board to
+autoboot with kernel and ubifs rootfs and binaries into the flash:</span></b></p>
 
-<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
-style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Boot
-with vmlinuz-initrd kernel.</p>
+<p class=MsoListParagraph style='text-indent:-.25in'><b><span style='color:
+#0070C0'>&middot;</span></b><b><span style='font-size:7.0pt;color:#0070C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><span style='color:#0070C0'>Boot with vmlinuz-initrd kernel.</span></b></p>
 
-<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
-style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Run
-&quot;stbutil&quot;</p>
+<p class=MsoListParagraph style='text-indent:-.25in'><b><span style='color:
+#0070C0'>&middot;</span></b><b><span style='font-size:7.0pt;color:#0070C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><span style='color:#0070C0'>Run &quot;stbutil&quot;</span></b></p>
 
-<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
-style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Select
-option 8 for flashing the noninitrd kernel and rootfs to the eMMC flash. </p>
+<p class=MsoListParagraph style='text-indent:-.25in'><b><span style='color:
+#0070C0'>&middot;</span></b><b><span style='font-size:7.0pt;color:#0070C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><span style='color:#0070C0'>Select option 8 for flashing the noninitrd
+kernel and rootfs to the eMMC flash. </span></b></p>
 
-<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
-style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Reboot
-the board with &quot;boot emmcflash0.kernel: 'root=/dev/mmcblk0p6 rootwait rw
-bmem=584m@2488m brcm_cma=256m@2232m bmem=544m@13792m brcm_cma=256m@13536m'&quot; </p>
+<p class=MsoListParagraph style='text-indent:-.25in'><b><span style='color:
+#0070C0'>&middot;</span></b><b><span style='font-size:7.0pt;color:#0070C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><span style='color:#0070C0'>Reboot the board with &quot;boot
+emmcflash0.kernel: 'root=/dev/mmcblk0p6 rootwait rw bmem=584m@2488m
+brcm_cma=256m@2232m bmem=544m@13792m brcm_cma=256m@13536m'&quot; </span></b></p>
 
-<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
-style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Set
-the STARTUP or a function key variable to &quot;boot emmcflash0.kernel:
-'root=/dev/mmcblk0p6 rootwait rw bmem=584m@2488m brcm_cma=256m@2232m bmem=544m@13792m brcm_cma=256m@13536m'&quot; </p>
+<p class=MsoListParagraph style='text-indent:-.25in'><b><span style='color:
+#0070C0'>&middot;</span></b><b><span style='font-size:7.0pt;color:#0070C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><span style='color:#0070C0'>Set the STARTUP or a function key variable
+to &quot;boot emmcflash0.kernel: 'root=/dev/mmcblk0p6 rootwait rw bmem=584m@2488m
+brcm_cma=256m@2232m bmem=544m@13792m brcm_cma=256m@13536m'&quot; </span></b></p>
 
-<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
-style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Reboot
-the board.</p>
+<p class=MsoListParagraph style='text-indent:-.25in'><b><span style='color:
+#0070C0'>&middot;</span></b><b><span style='font-size:7.0pt;color:#0070C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><span style='color:#0070C0'>Reboot the board.</span></b></p>
 
-<br><p class=MsoNormal>Note:&nbsp; The bmem and brcm_cma are required for the brcmv3d
-driver, to allow the MMU for the 3D graphics core to access memory.&nbsp; If 3D
-graphics is not used,<br>
+<p class=MsoNormal><b><span style='color:#0070C0'>&nbsp;</span></b></p>
+
+<p class=MsoNormal><b><span style='color:#0070C0'>Note:&nbsp; The bmem and
+brcm_cma are required for the brcmv3d driver, to allow the MMU for the 3D
+graphics core to access memory.&nbsp; If 3D graphics is not used,<br>
 those statements can be omitted from the boot command.&nbsp; They can be
 adjusted as recommended by messages during Nexus boot.&nbsp; The example given
 is adjusted to work for both Box Mode 1 and Box Mode 2.&nbsp; If 3D graphics is
-used with Box Mode 2, the brcm_cma=256m@2232m is useful. For other box modes, it may be removed.  See BSEAV/lib/gpu/docs/VC5_AppNote_MMU.pdf for more information.</p>
-<p>For BCM97278IPA, with "ZD" chip for internal development, a board issue
-causes the "v7-32" global address map to be selected.  If you don't see the message
-"v7-64 Memory Map Variant detected." and encounter heap allocation problems during Nexus initialization,
-an alternative set of boot parameters, 'bmem=584m@2488m brcm_cma=256m@2232m bmem=544m@3552m brcm_cma=256m@3296m' may be needed.</p>
-<p><b>Important: brcm_cma regions must be 4MB aligned.</b></p>
+used with Box Mode 2, the brcm_cma=256m@2232m is useful. For other box modes,
+it may be removed. See BSEAV/lib/gpu/docs/VC5_AppNote_MMU.pdf for more
+information.</span></b></p>
 
-<p class=MsoListParagraph style='text-indent:-.25in'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </p>
+<p><b><span style='color:#0070C0'>For BCM97278IPA, with &quot;ZD&quot; chip for
+internal development, a board issue causes the &quot;v7-32&quot; global address
+map to be selected. If you don't see the message &quot;v7-64 Memory Map Variant
+detected.&quot; and encounter heap allocation problems during Nexus
+initialization, an alternative set of boot parameters, 'bmem=584m@2488m
+brcm_cma=256m@2232m bmem=544m@3552m brcm_cma=256m@3296m' may be needed.</span></b></p>
 
-<p class=MsoNormal>&nbsp;</p>
+<p><b><span style='color:#0070C0'>Important: brcm_cma regions must be 4MB
+aligned.</span></b></p>
 
-<p class=MsoNormal>&nbsp;</p>
+<p class=MsoListParagraph style='text-indent:-.25in'><b><span style='color:
+#0070C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></b></p>
 
-<p class=MsoNormal>Following is the list of boards that are supported and the
-options required to build the software. </p>
+<p class=MsoNormal><b><span style='color:#0070C0'>&nbsp;</span></b></p>
+
+<p class=MsoNormal><b><span style='color:#0070C0'>&nbsp;</span></b></p>
+
+<p class=MsoNormal><b><span style='color:#0070C0'>Following is the list of
+boards that are supported and the options required to build the software. </span></b></p>
 
 <table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0 width="81%"
  style='width:81.4%'>
@@ -511,139 +800,155 @@ options required to build the software. </p>
  </tr>
  <tr>
   <td style='padding:0in 0in 0in 0in'>
-  <p class=MsoNormal>97278 SV/HB/VMS</p>
+  <p class=MsoNormal>97278 SV/HB/ IPA</p>
   </td>
   <td style='padding:0in 0in 0in 0in'>
   <p class=MsoNormal>97278</p>
   </td>
   <td style='padding:0in 0in 0in 0in'>
-  <p class=MsoNormal><b>B0</b></p>
+  <p class=MsoNormal><b>B1</b></p>
   </td>
   <td style='padding:0in 0in 0in 0in'>
   <p class=MsoNormal>See &#8220;Quick Build Instructions&#8221; on how to setup
   LINUX and B_REFSW_ARCH variables</p>
   </td>
  </tr>
+ <tr>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal><br>
+  VMS</p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal>97278</p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal><b>B1</b></p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal>CDL_SUPPORT=n&nbsp; ESTB_SNMP_SUPPORT=n&nbsp;
+  NEXUS_SYSTEM_CABLE=y NEXUS_FRONTEND_DOCSIS=y &nbsp;NEXUS_USE_3390_VMS=y</p>
+  </td>
+ </tr>
 </table>
-
-<p class=MsoNormal>&nbsp;</p>
-
-<p class=MsoNormal><strong>There are multiple box modes available which contain
-the RTS to support the different variants and features of this chip.</strong><b><br>
-<strong>Information on the available box modes has been moved to a <span
-style='color:#0070C0'><a href="7278A0_box_mode_comparison.html"><span
-style='color:#0070C0'>new HTML table</span></a>. </span><span style='color:
-black'>At this time box modes are the same for A0 and B0 chip versions.</span></strong></b></p>
-
-<p class=MsoNormal><b><span style='color:#0070C0'><br>
-<strong>The table below contains information about the temporary box modes.&nbsp;
-These box modes were created to address limitations for video encoder (ViCE)
 
 <p class=MsoNormal><b><span style='color:#0070C0'>&nbsp;</span></b></p>
 
-<table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0 width="96%"
- style='width:96.24%'>
- <tr style='height:19.65pt'>
-  <td width="9%" style='width:9.36%;padding:.75pt .75pt .75pt .75pt;height:
-  19.65pt'>
-  <p class=MsoNormal><strong>Box modes</strong></p>
-  </td>
-  <td width="40%" style='width:40.38%;padding:0in 0in 0in 0in;height:19.65pt'>
-  <p class=MsoNormal><b>Runtime option to be set before running any nexus
-  application</b></p>
-  </td>
-  <td width="50%" valign=top style='width:50.02%;padding:0in 0in 0in 0in;
-  height:19.65pt'>
-  <p class=MsoNormal><strong>Description</strong></p>
-  </td>
- </tr>
- <tr style='height:9.45pt'>
-  <td width="9%" style='width:9.36%;padding:.75pt .75pt .75pt .75pt;height:
-  9.45pt'>
-  <p class=MsoNormal>TEMP_Box1000</p>
-  </td>
-  <td width="40%" style='width:40.38%;padding:0in 0in 0in 0in;height:9.45pt'>
-  <p class=MsoNormal>export B_REFSW_BOXMODE=1000</p>
-  </td>
-  <td width="50%" valign=top style='width:50.02%;padding:0in 0in 0in 0in;
-  height:9.45pt'>
-  <p class=MsoNormal>Two 1080p60 capable decoders, No display (headless only),
-  HDMI input, Two transcodes to 1080p30</p>
-  </td>
- </tr>
- <tr style='height:9.45pt'>
-  <td width="9%" style='width:9.36%;padding:.75pt .75pt .75pt .75pt;height:
-  9.45pt'>
-  <p class=MsoNormal>TEMP_Box1001</p>
-  </td>
-  <td width="40%" style='width:40.38%;padding:0in 0in 0in 0in;height:9.45pt'>
-  <p class=MsoNormal>export B_REFSW_BOXMODE=1001</p>
-  </td>
-  <td width="50%" valign=top style='width:50.02%;padding:0in 0in 0in 0in;
-  height:9.45pt'>
-  <p class=MsoNormal style='text-align:justify'>Two 1080p60 decoders, UHD with
-  MAIN (no PIP), SD (graphics only), No Multi-PIP support, No HDMI input, One
-  transcode to 1080p30</p>
-  </td>
- </tr>
-</table>
+<p class=MsoNormal><strong><span style='color:#0070C0'>There are multiple box
+modes available which contain the RTS to support the different variants and
+features of this chip.</span></strong><b><span style='color:#0070C0'><br>
+<strong>Information on the available box modes has been moved to a <a
+href="7278A0_box_mode_comparison.html"><span style='color:#0070C0'>new HTML
+table</span></a>. </strong></span><strong><span style='color:black'>At this
+time box modes are the same for A0 and B0 chip versions.</span></strong></b></p>
 
-<p class=MsoNormal><span lang=EN-GB style='color:#1F497D'>&nbsp;</span></p>
+<p class=MsoNormal><b><span lang=EN-GB style='color:#1F497D'>&nbsp;</span></b></p>
 
 <p class=MsoNormal><strong><span style='color:black'>Instructions to build
 nexus playback utility and use it to decode and display a UHD stream </span></strong></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal style='color:black'># tar xvfz
-     refsw_release_97278_20180129.src.tgz </li>
- <li class=MsoNormal style='color:black'>#cd nexus/utils </li>
- <li class=MsoNormal style='color:black'>#make install </li>
+ <li class=MsoNormal style='color:black'><b># tar xvfz
+     refsw_release_unified_20180301.tgz </b></li>
+ <li class=MsoNormal style='color:black'><b>#cd nexus/utils </b></li>
+ <li class=MsoNormal style='color:black'><b>#make install </b></li>
 </ul>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal style='color:black'>Connect UHD 4K TV to HDMI </li>
- <li class=MsoNormal style='color:black'>#nexus playback -display_format
+ <li class=MsoNormal style='color:black'><b>Connect UHD 4K TV to HDMI </b></li>
+ <li class=MsoNormal style='color:black'><b>#nexus playback -display_format
      3840x2160p60 -component off -max_video 3840,2160 -probe &lt;stream_name
-     &gt;</li>
-</ul>
-
-<p class=MsoNormal><span style='color:black'>&nbsp;</span></p>
-
-<p class=MsoNormal style='margin-left:.5in'><span style='color:black'>&nbsp;</span></p>
-
-<p class=MsoNormal><b><span style='color:black'>Instructions to build atlas
-and use it to play UHD stream </span></b></p>
-
-<ul style='margin-top:0in' type=disc>
- <li class=MsoNormal style='color:black'># tar xvfz
-     refsw_release_97278_20180129.src.tgz</li>
- <li class=MsoNormal style='color:black'>#cd BSEAV/app/atlas/build </li>
- <li class=MsoNormal style='color:black'>#make install </li>
-</ul>
-
-<ul style='margin-top:0in' type=disc>
- <li class=MsoNormal style='color:black'>Connect UHD 4K TV to HDMI</li>
- <li class=MsoNormal style='color:black'>Mount the USB/SATA containing the
-     4kX2k stream as /data/videos </li>
-</ul>
-
-<ul style='margin-top:0in' type=disc>
- <li class=MsoNormal style='color:black'>Run the following commands to run
-     atlas after extracting the tarball from obj.97278/BSEAV/bin dir.</li>
- <li class=MsoNormal style='color:black'>#start install </li>
- <li class=MsoNormal style='color:black'>#start atlas </li>
- <li class=MsoNormal style='color:black'>From the menu, select Playback -&gt;
-     4kp60 stream. </li>
- <li class=MsoNormal style='color:black'>Using the remote control for the
-     board, select Menu -&gt; Display -&gt; Format -&gt; 2160p 60Hz. You should
-     be able to see the stream playback in 4Kp60 display format.</li>
+     &gt;</b></li>
 </ul>
 
 <p class=MsoNormal><b><span style='color:black'>&nbsp;</span></b></p>
 
+<p class=MsoNormal style='margin-left:.5in'><b><span style='color:black'>&nbsp;</span></b></p>
+
+<p class=MsoNormal><b><span style='color:black'>Instructions to build atlas and
+use it to play UHD stream </span></b></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='color:black'><b># tar xvfz
+     refsw_release_unified_20180301.tgz</b></li>
+ <li class=MsoNormal style='color:black'><b>#cd BSEAV/app/atlas/build </b></li>
+ <li class=MsoNormal style='color:black'><b>#make install </b></li>
+</ul>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='color:black'><b>Connect UHD 4K TV to HDMI</b></li>
+ <li class=MsoNormal style='color:black'><b>Mount the USB/SATA containing the
+     4kX2k stream as /data/videos </b></li>
+</ul>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='color:black'><b>Run the following commands to run
+     atlas after extracting the tarball from obj.97278/BSEAV/bin dir.</b></li>
+ <li class=MsoNormal style='color:black'><b>#start install </b></li>
+ <li class=MsoNormal style='color:black'><b>#start atlas </b></li>
+ <li class=MsoNormal style='color:black'><b>From the menu, select Playback
+     -&gt; 4kp60 stream. </b></li>
+ <li class=MsoNormal style='color:black'><b>Using the remote control for the
+     board, select Menu -&gt; Display -&gt; Format -&gt; 2160p 60Hz. You should
+     be able to see the stream playback in 4Kp60 display format.</b></li>
+</ul>
+
+<p class=MsoNormal><b><span style='color:black'>&nbsp;</span></b></p>
+
+<p class=MsoNormal style='margin-left:.5in'><b><span style='color:black'>&nbsp;</span></b></p>
+
+<p class=MsoNormal><b><span style='color:black'>Using splashgen</span></b></p>
+
+<p class=MsoNormal><b><span style='font-family:Symbol;color:#0070C0'>&middot;</span></b><b><span
+style='color:#0070C0'>&nbsp; Because the BOLT bootloader is 32-bit, graphics
+surfaces used for splash screen must be in MEMC0 (If v7-64 global address map
+is in use). To insure that, you can run with the run-time environment setting </span></b></p>
+
+<p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
+font-family:"Courier New";color:#222222'>B_REFSW_BOXMODE=2</span></b></p>
+
+<p class=MsoNormal><b><span style='font-family:Symbol;color:#0070C0'>&middot;</span></b><b><span
+style='color:#0070C0'>&nbsp; If that's not possible, modify the
+BSEAV/app/splash/splashgen/97278/bsplash_board.h to set 'SPLASH_SURF0_MEM' and
+'SPLASH_SURF1_MEM' to '0' (numeric zero) so that only the first memory
+controller is used when generating and running splash. </span></b></p>
+
+<p class=MsoNormal><b><span style='color:black'>&nbsp;</span></b></p>
+
+<h1><strong><span style='color:#0070C0'>Known Issues</span></strong></h1>
+
+<table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0
+ style='left:10px;top:1287px' id=TABLE1A>
+ <colgroup><col span="1" style="width: 15%;"><col span="1" style="width: 85%;"></colgroup>
+ <tr>
+  <td style='background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b>Jira Ticket</b></p>
+  </td>
+  <td style='background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b>Description</b></p>
+  </td>
+ </tr>
+ <tr>
+  <td valign=top style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>SWSTB-8584</p>
+  </td>
+  <td valign=top style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>MMT from a live source (bonded or single stream) broken
+  with SAGE_SUPPORT=y</p>
+  </td>
+ </tr>
+ <tr>
+  <td valign=top style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>SWSECDRM-1914</p>
+  </td>
+  <td valign=top style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Playready_SVP and other DRM playback tests fail on 7278</p>
+  </td>
+ </tr>
+</table>
+
 <h2><a name=features><span style='color:black'>Features </span></a></h2>
 
-<p class=MsoNormal><span style='color:black'><a href="#_top">(Top)</a></span></p>
+<p class=MsoNormal><b><span style='color:black'><a href="#_top">(Top)</a></span></b></p>
 
 <p><strong><span style='color:black'>Information on Features has been
 consolidated in the <a href="ReleaseNotes.html"><span style='color:black'>generic

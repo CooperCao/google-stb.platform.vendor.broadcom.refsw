@@ -49,8 +49,9 @@
 .section .text.bootstrap
 
 func_bootstrap mon_entry_point
+#ifdef SMM64
 	/*
-	 * Bolt has populated the following registers:
+	 * SMM64 has populated the following registers:
 	 * - x0: monitor params
 	 * - x1: platform params
 	 * - x2: uart base in use
@@ -58,6 +59,37 @@ func_bootstrap mon_entry_point
 	mov	x20, x0
 	mov	x21, x1
 	mov	x22, x2
+#else
+	/*
+	 * Bolt has populated the following registers:
+	 * - x0: 0
+	 * - x1: monitor params
+	 * - x2: platform params
+	 * - x3: uart base in use
+	 */
+	mov	x20, x1
+	mov	x21, x2
+	mov	x22, x3
+#endif
+	/*
+	 * Disable MMU and caches
+	 */
+	mrs	x0, sctlr_el3
+	mov	x1, #(SCTLR_M_BIT | SCTLR_C_BIT | SCTLR_I_BIT)
+	bic	x0, x0, x1
+	msr	sctlr_el3, x0
+	isb
+
+	/*
+	 * Invalidate caches
+	 * Dcache is invalidated at all levels
+	 */
+	dsb	sy
+	ic	ialluis
+
+	dsb	sy
+	mov	x0, DCISW
+	bl	dcsw_op_all
 
 	/*
 	 * Calculate offset between load address and link address
@@ -73,7 +105,7 @@ func_bootstrap mon_entry_point
 	bl	reset_handler
 
 	/*
-	 * Clear data (BSS, xlat tables, and coherent RAM) sections
+	 * Clear data BSS section
 	 */
 	adr	x0, _bss_start
 	adr	x1, _bss_end
@@ -147,13 +179,24 @@ endfunc mon_entry_point
 
 func_bootstrap mon_secondary_entry_point
 	/*
-	 * CPU reset to monitor secondary entry point,
-	 * need to set CPU endianness before doing anything.
+	 * Disable MMU and caches
 	 */
 	mrs	x0, sctlr_el3
-	bic	x0, x0, #SCTLR_EE_BIT
+	mov	x1, #(SCTLR_M_BIT | SCTLR_C_BIT | SCTLR_I_BIT)
+	bic	x0, x0, x1
 	msr	sctlr_el3, x0
 	isb
+
+	/*
+	 * Invalidate caches
+	 * Dcache is invalidated at L1 level
+	 */
+	dsb	sy
+	ic	ialluis
+
+	dsb	sy
+	mov	x0, DCISW
+	bl	dcsw_op_level1
 
 	/*
 	 * Calculate offset between load address and link address
@@ -221,12 +264,11 @@ func_bootstrap mon_common_init
 	isb
 
 	/*
-	 * Enable execute-never, stack pointer and data access alignment checks
+	 * Enable execute-never, stack pointer alignment checks
 	 */
-	mov	x0, #(SCTLR_WXN_BIT)
-	mov	x1, #(SCTLR_A_BIT | SCTLR_SA_BIT)
-	orr	x1, x1, x0
 	mrs	x0, sctlr_el3
+	mov	x1, #SCTLR_WXN_BIT
+	orr	x1, x1, #SCTLR_SA_BIT
 	orr	x0, x0, x1
 	msr	sctlr_el3, x0
 	isb

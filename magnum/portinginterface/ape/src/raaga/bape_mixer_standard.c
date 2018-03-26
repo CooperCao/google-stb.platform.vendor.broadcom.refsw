@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,13 +43,14 @@
 #include "bkni.h"
 #include "bape.h"
 #include "bape_priv.h"
+#include "bape_buffer.h"
 
 BDBG_MODULE(bape_mixer);
+
+#if BAPE_CHIP_MAX_HW_MIXERS > 0
 BDBG_FILE_MODULE(bape_mixer_get_mclk_source);
 BDBG_FILE_MODULE(bape_fci);
 BDBG_FILE_MODULE(bape_mixer_input_coeffs_detail);
-
-#define BAPE_MIXER_INPUT_INDEX_INVALID ((unsigned)-1)
 
 /* Local function prototypes */
 static void BAPE_StandardMixer_P_SetSampleRate_isr(BAPE_MixerHandle mixer, unsigned sampleRate);
@@ -129,6 +130,7 @@ BERR_Code BAPE_StandardMixer_P_Create(
 
     BKNI_Memset(handle, 0, sizeof(BAPE_Mixer));
     BDBG_OBJECT_SET(handle, BAPE_Mixer);
+    handle->mixerType = BAPE_MixerType_eStandard;
     handle->explicitFormat = pSettings->format != BAPE_MixerFormat_eAuto ? pSettings->format : BAPE_MixerFormat_eMax;
     handle->settings = *pSettings;
     handle->interface = &standardMixerInterface;
@@ -357,7 +359,8 @@ static BERR_Code BAPE_StandardMixer_P_AddInput(
     const BAPE_MixerAddInputSettings *pSettings     /* Optional, pass NULL for default settings */
     )
 {
-    unsigned i;
+    unsigned i, maxInputs;
+    bool srcEnabled;
     BERR_Code errCode;
     BAPE_MixerAddInputSettings defaultSettings;
     bool makeMaster;
@@ -390,14 +393,17 @@ static BERR_Code BAPE_StandardMixer_P_AddInput(
     {
         if ( handle->inputs[i] == input )
         {
-            BDBG_ERR(("Cannot add the same input multiple times to a single mixer."));
+            BDBG_WRN(("Cannot add the same input multiple times to a single mixer."));
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
     }
 #endif
 
+    srcEnabled = true;
+    maxInputs = BAPE_CHIP_MAX_MIXER_INPUTS;
+
     /* Find empty slot */
-    for ( i = 0; i < BAPE_CHIP_MAX_MIXER_INPUTS; i++ )
+    for ( i = 0; i < maxInputs; i++ )
     {
         if ( handle->inputs[i] == NULL )
         {
@@ -416,7 +422,7 @@ static BERR_Code BAPE_StandardMixer_P_AddInput(
             BAPE_Mixer_P_GetDefaultInputVolume(&handle->inputVolume[i]);
 
             /* init input settings */
-            handle->inputSettings[i].srcEnabled = true;
+            handle->inputSettings[i].srcEnabled = srcEnabled;
 
             errCode = BAPE_PathNode_P_AddInput(&handle->pathNode, input);
             if ( errCode )
@@ -435,7 +441,7 @@ static BERR_Code BAPE_StandardMixer_P_AddInput(
     }
 
     /* Mixer has no available slots. */
-    BDBG_ERR(("Mixer can not accept any more inputs.  Maximum inputs per mixer is %u.", BAPE_CHIP_MAX_MIXER_INPUTS));
+    BDBG_ERR(("Mixer can not accept any more inputs.  Maximum inputs per mixer is %u.", maxInputs));
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
@@ -531,6 +537,28 @@ static BERR_Code BAPE_StandardMixer_P_AddOutput(
     }
     else
     {
+        BAPE_OutputPort op;
+        unsigned maxOutputs;
+
+        maxOutputs = BAPE_CHIP_MAX_HW_MIXER_OUTPUTS;
+
+        for ( op = BLST_S_FIRST(&handle->outputList);
+              op != NULL;
+              op = BLST_S_NEXT(op, node) )
+        {
+            if ( op == output )
+            {
+                BDBG_ERR(("Output already added to mixer %p", (void*)handle));
+                return BERR_TRACE(BERR_UNKNOWN);
+            }
+        }
+
+        if ( handle->numOutputs >= maxOutputs )
+        {
+            BDBG_ERR(("Max num outputs (%d) already added for mixer %p", maxOutputs, (void*)handle));
+            return BERR_TRACE(BERR_UNKNOWN);
+        }
+
         /* Bind mixer and output.  Remainder is done at start time. */
         output->mixer = handle;
         BLST_S_INSERT_HEAD(&handle->outputList, output, node);
@@ -539,11 +567,11 @@ static BERR_Code BAPE_StandardMixer_P_AddOutput(
         output->sourceMixerOutputIndex = 0;
         BAPE_StandardMixer_P_FreeResources(handle);
 
-        BDBG_MSG(("Added output %p '%s' to mixer %u [mixer rate %u]", (void *)output, output->pName, handle->index, BAPE_Mixer_P_GetOutputSampleRate(handle)));
+        BDBG_MSG(("Added output %p '%s' to mixer %u [mixer rate %u]", (void *)output, output->pName, handle->index, BAPE_Mixer_P_GetOutputSampleRate_isrsafe(handle)));
         BKNI_EnterCriticalSection();
-        if ( output->setTimingParams_isr && BAPE_Mixer_P_GetOutputSampleRate_isr(handle) != 0 )
+        if ( output->setTimingParams_isr && BAPE_Mixer_P_GetOutputSampleRate_isrsafe(handle) != 0 )
         {
-            output->setTimingParams_isr(output, BAPE_Mixer_P_GetOutputSampleRate_isr(handle), handle->settings.outputTimebase);
+            output->setTimingParams_isr(output, BAPE_Mixer_P_GetOutputSampleRate_isrsafe(handle), handle->settings.outputTimebase);
         }
         BKNI_LeaveCriticalSection();
     }
@@ -579,7 +607,7 @@ static BERR_Code BAPE_StandardMixer_P_RemoveOutput(
         BLST_S_REMOVE(&handle->outputList, output, BAPE_OutputPortObject, node);
         BDBG_ASSERT(handle->numOutputs > 0);
         handle->numOutputs--;
-        BDBG_MSG(("Removed output %p '%s' from mixer %u [mixer rate %u]", (void *)output, output->pName, handle->index, BAPE_Mixer_P_GetOutputSampleRate(handle)));
+        BDBG_MSG(("Removed output %p '%s' from mixer %u [mixer rate %u]", (void *)output, output->pName, handle->index, BAPE_Mixer_P_GetOutputSampleRate_isrsafe(handle)));
     }
 
     return BERR_SUCCESS;
@@ -638,17 +666,18 @@ static BERR_Code BAPE_StandardMixer_P_GetInputVolume(
 /*************************************************************************/
 static BERR_Code BAPE_StandardMixer_P_ApplyInputVolume(BAPE_MixerHandle mixer, unsigned index)
 {
-    BAPE_MixerGroupInputSettings mixerInputSettings;
     BAPE_Connector source = mixer->inputs[index];
     unsigned mixerNum;
-    unsigned i;
-    BERR_Code errCode;
 
     BDBG_OBJECT_ASSERT(source, BAPE_PathConnector);
 
-    for ( mixerNum = 0; mixerNum < BAPE_CHIP_MAX_MIXERS; mixerNum++ )
+    for ( mixerNum = 0; mixerNum < BAPE_CHIP_MAX_MIXER_GROUPS; mixerNum++ )
     {
+        unsigned i;
+        BERR_Code errCode;
+        BAPE_MixerGroupInputSettings mixerInputSettings;
         BAPE_MixerGroupHandle mixerGroup = mixer->mixerGroups[mixerNum];
+
         if ( NULL != mixerGroup )
         {
             BAPE_MixerGroup_P_GetInputSettings(mixerGroup, index, &mixerInputSettings);
@@ -934,7 +963,7 @@ static BERR_Code BAPE_StandardMixer_P_ApplyOutputVolume(BAPE_MixerHandle mixer, 
 
     BAPE_MixerGroup_P_GetOutputSettings(output->sourceMixerGroup, output->sourceMixerOutputIndex, &outputSettings);
 
-    pcm = BAPE_FMT_P_IsLinearPcm_isrsafe(BAPE_Mixer_P_GetOutputFormat(mixer));
+    pcm = BAPE_FMT_P_IsLinearPcm_isrsafe(BAPE_Mixer_P_GetOutputFormat_isrsafe(mixer));
 
     for ( i = 0; i < BAPE_Channel_eMax; i++ )
     {
@@ -993,12 +1022,15 @@ static bool BAPE_StandardMixer_P_ValidateSettings(BAPE_Handle hApe, const BAPE_M
 {
     switch ( pSettings->defaultSampleRate )
     {
+    case 16000:
+    case 22050:
+    case 24000:
     case 32000:
     case 44100:
     case 48000:
         break;
     default:
-        BDBG_ERR(("Mixers only support default sample rates of 32k, 44.1k or 48kHz."));
+        BDBG_ERR(("Mixers only support default sample rates of 32k, 44.1k or 48kHz, and their half samplerates."));
         return false;
     }
 
@@ -1036,7 +1068,6 @@ static BERR_Code BAPE_StandardMixer_P_SetSettings(
         /* If mixer has downstream connections, apply volume changes here */
         if ( volumeChanged )
         {
-            BERR_Code errCode;
             BAPE_OutputPort output;
             BAPE_PathConnection *pOutputConnection;
             unsigned mixerIndex = 0;
@@ -1062,7 +1093,8 @@ static BERR_Code BAPE_StandardMixer_P_SetSettings(
             /* downstream connections are cascaded -- Apply output volume scaling */
             for (; mixerIndex < hMixer->numMixerGroups; mixerIndex++ )
             {
-                errCode = BAPE_MixerGroup_P_ApplyOutputVolume(hMixer->mixerGroups[mixerIndex], &pSettings->outputVolume, BAPE_Mixer_P_GetOutputFormat(hMixer), 0);
+                BERR_Code errCode;
+                errCode = BAPE_MixerGroup_P_ApplyOutputVolume(hMixer->mixerGroups[mixerIndex], &pSettings->outputVolume, BAPE_Mixer_P_GetOutputFormat_isrsafe(hMixer), 0);
                 if ( errCode )
                 {
                     return BERR_TRACE(errCode);
@@ -1070,7 +1102,7 @@ static BERR_Code BAPE_StandardMixer_P_SetSettings(
                 numOutputConnections--;
                 if ( numOutputConnections > 0 )
                 {
-                    errCode = BAPE_MixerGroup_P_ApplyOutputVolume(hMixer->mixerGroups[mixerIndex], &pSettings->outputVolume, BAPE_Mixer_P_GetOutputFormat(hMixer), 1);
+                    errCode = BAPE_MixerGroup_P_ApplyOutputVolume(hMixer->mixerGroups[mixerIndex], &pSettings->outputVolume, BAPE_Mixer_P_GetOutputFormat_isrsafe(hMixer), 1);
                     if ( errCode )
                     {
                         return BERR_TRACE(errCode);
@@ -1097,7 +1129,7 @@ static BERR_Code BAPE_StandardMixer_P_SetSettings(
         hMixer->settings = *pSettings;
 
         /* Refresh output timebase if needed */
-        if ( timebaseChanged && BAPE_Mixer_P_GetOutputSampleRate(hMixer) != 0 )
+        if ( timebaseChanged && BAPE_Mixer_P_GetOutputSampleRate_isrsafe(hMixer) != 0 )
         {
             BAPE_OutputPort output;
 
@@ -1108,7 +1140,7 @@ static BERR_Code BAPE_StandardMixer_P_SetSettings(
             {
                 if ( output->setTimingParams_isr )
                 {
-                    output->setTimingParams_isr(output, BAPE_Mixer_P_GetOutputSampleRate(hMixer), pSettings->outputTimebase);
+                    output->setTimingParams_isr(output, BAPE_Mixer_P_GetOutputSampleRate_isrsafe(hMixer), pSettings->outputTimebase);
                 }
             }
             BKNI_LeaveCriticalSection();
@@ -1176,7 +1208,6 @@ static void BAPE_StandardMixer_P_FreePathFromInput(
     }
 }
 
-
 /*************************************************************************/
 static BERR_Code BAPE_StandardMixer_P_ConfigPathFromInput(
     struct BAPE_PathNode *pNode,
@@ -1185,10 +1216,8 @@ static BERR_Code BAPE_StandardMixer_P_ConfigPathFromInput(
 {
     unsigned inputNum;
     unsigned mixerIndex;
-    BERR_Code errCode;
 
     BAPE_MixerHandle handle;
-    BAPE_MixerGroupInputSettings mixerInputSettings;
 
     BDBG_OBJECT_ASSERT(pNode, BAPE_PathNode);
 
@@ -1200,7 +1229,10 @@ static BERR_Code BAPE_StandardMixer_P_ConfigPathFromInput(
 
     for ( mixerIndex = 0; mixerIndex < handle->numMixerGroups; mixerIndex++ )
     {
+        BERR_Code errCode;
+        BAPE_MixerGroupInputSettings mixerInputSettings;
         BAPE_MixerGroupHandle mixerGroup = handle->mixerGroups[mixerIndex];
+
         /* Link Input -> Mixer */
         BDBG_MODULE_MSG(bape_fci, ("DP Mixer %u(%p) input %lu, mixer group index %lu", BAPE_MixerGroup_P_GetDpMixerId(mixerGroup, mixerIndex), (void *)handle, (unsigned long)inputNum, (unsigned long)mixerIndex));
         BAPE_MixerGroup_P_GetInputSettings(mixerGroup, inputNum, &mixerInputSettings);
@@ -1259,7 +1291,6 @@ static BERR_Code BAPE_StandardMixer_P_StartPathFromInput(
     BAPE_PathConnection *pOutputConnection;
     bool highPriority;
     bool volumeControlEnabled;
-    BAPE_MixerGroupSettings mixerGroupSettings;
     const BAPE_FMT_Descriptor *pBfd;
 
     BDBG_OBJECT_ASSERT(pNode, BAPE_PathNode);
@@ -1276,14 +1307,13 @@ static BERR_Code BAPE_StandardMixer_P_StartPathFromInput(
     BAPE_StandardMixer_P_InputSampleRateChange_isr(pNode, pConnection, pConnection->pSource->format.sampleRate);
     BKNI_LeaveCriticalSection();
 
-    pBfd = BAPE_Mixer_P_GetOutputFormat(handle);
+    pBfd = BAPE_Mixer_P_GetOutputFormat_isrsafe(handle);
     highPriority = BAPE_FMT_P_IsHBR_isrsafe(pBfd);
     volumeControlEnabled = BAPE_FMT_P_IsLinearPcm_isrsafe(pBfd);
 
     /* Start the global mixer components */
     if ( handle->running == 0 )
     {
-        mixerIndex = 0;
         /* Enable all the mixer outputs */
         for ( output = BLST_S_FIRST(&handle->outputList);
               output != NULL;
@@ -1315,8 +1345,10 @@ static BERR_Code BAPE_StandardMixer_P_StartPathFromInput(
         }
 
         /* set mixer priority */
+        mixerIndex = 0;
         for ( mixerIndex = 0; mixerIndex < handle->numMixerGroups; mixerIndex++ )
         {
+            BAPE_MixerGroupSettings mixerGroupSettings;
             BAPE_MixerGroup_P_GetSettings(handle->mixerGroups[mixerIndex], &mixerGroupSettings);
             mixerGroupSettings.highPriority = highPriority;
             errCode = BAPE_MixerGroup_P_SetSettings(handle->mixerGroups[mixerIndex], &mixerGroupSettings);
@@ -1359,7 +1391,7 @@ static BERR_Code BAPE_StandardMixer_P_StartPathFromInput(
         /* output connection mixers are cascaded */
         for ( ; mixerIndex < handle->numMixerGroups; mixerIndex++ )
         {
-            errCode = BAPE_MixerGroup_P_ApplyOutputVolume(handle->mixerGroups[mixerIndex], &handle->settings.outputVolume, BAPE_Mixer_P_GetOutputFormat(handle), 0);
+            errCode = BAPE_MixerGroup_P_ApplyOutputVolume(handle->mixerGroups[mixerIndex], &handle->settings.outputVolume, BAPE_Mixer_P_GetOutputFormat_isrsafe(handle), 0);
             if ( errCode )
             {
                 errCode = BERR_TRACE(errCode);
@@ -1374,7 +1406,7 @@ static BERR_Code BAPE_StandardMixer_P_StartPathFromInput(
             numOutputConnections--;
             if ( numOutputConnections > 0 )
             {
-                errCode = BAPE_MixerGroup_P_ApplyOutputVolume(handle->mixerGroups[mixerIndex], &handle->settings.outputVolume, BAPE_Mixer_P_GetOutputFormat(handle), 1);
+                errCode = BAPE_MixerGroup_P_ApplyOutputVolume(handle->mixerGroups[mixerIndex], &handle->settings.outputVolume, BAPE_Mixer_P_GetOutputFormat_isrsafe(handle), 1);
                 if ( errCode )
                 {
                     errCode = BERR_TRACE(errCode);
@@ -1398,6 +1430,7 @@ static BERR_Code BAPE_StandardMixer_P_StartPathFromInput(
         BDBG_ASSERT(inputIndex < BAPE_CHIP_MAX_MIXER_INPUTS);
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
+
     for ( mixerIndex = 0; mixerIndex < handle->numMixerGroups; mixerIndex++ )
     {
         errCode = BAPE_MixerGroup_P_StartInput(handle->mixerGroups[mixerIndex], inputIndex);
@@ -1428,6 +1461,7 @@ static BERR_Code BAPE_StandardMixer_P_StartPathFromInput(
               output != NULL;
               output = BLST_S_NEXT(output, node) )
         {
+            BAPE_MixerGroupSettings mixerGroupSettings;
             if ( volumeControlEnabled )
             {
                 /* we are headed to compressed mode.  try to apply the volume ramp before
@@ -1607,12 +1641,12 @@ static void BAPE_StandardMixer_P_StopPathFromInput(
     }
     handle->inputRunning[inputIndex] = false;
 
-#if BAPE_DSP_SUPPORT
+    #if BAPE_DSP_SUPPORT
     if ( handle->inputCaptures[inputIndex] )
     {
         BDSP_Stage_RemoveAudioCapture(pConnection->pSource->hStage, handle->inputCaptures[inputIndex]->hCapture);
     }
-#endif
+    #endif
 
     for ( mixerIndex = 0; mixerIndex < handle->numMixerGroups; mixerIndex++ )
     {
@@ -1832,7 +1866,7 @@ static void BAPE_StandardMixer_P_InputSampleRateChange_isr(
             /* Set mixer sample rate. */
             BAPE_StandardMixer_P_SetSampleRate_isr(handle, mixerRate);
         }
-        else if ( BAPE_Mixer_P_GetOutputSampleRate(handle) == 0 )
+        else if ( BAPE_Mixer_P_GetOutputSampleRate_isrsafe(handle) == 0 )
         {
             /* Make sure there is a valid sample rate */
             BAPE_StandardMixer_P_SetSampleRate_isr(handle, handle->settings.defaultSampleRate);
@@ -1841,14 +1875,14 @@ static void BAPE_StandardMixer_P_InputSampleRateChange_isr(
     else
     {
         /* Make sure there is a valid sample rate */
-        if ( BAPE_Mixer_P_GetOutputSampleRate(handle) == 0 )
+        if ( BAPE_Mixer_P_GetOutputSampleRate_isrsafe(handle) == 0 )
         {
             BAPE_StandardMixer_P_SetSampleRate_isr(handle, handle->settings.defaultSampleRate);
         }
     }
 
     /* Update SRCs accordingly. */
-    BAPE_StandardMixer_P_SetInputSRC_isr(handle, pConnection->pSource, sampleRate, BAPE_Mixer_P_GetOutputSampleRate(handle));
+    BAPE_StandardMixer_P_SetInputSRC_isr(handle, pConnection->pSource, sampleRate, BAPE_Mixer_P_GetOutputSampleRate_isrsafe(handle));
 
     if ( pConnection->format.ppmCorrection && NULL != pConnection->sfifoGroup )
     {
@@ -1890,14 +1924,14 @@ static BERR_Code BAPE_StandardMixer_P_InputFormatChange(
         /* Some changes are not supported while running.  Check these now. */
         if ( handle->running > 0 )
         {
-            if ( BAPE_FMT_P_IsLinearPcm_isrsafe(pNewFormat) != BAPE_FMT_P_IsLinearPcm_isrsafe(BAPE_Mixer_P_GetOutputFormat(handle)) )
+            if ( BAPE_FMT_P_IsLinearPcm_isrsafe(pNewFormat) != BAPE_FMT_P_IsLinearPcm_isrsafe(BAPE_Mixer_P_GetOutputFormat_isrsafe(handle)) )
             {
                 BDBG_ERR(("Can not change from compressed to PCM or vice-versa while other inputs are running."));
                 return BERR_TRACE(BERR_NOT_SUPPORTED);
             }
 
             /* TODO: Technically, this is possible if we permit downmixing in the mixer.  Currently not required for STB use cases. */
-            if ( BAPE_FMT_P_GetNumChannelPairs_isrsafe(pNewFormat) > BAPE_FMT_P_GetNumChannelPairs_isrsafe(BAPE_Mixer_P_GetOutputFormat(handle)) )
+            if ( BAPE_FMT_P_GetNumChannelPairs_isrsafe(pNewFormat) > BAPE_FMT_P_GetNumChannelPairs_isrsafe(BAPE_Mixer_P_GetOutputFormat_isrsafe(handle)) )
             {
                 BDBG_ERR(("Input is wider than the current mixer data format.  Cannot change this while other inputs are running."));
                 return BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -1911,7 +1945,7 @@ static BERR_Code BAPE_StandardMixer_P_InputFormatChange(
     {
         return BERR_TRACE(errCode);
     }
-    if ( dataType != BAPE_Mixer_P_GetOutputDataType(handle) )
+    if ( dataType != BAPE_Mixer_P_GetOutputDataType_isrsafe(handle) )
     {
         BAPE_FMT_Descriptor format;
 
@@ -1989,7 +2023,6 @@ static void BAPE_StandardMixer_P_InputMute(
     }
 }
 
-
 /*************************************************************************/
 static BAPE_MclkSource BAPE_StandardMixer_P_GetMclkSource(BAPE_MixerHandle mixer)
 {
@@ -2056,6 +2089,7 @@ static BAPE_MclkSource BAPE_StandardMixer_P_GetMclkSource(BAPE_MixerHandle mixer
     else if ( pllRequired )
     {
         BDBG_MODULE_MSG(bape_mixer_get_mclk_source, ("Mixer:%p Outputs desire a PLL clock", (void *)mixer ));
+        #if BAPE_CHIP_MAX_PLLS > 0
         /* If the outputPll mixer setting is valid, use it. */
         if ( (signed)mixer->settings.outputPll >= BAPE_Pll_e0 && mixer->settings.outputPll < BAPE_Pll_eMax )
         {
@@ -2067,19 +2101,20 @@ static BAPE_MclkSource BAPE_StandardMixer_P_GetMclkSource(BAPE_MixerHandle mixer
             }
         }
         BDBG_MODULE_MSG(bape_mixer_get_mclk_source, ("Mixer:%p Valid PLL was not specified, continuing...", (void *)mixer ));
+        #endif
     }
 
     /* Now use an NCO if one was specified. */
     #if BAPE_CHIP_MAX_NCOS > 0
-        if ( (signed)mixer->settings.outputNco >= BAPE_Nco_e0 && mixer->settings.outputNco < BAPE_Nco_eMax )
+    if ( (signed)mixer->settings.outputNco >= BAPE_Nco_e0 && mixer->settings.outputNco < BAPE_Nco_eMax )
+    {
+        unsigned ncoIndex = mixer->settings.outputNco - BAPE_Nco_e0;
+        if ( ncoIndex < BAPE_CHIP_MAX_NCOS )
         {
-            unsigned ncoIndex = mixer->settings.outputNco - BAPE_Nco_e0;
-            if ( ncoIndex < BAPE_CHIP_MAX_NCOS )
-            {
-                BDBG_MODULE_MSG(bape_mixer_get_mclk_source, ("Mixer:%p Done (valid NCO specified) Returning %s", (void *)mixer, BAPE_Mixer_P_MclkSourceToText_isrsafe(ncoIndex + BAPE_MclkSource_eNco0) ));
-                return ncoIndex + BAPE_MclkSource_eNco0;
-            }
+            BDBG_MODULE_MSG(bape_mixer_get_mclk_source, ("Mixer:%p Done (valid NCO specified) Returning %s", (void *)mixer, BAPE_Mixer_P_MclkSourceToText_isrsafe(ncoIndex + BAPE_MclkSource_eNco0) ));
+            return ncoIndex + BAPE_MclkSource_eNco0;
         }
+    }
     #endif /* BAPE_CHIP_MAX_NCOS */
 
     if ( ncoRequired )
@@ -2192,6 +2227,7 @@ static BAPE_MclkSource BAPE_StandardMixer_P_GetMclkSource(BAPE_MixerHandle mixer
     /* If we get here, we haven't found one.  Return the PLL if
      * one was specified, otherwise just fail.
      */
+    #if BAPE_CHIP_MAX_PLLS > 0
     if ( (signed)mixer->settings.outputPll >= BAPE_Pll_e0 && mixer->settings.outputPll < BAPE_Pll_eMax )
     {
         unsigned pllIndex = mixer->settings.outputPll - BAPE_Pll_e0;
@@ -2201,6 +2237,7 @@ static BAPE_MclkSource BAPE_StandardMixer_P_GetMclkSource(BAPE_MixerHandle mixer
             return pllIndex + BAPE_MclkSource_ePll0;
         }
     }
+    #endif
 
     BDBG_ERR(("Can't find MCLK source for mixer:%p, giving up.", (void *)mixer ));
 
@@ -2212,9 +2249,7 @@ static BERR_Code BAPE_StandardMixer_P_AllocateResources(BAPE_MixerHandle mixer)
 {
     unsigned i,j;
     BAPE_OutputPort output;
-    BAPE_MclkSource mclkSource;
     unsigned numOutputs=0, numOutputConnections=0;
-    bool fsRequired = false;
     BERR_Code errCode;
     BAPE_PathConnection *pConnection;
     BAPE_DataType outputDataType;
@@ -2254,7 +2289,7 @@ static BERR_Code BAPE_StandardMixer_P_AllocateResources(BAPE_MixerHandle mixer)
         BDBG_OBJECT_ASSERT(output, BAPE_OutputPort);
         if ( !BAPE_FMT_P_FormatSupported_isrsafe(&output->capabilities, &newFormat) )
         {
-            BDBG_ERR(("Output %s can not accept a data type of %s", output->pName, BAPE_FMT_P_GetTypeName_isrsafe(&newFormat)));
+            BDBG_ERR(("Output %s can not accept a data type of %s or source type %s", output->pName, BAPE_FMT_P_GetTypeName_isrsafe(&newFormat), BAPE_FMT_P_GetSourceName_isrsafe(&newFormat)));
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
         numOutputs++;
@@ -2361,110 +2396,147 @@ static BERR_Code BAPE_StandardMixer_P_AllocateResources(BAPE_MixerHandle mixer)
         BAPE_StandardMixer_P_ApplyOutputVolume(mixer, output);
     }
 
-    mclkSource = BAPE_StandardMixer_P_GetMclkSource(mixer);
-    if ( mclkSource >= BAPE_MclkSource_eMax )
     {
-        BDBG_ERR(("Unable to find MclkSource for mixer."));
-        errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
-        goto err_mixer_mclksource;
-    }
+        BAPE_MclkSource mclkSource;
+        bool fsRequired = false;
+        mclkSource = BAPE_StandardMixer_P_GetMclkSource(mixer);
+        if ( mclkSource >= BAPE_MclkSource_eMax )
+        {
+            BDBG_ERR(("Unable to find MclkSource for mixer."));
+            #if BDBG_DEBUG_BUILD
+            for ( output = BLST_S_FIRST(&mixer->outputList);
+                  output != NULL;
+                  output = BLST_S_NEXT(output, node) )
+            {
+                BDBG_ERR(("  downstream output %s", output->pName));
+            }
+            #endif
+            errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+            goto err_mixer_mclksource;
+        }
 
-    mixer->mclkSource = mclkSource;
-    if (BAPE_MCLKSOURCE_IS_PLL(mclkSource))
-    {
-        #if BAPE_CHIP_MAX_PLLS > 0
-        BAPE_P_AttachMixerToPll(mixer, mixer->mclkSource - BAPE_MclkSource_ePll0);
-        #endif
-    }
-    else if (BAPE_MCLKSOURCE_IS_NCO(mclkSource))
-    {
-        #if BAPE_CHIP_MAX_NCOS > 0
-            BAPE_P_AttachMixerToNco(mixer, mixer->mclkSource - BAPE_MclkSource_eNco0);
-        #endif
-    }
-    else  /* Must be a DAC or none. */
-    {
-        BKNI_EnterCriticalSection();
-        /* Set outputs to DAC rate manager MCLK if required */
+        #if BDBG_DEBUG_BUILD
+        if ( mclkSource == BAPE_MclkSource_eNone )
+        {
+            BDBG_MODULE_MSG(bape_mixer_get_mclk_source, ("No mclkSource for mixer. first output %p", (void*)BLST_S_FIRST(&mixer->outputList)));
+        }
+        else
+        {
+            BDBG_MODULE_MSG(bape_mixer_get_mclk_source, ("Using mclkSource %d for mixer %p", (int)mclkSource, (void*)mixer));
+        }
+        BDBG_MODULE_MSG(bape_mixer_get_mclk_source, ("downstream outputs"));
         for ( output = BLST_S_FIRST(&mixer->outputList);
               output != NULL;
               output = BLST_S_NEXT(output, node) )
         {
-            if ( output->setMclk_isr )
-            {
-                output->setMclk_isr(output, mixer->mclkSource, 0, 256 /* DAC is 256*Fs */); /* Actually, at Fs > 48 KHz the DAC runs at 64*Fs */
-            }
-        }
-        BKNI_LeaveCriticalSection();
-    }
-
-    /* Determine if we need an Fs or not */
-    for ( output = BLST_S_FIRST(&mixer->outputList);
-          output != NULL;
-          output = BLST_S_NEXT(output, node) )
-    {
-        if ( output->fsTiming )
-        {
-            fsRequired = true;
-            break;
-        }
-    }
-
-    /* Try and grab an Fs */
-    if ( fsRequired )
-    {
-        mixer->fs = BAPE_P_AllocateFs(mixer->deviceHandle);
-        if ( mixer->fs == BAPE_FS_INVALID )
-        {
-            BDBG_ERR(("Unable to allocate fs timing source"));
-            errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
-            goto err_alloc_fs;
-        }
-        if ( BAPE_MCLKSOURCE_IS_PLL(mclkSource) )
-        {
-            BKNI_EnterCriticalSection();
-            errCode = BAPE_P_UpdatePll_isr(mixer->deviceHandle, mixer->settings.outputPll);
-            BKNI_LeaveCriticalSection();
-            if ( errCode )
-            {
-                errCode = BERR_TRACE(errCode);
-                goto err_alloc_fs;
-            }
-        }
-        #if BAPE_CHIP_MAX_NCOS > 0
-        else if ( BAPE_MCLKSOURCE_IS_NCO(mclkSource) )
-        {
-            /* Update the NCO */
-            BKNI_EnterCriticalSection();
-            errCode = BAPE_P_UpdateNco_isr(mixer->deviceHandle, mixer->settings.outputNco);
-            BKNI_LeaveCriticalSection();
-            if ( errCode )
-            {
-                errCode = BERR_TRACE(errCode);
-                goto err_alloc_fs;
-            }
+            BDBG_MODULE_MSG(bape_mixer_get_mclk_source, ("  --> %s", output->pName));
         }
         #endif
-        else
+
+        mixer->mclkSource = mclkSource;
+        #if BAPE_CHIP_MAX_PLLS > 0
+        if (BAPE_MCLKSOURCE_IS_PLL(mclkSource))
         {
-            /* Set the FS to use DAC timing */
+            BAPE_P_AttachMixerToPll(mixer, mixer->mclkSource - BAPE_MclkSource_ePll0);
+
+        }
+        else
+        #endif
+        #if BAPE_CHIP_MAX_NCOS > 0
+        if (BAPE_MCLKSOURCE_IS_NCO(mclkSource))
+        {
+                BAPE_P_AttachMixerToNco(mixer, mixer->mclkSource - BAPE_MclkSource_eNco0);
+        }
+        else  /* Must be a DAC or none. */
+        #endif
+        {
             BKNI_EnterCriticalSection();
-            BAPE_P_SetFsTiming_isr(mixer->deviceHandle,
-                                   mixer->fs,
-                                   mixer->mclkSource,
-                                   0,       /* pllChan doesn't apply */
-                                   256 );   /* DAC is 256Fs */
+            /* Set outputs to DAC rate manager MCLK if required */
+            for ( output = BLST_S_FIRST(&mixer->outputList);
+                  output != NULL;
+                  output = BLST_S_NEXT(output, node) )
+            {
+                if ( output->setMclk_isr )
+                {
+                    output->setMclk_isr(output, mixer->mclkSource, 0, 256 /* DAC is 256*Fs */); /* Actually, at Fs > 48 KHz the DAC runs at 64*Fs */
+                }
+            }
             BKNI_LeaveCriticalSection();
         }
-        /* Bind each output to the fs */
+
+        /* Determine if we need an Fs or not */
         for ( output = BLST_S_FIRST(&mixer->outputList);
               output != NULL;
               output = BLST_S_NEXT(output, node) )
         {
             if ( output->fsTiming )
             {
-                BDBG_ASSERT(NULL != output->setFs);
-                output->setFs(output, mixer->fs);
+                fsRequired = true;
+                break;
+            }
+        }
+
+        /* Try and grab an Fs */
+        if ( fsRequired )
+        {
+            #if BAPE_CHIP_MAX_FS > 0
+            mixer->fs = BAPE_P_AllocateFs(mixer->deviceHandle);
+            if ( mixer->fs == BAPE_FS_INVALID )
+            {
+                BDBG_ERR(("Unable to allocate fs timing source"));
+                errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+                goto err_alloc_fs;
+            }
+            #endif
+            #if BAPE_CHIP_MAX_PLLS > 0
+            if ( BAPE_MCLKSOURCE_IS_PLL(mclkSource) )
+            {
+                BKNI_EnterCriticalSection();
+                errCode = BAPE_P_UpdatePll_isr(mixer->deviceHandle, mixer->settings.outputPll);
+                BKNI_LeaveCriticalSection();
+                if ( errCode )
+                {
+                    errCode = BERR_TRACE(errCode);
+                    goto err_alloc_fs;
+                }
+            }
+            else
+            #endif
+            #if BAPE_CHIP_MAX_NCOS > 0
+            if ( BAPE_MCLKSOURCE_IS_NCO(mclkSource) )
+            {
+                /* Update the NCO */
+                BKNI_EnterCriticalSection();
+                errCode = BAPE_P_UpdateNco_isr(mixer->deviceHandle, mixer->settings.outputNco);
+                BKNI_LeaveCriticalSection();
+                if ( errCode )
+                {
+                    errCode = BERR_TRACE(errCode);
+                    goto err_alloc_fs;
+                }
+            }
+            else
+            #endif
+            {
+                /* Set the FS to use DAC timing */
+                BKNI_EnterCriticalSection();
+                BAPE_P_SetFsTiming_isr(mixer->deviceHandle,
+                                       mixer->fs,
+                                       mixer->mclkSource,
+                                       0,       /* pllChan doesn't apply */
+                                       256 );   /* DAC is 256Fs */
+                BKNI_LeaveCriticalSection();
+            }
+            /* Bind each output to the fs */
+            for ( output = BLST_S_FIRST(&mixer->outputList);
+                  output != NULL;
+                  output = BLST_S_NEXT(output, node) )
+            {
+                if ( output->fsTiming )
+                {
+                    BDBG_ASSERT(NULL != output->setFs);
+                    output->setFs(output, mixer->fs);
+                }
             }
         }
     }
@@ -2481,7 +2553,6 @@ err_alloc_fs:
 
 err_mixer_mclksource:
     BAPE_StandardMixer_P_FreeResources(mixer);
-
 err_mixers:
     return errCode;
 }
@@ -2493,14 +2564,14 @@ static void BAPE_StandardMixer_P_SetSampleRate_isr(BAPE_MixerHandle mixer, unsig
     BDBG_OBJECT_ASSERT(mixer, BAPE_Mixer);
 
     /* Only do this if something actually changed */
-    BDBG_MSG(("Set Mixer Output Rate to %u (was %u)", sampleRate, BAPE_Mixer_P_GetOutputSampleRate(mixer)));
-    if ( BAPE_Mixer_P_GetOutputSampleRate(mixer) != sampleRate )
+    BDBG_MSG(("Set Mixer Output Rate to %u (was %u)", sampleRate, BAPE_Mixer_P_GetOutputSampleRate_isrsafe(mixer)));
+    if ( BAPE_Mixer_P_GetOutputSampleRate_isrsafe(mixer) != sampleRate )
     {
         BAPE_OutputPort output;
 
         if ( sampleRate == 0 )
 
-        BDBG_MSG(("Changing mixer %p (%d) sample rate to %u [was %u]", (void *)mixer, mixer->index, sampleRate, BAPE_Mixer_P_GetOutputSampleRate(mixer)));
+        BDBG_MSG(("Changing mixer %p (%d) sample rate to %u [was %u]", (void *)mixer, mixer->index, sampleRate, BAPE_Mixer_P_GetOutputSampleRate_isrsafe(mixer)));
 
         (void)BAPE_Connector_P_SetSampleRate_isr(&mixer->pathNode.connectors[0], sampleRate);
 
@@ -2546,7 +2617,7 @@ static void BAPE_StandardMixer_P_SetSampleRate_isr(BAPE_MixerHandle mixer, unsig
     }
     else
     {
-        BDBG_MSG(("NOT Changing mixer %p (%d) sample rate to %u [currently %u]", (void *)mixer, mixer->index, sampleRate, BAPE_Mixer_P_GetOutputSampleRate(mixer)));
+        BDBG_MSG(("NOT Changing mixer %p (%d) sample rate to %u [currently %u]", (void *)mixer, mixer->index, sampleRate, BAPE_Mixer_P_GetOutputSampleRate_isrsafe(mixer)));
     }
 
     for ( i = 0; i < mixer->numMixerGroups; i++ )
@@ -2591,6 +2662,7 @@ static BERR_Code BAPE_StandardMixer_P_AllocateConnectionResources(BAPE_MixerHand
     unsigned i;
     BERR_Code errCode;
     bool sfifoRequired=false, srcRequired=false, buffersOnly=false;
+    BAPE_BufferInterfaceType bufferInterfaceType;
 
     BAPE_Connector input;
 
@@ -2603,6 +2675,7 @@ static BERR_Code BAPE_StandardMixer_P_AllocateConnectionResources(BAPE_MixerHand
     i = BAPE_Mixer_P_FindInputIndex_isrsafe(handle, input);
     BDBG_ASSERT(i != BAPE_MIXER_INPUT_INDEX_INVALID);
 
+    bufferInterfaceType = BAPE_BufferInterfaceType_eRdb;
     switch ( pConnection->pSource->format.source )
     {
     case BAPE_DataSource_eDfifo:
@@ -2663,7 +2736,7 @@ static BERR_Code BAPE_StandardMixer_P_AllocateConnectionResources(BAPE_MixerHand
     if ( input->useBufferPool )
     {
         /* This is safe to call multiple times, it only allocates if need be */
-        errCode = BAPE_P_AllocateInputBuffers(handle->deviceHandle, input);
+        errCode = BAPE_P_AllocateInputBuffers(handle->deviceHandle, input, bufferInterfaceType);
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -2738,7 +2811,7 @@ static BERR_Code BAPE_StandardMixer_P_AllocateConnectionResources(BAPE_MixerHand
             goto err_src_settings;
         }
         BKNI_EnterCriticalSection();
-        BAPE_SrcGroup_P_SetSampleRate_isr(pConnection->srcGroup, pConnection->format.sampleRate, BAPE_Mixer_P_GetOutputSampleRate(handle));
+        BAPE_SrcGroup_P_SetSampleRate_isr(pConnection->srcGroup, pConnection->format.sampleRate, BAPE_Mixer_P_GetOutputSampleRate_isrsafe(handle));
         BKNI_LeaveCriticalSection();
     }
 
@@ -2857,7 +2930,6 @@ static void BAPE_StandardMixer_P_RemoveInputCallback(struct BAPE_PathNode *pNode
     (void)BAPE_StandardMixer_P_RemoveInput(pNode->pHandle, pConnector);
 }
 
-
 /*************************************************************************/
 static BERR_Code BAPE_StandardMixer_P_AllocateMixerGroups(BAPE_MixerHandle handle)
 {
@@ -2867,17 +2939,17 @@ static BERR_Code BAPE_StandardMixer_P_AllocateMixerGroups(BAPE_MixerHandle handl
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
 
-#if BDBG_DEBUG_BUILD
+    #if BDBG_DEBUG_BUILD
     /* Sanity check, make sure all resources are marked invalid in the mixer */
-    for ( i = 0; i < BAPE_CHIP_MAX_MIXERS; i++ )
+    for ( i = 0; i < BAPE_CHIP_MAX_MIXER_GROUPS; i++ )
     {
         BDBG_ASSERT(NULL == handle->mixerGroups[i]);
     }
     BDBG_ASSERT(handle->numMixerGroups == 0);
-#endif
+    #endif
 
     BAPE_MixerGroup_P_GetDefaultCreateSettings(&createSettings);
-    createSettings.numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(BAPE_Mixer_P_GetOutputFormat(handle));
+    createSettings.numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(BAPE_Mixer_P_GetOutputFormat_isrsafe(handle));
     /* Allocate 1:1 mixers:outputs and cascade the output connections for other consumers */
     numOutputs = handle->numOutputs;
     numOutputs += (handle->numOutputConnections > 1) ? (handle->numOutputConnections-1) : handle->numOutputConnections;
@@ -2936,3 +3008,5 @@ static const BAPE_MixerInterface  standardMixerInterface  = {
     NOT_SUPPORTED(BAPE_StandardMixer_P_GetInputStatus),
     NOT_SUPPORTED(BAPE_StandardMixer_P_GetStatus)
 };
+
+#endif /* BAPE_CHIP_MAX_HW_MIXERS */

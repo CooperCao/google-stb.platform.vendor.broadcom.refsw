@@ -43,17 +43,20 @@ typedef struct WLPL_Platform
 
    WLPL_Display displays[MAX_DISPLAYS];
    unsigned numDisplays;
+
+   EventContext eventContext;
 } WLPL_Platform;
 
 static BEGL_DisplayInterface *CreateDisplayInterface(EGLenum platform,
-      void *nativeDisplay, BEGL_SchedInterface *schedInterface)
+      void *nativeDisplay, BEGL_SchedInterface *schedInterface,
+      EventContext *eventContext)
 {
    switch (platform)
    {
    case EGL_PLATFORM_WAYLAND_EXT:
       return WLPL_CreateWaylandDisplayInterface(nativeDisplay, schedInterface);
    case BEGL_DEFAULT_PLATFORM:
-      return WLPL_CreateNexusDisplayInterface(schedInterface);
+      return WLPL_CreateNexusDisplayInterface(schedInterface, eventContext);
    default:
       return NULL;
    }
@@ -162,7 +165,8 @@ static BEGL_Error Initialize(void *context, BEGL_DisplayHandle handle)
    if (!display->interface)
    {
       display->interface = CreateDisplayInterface(display->platform,
-            display->nativeDisplay, platform->schedInterface);
+            display->nativeDisplay, platform->schedInterface,
+            &platform->eventContext);
       if (display->interface)
          BEGL_RegisterDisplayInterface(display->interface);
    }
@@ -253,7 +257,8 @@ static bool CreatePlatform(WLPL_Platform *platform)
    if (!platform->memoryInterface)
       goto error;
 
-   platform->schedInterface = CreateSchedInterface(platform->memoryInterface, NULL);
+   platform->schedInterface = CreateSchedInterface(platform->memoryInterface,
+         &platform->eventContext);
    if (!platform->schedInterface)
       goto error;
 

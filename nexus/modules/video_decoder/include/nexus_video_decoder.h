@@ -59,14 +59,6 @@ VBI encoding. VBI encoding control is done at the window.
 Userdata can also be captured for processing by the application using VideoDecoder api's.
 **********************************************/
 
-typedef enum NEXUS_VideoDecoderSecureType
-{
-    NEXUS_VideoDecoderSecureType_eUnsecure,         /* GLR */
-    NEXUS_VideoDecoderSecureType_eSecure,           /* URR */
-    NEXUS_VideoDecoderSecureType_eSecureTranscode,  /* URRT */
-    NEXUS_VideoDecoderSecureType_eMax
-} NEXUS_VideoDecoderSecureType;
-
 /*
 Summary:
 Settings for opening a new VideoDecoder.

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -130,11 +130,11 @@ class CAudioDecodeAc4Data
 {
 public:
     CAudioDecodeAc4Data(
-            NEXUS_AudioDecoderAc4Program program           = NEXUS_AudioDecoderAc4Program_eMain,
-            eLanguage                    language          = eLanguage_English,
-            NEXUS_AudioAc4AssociateType  associate         = NEXUS_AudioAc4AssociateType_eNotSpecified,
+            NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMain,
+            eLanguage                    language = eLanguage_English,
+            NEXUS_AudioAc4AssociateType  associate = NEXUS_AudioAc4AssociateType_eNotSpecified,
             int32_t                      presentationIndex = 0,
-            ePriority                    priority          = ePriority_Associate
+            ePriority                    priority = ePriority_Associate
             ) :
         _program(program),
         _language(language),
@@ -219,62 +219,66 @@ public:
     virtual CPid * stop(void);
     virtual bool   isOpened() { return(_simpleDecoder ? true : false); }
 
-    virtual bool             getMute(void);
-    virtual eRet             setMute(bool bMute);
-    virtual uint32_t         getVolume(void);
-    virtual eRet             setVolume(uint32_t level);
+    virtual bool     getMute(void);
+    virtual eRet     setMute(bool bMute);
+    virtual uint32_t getVolume(void);
+    virtual eRet     setVolume(uint32_t level);
 #if BDSP_MS12_SUPPORT
-    virtual void             setAudioFadeStartLevel(int32_t level) { _fadeStartLevel = level; }
-    virtual int32_t          getAudioFadeStartLevel(void) { return(_fadeStartLevel); }
-    virtual int              getAudioFade(void) { return(100); }
-    virtual eRet             setAudioFade(unsigned level = 100, unsigned duration = 3, bool bWait = false) { BSTD_UNUSED(level); BSTD_UNUSED(duration); BSTD_UNUSED(bWait); }
-    virtual bool             isAudioFadePending(void) { return(false); }
-    virtual eRet             waitAudioFadeComplete(void) { return(eRet_Ok); }
-#endif
-    virtual bool             isMaster(void) { return(_bMaster); }
-    virtual void             setMaster(bool bMaster) { _bMaster = bMaster; }
-    virtual NEXUS_AudioDecoderMixingMode getMixingMode(void) { return(_mixingMode); }
-    virtual void             setMixingMode(NEXUS_AudioDecoderMixingMode mixingMode) { _mixingMode = mixingMode; }
-    virtual eRet             setDownmix(eAudioDownmix downmix);
-    virtual eAudioDownmix    getDownmix(void);
-    virtual eRet             setDualMono(eAudioDualMono dualMono);
-    virtual eAudioDualMono   getDualMono(void) { return(_dualMono); }
-    virtual eRet             setDolbyDRC(eDolbyDRC dolbyDRC);
-    virtual eDolbyDRC        getDolbyDRC(void) { return(_dolbyDRC); }
-    virtual eRet             setDolbyDialogNorm(bool dolbyDialogNorm);
-    virtual bool             getDolbyDialogNorm(void) { return(_dolbyDialogNorm); }
-    virtual bool             isCodecSupported(NEXUS_AudioCodec codec);
-    virtual eRet             setHdmiInput(eHdmiAudioInput hdmiInput, NEXUS_SimpleAudioDecoderServerSettings * pSettings = NULL);
-    virtual eHdmiAudioInput  getHdmiInput(NEXUS_AudioCodec codec);
-    virtual eRet             setSpdifInput(eSpdifInput spdifInput, NEXUS_SimpleAudioDecoderServerSettings * pSettings = NULL);
-    virtual eSpdifInput      getSpdifInput(NEXUS_AudioCodec codec);
-    virtual bool             isEncodeSupportedAc3(void)       { return(NULL != _encodeAc3 ? true : false); }
-    virtual bool             isEncodeSupportedDts(void)       { return(NULL != _encodeDts ? true : false); }
-    virtual bool             isAutoVolumeLevelSupported(void) { return(NULL != _pAutoVolumeLevel ? true : false); }
-    virtual bool             isDolbyVolumeSupported(void)     { return(NULL != _pDolbyVolume ? true : false); }
-    virtual bool             isTruVolumeSupported(void)       { return(NULL != _pTruVolume ? true : false); }
-    virtual eRet             setAudioProcessing(eAudioProcessing audioProcessing);
-    virtual eAudioProcessing getAudioProcessing(void) { return(_audioProcessing); }
+    virtual void    setAudioFadeStartLevel(int32_t level) { _fadeStartLevel = level; }
+    virtual int32_t getAudioFadeStartLevel(void)          { return(_fadeStartLevel); }
+    virtual int     getAudioFade(void)                    { return(100); }
+    virtual eRet    setAudioFade(
+            unsigned level = 100,
+            unsigned duration = 3,
+            bool     bWait = false
+            ) { BSTD_UNUSED(level); BSTD_UNUSED(duration); BSTD_UNUSED(bWait); }
+    virtual bool isAudioFadePending(void)    { return(false); }
+    virtual eRet waitAudioFadeComplete(void) { return(eRet_Ok); }
+#endif /* if BDSP_MS12_SUPPORT */
+    virtual bool                         isMaster(void)                                         { return(_bMaster); }
+    virtual void                         setMaster(bool bMaster)                                { _bMaster = bMaster; }
+    virtual NEXUS_AudioDecoderMixingMode getMixingMode(void)                                    { return(_mixingMode); }
+    virtual void                         setMixingMode(NEXUS_AudioDecoderMixingMode mixingMode) { _mixingMode = mixingMode; }
+    virtual eRet                         setDownmix(eAudioDownmix downmix);
+    virtual eAudioDownmix                getDownmix(void);
+    virtual eRet                         setDualMono(eAudioDualMono dualMono);
+    virtual eAudioDualMono               getDualMono(void) { return(_dualMono); }
+    virtual eRet                         setDolbyDRC(eDolbyDRC dolbyDRC);
+    virtual eDolbyDRC                    getDolbyDRC(void) { return(_dolbyDRC); }
+    virtual eRet                         setDolbyDialogNorm(bool dolbyDialogNorm);
+    virtual bool                         getDolbyDialogNorm(void) { return(_dolbyDialogNorm); }
+    virtual bool                         isCodecSupported(NEXUS_AudioCodec codec);
+    virtual eRet                         setHdmiInput(eHdmiAudioInput hdmiInput, NEXUS_SimpleAudioDecoderServerSettings * pSettings = NULL);
+    virtual eHdmiAudioInput              getHdmiInput(NEXUS_AudioCodec codec);
+    virtual eRet                         setSpdifInput(eSpdifInput spdifInput, NEXUS_SimpleAudioDecoderServerSettings * pSettings = NULL);
+    virtual eSpdifInput                  getSpdifInput(NEXUS_AudioCodec codec);
+    virtual bool                         isEncodeSupportedAc3(void)       { return(NULL != _encodeAc3 ? true : false); }
+    virtual bool                         isEncodeSupportedDts(void)       { return(NULL != _encodeDts ? true : false); }
+    virtual bool                         isAutoVolumeLevelSupported(void) { return(NULL != _pAutoVolumeLevel ? true : false); }
+    virtual bool                         isDolbyVolumeSupported(void)     { return(NULL != _pDolbyVolume ? true : false); }
+    virtual bool                         isTruVolumeSupported(void)       { return(NULL != _pTruVolume ? true : false); }
+    virtual eRet                         setAudioProcessing(eAudioProcessing audioProcessing);
+    virtual eAudioProcessing             getAudioProcessing(void) { return(_audioProcessing); }
     /* SW7445-1016 : should return NULL for 14.3*/
     virtual NEXUS_AudioDecoderHandle       getDecoder(void)       { return(_pDecoders[0]->getDecoder()); }
     virtual NEXUS_SimpleAudioDecoderHandle getSimpleDecoder(void) { return(_simpleDecoder); }
 #if BDSP_MS12_SUPPORT
-    virtual unsigned                       numPresentations(void);
-    virtual eRet                           getPresentationStatus(unsigned nIndex, NEXUS_AudioDecoderPresentationStatus * pStatus);
-    virtual unsigned                       getPresentation(NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
-    virtual unsigned                       getPresentationCurrent(NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
-    virtual eRet                           setPresentation(unsigned nIndex, NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
-    virtual eRet                           setPresentation(NEXUS_AudioDecoderPresentationStatus * pStatus);
-    virtual eLanguage                      getLanguage(NEXUS_AudioDecoderAc4Program program);
-    virtual eRet                           setLanguage(eLanguage language, NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
-    virtual NEXUS_AudioAc4AssociateType    getAssociate(NEXUS_AudioDecoderAc4Program program);
-    virtual eRet                           setAssociate(NEXUS_AudioAc4AssociateType associate, NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
-    virtual ePriority                      getPriority(NEXUS_AudioDecoderAc4Program program);
-    virtual eRet                           setPriority(ePriority priority, NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
-    virtual void                           dumpPresentation(unsigned nIndex = 0, bool bForce = false);
-    virtual int                            getDialogEnhancement(void);
-    virtual eRet                           setDialogEnhancement(int nDb);
-#endif
+    virtual unsigned                    numPresentations(void);
+    virtual eRet                        getPresentationStatus(unsigned nIndex, NEXUS_AudioDecoderPresentationStatus * pStatus);
+    virtual unsigned                    getPresentation(NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
+    virtual unsigned                    getPresentationCurrent(NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
+    virtual eRet                        setPresentation(unsigned nIndex, NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
+    virtual eRet                        setPresentation(NEXUS_AudioDecoderPresentationStatus * pStatus);
+    virtual eLanguage                   getLanguage(NEXUS_AudioDecoderAc4Program program);
+    virtual eRet                        setLanguage(eLanguage language, NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
+    virtual NEXUS_AudioAc4AssociateType getAssociate(NEXUS_AudioDecoderAc4Program program);
+    virtual eRet                        setAssociate(NEXUS_AudioAc4AssociateType associate, NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
+    virtual ePriority                   getPriority(NEXUS_AudioDecoderAc4Program program);
+    virtual eRet                        setPriority(ePriority priority, NEXUS_AudioDecoderAc4Program program = NEXUS_AudioDecoderAc4Program_eMax);
+    virtual void                        dumpPresentation(unsigned nIndex = 0, bool bForce = false);
+    virtual int                         getDialogEnhancement(void);
+    virtual eRet                        setDialogEnhancement(int nDb);
+#endif /* if BDSP_MS12_SUPPORT */
     void                                    setResources(void * id, CBoardResources * pResources);
     void                                    setOutputHdmi(COutputHdmi * pHdmi)         { _pHdmi = pHdmi; }
     void                                    setOutputSpdif(COutputSpdif * pSpdif)      { _pSpdif = pSpdif; }
@@ -306,37 +310,37 @@ protected:
     NEXUS_Ac3EncodeHandle                 _encodeAc3;
     NEXUS_DtsEncodeHandle                 _encodeDts;
     CAutoVolumeLevel *                    _pAutoVolumeLevel;
-    CDolbyVolume *      _pDolbyVolume;
-    CTruVolume *        _pTruVolume;
-    CBoardResources *   _pBoardResources;
-    CAudioDecode *      _pDecoders[2];
-    COutputSpdif *      _pSpdif; /* DTT TODO: should be a list? */
-    COutputHdmi *       _pHdmi;  /* DTT TODO: should be a list? */
-    COutputAudioDac *   _pDac;   /* DTT TODO: should be a list? */
-    COutputRFM *        _pRFM;   /* DTT TODO: should be a list? */
-    COutputAudioDummy * _pDummy; /* DTT TODO: should be a list? */
-    unsigned            _numSpdif;
-    unsigned            _numHdmi;
-    void *              _resourceId;
-    eAudioDownmix       _downmix;
-    eAudioDownmix       _downmixAc3;
-    eAudioDownmix       _downmixDts;
-    eAudioDownmix       _downmixAac;
-    eAudioDualMono      _dualMono;
-    eDolbyDRC           _dolbyDRC;
-    bool                _dolbyDialogNorm;
-    eAudioProcessing    _audioProcessing;
-    NEXUS_AudioInput    _stereoInput;
-    bool                _bEncodeConnectedDts;
-    bool                _bEncodeConnectedAc3;
-    bool                _bPrimer;
-    bool                                  _bMaster;
-    NEXUS_AudioDecoderMixingMode          _mixingMode;
+    CDolbyVolume *               _pDolbyVolume;
+    CTruVolume *                 _pTruVolume;
+    CBoardResources *            _pBoardResources;
+    CAudioDecode *               _pDecoders[2];
+    COutputSpdif *               _pSpdif; /* DTT TODO: should be a list? */
+    COutputHdmi *                _pHdmi;  /* DTT TODO: should be a list? */
+    COutputAudioDac *            _pDac;   /* DTT TODO: should be a list? */
+    COutputRFM *                 _pRFM;   /* DTT TODO: should be a list? */
+    COutputAudioDummy *          _pDummy; /* DTT TODO: should be a list? */
+    unsigned                     _numSpdif;
+    unsigned                     _numHdmi;
+    void *                       _resourceId;
+    eAudioDownmix                _downmix;
+    eAudioDownmix                _downmixAc3;
+    eAudioDownmix                _downmixDts;
+    eAudioDownmix                _downmixAac;
+    eAudioDualMono               _dualMono;
+    eDolbyDRC                    _dolbyDRC;
+    bool                         _dolbyDialogNorm;
+    eAudioProcessing             _audioProcessing;
+    NEXUS_AudioInput             _stereoInput;
+    bool                         _bEncodeConnectedDts;
+    bool                         _bEncodeConnectedAc3;
+    bool                         _bPrimer;
+    bool                         _bMaster;
+    NEXUS_AudioDecoderMixingMode _mixingMode;
 #if BDSP_MS12_SUPPORT
-    int32_t             _fadeStartLevel;
+    int32_t _fadeStartLevel;
 #endif
-    eWindowType         _windowType;
-    CModel *            _pModel;
+    eWindowType _windowType;
+    CModel *    _pModel;
 };
 
 #ifdef __cplusplus

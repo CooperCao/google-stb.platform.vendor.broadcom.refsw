@@ -1156,7 +1156,7 @@ void BWT_VideoWindow_Render(BWT_WidgetHandle w)
             r.x,
             r.y);
 #endif
-    platform_graphics_render_video(w->bwt->gfx, &r);
+    platform_graphics_render_video(w->bwt->gfx, &r, window->id);
 }
 
 
@@ -1268,4 +1268,10 @@ void BWT_Toolkit_Submit(BWT_ToolkitHandle bwt)
 {
     if (!bwt) return;
     platform_graphics_submit(bwt->gfx);
+}
+
+bool BWT_Toolkit_Recycle(BWT_ToolkitHandle bwt)
+{
+    if (!bwt) return false;
+    return platform_graphics_recycle(bwt->gfx);
 }

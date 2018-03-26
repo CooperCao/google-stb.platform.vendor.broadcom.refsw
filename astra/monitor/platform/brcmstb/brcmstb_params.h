@@ -41,18 +41,36 @@
 
 #include "mon_params.h"
 
+/* Current brcmstb parameters version */
+#define BRCMSTB_PARAMS_VERSION  0x03
+
 /* Brcmstb SOC register group enums */
 enum {
-    BRCMSTB_RGROUP_BOOTSRAM_SECURE = 0,
+    BRCMSTB_RGROUP_BOOTSRAM = 0,
     BRCMSTB_RGROUP_SUN_TOP_CTRL,
     BRCMSTB_RGROUP_HIF_CPUBIUCTRL,
     BRCMSTB_RGROUP_HIF_CONTINUATION,
+    BRCMSTB_RGROUP_HIF_CPU_INTR1,
+    BRCMSTB_RGROUP_AVS_CPU_DATA_MEM,
+    BRCMSTB_RGROUP_AVS_HOST_L2,
+    BRCMSTB_RGROUP_AVS_CPU_L2,
+    BRCMSTB_RGROUP_SCPU_GLOBALRAM,
+    BRCMSTB_RGROUP_SCPU_HOST_INTR2,
+    BRCMSTB_RGROUP_CPU_IPI_INTR2,
+    BRCMSTB_RGROUP_AON_CTRL,
     BRCMSTB_RGROUP_LAST
+};
+
+/* Brcmstb interrupts */
+enum {
+    BRCMSTB_INTR_AVS_CPU,
+    BRCMSTB_INTR_SCPU_CPU,
+    BRCMSTB_INTR_LAST
 };
 
 /* Brcmstb SOC register group descriptor */
 typedef struct brcmstb_rgroup {
-    uint32_t rev;     /* Revision is used in case register offsets/formats changed */
+    uint32_t rev; /* Revision is used in case register offsets/formats changed */
     uint32_t base;
     uint32_t size;
 } brcmstb_rgroup_t;
@@ -63,8 +81,11 @@ typedef struct brcmstb_rgroup {
 typedef struct brcmstb_params {
     param_hdr_t hdr;
 
-    /* brcmstb SOC register groups */
+    /* Brcmstb SOC register group descriptors */
     brcmstb_rgroup_t rgroups[BRCMSTB_RGROUP_LAST];
+
+    /* Brcmstb interrupts */
+    uint8_t intrs[BRCMSTB_INTR_LAST];
 
 } brcmstb_params_t;
 

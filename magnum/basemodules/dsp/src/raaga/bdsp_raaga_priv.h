@@ -853,7 +853,10 @@ BERR_Code BDSP_Raaga_P_GetExternalInterruptInfo(
     void *pInterruptHandle,
     BDSP_ExternalInterruptInfo **pInfo
     );
-
+BERR_Code BDSP_Raaga_P_StageGetContext(
+    void *pStageHandle,
+    BDSP_ContextHandle *pContextHandle /* [out] */
+    );
 BERR_Code BDSP_Raaga_P_InitAudioCaptureInfo(
     BDSP_RaagaCapture *pRaagaCapture, /* [in] capture handle*/
     const BDSP_AudioCaptureCreateSettings *pSettings /* [in] capture create settings */

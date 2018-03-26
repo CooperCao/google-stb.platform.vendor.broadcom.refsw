@@ -52,6 +52,11 @@ int gicv2_sec_intr_disable(
     uintptr_t dist_base,
     uint32_t intr_id);
 
+int gicv2_sgi_intr_generate(
+    uintptr_t dist_base,
+    uint32_t intr_id,
+    uint32_t cpu_mask);
+
 /* Inline functions for speed */
 #include "gicv2_priv.h"
 

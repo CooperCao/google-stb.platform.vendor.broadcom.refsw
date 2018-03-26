@@ -65,9 +65,7 @@ NEXUS_Error NEXUS_Security_ProgramOTP(
 
 NEXUS_Error NEXUS_Security_ReadOTP(
     NEXUS_OtpCmdReadRegister    readOtpEnum,
-   #if (BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0))
     NEXUS_OtpKeyType            keyType,
-   #endif
     NEXUS_ReadOtpIO        *pReadOtpIO
     )
 {
@@ -76,24 +74,21 @@ NEXUS_Error NEXUS_Security_ReadOTP(
     BHSM_Handle      hHsm;
 
     NEXUS_Security_GetHsm_priv(&hHsm);
-    if( !hHsm )
-    {
-        return BERR_TRACE( NEXUS_INVALID_PARAMETER );
+    if( !hHsm ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
+
+   #if (BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0))
+    /* _FixedDeobfuscationVariantEnable is 7 for zeus4 and above.  */
+    if( readOtpEnum == NEXUS_OtpCmdReadRegister_eMc0S_FixedDeobfuscationVariantEnable ) {
+        readOtpEnum = 7;
     }
+   #endif
 
     /* formulate the request structure */
     readOtpParm.readOtpEnum = (BPI_Otp_CmdReadRegister_e)readOtpEnum;
-    #if BHSM_ZEUS_VERSION >=  BHSM_ZEUS_VERSION_CALC(1,0)
     readOtpParm.keyType = (BPI_Otp_KeyType_e)keyType;
-    #endif
 
     rc = BHSM_ReadOTP( hHsm, &readOtpParm );
-    if( rc != BERR_SUCCESS )
-    {
-        return BERR_TRACE( NEXUS_INVALID_PARAMETER );
-    }
-
-   #if BHSM_ZEUS_VERSION >=  BHSM_ZEUS_VERSION_CALC(1,0)
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
 
     BKNI_Memcpy( (void*)(&pReadOtpIO->otpKeyIdBuf[4]), (void*)readOtpParm.regValueLo, BHSM_OTP_DATA_LEN );
     pReadOtpIO->otpKeyIdSize = BHSM_OTP_DATA_LEN;
@@ -103,13 +98,6 @@ NEXUS_Error NEXUS_Security_ReadOTP(
         BKNI_Memcpy( (void*)pReadOtpIO->otpKeyIdBuf, (void*)readOtpParm.regValueHi, BHSM_OTP_DATA_LEN );
         pReadOtpIO->otpKeyIdSize += BHSM_OTP_DATA_LEN;
     }
-
-   #else
-
-    BKNI_Memcpy((void *)pReadOtpIO->otpKeyIdBuf, (void *)readOtpParm.aucKeyId, BHSM_OTP_KEY_ID_LEN);
-    pReadOtpIO->otpKeyIdSize = BHSM_OTP_KEY_ID_LEN;
-
-   #endif
 
     return NEXUS_SUCCESS;
 }

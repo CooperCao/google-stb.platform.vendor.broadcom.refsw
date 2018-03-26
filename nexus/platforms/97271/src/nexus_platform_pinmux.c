@@ -43,6 +43,7 @@
 
 #include "bchp_sun_top_ctrl.h"
 #include "bchp_aon_pin_ctrl.h"
+#include "bchp_aon_ctrl.h"
 
 BDBG_MODULE(nexus_platform_pinmux);
 
@@ -143,18 +144,14 @@ void NEXUS_Platform_P_EnableSageDebugPinmux(void)
 
 NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
 {
-#if NEXUS_HAS_DVB_CI
-    BREG_Handle hReg = g_pCoreHandles->reg;
+	BREG_Handle hReg = g_pCoreHandles->reg;
     uint32_t reg;
-#endif
 #if NEXUS_HAS_SAGE
     NEXUS_Platform_P_EnableSageDebugPinmux();
 #endif
 
 #if NEXUS_ENABLE_HVD_OL_OUTPUT
     {
-    BREG_Handle hReg = g_pCoreHandles->reg;
-    uint32_t reg;
     /* HVD OL output setup */
     reg = BREG_Read32(hReg,BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1);
     reg &= ~(
@@ -272,6 +269,15 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
             );
     BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_9, reg);
 #endif
+	BDBG_MSG(("Setting pinmux to make the frontpanel reset enable"));
+    reg = BREG_Read32(hReg, BCHP_AON_CTRL_RESET_CTRL);
+    reg &=~(
+           BCHP_MASK(AON_CTRL_RESET_CTRL, front_panel_reset_enable)
+           );
+    reg |=(
+          BCHP_FIELD_DATA(AON_CTRL_RESET_CTRL, front_panel_reset_enable, 1) /*Enable*/
+          );
+    BREG_Write32 (hReg, BCHP_AON_CTRL_RESET_CTRL, reg);
 
     return BERR_SUCCESS;
 }

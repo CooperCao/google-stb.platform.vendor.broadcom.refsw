@@ -45,8 +45,6 @@ int plat_cpu_power_up(
 
 int plat_cpu_power_down(uint32_t cpu_index);
 
-int plat_system_off(uint32_t last_cpu_index);
-
 int plat_system_reset(void);
 
 #endif /* _PLATFORM_POWER_H_ */

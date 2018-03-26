@@ -118,8 +118,8 @@ Pcr-mode-specific stc channel settings
 typedef struct NEXUS_StcChannelPcrModeSettings
 {
     NEXUS_PidChannelHandle pidChannel; /* The pid channel for the PCR. This determines the transport type as well. */
-    unsigned offsetThreshold;          /* Threshold for filtering PCR change notifications to decoders, in PTS units. */
-    unsigned maxPcrError;              /* Maximum absolute PCR error, in PTS units. See NEXUS_TimebasePcrSourceSettings for more detail. */
+    unsigned offsetThreshold;          /* Threshold for filtering PCR change notifications to decoders, in 90KHz units for MPEG2 TS. */
+    unsigned maxPcrError;              /* Maximum absolute PCR error, in 90KHz units for MPEG2 TS. See NEXUS_TimebasePcrSourceSettings for more detail. */
     bool disableTimestampCorrection;   /* deprecated. only applies to 65nm. */
     bool disableJitterAdjustment;      /* PCR offset jitter adjustment */
 } NEXUS_StcChannelPcrModeSettings;
@@ -132,7 +132,7 @@ typedef struct NEXUS_StcChannelAutoModeSettings
 {
     NEXUS_TransportType transportType;         /* There is no pcr for auto mode, but transport type is needed for correct STC management. */
     NEXUS_StcChannelAutoModeBehavior behavior; /* controls how the STC is seeded in Auto mode */
-    unsigned offsetThreshold;          /* Threshold for filtering STC change notifications to decoders, in PTS units. */
+    unsigned offsetThreshold;          /* Threshold for filtering STC change notifications to decoders, in 90KHz units for MPEG2 TS. */
 } NEXUS_StcChannelAutoModeSettings;
 
 /*
@@ -142,7 +142,7 @@ Host-mode-specific stc channel settings
 typedef struct NEXUS_StcChannelHostModeSettings
 {
     NEXUS_TransportType transportType; /* There is no pcr for host mode, but transport type is needed for correct STC management. */
-    unsigned offsetThreshold;          /* Threshold for filtering STC change notifications to decoders, in PTS units. */
+    unsigned offsetThreshold;          /* Threshold for filtering STC change notifications to decoders, in 90KHz units for MPEG2 TS. */
 } NEXUS_StcChannelHostModeSettings;
 
 /*

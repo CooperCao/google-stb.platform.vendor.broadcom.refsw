@@ -45,6 +45,7 @@
 #include "bhsm_otp_key.h"
 #include "bhsm_otp_priv.h"
 #include "bhsm_keyladder.h"
+#include "bhsm_otp_msp.h"
 
 BDBG_MODULE( BHSM );
 
@@ -60,6 +61,7 @@ static BERR_Code _ReadArray( BHSM_Handle hHsm,
                              BPI_Otp_CmdReadRegister_e field,
                              unsigned size,
                              uint8_t *pData );
+static bool _isHashValid( BHSM_Handle hHsm, unsigned index ); /* checks if the hash for the specified key is accessible. */
 
 
 BERR_Code BHSM_OtpKey_Init( BHSM_Handle hHsm, BHSM_OtpKeyModuleSettings *pSettings )
@@ -116,8 +118,12 @@ BERR_Code BHSM_OtpKey_GetInfo( BHSM_Handle hHsm, BHSM_OtpKeyInfo *pKeyInfo )
     {
         hHsm->modules.pOtpKey->cached[index] = true;
 
-        rc = _ReadArray( hHsm, index, BPI_Otp_CmdReadRegister_eKeyHash, 8, pKeyInfo->hash );
-        if( rc != BERR_SUCCESS ) { goto BHSM_P_DONE_LABEL; }
+        pKeyInfo->hashValid = _isHashValid( hHsm, index );
+        if( pKeyInfo->hashValid )
+        {
+            rc = _ReadArray( hHsm, index, BPI_Otp_CmdReadRegister_eKeyHash, 8, pKeyInfo->hash );
+            if( rc != BERR_SUCCESS ) { goto BHSM_P_DONE_LABEL; }
+        }
 
         rc = _ReadArray( hHsm, index, BPI_Otp_CmdReadRegister_eKeyID, 8, pKeyInfo->id );
         if( rc != BERR_SUCCESS ) { goto BHSM_P_DONE_LABEL; }
@@ -148,6 +154,11 @@ BERR_Code BHSM_OtpKey_GetInfo( BHSM_Handle hHsm, BHSM_OtpKeyInfo *pKeyInfo )
         rc = _ReadUint32( hHsm, index, BPI_Otp_CmdReadRegister_eKeyMc0_RootKeySwapDisallow, &otpValue );
         if( rc != BERR_SUCCESS ) { goto BHSM_P_DONE_LABEL; }
         if( !otpValue ) pKeyInfo->rootKeySwapAllow = true;
+
+        /* BPI_Otp_CmdReadRegister_eKeyMc0_FixedDeobfuscationVariantEnable = 7, */
+        rc = _ReadUint32( hHsm, index, BPI_Otp_CmdReadRegister_eMc0S_Reserved7, &otpValue );
+        if( rc != BERR_SUCCESS ) { goto BHSM_P_DONE_LABEL; }
+        if( otpValue ) pKeyInfo->fixedDeobfuscationEnabled = true;
 
         rc = _ReadUint32( hHsm, index, BPI_Otp_CmdReadRegister_eKeyMc0_DeobfuscationEnable, &otpValue );
         if( rc != BERR_SUCCESS ) { goto BHSM_P_DONE_LABEL; }
@@ -183,7 +194,7 @@ BERR_Code BHSM_OtpKey_Program(
 {
     BERR_Code     rc = BERR_SUCCESS;
     BHSM_BspMsg_h hMsg = NULL;
-    uint8_t       status;
+    uint8_t       status = ~0;
     BHSM_BspMsgHeader_t header;
     BHSM_KeyLadderInfo keyLadderInfo;
 
@@ -245,7 +256,7 @@ static BERR_Code _ReadUint32( BHSM_Handle hHsm,
 {
     BERR_Code     rc = BERR_SUCCESS;
     BHSM_BspMsg_h hMsg = NULL;
-    uint8_t       status;
+    uint8_t       status = ~0;
     BHSM_BspMsgHeader_t header;
 
     BDBG_ENTER( _ReadUint32 );
@@ -295,7 +306,7 @@ static BERR_Code _ReadArray( BHSM_Handle hHsm,
 {
     BERR_Code     rc = BERR_SUCCESS;
     BHSM_BspMsg_h hMsg = NULL;
-    uint8_t       status;
+    uint8_t       status = ~0;
     BHSM_BspMsgHeader_t header;
 
     BDBG_ENTER( _ReadArray );
@@ -335,4 +346,36 @@ BHSM_P_DONE_LABEL:
 
     BDBG_LEAVE( _ReadArray );
     return rc;
+}
+
+/* check MSP to see if we can read the key Hash */
+static bool _isHashValid( BHSM_Handle hHsm,  unsigned index )
+{
+    unsigned mspIndex = 0xFFFFF;
+    BHSM_OtpMspRead mspRead;
+    BERR_Code rc = BERR_UNKNOWN;
+
+    switch( index ){
+        case 0: { mspIndex = BCMD_Otp_CmdMsp_eDestinationDisallowKeyA; break; }
+        case 1: { mspIndex = BCMD_Otp_CmdMsp_eDestinationDisallowKeyB; break; }
+        case 2: { mspIndex = BCMD_Otp_CmdMsp_eDestinationDisallowKeyC; break; }
+        /* there are only three OTP keys that we have access to. */
+        default: { return false; } /* we don't have access to the key's MSP */
+    }
+
+    BKNI_Memset( &mspRead, 0, sizeof(mspRead) );
+    mspRead.index = mspIndex;
+
+    rc = BHSM_OtpMsp_Read( hHsm, &mspRead );
+    if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); return false; }
+
+    #define BHSM_HASH_DISALLOWED_BIT 5
+
+    if( mspRead.valid & (1<<BHSM_HASH_DISALLOWED_BIT) &&
+        mspRead.data  & (1<<BHSM_HASH_DISALLOWED_BIT) )
+    {
+        return false;
+    }
+
+    return true;  /* it available. */
 }

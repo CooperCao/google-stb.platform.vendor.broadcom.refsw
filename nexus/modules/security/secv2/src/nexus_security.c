@@ -100,6 +100,7 @@ void NEXUS_GetPidChannelBypassKeyslot( NEXUS_PidChannelHandle pidChannel, NEXUS_
     {
         case BHSM_BypassKeySlot_eG2GR: { *pBypassKeySlot = NEXUS_BypassKeySlot_eG2GR; break; }
         case BHSM_BypassKeySlot_eGR2R: { *pBypassKeySlot = NEXUS_BypassKeySlot_eGR2R; break; }
+        case BHSM_BypassKeySlot_eGT2T: { *pBypassKeySlot = NEXUS_BypassKeySlot_eGT2T; break; }
         default: BERR_TRACE( NEXUS_UNKNOWN ); return;
     }
 

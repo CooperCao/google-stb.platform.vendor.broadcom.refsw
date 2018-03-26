@@ -158,10 +158,22 @@ BERR_Code BHSM_Rsa_GetResult( BHSM_RsaHandle handle, BHSM_RsaExponentiateResult 
     BKNI_Memset( &bspParam, 0, sizeof(bspParam) );
 
     rc = BHSM_P_Crypto_PollRsa( handle->hHsm, &bspParam );
-    if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+    if( rc != BERR_SUCCESS )
+    {
+        if ( rc == 0x3000 )
+        {
+            return rc;
+        }
+        else
+        {
+            return BERR_TRACE( rc );
+        }
+    }
 
     BDBG_CASSERT( sizeof(pResult->data) == sizeof(bspParam.out.outputData) );
     BKNI_Memcpy( pResult->data, bspParam.out.outputData, sizeof(pResult->data) );
+
+    pResult->dataLength = sizeof(bspParam.out.outputData);
 
     BDBG_LEAVE( BHSM_Rsa_GetResult );
     return rc;

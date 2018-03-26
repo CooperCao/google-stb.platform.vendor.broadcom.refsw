@@ -653,7 +653,9 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
             (pSettings->videoDecoder[i].mosaic.maxNumber >= 3 && pSettings->videoDecoder[i].mosaic.maxHeight > 720))
         {
             unsigned avdIndex = pRtsSettings->videoDecoder[i].avdIndex;
-            if (NEXUS_P_VideoDecoderExclusiveMode_isrsafe(preInitState->boxMode, avdIndex) == NEXUS_VideoDecoderExclusiveMode_e4K) {
+            NEXUS_VideoDecoderExclusiveMode exclusiveMode;
+            exclusiveMode = NEXUS_P_VideoDecoderExclusiveMode_isrsafe(&preInitState->boxConfig, avdIndex);
+            if (exclusiveMode == NEXUS_VideoDecoderExclusiveMode_e4K || exclusiveMode == NEXUS_VideoDecoderExclusiveMode_e4K_or_10bit) {
                 if (exclusiveDecoder[avdIndex] != NEXUS_NUM_VIDEO_DECODERS) {
                     /* two exclusive decoders not supported */
                     BKNI_Free(structs);
@@ -846,7 +848,10 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
             if (i >= NEXUS_NUM_DISPLAYS || !pSettings->display[i].maxFormat) continue;
             for (j=0;j<BVDC_MAX_VIDEO_WINDOWS;j++) {
                 bool bPip;
+                bool bNoCapXcode = false;
+
                 structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bUsed = false;
+
                 if (j>=NEXUS_MAX_VIDEO_WINDOWS || !pSettings->display[i].window[j].used) continue;
 
                 if (pSettings->display[i].window[j].sizeLimit == NEXUS_VideoWindowSizeLimit_eQuarter) {
@@ -855,10 +860,26 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
                 else if (preInitState->boxMode) {
                     /* BBOX "fraction" values can be 1,1 or 2,2 or DISREGARD,DISREGARD (which nexus regards as 1,1) */
                     bPip = (preInitState->boxConfig.stVdc.astDisplay[i].astWindow[j].stSizeLimits.ulHeightFraction == 2) &&
-                       (preInitState->boxConfig.stVdc.astDisplay[i].astWindow[j].stSizeLimits.ulWidthFraction == 2);
+                           (preInitState->boxConfig.stVdc.astDisplay[i].astWindow[j].stSizeLimits.ulWidthFraction == 2);
+
+                    if (preInitState->boxConfig.stVdc.astDisplay[i].stStgEnc.bAvailable &&
+                        preInitState->boxConfig.stVdc.stXcode.ulNumXcodeCapVfd == 0) {
+                        bNoCapXcode = true;
+                    }
+
+                    if(bPip &&(pSettings->display[i].window[j].sizeLimit == NEXUS_VideoWindowSizeLimit_eFull)) {
+                        BDBG_WRN(("Can not set to NEXUS_VideoWindowSizeLimit_eFull due to boxmode limit"));
+                        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                    }
                 }
                 else {
-                    bPip = j>0;
+                    /* legacy platforms */
+                    if(pSettings->display[i].window[j].sizeLimit == NEXUS_VideoWindowSizeLimit_eFull) {
+                        bPip = false;
+                    }
+                    else {
+                        bPip = j>0;
+                    }
                 }
 
                 if (preInitState->boxMode) {
@@ -875,7 +896,13 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
 
                 /* CAP */
                 memcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j];
-                if (memcIndex < BBOX_MemcIndex_Invalid) {
+
+                if (memcIndex == BBOX_MemcIndex_Invalid && bNoCapXcode) {
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].ulMemcIndex = memcIndex;
+                } else if (memcIndex >= BBOX_MemcIndex_Invalid || memcIndex >= NEXUS_MAX_MEMC) {
+                    rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                    goto err_getsettings;
+                } else {
                     structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].ulMemcIndex = memcIndex;
                     structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].b5060Convert = pSettings->display[i].window[j].convertAnyFrameRate;
                     structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSlave_24_25_30_Display =

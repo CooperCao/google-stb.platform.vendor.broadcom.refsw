@@ -147,6 +147,6 @@ BERR_Code BHSM_Close( BHSM_Handle hHsm );
 Description:
    Returns capabilities and configuration of HSM.
 */
-void BHSM_GetCapabilities( BHSM_Handle hHsm,  BHSM_ModuleCapabilities *pCaps );
+BERR_Code BHSM_GetCapabilities( BHSM_Handle hHsm,  BHSM_ModuleCapabilities *pCaps );
 
 #endif

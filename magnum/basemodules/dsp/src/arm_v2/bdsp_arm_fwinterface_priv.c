@@ -40,6 +40,62 @@
 
 BDBG_MODULE(bdsp_arm_fwinterface);
 
+BERR_Code BDSP_Arm_P_InitZeroSizeMsgQueue(
+    BDSP_P_MsgQueueHandle hMsgQueue,
+    BDSP_MMA_Memory       softFifoMemory
+)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+    dramaddr_t  BaseOffset=0, EndOffset=0;
+    dramaddr_t *pBaseAddr, *pEndAddr, *pWriteAddr, *pReadAddr;
+    BDSP_MMA_Memory Memory;
+
+    BDBG_ENTER(BDSP_Arm_P_InitZeroSizeMsgQueue);
+    BDBG_ASSERT(hMsgQueue);
+    BDBG_ASSERT(hMsgQueue->ui32FifoId != BDSP_FIFO_INVALID);
+
+
+    /* Initliasing the Physical Address Structure in the Queue Handle */
+    hMsgQueue->Address.BaseOffset = 0;
+    hMsgQueue->Address.ReadOffset = 0;
+    hMsgQueue->Address.WriteOffset= 0;
+    hMsgQueue->Address.EndOffset  = 0;
+
+    /* Store the Physical address of the FIFO*/
+    hMsgQueue->QueueAddress.BaseOffset = softFifoMemory.offset+(hMsgQueue->ui32FifoId*(4*sizeof(dramaddr_t)));
+    hMsgQueue->QueueAddress.EndOffset  = hMsgQueue->QueueAddress.BaseOffset+(sizeof(dramaddr_t));
+    hMsgQueue->QueueAddress.ReadOffset = hMsgQueue->QueueAddress.ReadOffset+(sizeof(dramaddr_t));
+    hMsgQueue->QueueAddress.WriteOffset= hMsgQueue->QueueAddress.WriteOffset+(sizeof(dramaddr_t));
+    BDBG_MSG(("Queue Fifo Id = %d Offset ="BDSP_MSG_FMT,hMsgQueue->ui32FifoId, BDSP_MSG_ARG(hMsgQueue->QueueAddress.BaseOffset)));
+
+    /* Initilaise the FIFOs with values of Queue Memory*/
+    pBaseAddr = (dramaddr_t *)((uint8_t *)softFifoMemory.pAddr+(hMsgQueue->ui32FifoId*(4*sizeof(dramaddr_t))));
+    pEndAddr  = (dramaddr_t *)((uint8_t *)pBaseAddr +(sizeof(dramaddr_t)));
+    pWriteAddr= (dramaddr_t *)((uint8_t *)pEndAddr  +(sizeof(dramaddr_t)));
+    pReadAddr = (dramaddr_t *)((uint8_t *)pWriteAddr +(sizeof(dramaddr_t)));
+
+    BaseOffset = 0;
+    *pBaseAddr = BaseOffset;
+    *pWriteAddr= BaseOffset;
+    *pReadAddr = BaseOffset;
+    EndOffset  = BaseOffset+(hMsgQueue->ui32Size);
+    *pEndAddr  = EndOffset;
+
+    BDBG_MSG(("BA="BDSP_MSG_FMT", END= "BDSP_MSG_FMT", RD= "BDSP_MSG_FMT", WR = "BDSP_MSG_FMT,BDSP_MSG_ARG(*pBaseAddr),
+        BDSP_MSG_ARG(*pEndAddr),
+        BDSP_MSG_ARG(*pReadAddr),
+        BDSP_MSG_ARG(*pWriteAddr)));
+
+    Memory = softFifoMemory;
+    Memory.pAddr = (void *)pBaseAddr;
+    Memory.offset= BDSP_MMA_P_VirtualToOffset(softFifoMemory.pAddr, softFifoMemory.offset, pBaseAddr);
+    BDSP_MMA_P_FlushCache(Memory,(4*sizeof(dramaddr_t)));
+    hMsgQueue->FifoMemory = Memory;
+
+    BDBG_LEAVE(BDSP_Arm_P_InitZeroSizeMsgQueue);
+    return errCode;
+}
+
 BERR_Code BDSP_Arm_P_InitMsgQueue(
     BDSP_P_MsgQueueHandle hMsgQueue,
     BDSP_MMA_Memory       softFifoMemory

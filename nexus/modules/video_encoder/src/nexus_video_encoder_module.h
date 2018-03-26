@@ -78,7 +78,7 @@ struct NEXUS_VideoEncoder {
     struct { /* mapping between MMA and nexus memory blocks, there is an assumption that BVCE encoder will return the _same_ memory blocks for as long as it opened */
         BMMA_Block_Handle mma;
         NEXUS_MemoryBlockHandle nexus;
-    } frame,meta, debugLog;
+    } frame,meta,idx,debugLog;
     NEXUS_IsrCallbackHandle dataReadyCallback;
     bool started;
 };

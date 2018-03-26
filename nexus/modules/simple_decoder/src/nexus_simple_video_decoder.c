@@ -170,6 +170,11 @@ struct NEXUS_SimpleVideoDecoder
     struct {
         NEXUS_HdDviInputHandle handle;
     } hdDviInput;
+    union {
+        struct {
+            NEXUS_SimpleVideoDecoderServerSettings temp;
+        } NEXUS_SimpleVideoDecoder_SetServerSettings;
+    } functionData;
 };
 
 static NEXUS_SimpleVideoDecoderHandle nexus_simple_video_decoder_p_first(void)
@@ -393,10 +398,11 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_SetServerSettings( NEXUS_SimpleVideoDecoder
     /* testing for loss of secondary windows. this is a specific case for nxserver. */
     if (handle->serverSettings.videoDecoder && handle->serverSettings.videoDecoder == pSettings->videoDecoder && !pSettings->window[1] && handle->serverSettings.window[1]) {
         /* now verify the loss of secondary is the only change */
-        NEXUS_SimpleVideoDecoderServerSettings temp = *pSettings;
-        temp.window[1] = handle->serverSettings.window[1];
-        temp.display[1] = handle->serverSettings.display[1];
-        if (!BKNI_Memcmp(&temp, &handle->serverSettings, sizeof(temp))) {
+        NEXUS_SimpleVideoDecoderServerSettings *temp = &handle->functionData.NEXUS_SimpleVideoDecoder_SetServerSettings.temp;
+        *temp = *pSettings;
+        temp->window[1] = handle->serverSettings.window[1];
+        temp->display[1] = handle->serverSettings.display[1];
+        if (!BKNI_Memcmp(temp, &handle->serverSettings, sizeof(*temp))) {
             unsigned i;
             BDBG_WRN(("removing secondary display from decoder %p", (void*)handle));
             for (i=1;i<NEXUS_MAX_DISPLAYS;i++) {
@@ -710,7 +716,14 @@ static NEXUS_Error nexus_simplevideodecoder_p_setvbisetings(NEXUS_SimpleVideoDec
                     settings.closedCaptionRouting = false;
                 }
                 rc = NEXUS_Display_SetVbiSettings(handle->serverSettings.display[i], &settings);
-                if (rc) {rc = BERR_TRACE(rc); goto error;}
+                if (rc) {
+                    if (rc == NEXUS_NOT_SUPPORTED) {
+                        BDBG_ERR(("VBI is not available on display %d", i));
+                    }
+                    else {
+                       rc = BERR_TRACE(rc); goto error;
+                    }
+                }
             }
         }
     }
@@ -1653,6 +1666,7 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_ReadUserDataBuffer(NEXUS_SimpleVideoDecoder
     /* implicitly turn on */
     NEXUS_VideoDecoder_GetSettings(handle->serverSettings.videoDecoder, &videoDecoderSettings);
     if (!videoDecoderSettings.userDataEnabled) {
+        BDBG_WRN(("Auto-enabling userdata. We recommend you set NEXUS_VideoDecoderSettings.userDataEnabled explicitly."));
         videoDecoderSettings.userDataEnabled = true;
         rc = NEXUS_VideoDecoder_SetSettings(handle->serverSettings.videoDecoder, &videoDecoderSettings);
         if (rc) return BERR_TRACE(rc);

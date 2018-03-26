@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -63,6 +63,11 @@
 #include "b_asp_lib_impl.h"
 #include "asp_netfilter_drv.h"
 
+
+#define TEMPORARILY_DISABLE_REVERSE_MIGRATION
+
+
+
 BDBG_MODULE(b_asp_lib);
 
 static int tcpSelectQueue(int socketFd, int queue)
@@ -88,6 +93,7 @@ error:
     return -EINVAL;
 }
 
+#ifndef TEMPORARILY_DISABLE_REVERSE_MIGRATION
 static int tcpSetQueueSeq(int socketFd, unsigned seq)
 {
     int rc;
@@ -99,6 +105,7 @@ error:
     perror("setsockopt");
     return -EINVAL;
 }
+#endif /* TEMPORARILY_DISABLE_REVERSE_MIGRATION */
 
 static int tcpGetMaxSegSize(int socketFd, unsigned *maxSegSize)
 {
@@ -175,6 +182,7 @@ error:
     return -EINVAL;
 }
 
+#ifndef TEMPORARILY_DISABLE_REVERSE_MIGRATION
 static int tcpUnfreezeSocket(int socketFd)
 {
     int rc;
@@ -186,6 +194,8 @@ error:
     perror("setsockopt");
     return -EINVAL;
 }
+#endif /* TEMPORARILY_DISABLE_REVERSE_MIGRATION */
+
 
 static int getIpAddressForAnInterface(
     const char          *pInterfacename,
@@ -231,6 +241,7 @@ static int getInterfaceNameAndLocalMacAddress(
     struct sockaddr_in findAddr;
     int rc;
     struct sockaddr_in *localIpAddr = &pSocketState->localIpAddr;
+    struct sockaddr_in *remoteIpAddr = &pSocketState->remoteIpAddr;
 
     BKNI_Memset(&findAddr, 0, sizeof( struct sockaddr_in));
 
@@ -252,8 +263,9 @@ static int getInterfaceNameAndLocalMacAddress(
                 if (rc < 0)
                 {
                    BDBG_MSG(("%s: No IP Address define this interface, so skipping interface=%s, interfaceIndex=%d..", BSTD_FUNCTION, ifeach->ifa_name, sockaddr->sll_ifindex));
+                   continue;
                 }
-                else if( (localIpAddr->sin_addr.s_addr == findAddr.sin_addr.s_addr) /*&& TODO (localIpAddr->sin_family == ifeach->ifa_addr->sa_family) */)
+                if ( localIpAddr->sin_addr.s_addr == findAddr.sin_addr.s_addr /*&& TODO (localIpAddr->sin_family == ifeach->ifa_addr->sa_family) */)
                 {
                     /* Save the interface name. */
                     strncpy(pSocketState->interfaceName, ifeach->ifa_name, IFNAMSIZ);
@@ -274,6 +286,15 @@ static int getInterfaceNameAndLocalMacAddress(
                                pSocketState->localMacAddress[4], pSocketState->localMacAddress[5]
                                ));
                     }
+                }
+                if ( remoteIpAddr->sin_addr.s_addr == findAddr.sin_addr.s_addr /*&& TODO (remoteIpAddr->sin_family == ifeach->ifa_addr->sa_family) */)
+                {
+                    /* Remote IP happens to match one of the local interface's IP, so remote must be on the same node too. */
+                    strncpy(pSocketState->remoteInterfaceName, ifeach->ifa_name, IFNAMSIZ);
+                    pSocketState->remoteInterfaceIndex = sockaddr->sll_ifindex;
+                    pSocketState->remoteOnLocalHost = true;
+                    BDBG_MSG(("%s: Remote IP=%s is on same host on interface=%s interfaceIndex=%d",
+                                BSTD_FUNCTION, inet_ntoa(remoteIpAddr->sin_addr), pSocketState->remoteInterfaceName, pSocketState->remoteInterfaceIndex));
                 }
             }
         }
@@ -303,11 +324,15 @@ static int getRemoteMacAddress(
     rc = ioctl(aspNetFilterDrvFd, ASP_DEVICE_IOC_GET_GATEWAY, (unsigned long)(&getGateway));
     if (rc == 0)
     {
-        nextIpAddr.sin_addr.s_addr = getGateway.gatewayIpAddr[0];   /* Set gateway's IP address. */
+        if (getGateway.routeUsesGateway)
+        {
+            nextIpAddr.sin_addr.s_addr = getGateway.gatewayIpAddr[0];   /* Set gateway's IP address. */
+        }
     }
-    else if (errno != ENODEV)  /* errno==-ENODEV => no gateway for remote IP addr (normal for local subnet) */
+    else
     {
         BDBG_ERR(("%s: ASP_DEVICE_IOC_GET_GATEWAY failed, errno=%d",BSTD_FUNCTION, errno));
+        /* Print error message and try to continue... */
     }
 
     if (pSocketState->localIpAddr.sin_addr.s_addr == nextIpAddr.sin_addr.s_addr)
@@ -323,7 +348,7 @@ static int getRemoteMacAddress(
     {
         BKNI_Memset(&arpreq, 0, sizeof(arpreq));
 
-        strncpy(arpreq.arp_dev, pSocketState->interfaceName, IFNAMSIZ);
+        strncpy(arpreq.arp_dev, pSocketState->interfaceName, IFNAMSIZ-1);
 
         soutTemp = (struct sockaddr_in *) &arpreq.arp_pa;
         soutTemp->sin_family = nextIpAddr.sin_family;
@@ -333,7 +358,6 @@ static int getRemoteMacAddress(
         {
             int myerrno = errno;
             BDBG_ERR(("%s:%u ioctl() socket() failed, errno=%d", BSTD_FUNCTION, BSTD_LINE, myerrno));
-            BDBG_ASSERT(false);
             goto error;
         }
 
@@ -341,6 +365,7 @@ static int getRemoteMacAddress(
         if (rc < 0)
         {
             BDBG_ERR(("%s: Not able to find remote mac address, ioctl failed, errno=%d",BSTD_FUNCTION, errno));
+            goto error;
         }
 
         if (arpreq.arp_flags & ATF_COM) /* Complete entry */
@@ -353,13 +378,13 @@ static int getRemoteMacAddress(
             pSocketState->remoteMacAddress[3] = eap[3];
             pSocketState->remoteMacAddress[4] = eap[4];
             pSocketState->remoteMacAddress[5] = eap[5];
-
         }
         else
         {
-            rc = -1;
             BDBG_ERR(("%s: didn't find a complete ARP entry for nextIpAddr=%s", BSTD_FUNCTION, inet_ntoa(nextIpAddr.sin_addr)));
+            goto error;
         }
+
         close(sockFd);
     }
 
@@ -370,6 +395,7 @@ static int getRemoteMacAddress(
              ));
 
     return 0;
+
 error:
     if(sockFd != -1)
     {
@@ -446,11 +472,20 @@ B_Error B_AspChannel_SetSocketStateToLinux(
     int *pOutSocketFd                           /* out: fd of newly created socket. */
     )
 {
+
+#ifdef TEMPORARILY_DISABLE_REVERSE_MIGRATION
+    BSTD_UNUSED(pSocketState);
+    BSTD_UNUSED(fdMigratedConnx);
+    BSTD_UNUSED(pOutSocketFd);
+    BDBG_MSG(("%s: Not YET migrating the connection state back to Linux!!!", BSTD_FUNCTION));
+    return B_ERROR_SUCCESS;
+
+#else /*  TEMPORARILY_DISABLE_REVERSE_MIGRATION */
+
     int rc;
     int socketFd;
     int reuse_flag = 1;
 
-#if 0
     /* 2/1/2017: TODO: this code needs more thought... */
     /* Currently, Linux kernel seems to require following on connection migration:
      * -doesn't allow us to re-use the existing socket (fdMigratedConnx) for migrating the socket from ASP.
@@ -468,12 +503,7 @@ B_Error B_AspChannel_SetSocketStateToLinux(
         close(fdMigratedConnx);
         BDBG_WRN(("%s: Closed migratedSocketFd=%d", BSTD_FUNCTION, fdMigratedConnx));
     }
-#else
-    BSTD_UNUSED(fdMigratedConnx);
-#endif
 
-    BDBG_WRN(("%s: Not YET migrating the connection state back to Linux!!!", BSTD_FUNCTION));
-    goto out;
 
     /* Create a socket to which we can migrate the connection state back. */
     {
@@ -546,6 +576,7 @@ out:
 
 error:
     return B_ERROR_OS_ERROR;
+#endif  /* TEMPORARILY_DISABLE_REVERSE_MIGRATION */
 }
 
 int B_AspChannel_GetSocketAddrInfo(
@@ -627,7 +658,8 @@ int B_AspChannel_UpdateInterfaceName(
     )
 {
     int rc;
-    int netLinkFd = 0;
+    int netLinkFd = -1;
+    unsigned char *pRespBuffer = NULL;
 
     BDBG_MSG(("%s: pInterfaceName=%s Remote's MAC address=%02X:%02X:%02X:%02X:%02X:%02X\n", BSTD_FUNCTION, pInterfaceName,
                 pSocketState->remoteMacAddress[0], pSocketState->remoteMacAddress[1],
@@ -678,11 +710,10 @@ int B_AspChannel_UpdateInterfaceName(
     /* Recv the response message containing the Neighbor table fields & parse for entry matching the remote's MAC address. */
     {
 #define NETLINK_RESPONSE_SIZE 8192
-        unsigned char *pRespBuffer;
         ssize_t respMsgLength;
 
         pRespBuffer = BKNI_Malloc(NETLINK_RESPONSE_SIZE);
-        BDBG_ASSERT(pRespBuffer);
+        CHECK_PTR_GOTO("ASP_CHANNEL_IOC_GET_SOCKET_5TUPLE_INFO ioctl() Failed", pRespBuffer, error);
         BKNI_Memset(pRespBuffer, 0, NETLINK_RESPONSE_SIZE);
 
         /* Keep reading until we find the L2 entry matching w/ the local MAC address. */
@@ -790,7 +821,7 @@ int B_AspChannel_UpdateInterfaceName(
                                 unsigned char *macAddress = RTA_DATA(pRtaMsg);
                                 if (memcmp(pSocketState->remoteMacAddress, macAddress, sizeof(pSocketState->remoteMacAddress)) == 0)
                                 {
-                                    BDBG_WRN(("%s: MAC address matched: ifIdx=%d l2Hdr: size=%lu value=0x%02X%02X%02X%02X%02X%02X\n", BSTD_FUNCTION,
+                                    BDBG_MSG(("%s: MAC address matched: ifIdx=%d l2Hdr: size=%lu value=0x%02X%02X%02X%02X%02X%02X\n", BSTD_FUNCTION,
                                             pNdMsg->ndm_ifindex,
                                             RTA_PAYLOAD(pRtaMsg),
                                             macAddress[0], macAddress[1], macAddress[2], macAddress[3], macAddress[4], macAddress[5]
@@ -823,10 +854,12 @@ nextNlHeader:
         }
     }
 done:
-    if (netLinkFd > 0) close(netLinkFd);
+    if (netLinkFd >= 0) close(netLinkFd);
+    if (pRespBuffer) BKNI_Free(pRespBuffer);
     return 0;
 
 error:
-    if (netLinkFd > 0) close(netLinkFd);
+    if (netLinkFd >= 0) close(netLinkFd);
+    if (pRespBuffer) BKNI_Free(pRespBuffer);
     return -1;
 }

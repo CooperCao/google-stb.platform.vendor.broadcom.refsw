@@ -349,7 +349,7 @@ NEXUS_VideoWindow_SetMadSettings(
     madSettings.pUpSampler = &upSampler;
     madSettings.pDnSampler = &downSampler;
     madSettings.pLowAngles = &lowAngles;
-    BVDC_Window_GetDeinterlaceDefaultConfiguration(windowVDC, &madSettings);
+    BVDC_Window_GetDeinterlaceDefaultConfiguration(&madSettings);
 
     madSettings.bReverse32Pulldown = pSettings->enable32Pulldown;
     madSettings.bReverse22Pulldown = pSettings->enable22Pulldown;
@@ -675,11 +675,16 @@ void NEXUS_VideoWindow_GetGameModeDelay( NEXUS_VideoWindowHandle window, NEXUS_V
     *pSettings = window->adjContext.stGameModeDelaySettings;
 }
 
-void NEXUS_VideoWindow_GetDefaultMadSettings( NEXUS_VideoWindowMadSettings *pSettings )
+void NEXUS_VideoWindow_GetDefaultMadSettings(NEXUS_VideoWindowMadSettings *pSettings )
 {
+    BVDC_Deinterlace_Settings madSettings;
+
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    BKNI_Memset(&madSettings, 0, sizeof(madSettings));
+    BVDC_Window_GetDeinterlaceDefaultConfiguration(&madSettings);
     pSettings->deinterlace = true;
-    pSettings->enable32Pulldown = true;
+    pSettings->enable32Pulldown = madSettings.bReverse32Pulldown;
+    pSettings->enable22Pulldown = madSettings.bReverse22Pulldown;
     pSettings->pixelFormat = NEXUS_PixelFormat_eUnknown; /* eUnknown allows VDB to set the optimal format */
     pSettings->pqEnhancement = NEXUS_MadPqEnhancement_eOff; /* eOff means MAD stays on for 480i->480i and 1080i->1080i which prevents audio glitch because of lipsync adjustment. */
 }

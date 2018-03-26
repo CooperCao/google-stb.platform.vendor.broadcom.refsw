@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bstd.h" 
@@ -52,9 +49,7 @@ BDBG_MODULE(bwfe_g3_priv_lic);
 ******************************************************************************/
 BERR_Code BWFE_g3_Lic_P_PowerUp(BWFE_ChannelHandle h)
 {
-#ifndef BWFE_BYPASS_LIC2
    BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
-#endif
    BERR_Code retCode = BERR_SUCCESS;
    uint8_t slice;
    
@@ -120,7 +115,7 @@ BERR_Code BWFE_g3_Lic_P_PowerUp(BWFE_ChannelHandle h)
    }
 
    BKNI_EnterCriticalSection();
-   retCode = BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e0, 50000, BWFE_g3_Lic_P_NrDcoTracking);
+   retCode = BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e0, 60000, BWFE_g3_Lic_P_NrDcoTracking1);
    BKNI_LeaveCriticalSection();
 #endif
 
@@ -146,22 +141,39 @@ BERR_Code BWFE_g3_Lic_P_PowerUp(BWFE_ChannelHandle h)
 
 
 /******************************************************************************
- BWFE_g3_Lic_P_NrDcoTracking()
+ BWFE_g3_Lic_P_NrDcoTracking1()
 ******************************************************************************/
-BERR_Code BWFE_g3_Lic_P_NrDcoTracking(BWFE_ChannelHandle h)
+BERR_Code BWFE_g3_Lic_P_NrDcoTracking1(BWFE_ChannelHandle h)
 {
    BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
    uint8_t slice;
    
    for (slice = 0; slice < h->totalSlices; slice++)
    {
-      BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_NRDCOCTL_PI_SLC, ~0x000000F0, 0x000000C0);   /* tracking ping: beta_dco=12 */
-      BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_NRDCOCTL_PO_SLC, ~0x000000F0, 0x000000C0);   /* tracking pong: beta_dco=12 */
+      BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_NRDCOCTL_PI_SLC, ~0x000000F0, 0x00000050);   /* tracking ping: beta_dco=5 */
+      BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_NRDCOCTL_PO_SLC, ~0x000000F0, 0x00000050);   /* tracking pong: beta_dco=5 */
    }
 
    /* signal ready event */
    BKNI_SetEvent(hChn->hWfeReady);
    hChn->bLicReady = true;
+
+   return BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e0, 5000, BWFE_g3_Lic_P_NrDcoTracking2);
+}
+
+
+/******************************************************************************
+ BWFE_g3_Lic_P_NrDcoTracking2()
+******************************************************************************/
+BERR_Code BWFE_g3_Lic_P_NrDcoTracking2(BWFE_ChannelHandle h)
+{
+   uint8_t slice;
+
+   for (slice = 0; slice < h->totalSlices; slice++)
+   {
+      BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_NRDCOCTL_PI_SLC, ~0x000000F0, 0x000000C0);   /* tracking ping: beta_dco=12 */
+      BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_NRDCOCTL_PO_SLC, ~0x000000F0, 0x000000C0);   /* tracking pong: beta_dco=12 */
+   }
 
    return BERR_SUCCESS;
 }

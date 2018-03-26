@@ -156,7 +156,7 @@ typedef struct
     uint8_t  decryptionSel; /* enum type Bsp_CmdRv_DecryptionMode_e */
     uint8_t  keyLayer; /* enum type Bsp_KeyLadderLayer_e */
     uint8_t  vklId; /* enum type Bsp_VklId_e */
-    uint8_t  reserved6;
+    uint8_t  reserved4;
     uint8_t  bgCheck; /* enum type Bsp_CmdRv_BgCheck_e */
     uint8_t  allowRegionDisable; /* enum type Bsp_CmdRv_RegionDisable_e */
     uint8_t  enforceAuth; /* enum type Bsp_CmdRv_EnforceAuth_e */

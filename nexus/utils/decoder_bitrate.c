@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2014 Broadcom Corporation
+ * Copyright (C) 2014-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -74,7 +74,11 @@ static unsigned decoder_bitrate_read_priv(struct decoder_bitrate *br, uint64_t n
         br->start = now;
     }
     BDBG_MSG(("%u(%u) %u %u", (unsigned)numBytesDecoded,(unsigned)bytes, (unsigned)msec, (unsigned)br->origin));
-    return (8*1000*bytes) / msec;
+    if(msec>0) {
+        return (8*1000*bytes) / msec;
+    } else {
+        return 0;
+    }
 }
 #endif /* NEXUS_HAS_AUDIO && NEXUS_HAS_VIDEO_DECODER */
 

@@ -167,10 +167,12 @@ $(BIN_DIRS):
 	@mkdir -p $@
 
 $(TZ_OBJ_DIR)/$(TZ_IMG).bin: $(TZ_OBJ_DIR)/$(TZ_IMG).elf
-	$(TZ_ARMGNU)-objcopy $(TZ_OBJ_DIR)/$(TZ_IMG).elf -O binary $(TZ_OBJ_DIR)/$(TZ_IMG).bin
+	@echo "[Create... $@]"
+	$(Q_)$(TZ_ARMGNU)-objcopy $(TZ_OBJ_DIR)/$(TZ_IMG).elf -O binary $(TZ_OBJ_DIR)/$(TZ_IMG).bin
 
 $(TZ_OBJ_DIR)/$(TZ_IMG).elf: $(OBJS) libkernel initramfs link_$(ARCH)_tz.ld
-	$(TZ_ARMGNU)-g++ -nostartfiles -static $(OBJS) $(TZ_KERNEL_OBJ_DIR)/libkernel.a $(TZ_OBJ_DIR)/initramfs/initramfs.o -Tlink_$(ARCH)_tz.ld -o $@
+	@echo "[Link... $@]"
+	$(Q_)$(TZ_ARMGNU)-g++ -nostartfiles -static $(OBJS) $(TZ_KERNEL_OBJ_DIR)/libkernel.a $(TZ_OBJ_DIR)/initramfs/initramfs.o -Tlink_$(ARCH)_tz.ld -o $@
 
 libkernel:
 	$(MAKE) -C $(TZ_KERNEL_DIR) libkernel

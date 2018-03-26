@@ -226,9 +226,9 @@ int main(void)
     NEXUS_StcChannelHandle stcChannel[NEXUS_NUM_VIDEO_ENCODERS];
     NEXUS_StcChannelSettings stcSettings;
     NEXUS_PidChannelHandle videoPidChannel[NEXUS_NUM_VIDEO_ENCODERS];
-    NEXUS_DisplayHandle display;
+    NEXUS_DisplayHandle display=NULL;
     NEXUS_DisplaySettings displaySettings;
-    NEXUS_VideoWindowHandle window;
+    NEXUS_VideoWindowHandle window=NULL;
     NEXUS_VideoWindowMadSettings windowMadSettings;
     NEXUS_VideoDecoderHandle videoDecoder[NEXUS_NUM_VIDEO_ENCODERS];
     NEXUS_VideoDecoderStartSettings videoProgram;
@@ -371,9 +371,6 @@ again:
 
             /* enable deinterlacer to improve quality */
             NEXUS_VideoWindow_GetMadSettings(window, &windowMadSettings);
-            windowMadSettings.deinterlace = true;
-            windowMadSettings.enable22Pulldown = true;
-            windowMadSettings.enable32Pulldown = true;
             NEXUS_VideoWindow_SetMadSettings(window, &windowMadSettings);
         }
 
@@ -492,9 +489,6 @@ again:
         assert(windowTranscode[xcodeId]);
         /* enable deinterlacer to improve quality */
         NEXUS_VideoWindow_GetMadSettings(windowTranscode[xcodeId], &windowMadSettings);
-        windowMadSettings.deinterlace = true;
-        windowMadSettings.enable22Pulldown = true;
-        windowMadSettings.enable32Pulldown = true;
         NEXUS_VideoWindow_SetMadSettings(windowTranscode[xcodeId], &windowMadSettings);
 
         /* connect same decoder to the encoder display;

@@ -187,6 +187,32 @@ BKNI_P_GetTrackAllocEntry_one(const void *mem, const void *match, struct BKNI_Tr
     return NULL;
 }
 
+/* this is a read-only lookup. if the entry does not exist, it will return NULL. */
+static struct BKNI_TrackAllocEntry *
+BKNI_P_GetTrackAllocEntry(const void *mem)
+{
+    return BKNI_P_GetTrackAllocEntry_one(mem, mem, g_alloc_state.tables, g_alloc_state.table_size);
+}
+
+#if B_REFSW_BUILD_FOR_STATIC_ANALYSIS
+void *
+BKNI_Malloc_tagged(size_t size, const char *file, unsigned line)
+{
+    BSTD_UNUSED(file);
+    BSTD_UNUSED(line);
+    return B_TRACK_ALLOC_ALLOC(size);
+}
+
+void
+BKNI_Free_tagged(void *ptr, const char *file, unsigned line)
+{
+    BSTD_UNUSED(file);
+    BSTD_UNUSED(line);
+    B_TRACK_ALLOC_FREE(ptr);
+    return;
+}
+#else /* #if B_REFSW_BUILD_FOR_STATIC_ANALYSIS */
+
 static void
 BKNI_P_UpdateAllocUsers(struct BKNI_P_AllocUser *alloc_users, unsigned alloc_users_size, const struct BKNI_TrackAllocEntry *entry)
 {
@@ -319,8 +345,9 @@ error:
     return NULL;
 }
 
-/* this performs a lookup for the pointer. if it already exists, it is reused. otherwise, it is created.
-if the existing table is filled, a larger table is created. */
+
+/* this performs a lookup for the pointer. If it already exists, it is reused. Otherwise, it is created.
+If the existing table is filled, a larger table is created. */
 static struct BKNI_TrackAllocEntry *
 BKNI_P_CreateTrackAllocEntry(const void *mem)
 {
@@ -353,32 +380,7 @@ BKNI_P_CreateTrackAllocEntry(const void *mem)
     return entry;
 }
 
-/* this is a read-only lookup. if the entry does not exist, it will return NULL. */
-static struct BKNI_TrackAllocEntry *
-BKNI_P_GetTrackAllocEntry(const void *mem)
-{
-    return BKNI_P_GetTrackAllocEntry_one(mem, mem, g_alloc_state.tables, g_alloc_state.table_size);
-}
 
-
-#if B_REFSW_BUILD_FOR_STATIC_ANALYSIS
-void *
-BKNI_Malloc_tagged(size_t size, const char *file, unsigned line)
-{
-    BSTD_UNUSED(file);
-    BSTD_UNUSED(line);
-    return B_TRACK_ALLOC_ALLOC(size);
-}
-
-void
-BKNI_Free_tagged(void *ptr, const char *file, unsigned line)
-{
-    BSTD_UNUSED(file);
-    BSTD_UNUSED(line);
-    B_TRACK_ALLOC_FREE(ptr);
-    return;
-}
-#else /* #if B_REFSW_BUILD_FOR_STATIC_ANALYSIS */
 void *
 BKNI_Malloc_tagged(size_t size, const char *file, unsigned line)
 {

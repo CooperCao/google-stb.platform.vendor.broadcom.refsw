@@ -134,7 +134,7 @@ $(IPC_LIB): $(IPC_LIB_OBJS) $(NXCLIENT_MODE_CHECK)
 
 $(IPC_LIB_STATIC): $(IPC_LIB_OBJS) $(NXCLIENT_MODE_CHECK)
 	${Q_}echo "[Archive... $(notdir $@)]"
-	$(Q_)$(AR) rcs $@ $^
+	$(Q_)$(AR) rcs $@ $(IPC_LIB_OBJS)
 
 $(LOCAL_LIB): $(BINDIR)/nxclient_local.o $(BINDIR)/nxclient_common.o
 	${Q_}echo "[Linking $(notdir $@)]"

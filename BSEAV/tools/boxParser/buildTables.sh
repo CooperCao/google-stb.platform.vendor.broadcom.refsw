@@ -7,6 +7,7 @@ REFSW_ROOT=`readlink -f ../../../`
 PARSER_ROOT=BSEAV/tools/boxParser
 
 ARRAY=( "7250:B0"
+        "7255:A0"
         "7260:A0"
         "7268:B0"
         "7271:B0"

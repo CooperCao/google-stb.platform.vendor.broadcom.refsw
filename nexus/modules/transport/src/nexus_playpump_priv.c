@@ -158,7 +158,7 @@ restart:
                 if (p->state.segment_left==0) {
                     /* we must see new segment here, validate chunk first */
                     NEXUS_PlaypumpSegment desc;
-                    BKNI_Memcpy(&desc, item->desc.addr, sizeof(desc));/* since itam->addr might be not 32 bit alligned, copy it first */
+                    BKNI_Memcpy(&desc, item->desc.addr, sizeof(desc));/* since itam->addr might be not 32 bit aligned, copy it first */
                     if (item->desc.length < sizeof(desc) || desc.signature != NEXUS_PLAYPUMP_SEGMENT_SIGNATURE || desc.length < sizeof(desc)) {
                         BDBG_WRN(("playpump %p: invalid segment at %p (%u:%#x)", (void *)p, (void *)item->desc.addr, (unsigned)item->desc.length, desc.signature));
                         goto remove_inalid_chunk;
@@ -371,7 +371,7 @@ b_playpump_p_add_request(NEXUS_PlaypumpHandle p, size_t skip, size_t amount_used
                 continue;
             }
             item = BFIFO_WRITE(&p->activeFifo);
-            BKNI_Memcpy(&item->desc, pSgDesc, sizeof(*pSgDesc)); /* pSgDesc might not be 32-bit alligned */
+            BKNI_Memcpy(&item->desc, pSgDesc, sizeof(*pSgDesc)); /* pSgDesc might not be 32-bit aligned */
             item->sg = true;
             item->skip = 0;
 #if B_HAS_MEDIA
@@ -444,7 +444,7 @@ b_playpump_p_do_read_callback(NEXUS_PlaypumpHandle p)
         return;
     }
     if (BFIFO_WRITE_PEEK(&p->activeFifo)==0) {
-        BDBG_MSG_FLOW(("no chunks avaliable"));
+        BDBG_MSG_FLOW(("no chunks available"));
         return;
     }
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -124,7 +124,7 @@ typedef struct NEXUS_SyncChannelSettings
         video-only streams will be muted for 5 second timeout, which is not
         recommended. */
     bool simultaneousUnmute; /* This will cause all devices to unmute at the
-        same time.  This time will be the largest of all of the unmute timout
+        same time.  This time will be the largest of all of the unmute timeout
         values set amongst the devices (excluding the unconditional unmutes).
         Defaults to false. */
     unsigned adjustmentThreshold; /* threshold below which no further attempts

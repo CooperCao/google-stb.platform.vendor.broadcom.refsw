@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,6 +51,7 @@
 #include "bvdc.h"
 #include "bmma.h"
 #include "bvdc_test.h"
+#include "bhdm_scdc.h"
 
 #if SPLASH_SUPPORT_HDM
 #include "bhdm_edid.h"
@@ -151,6 +152,7 @@ BERR_Code  splash_vdc_setup(
 	uint32_t  winHeight;
 	BVDC_Settings  stDefSettings;
 	int  ii;
+	uint8_t val = 0;
 
     eErr = BBOX_GetConfig(hBox, &stBoxConfig);
     if (eErr != BERR_SUCCESS)
@@ -256,12 +258,7 @@ BERR_Code  splash_vdc_setup(
 	 * note: VDC default display format is 1080i, we must override it here
 	 * if we are compiling with B_PI_FOR_BOOTUPDATER and 1080i is not supported in bootloader
 	 */
-	eErr = BVDC_GetDefaultSettings(hBox, &stDefSettings);
-	if (eErr != BERR_SUCCESS)
-	{
-		BDBG_ERR(("Failed BVDC_GetDefaultSettings"));
-		goto done;
-	}
+	BVDC_GetDefaultSettings(hBox, &stDefSettings);
 
 	stDefSettings.eVideoFormat = BFMT_VideoFmt_e480p;
 	eErr = BVDC_Open(&pState->hVdc, hChp, hReg, pState->hRulMem, hInt,
@@ -272,6 +269,7 @@ BERR_Code  splash_vdc_setup(
 	eErr = BHDM_GetDefaultSettings(&HDMSettings);
 	HDMSettings.hTMR = hTmr;
 	eErr = BHDM_Open(&hHdm, hChp, hReg, hInt, pState->hRegI2c, &HDMSettings);
+	eErr =  BREG_I2C_Write(pState->hRegI2c, BHDM_SCDC_I2C_ADDR, BHDM_SCDC_TMDS_CONFIG, &val, 1) ;
 #endif
 
 #ifdef SPLASH_SUPPORT_RFM

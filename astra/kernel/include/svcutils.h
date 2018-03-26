@@ -228,7 +228,8 @@ private:
     static void doTraceLogStop(TzTask *currTask);
     static void doTraceLogAdd(TzTask *currTask);
     static void doSchedRunTask(TzTask *currTask);
-
+    static void doCriticalSecEnter(TzTask *currTask);
+    static void doCriticalSecExit(TzTask *currTask);
     enum CacheOp {
         CacheInval,
         CacheClean

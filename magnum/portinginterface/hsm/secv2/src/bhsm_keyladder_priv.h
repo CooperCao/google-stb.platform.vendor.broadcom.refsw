@@ -44,6 +44,12 @@
 
 
 BHSM_Handle BHSM_P_KeyLadder_GetHsmHandle( BHSM_KeyLadderHandle handle );
+
 bool BHSM_P_KeyLadder_CheckConfigured( BHSM_KeyLadderHandle handle );
+
+uint8_t BHSM_P_KeyLadder_MapRootKeySrc( BHSM_KeyLadderRootType rootKeySrc, unsigned otpIndex );
+
+uint8_t BHSM_P_KeyLadder_MapCaVendorIdScope( BHSM_KeyladderCaVendorIdScope caVendorIdScope );
+
 
 #endif

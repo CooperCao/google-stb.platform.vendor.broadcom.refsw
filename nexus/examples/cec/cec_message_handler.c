@@ -231,7 +231,7 @@ void func_enterStandby ( uint8_t *content, unsigned *length )
 
 
 	BDBG_WRN(("TV STANDBY RECEIVED: STB WILL NOW ENTER STANDBY..."));
-	
+
 	if (playback_started)
 	{
         /* Entering Standby, stop playback first */
@@ -247,7 +247,7 @@ void func_enterStandby ( uint8_t *content, unsigned *length )
     nexusStandbySettings.wakeupSettings.ir = true;
     nexusStandbySettings.wakeupSettings.timeout = timeout;
     rc = NEXUS_Platform_SetStandbySettings(&nexusStandbySettings);
-    BDBG_ASSERT(!rc);       
+    BDBG_ASSERT(!rc);
 
 	/* wake up from standby */
 	system("echo standby > /sys/power/state");
@@ -294,7 +294,7 @@ void func_enterStandby ( uint8_t *content, unsigned *length )
 		/* Start Decoder and Playback */
 		decode_start();
 		playback_start();
-		
+
 		BDBG_WRN(("************************************")) ;
 		BDBG_WRN(("Power off the TV "));
 		BDBG_WRN(("Platform will go to standby")); /* this is needed in case TV was already powered off */
@@ -302,7 +302,7 @@ void func_enterStandby ( uint8_t *content, unsigned *length )
 		BDBG_WRN(("wake up platform"));
 		BDBG_WRN(("************************************")) ;
 	}
-	
+
 	BSTD_UNUSED(content);
 	BSTD_UNUSED(length);
 }
@@ -344,10 +344,10 @@ const opCodeSupportList opCodeList[] =
 			NULL,
 			NULL } },
 
-	{ NEXUS_CEC_OpAbort, true, NEXUS_CEC_OpFeatureAbort, 0xD, 
+	{ NEXUS_CEC_OpAbort, true, NEXUS_CEC_OpFeatureAbort, 0xD,
 		  { NULL,
 			NULL,
-			NULL } },			
+			NULL } },
 
 	{ 0, false, 0, 0xD, {NULL, NULL, NULL} }
 };
@@ -358,20 +358,20 @@ void responseLookUp( const uint8_t opCode, const uint8_t address )
 	int i, index = 0;
 	unsigned j, length = 0, param_index = 0;
 	uint8_t tmp[NEXUS_CEC_MESSAGE_DATA_SIZE];
-	
+
 	for( i=0; opCodeList[i].opCodeReceived; i++ )
 	{
 		if (opCode == opCodeList[i].opCodeReceived)
 		{
 			BDBG_MSG((">>>>>>>>>>>>>>>>>>>>> Found support for opcode:%#x <<<<<<<<<<<<<<<<<<<<<<", opCode));
 
-			/* if free use, use the address passed in */			
+			/* if free use, use the address passed in */
 			if (opCodeList[i].responseAddress == 0xD)
 				message.destinationAddr = address;
 			else
 				message.destinationAddr = opCodeList[i].responseAddress;
-							
-			/* Assign Designated Response Op Code */	
+
+			/* Assign Designated Response Op Code */
 			message.buffer[0] = opCodeList[i].opCodeResponse;
 			message.length = 1;
 
@@ -397,7 +397,7 @@ void responseLookUp( const uint8_t opCode, const uint8_t address )
 
 			/* Only response if a response CEC message is required */
 			if (opCodeList[i].sendResponse)
-			{			
+			{
 				BDBG_MSG((">>>>>>>>>>>>>>>>>>>>> Transmit Response :%#x <<<<<<<<<<<<<<<<<<<<<<", message.buffer[0]));
 				NEXUS_Cec_TransmitMessage( hCec, &message );
 			}
@@ -649,9 +649,8 @@ void stop_app(void)
 int main(int argc, char **argv)
 {
     NEXUS_Error rc;
-	bool exit = false;
-	unsigned loops;
-    NEXUS_HdmiOutputStatus status;
+    bool exit = false;
+    unsigned loops;
 
     NEXUS_CecSettings cecSettings;
     NEXUS_CecStatus cecStatus;
@@ -659,7 +658,7 @@ int main(int argc, char **argv)
 
 	BSTD_UNUSED(argc);
 	BSTD_UNUSED(argv);
-	
+
 
     /* Bring up all modules for a platform in a default configuration for this platform */
 	NEXUS_Platform_GetDefaultSettings(&platformSettings);
@@ -667,34 +666,15 @@ int main(int argc, char **argv)
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
     hdmiOutput = platformConfig.outputs.hdmi[0];
-    hCec = platformConfig.outputs.cec[0];    
+    hCec = platformConfig.outputs.cec[0];
 
-    BDBG_WRN(("waiting for hdmi connected..."));
-    for (loops = 0; loops < 10; loops++) {
-        rc = NEXUS_HdmiOutput_GetStatus(hdmiOutput, &status);
-        BDBG_ASSERT(!rc);
-        if (status.connected) {
-            break;
-        }
-        BKNI_Sleep(1000);
-    }
-    if (!status.connected)
-        return 0;
-
-    BDBG_WRN(("********************")) ;
-    BDBG_WRN(("HDMI is connected"));
-    BDBG_WRN(("********************")) ;
+    rc = NEXUS_Cec_SetHdmiOutput(hCec, hdmiOutput);
+    BDBG_ASSERT(!rc);
 
     NEXUS_Cec_GetSettings(hCec, &cecSettings);
         cecSettings.messageReceivedCallback.callback = msgReceived_callback ;
         cecSettings.messageTransmittedCallback.callback = msgTransmitted_callback;
         cecSettings.logicalAddressAcquiredCallback.callback = deviceReady_callback ;
-
-        cecSettings.physicalAddress[0]= (status.physicalAddressA << 4)
-            | status.physicalAddressB;
-        cecSettings.physicalAddress[1]= (status.physicalAddressC << 4)
-            | status.physicalAddressD;
-
     rc = NEXUS_Cec_SetSettings(hCec, &cecSettings);
     BDBG_ASSERT(!rc);
 
@@ -738,7 +718,7 @@ int main(int argc, char **argv)
 	while (!exit)
 	{
 		int tmp;
-		
+
 		/* Display Menu */
 		printf("************************************\n");
 		printf("*******   Main Menu         ********\n");
@@ -761,13 +741,13 @@ int main(int argc, char **argv)
 			BDBG_WRN(("************************************")) ;
 
 			break;
-			
+
 		case 0:
 			exit = true;
 			break;
 		}
 	}
-	
+
 done:
     stop_app();
     NEXUS_Platform_Uninit();

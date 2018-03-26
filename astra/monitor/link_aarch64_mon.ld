@@ -50,7 +50,14 @@ SECTIONS
 	ASSERT(. == ALIGN(4096), "Monitor image is not aligned on a page boundary.")
 
 	_mon_img_start = .;
-	.text :
+	.vectors :
+	{
+		_vectors_start = .;
+		*(.vectors)
+		_vectors_end = .;
+	}
+
+	.text : ALIGN(4096)
 	{
 		_text_start = .;
 		_bootstrap_start = .;
@@ -60,13 +67,6 @@ SECTIONS
 
 		*(.text* .gnu.linkonce.t.*)
 		_text_end = .;
-	}
-
-	.vectors : ALIGN(4096)
-	{
-		_vectors_start = .;
-		*(.vectors)
-		_vectors_end = .;
 	}
 
 	.rodata : ALIGN(4096)
@@ -95,6 +95,13 @@ SECTIONS
 		_data_start = .;
 		*(.data*)
 		_data_end = .;
+	}
+
+	.boot_params : ALIGN(16)
+	{
+		_boot_params_start = .;
+		*(.boot_params)
+		_boot_params_end = .;
 	}
 
 	.bss (NOLOAD) : ALIGN(16)

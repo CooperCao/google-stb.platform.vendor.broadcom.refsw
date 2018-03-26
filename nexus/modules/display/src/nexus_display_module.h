@@ -133,10 +133,6 @@ BCHP_CHIP==7342 || BCHP_CHIP==7340 || BCHP_CHIP==7468 || BCHP_CHIP ==7125 || BCH
 #include "nexus_display_dbv_impl.h"
 #endif
 
-#if NEXUS_DISPLAY_EXTENSION_DYNRNG
-#include "nexus_display_dynrng.h"
-#endif
-
 #if !defined NEXUS_HAS_HDMI_INPUT
 #undef NEXUS_NUM_HDMI_INPUTS
 #endif
@@ -264,6 +260,7 @@ struct NEXUS_DisplayGraphics {
     {
         NEXUS_DynamicRangeProcessingSettings settings;
         BVDC_Test_Window_ForceCfcConfig cfcConfig;
+        NEXUS_GraphicsLuminanceBounds luminanceBounds;
     } dynrng;
 #endif
 };

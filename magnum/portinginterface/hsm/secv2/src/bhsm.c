@@ -145,16 +145,17 @@ BERR_Code BHSM_Close( BHSM_Handle hHsm )
 }
 
 
-void BHSM_GetCapabilities( BHSM_Handle hHsm,  BHSM_ModuleCapabilities *pCaps )
+BERR_Code BHSM_GetCapabilities( BHSM_Handle hHsm,  BHSM_ModuleCapabilities *pCaps )
 {
     BHSM_KeyslotModuleCapabilities keyslotCaps;
-    BERR_Code err;
+    BERR_Code rc = BERR_UNKNOWN;
     unsigned i;
 
     BDBG_ENTER( BHSM_GetCapabilities );
 
-    if( !hHsm ) { BERR_TRACE(BERR_INVALID_PARAMETER); return; }
-    if( !pCaps ) { BERR_TRACE(BERR_INVALID_PARAMETER); return; }
+    if( !hHsm ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    if( !pCaps ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+
     BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     BKNI_Memset( pCaps, 0, sizeof(*pCaps) );
@@ -166,21 +167,16 @@ void BHSM_GetCapabilities( BHSM_Handle hHsm,  BHSM_ModuleCapabilities *pCaps )
     pCaps->version.bfw.minor    = hHsm->bfwVersion.version.bfw.minor;
     pCaps->version.bfw.subminor = hHsm->bfwVersion.version.bfw.subminor;
 
-    err = BHSM_P_KeyslotModule_GetCapabilities(hHsm, &keyslotCaps);
-    if( err == BERR_SUCCESS )
+    rc = BHSM_P_KeyslotModule_GetCapabilities(hHsm, &keyslotCaps);
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+
+    for( i = 0; i < BHSM_KeyslotType_eMax; i++ )
     {
-        for( i = 0; i < BHSM_KeyslotType_eMax; i++ )
-        {
-            pCaps->numKeyslotsForType[i] = keyslotCaps.numKeySlotsForType[i];
-        }
-    }
-    else
-    {
-        BERR_TRACE(err);
+        pCaps->numKeyslotsForType[i] = keyslotCaps.numKeySlotsForType[i];
     }
 
     BDBG_LEAVE( BHSM_GetCapabilities );
-    return;
+    return BERR_SUCCESS;
 }
 
 

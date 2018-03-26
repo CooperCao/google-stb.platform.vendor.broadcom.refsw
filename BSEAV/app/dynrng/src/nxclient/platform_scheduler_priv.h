@@ -43,6 +43,7 @@
 #include "nexus_types.h"
 #include "bkni.h"
 #include "bkni_multi.h"
+#include "blst_queue.h"
 #include <pthread.h>
 
 typedef enum PlatformSchedulerState
@@ -63,6 +64,12 @@ typedef struct PlatformListener
 
 typedef BLST_Q_HEAD(PlatformListenerList, PlatformListener) PlatformListenerList;
 
+typedef struct PlatformSchedulerCreateSettings
+{
+    unsigned index;
+    unsigned period;
+} PlatformSchedulerCreateSettings;
+
 typedef struct PlatformScheduler
 {
     PlatformHandle platform;
@@ -72,9 +79,11 @@ typedef struct PlatformScheduler
     BKNI_MutexHandle mutex;
     PlatformListenerList listeners;
     PlatformListenerList free;
+    PlatformSchedulerCreateSettings createSettings;
 } PlatformScheduler;
 
-PlatformSchedulerHandle platform_scheduler_p_create(PlatformHandle platform);
+void platform_scheduler_p_get_default_create_settings(PlatformSchedulerCreateSettings * pSettings);
+PlatformSchedulerHandle platform_scheduler_p_create(PlatformHandle platform, const PlatformSchedulerCreateSettings * pSettings);
 void platform_scheduler_p_destroy(PlatformSchedulerHandle scheduler);
 void * platform_scheduler_p_thread(void * pContext);
 

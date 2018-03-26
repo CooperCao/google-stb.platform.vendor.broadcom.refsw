@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -122,14 +122,9 @@ void CTunerQamScanData::dump()
     MListItr <uint32_t> itr(&_freqList);
     uint32_t *          pFreq = NULL;
 
-    BDBG_WRN(("tuner type:%d", getTunerType()));
-    BDBG_WRN(("List of QAM Scan Frequency Requests:"));
-    for (pFreq = (uint32_t *)itr.first(); pFreq; pFreq = (uint32_t *)itr.next())
-    {
-        BDBG_WRN(("freq:%u", *pFreq));
-    }
+    CTunerScanData::dump();
+
     BDBG_WRN(("bandwidth:%d mode:%d annexA:%d annexB:%d annexC:%d symRateMax:%d symRateMin:%d", _bandwidth, _mode, _annex[0], _annex[1], _annex[2], _symbolRateMax, _symbolRateMin));
-    BDBG_WRN(("append to channel list:%d", _appendToChannelList));
 }
 
 CTunerQam::CTunerQam(
@@ -474,13 +469,48 @@ NEXUS_FrontendLockStatus CTunerQam::isLocked()
     NEXUS_FrontendLockStatus lockStatus = NEXUS_FrontendLockStatus_eUnknown;
 
     nerror = NEXUS_Frontend_GetFastStatus(getFrontend(), &fastStatus);
-    CHECK_NEXUS_WARN_GOTO("Error retrieving fast status", ret, nerror, error);
+    if (NEXUS_NOT_SUPPORTED != nerror)
+    {
+        BDBG_MSG(("fastStatus.lockStatus = %d, fastStatus.acquireInProgress = %d",
+                  fastStatus.lockStatus, fastStatus.acquireInProgress));
 
-    BDBG_MSG(("fastStatus.lockStatus = %d, fastStatus.acquireInProgress = %d",
-              fastStatus.lockStatus, fastStatus.acquireInProgress));
+        lockStatus         = fastStatus.lockStatus;
+        _acquireInProgress = fastStatus.acquireInProgress;
+    }
+    else
+    {
+        /* frontend fast status not supported */
+        NEXUS_FrontendQamScanStatus scanStatus;
 
-    lockStatus         = fastStatus.lockStatus;
-    _acquireInProgress = fastStatus.acquireInProgress;
+        nerror = NEXUS_Frontend_GetQamScanStatus(getFrontend(), &scanStatus);
+        if (eRet_Ok == CHECK_NEXUS_ERROR("Error retrieving QAM scan status", nerror))
+        {
+            BDBG_WRN(("acquisition status = %d", scanStatus.acquisitionStatus));
+            if ((NEXUS_FrontendQamAcquisitionStatus_eLockedFast == scanStatus.acquisitionStatus) ||
+                (NEXUS_FrontendQamAcquisitionStatus_eLockedSlow == scanStatus.acquisitionStatus))
+            {
+                lockStatus         = NEXUS_FrontendLockStatus_eLocked;
+                _acquireInProgress = false;
+            }
+            else
+            if (NEXUS_FrontendQamAcquisitionStatus_eNoSignal == scanStatus.acquisitionStatus)
+            {
+                lockStatus         = NEXUS_FrontendLockStatus_eNoSignal;
+                _acquireInProgress = false;
+            }
+            else
+            if (NEXUS_FrontendQamAcquisitionStatus_eNoLock == scanStatus.acquisitionStatus)
+            {
+                lockStatus         = NEXUS_FrontendLockStatus_eUnlocked;
+                _acquireInProgress = true;
+            }
+            else
+            {
+                lockStatus         = NEXUS_FrontendLockStatus_eUnknown;
+                _acquireInProgress = false;
+            }
+        }
+    }
 
 error:
     return(lockStatus);
@@ -488,7 +518,7 @@ error:
 
 NEXUS_FrontendQamMode CTunerQam::getDefaultMode()
 {
-#if 0
+#if 1
     /* dtt todo: 7231 is incorrectly reporting NEXUS_FrontendQamMode_eAuto_64_256 is
      * is a valid qam mode, but then chokes on it if you use it while tuning.  for now
      * we'll always use e256 as the default mode */
@@ -560,93 +590,29 @@ uint32_t CTunerQam::getDefaultSymbolRateMin(NEXUS_FrontendQamMode mode)
     return(symbolRate);
 } /* getDefaultSymbolRateMin */
 
-void CTunerQam::saveScanData(CTunerScanData * pScanData)
+void CTunerQam::scanDataSave(CTunerScanData * pScanData)
 {
+    if (NULL == pScanData)
+    {
+        return;
+    }
+
     _scanData = (*((CTunerQamScanData *)pScanData));
 }
 
-#ifdef MPOD_SUPPORT
-void CTunerQam::doScan()
+eRet CTunerQam::scanDataFreqListAdd(uint32_t freq)
 {
-    eRet                       ret   = eRet_Ok;
-    unsigned                   major = 1;
-    CChannelQam                chQam(_pCfg, this); /* temp channel we'll use to do tuning during scan */
-    CTunerScanNotificationData notifyData(this);   /* notification data for reporting scan start/stop/progress */
-    channel_list_t *           _pChannelList;
-    int index;
+    eRet       ret   = eRet_Ok;
+    uint32_t * pFreq = NULL;
 
-    BDBG_ASSERT(NULL != _scanThread_handle);
+    pFreq = new uint32_t(freq);
+    CHECK_PTR_ERROR_GOTO("unable to allocated frequency", pFreq, ret, eRet_OutOfMemory, error);
 
-    if (!_scanData._useCableCardSiData)
-    {
-        /* nothing to scan so we are done */
-        BDBG_WRN((" MPOD_SUPPORT =y disables the manual update of channel map"));
-        BDBG_WRN((" Channel map update will be automatically triggered through by Cable Card"));
-        goto error;
-    }
-
-    /* check to see if fast status is supported */
-    {
-        NEXUS_FrontendFastStatus fastStatus;
-        NEXUS_Error              nerror = NEXUS_SUCCESS;
-
-        nerror = NEXUS_Frontend_GetFastStatus(getFrontend(), &fastStatus);
-        if (NEXUS_NOT_SUPPORTED != nerror)
-        {
-            nerror = NEXUS_SUCCESS;
-        }
-        CHECK_NEXUS_ERROR_GOTO("fast status is not supported - aborting scan", ret, nerror, error);
-    }
-
-    /* set the starting major channel number for newly found channels */
-    major         = _scanData._majorStartNum;
-    _pChannelList = _scanData._pChannelList;
-
-    notifyObserversAsync(eNotify_ScanStarted, &notifyData);
-    notifyObserversAsync(eNotify_ScanProgress, &notifyData);
-
-    for (index = 0; index < _pChannelList->active_channels; index++)
-    {
-        NEXUS_FrontendQamSettings settings;
-        NEXUS_Frontend_GetDefaultQamSettings(&settings);
-        /* handle default settings for optional paramters */
-        settings             = chQam.getSettings();
-        settings.frequency   = _pChannelList->channel[index].frequency;
-        settings.mode        = _pChannelList->channel[index].modulation;
-        settings.annex       = _pChannelList->channel[index].annex;
-        settings.symbolRate  = _pChannelList->channel[index].symbolrate;
-        settings.bandwidth   = _scanData._bandwidth;
-        settings.autoAcquire = false;
-        chQam.setSettings(settings);
-        chQam.setTransportType(NEXUS_TransportType_eTs);
-        /* try to tune */
-        ret = chQam.tune(_scanThread_id, _pConfig, true);
-
-        if (eRet_Ok == ret)
-        {
-            chQam.setMajor(major);
-            if (0 < chQam.addPsiPrograms(_scanThread_callback, _scanThread_context))
-            {
-                /* found channels so increment major channel number */
-                major++;
-                chQam.setSourceId(_pChannelList->channel[index].source_id);
-            }
-        }
-        chQam.unTune(_pConfig, false, false);
-        notifyData.setPercent(100 * index / _pChannelList->active_channels);
-        notifyObserversAsync(eNotify_ScanProgress, &notifyData);
-    }
+    _scanData._freqList.add(pFreq);
 
 error:
-    if (chQam.isTuned())
-    {
-        chQam.unTune(_pConfig, false, false);
-    }
-    scanDone(&notifyData);
-    _pWidgetEngine->removeCallback(this, CALLBACK_TUNER_LOCK_STATUS_QAM);
-} /* doScan */
-
-#else /* ifdef MPOD_SUPPORT */
+    return(ret);
+}
 
 void CTunerQam::doScan()
 {
@@ -656,6 +622,16 @@ void CTunerQam::doScan()
     unsigned numFreqScanned = 0;
 
     CTunerScanNotificationData notifyData(this); /* notification data for reporting scan start/stop/progress */
+
+#ifdef MPOD_SUPPORT
+    if (!_scanData._useCableCardSiData)
+    {
+        /* nothing to scan so we are done */
+        BDBG_WRN((" MPOD_SUPPORT =y disables the manual update of channel map"));
+        BDBG_WRN((" Channel map update will be automatically triggered through by Cable Card"));
+        goto error;
+    }
+#endif /* ifdef MPOD_SUPPORT */
 
     /* set the starting major channel number for newly found channels */
     major = _scanData._majorStartNum;
@@ -670,20 +646,6 @@ void CTunerQam::doScan()
         goto error;
     }
 
-    /* check to see if fast status is supported */
-    {
-        NEXUS_FrontendFastStatus fastStatus;
-        NEXUS_Error              nerror = NEXUS_SUCCESS;
-
-        nerror = NEXUS_Frontend_GetFastStatus(getFrontend(), &fastStatus);
-        if (NEXUS_NOT_SUPPORTED != nerror)
-        {
-            nerror = NEXUS_SUCCESS;
-        }
-        CHECK_NEXUS_ERROR_GOTO("fast status is not supported - aborting scan", ret, nerror, error);
-    }
-
-    notifyObserversAsync(eNotify_ScanStarted, &notifyData);
     notifyObserversAsync(eNotify_ScanProgress, &notifyData);
 
     ret = scanFrequencies(&major, &numFreqToScan, &numFreqScanned);
@@ -719,8 +681,6 @@ error:
 
     _pWidgetEngine->removeCallback(this, CALLBACK_TUNER_LOCK_STATUS_QAM);
 } /* doScan */
-
-#endif /* ifdef MPOD_SUPPORT */
 
 eRet CTunerQam::scanFrequencies(
         unsigned * pMajor,
@@ -783,7 +743,6 @@ eRet CTunerQam::scanFrequencies(
             }
 
             memset(settings.scan.mode, 0, sizeof(settings.scan.mode));
-
             if (NEXUS_FrontendQamMode_eAuto_64_256 == (NEXUS_FrontendQamMode)settings.mode)
             {
                 for (int i = 0; i < NEXUS_FrontendQamAnnex_eMax; i++)

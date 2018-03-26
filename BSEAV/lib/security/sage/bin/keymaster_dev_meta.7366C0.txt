@@ -1,0 +1,3 @@
+## SAGE Binary Metadata - SSF 3_2_15
+## unique_key checksum_type checksum url
+7366C0/dev/sage_ta_keymaster_dev.bin sha1 9fa47394c94841bdaaa637b5a705f5d5b749a15f http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_15/7366C0/ZD/sage_ta_keymaster_dev.bin

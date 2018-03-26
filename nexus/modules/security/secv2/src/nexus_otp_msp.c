@@ -76,7 +76,7 @@ NEXUS_Error NEXUS_OtpMsp_Read( unsigned index, NEXUS_OtpMspRead *pResult )
     return NEXUS_SUCCESS;
 }
 
-NEXUS_Error NEXUS_OtpMsp_Write( unsigned index, NEXUS_OtpMspWrite *pConf )
+NEXUS_Error NEXUS_OtpMsp_Write( unsigned index, const NEXUS_OtpMspWrite *pConf )
 {
     BERR_Code rc = NEXUS_SUCCESS;
     BHSM_OtpMspWrite otpParam;

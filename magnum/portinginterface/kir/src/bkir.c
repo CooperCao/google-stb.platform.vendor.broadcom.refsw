@@ -55,6 +55,8 @@
 #include "bchp_int_id_upg_main_aon_irq.h"
 #elif defined(BCHP_IRQ0_AON_REG_START)
 #include "bchp_int_id_irq0_aon.h"
+#elif defined(BCHP_UPG_MAIN_IRQ_REG_START)
+#include "bchp_int_id_upg_main_irq.h"
 #else
 #include "bchp_int_id_irq0.h"
 #endif
@@ -82,6 +84,7 @@
     #endif
 #endif
 
+#ifdef BCHP_PM_AON_REG_START
 #include "bchp_pm_aon.h"
 
 #ifdef BCHP_PM_AON_CONFIG_irr1_in_UHF_RX1
@@ -185,6 +188,7 @@
 #define BCHP_PM_AON_CONFIG_irr3_in_AON_GPIO BCHP_PM_AON_CONFIG_irr3_in_AON_GPIO_17
 #endif
 
+#endif
 #endif
 
 
@@ -1798,7 +1802,9 @@ BERR_Code BKIR_Close(
 
     BDBG_OBJECT_ASSERT(hDev, BKIR_Handle);
 
+#ifdef BCHP_PM_AON_REG_START
     BREG_Write32( hDev->hRegister, BCHP_PM_AON_CONFIG, 0 );
+#endif
 
     BDBG_OBJECT_DESTROY(hDev, BKIR_Handle);
     BKNI_Free( (void *) hDev );
@@ -2167,6 +2173,7 @@ BERR_Code BKIR_Set_PM_AON_CONFIG(
 
     )
 {
+#ifdef BCHP_PM_AON_REG_START
     BERR_Code retCode = BERR_SUCCESS;
     uint32_t lval;
     uint32_t field_value;
@@ -2267,7 +2274,14 @@ BERR_Code BKIR_Set_PM_AON_CONFIG(
 
 done:
         return( retCode );
+#else
+        BSTD_UNUSED(hChn);
+        BSTD_UNUSED(channel_device);
+        BSTD_UNUSED(input_device);
+        return 0;
+#endif
 }
+
 
 BERR_Code BKIR_EnableIrDevice (
     BKIR_ChannelHandle  hChn,       /* Device channel handle */
@@ -2828,7 +2842,7 @@ static void BKIR_P_HandleInterrupt_Isr
 {
     BKIR_ChannelHandle  hChn;
     BKIR_Handle hDev;
-    uint32_t lval;
+    uint32_t lval,device;
 
     BSTD_UNUSED(parm2);
 
@@ -2844,8 +2858,11 @@ static void BKIR_P_HandleInterrupt_Isr
     hChn->cir_pa = false;
     hChn->cir_pb = false;
 
+    /* For shared channel, confirm source */
+    device = (lval & BCHP_KBD1_STATUS_device_MASK) >> BCHP_KBD1_STATUS_device_SHIFT;
+
     /* If we're in Cir Mode then test the 'cir_pb' status for repeat keys. */
-    if ( hChn->isCirMode )
+    if ( hChn->isCirMode && device == BKIR_KirInterruptDevice_eCir )
     {
         hChn->cir_pa = (lval & BCHP_KBD1_STATUS_cir_pa_MASK) ? true : false;
         hChn->cir_pb = (lval & BCHP_KBD1_STATUS_cir_pb_MASK) ? true : false;

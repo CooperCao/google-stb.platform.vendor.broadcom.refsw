@@ -682,3 +682,8 @@ int nxclient_p_get_thermal_status(nxclient_ipc_t client, NxClient_ThermalStatus 
 {
     return NxClient_P_GetThermalStatus(client->client, pStatus);
 }
+
+int  nxclient_p_set_watchdog_timeout(nxclient_ipc_t client, unsigned timeout)
+{
+    return NxClient_P_SetWatchdogTimeout(client->client, timeout);
+}

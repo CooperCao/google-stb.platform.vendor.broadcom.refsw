@@ -36,7 +36,11 @@
  * ANY LIMITED REMEDY.
  **************************************************************************/
 
+#ifdef NXCLIENT_SUPPORT
+#include "nxclient.h"
+#else
 #include "nexus_platform.h"
+#endif
 #include "bmmt.h"
 
 BDBG_MODULE(mmt_message_from_playback);
@@ -61,8 +65,12 @@ int main(int argc, const char *argv[])
 {
     int arg;
     int file_arg=0;
+    #ifdef NXCLIENT_SUPPORT
+    NxClient_JoinSettings joinSettings;
+    #else
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
+    #endif
     NEXUS_Error rc;
     uint8_t mmt_si_buf[BMMT_MAX_MMT_SI_BUFFER_SIZE];
     uint8_t tlv_si_buf[BMMT_MAX_TLV_SI_BUFFER_SIZE];
@@ -114,12 +122,18 @@ int main(int argc, const char *argv[])
         usage(argv[0], NULL);
         return -1;
     }
-
+    #ifdef NXCLIENT_SUPPORT
+    NxClient_GetDefaultJoinSettings(&joinSettings);
+    snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "%s", argv[0]);
+    rc = NxClient_Join(&joinSettings);
+    if (rc) return -1;
+    #else
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
     rc = NEXUS_Platform_Init(&platformSettings);
     if (rc) return -1;
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    #endif
 
     open_settings.playback = true;
     mmt =  bmmt_open(&open_settings);
@@ -270,6 +284,10 @@ int main(int argc, const char *argv[])
 done:
     bmmt_stop(mmt);
     bmmt_close(mmt);
+    #ifdef NXCLIENT_SUPPORT
+     NxClient_Uninit();
+    #else
     NEXUS_Platform_Uninit();
+    #endif
     return 0;
 }

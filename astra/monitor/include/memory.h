@@ -103,6 +103,7 @@ typedef enum  {
 #define MT_RO_DATA      (MT_MEMORY | MT_RO | MT_EXECUTE_NEVER)
 #define MT_RW_DATA      (MT_MEMORY | MT_RW | MT_EXECUTE_NEVER)
 #define MT_SOC_REG      (MT_DEVICE | MT_RW | MT_EXECUTE_NEVER)
+#define MT_MAILBOX      (MT_NON_CACHEABLE | MT_RW | MT_EXECUTE_NEVER)
 
 void mmap_add_region(
     uintptr_t paddr,

@@ -42,6 +42,7 @@
 #include "nexus_platform.h"
 #include "nexus_dma.h"
 #include "nexus_memory.h"
+#include <time.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -227,7 +228,6 @@ int main(void)
     unsigned transferCount = 0;
     unsigned transferSize = 0;
     unsigned x;
-    unsigned rnd = 0;
 
     NEXUS_Platform_GetDefaultSettings( &platformSettings );
     platformSettings.openFrontend = false;

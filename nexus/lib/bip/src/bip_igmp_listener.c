@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1372,7 +1372,9 @@ static void setGroupSpecificResponseTimer(
     {
         /*Send group Specific Query */
         sendIgmpQueryMessage( hIgmpListener, pSession->multicast_address );
+        B_Mutex_Lock( pSession->hMutex );
         pSession->groupSpecificQueryCount++;
+        B_Mutex_Unlock( pSession->hMutex );
         BDBG_MSG(( BIP_MSG_PRE_FMT "Start group specific Response Timer( %d ms)" BIP_MSG_PRE_ARG, hIgmpListener->createSettings.group_specific_response  ));
 
         pSession->groupSpecificResponseTimer = B_Scheduler_StartTimer(
@@ -1445,6 +1447,7 @@ static void verifyAllMulticasts(
                 /*Send leave callback back to App */
                 if (hIgmpListener->settings.membershipReportCallback.callback)
                 {
+                    /* coverity[sleep: FALSE] */
                     ( *hIgmpListener->settings.membershipReportCallback.callback )( hIgmpListener->settings.membershipReportCallback.context, hIgmpListener->settings.membershipReportCallback.param );
                 }
             }

@@ -68,7 +68,7 @@ typedef struct BHSM_RvRsaModule
 }BHSM_RvRsaModule;
 
 
-static BHSM_Handle _GetHsmHandle( BHSM_RvRsaHandle handle );
+static BHSM_Handle _RvRsa_GetHsmHandle( BHSM_RvRsaHandle handle );
 
 
 BERR_Code BHSM_RvRsa_Init( BHSM_Handle hHsm, BHSM_RvRsaModuleSettings *pSettings )
@@ -182,7 +182,7 @@ void BHSM_RvRsa_Free( BHSM_RvRsaHandle handle )
 
         bspRsaClear.in.rsaKeyId = pRvRsa->rsaKeyId;
 
-        rc = BHSM_P_Rv_RsaKeyClear( _GetHsmHandle(handle), &bspRsaClear );
+        rc = BHSM_P_Rv_RsaKeyClear( _RvRsa_GetHsmHandle(handle), &bspRsaClear );
         if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); } /* continue, best effort. */
 
         BKNI_Memset( pRvRsa, 0, sizeof(*pRvRsa) );
@@ -214,8 +214,8 @@ BERR_Code BHSM_RvRsa_SetSettings( BHSM_RvRsaHandle handle, const BHSM_RvRsaSetti
     else
     {
         switch( pSettings->rootKey ) {
-            case BHSM_RvRsaRootKey_e0Prime:{ bspRsaSet.in.rootKeySrc = 0; break;} /* Bsp_CmdRv_RsaRootKeyId_eKey0Prime */
-            case BHSM_RvRsaRootKey_e0:     { bspRsaSet.in.rootKeySrc = 1; break;} /* Bsp_CmdRv_RsaRootKeyId_eKey0      */
+            case BHSM_SigningAuthority_eBroadcom: { bspRsaSet.in.rootKeySrc = 0; break; } /* Bsp_CmdRv_RsaRootKeyId_eKey0Prime */
+            case BHSM_SigningAuthority_eCaVendor: { bspRsaSet.in.rootKeySrc = 1; break; } /* Bsp_CmdRv_RsaRootKeyId_eKey0      */
             default: { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
         }
     }
@@ -223,7 +223,7 @@ BERR_Code BHSM_RvRsa_SetSettings( BHSM_RvRsaHandle handle, const BHSM_RvRsaSetti
     bspRsaSet.in.addressMsb = (pSettings->keyOffset >> 32);
     bspRsaSet.in.address    = (pSettings->keyOffset & 0xFFFFFFFF);
 
-    rc = BHSM_P_Rv_RsaKeySet( _GetHsmHandle(handle), &bspRsaSet );
+    rc = BHSM_P_Rv_RsaKeySet( _RvRsa_GetHsmHandle(handle), &bspRsaSet );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
 
     BDBG_LEAVE( BHSM_RvRsa_SetSettings );
@@ -247,7 +247,7 @@ BERR_Code BHSM_RvRsa_GetInfo( BHSM_RvRsaHandle handle, BHSM_RvRsaInfo *pRvRsaInf
 }
 
 
-static BHSM_Handle _GetHsmHandle( BHSM_RvRsaHandle handle )
+static BHSM_Handle _RvRsa_GetHsmHandle( BHSM_RvRsaHandle handle )
 {
     return handle->hHsm;
 }

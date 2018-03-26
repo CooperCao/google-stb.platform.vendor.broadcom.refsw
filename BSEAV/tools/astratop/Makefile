@@ -37,6 +37,8 @@
 #
 ###############################################################################
 B_THIS_DIR ?= BSEAV/tools/astratop
+# TZ arch defaults to 64-bit ARM
+TZ_ARCH ?= Arm64
 
 PHONY := all $(BINDIR)/../bin/boa_server clean_boa clean_apps install clean
 .PHONY: ${PHONY}

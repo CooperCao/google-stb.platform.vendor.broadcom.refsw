@@ -26,12 +26,16 @@
 #ifndef _V3D_DRV_H_
 #define _V3D_DRV_H_
 
+#include <linux/version.h>
 #include <linux/types.h>
 #include <linux/genalloc.h>
 #include <linux/bitops.h>
 #include <linux/bitmap.h>
+#include <linux/mutex.h>
+#include <linux/ktime.h>
 #include <linux/cma.h>
 #include <linux/brcmstb/cma_driver.h>
+#include <linux/file.h>
 #include <drm/drmP.h>
 #include <drm/drm_gem.h>
 
@@ -40,24 +44,19 @@
 #define V3D_PAGE_FLAG_BIGPAGE	BIT(30)
 #define V3D_PAGE_FLAG_MASK      0xf0000000
 
-/* Valid page shifts are:
- * 12 - 4K pages in the MMU, 128K CMA allocations
- * 16 - 64K big pages in the MMU, 2MB CMA allocations
+/*
+ * Note: MMU big pages (64k) are not supported with this variant of the
+ * DRM driver, when using Linux shared memory backed GEM objects the
+ * MMU page size must be the same as the CPU page size.
  */
-#define V3D_HW_PAGE_SHIFT (12)
-#define V3D_HW_PAGE_SIZE  (1UL << V3D_HW_PAGE_SHIFT)
+#define V3D_HW_PAGE_SHIFT (PAGE_SHIFT)
+#define V3D_HW_PAGE_SIZE  (PAGE_SIZE)
 #define V3D_HW_PAGE_MASK  (~((phys_addr_t)V3D_HW_PAGE_SIZE - 1))
 
-#if (V3D_HW_PAGE_SIZE == 4096)
 #define V3D_HW_DEFAULT_PAGE_FLAGS (V3D_PAGE_FLAG_VALID)
-#else
-#define V3D_HW_DEFAULT_PAGE_FLAGS (V3D_PAGE_FLAG_VALID | \
-				   V3D_PAGE_FLAG_BIGPAGE)
-#endif
-
 /*
  * v3d_alloc_block Represents a physically contiguous block allocated
- * from a CMA device, from which we are going to allocate memory in 4k or 64k
+ * from a CMA device, from which we are going to allocate memory in 4k
  * pages for use by the hardware. These pages do not have to be physically
  * contiguous as we will use the hardware MMU to make them virtually contiguous.
  *
@@ -72,6 +71,7 @@ struct v3d_alloc_block {
 	DECLARE_BITMAP(alloc_map, V3D_CMA_ALLOC_MAP_SIZE); /* 1bit per page */
 	int cma_dev;
 	phys_addr_t phys_addr;
+	int n_allocs;  /* number of pages allocated per block */
 };
 
 struct v3d_page_allocation {
@@ -90,10 +90,7 @@ struct v3d_page_allocation {
 
 /*
  * The V3D MMU virtual space management will start after the first page and
- * use the first 1GB. Note that the MMU page table always contains entries
- * for 4K pages, regardless of the fact we are using 64K bigpages or not. The
- * 16 entries in a 4K page are duplicated in that case. The pagetable size
- * will therefore be 1MB.
+ * use the first 1GB. The pagetable size will therefore be 1MB.
  *
  * This is believed to be a reasonable compromise; each file open
  * on the device will get its own pagetable which eliminates any
@@ -134,20 +131,21 @@ struct v3d_hw_virtual_mem {
 };
 
 /*
- * Each open file handle on the driver will manage its own set of CMA
- * allocations and V3D hardware MMU table.
- *
- * Each userspace process accessing the V3D hardware as an EGL client  will
- * cause a new file handle to opened on this DRM driver. Therefore each
- * process will allocate graphics objects from its own private CMA allocations
- * and not share CMA blocks with other processes. This allows all of the
- * CMA blocks to be immediately released when a process is killed and
- * the file handle is closed. This is to help prevent the CMA driver
- * from running out of contiguous memory due to fragmentation and to
- * interop with the memory usage of the Broadcom STB middleware drivers
- * when switching between graphics intensive (games) and video playback
- * usecases.
+ * If we don't know the hardware has finished with pages at the point the
+ * file descriptor is closed (i.e. someone presses ctrl-C during development)
+ * we need to hold on to the pages and the shmem file descriptor when a
+ * shmem backed GEM object is destroyed until we think it is finally safe to
+ * release them.
  */
+struct v3d_drm_dead_pages {
+	struct list_head node;
+
+	struct page **pages;
+	int npages;
+
+	struct file *filp;
+};
+
 struct v3d_drm_file_private {
 	/** Reference count of this object, must be first in structure */
 	struct kref refcount;
@@ -157,6 +155,7 @@ struct v3d_drm_file_private {
 	int next_alloc_device;
 
 	bool clear_pagetable_on_close;
+	bool defer_shm_page_release;
 
 	struct drm_device *dev; /* Needed to release pagetable allocations */
 	struct v3d_hw_virtual_mem hw_vmem;
@@ -171,6 +170,7 @@ struct v3d_drm_file_private {
 	u64 magic_id;
 
 	/** When placed on the dead client client cleanup list */
+	struct list_head dead_pages;
 	struct list_head dead_fp;
 };
 
@@ -191,9 +191,6 @@ struct v3d_drm_dev_private {
 	struct cma_dev *cma_devs[MAX_CMA_AREAS];
 	int nr_cma_devs;
 
-	/** DMA address mask for the MMU hardware */
-	u64 mmu_dma_mask;
-
 	/** Deferred file private structures for cleanup of dead clients */
 	struct list_head dead_fps;
 
@@ -212,13 +209,28 @@ struct v3d_drm_gem_object {
 	 * so we know how to free the pages when the object is destroyed
 	 */
 	struct v3d_drm_file_private *fp;
-	struct v3d_page_allocation *pages;
+	struct v3d_page_allocation *cma_pages;
+	struct page **shm_pages;
+	dma_addr_t *dma_addrs;
+
 	u32 hw_virt_addr;
 	u32 alloc_flags;
 	char *desc;
 };
 
 #define to_v3d_obj(x) container_of(x, struct v3d_drm_gem_object, base)
+
+/*
+ * Broadcom CMA allocation helpers
+ */
+void v3d_release_cma_blocks(struct v3d_drm_file_private *fp,
+			    struct v3d_drm_dev_private *dp);
+
+void v3d_free_cma_pages(size_t num_pages, struct v3d_page_allocation *pages);
+
+int v3d_allocate_cma_pages(struct v3d_drm_file_private *fp, size_t num_pages,
+			   struct v3d_page_allocation *pages);
+
 
 /*
  * DebugFS file open/close helpers
@@ -234,6 +246,22 @@ void v3d_debugfs_cleanup_file_entries(struct drm_file *file) {}
 #ifdef CONFIG_COMPAT
 long v3d_drm_compat_ioctl(struct file *filp, unsigned int cmd,
 			  unsigned long arg);
+#endif
+
+/*
+ * Add a new DRM debug level for verbose information from the memory allocations
+ * while we are developing.
+ */
+#define DRM_UT_ALLOC 0x100
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 9)
+#define DRM_DEBUG_ALLOC(fmt, args...)				   \
+	do {							    \
+		if (unlikely(drm_debug & DRM_UT_ALLOC))		 \
+			drm_ut_debug_printk(__func__, fmt, ##args);     \
+	} while (0)
+#else
+#define DRM_DEBUG_ALLOC(fmt, ...)					\
+	drm_printk(KERN_DEBUG, DRM_UT_ALLOC, fmt, ##__VA_ARGS__)
 #endif
 
 #endif

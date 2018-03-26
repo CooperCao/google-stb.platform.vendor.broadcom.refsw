@@ -42,9 +42,9 @@
 
 .section ".text"
 
-.global tz_mon_smc_handler
+.global mon_smc_handler
 
-tz_mon_smc_handler:
+mon_smc_handler:
 
     cpsid if
 

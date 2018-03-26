@@ -213,8 +213,8 @@ static int test( void )
     externalDstSize = DATA_BLOCK_SIZE;
 
     /* Allocate 32 extra bytes for external key and IV */
-    NEXUS_Memory_Allocate( externalSrcSize, NULL, (void *)&pExternalSource );
-    NEXUS_Memory_Allocate( externalDstSize, NULL, (void *)&pExternalDestination );
+    NEXUS_Memory_Allocate( externalSrcSize, NULL, (void **)&pExternalSource );
+    NEXUS_Memory_Allocate( externalDstSize, NULL, (void **)&pExternalDestination );
 
     memset( pExternalSource,   0x22, externalSrcSize );
     memset( pExternalDestination, 3, externalDstSize ); /*put random pattern in destiantion buffer. */
@@ -271,8 +271,8 @@ static int test( void )
     {
         /* Zeus 4 ...  external Key and IV are encapsulated within BTP and inserted in front of DMA tansfer */
         externalKeySize = 188;
-        NEXUS_Memory_Allocate( externalKeySize, NULL, (void *)&pExternalKey );
-        NEXUS_Memory_Allocate( externalKeySize, NULL, (void *)&pExternalKeyShaddow );
+        NEXUS_Memory_Allocate( externalKeySize, NULL, (void **)&pExternalKey );
+        NEXUS_Memory_Allocate( externalKeySize, NULL, (void **)&pExternalKeyShaddow );
         memset( pExternalKey, 0, externalKeySize );
         memset( pExternalKeyShaddow, 0, externalKeySize );
 
@@ -310,8 +310,8 @@ static int test( void )
     {
         /* Zeus 3 ... external Key and IV are concatinated and inserted in front of DMA transfer. */
         externalKeySize = sizeof(key) + sizeof(iv);
-        NEXUS_Memory_Allocate( externalKeySize, NULL, (void *)&pExternalKey );
-        NEXUS_Memory_Allocate( externalKeySize, NULL, (void *)&pExternalKeyShaddow );
+        NEXUS_Memory_Allocate( externalKeySize, NULL, (void **)&pExternalKey );
+        NEXUS_Memory_Allocate( externalKeySize, NULL, (void **)&pExternalKeyShaddow );
         memset( pExternalKey, 0, externalKeySize );
         memset( pExternalKeyShaddow, 0, externalKeySize );
         BKNI_Memcpy( pExternalKey, (key + 8), 8 ); /* Copy key.  H and L need to be swapped */
@@ -401,7 +401,6 @@ CLEANUP_AND_EXIT:
 static void compileBtp( uint8_t *pBtp, external_key_data_t *pBtpData )
 {
     unsigned char *p = pBtp;
-    unsigned x = 0;
     unsigned len = 0;
     unsigned char templateBtp[] =
     {               /* ( 0) */  0x47,
@@ -439,8 +438,6 @@ static void compileBtp( uint8_t *pBtp, external_key_data_t *pBtpData )
     printf ("KEY valid[%d] offset[%d] size[%d]\n",pBtpData->key.valid, pBtpData->key.offset, pBtpData->key.size );
     if( pBtpData->key.valid )
     {
-        x = 0;
-
         p = &pBtp[20];                  /* start of BTP data section . */
         p += (pBtpData->key.offset * 16); /* locate where to write the key within the BTP data section. */
 
@@ -464,7 +461,6 @@ static void compileBtp( uint8_t *pBtp, external_key_data_t *pBtpData )
     printf ("IV valid[%d] offset[%d] size[%d]\n",pBtpData->iv.valid, pBtpData->iv.offset, pBtpData->iv.size );
     if( pBtpData->iv.valid )
     {
-        x = 0;
 
         p = &pBtp[20];                   /* start of BTP data section . */
         p += (pBtpData->iv.offset * 16);  /* move to offset withtin BTP for IV */

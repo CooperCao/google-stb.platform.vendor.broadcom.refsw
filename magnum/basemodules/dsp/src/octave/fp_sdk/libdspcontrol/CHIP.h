@@ -143,36 +143,40 @@
 #define BFPSDK_LIBDSPCONTROL_HOST_ENV_BM                                    82
 #define BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS                              83
 #define BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON                               84
-#define GenericFPM1015_bm                                                   85
-#define Pike_bm                                                             86
-#define Pike_haps                                                           87
-#define Pike_wkstn                                                          88
-#define RaagaFP4015_barebone                                                89
-#define RaagaFP4015_bm                                                      90
-#define RaagaFP4015_haps                                                    91
-#define RaagaFP4015_haps_bm                                                 92
-#define RaagaFP4015_si_magnum                                               93
-#define RaagaFP4015_si_magnum_permissive                                    94
-#define RaagaFP4015_wkstn                                                   95
-#define YellowstoneA0_bm                                                    96
-#define YellowstoneA0_si                                                    97
+#define GenericFP4015_bm                                                    85
+#define GenericFPM1015_bm                                                   86
+#define Pike_bm                                                             87
+#define Pike_haps                                                           88
+#define Pike_wkstn                                                          89
+#define RaagaFP4015_barebone                                                90
+#define RaagaFP4015_bm                                                      91
+#define RaagaFP4015_haps                                                    92
+#define RaagaFP4015_haps_bm                                                 93
+#define RaagaFP4015_si_magnum                                               94
+#define RaagaFP4015_si_magnum_permissive                                    95
+#define RaagaFP4015_wkstn                                                   96
+#define YellowstoneA0_bm                                                    97
+#define YellowstoneA0_si                                                    98
 
 /* Only one, recognisable, TARGET_SOC defined */
 #if !defined(BFPSDK_LIBDSPCONTROL_TARGET_SOC)
-#  error "BFPSDK_LIBDSPCONTROL_TARGET_SOC must be defined and be one of Pike_wkstn, Pike_haps, BCM93160A0_OFDMA_Rx_si, YellowstoneA0_si, BCM93465, RaagaFP4015_si_magnum_permissive, RaagaFP4015_bm, YellowstoneA0_bm, BCM93160_wkstn, GenericFPM1015_bm, BCM93160A0_OFDMA_Rx_bm, BCM68460A0, RaagaFP4015_haps_bm, RaagaFP4015_barebone, RaagaFP4015_si_magnum, BCM93160B0_USOOB_bm, RaagaFP4015_haps, RaagaFP4015_wkstn, Pike_bm"
-#elif !((BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_haps) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_OFDMA_Rx_si) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == YellowstoneA0_si) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93465) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_si_magnum_permissive) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == YellowstoneA0_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == GenericFPM1015_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_OFDMA_Rx_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM68460A0) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_haps_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_barebone) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_si_magnum) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160B0_USOOB_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_haps) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_bm))
+#  error "BFPSDK_LIBDSPCONTROL_TARGET_SOC must be defined and be one of GenericFP4015_bm, Pike_wkstn, Pike_haps, BCM93160A0_OFDMA_Rx_si, YellowstoneA0_si, BCM93465, RaagaFP4015_si_magnum_permissive, RaagaFP4015_bm, YellowstoneA0_bm, BCM93160_wkstn, GenericFPM1015_bm, BCM93160A0_OFDMA_Rx_bm, BCM68460A0, RaagaFP4015_haps_bm, RaagaFP4015_barebone, RaagaFP4015_si_magnum, BCM93160B0_USOOB_bm, RaagaFP4015_haps, RaagaFP4015_wkstn, Pike_bm"
+#elif !((BFPSDK_LIBDSPCONTROL_TARGET_SOC == GenericFP4015_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_haps) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_OFDMA_Rx_si) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == YellowstoneA0_si) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93465) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_si_magnum_permissive) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == YellowstoneA0_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == GenericFPM1015_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_OFDMA_Rx_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM68460A0) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_haps_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_barebone) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_si_magnum) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160B0_USOOB_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_haps) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_bm))
 #  error "An unsupported BFPSDK_LIBDSPCONTROL_TARGET_SOC has been provided"
-#  error "BFPSDK_LIBDSPCONTROL_TARGET_SOC must be one of Pike_wkstn, Pike_haps, BCM93160A0_OFDMA_Rx_si, YellowstoneA0_si, BCM93465, RaagaFP4015_si_magnum_permissive, RaagaFP4015_bm, YellowstoneA0_bm, BCM93160_wkstn, GenericFPM1015_bm, BCM93160A0_OFDMA_Rx_bm, BCM68460A0, RaagaFP4015_haps_bm, RaagaFP4015_barebone, RaagaFP4015_si_magnum, BCM93160B0_USOOB_bm, RaagaFP4015_haps, RaagaFP4015_wkstn, Pike_bm"
+#  error "BFPSDK_LIBDSPCONTROL_TARGET_SOC must be one of GenericFP4015_bm, Pike_wkstn, Pike_haps, BCM93160A0_OFDMA_Rx_si, YellowstoneA0_si, BCM93465, RaagaFP4015_si_magnum_permissive, RaagaFP4015_bm, YellowstoneA0_bm, BCM93160_wkstn, GenericFPM1015_bm, BCM93160A0_OFDMA_Rx_bm, BCM68460A0, RaagaFP4015_haps_bm, RaagaFP4015_barebone, RaagaFP4015_si_magnum, BCM93160B0_USOOB_bm, RaagaFP4015_haps, RaagaFP4015_wkstn, Pike_bm"
 #endif
 
 /* Is CHIP defined from outside or should we set it from the TARGET_SOC? */
-#if (defined(PIKE) || defined(RAAGA) || defined(MCPHY) || defined(PMC3) || defined(GENERIC) || defined(YELLOWSTONE) || defined(LEAP_PHY_BCM3465))
+#if (defined(PIKE) || defined(RAAGA) || defined(GENERIC) || defined(PMC3) || defined(MCPHY) || defined(YELLOWSTONE) || defined(LEAP_PHY_BCM3465))
 /* Check if multiple CHIPs are defined */
-#  if !(!((defined(PIKE) && ((defined(RAAGA) || defined(GENERIC) || defined(PMC3) || defined(MCPHY) || defined(YELLOWSTONE) || defined(LEAP_PHY_BCM3465)))) || (defined(LEAP_PHY_BCM3465) && ((defined(PIKE) || defined(RAAGA) || defined(GENERIC) || defined(PMC3) || defined(MCPHY) || defined(YELLOWSTONE)))) || (defined(YELLOWSTONE) && ((defined(PIKE) || defined(RAAGA) || defined(GENERIC) || defined(PMC3) || defined(MCPHY) || defined(LEAP_PHY_BCM3465)))) || (defined(RAAGA) && ((defined(PIKE) || defined(GENERIC) || defined(PMC3) || defined(MCPHY) || defined(YELLOWSTONE) || defined(LEAP_PHY_BCM3465)))) || (defined(GENERIC) && ((defined(PIKE) || defined(RAAGA) || defined(MCPHY) || defined(PMC3) || defined(YELLOWSTONE) || defined(LEAP_PHY_BCM3465)))) || (defined(MCPHY) && ((defined(PIKE) || defined(RAAGA) || defined(GENERIC) || defined(PMC3) || defined(YELLOWSTONE) || defined(LEAP_PHY_BCM3465)))) || (defined(PMC3) && ((defined(PIKE) || defined(RAAGA) || defined(GENERIC) || defined(MCPHY) || defined(YELLOWSTONE) || defined(LEAP_PHY_BCM3465))))))
+#  if !(!((defined(PIKE) && ((defined(RAAGA) || defined(MCPHY) || defined(PMC3) || defined(GENERIC) || defined(YELLOWSTONE) || defined(LEAP_PHY_BCM3465)))) || (defined(LEAP_PHY_BCM3465) && ((defined(PIKE) || defined(RAAGA) || defined(MCPHY) || defined(PMC3) || defined(GENERIC) || defined(YELLOWSTONE)))) || (defined(YELLOWSTONE) && ((defined(PIKE) || defined(RAAGA) || defined(MCPHY) || defined(PMC3) || defined(GENERIC) || defined(LEAP_PHY_BCM3465)))) || (defined(RAAGA) && ((defined(PIKE) || defined(MCPHY) || defined(PMC3) || defined(GENERIC) || defined(YELLOWSTONE) || defined(LEAP_PHY_BCM3465)))) || (defined(MCPHY) && ((defined(PIKE) || defined(RAAGA) || defined(GENERIC) || defined(PMC3) || defined(YELLOWSTONE) || defined(LEAP_PHY_BCM3465)))) || (defined(GENERIC) && ((defined(PIKE) || defined(RAAGA) || defined(MCPHY) || defined(PMC3) || defined(YELLOWSTONE) || defined(LEAP_PHY_BCM3465)))) || (defined(PMC3) && ((defined(PIKE) || defined(RAAGA) || defined(MCPHY) || defined(GENERIC) || defined(YELLOWSTONE) || defined(LEAP_PHY_BCM3465))))))
 #    error "Multiple 'CHIP' macros defined - check your external defines"
 #  endif
 #else
 /* Define CHIP from TARGET_SOC */
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == GenericFP4015_bm
+#    define GENERIC
+#  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_wkstn
 #    define PIKE
 #  endif
@@ -240,6 +244,9 @@
 #  endif
 #else
 /* Define MACH from TARGET_SOC */
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == GenericFP4015_bm
+#    define __FP4015__
+#  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_wkstn
 #    define __FP4014__
 #  endif
@@ -300,6 +307,25 @@
 #endif
 
 /* Per-TARGET_SOC features */
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == GenericFP4015_bm
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME                        "GenericFP4015_bm"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV                           BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VERIFY               BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VERIFY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE                   BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE                   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_DEBUG_SERVER
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC                       BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM                  BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT                 BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF              BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_MISC_BLOCK
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS                  BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF                BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSP_SYS_ADDR_DIRECT_ACCESS BFPSDK_LIBDSPCONTROL_FEATURE_DSP_SYS_ADDR_DIRECT_ACCESS_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK                BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST                    BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY              BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS                    BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO                    BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
 #if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_wkstn
 #  define BFPSDK_LIBDSPCONTROL_TARGET_NAME                        "Pike_wkstn"
 #  define BFPSDK_LIBDSPCONTROL_HOST_ENV                           BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS

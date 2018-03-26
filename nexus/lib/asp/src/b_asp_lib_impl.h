@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -101,6 +101,9 @@ typedef struct B_AspChannelSocketState
     TcpState            tcpState;
     struct sockaddr_in  remoteIpAddr;
     unsigned char       remoteMacAddress[NEXUS_ETHER_ADDR_LEN];
+    bool                remoteOnLocalHost;              /* true if the remote happens to be on the same node. */
+    char                remoteInterfaceName[IFNAMSIZ];  /* Name of the interface corresponding to the remote IP. */
+    int                 remoteInterfaceIndex;
     struct sockaddr_in  localIpAddr;
     struct sockaddr_in  aspIpAddr;
     unsigned char       localMacAddress[NEXUS_ETHER_ADDR_LEN];

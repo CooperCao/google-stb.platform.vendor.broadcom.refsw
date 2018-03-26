@@ -668,7 +668,7 @@ static const BHDM_P_InterruptCbTable BHDM_Interrupts_1[] = BHDM_P_CREATE_TABLE(_
 
 #define BHDM_P_CREATE_HAE_TABLE(instance) \
 { \
-	BHDM_HAE_INT_CB_DEF(instance, OK_TO_ENC_EN, eOK_TO_ENC_EN, true), \
+	BHDM_HAE_INT_CB_DEF(instance, OK_TO_ENC_EN, eOK_TO_ENC_EN, false), \
 	BHDM_HAE_INT_CB_DEF(instance, REAUTH_REQ_INTR, eREAUTH_REQ, true), \
 \
 }
@@ -687,7 +687,7 @@ Summary: Get the current version of the HDM PI (used to identify the HDM PI) for
 *******************************************************************************/
 const char * BHDM_P_GetVersion(void)
 {
-	static const char Version[] = "BHDM URSR 18.1" ;
+	static const char Version[] = "BHDM URSR 18.2" ;
 	return Version ;
 }
 

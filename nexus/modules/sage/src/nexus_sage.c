@@ -61,8 +61,6 @@ BDBG_MODULE(nexus_sage);
 
 /* Internal global context */
 static struct NEXUS_Sage_P_State {
-    int init;               /* init flag. 0 if module is not yet initialized. */
-
     /* cache of context to use for indications accross all channels */
     NEXUS_SageIndicationQueueHead indicationsCache;
     uint32_t indicationsCacheCount;
@@ -111,18 +109,14 @@ static NEXUS_Error NEXUS_Sage_P_IndicationContextCacheInc(void);
 /* semi-private : called from nexus_sage_module */
 void NEXUS_Sage_P_Cleanup(void)
 {
-    if (g_sage.init) {
-        NEXUS_SageIndicationContext *pIndicationContext = NULL;
-        /* empty the indication context cache */
-        while ((pIndicationContext = BLST_SQ_FIRST(&g_sage.indicationsCache)) != NULL) {
-            BDBG_ASSERT(g_sage.indicationsCacheCount);
-            BLST_SQ_REMOVE_HEAD(&g_sage.indicationsCache, link);
-            g_sage.indicationsCacheCount--;
-            BKNI_Free(pIndicationContext);
-        }
+    NEXUS_SageIndicationContext *pIndicationContext = NULL;
+    /* empty the indication context cache */
+    while ((pIndicationContext = BLST_SQ_FIRST(&g_sage.indicationsCache)) != NULL) {
+        BDBG_ASSERT(g_sage.indicationsCacheCount);
+        BLST_SQ_REMOVE_HEAD(&g_sage.indicationsCache, link);
+        g_sage.indicationsCacheCount--;
+        BKNI_Free(pIndicationContext);
     }
-
-    g_sage.init = 0;
 }
 
 /* semi-private : called from nexus_sage_module */

@@ -184,27 +184,6 @@ static void BVC5_P_SetEventTFU(
       BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt64, "Dep");
 }
 
-/***************************************************************************/
-
-static void BVC5_P_GetClockSpeed(
-   BVC5_Handle hVC5
-   )
-{
-#ifdef BCHP_PWR_SUPPORT
-   BERR_Code err;
-   unsigned rate;
-
-   err = BCHP_PWR_GetClockRate(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D, &rate);
-   if (err == BERR_SUCCESS)
-   {
-      hVC5->sEventMonitor.uiCyclesPerUs = rate / (1000 * 1000);
-      BDBG_WRN(("GPU Clock speed for event capture: %u MHz\n", hVC5->sEventMonitor.uiCyclesPerUs));
-   }
-   else
-#endif
-      hVC5->sEventMonitor.uiCyclesPerUs = 1; /* timestamps will be in clock cycles */
-}
-
 void BVC5_P_InitEventMonitor(
    BVC5_Handle  hVC5
    )
@@ -440,10 +419,11 @@ static BERR_Code BVC5_P_SetEventCollection(
             goto error;
          }
 
-         BVC5_P_GetClockSpeed(hVC5);
+         hVC5->uiCyclesPerUs = BVC5_P_GetClockSpeed(hVC5);
+         BDBG_WRN(("GPU Clock speed for event capture: %u MHz\n", hVC5->uiCyclesPerUs));
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
-         if (hVC5->sEventMonitor.uiCyclesPerUs == 1)  /* GPU clock speed unknown */
+         if (hVC5->uiCyclesPerUs == 1)  /* GPU clock speed unknown */
          {
             err = BERR_NOT_AVAILABLE;
             goto error;

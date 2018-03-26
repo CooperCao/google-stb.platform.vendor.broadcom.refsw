@@ -532,12 +532,12 @@ typedef enum NEXUS_VideoDecoderReorderingMode
     NEXUS_VideoDecoderReorderingMode_eNone, /* no data reordering, this is default mode and it's supported for all codecs */
     NEXUS_VideoDecoderReorderingMode_eSequential, /* decoder expects data in the sequential order */
     NEXUS_VideoDecoderReorderingMode_eGop,  /* decoder expects data in the GOP boundaries with marking between each chunk */
-    NEXUS_VideoDecoderReorderingMode_eInterleaved,  /* decoder expects data in chunks in a reverse order, possibly not GOP alligned,
+    NEXUS_VideoDecoderReorderingMode_eInterleaved,  /* decoder expects data in chunks in a reverse order, possibly not GOP aligned,
                                                      * each chunk contains at least one complete GOP, each chunk has its mark,
                                                      * chunks has to be overlapped to allow complete recovery of the MPEG-2 stream */
-    NEXUS_VideoDecoderReorderingMode_eChunkForward,  /* decoder expacts data in chunks in a normal order, possible not GOP alligned,
+    NEXUS_VideoDecoderReorderingMode_eChunkForward,  /* decoder expacts data in chunks in a normal order, possible not GOP aligned,
                                                       * chunks shall not be overlapped, complete stream recovery shall not be expected */
-    NEXUS_VideoDecoderReorderingMode_eChunkBackward,  /* decoder expacts data in chunks in a reverse order, possible not GOP alligned,
+    NEXUS_VideoDecoderReorderingMode_eChunkBackward,  /* decoder expacts data in chunks in a reverse order, possible not GOP aligned,
                                                       * chunks shall not be overlapped, complete stream recovery shall not be expected */
     NEXUS_VideoDecoderReorderingMode_eMax
 } NEXUS_VideoDecoderReorderingMode;

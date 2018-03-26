@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -481,10 +481,10 @@ struct g_IrRemoteCodes
     { eKey_JumpFwd,     0x0000203B, 0xE718FF00, 0x0000083B, "eKey_JumpFwd"     },
     { eKey_JumpRev,     0x0000303A, 0xA758FF00, 0x0000081B, "eKey_JumpRev"     },
     { eKey_Power,       0x0000600A, 0xF50AFF00, 0x00000010, "eKey_Power"       },
-    { eKey_Fav1,        0x00000000, 0xFD02FF00, 0x00000000, "eKey_Fav1"        },
-    { eKey_Fav2,        0x00000000, 0xFC03FF00, 0x00000000, "eKey_Fav2"        },
-    { eKey_Fav3,        0x00000000, 0xBD42FF00, 0x00000000, "eKey_Fav3"        },
-    { eKey_Fav4,        0x00000000, 0xBC43FF00, 0x00000000, "eKey_Fav4"        },
+    { eKey_Fav1,        INVALID,    0xFD02FF00, INVALID,    "eKey_Fav1"        },
+    { eKey_Fav2,        INVALID,    0xFC03FF00, INVALID,    "eKey_Fav2"        },
+    { eKey_Fav3,        INVALID,    0xBD42FF00, INVALID,    "eKey_Fav3"        },
+    { eKey_Fav4,        INVALID,    0xBC43FF00, INVALID,    "eKey_Fav4"        },
     /* ascii codes */
     { eKey_0,           0x00000000, 0xAD52FF00, 0x00000022, "eKey_0"           },
     { eKey_1,           0x0000F001, 0xE01FFF00, 0x00000008, "eKey_1"           },

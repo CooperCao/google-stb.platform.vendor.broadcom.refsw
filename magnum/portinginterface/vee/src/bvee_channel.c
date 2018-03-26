@@ -1332,11 +1332,15 @@ if (pPpb_Cached == NULL)
 return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 }
 
-BDBG_MSG(("Picture:FrameRate %d\n" "\t\t ui32CurrentPTS %d \n" "\t\t height %d \n" "\t\t width %d \n"
-"\t\t polarity %d \n" "\t\t sarHorz %d \n" "\t\t sarVert %d \n" "\t\t repeat %d \n" "\t\t ignore %d \n"
-"\t\t bIgnorePicture %d \n" "\t\t bStallStc %d \n" "\t\t",
-pPicture->frameRate,pPicture->originalPts.ui32CurrentPTS,pPicture->height,pPicture->width,pPicture->polarity
-,pPicture->sarHorizontal,pPicture->sarVertical,pPicture->repeat,pPicture->ignore,pPicture->bIgnorePicture,pPicture->bStallStc));
+BDBG_MSG(("Picture:FrameRate %d", pPicture->frameRate));
+BDBG_MSG(("ui32CurrentPTS %#x", pPicture->originalPts.ui32CurrentPTS));
+BDBG_MSG(("height %u", pPicture->height));
+BDBG_MSG(("width %u", pPicture->width));
+BDBG_MSG(("polarity %d", pPicture->polarity));
+BDBG_MSG(("sarHorz %u", pPicture->sarHorizontal));
+BDBG_MSG(("sarVert %u", pPicture->sarVertical));
+BDBG_MSG(("bIgnorePicture %d", pPicture->bIgnorePicture));
+BDBG_MSG(("bStallStc %d", pPicture->bStallStc));
 
 if (pPicture->hImageMmaBlock) {
 BuffYAddr = BMMA_GetOffset_isr(pPicture->hImageMmaBlock)+pPicture->offset;
@@ -1916,6 +1920,99 @@ pBufferStatus->stCommon.pMetadataBufferBaseAddress = handle->veeoutput.pstMetada
 pBufferStatus->stCommon.hFrameBufferBlock = handle->outputbuffer.hCDBBufferMmaBlock;
 pBufferStatus->stCommon.hMetadataBufferBlock = handle->veeoutput.hMetadataMmaBlock;
 pBufferStatus->stCommon.hIndexBufferBlock = handle->outputbuffer.hITBBufferMmaBlock;
+
+if(handle->bContextValid)
+{
+   uint64_t uiBaseOffset, uiEndOffset, uiValidOffset, uiReadOffset;
+
+   /* Read CDB Pointers */
+   uiBaseOffset = BREG_ReadAddr(
+            handle->devicehandle->regHandle,
+            handle->outputbuffer.sCdbBuffer.ui32BaseAddr
+            );
+
+   uiEndOffset = BREG_ReadAddr(
+            handle->devicehandle->regHandle,
+            handle->outputbuffer.sCdbBuffer.ui32EndAddr
+            );
+
+   /* HW treats END as last valid byte before wrap.
+    * It is easier for SW to treat END as the byte
+    * AFTER the last valid byte before WRAP, so we
+    * add one here
+    */
+   uiEndOffset += 1;
+
+   uiValidOffset = BREG_ReadAddr(
+            handle->devicehandle->regHandle,
+            handle->outputbuffer.sCdbBuffer.ui32WriteAddr
+            );
+
+   uiReadOffset = BREG_ReadAddr(
+           handle->devicehandle->regHandle,
+           handle->outputbuffer.sCdbBuffer.ui32ReadAddr
+           );
+
+   /* Calculate CDB Depth/Size */
+   pBufferStatus->stCommon.stCDB.uiSize = uiEndOffset - uiBaseOffset;
+   if ( uiValidOffset >= uiReadOffset )
+   {
+      pBufferStatus->stCommon.stCDB.uiDepth = uiValidOffset - uiReadOffset;
+   }
+   else
+   {
+      pBufferStatus->stCommon.stCDB.uiDepth = (uiEndOffset - uiReadOffset) + (uiValidOffset - uiBaseOffset);
+   }
+
+   /* Read ITB Pointers */
+   uiBaseOffset = BREG_ReadAddr(
+            handle->devicehandle->regHandle,
+            handle->outputbuffer.sItbBuffer.ui32BaseAddr
+            );
+
+   uiEndOffset = BREG_ReadAddr(
+            handle->devicehandle->regHandle,
+            handle->outputbuffer.sItbBuffer.ui32EndAddr
+            );
+
+   /* HW treats END as last valid byte before wrap.
+    * It is easier for SW to treat END as the byte
+    * AFTER the last valid byte before WRAP, so we
+    * add one here
+    */
+   uiEndOffset += 1;
+
+   uiValidOffset = BREG_ReadAddr(
+            handle->devicehandle->regHandle,
+            handle->outputbuffer.sItbBuffer.ui32WriteAddr
+            );
+
+   uiReadOffset = BREG_ReadAddr(
+           handle->devicehandle->regHandle,
+           handle->outputbuffer.sItbBuffer.ui32ReadAddr
+           );
+
+   /* Calculate ITB Depth/Size */
+   pBufferStatus->stCommon.stITB.uiSize = uiEndOffset - uiBaseOffset;
+   if ( uiValidOffset >= uiReadOffset )
+   {
+      pBufferStatus->stCommon.stITB.uiDepth = uiValidOffset - uiReadOffset;
+   }
+   else
+   {
+      pBufferStatus->stCommon.stITB.uiDepth = (uiEndOffset - uiReadOffset) + (uiValidOffset - uiBaseOffset);
+   }
+
+   pBufferStatus->stCommon.stCDB.uiRead = handle->outputbuffer.sCdbBuffer.ui32ReadAddr;
+   pBufferStatus->stCommon.stCDB.uiBase = handle->outputbuffer.sCdbBuffer.ui32BaseAddr;
+   pBufferStatus->stCommon.stCDB.uiValid = handle->outputbuffer.sCdbBuffer.ui32WriteAddr;
+   pBufferStatus->stCommon.stCDB.uiEnd = handle->outputbuffer.sCdbBuffer.ui32EndAddr;
+   pBufferStatus->stCommon.stITB.uiRead = handle->outputbuffer.sItbBuffer.ui32ReadAddr;
+   pBufferStatus->stCommon.stITB.uiBase = handle->outputbuffer.sItbBuffer.ui32BaseAddr;
+   pBufferStatus->stCommon.stITB.uiValid = handle->outputbuffer.sItbBuffer.ui32WriteAddr;
+   pBufferStatus->stCommon.stITB.uiEnd = handle->outputbuffer.sItbBuffer.ui32EndAddr;
+   pBufferStatus->stCommon.bReady = handle->bContextValid;
+}
 
 BDBG_LEAVE(BVEE_Channel_GetBufferStatus);
 return BERR_SUCCESS;

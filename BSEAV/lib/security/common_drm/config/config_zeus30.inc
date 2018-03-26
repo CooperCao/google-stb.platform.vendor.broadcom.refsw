@@ -36,7 +36,9 @@
 # ANY LIMITED REMEDY.
 #
 #############################################################################
+ADOBE_NONSAGE?=ON
 ADOBE_SAGE?=OFF
+DTCP_IP_NONSAGE?=ON
 DTCP_IP_SAGE?=OFF
 HDCP_SAGE?=OFF
 NETFLIX_SAGE?=OFF

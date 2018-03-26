@@ -825,7 +825,11 @@ _http_socket_select(B_PlaybackIpHandle playback_ip, int fd, int timeout)
     int timeoutIterations;
     int numTimeoutInterations = 0;
 
-    if ( playback_ip->playback_state >= B_PlaybackIpState_eSessionSetup && (playback_ip->psi.liveChannel || playback_ip->setupSettings.u.http.liveChannel)) {
+    if ( playback_ip->playback_state >= B_PlaybackIpState_eSessionSetup &&
+            (playback_ip->psi.liveChannel || playback_ip->setupSettings.u.http.liveChannel ||
+                    playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip ||
+                    playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithPcrNoSyncSlip)
+            ) {
         /* we dont want to use the lower readTimeout before the SessionSetup state as Index reads can't fail due to timeouts, otherwise bmedia_probe will fail */
         timeoutInterval = 20; /* for live modes, we want to be more aggressive in handling the timeouts */
         timeoutIterations = playback_ip->setupSettings.u.http.readTimeout/timeoutInterval; /* readTimeout is set by the apps to a lower timeout value in live mode vs the pull mode to lower any latency for the low bitrate channels */
@@ -973,7 +977,11 @@ http_socket_read(B_PlaybackIpHandle playback_ip, void *securityHandle, int sd, c
                 playback_ip->serverClosed = true;
             break;
         }
-        if (playback_ip->playback_state >= B_PlaybackIpState_eSessionSetup && (playback_ip->psi.liveChannel || playback_ip->setupSettings.u.http.liveChannel)) {
+        if ( playback_ip->playback_state >= B_PlaybackIpState_eSessionSetup &&
+                (playback_ip->psi.liveChannel || playback_ip->setupSettings.u.http.liveChannel ||
+                 playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip ||
+                 playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithPcrNoSyncSlip)
+           ) {
             /* TODO: it may be fine to even apply this readTimeout concept for non-live channels also */
             /* we may want to timeout and return whatever we have read for slow internet connections */
             B_Time_Get(&endTime);
@@ -2661,7 +2669,10 @@ http_read_data_from_data_cache(
     /* At this point, requested range is not in the index cache. */
 
     /* Check if this is a live channel session. Then, we dont go thru the data cache and instead directly return the read data */
-    if (playback_ip->psi.liveChannel || playback_ip->setupSettings.u.http.liveChannel) {
+    if (playback_ip->psi.liveChannel || playback_ip->setupSettings.u.http.liveChannel ||
+                 playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip ||
+                 playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithPcrNoSyncSlip
+           ) {
         rc = playback_ip_read_socket(playback_ip, playback_ip->securityHandle, file->playback_ip->socketState.fd, (char *)buf, length, playback_ip->networkTimeout);
         if (rc <= 0 && bytesRead == 0) {
             goto error;
@@ -5750,7 +5761,7 @@ void B_PlaybackIp_HttpPlaypumpThread(
             if (playback_ip->psi.liveChannel ||
                     playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip ||
                     playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithPcrNoSyncSlip) {
-                readBufSize = 1000*20; /* Lower the read size for live cases to not add delay while collecting this much data. */
+                readBufSize = 1024*96; /* Lower the read size for live cases to not add delay while collecting this much data. */
             }
             else {
                 readBufSize = 1024*240;

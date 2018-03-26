@@ -112,10 +112,9 @@ ${CURL_SOURCE_PATH}/.compiled : b_zlib_target_build | source
 			B_REFSW_CACHE_DIR=${B_REFSW_CACHE_DIR} $(NEXUS_TOP)/../BSEAV/tools/build/fetch.sh ${CURL_BUILD_DIR}/${CURL_NAME}.info ${CURL_TAR_PATH}; \
 		fi ;\
 	fi
-	@echo "================ Configuring CURL B_CURL_TOOLCHAIN_ARCH is $(B_CURL_TOOLCHAIN_ARCH)"
 
 	@if [ ! -e "${CURL_TAR_PATH}/${CURL_NAME}/Makefile" -o -z "${shell grep 'CC \= ' ${CURL_TAR_PATH}/${CURL_NAME}/Makefile |grep ${B_CURL_TOOLCHAIN_ARCH}}" ]; then \
-		echo "================ Configure CURL B_CURL_TOOLCHAIN_ARCH is $(B_CURL_TOOLCHAIN_ARCH)"; \
+		echo "================ Configuring CURL B_CURL_TOOLCHAIN_ARCH is $(B_CURL_TOOLCHAIN_ARCH)"; \
 		cd ${CURL_TAR_PATH}/${CURL_NAME}; \
 		CC="${CC} -I${B_OPENSSL_SOURCE_PATH}/include" \
 		MANIFEST_TOOL="/bin/true" \
@@ -147,7 +146,7 @@ ${CURL_SOURCE_PATH}/.compiled : b_zlib_target_build | source
 		--with-zlib \
 		--with-ssl=${B_OPENSSL_SOURCE_PATH} \
 		--disable-manual \
-		--with-random=/dev/urandom; \
+		--with-random=/dev/urandom  > /dev/null 2>&1; \
 		echo "================ CURL Configured"; \
 	else \
 		echo "YOU SHOULD NOT BE HERE!!!"; \
@@ -158,7 +157,7 @@ ${CURL_SOURCE_PATH}/.compiled : b_zlib_target_build | source
 	fi
 
 	@echo "================ Compiling CURL==============================="
-	${MAKE} ${MAKE_OPTIONS} -C ${CURL_TAR_PATH}/${CURL_NAME} ${MAKE_SUFFIX}
+	@${MAKE} ${MAKE_OPTIONS} -C ${CURL_TAR_PATH}/${CURL_NAME} ${MAKE_SUFFIX}  > /dev/null 2>&1
 	@if [ "$(B_REFSW_DEBUG)" != 'y' ]; then \
 		if ls ${CURL_LIB_FOLDER}/*.so > /dev/null 2>&1 ; then ${STRIP} ${CURL_LIB_FOLDER}/*.so ; fi \
 	fi

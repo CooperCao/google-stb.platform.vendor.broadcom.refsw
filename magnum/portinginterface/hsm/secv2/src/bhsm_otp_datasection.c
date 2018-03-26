@@ -43,7 +43,7 @@
 #include "bhsm_p_otpdatasection.h"
 #include "bhsm_otp_datasection.h"
 #include "bhsm_otp_msp.h"
-#include "bhsm_p_otpmisc.h"
+#include "bhsm_otp_priv.h"
 
 BDBG_MODULE( BHSM );
 
@@ -119,22 +119,11 @@ static void BHSM_OtpDataSectionCRC_Caculate( const unsigned char *data_section,
 BERR_Code BHSM_OtpDataSection_Write( BHSM_Handle hHsm, const BHSM_DataSectionWrite *pParam )
 {
     BHSM_P_OtpDataSectionProg bspParam;
-    BHSM_P_OtpMiscProgPatternSet bspPattern;
     uint8_t dataCrc[BHSM_CRC_DATA_LEN];
     unsigned i, j;
     BERR_Code rc;
 
-    BKNI_Memset( &bspPattern, 0, sizeof(bspPattern) );
-    bspPattern.in.patternArray[0] = 0xBC32F4AC;
-    bspPattern.in.patternArray[1] = 0xD18616B6;
-    bspPattern.in.patternArray[2] = 0x9FEB4D54;
-    bspPattern.in.patternArray[3] = 0x4A27BF4A;
-    bspPattern.in.patternArray[4] = 0xCF1C3178;
-    bspPattern.in.patternArray[5] = 0xE2DB98A0;
-    bspPattern.in.patternArray[6] = 0x24F64BBA;
-    bspPattern.in.patternArray[7] = 0x7698E712;
-    bspPattern.in.patternArray[8] = 0x0000F48D;
-    rc = BHSM_P_OtpMisc_ProgPatternSet( hHsm, &bspPattern );
+    rc = BHSM_Otp_EnableProgram_priv( hHsm, !BHSM_OTP_CACHE_PROGRAM_REQUEST );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
 
     BKNI_Memset( &bspParam, 0, sizeof(bspParam) );
@@ -169,7 +158,7 @@ BERR_Code BHSM_OtpDataSection_Read( BHSM_Handle hHsm, BHSM_DataSectionRead *pPar
     BERR_Code rc;
 
     BKNI_Memset( &readParam, 0, sizeof(readParam) );
-    readParam.index = 96;
+    readParam.index = 95;
 
     /* Read MSP bits to check if the coresponding data section is read protected. */
     rc = BHSM_OtpMsp_Read( hHsm, &readParam );
@@ -201,15 +190,19 @@ BERR_Code BHSM_OtpDataSection_Read( BHSM_Handle hHsm, BHSM_DataSectionRead *pPar
       else {
           uint8_t *readData = (uint8_t *)bspParam.out.dataSectionData;
           unsigned        i;
+          uint8_t byteData[BHSM_DATA_SECTION_LENGTH] = {0};
+
           /*
            * Convert from BSP data format to 32-byte big endian array:
            * BSP format:    [15:0][31:16][47:32][63:48] ... [239:224][255:240]
            * Output format: [255:240][239:224] ... [63:48][47:32][31:16][15:0]
            */
           for( i = 0; i < BHSM_DATA_SECTION_LENGTH; i += 2 ) {
-              pParam->data[i] = readData[BHSM_DATA_SECTION_LENGTH - i - 2];
-              pParam->data[i + 1] = readData[BHSM_DATA_SECTION_LENGTH - i - 1];
+              byteData[i] = readData[BHSM_DATA_SECTION_LENGTH - i - 2];
+              byteData[i + 1] = readData[BHSM_DATA_SECTION_LENGTH - i - 1];
           }
+
+          BHSM_MemcpySwap(pParam->data, byteData, BHSM_DATA_SECTION_LENGTH);
       }
 
     return BERR_SUCCESS;

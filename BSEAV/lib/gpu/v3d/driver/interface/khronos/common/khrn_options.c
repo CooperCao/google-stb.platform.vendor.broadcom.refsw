@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 #ifdef ANDROID
-#include <cutils/log.h>
+#include <log/log.h>
 #include <cutils/properties.h>
 #endif
 

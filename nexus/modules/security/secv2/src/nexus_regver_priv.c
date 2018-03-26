@@ -78,6 +78,7 @@
 #define OTP_ENUM_SID    (142)
 #define OTP_ENUM_SAGE_FSBL (209)
 #endif
+#define OTP_ENUM_INVALID (0xFFFF)
 
 /*
     Verification data and state for one region.
@@ -169,8 +170,10 @@ NEXUS_Error NEXUS_Security_RegionVerification_Init_priv( const NEXUS_SecurityReg
         _InitialiseRegion( NEXUS_SecurityRegverRegionID_eVice1MacroBlk, OTP_ENUM_VICE,     pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoEncoder] );
        #if BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(5,0)
         _InitialiseRegion( NEXUS_SecurityRegverRegionID_eSid0,          OTP_ENUM_SID,      pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_ePictureDecoder] );
+        _InitialiseRegion( NEXUS_SecurityRegverRegionID_eScpuFsbl,      OTP_ENUM_SAGE_FSBL, false );
+       #else
+        _InitialiseRegion( NEXUS_SecurityRegverRegionID_eScpuFsbl,      OTP_ENUM_INVALID  , true ); /* enforced on Zeus5. */
        #endif
-        _InitialiseRegion( NEXUS_SecurityRegverRegionID_eScpuFsbl,      OTP_ENUM_SAGE_FSBL,false );
 
         /* load static signatures. */
         rc = _LoadDefaultCertificates( );
@@ -386,7 +389,25 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
 
     if( countDown == 0 )  { rc = BERR_TRACE( NEXUS_TIMEOUT ); goto error; }
 
-    pRegionData->verified = regionStatus.status & BHSM_RV_REGION_STATUS_FAST_CHECK_RESULT;
+    if( regionStatus.status & BHSM_RV_REGION_STATUS_LIVE_MERGE_FAIL ) {
+        pRegionData->verified = false;
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        goto error;
+    }
+
+    if( regionStatus.status & BHSM_RV_REGION_STATUS_FAST_CHECK_RESULT ) {
+        pRegionData->verified = false;
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        goto error;
+    }
+
+    if (regionStatus.status & BHSM_RV_REGION_STATUS_BG_CHECK_RESULT) {
+        pRegionData->verified = false;
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        goto error;
+    }
+
+    pRegionData->verified = regionStatus.status & BHSM_RV_REGION_STATUS_FAST_CHECK_FINISHED;
 
     BDBG_LEAVE( NEXUS_Security_RegionVerifyEnable_priv );
     return NEXUS_SUCCESS;
@@ -431,6 +452,8 @@ void NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID regio
         return;
     }
 
+    if( !pRegionData->rvRegionHandle ) { BERR_TRACE( NEXUS_NOT_AVAILABLE ); return; }
+
     hsmRc = BHSM_RvRegion_Disable( pRegionData->rvRegionHandle );
     if( hsmRc != BERR_SUCCESS ) { BERR_TRACE( NEXUS_INVALID_PARAMETER ); } /* continue. */
 
@@ -447,10 +470,6 @@ void NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID regio
 
 bool  NEXUS_Security_RegionVerification_IsRequired_priv( NEXUS_SecurityRegverRegionID regionId )
 {
-#if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW
-    BSTD_UNUSED( regionId );
-    return true;
-#else
     regionData_t *pRegionData;
 
     BDBG_ENTER( NEXUS_Security_RegionVerification_IsRequired_priv );
@@ -465,7 +484,6 @@ bool  NEXUS_Security_RegionVerification_IsRequired_priv( NEXUS_SecurityRegverReg
     BDBG_LEAVE( NEXUS_Security_RegionVerification_IsRequired_priv );
 
     return pRegionData->verificationRequired;
-#endif
 }
 
 
@@ -580,7 +598,7 @@ static NEXUS_Error  _LoadDefaultRsaKey( void )
     BKNI_Memset( &rsaSettings, 0, sizeof(rsaSettings) );
     BDBG_CASSERT( sizeof(rsaSettings.rsaKey) >= sizeof(gRegionVerificationKey2) );
     BKNI_Memcpy( rsaSettings.rsaKey, gRegionVerificationKey2, sizeof(rsaSettings.rsaKey) );
-    rsaSettings.rootKey = NEXUS_RegVerRsaRootKey_e0Prime;
+    rsaSettings.rootKey = NEXUS_SigningAuthority_eBroadcom;
 
     rc = NEXUS_RegVerRsa_SetSettings( gRegVerModuleData.defaultRsaKeyHandle, &rsaSettings );
     if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto error; }

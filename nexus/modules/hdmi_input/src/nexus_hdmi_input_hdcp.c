@@ -40,6 +40,7 @@
  **************************************************************************/
 #include "nexus_hdmi_input_module.h"
 #include "nexus_hdmi_input_hdcp.h"
+#include "nexus_hdmi_input_hdcp_priv.h"
 #include "bhdr_hdcp.h"
 #if NEXUS_HAS_SECURITY
 #include "bhsm.h"
@@ -74,7 +75,6 @@ BDBG_MODULE(nexus_hdmi_input_hdcp);
 #if !NEXUS_NUM_HDMI_INPUTS
 #error Platform must define NEXUS_NUM_HDMI_INPUTS
 #endif
-
 
 
 extern NEXUS_ModuleHandle g_NEXUS_hdmiInputModule;
@@ -114,89 +114,6 @@ void NEXUS_HdmiInput_P_HdcpStateChange_isr(void *context, int param2, void *data
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
 
     NEXUS_IsrCallback_Fire_isr(hdmiInput->hdcpRxChanged) ;
-}
-
-
-static NEXUS_Error NEXUS_HdmiInput_P_HdcpKeyLoad(NEXUS_HdmiInputHandle hdmiInput)
-{
-#if (NEXUS_SECURITY_API_VERSION==1) /* diversify HDCP key loading */
-    NEXUS_Error errCode = NEXUS_SUCCESS ;
-    BHSM_Handle hHsm ;
-    uint8_t i;
-    BHSM_EncryptedHdcpKeyStruct  EncryptedHdcpKeys;
-
-    BDBG_ASSERT(g_NEXUS_hdmiInputModuleSettings.modules.security);
-
-    LOCK_SECURITY();
-	NEXUS_Security_GetHsm_priv(&hHsm);
-	BDBG_LOG(("Begin Loading Encrypted keyset..."));
-
-	EncryptedHdcpKeys.Alg = hdmiInput->hdcpKeyset.alg;
-	EncryptedHdcpKeys.cusKeySel  = hdmiInput->hdcpKeyset.custKeySel;
-	EncryptedHdcpKeys.cusKeyVarL = hdmiInput->hdcpKeyset.custKeyVarL;
-	EncryptedHdcpKeys.cusKeyVarH = hdmiInput->hdcpKeyset.custKeyVarH;
-
-	for (i = 0; i < NEXUS_HDMI_HDCP_NUM_KEYS  ; i++ )
-	{
-            EncryptedHdcpKeys.HdcpKeyLo  = hdmiInput->hdcpKeyset.privateKey[i].hdcpKeyLo;
-            EncryptedHdcpKeys.HdcpKeyHi  = hdmiInput->hdcpKeyset.privateKey[i].hdcpKeyHi;
-            errCode = BHSM_FastLoadEncryptedHdcpKey(hHsm, i, &EncryptedHdcpKeys ) ;
-
-            if (errCode != BERR_SUCCESS)
-            {
-                BDBG_ERR(("BHSM_FastLoadEncryptedHdcpKey errCode: %x", errCode )) ;
-                BERR_TRACE(errCode) ;
-                break ;
-            }
-            BDBG_MSG(("Loaded Encrypted Key  %02d of %d  %#08x%08x",
-                i + 1, BAVC_HDMI_HDCP_N_PRIVATE_KEYS,
-                hdmiInput->hdcpKeyset.privateKey[i].hdcpKeyHi,
-                hdmiInput->hdcpKeyset.privateKey[i].hdcpKeyLo)) ;
-        }
-
-        BDBG_LOG(("Done  Loading Encrypted keyset...")) ;
-
-    UNLOCK_SECURITY();
-    return errCode ;
-#else
-  #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0)
-    BERR_Code rc = BERR_SUCCESS;
-    BHSM_Hdcp1xRouteKey hdcpConf;
-    BHSM_Handle hHsm ;
-    unsigned i = 0;
-    uint32_t otpKeyIndex;
-
-    LOCK_SECURITY();
-    NEXUS_Security_GetHsm_priv(&hHsm);
-    UNLOCK_SECURITY();
-
-    BKNI_Memset( &hdcpConf, 0, sizeof(hdcpConf) );
-    otpKeyIndex = hdmiInput->hdcpKeyset.privateKey[0].caDataLo;
-    BREG_LE32( otpKeyIndex );
-
-    hdcpConf.algorithm = BHSM_CryptographicAlgorithm_e3DesAba;
-    hdcpConf.root.type = BHSM_KeyLadderRootType_eOtpDirect;
-    hdcpConf.root.otpKeyIndex = otpKeyIndex;
-
-    for( i =0; i< NEXUS_HDMI_HDCP_NUM_KEYS; i++ )
-    {
-        hdcpConf.hdcpKeyIndex = i;
-        hdcpConf.key.high = hdmiInput->hdcpKeyset.privateKey[i].hdcpKeyHi;
-        hdcpConf.key.low  = hdmiInput->hdcpKeyset.privateKey[i].hdcpKeyLo;
-
-        LOCK_SECURITY();
-        rc = BHSM_Hdcp1x_RouteKey( hHsm, &hdcpConf );
-        UNLOCK_SECURITY();
-
-        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
-    }
-
-    return BERR_SUCCESS;
-  #else
-    BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    return BERR_SUCCESS;
-  #endif
-#endif
 }
 
 
@@ -1183,8 +1100,9 @@ static void NEXUS_HdmiInput_P_SageIndicationCallback_isr(
     unsigned i = g_NEXUS_hdmiInputSageData.indicationWritePtr;
 
     g_NEXUS_hdmiInputSageData.indicationData[i].sageIndication.rpcRemoteHandle = sageRpcHandle;
-    g_NEXUS_hdmiInputSageData.indicationData[i].sageIndication.indication_id = indication_id;
-    g_NEXUS_hdmiInputSageData.indicationData[i].sageIndication.value = value;
+    g_NEXUS_hdmiInputSageData.indicationData[i].sageIndication.sessionId = indication_id;
+    g_NEXUS_hdmiInputSageData.indicationData[i].sageIndication.indication_id = value >> 16;
+    g_NEXUS_hdmiInputSageData.indicationData[i].sageIndication.value = value & 0x0000FFFF;
     g_NEXUS_hdmiInputSageData.indicationData[i].hHDCPlib =
                              (BHDCPlib_Handle) async_argument;
 

@@ -57,6 +57,17 @@ void BDSP_Arm_GetDefaultSettings(
     pSettings->preloadImages = false;
     pSettings->authenticationEnabled =false;
 
+	/* All debug features will be disabled by default */
+	pSettings->debugSettings[BDSP_DebugType_eUart].enabled 		= false;
+	pSettings->debugSettings[BDSP_DebugType_eDramMsg].enabled	= false;
+	pSettings->debugSettings[BDSP_DebugType_eCoreDump].enabled 	= false;
+	pSettings->debugSettings[BDSP_DebugType_eTargetPrintf].enabled= false;
+
+	pSettings->debugSettings[BDSP_DebugType_eUart].bufferSize 		= 0;  /*     4 KB by default */
+	pSettings->debugSettings[BDSP_DebugType_eDramMsg].bufferSize 	= 0; /* 256 KB by default */
+	pSettings->debugSettings[BDSP_DebugType_eCoreDump].bufferSize 	= 0; /* 576 KB by default */
+	pSettings->debugSettings[BDSP_DebugType_eTargetPrintf].bufferSize = 0x90000; /* 576 KB by default */
+
     pSettings->maxAlgorithms[BDSP_AlgorithmType_eAudioDecode]        = BDSP_MAX_DECODE_CTXT;
     pSettings->maxAlgorithms[BDSP_AlgorithmType_eAudioPassthrough]   = BDSP_MAX_PASSTHROUGH_CTXT;
     pSettings->maxAlgorithms[BDSP_AlgorithmType_eAudioEncode]        = BDSP_MAX_ENCODE_CTXT;
@@ -118,9 +129,9 @@ BERR_Code BDSP_Arm_Open(
     pArm->device.freeExternalInterrupt = NULL; /* BDSP_Arm_P_FreeExternalInterrupt;*/
     pArm->device.getExternalInterruptInfo = NULL; /* BDSP_Arm_P_GetExternalInterruptInfo;*/
     pArm->device.processAudioCapture = BDSP_Arm_P_ProcessAudioCapture;
-    pArm->device.getDebugBuffer = NULL;
-    pArm->device.consumeDebugData = NULL;
-    pArm->device.getCoreDumpStatus = NULL;
+    pArm->device.getDebugBuffer = BDSP_Arm_P_GetDebugBuffer;
+    pArm->device.consumeDebugData = BDSP_Arm_P_ConsumeDebugData;
+    pArm->device.getCoreDumpStatus = BDSP_Arm_P_GetCoreDumpStatus;
     pArm->device.getDownloadStatus = BDSP_Arm_P_GetDownloadStatus;
     pArm->device.initialize = BDSP_Arm_P_Initialize;
 #if !B_REFSW_MINIMAL

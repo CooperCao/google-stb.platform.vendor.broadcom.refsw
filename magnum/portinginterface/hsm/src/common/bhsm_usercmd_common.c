@@ -51,8 +51,6 @@
 
 BDBG_MODULE ( BHSM );
 
-BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
-
 void BHSM_MemcpySwap (
     unsigned char *pDest,
     unsigned char *pData,

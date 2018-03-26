@@ -1,0 +1,84 @@
+#Client Name	7255	Comments	DDR0 Client#
+XPT_WR_RS	0	XMEM IF write
+XPT_WR_CDB	2	XMEM IF write
+XPT_WR_ITB_MSG	3	XMEM IF write
+XPT_RD_RS	4	XMEM IF read
+XPT_RD_PB	7	XMEM IF read
+XPT_WR_MEMDMA	8	M2M DMA write
+
+GENET0_WR	10	Internal 10/100 GPHY
+GENET0_RD	11	Internal 10/100 GPHY
+
+SATA	17	SATA
+
+BSP	22	Broadcom Security Processor
+SCPU	23	Sage CPU
+FLASH_DMA	24	FLASH_DMA replaces EDU
+
+SDIO_EMMC	26	SDIO eMMC - client is for boot code storage/retrieval
+SDIO_CARD	27	SDIO  Card - client is for WIFI and video/audio  storage/playback
+
+UART_DMA_RD	31	UART_DMA
+UART_DMA_WR	32	UART_DMA
+USB_HI_0	33	Also called "USB_20", carries EHCI traffic for first USB controller. Controller drives 2 ports.
+USB_LO_0	34	Also called "USB_11", carries OHCI traffic for first USB controller. Controller drives 2 portss.
+USB_X_BDC_0	38	Second USB controller (USB 2.0/1.1 only)
+
+AUD_AIO	44	Audio Analog IO
+
+HVD0_DBLK	73	HVD Deblock Writes
+HVD0_ILCPU	75	HVD Inner Loop ARC
+HVD0_OLCPU	76	HVD Outer Loop ARC
+HVD0_CAB	77	HVD CABAC
+HVD0_ILSI	78	HVD IL Symbol read
+
+BVN_MAD_PIX_FD	94	MAD_R pixel feed (read)
+BVN_MAD_QUANT	95	MAD_R quant motion history (R/W)
+BVN_MAD_PIX_CAP	96	MAD_R pixel capture (write)
+
+BVN_MFD0	106	MPEG feeders have access to all DRAMs
+BVN_MFD0_1	107	MFD Alternate blockout
+
+BVN_VFD0	118	Video feeder
+
+BVN_CAP0	126	Video capture
+
+BVN_GFD0	134	Graphic feeder (instance 0)
+BVN_GFD1	135	Graphic feeder (instance 1)
+
+BVN_RDC	144	RDC
+VEC_VBI_ENC0	145
+VEC_LUT_LD      146	HDR LUT Refill Client
+
+M2MC_0	147	2D graphics - instance 0 - client "0"
+M2MC_1	148	2D graphics - instance 0 - client "1"
+M2MC_2	149	2D graphics - instance 0 - client "2"
+
+PCIE_0	151
+
+BVN_CMP0	166
+
+LEAP	176
+
+Ports 200 and up have special purposes
+
+HOST_CPU_MCP_R_HI	200	Host CPU MCP read client - high priority
+HOST_CPU_MCP_R_LO	201	Host CPU MCP read client - low priority
+HOST_CPU_MCP_W_HI	202	Host CPU MCP write client - high priority
+HOST_CPU_MCP_W_LO	203	Host CPU MCP write client - low priority
+
+V3D_MCP_R_HI	204	V3D (VC4 graphics core) MCP read client - high priority
+V3D_MCP_R_LO	205	V3D (VC4 graphics core) MCP read client - low priority
+V3D_MCP_W_HI	206	V3D (VC4 graphics core) MCP write client (tile buffer writes) - high priority
+V3D_MCP_W_LO	207	V3D (VC4 graphics core) MCP write client (tile buffer writes) - low priority
+
+HVD0_MOCOMP	216	HVD PFRI / MOCOMP
+
+TRACELOG	248	TraceLog
+MEMC_RESERVED_0	249	Reserved for MEMC use
+ZCQS_ENGINE	250	DRAM ZQ Calibration Short client
+MSA	251	MSA (Memory Soft Access)
+DIS0	252	DIS (DRAM Interface Stress) #0
+DIS1	253	DIS (DRAM Interface Stress) #1
+DRAM_INIT_ZQCS	254	DRAM Init and Low Power Mode Engine
+REFRESH	255	Refresh

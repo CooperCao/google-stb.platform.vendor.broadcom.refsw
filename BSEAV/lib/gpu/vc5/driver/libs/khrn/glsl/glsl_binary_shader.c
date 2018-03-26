@@ -488,9 +488,9 @@ static iu_sizes copy_preamble(uint64_t *code, umap_entry *unif, ShaderFlavour fl
       s.unif = copy_inline_umap_if(unif, 0, umap);
    }
 
- #if V3D_USE_CSD
+#if V3D_USE_CSD
    assert(!barrier_first && !has_compute_padding);
- #else
+#else
    if (has_compute_padding) {
       assert(flavour == SHADER_FRAGMENT);
       if (tsy_barrier) {
@@ -642,7 +642,7 @@ static void set_shader_per_quadness(const IRShader *sh, bool **per_quad, /* cons
 }
 
 /* This requires the 'b' array to be indexed in reverse postorder */
-int find_lthrsw_block(const CFGBlock *b, int n_blocks, bool *does_thrsw) {
+static int find_lthrsw_block(const CFGBlock *b, int n_blocks, bool *does_thrsw) {
    struct abstract_cfg *cfg = glsl_alloc_abstract_cfg_cfg(b, n_blocks);
    bool *uncond = glsl_alloc_uncond_blocks(cfg);
 
@@ -1019,34 +1019,6 @@ bool glsl_binary_shader_from_dataflow(
       assert(!tblocks[i]->per_sample || i == sh->num_cfg_blocks-1);
 #endif
 
-   bool *does_thrsw = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(bool));
-   int max_threading = 4;
-   bool has_thrsw = tsy_barrier;
-   for (int i=0; i<sh->num_cfg_blocks; i++) {
-      int block_max_threads;
-      does_thrsw[i] = get_max_threadability(tblocks[i]->tmu_lookups, &block_max_threads);
-
-      if (sh->blocks[i].barrier && !barrier_mem_only)
-         does_thrsw[i] = true;
-
-      max_threading = gfx_smin(max_threading, block_max_threads);
-      has_thrsw = has_thrsw || does_thrsw[i];
-   }
-
-   int lthrsw_block = -1;
-   if (has_thrsw) lthrsw_block = find_lthrsw_block(sh->blocks, sh->num_cfg_blocks, does_thrsw);
-   glsl_safemem_free(does_thrsw);
-
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   bool no_single_seg = is_compute_shader ? !V3D_USE_CSD : flavour == SHADER_FRAGMENT;
-   if (!has_thrsw && no_single_seg) {
-      lthrsw_block = 0;
-      has_thrsw = true;
-   }
-#else
-   if (!has_thrsw) max_threading = 1;
-#endif
-
    /* TODO: Do we want to require that the exit is the last block and is unconditional? */
    int final_block_id = sh->num_cfg_blocks-1;
    assert(sh->blocks[final_block_id].next_if_true  == -1 &&
@@ -1076,8 +1048,6 @@ bool glsl_binary_shader_from_dataflow(
          glsl_backflow_chain_push_back(&tblocks[i]->iodeps, last_read);
       if (last_write != NULL)
          glsl_backflow_chain_push_back(&tblocks[i]->iodeps, last_write);
-
-      if (tblocks[i]->first_tlb_read) binary->u.fragment.tlb_wait_first_thrsw = true;
    }
 
    SchedBlock *final_block = tblocks[final_block_id];
@@ -1114,6 +1084,41 @@ bool glsl_binary_shader_from_dataflow(
    final_block->outputs = NULL;
 
    glsl_safemem_free(shader_outputs_used);
+
+   bool *does_thrsw = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(bool));
+   int max_threading = 4;
+   bool has_thrsw = tsy_barrier;
+   for (int i=0; i<sh->num_cfg_blocks; i++) {
+      int block_max_threads;
+      does_thrsw[i] = get_max_threadability(tblocks[i]->tmu_lookups, &block_max_threads);
+
+      if (sh->blocks[i].barrier && !barrier_mem_only)
+         does_thrsw[i] = true;
+
+      max_threading = gfx_smin(max_threading, block_max_threads);
+      has_thrsw = has_thrsw || does_thrsw[i];
+   }
+
+   int lthrsw_block = -1;
+   if (has_thrsw) lthrsw_block = find_lthrsw_block(sh->blocks, sh->num_cfg_blocks, does_thrsw);
+   glsl_safemem_free(does_thrsw);
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   bool no_single_seg = flavour == SHADER_FRAGMENT || (flavour == SHADER_COMPUTE && !V3D_USE_CSD);
+   if (!has_thrsw && no_single_seg) {
+      lthrsw_block = 0;
+      has_thrsw = true;
+   }
+#else
+   if (!has_thrsw) max_threading = 1;
+#endif
+
+   if (flavour == SHADER_FRAGMENT && lthrsw_block != -1) {
+      for (int i=0; i<=lthrsw_block; i++) {
+         if (tblocks[i]->first_tlb_read)
+            binary->u.fragment.tlb_wait_first_thrsw = true;
+      }
+   }
 
    for (int i=0; i<sh->num_cfg_blocks; i++) {
       glsl_combine_sched_nodes(tblocks[i]);
@@ -1160,7 +1165,7 @@ bool glsl_binary_shader_from_dataflow(
          }
 
          /* This is conservative but checking CFG paths is expensive and this catches common cases */
-         bool sbwaited = tsy_barrier || has_compute_padding || (i != 0 && tblocks[0]->first_tlb_read);
+         bool sbwaited = tsy_barrier || has_compute_padding || (i != 0 && tblocks[0]->first_tlb_read) || (i > lthrsw_block);
          backend_result[i] = glsl_backend_schedule(tblocks[i], in, out, live_out[i],
                                                    flavour, bin_mode, threads, (i == final_block_id),
                                                    (i == lthrsw_block && !sh->blocks[i].barrier), sbwaited);

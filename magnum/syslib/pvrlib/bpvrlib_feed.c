@@ -103,7 +103,7 @@ static void b_pvr_feed_save_close(b_pvr_feed_save *save)
 static void b_pvr_feed_save_data(b_pvr_feed_save *save, const void *data, size_t len)
 {
    if(save->fout) {
-       BDBG_MSG(("D: %-8s: %#x:%u", save->name, (unsigned)data, (unsigned)len));
+       BDBG_MSG(("D: %-8s: %p:%u", save->name, data, (unsigned)len));
        fwrite(data, len, 1, save->fout);
    }
    return;
@@ -794,7 +794,7 @@ BPVRlib_Feed_Priv_Update(BPVRlib_Feed_Handle feed)
                 {
                     unsigned i;
                     for(i=0;i<hw_complete;i++) {
-                        b_pvr_feed_save_data_offset(feed, &feed->save.after, &desc[i]);
+                        b_pvr_feed_save_desc(feed, &feed->save.after, &desc[i]);
                     }
                 }
 #endif /* B_PVR_LIB_FEED_SAVE_AFTER */

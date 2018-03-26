@@ -551,6 +551,17 @@ BERR_Code BVDC_P_Source_Create
         BDBG_MODULE_MSG(BVDC_REPEATPOLARITY, ("Allocated src[%d] scratch register %#x to hold REPEAT_POLARITY swap flag",
             eSourceId, pSource->ulScratchPolReg));
 #endif
+        /* STC flag for MFD source */
+#ifdef BVDC_P_SUPPORT_RDC_STC_FLAG
+        BKNI_EnterCriticalSection();
+        pSource->ulStcFlag = BRDC_AcquireStcFlag_isr(hVdc->hRdc, BRDC_MAX_STC_FLAG_COUNT);
+        BKNI_LeaveCriticalSection();
+        if(pSource->ulStcFlag == BRDC_MAX_STC_FLAG_COUNT)
+        {
+            BDBG_ERR(("No STC flag available for MFD source %d!", eSourceId));
+        }
+#endif
+
         BVDC_P_Feeder_Create(&pSource->hMpegFeeder, hVdc->hRdc, hVdc->hRegister,
             BVDC_P_FeederId_eMfd0 + eSourceId - BAVC_SourceId_eMpeg0,
 #if (!BVDC_P_USE_RDC_TIMESTAMP)
@@ -693,6 +704,15 @@ void BVDC_P_Source_Destroy
         BDBG_MODULE_MSG(BVDC_REPEATPOLARITY, ("free src[%d] REPEAT_POLARITY scratch register %#x ",
                     hSource->eId, hSource->ulScratchPolReg));
         BRDC_FreeScratchReg(hSource->hVdc->hRdc, hSource->ulScratchPolReg);
+#endif
+#ifdef BVDC_P_SUPPORT_RDC_STC_FLAG
+        if(hSource->ulStcFlag != BRDC_MAX_STC_FLAG_COUNT)
+        {
+            BKNI_EnterCriticalSection();
+            BRDC_ReleaseStcFlag_isr(hSource->hVdc->hRdc, hSource->ulStcFlag);
+            hSource->ulStcFlag = BRDC_MAX_STC_FLAG_COUNT;
+            BKNI_LeaveCriticalSection();
+        }
 #endif
         BVDC_P_Feeder_Destroy(hSource->hMpegFeeder);
     }
@@ -1024,6 +1044,13 @@ void BVDC_P_Source_Init
                     BDBG_ERR(("Failed to create src RUL done callback for GfxSrc or MtgSrc %d", hSource->eId));
                 }
             }
+            /* MTG source triggers STC flag for MFD */
+#if BVDC_P_SUPPORT_RDC_STC_FLAG
+            if(bMtgSrc && hSource->ulStcFlag != BRDC_MAX_STC_FLAG_COUNT)
+            {
+                BRDC_ConfigureStcFlag_isr(hSource->hVdc->hRdc, hSource->ulStcFlag, BRDC_Trigger_eMfd0Mtg0 + hSource->eId*2);
+            }
+#endif
         }
         BVDC_P_Feeder_Init(hSource->hMpegFeeder, NULL, bGfxSrc, bMtgSrc);
         pNewInfo->eCtInputType = BVDC_P_CtInput_eMpeg;
@@ -1604,6 +1631,14 @@ void BVDC_P_Source_FindLockWindow_isr
                         hSource->ulTransferLock        = 0;
 #endif
 
+#if BVDC_P_SUPPORT_RDC_STC_FLAG
+                        /* synclocked MFD source's STC flag triggered by the sync-locked CMP/VEC */
+                        if(hSource->ulStcFlag != BRDC_MAX_STC_FLAG_COUNT)
+                        {
+                            BRDC_ConfigureStcFlag_isr(hSource->hVdc->hRdc, hSource->ulStcFlag,
+                                BRDC_Trigger_eCmp_0Trig0 + hSource->hSyncLockCompositor->eId*2);
+                        }
+#endif
                         /* Notify callback event that synclock window has changed */
                         if(hTmpWindow->stCurInfo.stCbSettings.stMask.bSyncLock)
                         {
@@ -1761,6 +1796,15 @@ void BVDC_P_Source_ConnectWindow_isr
                 }
             }
         }
+
+#if BVDC_P_SUPPORT_RDC_STC_FLAG
+        /* synclocked MFD source's STC flag triggered by the sync-locked CMP/VEC */
+        if(hSource->ulStcFlag != BRDC_MAX_STC_FLAG_COUNT)
+        {
+            BRDC_ConfigureStcFlag_isr(hSource->hVdc->hRdc, hSource->ulStcFlag,
+                BRDC_Trigger_eCmp_0Trig0 + hSource->hSyncLockCompositor->eId*2);
+        }
+#endif
     }
 #if BVDC_P_SUPPORT_STG
     else if((BVDC_P_SRC_IS_MPEG(hSource->eId)) &&
@@ -1936,6 +1980,14 @@ void BVDC_P_Source_DisconnectWindow_isr
                 hWindow->hCompositor->hSyncLockWin = hTmpWindow;
                 hWindow->hCompositor->hSyncLockSrc = hTmpSource;
 
+#if BVDC_P_SUPPORT_RDC_STC_FLAG
+                /* synclocked MFD source's STC flag triggered by the sync-locked CMP/VEC */
+                if(hTmpSource->ulStcFlag != BRDC_MAX_STC_FLAG_COUNT)
+                {
+                    BRDC_ConfigureStcFlag_isr(hTmpSource->hVdc->hRdc, hTmpSource->ulStcFlag,
+                        BRDC_Trigger_eCmp_0Trig0 + hTmpSource->hSyncLockCompositor->eId*2);
+                }
+#endif
                 /* Notify callback event that synclock window has changed */
                 if(hTmpWindow->stCurInfo.stCbSettings.stMask.bSyncLock)
                 {

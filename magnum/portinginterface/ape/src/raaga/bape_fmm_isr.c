@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Audio Decoder Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bstd.h"
@@ -31,9 +51,7 @@
 
 static void BAPE_P_BfEsr1_isr(void *pParam1, int param2);
 static void BAPE_P_BfEsr2_isr(void *pParam1, int param2);
-#endif
-
-#ifdef BCHP_AUD_INTH_REG_START
+#elif defined BCHP_AUD_INTH_REG_START
 #include "bchp_int_id_aud_inth.h"
 #include "bchp_aud_fmm_bf_esr.h"
 
@@ -51,15 +69,20 @@ BERR_Code BAPE_P_InitInterrupts(
     BERR_Code errCode;
     uint32_t intId;
 
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(errCode);
+    BSTD_UNUSED(intId);
+
     /* Clear the L3 interrupts before enabling any callbacks */
-#ifdef BCHP_AUD_FMM_BF_ESR2_H_MASK_SET
+#if defined BCHP_AUD_FMM_BF_ESR2_H_MASK_SET
     BREG_Write32(handle->regHandle, BCHP_AUD_FMM_BF_ESR2_H_MASK_SET, 0xffffffff&~BCHP_MASK(AUD_FMM_BF_ESR2_H_MASK_SET, reserved0));
     intId = BCHP_INT_ID_FMM_BF2;
-#else
+#elif defined BCHP_AUD_FMM_BF_ESR_ESR2_MASK_SET
     BREG_Write32(handle->regHandle, BCHP_AUD_FMM_BF_ESR_ESR2_MASK_SET, 0xffffffff&~BCHP_MASK(AUD_FMM_BF_ESR_ESR2_MASK_SET, reserved0));
     intId = BCHP_INT_ID_AUD_BF2;
 #endif
     
+#if defined(BCHP_AIO_INTH_REG_START) || defined(BCHP_AUD_INTH_REG_START)
     /* Install the L2 handler */
     errCode = BINT_CreateCallback(&handle->isrBfEsr2,
                                   handle->intHandle,
@@ -74,6 +97,7 @@ BERR_Code BAPE_P_InitInterrupts(
     }
 
     BINT_EnableCallback(handle->isrBfEsr2);
+#endif
 
 #ifdef BCHP_AIO_INTH_REG_START
     /* Clear the L3 interrupts before enabling any callbacks */
@@ -93,7 +117,7 @@ BERR_Code BAPE_P_InitInterrupts(
     }
 
     BINT_EnableCallback(handle->isrBfEsr1);
-#else
+#elif defined BCHP_AUD_INTH_REG_START
     /* Clear the L3 interrupts before enabling any callbacks */
     BREG_Write32(handle->regHandle, BCHP_AUD_FMM_BF_ESR_ESR3_MASK_SET, 0xffffffff&~BCHP_MASK(AUD_FMM_BF_ESR_ESR3_MASK_SET, reserved0));
 
@@ -131,7 +155,7 @@ BERR_Code BAPE_P_InitInterrupts(
     BINT_EnableCallback(handle->isrBfEsr4);
 #endif    
 
-    return errCode;
+    return BERR_SUCCESS;
 }
 
 void BAPE_P_UninitInterrupts(
@@ -179,6 +203,7 @@ void BAPE_P_UninitInterrupts(
     }
 }
 
+#if BAPE_CHIP_MAX_SFIFOS > 0
 BERR_Code BAPE_P_SetSourceChannelFreemarkInterrupt(
     BAPE_Handle handle,
     unsigned sourceChannelId,
@@ -190,9 +215,9 @@ BERR_Code BAPE_P_SetSourceChannelFreemarkInterrupt(
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Device);
 
-    if ( sourceChannelId >= BAPE_CHIP_MAX_SFIFOS )
+    if ( sourceChannelId >= (unsigned)BAPE_CHIP_MAX_SFIFOS )
     {
-        BDBG_ASSERT(sourceChannelId < BAPE_CHIP_MAX_SFIFOS);
+        BDBG_ASSERT(sourceChannelId < (unsigned)BAPE_CHIP_MAX_SFIFOS);
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -232,7 +257,9 @@ BERR_Code BAPE_P_SetSourceChannelFreemarkInterrupt(
 
     return BERR_SUCCESS;
 }
+#endif
 
+#if BAPE_CHIP_MAX_DFIFOS > 0
 BERR_Code BAPE_P_SetDfifoFullmarkInterrupt(
     BAPE_Handle handle,
     unsigned destChannelId,
@@ -244,9 +271,9 @@ BERR_Code BAPE_P_SetDfifoFullmarkInterrupt(
     uint32_t bitmask;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Device);
-    if ( destChannelId >= BAPE_CHIP_MAX_DFIFOS )
+    if ( destChannelId >= (unsigned)BAPE_CHIP_MAX_DFIFOS )
     {
-        BDBG_ASSERT(destChannelId < BAPE_CHIP_MAX_DFIFOS);
+        BDBG_ASSERT(destChannelId < (unsigned)BAPE_CHIP_MAX_DFIFOS);
         return BERR_TRACE(BERR_INVALID_PARAMETER);;
     }
 
@@ -298,9 +325,9 @@ BERR_Code BAPE_P_SetDfifoOverflowInterrupt(
     uint32_t bitmask;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Device);
-    if ( destChannelId >= BAPE_CHIP_MAX_DFIFOS )
+    if ( destChannelId >= (unsigned)BAPE_CHIP_MAX_DFIFOS )
     {
-        BDBG_ASSERT(destChannelId < BAPE_CHIP_MAX_DFIFOS);
+        BDBG_ASSERT(destChannelId < (unsigned)BAPE_CHIP_MAX_DFIFOS);
         return BERR_TRACE(BERR_INVALID_PARAMETER);;
     }
 
@@ -340,6 +367,7 @@ BERR_Code BAPE_P_SetDfifoOverflowInterrupt(
 
     return BERR_SUCCESS;
 }
+#endif
 
 #ifdef BCHP_AIO_INTH_REG_START
 static void BAPE_P_BfEsr1_isr(void *pParam1, int param2)
@@ -425,7 +453,7 @@ static void BAPE_P_BfEsr2_isr(void *pParam1, int param2)
 
     BINT_EnableCallback_isr(deviceHandle->isrBfEsr2);
 }
-#else
+#elif defined BCHP_AUD_INTH_REG_START
 /* 7429-style interrupts */
 static void BAPE_P_BfEsr2_isr(void *pParam1, int param2)
 {
@@ -525,5 +553,4 @@ static void BAPE_P_BfEsr4_isr(void *pParam1, int param2)
 
     BINT_EnableCallback_isr(deviceHandle->isrBfEsr4);
 }
-
 #endif

@@ -186,6 +186,7 @@ typedef struct BVC5_P_Handle
 #endif
 
    bool                       bCollectLoadStats;         /* Do we want to gather load statistics for each client?                */
+   uint32_t                   uiCyclesPerUs;             /* Used for both load statistics and event monitoring                   */
 } BVC5_P_Handle;
 
 BVC5_BinPoolHandle BVC5_P_GetBinPool(

@@ -696,12 +696,13 @@ int bmp4_parse_sample_enc_extended_box(bmp4_mp4_frag_headers *frag_header, batom
 
             frag_header->samples_info.flags = fullbox.flags;
             pSample = frag_header->samples_info.samples;
-            BKNI_Memset(pSample, 0, sizeof(SampleInfo));
+            BKNI_Memset(pSample, 0, sizeof(SampleInfo) * frag_header->samples_info.sample_count);
 
             for(i = 0; i < frag_header->samples_info.sample_count; i++){
                 /* pr_decryptor will take care of byte order */
                 batom_cursor_copy(cursor, pSample->iv, 8);
                 BKNI_Memset(&pSample->iv[8], 0, 8);
+                pSample->size = frag_header->sample_info[i].size;
 
                 if (frag_header->samples_info.flags & 0x000002) {
                     pSample->nbOfEntries = batom_cursor_uint16_be(cursor);

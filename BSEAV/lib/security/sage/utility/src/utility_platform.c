@@ -66,7 +66,6 @@ BDBG_MODULE(utility_tl);
      ((uint8_t *)(pBuf))[3])
 
 /* definitions */
-#define DEFAULT_DRM_BIN_FILESIZE (128*1024)
 #define OVERWRITE_BIN_FILE (1)
 
 static int Utility_ModuleCounter = 0;
@@ -254,8 +253,6 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
             rc = BERR_OUT_OF_SYSTEM_MEMORY;
             goto ErrorExit;
         }
-
-        BDBG_MSG(("%s - Error validating file size in header (%u ?=? %u)", BSTD_FUNCTION, filesize_from_header, filesize));
 
         /* All index '0' shared blocks will be reserved for drm bin file data */
 
@@ -469,8 +466,6 @@ Utility_ModuleLoadDrmBin(const char * drm_bin_filename,
         goto ErrorExit;
     }
 
-    BDBG_MSG(("%s - Error validating file size in header (%u ?=? %u)", BSTD_FUNCTION, filesize_from_header, filesize));
-
     /* All index '0' shared blocks will be reserved for drm bin file data */
 
     container->blocks[0].len = filesize_from_header;
@@ -548,16 +543,6 @@ Utility_P_CheckDrmBinFileSize(void)
     drm_bin_header_t *pHeader = (drm_bin_header_t *)drm_bin_file_buff;
 
     tmp_file_size = GET_UINT32_FROM_BUF(pHeader->bin_file_size);
-    if(tmp_file_size > DEFAULT_DRM_BIN_FILESIZE)
-    {
-        if(drm_bin_file_buff != NULL){
-            SRAI_Memory_Free(drm_bin_file_buff);
-            drm_bin_file_buff = NULL;
-        }
-        drm_bin_file_buff = SRAI_Memory_Allocate(tmp_file_size, SRAI_MemoryType_Shared);
-
-        BKNI_Memset(drm_bin_file_buff, 0x00, tmp_file_size);
-    }
 
     BDBG_MSG(("%s - tmp_file_size=%u", BSTD_FUNCTION, tmp_file_size));
 
@@ -592,14 +577,6 @@ static BERR_Code Utility_P_GetFileSize(const char * filename, uint32_t *filesize
     if(pos == -1)
     {
         BDBG_ERR(("%s - Error determining position of file pointer of file '%s'.  (%s)", BSTD_FUNCTION, filename, strerror(errno)));
-        rc = BERR_OS_ERROR;
-        goto ErrorExit;
-    }
-
-    /* check vs. max SAGE SRAM size */
-    if(pos > DEFAULT_DRM_BIN_FILESIZE)
-    {
-        BDBG_ERR(("%s - Invalid file size detected for of file '%s'.  (%u)", BSTD_FUNCTION, filename, pos));
         rc = BERR_OS_ERROR;
         goto ErrorExit;
     }

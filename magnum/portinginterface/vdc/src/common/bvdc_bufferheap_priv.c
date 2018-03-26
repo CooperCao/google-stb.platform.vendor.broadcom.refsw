@@ -1519,7 +1519,9 @@ BERR_Code BVDC_P_BufferHeap_Create
     *phHeap = (BVDC_P_BufferHeap_Handle)pBufferHeap;
 
     /* What's the output */
+    BKNI_EnterCriticalSection();
     BVDC_P_BufferHeap_Dump_isr(pBufferHeap);
+    BKNI_LeaveCriticalSection();
 
     BDBG_LEAVE(BVDC_P_BufferHeap_Create);
     return err;

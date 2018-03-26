@@ -49,6 +49,15 @@ typedef enum NEXUS_SecurityCpuContext
     NEXUS_SecurityCpuContext_eMax
 }NEXUS_SecurityCpuContext;
 
+typedef enum NEXUS_SigningAuthority
+{
+    NEXUS_SigningAuthority_eBroadcom,
+    NEXUS_SigningAuthority_eCaVendor,
+
+    NEXUS_SigningAuthority_eMax
+}NEXUS_SigningAuthority;
+
+
 
 typedef enum NEXUS_SecurityRegion
 {

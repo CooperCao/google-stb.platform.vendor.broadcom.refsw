@@ -822,18 +822,39 @@ NEXUS_HeapHandle NEXUS_Heap_GetHeapFromMmaHandle( BMMA_Heap_Handle mma )
 
 void NEXUS_Memory_PrintHeaps( void )
 {
-    unsigned i;
+    unsigned j;
+    bool printed[NEXUS_MAX_HEAPS];
     NEXUS_Error rc;
     BDBG_MODULE_LOG(nexus_core, ("heap offset memc size        MB vaddr      used peak name"));
-    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+    for (j=0;j<NEXUS_MAX_HEAPS;j++) {
+        printed[j]=false;
+    }
+    for (j=0;j<NEXUS_MAX_HEAPS;j++) {
         NEXUS_MemoryStatus status;
         NEXUS_HeapHandle heap;
         char buf[128];
         unsigned size_percentage;
         void *addr;
+        int max_offset=-1;
+        int i;
+
+        for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+            heap = g_pCoreHandles->heap[i].nexus;
+
+            if(heap && (max_offset < 0 || heap->settings.offset > g_pCoreHandles->heap[max_offset].nexus->settings.offset)) {
+                if(!printed[i]) {
+                    max_offset = i;
+                }
+            }
+        }
+        if(max_offset<0) {
+            break;
+        }
+        i=max_offset;
+        printed[i] = true;
 
         heap = g_pCoreHandles->heap[i].nexus;
-        if (!heap) continue;
+        BDBG_ASSERT(heap);
         rc = NEXUS_Heap_GetStatus_driver(heap, &status);
         if (rc) continue;
         size_percentage = status.size/100; /* avoid overflow by dividing size by 100 to get percentage */
@@ -1439,15 +1460,15 @@ NEXUS_Error NEXUS_Heap_SetRuntimeSettings_priv( NEXUS_HeapHandle heap, const NEX
     NEXUS_Error rc;
     BMRC_MonitorRegion_Settings regionSettings;
     static const BMRC_Monitor_HwBlock secureClients[] = {
+        BMRC_Monitor_HwBlock_eMEMC,
+        BMRC_Monitor_HwBlock_eBSP,
+        BMRC_Monitor_HwBlock_eSCPU,
         BMRC_Monitor_HwBlock_eAUD,
         BMRC_Monitor_HwBlock_eAVD,
-        BMRC_Monitor_HwBlock_eBSP,
         BMRC_Monitor_HwBlock_eBVN,
-        BMRC_Monitor_HwBlock_eMEMC,
         BMRC_Monitor_HwBlock_eM2MC,
         BMRC_Monitor_HwBlock_e3D,
         BMRC_Monitor_HwBlock_ePREFETCH,
-        BMRC_Monitor_HwBlock_eSCPU,
         BMRC_Monitor_HwBlock_eVICE,
         BMRC_Monitor_HwBlock_eXPT,
         BMRC_Monitor_HwBlock_eCPU /* only for os64 */
@@ -1473,6 +1494,9 @@ NEXUS_Error NEXUS_Heap_SetRuntimeSettings_priv( NEXUS_HeapHandle heap, const NEX
     regionSettings.addr = heap->settings.offset;
     regionSettings.length = heap->settings.length;
     if (pSettings->secure) {
+        if( (heap->settings.heapType & NEXUS_HEAP_TYPE_SAGE_RESTRICTED_REGION) == NEXUS_HEAP_TYPE_SAGE_RESTRICTED_REGION) {
+            numSecureClients = 3; /* only MEMC, SCPU and BSP could access SRR */
+        }
         rc = BMRC_MonitorRegion_Add(g_NexusCore.publicHandles.memc[heap->settings.memcIndex].rmm, &heap->secureMonitorRegion, &regionSettings, secureClients, numSecureClients);
         if(rc!=BERR_SUCCESS) return BERR_TRACE(rc);
         if (heap->settings.memoryType & NEXUS_MEMORY_TYPE_SECURE) {
@@ -1480,6 +1504,9 @@ NEXUS_Error NEXUS_Heap_SetRuntimeSettings_priv( NEXUS_HeapHandle heap, const NEX
         }
     }
     else {
+        if( (heap->settings.heapType & NEXUS_HEAP_TYPE_SAGE_RESTRICTED_REGION) == NEXUS_HEAP_TYPE_SAGE_RESTRICTED_REGION) {
+            return BERR_TRACE(NEXUS_NOT_SUPPORTED); /* Can't remove 'secure' tag from the SRR heap */
+        }
         BMRC_MonitorRegion_Remove(g_NexusCore.publicHandles.memc[heap->settings.memcIndex].rmm, heap->secureMonitorRegion);
         heap->secureMonitorRegion = NULL;
         if (heap->settings.memoryType & NEXUS_MEMORY_TYPE_SECURE) {

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 
 #include "nexus_platform.h"
@@ -157,7 +149,6 @@ int main(void)
     NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
     graphicsSettings.enabled = true;
     NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
-    NEXUS_Display_SetGraphicsFramebuffer(display, surface);
     
     NEXUS_Graphics2D_GetDefaultBlitSettings(&blitSettings);
     blitSettings.source.surface = surface;
@@ -172,6 +163,7 @@ int main(void)
         rc = BKNI_WaitForEvent(checkpointEvent, BKNI_INFINITE);
     }
     BDBG_ASSERT(!rc);
+    NEXUS_Display_SetGraphicsFramebuffer(display, surface);
     printf("non-colorkey copy blit\n");
     
     /* the replace/replaceMask is only used for scaling. it is the value used instead of the color key value when filtering neighboring pixels.
@@ -221,6 +213,7 @@ int main(void)
         rc = BKNI_WaitForEvent(checkpointEvent, BKNI_INFINITE);
     }
     BDBG_ASSERT(!rc);
+    NEXUS_Display_SetGraphicsFramebuffer(display, surface);
     printf("Match Action=NO-COPY,  No-Match Action=COPY.\n");
 
     printf("Press ENTER for next\n");
@@ -253,6 +246,7 @@ int main(void)
         rc = BKNI_WaitForEvent(checkpointEvent, BKNI_INFINITE);
     }
     BDBG_ASSERT(!rc);
+    NEXUS_Display_SetGraphicsFramebuffer(display, surface);
     printf("Match Action=FILL,         No-Match Action=COPY.\n");
     
     printf("Press ENTER for next\n");
@@ -293,6 +287,7 @@ int main(void)
         rc = BKNI_WaitForEvent(checkpointEvent, BKNI_INFINITE);
     }
     BDBG_ASSERT(!rc);
+    NEXUS_Display_SetGraphicsFramebuffer(display, surface);
     printf("Match Action=FILL,         No-Match Action=NO-COPY.\n");
     
     printf("Press ENTER for next\n");
@@ -328,6 +323,7 @@ int main(void)
         rc = BKNI_WaitForEvent(checkpointEvent, BKNI_INFINITE);
     }
     BDBG_ASSERT(!rc);
+    NEXUS_Display_SetGraphicsFramebuffer(display, surface);
     printf("Match Action=COPY,         No-Match Action=NO-COPY.\n");
     
     printf("Press ENTER for next\n");
@@ -368,6 +364,7 @@ int main(void)
         rc = BKNI_WaitForEvent(checkpointEvent, BKNI_INFINITE);
     }
     BDBG_ASSERT(!rc);
+    NEXUS_Display_SetGraphicsFramebuffer(display, surface);
     printf("Match Action=NO-COPY,  No-Match Action=FILL.\n");
     
     printf("Press ENTER to exit\n");

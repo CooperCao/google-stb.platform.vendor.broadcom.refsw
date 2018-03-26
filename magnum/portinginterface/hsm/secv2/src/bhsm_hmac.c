@@ -43,6 +43,7 @@
 #include "bhsm_hmac.h"
 #include "bhsm_p_crypto.h"
 #include "bhsm_priv.h"
+#include "bsp_types.h"
 
 BDBG_MODULE( BHSM );
 
@@ -149,7 +150,6 @@ BERR_Code BHSM_Hmac_SubmitData( BHSM_HmacHandle handle, BHSM_HmacSubmitData *pDa
     bspConfig.in.dataAddrLo = pData->dataOffset & 0xFFFFFFFF;
     bspConfig.in.dataLengthBytes = pData->dataSize;
     bspConfig.in.shaType = _BspHashType( pInstance->settings.hashType );
-    bspConfig.in.keyType = pInstance->settings.keySource;
 
     switch( pInstance->settings.keySource )
     {
@@ -160,6 +160,7 @@ BERR_Code BHSM_Hmac_SubmitData( BHSM_HmacHandle handle, BHSM_HmacSubmitData *pDa
             if( rc != BERR_SUCCESS ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
             bspConfig.in.vklId = keyladderInfo.index;
             bspConfig.in.keyLayer = pInstance->settings.key.keyladder.level;
+            bspConfig.in.keyType = Bsp_Crypto_HmacKeyType_eVkl;
             break;
         }
         case BHSM_HmacKeySource_eSoftwareKey:
@@ -176,9 +177,14 @@ BERR_Code BHSM_Hmac_SubmitData( BHSM_HmacHandle handle, BHSM_HmacSubmitData *pDa
             BDBG_CASSERT( sizeof(pInstance->settings.key.softKey) <= sizeof(bspConfig.in.userHmacKey) );
             if( keySize > sizeof(pInstance->settings.key.softKey) ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
             BHSM_MemcpySwap( bspConfig.in.userHmacKey, pInstance->settings.key.softKey, keySize );
+            bspConfig.in.keyType = Bsp_Crypto_HmacKeyType_eUser;
             break;
         }
-        case BHSM_HmacKeySource_eRpmb: { return BERR_TRACE(BERR_NOT_SUPPORTED); break; }
+        case BHSM_HmacKeySource_eRpmb:
+        {
+            bspConfig.in.keyType = Bsp_Crypto_HmacKeyType_eRpmb;
+            break;
+        }
         default: { return BERR_TRACE(BERR_INVALID_PARAMETER); }
     }
 

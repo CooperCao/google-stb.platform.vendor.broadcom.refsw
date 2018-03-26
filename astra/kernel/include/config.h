@@ -65,6 +65,7 @@
 
 #define INIT_STACK_SIZE  (1024 * 4)
 #define MON_STACK_SIZE   (1024 * 4)
+#define FIQ_STACK_SIZE   (1024 * 4)
 
 #define MAX_NUM_CPUS   4
 
@@ -82,5 +83,9 @@
 #define ARCH_PAGE_SIZE          4096
 
 #define ARCH_HALT()  while (1) { asm volatile ("wfi":::); }
+
+
+#define ARMV8_BOOT_MODE  0
+#define ARMV7_BOOT_MODE  0xffffffff
 
 #endif

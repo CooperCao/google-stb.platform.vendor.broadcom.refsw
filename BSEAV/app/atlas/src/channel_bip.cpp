@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -248,23 +248,23 @@ void CChannelBip::getStats(void)
         BDBG_WRN(("--------------------------------------------------"));
         BDBG_WRN(("\n totalConsumed                    = %lld\n"
                   " bytesReceived                    = " BDBG_INT64_DEC_FMT "\n"
-                  " packetsReceived                  = %u\n"
-                  " packetsDiscarded                 = %u\n"
-                  " packetsOutOfSequence             = %u\n"
-                  " packetsLost                      = %u\n"
-                  " lossEvents                       = %u\n"
-                  " packetsLostBeforeErrorCorrection = %u\n"
-                  " lossEventsBeforeErrorCorrection  = %u",
-                pStatus.stats.totalConsumed,
-                BDBG_INT64_DEC_ARG(buf,pStatus.stats.rtpStats.bytesReceived),
-                pStatus.stats.rtpStats.packetsReceived,
-                pStatus.stats.rtpStats.packetsDiscarded,
-                pStatus.stats.rtpStats.packetsOutOfSequence,
-                pStatus.stats.rtpStats.packetsLost,
-                pStatus.stats.rtpStats.lossEvents,
-                pStatus.stats.rtpStats.packetsLostBeforeErrorCorrection,
-                pStatus.stats.rtpStats.lossEventsBeforeErrorCorrection));
-        BDBG_WRN(("Stream Protocol %s",protocol.s()));
+                                                                            " packetsReceived                  = %u\n"
+                                                                            " packetsDiscarded                 = %u\n"
+                                                                            " packetsOutOfSequence             = %u\n"
+                                                                            " packetsLost                      = %u\n"
+                                                                            " lossEvents                       = %u\n"
+                                                                            " packetsLostBeforeErrorCorrection = %u\n"
+                                                                            " lossEventsBeforeErrorCorrection  = %u",
+                  pStatus.stats.totalConsumed,
+                  BDBG_INT64_DEC_ARG(buf, pStatus.stats.rtpStats.bytesReceived),
+                  pStatus.stats.rtpStats.packetsReceived,
+                  pStatus.stats.rtpStats.packetsDiscarded,
+                  pStatus.stats.rtpStats.packetsOutOfSequence,
+                  pStatus.stats.rtpStats.packetsLost,
+                  pStatus.stats.rtpStats.lossEvents,
+                  pStatus.stats.rtpStats.packetsLostBeforeErrorCorrection,
+                  pStatus.stats.rtpStats.lossEventsBeforeErrorCorrection));
+        BDBG_WRN(("Stream Protocol %s", protocol.s()));
         BDBG_WRN(("--------------------------------------------------"));
     }
     notifyObservers(eNotify_ChannelStatsShown, NULL);

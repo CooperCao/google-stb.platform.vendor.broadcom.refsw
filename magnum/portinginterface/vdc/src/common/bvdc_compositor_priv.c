@@ -121,6 +121,193 @@ static const BVDC_P_Compositor_Features s_aHydraCompositorFeatures
      BVDC_P_CMP_6_MAX_WINDOW_COUNT}
 };
 
+/***************************************************************************
+ * {private}
+ *
+ */
+void BVDC_P_Compositor_GetCfcCapabilities
+    ( BREG_Handle                      hRegister,
+      BVDC_CompositorId                eCmpId,
+      BVDC_WindowId                    eWinId,
+      BCFC_Capability                 *pCapability )
+{
+    uint32_t ulRegOffset = 0;
+#if defined(BCHP_CMP_0_HW_CONFIGURATION) && !defined(BVDC_FOR_BOOTUPDATER)
+    uint32_t ulHwCfg;
+#endif
+
+    BKNI_Memset((void*)pCapability, 0x0, sizeof(pCapability));
+    pCapability->stBits.bMc = 1;
+
+    switch(eCmpId)
+    {
+        case BVDC_CompositorId_eCompositor0:
+            ulRegOffset = 0;
+            break;
+#if (BVDC_P_CMP_1_MAX_WINDOW_COUNT)
+        case BVDC_CompositorId_eCompositor1:
+            ulRegOffset = BCHP_CMP_1_REG_START - BCHP_CMP_0_REG_START;
+            break;
+#endif
+#if (BVDC_P_CMP_2_MAX_WINDOW_COUNT)
+        case BVDC_CompositorId_eCompositor2:
+            ulRegOffset = BCHP_CMP_2_REG_START - BCHP_CMP_0_REG_START;
+            break;
+#endif
+#if (BVDC_P_CMP_3_MAX_WINDOW_COUNT)
+        case BVDC_CompositorId_eCompositor3:
+            ulRegOffset = BCHP_CMP_3_REG_START - BCHP_CMP_0_REG_START;
+            break;
+#endif
+#if (BVDC_P_CMP_4_MAX_WINDOW_COUNT)
+        case BVDC_CompositorId_eCompositor4:
+            ulRegOffset = BCHP_CMP_4_REG_START - BCHP_CMP_0_REG_START;
+            break;
+#endif
+#if (BVDC_P_CMP_5_MAX_WINDOW_COUNT)
+        case BVDC_CompositorId_eCompositor5:
+            ulRegOffset = BCHP_CMP_5_REG_START - BCHP_CMP_0_REG_START;
+            break;
+#endif
+#if (BVDC_P_CMP_6_MAX_WINDOW_COUNT)
+        case BVDC_CompositorId_eCompositor6:
+            ulRegOffset = BCHP_CMP_6_REG_START - BCHP_CMP_0_REG_START;
+            break;
+#endif
+        default:
+            BDBG_ERR(("Need to handle BVDC_CompositorId_eCompositor%d", eCmpId));
+            BDBG_ASSERT(0);
+            break;
+    }
+
+#ifndef BVDC_FOR_BOOTUPDATER
+
+#ifdef BCHP_CMP_0_HW_CONFIGURATION
+    ulHwCfg = BREG_Read32(hRegister,
+        BCHP_CMP_0_HW_CONFIGURATION + ulRegOffset);
+
+    if(eWinId == BVDC_WindowId_eVideo0) {
+#ifdef BCHP_CMP_0_HW_CONFIGURATION_V0_Ma_CSC_Present_SHIFT
+        pCapability->stBits.bMa = BVDC_P_GET_FIELD(
+            ulHwCfg, CMP_0_HW_CONFIGURATION, V0_Ma_CSC_Present);
+#endif
+#ifdef BCHP_CMP_0_HW_CONFIGURATION_V0_NL_LUT_Present_SHIFT
+        pCapability->stBits.bNL2L = pCapability->stBits.bL2NL =
+        BVDC_P_GET_FIELD(ulHwCfg, CMP_0_HW_CONFIGURATION, V0_NL_LUT_Present);
+#endif
+    } else if(eWinId == BVDC_WindowId_eVideo1) {
+#ifdef BCHP_CMP_0_HW_CONFIGURATION_V1_Ma_CSC_Present_SHIFT
+        pCapability->stBits.bMa = BVDC_P_GET_FIELD(
+            ulHwCfg, CMP_0_HW_CONFIGURATION, V1_Ma_CSC_Present);
+#endif
+#ifdef BCHP_CMP_0_HW_CONFIGURATION_V1_NL_LUT_Present_SHIFT
+        pCapability->stBits.bNL2L = pCapability->stBits.bL2NL =
+            BVDC_P_GET_FIELD(ulHwCfg, CMP_0_HW_CONFIGURATION, V1_NL_LUT_Present);
+#endif
+    }
+
+/* 7271 b0 and newer uses BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG
+ * 7271 a0 uses BCHP_CMP_0_HW_CONFIGURATION as above */
+#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG
+    if(BVDC_CompositorId_eCompositor0 == eCmpId)
+    {
+#ifdef BCHP_HDR_CMP_0_HDR_V1_HW_CONFIG
+        ulHwCfg = BREG_Read32(hRegister,
+            ((eWinId == BVDC_WindowId_eVideo0)? BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG : BCHP_HDR_CMP_0_HDR_V1_HW_CONFIG) + ulRegOffset);
+#else
+        ulHwCfg = BREG_Read32(hRegister,
+            BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG + ulRegOffset);
+#endif
+
+#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_CSC_MA_PRESENT_SHIFT
+        pCapability->stBits.bMa = BVDC_P_GET_FIELD(
+            ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_CSC_MA_PRESENT);
+#endif
+#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_CSC_MB_PRESENT_SHIFT
+        pCapability->stBits.bMb = BVDC_P_GET_FIELD(
+            ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_CSC_MB_PRESENT);
+#endif
+#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_NL_LUT_PRESENT_SHIFT
+        pCapability->stBits.bNL2L = pCapability->stBits.bL2NL = BVDC_P_GET_FIELD(
+            ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_NL_LUT_PRESENT);
+#endif
+#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_LRNG_ADJ_PRESENT_SHIFT
+        pCapability->stBits.bLRngAdj = BVDC_P_GET_FIELD(
+            ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_LRNG_ADJ_PRESENT);
+#endif
+#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_LMR_PRESENT_SHIFT
+        pCapability->stBits.bLMR = BVDC_P_GET_FIELD(
+            ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_LMR_PRESENT);
+#endif
+#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_TP_PRESENT_SHIFT
+        pCapability->stBits.bTpToneMapping = BVDC_P_GET_FIELD(
+            ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_TP_PRESENT);
+#endif
+#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_DLBV_CVM_PRESENT_SHIFT
+        pCapability->stBits.bDbvToneMapping = BVDC_P_GET_FIELD(
+            ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_DLBV_CVM_PRESENT);
+#endif
+#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_DLBV_COMP_PRESENT_SHIFT
+        pCapability->stBits.bDbvCmp = BVDC_P_GET_FIELD(
+            ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_DLBV_COMP_PRESENT);
+#endif
+#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_ALPHA_DIV_PRESENT_SHIFT
+        pCapability->stBits.bAlphaDiv = BVDC_P_GET_FIELD(
+            ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, ALPHA_DIV_PRESENT);
+#endif
+#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CSC_BLD_IN_PRESENT_SHIFT
+        pCapability->stBits.bCscBlendIn = BVDC_P_GET_FIELD(
+            ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CSC_BLD_IN_PRESENT);
+#endif
+#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CSC_BLD_OUT_PRESENT_SHIFT
+        pCapability->stBits.bCscBlendOut = BVDC_P_GET_FIELD(
+            ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CSC_BLD_OUT_PRESENT);
+#endif
+#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_LUT_SCB_PRESENT_SHIFT
+        pCapability->stBits.bRamLutScb = BVDC_P_GET_FIELD(
+            ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, LUT_SCB_PRESENT);
+#endif
+        pCapability->stBits.bRamNL2L = pCapability->stBits.bNL2L;
+        pCapability->stBits.bRamL2NL = pCapability->stBits.bL2NL;
+    }
+#endif /* #ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG */
+
+/* 7271 A */
+#if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_2)
+    /* TODO: the following info in HW_CONFIGURATION is not right */
+    if (eCmpId == BVDC_CompositorId_eCompositor0)
+    {
+        pCapability->stBits.bMb = 1;
+        pCapability->stBits.bLRngAdj = 1;
+        pCapability->stBits.bNL2L = pCapability->stBits.bL2NL = 1;
+        if(eWinId == BVDC_WindowId_eVideo0) {
+            pCapability->stBits.bRamNL2L = pCapability->stBits.bRamL2NL = 1;
+        }
+    }
+#endif /* #if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_2) */
+
+#if (BCHP_CHIP==7439) && (BCHP_VER <= BCHP_VER_B1)
+    /* TODO: the following info in HW_CONFIGURATION is not right, create HW jira */
+    pCapability->stBits.bNL2L = pCapability->stBits.bL2NL = 1;
+    if (eCmpId == BVDC_CompositorId_eCompositor0)
+    {
+        pCapability->stBits.bMa = 1;
+    }
+#endif
+
+#endif /* #ifdef BCHP_CMP_0_HW_CONFIGURATION */
+
+#if (!defined(BCHP_CMP_0_HW_CONFIGURATION_V0_Ma_CSC_Present_SHIFT) && \
+     !defined(BCHP_CMP_0_HW_CONFIGURATION_V0_NL_LUT_Present_SHIFT) && \
+     !defined(BCHP_CMP_0_HW_CONFIGURATION_V1_Ma_CSC_Present_SHIFT) && \
+     !defined(BCHP_CMP_0_HW_CONFIGURATION_V1_NL_LUT_Present_SHIFT))
+    BSTD_UNUSED(ulHwCfg);
+#endif
+
+#endif /* #ifndef BVDC_FOR_BOOTUPDATER */
+
+    return;
+}
 
 /***************************************************************************
  * {private}
@@ -215,30 +402,14 @@ BERR_Code BVDC_P_Compositor_Create
             break;
     }
 
-    pCompositor->stCfcCapability[0].stBits.bMc = 1;
-    pCompositor->stCfcCapability[1].stBits.bMc = 1;
+    BVDC_P_Compositor_GetCfcCapabilities(hVdc->hRegister, eCompositorId, BVDC_WindowId_eVideo0, &pCompositor->stCfcCapability[0]);
+    BVDC_P_Compositor_GetCfcCapabilities(hVdc->hRegister, eCompositorId, BVDC_WindowId_eVideo1, &pCompositor->stCfcCapability[1]);
 
 #ifndef BVDC_FOR_BOOTUPDATER
 
 #ifdef BCHP_CMP_0_HW_CONFIGURATION
     ulHwCfg = BREG_Read32(hVdc->hRegister,
         BCHP_CMP_0_HW_CONFIGURATION + pCompositor->ulRegOffset);
-#ifdef BCHP_CMP_0_HW_CONFIGURATION_V0_Ma_CSC_Present_SHIFT
-    pCompositor->stCfcCapability[0].stBits.bMa = BVDC_P_GET_FIELD(
-        ulHwCfg, CMP_0_HW_CONFIGURATION, V0_Ma_CSC_Present);
-#endif
-#ifdef BCHP_CMP_0_HW_CONFIGURATION_V0_NL_LUT_Present_SHIFT
-    pCompositor->stCfcCapability[0].stBits.bNL2L = pCompositor->stCfcCapability[0].stBits.bL2NL =
-    BVDC_P_GET_FIELD(ulHwCfg, CMP_0_HW_CONFIGURATION, V0_NL_LUT_Present);
-#endif
-#ifdef BCHP_CMP_0_HW_CONFIGURATION_V1_Ma_CSC_Present_SHIFT
-    pCompositor->stCfcCapability[1].stBits.bMa = BVDC_P_GET_FIELD(
-        ulHwCfg, CMP_0_HW_CONFIGURATION, V1_Ma_CSC_Present);
-#endif
-#ifdef BCHP_CMP_0_HW_CONFIGURATION_V1_NL_LUT_Present_SHIFT
-    pCompositor->stCfcCapability[1].stBits.bNL2L = pCompositor->stCfcCapability[1].stBits.bL2NL =
-        BVDC_P_GET_FIELD(ulHwCfg, CMP_0_HW_CONFIGURATION, V1_NL_LUT_Present);
-#endif
 #ifdef BCHP_CMP_0_HW_CONFIGURATION_CORE_BVB_WIDTH_10_SHIFT
     pCompositor->bIs10BitCore = BVDC_P_GET_FIELD(
         ulHwCfg, CMP_0_HW_CONFIGURATION, CORE_BVB_WIDTH_10);
@@ -269,67 +440,6 @@ BERR_Code BVDC_P_Compositor_Create
 #ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG
     if(BVDC_CompositorId_eCompositor0 == pCompositor->eId)
     {
-        for (i=0; i<BVDC_P_CMP_0_MAX_VIDEO_WINDOW_COUNT; i++)
-        {
-#ifdef BCHP_HDR_CMP_0_HDR_V1_HW_CONFIG
-            ulHwCfg = BREG_Read32(hVdc->hRegister,
-                ((i==0)? BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG : BCHP_HDR_CMP_0_HDR_V1_HW_CONFIG) + pCompositor->ulRegOffset);
-#else
-            ulHwCfg = BREG_Read32(hVdc->hRegister,
-                BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG + pCompositor->ulRegOffset);
-#endif
-
-#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_CSC_MA_PRESENT_SHIFT
-            pCompositor->stCfcCapability[i].stBits.bMa = BVDC_P_GET_FIELD(
-                ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_CSC_MA_PRESENT);
-#endif
-#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_CSC_MB_PRESENT_SHIFT
-            pCompositor->stCfcCapability[i].stBits.bMb = BVDC_P_GET_FIELD(
-                ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_CSC_MB_PRESENT);
-#endif
-#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_NL_LUT_PRESENT_SHIFT
-            pCompositor->stCfcCapability[i].stBits.bNL2L = pCompositor->stCfcCapability[i].stBits.bL2NL = BVDC_P_GET_FIELD(
-                ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_NL_LUT_PRESENT);
-#endif
-#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_LRNG_ADJ_PRESENT_SHIFT
-            pCompositor->stCfcCapability[i].stBits.bLRngAdj = BVDC_P_GET_FIELD(
-                ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_LRNG_ADJ_PRESENT);
-#endif
-#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_LMR_PRESENT_SHIFT
-            pCompositor->stCfcCapability[i].stBits.bLMR = BVDC_P_GET_FIELD(
-                ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_LMR_PRESENT);
-#endif
-#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_TP_PRESENT_SHIFT
-            pCompositor->stCfcCapability[i].stBits.bTpToneMapping = BVDC_P_GET_FIELD(
-                ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_TP_PRESENT);
-#endif
-#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_DLBV_CVM_PRESENT_SHIFT
-            pCompositor->stCfcCapability[i].stBits.bDbvToneMapping = BVDC_P_GET_FIELD(
-                ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_DLBV_CVM_PRESENT);
-#endif
-#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_DLBV_COMP_PRESENT_SHIFT
-            pCompositor->stCfcCapability[i].stBits.bDbvCmp = BVDC_P_GET_FIELD(
-                ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_DLBV_COMP_PRESENT);
-#endif
-#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_ALPHA_DIV_PRESENT_SHIFT
-            pCompositor->stCfcCapability[i].stBits.bAlphaDiv = BVDC_P_GET_FIELD(
-                ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, ALPHA_DIV_PRESENT);
-#endif
-#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CSC_BLD_IN_PRESENT_SHIFT
-            pCompositor->stCfcCapability[i].stBits.bCscBlendIn = BVDC_P_GET_FIELD(
-                ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CSC_BLD_IN_PRESENT);
-#endif
-#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CSC_BLD_OUT_PRESENT_SHIFT
-            pCompositor->stCfcCapability[i].stBits.bCscBlendOut = BVDC_P_GET_FIELD(
-                ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CSC_BLD_OUT_PRESENT);
-#endif
-#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_LUT_SCB_PRESENT_SHIFT
-            pCompositor->stCfcCapability[i].stBits.bRamLutScb = BVDC_P_GET_FIELD(
-                ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, LUT_SCB_PRESENT);
-#endif
-            pCompositor->stCfcCapability[i].stBits.bRamNL2L = pCompositor->stCfcCapability[i].stBits.bNL2L;
-            pCompositor->stCfcCapability[i].stBits.bRamL2NL = pCompositor->stCfcCapability[i].stBits.bL2NL;
-        }
 #if BVDC_P_DBV_SUPPORT
         if(pCompositor->stCfcCapability[0].stBits.bDbvToneMapping) {
             eStatus = BVDC_P_Compositor_DbvInit(pCompositor);
@@ -350,32 +460,6 @@ BERR_Code BVDC_P_Compositor_Create
 #endif
     }
 #endif /* #ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG */
-
-/* 7271 A */
-#if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_2)
-    /* TODO: the following info in HW_CONFIGURATION is not right */
-    if (pCompositor->eId == BVDC_CompositorId_eCompositor0)
-    {
-        pCompositor->stCfcCapability[0].stBits.bMb = 1;
-        pCompositor->stCfcCapability[0].stBits.bLRngAdj = 1;
-        pCompositor->stCfcCapability[0].stBits.bNL2L = pCompositor->stCfcCapability[0].stBits.bL2NL = 1;
-        pCompositor->stCfcCapability[0].stBits.bRamNL2L = pCompositor->stCfcCapability[0].stBits.bRamL2NL = 1;
-        pCompositor->stCfcCapability[1].stBits.bMb = 1;
-        pCompositor->stCfcCapability[1].stBits.bLRngAdj = 1;
-        pCompositor->stCfcCapability[1].stBits.bNL2L = pCompositor->stCfcCapability[1].stBits.bL2NL = 1;
-    }
-#endif /* #if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_2) */
-
-#if (BCHP_CHIP==7439) && (BCHP_VER <= BCHP_VER_B1)
-    /* TODO: the following info in HW_CONFIGURATION is not right, create HW jira */
-    pCompositor->stCfcCapability[0].stBits.bNL2L = pCompositor->stCfcCapability[0].stBits.bL2NL = 1;
-    pCompositor->stCfcCapability[1].stBits.bNL2L = pCompositor->stCfcCapability[1].stBits.bL2NL = 1;
-    if (pCompositor->eId == BVDC_CompositorId_eCompositor0)
-    {
-        pCompositor->stCfcCapability[0].stBits.bMa = 1;
-        pCompositor->stCfcCapability[1].stBits.bMa = 1;
-    }
-#endif
 
 #endif /* #ifndef BVDC_FOR_BOOTUPDATER */
 
@@ -1502,7 +1586,7 @@ static void BVDC_P_Compositor_BuildRul_Video_isr
 #if BVDC_P_TCH_SUPPORT
         if ((hCompositor->stCfcCapability[0].stBits.bTpToneMapping) && (eVId == BVDC_P_WindowId_eComp0_V0))
         {
-            BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hCompositor->ahWindow[eVId]->pMainCfc->stColorSpaceExtIn.stColorSpace.pMetaData;
+            const BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hCompositor->ahWindow[eVId]->pMainCfc->stColorSpaceExtIn.stColorSpace.pMetaData;
             if (pMetaData && BCFC_IS_TCH(pMetaData->stTchInput.stHdrMetadata.eType))
             {
                 BVDC_P_Compositor_BuildTchVsyncRul_isr(hCompositor, pList);
@@ -2015,9 +2099,6 @@ void BVDC_P_Compositor_WindowsReader_isr
     eOutColorimetry = hCompositor->stOutColorSpaceExt.stColorSpace.eColorimetry;
     pFmtInfo = hCompositor->stCurInfo.pFmtInfo;
 
-    /* if no video window or with multiple video windows, set unknown hdr parameters */
-    hCompositor->bUnknownHdrParm = (hCompositor->ulActiveVideoWindow != 1);
-
     /* second pass: to adjust non-vbi-pass-thru window position;
        Note: adjustment is done in the second pass in case vwin0 has no pass-thru,
              but vwin1 has; */
@@ -2055,52 +2136,6 @@ void BVDC_P_Compositor_WindowsReader_isr
         if(BVDC_P_WIN_GET_FIELD_NAME(CMP_0_V0_DISPLAY_SIZE, HSIZE) > 704)
         {
             bWidthTrim = false;
-        }
-
-        /* set unknown video hdr parm if:
-            1) input video is SDR or HLG;
-            2) any video window is smaller than 1/4 screen;
-            3) mosaic mode;
-         */
-        if(BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId))
-        {
-#if BVDC_P_DBV_SUPPORT
-            BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)&hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.pMetaData;
-#endif
-            if((!BCFC_IS_HDR10(hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.eColorTF)
-#if BVDC_P_DBV_SUPPORT
-                && (pMetaData==NULL || (BAVC_HdrMetadataType_eDrpu != pMetaData->stDbvInput.stHdrMetadata.eType))
-#endif
-                ) ||
-               hWindow->stCurInfo.ulMosaicCount ||
-               BVDC_P_WIN_GET_FIELD_NAME(CMP_0_V0_DISPLAY_SIZE, HSIZE) <= pFmtInfo->ulDigitalWidth/4 ||
-               BVDC_P_WIN_GET_FIELD_NAME(CMP_0_V0_DISPLAY_SIZE, VSIZE) <= pFmtInfo->ulDigitalHeight/4)
-            {
-                hCompositor->bUnknownHdrParm = true;
-            }
-
-            if(hCompositor->bUnknownHdrParm)
-            {
-                BKNI_Memset_isr(&hCompositor->stHdrParm, 0, sizeof(BAVC_HDMI_DRMInfoFrameType1));
-            }
-            else
-#if BVDC_P_DBV_SUPPORT
-                if(pMetaData==NULL || BAVC_HdrMetadataType_eDrpu != pMetaData->stDbvInput.stHdrMetadata.eType)
-#endif
-            {
-                hCompositor->stHdrParm.DisplayMasteringLuminance.Max = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.ulMaxDispMasteringLuma / 10000;
-                hCompositor->stHdrParm.DisplayMasteringLuminance.Min = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.ulMinDispMasteringLuma;
-                hCompositor->stHdrParm.MaxContentLightLevel = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.ulMaxContentLight;
-                hCompositor->stHdrParm.MaxFrameAverageLightLevel = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.ulAvgContentLight;
-                hCompositor->stHdrParm.WhitePoint.X = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stWhitePoint.ulX;
-                hCompositor->stHdrParm.WhitePoint.Y = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stWhitePoint.ulY;
-                hCompositor->stHdrParm.DisplayPrimaries[0].X = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[0].ulX;
-                hCompositor->stHdrParm.DisplayPrimaries[0].Y = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[0].ulY;
-                hCompositor->stHdrParm.DisplayPrimaries[1].X = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[1].ulX;
-                hCompositor->stHdrParm.DisplayPrimaries[1].Y = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[1].ulY;
-                hCompositor->stHdrParm.DisplayPrimaries[2].X = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[2].ulX;
-                hCompositor->stHdrParm.DisplayPrimaries[2].Y = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[2].ulY;
-            }
         }
     }
 
@@ -2217,7 +2252,7 @@ void BVDC_P_Compositor_WindowsReader_isr
 #if BVDC_P_TCH_SUPPORT
     if (hCompositor->stCfcCapability[0].stBits.bTpToneMapping && hWindow0)
     {
-        BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hWindow0->pMainCfc->stColorSpaceExtIn.stColorSpace.pMetaData;
+        const BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hWindow0->pMainCfc->stColorSpaceExtIn.stColorSpace.pMetaData;
         if (pMetaData && BCFC_IS_TCH(pMetaData->stTchInput.stHdrMetadata.eType))
         {
             BVDC_P_Compositor_ApplyTchSettings_isr(hCompositor);

@@ -98,15 +98,27 @@ include $(FRAMEWORK_DIR)/build/magnum.inc
 # Specifies how magnum files and application files are built.
 include $(FRAMEWORK_DIR)/build/tools.inc
 
-ifneq ($(filter ${BCHP_CHIP}, 7260 7250 7271 7268 74371 7563 75635 7364), $(BCHP_CHIP))
+ifneq ($(filter ${BCHP_CHIP}, 7260 7250 7271 7268 74371 7563 75635 7364 7255), $(BCHP_CHIP))
 include $(MAGNUM_DIR)/portinginterface/vce/bvce_auth.inc
 endif
 include $(MAGNUM_DIR)/portinginterface/xvd/bxvd_auth.inc
-ifneq ($(filter ${BCHP_CHIP}, 7563 75635), $(BCHP_CHIP))
+
+ifneq ($(filter ${BCHP_CHIP}, 7260 7278 7563 75635 7255), $(BCHP_CHIP))
 include $(MAGNUM_DIR)/portinginterface/sid/bsid_auth.inc
 endif
+
+#7260 A0 has SID while 7260 B0 does not have SID
+ifeq ($(filter ${BCHP_CHIP}, 7260), $(BCHP_CHIP))
+ifeq (${BCHP_VER}, A0)
+include $(MAGNUM_DIR)/portinginterface/sid/bsid_auth.inc
+endif
+endif
+
+
 include $(MAGNUM_DIR)/portinginterface/xpt/bxpt_auth.inc
+ifneq ($(filter ${BCHP_CHIP}, 7255), $(BCHP_CHIP))
 include $(MAGNUM_DIR)/basemodules/dsp/bdsp_auth.inc
+endif
 
 # Determine list of all magnum sources and includes
 MAGNUM_SOURCES = $(foreach module, $(AUTH_MODULES), $(${module}_SOURCES))

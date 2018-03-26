@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 #include "drm_prdy.h"
 #include "bdbg.h"
@@ -129,6 +130,7 @@ typedef struct DRM_OPAQUE_BUFFER_HANDLE_INTERNAL
 
 static DRM_CONST_STRING   sDstrHDSPath = EMPTY_DRM_STRING;
 static DRM_WCHAR          sRgwchHDSPath[ DRM_MAX_PATH ];
+static DRM_WCHAR          sTmpwchHDSPath[ DRM_MAX_PATH ];
 
 /***********************************************************************************
  * Internal function to convert PlayReady SDK result into DRM_Prdy_Error_e.
@@ -5625,6 +5627,54 @@ DRM_Prdy_Error_e DRM_Prdy_GetSecureStoreHash(
 
     return convertDrmResult(dr);
 }
+/***********************************************************************************
+ * Function: DRM_Prdy_DeleteSecureStore_Ex()
+ ***********************************************************************************/
+DRM_Prdy_Error_e DRM_Prdy_DeleteSecureStore_Ex(const char     *pDstrHDSPath)
+{
+    DRM_RESULT          dr;
+    DRM_CONST_STRING   sHDSPath = EMPTY_DRM_STRING;
+
+    sHDSPath.pwszString = sTmpwchHDSPath;
+    sHDSPath.cchString = DRM_MAX_PATH;
+
+    if( convertCStringToWString((char *)pDstrHDSPath, (DRM_WCHAR*)sHDSPath.pwszString, &sHDSPath.cchString))
+    {
+        dr = DRM_E_FAIL;
+        goto Error;
+    }
+
+    dr = Drm_DeleteSecureStore(&sHDSPath);
+
+Error:
+    return convertDrmResult(dr);
+}
+
+/***********************************************************************************
+ * Function: DRM_Prdy_GetSecureStoreHash_Ex()
+ ***********************************************************************************/
+DRM_Prdy_Error_e DRM_Prdy_GetSecureStoreHash_Ex(
+    const char     *pDstrHDSPath,
+    uint8_t             *pSecureStoreHash )
+{
+    DRM_RESULT          dr;
+    DRM_CONST_STRING   sHDSPath = EMPTY_DRM_STRING;
+
+    sHDSPath.pwszString = sTmpwchHDSPath;
+    sHDSPath.cchString = DRM_MAX_PATH;
+
+    if( convertCStringToWString((char *)pDstrHDSPath, (DRM_WCHAR*)sHDSPath.pwszString, &sHDSPath.cchString))
+    {
+        dr = DRM_E_FAIL;
+        goto Error;
+    }
+
+    dr = Drm_GetSecureStoreHash(&sHDSPath, pSecureStoreHash);
+
+Error:
+    return convertDrmResult(dr);
+}
+
 
 /***********************************************************************************
  * Function: DRM_Prdy_DeleteKeyStore()

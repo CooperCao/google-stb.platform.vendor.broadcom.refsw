@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -46,7 +46,7 @@
 #include "mxmlelement.h"
 #include "xmltags.h"
 #include "nexus_pid_channel.h"
-#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION==1
+#if NEXUS_HAS_SECURITY && NEXUS_SECURITY_API_VERSION == 1
 #include "nexus_security_datatypes.h"
 #include "nexus_security_client.h"
 #else

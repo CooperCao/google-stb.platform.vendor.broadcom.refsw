@@ -67,7 +67,7 @@ void BHDR_P_DebugHdcpValues_isr(BHDR_Handle hHDR) ;
 void BHDR_DEBUG_P_ConfigureEventCounter(
 	BHDR_Handle hHDR, BHDR_DEBUG_P_EventCounter  *pEventCounter) ;
 
-void BHDR_DEBUG_P_ResetAllEventCounters_isr(BHDR_Handle hHDR) ;
+void BHDR_DEBUG_P_ResetAllEventCounters_isrsafe(BHDR_Handle hHDR) ;
 
 
 #endif

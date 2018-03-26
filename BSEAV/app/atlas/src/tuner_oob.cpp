@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -109,14 +109,9 @@ void CTunerOobScanData::dump()
     MListItr <uint32_t> itr(&_freqList);
     uint32_t *          pFreq = NULL;
 
-    BDBG_WRN(("tuner type:%d", getTunerType()));
-    BDBG_WRN(("List of OOB Scan Frequency Requests:"));
-    for (pFreq = (uint32_t *)itr.first(); pFreq; pFreq = (uint32_t *)itr.next())
-    {
-        BDBG_WRN(("freq:%u", *pFreq));
-    }
+    CTunerScanData::dump();
 
-    BDBG_WRN(("append to channel list:%d", _appendToChannelList));
+    BDBG_WRN(("mode:%d annex:%d", _mode, _annex));
 }
 
 CTunerOob::CTunerOob(
@@ -311,9 +306,28 @@ NEXUS_FrontendOutOfBandMode CTunerOob::getDefaultMode()
     }
 }
 
-void CTunerOob::saveScanData(CTunerScanData * pScanData)
+void CTunerOob::scanDataSave(CTunerScanData * pScanData)
 {
+    if (NULL == pScanData)
+    {
+        return;
+    }
+
     _scanData = (*((CTunerOobScanData *)pScanData));
+}
+
+eRet CTunerOob::scanDataFreqListAdd(uint32_t freq)
+{
+    eRet       ret   = eRet_Ok;
+    uint32_t * pFreq = NULL;
+
+    pFreq = new uint32_t(freq);
+    CHECK_PTR_ERROR_GOTO("unable to allocated frequency", pFreq, ret, eRet_OutOfMemory, error);
+
+    _scanData._freqList.add(pFreq);
+
+error:
+    return(ret);
 }
 
 void CTunerOob::doScan()

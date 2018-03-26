@@ -144,6 +144,8 @@ static void start_audio(live_decode_channel_t channel)
         }
         NEXUS_SimpleAudioDecoder_Start(channel->audioDecoder, &channel->audioProgram);
     }
+#else
+    BSTD_UNUSED(channel);
 #endif
 }
 
@@ -154,7 +156,9 @@ static void stop_audio(live_decode_channel_t channel)
         NEXUS_SimpleAudioDecoder_Stop(channel->audioDecoder);
         NEXUS_SimpleAudioDecoder_SetStcChannel(channel->audioDecoder, NULL);
     }
-#endif
+#else
+    BSTD_UNUSED(channel);
+    #endif
 }
 
 static void first_pts_passed(void *context, int param)

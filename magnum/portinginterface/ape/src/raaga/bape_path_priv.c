@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -659,7 +659,7 @@ BERR_Code BAPE_PathNode_P_AddInput(
     pConnection->pSource = input;
     pConnection->pSink = pNode;
     #if BAPE_DSP_SUPPORT
-    pConnection->dspInputIndex = BAPE_DSPMIXER_INPUT_INVALID;
+    pConnection->dspInputIndex = BAPE_MIXER_INPUT_INDEX_INVALID;
     #endif
 
     BLST_S_INSERT_HEAD(&pNode->upstreamList, pConnection, upstreamNode);
@@ -1277,6 +1277,68 @@ void BAPE_PathConnector_P_FindConsumersBySubtype_isrsafe(
     BAPE_PathConnector_P_FindConsumers_isrsafe(pConnector, type, subtype, true, maxConsumers, pNumFound, pConsumers);
 }
 
+
+static void BAPE_PathConnector_P_FindProducers_isrsafe(
+    BAPE_PathConnector *pConnector,
+    BAPE_PathNodeType type,
+    unsigned subtype,
+    bool checkSubtype,
+    unsigned maxProducers,
+    unsigned *pNumFound,        /* [out] */
+    BAPE_PathNode **pProducers   /* [out] Must be an array of at least maxProducers length */
+    )
+{
+    BAPE_PathConnection *pConnection;
+
+    BDBG_OBJECT_ASSERT(pConnector, BAPE_PathConnector);
+    if (pConnector->pParent) {
+        if (pConnector->pParent->type == type) {
+            if ( false == checkSubtype || pConnector->pParent->subtype == subtype ) {
+                if ( *pNumFound < maxProducers ) {
+                    pProducers[*pNumFound] = pConnector->pParent;
+                    *pNumFound = (*pNumFound)+1;
+                }
+                else {
+                    return;
+                }
+            }
+        }
+
+        for ( pConnection = BLST_S_FIRST(&pConnector->pParent->upstreamList);
+              pConnection != NULL;
+              pConnection = BLST_S_NEXT(pConnection, upstreamNode) ) {
+            if (pConnection->pSource) {
+                BAPE_PathConnector_P_FindProducers_isrsafe(pConnection->pSource, type, subtype, true, maxProducers, pNumFound, pProducers);
+            }
+        }
+    }
+}
+
+/***************************************************************************
+Summary:
+Search for producers by a type and subtype
+***************************************************************************/
+void BAPE_PathNode_P_FindProducersBySubtype_isrsafe(
+    BAPE_PathNode *pNode,
+    BAPE_PathNodeType type,
+    unsigned subtype,
+    unsigned maxProducers,
+    unsigned *pNumFound,        /* [out] */
+    BAPE_PathNode **pProducers   /* [out] Must be an array of at least maxConsumers length */
+    )
+{
+    BAPE_PathConnection *pPathConnection;
+    BDBG_ASSERT(NULL != pNumFound);
+    *pNumFound = 0;
+     for ( pPathConnection = BLST_S_FIRST(&pNode->upstreamList);
+           pPathConnection != NULL;
+           pPathConnection = BLST_S_NEXT(pPathConnection, upstreamNode) ) {
+         if (pPathConnection->pSource) {
+             BAPE_PathConnector_P_FindProducers_isrsafe(pPathConnection->pSource, type, subtype, true, maxProducers, pNumFound, pProducers);
+         }
+    }
+}
+
 /***************************************************************************
 Summary:
 Search for outputs on this path
@@ -1288,39 +1350,47 @@ void BAPE_PathNode_P_GetConnectedOutputs_isrsafe(
     BAPE_OutputPort *pOutputs   /* [out] Must be an array of at least maxOutputs length */
     )
 {
-    BAPE_OutputPort output;
-    BAPE_MixerHandle mixer;
-    unsigned numMixers, i;
-    BAPE_PathNode * mixers[BAPE_CHIP_MAX_MIXERS];
-
     BDBG_ASSERT(NULL != pNumFound);
     *pNumFound = 0;
     
-    numMixers = 0;
-    BAPE_PathNode_P_FindConsumersByType_isrsafe(pNode, BAPE_PathNodeType_eMixer, BAPE_CHIP_MAX_MIXERS, &numMixers, mixers);
-
-    for ( i = 0; i < numMixers; i++ )
+    #if BAPE_CHIP_MAX_HW_MIXERS > 0 || BAPE_CHIP_MAX_BYPASS_MIXERS > 0
     {
-        if ( *pNumFound == maxOutputs )
-        {
-            break;
-        }
-        
-        mixer = (BAPE_MixerHandle)mixers[i]->pHandle;
-        BDBG_ASSERT(mixer != NULL);
+        BAPE_OutputPort output;
+        BAPE_MixerHandle mixer;
+        unsigned numMixers, i;
+        BAPE_PathNode * mixers[BAPE_CHIP_MAX_HW_MIXERS+BAPE_CHIP_MAX_BYPASS_MIXERS];
 
-        for ( output = BLST_S_FIRST(&mixer->outputList);
-              output != NULL;
-              output = BLST_S_NEXT(output, node) )
+        numMixers = 0;
+        BAPE_PathNode_P_FindConsumersByType_isrsafe(pNode, BAPE_PathNodeType_eMixer, BAPE_CHIP_MAX_HW_MIXERS+BAPE_CHIP_MAX_BYPASS_MIXERS, &numMixers, mixers);
+
+        for ( i = 0; i < numMixers; i++ )
         {
-            pOutputs[*pNumFound] = output;
-            (*pNumFound)++;
             if ( *pNumFound == maxOutputs )
             {
                 break;
             }
+
+            mixer = (BAPE_MixerHandle)mixers[i]->pHandle;
+            BDBG_ASSERT(mixer != NULL);
+
+            for ( output = BLST_S_FIRST(&mixer->outputList);
+                  output != NULL;
+                  output = BLST_S_NEXT(output, node) )
+            {
+                pOutputs[*pNumFound] = output;
+                (*pNumFound)++;
+                if ( *pNumFound == maxOutputs )
+                {
+                    break;
+                }
+            }
         }
     }
+    #else
+    BSTD_UNUSED(pNode);
+    BSTD_UNUSED(maxOutputs);
+    BSTD_UNUSED(pOutputs);
+    #endif
 }
 
 
@@ -1379,40 +1449,45 @@ bool BAPE_PathNode_P_HasNodeTypeBetween(BAPE_PathNodeType type, unsigned subtype
 
 BERR_Code BAPE_PathNode_P_GetDecodersDownstreamDspMixer(BAPE_PathNode * pSourceNode, BAPE_MixerHandle * fwMixer)
 {
-    unsigned numFound, i;
-    BAPE_PathNode *pDspMixers[BAPE_CHIP_MAX_MIXERS];
     BDBG_ASSERT(fwMixer != NULL);
-
     *fwMixer = NULL;
 
-    BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(pSourceNode, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, BAPE_CHIP_MAX_MIXERS, &numFound, pDspMixers);
-    for ( i=0; i<numFound; i++ )
+    #if BAPE_CHIP_MAX_DSP_MIXERS > 0
     {
-        /* only report if there is no Intermediate mixer in between */
-        if ( !BAPE_PathNode_P_HasNodeTypeBetween(BAPE_PathNodeType_eMixer, BAPE_MixerType_eStandard, pSourceNode, pDspMixers[i]) )
+        unsigned numFound, i;
+        BAPE_PathNode *pDspMixers[BAPE_CHIP_MAX_DSP_MIXERS];
+        BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(pSourceNode, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, BAPE_CHIP_MAX_DSP_MIXERS, &numFound, pDspMixers);
+        for ( i=0; i<numFound; i++ )
         {
-            if ( *fwMixer == NULL )
+            /* only report if there is no Intermediate mixer in between */
+            if ( !BAPE_PathNode_P_HasNodeTypeBetween(BAPE_PathNodeType_eMixer, BAPE_MixerType_eStandard, pSourceNode, pDspMixers[i]) )
             {
-                *fwMixer = pDspMixers[i]->pHandle;
-            }
-            else
-            {
-                if ( pSourceNode->type == BAPE_PathNodeType_eDecoder )
+                if ( *fwMixer == NULL )
                 {
-                    #if BAPE_DSP_SUPPORT
-                    BAPE_DecoderHandle hDecoder;
-                    hDecoder = (BAPE_DecoderHandle) pSourceNode->pHandle;
-                    BDBG_ERR(("Multiple DSP mixer consumers found downstream from decoder %u.  This is not supported.", hDecoder->index));
-                    #endif
+                    *fwMixer = pDspMixers[i]->pHandle;
                 }
                 else
                 {
-                    BDBG_ERR(("Multiple DSP mixer consumers found downstream from non decoder path node.  This is not supported."));
+                    if ( pSourceNode->type == BAPE_PathNodeType_eDecoder )
+                    {
+                        #if BAPE_DSP_SUPPORT
+                        BAPE_DecoderHandle hDecoder;
+                        hDecoder = (BAPE_DecoderHandle) pSourceNode->pHandle;
+                        BDBG_ERR(("Multiple DSP mixer consumers found downstream from decoder %u.  This is not supported.", hDecoder->index));
+                        #endif
+                    }
+                    else
+                    {
+                        BDBG_ERR(("Multiple DSP mixer consumers found downstream from non decoder path node.  This is not supported."));
+                    }
+                    return BERR_TRACE(BERR_NOT_SUPPORTED);
                 }
-                return BERR_TRACE(BERR_NOT_SUPPORTED);
             }
         }
     }
+    #else
+    BSTD_UNUSED(pSourceNode);
+    #endif
 
     return BERR_SUCCESS;
 }

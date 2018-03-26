@@ -61,18 +61,34 @@ PlatformMediaPlayerContext gPlayerContext =
 
 const int PLATFORM_TRICK_RATE_1X = NEXUS_NORMAL_DECODE_RATE;
 
+static void platform_media_player_p_create_video_surfaces(PlatformHandle platform)
+{
+    NEXUS_SurfaceCreateSettings createSettings;
+    unsigned i;
+
+    /* we only have enough mem and cpu to do video-as-gfx for one stream */
+    NEXUS_Surface_GetDefaultCreateSettings(&createSettings);
+    createSettings.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
+    createSettings.width = 1920;
+    createSettings.height = 1080;
+    for (i = 0; i < NEXUS_SIMPLE_DECODER_MAX_SURFACES; i++)
+    {
+        platform->media.streams[platform_get_pip_stream_id(platform)].surfaces[i] = NEXUS_Surface_Create(&createSettings);
+    }
+}
+
 PlatformMediaPlayerHandle platform_media_player_create(PlatformHandle platform, PlatformCallback streamInfoCallback, void * streamInfoContext)
 {
     PlatformMediaPlayerHandle player;
-    unsigned maxMosaicCount;
+    unsigned maxStreamCount;
 
     BDBG_ASSERT(platform);
     BDBG_ASSERT(platform->gfx);
 
-    maxMosaicCount = platform_graphics_get_max_mosaic_count(platform->gfx);
+    maxStreamCount = platform_get_max_stream_count(platform);
 
-    if (gPlayerContext.count >= maxMosaicCount) {
-        BDBG_ERR(("Failed to create platform media player. Max number (%d) of players already created.", maxMosaicCount));
+    if (gPlayerContext.count >= maxStreamCount) {
+        BDBG_ERR(("Failed to create platform media player. Max number (%d) of players already created.", maxStreamCount));
         return NULL;
     }
 
@@ -81,31 +97,38 @@ PlatformMediaPlayerHandle platform_media_player_create(PlatformHandle platform, 
     BKNI_Memset(player, 0, sizeof(*player));
 
     BKNI_CreateMutex(&player->mutex);
-    platform->player = player;
     player->platform = platform;
     player->streamInfo.callback = streamInfoCallback;
     player->streamInfo.context = streamInfoContext;
 
     if(!gPlayerContext.count) {
-        unsigned decoderWindowCount;
-        decoderWindowCount = platform_graphics_get_decoder_window_count(platform->gfx, 0);
+        unsigned decoderMaxWindowCount;
+        decoderMaxWindowCount = platform_get_decoder_max_stream_count(platform, 0);
+
         media_player_get_default_create_settings(&gPlayerContext.nxCreateSettings);
-        gPlayerContext.nxCreateSettings.window.surfaceClientId = platform->gfx->sc[0].id;
+        gPlayerContext.nxCreateSettings.window.surfaceClientId = platform->gfx->surfaceClient.id;
         /* window.id not necessary, mosaics are assumed 0 to n - 1 */
-        media_player_create_mosaics(gPlayerContext.nxPlayerMosaic, decoderWindowCount, &gPlayerContext.nxCreateSettings);
+        media_player_create_mosaics(gPlayerContext.nxPlayerMosaic, decoderMaxWindowCount, &gPlayerContext.nxCreateSettings);
         BDBG_ASSERT(gPlayerContext.nxPlayerMosaic[0]);
-        gPlayerContext.nxCreateSettings.window.id = platform_graphics_get_pip_window_id(platform->gfx);
-        gPlayerContext.nxPlayerPip = media_player_create(&gPlayerContext.nxCreateSettings);
-        BDBG_ASSERT(gPlayerContext.nxPlayerPip);
+        gPlayerContext.nxCreateSettings.window.id = platform_get_pip_stream_id(platform);
+        if (gPlayerContext.nxCreateSettings.window.id > 0)
+        {
+            gPlayerContext.nxPlayerPip = media_player_create(&gPlayerContext.nxCreateSettings);
+            BDBG_ASSERT(gPlayerContext.nxPlayerPip);
+        }
         gPlayerContext.nxCreateSettings.maxWidth = 3840;
         gPlayerContext.nxCreateSettings.maxHeight = 2160;
-        gPlayerContext.nxCreateSettings.window.id = platform_graphics_get_main_window_id(platform->gfx);
+        gPlayerContext.nxCreateSettings.window.id = platform_get_main_stream_id(platform);
         gPlayerContext.nxPlayer = media_player_create(&gPlayerContext.nxCreateSettings);
         BDBG_ASSERT(gPlayerContext.nxPlayer);
+
+        platform_media_player_p_create_video_surfaces(platform);
     }
 
+    player->streamId = -1;
     player->index = gPlayerContext.count++;
-    player->streamInfoGatherer = platform_scheduler_add_listener(platform_get_scheduler(platform), &platform_media_player_p_scheduler_callback, player);
+    platform->media.players[player->index] = player;
+    player->streamInfoGatherer = platform_scheduler_add_listener(platform_get_scheduler(platform, PLATFORM_SCHEDULER_MAIN), &platform_media_player_p_scheduler_callback, player);
     if (!player->streamInfoGatherer)
     {
         BDBG_WRN(("Unable to monitor stream info"));
@@ -120,14 +143,17 @@ void platform_media_player_destroy(PlatformMediaPlayerHandle player)
     BKNI_AcquireMutex(player->mutex);
     if (player->streamInfoGatherer)
     {
-        platform_scheduler_remove_listener(platform_get_scheduler(player->platform), player->streamInfoGatherer);
+        platform_scheduler_remove_listener(platform_get_scheduler(player->platform, PLATFORM_SCHEDULER_MAIN), player->streamInfoGatherer);
     }
     player->nxPlayer = NULL;
-    player->platform->player = NULL;
+    player->platform->media.players[player->index] = NULL;
     gPlayerContext.count--;
     if (!gPlayerContext.count) {
-        media_player_destroy_mosaics(gPlayerContext.nxPlayerMosaic, player->platform->gfx->sc[0].numWindows);
-        media_player_destroy(gPlayerContext.nxPlayerPip);
+        media_player_destroy_mosaics(gPlayerContext.nxPlayerMosaic, platform_get_decoder_max_stream_count(player->platform, 0));
+        if (gPlayerContext.nxPlayerPip)
+        {
+            media_player_destroy(gPlayerContext.nxPlayerPip);
+        }
         media_player_destroy(gPlayerContext.nxPlayer);
     }
     BKNI_ReleaseMutex(player->mutex);
@@ -140,7 +166,7 @@ static void platform_media_player_p_update_player_impl(PlatformMediaPlayerHandle
     switch (usageMode)
     {
         case PlatformUsageMode_eMosaic:
-            if (player->index < platform_graphics_get_decoder_window_count(player->platform->gfx, 0)) {
+            if (player->index < platform_get_decoder_max_stream_count(player->platform, 0)) {
                 BDBG_ERR(("player %d using mosaic", player->index));
                 player->nxPlayer = gPlayerContext.nxPlayerMosaic[player->index];
             } else {
@@ -180,13 +206,16 @@ int platform_media_player_start(PlatformMediaPlayerHandle player, const Platform
 {
     NEXUS_SimpleVideoDecoderHandle videoDecoder;
     NEXUS_SimpleVideoDecoderClientSettings settings;
+    NEXUS_SimpleVideoDecoderStartCaptureSettings captureSettings;
     NEXUS_VideoDecoderSettings decoderSettings;
+    unsigned pip;
     int rc;
 
     BDBG_ASSERT(player);
 
     BKNI_AcquireMutex(player->mutex);
 
+    pip = platform_get_pip_stream_id(player->platform);
     /* TEMP disable CC for mosaics */
     videoDecoder = media_player_get_video_decoder(player->nxPlayer);
     NEXUS_SimpleVideoDecoder_GetClientSettings(videoDecoder, &settings);
@@ -205,15 +234,47 @@ int platform_media_player_start(PlatformMediaPlayerHandle player, const Platform
     player->nxStartSettings.loopMode = pSettings->playMode == PlatformPlayMode_eOnce ? NEXUS_PlaybackLoopMode_ePause : NEXUS_PlaybackLoopMode_eLoop;
     player->nxStartSettings.startPaused = pSettings->startPaused;
     player->nxStartSettings.stcTrick = pSettings->stcTrick;
-    if (player->pipRequired) player->nxStartSettings.videoWindowType = NxClient_VideoWindowType_ePip;
+    if (player->pipRequired)
+    {
+        if (player->platform->display.maxWindows > 1)
+        {
+            player->nxStartSettings.videoWindowType = NxClient_VideoWindowType_ePip;
+        }
+        else
+        {
+            /* pip as graphics */
+            player->nxStartSettings.videoWindowType = NxClient_VideoWindowType_eNone;
+        }
+        player->platform->media.streams[pip].player = player;
+        player->streamId = pip;
+    }
+    else
+    {
+        player->platform->media.streams[player->index].player = player;
+        player->streamId = player->index;
+    }
     rc = media_player_start(player->nxPlayer, &player->nxStartSettings);
     if (!rc)
     {
         player->trickRate = PLATFORM_TRICK_RATE_1X;
         player->state = PlatformMediaPlayerState_ePlaying;
-        platform_scheduler_wake(platform_get_scheduler(player->platform));
+        platform_scheduler_wake(platform_get_scheduler(player->platform, PLATFORM_SCHEDULER_MAIN));
     }
     else { BDBG_ERR(("unable to start media player %d for '%s': %d", player->index, player->nxStartSettings.stream_url, rc)); }
+
+    /* pip as gfx support follows */
+    if (player->settings.usageMode == PlatformUsageMode_eMainPip && player->platform->display.maxWindows == 1 && player->streamId == (int)pip)
+    {
+        NEXUS_SimpleVideoDecoder_GetDefaultStartCaptureSettings(&captureSettings);
+        BKNI_Memcpy(&captureSettings.surface, &player->platform->media.streams[pip].surfaces, sizeof(player->platform->media.streams[pip].surfaces));
+        captureSettings.forceFrameDestripe = true;
+        rc = NEXUS_SimpleVideoDecoder_StartCapture(videoDecoder, &captureSettings);
+        if ( rc == NEXUS_NOT_SUPPORTED ) {
+            BDBG_WRN(("Video as graphics not supported !" ));
+        }
+        player->platform->media.streams[pip].performance.startTime = platform_p_get_time();
+    }
+
     BKNI_ReleaseMutex(player->mutex);
     return rc;
 }
@@ -223,10 +284,17 @@ void platform_media_player_stop(PlatformMediaPlayerHandle player)
     BDBG_ASSERT(player);
     BKNI_AcquireMutex(player->mutex);
     player->state = PlatformMediaPlayerState_eInit;
-    if (player->nxPlayer)
+    if (player->nxPlayer && player->streamId != -1)
     {
+        /* pip as gfx support follows */
+        if (player->settings.usageMode == PlatformUsageMode_eMainPip && player->platform->display.maxWindows == 1)
+        {
+            NEXUS_SimpleVideoDecoder_StopCapture(media_player_get_video_decoder(player->nxPlayer));
+        }
         media_player_stop(player->nxPlayer);
         player->streamInfo.nx.valid = false;
+        player->platform->media.streams[player->streamId].player = NULL;
+        player->streamId = -1;
     }
     BKNI_ReleaseMutex(player->mutex);
 }
@@ -245,7 +313,7 @@ void platform_media_player_trick(PlatformMediaPlayerHandle player, int rate)
     {
         player->trickRate = rate;
         player->state = PlatformMediaPlayerState_ePlaying;
-        platform_scheduler_wake(platform_get_scheduler(player->platform));
+        platform_scheduler_wake(platform_get_scheduler(player->platform, PLATFORM_SCHEDULER_MAIN));
     }
     media_player_trick(player->nxPlayer, rate);
     BKNI_ReleaseMutex(player->mutex);
@@ -355,9 +423,12 @@ int platform_media_player_set_settings(PlatformMediaPlayerHandle player, const P
     {
         if (pSettings->usageMode != player->settings.usageMode && player->state != PlatformMediaPlayerState_eInit)
         {
-            BDBG_WRN(("Can't change usage mode while running"));
-            BKNI_ReleaseMutex(player->mutex);
-            return -1;
+            if (player->streamId != (int)platform_get_main_stream_id(player->platform) || pSettings->usageMode == PlatformUsageMode_eMosaic || player->settings.usageMode == PlatformUsageMode_eMosaic)
+            {
+                BDBG_WRN(("Can't change usage mode to/from mosaic mode while running"));
+                BKNI_ReleaseMutex(player->mutex);
+                return -1;
+            }
         }
         platform_media_player_p_update_player_impl(player, pSettings->usageMode, &player->pipRequired);
         svd = media_player_get_video_decoder(player->nxPlayer);
@@ -382,4 +453,46 @@ int platform_media_player_set_settings(PlatformMediaPlayerHandle player, const P
     }
     BKNI_ReleaseMutex(player->mutex);
     return rc;
+}
+
+void platform_media_player_p_capture_video(PlatformMediaPlayerHandle player)
+{
+    if (player->nxPlayer)
+    {
+        if (player->settings.usageMode == PlatformUsageMode_eMainPip && player->platform->display.maxWindows == 1)
+        {
+            unsigned pip;
+            NEXUS_SimpleVideoDecoderCaptureStatus captureStatus[NUM_CAPTURE_SURFACES];
+            NEXUS_SimpleVideoDecoderHandle videoDecoder;
+
+            pip = platform_get_pip_stream_id(player->platform);
+            videoDecoder = media_player_get_video_decoder(player->nxPlayer);
+
+            NEXUS_SimpleVideoDecoder_GetCapturedSurfaces(videoDecoder,
+                player->platform->media.streams[pip].captures,
+                captureStatus,
+                NUM_CAPTURE_SURFACES,
+                &player->platform->media.streams[pip].validCaptures);
+            if (player->platform->media.streams[pip].validCaptures > 1) {
+                /* if we get more than one, we recycle the oldest immediately */
+                NEXUS_SimpleVideoDecoder_RecycleCapturedSurfaces(videoDecoder, player->platform->media.streams[pip].captures, player->platform->media.streams[pip].validCaptures-1);
+            }
+        }
+    }
+}
+
+void platform_media_player_p_recycle_video(PlatformMediaPlayerHandle player)
+{
+    if (player->nxPlayer)
+    {
+        unsigned pip = platform_get_pip_stream_id(player->platform);
+        if (player->platform->media.streams[pip].validCaptures)
+        {
+            NEXUS_SimpleVideoDecoder_RecycleCapturedSurfaces(
+                media_player_get_video_decoder(player->nxPlayer),
+                &player->platform->media.streams[pip].captures[player->platform->media.streams[pip].validCaptures-1],
+                1);
+            player->platform->media.streams[pip].validCaptures = 0;
+        }
+    }
 }

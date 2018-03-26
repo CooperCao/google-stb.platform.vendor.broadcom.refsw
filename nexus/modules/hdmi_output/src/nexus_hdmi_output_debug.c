@@ -461,6 +461,7 @@ void NEXUS_HdmiOutputModule_Print(void)
     NEXUS_HdmiOutputHandle hdmiOutput ;
     NEXUS_HdmiOutputStatus *hdmiOutputStatus = NULL ;
     NEXUS_HdmiOutputHdcpStatus *hdmiOutputHdcpStatus = NULL ;
+    BHDM_MONITOR_TxHwStatusExtra *txHwStatusExtra = NULL ;
 
     BHDM_Handle hdmHandle ;
 #if BHDM_HAS_HDMI_20_SUPPORT
@@ -493,9 +494,19 @@ void NEXUS_HdmiOutputModule_Print(void)
     }
 #endif
 
+    txHwStatusExtra = BKNI_Malloc(sizeof(*txHwStatusExtra));
+    if (txHwStatusExtra == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
+
+
+
     for (i=0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
         hdmiOutput = &g_hdmiOutputs[i] ;
+
         if (!hdmiOutput->opened) continue;
         BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
         hdmHandle = hdmiOutput->hdmHandle ;
@@ -505,6 +516,8 @@ void NEXUS_HdmiOutputModule_Print(void)
 
         errCode = NEXUS_HdmiOutput_GetHdcpStatus(hdmiOutput, hdmiOutputHdcpStatus) ;
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
+
+        BHDM_MONITOR_GetTxHwStatusExtra(hdmiOutput->hdmHandle, txHwStatusExtra) ;
 
         BDBG_LOG(("HDMI %d:%s%s%s",i,
             hdmiOutput->opened ? "o" : "-",
@@ -521,16 +534,20 @@ void NEXUS_HdmiOutputModule_Print(void)
         {
             BDBG_LOG(("Attached device: %s", hdmiOutputStatus->monitorName)) ;
 
-	        /* HARDWARE STATUS */
-	        BDBG_LOG(("  rxAttached: %c   rxPowered: %c",
-	            hdmiOutputStatus->connected ? 'Y' : 'N',
-	            hdmiOutputStatus->rxPowered ? 'Y' : 'N')) ;
+            BDBG_LOG(("  rxAttached: %c   rxPowered: %c",
+                hdmiOutputStatus->connected ? 'Y' : 'N',
+                hdmiOutputStatus->rxPowered ? 'Y' : 'N')) ;
 
-	        BDBG_LOG(("  txPower  Clock: %c CH2: %c CH1: %c CH0: %c",
-	            hdmiOutput->txHwStatus.clockPower ? 'Y' : 'N',
-	            hdmiOutput->txHwStatus.channelPower[2] ? 'Y' : 'N',
-	            hdmiOutput->txHwStatus.channelPower[1] ? 'Y' : 'N',
-	            hdmiOutput->txHwStatus.channelPower[0] ? 'Y' : 'N')) ;
+            /* HARDWARE STATUS */
+            BDBG_LOG(("  txPower  Clock: %c CH2: %c CH1: %c CH0: %c",
+                hdmiOutput->txHwStatus.clockPower ? 'Y' : 'N',
+                hdmiOutput->txHwStatus.channelPower[2] ? 'Y' : 'N',
+                hdmiOutput->txHwStatus.channelPower[1] ? 'Y' : 'N',
+                hdmiOutput->txHwStatus.channelPower[0] ? 'Y' : 'N')) ;
+
+            BDBG_LOG(("  txPLL Locked: %c  txPLL Status: %#x",
+                txHwStatusExtra->PllLocked ? 'Y' : 'N',
+                txHwStatusExtra->PllStatus)) ;
         }
         else
         {
@@ -593,6 +610,11 @@ void NEXUS_HdmiOutputModule_Print(void)
             BDBG_LOG(("  Supported Version: %s",
                 hdmiOutputHdcpStatus->hdcp2_2Features ? "2.2" : "1.x")) ;
 
+            BDBG_LOG(("  HDCP2Version i2c read failures: %d",
+                txHwStatusExtra->ui2cHdcp2VersionReadFailures)) ;
+            BDBG_LOG(("  HDCP2Version invalid data failures: %d",
+                txHwStatusExtra->ui2cHdcp2VersionDataFailures)) ;
+
             if ((hdmiOutputHdcpStatus->hdcp2_2Features) && (hdmiOutputHdcpStatus->isHdcpRepeater))
             {
                 BDBG_LOG(("  Downstream 1.x device(s): %s",
@@ -614,7 +636,10 @@ void NEXUS_HdmiOutputModule_Print(void)
                 hdmiOutput->hdcpMonitor.hdcp1x.auth.failCounter)) ;
             BDBG_LOG(("    BCaps Read Failures: %d",
                 hdmiOutput->hdcpMonitor.hdcp1x.bCapsReadFailureCounter)) ;
-
+            BDBG_LOG(("    BKSV Read Failures: %d",
+                hdmiOutput->hdcpMonitor.hdcp1x.bksvReadFailureCounter)) ;
+            BDBG_LOG(("    Invalid BKSV Detected: %d",
+                hdmiOutput->hdcpMonitor.hdcp1x.invalidBksvCounter)) ;
  #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
             BDBG_LOG(("  2.2 Stats")) ;
             BDBG_LOG(("    Attempts: %5d  Pass: %5d  Fail: %5d",
@@ -711,17 +736,20 @@ void NEXUS_HdmiOutputModule_Print(void)
     }
 
 done:
-    if (hdmiOutputStatus)
-        BKNI_Free(hdmiOutputStatus) ;
+    if (txHwStatusExtra)
+        BKNI_Free(txHwStatusExtra) ;
 
-    if (hdmiOutputHdcpStatus)
-        BKNI_Free(hdmiOutputHdcpStatus) ;
-
-# if BHDM_HAS_HDMI_20_SUPPORT
+#if BHDM_HAS_HDMI_20_SUPPORT
     if (scdcControlData)
         BKNI_Free(scdcControlData) ;
 #endif
 
+    if (hdmiOutputHdcpStatus)
+        BKNI_Free(hdmiOutputHdcpStatus) ;
+
+    if (hdmiOutputStatus)
+        BKNI_Free(hdmiOutputStatus) ;
+
 #endif
-	return ;
+    return ;
 }

@@ -569,7 +569,7 @@ BERR_Code BXPT_Open(
     */
     for( i = 0; i < BXPT_NUM_PID_PARSERS; i++ )
     {
-        ParserConfig ParserInit = { false, false, false, BXPT_PsiMesgModModes_eNoMod };
+        ParserConfig ParserInit = { false, false, false, BXPT_PsiMesgModModes_eNoMod, BXPT_DataSource_eInputBand, 0 };
 
         lhXpt->IbParserTable[ i ] = ParserInit;
     }
@@ -578,7 +578,8 @@ BERR_Code BXPT_Open(
     /* Each playback has a hard-wired PID parser. So init the table for those too. */
     for( i = 0; i < BXPT_NUM_PLAYBACKS; i++ )
     {
-        ParserConfig ParserInit = { false, false, false, BXPT_PsiMesgModModes_eNoMod };
+        /* The DataSource and WhichSource fields are not used by playback */
+        ParserConfig ParserInit = { false, false, false, BXPT_PsiMesgModModes_eNoMod, 0, 0 };
 
         lhXpt->PbParserTable[ i ] = ParserInit;
     }
@@ -1081,7 +1082,9 @@ BERR_Code BXPT_Resume(
 #if BXPT_HAS_MESG_L2
     BXPT_Interrupt_P_Init( hXpt );
 #endif
+#if BXPT_HAS_RAVE_L2
     BXPT_Rave_P_EnableInterrupts( hXpt );
+#endif
 #if BXPT_HAS_MEMDMA
     BXPT_Dma_P_EnableInterrupts( hXpt );
 #endif
@@ -1897,6 +1900,15 @@ BERR_Code BXPT_SetParserDataSource(
             );
             break;
 
+            /* eNone means map to an unused/unsupported serial input. We don't want any data coming in */
+            /* All 1s isn't supporte on any platform */
+            case BXPT_DataSource_eNone:
+            Reg |= (
+                BCHP_FIELD_DATA( XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL_MSB, 1 ) |
+                BCHP_FIELD_DATA( XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL, 0xFFF )
+            );
+            break;
+
             default:
             BDBG_ERR(( "Unsupported DataSource %lu!", ( unsigned long ) DataSource ));
             ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
@@ -1904,6 +1916,8 @@ BERR_Code BXPT_SetParserDataSource(
         }
 
         BREG_Write32( hXpt->hRegister, RegAddr, Reg );
+        hXpt->IbParserTable[ParserNum].DataSource = DataSource;
+        hXpt->IbParserTable[ParserNum].WhichSource = WhichSource;
     }
 
     return( ExitCode );
@@ -1932,6 +1946,13 @@ BERR_Code BXPT_GetParserDataSource(
     }
     else
     {
+        if(hXpt->IbParserTable[ParserNum].DataSource == BXPT_DataSource_eNone)
+        {
+            *DataSource = BXPT_DataSource_eNone;
+            *WhichSource = 0;
+            return BERR_SUCCESS;
+        }
+
         /* The parser config registers are at consecutive addresses. */
         RegAddr = BXPT_P_GetParserCtrlRegAddr( hXpt, ParserNum, BCHP_XPT_FE_MINI_PID_PARSER0_CTRL1 );
         Reg = BREG_Read32( hXpt->hRegister, RegAddr );
@@ -3470,7 +3491,7 @@ bool BXPT_IsMtsifDecryptionEnabled(
 }
 #endif
 
-#if (!B_REFSW_MINIMAL)
+#ifdef BXPT_ATS_API
 void BXPT_ResetAtsCounter(
     BXPT_Handle hXpt
     )
@@ -3513,9 +3534,7 @@ void BXPT_SetAtsExternal(
     BCHP_SET_FIELD_DATA( atsCtrlReg, XPT_FE_ATS_COUNTER_CTRL, INC_MUX_SEL, 1 );
     BREG_Write32( hXpt->hRegister, BCHP_XPT_FE_ATS_COUNTER_CTRL, atsCtrlReg );
 }
-#endif
 
-#if (!B_REFSW_MINIMAL)
 uint32_t BXPT_GetBinaryAts(
     BXPT_Handle hXpt
     )

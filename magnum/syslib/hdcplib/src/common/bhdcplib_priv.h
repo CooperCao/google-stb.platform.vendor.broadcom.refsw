@@ -61,6 +61,8 @@ BDBG_OBJECT_ID_DECLARE(HDCPLIB);
 #define BHDCPLIB_HDCP2X_SAGERESPONSE_TIMEOUT 5000 /* in ms */
 #define BHDCPLIB_HDCP2X_HWAUTOI2CTIMER_VERIFICATION_TIMER 100 /* in ms */
 #define BHDCPLIB_HDCP2X_AUTHENTICATION_PROCESS_TIMEOUT 5000 /* in ms */
+#define BHDCPLIB_HDCP2X_ENABLEENCRYPTION_TIMER 200
+
 
 typedef enum BHDCPlib_Hdcp2xState
 {
@@ -104,7 +106,8 @@ typedef struct BHDCPlib_Hdcp2xKeyBin
 typedef enum
 {
 	BHDCPlib_P_Timer_eAutoI2c,  /* AutoI2C HW Stuck  */
-	BHDCPlib_P_Timer_eAuthentication   /* timer for authentication result */
+	BHDCPlib_P_Timer_eAuthentication,   /* timer for authentication result */
+	BHDCPlib_P_Timer_eEncryptionEnable
 } BHDCPlib_P_Timer ;
 #endif
 
@@ -134,12 +137,13 @@ typedef struct BHDCPlib_P_Handle
 	bool hdcp2xLinkAuthenticated;
 	BKNI_EventHandle hdcp2xIndicationEvent;
 	BTMR_TimerHandle hAuthenticationTimer;
+	BTMR_TimerHandle hReadyToEnableEncryptionTimer;
 
 	BSAGElib_RpcRemoteHandle hSagelibRpcPlatformHandle;
 	BSAGElib_RpcRemoteHandle hSagelibRpcModuleHandle;
 	BSAGElib_InOutContainer *sageContainer;
 	uint32_t uiLastAsyncId;
-	uint32_t uiStartAuthenticationId;
+	uint32_t uiModuleInitAsyncId;
 	uint32_t uiGetReceiverIdListId;
 	BHDCPlib_ReceiverIdListData stReceiverIdListData;
 	BHDCPlib_Hdcp2xState currentHdcp2xState;
@@ -148,6 +152,8 @@ typedef struct BHDCPlib_P_Handle
 	BHDCPlib_SageIndicationData stIndicationData;
 	uint8_t uiInitRetryCounter;
 	BHDCPlib_Hdcp2xContentStreamType eContentStreamTypeReceived;
+	uint8_t uiSageSessionId;
+	uint32_t uiSageVersionId;
 #endif
 } BHDCPlib_P_Handle;
 

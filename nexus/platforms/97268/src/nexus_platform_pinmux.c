@@ -43,6 +43,7 @@
 
 #include "bchp_sun_top_ctrl.h"
 #include "bchp_aon_pin_ctrl.h"
+#include "bchp_aon_ctrl.h"
 
 BDBG_MODULE(nexus_platform_pinmux);
 
@@ -144,6 +145,16 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
     NEXUS_PlatformStatus platformStatus;
     BREG_Handle hReg = g_pCoreHandles->reg;
     uint32_t reg;
+
+    BDBG_MSG(("Setting pinmux to make the frontpanel reset enable"));
+    reg = BREG_Read32(hReg, BCHP_AON_CTRL_RESET_CTRL);
+    reg &=~(
+           BCHP_MASK(AON_CTRL_RESET_CTRL, front_panel_reset_enable)
+           );
+    reg |=(
+          BCHP_FIELD_DATA(AON_CTRL_RESET_CTRL, front_panel_reset_enable, 1) /*Enable*/
+          );
+    BREG_Write32 (hReg, BCHP_AON_CTRL_RESET_CTRL, reg);
 
     /* Configure the streamer (BCM9TS) input to route into input band 3 for SV */
 

@@ -300,5 +300,6 @@ For a compile-time test for RAAGA, use:
 #define NEXUS_MEMC0_URRT_HEAP                   21
 #define NEXUS_MEMC1_URRT_HEAP                   22
 #define NEXUS_MEMC2_URRT_HEAP                   23
+#define NEXUS_ARR_HEAP                          24
 
 #endif

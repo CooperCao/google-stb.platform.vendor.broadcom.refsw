@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #if NEXUS_INSERT_IR_INPUT
 #include "nxclient.h"
@@ -75,7 +74,7 @@ static NEXUS_Error send_keycode(unsigned index, unsigned keycode)
     event[0].code = keycode;
 
     /* send to Nexus IR driver */
-    BDBG_MSG(("Calling NEXUS_IrInput_InsertEvents with index=0x%x, keycode=0x%08lx...\n", index, keycode));
+    BDBG_MSG(("Calling NEXUS_IrInput_InsertEvents with index=0x%x, keycode=0x%08x...", index, keycode));
     return NEXUS_IrInput_InsertEvents(index, (const NEXUS_IrInputEvent *)&event[0], 1);
 }
 
@@ -148,7 +147,7 @@ int main(int argc, const char **argv)
 
     BDBG_MSG(("bind successful!"));
 
-    BDBG_MSG(("using index 0x%x for IR device reference...\n", index));
+    BDBG_MSG(("using index 0x%x for IR device reference...", index));
 
     while (1)
     {

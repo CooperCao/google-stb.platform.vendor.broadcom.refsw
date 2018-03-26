@@ -204,6 +204,7 @@ BERR_Code BHSM_RvRegion_SetSettings( BHSM_RvRegionHandle handle, const BHSM_RvRe
     BHSM_RvRsaInfo rsaInfo;
 
     BDBG_ENTER( BHSM_RvRegion_SetSettings );
+
     if( !pRegion->allocated ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pSettings ) return BERR_TRACE(BERR_INVALID_PARAMETER );
     if( !pSettings->rvRsaHandle ) return BERR_TRACE(BERR_INVALID_PARAMETER );
@@ -228,6 +229,7 @@ BERR_Code BHSM_RvRegion_SetSettings( BHSM_RvRegionHandle handle, const BHSM_RvRe
         bspRvConfig.keyLadderIndex = keyLadderInfo.index;
         bspRvConfig.keyLadderLayer = pSettings->keyLadderLayer;
     }
+
     bspRvConfig.rsaKeyId = rsaInfo.rsaKeyId;
     bspRvConfig.scbBurstSize = pSettings->SCBBurstSize;
     bspRvConfig.intervalCheckBandwidth = pSettings->intervalCheckBandwidth;
@@ -295,6 +297,51 @@ exit:
     return rc;
 }
 
+
+BERR_Code BHSM_RvRegion_QueryAll( BHSM_Handle hHsm, BHSM_RvRegionStatusAll *pStatus)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    BHSM_BspMsg_h hMsg = NULL;
+    BHSM_BspMsgHeader_t header;
+    uint8_t status = 0;
+    uint16_t regionStatus = 0;
+    unsigned regionId = 0;
+
+    BDBG_ENTER( BHSM_RvRegion_QueryAll );
+
+    if( !pStatus ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
+    rc = BHSM_BspMsg_Create( hHsm, &hMsg );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+
+    BHSM_BspMsg_GetDefaultHeader( &header );
+    BHSM_BspMsg_Header( hMsg, BHSM_eSESSION_MEM_AUTH_QueryStatus, &header );
+
+    BHSM_BspMsg_Pack8( hMsg, BCMD_MemAuth_InCmdField_eRegionOp, BCMD_MemAuth_Operation_eQueryRegionInfo );
+
+    rc = BHSM_BspMsg_SubmitCommand( hMsg );
+    if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
+
+    BHSM_BspMsg_Get8( hMsg, BCMD_MemAuth_OutCmdField_eStatus, &status );
+    if( status ) {
+        rc = BERR_TRACE( BHSM_STATUS_BSP_ERROR );
+        BDBG_WRN(("%s: ERROR[0x%0X] ", BSTD_FUNCTION, status ));
+        goto exit;
+    }
+
+    #define BHSM_eStatusQuery ((7<<2) + 2) /* BCMD_MemAuth_OutCmdField_eRegion0Status is one byte off.  */
+    for ( regionId = 0; regionId < BHSM_RegionId_eMax; regionId++) {
+        BHSM_BspMsg_Get16( hMsg, BHSM_eStatusQuery+(regionId*4), &regionStatus );
+
+        pStatus->region[regionId].configured = hHsm->modules.pRvRegions->instances[regionId].configured;
+        pStatus->region[regionId].status = regionStatus;
+    }
+
+exit:
+    BHSM_BspMsg_Destroy( hMsg );
+    BDBG_LEAVE( BHSM_RvRegion_QueryAll );
+    return rc;
+}
 
 BERR_Code BHSM_RvRegion_GetStatus( BHSM_RvRegionHandle handle, BHSM_RvRegionStatus *pStatus )
 {
@@ -504,6 +551,7 @@ BERR_Code _RvRegionConfigure( BHSM_RvRegionHandle hRegion, _RvRegionConfigure_t 
         default: { rc = BERR_TRACE( BERR_INVALID_PARAMETER ); goto exit; } /* you may have to add type[s] to BHSM_RvSignatureType */
     }
     BHSM_BspMsg_Pack8( hMsg, BCMD_MemAuth_InCmdField_eSigType, (uint8_t)signatureType );
+
     rc = BHSM_BspMsg_SubmitCommand( hMsg );
     if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
 

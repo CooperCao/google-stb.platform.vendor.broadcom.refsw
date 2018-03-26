@@ -1,5 +1,5 @@
 ###############################################################################
-#   Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#   Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #   This program is the proprietary software of Broadcom and/or its licensors,
 #   and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 #   ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #   LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #   ANY LIMITED REMEDY.
-#
 ###############################################################################
 
 B_REFSW_DEBUG ?= y
@@ -44,19 +43,19 @@ else
     DEBUG_SUFFIX=release
 endif
 
-CJSON_VER?=1.0
+CJSON_VER?=1.7.4
 
 CJSON_NAME:=cjson-$(CJSON_VER)
-CJSON_SOURCE_TARBALL:=master.zip
+CJSON_SOURCE_TARBALL:=cJSON-$(CJSON_VER).zip
 CJSON_SOURCE_DIRECTORY:=$(abspath $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/cjson/$(B_REFSW_ARCH).$(DEBUG_SUFFIX))
-CJSON_SOURCE_PATH:=${CJSON_SOURCE_DIRECTORY}/${CJSON_NAME}
-CJSON_TAR_PATH:=${CJSON_SOURCE_DIRECTORY}
+CJSON_SOURCE_PATH:=${CJSON_SOURCE_DIRECTORY}/${CJSON_NAME}/cJSON-${CJSON_VER}
+CJSON_TAR_PATH:=${CJSON_SOURCE_DIRECTORY}/${CJSON_NAME}
 CJSON_BUILD_DIR:=$(abspath $(NEXUS_TOP)/../BSEAV/opensource/cjson)
 CJSON_DIR:=$(CJSON_NAME)
-CJSON_LIB_FOLDER:=${CJSON_TAR_PATH}/cJSON-master
+CJSON_LIB_FOLDER:=${CJSON_TAR_PATH}/cJSON-$(CJSON_VER)
 CJSON_EXE_FOLDER:=${CJSON_TAR_PATH}/${CJSON_DIR}/src
 
-CJSON_CFLAGS:= -D_REENTRANT -I${CJSON_TAR_PATH}/${CJSON_DIR}/include
+CJSON_CFLAGS:= -D_REENTRANT -I${CJSON_SOURCE_PATH}
 CJSON_LDFLAGS:= -L$(CJSON_LIB_FOLDER) -lcjson
 
 #  Where to store downloaded open-source files for local sharing

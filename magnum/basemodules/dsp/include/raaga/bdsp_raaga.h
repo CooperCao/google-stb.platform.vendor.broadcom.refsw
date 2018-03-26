@@ -59,16 +59,6 @@
 
 #define BDSP_RAAGA_ADDRESS_ALIGN      32
 #define BDSP_RAAGA_SIZE_ALIGN(x)
-/***************************************************************************
-Summary:
-Raaga Debug Type Settings
-***************************************************************************/
-typedef struct BDSP_Raaga_DebugTypeSettings
-{
-    bool enabled;        /* If true, debug of this type is enabled. */
-    uint32_t bufferSize; /* Size of debug buffer (in bytes) for a particular type of debug.
-                                                        Only required if you want to override the default value. */
-} BDSP_Raaga_DebugTypeSettings;
 
 /***************************************************************************
 Summary:
@@ -81,7 +71,7 @@ typedef struct BDSP_RaagaSettings
 
     bool preloadImages;         /* If true, all firmware images will be loaded on startup.  Default=false. */
 
-    BDSP_Raaga_DebugTypeSettings debugSettings[BDSP_DebugType_eLast]; /* Debug information for the different types of debug logs */
+    BDSP_DebugTypeSettings debugSettings[BDSP_DebugType_eLast]; /* Debug information for the different types of debug logs */
 
     const BIMG_Interface *pImageInterface;      /* Interface to access firmware image. This interface must be
                                                    implemented and the function pointers must be stored here. */

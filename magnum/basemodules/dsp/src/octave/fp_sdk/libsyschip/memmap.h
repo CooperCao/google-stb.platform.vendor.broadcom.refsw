@@ -55,11 +55,11 @@
 #  include "libsyschip/memmap-kos.h"
 #endif
 
-#if defined(YELLOWSTONE) && defined(__FP4014__)
+#if defined(YELLOWSTONE) && __FP4014__
 #  include "libsyschip/memmap-yellowstone.h"
 #endif
 
-#if defined(YELLOWSTONE) && defined(__FP4015__)
+#if defined(YELLOWSTONE) && __FP4015__
 #  include "libsyschip/memmap-yellowstone-b.h"
 #endif
 
@@ -171,12 +171,16 @@
 #  include "libsyschip/memmap-sage.h"
 #endif
 
-#if defined(__FP4014__)
+#if __FP4014__
 #  include "libsyschip/memmap-octave-v1.h"
 #endif
 
-#if defined(__FP4015_ONWARDS__) || defined(__FPM1015_ONWARDS__)
+#if __FP4015__ || __FPM1015__
 #  include "libsyschip/memmap-octave-v2-maestro-v1.h"
+#endif
+
+#if __FP4017__ || __FPM1017__
+#  include "libsyschip/memmap-octave-v5-maestro-v3.h"
 #endif
 
 
@@ -192,16 +196,16 @@
  that (and miss any SMEM data).
 */
 
-#if defined(__FPM1015_ONWARDS__) || (defined(__FP4014_ONWARDS__) && !CHIP_CLASS_DSL)
-# if !defined(ASMCPP) && !defined(__LINKER_SCRIPT__) && defined(__FIREPATH__)
+#if __FPM1015_ONWARDS__ || (__FP4014_ONWARDS__ && !CHIP_CLASS_DSL)
+#  if !defined(ASMCPP) && !defined(__LINKER_SCRIPT__) && defined(__FIREPATH__)
 extern void __text_start();
 extern void __text_end();
 extern int __data_start, __data_end;
-# endif
-# define TEXT_START_ADDR  SYMBOL_ADDR_TO_ADDR (__text_start)
-# define TEXT_END_ADDR    SYMBOL_ADDR_TO_ADDR (__text_end)
-# define DATA_START_ADDR  SYMBOL_ADDR_TO_ADDR (__data_start)
-# define DATA_END_ADDR    SYMBOL_ADDR_TO_ADDR (__data_end)
+#  endif
+#  define TEXT_START_ADDR  SYMBOL_ADDR_TO_ADDR (__text_start)
+#  define TEXT_END_ADDR    SYMBOL_ADDR_TO_ADDR (__text_end)
+#  define DATA_START_ADDR  SYMBOL_ADDR_TO_ADDR (__data_start)
+#  define DATA_END_ADDR    SYMBOL_ADDR_TO_ADDR (__data_end)
 #endif
 
 /*
@@ -241,7 +245,7 @@ with the pcache these macros just return the value supplied.
 #define CACHED_ADDR     NONVOLATILE_ADDR
 
 /* FIREPATH_NUM handling for the C world */
-#if (defined(__FP2012_ONWARDS__) || defined(__FPM1015_ONWARDS__)) && !defined(ASMCPP) && !defined(__LINKER_SCRIPT__)
+#if (defined(__FP2012_ONWARDS__) || __FPM1015_ONWARDS__) && !defined(ASMCPP) && !defined(__LINKER_SCRIPT__)
 #  if defined(FIREPATH_NUM) || defined(FIREPATH_NUM_UNCACHED)
 #    error "FIREPATH_NUM and FIREPATH_NUM_UNCACHED must not be defined for FP2012+/Maestro chips, memmap.h will define them"
 #  endif
@@ -254,7 +258,7 @@ with the pcache these macros just return the value supplied.
 #    define FIREPATH_NUM                FIREPATH_NUM_UNCACHED
      /* Keep a different definition on Maestro to not waste a register; on
       * other targets pre-existing code expects a long, so give them a long. */
-#    if defined(__FPM1015_ONWARDS__)
+#    if __FPM1015_ONWARDS__
 #      define FIREPATH_NUM_UNCACHED     (__fp_dirr_w(DIR_CORE_ID))
 #    else
 #      define FIREPATH_NUM_UNCACHED     (__fp_dirr_l(DIR_CORE_ID))
@@ -268,14 +272,14 @@ with the pcache these macros just return the value supplied.
 
 /* FIREPATH_NUM handling for the ASM world */
 #ifdef ASMCPP
-#  if defined(__FP2012_ONWARDS__) || defined(__FPM1015_ONWARDS__)
+#  if defined(__FP2012_ONWARDS__) || __FPM1015_ONWARDS__
 #    include "libfp/dirs.h"           /* for the DIR_CORE_ID constant */
 #  endif
 
     /* This macro gets the uncached core id */
-#if defined(__FP4014_ONWARDS__) || defined(__FPM1015_ONWARDS__)
+#if __FP4014_ONWARDS__ || __FPM1015_ONWARDS__
 
-#  if defined(__FP4014_ONWARDS__)
+#  if __FP4014_ONWARDS__
     .macro get_core_id  rdest:req
 #    if (NUM_CORES != 1)
      nop             : dirr \rdest, #DIR_CORE_ID
@@ -284,7 +288,7 @@ with the pcache these macros just return the value supplied.
 #    endif /* NUM_CORES != 1 */
 #  endif  /* __FP4014_ONWARDS__ */
 
-#  if defined(__FPM1015_ONWARDS__)
+#  if __FPM1015_ONWARDS__
     .macro get_core_id  rdest:req
 #    if (NUM_CORES != 1)
      dirr   \rdest, #DIR_CORE_ID

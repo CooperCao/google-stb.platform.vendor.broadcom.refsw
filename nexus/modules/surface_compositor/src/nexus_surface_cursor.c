@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2013 Broadcom Corporation
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #include "nexus_surface_compositor_module.h"
 #include "nexus_surface_compositor_impl.h"
@@ -167,11 +159,11 @@ void NEXUS_SurfaceCursor_GetSettings (NEXUS_SurfaceCursorHandle  cursor, NEXUS_S
     return;
 }
 
-static NEXUS_Error NEXUS_SurfaceCursor_P_VerifySize(NEXUS_SurfaceCompositorHandle compositor, NEXUS_SurfaceCursorHandle cursor, const NEXUS_SurfaceRegion *virtualDisplay)
+static NEXUS_Error NEXUS_SurfaceCursor_P_VerifySize(NEXUS_SurfaceCompositorHandle compositor, NEXUS_SurfaceCursorHandle cursor, const NEXUS_SurfaceCursorSettings *settings, const NEXUS_SurfaceRegion *virtualDisplay)
 {
     unsigned i;
 
-    if(!cursor->settings.composition.visible) {return NEXUS_SUCCESS;}
+    if(!settings->composition.visible) {return NEXUS_SUCCESS;}
 
     for(i=0;i<NEXUS_MAX_DISPLAYS;i++) {
         NEXUS_Rect framebufferRect;
@@ -183,7 +175,7 @@ static NEXUS_Error NEXUS_SurfaceCursor_P_VerifySize(NEXUS_SurfaceCompositorHandl
         if(compositor->display[0] && compositor->display[0]->display==NULL) {
             continue; /* this display is not activated */
         }
-        nexus_surfacemp_p_convert_coord(virtualDisplay, &compositor->display[0]->canvas, &cursor->settings.composition.position, &framebufferRect);
+        nexus_surfacemp_p_convert_coord(virtualDisplay, &compositor->display[0]->canvas, &settings->composition.position, &framebufferRect);
         if(framebufferRect.width > maxSize->width || framebufferRect.height > maxSize->height) {
             BDBG_ERR(("Visible size of cursor:%p on display:%u extends reserved size %u,%u > %u,%u", (void *)cursor, i, framebufferRect.width, framebufferRect.height, maxSize->width, maxSize->height));
             return BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -200,7 +192,7 @@ NEXUS_Error NEXUS_SurfaceCursor_P_UpdateDisplay(NEXUS_SurfaceCompositorHandle co
         NEXUS_SurfaceRegion virtualDisplay;
         NEXUS_Error rc;
         nexus_p_surface_compositor_update_virtual_display(compositor->display[0], &cursor->settings.composition, &virtualDisplay);
-        rc = NEXUS_SurfaceCursor_P_VerifySize(cursor->compositor, cursor, &cursor->virtualDisplay);
+        rc = NEXUS_SurfaceCursor_P_VerifySize(cursor->compositor, cursor, &cursor->settings, &cursor->virtualDisplay);
         if(rc!=NEXUS_SUCCESS) { return BERR_TRACE(rc); }
         cursor->virtualDisplay = virtualDisplay;
         /* XXX stereo only for the first display */
@@ -496,7 +488,7 @@ NEXUS_Error NEXUS_SurfaceCursor_SetSettings ( NEXUS_SurfaceCursorHandle  cursor,
     BDBG_ASSERT(settings);
 
     nexus_p_surface_compositor_update_virtual_display(cursor->compositor->display[0], &settings->composition, &virtualDisplay);
-    rc = NEXUS_SurfaceCursor_P_VerifySize(cursor->compositor, cursor, &virtualDisplay);
+    rc = NEXUS_SurfaceCursor_P_VerifySize(cursor->compositor, cursor, settings, &virtualDisplay);
     if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
     cursor->virtualDisplay = virtualDisplay;
     cursor->settings = *settings;

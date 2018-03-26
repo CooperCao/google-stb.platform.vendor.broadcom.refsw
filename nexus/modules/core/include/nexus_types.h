@@ -666,6 +666,7 @@ typedef unsigned NEXUS_MemoryType;
 #define NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT           0x00100
 #define NEXUS_HEAP_TYPE_DTU                          0x00200
 #define NEXUS_HEAP_TYPE_CRRT                         0x00400
+#define NEXUS_HEAP_TYPE_ARR                          0x00800
 
 
 /***************************************************************************

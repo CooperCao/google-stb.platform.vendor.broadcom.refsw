@@ -63,6 +63,10 @@
 #elif ( ( BVCE_P_CORE_MAJOR == 3 ) && ( BVCE_P_CORE_MINOR == 0 ) && ( BVCE_P_CORE_SUBMINOR == 1 ) && ( BVCE_P_CORE_REVISION == 2 ) )
 #include "bvce_core_regs_hw_rev_3_0_1_2.c"
 #include "bvce_core_rev_3_0_1_2.c"
+#elif ( ( BVCE_P_CORE_MAJOR == 3 ) && ( BVCE_P_CORE_MINOR == 0 ) && ( BVCE_P_CORE_SUBMINOR == 2 ) && ( BVCE_P_CORE_REVISION == 2 ) )
+/* 3.0.2.2 is identical to 3.0.1.2 with the exception of an FME HW fix */
+#include "bvce_core_regs_hw_rev_3_0_1_2.c"
+#include "bvce_core_rev_3_0_1_2.c"
 #else
 #error Unrecognized core version
 #endif

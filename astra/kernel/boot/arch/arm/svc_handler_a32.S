@@ -51,9 +51,18 @@ tz_secure_svc_handler:
     push   {r0}
     push   {r1}
     push   {r2}
+    push   {r3}
+    push   {r4}
     push   {lr}
     bl get_regbase
+
+    /* save Neon registers */
+    bl save_neonregs
+
+    mov r0, r2
     pop    {lr}
+    pop    {r4}
+    pop    {r3}
     pop    {r2}
     pop    {r1}
     /*

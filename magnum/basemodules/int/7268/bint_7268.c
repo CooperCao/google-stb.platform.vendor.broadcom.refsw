@@ -66,6 +66,10 @@
 #include "bchp_bvnm_intr2_0.h"
 #include "bchp_clkgen_intr2.h"
 
+#if (BCHP_CHIP == 7255)
+#include "bchp_leap_host_l1.h"
+#endif
+
 #ifdef BCHP_DVP_HR_INTR2_REG_START
 #include "bchp_dvp_hr_intr2.h"
 #include "bchp_dvp_ht.h"
@@ -496,9 +500,7 @@ static const BINT_P_IntMap bint_map[] =
     BINT_MAP(2, UPG_MAIN_AON, "", UPG_MAIN_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x3f ),
 #endif
 
-#ifndef BINT_SPI_DISABLED
     BINT_MAP(2, UPG_SPI, "", UPG_SPI_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x1 ),
-#endif
 
 #ifdef BCHP_SCIRQ0_REG_START
     BINT_MAP(2, UPG_SC, "", SCIRQ0_SCIRQEN, REGULAR, ALL, 0),
@@ -646,6 +648,9 @@ static const BINT_P_IntMap bint_map[] =
 #ifdef BCHP_XPT_TSIO_INTR_L2_REG_START
     BINT_MAP_STD(2, XPT_EXTCARD, XPT_TSIO_INTR_L2_CPU),
 #endif
+#ifdef BCHP_LEAP_HOST_L1_INTR_W0_STATUS
+    BINT_MAP(3, LEAP, "_W0", LEAP_HOST_L1_INTR_W0_STATUS, REGULAR, SOME, 0x00000001), /* Only need the one LEAP bit for internal frontend */
+#endif
     BINT_MAP_LAST()
 };
 
@@ -731,6 +736,10 @@ static void BINT_P_ClearInt( BREG_Handle regHandle, uint32_t baseAddr, int shift
         BINT_P_TIMER_CASES
             BREG_Write32( regHandle, baseAddr + BINT_P_TIMER_STATUS, 1ul<<shift);
             break;
+#ifdef BCHP_LEAP_HOST_L1_INTR_W0_STATUS
+        case BCHP_LEAP_HOST_L1_INTR_W0_STATUS:
+        case BCHP_LEAP_HOST_L1_INTR_W1_STATUS:
+#endif
         BINT_P_UPGSC_CASES
 #ifdef  BINT_P_STD_RO_STATUS_CASES
         BINT_P_STD_RO_STATUS_CASES
@@ -766,6 +775,16 @@ static void BINT_P_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int shift 
     BDBG_MSG(("SetMask %#x:%d", baseAddr, shift));
     switch( baseAddr )
     {
+#ifdef BCHP_LEAP_HOST_L1_INTR_W0_STATUS
+        case BCHP_LEAP_HOST_L1_INTR_W0_STATUS:
+            intEnable = (1ul<<shift);
+            BREG_Write32( regHandle, BCHP_LEAP_HOST_L1_INTR_W0_MASK_SET, intEnable);
+            break;
+        case BCHP_LEAP_HOST_L1_INTR_W1_STATUS:
+            intEnable = (1ul<<shift);
+            BREG_Write32( regHandle, BCHP_LEAP_HOST_L1_INTR_W1_MASK_SET, intEnable);
+            break;
+#endif
 #ifdef BCHP_XPT_DPCR1_INTR_STATUS_REG
         case BCHP_XPT_DPCR1_INTR_STATUS_REG:
 #endif
@@ -853,6 +872,16 @@ static void BINT_P_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int shif
     BDBG_MSG(("ClearMask %#x:%d", baseAddr, shift));
     switch( baseAddr )
     {
+#ifdef BCHP_LEAP_HOST_L1_INTR_W0_STATUS
+        case BCHP_LEAP_HOST_L1_INTR_W0_STATUS:
+            intEnable = (1ul<<shift);
+            BREG_Write32( regHandle, BCHP_LEAP_HOST_L1_INTR_W0_MASK_CLEAR, intEnable);
+            break;
+        case BCHP_LEAP_HOST_L1_INTR_W1_STATUS:
+            intEnable = (1ul<<shift);
+            BREG_Write32( regHandle, BCHP_LEAP_HOST_L1_INTR_W1_MASK_CLEAR, intEnable);
+            break;
+#endif
 #ifdef BCHP_XPT_DPCR1_INTR_STATUS_REG
         case BCHP_XPT_DPCR1_INTR_STATUS_REG:
 #endif
@@ -936,6 +965,13 @@ static uint32_t BINT_P_ReadStatus( BREG_Handle regHandle, uint32_t baseAddr )
     BDBG_MSG(("ReadStatus %#x", baseAddr));
     switch( baseAddr )
     {
+#ifdef BCHP_LEAP_HOST_L1_INTR_W0_STATUS
+        case BCHP_LEAP_HOST_L1_INTR_W0_STATUS:
+            return BREG_Read32( regHandle, baseAddr );
+        case BCHP_LEAP_HOST_L1_INTR_W1_STATUS:
+            return BREG_Read32( regHandle, baseAddr );
+            break;
+#endif
 #ifdef BCHP_XPT_DPCR1_INTR_STATUS_REG
         case BCHP_XPT_DPCR1_INTR_STATUS_REG:
 #endif

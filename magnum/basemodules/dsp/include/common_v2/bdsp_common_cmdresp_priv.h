@@ -40,7 +40,7 @@
 #define BDSP_COMMON_CMDRESP_PRIV_H_
 
 #define BDSP_ARM_SYSTEM_OPEN_COMMAND_ID ((uint64_t)0X524141474141524d )
-#define BDSP_ARM_MAX_NUM_ROMFS_LIB           13
+#define BDSP_ARM_MAX_NUM_ROMFS_LIB           14
 #define BDSP_ARM_MAX_REGISTER_REGIONS         4
 
 #define BDSP_MAX_NUM_TASKS                    5 /* Maximum no.of Tasks to run on DSP */

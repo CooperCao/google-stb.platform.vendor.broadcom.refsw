@@ -52,6 +52,7 @@ typedef struct NEXUS_CecModuleSettings
 {
     bool enabled;
     NEXUS_CommonModuleSettings common;
+    NEXUS_ModuleHandle hdmiOutput;
 } NEXUS_CecModuleSettings;
 
 void NEXUS_CecModule_GetDefaultSettings(

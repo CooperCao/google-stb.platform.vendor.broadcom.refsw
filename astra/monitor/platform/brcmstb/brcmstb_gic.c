@@ -94,6 +94,16 @@ int gic_sec_intr_disable(uint32_t intr_id)
         intr_id);
 }
 
+int gic_sgi_intr_generate(
+    uint32_t intr_id,
+    uint32_t cpu_mask)
+{
+    return gicv2_sgi_intr_generate(
+        gic_base + BRCMSTB_GIC_DIST_BASE,
+        intr_id,
+        cpu_mask);
+}
+
 uint32_t gic_intr_max()
 {
     return gicv2_intr_max(gic_base + BRCMSTB_GIC_DIST_BASE);

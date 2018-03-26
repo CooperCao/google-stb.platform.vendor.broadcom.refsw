@@ -1,5 +1,5 @@
-/***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * [File Description:]
- *
- ***************************************************************************/
+ ******************************************************************************/
 #include "bstd.h"
 #include "bast.h"
 #include "bast_priv.h"
@@ -1173,6 +1170,37 @@ BERR_Code BAST_g3_P_FreezeAgc(
 
 
 /******************************************************************************
+ BERR_Code BAST_g3_FreezeTunerAgc()
+******************************************************************************/
+BERR_Code BAST_g3_FreezeTunerAgc(
+   BAST_ChannelHandle h,      /* [in] BAST channel handle */
+   BAST_TunerAgc which_agc,   /* [in] AGC select */
+   bool bFreeze               /* [in] true = freeze, false = unfreeze */
+)
+{
+   BDBG_ENTER(BAST_g3_FreezeTunerAgc);
+
+   if (which_agc == BAST_TunerAgc_eRF)
+   {
+      if (bFreeze)
+         BAST_g3_P_OrRegister_isrsafe(h, BCHP_SDS_TUNER_RFAGC_R01, 0x00001000);
+      else
+         BAST_g3_P_AndRegister_isrsafe(h, BCHP_SDS_TUNER_RFAGC_R01, ~0x00001000);
+   }
+   else
+   {
+      if (bFreeze)
+         BAST_g3_P_OrRegister_isrsafe(h, BCHP_SDS_TUNER_BBAGC_R01, 0x00001000);
+      else
+         BAST_g3_P_AndRegister_isrsafe(h, BCHP_SDS_TUNER_BBAGC_R01, ~0x00001000);
+   }
+
+   BDBG_LEAVE(BAST_g3_FreezeTunerAgc);
+   return BERR_SUCCESS;
+}
+
+
+/******************************************************************************
  BERR_Code BAST_g3_P_FreezeEq()
 ******************************************************************************/
 BERR_Code BAST_g3_P_FreezeEq(
@@ -1652,7 +1680,6 @@ BERR_Code BAST_g3_P_ReadConfig(
          }
          break;
 
-   #ifdef BAST_ENABLE_GENERIC_FSK
       case BAST_G3_CONFIG_FSK_TX_FREQ_HZ:
          BDBG_ASSERT(len == BAST_G3_CONFIG_LEN_FSK_TX_FREQ_HZ);
          p[0] = (uint8_t)(hDev->hFtmDev.txFreqHz >> 24);
@@ -1676,7 +1703,6 @@ BERR_Code BAST_g3_P_ReadConfig(
          p[2] = (uint8_t)(hDev->hFtmDev.txDevHz >> 8);
          p[3] = (uint8_t)(hDev->hFtmDev.txDevHz & 0xFF);
          break;
-   #endif
 #endif
 
       case BAST_G3_CONFIG_BCM3445_CTL:
@@ -2003,7 +2029,7 @@ BERR_Code BAST_g3_P_WriteConfig(
             hDev->hFtmDev.rxChannel = BAST_FskChannel_e0;
          }
          break;
-   #ifdef BAST_ENABLE_GENERIC_FSK
+
       case BAST_G3_CONFIG_FSK_TX_FREQ_HZ:
          BDBG_ASSERT(len == BAST_G3_CONFIG_LEN_FSK_TX_FREQ_HZ);
          hDev->hFtmDev.txFreqHz = (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
@@ -2018,7 +2044,6 @@ BERR_Code BAST_g3_P_WriteConfig(
          BDBG_ASSERT(len == BAST_G3_CONFIG_LEN_FSK_TX_DEV_HZ);
          hDev->hFtmDev.txDevHz = (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
          break;
-   #endif
 #endif
 
       case BAST_G3_CONFIG_BCM3445_CTL:
@@ -2639,6 +2664,7 @@ BERR_Code BAST_g3_P_GetVersionInfo(BAST_Handle h, BFEC_VersionInfo *pVersion)
 #endif
 
 
+#ifdef BAST_ENABLE_GENERIC_FSK
 /******************************************************************************
  BERR_Code BAST_g3_ListenFsk()
 ******************************************************************************/
@@ -2647,11 +2673,45 @@ BERR_Code BAST_g3_ListenFsk(
    uint8_t n       /* [in] length of data expected */
 )
 {
-#ifdef BAST_ENABLE_GENERIC_FSK
    return BAST_g3_P_ListenFsk(h, n);
-#else
-   BSTD_UNUSED(h);
-   BSTD_UNUSED(n);
-   return BERR_NOT_SUPPORTED;
+}
 #endif
+
+
+/******************************************************************************
+ BERR_Code BAST_g3_EnableFskCarrier()
+******************************************************************************/
+BERR_Code BAST_g3_EnableFskCarrier(
+   BAST_Handle h,    /* [in] BAST handle */
+   bool bEnable      /* [in] true=enable, false=disable */
+)
+{
+   BAST_ChannelHandle hChn = h->pChannels[0];
+   BERR_Code retCode = BERR_SUCCESS;
+   uint32_t val;
+
+   if (bEnable)
+   {
+      BAST_g3_P_ReadRegister_isrsafe(hChn, BCHP_FTM_PHY_TX_CTL, &val);
+      if ((val & BCHP_FTM_PHY_TX_CTL_MAN_CTL_MASK) == 0)
+      {
+         BAST_g3_P_OrRegister_isrsafe(hChn, BCHP_FTM_PHY_TX_CTL, BCHP_FTM_PHY_TX_CTL_MAN_CTL_MASK);  /* enable manual tx */
+         BAST_g3_P_OrRegister_isrsafe(hChn, BCHP_FTM_PHY_TX_MAN, BCHP_FTM_PHY_TX_MAN_MAN_EN_MASK);   /* turn on carrier */
+         val = 0x00000000;
+         BAST_g3_P_WriteRegister_isrsafe(hChn, BCHP_FTM_PHY_TX_RAMP, &val);
+      }
+   }
+   else
+   {
+      BAST_g3_P_ReadRegister_isrsafe(hChn, BCHP_FTM_PHY_TX_CTL, &val);
+      if (val & BCHP_FTM_PHY_TX_CTL_MAN_CTL_MASK)
+      {
+         val = 0x05000059;
+         BAST_g3_P_WriteRegister_isrsafe(hChn, BCHP_FTM_PHY_TX_RAMP, &val);
+         BAST_g3_P_AndRegister_isrsafe(hChn, BCHP_FTM_PHY_TX_MAN, ~BCHP_FTM_PHY_TX_MAN_MAN_EN_MASK);    /* turn off carrier */
+         BAST_g3_P_AndRegister_isrsafe(hChn, BCHP_FTM_PHY_TX_CTL, ~BCHP_FTM_PHY_TX_CTL_MAN_CTL_MASK);   /* disable manual tx */
+      }
+   }
+
+   return retCode;
 }

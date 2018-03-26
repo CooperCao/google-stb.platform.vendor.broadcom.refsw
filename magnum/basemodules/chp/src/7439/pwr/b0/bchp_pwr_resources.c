@@ -1,43 +1,41 @@
-/***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ /******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
-* Module Description:
-*
-***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
+
 /***************************************************************
 *
 * This file is auto-generated by generate_chp_pwr.pl, based on
@@ -423,6 +421,12 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_AUD_PLL1[] = {{
     BCHP_PWR_P_ResourceType_eNonLeaf,
     BCHP_PWR_RESOURCE_AUD_PLL1,
     BDBG_STRING("AUD_PLL1")
+}};
+
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_AUD_PLL2[] = {{
+    BCHP_PWR_P_ResourceType_eNonLeaf,
+    BCHP_PWR_RESOURCE_AUD_PLL2,
+    BDBG_STRING("AUD_PLL2")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_BINT_OPEN[] = {{
@@ -851,10 +855,22 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_AUD_PLL1[] = {{
     BDBG_STRING("HW_AUD_PLL1")
 }};
 
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_AUD_PLL2[] = {{
+    BCHP_PWR_P_ResourceType_eNonLeafHw,
+    BCHP_PWR_HW_AUD_PLL2,
+    BDBG_STRING("HW_AUD_PLL2")
+}};
+
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH0[] = {{
     BCHP_PWR_P_ResourceType_eNonLeafHw,
     BCHP_PWR_HW_PLL_VCXO_PLL0_CH0,
     BDBG_STRING("HW_PLL_VCXO_PLL0_CH0")
+}};
+
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH0[] = {{
+    BCHP_PWR_P_ResourceType_eNonLeafHw,
+    BCHP_PWR_HW_PLL_VCXO_PLL1_CH0,
+    BDBG_STRING("HW_PLL_VCXO_PLL1_CH0")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH1[] = {{
@@ -867,12 +883,6 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH2[] = {{
     BCHP_PWR_P_ResourceType_eNonLeafHw,
     BCHP_PWR_HW_PLL_VCXO_PLL0_CH2,
     BDBG_STRING("HW_PLL_VCXO_PLL0_CH2")
-}};
-
-const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH0[] = {{
-    BCHP_PWR_P_ResourceType_eNonLeafHw,
-    BCHP_PWR_HW_PLL_VCXO_PLL1_CH0,
-    BDBG_STRING("HW_PLL_VCXO_PLL1_CH0")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH1[] = {{
@@ -909,6 +919,12 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_PLL_SYS_PLL_CH4[] = {{
     BCHP_PWR_P_ResourceType_eNonLeafHw,
     BCHP_PWR_HW_PLL_SYS_PLL_CH4,
     BDBG_STRING("HW_PLL_SYS_PLL_CH4")
+}};
+
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_MX_656_MUX_SELECT[] = {{
+    BCHP_PWR_P_ResourceType_eMux,
+    BCHP_PWR_MX_656_MUX_SELECT,
+    BDBG_STRING("MX_656_MUX_SELECT")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_DV_PLL_HVD_CH0[] = {{
@@ -1011,6 +1027,7 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_RFM_PHY,
     BCHP_PWR_P_Resource_AUD_PLL0,
     BCHP_PWR_P_Resource_AUD_PLL1,
+    BCHP_PWR_P_Resource_AUD_PLL2,
     BCHP_PWR_P_Resource_BINT_OPEN,
     BCHP_PWR_P_Resource_MAGNUM_CONTROLLED,
     BCHP_PWR_P_Resource_SECURE_ACCESS,
@@ -1078,13 +1095,14 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_HW_PLL_HVD_CH5,
     BCHP_PWR_P_Resource_HW_AUD_PLL0,
     BCHP_PWR_P_Resource_HW_AUD_PLL1,
+    BCHP_PWR_P_Resource_HW_AUD_PLL2,
     BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH0,
+    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH0,
     BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH1,
     BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH2,
-    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0,
-    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH0,
     BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH1,
     BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH2,
+    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0,
     BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1,
     BCHP_PWR_P_Resource_HW_PLL_SC0_CH0,
     BCHP_PWR_P_Resource_HW_PLL_SC0,
@@ -1092,6 +1110,7 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_HW_PLL_SC1,
     BCHP_PWR_P_Resource_HW_PLL_SYS_PLL_CH3,
     BCHP_PWR_P_Resource_HW_PLL_SYS_PLL_CH4,
+    BCHP_PWR_P_Resource_MX_656_MUX_SELECT,
     BCHP_PWR_P_Resource_DV_PLL_HVD_CH0,
     BCHP_PWR_P_Resource_DV_PLL_HVD_CH1,
     BCHP_PWR_P_Resource_DV_PLL_HVD_CH2,
@@ -1181,8 +1200,6 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AIO_CLK[] = {
     BCHP_PWR_P_Resource_HW_RAAGA0_GISB_CLK,
     BCHP_PWR_P_Resource_HW_RAAGA0_108_CLK,
     BCHP_PWR_P_Resource_HW_RAAGA0_DSP,
-    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH1,
-    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH1,
     NULL
 };
 
@@ -1246,16 +1263,13 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_VDC_VEC[] = {
     BCHP_PWR_P_Resource_HW_VEC_AIO,
     BCHP_PWR_P_Resource_HW_VEC_ITU656,
     BCHP_PWR_P_Resource_HW_VEC_SRAM,
-    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH1,
-    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH1,
     NULL
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_VDC_656_OUT[] = {
+    BCHP_PWR_P_Resource_MX_656_MUX_SELECT,
     BCHP_PWR_P_Resource_HW_ITU656,
     BCHP_PWR_P_Resource_HW_VEC_ITU656,
-    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH0,
-    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH0,
     NULL
 };
 
@@ -1470,6 +1484,11 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AUD_PLL1[] = {
     NULL
 };
 
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AUD_PLL2[] = {
+    BCHP_PWR_P_Resource_HW_AUD_PLL2,
+    NULL
+};
+
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_BINT_OPEN[] = {
     BCHP_PWR_P_Resource_AVD,
     BCHP_PWR_P_Resource_VICE,
@@ -1632,7 +1651,9 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_AUD_PLL0[] = {
     BCHP_PWR_P_Resource_HW_RAAGA0_GISB_CLK,
     BCHP_PWR_P_Resource_HW_RAAGA0_108_CLK,
     BCHP_PWR_P_Resource_HW_RAAGA0_DSP,
+    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH1,
     BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH2,
+    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH1,
     BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH2,
     NULL
 };
@@ -1642,13 +1663,32 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_AUD_PLL1[] = {
     BCHP_PWR_P_Resource_HW_RAAGA0_GISB_CLK,
     BCHP_PWR_P_Resource_HW_RAAGA0_108_CLK,
     BCHP_PWR_P_Resource_HW_RAAGA0_DSP,
+    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH1,
     BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH2,
+    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH1,
+    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH2,
+    NULL
+};
+
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_AUD_PLL2[] = {
+    BCHP_PWR_P_Resource_HW_AIO,
+    BCHP_PWR_P_Resource_HW_RAAGA0_GISB_CLK,
+    BCHP_PWR_P_Resource_HW_RAAGA0_108_CLK,
+    BCHP_PWR_P_Resource_HW_RAAGA0_DSP,
+    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH1,
+    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH2,
+    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH1,
     BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH2,
     NULL
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_PLL_VCXO_PLL0_CH0[] = {
     BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0,
+    NULL
+};
+
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_PLL_VCXO_PLL1_CH0[] = {
+    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1,
     NULL
 };
 
@@ -1659,11 +1699,6 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_PLL_VCXO_PLL0_CH1[]
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_PLL_VCXO_PLL0_CH2[] = {
     BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0,
-    NULL
-};
-
-static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_PLL_VCXO_PLL1_CH0[] = {
-    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1,
     NULL
 };
 
@@ -1694,6 +1729,12 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_PLL_SYS_PLL_CH3[] =
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_HW_PLL_SYS_PLL_CH4[] = {
     BCHP_PWR_P_Resource_DV_PLL_SYS_PLL_CH4,
+    NULL
+};
+
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_MX_656_MUX_SELECT[] = {
+    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH0,
+    BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH0,
     NULL
 };
 
@@ -1761,6 +1802,7 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     BCHP_PWR_P_Depend_RFM_PHY,
     BCHP_PWR_P_Depend_AUD_PLL0,
     BCHP_PWR_P_Depend_AUD_PLL1,
+    BCHP_PWR_P_Depend_AUD_PLL2,
     BCHP_PWR_P_Depend_BINT_OPEN,
     BCHP_PWR_P_Depend_MAGNUM_CONTROLLED,
     BCHP_PWR_P_Depend_SECURE_ACCESS,
@@ -1828,13 +1870,14 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     BCHP_PWR_P_Depend_HW_PLL_HVD_CH5,
     BCHP_PWR_P_Depend_HW_AUD_PLL0,
     BCHP_PWR_P_Depend_HW_AUD_PLL1,
+    BCHP_PWR_P_Depend_HW_AUD_PLL2,
     BCHP_PWR_P_Depend_HW_PLL_VCXO_PLL0_CH0,
+    BCHP_PWR_P_Depend_HW_PLL_VCXO_PLL1_CH0,
     BCHP_PWR_P_Depend_HW_PLL_VCXO_PLL0_CH1,
     BCHP_PWR_P_Depend_HW_PLL_VCXO_PLL0_CH2,
-    NULL,
-    BCHP_PWR_P_Depend_HW_PLL_VCXO_PLL1_CH0,
     BCHP_PWR_P_Depend_HW_PLL_VCXO_PLL1_CH1,
     BCHP_PWR_P_Depend_HW_PLL_VCXO_PLL1_CH2,
+    NULL,
     NULL,
     BCHP_PWR_P_Depend_HW_PLL_SC0_CH0,
     NULL,
@@ -1842,6 +1885,7 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     NULL,
     BCHP_PWR_P_Depend_HW_PLL_SYS_PLL_CH3,
     BCHP_PWR_P_Depend_HW_PLL_SYS_PLL_CH4,
+    BCHP_PWR_P_Depend_MX_656_MUX_SELECT,
     NULL,
     NULL,
     NULL,
@@ -2048,8 +2092,14 @@ void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate)
         case BCHP_PWR_HW_AUD_PLL1:
             BCHP_PWR_P_HW_AUD_PLL1_Control(handle, activate);
             break;
+        case BCHP_PWR_HW_AUD_PLL2:
+            BCHP_PWR_P_HW_AUD_PLL2_Control(handle, activate);
+            break;
         case BCHP_PWR_HW_PLL_VCXO_PLL0_CH0:
             BCHP_PWR_P_HW_PLL_VCXO_PLL0_CH0_Control(handle, activate);
+            break;
+        case BCHP_PWR_HW_PLL_VCXO_PLL1_CH0:
+            BCHP_PWR_P_HW_PLL_VCXO_PLL1_CH0_Control(handle, activate);
             break;
         case BCHP_PWR_HW_PLL_VCXO_PLL0_CH1:
             BCHP_PWR_P_HW_PLL_VCXO_PLL0_CH1_Control(handle, activate);
@@ -2057,17 +2107,14 @@ void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate)
         case BCHP_PWR_HW_PLL_VCXO_PLL0_CH2:
             BCHP_PWR_P_HW_PLL_VCXO_PLL0_CH2_Control(handle, activate);
             break;
-        case BCHP_PWR_HW_PLL_VCXO_PLL0:
-            BCHP_PWR_P_HW_PLL_VCXO_PLL0_Control(handle, activate);
-            break;
-        case BCHP_PWR_HW_PLL_VCXO_PLL1_CH0:
-            BCHP_PWR_P_HW_PLL_VCXO_PLL1_CH0_Control(handle, activate);
-            break;
         case BCHP_PWR_HW_PLL_VCXO_PLL1_CH1:
             BCHP_PWR_P_HW_PLL_VCXO_PLL1_CH1_Control(handle, activate);
             break;
         case BCHP_PWR_HW_PLL_VCXO_PLL1_CH2:
             BCHP_PWR_P_HW_PLL_VCXO_PLL1_CH2_Control(handle, activate);
+            break;
+        case BCHP_PWR_HW_PLL_VCXO_PLL0:
+            BCHP_PWR_P_HW_PLL_VCXO_PLL0_Control(handle, activate);
             break;
         case BCHP_PWR_HW_PLL_VCXO_PLL1:
             BCHP_PWR_P_HW_PLL_VCXO_PLL1_Control(handle, activate);
@@ -2103,11 +2150,11 @@ void BCHP_PWR_P_HW_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resour
 
 void BCHP_PWR_P_MUX_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mux, bool set)
 {
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(mux);
-    BSTD_UNUSED(set);
 
     switch(resource->id) {
+        case BCHP_PWR_MX_656_MUX_SELECT:
+            BCHP_PWR_P_MX_656_MUX_SELECT_Control(handle, mux, set);
+            break;
         default:
             BDBG_ASSERT(0);
             break;

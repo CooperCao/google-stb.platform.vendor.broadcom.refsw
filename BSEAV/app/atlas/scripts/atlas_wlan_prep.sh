@@ -77,48 +77,16 @@ if [ "${QUIT}" == "true" ]; then
         kill -9 `cat /tmp/udhcpc.wlan0.pid`
         rm -f /tmp/udhcpc.wlan0.pid
     fi
-
-    TEST=`lsmod|grep -w wl >/dev/null && echo 1`
-    if [ ! -z $TEST ]; then
-        echo "rmmod wl.ko"
-        rmmod wl.ko
-    fi
-
-    TEST=`lsmod|grep -w wlplat > /dev/null && echo 1`
-    if [ ! -z $TEST ]; then
-	echo "rmmod wlplat.ko"
-	rmmod wlplat.ko
-    fi
-
-    TEST=`lsmod|grep wakeup_drv >/dev/null && echo 1`
-    if [ ! -z $TEST ]; then
-        echo "rmmod wakeup_drv.ko"
-        rmmod wakeup_drv.ko
-    fi
-
-    TEST=`lsmod|grep nexus >/dev/null && echo 1`
-    if [ ! -z $TEST ]; then
-        echo "rmmod nexus.ko"
-        rmmod nexus.ko
-    fi
-
-    TEST=`lsmod|grep brcmv3d >/dev/null && echo 1`
-    if [ ! -z $TEST ]; then
-        echo "rmmod brcmv3d.ko"
-        rmmod brcmv3d.ko
-    fi
 else
-    TEST=`lsmod|grep -w wl >/dev/null && echo 1`
-    TEST1=`lsmod|grep -w wlan_plat > /dev/null && echo 1`
-    if [ "$TEST" != "1" ] || [ "$TEST1" != "1" ]; then
-        if [ -e wl.ko ] && [ -e wlinstall ] && [ -e wlan_plat.ko ]; then
-            wlinstall wl.ko wlan0
-        fi
+    if [ -e wl.ko ]; then
+        wlinstall wl.ko wlan0
     fi
 
     TEST=`ps aux|grep wpa_supplicant|grep -v grep >/dev/NULL && echo 1`
     if [ "$TEST" != "1" ] || [ "${FORCE}" == "true" ]; then
-        echo "start wpa_supplicant"
-        wpa_supplicant -Dnl80211 -iwlan0 -c wpa_supplicant.conf -B
+        if [ -e wpa_supplicant ]; then
+            echo "start wpa_supplicant"
+            wpa_supplicant -Dnl80211 -iwlan0 -c wpa_supplicant.conf -B
+        fi
     fi
 fi

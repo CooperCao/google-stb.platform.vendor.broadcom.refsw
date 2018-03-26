@@ -39,7 +39,7 @@
 
 ## Determine the chip core
 
-# Get defintion of CORETECH and  ZEUSVER
+# Get definition of CORETECH and  ZEUSVER
 include $(MAGNUM)/portinginterface/hsm/bhsm_defs.inc
 
 NEXUS_SECURITY_ZEUS_VERSION_MAJOR:=${BHSM_ZEUS_VER_MAJOR}

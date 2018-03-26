@@ -101,8 +101,6 @@ static void  _ParseBfwVersion( BHSM_BfwVersion *pVersion, uint8_t epochScheme, u
 
 BDBG_OBJECT_ID(BHSM_P_BspMsg);
 
-BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
-
 /* BSP Message Module data. */
 typedef struct BHSM_P_BspMsg_Module_s
 {
@@ -190,7 +188,7 @@ BERR_Code BHSM_BspMsg_Init( BHSM_Handle hHsm, BHSM_BspMsgConfigure_t *pConfig )
     BREG_Write32( hHsm->regHandle, MAILBOX_OLOAD_CONTROL, 0 );
     BREG_Write32( hHsm->regHandle, MAILBOX_ILOAD_CONTROL, 0 );
 
-   #ifndef BHSM_BUILD_HSM_FOR_SAGE
+   #ifdef BHSM_BUILD_HSM_FOR_HOST
     BREG_Write32( hHsm->regHandle, BCHP_BSP_GLB_CONTROL_GLB_HOST_INTR_EN, 0);
     BREG_Write32( hHsm->regHandle, BCHP_BSP_GLB_CONTROL_GLB_HOST_INTR_STATUS, 0);
     #ifdef BCHP_BSP_GLB_CONTROL_GLB_RAAGA_INTR_STATUS /* define may not be available/relevant on legacy platforms */

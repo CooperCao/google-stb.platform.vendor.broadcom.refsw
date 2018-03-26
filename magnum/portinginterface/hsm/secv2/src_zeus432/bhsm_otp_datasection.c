@@ -57,7 +57,7 @@ BERR_Code BHSM_OtpDataSection_Write( BHSM_Handle hHsm, const BHSM_DataSectionWri
     BERR_Code       rc = BERR_SUCCESS;
     BHSM_BspMsg_h   hMsg = NULL;
     BHSM_BspMsgHeader_t header;
-    unsigned char   status;
+    unsigned char   status = ~0;
     uint32_t        data[BCMD_BUFFER_BYTE_SIZE / 4];
     uint8_t         dataCrc[BHSM_CRC_DATA_LEN];
     int             i, j;
@@ -129,7 +129,7 @@ BERR_Code BHSM_OtpDataSection_Read( BHSM_Handle hHsm, BHSM_DataSectionRead *pPar
 {
     BERR_Code       rc = BERR_SUCCESS;
     BHSM_BspMsg_h   hMsg = NULL;
-    unsigned char   status;
+    unsigned char   status = ~0;
     unsigned        i;
     unsigned char   readData[BHSM_DATA_SECTION_LENGTH] = { 0 };
     BHSM_BspMsgHeader_t header;
@@ -137,8 +137,8 @@ BERR_Code BHSM_OtpDataSection_Read( BHSM_Handle hHsm, BHSM_DataSectionRead *pPar
 
     BDBG_ENTER( BHSM_OtpDataSection_Read );
 
-    if( pParam->index >= BPI_Otp_DataSection_e_size )  { return BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR ); }
     if( !pParam )                       { return BERR_TRACE( BHSM_STATUS_FAILED ); }
+    if( pParam->index >= BPI_Otp_DataSection_e_size )  { return BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR ); }
 
     BKNI_Memset( &readParam, 0, sizeof(readParam) );
     readParam.index = BCMD_Otp_CmdMsp_eReserved36;
@@ -214,7 +214,7 @@ BERR_Code BHSM_OTPPatternSequence_Program_priv( BHSM_Handle hHsm,
 {
     BERR_Code       rc = BERR_SUCCESS;
     BHSM_BspMsg_h   hMsg = NULL;
-    uint8_t         status;
+    uint8_t         status = ~0;
     unsigned        i;
     BHSM_BspMsgHeader_t header;
 
@@ -272,7 +272,6 @@ static void BHSM_OtpDataSectionCRC_Caculate( const unsigned char *data_section,
     unsigned char   bitDataArray[16];
     unsigned char   feedback;
     unsigned long   crcValue;
-    double          X = 0;
     unsigned char   H[32] =
         { 0x1, 0x1, 0x1, 0x0, 0x1, 0x1, 0x0, 0x1,
           0x1, 0x0, 0x1, 0x1, 0x1, 0x0, 0x0, 0x0,
@@ -311,7 +310,6 @@ static void BHSM_OtpDataSectionCRC_Caculate( const unsigned char *data_section,
     }
 
     crcValue = 0;
-    X = 2;
 
     for( i = 0; i < 32; i++ ) {
         /* raise X (2) to the power of i */

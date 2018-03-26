@@ -40,6 +40,7 @@
 #include "arm/arm.h"
 
 #define ZIMAGE_MAGIC_NUMBER   0x016f2818
+#define ARM_IMAGE_HEADER      0x324d5241  /* ARM image header for 32bit ("ARM\x32") */
 
 .section ".text.bootstrap"
 
@@ -59,13 +60,9 @@ tz_init:
     .endr
     b   tz_bootstrap
 
-    .word   ZIMAGE_MAGIC_NUMBER
-    .word   0x0000000           /* An absolute load/run address. 0 for position-independent images */
-    .word   (_end - tz_init)      /* Size of the zImage */
+    .word   ARM_IMAGE_HEADER
 
 tz_bootstrap:
-
-    cpsid     f, #Mode_MON   /* Switch to secure monitor mode */
 
     /* The bootloader has loaded the following registers:
      *   r0: 0x00000000
@@ -120,13 +117,17 @@ stack_setup:
 
     /* The MMU and cache are now on. We no longer need r5 based indirection for data accesses. */
 
-    /* setup the monitor mode stack */
+    ldr     r6, =boot_mode
+    ldr     r7, [r6]
+    cmp     r7, #ARMV8_BOOT_MODE
+    beq     skip_monitor
+
+    cpsid   f, #Mode_MON  /* Switch to secure monitor mode */
     ldr     r6, =mon_stack_start
     mov     r7, #MON_STACK_SIZE
     mul     r7, r4
     sub     r6, r7
     mov     sp, r6
-
     /* Setup the exception vector base address (MVBAR) */
     ldr     r8, =mon_mode_vectors
     mcr     p15, 0, r8, c12, c0, 1
@@ -136,14 +137,25 @@ stack_setup:
     ldr     r8, =tzMonitorInit
     blx     r8
 
-    cps     #Mode_ABT
+skip_monitor:
+    /*setup the fiq mode stack */
+    cpsid   f, #Mode_FIQ
+    ldr     r6, =fiq_stack_start
+    mov     r7, #FIQ_STACK_SIZE
+    mul     r7, r4
+    sub     r6, r7
+    mov     sp, r6
+
+    /*setup the abt mode stack */
+    cpsid   f, #Mode_ABT
     ldr     r6, =data_abt_stack_start
     mov     r8, #INIT_STACK_SIZE
     mul     r8, r4
     sub     r6, r8
     mov     sp, r6
 
-    cps     #Mode_SVC
+    /*setup the svc mode stack */
+    cpsid   f, #Mode_SVC
 
     /* Setup the exception vector base address (VBAR) */
     ldr     r8, =secure_mode_vectors
@@ -152,6 +164,11 @@ stack_setup:
     /* enable floating register point access in CPACR */
     mov     r6, #0x00f00000
     mcr     p15, 0, r6, c1, c0, 2
+
+    /* enable SIMD instruction execution at all levels */
+    vmrs r0, fpexc
+    orr  r0, r0, #0x40000000
+    vmsr fpexc, r0
 
     /* Now setup the main stack. */
     ldr     r6, =init_stack_start
@@ -176,12 +193,12 @@ halt:
 mon_mode_vectors:
     b       .                               /* Not defined for monitor mode */
     b       .                               /* Not defined for monitor mode */
-    b       tz_mon_smc_handler              /*  SMC call handler */
+    b       mon_smc_handler              /*  SMC call handler */
     b       .                               /* Instruction fetch abort handler: Instruction fetch aborts are not routed to monitor mode */
     b       .                               /* Data fetch abort handler: Not routed to monitor mode */
     b       .                               /* Not defined for monitor mode */
     b       .                               /* IRQ handler: Not routed to monitor mode */
-    b       tz_mon_fiq_handler
+    b       mon_fiq_handler
 
 
     /*
@@ -190,13 +207,13 @@ mon_mode_vectors:
      .align 5
 secure_mode_vectors:
     b       tz_bootstrap
-    b       tz_secure_undef_handler
+    b       .
     b       tz_secure_svc_handler
-    b       tz_secure_prefetch_abort_handler
+    b       .
     b       tz_secure_data_abort_handler
     b       .
     b       .
-    b       .
+    b       tz_fiq_handler
 
 
 tz_secure_prefetch_abort_handler:
@@ -216,6 +233,11 @@ bootstrap_stack_start:
     .align 5
     .space   INIT_STACK_SIZE*MAX_NUM_CPUS
 init_stack_start:
+
+.section ".data"
+    .align 5
+    .space   FIQ_STACK_SIZE*MAX_NUM_CPUS
+fiq_stack_start:
 
 .section ".data"
     .align 5

@@ -125,7 +125,7 @@ const BBOX_Xvd_Config BBOX_P_Xvd_ConfigLUT[] =
    {
       10,
       {
-         BBOX_XVD_DECODER_INFO_Dual4Kp60_V1( 1, 0, BAVC_VideoBitDepth_e10Bit, 0, 0, 1, 0 )
+         BBOX_XVD_DECODER_INFO_4Kp60_Excl1080p60_1080p60_V2( 0, BBOX_XVD_UNUSED, BAVC_VideoBitDepth_e10Bit, 0, 0, BAVC_VideoBitDepth_e10Bit, 1, 1),
       }
    },
 
@@ -188,7 +188,7 @@ const BBOX_Xvd_Config BBOX_P_Xvd_ConfigLUT[] =
       {
          BBOX_XVD_DECODER_INFO_1080p60_V1( 2, BBOX_XVD_UNUSED, BAVC_VideoBitDepth_e8Bit, 0, 0 ),
          BBOX_XVD_DECODER_INFO_1080p60_V1( 2, BBOX_XVD_UNUSED, BAVC_VideoBitDepth_e8Bit, 1, 1 ),
-         BBOX_XVD_DECODER_INFO_Dual1080p30_V1( 2, BBOX_XVD_UNUSED, BAVC_VideoBitDepth_e8Bit, 2, 2, 3, 3 )
+         BBOX_XVD_DECODER_INFO_Triple1080p30_V1( 2, BBOX_XVD_UNUSED, BAVC_VideoBitDepth_e8Bit, 2, 2, 3, 3, BBOX_XVD_UNUSED, 4 )
       }
    },
 

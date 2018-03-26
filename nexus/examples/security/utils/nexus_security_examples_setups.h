@@ -180,6 +180,7 @@ NEXUS_Error     SecurityExampleInitPlatform ( NEXUS_ExampleSecuritySettings * vi
 NEXUS_Error     SecurityExampleShutdown ( NEXUS_ExampleSecuritySettings * videoSecSettings );
 NEXUS_Error     SecurityExampleSetupPlayback ( NEXUS_ExampleSecuritySettings * videoSecSettings );
 NEXUS_Error     SecurityExampleSetupDecodersDisplays ( NEXUS_ExampleSecuritySettings * pSettings );
+NEXUS_Error     SecurityExampleSetupDecoders ( NEXUS_ExampleSecuritySettings * pSettings );
 NEXUS_Error     SecurityExampleSetupPlaybackPidChannels ( NEXUS_ExampleSecuritySettings * pSettings );
 NEXUS_Error     SecurityExampleSetupRecord4Encrpytion ( NEXUS_ExampleSecuritySettings * videoSecSettings );
 NEXUS_Error     SecurityExampleStartRecord ( NEXUS_ExampleSecuritySettings * pSettings );

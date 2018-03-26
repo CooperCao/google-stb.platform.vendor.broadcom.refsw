@@ -89,7 +89,6 @@ int main(int argc, char **argv)
     NEXUS_SimpleAudioDecoderServerHandle audioServer;
     NEXUS_SimpleAudioDecoderHandle simpleAudioDecoder;
     NEXUS_AudioPlaybackHandle audioPlayback[2];
-    NEXUS_SimpleAudioPlaybackHandle simpleAudioPlayback[2];
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_DisplaySettings displaySettings;
@@ -243,23 +242,6 @@ If you enable this, HDMI/SPDIF will get compressed for ac3, mixed pcm for all ot
         simpleAudioDecoder = NEXUS_SimpleAudioDecoder_Create(audioServer, 0, &settings);
     }
 
-    /* create simple audio playback. it is linked to the audio decoder for timebase.
-    but it is acquired separately by the app.
-    if more than one SimpleAudioDecoder is created, the user should create an index scheme to separate them. */
-    {
-        NEXUS_SimpleAudioPlaybackServerSettings settings;
-
-        NEXUS_SimpleAudioPlayback_GetDefaultServerSettings(&settings);
-        settings.decoder = simpleAudioDecoder;
-        settings.playback = audioPlayback[0];
-        simpleAudioPlayback[0] = NEXUS_SimpleAudioPlayback_Create(audioServer, 0, &settings);
-
-        NEXUS_SimpleAudioPlayback_GetDefaultServerSettings(&settings);
-        settings.decoder = simpleAudioDecoder;
-        settings.playback = audioPlayback[1];
-        simpleAudioPlayback[1] = NEXUS_SimpleAudioPlayback_Create(audioServer, 1, &settings);
-    }
-
     NEXUS_Platform_GetDefaultStartServerSettings(&serverSettings);
     serverSettings.allowUnauthenticatedClients = true; /* client is written this way */
     serverSettings.unauthenticatedConfiguration.mode = clientMode;
@@ -292,8 +274,6 @@ If you enable this, HDMI/SPDIF will get compressed for ac3, mixed pcm for all ot
         NEXUS_SimpleVideoDecoder_Destroy(simpleVideoDecoder[i]);
     }
     NEXUS_SimpleVideoDecoderServer_Destroy(videoServer);
-    NEXUS_SimpleAudioPlayback_Destroy(simpleAudioPlayback[0]);
-    NEXUS_SimpleAudioPlayback_Destroy(simpleAudioPlayback[1]);
     NEXUS_SimpleAudioDecoder_Destroy(simpleAudioDecoder);
     NEXUS_SimpleAudioDecoderServer_Destroy(audioServer);
     NEXUS_VideoDecoder_Close(videoDecoder);

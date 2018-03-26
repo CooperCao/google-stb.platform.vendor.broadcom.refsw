@@ -83,7 +83,7 @@ NEXUS_Error NEXUS_OtpMsp_Read(
 NEXUS_Error NEXUS_OtpMsp_Write (
     unsigned index,               /* MSP OTP index.
                                      List of disclosed OTP MSP indexes can be found in nexus_otp_msp_indexes.h */
-    NEXUS_OtpMspWrite *pConf      /* The data and mask to be programmed. */
+    const NEXUS_OtpMspWrite *pConf      /* The data and mask to be programmed. */
     );
 
 

@@ -136,6 +136,7 @@ BERR_Code BVDC_Display_Create
     BVDC_P_ResetAnalogChanInfo(&hDisplay->stAnlgChan_1);
     hDisplay->bAnlgEnable = false;
     hDisplay->stDviChan.bEnable = false;
+    hDisplay->st656Chan.bEnable = false;
 
     /* determine display channel and the master timing generator */
     if(pDefSettings)

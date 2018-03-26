@@ -174,7 +174,7 @@ typedef struct NEXUS_PlatformHeapSettings {
     unsigned heapType;   /* see NEXUS_HEAP_TYPE bitmasks in nexus_types.h */
     bool optional;      /* if true, then allow nexus to init even if memory for this heap cannot be found */
     struct {
-        bool first; /* if set to true, then this HEAP would be placed at beginning of the first region available on a given MEMC */
+        unsigned priority; /* heap placement priority, heaps with larger priority are placed before heaps with lower priority */
         bool sage; /* if set to true, then this HEAP should be placed to conform to SAGE requirements */
         struct {
             bool valid;

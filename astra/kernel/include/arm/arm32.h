@@ -134,7 +134,7 @@
 #define SAVED_REG_LR_USR   18
 
 /* neon registers */
-#define NUM_SAVED_NEON_REGS 0
+#define NUM_SAVED_NEON_REGS 34
 
 /* LPAE table and block descriptors. */
 #define PAGE_TABLE_SELECTION_MASK 0x80000000
@@ -384,13 +384,102 @@ static inline unsigned int read_mpidr(void)
 			timeNow = ((uint64_t) timeHigh << 32) | timeLow; \
 }
 
-#define ARCH_SPECIFIC_GET_SECURE_TIMER_FREQUENCY(rv) asm volatile("MRC p15, 0, %[rt], c14, c0, 0": [rt] "=r" (rv) : :)
+#define ARCH_SPECIFIC_GET_SECURE_TIMER_FREQUENCY(freq) { \
+		register unsigned long rv; \
+		asm volatile("MRC p15, 0, %[rt], c14, c0, 0": [rt] "=r" (rv) : :); \
+		freq = rv; \
+	}
 
 #define ARCH_SPECIFIC_NSWTASK { \
 	asm volatile("cpsie af":::); \
 	while (true) { \
-		asm volatile("smc #0": : :); \
+		asm volatile("mov r0, #0x83000000":::"r0"); \
+		asm volatile("orr r0, r0, #0x0200":::"r0"); \
+		asm volatile("smc #0":::); \
 	} \
+	}
+
+#define ARCH_V8ARM32_SPECIFIC_GET_STIMER_CVAL(cval) { \
+		register uint32_t timeHigh, timeLow; \
+		asm volatile("push {r0}":::);\
+		asm volatile("push {r1}":::);\
+		asm volatile("mov r1, #0":::);\
+		asm volatile("mov r0, #0x83000000":::"r0");\
+		asm volatile("orr r0, r0, #0x050000":::"r0"); \
+		asm volatile("smc #0":::);\
+		asm volatile("mov %[rt], r2": [rt] "=r" (timeLow)::);\
+		asm volatile("mov %[rt], r3": [rt] "=r" (timeHigh)::); \
+		asm volatile("pop {r1}":::);\
+		asm volatile("pop {r0}":::);\
+		cval = ((uint64_t)timeHigh << 32) | timeLow; \
+	}
+
+#define ARCH_V7ARM32_SPECIFIC_GET_STIMER_CVAL(cval) { \
+		register uint32_t timeHigh, timeLow; \
+		asm volatile("MRRC p15, 2, %[low], %[high], c14" : [low] "=r" (timeLow), [high] "=r" (timeHigh) : : ); \
+		cval = ((uint64_t)timeHigh << 32) | timeLow; \
+}
+
+#define ARCH_V8ARM32_SPECIFIC_SET_STIMER_CVAL(ticks) { \
+		register uint32_t fireAtLow = (uint32_t)(ticks & 0xffffffff);\
+		register uint32_t fireAtHigh = (uint32_t)(ticks >> 32);\
+		asm volatile("push {r0}":::);\
+		asm volatile("push {r1}":::);\
+		asm volatile("push {r2}":::);\
+		asm volatile("push {r3}":::);\
+		asm volatile("mov r2, %[rt]":: [rt] "r" (fireAtLow):);\
+		asm volatile("mov r3, %[rt]": :[rt] "r" (fireAtHigh):);\
+		asm volatile("mov r0, #0x83000000":::"r0");\
+		asm volatile("orr r0, r0, #0x30000":::"r0"); \
+		asm volatile("smc #0":::);\
+		asm volatile("pop {r3}":::);\
+		asm volatile("pop {r2}":::);\
+		asm volatile("pop {r1}":::);\
+		asm volatile("pop {r0}":::);\
+	}
+
+#define ARCH_V7ARM32_SPECIFIC_SET_STIMER_CVAL(ticks) { \
+		register uint32_t fireAtLow = (uint32_t)(ticks & 0xffffffff);\
+		register uint32_t fireAtHigh = (uint32_t)(ticks >> 32);\
+		asm volatile("MCRR p15, 2, %[low], %[high], c14" : :[low] "r" (fireAtLow), [high] "r" (fireAtHigh):); \
+	}
+
+#define ARCH_V8ARM32_SPECIFIC_SET_STIMER_CTL(ctl) { \
+		asm volatile("push {r0}":::);\
+		asm volatile("push {r1}":::);\
+		asm volatile("mov r1, #0":::);\
+		register uint32_t cntpctl = ctl; \
+		asm volatile("mov r2, %[rt]": :[rt] "r" (cntpctl):); \
+		asm volatile("mov r0, #0x83000000":::"r0"); \
+		asm volatile("orr r0, r0, #0x090000":::"r0"); \
+		asm volatile("smc #0":::); \
+		asm volatile("pop {r1}":::);\
+		asm volatile("pop {r0}":::);\
+	}
+
+#define ARCH_V7ARM32_SPECIFIC_SET_STIMER_CTL(ctl) { \
+		register uint32_t cntpctl = ctl; \
+		asm volatile("mcr p15, 0, %[rt], c14, c2, 1" : : [rt] "r" (cntpctl) :); \
+	}
+
+#define ARCH_V8ARM32_SPECIFIC_GET_STIMER_CTL(ctl){ \
+		register uint32_t cntpctl; \
+		asm volatile("push {r0}":::);\
+		asm volatile("push {r1}":::);\
+		asm volatile("mov r1, #0":::);\
+		asm volatile("mov r0, #0x83000000":::"r0"); \
+		asm volatile("orr r0, r0, #0x110000":::"r0"); \
+		asm volatile("smc #0":::); \
+		asm volatile("mov %[rt], r2": [rt] "=r"(cntpctl): :); \
+		asm volatile("pop {r1}":::);\
+		asm volatile("pop {r0}":::);\
+		ctl = cntpctl;\
+	}
+
+#define ARCH_V7ARM32_SPECIFIC_GET_STIMER_CTL(ctl) { \
+		register uint32_t cntpctl; \
+		asm volatile("mrc p15, 0, %[rt], c14, c2, 1" : [rt] "=r" (cntpctl) : :); \
+		ctl = cntpctl; \
 	}
 
 #define ARCH_SPECIFIC_ENABLE_INTERRUPTS asm volatile("cpsie aif":::)
@@ -401,6 +490,11 @@ static inline unsigned int read_mpidr(void)
 	asm volatile ( \
 			"cpsid if\r\n" \
 			"mov r0, %[rt0]\r\n" \
+			"push {r1} \r\n" \
+			"push {lr} \r\n" \
+			"bl save_neonregs\r\n" \
+			"pop {lr} \r\n" \
+			"pop {r1} \r\n" \
 			"mov r0, %[rt1]\r\n" \
 			"str lr, [r0]\r\n" \
 			"str r1, [r0, #4]\r\n" \

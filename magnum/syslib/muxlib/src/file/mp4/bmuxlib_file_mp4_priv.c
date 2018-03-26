@@ -283,14 +283,14 @@ void BMUXlib_File_MP4_P_InitializeContext(BMUXlib_File_MP4_Handle hMP4Mux)
    hMP4Mux->aOutputCallbacks[BMUXlib_File_MP4_P_OutputCallback_eSizeBuffer].pCallbackData = NULL;
    hMP4Mux->aOutputCallbacks[BMUXlib_File_MP4_P_OutputCallback_eSizeBuffer].pCallback = (BMUXlib_Output_CallbackFunction)ProcessCompletedOutputDescriptors_SizeEntry;
 
-   BKNI_Memset(pCreateData->pReleaseQFreeList, 0, pCreateData->uiReleaseQFreeCount * sizeof(BMUXlib_File_MP4_P_ReleaseQEntry));
+   BKNI_Memset(pCreateData->pReleaseQFreeList, 0, pCreateData->uiReleaseQFreeCount * sizeof(*pCreateData->pReleaseQFreeList));
    /* create a free list of release Q entries ... */
    for (i = 0; i < (int)pCreateData->uiReleaseQFreeCount-1; i++)
       pCreateData->pReleaseQFreeList[i].pNext = &pCreateData->pReleaseQFreeList[i+1];
    pCreateData->pReleaseQFreeList[i].pNext = NULL;
    hMP4Mux->pReleaseQFreeList = pCreateData->pReleaseQFreeList;
 
-   BKNI_Memset(pCreateData->pOutputCBDataFreeList, 0, pCreateData->uiOutputCBDataFreeCount * sizeof(BMUXlib_File_MP4_P_OutputCallbackData));
+   BKNI_Memset(pCreateData->pOutputCBDataFreeList, 0, pCreateData->uiOutputCBDataFreeCount * sizeof(*pCreateData->pOutputCBDataFreeList));
    /* create a free list of callback data entries
       NOTE: when chained into the free list, the pData field is used as a "next" pointer */
    for (i = 0; i < (int)pCreateData->uiOutputCBDataFreeCount-1; i++)
@@ -776,7 +776,7 @@ BERR_Code BMUXlib_File_MP4_P_ProcessInputDescriptors(BMUXlib_File_MP4_Handle hMP
 
                /* clear the metadata for the current sample - this ensures that the last sample
                   in the presentation will have deltaDTS of zero */
-               BKNI_Memset(&pCurrentSample->stMetadata, 0, sizeof(BMUXlib_File_MP4_P_Metadata));
+               BKNI_Memset(&pCurrentSample->stMetadata, 0, sizeof(pCurrentSample->stMetadata));
 
                /* initialize the processing state for this sample (input-type dependent) such that it will
                   begin with "sample start" (this will correctly initialize the audio state also) */
@@ -1031,7 +1031,7 @@ void BMUXlib_File_MP4_P_OutputDescriptorAppend(BMUXlib_File_MP4_Handle hMP4Mux, 
    BMUXlib_Output_CompletedCallbackInfo *pCallback;
 
    /* clear output descriptor to ensure any unused fields are cleared */
-   BKNI_Memset(&stOutDesc, 0, sizeof(BMUXlib_Output_Descriptor));
+   BKNI_Memset(&stOutDesc, 0, sizeof(stOutDesc));
 
    stOutDesc.stStorage.bWriteOperation = true;     /* appends are always write operations */
    stOutDesc.stStorage.pBufferAddress = pAddress;
@@ -1062,7 +1062,7 @@ void BMUXlib_File_MP4_P_OutputDescriptorUpdate(BMUXlib_File_MP4_Handle hMP4Mux, 
    BMUXlib_Output_CompletedCallbackInfo *pCallback;
 
    /* clear output descriptor to ensure any unused fields are cleared */
-   BKNI_Memset(&stOutDesc, 0, sizeof(BMUXlib_Output_Descriptor));
+   BKNI_Memset(&stOutDesc, 0, sizeof(stOutDesc));
 
    stOutDesc.stStorage.bWriteOperation = true;     /* updates are always write operatons */
    stOutDesc.stStorage.pBufferAddress = pAddress;
@@ -1090,7 +1090,7 @@ void BMUXlib_File_MP4_P_OutputDescriptorRead(BMUXlib_File_MP4_Handle hMP4Mux, BM
    BMUXlib_Output_CompletedCallbackInfo *pCallback;
 
    /* clear output descriptor to ensure any unused fields are cleared */
-   BKNI_Memset(&stOutDesc, 0, sizeof(BMUXlib_Output_Descriptor));
+   BKNI_Memset(&stOutDesc, 0, sizeof(stOutDesc));
 
    stOutDesc.stStorage.bWriteOperation = false;
    stOutDesc.stStorage.pBufferAddress = pAddress;
@@ -1315,7 +1315,7 @@ static void DestroyOutputs(BMUXlib_File_MP4_Handle hMP4Mux)
       {
          BDBG_MODULE_MSG(BMUX_MP4_OUTPUT, ("Destroying Mdat Temp Storage ... "));
          pStorage->pfDestroyStorageObject(pStorage->pContext, hMP4Mux->pMdatOutput->stInterface.pContext);
-         BKNI_Memset(&hMP4Mux->pMdatOutput->stInterface, 0, sizeof(BMUXlib_StorageObjectInterface));
+         BKNI_Memset(&hMP4Mux->pMdatOutput->stInterface, 0, sizeof(hMP4Mux->pMdatOutput->stInterface));
       }
       if (NULL != hMP4Mux->pMdatOutput->hOutput)
       {
@@ -1339,7 +1339,7 @@ static void DestroyOutputs(BMUXlib_File_MP4_Handle hMP4Mux)
             && (NULL != pMetadata->pOutput->stInterface.pfGetCompleteDescriptors))
          {
             pStorage->pfDestroyStorageObject(pStorage->pContext, pMetadata->pOutput->stInterface.pContext);
-            BKNI_Memset(&pMetadata->pOutput->stInterface, 0, sizeof(BMUXlib_StorageObjectInterface));
+            BKNI_Memset(&pMetadata->pOutput->stInterface, 0, sizeof(pMetadata->pOutput->stInterface));
          }
          if (NULL != pMetadata->pOutput->hOutput)
          {

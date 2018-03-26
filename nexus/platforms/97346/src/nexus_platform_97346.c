@@ -63,8 +63,6 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings(NEXUS_MemoryConfigu
     if (familyID == 0x07346500) {
         unsigned int i;
         for (i=0; i < NEXUS_NUM_VIDEO_DECODERS; ++i) {
-            /* Enable HEVC support for 73465. */
-            pSettings->videoDecoder[i].supportedCodecs[NEXUS_VideoCodec_eH265] = true;
             /* If you require HEVC 10bit uncomment the line below. This will consume an extra 11MB per video decoder. */
             pSettings->videoDecoder[i].colorDepth = 10;
         }

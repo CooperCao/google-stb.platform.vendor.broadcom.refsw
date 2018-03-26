@@ -164,12 +164,13 @@ struct BNAV_Indexer_HandleImpl
             /* uint8_t pps_pic_parameter_set_id; */
             bool valid;
             uint8_t pps_seq_parameter_set_id;
-            bool dependent_slice_segments_enabled_flag;
             uint8_t num_extra_slice_header_bits;
         } pps[64];
         bool frameTypeValid; /* set to true if frameType was set */
         bool newFrame;
         bool sliceStartSet;
+        bool streamHasIDR;
+        bool randomAccessIndicator;
         uint64_t sliceStart;       /* Offset of first slice NAL */
         uint64_t accessUnitStart;  /* Offset of first NAL after PTS */
     } hevc;

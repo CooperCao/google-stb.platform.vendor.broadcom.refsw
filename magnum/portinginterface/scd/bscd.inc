@@ -57,3 +57,7 @@ BSCD_INCLUDES += $(MAGNUM)/portinginterface/scd/src/core40nm
 
 BSCD_SOURCES += $(MAGNUM)/portinginterface/scd/src/core40nm/bscd.c
 BSCD_SOURCES += $(MAGNUM)/portinginterface/scd/src/core40nm/bscd_priv.c
+
+ifeq ($(USE_IRDETO_V6),y)
+BSCD_DEFINES += USE_IRDETO_V6_CARD
+endif

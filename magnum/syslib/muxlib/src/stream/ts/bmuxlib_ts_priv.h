@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,6 +39,7 @@
 #ifndef BMUXLIB_TS_PRIV_H_
 #define BMUXLIB_TS_PRIV_H_
 
+#include "bmuxlib_ts_consts.h"
 #include "bmuxlib_list.h"
 #include "bmuxlib_input.h"
 #include "bkni_multi.h"
@@ -52,8 +53,109 @@ extern "C" {
 #endif
 #endif
 
+/**********/
+/* Handle */
+/**********/
+typedef struct BMUXlib_TS_Legacy_P_Context *BMUXlib_TS_Legacy_Handle;
+
 #define BMUXLIB_TS_P_MAX(a,b) ((a > b) ? a : b)
 #define BMUXLIB_TS_P_DIVIDE_WITH_ROUND_UP(a,b) ((b)?(((a) + ((b)-1))/(b)):0)
+
+/**************/
+/* Prototypes */
+/**************/
+void
+BMUXlib_TS_Legacy_GetDefaultCreateSettings(
+         BMUXlib_TS_CreateSettings *pCreateSettings
+         );
+
+BERR_Code
+BMUXlib_TS_Legacy_Create(
+         BMUXlib_TS_Legacy_Handle *phMuxTS,  /* [out] TSMuxer handle returned */
+         const BMUXlib_TS_CreateSettings *pstCreateSettings
+         );
+
+void
+BMUXlib_TS_Legacy_Destroy(
+         BMUXlib_TS_Legacy_Handle hMuxTS
+         );
+
+/****************/
+/* Mux Settings */
+/****************/
+BERR_Code
+BMUXlib_TS_Legacy_SetMuxSettings(
+         BMUXlib_TS_Legacy_Handle hMuxTS,
+         const BMUXlib_TS_MuxSettings *pstMuxSettings
+         );
+
+BERR_Code
+BMUXlib_TS_Legacy_GetMuxSettings(
+         BMUXlib_TS_Legacy_Handle hMuxTS,
+         BMUXlib_TS_MuxSettings *pstMuxSettings
+         );
+
+/**************/
+/* Start/Stop */
+/**************/
+/* BMUXlib_TS_Start - Configures the mux HW */
+BERR_Code
+BMUXlib_TS_Legacy_Start(
+         BMUXlib_TS_Legacy_Handle hMuxTS,
+         const BMUXlib_TS_StartSettings *pstStartSettings
+         );
+
+BERR_Code
+BMUXlib_TS_Legacy_Finish(
+         BMUXlib_TS_Legacy_Handle hMuxTS,
+         const BMUXlib_TS_FinishSettings *pstFinishSettings
+         );
+
+BERR_Code
+BMUXlib_TS_Legacy_Stop(
+         BMUXlib_TS_Legacy_Handle hMuxTS
+         );
+
+/**********/
+/* Memory */
+/**********/
+void
+BMUXlib_TS_Legacy_GetMemoryConfig(
+         const BMUXlib_TS_MuxConfig *pstMuxConfig,
+         BMUXlib_TS_MemoryConfig *pstMemoryConfig
+         );
+
+/***************/
+/* System Data */
+/***************/
+BERR_Code
+BMUXlib_TS_Legacy_AddSystemDataBuffers(
+         BMUXlib_TS_Legacy_Handle hMuxTS,
+         const BMUXlib_TS_SystemData *astSystemDataBuffer, /* Array of system data buffers */
+         size_t uiCount, /* Count of system data buffers in array */
+         size_t *puiQueuedCount /* Count of system data buffers queued by muxer (*puiQueuedCount <= uiCount) */
+         );
+
+BERR_Code
+BMUXlib_TS_Legacy_GetCompletedSystemDataBuffers(
+         BMUXlib_TS_Legacy_Handle hMuxTS,
+         size_t *puiCompletedCount /* Returns count of system data buffers fully muxed */
+         );
+
+void
+BMUXlib_TS_Legacy_GetStatus(
+   BMUXlib_TS_Legacy_Handle hMuxTS,
+   BMUXlib_TS_Status *pstStatus
+   );
+
+/***********/
+/* Execute */
+/***********/
+BERR_Code
+BMUXlib_TS_Legacy_DoMux(
+   BMUXlib_TS_Legacy_Handle hMuxTS,
+   BMUXlib_DoMux_Status *pstStatus
+   );
 
 /* NOTE: MUX treats a physical offset of zero as "invalid" (since its extremely unlikely to
    occur in reality) as a way of tracking a physical offset that has not been set
@@ -63,9 +165,6 @@ extern "C" {
 #define BMUXLIB_TS_P_SCALE_MS_TO_27MHZ    (27000000 / 1000)
 
 #define BMUXLIB_TS_P_FIXED_MUX_SERVICE_PERIOD     1
-#define BMUXLIB_TS_P_MUX_SERVICE_PERIOD_DEFAULT   50
-#define BMUXLIB_TS_P_MUX_PCR_INTERVAL_DEFAULT     50
-#define BMUXLIB_TS_P_MUX_SYS_DATA_BR_DEFAULT      1000000
 #define BMUXLIB_TS_P_PES_HEADER_MIN_PAYLOAD_SIZE  3
 #define BMUXLIB_TS_P_A2PDELAY_DEFAULT             (2000 * BMUXLIB_TS_P_SCALE_MS_TO_27MHZ)  /* 2 seconds @ 27Mhz */
 #define BMUXLIB_TS_P_PCR_ROLLBACK_INTERVALS       3 /* this must be at least 2 (required number of PCRs prior to A/V Data) */
@@ -82,23 +181,15 @@ extern "C" {
 #define BMUXLIB_TS_P_GET_PCR_EXT(x)    (((x) % 300) & 0x1FF)
 
 /* accessor macros for use in testing to manipulate mux state */
-#define BMUXLIB_TS_P_GET_MUX_STATE(handle)         ((handle)->status.eState)
-#define BMUXLIB_TS_P_SET_MUX_STATE(handle, state)  ((handle)->status.eState = (state))
+#define BMUXLIB_TS_P_GET_MUX_STATE(handle)         ((handle)->pstStatus->eState)
+#define BMUXLIB_TS_P_SET_MUX_STATE(handle, state)  ((handle)->pstStatus->eState = (state))
 
 /* accessors for sys data completed count */
-#define BMUXLIB_TS_P_GET_SYS_DATA_COMP_CNT(handle)          ((handle)->status.uiSystemDataCompletedCount)
-#define BMUXLIB_TS_P_SET_SYS_DATA_COMP_CNT(handle, count)   ((handle)->status.uiSystemDataCompletedCount = (count))
+#define BMUXLIB_TS_P_GET_SYS_DATA_COMP_CNT(handle)          ((handle)->pstStatus->uiSystemDataCompletedCount)
+#define BMUXLIB_TS_P_SET_SYS_DATA_COMP_CNT(handle, count)   ((handle)->pstStatus->uiSystemDataCompletedCount = (count))
 
 /* accessor macros for ESCR */
 #define BMUXLIB_TS_P_INPUT_DESCRIPTOR_IS_ESCR_VALID(_inputDesc, _useDts) ( (_useDts) ? BMUXLIB_INPUT_DESCRIPTOR_IS_DTS_VALID(_inputDesc) : BMUXLIB_INPUT_DESCRIPTOR_IS_ESCR_VALID(_inputDesc) )
-
-/**************/
-/* Signatures */
-/**************/
-#define BMUXLIB_TS_P_SIGNATURE_CREATESETTINGS   0x77858801
-#define BMUXLIB_TS_P_SIGNATURE_STARTSETTINGS    0x77858802
-#define BMUXLIB_TS_P_SIGNATURE_MUXSETTINGS      0x77858803
-#define BMUXLIB_TS_P_SIGNATURE_FINISHSETTINGS   0x77858804
 
 /**************************/
 /* PES Header Definitions */
@@ -356,8 +447,8 @@ BMUXLIB_LIST_DEFINE( BMUXlib_TS_P_MTUBPPData )
 BMUXLIB_LIST_DEFINE( BMUXlib_TS_P_UserdataPending )
 BMUXLIB_LIST_DEFINE( BMUXlib_TS_P_UserdataPTSEntry )
 
-#define BMUXLIB_TS_TRANSPORT_IS_FULL( _pmux, _index ) ( BMUXLIB_LIST_COUNT ( &(_pmux)->stTransportDescriptorPendingList[_index] ) >= (_pmux)->status.aTransportDescriptorPendingListCountTable[_index] )
-#define BMUXLIB_TS_TRANSPORT_GET_NUM_FREE( _pmux, _index, _pcount ) ( *(_pcount) = ((_pmux)->status.aTransportDescriptorPendingListCountTable[_index] - BMUXLIB_LIST_COUNT ( &(_pmux)->stTransportDescriptorPendingList[_index] ) ) )
+#define BMUXLIB_TS_TRANSPORT_IS_FULL( _pmux, _index ) ( BMUXLIB_LIST_COUNT ( &(_pmux)->stTransportDescriptorPendingList[_index] ) >= (_pmux)->pstStatus->aTransportDescriptorPendingListCountTable[_index] )
+#define BMUXLIB_TS_TRANSPORT_GET_NUM_FREE( _pmux, _index, _pcount ) ( *(_pcount) = ((_pmux)->pstStatus->aTransportDescriptorPendingListCountTable[_index] - BMUXLIB_LIST_COUNT ( &(_pmux)->stTransportDescriptorPendingList[_index] ) ) )
 
 typedef struct BMUXlib_TS_P_TransportDescriptorMetaData
 {
@@ -572,9 +663,124 @@ typedef struct BMUXlib_TS_P_Output_Info
    unsigned uiNumTransportChannelsOpen;
 } BMUXlib_TS_P_Output_Info;
 
-typedef struct BMUXlib_TS_P_Context
+#define BMUXLIB_TS_PID_MAX_ENTRIES 8192
+#define BMUXLIB_TS_PID_PER_ENTRY (sizeof(uint32_t) * 8)
+#define BMUXLIB_TS_PID_TABLE_SIZE (BMUXLIB_TS_PID_MAX_ENTRIES/BMUXLIB_TS_PID_PER_ENTRY)
+#define BMUXLIB_TS_PID_ENTRY_SET(_pidTable, _pid) _pidTable[(_pid)/BMUXLIB_TS_PID_PER_ENTRY] |= (1 << ((_pid)%BMUXLIB_TS_PID_PER_ENTRY))
+#define BMUXLIB_TS_PID_ENTRY_CLR(_pidTable, _pid) _pidTable[(_pid)/BMUXLIB_TS_PID_PER_ENTRY] &= ~(1 << ((_pid)%BMUXLIB_TS_PID_PER_ENTRY))
+#define BMUXLIB_TS_PID_ENTRY_IS_SET(_pidTable, _pid) (0 != (_pidTable[(_pid)/BMUXLIB_TS_PID_PER_ENTRY] & (1 << ((_pid)%BMUXLIB_TS_PID_PER_ENTRY))))
+
+typedef struct BMUXlib_TS_P_Status
 {
-      BDBG_OBJECT(BMUXlib_TS_P_Context)
+   BMUXlib_State eState;
+   bool bTransportConfigured; /* Set to true when initialization is complete (E.g. Initial PCR Value seeded, transport is configured, etc.) */
+
+   BMUXlib_TS_P_PCRInfo stPCRInfo;
+   BMUXlib_TS_P_SystemDataInfo stSystemDataInfo;
+   bool bFirstESCRValid;
+   uint32_t uiFirstESCR;
+
+   bool bTransportStatusValid;
+   BMUXlib_TS_TransportStatus stTransportStatus;
+   BMUXlib_TS_TransportStatus stPreviousTransportStatus;
+
+   BMUXlib_TS_TransportSettings stTransportSettings;
+
+   /* Metadata */
+   BMUXlib_TS_P_InputMetaData stInputMetaData[BMUXLIB_TS_MAX_VIDEO_PIDS + BMUXLIB_TS_MAX_AUDIO_PIDS];
+   unsigned uiNumInputs;
+   bool bAllInputsReady;
+   bool bWaitForAllInputs;
+
+   /* System Data */
+   uint32_t uiSystemDataCompletedCount;
+
+   BMUXlib_DoMux_Status stDoMuxStatus;
+
+   BMUXlib_TS_P_MemoryConfig stMemoryConfig;
+   BMUXlib_TS_P_MemoryConfigTotal stMemoryConfigTotal;
+
+   unsigned uiPreviousESCR;
+   unsigned uiPreviousPacket2PacketTimestampDelta;
+   unsigned uiTotalPacket2PacketTimestampDelta;
+   uint32_t uiTotalPacket2PacketTimestampDeltaMod300; /* 23 bits base + 9 bits extension */
+   bool bBPPSentForVideo;
+   bool bBTPSent;
+
+   BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TSPacket) *pNullTSPacketBuffer;
+   BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_BPPData) *pDummyPESBuffer;
+
+   uint32_t uiLastESCRDTSDelta;  /* SW7425-4340: used primarily for debugging A2PDelay */
+
+   int32_t iExecutionTimeAdjustment; /* SW7425-4707: used to prevent late ESCRs when descriptors are deferred to the next MSP */
+
+   struct
+   {
+      unsigned uiVideo[BMUXLIB_TS_MAX_VIDEO_PIDS];
+      unsigned uiAudio[BMUXLIB_TS_MAX_AUDIO_PIDS];
+   } stInputIndexLUT;
+
+   struct
+   {
+      unsigned uiDescriptorsAdded;
+      unsigned uiDescriptorsCompleted;
+      unsigned uiDescriptorsReturned;
+   } stTransport[BMUXLIB_TS_MAX_TRANSPORT_INSTANCES];
+#if BMUXLIB_TS_P_ENABLE_STATS
+   BMUXLib_TS_P_EfficiencyStats stEfficiencyStats;
+#endif
+
+   struct
+   {
+      BMUXlib_TS_P_Input_Info video[BMUXLIB_TS_MAX_VIDEO_PIDS];
+      BMUXlib_TS_P_Input_Info audio[BMUXLIB_TS_MAX_AUDIO_PIDS];
+      BMUXlib_TS_P_Input_Info system;
+   } stInput;
+
+   BMUXlib_TS_P_Output_Info stOutput;
+
+   BMUXlib_TS_Status stStatus;
+
+   unsigned uiCurrentSegmentCount;
+
+   bool bTimingOffsetValid;
+   uint32_t uiTimingOffsetIn27Mhz;
+   uint64_t uiTimingOffsetIn90Khz;
+
+   uint32_t aTransportDescriptorPendingListCountTable[BMUXLIB_TS_MAX_TRANSPORT_INSTANCES];
+   bool bSystemDataPreQ;
+} BMUXlib_TS_P_Status;
+
+typedef struct BMUXlib_TS_P_TempMemoryConfig
+{
+   BMUXlib_TS_P_MemoryConfig stMemoryConfig;
+   BMUXlib_TS_MuxConfig stMuxConfig;
+   BMMA_RangeAllocator_Status stRangeAllocatorStatus;
+} BMUXlib_TS_P_TempMemoryConfig;
+
+typedef struct BMUXlib_TS_P_UserdataStatusPriv
+{
+   /* userdata */
+   BMUXlib_TS_P_UserdataStatus stUserdataStatus;
+   BMUXlib_TS_P_UserdataVideoInfo stUserdataVideoInfo[BMUXLIB_TS_MAX_VIDEO_PIDS];   /* companion video info */
+   BMUXlib_TS_P_UserdataInfo stUserdataInfo[BMUXLIB_TS_MAX_USERDATA_PIDS];
+} BMUXlib_TS_P_UserdataStatusPriv;
+
+typedef struct BMUXlib_TS_P_Settings
+{
+   /* Settings */
+   BMUXlib_TS_MuxSettings stMuxSettings;
+
+   /* Start Settings */
+   BMUXlib_TS_StartSettings stStartSettings;
+
+   /* Finish Settings */
+   BMUXlib_TS_FinishSettings stFinishSettings;
+} BMUXlib_TS_P_Settings;
+
+typedef struct BMUXlib_TS_Legacy_P_Context
+{
+      BDBG_OBJECT(BMUXlib_TS_Legacy_P_Context)
 
       /* Create */
       BMUXlib_TS_CreateSettings stCreateSettings;
@@ -646,155 +852,56 @@ typedef struct BMUXlib_TS_P_Context
       } stSubHeap[BMUXlib_TS_P_MemoryType_eMax];
 
       /* Status */
-      struct
-      {
-         /* Settings */
-         BMUXlib_TS_MuxSettings stMuxSettings;
-
-         /* Start Settings */
-         BMUXlib_TS_StartSettings stStartSettings;
-
-         /* Finish Settings */
-         BMUXlib_TS_FinishSettings stFinishSettings;
-
-         BMUXlib_State eState;
-         bool bTransportConfigured; /* Set to true when initialization is complete (E.g. Initial PCR Value seeded, transport is configured, etc.) */
-
-         BMUXlib_TS_P_PCRInfo stPCRInfo;
-         BMUXlib_TS_P_SystemDataInfo stSystemDataInfo;
-         bool bFirstESCRValid;
-         uint32_t uiFirstESCR;
-
-         bool bTransportStatusValid;
-         BMUXlib_TS_TransportStatus stTransportStatus;
-         BMUXlib_TS_TransportStatus stPreviousTransportStatus;
-
-         BMUXlib_TS_TransportSettings stTransportSettings;
-
-         /* Metadata */
-         BMUXlib_TS_P_InputMetaData stInputMetaData[BMUXLIB_TS_MAX_VIDEO_PIDS + BMUXLIB_TS_MAX_AUDIO_PIDS];
-         unsigned uiNumInputs;
-         bool bAllInputsReady;
-         bool bWaitForAllInputs;
-
-         /* System Data */
-         uint32_t uiSystemDataCompletedCount;
-
-         /* userdata */
-         BMUXlib_TS_P_UserdataStatus stUserdataStatus;
-         BMUXlib_TS_P_UserdataVideoInfo stUserdataVideoInfo[BMUXLIB_TS_MAX_VIDEO_PIDS];   /* companion video info */
-         BMUXlib_TS_P_UserdataInfo stUserdataInfo[BMUXLIB_TS_MAX_USERDATA_PIDS];
-
-         BMUXlib_DoMux_Status stDoMuxStatus;
-
-         BMUXlib_TS_P_MemoryConfig stMemoryConfig;
-         BMUXlib_TS_P_MemoryConfigTotal stMemoryConfigTotal;
-
-         unsigned uiPreviousESCR;
-         unsigned uiPreviousPacket2PacketTimestampDelta;
-         unsigned uiTotalPacket2PacketTimestampDelta;
-         uint32_t uiTotalPacket2PacketTimestampDeltaMod300; /* 23 bits base + 9 bits extension */
-         bool bBPPSentForVideo;
-         bool bBTPSent;
-
-         bool aFoundPIDs[8192];  /* Table of flags indicating PIDs in use: 2^13 possible PIDs */
-
-         BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_TSPacket) *pNullTSPacketBuffer;
-         BMUXLIB_LIST_ENTRY_TYPE(BMUXlib_TS_P_BPPData) *pDummyPESBuffer;
-
-         uint32_t uiLastESCRDTSDelta;  /* SW7425-4340: used primarily for debugging A2PDelay */
-
-         int32_t iExecutionTimeAdjustment; /* SW7425-4707: used to prevent late ESCRs when descriptors are deferred to the next MSP */
-
-         struct
-         {
-            unsigned uiVideo[BMUXLIB_TS_MAX_VIDEO_PIDS];
-            unsigned uiAudio[BMUXLIB_TS_MAX_AUDIO_PIDS];
-         } stInputIndexLUT;
-
-         struct
-         {
-            unsigned uiDescriptorsAdded;
-            unsigned uiDescriptorsCompleted;
-            unsigned uiDescriptorsReturned;
-         } stTransport[BMUXLIB_TS_MAX_TRANSPORT_INSTANCES];
-
-         BMUXLib_TS_P_EfficiencyStats stEfficiencyStats;
-
-         struct
-         {
-            BMUXlib_TS_P_Input_Info video[BMUXLIB_TS_MAX_VIDEO_PIDS];
-            BMUXlib_TS_P_Input_Info audio[BMUXLIB_TS_MAX_AUDIO_PIDS];
-            BMUXlib_TS_P_Input_Info system;
-         } stInput;
-
-         BMUXlib_TS_P_Output_Info stOutput;
-
-         BMUXlib_TS_Status stStatus;
-
-         unsigned uiCurrentSegmentCount;
-
-         bool bTimingOffsetValid;
-         uint32_t uiTimingOffsetIn27Mhz;
-         uint64_t uiTimingOffsetIn90Khz;
-
-         uint32_t aTransportDescriptorPendingListCountTable[BMUXLIB_TS_MAX_TRANSPORT_INSTANCES];
-         bool bSystemDataPreQ;
-
-         struct
-         {
-            BMUXlib_TS_P_MemoryConfig stMemoryConfig;
-            BMUXlib_TS_MuxConfig stMuxConfig;
-            BMMA_RangeAllocator_Status stRangeAllocatorStatus;
-         } stTempMemoryConfig;
-      } status;
-
-} BMUXlib_TS_P_Context;
+      BMUXlib_TS_P_Status *pstStatus;
+      uint32_t *aFoundPIDs;  /* Table of flags indicating PIDs in use: 2^13 possible PIDs */
+      BMUXlib_TS_P_UserdataStatusPriv *pstUserdataStatus;
+      BMUXlib_TS_P_Settings *pstSettings;
+} BMUXlib_TS_Legacy_P_Context;
 
 /*************************/
 /* Private Mux Functions */
 /*************************/
 BERR_Code
 BMUXlib_TS_P_ConfigureTransport(
-         BMUXlib_TS_Handle hMuxTS
+         BMUXlib_TS_Legacy_Handle hMuxTS
          );
 
 BERR_Code
 BMUXlib_TS_P_ProcessCompletedBuffers(
-         BMUXlib_TS_Handle hMuxTS
+         BMUXlib_TS_Legacy_Handle hMuxTS
          );
 
 BERR_Code
 BMUXlib_TS_P_ProcessSystemData(
-         BMUXlib_TS_Handle hMuxTS
+         BMUXlib_TS_Legacy_Handle hMuxTS
          );
 
 BERR_Code
 BMUXlib_TS_P_ProcessNewBuffers(
-         BMUXlib_TS_Handle hMuxTS
+         BMUXlib_TS_Legacy_Handle hMuxTS
          );
 
 BERR_Code
 BMUXlib_TS_P_ScheduleProcessedBuffers(
-         BMUXlib_TS_Handle hMuxTS
+         BMUXlib_TS_Legacy_Handle hMuxTS
          );
 
 bool
 BMUXlib_TS_P_Flush(
-         BMUXlib_TS_Handle hMuxTS,
+         BMUXlib_TS_Legacy_Handle hMuxTS,
          bool bFlushSystemData
          );
 
 BERR_Code
 BMUXlib_TS_P_AddTransportDescriptor(
-         BMUXlib_TS_Handle hMuxTS,
+         BMUXlib_TS_Legacy_Handle hMuxTS,
          unsigned uiTransportChannelIndex,
          BMUXlib_TS_P_TransportDescriptorEntry *pstTransportDescriptor
          );
 
 BERR_Code
 BMUXlib_TS_P_AddSystemDataBuffers(
-         BMUXlib_TS_Handle hMuxTS,
+         BMUXlib_TS_Legacy_Handle hMuxTS,
          const BMUXlib_TS_SystemData *astSystemDataBuffer, /* Array of system data buffers */
          size_t uiCount, /* Count of system data buffers in array */
          size_t *puiQueuedCount /* Count of system data buffers queued by muxer (*puiQueuedCount <= uiCount) */
@@ -802,24 +909,24 @@ BMUXlib_TS_P_AddSystemDataBuffers(
 
 void
 BMUXlib_TS_P_SeedPCR(
-         BMUXlib_TS_Handle hMuxTS
+         BMUXlib_TS_Legacy_Handle hMuxTS
          );
 
 uint64_t
 BMUXLIB_TS_P_INPUT_DESCRIPTOR_PTS(
-   BMUXlib_TS_Handle hMuxTS,
+   BMUXlib_TS_Legacy_Handle hMuxTS,
    const BMUXlib_Input_Descriptor *pstDescriptor
    );
 
 uint64_t
 BMUXLIB_TS_P_INPUT_DESCRIPTOR_DTS(
-   BMUXlib_TS_Handle hMuxTS,
+   BMUXlib_TS_Legacy_Handle hMuxTS,
    const BMUXlib_Input_Descriptor *pstDescriptor
    );
 
 uint32_t
 BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR(
-   BMUXlib_TS_Handle hMuxTS,
+   BMUXlib_TS_Legacy_Handle hMuxTS,
    const BMUXlib_Input_Descriptor *pstDescriptor
    );
 

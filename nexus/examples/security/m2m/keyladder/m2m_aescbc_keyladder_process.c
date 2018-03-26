@@ -448,9 +448,9 @@ int main(void)
 		return 1;
 	}
 
-	NEXUS_Memory_Allocate(DMA_BLOCK_SIZE * NUM_DMA_BLOCK, NULL, (void *)&pEncSrc);
-	NEXUS_Memory_Allocate(DMA_BLOCK_SIZE * NUM_DMA_BLOCK, NULL, (void *)&pEncDest);
-	NEXUS_Memory_Allocate(DMA_BLOCK_SIZE * NUM_DMA_BLOCK, NULL, (void *)&pDecDest);
+	NEXUS_Memory_Allocate(DMA_BLOCK_SIZE * NUM_DMA_BLOCK, NULL, (void **)&pEncSrc);
+	NEXUS_Memory_Allocate(DMA_BLOCK_SIZE * NUM_DMA_BLOCK, NULL, (void **)&pEncDest);
+	NEXUS_Memory_Allocate(DMA_BLOCK_SIZE * NUM_DMA_BLOCK, NULL, (void **)&pDecDest);
 
     /* Try different pattern */
     for (i = 0; i < DMA_BLOCK_SIZE * NUM_DMA_BLOCK; i++)

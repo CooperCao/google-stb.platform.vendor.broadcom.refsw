@@ -249,6 +249,8 @@ int gicv2_sec_intr_enable(
     pdist[GICD_IPRIORITYRn + i] |=  (0x40 << (p << 3));
 
     /* Clear status and enable forwarding */
+    i = intr_id >> 5;
+    p = intr_id & 0x1f;
     pdist[GICD_ICACTIVERn + i] = (0x1 << p);
     pdist[GICD_ICPENDRn   + i] = (0x1 << p);
     pdist[GICD_ISENABLERn + i] = (0x1 << p);
@@ -276,7 +278,7 @@ int gicv2_sec_intr_disable(
         return 0;
     else
         /* Assign to Group 1 */
-        pdist[GICD_IGROUPRn + i] |=  (0x1 << p);
+        pdist[GICD_IGROUPRn + i] |= (0x1 << p);
 
     /* Set to default non-secure priority (0xc0) */
     i = intr_id >> 2;
@@ -285,6 +287,8 @@ int gicv2_sec_intr_disable(
     pdist[GICD_IPRIORITYRn + i] |= ~(0xc0 << (p << 3));
 
     /* Clear status and disable forwarding for non-SGI */
+    i = intr_id >> 5;
+    p = intr_id & 0x1f;
     pdist[GICD_ICACTIVERn + i] = (0x1 << p);
     pdist[GICD_ICPENDRn   + i] = (0x1 << p);
     if (intr_id >= 16)
@@ -293,5 +297,31 @@ int gicv2_sec_intr_disable(
 #ifdef VERBOSE
     gicv2_dist_dump(dist_base);
 #endif
+    return 0;
+}
+
+int gicv2_sgi_intr_generate(
+    uintptr_t dist_base,
+    uint32_t intr_id,
+    uint32_t cpu_mask)
+{
+    volatile uint32_t *pdist = (uint32_t *)dist_base;
+    uint32_t nsec;
+    size_t i, p;
+
+#ifdef VERBOSE
+    DBG_MSG("Generating SGI interrupt %d @ 0x%lx...", intr_id, dist_base);
+#endif
+
+    /* Check group */
+    i = intr_id >> 5;
+    p = intr_id & 0x1f;
+    nsec = (pdist[GICD_IGROUPRn + i] & (0x1 << p)) ? 1 : 0;
+
+    pdist[GICD_SGIR] =
+        ((intr_id  &  0xf) <<  0) |
+        ((nsec           ) << 15) |
+        ((cpu_mask & 0xff) << 16);
+
     return 0;
 }

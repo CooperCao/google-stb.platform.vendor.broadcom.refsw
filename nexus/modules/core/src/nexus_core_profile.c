@@ -323,7 +323,7 @@ NEXUS_Profile_Stop(const char *name)
     b_profile.ref_cnt--;
     if (b_profile.ref_cnt>0) {
         nentries = bprofile_poll();
-        BDBG_WRN(("profiler accumulated %d entries and there are %u oustanding requests",  nentries, b_profile.ref_cnt));
+        BDBG_WRN(("profiler accumulated %d entries and there are %u outstanding requests",  nentries, b_profile.ref_cnt));
         if (nentries >=0 && nentries < (B_PROFILE_NENTRIES*99)/100) {
             return;
         }

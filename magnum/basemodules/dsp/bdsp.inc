@@ -210,7 +210,8 @@ BDSP_RAAGA_FP_VER := fp2011
 endif
 
 ifeq ($(BCHP_CHIP),7260)
-BDSP_RAAGA_FP_VER := fp2012
+BDSP_RAAGA_FP_VER := fp2012_imx
+BDSP_DEFINES += BDSP_INTR_MODE_AX_VIDEO_ENCODE
 endif
 
 ifeq ($(BCHP_CHIP),7278)
@@ -218,7 +219,7 @@ BDSP_RAAGA_FP_VER := fp4015
 endif
 
 ifeq ($(BDSP_ARM_AUDIO_SUPPORT),y)
-ifeq ($(BDSP_ARM_ONLY_SOLUTION),y)
+ifeq ($(BDSP_RAAGA_AUDIO_SUPPORT),n)
 include $(MAGNUM)/basemodules/dsp/build/bdsp_arm_v2.inc
 include $(MAGNUM)/basemodules/dsp/build/bdsp_common_v2.inc
 else

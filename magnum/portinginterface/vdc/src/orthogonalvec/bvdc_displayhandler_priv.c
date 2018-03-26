@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -2746,6 +2746,46 @@ static void BVDC_P_Vec_Build_Dscl_isr
             BCHP_FIELD_DATA(DSCL_0_BVB_IN_SIZE, VSIZE, hDisplay->stCurInfo.pFmtInfo->ulHeight );
 
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DSCL_0_PIC_OFFSET);
+        *pList->pulCurrent++ = 0;
+
+        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DSCL_0_PIC_OFFSET_R);
+        *pList->pulCurrent++ = 0;
+
+        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DSCL_0_HORIZ_FIR_INIT_STEP_INT);
+        *pList->pulCurrent++ = 0;
+
+        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DSCL_0_HORIZ_FIR_DEST_PIC_REGION_0_STEP_DELTA);
+        *pList->pulCurrent++ = 0;
+
+        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DSCL_0_HORIZ_FIR_DEST_PIC_REGION_2_STEP_DELTA);
+        *pList->pulCurrent++ = 0;
+
+        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DSCL_0_HORIZ_FIR_DEST_PIC_REGION_0_STEP_EPSILON);
+        *pList->pulCurrent++ = 0;
+
+        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DSCL_0_HORIZ_FIR_DEST_PIC_REGION_2_STEP_EPSILON);
+        *pList->pulCurrent++ = 0;
+
+        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DSCL_0_SRC_PIC_VERT_PAN_SCAN);
+        *pList->pulCurrent++ = 0;
+
+        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DSCL_0_VERT_FIR_SRC_PIC_OFFSET_INT);
+        *pList->pulCurrent++ = 0;
+
+        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DSCL_0_VERT_FIR_SRC_PIC_OFFSET_FRAC);
+        *pList->pulCurrent++ = 0;
+
+        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
         *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DSCL_0_SRC_PIC_SIZE);
         *pList->pulCurrent++ =
             BCHP_FIELD_DATA(DSCL_0_SRC_PIC_SIZE, HSIZE, hDisplay->stCurInfo.pFmtInfo->ulWidth) |
@@ -2776,6 +2816,19 @@ static void BVDC_P_Vec_Build_Dscl_isr
         *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DSCL_0_HORIZ_DEST_PIC_REGION_2_END);
         *pList->pulCurrent++ =
             BCHP_FIELD_DATA(DSCL_0_HORIZ_DEST_PIC_REGION_2_END, POSITION, hDisplay->stCurInfo.pHdmiFmtInfo->ulWidth );
+
+        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DSCL_0_HORIZ_DEST_PIC_REGION_3_END);
+        *pList->pulCurrent++ =
+            BCHP_FIELD_DATA(DSCL_0_HORIZ_DEST_PIC_REGION_3_END, POSITION, hDisplay->stCurInfo.pHdmiFmtInfo->ulWidth );
+
+        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DSCL_0_VERT_FIR_COEFF_00);
+        *pList->pulCurrent++ = 0;
+
+        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DSCL_0_HORIZ_FIR_COEFF_00);
+        *pList->pulCurrent++ = 0;
 
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
         *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DSCL_0_ENABLE);
@@ -4000,23 +4053,13 @@ static void BVDC_P_Vec_Build_656_Formatter_isr
 {
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_ITU656_0_ITU656_CONFIG);
-    if (hDisplay->bIsBypass)
-    {
-        *pList->pulCurrent++ =
-            BCHP_FIELD_DATA(ITU656_0_ITU656_CONFIG, FILTER_MODE, 0)|
-            BCHP_FIELD_ENUM(ITU656_0_ITU656_CONFIG, INPUT_MODE, BYPASS)|
-            BCHP_FIELD_ENUM(ITU656_0_ITU656_CONFIG, DATA_OUT_PATTERN, ZERO)|
-            BCHP_FIELD_DATA(ITU656_0_ITU656_CONFIG, reserved0, 0);
-    }
-    else
-    {
-        *pList->pulCurrent++ =
-            BCHP_FIELD_DATA(ITU656_0_ITU656_CONFIG, FILTER_MODE, 0)|
-            BCHP_FIELD_ENUM(ITU656_0_ITU656_CONFIG, INPUT_MODE, SHARED)|
-            BCHP_FIELD_ENUM(ITU656_0_ITU656_CONFIG, DATA_OUT_PATTERN, ZERO)|
-            BCHP_FIELD_DATA(ITU656_0_ITU656_CONFIG, reserved0, 0);
-    }
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(ITU656_0_ITU656_CONFIG, FILTER_MODE, 0)|
+        BCHP_FIELD_ENUM(ITU656_0_ITU656_CONFIG, INPUT_MODE, BYPASS)|
+        BCHP_FIELD_ENUM(ITU656_0_ITU656_CONFIG, DATA_OUT_PATTERN, ZERO)|
+        BCHP_FIELD_DATA(ITU656_0_ITU656_CONFIG, reserved0, 0);
 
+    BSTD_UNUSED(hDisplay);
     return;
 }
 
@@ -4040,7 +4083,7 @@ static void BVDC_P_Display_Start656Ctrler_isr
 {
     BSTD_UNUSED(pList);
 
-    if (hDisplay->st656Chan.bEnable)
+    if (hDisplay->st656Chan.bEnable || hDisplay->stCurInfo.bEnable656)
     {
         uint32_t ulIsSlave;
         ulIsSlave = (hDisplay->eMasterTg == BVDC_DisplayTg_e656Dtg) ? 0 : 1;
@@ -4582,7 +4625,7 @@ static BERR_Code BVDC_P_Display_Validate_VideoFormat
     }
 
 #if (BVDC_P_SUPPORT_ITU656_OUT)
-    if (hDisplay->st656Chan.bEnable)
+    if (hDisplay->st656Chan.bEnable || hDisplay->stCurInfo.bEnable656)
     {
         if ((err = BVDC_P_Display_Validate_656Chan(hDisplay)) != BERR_SUCCESS)
             return BERR_TRACE(err);
@@ -4878,7 +4921,7 @@ static void BVDC_P_Display_Apply_VideoFormat_isr
     }
 
 #if (BVDC_P_SUPPORT_ITU656_OUT)
-    if (hDisplay->st656Chan.bEnable)
+    if (hDisplay->st656Chan.bEnable || hDisplay->stCurInfo.bEnable656)
     {
         /*
          * 1) Tear down previous path and free up acquired resources
@@ -5914,7 +5957,7 @@ static void BVDC_P_Display_Apply_InputColorSpace_Setting_isr
     }
 
 #if (BVDC_P_SUPPORT_ITU656_OUT)
-    if (hDisplay->st656Chan.bEnable)
+    if (hDisplay->st656Chan.bEnable || hDisplay->stCurInfo.bEnable656)
     {
         BVDC_P_Vec_Build_656_CSC_isr(hDisplay, pList );
     }
@@ -7693,7 +7736,7 @@ static void BVDC_P_Display_Apply_OutputMute_Setting_isr
     }
 
 #if (BVDC_P_SUPPORT_ITU656_OUT)
-    if (hDisplay->st656Chan.bEnable)
+    if (hDisplay->st656Chan.bEnable || hDisplay->stCurInfo.bEnable656)
     {
         BVDC_P_Vec_Build_656_CSC_isr(hDisplay, pList );
     }

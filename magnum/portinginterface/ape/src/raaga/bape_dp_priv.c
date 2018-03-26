@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,7 +43,11 @@
 #include "bkni.h"
 #include "bape.h"
 #include "bape_priv.h"
+
+#if BAPE_CHIP_MAX_MIXER_GROUPS > 0
+#if BAPE_CHIP_MAX_HW_MIXERS > 0
 #include "bchp_aud_fmm_dp_ctrl0.h"
+#endif
 
 BDBG_MODULE(bape_dp_priv);
 BDBG_FILE_MODULE(bape_mixer_input_coeffs);
@@ -80,20 +84,16 @@ typedef struct BAPE_MixerGroup
     {
         BAPE_MixerGroupOutputSettings settings;     
         bool started;
-    } outputs[BAPE_CHIP_MAX_MIXER_OUTPUTS];
+    } outputs[BAPE_CHIP_MAX_HW_MIXER_OUTPUTS];
     BAPE_MixerGroupSettings settings;
     unsigned sampleRate;
 } BAPE_MixerGroup;
 
+#if BAPE_CHIP_MAX_HW_MIXERS > 0
 static void BAPE_DpMixer_P_SetGroup(BAPE_Handle deviceHandle, uint32_t mixerId, uint32_t groupId);
 static void BAPE_DpMixer_P_LoadInputCoefs(BAPE_Handle deviceHandle, uint32_t mixerId, unsigned inputIndex, 
                                           uint32_t leftToLeft, uint32_t rightToLeft, uint32_t leftToRight, uint32_t rightToRight, uint32_t rampStep);
 static void BAPE_DpMixer_P_LoadOutputCoefs(BAPE_Handle deviceHandle, uint32_t mixerId, unsigned outputIndex, uint32_t left, uint32_t right);
-
-static BERR_Code BAPE_MixerGroup_P_LinkInput(BAPE_MixerGroupHandle handle, unsigned inputIndex);
-static void BAPE_MixerGroup_P_UnlinkInput(BAPE_MixerGroupHandle handle, unsigned inputIndex);
-static void BAPE_MixerGroup_P_ApplyInputCoefficients(BAPE_MixerGroupHandle handle, unsigned inputIndex);
-static void BAPE_MixerGroup_P_ApplyOutputCoefficients(BAPE_MixerGroupHandle handle, unsigned outputIndex);
 static uint32_t BAPE_DpMixer_P_GetConfigAddress(unsigned mixerId);
 static uint32_t BAPE_DpMixer_P_GetInputConfigAddress(unsigned mixerId, unsigned inputId);
 #if !(defined BCHP_AUD_FMM_DP_CTRL0_MIXER0_CONFIG_VOLUME_RAMP_DISABLE_OUTPUT0_MASK || defined BCHP_AUD_FMM_DP_CTRL0_MIXER_CONFIGi_VOLUME_RAMP_ENA_OUTPUT0_MASK)
@@ -102,7 +102,12 @@ static uint32_t BAPE_DpMixer_P_GetActiveMixerInputs(BAPE_MixerGroupHandle handle
 static bool BAPE_DpMixer_P_MixerRampingActive(BAPE_MixerGroupHandle handle);
 #endif
 
+static BERR_Code BAPE_MixerGroup_P_LinkInput(BAPE_MixerGroupHandle handle, unsigned inputIndex);
+static void BAPE_MixerGroup_P_UnlinkInput(BAPE_MixerGroupHandle handle, unsigned inputIndex);
+#endif
 
+static void BAPE_MixerGroup_P_ApplyInputCoefficients(BAPE_MixerGroupHandle handle, unsigned inputIndex);
+static void BAPE_MixerGroup_P_ApplyOutputCoefficients(BAPE_MixerGroupHandle handle, unsigned outputIndex);
 
 /***************************************************************************
 Summary:
@@ -145,6 +150,7 @@ BERR_Code BAPE_P_InitDpHw(
     BAPE_Handle handle
     )
 {
+    #if BAPE_CHIP_MAX_HW_MIXERS > 0
     uint32_t regAddr;
     BREG_Handle regHandle;
     unsigned i, j;
@@ -155,23 +161,24 @@ BERR_Code BAPE_P_InitDpHw(
 
     BDBG_MSG(("Clearing all DP registers"));
 
-    for ( i = 0; i < BAPE_CHIP_MAX_MIXERS; i++ )
+    for ( i = 0; i < BAPE_CHIP_MAX_HW_MIXERS; i++ )
     {
         BAPE_DpMixer_P_SetGroup(handle, i, i);
         for ( j = 0; j < BAPE_CHIP_MAX_MIXER_INPUTS; j++ )
         {
             BAPE_DpMixer_P_LoadInputCoefs(handle, i, j, 0, 0, 0, 0, BAPE_MIXER_DEFAULT_RAMP_STEP);
         }
-        for ( j = 0; j < BAPE_CHIP_MAX_MIXER_OUTPUTS; j++ )
+        for ( j = 0; j < BAPE_CHIP_MAX_HW_MIXER_OUTPUTS; j++ )
         {
             BAPE_DpMixer_P_LoadOutputCoefs(handle, i, j, 0, 0);
         }
         /* Make sure to disable the "volume ramp at zero cross" setting (if it exists). */
-        regAddr = BAPE_DpMixer_P_GetConfigAddress(i);
         #if defined BCHP_AUD_FMM_DP_CTRL0_MIXER0_CONFIG_DISABLE_VOL_RAMP_AT_ZERO_CROSS_MASK
-                BAPE_Reg_P_UpdateEnum(handle, regAddr, AUD_FMM_DP_CTRL0_MIXER0_CONFIG, DISABLE_VOL_RAMP_AT_ZERO_CROSS, Disable);
+            regAddr = BAPE_DpMixer_P_GetConfigAddress(i);
+            BAPE_Reg_P_UpdateEnum(handle, regAddr, AUD_FMM_DP_CTRL0_MIXER0_CONFIG, DISABLE_VOL_RAMP_AT_ZERO_CROSS, Disable);
         #elif defined BCHP_AUD_FMM_DP_CTRL0_MIXER_CONFIGi
-                BAPE_Reg_P_UpdateEnum(handle, regAddr, AUD_FMM_DP_CTRL0_MIXER_CONFIGi, VOL_RAMP_AT_ZERO_CROSS_ENA, Disable);
+            regAddr = BAPE_DpMixer_P_GetConfigAddress(i);
+            BAPE_Reg_P_UpdateEnum(handle, regAddr, AUD_FMM_DP_CTRL0_MIXER_CONFIGi, VOL_RAMP_AT_ZERO_CROSS_ENA, Disable);
         #endif
     }
 
@@ -209,6 +216,9 @@ BERR_Code BAPE_P_InitDpHw(
     }
 
     /* TODO: Register for ESR's to catch HW Failures?? */
+    #else
+    BSTD_UNUSED(handle);
+    #endif
 
     return BERR_SUCCESS;
 }
@@ -228,6 +238,7 @@ void BAPE_P_UninitDpSw(
     }
 }
 
+#if BAPE_CHIP_MAX_HW_MIXERS > 0
 static void BAPE_DpMixer_P_SetGroup(
     BAPE_Handle deviceHandle, 
     uint32_t mixerId, 
@@ -247,6 +258,7 @@ static void BAPE_DpMixer_P_SetGroup(
 #endif
     BREG_Write32(deviceHandle->regHandle, regAddr, regVal);
 }
+#endif
 
 void BAPE_MixerGroup_P_GetDefaultCreateSettings(
     BAPE_MixerGroupCreateSettings *pSettings    /* [out] */
@@ -264,7 +276,7 @@ BERR_Code BAPE_MixerGroup_P_Create(
     )
 {
     BERR_Code errCode;
-    unsigned i, j, mixer;
+    unsigned i, j, mixer=0;
     BAPE_MixerGroupHandle handle=NULL;
 
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
@@ -291,12 +303,16 @@ BERR_Code BAPE_MixerGroup_P_Create(
     }
 
     /* Now search for the correct number of resources */
+    #if BAPE_CHIP_MAX_HW_MIXERS > 0
     errCode = BAPE_P_AllocateFmmResource(deviceHandle, BAPE_FmmResourceType_eMixer, pSettings->numChannelPairs, &mixer);
     if ( errCode )
     {
         errCode = BERR_TRACE(errCode);
         goto err_alloc_mixer;
     }
+    #else
+    BSTD_UNUSED(errCode);
+    #endif
     BDBG_MSG(("Allocating %d mixer pairs, starting with DP Mixer %d", pSettings->numChannelPairs, mixer));
 
     /* Successfully allocated resources.  Initialize Group */
@@ -307,12 +323,14 @@ BERR_Code BAPE_MixerGroup_P_Create(
     handle->deviceHandle = deviceHandle;
     handle->settings.volumeControlEnabled = true;
     BKNI_Memset(handle->mixerIds, 0xff, sizeof(handle->mixerIds));
+    #if BAPE_CHIP_MAX_HW_MIXERS > 0
     for ( i = 0; i < pSettings->numChannelPairs; i++ )
     {
         handle->mixerIds[i] = mixer + i;
         /* Setup Grouping */
         BAPE_DpMixer_P_SetGroup(deviceHandle, mixer + i, mixer);
     }
+    #endif
     for ( i = 0; i < BAPE_CHIP_MAX_MIXER_INPUTS; i++ )
     {
         BAPE_FciIdGroup_Init(&handle->inputs[i].settings.input);
@@ -324,7 +342,7 @@ BERR_Code BAPE_MixerGroup_P_Create(
         }
         BKNI_Memset(handle->inputs[i].playbackIds, 0xff, sizeof(handle->inputs[i].playbackIds));
     }
-    for ( i = 0; i < BAPE_CHIP_MAX_MIXER_OUTPUTS; i++ )
+    for ( i = 0; i < BAPE_CHIP_MAX_HW_MIXER_OUTPUTS; i++ )
     {
         for ( j = 0; j < 2*pSettings->numChannelPairs; j++ )
         {
@@ -335,10 +353,11 @@ BERR_Code BAPE_MixerGroup_P_Create(
     *pHandle = handle;
     return BERR_SUCCESS;
 
-    err_alloc_mixer:
+#if BAPE_CHIP_MAX_HW_MIXERS > 0
+err_alloc_mixer:
     return errCode; 
+#endif
 }
-
 
 void BAPE_MixerGroup_P_Destroy(
     BAPE_MixerGroupHandle handle
@@ -352,6 +371,7 @@ void BAPE_MixerGroup_P_Destroy(
     BDBG_ASSERT(handle->numRunningInputs == 0);
     BDBG_ASSERT(handle->numRunningOutputs == 0);
 
+    #if BAPE_CHIP_MAX_HW_MIXERS > 0
     /* Make sure we release all playbacks to the pool */
     for ( i = 0; i < BAPE_CHIP_MAX_MIXER_INPUTS; i++ )
     {
@@ -369,6 +389,9 @@ void BAPE_MixerGroup_P_Destroy(
 
     /* Release Resources */
     BAPE_P_FreeFmmResource(handle->deviceHandle, BAPE_FmmResourceType_eMixer, handle->numChannelPairs, handle->mixerIds[0]);
+    #else
+    BSTD_UNUSED(i);
+    #endif
     BKNI_Memset(handle->mixerIds, 0xff, sizeof(handle->mixerIds));
 
     /* Done */
@@ -401,21 +424,26 @@ BERR_Code BAPE_MixerGroup_P_SetSettings(
 
     if ( handle->numRunningOutputs > 0 )
     {
-        uint32_t regVal, regAddr;
         unsigned i;
         /* Support changing VOLUME_ENA on the fly.  Others do not change. */
         for ( i = 0; i < handle->numChannelPairs; i++ )
         {
+            #if BAPE_CHIP_MAX_HW_MIXERS > 0
+            uint32_t regVal, regAddr;
+
             regAddr = BAPE_DpMixer_P_GetConfigAddress(handle->mixerIds[i]);
             regVal = BREG_Read32(handle->deviceHandle->regHandle, regAddr);
-#ifdef BCHP_AUD_FMM_DP_CTRL0_MIXER0_CONFIG
+            #ifdef BCHP_AUD_FMM_DP_CTRL0_MIXER0_CONFIG
             regVal &= ~BCHP_MASK(AUD_FMM_DP_CTRL0_MIXER0_CONFIG, VOLUME_ENA);
             regVal |= BCHP_FIELD_DATA(AUD_FMM_DP_CTRL0_MIXER0_CONFIG, VOLUME_ENA, pSettings->volumeControlEnabled?1:0);
-#else
+            #else
             regVal &= ~BCHP_MASK(AUD_FMM_DP_CTRL0_MIXER_CONFIGi, VOLUME_ENA);
             regVal |= BCHP_FIELD_DATA(AUD_FMM_DP_CTRL0_MIXER_CONFIGi, VOLUME_ENA, pSettings->volumeControlEnabled?1:0);
-#endif
+            #endif
             BREG_Write32(handle->deviceHandle->regHandle, regAddr, regVal);
+            #else
+            /* TBD7211 - allow OTF volume scaling? */
+            #endif
         }       
     }
     handle->settings = *pSettings;
@@ -487,7 +515,6 @@ BERR_Code BAPE_MixerGroup_P_SetInputSettings(
     const BAPE_MixerGroupInputSettings *pSettings
     )
 {
-    BERR_Code errCode;
     unsigned numInputPairs=0;
     bool inputChanged = false;
     BDBG_ASSERT(NULL != handle);
@@ -522,11 +549,13 @@ BERR_Code BAPE_MixerGroup_P_SetInputSettings(
             BDBG_ERR(("Input %u has more channel pairs (%u) than mixers in the group (%u).", inputIndex, numInputPairs, handle->numChannelPairs));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
+        #if BAPE_CHIP_MAX_HW_MIXERS > 0
         if ( handle->inputs[inputIndex].linked )
         {
             BDBG_MSG(("Unlinking Input to Mixer group %p, inputIndex %u, numInputPairs %u", (void*)handle, inputIndex, numInputPairs));
             BAPE_MixerGroup_P_UnlinkInput(handle, inputIndex);
         }
+        #endif
         inputChanged = true;
     }
 
@@ -539,6 +568,10 @@ BERR_Code BAPE_MixerGroup_P_SetInputSettings(
         handle->inputs[inputIndex].numChannelPairs = numInputPairs;
         if ( numInputPairs > 0 )
         {
+            #if BAPE_CHIP_MAX_HW_MIXERS > 0
+            BERR_Code errCode;
+            #endif
+
             #if BDBG_DEBUG_BUILD
             BDBG_MODULE_MSG(bape_fci, ("Link Mixer group %p, inputIndex %u, numInPairs %u", (void*)handle, inputIndex, numInputPairs));
             {
@@ -549,6 +582,8 @@ BERR_Code BAPE_MixerGroup_P_SetInputSettings(
                 }
             }
             #endif
+
+            #if BAPE_CHIP_MAX_HW_MIXERS > 0
             errCode = BAPE_MixerGroup_P_LinkInput(handle, inputIndex);
             if ( errCode )
             {
@@ -557,6 +592,7 @@ BERR_Code BAPE_MixerGroup_P_SetInputSettings(
                 handle->inputs[inputIndex].numChannelPairs = 0;
                 return BERR_TRACE(errCode);
             }
+            #endif
         }
         else
         {
@@ -567,6 +603,7 @@ BERR_Code BAPE_MixerGroup_P_SetInputSettings(
     return BERR_SUCCESS;
 }
 
+#if BAPE_CHIP_MAX_HW_MIXERS > 0
 static BERR_Code BAPE_MixerGroup_P_LinkInput(
     BAPE_MixerGroupHandle handle, 
     unsigned inputIndex
@@ -689,15 +726,17 @@ static void BAPE_MixerGroup_P_UnlinkInput(
     }
     handle->inputs[inputIndex].linked = false;
 }
+#endif
 
 BERR_Code BAPE_MixerGroup_P_StartInput(
     BAPE_MixerGroupHandle handle,
     unsigned inputIndex
     )
 {
+    #if BAPE_CHIP_MAX_HW_MIXERS > 0
     unsigned i;
+    #endif
     BAPE_Handle deviceHandle;
-    uint32_t regVal, regAddr;
 
     BDBG_ASSERT(NULL != handle);
     BDBG_ASSERT(handle->allocated);
@@ -716,8 +755,10 @@ BERR_Code BAPE_MixerGroup_P_StartInput(
 
     BDBG_MSG(("Start MixerGroup(%p) Inputs numChannelPairs %d:", (void *)handle, handle->numChannelPairs));
     /* Setup Input Linkage */
+    #if BAPE_CHIP_MAX_HW_MIXERS > 0
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
+        uint32_t regVal, regAddr;
         uint32_t pbId;
 
         /* Handle "Type1 vs Type2 - see MIXER_GROUP_BEGIN field in RDB docs */
@@ -750,6 +791,7 @@ BERR_Code BAPE_MixerGroup_P_StartInput(
     /* Apply Group-Level Settings */
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
+        uint32_t regVal, regAddr;
 #ifdef BCHP_AUD_FMM_DP_CTRL0_MIXER0_INPUT10_CONFIG
         /* Volume -- Add soft limit here also if later required. */
         regAddr = BAPE_DpMixer_P_GetConfigAddress(handle->mixerIds[i]);
@@ -782,15 +824,18 @@ BERR_Code BAPE_MixerGroup_P_StartInput(
         BREG_Write32(handle->deviceHandle->regHandle, regAddr, regVal);        
 #endif
     }           
+    #endif
 
     /* Apply Input Scaling Coefs */
     BAPE_MixerGroup_P_ApplyInputCoefficients(handle, inputIndex);
 
     /* Enable the mixer input */
+    #if BAPE_CHIP_MAX_HW_MIXERS > 0
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
         uint32_t bitmask;
         uint32_t pbId, fci;
+        uint32_t regVal, regAddr;
 
         /* Find input config register (they are paired) */
         regAddr = BAPE_DpMixer_P_GetInputConfigAddress(handle->mixerIds[i], inputIndex);
@@ -820,6 +865,7 @@ BERR_Code BAPE_MixerGroup_P_StartInput(
         regVal |= bitmask;
         BREG_Write32(handle->deviceHandle->regHandle, regAddr, regVal);     
     }
+    #endif
 
     handle->inputs[inputIndex].started = true;
     handle->numRunningInputs++;
@@ -833,9 +879,10 @@ void BAPE_MixerGroup_P_StopInput(
     unsigned inputIndex
     )
 {
+    #if BAPE_CHIP_MAX_HW_MIXERS > 0
     unsigned i;
+    #endif
     BAPE_Handle deviceHandle;
-    uint32_t regVal, regAddr;
 
     BDBG_ASSERT(NULL != handle);
     BDBG_ASSERT(handle->allocated);
@@ -857,10 +904,12 @@ void BAPE_MixerGroup_P_StopInput(
     }
 
     /* Disable the mixer input */
+    #if BAPE_CHIP_MAX_HW_MIXERS > 0
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
         uint32_t bitmask;
         uint32_t pbId, fci;
+        uint32_t regVal, regAddr;
 
         /* Find input config register */
         regAddr = BAPE_DpMixer_P_GetInputConfigAddress(handle->mixerIds[i], inputIndex);
@@ -896,6 +945,7 @@ void BAPE_MixerGroup_P_StopInput(
         regVal &= ~bitmask;
         BREG_Write32(handle->deviceHandle->regHandle, regAddr, regVal);     
     }
+    #endif
 
     handle->inputs[inputIndex].started = false;
     BDBG_ASSERT(handle->numRunningInputs > 0);
@@ -910,10 +960,10 @@ void BAPE_MixerGroup_P_GetOutputSettings(
 {
     BDBG_ASSERT(NULL != handle);
     BDBG_ASSERT(handle->allocated);
-    if ( outputIndex >= BAPE_CHIP_MAX_MIXER_OUTPUTS )
+    if ( outputIndex >= BAPE_CHIP_MAX_HW_MIXER_OUTPUTS )
     {
         BERR_TRACE(BERR_INVALID_PARAMETER);
-        BDBG_ASSERT(outputIndex < BAPE_CHIP_MAX_MIXER_OUTPUTS);
+        BDBG_ASSERT(outputIndex < BAPE_CHIP_MAX_HW_MIXER_OUTPUTS);
         return;
     }
     BDBG_ASSERT(NULL != pSettings);
@@ -928,9 +978,9 @@ BERR_Code BAPE_MixerGroup_P_SetOutputSettings(
 {
     BDBG_ASSERT(NULL != handle);
     BDBG_ASSERT(handle->allocated);
-    if ( outputIndex >= BAPE_CHIP_MAX_MIXER_OUTPUTS )
+    if ( outputIndex >= BAPE_CHIP_MAX_HW_MIXER_OUTPUTS )
     {
-        BDBG_ASSERT(outputIndex < BAPE_CHIP_MAX_MIXER_OUTPUTS);
+        BDBG_ASSERT(outputIndex < BAPE_CHIP_MAX_HW_MIXER_OUTPUTS);
         return BERR_TRACE(BERR_INVALID_PARAMETER);;
     }
     BDBG_ASSERT(NULL != pSettings);
@@ -952,20 +1002,21 @@ void BAPE_MixerGroup_P_GetOutputStatus(
     BAPE_MixerGroupOutputStatus *pStatus    /* [out] */
     )
 {
-    unsigned i;
     BDBG_ASSERT(NULL != handle);
     BDBG_ASSERT(handle->allocated);
-    if ( outputIndex >= BAPE_CHIP_MAX_MIXER_OUTPUTS )
+    if ( outputIndex >= BAPE_CHIP_MAX_HW_MIXER_OUTPUTS )
     {
         BERR_TRACE(BERR_INVALID_PARAMETER);
-        BDBG_ASSERT(outputIndex < BAPE_CHIP_MAX_MIXER_OUTPUTS);
+        BDBG_ASSERT(outputIndex < BAPE_CHIP_MAX_HW_MIXER_OUTPUTS);
         return;
     }
     BDBG_ASSERT(NULL != pStatus);
 
     BKNI_Memset(pStatus, 0, sizeof(BAPE_MixerGroupOutputStatus));
+    #if BAPE_CHIP_MAX_HW_MIXERS > 0
     if ( handle->outputs[outputIndex].started )
     {
+        unsigned i;
         uint32_t rampStatus, regAddr;
 
 #ifdef BCHP_AUD_FMM_DP_CTRL0_VOLUME_RAMP_STATUS0
@@ -999,6 +1050,7 @@ void BAPE_MixerGroup_P_GetOutputStatus(
         }
 #endif
     }
+    #endif
 }
 #endif
 
@@ -1008,13 +1060,12 @@ BERR_Code BAPE_MixerGroup_P_StartOutput(
     )
 {
     unsigned i, outputChannelPairs;
-    uint32_t regAddr, regVal, bitmask;
 
     BDBG_ASSERT(NULL != handle);
     BDBG_ASSERT(handle->allocated);
-    if ( outputIndex >= BAPE_CHIP_MAX_MIXER_OUTPUTS )
+    if ( outputIndex >= BAPE_CHIP_MAX_HW_MIXER_OUTPUTS )
     {
-        BDBG_ASSERT(outputIndex < BAPE_CHIP_MAX_MIXER_OUTPUTS);
+        BDBG_ASSERT(outputIndex < BAPE_CHIP_MAX_HW_MIXER_OUTPUTS);
         return BERR_TRACE(BERR_INVALID_PARAMETER);;
     }
     BDBG_ASSERT(handle->outputs[outputIndex].started == false);
@@ -1031,8 +1082,12 @@ BERR_Code BAPE_MixerGroup_P_StartOutput(
     {
         outputChannelPairs = handle->outputs[outputIndex].settings.numChannelPairs;
     }
+
+    #if BAPE_CHIP_MAX_HW_MIXERS > 0
     for ( i = 0; i < outputChannelPairs; i++ )
     {
+        uint32_t regAddr, regVal, bitmask;
+
         /* Start mixer output */
 #ifdef BCHP_AUD_FMM_DP_CTRL0_MIXER_OUTPUT_ENA
         regAddr = BCHP_AUD_FMM_DP_CTRL0_MIXER_OUTPUT_ENA;
@@ -1057,6 +1112,10 @@ BERR_Code BAPE_MixerGroup_P_StartOutput(
         BREG_Write32(handle->deviceHandle->regHandle, regAddr, regVal);
 #endif
     }
+    #else
+    BSTD_UNUSED(i);
+    BSTD_UNUSED(outputChannelPairs);
+    #endif
 
     handle->outputs[outputIndex].started = true;
     handle->numRunningOutputs++;
@@ -1070,14 +1129,13 @@ void BAPE_MixerGroup_P_StopOutput(
     )
 {
     unsigned i;
-    uint32_t regAddr, regVal, bitmask;
 
     BDBG_ASSERT(NULL != handle);
     BDBG_ASSERT(handle->allocated);
-    if ( outputIndex >= BAPE_CHIP_MAX_MIXER_OUTPUTS )
+    if ( outputIndex >= BAPE_CHIP_MAX_HW_MIXER_OUTPUTS )
     {
         BERR_TRACE(BERR_INVALID_PARAMETER);
-        BDBG_ASSERT(outputIndex < BAPE_CHIP_MAX_MIXER_OUTPUTS);
+        BDBG_ASSERT(outputIndex < BAPE_CHIP_MAX_HW_MIXER_OUTPUTS);
         return;
     }
     if ( handle->outputs[outputIndex].started == false )
@@ -1086,8 +1144,11 @@ void BAPE_MixerGroup_P_StopOutput(
     }
 
     /* Stop */
+    #if BAPE_CHIP_MAX_HW_MIXERS > 0
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
+        uint32_t regAddr, regVal, bitmask;
+
         /* Stop mixer output */
 #ifdef BCHP_AUD_FMM_DP_CTRL0_MIXER_OUTPUT_ENA
         regAddr = BCHP_AUD_FMM_DP_CTRL0_MIXER_OUTPUT_ENA;
@@ -1112,6 +1173,9 @@ void BAPE_MixerGroup_P_StopOutput(
         BREG_Write32(handle->deviceHandle->regHandle, regAddr, regVal);
 #endif
     }
+    #else
+    BSTD_UNUSED(i);
+    #endif
 
     handle->outputs[outputIndex].started = false;
     BDBG_ASSERT(handle->numRunningOutputs > 0);
@@ -1128,15 +1192,19 @@ void BAPE_MixerGroup_P_GetOutputFciIds(
 
     BDBG_ASSERT(NULL != handle);
     BDBG_ASSERT(handle->allocated);
-    BDBG_ASSERT(outputIndex < BAPE_CHIP_MAX_MIXER_OUTPUTS);
+    BDBG_ASSERT(outputIndex < BAPE_CHIP_MAX_HW_MIXER_OUTPUTS);
     BDBG_ASSERT(NULL != pFciGroup);
 
     BAPE_FciIdGroup_Init(pFciGroup);
 
+    #if BAPE_CHIP_MAX_HW_MIXERS > 0
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
-        pFciGroup->ids[i] = (BAPE_FCI_BASE_MIXER | (handle->mixerIds[i]*BAPE_CHIP_MAX_MIXER_OUTPUTS) | outputIndex);
+        pFciGroup->ids[i] = (BAPE_FCI_BASE_MIXER | (handle->mixerIds[i]*BAPE_CHIP_MAX_HW_MIXER_OUTPUTS) | outputIndex);
     }
+    #else
+    BSTD_UNUSED(i);
+    #endif
 }
 
 BERR_Code BAPE_MixerGroup_P_ApplyOutputVolume(
@@ -1203,6 +1271,7 @@ unsigned BAPE_Mixer_P_MixerFormatToNumChannels(
     return numChs;
 }
 
+#if BAPE_CHIP_MAX_HW_MIXERS > 0
 static void BAPE_DpMixer_P_LoadInputCoefs(
     BAPE_Handle deviceHandle, 
     uint32_t mixerId, 
@@ -1292,6 +1361,7 @@ static void BAPE_DpMixer_P_LoadInputCoefs(
     BREG_Write32(deviceHandle->regHandle, BCHP_AUD_FMM_DP_CTRL0_USE_NEW_SCALING_COEFF, regVal);
 #endif
 }
+#endif
 
 static void BAPE_MixerGroup_P_ApplyInputCoefficients(
     BAPE_MixerGroupHandle handle, 
@@ -1313,11 +1383,14 @@ static void BAPE_MixerGroup_P_ApplyInputCoefficients(
         rightToRight = handle->inputs[inputIndex].settings.coefficients[i][1][1];
         BDBG_MODULE_MSG(bape_mixer_input_coeffs, ("  Input %d -> Mxr %2d Coeffs:  [%2d] %6x %6x %6x %6x", inputIndex, handle->mixerIds[i], i,
                   leftToLeft, rightToLeft, leftToRight, rightToRight));
+        #if BAPE_CHIP_MAX_HW_MIXERS > 0
         BAPE_DpMixer_P_LoadInputCoefs(handle->deviceHandle, handle->mixerIds[i], inputIndex, 
                                       leftToLeft, rightToLeft, leftToRight, rightToRight, handle->inputs[inputIndex].settings.rampStep);
+        #endif
     }
 }
 
+#if BAPE_CHIP_MAX_HW_MIXERS > 0
 static void BAPE_DpMixer_P_LoadOutputCoefs(
     BAPE_Handle deviceHandle, 
     uint32_t mixerId, 
@@ -1428,10 +1501,10 @@ static bool BAPE_DpMixer_P_MixerOutputIsActive(
 {
     uint32_t enabledMixers;
 
-    if ( mixerIndex < BAPE_CHIP_MAX_MIXERS )
+    if ( mixerIndex < BAPE_CHIP_MAX_HW_MIXERS )
     {
         enabledMixers = BREG_Read32(handle->deviceHandle->regHandle, BCHP_AUD_FMM_DP_CTRL0_MIXER_OUTPUT_ENA);
-        enabledMixers = (enabledMixers % BAPE_CHIP_MAX_MIXERS) | (enabledMixers >> BAPE_CHIP_MAX_MIXERS); /* combine outputs 0/1 */
+        enabledMixers = (enabledMixers % BAPE_CHIP_MAX_HW_MIXERS) | (enabledMixers >> BAPE_CHIP_MAX_HW_MIXERS); /* combine outputs 0/1 */
 
         return ( (enabledMixers>>mixerIndex) & 1 );
     }
@@ -1447,7 +1520,7 @@ static uint32_t BAPE_DpMixer_P_GetActiveMixerInputs(
     uint32_t enabledInputs = 0;
     int i;
 
-    if ( mixerIndex < BAPE_CHIP_MAX_MIXERS )
+    if ( mixerIndex < BAPE_CHIP_MAX_HW_MIXERS )
     {
         for ( i = 0; i < BAPE_CHIP_MAX_MIXER_INPUTS; i++ )
         {
@@ -1494,11 +1567,11 @@ static bool BAPE_DpMixer_P_MixerRampingActive(
     rampMask = ( BREG_Read32(handle->deviceHandle->regHandle, BCHP_AUD_FMM_DP_CTRL0_VOLUME_RAMP_STATUS0) |
                  BREG_Read32(handle->deviceHandle->regHandle, BCHP_AUD_FMM_DP_CTRL0_VOLUME_RAMP_STATUS1) );
 
-    for ( i = 0; i < BAPE_CHIP_MAX_MIXERS; i++ )
+    for ( i = 0; i < BAPE_CHIP_MAX_HW_MIXERS; i++ )
     {
         if ( (BAPE_DpMixer_P_GetActiveMixerInputs(handle, i) > 0) &&
               BAPE_DpMixer_P_MixerOutputIsActive(handle, i) &&
-              (rampMask & (1<<i | 1<<(i+BAPE_CHIP_MAX_MIXERS))) )
+              (rampMask & (1<<i | 1<<(i+BAPE_CHIP_MAX_HW_MIXERS))) )
         {
             return true;
         }                
@@ -1507,12 +1580,14 @@ static bool BAPE_DpMixer_P_MixerRampingActive(
     return false;
 }
 #endif
+#endif /* BAPE_CHIP_MAX_HW_MIXERS > 0 */
 
 BERR_Code BAPE_MixerGroup_P_WaitForRamping(
     BAPE_MixerGroupHandle handle
     )
 {
-#if !(defined BCHP_AUD_FMM_DP_CTRL0_MIXER0_CONFIG_VOLUME_RAMP_DISABLE_OUTPUT0_MASK || defined BCHP_AUD_FMM_DP_CTRL0_MIXER_CONFIGi_VOLUME_RAMP_ENA_OUTPUT0_MASK)
+#if BAPE_CHIP_MAX_HW_MIXERS > 0
+    #if !(defined BCHP_AUD_FMM_DP_CTRL0_MIXER0_CONFIG_VOLUME_RAMP_DISABLE_OUTPUT0_MASK || defined BCHP_AUD_FMM_DP_CTRL0_MIXER_CONFIGi_VOLUME_RAMP_ENA_OUTPUT0_MASK)
     unsigned rampInterval = (handle->sampleRate > 0) ? (1000000/handle->sampleRate + 1) : BAPE_DP_DEFAULT_RAMP_INTERVAL;
     unsigned timeout = 1000000 - rampInterval;
     
@@ -1533,9 +1608,9 @@ BERR_Code BAPE_MixerGroup_P_WaitForRamping(
         return BERR_TIMEOUT;
     }
     /*BDBG_ERR(("Waited %u us for ramping to complete (RI=%u)", 1000000 - timeout, rampInterval));*/
-#else
-    BSTD_UNUSED(handle);
+    #endif
 #endif
+    BSTD_UNUSED(handle);
 
     return BERR_SUCCESS;
 }
@@ -1545,6 +1620,7 @@ static void BAPE_MixerGroup_P_ApplyOutputCoefficients(
     unsigned outputIndex
     )
 {
+    #if BAPE_CHIP_MAX_HW_MIXERS > 0
     bool wasMuted;
     unsigned i;
     uint32_t configRegVal, configRegAddr, bitmask;
@@ -1653,6 +1729,10 @@ static void BAPE_MixerGroup_P_ApplyOutputCoefficients(
         BAPE_SetOutputVolumeRampStep(handle->deviceHandle, oldRampStep);
     }
 #endif
+    #else
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(outputIndex);
+    #endif
 }
 
 /***************************************************************************
@@ -1689,6 +1769,7 @@ void BAPE_GetOutputVolumeRampStep(
     return;
 }
 
+#if BAPE_CHIP_MAX_HW_MIXERS > 0
 BERR_Code BAPE_SetOutputVolumeRampStep(
     BAPE_Handle deviceHandle,
     uint32_t rampStep                   /* All mixers output output volume is changed by this amount
@@ -1736,7 +1817,7 @@ static uint32_t BAPE_DpMixer_P_GetConfigAddress(
         return BCHP_AUD_FMM_DP_CTRL0_MIXER5_CONFIG;
     #endif
     default:
-        BDBG_ASSERT(mixerId < BAPE_CHIP_MAX_MIXERS);
+        BDBG_ASSERT(mixerId < BAPE_CHIP_MAX_HW_MIXERS);
     #ifdef BCHP_AUD_FMM_DP_CTRL0_MIXER0_CONFIG
         return BCHP_AUD_FMM_DP_CTRL0_MIXER0_CONFIG + ((BCHP_AUD_FMM_DP_CTRL0_MIXER1_CONFIG-BCHP_AUD_FMM_DP_CTRL0_MIXER0_CONFIG)*mixerId);
     #else
@@ -1819,10 +1900,13 @@ static uint32_t BAPE_DpMixer_P_GetInputConfigAddress(
         #error need to add support for additional mixers
 #endif
     default:
-        BDBG_ASSERT(mixerId < BAPE_CHIP_MAX_MIXERS);
+        BDBG_ASSERT(mixerId < BAPE_CHIP_MAX_HW_MIXERS);
         return 0xffffffff;
     }
     regAddr += (BCHP_AUD_FMM_DP_CTRL0_MIXER0_INPUT_CONFIGi_ARRAY_ELEMENT_SIZE/8)*inputId;
 #endif
     return regAddr;
 }
+#endif
+
+#endif /* BAPE_CHIP_MAX_MIXER_GROUPS > 0 */

@@ -276,7 +276,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             reg |= (BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_2, aon_gpio_16, 3));    /* SPI_M_SS0B */
             BREG_Write32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_2, reg);
             BDBG_MSG(("AON_PIN_CTRL_PIN_MUX_CTRL_2: %08x",reg));
-            reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10);
+            reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4);
             BDBG_MSG(("SUN_TOP_CTRL_PIN_MUX_CTRL_10: %08x",reg));
             reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_4, gpio_018));
             reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_4, gpio_018, 0));

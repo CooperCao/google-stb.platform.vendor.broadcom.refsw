@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -221,7 +221,7 @@ eRet CPanelStreaming::initialize(
      * similarly where click callbacks come to this CPanelStreaming. */
     _Back = new CWidgetButton("CPanelStreaming::_Back", getEngine(), this, MRect(0, 0, 0, 0), font10);
     CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _Back, ret, eRet_OutOfMemory, error);
-    _Back->setText("Menu");
+    _Back->loadImage("images/back-sm.png");
     _pStreamingMenu->addBackButton(_Back);
 
     _Back->setFocus();
@@ -288,7 +288,7 @@ void CPanelStreaming::layout()
     _pPlaylistPropertiesMenu->setGeometry(rectProps);
     _pChannelPropertiesMenu->setGeometry(rectProps);
 
-    _pExpand->setText(_bExpandPanel ? "<<" : ">>");
+    _pExpand->loadImage(_bExpandPanel ? "images/collapse-left.png" : "images/expand-right.png");
 
     /* adjust menu to fit */
     rectMenu.setHeight(rectPlaylistsListView.height() + 30);
@@ -520,7 +520,6 @@ void CPanelStreaming::showVideosMenu(bool bShow)
         _pVideosMenu->show(true);
         _pChannelPropertiesMenu->show(true);
 
-        _Back->setText("Playlists");
         _Back->setFocus();
 
         {
@@ -563,8 +562,6 @@ void CPanelStreaming::showVideosMenu(bool bShow)
         _pPlaylistsMenu->show(true);
         _pPlaylistPropertiesMenu->show(true);
 
-        _Back->setText("Menu");
-
         if (NULL != _pFocusPlaylistButton)
         {
             _pFocusPlaylistButton->setFocus();
@@ -592,14 +589,14 @@ void CPanelStreaming::onClick(bwidget_t widget)
     if (_pExpand == pWidget)
     {
         _bExpandPanel = _bExpandPanel ? false : true;
-        _pExpand->setText(_bExpandPanel ? "<<" : ">>");
+        _pExpand->loadImage(_bExpandPanel ? "images/collapse-left.png" : "images/expand-right.png");
         _pStreamingMenu->setMenuTitle(_bExpandPanel ? "Streaming Player" : "Streaming", NULL);
         layout();
     }
     else
     if (_Back == pWidget)
     {
-        if (_Back->getText() == "Menu")
+        if (true == _pPlaylistsMenu->isVisible())
         {
             show(false);
             getParent()->show(true);

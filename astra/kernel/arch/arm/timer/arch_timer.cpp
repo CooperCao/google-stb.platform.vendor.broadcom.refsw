@@ -40,12 +40,15 @@
 #include "parse_utils.h"
 #include "config.h"
 #include "plat_config.h"
+#include "arm32.h"
 
 #define CNTPCTL_ENABLE 0x1
 #define PPI_START 16
 
 static int intrNumNS;
 static int intrNumS;
+
+extern uintptr_t boot_mode;
 
 void Arch::Timer::init(void *deviceTree) {
 	int nodeOffset = fdt_subnode_offset(deviceTree, 0, "timer");
@@ -69,10 +72,9 @@ void Arch::Timer::init(void *deviceTree) {
 }
 
 uint64_t Arch::Timer::frequency() {
-	register unsigned long rv;
-	asm volatile("MRC p15, 0, %[rt], c14, c0, 0": [rt] "=r" (rv) : :);
-
-	return rv;
+	unsigned long freq = 0;
+	ARCH_SPECIFIC_GET_SECURE_TIMER_FREQUENCY(freq);
+	return freq;
 }
 
 uint32_t Arch::Timer::irqNum() {
@@ -80,51 +82,62 @@ uint32_t Arch::Timer::irqNum() {
 }
 
 uint64_t Arch::Timer::ticks() {
-	register unsigned long timeLow, timeHigh;
-	asm volatile("MRRC p15, 0, %[low], %[high], c14": [low] "=r" (timeLow), [high] "=r" (timeHigh) : : );
-	uint64_t rv = ((uint64_t)timeHigh << 32) | timeLow;
-
-#if 0
-	rv += System::cpuBootedAt[arm::smpCpuNum()];
-#endif
-
-	return rv;
-
+	uint64_t val = 0;
+	ARCH_SPECIFIC_GET_SECURE_TIMER_CURRENT_TIME(val);
+	return val;
 }
 
 void Arch::Timer::fireAt(uint64_t ticks) {
 	// Set the hardware timer to fire at headTime
-	register uint32_t fireAtLow = (uint32_t)(ticks & 0xffffffff);
-	register uint32_t fireAtHigh = (uint32_t)(ticks >> 32);
-	asm volatile("MCRR p15, 2, %[low], %[high], c14" : :[low] "r" (fireAtLow), [high] "r" (fireAtHigh):);
-
-
-	register uint32_t cntpctl = CNTPCTL_ENABLE;
-	asm volatile("mcr p15, 0, %[rt], c14, c2, 1" : : [rt] "r" (cntpctl) :);
+	if (boot_mode == ARMV8_BOOT_MODE) {
+		ARCH_V8ARM32_SPECIFIC_SET_STIMER_CVAL(ticks);
+		ARCH_V8ARM32_SPECIFIC_SET_STIMER_CTL(CNTPCTL_ENABLE);
+	}
+	else {
+		ARCH_V7ARM32_SPECIFIC_SET_STIMER_CVAL(ticks);
+		ARCH_V7ARM32_SPECIFIC_SET_STIMER_CTL(CNTPCTL_ENABLE);
+	}
 }
 
 uint64_t Arch::Timer::firesAt() {
-	register unsigned long cntpctl;
-	asm volatile("mrc p15, 0, %[rt], c14, c2, 1" : [rt] "=r" (cntpctl) : :);
+	uint32_t cntpctl = 0;
+	if (boot_mode == ARMV8_BOOT_MODE) {
+		ARCH_V8ARM32_SPECIFIC_GET_STIMER_CTL(cntpctl);
+	}
+	else {
+		ARCH_V7ARM32_SPECIFIC_GET_STIMER_CTL(cntpctl);
+	}
 
 	if (!((cntpctl & CNTPCTL_ENABLE)  && ((cntpctl & 2) == 0)))
 		return 0xFFFFFFFFFFFFFFFF;
 
-	// Get the current CNTP_CVAL
-	register uint32_t timeHigh, timeLow;
-	asm volatile("MRRC p15, 2, %[low], %[high], c14" : [low] "=r" (timeLow), [high] "=r" (timeHigh) : : );
-	uint64_t rv = ((uint64_t) timeHigh << 32) | timeLow;
+	uint64_t cval = 0;
 
-	return rv;
+	if (boot_mode == ARMV8_BOOT_MODE) {
+		ARCH_V8ARM32_SPECIFIC_GET_STIMER_CVAL(cval);
+	}
+	else {
+		ARCH_V7ARM32_SPECIFIC_GET_STIMER_CVAL(cval);
+	}
+
+	return cval;
 }
 
 
 void Arch::Timer::disable() {
-	register uint32_t cntpctl = 0;
-	asm volatile("mcr p15, 0, %[rt], c14, c2, 1" : : [rt] "r" (cntpctl) :);
+	if (boot_mode == ARMV8_BOOT_MODE) {
+		ARCH_V8ARM32_SPECIFIC_SET_STIMER_CTL(0);
+	}
+	else {
+		ARCH_V7ARM32_SPECIFIC_SET_STIMER_CTL(0);
+	}
 }
 
 void Arch::Timer::enable() {
-	register uint32_t cntpctl = CNTPCTL_ENABLE;
-	asm volatile("mcr p15, 0, %[rt], c14, c2, 1" : : [rt] "r" (cntpctl) :);
+	if (boot_mode == ARMV8_BOOT_MODE) {
+		ARCH_V8ARM32_SPECIFIC_SET_STIMER_CTL(CNTPCTL_ENABLE);
+	}
+	else {
+		ARCH_V7ARM32_SPECIFIC_SET_STIMER_CTL(CNTPCTL_ENABLE);
+	}
 }

@@ -54,7 +54,7 @@ static bool BCHP_PWR_P_SkipInitialReset(BCHP_Handle handle);
 
 #ifdef BCHP_PWR_HAS_RESOURCES
 static BERR_Code BCHP_PWR_P_AcquireResource(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, bool from_init);
-static void BCHP_PWR_P_Init(BCHP_Handle handle);
+static BERR_Code BCHP_PWR_P_Init(BCHP_Handle handle);
 static unsigned BCHP_PWR_P_GetInternalIndex(BCHP_PWR_ResourceId resourceId);
 #if BCHP_PWR_SUPPORT
 static BERR_Code BCHP_PWR_P_ReleaseResource(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, bool from_init);
@@ -167,7 +167,11 @@ BERR_Code BCHP_PWR_Open(BCHP_PWR_Handle *pHandle, BCHP_Handle chp)
 #endif
 
     chp->pwrManager = pDev;
-    BCHP_PWR_P_Init(chp);
+    rc = BCHP_PWR_P_Init(chp);
+    if (rc != BERR_SUCCESS) {
+        BERR_TRACE(rc);
+        goto error;
+    }
 
     *pHandle = pDev;
     return BERR_SUCCESS;
@@ -268,13 +272,19 @@ static void BCHP_PWR_P_InitPMapSettings(BCHP_Handle handle)
 #endif
 }
 
-static void BCHP_PWR_P_Init(BCHP_Handle handle)
+static BERR_Code BCHP_PWR_P_Init(BCHP_Handle handle)
 {
     const BCHP_PWR_P_Resource *resource = NULL;
     unsigned i, idx;
-    unsigned *refcnt = BKNI_Malloc(sizeof(unsigned)*BCHP_PWR_P_NUM_ALLNODES);
+    unsigned *refcnt;
+    BERR_Code rc = BERR_SUCCESS;
 
     BDBG_MSG(("BCHP_PWR_P_Init: >"));
+    refcnt = BKNI_Malloc(sizeof(unsigned)*BCHP_PWR_P_NUM_ALLNODES);
+    if (!refcnt) {
+        rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto error;
+    }
     BKNI_Memset(refcnt, 0, sizeof(refcnt));
 
     /* power up all HW resources to guarantee an initial power state (everything powered up; this mimics a board reset) */
@@ -342,7 +352,8 @@ static void BCHP_PWR_P_Init(BCHP_Handle handle)
     BCHP_PWR_Dump(handle);
 #endif
     BSTD_UNUSED(idx);
-    return;
+error:
+    return rc;
 }
 
 void BCHP_PWR_Close(BCHP_PWR_Handle handle)
@@ -1227,7 +1238,7 @@ BERR_Code BCHP_PWR_Open(BCHP_PWR_Handle *pHandle, BCHP_Handle chp)
     BDBG_WRN(("*******************************************"));
     BDBG_WRN((" "));
 
-    if (!BCHP_PWR_P_SkipInitialReset(handle)) {
+    if (!BCHP_PWR_P_SkipInitialReset(chp)) {
 #ifdef BCHP_RESET_COMMON
         BCHP_Cmn_ResetMagnumCores(chp);
 #endif

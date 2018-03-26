@@ -109,8 +109,8 @@ BERR_Code BVDC_P_Xsrc_Create
     pXsrc->hReg         = hReg;
 
     /* Init to the default filter coeffficient tables. */
-    BVDC_P_GetFirCoeffs_isr(&pXsrc->pHorzFirCoeffTbl, NULL);
-    BVDC_P_GetChromaFirCoeffs_isr(&pXsrc->pChromaHorzFirCoeffTbl, NULL);
+    BVDC_P_GetFirCoeffs_isrsafe(&pXsrc->pHorzFirCoeffTbl, NULL);
+    BVDC_P_GetChromaFirCoeffs_isrsafe(&pXsrc->pChromaHorzFirCoeffTbl, NULL);
 
     switch(eXsrcId)
     {

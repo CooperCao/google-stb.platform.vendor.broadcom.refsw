@@ -118,9 +118,9 @@ BERR_Code BHSM_GetCapabilities( BHSM_Handle hHsm, BHSM_Capabilities_t *pCaps )
     keyslotTypes.numMulti2KeySlots = hHsm->numMulti2KeySlots;
     BDBG_MSG(("Multi2 Keyslots [%d]", keyslotTypes.numMulti2KeySlots ));
 
-    if( keyslotTypes.numKeySlot[0] >= BHSM_NUM_BYPASS_KEYLSOTS )
+    if( keyslotTypes.numKeySlot[0] >= BHSM_NUM_BYPASS_KEYSLOTS )
     {
-        keyslotTypes.numKeySlot[0] -= BHSM_NUM_BYPASS_KEYLSOTS;   /* Two keyslots of type zero are reserved for bypass keyslots. */
+        keyslotTypes.numKeySlot[0] -= BHSM_NUM_BYPASS_KEYSLOTS;   /* Two keyslots of type zero are reserved for bypass keyslots. */
     }
     else
     {

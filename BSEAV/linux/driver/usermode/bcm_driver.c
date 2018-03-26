@@ -1577,6 +1577,13 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
                 if (result) { BERR_TRACE(result); break; }
                 break;
             }
+            case bcmdriver_irq_command_control:
+            {
+                irq_control.data.control.os = b_virtual_irq_is_os_managed(irq_control.data.control.line);
+                result = copy_to_user((void*)arg, &irq_control, sizeof(irq_control));
+                if (result) {BERR_TRACE(result); break;}
+                break;
+            }
             default:
                 result = -EINVAL; BERR_TRACE(result);
                 break;

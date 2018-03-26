@@ -62,11 +62,6 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings(NEXUS_MemoryConfigu
             pSettings->display[i].window[j].used = ((i<2) && (j==0)) ? true: false;
         }
     }
-
-#if NEXUS_HAS_VIDEO_DECODER && defined(NEXUS_PLATFORM_975635) /* 7563 doesn't do HEVC, 75635 does */
-    pSettings->videoDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH265] = true;
-#endif
-
 }
 
 void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)

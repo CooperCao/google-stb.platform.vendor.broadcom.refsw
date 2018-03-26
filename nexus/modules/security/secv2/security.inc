@@ -85,6 +85,15 @@ NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/secv2/src/nexus_random_n
 NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/secv2/src/nexus_regver.c
 NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/secv2/src/nexus_regver_rsa.c
 NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/secv2/src/nexus_regver_priv.c
+NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/secv2/src/nexus_signed_command.c
+NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/secv2/src/nexus_pcie_window.c
+
+ifeq ($(NEXUS_DUPLE_KEYLADDER_SUPPORT),)
+        NEXUS_DUPLE_KEYLADDER_SUPPORT := $(shell test -e $(NEXUS_TOP)/extensions/security/secv2/duple_keyladder/src/nexus_duple_keyladder.c && echo y)
+endif
+ifeq ($(NEXUS_DUPLE_KEYLADDER_SUPPORT),y)
+    include ${NEXUS_TOP}/extensions/security/secv2/duple_keyladder/duple_keyladder.inc
+endif
 
 ifeq ($(NEXUS_POWAY_SUPPORT),)
         NEXUS_POWAY_SUPPORT := $(shell test -e $(NEXUS_TOP)/extensions/security/secv2/poway/src/nexus_poway.c && echo y)
@@ -132,6 +141,7 @@ NEXUS_SECURITY_MAGNUM_MODULES = $(MAGNUM)/portinginterface/hsm/bhsm.inc
 
 NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_ZEUS_VERSION_MAJOR=$(NEXUS_SECURITY_ZEUS_VERSION_MAJOR)
 NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_ZEUS_VERSION_MINOR=$(NEXUS_SECURITY_ZEUS_VERSION_MINOR)
+NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_ZEUS_VERSION_SUBMINOR=$(NEXUS_SECURITY_ZEUS_VERSION_SUBMINOR)
 NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_API_VERSION=2
 
 ifneq ($(filter $(NEXUS_MODE),proxy driver),)

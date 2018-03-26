@@ -245,8 +245,8 @@ int main( int argc, char **argv )
     }
     else
     {
-        if(!bufferSize)   rc= NEXUS_Memory_Allocate( 1, NULL, (void *)&pBuffer );
-        else  rc = NEXUS_Memory_Allocate( bufferSize, NULL, (void *)&pBuffer );
+        if(!bufferSize)   rc= NEXUS_Memory_Allocate( 1, NULL, (void **)&pBuffer );
+        else  rc = NEXUS_Memory_Allocate( bufferSize, NULL, (void **)&pBuffer );
     }
 
     if( pBuffer == NULL )

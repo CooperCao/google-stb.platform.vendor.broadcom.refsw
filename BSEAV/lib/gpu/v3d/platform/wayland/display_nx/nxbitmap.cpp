@@ -52,6 +52,7 @@ NxBitmap::NxBitmap(NEXUS_HeapHandle heap, const BEGL_BufferSettings *settings) :
       fprintf(stderr, "unable to lock\n");
       exit(1);
    }
+   NEXUS_FlushCache(res, m_settings.totalByteSize);
    m_settings.cachedAddr = res;
 }
 

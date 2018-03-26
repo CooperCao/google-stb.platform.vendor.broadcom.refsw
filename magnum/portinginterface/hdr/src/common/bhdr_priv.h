@@ -453,6 +453,7 @@ BERR_Code BHDR_ReadRxI2cRegisterSpace(BHDR_Handle hHDR,
 void BHDR_P_EnableInterrupts_isr(BHDR_Handle hHDR, bool enable) ;
 
 void BHDR_P_ResetHdcp_isr(BHDR_Handle hHDR) ;
+void BHDR_DEBUG_P_ResetAllEventCounters_isr(BHDR_Handle hHDR) ;
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1117,7 +1117,7 @@ static BIP_Status updateNexusPlaybackSettings(
     BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_Playback_SetSettings Failed!" ), error, BIP_ERR_INTERNAL, bipStatus );
 
     bipStatus = BIP_SUCCESS;
-    BDBG_WRN(( BIP_MSG_PRE_FMT "hStreamer %p: Updated Playback settings from inputType %d: playSpeed=%d seekPositionInMs=%u" BIP_MSG_PRE_ARG, (void *)hStreamer, hStreamer->inputType, playSpeed, seekPositionInMs ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Updated Playback settings from inputType %d: playSpeed=%d seekPositionInMs=%u" BIP_MSG_PRE_ARG, (void *)hStreamer, hStreamer->inputType, playSpeed, seekPositionInMs ));
 
 error:
     return ( bipStatus );
@@ -1162,7 +1162,7 @@ static BIP_Status startNexusPlayback(
     }
 
     bipStatus = BIP_SUCCESS;
-    BDBG_WRN(( BIP_MSG_PRE_FMT "hStreamer %p: Playback from inputType %d Started: playSpeed=%d seekPositionInMs=%u" BIP_MSG_PRE_ARG, (void *)hStreamer, hStreamer->inputType, playSpeed, seekPositionInMs ));
+    BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hStreamer %p: Playback from inputType %d Started: playSpeed=%d seekPositionInMs=%u" BIP_MSG_PRE_ARG, (void *)hStreamer, hStreamer->inputType, playSpeed, seekPositionInMs ));
 
 error:
     return ( bipStatus );
@@ -1423,6 +1423,8 @@ static BIP_Status updateStreamerSettings(
             bipStatus = updateNexusRecpumpSettings( hStreamer );
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "updateNexusRecpumpSettings Failed!" ), error, bipStatus, bipStatus );
 
+            /* coverity[sleep: FALSE] */
+            /* This coverity warning is ignored as the NEXUS_Playback_SetSettings can internally sleep. */
             bipStatus = updateNexusPlaybackSettings( hStreamer, true /* seekPositionValid */, pSettings->seekPositionInMs );
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "updateNexusPlaybackSettings Failed!" ), error, bipStatus, bipStatus );
         }
@@ -2108,6 +2110,8 @@ void processStreamerState(
         /* App is request to print Streamer stats. */
         BIP_Arb_AcceptRequest(hArb);
 
+        /* coverity[sleep: FALSE] */
+        /* This coverity warning is ignored as the NEXUS_Playback_GetStatus can internally sleep. */
         printStreamerStatus( hStreamer );
 
         if ( hStreamer->transcode.hTranscode ) BIP_Transcode_PrintStatus( hStreamer->transcode.hTranscode );
@@ -2121,6 +2125,8 @@ void processStreamerState(
     {
         BIP_Arb_AcceptRequest(hArb);
 
+        /* coverity[sleep: FALSE] */
+        /* This coverity warning is ignored as the NEXUS_Playback_SetSettings can internally sleep. */
         hStreamer->completionStatus = updateStreamerSettings( hStreamer, hStreamer->setSettingsApi.pSettings );
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: SetSettings Arb request is complete : state %s, status=%s"
@@ -2506,9 +2512,9 @@ void processStreamerState(
 
             /* Determine if we can offload this streamer to ASP. */
             if (
-                    hStreamer->output.settings.enableHwOffload &&                               /* App has enabled it, & */
-                    hStreamer->streamerStreamInfo.transportType == NEXUS_TransportType_eTs &&   /* its a format ASP can stream out, & */
-                    hStreamer->transcode.profileState == BIP_StreamerOutputState_eNotSet )      /* transcode is not enabled (TODO: only HLS can't be streamed out by ASP, but for now disable all!) */
+                    hStreamer->output.settings.enableHwOffload /* App has enabled it, & */
+                    && hStreamer->streamerStreamInfo.transportType == NEXUS_TransportType_eTs /* its a format ASP can stream out */
+               )
             {
                 hStreamer->offloadStreamerToAsp = true;
             }

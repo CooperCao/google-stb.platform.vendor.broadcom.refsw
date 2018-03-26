@@ -42,6 +42,6 @@
 
 #if defined(__MAESTRO__)
 #include "registers_maestro.h"
-#elif defined(__FP4015__)
+#elif __FP4015__ || __FP4017__
 #include "registers_octv2.h"
 #endif

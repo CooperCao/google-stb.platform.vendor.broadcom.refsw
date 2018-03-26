@@ -451,6 +451,12 @@ void BVDC_P_Compositor_BuildBlendOutMatrixRul_isr
 void BVDC_P_Compositor_InitHdrRam
     ( BVDC_Compositor_Handle           hCompositor );
 
+void BVDC_P_Compositor_GetCfcCapabilities
+    ( BREG_Handle                      hRegister,
+      BVDC_CompositorId                eCmpId,
+      BVDC_WindowId                    eWinId,
+      BCFC_Capability                 *pCapability );
+
 #ifdef __cplusplus
 }
 #endif

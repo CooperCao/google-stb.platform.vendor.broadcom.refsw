@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,6 +41,7 @@
 
 #include "bape.h"
 #include "bape_priv.h"
+#include "bape_buffer.h"
 
 BDBG_MODULE(bape_decoder_ancillary_data);
 
@@ -186,12 +187,12 @@ BERR_Code BAPE_Decoder_GetAncillaryDataBuffer(
     else
     {        
         pDspCached = bufferDesc.buffers[0].buffer.pAddr;
-        BMMA_FlushCache(bufferDesc.buffers[0].buffer.hBlock, pDspCached, bufferDesc.bufferSize);
+        BAPE_FLUSHCACHE_ISRSAFE(bufferDesc.buffers[0].buffer.hBlock, pDspCached, bufferDesc.bufferSize);
     }
     if ( dspWrapBytes > 0 )
     {
         pDspWrapCached = bufferDesc.buffers[0].wrapBuffer.pAddr;
-        BMMA_FlushCache(bufferDesc.buffers[0].wrapBuffer.hBlock, pDspWrapCached, bufferDesc.wrapBufferSize);
+        BAPE_FLUSHCACHE_ISRSAFE(bufferDesc.buffers[0].wrapBuffer.hBlock, pDspWrapCached, bufferDesc.wrapBufferSize);
     }
     /* These are offsets, not addresses */
     hostBytes = BAPE_P_FIFO_WRITE_PEEK(&hDecoder->ancDataFifo);
@@ -398,7 +399,7 @@ void BAPE_Decoder_P_InitAncillaryDataBuffer(BAPE_DecoderHandle hDecoder)
         BDSP_Queue_Flush(hDecoder->hAncDataQueue);
     }
     BAPE_P_FIFO_INIT(&hDecoder->ancDataFifo, hDecoder->pAncDataHostBuffer, hDecoder->ancDataBufferSize);
-    BMMA_FlushCache(hDecoder->ancDataHostBlock, hDecoder->pAncDataHostBuffer, hDecoder->ancDataBufferSize);
+    BAPE_FLUSHCACHE_ISRSAFE(hDecoder->ancDataHostBlock, hDecoder->pAncDataHostBuffer, hDecoder->ancDataBufferSize);
     hDecoder->ancDataInit = true;
 }
 #else

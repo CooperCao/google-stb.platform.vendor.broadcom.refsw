@@ -104,7 +104,7 @@ BERR_Code _GetRandomNumber( BHSM_Handle hHsm, unsigned length/*Bytes*/, uint8_t 
     BERR_Code rc = BERR_SUCCESS;
     BHSM_BspMsg_h hMsg = NULL;
     BHSM_BspMsgHeader_t header;
-    uint8_t status;
+    uint8_t status = ~0;
 
     BDBG_ENTER( _GetRandomNumber );
 

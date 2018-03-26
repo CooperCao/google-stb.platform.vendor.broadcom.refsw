@@ -45,6 +45,9 @@
 #include "nexus_hdmi_input_init.h"
 #include "nexus_hdmi_input_ext.h"
 #include "nexus_hdmi_input_hdcp.h"
+#ifdef NEXUS_HDMI_INPUT_EXTENSION
+#include "nexus_hdmi_input_private.h"
+#endif
 #include "bhdr.h"
 #include "bhdr_fe.h"
 #include "bhdr_hdcp.h"

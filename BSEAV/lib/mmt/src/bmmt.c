@@ -460,11 +460,20 @@ static void * bmmt_p_io_playback_thread(void *context)
             BDBG_ASSERT(0);
         }
         buf  = mmt->io_data[last_io_data].io_buf;
+loop:
         rc = fread(buf,1,mmt->io_buffer_size,mmt->fin);
         if(rc<=0)
         {
             BDBG_WRN(("reached the end of mmt playback!!!"));
-            break;
+            if (mmt->open_settings.loop) {
+               fseek(mmt->fin, 0, SEEK_SET);
+               btlv_parser_reset(&mmt->parser);
+               NEXUS_Playpump_Flush(mmt->playpump);
+               goto loop;
+            }
+            else {
+               break;
+            }
         }
         if(mmt->open_settings.input_format == ebmmt_input_format_tlv)
         {

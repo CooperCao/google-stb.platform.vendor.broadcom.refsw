@@ -829,6 +829,7 @@ NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
             const char *bmem_dir = NEXUS_GetEnv("bmem_override");
             FILE *f;
             unsigned n, base, length;
+            int rc;
 
             if (!bmem_dir) {
                 /* normal sys fs directory */
@@ -844,7 +845,8 @@ NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
             else {
                 n = sscanf(buf, "0x%x 0x%x", &base, &length);
             }
-            fclose(f);
+            rc = fclose(f);
+            if (rc) BERR_TRACE(rc);
             /* even on MEMC0, base should never be 0 because it is used by the OS */
             if (n == 2 && base && length) {
                 /* we got it */
@@ -865,6 +867,7 @@ NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
         pFile = fopen(bmeminfo2618, "r");
         if (pFile) {
             char *pStart, *pEnd;
+            int rc;
 
             if ( fgets(buf, sizeof(buf), pFile) )
             {
@@ -880,7 +883,8 @@ NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
                     total++;
                 }
             }
-            fclose(pFile);
+            rc = fclose(pFile);
+            if (rc) BERR_TRACE(rc);
         }
     }
     if (!total) {
@@ -1256,7 +1260,7 @@ void NEXUS_Platform_P_StartCallbacks(void *interfaceHandle)
 
 #define BUF_SIZE 256
 
-#if !NEXUS_PLATFORM_P_READ_BOX_MODE
+#if !NEXUS_PLATFORM_P_READ_BOX_MODE && !B_REFSW_SYSTEM_MODE_CLIENT
 #ifndef NEXUS_Platform_P_ReadBoxMode
 static unsigned NEXUS_Platform_P_ReadDeviceTreeStr(const char *path, const char *prop)
 {
@@ -1268,10 +1272,12 @@ static unsigned NEXUS_Platform_P_ReadDeviceTreeStr(const char *path, const char 
     f = fopen(str, "r");
     if (f) {
         char buf[64];
+        int rc;
         if (fgets(buf, sizeof(buf), f)) {
             id = atoi(buf);
         }
-        fclose(f);
+        rc = fclose(f);
+        if (rc) BERR_TRACE(rc);
     }
     return id;
 }
@@ -1288,12 +1294,14 @@ static unsigned NEXUS_Platform_P_ReadDeviceTreeInt(const char *path, const char 
     f = fopen(str, "r");
     if (f) {
         uint8_t buf[4];
+        int rc;
         if (fread(buf, sizeof(buf), 1, f) != 1) {
             id = 0;
         } else {
             id = buf[0]<<24 | buf[1]<<16 | buf[2]<<8 | buf[3];
         }
-        fclose(f);
+        rc = fclose(f);
+        if (rc) BERR_TRACE(rc);
     }
     return id;
 }
@@ -1329,126 +1337,79 @@ unsigned NEXUS_Platform_P_ReadPMapId(void)
 static bool NEXUS_Platform_P_CheckCompatible(const char *path, const char *compatible)
 {
     char buf[BUF_SIZE];
-    struct stat st;
-    unsigned len;
     bool match = false;
-
-    if(compatible == NULL) { return true;} /* No compatible check. Parse all nodes */
-
-    len = strlen(compatible);
+    FILE *pFile;
     BKNI_Snprintf(buf, sizeof(buf), "%s/compatible", path);
-
-    /* coverity[fs_check_call: FALSE] */
-    if (!lstat(buf, &st)) {
-        FILE *pFile;
-        pFile = fopen(buf, "rb");
-        if (pFile) {
-            if (st.st_size >= (unsigned)sizeof(buf) || fread(buf, st.st_size, 1, pFile) != 1) {
-                BDBG_WRN(("Failed to read file %s/compatible", path));
-            } else {
-                if (!strncmp(buf, compatible, len)) {
-                    match = true;
-                }
+    pFile = fopen(buf, "rb");
+    if (pFile) {
+        int rc;
+        if (fread(buf, 1, sizeof(buf), pFile) > 0) {
+            if (strstr(buf, compatible) == buf) {
+                match = true;
             }
-            fclose(pFile);
         }
+        rc = fclose(pFile);
+        if (rc) BERR_TRACE(rc);
     }
-
     return match;
 }
 
-static unsigned NEXUS_Platform_P_ParseDeviceTreeCompatible(NEXUS_Platform_P_DtNodeList *nodeList, const char *path, const char *compatible)
+static unsigned NEXUS_Platform_P_ReadDeviceTreeValue(const char *path, const char *field)
+{
+    char buf[256];
+    FILE *pFile;
+    unsigned value = 0;
+    BKNI_Snprintf(buf, sizeof(buf), "%s/%s", path, field);
+    pFile = fopen(buf, "rb");
+    if (pFile) {
+        char val[4]; /* Assuming 4 byte value. TODO : Fix for larger properties */
+        int rc;
+        if (fread(val, 1, sizeof(val), pFile) > 0) {
+            value = val[0]<<24 | val[1]<<16 | val[2]<<8 | val[3];
+        }
+        rc = fclose(pFile);
+        if (rc) BERR_TRACE(rc);
+    }
+    return value;
+}
+
+static unsigned NEXUS_Platform_P_ParseDeviceTreeCompatible(const char *path, const char *compatible, BCHP_PmapSettings *pMapSettings)
 {
     DIR * dir;
-    struct dirent *ent;
-    bool compat;
-    unsigned cnt = 0;
-    NEXUS_Platform_P_DtNode *node = NULL;
-
+    unsigned i = 0;
     dir = opendir(path);
-    if (!dir) {
-        BDBG_MSG(("Cannot open dir %s", path));
-        goto done_opendir;
-    }
-
-    compat = NEXUS_Platform_P_CheckCompatible(path, compatible);
-    if (compat) {
-        char *str = strrchr(path, '@');
-        if(str==NULL) {
-            (void)BERR_TRACE(NEXUS_NOT_SUPPORTED);goto done_path;
-        }
-        node = BKNI_Malloc(sizeof(NEXUS_Platform_P_DtNode));
-        if(node==NULL) {
-            (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto done_malloc;
-        }
-        BLST_Q_INIT(&node->properties);
-        BKNI_Memcpy(node->name, str, sizeof(node->name));
-        BLST_Q_INSERT_HEAD(&nodeList->nodes, node, link);
-        cnt++;
-    }
-
-    while ((ent = readdir(dir)) != NULL) {
-        char buf[BUF_SIZE];
-        struct stat st;
-
-        if (!strncmp(ent->d_name, ".", 1) || !strncmp(ent->d_name, "..", 2))
-			continue;
-
-        BKNI_Snprintf(buf, sizeof(buf), "%s/%s", path, ent->d_name);
-
-        /* coverity[fs_check_call: FALSE] */
-        if (lstat(buf, &st) < 0) { continue; }
-
-        if (S_ISREG(st.st_mode)) {
-			FILE *pFile;
-
-            if (!node) { continue; }
-
-            /* Ignore these properties for now */
-            if(!strncmp(ent->d_name, "compatible", 10) || !strncmp(ent->d_name, "name", 4)) {
+    if (dir) {
+        struct dirent *ent;
+        int rc;
+        while ((ent = readdir(dir)) != NULL) {
+            char buf[BUF_SIZE];
+            if (!strncmp(ent->d_name, ".", 1) || !strncmp(ent->d_name, "..", 2))
                 continue;
-            }
-
-            pFile = fopen(buf, "rb");
-            if (pFile) {
-                char val[4]; /* Assuming 4 byte value. TODO : Fix for larger properties */
-                if (fread(val, st.st_size, 1, pFile) != 1) {
-                    BDBG_WRN(("Failed to read file %s", buf));
-                } else {
-                    NEXUS_Platform_P_DtProperty *prop;
-                    prop = BKNI_Malloc(sizeof(NEXUS_Platform_P_DtProperty));
-                    BKNI_Memcpy(prop->name, ent->d_name, sizeof(prop->name));
-                    prop->value = val[0]<<24 | val[1]<<16 | val[2]<<8 | val[3];
-                    BLST_Q_INSERT_HEAD(&node->properties, prop, link);
+            BKNI_Snprintf(buf, sizeof(buf), "%s/%s", path, ent->d_name);
+            if (NEXUS_Platform_P_CheckCompatible(buf, compatible)) {
+                if (pMapSettings) {
+                    pMapSettings[i].value = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "brcm,value");
+                    pMapSettings[i].shift = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "bit-shift");
+                    pMapSettings[i].mask = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "bit-mask");
+                    pMapSettings[i].reg = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "reg");
+                    BDBG_MSG(("pmap[%u]: %x, %x, %x, %x", i, pMapSettings[i].value, pMapSettings[i].shift, pMapSettings[i].mask, pMapSettings[i].reg));
                 }
-                fclose(pFile);
-            } else {
-                BDBG_WRN(("Could not open file %s", buf));
+                i++;
             }
-		} else if (S_ISDIR(st.st_mode)) {
-			cnt += NEXUS_Platform_P_ParseDeviceTreeCompatible(nodeList, buf, compatible);
-		}
+        }
+        rc = closedir(dir);
+        if (rc) BERR_TRACE(rc);
     }
-
-done_path:
-done_malloc:
-    closedir(dir);
-
-done_opendir:
-    return cnt;
+    return i;
 }
 
 BCHP_PmapSettings * NEXUS_Platform_P_ReadPMapSettings(void)
 {
     BCHP_PmapSettings *pMapSettings = NULL;
-    unsigned cnt = 0, size, i;
-    NEXUS_Platform_P_DtNodeList nodeList;
-    NEXUS_Platform_P_DtNode *node;
+    unsigned cnt, size, i;
 
-    BLST_Q_INIT(&nodeList.nodes);
-    cnt = NEXUS_Platform_P_ParseDeviceTreeCompatible(&nodeList, "/proc/device-tree/rdb/brcmstb-clks", "brcm,pmap-");
-    BDBG_MSG(("Found %d compatible nodes", cnt));
-
+    /* first pass to learn size */
+    cnt = NEXUS_Platform_P_ParseDeviceTreeCompatible("/proc/device-tree/rdb/brcmstb-clks", "brcm,pmap-", NULL);
     if (!cnt) return NULL;
 
     size = (cnt+1)*sizeof(BCHP_PmapSettings); /* One extra to indicate end data */
@@ -1457,41 +1418,16 @@ BCHP_PmapSettings * NEXUS_Platform_P_ReadPMapSettings(void)
 
     BKNI_Memset(pMapSettings, 0, size);
 
-    i = 0;
-    while(NULL != (node = BLST_Q_FIRST(&nodeList.nodes))) {
-        NEXUS_Platform_P_DtProperty *prop;
-        BDBG_MSG(("Node %s", node->name));
-        while(NULL != (prop = BLST_Q_FIRST(&node->properties))) {
-            BDBG_MSG(("\t%s : %x", prop->name, prop->value));
-            if (!strncmp(prop->name, "brcm,value", 10)) {
-                pMapSettings[i].value = prop->value;
-            } else if (!strncmp(prop->name, "bit-shift", 9)) {
-                pMapSettings[i].shift = prop->value;
-            } else if (!strncmp(prop->name, "bit-mask", 8)) {
-                pMapSettings[i].mask = prop->value;
-            } else if (!strncmp(prop->name, "reg", 3)) {
-                pMapSettings[i].reg = prop->value;
-            } else {
-                BDBG_WRN(("Unknown Device Tree Property"));
-            }
-            BLST_Q_REMOVE_HEAD(&node->properties, link);
-            BKNI_Free(prop);
-        }
-        BLST_Q_REMOVE_HEAD(&nodeList.nodes, link);
-        BKNI_Free(node);
-        i++;
-    }
-    BDBG_ASSERT(cnt==i);
+    /* second pass to read values */
+    i = NEXUS_Platform_P_ParseDeviceTreeCompatible("/proc/device-tree/rdb/brcmstb-clks", "brcm,pmap-", pMapSettings);
+    if (cnt != i) BERR_TRACE(NEXUS_UNKNOWN); /* keep going */
 
     return pMapSettings;
 }
 
-void NEXUS_Platform_P_FreePMapSettings(NEXUS_Core_PreInitState *preInitState)
+void NEXUS_Platform_P_FreePMapSettings(BCHP_PmapSettings *pMapSettings)
 {
-    if (preInitState->pMapSettings) {
-        BKNI_Free(preInitState->pMapSettings);
-        preInitState->pMapSettings = NULL;
-    }
+    BKNI_Free(pMapSettings);
 }
 
 NEXUS_Error NEXUS_Platform_P_SetStandbyExclusionRegion(unsigned heapIndex)

@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2007-2013 Broadcom Corporation
+#  Copyright (C) 2007-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
-# 
 ############################################################
 
 #
@@ -72,7 +61,6 @@ NEXUS_SIMPLE_DECODER_PRECOMPILED_HEADER := $(NEXUS_TOP)/modules/simple_decoder/s
 NEXUS_SIMPLE_DECODER_SOURCES := \
     $(NEXUS_TOP)/modules/simple_decoder/src/nexus_simple_video_decoder.c \
     $(NEXUS_TOP)/modules/simple_decoder/src/nexus_simple_audio_decoder.c \
-    $(NEXUS_TOP)/modules/simple_decoder/src/nexus_simple_audio_playback.c \
     $(NEXUS_TOP)/modules/simple_decoder/src/nexus_simple_stc_channel.c \
     $(NEXUS_TOP)/modules/simple_decoder/src/nexus_simple_decoder_module.c \
     $(NEXUS_TOP)/modules/simple_decoder/src/nexus_simple_encoder.c
@@ -86,7 +74,7 @@ NEXUS_SIMPLE_DECODER_SOURCES += $(NEXUS_SYNCTHUNK_DIR)/nexus_simple_decoder_thun
 #######################
 # Module Dependencies #
 #######################
-NEXUS_SIMPLE_DECODER_DEPENDENCIES += VIDEO_DECODER DISPLAY AUDIO GRAPHICS2D ASTM SYNC_CHANNEL VIDEO_ENCODER STREAM_MUX
+NEXUS_SIMPLE_DECODER_DEPENDENCIES += VIDEO_DECODER DISPLAY AUDIO GRAPHICS2D ASTM SYNC_CHANNEL VIDEO_ENCODER STREAM_MUX SIMPLE_AUDIO_PLAYBACK
 
 NEXUS_SIMPLE_DECODER_MAGNUM_MODULES +=  \
     ${BSEAV}/lib/tshdrbuilder/tshdrbuilder.inc

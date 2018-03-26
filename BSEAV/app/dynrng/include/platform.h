@@ -53,6 +53,10 @@ const char * platform_get_color_space_name(PlatformColorSpace colorSpace);
 const char * platform_get_capability_name(PlatformCapability cap);
 const char * platform_get_aspect_ratio_type_name(PlatformAspectRatioType type);
 void platform_print_picture_info(const char * tag, const PlatformPictureInfo * pInfo, char * buf, size_t len);
+unsigned platform_get_main_stream_id(PlatformHandle platform);
+unsigned platform_get_pip_stream_id(PlatformHandle platform);
+unsigned platform_get_max_stream_count(PlatformHandle platform);
+unsigned platform_get_decoder_max_stream_count(PlatformHandle platform, unsigned decoderIndex);
 
 PlatformDisplayHandle platform_display_open(PlatformHandle platform);
 void platform_display_close(PlatformDisplayHandle display);
@@ -85,14 +89,11 @@ unsigned platform_graphics_get_text_height(PlatformGraphicsHandle gfx);
 unsigned platform_graphics_get_text_width(PlatformGraphicsHandle gfx, const char * text);
 const PlatformRect * platform_graphics_get_fb_rect(PlatformGraphicsHandle gfx);
 void platform_graphics_submit(PlatformGraphicsHandle gfx);
+bool platform_graphics_recycle(PlatformGraphicsHandle gfx);
 void platform_graphics_render_picture(PlatformGraphicsHandle gfx, PlatformPictureHandle pic, const PlatformRect * pRect);
 void platform_graphics_scale_video(PlatformGraphicsHandle gfx, const PlatformRect * pRect, unsigned id);
 void platform_graphics_move_video(PlatformGraphicsHandle gfx, const PlatformRect * pRect, unsigned id);
-void platform_graphics_render_video(PlatformGraphicsHandle gfx, const PlatformRect * pRect);
-unsigned platform_graphics_get_main_window_id(PlatformGraphicsHandle gfx);
-unsigned platform_graphics_get_pip_window_id(PlatformGraphicsHandle gfx);
-unsigned platform_graphics_get_max_mosaic_count(PlatformGraphicsHandle gfx);
-unsigned platform_graphics_get_decoder_window_count(PlatformGraphicsHandle gfx, unsigned decoderIndex);
+void platform_graphics_render_video(PlatformGraphicsHandle gfx, const PlatformRect * pRect, unsigned id);
 
 PlatformPictureHandle platform_picture_create(PlatformHandle platform, const char * picturePath);
 void platform_picture_destroy(PlatformPictureHandle pic);
@@ -124,7 +125,7 @@ void platform_input_close(PlatformInputHandle input);
 void platform_input_set_event_handler(PlatformInputHandle input, PlatformInputEventCallback callback, void * callbackContext);
 bool platform_input_try(PlatformInputHandle input);
 
-PlatformSchedulerHandle platform_get_scheduler(PlatformHandle platform);
+PlatformSchedulerHandle platform_get_scheduler(PlatformHandle platform, unsigned index);
 void platform_scheduler_start(PlatformSchedulerHandle scheduler);
 void platform_scheduler_stop(PlatformSchedulerHandle scheduler);
 PlatformListenerHandle platform_scheduler_add_listener(PlatformSchedulerHandle scheduler, PlatformCallback callback, void * pCallbackContext);

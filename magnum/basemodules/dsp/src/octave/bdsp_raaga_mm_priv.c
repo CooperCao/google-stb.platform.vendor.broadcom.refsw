@@ -652,36 +652,36 @@ static BERR_Code BDSP_Raaga_P_AssignDebugMemory(
 
 	for(index = 0; index < BDSP_DebugType_eLast;index++)
 	{
+		/* For Debug Infrastructure, the FIFOs have been pre defined compile time in rdbvars
+			 No need to have call a resource manager call to get fifo
+			59 - DRAM
+			60 - UART
+			61 - CORE
+			62 - TARGET PRINT
+		*/
+		switch(index)
+		{
+			case BDSP_DebugType_eDramMsg:
+				pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BDSP_RAAGA_DRAM_FIFO;
+				break;
+			case BDSP_DebugType_eUart:
+				pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BDSP_RAAGA_UART_FIFO;
+				break;
+			case BDSP_DebugType_eCoreDump:
+				pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BDSP_RAAGA_CORE_FIFO;
+				break;
+			case BDSP_DebugType_eTargetPrintf:
+#ifdef FIREPATH_BM
+				pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId =
+									(BCHP_PHYSICAL_OFFSET | BCHP_RAAGA_DSP_FP_MISC_0_CORESTATE_SYS_MBX0);
+#else
+				pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BCHP_RAAGA_DSP_FP_MISC_0_CORESTATE_SYS_MBX0;
+#endif /*FIREPATH_BM*/
+			default:
+				break;
+		}
 		if(pDevice->deviceSettings.debugSettings[index].enabled)
 		{
-			/* For Debug Infrastructure, the FIFOs have been pre defined compile time in rdbvars
-			     No need to have call a resource manager call to get fifo
-				59 - DRAM
-				60 - UART
-				61 - CORE
-				62 - TARGET PRINT
-			*/
-			switch(index)
-			{
-				case BDSP_DebugType_eDramMsg:
-					pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BDSP_RAAGA_DRAM_FIFO;
-					break;
-				case BDSP_DebugType_eUart:
-					pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BDSP_RAAGA_UART_FIFO;
-					break;
-				case BDSP_DebugType_eCoreDump:
-					pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BDSP_RAAGA_CORE_FIFO;
-					break;
-				case BDSP_DebugType_eTargetPrintf:
-#ifdef FIREPATH_BM
-					pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId =
-										(BCHP_PHYSICAL_OFFSET | BCHP_RAAGA_DSP_FP_MISC_0_CORESTATE_SYS_MBX0);
-#else
-					pDevice->memInfo.debugQueueParams[dspindex][index].ui32FifoId = BCHP_RAAGA_DSP_FP_MISC_0_CORESTATE_SYS_MBX0;
-#endif /*FIREPATH_BM*/
-				default:
-					break;
-			}
 			ui32Size = pDevice->deviceSettings.debugSettings[index].bufferSize;
 			errCode  = BDSP_P_RequestMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex], ui32Size, &Memory);
             if(errCode != BERR_SUCCESS)
@@ -689,9 +689,13 @@ static BERR_Code BDSP_Raaga_P_AssignDebugMemory(
 				BDBG_ERR(("BDSP_Raaga_P_AssignDebugMemory: Unable to allocate RW memory for Debug type %d for dsp %d!!!!",index, dspindex));
 				goto end;
 			}
-			pDevice->memInfo.debugQueueParams[dspindex][index].ui32Size = ui32Size;
-			pDevice->memInfo.debugQueueParams[dspindex][index].Memory   = Memory;
 		}
+		else
+		{
+			ui32Size = BDSP_MIN_DEBUG_BUFFER_SIZE;
+		}
+		pDevice->memInfo.debugQueueParams[dspindex][index].ui32Size = ui32Size;
+		pDevice->memInfo.debugQueueParams[dspindex][index].Memory   = Memory;
 	}
 
 end:

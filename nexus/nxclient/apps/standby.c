@@ -470,11 +470,12 @@ static void print_wakeup(struct appcontext *pContext)
     if (rc) {BERR_TRACE(rc); return;}
 
     fd = fopen("/sys/class/net/eth0/device/power/wakeup_count", "r");
-    if (!fd) {
+    if (fd) {
+        fscanf(fd, "%d", &wakeup_count);
+        fclose(fd);
+    } else {
         printf("Could not open eth wakeup status\n");
     }
-    fscanf(fd, "%d", &wakeup_count);
-    fclose(fd);
 
     BDBG_WRN(("Wake up Status:\n"
            "IR      : %d\n"

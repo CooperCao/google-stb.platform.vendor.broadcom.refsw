@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -319,6 +319,8 @@ eRet CChannelOfdm::tune(
     /* These should be set for all modes */
     _settings.acquisitionMode = NEXUS_FrontendOfdmAcquisitionMode_eAuto;
     _settings.spectrum        = NEXUS_FrontendOfdmSpectrum_eAuto;
+    _settings.dvbt2Settings   = newSettings.dvbt2Settings;
+    _settings.dvbc2Settings   = newSettings.dvbc2Settings;
 
     /* adjust settings based on mode */
     if (_settings.mode == NEXUS_FrontendOfdmMode_eDvbt)
@@ -337,7 +339,7 @@ eRet CChannelOfdm::tune(
         _settings.manualTpsSettings     = newSettings.manualTpsSettings;
         _settings.pullInRange           = newSettings.pullInRange;
         _settings.cciMode               = newSettings.cciMode;
-        _settings.dvbt2Settings.plpMode = false;
+        _settings.dvbt2Settings.plpMode = true;
         _settings.dvbt2Settings.plpId   = 0;
     }
     else

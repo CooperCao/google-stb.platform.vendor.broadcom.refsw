@@ -46,6 +46,8 @@
 
 extern uintptr_t uart_base;
 
+extern uintptr_t boot_mode;
+
 __init_data unsigned long phys_to_virt_offset;
 __init_data unsigned long virt_to_phys_offset;
 
@@ -240,9 +242,7 @@ __bootstrap static inline void prepare_bootstrap_page_table(ptrdiff_t load_link_
         MAIR_MEMORY, translated_dt_start, load_link_offset);
 }
 
-__bootstrap void  bootstrap_main(ptrdiff_t load_link_offset, int machine_type, void *dtree_phys_addr, void *uart_addr) {
-
-    UNUSED(machine_type);
+__bootstrap void  bootstrap_main(ptrdiff_t load_link_offset, uintptr_t _boot_mode, void *dtree_phys_addr, void *uart_addr) {
 
     // If this is not the boot CPU, enable the MMU using the page table
     // prepared by the boot CPU.
@@ -276,4 +276,5 @@ __bootstrap void  bootstrap_main(ptrdiff_t load_link_offset, int machine_type, v
 
     // Save system uart base
     uart_base = (uint32_t)uart_addr;
+    boot_mode = _boot_mode;
 }

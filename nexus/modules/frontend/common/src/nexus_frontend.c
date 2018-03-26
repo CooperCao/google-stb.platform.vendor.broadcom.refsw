@@ -414,7 +414,6 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_P_Create(void)
 
     NEXUS_OBJECT_INIT(NEXUS_FrontendDevice, handle);
     NEXUS_OBJECT_REGISTER(NEXUS_FrontendDevice, handle, Create);
-    handle->tripwire = 0x54329876;
     BDBG_MSG(("Creating device handle %p...", (void *)handle));
 
     return handle;
@@ -568,7 +567,7 @@ void NEXUS_Frontend_Untune( NEXUS_FrontendHandle handle )
     else
     {
         /* This is a simple way to reset the app callback. In the future, we may want
-                a chip-specific way of reseting state. */
+                a chip-specific way of resetting state. */
         if ( handle->capabilities.qam )
         {
             NEXUS_FrontendQamSettings settings;
@@ -1651,12 +1650,6 @@ void NEXUS_FrontendDevice_Unlink(NEXUS_FrontendDeviceHandle parentHandle,NEXUS_F
 
 static void NEXUS_FrontendDevice_P_Release(NEXUS_FrontendDeviceHandle handle)
 {
-    if (handle->tripwire == 0x54329876) {
-        BDBG_MSG(("Released device handle %p is fine...", (void *)handle));
-    } else {
-        BDBG_WRN(("device handle %p might have been corrupted...", (void *)handle));
-    }
-
     NEXUS_OBJECT_UNREGISTER(NEXUS_FrontendDevice, handle, Destroy);
 }
 

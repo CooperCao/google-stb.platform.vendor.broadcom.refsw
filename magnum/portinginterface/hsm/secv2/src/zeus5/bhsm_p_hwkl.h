@@ -74,7 +74,6 @@ typedef struct BHSM_P_HwklRootConfig
     struct {
         uint8_t    askmTdesKlRootKeySwapEnable;
         uint8_t    rootKeySrc;
-        uint8_t    hwklOperation;
         uint8_t    globalKeyOwnerIdSelect;
         uint8_t    globalKeyIndex;
         uint8_t    kdfVersion;
@@ -93,7 +92,6 @@ typedef struct BHSM_P_HwklLayerSet
     /* input */
     struct {
         uint8_t    destinationKeyLayer;
-        uint8_t    hwklOperation;
         uint32_t    procIn[4];
     }in;
 } BHSM_P_HwklLayerSet;

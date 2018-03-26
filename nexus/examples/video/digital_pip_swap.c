@@ -231,12 +231,15 @@ int main(int argc, char **argv)
     }
 
     audioDecoder = NEXUS_AudioDecoder_Open(0, NULL);
-#if NEXUS_NUM_AUDIO_DACS
     if (platformConfig.outputs.audioDacs[0]) {
         NEXUS_AudioOutput_AddInput(
             NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
             NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     }
+#if NEXUS_NUM_HDMI_OUTPUTS
+    NEXUS_AudioOutput_AddInput(
+        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
 #endif
 
     programIndex = 0;

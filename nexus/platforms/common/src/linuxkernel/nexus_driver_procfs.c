@@ -415,6 +415,21 @@ nexus_driver_seq_capture_locked(BDBG_ModulePrintKind kind, BDBG_Level level, con
     return;
 }
 
+static void
+nexus_set_print_function(const char *name, BDBG_DebugModule_Print module_print)
+{
+    while (1) {
+        char buf[64], *ptr = buf;
+        while (*name != ';' && *name) {
+            if (ptr-buf == sizeof(buf)-1) {BERR_TRACE(BERR_INVALID_PARAMETER); return;} /* don't set partial name */
+            *ptr++ = *name++;
+        }
+        *ptr = 0;
+        BDBG_SetModulePrintFunction(buf, module_print);
+        if (!*name++) break;
+    };
+}
+
 static int nexus_driver_seq_open_locked(const nexus_driver_proc_data *p, struct file *file)
 {
     int rc;
@@ -436,16 +451,16 @@ static int nexus_driver_seq_open_locked(const nexus_driver_proc_data *p, struct 
         goto err_add_buffer;
     }
 
-    if (NEXUS_Platform_P_ModuleInStandby(p->handle)) {
+    if (p->handle != NEXUS_MODULE_SELF && NEXUS_Platform_P_ModuleInStandby(p->handle)) {
         buf->len = BKNI_Snprintf(buf->buf, sizeof(buf->buf), "%s in standby\n", NEXUS_Module_GetName(p->handle));
     }
     else {
         /* call function which captures to nexus_driver_seq */
         NEXUS_Module_Lock(p->handle);
         NEXUS_P_ProcFsState.seq = seq;
-        BDBG_SetModulePrintFunction(p->dbg_modules,nexus_driver_seq_capture_locked);
+        nexus_set_print_function(p->dbg_modules,nexus_driver_seq_capture_locked);
         p->callback(p->context);
-        BDBG_SetModulePrintFunction(p->dbg_modules,NULL);
+        nexus_set_print_function(p->dbg_modules,NULL);
         NEXUS_P_ProcFsState.seq = NULL;
         NEXUS_Module_Unlock(p->handle);
         if(seq->out_of_memory) {

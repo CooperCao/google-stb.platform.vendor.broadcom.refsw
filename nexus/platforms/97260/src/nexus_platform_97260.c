@@ -46,14 +46,13 @@ BDBG_MODULE(nexus_platform_97260);
 static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfigurationSettings *pSettings )
 {
 #if NEXUS_HAS_VIDEO_DECODER
-    NEXUS_P_SupportVideoDecoderCodec(pSettings, NEXUS_VideoCodec_eH265);
-    NEXUS_P_SupportVideoDecoderCodec(pSettings, NEXUS_VideoCodec_eVp9);
     NEXUS_P_SupportVideoDecoderCodec(pSettings, NEXUS_VideoCodec_eH264_Mvc);
 
     pSettings->videoDecoder[0].mosaic.maxNumber = 0;
 
     switch (g_pPreInitState->boxMode) {
     case 4:
+    case 7:
         pSettings->videoDecoder[0].mosaic.maxNumber = 3;
         pSettings->videoDecoder[0].mosaic.maxWidth  = 1920;
         pSettings->videoDecoder[0].mosaic.maxHeight = 1088;
@@ -86,6 +85,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
         /* UHD box modes need a larger CRR region */
         case 4:
         case 5:
+        case 7:
         {
             pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 64 * MB;
             break;

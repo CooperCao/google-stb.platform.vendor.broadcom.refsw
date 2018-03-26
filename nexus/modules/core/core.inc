@@ -59,6 +59,7 @@ NEXUS_CORE_PRIVATE_INCLUDES = $(NEXUS_TOP)/modules/core/src $(NEXUS_SYNCTHUNK_DI
 # Module Sources #
 ##################
 NEXUS_CORE_SOURCES := \
+	$(NEXUS_TOP)/modules/core/src/nexus_avs.c \
 	$(NEXUS_TOP)/modules/core/src/nexus_core.c \
 	$(NEXUS_TOP)/modules/core/src/nexus_core_utils.c \
 	$(NEXUS_TOP)/modules/core/src/nexus_core_convert.c \
@@ -93,10 +94,6 @@ ifeq ($(NEXUS_TOUCHPAD_SUPPORT),y)
 BCHP_PWR_CTK_SUPPORT=y
 else
 BCHP_PWR_CTK_SUPPORT=n
-endif
-
-ifeq ($(NEXUS_SHARED_SPI),y)
-BINT_SPI_DISABLED=y
 endif
 
 ##################

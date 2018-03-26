@@ -84,6 +84,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].memcIndex = 0;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].subIndex = 1;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = -1;
+    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].memoryType = NEXUS_MemoryType_eApplication; /* cached only */
 
 }

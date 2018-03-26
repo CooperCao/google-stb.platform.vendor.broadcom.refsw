@@ -1157,6 +1157,7 @@ typedef struct BVDC_P_DisplayContext
 
 #if BVDC_P_SUPPORT_STG
     uint32_t                    ulStgTriggerToBeArmed;
+    uint32_t                    ulStgPicIdScratchReg;
 #if (BDBG_DEBUG_BUILD)
     uint32_t                    ulStgTriggerCount;/* to measure ignore ratio for NRT performance */
     uint32_t                    ulStgIgnoreCount;

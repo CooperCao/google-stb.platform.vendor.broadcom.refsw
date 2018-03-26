@@ -696,6 +696,8 @@ typedef struct BXDM_PictureProvider_StartSettings
 {
     BXDM_PictureProvider_ColorOverride stColorOverride;
 
+    bool bUseXPTSTC; /* Use the STC's read directly from XPT. */
+
 } BXDM_PictureProvider_StartSettings;
 
 /*

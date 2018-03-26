@@ -35,8 +35,11 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  **************************************************************************/
-
+#ifdef NXCLIENT_SUPPORT
+#include "nxclient.h"
+#else
 #include "nexus_platform.h"
+#endif
 #include "nexus_recpump.h"
 #if NEXUS_HAS_RECORD
 #include "nexus_record.h"
@@ -85,8 +88,12 @@ int main(int argc, const char *argv[])
     btlv_ip_address ip_addr;
     NEXUS_PidChannelHandle video_ch;
     NEXUS_PidChannelHandle audio_ch;
+    #ifdef NXCLIENT_SUPPORT
+    NxClient_JoinSettings joinSettings;
+    #else
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
+    #endif
     NEXUS_Error rc;
     unsigned i;
     NEXUS_FileRecordHandle file;
@@ -132,11 +139,18 @@ int main(int argc, const char *argv[])
     /**
      * nexus platform initialization
     **/
+    #ifdef NXCLIENT_SUPPORT
+    NxClient_GetDefaultJoinSettings(&joinSettings);
+    snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "%s", argv[0]);
+    rc = NxClient_Join(&joinSettings);
+    if (rc) return -1;
+    #else
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
     rc = NEXUS_Platform_Init(&platformSettings);
     if (rc) return -1;
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    #endif
     /**
      *  mmt module instantiation
     **/
@@ -442,7 +456,11 @@ int main(int argc, const char *argv[])
 done:
     bmmt_stop(mmt);
     bmmt_close(mmt);
+    #ifdef NXCLIENT_SUPPORT
+    NxClient_Uninit();
+    #else
     NEXUS_Platform_Uninit();
+    #endif
 
     return 0;
 }

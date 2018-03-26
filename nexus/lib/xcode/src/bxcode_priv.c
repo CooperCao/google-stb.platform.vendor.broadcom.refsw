@@ -293,8 +293,6 @@ static void BXCode_P_WindowMad(
     NEXUS_VideoWindow_GetMadSettings(hWindow, &windowMadSettings);
     windowMadSettings.deinterlace = bEnable;
     windowMadSettings.pqEnhancement = NEXUS_MadPqEnhancement_eAuto;
-    windowMadSettings.enable32Pulldown = true;
-    windowMadSettings.enable22Pulldown = true;
     windowMadSettings.gameMode = bLowDelay?NEXUS_VideoWindowGameMode_e4Fields_0Delay : NEXUS_VideoWindowGameMode_eOff;
     NEXUS_VideoWindow_SetMadSettings(hWindow, &windowMadSettings);
 }

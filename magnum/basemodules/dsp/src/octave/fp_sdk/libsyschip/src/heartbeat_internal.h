@@ -146,13 +146,13 @@
 #  if   defined(ASMCPP)
 #    define HEARTBEAT_INT_UPDATE(phase, subphase, argument)   heartbeat_int_update phase, subphase, argument
 
-#  elif defined(__RALL2__) && defined(__FP4014_ONWARDS__) && MNO_USE_MB
+#  elif defined(__RALL2__) && __FP4014_ONWARDS__ && MNO_USE_MB
 #    define HEARTBEAT_INT_UPDATE(phase, subphase, argument)   movb r0, phase : movb r1, subphase : movh r2, argument $ b heartbeat_int_update<! 3>, r58
 
-#  elif defined(__RALL2__) && defined(__FP4014_ONWARDS__) && !MNO_USE_MB
+#  elif defined(__RALL2__) && __FP4014_ONWARDS__ && !MNO_USE_MB
 #    define HEARTBEAT_INT_UPDATE(phase, subphase, argument)   mb heartbeat_int_update<! 3> : movb r0, phase : movb r1, subphase : movh r2, argument
 
-#  elif defined(__RALL2__) && defined(__FPM1015_ONWARDS__)
+#  elif defined(__RALL2__) && __FPM1015_ONWARDS__
 #    define HEARTBEAT_INT_UPDATE(phase, subphase, argument)   movw r0, phase $ movw r1, subphase $ movw r2, argument $ b heartbeat_int_update<! 3>, r15
 
 #  else

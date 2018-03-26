@@ -512,3 +512,12 @@ NEXUS_Error NxClient_GetThermalStatus( NxClient_ThermalStatus *pStatus )
     UNLOCK();
     return rc;
 }
+
+NEXUS_Error NxClient_SetWatchdogTimeout( unsigned timeout )
+{
+    NEXUS_Error rc;
+    LOCK();
+    rc = nxclient_p_set_watchdog_timeout(NXCLIENT_STATE_RESTRICTED, timeout);
+    UNLOCK();
+    return rc;
+}

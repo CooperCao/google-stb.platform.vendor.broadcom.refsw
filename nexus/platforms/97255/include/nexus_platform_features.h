@@ -49,7 +49,7 @@
 #define NEXUS_NUM_MESSAGE_FILTERS 128
 #define NEXUS_NUM_PLAYPUMPS 15
 
-#define NEXUS_NUM_VIDEO_DECODERS 1
+#define NEXUS_NUM_VIDEO_DECODERS 2
 
 /* Display Features */
 #define NEXUS_NUM_656_INPUTS 0
@@ -61,7 +61,7 @@
 #define NEXUS_NUM_SVIDEO_OUTPUTS 0
 
 /* Max number of displays and windows supported by this platform. */
-#define NEXUS_NUM_DISPLAYS   1
+#define NEXUS_NUM_DISPLAYS   2
 #define NEXUS_NUM_VIDEO_WINDOWS 1 /* per display */
 
 #define NEXUS_NUM_VIDEO_ENCODERS 1

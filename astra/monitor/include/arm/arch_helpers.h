@@ -159,6 +159,7 @@ DEFINE_SYSOP_TYPE_FUNC(dsb, ish)
 DEFINE_SYSOP_TYPE_FUNC(dsb, ishst)
 DEFINE_SYSOP_TYPE_FUNC(dmb, ish)
 DEFINE_SYSOP_FUNC(isb)
+DEFINE_SYSOP_FUNC(clrex)
 
 /*******************************************************************************
  * System register accessor prototypes
@@ -268,6 +269,8 @@ DEFINE_RENAME_SYSREG_READ_FUNC(icc_iar1_el1, ICC_IAR1_EL1)
 DEFINE_RENAME_SYSREG_WRITE_FUNC(icc_eoir0_el1, ICC_EOIR0_EL1)
 DEFINE_RENAME_SYSREG_WRITE_FUNC(icc_eoir1_el1, ICC_EOIR1_EL1)
 
+DEFINE_RENAME_SYSREG_RW_FUNCS(cpuectlr_el1, CPUECTLR_EL1)
+DEFINE_RENAME_SYSREG_RW_FUNCS(cpuactlr_el1, CPUACTLR_EL1)
 DEFINE_RENAME_SYSREG_READ_FUNC(cbar_el1, CBAR_EL1)
 
 #define IS_IN_EL(x) \
@@ -294,6 +297,12 @@ DEFINE_RENAME_SYSREG_READ_FUNC(cbar_el1, CBAR_EL1)
 
 #define read_cpacr()		read_cpacr_el1()
 #define write_cpacr(_v)		write_cpacr_el1(_v)
+
+#define read_cpuectlr()		read_cpuectlr_el1()
+#define write_cpuectlr(_v)	write_cpuectlr_el1(_v)
+
+#define read_cpuactlr()		read_cpuactlr_el1()
+#define write_cpuactlr(_v)	write_cpuactlr_el1(_v)
 
 #define read_cbar()		read_cbar_el1()
 

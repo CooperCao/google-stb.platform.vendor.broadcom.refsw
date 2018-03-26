@@ -110,6 +110,7 @@ typedef struct bmmt_open_settings {
     bmmt_input_format input_format;
     uint32_t tlv_pid; /* valid only for ebmmt_input_format_tlv */
     bool pesOut; /* pes file output from CPU writes */
+    bool loop;
 }bmmt_open_settings;
 
 /**

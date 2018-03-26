@@ -74,6 +74,7 @@ typedef void *NEXUS_HdmiOutputHdcpVersion;
 #include "nexus_simple_video_decoder_server.h"
 #include "nexus_simple_audio_decoder_server.h"
 #include "nexus_simple_encoder_server.h"
+#include "nexus_simple_audio_playback_server.h"
 #else
 #undef NEXUS_HAS_VIDEO_DECODER
 typedef void *NEXUS_SimpleAudioDecoderServerSettings;
@@ -85,6 +86,7 @@ typedef void *NEXUS_SimpleEncoderHandle;
 typedef void *NEXUS_SimpleVideoDecoderServerHandle;
 typedef void *NEXUS_SimpleAudioDecoderServerHandle;
 typedef void *NEXUS_SimpleEncoderServerHandle;
+typedef void *NEXUS_SimpleAudioPlaybackServerHandle;
 #endif
 #if NEXUS_HAS_TRANSPORT
 #include "nexus_stc_channel.h"
@@ -115,6 +117,7 @@ typedef unsigned NEXUS_InputRouterCode;
 #include "blst_queue.h"
 #include "nxserverlib_evdev.h"
 #include "nxclient.h"
+#include "nexus_watchdog.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -350,12 +353,12 @@ struct b_session {
         enum nxserver_hdcp_state {
             nxserver_hdcp_not_pending,                   /* no hdcp authentication in progress */
             nxserver_hdcp_begin,                         /* need to start hdcp authentication */
+            nxserver_hdcp_follow,                        /* started in eFollow, waiting to learn result */
             nxserver_hdcp_pending_start_retry,           /* authenticating w/ restart. lastHdcpError likely set. may mute. */
             nxserver_hdcp_pending_start,                 /* authenticating w/o restart. */
             nxserver_hdcp_success,                       /* hdcp authentication completed */
             nxserver_hdcp_max
         } version_state;
-        NEXUS_HdmiOutputHdcpVersion downstream_version;
         bool mute;
         NEXUS_HdmiOutputHdcpError lastHdcpError;
         NEXUS_HdmiOutputHdcpState prev_state;
@@ -374,6 +377,7 @@ struct b_session {
     NxClient_AudioSettings audioSettings;
     struct {
         NEXUS_SimpleAudioDecoderServerHandle server;
+        NEXUS_SimpleAudioPlaybackServerHandle playbackServer;
         struct {
             NxClient_AudioOutputMode outputMode[NEXUS_AudioCodec_eMax]; /* Configured output format */
         } hdmi, spdif;
@@ -415,6 +419,11 @@ enum b_standby_state {
     b_standby_state_pending,
     b_standby_state_applied,
     b_standby_state_exit
+};
+
+struct nxserver_watchdog_client {
+    unsigned timeout;
+    unsigned pettime; /* clock tick in seconds */
 };
 
 struct b_server {
@@ -459,6 +468,11 @@ struct b_server {
         unsigned local_display_index;
         NEXUS_DisplaySettings settings;
     } disabled_local_display;
+    struct {
+        struct nxserver_watchdog_client state;
+        NEXUS_WatchdogHandle handle;
+        bool shutdown;
+    } watchdog;
 };
 
 struct b_client_standby_ack
@@ -490,6 +504,7 @@ struct b_client {
     struct {
         BLST_S_HEAD(b_client_standby_acklist, b_client_standby_ack) acks;
     } standby;
+    struct nxserver_watchdog_client watchdog;
 };
 
 /************
@@ -600,6 +615,7 @@ bool nxserver_p_video_only_display(struct b_session *session, unsigned displayIn
 int nxserver_p_reenable_local_display(nxserver_t server);
 void nxserver_p_disable_local_display(nxserver_t server, unsigned displayIndex);
 bool nxserver_p_allow_grab(nxclient_t client);
+NEXUS_Error nxserver_p_pet_watchdog(nxserver_t server, struct nxserver_watchdog_client *watchdog, unsigned timeout);
 
 typedef unsigned (*get_connect_id_func)(const NxClient_ConnectSettings *pSettings, unsigned i);
 unsigned get_videodecoder_connect_id(const NxClient_ConnectSettings *pSettings, unsigned i);

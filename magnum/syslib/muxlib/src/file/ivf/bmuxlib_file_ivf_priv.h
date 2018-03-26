@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -191,6 +191,24 @@ typedef struct
    uint8_t auiBytes[BMUXlib_File_IVF_P_SUPERFRAME_INDEX_MAX_SIZE];
 } BMUXlib_File_IVF_P_SuperframeIndex;
 
+typedef struct BMUXlib_File_IVF_P_FrameHeaderContext
+{
+   BMUXLIB_P_ENTRY_TYPE( BMUXlib_File_IVF_P_FrameHeader, astFrameHeader )
+   unsigned uiReadOffset;
+   unsigned uiWriteOffset;
+} BMUXlib_File_IVF_P_FrameHeaderContext;
+
+typedef struct BMUXlib_File_IVF_P_SuperframeContext
+{
+   bool bEnd;           /* indicates the end of the superframe has been found */
+   uint64_t uiPTSms;    /* PTS of the superframe in ms (PTS of the non-hidden frame) */
+   uint32_t uiSize;     /* size in bytes of the superframe, including the index */
+   uint64_t uiOffset;   /* starting location of the superframe header to be updated */
+   unsigned uiFrameCount;
+   unsigned auiFrameSizes[BMUXlib_File_IVF_P_MAX_FRAMES_IN_SUPERFRAME+1];  /* sizes of each frame in superframe */
+   BMUXLIB_P_ENTRY_TYPE( BMUXlib_File_IVF_P_SuperframeIndex, aIndexEntries )
+} BMUXlib_File_IVF_P_SuperframeContext;
+
 typedef struct BMUXlib_File_IVF_P_Context
 {
    BDBG_OBJECT(BMUXlib_File_IVF_P_Context)
@@ -208,23 +226,9 @@ typedef struct BMUXlib_File_IVF_P_Context
 
    BMUXlib_File_IVF_P_FileHeader stFileHeader;
 
-   struct
-   {
-      BMUXlib_File_IVF_P_FrameHeader astFrameHeader[BMUXlib_File_IVF_P_MAX_FRAMES];
-      unsigned uiReadOffset;
-      unsigned uiWriteOffset;
-   } stFrameHeader;
+   BMUXlib_File_IVF_P_FrameHeaderContext stFrameHeader;
 
-   struct
-   {
-      bool bEnd;           /* indicates the end of the superframe has been found */
-      uint64_t uiPTSms;    /* PTS of the superframe in ms (PTS of the non-hidden frame) */
-      uint32_t uiSize;     /* size in bytes of the superframe, including the index */
-      uint64_t uiOffset;   /* starting location of the superframe header to be updated */
-      unsigned uiFrameCount;
-      unsigned auiFrameSizes[BMUXlib_File_IVF_P_MAX_FRAMES_IN_SUPERFRAME+1];  /* sizes of each frame in superframe */
-      BMUXlib_File_IVF_P_SuperframeIndex aIndexEntries[BMUXlib_File_IVF_P_MAX_FRAMES];
-   } stSuperframe;
+   BMUXlib_File_IVF_P_SuperframeContext stSuperframe;
 
 } BMUXlib_File_IVF_P_Context;
 

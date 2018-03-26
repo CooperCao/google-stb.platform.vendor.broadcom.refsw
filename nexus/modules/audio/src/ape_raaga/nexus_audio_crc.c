@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -440,14 +440,14 @@ NEXUS_Error NEXUS_AudioCrc_GetCrcData(
     BDBG_ASSERT(handle->apeHandle != NULL);
     BDBG_ASSERT(pNumReturned != NULL);
 
+    BKNI_Memset(pData, 0, sizeof(*pData));
+    *pNumReturned = 0;
+
     errCode = BAPE_Crc_GetBuffer(handle->apeHandle, &apeDescriptor);
     if ( errCode )
     {
         return BERR_TRACE(errCode);
     }
-
-    BKNI_Memset(pData, 0, sizeof(*pData));
-    *pNumReturned = 0;
 
     if ( apeDescriptor.bufferSize > 0 )
     {

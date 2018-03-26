@@ -37,6 +37,7 @@
 
  ******************************************************************************/
 #include "streamer.h"
+#include "nexus_base_mmap.h"
 
 BDBG_MODULE(base_streamer);
 #undef LOGE
@@ -57,6 +58,7 @@ BaseStreamer::BaseStreamer()
     m_playpump = NULL;
     m_playpumpBuffer = NULL;
     m_pidChannel = NULL;
+    m_numDesc = 0;
 }
 
 void BaseStreamer::GetDefaultPlaypumpOpenSettings(
@@ -82,7 +84,7 @@ NEXUS_PlaypumpHandle BaseStreamer::OpenPlaypump(
     }
 
     if (playpumpOpenSettings == NULL) {
-        LOGW(("%s: NULL pointer was given, default settings are used", BSTD_FUNCTION));
+        LOGW(("%s: default OpenSettings is used", BSTD_FUNCTION));
         NEXUS_Playpump_GetDefaultOpenSettings(&defaultSettings);
         playpumpOpenSettings = &defaultSettings;
     }
@@ -132,7 +134,6 @@ uint8_t* BaseStreamer::WaitForBuffer(uint32_t size)
         if (bufferSize == 0) {
             BKNI_Sleep(100);
             continue;
-//            NEXUS_Playpump_GetBuffer(m_playpump, (void**)&playpumpBuffer, &bufferSize);
         }
 
         if (bufferSize >= fragment_size) {
@@ -220,9 +221,12 @@ retry:
 
     /* Flush if source is GLR and destination is secure */
     for (unsigned i = 0; i < m_numDesc; i++) {
-        if (m_flush[i] && IsSecure())
+        if (m_flush[i] && IsSecure()) {
             NEXUS_FlushCache(m_desc[i].addr, m_desc[i].length);
+        }
         lengthToSubmit += m_desc[i].length;
+        LOGD(("%s: m_desc[%d] length=%d addr=%p (offset=%p)", __FUNCTION__,
+            i, m_desc[i].length, (void*)m_desc[i].addr, (void*)NEXUS_AddrToOffset(m_desc[i].addr)));
     }
 
     rc = NEXUS_Playpump_SubmitScatterGatherDescriptor(m_playpump, m_desc, m_numDesc, (size_t*)&numConsumed);
@@ -245,6 +249,59 @@ retry:
 
     // Need to call Playpump_GetBuffer
     WaitForBuffer(lengthToSubmit);
+
+    return true;
+}
+
+bool BaseStreamer::SubmitSample(SampleInfo *pSample, IBuffer *clear, IBuffer *decrypted)
+{
+    if (m_playpump == NULL) {
+        LOGE(("Playpump hasn't been opened"));
+        return false;
+    }
+
+    if (pSample == NULL || decrypted == NULL) {
+        LOGE(("%s: parameters are not set correctly", BSTD_FUNCTION));
+        return false;
+    }
+
+    if (pSample->nbOfEntries == 0) {
+        // Full sample case - assuming fully encrypted
+        SubmitScatterGather(decrypted->GetPtr(),
+                pSample->size, !decrypted->IsSecure(), true);
+        return true;
+    }
+
+    if (clear == NULL) {
+        LOGE(("%s: need clear for subsamples", BSTD_FUNCTION));
+        return false;
+    }
+
+    uint32_t clearSize = 0;
+    uint32_t encSize = 0;
+    bool last = false;
+    // Submit each piece from clear and decrypted one by one
+    // assuming clear data comes first in subsamplesr
+    for (int i = 0; i < pSample->nbOfEntries; i++ ) {
+        if (pSample->entries[i].bytesOfClearData > 0) {
+            if (i >= pSample->nbOfEntries - 1 &&
+                pSample->entries[i].bytesOfEncData == 0)
+                last = true;
+            // Submit clear subsample
+            SubmitScatterGather(clear->GetPtr() + clearSize + encSize,
+                pSample->entries[i].bytesOfClearData, true, last);
+            clearSize += pSample->entries[i].bytesOfClearData;
+        }
+
+        if (pSample->entries[i].bytesOfEncData > 0) {
+            if (i >= pSample->nbOfEntries - 1)
+                last = true;
+            // Submit decrypted subsample
+            SubmitScatterGather(decrypted->GetPtr() + clearSize + encSize,
+                pSample->entries[i].bytesOfEncData, !IsSecure(), last);
+            encSize += pSample->entries[i].bytesOfEncData;
+        }
+    }
 
     return true;
 }

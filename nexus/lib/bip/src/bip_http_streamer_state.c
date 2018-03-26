@@ -231,6 +231,7 @@ static void playbackIpStreamerCallbackViaArbTimer(
     BIP_HttpStreamerHandle hHttpStreamer = appCtx;
     B_PlaybackIpEventIds eventId;
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer: %p: Get class lock: param=%d" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, param ));
     bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
     if (bipStatus != BIP_SUCCESS)
     {
@@ -263,51 +264,54 @@ static void playbackIpStreamerCallback(
 {
     BIP_Status brc;
     BIP_HttpStreamerHandle hHttpStreamer = appCtx;
+    BIP_CallbackDesc callbackDesc;
 
-    brc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
-    if (brc != BIP_SUCCESS)
-    {
-        return;
-    }
+    /* Note:
+     * This callback is invoked in the context of PBIP Library.
+     * So it must not get any object specific locks (either the HTTP Streamer Class lock or hHttpStreamer object lock).
+     * Otherwise, there is a potential of deadlock where this lock may be held by another thread running the state machine
+     * and that thread has called into PBIP API where PBIP may block until its pending callback for a client is
+     * completed before the API will return. Thus, API will be holding the Class/object lock & waiting on the callback
+     * to finish. And this callback is waiting on the Class/object lock held by the other thread and thus will
+     * never complete.
+     *
+     * Solution remains simple: dont get the object specific callback here. Instead, create a deferred callback to run
+     * in the BIP's callback context and let that do all the object specific work.
+     */
     BDBG_ASSERT(hHttpStreamer);
-    BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer:state %p: %s, got eventId %d from PBIP: Defer the callback"
-                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), eventId ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer:state %p: %d, got eventId %d from PBIP: Defer the callback"
+                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, hHttpStreamer->state, eventId ));
 
-    B_Mutex_Lock( hHttpStreamer->hStateMutex );
-    {
-        hHttpStreamer->playbackIpState.pbipEndOfStreamingCallback.callback = &playbackIpStreamerCallbackViaArbTimer;
-        hHttpStreamer->playbackIpState.pbipEndOfStreamingCallback.context = hHttpStreamer;
-        hHttpStreamer->playbackIpState.pbipEndOfStreamingCallback.param = eventId;
-        BIP_Arb_AddDeferredCallback( hHttpStreamer->startApi.hArb, &hHttpStreamer->playbackIpState.pbipEndOfStreamingCallback );
+    callbackDesc.callback = &playbackIpStreamerCallbackViaArbTimer;
+    callbackDesc.context = hHttpStreamer;
+    callbackDesc.param = eventId;
+    BIP_Arb_AddDeferredCallback( NULL, &callbackDesc );
 
-        brc = BIP_Arb_DoDeferred( hHttpStreamer->startApi.hArb, BIP_Arb_ThreadOrigin_eUnknown);
-        BDBG_ASSERT( brc == BIP_SUCCESS );
-    }
-    B_Mutex_Unlock( hHttpStreamer->hStateMutex );
-    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
-
+    brc = BIP_Arb_DoDeferred( NULL, BIP_Arb_ThreadOrigin_eUnknown);
+    BDBG_ASSERT( brc == BIP_SUCCESS );
 } /* playbackIpStreamerCallback */
 
 #ifdef NEXUS_HAS_ASP
 static void aspLibCallbackViaArbCallback(
     void *appCtx,
-    int eventId
+    int param
     )
 {
-    BIP_Status brc;
+    BIP_Status             bipStatus;
     BIP_HttpStreamerHandle hHttpStreamer = appCtx;
 
-    brc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
-    if(brc != BIP_SUCCESS)
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer: %p: Get class lock: param=%d" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, param ));
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    if (bipStatus != BIP_SUCCESS)
     {
         return;
     }
 
     BDBG_ASSERT(hHttpStreamer);
-    BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer:state %p: %s, got eventId %d from PBIP: Defer the callback"
-                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), eventId ));
+    BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
+
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer: %p: Running Deferred Callback: param=%d" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, param ));
+
     B_Mutex_Lock( hHttpStreamer->hStateMutex );
     /* Change state to streaming done only if we are in streaming state. */
     if ( hHttpStreamer->state == BIP_HttpStreamerState_eStreaming )
@@ -315,16 +319,11 @@ static void aspLibCallbackViaArbCallback(
         hHttpStreamer->state = BIP_HttpStreamerState_eStreamingDone;
         ++hHttpStreamer->hls.numSegmentsStreamed;
     }
-
-    hHttpStreamer->playbackIpState.pbipEndOfStreamingCallback.callback = &playbackIpStreamerCallbackViaArbTimer;
-    hHttpStreamer->playbackIpState.pbipEndOfStreamingCallback.context = hHttpStreamer;
-    BIP_Arb_AddDeferredCallback( hHttpStreamer->startApi.hArb, &hHttpStreamer->playbackIpState.pbipEndOfStreamingCallback );
     B_Mutex_Unlock( hHttpStreamer->hStateMutex );
-
     BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
-    brc = BIP_Arb_DoDeferred( hHttpStreamer->startApi.hArb, BIP_Arb_ThreadOrigin_eUnknown);
-    BDBG_ASSERT( brc == BIP_SUCCESS );
 
+    processHttpStreamerState( (BIP_HttpStreamerHandle) hHttpStreamer, 0, BIP_Arb_ThreadOrigin_eTimer);
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer: %p: Done running Deferred Callback: param=%d" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, param ));
 } /* aspLibCallbackViaArbCallback */
 
 static void aspLibCallback(
@@ -336,22 +335,26 @@ static void aspLibCallback(
     BIP_CallbackDesc callbackDesc;
     BIP_Status       brc;
 
-    brc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
-    if (brc != BIP_SUCCESS)
-    {
-        return;
-    }
     BDBG_ASSERT( hHttpStreamer );
-    BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Received callback from aspLib, state=%s" BIP_MSG_PRE_ARG,
-                (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+    /* Note:
+     * This callback is invoked in the context of ASP Library (which inturn does so in the Nexus Callback thread context).
+     * So it must not get any object specific locks (either the HTTP Streamer Class lock or hHttpStreamer object lock).
+     * Otherwise, there is a potential of deadlock where this lock may be held by another thread running the state machine
+     * and that thread has called into Nexus API where Nexus will block until all pending callbacks for a client are
+     * completed before the API will return. Thus, API will be holding the Class/object lock & waiting on the callback
+     * to finish. And this callback is waiting on the Class/object lock held by the other thread and thus will
+     * never complete.
+     *
+     * Solution remains simple: dont get the object specific callback here. Instead, create a deferred callback to run
+     * in the BIP's callback context and let that do all the object specific work.
+     */
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Received callback from aspLib, state=%d" BIP_MSG_PRE_ARG,
+                (void *)hHttpStreamer, hHttpStreamer->state));
 
     callbackDesc.callback = &aspLibCallbackViaArbCallback;
     callbackDesc.context = hHttpStreamer;
     callbackDesc.param = param;
     BIP_Arb_AddDeferredCallback( NULL, &callbackDesc);
-
-    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 
     brc = BIP_Arb_DoDeferred( NULL, BIP_Arb_ThreadOrigin_eUnknown);
     BDBG_ASSERT( brc == BIP_SUCCESS );
@@ -1716,7 +1719,7 @@ static BIP_Status finalizeHeadersAndSendResponse(
 
         if ( hHttpStreamer->output.settings.disableContentLengthInsertion )
         {
-            BDBG_WRN((BIP_MSG_PRE_FMT "!!!!!! Note: disableContentLengthInsertion is set: so not sending the HTTP Content Length in HTTP Response !!!!!" BIP_MSG_PRE_ARG));
+            BDBG_MSG((BIP_MSG_PRE_FMT "!!!!!! Note: disableContentLengthInsertion is set: so not sending the HTTP Content Length in HTTP Response !!!!!" BIP_MSG_PRE_ARG));
             messageLength = 0;
         }
         else if ( pTranscodeProfile )
@@ -2795,8 +2798,18 @@ static BIP_Status processRequestForMediaSegment(
                 bipStatus = BIP_Streamer_Start( hHttpStreamer->hStreamer, NULL );
                 BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Streamer_Start Failed!" ), error, bipStatus, bipStatus );
 
-                bipStatus = createAndStartPBipStreamer( hHttpStreamer, socketFd );
-                BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "createAndStartPBipStreamer Failed!" ), error, bipStatus, bipStatus );
+                hHttpStreamer->currentStreamingFd = socketFd;
+#if 1
+                bipStatus = createAndStartPBipStreamer(hHttpStreamer, socketFd);
+                BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "createAndStartPBipStreame Failed!" ), error, bipStatus, bipStatus );
+#else
+                /* ASP TODO: bring in this code once ASP FW supports HLS streaming. */
+                hHttpStreamer->completionStatus = startAspOrPBipStreamer( hHttpStreamer, socketFd);
+                BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "startAspOrPBipStreamer Failed!" ), error, bipStatus, bipStatus );
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: startAspOrPBipStreamer() done, completionStatus=%d!"
+                            BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), hHttpStreamer->completionStatus));
+#endif
+
             }
             else /* _eWaitingForNextMediaSegmentReq || eStreamingDone */
             {
@@ -3441,8 +3454,6 @@ static void processHttpDirectStreamerState(
                     prepareSettings.recpumpOpenSettings.data.dataReadyThreshold =
                             prepareSettings.recpumpOpenSettings.data.atomSize * hHttpStreamer->startSettings.streamingSettings.raveInterruptBasedSettings.dataReadyScaleFactor;
 #endif
-                    prepareSettings.recpumpOpenSettings.data.bufferSize = prepareSettings.recpumpOpenSettings.data.bufferSize;
-
                     hHttpStreamer->completionStatus = BIP_Streamer_Prepare( hHttpStreamer->hStreamer, &prepareSettings );
                 }
 

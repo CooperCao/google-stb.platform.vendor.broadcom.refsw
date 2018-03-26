@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -303,6 +303,12 @@ int main(int argc, const char *argv[])
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     displaySettings.displayType = opts.common.displayType;
     displaySettings.format = opts.common.displayFormat;
+    if (opts.common.masterModeTimingGenerator) {
+        displaySettings.timingGenerator = NEXUS_DisplayTimingGenerator_eHdmiDvo; /* HDMI master mode */
+    }
+    else if (opts.common.ccir656MasterModeTimingGenerator) {
+        displaySettings.timingGenerator = NEXUS_DisplayTimingGenerator_e656Output; /* 656 master mode */
+    }
     display = NEXUS_Display_Open(0, &displaySettings);
 #if NEXUS_NUM_COMPOSITE_OUTPUTS
     if (opts.common.useCompositeOutput) {
@@ -415,7 +421,7 @@ int main(int argc, const char *argv[])
     displayVbiSettings.closedCaptionEnabled = opts.closedCaptionEnabled;
     displayVbiSettings.closedCaptionRouting = opts.closedCaptionEnabled;
     rc = NEXUS_Display_SetVbiSettings(display, &displayVbiSettings);
-    BDBG_ASSERT(!rc);
+    if (rc) BERR_TRACE(rc); /* keep going */
 
 #if NEXUS_HAS_ASTM
     if (opts.astm) {
@@ -533,4 +539,3 @@ nexus decode -video 0x31 -audio 0x34 -video_type mpeg -audio_type ac3
 
 ************************************************
 */
-

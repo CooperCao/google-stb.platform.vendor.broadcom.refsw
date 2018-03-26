@@ -42,6 +42,7 @@
 #include "memory.h"
 #include "platform.h"
 #include "version.h"
+#include "boot_priv.h"
 
 extern uintptr_t _bootstrap_start;
 extern uintptr_t _bootstrap_end;
@@ -56,8 +57,7 @@ extern uintptr_t _stacks_end;
 #define BOOTSTRAP_STACK_START ((uintptr_t)&_stacks_start)
 #define BOOTSTRAP_STACK_SIZE  (CPU_STACK_SIZE)
 
-ptrdiff_t mon_load_link_offset;
-uint32_t system_counter_freq;
+boot_args_t boot_args;
 
 __bootstrap void mon_bootstrap(
     uintptr_t mon_params_addr,
@@ -65,28 +65,40 @@ __bootstrap void mon_bootstrap(
     uintptr_t uart_base,
     ptrdiff_t load_link_offset)
 {
-    /* Save counter frequency */
-    uint32_t counter_freq;
-    __asm__ volatile("mrs %[f], CNTFRQ_EL0" : [f] "=r" (counter_freq) ::);
-    system_counter_freq = counter_freq;
-
     /* Save load-link offset */
-    mon_load_link_offset = load_link_offset;
+    boot_args.load_link_offset = load_link_offset;
+
+    /* Save uart base */
+    boot_args.uart_base = uart_base;
+
+    /* Is wam boot? */
+    boot_args.warm_boot = !mon_params_addr || !plat_params_addr;
+
+    /* Save counter frequency */
+    uint32_t cntfrq;
+    __asm__ volatile("mrs %[f], CNTFRQ_EL0" : [f] "=r" (cntfrq) ::);
+    boot_args.counter_freq = cntfrq;
 
     /* Init platform UART for early prints */
     plat_uart_init(uart_base);
 
-    INFO_MSG("MON64 version %d.%d.%d",
-             VERSION_MAJOR,
-             VERSION_MINOR,
-             VERSION_BUILD);
+    SYS_MSG("MON64 version %d.%d.%d",
+            VERSION_MAJOR,
+            VERSION_MINOR,
+            VERSION_BUILD);
+
+    /* Copy out platform params for mmap regions */
+    plat_early_init(plat_params_addr);
+
+    /* Retrieve s3 params */
+    if (warm_boot())
+        plat_early_s3_init();
+
+    /* Copy out monitior params */
+    mon_early_init(mon_params_addr);
 
     /* Init platform GIC for mmap regions */
     plat_gic_init();
-
-    /* Copy out the params before enabling MMU */
-    plat_early_init(plat_params_addr);
-    mon_early_init(mon_params_addr);
 
     /*
      * Add bootstrap mmap regions:
@@ -125,8 +137,8 @@ __bootstrap void mon_bootstrap(
 __bootstrap void mon_secondary_bootstrap(void)
 {
     /* Set counter frequency */
-    uint32_t counter_freq = system_counter_freq;
-    __asm__ volatile("msr CNTFRQ_EL0, %[f]" :: [f] "r" (counter_freq) :);
+    uint32_t cntfrq = counter_freq();
+    __asm__ volatile("msr CNTFRQ_EL0, %[f]" :: [f] "r" (cntfrq) :);
 
     /* Enable mmu */
     enable_mmu();

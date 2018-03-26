@@ -51,7 +51,7 @@ void platform_hdmi_receiver_p_hotplug_handler(PlatformHdmiReceiverHandle rx)
 {
     BDBG_ASSERT(rx);
 
-    rx->connected = platform_display_hdmi_is_connected(rx->platform->display);
+    rx->connected = platform_display_hdmi_is_connected(rx->platform->display.handle);
 #if NEXUS_HAS_HDMI_OUTPUT
     if (rx->connected)
     {
@@ -123,7 +123,7 @@ PlatformCapability platform_hdmi_receiver_supports_dynamic_range(PlatformHdmiRec
         NEXUS_VideoEotf eotf;
         NEXUS_HdmiOutputDolbyVisionMode dolbyVision;
         platform_p_output_dynamic_range_to_nexus(dynrng, &eotf, &dolbyVision);
-        if ((dynrng == PlatformDynamicRange_eDolbyVision && platform_display_p_is_dolby_vision_supported(rx->platform->display))
+        if ((dynrng == PlatformDynamicRange_eDolbyVision && platform_display_p_is_dolby_vision_supported(rx->platform->display.handle))
             || (rx->edid.hdrdb.valid && rx->edid.hdrdb.eotfSupported[eotf]))
         {
             return PlatformCapability_eSupported;

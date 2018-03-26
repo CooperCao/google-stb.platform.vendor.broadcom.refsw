@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -753,23 +753,6 @@ BERR_Code BXPT_Rave_ClearSCRegister(
 
 /***************************************************************************
 Summary:
-Return the number of RAVE channels.
-
-Description:
-For the given transport core, return the number of RAVE channels that are
-instantiated.
-
-Returns:
-    BERR_SUCCESS                - Retrieved channel count.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-****************************************************************************/
-BERR_Code BXPT_Rave_GetTotalChannels(
-    BXPT_Handle hXpt,           /* [in] Handle for this transport instance. */
-    unsigned *TotalChannels     /* [out] The number of RAVE channels supported */
-    );
-
-/***************************************************************************
-Summary:
 Return the default settings for the RAVE channel.
 
 Description:
@@ -841,34 +824,6 @@ BXPT_Rave_RevisionInfo;
 void BXPT_Rave_GetFwRevisionInfo(
     BXPT_Rave_Handle hRave,                 /* [in] Handle for this RAVE channel */
     BXPT_Rave_RevisionInfo *versionInfo     /* [out] Version info */
-    );
-
-/***************************************************************************
-Summary:
-Allocate a RAVE context.
-
-Description:
-The RAVE AV and record contexts are allocated from logical pools. All contexts
-within a pool are identical. This call allocates a context of ContextType.
-
-For AV contexts, BufferCfg should have the buffer size needed by the decoder.
-Aligment will be forced to 256 bytes CDB and 128 bytes for ITB. This is a
-requirement from the decoders.
-
-For record contexts, the buffer size should be large enough to accomodate
-the host CPU's latency in servicing the context interrupts. The alignment
-should be a multiple of 32-bit words.
-
-Returns:
-    BERR_SUCCESS                    - Context allocated successfully.
-    BERR_INVALID_PARAMETER          - Bad ContextType parameter
-    BXPT_ERR_NO_AVAILABLE_RESOURCES - The requested context is already in use.
-****************************************************************************/
-BERR_Code BXPT_Rave_AllocContext(
-    BXPT_Rave_Handle hRave,         /* [in] Handle for this RAVE channel */
-    BXPT_RaveCx RequestedType,      /* [in] The type of context to allcoate */
-    const BAVC_CdbItbConfig *BufferCfg,   /* [in] Size and alignment for ITB and CDB */
-    BXPT_RaveCx_Handle *Context     /* [out] The allocated context */
     );
 
 /***************************************************************************
@@ -1220,49 +1175,6 @@ BERR_Code BXPT_Rave_AddPidChannel(
     bool UseDecrypted               /* [in] Use decrypted versions of packets on this channel */
     );
 
-
-/***************************************************************************
-Summary:
-Add a BPP PID channel to a context.
-
-Description:
-The contexts accept data from PID channels. This call adds a PID channel to
-a context. Note that AV contexts may have no more than 1 PID channel, whereas
-record contexts may have several.
-
-Returns:
-    BERR_SUCCESS                - Channel added successfully.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-
-See Also:
-BXPT_Rave_RemovePidChannel
-****************************************************************************/
-BERR_Code BXPT_Rave_AddBppChannel(
-    BXPT_RaveCx_Handle Context,     /* [in] The context  */
-    unsigned int PidChanNum,        /* [in] Which PID channel to add. */
-    bool UseDecrypted               /* [in] Use decrypted versions of packets on this channel */
-    );
-
-
-/***************************************************************************
-Summary:
-Remove a All PID channels from a context.
-
-Description:
-The contexts accept data from PID channels. This call removes all PID channels
-from a context. Record contexts may have several PID channels for same context.
-
-Returns:
-    BERR_SUCCESS                - All Pid Channels removed successfully.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-
-See Also:
-BXPT_Rave_AddPidChannel
-****************************************************************************/
-BERR_Code BXPT_Rave_RemoveAllPidChannels(
-    BXPT_RaveCx_Handle Context         /* [in] The context  */
-    );
-
 /***************************************************************************
 Summary:
 Remove a PID channel from a context.
@@ -1282,26 +1194,6 @@ BXPT_Rave_AddPidChannel
 BERR_Code BXPT_Rave_RemovePidChannel(
     BXPT_RaveCx_Handle Context,         /* [in] The context  */
     unsigned int PidChanNum         /* [in] Which PID channel to remove. */
-    );
-
-/***************************************************************************
-Summary:
-Set the user bits for 30-bit-format timestamp.
-
-Description:
-In some configurations, the upper 2 bits of the packet's recorded timestamp
-may be user-programmable. This function will set the upper 2 bits of the
-timestamp prepended to the packet by the record engine. The 2 least
-significant bits of the Bits argument are used as the new value of the user
-programmable timestamp bits.
-
-Returns:
-    BERR_SUCCESS                - New user bits have been set.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-****************************************************************************/
-BERR_Code BXPT_Rave_SetTimestampUserBits(
-    BXPT_RaveCx_Handle Context,         /* [in] The record context  */
-    unsigned int Bits                   /* [in] The new value for the user bits. */
     );
 
 /***************************************************************************
@@ -1377,22 +1269,6 @@ unsigned BXPT_Rave_GetQueueDepth(
 
 /***************************************************************************
 Summary:
-Return context status.
-
-Description:
-Get miscellaneous status values for the given context.
-
-Returns:
-    BERR_SUCCESS                    - Valid info returned in CxStatus.
-    BERR_INVALID_PARAMETER          - Bad Context parameter
-****************************************************************************/
-BERR_Code BXPT_Rave_GetContextStatus(
-    BXPT_RaveCx_Handle hCtx,
-    BXPT_RaveCx_Status *CxStatus
-    );
-
-/***************************************************************************
-Summary:
 Flush the CDB and ITB.
 
 Description:
@@ -1426,40 +1302,6 @@ Returns:
 ****************************************************************************/
 BERR_Code BXPT_Rave_ResetContext(
     BXPT_RaveCx_Handle hCtx
-    );
-
-/***************************************************************************
-Summary:
-Get picture count from an AV context.
-
-Description:
-Return the number of pictures in the context's CDB. This call will return 0
-if called for a record context, or if there is no picture counter assigned
-to the given context.
-
-Returns:
-    BERR_SUCCESS                    - Obtained a picture count.
-    BERR_INVALID_PARAMETER          - Bad Context parameter
-****************************************************************************/
-BERR_Code BXPT_Rave_GetPictureCount(
-    BXPT_RaveCx_Handle hCtx,
-    unsigned *PictureCount
-    );
-
-/***************************************************************************
-Summary:
-Return the default CDB and ITB thresholds for the given context.
-
-Description:
-Return the default CDB and ITB thresholds for the given context.
-
-Returns:
-    BERR_SUCCESS                - Retrieved thresholds.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-****************************************************************************/
-BERR_Code BXPT_Rave_GetDefaultThresholds(
-    BXPT_RaveCx_Handle hCtx,
-    BXPT_Rave_ContextThresholds *Thresholds
     );
 
 /***************************************************************************
@@ -1587,10 +1429,6 @@ typedef struct BXPT_Rave_ContextSettings
 }
 BXPT_Rave_ContextSettings;
 
-BERR_Code BXPT_Rave_GetContextDefaultSettings(
-    BXPT_Rave_ContextSettings *ContextDefSettings   /* [out] The defaults. */
-    );
-
 /***************************************************************************
 Summary:
 Get the context configuration.
@@ -1621,47 +1459,6 @@ Returns:
 BERR_Code BXPT_Rave_SetContextConfig(
     BXPT_RaveCx_Handle Context,         /* [in] The context  */
     const BXPT_Rave_ContextSettings *Config /* [out] The AV settings. */
-    );
-
-/***************************************************************************
-Summary:
-AV over IP configuration settings. Done on a per-context basis.
-****************************************************************************/
-typedef struct BXPT_Rave_IpConfig
-{
-    uint16_t IpHeaderChecksum;      /* Initial checksum value for each IP packet */
-    uint8_t IpHeaderLength;         /* Number of bytes skipped in the beginning of each IP packet */
-    uint8_t NumTsPackets;           /* Number of transport packets in each IP packet */
-    uint16_t SequenceNumIncrement;  /* Added to the sequence_number field of each IP packet */
-    uint32_t CurrentSequenceNum;    /* Initial value of sequence_num. */
-    bool IsMpegTs;                  /* True if TS packets are MPEG format, false otherwise */
-}
-BXPT_Rave_IpConfig;
-
-BERR_Code BXPT_Rave_GetIpConfig(
-    BXPT_RaveCx_Handle hCtx,        /* [in] Handle for the IP context */
-    BXPT_Rave_IpConfig *IpConfig    /* [out] The IP config params */
-    );
-
-BERR_Code BXPT_Rave_SetIpConfig(
-    BXPT_RaveCx_Handle hCtx,            /* [in] Handle for the IP context */
-    const BXPT_Rave_IpConfig *IpConfig  /* [out] The IP config params */
-    );
-
-/***************************************************************************
-Summary:
-Return a pointer to the base of the context's CDB.
-
-Description:
-Returns a CPU-usable pointer to the start of the context's CDB. Or NULL if
-an error occurred.
-
-Returns:
-    uint8_t * - Pointer to the start of the CDB
-    NULL - An internal error occured.
-****************************************************************************/
-uint8_t *BXPT_Rave_GetCdbBasePtr(
-    BXPT_RaveCx_Handle hCtx
     );
 
 /***************************************************************************
@@ -1700,28 +1497,6 @@ typedef enum BXPT_RaveSoftMode
     BXPT_RaveSoftMode_eMax              /* End of the enum list */
 }
 BXPT_RaveSoftMode;
-
-/***************************************************************************
-Summary:
-Allocate a soft RAVE context.
-
-Description:
-Allocate a software-RAVE AV context, using the CDB from the SrcContext. A context
-handle suitable for use is returned in DestContext. Note that startcode
-RAVE API calls will not work on the DestContext.
-
-This call replaces bsettop_p_setup_sw_rave().
-
-Returns:
-    BERR_SUCCESS                    - Soft RAVE context allocated.
-    BXPT_ERR_NO_AVAILABLE_RESOURCES - Not enough RAVE contexts remaining to allocate.
-    BERR_OUT_OF_SYSTEM_MEMORY       - Not enough DRAM for the DestContext ITB.
-****************************************************************************/
-BERR_Code BXPT_Rave_AllocSoftContext(
-    BXPT_RaveCx_Handle SrcContext,      /* [in] The source context */
-    BXPT_RaveSoftMode DestContextMode,  /* [in] The type of data that the destination should generate. */
-    BXPT_RaveCx_Handle *DestContext     /* [out] The destination (soft) context */
-    );
 
 /******************************************************************************
 Summary;
@@ -1767,6 +1542,7 @@ BERR_Code BXPT_Rave_AllocCx(
     BXPT_RaveCx_Handle *Context     /* [out] The allocated context */
     );
 
+#ifdef BXPT_P_HAS_AVS_PLUS_WORKAROUND
 /***************************************************************************
 Summary:
 Allocate a pair of RAVE contexts for AVS decoding.
@@ -1795,7 +1571,7 @@ BERR_Code BXPT_Rave_AllocAvsCxPair(
     BXPT_RaveCx_Handle *DecodeContext,     /* [out] The allocated decode context */
     BXPT_RaveCx_Handle *ReferenceContext     /* [out] The allocated context */
     );
-
+#endif
 
 /***************************************************************************
 Summary:
@@ -1828,6 +1604,7 @@ BERR_Code BXPT_Rave_ResetSoftContext(
     BXPT_RaveSoftMode Mode
     );
 
+#if (!B_REFSW_MINIMAL)
 BERR_Code BXPT_Rave_StopPTS(
     BXPT_RaveCx_Handle hCtx,
     uint32_t StopPTS,
@@ -1849,6 +1626,7 @@ BERR_Code BXPT_Rave_Monitor_PTS(
     );
 BERR_Code BXPT_Rave_Cancel_PTS(   BXPT_RaveCx_Handle hCtx  );
 BERR_Code BXPT_Rave_SetPCROffset(BXPT_RaveCx_Handle hCtx  , uint32_t pcr_offset);
+#endif
 
 #if defined(BXPT_HAS_RSBUF) && defined(BXPT_HAS_XCBUF)
 /***************************************************************************
@@ -1902,6 +1680,7 @@ BERR_Code BXPT_Rave_NullifyVCT(
     );
 #endif
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Adjust the CDB length.
@@ -1916,6 +1695,7 @@ BERR_Code BXPT_Rave_AdjustCdbLength(
     BXPT_RaveCx_Handle hCtx,
     size_t CdbLength
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -1943,9 +1723,6 @@ BERR_Code BXPT_P_RaveRamInit( BXPT_Rave_Handle hRave );
 BERR_Code BXPT_Rave_P_FlowControl( BXPT_Rave_Handle hRave );
 #endif
 
-void BXPT_Rave_P_SetBandHold( BXPT_Handle hXpt, unsigned PbChannelNo, uint32_t BandHoldStatus, bool SetHoldEn );
-void BXPT_Rave_P_GetBandHold( BXPT_Handle hXpt, uint32_t *BandHoldStatus );
-
 #if BXPT_SW7425_4528_WORKAROUND
 typedef struct BXPT_RAVE_P_PesRemap
 {
@@ -1971,13 +1748,17 @@ void BXPT_RAVE_P_SetPesRemapping(
 
 #endif
 
-void BXPT_Rave_P_EnableInterrupts(
-    BXPT_Handle hXpt                                /* [in] Handle for this transport instance */
-    );
-
+#if (!B_REFSW_MINIMAL)
 void BXPT_Rave_ClearOverflow(
     BXPT_RaveCx_Handle hCtx
     );
+#endif
+
+#if BXPT_HAS_RAVE_L2
+void BXPT_Rave_P_EnableInterrupts(
+    BXPT_Handle hXpt                                /* [in] Handle for this transport instance */
+    );
+#endif
 
 #ifdef __cplusplus
 }

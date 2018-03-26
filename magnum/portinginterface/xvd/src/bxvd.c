@@ -464,9 +464,6 @@ BERR_Code BXVD_Open(BXVD_Handle         *phXvd,
    BXVD_DBG_MSG(pXvd, ("BXVD_Open() - BXVD_Settings.uiDecoderDebugLogBufferSize = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)pXvd->stSettings.uiDecoderDebugLogBufferSize));
 #endif
 
-   /* Each platform has a mask of supported decode protocols, used to validate in BXVD_Startdecode. */
-   pXvd->uiSupportedProtocolsMask = BXVD_P_PLATFORM_SUPPORTED_PROTOCOLS;
-
    /* Create timer */
    if (pXvd->stSettings.hTimerDev)
    {
@@ -890,27 +887,16 @@ BERR_Code BXVD_GetDecoderFirmwareSize( BREG_Handle  hRegister,
  Description:
     Using the specified video decoder handle, determine the supported
     video compression standards.
-
- Returns:
-    BERR_SUCCESS:  Hardware capabilities determined successfully.
-    BXVD_ERR_INVALID_HANDLE: BXVD_Handle not valid.
 **************************************************************************/
 
-BERR_Code BXVD_GetHardwareCapabilities(BXVD_Handle hXvd,
+void BXVD_GetHardwareCapabilities(BXVD_Handle hXvd,
                                        BXVD_HardwareCapabilities *pCap)
 {
    BAVC_VideoCompressionStd  eVideoCmprStd;
 
    BDBG_ENTER(BXVD_GetHardwareCapabilities);
 
-   BDBG_ASSERT(hXvd);
-
-   /* Check handle type for correctness */
-   if (hXvd->eHandleType != BXVD_P_HandleType_XvdMain)
-   {
-      BDBG_ERR(("Invalid handle type passed to function"));
-      return BERR_TRACE(BXVD_ERR_INVALID_HANDLE);
-   }
+   /* allow hXvd to be NULL */
 
    /* Initialize compression standard capabilities array */
 
@@ -945,7 +931,7 @@ BERR_Code BXVD_GetHardwareCapabilities(BXVD_Handle hXvd,
    }
 
    BDBG_LEAVE(BXVD_GetHardwareCapabilities);
-   return BERR_TRACE(BERR_SUCCESS);
+   return;
 }
 
 
@@ -1116,6 +1102,11 @@ static BERR_Code BXVD_S_GetDecodeDefaultSettings
 
    /* SWSTB-3450: get the default XDM settings. */
    BXDM_PictureProvider_GetDefaultStartSettings_isrsafe( &(pDecodeDefSettings->stXDMSettings) );
+
+   /* SWSTB-3955: if the chip supports it, default to reading the STC's directly from XPT. */
+#ifdef BCHP_XPT_PCROFFSET_STC_SNAPSHOT0
+   pDecodeDefSettings->stXDMSettings.bUseXPTSTC = true;
+#endif
 
    /* AVD0 should use STC0 and AVD1 should use STC1 to maintain
     * backwards compatibility with pre-mosaic firmware */
@@ -2265,7 +2256,13 @@ static const char * const sSTCNameLUT[BXVD_STC_eMax] =
    "BXVD_STC_eSix",
    "BXVD_STC_eSeven",
    "BXVD_STC_eEight",
-   "BXVD_STC_eNine"
+   "BXVD_STC_eNine",
+   "BXVD_STC_eTen",
+   "BXVD_STC_eEleven",
+   "BXVD_STC_eTwelve",
+   "BXVD_STC_eThirteen",
+   "BXVD_STC_eFourteen",
+   "BXVD_STC_eFifteen"
 };
 
 static const char * const sDisplayInterruptNameLUT[BXVD_DisplayInterrupt_eMax] =
@@ -3373,9 +3370,15 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
 
    if ( BXVD_P_ChannelType_eEnhanced != pXvdCh->eChannelType )
    {
-      BXDM_PictureProvider_Start_isr(
-         pXvdCh->hPictureProvider,
-         &psDecodeSettings->stXDMSettings );
+#ifndef BCHP_XPT_PCROFFSET_STC_SNAPSHOT0
+      if ( true == psDecodeSettings->stXDMSettings.bUseXPTSTC )
+      {
+         BDBG_ERR(("%s:: this chip does not support XPT STC snapshots.", BSTD_FUNCTION ));
+         return BERR_TRACE(BERR_INVALID_PARAMETER);
+      }
+#endif
+
+      BXDM_PictureProvider_Start_isr( pXvdCh->hPictureProvider, &psDecodeSettings->stXDMSettings );
    }
 
    BKNI_LeaveCriticalSection();

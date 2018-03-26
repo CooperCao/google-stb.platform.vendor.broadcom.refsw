@@ -584,8 +584,16 @@ NEXUS_SageAudioHandle NEXUS_SageAudio_Open_priv(
     )
 {
     NEXUS_Error              rc         = NEXUS_INVALID_PARAMETER;
-    BSAGElib_InOutContainer* container  = lHandle->sageContainer;
+    BSAGElib_InOutContainer* container  = NULL;
     NEXUS_SageAudioHandle    hSageAudio = NULL;
+
+    if (!lHandle)
+    {
+        BDBG_ERR(("SARM is not initialized!"));
+        rc = NEXUS_NOT_INITIALIZED;
+        goto end;
+    }
+    container  = lHandle->sageContainer;
 
     if (!pSettings)
     {
@@ -679,7 +687,15 @@ void NEXUS_SageAudio_Close_priv(
     )
 {
     NEXUS_Error              rc        = NEXUS_INVALID_PARAMETER;
-    BSAGElib_InOutContainer* container = lHandle->sageContainer;
+    BSAGElib_InOutContainer *container = NULL;
+
+    if (!lHandle)
+    {
+        BDBG_ERR(("SARM is not initialized!"));
+        rc = NEXUS_NOT_INITIALIZED;
+        goto end;
+    }
+    container  = lHandle->sageContainer;
 
     BDBG_OBJECT_ASSERT(hSageAudio, NEXUS_SageAudio_P_Context);
 
@@ -855,9 +871,17 @@ NEXUS_Error NEXUS_SageAudio_Start_priv(NEXUS_SageAudioHandle               hSage
                                        const NEXUS_SageAudioStartSettings* pSettings)
 {
     NEXUS_Error                    rc           = NEXUS_INVALID_PARAMETER;
-    BSAGElib_InOutContainer       *container    = lHandle->sageContainer;
+    BSAGElib_InOutContainer       *container    = NULL;
     SARM_P_SageAudioStartSettings *start_params = NULL;
     NEXUS_RaveStatus               raveStatus;
+
+    if (!lHandle)
+    {
+        BDBG_ERR(("SARM is not initialized!"));
+        rc = NEXUS_NOT_INITIALIZED;
+        goto end;
+    }
+    container  = lHandle->sageContainer;
 
     BDBG_OBJECT_ASSERT(hSageAudio, NEXUS_SageAudio_P_Context);
 
@@ -964,7 +988,15 @@ end:
 NEXUS_Error NEXUS_SageAudio_Stop_priv(NEXUS_SageAudioHandle hSageAudio)
 {
     NEXUS_Error              rc        = NEXUS_INVALID_PARAMETER;
-    BSAGElib_InOutContainer* container = lHandle->sageContainer;
+    BSAGElib_InOutContainer* container = NULL;
+
+    if (!lHandle)
+    {
+        BDBG_ERR(("SARM is not initialized!"));
+        rc = NEXUS_NOT_INITIALIZED;
+        goto end;
+    }
+    container  = lHandle->sageContainer;
 
     BDBG_OBJECT_ASSERT(hSageAudio, NEXUS_SageAudio_P_Context);
 
@@ -1013,6 +1045,7 @@ end:
         BDBG_MSG(("  Contiguous Valid Bytes : %u", status.lastSyncBytes));
         BDBG_MSG(("  No Space Count         : %u", status.noSpaceCount));
         BDBG_MSG(("  Lost Sync Count        : %u", status.lostSyncCount));
+        BDBG_MSG(("  No data in source      : %u", status.noReadData));
         BDBG_MSG(("  Congestion Count       : %u", status.congestion));
         BDBG_MSG(("  ITB Wraps              : %u", status.itbSrcWrap));
         BDBG_MSG(("  CDB Wrap               : %u", status.cdbSrcWrap));

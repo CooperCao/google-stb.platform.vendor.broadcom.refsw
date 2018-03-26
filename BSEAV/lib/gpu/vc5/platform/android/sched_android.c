@@ -2,7 +2,7 @@
  *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "sched_nexus.h"
-#include <cutils/log.h>
+#include <log/log.h>
 #include <sync/sync.h>
 
 #include "nexus_graphicsv3d.h"

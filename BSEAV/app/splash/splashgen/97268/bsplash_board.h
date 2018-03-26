@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -118,7 +118,8 @@
 	BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_AVS_UART_REG_START, BCHP_AVS_UART_REG_END) || \
 	BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_V3D_TOP_GR_BRIDGE_REVISION, BCHP_V3D_TOP_GR_BRIDGE_SW_INIT_1) || \
 	BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_V3D_CTL_0_IDENT0, BCHP_V3D_CTL_0_INT_MSK_CLR_PCI) || \
-	BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_V3D_HUB_CTL_AXICFG, BCHP_V3D_HUB_CTL_INT_MSK_CLR_PCI) \
+	BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_V3D_HUB_CTL_AXICFG, BCHP_V3D_HUB_CTL_INT_MSK_CLR_PCI)  || \
+	BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_AON_CTRL_SYSTEM_DATA_RAMi_ARRAY_BASE , (BCHP_AON_CTRL_SYSTEM_DATA_RAMi_ARRAY_BASE + (15) * 4)) \
 )
 
 /* number of mem heap handles  */
@@ -175,8 +176,6 @@
 #define BRCM_DAC_PB                    0
 
 #define SPLASH_SURFACE_PXL_TYPE        BPXL_eR5_G6_B5 /* BPXL_eA8_R8_G8_B8 */
-
-#define B_I2C_CHANNEL_HDMI             3
 
 #endif /* BSPLASH_BOARD_H__ */
 

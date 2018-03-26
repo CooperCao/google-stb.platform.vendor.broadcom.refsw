@@ -122,86 +122,6 @@ NEXUS_Core_P_Timer(void *cntx)
     return;
 }
 
-static NEXUS_AvsSettings g_avsSettings;
-
-void NEXUS_GetAvsSettings( NEXUS_AvsSettings *pSettings )
-{
-    *pSettings = g_avsSettings;
-}
-
-NEXUS_Error NEXUS_SetAvsSettings( const NEXUS_AvsSettings *pSettings )
-{
-    BDBG_ASSERT(pSettings);
-
-    if (pSettings->hardStopOffset > 15)
-        return NEXUS_INVALID_PARAMETER;
-    if (pSettings->maxVoltageStopOffset > 15)
-        return NEXUS_INVALID_PARAMETER;
-
-    /* Note: if this hardware does not support these settings they will not be used */
-    g_avsSettings = *pSettings;
-    return NEXUS_SUCCESS;
-}
-
-NEXUS_Error NEXUS_GetAvsDomainStatus(
-    NEXUS_AvsDomain domain,  /* [in] index of domain to fetch status */
-    NEXUS_AvsStatus *pStatus /* [out] the current domain-specific status */
-)
-{
-    BCHP_AvsData data;
-    BERR_Code rc;
-
-    /* Note: if the AVS hardware is not supported this call will return an error */
-    rc = BCHP_GetAvsData_isrsafe(g_NexusCore.publicHandles.chp, &data);
-    if(rc!=BERR_SUCCESS) {
-        return BERR_TRACE(rc);
-    }
-
-    pStatus->enabled     = data.enabled;
-    pStatus->tracking    = data.tracking;
-    pStatus->heartbeat   = data.heartbeat;
-    switch (domain) {
-    case NEXUS_AvsDomain_eMain :
-        pStatus->voltage      = data.voltage;
-        pStatus->temperature  = data.temperature;
-        break;
-
-    case NEXUS_AvsDomain_eCpu :
-        if (data.voltage1 == 0xffffffff)
-            return NEXUS_INVALID_PARAMETER;
-        pStatus->voltage      = data.voltage1;
-        pStatus->temperature  = data.temperature1;
-        break;
-
-    default :
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-    }
-    return rc;
-}
-
-#if NEXUS_AVS_MONITOR
-static void
-NEXUS_Core_P_MonitorPvt(void *context)
-{
-    BCHP_AvsSettings avsSettings;
-
-    /* Note: if this hardware does not support these settings they will not be used */
-    avsSettings.hardStopOffset = g_avsSettings.hardStopOffset;
-    avsSettings.maxVoltageStopOffset = g_avsSettings.maxVoltageStopOffset;
-
-    BSTD_UNUSED(context);
-
-    BCHP_MonitorPvt(g_NexusCore.publicHandles.chp, &avsSettings);
-
-    g_NexusCore.pvtTimer = NEXUS_ScheduleTimer(1000, NEXUS_Core_P_MonitorPvt, NULL);
-
-    if(!g_NexusCore.pvtTimer) {
-        BDBG_WRN(("NEXUS_Core_P_Timer: can't schedule PVT timer"));
-    }
-    return;
-}
-#endif /*NEXUS_AVS_MONITOR*/
-
 static void NEXUS_CoreModule_P_Print(void)
 {
 #if BDBG_DEBUG_BUILD
@@ -314,7 +234,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
     openSettings.reg = g_NexusCore.publicHandles.reg;
     openSettings.memoryLayout = pSettings->memoryLayout;
     openSettings.pMapId = preInitState->pMapId;
-    openSettings.pMapSettings = preInitState->pMapSettings;
+    openSettings.pMapSettings = pSettings->pMapSettings;
     if (str) {
         openSettings.productId = NEXUS_hextoi(str);
     }

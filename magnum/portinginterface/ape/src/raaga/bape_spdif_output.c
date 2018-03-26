@@ -41,6 +41,7 @@
 
 #include "bape.h"
 #include "bape_priv.h"
+#include "bape_buffer.h"
 
 BDBG_MODULE(bape_spdif_output);
 BDBG_FILE_MODULE(bape_fci);
@@ -173,7 +174,7 @@ static BERR_Code BAPE_SpdifOutput_P_SetBurstConfig_Legacy(BAPE_SpdifOutputHandle
 
 #define ALWAYS_COMP_FOR_FW_CBITS        0
 /* Use the second output of the last mixer.  It will never be used.  */
-#define BAPE_SPDIF_INVALID_FCI_SOURCE (0x100|((BAPE_CHIP_MAX_MIXERS*2)+1))
+#define BAPE_SPDIF_INVALID_FCI_SOURCE (0x100|((BAPE_CHIP_MAX_HW_MIXERS*2)+1))
 #endif
 
 /***************************************************************************
@@ -428,7 +429,7 @@ void BAPE_SpdifOutput_P_DeterminePauseBurstEnabled(
 
     if ( handle->outputPort.mixer )
     {
-        const BAPE_FMT_Descriptor *pBfd = BAPE_Mixer_P_GetOutputFormat(handle->outputPort.mixer);
+        const BAPE_FMT_Descriptor *pBfd = BAPE_Mixer_P_GetOutputFormat_isrsafe(handle->outputPort.mixer);
         *compressed = BAPE_FMT_P_IsCompressed_isrsafe(pBfd);
     }
     else {
@@ -716,7 +717,7 @@ static void BAPE_SpdifOutput_P_SetCbits_IopOut_isr(BAPE_SpdifOutputHandle handle
 
     if ( handle->outputPort.mixer )
     {
-        const BAPE_FMT_Descriptor     *pBfd = BAPE_Mixer_P_GetOutputFormat(handle->outputPort.mixer);
+        const BAPE_FMT_Descriptor     *pBfd = BAPE_Mixer_P_GetOutputFormat_isrsafe(handle->outputPort.mixer);
 
         compressed = BAPE_FMT_P_IsCompressed_isrsafe(pBfd);
         compressedAsPcm = BAPE_FMT_P_IsDtsCdCompressed_isrsafe(pBfd);
@@ -969,7 +970,7 @@ static BERR_Code BAPE_SpdifOutput_P_Enable_IopOut(BAPE_OutputPort output)
     BAPE_SetOutputVolume(output, &volume);
     BAPE_SpdifOutput_SetSettings(handle, &handle->settings);
 
-    numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(BAPE_Mixer_P_GetOutputFormat(mixer));
+    numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(BAPE_Mixer_P_GetOutputFormat_isrsafe(mixer));
 
     BDBG_ASSERT(numChannelPairs <= 1);
 
@@ -1010,7 +1011,7 @@ static void BAPE_SpdifOutput_P_Disable_IopOut(BAPE_OutputPort output)
 
     BDBG_ASSERT(true == handle->enabled);
 
-    pFormat = BAPE_Mixer_P_GetOutputFormat(output->mixer);
+    pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer);
     BDBG_ASSERT(NULL != pFormat);
 
     /* If we are PCM we need to disable the stream config so that we hold the channel status */
@@ -1133,7 +1134,7 @@ static BERR_Code BAPE_SpdifOutput_P_ApplySettings_IopOut(
 
     if ( handle->outputPort.mixer )
     {
-        pFormat = BAPE_Mixer_P_GetOutputFormat(handle->outputPort.mixer);
+        pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(handle->outputPort.mixer);
         pcm = BAPE_FMT_P_IsLinearPcm_isrsafe(pFormat);
     }
 
@@ -1265,7 +1266,7 @@ static void BAPE_SpdifOutput_P_SetCbits_Legacy_isr(BAPE_SpdifOutputHandle handle
 
     if ( handle->outputPort.mixer )
     {
-        pFormat = BAPE_Mixer_P_GetOutputFormat(handle->outputPort.mixer);
+        pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(handle->outputPort.mixer);
 
         compressed = (unsigned)BAPE_FMT_P_IsCompressed_isrsafe(pFormat);
         compressedAsPcm = BAPE_FMT_P_IsDtsCdCompressed_isrsafe(pFormat);
@@ -1515,7 +1516,7 @@ static void BAPE_SpdifOutput_P_SetMute_Legacy(BAPE_OutputPort output, bool muted
 
     if ( output->mixer )
     {
-        pFormat = BAPE_Mixer_P_GetOutputFormat(output->mixer);
+        pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer);
         BDBG_ASSERT(NULL != pFormat);
         compressed = BAPE_FMT_P_IsCompressed_isrsafe(pFormat);
     }
@@ -1583,7 +1584,7 @@ static BERR_Code BAPE_SpdifOutput_P_Enable_Legacy(BAPE_OutputPort output)
     BAPE_SetOutputVolume(output, &volume);
     BAPE_SpdifOutput_SetSettings(handle, &handle->settings);
 
-    pFormat = BAPE_Mixer_P_GetOutputFormat(output->mixer);
+    pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer);
     BDBG_ASSERT(NULL != pFormat);
     streamId = GET_SPDIF_STREAM_ID(handle->index);
     BDBG_MSG(("Enabling %s [stream %u]", handle->name, streamId));
@@ -1924,7 +1925,7 @@ static BERR_Code BAPE_SpdifOutput_P_SetBurstConfig_Legacy(BAPE_SpdifOutputHandle
         }
     }
 
-    BMMA_FlushCache(handle->muteBufferBlock, handle->pMuteBuffer, BAPE_P_MUTE_BUFFER_SIZE);
+    BAPE_FLUSHCACHE_ISRSAFE(handle->muteBufferBlock, handle->pMuteBuffer, BAPE_P_MUTE_BUFFER_SIZE);
 
     if (handle->hSfifo)
     {
@@ -1962,7 +1963,7 @@ static BERR_Code BAPE_SpdifOutput_P_ApplySettings_Legacy(
     
     if ( handle->outputPort.mixer )
     {
-        pFormat = BAPE_Mixer_P_GetOutputFormat(handle->outputPort.mixer);
+        pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(handle->outputPort.mixer);
         pcm = BAPE_FMT_P_IsLinearPcm_isrsafe(pFormat);
     }
 
@@ -2144,7 +2145,7 @@ void BAPE_P_MapSpdifChannelStatusToBits_isr(
 
     if ( output->mixer )
     {
-        const BAPE_FMT_Descriptor     *pBfd = BAPE_Mixer_P_GetOutputFormat(output->mixer);
+        const BAPE_FMT_Descriptor     *pBfd = BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer);
 
         compressed = BAPE_FMT_P_IsCompressed_isrsafe(pBfd);
         compressedAsPcm = BAPE_FMT_P_IsDtsCdCompressed_isrsafe(pBfd);

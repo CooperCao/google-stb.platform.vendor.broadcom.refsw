@@ -41,7 +41,6 @@ ifndef NEXUS_PLATFORM
 $(error NEXUS_PLATFORM is not defined)
 endif
 
-include SignParams.inc
 
 REFSW_TOP = ./../../../..
 
@@ -56,6 +55,7 @@ DEBUG_SUFFIX=release
 endif
 
 include $(MAGNUM_TOP)/portinginterface/hsm/bhsm_defs.inc
+include SignParams.inc
 
 BSEAV = $(REFSW_TOP)/BSEAV
 OUT = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/fw_img_sign/$(B_REFSW_ARCH)
@@ -96,16 +96,25 @@ export AVD_IL_BIN=$(FW_IMAGE_DIR)/fw_img_dump_$(BCHP_ID)_xvd_inner.bin
 ifeq ($(target),ZD)
     #This Key variant will be used to sign firmware images. This is Key2.
     FW_KEY_VARIANT=_Prod_Key2
-    #FW_KEY_VARIANT=_prod_key0
+ifeq ($(filter ${BCHP_CHIP}, 7260), $(BCHP_CHIP))
+    FW_KEY_VARIANT=_prod_key2
+endif
 
     #This Key Variant will be used to sign Key2.
     KEY2_KEY_VARIANT=ZS_dev_key0
 
 #key0 is unique between A0 and B0 revisions for these chips.
 #If any chip from the list, the override KEY2_KEY_VARIANT to B0
-ifeq ($(filter ${BCHP_CHIP}, 7268 7271), $(BCHP_CHIP))
+ifeq ($(filter ${BCHP_CHIP}, 7260 7268 7271), $(BCHP_CHIP))
 ifeq (${BCHP_VER}, B0)
     KEY2_KEY_VARIANT=ZS_B0_dev_key0
+endif
+endif
+
+ifeq ($(filter ${BCHP_CHIP}, 7278), $(BCHP_CHIP))
+ifeq (${BCHP_VER}, B0)
+#    KEY2_KEY_VARIANT=B0_Broadcom_TEST_ALPHA_Key_0_Prime
+    KEY2_KEY_VARIANT=B0_Dev_Key_0_Prime
 endif
 endif
 
@@ -113,17 +122,30 @@ endif
 else
     #This Key variant will be used to sign firmware images. This is Key2.
     FW_KEY_VARIANT=_Prod_Key2
+ifeq ($(filter ${BCHP_CHIP}, 7260), $(BCHP_CHIP))
+    FW_KEY_VARIANT=_prod_key2
+endif
 
     #This Key Variant will be used to sign Key2.
     KEY2_KEY_VARIANT=_prod_key0
 #key0 is unique between A0 and B0 revisions for these chips.
 #If any chip from the list, the override KEY2_KEY_VARIANT to B0
-ifeq ($(filter ${BCHP_CHIP}, 7268 7271), $(BCHP_CHIP))
+ifeq ($(filter ${BCHP_CHIP}, 7260 7268 7271), $(BCHP_CHIP))
 ifeq (${BCHP_VER}, B0)
     KEY2_KEY_VARIANT=_B0_prod_key0
 endif
 endif
+
+ifeq ($(filter ${BCHP_CHIP}, 7278), $(BCHP_CHIP))
+ifeq (${BCHP_VER}, B0)
+    KEY2_KEY_VARIANT=B0_Prod_Key_0_Prime
 endif
+endif
+
+
+endif
+
+
 
 export BINS_TO_SIGN = $(OUT_DIR)/$(BCHP_ID)_bins_to_sign.txt
 BOLT_BINS_TO_SIGN = $(OUT_DIR)/$(BCHP_ID)_bolt_bins_to_sign.txt
@@ -149,7 +171,7 @@ KEY2_FILE=$(NEXUS_SYNCTHUNK_DIR)/nexus_security_regver_key.inc
 KEY2_COPY = cp $(OUT_DIR)/$(KEY2_FILE_NAME) $(KEY2_FILE)
 STOCK_KEY2 = key2/$(BCHP_ID)_$(KEY2_FILE_NAME)
 #If any chip from the list, Stock Key2 is chip revision(A0/B0) dependent.
-ifeq ($(filter ${BCHP_CHIP}, 7268 7271), $(BCHP_CHIP))
+ifeq ($(filter ${BCHP_CHIP}, 7278 7268 7271), $(BCHP_CHIP))
 ifeq (${BCHP_VER}, B0)
     STOCK_KEY2 = key2/$(BCHP_ID)_B0_$(KEY2_FILE_NAME)
 endif

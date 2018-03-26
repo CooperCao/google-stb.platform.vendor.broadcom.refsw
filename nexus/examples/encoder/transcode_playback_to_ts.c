@@ -530,9 +530,6 @@ again:
 #if !NEXUS_NUM_DSP_VIDEO_ENCODERS || NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
     /* enable deinterlacer to improve quality */
     NEXUS_VideoWindow_GetMadSettings(windowTranscode, &windowMadSettings);
-    windowMadSettings.deinterlace = true;
-    windowMadSettings.enable22Pulldown = true; /* actually reverse 22 pulldown */
-    windowMadSettings.enable32Pulldown = true; /* actually reverse 32 pulldown */
     NEXUS_VideoWindow_SetMadSettings(windowTranscode, &windowMadSettings);
 #endif
 

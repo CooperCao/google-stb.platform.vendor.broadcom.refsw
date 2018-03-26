@@ -106,6 +106,9 @@ typedef struct NEXUS_VideoInput_P_Link {
     NEXUS_HeapHandle heap;
     BVDC_Mode mtg; /* BVDC_Source created with mtg */
     NEXUS_VideoDecoderSecureType secureVideo;
+#if NEXUS_HAS_VIDEO_DECODER
+    struct NEXUS_VideoDecoderStcSnapshot stcSnapshot;
+#endif
 
     NEXUS_VideoInputSettings cfg;
     NEXUS_VideoInputStatus status;
@@ -189,6 +192,9 @@ typedef struct NEXUS_VideoInput_P_LinkData {
     bool gfxSource;
     BVDC_Source_Handle sourceVdc;
     BVDC_Mode mtg;
+#if NEXUS_HAS_VIDEO_DECODER
+    struct NEXUS_VideoDecoderStcSnapshot stcSnapshot;
+#endif
 } NEXUS_VideoInput_P_LinkData;
 
 /* initializes mandatory fields of NEXUS_VideoInput_P_LinkData */
@@ -206,6 +212,7 @@ void NEXUS_Display_P_VideoInputDisplayUpdate(
     NEXUS_DisplayHandle display, /* only set for windowless connections */
     NEXUS_VideoWindowHandle window,
     const NEXUS_DisplaySettings *pSettings);
+void NEXUS_VideoInput_P_UpdateSyncLockDisplay(NEXUS_VideoInput_P_Link *link);
 
 #if NEXUS_VBI_SUPPORT
 void NEXUS_VideoInput_P_VbiData_isr(NEXUS_VideoInput videoInput, const BVBI_Field_Handle *pVbiData, const NEXUS_ClosedCaptionData *pData, unsigned vbiCount);

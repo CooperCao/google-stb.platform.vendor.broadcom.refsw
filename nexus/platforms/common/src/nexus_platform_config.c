@@ -141,7 +141,9 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 #if NEXUS_HAS_I2C
         struct {
             NEXUS_I2cSettings i2cSettings;
+#if NEXUS_HAS_GPIO
             NEXUS_GpioSettings gpioSettings;
+#endif
         } has_i2c;
 #endif
 #if NEXUS_HAS_HDMI_OUTPUT
@@ -931,5 +933,112 @@ bool NEXUS_Platform_P_EnableSageLog(void)
     const char *pinmux_env = NEXUS_GetEnv("sage_log");
     /* Only enable pin mux if this is set to 1 */
     return pinmux_env && (NEXUS_atoi(pinmux_env) == 1);
+}
+#endif
+
+#if BDBG_DEBUG_BUILD && defined(BCHP_SUN_UUI_REG_START)
+#include "bchp_sun_uui.h"
+
+static int NEXUS_Platform_P_GetUUIUartID(const char *name) {
+    unsigned i = 0;
+    if (name) {
+        if ((name[0]>='0')&&(name[0]<='9')) {
+            i =  NEXUS_atoi(name);
+        }
+        else {
+            for (i=0;(NEXUS_Platform_P_UartIds[i].name);i++) {
+                /* homebrew strcmp requiring allowing \0 or , terminator for name */
+                unsigned j;
+                for (j=0;NEXUS_Platform_P_UartIds[i].name[j] == name[j] && name[j];j++) /* no-op */;
+                if (!NEXUS_Platform_P_UartIds[i].name[j] && (!name[j] || name[j] == ',')) break;
+            }
+            i = (!NEXUS_Platform_P_UartIds[i].name) ? 0 : NEXUS_Platform_P_UartIds[i].id;
+        }
+    }
+    return i;
+}
+
+static const char *NEXUS_Platform_P_GetUUIUartName(const unsigned id) {
+    unsigned i = 0;
+    for (i=0;(NEXUS_Platform_P_UartIds[i].name);i++) {
+        if (NEXUS_Platform_P_UartIds[i].id == id) break;
+    }
+    if (!NEXUS_Platform_P_UartIds[i].name) {
+        return "(invalid)";
+    }
+    else {
+        return NEXUS_Platform_P_UartIds[i].name;
+    }
+}
+
+static void NEXUS_Platform_P_PrintUartIDs(void) {
+    int i;
+    BDBG_WRN(("UUI UART IDs:"));
+    for (i=0;(NEXUS_Platform_P_UartIds[i].name);i++) {
+        BDBG_WRN(("%d: %s",NEXUS_Platform_P_UartIds[i].id,NEXUS_Platform_P_UartIds[i].name));
+    }
+}
+
+void NEXUS_Platform_P_InitUUI(void)
+{
+    BREG_Handle hReg = g_pCoreHandles->reg;
+    uint32_t reg;
+    unsigned n,max,uui_uart_sel;
+    bool uui_active = false;
+    const char *env = NEXUS_GetEnv("uui_uarts");
+#ifdef BCHP_SUN_UUI_UART_SEL6
+    max = 6; /* may be too small, but won't be too large */
+#else
+    #error Please extend this code for new silicon
+#endif
+    if (env) {
+        if (env[0]=='?') {
+            NEXUS_Platform_P_PrintUartIDs();
+        }
+        else {
+            const char *cur;
+            cur = env;
+            for (n=1;n<=max;n++) {
+                uui_uart_sel = NEXUS_Platform_P_GetUUIUartID(cur);
+                while (*cur && *cur !=',') {
+                    cur++;
+                }
+                if (*cur && *cur ==',') {
+                    cur++;
+                }
+                if (uui_uart_sel) {
+                    if (!uui_active) {
+                        BREG_Write32 (hReg, BCHP_SUN_UUI_COMMAND, BCHP_FIELD_DATA(SUN_UUI_COMMAND,start,1));
+                        BREG_Write32 (hReg, BCHP_SUN_UUI_COMMAND, BCHP_FIELD_DATA(SUN_UUI_COMMAND,stop,0));
+                        BKNI_Sleep(1);
+                        reg = BREG_Read32(hReg, BCHP_SUN_UUI_STATUS);
+                        if (reg & BCHP_MASK(SUN_UUI_STATUS,active) ) {
+                            uui_active = true;
+                        }
+                        else {
+                            BDBG_ERR(("Failed to activate UUI.  Check connection."));
+                        }
+                    }
+                    BDBG_WRN(("Selecting UART %u: %s on UUI %d.",uui_uart_sel,NEXUS_Platform_P_GetUUIUartName(uui_uart_sel),n));
+                    reg = BCHP_FIELD_DATA(SUN_UUI_UART_SEL1,enable,1);
+                    reg |= BCHP_FIELD_DATA(SUN_UUI_UART_SEL1,select,uui_uart_sel);
+                    BREG_Write32 (hReg, BCHP_SUN_UUI_UART_SEL1+((n-1)*(BCHP_SUN_UUI_UART_SEL2-BCHP_SUN_UUI_UART_SEL1)), reg);
+                }
+                else {
+                    BDBG_MSG(("Disabling UART on UUI %d.",n));
+                    reg = BCHP_FIELD_DATA(SUN_UUI_UART_SEL1,enable,0);
+                    reg |= BCHP_FIELD_DATA(SUN_UUI_UART_SEL1,select,0);
+                    BREG_Write32 (hReg, BCHP_SUN_UUI_UART_SEL1+((n-1)*(BCHP_SUN_UUI_UART_SEL2-BCHP_SUN_UUI_UART_SEL1)), reg);
+                }
+            }
+        }
+    }
+    if (!uui_active) {
+        BREG_Write32 (hReg, BCHP_SUN_UUI_COMMAND, BCHP_FIELD_DATA(SUN_UUI_COMMAND,stop,2));
+    }
+}
+#else
+void NEXUS_Platform_P_InitUUI(void)
+{
 }
 #endif

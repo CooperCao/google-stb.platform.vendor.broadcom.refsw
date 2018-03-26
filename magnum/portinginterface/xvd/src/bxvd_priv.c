@@ -340,7 +340,7 @@ bool BXVD_P_IsDecodeProtocolSupported(BXVD_Handle               hXvd,
    /* Platform may be capable to decode RV9, but it may have been disabled by OTP */
    if (eVideoCmprStd == BAVC_VideoCompressionStd_eRV9)
    {
-      if (hXvd->bRV9Capable)
+      if (hXvd && hXvd->bRV9Capable)
       {
          rc = true;
       }
@@ -348,7 +348,7 @@ bool BXVD_P_IsDecodeProtocolSupported(BXVD_Handle               hXvd,
 
    else if (eVideoCmprStd >= BAVC_VideoCompressionStd_eMPEG4Part2)
    {
-      if (BXVD_P_CREATE_PROTOCOLS_MASK(eVideoCmprStd) & hXvd->uiSupportedProtocolsMask)
+      if (BXVD_P_CREATE_PROTOCOLS_MASK(eVideoCmprStd) & BXVD_P_PLATFORM_SUPPORTED_PROTOCOLS)
       {
          rc = true;
       }

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -4523,11 +4523,12 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
             {
                pDQTCntxt->bFoundEndOfGop = true;
 
-               BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: EOG: picture tag changed: current: %d new: %d",
+               BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: EOG: picture tag changed: current: %d new: %d mbuffs: %d",
                      hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
                      BSTD_FUNCTION,
                      pDQTCntxt->uiCurrentPicTag,
-                     pstPicCntxt->stPPB.pPPB->picture_tag
+                     pstPicCntxt->stPPB.pPPB->picture_tag,
+                     pstPicCntxt->stPPB.pPPB->num_pic_buffers & 0xFFFF
                      ));
 
                break;
@@ -5737,11 +5738,12 @@ static void BXVD_Decoder_S_DeliveryQ_ReleaseGopTail_isr(
                                  stDisplayElement.pPPB->picture_tag
                                  ));
 #endif
-               BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: EOG: picture tag changed: current: %d new: %d",
+               BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: EOG: picture tag changed: current: %d new: %d mbuffs: %d",
                      hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
                      BSTD_FUNCTION,
                      pDQTCntxt->uiCurrentPicTag,
-                     stDisplayElement.pPPB->picture_tag
+                     stDisplayElement.pPPB->picture_tag,
+                     stDisplayElement.pPPB->num_pic_buffers & 0xFFFF
                      ));
             }
          }

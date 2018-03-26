@@ -46,7 +46,7 @@
 #include "nexus_cec_init.h"
 #include "bcec.h"
 #include "nexus_platform_features.h"
-
+#include "nexus_hdmi_output.h"
 
 #ifndef NEXUS_CEC_MODULE_H__
 #define NEXUS_CEC_MODULE_H__
@@ -83,6 +83,10 @@ typedef struct NEXUS_Cec
     NEXUS_TaskCallbackHandle messageTransmittedCallback;
     NEXUS_TaskCallbackHandle messageReceivedCallback;
     NEXUS_TaskCallbackHandle logicalAddressAcquiredCallback;
+
+    NEXUS_HdmiOutputHandle hdmiOutput;
+    BKNI_EventHandle cecHotplugEvent;
+    NEXUS_EventCallbackHandle cecHotplugEventCallback;
 } NEXUS_Cec;
 
 /* Global module handle & data */

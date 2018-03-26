@@ -131,7 +131,7 @@ void nexus_surfaceclient_p_verify_surface(NEXUS_SurfaceClientHandle client, cons
 #endif
 
 typedef enum NEXUS_SurfaceCompositorramebufferState {
-    NEXUS_SurfaceCompositorFramebufferState_eAvailable, /* frame buffer unused, it could be either in avaliable (if tunnel.acquired==false) or tunnel.avaliable lists */
+    NEXUS_SurfaceCompositorFramebufferState_eAvailable, /* frame buffer unused, it could be either in available (if tunnel.acquired==false) or tunnel.available lists */
     NEXUS_SurfaceCompositorFramebufferState_eCompositing, /* frame buffer currently being composed into */
     NEXUS_SurfaceCompositorFramebufferState_eComposited, /* frame buffer composed but not submitted */
     NEXUS_SurfaceCompositorFramebufferState_eSubmitted, /* frame buffer submitted to display */

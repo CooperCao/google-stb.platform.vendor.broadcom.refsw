@@ -755,7 +755,7 @@ static bool verifyOtpIndex(SAGE_Manufacturing_OTP_Index OTP_Index)
 
     BDBG_MSG(("data = %02x %02x %02x %02x ...", otpRead.id[0], otpRead.id[1], otpRead.id[2],otpRead.id[3]));
     BDBG_MSG(("       %02x %02x %02x %02x ", otpRead.id[4], otpRead.id[5], otpRead.id[6],otpRead.id[7]));
-    if(otpRead.id[7] == 1)
+    if(otpRead.sageKeyLadderAllow == false)
     {
         BDBG_ERR(("%s - Specified OTP key index is not allowed to use SAGE keyladder", BSTD_FUNCTION));
         brc = false;

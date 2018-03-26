@@ -191,7 +191,7 @@ BERR_Code BAPE_Mixer_Create(
 
     switch ( pSettings->type )
     {
-    #if BAPE_CHIP_MAX_MIXERS
+    #if BAPE_CHIP_MAX_HW_MIXERS
     case BAPE_MixerType_eStandard:
         errCode = BAPE_StandardMixer_P_Create( deviceHandle, pSettings, pHandle );
         break;

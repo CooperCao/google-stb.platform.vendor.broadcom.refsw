@@ -15,6 +15,13 @@
 #include <EGL/eglplatform.h>
 #include <EGL/eglext_brcm.h>
 
+#include <sys/types.h>
+#include <dirent.h>
+#include <stdio.h>
+#include <string.h>
+#include <fnmatch.h>
+#include <stdlib.h>
+
 #define UNUSED(X) (void)X
 
 static BEGL_DisplayHandle ToBeglDisplayHandle(NEXUS_DISPLAYHANDLE display)
@@ -152,6 +159,46 @@ void DestroyNexusInitInterface(BEGL_InitInterface *init)
    }
 }
 
+static inline bool opt_bool(const char *option)
+{
+   char *val = getenv(option);
+   if (val && (val[0] == 't' || val[0] == 'T' || val[0] == '1'))
+      return true;
+
+   return false;
+}
+
+static bool has_available_mmu(void)
+{
+   if (opt_bool("V3D_DRM_DISABLE"))
+      return false;
+
+   const char *path = "/proc/device-tree/rdb";
+   bool rc = false;
+   DIR *dir = opendir(path);
+   if (dir)
+   {
+      struct dirent *ent;
+      while ((ent = readdir(dir)) != NULL && !rc)
+      {
+         if (strstr(ent->d_name, "gpu-mmu") == ent->d_name)
+         {
+            char buf[256];
+            snprintf(buf, sizeof(buf), "%s/%s/compatible", path, ent->d_name);
+            FILE *f = fopen(buf, "r");
+            if (f)
+            {
+               if (fread(buf, 1, sizeof(buf), f) > 0)
+                  rc = (fnmatch("brcm,bcm*-v3d", buf, 0) == 0);
+
+               fclose(f);
+            }
+         }
+      }
+      closedir(dir);
+   }
+   return rc;
+}
 
 /*****************************************************************************
  * Registration interface
@@ -167,12 +214,25 @@ void NXPL_RegisterNexusDisplayPlatform(NXPL_PlatformHandle *handle, NEXUS_DISPLA
 
    if (platform != NULL)
    {
+      const char *err_msg = NULL;
       platform->initInterface = CreateNexusInitInterface(platform);
-      platform->memoryInterface = CreateDRMMemoryInterface();
-      if (platform->memoryInterface != NULL)
-         platform->drm = true;
+      if (has_available_mmu())
+      {
+         platform->memoryInterface = CreateDRMMemoryInterface();
+         platform->drm = !!platform->memoryInterface;
+         err_msg = "platform not configured for brcm_cma, or brcmv3d.ko not loaded.  See nexus/docs/Nexus_DtuUsage.pdf\n";
+      }
       else
+      {
          platform->memoryInterface = CreateMemoryInterface();
+         err_msg = "unable to create memory interface\n";
+      }
+
+      if (platform->memoryInterface == NULL)
+      {
+         puts(err_msg);
+         exit(0);
+      }
 
       platform->schedInterface = CreateSchedInterface(platform->memoryInterface, &platform->eventContext);
       platform->displayInterface = NULL;

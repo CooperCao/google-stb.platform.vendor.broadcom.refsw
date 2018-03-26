@@ -699,6 +699,25 @@ void BDSP_AudioCapture_GetDefaultCreateSettings(
     pSettings->hHeap = NULL;
 }
 
+BERR_Code BDSP_Stage_GetContext(
+    BDSP_StageHandle hStage,
+    BDSP_ContextHandle *pContextHandle /* [out] */
+    )
+{
+	BDBG_OBJECT_ASSERT(hStage, BDSP_Stage);
+	BDBG_ASSERT(NULL != pContextHandle);
+    if (hStage->getStageContext)
+    {
+        return hStage->getStageContext(
+                    hStage->pStageHandle,
+                    pContextHandle);
+    }
+    else
+    {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+}
+
 BERR_Code BDSP_AudioCapture_Create(
     BDSP_ContextHandle hContext,
     const BDSP_AudioCaptureCreateSettings *pSettings,

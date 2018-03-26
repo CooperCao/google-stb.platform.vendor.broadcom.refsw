@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -166,6 +166,10 @@ BERR_Code BAPE_Debug_GetOutputStatus(
 {
     BERR_Code errCode = BERR_SUCCESS;  
     int i;
+
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pStatus);
+    BSTD_UNUSED(i);
     
 #if BAPE_CHIP_MAX_SPDIF_OUTPUTS > 0 
     for (i = 0; i < BAPE_CHIP_MAX_SPDIF_OUTPUTS; i++)
@@ -187,7 +191,7 @@ BERR_Code BAPE_Debug_GetOutputStatus(
     return errCode;
 }
 
-
+#if (BAPE_CHIP_MAX_MAI_OUTPUTS > 0) || (BAPE_CHIP_MAX_SPDIF_OUTPUTS > 0)
 BERR_Code BAPE_Debug_GetChannelStatus(
     BAPE_DebugHandle handle,
     BAPE_OutputPort output,
@@ -204,7 +208,7 @@ BERR_Code BAPE_Debug_GetChannelStatus(
     status->pName = (char *)output->pName;
     status->index = output->index;
     if (output->mixer) {
-        pFormat = BAPE_Mixer_P_GetOutputFormat(output->mixer);
+        pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer);
         status->type = pFormat->type;        
         status->compressedAsPcm = BAPE_FMT_P_IsDtsCdCompressed_isrsafe(pFormat);
         status->sampleRate = pFormat->sampleRate;
@@ -239,7 +243,7 @@ BERR_Code BAPE_Debug_GetChannelStatus(
         BDBG_ERR(("%s INVALID TYPE %d",BSTD_FUNCTION,status->index));
         return BERR_INVALID_PARAMETER;
     }
-#else /* Legacy */
+#elif defined BCHP_AUD_FMM_OP_CTRL_MAI_FORMAT /* Legacy */
     if (status->index != 0) {
         return BERR_INVALID_PARAMETER;
     }
@@ -258,6 +262,8 @@ BERR_Code BAPE_Debug_GetChannelStatus(
         BDBG_ERR(("%s INVALID TYPE %d",BSTD_FUNCTION,output->type));
         return BERR_INVALID_PARAMETER;
     }
+#else
+#warning " NO MAI/SPDIF SUPPORT FOUND "
 #endif
 
     status->cbits[0] = BAPE_Reg_P_Read(handle->deviceHandle, lowRegAddr);
@@ -301,7 +307,9 @@ BERR_Code BAPE_Debug_GetChannelStatus(
 
     return BERR_SUCCESS;
 }
+#endif
 
+#if BAPE_CHIP_MAX_SPDIF_OUTPUTS > 0 || BAPE_CHIP_MAX_MAI_OUTPUTS > 0 || BAPE_CHIP_MAX_DACS > 0 || BAPE_CHIP_MAX_I2S_OUTPUTS > 0
 static BERR_Code BAPE_Debug_P_GetVolume(
     BAPE_DebugHandle handle,
     BAPE_OutputPort output,
@@ -320,7 +328,7 @@ static BERR_Code BAPE_Debug_P_GetVolume(
     volume->index = output->index;
     if (output->mixer)
     {
-        pFormat = BAPE_Mixer_P_GetOutputFormat(output->mixer);
+        pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer);
         volume->type = pFormat->type;
         BAPE_GetOutputVolume(output, &volume->outputVolume);
     }
@@ -333,6 +341,7 @@ static BERR_Code BAPE_Debug_P_GetVolume(
     return errCode;
 
 }
+#endif
 
 BERR_Code BAPE_Debug_GetOutputVolume(
     BAPE_DebugHandle handle,
@@ -342,6 +351,10 @@ BERR_Code BAPE_Debug_GetOutputVolume(
 {
     BERR_Code errCode = BERR_SUCCESS;
     int i;
+
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pStatus);
+    BSTD_UNUSED(i);
 
 #if BAPE_CHIP_MAX_SPDIF_OUTPUTS > 0
     for (i = 0; i < BAPE_CHIP_MAX_SPDIF_OUTPUTS; i++) {

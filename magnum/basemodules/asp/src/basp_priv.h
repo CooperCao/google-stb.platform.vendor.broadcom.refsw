@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -216,8 +216,9 @@ typedef struct BASP_P_Channel
 
 BASP_ChannelHandle
 BASP_P_Channel_GetByChannelIndex_isr(
-    BASP_Handle  hAsp,
-    uint32_t channelIndex
+    BASP_Handle        hAsp,
+    BASP_MessageType   messageType,
+    uint32_t           channelIndex
     );
 
 void BASP_P_Channel_FireMessageReadyCallback_isr(

@@ -2752,6 +2752,8 @@ BERR_Code BDSP_Arm_P_CreateStage(
 #ifdef BDSP_QUEUE_DEBUG
     pStage->stage.addQueueOutput = BDSP_Arm_P_AddQueueOutput;
 #endif /* BDSP_QUEUE_DEBUG */
+	pStage->stage.getStageContext = BDSP_Arm_P_StageGetContext;
+
     errCode = BERR_INVALID_PARAMETER;
     for ( i = 0; i < BDSP_Algorithm_eMax; i++ )
     {
@@ -4776,6 +4778,22 @@ err_send_map_cmd:
 
     BDBG_LEAVE(BDSP_Arm_P_Initialize);
     return rc;
+}
+
+BERR_Code BDSP_Arm_P_StageGetContext(
+    void *pStageHandle,
+    BDSP_ContextHandle *pContextHandle /* [out] */
+    )
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	BDSP_ArmStage *pArmStage = (BDSP_ArmStage *)pStageHandle;
+
+	BDBG_ENTER(BDSP_Arm_P_StageGetContext);
+	BDBG_OBJECT_ASSERT(pArmStage, BDSP_ArmStage);
+
+	*pContextHandle = &pArmStage->pContext->context;
+	BDBG_LEAVE(BDSP_Arm_P_StageGetContext);
+	return errCode;
 }
 
 /***********************************************************************

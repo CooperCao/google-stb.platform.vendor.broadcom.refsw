@@ -119,107 +119,107 @@ static BERR_Code km_crypto_aes_encrypt_test(KeymasterTl_Handle handle)
         case 0:
             key_size = 128;
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_ECB);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_ECB);
             comment = "HW AES 128 ECB mode, no padding";
             break;
         case 1:
             key_size = 128;
             /* OpenSSL requires extra space for enc/dec, so all non-GCM AES modes have been given extra space */
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_PKCS7);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_ECB);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_PKCS7);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_ECB);
             comment = "AES 128 ECB mode, PKCS7";
             break;
         case 2:
             key_size = 192;
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_ECB);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_ECB);
             comment = "AES 192 ECB mode, no padding";
             break;
         case 3:
             key_size = 192;
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_PKCS7);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_ECB);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_PKCS7);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_ECB);
             comment = "AES 192 ECB mode, PKCS7";
             break;
         case 4:
             key_size = 256;
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_ECB);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_ECB);
             comment = "AES 256 ECB mode, no padding";
             break;
         case 5:
             key_size = 256;
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_PKCS7);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_ECB);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_PKCS7);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_ECB);
             comment = "AES 256 ECB mode, PKCS7";
             break;
         case 6:
             key_size = 128;
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_CBC);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_CBC);
             comment = "HW AES 128 CBC mode, no padding";
             break;
         case 7:
             key_size = 128;
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_PKCS7);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_CBC);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_PKCS7);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_CBC);
             comment = "AES 128 CBC mode, PKCS7";
             break;
         case 8:
             key_size = 192;
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_CBC);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_CBC);
             comment = "AES 192 CBC mode, no padding";
             break;
         case 9:
             key_size = 192;
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_PKCS7);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_CBC);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_PKCS7);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_CBC);
             comment = "AES 192 CBC mode, PKCS7";
             break;
         case 10:
             key_size = 256;
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_CBC);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_CBC);
             comment = "AES 256 CBC mode, no padding";
             break;
         case 11:
             key_size = 256;
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_PKCS7);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_CBC);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_PKCS7);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_CBC);
             comment = "AES 256 CBC mode, PKCS7";
             break;
         case 12:
             key_size = 128;
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_CTR);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_CTR);
             comment = "HW AES 128 CTR mode";
             break;
         case 13:
             key_size = 192;
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_CTR);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_CTR);
             comment = "AES 192 CTR mode";
             break;
         case 14:
             key_size = 256;
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_CTR);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_CTR);
             comment = "AES 256 CTR mode";
             break;
         case 15: /* GCM modes are currently disabled by the for loop */
@@ -227,30 +227,30 @@ static BERR_Code km_crypto_aes_encrypt_test(KeymasterTl_Handle handle)
             GcmSize = 128;
             /* GCM modes need the extra space for the appended GCM TAG */
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_GCM);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, GcmSize);
-            TEST_TAG_ADD_BYTES(settings.update_params, KM_TAG_ASSOCIATED_DATA, sizeof(aad), aad);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_GCM);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, GcmSize);
+            TEST_TAG_ADD_BYTES(settings.update_params, SKM_TAG_ASSOCIATED_DATA, sizeof(aad), aad);
             comment = "AES 128 GCM mode";
             break;
         case 16:
             key_size = 192;
             GcmSize = 128;
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_GCM);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, GcmSize);
-            TEST_TAG_ADD_BYTES(settings.update_params, KM_TAG_ASSOCIATED_DATA, sizeof(aad), aad);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_GCM);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, GcmSize);
+            TEST_TAG_ADD_BYTES(settings.update_params, SKM_TAG_ASSOCIATED_DATA, sizeof(aad), aad);
             comment = "AES 192 GCM mode";
             break;
         case 17:
             key_size = 256;
             GcmSize = 128;
             extra_space = key_size / 8;
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-            TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_GCM);
-            TEST_TAG_ADD_INTEGER(settings.begin_params, KM_TAG_MAC_LENGTH, GcmSize);
-            TEST_TAG_ADD_BYTES(settings.update_params, KM_TAG_ASSOCIATED_DATA, sizeof(aad), aad);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+            TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_GCM);
+            TEST_TAG_ADD_INTEGER(settings.begin_params, SKM_TAG_MAC_LENGTH, GcmSize);
+            TEST_TAG_ADD_BYTES(settings.update_params, SKM_TAG_ASSOCIATED_DATA, sizeof(aad), aad);
             comment = "AES 256 GCM mode";
             break;
         default:
@@ -276,7 +276,7 @@ static BERR_Code km_crypto_aes_encrypt_test(KeymasterTl_Handle handle)
         settings.in_data = in_data;
         settings.out_data = intermediate_data;
 
-        EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_ENCRYPT, &settings));
+        EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_ENCRYPT, &settings));
 
         if (!memcmp(in_data.buffer, intermediate_data.buffer, settings.out_data.size)) {
             BDBG_ERR(("%s: intermediate data matches", BSTD_FUNCTION));
@@ -286,7 +286,7 @@ static BERR_Code km_crypto_aes_encrypt_test(KeymasterTl_Handle handle)
 
         if (settings.out_nonce) {
             /* Move the NONCE into the in_params context */
-            TEST_TAG_ADD_BYTES(settings.begin_params, KM_TAG_NONCE, settings.out_nonce->value.blob_data_length, settings.out_nonce->blob_data);
+            TEST_TAG_ADD_BYTES(settings.begin_params, SKM_TAG_NONCE, settings.out_nonce->value.blob_data_length, settings.out_nonce->blob_data);
             NEXUS_Memory_Free(settings.out_nonce);
             settings.out_nonce = NULL;
         }
@@ -294,7 +294,7 @@ static BERR_Code km_crypto_aes_encrypt_test(KeymasterTl_Handle handle)
         settings.in_data = settings.out_data;
         settings.out_data = final_data;
 
-        EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_DECRYPT, &settings));
+        EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_DECRYPT, &settings));
 
         if ((settings.out_data.size != in_data.size) || memcmp(in_data.buffer, settings.out_data.buffer, settings.out_data.size)) {
             BDBG_ERR(("%s: final data does not match", BSTD_FUNCTION));
@@ -357,78 +357,78 @@ static BERR_Code km_crypto_aes_parameter_tests(KeymasterTl_Handle handle)
     /* Omit block mode for first test */
 
     KeymasterTl_GetDefaultCryptoBeginSettings(&beginSettings);
-    beginSettings.purpose = KM_PURPOSE_ENCRYPT;
+    beginSettings.purpose = SKM_PURPOSE_ENCRYPT;
     beginSettings.in_key_blob = in_key;
     beginSettings.hKeyslot = keyslot;
     beginSettings.in_params = in_params;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_UNSUPPORTED_BLOCK_MODE);
 
-    TEST_TAG_ADD_ENUM(in_params, KM_TAG_BLOCK_MODE, KM_MODE_ECB);
+    TEST_TAG_ADD_ENUM(in_params, SKM_TAG_BLOCK_MODE, SKM_MODE_ECB);
     /* Test with default padding NONE, which should succeed */
     EXPECT_SUCCESS(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle));
     TEST_DELETE_CONTEXT(beginSettings.out_params);
     EXPECT_SUCCESS(KeymasterTl_CryptoAbort(handle, op_handle));
     op_handle = 0;
-    TEST_TAG_ADD_ENUM(in_params, KM_TAG_PADDING, KM_PAD_RSA_OAEP);
+    TEST_TAG_ADD_ENUM(in_params, SKM_TAG_PADDING, SKM_PAD_RSA_OAEP);
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE);
 
     /* Change the padding mode to test ECB combinations */
-    padding = KM_Tag_FindFirst(in_params, KM_TAG_PADDING);
+    padding = KM_Tag_FindFirst(in_params, SKM_TAG_PADDING);
     BDBG_ASSERT(padding);
-    padding->value.enumerated = (uint32_t)KM_PAD_RSA_PKCS1_1_5_ENCRYPT;
+    padding->value.enumerated = (uint32_t)SKM_PAD_RSA_PKCS1_1_5_ENCRYPT;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE);
-    padding->value.enumerated = (uint32_t)KM_PAD_RSA_PKCS1_1_5_SIGN;
+    padding->value.enumerated = (uint32_t)SKM_PAD_RSA_PKCS1_1_5_SIGN;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE);
-    padding->value.enumerated = (uint32_t)KM_PAD_NONE;
+    padding->value.enumerated = (uint32_t)SKM_PAD_NONE;
     beginSettings.hKeyslot = NULL;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BERR_INVALID_PARAMETER);
 
     /* Change the block mode to check CBC padding combinations */
-    block_mode = KM_Tag_FindFirst(in_params, KM_TAG_BLOCK_MODE);
+    block_mode = KM_Tag_FindFirst(in_params, SKM_TAG_BLOCK_MODE);
     BDBG_ASSERT(block_mode);
-    block_mode->value.enumerated = (uint32_t)KM_MODE_CBC;
-    padding->value.enumerated = (uint32_t)KM_PAD_RSA_OAEP;
+    block_mode->value.enumerated = (uint32_t)SKM_MODE_CBC;
+    padding->value.enumerated = (uint32_t)SKM_PAD_RSA_OAEP;
     beginSettings.hKeyslot = keyslot;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE);
-    padding->value.enumerated = (uint32_t)KM_PAD_RSA_PKCS1_1_5_ENCRYPT;
+    padding->value.enumerated = (uint32_t)SKM_PAD_RSA_PKCS1_1_5_ENCRYPT;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE);
-    padding->value.enumerated = (uint32_t)KM_PAD_RSA_PKCS1_1_5_SIGN;
+    padding->value.enumerated = (uint32_t)SKM_PAD_RSA_PKCS1_1_5_SIGN;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE);
-    padding->value.enumerated = (uint32_t)KM_PAD_NONE;
+    padding->value.enumerated = (uint32_t)SKM_PAD_NONE;
     beginSettings.hKeyslot = NULL;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BERR_INVALID_PARAMETER);
 
     /* Check CTR mode padding combinations */
-    block_mode->value.enumerated = (uint32_t)KM_MODE_CTR;
-    padding->value.enumerated = (uint32_t)KM_PAD_PKCS7;
+    block_mode->value.enumerated = (uint32_t)SKM_MODE_CTR;
+    padding->value.enumerated = (uint32_t)SKM_PAD_PKCS7;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE);
-    padding->value.enumerated = (uint32_t)KM_PAD_RSA_OAEP;
+    padding->value.enumerated = (uint32_t)SKM_PAD_RSA_OAEP;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE);
-    padding->value.enumerated = (uint32_t)KM_PAD_RSA_PKCS1_1_5_ENCRYPT;
+    padding->value.enumerated = (uint32_t)SKM_PAD_RSA_PKCS1_1_5_ENCRYPT;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE);
-    padding->value.enumerated = (uint32_t)KM_PAD_RSA_PKCS1_1_5_SIGN;
+    padding->value.enumerated = (uint32_t)SKM_PAD_RSA_PKCS1_1_5_SIGN;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE);
-    padding->value.enumerated = (uint32_t)KM_PAD_NONE;
+    padding->value.enumerated = (uint32_t)SKM_PAD_NONE;
     beginSettings.hKeyslot = NULL;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BERR_INVALID_PARAMETER);
 
     /* Check GCM mode padding combinations */
-    block_mode->value.enumerated = (uint32_t)KM_MODE_GCM;
-    padding->value.enumerated = (uint32_t)KM_PAD_PKCS7;
+    block_mode->value.enumerated = (uint32_t)SKM_MODE_GCM;
+    padding->value.enumerated = (uint32_t)SKM_PAD_PKCS7;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE);
-    padding->value.enumerated = (uint32_t)KM_PAD_RSA_OAEP;
+    padding->value.enumerated = (uint32_t)SKM_PAD_RSA_OAEP;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE);
-    padding->value.enumerated = (uint32_t)KM_PAD_RSA_PKCS1_1_5_ENCRYPT;
+    padding->value.enumerated = (uint32_t)SKM_PAD_RSA_PKCS1_1_5_ENCRYPT;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE);
-    padding->value.enumerated = (uint32_t)KM_PAD_RSA_PKCS1_1_5_SIGN;
+    padding->value.enumerated = (uint32_t)SKM_PAD_RSA_PKCS1_1_5_SIGN;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_UNSUPPORTED_PADDING_MODE);
 
     /* Check GCM TAG length */
-    padding->value.enumerated = (uint32_t)KM_PAD_NONE;
+    padding->value.enumerated = (uint32_t)SKM_PAD_NONE;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_MISSING_MAC_LENGTH);
-    TEST_TAG_ADD_INTEGER(in_params, KM_TAG_MAC_LENGTH, AES_GCM_MIN_TAG_LENGTH - 8);
+    TEST_TAG_ADD_INTEGER(in_params, SKM_TAG_MAC_LENGTH, AES_GCM_MIN_TAG_LENGTH - 8);
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_INVALID_MAC_LENGTH);
-    mac = KM_Tag_FindFirst(in_params, KM_TAG_MAC_LENGTH);
+    mac = KM_Tag_FindFirst(in_params, SKM_TAG_MAC_LENGTH);
     BDBG_ASSERT(mac);
     mac->value.integer = AES_GCM_MAX_TAG_LENGTH + 8;
     EXPECT_FAILURE_CODE(KeymasterTl_CryptoBegin(handle, &beginSettings, &op_handle), BSAGE_ERR_KM_INVALID_MAC_LENGTH);
@@ -448,8 +448,8 @@ done:
     return err;
 }
 
-BERR_Code km_crypto_encrypt_vector_test(KeymasterTl_Handle handle, KeymasterTl_DataBlock in_key, KeymasterTl_DataBlock nonce,
-                                        KeymasterTl_DataBlock message, KeymasterTl_DataBlock expected)
+static BERR_Code km_crypto_encrypt_vector_test(KeymasterTl_Handle handle, KeymasterTl_DataBlock in_key, KeymasterTl_DataBlock nonce,
+                                               KeymasterTl_DataBlock message, KeymasterTl_DataBlock expected)
 {
     BERR_Code err;
     KM_Tag_ContextHandle begin_params = NULL;
@@ -458,6 +458,7 @@ BERR_Code km_crypto_encrypt_vector_test(KeymasterTl_Handle handle, KeymasterTl_D
     KeymasterTl_ImportKeySettings impSettings;
 
     memset(&out_data, 0, sizeof(out_data));
+    memset(&impSettings, 0, sizeof(impSettings));
 
     BDBG_LOG(("----------------------- %s -----------------------", BSTD_FUNCTION));
 
@@ -467,7 +468,7 @@ BERR_Code km_crypto_encrypt_vector_test(KeymasterTl_Handle handle, KeymasterTl_D
 
     KeymasterTl_GetDefaultImportKeySettings(&impSettings);
     EXPECT_SUCCESS(km_test_new_params_with_aes_defaults(&impSettings.in_key_params, in_key.size * 8));
-    impSettings.in_key_format = KM_KEY_FORMAT_RAW;
+    impSettings.in_key_format = SKM_KEY_FORMAT_RAW;
     impSettings.in_key_blob = in_key;
     EXPECT_SUCCESS(KeymasterTl_ImportKey(handle, &impSettings));
     settings.in_key = impSettings.out_key_blob;
@@ -475,9 +476,9 @@ BERR_Code km_crypto_encrypt_vector_test(KeymasterTl_Handle handle, KeymasterTl_D
     EXPECT_SUCCESS(KM_Tag_NewContext(&begin_params));
     settings.begin_params = begin_params;
 
-    TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-    TEST_TAG_ADD_ENUM(settings.begin_params, KM_TAG_BLOCK_MODE, KM_MODE_CTR);
-    TEST_TAG_ADD_BYTES(settings.begin_params, KM_TAG_NONCE, nonce.size, nonce.buffer);
+    TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+    TEST_TAG_ADD_ENUM(settings.begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_CTR);
+    TEST_TAG_ADD_BYTES(settings.begin_params, SKM_TAG_NONCE, nonce.size, nonce.buffer);
 
     TEST_ALLOCATE_BLOCK(out_data, expected.size + in_key.size);
     memset(out_data.buffer, 0xFF, out_data.size);
@@ -486,7 +487,7 @@ BERR_Code km_crypto_encrypt_vector_test(KeymasterTl_Handle handle, KeymasterTl_D
     settings.out_data = out_data;
     settings.key_params = impSettings.in_key_params;
 
-    EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_ENCRYPT, &settings));
+    EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_ENCRYPT, &settings));
 
     if (memcmp(out_data.buffer, expected.buffer, expected.size) != 0) {
         BDBG_ERR(("%s: Out data and expected buffers don't match ", BSTD_FUNCTION));
@@ -496,12 +497,11 @@ BERR_Code km_crypto_encrypt_vector_test(KeymasterTl_Handle handle, KeymasterTl_D
 
     BDBG_LOG(("%s: success", BSTD_FUNCTION));
 
-    TEST_FREE_BLOCK(out_data);
-    TEST_DELETE_CONTEXT(begin_params);
-
     err = BERR_SUCCESS;
 
 done:
+    TEST_FREE_BLOCK(impSettings.out_key_blob);
+    TEST_DELETE_CONTEXT(impSettings.in_key_params);
     TEST_FREE_BLOCK(out_data);
     TEST_DELETE_CONTEXT(begin_params);
     return err;
@@ -633,47 +633,47 @@ static BERR_Code km_crypto_aes_select_test(int test, uint32_t *key_size, KM_Tag_
     switch (test) {
     case 0:
         *key_size = 128;
-        TEST_TAG_ADD_ENUM(*begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-        TEST_TAG_ADD_ENUM(*begin_params, KM_TAG_BLOCK_MODE, KM_MODE_ECB);
+        TEST_TAG_ADD_ENUM(*begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+        TEST_TAG_ADD_ENUM(*begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_ECB);
         *comment = "HW AES 128 ECB mode, no padding";
         break;
     case 1:
         *key_size = 128;
-        TEST_TAG_ADD_ENUM(*begin_params, KM_TAG_PADDING, KM_PAD_PKCS7);
-        TEST_TAG_ADD_ENUM(*begin_params, KM_TAG_BLOCK_MODE, KM_MODE_ECB);
+        TEST_TAG_ADD_ENUM(*begin_params, SKM_TAG_PADDING, SKM_PAD_PKCS7);
+        TEST_TAG_ADD_ENUM(*begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_ECB);
         *comment = "AES 128 ECB mode, PKCS7";
         break;
     case 2:
         *key_size = 128;
-        TEST_TAG_ADD_ENUM(*begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-        TEST_TAG_ADD_ENUM(*begin_params, KM_TAG_BLOCK_MODE, KM_MODE_CBC);
+        TEST_TAG_ADD_ENUM(*begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+        TEST_TAG_ADD_ENUM(*begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_CBC);
         *comment = "HW AES 128 CBC mode, no padding";
         break;
     case 3:
         *key_size = 128;
-        TEST_TAG_ADD_ENUM(*begin_params, KM_TAG_PADDING, KM_PAD_PKCS7);
-        TEST_TAG_ADD_ENUM(*begin_params, KM_TAG_BLOCK_MODE, KM_MODE_CBC);
+        TEST_TAG_ADD_ENUM(*begin_params, SKM_TAG_PADDING, SKM_PAD_PKCS7);
+        TEST_TAG_ADD_ENUM(*begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_CBC);
         *comment = "AES 128 CBC mode, PKCS7";
         break;
     case 4:
         *key_size = 128;
-        TEST_TAG_ADD_ENUM(*begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-        TEST_TAG_ADD_ENUM(*begin_params, KM_TAG_BLOCK_MODE, KM_MODE_CTR);
+        TEST_TAG_ADD_ENUM(*begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+        TEST_TAG_ADD_ENUM(*begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_CTR);
         *comment = "HW AES 128 CTR mode";
         break;
     case 5:
         *key_size = 192;
-        TEST_TAG_ADD_ENUM(*begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-        TEST_TAG_ADD_ENUM(*begin_params, KM_TAG_BLOCK_MODE, KM_MODE_CTR);
+        TEST_TAG_ADD_ENUM(*begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+        TEST_TAG_ADD_ENUM(*begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_CTR);
         *comment = "AES 192 CTR mode";
         break;
     case 6:
         *key_size = 128;
         GcmSize = 128;
-        TEST_TAG_ADD_ENUM(*begin_params, KM_TAG_PADDING, KM_PAD_NONE);
-        TEST_TAG_ADD_ENUM(*begin_params, KM_TAG_BLOCK_MODE, KM_MODE_GCM);
-        TEST_TAG_ADD_INTEGER(*begin_params, KM_TAG_MAC_LENGTH, GcmSize);
-        TEST_TAG_ADD_BYTES(*update_params, KM_TAG_ASSOCIATED_DATA, sizeof(aad), aad);
+        TEST_TAG_ADD_ENUM(*begin_params, SKM_TAG_PADDING, SKM_PAD_NONE);
+        TEST_TAG_ADD_ENUM(*begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_GCM);
+        TEST_TAG_ADD_INTEGER(*begin_params, SKM_TAG_MAC_LENGTH, GcmSize);
+        TEST_TAG_ADD_BYTES(*update_params, SKM_TAG_ASSOCIATED_DATA, sizeof(aad), aad);
         *comment = "AES 128 GCM mode";
         break;
     default:
@@ -718,7 +718,7 @@ static BERR_Code km_crypto_aes_seconds_between_ops(KeymasterTl_Handle handle)
         EXPECT_SUCCESS(km_crypto_aes_select_test(i, &key_size, &begin_params, &update_params, &comment));
 
         EXPECT_SUCCESS(km_test_new_params_with_aes_defaults(&key_params, key_size));
-        TEST_TAG_ADD_INTEGER(key_params, KM_TAG_MIN_SECONDS_BETWEEN_OPS, MIN_SECONDS_BETWEEN_OPS);
+        TEST_TAG_ADD_INTEGER(key_params, SKM_TAG_MIN_SECONDS_BETWEEN_OPS, MIN_SECONDS_BETWEEN_OPS);
         EXPECT_SUCCESS(KeymasterTl_GenerateKey(handle, key_params, &key));
 
         for (mode = 0; mode < 2; mode++) {
@@ -741,7 +741,7 @@ static BERR_Code km_crypto_aes_seconds_between_ops(KeymasterTl_Handle handle)
 
             BDBG_LOG(("%s : Test - %s", BSTD_FUNCTION, comment));
 
-            EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_ENCRYPT, &settings));
+            EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_ENCRYPT, &settings));
 
             if (!memcmp(in_data.buffer, intermediate_data.buffer, settings.out_data.size)) {
                 BDBG_ERR(("%s: intermediate data matches", BSTD_FUNCTION));
@@ -751,7 +751,7 @@ static BERR_Code km_crypto_aes_seconds_between_ops(KeymasterTl_Handle handle)
 
             if (settings.out_nonce) {
                 /* Move the NONCE into the in_params context */
-                TEST_TAG_ADD_BYTES(begin_params, KM_TAG_NONCE, settings.out_nonce->value.blob_data_length, settings.out_nonce->blob_data);
+                TEST_TAG_ADD_BYTES(begin_params, SKM_TAG_NONCE, settings.out_nonce->value.blob_data_length, settings.out_nonce->blob_data);
                 NEXUS_Memory_Free(settings.out_nonce);
                 settings.out_nonce = NULL;
             }
@@ -762,7 +762,7 @@ static BERR_Code km_crypto_aes_seconds_between_ops(KeymasterTl_Handle handle)
             if (mode == 0) {
                 BDBG_LOG(("    sleeping %d seconds before calling decrypt", MIN_SECONDS_BETWEEN_OPS));
                 sleep(MIN_SECONDS_BETWEEN_OPS);
-                EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_DECRYPT, &settings));
+                EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_DECRYPT, &settings));
 
                 if ((settings.out_data.size != in_data.size) || memcmp(in_data.buffer, settings.out_data.buffer, settings.out_data.size)) {
                     BDBG_ERR(("%s: final data does not match", BSTD_FUNCTION));
@@ -772,7 +772,7 @@ static BERR_Code km_crypto_aes_seconds_between_ops(KeymasterTl_Handle handle)
             } else {
                 BDBG_LOG(("    sleeping %d seconds before calling decrypt", MIN_SECONDS_BETWEEN_OPS / 2));
                 sleep(MIN_SECONDS_BETWEEN_OPS / 2);
-                EXPECT_FAILURE_CODE(KM_Crypto_Operation(KM_PURPOSE_DECRYPT, &settings), BSAGE_ERR_KM_TOO_MANY_OPERATIONS);
+                EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_DECRYPT, &settings), BSAGE_ERR_KM_TOO_MANY_OPERATIONS);
             }
 
             BDBG_LOG(("%s: %s success", BSTD_FUNCTION, comment));
@@ -834,7 +834,7 @@ static BERR_Code km_crypto_aes_max_uses_per_boot(KeymasterTl_Handle handle)
         EXPECT_SUCCESS(km_crypto_aes_select_test(i, &key_size, &begin_params, &update_params, &comment));
 
         EXPECT_SUCCESS(km_test_new_params_with_aes_defaults(&key_params, key_size));
-        TEST_TAG_ADD_INTEGER(key_params, KM_TAG_MAX_USES_PER_BOOT, MAX_USES_PER_BOOT);
+        TEST_TAG_ADD_INTEGER(key_params, SKM_TAG_MAX_USES_PER_BOOT, MAX_USES_PER_BOOT);
         EXPECT_SUCCESS(KeymasterTl_GenerateKey(handle, key_params, &key));
 
         BDBG_LOG(("%s : Test - %s", BSTD_FUNCTION, comment));
@@ -858,7 +858,7 @@ static BERR_Code km_crypto_aes_max_uses_per_boot(KeymasterTl_Handle handle)
             settings.out_data = intermediate_data;
 
             if (++use_count <= MAX_USES_PER_BOOT) {
-                EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_ENCRYPT, &settings));
+                EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_ENCRYPT, &settings));
 
                 if (!memcmp(in_data.buffer, intermediate_data.buffer, settings.out_data.size)) {
                     BDBG_ERR(("%s: intermediate data matches", BSTD_FUNCTION));
@@ -868,7 +868,7 @@ static BERR_Code km_crypto_aes_max_uses_per_boot(KeymasterTl_Handle handle)
 
                 if (settings.out_nonce) {
                     /* Move the NONCE into the in_params context */
-                    TEST_TAG_ADD_BYTES(begin_params, KM_TAG_NONCE, settings.out_nonce->value.blob_data_length, settings.out_nonce->blob_data);
+                    TEST_TAG_ADD_BYTES(begin_params, SKM_TAG_NONCE, settings.out_nonce->value.blob_data_length, settings.out_nonce->blob_data);
                     NEXUS_Memory_Free(settings.out_nonce);
                     settings.out_nonce = NULL;
                 }
@@ -877,17 +877,17 @@ static BERR_Code km_crypto_aes_max_uses_per_boot(KeymasterTl_Handle handle)
                 settings.out_data = final_data;
 
                 if (++use_count <= MAX_USES_PER_BOOT) {
-                    EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_DECRYPT, &settings));
+                    EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_DECRYPT, &settings));
                     if ((settings.out_data.size != in_data.size) || memcmp(in_data.buffer, settings.out_data.buffer, settings.out_data.size)) {
                         BDBG_ERR(("%s: final data does not match", BSTD_FUNCTION));
                         err = BERR_UNKNOWN;
                         goto done;
                     }
                 } else {
-                    EXPECT_FAILURE_CODE(KM_Crypto_Operation(KM_PURPOSE_DECRYPT, &settings), BSAGE_ERR_KM_TOO_MANY_OPERATIONS);
+                    EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_DECRYPT, &settings), BSAGE_ERR_KM_TOO_MANY_OPERATIONS);
                 }
             } else {
-                EXPECT_FAILURE_CODE(KM_Crypto_Operation(KM_PURPOSE_ENCRYPT, &settings), BSAGE_ERR_KM_TOO_MANY_OPERATIONS);
+                EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_ENCRYPT, &settings), BSAGE_ERR_KM_TOO_MANY_OPERATIONS);
             }
 
             TEST_FREE_BLOCK(in_data);
@@ -950,7 +950,7 @@ static BERR_Code km_crypto_aes_purpose_not_authorized_tests(KeymasterTl_Handle h
 
         /* First part is to test failure to encrypt */
         EXPECT_SUCCESS(km_test_new_params_with_aes_defaults(&key_params, key_size));
-        TEST_TAG_REMOVE_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_ENCRYPT);
+        TEST_TAG_REMOVE_ENUM(key_params, SKM_TAG_PURPOSE, SKM_PURPOSE_ENCRYPT);
         EXPECT_SUCCESS(KeymasterTl_GenerateKey(handle, key_params, &key));
 
         KM_CryptoOperation_GetDefaultSettings(&settings);
@@ -962,13 +962,13 @@ static BERR_Code km_crypto_aes_purpose_not_authorized_tests(KeymasterTl_Handle h
         settings.in_data = in_data;
         settings.out_data = intermediate_data;
 
-        EXPECT_FAILURE_CODE(KM_Crypto_Operation(KM_PURPOSE_ENCRYPT, &settings), BSAGE_ERR_KM_INCOMPATIBLE_PURPOSE);
+        EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_ENCRYPT, &settings), BSAGE_ERR_KM_INCOMPATIBLE_PURPOSE);
         TEST_DELETE_CONTEXT(key_params);
         TEST_FREE_BLOCK(key);
 
         /* Second part is to test failure to decrypt */
         EXPECT_SUCCESS(km_test_new_params_with_aes_defaults(&key_params, key_size));
-        TEST_TAG_REMOVE_ENUM(key_params, KM_TAG_PURPOSE, KM_PURPOSE_DECRYPT);
+        TEST_TAG_REMOVE_ENUM(key_params, SKM_TAG_PURPOSE, SKM_PURPOSE_DECRYPT);
         EXPECT_SUCCESS(KeymasterTl_GenerateKey(handle, key_params, &key));
 
         KM_CryptoOperation_GetDefaultSettings(&settings);
@@ -981,16 +981,16 @@ static BERR_Code km_crypto_aes_purpose_not_authorized_tests(KeymasterTl_Handle h
         settings.in_data = in_data;
         settings.out_data = intermediate_data;
 
-        EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_ENCRYPT, &settings));
+        EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_ENCRYPT, &settings));
         settings.in_data = settings.out_data;
         settings.out_data = intermediate_data;
         if (settings.out_nonce) {
             /* Move the NONCE into the in_params context */
-            TEST_TAG_ADD_BYTES(begin_params, KM_TAG_NONCE, settings.out_nonce->value.blob_data_length, settings.out_nonce->blob_data);
+            TEST_TAG_ADD_BYTES(begin_params, SKM_TAG_NONCE, settings.out_nonce->value.blob_data_length, settings.out_nonce->blob_data);
             NEXUS_Memory_Free(settings.out_nonce);
             settings.out_nonce = NULL;
         }
-        EXPECT_FAILURE_CODE(KM_Crypto_Operation(KM_PURPOSE_DECRYPT, &settings), BSAGE_ERR_KM_INCOMPATIBLE_PURPOSE);
+        EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_DECRYPT, &settings), BSAGE_ERR_KM_INCOMPATIBLE_PURPOSE);
 
         BDBG_LOG(("%s: %s success", BSTD_FUNCTION, comment));
 
@@ -1048,7 +1048,7 @@ static BERR_Code km_crypto_aes_nonce_not_authorized_tests(KeymasterTl_Handle han
 
             EXPECT_SUCCESS(km_test_new_params_with_aes_defaults(&key_params, key_size));
             if (mode == 1) {
-                TEST_TAG_REMOVE(key_params, KM_TAG_CALLER_NONCE);
+                TEST_TAG_REMOVE(key_params, SKM_TAG_CALLER_NONCE);
             }
             EXPECT_SUCCESS(KeymasterTl_GenerateKey(handle, key_params, &key));
 
@@ -1068,19 +1068,19 @@ static BERR_Code km_crypto_aes_nonce_not_authorized_tests(KeymasterTl_Handle han
             memset(intermediate_data.buffer, 0xFF, intermediate_data.size);
             memset(final_data.buffer, 0xA1, final_data.size);
 
-            if (KM_Tag_ContainsEnum(begin_params, KM_TAG_BLOCK_MODE, KM_MODE_GCM)) {
+            if (KM_Tag_ContainsEnum(begin_params, SKM_TAG_BLOCK_MODE, SKM_MODE_GCM)) {
                 TEST_ALLOCATE_BLOCK(nonce, GCM_NONCE_SIZE);
             } else {
                 TEST_ALLOCATE_BLOCK(nonce, AES_NONCE_SIZE);
             }
             memset(nonce.buffer, 0xA4, nonce.size);
-            TEST_TAG_ADD_BYTES(begin_params, KM_TAG_NONCE, nonce.size, nonce.buffer);
+            TEST_TAG_ADD_BYTES(begin_params, SKM_TAG_NONCE, nonce.size, nonce.buffer);
 
             settings.in_data = in_data;
             settings.out_data = intermediate_data;
 
             if (!mode) {
-                EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_ENCRYPT, &settings));
+                EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_ENCRYPT, &settings));
 
                 if (!memcmp(in_data.buffer, intermediate_data.buffer, settings.out_data.size)) {
                     BDBG_ERR(("%s: intermediate data matches", BSTD_FUNCTION));
@@ -1090,7 +1090,7 @@ static BERR_Code km_crypto_aes_nonce_not_authorized_tests(KeymasterTl_Handle han
 
                 if (settings.out_nonce) {
                     /* Move the NONCE into the in_params context */
-                    TEST_TAG_ADD_BYTES(begin_params, KM_TAG_NONCE, settings.out_nonce->value.blob_data_length, settings.out_nonce->blob_data);
+                    TEST_TAG_ADD_BYTES(begin_params, SKM_TAG_NONCE, settings.out_nonce->value.blob_data_length, settings.out_nonce->blob_data);
                     NEXUS_Memory_Free(settings.out_nonce);
                     settings.out_nonce = NULL;
                 }
@@ -1098,7 +1098,7 @@ static BERR_Code km_crypto_aes_nonce_not_authorized_tests(KeymasterTl_Handle han
                 settings.in_data = settings.out_data;
                 settings.out_data = final_data;
 
-                EXPECT_SUCCESS(KM_Crypto_Operation(KM_PURPOSE_DECRYPT, &settings));
+                EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_DECRYPT, &settings));
 
                 if ((settings.out_data.size != in_data.size) || memcmp(in_data.buffer, settings.out_data.buffer, settings.out_data.size)) {
                     BDBG_ERR(("%s: final data does not match", BSTD_FUNCTION));
@@ -1106,7 +1106,7 @@ static BERR_Code km_crypto_aes_nonce_not_authorized_tests(KeymasterTl_Handle han
                     goto done;
                 }
             } else {
-                EXPECT_FAILURE_CODE(KM_Crypto_Operation(KM_PURPOSE_ENCRYPT, &settings), BSAGE_ERR_KM_CALLER_NONCE_PROHIBITED);
+                EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_ENCRYPT, &settings), BSAGE_ERR_KM_CALLER_NONCE_PROHIBITED);
             }
 
             BDBG_LOG(("%s: %s success", BSTD_FUNCTION, comment));
@@ -1136,14 +1136,16 @@ done:
     return err;
 }
 
-BERR_Code km_crypto_aes_tests(KeymasterTl_Handle handle)
+BERR_Code km_crypto_aes_tests(KeymasterTl_Handle handle, bool shortTest)
 {
     BERR_Code err;
 
     EXPECT_SUCCESS(km_crypto_aes_encrypt_test(handle));
     EXPECT_SUCCESS(km_crypto_aes_parameter_tests(handle));
     EXPECT_SUCCESS(km_crypto_aes_vectors(handle));
-    EXPECT_SUCCESS(km_crypto_aes_seconds_between_ops(handle));
+    if (!shortTest) {
+        EXPECT_SUCCESS(km_crypto_aes_seconds_between_ops(handle));
+    }
     EXPECT_SUCCESS(km_crypto_aes_max_uses_per_boot(handle));
     EXPECT_SUCCESS(km_crypto_aes_purpose_not_authorized_tests(handle));
     EXPECT_SUCCESS(km_crypto_aes_nonce_not_authorized_tests(handle));

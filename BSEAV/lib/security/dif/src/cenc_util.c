@@ -109,6 +109,7 @@ uint32_t cenc_parse_auxiliary_info_offsets(batom_cursor *cursor,
     LOGD(("%s: entrycount %u", BSTD_FUNCTION, entrycount));
 
     for (i = 0; i < entrycount; i++) {
+       frag_header->samples_info.samples[i].size = frag_header->sample_info[i].size;
         if (version == 0) {
             uint32_t tmp;
             tmp = batom_cursor_uint32_be(cursor);
@@ -149,6 +150,7 @@ void cenc_parse_mdat_head(mp4_parse_frag_info *frag_info,
     /* read CencSampleAuxiliaryDataFormats */
     for (i = 0; i < frag_header->samples_info.sample_count; i++) {
         SampleInfo *smpl = &frag_header->samples_info.samples[i];
+        smpl->size = frag_header->sample_info[i].size;
 
         memset(smpl->iv, 0, 16);
         length = batom_cursor_copy(cursor, smpl->iv, ivlength);
@@ -208,6 +210,7 @@ int cenc_parse_sample_encryption_box(
 
     for (i = 0; i < sample_count; i++) {
         SampleInfo *smpl = &frag_header->samples_info.samples[i];
+        smpl->size = frag_header->sample_info[i].size;
 
         memset(smpl->iv, 0, 16);
         length = batom_cursor_copy(cursor, smpl->iv, ivlength);

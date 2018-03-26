@@ -248,14 +248,13 @@ NEXUS_SimpleEncoderHandle NEXUS_SimpleEncoder_Create( NEXUS_SimpleEncoderServerH
 #else
     handle->settings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e30;
     #if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT /* default 480p dsp encoder accelerater */
-    handle->settings.video.width  = 720;
-    handle->settings.video.height = 480;
     handle->settings.videoEncoder.bitrateMax = 2000000; /* 2 Mbps for 480p30 dsp accelerator; TODO: optimize bit efficiency */
     #else
-    handle->settings.video.width  = 1280;
-    handle->settings.video.height = 720;
     handle->settings.videoEncoder.bitrateMax = 2500000; /* 2.5 Mbps for 720p30 vce */
     #endif
+    NEXUS_VideoEncoder_GetDefaultStartSettings(&handle->stack.videoEncoderStartSettings);
+    handle->settings.video.width  = handle->stack.videoEncoderStartSettings.bounds.inputDimension.max.width;
+    handle->settings.video.height = handle->stack.videoEncoderStartSettings.bounds.inputDimension.max.height;
 #endif
     handle->settings.videoEncoder.streamStructure.framesP = 29; /* 29 P frames per gop */
     handle->settings.videoEncoder.streamStructure.framesB = 0; /* IP gop */
@@ -1141,17 +1140,12 @@ static NEXUS_StcChannelHandle nexus_simpleencoder_p_getStcChannel( NEXUS_SimpleE
     }
 }
 
-/**
-actual start happens after decoders are started
-**/
-static NEXUS_Error nexus_simpleencoder_p_start( NEXUS_SimpleEncoderHandle handle )
+NEXUS_Error nexus_simpleencoder_p_start_audiomux( NEXUS_SimpleEncoderHandle handle )
 {
-    NEXUS_Error rc;
-
-    BDBG_MSG(("nexus_simpleencoder_p_start %p", (void *)handle));
-
+    NEXUS_Error rc = NEXUS_SUCCESS;
     if (handle->programChange.inProgress) {
         NEXUS_VideoEncoderStatus status;
+        unsigned refreshRate;
         handle->programChange.inProgress = false;
 
         NEXUS_AudioMuxOutput_GetDelayStatus(handle->serverSettings.audioMuxOutput, handle->startSettings.output.audio.codec, &handle->stack.audioDelayStatus);
@@ -1162,14 +1156,22 @@ static NEXUS_Error nexus_simpleencoder_p_start( NEXUS_SimpleEncoderHandle handle
             handle->settings.videoEncoder.encoderDelay/27000 : handle->stack.audioDelayStatus.endToEndDelay;
         handle->stack.audioMuxStartSettings.nonRealTime = nexus_simpleencoder_p_nonRealTime(handle);
 
+        refreshRate = handle->settings.video.refreshRate;
+        if (handle->transcodeDisplay) {
+            NEXUS_DisplayStatus displayStatus;
+            rc = NEXUS_Display_GetStatus(handle->transcodeDisplay, &displayStatus);
+            if (!rc) {
+                refreshRate = displayStatus.refreshRate;
+            }
+        }
         rc = NEXUS_VideoEncoder_GetStatus(handle->serverSettings.videoEncoder, &status);
-        if (!rc && handle->settings.video.refreshRate) {
+        if (!rc && refreshRate) {
             /* convert encoded pictures to STC based on display refresh rate.
             refreshRate is units of 1/1000 Hz. initialStc is units of 45KHz.
             For examples, 60 pics at 60.000 Hz should be 45000.
             Use uint64_t to avoid overflow.
             */
-            handle->stack.audioMuxStartSettings.initialStc = (uint64_t)status.picturesReceived * 45000 / handle->settings.video.refreshRate * 1000;
+            handle->stack.audioMuxStartSettings.initialStc = (uint64_t)(status.picturesReceived+1) * 45000 / refreshRate * 1000;
             BDBG_WRN(("Starting Audio Mux Output with initialStc = %#x @45Khz, presentationDelay=%u(ms)",
                 handle->stack.audioMuxStartSettings.initialStc,handle->stack.audioMuxStartSettings.presentationDelay));
         }
@@ -1177,11 +1179,22 @@ static NEXUS_Error nexus_simpleencoder_p_start( NEXUS_SimpleEncoderHandle handle
         if (rc) {rc = BERR_TRACE(rc); goto err_startaudio;}
 
         if (handle->serverSettings.mixer) {
-            NEXUS_AudioMixer_Start(handle->serverSettings.mixer);
+            rc = NEXUS_AudioMixer_Start(handle->serverSettings.mixer);
+            if (rc) {rc = BERR_TRACE(rc); goto err_startaudio;}
         }
-
-        return 0;
     }
+err_startaudio:
+    return rc;
+}
+
+/**
+actual start happens after decoders are started
+**/
+static NEXUS_Error nexus_simpleencoder_p_start( NEXUS_SimpleEncoderHandle handle )
+{
+    NEXUS_Error rc;
+
+    BDBG_MSG(("nexus_simpleencoder_p_start %p", (void *)handle));
 
     if (handle->videoEncoderStarted) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
@@ -1570,6 +1583,11 @@ static void nexus_simpleencoder_p_stop_psi( NEXUS_SimpleEncoderHandle handle )
     }
 }
 #else
+NEXUS_Error nexus_simpleencoder_p_start_audiomux( NEXUS_SimpleEncoderHandle handle )
+{
+    BSTD_UNUSED(handle);
+    return NEXUS_SUCCESS;
+}
 static NEXUS_Error nexus_simpleencoder_p_start( NEXUS_SimpleEncoderHandle handle )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleEncoder);
@@ -1640,6 +1658,35 @@ NEXUS_Error NEXUS_SimpleEncoder_VideoReadComplete(
 #else
     BSTD_UNUSED(descriptorsCompleted);
     return BERR_TRACE(BERR_NOT_SUPPORTED);
+#endif
+}
+
+/**
+Summary:
+Get video encoder buffer descriptor metadata
+**/
+NEXUS_Error NEXUS_SimpleEncoder_ReadVideoIndex(
+    NEXUS_SimpleEncoderHandle handle,
+    NEXUS_VideoEncoderDescriptor *pBuffer, /* attr{nelem=size;nelem_out=pRead} [out] pointer to NEXUS_VideoEncoderDescriptor structs */
+    unsigned size, /* max number of NEXUS_VideoEncoderPicture elements in pBuffer */
+    unsigned *pRead /* [out] number of NEXUS_VideoEncoderPicture elements read */
+    )
+{
+   BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleEncoder);
+#if NEXUS_HAS_STREAM_MUX
+   if ( handle->serverSettings.videoEncoder)
+   {
+       return NEXUS_VideoEncoder_ReadIndex(handle->serverSettings.videoEncoder, pBuffer, size, pRead);
+   }
+   else
+   {
+       return BERR_NOT_SUPPORTED;
+   }
+#else
+   BSTD_UNUSED(pBuffer);
+   BSTD_UNUSED(size);
+   BSTD_UNUSED(pRead);
+   return BERR_TRACE(BERR_NOT_SUPPORTED);
 #endif
 }
 

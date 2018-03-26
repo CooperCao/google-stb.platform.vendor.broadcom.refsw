@@ -85,7 +85,7 @@ void NEXUS_SecurityModule_Sweep_priv(void);
 
 /*
 Summary:
-    Dumps to the console details on MEMC ARCH violations that have occured since the function was
+    Dumps to the console details on MEMC ARCH violations that have occurred since the function was
     last called.
 */
 void NEXUS_Security_PrintArchViolation_priv(void);

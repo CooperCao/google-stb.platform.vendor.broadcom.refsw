@@ -39,6 +39,9 @@
 #ifndef _MON_PARAMS_H_
 #define _MON_PARAMS_H_
 
+#include <stddef.h>
+#include <stdint.h>
+
 /*
  * Parameter types
  *
@@ -49,13 +52,12 @@
 #define BRCMSTB_PARAMS          0x04
 
 /*
- * Current parameter versions
+ * Current monitor parameters version
  *
  * Note: Version 1 of monitor parameters represents BL31 parameters.
  * BL31 does NOT support brcmstb specific parameters.
  */
-#define MONITOR_PARAMS_VERSION  0x02
-#define BRCMSTB_PARAMS_VERSION  0x01
+#define MONITOR_PARAMS_VERSION  0x03
 
 /*
  * Image flags
@@ -79,8 +81,8 @@
  * in BL31 to allow legacy Bolt be used with the new monitor code.
  */
 typedef struct param_hdr {
-	uint8_t  type;
-	uint8_t  version;
+    uint8_t  type;
+    uint8_t  version;
     uint16_t reserved;
 } param_hdr_t;
 
@@ -88,10 +90,21 @@ typedef struct param_hdr {
  * Image information
  */
 typedef struct img_info {
-	uintptr_t base;
-	uint32_t  size;
-    uint32_t  flags;
+    uint64_t base;
+    uint32_t size;
+    uint32_t flags;
 } img_info_t;
+
+/*
+ * Mailbox information
+ */
+typedef struct mbox_info {
+    uint64_t addr;
+    uint32_t flags;
+    uint16_t size;
+    uint8_t  sgi;
+    uint8_t  reserved;
+} mbox_info_t;
 
 /*
  * Monitor parameters
@@ -99,18 +112,30 @@ typedef struct img_info {
 typedef struct mon_params {
     param_hdr_t hdr;
 
+    /* Number of clusters and cpus */
+    uint8_t     num_clusters;
+    uint8_t     num_cpus;
+
+    /* Secure and normal world cpus masks */
+    uint8_t     tz_cpus_mask;
+    uint8_t     nw_cpus_mask;
+
     /* Monitor image info (self) */
     img_info_t  mon_img_info;
 
     /* Secure world image info and parameters (device tree) */
     img_info_t  tz_img_info;
-    uintptr_t   tz_entry_point;
-    uintptr_t   tz_dev_tree;
+    uint64_t    tz_entry_point;
+    uint64_t    tz_dev_tree;
 
     /* Normal world image info and parameters (device tree) */
     img_info_t  nw_img_info;
-    uintptr_t   nw_entry_point;
-    uintptr_t   nw_dev_tree;
+    uint64_t    nw_entry_point;
+    uint64_t    nw_dev_tree;
+
+    /* Secure and normal world mailboxes info */
+    mbox_info_t tz_mbox_info;
+    mbox_info_t nw_mbox_info;
 
 } mon_params_t;
 

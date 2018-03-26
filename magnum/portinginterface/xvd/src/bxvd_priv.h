@@ -797,8 +797,6 @@ typedef struct BXVD_P_Context
   bool bStillPictureCompatibilityMode;
   bool bStillHDCapable;
 
-  uint32_t uiSupportedProtocolsMask;
-
   bool bSVCCapable;
   bool bHEVDDualPipe;
   bool bRV9Capable;

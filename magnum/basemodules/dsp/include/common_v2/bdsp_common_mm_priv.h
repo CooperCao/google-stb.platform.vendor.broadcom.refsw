@@ -41,6 +41,8 @@
 #ifndef BDSP_COMMON_MM_PRIV_H_
 #define BDSP_COMMON_MM_PRIV_H_
 
+#define BDSP_MIN_DEBUG_BUFFER_SIZE 0
+
 #define BDSP_MAX_FW_TASK_PER_DSP            12
 #define BDSP_MAX_MSGS_PER_QUEUE             10
 #define BDSP_MAX_ASYNC_MSGS_PER_QUEUE       40

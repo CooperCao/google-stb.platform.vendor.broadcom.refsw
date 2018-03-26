@@ -408,7 +408,7 @@ void BMRC_Monitor_P_PrintBitmap_isrsafe(const struct BMRC_P_MonitorClientMap *ma
 {
     int i;
     char buf[80];
-    size_t buf_off=0;
+    unsigned buf_off=0;
     uint8_t hwBlocks[1+BMRC_Monitor_HwBlock_eMax/8]; /* bitmap for HW groups */
 #ifdef BDBG_DEBUG_BUILD
 #else
@@ -433,17 +433,18 @@ void BMRC_Monitor_P_PrintBitmap_isrsafe(const struct BMRC_P_MonitorClientMap *ma
                 }
                 rc = BKNI_Snprintf(buf+buf_off,left, "%s%s(%u)",buf_off==0?"":",",name,client);
                 if(rc<0 || rc>left) {
-                    BDBG_MODULE_MSG(BMRC_MONITOR,("clients: %s..",buf));
+                    BDBG_MODULE_MSG(BMRC_MONITOR_PRINT,("clients: %s..",buf));
                     left = sizeof(buf);
                     buf_off = 0;
                 } else {
                     buf_off+=rc;
+                    left -= rc;
                 }
             }
         }
     }
     if(buf_off) {
-        BDBG_MODULE_MSG(BMRC_MONITOR,("clients: %s",buf));
+        BDBG_MODULE_MSG(BMRC_MONITOR_PRINT,("clients: %s",buf));
         buf_off = 0;
     }
     for(i=sizeof(hwBlocks)-1;i>=0;i--) {

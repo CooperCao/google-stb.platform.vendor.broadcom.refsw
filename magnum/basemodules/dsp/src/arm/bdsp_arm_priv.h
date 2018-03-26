@@ -581,6 +581,11 @@ BERR_Code BDSP_Arm_P_GetAudioOutputPointers(
     BDSP_ArmCapture *pArmCap /* [out] Capture Handle */
     );
 
+BERR_Code BDSP_Arm_P_StageGetContext(
+    void *pStageHandle,
+    BDSP_ContextHandle *pContextHandle /* [out] */
+    );
+
 BERR_Code BDSP_Arm_P_AudioCaptureCreate(
     void *pTaskHandle,
     const BDSP_AudioCaptureCreateSettings *pCaptureCreateSettings,

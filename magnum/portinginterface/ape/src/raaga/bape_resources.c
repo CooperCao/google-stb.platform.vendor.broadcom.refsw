@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,9 +43,16 @@
 #include "bkni.h"
 #include "bape.h"
 #include "bape_priv.h"
+#include "bape_buffer.h"
+#if BAPE_CHIP_MAX_HW_MIXERS > 0
 #include "bchp_aud_fmm_dp_ctrl0.h"
+#endif
+#if BAPE_CHIP_MAX_SRCS > 0
 #include "bchp_aud_fmm_src_ctrl0.h"
+#endif
+#if BAPE_CHIP_MAX_SFIFOS > 0
 #include "bchp_aud_fmm_bf_ctrl.h"
+#endif
 
 BDBG_MODULE(bape_resources);
 
@@ -60,6 +67,9 @@ BDBG_MODULE(bape_resources);
 void BAPE_P_ReleaseUnusedPathResources(BAPE_Handle handle)
 {
     unsigned i;
+
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(i);
 
 #if BAPE_CHIP_MAX_DECODERS > 0
     for ( i = 0; i < BAPE_CHIP_MAX_DECODERS; i++ )
@@ -90,7 +100,7 @@ void BAPE_P_ReleaseUnusedPathResources(BAPE_Handle handle)
 #endif
 }
 
-BERR_Code BAPE_P_AllocateInputBuffers(BAPE_Handle handle, BAPE_Connector input)
+BERR_Code BAPE_P_AllocateInputBuffers(BAPE_Handle handle, BAPE_Connector input, BAPE_BufferInterfaceType type)
 {
     unsigned i, numChannelPairs;
     bool needToAllocate=false;
@@ -129,10 +139,40 @@ BERR_Code BAPE_P_AllocateInputBuffers(BAPE_Handle handle, BAPE_Connector input)
         return BERR_SUCCESS;
     }
 
-    errCode = BAPE_P_AllocateBuffers(handle, &input->format, input->pBuffers);
+    errCode = BAPE_P_AllocateBuffers(handle, &input->format, type, input->pBuffers);
     if ( errCode )
     {
         return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+    }
+
+    /* Create buffer group for this Path Connector */
+    if ( type == BAPE_BufferInterfaceType_eDram )
+    {
+        BAPE_BufferGroupOpenSettings bgOpenSettings;
+
+        BAPE_BufferGroup_GetDefaultOpenSettings(&bgOpenSettings);
+        bgOpenSettings.type = BAPE_BufferType_eReadWrite;
+        bgOpenSettings.bufferSize = input->pBuffers[0]->bufferSize;
+        bgOpenSettings.interleaved = true;
+        bgOpenSettings.numChannels = numChannelPairs;
+        for (i = 0; i < numChannelPairs; i++)
+        {
+            bgOpenSettings.buffers[i*2].pInterface = input->pBuffers[i]->pBufferInterface;
+            bgOpenSettings.buffers[i*2].interfaceBlock = input->pBuffers[i]->bufferInterfaceBlock;
+            bgOpenSettings.buffers[i*2].interfaceOffset = input->pBuffers[i]->bufferInterfaceOffset;
+            bgOpenSettings.buffers[i*2].pBuffer = input->pBuffers[i]->pMemory;
+        }
+
+        errCode = BAPE_BufferGroup_Open(handle, &bgOpenSettings, &input->bufferGroupHandle);
+        if ( errCode != BERR_SUCCESS || input->bufferGroupHandle == NULL )
+        {
+            BDBG_ERR(("ERROR, unable to create buffer interface"));
+            return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+        }
+
+        /* TBD7211 - probably remove this. Already flushed during BAPE_P_AllocateBuffers()
+           Flush newly created group in case we had stale data in any of the buffers */
+        BAPE_BufferGroup_Flush(input->bufferGroupHandle);
     }
 
     return BERR_SUCCESS;
@@ -145,12 +185,18 @@ void BAPE_P_FreeInputBuffers(BAPE_Handle handle, BAPE_Connector input)
     BDBG_ASSERT(input->useBufferPool);
 
     BDBG_MSG(("Free buffers for %s %s", input->pParent->pName, input->pName));
+    if ( input->bufferGroupHandle )
+    {
+        BAPE_BufferGroup_Close(input->bufferGroupHandle);
+        input->bufferGroupHandle = NULL;
+    }
     BAPE_P_FreeBuffers(handle, input->pBuffers);
 }
 
 BERR_Code BAPE_P_AllocateBuffers(
     BAPE_Handle deviceHandle,
-    const BAPE_FMT_Descriptor *pDesc, 
+    const BAPE_FMT_Descriptor *pDesc,
+    BAPE_BufferInterfaceType type,
     BAPE_BufferNode *pBuffers[BAPE_ChannelPair_eMax]
     )
 {
@@ -187,6 +233,17 @@ BERR_Code BAPE_P_AllocateBuffers(
                     deviceHandle->buffers[pool].maxUsed = BAPE_P_MAX((deviceHandle->buffers[pool].numBuffers - deviceHandle->buffers[pool].numFreeBuffers), deviceHandle->buffers[pool].maxUsed);
                     #endif
 
+                    pBuffers[i]->bufferInterfaceType = type;
+                    if ( type == BAPE_BufferInterfaceType_eDram )
+                    {
+                        BDBG_ASSERT( pBuffers[i]->pBufferInterface != NULL );
+                        pBuffers[i]->pBufferInterface->block = pBuffers[i]->block;
+                        pBuffers[i]->pBufferInterface->base = pBuffers[i]->offset;
+                        pBuffers[i]->pBufferInterface->read = pBuffers[i]->offset;
+                        pBuffers[i]->pBufferInterface->valid = pBuffers[i]->offset;
+                        pBuffers[i]->pBufferInterface->end = pBuffers[i]->offset + pBuffers[i]->bufferSize;
+                        BAPE_FLUSHCACHE_ISRSAFE(pBuffers[i]->bufferInterfaceBlock, pBuffers[i]->pBufferInterface, sizeof(BAPE_BufferInterface));
+                    }
 
                     BDBG_MSG(("Allocated Buffer node %p", (void *)pBuffers[i]));
                 }
@@ -229,6 +286,12 @@ void BAPE_P_FreeBuffers(
             BLST_S_REMOVE(&deviceHandle->buffers[pool].allocatedList, pBuffers[i], BAPE_BufferNode, node);
             BLST_S_INSERT_HEAD(&deviceHandle->buffers[pool].freeList, pBuffers[i], node);
             deviceHandle->buffers[pool].numFreeBuffers++;
+            if ( pBuffers[i]->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
+            {
+                BDBG_ASSERT( pBuffers[i]->pBufferInterface != NULL );
+                BKNI_Memset(pBuffers[i]->pBufferInterface, 0, sizeof(BAPE_BufferInterface));
+                BAPE_FLUSHCACHE_ISRSAFE(pBuffers[i]->bufferInterfaceBlock, pBuffers[i]->pBufferInterface, sizeof(BAPE_BufferInterface));
+            }
             pBuffers[i]->allocated = false;
             pBuffers[i] = NULL;
         }
@@ -354,58 +417,74 @@ static BERR_Code BAPE_P_GetFmmResourceArray(BAPE_Handle handle, BAPE_FmmResource
 
     switch ( resourceType )
     {
+    #if BAPE_CHIP_MAX_SFIFOS > 0
     case BAPE_FmmResourceType_eSfifo:
         pResourceArray = handle->sfifoAllocated;
         arraySize = BAPE_CHIP_MAX_SFIFOS;
         break;
+    #endif
+    #if BAPE_CHIP_MAX_DFIFOS > 0
     case BAPE_FmmResourceType_eDfifo:
         pResourceArray = handle->dfifoAllocated;
         arraySize = BAPE_CHIP_MAX_DFIFOS;
         break;
+    #endif
+    #if BAPE_CHIP_MAX_SRCS > 0
     case BAPE_FmmResourceType_eSrc:
         pResourceArray = handle->srcAllocated;
         arraySize = BAPE_CHIP_MAX_SRCS;
         break;
+    #endif
+    #if BAPE_CHIP_MAX_HW_MIXERS > 0
     case BAPE_FmmResourceType_eMixer:
         pResourceArray = handle->mixerAllocated;
-        arraySize = BAPE_CHIP_MAX_MIXERS;
+        arraySize = BAPE_CHIP_MAX_HW_MIXERS;
         break;
+    #endif
+    #if BAPE_CHIP_MAX_MIXER_PLAYBACKS > 0
     case BAPE_FmmResourceType_ePlayback:
         pResourceArray = handle->playbackAllocated;
         arraySize = BAPE_CHIP_MAX_MIXER_PLAYBACKS;
         break;
+    #endif
+    #if BAPE_CHIP_MAX_DUMMYSINKS > 0
     case BAPE_FmmResourceType_eDummysink:
         pResourceArray = handle->dummysinkAllocated;
         arraySize = BAPE_CHIP_MAX_DUMMYSINKS;
         break;
+    #endif
+    #if BAPE_CHIP_MAX_LOOPBACKS > 0
     case BAPE_FmmResourceType_eLoopback:
         pResourceArray = handle->loopbackAllocated;
         arraySize = BAPE_CHIP_MAX_LOOPBACKS;
         break;  
-#if BAPE_CHIP_MAX_FS > 0
+    #endif
+    #if BAPE_CHIP_MAX_FS > 0
     case BAPE_FmmResourceType_eFs:
         pResourceArray = handle->fsAllocated;
         arraySize = BAPE_CHIP_MAX_FS;
         break;
-#endif
+    #endif
+    #if BAPE_CHIP_MAX_ADAPTRATE_CONTROLLERS > 0
     case BAPE_FmmResourceType_eAdaptiveRate:
         pResourceArray = handle->adaptRateAllocated;
         arraySize = BAPE_CHIP_MAX_ADAPTRATE_CONTROLLERS;
         break;
-#if BAPE_CHIP_MAX_FCI_SPLITTERS > 0
+    #endif
+    #if BAPE_CHIP_MAX_FCI_SPLITTERS > 0
     case BAPE_FmmResourceType_eFciSplitter:
         pResourceArray = handle->fciSplitterAllocated;
         arraySize = BAPE_CHIP_MAX_FCI_SPLITTERS;
         multichannelFromEnd = false;
         break;
-#endif
-#if BAPE_CHIP_MAX_FCI_SPLITTER_OUTPUTS > 0
+    #endif
+    #if BAPE_CHIP_MAX_FCI_SPLITTER_OUTPUTS > 0
     case BAPE_FmmResourceType_eFciSplitterOutput:
         pResourceArray = handle->fciSplitterOutputAllocated;
         arraySize = BAPE_CHIP_MAX_FCI_SPLITTER_OUTPUTS;
         multichannelFromEnd = false;
         break;
-#endif
+    #endif
     default:
         BDBG_ERR(("Unrecognized resource type %u", resourceType));
         errCode = BERR_TRACE(BERR_INVALID_PARAMETER);

@@ -294,6 +294,7 @@ bool mp4_parser_scan_movie_fragment(mp4_parser_handle_t handle, mp4_parse_frag_i
 
             pSample->nbOfEntries = 1;
             pSample->entries[0].bytesOfClearData = pRunSample->size;
+            pSample->size = pRunSample->size;
             pSample->entries[0].bytesOfEncData = 0;
         }
     }

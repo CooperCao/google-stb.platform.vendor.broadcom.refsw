@@ -66,8 +66,8 @@ static const size_t WVCDM_MAC_KEY_SIZE = 32;
 #define DRM_WVOEMCRYPTO_NUM_SESSION_KEY_SLOT 2
 #define DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT 20
 
-#define DRM_WVOEMCRYPTO_SESSION_KEY_CACHE 0
-#define DRM_WVOEMCRYPTO_CENTRAL_KEY_CACHE 1
+#define DRM_WVOEMCRYPTO_CENTRAL_KEY_CACHE 0x1
+#define DRM_WVOEMCRYPTO_BIG_USAGE_TABLE_FORMAT 0x2
 
 typedef struct Drm_WVOemCryptoParamSettings_t
 {
@@ -75,6 +75,7 @@ typedef struct Drm_WVOemCryptoParamSettings_t
     DrmCommonInit_TL_t drmCommonInit;
     DrmCommonOperationStruct_t drmCommonOpStruct;
     char * drm_bin_file_path;
+    uint32_t api_version;
 }Drm_WVOemCryptoParamSettings_t;
 
 typedef enum Drm_WVOemCryptoCipherMode {
@@ -254,7 +255,20 @@ typedef enum Sage_OEMcryptoResult {
     SAGE_OEMCrypto_ERROR_INVALID_RSA_KEY              = 35,
     SAGE_OEMCrypto_ERROR_KEY_EXPIRED                  = 36,
     SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES       = 37,
-    SAGE_OEMCrypto_ERROR_INSUFFICIENT_HDCP            = 38
+    SAGE_OEMCrypto_ERROR_INSUFFICIENT_HDCP            = 38,
+    SAGE_OEMCrypto_ERROR_BUFFER_TOO_LARGE             = 39,
+    SAGE_OEMCrypto_WARNING_GENERATION_SKEW            = 40,  // Warning, not an error.
+    SAGE_OEMCrypto_ERROR_GENERATION_SKEW              = 41,
+    SAGE_OEMCrypto_LOCAL_DISPLAY_ONLY                 = 42,  // Info, not an error.
+    SAGE_OEMCrypto_ERROR_ANALOG_OUTPUT                = 43,
+    SAGE_OEMCrypto_ERROR_WRONG_PST                    = 44,
+    SAGE_OEMCrypto_ERROR_WRONG_KEYS                   = 45,
+    SAGE_OEMCrypto_ERROR_MISSING_MASTER               = 46,
+    SAGE_OEMCrypto_ERROR_LICENSE_INACTIVE             = 47,
+    SAGE_OEMCrypto_ERROR_ENTRY_NEEDS_UPDATE           = 48,
+    SAGE_OEMCrypto_ERROR_ENTRY_IN_USE                 = 49,
+    SAGE_OEMCrypto_ERROR_USAGE_TABLE_UNRECOVERABLE    = 50,  // Reserved. Do not use.
+
 } Sage_OEMCryptoResult;
 
 
@@ -295,7 +309,21 @@ DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
                                    void* key_array,
                                    const uint8_t* pst,
                                    uint32_t pst_length,
+                                   const uint8_t* srm_requirement,
                                    int * wVRc);
+
+DrmRC drm_WVOemCrypto_LoadKeys_V11_or_V12(uint32_t session,
+                                          const uint8_t* message,
+                                          uint32_t message_length,
+                                          const uint8_t* signature,
+                                          uint32_t signature_length,
+                                          const uint8_t* enc_mac_key_iv,
+                                          const uint8_t* enc_mac_keys,
+                                          uint32_t num_keys,
+                                          void* key_array,
+                                          const uint8_t* pst,
+                                          uint32_t pst_length,
+                                          int * wVRc);
 
 DrmRC drm_WVOemCrypto_LoadKeys_V9_or_V10(uint32_t session,
                                    const uint8_t* message,
@@ -474,9 +502,9 @@ DrmRC DRM_WVOemCrypto_UpdateUsageTable(int *wvRc);
  *
  *
  * **************************************************************************************************/
-DrmRC DRM_WVOemCrypto_DeactivateUsageEntry(uint8_t *pst,
-                                           uint32_t pst_length,
-                                           int *wvRc);
+DrmRC DRM_WVOemCrypto_DeactivateUsageEntry_V12(uint8_t *pst,
+                                               uint32_t pst_length,
+                                               int *wvRc);
 
 
 
@@ -488,9 +516,9 @@ typedef struct WvOEMCryptoPstReport
     uint8_t clock_security_level;
     uint8_t pst_length;
     uint8_t padding;   /* make int64's word aligned. */
-    uint8_t seconds_since_license_received[8]; /* (present_time - time_of_license_received) */
-    uint8_t seconds_since_first_decrypt[8]; /* (present_time - time_of_first_decrypt) */
-    uint8_t seconds_since_last_decrypt[8]; /* (present_time - time_of_last_decrypt) */
+    uint64_t seconds_since_license_received; /* (present_time - time_of_license_received) */
+    uint64_t seconds_since_first_decrypt; /* (present_time - time_of_first_decrypt) */
+    uint64_t seconds_since_last_decrypt; /* (present_time - time_of_last_decrypt) */
     uint8_t pst[];
 }WvOEMCryptoPstReport;
 
@@ -802,6 +830,62 @@ DrmRC drm_WVOemCrypto_DecryptCENC(uint32_t session,
                                      void *pattern,
                                      uint8_t subsample_flags,
                                      int *wvRc);
+
+DrmRC DRM_WVOemCrypto_Create_Usage_Table_Header(uint8_t *header_buffer,
+                                                uint32_t *header_buffer_length,
+                                                int* wvRc);
+
+DrmRC DRM_WVOemCrypto_Load_Usage_Table_Header(const uint8_t *header_buffer,
+                                              uint32_t header_buffer_length,
+                                              int* wvRc);
+
+DrmRC DRM_WVOemCrypto_Create_New_Usage_Entry(uint32_t session,
+                                             uint32_t *usage_entry_number,
+                                             int *wvRc);
+
+DrmRC DRM_WVOemCrypto_Load_Usage_Entry(uint32_t session,
+                                       uint32_t usage_entry_number,
+                                       const uint8_t *buffer,
+                                       uint32_t buffer_length,
+                                       int *wvRc);
+
+DrmRC DRM_WVOemCrypto_Update_Usage_Entry(uint32_t session,
+                                         uint8_t* header_buffer,
+                                         uint32_t *header_buffer_length,
+                                         uint8_t *entry_buffer,
+                                         uint32_t *entry_buffer_length,
+                                         int *wvRc);
+
+DrmRC DRM_WVOemCrypto_Deactivate_Usage_Entry(uint32_t session,
+                                             uint8_t *pst,
+                                             uint32_t pst_length,
+                                             int *wvRc);
+
+DrmRC DRM_WVOemCrypto_Shrink_Usage_Table_Header(uint32_t new_entry_count,
+                                                uint8_t *header_buffer,
+                                                uint32_t *header_buffer_length,
+                                                int *wvRc);
+
+DrmRC DRM_WVOemCrypto_Move_Entry(uint32_t session,
+                                 uint32_t new_index,
+                                 int *wvRc);
+
+DrmRC DRM_WVOemCrypto_Copy_Old_Usage_Entry(uint32_t session,
+                                           const uint8_t *pst,
+                                           uint32_t pst_length,
+                                           int *wvRc);
+
+DrmRC DRM_WVOemCrypto_Create_Old_Usage_Entry(uint64_t time_since_license_received,
+                                             uint64_t time_since_first_decrypt,
+                                             uint64_t time_since_last_decrypt,
+                                             uint8_t status,
+                                             uint8_t *server_mac_key,
+                                             uint8_t *client_mac_key,
+                                             const uint8_t *pst,
+                                             uint32_t pst_length,
+                                             int *wvRc);
+
+bool DRM_WVOemCrypto_IsAntiRollbackHwPresent(void);
 
 #ifdef __cplusplus
 }

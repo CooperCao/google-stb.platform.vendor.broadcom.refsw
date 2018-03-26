@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2008-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -81,6 +81,8 @@
 #endif
 #if defined BDSP_RAAGA_SUPPORT
 #include "bdsp_raaga_img.h"
+#elif BDSP_ARM_AUDIO_SUPPORT
+#include "bdsp_arm_img.h"
 #endif
 #include "nexus_platform_image.h"
 #if NEXUS_HAS_VIDEO_ENCODER && !NEXUS_NUM_DSP_VIDEO_ENCODERS
@@ -110,6 +112,9 @@ extern BIMG_Interface SCM_IMAGE_Interface;
 #endif
 #if NEXUS_FRONTEND_7584
 #include "bhab_7584_fw.h"
+#endif
+#if NEXUS_FRONTEND_7255
+#include "bhab_7255_fw.h"
 #endif
 #if NEXUS_FRONTEND_3461
 #include "bhab_3461_fw.h"
@@ -847,8 +852,14 @@ static NEXUS_Error NEXUS_Platform_P_InitImage(const NEXUS_PlatformImgInterface *
     }
     #endif
 #endif
-    #if defined BDSP_RAAGA_SUPPORT
+    #if BDSP_RAAGA_SUPPORT
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BDSP_IMG_Interface, BDSP_IMG_Context, NEXUS_CORE_IMG_ID_RAP);
+    if(rc != NEXUS_SUCCESS)
+    {
+        return BERR_TRACE(NEXUS_UNKNOWN);
+    }
+    #elif BDSP_ARM_AUDIO_SUPPORT
+    rc = Nexus_Platform_P_Image_Interfaces_Register(&BDSP_ARM_IMG_Interface, BDSP_ARM_IMG_Context, NEXUS_CORE_IMG_ID_RAP);
     if(rc != NEXUS_SUCCESS)
     {
         return BERR_TRACE(NEXUS_UNKNOWN);
@@ -898,6 +909,9 @@ static NEXUS_Error NEXUS_Platform_P_InitImage(const NEXUS_PlatformImgInterface *
 #endif
 #if NEXUS_FRONTEND_7584
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_CTFE_IMG_Interface, (void *)&bcm7584_leap_image, NEXUS_CORE_IMG_ID_FRONTEND_7584); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
+#endif
+#if NEXUS_FRONTEND_7255
+    rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_CTFE_IMG_Interface, (void *)&bcm7255_leap_image, NEXUS_CORE_IMG_ID_FRONTEND_7255); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
 #endif
 #if NEXUS_FRONTEND_3461
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_CTFE_IMG_Interface, (void *)&bcm3461_leap_image, NEXUS_CORE_IMG_ID_FRONTEND_3461); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }

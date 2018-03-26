@@ -4237,7 +4237,7 @@ static void drawarrays_or_elements(GLenum mode, GLint first, GLsizei count, bool
    }
 
 #if (__mips__) || (__arm__ && __ARM_FEATURE_UNALIGNED != 1)
-   if (!glxx_is_aligned(type, (size_t)indices)) {
+   if (check_type && !glxx_is_aligned(type, (size_t)indices)) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
       goto end;
    }

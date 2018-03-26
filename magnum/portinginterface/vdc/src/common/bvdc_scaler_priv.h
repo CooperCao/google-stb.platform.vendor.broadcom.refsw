@@ -786,11 +786,11 @@ void BVDC_P_Scaler_SetEnable_isr
     ( BVDC_P_Scaler_Handle             hScaler,
       bool                             bEnable );
 
-void BVDC_P_GetFirCoeffs_isr
+void BVDC_P_GetFirCoeffs_isrsafe
     ( const BVDC_P_FirCoeffTbl       **ppHorzFirCoeffTbl,
     const BVDC_P_FirCoeffTbl       **ppVertFirCoeffTbl );
 
-void BVDC_P_GetChromaFirCoeffs_isr
+void BVDC_P_GetChromaFirCoeffs_isrsafe
     ( const BVDC_P_FirCoeffTbl       **ppHorzFirCoeffTbl,
       const BVDC_P_FirCoeffTbl       **ppVertFirCoeffTbl );
 

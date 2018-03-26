@@ -195,7 +195,7 @@ NEXUS_Error NEXUS_VideoDecoder_CreateStripedMosaicSurfaces(
 
 /**
 Summary:
-Destory the surfaces returned by NEXUS_VideoDecoder_CreateStripedMosaicSurfaces
+Destroy the surfaces returned by NEXUS_VideoDecoder_CreateStripedMosaicSurfaces
 **/
 void NEXUS_VideoDecoder_DestroyStripedMosaicSurfaces( /* attr{local=true} */
     NEXUS_VideoDecoderHandle videoDecoder,

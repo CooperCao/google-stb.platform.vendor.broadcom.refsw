@@ -14,7 +14,7 @@
 #include "nexus_platform.h"
 
 #include <cutils/properties.h>
-#include <cutils/log.h>
+#include <log/log.h>
 
 #define NX_MMA "ro.nx.mma"
 

@@ -72,7 +72,10 @@ NEXUS_Error NEXUS_OtpKey_GetInfo( unsigned index, NEXUS_OtpKeyInfo *pKeyInfo )
     BKNI_Memset( pKeyInfo, 0, sizeof(*pKeyInfo) );
 
     /* copy data back */
-    BKNI_Memcpy( pKeyInfo->hash, keyInfo.hash, sizeof(pKeyInfo->hash) );
+    if( keyInfo.hashValid ){
+        pKeyInfo->hashValid = true;
+        BKNI_Memcpy( pKeyInfo->hash, keyInfo.hash, sizeof(pKeyInfo->hash) );
+    }
     BKNI_Memcpy( pKeyInfo->id, keyInfo.id, sizeof(pKeyInfo->id) );
     pKeyInfo->blackBoxId        = keyInfo.blackBoxId;
     pKeyInfo->caKeyLadderAllow  = keyInfo.caKeyLadderAllow;
@@ -82,6 +85,7 @@ NEXUS_Error NEXUS_OtpKey_GetInfo( unsigned index, NEXUS_OtpKeyInfo *pKeyInfo )
     pKeyInfo->sageKeyLadderAllow = keyInfo.sageKeyLadderAllow;
     pKeyInfo->rootKeySwapAllow   = keyInfo.rootKeySwapAllow;
     pKeyInfo->deobfuscationEnabled = keyInfo.deobfuscationEnabled;
+    pKeyInfo->fixedDeobfuscationEnabled = keyInfo.fixedDeobfuscationEnabled;
     pKeyInfo->customerMode      = keyInfo.customerMode;
 
     BDBG_LEAVE( NEXUS_OtpKey_GetInfo );

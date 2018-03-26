@@ -55,7 +55,7 @@
 #define   BHSM_CONTIGUOUS_MEMORY_SIZE       (256+1024*64) /* 64 KBytes, can be adjusted later*/
 #define   BHSM_SHA_BUFFER_SIZE              (64*1024)
 #define   BHSM_EXTIVKEY_BUFFER_SIZE         (64)          /* 0 - 31 : IV    -  32 - 63 : Key    */
-#define   BHSM_NUM_BYPASS_KEYLSOTS          (2)           /* one for G->G transfers, one for GR->R transfers*/
+#define   BHSM_NUM_BYPASS_KEYSLOTS          (2)           /* one for G->G transfers, one for GR->R transfers*/
 
 #ifdef __cplusplus
 extern "C" {
@@ -83,6 +83,7 @@ extern "C" {
 
 #define BHSM_HAMCSHA1_CONTEXTSWITCH_NUMBER     3
 
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
 
 typedef struct BHSM_P_CAKeySlotTypeInfo {
     unsigned     int        unKeySlotNum;
@@ -261,16 +262,19 @@ typedef struct BHSM_P_Handle
 
 } BHSM_P_Handle;
 
-
+/* check if BFW is running from ROM */
 bool isSecurityInRom( BHSM_P_Handle  *hHsm );
 
+/* check if BFW supports keyslot ownership */
 bool isKeySlotOwershipSupported( BHSM_P_Handle  *hHsm );
 
-BERR_Code  loadBspVersion( BHSM_Handle hHsm );              /* load the BFW version from the BFW. */
+/* load the BFW version number */
+BERR_Code  loadBspVersion( BHSM_Handle hHsm );
 
-bool isBfwVersion_GreaterOrEqual( BHSM_Handle hHsm, unsigned major, unsigned minor, unsigned subMinor ); /* Returns true if current BFW is greater than or equal to specified value */
+/* check BFW version. Returns true if current BFW is greater than or equal to specified value. */
+bool isBfwVersion_GreaterOrEqual( BHSM_Handle hHsm, unsigned major, unsigned minor, unsigned subMinor );
 
-/* Get the pointer to a keyslot for a given keySlotType and keysloto number. */
+/* Get the pointer to a keyslot for a given keySlotType and keyslot number. */
 BERR_Code BHSM_P_GetKeySlot(
         BHSM_P_Handle  *hHsm,
         BHSM_P_CAKeySlotInfo_t **ppKeyslot,
@@ -278,6 +282,8 @@ BERR_Code BHSM_P_GetKeySlot(
         unsigned keySlotNum
     );
 
+/* initialise the keyladders. */
+BERR_Code  BHSM_InitialiseKeyLadders ( BHSM_Handle hHsm );
 
 #ifdef __cplusplus
 }

@@ -42,18 +42,18 @@
 #include "bhsm_otp_id.h"
 #include "bhsm_private.h"
 #include "bchp_jtag_otp.h"
+#include "bhsm_otp_configuration.h"
 
 
 BDBG_MODULE(BHSM);
 
-BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
-
 static BERR_Code BHSM_P_WaitJtagCtrl( BHSM_Handle hHsm, uint32_t waitbit );
 #if BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(4,0)
-static BERR_Code BCSD_P_WriteJtagCtrl3( BHSM_Handle hHsm, uint32_t ctrl_0, uint32_t ctrl_3, uint32_t waitbit );
+static BERR_Code BHSM_P_WriteJtagCtrl3( BHSM_Handle hHsm, uint32_t ctrl_0, uint32_t ctrl_3, uint32_t waitbit );
 #endif
 static BERR_Code BHSM_ReadOtpData( BHSM_Handle hHsm, uint32_t row, uint32_t *pData );
 
+#if BHSM_SUPPORT_DEBUG_READ_OTP_TYPE
 
 /*
  * Return the masked off values for the chipset extension.
@@ -93,7 +93,7 @@ BERR_Code BHSM_DEBUG_GetChipsetOtpType( BHSM_Handle hHsm, char *pLetter1, char *
     BDBG_LEAVE( BHSM_DEBUG_GetChipsetOtpType );
     return BERR_SUCCESS;
 }
-
+#endif
 /*
    '****************************************************************************************
    '    read a word from production OTP
@@ -102,6 +102,9 @@ BERR_Code BHSM_DEBUG_GetChipsetOtpType( BHSM_Handle hHsm, char *pLetter1, char *
 static BERR_Code BHSM_ReadOtpData( BHSM_Handle hHsm, uint32_t row, uint32_t *pData )
 {
     uint32_t regVal;
+
+    /*Ensure that any pending command is complete before starting*/
+    if( BERR_SUCCESS != BHSM_P_WaitJtagCtrl( hHsm, 0x2 ) ) { return BERR_TRACE( BHSM_STATUS_FAILED ); }
 
     regVal = BREG_Read32( hHsm->regHandle, BCHP_JTAG_OTP_GENERAL_CTRL_1 );
     BREG_Write32( hHsm->regHandle, BCHP_JTAG_OTP_GENERAL_CTRL_1, (regVal | 0x00000001) );
@@ -115,10 +118,10 @@ static BERR_Code BHSM_ReadOtpData( BHSM_Handle hHsm, uint32_t row, uint32_t *pDa
 
     if( BERR_SUCCESS != BHSM_P_WaitJtagCtrl( hHsm, 0x2 ) ) { return BERR_TRACE( BHSM_STATUS_FAILED ); }
   #else
-    if( BERR_SUCCESS != BCSD_P_WriteJtagCtrl3( hHsm, 0x00200003, 0x0000000f, 0x1 ) ) { return BERR_TRACE( BHSM_STATUS_FAILED ); }
-    if( BERR_SUCCESS != BCSD_P_WriteJtagCtrl3( hHsm, 0x00200003, 0x00000004, 0x1 ) ) { return BERR_TRACE( BHSM_STATUS_FAILED ); }
-    if( BERR_SUCCESS != BCSD_P_WriteJtagCtrl3( hHsm, 0x00200003, 0x00000008, 0x1 ) ) { return BERR_TRACE( BHSM_STATUS_FAILED ); }
-    if( BERR_SUCCESS != BCSD_P_WriteJtagCtrl3( hHsm, 0x00200003, 0x0000000d, 0x1 ) ) { return BERR_TRACE( BHSM_STATUS_FAILED ); }
+    if( BERR_SUCCESS != BHSM_P_WriteJtagCtrl3( hHsm, 0x00200003, 0x0000000f, 0x1 ) ) { return BERR_TRACE( BHSM_STATUS_FAILED ); }
+    if( BERR_SUCCESS != BHSM_P_WriteJtagCtrl3( hHsm, 0x00200003, 0x00000004, 0x1 ) ) { return BERR_TRACE( BHSM_STATUS_FAILED ); }
+    if( BERR_SUCCESS != BHSM_P_WriteJtagCtrl3( hHsm, 0x00200003, 0x00000008, 0x1 ) ) { return BERR_TRACE( BHSM_STATUS_FAILED ); }
+    if( BERR_SUCCESS != BHSM_P_WriteJtagCtrl3( hHsm, 0x00200003, 0x0000000d, 0x1 ) ) { return BERR_TRACE( BHSM_STATUS_FAILED ); }
 
     BREG_Write32( hHsm->regHandle, BCHP_JTAG_OTP_GENERAL_CTRL_3, row*32     );
     BREG_Write32( hHsm->regHandle, BCHP_JTAG_OTP_GENERAL_CTRL_0, 0x00000000 );
@@ -134,6 +137,42 @@ static BERR_Code BHSM_ReadOtpData( BHSM_Handle hHsm, uint32_t row, uint32_t *pDa
     return BERR_SUCCESS;
 }
 
+BERR_Code BHSM_ReadProductionOtpData( BHSM_Handle hHsm, BHSM_ReadProductionOtpIO_t* pProdOTPData )
+{
+    BERR_Code rc =  BERR_SUCCESS;
+    uint32_t data1, data2;
+
+    if( hHsm->currentSettings.clientType != BHSM_ClientType_eSAGE )
+    {
+        rc = BERR_TRACE( BHSM_STATUS_FAILED ); /* Function can only be called from SAGE context. */
+        goto EXIT;
+    }
+
+    if( BHSM_ReadOtpData(hHsm, pProdOTPData->row, &data1) )
+    {
+        rc = BERR_TRACE( BHSM_STATUS_FAILED );
+        goto EXIT;
+    }
+
+    if( BHSM_ReadOtpData(hHsm, pProdOTPData->row, &data2) )
+    {
+        rc = BERR_TRACE( BHSM_STATUS_FAILED );
+        goto EXIT;
+    }
+
+    if (data1 != data2)
+    {
+        rc = BERR_TRACE( BHSM_STATUS_FAILED );
+        goto EXIT;
+    }
+    else
+    {
+        pProdOTPData->data = data1;
+    }
+
+EXIT:
+    return rc;
+}
 
 /* Support functions for BHSM_ReadOtpData */
 /* Wait for a bit in general status 1, or timeout */
@@ -158,7 +197,7 @@ static BERR_Code BHSM_P_WaitJtagCtrl( BHSM_Handle hHsm, uint32_t waitbit )
 
 #if BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(4,0)
 /* Write to JTAG CTRL 3 */
-static BERR_Code BCSD_P_WriteJtagCtrl3( BHSM_Handle hHsm, uint32_t ctrl_0, uint32_t ctrl_3, uint32_t waitbit )
+static BERR_Code BHSM_P_WriteJtagCtrl3( BHSM_Handle hHsm, uint32_t ctrl_0, uint32_t ctrl_3, uint32_t waitbit )
 {
     BREG_Write32( hHsm->regHandle, BCHP_JTAG_OTP_GENERAL_CTRL_3, (unsigned) ctrl_3 );
     BREG_Write32( hHsm->regHandle, BCHP_JTAG_OTP_GENERAL_CTRL_0, (unsigned) ctrl_0 );

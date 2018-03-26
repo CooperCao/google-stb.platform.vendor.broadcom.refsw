@@ -41,8 +41,14 @@
 
 #include "brcmstb_params.h"
 
+/* !!! For Bolt backward compatibility only !!! */
+#define BRCMSTB_CHIP_ID_ADDR            0xf0404000
+
+
+/* UART clock and baud rate */
 #define BRCMSTB_UART_CLK                81000000
 #define BRCMSTB_BAUD_RATE               115200
+
 
 /* GIC v2 memory map, from start of GIC base */
 #define BRCMSTB_GIC_DIST_BASE           0x1000
@@ -52,8 +58,6 @@
 
 #define BRCMSTB_GIC_MMAP_SIZE           0x8000
 
-/* !!! For Bolt backward compatibility only !!! */
-#define BRCMSTB_CHIP_ID_ADDR            0xf0404000
 
 /* Macros to retrieve Brcmstb SOC register group info */
 #define BRCMSTB_RGROUP_REV(rgname) \

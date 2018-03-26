@@ -161,13 +161,16 @@ public:
 
     virtual bool IsSecure() OVERRIDE { return true; }
 
-    void SetDmaJob(NEXUS_DmaJobHandle dmaJob) { m_dmaJob = dmaJob; }
+    void SetDmaJob(NEXUS_DmaJobHandle dmaJob) { m_dmaJob = dmaJob; m_givenDmaJob = true; }
+
 private:
     void PrivateCopy(void *pDest, const void *pSrc, uint32_t nSize, bool flush);
 
     static int s_nAllocatedSecureBuffers;
-    NEXUS_DmaHandle m_dmaHandle;
+
+    static NEXUS_DmaHandle s_dmaHandle;
     NEXUS_DmaJobHandle m_dmaJob;
+    bool m_givenDmaJob;
 };
 
 #define MAX_DESCRIPTORS 10
@@ -212,6 +215,9 @@ public:
     virtual bool SubmitScatterGather(IBuffer* buffer, bool last = false) = 0;
     virtual bool SubmitScatterGather(void* addr, uint32_t length, bool flush, bool last = false) = 0;
 
+    // Used to submit a sample with sub-samples with decrypted buffer
+    virtual bool SubmitSample(SampleInfo *pSample, IBuffer *clear, IBuffer *decrypted) = 0;
+
     // Used to push data to AV pipeline
     virtual bool Push(uint32_t size) = 0;
 
@@ -243,6 +249,8 @@ public:
 
     virtual bool SubmitScatterGather(IBuffer* buffer, bool last = false) OVERRIDE;
     virtual bool SubmitScatterGather(void* addr, uint32_t length, bool flush, bool last = false) OVERRIDE;
+
+    virtual bool SubmitSample(SampleInfo *pSample, IBuffer *clear, IBuffer *decrypted) OVERRIDE;
 
     virtual bool Push(uint32_t size) OVERRIDE;
 

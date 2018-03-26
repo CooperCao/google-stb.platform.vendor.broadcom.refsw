@@ -577,6 +577,89 @@ static void BDSP_Arm_P_DeInitDevice(
     BDBG_LEAVE(BDSP_Arm_P_DeInitDevice);
 }
 
+static BERR_Code BDSP_Arm_P_InitDebugInfrastructure(
+	BDSP_Arm *pDevice
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	unsigned index =0, dspIndex =0;
+
+	BDBG_ENTER(BDSP_Arm_P_InitDebugInfrastructure);
+
+	for(dspIndex=0;dspIndex<pDevice->numDsp;dspIndex++)
+	{
+		for(index=0; index< BDSP_DebugType_eLast;index++)
+		{
+			errCode = BDSP_P_CreateMsgQueue(
+				&pDevice->memInfo.debugQueueParams[dspIndex][index],
+				pDevice->regHandle,
+				0,
+				&(pDevice->hDebugQueue[dspIndex][index]));
+			if(errCode != BERR_SUCCESS)
+			{
+				BDBG_ERR(("BDSP_Arm_P_InitDebugInfrastructure: Unable to Create Queue for debug(%d) for Arm DSP %d", index, dspIndex));
+				errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+				BDBG_ASSERT(0);
+			}
+			if(pDevice->deviceSettings.debugSettings[index].enabled)
+			{
+				/* Initilaising the FIFO Registers */
+				errCode = BDSP_Arm_P_InitMsgQueue(
+					pDevice->hDebugQueue[dspIndex][index],
+					pDevice->memInfo.softFifo[dspIndex].Buffer);
+				if(errCode != BERR_SUCCESS)
+				{
+					BDBG_ERR(("BDSP_Arm_P_InitDebugInfrastructure: Unable to Initialise Queue for debug(%d) for Arm DSP %d", index,dspIndex));
+					errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+					BDBG_ASSERT(0);
+				}
+			}
+			else
+			{
+				/* Initilaising the FIFO Registers with Zeros*/
+				errCode = BDSP_Arm_P_InitZeroSizeMsgQueue(
+					pDevice->hDebugQueue[dspIndex][index],
+					pDevice->memInfo.softFifo[dspIndex].Buffer);
+				if(errCode != BERR_SUCCESS)
+				{
+					BDBG_ERR(("BDSP_Arm_P_InitDebugInfrastructure: Unable to Initialise Zero size Queue for debug(%d) for Arm DSP %d", index,dspIndex));
+					errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+					BDBG_ASSERT(0);
+				}
+			}
+		}
+	}
+
+	BDBG_LEAVE(BDSP_Arm_P_InitDebugInfrastructure);
+	return errCode;
+}
+
+static BERR_Code BDSP_Arm_P_UnInitDebugInfrastructure(
+	BDSP_Arm *pDevice
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	unsigned index =0, dspIndex =0;
+
+	BDBG_ENTER(BDSP_Arm_P_UnInitDebugInfrastructure);
+
+	for(dspIndex=0;dspIndex<pDevice->numDsp;dspIndex++)
+	{
+		for(index=0; index< BDSP_DebugType_eLast;index++)
+		{
+			errCode = BDSP_P_DestroyMsgQueue(pDevice->hDebugQueue[dspIndex][index]);
+			if(errCode != BERR_SUCCESS)
+			{
+				BDBG_ERR(("BDSP_Arm_P_UnInitDebugInfrastructure: Unable to Destroy Queue for debug(%d) for Arm DSP %d", index, dspIndex));
+				errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+				BDBG_ASSERT(0);
+			}
+		}
+	}
+
+	BDBG_LEAVE(BDSP_Arm_P_UnInitDebugInfrastructure);
+	return errCode;
+}
 static BERR_Code BDSP_Arm_P_ProgramRDB(
     BDSP_Arm *pDevice,
     unsigned  dspIndex
@@ -895,6 +978,15 @@ BERR_Code BDSP_Arm_P_Open(
         }
     }
 
+	/* Program the Debug Infrastructure */
+	errCode = BDSP_Arm_P_InitDebugInfrastructure(pDevice);
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Arm_P_Open: Unable to Initialise Debug Infrastructure for Arm DSP"));
+		errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
+		BDBG_ASSERT(0);
+	}
+
     BDBG_LEAVE(BDSP_Arm_P_Open);
     return errCode;
 }
@@ -935,6 +1027,13 @@ void BDSP_Arm_P_Close(
     }*/
 
 	BDSP_Arm_P_CloseUserApp(pDevice);
+
+	errCode = BDSP_Arm_P_UnInitDebugInfrastructure(pDevice);
+	if (BERR_SUCCESS != errCode)
+	{
+		BDBG_ERR(("BDSP_Arm_P_Close: Unable to UN-INIT the Debug Infrastructure for ARM!!!"));
+		errCode = BERR_TRACE(errCode);
+	}
 
     for(dspIndex = 0; dspIndex< pDevice->numDsp; dspIndex++)
     {
@@ -1626,6 +1725,7 @@ BERR_Code BDSP_Arm_P_CreateStage(
 #if !B_REFSW_MINIMAL
 	pArmStage->stage.removeOutput = BDSP_Arm_P_RemoveOutput;
 #endif /*!B_REFSW_MINIMAL*/
+	pArmStage->stage.getStageContext = BDSP_Arm_P_StageGetContext;
 
 	pArmStage->stage.removeInput = BDSP_Arm_P_RemoveInput;
 	pArmStage->stage.removeAllInputs = BDSP_Arm_P_RemoveAllInputs;
@@ -2228,6 +2328,22 @@ end:
 	return errCode;
 }
 
+BERR_Code BDSP_Arm_P_StageGetContext(
+    void *pStageHandle,
+    BDSP_ContextHandle *pContextHandle /* [out] */
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	BDSP_ArmStage *pArmStage = (BDSP_ArmStage *)pStageHandle;
+
+	BDBG_ENTER(BDSP_Arm_P_StageGetContext);
+	BDBG_OBJECT_ASSERT(pArmStage, BDSP_ArmStage);
+
+	*pContextHandle = &pArmStage->pContext->context;
+	BDBG_LEAVE(BDSP_Arm_P_StageGetContext);
+	return errCode;
+}
+
 void BDSP_Arm_P_GetStatus(
     void *pDeviceHandle,
     BDSP_Status *pStatus
@@ -2590,4 +2706,112 @@ BERR_Code BDSP_Arm_P_UnFreeze(
 end:
 	BDBG_LEAVE(BDSP_Arm_P_UnFreeze);
 	return errCode;
+}
+
+BERR_Code BDSP_Arm_P_GetDebugBuffer(
+    void       			   *pDeviceHandle,
+    BDSP_DebugType 	        debugType,
+    uint32_t 				dspIndex,
+    BDSP_MMA_Memory 	   *pBuffer,
+    size_t 				   *pSize
+)
+{
+	BERR_Code errCode = BERR_SUCCESS ;
+	BDSP_Arm *pDevice;
+	BDSP_MMA_Memory Memory;
+	dramaddr_t *pWriteAddr, *pReadAddr, *pBaseAddr, *pEndAddr;
+    dramaddr_t BaseAddr, ReadAddr, WriteAddr, EndAddr;
+	BDSP_P_MsgQueueHandle hDebugQueue;
+
+	BDBG_ENTER(BDSP_Arm_P_GetDebugBuffer);
+	BDBG_ASSERT(pBuffer);
+	BDBG_ASSERT(pSize);
+
+	pDevice = (BDSP_Arm *)pDeviceHandle;
+	BDBG_ASSERT((dspIndex+1) <= pDevice->numDsp);
+
+	hDebugQueue = pDevice->hDebugQueue[dspIndex][debugType];
+
+	pBaseAddr  = (dramaddr_t *)((uint8_t *)hDebugQueue->FifoMemory.pAddr);
+	pEndAddr   = (dramaddr_t *)((uint8_t *)pBaseAddr+(sizeof(dramaddr_t)));
+    pWriteAddr = (dramaddr_t *)((uint8_t *)pEndAddr +(sizeof(dramaddr_t)));;
+    pReadAddr  = (dramaddr_t *)((uint8_t *)pWriteAddr+(sizeof(dramaddr_t)));
+
+    ReadAddr   = *pReadAddr;
+    WriteAddr  = *pWriteAddr;
+	EndAddr    = *pEndAddr;
+	BaseAddr   = *pBaseAddr;
+
+	Memory = hDebugQueue->Memory;
+	Memory.pAddr = (void *)((uint8_t *)Memory.pAddr + (ReadAddr - BaseAddr));
+	if(ReadAddr > WriteAddr)
+	{
+		/*Write Pointer has looparound, hence reach just the bottom chunk */
+		*pSize = EndAddr - ReadAddr;
+		BDBG_MSG(("Write Pointer has looped around, reading just the chunk till END"));
+	}
+	else
+	{
+		*pSize = WriteAddr - ReadAddr;
+	}
+	*pBuffer = Memory;
+
+	BDBG_MSG(("Read (%lu) bytes of data", (unsigned long)(*pSize)));
+	BDBG_LEAVE(BDSP_Arm_P_GetDebugBuffer);
+	return errCode;
+}
+
+BERR_Code BDSP_Arm_P_ConsumeDebugData(
+    void       			   *pDeviceHandle,
+    BDSP_DebugType 	        debugType,
+    uint32_t 				dspIndex,
+    size_t 					bytesConsumed
+)
+{
+	BERR_Code errCode = BERR_SUCCESS ;
+	BDSP_Arm *pDevice;
+	dramaddr_t *pWriteAddr, *pReadAddr, *pBaseAddr, *pEndAddr;
+    dramaddr_t BaseAddr, ReadAddr, EndAddr;
+	BDSP_P_MsgQueueHandle hDebugQueue;
+
+	BDBG_ENTER(BDSP_Arm_P_ConsumeDebugData);
+
+    BDBG_ASSERT(pDeviceHandle);
+    pDevice = (BDSP_Arm *)pDeviceHandle;
+
+	BDBG_ASSERT((dspIndex+1) <= pDevice->numDsp);
+	hDebugQueue = pDevice->hDebugQueue[dspIndex][debugType];
+
+	pBaseAddr  = (dramaddr_t *)((uint8_t *)hDebugQueue->FifoMemory.pAddr);
+	pEndAddr   = (dramaddr_t *)((uint8_t *)pBaseAddr+(sizeof(dramaddr_t)));
+    pWriteAddr = (dramaddr_t *)((uint8_t *)pEndAddr +(sizeof(dramaddr_t)));;
+    pReadAddr  = (dramaddr_t *)((uint8_t *)pWriteAddr+(sizeof(dramaddr_t)));
+
+    ReadAddr   = *pReadAddr;
+	EndAddr    = *pEndAddr;
+	BaseAddr   = *pBaseAddr;
+
+	ReadAddr += bytesConsumed;
+	if(ReadAddr >= EndAddr)
+	{
+		/* We never handle looparound read and if write pointer had looped around, PI would only read bottom chunk,
+			 hence adjusting the read to base would sufficient*/
+		ReadAddr = BaseAddr;
+	}
+	*pReadAddr = ReadAddr;
+
+	BDBG_LEAVE(BDSP_Arm_P_ConsumeDebugData);
+	return errCode;
+}
+
+BDSP_FwStatus BDSP_Arm_P_GetCoreDumpStatus (
+    void    *pDeviceHandle,
+    uint32_t dspIndex /* [in] Gives the DSP Id for which the core dump status is required */
+)
+{
+	BSTD_UNUSED(pDeviceHandle);
+	BSTD_UNUSED(dspIndex);
+
+	BDBG_ERR(("BDSP_Arm_P_GetCoreDumpStatus: Core Dump is not implemented"));
+	return BDSP_FwStatus_eCoreDumpComplete;
 }

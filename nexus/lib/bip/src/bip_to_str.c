@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -809,6 +809,7 @@ const char * BIP_ToStr_BIP_PlayerSubState( int value)
         { "PreparingDone"                       , BIP_PlayerSubState_ePreparingDone                         },
         { "StartingNew"                         , BIP_PlayerSubState_eStartingNew                           },
         { "StartingWaitForPbipStart"            , BIP_PlayerSubState_eStartingWaitForPbipStart              },
+        { "StartingWaitForHttpResponse"         , BIP_PlayerSubState_eStartingWaitForHttpResponse           },
         { "StartingDone"                        , BIP_PlayerSubState_eStartingDone                          },
         { "StartedPlayingNormal"                , BIP_PlayerSubState_eStartedPlayingNormal                  },
         { "StartedPlayingTrickmode"             , BIP_PlayerSubState_eStartedPlayingTrickmode               },

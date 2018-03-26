@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -392,7 +392,7 @@ int send_request_read_response(
     if (connect( sd, (struct sockaddr *) server, sizeof( *server )) < 0)
     {
         Close( sd );
-        printf( "%s: ERROR connecting to server\n", __FUNCTION__ );
+        printf( "%s: ERROR connecting to server ... port %d\n", __FUNCTION__, server_port );
         return( -1 );
     }
 
@@ -809,7 +809,7 @@ int get_interrupt_counts(
 
     if (lstat( tempFilename, &statbuf ) == -1)
     {
-        printf( "%s - (%s); lstat failed; %s\n", __FUNCTION__, tempFilename, strerror( errno ));
+        /*printf( "%s - (%s); lstat failed; %s\n", __FUNCTION__, tempFilename, strerror( errno ));*/
         return( -1 );
     }
 
@@ -817,7 +817,7 @@ int get_interrupt_counts(
 
     if (statbuf.st_size == 0)
     {
-        printf( "could not determine interrupts file (%s) size.\n", tempFilename );
+        /*printf( "could not determine interrupts file (%s) size.\n", tempFilename );*/
         return( -1 );
     }
 

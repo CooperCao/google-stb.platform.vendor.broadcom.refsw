@@ -455,6 +455,14 @@ typedef struct
     int rxf1ovfl;
     int pmqovfl;
     int rxcrc;
+    int txnoassoc;
+    int txrunt;
+    int rxbadds;
+    int rxrunt;
+    int rxnoscb;
+    int rxbadproto;
+    int rxbadsrcmac;
+    int rxbadda;
 } wifi_counters_t;
 
 int wl_counters_cbfn(void *ctx, const unsigned char *data, unsigned short int type, unsigned short int len);

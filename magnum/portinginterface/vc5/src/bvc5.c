@@ -261,7 +261,8 @@ BERR_Code BVC5_Open(
 
 #ifndef V3D_HAS_BPCM
    /* Don't allow an override if it's not supported */
-   hVC5->sOpenParams.bUsePowerGating = false;
+   /* true = no PLL open in BVC5_Open() and dynamic behavior elsewhere */
+   hVC5->sOpenParams.bUsePowerGating = true;
 #endif
 
    hVC5->bCollectLoadStats = false;
@@ -345,11 +346,6 @@ BERR_Code BVC5_Open(
       BVC5_P_HardwarePLLEnable(hVC5);
       BVC5_P_HardwareBPCMPowerUp(hVC5);
    }
-
-   /* on platforms with PLL_CH, hold it open using reference count for performance reasons. */
-#ifdef BCHP_PWR_RESOURCE_GRAPHICS3D_PLL_CH
-   BCHP_PWR_AcquireResource(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D_PLL_CH);
-#endif
 
    /* Turn on the clocks now if we don't want to use clock gating */
    if (!hVC5->sOpenParams.bUseClockGating)
@@ -464,10 +460,6 @@ BERR_Code BVC5_Close(
    /* Shut everything down */
    if (!hVC5->sOpenParams.bUseClockGating)
       BVC5_P_HardwarePowerRelease(hVC5, ~0u);
-
-#ifdef BCHP_PWR_RESOURCE_GRAPHICS3D_PLL_CH
-   BCHP_PWR_ReleaseResource(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D_PLL_CH);
-#endif
 
    if (!hVC5->sOpenParams.bUsePowerGating)
    {
@@ -1777,6 +1769,11 @@ BERR_Code BVC5_SetGatherLoadData(
    }
 
    BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   /* required to get the load stats, as uiCyclesPerUs has to be != 0 */
+   hVC5->uiCyclesPerUs = BVC5_P_GetClockSpeed(hVC5);
+   if (hVC5->uiCyclesPerUs != 1)
+      BDBG_WRN(("GPU Clock speed for GetLoadData: %u MHz\n", hVC5->uiCyclesPerUs));
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
    BKNI_EnterCriticalSection();

@@ -597,9 +597,6 @@ static int NEXUS_Platform_P_AllocateInRegions(void *context,const BMMA_RangeAllo
         if(state->allocator.realAllocation) {
             bool inFront = true;
             if(nFreeRegions>=1) {
-                if(state->allocator.heapSettings->placement.first && state->allocator.heapSettings->placement.sage) {
-                   /* inFront = false; */
-                }
                 if(NEXUS_Platform_P_AllocateInRegion(state->allocator.heapSettings, inFront, freeRegions[0], size, settings, allocation)) {
                     BDBG_MSG(("NEXUS_Platform_P_AllocateInRegions: ALLOC: 0 %s %#x..%#x -> %#x..%#x", inFront? "inFront":"", (unsigned)freeRegions[0]->base, (unsigned)(freeRegions[0]->base+freeRegions[0]->length), (unsigned)allocation->base, (unsigned)(allocation->base+allocation->length)));
                     return 0;
@@ -850,37 +847,52 @@ static NEXUS_Error NEXUS_Platform_P_AllocateBmemHeaps(struct NEXUS_Platform_P_Al
     /* 2. Allocate heaps with BMMA_RangeAllocator */
     for(stage=0;stage<5;stage++) {
         for(i=0;i<NEXUS_MAX_HEAPS;i++) {
+            unsigned j;
+            int selectedHeap=-1;
             unsigned heapIndex = i;
             size_t heap_size;
             BMMA_RangeAllocator_BlockSettings blockSettings;
             unsigned *header;
             BMMA_DeviceOffset deviceOffset;
 
-            if(!state->allocator.hasRegionRestrictedHeaps) {
-                heapIndex = (NEXUS_MAX_HEAPS-1)-i; /* allocate starting from largest number, and allocate from highest addresses */
-            }
+            /* select heap with the largest priority */
+            for(j=0;j<NEXUS_MAX_HEAPS;j++) {
 
-            if(state->preallocated[heapIndex]) {
+                if(state->allocator.hasRegionRestrictedHeaps) {
+                    heapIndex = j;
+                } else {
+                    heapIndex = (NEXUS_MAX_HEAPS-1)-j; /* allocate starting from largest number, and allocate from highest addresses */
+                }
+
+                if(state->preallocated[heapIndex]) {
+                    continue;
+                }
+                if(heap[heapIndex].size==0) {
+                    continue;
+                }
+                if(state->allocator.heaps[heapIndex]) {
+                    continue;
+                }
+                if(heap[heapIndex].memcIndex != memcIndex) {
+                    continue;
+                }
+                if(stage!=4 && heap[heapIndex].size<0) {
+                    continue;
+                }
+                if(stage <= 1 && !heap[heapIndex].placement.region.valid) {
+                    continue;
+                }
+                if(stage == 2 && heap[heapIndex].alignment == 0) {
+                    continue;
+                }
+                if(selectedHeap<0 || heap[heapIndex].placement.priority > heap[selectedHeap].placement.priority) {
+                    selectedHeap = heapIndex;
+                }
+            }
+            if(selectedHeap<0) {
                 continue;
             }
-            if(heap[heapIndex].size==0) {
-                continue;
-            }
-            if(state->allocator.heaps[heapIndex]) {
-                continue;
-            }
-            if(heap[heapIndex].memcIndex != memcIndex) {
-                continue;
-            }
-            if(stage!=4 && heap[heapIndex].size<0) {
-                continue;
-            }
-            if(stage <= 1 && !heap[heapIndex].placement.region.valid) {
-                continue;
-            }
-            if(stage == 2 && heap[heapIndex].alignment == 0) {
-                continue;
-            }
+            heapIndex = selectedHeap;
 
             if(heap[heapIndex].size>=0) {
                 heap_size = heap[heapIndex].size;

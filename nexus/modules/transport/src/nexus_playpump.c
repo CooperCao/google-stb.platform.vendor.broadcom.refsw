@@ -665,7 +665,7 @@ NEXUS_Playpump_SetSettings(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSettings 
 #if B_HAS_MEDIA
         rc = b_pump_demux_set_stream_type(p->demux, pSettings->transportType, &p->use_media);
         if(rc!=NEXUS_SUCCESS) { rc=BERR_TRACE(rc); goto err_media;}
-        BDBG_MSG(("NEXUS_Playpump_SetSettings: %s of stream type %u", p->use_media?"media preprocessing":"native processsing", pSettings->transportType));
+        BDBG_MSG(("NEXUS_Playpump_SetSettings: %s of stream type %u", p->use_media?"media preprocessing":"native processing", pSettings->transportType));
 
         if(!p->use_media) {
             bool supported;

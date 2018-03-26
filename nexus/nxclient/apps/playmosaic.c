@@ -80,9 +80,12 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
         "  -timeout SECONDS\n"
         "  -audio_primers           use primers for fast audio switch\n"
         "  -toggle SECONDS          toggle mosaic rectangle\n"
+        "  -blmode                  mosaic rectangles in B+L mode \n"
         "  -gui off\n"
         "  -mosaic_pip              2 mosaics played as full + 1/4 screen (like main + PiP)\n"
         "  -move                    moving mosaic windows\n"
+        );
+    printf(
         "  -persistent_audio        use persistent audio decoders\n"
         );
 }
@@ -270,6 +273,7 @@ int main(int argc, const char **argv)
     unsigned num_started = 0;
     unsigned cycle = 0;
     unsigned toggle_time = 0;
+    unsigned big_little_switch_time = 0;
     unsigned num_tiles;
     unsigned timeout = 0;
     bool audio_primers = false;
@@ -327,6 +331,13 @@ int main(int argc, const char **argv)
         }
         else if (!strcmp(argv[curarg], "-toggle") && argc>curarg+1) {
             toggle_time = atoi(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-blmode") && argc>curarg+1) {
+            big_little_switch_time = atoi(argv[++curarg]);
+            g_app.num_mosaics = g_app.num_main_mosaics = 4;
+            g_app.num_pip_mosaics = 0;
+            mosaic_pip = false;
+            gui = false;
         }
         else if (!strcmp(argv[curarg], "-timeout") && argc>curarg+1) {
             timeout = atoi(argv[++curarg]);
@@ -489,9 +500,11 @@ int main(int argc, const char **argv)
             g_app.mosaic[i].start_settings.videoWindowType = NxClient_VideoWindowType_ePip;
         }
 
+#if NEXUS_HAS_AUDIO
         if (create_settings.audio.usePersistent) {
              g_app.mosaic[i].start_settings.audio.mixingMode = NEXUS_AudioDecoderMixingMode_eStandalone;
         }
+#endif
 
         rc = media_player_start(g_app.mosaic[i].player, &g_app.mosaic[i].start_settings);
         if (rc) {
@@ -629,6 +642,51 @@ int main(int argc, const char **argv)
             }
             if (b_check_timeout()) break;
         }
+    }
+    else if(big_little_switch_time) {
+        if(maxCoverageBigSmall.maxCoverage != 0) {
+            float CoveragePerDimension = sqrt(maxCoverageBigSmall.maxCoverage /(g_app.num_mosaics+3))*10;
+            unsigned int xOffset, yOffset, yOffsetNext, bigIndex = 0;
+            NEXUS_SurfaceClientSettings settings;
+
+            xOffset = (virtualDisplay.width * (100 - 3*CoveragePerDimension)) / (4*100);
+            yOffset = (virtualDisplay.height * (100 - (g_app.num_mosaics-1)*CoveragePerDimension)) / (g_app.num_mosaics*100);
+
+            while(1) {
+                yOffsetNext = yOffset;
+                for (i=0; i<g_app.num_mosaics ; i++) {
+                    if(i != bigIndex) {
+                        g_app.mosaic[i].rect.width = virtualDisplay.width * CoveragePerDimension / 100;
+                        g_app.mosaic[i].rect.height = virtualDisplay.height * CoveragePerDimension / 100;
+                        g_app.mosaic[i].rect.x = virtualDisplay.width - g_app.mosaic[i].rect.width - xOffset;
+                        g_app.mosaic[i].rect.y = yOffsetNext;
+                        yOffsetNext += yOffset + g_app.mosaic[i].rect.height;
+
+                    }
+                    NEXUS_SurfaceClient_GetSettings(g_app.mosaic[i].video_sc, &settings);
+                    settings.composition.position = g_app.mosaic[i].rect;
+                    settings.composition.virtualDisplay = virtualDisplay;
+                    NEXUS_SurfaceClient_SetSettings(g_app.mosaic[i].video_sc, &settings);
+                }
+
+                /* big one */
+                g_app.mosaic[bigIndex].rect.width = virtualDisplay.width * CoveragePerDimension * 2 / 100;
+                g_app.mosaic[bigIndex].rect.height = virtualDisplay.height * CoveragePerDimension  * 2 / 100;
+                g_app.mosaic[bigIndex].rect.x = xOffset;
+                g_app.mosaic[bigIndex].rect.y = (virtualDisplay.height - g_app.mosaic[bigIndex].rect.height) / 2 ;
+
+                NEXUS_SurfaceClient_GetSettings(g_app.mosaic[bigIndex].video_sc, &settings);
+                settings.composition.position = g_app.mosaic[bigIndex].rect;
+                settings.composition.virtualDisplay = virtualDisplay;
+                NEXUS_SurfaceClient_SetSettings(g_app.mosaic[bigIndex].video_sc, &settings);
+
+                bigIndex = (bigIndex+1) % 4;
+                BKNI_Sleep(1000*big_little_switch_time);
+
+                if (b_check_timeout()) break;
+            }
+        }
+
     }
     else if ( mosaic_move ) {
         for (i=0; i<g_app.num_mosaics ; i++) {

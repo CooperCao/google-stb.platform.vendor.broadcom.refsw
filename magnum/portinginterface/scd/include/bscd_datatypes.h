@@ -432,8 +432,11 @@ Maximum character wait time in ETUs
 
 
 /* T14 Irdeto clock Rate Conversion factor.  Spec says 625, but card prefers 600 */
+#ifdef USE_IRDETO_V6_CARD
 #define BSCD_T14_IRDETO_CONSTANT_CLOCK_RATE_CONV_FACTOR     620
-
+#else
+#define BSCD_T14_IRDETO_CONSTANT_CLOCK_RATE_CONV_FACTOR     600
+#endif
 /* Irdeto needs to wait for minimum of 1250 from last RX to the next TX  */
 #define BSCD_T14_IRDETO_MIN_DELAY_RX2TX     1250
 

@@ -554,9 +554,6 @@ initNexusVice2TranscoderPipe(
     }
 
     NEXUS_VideoWindow_GetMadSettings(transcoderDst->windowTranscode, &madSettings);
-    madSettings.deinterlace = true;
-    madSettings.enable22Pulldown = true;
-    madSettings.enable32Pulldown = true;
     if (NEXUS_VideoWindow_SetMadSettings(transcoderDst->windowTranscode, &madSettings) != NEXUS_SUCCESS) {
         BDBG_ERR(("%s: ERROR: NEXUS_VideoWindow_SetMadSettings() failed to enable MAD ", BSTD_FUNCTION));
         goto error;
@@ -1943,9 +1940,6 @@ openNexusRaagaTranscoderPipe(
 
     /* enable deinterlacer to improve quality */
     NEXUS_VideoWindow_GetMadSettings(transcoderDst->windowTranscode, &madSettings);
-    madSettings.deinterlace = true;
-    madSettings.enable22Pulldown = true;
-    madSettings.enable32Pulldown = true;
     if (NEXUS_VideoWindow_SetMadSettings(transcoderDst->windowTranscode, &madSettings) != NEXUS_SUCCESS) {
         BDBG_ERR(("%s: ERROR: NEXUS_VideoWindow_SetMadSettings() failed to enable MAD ", BSTD_FUNCTION));
         goto error;

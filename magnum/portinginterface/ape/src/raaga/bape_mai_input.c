@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -647,9 +647,9 @@ static void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
     BAPE_OutputPort alternate[BAPE_NUM_OUTPUTS];
     BAPE_MclkSource mclkSource = BAPE_MclkSource_eNone;
     unsigned i,k, j=0;
-    #if BAPE_CHIP_MAX_NCOS > 1
-    bool usedNcos[BAPE_CHIP_MAX_NCOS];
-    BKNI_Memset(usedNcos, false, sizeof(bool)*BAPE_CHIP_MAX_NCOS);
+    #if BAPE_CHIP_MAX_NCOS > 0
+    bool usedNcos[BAPE_Nco_eMax];
+    BKNI_Memset(usedNcos, false, sizeof(bool)*BAPE_Nco_eMax);
     #else
     BAPE_Nco usedNcos[1] = {true};
     #endif
@@ -695,9 +695,9 @@ static void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
             if ( pMixer &&
                  ( (k==0)?BAPE_MCLKSOURCE_IS_NCO(pMixer->mclkSource):BAPE_MCLKSOURCE_IS_PLL(pMixer->mclkSource) ) )
             {
-                if ( BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) != 0 &&
-                     handle->inputPort.format.sampleRate >= BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) &&
-                     (handle->inputPort.format.sampleRate % BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer)) == 0 )
+                if ( BAPE_Mixer_P_GetOutputSampleRate_isrsafe(pMixer) != 0 &&
+                     handle->inputPort.format.sampleRate >= BAPE_Mixer_P_GetOutputSampleRate_isrsafe(pMixer) &&
+                     (handle->inputPort.format.sampleRate % BAPE_Mixer_P_GetOutputSampleRate_isrsafe(pMixer)) == 0 )
                 {
                     BDBG_MSG(("Mai output is an %s clock match for mai input", (k==0)?"NCO":"PLL"));
                     mclkSource = pMixer->mclkSource;
@@ -720,9 +720,9 @@ static void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
                 if ( pMixer &&
                      ( (k==0)?BAPE_MCLKSOURCE_IS_NCO(pMixer->mclkSource):BAPE_MCLKSOURCE_IS_PLL(pMixer->mclkSource) ) )
                 {
-                    if ( BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) != 0 &&
-                         handle->inputPort.format.sampleRate >= BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) &&
-                         (handle->inputPort.format.sampleRate % BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer)) == 0 )
+                    if ( BAPE_Mixer_P_GetOutputSampleRate_isrsafe(pMixer) != 0 &&
+                         handle->inputPort.format.sampleRate >= BAPE_Mixer_P_GetOutputSampleRate_isrsafe(pMixer) &&
+                         (handle->inputPort.format.sampleRate % BAPE_Mixer_P_GetOutputSampleRate_isrsafe(pMixer)) == 0 )
                     {
                         BDBG_MSG(("%s output is an %s clock match for mai input", alternate[i]->pName, (k==0)?"NCO":"PLL"));
                         mclkSource = pMixer->mclkSource;

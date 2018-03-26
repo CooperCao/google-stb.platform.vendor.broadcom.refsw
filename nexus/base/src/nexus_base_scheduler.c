@@ -42,6 +42,7 @@
 #include "blst_slist.h"
 #include "blst_squeue.h"
 #include "blst_list.h"
+#include "blst_aa_tree.h"
 #include "bkni.h"
 #include "b_objdb.h"
 
@@ -100,7 +101,7 @@ struct NEXUS_CallbackCommon {
     bool stopped; /* true if callback stopped */
     bool deleted; /* true is callback deleted */
     NEXUS_CallbackDesc desc;
-    BLST_D_ENTRY(NEXUS_CallbackCommon) global_list;
+    BLST_AA_TREE_ENTRY(NEXUS_CallbackCommon) node;
     void *object; /* object associated with the callback */
     NEXUS_Time stopTime;
 #if NEXUS_P_DEBUG_CALLBACKS
@@ -139,8 +140,39 @@ typedef struct NEXUS_P_SchedulerResponse {
 
 BDBG_OBJECT_ID(NEXUS_P_Scheduler);
 
+struct NEXUS_P_BaseCallbackCommonTree_Key {
+    /* Key in the AA Tree needs to be unique, yet key could be used to sort entries by the interface handle (for efficient search).
+     * So key is combination of the object (interface handle) and address of node itself (to make key unique) */
+    void *object;
+    const struct NEXUS_CallbackCommon *node;
+};
+
+static int NEXUS_P_BaseCallbackCommonTree_Compare_isrsafe(const struct NEXUS_CallbackCommon *node, const struct NEXUS_P_BaseCallbackCommonTree_Key *key)
+{
+    if(key->object > node->object) {
+        return 1;
+    } else if(key->object == node->object) {
+        if(key->node > node) {
+            return 1;
+        } else if(key->node == node) {
+            return 0;
+        } else {
+            return -1;
+        }
+    } else {
+        return -1;
+    }
+}
+
+BLST_AA_TREE_HEAD(NEXUS_P_BaseCallbackCommonTree, NEXUS_CallbackCommon);
+BLST_AA_TREE_GENERATE_FIND_SOME(NEXUS_P_BaseCallbackCommonTree, const struct NEXUS_P_BaseCallbackCommonTree_Key *, NEXUS_CallbackCommon, node, NEXUS_P_BaseCallbackCommonTree_Compare_isrsafe)
+BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_BaseCallbackCommonTree, const struct NEXUS_P_BaseCallbackCommonTree_Key *, NEXUS_CallbackCommon, node, NEXUS_P_BaseCallbackCommonTree_Compare_isrsafe)
+BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_BaseCallbackCommonTree, NEXUS_CallbackCommon, node)
+BLST_AA_TREE_GENERATE_NEXT(NEXUS_P_BaseCallbackCommonTree, NEXUS_CallbackCommon, node)
+BLST_AA_TREE_GENERATE_FIRST(NEXUS_P_BaseCallbackCommonTree, NEXUS_CallbackCommon, node)
+
 static struct {
-    BLST_D_HEAD(NEXUS_CallbackCommonHead, NEXUS_CallbackCommon) callbacks;
+    struct NEXUS_P_BaseCallbackCommonTree callbacks_tree;
 } NEXUS_P_Base_Scheduler_State;
 
 BLST_D_HEAD(NEXUS_P_HeadIsrCallbacks, NEXUS_IsrCallback); /* list of IsrCallbacks */
@@ -437,6 +469,7 @@ NEXUS_Module_CancelTimer(NEXUS_ModuleHandle module, NEXUS_TimerHandle timer, con
 static void
 NEXUS_P_CallbackCommon_Init(struct NEXUS_CallbackCommon *callback, NEXUS_ModuleHandle module, void *interfaceHandle, NEXUS_P_CallbackType type, const NEXUS_CallbackSettings *pSettings, const char *pFileName, unsigned lineNumber)
 {
+    struct NEXUS_P_BaseCallbackCommonTree_Key key;
     BSTD_UNUSED(pSettings);
 
     BDBG_ASSERT(module->scheduler);
@@ -454,7 +487,9 @@ NEXUS_P_CallbackCommon_Init(struct NEXUS_CallbackCommon *callback, NEXUS_ModuleH
 #endif
     NEXUS_LockModule();
     callback->scheduler = module->scheduler;
-    BLST_D_INSERT_HEAD(&NEXUS_P_Base_Scheduler_State.callbacks, callback, global_list);
+    key.node = callback;
+    key.object = callback->object;
+    BLST_AA_TREE_INSERT(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, &key, callback);
     NEXUS_UnlockModule();
     return;
     BSTD_UNUSED(pFileName);
@@ -543,7 +578,7 @@ NEXUS_Module_IsrCallback_Destroy(NEXUS_ModuleHandle module, NEXUS_IsrCallbackHan
         BDBG_OBJECT_ASSERT(callback, NEXUS_IsrCallback);
         BDBG_ERR(("NEXUS_IsrCallback_Destroy: module %s destroying stale IsrCallback:%#lx at %s:%u", module->pModuleName, (unsigned long)callback, NEXUS_P_CALLBACK_FILENAME(callback->common.pFileName), NEXUS_P_CALLBACK_LINENO(callback->common.lineNumber)));
     } else {
-        BLST_D_REMOVE(&NEXUS_P_Base_Scheduler_State.callbacks, &callback->common, global_list); /* remove callback from the global list */
+        BLST_AA_TREE_REMOVE(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, &callback->common);
     }
     BKNI_SetEvent(scheduler->control); /* wakeup thread to release resources */
     NEXUS_UnlockModule();
@@ -619,7 +654,7 @@ NEXUS_Module_IsrCallback_Clear(NEXUS_IsrCallbackHandle callback)
 }
 
 void
-NEXUS_Module_IsrCallback_Fire_isr(NEXUS_ModuleHandle module, NEXUS_IsrCallbackHandle callback)
+NEXUS_Module_IsrCallback_Fire_isr(NEXUS_ModuleHandle module, NEXUS_IsrCallbackHandle callback, const char *debug)
 {
     NEXUS_P_Scheduler *scheduler;
 
@@ -633,6 +668,10 @@ NEXUS_Module_IsrCallback_Fire_isr(NEXUS_ModuleHandle module, NEXUS_IsrCallbackHa
     }
     if(callback->common.desc.callback==NULL) { /* short-circuit empty callbacks */
         goto done;
+    }
+    if (callback->common.desc.private_cookie != NEXUS_P_CALLBACK_DESC_COOKIE_VALUE) {
+        BDBG_ERR(("ignoring Fire to uninitialized NEXUS_CallbackDesc from %s", debug));
+        return;
     }
     BDBG_ASSERT(module->scheduler);
     scheduler = module->scheduler;
@@ -691,7 +730,8 @@ NEXUS_Module_TaskCallback_Destroy( NEXUS_ModuleHandle module, NEXUS_TaskCallback
     BDBG_ASSERT(!callback->common.deleted);
     NEXUS_LockModule();
     callback->common.deleted = true; /* mark callback as deleted */
-    BLST_D_REMOVE(&NEXUS_P_Base_Scheduler_State.callbacks, &callback->common, global_list); /* remove callback from the global list */
+    BLST_AA_TREE_REMOVE(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, &callback->common);
+
     scheduler = module->scheduler;
     if(!callback->common.queued) { /* add callback into the queue */
         callback->common.queued = true;
@@ -748,7 +788,7 @@ static void NEXUS_Base_P_CheckStoppedCallback(const struct NEXUS_CallbackCommon 
 }
 
 void
-NEXUS_Module_TaskCallback_Fire(NEXUS_ModuleHandle module, NEXUS_TaskCallbackHandle callback)
+NEXUS_Module_TaskCallback_Fire(NEXUS_ModuleHandle module, NEXUS_TaskCallbackHandle callback, const char *debug)
 {
     BDBG_OBJECT_ASSERT(callback, NEXUS_TaskCallback);
     BDBG_OBJECT_ASSERT(module, NEXUS_Module);
@@ -758,6 +798,10 @@ NEXUS_Module_TaskCallback_Fire(NEXUS_ModuleHandle module, NEXUS_TaskCallbackHand
         /* fall through */
     }
     if(callback->common.desc.callback==NULL) {
+        return;
+    }
+    if (callback->common.desc.private_cookie != NEXUS_P_CALLBACK_DESC_COOKIE_VALUE) {
+        BDBG_ERR(("ignoring Fire to uninitialized NEXUS_CallbackDesc from %s", debug));
         return;
     }
     NEXUS_LockModule();
@@ -1478,7 +1522,7 @@ NEXUS_P_Base_ExternalScheduler_Wakeup(void)
 void
 NEXUS_P_Base_Scheduler_Init(void)
 {
-    BLST_D_INIT(&NEXUS_P_Base_Scheduler_State.callbacks);
+    BLST_AA_TREE_INIT(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree);
     return;
 }
 
@@ -1487,7 +1531,7 @@ NEXUS_P_Base_Scheduler_Uninit(void)
 {
     struct NEXUS_CallbackCommon *callback;
 
-    while(NULL!=(callback=BLST_D_FIRST(&NEXUS_P_Base_Scheduler_State.callbacks)))  {
+    while(NULL!=(callback=BLST_AA_TREE_FIRST(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree)))  {
         BDBG_WRN(("leaked task callback: %p", (void *)callback));
         if(callback->type == NEXUS_P_CallbackType_eTask) {
             BDBG_OBJECT_ASSERT((NEXUS_TaskCallbackHandle)callback, NEXUS_TaskCallback);
@@ -1497,7 +1541,7 @@ NEXUS_P_Base_Scheduler_Uninit(void)
             BDBG_ERR(("illegal scheduler callback type = %x", callback->type));
             BDBG_ASSERT(0);
         }
-        BLST_D_REMOVE_HEAD(&NEXUS_P_Base_Scheduler_State.callbacks, global_list);
+        BLST_AA_TREE_REMOVE(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, callback);
         BDBG_WRN(("leaked callback: %#lx scheduler:%#lx object:%#lx allocated at:%s:%u", (unsigned long)callback, (unsigned long)callback->scheduler, (unsigned long)callback->object, NEXUS_P_CALLBACK_FILENAME(callback->pFileName), NEXUS_P_CALLBACK_LINENO(callback->lineNumber)));
         if(callback->type == NEXUS_P_CallbackType_eTask) {
             BDBG_OBJECT_DESTROY((NEXUS_TaskCallbackHandle)callback, NEXUS_TaskCallback);
@@ -1517,12 +1561,18 @@ NEXUS_Base_P_StopCallbacks(void *interfaceHandle)
     unsigned i;
     NEXUS_P_Scheduler *scheduler;
     struct NEXUS_CallbackCommon *callback;
+    struct NEXUS_P_BaseCallbackCommonTree_Key key;
 
     NEXUS_LockModule();
-    for(nschedulers=0, callback=BLST_D_FIRST(&NEXUS_P_Base_Scheduler_State.callbacks); callback; callback=BLST_D_NEXT(callback, global_list)) {
+    /* for(nschedulers=0, callback=BLST_D_FIRST(&NEXUS_P_Base_Scheduler_State.callbacks); callback; callback=BLST_D_NEXT(callback, global_list)) { */
+
+    key.object = interfaceHandle;
+    key.node = NULL;
+    for(nschedulers=0, callback=BLST_AA_TREE_FIND_SOME(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, &key); callback;
+        callback=BLST_AA_TREE_NEXT(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, callback)) {
 
         if(callback->object != interfaceHandle) {
-            continue;
+            break;
         }
         if (!callback->stopped) {
             callback->stopped = true;
@@ -1573,12 +1623,16 @@ NEXUS_Base_P_StartCallbacks(void *interfaceHandle)
 {
     NEXUS_P_Scheduler *scheduler;
     struct NEXUS_CallbackCommon *callback;
+    struct NEXUS_P_BaseCallbackCommonTree_Key key;
 
     NEXUS_LockModule();
-    for(callback=BLST_D_FIRST(&NEXUS_P_Base_Scheduler_State.callbacks); callback; callback=BLST_D_NEXT(callback, global_list)) {
+    key.object = interfaceHandle;
+    key.node = NULL;
+    for(callback=BLST_AA_TREE_FIND_SOME(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, &key); callback;
+        callback=BLST_AA_TREE_NEXT(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, callback)) {
 
         if(callback->object != interfaceHandle) {
-            continue;
+            break;
         }
         if(!callback->stopped) {
             continue;
@@ -1722,15 +1776,17 @@ NEXUS_Error NEXUS_Scheduler_SetState(NEXUS_ModulePriority priority, NEXUS_Schedu
 void NEXUS_Module_CancelCallbacks(NEXUS_ModuleHandle module, void *interfaceHandle)
 {
     struct NEXUS_CallbackCommon *callback;
+    struct NEXUS_P_BaseCallbackCommonTree_Key key;
 
     /* must verify module is locked to avoid race */
     BDBG_OBJECT_ASSERT(module, NEXUS_Module);
     BDBG_ASSERT(NEXUS_Module_Assert(module));
 
     NEXUS_LockModule();
-
-    /* TODO: improve lookup time by using BLST_AA with interfaceHandle key. also of benefit to Stop/StartCallbacks. */
-    for (callback=BLST_D_FIRST(&NEXUS_P_Base_Scheduler_State.callbacks); callback; callback=BLST_D_NEXT(callback, global_list)) {
+    key.object = interfaceHandle;
+    key.node = NULL;
+    for(callback=BLST_AA_TREE_FIND_SOME(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, &key); callback;
+        callback=BLST_AA_TREE_NEXT(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, callback)) {
         NEXUS_P_Scheduler *scheduler;
         if (callback->object != interfaceHandle) continue;
 

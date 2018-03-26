@@ -46,6 +46,7 @@
 #include <stdint.h>
 #include <dirent.h>
 #include <pthread.h>
+#include <sys/time.h>
 
 #include "nexus_graphics2d.h"
 #if NEXUS_HAS_GRAPHICSV3D
@@ -54,30 +55,33 @@
 #include "nxserverlib_impl.h"
 #include "nxserverlib_thermal.h"
 
-#include "bchp_common.h"
-#ifdef BCHP_AVS_TMON_REG_START
-#include "bchp_avs_tmon.h"
-#endif
-
 BDBG_MODULE(nxserverlib_thermal);
 
 struct thermal_state {
     nxserver_t server;
     thermal_info thermal;
     cpufreq_info cpufreq;
-    thermal_data samples;
+    thermal_data data;
     BLST_Q_HEAD(priority_avail, priority_list) available;
     BLST_Q_HEAD(priority_active, priority_list) active;
     struct {
         unsigned over_temp_threshold;
         unsigned over_temp_reset;
         unsigned hysteresis;
+        unsigned temp_target;
+        unsigned theta_jc;
         unsigned polling_interval;
         unsigned temp_delay;
     } params;
     pthread_t thread;
     bool exit;
+    bool has_pmu;
     NEXUS_VideoFormat orig_format;
+    struct {
+        FILE *fp;
+        unsigned start_time;
+        bool enabled;
+    } log;
 } g_thermal_state;
 
 
@@ -267,7 +271,7 @@ static NEXUS_Error probe_thermal_sysfs(void)
     while ((ent = readdir(dir)) != NULL) {
         if (strstr(ent->d_name, CDEV)) {
             i = thermal->num_cooling_devices++;
-            if (i >= MAX_NR_CDEV) {
+            if (i >= MAX_NUM_CDEV) {
                 BDBG_WRN(("Max Number of Cooling Devices exceeded %s:%d", ent->d_name, i));
                 continue;
             }
@@ -281,7 +285,7 @@ static NEXUS_Error probe_thermal_sysfs(void)
             if (rc) {BERR_TRACE(rc); goto err;}
         } else if (strstr(ent->d_name, TZONE)) {
             i = thermal->num_thermal_zones++;
-            if (i >= MAX_NR_TZONE) {
+            if (i >= MAX_NUM_TZONE) {
                 BDBG_WRN(("Max Number of Thermal Zones exceeded %s:%d", ent->d_name, i));
                 continue;
             }
@@ -324,7 +328,7 @@ static NEXUS_Error cpufreq_get_available_frequencies(void)
     while (str != NULL) {
         unsigned freq = atoi(str);
         if (freq) {
-            if (i < MAX_NR_FREQ) {
+            if (i < MAX_NUM_FREQ) {
                 g_thermal_state.cpufreq.avail_freqs[i++] = freq;
                 BDBG_MSG(("Freq %d", freq));
             } else {
@@ -350,7 +354,6 @@ static NEXUS_Error probe_cpufreq_sysfs(void)
     return rc;
 }
 
-#if 0
 int prev_total=0, prev_idle=0;
 static int get_cpu_load(void)
 {
@@ -382,19 +385,44 @@ static int get_cpu_load(void)
 
     return cpu_load;
 }
-#endif
 
-static void get_temp(unsigned *temp)
+static void get_temp(void)
 {
     int i;
+    unsigned *temp = g_thermal_state.data.temp;
     char path[256];
 
     for(i=0; i<g_thermal_state.thermal.num_thermal_zones; i++) {
-        BDBG_ASSERT(i < MAX_NR_TZONE);
+        BDBG_ASSERT(i < MAX_NUM_TZONE);
         memset(path, 0, sizeof(path));
         snprintf(path, 256, "%s/%s%d", THERMAL_SYSFS, TZONE, g_thermal_state.thermal.tzi[i].instance);
         sysfs_get(path, "temp", &temp[i]);
     }
+}
+
+static void get_power(void)
+{
+    unsigned power, div;
+
+    if (!g_thermal_state.has_pmu) {
+        return;
+    }
+
+    if (sysfs_get(PMU_SYSFS, POWER_RAW, &power)) {
+        g_thermal_state.has_pmu = false;
+        return;
+    }
+    power *= 2; /* TODO : Can we parse the scale? */
+
+    g_thermal_state.data.power.instant = power;
+    g_thermal_state.data.power.samples[g_thermal_state.data.power.idx++] = power;
+    if (g_thermal_state.data.power.idx >= MAX_NUM_POWER_SAMPLES) g_thermal_state.data.power.idx = 0;
+    g_thermal_state.data.power.total += power;
+    div = g_thermal_state.data.power.samples[g_thermal_state.data.power.idx]?MAX_NUM_POWER_SAMPLES:g_thermal_state.data.power.idx;
+    g_thermal_state.data.power.average = g_thermal_state.data.power.total/div;
+    g_thermal_state.data.power.total -= g_thermal_state.data.power.samples[g_thermal_state.data.power.idx];
+
+    return;
 }
 
 static NEXUS_Error throttle_cpu_frequency(cooling_agent *agent, unsigned level)
@@ -615,6 +643,11 @@ static void init_cooling_agents(void)
         BDBG_MSG(("Priority List already initialized from config file"));
     }
 
+    /* Initialize cooling agents */
+    for(i=0; i<num_cooling_agents; i++) {
+        g_cooling_agents[i].func(&g_cooling_agents[i], 0);
+    }
+
     /* Add agent for forced display format change and pip decode*/
     for (i=0; i<sizeof(g_forced_agents)/sizeof(g_forced_agents[0]); i++) {
         item=BKNI_Malloc(sizeof(*item));
@@ -642,59 +675,176 @@ static void uninit_cooling_agents(void)
     }
 }
 
+static void log_data(void)
+{
+    struct timeval tv;
+    unsigned time;
+
+    if (!g_thermal_state.log.enabled)
+        return;
+
+    if (!g_thermal_state.log.fp) {
+        g_thermal_state.log.fp = fopen("thermal_log.csv", "w");
+        BDBG_ASSERT(g_thermal_state.log.fp);
+
+        gettimeofday(&tv, NULL);
+        g_thermal_state.log.start_time = tv.tv_sec;
+        fprintf(g_thermal_state.log.fp, "Time, Temp, Over Temp, Hyst");
+        if (g_thermal_state.has_pmu)
+            fprintf(g_thermal_state.log.fp,", Power, Power Avg");
+        fprintf(g_thermal_state.log.fp,", CPU Load\n");
+    }
+
+    gettimeofday(&tv, NULL);
+    time = tv.tv_sec - g_thermal_state.log.start_time;
+    fprintf(g_thermal_state.log.fp, "%u, %f, %f, %f", time, (double)g_thermal_state.data.temp[0]/1000, (double)g_thermal_state.params.over_temp_threshold/1000, (double)g_thermal_state.params.temp_target/1000);
+    if (g_thermal_state.has_pmu)
+        fprintf(g_thermal_state.log.fp,", %u, %u", g_thermal_state.data.power.instant, g_thermal_state.data.power.average);
+    fprintf(g_thermal_state.log.fp,", %d\n", get_cpu_load());
+    fflush(g_thermal_state.log.fp);
+}
+
+static void log_close(void)
+{
+    if (g_thermal_state.log.fp)
+        fclose(g_thermal_state.log.fp);
+}
+
 static void *thermal_monitor_thread(void *context)
 {
-    unsigned target_temp = g_thermal_state.params.over_temp_threshold - g_thermal_state.params.hysteresis;
     nxserver_t server = g_thermal_state.server;
+    unsigned power_target = 0;
+    enum cooling_state {
+        cooling_state_normal,
+        cooling_state_apply_agent,
+        cooling_state_remove_agent,
+        cooling_state_wait
+    } state = 0;
 
     BSTD_UNUSED(context);
 
     BDBG_MSG(("Starting Thermal Monitor Thread ..."));
 
+    get_power();
+    g_thermal_state.params.temp_target = g_thermal_state.params.over_temp_threshold - g_thermal_state.params.hysteresis;
+
     while(!g_thermal_state.exit) {
         priority_list *priority;
         cooling_agent *agent;
-        unsigned delay = g_thermal_state.params.temp_delay;
-
 
         BKNI_AcquireMutex(server->settings.lock);
-        get_temp(g_thermal_state.samples.temp);
+        if (server->settings.watchdog) {
+            unsigned timeout = g_thermal_state.params.temp_delay / 1000 * 2;
+            /* default is twice the sleep time, but we want to be very conservative with nxserver watchdogs,
+            so use a 15 second min. */
+            if (timeout < 15) timeout = 15;
+            nxserver_p_pet_watchdog(server, &server->watchdog.state, timeout);
+        }
+        get_temp();
         BKNI_ReleaseMutex(server->settings.lock);
-        /*g_thermal_state.samples.cpu_load = get_cpu_load();*/
 
-        BDBG_MSG(("Temp %u", g_thermal_state.samples.temp[0]));
+        BDBG_MSG(("Temp %u", g_thermal_state.data.temp[0]));
+        if (g_thermal_state.has_pmu)
+            BDBG_MSG(("Instant Power %u, Average Power %u", g_thermal_state.data.power.instant, g_thermal_state.data.power.average));
+        BDBG_MSG(("Current State : %u", state));
 
-        if (g_thermal_state.samples.temp[0] > g_thermal_state.params.over_temp_threshold) {
+        log_data();
+
+        if (g_thermal_state.data.temp[0] > g_thermal_state.params.over_temp_threshold) {
+            switch(state) {
+                case cooling_state_normal:
+                    if (g_thermal_state.has_pmu) {
+                        unsigned power_delta = ((g_thermal_state.data.temp[0] - g_thermal_state.params.temp_target)*1000)/g_thermal_state.params.theta_jc;
+                        power_target = g_thermal_state.data.power.average - power_delta;
+                        BDBG_MSG(("Calculated Power Target %u", power_target));
+                    }
+                    state = cooling_state_apply_agent;
+                    break;
+                case cooling_state_apply_agent:
+                case cooling_state_remove_agent:
+                    state = cooling_state_wait;
+                    break;
+                case cooling_state_wait:
+                    if (g_thermal_state.has_pmu) {
+                        BDBG_MSG(("Average Power %u, Power Target %u", g_thermal_state.data.power.average, power_target));
+                        if (g_thermal_state.data.power.instant < power_target) break;
+                    }
+                    if (BLST_Q_EMPTY(&g_thermal_state.available)) break;
+                    state = cooling_state_apply_agent;
+                    break;
+            }
+        } else if (g_thermal_state.data.temp[0] < g_thermal_state.params.temp_target) {
+            switch(state) {
+                case cooling_state_wait:
+                    state = cooling_state_remove_agent;
+                    break;
+                case cooling_state_remove_agent:
+                    if (BLST_Q_EMPTY(&g_thermal_state.active)) {
+                        state = cooling_state_normal;
+                        break;
+                    }
+                case cooling_state_apply_agent:
+                    state = cooling_state_wait;
+                    break;
+                default:
+                    break;
+            }
+        } else {
+            switch(state) {
+                case cooling_state_apply_agent:
+                case cooling_state_remove_agent:
+                    state = cooling_state_wait;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        BDBG_MSG(("Next State : %u", state));
+
+        if (state == cooling_state_apply_agent) {
             /* Apply Policy */
             BKNI_AcquireMutex(server->settings.lock);
             priority = BLST_Q_FIRST(&g_thermal_state.available);
             if (priority) {
                 agent = priority->agent;
-                BDBG_WRN(("Applying Cooling agent %s, Temp %u", agent->name, g_thermal_state.samples.temp[0]));
+                BDBG_WRN(("Applying Cooling agent %s, Temp %u", agent->name, g_thermal_state.data.temp[0]));
                 agent->func(agent, priority->level);
                 BLST_Q_REMOVE(&g_thermal_state.available, priority, link);
                 BLST_Q_INSERT_HEAD(&g_thermal_state.active, priority, link);
             }
             BKNI_ReleaseMutex(server->settings.lock);
-        } else if(g_thermal_state.samples.temp[0] < target_temp){
+        } else if (state == cooling_state_remove_agent){
             /* Remove Policy */
             BKNI_AcquireMutex(server->settings.lock);
             priority = BLST_Q_FIRST(&g_thermal_state.active);
             if (priority) {
                 agent = priority->agent;
-                BDBG_WRN(("Removing Cooling agent %s, Temp %u", agent->name, g_thermal_state.samples.temp[0]));
+                BDBG_WRN(("Removing Cooling agent %s, Temp %u", agent->name, g_thermal_state.data.temp[0]));
                 agent->func(agent, priority->level-1);
                 BLST_Q_REMOVE(&g_thermal_state.active, priority, link);
                 BLST_Q_INSERT_HEAD(&g_thermal_state.available, priority, link);
             }
             BKNI_ReleaseMutex(server->settings.lock);
+        } else {
+            /* Wait */
+            unsigned delay = state==cooling_state_normal?g_thermal_state.params.polling_interval:g_thermal_state.params.temp_delay;
+            if (g_thermal_state.has_pmu) {
+                unsigned duration, sleep_ms;
+                for(duration=0, sleep_ms=100; duration < delay; duration += sleep_ms) {
+                    get_power();
+                    BKNI_Sleep(sleep_ms);
+                }
+            } else {
+                BKNI_Sleep(delay);
+            }
         }
-
-        if (BLST_Q_EMPTY(&g_thermal_state.active)) {
-            delay = g_thermal_state.params.polling_interval;
-        }
-        BKNI_Sleep(delay);
     }
+    if (server->settings.watchdog) {
+        nxserver_p_pet_watchdog(server, &server->watchdog.state, 0);
+    }
+
+    log_close();
 
     return NULL;
 }
@@ -739,6 +889,10 @@ static NEXUS_Error parse_config_file(char *filename)
                     g_thermal_state.params.polling_interval = 1000*atoi(++str);
                 } else if (strstr(s, "temp_delay")) {
                     g_thermal_state.params.temp_delay = 1000*atoi(++str);
+                } else if (strstr(s, "theta_jc")) {
+                    g_thermal_state.params.theta_jc = 1000*atoi(++str);
+                } else if (strstr(s, "enable_log")) {
+                    g_thermal_state.log.enabled = atoi(++str);
                 } else if (strstr(s, "agent")) {
                     cooling_agent *agent=NULL;
                     priority_list *item=NULL;
@@ -789,15 +943,11 @@ static void print_thermal_config(void)
 
 static void set_avs_reset_threshold(void)
 {
-#ifdef BCHP_AVS_TMON_TEMPERATURE_RESET_THRESHOLD
-    unsigned threshold, value;
-    /* Set over temp reset threshold */
-    NEXUS_Platform_ReadRegister(BCHP_AVS_TMON_TEMPERATURE_RESET_THRESHOLD, &value);
-    threshold = ((41004000 - g_thermal_state.params.over_temp_reset*100)/48705)<<1;
-    value &= ~BCHP_AVS_TMON_TEMPERATURE_RESET_THRESHOLD_threshold_MASK;
-    value |= threshold & BCHP_AVS_TMON_TEMPERATURE_RESET_THRESHOLD_threshold_MASK;
-    NEXUS_Platform_WriteRegister(BCHP_AVS_TMON_TEMPERATURE_RESET_THRESHOLD, value);
-#endif
+    unsigned threshold = g_thermal_state.params.over_temp_reset;
+    unsigned park_high = threshold - 10000; /* TODO : Should it be configurable? */
+    unsigned park_low  = park_high - 10000;
+
+    NEXUS_Platform_SetOverTempResetThreshold(threshold, park_high, park_low);
 }
 
 NEXUS_Error nxserver_p_thermal_init(nxserver_t server)
@@ -810,9 +960,10 @@ NEXUS_Error nxserver_p_thermal_init(nxserver_t server)
     g_thermal_state.params.over_temp_threshold = 75000;
     g_thermal_state.params.over_temp_reset = 110000;
     g_thermal_state.params.hysteresis = 2500;
+    g_thermal_state.params.theta_jc = 5500;
     g_thermal_state.params.polling_interval = 1000;
     g_thermal_state.params.temp_delay = 2000;
-
+    g_thermal_state.has_pmu = true;
     g_thermal_state.server = server;
 
     rc = parse_config_file(server->settings.thermal.thermal_config_file);
@@ -853,7 +1004,7 @@ NEXUS_Error nxserver_get_thermal_status(nxclient_t client, NxClient_ThermalStatu
 {
     priority_list *priority = BLST_Q_FIRST(&g_thermal_state.active);
     BSTD_UNUSED(client);
-    pStatus->temperature = g_thermal_state.samples.temp[0];
+    pStatus->temperature = g_thermal_state.data.temp[0];
     if(priority) {
         pStatus->userDefined = !strncmp(priority->agent->name, "user", 4);
         pStatus->level = priority->level;

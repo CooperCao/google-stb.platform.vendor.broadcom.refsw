@@ -10,6 +10,12 @@
         <board name="headless">NEXUS_HEADLESS_PLATFORM=y</board>
     </boards>
   </platform>
+  <platform id="97211">
+    <bondouts></bondouts>
+    <revisions>A0</revisions>
+    <cpu_arch>ARM64</cpu_arch>
+    <boards></boards>
+  </platform>
   <platform id="97228">
     <bondouts></bondouts>
     <revisions>A0</revisions>
@@ -387,7 +393,13 @@
   <kernel version="26" default="OLD_MIPS">2.6.37-3.5</kernel>
   <kernel version="33" default="MIPS">3.3-4.2</kernel>
   <kernel version="314">3.14-1.21</kernel>
-  <kernel version="41" default="ARM,BMIPS">4.1-1.16</kernel>
-  <kernel version="49" default="ARM64">4.9-1.3</kernel>
+  <kernel version="41" default="ARM,BMIPS">4.1-1.17</kernel>
+  <kernel version="49" default="ARM64">4.9-1.4</kernel>
 </kernels>
+<bootloaders>
+  <version>1.0</version>
+  <bootloader type="BOLT" default="97278B0">1.39</bootloader>
+  <bootloader type="BOLT" default="ARM64,ARM">1.38</bootloader>
+  <bootloader type="CFE" default="BMIPS,MIPS,OLD_MIPS">18.1</bootloader>
+</bootloaders>
 </plat>

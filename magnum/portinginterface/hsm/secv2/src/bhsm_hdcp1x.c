@@ -78,9 +78,9 @@ BERR_Code BHSM_Hdcp1x_RouteKey( BHSM_Handle hHsm, const BHSM_Hdcp1xRouteKey *pPa
             bspConfig.in.globalKeyIndex = pParam->root.globalKey.index;
             switch( pParam->root.globalKey.owner )
             {
-                case BHSM_KeyLadderGlobalKeyOwnerIdSelect_eMsp0: { bspConfig.in.stbOwnerIdSel = 0;  break; }
-                case BHSM_KeyLadderGlobalKeyOwnerIdSelect_eMsp1: { bspConfig.in.stbOwnerIdSel = 1;  break; }
-                case BHSM_KeyLadderGlobalKeyOwnerIdSelect_eOne:  { bspConfig.in.stbOwnerIdSel = 2;  break; }
+                case BHSM_KeyLadderGlobalKeyOwnerIdSelect_eMsp0: { bspConfig.in.globalKeyOwnerIdSelect = 0;  break; }
+                case BHSM_KeyLadderGlobalKeyOwnerIdSelect_eMsp1: { bspConfig.in.globalKeyOwnerIdSelect = 1;  break; }
+                case BHSM_KeyLadderGlobalKeyOwnerIdSelect_eOne:  { bspConfig.in.globalKeyOwnerIdSelect = 2;  break; }
                 default: { BERR_TRACE( BERR_INVALID_PARAMETER ); }
             }
             break;
@@ -94,6 +94,7 @@ BERR_Code BHSM_Hdcp1x_RouteKey( BHSM_Handle hHsm, const BHSM_Hdcp1xRouteKey *pPa
     if( pParam->root.type == BHSM_KeyLadderRootType_eOtpAskm ||
         pParam->root.type == BHSM_KeyLadderRootType_eGlobalKey )
     {
+        bspConfig.in.askmSel               = 1;
         bspConfig.in.caVendorId            = (uint16_t)pParam->root.askm.caVendorId;
         bspConfig.in.stbOwnerIdSel         = (uint8_t)pParam->root.askm.stbOwnerSelect;
         switch( pParam->root.askm.caVendorIdScope )

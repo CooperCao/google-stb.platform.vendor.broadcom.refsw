@@ -631,6 +631,8 @@ typedef struct BVCE_P_PictureBlockInfo
    BSTD_DeviceOffset uiPhysicalOffset;
 } BVCE_P_PictureBlockInfo;
 
+#define BVCE_CHANNEL_MAX_MESSAGE_SIZE 512
+
 typedef struct BVCE_P_Channel_Context
 {
       BDBG_OBJECT(BVCE_P_Channel_Context)
@@ -694,18 +696,12 @@ typedef struct BVCE_P_Channel_Context
             bool bNextTargetPTSin360KhzValid;
             uint64_t uiNextTargetPTSin360Khz; /* PTS of next picture to encode */
 
-            bool bPreviousPictureIdValid;
-            uint32_t uiPreviousPictureId;
-            uint32_t uiPreviousSTCSnapshotLo;
-
-            bool bPreviousEnqueueSTCSnapshotLoValid;
-            uint32_t uiPreviousEnqueueSTCSnapshotLo;
-
-            bool bPreviousPolarityReceivedValid;
-            BAVC_Polarity ePreviousPolarityReceived;
-
-            bool bPreviousPolarityEncodedValid;
-            BAVC_Polarity ePreviousPolarityEncoded;
+            struct
+            {
+               bool bValid;
+               BAVC_EncodePictureBuffer stPicture;
+               uint32_t uiSTCSnapshotLo;
+            } stPreviousEncoded, stPreviousReceived;
 
             struct
             {
@@ -714,6 +710,8 @@ typedef struct BVCE_P_Channel_Context
                unsigned uiNumDroppedDueToFRC;
                unsigned uiNumDroppedDueToError;
             } stats;
+
+            char szMessage[BVCE_CHANNEL_MAX_MESSAGE_SIZE];
          } stState;
       } picture;
 

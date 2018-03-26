@@ -90,8 +90,8 @@ typedef struct {
 
     uint8_t epochSelect;                      /* todo ... will be read from signature file */
 
-    NEXUS_SecurityVirtualKeyladderID  keyLadderId;     /* Requried for SCPU FSBL region */
-    NEXUS_SecurityKeySource           keyLadderLayer;  /* Requried for SCPU FSBL region*/
+    NEXUS_SecurityVirtualKeyladderID  keyLadderId;     /* Required for SCPU FSBL region */
+    NEXUS_SecurityKeySource           keyLadderLayer;  /* Required for SCPU FSBL region*/
 
     char description[30];                     /* textual description of region. */
     bool enforceAuthentication;               /* force verification */
@@ -600,7 +600,7 @@ NEXUS_Error NEXUS_Security_RegionConfig_priv( NEXUS_SecurityRegverRegionID regio
 
         if( pConfiguration->signature.size == NEXUS_REGIONVERIFY_SIGNATURE_PLUS_HEADER_SIZE )
         {
-            BDBG_MSG(("[%s] Load region paramters from signature REGION[%d]", BSTD_FUNCTION, regionId ));
+            BDBG_MSG(("[%s] Load region parameters from signature REGION[%d]", BSTD_FUNCTION, regionId ));
             parseSignatureHeader( &pRegionData->signedAttributes, pConfiguration->signature.data );
         }
     }
@@ -612,7 +612,7 @@ NEXUS_Error NEXUS_Security_RegionConfig_priv( NEXUS_SecurityRegverRegionID regio
 
 /*
 Summary
-    Verify the specifed region.
+    Verify the specified region.
 */
 NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID regionId, NEXUS_Addr regionAddress, unsigned regionSize )
 {
@@ -664,7 +664,7 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
         if( rc == NEXUS_SECURITY_REGION_NOT_OTP_ENABLED )
         {
             BDBG_WRN(("Region [0x%02X][%s] not OTP enabled.", regionId, pRegionData->description ));
-            return NEXUS_SUCCESS; /* region verification not requried */
+            return NEXUS_SUCCESS; /* region verification not required */
         }
 
         return BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Region verificaiton failed. */
@@ -686,11 +686,28 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
             return BERR_TRACE( NEXUS_UNKNOWN );
         }
 
+   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
         if (verificationStatus.region[regionId] & REGION_STATUS_FASTCHKFINISH) {
             BDBG_MSG(("RegionVer fast check finished."));
             BKNI_Sleep (3);
             break;
         }
+   #else
+        if (regionId == NEXUS_SecurityRegverRegionID_eRave) {
+            /* There is no background check for RAVE. */
+            if (verificationStatus.region[regionId] & REGION_STATUS_VERIFIED) {
+                BDBG_MSG(("RAVE RegionVer verified."));
+                BKNI_Sleep (3);
+                break;
+            }
+            /* For other regions, keep bg check on. */
+        } else  if (verificationStatus.region[regionId] & REGION_STATUS_FASTCHKFINISH) {
+            BDBG_MSG(("RegionVer fast check finished."));
+            BKNI_Sleep (3);
+            break;
+        }
+   #endif
+
 
         BKNI_Sleep (5);
 
@@ -703,6 +720,21 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
     }
 
     pRegionData->verified = true;
+
+    if (verificationStatus.region[regionId] & REGION_STATUS_FASTCHKRESULT) {
+        pRegionData->verified = false;
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
+    if (verificationStatus.region[regionId] & REGION_STATUS_FASTCHKPADDINGRESULT) {
+        pRegionData->verified = false;
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
+    if (verificationStatus.region[regionId] & REGION_STATUS_BKCHKRESULT) {
+        pRegionData->verified = false;
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
 
     BDBG_LEAVE( NEXUS_Security_RegionVerifyEnable_priv );
     return NEXUS_SUCCESS;
@@ -1139,7 +1171,7 @@ static NEXUS_Error NEXUS_Security_CalculateCpuType_priv( BCMD_MemAuth_CpuType_e 
         default:
         {
             BDBG_ERR(("Region [0x%02X] not mapped to CPU type", region ));
-            rc = BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Unsuported region. */
+            rc = BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Unsupported region. */
         }
     }
 
@@ -1150,7 +1182,7 @@ static NEXUS_Error NEXUS_Security_CalculateCpuType_priv( BCMD_MemAuth_CpuType_e 
 
 /*
 Summary
-    Extract configuration paramters embedded in the augmented/extended signature.
+    Extract configuration parameters embedded in the augmented/extended signature.
 */
 static void parseSignatureHeader( NEXUS_SecuritySignedAtrributes *pSigHeader, const uint8_t* pSignature )
 {

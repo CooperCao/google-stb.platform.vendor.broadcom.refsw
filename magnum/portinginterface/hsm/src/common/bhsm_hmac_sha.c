@@ -57,8 +57,6 @@
 
 BDBG_MODULE(BHSM);
 
-BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
-
 BERR_Code BHSM_UserHmacSha ( BHSM_Handle hHsm, BHSM_UserHmacShaIO_t *pIo )
 {
     BHSM_BspMsg_h       hMsg = NULL;

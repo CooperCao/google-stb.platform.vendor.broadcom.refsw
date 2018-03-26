@@ -699,7 +699,7 @@ static BERR_Code ParseDVS053Data_isr (
         ++data_found;
     }
 
-    BUDP_SETFIELDSPARITY_DVS_isr (pCCdata, *pcc_count, pUserdata_info);
+    BUDP_SETFIELDSPARITY_DVS_isr (pCCdata, data_found, pUserdata_info);
 
     *pcc_count = data_found;
     return BERR_SUCCESS;

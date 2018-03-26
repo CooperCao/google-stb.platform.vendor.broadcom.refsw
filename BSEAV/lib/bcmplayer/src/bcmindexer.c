@@ -2063,11 +2063,10 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
                 /* 7.3.2.3 Picture parameter set RBSP syntax */
                 unsigned pps_pic_parameter_set_id;
                 unsigned pps_seq_parameter_set_id;
-                bool dependent_slice_segments_enabled_flag;
                 unsigned num_extra_slice_header_bits;
                 pps_pic_parameter_set_id = batom_bitstream_exp_golomb(&bs);
                 pps_seq_parameter_set_id = batom_bitstream_exp_golomb(&bs);
-                dependent_slice_segments_enabled_flag = batom_bitstream_bit(&bs);
+                /* dependent_slice_segments_enabled_flag */ batom_bitstream_drop_bits(&bs,1);
                 /* output_flag_present_flag */ batom_bitstream_drop_bits(&bs,1);
                 num_extra_slice_header_bits = batom_bitstream_bits(&bs, 3);
                 if(batom_bitstream_eof(&bs) || pps_pic_parameter_set_id >= sizeof(handle->hevc.pps)/sizeof(handle->hevc.pps[0])) {
@@ -2077,7 +2076,6 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
                 }
                 handle->hevc.pps[pps_pic_parameter_set_id].valid = true;
                 handle->hevc.pps[pps_pic_parameter_set_id].pps_seq_parameter_set_id = pps_seq_parameter_set_id;
-                handle->hevc.pps[pps_pic_parameter_set_id].dependent_slice_segments_enabled_flag = dependent_slice_segments_enabled_flag;
                 handle->hevc.pps[pps_pic_parameter_set_id].num_extra_slice_header_bits = num_extra_slice_header_bits;
 
                 handle->avc.pps[pps_pic_parameter_set_id].offset = handle->avc.current_sei_valid?handle->avc.current_sei:offset; /* start with preceding SEI's if present */
@@ -2107,7 +2105,6 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
             {
                 bool first_slice_segment_in_pic_flag;
                 unsigned slice_pic_parameter_set_id;
-                bool dependent_slice_segment_flag  = false;
                 unsigned i;
 
                 if(!handle->hevc.sliceStartSet) {
@@ -2127,12 +2124,14 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
                     case 16: case 17: case 18: /* Coded slice segment of a BLA picture */
                         handle->rfo=0;
                         random_access_indicator = true;
+                        handle->hevc.streamHasIDR = true;
                         break;
                     default:
                         break;
                     }
                     BNAV_set_refFrameOffset(avcEntry, handle->rfo);
                     BNAV_set_RandomAccessIndicator(avcEntry, random_access_indicator);
+                    handle->hevc.randomAccessIndicator = random_access_indicator;
                     handle->rfo++;
                 }
                 /*
@@ -2157,19 +2156,17 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
                 if(!handle->hevc.pps[slice_pic_parameter_set_id].valid) {
                     break;
                 }
-                if(handle->hevc.pps[slice_pic_parameter_set_id].dependent_slice_segments_enabled_flag) {
-                    break; /* slice type is missing */
-                }
                 if(!first_slice_segment_in_pic_flag) {
-                    break; /* can't read slice_segment_address */
-#if 0
-                    if(handle->hevc.pps[slice_pic_parameter_set_id].dependent_slice_segments_enabled_flag) {
-                        dependent_slice_segment_flag = batom_bitstream_bit(&bs);
+                    if(handle->hevc.streamHasIDR && !handle->hevc.randomAccessIndicator) {
+                        /* if stream has random access indicator (IDR/CRA/BLA), but current slice is not marked as such, demote frame type to P */
+                        if(handle->hevc.frameTypeValid && BNAV_get_frameType(avcEntry) == eSCTypeIFrame) {
+                            BNAV_set_frameType(avcEntry, eSCTypePFrame);
+                            handle->isISlice = 0;
+                        }
                     }
-                    batom_bitstream_drop_bits(&bs, Ceil( Log2( PicSizeInCtbsY ) )); /* slice_segment_address */
-#endif
+                    break; /* can't read slice_segment_address, due to limited number of captured bytes */
                 }
-                if(!dependent_slice_segment_flag) {
+                {
                     unsigned slice_type;
                     for(i=0;i<handle->hevc.pps[slice_pic_parameter_set_id].num_extra_slice_header_bits;i++) {
                         batom_bitstream_drop_bits(&bs, 1); /* slice_reserved_flag[i] */
@@ -2235,6 +2232,8 @@ static void BNAV_Indexer_FeedHEVC_Init(BNAV_Indexer_Handle handle)
     handle->hevc.frameTypeValid = false;
     handle->hevc.newFrame = false;
     handle->hevc.sliceStartSet = false;
+    handle->hevc.randomAccessIndicator = false;
+    handle->hevc.streamHasIDR = false;
     return;
 }
 

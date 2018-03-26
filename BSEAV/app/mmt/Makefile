@@ -56,7 +56,11 @@ endif
 # include cross-compiler definitions
 include $(B_LIB_TOP)/build/b_lib_defs.inc
 ifeq ($(NXCLIENT_SUPPORT),y)
-THEAPPS = mmt_playback
+THEAPPS = \
+        mmt_playback \
+	tsmf_mmt_live \
+	mmt_message_from_playback \
+	mmt_record_from_playback
 else
 THEAPPS = \
 	mmt_playback \

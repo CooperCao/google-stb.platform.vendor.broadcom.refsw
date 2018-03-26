@@ -341,6 +341,27 @@ done:
 }
 
 
+/***************************************************************************
+ *
+ */
+BERR_Code BVDC_Source_GetStcFlag
+    ( const BVDC_Source_Handle         hSource,
+      uint32_t                        *pulStcFlag )
+{
+    BDBG_ENTER(BVDC_Source_GetStcFlag);
+    BDBG_OBJECT_ASSERT(hSource, BVDC_SRC);
+    if(NULL == pulStcFlag) {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+#ifdef BVDC_P_SUPPORT_RDC_STC_FLAG
+    *pulStcFlag = hSource->ulStcFlag;
+#else
+    *pulStcFlag = BRDC_MAX_STC_FLAG_COUNT;
+#endif
+    BDBG_LEAVE(BVDC_Source_GetStcFlag);
+    return BERR_SUCCESS;
+}
+
 #if !B_REFSW_MINIMAL
 /***************************************************************************
  *
@@ -2714,36 +2735,16 @@ static void BVDC_P_Source_UpdateMfdVertRateCode_isr
 
 
 #ifndef BVDC_FOR_BOOTUPDATER
-static bool BVDC_P_Source_MpegSizeWithinRTSLimit_isr
-    ( BVDC_Source_Handle         hSource,
-      uint32_t                   ulCount,
-      uint32_t                   ulRTSMaxWidth,
-      uint32_t                   ulRTSMaxHeight )
+static void BVDC_P_Source_ValidateCoverage_isr
+    ( const BVDC_Source_Handle         hSource )
 {
-    uint32_t   i, ulSourceWidth, ulSourceHeight;
-
-    for(i = 0; i < ulCount; i++)
-    {
-        ulSourceWidth = hSource->stNewPic[i].ulSourceHorizontalSize;
-        ulSourceHeight = hSource->stNewPic[i].ulSourceVerticalSize >>
-            (hSource->stNewPic[i].eSourcePolarity != BAVC_Polarity_eFrame);
-
-        if((ulSourceWidth > ulRTSMaxWidth) || (ulSourceHeight > ulRTSMaxHeight))
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-static BERR_Code BVDC_P_Source_ValidateCoverage_isr
-    ( BVDC_Source_Handle         hSource )
-{
-    bool                     bValid, bDoubleVertSize;
+    bool                     bDoubleVertSize;
     uint32_t                 ulIndex, ulHalfSrcRateLimit;
-    uint32_t                 ulRTSMaxWidth, ulRTSMaxHeight;
-    BBOX_Config             *pBoxConfig;
+    uint32_t                 ulL1RTSMaxWidth, ulL1RTSMaxHeight;
+    uint32_t                 ulL2RTSMaxWidth, ulL2RTSMaxHeight;
+    uint32_t                 ulPRTSMaxWidth, ulPRTSMaxHeight;
+    uint32_t                 i, ulSourceWidth, ulSourceHeight;
+    const BBOX_Config       *pBoxConfig;
     BBOX_Vdc_SourceClass     eSourceClass;
     BBOX_Vdc_SourceRateLimit eRateLimit;
     const BVDC_SourceClassLimits  *pSourceClassLimit;
@@ -2759,7 +2760,7 @@ static BERR_Code BVDC_P_Source_ValidateCoverage_isr
 
     if(eSourceClass == BBOX_Vdc_SourceClass_eLegacy)
     {
-        return BERR_SUCCESS;
+        return;
     }
 
     /* Non-legacy class */
@@ -2768,68 +2769,58 @@ static BERR_Code BVDC_P_Source_ValidateCoverage_isr
 
     eRateLimit = pBoxConfig->stVdc.astSource[hSource->eId].eRateLimit;
     if(eRateLimit == BBOX_Vdc_SourceRateLimit_e50Hz)
-        ulHalfSrcRateLimit = 25;
+        ulHalfSrcRateLimit = s_aulFrmRate[BAVC_FrameRateCode_e25];
     else
-        ulHalfSrcRateLimit = 30;
+        ulHalfSrcRateLimit = s_aulFrmRate[BAVC_FrameRateCode_e30];
 
     if(s_aulFrmRate[hSource->eMfdVertRateCode] <= ulHalfSrcRateLimit)
         bDoubleVertSize = true;
     else
         bDoubleVertSize = false;
 
-    /* landscape1 */
-    ulRTSMaxWidth = pSourceClassLimit->landscape1[ulIndex].ulWidth;
-    ulRTSMaxHeight = pSourceClassLimit->landscape1[ulIndex].ulHeight;
-    if(ulRTSMaxWidth || ulRTSMaxHeight)
+    ulL1RTSMaxWidth = pSourceClassLimit->landscape1[ulIndex].ulWidth;
+    ulL1RTSMaxHeight = pSourceClassLimit->landscape1[ulIndex].ulHeight << bDoubleVertSize;
+    ulL2RTSMaxWidth = pSourceClassLimit->landscape2[ulIndex].ulWidth;
+    ulL2RTSMaxHeight = pSourceClassLimit->landscape2[ulIndex].ulHeight << bDoubleVertSize;
+    ulPRTSMaxWidth = pSourceClassLimit->portrait[ulIndex].ulWidth;
+    ulPRTSMaxHeight = pSourceClassLimit->portrait[ulIndex].ulHeight << bDoubleVertSize;
+
+    for(i = 0; i <= ulIndex; i++)
     {
-        bValid = BVDC_P_Source_MpegSizeWithinRTSLimit_isr(hSource,
-            ulIndex+1, ulRTSMaxWidth, ulRTSMaxHeight << bDoubleVertSize);
-        if(bValid)
-        {
-            return BERR_SUCCESS;
-        }
+        ulSourceWidth = hSource->stNewPic[i].ulSourceHorizontalSize;
+        ulSourceHeight = hSource->stNewPic[i].ulSourceVerticalSize >>
+            (hSource->stNewPic[i].eSourcePolarity != BAVC_Polarity_eFrame);
+
+        /* landscape1 */
+        if((ulSourceWidth <= ulL1RTSMaxWidth) && (ulSourceHeight <= ulL1RTSMaxHeight))
+            continue;
+
+        /* landscape2 */
+        if((ulSourceWidth <= ulL2RTSMaxWidth) && (ulSourceHeight <= ulL2RTSMaxHeight))
+            continue;
+
+        /* portrait */
+        if((ulSourceWidth <= ulPRTSMaxWidth) && (ulSourceHeight <= ulPRTSMaxHeight))
+            continue;
+
+        BDBG_ERR(("============================================================================="));
+        BDBG_ERR(("Src[%d] Boxmode[%d] RTS violation: (Class: %d, RateLimit: %s, Mosiac cnt: %d)",
+            hSource->eId, hSource->hVdc->stBoxConfig.stBox.ulBoxId, eSourceClass,
+            eRateLimit ? "50Hz" : "60Hz",
+            ulIndex+1));
+        BDBG_ERR(("Src Size(%dx%d@%d) not fit in any of the RTS limits: (%dx%d), (%dx%d), (%dx%d)",
+            ulSourceWidth, ulSourceHeight,
+            s_aulFrmRate[hSource->stNewPic[i].eFrameRateCode]/BFMT_FREQ_FACTOR,
+            pSourceClassLimit->landscape1[ulIndex].ulWidth,
+            pSourceClassLimit->landscape1[ulIndex].ulHeight,
+            pSourceClassLimit->landscape2[ulIndex].ulWidth,
+            pSourceClassLimit->landscape2[ulIndex].ulHeight,
+            pSourceClassLimit->portrait[ulIndex].ulWidth,
+            pSourceClassLimit->portrait[ulIndex].ulHeight));
+        BDBG_ERR(("============================================================================="));
+        return;
     }
 
-    /* landscape2 */
-    ulRTSMaxWidth = pSourceClassLimit->landscape2[ulIndex].ulWidth;
-    ulRTSMaxHeight = pSourceClassLimit->landscape2[ulIndex].ulHeight;
-    if(ulRTSMaxWidth || ulRTSMaxHeight)
-    {
-        bValid = BVDC_P_Source_MpegSizeWithinRTSLimit_isr(hSource,
-            ulIndex+1, ulRTSMaxWidth, ulRTSMaxHeight << bDoubleVertSize);
-        if(bValid)
-        {
-            return BERR_SUCCESS;
-        }
-    }
-
-    /* portrait */
-    ulRTSMaxWidth = pSourceClassLimit->portrait[ulIndex].ulWidth;
-    ulRTSMaxHeight = pSourceClassLimit->portrait[ulIndex].ulHeight;
-    if(ulRTSMaxWidth || ulRTSMaxHeight)
-    {
-        bValid = BVDC_P_Source_MpegSizeWithinRTSLimit_isr(hSource,
-            ulIndex+1, ulRTSMaxWidth, ulRTSMaxHeight << bDoubleVertSize);
-        if(bValid)
-        {
-            return BERR_SUCCESS;
-        }
-    }
-
-    BDBG_ERR(("===================================================================="));
-    BDBG_ERR(("Src[%d] Boxmode[%d] RTS violation: eSourceClass %d, eRateLimit: %d",
-        hSource->eId, hSource->hVdc->stBoxConfig.stBox.ulBoxId, eSourceClass, eRateLimit));
-    BDBG_ERR(("Mosaic Cnt[%d] landscape1(%dx%d), landscape2(%dx%d), portrait(%dx%d)",
-        ulIndex+1,
-        pSourceClassLimit->landscape1[ulIndex].ulWidth,
-        pSourceClassLimit->landscape1[ulIndex].ulHeight,
-        pSourceClassLimit->landscape2[ulIndex].ulWidth,
-        pSourceClassLimit->landscape2[ulIndex].ulHeight,
-        pSourceClassLimit->portrait[ulIndex].ulWidth,
-        pSourceClassLimit->portrait[ulIndex].ulHeight));
-    BDBG_ERR(("===================================================================="));
-
-    return BVDC_ERR_INVALID_MOSAIC_MODE;
 }
 #endif
 
@@ -3020,11 +3011,6 @@ void BVDC_Source_MpegDataReady_isr
         hSource->ulPixelCount = ((pNewPic->ulSourceHorizontalSize *
              pNewPic->ulSourceVerticalSize) / BFMT_FREQ_FACTOR) * hSource->ulVertFreq;
     }
-
-#ifndef BVDC_FOR_BOOTUPDATER
-    /* Check coverage */
-    BVDC_P_Source_ValidateCoverage_isr(hSource);
-#endif
 
     hSource->ulMosaicFirstUnmuteRectIndex = 0;
     hSource->bMosaicFirstUnmuteRectIndexSet = false;
@@ -3491,6 +3477,11 @@ void BVDC_Source_MpegDataReady_isr
         }
     }
 
+#ifndef BVDC_FOR_BOOTUPDATER
+    /* Check coverage */
+    BVDC_P_Source_ValidateCoverage_isr(hSource);
+#endif
+
     /* if the compositor is in slip2lock transition, clean up syncslip display RUL
        to avoid sync-slipped VFD overwrite error in case source/display _isr are
        called in reverse order; */
@@ -3556,6 +3547,7 @@ void BVDC_Source_MpegDataReady_isr
     }
     stMasterList.bMasterList = true;
     stList.bMasterList = true;
+    stList.hSlot = hSlot;
 
     /* MosaicMode: picture list
      * ------------------------

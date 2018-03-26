@@ -186,6 +186,9 @@ static void *nxclient_p_callback_thread(void *context)
             if (g_callbackThread.settings.coolingAgentChanged.callback && status.coolingAgentChanged != g_callbackThread.lastStatus.coolingAgentChanged) {
                 (g_callbackThread.settings.coolingAgentChanged.callback)(g_callbackThread.settings.coolingAgentChanged.context, g_callbackThread.settings.coolingAgentChanged.param);
             }
+            if (g_callbackThread.settings.standbyStateChanged.callback && status.standbyStateChanged != g_callbackThread.lastStatus.standbyStateChanged) {
+                (g_callbackThread.settings.standbyStateChanged.callback)(g_callbackThread.settings.standbyStateChanged.context, g_callbackThread.settings.standbyStateChanged.param);
+            }
             g_callbackThread.lastStatus = status;
         }
 sleep:

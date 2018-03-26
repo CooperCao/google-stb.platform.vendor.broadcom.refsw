@@ -243,7 +243,7 @@ void Scheduler::updateTimeSlice() {
         uint64_t nowTime = TzHwCounter::timeNow();
         uint64_t worldRunTime = nowTime - Scheduler::startWorldRunTime.cpuLocal();
     /* Dump every 200ms */
-    if((worldRunTime >= (TzHwCounter::frequency()/5))){
+    if((worldRunTime >= (TzHwCounter::frequency()/10))){
         updateTaskLog(worldRunTime);
             Scheduler::startWorldRunTime.cpuLocal() = nowTime;
         }

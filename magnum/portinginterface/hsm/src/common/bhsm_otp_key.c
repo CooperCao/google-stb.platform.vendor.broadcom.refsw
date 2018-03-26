@@ -44,8 +44,6 @@
 
 BDBG_MODULE ( BHSM );
 
-BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
-
 BERR_Code BHSM_ProgOTPKey ( BHSM_Handle hHsm, BHSM_ProgramOtpKey_t * pConfig )
 {
 #if HSM_IS_ASKM_28NM_ZEUS_4_2

@@ -60,20 +60,6 @@ void SmcCalls::init() {
 
     // Fill the dispatch table with handlers.
     dispatchTable[SMC_NORMAL_SWITCH] = doNormalSwitch;
-
-#ifdef LEGACY_BL31
-    uint32_t ret;
-
-    // Set the smc handler in the SM
-    asm volatile("mov x1, %[xt]":: [xt] "r" (tz_secure_smc_handler):"x1");
-    asm volatile("mov x0, #0x3c000000":::"x0");
-    asm volatile("orr x0, x0, #1":::"x0");
-    asm volatile("smc #0":::);
-    asm volatile("mov %[xt], x0": [xt] "=r" (ret)::"x0");
-    if(ret) {
-        printf("Failed to set NS smc handler\n");
-    }
-#endif
 }
 
 unsigned long SmcCalls::readNSReg(NSRegs reg) {

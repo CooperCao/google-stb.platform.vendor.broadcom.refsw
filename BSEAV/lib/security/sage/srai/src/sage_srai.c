@@ -183,8 +183,9 @@ static struct srai_context {
     NEXUS_MemoryAllocationSettings allocSettings;
     NEXUS_MemoryAllocationSettings secureAllocSettings;
     NEXUS_MemoryAllocationSettings exportAllocSettings;
-    NEXUS_Addr secure_offset[2];
-    unsigned secure_size[2];
+    NEXUS_MemoryAllocationSettings arrAllocSettings;
+    NEXUS_Addr secure_offset[3];
+    unsigned secure_size[3];
 
     /* Nexus SAGE handle. One per SRAI instance. i.e. One per application. */
     NEXUS_SageHandle sage;
@@ -253,14 +254,27 @@ static struct srai_context {
 //static SRAI_Settings _srai_settings = {NEXUS_MEMC0_MAIN_HEAP, NEXUS_VIDEO_SECURE_HEAP};
 static SRAI_Settings _srai_settings =
 #ifdef NXCLIENT_SUPPORT
-    {NXCLIENT_FULL_HEAP, NXCLIENT_VIDEO_SECURE_HEAP, NXCLIENT_EXPORT_HEAP};
+    {NXCLIENT_FULL_HEAP, NXCLIENT_VIDEO_SECURE_HEAP, NXCLIENT_EXPORT_HEAP, NXCLIENT_ARR_HEAP};
 #else
-    {NEXUS_MEMC0_MAIN_HEAP, NEXUS_VIDEO_SECURE_HEAP, NEXUS_EXPORT_HEAP};
+    {NEXUS_MEMC0_MAIN_HEAP, NEXUS_VIDEO_SECURE_HEAP, NEXUS_EXPORT_HEAP, NEXUS_ARR_HEAP};
 #endif
 
 /* use .secure_* parameters to determine if a given memory block belongs to secure heap */
-#define _SRAI_IsMemoryInSecureHeap(MEM) ( (((MEM) >= _srai.secure_offset[0]) && ((MEM) < (_srai.secure_offset[0] + _srai.secure_size[0]))) \
-                                    || (((MEM) >= _srai.secure_offset[1]) && ((MEM) < (_srai.secure_offset[1] + _srai.secure_size[1]))) )
+static inline bool _SRAI_IsMemoryInSecureHeap(uint64_t address)
+{
+    unsigned int i;
+    unsigned int cnt=sizeof(_srai.secure_offset)/sizeof(_srai.secure_offset[0]);
+
+    for(i=0;i<cnt;i++)
+    {
+        if((address >= _srai.secure_offset[i]) && ( address < (_srai.secure_offset[i] + _srai.secure_size[i])))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
 
 #ifdef SRAI_GLOBAL_LOCK_BKNI
 static BKNI_MutexHandle _srai_mutex = NULL;
@@ -1284,6 +1298,21 @@ static int _srai_init_settings(void)
         BDBG_MSG(("Found XRR: offset: " BDBG_UINT64_FMT " size: 0x%x", BDBG_UINT64_ARG(_srai.secure_offset[1]), _srai.secure_size[1]));
     }
 
+    if (_srai_get_heap(NEXUS_MemoryType_eSecure,
+                       NEXUS_HEAP_TYPE_ARR,
+                       clientConfig.heap[_srai_settings.arrHeapIndex],
+                       &_srai.arrAllocSettings, &heapStatus, &clientConfig)) {
+        BDBG_WRN(("%s: arr heap is not configured", BSTD_FUNCTION));
+        /* Explicitly clear the exportAllocSettings */
+        BKNI_Memset(&_srai.arrAllocSettings, 0, sizeof(_srai.arrAllocSettings));
+    }
+    else {
+        /* get secure heap boundaries for _SRAI_IsMemoryInSecureHeap() */
+        _srai.secure_offset[2] = heapStatus.offset;
+        _srai.secure_size[2] = heapStatus.size;
+        BDBG_MSG(("Found ARR: offset: " BDBG_UINT64_FMT " size: 0x%x", BDBG_UINT64_ARG(_srai.secure_offset[2]), _srai.secure_size[2]));
+    }
+
     return rc;
 }
 
@@ -1450,12 +1479,13 @@ static void *_srai_memory_allocate(size_t size,
 {
     void *ret = NULL;
     NEXUS_Error rc;
+    size_t roundedSize = RoundUpP2(size, SAGE_ALIGN_SIZE);
 
     if (settings->heap == NULL) {
         BDBG_ERR(("%s: heap is not configured", BSTD_FUNCTION));
         goto end;
     }
-    rc = NEXUS_Memory_Allocate(size, settings, &ret);
+    rc = NEXUS_Memory_Allocate(roundedSize, settings, &ret);
 
     if (rc != NEXUS_SUCCESS) {
         BDBG_ERR(("%s(%u) failure (%d)", BSTD_FUNCTION, (uint32_t)size, rc));
@@ -1479,6 +1509,11 @@ static void *_srai_memory_allocate_restricted(size_t size)
 static void *_srai_memory_allocate_export(size_t size)
 {
     return _srai_memory_allocate(size, &_srai.exportAllocSettings);
+}
+
+static void *_srai_memory_allocate_arr(size_t size)
+{
+    return _srai_memory_allocate(size, &_srai.arrAllocSettings);
 }
 
 /* Get/Set settings */
@@ -1517,6 +1552,13 @@ BERR_Code SRAI_SetSettings(SRAI_Settings *pSettings)
         goto end;
     }
 
+    if (pSettings->arrHeapIndex >= NEXUS_MAX_HEAPS) {
+        BDBG_ERR(("%s: cannot set arr heap index to %u",
+                  BSTD_FUNCTION, pSettings->arrHeapIndex));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+
     _srai_settings = *pSettings;
 
     if (_srai_varinit_state) {
@@ -1532,11 +1574,11 @@ BERR_Code SRAI_SetSettings(SRAI_Settings *pSettings)
 
 /* Allocate a memory block of given size.
  * The returned memory block can be accessed from both the Host and the SAGE systems. */
+/* size is rounded up in the memory allocation function, _srai_memory_allocate to
+SAGE_ALIGN_SIZE */
 uint8_t *SRAI_Memory_Allocate(uint32_t size, SRAI_MemoryType memoryType)
 {
     uint8_t *ret;
-    size_t roundedSize = RoundUpP2(size, SAGE_ALIGN_SIZE);
-    /* size is rounded up to a multiple of SAGE_ALIGN_SIZE bytes for SAGE-side concerns. */
 
     BDBG_ENTER(SRAI_Memory_Allocate);
 
@@ -1544,13 +1586,16 @@ uint8_t *SRAI_Memory_Allocate(uint32_t size, SRAI_MemoryType memoryType)
 
     switch (memoryType) {
     case SRAI_MemoryType_Shared:
-        ret = (uint8_t *)_srai_memory_allocate_global(roundedSize);
+        ret = (uint8_t *)_srai_memory_allocate_global(size);
         break;
-    case SRAI_MemoryType_SagePrivate:
-        ret = (uint8_t *)_srai_memory_allocate_restricted(roundedSize);
+    case SRAI_MemoryType_Crr:
+        ret = (uint8_t *)_srai_memory_allocate_restricted(size);
         break;
     case SRAI_MemoryType_SageExport:
-        ret = (uint8_t *)_srai_memory_allocate_export(roundedSize);
+        ret = (uint8_t *)_srai_memory_allocate_export(size);
+        break;
+    case SRAI_MemoryType_Arr:
+        ret = (uint8_t *)_srai_memory_allocate_arr(size);
         break;
     default:
         ret = NULL;

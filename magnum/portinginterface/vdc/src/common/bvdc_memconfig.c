@@ -241,13 +241,8 @@ static BERR_Code BVDC_P_Memconfig_GetVipSize
                 return BERR_TRACE(BERR_INVALID_PARAMETER);
             }
             /* compute the memory allocation; TODO: there might be runtime switch of DCXV for some workaround;
-               TODO: debug capture probably requires DCXV off; */
-            if ( BCHP_CHIP == 7425 || BCHP_CHIP == 7435 || BCHP_CHIP == 7364 || BCHP_CHIP == 7250 || BCHP_CHIP == 7271 )
-            {
-               stVipMemSettings.DcxvEnable = false;
-            } else {
-               stVipMemSettings.DcxvEnable = true; /* TODO: must be disabled for MFD display */
-            }
+               debug capture probably requires DCXV off; */
+            stVipMemSettings.DcxvEnable = BVDC_P_VIP_DCX_ON; /* compile option */
             stVipMemSettings.DramStripeWidth = pDisplay->vip.pstMemoryInfo->memc[pDisplay->vip.stCfgSettings.ulMemcId].ulStripeWidth;
             stVipMemSettings.PageSize = pDisplay->vip.pstMemoryInfo->memc[pDisplay->vip.stCfgSettings.ulMemcId].ulPageSize;
             stVipMemSettings.X = pDisplay->vip.pstMemoryInfo->memc[pDisplay->vip.stCfgSettings.ulMemcId].ulMbMultiplier;
@@ -424,28 +419,43 @@ BERR_Code BVDC_GetMemoryConfiguration
                 &stWindowInfo, &ulWinCapBufTotalSize, &ulWinMadBufTotalSize);
 
             /* Put it in the correct memc */
-            BDBG_ASSERT(pWindow->ulMemcIndex < BVDC_MAX_MEMC);
+            if (pWindow->ulMemcIndex < BVDC_MAX_MEMC)
+            {
+                pHeapSizeInfo = &pSystemConfigInfo->stHeapSizeInfo;
 
-            pHeapSizeInfo = &pSystemConfigInfo->stHeapSizeInfo;
+                /* Copy capture buffer count in each window to BVDC_MemConfig */
+                pMemConfig->stDisplay[ulDispIndex].stWindow[ulWinIndex].ulCapSize = ulWinCapBufTotalSize;
+                pCapHeapSetting->ulBufferCnt_4HD =
+                    stWindowInfo.aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e4HD]];
+                pCapHeapSetting->ulBufferCnt_2HD =
+                    stWindowInfo.aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e2HD]];
+                pCapHeapSetting->ulBufferCnt_HD  =
+                    stWindowInfo.aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eHD]];
+                pCapHeapSetting->ulBufferCnt_SD  =
+                    stWindowInfo.aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eSD]];
+                pCapHeapSetting->ulBufferCnt_4HD_Pip =
+                    stWindowInfo.aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e4HD_Pip]];
+                pCapHeapSetting->ulBufferCnt_2HD_Pip =
+                    stWindowInfo.aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e2HD_Pip]];
+                pCapHeapSetting->ulBufferCnt_HD_Pip  =
+                    stWindowInfo.aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eHD_Pip]];
+                pCapHeapSetting->ulBufferCnt_SD_Pip  =
+                    stWindowInfo.aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eSD_Pip]];
 
-            /* Copy capture buffer count in each window to BVDC_MemConfig */
-            pMemConfig->stDisplay[ulDispIndex].stWindow[ulWinIndex].ulCapSize = ulWinCapBufTotalSize;
-            pCapHeapSetting->ulBufferCnt_4HD =
-                stWindowInfo.aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e4HD]];
-            pCapHeapSetting->ulBufferCnt_2HD =
-                stWindowInfo.aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e2HD]];
-            pCapHeapSetting->ulBufferCnt_HD  =
-                stWindowInfo.aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eHD]];
-            pCapHeapSetting->ulBufferCnt_SD  =
-                stWindowInfo.aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eSD]];
-            pCapHeapSetting->ulBufferCnt_4HD_Pip =
-                stWindowInfo.aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e4HD_Pip]];
-            pCapHeapSetting->ulBufferCnt_2HD_Pip =
-                stWindowInfo.aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e2HD_Pip]];
-            pCapHeapSetting->ulBufferCnt_HD_Pip  =
-                stWindowInfo.aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eHD_Pip]];
-            pCapHeapSetting->ulBufferCnt_SD_Pip  =
-                stWindowInfo.aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eSD_Pip]];
+                /* Capture buffer */
+                pMemcHeapSettings = &(pMemConfig->stMemc[pWindow->ulMemcIndex].stHeapSettings);
+                pMemcHeapSettings->ulBufferCnt_4HD     += pCapHeapSetting->ulBufferCnt_4HD;
+                pMemcHeapSettings->ulBufferCnt_2HD     += pCapHeapSetting->ulBufferCnt_2HD;
+                pMemcHeapSettings->ulBufferCnt_HD      += pCapHeapSetting->ulBufferCnt_HD;
+                pMemcHeapSettings->ulBufferCnt_SD      += pCapHeapSetting->ulBufferCnt_SD;
+                pMemcHeapSettings->ulBufferCnt_4HD_Pip += pCapHeapSetting->ulBufferCnt_4HD_Pip;
+                pMemcHeapSettings->ulBufferCnt_2HD_Pip += pCapHeapSetting->ulBufferCnt_2HD_Pip;
+                pMemcHeapSettings->ulBufferCnt_HD_Pip  += pCapHeapSetting->ulBufferCnt_HD_Pip;
+                pMemcHeapSettings->ulBufferCnt_SD_Pip  += pCapHeapSetting->ulBufferCnt_SD_Pip;
+
+                pMemConfig->stMemc[pWindow->ulMemcIndex].ulSize += ulWinCapBufTotalSize;
+            }
+
             BDBG_MSG(("Disp[%d]Win[%d]     CapBuf: %3d %6d %6d %6d %6d %5d %5d %5d  %9d",
                 ulDispIndex, ulWinIndex,
                 pCapHeapSetting->ulBufferCnt_4HD, pCapHeapSetting->ulBufferCnt_4HD_Pip,
@@ -454,43 +464,43 @@ BERR_Code BVDC_GetMemoryConfiguration
                 pCapHeapSetting->ulBufferCnt_SD,  pCapHeapSetting->ulBufferCnt_SD_Pip,
                 pMemConfig->stDisplay[ulDispIndex].stWindow[ulWinIndex].ulCapSize));
 
-            /* Capture buffer */
-            pMemcHeapSettings = &(pMemConfig->stMemc[pWindow->ulMemcIndex].stHeapSettings);
-            pMemcHeapSettings->ulBufferCnt_4HD     += pCapHeapSetting->ulBufferCnt_4HD;
-            pMemcHeapSettings->ulBufferCnt_2HD     += pCapHeapSetting->ulBufferCnt_2HD;
-            pMemcHeapSettings->ulBufferCnt_HD      += pCapHeapSetting->ulBufferCnt_HD;
-            pMemcHeapSettings->ulBufferCnt_SD      += pCapHeapSetting->ulBufferCnt_SD;
-            pMemcHeapSettings->ulBufferCnt_4HD_Pip += pCapHeapSetting->ulBufferCnt_4HD_Pip;
-            pMemcHeapSettings->ulBufferCnt_2HD_Pip += pCapHeapSetting->ulBufferCnt_2HD_Pip;
-            pMemcHeapSettings->ulBufferCnt_HD_Pip  += pCapHeapSetting->ulBufferCnt_HD_Pip;
-            pMemcHeapSettings->ulBufferCnt_SD_Pip  += pCapHeapSetting->ulBufferCnt_SD_Pip;
-
-            pMemConfig->stMemc[pWindow->ulMemcIndex].ulSize += ulWinCapBufTotalSize;
-
             /* Mad buffer, only if it is configured with a valid MEMC */
-            if (pWindow->ulMadMemcIndex >= BBOX_MemcIndex_Invalid)
+            if (pWindow->ulMadMemcIndex < BBOX_MemcIndex_Invalid)
             {
-               continue;
+                pHeapSizeInfo = &pSystemConfigInfo->stHeapSizeInfo;
+
+                /* Copy mad buffer count in each window to BVDC_MemConfig */
+                pMemConfig->stDisplay[ulDispIndex].stWindow[ulWinIndex].ulMadSize = ulWinMadBufTotalSize;
+                pMadHeapSetting->ulBufferCnt_4HD =
+                    stWindowInfo.aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e4HD]];
+                pMadHeapSetting->ulBufferCnt_2HD =
+                    stWindowInfo.aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e2HD]];
+                pMadHeapSetting->ulBufferCnt_HD  =
+                    stWindowInfo.aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eHD]];
+                pMadHeapSetting->ulBufferCnt_SD  =
+                    stWindowInfo.aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eSD]];
+                pMadHeapSetting->ulBufferCnt_4HD_Pip =
+                    stWindowInfo.aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e4HD_Pip]];
+                pMadHeapSetting->ulBufferCnt_2HD_Pip =
+                    stWindowInfo.aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e2HD_Pip]];
+                pMadHeapSetting->ulBufferCnt_HD_Pip  =
+                    stWindowInfo.aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eHD_Pip]];
+                pMadHeapSetting->ulBufferCnt_SD_Pip  =
+                    stWindowInfo.aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eSD_Pip]];
+
+                pMemcHeapSettings = &(pMemConfig->stMemc[pWindow->ulMadMemcIndex].stHeapSettings);
+                pMemcHeapSettings->ulBufferCnt_4HD     += pMadHeapSetting->ulBufferCnt_4HD;
+                pMemcHeapSettings->ulBufferCnt_2HD     += pMadHeapSetting->ulBufferCnt_2HD;
+                pMemcHeapSettings->ulBufferCnt_HD      += pMadHeapSetting->ulBufferCnt_HD;
+                pMemcHeapSettings->ulBufferCnt_SD      += pMadHeapSetting->ulBufferCnt_SD;
+                pMemcHeapSettings->ulBufferCnt_4HD_Pip += pMadHeapSetting->ulBufferCnt_4HD_Pip;
+                pMemcHeapSettings->ulBufferCnt_2HD_Pip += pMadHeapSetting->ulBufferCnt_2HD_Pip;
+                pMemcHeapSettings->ulBufferCnt_HD_Pip  += pMadHeapSetting->ulBufferCnt_HD_Pip;
+                pMemcHeapSettings->ulBufferCnt_SD_Pip  += pMadHeapSetting->ulBufferCnt_SD_Pip;
+
+                pMemConfig->stMemc[pWindow->ulMadMemcIndex].ulSize += ulWinMadBufTotalSize;
             }
 
-            /* Copy mad buffer count in each window to BVDC_MemConfig */
-            pMemConfig->stDisplay[ulDispIndex].stWindow[ulWinIndex].ulMadSize = ulWinMadBufTotalSize;
-            pMadHeapSetting->ulBufferCnt_4HD =
-                stWindowInfo.aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e4HD]];
-            pMadHeapSetting->ulBufferCnt_2HD =
-                stWindowInfo.aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e2HD]];
-            pMadHeapSetting->ulBufferCnt_HD  =
-                stWindowInfo.aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eHD]];
-            pMadHeapSetting->ulBufferCnt_SD  =
-                stWindowInfo.aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eSD]];
-            pMadHeapSetting->ulBufferCnt_4HD_Pip =
-                stWindowInfo.aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e4HD_Pip]];
-            pMadHeapSetting->ulBufferCnt_2HD_Pip =
-                stWindowInfo.aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e2HD_Pip]];
-            pMadHeapSetting->ulBufferCnt_HD_Pip  =
-                stWindowInfo.aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eHD_Pip]];
-            pMadHeapSetting->ulBufferCnt_SD_Pip  =
-                stWindowInfo.aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eSD_Pip]];
             BDBG_MSG(("Disp[%d]Win[%d]    %s: %3d %6d %6d %6d %6d %5d %5d %5d  %9d",
                 ulDispIndex, ulWinIndex,
                 stWindowInfo.bMadr ? "MadrBuf" : " MadBuf",
@@ -500,17 +510,6 @@ BERR_Code BVDC_GetMemoryConfiguration
                 pMadHeapSetting->ulBufferCnt_SD,  pMadHeapSetting->ulBufferCnt_SD_Pip,
                 pMemConfig->stDisplay[ulDispIndex].stWindow[ulWinIndex].ulMadSize));
 
-            pMemcHeapSettings = &(pMemConfig->stMemc[pWindow->ulMadMemcIndex].stHeapSettings);
-            pMemcHeapSettings->ulBufferCnt_4HD     += pMadHeapSetting->ulBufferCnt_4HD;
-            pMemcHeapSettings->ulBufferCnt_2HD     += pMadHeapSetting->ulBufferCnt_2HD;
-            pMemcHeapSettings->ulBufferCnt_HD      += pMadHeapSetting->ulBufferCnt_HD;
-            pMemcHeapSettings->ulBufferCnt_SD      += pMadHeapSetting->ulBufferCnt_SD;
-            pMemcHeapSettings->ulBufferCnt_4HD_Pip += pMadHeapSetting->ulBufferCnt_4HD_Pip;
-            pMemcHeapSettings->ulBufferCnt_2HD_Pip += pMadHeapSetting->ulBufferCnt_2HD_Pip;
-            pMemcHeapSettings->ulBufferCnt_HD_Pip  += pMadHeapSetting->ulBufferCnt_HD_Pip;
-            pMemcHeapSettings->ulBufferCnt_SD_Pip  += pMadHeapSetting->ulBufferCnt_SD_Pip;
-
-            pMemConfig->stMemc[pWindow->ulMadMemcIndex].ulSize += ulWinMadBufTotalSize;
 
         }
     }

@@ -160,7 +160,6 @@ NEXUS_Error NEXUS_KeyLadder_SetSettings( NEXUS_KeyLadderHandle handle,
     hsmSettings.algorithm = pSettings->algorithm;
     hsmSettings.operation = pSettings->operation;
     hsmSettings.mode = _MapKeyMode(  pSettings->mode );
-    hsmSettings.keyMode = pSettings->keyMode;
 
     hsmSettings.root.type = pSettings->root.type;
     hsmSettings.root.otpKeyIndex = pSettings->root.otpKeyIndex;

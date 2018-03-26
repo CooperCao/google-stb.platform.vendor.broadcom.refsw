@@ -99,7 +99,12 @@ void NEXUS_MemoryBlock_P_Print(void);
 void NEXUS_Watchdog_P_Init(void);
 void NEXUS_Watchdog_P_Uninit(void);
 
+#if NEXUS_AVS_MONITOR
+void NEXUS_Core_P_MonitorPvt(void *context);
+#endif
+
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_WatchdogCallback);
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Watchdog);
 
 /* #define B_MODULE_OBJDB_EXTRA B_OBJDB_TABLE_ENTRY(NEXUS_VideoInput, NULL, NEXUS_VideoInput_P_Destroy) */
 

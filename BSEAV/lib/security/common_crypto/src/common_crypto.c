@@ -584,6 +584,13 @@ NEXUS_Error CommonCrypto_DmaXfer(
     BDBG_MSG(("CommonCrypto_DmaXfer: Enter"));
     BDBG_MSG(("%s - Entered function using keySlot '%p'  nBlocks = '%u'", BSTD_FUNCTION, (void*)pJobSettings->keySlot, nBlocks));
 
+    if (nBlocks == 0)
+    {
+        BDBG_ERR(("%s - Called with nBlocks = 0.  Exiting...", BSTD_FUNCTION));
+        rc = NEXUS_INVALID_PARAMETER;
+        goto errorExit;
+    }
+
     if (!CommonCrypto_EnsureDmaJobResources_priv(handle, pJobSettings, nBlocks))
     {
         BDBG_ERR(("%s - NEXUS_DmaJob_Create failed", BSTD_FUNCTION));

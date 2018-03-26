@@ -1,47 +1,48 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bstd.h" /* also includes berr, bdbg, etc */
 #include "bkni.h"
 
+#include "bmuxlib_input.h"
+#include "bmuxlib_debug.h"
+#include "bmuxlib_alloc.h"
+#include "bmuxlib_file_pes.h"
 #include "bmuxlib_file_pes_priv.h"
 
 BDBG_MODULE(BMUXLIB_FILE_PES);
@@ -130,11 +131,11 @@ BERR_Code BMUXlib_File_PES_Create(BMUXlib_File_PES_Handle *phPESMux, const BMUXl
    *phPESMux = NULL;                            /* incase create fails */
 
    /* Allocate PES context from system memory */
-   hMux = (BMUXlib_File_PES_Handle)BKNI_Malloc(sizeof(struct BMUXlib_File_PES_P_Context));
+   hMux = (BMUXlib_File_PES_Handle)BMUXlib_Malloc(sizeof(struct BMUXlib_File_PES_P_Context));
    BDBG_MODULE_MSG(BMUX_PES_MEMORY, ("Context: Allocating %d bytes", (int)sizeof(struct BMUXlib_File_PES_P_Context)));
    if (NULL != hMux)
    {
-      BKNI_Memset( hMux, 0, sizeof(struct BMUXlib_File_PES_P_Context) );
+      BKNI_Memset( hMux, 0, sizeof(*hMux) );
       BDBG_OBJECT_SET(hMux, BMUXlib_File_PES_P_Context);
       rc = BERR_SUCCESS;
    } /* hMux != NULL */
@@ -143,7 +144,20 @@ BERR_Code BMUXlib_File_PES_Create(BMUXlib_File_PES_Handle *phPESMux, const BMUXl
       /* unable to allocate the context */
       BDBG_ERR(("Unable to allocate memory for mux context"));
       rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+      goto alloc_done;
    }
+
+   BMUXLIB_P_ENTRY_ALLOCATE(
+         BMUXlib_File_PES_P_FrameHeader,
+         hMux->stFrameHeader.astFrameHeader,
+         BMUXlib_File_PES_P_MAX_FRAMES,
+         alloc_desc_error )
+
+   BMUXLIB_P_ENTRY_ALLOCATE(
+         BMUXlib_File_PES_P_VP8Header,
+         hMux->stVP8Header.astFrameHeader,
+         BMUXlib_File_PES_P_MAX_FRAMES,
+         alloc_desc_error )
 
    {
       BMUXlib_Input_CreateSettings stInputCreateSettings;
@@ -159,7 +173,13 @@ BERR_Code BMUXlib_File_PES_Create(BMUXlib_File_PES_Handle *phPESMux, const BMUXl
    {
       *phPESMux = hMux;
    }
+   goto alloc_done;
 
+alloc_desc_error:
+   BMUXlib_File_PES_Destroy(hMux);
+   rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+
+alloc_done:
    BDBG_LEAVE(BMUXlib_File_PES_Create);
    return rc;
 }
@@ -192,6 +212,17 @@ void BMUXlib_File_PES_Destroy(BMUXlib_File_PES_Handle hPESMux)
       BMUXlib_Input_Destroy( hPESMux->hInput );
       hPESMux->hInput = NULL;
    }
+
+
+   BMUXLIB_P_ENTRY_FREE(
+         BMUXlib_File_PES_P_VP8Header,
+         hPESMux->stVP8Header.astFrameHeader,
+         BMUXlib_File_PES_P_MAX_FRAMES )
+
+   BMUXLIB_P_ENTRY_FREE(
+         BMUXlib_File_PES_P_FrameHeader,
+         hPESMux->stFrameHeader.astFrameHeader,
+         BMUXlib_File_PES_P_MAX_FRAMES )
 
    BDBG_OBJECT_DESTROY(hPESMux, BMUXlib_File_PES_P_Context);
 
@@ -226,7 +257,7 @@ void BMUXlib_File_PES_GetDefaultStartSettings(BMUXlib_File_PES_StartSettings *pS
    /* NOTE: This will ensure the following (to allow for error checking):
             * all function pointers are NULL
             * all context pointers are NULL */
-   BKNI_Memset(pStartSettings, 0, sizeof(BMUXlib_File_PES_StartSettings));
+   BKNI_Memset(pStartSettings, 0, sizeof(*pStartSettings));
 
    /* initialise specific values as needed ... */
    pStartSettings->uiSignature = BMUXLIB_FILE_PES_P_SIGNATURE_STARTSETTINGS;

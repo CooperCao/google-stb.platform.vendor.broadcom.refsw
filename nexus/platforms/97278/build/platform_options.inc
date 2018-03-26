@@ -42,15 +42,11 @@
 # you can define your platform's options here
 
 NEXUS_POWER_MANAGEMENT ?= y
-SAGE_SUPPORT ?= n
 
-ifeq ($(BCHP_VER),A0)
-NEXUS_SECURITY_SUPPORT ?= n
-else
+SAGE_SUPPORT ?= y
 VIDEO_ENCODER_SUPPORT ?= y
 NEXUS_SECURITY_SUPPORT ?= y
 BVDC_MANAGE_VIP ?= y
-endif
 
 
 

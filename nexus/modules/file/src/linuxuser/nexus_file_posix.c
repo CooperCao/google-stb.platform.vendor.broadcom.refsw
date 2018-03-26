@@ -390,12 +390,6 @@ err_parameter:
     return NULL;
 }
 
-bool NEXUS_FileRecord_DirectIo_isrsafe( NEXUS_FileWriteHandle file )
-{
-    struct bfile_io_write_posix *fd = (struct bfile_io_write_posix *)file;
-    return fd->direct;
-}
-
 NEXUS_FileRecordHandle
 NEXUS_FileRecord_OpenPosix(const char *fname, const char *indexname)
 {

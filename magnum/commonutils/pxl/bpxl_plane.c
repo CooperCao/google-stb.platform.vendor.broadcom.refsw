@@ -40,7 +40,11 @@
 #include "bpxl_plane.h"
 #include "bpxl_uif.h"
 #include "bkni.h"
+#include "bchp_common.h"
+#ifdef BCHP_M2MC_REG_START
 #include "bchp_m2mc.h"     /* for gfx compression mode */
+#endif
+#include "bpxl_priv.h"
 
 #include "bchp_memc_ddr_0.h"
 
@@ -49,7 +53,10 @@ BDBG_MODULE(BPXL_Plane);
 /***************************************************************************/
 void BPXL_Plane_Init(BPXL_Plane *plane, size_t width, size_t height, BPXL_Format format)
 {
-    uint32_t ulHeight = height, ulPitch = 0, ulAlignment = 4;
+    uint32_t ulHeight = height, ulPitch = 0;
+    /* SWSTB-8271 maximize the alignment to the largest requirement so far*/
+    unsigned int ulAlignment = BPXL_IS_YCbCr422_FORMAT(format)?
+        BPXL_P_PITCH_YCBCR422_ALIGNMENT:BPXL_P_PITCH_ALIGNMENT;
 
     BDBG_ASSERT(format !=BPXL_eUIF_R8_G8_B8_A8);
 
@@ -87,7 +94,6 @@ void BPXL_Plane_Init(BPXL_Plane *plane, size_t width, size_t height, BPXL_Format
 #elif defined(BCHP_M2MC_BSTC_COMPRESS_CONTROL)
         ulPitch = ((width + 3) / 4) * 8;
         ulHeight = (ulHeight + 3) & ~0x3;
-        ulAlignment = 32;
 #else
         ulPitch = width * 4; /* non-compressed ARGB8888 */
 #endif
@@ -118,6 +124,7 @@ void BPXL_Plane_Init(BPXL_Plane *plane, size_t width, size_t height, BPXL_Format
         }
     }
 
+    ulPitch = BPXL_P_ALIGN_UP(ulPitch, ulAlignment);
     BKNI_Memset(plane, 0, sizeof(*plane));
     plane->ulWidth = width;
     plane->ulHeight = height;

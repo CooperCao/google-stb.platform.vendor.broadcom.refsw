@@ -306,6 +306,9 @@ void NEXUS_P_HeapInfo_ToString(char *buf, unsigned buf_size, unsigned memcIndex,
     else if (heapType & NEXUS_HEAP_TYPE_CRRT) {
         n+= BKNI_Snprintf(buf, buf_size, "CRRT");
     }
+    else if (heapType & NEXUS_HEAP_TYPE_ARR) {
+        n+= BKNI_Snprintf(buf, buf_size, "ARR");
+    }
     else if (heapType & NEXUS_HEAP_TYPE_EXPORT_REGION) {
         n+= BKNI_Snprintf(buf, buf_size, "XRR");
     }
@@ -314,6 +317,9 @@ void NEXUS_P_HeapInfo_ToString(char *buf, unsigned buf_size, unsigned memcIndex,
     }
     else if (heapType & NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS) {
         n+= BKNI_Snprintf(buf, buf_size, "2ND_GFX");
+    }
+    else if (heapType & NEXUS_MEMORY_TYPE_DYNAMIC) {
+        n+= BKNI_Snprintf(buf, buf_size, "DYNAMIC");
     }
     else {
         n+= BKNI_Snprintf(buf, buf_size, "DRIVER%u", memcIndex);

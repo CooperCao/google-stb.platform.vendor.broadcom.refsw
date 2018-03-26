@@ -27,6 +27,10 @@ LOCAL_C_INCLUDES := \
 	$(V3D_DRIVER_TOP)/platform/android \
 	$(V3D_DRIVER_TOP)/platform/nexus
 
+ifeq ($(BOARD_VNDK_VERSION),current)
+LOCAL_HEADER_LIBRARIES := liblog_headers
+endif
+
 LOCAL_CFLAGS := \
 	-fpic -DPIC \
 	-std=c99 \

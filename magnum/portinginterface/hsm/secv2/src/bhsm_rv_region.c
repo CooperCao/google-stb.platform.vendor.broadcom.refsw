@@ -59,6 +59,7 @@ BERR_Code BHSM_RvRegion_Init( BHSM_Handle hHsm, BHSM_RvRegionModuleSettings *pSe
     BDBG_ENTER( BHSM_RvRegion_Init );
 
     BSTD_UNUSED( pSettings );
+    BDBG_CASSERT( (unsigned)BHSM_RegionId_eMax == (unsigned)Bsp_CmdRv_RegionId_eRegionMax );
 
     hHsm->modules.pRvRegions = (BHSM_RvRegionModule*)BKNI_Malloc( sizeof(BHSM_RvRegionModule) );
     if( !hHsm->modules.pRvRegions ) { return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); }
@@ -232,7 +233,7 @@ BERR_Code BHSM_RvRegion_Enable( BHSM_RvRegionHandle handle )
         if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
         bspEnableRegion.in.keyLayer = pRegion->settings.keyLadderLayer;
         bspEnableRegion.in.vklId = keyLadderInfo.index;
-		bspEnableRegion.in.decryptionSel = Bsp_CmdRv_DecryptionMode_eKeyLadderKey;
+        bspEnableRegion.in.decryptionSel = Bsp_CmdRv_DecryptionMode_eKeyLadderKey;
     }
     bspEnableRegion.in.bgCheck = pRegion->settings.backgroundCheck ? Bsp_CmdRv_BgCheck_eEnable
                                                                      : Bsp_CmdRv_BgCheck_eDisable;
@@ -249,7 +250,7 @@ BERR_Code BHSM_RvRegion_Enable( BHSM_RvRegionHandle handle )
 
 BERR_Code BHSM_RvRegion_QueryAll(BHSM_Handle hHsm, BHSM_RvRegionStatusAll *pStatus)
 {
-    BERR_Code rc;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_P_RvQueryAllRegions regionsStatus; /* the status of all regions. */
     uint32_t numBspRegions = sizeof(regionsStatus)/sizeof(regionsStatus.out.regionStatus[0]);
     uint32_t i;
@@ -257,7 +258,7 @@ BERR_Code BHSM_RvRegion_QueryAll(BHSM_Handle hHsm, BHSM_RvRegionStatusAll *pStat
     BDBG_ENTER( BHSM_RvRegion_QueryAll );
 
     if( !pStatus ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
-    if( numBspRegions > BHSM_RegionId_eMax ) { return BERR_TRACE( BERR_NOT_SUPPORTED ); }
+    if( numBspRegions >= BHSM_RegionId_eMax ) { return BERR_TRACE( BERR_NOT_SUPPORTED ); }
 
     BKNI_Memset( &regionsStatus, 0, sizeof(regionsStatus) );
     BKNI_Memset( pStatus, 0, sizeof(*pStatus) );
@@ -271,12 +272,12 @@ BERR_Code BHSM_RvRegion_QueryAll(BHSM_Handle hHsm, BHSM_RvRegionStatusAll *pStat
     }
 
     BDBG_LEAVE( BHSM_RvRegion_QueryAll );
-    return rc;
+    return BERR_SUCCESS;
 }
 
 BERR_Code BHSM_RvRegion_GetStatus( BHSM_RvRegionHandle handle, BHSM_RvRegionStatus *pStatus )
 {
-    BHSM_P_RvRegion *pRegion = (BHSM_P_RvRegion*)handle;
+    BHSM_P_RvRegion *pRegion = NULL;
     BHSM_P_RvQueryAllRegions regionsStatus; /* the status of all regions. */
     uint8_t regionId;
     BERR_Code rc;
@@ -297,7 +298,10 @@ BERR_Code BHSM_RvRegion_GetStatus( BHSM_RvRegionHandle handle, BHSM_RvRegionStat
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_BG_CHECK_FINISHED      == (1<<Bsp_CmdRv_QueryStatusBits_eBgChkFinished) );
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_BG_CHECK_RESULT        == (1<<Bsp_CmdRv_QueryStatusBits_eBgChkResult) );
 
+    if( !handle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pStatus ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
+    pRegion = (BHSM_P_RvRegion*)handle;
 
     BKNI_Memset( pStatus, 0, sizeof(*pStatus) );
 

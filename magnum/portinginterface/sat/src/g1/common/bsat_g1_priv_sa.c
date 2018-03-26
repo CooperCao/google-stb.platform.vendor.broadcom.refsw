@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -543,17 +543,20 @@ BERR_Code BSAT_g1_P_SaStateMachine_isr(BSAT_ChannelHandle h)
             }
 
             /* take log2 of each sample */
-            for (val = 0; val <= hChn->count1; val++)
+            for (val = 0; val < hChn->count1; val++)
             {
                /* keep 3 fractional bits out of log2 function */
                pSaBuf[val] = BSAT_g1_P_log2Approx_isr(pSaBuf[val]) >> 1;
             }
 
             /* compact the SA data by storing each data sample as 8-bits */
-            for (val = 0; val <= hChn->count1; val++)
+            for (val = 0; val < hChn->count1; val++)
             {
                val8 = (uint8_t)pSaBuf[val];
                pSaBuf8[val] = val8;
+#if 0
+printf("%u) %u %u 0x%X\n", val, hChn->saSettings.startFreq + (val*hChn->saStatus.freqStep), pSaBuf8[val], pSaBuf[val]);
+#endif
             }
 
             hChn->saStatus.status = BERR_SUCCESS;
@@ -573,10 +576,6 @@ BERR_Code BSAT_g1_P_SaStateMachine_isr(BSAT_ChannelHandle h)
             if ((int32_t)val < 1)
                val = 1;
             pSaBuf[hChn->count1++] = val;
-#if 0 /* BSAT_DEBUG_SA */
-            BKNI_Printf("%08X %08X %08X %08X\n", val, BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_STB_CHAN_CHx_AGC_LF_INT), BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_AIF_WB_SAT_CORE0_REG_AGC_LF_INT_WDATA), BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_FE_AIF));
-#endif
-
             BSAT_g1_P_FreezeChanAgc_isr(h, false);
             if (hChn->count1 > (4096-1))
                hChn->functState = 100; /* out of memory */

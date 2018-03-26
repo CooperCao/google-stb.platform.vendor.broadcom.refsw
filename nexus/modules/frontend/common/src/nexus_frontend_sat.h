@@ -312,7 +312,7 @@ typedef struct NEXUS_SatChannel
     void *customerData;
 #endif
 
-    NEXUS_FrontendCapabilities capabilities; /* copy of capabilites for use in nexus_frontend_sat.c */
+    NEXUS_FrontendCapabilities capabilities; /* copy of capabilities for use in nexus_frontend_sat.c */
     unsigned satChip;
     unsigned channel; /* the channel number associated with this frontend. */
     unsigned diseqcIndex; /* the diseqc output number associated with this frontend. */

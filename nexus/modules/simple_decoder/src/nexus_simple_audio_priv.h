@@ -75,15 +75,12 @@ struct NEXUS_SimpleAudioDecoderServer
 {
     NEXUS_OBJECT(NEXUS_SimpleAudioDecoderServer);
     BLST_S_ENTRY(NEXUS_SimpleAudioDecoderServer) link;
-    BLST_S_HEAD(NEXUS_SimpleAudioPlayback_P_List, NEXUS_SimpleAudioPlayback) playbacks;
     BLST_S_HEAD(NEXUS_SimpleAudioDecoder_P_List, NEXUS_SimpleAudioDecoder) decoders;
     NEXUS_SimpleAudioDecoderServerSettings masterServerSettings;
 };
 
 NEXUS_SimpleAudioDecoderHandle nexus_simple_audio_decoder_p_first(void);
 NEXUS_SimpleAudioDecoderHandle nexus_simple_audio_decoder_p_next(NEXUS_SimpleAudioDecoderHandle handle);
-NEXUS_SimpleAudioPlaybackHandle nexus_simple_audio_playback_p_first(void);
-NEXUS_SimpleAudioPlaybackHandle nexus_simple_audio_playback_p_next(NEXUS_SimpleAudioPlaybackHandle handle);
 
 struct NEXUS_SimpleAudioDecoder
 {
@@ -137,27 +134,6 @@ struct NEXUS_SimpleAudioDecoder
     } mixers;
     NEXUS_AudioCapabilities audioCapabilities;
 };
-
-BDBG_OBJECT_ID_DECLARE(NEXUS_SimpleAudioPlayback);
-struct NEXUS_SimpleAudioPlayback
-{
-    NEXUS_OBJECT(NEXUS_SimpleAudioPlayback);
-    BLST_S_ENTRY(NEXUS_SimpleAudioPlayback) link;
-    NEXUS_SimpleAudioDecoderServerHandle server;
-    unsigned index;
-    bool acquired;
-    bool started;
-    bool clientStarted;
-    bool suspended;
-    NEXUS_SimpleAudioPlaybackServerSettings serverSettings;
-    NEXUS_SimpleAudioPlaybackSettings settings;
-    NEXUS_SimpleAudioPlaybackStartSettings startSettings;
-};
-
-NEXUS_Error nexus_simpleaudioplayback_p_internal_start(NEXUS_SimpleAudioPlaybackHandle handle);
-void nexus_simpleaudioplayback_p_internal_stop(NEXUS_SimpleAudioPlaybackHandle handle);
-NEXUS_Error nexus_simpleaudioplayback_p_suspend(NEXUS_SimpleAudioPlaybackHandle handle);
-void nexus_simpleaudioplayback_p_resume(NEXUS_SimpleAudioPlaybackHandle handle);
 
 NEXUS_Error nexus_simpleaudiodecoder_p_add_encoder(NEXUS_SimpleAudioDecoderHandle handle, NEXUS_SimpleAudioDecoderHandle slave,
     NEXUS_AudioMuxOutputHandle muxOutput, NEXUS_AudioCodec codec, bool passthrough, unsigned sampleRate,

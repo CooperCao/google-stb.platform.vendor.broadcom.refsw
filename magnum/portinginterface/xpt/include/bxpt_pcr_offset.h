@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -402,6 +402,7 @@ void BXPT_PcrOffset_TriggerStcIncrement(
     );
 #endif
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Return the total number of PCR Offset channels available.
@@ -418,6 +419,7 @@ BERR_Code BXPT_PcrOffset_GetTotalChannels(
     BXPT_Handle hXpt,               /* [in] The transport handle */
     unsigned int *TotalChannels     /* [out] The number of Pcr offset channels. */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -679,6 +681,7 @@ BERR_Code BXPT_PcrOffset_FreeRun(
     bool FreeRun                        /* [in] Free run if true. */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Push a PID channel onto the splicing stack.
@@ -694,21 +697,6 @@ Returns:
 BERR_Code BXPT_PcrOffset_PushPidChannel(
     BXPT_PcrOffset_Handle hChannel,     /* [in] The channel handle */
     unsigned int PidChannel             /* [in] Channel carrying the PID to splice. */
-    );
-
-/***************************************************************************
-Summary:
-Clear the splicing stack.
-
-Description:
-The splicing stack is emptied. All PIDs in the stack are removed.
-
-Returns:
-    BERR_SUCCESS                - Queue cleared.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-***************************************************************************/
-BERR_Code BXPT_PcrOffset_ClearQueue(
-    BXPT_PcrOffset_Handle hChannel      /* [in] The channel handle */
     );
 
 /***************************************************************************
@@ -740,6 +728,22 @@ Returns:
 unsigned BXPT_PcrOffset_GetQueueDepth(
     BXPT_PcrOffset_Handle hChannel      /* [in] The channel handle */
     );
+#endif
+
+/***************************************************************************
+Summary:
+Clear the splicing stack.
+
+Description:
+The splicing stack is emptied. All PIDs in the stack are removed.
+
+Returns:
+    BERR_SUCCESS                - Queue cleared.
+    BERR_INVALID_PARAMETER      - Bad input parameter
+***************************************************************************/
+BERR_Code BXPT_PcrOffset_ClearQueue(
+    BXPT_PcrOffset_Handle hChannel      /* [in] The channel handle */
+    );
 
 /***************************************************************************
 Summary:
@@ -749,27 +753,10 @@ Description:
 Regenerate a PCR Offset to the RAVE when the next PCR is seen in the current
 stream. This function should be called only from within an ISR context.
 
-This API is being replaced by BXPT_PcrOffset_ReloadPcrPidChannel_isr().
-
 Returns:
     void
 ***************************************************************************/
 void BXPT_PcrOffset_RegenOffset_isr(
-    BXPT_PcrOffset_Handle hPcrOff
-    );
-
-/***************************************************************************
-Summary:
-Reload the PCR PID channel.
-
-Description:
-Another way to regenerate the PCR Offset is to reload/rewrite the PCR PID
-channel. This function should be called only from within an ISR context.
-
-Returns:
-    void
-***************************************************************************/
-void BXPT_PcrOffset_ReloadPcrPidChannel_isr(
     BXPT_PcrOffset_Handle hPcrOff
     );
 
@@ -881,6 +868,7 @@ void BXPT_PcrOffset_ApplyPidChannelSettings(
     );
 #endif
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Arm single capture of the STC from the stream.
@@ -941,6 +929,7 @@ BERR_Code BXPT_PcrOffset_GetIntId(
     BXPT_PcrOffsetIntName Name,
     BINT_Id *IntId
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -961,48 +950,17 @@ void BXPT_PcrOffset_Acquire_isr(
     BXPT_PcrOffset_Handle hChannel
     );
 
-/***************************************************************************
-Summary:
-Release a PCR-only channel from RAVE.
-
-Description:
-Disable the routing of this PID channel's PCR offsets to RAVE and mark the
-channel as unused for PCRs. This is useful when PCRs are carried on different
-PID channels than audio or video.
-
-Returns:
-    BERR_SUCCESS                - Channel has been released.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-***************************************************************************/
-BERR_Code BXPT_PcrOffset_ReleasePidChannel(
-    BXPT_PcrOffset_Handle hChannel,
-    unsigned int PidChannel
-    );
-
-/***************************************************************************
-Summary:
-Return status of PCR Offset generation for the given PID channel.
-
-Returns:
-   true - Offsets are being generated.
-   false - Offset generation is not enabled
-***************************************************************************/
-bool BXPT_PcrOffset_IsOffsetEnabled_isr(
-   BXPT_PcrOffset_Handle hChannel,
-   unsigned int PidChannel
-    );
-
-#define BXPT_PcrOffset_IsOffsetEnabled BXPT_PcrOffset_IsOffsetEnabled_isr
-
 /*
 ** These functions are called internally.
 ** Users should NOT uses these functions directly.
 */
 
+#if (!B_REFSW_MINIMAL)
 bool BXPT_P_PcrOffset_IsPidChannelInUse(
     BXPT_Handle hXpt,               /* [in] The transport handle */
     uint32_t PidChannelNum              /* [in] Which PID channel to disable offsets for */
     );
+#endif
 
 void BXPT_P_PcrOffset_ModuleInit(
     BXPT_Handle hXpt

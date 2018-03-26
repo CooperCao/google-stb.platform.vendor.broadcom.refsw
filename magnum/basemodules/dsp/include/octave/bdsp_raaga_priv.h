@@ -476,6 +476,10 @@ void BDSP_Raaga_P_GetAlgorithmInfo(
 	BDSP_Algorithm algorithm,
 	BDSP_AlgorithmInfo *pInfo /* [out] */
 );
+BERR_Code BDSP_Raaga_P_StageGetContext(
+    void *pStageHandle,
+    BDSP_ContextHandle *pContextHandle /* [out] */
+);
 void BDSP_Raaga_P_GetStatus(
 	void *pDeviceHandle,
 	BDSP_Status *pStatus

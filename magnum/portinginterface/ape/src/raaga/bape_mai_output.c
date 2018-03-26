@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,6 +41,7 @@
 
 #include "bape.h"
 #include "bape_priv.h"
+#include "bape_buffer.h"
 
 BDBG_MODULE(bape_mai_output);
 BDBG_FILE_MODULE(bape_loudness);
@@ -410,7 +411,7 @@ void BAPE_MaiOutput_P_DeterminePauseBurstEnabled(
 
     if ( handle->outputPort.mixer )
     {
-        const BAPE_FMT_Descriptor *pBfd = BAPE_Mixer_P_GetOutputFormat(handle->outputPort.mixer);
+        const BAPE_FMT_Descriptor *pBfd = BAPE_Mixer_P_GetOutputFormat_isrsafe(handle->outputPort.mixer);
         *compressed = BAPE_FMT_P_IsCompressed_isrsafe(pBfd);
     }
     else {
@@ -680,7 +681,7 @@ static BERR_Code BAPE_MaiOutput_P_ApplySettings(
 
     if ( handle->outputPort.mixer )
     {
-        const BAPE_FMT_Descriptor     *pBfd = BAPE_Mixer_P_GetOutputFormat(handle->outputPort.mixer);
+        const BAPE_FMT_Descriptor     *pBfd = BAPE_Mixer_P_GetOutputFormat_isrsafe(handle->outputPort.mixer);
         pcm = BAPE_FMT_P_IsLinearPcm_isrsafe(pBfd);
     }
 
@@ -737,7 +738,7 @@ void BAPE_MaiOutput_P_SetLoudnessEquivlanceVolume(BAPE_OutputPort output)
     BAPE_MaiOutputHandle handle;
 
     handle = output->pHandle;
-    pFormat = BAPE_Mixer_P_GetOutputFormat(output->mixer);
+    pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer);
     BAPE_GetOutputVolume(output, &volume);
 
     if (handle->settings.loudnessType == BAPE_OutputLoudnessType_Passive &&
@@ -812,7 +813,7 @@ static void BAPE_MaiOutput_P_SetCbits_IopOut_isr(BAPE_MaiOutputHandle handle)
 
     if ( handle->outputPort.mixer )
     {
-        const BAPE_FMT_Descriptor     *pBfd = BAPE_Mixer_P_GetOutputFormat(handle->outputPort.mixer);
+        const BAPE_FMT_Descriptor     *pBfd = BAPE_Mixer_P_GetOutputFormat_isrsafe(handle->outputPort.mixer);
 
         dataType = pBfd->type;
         hbr = (unsigned)BAPE_FMT_P_IsHBR_isrsafe(pBfd);
@@ -1098,7 +1099,7 @@ static BERR_Code BAPE_MaiOutput_P_Enable_IopOut(BAPE_OutputPort output)
     BAPE_MaiOutput_P_SetLoudnessEquivlanceVolume(output);
     BAPE_MaiOutput_SetSettings(handle, &handle->settings);
 
-    pFormat = BAPE_Mixer_P_GetOutputFormat(output->mixer);
+    pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer);
     BDBG_ASSERT(NULL != pFormat);
     numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(pFormat);
     if ( numChannelPairs > 4 )
@@ -1212,7 +1213,7 @@ static void BAPE_MaiOutput_P_Disable_IopOut(BAPE_OutputPort output)
     BDBG_ASSERT(NULL != output->mixer);
 
     BDBG_MSG(("Disabling %s", handle->name));
-    pFormat = BAPE_Mixer_P_GetOutputFormat(output->mixer);
+    pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer);
     BDBG_ASSERT(NULL != pFormat);
     numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(pFormat);
     BDBG_ASSERT(numChannelPairs <= 4);
@@ -1489,7 +1490,7 @@ static void BAPE_MaiOutput_P_SetCbits_Legacy_isr(BAPE_MaiOutputHandle handle)
 
     if ( handle->outputPort.mixer )
     {
-        pFormat = BAPE_Mixer_P_GetOutputFormat_isr(handle->outputPort.mixer);
+        pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(handle->outputPort.mixer);
 
         dataType = pFormat->type;
         compressed = (unsigned)BAPE_FMT_P_IsCompressed_isrsafe(pFormat);
@@ -1786,7 +1787,7 @@ static void BAPE_MaiOutput_P_SetMute_Legacy(BAPE_OutputPort output, bool muted)
     handle = output->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_MaiOutput);
 
-    pFormat = BAPE_Mixer_P_GetOutputFormat(output->mixer);
+    pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer);
     BDBG_ASSERT(NULL != pFormat);
 
     if ( BAPE_FMT_P_IsCompressed_isrsafe(pFormat) )
@@ -1848,7 +1849,7 @@ static BERR_Code BAPE_MaiOutput_P_Enable_Legacy(BAPE_OutputPort output)
     BAPE_MaiOutput_P_SetLoudnessEquivlanceVolume(output);
     BAPE_MaiOutput_SetSettings(handle, &handle->settings);
 
-    pFormat = BAPE_Mixer_P_GetOutputFormat(output->mixer);
+    pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer);
     BDBG_ASSERT(NULL != pFormat);
     numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(pFormat);
     BDBG_ASSERT(numChannelPairs <= 4);
@@ -2045,7 +2046,7 @@ static void BAPE_MaiOutput_P_Disable_Legacy(BAPE_OutputPort output)
     BDBG_ASSERT(NULL != output->mixer);
 
     BDBG_MSG(("Disabling %s", handle->name));
-    pFormat = BAPE_Mixer_P_GetOutputFormat(output->mixer);
+    pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer);
     BDBG_ASSERT(NULL != pFormat);
     numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(pFormat);
     BDBG_ASSERT(numChannelPairs <= 4);
@@ -2397,7 +2398,7 @@ static BERR_Code BAPE_MaiOutput_P_SetBurstConfig_Legacy(BAPE_MaiOutputHandle han
         }
     }
 
-    BMMA_FlushCache(handle->muteBufferBlock, handle->pMuteBuffer, BAPE_P_MUTE_BUFFER_SIZE);
+    BAPE_FLUSHCACHE_ISRSAFE(handle->muteBufferBlock, handle->pMuteBuffer, BAPE_P_MUTE_BUFFER_SIZE);
 
     if (handle->hSfifo)
     {

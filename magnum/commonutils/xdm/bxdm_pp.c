@@ -3097,6 +3097,9 @@ BXDM_PictureProvider_GetDefaultStartSettings_isrsafe(
    pstStartSettings->stColorOverride.stHDR.ulMaxDispMasteringLuma       = 0xFFFFFFFF;
    pstStartSettings->stColorOverride.stHDR.ulMinDispMasteringLuma       = 0xFFFFFFFF;
 
+   /* Default to using the STC's from HVD versus those read directly from XPT. */
+   pstStartSettings->bUseXPTSTC = false;
+
    return;
 
 }

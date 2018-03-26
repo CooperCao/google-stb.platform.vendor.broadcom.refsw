@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,7 +55,13 @@ BAPE_DEFINES += BAPE_RAAGA=1
 ifeq ($(BCHP_CHIP),7543)
 BAPE_DSP_SUPPORT ?= n
 else
+ifndef BAPE_DSP_SUPPORT
 BAPE_DSP_SUPPORT ?= y
+endif
+endif
+
+ifndef BAPE_AIO_SUPPORT
+BAPE_AIO_SUPPORT ?= y
 endif
 
 # Module Sources
@@ -96,6 +102,7 @@ BAPE_SOURCES := \
                 $(MAGNUM)/portinginterface/ape/src/raaga/bape_mai_input.c \
                 $(MAGNUM)/portinginterface/ape/src/raaga/bape_mai_output.c \
                 $(MAGNUM)/portinginterface/ape/src/raaga/bape_mixer.c \
+                $(MAGNUM)/portinginterface/ape/src/raaga/bape_mixer_bypass.c \
                 $(MAGNUM)/portinginterface/ape/src/raaga/bape_mixer_dsp.c \
                 $(MAGNUM)/portinginterface/ape/src/raaga/bape_mixer_input_capture.c \
                 $(MAGNUM)/portinginterface/ape/src/raaga/bape_mixer_standard.c \
@@ -119,4 +126,8 @@ endif
 
 ifneq ($(BAPE_DSP_SUPPORT),n)
 BAPE_DEFINES += BAPE_DSP_SUPPORT=1
+endif
+
+ifneq ($(BAPE_AIO_SUPPORT),n)
+BAPE_DEFINES += BAPE_AIO_SUPPORT=1
 endif

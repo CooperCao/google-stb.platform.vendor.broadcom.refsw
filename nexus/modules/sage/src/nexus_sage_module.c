@@ -53,6 +53,13 @@
 #include "priv/nexus_security_regver_priv.h"
 #if (NEXUS_SECURITY_API_VERSION==1)
 #include "bhsm_verify_reg.h"
+#else
+#include "bhsm_rv_region.h"
+#if (BHSM_ZEUS_VER_MAJOR >= 5)
+#define REGION_STATUS_DEFINED BHSM_RV_REGION_STATUS_ENABLED
+#else
+#define REGION_STATUS_DEFINED BHSM_RV_REGION_STATUS_REGION_DEFINED
+#endif
 #endif
 
 #include "nexus_dma.h"
@@ -68,7 +75,7 @@ BDBG_MODULE(nexus_sage_module);
 #define NEXUS_SAGE_RSA2048_SIZE    256
 
 
-#define _REGION_MAP_MAX_NUM 12
+#define _REGION_MAP_MAX_NUM 18 /* TODO: Put this in some shared header file for SAGE/REFSW to both reference */
 
 #define SAGE_RESET_REG       BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eReset)
 #define SAGE_CRR_START_REG   BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eCRRStartOffset)
@@ -87,7 +94,7 @@ static struct {
     NEXUS_SageMemoryBlock bl;             /* raw bootloader binary in memory (during SAGE boot) */
     NEXUS_SageMemoryBlock framework;      /* raw framework binary in memory (during SAGE boot) */
 
-    /* region map contains all the regions informations (offset, size) */
+    /* region map contains all the regions information (offset, size) */
     BSAGElib_RegionInfo *pRegionMap;
     uint32_t regionMapNum; /* <= _REGION_MAP_MAX_NUM */
 
@@ -240,7 +247,6 @@ end:
 
 void NEXUS_Sage_P_SAGELogUninit(void)
 {
-#if (NEXUS_SECURITY_API_VERSION==1)
     BSAGElib_SageLogBuffer *pSageLogBuffer = NULL;
     uint8_t *pCRRBuffer = NULL,*pEncAESKeyBuffer = NULL;
 
@@ -250,7 +256,12 @@ void NEXUS_Sage_P_SAGELogUninit(void)
         pCRRBuffer = NEXUS_Sage_P_OffsetToAddr(pSageLogBuffer->crrBufferOffset);
         pEncAESKeyBuffer = NEXUS_Sage_P_OffsetToAddr(pSageLogBuffer->encAESKeyOffset);
 
+#if (NEXUS_SECURITY_API_VERSION==1)
         NEXUS_Security_FreeKeySlot(pSageLogBuffer->keySlotHandle);
+#else
+        NEXUS_KeySlot_Invalidate(pSageLogBuffer->keySlotHandle);
+        NEXUS_KeySlot_Free(pSageLogBuffer->keySlotHandle);
+#endif
         if(pEncAESKeyBuffer != NULL)
         {
             NEXUS_Memory_Free(pEncAESKeyBuffer);
@@ -264,21 +275,20 @@ void NEXUS_Sage_P_SAGELogUninit(void)
         g_sage_module.pSageLogBuffer = NULL;
     }
     return;
-#else
-    BDBG_ERR(("%s: TBD not supported", BSTD_FUNCTION));
-    BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    return;
-#endif
 }
 
 static NEXUS_Error NEXUS_Sage_P_SAGELogInit(void)
 {
-#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_Error rc = NEXUS_SUCCESS;
     BSAGElib_SageLogBuffer *pSageLogBuffer = NULL;
     uint8_t *pCRRBuffer = NULL,*pEncAESKeyBuffer = NULL;
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_SecurityKeySlotSettings keyslotSettings;
     NEXUS_SecurityKeySlotInfo keyslotInfo;
+#else
+    NEXUS_KeySlotAllocateSettings keySlotSettings;
+    NEXUS_KeySlotInformation  keyslotInfo;
+#endif
 
     if (!NEXUS_GetEnv("sage_logging")) {
         /* SAGE secure logging is disabled by default. export sage_logging=y to enable. */
@@ -310,11 +320,19 @@ static NEXUS_Error NEXUS_Sage_P_SAGELogInit(void)
         goto handle_err;
     }
 
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_Security_GetDefaultKeySlotSettings(&keyslotSettings);
     keyslotSettings.client = NEXUS_SecurityClientType_eSage;
     keyslotSettings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
 
     pSageLogBuffer->keySlotHandle = (void *)NEXUS_Security_AllocateKeySlot(&keyslotSettings);
+#else
+    NEXUS_KeySlot_GetDefaultAllocateSettings(&keySlotSettings);
+    keySlotSettings.useWithDma = true;
+    keySlotSettings.slotType = NEXUS_KeySlotType_eIvPerSlot;
+    keySlotSettings.owner = NEXUS_SecurityCpuContext_eSage;
+    pSageLogBuffer->keySlotHandle = (void *)NEXUS_KeySlot_Allocate(&keySlotSettings);
+#endif
     if(pSageLogBuffer->keySlotHandle == NULL)
     {
         BDBG_ERR(("%s - Error allocating keyslot", BSTD_FUNCTION));
@@ -322,10 +340,16 @@ static NEXUS_Error NEXUS_Sage_P_SAGELogInit(void)
         goto handle_err;
     }
 
+#if (NEXUS_SECURITY_API_VERSION==1)
     NEXUS_KeySlot_GetInfo(pSageLogBuffer->keySlotHandle, &keyslotInfo);
 
     pSageLogBuffer->keyslotId = keyslotInfo.keySlotNumber;
     pSageLogBuffer->engineType = keyslotInfo.keySlotEngine;
+#else
+    NEXUS_KeySlot_GetInformation(pSageLogBuffer->keySlotHandle, &keyslotInfo);
+    pSageLogBuffer->keyslotId = keyslotInfo.slotNumber;
+#endif
+
     pSageLogBuffer->crrBufferOffset = NEXUS_Sage_P_AddrToOffsetCallback(pCRRBuffer);
     pSageLogBuffer->encAESKeyOffset = NEXUS_Sage_P_AddrToOffsetCallback(pEncAESKeyBuffer);
     g_sage_module.logBufferHeapOffset = NEXUS_Sage_P_AddrToOffsetCallback(pSageLogBuffer);
@@ -347,10 +371,6 @@ handle_err:
         g_sage_module.pSageLogBuffer = NULL;
     }
     return rc;
-#else
-    BDBG_ERR(("%s: TBD not supported", BSTD_FUNCTION));
-    return 0;
-#endif
 }
 static NEXUS_Error NEXUS_Sage_P_SAGElibInit(void)
 {
@@ -431,7 +451,6 @@ void NEXUS_Sage_P_VarCleanup(void)
 
 static NEXUS_Error NEXUS_Sage_P_WaitSageRegion(void)
 {
-#if (NEXUS_SECURITY_API_VERSION==1)
     uint8_t count=0;
     NEXUS_SecurityRegionInfoQuery  regionSatus;
     BERR_Code rc=NEXUS_SUCCESS;
@@ -460,10 +479,6 @@ static NEXUS_Error NEXUS_Sage_P_WaitSageRegion(void)
 
 EXIT:
     return rc;
-#else
-    BDBG_ERR(("%s: TBD not supported", BSTD_FUNCTION));
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-#endif
 }
 
 /****************************************
@@ -912,7 +927,7 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
 
     g_NEXUS_sageModule.SWState = NEXUS_SageSWState_eUnknown;
 
-    /* Check agian (may be called for watchdog/standby) */
+    /* Check again (may be called for watchdog/standby) */
     if((BREG_Read32(g_pCoreHandles->reg, BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT)
         & BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT_SCPU_SW_INIT_MASK)) {
         g_NEXUS_sageModule.reset = 1;
@@ -944,11 +959,19 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
 
     /* Load SAGE bootloader into memory */
     rc = NEXUS_SageModule_P_Load(&blImg, &img_interface, img_context);
-    if(rc != NEXUS_SUCCESS) { goto err; }
+    if(rc != NEXUS_SUCCESS)
+    {
+        BDBG_ERR(("%s - Cannot load SAGE Bootloader image", BSTD_FUNCTION));
+        goto err;
+    }
 
     /* Load SAGE framework into memory */
     rc = NEXUS_SageModule_P_Load(&frameworkImg, &img_interface, img_context);
-    if(rc != NEXUS_SUCCESS) { goto err; }
+    if(rc != NEXUS_SUCCESS)
+    {
+        BDBG_ERR(("%s - Cannot load SAGE Framework image", BSTD_FUNCTION));
+        goto err;
+    }
 
     /* Get start timer */
     NEXUS_Time_Get(&g_NEXUS_sageModule.initTime);
@@ -1023,9 +1046,13 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     NEXUS_Sage_P_SvpInitDelayed(NULL);
 
     /* Install BP3 TA.  Initialize the platform and BP3 module.  Read and process bp3.bin if it exists and not provisioning.  */
-#if (BCHP_CHIP == 7278 && BCHP_VER < BCHP_VER_B0)
+#if ((BCHP_CHIP == 7278 && BCHP_VER < BCHP_VER_B0) || (BCHP_CHIP == 7439 && BCHP_VER > BCHP_VER_A0) || \
+     (BCHP_CHIP == 7250 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7364) || \
+     (BCHP_CHIP == 7445 && BCHP_VER > BCHP_VER_C0) || (BCHP_CHIP == 7252 && BCHP_VER > BCHP_VER_C0) || \
+     (BCHP_CHIP == 7366 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7260 && BCHP_VER < BCHP_VER_B0))
     rc= NEXUS_SUCCESS;
 #else
+    /* Install BP3 TA.  Initialize the platform and BP3 module.  Read and process bp3.bin if it exists and not provisioning.  */
     rc = NEXUS_Sage_P_BP3Init(&g_sage_module.settings);
 #endif
     if (rc != NEXUS_SUCCESS)
@@ -1041,6 +1068,17 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     {
         rc = BERR_TRACE(rc);
         goto err;
+    }
+#else
+    if (NEXUS_GetEnv("nexus_force_sage_sarm"))
+    {
+        /* Install SARM TA.  Initialize the platform and SARM module.  */
+        rc = NEXUS_Sage_P_SARMInit(&g_sage_module.settings);
+        if (rc != NEXUS_SUCCESS)
+        {
+            rc = BERR_TRACE(rc);
+            goto err;
+        }
     }
 #endif
 
@@ -1115,7 +1153,12 @@ void NEXUS_SageModule_Uninit(void)
 
     NEXUS_Sage_P_SecureLog_Uninit();
 
-#if (BCHP_CHIP != 7278 || BCHP_VER != BCHP_VER_A0)
+#if ((BCHP_CHIP == 7278 && BCHP_VER < BCHP_VER_B0) || (BCHP_CHIP == 7439 && BCHP_VER > BCHP_VER_A0) || \
+     (BCHP_CHIP == 7250 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7364) || \
+     (BCHP_CHIP == 7445 && BCHP_VER > BCHP_VER_C0) || (BCHP_CHIP == 7252 && BCHP_VER > BCHP_VER_C0) || \
+     (BCHP_CHIP == 7366 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7260 && BCHP_VER < BCHP_VER_B0))
+    /* BP3 TA is not installed on these legacy parts without BP3 provisionable features */
+#else
     NEXUS_Sage_P_BP3Uninit();
 #endif
     NEXUS_Sage_P_SvpStop(false);

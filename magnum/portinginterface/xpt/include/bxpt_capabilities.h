@@ -380,6 +380,35 @@ In the math below, the arrays are 0-based.
 #define BXPT_P_HAS_AVS_PLUS_WORKAROUND_TWO 1 /* SW7228-61. does not require extra RAVE context */
 #endif
 
+/* Enough to get 7211 transport to compile against real XPT headers. */
+#if (BCHP_CHIP == 7211)
+    #define BXPT_HAS_MULTICHANNEL_PLAYBACK      1
+    #define BXPT_P_MAX_PLAYBACKS 1
+    #define BXPT_P_MAX_RAVE_CONTEXTS 1
+    #define BXPT_NUM_RAVE_CHANNELS 1
+    #define BXPT_NUM_RAVE_CONTEXTS 1
+    #define BXPT_HAS_PID_CHANNEL_PES_FILTERING 1
+    #define BXPT_NUM_SCD 16
+    #define BXPT_NUM_TPIT 1
+    #define BXPT_NUM_TPIT_PIDS 1
+    #define BXPT_NUM_PID_PARSERS 1
+    #define BXPT_NUM_PLAYBACKS 4
+    #define BXPT_NUM_PID_CHANNELS 32
+    #define BXPT_NUM_PCRS 1
+    #define BXPT_NUM_PCR_OFFSET_CHANNELS 1
+    #define BXPT_NUM_PACING_COUNTERS 1
+    #define BXPT_NUM_STCS 1
+    #define BXPT_HAS_PCR_PACING 1
+    #define BXPT_NUM_PACKETSUBS 0
+    #define BXPT_NUM_REMULTIPLEXORS 0
+
+    #define BXPT_HAS_FIXED_RSBUF_CONFIG         1
+    #define BXPT_HAS_FIXED_XCBUF_CONFIG         1
+    #define BXPT_HAS_IB_PID_PARSERS 1
+    #define BXPT_HAS_PLAYBACK_PARSERS 1
+    #define BXPT_HAS_32BIT_PB_TIMESTAMPS 1
+#endif
+
 #ifdef __cplusplus
 }
 #endif

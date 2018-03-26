@@ -116,7 +116,7 @@ static void print_usage(void)
         "  -alpha X                  GFD alpha\n"
         "  -secure {on|off}\n"
         "  -sdgraphic {on|off}\n"
-        "  -dropFrame {enable|disable|track} \tHD display is drop frame, non-drop frame or tracks source (default)\n"
+        "  -dropFrame {enable|disable|track} \tHD display is drop frame (default), non-drop frame or tracks source\n"
         );
     print_list_option("macrovision",g_macrovisionStrs);
     print_list_option("eotf",g_videoEotfStrs);
@@ -154,11 +154,13 @@ static bool drm_configured(const NEXUS_HdmiDynamicRangeMasteringInfoFrame *pInfo
         (int)pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.min != -1;
 }
 
-static void print_settings(const char *name, const NxClient_DisplaySettings *pSettings, const NxClient_PictureQualitySettings *pqSettings)
+#include "hdmi_output_status.inc"
+
+static void print_settings(const NxClient_DisplaySettings *pSettings, const NxClient_PictureQualitySettings *pqSettings)
 {
     char buf[256];
     unsigned n;
-    printf("%s display settings:\n", name);
+    printf("display state:\n");
 
     n = 0;
     n += snprintf(&buf[n], sizeof(buf)-n, "  format: %s", lookup_name(g_videoFormatStrs, pSettings->format));
@@ -203,6 +205,8 @@ static void print_settings(const char *name, const NxClient_DisplaySettings *pSe
             pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.max,
             pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.min);
         }
+        print_hdmi_status();
+
     }
     printf("%s\n", buf);
 
@@ -218,24 +222,6 @@ static void print_settings(const char *name, const NxClient_DisplaySettings *pSe
     }
 }
 
-static const char *g_hdcpState[NEXUS_HdmiOutputHdcpState_eMax] = {
-    "Unpowered",
-    "Unauthenticated",
-    "WaitForValidVideo",
-    "InitializedAuthentication",
-    "WaitForReceiverAuthentication",
-    "ReceiverR0Ready",
-    "R0LinkFailure",
-    "ReceiverAuthenticated",
-    "WaitForRepeaterReady",
-    "CheckForRepeaterReady",
-    "RepeaterReady",
-    "LinkAuthenticated",
-    "EncryptionEnabled",
-    "RepeaterAuthenticationFailure",
-    "RiLinkIntegrityFailure",
-    "PjLinkIntegrityFailure"};
-
 static void print_status(void)
 {
     int rc;
@@ -250,12 +236,6 @@ static void print_status(void)
         printf("%d of %d transcode displays used\n",
             status.transcodeDisplays.used,
             status.transcodeDisplays.total);
-#if NEXUS_HAS_HDMI_OUTPUT
-        printf("HdmiOutput: connected? %c; preferred format %s, hdcp %s\n",
-            status.hdmi.status.connected?'y':'n',
-            lookup_name(g_videoFormatStrs, status.hdmi.status.preferredVideoFormat),
-            g_hdcpState[status.hdmi.hdcp.hdcpState]);
-#endif
     }
 #if NEXUS_HAS_HDMI_OUTPUT
     {
@@ -305,7 +285,7 @@ void nxclient_callback(void *context, int param)
         NxClient_DisplaySettings settings;
         BDBG_WRN(("displaySettingsChanged callback"));
         NxClient_GetDisplaySettings(&settings);
-        print_settings("change", &settings, NULL);
+        print_settings(&settings, NULL);
         }
         break;
     case 3:
@@ -626,14 +606,14 @@ int main(int argc, char **argv)  {
         if (rc) BERR_TRACE(rc);
         rc = NxClient_SetPictureQualitySettings(&pqSettings);
         if (rc) BERR_TRACE(rc);
-        print_settings("new", &displaySettings, &pqSettings);
+        print_settings(&displaySettings, &pqSettings);
 
         if (displaySettings.slaveDisplay[0].mode == NxClient_SlaveDisplayMode_eGraphics) {
             set_sd_graphic();
         }
     }
     else {
-        print_settings("current", &displaySettings, &pqSettings);
+        print_settings(&displaySettings, &pqSettings);
     }
 
     if (wait) {

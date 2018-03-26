@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2005-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 /*================== Module Overview =====================================
 <verbatim>
@@ -1266,6 +1283,7 @@ BERR_Code BAST_CloseChannel(
 );
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
    Returns the BAST_Handle associated with the BAST_ChannelHandle.
@@ -1278,6 +1296,7 @@ BERR_Code BAST_GetDevice(
    BAST_ChannelHandle h,  /* [in] BAST channel handle */
    BAST_Handle *pDev      /* [out] BAST handle */
 );
+#endif
 
 
 /******************************************************************************
@@ -1295,6 +1314,7 @@ BERR_Code BAST_InitAp(
 );
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
    Soft reset the tuner and sds.
@@ -1320,6 +1340,7 @@ BERR_Code BAST_ResetChannel(
    BAST_ChannelHandle h,  /* [in] BAST channel handle */
    bool bForceReset       /* [in] true=force reset, false=abort when busy */
 );
+#endif
 
 
 /******************************************************************************
@@ -1357,6 +1378,7 @@ BERR_Code BAST_GetApVersion(
 );
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
    Configures the top mux block.
@@ -1442,6 +1464,7 @@ BERR_Code BAST_GetGpio(
    uint32_t    mask,   /* [in] selects which GPIO pins to read */
    uint32_t    *state  /* [out] state of selected GPIO pins */
 );
+#endif
 
 
 /******************************************************************************
@@ -1574,6 +1597,7 @@ BERR_Code BAST_EnableDiseqcLnb(
 );
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
    Toggles the Vsense interrupts.
@@ -1586,6 +1610,7 @@ BERR_Code BAST_EnableVsenseInterrupts(
    BAST_ChannelHandle h,   /* [in] BAST channel handle */
    bool bEnable            /* [in] true = enable, false = disable */
 );
+#endif
 
 
 /******************************************************************************
@@ -1656,6 +1681,7 @@ BERR_Code BAST_SendACW(
 );
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
    Resets the FTM block and prepares the BAST PI for FTM operation
@@ -1701,6 +1727,7 @@ BERR_Code BAST_WriteFtm(
    uint8_t n       /* [in] length of data to write */
 );
 #define BAST_WriteFsk(h, pBuf, n) BAST_WriteFtm(h, pBuf, n)
+#endif
 
 
 /******************************************************************************
@@ -1787,6 +1814,7 @@ BERR_Code BAST_GetSoftDecisionBuf(
 );
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
    Read RF/IF AGC
@@ -1844,6 +1872,7 @@ BERR_Code BAST_FreezeEq(
    BAST_ChannelHandle h,  /* [in] BAST handle */
    bool bFreeze           /* [in] true = freeze, false = unfreeze */
 );
+#endif
 
 
 /******************************************************************************
@@ -2011,6 +2040,7 @@ BERR_Code BAST_GetDiseqcEventHandle(
 );
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
    Returns the Diseqc over-voltage & under-voltage event handle.
@@ -2027,6 +2057,7 @@ BERR_Code BAST_GetDiseqcVsenseEventHandles(
    BKNI_EventHandle *hDiseqcOverVoltageEvent,   /* [out] Diseqc event handle */
    BKNI_EventHandle *hDiseqcUnderVoltageEvent   /* [out] Diseqc event handle */
 );
+#endif
 
 
 /******************************************************************************
@@ -2074,6 +2105,7 @@ BERR_Code BAST_AbortAcq(
 );
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
    Configure the LNA.
@@ -2122,6 +2154,7 @@ BERR_Code BAST_ConfigAgc(
    BAST_Handle h,    /* [in] BAST device handle */
    uint32_t    ctl   /* [in] control word, see BAST_AGC_CONFIG_* bit definitions */
 );
+#endif
 
 
 /******************************************************************************
@@ -2173,6 +2206,7 @@ BERR_Code BAST_GetPeakScanEventHandle(
 );
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
    Enables/disables status interrupts
@@ -2199,6 +2233,7 @@ BERR_Code BAST_GetStatusEventHandle(
    BAST_ChannelHandle h,        /* [in] BAST channel handle */
    BKNI_EventHandle  *hEvent    /* [out] status event handle */
 );
+#endif
 
 
 /******************************************************************************
@@ -2277,6 +2312,7 @@ BERR_Code BAST_GetTunerLnaStatus(
 );
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
    Enable/disable spur cancellers.
@@ -2290,6 +2326,7 @@ BERR_Code BAST_EnableSpurCanceller(
    uint8_t            n,             /* [in] number of spurs to cancel (i.e. size of pConfig array), maximum is 6 */
    BAST_SpurCancellerConfig *pConfig /* [in] array of spur settings */
 );
+#endif
 
 
 /******************************************************************************
@@ -2308,6 +2345,7 @@ BERR_Code BAST_SetSearchRange(
 );
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
    Get carrier search range.
@@ -2355,6 +2393,7 @@ BERR_Code BAST_SetTunerFilter(
    BAST_ChannelHandle h,       /* [in] BAST channel handle */
    uint32_t           cutoffHz /* [in] filter cutoff in Hz */
 );
+#endif
 
 
 /******************************************************************************
@@ -2444,7 +2483,8 @@ BERR_Code BAST_SetNetworkSpec(
    BAST_NetworkSpec networkSpec   /* [in] network spec */
 );
 
-   
+
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
    Get the network spec.
@@ -2457,6 +2497,7 @@ BERR_Code BAST_GetNetworkSpec(
    BAST_Handle      h,             /* [in] BAST device handle */
    BAST_NetworkSpec *pNetworkSpec  /* [out] network spec */
 );
+#endif
 
 
 /******************************************************************************
@@ -2474,6 +2515,7 @@ BERR_Code BAST_SetFskChannel(
 );
 
    
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
    Get the channels for FSK Tx/Rx.
@@ -2487,6 +2529,7 @@ BERR_Code BAST_GetFskChannel(
    BAST_FskChannel *fskTxChannel,   /* [out] channel for fsk transmit */
    BAST_FskChannel *fskRxChannel    /* [out] channel for fsk receive */
 );
+#endif
 
 
 /******************************************************************************
@@ -2506,6 +2549,7 @@ BERR_Code BAST_SetPeakScanSymbolRateRange(
 );
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
    Get the symbol rate range used in peak scan function.
@@ -2519,7 +2563,8 @@ BERR_Code BAST_GetPeakScanSymbolRateRange(
    BAST_ChannelHandle h,               /* [in] BAST channel handle */
    uint32_t           *pMinSymbolRate, /* [out] minimum symbol rate in sym/sec */
    uint32_t           *pMaxSymbolRate  /* [out] maximum symbol rate in sym/sec */
-);  
+);
+#endif
 
 
 /******************************************************************************
@@ -2554,6 +2599,7 @@ BERR_Code BAST_GetAdcSelect(
 );
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
    Returns AST PI version information
@@ -2600,6 +2646,7 @@ void BAST_DivU64U32(
    uint32_t *Q_hi,  /* [out] bits 63:32 of quotient */
    uint32_t *Q_lo   /* [out] bits 31:0 of quotient */
 );
+#endif
 
 
 #ifdef __cplusplus

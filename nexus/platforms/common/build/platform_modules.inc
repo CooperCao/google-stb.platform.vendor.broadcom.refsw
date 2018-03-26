@@ -218,6 +218,7 @@ include $(NEXUS_TOP)/modules/input_router/input_router.inc
 endif
 ifneq ($(NEXUS_SIMPLE_DECODER_SUPPORT),n)
 include $(NEXUS_TOP)/modules/simple_decoder/simple_decoder.inc
+include $(NEXUS_TOP)/modules/simple_audio_playback/simple_audio_playback.inc
 endif
 ifneq ($(NEXUS_UART_SUPPORT),n)
 include $(NEXUS_TOP)/modules/uart/uart.inc

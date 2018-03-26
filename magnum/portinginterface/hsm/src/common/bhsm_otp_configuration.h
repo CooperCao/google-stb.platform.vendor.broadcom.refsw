@@ -40,9 +40,22 @@
 #ifndef BHSM_OTP_CONFIGURATION_H__
 #define BHSM_OTP_CONFIGURATION_H__
 
+typedef struct BHSM_ReadProductionOtpIO {
+
+    /* In:  which Production OTP row to read */
+    uint32_t row;
+
+    /* Out: resulting 32 bit data */
+    uint32_t data;
+
+} BHSM_ReadProductionOtpIO_t;
+
+BERR_Code BHSM_ReadProductionOtpData( BHSM_Handle hHsm, BHSM_ReadProductionOtpIO_t* pProdOTPData );
+#if BHSM_SUPPORT_DEBUG_READ_OTP_TYPE
 /*
     Read the otp configuration of the chip, i,e, "ZB", "AD", etc. Only to be used for debug.
 */
 BERR_Code BHSM_DEBUG_GetChipsetOtpType ( BHSM_Handle hHsm, char *pLetter1, char *pLetter2 );
+#endif
 
 #endif

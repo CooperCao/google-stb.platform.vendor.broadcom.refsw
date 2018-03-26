@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -136,6 +136,20 @@ static void tunerLockHandler(void * context)
 } /* tunerLockHandler */
 
 #endif /* if NEXUS_HAS_FRONTEND */
+
+void CTunerScanData::dump()
+{
+    MListItr <uint32_t> itr(&_freqList);
+    uint32_t *          pFreq = NULL;
+
+    BDBG_WRN(("tuner type:%d", getTunerType()));
+    BDBG_WRN(("List of QAM Scan Frequency Requests:"));
+    for (pFreq = (uint32_t *)itr.first(); pFreq; pFreq = (uint32_t *)itr.next())
+    {
+        BDBG_WRN(("freq:%u", *pFreq));
+    }
+    BDBG_WRN(("append to channel list:%d", _appendToChannelList));
+}
 
 CTuner::CTuner(
         const char *     name,
@@ -292,7 +306,6 @@ eRet CTuner::scan(
     eRet ret = eRet_Ok;
 
     BDBG_ASSERT(NULL != id);
-    BDBG_ASSERT(NULL != pScanData);
     BDBG_ASSERT(NULL != callback);
     BDBG_ASSERT(NULL != _pWidgetEngine);
     BDBG_ASSERT(NULL != _pConfig); /* tuner must have access to model config prior to scan */
@@ -301,7 +314,7 @@ eRet CTuner::scan(
     _scanThread_id       = id;
     _scanThread_callback = callback;
     _scanThread_context  = context;
-    saveScanData(pScanData);
+    scanDataSave(pScanData);
 
     if (NULL != _scanThread_handle)
     {
@@ -327,8 +340,11 @@ void CTuner::scanDone(CTunerScanNotificationData * pNotifyData)
      * are only 1 or 2 waiting. */
     flushEvents();
 
-    /* notify scan is stopped and wait until complete */
-    notifyObserversAsync(eNotify_ScanStopped, pNotifyData);
+    /* notify scan is stopped and wait until complete. note that this signifies that
+     * this tuner is done scanning.  other tuners may still be scanning.
+     * eNotify_ScanStoped is used to notify once all tuners are done scanning.
+     */
+    notifyObserversAsync(eNotify_ScanFinish, pNotifyData);
     flushEvents();
 
     _pWidgetEngine->removeCallback(this, CALLBACK_TUNER_SCAN);

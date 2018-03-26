@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -129,6 +129,7 @@ uint32_t BHAB_45308_InitHeader(uint8_t cmd, uint8_t chn, uint8_t dir, uint8_t mo
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BHAB_45308_PrintUart()
 ******************************************************************************/
@@ -152,8 +153,10 @@ BERR_Code BHAB_45308_PrintUart(BHAB_Handle h, char *pStr)
       hab[2+i] = (uint32_t)pStr[i];
    return BHAB_45308_P_SendCommand(h, hab, 3+n);
 }
+#endif /* B_REFSW_MINIMAL */
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BHAB_45308_BscWrite()
 ******************************************************************************/
@@ -182,8 +185,10 @@ BERR_Code BHAB_45308_BscWrite(
 
    return retCode;
 }
+#endif /* B_REFSW_MINIMAL */
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BHAB_45308_BscRead()
 ******************************************************************************/
@@ -219,6 +224,7 @@ BERR_Code BHAB_45308_BscRead(
 
    return retCode;
 }
+#endif /* B_REFSW_MINIMAL */
 
 
 /******************************************************************************
@@ -234,6 +240,7 @@ BERR_Code BHAB_45308_InitXp(BHAB_Handle h, uint8_t x)
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BHAB_45308_GpioConfig()
 ******************************************************************************/
@@ -249,8 +256,10 @@ BERR_Code BHAB_45308_GpioConfig(BHAB_Handle h, uint32_t write_mask, uint32_t rea
    hab[2] = read_mask;
    return BHAB_45308_P_SendCommand(h, hab, 4);
 }
+#endif /* B_REFSW_MINIMAL */
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BHAB_45308_GpioWrite()
 ******************************************************************************/
@@ -266,8 +275,10 @@ BERR_Code BHAB_45308_GpioWrite(BHAB_Handle h, uint32_t pin_mask, uint32_t state_
    hab[2] = state_mask;
    return BHAB_45308_P_SendCommand(h, hab, 4);
 }
+#endif /* B_REFSW_MINIMAL */
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BHAB_45308_GpioRead()
 ******************************************************************************/
@@ -288,8 +299,10 @@ BERR_Code BHAB_45308_GpioRead(BHAB_Handle h, uint32_t pin_mask, uint32_t *pstate
 
    return retCode;
 }
+#endif /* B_REFSW_MINIMAL */
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BHAB_45308_GpoConfig()
 ******************************************************************************/
@@ -305,8 +318,10 @@ BERR_Code BHAB_45308_GpoConfig(BHAB_Handle h, uint32_t write_mask, uint32_t ctl_
    hab[2] = ctl_mask;
    return BHAB_45308_P_SendCommand(h, hab, 4);
 }
+#endif /* B_REFSW_MINIMAL */
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
  BHAB_45308_GpoWrite()
 ******************************************************************************/
@@ -322,3 +337,4 @@ BERR_Code BHAB_45308_GpoWrite(BHAB_Handle h, uint32_t pin_mask, uint32_t state_m
    hab[2] = state_mask;
    return BHAB_45308_P_SendCommand(h, hab, 4);
 }
+#endif /* B_REFSW_MINIMAL */

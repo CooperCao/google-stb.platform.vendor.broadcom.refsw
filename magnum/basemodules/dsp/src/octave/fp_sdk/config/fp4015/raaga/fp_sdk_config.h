@@ -214,6 +214,11 @@
 #  define CHIP_HAS_PARITY 1
 #endif
 
+/* An L2 cache is attached to the core */
+#if 1
+#  define CHIP_HAS_L2_CACHE 1
+#endif
+
 /* An address translation unit is attached to the core */
 #if 1
 #  define CHIP_HAS_ATU 1
@@ -277,13 +282,13 @@
  ************************************************************************/
 
 /* SDK version - raw and decoded */
-#define SDK_VERSION         0x4278273024
-#define SDK_VERSION_DECODED "snapshot, built 4278-27-30"
+#define SDK_VERSION         0xff014500
+#define SDK_VERSION_DECODED "release 1.45"
 
 /* Tools used for buildind the SDK */
-#define FP_GCC_VERSION      "2.7.8"
-#define FP_BINUTILS_VERSION "7.0"
-#define RALL_VERSION        "2.4.5"
+#define FP_GCC_VERSION      "2.7.9.1"
+#define FP_BINUTILS_VERSION "7.1"
+#define RALL_VERSION        "2.5.2"
 
 
 /************************************************************************
@@ -541,6 +546,17 @@
 #  define TARGET_PRINT_SUPPORT 1
 #endif
 
+/* Should target prints be constructed inline. */
+#if defined(TARGET_PRINT_INLINE)
+#  if TARGET_PRINT_INLINE == 0
+#    undef TARGET_PRINT_INLINE
+#  endif
+#else
+#  if 1
+#    define TARGET_PRINT_INLINE 1
+#  endif
+#endif
+
 /* Target Buffer options */
 #define TARGET_BUFFER_VERSION 2
 #if TARGET_BUFFER_VERSION >= 2 && 1
@@ -659,43 +675,54 @@
  *
  * Below macros are based on the assumption that two lines of cores
  * exist, the Firepath DSP one:
- *   fp2006 -> fp2008 -> fp2011 -> fp2012 -> fp4014 -> fp4015 -> ...
+ *   fp2006 -> fp2008 -> fp2011 -> fp2012 -> fp4014 -> fp4015 -> fp4017 -> ...
  * and the Firepath Maestro one:
- *   fpm1015 -> ...
+ *   fpm1015 -> fpm1017 -> ...
  ************************************************************************/
 
-#if defined(__FP2006__) || defined(__FP2008__) || \
-    defined(__FP2011__) || defined(__FP2012__) || \
-    defined(__FP4014__) || defined(__FP4015__)
-#  define __FP2006_ONWARDS__
+#if __FP2006__ || __FP2008__ || \
+    __FP2011__ || __FP2012__ || \
+    __FP4014__ || __FP4015__ || \
+    __FP4017__
+#  define __FP2006_ONWARDS__    1
 #endif
 
-#if defined(__FP2008__) || defined(__FP2011__) || \
-    defined(__FP2012__) || defined(__FP4014__) || \
-    defined(__FP4015__)
-#  define __FP2008_ONWARDS__
+#if __FP2008__ || __FP2011__ || \
+    __FP2012__ || __FP4014__ || \
+    __FP4015__ || __FP4017__
+#  define __FP2008_ONWARDS__    1
 #endif
 
-#if defined(__FP2011__) || defined(__FP2012__) || \
-    defined(__FP4014__) || defined(__FP4015__)
-#  define __FP2011_ONWARDS__
+#if __FP2011__ || __FP2012__ || \
+    __FP4014__ || __FP4015__ || \
+    __FP4017__
+#  define __FP2011_ONWARDS__    1
 #endif
 
-#if defined(__FP2012__) || defined(__FP4014__) || \
-    defined(__FP4015__)
-#  define __FP2012_ONWARDS__
+#if __FP2012__ || __FP4014__ || \
+    __FP4015__ || __FP4017__
+#  define __FP2012_ONWARDS__    1
 #endif
 
-#if defined(__FP4014__) || defined(__FP4015__)
-#  define __FP4014_ONWARDS__
+#if __FP4014__ || __FP4015__ || \
+    __FP4017__
+#  define __FP4014_ONWARDS__    1
 #endif
 
-#if defined(__FP4015__)
-#  define __FP4015_ONWARDS__
+#if __FP4015__ || __FP4017__
+#  define __FP4015_ONWARDS__    1
 #endif
 
-#if defined(__FPM1015__)
-#  define __FPM1015_ONWARDS__
+#if __FP4017__
+#  define __FP4017_ONWARDS__    1
+#endif
+
+#if __FPM1015__ || __FPM1017__
+#  define __FPM1015_ONWARDS__   1
+#endif
+
+#if __FPM1017__
+#  define __FPM1017_ONWARDS__   1
 #endif
 
 

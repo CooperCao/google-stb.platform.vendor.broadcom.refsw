@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -183,21 +183,23 @@ public:
     void            setChannelIndicator(CChannelMgr * pChannelMgr, CPlaylistDb * pPlaylistDb);
     void            setVolumeProgress(uint8_t progress, bool bMute = false);
 #if BDSP_MS12_SUPPORT
-    void            setAudioFadeProgress(uint8_t progress, eWindowType windowType = eWindowType_Max);
-    void            setDialogEnhancementProgress(int nDb);
+    void setAudioFadeProgress(uint8_t progress, eWindowType windowType = eWindowType_Max);
+    void setDialogEnhancementProgress(int nDb);
 #endif
-    eRet            registerObserver(CObserver * pObserver, eNotification notification = eNotify_All);
-    MRect           getPipGraphicsGeometry(CSimpleVideoDecode * pVideoDecode);
-    eRet            showConnectionStatus(bool bConnected, const char * strText, uint32_t timeout = 3000);
-    eRet            showPlaybackTitle(bool bShow = true);
-    eRet            setPlaybackTitle(const char * str);
-    eRet            showDebugTitle(bool bShow = true);
-    eRet            setDebugTitle(const char * str);
-    eRet            updatePlaybackProgress(void);
-    eRet            updateChannelProgress(void);
-    eRet            updatePip(void);
-    void            showMenu(eMenu menu);
-    MString         showKeyboardModal(const char * strTitle, const char * strEntryTitle);
+    eRet    registerObserver(CObserver * pObserver, eNotification notification = eNotify_All);
+    MRect   getPipGraphicsGeometry(CSimpleVideoDecode * pVideoDecode);
+    eRet    showConnectionStatus(bool bConnected, const char * strText, uint32_t timeout = 3000);
+    eRet    showPlaybackTitle(bool bShow = true);
+    eRet    setPlaybackTitle(const char * str);
+    eRet    showDebugTitle(bool bShow = true);
+    eRet    setDebugTitle(const char * str);
+    eRet    showScanResultsTitle(bool bShow = true);
+    eRet    setScanResultsTitle(const char * str);
+    eRet    updatePlaybackProgress(void);
+    eRet    updateChannelProgress(void);
+    eRet    updatePip(void);
+    void    showMenu(eMenu menu);
+    MString showKeyboardModal(const char * strTitle, const char * strEntryTitle);
 #if HAS_VID_NL_LUMA_RANGE_ADJ
     eRet addDynamicRangeIndicator(CSimpleVideoDecode * pVideoDecode);
     void addPlmIndicator(CSimpleVideoDecode * pVideoDecode);
@@ -221,11 +223,11 @@ protected:
     void showMenu(CWidgetMenu * pMenu);
 
 protected:
-    CWidgetProgress *        _pLabelScan;
-    CWidgetProgress *        _pLabelVolume;
+    MAutoList <CWidgetProgress> _scanLabelList;
+    CWidgetProgress *           _pLabelVolume;
 #if BDSP_MS12_SUPPORT
-    CWidgetProgress *        _pLabelAudioFadeMain;
-    CWidgetProgress *        _pLabelAudioFadePip;
+    CWidgetProgress * _pLabelAudioFadeMain;
+    CWidgetProgress * _pLabelAudioFadePip;
 #endif
     MRect                    _rectChannelNum;
     CWidgetLabel *           _pLabelPip;
@@ -241,6 +243,8 @@ protected:
     CWidgetLabel *           _pLabelPlaybackNameShadow;
     CWidgetLabel *           _pLabelDebugName;
     CWidgetLabel *           _pLabelDebugNameShadow;
+    CWidgetLabel *           _pLabelScanResults;
+    CWidgetLabel *           _pLabelScanResultsShadow;
     CWidgetMenu *            _pMainMenu;
     CWidgetButton *          _Display;
     CWidgetButton *          _Decode;
@@ -302,9 +306,9 @@ protected:
     CPanelKeyboard *     _pKeyboard;
     CPanelVbi *          _pVbiMenu;
 #if BDSP_MS12_SUPPORT
-    CPanelAudioAc4 *     _pAudioAc4Menu;
+    CPanelAudioAc4 * _pAudioAc4Menu;
 #endif
-    CTimer               _timerMsgBox;
+    CTimer _timerMsgBox;
 #if NEXUS_HAS_FRONTEND
     CWidgetButton *  _Tuner;
     CWidgetButton *  _ScanQam;

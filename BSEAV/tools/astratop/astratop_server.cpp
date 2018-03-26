@@ -67,6 +67,7 @@ using namespace std;
 
 /*32 bit bitMask 'CPUCoresBitMask' is used to save the bitMask of enabled cores. Hence MAX_NUM_CPU_CORES = 32*/
 #define MAX_NUM_CPU_CORES               32
+#define NUM_CPU_CORES                   4
 #define BUFFSIZE                        1024
 #define TRACELOG_ENTRY_SIZE             50
 #define TRACELOGGER_FILE_PATH           "/dev/tracelog"
@@ -75,7 +76,7 @@ using namespace std;
 /*Define DEBUG_PRINT as printf to log debug prints*/
 #define DEBUG_PRINT                     noPrint
 #define MAX_DATA_FETCHES                400000
-#define MAX_NO_ENTRIES_COUNT            20
+#define MAX_NO_ENTRIES_COUNT            100
 
 typedef int parseError;
 #define TASK_PARTIALLY_PARSED            0
@@ -282,6 +283,7 @@ static void fillTasksDetails(
             }
         }
     }
+    pInstance->cpuTasksMap.clear();
 
     if (addTask == true) {
         pTasksInfo->tasks[tasksCount].taskType = tempTask.taskType;
@@ -470,6 +472,7 @@ int AstraPerf::getCPUCoresInfo(
     void
     )
 {
+#if 0
     vector<char> cpuInfoLog;
     size_t rn;
     int cpuInfoFD;
@@ -503,6 +506,12 @@ int AstraPerf::getCPUCoresInfo(
         }
     }
     cpuInfoLog.clear();
+    return 0;
+#endif
+    int i;
+    for (i = 0; i < NUM_CPU_CORES; i++) {
+        cpuCores.insert((uint8_t)i);
+    }
     return 0;
 }
 
@@ -575,7 +584,6 @@ int AstraPerf::parseEntries(
         goto DONE;
     }
     memset(pGISBData, 0, sizeof(*pGISBData));
-    cpuTasksMap.clear();
     if (logData.data() == NULL) {
         goto DONE;
     }
@@ -790,6 +798,7 @@ void AstraPerf :: resetDataBase(
     )
 {
     set<uint8_t>::iterator coreIt;
+    lock_guard<mutex> guard(tasksMapMutex);
     for (coreIt = cpuCores.begin(); coreIt != cpuCores.end(); ++coreIt) {
         set<uint16_t>& tempSet = cpuTasksMap[*coreIt];
         set<uint16_t>::iterator tempIterator;
@@ -808,6 +817,7 @@ void AstraPerf :: resetDataBase(
             }
         }
     }
+    cpuTasksMap.clear();
 }
 
 
@@ -844,8 +854,7 @@ static void *dataFetchThread(
         }
         else
             noEntriesIteration = 0;
-        this_thread::sleep_for(chrono::milliseconds(500));
-        /*sleep(1);*/
+        this_thread::sleep_for(chrono::milliseconds(100));
     }
     lock_guard<mutex> lk(gAppMutex);
     terminated = true;
