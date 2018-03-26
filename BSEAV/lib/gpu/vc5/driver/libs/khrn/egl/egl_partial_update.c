@@ -7,6 +7,7 @@
 #include "egl_thread.h"
 #include "egl_surface_base.h"
 #include "egl_context_base.h"
+#include "egl_context_gl.h"
 
 EGLAPI EGLBoolean EGLAPIENTRY eglSetDamageRegionKHR(EGLDisplay dpy, EGLSurface surf,
                                                     EGLint *rects, EGLint n_rects)
@@ -41,6 +42,23 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSetDamageRegionKHR(EGLDisplay dpy, EGLSurface s
             surface->num_damage_rects = n_rects;
             memcpy(surface->damage_rects, rects, sizeof(int) * n_rects);
             error = EGL_SUCCESS;
+
+            // If there is a single rect covering the entire surface, invalidate it so that
+            // we won't do any TLB loads. One of the Android performance tests does this!
+            // There can be no draw or clear calls between eglSwapBuffers and eglSetDamageRegion
+            // so invalidating the buffer at this point should be safe.
+            // Note: rects[0] = x, rects[1] = y, rects[2] = width, rects[3] = height
+            if (n_rects == 1 &&
+                rects[0] <= 0 && rects[1] <= 0 &&
+                rects[0] + rects[2] >= (int)surface->width &&
+                rects[1] + rects[3] >= (int)surface->height)
+            {
+               // Just invalidate the buffer
+               khrn_image *back_buffer = egl_surface_get_back_buffer(surface);
+               egl_context_gl_lock();
+               khrn_image_invalidate(back_buffer);
+               egl_context_gl_unlock();
+            }
          }
          else
             error = EGL_BAD_ALLOC;
