@@ -229,6 +229,10 @@ alloc_default:
    if (!block)
    {
       int growRC = NEXUS_SUCCESS;
+
+      void *nexus_client = v3d_get_nexus_client_context();
+      EGL_nexus_trim_cma(nexus_client);
+
       while (block == NULL && growRC == NEXUS_SUCCESS)
       {
 #ifndef NXCLIENT_SUPPORT
