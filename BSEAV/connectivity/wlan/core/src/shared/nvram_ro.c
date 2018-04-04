@@ -59,7 +59,7 @@ static uint8 soc_nvram_calc_crc(struct nvram_header *nvh);
 
 #if defined(NVRAM_FLASH) || defined(BCMNVRAMR)
 #define FILE_PATHLEN	512
-#define NVRAM_FILE_OEM_ANDROID "/hwcfg/nvm.txt"
+#define NVRAM_FILE_OEM_ANDROID "/dev/hwcfg/nvm.txt"
 #define NVRAM_FILE_DEFAULT "nvram.txt"
 extern char nvram_path[];
 extern char board_nvram_path[];
