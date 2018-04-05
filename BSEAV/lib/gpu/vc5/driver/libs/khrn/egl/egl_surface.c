@@ -261,7 +261,9 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
       int buffer_age = surface->buffer_age;
 
       /* If no-one has ever queried the buffer age on this surface, treating it as undefined
-       * allows later optimizations, so force age to 0. */
+       * allows later optimizations, so force age to 0. Setting the khrn_option to disable buffer
+       * age will force buffer_age_enabled off and therefore also treat the buffer as undefined.
+       */
       if (!surface->buffer_age_enabled)
          buffer_age = 0;
 
