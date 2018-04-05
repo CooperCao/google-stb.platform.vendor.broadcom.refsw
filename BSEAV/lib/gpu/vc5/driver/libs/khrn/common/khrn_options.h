@@ -104,7 +104,7 @@ struct khrn_options {
    bool     early_z;                   /* Use early-Z */
    bool     no_compute_batching;
    uint32_t max_worker_threads;        /* Maximum number of worker threads to spawn for computing in parallel */
-
+   bool     disable_buffer_age;        /* Don't expose buffer age and partial update extensions */
 };
 
 extern struct khrn_options khrn_options;

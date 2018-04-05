@@ -21,9 +21,12 @@ static inline char *egl_display_exts_str(char *s_in)
    memcpy(s, "EGL_BRCM_performance_counters", 29);
    s += 29;
    *(s++) = ' ';
-   memcpy(s, "EGL_EXT_buffer_age", 18);
-   s += 18;
-   *(s++) = ' ';
+   if (!khrn_options.disable_buffer_age)
+   {
+      memcpy(s, "EGL_EXT_buffer_age", 18);
+      s += 18;
+      *(s++) = ' ';
+   }
    memcpy(s, "EGL_EXT_create_context_robustness", 33);
    s += 33;
    *(s++) = ' ';
@@ -73,9 +76,12 @@ static inline char *egl_display_exts_str(char *s_in)
    memcpy(s, "EGL_KHR_image_pixmap", 20);
    s += 20;
    *(s++) = ' ';
-   memcpy(s, "EGL_KHR_partial_update", 22);
-   s += 22;
-   *(s++) = ' ';
+   if (!khrn_options.disable_buffer_age)
+   {
+      memcpy(s, "EGL_KHR_partial_update", 22);
+      s += 22;
+      *(s++) = ' ';
+   }
    memcpy(s, "EGL_KHR_surfaceless_context", 27);
    s += 27;
    *(s++) = ' ';
@@ -94,7 +100,8 @@ static inline unsigned egl_display_exts(const char **e_in)
    *(e++) = "EGL_BRCM_event_monitor";
    *(e++) = "EGL_BRCM_gl_framebuffer_image";
    *(e++) = "EGL_BRCM_performance_counters";
-   *(e++) = "EGL_EXT_buffer_age";
+   if (!khrn_options.disable_buffer_age)
+      *(e++) = "EGL_EXT_buffer_age";
    *(e++) = "EGL_EXT_create_context_robustness";
 #if SECURE_SUPPORT
    *(e++) = "EGL_EXT_protected_content";
@@ -114,7 +121,8 @@ static inline unsigned egl_display_exts(const char **e_in)
    *(e++) = "EGL_KHR_image";
    *(e++) = "EGL_KHR_image_base";
    *(e++) = "EGL_KHR_image_pixmap";
-   *(e++) = "EGL_KHR_partial_update";
+   if (!khrn_options.disable_buffer_age)
+      *(e++) = "EGL_KHR_partial_update";
    *(e++) = "EGL_KHR_surfaceless_context";
    *(e++) = "EGL_KHR_wait_sync";
    return e - e_in;
